@@ -260,7 +260,7 @@ void test_hardy_weinberg_exact_test_implementations( std::string const& data, do
 		row_statistics.process( row ) ;
 		row_statistics.floor_genotype_amounts() ;
 
-		std::cout << "row " << std::setw(3) << count << ": " << row_statistics << "\n" ;
+		// std::cout << "row " << std::setw(3) << count << ": " << row_statistics << "\n" ;
 
 		double test_statistic = row_statistics.get_statistic_value< double >( "HWE" ) ;
 		double wigginton_test_statistic = row_statistics.get_statistic_value< double >( "Wigginton" ) ;

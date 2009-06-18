@@ -27,15 +27,12 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 		return std::auto_ptr< GenotypeAssayStatistic >( new SNPHWEStatistic ) ;
 	}
 	else if( statistic_spec == "MLIG" ) {
-		return std::auto_ptr< GenotypeAssayStatistic >( new MaximumLikelihoodForIndependentGenotypes ) ;
+		return std::auto_ptr< GenotypeAssayStatistic >( new LogMaximumLikelihoodForIndependentGenotypes ) ;
 	}
 	else if( statistic_spec == "MLIGHW" ) {
-		return std::auto_ptr< GenotypeAssayStatistic >( new MaximumLikelihoodForIndependentGenotypesInHardyWeinberg ) ;
+		return std::auto_ptr< GenotypeAssayStatistic >( new LogMaximumLikelihoodForIndependentGenotypesInHardyWeinberg ) ;
 	}
 	else if( statistic_spec == "HWLR" ) {
-		return std::auto_ptr< GenotypeAssayStatistic >( new HardyWeinbergLikelihoodRatioStatistic ) ;
-	}
-	else if( statistic_spec == "HWLR test stat" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new HardyWeinbergLikelihoodRatioTestStatistic ) ;
 	}
 	else if( statistic_spec == "NULL" ) {
