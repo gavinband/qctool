@@ -1,0 +1,69 @@
+#include <iostream>
+#include <vector>
+#include <cassert>
+#include <cmath>
+#include "floating_point_utils.hpp"
+#include "GenotypeProportions.hpp"
+
+GenotypeProportions::GenotypeProportions()
+{}
+
+GenotypeProportions::GenotypeProportions( double aa, double ab, double bb )
+ : m_proportion_of_AA( aa ),
+    m_proportion_of_AB( ab ),
+    m_proportion_of_BB( bb )
+{}
+
+bool GenotypeProportions::operator==( GenotypeProportions const& other ) const {
+	return m_proportion_of_AA == other.m_proportion_of_AA
+		&& m_proportion_of_AB == other.m_proportion_of_AB
+		&& m_proportion_of_BB == other.m_proportion_of_BB ;
+}
+
+void GenotypeProportions::floor() {
+	m_proportion_of_AA = std::floor( m_proportion_of_AA ) ;
+	m_proportion_of_AB = std::floor( m_proportion_of_AB ) ;
+	m_proportion_of_BB = std::floor( m_proportion_of_BB ) ;
+}
+
+void GenotypeProportions::round() {
+	m_proportion_of_AA = round_to_nearest_integer( m_proportion_of_AA ) ;
+	m_proportion_of_AB = round_to_nearest_integer( m_proportion_of_AB ) ;
+	m_proportion_of_BB = round_to_nearest_integer( m_proportion_of_BB ) ;
+}
+
+std::ostream& operator<<( std::ostream& aStream, GenotypeProportions const& proportions ) {
+	return aStream << proportions.proportion_of_AA() << " " << proportions.proportion_of_AB() << " " << proportions.proportion_of_BB() ;
+}
+
+GenotypeProportions operator+( GenotypeProportions const& left, GenotypeProportions const& right ) {
+    GenotypeProportions result = left ;
+    result += right ;    
+    return result ;
+}
+
+GenotypeProportions operator/( GenotypeProportions const& left, double right ) {
+    GenotypeProportions result = left ;
+    result /= right ;    
+    return result ;
+}
+
+std::vector< GenotypeProportions > operator+( std::vector<GenotypeProportions> const& left, std::vector<GenotypeProportions> const& right ) {
+    assert( left.size() == right.size() ) ;
+    std::vector<GenotypeProportions > result ( left ) ;
+    for( std::size_t i = 0; i < result.size(); ++i ) {
+        result[i] += right[i] ;
+    }
+
+    return result ;
+}
+
+std::vector< GenotypeProportions > operator/( std::vector<GenotypeProportions> const& left, double scalar ) {
+    assert( scalar != 0.0 ) ;
+    std::vector< GenotypeProportions > result( left ) ;
+    for( std::size_t i = 0; i < result.size(); ++i ) {
+        result[i] /= scalar ;
+    }
+    return result ;
+}
+
