@@ -11,7 +11,6 @@
 GenRowStatistics::GenRowStatistics()
 	: m_row(0)
 {
-	this->add_statistic( "%Minor", std::auto_ptr< GenotypeAssayStatistic >( new MinorAlleleProportionStatistic )) ;
 }
 
 void GenRowStatistics::process( GenRow const& row ) {

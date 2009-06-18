@@ -102,6 +102,27 @@ std::ostream& GenotypeAssayStatistics::format_statistic_values( std::ostream& aS
 }
 
 double MissingDataStatistic:: calculate_value( GenotypeAssayStatistics const& statistics ) const {
-	return statistics.amount_of_missing_data() / statistics.number_of_samples();
+	return statistics.amount_of_missing_data() ;
 }
+
+double MissingDataProportionStatistic:: calculate_value( GenotypeAssayStatistics const& statistics ) const {
+	return statistics.amount_of_missing_data() / statistics.get_genotype_amounts().sum() ;
+}
+
+double NumberOfSamplesStatistic:: calculate_value( GenotypeAssayStatistics const& statistics ) const {
+	return statistics.number_of_samples() ;
+}
+
+double AAStatistic:: calculate_value( GenotypeAssayStatistics const& statistics ) const {
+	return statistics.get_genotype_amounts().AA() ;
+}
+
+double ABStatistic:: calculate_value( GenotypeAssayStatistics const& statistics ) const {
+	return statistics.get_genotype_amounts().AB() ;
+}
+
+double BBStatistic:: calculate_value( GenotypeAssayStatistics const& statistics ) const {
+	return statistics.get_genotype_amounts().BB() ;
+}
+
 

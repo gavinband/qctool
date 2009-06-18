@@ -116,7 +116,6 @@ void process_gen_rows( ObjectSource< GenRow >& gen_row_source, ObjectSink< GenRo
 	}
 
 	if( genStatisticOutputFile.get() ) { 
-		(*genStatisticOutputFile) << "SNPID          RSID        A B : " ;
 		row_statistics.format_column_headers( *genStatisticOutputFile ) << "\n";
 	}
 
@@ -135,16 +134,12 @@ void process_gen_rows( ObjectSource< GenRow >& gen_row_source, ObjectSink< GenRo
 
 				if( genStatisticOutputFile.get() ) {
 					(*genStatisticOutputFile)
-						<< std::setw(14) << std::left << row.SNPID() << " "
-						<< std::setw(11) << std::left << row.RSID() << " "
-						<< row.first_allele() << " " << row.second_allele() << " : "
 						<< row_statistics << "\n" ;
 				}
 			}
 		}
 
 		if( genStatisticOutputFile.get() ) { 
-			(*genStatisticOutputFile) << "SNPID          RSID        A B : " ;
 			row_statistics.format_column_headers( *genStatisticOutputFile ) << "\n";
 		}
 	}

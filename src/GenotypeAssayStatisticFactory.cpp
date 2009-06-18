@@ -17,8 +17,23 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 	if( statistic_spec == "RSID" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowRSID ) ;
 	}
-	else if( statistic_spec == "%Missing" ) {
+	else if( statistic_spec == "#Samples" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new NumberOfSamplesStatistic ) ;
+	}
+	else if( statistic_spec == "AA" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new AAStatistic ) ;
+	}
+	else if( statistic_spec == "AB" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new ABStatistic ) ;
+	}
+	else if( statistic_spec == "BB" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new BBStatistic ) ;
+	}
+	else if( statistic_spec == "Missing" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new MissingDataStatistic ) ;
+	}
+	else if( statistic_spec == "%Missing" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new MissingDataProportionStatistic ) ;
 	}
 	else if( statistic_spec == "HWE" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new HardyWeinbergExactTestStatistic ) ;
