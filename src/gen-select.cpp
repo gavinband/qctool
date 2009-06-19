@@ -84,8 +84,12 @@ void process_options( OptionProcessor& options, int argc, char** argv ) {
 		.set_takes_value()
 		.set_default_value( std::string("") ) ;
 
+	options ["--for-R"]
+		.set_description( "Output statistics in a format suitable for R's read.table()" )
+		.set_default_value( false ) ;
+
 	options.process( argc, argv ) ;
-}        
+}
 
 
 void process_sample_rows( ObjectSource< SampleRow >& sample_row_source, ObjectSink< SampleRow >& sample_row_sink, OptionProcessor const& options ) {
@@ -115,6 +119,8 @@ void process_gen_rows( ObjectSource< GenRow >& gen_row_source, ObjectSink< GenRo
 		}
 	}
 
+	bool for_R = options.get_value< bool > ( "--for-R" ) ;
+
 	if( genStatisticOutputFile.get() ) { 
 		row_statistics.format_column_headers( *genStatisticOutputFile ) << "\n";
 	}
@@ -122,6 +128,8 @@ void process_gen_rows( ObjectSource< GenRow >& gen_row_source, ObjectSink< GenRo
 	// Get the condition to apply to rows.
 	std::string condition_spec = options.get_value< std::string >( "--condition" ) ;
 	std::auto_ptr< RowCondition > condition = RowConditionFactory::create_condition( condition_spec ) ; 	
+
+	std::size_t row_number = 0 ;
 
 	try {		
 		while( !gen_row_source.check_if_empty() ) {
@@ -133,8 +141,11 @@ void process_gen_rows( ObjectSource< GenRow >& gen_row_source, ObjectSink< GenRo
 				gen_row_sink << row ;
 
 				if( genStatisticOutputFile.get() ) {
-					(*genStatisticOutputFile)
-						<< row_statistics << "\n" ;
+					if( for_R ) {
+						(*genStatisticOutputFile)
+							<< std::setw(8) << std::left << ++row_number ;
+					}
+					(*genStatisticOutputFile) << row_statistics << "\n" ;
 				}
 			}
 		}

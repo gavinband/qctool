@@ -15,7 +15,7 @@ std::string data =
 	"SA8 rs008 10070000 G T 1 0 0 0 1 0 0 0 1 0 1 0 0 0 1\n"
 	"SA9 rs009 10080000 G T 0 0 1 0 1 0 0 0 1 0 1 0 0 0 1\n"
 	"SA10 rs010 10090000 A G 0 0 1 0 1 0 1 0 0 0 1 0 1 0 0\n"
-	"SA11 rs011 10100000 C T 0 0 0 0 1 0 1 0 0 1 0 0 1 0 0\n" ;
+	"SA11 rs011 10100000 C T 0 0 0 0 1 0 1 0 0 1 0 0 0.67 0 0.23\n" ;
 
 // For this second set of data, things are more flexible: a single trailing space is permitted and the last line may or may not have a newline.
 std::string more_data =
@@ -51,7 +51,7 @@ void test_genrow_io( std::string const& data ) {
 		std::cout << "row " << count << "\n" ;
 		outStream << row ;
 	}
-	while( inStream.good() && !inStream.eof()) ;
+	while( inStream.good() ) ;
 
 	assert( count == 11 ) ;
 	assert( outStream.str() == data ) ;

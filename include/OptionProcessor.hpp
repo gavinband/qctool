@@ -129,7 +129,7 @@ struct OptionProcessor {
 						}
 					}
 					else {
-						m_argument_values[ arg ] = "" ;
+						m_argument_values[ arg ] = "1" ;
 					}
 				}
 				else

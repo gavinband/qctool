@@ -7,6 +7,8 @@
 	#include <boost/iostreams/filter/gzip.hpp>
 	#include <boost/iostreams/device/file.hpp>
 	namespace bio = boost::iostreams ;
+#else
+	#include <fstream>
 #endif
 
 // Return a stream representing a given input file, optionally with gzip decompression
@@ -29,7 +31,7 @@ open_file_for_input( std::string const& filename, FileCompressionType file_compr
 	if( file_compression_type != e_None ) {
 		throw FileException( "File compression requested.  Please recompile with boost support.") ;		
 	}
-	std::auto_ptr< std::ifstream > stream_ptr( new std::ifstream( filename )) ;
+	std::auto_ptr< std::ifstream > stream_ptr( new std::ifstream( filename.c_str() )) ;
 #endif
 	
 	return INPUT_FILE_PTR( stream_ptr.release() ) ;
@@ -55,7 +57,7 @@ open_file_for_output( std::string const& filename, FileCompressionType file_comp
 	if( file_compression_type != e_None ) {
 		throw FileException( "File compression requested.  Please recompile with boost support.") ;		
 	}
-	std::auto_ptr< std::ifstream > stream_ptr( new std::ifstream( filename )) ;
+	std::auto_ptr< std::ofstream > stream_ptr( new std::ofstream( filename.c_str() )) ;
 #endif
 	return OUTPUT_FILE_PTR( stream_ptr.release() ) ;
 }

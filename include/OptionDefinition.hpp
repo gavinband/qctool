@@ -38,7 +38,6 @@ struct ArgumentDefinition {
 			aStream << value ;
 			m_default_value = aStream.str() ;
 			m_has_default_value = true ;
-			m_takes_value = true ;
 			return *this ;
 		}
 		
