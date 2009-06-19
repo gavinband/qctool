@@ -17,6 +17,7 @@ struct AlleleProportions {
 		AlleleProportions& operator=( AlleleProportions const& other ) {
 			m_proportion_of_A = other.m_proportion_of_A ;
 			m_proportion_of_B = other.m_proportion_of_B ;
+			return *this ;
 		}
 		
 

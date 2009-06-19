@@ -122,7 +122,7 @@ std::istream& operator>>( std::istream& inStream, GenRow& aRow ) {
 	}
 
 	inStream.peek() ; // flag eof
-	return aStream ;
+	return inStream ;
 }
 
 

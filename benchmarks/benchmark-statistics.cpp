@@ -146,7 +146,6 @@ int main( int argc, char** argv ) {
 
 	try	{
 		Whitespace whitespace ;
-		int number_of_snps = 0 ;
 
 		{
 			OUTPUT_FILE_PTR genStatisticOutputFile ;
