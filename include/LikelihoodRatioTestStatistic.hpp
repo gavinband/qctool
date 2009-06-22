@@ -31,7 +31,7 @@ class LogMaximumLikelihoodForIndependentGenotypesInHardyWeinberg: public Genotyp
 } ;
 
 template< typename T1, typename T2 >
-class StatisticDifference: public GenotypeAssayStatistic
+class LRStatisticDifference: public GenotypeAssayStatistic
 {
 	public:
 		double calculate_value( GenotypeAssayStatistics const& assay_statistics ) const {
@@ -65,7 +65,7 @@ class LikelihoodRatioTestStatistic: public GenotypeAssayStatistic
 		}			
 		
 	private:
-		StatisticDifference< T1, T2 > m_statistic_difference ;
+		LRStatisticDifference< T1, T2 > m_statistic_difference ;
 		#ifdef HAVE_BOOST_MATH
 		math::chi_squared_distribution<double> m_chi_squared_distribution ;
 		#endif

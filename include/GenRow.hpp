@@ -4,7 +4,6 @@
 #include <vector>
 #include <string>
 #include <iostream>
-#include <sstream>
 #include "GenotypeProportions.hpp"
 
 class GenRow

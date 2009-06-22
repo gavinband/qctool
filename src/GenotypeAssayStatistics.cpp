@@ -7,29 +7,25 @@
 #include "GenotypeAssayStatistics.hpp"
 #include "floating_point_utils.hpp"
 
+GenotypeAssayStatistic::GenotypeAssayStatistic()
+: m_precision( 4 )
+{} ;
+
 template<>
-double const& GenotypeAssayStatistic::get_value<double>( GenotypeAssayStatistics const& statistics ) const {
-	if( !m_value_is_calculated ) {
-		m_value = calculate_value( statistics ) ;
-		m_value_is_calculated = true ;
-	}
-	return m_value ;
+double GenotypeAssayStatistic::get_value<double>( GenotypeAssayStatistics const& statistics ) const {
+	return calculate_value( statistics ) ;
 }
 
 template<>
-std::string const& GenotypeAssayStatistic::get_value<std::string>( GenotypeAssayStatistics const& statistics ) const {
-	if( !m_string_value_is_calculated ) {
-		m_string_value = calculate_string_value( statistics ) ;
-		m_string_value_is_calculated = true ;
-	}
-	return m_string_value ;
+std::string GenotypeAssayStatistic::get_value<std::string>( GenotypeAssayStatistics const& statistics ) const {
+	return calculate_string_value( statistics ) ;
 }
 
 std::string GenotypeAssayStatistic::calculate_string_value( GenotypeAssayStatistics const& statistics ) const {
 	// default implementation: serialise double value
 	double value = get_value<double>( statistics ) ;
 	std::ostringstream oStream ;
-	oStream << std::fixed << std::setprecision( 2 ) << value ;
+	oStream << std::fixed << std::setprecision( m_precision ) << value ;
 	return oStream.str() ;
 }
 
@@ -65,20 +61,15 @@ void GenotypeAssayStatistics::reset_statistics() {
 	}
 }
 
-void GenotypeAssayStatistic::reset() const {
-	m_value_is_calculated = false ;
-	m_string_value_is_calculated = false ;
-}
-		
 template<>
-double const& GenotypeAssayStatistics::get_statistic_value< double >( std::string const& name ) const {
+double GenotypeAssayStatistics::get_statistic_value< double >( std::string const& name ) const {
 	statistics_t::const_iterator i = m_statistics.find( name ) ;
 	assert( i != m_statistics.end() ) ;
 	return i->second->get_value<double>( *this ) ;
 }
 
 template<>
-std::string const& GenotypeAssayStatistics::get_statistic_value< std::string >( std::string const& name ) const {
+std::string GenotypeAssayStatistics::get_statistic_value< std::string >( std::string const& name ) const {
 	statistics_t::const_iterator i = m_statistics.find( name ) ;
 	assert( i != m_statistics.end() ) ;
 	return i->second->get_value<std::string>( *this ) ;
@@ -100,29 +91,4 @@ std::ostream& GenotypeAssayStatistics::format_statistic_values( std::ostream& aS
 		
 		return aStream ;
 }
-
-double MissingDataStatistic:: calculate_value( GenotypeAssayStatistics const& statistics ) const {
-	return statistics.amount_of_missing_data() ;
-}
-
-double MissingDataProportionStatistic:: calculate_value( GenotypeAssayStatistics const& statistics ) const {
-	return statistics.amount_of_missing_data() / statistics.get_genotype_amounts().sum() ;
-}
-
-double NumberOfSamplesStatistic:: calculate_value( GenotypeAssayStatistics const& statistics ) const {
-	return statistics.number_of_samples() ;
-}
-
-double AAStatistic:: calculate_value( GenotypeAssayStatistics const& statistics ) const {
-	return statistics.get_genotype_amounts().AA() ;
-}
-
-double ABStatistic:: calculate_value( GenotypeAssayStatistics const& statistics ) const {
-	return statistics.get_genotype_amounts().AB() ;
-}
-
-double BBStatistic:: calculate_value( GenotypeAssayStatistics const& statistics ) const {
-	return statistics.get_genotype_amounts().BB() ;
-}
-
 

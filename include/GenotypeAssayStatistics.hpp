@@ -47,7 +47,7 @@ struct GenotypeAssayStatistics: public GenotypeAssayBasicStatistics
 		// Methods to manipulate list of statistics
 		void add_statistic( std::string const& name, std::auto_ptr< GenotypeAssayStatistic > statistic_ptr ) ;
 		template< typename T >
-		T const& get_statistic_value( std::string const& name ) const ;
+		T get_statistic_value( std::string const& name ) const ;
 
 	private:
 
@@ -68,12 +68,15 @@ struct GenotypeAssayStatistics: public GenotypeAssayBasicStatistics
 struct GenotypeAssayStatistic
 {
 	public:
+		GenotypeAssayStatistic() ;
 		virtual ~GenotypeAssayStatistic() {}
 
 		template< typename T>
-		T const& get_value( GenotypeAssayStatistics const& ) const ;
+		T get_value( GenotypeAssayStatistics const& ) const ;
 
-		void reset() const ;
+		virtual void reset() const {};
+
+		void set_precision( std::size_t precision ) { m_precision = precision ; }
 
 	protected:
 		virtual double calculate_value( GenotypeAssayStatistics const& ) const = 0;
@@ -81,50 +84,7 @@ struct GenotypeAssayStatistic
 	
 	private:
 	
-		mutable double m_value ;
-		mutable bool m_value_is_calculated ;
-		mutable std::string m_string_value ;
-		mutable bool m_string_value_is_calculated ;
-} ;
-
-// Statistic which just returns 0.0
-struct NullStatistic: public GenotypeAssayStatistic
-{
-	double calculate_value( GenotypeAssayStatistics const& ) const {
-		return 0.0 ;
-	}
-} ;
-
-// Statistic representing the fraction of data that's missing
-// in an assay.
-struct MissingDataStatistic: public GenotypeAssayStatistic
-{
-	double calculate_value( GenotypeAssayStatistics const& ) const ;
-} ;
-
-struct MissingDataProportionStatistic: public GenotypeAssayStatistic
-{
-	double calculate_value( GenotypeAssayStatistics const& ) const ;
-} ;
-
-struct NumberOfSamplesStatistic: public GenotypeAssayStatistic
-{
-	double calculate_value( GenotypeAssayStatistics const& ) const ;
-} ;
-
-struct AAStatistic: public GenotypeAssayStatistic
-{
-	double calculate_value( GenotypeAssayStatistics const& ) const ;
-} ;
-
-struct ABStatistic: public GenotypeAssayStatistic
-{
-	double calculate_value( GenotypeAssayStatistics const& ) const ;
-} ;
-
-struct BBStatistic: public GenotypeAssayStatistic
-{
-	double calculate_value( GenotypeAssayStatistics const& ) const ;
+		std::size_t m_precision ;
 } ;
 
 

@@ -150,7 +150,7 @@ void process_gen_rows( ObjectSource< GenRow >& gen_row_source, ObjectSink< GenRo
 			}
 		}
 
-		if( genStatisticOutputFile.get() ) { 
+		if( !for_R && genStatisticOutputFile.get() ) { 
 			row_statistics.format_column_headers( *genStatisticOutputFile ) << "\n";
 		}
 	}
