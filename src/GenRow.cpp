@@ -84,20 +84,21 @@ double read_float( std::istream& aStream ) {
 	return result ;
 }
 
-std::istream& operator>>( std::istream& inStream, GenRow& aRow ) {
+
+void GenRow::read_from_text_stream( std::istream& inStream ) {
 	// For speed, first read a line from the file.
 	std::string line ;
 	std::getline( inStream, line ) ;
 	std::istringstream aStream( line ) ;
 	Whitespace whitespace ;
 
-	aStream >> aRow.m_SNPID ;
-	aStream >> aRow.m_RSID ;
-	aStream >> aRow.m_SNP_position ;
-	aStream >> aRow.m_1st_allele ;
-	aStream >> aRow.m_2nd_allele ;
+	aStream >> m_SNPID ;
+	aStream >> m_RSID ;
+	aStream >> m_SNP_position ;
+	aStream >> m_1st_allele ;
+	aStream >> m_2nd_allele ;
 
-	aRow.m_genotype_proportions.clear() ;	
+	m_genotype_proportions.clear() ;	
 
 	do {
 		GenotypeProportions sample_allele_proportions( 0.0, 0.0, 0.0 ) ;
@@ -105,7 +106,7 @@ std::istream& operator>>( std::istream& inStream, GenRow& aRow ) {
 		sample_allele_proportions.proportion_of_AA() = read_float( aStream ) ;
 		sample_allele_proportions.proportion_of_AB() = read_float( aStream ) ;
 		sample_allele_proportions.proportion_of_BB() = read_float( aStream ) ;
-		aRow.m_genotype_proportions.push_back( sample_allele_proportions ) ;
+		m_genotype_proportions.push_back( sample_allele_proportions ) ;
 		aStream >> whitespace ;
 	}
 	while( !aStream.eof() && static_cast<char>( aStream.peek()) != '\n' ) ;
@@ -122,31 +123,103 @@ std::istream& operator>>( std::istream& inStream, GenRow& aRow ) {
 	}
 
 	inStream.peek() ; // flag eof
-	return inStream ;
+	
 }
 
-
-std::ostream& operator<<( std::ostream& aStream, GenRow const& aRow ) {
+void GenRow::write_to_text_stream( std::ostream& aStream ) const {
 	aStream
-		<< aRow.SNPID() << " "
-		<< aRow.RSID() << " "
-		<< aRow.SNP_position() << " "
-		<< aRow.first_allele() << " "
-		<< aRow.second_allele() << " " ;
+		<< SNPID() << " "
+		<< RSID() << " "
+		<< SNP_position() << " "
+		<< first_allele() << " "
+		<< second_allele() << " " ;
 
-	for( std::size_t i = 0 ; i < aRow.number_of_samples() ; ++i ) {
+	for( std::size_t i = 0 ; i < number_of_samples() ; ++i ) {
 		if( i > 0 ) {
 			aStream << " " ;
 		}
 		
 		aStream
-			<< aRow.genotype_proportions_for_sample(i).proportion_of_AA() << " "
-			<< aRow.genotype_proportions_for_sample(i).proportion_of_AB() << " "
-			<< aRow.genotype_proportions_for_sample(i).proportion_of_BB() ;
+			<< genotype_proportions_for_sample(i).AA() << " "
+			<< genotype_proportions_for_sample(i).AB() << " "
+			<< genotype_proportions_for_sample(i).BB() ;
 
 	}
 
-	return aStream << std::endl ;
+	aStream << "\n" ;
+}
+
+void GenRow::read_from_binary_stream( std::istream& aStream ) {
+	std::size_t a_number_of_samples ;
+	// read data into local variables so not to destroy this object's state.
+	std::string SNPID ;
+	std::string RSID ;
+	int SNP_position ;
+	char first_allele, second_allele ;
+	std::vector< GenotypeProportions > genotype_proportions ;
+
+	aStream >> a_number_of_samples ;
+	aStream >> SNPID ;
+	aStream >> RSID ;
+	aStream >> SNP_position ;
+	aStream >> first_allele ;
+	aStream >> second_allele ;
+
+	char space_char ;
+	aStream.read( &space_char, 1 ) ;
+	if( space_char != ' ' ) {
+		throw BadRowFormatException( "Expected space before genotype proportions." ) ;
+	}
+	genotype_proportions.resize( a_number_of_samples ) ;
+
+	for( std::size_t i = 0; i < a_number_of_samples; ++i ) {
+		double AA, AB, BB ;
+		aStream.read( reinterpret_cast< char* >(&AA), sizeof(double)) ;
+		aStream.read( reinterpret_cast< char* >(&AB), sizeof(double)) ;
+		aStream.read( reinterpret_cast< char* >(&BB), sizeof(double)) ;
+		genotype_proportions[i] = GenotypeProportions( AA, AB, BB ) ;
+	}
+	
+	m_SNPID = SNPID ;
+	m_RSID = RSID ;
+	m_SNP_position = SNP_position ;
+	m_1st_allele = first_allele ;
+	m_2nd_allele = second_allele ;
+	m_genotype_proportions = genotype_proportions ;
+	
+	aStream.peek() ;	
+}
+
+void GenRow::write_to_binary_stream( std::ostream& aStream ) const {
+	aStream
+		<< number_of_samples() << " "
+		<< SNPID() << " "
+		<< RSID() << " "
+		<< SNP_position() << " "
+		<< first_allele() << " "
+		<< second_allele() << " " ;
+
+	for( std::size_t i = 0 ; i < number_of_samples() ; ++i ) {
+		double
+			AA = genotype_proportions_for_sample(i).AA(),
+			AB = genotype_proportions_for_sample(i).AB(),
+			BB = genotype_proportions_for_sample(i).BB() ;
+		
+		aStream.write( reinterpret_cast< char* >(&AA), sizeof( double )) ;
+		aStream.write( reinterpret_cast< char* >(&AB), sizeof( double )) ;
+		aStream.write( reinterpret_cast< char* >(&BB), sizeof( double )) ;
+	}
+}
+
+
+std::istream& operator>>( std::istream& inStream, GenRow& aRow ) {
+	aRow.read_from_text_stream( inStream ) ;
+	return inStream ;
+}
+
+std::ostream& operator<<( std::ostream& aStream, GenRow const& aRow ) {
+	aRow.write_to_text_stream( aStream ) ;
+	return aStream ;
 }
 
 

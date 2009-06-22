@@ -19,13 +19,15 @@ struct FileException: public GToolException
 } ;
 
 //
-enum FileCompressionType {e_None = 0, e_Gzip = 1, e_Bzip2 = 2 } ;
+enum FileCompressionType {e_None = 0x1, e_Gzip = 0x2, e_Bzip2 = 0x4, e_FileCompressionMask = 0xf } ;
+enum FileModeType { e_TextMode = 0x10, e_BinaryMode = 0x20, e_FileModeMask = 0xf0 } ;
 
 FileCompressionType determine_file_compression( std::string const& filename ) ;
+FileModeType determine_file_mode( std::string const& filename ) ;
 
 // Return a stream representing a given input file, optionally with decompression
 INPUT_FILE_PTR
-open_file_for_input( std::string const& filename, FileCompressionType file_compression ) ;
+open_file_for_input( std::string const& filename, int mode_flags ) ;
 
 // Return a stream representing a given input file, attempting to auto-detect any compression used.
 INPUT_FILE_PTR
@@ -33,7 +35,7 @@ open_file_for_input( std::string const& filename ) ;
 
 // Return a stream representing a given output file, optionally with compression.
 OUTPUT_FILE_PTR
-open_file_for_output( std::string const& filename, FileCompressionType file_compression ) ;
+open_file_for_output( std::string const& filename, int mode_flags ) ;
 
 // Return a stream representing a given output file, guessing compression option from the filename.
 OUTPUT_FILE_PTR
@@ -41,9 +43,9 @@ open_file_for_output( std::string const& filename ) ;
 
 // Read a set of things from a file (optionally gzipped).
 template< typename Set >
-Set read_set_from_file( std::string filename, FileCompressionType file_compression ) {
+Set read_set_from_file( std::string filename, int mode_flags ) {
 	Set aSet ;
-	INPUT_FILE_PTR aStream( open_file_for_input( filename, file_compression )) ;
+	INPUT_FILE_PTR aStream( open_file_for_input( filename, mode_flags )) ;
 	if( aStream.get() && aStream->good() ) {
 		std::copy( std::istream_iterator< typename Set::value_type >( *aStream ),
 		           std::istream_iterator< typename Set::value_type >(),

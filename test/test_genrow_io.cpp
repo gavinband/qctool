@@ -82,8 +82,32 @@ void test_genrow_io2( std::string const& data ) {
 	assert( count == 28 ) ;
 }
 
+// Test that we can read in GenRows, output them, read them in, and they're the same.
+void test_genrow_binary_io( std::string const& data ) {
+	std::cout << "test_genrow_binary_io\n" ;
+	std::istringstream inStream( data ) ;
+
+	GenRow row, row2 ;
+	int count = 0;
+	
+	do {
+		inStream >> row ;
+		++count ;
+		std::cout << "row " << count << "\n" ;
+		std::ostringstream outStream ;
+		row.write_to_binary_stream( outStream ) ;
+		std::istringstream anotherInStream( outStream.str() ) ;
+		row2.read_from_binary_stream( anotherInStream ) ;
+		assert( row2 == row ) ;
+	}
+	while( inStream.good() ) ;
+
+	assert( count == 28 ) ;
+}
+
 int main( int argc, char** argv ) {
 	test_genrow_io( data ) ;
 	test_genrow_io2( data + more_data ) ;
+	test_genrow_binary_io( data + more_data ) ;
 }
 

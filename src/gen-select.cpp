@@ -27,8 +27,8 @@
 #include "Whitespace.hpp"
 #include "FileUtil.hpp"
 #include "GenRowStatistics.hpp"
-#include "SimpleFileObjectSource.hpp"
-#include "SimpleFileObjectSink.hpp"
+#include "GenRowFileSource.hpp"
+#include "GenRowFileSink.hpp"
 #include "SampleInputFile.hpp"
 #include "GenotypeAssayStatisticFactory.hpp"
 #include "HardyWeinbergExactTestStatistic.hpp"
@@ -131,7 +131,7 @@ void process_gen_rows( ObjectSource< GenRow >& gen_row_source, ObjectSink< GenRo
 
 	std::size_t row_number = 0 ;
 
-	try {		
+	try {
 		while( !gen_row_source.check_if_empty() ) {
 			gen_row_source >> row ;
 			row_statistics.process( row ) ;
@@ -145,7 +145,10 @@ void process_gen_rows( ObjectSource< GenRow >& gen_row_source, ObjectSink< GenRo
 						(*genStatisticOutputFile)
 							<< std::setw(8) << std::left << ++row_number ;
 					}
-					(*genStatisticOutputFile) << row_statistics << "\n" ;
+					// If there are stats to output, do so now.
+					if( row_statistics.size() > 0 ) {
+						(*genStatisticOutputFile) << row_statistics << "\n" ;
+					}
 				}
 			}
 		}
@@ -193,7 +196,11 @@ int main( int argc, char** argv ) {
 
 			if( options.check_if_argument_was_supplied( "--g" )) {
 				std::string genFileName = options.get_value< std::string >( "--g" ) ;
-				genRowSource.reset( new SimpleFileObjectSource< GenRow >( open_file_for_input( genFileName ))) ;
+				if( determine_file_mode( genFileName ) & e_BinaryMode ) {
+					genRowSource.reset( new SimpleGenRowBinaryFileSource( open_file_for_input( genFileName ))) ;
+				} else {
+					genRowSource.reset( new SimpleFileObjectSource< GenRow >( open_file_for_input( genFileName ))) ;
+				}
 			}
 			if( options.check_if_argument_was_supplied( "--s" )) {
 				std::string sampleFileName = options.get_value< std::string >( "--s" ) ;
@@ -201,7 +208,11 @@ int main( int argc, char** argv ) {
 			}
 			if( options.check_if_argument_was_supplied( "--og" ) ) {
 				std::string genOutputFileName = options.get_value< std::string >( "--og" ) ;
-				genRowSink.reset( new SimpleFileObjectSink< GenRow >( open_file_for_output( genOutputFileName ))) ;
+				if( determine_file_mode( genOutputFileName ) & e_BinaryMode ) {
+					genRowSink.reset( new SimpleGenRowBinaryFileSink( open_file_for_output( genOutputFileName ))) ;
+				} else {
+					genRowSink.reset( new SimpleFileObjectSink< GenRow >( open_file_for_output( genOutputFileName ))) ;
+				}
 			}
 			if( options.check_if_argument_was_supplied( "--os" ) ) {
 				std::string sampleOutputFileName = options.get_value< std::string >( "--os" ) ;

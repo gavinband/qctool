@@ -77,10 +77,10 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 	else if( statistic_spec == "MAF" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new MinorAlleleProportionStatistic ) ;
 	}
-	else if( statistic_spec == "HWE" ) {
+	else if( statistic_spec == "HWE(slow)" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new HardyWeinbergExactTestStatistic ) ;
 	}
-	else if( statistic_spec == "Wigginton" ) {
+	else if( statistic_spec == "HWE" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new SNPHWEStatistic ) ;
 	}
 	else if( statistic_spec == "MLIG" ) {

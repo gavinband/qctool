@@ -49,6 +49,8 @@ struct GenotypeAssayStatistics: public GenotypeAssayBasicStatistics
 		template< typename T >
 		T get_statistic_value( std::string const& name ) const ;
 
+		std::size_t size() const { return m_statistics.size() ; }
+
 	private:
 
 		void reset_statistics() ;

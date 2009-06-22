@@ -28,7 +28,12 @@ class GenRow
 
 	public:
 		bool operator==( GenRow const& right ) const ;
-		
+
+		void write_to_text_stream( std::ostream& aStream ) const ;
+		void read_from_text_stream( std::istream& aStream ) ;
+		void write_to_binary_stream( std::ostream& aStream ) const ;
+		void read_from_binary_stream( std::istream& aStream ) ;
+
 	private:
 
 		std::string m_SNPID ;

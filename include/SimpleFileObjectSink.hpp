@@ -18,6 +18,7 @@ public:
 		assert( !check_if_full() ) ;
 		(*m_stream_ptr) << object ;
 	}
+
 	bool check_if_full() {
 		return !m_stream_ptr.get() || !m_stream_ptr->good() ;
 	}
