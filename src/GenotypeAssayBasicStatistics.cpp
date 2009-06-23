@@ -14,6 +14,16 @@ void GenotypeAssayBasicStatistics::round_genotype_amounts() {
 	m_genotype_amounts.round() ;
 }
 
+void GenotypeAssayBasicStatistics::zero_genotype_amounts() {
+	m_genotype_amounts.zero() ;
+}
+
+void GenotypeAssayBasicStatistics::reset() {
+	m_genotype_amounts.zero() ;
+	m_number_of_samples = 0 ;
+}
+
+
 std::ostream& GenotypeAssayBasicStatistics::format_column_headers( std::ostream& aStream ) const {
 	return aStream ;
 }

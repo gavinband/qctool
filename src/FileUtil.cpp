@@ -11,6 +11,10 @@
 	#include <fstream>
 #endif
 
+#if HAVE_BOOST_FILESYSTEM
+	#include <boost/filesystem.hpp>
+	namespace BFS = boost::filesystem ;
+#endif
 
 // Return a stream representing a given input file, optionally with gzip decompression
 INPUT_FILE_PTR
@@ -119,4 +123,30 @@ open_file_for_output( std::string const& filename ) {
 	return open_file_for_output( filename, file_compression | file_mode ) ;
 }
 
+std::vector< std::string > find_files_matching_path_with_wildcard( std::string dir, std::string filename_with_wildcard ) {
+	std::vector< std::string > result ;
+#if HAVE_BOOST_FILESYSTEM
+	BFS::directory_iterator dir_i( dir ), end_i ;
 
+	std::size_t wildcard_pos = filename_with_wildcard.find( '*' ) ;
+	std::string first_bit = filename_with_wildcard.substr( 0, wildcard_pos ) ;
+	std::string second_bit = "" ;
+	if( wildcard_pos != std::string::npos ) {
+		second_bit = filename_with_wildcard.substr( wildcard_pos + 1, filename_with_wildcard.size()) ;
+	}
+	
+	for( ; dir_i != end_i; ++dir_i ) {
+		if( BFS::is_regular_file( *dir_i )) {
+			std::string filename = dir_i->string();
+			if( filename.size() == filename_with_wildcard.size() ) {
+				if( first_bit == filename.substr( 0, first_bit.size()) ) {
+					if( second_bit == filename.substr( filename.size() - second_bit.size(), second_bit.size()) ) {
+						result.push_back( filename ) ;
+					}
+				}
+			}
+		}
+	}
+#endif
+	return result ;
+}

@@ -86,7 +86,7 @@ void process_gen_rows( ObjectSource< GenRow >& gen_row_source, OptionProcessor c
 	std::size_t number_of_iterations = options.get_value< std::size_t >( "--ni" ) ;
 
 	std::string statistics_spec_str = options.get_value< std::string >( "--statistics" ) ;
-	std::vector< std::string > statistic_specs = split_discarding_empty_entries_and_strip( statistics_spec_str, "," ) ;
+	std::vector< std::string > statistic_specs = split_and_strip_discarding_empty_entries( statistics_spec_str, "," ) ;
 
 	try {		
 		// Read in a list of genRows.

@@ -17,15 +17,17 @@ struct GenotypeAssayBasicStatistics
 		GenotypeAssayBasicStatistics() {} ;
 		virtual ~GenotypeAssayBasicStatistics() {} ;
 
+		// Methods to process some GenotypeProportion objects representing the assay.
 		template< typename Iterator >
 		void process( Iterator begin, Iterator const& end ) {
+			reset() ;
 			m_number_of_samples = std::distance( begin, end ) ;
 			GenotypeProportions zero_amounts( 0.0, 0.0, 0.0 ) ;
 			m_genotype_amounts = std::accumulate( begin, end, zero_amounts ) ;
 		}
-		
+
+		// Get basic statistics about the assay.
 		std::size_t number_of_samples() const { return m_number_of_samples ; }
-		double amount_of_missing_data() const { return number_of_samples() - m_genotype_amounts.sum(); }
 
 		GenotypeProportions const& get_genotype_amounts() const { return m_genotype_amounts ; }
 		GenotypeProportions get_mean_genotype_proportions() const { return m_genotype_amounts / m_genotype_amounts.sum() ; }
@@ -36,12 +38,17 @@ struct GenotypeAssayBasicStatistics
 		AlleleProportions get_mean_allele_proportions() const { return get_allele_amounts() / (2.0 * m_genotype_amounts.sum()) ; }
 
 		// Methods to manipulate stored genotype count.
+		void zero_genotype_amounts() ;
 		void floor_genotype_amounts() ;
 		void round_genotype_amounts() ;
+		virtual void reset() ;
 
 		// Methods for formatted output.
 		virtual std::ostream& format_column_headers( std::ostream& ) const ;
 		virtual std::ostream& format_statistic_values( std::ostream& aStream ) const ;
+
+	protected:
+		void set_number_of_samples( std::size_t number_of_samples ) { m_number_of_samples = number_of_samples ;}
 
 	private:
 		std::size_t m_number_of_samples ;

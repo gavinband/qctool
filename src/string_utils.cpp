@@ -26,9 +26,9 @@ namespace impl {
 			std::size_t pos = 0 ;
 			do {
 				pos = string_to_split.find( splitter ) ;
-				std::string substr = string_to_split.substr(0, pos) ;
+				std::string substr = strip( string_to_split.substr(0, pos), strip_chars ) ;
 				if( empty_entry_treatment_selector == ePreserveEmptyEntries || substr.size() > 0 ) {
-					substrings.push_back( strip( substr, strip_chars )) ;
+					substrings.push_back( substr ) ;
 				}
 				if( pos != std::string::npos ) {
 					string_to_split = string_to_split.substr( pos + splitter.size(), string_to_split.size() ) ;
@@ -57,7 +57,7 @@ std::vector< std::string > split_and_strip( std::string string_to_split, std::st
 	return impl::split_and_strip( string_to_split, splitter, impl::ePreserveEmptyEntries, strip_chars ) ;
 }
 
-std::vector< std::string > split_discarding_empty_entries_and_strip( std::string string_to_split, std::string splitter, std::string strip_chars ) {
+std::vector< std::string > split_and_strip_discarding_empty_entries( std::string string_to_split, std::string splitter, std::string strip_chars ) {
 	return impl::split_and_strip( string_to_split, splitter, impl::eDiscardEmptyEntries, strip_chars ) ;	
 }
 

@@ -53,7 +53,9 @@ void GenotypeAssayStatistics::add_statistic( std::string const& name, std::auto_
 		m_statistics[name] = statistic_ptr.release() ;
 }
 
-void GenotypeAssayStatistics::reset_statistics() {
+void GenotypeAssayStatistics::reset() {
+	base_t::reset() ;
+
 	statistics_t::iterator i = m_statistics.begin(),
 		end_i = m_statistics.end() ;
 	for( ; i != end_i ; ++i ) {

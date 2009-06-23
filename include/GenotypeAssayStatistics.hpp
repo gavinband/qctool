@@ -38,12 +38,6 @@ struct GenotypeAssayStatistics: public GenotypeAssayBasicStatistics
 		GenotypeAssayStatistics() ;
 		~GenotypeAssayStatistics() ;
 
-		template< typename Iterator >
-		void process( Iterator begin, Iterator const& end ) {
-			reset_statistics() ;
-			base_t::process( begin, end ) ;
-		}
-		
 		// Methods to manipulate list of statistics
 		void add_statistic( std::string const& name, std::auto_ptr< GenotypeAssayStatistic > statistic_ptr ) ;
 		template< typename T >
@@ -53,7 +47,7 @@ struct GenotypeAssayStatistics: public GenotypeAssayBasicStatistics
 
 	private:
 
-		void reset_statistics() ;
+		void reset() ;
 	
 		typedef std::map< std::string, GenotypeAssayStatistic* > statistics_t ;
 		statistics_t m_statistics ;

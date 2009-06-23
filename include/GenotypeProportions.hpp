@@ -26,6 +26,7 @@ struct GenotypeProportions
 
 	void floor() ;
 	void round() ;
+	void zero() ;
 	
 	// New shorter access functions
 	double& AA() { return m_proportion_of_AA ; }

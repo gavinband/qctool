@@ -4,6 +4,7 @@
 #include <iostream>
 #include <algorithm>
 #include <string>
+#include <vector>
 #include <iterator>
 #include <iostream>
 #include <GToolException.hpp>
@@ -40,6 +41,8 @@ open_file_for_output( std::string const& filename, int mode_flags ) ;
 // Return a stream representing a given output file, guessing compression option from the filename.
 OUTPUT_FILE_PTR
 open_file_for_output( std::string const& filename ) ;
+
+std::vector< std::string > find_files_matching_path_with_wildcard( std::string dir, std::string filename_with_wildcards ) ;
 
 // Read a set of things from a file (optionally gzipped).
 template< typename Set >

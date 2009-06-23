@@ -32,6 +32,10 @@ void GenotypeProportions::round() {
 	m_proportion_of_BB = round_to_nearest_integer( m_proportion_of_BB ) ;
 }
 
+void GenotypeProportions::zero() {
+	m_proportion_of_AA = m_proportion_of_AB = m_proportion_of_BB = 0.0 ;
+}
+
 std::ostream& operator<<( std::ostream& aStream, GenotypeProportions const& proportions ) {
 	return aStream << proportions.proportion_of_AA() << " " << proportions.proportion_of_AB() << " " << proportions.proportion_of_BB() ;
 }
