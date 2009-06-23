@@ -117,13 +117,9 @@ public:
 	} ;
 
 	void open_gen_row_source() {
-		gen_row_source.reset( new NullObjectSource< GenRow >() ) ;
-		std::string genFileName = m_options.get_value< std::string >( "--g" ) ;
-		if( determine_file_mode( genFileName ) & e_BinaryMode ) {
-			gen_row_source.reset( new SimpleGenRowBinaryFileSource( open_file_for_input( genFileName ))) ;
-		} else {
-			gen_row_source.reset( new SimpleFileObjectSource< GenRow >( open_file_for_input( genFileName ))) ;
-		}
+		std::string genFileNameWithWildcard = m_options.get_value< std::string >( "--g" ) ;
+		std::vector< std::string > filenames = find_files_matching_path_with_wildcard( genFileNameWithWildcard ) ;
+		gen_row_source = get_genrow_source_from_files( filenames ) ;
 	}
 	
 	void open_gen_row_sink() {
@@ -205,7 +201,7 @@ private:
 			accumulate_per_column_amounts( row, m_per_column_amounts ) ;
 		}
 	#ifdef HAVE_BOOST_TIMER
-		std::cerr << "gen-select: processed GEN file (" << m_number_of_gen_rows << " rows) in " << timer.elapsed() << " seconds.\n" ;
+		std::cerr << "gen-select: processed GEN file(s) (" << m_number_of_gen_rows << " rows) in " << timer.elapsed() << " seconds.\n" ;
 	#endif
 	}
 	
@@ -218,7 +214,7 @@ private:
 			if( genStatisticOutputFile.get() ) {
 				if( m_row_statistics.size() > 0 ) {
 					(*genStatisticOutputFile)
-						<< std::setw(8) << std::left << ++row_number
+						<< std::setw(8) << std::left << row_number
 						<< m_row_statistics << "\n" ;
 				}
 			}
@@ -334,10 +330,16 @@ int main( int argc, char** argv ) {
 }
 
 void check_if_file_is_readable( std::string const& option_name, std::string const& filename ) {
-    std::ifstream file( filename.c_str() ) ;
-    if( !file.good() ) {
-        throw ArgumentInvalidException( "File \"" + filename + "\" supplied for option " + option_name + " is not readable." ) ;
-    }    
+	std::vector< std::string > filenames = find_files_matching_path_with_wildcard( filename ) ;
+	if( filenames.empty() ) {
+		throw ArgumentInvalidException( "The supplied filename \"" + filename + "\" does not correspond to an existing file." ) ;
+	}
+	for( std::size_t i = 0; i < filenames.size(); ++i ) {
+    	std::ifstream file( filenames[i].c_str() ) ;
+	    if( !file.good() ) {
+	        throw ArgumentInvalidException( "File \"" + filenames[i] + "\" supplied for option " + option_name + " is not readable." ) ;
+	    }    
+	}
 }
 
 void check_condition_spec( std::string const& option_name, std::string const& condition_spec ) {

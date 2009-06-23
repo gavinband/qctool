@@ -123,8 +123,13 @@ open_file_for_output( std::string const& filename ) {
 	return open_file_for_output( filename, file_compression | file_mode ) ;
 }
 
-std::vector< std::string > find_files_matching_path_with_wildcard( std::string dir, std::string filename_with_wildcard ) {
+std::vector< std::string > find_files_matching_path_with_wildcard( std::string filename_with_wildcard ) {
 	std::vector< std::string > result ;
+	BFS::path dir = BFS::path( filename_with_wildcard ).parent_path() ;
+  	filename_with_wildcard = BFS::path( filename_with_wildcard ).filename() ;
+	if( dir.empty() ) {
+		dir = "." ;
+	}
 #if HAVE_BOOST_FILESYSTEM
 	BFS::directory_iterator dir_i( dir ), end_i ;
 
@@ -137,11 +142,13 @@ std::vector< std::string > find_files_matching_path_with_wildcard( std::string d
 	
 	for( ; dir_i != end_i; ++dir_i ) {
 		if( BFS::is_regular_file( *dir_i )) {
-			std::string filename = dir_i->string();
-			if( filename.size() == filename_with_wildcard.size() ) {
+			std::string filename = dir_i->filename();
+			if( filename.size() >= ( first_bit.size() + second_bit.size()) ) {
 				if( first_bit == filename.substr( 0, first_bit.size()) ) {
-					if( second_bit == filename.substr( filename.size() - second_bit.size(), second_bit.size()) ) {
-						result.push_back( filename ) ;
+					if(( filename.size() == first_bit.size())
+					|| (( wildcard_pos != std::string::npos )
+					&& (second_bit == filename.substr( filename.size() - second_bit.size(), second_bit.size())))) {
+						result.push_back(( dir / filename ).string() ) ;
 					}
 				}
 			}
@@ -149,4 +156,16 @@ std::vector< std::string > find_files_matching_path_with_wildcard( std::string d
 	}
 #endif
 	return result ;
+}
+
+bool exists( std::string const& filename ) {
+#if HAVE_BOOST_FILESYSTEM
+	return BFS::exists( filename ) ;
+#endif
+}
+
+bool is_regular( std::string const& filename ) {
+#if HAVE_BOOST_FILESYSTEM
+	return BFS::is_regular( filename ) ;
+#endif
 }

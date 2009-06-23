@@ -42,7 +42,11 @@ open_file_for_output( std::string const& filename, int mode_flags ) ;
 OUTPUT_FILE_PTR
 open_file_for_output( std::string const& filename ) ;
 
-std::vector< std::string > find_files_matching_path_with_wildcard( std::string dir, std::string filename_with_wildcards ) ;
+std::vector< std::string > find_files_matching_path_with_wildcard( std::string filename_with_wildcards ) ;
+
+bool exists( std::string const& filename ) ;
+bool is_regular( std::string const& filename ) ;
+
 
 // Read a set of things from a file (optionally gzipped).
 template< typename Set >
