@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <cassert>
 #include "FileUtil.hpp"
 #include "../config.hpp"
 #ifdef HAVE_BOOST_IOSTREAMS
@@ -25,9 +26,11 @@ open_file_for_input( std::string const& filename, int mode_flags ) {
 		open_mode |= std::ios_base::binary ;
 	}
 
+	int compression_flags = mode_flags & e_FileCompressionMask ;
+
 #ifdef HAVE_BOOST_IOSTREAMS
 	std::auto_ptr< bio::filtering_istream > stream_ptr( new bio::filtering_istream ) ;
-	switch( mode_flags & e_FileCompressionMask ) {
+	switch( compression_flags ) {
 		case e_Gzip :
 			stream_ptr->push(bio::gzip_decompressor());
 			break ;
@@ -39,7 +42,7 @@ open_file_for_input( std::string const& filename, int mode_flags ) {
 	}
 	stream_ptr->push( bio::file_source( filename, open_mode )) ;
 #else
-	if( file_compression_type != e_None ) {
+	if( compression_flags != e_None ) {
 		throw FileException( "File compression requested.  Please recompile with boost support.") ;		
 	}
 	std::auto_ptr< std::ifstream > stream_ptr( new std::ifstream( filename.c_str(), open_mode )) ;
@@ -56,9 +59,10 @@ open_file_for_output( std::string const& filename, int mode_flags ) {
 		open_mode |= std::ios_base::binary ;
 	}
 
+	int compression_flags = mode_flags & e_FileCompressionMask ;
+
 #ifdef HAVE_BOOST_IOSTREAMS
 	std::auto_ptr< bio::filtering_ostream > stream_ptr( new bio::filtering_ostream ) ;
-	int compression_flags = mode_flags & e_FileCompressionMask ;
 	switch( compression_flags ) {
 		case e_Gzip:
 			stream_ptr->push(bio::gzip_compressor());
@@ -74,10 +78,10 @@ open_file_for_output( std::string const& filename, int mode_flags ) {
 	}
 	stream_ptr->push( bio::file_sink( filename, open_mode )) ;
 #else
-	if( file_compression_type != e_None ) {
+	if( compression_flags != e_None ) {
 		throw FileException( "File compression requested.  Please recompile with boost support.") ;		
 	}
-	std::auto_ptr< std::ofstream > stream_ptr( new std::ofstream( filename.c_str(), mode_flags )) ;
+	std::auto_ptr< std::ofstream > stream_ptr( new std::ofstream( filename.c_str(), open_mode )) ;
 #endif
 	return OUTPUT_FILE_PTR( stream_ptr.release() ) ;
 }
@@ -125,12 +129,13 @@ open_file_for_output( std::string const& filename ) {
 
 std::vector< std::string > find_files_matching_path_with_wildcard( std::string filename_with_wildcard ) {
 	std::vector< std::string > result ;
+	std::size_t wildcard_pos = filename_with_wildcard.find( '*' ) ;
+#if HAVE_BOOST_FILESYSTEM
 	BFS::path dir = BFS::path( filename_with_wildcard ).parent_path() ;
   	filename_with_wildcard = BFS::path( filename_with_wildcard ).filename() ;
 	if( dir.empty() ) {
 		dir = "." ;
 	}
-#if HAVE_BOOST_FILESYSTEM
 	BFS::directory_iterator dir_i( dir ), end_i ;
 
 	std::size_t wildcard_pos = filename_with_wildcard.find( '*' ) ;
@@ -154,6 +159,9 @@ std::vector< std::string > find_files_matching_path_with_wildcard( std::string f
 			}
 		}
 	}
+#else
+	// Oh dear.  Assume the filename is valid as is.
+	result.push_back( filename_with_wildcard ) ;
 #endif
 	return result ;
 }

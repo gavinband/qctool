@@ -120,6 +120,10 @@ public:
 		std::string genFileNameWithWildcard = m_options.get_value< std::string >( "--g" ) ;
 		std::vector< std::string > filenames = find_files_matching_path_with_wildcard( genFileNameWithWildcard ) ;
 		gen_row_source = get_genrow_source_from_files( filenames ) ;
+		std::cout << "gen-select: opened the following GEN files for input:\n" ;
+		for( std::size_t i = 0; i < filenames.size(); ++i ) {
+			std::cout << "  - \"" << filenames[i] << "\".\n" ;
+		}
 	}
 	
 	void open_gen_row_sink() {
@@ -198,6 +202,9 @@ private:
 		while( !gen_row_source->check_if_empty() ) {
 			(*gen_row_source) >> row ;
 			process_gen_row( row, ++m_number_of_gen_rows ) ;
+			if( m_number_of_gen_rows % 1000 == 0 ) {
+				std::cout << "Processed " << m_number_of_gen_rows << " rows (" << timer.elapsed() << "s)...\n" ;
+			}
 			accumulate_per_column_amounts( row, m_per_column_amounts ) ;
 		}
 	#ifdef HAVE_BOOST_TIMER
@@ -240,7 +247,6 @@ private:
 		SampleRow sample_row ;
 		while( !m_sample_row_source->check_if_empty() ) {
 			(*m_sample_row_source) >> sample_row ;
-			std::cout << sample_row ;
 		}
 	}
 
@@ -273,7 +279,7 @@ private:
 			}
 		}
 		if( mismatch ) {
-			throw GenAndSampleFileMismatchException( "The sample file had fewer rows than the gen file has columns (or it didn't exist)." ) ;
+			std::cout << "Warning: the sample file had fewer rows than the gen file has columns (or it didn't exist).\n" ;
 		}
 
 		#ifdef HAVE_BOOST_TIMER

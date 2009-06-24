@@ -13,9 +13,9 @@
 #include "../config.hpp"
 #if HAVE_BOOST_TIMER
 	#include <boost/timer.hpp>
-	typedef boost::timer timer_t ;
+	typedef boost::timer Timer ;
 #else
-	struct timer_t
+	struct Timer
 	{
 		double elapsed() const { return 0.0 ;}
 	} ;
@@ -108,7 +108,7 @@ void process_gen_rows( ObjectSource< GenRow >& gen_row_source, OptionProcessor c
 			std::cout << "Benchmarking statistic \"" << statistic_specs[i] << "\".\n" ;
 			GenRowStatistics row_statistics ;
 			row_statistics.add_statistic( statistic_specs[i], GenotypeAssayStatisticFactory::create_statistic( statistic_specs[i] )) ;
-			timer_t timer ;
+			Timer timer ;
 			for( std::size_t n = 0; n < number_of_iterations; ++n ) {
 				for( std::size_t j = 0; j < genrows.size(); ++j ) {
 					row_statistics.process( genrows[j] ) ;
