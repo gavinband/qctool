@@ -88,10 +88,10 @@ open_file_for_output( std::string const& filename, int mode_flags ) {
 
 //
 FileCompressionType determine_file_compression( std::string const& filename ) {
-	if( filename.find( ".gz" ) != std::string::npos ) {
+	if( filename.find( ".gz" ) == ( filename.size()-3 )) {	
 		return e_Gzip ;
 	}
-	else if( filename.find( ".bz2" ) != std::string::npos ) {
+	else if( filename.find( ".bz2" ) == ( filename.size()-4 )) {
 		return e_Bzip2 ;
 	}
 	else {
@@ -100,7 +100,7 @@ FileCompressionType determine_file_compression( std::string const& filename ) {
 }
 
 FileModeType determine_file_mode( std::string const& filename ) {
-	if( filename.find( ".bin" ) != std::string::npos ) {
+	if( filename.find( ".genbin" ) != std::string::npos ) {
 		return e_BinaryMode ;
 	}
 	else {
@@ -138,7 +138,6 @@ std::vector< std::string > find_files_matching_path_with_wildcard( std::string f
 	}
 	BFS::directory_iterator dir_i( dir ), end_i ;
 
-	std::size_t wildcard_pos = filename_with_wildcard.find( '*' ) ;
 	std::string first_bit = filename_with_wildcard.substr( 0, wildcard_pos ) ;
 	std::string second_bit = "" ;
 	if( wildcard_pos != std::string::npos ) {

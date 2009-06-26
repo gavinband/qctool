@@ -36,6 +36,18 @@ class GenRow
 
 	private:
 
+		// Data accessors, needed for genbin support.
+		void set_number_of_samples( std::size_t n ) { m_genotype_proportions.resize( n ) ; }
+		void set_SNPID( std::string const& str ) { m_SNPID = str ; }
+		void set_RSID( std::string const& str ) { m_RSID = str ; }
+		void set_SNP_position( int pos ) { m_SNP_position = pos ; }
+		void set_alleles( char a, char b ) { m_1st_allele = a; m_2nd_allele = b ; }
+		void set_genotype_probabilities( std::size_t i, double aa, double ab, double bb ) { m_genotype_proportions[i] = GenotypeProportions( aa, ab, bb ) ; }
+		double get_AA_probability( std::size_t i ) const { return m_genotype_proportions[i].AA() ; }
+		double get_AB_probability( std::size_t i ) const { return m_genotype_proportions[i].AB() ; }
+		double get_BB_probability( std::size_t i ) const { return m_genotype_proportions[i].BB() ; }
+
+		// Data fields
 		std::string m_SNPID ;
 		std::string m_RSID ;
 		int m_SNP_position ;
