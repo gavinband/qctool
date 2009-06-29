@@ -1,0 +1,144 @@
+import os.path
+import glob
+import UnitTest
+
+srcdir="."
+
+def configure( conf ):
+	conf.check_tool( 'compiler_cxx ')
+	conf.check_tool('boost')
+	conf.env['CXX'] = 'g++-4.2'
+	conf.env.append_value( 'CXXFLAGS', [ '-g', '-Wall' ] )
+	conf.env.append_value( 'CXXFLAGS', '-p' )
+	if conf.check_boost( lib='iostreams', uselib="BOOST_IOSTREAMS" ):
+		conf.define( 'HAVE_BOOST_IOSTREAMS', 1 )
+	if conf.check_boost( lib='filesystem', uselib="BOOST_FILESYSTEM" ):
+		conf.define( 'HAVE_BOOST_FILESYSTEM', 1 )
+	if conf.check_boost( lib='system', uselib="BOOST_SYSTEM" ):
+		conf.define( 'HAVE_BOOST_SYSTEM', 1 )
+	if conf.check_boost( header_name='timer.hpp' ):
+		conf.define( 'HAVE_BOOST_TIMER', 1 )
+	if conf.check_boost( header_name='math/tr1.hpp'):
+		conf.define( 'HAVE_BOOST_MATH', 1 )
+	conf.define ( 'GTOOL_USE_FAST_FLOAT_PARSER', 1 )
+
+	conf.write_config_header( 'config.hpp' )
+
+	release_variant = conf.env.copy()
+	conf.set_env_name( "release", release_variant )
+	release_variant.set_variant( "release" )
+	conf.setenv(  "release" )
+	conf.env['CXXFLAGS'] = '-O3'
+
+	conf.write_config_header( 'config.hpp' )
+
+def set_options( opt ):
+	opt.tool_options( 'compiler_cxx' )
+
+def create_test( bld, name ):
+	bld.new_task_gen(
+		features = 'cxx cprogram',
+		target = name,
+		source = [  'test/' + name + '.cpp' ],
+		uselib_local = 'gtool-lib',
+		includes='./include',
+		unit_test=1
+	)
+
+def build( bld ):
+	import Options
+	
+	#---------------------
+	# libs
+	#---------------------
+	bld.new_task_gen(
+		features = 'cxx cstaticlib',
+		target = 'gtool-lib',
+		source = [  'src/AlleleProportions.cpp',
+					'src/GenotypeProportions.cpp',
+					'src/RowCondition.cpp',
+					'src/RowConditionFactory.cpp',
+					'src/Whitespace.cpp',
+					'src/GenRow.cpp',
+					'src/GenRowIO.cpp',
+					'src/GenRowFileSource.cpp',
+					'src/GToolException.cpp',
+					'src/SNPInListCondition.cpp',
+					'src/string_utils.cpp',
+					'src/SampleRow.cpp',
+					'src/SampleRowStatistics.cpp',
+					'src/Condition.cpp',
+					'src/FileUtil.cpp',
+					'src/gamma.cpp',
+					'src/GenotypeAssayStatistics.cpp',
+					'src/GenotypeAssayBasicStatistics.cpp',
+					'src/GenotypeAssayStatisticInRange.cpp',
+					'src/GenotypeAssayStatisticFactory.cpp',
+					'src/GenRowStatistics.cpp',
+					'src/HardyWeinbergExactTestStatistic.cpp',
+					'src/LikelihoodRatioTestStatistic.cpp',
+					'src/distributions.cpp',
+					'src/SNPHWE.cpp',
+					'src/SimpleGenotypeAssayStatistics.cpp',
+					'src/GenotypeAssayStatisticArithmetic.cpp'
+		],
+		includes='./include',
+		uselib = 'BOOST BOOST_IOSTREAMS BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'
+	)
+
+	#---------------------
+	# programs
+	#---------------------
+	bld.new_task_gen(
+		features = 'cxx cprogram',
+		target = 'gen-select',
+		source = [  'src/gen-select.cpp' ],
+		includes='./include',
+		uselib_local = 'gtool-lib'
+	)
+
+	#---------------------
+	# benchmarks
+	#---------------------
+	bld.new_task_gen(
+		features = 'cxx cprogram',
+		target = 'benchmark-statistics',
+		source = [  'benchmarks/benchmark-statistics.cpp' ],
+		includes='./include',
+		uselib_local = 'gtool-lib'
+	)
+
+	bld.new_task_gen(
+		features = 'cxx cprogram',
+		target = 'benchmark-io',
+		source = [  'benchmarks/benchmark-io.cpp' ],
+		includes='./include',
+		uselib_local = 'gtool-lib'
+	)
+
+	# Build release variants as well.
+	for obj in [] + bld.all_task_gen:
+	    new_obj = obj.clone('release')
+
+	#---------------------
+	# tests
+	#---------------------
+	create_test( bld, 'test_log_of_gamma' )
+	create_test( bld, 'test_log_of_factorial' )
+	create_test( bld, 'test_genrow_io' )
+	create_test( bld, 'test_genbin_snp_format' )
+	create_test( bld, 'test_genbin_header_format' )
+	create_test( bld, 'test_hardy_weinberg_exact_test_statistic' )
+	create_test( bld, 'test_maximum_likelihood_statistics' )
+	create_test( bld, 'test_hardy_weinberg_exact_test_statistic_against_SNPHWE' )
+	create_test( bld, 'test_simple_statistics' )
+	create_test( bld, 'test_statistic_arithmetic' )
+	create_test( bld, 'test_fileutil' )
+
+
+def check(context):
+	# Unit tests are run when "check" target is used
+	ut = UnitTest.unit_test()
+	ut.change_to_testfile_dir = True
+	ut.run()
+	ut.print_results()
