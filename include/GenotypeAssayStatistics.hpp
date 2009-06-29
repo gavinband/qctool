@@ -51,6 +51,7 @@ struct GenotypeAssayStatistics: public GenotypeAssayBasicStatistics
 	
 		typedef std::map< std::string, GenotypeAssayStatistic* > statistics_t ;
 		statistics_t m_statistics ;
+		std::vector< std::string > m_statistic_names ;
 
 	public:
 		std::ostream& format_column_headers( std::ostream& ) ;

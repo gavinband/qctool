@@ -112,7 +112,7 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 	}
 	else {
 		throw StatisticNotFoundException( "Unable to construct statistic \"" + statistic_spec
-			+ "\" -- possible values are \"SNPID\", \"RSID\", \"HWE\", \"Wigginton\", \"MLIG\", \"MLIGHW\", \"HWLR\", \"HWLR test stat\"." ) ;
+			+ "\" -- possible values are \"MAF\", \"HWE\", \"missing-rate\", \"heterozygosity\", \"SNPID\", \"RSID\", \"alleles\", \"ID1\", \"ID2\"." ) ;
 	}
 }
 

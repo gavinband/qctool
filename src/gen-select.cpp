@@ -129,7 +129,7 @@ public:
 		options[ "--row-statistics" ]
 	        .set_description( "Comma-seperated list of statistics to calculate in genstat file" )
 			.set_takes_single_value()
-			.set_default_value( std::string("") ) ;
+			.set_default_value( "SNPID, RSID, position, alleles, MAF, HWE" ) ;
 
 		options[ "--sample-statistics" ]
 	        .set_description( "Comma-seperated list of statistics to calculate in samplestat file" )

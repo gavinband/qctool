@@ -50,7 +50,8 @@ void GenotypeAssayStatistics::add_statistic( std::string const& name, std::auto_
 	if( i != m_statistics.end() ) {
 		throw GenotypeAssayStatisticException( "Unable to add statistic \"" + name + "\": a statistic with that name already exists." ) ;
 	}
-		m_statistics[name] = statistic_ptr.release() ;
+	m_statistics[name] = statistic_ptr.release() ;
+	m_statistic_names.push_back( name ) ;
 }
 
 void GenotypeAssayStatistics::reset() {
@@ -79,18 +80,18 @@ std::string GenotypeAssayStatistics::get_statistic_value< std::string >( std::st
 
 std::ostream& GenotypeAssayStatistics::format_column_headers( std::ostream& aStream ) {
 	base_t::format_column_headers( aStream ) ;
-	for( statistics_t::const_iterator i = m_statistics.begin(); i != m_statistics.end(); ++i ) {
-		aStream << std::setw(8) << std::left << i->first.substr( 0, 8 ) << "  " ;
+	for( std::vector< std::string >::const_iterator i = m_statistic_names.begin(); i != m_statistic_names.end(); ++i ) {
+		aStream << std::setw(8) << std::left << (i->substr( 0, 8 )) << "  " ;
 	}
 	return aStream ;
 }
 
 std::ostream& GenotypeAssayStatistics::format_statistic_values( std::ostream& aStream ) const {
 	base_t::format_statistic_values( aStream ) ;
-		for( statistics_t::const_iterator i = m_statistics.begin(); i != m_statistics.end(); ++i ) {
-			aStream << std::setw(8) << std::left << get_statistic_value< std::string >( i->first ) << "  ";
-		}
+	for( std::vector< std::string >::const_iterator i = m_statistic_names.begin(); i != m_statistic_names.end(); ++i ) {
+		aStream << std::setw(8) << std::left << get_statistic_value< std::string >( *i ) << "  ";
+	}
 		
-		return aStream ;
+	return aStream ;
 }
 

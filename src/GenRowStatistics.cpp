@@ -71,11 +71,19 @@ double GenRowAlleles::calculate_value( GenRowStatistics const& row_statistics ) 
 
 std::string GenRowAlleles::calculate_string_value( GenRowStatistics const& row_statistics ) const {
 	AlleleProportions allele_proportions = row_statistics.get_mean_allele_proportions() ;
+	std::ostringstream ostr ;
 	if( allele_proportions.A() <= allele_proportions.B() ) {
-		return row_statistics.row().first_allele() + " " + row_statistics.row().second_allele() ;
+		ostr
+			<< row_statistics.row().first_allele()
+			<< " "
+			<< row_statistics.row().second_allele() ;
 	} else {
-		return row_statistics.row().second_allele() + " " + row_statistics.row().first_allele() ;
+		ostr
+			<< row_statistics.row().second_allele()
+			<< " "
+			<< row_statistics.row().first_allele() ;
 	}
+	return ostr.str() ;
 }
 
 
