@@ -65,3 +65,17 @@ std::string GenRowRSID::calculate_string_value( GenRowStatistics const& row_stat
 	return row_statistics.row().RSID() ;
 }
 
+double GenRowAlleles::calculate_value( GenRowStatistics const& row_statistics ) const {
+	throw GenotypeAssayStatisticException( "GenRowAlleles does not support double values." ) ;	
+}
+
+std::string GenRowAlleles::calculate_string_value( GenRowStatistics const& row_statistics ) const {
+	AlleleProportions allele_proportions = row_statistics.get_mean_allele_proportions() ;
+	if( allele_proportions.A() <= allele_proportions.B() ) {
+		return row_statistics.row().first_allele() + " " + row_statistics.row().second_allele() ;
+	} else {
+		return row_statistics.row().second_allele() + " " + row_statistics.row().first_allele() ;
+	}
+}
+
+

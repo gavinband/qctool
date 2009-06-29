@@ -64,7 +64,23 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 	}
 
 	// if none of the above, just create a single stat.
-	if( statistic_spec == "#Samples" ) {
+	
+	// Stats from whiteboard 26/06/09:
+	if( statistic_spec == "MAF" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new MinorAlleleProportionStatistic ) ;
+	}
+	else if( statistic_spec == "HWE" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new SNPHWEStatistic ) ;
+	}
+	else if( statistic_spec == "missing-rate" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new MissingDataStatistic ) ; 
+	}
+	else if( statistic_spec == "heterozygosity" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new HeterozygosityStatistic ) ; 
+	}
+
+	// Other stats, these might not be used.
+	if( statistic_spec == "Samples" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new NumberOfSamplesStatistic ) ;
 	}
 	else if( statistic_spec == "AA" ) {
@@ -79,17 +95,8 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 	else if( statistic_spec == "Missing" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new MissingDataStatistic ) ;
 	}
-	else if( statistic_spec == "%Missing" ) {
-		return std::auto_ptr< GenotypeAssayStatistic >( new MissingDataProportionStatistic ) ;
-	}
-	else if( statistic_spec == "MAF" ) {
-		return std::auto_ptr< GenotypeAssayStatistic >( new MinorAlleleProportionStatistic ) ;
-	}
 	else if( statistic_spec == "HWE(slow)" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new HardyWeinbergExactTestStatistic ) ;
-	}
-	else if( statistic_spec == "HWE" ) {
-		return std::auto_ptr< GenotypeAssayStatistic >( new SNPHWEStatistic ) ;
 	}
 	else if( statistic_spec == "MLIG" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new LogMaximumLikelihoodForIndependentGenotypes ) ;
@@ -110,7 +117,7 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 }
 
 std::auto_ptr< GenotypeAssayStatistic > GenRowStatisticFactory::create_statistic( std::string statistic_spec ) {
-	if( statistic_spec == "SNP_position" ) {
+	if( statistic_spec == "position" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowSNPPosition ) ;
 	}
 	else if( statistic_spec == "SNPID" ) {
@@ -118,6 +125,9 @@ std::auto_ptr< GenotypeAssayStatistic > GenRowStatisticFactory::create_statistic
 	}
 	else if( statistic_spec == "RSID" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowRSID ) ;
+	}
+	else if( statistic_spec == "alleles" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowAlleles ) ;
 	}
 	else {
 		return std::auto_ptr< GenotypeAssayStatistic >() ;

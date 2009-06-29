@@ -54,6 +54,18 @@ struct ProportionOfAAStatistic: public GenotypeAssayStatistic
 	double calculate_value( GenotypeAssayStatistics const& ) const ;
 } ;
 
+struct MinorAlleleProportionStatistic: public GenotypeAssayStatistic
+{
+	double calculate_value( GenotypeAssayStatistics const& statistics ) const ;
+} ;
+
+struct HeterozygosityStatistic: public GenotypeAssayStatistic
+{
+	double calculate_value( GenotypeAssayStatistics const& statistics ) const ;
+} ;
+
+
+
 
 #endif
 

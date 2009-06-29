@@ -12,7 +12,9 @@ Done?	Description
 *		Add option definitions as per whiteboard 26/06/09 (see iPhoto).
 		(Make all those options work.)
 		(Delete now unused options.)
+		Statistic naming as per whiteboard 26/06/09 (see iPhoto).
 		Implement -sample-excl-list and -sample-incl-list
 		Implement -sample-missing-rate and -sample-heterozygosity.
 *		Fix end-of-file bug (rearrange so input operations return the stream, which we then test.)
 		Get rid of the ObjectSource / ObjectSink nonsense.  Learn to use IOstreams instead.
+		

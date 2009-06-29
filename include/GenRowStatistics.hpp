@@ -23,13 +23,6 @@ struct GenRowStatistics: public GenotypeAssayStatistics
 		GenRow const* m_row ;
 } ;
 
-struct MinorAlleleProportionStatistic: public GenotypeAssayStatistic
-{
-	double calculate_value( GenotypeAssayStatistics const& statistics ) const {
-		return statistics.get_mean_allele_proportions().minor() ;
-	}
-} ;
-
 struct GenRowSpecificStatistic: public GenotypeAssayStatistic
 {
 	typedef GenotypeAssayStatistic base_t ;
@@ -46,19 +39,29 @@ struct GenRowSpecificStatistic: public GenotypeAssayStatistic
 		GenRowStatistics const& get_row_statistics( GenotypeAssayStatistics const& statistics ) const ;
 } ;
 
+// Return SNP Position
 struct GenRowSNPPosition: public GenRowSpecificStatistic
 {
 	double calculate_value( GenRowStatistics const& row_statistics ) const ;
 	std::string calculate_string_value( GenRowStatistics const& row_statistics ) const ;
 } ;
 
+// Return SNPID
 struct GenRowSNPID: public GenRowSpecificStatistic
 {
 	double calculate_value( GenRowStatistics const& row_statistics ) const ;
 	std::string calculate_string_value( GenRowStatistics const& row_statistics ) const ;
 } ;
 
+// Return RSID
 struct GenRowRSID: public GenRowSpecificStatistic
+{
+	double calculate_value( GenRowStatistics const& row_statistics ) const ;
+	std::string calculate_string_value( GenRowStatistics const& row_statistics ) const ;
+} ;
+
+// Return alleles, ordered with minor allele first.
+struct GenRowAlleles: public GenRowSpecificStatistic
 {
 	double calculate_value( GenRowStatistics const& row_statistics ) const ;
 	std::string calculate_string_value( GenRowStatistics const& row_statistics ) const ;

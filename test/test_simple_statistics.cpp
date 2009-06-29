@@ -6,6 +6,7 @@
 #include <string>
 #include "GenRow.hpp"
 #include "GenRowStatistics.hpp"
+#include "SimpleGenotypeAssayStatistics.hpp"
 #include "floating_point_utils.hpp"
 #include "../config.hpp"
 #if HAVE_BOOST_UNIT_TEST
