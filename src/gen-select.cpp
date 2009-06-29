@@ -35,7 +35,8 @@
 #include "HardyWeinbergExactTestStatistic.hpp"
 #include "string_utils.hpp"
 
-void check_if_file_is_readable( std::string const& option_name, std::string const& filename ) ;
+std::vector< std::string > expand_filename_wildcards( std::string const& option_name, std::vector< std::string > const& filenames ) ;
+void check_files_are_readable( std::string const& option_name, std::vector< std::string > const& filenames ) ;
 void check_condition_spec( std::string const& option_name, std::string const& condition_spec ) ;
 
 
@@ -58,45 +59,81 @@ struct GenSelectProcessor
 {
 public:
 	static void declare_options( OptionProcessor & options ) {
+		
+		// File options		
 	    options[ "--g" ]
 	        .set_description( "Path of gen file to input" )
 	        .set_is_required()
-	        .set_takes_value()
-	        .set_value_checker( &check_if_file_is_readable ) ;
+			.set_takes_values()
+			.set_maximum_number_of_repeats( 100 )
+			.add_value_preprocessor( &expand_filename_wildcards )
+	        .add_value_checker( &check_files_are_readable ) ;
 
 	    options[ "--s" ]
 	        .set_description( "Path of sample file to input" )
-	        .set_takes_value()
-	        .set_value_checker( &check_if_file_is_readable ) ;
+	        .set_takes_single_value()
+	        .add_value_checker( &check_files_are_readable ) ;
 
 	    options[ "--og" ]
 	        .set_description( "Path of gen file to output" )
-	        .set_takes_value() ;
+	        .set_takes_single_value() ;
 
 	    options[ "--ogs" ]
 	        .set_description( "Path of gen statistic file to output" )
-	        .set_takes_value() ;
+	        .set_takes_single_value() ;
 
-		options[ "--so" ]
+		options[ "--os" ]
 	        .set_description( "Path of sample file to output" )
-	        .set_takes_value() ;
+	        .set_takes_single_value() ;
 
-		options[ "--samples" ]
-	        .set_description( "Sample selector" ) ;
+		// Statistics-related options
 
+		options[ "--snp-stats" ]
+	        .set_description( "Output per-snp statistics." ) ;
+		options[ "--sample-stats" ]
+	        .set_description( "Output per-sample statistics for missing rate and heterozygosity" ) ;
+
+		// SNP filtering options
+		options[ "--hwe"]
+			.set_description( "Filter out SNPs with HWE exact test statistics less than or equal to the value specified.") ;
+		options[ "--snp-missing-rate"]
+			.set_description( "Filter out SNPs with missing data rate greater than or equal to the value specified.") ;
+		options[ "--snp-interval"]
+			.set_description( "Filter out SNPs with position outside the interval [a,b], where a and b are the first and second supplied values" )
+			.set_number_of_values_per_use( 2 ) ;
+		options[ "--maf"]
+			.set_description( "Filter out SNPs whose minor allele frequency lies outside the interval [a,b], where a and b are the first and second supplied values." )
+			.set_number_of_values_per_use( 2 ) ;
+		options[ "--snp-incl-list"]
+			.set_description( "Filter out SNPs whose SNP ID or RSID does not lie in the given file (which must contain a sorted list of whitespace-separated strings)") ;
+		options[ "--snp-excl-list"]
+			.set_description( "Filter out SNPs whose SNP ID or RSID lies in the given file (which must contain a sorted list of whitespace-separated strings)") ;
+
+		// Sample filtering options
+		options[ "--sample-missing-rate" ]
+			.set_description( "Filter out samples with missing data rate greater than the value specified.  Note that a full-genome set of GEN files must be supplied.") ;
+		options[ "--heterozygosity" ]
+			.set_description( "Filter out samples with heterozygosity outside the inteval [a,b], where a and b are the first and second supplied values" )
+			.set_number_of_values_per_use( 2 ) ;
+		options[ "--sample-incl-list"]
+			.set_description( "Filter out samples whose sample ID does not lie in the given file (which must contain a sorted list of whitespace-separated strings)") ;
+		options[ "--sample-excl-list"]
+			.set_description( "Filter out samples whose sample ID lies in the given file (which must contain a sorted list of whitespace-separated strings)") ;
+
+		// TODO: remove the following options.
 		options[ "--condition" ]
 	        .set_description( "Condition spec for gen file row selection" )
-			.set_takes_value()
+			.set_takes_single_value()
 			.set_default_value( std::string("") ) ;
 
 		options[ "--row-statistics" ]
 	        .set_description( "Comma-seperated list of statistics to calculate in genstat file" )
-			.set_takes_value()
+			.set_takes_single_value()
 			.set_default_value( std::string("") ) ;
 
 		options[ "--sample-statistics" ]
 	        .set_description( "Comma-seperated list of statistics to calculate in samplestat file" )
-			.set_takes_value()
+			.set_takes_single_value()
 			.set_default_value( std::string("") ) ;
 	}
 
@@ -110,25 +147,24 @@ public:
 	
 	void open_sample_row_source() {
 		m_sample_row_source.reset( new NullObjectSource< SampleRow >()) ;
-		if( m_options.check_if_argument_was_supplied( "--s" )) {
+		if( m_options.check_if_option_was_supplied( "--s" )) {
 			std::string sampleFileName = m_options.get_value< std::string >( "--s" ) ;
 			m_sample_row_source.reset( new SampleInputFile< SimpleFileObjectSource< SampleRow > >( open_file_for_input( sampleFileName ))) ;
 		}
 	} ;
 
 	void open_gen_row_source() {
-		std::string genFileNameWithWildcard = m_options.get_value< std::string >( "--g" ) ;
-		std::vector< std::string > filenames = find_files_matching_path_with_wildcard( genFileNameWithWildcard ) ;
-		gen_row_source = get_genrow_source_from_files( filenames ) ;
+		std::vector< std::string > gen_filenames = m_options.get_values< std::string >( "--g" ) ;
+		gen_row_source = get_genrow_source_from_files( gen_filenames ) ;
 		std::cout << "gen-select: opened the following GEN files for input:\n" ;
-		for( std::size_t i = 0; i < filenames.size(); ++i ) {
-			std::cout << "  - \"" << filenames[i] << "\".\n" ;
+		for( std::size_t i = 0; i < gen_filenames.size(); ++i ) {
+			std::cout << "  - \"" << gen_filenames[i] << "\".\n" ;
 		}
 	}
 	
 	void open_gen_row_sink() {
 		gen_row_sink.reset( new NullObjectSink< GenRow >() ) ;
-		if( m_options.check_if_argument_was_supplied( "--og" ) ) {
+		if( m_options.check_if_option_was_supplied( "--og" ) ) {
 			std::string genOutputFileName = m_options.get_value< std::string >( "--og" ) ;
 			if( determine_file_mode( genOutputFileName ) & e_BinaryMode ) {
 				gen_row_sink.reset( new SimpleGenRowBinaryFileSink( open_file_for_output( genOutputFileName ))) ;
@@ -152,7 +188,7 @@ public:
 		genStatisticOutputFile = OUTPUT_FILE_PTR( new std::ostream( std::cout.rdbuf() )) ;
 		sampleStatisticOutputFile = OUTPUT_FILE_PTR( new std::ostream( std::cout.rdbuf() )) ;
 
-		if( m_options.check_if_argument_was_supplied( "--ogs" ) ) {
+		if( m_options.check_if_option_was_supplied( "--ogs" ) ) {
 			std::string genStatisticFileName = m_options.get_value< std::string >( "--ogs" ) ;
 			genStatisticOutputFile = open_file_for_output( genStatisticFileName ) ;
 		}
@@ -312,8 +348,8 @@ int main( int argc, char** argv ) {
 		GenSelectProcessor::declare_options( options ) ;
 		options.process( argc, argv ) ;
     }
-    catch( ArgumentProcessingException const& exception ) {
-        std::cerr << "!! Error: " << exception.message() << ".\n";
+    catch( std::exception const& exception ) {
+        std::cerr << "!! Error: " << exception.what() << ".\n";
         std::cerr << "Usage: gen-select [options]\n"
                 << options
                 << "\n" ;
@@ -326,31 +362,46 @@ int main( int argc, char** argv ) {
 		GenSelectProcessor processor( options ) ;
 		processor.process() ;
 	}
-	catch( GToolException const& e )
+	catch( std::exception const& e )
 	{
-		std::cerr << "!! Error: " << e.message() << ".\n" ;
+		std::cerr << "!! Error: " << e.what() << ".\n" ;
 		return -1 ;
 	}
 
     return 0 ;
 }
 
-void check_if_file_is_readable( std::string const& option_name, std::string const& filename ) {
-	std::vector< std::string > filenames = find_files_matching_path_with_wildcard( filename ) ;
+
+std::vector< std::string > expand_filename_wildcards( std::string const& option_name, std::vector< std::string > const& filenames ) {
+	std::vector< std::string > result ;
+	for( std::size_t i = 0; i < filenames.size(); ++i ) {
+		std::vector< std::string > expanded_filename = find_files_matching_path_with_wildcard( filenames[i] ) ;
+		if( expanded_filename.empty() ) {
+			throw OptionValueInvalidException( option_name, filenames, "No file can be found matching filename \"" + filenames[i] + "\"." ) ;
+		}
+		std::copy( expanded_filename.begin(), expanded_filename.end(), std::back_inserter( result )) ;
+	}
+
+	return result ;
+}
+
+void check_files_are_readable( std::string const& option_name, std::vector< std::string > const& filenames ) {
 	if( filenames.empty() ) {
-		throw ArgumentInvalidException( "The supplied filename \"" + filename + "\" does not correspond to an existing file." ) ;
+		throw OptionValueInvalidException( option_name, filenames, "At least one filename must be supplied.\"" ) ;
 	}
 	for( std::size_t i = 0; i < filenames.size(); ++i ) {
     	std::ifstream file( filenames[i].c_str() ) ;
 	    if( !file.good() ) {
-	        throw ArgumentInvalidException( "File \"" + filenames[i] + "\" supplied for option " + option_name + " is not readable." ) ;
-	    }    
+	        throw OptionValueInvalidException( option_name, filenames, "File \"" + filenames[i] + "\" is not readable." ) ;
+	    }
 	}
 }
 
-void check_condition_spec( std::string const& option_name, std::string const& condition_spec ) {
-	if( condition_spec.size() == 0 ) {
-		throw ArgumentInvalidException( "Condition spec \"" + condition_spec + "\" supplied for option " + option_name + " must be nonempty." ) ;
+void check_condition_spec( std::string const& option_name, std::vector< std::string > const& condition_specs ) {
+	for( std::size_t i = 0; i < condition_specs.size() ; ++i ) {
+		if( condition_specs[i].size() == 0 ) {
+			throw OptionValueInvalidException( option_name, condition_specs, "Condition spec \"" + condition_specs[i] + "\" supplied for option " + option_name + " must be nonempty." ) ;
+		}
 	}
 }
 

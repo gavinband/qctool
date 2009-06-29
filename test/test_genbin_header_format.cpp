@@ -19,6 +19,7 @@
 namespace data {
 	std::string construct_header_block(
 		uint32_t number_of_samples,
+		uint32_t flags,
 		unsigned char ID_field_storage,
 		std::string free_data,
 		uint32_t number_of_blocks
@@ -27,6 +28,7 @@ namespace data {
 		uint32_t header_length = free_data.size() + 13 ;
 		write_little_endian_integer( oStream, header_length ) ;
 		write_little_endian_integer( oStream, number_of_samples ) ;
+		write_little_endian_integer( oStream, flags ) ;
 		write_little_endian_integer( oStream, ID_field_storage ) ;
 		oStream.write( free_data.data(), free_data.size() ) ;
 		write_little_endian_integer( oStream, number_of_blocks ) ;
@@ -67,6 +69,7 @@ void do_header_block_read_test(
 	inStream.str(
 		data::construct_header_block(
 			number_of_individuals,
+			0,
 			ID_field_storage,
 			free_data,
 			number_of_blocks
@@ -110,6 +113,7 @@ void do_header_block_write_test(
 
 	std::string expected = data::construct_header_block(
 		number_of_individuals,
+		0,
 		ID_field_storage,
 		free_data,
 		number_of_blocks

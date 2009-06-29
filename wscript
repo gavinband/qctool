@@ -40,7 +40,7 @@ def create_test( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'test/' + name + '.cpp' ],
-		uselib_local = 'gtool-lib',
+		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor',
 		includes='./include',
 		unit_test=1
 	)
@@ -51,6 +51,23 @@ def build( bld ):
 	#---------------------
 	# libs
 	#---------------------
+	bld.new_task_gen(
+		features = 'cxx cstaticlib',
+		target = 'gtool-exception',
+		source = [  'src/GToolException.cpp' ],
+		includes='./include'
+	)
+
+	bld.new_task_gen(
+		features = 'cxx cstaticlib',
+		target = 'gtool-optionprocessor',
+		source = [  'src/OptionProcessor.cpp',
+		 			'src/OptionDefinition.cpp'
+		],
+		includes='./include',
+		uselib = 'gtool-exception'
+	)
+
 	bld.new_task_gen(
 		features = 'cxx cstaticlib',
 		target = 'gtool-lib',
@@ -80,7 +97,8 @@ def build( bld ):
 					'src/distributions.cpp',
 					'src/SNPHWE.cpp',
 					'src/SimpleGenotypeAssayStatistics.cpp',
-					'src/GenotypeAssayStatisticArithmetic.cpp'
+					'src/GenotypeAssayStatisticArithmetic.cpp',
+					'src/OptionProcessor.cpp'
 		],
 		includes='./include',
 		uselib = 'BOOST BOOST_IOSTREAMS BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'
@@ -94,7 +112,7 @@ def build( bld ):
 		target = 'gen-select',
 		source = [  'src/gen-select.cpp' ],
 		includes='./include',
-		uselib_local = 'gtool-lib'
+		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor'
 	)
 
 	#---------------------
@@ -105,7 +123,7 @@ def build( bld ):
 		target = 'benchmark-statistics',
 		source = [  'benchmarks/benchmark-statistics.cpp' ],
 		includes='./include',
-		uselib_local = 'gtool-lib'
+		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor'
 	)
 
 	bld.new_task_gen(
@@ -113,7 +131,7 @@ def build( bld ):
 		target = 'benchmark-io',
 		source = [  'benchmarks/benchmark-io.cpp' ],
 		includes='./include',
-		uselib_local = 'gtool-lib'
+		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor'
 	)
 
 	# Build release variants as well.

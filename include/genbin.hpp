@@ -170,13 +170,16 @@ namespace genbin {
 		impl::uint32_t
 			header_length,
 			number_of_blocks,
-			number_of_individuals ;
+			number_of_individuals,		
+			flags ;
 		unsigned char S ;
 		std::vector<char> free_data ;
 
 		impl::read_little_endian_integer( aStream, &header_length ) ;
 		assert( header_length >= 13 ) ;
 		impl::read_little_endian_integer( aStream, &number_of_individuals ) ;
+		impl::read_little_endian_integer( aStream, &flags ) ;
+		assert( flags == 0 ) ;
 		S = aStream.get() ;
 		free_data.resize( header_length - 13 ) ;
 		aStream.read( &free_data[0], header_length - 13 ) ;
@@ -198,10 +201,13 @@ namespace genbin {
 		std::string free_data,
 		impl::uint32_t number_of_blocks
 	) {
+		impl::uint32_t flags = 0 ;
 		impl::uint32_t header_length = 13 + free_data.size() ;
+
 		assert( number_of_blocks == 1 ) ;  // As per the spec.
 		impl::write_little_endian_integer( aStream, header_length ) ;
 		impl::write_little_endian_integer( aStream, number_of_individuals ) ;
+		impl::write_little_endian_integer( aStream, flags ) ;
 		impl::write_little_endian_integer( aStream, ID_field_storage ) ;
 		aStream.write( free_data.data(), free_data.size() ) ;
 		impl::write_little_endian_integer( aStream, number_of_blocks ) ;

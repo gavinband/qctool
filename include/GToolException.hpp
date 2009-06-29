@@ -8,18 +8,30 @@
 
 struct GToolException: public std::exception
 {
+	enum { BUFFER_SIZE = 2000 } ;
+	
 	public:
-		GToolException( std::string const& msg ) {
-			strncpy( m_buffer, msg.c_str(), 2000 ) ;
+		GToolException( std::string const& msg = "" ) {
+			set_message( msg ) ;
 		}
 
-		char const * const message() const { return m_buffer; }
+	protected:
+		void set_message( std::string const& msg ) const throw() {
+			strncpy( m_buffer, msg.c_str(), std::min( msg.size(), static_cast< std::size_t > ( BUFFER_SIZE ))) ;
+			m_buffer[ BUFFER_SIZE - 1 ] = '\0' ;
+			}
+
+	public:
+		// From std::exception.
+		char const* what() const throw() { return m_buffer ; }
+
 
 	private:
-		static char m_buffer[2000] ;
+		static char m_buffer[ BUFFER_SIZE ] ;
 	
 		friend std::ostream& operator<<( std::ostream&, GToolException const& ) ;
-};
+} ;
+
 
 struct BadRowFormatException: public GToolException
 {

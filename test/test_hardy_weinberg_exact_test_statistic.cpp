@@ -80,17 +80,17 @@ int main( int argc, char** argv ) {
     try {
 		options[ "--epsilon" ]
 			.set_description( "Epsilon to use when comparing floating point numbers" )
-			.set_takes_value()
+			.set_takes_single_value()
 			.set_default_value( 0.00001 ) ;
 
 		options.process( argc, argv ) ;
     }
-    catch( ArgumentProcessingException const& exception ) {
-        std::cerr << "!! Error: " << exception.message() << ".\n";
+    catch( std::exception const& exception ) {
+        std::cerr << "!! Error: " << exception.what() << ".\n";
         std::cerr << "Usage: gen-select [options]\n"
                 << options
                 << "\n" ;
-        return -1 ;
+		throw ;
     }
 
 	double epsilon = options.get_value<double>( "--epsilon" ) ;

@@ -31,19 +31,11 @@
 #include "HardyWeinbergExactTestStatistic.hpp"
 #include "string_utils.hpp"
 
-void check_if_file_is_readable( std::string const& option_name, std::string const& filename ) {
-    std::ifstream file( filename.c_str() ) ;
-    if( !file.good() ) {
-        throw ArgumentInvalidException( "File \"" + filename + "\" supplied for option " + option_name + " is not readable." ) ;
-    }    
-}
-
 void process_options( OptionProcessor& options, int argc, char** argv ) {
     options[ "--g" ]
         .set_description( "Path of gen file to input" )
         .set_is_required()
-        .set_takes_value()
-        .set_value_checker( &check_if_file_is_readable ) ;
+		.set_takes_single_value() ;
 
 	options[ "--nr" ]
         .set_description( "Number of rows to read" )
@@ -55,7 +47,7 @@ void process_options( OptionProcessor& options, int argc, char** argv ) {
 
 	options[ "--statistics" ]
         .set_description( "Comma-seperated list of statistics to calculate in genstat file" )
-		.set_takes_value()
+		.set_takes_single_value()
 		.set_default_value( std::string("") ) ;
 
 	options.process( argc, argv ) ;
@@ -134,8 +126,8 @@ int main( int argc, char** argv ) {
     try {
         process_options( options, argc, argv ) ;
     }
-    catch( ArgumentProcessingException const& exception ) {
-        std::cerr << "!! Error: " << exception.message() << ".\n";
+    catch( std::exception const& exception ) {
+        std::cerr << "!! Error: " << exception.what() << ".\n";
         std::cerr << "Usage: gen-select [options]\n"
                 << options
                 << "\n" ;
@@ -151,7 +143,7 @@ int main( int argc, char** argv ) {
 			OUTPUT_FILE_PTR genStatisticOutputFile ;
 			std::auto_ptr< ObjectSource< GenRow > > genRowSource( new NullObjectSource< GenRow >() ) ;
 
-			if( options.check_if_argument_was_supplied( "--g" )) {
+			if( options.check_if_option_was_supplied( "--g" )) {
 				std::string genFileName = options.get_value< std::string >( "--g" ) ;
 				genRowSource.reset( new SimpleFileObjectSource< GenRow >( open_file_for_input( genFileName ))) ;
 			}
@@ -163,7 +155,7 @@ int main( int argc, char** argv ) {
 	}
 	catch( GToolException const& e )
 	{
-		std::cerr << "!! Error: " << e.message() << ".\n" ;
+		std::cerr << "!! Error: " << e.what() << ".\n" ;
 		return -1 ;
 	}
 

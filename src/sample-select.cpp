@@ -43,37 +43,37 @@ void process_options( OptionProcessor& options, int argc, char** argv ) {
     options[ "--g" ]
         .set_description( "Path of gen file to input" )
         .set_is_required()
-        .set_takes_value()
+        .set_takes_single_value()
         .set_value_checker( &check_if_file_is_readable ) ;
 
     options[ "--s" ]
         .set_description( "Path of sample file to input" )
-        .set_takes_value()
+        .set_takes_single_value()
         .set_value_checker( &check_if_file_is_readable ) ;
 
     options[ "--og" ]
         .set_description( "Path of gen file to output" )
-        .set_takes_value() ;
+        .set_takes_single_value() ;
 
     options[ "--ogs" ]
         .set_description( "Path of gen statistic file to output" )
-        .set_takes_value() ;
+        .set_takes_single_value() ;
 
 		options[ "--so" ]
         .set_description( "Path of sample file to output" )
-        .set_takes_value() ;
+        .set_takes_single_value() ;
 
 	options[ "--samples" ]
         .set_description( "Sample selector" ) ;
 
 	options[ "--condition" ]
         .set_description( "Condition spec for gen file row selection" )
-		.set_takes_value()
+		.set_takes_single_value()
 		.set_default_value( std::string("") ) ;
 
 	options[ "--statistics" ]
         .set_description( "Comma-seperated list of statistics to calculate in genstat file" )
-		.set_takes_value()
+		.set_takes_single_value()
 		.set_default_value( std::string("") ) ;
 
 		options.process( argc, argv ) ;
@@ -164,11 +164,11 @@ int main( int argc, char** argv ) {
 			std::string genFileName = options.get_argument_value< std::string >( "--g" ) ;
 			INPUT_FILE_PTR genFile = open_file_for_input( genFileName.c_str() ) ;
 			OUTPUT_FILE_PTR genOutputFile, genStatisticOutputFile ;
-			if( options.check_if_argument_was_supplied( "--og" ) ) {
+			if( options.check_if_option_was_supplied( "--og" ) ) {
 				std::string genOutputFileName = options.get_argument_value< std::string >( "--og" ) ;
 				genOutputFile = open_file_for_output( genOutputFileName.c_str() ) ;
 			}
-			if( options.check_if_argument_was_supplied( "--ogs" ) ) {
+			if( options.check_if_option_was_supplied( "--ogs" ) ) {
 				std::string genStatisticFileName = options.get_argument_value< std::string >( "--ogs" ) ;
 				genStatisticOutputFile = open_file_for_output( genStatisticFileName.c_str() ) ;
 			}
