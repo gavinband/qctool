@@ -372,10 +372,25 @@ int main( int argc, char** argv ) {
 }
 
 
+bool check_if_string_is_a_number_from_1_to_100( std::string const& a_string ) {
+	std::istringstream inStream( a_string ) ;
+	int i ;
+	inStream >> i ;
+	inStream.peek() ;
+	if( !inStream.eof()) {
+		return false ;
+	}
+	if( i < 1 || i > 100 ) {
+		return false ;
+	}
+	return true ;
+}
+
+
 std::vector< std::string > expand_filename_wildcards( std::string const& option_name, std::vector< std::string > const& filenames ) {
 	std::vector< std::string > result ;
 	for( std::size_t i = 0; i < filenames.size(); ++i ) {
-		std::vector< std::string > expanded_filename = find_files_matching_path_with_wildcard( filenames[i] ) ;
+		std::vector< std::string > expanded_filename = find_files_matching_path_with_wildcard( filenames[i], '#', &check_if_string_is_a_number_from_1_to_100 ) ;
 		if( expanded_filename.empty() ) {
 			throw OptionValueInvalidException( option_name, filenames, "No file can be found matching filename \"" + filenames[i] + "\"." ) ;
 		}

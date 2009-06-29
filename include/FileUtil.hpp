@@ -42,7 +42,8 @@ open_file_for_output( std::string const& filename, int mode_flags ) ;
 OUTPUT_FILE_PTR
 open_file_for_output( std::string const& filename ) ;
 
-std::vector< std::string > find_files_matching_path_with_wildcard( std::string filename_with_wildcards ) ;
+typedef bool (*wildcard_match_checker_t)( std::string const& ) ;
+std::vector< std::string > find_files_matching_path_with_wildcard( std::string filename_with_wildcards, char wildcard_char = '*', wildcard_match_checker_t = 0 ) ;
 
 bool exists( std::string const& filename ) ;
 bool is_regular( std::string const& filename ) ;
