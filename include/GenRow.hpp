@@ -20,7 +20,7 @@ class GenRow
 		GenotypeProportions const& genotype_proportions_for_sample( std::size_t ) const ;
 
 		typedef std::vector< GenotypeProportions >::const_iterator genotype_proportion_iterator ;
-		
+
         genotype_proportion_iterator begin_genotype_proportions() const { return m_genotype_proportions.begin() ; }
         genotype_proportion_iterator end_genotype_proportions() const { return m_genotype_proportions.end() ; }
 
@@ -29,10 +29,10 @@ class GenRow
 	public:
 		bool operator==( GenRow const& right ) const ;
 
-		void write_to_text_stream( std::ostream& aStream ) const ;
-		void read_from_text_stream( std::istream& aStream ) ;
-		void write_to_binary_stream( std::ostream& aStream ) const ;
-		void read_from_binary_stream( std::istream& aStream ) ;
+		std::ostream& write_to_text_stream( std::ostream& aStream ) const ;
+		std::istream& read_from_text_stream( std::istream& aStream ) ;
+		std::ostream& write_to_binary_stream( std::ostream& aStream ) const ;
+		std::istream& read_from_binary_stream( std::istream& aStream ) ;
 
 	private:
 

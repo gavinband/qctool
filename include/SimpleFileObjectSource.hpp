@@ -25,6 +25,9 @@ public:
 	bool check_if_empty() {
 		return !m_stream_ptr.get() || !m_stream_ptr->good() ;
 	}
+	operator bool() {
+		return (*m_stream_ptr) ;
+	}
 
 protected:
 

@@ -32,6 +32,16 @@ struct ChainingFileObjectSource: public ObjectSource< Object >
 		assert( !(m_sources[ m_current_source ]->check_if_empty())) ;
 		m_sources[ m_current_source ]->read( row ) ;
 	}
+	
+	operator bool() {
+		find_next_nonempty_source() ;
+		if( m_current_source == m_sources.size() ) {
+			return false ;
+		}
+		else {
+			return m_sources[m_current_source] ;
+		}
+	}
 
 	std::size_t current_source() const { return m_current_source ; }
 	std::size_t number_of_sources() const { return m_sources.size() ; }

@@ -235,8 +235,7 @@ private:
 		GenRow row ;
 		m_number_of_gen_rows = 0 ;
 		
-		while( !gen_row_source->check_if_empty() ) {
-			(*gen_row_source) >> row ;
+		while( (*gen_row_source) >> row ) {
 			process_gen_row( row, ++m_number_of_gen_rows ) ;
 			if( m_number_of_gen_rows % 1000 == 0 ) {
 				std::cout << "Processed " << m_number_of_gen_rows << " rows (" << timer.elapsed() << "s)...\n" ;

@@ -59,7 +59,7 @@ double read_float( std::istream& aStream ) {
 }
 
 
-void GenRow::read_from_text_stream( std::istream& inStream ) {
+std::istream& GenRow::read_from_text_stream( std::istream& inStream ) {
 	// For speed, first read a line from the file.
 	std::string line ;
 	std::getline( inStream, line ) ;
@@ -96,11 +96,10 @@ void GenRow::read_from_text_stream( std::istream& inStream ) {
 		}
 	}
 
-	inStream.peek() ; // flag eof
-	
+	return inStream ;
 }
 
-void GenRow::write_to_text_stream( std::ostream& aStream ) const {
+std::ostream& GenRow::write_to_text_stream( std::ostream& aStream ) const {
 	aStream
 		<< SNPID() << " "
 		<< RSID() << " "
@@ -121,12 +120,14 @@ void GenRow::write_to_text_stream( std::ostream& aStream ) const {
 	}
 
 	aStream << "\n" ;
+	
+	return aStream ;
 }
 
 // The following two functions implement the genbin specification described here:
 // http://www.well.ox.ac.uk/~gav/binary_file_format.html
 
-void GenRow::read_from_binary_stream( std::istream& aStream ) {
+std::istream& GenRow::read_from_binary_stream( std::istream& aStream ) {
 	genbin::read_snp_block(
 		aStream,
 		boost::bind< void >( &GenRow::set_number_of_samples, this, _1 ),
@@ -136,9 +137,11 @@ void GenRow::read_from_binary_stream( std::istream& aStream ) {
 		boost::bind< void >( &GenRow::set_alleles, this, _1, _2 ),
 		boost::bind< void >( &GenRow::set_genotype_probabilities, this, _1, _2, _3, _4 )
 	) ;
+
+	return aStream ;
 }
 
-void GenRow::write_to_binary_stream( std::ostream& aStream ) const {
+std::ostream& GenRow::write_to_binary_stream( std::ostream& aStream ) const {
 	genbin::write_snp_block(
 		aStream,
 		m_genotype_proportions.size(),
@@ -151,6 +154,8 @@ void GenRow::write_to_binary_stream( std::ostream& aStream ) const {
 		boost::bind< double >( &GenRow::get_AB_probability, this, _1 ),
 		boost::bind< double >( &GenRow::get_BB_probability, this, _1 )
 	) ;		
+
+	return aStream ;
 }
 
 std::istream& operator>>( std::istream& inStream, GenRow& aRow ) {

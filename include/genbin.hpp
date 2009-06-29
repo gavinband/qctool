@@ -231,13 +231,15 @@ namespace genbin {
 		GenotypeProbabilitySetter set_genotype_probabilities
 	) {
 		// We read the following data in the following order.
-		impl::uint32_t number_of_samples ;
-		unsigned char max_id_size ;
-		unsigned char SNPID_size ;
+		// Initialisers are provided so that, in the case where the stream becomes bad (e.g. end of file)
+		// the assertions below are not triggered.
+		impl::uint32_t number_of_samples = 0;
+		unsigned char max_id_size = 0;
+		unsigned char SNPID_size = 0;
 		std::string SNPID ;
-		unsigned char RSID_size ;	
+		unsigned char RSID_size = 0;	
 		std::string RSID ;
-		impl::uint32_t SNP_position ;
+		impl::uint32_t SNP_position = 0;
 		char first_allele, second_allele ;
 
 		impl::read_little_endian_integer( aStream, &number_of_samples ) ;

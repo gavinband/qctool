@@ -52,6 +52,7 @@ struct SampleInputFile: public ObjectSource< SampleRow >
 	}
 	bool check_if_empty() { return !m_row_source_ptr.get() || m_row_source_ptr->check_if_empty() ; }
 
+	operator bool() { return *m_row_source_ptr ; }
 private:
 
 	std::auto_ptr< FileSourceType > m_row_source_ptr ;
