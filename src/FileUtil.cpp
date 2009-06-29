@@ -129,10 +129,10 @@ open_file_for_output( std::string const& filename ) {
 
 std::vector< std::string > find_files_matching_path_with_wildcard( std::string filename_with_wildcard ) {
 	std::vector< std::string > result ;
-	std::size_t wildcard_pos = filename_with_wildcard.find( '*' ) ;
 #if HAVE_BOOST_FILESYSTEM
 	BFS::path dir = BFS::path( filename_with_wildcard ).parent_path() ;
   	filename_with_wildcard = BFS::path( filename_with_wildcard ).filename() ;
+	std::size_t wildcard_pos = filename_with_wildcard.find( '*' ) ;
 	if( dir.empty() ) {
 		dir = "." ;
 	}
@@ -140,7 +140,7 @@ std::vector< std::string > find_files_matching_path_with_wildcard( std::string f
 
 	std::string first_bit = filename_with_wildcard.substr( 0, wildcard_pos ) ;
 	std::string second_bit = "" ;
-	if( wildcard_pos != std::string::npos ) {
+	if( wildcard_pos != std::string::npos && wildcard_pos != filename_with_wildcard.size() ) {
 		second_bit = filename_with_wildcard.substr( wildcard_pos + 1, filename_with_wildcard.size()) ;
 	}
 	
