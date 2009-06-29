@@ -1,0 +1,18 @@
+gen-select TODO LIST 29/06/2009
+
+Done?	Description
+-----   -----------
+*		Restrict file wildcard to numbers between 1 and 100 only.
+		Implement sample file writer.
+		Implement check that full set of chromosome files has been supplied for --sample-stats option.
+		Protect against overwriting input files?
+*		OptionProcessor: support more than on use of the same option: "-g example/1.gen -g example/2.gen"
+*		OptionProcessor: support multiple values for one option: "-snp-interval 0 1000"
+*		OptionProcessor: support option dependencies and exclusivities.
+*		Add option definitions as per whiteboard 26/06/09 (see iPhoto).
+		(Make all those options work.)
+		(Delete now unused options.)
+		Implement -sample-excl-list and -sample-incl-list
+		Implement -sample-missing-rate and -sample-heterozygosity.
+*		Fix end-of-file bug (rearrange so input operations return the stream, which we then test.)
+		Get rid of the ObjectSource / ObjectSink nonsense.  Learn to use IOstreams instead.
