@@ -2,6 +2,7 @@
 #define GENBIN_REFERENCE_IMPLEMENTATION_HPP
 
 #include <iostream>
+#include <vector>
 #include <cassert>
 #include <stdint.h>
 #include "endianness_utils.hpp"
@@ -31,6 +32,64 @@ namespace genbin {
 		template< typename T > void ignore( T const& ) {} ;
 	}
 
+	struct HeaderBlock
+	{
+		public:
+			HeaderBlock()
+				: m_number_of_individuals( 0 ),
+				  m_ID_field_storage( 50 ),
+				  m_free_data( "" ),
+				  m_number_of_blocks(1)
+			{}
+			
+		impl::uint32_t number_of_individuals() const { return m_number_of_individuals ; }
+		unsigned char ID_field_storage() const { return m_ID_field_storage ; }
+		std::string const& free_data() const { return m_free_data ; }
+		impl::uint32_t number_of_blocks() const { return m_number_of_blocks ; }
+		impl::uint32_t header_length() const { return 13 + m_free_data.size() ; }
+
+		HeaderBlock& set_number_of_individuals( impl::uint32_t number_of_individuals ) { m_number_of_individuals = number_of_individuals ; return *this ; }
+		HeaderBlock& set_ID_field_storage( unsigned char ID_field_storage ) { m_ID_field_storage = ID_field_storage ; return *this ; }
+		HeaderBlock& set_free_data( std::string free_data ) { m_free_data = free_data ; return *this ; }
+		HeaderBlock& set_number_of_blocks( impl::uint32_t number_of_blocks ) { m_number_of_blocks = number_of_blocks ; return *this ; }
+
+		private:
+			impl::uint32_t m_number_of_individuals ;
+			unsigned char m_ID_field_storage ;
+			std::string m_free_data ;
+			impl::uint32_t m_number_of_blocks ;
+	} ;
+
+	/*
+	* Function: read_offset
+	* Read the offset from the start of the stream.
+	*/
+	template< typename OffsetType >
+	void read_offset( std::istream& iStream, impl::uint32_t* offset ) ;
+
+	/*
+	* Function: read_offset
+	* Read the offset value to the stream.
+	*/
+	template< typename OffsetType >
+	void write_offset( std::ostream& oStream, impl::uint32_t offset ) ;
+
+	/*
+	* Function: read_header_block()
+	* Read a header block from the given istream object, returning the data in a HeaderBlock struct.
+	*/
+	void read_header_block( std::istream& aStream, HeaderBlock* header_block ) ;
+
+	/*
+	* Function: write_header_block()
+	* Write a header block with the given information to the given ostream object.
+	* Returns: the number of bytes written.
+	*/
+	void write_header_block(
+		std::ostream& aStream,
+		HeaderBlock const& header_block
+	) ;
+
 	/*
 	* Function: read_header_block()
 	* Read a header block from the given istream object, returning the data using
@@ -53,6 +112,7 @@ namespace genbin {
 	* Function: write_header_block()
 	* Write a header block with the given information to the given ostream object.
 	* Note: currently, the value of number_of_blocks must be 1.
+	* Returns: the number of bytes written.
 	*/
 	void write_header_block(
 		std::ostream& aStream,
@@ -149,9 +209,20 @@ namespace genbin {
 			::write_little_endian_integer( out_stream, integer ) ;
 		}
 		
-		uint16_t round_to_nearest_integer( double number ) {
-			return static_cast< uint16_t > ( number + 0.5 ) ;
-		}
+		uint16_t round_to_nearest_integer( double number ) ;
+	}
+
+	template< typename OffsetType >
+	void read_offset( std::istream& iStream, OffsetType* offset ) {
+		impl::uint32_t real_offset ;
+		read_little_endian_integer( iStream, &real_offset ) ;
+		*offset = real_offset ;
+	}
+
+	template< typename OffsetType >
+	void write_offset( std::ostream& oStream, OffsetType offset ) {
+		impl::uint32_t real_offset = offset ;
+		write_little_endian_integer( oStream, real_offset ) ;
 	}
 
 	template<
@@ -193,26 +264,6 @@ namespace genbin {
 			set_number_of_blocks( number_of_blocks ) ;
 		}
 	}
-
-	void write_header_block(
-		std::ostream& aStream,
-		impl::uint32_t number_of_individuals,
-		unsigned char ID_field_storage,
-		std::string free_data,
-		impl::uint32_t number_of_blocks
-	) {
-		impl::uint32_t flags = 0 ;
-		impl::uint32_t header_length = 13 + free_data.size() ;
-
-		assert( number_of_blocks == 1 ) ;  // As per the spec.
-		impl::write_little_endian_integer( aStream, header_length ) ;
-		impl::write_little_endian_integer( aStream, number_of_individuals ) ;
-		impl::write_little_endian_integer( aStream, flags ) ;
-		impl::write_little_endian_integer( aStream, ID_field_storage ) ;
-		aStream.write( free_data.data(), free_data.size() ) ;
-		impl::write_little_endian_integer( aStream, number_of_blocks ) ;
-	}
-
 
 	template<
 		typename IntegerSetter,
