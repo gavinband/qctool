@@ -61,13 +61,11 @@ AUTO_TEST_CASE( test_genrow_io ) {
 	GenRow row, row2 ;
 	int count = 0;
 	
-	do {
-		inStream >> row ;
+	while( inStream >> row ) {
 		++count ;
 		std::cout << "row " << count << "\n" ;
 		outStream << row ;
 	}
-	while( inStream.good() ) ;
 
 	assert( count == 11 ) ;
 	assert( outStream.str() == data ) ;
@@ -83,8 +81,7 @@ AUTO_TEST_CASE( test_genrow_io2 ) {
 	GenRow row, row2 ;
 	int count = 0;
 	
-	do {
-		inStream >> row ;
+	while( inStream >> row ) {
 		++count ;
 		std::cout << "row " << count << "\n" ;
 		std::ostringstream outStream ;
@@ -93,7 +90,6 @@ AUTO_TEST_CASE( test_genrow_io2 ) {
 		anotherInStream >> row2 ;
 		assert( row2 == row ) ;
 	}
-	while( inStream.good() ) ;
 
 	assert( count == 28 ) ;
 }
@@ -107,8 +103,7 @@ AUTO_TEST_CASE( test_genrow_binary_io ) {
 	GenRow row, row2 ;
 	int count = 0;
 	
-	do {
-		inStream >> row ;
+	while( inStream >> row ) {
 		++count ;
 		std::cout << "row " << count << "\n" ;
 		std::cout << row ;
@@ -119,7 +114,6 @@ AUTO_TEST_CASE( test_genrow_binary_io ) {
 		std::cout << row2 ;
 		assert( row2 == row ) ;
 	}
-	while( inStream.good() ) ;
 
 	assert( count == 28 ) ;
 }

@@ -54,7 +54,6 @@ double read_float( std::istream& aStream ) {
 	float result ;
 	aStream >> result ;
 #endif
-	aStream.peek() ; // flag eof
 	return result ;
 }
 
@@ -64,7 +63,6 @@ std::istream& GenRow::read_from_text_stream( std::istream& inStream ) {
 	std::string line ;
 	std::getline( inStream, line ) ;
 	std::istringstream aStream( line ) ;
-	Whitespace whitespace ;
 
 	aStream >> m_SNPID ;
 	aStream >> m_RSID ;
@@ -72,28 +70,32 @@ std::istream& GenRow::read_from_text_stream( std::istream& inStream ) {
 	aStream >> m_1st_allele ;
 	aStream >> m_2nd_allele ;
 
-	m_genotype_proportions.clear() ;	
+	if( aStream ) {
+		m_genotype_proportions.clear() ;	
+		int count = 0 ;
+	
+		while( aStream ) {
+			GenotypeProportions sample_allele_proportions( 0.0, 0.0, 0.0 ) ;
+			sample_allele_proportions.proportion_of_AA() = read_float( aStream ) ;
+			if( !aStream ) break ;
+			++count ;
+			sample_allele_proportions.proportion_of_AB() = read_float( aStream ) ;
+			if( !aStream ) break ;
+			++count ;
+			sample_allele_proportions.proportion_of_BB() = read_float( aStream ) ;
+			if( !aStream ) break ;
+			++count ;
+			m_genotype_proportions.push_back( sample_allele_proportions ) ;
+			aStream.peek() ; // flag eof if we reached it.
+		} ;
 
-	do {
-		GenotypeProportions sample_allele_proportions( 0.0, 0.0, 0.0 ) ;
-
-		sample_allele_proportions.proportion_of_AA() = read_float( aStream ) ;
-		sample_allele_proportions.proportion_of_AB() = read_float( aStream ) ;
-		sample_allele_proportions.proportion_of_BB() = read_float( aStream ) ;
-		m_genotype_proportions.push_back( sample_allele_proportions ) ;
-		aStream >> whitespace ;
+		// At the end of the row, after any whitespace, we allow either a newline or eof.
+		if( count % 3 != 0 ) {
+			throw BadRowFormatException( "Expected line to contain a full set of probabilities (AA, AB and BB)." ) ;
+		}
 	}
-	while( !aStream.eof() && static_cast<char>( aStream.peek()) != '\n' ) ;
-
-	// At the end of the row, after any whitespace, we allow either a newline or eof.
-	if( !aStream.eof() ) {
-		if( static_cast<char>( aStream.peek() ) == '\n' ) {
-			aStream.get() ;
-			aStream.peek() ; // ensure eof is flagged if we've reached the end of the file.
-		}
-		else {
-			throw BadRowFormatException( "Expected newline or eof at end of row." ) ;
-		}
+	else {
+		inStream.setstate( std::ios::badbit ) ;
 	}
 
 	return inStream ;
