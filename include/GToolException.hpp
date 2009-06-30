@@ -33,6 +33,13 @@ struct GToolException: public std::exception
 } ;
 
 
+struct BadFileFormatException: public GToolException
+{
+	BadFileFormatException( std::string const& msg )
+	: GToolException( msg )
+	{}
+} ;
+
 struct BadRowFormatException: public GToolException
 {
 	BadRowFormatException( std::string const& msg )

@@ -3,10 +3,12 @@
 
 #include <string>
 #include <vector>
+#include <stddef.h>
 #include "GenRow.hpp"
 #include "SimpleFileObjectSource.hpp"
 #include "ChainingFileObjectSource.hpp"
 #include "FileUtil.hpp"
+#include "genbin.hpp"
 
 // Open a GEN input file, returning the appropriate type of Source object.
 std::auto_ptr< ObjectSource< GenRow > > get_genrow_source_from_file( std::string filename ) ;
@@ -20,12 +22,21 @@ struct SimpleBinaryFileGenRowSource: public SimpleFileObjectSource< GenRow >
 	
 	SimpleBinaryFileGenRowSource( INPUT_FILE_PTR stream_ptr )
 		: base_t( stream_ptr )
-	{}
+	{
+		genbin::read_offset( (*stream_ptr), &m_offset ) ;
+		stream_ptr->ignore( m_offset ) ;
+		if( !(*stream_ptr)) {
+			throw BadFileFormatException( "SimpleBinaryFileGenRowSource: unable to read (or to skip) offset - this can't be a valid binary gen file." ) ;
+		}
+	}
 
 	void read( GenRow & row ) {
 		assert( !check_if_empty() ) ;
 		row.read_from_binary_stream( *stream_ptr() ) ;
 	}
+	
+	private:
+		uint32_t m_offset ;
 } ;
 
 struct ChainingFileGenRowSource: public ChainingFileObjectSource< GenRow >

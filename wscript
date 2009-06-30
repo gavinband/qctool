@@ -146,7 +146,6 @@ def build( bld ):
 	create_test( bld, 'test_log_of_factorial' )
 	create_test( bld, 'test_genrow_io' )
 	create_test( bld, 'test_genbin_snp_format' )
-	create_test( bld, 'test_genbin_header_format' )
 	create_test( bld, 'test_hardy_weinberg_exact_test_statistic' )
 	create_test( bld, 'test_maximum_likelihood_statistics' )
 	create_test( bld, 'test_hardy_weinberg_exact_test_statistic_against_SNPHWE' )

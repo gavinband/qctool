@@ -255,17 +255,17 @@ public:
 	
 	void process() {
 		try {
-			process_unsafe() ;
+			unsafe_process() ;
 		}
 		catch( StatisticNotFoundException const& e ) {
 			std::cerr << "!! ERROR: " << e << ".\n" ;
-			std::cerr << "Note: statistics required by the --condition argument must be added using --statistics.\n" ;
+			std::cerr << "Note: required statistics must be added using --statistics.\n" ;
 		}
 	}
 
 private:
 
-	void process_unsafe() {
+	void unsafe_process() {
 		process_sample_rows() ;
 		process_gen_rows() ;
 		process_per_sample_statistics() ;

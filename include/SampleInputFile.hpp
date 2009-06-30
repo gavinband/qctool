@@ -15,7 +15,7 @@ struct SampleInputFileException: public GToolException
 
 // A SampleRow source representing a sample file, templated on
 // the FileSourceType so that different file sources can be used.
-// The difference between this and a plain FileSourceType object
+// The difference between this and the underlying FileSourceType object
 // is that this reads the column header and column type lines at the beginning
 // of the sample file before acting like the FileSourceType object.
 // See http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format.html
@@ -50,9 +50,11 @@ struct SampleInputFile: public ObjectSource< SampleRow >
 		row.reset( m_column_headers, m_column_types ) ;
 		m_row_source_ptr->read( row ) ;
 	}
+
 	bool check_if_empty() { return !m_row_source_ptr.get() || m_row_source_ptr->check_if_empty() ; }
 
 	operator bool() { return *m_row_source_ptr ; }
+
 private:
 
 	std::auto_ptr< FileSourceType > m_row_source_ptr ;
