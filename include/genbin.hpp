@@ -18,8 +18,8 @@
 *
 * This implementation provides the following functions.
 *
-* - genbin::read_header_block( stream, data... )
-* - genbin::write_header_block( stream, data... )
+* - genbin::read_offset( stream, data... )
+* - genbin::write_offset( stream, data... )
 * - genbin::read_snp_block( stream, data... )
 * - genbin::write_snp_block( stream, data... )
 *
@@ -31,96 +31,23 @@ namespace genbin {
 		typedef ::uint16_t uint16_t ;
 		template< typename T > void ignore( T const& ) {} ;
 	}
-
-	struct HeaderBlock
-	{
-		public:
-			HeaderBlock()
-				: m_number_of_individuals( 0 ),
-				  m_ID_field_storage( 50 ),
-				  m_free_data( "" ),
-				  m_number_of_blocks(1)
-			{}
-			
-		impl::uint32_t number_of_individuals() const { return m_number_of_individuals ; }
-		unsigned char ID_field_storage() const { return m_ID_field_storage ; }
-		std::string const& free_data() const { return m_free_data ; }
-		impl::uint32_t number_of_blocks() const { return m_number_of_blocks ; }
-		impl::uint32_t header_length() const { return 13 + m_free_data.size() ; }
-
-		HeaderBlock& set_number_of_individuals( impl::uint32_t number_of_individuals ) { m_number_of_individuals = number_of_individuals ; return *this ; }
-		HeaderBlock& set_ID_field_storage( unsigned char ID_field_storage ) { m_ID_field_storage = ID_field_storage ; return *this ; }
-		HeaderBlock& set_free_data( std::string free_data ) { m_free_data = free_data ; return *this ; }
-		HeaderBlock& set_number_of_blocks( impl::uint32_t number_of_blocks ) { m_number_of_blocks = number_of_blocks ; return *this ; }
-
-		private:
-			impl::uint32_t m_number_of_individuals ;
-			unsigned char m_ID_field_storage ;
-			std::string m_free_data ;
-			impl::uint32_t m_number_of_blocks ;
-	} ;
+	
+	typedef impl::uint32_t uint32_t ;
+	typedef impl::uint16_t uint16_t ;
 
 	/*
 	* Function: read_offset
 	* Read the offset from the start of the stream.
 	*/
 	template< typename OffsetType >
-	void read_offset( std::istream& iStream, impl::uint32_t* offset ) ;
+	void read_offset( std::istream& iStream, OffsetType* offset ) ;
 
 	/*
 	* Function: read_offset
 	* Read the offset value to the stream.
 	*/
 	template< typename OffsetType >
-	void write_offset( std::ostream& oStream, impl::uint32_t offset ) ;
-
-	/*
-	* Function: read_header_block()
-	* Read a header block from the given istream object, returning the data in a HeaderBlock struct.
-	*/
-	void read_header_block( std::istream& aStream, HeaderBlock* header_block ) ;
-
-	/*
-	* Function: write_header_block()
-	* Write a header block with the given information to the given ostream object.
-	* Returns: the number of bytes written.
-	*/
-	void write_header_block(
-		std::ostream& aStream,
-		HeaderBlock const& header_block
-	) ;
-
-	/*
-	* Function: read_header_block()
-	* Read a header block from the given istream object, returning the data using
-	* the setter objects (or function pointers) passed as arguments.
-	*/
-	template<
-		typename NumberOfIndividualsSetter,
-		typename IDFieldStorageSetter,
-		typename FreeDataSetter,
-		typename NumberOfBlocksSetter >
-	void read_header_block(
-		std::istream& aStream,
-		NumberOfIndividualsSetter set_number_of_individuals,
-		IDFieldStorageSetter set_ID_field_storage,		
-		FreeDataSetter set_free_data,
-		NumberOfBlocksSetter set_number_of_blocks = &impl::ignore< impl::uint32_t >
-	) ;
-
-	/*
-	* Function: write_header_block()
-	* Write a header block with the given information to the given ostream object.
-	* Note: currently, the value of number_of_blocks must be 1.
-	* Returns: the number of bytes written.
-	*/
-	void write_header_block(
-		std::ostream& aStream,
-		impl::uint32_t number_of_individuals,
-		unsigned char ID_field_storage,
-		std::string free_data,
-		impl::uint32_t number_of_blocks
-	) ;
+	void write_offset( std::ostream& oStream, OffsetType offset ) ;
 
 	/*
 	* Function: read_snp_block()
@@ -164,10 +91,10 @@ namespace genbin {
 	template< typename GenotypeProbabilityGetter >
 	void write_snp_block(
 		std::ostream& aStream,
-		impl::uint32_t number_of_samples,
+		uint32_t number_of_samples,
 		std::string SNPID,
 		std::string RSID,
-		impl::uint32_t SNP_position,
+		uint32_t SNP_position,
 		char first_allele,
 		char second_allele,
 		GenotypeProbabilityGetter get_AA_probability,
@@ -208,8 +135,11 @@ namespace genbin {
 		void write_little_endian_integer( std::ostream& out_stream, IntegerType integer ) {
 			::write_little_endian_integer( out_stream, integer ) ;
 		}
-		
-		uint16_t round_to_nearest_integer( double number ) ;
+
+		template< typename FloatType >
+		uint16_t round_to_nearest_integer( FloatType number ) {
+			return static_cast< uint16_t > ( number + 0.5 ) ;
+		}
 	}
 
 	template< typename OffsetType >
@@ -223,46 +153,6 @@ namespace genbin {
 	void write_offset( std::ostream& oStream, OffsetType offset ) {
 		impl::uint32_t real_offset = offset ;
 		write_little_endian_integer( oStream, real_offset ) ;
-	}
-
-	template<
-		typename NumberOfIndividualsSetter,
-		typename IDFieldStorageSetter,
-		typename FreeDataSetter,
-		typename NumberOfBlocksSetter
-	>
-	void read_header_block(
-		std::istream& aStream,
-		NumberOfIndividualsSetter set_number_of_individuals,
-		IDFieldStorageSetter set_ID_field_storage,		
-		FreeDataSetter set_free_data,
-		NumberOfBlocksSetter set_number_of_blocks = &(impl::ignore< impl::uint32_t >)
-	) {
-		impl::uint32_t
-			header_length,
-			number_of_blocks,
-			number_of_individuals,		
-			flags ;
-		unsigned char S ;
-		std::vector<char> free_data ;
-
-		impl::read_little_endian_integer( aStream, &header_length ) ;
-		assert( header_length >= 13 ) ;
-		impl::read_little_endian_integer( aStream, &number_of_individuals ) ;
-		impl::read_little_endian_integer( aStream, &flags ) ;
-		assert( flags == 0 ) ;
-		S = aStream.get() ;
-		free_data.resize( header_length - 13 ) ;
-		aStream.read( &free_data[0], header_length - 13 ) ;
-		impl::read_little_endian_integer( aStream, &number_of_blocks ) ;
-		 // assert( number_of_blocks == 1 ) ;
-		
-		if( aStream ) {
-			set_number_of_individuals( number_of_individuals ) ;
-			set_ID_field_storage( S ) ;
-			set_free_data( std::string( free_data.begin(), free_data.end() )) ;
-			set_number_of_blocks( number_of_blocks ) ;
-		}
 	}
 
 	template<
@@ -342,10 +232,10 @@ namespace genbin {
 	template< typename GenotypeProbabilityGetter >
 	void write_snp_block(
 		std::ostream& aStream,
-		impl::uint32_t number_of_samples,
+		uint32_t number_of_samples,
 		std::string SNPID,
 		std::string RSID,
-		impl::uint32_t SNP_position,
+		uint32_t SNP_position,
 		char first_allele,
 		char second_allele,
 		GenotypeProbabilityGetter get_AA_probability,
