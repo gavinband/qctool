@@ -16,5 +16,5 @@ Done?	Description
 		Implement -sample-excl-list and -sample-incl-list
 		Implement -sample-missing-rate and -sample-heterozygosity.
 *		Fix end-of-file bug (rearrange so input operations return the stream, which we then test.)
-		Get rid of the ObjectSource / ObjectSink nonsense.  Learn to use IOstreams instead.
+		? Get rid of the ObjectSource / ObjectSink nonsense.  Learn to use IOstreams instead.
 *		Output stats in the same order given.

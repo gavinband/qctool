@@ -23,7 +23,7 @@
 #include "GToolException.hpp"
 #include "OptionProcessor.hpp"
 #include "RowCondition.hpp"
-#include "RowConditionFactory.hpp"
+#include "SNPInListCondition.hpp"
 #include "Whitespace.hpp"
 #include "FileUtil.hpp"
 #include "GenRowStatistics.hpp"
@@ -95,9 +95,11 @@ public:
 
 		// SNP filtering options
 		options[ "--hwe"]
-			.set_description( "Filter out SNPs with HWE exact test statistics less than or equal to the value specified.") ;
+			.set_description( "Filter out SNPs with HWE exact test statistics less than or equal to the value specified.")
+			.set_takes_single_value() ;
 		options[ "--snp-missing-rate"]
-			.set_description( "Filter out SNPs with missing data rate greater than or equal to the value specified.") ;
+			.set_description( "Filter out SNPs with missing data rate greater than or equal to the value specified.")
+			.set_takes_single_value() ;
 		options[ "--snp-interval"]
 			.set_description( "Filter out SNPs with position outside the interval [a,b], where a and b are the first and second supplied values" )
 			.set_number_of_values_per_use( 2 ) ;
@@ -105,9 +107,9 @@ public:
 			.set_description( "Filter out SNPs whose minor allele frequency lies outside the interval [a,b], where a and b are the first and second supplied values." )
 			.set_number_of_values_per_use( 2 ) ;
 		options[ "--snp-incl-list"]
-			.set_description( "Filter out SNPs whose SNP ID or RSID does not lie in the given file (which must contain a sorted list of whitespace-separated strings)") ;
+			.set_description( "Filter out SNPs whose SNP ID or RSID does not lie in the given file (which must contain a list of whitespace-separated strings)") ;
 		options[ "--snp-excl-list"]
-			.set_description( "Filter out SNPs whose SNP ID or RSID lies in the given file (which must contain a sorted list of whitespace-separated strings)") ;
+			.set_description( "Filter out SNPs whose SNP ID or RSID lies in the given file (which must contain a list of whitespace-separated strings)") ;
 
 		// Sample filtering options
 		options[ "--sample-missing-rate" ]
@@ -116,20 +118,14 @@ public:
 			.set_description( "Filter out samples with heterozygosity outside the inteval [a,b], where a and b are the first and second supplied values" )
 			.set_number_of_values_per_use( 2 ) ;
 		options[ "--sample-incl-list"]
-			.set_description( "Filter out samples whose sample ID does not lie in the given file (which must contain a sorted list of whitespace-separated strings)") ;
+			.set_description( "Filter out samples whose sample ID does not lie in the given file (which must contain a list of whitespace-separated strings)") ;
 		options[ "--sample-excl-list"]
-			.set_description( "Filter out samples whose sample ID lies in the given file (which must contain a sorted list of whitespace-separated strings)") ;
-
-		// TODO: remove the following options.
-		options[ "--condition" ]
-	        .set_description( "Condition spec for gen file row selection" )
-			.set_takes_single_value()
-			.set_default_value( std::string("") ) ;
+			.set_description( "Filter out samples whose sample ID lies in the given file (which must contain a list of whitespace-separated strings)") ;
 
 		options[ "--row-statistics" ]
 	        .set_description( "Comma-seperated list of statistics to calculate in genstat file" )
 			.set_takes_single_value()
-			.set_default_value( "SNPID, RSID, position, alleles, MAF, HWE" ) ;
+			.set_default_value( "SNPID, RSID, position, alleles, MAF, HWE, missing-rate" ) ;
 
 		options[ "--sample-statistics" ]
 	        .set_description( "Comma-seperated list of statistics to calculate in samplestat file" )
@@ -178,6 +174,60 @@ public:
 		sample_row_sink.reset( new NullObjectSink< SampleRow >() ) ;
 	}
 
+	void construct_snp_filter() {
+		std::map< std::string, std::string > filter_components ;
+		std::auto_ptr< AndRowCondition > snp_filter( new AndRowCondition() ) ;
+
+		if( m_options.check_if_option_was_supplied( "--hwe" ) ) {
+			double threshhold = m_options.get_value< double >( "--hwe" ) ;
+			std::auto_ptr< RowCondition > hwe_condition( new GenotypeAssayStatisticGreaterThan( "HWE", threshhold )) ;
+			snp_filter->add_subcondition( hwe_condition ) ;
+		}
+
+		if( m_options.check_if_option_was_supplied( "--snp-missing-rate" ) ) {
+			double threshhold = m_options.get_value< double >( "--snp-missing-rate" ) ;
+			std::auto_ptr< RowCondition > missing_rate_condition( new GenotypeAssayStatisticLessThan( "missing-rate", threshhold )) ;
+			snp_filter->add_subcondition( missing_rate_condition ) ;
+		}
+
+		if( m_options.check_if_option_was_supplied( "--snp-interval" ) ) {
+			std::vector< double > range = m_options.get_values< double >( "--snp-interval" ) ;
+			assert( range.size() == 2 ) ;
+			assert( range[0] <= range[1] ) ;
+			std::auto_ptr< RowCondition > position_condition( new GenotypeAssayStatisticInInclusiveRange( "snp-position", range[0], range[1] )) ;
+			snp_filter->add_subcondition( position_condition ) ;
+		}
+
+		if( m_options.check_if_option_was_supplied( "--maf" ) ) {
+			std::vector< double > range = m_options.get_values< double >( "--maf" ) ;
+			assert( range.size() == 2 ) ;
+			assert( range[0] <= range[1] ) ;
+			std::auto_ptr< RowCondition > maf_condition( new GenotypeAssayStatisticInInclusiveRange( "MAF", range[0], range[1] )) ;
+			snp_filter->add_subcondition( maf_condition ) ;
+		}
+
+		if( m_options.check_if_option_was_supplied( "--snp-incl-list" ) ) {
+			std::string filename = m_options.get_value< std::string >( "--snp-incl-list" ) ;
+			std::auto_ptr< RowCondition > snp_incl_condition( new SNPInListCondition( filename )) ;
+			snp_filter->add_subcondition( snp_incl_condition ) ;
+		}
+
+		if( m_options.check_if_option_was_supplied( "--snp-excl-list" ) ) {
+			std::string filename = m_options.get_value< std::string >( "--snp-excl-list" ) ;
+			std::auto_ptr< RowCondition > snp_incl_condition( new SNPInListCondition( filename )) ;
+			std::auto_ptr< RowCondition > snp_excl_condition( new NotRowCondition( snp_incl_condition )) ;
+			snp_filter->add_subcondition( snp_excl_condition ) ;
+		}
+		
+		m_snp_filter = snp_filter ;
+		
+		std::cout << "gen-select: I will keep SNPs which satisfy: "
+			<< (*m_snp_filter) << ".\n" ;
+	}
+
+	void construct_sample_filter() {
+	}
+
 	void setup() {
 		open_gen_row_source() ;
 		open_gen_row_sink() ;
@@ -200,8 +250,7 @@ public:
 		SampleRowStatisticFactory::add_statistics( sample_statistics_specs, m_sample_statistics ) ;
 		
 		// Get the condition to apply to rows.
-		std::string condition_spec = m_options.get_value< std::string >( "--condition" ) ;
-		m_row_condition = RowConditionFactory::create_condition( condition_spec ) ; 	
+		construct_snp_filter() ;
 	}
 	
 	void process() {
@@ -250,7 +299,7 @@ private:
 	void process_gen_row( GenRow& row, std::size_t row_number ) {
 		m_row_statistics.process( row ) ;
 		m_row_statistics.round_genotype_amounts() ;
-		if( m_row_condition->check_if_satisfied( row, &m_row_statistics )) {
+		if( m_snp_filter->check_if_satisfied( row, &m_row_statistics )) {
 			(*gen_row_sink) << row ;
 
 			if( genStatisticOutputFile.get() ) {
@@ -334,7 +383,7 @@ private:
 	
 	GenRowStatistics m_row_statistics ;
 	SampleRowStatistics m_sample_statistics ;
-	std::auto_ptr< RowCondition > m_row_condition ;
+	std::auto_ptr< RowCondition > m_snp_filter ;
 	
 	std::size_t m_number_of_gen_rows ;
 	

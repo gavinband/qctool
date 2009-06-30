@@ -23,34 +23,50 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 	// Handle statistic arithmetic
 	std::vector< std::string > bits = split( statistic_spec, "/" ) ;
 	if (bits.size() == 2) {
-		std::auto_ptr< GenotypeAssayStatistic > first_stat_ptr, second_stat_ptr ;
-		first_stat_ptr = GenotypeAssayStatisticFactory::create_statistic( bits[0] ) ;
-		second_stat_ptr = GenotypeAssayStatisticFactory::create_statistic( bits[1] ) ;
-		return std::auto_ptr< GenotypeAssayStatistic >( new StatisticRatio( first_stat_ptr, second_stat_ptr )) ;
+		try {
+			std::auto_ptr< GenotypeAssayStatistic > first_stat_ptr, second_stat_ptr ;
+			first_stat_ptr = GenotypeAssayStatisticFactory::create_statistic( bits[0] ) ;
+			second_stat_ptr = GenotypeAssayStatisticFactory::create_statistic( bits[1] ) ;
+			return std::auto_ptr< GenotypeAssayStatistic >( new StatisticRatio( first_stat_ptr, second_stat_ptr )) ;
+		}
+		catch( StatisticNotFoundException const& e ) {
+		}
 	}	
 
 	bits = split( statistic_spec, "*" ) ;
 	if (bits.size() == 2) {
-		std::auto_ptr< GenotypeAssayStatistic > first_stat_ptr, second_stat_ptr ;
-		first_stat_ptr = GenotypeAssayStatisticFactory::create_statistic( bits[0] ) ;
-		second_stat_ptr = GenotypeAssayStatisticFactory::create_statistic( bits[1] ) ;
-		return std::auto_ptr< GenotypeAssayStatistic >( new StatisticProduct( first_stat_ptr, second_stat_ptr )) ;
+		try {
+			std::auto_ptr< GenotypeAssayStatistic > first_stat_ptr, second_stat_ptr ;
+			first_stat_ptr = GenotypeAssayStatisticFactory::create_statistic( bits[0] ) ;
+			second_stat_ptr = GenotypeAssayStatisticFactory::create_statistic( bits[1] ) ;
+			return std::auto_ptr< GenotypeAssayStatistic >( new StatisticProduct( first_stat_ptr, second_stat_ptr )) ;
+		}
+		catch( StatisticNotFoundException const& e ) {
+		}
 	}	
 
 	bits = split( statistic_spec, "+" ) ;
 	if (bits.size() == 2) {
 		std::auto_ptr< GenotypeAssayStatistic > first_stat_ptr, second_stat_ptr ;
-		first_stat_ptr = GenotypeAssayStatisticFactory::create_statistic( bits[0] ) ;
-		second_stat_ptr = GenotypeAssayStatisticFactory::create_statistic( bits[1] ) ;
-		return std::auto_ptr< GenotypeAssayStatistic >( new StatisticSum( first_stat_ptr, second_stat_ptr )) ;
+		try {
+			first_stat_ptr = GenotypeAssayStatisticFactory::create_statistic( bits[0] ) ;
+			second_stat_ptr = GenotypeAssayStatisticFactory::create_statistic( bits[1] ) ;
+			return std::auto_ptr< GenotypeAssayStatistic >( new StatisticSum( first_stat_ptr, second_stat_ptr )) ;
+		}
+		catch( StatisticNotFoundException const& e ) {
+		}
 	}	
 
 	bits = split( statistic_spec, "-" ) ;
 	if (bits.size() == 2) {
-		std::auto_ptr< GenotypeAssayStatistic > first_stat_ptr, second_stat_ptr ;
-		first_stat_ptr = GenotypeAssayStatisticFactory::create_statistic( bits[0] ) ;
-		second_stat_ptr = GenotypeAssayStatisticFactory::create_statistic( bits[1] ) ;
-		return std::auto_ptr< GenotypeAssayStatistic >( new StatisticDifference( first_stat_ptr, second_stat_ptr )) ;
+		try {
+			std::auto_ptr< GenotypeAssayStatistic > first_stat_ptr, second_stat_ptr ;
+			first_stat_ptr = GenotypeAssayStatisticFactory::create_statistic( bits[0] ) ;
+			second_stat_ptr = GenotypeAssayStatisticFactory::create_statistic( bits[1] ) ;
+			return std::auto_ptr< GenotypeAssayStatistic >( new StatisticDifference( first_stat_ptr, second_stat_ptr )) ;
+		}
+		catch( StatisticNotFoundException const& e ) {
+		}
 	}	
 	
 	// See if it's a special type.

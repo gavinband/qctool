@@ -20,6 +20,7 @@ struct RowConditionFactory
 		static std::auto_ptr< RowCondition > try_to_create_compound_condition( std::string condition_spec ) ;
 		static std::auto_ptr< RowCondition > try_to_create_inverted_condition( std::string condition_spec ) ;
 		static std::auto_ptr< RowCondition > try_to_create_range_condition( std::string condition_spec ) ;
+		static std::auto_ptr< RowCondition > try_to_create_other_condition( std::string condition_spec ) ;
 		static std::auto_ptr< RowCondition > create_inclusive_range_condition( std::string const& name, std::string range_spec ) ;
 		static std::auto_ptr< RowCondition > create_exclusive_range_condition( std::string const& name, std::string range_spec ) ;
 		static std::pair< double, double > parse_bounds( std::string const& range_spec ) ;

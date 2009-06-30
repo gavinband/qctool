@@ -71,15 +71,19 @@ struct FromFileSet: Set
 	
 	FromFileSet( std::string filename ) {
 		INPUT_FILE_PTR aStream( open_file_for_input( filename )) ;
-	
+		if( !(*aStream) ) {
+			throw FileException( "FromFileSet: Error opening file \"" + filename + "\".  Must be a readable file." ) ;
+		}
+
 		value_type value ;
 
 		while( (*aStream) >> value ) {
 			this->insert( value ) ;
 		}
 		
-		if( aStream->bad() )
-			throw FileException( "FromFileSet: After reading entries, stream was bad." ) ;
+		if( aStream->bad() ) {
+			throw FileException( "FromFileSet: Error reading entries -- the file must be a whitespace-separated list." ) ;
+		}
 	}
 } ;
 

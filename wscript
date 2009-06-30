@@ -82,6 +82,7 @@ def build( bld ):
 					'src/GToolException.cpp',
 					'src/SNPInListCondition.cpp',
 					'src/string_utils.cpp',
+					'src/parse_utils.cpp',
 					'src/SampleRow.cpp',
 					'src/SampleRowStatistics.cpp',
 					'src/Condition.cpp',

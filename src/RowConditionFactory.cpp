@@ -5,8 +5,10 @@
 #include <sstream>
 #include "RowConditionFactory.hpp"
 #include "RowCondition.hpp"
+#include "SNPInListCondition.hpp"
 #include "GToolException.hpp"
 #include "string_utils.hpp"
+#include "parse_utils.hpp"
 
 ConditionSpecException::ConditionSpecException( std::string const& msg )
 : ConditionException( msg )
@@ -32,7 +34,13 @@ std::auto_ptr< RowCondition > RowConditionFactory::create_condition( std::string
 	// If we get here, condition was not modified by AND or OR or NOT
 	condition = RowConditionFactory::try_to_create_range_condition( condition_spec ) ;
 
-    if( condition.get() == 0 ) {
+    if( condition.get() != 0 ) {
+		return condition ;
+	}
+	
+	condition = RowConditionFactory::try_to_create_other_condition( condition_spec ) ;
+
+	if( condition.get() != 0 ) {
         throw ConditionSpecException( "Unable to construct condition with spec \"" + condition_spec + "\"." ) ;
     }
 	
@@ -121,6 +129,20 @@ std::auto_ptr< RowCondition > RowConditionFactory::try_to_create_range_condition
 	return condition ;
 }
 
+std::auto_ptr< RowCondition > RowConditionFactory::try_to_create_other_condition( std::string condition_spec ) {
+	std::auto_ptr< RowCondition > condition ;
+
+	if( condition_spec.size() < 13 || condition_spec.substr( 0, 11 ) != "snp-in-list(" ) {
+		return condition ;
+	}
+	
+	condition_spec = strip( condition_spec.substr( 11, condition_spec.size() - 11 )) ;
+	condition_spec = strip( strip_brackets( condition_spec, '(', ')' )) ;
+	
+	// what is left should be a filename
+	condition.reset( new SNPInListCondition( condition_spec )) ;
+	return condition ;
+}
 
 std::auto_ptr< RowCondition > RowConditionFactory::create_inclusive_range_condition( std::string const& name, std::string range_spec ) {
 	std::pair< double, double > bounds = RowConditionFactory::parse_bounds( range_spec ) ;

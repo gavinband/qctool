@@ -1,7 +1,6 @@
 #ifndef __GTOOL__STRING_UTILS_HPP__
 #define __GTOOL__STRING_UTILS_HPP__
 
-#include <cassert>
 #include <vector>
 #include <string>
 

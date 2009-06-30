@@ -81,7 +81,7 @@ std::string GenotypeAssayStatistics::get_statistic_value< std::string >( std::st
 std::ostream& GenotypeAssayStatistics::format_column_headers( std::ostream& aStream ) {
 	base_t::format_column_headers( aStream ) ;
 	for( std::vector< std::string >::const_iterator i = m_statistic_names.begin(); i != m_statistic_names.end(); ++i ) {
-		aStream << std::setw(8) << std::left << (i->substr( 0, 8 )) << "  " ;
+		aStream << std::setw( std::max( std::size_t(8), i->size() )) << std::left << (*i) << "  " ;
 	}
 	return aStream ;
 }
@@ -89,7 +89,7 @@ std::ostream& GenotypeAssayStatistics::format_column_headers( std::ostream& aStr
 std::ostream& GenotypeAssayStatistics::format_statistic_values( std::ostream& aStream ) const {
 	base_t::format_statistic_values( aStream ) ;
 	for( std::vector< std::string >::const_iterator i = m_statistic_names.begin(); i != m_statistic_names.end(); ++i ) {
-		aStream << std::setw(8) << std::left << get_statistic_value< std::string >( *i ) << "  ";
+		aStream << std::setw( std::max( std::size_t(8), i->size() )) << std::left << get_statistic_value< std::string >( *i ) << "  ";
 	}
 		
 	return aStream ;

@@ -23,12 +23,20 @@ class Condition
 
 		virtual bool check_if_satisfied( MandatoryData const&, OptionalData const* = 0 ) const = 0;
 
+		virtual void format_to_stream( std::ostream& ) const = 0 ;
+
 	private:
 	
 		// prevent copying and assignment.
 		Condition( Condition const& ) ;
 		Condition& operator=( Condition const& ) ;
 } ;
+
+template< typename MandatoryData, typename OptionalData >
+std::ostream& operator<< ( std::ostream& oStream, Condition< MandatoryData, OptionalData > const& condition ) {
+	condition.format_to_stream( oStream ) ;
+	return oStream ;
+} 
 
 
 template< typename MandatoryData, typename OptionalData >
@@ -44,6 +52,12 @@ struct InvertCondition: public Condition< MandatoryData, OptionalData >
 
 	bool check_if_satisfied( MandatoryData const& mandatory_data , OptionalData const * optional_data = 0 ) const {
 		return !( m_condition_to_invert->check_if_satisfied( mandatory_data, optional_data )) ;
+	}
+
+	void format_to_stream( std::ostream& oStream ) const {
+		oStream
+			<< "NOT "
+			<< (*m_condition_to_invert) ;
 	}
 
     private:
@@ -75,6 +89,21 @@ struct CompoundCondition: public Condition< MandatoryData, OptionalData >
 			m_subconditions.push_back( subcondition.release() ) ;
 		}
 
+		void format_to_stream( std::ostream& oStream, std::string const& join ) const {
+			subcondition_iterator_t
+				first_subcondition_i( begin_subconditions() ),
+				subcondition_i( begin_subconditions() ),
+				subcondition_end( end_subconditions() ) ;
+
+			for( ; subcondition_i != subcondition_end; ++subcondition_i ) {
+				if( subcondition_i != first_subcondition_i ) {
+					oStream << " " << join << " " ;
+				}
+				oStream << (**subcondition_i) ;
+			}
+		}
+
+
 		subcondition_iterator_t begin_subconditions() const { return m_subconditions.begin() ; }
 		subcondition_iterator_t end_subconditions() const { return m_subconditions.end() ; }
 
@@ -97,6 +126,10 @@ struct AndCondition: public CompoundCondition< MandatoryData, OptionalData >
 		}
 		return true ;
 	}
+	
+	void format_to_stream( std::ostream& oStream ) const {
+		base_t::format_to_stream( oStream, "AND" ) ;
+	}
 } ;
 
 
@@ -111,6 +144,10 @@ struct OrCondition: public CompoundCondition< MandatoryData, OptionalData >
 			result = result || (*subcondition_i)->check_if_satisfied( mandatory_data, optional_data ) ;
 		}
 		return result ;
+	}
+	
+	void format_to_stream( std::ostream& oStream ) const {
+		base_t::format_to_stream( oStream, "OR" ) ;
 	}
 } ;
 
