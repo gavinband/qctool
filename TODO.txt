@@ -3,7 +3,7 @@ gen-select TODO LIST 29/06/2009
 Done?	Description
 -----   -----------
 *		Restrict file wildcard to numbers between 1 and 100 only.
-		Implement sample file writer.
+*		Implement sample file writer.
 		Implement check that full set of chromosome files has been supplied for --sample-stats option.
 		Protect against overwriting input files?
 *		OptionProcessor: support more than on use of the same option: "-g example/1.gen -g example/2.gen"
@@ -17,6 +17,6 @@ Done?	Description
 		Implement -sample-missing-rate and -sample-heterozygosity.
 *		Fix end-of-file bug (rearrange so input operations return the stream, which we then test.)
 *		Fix bug where passing non-gen file causes program to hang.
-		Rationalise ObjectSource / ObjectSink nonsense.  (learn to use IOstreams).
+*		Rationalise ObjectSource / ObjectSink nonsense.
 *		Output stats in the same order given.
 

@@ -10,14 +10,12 @@ struct ObjectSource
 public:
 	virtual ~ObjectSource() {};
 	
-	virtual void read( Object& ) = 0 ;
-	virtual bool check_if_empty() = 0 ;
+	virtual ObjectSource& read( Object& ) = 0 ;
 	virtual operator bool() = 0 ;
 } ;
 
 template< typename Object >
 ObjectSource< Object >& operator>>( ObjectSource< Object >& source, Object& object ) {
-	assert( !source.check_if_empty() ) ;
 	source.read( object ) ;
 	return source ;
 }
@@ -25,8 +23,7 @@ ObjectSource< Object >& operator>>( ObjectSource< Object >& source, Object& obje
 template< typename Object >
 struct NullObjectSource: public ObjectSource< Object >
 {
-	void read( Object& ) { assert( 0 ) ;}
-	bool check_if_empty() { return true ;}
+	NullObjectSource& read( Object& ) { return *this ; }
 	operator bool() { return false ;}
 } ;
 

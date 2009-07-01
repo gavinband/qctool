@@ -45,11 +45,18 @@ struct GenotypeAssayStatistics: public GenotypeAssayBasicStatistics
 
 		std::size_t size() const { return m_statistics.size() ; }
 
+	protected:
+		
+		typedef std::map< std::string, GenotypeAssayStatistic* > statistics_t ;
+		typedef statistics_t::const_iterator statistic_iterator_t ;
+		std::vector<std::string>::const_iterator begin_statistics() const { return m_statistic_names.begin() ; }
+		std::vector<std::string>::const_iterator end_statistics() const { return m_statistic_names.end() ; }
+
+
 	private:
 
 		void reset() ;
 	
-		typedef std::map< std::string, GenotypeAssayStatistic* > statistics_t ;
 		statistics_t m_statistics ;
 		std::vector< std::string > m_statistic_names ;
 

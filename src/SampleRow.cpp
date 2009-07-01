@@ -1,6 +1,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <sstream>
 #include <cassert>
 #include "SampleRow.hpp"
 #include "string_utils.hpp"
@@ -38,51 +39,55 @@ double SampleRow::further_data( std::string const& column_heading ) const {
 	return further_data_i->second ;
 }
 
+void SampleRow::add_column( std::string const& heading, char type ) {
+	if( !have_column( heading )) {
+		m_column_headings.push_back( heading ) ;
+		m_column_types.push_back( type ) ;
+		m_further_data[heading] = 0.0 ;
+	}
+}
+
+bool SampleRow::have_column( std::string const& heading ) const {
+	// linear search through column names.
+	for( std::vector<std::string>::const_iterator i = m_column_headings.begin(); i != m_column_headings.end(); ++i ) {
+		if( *i == heading ) {
+			return true;
+		}
+	}
+	return false ;
+}
+
+void SampleRow::set_value( std::string const& heading, double value ) {
+	assert( have_column( heading )) ;
+	m_further_data[ heading ] = value ;
+}
+
 std::istream& operator>>( std::istream& aStream, SampleRow& row ) {
-	aStream >> std::noskipws ;
-	char c ;
-	
-	aStream >> row.m_id1 >> c ;
-	if( !check_char_is_space(c) ) {
-		throw BadSampleRowFormatException( "Expected single space after sample row id 1") ;
-	};
-	aStream >> row.m_id2 >> c ;
-	if( !check_char_is_space(c) ) {
-		throw BadSampleRowFormatException( "Expected single space after sample row id 2") ;
-	};
-	aStream >> row.m_missing ;
+	std::string line ;
+	std::getline( aStream, line ) ;
+	std::istringstream sStream( line ) ;
+	sStream >> row.m_id1 ;
+	sStream >> row.m_id2 ;
+	sStream >> row.m_missing ;
 
 	std::size_t i = 3 ;
 	while( i < row.m_column_headings.size() ) {
-		aStream >> c ;
-		if( !check_char_is_space(c) ) {
-			throw BadSampleRowFormatException( "Expected single space before sample row entry.") ;
-		};
 		double next_elt ;
-		aStream >> next_elt ;
+		sStream >> next_elt ;
 		row.m_further_data[ row.m_column_headings[i] ] = next_elt ;
 		++i ;
 	}
 
-	// At the end of the row, allow trailing whitespace.
-	// This should be followed by a newline or the eof.
-	Whitespace whitespace( " \t" ) ;
-	aStream >> whitespace ;
-	aStream.peek() ; // ensure eof is flagged if we've reached the end of the file.
-	if( !aStream.eof() ) {
-		if( check_char_is_newline( static_cast<char>( aStream.peek() ))) {
-			aStream.get() ;
-			aStream.peek() ; // ensure eof is flagged if we've reached the end of the file.
-		}
-		else {
-			std::string msg = "Expected newline or eof at end of sample row, got \'" ;
-			msg += static_cast< char >( aStream.peek() ) ;
-			msg += "\'." ;
-			throw BadSampleRowFormatException( msg ) ;
-		}
+	if( sStream.fail() ) {
+		aStream.setstate( std::ios::failbit ) ;
 	}
-	
-	return aStream >> std::skipws ;
+
+	sStream.peek() ;
+	if( !sStream.eof() ) {
+		throw BadSampleRowFormatException( "Extra data at end of sample row" ) ;
+	}
+
+	return aStream ;
 }
 
 std::ostream& operator<<( std::ostream& aStream, SampleRow const& row ) {

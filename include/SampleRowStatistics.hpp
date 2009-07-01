@@ -17,6 +17,9 @@ struct SampleRowStatistics: public GenotypeAssayStatistics
 		void process( SampleRow const& row, GenotypeProportions const& amounts, std::size_t number_of_samples ) ;
 
 		SampleRow const& row() const { return *m_row ; }
+
+		void add_to_sample_row( SampleRow& row ) const ;
+
 	private:
 		
 		SampleRow const* m_row ;

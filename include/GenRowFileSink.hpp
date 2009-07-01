@@ -18,9 +18,9 @@ struct SimpleGenRowBinaryFileSink: public SimpleFileObjectSink< GenRow >
 		genbin::write_offset( *stream_ptr, 0 ) ;
 	}
 
-	void write( GenRow const& row ) {
-		assert( !check_if_full() ) ;
+	SimpleGenRowBinaryFileSink& write( GenRow const& row ) {
 		row.write_to_binary_stream( *stream_ptr() ) ;
+		return *this ;
 	}
 } ;
 

@@ -70,8 +70,7 @@ void process_gen_rows( ObjectSource< GenRow >& gen_row_source, OptionProcessor c
 	std::size_t count = 0;
 	Timer timer ;
 	// Read in a list of genRows.
-	while( count < number_of_rows_to_read && !gen_row_source.check_if_empty() ) {
-		gen_row_source >> row ;
+	while(( count < number_of_rows_to_read ) && ( gen_row_source >> row )) {
 		++count ;
 	}
 	

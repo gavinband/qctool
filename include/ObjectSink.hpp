@@ -11,13 +11,12 @@ public:
 	
 	virtual ~ObjectSink() {};
 	
-	virtual void write( Object const& ) = 0;
-	virtual bool check_if_full() = 0;
+	virtual ObjectSink& write( Object const& ) = 0;
+	virtual operator bool() const = 0 ;
 } ;
 
 template< typename Object >
 ObjectSink<Object> & operator<<( ObjectSink< Object >& sink, Object const& object ) {
-	assert( !sink.check_if_full()) ;
 	sink.write( object ) ;
 	return sink ;
 }
@@ -25,8 +24,12 @@ ObjectSink<Object> & operator<<( ObjectSink< Object >& sink, Object const& objec
 template< typename Object >
 struct NullObjectSink: public ObjectSink< Object >
 {
-	void write( Object const& ) {}
-	bool check_if_full() { return false ;}
+	NullObjectSink& write( Object const& ) {
+		return *this ;
+	}
+	operator bool() const {
+		return true ;
+	}
 } ;
 
 #endif

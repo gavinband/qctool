@@ -82,12 +82,12 @@ void process_gen_rows( ObjectSource< GenRow >& gen_row_source, OptionProcessor c
 
 	try {		
 		// Read in a list of genRows.
-		std::vector<GenRow> genrows ;		
+		std::vector<GenRow> genrows ;
+		GenRow genrow ;
 		{
 			std::size_t count = 0;
-			while( count < number_of_rows_to_read && !gen_row_source.check_if_empty() ) {
-				genrows.push_back( GenRow() ) ;
-				gen_row_source >> genrows.back() ;
+			while(( count < number_of_rows_to_read ) && ( gen_row_source >> genrow )) {
+				genrows.push_back( genrow ) ;
 				++count ;
 			}
 		}

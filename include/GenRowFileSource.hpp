@@ -30,9 +30,9 @@ struct SimpleBinaryFileGenRowSource: public SimpleFileObjectSource< GenRow >
 		}
 	}
 
-	void read( GenRow & row ) {
-		assert( !check_if_empty() ) ;
+	SimpleBinaryFileGenRowSource& read( GenRow & row ) {
 		row.read_from_binary_stream( *stream_ptr() ) ;
+		return *this ;
 	}
 	
 	private:

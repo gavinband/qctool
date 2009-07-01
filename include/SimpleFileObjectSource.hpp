@@ -17,14 +17,12 @@ public:
 
 	~SimpleFileObjectSource() {} ;
 
-	void read( Object& object ) {
-		assert( !check_if_empty() ) ;
+	SimpleFileObjectSource& read( Object& object ) {
 		Whitespace whitespace ;
 		(*m_stream_ptr) >> whitespace >> object >> whitespace ;
+		return *this ;
 	}
-	bool check_if_empty() {
-		return !m_stream_ptr.get() || !m_stream_ptr->good() ;
-	}
+
 	operator bool() {
 		return (*m_stream_ptr) ;
 	}

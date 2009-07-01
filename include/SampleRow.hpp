@@ -52,6 +52,10 @@ class SampleRow
 		std::vector<std::string> const& column_headings() const { return m_column_headings ; }
 		std::vector<char> const& column_types() const { return m_column_types ; }
 		
+		bool have_column( std::string const& heading ) const ;
+		void add_column( std::string const& heading, char type ) ;
+		void set_value( std::string const& heading, double value ) ;
+		
 		friend std::istream& operator>>( std::istream& aStream, SampleRow& row ) ;
 
 	private:

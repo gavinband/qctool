@@ -22,25 +22,21 @@ struct ChainingFileObjectSource: public ObjectSource< Object >
 		m_sources.push_back( source.release() ) ;
 	}
 
-	bool check_if_empty() {
-		find_next_nonempty_source() ;
-		return m_current_source >= m_sources.size() ;
-	}
-
-	void read( Object& row ) {
-		find_next_nonempty_source() ;
-		assert( !(m_sources[ m_current_source ]->check_if_empty())) ;
-		m_sources[ m_current_source ]->read( row ) ;
+	ChainingFileObjectSource& read( Object& row ) {
+		while(( m_current_source < m_sources.size()) && (! (m_sources[ m_current_source ]->read( row )))) {
+			++m_current_source ;
+		}
+		return *this ;
 	}
 	
 	operator bool() {
-		find_next_nonempty_source() ;
-		if( m_current_source == m_sources.size() ) {
-			return false ;
+		for( ; m_current_source < m_sources.size(); ++m_current_source ) {
+			if( *(m_sources[ m_current_source ])) {
+				return true ;
+			}
 		}
-		else {
-			return m_sources[m_current_source] ;
-		}
+		
+		return false ;
 	}
 
 	std::size_t current_source() const { return m_current_source ; }
@@ -48,7 +44,7 @@ struct ChainingFileObjectSource: public ObjectSource< Object >
 
 private:
 	
-	void find_next_nonempty_source() {
+	void move_to_next_nonempty_source() {
 		while( m_current_source < m_sources.size() && m_sources[m_current_source]->check_if_empty() ) {
 			++m_current_source ;
 		}

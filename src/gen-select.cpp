@@ -31,6 +31,7 @@
 #include "GenRowFileSource.hpp"
 #include "GenRowFileSink.hpp"
 #include "SampleInputFile.hpp"
+#include "SampleOutputFile.hpp"
 #include "GenotypeAssayStatisticFactory.hpp"
 #include "HardyWeinbergExactTestStatistic.hpp"
 #include "string_utils.hpp"
@@ -130,7 +131,7 @@ public:
 		options[ "--sample-statistics" ]
 	        .set_description( "Comma-seperated list of statistics to calculate in samplestat file" )
 			.set_takes_single_value()
-			.set_default_value( std::string("") ) ;
+			.set_default_value( std::string("missing-rate") ) ;
 	}
 
 	GenSelectProcessor( OptionProcessor const& options )
@@ -139,13 +140,13 @@ public:
 		setup() ;
 	}
 	
-	
-	
 	void open_sample_row_source() {
 		m_sample_row_source.reset( new NullObjectSource< SampleRow >()) ;
+		m_have_sample_file = false ;
 		if( m_options.check_if_option_was_supplied( "--s" )) {
 			std::string sampleFileName = m_options.get_value< std::string >( "--s" ) ;
 			m_sample_row_source.reset( new SampleInputFile< SimpleFileObjectSource< SampleRow > >( open_file_for_input( sampleFileName ))) ;
+			m_have_sample_file = true ;
 		}
 	} ;
 
@@ -171,7 +172,15 @@ public:
 	}
 
 	void open_sample_row_sink() {
-		sample_row_sink.reset( new NullObjectSink< SampleRow >() ) ;
+		m_sample_row_sink.reset( new NullObjectSink< SampleRow >() ) ;
+		if( m_options.check_if_option_was_supplied( "--os" )) {
+			std::string sampleOutputFileName = m_options.get_value< std::string >( "--os" ) ;
+			m_sample_row_sink.reset( new SampleOutputFile< SimpleFileObjectSink< SampleRow > >( open_file_for_output( sampleOutputFileName ))) ;
+		}
+		else {
+			OUTPUT_FILE_PTR sampleOutputFile( new std::ostream( std::cout.rdbuf() ) ) ;
+			m_sample_row_sink.reset( new SampleOutputFile< SimpleFileObjectSink< SampleRow > >( sampleOutputFile )) ;
+		}
 	}
 
 	void construct_snp_filter() {
@@ -266,9 +275,9 @@ public:
 private:
 
 	void unsafe_process() {
-		process_sample_rows() ;
+		count_sample_rows() ;
 		process_gen_rows() ;
-		process_per_sample_statistics() ;
+		process_sample_rows() ;
 	}
 
 	void process_gen_rows() {
@@ -285,6 +294,7 @@ private:
 		m_number_of_gen_rows = 0 ;
 		
 		while( (*gen_row_source) >> row ) {
+			check_gen_row( row ) ;
 			process_gen_row( row, ++m_number_of_gen_rows ) ;
 			if( m_number_of_gen_rows % 1000 == 0 ) {
 				std::cout << "Processed " << m_number_of_gen_rows << " rows (" << timer.elapsed() << "s)...\n" ;
@@ -295,7 +305,16 @@ private:
 		std::cerr << "gen-select: processed GEN file(s) (" << m_number_of_gen_rows << " rows) in " << timer.elapsed() << " seconds.\n" ;
 	#endif
 	}
-	
+
+	void check_gen_row( GenRow& row ) {
+		// no-op
+		if( m_have_sample_file ) {
+			if( row.number_of_samples() != m_number_of_sample_file_rows ) {
+				throw GenAndSampleFileMismatchException( "GEN file and sample file have mismatching number of samples." ) ;
+			}
+		}
+	}
+
 	void process_gen_row( GenRow& row, std::size_t row_number ) {
 		m_row_statistics.process( row ) ;
 		m_row_statistics.round_genotype_amounts() ;
@@ -327,43 +346,45 @@ private:
 		}
 	}
 	
-	void process_sample_rows() {
+	void count_sample_rows() {
+		open_sample_row_source() ;
 		SampleRow sample_row ;
-		while( !m_sample_row_source->check_if_empty() ) {
-			(*m_sample_row_source) >> sample_row ;
+		m_number_of_sample_file_rows = 0 ;
+		while( (*m_sample_row_source) >> sample_row ) {
+			++m_number_of_sample_file_rows ;
 		}
 	}
 
-	void process_per_sample_statistics() {
+	void process_sample_rows() {
 		#ifdef HAVE_BOOST_TIMER
 			boost::timer timer ;
 		#endif
 		
 		// re-open sample row source.
 		open_sample_row_source() ;
-		SampleRow sample_row ;
-		bool mismatch = false ;
-
-		*sampleStatisticOutputFile << "        " ;
-		m_sample_statistics.format_column_headers( *sampleStatisticOutputFile ) << "\n" ;
-		std::size_t i = 0 ;
-		for( ; i < m_per_column_amounts.size(); ++i ) {
-			if( !m_sample_row_source->check_if_empty() ) {
-				(*m_sample_row_source) >> sample_row ;
-			}
-			else {
-				// We'll throw an exception, but first print out all the stats as this might be useful.
-				mismatch = true ;
-			}
-			m_sample_statistics.process( sample_row, m_per_column_amounts[i], m_number_of_gen_rows ) ;
-	
-			if( m_sample_statistics.size() > 0 ) {
-				(*sampleStatisticOutputFile) << std::setw(8) << std::left << (i+1)
-					<< m_sample_statistics << "\n";
+		
+		if( m_have_sample_file ) {
+			if( m_number_of_sample_file_rows != m_per_column_amounts.size() ) {
+				throw GenAndSampleFileMismatchException( "Sample file and GEN file have mismatching number of samples." ) ;
 			}
 		}
-		if( mismatch ) {
-			std::cout << "Warning: the sample file had fewer rows than the gen file has columns (or it didn't exist).\n" ;
+		
+		*sampleStatisticOutputFile << "        " ;
+		m_sample_statistics.format_column_headers( *sampleStatisticOutputFile ) << "\n" ;
+
+		SampleRow sample_row ;
+
+		std::size_t i = 0 ;
+		for( ; i < m_per_column_amounts.size(); ++i ) {
+			if( m_have_sample_file ) {
+				(*m_sample_row_source) >> sample_row ;
+				assert( *m_sample_row_source ) ; // assume sample file has not changed since count_sample_rows()
+			}
+
+			m_sample_statistics.process( sample_row, m_per_column_amounts[i], m_number_of_gen_rows ) ;
+			*sampleStatisticOutputFile << std::setw(8) << (i+1) << m_sample_statistics << "\n" ;
+			m_sample_statistics.add_to_sample_row( sample_row ) ;
+			(*m_sample_row_sink) << sample_row ;
 		}
 
 		#ifdef HAVE_BOOST_TIMER
@@ -376,7 +397,7 @@ private:
 	std::auto_ptr< ObjectSource< GenRow > > gen_row_source ;
 	std::auto_ptr< ObjectSink< GenRow > > gen_row_sink ;
 	std::auto_ptr< ObjectSource< SampleRow > > m_sample_row_source ;
-	std::auto_ptr< ObjectSink< SampleRow > > sample_row_sink ;
+	std::auto_ptr< ObjectSink< SampleRow > > m_sample_row_sink ;
 	OUTPUT_FILE_PTR genStatisticOutputFile ;
 	OUTPUT_FILE_PTR sampleStatisticOutputFile ;
 	OptionProcessor const& m_options ;
@@ -386,6 +407,8 @@ private:
 	std::auto_ptr< RowCondition > m_snp_filter ;
 	
 	std::size_t m_number_of_gen_rows ;
+	std::size_t m_number_of_sample_file_rows ;
+	bool m_have_sample_file ;
 	
 	std::vector< GenotypeProportions > m_per_column_amounts ;
 } ;

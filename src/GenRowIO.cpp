@@ -95,7 +95,7 @@ std::istream& GenRow::read_from_text_stream( std::istream& inStream ) {
 		}
 	}
 	else {
-		inStream.setstate( std::ios::badbit ) ;
+		inStream.setstate( std::ios::failbit ) ;
 	}
 
 	return inStream ;

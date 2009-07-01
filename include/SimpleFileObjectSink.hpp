@@ -14,14 +14,12 @@ public:
 	: m_stream_ptr( stream_ptr )
 	{}
 
-	void write( Object const& object ) {
-		assert( !check_if_full() ) ;
+	SimpleFileObjectSink& write( Object const& object ) {
 		(*m_stream_ptr) << object ;
+		return *this ;
 	}
 
-	bool check_if_full() {
-		return !m_stream_ptr.get() || !m_stream_ptr->good() ;
-	}
+	operator bool() const { return *m_stream_ptr ; }
 
 protected:
 

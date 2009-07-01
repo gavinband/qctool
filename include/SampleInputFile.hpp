@@ -14,13 +14,13 @@ struct SampleInputFileException: public GToolException
 } ;
 
 // A SampleRow source representing a sample file, templated on
-// the FileSourceType so that different file sources can be used.
-// The difference between this and the underlying FileSourceType object
+// the StreamSourceType so that different file sources can be used.
+// The difference between this and the underlying StreamSourceType object
 // is that this reads the column header and column type lines at the beginning
-// of the sample file before acting like the FileSourceType object.
+// of the sample file before acting like the StreamSourceType object.
 // See http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format.html
 // for a description of the sample file format.
-template< typename FileSourceType >
+template< typename StreamSourceType >
 struct SampleInputFile: public ObjectSource< SampleRow >
 {
 	SampleInputFile( INPUT_FILE_PTR stream_ptr )
@@ -41,23 +41,22 @@ struct SampleInputFile: public ObjectSource< SampleRow >
 		}
 		
 		// Construct the source, handing over our stream pointer.
-		m_row_source_ptr.reset( new FileSourceType( stream_ptr )) ;
+		m_row_source_ptr.reset( new StreamSourceType( stream_ptr )) ;
 	}
 
 	// required methods from ObjectSource, these forward
 	// to the SourceType member.
-	void read( SampleRow& row ) {
+	SampleInputFile& read( SampleRow& row ) {
 		row.reset( m_column_headers, m_column_types ) ;
 		m_row_source_ptr->read( row ) ;
+		return *this ;
 	}
-
-	bool check_if_empty() { return !m_row_source_ptr.get() || m_row_source_ptr->check_if_empty() ; }
 
 	operator bool() { return *m_row_source_ptr ; }
 
 private:
 
-	std::auto_ptr< FileSourceType > m_row_source_ptr ;
+	std::auto_ptr< StreamSourceType > m_row_source_ptr ;
 	std::vector< std::string > m_column_headers ;
 	std::vector< char > m_column_types ;
 } ;
