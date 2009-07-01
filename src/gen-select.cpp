@@ -131,7 +131,7 @@ public:
 		options[ "--sample-statistics" ]
 	        .set_description( "Comma-seperated list of statistics to calculate in samplestat file" )
 			.set_takes_single_value()
-			.set_default_value( std::string("missing-rate") ) ;
+			.set_default_value( std::string("missing-rate, heterozygosity") ) ;
 	}
 
 	GenSelectProcessor( OptionProcessor const& options )
@@ -235,6 +235,18 @@ public:
 	}
 
 	void construct_sample_filter() {
+		if( m_options.check_if_option_was_supplied( "--snp-incl-list" ) ) {
+			std::string filename = m_options.get_value< std::string >( "--snp-incl-list" ) ;
+			std::auto_ptr< SampleCondition > snp_incl_condition( new SampleInListCondition( filename )) ;
+			snp_filter->add_subcondition( snp_incl_condition ) ;
+		}
+
+		if( m_options.check_if_option_was_supplied( "--snp-excl-list" ) ) {
+			std::string filename = m_options.get_value< std::string >( "--snp-excl-list" ) ;
+			std::auto_ptr< SampleCondition > snp_incl_condition( new SampleInListCondition( filename )) ;
+			std::auto_ptr< SampleCondition > snp_excl_condition( new NotSampleCondition( snp_incl_condition )) ;
+			snp_filter->add_subcondition( snp_excl_condition ) ;
+		}
 	}
 
 	void setup() {

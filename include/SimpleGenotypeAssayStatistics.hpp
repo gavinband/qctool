@@ -66,6 +66,5 @@ struct HeterozygosityStatistic: public GenotypeAssayStatistic
 
 
 
-
 #endif
 
