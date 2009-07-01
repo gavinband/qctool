@@ -4,14 +4,14 @@
 
 #include <set>
 #include "GenRow.hpp"
-#include "GenotypeAssayStatistics.hpp"
 #include "RowCondition.hpp"
 #include "FileUtil.hpp"
+#include "string_to_value_map.hpp"
 
 struct SNPInListCondition: public RowCondition
 {
 	SNPInListCondition( std::string filename ) ;
-	bool check_if_satisfied( GenotypeAssayStatistics const& ) const ;
+	bool check_if_satisfied( string_to_value_map const& ) const ;
 	void format_to_stream( std::ostream& oStream ) const ;
 	protected:
 		FromFileSet< std::set< std::string > > m_id_list ;

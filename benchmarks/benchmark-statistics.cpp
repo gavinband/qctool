@@ -105,7 +105,7 @@ void process_gen_rows( ObjectSource< GenRow >& gen_row_source, OptionProcessor c
 				for( std::size_t j = 0; j < genrows.size(); ++j ) {
 					row_statistics.process( genrows[j] ) ;
 					row_statistics.round_genotype_amounts() ;
-					row_statistics.get_statistic_value< double >( statistic_specs[i] ) ;
+					row_statistics.get_value< double >( statistic_specs[i] ) ;
 				}
 			}
 			results[ timer.elapsed() ].push_back( statistic_specs[i] ) ;

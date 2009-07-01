@@ -262,8 +262,8 @@ void test_hardy_weinberg_exact_test_implementations( std::string const& data, do
 
 		// std::cout << "row " << std::setw(3) << count << ": " << row_statistics << "\n" ;
 
-		double test_statistic = row_statistics.get_statistic_value< double >( "HWE" ) ;
-		double wigginton_test_statistic = row_statistics.get_statistic_value< double >( "Wigginton" ) ;
+		double test_statistic = row_statistics.get_value< double >( "HWE" ) ;
+		double wigginton_test_statistic = row_statistics.get_value< double >( "Wigginton" ) ;
 		assert( floats_are_equal_to_within_epsilon( test_statistic, wigginton_test_statistic, epsilon )) ;
 	}
 	while( inStream.good() ) ;

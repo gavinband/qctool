@@ -12,7 +12,7 @@ SNPInListCondition::SNPInListCondition( std::string filename )
 	m_filename( filename )
 {}
 
-bool SNPInListCondition::check_if_satisfied( GenotypeAssayStatistics const& statistics ) const {
+bool SNPInListCondition::check_if_satisfied( string_to_value_map const& statistics ) const {
 	GenRowStatistics const* row_statistics_ptr = dynamic_cast< GenRowStatistics const* >( &statistics ) ;
 	if( !row_statistics_ptr ) {
 		throw ConditionException( "SNPInListCondition only supports GenRowStatistics." ) ;

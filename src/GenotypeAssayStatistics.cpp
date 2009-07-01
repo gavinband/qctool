@@ -64,15 +64,13 @@ void GenotypeAssayStatistics::reset() {
 	}
 }
 
-template<>
-double GenotypeAssayStatistics::get_statistic_value< double >( std::string const& name ) const {
+double GenotypeAssayStatistics::get_double_value( std::string const& name ) const {
 	statistics_t::const_iterator i = m_statistics.find( name ) ;
 	assert( i != m_statistics.end() ) ;
 	return i->second->get_value<double>( *this ) ;
 }
 
-template<>
-std::string GenotypeAssayStatistics::get_statistic_value< std::string >( std::string const& name ) const {
+std::string GenotypeAssayStatistics::get_string_value( std::string const& name ) const {
 	statistics_t::const_iterator i = m_statistics.find( name ) ;
 	assert( i != m_statistics.end() ) ;
 	return i->second->get_value<std::string>( *this ) ;
@@ -89,7 +87,7 @@ std::ostream& GenotypeAssayStatistics::format_column_headers( std::ostream& aStr
 std::ostream& GenotypeAssayStatistics::format_statistic_values( std::ostream& aStream ) const {
 	base_t::format_statistic_values( aStream ) ;
 	for( std::vector< std::string >::const_iterator i = m_statistic_names.begin(); i != m_statistic_names.end(); ++i ) {
-		aStream << std::setw( std::max( std::size_t(8), i->size() )) << std::left << get_statistic_value< std::string >( *i ) << "  ";
+		aStream << std::setw( std::max( std::size_t(8), i->size() )) << std::left << get_value< std::string >( *i ) << "  ";
 	}
 		
 	return aStream ;

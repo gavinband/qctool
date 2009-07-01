@@ -62,7 +62,7 @@ AUTO_TEST_CASE( test_maf ) {
 		row_statistics.process( row ) ;
 		std::cout << "row " << std::setw(3) << ++count << " : " << row_statistics << "\n" ;
 		
-		TEST_ASSERT( floats_are_equal_to_within_epsilon( row_statistics.get_statistic_value< double >( "MAF" ), i->second, epsilon )) ;
+		TEST_ASSERT( floats_are_equal_to_within_epsilon( row_statistics.get_value< double >( "MAF" ), i->second, epsilon )) ;
 	}
 }
 

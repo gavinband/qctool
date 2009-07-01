@@ -94,7 +94,6 @@ public:
 
 
 		// Statistics-related options
-
 		options[ "--snp-stats" ]
 	        .set_description( "Output per-snp statistics." ) ;
 		options[ "--sample-stats" ]
@@ -120,7 +119,8 @@ public:
 
 		// Sample filtering options
 		options[ "--sample-missing-rate" ]
-			.set_description( "Filter out samples with missing data rate greater than the value specified.  Note that a full-genome set of GEN files must be supplied.") ;
+			.set_description( "Filter out samples with missing data rate greater than the value specified.  Note that a full-genome set of GEN files must be supplied.")
+			.set_takes_single_value() ;
 		options[ "--heterozygosity" ]
 			.set_description( "Filter out samples with heterozygosity outside the inteval [a,b], where a and b are the first and second supplied values" )
 			.set_number_of_values_per_use( 2 ) ;
@@ -132,12 +132,12 @@ public:
 		options[ "--row-statistics" ]
 	        .set_description( "Comma-seperated list of statistics to calculate in genstat file" )
 			.set_takes_single_value()
-			.set_default_value( "SNPID, RSID, position, alleles, MAF, HWE, missing-rate" ) ;
+			.set_default_value( "SNPID, RSID, position, alleles, MAF, HWE, missing" ) ;
 
 		options[ "--sample-statistics" ]
 	        .set_description( "Comma-seperated list of statistics to calculate in samplestat file" )
 			.set_takes_single_value()
-			.set_default_value( std::string("ID1, ID2, missing-rate, heterozygosity") ) ;
+			.set_default_value( std::string("ID1, ID2, missing, heterozygosity") ) ;
 	}
 
 	GenSelectProcessor( OptionProcessor const& options )
@@ -221,19 +221,19 @@ private:
 		std::auto_ptr< AndRowCondition > snp_filter( new AndRowCondition() ) ;
 
 		if( m_options.check_if_option_was_supplied( "--hwe" ) ) {
-			add_one_arg_condition_to_filter< GenotypeAssayStatisticGreaterThan >( *snp_filter, "HWE", m_options.get_value< double >( "--hwe" )) ;
+			add_one_arg_condition_to_filter< StatisticGreaterThan >( *snp_filter, "HWE", m_options.get_value< double >( "--hwe" )) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "--snp-missing-rate" ) ) {
-			add_one_arg_condition_to_filter< GenotypeAssayStatisticLessThan >( *snp_filter, "missing-rate", m_options.get_value< double >( "--missing-rate" )) ;
+			add_one_arg_condition_to_filter< StatisticLessThan >( *snp_filter, "missing-rate", m_options.get_value< double >( "--snp-missing-rate" )) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "--snp-interval" ) ) {
-			add_two_arg_condition_to_filter< GenotypeAssayStatisticInInclusiveRange >( *snp_filter, "snp-position", m_options.get_values< double >( "--snp-interval" )) ;
+			add_two_arg_condition_to_filter< StatisticInInclusiveRange >( *snp_filter, "snp-position", m_options.get_values< double >( "--snp-interval" )) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "--maf" ) ) {
-			add_two_arg_condition_to_filter< GenotypeAssayStatisticInInclusiveRange >( *snp_filter, "MAF", m_options.get_values< double >( "--maf" )) ;
+			add_two_arg_condition_to_filter< StatisticInInclusiveRange >( *snp_filter, "MAF", m_options.get_values< double >( "--maf" )) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "--snp-incl-list" ) ) {
@@ -251,7 +251,7 @@ private:
 		
 		m_snp_filter = snp_filter ;
 		
-		std::cout << "gen-select: I will keep SNPs which satisfy: "
+		std::cout << "gen-select: I will keep SNPs which satisfy:\n  -->  "
 			<< (*m_snp_filter) << ".\n" ;
 	}
 
@@ -259,11 +259,11 @@ private:
 		std::auto_ptr< AndRowCondition > sample_filter( new AndRowCondition() ) ;
 		
 		if( m_options.check_if_option_was_supplied( "--sample-missing-rate" ) ) {
-			add_one_arg_condition_to_filter< GenotypeAssayStatisticLessThan >( *sample_filter, "missing-rate", m_options.get_value< double >( "--sample-missing-rate" )) ;
+			add_one_arg_condition_to_filter< StatisticLessThan >( *sample_filter, "missing", m_options.get_value< double >( "--sample-missing-rate" )) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "--heterozygosity" ) ) {
-			add_two_arg_condition_to_filter< GenotypeAssayStatisticInInclusiveRange >( *sample_filter, "heterozygosity", m_options.get_values< double >( "--heterozygosity" )) ;
+			add_two_arg_condition_to_filter< StatisticInInclusiveRange >( *sample_filter, "heterozygosity", m_options.get_values< double >( "--heterozygosity" )) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "--sample-incl-list" ) ) {
@@ -281,7 +281,7 @@ private:
 		
 		m_sample_filter = sample_filter ;
 		
-		std::cout << "gen-select: I will keep SNPs which satisfy: "
+		std::cout << "gen-select: I will keep samples which satisfy:\n  -->  "
 			<< (*m_sample_filter) << ".\n" ;
 		
 	}
@@ -313,18 +313,25 @@ public:
 private:
 
 	void unsafe_process() {
-		count_sample_rows() ;
+		filter_sample_rows() ;
 		process_gen_rows() ;
 		process_sample_rows() ;
 	}
 
-	void count_sample_rows() {
+	void filter_sample_rows() {
 		open_sample_row_source() ;
 		SampleRow sample_row ;
 		m_number_of_sample_file_rows = 0 ;
-		while( (*m_sample_row_source) >> sample_row ) {
-			++m_number_of_sample_file_rows ;
+		for( ; (*m_sample_row_source) >> sample_row; ++m_number_of_sample_file_rows ) {
+			if( m_sample_filter->check_if_satisfied( sample_row )) {
+				m_indices_of_filtered_in_sample_rows.push_back( m_number_of_sample_file_rows ) ;
+			}
+			else {
+				m_indices_of_filtered_out_sample_rows.push_back( m_number_of_sample_file_rows ) ;
+			}
 		}
+		
+		std::cout << "gen-select: keeping " << m_indices_of_filtered_in_sample_rows.size() << " samples, filtering out " << m_indices_of_filtered_out_sample_rows.size() << ".\n" ;
 	}
 
 	void process_gen_rows() {
@@ -341,7 +348,7 @@ private:
 		m_number_of_gen_rows = 0 ;
 		
 		while( (*gen_row_source) >> row ) {
-			check_gen_row( row ) ;
+			preprocess_gen_row( row ) ;
 			process_gen_row( row, ++m_number_of_gen_rows ) ;
 			if( m_number_of_gen_rows % 1000 == 0 ) {
 				std::cout << "Processed " << m_number_of_gen_rows << " rows (" << timer.elapsed() << "s)...\n" ;
@@ -351,6 +358,23 @@ private:
 	#ifdef HAVE_BOOST_TIMER
 		std::cerr << "gen-select: processed GEN file(s) (" << m_number_of_gen_rows << " rows) in " << timer.elapsed() << " seconds.\n" ;
 	#endif
+	}
+
+	void preprocess_gen_row( GenRow& row ) const {
+		check_gen_row( row ) ;
+		row.filter_out_samples_with_indices( m_indices_of_filtered_out_sample_rows ) ;
+	}
+	
+	void check_gen_row( GenRow& row ) const {
+		check_gen_row_has_correct_number_of_samples( row ) ;
+	}
+
+	void check_gen_row_has_correct_number_of_samples( GenRow& row ) const {
+		if( m_have_sample_file ) {
+			if( row.number_of_samples() != m_number_of_sample_file_rows ) {
+				throw GenAndSampleFileMismatchException( "GEN file and sample file have mismatching number of samples." ) ;
+			}
+		}
 	}
 
 	void process_sample_rows() {
@@ -382,7 +406,7 @@ private:
 			m_sample_statistics.process( sample_row, m_per_column_amounts[i], m_number_of_gen_rows ) ;
 			
 			*sampleStatisticOutputFile << std::setw(8) << (i+1) << m_sample_statistics << "\n" ;
-			m_sample_statistics.add_to_sample_row( sample_row, "missing-rate", "missing" ) ;
+			m_sample_statistics.add_to_sample_row( sample_row, "missing" ) ;
 			m_sample_statistics.add_to_sample_row( sample_row, "heterozygosity" ) ;
 			(*m_sample_row_sink) << sample_row ;
 		}
@@ -390,16 +414,6 @@ private:
 		#ifdef HAVE_BOOST_TIMER
 			std::cerr << "gen-select: processed sample file (" << i << " rows) in " << timer.elapsed() << " seconds.\n" ;
 		#endif
-	}
-
-
-	void check_gen_row( GenRow& row ) {
-		// no-op
-		if( m_have_sample_file ) {
-			if( row.number_of_samples() != m_number_of_sample_file_rows ) {
-				throw GenAndSampleFileMismatchException( "GEN file and sample file have mismatching number of samples." ) ;
-			}
-		}
 	}
 
 	void process_gen_row( GenRow& row, std::size_t row_number ) {
@@ -453,6 +467,9 @@ private:
 	bool m_have_sample_file ;
 	
 	std::vector< GenotypeProportions > m_per_column_amounts ;
+
+	std::vector< std::size_t > m_indices_of_filtered_in_sample_rows ;
+	std::vector< std::size_t > m_indices_of_filtered_out_sample_rows ;
 } ;
 
 int main( int argc, char** argv ) {

@@ -64,7 +64,7 @@ void test_maximum_likelihood( std::map< std::string, double > const& data, std::
 		row_statistics.process( row ) ;
 		std::cout << "row " << std::setw(3) << count << ": " << row_statistics << "\n" ;
 		
-		assert( floats_are_equal_to_within_epsilon( row_statistics.get_statistic_value< double >( statistic_spec ), std::log( i->second ), epsilon )) ;
+		assert( floats_are_equal_to_within_epsilon( row_statistics.get_value< double >( statistic_spec ), std::log( i->second ), epsilon )) ;
 	}
 }
 

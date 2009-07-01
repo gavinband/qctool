@@ -114,7 +114,7 @@ void do_test( std::string statistic_spec, std::map< std::string, double > const&
 		row_statistics.process( row ) ;
 		std::cout << "row " << std::setw(3) << ++count << " : " << row_statistics << " -- expected: " << i->second << ".\n" ;
 
-		TEST_ASSERT( floats_are_equal_to_within_epsilon( row_statistics.get_statistic_value< double >( statistic_spec ), i->second, epsilon )) ;
+		TEST_ASSERT( floats_are_equal_to_within_epsilon( row_statistics.get_value< double >( statistic_spec ), i->second, epsilon )) ;
 	}
 }
 

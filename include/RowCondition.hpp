@@ -4,30 +4,31 @@
 
 #include <set>
 #include "GenRow.hpp"
-#include "GenotypeAssayStatistics.hpp"
+#include "string_to_value_map.hpp"
 #include "Condition.hpp"
+#include "string_to_value_map.hpp"
 
-typedef Condition< GenotypeAssayStatistics > RowCondition ;
-typedef CompoundCondition< GenotypeAssayStatistics > CompoundRowCondition ;
-typedef AndCondition< GenotypeAssayStatistics > AndRowCondition ;
-typedef OrCondition< GenotypeAssayStatistics > OrRowCondition ;
-typedef InvertCondition< GenotypeAssayStatistics > NotRowCondition ;
-typedef InvertCondition< GenotypeAssayStatistics > InvertRowCondition ;
+typedef Condition< string_to_value_map > RowCondition ;
+typedef CompoundCondition< string_to_value_map > CompoundRowCondition ;
+typedef AndCondition< string_to_value_map > AndRowCondition ;
+typedef OrCondition< string_to_value_map > OrRowCondition ;
+typedef InvertCondition< string_to_value_map > NotRowCondition ;
+typedef InvertCondition< string_to_value_map > InvertRowCondition ;
 
 struct TrivialRowCondition: public RowCondition
 {
-	bool check_if_satisfied( GenotypeAssayStatistics const& row_genotype_statistics ) const {
+	bool check_if_satisfied( string_to_value_map const& row_genotype_statistics ) const {
 		return true ;
 	}
 	
 	void format_to_stream( std::ostream& oStream ) const ;
 } ;
 
-struct GenotypeAssayStatisticInInclusiveRange: public RowCondition
+struct StatisticInInclusiveRange: public RowCondition
 {
-	GenotypeAssayStatisticInInclusiveRange( std::string const& statistic_name, double lower_bound, double upper_bound, double epsilon = 0.0 ) ;
+	StatisticInInclusiveRange( std::string const& statistic_name, double lower_bound, double upper_bound, double epsilon = 0.0 ) ;
 
-	bool check_if_satisfied( GenotypeAssayStatistics const& row_genotype_statistics ) const ;
+	bool check_if_satisfied( string_to_value_map const& row_genotype_statistics ) const ;
 	
 	void format_to_stream( std::ostream& oStream ) const ;
 
@@ -37,11 +38,11 @@ struct GenotypeAssayStatisticInInclusiveRange: public RowCondition
 		double m_lower_bound, m_upper_bound, m_epsilon ;
 } ;
 
-struct GenotypeAssayStatisticInExclusiveRange: public RowCondition
+struct StatisticInExclusiveRange: public RowCondition
 {
-	GenotypeAssayStatisticInExclusiveRange( std::string const& statistic_name, double lower_bound, double upper_bound, double epsilon = 0.0 ) ;
+	StatisticInExclusiveRange( std::string const& statistic_name, double lower_bound, double upper_bound, double epsilon = 0.0 ) ;
 
-	bool check_if_satisfied( GenotypeAssayStatistics const& row_genotype_statistics ) const ;
+	bool check_if_satisfied( string_to_value_map const& row_genotype_statistics ) const ;
 	
 	void format_to_stream( std::ostream& oStream ) const ;
 	
@@ -51,11 +52,11 @@ struct GenotypeAssayStatisticInExclusiveRange: public RowCondition
 		double m_lower_bound, m_upper_bound, m_epsilon ;
 } ;
 
-struct GenotypeAssayStatisticGreaterThan: public RowCondition
+struct StatisticGreaterThan: public RowCondition
 {
-	GenotypeAssayStatisticGreaterThan( std::string const& statistic_name, double lower_bound, double epsilon = 0.0 ) ;
+	StatisticGreaterThan( std::string const& statistic_name, double lower_bound, double epsilon = 0.0 ) ;
 
-	bool check_if_satisfied( GenotypeAssayStatistics const& row_genotype_statistics ) const ;
+	bool check_if_satisfied( string_to_value_map const& row_genotype_statistics ) const ;
 	
 	void format_to_stream( std::ostream& oStream ) const ;
 	
@@ -65,11 +66,11 @@ struct GenotypeAssayStatisticGreaterThan: public RowCondition
 		double m_lower_bound, m_epsilon ;
 } ;
 
-struct GenotypeAssayStatisticLessThan: public RowCondition
+struct StatisticLessThan: public RowCondition
 {
-	GenotypeAssayStatisticLessThan( std::string const& statistic_name, double upper_bound, double epsilon = 0.0 ) ;
+	StatisticLessThan( std::string const& statistic_name, double upper_bound, double epsilon = 0.0 ) ;
 
-	bool check_if_satisfied( GenotypeAssayStatistics const& row_genotype_statistics ) const ;
+	bool check_if_satisfied( string_to_value_map const& row_genotype_statistics ) const ;
 	
 	void format_to_stream( std::ostream& oStream ) const ;
 	

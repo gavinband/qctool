@@ -47,18 +47,36 @@ void SampleRow::add_column( std::string const& heading, char type ) {
 }
 
 bool SampleRow::have_column( std::string const& heading ) const {
-	// linear search through column names.
-	for( std::vector<std::string>::const_iterator i = m_column_headings.begin(); i != m_column_headings.end(); ++i ) {
-		if( *i == heading ) {
-			return true;
-		}
-	}
-	return false ;
+	std::map< std::string, double >::const_iterator
+		where = m_further_data.find( heading ) ;
+	return ( where != m_further_data.end()) ;
 }
 
 void SampleRow::set_value( std::string const& heading, double value ) {
 	assert( have_column( heading )) ;
 	m_further_data[ heading ] = value ;
+}
+
+double SampleRow::get_double_value( std::string const& heading ) const {
+	std::map< std::string, double > ::const_iterator
+		where = m_further_data.find( heading ) ;
+	assert( where != m_further_data.end() ) ;
+	return where->second ;
+}
+
+std::string SampleRow::get_string_value( std::string const& name ) const {
+	if( name == "ID1" ) {
+		return m_id1 ;
+	}
+	else if( name == "ID2" ) {
+		return m_id2 ;
+	}
+	else {
+		double value = get_double_value( name ) ;
+		std::ostringstream ostr ;
+		ostr << value ;
+		return ostr.str() ;
+	}
 }
 
 std::istream& operator>>( std::istream& aStream, SampleRow& row ) {

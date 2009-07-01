@@ -5,6 +5,7 @@
 #include <string>
 #include <map>
 #include <iostream>
+#include "string_to_value_map.hpp"
 #include "GToolException.hpp"
 
 struct SampleRowException: public GToolException
@@ -32,7 +33,7 @@ class SampleFileColumnTypes
 		static char const ePhenotype = 'P' ;
 } ;
 
-class SampleRow
+class SampleRow: public string_to_value_map
 {
 	public:
 
@@ -54,8 +55,14 @@ class SampleRow
 		bool have_column( std::string const& heading ) const ;
 		void add_column( std::string const& heading, char type ) ;
 		void set_value( std::string const& heading, double value ) ;
-		
+
 		friend std::istream& operator>>( std::istream& aStream, SampleRow& row ) ;
+
+	protected:
+		
+		// string_to_value_map derived methods.
+		double get_double_value( std::string const& name ) const ;
+		std::string get_string_value( std::string const& name ) const ;
 
 	private:
 		std::string m_id1, m_id2 ;

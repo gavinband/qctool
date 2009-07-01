@@ -8,6 +8,7 @@
 #include "AlleleProportions.hpp"
 #include "GToolException.hpp"
 #include "GenotypeAssayBasicStatistics.hpp"
+#include "string_to_value_map.hpp"
 
 struct GenotypeAssayStatisticException: public GToolException
 {
@@ -30,7 +31,7 @@ struct GenotypeAssayStatistic ;
 // This class holds data representing an assay of one or more SNPs.
 // It has methods to return the amounts of AA, AB and BB genotypes in the sample,
 // as well as genotype proportions and allele proportions. 
-struct GenotypeAssayStatistics: public GenotypeAssayBasicStatistics
+struct GenotypeAssayStatistics: public GenotypeAssayBasicStatistics, public string_to_value_map
 {
 	typedef GenotypeAssayBasicStatistics base_t ;
 
@@ -40,12 +41,12 @@ struct GenotypeAssayStatistics: public GenotypeAssayBasicStatistics
 
 		// Methods to manipulate list of statistics
 		void add_statistic( std::string const& name, std::auto_ptr< GenotypeAssayStatistic > statistic_ptr ) ;
-		template< typename T >
-		T get_statistic_value( std::string const& name ) const ;
-
 		std::size_t size() const { return m_statistics.size() ; }
 
 	protected:
+		
+		double get_double_value( std::string const& name ) const ;
+		std::string get_string_value( std::string const& name ) const ;
 		
 		typedef std::map< std::string, GenotypeAssayStatistic* > statistics_t ;
 		typedef statistics_t::const_iterator statistic_iterator_t ;

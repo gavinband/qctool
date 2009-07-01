@@ -18,7 +18,7 @@ void SampleRowStatistics::add_to_sample_row( SampleRow& row, std::string const& 
 		sample_row_name = statistic_name ;
 	}
 	row.add_column( sample_row_name, '0' ) ;
-	row.set_value( sample_row_name, get_statistic_value< double >( statistic_name )) ;
+	row.set_value( sample_row_name, get_value< double >( statistic_name )) ;
 }
 
 double SampleRowSpecificStatistic::calculate_value( GenotypeAssayStatistics const& statistics ) const {

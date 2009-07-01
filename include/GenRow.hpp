@@ -26,6 +26,10 @@ class GenRow
 
 		void reserveSpaceForNSamples( std::size_t ) ;
 
+		// Given a list of indices (which must be sorted, least first, and lie in the range 0..number_of_samples())
+		// Remove the GenotypeProportions objects corresponding to those indices in the list.
+		void filter_out_samples_with_indices( std::vector< std::size_t > const& indices_to_filter_out ) ;
+
 	public:
 		bool operator==( GenRow const& right ) const ;
 

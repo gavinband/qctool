@@ -88,7 +88,7 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 	else if( statistic_spec == "HWE" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new SNPHWEStatistic ) ;
 	}
-	else if( statistic_spec == "missing-rate" ) {
+	else if( statistic_spec == "missing" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new MissingDataProportionStatistic ) ; 
 	}
 	else if( statistic_spec == "heterozygosity" ) {

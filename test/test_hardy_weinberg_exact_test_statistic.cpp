@@ -70,7 +70,7 @@ void test_hardy_weinberg_exact_test_statistic( std::map< std::string, double > c
 		row_statistics.process( row ) ;
 		std::cout << "row " << std::setw(3) << count << ": " << row_statistics << "\n" ;
 		
-		assert( floats_are_equal_to_within_epsilon( row_statistics.get_statistic_value< double >( "HWE" ), i->second, epsilon )) ;
+		assert( floats_are_equal_to_within_epsilon( row_statistics.get_value< double >( "HWE" ), i->second, epsilon )) ;
 	}
 }
 

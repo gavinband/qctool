@@ -100,7 +100,8 @@ def build( bld ):
 			'src/distributions.cpp',
 			'src/gamma.cpp',
 			'src/parse_utils.cpp',
-			'src/string_utils.cpp'
+			'src/string_utils.cpp',
+			'src/string_to_value_map.cpp'
 		],
 		includes='./include',
 		uselib = 'BOOST BOOST_IOSTREAMS BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'

@@ -3,16 +3,16 @@
 #include <fstream>
 
 #include "GenRow.hpp"
-#include "GenotypeAssayStatistics.hpp"
 #include "SampleInListCondition.hpp"
 #include "SampleRowStatistics.hpp"
+#include "string_to_value_map.hpp"
 
 SampleInListCondition::SampleInListCondition( std::string filename )
  : m_id_list( filename ),
 	m_filename( filename )
 {}
 
-bool SampleInListCondition::check_if_satisfied( GenotypeAssayStatistics const& statistics ) const {
+bool SampleInListCondition::check_if_satisfied( string_to_value_map const& statistics ) const {
 	SampleRowStatistics const* row_statistics_ptr = dynamic_cast< SampleRowStatistics const* >( &statistics ) ;
 	if( !row_statistics_ptr ) {
 		throw ConditionException( "SampleInListCondition only supports SampleRowStatistics." ) ;
