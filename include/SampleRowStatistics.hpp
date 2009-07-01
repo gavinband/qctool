@@ -18,7 +18,7 @@ struct SampleRowStatistics: public GenotypeAssayStatistics
 
 		SampleRow const& row() const { return *m_row ; }
 
-		void add_to_sample_row( SampleRow& row ) const ;
+		void add_to_sample_row( SampleRow& row, std::string const&, std::string = "" ) const ;
 
 	private:
 		

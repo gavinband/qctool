@@ -46,7 +46,6 @@ class SampleRow
 
 		std::string ID1() const { return m_id1 ; }
 		std::string ID2() const { return m_id2 ; }
-		double missing() const { return m_missing ; }
 
 		double further_data( std::string const& ) const ;
 		std::vector<std::string> const& column_headings() const { return m_column_headings ; }
@@ -60,7 +59,6 @@ class SampleRow
 
 	private:
 		std::string m_id1, m_id2 ;
-		double m_missing ;
 		std::map< std::string, double > m_further_data ;
 		std::vector<std::string> m_column_headings ;
 		std::vector<char> m_column_types ;		

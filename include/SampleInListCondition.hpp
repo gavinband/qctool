@@ -1,6 +1,6 @@
 
-#ifndef __GTOOL_SNPINLIST_HPP__
-#define __GTOOL_SNPINLIST_HPP__
+#ifndef __GTOOL_SAMPLEINLIST_HPP__
+#define __GTOOL_SAMPLEINLIST_HPP__
 
 #include <set>
 #include "GenRow.hpp"
@@ -8,9 +8,9 @@
 #include "RowCondition.hpp"
 #include "FileUtil.hpp"
 
-struct SNPInListCondition: public RowCondition
+struct SampleInListCondition: public RowCondition
 {
-	SNPInListCondition( std::string filename ) ;
+	SampleInListCondition( std::string filename ) ;
 	bool check_if_satisfied( GenotypeAssayStatistics const& ) const ;
 	void format_to_stream( std::ostream& oStream ) const ;
 	protected:

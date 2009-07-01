@@ -21,7 +21,6 @@ void SampleRow::reset( std::vector<std::string> const& column_headings, std::vec
 	m_column_headings = column_headings ;
 	m_column_types = column_types ;
 	m_id1 = m_id2 = "" ;
-	m_missing = 0.0 ;
 	m_further_data.clear() ;
 
 	assert( m_column_headings.size() >= 3 ) ;
@@ -68,9 +67,8 @@ std::istream& operator>>( std::istream& aStream, SampleRow& row ) {
 	std::istringstream sStream( line ) ;
 	sStream >> row.m_id1 ;
 	sStream >> row.m_id2 ;
-	sStream >> row.m_missing ;
 
-	std::size_t i = 3 ;
+	std::size_t i = 2 ;
 	while( i < row.m_column_headings.size() ) {
 		double next_elt ;
 		sStream >> next_elt ;
@@ -91,8 +89,8 @@ std::istream& operator>>( std::istream& aStream, SampleRow& row ) {
 }
 
 std::ostream& operator<<( std::ostream& aStream, SampleRow const& row ) {
-	aStream << row.ID1() << " " << row.ID2() << " " << row.missing() ;
-	for( std::size_t i = 3 ; i < row.column_headings().size(); ++i ) {
+	aStream << row.ID1() << " " << row.ID2() ;
+	for( std::size_t i = 2 ; i < row.column_headings().size(); ++i ) {
 		if( i > 0 )
 			aStream << " " ;
 		aStream << row.further_data( row.column_headings()[i] );

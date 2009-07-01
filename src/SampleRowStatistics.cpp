@@ -13,12 +13,12 @@ void SampleRowStatistics::process( SampleRow const& row, GenotypeProportions con
 	set_number_of_samples( number_of_samples ) ;
 }
 
-void SampleRowStatistics::add_to_sample_row( SampleRow& row ) const {
-	
-	for( std::vector< std::string >::const_iterator i = begin_statistics(); i != end_statistics(); ++i ) {
-		row.add_column( *i, '0' ) ;
-		row.set_value( *i, get_statistic_value< double >( *i )) ;
+void SampleRowStatistics::add_to_sample_row( SampleRow& row, std::string const& statistic_name, std::string sample_row_name ) const {
+	if( sample_row_name == "" ) {
+		sample_row_name = statistic_name ;
 	}
+	row.add_column( sample_row_name, '0' ) ;
+	row.set_value( sample_row_name, get_statistic_value< double >( statistic_name )) ;
 }
 
 double SampleRowSpecificStatistic::calculate_value( GenotypeAssayStatistics const& statistics ) const {

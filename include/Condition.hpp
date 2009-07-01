@@ -14,14 +14,14 @@ struct ConditionException: public GToolException
 // Condition is a base class for a polymorphic hierarchy of tests to be performed on some data.
 // The data is broken up into mandatory, and optional data.  This is intended as a relatively flexible mechanism
 // to allow tests to share calculated data (but not require it if not needed).
-template< typename MandatoryData, typename OptionalData >
+template< typename MandatoryData >
 class Condition
 {
 	public:
 		Condition() {} ;
 		virtual ~Condition() {} ;
 
-		virtual bool check_if_satisfied( MandatoryData const&, OptionalData const* = 0 ) const = 0;
+		virtual bool check_if_satisfied( MandatoryData const& ) const = 0;
 
 		virtual void format_to_stream( std::ostream& ) const = 0 ;
 
@@ -32,17 +32,17 @@ class Condition
 		Condition& operator=( Condition const& ) ;
 } ;
 
-template< typename MandatoryData, typename OptionalData >
-std::ostream& operator<< ( std::ostream& oStream, Condition< MandatoryData, OptionalData > const& condition ) {
+template< typename MandatoryData >
+std::ostream& operator<< ( std::ostream& oStream, Condition< MandatoryData > const& condition ) {
 	condition.format_to_stream( oStream ) ;
 	return oStream ;
 } 
 
 
-template< typename MandatoryData, typename OptionalData >
-struct InvertCondition: public Condition< MandatoryData, OptionalData >
+template< typename MandatoryData >
+struct InvertCondition: public Condition< MandatoryData >
 {
-	typedef Condition< MandatoryData, OptionalData > base_t ;
+	typedef Condition< MandatoryData > base_t ;
 
     InvertCondition( std::auto_ptr< base_t > condition_to_invert )
 		: m_condition_to_invert( condition_to_invert )
@@ -50,8 +50,8 @@ struct InvertCondition: public Condition< MandatoryData, OptionalData >
 		assert( m_condition_to_invert.get() != 0 ) ;
 	}
 
-	bool check_if_satisfied( MandatoryData const& mandatory_data , OptionalData const * optional_data = 0 ) const {
-		return !( m_condition_to_invert->check_if_satisfied( mandatory_data, optional_data )) ;
+	bool check_if_satisfied( MandatoryData const& mandatory_data ) const {
+		return !( m_condition_to_invert->check_if_satisfied( mandatory_data )) ;
 	}
 
 	void format_to_stream( std::ostream& oStream ) const {
@@ -66,11 +66,11 @@ struct InvertCondition: public Condition< MandatoryData, OptionalData >
 
 
 // Base-class for compound conditions such as implementations of logical AND, or OR.
-template< typename MandatoryData, typename OptionalData >
-struct CompoundCondition: public Condition< MandatoryData, OptionalData >
+template< typename MandatoryData >
+struct CompoundCondition: public Condition< MandatoryData >
 {
 	public:
-		typedef Condition< MandatoryData, OptionalData > base_t ;
+		typedef Condition< MandatoryData > base_t ;
 		typedef typename std::vector< base_t* >::const_iterator subcondition_iterator_t ;
 
 	public:
@@ -84,7 +84,7 @@ struct CompoundCondition: public Condition< MandatoryData, OptionalData >
 			}
 		}
 
-		void add_subcondition( std::auto_ptr< Condition< MandatoryData, OptionalData > > subcondition ) {
+		void add_subcondition( std::auto_ptr< Condition< MandatoryData > > subcondition ) {
 			assert( subcondition.get() != 0 ) ;
 			m_subconditions.push_back( subcondition.release() ) ;
 		}
@@ -113,14 +113,14 @@ struct CompoundCondition: public Condition< MandatoryData, OptionalData >
 } ;
 
 
-template< typename MandatoryData, typename OptionalData >
-struct AndCondition: public CompoundCondition< MandatoryData, OptionalData >
+template< typename MandatoryData >
+struct AndCondition: public CompoundCondition< MandatoryData >
 {
-	typedef CompoundCondition< MandatoryData, OptionalData > base_t ;
+	typedef CompoundCondition< MandatoryData > base_t ;
 	
-	bool check_if_satisfied( MandatoryData const& mandatory_data, OptionalData const * optional_data = 0 ) const {
+	bool check_if_satisfied( MandatoryData const& mandatory_data ) const {
 		for( typename base_t::subcondition_iterator_t subcondition_i = base_t::begin_subconditions() ; subcondition_i != base_t::end_subconditions(); ++subcondition_i ) {
-			if( !(*subcondition_i)->check_if_satisfied( mandatory_data, optional_data ) ) {
+			if( !(*subcondition_i)->check_if_satisfied( mandatory_data ) ) {
 				return false ;
 			}
 		}
@@ -133,15 +133,15 @@ struct AndCondition: public CompoundCondition< MandatoryData, OptionalData >
 } ;
 
 
-template< typename MandatoryData, typename OptionalData >
-struct OrCondition: public CompoundCondition< MandatoryData, OptionalData >
+template< typename MandatoryData >
+struct OrCondition: public CompoundCondition< MandatoryData >
 {
-	typedef CompoundCondition< MandatoryData, OptionalData > base_t ;
+	typedef CompoundCondition< MandatoryData > base_t ;
 
-	bool check_if_satisfied( MandatoryData const& mandatory_data, OptionalData const * optional_data = 0 ) const {
+	bool check_if_satisfied( MandatoryData const& mandatory_data ) const {
 		bool result = false ;
 		for( typename base_t::subcondition_iterator_t subcondition_i = base_t::begin_subconditions() ; subcondition_i != base_t::end_subconditions(); ++subcondition_i ) {
-			result = result || (*subcondition_i)->check_if_satisfied( mandatory_data, optional_data ) ;
+			result = result || (*subcondition_i)->check_if_satisfied( mandatory_data ) ;
 		}
 		return result ;
 	}

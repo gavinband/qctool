@@ -9,10 +9,8 @@ GenotypeAssayStatisticInInclusiveRange::GenotypeAssayStatisticInInclusiveRange( 
 	m_epsilon( epsilon )
 {} ;
 
-bool GenotypeAssayStatisticInInclusiveRange::check_if_satisfied( GenRow const& genRow, GenotypeAssayStatistics const * row_genotype_statistics_ptr ) const {
-	assert( row_genotype_statistics_ptr != 0 ) ;
-	
-	double statistic_value = row_genotype_statistics_ptr->get_statistic_value< double >( m_statistic_name ) ;
+bool GenotypeAssayStatisticInInclusiveRange::check_if_satisfied( GenotypeAssayStatistics const& row_genotype_statistics ) const {
+	double statistic_value = row_genotype_statistics.get_statistic_value< double >( m_statistic_name ) ;
 	return ( statistic_value >= ( m_lower_bound - m_epsilon ))
 		&& ( statistic_value <= ( m_upper_bound - m_epsilon )) ;
 }
@@ -34,10 +32,8 @@ GenotypeAssayStatisticInExclusiveRange::GenotypeAssayStatisticInExclusiveRange( 
 	m_epsilon( epsilon )
 {} ;
 
-bool GenotypeAssayStatisticInExclusiveRange::check_if_satisfied( GenRow const& genRow, GenotypeAssayStatistics const * row_genotype_statistics_ptr ) const {
-	assert( row_genotype_statistics_ptr != 0 ) ;
-	
-	double statistic_value = row_genotype_statistics_ptr->get_statistic_value< double >( m_statistic_name ) ;
+bool GenotypeAssayStatisticInExclusiveRange::check_if_satisfied( GenotypeAssayStatistics const& row_genotype_statistics ) const {
+	double statistic_value = row_genotype_statistics.get_statistic_value< double >( m_statistic_name ) ;
 	return ( statistic_value > ( m_lower_bound - m_epsilon ))
 		&& ( statistic_value < ( m_upper_bound - m_epsilon )) ;
 }
@@ -58,10 +54,8 @@ GenotypeAssayStatisticGreaterThan::GenotypeAssayStatisticGreaterThan( std::strin
 	m_epsilon( epsilon )
 {} ;
 
-bool GenotypeAssayStatisticGreaterThan::check_if_satisfied( GenRow const& genRow, GenotypeAssayStatistics const * row_genotype_statistics_ptr ) const {
-	assert( row_genotype_statistics_ptr != 0 ) ;
-	
-	double statistic_value = row_genotype_statistics_ptr->get_statistic_value< double >( m_statistic_name ) ;
+bool GenotypeAssayStatisticGreaterThan::check_if_satisfied( GenotypeAssayStatistics const& row_genotype_statistics ) const {
+	double statistic_value = row_genotype_statistics.get_statistic_value< double >( m_statistic_name ) ;
 	return ( statistic_value > ( m_lower_bound - m_epsilon )) ;
 }
 
@@ -78,10 +72,8 @@ GenotypeAssayStatisticLessThan::GenotypeAssayStatisticLessThan( std::string cons
 	m_epsilon( epsilon )
 {} ;
 
-bool GenotypeAssayStatisticLessThan::check_if_satisfied( GenRow const& genRow, GenotypeAssayStatistics const * row_genotype_statistics_ptr ) const {
-	assert( row_genotype_statistics_ptr != 0 ) ;
-	
-	double statistic_value = row_genotype_statistics_ptr->get_statistic_value< double >( m_statistic_name ) ;
+bool GenotypeAssayStatisticLessThan::check_if_satisfied( GenotypeAssayStatistics const& row_genotype_statistics ) const {
+	double statistic_value = row_genotype_statistics.get_statistic_value< double >( m_statistic_name ) ;
 	return ( statistic_value < ( m_upper_bound - m_epsilon )) ;
 }
 

@@ -95,6 +95,7 @@ def build( bld ):
 			'src/SampleRow.cpp',
 			'src/SampleRowStatistics.cpp',
 			'src/SimpleGenotypeAssayStatistics.cpp',
+			'src/SampleInListCondition.cpp',
 			'src/Whitespace.cpp',
 			'src/distributions.cpp',
 			'src/gamma.cpp',
