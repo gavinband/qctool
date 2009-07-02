@@ -6,7 +6,7 @@ srcdir="."
 
 def configure( conf ):
 	conf.check_tool( 'compiler_cxx ')
-	conf.check_tool('boost')
+	conf.check_tool( 'boost' )
 	conf.env['CXX'] = 'g++-4.2'
 	conf.env.append_value( 'CXXFLAGS', [ '-g', '-Wall' ] )
 	conf.env.append_value( 'CXXFLAGS', '-p' )
@@ -21,6 +21,8 @@ def configure( conf ):
 	if conf.check_boost( header_name='math/tr1.hpp'):
 		conf.define( 'HAVE_BOOST_MATH', 1 )
 	conf.define ( 'GTOOL_USE_FAST_FLOAT_PARSER', 1 )
+
+	conf.check_cxx( lib = 'sqlite3', uselib_store='SQLITE3', define_name='HAVE_SQLITE3' )
 
 	conf.write_config_header( 'config.hpp' )
 

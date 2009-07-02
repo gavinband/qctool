@@ -37,7 +37,7 @@ void GenotypeProportions::zero() {
 }
 
 std::ostream& operator<<( std::ostream& aStream, GenotypeProportions const& proportions ) {
-	return aStream << proportions.proportion_of_AA() << " " << proportions.proportion_of_AB() << " " << proportions.proportion_of_BB() ;
+	return aStream << proportions.AA() << " " << proportions.AB() << " " << proportions.BB() ;
 }
 
 GenotypeProportions operator+( GenotypeProportions const& left, GenotypeProportions const& right ) {

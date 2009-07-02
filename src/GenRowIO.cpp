@@ -75,17 +75,17 @@ std::istream& GenRow::read_from_text_stream( std::istream& inStream ) {
 		int count = 0 ;
 	
 		while( aStream ) {
-			GenotypeProportions sample_allele_proportions( 0.0, 0.0, 0.0 ) ;
-			sample_allele_proportions.proportion_of_AA() = read_float( aStream ) ;
+			GenotypeProportions sample_genotype_proportions( 0.0, 0.0, 0.0 ) ;
+			sample_genotype_proportions.AA() = read_float( aStream ) ;
 			if( !aStream ) break ;
 			++count ;
-			sample_allele_proportions.proportion_of_AB() = read_float( aStream ) ;
+			sample_genotype_proportions.AB() = read_float( aStream ) ;
 			if( !aStream ) break ;
 			++count ;
-			sample_allele_proportions.proportion_of_BB() = read_float( aStream ) ;
+			sample_genotype_proportions.BB() = read_float( aStream ) ;
 			if( !aStream ) break ;
 			++count ;
-			m_genotype_proportions.push_back( sample_allele_proportions ) ;
+			m_genotype_proportions.push_back( sample_genotype_proportions ) ;
 			aStream.peek() ; // flag eof if we reached it.
 		} ;
 

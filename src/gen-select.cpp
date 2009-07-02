@@ -113,9 +113,11 @@ public:
 			.set_description( "Filter out SNPs whose minor allele frequency lies outside the interval [a,b], where a and b are the first and second supplied values." )
 			.set_number_of_values_per_use( 2 ) ;
 		options[ "--snp-incl-list"]
-			.set_description( "Filter out SNPs whose SNP ID or RSID does not lie in the given file (which must contain a list of whitespace-separated strings)") ;
+			.set_description( "Filter out SNPs whose SNP ID or RSID does not lie in the given file (which must contain a list of whitespace-separated strings)")
+			.set_takes_single_value() ;
 		options[ "--snp-excl-list"]
-			.set_description( "Filter out SNPs whose SNP ID or RSID lies in the given file (which must contain a list of whitespace-separated strings)") ;
+			.set_description( "Filter out SNPs whose SNP ID or RSID lies in the given file (which must contain a list of whitespace-separated strings)")
+			.set_takes_single_value() ;
 
 		// Sample filtering options
 		options[ "--sample-missing-rate" ]
@@ -125,11 +127,13 @@ public:
 			.set_description( "Filter out samples with heterozygosity outside the inteval [a,b], where a and b are the first and second supplied values" )
 			.set_number_of_values_per_use( 2 ) ;
 		options[ "--sample-incl-list"]
-			.set_description( "Filter out samples whose sample ID does not lie in the given file (which must contain a list of whitespace-separated strings)") ;
+			.set_description( "Filter out samples whose sample ID does not lie in the given file (which must contain a list of whitespace-separated strings)")
+			.set_takes_single_value() ;
 		options[ "--sample-excl-list"]
-			.set_description( "Filter out samples whose sample ID lies in the given file (which must contain a list of whitespace-separated strings)") ;
+			.set_description( "Filter out samples whose sample ID lies in the given file (which must contain a list of whitespace-separated strings)")
+			.set_takes_single_value() ;
 
-		options[ "--row-statistics" ]
+		options[ "--snp-statistics" ]
 	        .set_description( "Comma-seperated list of statistics to calculate in genstat file" )
 			.set_takes_single_value()
 			.set_default_value( "SNPID, RSID, position, alleles, MAF, HWE, missing" ) ;
@@ -150,44 +154,16 @@ private:
 	void setup() {
 		open_gen_row_source() ;
 		open_gen_row_sink() ;
+		open_gen_stats_file() ;
 		open_sample_row_source() ;
 		open_sample_row_sink() ;
-		
-		// Output Gen row stats to cout by default.
-		genStatisticOutputFile = OUTPUT_FILE_PTR( new std::ostream( std::cout.rdbuf() )) ;
-		sampleStatisticOutputFile = OUTPUT_FILE_PTR( new std::ostream( std::cout.rdbuf() )) ;
-
-		if( m_options.check_if_option_was_supplied( "--ogs" ) ) {
-			std::string genStatisticFileName = m_options.get_value< std::string >( "--ogs" ) ;
-			genStatisticOutputFile = open_file_for_output( genStatisticFileName ) ;
-		}
-		
-		if( m_options.check_if_option_was_supplied( "--oss" ) ) {
-			std::string sampleStatisticFileName = m_options.get_value< std::string >( "--ogs" ) ;
-			sampleStatisticOutputFile = open_file_for_output( sampleStatisticFileName ) ;
-		}
-		
-		std::vector< std::string > row_statistics_specs = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "--row-statistics" ), "," ) ;
-		GenRowStatisticFactory::add_statistics( row_statistics_specs, m_row_statistics ) ;
-
-		std::vector< std::string > sample_statistics_specs = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "--sample-statistics" ), "," ) ;
-		SampleRowStatisticFactory::add_statistics( sample_statistics_specs, m_sample_statistics ) ;
-		
-		// Get the condition to apply to rows.
+		open_sample_stats_file() ;
+		construct_snp_statistics() ;
+		construct_sample_statistics() ;
 		construct_snp_filter() ;
 		construct_sample_filter() ;
 	}
 	
-	void open_sample_row_source() {
-		m_sample_row_source.reset( new NullObjectSource< SampleRow >()) ;
-		m_have_sample_file = false ;
-		if( m_options.check_if_option_was_supplied( "--s" )) {
-			std::string sampleFileName = m_options.get_value< std::string >( "--s" ) ;
-			m_sample_row_source.reset( new SampleInputFile< SimpleFileObjectSource< SampleRow > >( open_file_for_input( sampleFileName ))) ;
-			m_have_sample_file = true ;
-		}
-	} ;
-
 	void open_gen_row_source() {
 		std::vector< std::string > gen_filenames = m_options.get_values< std::string >( "--g" ) ;
 		gen_row_source = get_genrow_source_from_files( gen_filenames ) ;
@@ -209,12 +185,52 @@ private:
 		}
 	}
 
+	void open_gen_stats_file() {
+		// Output GEN stats to std output if no file is supplied.
+		genStatisticOutputFile = OUTPUT_FILE_PTR( new std::ostream( std::cout.rdbuf() )) ;
+		if( m_options.check_if_option_was_supplied( "--ogs" ) ) {
+			std::string genStatisticFileName = m_options.get_value< std::string >( "--ogs" ) ;
+			genStatisticOutputFile = open_file_for_output( genStatisticFileName ) ;
+		}
+	}
+
+	void open_sample_row_source() {
+		m_sample_row_source.reset( new NullObjectSource< SampleRow >()) ;
+		m_have_sample_file = false ;
+		if( m_options.check_if_option_was_supplied( "--s" )) {
+			std::string sampleFileName = m_options.get_value< std::string >( "--s" ) ;
+			m_sample_row_source.reset( new SampleInputFile< SimpleFileObjectSource< SampleRow > >( open_file_for_input( sampleFileName ))) ;
+			m_have_sample_file = true ;
+		}
+	} ;
+
+
 	void open_sample_row_sink() {
 		m_sample_row_sink.reset( new NullObjectSink< SampleRow >() ) ;
 		if( m_options.check_if_option_was_supplied( "--os" )) {
 			std::string sampleOutputFileName = m_options.get_value< std::string >( "--os" ) ;
 			m_sample_row_sink.reset( new SampleOutputFile< SimpleFileObjectSink< SampleRow > >( open_file_for_output( sampleOutputFileName ))) ;
 		}
+	}
+
+	void open_sample_stats_file() {
+		// Output sample stats to std out if no file is supplied
+		sampleStatisticOutputFile = OUTPUT_FILE_PTR( new std::ostream( std::cout.rdbuf() )) ;
+
+		if( m_options.check_if_option_was_supplied( "--oss" ) ) {
+			std::string sampleStatisticFileName = m_options.get_value< std::string >( "--oss" ) ;
+			sampleStatisticOutputFile = open_file_for_output( sampleStatisticFileName ) ;
+		}
+	}
+
+	void construct_snp_statistics() {
+		std::vector< std::string > row_statistics_specs = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "--snp-statistics" ), "," ) ;
+		GenRowStatisticFactory::add_statistics( row_statistics_specs, m_row_statistics ) ;
+	}
+
+	void construct_sample_statistics() {
+		std::vector< std::string > sample_statistics_specs = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "--sample-statistics" ), "," ) ;
+		SampleRowStatisticFactory::add_statistics( sample_statistics_specs, m_sample_statistics ) ;
 	}
 
 	void construct_snp_filter() {
@@ -308,6 +324,9 @@ public:
 			std::cerr << "!! ERROR: " << e << ".\n" ;
 			std::cerr << "Note: required statistics must be added using --statistics.\n" ;
 		}
+		catch( GToolException const& e) {
+			std::cerr << "!! ERROR: " << e << ".\n" ;
+		}
 	}
 
 private:
@@ -331,7 +350,7 @@ private:
 			}
 		}
 		
-		std::cout << "gen-select: keeping " << m_indices_of_filtered_in_sample_rows.size() << " samples, filtering out " << m_indices_of_filtered_out_sample_rows.size() << ".\n" ;
+		std::cout << "gen-select: total samples " << m_number_of_sample_file_rows << ", keeping " << m_indices_of_filtered_in_sample_rows.size() << ", filtering out " << m_indices_of_filtered_out_sample_rows.size() << ".\n" ;
 	}
 
 	void process_gen_rows() {
@@ -420,14 +439,21 @@ private:
 		m_row_statistics.process( row ) ;
 		m_row_statistics.round_genotype_amounts() ;
 		if( m_snp_filter->check_if_satisfied( m_row_statistics )) {
-			(*gen_row_sink) << row ;
+			output_gen_row( row ) ;
+			output_gen_row_stats( m_row_statistics, row_number ) ;
+		}
+	}
 
-			if( genStatisticOutputFile.get() ) {
-				if( m_row_statistics.size() > 0 ) {
-					(*genStatisticOutputFile)
-						<< std::setw(8) << std::left << row_number
-						<< m_row_statistics << "\n" ;
-				}
+	void output_gen_row( GenRow const& row ) {
+		(*gen_row_sink) << row ;
+	}
+
+	void output_gen_row_stats( GenotypeAssayStatistics const& row_statistics, std::size_t row_number ) {
+		if( genStatisticOutputFile.get() ) {
+			if( m_row_statistics.size() > 0 ) {
+				(*genStatisticOutputFile)
+					<< std::setw(8) << std::left << row_number
+					<< m_row_statistics << "\n" ;
 			}
 		}
 	}

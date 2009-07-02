@@ -16,7 +16,7 @@ GenotypeProportions AlleleProportions::genotype_proportions_at_hardy_weinberg() 
 												2.0 * (proportion_of_A() * proportion_of_B()),
 												(proportion_of_B() * proportion_of_B())) ;
 												
-	genotype_proportions /= genotype_proportions.sum_of_proportions() ;
+	genotype_proportions /= genotype_proportions.sum() ;
 	return genotype_proportions ;
 }
 

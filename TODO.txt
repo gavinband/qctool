@@ -19,4 +19,4 @@ Done?	Description
 *		Fix bug where passing non-gen file causes program to hang.
 *		Rationalise ObjectSource / ObjectSink nonsense.
 *		Output stats in the same order given.
-
+		Support overwriting sample file (with warning and pause?)

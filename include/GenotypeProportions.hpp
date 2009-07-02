@@ -15,15 +15,7 @@ struct GenotypeProportions
     GenotypeProportions() ;
 	GenotypeProportions( double aa, double ab, double bb );
 
-	// Deprecated access functions
-	double& proportion_of_AA() { return m_proportion_of_AA ; }
-	double& proportion_of_AB() { return m_proportion_of_AB ; }
-	double& proportion_of_BB() { return m_proportion_of_BB ; }
-	double proportion_of_AA() const { return m_proportion_of_AA ; }
-	double proportion_of_AB() const { return m_proportion_of_AB ; }
-	double proportion_of_BB() const { return m_proportion_of_BB ; }
-	double sum_of_proportions() const { return m_proportion_of_AA + m_proportion_of_BB + m_proportion_of_AB ; }
-
+	// Modify the contained proportions
 	void floor() ;
 	void round() ;
 	void zero() ;

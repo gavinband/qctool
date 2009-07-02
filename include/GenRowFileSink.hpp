@@ -12,10 +12,11 @@ struct SimpleGenRowBinaryFileSink: public SimpleFileObjectSink< GenRow >
 {
 	typedef SimpleFileObjectSink< GenRow > base_t ;
 
-	SimpleGenRowBinaryFileSink( OUTPUT_FILE_PTR stream_ptr )
-		: base_t( stream_ptr )
+	SimpleGenRowBinaryFileSink( OUTPUT_FILE_PTR a_stream_ptr )
+		: base_t( a_stream_ptr )
 	{
-		genbin::write_offset( *stream_ptr, 0 ) ;
+		genbin::uint32_t offset = 0 ;
+		genbin::write_offset( *stream_ptr(), offset ) ;
 	}
 
 	SimpleGenRowBinaryFileSink& write( GenRow const& row ) {
