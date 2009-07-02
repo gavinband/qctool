@@ -10,7 +10,7 @@ OptionDefinition::OptionDefinition()
 		m_is_required( false ),
 		m_number_of_values_per_use( 0 ),
 		m_lower_number_of_permitted_values( 0 ),
-		m_upper_number_of_permitted_values( 0 ),
+		m_upper_number_of_permitted_values( 1 ),
 		m_has_default_value( false ),
 		m_default_value( "" )
 {}

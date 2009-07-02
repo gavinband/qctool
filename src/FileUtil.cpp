@@ -16,6 +16,7 @@
 	#include <boost/filesystem.hpp>
 	namespace BFS = boost::filesystem ;
 #endif
+#include "parse_utils.hpp"
 
 // Return a stream representing a given input file, optionally with gzip decompression
 INPUT_FILE_PTR
@@ -130,20 +131,13 @@ open_file_for_output( std::string const& filename ) {
 
 namespace impl {
 	bool check_if_filename_matches_filename_with_wildcard( std::string filename, std::string filename_before_wildcard, std::string filename_after_wildcard, wildcard_match_checker_t checker ) {
-		if( filename.size() < ( filename_before_wildcard.size() + filename_after_wildcard.size() )) {
-			return false ;
+		std::string matching_segment ;
+		if( string_has_prefix_and_suffix( filename, filename_before_wildcard, filename_after_wildcard, &matching_segment )) {
+			if( checker && checker( matching_segment )) {
+				return true ;
+			}
 		}
-		if( filename_before_wildcard != filename.substr( 0, filename_before_wildcard.size()) ) {
-			return false ;
-		}
-		if( filename_after_wildcard != filename.substr( filename.size() - filename_after_wildcard.size(), filename_after_wildcard.size() )) {
-			return false ;
-		}
-		std::size_t wildcard_match_size = filename.size() - filename_before_wildcard.size() - filename_after_wildcard.size() ;
-		if( checker && !checker( filename.substr( filename_before_wildcard.size(), wildcard_match_size ))) {
-			return false ;
-		}
-		return true ;
+		return false ;
 	}
 }
 

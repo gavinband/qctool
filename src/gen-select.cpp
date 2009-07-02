@@ -142,9 +142,8 @@ public:
 			.set_takes_single_value()
 			.set_default_value( std::string("ID1, ID2, missing, heterozygosity") ) ;
 			
-		options ["--force" ] 
-			.set_description( "Ignore warnings and proceed with requested action." )
-			.set_default_value( false ) ;
+		options [ "--force" ] 
+			.set_description( "Ignore warnings and proceed with requested action." ) ;
 	}
 
 	GenSelectProcessor( OptionProcessor const& options )
@@ -155,7 +154,7 @@ public:
 	
 private:
 	void setup() {
-		m_ignore_warnings = m_options.get_value< bool >( "--force" ) ;
+		m_ignore_warnings = m_options.check_if_option_was_supplied( "--force" ) ;
 		get_required_filenames() ;
 		construct_snp_statistics() ;
 		construct_sample_statistics() ;
@@ -204,7 +203,7 @@ private:
 
 	void open_gen_stats_file() {
 		// Output GEN stats to std output if no file is supplied.
-		genStatisticOutputFile = OUTPUT_FILE_PTR( new std::ostream( std::cout.rdbuf() )) ;
+		// genStatisticOutputFile = OUTPUT_FILE_PTR( new std::ostream( std::cout.rdbuf() )) ;
 		if( m_gen_statistic_filename != "" ) {
 			genStatisticOutputFile = open_file_for_output( m_gen_statistic_filename ) ;
 		}
@@ -359,17 +358,28 @@ public:
 		oStream << "\n" ;
 		
 		if( !m_errors.empty() ) {
-			oStream << "I encountered the following errors:\n" ;
+			oStream << "\n!! I encountered the following errors:\n\n" ;
 			for( std::size_t i = 0; i < m_errors.size(); ++i ) {
-				oStream << "  - " << m_errors[i] << "\n" ;
+				oStream << "  - " << m_errors[i] << "\n\n" ;
 			}
-			oStream << "Please correct the above errors and re-run gen-select.\n\n" ;
+			oStream << "!! Please correct the above errors and re-run gen-select.\n\n" ;
 			throw GenSelectProcessorException( "Errors were encountered." ) ;
 		}
-	}
 
-	bool strings_are_nonempty_and_equal( std::string const& left, std::string const& right ) {
-		return (!left.empty()) && (!right.empty()) && (left == right) ;
+
+		if( !m_warnings.empty() ) {
+			oStream << "\n!! I encountered the following warnings:\n\n" ;
+			for( std::size_t i = 0; i < m_warnings.size(); ++i ) {
+				oStream << "  - " << m_warnings[i] << "\n\n" ;
+			}
+			if( m_ignore_warnings ) {
+				oStream << "Warnings encountered, but proceeding anyway as --force was supplied.\n" ;
+			}
+			else {
+				oStream << "!! To proceed anyway, please run again with the --force option.\n\n" ;
+				throw GenSelectProcessorException( "Warnings were encountered." ) ;
+			}
+		}
 	}
 
 	void do_checks() {
@@ -400,7 +410,21 @@ public:
 		if( strings_are_nonempty_and_equal( m_gen_statistic_filename, m_sample_statistic_filename )) {
 			m_errors.push_back( "The gen statistic and sample statistic filenames must differ." ) ;
 		}
+		if( m_sample_output_filename != "" && m_gen_filenames.size() != 24 ) {
+			m_warnings.push_back( "You are outputting a sample file, but the number of gen files is not 24.") ;
+		}
+		if( m_sample_statistic_filename != "" && m_gen_filenames.size() != 24 ) {
+			m_warnings.push_back( "You are outputting a sample statistic file, but the number of gen files is not 24.") ;
+		}
+		if( m_gen_output_filename == "" && m_sample_output_filename == "" && m_gen_statistic_filename == "" && m_sample_statistic_filename == "" ) {
+			m_warnings.push_back( "You have not specified any output files -- this combination of options will output to the screen only." ) ;
+		}
 	}
+	
+	bool strings_are_nonempty_and_equal( std::string const& left, std::string const& right ) {
+		return (!left.empty()) && (!right.empty()) && (left == right) ;
+	}
+
 	
 	void process() {
 		try {

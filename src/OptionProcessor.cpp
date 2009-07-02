@@ -146,15 +146,20 @@ void OptionProcessor::parse_options( int argc, char** argv ) {
 		std::string arg = argv[i] ;
 		std::map< std::string, OptionDefinition >::const_iterator arg_i = m_option_definitions.find( arg ) ;
 		if( arg_i != m_option_definitions.end() ) {
-			for( unsigned int value_i = 0; value_i < arg_i->second.number_of_values_per_use(); ++value_i ) {
-				if( ++i == argc ) {
-					std::ostringstream ostr ;
-					ostr << "Option\"" << arg << "\" takes " << arg_i->second.number_of_values_per_use() << " values per use." ;
-					throw OptionParseException( arg, m_option_values[ arg ], ostr.str() ) ;
+			if( arg_i->second.number_of_values_per_use() > 0 ) {
+				for( unsigned int value_i = 0; value_i < arg_i->second.number_of_values_per_use(); ++value_i ) {
+					if( ++i == argc ) {
+						std::ostringstream ostr ;
+						ostr << "Option\"" << arg << "\" takes " << arg_i->second.number_of_values_per_use() << " values per use." ;
+						throw OptionParseException( arg, m_option_values[ arg ], ostr.str() ) ;
+					}
+					else {
+						m_option_values[ arg ].push_back( argv[i] ) ;
+					}
 				}
-				else {
-					m_option_values[ arg ].push_back( argv[i] ) ;
-				}
+			}
+			else {
+				m_option_values[ arg ].push_back( "1" ) ;
 			}
 		}
 		else
