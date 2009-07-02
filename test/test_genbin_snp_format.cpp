@@ -13,7 +13,7 @@
 	#define TEST_ASSERT( param ) assert( param )
 #endif
 #include "GenRow.hpp"
-#include "genbin.hpp"
+#include "bgen.hpp"
 #include "stdint.h"
 
 // The following section contains a simple snp block writer.
@@ -60,7 +60,7 @@ namespace data {
 	}
 }
 
-// The following section defines the needed objects for use with the genbin.hpp implementation.
+// The following section defines the needed objects for use with the bgen.hpp implementation.
 template< typename T >
 struct Setter
 {
@@ -131,7 +131,7 @@ void do_snp_block_read_test(
 	std::vector< probabilities > genotype_probabilities ;
 	genotype_probabilities.resize( 1000 ) ;
 
-	genbin::read_snp_block(
+	bgen::read_snp_block(
 		inStream,
 		make_setter( number_of_individuals2 ),
 		make_setter( SNPID2 ),
@@ -166,7 +166,7 @@ void do_snp_block_write_test(
 		char b
 	) {
 	std::ostringstream outStream ;
-	genbin::write_snp_block( 
+	bgen::write_snp_block( 
 		outStream,
 		number_of_individuals,
 		SNPID,

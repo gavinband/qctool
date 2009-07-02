@@ -8,7 +8,7 @@
 #include "SimpleFileObjectSource.hpp"
 #include "ChainingFileObjectSource.hpp"
 #include "FileUtil.hpp"
-#include "genbin.hpp"
+#include "bgen.hpp"
 
 // Open a GEN input file, returning the appropriate type of Source object.
 std::auto_ptr< ObjectSource< GenRow > > get_genrow_source_from_file( std::string filename ) ;
@@ -23,7 +23,7 @@ struct SimpleBinaryFileGenRowSource: public SimpleFileObjectSource< GenRow >
 	SimpleBinaryFileGenRowSource( INPUT_FILE_PTR a_stream_ptr )
 		: base_t( a_stream_ptr )
 	{
-		genbin::read_offset( *stream_ptr(), &m_offset ) ;
+		bgen::read_offset( *stream_ptr(), &m_offset ) ;
 		stream_ptr()->ignore( m_offset ) ;
 		if( !(*stream_ptr())) {
 			throw BadFileFormatException( "SimpleBinaryFileGenRowSource: unable to read (or to skip) offset - this can't be a valid binary gen file." ) ;

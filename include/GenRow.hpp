@@ -40,7 +40,7 @@ class GenRow
 
 	private:
 
-		// Data accessors, needed for genbin support.
+		// Data accessors, needed for binary gen file support.
 		void set_number_of_samples( std::size_t n ) { m_genotype_proportions.resize( n ) ; }
 		void set_SNPID( std::string const& str ) { m_SNPID = str ; }
 		void set_RSID( std::string const& str ) { m_RSID = str ; }

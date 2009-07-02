@@ -10,7 +10,7 @@
 /*
 * This file contains a reference implementation of the GENBIN file format
 * specification described at:
-* http://www.well.ox.ac.uk/~gav/genbin_format.html
+* http://www.well.ox.ac.uk/~gav/bgen_format.html
 *
 * LICENSE: you are free to use this for personal and/or academic purposes only.
 *
@@ -18,14 +18,14 @@
 *
 * This implementation provides the following functions.
 *
-* - genbin::read_offset( stream, data... )
-* - genbin::write_offset( stream, data... )
-* - genbin::read_snp_block( stream, data... )
-* - genbin::write_snp_block( stream, data... )
+* - bgen::read_offset( stream, data... )
+* - bgen::write_offset( stream, data... )
+* - bgen::read_snp_block( stream, data... )
+* - bgen::write_snp_block( stream, data... )
 *
 */
 
-namespace genbin {
+namespace bgen {
 	namespace impl {
 		typedef ::uint32_t uint32_t ;
 		typedef ::uint16_t uint16_t ;

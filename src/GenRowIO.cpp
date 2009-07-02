@@ -10,7 +10,7 @@
 #include "GenRow.hpp"
 #include "Whitespace.hpp"
 #include "GenotypeProportions.hpp"
-#include "genbin.hpp"
+#include "bgen.hpp"
 
 
 double read_float( std::istream& aStream ) {
@@ -126,11 +126,9 @@ std::ostream& GenRow::write_to_text_stream( std::ostream& aStream ) const {
 	return aStream ;
 }
 
-// The following two functions implement the genbin specification described here:
-// http://www.well.ox.ac.uk/~gav/binary_file_format.html
 
 std::istream& GenRow::read_from_binary_stream( std::istream& aStream ) {
-	genbin::read_snp_block(
+	bgen::read_snp_block(
 		aStream,
 		boost::bind< void >( &GenRow::set_number_of_samples, this, _1 ),
 		boost::bind< void >( &GenRow::set_SNPID, this, _1 ),
@@ -144,7 +142,7 @@ std::istream& GenRow::read_from_binary_stream( std::istream& aStream ) {
 }
 
 std::ostream& GenRow::write_to_binary_stream( std::ostream& aStream ) const {
-	genbin::write_snp_block(
+	bgen::write_snp_block(
 		aStream,
 		m_genotype_proportions.size(),
 		m_SNPID,

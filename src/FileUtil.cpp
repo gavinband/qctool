@@ -101,7 +101,7 @@ FileCompressionType determine_file_compression( std::string const& filename ) {
 }
 
 FileModeType determine_file_mode( std::string const& filename ) {
-	if( filename.find( ".genbin" ) != std::string::npos ) {
+	if( filename.find( ".bgen" ) != std::string::npos ) {
 		return e_BinaryMode ;
 	}
 	else {

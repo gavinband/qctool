@@ -4,7 +4,7 @@
 #include "GenRow.hpp"
 #include "SimpleFileObjectSink.hpp"
 #include "FileUtil.hpp"
-#include "genbin.hpp"
+#include "bgen.hpp"
 
 typedef SimpleFileObjectSink< GenRow > SimpleGenRowTextFileSink ;
 
@@ -15,8 +15,8 @@ struct SimpleGenRowBinaryFileSink: public SimpleFileObjectSink< GenRow >
 	SimpleGenRowBinaryFileSink( OUTPUT_FILE_PTR a_stream_ptr )
 		: base_t( a_stream_ptr )
 	{
-		genbin::uint32_t offset = 0 ;
-		genbin::write_offset( *stream_ptr(), offset ) ;
+		bgen::uint32_t offset = 0 ;
+		bgen::write_offset( *stream_ptr(), offset ) ;
 	}
 
 	SimpleGenRowBinaryFileSink& write( GenRow const& row ) {
