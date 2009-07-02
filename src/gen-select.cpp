@@ -334,51 +334,58 @@ public:
 	void write_preamble( std::ostream& oStream ) const {
 		oStream << "\nWelcome to gen-select\n"
 		 	<< "(C) 2009 University of Oxford\n\n";
-		oStream << std::setw(30) << "Input GEN files:" ;
-		for( std::size_t i = 0; i < m_gen_filenames.size(); ++i ) {
-			if( i > 0 ) {
-				oStream << std::string( 30, ' ' ) ;
+		oStream << std::string( 72, '=' ) << "\n\n" ;
+		try {
+			oStream << std::setw(30) << "Input GEN files:" ;
+			for( std::size_t i = 0; i < m_gen_filenames.size(); ++i ) {
+				if( i > 0 ) {
+					oStream << std::string( 30, ' ' ) ;
+				}
+				oStream << "  \"" << m_gen_filenames[i] << "\"\n" ;
 			}
-			oStream << "  \"" << m_gen_filenames[i] << "\"\n" ;
-		}
-		oStream << std::setw(30) << "Output GEN files:"
-			<< "  \"" << m_gen_output_filename << "\".\n" ;
-		oStream << std::setw(30) << "Input SAMPLE files:"
-			<< "  \"" << m_sample_filename << "\".\n" ;
-		oStream << std::setw(30) << "Output SAMPLE files:"
-			<< "  \"" << m_sample_output_filename << "\".\n" ;
-		oStream << std::setw(30) << "SNP statistic output file:"
-			<< "  \"" << m_gen_statistic_filename << "\".\n" ;
-		oStream << std::setw(30) << "Sample statistic output file:"
-			<< "  \"" << m_sample_statistic_filename << "\".\n" ;
-		oStream << std::setw(30) << "Sample filter:" 
-			<< "  " << *m_sample_filter << ".\n" ;
-		oStream << std::setw(30) << "SNP filter:"
-			<< "  " << *m_snp_filter << ".\n" ;
-		oStream << "\n" ;
+			oStream << std::setw(30) << "Output GEN files:"
+				<< "  \"" << m_gen_output_filename << "\".\n" ;
+			oStream << std::setw(30) << "Input SAMPLE files:"
+				<< "  \"" << m_sample_filename << "\".\n" ;
+			oStream << std::setw(30) << "Output SAMPLE files:"
+				<< "  \"" << m_sample_output_filename << "\".\n" ;
+			oStream << std::setw(30) << "SNP statistic output file:"
+				<< "  \"" << m_gen_statistic_filename << "\".\n" ;
+			oStream << std::setw(30) << "Sample statistic output file:"
+				<< "  \"" << m_sample_statistic_filename << "\".\n" ;
+			oStream << std::setw(30) << "Sample filter:" 
+				<< "  " << *m_sample_filter << ".\n" ;
+			oStream << std::setw(30) << "SNP filter:"
+				<< "  " << *m_snp_filter << ".\n" ;
+			oStream << "\n" ;
 		
-		if( !m_errors.empty() ) {
-			oStream << "\n!! I encountered the following errors:\n\n" ;
-			for( std::size_t i = 0; i < m_errors.size(); ++i ) {
-				oStream << "  - " << m_errors[i] << "\n\n" ;
+			if( !m_errors.empty() ) {
+				for( std::size_t i = 0; i < m_errors.size(); ++i ) {
+					oStream << "!! ERROR: " << m_errors[i] << "\n\n" ;
+				}
+				oStream << "!! Please correct the above errors and re-run gen-select.\n\n" ;
+				throw GenSelectProcessorException( "Errors were encountered." ) ;
 			}
-			oStream << "!! Please correct the above errors and re-run gen-select.\n\n" ;
-			throw GenSelectProcessorException( "Errors were encountered." ) ;
+
+
+			if( !m_warnings.empty() ) {
+				for( std::size_t i = 0; i < m_warnings.size(); ++i ) {
+					oStream << "!! WARNING: " << m_warnings[i] << "\n\n" ;
+				}
+				if( m_ignore_warnings ) {
+					oStream << "!! Warnings encountered, but proceeding anyway as --force was supplied.\n\n" ;
+				}
+				else {
+					oStream << "!! To proceed anyway, please run again with the --force option.\n\n" ;
+					throw GenSelectProcessorException( "Warnings were encountered." ) ;
+				}
+			}
+
+			oStream << std::string( 72, '=' ) << "\n\n" ;
 		}
-
-
-		if( !m_warnings.empty() ) {
-			oStream << "\n!! I encountered the following warnings:\n\n" ;
-			for( std::size_t i = 0; i < m_warnings.size(); ++i ) {
-				oStream << "  - " << m_warnings[i] << "\n\n" ;
-			}
-			if( m_ignore_warnings ) {
-				oStream << "Warnings encountered, but proceeding anyway as --force was supplied.\n" ;
-			}
-			else {
-				oStream << "!! To proceed anyway, please run again with the --force option.\n\n" ;
-				throw GenSelectProcessorException( "Warnings were encountered." ) ;
-			}
+		catch (...) {
+			oStream << std::string( 72, '=' ) << "\n\n" ;
+			throw ;
 		}
 	}
 
@@ -417,7 +424,7 @@ public:
 			m_warnings.push_back( "You are outputting a sample statistic file, but the number of gen files is not 24.") ;
 		}
 		if( m_gen_output_filename == "" && m_sample_output_filename == "" && m_gen_statistic_filename == "" && m_sample_statistic_filename == "" ) {
-			m_warnings.push_back( "You have not specified any output files -- this combination of options will output to the screen only." ) ;
+			m_warnings.push_back( "You have not specified any output files.  This will produce only console output." ) ;
 		}
 	}
 	
