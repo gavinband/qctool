@@ -12,6 +12,7 @@ public:
 	
 	virtual ObjectSource& read( Object& ) = 0 ;
 	virtual operator bool() = 0 ;
+	virtual bool fail() const = 0 ;
 } ;
 
 template< typename Object >
@@ -25,6 +26,7 @@ struct NullObjectSource: public ObjectSource< Object >
 {
 	NullObjectSource& read( Object& ) { return *this ; }
 	operator bool() { return false ;}
+	bool fail() const { return false ; }
 } ;
 
 

@@ -45,7 +45,8 @@ class GenRow
 		void set_SNPID( std::string const& str ) { m_SNPID = str ; }
 		void set_RSID( std::string const& str ) { m_RSID = str ; }
 		void set_SNP_position( int pos ) { m_SNP_position = pos ; }
-		void set_alleles( char a, char b ) { m_1st_allele = a; m_2nd_allele = b ; }
+		void set_allele1( char a ) { m_1st_allele = a ; }
+		void set_allele2( char b ) { m_2nd_allele = b ; }
 		void set_genotype_probabilities( std::size_t i, double aa, double ab, double bb ) { m_genotype_proportions[i] = GenotypeProportions( aa, ab, bb ) ; }
 		double get_AA_probability( std::size_t i ) const { return m_genotype_proportions[i].AA() ; }
 		double get_AB_probability( std::size_t i ) const { return m_genotype_proportions[i].AB() ; }

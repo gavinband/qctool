@@ -35,6 +35,8 @@ struct SimpleBinaryFileGenRowSource: public SimpleFileObjectSource< GenRow >
 		return *this ;
 	}
 	
+	bool fail() const { return stream_ptr()->fail() ; }
+	
 	private:
 		uint32_t m_offset ;
 } ;

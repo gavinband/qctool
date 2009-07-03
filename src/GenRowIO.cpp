@@ -134,7 +134,8 @@ std::istream& GenRow::read_from_binary_stream( std::istream& aStream ) {
 		boost::bind< void >( &GenRow::set_SNPID, this, _1 ),
 		boost::bind< void >( &GenRow::set_RSID, this, _1 ),
 		boost::bind< void >( &GenRow::set_SNP_position, this, _1 ),
-		boost::bind< void >( &GenRow::set_alleles, this, _1, _2 ),
+		boost::bind< void >( &GenRow::set_allele1, this, _1 ),
+		boost::bind< void >( &GenRow::set_allele2, this, _1 ),
 		boost::bind< void >( &GenRow::set_genotype_probabilities, this, _1, _2, _3, _4 )
 	) ;
 

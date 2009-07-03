@@ -39,6 +39,15 @@ struct ChainingFileObjectSource: public ObjectSource< Object >
 		return false ;
 	}
 
+	bool fail() const {
+		if( m_current_source < m_sources.size() ) {
+			return m_sources[ m_current_source ]->fail() ;
+		}
+		else {
+			return false ;
+		}
+	}
+
 	std::size_t current_source() const { return m_current_source ; }
 	std::size_t number_of_sources() const { return m_sources.size() ; }
 

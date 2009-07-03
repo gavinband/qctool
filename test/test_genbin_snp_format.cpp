@@ -78,14 +78,6 @@ struct probabilities {
 	double AA, AB, BB ;
 } ;
 
-struct AlleleSetter {
-	AlleleSetter( char& a, char& b ): m_a( a ), m_b( b ) {}
-	void operator() ( char a, char b ) { m_a = a, m_b = b ; }
-private:
-	char& m_a ;
-	char& m_b ;
-} ;
-
 struct ProbabilitySetter {
 	ProbabilitySetter( std::vector< probabilities >& probabilities ): m_probabilities( probabilities ) {}
 	void operator() ( std::size_t i, double aa, double ab, double bb ) {
@@ -137,7 +129,8 @@ void do_snp_block_read_test(
 		make_setter( SNPID2 ),
 		make_setter( RSID2 ),
 		make_setter( SNP_position2 ),
-		AlleleSetter( a2, b2 ),
+		make_setter( a2 ),
+		make_setter( b2 ),
 		ProbabilitySetter( genotype_probabilities )
 	) ;
 

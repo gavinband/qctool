@@ -53,7 +53,8 @@ struct SampleInputFile: public ObjectSource< SampleRow >
 	}
 
 	operator bool() { return *m_row_source_ptr ; }
-
+	bool fail() const { return m_row_source_ptr->fail() ; }
+	
 private:
 
 	std::auto_ptr< StreamSourceType > m_row_source_ptr ;

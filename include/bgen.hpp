@@ -64,7 +64,7 @@ namespace bgen {
 	template<
 		typename IntegerSetter,
 		typename StringSetter,
-		typename AllelesSetter,
+		typename AlleleSetter,
 		typename SNPPositionSetter,
 		typename GenotypeProbabilitySetter
 	>
@@ -74,7 +74,8 @@ namespace bgen {
 		StringSetter set_SNPID,
 		StringSetter set_RSID,
 		SNPPositionSetter set_SNP_position,
-		AllelesSetter set_alleles,
+		AlleleSetter set_allele1,
+		AlleleSetter set_allele2,
 		GenotypeProbabilitySetter set_genotype_probabilities
 	) ;
 
@@ -158,7 +159,7 @@ namespace bgen {
 	template<
 		typename IntegerSetter,
 		typename StringSetter,
-		typename AllelesSetter,
+		typename AlleleSetter,
 		typename SNPPositionSetter,
 		typename GenotypeProbabilitySetter
 	>
@@ -168,7 +169,8 @@ namespace bgen {
 		StringSetter set_SNPID,
 		StringSetter set_RSID,
 		SNPPositionSetter set_SNP_position,
-		AllelesSetter set_alleles,
+		AlleleSetter set_allele1,
+		AlleleSetter set_allele2,
 		GenotypeProbabilitySetter set_genotype_probabilities
 	) {
 		// We read the following data in the following order.
@@ -210,7 +212,8 @@ namespace bgen {
 			set_SNPID( SNPID ) ;
 			set_RSID( RSID ) ;
 			set_SNP_position( SNP_position ) ;
-			set_alleles( first_allele, second_allele ) ;
+			set_allele1( first_allele ) ;
+			set_allele2( first_allele ) ;
 
 			for( impl::uint32_t i = 0 ; i < number_of_samples ; ++i ) {
 				impl::uint16_t AA, AB, BB ;

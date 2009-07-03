@@ -27,9 +27,11 @@ public:
 		return (*m_stream_ptr) ;
 	}
 
+	bool fail() const { return m_stream_ptr->fail() ; }
+
 protected:
 
-	INPUT_FILE_PTR const& stream_ptr() { return m_stream_ptr ; }
+	INPUT_FILE_PTR const& stream_ptr() const { return m_stream_ptr ; }
 
 private:
 

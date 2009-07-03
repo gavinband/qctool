@@ -10,6 +10,4 @@ std::vector< std::string > split_discarding_empty_entries( std::string string_to
 std::vector< std::string > split_and_strip( std::string string_to_split, std::string splitter, std::string strip_chars = " " ) ;
 std::vector< std::string > split_and_strip_discarding_empty_entries( std::string string_to_split, std::string splitter, std::string strip_chars = " " ) ;
 
-std::string numerical_wildcard_match( std::string const& string_to_match, std::string string_with_wildcard ) ;
-
 #endif
