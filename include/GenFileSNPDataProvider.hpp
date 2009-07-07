@@ -27,7 +27,8 @@ public:
 	unsigned int number_of_samples() const { return m_number_of_samples ; }
 	unsigned int total_number_of_snps() const { return m_total_number_of_snps ; }
 	FormatType format() const { return e_GenFormat ; }
-	std::istream& stream() const { return *m_stream_ptr ; }
+	std::istream& stream() { return *m_stream_ptr ; }
+	std::istream const& stream() const { return *m_stream_ptr ; }
 
 private:
 	std::string m_filename ;

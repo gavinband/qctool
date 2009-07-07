@@ -46,17 +46,24 @@ public:
 
 	operator bool() const {
 		if( m_current_provider < m_providers.size() ) {
-			return stream() ;
+			std::istream const& str = stream() ;
+			return ( str ? true : false ) ;
 		}
 		else {
 			return false ;
 		}
 	}
 
-	std::istream& stream() const {
+	std::istream const& stream() const {
 		assert( m_current_provider < m_providers.size() ) ;
 		return m_providers[ m_current_provider ]->stream() ;
 	}
+
+	std::istream& stream() {
+		assert( m_current_provider < m_providers.size() ) ;
+		return m_providers[ m_current_provider ]->stream() ;
+	}
+
 
 private:
 

@@ -30,6 +30,9 @@ class SNPDataProvider
 {
 public:
 
+	SNPDataProvider() {} ;
+	virtual ~SNPDataProvider() {} ;
+
 	// Factory functions
 	static std::auto_ptr< SNPDataProvider > create( std::string const& filename ) ;
 	static std::auto_ptr< SNPDataProvider > create( std::string const& filename, bool file_is_gzipped ) ;
@@ -38,7 +41,8 @@ public:
 	virtual unsigned int number_of_samples() const = 0;
 	virtual unsigned int total_number_of_snps() const = 0 ;
 	virtual operator bool() const { return stream() ; }
-	virtual std::istream& stream() const = 0 ;
+	virtual std::istream& stream() = 0 ;
+	virtual std::istream const & stream() const = 0 ;
 	enum FormatType { e_GenFormat = 0, e_BGenFormat = 1 } ;
 	virtual FormatType format() const = 0;
 
@@ -81,6 +85,10 @@ public:
 protected:
 	// This virtual method is a hook called from read_snp just before each snp is read.
 	virtual void prepare_to_read() {} ;
+private:
+	
+	SNPDataProvider( SNPDataProvider const& other ) ;
+	SNPDataProvider& operator=( SNPDataProvider const& other ) ;
 } ;
 
 #endif
