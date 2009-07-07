@@ -10,7 +10,7 @@
 #include "SimpleFileObjectSource.hpp"
 #include "ChainingFileObjectSource.hpp"
 #include "FileUtil.hpp"
-#include "SNPDataProvider.hpp"
+#include "SNPDataSource.hpp"
 
 
 // Open a GEN input file, returning the appropriate type of Source object.
@@ -18,14 +18,14 @@ std::auto_ptr< ObjectSource< GenRow > > get_genrow_source_from_file( std::string
 std::auto_ptr< ObjectSource< GenRow > > get_genrow_source_from_files( std::vector< std::string > filenames ) ;
 
 
-// This class is an adapter between SNPDataProvider and ObjectSource< GenRow >.
-struct SNPDataProviderGenRowSource: public ObjectSource< GenRow >
+// This class is an adapter between SNPDataSource and ObjectSource< GenRow >.
+struct SNPDataSourceGenRowSource: public ObjectSource< GenRow >
 {
-	SNPDataProviderGenRowSource( std::vector< std::string > filenames )
-		: m_snp_data_provider( SNPDataProvider::create( filenames ))
+	SNPDataSourceGenRowSource( std::vector< std::string > filenames )
+		: m_snp_data_provider( SNPDataSource::create( filenames ))
 	{}
 
-	SNPDataProviderGenRowSource& read( GenRow & row ) {
+	SNPDataSourceGenRowSource& read( GenRow & row ) {
 		m_snp_data_provider->read_snp(
 			boost::bind< void >( &GenRow::set_number_of_samples, &row, _1 ),
 			boost::bind< void >( &GenRow::set_SNPID, &row, _1 ),
@@ -56,7 +56,7 @@ struct SNPDataProviderGenRowSource: public ObjectSource< GenRow >
 
 private:
 
-	std::auto_ptr< SNPDataProvider > m_snp_data_provider ;
+	std::auto_ptr< SNPDataSource > m_snp_data_provider ;
 } ;
 
 

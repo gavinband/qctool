@@ -21,7 +21,7 @@ std::auto_ptr< ObjectSource< GenRow > > get_genrow_source_from_file( std::string
 
 // Open a GEN input file, returning the appropriate type of Source object.
 std::auto_ptr< ObjectSource< GenRow > > get_genrow_source_from_files( std::vector< std::string > filenames ) {
-	std::auto_ptr< ObjectSource< GenRow > > genrow_source( new SNPDataProviderGenRowSource( filenames )) ;
+	std::auto_ptr< ObjectSource< GenRow > > genrow_source( new SNPDataSourceGenRowSource( filenames )) ;
 	return genrow_source  ;
 }
 

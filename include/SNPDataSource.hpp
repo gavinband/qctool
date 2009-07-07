@@ -14,8 +14,8 @@ namespace impl {
 	std::auto_ptr< std::istream > open_bgen_file( std::string filename, bool file_is_gzipped ) ;
 }
 
-struct SNPDataProviderError: public std::exception { char const* what() const throw() { return "SNPDataProviderError" ; } } ;
-struct FileIsInvalidError: public SNPDataProviderError { char const* what() const throw() { return "FileIsInvalidError" ; } } ;
+struct SNPDataSourceError: public std::exception { char const* what() const throw() { return "SNPDataSourceError" ; } } ;
+struct FileIsInvalidError: public SNPDataSourceError { char const* what() const throw() { return "FileIsInvalidError" ; } } ;
 struct FileNotOpenedError: public FileIsInvalidError { char const* what() const throw() { return "FileNotOpenedError" ; } } ;
 struct FileHasTrailingDataAfterLastSNP: public FileIsInvalidError { char const* what() const throw() { return "FileHasTrailingDataAfterLastSNP" ; } } ;
 struct FileContainsSNPsOfDifferentSizes: public FileIsInvalidError { char const* what() const throw() { return "FileContainsSNPsOfDifferentSizes" ; } } ;
@@ -26,17 +26,17 @@ struct FileStructureInvalidError: public FileIsInvalidError { char const* what()
 // 1. the number_of_samples() and total_number_of_snps() functions return information
 // reflecting the data in the file or source, and
 // 2. The stream accessible through stream() is readable and pointing to the first snp in the file.
-class SNPDataProvider
+class SNPDataSource
 {
 public:
 
-	SNPDataProvider() {} ;
-	virtual ~SNPDataProvider() {} ;
+	SNPDataSource() {} ;
+	virtual ~SNPDataSource() {} ;
 
 	// Factory functions
-	static std::auto_ptr< SNPDataProvider > create( std::string const& filename ) ;
-	static std::auto_ptr< SNPDataProvider > create( std::string const& filename, bool file_is_gzipped ) ;
-	static std::auto_ptr< SNPDataProvider > create( std::vector< std::string > const& filenames ) ;
+	static std::auto_ptr< SNPDataSource > create( std::string const& filename ) ;
+	static std::auto_ptr< SNPDataSource > create( std::string const& filename, bool file_is_gzipped ) ;
+	static std::auto_ptr< SNPDataSource > create( std::vector< std::string > const& filenames ) ;
 
 	virtual unsigned int number_of_samples() const = 0;
 	virtual unsigned int total_number_of_snps() const = 0 ;
@@ -58,7 +58,7 @@ public:
 		typename SNPPositionSetter,
 		typename GenotypeProbabilitySetter
 	>
-	SNPDataProvider& read_snp(
+	SNPDataSource& read_snp(
 		IntegerSetter set_number_of_samples,
 		StringSetter set_SNPID,
 		StringSetter set_RSID,
@@ -87,8 +87,8 @@ protected:
 	virtual void prepare_to_read() {} ;
 private:
 	
-	SNPDataProvider( SNPDataProvider const& other ) ;
-	SNPDataProvider& operator=( SNPDataProvider const& other ) ;
+	SNPDataSource( SNPDataSource const& other ) ;
+	SNPDataSource& operator=( SNPDataSource const& other ) ;
 } ;
 
 #endif

@@ -4,21 +4,21 @@
 #include <iostream>
 #include <string>
 #include "snp_data_utils.hpp"
-#include "SNPDataProvider.hpp"
+#include "SNPDataSource.hpp"
 #include "bgen.hpp"
 
-// This class represents a SNPDataProvider which reads its data
+// This class represents a SNPDataSource which reads its data
 // from a BGEN file.
-class BGenFileSNPDataProvider: public SNPDataProvider
+class BGenFileSNPDataSource: public SNPDataSource
 {
 public:
-	BGenFileSNPDataProvider( std::string const& filename )
+	BGenFileSNPDataSource( std::string const& filename )
 		: m_filename( filename )
 	{
 		setup( filename, impl::file_is_gzipped( filename )) ;
 	}
 
-	BGenFileSNPDataProvider( std::string const& filename, bool file_is_gzipped )
+	BGenFileSNPDataSource( std::string const& filename, bool file_is_gzipped )
 		: m_filename( filename )
 	{
 		setup( filename, file_is_gzipped ) ;

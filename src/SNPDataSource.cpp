@@ -5,10 +5,10 @@
 #include <boost/iostreams/device/file.hpp>
 
 #include "snp_data_utils.hpp"
-#include "SNPDataProvider.hpp"
-#include "GenFileSNPDataProvider.hpp"
-#include "BGenFileSNPDataProvider.hpp"
-#include "SNPDataProviderChain.hpp"
+#include "SNPDataSource.hpp"
+#include "GenFileSNPDataSource.hpp"
+#include "BGenFileSNPDataSource.hpp"
+#include "SNPDataSourceChain.hpp"
 
 namespace impl {
 	bool gen_file_is_in_binary_format( std::string filename ) {
@@ -38,23 +38,23 @@ namespace gen {
 	Ignorer ignore() { return Ignorer() ; }
 }
 
-std::auto_ptr< SNPDataProvider > SNPDataProvider::create( std::string const& filename ) {
-	return SNPDataProvider::create( filename, impl::file_is_gzipped( filename )) ;
+std::auto_ptr< SNPDataSource > SNPDataSource::create( std::string const& filename ) {
+	return SNPDataSource::create( filename, impl::file_is_gzipped( filename )) ;
 }
 
-std::auto_ptr< SNPDataProvider > SNPDataProvider::create( std::string const& filename, bool file_is_gzipped ) {
+std::auto_ptr< SNPDataSource > SNPDataSource::create( std::string const& filename, bool file_is_gzipped ) {
 	if( impl::gen_file_is_in_binary_format( filename )) {
-		return std::auto_ptr< SNPDataProvider >( new BGenFileSNPDataProvider( filename, file_is_gzipped )) ;
+		return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( filename, file_is_gzipped )) ;
 	}
 	else {
-		return std::auto_ptr< SNPDataProvider >( new GenFileSNPDataProvider( filename, file_is_gzipped )) ;
+		return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( filename, file_is_gzipped )) ;
 	}
 }
 
-std::auto_ptr< SNPDataProvider > SNPDataProvider::create( std::vector< std::string > const& filenames ) {
-	std::auto_ptr< SNPDataProviderChain > chain( new SNPDataProviderChain() ) ;
+std::auto_ptr< SNPDataSource > SNPDataSource::create( std::vector< std::string > const& filenames ) {
+	std::auto_ptr< SNPDataSourceChain > chain( new SNPDataSourceChain() ) ;
 	for( std::size_t i = 0; i < filenames.size(); ++i ) {
-		chain->add_provider( SNPDataProvider::create( filenames[i] )) ;
+		chain->add_provider( SNPDataSource::create( filenames[i] )) ;
 	}
-	return std::auto_ptr< SNPDataProvider >( chain.release() ) ;
+	return std::auto_ptr< SNPDataSource >( chain.release() ) ;
 }

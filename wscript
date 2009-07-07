@@ -74,7 +74,7 @@ def build( bld ):
 		features = 'cxx cstaticlib',
 		target = 'gen',
 		source = [  
-			'src/SNPDataProvider.cpp',
+			'src/SNPDataSource.cpp',
 			'src/bgen.cpp'
 		],
 		includes='./include',

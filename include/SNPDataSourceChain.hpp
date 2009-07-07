@@ -4,22 +4,22 @@
 #include <iostream>
 #include <string>
 #include "snp_data_utils.hpp"
-#include "SNPDataProvider.hpp"
+#include "SNPDataSource.hpp"
 
-// class SNPDataProviderChain represnets a SNPDataProvider
-// which gets it data sequentially from a collection of other SNPDataProviders
-class SNPDataProviderChain: public SNPDataProvider
+// class SNPDataSourceChain represnets a SNPDataSource
+// which gets it data sequentially from a collection of other SNPDataSources
+class SNPDataSourceChain: public SNPDataSource
 {
 public:
-	SNPDataProviderChain(): m_current_provider(0), m_number_of_samples(0) {}
+	SNPDataSourceChain(): m_current_provider(0), m_number_of_samples(0) {}
 
-	~SNPDataProviderChain() {
+	~SNPDataSourceChain() {
 		for( std::size_t i = 0; i < m_providers.size(); ++i ) {
 			delete m_providers[i] ;
 		}
 	} ;
 
-	void add_provider( std::auto_ptr< SNPDataProvider > provider ) {
+	void add_provider( std::auto_ptr< SNPDataSource > provider ) {
 		if( m_providers.empty() ) {
 			m_number_of_samples = provider->number_of_samples() ;
 			m_current_provider = 0 ;
@@ -78,7 +78,7 @@ private:
 		}
 	}
 	
-	std::vector< SNPDataProvider* > m_providers ;
+	std::vector< SNPDataSource* > m_providers ;
 	std::size_t m_current_provider ;
 	unsigned int m_number_of_samples ;
 } ;

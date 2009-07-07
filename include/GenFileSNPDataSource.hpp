@@ -5,20 +5,20 @@
 #include <string>
 #include "snp_data_utils.hpp"
 #include "gen.hpp"
-#include "SNPDataProvider.hpp"
+#include "SNPDataSource.hpp"
 
-// This class represents a SNPDataProvider which reads its data
+// This class represents a SNPDataSource which reads its data
 // from a plain GEN file.
-class GenFileSNPDataProvider: public SNPDataProvider
+class GenFileSNPDataSource: public SNPDataSource
 {
 public:
-	GenFileSNPDataProvider( std::string const& filename )
+	GenFileSNPDataSource( std::string const& filename )
 		: m_filename( filename )
 	{
 		setup( filename, impl::file_is_gzipped( filename )) ;
 	}
 
-	GenFileSNPDataProvider( std::string const& filename, bool file_is_gzipped )
+	GenFileSNPDataSource( std::string const& filename, bool file_is_gzipped )
 		: m_filename( filename )
 	{
 		setup( filename, file_is_gzipped ) ;
