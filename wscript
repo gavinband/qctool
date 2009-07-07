@@ -117,8 +117,7 @@ def build( bld ):
 			'src/string_to_value_map.cpp'
 		],
 		includes='./include',
-		uselib = 'BOOST BOOST_IOSTREAMS BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM',
-		uselib_local = 'gen'
+		uselib = 'BOOST BOOST_IOSTREAMS BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'
 	)
 
 	#---------------------
@@ -129,7 +128,7 @@ def build( bld ):
 		target = 'gen-select',
 		source = [  'src/gen-select.cpp' ],
 		includes='./include',
-		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor'
+		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor gen'
 	)
 
 	#---------------------
@@ -140,7 +139,7 @@ def build( bld ):
 		target = 'benchmark-statistics',
 		source = [  'benchmarks/benchmark-statistics.cpp' ],
 		includes='./include',
-		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor'
+		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor gen'
 	)
 
 	bld.new_task_gen(
@@ -148,7 +147,7 @@ def build( bld ):
 		target = 'benchmark-io',
 		source = [  'benchmarks/benchmark-io.cpp' ],
 		includes='./include',
-		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor'
+		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor gen'
 	)
 
 	# Build release variants as well.

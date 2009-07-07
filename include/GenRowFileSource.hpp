@@ -19,7 +19,7 @@ std::auto_ptr< ObjectSource< GenRow > > get_genrow_source_from_files( std::vecto
 
 
 // This class is an adapter between SNPDataProvider and ObjectSource< GenRow >.
-struct SNPDataProviderGenRowSource
+struct SNPDataProviderGenRowSource: public ObjectSource< GenRow >
 {
 	SNPDataProviderGenRowSource( std::vector< std::string > filenames )
 		: m_snp_data_provider( SNPDataProvider::create( filenames ))

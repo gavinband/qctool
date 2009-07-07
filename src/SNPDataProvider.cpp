@@ -34,7 +34,9 @@ namespace impl {
   	}
 }
 
-gen::Ignorer ignore() { return gen::Ignorer() ; }
+namespace gen {
+	Ignorer ignore() { return Ignorer() ; }
+}
 
 std::auto_ptr< SNPDataProvider > SNPDataProvider::create( std::string const& filename ) {
 	return SNPDataProvider::create( filename, impl::file_is_gzipped( filename )) ;
