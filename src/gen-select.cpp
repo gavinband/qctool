@@ -498,10 +498,6 @@ private:
 	#ifdef HAVE_BOOST_TIMER
 		std::cerr << "gen-select: processed GEN file(s) (" << m_number_of_gen_rows << " rows) in " << timer.elapsed() << " seconds.\n" ;
 	#endif
-	
-		if( gen_row_source->fail() ) {
-			std::cout << "!! WARNING: a failure occured reading gen rows.\n" ;
-		}
 	}
 
 	void preprocess_gen_row( GenRow& row ) const {

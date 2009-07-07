@@ -72,6 +72,17 @@ def build( bld ):
 
 	bld.new_task_gen(
 		features = 'cxx cstaticlib',
+		target = 'gen',
+		source = [  
+			'src/SNPDataProvider.cpp',
+			'src/bgen.cpp'
+		],
+		includes='./include',
+		uselib = 'BOOST BOOST_IOSTREAMS'
+	)
+
+	bld.new_task_gen(
+		features = 'cxx cstaticlib',
 		target = 'gtool-lib',
 		source = [  
 			'src/AlleleProportions.cpp',
@@ -106,7 +117,8 @@ def build( bld ):
 			'src/string_to_value_map.cpp'
 		],
 		includes='./include',
-		uselib = 'BOOST BOOST_IOSTREAMS BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'
+		uselib = 'BOOST BOOST_IOSTREAMS BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM',
+		uselib_local = 'gen'
 	)
 
 	#---------------------

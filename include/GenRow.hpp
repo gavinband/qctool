@@ -38,7 +38,7 @@ class GenRow
 		std::ostream& write_to_binary_stream( std::ostream& aStream ) const ;
 		std::istream& read_from_binary_stream( std::istream& aStream ) ;
 
-	private:
+	public:
 
 		// Data accessors, needed for binary gen file support.
 		void set_number_of_samples( std::size_t n ) { m_genotype_proportions.resize( n ) ; }
@@ -52,6 +52,7 @@ class GenRow
 		double get_AB_probability( std::size_t i ) const { return m_genotype_proportions[i].AB() ; }
 		double get_BB_probability( std::size_t i ) const { return m_genotype_proportions[i].BB() ; }
 
+	private:
 		// Data fields
 		std::string m_SNPID ;
 		std::string m_RSID ;
