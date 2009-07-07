@@ -252,7 +252,7 @@ private:
 		}
 
 		if( m_options.check_if_option_was_supplied( "--snp-missing-rate" ) ) {
-			add_one_arg_condition_to_filter< StatisticLessThan >( *snp_filter, "missing-rate", m_options.get_value< double >( "--snp-missing-rate" )) ;
+			add_one_arg_condition_to_filter< StatisticLessThan >( *snp_filter, "missing", m_options.get_value< double >( "--snp-missing-rate" )) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "--snp-interval" ) ) {
