@@ -43,7 +43,7 @@ def create_test( bld, name ):
 		target = name,
 		source = [  'test/' + name + '.cpp' ],
 		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor',
-		includes='./include',
+		includes='./include ./genfile/include',
 		unit_test=1
 	)
 
@@ -74,12 +74,12 @@ def build( bld ):
 		features = 'cxx cstaticlib',
 		target = 'gen',
 		source = [  
-			'src/SNPDataSource.cpp',
-			'src/SNPDataSink.cpp',
-			'src/bgen.cpp',
-			'src/snp_data_utils.cpp'
+			'genfile/src/SNPDataSource.cpp',
+			'genfile/src/SNPDataSink.cpp',
+			'genfile/src/bgen.cpp',
+			'genfile/src/snp_data_utils.cpp'
 		],
-		includes='./include',
+		includes='./genfile/include',
 		uselib = 'BOOST BOOST_IOSTREAMS'
 	)
 
@@ -119,7 +119,7 @@ def build( bld ):
 			'src/string_utils.cpp',
 			'src/string_to_value_map.cpp'
 		],
-		includes='./include',
+		includes='./include ./genfile/include',
 		uselib = 'BOOST BOOST_IOSTREAMS BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'
 	)
 
@@ -130,7 +130,7 @@ def build( bld ):
 		features = 'cxx cprogram',
 		target = 'gen-select',
 		source = [  'src/gen-select.cpp' ],
-		includes='./include',
+		includes='./include ./genfile/include',
 		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor gen'
 	)
 

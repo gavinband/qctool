@@ -32,6 +32,7 @@
 #include "GenRowFileSource.hpp"
 #include "GenRowFileSink.hpp"
 #include "SNPDataSource.hpp"
+#include "SNPDataSourceChain.hpp"
 #include "SNPDataSink.hpp"
 #include "SampleInputFile.hpp"
 #include "SampleOutputFile.hpp"
@@ -149,7 +150,8 @@ public:
 	}
 
 	GenSelectProcessor( OptionProcessor const& options )
-		: m_options( options )
+		: m_cout( std::cout.rdbuf() ),
+		  m_options( options )
 	{
 		setup() ;
 	}
@@ -158,6 +160,8 @@ private:
 	void setup() {
 		m_ignore_warnings = m_options.check_if_option_was_supplied( "--force" ) ;
 		get_required_filenames() ;
+		open_gen_row_source() ;
+		open_sample_row_source() ;
 		construct_snp_statistics() ;
 		construct_sample_statistics() ;
 		construct_snp_filter() ;
@@ -189,9 +193,19 @@ private:
 	}
 
 	void open_gen_row_source() {
-		std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( m_gen_filenames )) ;
-		m_number_of_samples_from_gen_file = snp_data_source->number_of_samples() ;
-		m_total_number_of_snps = snp_data_source->total_number_of_snps() ;
+		std::auto_ptr< genfile::SNPDataSourceChain > chain( new genfile::SNPDataSourceChain() ) ;
+		m_gen_file_snp_counts.resize( m_gen_filenames.size() ) ;
+		for( std::size_t i = 0; i < m_gen_filenames.size(); ++i ) {
+			m_cout << "Opening gen file \"" << m_gen_filenames[i] << "\".\n" ;
+			std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( m_gen_filenames[i] )) ;
+			m_gen_file_snp_counts[i] = snp_data_source->total_number_of_snps() ;
+			chain->add_provider( snp_data_source ) ;
+		}
+
+		m_number_of_samples_from_gen_file = chain->number_of_samples() ;
+		m_total_number_of_snps = chain->total_number_of_snps() ;
+
+		std::auto_ptr< genfile::SNPDataSource > snp_data_source( chain.release() ) ; 
 		gen_row_source.reset( new SNPDataSourceGenRowSource( snp_data_source )) ;
 	}
 
@@ -343,8 +357,10 @@ public:
 				if( i > 0 ) {
 					oStream << std::string( 30, ' ' ) ;
 				}
-				oStream << "  \"" << m_gen_filenames[i] << "\"\n" ;
+				oStream << "  (" << std::setw(6) << m_gen_file_snp_counts[i] << " snps)  " ;
+				oStream << "\"" << m_gen_filenames[i] << "\"\n" ;
 			}
+			oStream << std::string( 30, ' ' ) << "  (total " << m_total_number_of_snps << " snps).\n" ;
 			oStream << std::setw(30) << "Output GEN files:"
 				<< "  \"" << m_gen_output_filename << "\".\n" ;
 			oStream << std::setw(30) << "Input SAMPLE files:"
@@ -469,7 +485,7 @@ private:
 			}
 		}
 		
-		std::cout << "gen-select: total samples " << m_number_of_sample_file_rows << ", keeping " << m_indices_of_filtered_in_sample_rows.size() << ", filtering out " << m_indices_of_filtered_out_sample_rows.size() << ".\n" ;
+		m_cout << "gen-select: total samples " << m_number_of_sample_file_rows << ", keeping " << m_indices_of_filtered_in_sample_rows.size() << ", filtering out " << m_indices_of_filtered_out_sample_rows.size() << ".\n" ;
 	}
 
 	void process_gen_rows() {
@@ -493,7 +509,7 @@ private:
 			preprocess_gen_row( row ) ;
 			process_gen_row( row, ++m_total_number_of_snps ) ;
 			if( m_total_number_of_snps % 1000 == 0 ) {
-				std::cout << "Processed " << m_total_number_of_snps << " rows (" << timer.elapsed() << "s)...\n" ;
+				m_cout << "Processed " << m_total_number_of_snps << " rows (" << timer.elapsed() << "s)...\n" ;
 			}
 			accumulate_per_column_amounts( row, m_per_column_amounts ) ;
 		}
@@ -600,6 +616,8 @@ private:
 	
 private:
 	
+	std::ostream m_cout ;
+	
 	std::auto_ptr< ObjectSource< GenRow > > gen_row_source ;
 	std::auto_ptr< ObjectSink< GenRow > > gen_row_sink ;
 	std::auto_ptr< ObjectSource< SampleRow > > m_sample_row_source ;
@@ -613,6 +631,7 @@ private:
 	std::auto_ptr< RowCondition > m_snp_filter ;
 	std::auto_ptr< RowCondition > m_sample_filter ;
 	
+	std::vector< std::size_t > m_gen_file_snp_counts ;
 	std::size_t m_total_number_of_snps ;
 	std::size_t m_number_of_samples_from_gen_file ;
 	std::size_t m_number_of_sample_file_rows ;

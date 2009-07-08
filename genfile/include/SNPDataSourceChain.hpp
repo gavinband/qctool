@@ -80,6 +80,7 @@ namespace genfile {
 		}
 	
 		std::vector< SNPDataSource* > m_providers ;
+
 		std::size_t m_current_provider ;
 		unsigned int m_number_of_samples ;
 	} ;

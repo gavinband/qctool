@@ -8,7 +8,6 @@
 
 #include "GenRow.hpp"
 #include "SimpleFileObjectSource.hpp"
-#include "ChainingFileObjectSource.hpp"
 #include "FileUtil.hpp"
 #include "SNPDataSource.hpp"
 
