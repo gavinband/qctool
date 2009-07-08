@@ -93,6 +93,7 @@ def build( bld ):
 			'src/GToolException.cpp',
 			'src/GenRow.cpp',
 			'src/GenRowFileSource.cpp',
+			'src/GenRowFileSink.cpp',
 			'src/GenRowIO.cpp',
 			'src/GenRowStatistics.cpp',
 			'src/GenotypeAssayBasicStatistics.cpp',

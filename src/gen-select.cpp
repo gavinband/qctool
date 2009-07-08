@@ -31,6 +31,8 @@
 #include "SampleRowStatistics.hpp"
 #include "GenRowFileSource.hpp"
 #include "GenRowFileSink.hpp"
+#include "SNPDataSource.hpp"
+#include "SNPDataSink.hpp"
 #include "SampleInputFile.hpp"
 #include "SampleOutputFile.hpp"
 #include "GenotypeAssayStatisticFactory.hpp"
@@ -187,17 +189,17 @@ private:
 	}
 
 	void open_gen_row_source() {
-		gen_row_source = get_genrow_source_from_files( m_gen_filenames ) ;
+		std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( m_gen_filenames )) ;
+		m_number_of_samples_from_gen_file = snp_data_source->number_of_samples() ;
+		m_total_number_of_snps = snp_data_source->total_number_of_snps() ;
+		gen_row_source.reset( new SNPDataSourceGenRowSource( snp_data_source )) ;
 	}
-	
+
 	void open_gen_row_sink() {
 		gen_row_sink.reset( new NullObjectSink< GenRow >() ) ;
 		if( m_gen_output_filename != "" ) {
-			if( determine_file_mode( m_gen_output_filename ) & e_BinaryMode ) {
-				gen_row_sink.reset( new SimpleGenRowBinaryFileSink( open_file_for_output( m_gen_output_filename ))) ;
-			} else {
-				gen_row_sink.reset( new SimpleFileObjectSink< GenRow >( open_file_for_output( m_gen_output_filename ))) ;
-			}
+			std::auto_ptr< genfile::SNPDataSink > snp_data_sink( genfile::SNPDataSink::create( m_gen_output_filename )) ;
+			gen_row_sink.reset( new SNPDataSinkGenRowSink( snp_data_sink )) ;
 		}
 	}
 
@@ -485,18 +487,18 @@ private:
 		}
 
 		GenRow row ;
-		m_number_of_gen_rows = 0 ;
+		m_total_number_of_snps = 0 ;
 		
 		while( (*gen_row_source) >> row ) {
 			preprocess_gen_row( row ) ;
-			process_gen_row( row, ++m_number_of_gen_rows ) ;
-			if( m_number_of_gen_rows % 1000 == 0 ) {
-				std::cout << "Processed " << m_number_of_gen_rows << " rows (" << timer.elapsed() << "s)...\n" ;
+			process_gen_row( row, ++m_total_number_of_snps ) ;
+			if( m_total_number_of_snps % 1000 == 0 ) {
+				std::cout << "Processed " << m_total_number_of_snps << " rows (" << timer.elapsed() << "s)...\n" ;
 			}
 			accumulate_per_column_amounts( row, m_per_column_amounts ) ;
 		}
 	#ifdef HAVE_BOOST_TIMER
-		std::cerr << "gen-select: processed GEN file(s) (" << m_number_of_gen_rows << " rows) in " << timer.elapsed() << " seconds.\n" ;
+		std::cerr << "gen-select: processed GEN file(s) (" << m_total_number_of_snps << " rows) in " << timer.elapsed() << " seconds.\n" ;
 	#endif
 	}
 
@@ -545,7 +547,7 @@ private:
 				assert( *m_sample_row_source ) ; // assume sample file has not changed since count_sample_rows()
 			}
 
-			m_sample_statistics.process( sample_row, m_per_column_amounts[i], m_number_of_gen_rows ) ;
+			m_sample_statistics.process( sample_row, m_per_column_amounts[i], m_total_number_of_snps ) ;
 			
 			*sampleStatisticOutputFile << std::setw(8) << (i+1) << m_sample_statistics << "\n" ;
 			m_sample_statistics.add_to_sample_row( sample_row, "missing" ) ;
@@ -611,7 +613,8 @@ private:
 	std::auto_ptr< RowCondition > m_snp_filter ;
 	std::auto_ptr< RowCondition > m_sample_filter ;
 	
-	std::size_t m_number_of_gen_rows ;
+	std::size_t m_total_number_of_snps ;
+	std::size_t m_number_of_samples_from_gen_file ;
 	std::size_t m_number_of_sample_file_rows ;
 	bool m_have_sample_file ;
 	

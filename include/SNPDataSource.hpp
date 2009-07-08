@@ -26,20 +26,30 @@ namespace genfile {
 		SNPDataSource() {} ;
 		virtual ~SNPDataSource() {} ;
 
-		// Factory functions
+		enum FormatType { e_GenFormat = 0, e_BGenFormat = 1 } ;
+
+		// The following methods must be overriden in derived classes
+	public:
+		virtual std::istream& stream() = 0 ;
+		virtual std::istream const & stream() const = 0 ;
+		virtual FormatType format() const = 0;
+		virtual operator bool() const { return stream() ; }
+
+		virtual unsigned int number_of_samples() const = 0;
+		virtual unsigned int total_number_of_snps() const = 0 ;
+
+	protected:
+		virtual void pre_read_snp() {} ;
+		virtual void post_read_snp() {} ;
+
+	public:
+		// The following methods are factory functions
 		static std::auto_ptr< SNPDataSource > create( std::string const& filename ) ;
 		static std::auto_ptr< SNPDataSource > create( std::string const& filename, bool file_is_gzipped ) ;
 		static std::auto_ptr< SNPDataSource > create( std::vector< std::string > const& filenames ) ;
 
-		virtual unsigned int number_of_samples() const = 0;
-		virtual unsigned int total_number_of_snps() const = 0 ;
-		virtual operator bool() const { return stream() ; }
-		virtual std::istream& stream() = 0 ;
-		virtual std::istream const & stream() const = 0 ;
-		enum FormatType { e_GenFormat = 0, e_BGenFormat = 1 } ;
-		virtual FormatType format() const = 0;
-
 		// Function read_snp().
+		// This is the method which returns snp data from the source.
 		// Ideally this would also be a virtual member function.
 		// However, a template member function can't be virtual.
 		// Therefore, we dispatch to the correct implementation using the format()
@@ -72,14 +82,13 @@ namespace genfile {
 				assert(0) ; // invalid format type.
 			}
 		
-			post_read_snp() ;
+			if( *this ) {
+				post_read_snp() ;
+			}
 
 			return *this ;
 		};
 	
-	protected:
-		virtual void pre_read_snp() {} ;
-		virtual void post_read_snp() {} ;
 	private:
 	
 		SNPDataSource( SNPDataSource const& other ) ;
