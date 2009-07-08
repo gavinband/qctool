@@ -131,9 +131,11 @@ namespace genfile {
 
 			// Copy the rest of the file contents.
 			std::vector< char > buffer( m_buffer_size ) ;
-			while( input_file_ptr->read( &buffer[0], m_buffer_size )) {
-				output_file_ptr->write( &buffer[0], input_file_ptr->gcount()) ;
+			do {
+				input_file_ptr->read( &buffer[0], m_buffer_size ) ;
+				output_file_ptr->write( &buffer[0], input_file_ptr->gcount() ) ;
 			}
+			while( *input_file_ptr ) ;
 		}
 	
 	private:

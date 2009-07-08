@@ -10,6 +10,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <cmath>
 #include <stdint.h>
 #include "snp_data_utils.hpp"
 
@@ -17,6 +18,48 @@ namespace genfile {
 	namespace gen {
 		namespace impl {
 			typedef ::uint32_t uint32_t ;
+			
+			template< typename FloatType >
+			std::istream& read_float( std::istream& aStream, FloatType* number ) {
+				std::string float_str ;
+				aStream >> float_str ;
+				std::string::const_iterator i = float_str.begin() ,
+					end_i = float_str.end() ;
+
+				unsigned long integer_part = 0.0, fractional_part = 0ul;
+				unsigned long* this_part = &integer_part ;
+				int fractional_part_length = 0 ;
+				bool good = true ;
+
+				for( ; good && i != end_i; ++i ) {
+					if( *i == '.' ) {
+						this_part = &fractional_part ;
+						fractional_part_length = std::distance( i, end_i ) - 1 ;
+					}
+					else if(( '0' <= *i ) && ( '9' >= *i ) ) {
+						(*this_part) *= 10 ;
+						(*this_part) += (*i - '0') ;
+					}
+					else {
+						good = false ;
+					}
+				}
+
+				if( good ) {
+					*number = static_cast< FloatType >( integer_part ) + 
+						+ ( static_cast< FloatType >( fractional_part ) / std::pow( 10.0, fractional_part_length )) ;
+				}
+				else {
+					// Failed to parse.  Try to parse using usual method.
+					std::istringstream inStream( float_str ) ;
+					inStream >> (*number) ;
+					if( inStream.fail() ) {
+						aStream.setstate( std::ios::failbit ) ;
+					}
+				}
+
+				return aStream ;
+			}
 		}
 
 		typedef impl::uint32_t uint32_t ;
@@ -101,7 +144,18 @@ namespace genfile {
 			std::string line ;
 
 			read_snp_block( aStream, set_value( number_of_samples ), ignore(), ignore(), ignore(), ignore(), ignore(), ignore() ) ;
-			for( number_of_snp_blocks = 1; std::getline( aStream, line ); ++number_of_snp_blocks ) ;
+			std::vector<char> buffer( 10000 ) ;
+			number_of_snp_blocks = 1 ;
+			do {
+				aStream.read( &buffer[0], 10000 ) ;
+				number_of_snp_blocks += std::count( buffer.begin(), buffer.begin() + aStream.gcount(), '\n' ) ;
+			}
+			while( aStream ) ;
+			
+			// If there is no trailing newline, we will have missed one.
+			if( buffer[ aStream.gcount() ] != '\n' ) {
+				++number_of_snp_blocks ;
+			}
 
 			// We should have reached eof.
 			// If so, report the data now.
@@ -152,7 +206,7 @@ namespace genfile {
 				std::size_t number_of_samples = 0;
 				std::size_t count = 0 ;
 				std::vector< double > d(3) ;
-				while( inStream >> d[count] ) {
+				while( impl::read_float(inStream, &(d[count])) ) {
 					count = (count+1) % 3 ;
 					if( count == 0 ) {
 						set_genotype_probabilities( number_of_samples++, d[0], d[1], d[2] ) ;

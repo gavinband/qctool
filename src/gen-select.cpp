@@ -160,7 +160,13 @@ private:
 	void setup() {
 		m_ignore_warnings = m_options.check_if_option_was_supplied( "--force" ) ;
 		get_required_filenames() ;
-		open_gen_row_source() ;
+		try {
+			open_gen_row_source() ;
+		}
+		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
+			m_cout << "The GEN files specified did not all have the same sample size.\n" ;
+			throw ;
+		}
 		open_sample_row_source() ;
 		construct_snp_statistics() ;
 		construct_sample_statistics() ;
@@ -193,10 +199,14 @@ private:
 	}
 
 	void open_gen_row_source() {
+		#ifdef HAVE_BOOST_TIMER
+			boost::timer timer ;
+		#endif
+		
 		std::auto_ptr< genfile::SNPDataSourceChain > chain( new genfile::SNPDataSourceChain() ) ;
 		m_gen_file_snp_counts.resize( m_gen_filenames.size() ) ;
 		for( std::size_t i = 0; i < m_gen_filenames.size(); ++i ) {
-			m_cout << "Opening gen file \"" << m_gen_filenames[i] << "\".\n" ;
+			m_cout << "(Opening gen file \"" << m_gen_filenames[i] << "\"...)\n" ;
 			std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( m_gen_filenames[i] )) ;
 			m_gen_file_snp_counts[i] = snp_data_source->total_number_of_snps() ;
 			chain->add_provider( snp_data_source ) ;
@@ -207,6 +217,12 @@ private:
 
 		std::auto_ptr< genfile::SNPDataSource > snp_data_source( chain.release() ) ; 
 		gen_row_source.reset( new SNPDataSourceGenRowSource( snp_data_source )) ;
+
+		#ifdef HAVE_BOOST_TIMER
+			if( timer.elapsed() > 1.0 ) {
+				m_cout << "Opened " << m_gen_filenames.size() << " GEN files in " << timer.elapsed() << "s.\n" ;\
+			}
+		#endif
 	}
 
 	void open_gen_row_sink() {
@@ -219,7 +235,7 @@ private:
 
 	void open_gen_stats_file() {
 		// Output GEN stats to std output if no file is supplied.
-		// genStatisticOutputFile = OUTPUT_FILE_PTR( new std::ostream( std::cout.rdbuf() )) ;
+		genStatisticOutputFile = OUTPUT_FILE_PTR( new std::ostream( m_cout.rdbuf() )) ;
 		if( m_gen_statistic_filename != "" ) {
 			genStatisticOutputFile = open_file_for_output( m_gen_statistic_filename ) ;
 		}
