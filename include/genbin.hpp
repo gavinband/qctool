@@ -25,7 +25,7 @@
 *
 */
 
-namespace genbin {
+namespace genfilebin {
 	namespace impl {
 		typedef ::uint32_t uint32_t ;
 		typedef ::uint16_t uint16_t ;

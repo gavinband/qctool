@@ -1,3 +1,21 @@
+gen-select TODO LIST 07/07/2009
+
+Done?	Description
+-----   -----------
+
+		Rationalise unholy SNPDataSource / ObjectSource alliance.
+
+			- Note that the difference between a SNPDataSource and a ObjectSource< GenRow > is that the former
+			- offers lower-level access to the data (in that it has a read_snp() method with templated setters)
+			- whereas the latter returns GenRows.  Thus, the latter is for use in gen-select but probably not
+			- in code written by others.  I wonder whether this is worthwhile maintaining in gen-select.
+			
+			- Perhaps SNPDataSourceGenRowSource should inherit from SNPDataSourceChain and ObjectSource< GenRow >,
+			- thus making it both a genrow source and the other thing too.
+
+		Also make a SNPDataSink kind of object.
+		
+
 gen-select TODO LIST 02/07/2009
 
 Done?	Description

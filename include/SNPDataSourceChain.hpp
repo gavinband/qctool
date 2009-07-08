@@ -6,81 +6,83 @@
 #include "snp_data_utils.hpp"
 #include "SNPDataSource.hpp"
 
-// class SNPDataSourceChain represnets a SNPDataSource
-// which gets it data sequentially from a collection of other SNPDataSources
-class SNPDataSourceChain: public SNPDataSource
-{
-public:
-	SNPDataSourceChain(): m_current_provider(0), m_number_of_samples(0) {}
+namespace genfile {
+	// class SNPDataSourceChain represnets a SNPDataSource
+	// which gets it data sequentially from a collection of other SNPDataSources
+	class SNPDataSourceChain: public SNPDataSource
+	{
+	public:
+		SNPDataSourceChain(): m_current_provider(0), m_number_of_samples(0) {}
 
-	~SNPDataSourceChain() {
-		for( std::size_t i = 0; i < m_providers.size(); ++i ) {
-			delete m_providers[i] ;
+		~SNPDataSourceChain() {
+			for( std::size_t i = 0; i < m_providers.size(); ++i ) {
+				delete m_providers[i] ;
+			}
+		} ;
+
+		void add_provider( std::auto_ptr< SNPDataSource > provider ) {
+			if( m_providers.empty() ) {
+				m_number_of_samples = provider->number_of_samples() ;
+				m_current_provider = 0 ;
+			}
+			else if( provider->number_of_samples() != m_number_of_samples ) {
+				throw FileContainsSNPsOfDifferentSizes() ;
+			}
+			m_providers.push_back( provider.release() ) ;
 		}
-	} ;
 
-	void add_provider( std::auto_ptr< SNPDataSource > provider ) {
-		if( m_providers.empty() ) {
-			m_number_of_samples = provider->number_of_samples() ;
-			m_current_provider = 0 ;
+		unsigned int number_of_samples() const { return m_number_of_samples ; }
+		unsigned int total_number_of_snps() const {
+			unsigned int total_number_of_snps = 0 ;
+			for( std::size_t i = 0; i < m_providers.size(); ++i ) {
+				total_number_of_snps += m_providers[i]->total_number_of_snps() ;
+			}
+			return total_number_of_snps ;
 		}
-		else if( provider->number_of_samples() != m_number_of_samples ) {
-			throw FileContainsSNPsOfDifferentSizes() ;
+
+		FormatType format() const {
+			assert( m_current_provider < m_providers.size() ) ;
+			return m_providers[ m_current_provider ]->format() ;
 		}
-		m_providers.push_back( provider.release() ) ;
-	}
 
-	unsigned int number_of_samples() const { return m_number_of_samples ; }
-	unsigned int total_number_of_snps() const {
-		unsigned int total_number_of_snps = 0 ;
-		for( std::size_t i = 0; i < m_providers.size(); ++i ) {
-			total_number_of_snps += m_providers[i]->total_number_of_snps() ;
+		operator bool() const {
+			if( m_current_provider < m_providers.size() ) {
+				std::istream const& str = stream() ;
+				return ( str ? true : false ) ;
+			}
+			else {
+				return false ;
+			}
 		}
-		return total_number_of_snps ;
-	}
 
-	FormatType format() const {
-		assert( m_current_provider < m_providers.size() ) ;
-		return m_providers[ m_current_provider ]->format() ;
-	}
-
-	operator bool() const {
-		if( m_current_provider < m_providers.size() ) {
-			std::istream const& str = stream() ;
-			return ( str ? true : false ) ;
+		std::istream const& stream() const {
+			assert( m_current_provider < m_providers.size() ) ;
+			return m_providers[ m_current_provider ]->stream() ;
 		}
-		else {
-			return false ;
+
+		std::istream& stream() {
+			assert( m_current_provider < m_providers.size() ) ;
+			return m_providers[ m_current_provider ]->stream() ;
 		}
-	}
-
-	std::istream const& stream() const {
-		assert( m_current_provider < m_providers.size() ) ;
-		return m_providers[ m_current_provider ]->stream() ;
-	}
-
-	std::istream& stream() {
-		assert( m_current_provider < m_providers.size() ) ;
-		return m_providers[ m_current_provider ]->stream() ;
-	}
 
 
-private:
+	private:
 
-	void prepare_to_read_snp() {
-		// Make sure we switch to the next source when necessary.
-		for (
-			m_providers[ m_current_provider ]->stream().peek() ;
-			(!(*m_providers[m_current_provider])) && (m_current_provider < m_providers.size()) ;
-			++m_current_provider
-		) {
-			m_providers[ m_current_provider ]->stream().peek() ;
+		void pre_read_snp() {
+			// Make sure we switch to the next source when necessary.
+			for (
+				m_providers[ m_current_provider ]->stream().peek() ;
+				(!(*m_providers[m_current_provider])) && (m_current_provider < m_providers.size()) ;
+				++m_current_provider
+			) {
+				m_providers[ m_current_provider ]->stream().peek() ;
+			}
 		}
-	}
 	
-	std::vector< SNPDataSource* > m_providers ;
-	std::size_t m_current_provider ;
-	unsigned int m_number_of_samples ;
-} ;
+		std::vector< SNPDataSource* > m_providers ;
+		std::size_t m_current_provider ;
+		unsigned int m_number_of_samples ;
+	} ;
+}
 
 #endif

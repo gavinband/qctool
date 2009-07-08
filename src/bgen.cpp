@@ -2,8 +2,18 @@
 #include "endianness_utils.hpp"
 #include "bgen.hpp"
 
-namespace gen {
+namespace genfile {
 	namespace bgen {
+		/* Function: get_header_blocK-size()
+		* Return the size in bytes of the header block with the given free data
+		*/
+		std::size_t get_header_block_size(
+			std::string const& free_data
+		) {
+			std::size_t fixed_data_size = 5 * sizeof( uint32_t ) ;
+			return fixed_data_size + free_data.size() ;
+		}
+		
 		void write_header_block(
 			std::ostream& aStream,
 			uint32_t number_of_snp_blocks,
@@ -12,9 +22,7 @@ namespace gen {
 			std::string const& free_data,
 			uint32_t flags
 		) {
-			unsigned int fixed_data_size
-				= sizeof( uint32_t ) + sizeof number_of_snp_blocks + sizeof number_of_samples + sizeof snp_block_size + sizeof flags ; 
-			impl::uint32_t header_size = fixed_data_size + free_data.size() ;
+			impl::uint32_t header_size = get_header_block_size( free_data ) ;
 
 			impl::write_little_endian_integer( aStream, header_size ) ;
 			impl::write_little_endian_integer( aStream, number_of_snp_blocks ) ;

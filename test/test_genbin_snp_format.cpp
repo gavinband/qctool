@@ -123,7 +123,7 @@ void do_snp_block_read_test(
 	std::vector< probabilities > genotype_probabilities ;
 	genotype_probabilities.resize( 1000 ) ;
 
-	gen::bgen::read_snp_block(
+	genfile::bgen::read_snp_block(
 		inStream,
 		make_setter( number_of_individuals2 ),
 		make_setter( SNPID2 ),
@@ -159,7 +159,7 @@ void do_snp_block_write_test(
 		char b
 	) {
 	std::ostringstream outStream ;
-	gen::bgen::write_snp_block( 
+	genfile::bgen::write_snp_block( 
 		outStream,
 		number_of_individuals,
 		SNPID,

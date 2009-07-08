@@ -75,7 +75,9 @@ def build( bld ):
 		target = 'gen',
 		source = [  
 			'src/SNPDataSource.cpp',
-			'src/bgen.cpp'
+			'src/SNPDataSink.cpp',
+			'src/bgen.cpp',
+			'src/snp_data_utils.cpp'
 		],
 		includes='./include',
 		uselib = 'BOOST BOOST_IOSTREAMS'

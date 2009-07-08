@@ -22,7 +22,7 @@ std::auto_ptr< ObjectSource< GenRow > > get_genrow_source_from_files( std::vecto
 struct SNPDataSourceGenRowSource: public ObjectSource< GenRow >
 {
 	SNPDataSourceGenRowSource( std::vector< std::string > filenames )
-		: m_snp_data_provider( SNPDataSource::create( filenames ))
+		: m_snp_data_provider( genfile::SNPDataSource::create( filenames ))
 	{}
 
 	SNPDataSourceGenRowSource& read( GenRow & row ) {
@@ -56,7 +56,7 @@ struct SNPDataSourceGenRowSource: public ObjectSource< GenRow >
 
 private:
 
-	std::auto_ptr< SNPDataSource > m_snp_data_provider ;
+	std::auto_ptr< genfile::SNPDataSource > m_snp_data_provider ;
 } ;
 
 
@@ -69,7 +69,7 @@ struct SimpleBinaryFileGenRowSource: public SimpleFileObjectSource< GenRow >
 	SimpleBinaryFileGenRowSource( INPUT_FILE_PTR a_stream_ptr )
 		: base_t( a_stream_ptr )
 	{
-		gen::bgen::read_offset( *stream_ptr(), &m_offset ) ;
+		genfile::bgen::read_offset( *stream_ptr(), &m_offset ) ;
 		stream_ptr()->ignore( m_offset ) ;
 		if( !(*stream_ptr())) {
 			throw BadFileFormatException( "SimpleBinaryFileGenRowSource: unable to read (or to skip) offset - this can't be a valid binary gen file." ) ;

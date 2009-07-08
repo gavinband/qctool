@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include "snp_data_utils.hpp"
 
-namespace gen {
+namespace genfile {
 	namespace gen {
 		namespace impl {
 			typedef ::uint32_t uint32_t ;
@@ -56,6 +56,33 @@ namespace gen {
 			GenotypeProbabilitySetter set_genotype_probabilities
 		) ;
 
+		/*
+		* Function: write_snp_block()
+		* Write a snp block with the given information to the given ostream object.
+		* Genotype probabilities must be supplied by the given GenotypeProbabilityGetter
+		* objects, which must be callable as
+		* - get_AA_probability( index )
+		* - get_AB_probability( index )
+		* - get_BB_probability( index )
+		* where index is the index of the individual in the SNP block.
+		*/
+		template< typename GenotypeProbabilityGetter >
+		void write_snp_block(
+			std::ostream& aStream,
+			uint32_t number_of_samples,
+			std::string SNPID,
+			std::string RSID,
+			uint32_t SNP_position,
+			char first_allele,
+			char second_allele,
+			GenotypeProbabilityGetter get_AA_probability,
+			GenotypeProbabilityGetter get_AB_probability,
+			GenotypeProbabilityGetter get_BB_probability
+		) ;
+
+
+
+	/* IMPLEMENTATION */
 
 		template<
 			typename NumberOfSNPBlocksSetter,

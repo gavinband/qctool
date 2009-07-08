@@ -4,7 +4,7 @@
 #include "endianness_utils.hpp"
 #include "genbin.hpp"
 
-namespace genbin {
+namespace genfilebin {
 	namespace impl {
 		uint16_t round_to_nearest_integer( double number ) {
 			return static_cast< uint16_t > ( number + 0.5 ) ;

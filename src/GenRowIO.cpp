@@ -128,7 +128,7 @@ std::ostream& GenRow::write_to_text_stream( std::ostream& aStream ) const {
 
 
 std::istream& GenRow::read_from_binary_stream( std::istream& aStream ) {
-	gen::bgen::read_snp_block(
+	genfile::bgen::read_snp_block(
 		aStream,
 		boost::bind< void >( &GenRow::set_number_of_samples, this, _1 ),
 		boost::bind< void >( &GenRow::set_SNPID, this, _1 ),
@@ -143,7 +143,7 @@ std::istream& GenRow::read_from_binary_stream( std::istream& aStream ) {
 }
 
 std::ostream& GenRow::write_to_binary_stream( std::ostream& aStream ) const {
-	gen::bgen::write_snp_block(
+	genfile::bgen::write_snp_block(
 		aStream,
 		m_genotype_proportions.size(),
 		m_SNPID,

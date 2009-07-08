@@ -19,13 +19,13 @@
 *
 * This implementation provides the following functions.
 *
-* - bgen::read_offset( stream, data... )
-* - bgen::write_offset( stream, data... )
-* - bgen::read_snp_block( stream, data... )
-* - bgen::write_snp_block( stream, data... )
+* - bgenfile::read_offset( stream, data... )
+* - bgenfile::write_offset( stream, data... )
+* - bgenfile::read_snp_block( stream, data... )
+* - bgenfile::write_snp_block( stream, data... )
 */
 
-namespace gen {
+namespace genfile {
 	namespace bgen {
 		namespace impl {
 			typedef ::uint32_t uint32_t ;
@@ -84,6 +84,14 @@ namespace gen {
 			std::string const& free_data,
 			uint32_t flags = 0
 		) ;
+
+		/* Function: get_header_blocK-size()
+		* Return the size in bytes of the header block with the given free data
+		*/
+		std::size_t get_header_block_size(
+			std::string const& free_data
+		) ;
+		
 
 		/*
 		* Function: read_snp_block()

@@ -1,7 +1,7 @@
 #ifndef SNP_DATA_UTILS_HPP
 #define SNP_DATA_UTILS_HPP
 
-namespace gen {
+namespace genfile {
 	struct Ignorer
 	{
 		template< typename T > void operator()( T const& ) {} ;
@@ -25,6 +25,20 @@ namespace gen {
 		return ValueSetter< T >( t ) ;
 	}
 	
+
+	bool filename_indicates_bgen_format( std::string filename ) ;
+	bool filename_indicates_file_is_gzipped( std::string filename ) ;
+
+	std::auto_ptr< std::istream > open_text_file_for_input( std::string filename, bool file_is_gzipped ) ;
+	std::auto_ptr< std::ostream > open_text_file_for_output( std::string filename, bool file_is_gzipped ) ;
+	std::auto_ptr< std::istream > open_binary_file_for_input( std::string filename, bool file_is_gzipped ) ;
+	std::auto_ptr< std::ostream > open_binary_file_for_output( std::string filename, bool file_is_gzipped ) ;
+
+	std::string create_temporary_filename() ;
+
+	struct SNPDataError: public std::exception { char const* what() const throw() { return "SNPDataError" ; } } ;
+	struct FileNotOpenedError: public SNPDataError { char const* what() const throw() { return "FileNotOpenedError" ; } } ;
+	struct FormatUnsupportedError: public SNPDataError { char const* what() const throw() { return "FormatUnsupportedError" ; } } ;
 }
 
 #endif
