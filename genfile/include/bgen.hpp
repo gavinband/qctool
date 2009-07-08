@@ -223,8 +223,8 @@ namespace genfile {
 				snp_block_size,
 				flags ;
 
-			unsigned int fixed_data_size
-				= sizeof header_size + sizeof number_of_snp_blocks + sizeof number_of_samples + sizeof snp_block_size + sizeof flags ; 
+			std::size_t fixed_data_size
+				= get_header_block_size( "" ) ;
 
 			std::vector<char> free_data ;
 
@@ -234,7 +234,7 @@ namespace genfile {
 			impl::read_little_endian_integer( aStream, &number_of_samples ) ;
 			impl::read_little_endian_integer( aStream, &snp_block_size ) ;
 			free_data.resize( header_size - fixed_data_size ) ;
-			aStream.read( &free_data[0], header_size - fixed_data_size ) ;
+			aStream.read( &(free_data[0]), header_size - fixed_data_size ) ;
 			impl::read_little_endian_integer( aStream, &flags ) ;
 			assert( flags == 0 ) ;
 

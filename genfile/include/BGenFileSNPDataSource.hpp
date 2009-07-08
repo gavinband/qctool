@@ -16,13 +16,13 @@ namespace genfile {
 		BGenFileSNPDataSource( std::string const& filename )
 			: m_filename( filename )
 		{
-			setup( filename, genfile::filename_indicates_file_is_gzipped( filename )) ;
+			setup( filename, get_compression_type_indicated_by_filename( filename )) ;
 		}
 
-		BGenFileSNPDataSource( std::string const& filename, bool file_is_gzipped )
+		BGenFileSNPDataSource( std::string const& filename, CompressionType compression_type )
 			: m_filename( filename )
 		{
-			setup( filename, file_is_gzipped ) ;
+			setup( filename, compression_type ) ;
 		}
 
 		unsigned int number_of_samples() const { return m_number_of_samples ; }
@@ -37,8 +37,8 @@ namespace genfile {
 		unsigned int m_number_of_samples, m_total_number_of_snps ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
 
-		void setup( std::string const& filename, bool file_is_gzipped ) {
-			m_stream_ptr = genfile::open_binary_file_for_input( filename, file_is_gzipped ) ;
+		void setup( std::string const& filename, CompressionType compression_type ) {
+			m_stream_ptr = genfile::open_binary_file_for_input( filename, compression_type ) ;
 			genfile::bgen::uint32_t offset ;
 			genfile::bgen::read_offset( (*m_stream_ptr), &offset ) ;
 			genfile::bgen::uint32_t header_size = read_header_data() ;

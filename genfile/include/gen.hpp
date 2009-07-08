@@ -21,6 +21,9 @@ namespace genfile {
 			
 			template< typename FloatType >
 			std::istream& read_float( std::istream& aStream, FloatType* number ) {
+#ifndef GENFILE_USE_FAST_PARSE_METHODS
+				return aStream >> (*number) ;
+#else
 				std::string float_str ;
 				aStream >> float_str ;
 				std::string::const_iterator i = float_str.begin() ,
@@ -57,7 +60,7 @@ namespace genfile {
 						aStream.setstate( std::ios::failbit ) ;
 					}
 				}
-
+#endif
 				return aStream ;
 			}
 		}
@@ -141,19 +144,19 @@ namespace genfile {
 			uint32_t
 				number_of_samples,
 				number_of_snp_blocks ;
-			std::string line ;
 
 			read_snp_block( aStream, set_value( number_of_samples ), ignore(), ignore(), ignore(), ignore(), ignore(), ignore() ) ;
-			std::vector<char> buffer( 10000 ) ;
 			number_of_snp_blocks = 1 ;
+
+			std::vector< char > buffer( 1000000 ) ;
 			do {
-				aStream.read( &buffer[0], 10000 ) ;
+				aStream.read( &(buffer[0]), 1000000 ) ;
 				number_of_snp_blocks += std::count( buffer.begin(), buffer.begin() + aStream.gcount(), '\n' ) ;
 			}
 			while( aStream ) ;
-			
-			// If there is no trailing newline, we will have missed one.
-			if( buffer[ aStream.gcount() ] != '\n' ) {
+
+			// catch the case of no trailing newline, in which case, we've undercounted
+			if( buffer[aStream.gcount()] != '\n' ) {
 				++number_of_snp_blocks ;
 			}
 

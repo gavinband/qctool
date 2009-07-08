@@ -20,12 +20,12 @@ namespace genfile {
 		BasicBGenFileSNPDataSink(
 			std::string const& filename,
 			std::string const& free_data,
-			bool file_is_gzipped
+			CompressionType compression_type
 		)
 		: 	m_filename( filename ),
 			m_free_data( free_data )
 		{
-			setup( filename, file_is_gzipped ) ;
+			setup( filename, compression_type ) ;
 		}
 
 	public:
@@ -42,8 +42,8 @@ namespace genfile {
 		std::string m_free_data ;
 		std::auto_ptr< std::ostream > m_stream_ptr ;
 
-		void setup( std::string const& filename, bool file_is_gzipped ) {
-			m_stream_ptr = genfile::open_binary_file_for_output( filename, file_is_gzipped ) ;
+		void setup( std::string const& filename, CompressionType compression_type ) {
+			m_stream_ptr = genfile::open_binary_file_for_output( filename, compression_type ) ;
 			genfile::bgen::uint32_t offset = genfile::bgen::get_header_block_size( m_free_data ) ;
 			bgen::write_offset( (*m_stream_ptr), offset ) ;
 			write_header_data( *m_stream_ptr ) ;
@@ -74,14 +74,15 @@ namespace genfile {
 			std::string const& filename,
 			std::string const& free_data
 		)
-		: 	BasicBGenFileSNPDataSink( filename, free_data, false )
+		: 	BasicBGenFileSNPDataSink( filename, free_data, e_NoCompression )
 		{
 		}
 
 		~UnzippedBGenFileSNPDataSink() {
 			// We are about to close the file.
 			// To write the correct header info, we seek back to the start and rewrite the header block
-			stream().seekp(0, std::ios_base::beg ) ;
+			// The header comes after the offset which is 4 bytes.
+			stream().seekp(4, std::ios_base::beg ) ;
 			if( stream().bad() ) {
 				throw genfile::FormatUnsupportedError() ;
 			}
@@ -105,7 +106,7 @@ namespace genfile {
 		: 	BasicBGenFileSNPDataSink(
 				genfile::create_temporary_filename(),
 				free_data,
-				true
+				e_NoCompression
 			),
 			m_filename( filename ),
 			m_buffer_size( buffer_size )
@@ -118,8 +119,8 @@ namespace genfile {
 
 		~ZippedBGenFileSNPDataSink() {
 			// Copy the temp file created by our base class, zipping it as we go.
-			std::auto_ptr< std::istream > input_file_ptr = genfile::open_binary_file_for_input( temp_filename(), false ) ;
-			std::auto_ptr< std::ostream > output_file_ptr = genfile::open_binary_file_for_output( m_filename, true ) ;
+			std::auto_ptr< std::istream > input_file_ptr = genfile::open_binary_file_for_input( temp_filename(), e_NoCompression ) ;
+			std::auto_ptr< std::ostream > output_file_ptr = genfile::open_binary_file_for_output( m_filename, e_GzipCompression ) ;
 
 			bgen::uint32_t offset ;
 			bgen::read_offset( *input_file_ptr, &offset ) ;

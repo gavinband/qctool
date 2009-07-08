@@ -9,15 +9,15 @@
 
 namespace genfile {
 	std::auto_ptr< SNPDataSource > SNPDataSource::create( std::string const& filename ) {
-		return SNPDataSource::create( filename, genfile::filename_indicates_file_is_gzipped( filename )) ;
+		return SNPDataSource::create( filename, get_compression_type_indicated_by_filename( filename )) ;
 	}
 
-	std::auto_ptr< SNPDataSource > SNPDataSource::create( std::string const& filename, bool file_is_gzipped ) {
+	std::auto_ptr< SNPDataSource > SNPDataSource::create( std::string const& filename, CompressionType compression_type ) {
 		if( genfile::filename_indicates_bgen_format( filename )) {
-			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( filename, file_is_gzipped )) ;
+			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( filename, compression_type )) ;
 		}
 		else {
-			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( filename, file_is_gzipped )) ;
+			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( filename, compression_type )) ;
 		}
 	}
 

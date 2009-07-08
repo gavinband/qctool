@@ -16,13 +16,13 @@ namespace genfile {
 		GenFileSNPDataSource( std::string const& filename )
 			: m_filename( filename )
 		{
-			setup( filename, filename_indicates_file_is_gzipped( filename )) ;
+			setup( filename, get_compression_type_indicated_by_filename( filename )) ;
 		}
 
-		GenFileSNPDataSource( std::string const& filename, bool file_is_gzipped )
+		GenFileSNPDataSource( std::string const& filename, CompressionType compression_type )
 			: m_filename( filename )
 		{
-			setup( filename, file_is_gzipped ) ;
+			setup( filename, compression_type ) ;
 		}
 
 		unsigned int number_of_samples() const { return m_number_of_samples ; }
@@ -36,14 +36,14 @@ namespace genfile {
 		unsigned int m_number_of_samples, m_total_number_of_snps ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
 
-		void setup( std::string const& filename, bool file_is_gzipped ) {
-			m_stream_ptr = open_text_file_for_input( filename, file_is_gzipped ) ;
+		void setup( std::string const& filename, CompressionType compression_type ) {
+			m_stream_ptr = open_text_file_for_input( filename, compression_type ) ;
 			if( !(*m_stream_ptr)) {
 				throw FileNotOpenedError() ;
 			}
 			read_header_data() ;
 			// That will have consumed the file, so re-open it.
-			m_stream_ptr = open_text_file_for_input( filename, file_is_gzipped ) ;
+			m_stream_ptr = open_text_file_for_input( filename, compression_type ) ;
 			assert( *m_stream_ptr ) ;
 		}
 

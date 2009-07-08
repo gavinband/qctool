@@ -24,7 +24,7 @@ namespace genfile {
 
 		// Factory functions
 		static std::auto_ptr< SNPDataSink > create( std::string const& filename, std::string const& free_data = "" ) ;
-		static std::auto_ptr< SNPDataSink > create( std::string const& filename, bool file_is_gzipped, std::string const& free_data = "" ) ;
+		static std::auto_ptr< SNPDataSink > create( std::string const& filename, CompressionType compression_type, std::string const& free_data = "" ) ;
 
 		virtual operator bool() const { return stream() ; }
 		virtual std::ostream& stream() = 0 ;

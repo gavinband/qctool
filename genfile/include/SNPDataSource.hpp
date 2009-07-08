@@ -45,7 +45,7 @@ namespace genfile {
 	public:
 		// The following methods are factory functions
 		static std::auto_ptr< SNPDataSource > create( std::string const& filename ) ;
-		static std::auto_ptr< SNPDataSource > create( std::string const& filename, bool file_is_gzipped ) ;
+		static std::auto_ptr< SNPDataSource > create( std::string const& filename, CompressionType compression_type ) ;
 		static std::auto_ptr< SNPDataSource > create( std::vector< std::string > const& filenames ) ;
 
 		// Function read_snp().

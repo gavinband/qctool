@@ -17,13 +17,13 @@ namespace genfile {
 		GenFileSNPDataSink( std::string const& filename )
 			: m_filename( filename )
 		{
-			setup( filename, filename_indicates_file_is_gzipped( filename )) ;
+			setup( filename, get_compression_type_indicated_by_filename( filename )) ;
 		}
 
-		GenFileSNPDataSink( std::string const& filename, bool file_is_gzipped )
+		GenFileSNPDataSink( std::string const& filename, CompressionType compression_type )
 			: m_filename( filename )
 		{
-			setup( filename, file_is_gzipped ) ;
+			setup( filename, compression_type ) ;
 		}
 
 		FormatType format() const { return e_GenFormat ; }
@@ -34,8 +34,8 @@ namespace genfile {
 		std::string m_filename ;
 		std::auto_ptr< std::ostream > m_stream_ptr ;
 
-		void setup( std::string const& filename, bool file_is_gzipped ) {
-			m_stream_ptr = open_text_file_for_output( filename, file_is_gzipped ) ;
+		void setup( std::string const& filename, CompressionType compression_type ) {
+			m_stream_ptr = open_text_file_for_output( filename, compression_type ) ;
 			if( !(*m_stream_ptr)) {
 				throw genfile::FileNotOpenedError() ;
 			}

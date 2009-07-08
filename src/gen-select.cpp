@@ -206,10 +206,18 @@ private:
 		std::auto_ptr< genfile::SNPDataSourceChain > chain( new genfile::SNPDataSourceChain() ) ;
 		m_gen_file_snp_counts.resize( m_gen_filenames.size() ) ;
 		for( std::size_t i = 0; i < m_gen_filenames.size(); ++i ) {
-			m_cout << "(Opening gen file \"" << m_gen_filenames[i] << "\"...)\n" ;
+		#ifdef HAVE_BOOST_TIMER
+			boost::timer file_timer ;
+		#endif
+			m_cout << "(Opening gen file \"" << m_gen_filenames[i] << "\"...)" << std::flush ;
 			std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( m_gen_filenames[i] )) ;
 			m_gen_file_snp_counts[i] = snp_data_source->total_number_of_snps() ;
 			chain->add_provider( snp_data_source ) ;
+		#ifdef HAVE_BOOST_TIMER
+			m_cout << " (" << file_timer.elapsed() << "s\n" ;
+		#else
+			m_cout << "\n" ;
+		#endif	
 		}
 
 		m_number_of_samples_from_gen_file = chain->number_of_samples() ;
@@ -235,7 +243,7 @@ private:
 
 	void open_gen_stats_file() {
 		// Output GEN stats to std output if no file is supplied.
-		genStatisticOutputFile = OUTPUT_FILE_PTR( new std::ostream( m_cout.rdbuf() )) ;
+		// genStatisticOutputFile = OUTPUT_FILE_PTR( new std::ostream( m_cout.rdbuf() )) ;
 		if( m_gen_statistic_filename != "" ) {
 			genStatisticOutputFile = open_file_for_output( m_gen_statistic_filename ) ;
 		}
@@ -260,7 +268,7 @@ private:
 
 	void open_sample_stats_file() {
 		// Output sample stats to std out if no file is supplied
-		sampleStatisticOutputFile = OUTPUT_FILE_PTR( new std::ostream( std::cout.rdbuf() )) ;
+		// sampleStatisticOutputFile = OUTPUT_FILE_PTR( new std::ostream( std::cout.rdbuf() )) ;
 		if( m_sample_statistic_filename != "" ) {
 			sampleStatisticOutputFile = open_file_for_output( m_sample_statistic_filename ) ;
 		}
@@ -509,7 +517,6 @@ private:
 		boost::timer timer ;
 	#endif
 
-		open_gen_row_source() ;
 		open_gen_row_sink() ;
 		open_gen_stats_file() ;
 
@@ -567,8 +574,10 @@ private:
 			}
 		}
 		
-		*sampleStatisticOutputFile << "        " ;
-		m_sample_statistics.format_column_headers( *sampleStatisticOutputFile ) << "\n" ;
+		if( sampleStatisticOutputFile.get() ) {
+			*sampleStatisticOutputFile << "        " ;
+			m_sample_statistics.format_column_headers( *sampleStatisticOutputFile ) << "\n" ;
+		}
 
 		SampleRow sample_row ;
 
@@ -581,7 +590,9 @@ private:
 
 			m_sample_statistics.process( sample_row, m_per_column_amounts[i], m_total_number_of_snps ) ;
 			
-			*sampleStatisticOutputFile << std::setw(8) << (i+1) << m_sample_statistics << "\n" ;
+			if( sampleStatisticOutputFile.get() ) {
+				*sampleStatisticOutputFile << std::setw(8) << (i+1) << m_sample_statistics << "\n" ;
+			}
 			m_sample_statistics.add_to_sample_row( sample_row, "missing" ) ;
 			m_sample_statistics.add_to_sample_row( sample_row, "heterozygosity" ) ;
 			(*m_sample_row_sink) << sample_row ;
