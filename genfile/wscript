@@ -2,13 +2,16 @@ import os.path
 import glob
 import UnitTest
 
+def configure( conf ):
+	pass
+
 def create_test( bld, name ):
 	bld.new_task_gen(
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'test/' + name + '.cpp' ],
 		uselib_local = 'genfile',
-		includes='./genfile/include',
+		includes='../include ./include',
 		unit_test=1
 	)
 
@@ -30,3 +33,7 @@ def build( bld ):
 		includes='./include',
 		uselib = 'BOOST BOOST_IOSTREAMS ZLIB'
 	)
+	
+	create_test( bld, 'test_bgen_header_format' )
+	create_test( bld, 'test_bgen_snp_format' )
+	create_test( bld, 'test_bgen_io' )

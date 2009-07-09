@@ -22,8 +22,10 @@ def configure( conf ):
 		conf.define( 'HAVE_BOOST_MATH', 1 )
 	conf.define ( 'GTOOL_USE_FAST_FLOAT_PARSER', 1 )
 
-	conf.check_cxx( lib = 'sqlite3', uselib_store='SQLITE3', define_name='HAVE_SQLITE3' )
-	conf.check_cxx( lib = 'z', uselib_store='ZLIB', define_name='HAVE_ZLIB' )
+	if conf.check_cxx( lib = 'sqlite3', uselib_store='SQLITE3', define_name='HAVE_SQLITE3' ):
+		conf.define( 'HAVE_SQLITE3', 1 )
+	if conf.check_cxx( lib = 'z', uselib_store='ZLIB', define_name='HAVE_ZLIB' ):
+		conf.define( 'HAVE_ZLIB', 1 )
 
 	conf.write_config_header( 'config.hpp' )
 

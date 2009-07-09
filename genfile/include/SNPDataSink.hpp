@@ -58,7 +58,7 @@ namespace genfile {
 
 			pre_write_snp() ;
 
-			std::size_t id_field_size = std::min( SNPID.size(), std::min( RSID.size(), static_cast< std::size_t >( 255 ))) ;
+			std::size_t id_field_size = std::min( std::max( SNPID.size(), RSID.size() ), static_cast< std::size_t >( 255 )) ;
 
 			switch( format() ) {
 				case e_GenFormat:

@@ -10,7 +10,6 @@
 #include "GenRow.hpp"
 #include "Whitespace.hpp"
 #include "GenotypeProportions.hpp"
-#include "bgen.hpp"
 
 
 double read_float( std::istream& aStream ) {

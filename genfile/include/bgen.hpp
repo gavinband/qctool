@@ -5,6 +5,7 @@
 #include <vector>
 #include <cassert>
 #include <stdint.h>
+#include "../../config.hpp"
 #ifdef HAVE_ZLIB
 #include <sstream>
 #include <zlib.h>
@@ -338,7 +339,6 @@ namespace genfile {
             free_data.resize( header_size - fixed_data_size ) ;
             aStream.read( &(free_data[0]), header_size - fixed_data_size ) ;
             impl::read_little_endian_integer( aStream, &flags ) ;
-            assert( flags == 0 ) ;
 
             if ( aStream ) {
                 set_header_size( header_size ) ;
@@ -346,6 +346,7 @@ namespace genfile {
                 set_number_of_samples( number_of_samples ) ;
                 set_snp_block_size( snp_block_size ) ;
                 set_free_data( std::string( free_data.begin(), free_data.end() )) ;
+				set_flags( flags ) ;
             }
         }
 
@@ -439,7 +440,6 @@ namespace genfile {
             // the assertions below are not triggered.
             impl::uint32_t number_of_samples = 0;
             std::string SNPID ;
-            unsigned char RSID_size = 0;
             std::string RSID ;
             impl::uint32_t SNP_position = 0;
             char first_allele, second_allele ;
@@ -457,10 +457,11 @@ namespace genfile {
                 // Read the data and uncompress
                 aStream.read( reinterpret_cast< char*> (&compressed_data_buffer[0]), compressed_data_size ) ;
                 int result = uncompress( &uncompressed_data_buffer[0], &uncompressed_data_size, &compressed_data_buffer[0], compressed_data_size ) ;
+				std::cout << result << std::endl ;
                 assert( result == Z_OK ) ;
                 // Load the uncompressed data into an istringstream
                 std::istringstream sStream ;
-                sStream.rdbuf()->pubsetbuf( &uncompressed_data_buffer[0], uncompressed_data_size ) ;
+                sStream.rdbuf()->pubsetbuf( reinterpret_cast< char* >( &uncompressed_data_buffer[0] ), uncompressed_data_size ) ;
 
                 if ( aStream ) {
                     // If all ok thus far, we'll take the plunge, calling the callbacks to (presumably)
@@ -507,13 +508,14 @@ namespace genfile {
             std::vector< Bytef > uncompressed_buffer( uncompressed_data_size ) ;
             // get probability data, uncompressed.
             std::ostringstream oStream ;
-            oStream.rdbuf()->pubsetbuf( &uncompressed_buffer[0], uncompressed_data_size ) ;
+            oStream.rdbuf()->pubsetbuf( reinterpret_cast< char* >( &uncompressed_buffer[0] ), uncompressed_data_size ) ;
             impl::write_snp_probability_data( oStream, number_of_samples, get_AA_probability, get_AB_probability, get_BB_probability ) ;
             // compress it
             int result = compress( &compression_buffer[0], &buffer_size, &uncompressed_buffer[0], uncompressed_data_size ) ;
             assert( result == Z_OK ) ;
             // and write it (buffer_size is now the compressed length of the data).
-            impl::write_little_endian_integer( aStream, static_cast< uint32_t >( buffer_size )) ;
+			uint32_t the_buffer_size = buffer_size ;
+            impl::write_little_endian_integer( aStream, the_buffer_size ) ;
             aStream.write( reinterpret_cast< char const* >( &compression_buffer[0] ), buffer_size ) ;
 #endif
         }

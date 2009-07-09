@@ -12,7 +12,6 @@
 	#define AUTO_TEST_CASE( param ) void param()
 	#define TEST_ASSERT( param ) assert( param )
 #endif
-#include "GenRow.hpp"
 #include "bgen.hpp"
 #include "stdint.h"
 
