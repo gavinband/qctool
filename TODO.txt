@@ -1,9 +1,16 @@
+gen-select TODO LIST 08/07/2009
+
+Done?	Description
+-----   -----------
+		Fix bug where only first SNPDataSource in a chain gets processed (in gen-select).
+		
+
 gen-select TODO LIST 07/07/2009
 
 Done?	Description
 -----   -----------
 
-		Rationalise unholy SNPDataSource / ObjectSource alliance.
+*		Rationalise unholy SNPDataSource / ObjectSource alliance.
 
 			- Note that the difference between a SNPDataSource and a ObjectSource< GenRow > is that the former
 			- offers lower-level access to the data (in that it has a read_snp() method with templated setters)
@@ -12,9 +19,6 @@ Done?	Description
 			
 			- Perhaps SNPDataSourceGenRowSource should inherit from SNPDataSourceChain and ObjectSource< GenRow >,
 			- thus making it both a genrow source and the other thing too.
-
-		Also make a SNPDataSink kind of object.
-		
 
 gen-select TODO LIST 02/07/2009
 

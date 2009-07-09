@@ -37,7 +37,7 @@ namespace genfile {
 		void setup( std::string const& filename, CompressionType compression_type ) {
 			m_stream_ptr = open_text_file_for_output( filename, compression_type ) ;
 			if( !(*m_stream_ptr)) {
-				throw genfile::FileNotOpenedError() ;
+				throw FileNotOpenedError() ;
 			}
 			assert( *m_stream_ptr ) ;
 		}

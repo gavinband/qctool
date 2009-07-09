@@ -241,6 +241,10 @@ private:
 		}
 	}
 
+	void close_gen_row_sink() {
+		gen_row_sink.reset( new NullObjectSink< GenRow >() ) ;
+	}
+
 	void open_gen_stats_file() {
 		// Output GEN stats to std output if no file is supplied.
 		// genStatisticOutputFile = OUTPUT_FILE_PTR( new std::ostream( m_cout.rdbuf() )) ;
@@ -536,9 +540,21 @@ private:
 			}
 			accumulate_per_column_amounts( row, m_per_column_amounts ) ;
 		}
+		
 	#ifdef HAVE_BOOST_TIMER
 		std::cerr << "gen-select: processed GEN file(s) (" << m_total_number_of_snps << " rows) in " << timer.elapsed() << " seconds.\n" ;
 	#endif
+	
+		m_cout << "Post-processing (updating file header, compression)..." << std::flush ;
+		timer.restart() ;
+		// Close the output gen file(s) now
+		close_gen_row_sink() ;
+	#ifdef HAVE_BOOST_TIMER
+		std::cerr << " (" << timer.elapsed() << "s)\n" ;
+	#else
+		std::cerr << "\n" ;
+	#endif
+			
 	}
 
 	void preprocess_gen_row( GenRow& row ) const {

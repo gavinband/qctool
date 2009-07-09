@@ -13,7 +13,7 @@ namespace genfile {
 	}
 
 	std::auto_ptr< SNPDataSource > SNPDataSource::create( std::string const& filename, CompressionType compression_type ) {
-		if( genfile::filename_indicates_bgen_format( filename )) {
+		if( filename_indicates_bgen_format( filename )) {
 			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( filename, compression_type )) ;
 		}
 		else {

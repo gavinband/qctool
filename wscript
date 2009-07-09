@@ -23,6 +23,7 @@ def configure( conf ):
 	conf.define ( 'GTOOL_USE_FAST_FLOAT_PARSER', 1 )
 
 	conf.check_cxx( lib = 'sqlite3', uselib_store='SQLITE3', define_name='HAVE_SQLITE3' )
+	conf.check_cxx( lib = 'z', uselib_store='ZLIB', define_name='HAVE_ZLIB' )
 
 	conf.write_config_header( 'config.hpp' )
 
@@ -42,7 +43,7 @@ def create_test( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'test/' + name + '.cpp' ],
-		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor',
+		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile',
 		includes='./include ./genfile/include',
 		unit_test=1
 	)
@@ -72,7 +73,7 @@ def build( bld ):
 
 	bld.new_task_gen(
 		features = 'cxx cstaticlib',
-		target = 'gen',
+		target = 'genfile',
 		source = [  
 			'genfile/src/SNPDataSource.cpp',
 			'genfile/src/SNPDataSink.cpp',
@@ -80,7 +81,7 @@ def build( bld ):
 			'genfile/src/snp_data_utils.cpp'
 		],
 		includes='./genfile/include',
-		uselib = 'BOOST BOOST_IOSTREAMS'
+		uselib = 'BOOST BOOST_IOSTREAMS ZLIB'
 	)
 
 	bld.new_task_gen(
@@ -131,7 +132,7 @@ def build( bld ):
 		target = 'gen-select',
 		source = [  'src/gen-select.cpp' ],
 		includes='./include ./genfile/include',
-		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor gen'
+		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile'
 	)
 
 	#---------------------
@@ -142,7 +143,7 @@ def build( bld ):
 		target = 'benchmark-statistics',
 		source = [  'benchmarks/benchmark-statistics.cpp' ],
 		includes='./include',
-		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor gen'
+		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile'
 	)
 
 	bld.new_task_gen(
@@ -150,7 +151,7 @@ def build( bld ):
 		target = 'benchmark-io',
 		source = [  'benchmarks/benchmark-io.cpp' ],
 		includes='./include',
-		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor gen'
+		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile'
 	)
 
 	# Build release variants as well.

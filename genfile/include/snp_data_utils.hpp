@@ -44,8 +44,6 @@ namespace genfile {
 	struct SNPDataError: public std::exception { char const* what() const throw() { return "SNPDataError" ; } } ;
 	struct FileNotOpenedError: public SNPDataError { char const* what() const throw() { return "FileNotOpenedError" ; } } ;
 	struct FormatUnsupportedError: public SNPDataError { char const* what() const throw() { return "FormatUnsupportedError" ; } } ;
-
-
 }
 
 #endif

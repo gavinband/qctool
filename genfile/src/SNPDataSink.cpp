@@ -23,7 +23,7 @@ namespace genfile {
 		CompressionType compression_type,
 		std::string const& free_data
 	) {
-		if( genfile::filename_indicates_bgen_format( filename )) {
+		if( filename_indicates_bgen_format( filename )) {
 			if( compression_type == e_GzipCompression ) {
 				return std::auto_ptr< SNPDataSink >( new ZippedBGenFileSNPDataSink( filename, free_data )) ;
 			}

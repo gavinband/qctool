@@ -38,10 +38,10 @@ namespace genfile {
 		std::auto_ptr< std::istream > m_stream_ptr ;
 
 		void setup( std::string const& filename, CompressionType compression_type ) {
-			m_stream_ptr = genfile::open_binary_file_for_input( filename, compression_type ) ;
-			genfile::bgen::uint32_t offset ;
-			genfile::bgen::read_offset( (*m_stream_ptr), &offset ) ;
-			genfile::bgen::uint32_t header_size = read_header_data() ;
+			m_stream_ptr = open_binary_file_for_input( filename, compression_type ) ;
+			bgen::uint32_t offset ;
+			bgen::read_offset( (*m_stream_ptr), &offset ) ;
+			bgen::uint32_t header_size = read_header_data() ;
 
 			if( offset < header_size ) {
 				throw FileStructureInvalidError() ;
@@ -50,17 +50,17 @@ namespace genfile {
 			m_stream_ptr->ignore( offset - header_size ) ;
 		}
 	
-		genfile::bgen::uint32_t read_header_data() {
-			genfile::bgen::uint32_t header_size ;
+		bgen::uint32_t read_header_data() {
+			bgen::uint32_t header_size ;
 		
-			genfile::bgen::read_header_block(
+			bgen::read_header_block(
 				(*m_stream_ptr),
-				genfile::set_value( header_size ),
-				genfile::set_value( m_total_number_of_snps ),
-				genfile::set_value( m_number_of_samples ),
-				genfile::ignore(),
-				genfile::ignore(),
-				genfile::ignore()
+				set_value( header_size ),
+				set_value( m_total_number_of_snps ),
+				set_value( m_number_of_samples ),
+				ignore(),
+				ignore(),
+				ignore()
 			) ;
 
 			return header_size ;
