@@ -1,7 +1,7 @@
 #include <memory>
 #include <boost/bind.hpp>
 #include "GenRow.hpp"
-#include "GenRowFileSource.hpp"
+#include "GenRowSource.hpp"
 
 SNPDataSourceGenRowSource& SNPDataSourceGenRowSource::read( GenRow & row ){
 	m_snp_data_source->read_snp(

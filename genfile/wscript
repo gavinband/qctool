@@ -1,0 +1,32 @@
+import os.path
+import glob
+import UnitTest
+
+def create_test( bld, name ):
+	bld.new_task_gen(
+		features = 'cxx cprogram',
+		target = name,
+		source = [  'test/' + name + '.cpp' ],
+		uselib_local = 'genfile',
+		includes='./genfile/include',
+		unit_test=1
+	)
+
+def build( bld ):
+	import Options
+	
+	#---------------------
+	# libs
+	#---------------------
+	bld.new_task_gen(
+		features = 'cxx cstaticlib',
+		target = 'genfile',
+		source = [  
+			'src/SNPDataSource.cpp',
+			'src/SNPDataSink.cpp',
+			'src/bgen.cpp',
+			'src/snp_data_utils.cpp'
+		],
+		includes='./include',
+		uselib = 'BOOST BOOST_IOSTREAMS ZLIB'
+	)

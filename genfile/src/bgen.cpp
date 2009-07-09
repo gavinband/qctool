@@ -20,7 +20,6 @@ namespace genfile {
 
                 impl::read_little_endian_integer( aStream, number_of_samples ) ;
                 impl::read_little_endian_integer( aStream, &max_id_size ) ;
-                assert(( impl::MAX_ID_SIZE == 255 ) || ( max_id_size <= impl::MAX_ID_SIZE )) ; // 1st condition avoids warning for MAX_ID_SIZE=255.
 
                 impl::read_length_followed_by_data( aStream, &SNPID_size, SNPID ) ;
                 assert( SNPID_size <= max_id_size ) ;
@@ -46,11 +45,6 @@ namespace genfile {
                 char first_allele,
                 char second_allele
             ) {
-                assert( max_id_size <= impl::MAX_ID_SIZE ) ;
-                if ( max_id_size == 0 ) {
-                    max_id_size = impl::MAX_ID_SIZE ;
-                }
-
                 assert( SNPID.size() <= static_cast< std::size_t >( max_id_size )) ;
                 assert( RSID.size() <= static_cast< std::size_t >( max_id_size )) ;
                 unsigned char SNPID_size = SNPID.size() ;

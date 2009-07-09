@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>
 #include <cassert>
+#include <boost/bind.hpp>
 #include "../config.hpp"
 #if HAVE_BOOST_UNIT_TEST
 	#define BOOST_AUTO_TEST_MAIN
@@ -14,6 +15,7 @@
 #include "GenRow.hpp"
 #include "endianness_utils.hpp"
 #include "stdint.h"
+#include "bgen.hpp"
 
 namespace data {
 // Note: this first set of data must be in the format output -- e.g. no trailing spaces on the line
@@ -108,9 +110,31 @@ AUTO_TEST_CASE( test_genrow_binary_io ) {
 		std::cout << "row " << count << "\n" ;
 		std::cout << row ;
 		std::ostringstream outStream ;
-		row.write_to_binary_stream( outStream ) ;
+		genfile::bgen::write_snp_block(
+			outStream,
+			row.number_of_samples(),
+			20,
+			row.SNPID(),
+			row.RSID(),
+			row.SNP_position(),
+			row.first_allele(),
+			row.second_allele(),
+			boost::bind< double >( &GenRow::get_AA_probability, &row, _1 ),
+			boost::bind< double >( &GenRow::get_AB_probability, &row, _1 ),
+			boost::bind< double >( &GenRow::get_BB_probability, &row, _1 )
+		) ;
 		std::istringstream anotherInStream( outStream.str() ) ;
-		row2.read_from_binary_stream( anotherInStream ) ;
+
+		genfile::bgen::read_snp_block(
+			anotherInStream,
+			boost::bind< void >( &GenRow::set_number_of_samples, &row, _1 ),
+			boost::bind< void >( &GenRow::set_SNPID, &row, _1 ),
+			boost::bind< void >( &GenRow::set_RSID, &row, _1 ),
+			boost::bind< void >( &GenRow::set_SNP_position, &row, _1 ),
+			boost::bind< void >( &GenRow::set_allele1, &row, _1 ),
+			boost::bind< void >( &GenRow::set_allele2, &row, _1 ),
+			boost::bind< void >( &GenRow::set_genotype_probabilities, &row, _1, _2, _3, _4 )
+		) ;
 		std::cout << row2 ;
 		assert( row2 == row ) ;
 	}

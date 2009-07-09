@@ -19,14 +19,12 @@ namespace genfile {
 	// 1. the number_of_samples() and total_number_of_snps() functions return information
 	// reflecting the data in the file or source, and
 	// 2. The stream accessible through stream() is readable and pointing to the first snp in the file.
-	class SNPDataSource
+	class SNPDataSource: public SNPDataBase
 	{
 	public:
 
 		SNPDataSource() {} ;
 		virtual ~SNPDataSource() {} ;
-
-		enum FormatType { e_GenFormat = 0, e_BGenFormat = 1 } ;
 
 		// The following methods must be overriden in derived classes
 	public:
@@ -72,14 +70,18 @@ namespace genfile {
 		) {
 			pre_read_snp() ;
 
-			if( format() == e_GenFormat ) {
-				gen::read_snp_block( stream(), set_number_of_samples, set_SNPID, set_RSID, set_SNP_position, set_allele1, set_allele2, set_genotype_probabilities ) ;
-			}
-			else if( format() == e_BGenFormat ){
-				bgen::read_snp_block( stream(), set_number_of_samples, set_SNPID, set_RSID, set_SNP_position, set_allele1, set_allele2, set_genotype_probabilities ) ;
-			}
-			else {
-				assert(0) ; // invalid format type.
+			switch( format() ) {
+				case e_GenFormat:
+					gen::read_snp_block( stream(), set_number_of_samples, set_SNPID, set_RSID, set_SNP_position, set_allele1, set_allele2, set_genotype_probabilities ) ;
+					break ;
+				case e_BGenFormat:
+					bgen::read_snp_block( stream(), set_number_of_samples, set_SNPID, set_RSID, set_SNP_position, set_allele1, set_allele2, set_genotype_probabilities ) ;
+					break ;
+				case e_BGenCompressedFormat:
+					bgen::read_compressed_snp_block( stream(), set_number_of_samples, set_SNPID, set_RSID, set_SNP_position, set_allele1, set_allele2, set_genotype_probabilities ) ;
+					break ;
+				default:
+					assert(0) ; // invalid format type.
 			}
 		
 			if( *this ) {

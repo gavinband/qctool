@@ -27,7 +27,14 @@ namespace genfile {
 
 		unsigned int number_of_samples() const { return m_number_of_samples ; }
 		unsigned int total_number_of_snps() const { return m_total_number_of_snps ; }
-		FormatType format() const { return e_BGenFormat ; }
+		FormatType format() const {
+			if (m_flags & bgen::e_CompressedSNPBlocks) {
+				return e_BGenCompressedFormat ;
+			}
+			else {
+				return e_BGenFormat ;
+			}
+		}
 		std::istream& stream() { return *m_stream_ptr ; }
 		std::istream const& stream() const { return *m_stream_ptr ; }
 
@@ -36,6 +43,7 @@ namespace genfile {
 		std::string m_filename ;
 		unsigned int m_number_of_samples, m_total_number_of_snps ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
+		bgen::uint32_t m_flags ;
 
 		void setup( std::string const& filename, CompressionType compression_type ) {
 			m_stream_ptr = open_binary_file_for_input( filename, compression_type ) ;
@@ -52,7 +60,7 @@ namespace genfile {
 	
 		bgen::uint32_t read_header_data() {
 			bgen::uint32_t header_size ;
-		
+
 			bgen::read_header_block(
 				(*m_stream_ptr),
 				set_value( header_size ),
@@ -60,7 +68,7 @@ namespace genfile {
 				set_value( m_number_of_samples ),
 				ignore(),
 				ignore(),
-				ignore()
+				set_value( m_flags )
 			) ;
 
 			return header_size ;

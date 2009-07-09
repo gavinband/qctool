@@ -16,7 +16,7 @@ namespace genfile {
 	// After the class is constructed, the intention is that
 	// 2. The stream accessible through stream() is writeable so that the snps may be written,
 	// one at a time.
-	class SNPDataSink
+	class SNPDataSink: public SNPDataBase
 	{
 	public:
 		SNPDataSink(): m_number_of_samples(0u), m_number_of_snps_written(0u) {} ;
@@ -58,14 +58,20 @@ namespace genfile {
 
 			pre_write_snp() ;
 
-			if( format() == e_GenFormat ) {
-				gen::write_snp_block( stream(), number_of_samples, SNPID, RSID, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
-			}
-			else if( format() == e_BGenFormat ){
-				bgen::write_snp_block( stream(), number_of_samples, SNPID, RSID, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
-			}
-			else {
-				assert(0) ; // invalid format type.
+			std::size_t id_field_size = std::min( SNPID.size(), std::min( RSID.size(), static_cast< std::size_t >( 255 ))) ;
+
+			switch( format() ) {
+				case e_GenFormat:
+					gen::write_snp_block( stream(), number_of_samples, SNPID, RSID, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
+					break ;
+				case e_BGenFormat:
+					bgen::write_snp_block( stream(), number_of_samples, id_field_size, SNPID, RSID, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
+					break ;
+				case e_BGenCompressedFormat:
+					bgen::write_compressed_snp_block( stream(), number_of_samples, id_field_size, SNPID, RSID, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
+					break ;
+				default:
+					assert(0) ; // invalid format type.
 			}
 
 			if( stream()) {

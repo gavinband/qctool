@@ -20,10 +20,12 @@ namespace genfile {
 		BasicBGenFileSNPDataSink(
 			std::string const& filename,
 			std::string const& free_data,
-			CompressionType compression_type
+			CompressionType compression_type,
+			bgen::uint32_t flags
 		)
 		: 	m_filename( filename ),
-			m_free_data( free_data )
+			m_free_data( free_data ),
+			m_flags( flags )
 		{
 			setup( filename, compression_type ) ;
 		}
@@ -41,7 +43,8 @@ namespace genfile {
 		bgen::uint32_t m_number_of_samples, m_number_of_snps_written, m_snp_block_size ;
 		std::string m_free_data ;
 		std::auto_ptr< std::ostream > m_stream_ptr ;
-
+		bgen::uint32_t m_flags ;
+		
 		void setup( std::string const& filename, CompressionType compression_type ) {
 			m_stream_ptr = open_binary_file_for_output( filename, compression_type ) ;
 			bgen::uint32_t offset = bgen::get_header_block_size( m_free_data ) ;
@@ -59,7 +62,8 @@ namespace genfile {
 				number_of_snps_written(),
 				number_of_samples(),
 				m_snp_block_size,
-				m_free_data
+				m_free_data,
+				m_flags
 			) ;
 		}
 	} ;
@@ -67,18 +71,19 @@ namespace genfile {
 
 	// This class represents a SNPDataSink which writes its data
 	// to an unzipped BGEN file.
-	class UnzippedBGenFileSNPDataSink: public BasicBGenFileSNPDataSink
+	class BGenFileSNPDataSink: public BasicBGenFileSNPDataSink
 	{
 	public:
-		UnzippedBGenFileSNPDataSink(
+		BGenFileSNPDataSink(
 			std::string const& filename,
-			std::string const& free_data
+			std::string const& free_data,
+			bgen::uint32_t flags
 		)
-		: 	BasicBGenFileSNPDataSink( filename, free_data, e_NoCompression )
+		: 	BasicBGenFileSNPDataSink( filename, free_data, e_NoCompression, flags )
 		{
 		}
 
-		~UnzippedBGenFileSNPDataSink() {
+		~BGenFileSNPDataSink() {
 			// We are about to close the file.
 			// To write the correct header info, we seek back to the start and rewrite the header block
 			// The header comes after the offset which is 4 bytes.
@@ -90,7 +95,6 @@ namespace genfile {
 			write_header_data( stream() ) ;
 		}
 	} ;
-
 
 
 	// This class represents a SNPDataSink which writes its data
@@ -106,7 +110,8 @@ namespace genfile {
 		: 	BasicBGenFileSNPDataSink(
 				create_temporary_filename(),
 				free_data,
-				e_NoCompression
+				e_NoCompression,
+				bgen::e_NoFlags
 			),
 			m_filename( filename ),
 			m_buffer_size( buffer_size )

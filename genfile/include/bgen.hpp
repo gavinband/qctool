@@ -38,6 +38,7 @@ namespace genfile {
 
         typedef impl::uint32_t uint32_t ;
         typedef impl::uint16_t uint16_t ;
+		enum FlagsType { e_NoFlags = 0, e_CompressedSNPBlocks = 0x1 } ;
 
         /*
         * Function: read_offset
@@ -86,7 +87,7 @@ namespace genfile {
             uint32_t number_of_samples,
             uint32_t snp_block_size,
             std::string const& free_data,
-            uint32_t flags = 0
+            uint32_t flags
         ) ;
 
         /* Function: get_header_blocK-size()
@@ -141,6 +142,7 @@ namespace genfile {
         void write_snp_block(
             std::ostream& aStream,
             uint32_t number_of_samples,
+            unsigned char max_id_size,
             std::string SNPID,
             std::string RSID,
             uint32_t SNP_position,
@@ -148,14 +150,45 @@ namespace genfile {
             char second_allele,
             GenotypeProbabilityGetter get_AA_probability,
             GenotypeProbabilityGetter get_AB_probability,
-            GenotypeProbabilityGetter get_BB_probability,
-            unsigned char max_id_size = 0
+            GenotypeProbabilityGetter get_BB_probability
         ) ;
+
+	    template<
+	        typename IntegerSetter,
+	        typename StringSetter,
+	        typename AlleleSetter,
+	        typename SNPPositionSetter,
+	        typename GenotypeProbabilitySetter
+	    >
+	    void read_compressed_snp_block(
+	        std::istream& aStream,
+	        IntegerSetter set_number_of_samples,
+	        StringSetter set_SNPID,
+	        StringSetter set_RSID,
+	        SNPPositionSetter set_SNP_position,
+	        AlleleSetter set_allele1,
+	        AlleleSetter set_allele2,
+	        GenotypeProbabilitySetter set_genotype_probabilities
+		) ;
+
+        template< typename GenotypeProbabilityGetter >
+        void write_compressed_snp_block(
+            std::ostream& aStream,
+            uint32_t number_of_samples,
+            unsigned char max_id_size,
+            std::string SNPID,
+            std::string RSID,
+            uint32_t SNP_position,
+            char first_allele,
+            char second_allele,
+            GenotypeProbabilityGetter get_AA_probability,
+            GenotypeProbabilityGetter get_AB_probability,
+            GenotypeProbabilityGetter get_BB_probability
+		) ;
 
         // Implementation
 
         namespace impl {
-            unsigned char const MAX_ID_SIZE = 254 ;
             double const PROBABILITY_CONVERSION_FACTOR = 10000.0 ;
 
             template< typename IntegerType >
@@ -366,28 +399,27 @@ namespace genfile {
         void write_snp_block(
             std::ostream& aStream,
             uint32_t number_of_samples,
-            std::string SNPID,
+            unsigned char max_id_size,
+			std::string SNPID,
             std::string RSID,
             uint32_t SNP_position,
             char first_allele,
             char second_allele,
             GenotypeProbabilityGetter get_AA_probability,
             GenotypeProbabilityGetter get_AB_probability,
-            GenotypeProbabilityGetter get_BB_probability,
-            unsigned char max_id_size = 0
+            GenotypeProbabilityGetter get_BB_probability
         ) {
             impl::write_snp_identifying_data( aStream, number_of_samples, max_id_size, SNPID, RSID, SNP_position, first_allele, second_allele ) ;
             impl::write_snp_probability_data( aStream, number_of_samples, get_AA_probability, get_AB_probability, get_BB_probability ) ;
         }
 
 
-#if HAVE_ZLIB
         template<
-        typename IntegerSetter,
-        typename StringSetter,
-        typename AlleleSetter,
-        typename SNPPositionSetter,
-        typename GenotypeProbabilitySetter
+	        typename IntegerSetter,
+	        typename StringSetter,
+	        typename AlleleSetter,
+	        typename SNPPositionSetter,
+	        typename GenotypeProbabilitySetter
         >
         void read_compressed_snp_block(
             std::istream& aStream,
@@ -399,6 +431,9 @@ namespace genfile {
             AlleleSetter set_allele2,
             GenotypeProbabilitySetter set_genotype_probabilities
         ) {
+#if !HAVE_ZLIB
+			assert(0) ; // zlib is required for compression support.
+#else
             // We read the following data in the following order.
             // Initialisers are provided so that, in the case where the stream becomes bad (e.g. end of file)
             // the assertions below are not triggered.
@@ -443,12 +478,14 @@ namespace genfile {
                     impl::read_snp_probability_data( sStream, number_of_samples, set_genotype_probabilities ) ;
                 }
             }
+#endif
         }
 
         template< typename GenotypeProbabilityGetter >
         void write_compressed_snp_block(
             std::ostream& aStream,
             uint32_t number_of_samples,
+            unsigned char max_id_size,
             std::string SNPID,
             std::string RSID,
             uint32_t SNP_position,
@@ -456,9 +493,11 @@ namespace genfile {
             char second_allele,
             GenotypeProbabilityGetter get_AA_probability,
             GenotypeProbabilityGetter get_AB_probability,
-            GenotypeProbabilityGetter get_BB_probability,
-            unsigned char max_id_size = 0
+            GenotypeProbabilityGetter get_BB_probability
         ) {
+#if !HAVE_ZLIB
+			assert(0) ; // zlib is required for compression support.
+#else
             impl::write_snp_identifying_data( aStream, number_of_samples, max_id_size, SNPID, RSID, SNP_position, first_allele, second_allele ) ;
 
             // Construct a buffer into which we will compress.
@@ -476,8 +515,8 @@ namespace genfile {
             // and write it (buffer_size is now the compressed length of the data).
             impl::write_little_endian_integer( aStream, static_cast< uint32_t >( buffer_size )) ;
             aStream.write( reinterpret_cast< char const* >( &compression_buffer[0] ), buffer_size ) ;
-        }
 #endif
+        }
     }
 }
 

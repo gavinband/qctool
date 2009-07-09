@@ -35,8 +35,6 @@ class GenRow
 
 		std::ostream& write_to_text_stream( std::ostream& aStream ) const ;
 		std::istream& read_from_text_stream( std::istream& aStream ) ;
-		std::ostream& write_to_binary_stream( std::ostream& aStream ) const ;
-		std::istream& read_from_binary_stream( std::istream& aStream ) ;
 
 	public:
 

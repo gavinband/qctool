@@ -1,6 +1,6 @@
 #include <memory>
 #include <boost/bind.hpp>
-#include "GenRowFileSink.hpp"
+#include "GenRowSink.hpp"
 #include "SNPDataSink.hpp"
 
 SNPDataSinkGenRowSink::SNPDataSinkGenRowSink( std::auto_ptr< genfile::SNPDataSink > snp_data_sink )

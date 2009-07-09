@@ -126,39 +126,6 @@ std::ostream& GenRow::write_to_text_stream( std::ostream& aStream ) const {
 	return aStream ;
 }
 
-
-std::istream& GenRow::read_from_binary_stream( std::istream& aStream ) {
-	genfile::bgen::read_snp_block(
-		aStream,
-		boost::bind< void >( &GenRow::set_number_of_samples, this, _1 ),
-		boost::bind< void >( &GenRow::set_SNPID, this, _1 ),
-		boost::bind< void >( &GenRow::set_RSID, this, _1 ),
-		boost::bind< void >( &GenRow::set_SNP_position, this, _1 ),
-		boost::bind< void >( &GenRow::set_allele1, this, _1 ),
-		boost::bind< void >( &GenRow::set_allele2, this, _1 ),
-		boost::bind< void >( &GenRow::set_genotype_probabilities, this, _1, _2, _3, _4 )
-	) ;
-
-	return aStream ;
-}
-
-std::ostream& GenRow::write_to_binary_stream( std::ostream& aStream ) const {
-	genfile::bgen::write_snp_block(
-		aStream,
-		m_genotype_proportions.size(),
-		m_SNPID,
-		m_RSID,
-		m_SNP_position,
-		m_1st_allele,
-		m_2nd_allele,
-		boost::bind< double >( &GenRow::get_AA_probability, this, _1 ),
-		boost::bind< double >( &GenRow::get_AB_probability, this, _1 ),
-		boost::bind< double >( &GenRow::get_BB_probability, this, _1 )
-	) ;		
-
-	return aStream ;
-}
-
 std::istream& operator>>( std::istream& inStream, GenRow& aRow ) {
 	aRow.read_from_text_stream( inStream ) ;
 	return inStream ;

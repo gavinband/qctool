@@ -48,8 +48,20 @@ def create_test( bld, name ):
 		unit_test=1
 	)
 
+def create_benchmark( bld, name ):
+	bld.new_task_gen(
+		features = 'cxx cprogram',
+		target = name,
+		source = [  'benchmarks/' + name + '.cpp' ],
+		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile',
+		includes='./include ./genfile/include',
+		unit_test=1
+	)
+
 def build( bld ):
 	import Options
+	
+	bld.add_subdirs( 'genfile' )
 	
 	#---------------------
 	# libs
@@ -73,19 +85,6 @@ def build( bld ):
 
 	bld.new_task_gen(
 		features = 'cxx cstaticlib',
-		target = 'genfile',
-		source = [  
-			'genfile/src/SNPDataSource.cpp',
-			'genfile/src/SNPDataSink.cpp',
-			'genfile/src/bgen.cpp',
-			'genfile/src/snp_data_utils.cpp'
-		],
-		includes='./genfile/include',
-		uselib = 'BOOST BOOST_IOSTREAMS ZLIB'
-	)
-
-	bld.new_task_gen(
-		features = 'cxx cstaticlib',
 		target = 'gtool-lib',
 		source = [  
 			'src/AlleleProportions.cpp',
@@ -93,8 +92,8 @@ def build( bld ):
 			'src/FileUtil.cpp',
 			'src/GToolException.cpp',
 			'src/GenRow.cpp',
-			'src/GenRowFileSource.cpp',
-			'src/GenRowFileSink.cpp',
+			'src/GenRowSource.cpp',
+			'src/GenRowSink.cpp',
 			'src/GenRowIO.cpp',
 			'src/GenRowStatistics.cpp',
 			'src/GenotypeAssayBasicStatistics.cpp',
@@ -138,21 +137,8 @@ def build( bld ):
 	#---------------------
 	# benchmarks
 	#---------------------
-	bld.new_task_gen(
-		features = 'cxx cprogram',
-		target = 'benchmark-statistics',
-		source = [  'benchmarks/benchmark-statistics.cpp' ],
-		includes='./include',
-		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile'
-	)
-
-	bld.new_task_gen(
-		features = 'cxx cprogram',
-		target = 'benchmark-io',
-		source = [  'benchmarks/benchmark-io.cpp' ],
-		includes='./include',
-		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile'
-	)
+	create_benchmark( bld, 'benchmark-statistics' )
+	create_benchmark( bld, 'benchmark-io' )
 
 	# Build release variants as well.
 	for obj in [] + bld.all_task_gen:

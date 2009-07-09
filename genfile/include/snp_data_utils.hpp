@@ -4,6 +4,11 @@
 #define GENFILE_USE_FAST_PARSE_METHODS 1
 
 namespace genfile {
+	
+	struct SNPDataBase {
+		 enum FormatType { e_GenFormat = 0, e_BGenFormat = 1, e_BGenCompressedFormat = 2 } ;
+	} ;
+	
 	struct Ignorer
 	{
 		template< typename T > void operator()( T const& ) {} ;
@@ -31,6 +36,7 @@ namespace genfile {
 	enum CompressionType { e_NoCompression = 0, e_GzipCompression = 1 } ;
 
 	bool filename_indicates_bgen_format( std::string const& filename ) ;
+	bool filename_indicates_bgen_compressed_format( std::string const& filename ) ;
 	CompressionType get_compression_type_indicated_by_filename( std::string const& filename ) ;
 
 

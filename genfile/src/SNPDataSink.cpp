@@ -28,8 +28,11 @@ namespace genfile {
 				return std::auto_ptr< SNPDataSink >( new ZippedBGenFileSNPDataSink( filename, free_data )) ;
 			}
 			else {
-				return std::auto_ptr< SNPDataSink >( new UnzippedBGenFileSNPDataSink( filename, free_data )) ;
+				return std::auto_ptr< SNPDataSink >( new BGenFileSNPDataSink( filename, free_data, bgen::e_NoFlags )) ;
 			}
+		}
+		else if( filename_indicates_bgen_compressed_format( filename )) {
+			return std::auto_ptr< SNPDataSink >( new BGenFileSNPDataSink( filename, free_data, bgen::e_CompressedSNPBlocks )) ;			
 		}
 		else {
 			return std::auto_ptr< SNPDataSink >( new GenFileSNPDataSink( filename, compression_type )) ;

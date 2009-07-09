@@ -26,7 +26,8 @@
 #include "OptionProcessor.hpp"
 #include "FileUtil.hpp"
 #include "GenRowStatistics.hpp"
-#include "SimpleFileObjectSource.hpp"
+#include "SNPDataSource.hpp"
+#include "GenRowSource.hpp"
 #include "GenotypeAssayStatisticFactory.hpp"
 #include "HardyWeinbergExactTestStatistic.hpp"
 #include "string_utils.hpp"
@@ -101,11 +102,10 @@ int main( int argc, char** argv ) {
 
 			if( options.check_if_option_was_supplied( "--g" )) {
 				std::string genFileName = options.get_value< std::string >( "--g" ) ;
-				genRowSource.reset( new SimpleFileObjectSource< GenRow >( open_file_for_input( genFileName ))) ;
+				genRowSource.reset( new SNPDataSourceGenRowSource( genfile::SNPDataSource::create( genFileName ))) ;
 			}
 
 			process_gen_rows( *genRowSource, options ) ;
-
 		}
 	}
 	catch( GToolException const& e )
