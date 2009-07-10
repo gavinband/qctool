@@ -29,7 +29,6 @@ namespace genfile {
 		virtual operator bool() const { return stream() ; }
 		virtual std::ostream& stream() = 0 ;
 		virtual std::ostream const & stream() const = 0 ;
-		enum FormatType { e_GenFormat = 0, e_BGenFormat = 1 } ;
 		virtual FormatType format() const = 0;
 
 		// Function write_snp().

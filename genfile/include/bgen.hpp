@@ -503,7 +503,7 @@ namespace genfile {
 
             // Construct a buffer into which we will compress.
             uLongf uncompressed_data_size = (6 * number_of_samples) ;
-            uLongf buffer_size = 12 + (1.1 * buffer_size) ;		// calculated according to zlib manual.
+            uLongf buffer_size = 12 + (1.1 * uncompressed_data_size) ;		// calculated according to zlib manual.
             std::vector< Bytef > compression_buffer( buffer_size ) ;
             std::vector< Bytef > uncompressed_buffer( uncompressed_data_size ) ;
             // get probability data, uncompressed.

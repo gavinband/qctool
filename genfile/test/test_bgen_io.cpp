@@ -148,12 +148,14 @@ void copy_gen_file( genfile::SNPDataSource& snp_data_source, genfile::SNPDataSin
 void create_files( std::string original, std::string bgen, std::string bzgen, std::string zbgen ) {
 	// set up our original file.
 	{
+		std::cerr << "Creating original...\n" ;
 		std::ofstream original_file( original.c_str() ) ;
 		original_file << data::data ;
 	}
 
 	// Construct bgen file, not zipped
 	{
+		std::cerr << "Creating bgen...\n" ;
 		genfile::GenFileSNPDataSource gen_file_snp_data_source( original ) ;
 		genfile::BGenFileSNPDataSink bgen_file_snp_data_sink( bgen, "Free Data", genfile::bgen::e_NoFlags ) ;
 		copy_gen_file( gen_file_snp_data_source, bgen_file_snp_data_sink ) ;
@@ -161,6 +163,7 @@ void create_files( std::string original, std::string bgen, std::string bzgen, st
 
 	// Construct bgen compressed file
 	{
+		std::cerr << "Creating bzgen...\n" ;
 		genfile::GenFileSNPDataSource gen_file_snp_data_source( original ) ;
 		genfile::BGenFileSNPDataSink bzgen_file_snp_data_sink( bzgen, "Free Data", genfile::bgen::e_CompressedSNPBlocks ) ;
 		copy_gen_file( gen_file_snp_data_source, bzgen_file_snp_data_sink ) ;
@@ -168,6 +171,7 @@ void create_files( std::string original, std::string bgen, std::string bzgen, st
 
 	// Construct zipped bgen file
 	{
+		std::cerr << "Creating zbgen...\n" ;
 		genfile::GenFileSNPDataSource gen_file_snp_data_source( original ) ;
 		genfile::ZippedBGenFileSNPDataSink zipped_bgen_file_snp_data_sink( zbgen, "Free Data" ) ;
 		copy_gen_file( gen_file_snp_data_source, zipped_bgen_file_snp_data_sink ) ;
@@ -198,6 +202,8 @@ AUTO_TEST_CASE( test_formats ) {
 	std::string bzgen = tmpnam(0) ;
 	std::string zbgen = tmpnam(0) ;
 
+	std::cerr << "Creating files...\n" ;
+	
 	create_files( original, bgen, bzgen, zbgen ) ;
 	
 	genfile::GenFileSNPDataSource gen_file_snp_data_source( original ) ;
@@ -207,9 +213,13 @@ AUTO_TEST_CASE( test_formats ) {
 
 	std::vector< std::vector< SnpData > > results( 4 ) ;
 
+	std::cerr << "Reading gen file...\n" ;
 	results[0] = read_gen_file( gen_file_snp_data_source ) ;
+	std::cerr << "Reading bgen file...\n" ;
 	results[1] = read_gen_file( bgen_file_snp_data_source ) ;
+	std::cerr << "Reading bzgen file...\n" ;
 	results[2] = read_gen_file( bzgen_file_snp_data_source ) ;
+	std::cerr << "Reading zbgen file...\n" ;
 	results[3] = read_gen_file( zbgen_file_snp_data_source ) ;
 
 	TEST_ASSERT( results[1] == results[0] ) ;

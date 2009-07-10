@@ -31,7 +31,14 @@ namespace genfile {
 		}
 
 	public:
-		FormatType format() const { return e_BGenFormat ; }
+		FormatType format() const {
+			if( m_flags & bgen::e_CompressedSNPBlocks ) {
+				return e_BGenCompressedFormat ;
+			}
+			else {
+				return e_BGenFormat ;
+			}
+		}
 		std::ostream& stream() { return *m_stream_ptr ; }
 		std::ostream const& stream() const { return *m_stream_ptr ; }
 
