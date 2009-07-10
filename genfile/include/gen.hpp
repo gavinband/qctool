@@ -156,7 +156,7 @@ namespace genfile {
 			while( aStream ) ;
 
 			// catch the case of no trailing newline, in which case, we've undercounted
-			if( buffer[aStream.gcount()] != '\n' ) {
+			if( buffer[aStream.gcount() - 1] != '\n' ) {
 				++number_of_snp_blocks ;
 			}
 

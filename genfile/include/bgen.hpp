@@ -457,7 +457,6 @@ namespace genfile {
                 // Read the data and uncompress
                 aStream.read( reinterpret_cast< char*> (&compressed_data_buffer[0]), compressed_data_size ) ;
                 int result = uncompress( &uncompressed_data_buffer[0], &uncompressed_data_size, &compressed_data_buffer[0], compressed_data_size ) ;
-				std::cout << result << std::endl ;
                 assert( result == Z_OK ) ;
                 // Load the uncompressed data into an istringstream
                 std::istringstream sStream ;

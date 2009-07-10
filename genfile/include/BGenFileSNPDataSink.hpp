@@ -63,6 +63,9 @@ namespace genfile {
 		}
 
 	protected:
+		
+		std::auto_ptr< std::ostream >& stream_ptr() { return m_stream_ptr ; }
+		
 		void write_header_data( std::ostream& stream ) {
 			bgen::write_header_block(
 				stream,
@@ -130,6 +133,8 @@ namespace genfile {
 		std::string const& temp_filename() const { return BasicBGenFileSNPDataSink::filename() ; }
 
 		~ZippedBGenFileSNPDataSink() {
+			// Close the file we were writing.
+			stream_ptr().reset() ;
 			// Copy the temp file created by our base class, zipping it as we go.
 			std::auto_ptr< std::istream > input_file_ptr = open_binary_file_for_input( temp_filename(), e_NoCompression ) ;
 			std::auto_ptr< std::ostream > output_file_ptr = open_binary_file_for_output( m_filename, e_GzipCompression ) ;
