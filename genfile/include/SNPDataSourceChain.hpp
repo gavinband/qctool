@@ -29,6 +29,7 @@ namespace genfile {
 				throw FileContainsSNPsOfDifferentSizes() ;
 			}
 			m_providers.push_back( provider.release() ) ;
+			m_numbers_of_snps_read.push_back( 0u ) ;
 		}
 
 		unsigned int number_of_samples() const { return m_number_of_samples ; }
@@ -47,8 +48,8 @@ namespace genfile {
 
 		operator bool() const {
 			if( m_current_provider < m_providers.size() ) {
-				std::istream const& str = stream() ;
-				return ( str ? true : false ) ;
+				bool result = static_cast< bool >( *m_providers[ m_current_provider ] ) ;
+				return result ;
 			}
 			else {
 				return false ;
@@ -70,17 +71,14 @@ namespace genfile {
 
 		void pre_read_snp() {
 			// Make sure we switch to the next source when necessary.
-			for (
-				m_providers[ m_current_provider ]->stream().peek() ;
-				(!(*m_providers[m_current_provider])) && (m_current_provider < m_providers.size()) ;
-				++m_current_provider
-			) {
-				m_providers[ m_current_provider ]->stream().peek() ;
+			while(( m_current_provider < m_providers.size())
+				&& (m_numbers_of_snps_read[ m_current_provider ] < m_providers[m_current_provider]->total_number_of_snps())) {
+				++m_current_provider ;
 			}
 		}
 	
 		std::vector< SNPDataSource* > m_providers ;
-
+		std::vector< std::size_t > m_numbers_of_snps_read ;
 		std::size_t m_current_provider ;
 		unsigned int m_number_of_samples ;
 	} ;

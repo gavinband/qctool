@@ -22,7 +22,7 @@ namespace genfile {
 	{
 	public:
 
-		SNPDataSource() {} ;
+		SNPDataSource(): m_number_of_snps_read(0) {} ;
 		virtual ~SNPDataSource() {} ;
 
 		// The following methods must be overriden in derived classes
@@ -34,6 +34,8 @@ namespace genfile {
 
 		virtual unsigned int number_of_samples() const = 0;
 		virtual unsigned int total_number_of_snps() const = 0 ;
+
+		unsigned int number_of_snps_read() const { return m_number_of_snps_read ; }
 
 	protected:
 		virtual void pre_read_snp() {} ;
@@ -69,28 +71,32 @@ namespace genfile {
 		) {
 			pre_read_snp() ;
 
-			switch( format() ) {
-				case e_GenFormat:
-					gen::read_snp_block( stream(), set_number_of_samples, set_SNPID, set_RSID, set_SNP_position, set_allele1, set_allele2, set_genotype_probabilities ) ;
-					break ;
-				case e_BGenFormat:
-					bgen::read_snp_block( stream(), set_number_of_samples, set_SNPID, set_RSID, set_SNP_position, set_allele1, set_allele2, set_genotype_probabilities ) ;
-					break ;
-				case e_BGenCompressedFormat:
-					bgen::read_compressed_snp_block( stream(), set_number_of_samples, set_SNPID, set_RSID, set_SNP_position, set_allele1, set_allele2, set_genotype_probabilities ) ;
-					break ;
-				default:
-					assert(0) ; // invalid format type.
-			}
-		
 			if( *this ) {
-				post_read_snp() ;
-			}
+				switch( format() ) {
+					case e_GenFormat:
+						gen::read_snp_block( stream(), set_number_of_samples, set_SNPID, set_RSID, set_SNP_position, set_allele1, set_allele2, set_genotype_probabilities ) ;
+						break ;
+					case e_BGenFormat:
+						bgen::read_snp_block( stream(), set_number_of_samples, set_SNPID, set_RSID, set_SNP_position, set_allele1, set_allele2, set_genotype_probabilities ) ;
+						break ;
+					case e_BGenCompressedFormat:
+						bgen::read_compressed_snp_block( stream(), set_number_of_samples, set_SNPID, set_RSID, set_SNP_position, set_allele1, set_allele2, set_genotype_probabilities ) ;
+						break ;
+					default:
+						assert(0) ; // invalid format type.
+				}
 
+				if( *this ) {
+					++m_number_of_snps_read ;
+					post_read_snp() ;
+				}
+			}
+			
 			return *this ;
 		};
 	
 	private:
+		std::size_t m_number_of_snps_read ;
 	
 		SNPDataSource( SNPDataSource const& other ) ;
 		SNPDataSource& operator=( SNPDataSource const& other ) ;
