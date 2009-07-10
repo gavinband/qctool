@@ -269,7 +269,6 @@ namespace genfile {
 				if( i > 0 ) {
 					aStream << " " ;
 				}
-
 				aStream
 					<< get_AA_probability(i) << " "
 					<< get_AB_probability(i) << " "

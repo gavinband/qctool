@@ -627,7 +627,7 @@ private:
 		#endif
 	}
 
-	void process_gen_row( GenRow& row, std::size_t row_number ) {
+	void process_gen_row( GenRow const& row, std::size_t row_number ) {
 		m_row_statistics.process( row ) ;
 		m_row_statistics.round_genotype_amounts() ;
 		if( m_snp_filter->check_if_satisfied( m_row_statistics )) {
