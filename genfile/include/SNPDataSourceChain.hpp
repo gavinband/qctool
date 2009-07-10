@@ -1,5 +1,5 @@
-#ifndef SNPDATAPROVIDERCHAIN_HPP
-#define SNPDATAPROVIDERCHAIN_HPP
+#ifndef SNPDATAsourceCHAIN_HPP
+#define SNPDATAsourceCHAIN_HPP
 
 #include <iostream>
 #include <string>
@@ -12,43 +12,43 @@ namespace genfile {
 	class SNPDataSourceChain: public SNPDataSource
 	{
 	public:
-		SNPDataSourceChain(): m_current_provider(0), m_number_of_samples(0) {}
+		SNPDataSourceChain(): m_current_source(0), m_number_of_samples(0) {}
 
 		~SNPDataSourceChain() {
-			for( std::size_t i = 0; i < m_providers.size(); ++i ) {
-				delete m_providers[i] ;
+			for( std::size_t i = 0; i < m_sources.size(); ++i ) {
+				delete m_sources[i] ;
 			}
 		} ;
 
-		void add_provider( std::auto_ptr< SNPDataSource > provider ) {
-			if( m_providers.empty() ) {
-				m_number_of_samples = provider->number_of_samples() ;
-				m_current_provider = 0 ;
+		void add_source( std::auto_ptr< SNPDataSource > source ) {
+			if( m_sources.empty() ) {
+				m_number_of_samples = source->number_of_samples() ;
+				m_current_source = 0 ;
 			}
-			else if( provider->number_of_samples() != m_number_of_samples ) {
+			else if( source->number_of_samples() != m_number_of_samples ) {
 				throw FileContainsSNPsOfDifferentSizes() ;
 			}
-			m_providers.push_back( provider.release() ) ;
-			m_numbers_of_snps_read.push_back( 0u ) ;
+			m_sources.push_back( source.release() ) ;
+			m_number_of_snps_read.push_back( 0u ) ;
 		}
 
 		unsigned int number_of_samples() const { return m_number_of_samples ; }
 		unsigned int total_number_of_snps() const {
 			unsigned int total_number_of_snps = 0 ;
-			for( std::size_t i = 0; i < m_providers.size(); ++i ) {
-				total_number_of_snps += m_providers[i]->total_number_of_snps() ;
+			for( std::size_t i = 0; i < m_sources.size(); ++i ) {
+				total_number_of_snps += m_sources[i]->total_number_of_snps() ;
 			}
 			return total_number_of_snps ;
 		}
 
 		FormatType format() const {
-			assert( m_current_provider < m_providers.size() ) ;
-			return m_providers[ m_current_provider ]->format() ;
+			assert( m_current_source < m_sources.size() ) ;
+			return m_sources[ m_current_source ]->format() ;
 		}
 
 		operator bool() const {
-			if( m_current_provider < m_providers.size() ) {
-				bool result = static_cast< bool >( *m_providers[ m_current_provider ] ) ;
+			if( m_current_source < m_sources.size() ) {
+				bool result = static_cast< bool >( *m_sources[ m_current_source ] ) ;
 				return result ;
 			}
 			else {
@@ -57,13 +57,13 @@ namespace genfile {
 		}
 
 		std::istream const& stream() const {
-			assert( m_current_provider < m_providers.size() ) ;
-			return m_providers[ m_current_provider ]->stream() ;
+			assert( m_current_source < m_sources.size() ) ;
+			return m_sources[ m_current_source ]->stream() ;
 		}
 
 		std::istream& stream() {
-			assert( m_current_provider < m_providers.size() ) ;
-			return m_providers[ m_current_provider ]->stream() ;
+			assert( m_current_source < m_sources.size() ) ;
+			return m_sources[ m_current_source ]->stream() ;
 		}
 
 
@@ -71,15 +71,19 @@ namespace genfile {
 
 		void pre_read_snp() {
 			// Make sure we switch to the next source when necessary.
-			while(( m_current_provider < m_providers.size())
-				&& (m_numbers_of_snps_read[ m_current_provider ] < m_providers[m_current_provider]->total_number_of_snps())) {
-				++m_current_provider ;
+			while(( m_current_source < m_sources.size())
+				&& (m_number_of_snps_read[ m_current_source ] >= m_sources[m_current_source]->total_number_of_snps())) {
+				++m_current_source ;
 			}
 		}
+
+		void post_read_snp() {
+			++m_number_of_snps_read[ m_current_source ] ;
+		}
 	
-		std::vector< SNPDataSource* > m_providers ;
-		std::vector< std::size_t > m_numbers_of_snps_read ;
-		std::size_t m_current_provider ;
+		std::vector< SNPDataSource* > m_sources ;
+		std::vector< std::size_t > m_number_of_snps_read ;
+		std::size_t m_current_source ;
 		unsigned int m_number_of_samples ;
 	} ;
 }

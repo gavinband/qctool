@@ -24,7 +24,7 @@ namespace genfile {
 	std::auto_ptr< SNPDataSource > SNPDataSource::create( std::vector< std::string > const& filenames ) {
 		std::auto_ptr< SNPDataSourceChain > chain( new SNPDataSourceChain() ) ;
 		for( std::size_t i = 0; i < filenames.size(); ++i ) {
-			chain->add_provider( SNPDataSource::create( filenames[i] )) ;
+			chain->add_source( SNPDataSource::create( filenames[i] )) ;
 		}
 		return std::auto_ptr< SNPDataSource >( chain.release() ) ;
 	}

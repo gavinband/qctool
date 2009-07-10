@@ -22,7 +22,7 @@ namespace genfile {
 	{
 	public:
 
-		SNPDataSource(): m_number_of_snps_read(0) {} ;
+		SNPDataSource() {} ;
 		virtual ~SNPDataSource() {} ;
 
 		// The following methods must be overriden in derived classes
@@ -34,8 +34,6 @@ namespace genfile {
 
 		virtual unsigned int number_of_samples() const = 0;
 		virtual unsigned int total_number_of_snps() const = 0 ;
-
-		unsigned int number_of_snps_read() const { return m_number_of_snps_read ; }
 
 	protected:
 		virtual void pre_read_snp() {} ;
@@ -87,7 +85,6 @@ namespace genfile {
 				}
 
 				if( *this ) {
-					++m_number_of_snps_read ;
 					post_read_snp() ;
 				}
 			}
@@ -96,8 +93,6 @@ namespace genfile {
 		};
 	
 	private:
-		std::size_t m_number_of_snps_read ;
-	
 		SNPDataSource( SNPDataSource const& other ) ;
 		SNPDataSource& operator=( SNPDataSource const& other ) ;
 	} ;

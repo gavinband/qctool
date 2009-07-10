@@ -213,7 +213,7 @@ private:
 			try {
 				std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( m_gen_filenames[i] )) ;
 				m_gen_file_snp_counts[i] = snp_data_source->total_number_of_snps() ;
-				chain->add_provider( snp_data_source ) ;
+				chain->add_source( snp_data_source ) ;
 			}
 			catch ( genfile::FileHasTwoConsecutiveNewlinesError const& e ) {
 				std::cerr << "\n!!ERROR: a GEN file was specified having two consecutive newlines.\n"
