@@ -210,9 +210,17 @@ private:
 			boost::timer file_timer ;
 		#endif
 			m_cout << "(Opening gen file \"" << m_gen_filenames[i] << "\"...)" << std::flush ;
-			std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( m_gen_filenames[i] )) ;
-			m_gen_file_snp_counts[i] = snp_data_source->total_number_of_snps() ;
-			chain->add_provider( snp_data_source ) ;
+			try {
+				std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( m_gen_filenames[i] )) ;
+				m_gen_file_snp_counts[i] = snp_data_source->total_number_of_snps() ;
+				chain->add_provider( snp_data_source ) ;
+			}
+			catch ( genfile::FileHasTwoConsecutiveNewlinesError const& e ) {
+				std::cerr << "\n!!ERROR: a GEN file was specified having two consecutive newlines.\n"
+					<< "!! NOTE: popular editors, such as vim and nano, automatically add an extra newline to the file (which you can't see).\n"
+					<< "!!     : Please check that each SNP in the file is terminated by a single newline.\n" ;
+				throw ;
+			}
 		#ifdef HAVE_BOOST_TIMER
 			m_cout << " (" << file_timer.elapsed() << "s\n" ;
 		#else

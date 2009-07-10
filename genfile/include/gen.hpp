@@ -152,11 +152,22 @@ namespace genfile {
 			do {
 				aStream.read( &(buffer[0]), 1000000 ) ;
 				number_of_snp_blocks += std::count( buffer.begin(), buffer.begin() + aStream.gcount(), '\n' ) ;
+				// A gen file can't contain a blank line.
+				// Because popular editors (vim, nano, ..., but not emacs) typically add a trailing newline,
+				// we might get in the situation where the GEN file has two trailing newlines thus messing
+				// with our count.
+				// Therefore we check here for the special case where what we've read ends in two newlines.
+				if( (aStream.gcount() > 1) && (buffer[ aStream.gcount() - 1] == '\n') && (buffer[ aStream.gcount() - 2] == '\n') ) {
+					throw FileHasTwoConsecutiveNewlinesError() ;
+				}
 			}
 			while( aStream ) ;
 
-			// catch the case of no trailing newline, in which case, we've undercounted
-			if( buffer[aStream.gcount() - 1] != '\n' ) {
+			// Most editors (vim, nano, but not emacs) automatically add a newline to the end of the file.
+			// If the file has a trailing newline, we already have the correct count.
+			// But if not, we've undercounted by one.
+			std::size_t pos = aStream.gcount() - 1 ;
+			if( buffer[pos] != '\n' ) {
 				++number_of_snp_blocks ;
 			}
 

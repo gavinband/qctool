@@ -12,7 +12,6 @@ namespace genfile {
 	struct FileIsInvalidError: public SNPDataSourceError { char const* what() const throw() { return "FileIsInvalidError" ; } } ;
 	struct FileHasTrailingDataAfterLastSNP: public FileIsInvalidError { char const* what() const throw() { return "FileHasTrailingDataAfterLastSNP" ; } } ;
 	struct FileContainsSNPsOfDifferentSizes: public FileIsInvalidError { char const* what() const throw() { return "FileContainsSNPsOfDifferentSizes" ; } } ;
-	struct FileStructureInvalidError: public FileIsInvalidError { char const* what() const throw() { return "FileStructureInvalidError" ; } } ;
 
 	// Base class for classes which provide SNP assay data, one snp at a time.
 	// After the class is constructed, the intention is that
