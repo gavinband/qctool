@@ -25,10 +25,6 @@ GenotypeProportions const& GenRow::genotype_proportions_for_sample( std::size_t 
 	return m_genotype_proportions[ sampleNumber ] ;
 }
 
-void GenRow::reserveSpaceForNSamples( std::size_t number_of_samples ) {
-	m_genotype_proportions.reserve( number_of_samples ) ;
-}
-
 bool GenRow::operator==( GenRow const& right ) const {
 	return ( m_SNPID == right.m_SNPID )
 		&& ( m_RSID == right.m_RSID )
