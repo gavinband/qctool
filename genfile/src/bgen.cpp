@@ -78,16 +78,16 @@ namespace genfile {
 			std::ostream& aStream,
 			uint32_t number_of_snp_blocks,
 			uint32_t number_of_samples,
-			uint32_t snp_block_size,
 			std::string const& free_data,
 			uint32_t flags
 		) {
+			uint32_t reserved = 0u ;
 			impl::uint32_t header_size = get_header_block_size( free_data ) ;
 
 			impl::write_little_endian_integer( aStream, header_size ) ;
 			impl::write_little_endian_integer( aStream, number_of_snp_blocks ) ;
 			impl::write_little_endian_integer( aStream, number_of_samples ) ;
-			impl::write_little_endian_integer( aStream, snp_block_size ) ;
+			impl::write_little_endian_integer( aStream, reserved ) ;
 			aStream.write( free_data.data(), free_data.size() ) ;
 			impl::write_little_endian_integer( aStream, flags ) ;
 		}

@@ -73,7 +73,6 @@ namespace genfile {
             HeaderSizeSetter set_header_size,
             NumberOfSNPBlocksSetter set_number_of_snp_blocks,
             NumberOfSamplesSetter set_number_of_samples,
-            SNPBlockSizeSetter set_snp_block_size,
             FreeDataSetter set_free_data,
             FlagsSetter set_flags
         ) ;
@@ -86,7 +85,6 @@ namespace genfile {
             std::ostream& aStream,
             uint32_t number_of_snp_blocks,
             uint32_t number_of_samples,
-            uint32_t snp_block_size,
             std::string const& free_data,
             uint32_t flags
         ) ;
@@ -306,7 +304,6 @@ namespace genfile {
         typename HeaderSizeSetter,
         typename NumberOfSNPBlocksSetter,
         typename NumberOfSamplesSetter,
-        typename SNPBlockSizeSetter,
         typename FlagsSetter,
         typename FreeDataSetter
         >
@@ -315,7 +312,6 @@ namespace genfile {
             HeaderSizeSetter set_header_size,
             NumberOfSNPBlocksSetter set_number_of_snp_blocks,
             NumberOfSamplesSetter set_number_of_samples,
-            SNPBlockSizeSetter set_snp_block_size,
             FreeDataSetter set_free_data,
             FlagsSetter set_flags
         ) {
@@ -323,7 +319,7 @@ namespace genfile {
             header_size,
             number_of_snp_blocks,
             number_of_samples,
-            snp_block_size,
+            reserved,
             flags ;
 
             std::size_t fixed_data_size
@@ -335,7 +331,7 @@ namespace genfile {
             assert( header_size >= fixed_data_size ) ;
             impl::read_little_endian_integer( aStream, &number_of_snp_blocks ) ;
             impl::read_little_endian_integer( aStream, &number_of_samples ) ;
-            impl::read_little_endian_integer( aStream, &snp_block_size ) ;
+            impl::read_little_endian_integer( aStream, &reserved ) ;
             free_data.resize( header_size - fixed_data_size ) ;
             aStream.read( &(free_data[0]), header_size - fixed_data_size ) ;
             impl::read_little_endian_integer( aStream, &flags ) ;
@@ -344,7 +340,6 @@ namespace genfile {
                 set_header_size( header_size ) ;
                 set_number_of_snp_blocks( number_of_snp_blocks ) ;
                 set_number_of_samples( number_of_samples ) ;
-                set_snp_block_size( snp_block_size ) ;
                 set_free_data( std::string( free_data.begin(), free_data.end() )) ;
 				set_flags( flags ) ;
             }

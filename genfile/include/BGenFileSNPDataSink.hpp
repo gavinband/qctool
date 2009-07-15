@@ -47,7 +47,7 @@ namespace genfile {
 	private:
 
 		std::string m_filename ;
-		bgen::uint32_t m_number_of_samples, m_number_of_snps_written, m_snp_block_size ;
+		bgen::uint32_t m_number_of_samples, m_number_of_snps_written ;
 		std::string m_free_data ;
 		std::auto_ptr< std::ostream > m_stream_ptr ;
 		bgen::uint32_t m_flags ;
@@ -71,7 +71,6 @@ namespace genfile {
 				stream,
 				number_of_snps_written(),
 				number_of_samples(),
-				m_snp_block_size,
 				m_free_data,
 				m_flags
 			) ;
@@ -141,7 +140,7 @@ namespace genfile {
 
 			bgen::uint32_t offset ;
 			bgen::read_offset( *input_file_ptr, &offset ) ;
-			bgen::read_header_block( *input_file_ptr, ignore(), ignore(), ignore(), ignore(), ignore(), ignore()) ;
+			bgen::read_header_block( *input_file_ptr, ignore(), ignore(), ignore(), ignore(), ignore()) ;
 
 			// Write the offset and header into the output file.
 			bgen::write_offset( *output_file_ptr, offset ) ;

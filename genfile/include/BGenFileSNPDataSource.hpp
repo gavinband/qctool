@@ -67,7 +67,6 @@ namespace genfile {
 				set_value( m_total_number_of_snps ),
 				set_value( m_number_of_samples ),
 				ignore(),
-				ignore(),
 				set_value( m_flags )
 			) ;
 
