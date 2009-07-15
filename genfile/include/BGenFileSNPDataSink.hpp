@@ -10,13 +10,10 @@
 namespace genfile {
 
 	// This class encapsulates the basic method of writing a BGen file.
-	// However, to get the header block correct, it's necessary to rewrite the header
-	// block after all of the snp blocks have been written.  The mechanism to do this
-	// depends on whether the file is compressed or not (because we can't seek in a compressed file).
-	// Therefore we provide two specialisations below which handle the uncompressed (easy) or compressed (hard) case.
 	class BasicBGenFileSNPDataSink: public SNPDataSink
 	{
 	protected:
+		// This class is intended to be used via a derived class.
 		BasicBGenFileSNPDataSink(
 			std::string const& filename,
 			std::string const& free_data,
@@ -31,40 +28,33 @@ namespace genfile {
 		}
 
 	public:
-		FormatType format() const {
+		// Methods required by SNPDataSink
+		operator bool() const { return *m_stream_ptr ; }
+		
+		void write_snp_impl(
+			uint32_t number_of_samples,
+			std::string SNPID,
+			std::string RSID,
+			uint32_t SNP_position,
+			char first_allele,
+			char second_allele,
+			GenotypeProbabilityGetter const& get_AA_probability,
+			GenotypeProbabilityGetter const& get_AB_probability,
+			GenotypeProbabilityGetter const& get_BB_probability
+		) {
+			std::size_t id_field_size = std::min( std::max( SNPID.size(), RSID.size() ), static_cast< std::size_t >( 255 )) ;
 			if( m_flags & bgen::e_CompressedSNPBlocks ) {
-				return e_BGenCompressedFormat ;
+				bgen::write_compressed_snp_block( *stream_ptr(), number_of_samples, id_field_size, SNPID, RSID, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;				
 			}
 			else {
-				return e_BGenFormat ;
+				bgen::write_snp_block( *stream_ptr(), number_of_samples, id_field_size, SNPID, RSID, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
 			}
-		}
-		std::ostream& stream() { return *m_stream_ptr ; }
-		std::ostream const& stream() const { return *m_stream_ptr ; }
-
-		std::string const& filename() const { return m_filename ; }
-
-	private:
-
-		std::string m_filename ;
-		bgen::uint32_t m_number_of_samples, m_number_of_snps_written ;
-		std::string m_free_data ;
-		std::auto_ptr< std::ostream > m_stream_ptr ;
-		bgen::uint32_t m_flags ;
-		
-		void setup( std::string const& filename, CompressionType compression_type ) {
-			m_stream_ptr = open_binary_file_for_output( filename, compression_type ) ;
-			bgen::uint32_t offset = bgen::get_header_block_size( m_free_data ) ;
-			bgen::write_offset( (*m_stream_ptr), offset ) ;
-			write_header_data( *m_stream_ptr ) ;
-
-			// we will count the number of snps written and so 
-			m_number_of_snps_written = 0 ;
 		}
 
 	protected:
-		
+		// Other methods.
 		std::auto_ptr< std::ostream >& stream_ptr() { return m_stream_ptr ; }
+		std::string const& filename() const { return m_filename ; }
 		
 		void write_header_data( std::ostream& stream ) {
 			bgen::write_header_block(
@@ -75,6 +65,20 @@ namespace genfile {
 				m_flags
 			) ;
 		}
+		
+	private:
+
+		void setup( std::string const& filename, CompressionType compression_type ) {
+			m_stream_ptr = open_binary_file_for_output( filename, compression_type ) ;
+			bgen::uint32_t offset = bgen::get_header_block_size( m_free_data ) ;
+			bgen::write_offset( (*m_stream_ptr), offset ) ;
+			write_header_data( *m_stream_ptr ) ;
+		}
+
+		std::string m_filename ;
+		std::string m_free_data ;
+		std::auto_ptr< std::ostream > m_stream_ptr ;
+		bgen::uint32_t m_flags ;
 	} ;
 
 
@@ -96,12 +100,12 @@ namespace genfile {
 			// We are about to close the file.
 			// To write the correct header info, we seek back to the start and rewrite the header block
 			// The header comes after the offset which is 4 bytes.
-			stream().seekp(4, std::ios_base::beg ) ;
-			if( stream().bad() ) {
+			stream_ptr()->seekp(4, std::ios_base::beg ) ;
+			if( stream_ptr()->bad() ) {
 				throw FormatUnsupportedError() ;
 			}
 
-			write_header_data( stream() ) ;
+			write_header_data( *stream_ptr() ) ;
 		}
 	} ;
 

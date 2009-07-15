@@ -4,10 +4,8 @@
 #include <iostream>
 #include <string>
 #include <stddef.h>
+#include <boost/function.hpp>
 #include "snp_data_utils.hpp"
-#include "gen.hpp"
-#include "bgen.hpp"
-
 
 namespace genfile {
 	struct SNPDataSinkError: public std::exception { char const* what() const throw() { return "SNPDataSinkError" ; } } ;
@@ -26,28 +24,10 @@ namespace genfile {
 		static std::auto_ptr< SNPDataSink > create( std::string const& filename, std::string const& free_data = "" ) ;
 		static std::auto_ptr< SNPDataSink > create( std::string const& filename, CompressionType compression_type, std::string const& free_data = "" ) ;
 
-	public:
-		// Functions which must be provided by derived classes.
-		virtual operator bool() const { return stream() ; }
-		virtual std::ostream& stream() = 0 ;
-		virtual std::ostream const & stream() const = 0 ;
-		virtual FormatType format() const = 0;
-
-	protected:
-		/// Functions which can be provided by derived classes
-		virtual void pre_write_snp() {} ;
-		virtual void post_write_snp() {} ;
-
 	public:		
 
-		// Function write_snp().
-		// Ideally this would also be a virtual member function.
-		// However, a template member function can't be virtual.
-		// Therefore, we dispatch to the correct implementation using the format()
-		// and stream() members which implementations must provide.
-		template<
-			typename GenotypeProbabilityGetter
-		>
+		typedef boost::function< double ( std::size_t ) > GenotypeProbabilityGetter ;
+
 		SNPDataSink& write_snp(
 			uint32_t number_of_samples,
 			std::string SNPID,
@@ -55,46 +35,50 @@ namespace genfile {
 			uint32_t SNP_position,
 			char first_allele,
 			char second_allele,
-			GenotypeProbabilityGetter get_AA_probability,
-			GenotypeProbabilityGetter get_AB_probability,
-			GenotypeProbabilityGetter get_BB_probability
+			GenotypeProbabilityGetter const& get_AA_probability,
+			GenotypeProbabilityGetter const& get_AB_probability,
+			GenotypeProbabilityGetter const& get_BB_probability
 		) {
 			if( m_number_of_samples == 0 ) {
 				m_number_of_samples = number_of_samples ;
 			}
-			assert(  m_number_of_samples == number_of_samples ) ;
-
-			pre_write_snp() ;
-
-			std::size_t id_field_size = std::min( std::max( SNPID.size(), RSID.size() ), static_cast< std::size_t >( 255 )) ;
-
-			switch( format() ) {
-				case e_GenFormat:
-					gen::write_snp_block( stream(), number_of_samples, SNPID, RSID, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
-					break ;
-				case e_BGenFormat:
-					bgen::write_snp_block( stream(), number_of_samples, id_field_size, SNPID, RSID, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
-					break ;
-				case e_BGenCompressedFormat:
-					bgen::write_compressed_snp_block( stream(), number_of_samples, id_field_size, SNPID, RSID, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
-					break ;
-				default:
-					assert(0) ; // invalid format type.
+			else {
+				assert( number_of_samples != m_number_of_samples ) ;
 			}
-
-			if( stream()) {
+			write_snp_impl( number_of_samples, SNPID, RSID, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
+			if( *this ) {
 				++m_number_of_snps_written ;
-				post_write_snp() ;
 			}
 			return *this ;
-		};
-	
+		} ;
+
 	public:
+
 		// return the number of samples represented in SNPs in the file.
 		// The value returned is undefined until after the first snp has been written.
 		uint32_t number_of_samples() const { return m_number_of_samples ; }
 		// return the number of SNPs that have been written to the file so far.
 		std::size_t number_of_snps_written() const { return m_number_of_snps_written ; }
+
+
+	public:
+		// The following functions must be implemented by derived classes.
+		virtual operator bool() const = 0 ;
+
+	protected:
+		
+		// This function implements the SNP writing, and must be implemented by derived classes.
+		virtual void write_snp_impl(
+			uint32_t number_of_samples,
+			std::string SNPID,
+			std::string RSID,
+			uint32_t SNP_position,
+			char first_allele,
+			char second_allele,
+			GenotypeProbabilityGetter const& get_AA_probability,
+			GenotypeProbabilityGetter const& get_AB_probability,
+			GenotypeProbabilityGetter const& get_BB_probability
+		) = 0 ;
 
 	private:
 	

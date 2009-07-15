@@ -173,7 +173,7 @@ private:
 		std::string expanded_output_filename = output_filename ;
 		std::size_t wildcard_pos = output_filename.find( '#' ) ;
 		if( wildcard_pos != std::string::npos ) {
-			expanded_output_filename.replace( wildcard_pos, wildcard_pos + 1, input_filename_wildcard_match ) ;			
+			expanded_output_filename.replace( wildcard_pos, 1, input_filename_wildcard_match ) ;			
 		}
 		m_gen_input_filenames.push_back( input_filename ) ;
 		m_gen_output_filenames.push_back( expanded_output_filename ) ;
@@ -228,7 +228,7 @@ private:
 	void open_gen_output_files() {
 		m_output_chain.reset( new genfile::SNPDataSinkChain() ) ;
 		std::string output_filename = "" ;
-		for( std::size_t i ; i < m_gen_output_filenames.size(); ++i ) {
+		for( std::size_t i = 0 ; i < m_gen_output_filenames.size(); ++i ) {
 			if( m_gen_output_filenames[i] != output_filename ) {
 				output_filename = m_gen_output_filenames[i] ;
 				add_gen_file_to_chain( *m_output_chain, output_filename ) ;
@@ -246,7 +246,7 @@ private:
 
 	void move_to_next_output_file( std::size_t index ) {
 		m_cout
-			<< "\fHave written "
+			<< "Have written "
 			<< m_output_chain->number_of_snps_written()
 			<< " SNPs so far.\n"
 			<< "Moving to file combination: \""
@@ -339,13 +339,13 @@ private:
 			++number_of_snps_processed ;
 			// print a message every 1000 seconds.
 			if( number_of_snps_processed % 1000 == 0 ) {
-				m_cout << "\fProcessed " << number_of_snps_processed << " SNPs (" << timer.elapsed() << "s)\n" ;
+				m_cout << "Processed " << number_of_snps_processed << " SNPs (" << timer.elapsed() << "s)\n" ;
 			}
 			write_snp(row) ;
 		}
 
 	#if HAVE_BOOST_TIMER
-		std::cerr << "gen-select: processed GEN file(s) (" << m_total_number_of_snps << " rows) in " << timer.elapsed() << " seconds.\n" ;
+		std::cerr << "gen-select: processed GEN file(s) (" << number_of_snps_processed << " rows) in " << timer.elapsed() << " seconds.\n" ;
 	#endif
 	
 		m_cout << "Post-processing (updating file header, compression)..." << std::flush ;
@@ -384,7 +384,7 @@ private:
 			boost::bind< double >( &GenRow::get_BB_probability, &row, _1 )
 		) ;
 	}
-	
+
 	void close_all_files() {
 		m_input_chain.reset() ;
 		m_output_chain.reset() ;
@@ -401,7 +401,6 @@ private:
 	OptionProcessor const& m_options ;
 	
 	std::vector< std::size_t > m_gen_file_snp_counts ;
-	std::size_t m_total_number_of_snps ;
 	std::size_t m_number_of_samples_from_gen_file ;
 	
 	std::vector< std::string > m_gen_input_filenames ;

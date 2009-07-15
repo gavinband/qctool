@@ -82,8 +82,8 @@ private:
 } ;
 
 struct ProbabilityGetter {
-	ProbabilityGetter( std::vector< probabilities_t >& probabilities, int index ): m_probabilities( probabilities ), m_index( index ) {}
-	double operator() ( std::size_t i ) {
+	ProbabilityGetter( std::vector< probabilities_t > const& probabilities, int index ): m_probabilities( probabilities ), m_index( index ) {}
+	double operator() ( std::size_t i ) const {
 		switch( m_index ) {
 			case 0: return m_probabilities[i].AA ; break ;
 			case 1: return m_probabilities[i].AB ; break ;
@@ -94,7 +94,7 @@ struct ProbabilityGetter {
 		}
 	}
 private:
-	std::vector<probabilities_t>& m_probabilities ;
+	std::vector<probabilities_t> const& m_probabilities ;
 	int m_index ;
 } ;
 
