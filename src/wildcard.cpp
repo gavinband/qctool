@@ -42,10 +42,10 @@ std::pair< std::vector< std::string >, std::vector< std::string > > find_files_m
 			std::string filename = dir_i->filename();
 			std::string matching_part ;
 			if( have_wildcard && impl::check_if_filename_matches_filename_with_wildcard( filename, filename_before_wildcard, filename_after_wildcard )) {
-				result.first.push_back(( dir / filename ).string()) ;
+				result.first.push_back( filename ) ;
 			}
 			else if( filename == filename_before_wildcard ){
-				result.first.push_back(( dir / filename ).string()) ;
+				result.first.push_back( filename ) ;
 			}
 		}
 	}
@@ -56,9 +56,11 @@ std::pair< std::vector< std::string >, std::vector< std::string > > find_files_m
 #endif
 
 	// Now construct the list of matching segments in the second part of our return value
+	// Also add back in the directory part.
 	for( std::size_t i = 0; i < result.first.size(); ++i ) {
-		std::string const& ith_filename = result.first[i] ;
+		std::string& ith_filename = result.first[i] ;
 		result.second.push_back( ith_filename.substr( filename_before_wildcard.size(), ith_filename.size() - filename_before_wildcard.size() - filename_after_wildcard.size() )) ;
+		ith_filename = ( dir / ith_filename ).string() ;
 	}
 
 	return result ;

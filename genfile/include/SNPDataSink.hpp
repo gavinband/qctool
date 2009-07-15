@@ -26,10 +26,19 @@ namespace genfile {
 		static std::auto_ptr< SNPDataSink > create( std::string const& filename, std::string const& free_data = "" ) ;
 		static std::auto_ptr< SNPDataSink > create( std::string const& filename, CompressionType compression_type, std::string const& free_data = "" ) ;
 
+	public:
+		// Functions which must be provided by derived classes.
 		virtual operator bool() const { return stream() ; }
 		virtual std::ostream& stream() = 0 ;
 		virtual std::ostream const & stream() const = 0 ;
 		virtual FormatType format() const = 0;
+
+	protected:
+		/// Functions which can be provided by derived classes
+		virtual void pre_write_snp() {} ;
+		virtual void post_write_snp() {} ;
+
+	public:		
 
 		// Function write_snp().
 		// Ideally this would also be a virtual member function.
@@ -80,11 +89,11 @@ namespace genfile {
 			return *this ;
 		};
 	
-	protected:
-		virtual void pre_write_snp() {} ;
-		virtual void post_write_snp() {} ;
-		
+	public:
+		// return the number of samples represented in SNPs in the file.
+		// The value returned is undefined until after the first snp has been written.
 		uint32_t number_of_samples() const { return m_number_of_samples ; }
+		// return the number of SNPs that have been written to the file so far.
 		std::size_t number_of_snps_written() const { return m_number_of_snps_written ; }
 
 	private:

@@ -20,6 +20,8 @@ def configure( conf ):
 		conf.define( 'HAVE_BOOST_TIMER', 1 )
 	if conf.check_boost( header_name='math/tr1.hpp'):
 		conf.define( 'HAVE_BOOST_MATH', 1 )
+		if conf.check_boost( header_name='function.hpp'):
+			conf.define( 'HAVE_BOOST_FUNCTION', 1 )
 	conf.define ( 'GTOOL_USE_FAST_FLOAT_PARSER', 1 )
 
 	if conf.check_cxx( lib = 'sqlite3', uselib_store='SQLITE3', define_name='HAVE_SQLITE3' ):
@@ -133,6 +135,14 @@ def build( bld ):
 		features = 'cxx cprogram',
 		target = 'gen-select',
 		source = [  'src/gen-select.cpp' ],
+		includes='./include ./genfile/include',
+		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile'
+	)
+
+	bld.new_task_gen(
+		features = 'cxx cprogram',
+		target = 'gen-convert',
+		source = [  'src/gen-convert.cpp' ],
 		includes='./include ./genfile/include',
 		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile'
 	)

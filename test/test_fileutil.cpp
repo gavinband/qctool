@@ -18,6 +18,7 @@
 #endif
 
 void do_test( std::string path_with_wildcards, bool expect ) {
+	std::cout << "Searching for files matching \"" << path_with_wildcards << "\"...\n" ;
 	std::pair< std::vector< std::string >, std::vector< std::string > > filenames = find_files_matching_path_with_wildcard( path_with_wildcards ) ;
 	TEST_ASSERT( filenames.first.size() == filenames.second.size() ) ;
 	if( expect )
