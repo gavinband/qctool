@@ -43,7 +43,7 @@ namespace genfile {
 				m_number_of_samples = number_of_samples ;
 			}
 			else {
-				assert( number_of_samples != m_number_of_samples ) ;
+				assert( number_of_samples == m_number_of_samples ) ;
 			}
 			write_snp_impl( number_of_samples, SNPID, RSID, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
 			if( *this ) {
