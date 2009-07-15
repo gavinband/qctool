@@ -38,6 +38,7 @@
 #include "SampleOutputFile.hpp"
 #include "GenotypeAssayStatisticFactory.hpp"
 #include "HardyWeinbergExactTestStatistic.hpp"
+#include "wildcard.hpp"
 #include "string_utils.hpp"
 
 std::vector< std::string > expand_filename_wildcards( std::string const& option_name, std::vector< std::string > const& filenames ) ;
@@ -755,11 +756,28 @@ bool check_if_string_is_a_number_from_1_to_100( std::string const& a_string ) {
 std::vector< std::string > expand_filename_wildcards( std::string const& option_name, std::vector< std::string > const& filenames ) {
 	std::vector< std::string > result ;
 	for( std::size_t i = 0; i < filenames.size(); ++i ) {
-		std::vector< std::string > expanded_filename = find_files_matching_path_with_wildcard( filenames[i], '#', &check_if_string_is_a_number_from_1_to_100 ) ;
-		if( expanded_filename.empty() ) {
-			throw OptionValueInvalidException( option_name, filenames, "No file can be found matching filename \"" + filenames[i] + "\"." ) ;
+		if( filenames[i].find( '#' ) != std::string::npos ) {
+			std::pair< std::vector< std::string >, std::vector< std::string > > expanded_filename = find_files_matching_path_with_wildcard( filenames[i], '#' ) ;
+			if( expanded_filename.first.empty() ) {
+				throw OptionValueInvalidException( option_name, filenames, "No file can be found matching filename \"" + filenames[i] + "\"." ) ;
+			}
+
+			// We only allow matches corresponding to numbers 1 to 100
+			for( std::size_t j = 0; j < expanded_filename.first.size(); ) {
+				if( !check_if_string_is_a_number_from_1_to_100( expanded_filename.second[j] )) {
+					expanded_filename.first.erase( expanded_filename.first.begin() + j ) ;
+					expanded_filename.second.erase( expanded_filename.second.begin() + j ) ;
+				}
+				else {
+					++j ;
+				}
+			}
+
+			std::copy( expanded_filename.first.begin(), expanded_filename.first.end(), std::back_inserter( result )) ;
 		}
-		std::copy( expanded_filename.begin(), expanded_filename.end(), std::back_inserter( result )) ;
+		else {
+			result.push_back( filenames[i] ) ;
+		}
 	}
 
 	return result ;

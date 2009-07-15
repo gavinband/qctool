@@ -42,51 +42,8 @@ open_file_for_output( std::string const& filename, int mode_flags ) ;
 OUTPUT_FILE_PTR
 open_file_for_output( std::string const& filename ) ;
 
-typedef bool (*wildcard_match_checker_t)( std::string const& ) ;
-std::vector< std::string > find_files_matching_path_with_wildcard( std::string filename_with_wildcards, char wildcard_char = '*', wildcard_match_checker_t = 0 ) ;
-
 bool exists( std::string const& filename ) ;
 bool is_regular( std::string const& filename ) ;
-
-
-// Read a set of things from a file (optionally gzipped).
-template< typename Set >
-Set read_set_from_file( std::string filename, int mode_flags ) {
-	Set aSet ;
-	INPUT_FILE_PTR aStream( open_file_for_input( filename, mode_flags )) ;
-	if( aStream.get() && aStream->good() ) {
-		std::copy( std::istream_iterator< typename Set::value_type >( *aStream ),
-		           std::istream_iterator< typename Set::value_type >(),
-		           std::inserter( aSet, aSet.end() )) ;
-	}
-
-	return aSet ;
-}
-
-
-template< typename Set >
-struct FromFileSet: Set
-{
-	typedef typename Set::value_type value_type ;
-	
-	FromFileSet( std::string filename ) {
-		INPUT_FILE_PTR aStream( open_file_for_input( filename )) ;
-		if( !(*aStream) ) {
-			throw FileException( "FromFileSet: Error opening file \"" + filename + "\".  Must be a readable file." ) ;
-		}
-
-		value_type value ;
-
-		while( (*aStream) >> value ) {
-			this->insert( value ) ;
-		}
-		
-		if( aStream->bad() ) {
-			throw FileException( "FromFileSet: Error reading entries -- the file must be a whitespace-separated list." ) ;
-		}
-	}
-} ;
-
 
 #endif
 

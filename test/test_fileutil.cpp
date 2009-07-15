@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 #include "FileUtil.hpp"
+#include "wildcard.hpp"
+
 #if HAVE_BOOST_UNIT_TEST
 	#define BOOST_AUTO_TEST_MAIN
 	#include "boost/test/auto_unit_test.hpp"
@@ -16,14 +18,15 @@
 #endif
 
 void do_test( std::string path_with_wildcards, bool expect ) {
-	std::vector< std::string > filenames = find_files_matching_path_with_wildcard( path_with_wildcards ) ;
+	std::pair< std::vector< std::string >, std::vector< std::string > > filenames = find_files_matching_path_with_wildcard( path_with_wildcards ) ;
+	TEST_ASSERT( filenames.first.size() == filenames.second.size() ) ;
 	if( expect )
-		TEST_ASSERT( filenames.size() > 0 ) ;
+		TEST_ASSERT( filenames.first.size() > 0 ) ;
 	else
-		TEST_ASSERT( filenames.size() == 0 ) ;
+		TEST_ASSERT( filenames.first.size() == 0 ) ;
 
-	for( std::size_t i = 0; i < filenames.size(); ++i ) {
-		std::cout << filenames[i] << "\n" ;
+	for( std::size_t i = 0; i < filenames.first.size(); ++i ) {
+		std::cout << "file: " << filenames.first[i] << ", matching part: " << filenames.second[i] << ".\n" ;
 	}
 }
 

@@ -92,6 +92,7 @@ def build( bld ):
 			'src/AlleleProportions.cpp',
 			'src/Condition.cpp',
 			'src/FileUtil.cpp',
+			'src/wildcard.cpp',
 			'src/GToolException.cpp',
 			'src/GenRow.cpp',
 			'src/GenRowSource.cpp',

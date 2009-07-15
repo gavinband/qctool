@@ -5,7 +5,7 @@
 #include <set>
 #include "GenRow.hpp"
 #include "RowCondition.hpp"
-#include "FileUtil.hpp"
+#include "FileSet.hpp"
 #include "string_to_value_map.hpp"
 
 struct SNPInListCondition: public RowCondition
