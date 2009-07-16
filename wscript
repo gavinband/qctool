@@ -134,7 +134,7 @@ def build( bld ):
 	bld.new_task_gen(
 		features = 'cxx cprogram',
 		target = 'gen-select',
-		source = [  'src/gen-select.cpp' ],
+		source = [  'apps/gen-select.cpp' ],
 		includes='./include ./genfile/include',
 		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile'
 	)
@@ -142,7 +142,7 @@ def build( bld ):
 	bld.new_task_gen(
 		features = 'cxx cprogram',
 		target = 'gen-convert',
-		source = [  'src/gen-convert.cpp' ],
+		source = [  'apps/gen-convert.cpp' ],
 		includes='./include ./genfile/include',
 		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile'
 	)
