@@ -12,15 +12,13 @@
 #if HAVE_BOOST_TIMER
 	#include <boost/timer.hpp>
 #endif
+#include <boost/bind.hpp>
 #include "GenRow.hpp"
 #include "SampleRow.hpp"
 #include "AlleleProportions.hpp"
 #include "GToolException.hpp"
 #include "OptionProcessor.hpp"
-#include "Whitespace.hpp"
 #include "FileUtil.hpp"
-#include "GenRowSource.hpp"
-#include "GenRowSink.hpp"
 #include "SNPDataSource.hpp"
 #include "SNPDataSourceChain.hpp"
 #include "SNPDataSink.hpp"
