@@ -32,7 +32,6 @@ namespace genfile {
 				throw FileContainsSNPsOfDifferentSizes() ;
 			}
 			m_sources.push_back( source.release() ) ;
-			m_number_of_snps_read.push_back( 0u ) ;
 		}
 
 		unsigned int number_of_samples() const { return m_number_of_samples ; }
@@ -69,16 +68,23 @@ namespace genfile {
 			AlleleSetter const& set_allele2,
 			GenotypeProbabilitySetter const& set_genotype_probabilities
 		) {
-			assert( m_current_source < m_sources.size() ) ;
-			m_sources[m_current_source]->read_snp(
-				set_number_of_samples,
-				set_SNPID,
-				set_RSID,
-				set_SNP_position,
-				set_allele1,
-				set_allele2,
-				set_genotype_probabilities
-			) ;
+			// Move to the next nonempty source, if needed.
+			while(( m_current_source < m_sources.size())
+				&& (m_sources[ m_current_source ]->number_of_snps_read() >= m_sources[m_current_source]->total_number_of_snps())) {
+				move_to_next_source() ;
+			}
+
+			if( m_current_source < m_sources.size() ) {
+				m_sources[m_current_source]->read_snp(
+					set_number_of_samples,
+					set_SNPID,
+					set_RSID,
+					set_SNP_position,
+					set_allele1,
+					set_allele2,
+					set_genotype_probabilities
+				) ;
+			}
 		}
 
 	public:
@@ -93,14 +99,6 @@ namespace genfile {
 
 	private:
 
-		void pre_read_snp() {
-			// Make sure we switch to the next source when necessary.
-			while(( m_current_source < m_sources.size())
-				&& (m_number_of_snps_read[ m_current_source ] >= m_sources[m_current_source]->total_number_of_snps())) {
-				move_to_next_source() ;
-			}
-		}
-		
 		void move_to_next_source() {
 			++m_current_source ;
 			if( m_moved_to_next_source_callback ) {
@@ -108,12 +106,7 @@ namespace genfile {
 			}
 		}
 
-		void post_read_snp() {
-			++m_number_of_snps_read[ m_current_source ] ;
-		}
-	
 		std::vector< SNPDataSource* > m_sources ;
-		std::vector< std::size_t > m_number_of_snps_read ;
 		std::size_t m_current_source ;
 		unsigned int m_number_of_samples ;
 		

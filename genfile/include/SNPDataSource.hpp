@@ -3,10 +3,9 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 #include <boost/function.hpp>
 #include "snp_data_utils.hpp"
-#include "gen.hpp"
-#include "bgen.hpp"
 
 namespace genfile {
 	struct SNPDataSourceError: public SNPDataError { char const* what() const throw() { return "SNPDataSourceError" ; } } ;
@@ -23,15 +22,17 @@ namespace genfile {
 	{
 	public:
 
-		SNPDataSource() {} ;
+		SNPDataSource(): m_number_of_snps_read(0) {} ;
 		virtual ~SNPDataSource() {} ;
 
 		// The following methods must be overriden in derived classes
 	public:
 		virtual operator bool() const = 0 ;
-
 		virtual unsigned int number_of_samples() const = 0;
 		virtual unsigned int total_number_of_snps() const = 0 ;
+
+	public:
+		std::size_t number_of_snps_read() const { return m_number_of_snps_read ; }
 
 	protected:
 		typedef boost::function< void ( uint32_t ) > IntegerSetter ;
@@ -50,15 +51,11 @@ namespace genfile {
 			GenotypeProbabilitySetter const& set_genotype_probabilities
 		) = 0 ;
 
-		virtual void pre_read_snp() {} ;
-		virtual void post_read_snp() {} ;
-
 	public:
 		// The following methods are factory functions
 		static std::auto_ptr< SNPDataSource > create( std::string const& filename ) ;
 		static std::auto_ptr< SNPDataSource > create( std::string const& filename, CompressionType compression_type ) ;
 		static std::auto_ptr< SNPDataSource > create( std::vector< std::string > const& filenames ) ;
-
 
 		// Function read_snp().
 		// This is the method which returns snp data from the source.
@@ -76,7 +73,6 @@ namespace genfile {
 			GenotypeProbabilitySetter set_genotype_probabilities
 		)
 		{
-			pre_read_snp() ;
 			read_snp_impl(
 				set_number_of_samples,
 				set_SNPID,
@@ -87,13 +83,14 @@ namespace genfile {
 				set_genotype_probabilities
 			) ;
 			if( *this ) {
-				post_read_snp() ;
+				++m_number_of_snps_read ;
 			}
 			return *this ;
 		}
 		
 		
 	private:
+		std::size_t m_number_of_snps_read ;
 		SNPDataSource( SNPDataSource const& other ) ;
 		SNPDataSource& operator=( SNPDataSource const& other ) ;
 	} ;
