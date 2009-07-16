@@ -245,18 +245,8 @@ private:
 	}
 
 	void move_to_next_output_file( std::size_t index ) {
-		m_cout
-			<< globals::program_name << ": ("
-			<< m_output_chain->number_of_snps_written()
-			<< " SNPs written)" ;
 		if( index < m_gen_input_filenames.size() ) {
-			m_cout
-				<< ": "
-				<< m_gen_input_filenames[index]
-				<< "\" -> \""
-				<< m_gen_output_filenames[index]
-				<< "\".\n" ;
-
+			m_output_file_index = index ;
 			if( m_gen_output_filenames[ index ] != m_current_output_filename ) {
 				m_current_output_filename = m_gen_output_filenames[ index ] ;
 				m_output_chain->move_to_next_sink() ;
@@ -287,7 +277,7 @@ public:
 					<< "\"" << std::setw(20) << m_gen_input_filenames[i] << "\""
 					<< " -> \"" << m_gen_output_filenames[i] << "\"\n";
 			}
-			oStream << std::string( 30, ' ' ) << "  (total " << m_input_chain->total_number_of_snps() << " snps).\n" ;
+			oStream << std::string( 30, ' ' ) << "  (total " << m_input_chain->total_number_of_snps() << " snps).\n\n" ;
 
 			if( !m_errors.empty() ) {
 				for( std::size_t i = 0; i < m_errors.size(); ++i ) {
@@ -303,6 +293,11 @@ public:
 			oStream << std::string( 72, '=' ) << "\n\n" ;
 			throw ;
 		}
+	}
+
+	void write_postamble( std::ostream& oStream ) const {
+		oStream << "\n"
+			<< "Thank you for using " << globals::program_name << ".\n" ;
 	}
 
 	void do_checks() {
@@ -332,26 +327,54 @@ private:
 	}
 
 	void process_gen_rows() {
-	#ifdef HAVE_BOOST_TIMER
+#if HAVE_BOOST_TIMER
 		boost::timer timer ;
-	#endif
+#endif
 		open_gen_output_files() ;
 
 		GenRow row ;
 		row.set_number_of_samples( m_number_of_samples_from_gen_file ) ;
 
+		m_cout << "Converting GEN files...\n" ;
+
+		double last_time = -5.0 ;
 		std::size_t number_of_snps_processed = 0 ;
 		while( read_snp(row) ) {
 			++number_of_snps_processed ;
-			// print a message every 1000 seconds.
+			// print a message every 5 seconds.
+
+#if HAVE_BOOST_TIMER
+			double time_now = timer.elapsed() ;
+			if( time_now - last_time >= 1.0 || number_of_snps_processed == m_input_chain->total_number_of_snps() ) {
+				std::size_t progress = (static_cast< double >( number_of_snps_processed ) / m_input_chain->total_number_of_snps()) * 30.0 ;
+				m_cout
+					<< "\r["
+					<< std::string( progress, '*' )
+					<< std::string( 30 - progress, ' ' )
+					<< "]"
+					<< " ("
+					<< number_of_snps_processed
+					<< "/"
+					<< m_input_chain->total_number_of_snps()
+					<< " SNPs, "
+					<< std::fixed << std::setprecision(1) << timer.elapsed()
+					<< "s, "
+					<< std::setw( 5 ) << std::fixed << std::setprecision(1) << (number_of_snps_processed / timer.elapsed())
+					<< " SNPs/s)" 
+					<< std::string( std::size_t(5), ' ' )
+ 					<< std::flush ;
+				last_time = time_now ;
+			}
+#else
 			if( number_of_snps_processed % 1000 == 0 ) {
 				m_cout << "Processed " << number_of_snps_processed << " SNPs (" << timer.elapsed() << "s)\n" ;
 			}
+#endif
 			write_snp(row) ;
 		}
 
 	#if HAVE_BOOST_TIMER
-		std::cerr << globals::program_name << ": converted GEN file(s) (" << number_of_snps_processed << " SNPs) in " << timer.elapsed() << " seconds.\n" ;
+		std::cerr << "Converted GEN file(s) (" << number_of_snps_processed << " SNPs) in " << timer.elapsed() << " seconds.\n" ;
 	#endif
 	
 		m_cout << "Post-processing (updating file header, compression)..." << std::flush ;
@@ -413,6 +436,8 @@ private:
 	typedef std::vector< std::string > output_filenames_t ;
 	output_filenames_t m_gen_output_filenames ;
 
+	std::size_t m_output_file_index ;
+
 	std::vector< std::string > m_errors ;
 } ;
 
@@ -438,6 +463,7 @@ int main( int argc, char** argv ) {
 		processor.do_checks() ;
 		processor.write_preamble( std::cout ) ;
 		processor.process() ;
+		processor.write_postamble( std::cout ) ;
 	}
 	catch( std::exception const& e )
 	{

@@ -31,12 +31,12 @@ namespace genfile {
 	template< typename T > ValueSetter< T > set_value( T& t ) {
 		return ValueSetter< T >( t ) ;
 	}
-	
 
 	enum CompressionType { e_NoCompression = 0, e_GzipCompression = 1 } ;
 
+	bool filename_indicates_gen_format( std::string const& filename ) ;
 	bool filename_indicates_bgen_format( std::string const& filename ) ;
-	bool filename_indicates_bgen_compressed_format( std::string const& filename ) ;
+	bool filename_indicates_bgen_uncompressed_format( std::string const& filename ) ;
 	CompressionType get_compression_type_indicated_by_filename( std::string const& filename ) ;
 
 
