@@ -127,13 +127,13 @@ AUTO_TEST_CASE( test_genrow_binary_io ) {
 
 		genfile::bgen::read_snp_block(
 			anotherInStream,
-			boost::bind< void >( &GenRow::set_number_of_samples, &row, _1 ),
-			boost::bind< void >( &GenRow::set_SNPID, &row, _1 ),
-			boost::bind< void >( &GenRow::set_RSID, &row, _1 ),
-			boost::bind< void >( &GenRow::set_SNP_position, &row, _1 ),
-			boost::bind< void >( &GenRow::set_allele1, &row, _1 ),
-			boost::bind< void >( &GenRow::set_allele2, &row, _1 ),
-			boost::bind< void >( &GenRow::set_genotype_probabilities, &row, _1, _2, _3, _4 )
+			boost::bind< void >( &GenRow::set_number_of_samples, &row2, _1 ),
+			boost::bind< void >( &GenRow::set_SNPID, &row2, _1 ),
+			boost::bind< void >( &GenRow::set_RSID, &row2, _1 ),
+			boost::bind< void >( &GenRow::set_SNP_position, &row2, _1 ),
+			boost::bind< void >( &GenRow::set_allele1, &row2, _1 ),
+			boost::bind< void >( &GenRow::set_allele2, &row2, _1 ),
+			boost::bind< void >( &GenRow::set_genotype_probabilities, &row2, _1, _2, _3, _4 )
 		) ;
 		std::cout << row2 ;
 		assert( row2 == row ) ;

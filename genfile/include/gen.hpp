@@ -130,6 +130,17 @@ namespace genfile {
 
 	/* IMPLEMENTATION */
 
+		namespace impl {
+	        void read_snp_identifying_data(
+	            std::istream& aStream,
+	            std::string* SNPID,
+	            std::string* RSID,
+	            uint32_t* SNP_position,
+	            char* first_allele,
+	            char* second_allele
+			) ;
+		}
+
 		template<
 			typename NumberOfSNPBlocksSetter,
 			typename NumberOfSamplesSetter,
@@ -141,13 +152,10 @@ namespace genfile {
 			NumberOfSamplesSetter set_number_of_samples,
 			FlagsSetter set_flags
 		) {
-			uint32_t
-				number_of_samples,
-				number_of_snp_blocks ;
-
+			uint32_t number_of_samples ;
 			read_snp_block( aStream, set_value( number_of_samples ), ignore(), ignore(), ignore(), ignore(), ignore(), ignore() ) ;
-			number_of_snp_blocks = 1 ;
 
+			uint32_t number_of_snp_blocks = 1 ;
 			std::vector< char > buffer( 10000000 ) ;
 			do {
 				aStream.read( &(buffer[0]), 10000000 ) ;
@@ -179,7 +187,6 @@ namespace genfile {
 				set_flags( 0 ) ;
 			}
 		}
-		
 
 		template<
 			typename IntegerSetter,
@@ -189,7 +196,7 @@ namespace genfile {
 			typename GenotypeProbabilitySetter
 		>
 		void read_snp_block(
-			std::istream& in,
+			std::istream& inStream,
 			IntegerSetter set_number_of_samples,
 			StringSetter set_SNPID,
 			StringSetter set_RSID,
@@ -198,16 +205,11 @@ namespace genfile {
 			AlleleSetter set_allele2,
 			GenotypeProbabilitySetter set_genotype_probabilities
 		) {
-			// pull a line out of the stream and use a stringstream to read the line.
-			std::string line ;
-			std::getline( in, line ) ;
-			std::istringstream inStream( line ) ;
-
 			std::string SNPID, RSID ;
-			double position ;
+			uint32_t position ;
 			char allele1, allele2 ;
-			inStream >> SNPID >> RSID >> position >> allele1 >> allele2;
-	
+			impl::read_snp_identifying_data( inStream, &SNPID, &RSID, &position, &allele1, &allele2 ) ;
+
 			if( inStream ) {
 				// All good so far; take the plunge and write the data using the supplied setters.
 				set_SNPID( SNPID ) ;
@@ -215,19 +217,24 @@ namespace genfile {
 				set_SNP_position( position ) ;
 				set_allele1( allele1 ) ;
 				set_allele2( allele2 ) ;
+				
+				std::string line ;
+				std::getline( inStream, line ) ;
+				std::istringstream lineStream ;
+				lineStream.str( line ) ;
 
 				// Now read genotype proportions.
 				std::size_t number_of_samples = 0;
 				std::size_t count = 0 ;
 				std::vector< double > d(3) ;
-				while( impl::read_float(inStream, &(d[count])) ) {
+				while( impl::read_float(lineStream, &(d[count])) ) {
 					count = (count+1) % 3 ;
 					if( count == 0 ) {
 						set_genotype_probabilities( number_of_samples++, d[0], d[1], d[2] ) ;
 					}
 				}
 				if( count % 3 != 0 ) {
-					in.setstate( std::ios::failbit ) ;
+					inStream.setstate( std::ios::failbit ) ;
 				}
 				else {
 					set_number_of_samples( number_of_samples ) ;
@@ -276,9 +283,7 @@ namespace genfile {
 			}
 
 			aStream << "\n" ;
-		}
-
-		
+		}		
 	}
 }
 

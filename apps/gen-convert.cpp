@@ -171,11 +171,8 @@ private:
 		m_input_chain.reset( new genfile::SNPDataSourceChain() ) ;
 		m_input_chain->set_moved_to_next_source_callback( boost::bind( &GenConvertProcessor::move_to_next_output_file, this, _1 )) ;
 		
-		std::size_t number_of_snps = 0 ;
 		for( std::size_t i = 0; i < m_gen_input_filenames.size(); ++i ) {
 			add_gen_file_to_chain( *m_input_chain, m_gen_input_filenames[i] ) ;
-			m_gen_file_snp_counts.push_back( m_input_chain->total_number_of_snps() - number_of_snps ) ;
-			number_of_snps = m_input_chain->total_number_of_snps() ;
 		}
 		
 		m_number_of_samples_from_gen_file = m_input_chain->number_of_samples() ;
@@ -243,17 +240,15 @@ public:
 	void write_preamble( std::ostream& oStream ) const {
 		oStream << std::string( 72, '=' ) << "\n\n" ;
 		try {
-			oStream << std::setw(30) << "Input and output GEN files:" ;
+			oStream << std::setw(30) << "Input and output GEN files:\n" ;
 			for( std::size_t i = 0; i < m_gen_input_filenames.size(); ++i ) {
-				if( i > 0 ) {
-					oStream << std::string( 30, ' ' ) ;
-				}
 				oStream
-					<< "  (" << std::setw(6) << m_gen_file_snp_counts[i] << " snps)  "
+					<< "  - "
+					<< " (" << std::setw(6) << (m_input_chain->number_of_snps_in_source(i)) << " snps)  "
 					<< "\"" << std::setw(20) << m_gen_input_filenames[i] << "\""
 					<< " -> \"" << m_gen_output_filenames[i] << "\"\n";
 			}
-			oStream << std::string( 30, ' ' ) << "  (total " << m_input_chain->total_number_of_snps() << " snps).\n\n" ;
+			oStream << "  - (total " << m_input_chain->total_number_of_snps() << " snps).\n\n" ;
 
 			if( !m_errors.empty() ) {
 				for( std::size_t i = 0; i < m_errors.size(); ++i ) {
@@ -391,7 +386,6 @@ private:
 
 	OptionProcessor const& m_options ;
 	
-	std::vector< std::size_t > m_gen_file_snp_counts ;
 	std::size_t m_number_of_samples_from_gen_file ;
 	
 	std::vector< std::string > m_gen_input_filenames ;

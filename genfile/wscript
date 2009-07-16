@@ -28,6 +28,7 @@ def build( bld ):
 			'src/SNPDataSource.cpp',
 			'src/SNPDataSink.cpp',
 			'src/bgen.cpp',
+			'src/gen.cpp',
 			'src/snp_data_utils.cpp'
 		],
 		includes='./include',

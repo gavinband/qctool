@@ -248,8 +248,8 @@ AUTO_TEST_CASE( test_formats ) {
 	std::string gen2 = tmpnam(0) + std::string( ".gen" );
 	std::string bgen = tmpnam(0) + std::string( ".bgen" );
 	std::string bgen2 = tmpnam(0) + std::string( ".bgen" );
-	std::string bzgen = tmpnam(0) + std::string( ".bzgen" );
-	std::string bzgen2 = tmpnam(0) + std::string( ".bzgen" );
+	std::string bzgen = tmpnam(0) + std::string( ".bgen" );
+	std::string bzgen2 = tmpnam(0) + std::string( ".bgen" );
 	std::string zbgen = tmpnam(0) + std::string( ".bgen.gz" );
 	std::string zbgen2 = tmpnam(0) + std::string( ".bgen.gz" );
 	std::string zgen = tmpnam(0) + std::string( ".gen.gz" );

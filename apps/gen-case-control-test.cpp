@@ -96,8 +96,6 @@ public:
 	) {
 	}
 
-	
-
 private:
 	
 	void add_sample( SampleRow const& row, double probability_sample_is_case ) {
@@ -149,18 +147,12 @@ private:
 		write_banner( m_cout ) ;
 		try {
 			get_required_filenames() ;
-			open_gen_input_files() ;
+			open_gen_files() ;
+			open_sample_files() ;
+			m_case_control_test.reset( CaseControlTest::create( m_control_sample_source, m_control_gen_input_chain, m_case_sample_source, m_case_gen_input_chain )) ;
 		}
 		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
 			m_cout << "The GEN files specified did not all have the same sample size.\n" ;
-			throw ;
-		}
-		catch( GenCaseControlFileCountError const& ) {
-			m_cout << "Two files (GEN and sample) should be specified for each of -cases and -controls.\n" ;
-			throw ;
-		}
-		catch( GenCaseControlFileWildcardMismatchError const& ) {
-			m_cout << "The output file contained a wildcard character, so the input should also.\n" ;
 			throw ;
 		}
 		catch ( genfile::FileHasTwoConsecutiveNewlinesError const& e ) {
@@ -173,10 +165,12 @@ private:
 
 	void get_required_filenames() {
 		std::vector< std::string > case_filenames, control_filenames ;
+
 		case_filenames = m_options.get_values< std::string >( "-cases" ) ;
-		control_filenames = m_options.get_values< std::string >( "-controls" ) ;
 		expand_and_add_filename( &m_control_gen_filenames, control_filenames[0] ) ;
-		add_filename( &m_control_samples_filenames, control_filenames[1] ) ;
+		add_filename( &m_control_sample_filenames, control_filenames[1] ) ;
+
+		control_filenames = m_options.get_values< std::string >( "-controls" ) ;
 		expand_and_add_filename( &m_case_gen_filenames, case_filenames[0] ) ;
 		add_filename( &m_case_sample_filenames, case_filenames[1] ) ;
 	}
@@ -208,22 +202,17 @@ private:
 		filename_list_ptr->push_back( filename ) ;
 	}
 
-	void open_gen_input_files() {
-		#ifdef HAVE_BOOST_TIMER
-			boost::timer timer ;
-		#endif
+	void open_gen_files() {
+		Timer timer ;
+		open_gen_files( m_control_gen_filenames, m_control_gen_input_chain )
+		open_gen_files( m_case_gen_filenames, m_case_gen_input_chain )
 
-		open_gen_input_files( m_control_gen_filenames, m_control_gen_input_chain )
-		open_gen_input_files( m_case_gen_filenames, m_case_gen_input_chain )
-
-		#ifdef HAVE_BOOST_TIMER
-			if( timer.elapsed() > 1.0 ) {
-				m_cout << "Opened " << m_control_gen_filenames.size() + m_case_gen_filenames.size() << " GEN files in " << timer.elapsed() << "s.\n" ;\
-			}
-		#endif
+		if( timer.elapsed() > 1.0 ) {
+			m_cout << "Opened " << m_control_gen_filenames.size() + m_case_gen_filenames.size() << " GEN files in " << timer.elapsed() << "s.\n" ;\
+		}
 	}
 	
-	void open_gen_input_files( std::vector< std::string > const& filenames, std::auto_ptr< SNPDataSourceChain >& chain ) {
+	void open_gen_files( std::vector< std::string > const& filenames, std::auto_ptr< SNPDataSourceChain >& chain ) {
 		chain.reset( new genfile::SNPDataSourceChain() ) ;
 		for( std::size_t i = 0; i < filenames.size(); ++i ) {
 			add_gen_file_to_chain( *chain, filenames[i] ) ;
@@ -231,58 +220,32 @@ private:
 	}
 
 	void add_gen_file_to_chain( genfile::SNPDataSourceChain& chain, std::string const& filename ) {
-		#ifdef HAVE_BOOST_TIMER
-			boost::timer file_timer ;
-		#endif
-			m_cout << "(Opening gen file \"" << filename << "\"...)" << std::flush ;
-			std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( filename )) ;
-			chain.add_source( snp_data_source ) ;
-		#ifdef HAVE_BOOST_TIMER
-			m_cout << " (" << file_timer.elapsed() << "s)\n" ;
-		#else
-			m_cout << "\n" ;
-		#endif			
+		Timer timer ;
+		m_cout << "(Opening gen file \"" << filename << "\"...)" << std::flush ;
+		std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( filename )) ;
+		chain.add_source( snp_data_source ) ;
+		m_cout << " (" << timer.elapsed() << "s)\n" ;
 	}
 
-	void open_gen_output_files() {
-		m_output_chain.reset( new genfile::SNPDataSinkChain() ) ;
-		std::string output_filename = "" ;
-		for( std::size_t i = 0 ; i < m_gen_output_filenames.size(); ++i ) {
-			if( m_gen_output_filenames[i] != output_filename ) {
-				output_filename = m_gen_output_filenames[i] ;
-				add_gen_file_to_chain( *m_output_chain, output_filename ) ;
-			}
-		}
-		// Set up the current output filename so we can track changes to the filename.
-		
-		m_current_output_filename = m_gen_output_filenames.front() ;
-	}
-
-	void add_gen_file_to_chain( genfile::SNPDataSinkChain& chain, std::string const& filename ) {
-			std::auto_ptr< genfile::SNPDataSink > snp_data_sink( genfile::SNPDataSink::create( filename )) ;
-			chain.add_sink( snp_data_sink ) ;
-	}
-
-	void move_to_next_output_file( std::size_t index ) {
-		if( index < m_gen_input_filenames.size() ) {
-			m_output_file_index = index ;
-			if( m_gen_output_filenames[ index ] != m_current_output_filename ) {
-				m_current_output_filename = m_gen_output_filenames[ index ] ;
-				m_output_chain->move_to_next_sink() ;
-			}
-		}
-		else {
-			m_cout << "\n" ;
-		}
+	void open_sample_files() {
+		assert( m_control_sample_filenames.size() == 1 ) ;
+		Timer timer ;
+		m_control_sample_source.reset( new SampleInputFile< SimpleFileObjectSource< SampleRow > >( open_file_for_input( m_control_sample_filenames[0] ))) ;
+		m_case_sample_source.reset( new SampleInputFile< SimpleFileObjectSource< SampleRow > >( open_file_for_input( m_case_sample_filenames[0] ))) ;
 	}
 
 public:
 	
-	void write_banner( std::ostream& oStream ) const {
+	void write_start_banner( std::ostream& oStream ) const {
 		oStream << "\nWelcome to " << globals::program_name << "\n"
 		 	<< "(C) 2009 University of Oxford\n\n";
 	}
 	
+	void write_end_banner( std::ostream& oStream ) const {
+		oStream << "\n"
+			<< "Thank you for using " << globals::program_name << ".\n" ;
+	}
+
 	void write_preamble( std::ostream& oStream ) const {
 		oStream << std::string( 72, '=' ) << "\n\n" ;
 		try {
@@ -293,19 +256,9 @@ public:
 				}
 				oStream
 					<< "  (" << std::setw(6) << m_gen_file_snp_counts[i] << " snps)  "
-					<< "\"" << std::setw(20) << m_gen_input_filenames[i] << "\""
-					<< " -> \"" << m_gen_output_filenames[i] << "\"\n";
+					<< "\"" << std::setw(20) << m_gen_input_filenames[i] << "\"\n" ;
 			}
 			oStream << std::string( 30, ' ' ) << "  (total " << m_input_chain->total_number_of_snps() << " snps).\n\n" ;
-
-			if( !m_errors.empty() ) {
-				for( std::size_t i = 0; i < m_errors.size(); ++i ) {
-					oStream << "!! ERROR: " << m_errors[i] << "\n\n" ;
-				}
-				oStream << "!! Please correct the above errors and re-run " << globals::program_name << ".\n\n" ;
-				throw GenCaseControlUsageError() ;
-			}
-
 			oStream << std::string( 72, '=' ) << "\n\n" ;
 		}
 		catch (...) {
@@ -314,26 +267,8 @@ public:
 		}
 	}
 
-	void write_postamble( std::ostream& oStream ) const {
-		oStream << "\n"
-			<< "Thank you for using " << globals::program_name << ".\n" ;
-	}
-
 	void do_checks() {
-		for( std::size_t i = 0; i < m_gen_input_filenames.size(); ++i ) {
-			for( std::size_t j = 0; j < m_gen_output_filenames.size(); ++j ) {
-				if( strings_are_nonempty_and_equal( m_gen_input_filenames[i], m_gen_output_filenames[j] )) {
-					m_errors.push_back( "Output GEN file \"" + m_gen_output_filenames[j] +"\" also specified as input GEN file." ) ;
-					break ;
-				}
-			}
-		}
 	}
-	
-	bool strings_are_nonempty_and_equal( std::string const& left, std::string const& right ) {
-		return (!left.empty()) && (!right.empty()) && (left == right) ;
-	}
-
 	
 	void process() {
 		unsafe_process() ;
@@ -346,10 +281,7 @@ private:
 	}
 
 	void process_gen_rows() {
-#if HAVE_BOOST_TIMER
-		boost::timer timer ;
-#endif
-		open_gen_output_files() ;
+		Timer timer ;
 
 		GenRow row ;
 		row.set_number_of_samples( m_number_of_samples_from_gen_file ) ;
@@ -362,7 +294,6 @@ private:
 			++number_of_snps_processed ;
 			// print a message every 5 seconds.
 
-#if HAVE_BOOST_TIMER
 			double time_now = timer.elapsed() ;
 			if( time_now - last_time >= 1.0 || number_of_snps_processed == m_input_chain->total_number_of_snps() ) {
 				std::size_t progress = (static_cast< double >( number_of_snps_processed ) / m_input_chain->total_number_of_snps()) * 30.0 ;
@@ -384,23 +315,16 @@ private:
  					<< std::flush ;
 				last_time = time_now ;
 			}
-#else
-			if( number_of_snps_processed % 1000 == 0 ) {
-				m_cout << "Processed " << number_of_snps_processed << " SNPs (" << timer.elapsed() << "s)\n" ;
-			}
-#endif
+
 			write_snp(row) ;
 		}
 
-	#if HAVE_BOOST_TIMER
 		std::cerr << "Converted GEN file(s) (" << number_of_snps_processed << " SNPs) in " << timer.elapsed() << " seconds.\n" ;
-	#endif
 	
 		m_cout << "Post-processing (updating file header, compression)..." << std::flush ;
 		timer.restart() ;
 		// Close the output gen file(s) now
 		close_all_files() ;
-	#if HAVE_BOOST_TIMER
 		std::cerr << " (" << timer.elapsed() << "s)\n" ;
 	#else
 		std::cerr << "\n" ;
