@@ -13,10 +13,7 @@
 #include <set>
 #include <fstream>
 #include <numeric>
-#include "../config.hpp"
-#if HAVE_BOOST_TIMER
-	#include <boost/timer.hpp>
-#endif
+#include "Timer.hpp"
 #include "GenRow.hpp"
 #include "SampleRow.hpp"
 #include "AlleleProportions.hpp"
@@ -200,16 +197,12 @@ private:
 	}
 
 	void open_gen_row_source() {
-		#ifdef HAVE_BOOST_TIMER
-			boost::timer timer ;
-		#endif
+		Timer timer ;
 		
 		std::auto_ptr< genfile::SNPDataSourceChain > chain( new genfile::SNPDataSourceChain() ) ;
 		m_gen_file_snp_counts.resize( m_gen_filenames.size() ) ;
 		for( std::size_t i = 0; i < m_gen_filenames.size(); ++i ) {
-		#ifdef HAVE_BOOST_TIMER
-			boost::timer file_timer ;
-		#endif
+		Timer file_timer ;
 			m_cout << "(Opening gen file \"" << m_gen_filenames[i] << "\"...)" << std::flush ;
 			try {
 				std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( m_gen_filenames[i] )) ;
@@ -222,11 +215,7 @@ private:
 					<< "!!     : Please check that each SNP in the file is terminated by a single newline.\n" ;
 				throw ;
 			}
-		#ifdef HAVE_BOOST_TIMER
 			m_cout << " (" << file_timer.elapsed() << "s\n" ;
-		#else
-			m_cout << "\n" ;
-		#endif	
 		}
 
 		m_number_of_samples_from_gen_file = chain->number_of_samples() ;
@@ -235,11 +224,9 @@ private:
 		std::auto_ptr< genfile::SNPDataSource > snp_data_source( chain.release() ) ; 
 		gen_row_source.reset( new SNPDataSourceGenRowSource( snp_data_source )) ;
 
-		#ifdef HAVE_BOOST_TIMER
-			if( timer.elapsed() > 1.0 ) {
-				m_cout << "Opened " << m_gen_filenames.size() << " GEN files in " << timer.elapsed() << "s.\n" ;\
-			}
-		#endif
+		if( timer.elapsed() > 1.0 ) {
+			m_cout << "Opened " << m_gen_filenames.size() << " GEN files in " << timer.elapsed() << "s.\n" ;\
+		}
 	}
 
 	void open_gen_row_sink() {
@@ -522,10 +509,7 @@ private:
 	}
 
 	void process_gen_rows() {
-	#ifdef HAVE_BOOST_TIMER
-		boost::timer timer ;
-	#endif
-
+		Timer timer ;
 		open_gen_row_sink() ;
 		open_gen_stats_file() ;
 
@@ -546,20 +530,13 @@ private:
 			accumulate_per_column_amounts( row, m_per_column_amounts ) ;
 		}
 		
-	#ifdef HAVE_BOOST_TIMER
 		std::cerr << "gen-select: processed GEN file(s) (" << m_total_number_of_snps << " rows) in " << timer.elapsed() << " seconds.\n" ;
-	#endif
 	
 		m_cout << "Post-processing (updating file header, compression)..." << std::flush ;
 		timer.restart() ;
 		// Close the output gen file(s) now
 		close_gen_row_sink() ;
-	#ifdef HAVE_BOOST_TIMER
 		std::cerr << " (" << timer.elapsed() << "s)\n" ;
-	#else
-		std::cerr << "\n" ;
-	#endif
-			
 	}
 
 	void preprocess_gen_row( GenRow& row ) const {
@@ -580,9 +557,7 @@ private:
 	}
 
 	void process_sample_rows() {
-		#ifdef HAVE_BOOST_TIMER
-			boost::timer timer ;
-		#endif
+		Timer timer ;
 		
 		// re-open sample row source.
 		open_sample_row_source() ;
@@ -619,9 +594,7 @@ private:
 			(*m_sample_row_sink) << sample_row ;
 		}
 
-		#ifdef HAVE_BOOST_TIMER
-			std::cerr << "gen-select: processed sample file (" << i << " rows) in " << timer.elapsed() << " seconds.\n" ;
-		#endif
+		std::cerr << "gen-select: processed sample file (" << i << " rows) in " << timer.elapsed() << " seconds.\n" ;
 	}
 
 	void process_gen_row( GenRow const& row, std::size_t row_number ) {

@@ -44,6 +44,11 @@ namespace genfile {
 			return total_number_of_snps ;
 		}
 
+		unsigned int number_of_snps_in_source( std::size_t source_index ) {
+			assert( source_index < m_sources.size() ) ;
+			return m_sources[ source_index ]->total_number_of_snps() ;
+		}
+
 		FormatType format() const {
 			assert( m_current_source < m_sources.size() ) ;
 			return m_sources[ m_current_source ]->format() ;

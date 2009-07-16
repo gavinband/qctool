@@ -8,11 +8,8 @@
 #include <set>
 #include <fstream>
 #include <numeric>
-#include "../config.hpp"
-#if HAVE_BOOST_TIMER
-	#include <boost/timer.hpp>
-#endif
 #include <boost/bind.hpp>
+#include "Timer.hpp"
 #include "GenRow.hpp"
 #include "SampleRow.hpp"
 #include "AlleleProportions.hpp"
@@ -169,9 +166,7 @@ private:
 	}
 
 	void open_gen_input_files() {
-		#ifdef HAVE_BOOST_TIMER
-			boost::timer timer ;
-		#endif
+		Timer timer ;
 
 		m_input_chain.reset( new genfile::SNPDataSourceChain() ) ;
 		m_input_chain->set_moved_to_next_source_callback( boost::bind( &GenConvertProcessor::move_to_next_output_file, this, _1 )) ;
@@ -185,33 +180,25 @@ private:
 		
 		m_number_of_samples_from_gen_file = m_input_chain->number_of_samples() ;
 		
-		#ifdef HAVE_BOOST_TIMER
-			if( timer.elapsed() > 1.0 ) {
-				m_cout << "Opened " << m_gen_input_filenames.size() << " GEN files in " << timer.elapsed() << "s.\n" ;\
-			}
-		#endif
+		if( timer.elapsed() > 1.0 ) {
+			m_cout << "Opened " << m_gen_input_filenames.size() << " GEN files in " << timer.elapsed() << "s.\n" ;\
+		}
 	}
 
 	void add_gen_file_to_chain( genfile::SNPDataSourceChain& chain, std::string const& filename ) {
-		#ifdef HAVE_BOOST_TIMER
-			boost::timer file_timer ;
-		#endif
-			m_cout << "(Opening gen file \"" << filename << "\"...)" << std::flush ;
-			try {
-				std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( filename )) ;
-				chain.add_source( snp_data_source ) ;
-			}
-			catch ( genfile::FileHasTwoConsecutiveNewlinesError const& e ) {
-				std::cerr << "\n!!ERROR: a GEN file was specified having two consecutive newlines.\n"
-					<< "!! NOTE: popular editors, such as vim and nano, automatically add an extra newline to the file (which you can't see).\n"
-					<< "!!     : Please check that each SNP in the file is terminated by a single newline.\n" ;
-				throw ;
-			}
-		#ifdef HAVE_BOOST_TIMER
-			m_cout << " (" << file_timer.elapsed() << "s)\n" ;
-		#else
-			m_cout << "\n" ;
-		#endif			
+		boost::timer file_timer ;
+		m_cout << "(Opening gen file \"" << filename << "\"...)" << std::flush ;
+		try {
+			std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( filename )) ;
+			chain.add_source( snp_data_source ) ;
+		}
+		catch ( genfile::FileHasTwoConsecutiveNewlinesError const& e ) {
+			std::cerr << "\n!!ERROR: a GEN file was specified having two consecutive newlines.\n"
+				<< "!! NOTE: popular editors, such as vim and nano, automatically add an extra newline to the file (which you can't see).\n"
+				<< "!!     : Please check that each SNP in the file is terminated by a single newline.\n" ;
+			throw ;
+		}
+		m_cout << " (" << file_timer.elapsed() << "s)\n" ;
 	}
 
 	void open_gen_output_files() {
@@ -316,9 +303,7 @@ private:
 	}
 
 	void process_gen_rows() {
-#if HAVE_BOOST_TIMER
-		boost::timer timer ;
-#endif
+		Timer timer ;
 		open_gen_output_files() ;
 
 		GenRow row ;
@@ -332,7 +317,6 @@ private:
 			++number_of_snps_processed ;
 			// print a message every 5 seconds.
 
-#if HAVE_BOOST_TIMER
 			double time_now = timer.elapsed() ;
 			if( time_now - last_time >= 1.0 || number_of_snps_processed == m_input_chain->total_number_of_snps() ) {
 				std::size_t progress = (static_cast< double >( number_of_snps_processed ) / m_input_chain->total_number_of_snps()) * 30.0 ;
@@ -351,30 +335,19 @@ private:
 					<< std::setw( 5 ) << std::fixed << std::setprecision(1) << (number_of_snps_processed / timer.elapsed())
 					<< " SNPs/s)" 
 					<< std::string( std::size_t(5), ' ' )
- 					<< std::flush ;
+						<< std::flush ;
 				last_time = time_now ;
 			}
-#else
-			if( number_of_snps_processed % 1000 == 0 ) {
-				m_cout << "Processed " << number_of_snps_processed << " SNPs (" << timer.elapsed() << "s)\n" ;
-			}
-#endif
 			write_snp(row) ;
 		}
 
-	#if HAVE_BOOST_TIMER
-		std::cerr << "Converted GEN file(s) (" << number_of_snps_processed << " SNPs) in " << timer.elapsed() << " seconds.\n" ;
-	#endif
+		m_cout << "Converted GEN file(s) (" << number_of_snps_processed << " SNPs) in " << timer.elapsed() << " seconds.\n" ;
 	
 		m_cout << "Post-processing (updating file header, compression)..." << std::flush ;
 		timer.restart() ;
 		// Close the output gen file(s) now
 		close_all_files() ;
-	#if HAVE_BOOST_TIMER
 		std::cerr << " (" << timer.elapsed() << "s)\n" ;
-	#else
-		std::cerr << "\n" ;
-	#endif
 	}
 
 	bool read_snp( GenRow& row ) {

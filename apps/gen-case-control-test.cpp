@@ -56,6 +56,17 @@ struct GenCaseControlFileWildcardMismatchError: public GenCaseControlProcessorEx
 	char const* what() const throw() { return "GenCaseControlFileWildcardMismatchError" ; }
 } ;
 
+std::vector< std::string > try_to_put_sample_file_first( std::string const& option_name, std::vector< std::string > const& filenames ) {
+	if( filenames.size() != 2 ) {
+		throw OptionValueInvalidException( "Two files, a sample and a gen file, must be specified for this option." ) ;
+	}
+	// swap the two options if it looks like the gen file is last.	
+	if( !genfile::filename_indicates_gen_or_bgen_format( filenames[1] ) && genfile::filename_indicates_gen_or_bgen_format( filenames[0] )) {
+		// Guess that sample file is listed second.
+		std::swap( filenames.begin(), filenames.begin() + 1 ) ;
+	}
+}
+
 
 struct SampleSpec
 {
@@ -83,7 +94,6 @@ public:
 		std::auto_ptr< ObjectSource< SampleRow > > control_sample_source,
 		std::auto_ptr< genfile::SNPDataSource > case_snp_data_source
 	) {
-		
 	}
 
 	
@@ -112,14 +122,16 @@ public:
 			.set_required()
 			.set_takes_values()
 			.set_maximum_number_of_repeats( 1 )
-			.set_number_of_values_per_use( 2 ) ;
+			.set_number_of_values_per_use( 2 )
+			.set_option_preprocessor( &try_to_put_sample_file_first ) ;
 
 	    options[ "-controls" ]
 	        .set_description( "Path of gen file to input" )
 			.set_required()
 			.set_takes_values()
 			.set_maximum_number_of_repeats( 1 )
-			.set_number_of_values_per_use( 2 ) ;
+			.set_number_of_values_per_use( 2 )
+			.set_option_preprocessor( &try_to_put_sample_file_first ) ;
 
 		options [ "--force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
@@ -151,65 +163,45 @@ private:
 			m_cout << "The output file contained a wildcard character, so the input should also.\n" ;
 			throw ;
 		}
+		catch ( genfile::FileHasTwoConsecutiveNewlinesError const& e ) {
+			m_cout << "\n!!ERROR: a GEN file was specified having two consecutive newlines.\n"
+				<< "!! NOTE: popular editors, such as vim and nano, automatically add an extra newline to the file (which you can't see).\n"
+				<< "!!     : Please check that each SNP in the file is terminated by a single newline.\n" ;
+			throw ;
+		}
 	}
 
 	void get_required_filenames() {
 		std::vector< std::string > case_filenames, control_filenames ;
 		case_filenames = m_options.get_values< std::string >( "-cases" ) ;
 		control_filenames = m_options.get_values< std::string >( "-controls" ) ;
-
-		if( case_filenames.size() != 2 || control_filenames.size() != 2 ) {
-			throw GenCaseControlFileCountError()
-		}
-
-		
-		if( !genfile::filename_indicates_gen_format( case_filenames[0] ) && !genfile::filename_indicates_bgen_format( case_filenames[0] )) {
-			// sample file must be first
-			std::swap( case_filenames.begin(), case_filenames.begin() + 1 ) ;
-		}
-
-		if( !genfile::filename_indicates_gen_format( control_filenames[0] ) && !genfile::filename_indicates_bgen_format( control_filenames[0] )) {
-			// sample file must be first
-			std::swap( control_filenames.begin(), control_filenames.begin() + 1 ) ;
-		}
-
 		expand_and_add_filename( &m_control_gen_filenames, control_filenames[0] ) ;
 		add_filename( &m_control_samples_filenames, control_filenames[1] ) ;
 		expand_and_add_filename( &m_case_gen_filenames, case_filenames[0] ) ;
 		add_filename( &m_case_sample_filenames, case_filenames[1] ) ;
 	}
 
-	void expand_and_add_filename( std::vector< std::string >* filename_list_ptr, std::string const& input_filename ) {
-		bool input_file_has_wildcard = ( input_filename.find( '#' ) != std::string::npos ) ;
+	void expand_and_add_filename( std::vector< std::string >* filename_list_ptr, std::string const& filename ) {
+		bool input_file_has_wildcard = ( filename.find( '#' ) != std::string::npos ) ;
 		if( input_file_has_wildcard ) {
 			std::pair< std::vector< std::string >, std::vector< std::string > >
-				expanded_input_filename = find_files_matching_path_with_wildcard( input_filename, '#' ) ;
+				expanded_filename = find_files_matching_path_with_wildcard( filename, '#' ) ;
 
 			// we only use matching filenames if the match is a number from 1 to 100
 			// For such filenames, we add the filename to our list for cases.
-			for( std::size_t j = 0; j < expanded_input_filename.first.size(); ++j ) {
-				if( check_if_string_is_a_number_from_1_to_100( expanded_input_filename.second[j] )) {
-					add_filename( filename_list_ptr, expanded_input_filename.first[j] ) ;
+			for( std::size_t j = 0; j < expanded_filename.first.size(); ++j ) {
+				if( check_if_string_is_a_number_from_1_to_100( expanded_filename.second[j] )) {
+					add_filename( filename_list_ptr, expanded_filename.first[j] ) ;
 				}
 			}
 		}
 		else {
-			add_input_and_corresponding_output_filename( input_filename, output_filename, "" ) ;
+			add_filename( filename_list_ptr, filename ) ;
 		}
 	}
 
 	bool check_if_string_is_a_number_from_1_to_100( std::string const& a_string ) {
-		std::istringstream inStream( a_string ) ;
-		int i ;
-		inStream >> i ;
-		inStream.peek() ;
-		if( !inStream.eof()) {
-			return false ;
-		}
-		if( i < 1 || i > 100 ) {
-			return false ;
-		}
-		return true ;
+		return parse_integer_in_half_open_range( a_string, 1, 101 ) != 101 ;
 	}
 
 	void add_filename( std::vector< std::string >* filename_list_ptr, std::string const& filename ) {
@@ -221,23 +213,21 @@ private:
 			boost::timer timer ;
 		#endif
 
-		m_input_chain.reset( new genfile::SNPDataSourceChain() ) ;
-		m_input_chain->set_moved_to_next_source_callback( boost::bind( &GenCaseControlProcessor::move_to_next_output_file, this, _1 )) ;
-		
-		std::size_t number_of_snps = 0 ;
-		for( std::size_t i = 0; i < m_gen_input_filenames.size(); ++i ) {
-			add_gen_file_to_chain( *m_input_chain, m_gen_input_filenames[i] ) ;
-			m_gen_file_snp_counts.push_back( m_input_chain->total_number_of_snps() - number_of_snps ) ;
-			number_of_snps = m_input_chain->total_number_of_snps() ;
-		}
-		
-		m_number_of_samples_from_gen_file = m_input_chain->number_of_samples() ;
-		
+		open_gen_input_files( m_control_gen_filenames, m_control_gen_input_chain )
+		open_gen_input_files( m_case_gen_filenames, m_case_gen_input_chain )
+
 		#ifdef HAVE_BOOST_TIMER
 			if( timer.elapsed() > 1.0 ) {
-				m_cout << "Opened " << m_gen_input_filenames.size() << " GEN files in " << timer.elapsed() << "s.\n" ;\
+				m_cout << "Opened " << m_control_gen_filenames.size() + m_case_gen_filenames.size() << " GEN files in " << timer.elapsed() << "s.\n" ;\
 			}
 		#endif
+	}
+	
+	void open_gen_input_files( std::vector< std::string > const& filenames, std::auto_ptr< SNPDataSourceChain >& chain ) {
+		chain.reset( new genfile::SNPDataSourceChain() ) ;
+		for( std::size_t i = 0; i < filenames.size(); ++i ) {
+			add_gen_file_to_chain( *chain, filenames[i] ) ;
+		}
 	}
 
 	void add_gen_file_to_chain( genfile::SNPDataSourceChain& chain, std::string const& filename ) {
@@ -245,16 +235,8 @@ private:
 			boost::timer file_timer ;
 		#endif
 			m_cout << "(Opening gen file \"" << filename << "\"...)" << std::flush ;
-			try {
-				std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( filename )) ;
-				chain.add_source( snp_data_source ) ;
-			}
-			catch ( genfile::FileHasTwoConsecutiveNewlinesError const& e ) {
-				std::cerr << "\n!!ERROR: a GEN file was specified having two consecutive newlines.\n"
-					<< "!! NOTE: popular editors, such as vim and nano, automatically add an extra newline to the file (which you can't see).\n"
-					<< "!!     : Please check that each SNP in the file is terminated by a single newline.\n" ;
-				throw ;
-			}
+			std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( filename )) ;
+			chain.add_source( snp_data_source ) ;
 		#ifdef HAVE_BOOST_TIMER
 			m_cout << " (" << file_timer.elapsed() << "s)\n" ;
 		#else
