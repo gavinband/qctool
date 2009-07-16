@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <boost/function.hpp>
 #include "snp_data_utils.hpp"
 #include "gen.hpp"
 #include "bgen.hpp"
@@ -45,19 +46,18 @@ namespace genfile {
 		static std::auto_ptr< SNPDataSource > create( std::string const& filename, CompressionType compression_type ) ;
 		static std::auto_ptr< SNPDataSource > create( std::vector< std::string > const& filenames ) ;
 
+		typedef boost::function< void ( uint32_t ) > IntegerSetter ;
+		typedef boost::function< void ( std::string const& ) > StringSetter ;
+		typedef boost::function< void ( char ) > AlleleSetter ;
+		typedef boost::function< void ( uint32_t ) > SNPPositionSetter ;
+		typedef boost::function< void ( std::size_t, double, double, double ) > GenotypeProbabilitySetter ;
+
 		// Function read_snp().
 		// This is the method which returns snp data from the source.
 		// Ideally this would also be a virtual member function.
 		// However, a template member function can't be virtual.
 		// Therefore, we dispatch to the correct implementation using the format()
 		// and stream() members which implementations must provide.
-		template<
-			typename IntegerSetter,
-			typename StringSetter,
-			typename AlleleSetter,
-			typename SNPPositionSetter,
-			typename GenotypeProbabilitySetter
-		>
 		SNPDataSource& read_snp(
 			IntegerSetter set_number_of_samples,
 			StringSetter set_SNPID,
