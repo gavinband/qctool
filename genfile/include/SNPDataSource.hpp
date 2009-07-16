@@ -51,6 +51,21 @@ namespace genfile {
 			GenotypeProbabilitySetter const& set_genotype_probabilities
 		) = 0 ;
 
+		typedef boost::function< bool( std::string const&, std::string const&, uint32_t, char, char ) > SNPMatcher ;
+
+		virtual void read_next_matching_snp_impl(
+			IntegerSetter const& set_number_of_samples,
+			StringSetter const& set_SNPID,
+			StringSetter const& set_RSID,
+			SNPPositionSetter const& set_SNP_position,
+			AlleleSetter const& set_allele1,
+			AlleleSetter const& set_allele2,
+			GenotypeProbabilitySetter const& set_genotype_probabilities,
+			SNPMatcher const& snp_matcher
+		) {
+			assert(0) ;
+		}
+
 	public:
 		// The following methods are factory functions
 		static std::auto_ptr< SNPDataSource > create( std::string const& filename ) ;
@@ -85,6 +100,29 @@ namespace genfile {
 			if( *this ) {
 				++m_number_of_snps_read ;
 			}
+			return *this ;
+		}
+		
+		SNPDataSource& read_next_matching_snp(
+			IntegerSetter set_number_of_samples,
+			StringSetter set_SNPID,
+			StringSetter set_RSID,
+			SNPPositionSetter set_SNP_position,
+			AlleleSetter set_allele1,
+			AlleleSetter set_allele2,
+			GenotypeProbabilitySetter set_genotype_probabilities,
+			SNPMatcher snp_matcher
+		) {
+			read_next_matching_snp_impl(
+				set_number_of_samples,
+				set_SNPID,
+				set_RSID,
+				set_SNP_position,
+				set_allele1,
+				set_allele2,
+				set_genotype_probabilities,
+				snp_matcher
+			) ;
 			return *this ;
 		}
 		

@@ -51,6 +51,51 @@ namespace genfile {
 			}
 		} ;
 		
+		void read_next_matching_snp_impl(
+			IntegerSetter const& set_number_of_samples,
+			StringSetter const& set_SNPID,
+			StringSetter const& set_RSID,
+			SNPPositionSetter const& set_SNP_position,
+			AlleleSetter const& set_allele1,
+			AlleleSetter const& set_allele2,
+			GenotypeProbabilitySetter const& set_genotype_probabilities,
+			SNPMatcher const& snp_matcher
+		) {
+			uint32_t number_of_samples ;
+			std::string SNPID, RSID ;
+			uint32_t SNP_position ;
+			char first_allele, second_allele ;
+
+			do {
+				bgen::impl::read_snp_identifying_data( stream(), &number_of_samples, &SNPID, &RSID, &SNP_position, &first_allele, &second_allele ) ;
+				if( snp_matcher( SNPID, RSID, SNP_position, first_allele, second_allele )) {
+					set_number_of_samples( number_of_samples ) ;
+					set_SNPID( SNPID ) ;
+					set_RSID( RSID ) ;
+					set_SNP_position( SNP_position ) ;
+					set_allele1( first_allele ) ;
+					set_allele2( second_allele ) ;
+
+					if( m_flags & bgen::e_CompressedSNPBlocks ) {
+						bgen::impl::read_snp_probability_data( stream(), number_of_samples, set_genotype_probabilities ) ;
+					}
+					else {
+						bgen::impl::read_compressed_snp_probability_data( stream(), number_of_samples, set_genotype_probabilities ) ;
+					}
+
+					return ;
+				}
+				else {
+					if( m_flags & bgen::e_CompressedSNPBlocks ) {
+						bgen::impl::read_snp_probability_data( stream(), number_of_samples, ignore() ) ;
+					}
+					else {
+						bgen::impl::read_compressed_snp_probability_data( stream(), number_of_samples, ignore() ) ;
+					}
+				}
+			}
+			while( *this ) ;
+		}
 
 	private:
 

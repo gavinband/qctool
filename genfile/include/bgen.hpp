@@ -254,6 +254,39 @@ namespace genfile {
                 }
             }
 
+			template<
+				typename GenotypeProbabilitySetter
+			>
+			void read_compressed_snp_probability_data(
+				std::istream& aStream,
+				uint32_t number_of_samples,
+				GenotypeProbabilitySetter set_genotype_probabilities
+			) {
+                // read the size of the compressed data
+                uint32_t compressed_data_size ;
+                impl::read_little_endian_integer( aStream, &compressed_data_size ) ;
+                uLongf uncompressed_data_size = (6 * number_of_samples) ;
+                // Construct buffers for the uncompressed and compressed data
+                std::vector< Bytef > compressed_data_buffer( compressed_data_size ) ;
+                std::vector< Bytef > uncompressed_data_buffer( uncompressed_data_size ) ;
+                // Read the data and uncompress
+                aStream.read( reinterpret_cast< char*> (&compressed_data_buffer[0]), compressed_data_size ) ;
+                int result = uncompress( &uncompressed_data_buffer[0], &uncompressed_data_size, &compressed_data_buffer[0], compressed_data_size ) ;
+                assert( result == Z_OK ) ;
+                // Load the uncompressed data into an istringstream
+                std::istringstream sStream ;
+                sStream.rdbuf()->pubsetbuf( reinterpret_cast< char* >( &uncompressed_data_buffer[0] ), uncompressed_data_size ) ;
+
+                if ( aStream ) {
+                    // If all ok thus far, we'll take the plunge, calling the callbacks to (presumably)
+                    // set up the user's data structure.  This way we avoid allocating memory
+                    // for the genotype probabilities here.  Note that if an error occurs while reading
+                    // the probabilities, the user's data may therefore be left in a state which does
+                    // not correspond to any actual valid snp block.
+                    read_snp_probability_data( sStream, number_of_samples, set_genotype_probabilities ) ;
+                }
+            }
+
             void write_snp_identifying_data(
                 std::ostream& aStream,
                 uint32_t number_of_samples,
@@ -442,37 +475,15 @@ namespace genfile {
             impl::read_snp_identifying_data( aStream, &number_of_samples, &SNPID, &RSID, &SNP_position, &first_allele, &second_allele ) ;
 
             if ( aStream ) {
-                // read the size of the compressed data
-                uint32_t compressed_data_size ;
-                impl::read_little_endian_integer( aStream, &compressed_data_size ) ;
-                uLongf uncompressed_data_size = (6 * number_of_samples) ;
-                // Construct buffers for the uncompressed and compressed data
-                std::vector< Bytef > compressed_data_buffer( compressed_data_size ) ;
-                std::vector< Bytef > uncompressed_data_buffer( uncompressed_data_size ) ;
-                // Read the data and uncompress
-                aStream.read( reinterpret_cast< char*> (&compressed_data_buffer[0]), compressed_data_size ) ;
-                int result = uncompress( &uncompressed_data_buffer[0], &uncompressed_data_size, &compressed_data_buffer[0], compressed_data_size ) ;
-                assert( result == Z_OK ) ;
-                // Load the uncompressed data into an istringstream
-                std::istringstream sStream ;
-                sStream.rdbuf()->pubsetbuf( reinterpret_cast< char* >( &uncompressed_data_buffer[0] ), uncompressed_data_size ) ;
+	            set_number_of_samples( number_of_samples ) ;
+                set_SNPID( SNPID ) ;
+                set_RSID( RSID ) ;
+                set_SNP_position( SNP_position ) ;
+                set_allele1( first_allele ) ;
+                set_allele2( second_allele ) ;
 
-                if ( aStream ) {
-                    // If all ok thus far, we'll take the plunge, calling the callbacks to (presumably)
-                    // set up the user's data structure.  This way we avoid allocating memory
-                    // for the genotype probabilities here.  Note that if an error occurs while reading
-                    // the probabilities, the user's data may therefore be left in a state which does
-                    // not correspond to any actual valid snp block.
-                    set_number_of_samples( number_of_samples ) ;
-                    set_SNPID( SNPID ) ;
-                    set_RSID( RSID ) ;
-                    set_SNP_position( SNP_position ) ;
-                    set_allele1( first_allele ) ;
-                    set_allele2( second_allele ) ;
-
-                    impl::read_snp_probability_data( sStream, number_of_samples, set_genotype_probabilities ) ;
-                }
-            }
+    			impl::read_compressed_snp_probability_data( aStream, number_of_samples, set_genotype_probabilities ) ;
+			}
 #endif
         }
 

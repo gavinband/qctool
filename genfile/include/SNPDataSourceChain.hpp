@@ -68,11 +68,7 @@ namespace genfile {
 			AlleleSetter const& set_allele2,
 			GenotypeProbabilitySetter const& set_genotype_probabilities
 		) {
-			// Move to the next nonempty source, if needed.
-			while(( m_current_source < m_sources.size())
-				&& (m_sources[ m_current_source ]->number_of_snps_read() >= m_sources[m_current_source]->total_number_of_snps())) {
-				move_to_next_source() ;
-			}
+			move_to_next_nonempty_source() ;
 
 			if( m_current_source < m_sources.size() ) {
 				m_sources[m_current_source]->read_snp(
@@ -85,6 +81,33 @@ namespace genfile {
 					set_genotype_probabilities
 				) ;
 			}
+		}
+
+		void read_next_matching_snp_impl(
+			IntegerSetter const& set_number_of_samples,
+			StringSetter const& set_SNPID,
+			StringSetter const& set_RSID,
+			SNPPositionSetter const& set_SNP_position,
+			AlleleSetter const& set_allele1,
+			AlleleSetter const& set_allele2,
+			GenotypeProbabilitySetter const& set_genotype_probabilities,
+			SNPMatcher const& snp_matcher
+		) {
+			// Move to the next nonempty source, if needed.
+
+			do {
+				move_to_next_nonempty_source() ;
+			}
+			while(( m_current_source < m_sources.size())  && (!m_sources[ m_current_source ]->read_next_matching_snp(
+				set_number_of_samples,
+				set_SNPID,
+				set_RSID,
+				set_SNP_position,
+				set_allele1,
+				set_allele2,
+				set_genotype_probabilities,
+				snp_matcher
+			))) ;
 		}
 
 	public:
@@ -103,6 +126,13 @@ namespace genfile {
 			++m_current_source ;
 			if( m_moved_to_next_source_callback ) {
 				m_moved_to_next_source_callback( m_current_source ) ;
+			}
+		}
+
+		void move_to_next_nonempty_source() {
+			while(( m_current_source < m_sources.size())
+				&& (m_sources[ m_current_source ]->number_of_snps_read() >= m_sources[m_current_source]->total_number_of_snps())) {
+				move_to_next_source() ;
 			}
 		}
 

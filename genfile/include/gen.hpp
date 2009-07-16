@@ -139,6 +139,39 @@ namespace genfile {
 	            char* first_allele,
 	            char* second_allele
 			) ;
+			
+			template<
+				typename IntegerSetter,
+				typename GenotypeProbabilitySetter
+			>
+			void read_snp_probability_data(
+				std::istream& inStream,
+				IntegerSetter set_number_of_samples,
+				GenotypeProbabilitySetter set_genotype_probabilities
+			) {
+				std::string line ;
+				std::getline( inStream, line ) ;
+				std::istringstream lineStream ;
+				lineStream.str( line ) ;
+
+				// Now read genotype proportions.
+				std::size_t number_of_samples = 0;
+				std::size_t count = 0 ;
+				std::vector< double > d(3) ;
+				while( impl::read_float(lineStream, &(d[count])) ) {
+					count = (count+1) % 3 ;
+					if( count == 0 ) {
+						set_genotype_probabilities( number_of_samples++, d[0], d[1], d[2] ) ;
+					}
+				}
+				if( count % 3 != 0 ) {
+					inStream.setstate( std::ios::failbit ) ;
+				}
+				else {
+					set_number_of_samples( number_of_samples ) ;
+				}
+			}
+			
 		}
 
 		template<
@@ -218,27 +251,7 @@ namespace genfile {
 				set_allele1( allele1 ) ;
 				set_allele2( allele2 ) ;
 				
-				std::string line ;
-				std::getline( inStream, line ) ;
-				std::istringstream lineStream ;
-				lineStream.str( line ) ;
-
-				// Now read genotype proportions.
-				std::size_t number_of_samples = 0;
-				std::size_t count = 0 ;
-				std::vector< double > d(3) ;
-				while( impl::read_float(lineStream, &(d[count])) ) {
-					count = (count+1) % 3 ;
-					if( count == 0 ) {
-						set_genotype_probabilities( number_of_samples++, d[0], d[1], d[2] ) ;
-					}
-				}
-				if( count % 3 != 0 ) {
-					inStream.setstate( std::ios::failbit ) ;
-				}
-				else {
-					set_number_of_samples( number_of_samples ) ;
-				}
+				impl::read_snp_probability_data( inStream, set_number_of_samples, set_genotype_probabilities ) ;
 			}
 		}
 		
