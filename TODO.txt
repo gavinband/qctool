@@ -1,3 +1,10 @@
+gen-tools TODO LIST 16/07/2009
+Done?	Description
+-----   -----------
+		Use of boost::function in read_snp() does lead to a performance decrease for bgen files.
+			This should improve if probability getters can be called fewer times, e.g. with a range
+			of values.  Do this!
+
 gen-select TODO LIST 10/07/2009
 
 Done?	Description
@@ -5,7 +12,6 @@ Done?	Description
 		Implement full check that full set of chromosome files has been supplied for --sample-stats option.
 		Support overwriting sample file (with warning and pause?)
 		Support multiple output gen files numbered corresponding to the input files.
-		
 
 gen-select TODO LIST 08/07/2009
 

@@ -27,16 +27,30 @@ namespace genfile {
 
 		unsigned int number_of_samples() const { return m_number_of_samples ; }
 		unsigned int total_number_of_snps() const { return m_total_number_of_snps ; }
-		FormatType format() const {
-			if (m_flags & bgen::e_CompressedSNPBlocks) {
-				return e_BGenCompressedFormat ;
-			}
-			else {
-				return e_BGenFormat ;
-			}
-		}
+		operator bool() const { return *m_stream_ptr ; }
+
 		std::istream& stream() { return *m_stream_ptr ; }
 		std::istream const& stream() const { return *m_stream_ptr ; }
+
+	private:
+
+		void read_snp_impl(
+			IntegerSetter const& set_number_of_samples,
+			StringSetter const& set_SNPID,
+			StringSetter const& set_RSID,
+			SNPPositionSetter const& set_SNP_position,
+			AlleleSetter const& set_allele1,
+			AlleleSetter const& set_allele2,
+			GenotypeProbabilitySetter const& set_genotype_probabilities
+		) {
+			if( m_flags & bgen::e_CompressedSNPBlocks ) {
+				bgen::read_compressed_snp_block( stream(), set_number_of_samples, set_SNPID, set_RSID, set_SNP_position, set_allele1, set_allele2, set_genotype_probabilities ) ;
+			}
+			else {
+				bgen::read_snp_block( stream(), set_number_of_samples, set_SNPID, set_RSID, set_SNP_position, set_allele1, set_allele2, set_genotype_probabilities ) ;
+			}
+		} ;
+		
 
 	private:
 

@@ -28,15 +28,28 @@ namespace genfile {
 
 		// The following methods must be overriden in derived classes
 	public:
-		virtual std::istream& stream() = 0 ;
-		virtual std::istream const & stream() const = 0 ;
-		virtual FormatType format() const = 0;
-		virtual operator bool() const { return stream() ; }
+		virtual operator bool() const = 0 ;
 
 		virtual unsigned int number_of_samples() const = 0;
 		virtual unsigned int total_number_of_snps() const = 0 ;
 
 	protected:
+		typedef boost::function< void ( uint32_t ) > IntegerSetter ;
+		typedef boost::function< void ( std::string const& ) > StringSetter ;
+		typedef boost::function< void ( char ) > AlleleSetter ;
+		typedef boost::function< void ( uint32_t ) > SNPPositionSetter ;
+		typedef boost::function< void ( std::size_t, double, double, double ) > GenotypeProbabilitySetter ;
+
+		virtual void read_snp_impl(
+			IntegerSetter const& set_number_of_samples,
+			StringSetter const& set_SNPID,
+			StringSetter const& set_RSID,
+			SNPPositionSetter const& set_SNP_position,
+			AlleleSetter const& set_allele1,
+			AlleleSetter const& set_allele2,
+			GenotypeProbabilitySetter const& set_genotype_probabilities
+		) = 0 ;
+
 		virtual void pre_read_snp() {} ;
 		virtual void post_read_snp() {} ;
 
@@ -46,11 +59,6 @@ namespace genfile {
 		static std::auto_ptr< SNPDataSource > create( std::string const& filename, CompressionType compression_type ) ;
 		static std::auto_ptr< SNPDataSource > create( std::vector< std::string > const& filenames ) ;
 
-		typedef boost::function< void ( uint32_t ) > IntegerSetter ;
-		typedef boost::function< void ( std::string const& ) > StringSetter ;
-		typedef boost::function< void ( char ) > AlleleSetter ;
-		typedef boost::function< void ( uint32_t ) > SNPPositionSetter ;
-		typedef boost::function< void ( std::size_t, double, double, double ) > GenotypeProbabilitySetter ;
 
 		// Function read_snp().
 		// This is the method which returns snp data from the source.
@@ -66,31 +74,23 @@ namespace genfile {
 			AlleleSetter set_allele1,
 			AlleleSetter set_allele2,
 			GenotypeProbabilitySetter set_genotype_probabilities
-		) {
+		)
+		{
 			pre_read_snp() ;
-
+			read_snp_impl(
+				set_number_of_samples,
+				set_SNPID,
+				set_RSID,
+				set_SNP_position,
+				set_allele1,
+				set_allele2,
+				set_genotype_probabilities
+			) ;
 			if( *this ) {
-				switch( format() ) {
-					case e_GenFormat:
-						gen::read_snp_block( stream(), set_number_of_samples, set_SNPID, set_RSID, set_SNP_position, set_allele1, set_allele2, set_genotype_probabilities ) ;
-						break ;
-					case e_BGenFormat:
-						bgen::read_snp_block( stream(), set_number_of_samples, set_SNPID, set_RSID, set_SNP_position, set_allele1, set_allele2, set_genotype_probabilities ) ;
-						break ;
-					case e_BGenCompressedFormat:
-						bgen::read_compressed_snp_block( stream(), set_number_of_samples, set_SNPID, set_RSID, set_SNP_position, set_allele1, set_allele2, set_genotype_probabilities ) ;
-						break ;
-					default:
-						assert(0) ; // invalid format type.
-				}
-
-				if( *this ) {
-					post_read_snp() ;
-				}
+				post_read_snp() ;
 			}
-			
 			return *this ;
-		};
+		}
 		
 		
 	private:

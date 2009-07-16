@@ -49,30 +49,39 @@ namespace genfile {
 			return m_sources[ source_index ]->total_number_of_snps() ;
 		}
 
-		FormatType format() const {
-			assert( m_current_source < m_sources.size() ) ;
-			return m_sources[ m_current_source ]->format() ;
-		}
-
 		operator bool() const {
 			if( m_current_source < m_sources.size() ) {
-				bool result = static_cast< bool >( *m_sources[ m_current_source ] ) ;
-				return result ;
+				return *m_sources[ m_current_source ] ;
 			}
 			else {
 				return false ;
 			}
 		}
 
-		std::istream const& stream() const {
+	private:
+		
+		void read_snp_impl(
+			IntegerSetter const& set_number_of_samples,
+			StringSetter const& set_SNPID,
+			StringSetter const& set_RSID,
+			SNPPositionSetter const& set_SNP_position,
+			AlleleSetter const& set_allele1,
+			AlleleSetter const& set_allele2,
+			GenotypeProbabilitySetter const& set_genotype_probabilities
+		) {
 			assert( m_current_source < m_sources.size() ) ;
-			return m_sources[ m_current_source ]->stream() ;
+			m_sources[m_current_source]->read_snp(
+				set_number_of_samples,
+				set_SNPID,
+				set_RSID,
+				set_SNP_position,
+				set_allele1,
+				set_allele2,
+				set_genotype_probabilities
+			) ;
 		}
 
-		std::istream& stream() {
-			assert( m_current_source < m_sources.size() ) ;
-			return m_sources[ m_current_source ]->stream() ;
-		}
+	public:
 
 	#if HAVE_BOOST_FUNCTION
 		typedef boost::function< void( int index ) > moved_to_next_source_callback_t ;
