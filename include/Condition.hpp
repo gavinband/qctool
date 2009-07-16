@@ -90,16 +90,21 @@ struct CompoundCondition: public Condition< MandatoryData >
 		}
 
 		void format_to_stream( std::ostream& oStream, std::string const& join ) const {
-			subcondition_iterator_t
-				first_subcondition_i( begin_subconditions() ),
-				subcondition_i( begin_subconditions() ),
-				subcondition_end( end_subconditions() ) ;
+			if( m_subconditions.empty() ) {
+				oStream << "(none)" ;
+			}
+			else {
+				subcondition_iterator_t
+					first_subcondition_i( begin_subconditions() ),
+					subcondition_i( begin_subconditions() ),
+					subcondition_end( end_subconditions() ) ;
 
-			for( ; subcondition_i != subcondition_end; ++subcondition_i ) {
-				if( subcondition_i != first_subcondition_i ) {
-					oStream << " " << join << " " ;
+				for( ; subcondition_i != subcondition_end; ++subcondition_i ) {
+					if( subcondition_i != first_subcondition_i ) {
+						oStream << " " << join << " " ;
+					}
+					oStream << (**subcondition_i) ;
 				}
-				oStream << (**subcondition_i) ;
 			}
 		}
 

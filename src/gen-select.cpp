@@ -329,11 +329,6 @@ private:
 			snp_filter->add_subcondition( snp_excl_condition ) ;
 		}
 		
-		if( snp_filter->number_of_subconditions() == 0 ) {
-			std::auto_ptr< RowCondition > trivial_condition( new TrivialRowCondition ) ;			
-			snp_filter->add_subcondition( trivial_condition ) ;
-		}
-		
 		m_snp_filter = snp_filter ;
 	}
 
@@ -359,11 +354,6 @@ private:
 			std::auto_ptr< RowCondition > sample_incl_condition( new SampleInListCondition( filename )) ;
 			std::auto_ptr< RowCondition > sample_excl_condition( new NotRowCondition( sample_incl_condition )) ;
 			sample_filter->add_subcondition( sample_excl_condition ) ;
-		}
-		
-		if( sample_filter->number_of_subconditions() == 0 ) {
-			std::auto_ptr< RowCondition > trivial_condition( new TrivialRowCondition ) ;			
-			sample_filter->add_subcondition( trivial_condition ) ;
 		}
 		
 		m_sample_filter = sample_filter ;
@@ -480,6 +470,12 @@ public:
 		}
 		if( m_gen_output_filename == "" && m_sample_output_filename == "" && m_gen_statistic_filename == "" && m_sample_statistic_filename == "" ) {
 			m_warnings.push_back( "You have not specified any output files.  This will produce only console output." ) ;
+		}
+		if( (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0) && (m_gen_statistic_filename == "") && (m_sample_statistic_filename == "") ) {
+			m_warnings.push_back(
+			"You have not specified any filters, nor any statistic output files.\n"
+			"This will just copy input to output files (taking into account any\n"
+			"file format changes).  You can do this faster with gen-convert." ) ;
 		}
 	}
 	
@@ -680,8 +676,8 @@ private:
 	
 	GenRowStatistics m_row_statistics ;
 	SampleRowStatistics m_sample_statistics ;
-	std::auto_ptr< RowCondition > m_snp_filter ;
-	std::auto_ptr< RowCondition > m_sample_filter ;
+	std::auto_ptr< AndRowCondition > m_snp_filter ;
+	std::auto_ptr< AndRowCondition > m_sample_filter ;
 	
 	std::vector< std::size_t > m_gen_file_snp_counts ;
 	std::size_t m_total_number_of_snps ;

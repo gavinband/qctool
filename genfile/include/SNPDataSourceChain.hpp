@@ -89,10 +89,8 @@ namespace genfile {
 		
 		void move_to_next_source() {
 			++m_current_source ;
-			if( m_current_source < m_sources.size() ) {
-				if( m_moved_to_next_source_callback ) {
-					m_moved_to_next_source_callback( m_current_source ) ;
-				}
+			if( m_moved_to_next_source_callback ) {
+				m_moved_to_next_source_callback( m_current_source ) ;
 			}
 		}
 

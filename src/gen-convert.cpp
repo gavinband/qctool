@@ -246,25 +246,31 @@ private:
 
 	void move_to_next_output_file( std::size_t index ) {
 		m_cout
-			<< "Have written "
+			<< globals::program_name << ": ("
 			<< m_output_chain->number_of_snps_written()
-			<< " SNPs so far.\n"
-			<< "Moving to file combination: \""
-			<< m_gen_input_filenames[index]
-			<< "\" -> \""
-			<< m_gen_output_filenames[index]
-			<< "\".\n" ;
+			<< " SNPs written)" ;
+		if( index < m_gen_input_filenames.size() ) {
+			m_cout
+				<< ": "
+				<< m_gen_input_filenames[index]
+				<< "\" -> \""
+				<< m_gen_output_filenames[index]
+				<< "\".\n" ;
 
-		if( m_gen_output_filenames[ index ] != m_current_output_filename ) {
-			m_current_output_filename = m_gen_output_filenames[ index ] ;
-			m_output_chain->move_to_next_sink() ;
+			if( m_gen_output_filenames[ index ] != m_current_output_filename ) {
+				m_current_output_filename = m_gen_output_filenames[ index ] ;
+				m_output_chain->move_to_next_sink() ;
+			}
+		}
+		else {
+			m_cout << "\n" ;
 		}
 	}
 
 public:
 	
 	void write_banner( std::ostream& oStream ) const {
-		oStream << "\nWelcome to gen-convert\n"
+		oStream << "\nWelcome to " << globals::program_name << "\n"
 		 	<< "(C) 2009 University of Oxford\n\n";
 	}
 	
@@ -345,7 +351,7 @@ private:
 		}
 
 	#if HAVE_BOOST_TIMER
-		std::cerr << "gen-select: processed GEN file(s) (" << number_of_snps_processed << " rows) in " << timer.elapsed() << " seconds.\n" ;
+		std::cerr << globals::program_name << ": converted GEN file(s) (" << number_of_snps_processed << " SNPs) in " << timer.elapsed() << " seconds.\n" ;
 	#endif
 	
 		m_cout << "Post-processing (updating file header, compression)..." << std::flush ;
@@ -419,7 +425,7 @@ int main( int argc, char** argv ) {
     }
     catch( std::exception const& exception ) {
         std::cerr << "!! Error: " << exception.what() << ".\n";
-        std::cerr << "Usage: gen-select [options]\n"
+        std::cerr << "Usage: " << globals::program_name << " [options]\n"
                 << options
                 << "\n" ;
         return -1 ;
