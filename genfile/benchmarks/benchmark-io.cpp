@@ -94,7 +94,7 @@ struct SnpData {
 	}
 } ;
 
-void process_gen_file( genfile::SNPDataSource& snp_data_source, std::size_t number_of_snps_to_read ) {
+double process_gen_file( genfile::SNPDataSource& snp_data_source, std::size_t number_of_snps_to_read ) {
 	SnpData snp_data ;
 	std::cout << "Reading " << number_of_snps_to_read << " snps...\n" << std::flush ;
 	std::size_t count = 0;
@@ -113,7 +113,9 @@ void process_gen_file( genfile::SNPDataSource& snp_data_source, std::size_t numb
 		++count ;
 	}
 	
-	std::cout << "Read " << count << " snps in " << timer.elapsed() << "s.\n" ;
+	double elapsed = timer.elapsed() ;
+	std::cout << "Read " << count << " snps in " << elapsed << "s.\n" ;
+	return elapsed ;
 }
 
 
@@ -143,7 +145,13 @@ int main( int argc, char** argv ) {
 			}
 		}
 
-		process_gen_file( *source, number_of_snps_to_read ) ;
+		double a = process_gen_file( *source, number_of_snps_to_read ) ;
+		double b = process_gen_file( *source, number_of_snps_to_read ) ;
+		double c = process_gen_file( *source, number_of_snps_to_read ) ;
+	
+		std::cerr << "\nAverage time taken was "
+			<< ((a + b + c) / 3.0)
+			<< ".\n" ;
 	}
 	catch( GToolException const& e )
 	{
