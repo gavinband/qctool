@@ -15,6 +15,16 @@ def create_test( bld, name ):
 		unit_test=1
 	)
 
+def create_benchmark( bld, name ):
+	bld.new_task_gen(
+		features = 'cxx cprogram',
+		target = name,
+		source = [  'benchmarks/' + name + '.cpp' ],
+		uselib_local = 'genfile',
+		includes='../include ./include'
+	)
+
+
 def build( bld ):
 	import Options
 	
@@ -24,7 +34,7 @@ def build( bld ):
 	bld.new_task_gen(
 		features = 'cxx cstaticlib',
 		target = 'genfile',
-		source = [  
+		source = [
 			'src/SNPDataSource.cpp',
 			'src/SNPDataSink.cpp',
 			'src/bgen.cpp',
@@ -34,6 +44,8 @@ def build( bld ):
 		includes='./include',
 		uselib = 'BOOST BOOST_IOSTREAMS ZLIB'
 	)
+	
+	create_benchmark( bld, 'benchmark-io' )
 	
 	create_test( bld, 'test_bgen_header_format' )
 	create_test( bld, 'test_bgen_snp_format' )

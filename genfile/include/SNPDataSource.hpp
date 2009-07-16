@@ -91,7 +91,8 @@ namespace genfile {
 			
 			return *this ;
 		};
-	
+		
+		
 	private:
 		SNPDataSource( SNPDataSource const& other ) ;
 		SNPDataSource& operator=( SNPDataSource const& other ) ;
