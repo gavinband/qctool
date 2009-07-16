@@ -1,5 +1,6 @@
 #include <cassert>
 #include <string>
+#include <sstream>
 #include "parse_utils.hpp"
 
 std::size_t find_matching_bracket( std::string const& aString, std::size_t pos, char lbracket, char rbracket ) {
@@ -50,4 +51,20 @@ bool string_has_prefix_and_suffix( std::string const& string_to_check, std::stri
 		region_outside_prefix_and_suffix->assign( string_to_check.substr( prefix.size(), match_size )) ;
 	}
 	return true ;
+}
+
+int parse_integer_in_half_open_range( std::string const& a_string, int lower_bound, int upper_bound )
+{
+	assert( lower_bound <= upper_bound ) ;
+	std::istringstream inStream( a_string ) ;
+	int i ;
+	inStream >> i ;
+	inStream.peek() ;
+	if( !inStream.eof()) {
+		return upper_bound ;
+	}
+	if( i < lower_bound || i >= upper_bound ) {
+		return upper_bound ;
+	}
+	return i ;
 }

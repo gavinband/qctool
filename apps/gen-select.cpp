@@ -37,9 +37,9 @@
 #include "SampleInputFile.hpp"
 #include "SampleOutputFile.hpp"
 #include "GenotypeAssayStatisticFactory.hpp"
-#include "HardyWeinbergExactTestStatistic.hpp"
 #include "wildcard.hpp"
 #include "string_utils.hpp"
+#include "parse_utils.hpp"
 
 std::vector< std::string > expand_filename_wildcards( std::string const& option_name, std::vector< std::string > const& filenames ) ;
 void check_files_are_readable( std::string const& option_name, std::vector< std::string > const& filenames ) ;
@@ -735,17 +735,7 @@ int main( int argc, char** argv ) {
 
 
 bool check_if_string_is_a_number_from_1_to_100( std::string const& a_string ) {
-	std::istringstream inStream( a_string ) ;
-	int i ;
-	inStream >> i ;
-	inStream.peek() ;
-	if( !inStream.eof()) {
-		return false ;
-	}
-	if( i < 1 || i > 100 ) {
-		return false ;
-	}
-	return true ;
+	return parse_integer_in_half_open_range( a_string, 1, 101 ) != 101 ;
 }
 
 

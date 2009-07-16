@@ -13,9 +13,6 @@ namespace genfile {
 	bool filename_indicates_bgen_format( std::string const& filename ) {
 		return ( filename.find( ".bgen") != std::string::npos ) ;
 	}
-	bool filename_indicates_bgen_uncompressed_format( std::string const& filename ) {
-		return ( filename.find( ".bugen") != std::string::npos ) ;
-	}
 
 	CompressionType get_compression_type_indicated_by_filename( std::string const& filename ) {
 		if( filename.find( ".gz") != std::string::npos ) {
