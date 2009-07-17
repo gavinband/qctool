@@ -78,14 +78,15 @@ namespace genfile {
 	}
 
 	SNPDataSource& SNPDataSource::read_next_matching_snp(
-		IntegerSetter set_number_of_samples,
-		StringSetter set_SNPID,
-		StringSetter set_RSID,
-		SNPPositionSetter set_SNP_position,
-		AlleleSetter set_allele1,
-		AlleleSetter set_allele2,
-		GenotypeProbabilitySetter set_genotype_probabilities,
-		SNPMatcher snp_matcher
+		IntegerSetter const& set_number_of_samples,
+		StringSetter const& set_SNPID,
+		StringSetter const& set_RSID,
+		SNPPositionSetter const& set_SNP_position,
+		AlleleSetter const& set_allele1,
+		AlleleSetter const& set_allele2,
+		GenotypeProbabilitySetter const& set_genotype_probabilities,
+		SNPMatcher const& snp_matcher,
+		SNPMatcher const& have_past_snp
 	) {
 		m_number_of_snps_read += read_next_matching_snp_impl(
 			set_number_of_samples,
@@ -95,7 +96,8 @@ namespace genfile {
 			set_allele1,
 			set_allele2,
 			set_genotype_probabilities,
-			snp_matcher
+			snp_matcher,
+			have_past_snp
 		) ;
 		return *this ;
 	}
@@ -108,7 +110,8 @@ namespace genfile {
 		AlleleSetter const& set_allele1,
 		AlleleSetter const& set_allele2,
 		GenotypeProbabilitySetter const& set_genotype_probabilities,
-		SNPMatcher const& snp_matcher
+		SNPMatcher const& snp_matcher,
+		SNPMatcher const& have_past_snp
 	) {
 		uint32_t number_of_samples ;
 		std::string SNPID, RSID ;
@@ -117,7 +120,7 @@ namespace genfile {
 
 		std::size_t number_of_snps_read ;
 		bool found = false ;
-		for( number_of_snps_read = 0u; (*this) && (!found); ++number_of_snps_read ) {
+		for( number_of_snps_read = 0u; (*this) && (!found); ) {
 			get_snp_identifying_data(
 				set_value( number_of_samples ),
 				set_value( SNPID ),
@@ -127,19 +130,22 @@ namespace genfile {
 				set_value( second_allele )
 			) ;
 
-			if( snp_matcher( SNPID, RSID, SNP_position, first_allele, second_allele )) {
-				found = true ;
-				set_SNPID( SNPID ) ;
-				set_RSID( RSID ) ;
-				set_SNP_position( SNP_position ) ;
-				set_allele1( first_allele ) ;
-				set_allele2( second_allele ) ;
+			if( *this ) {
+				++number_of_snps_read ;
+				if( snp_matcher( SNPID, RSID, SNP_position, first_allele, second_allele )) {
+					found = true ;
+					set_SNPID( SNPID ) ;
+					set_RSID( RSID ) ;
+					set_SNP_position( SNP_position ) ;
+					set_allele1( first_allele ) ;
+					set_allele2( second_allele ) ;
 
-				read_snp_probability_data( &number_of_samples, set_genotype_probabilities ) ;
-				set_number_of_samples( number_of_samples ) ;
-			}
-			else {
-				ignore_snp_probability_data( number_of_samples ) ;
+					read_snp_probability_data( &number_of_samples, set_genotype_probabilities ) ;
+					set_number_of_samples( number_of_samples ) ;
+				}
+				else {
+					ignore_snp_probability_data( number_of_samples ) ;
+				}
 			}
 		}
 		return number_of_snps_read ;	
