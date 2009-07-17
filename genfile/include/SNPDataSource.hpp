@@ -22,8 +22,8 @@ namespace genfile {
 	{
 	public:
 
-		SNPDataSource(): m_number_of_snps_read(0) {} ;
-		virtual ~SNPDataSource() {} ;
+		SNPDataSource() ;
+		virtual ~SNPDataSource() ;
 
 		// The following methods must be overriden in derived classes
 	public:
@@ -35,11 +35,30 @@ namespace genfile {
 		std::size_t number_of_snps_read() const { return m_number_of_snps_read ; }
 
 	protected:
+
 		typedef boost::function< void ( uint32_t ) > IntegerSetter ;
 		typedef boost::function< void ( std::string const& ) > StringSetter ;
 		typedef boost::function< void ( char ) > AlleleSetter ;
 		typedef boost::function< void ( uint32_t ) > SNPPositionSetter ;
 		typedef boost::function< void ( std::size_t, double, double, double ) > GenotypeProbabilitySetter ;
+
+		virtual void get_snp_identifying_data_impl( 
+			IntegerSetter const& set_number_of_samples,
+			StringSetter const& set_SNPID,
+			StringSetter const& set_RSID,
+			SNPPositionSetter const& set_SNP_position,
+			AlleleSetter const& set_allele1,
+			AlleleSetter const& set_allele2
+		) = 0 ;	
+
+		virtual void read_snp_probability_data_impl(
+		 	uint32_t* number_of_samples,
+			GenotypeProbabilitySetter const& set_genotype_probabilities
+		) = 0 ;
+
+		virtual void ignore_snp_probability_data_impl(
+			uint32_t number_of_samples
+		) = 0 ;
 
 		virtual void read_snp_impl(
 			IntegerSetter const& set_number_of_samples,
@@ -49,11 +68,11 @@ namespace genfile {
 			AlleleSetter const& set_allele1,
 			AlleleSetter const& set_allele2,
 			GenotypeProbabilitySetter const& set_genotype_probabilities
-		) = 0 ;
+		) ;
 
 		typedef boost::function< bool( std::string const&, std::string const&, uint32_t, char, char ) > SNPMatcher ;
 
-		virtual void read_next_matching_snp_impl(
+		virtual std::size_t read_next_matching_snp_impl(
 			IntegerSetter const& set_number_of_samples,
 			StringSetter const& set_SNPID,
 			StringSetter const& set_RSID,
@@ -62,9 +81,7 @@ namespace genfile {
 			AlleleSetter const& set_allele2,
 			GenotypeProbabilitySetter const& set_genotype_probabilities,
 			SNPMatcher const& snp_matcher
-		) {
-			assert(0) ;
-		}
+		) ;
 
 	public:
 		// The following methods are factory functions
@@ -86,22 +103,7 @@ namespace genfile {
 			AlleleSetter set_allele1,
 			AlleleSetter set_allele2,
 			GenotypeProbabilitySetter set_genotype_probabilities
-		)
-		{
-			read_snp_impl(
-				set_number_of_samples,
-				set_SNPID,
-				set_RSID,
-				set_SNP_position,
-				set_allele1,
-				set_allele2,
-				set_genotype_probabilities
-			) ;
-			if( *this ) {
-				++m_number_of_snps_read ;
-			}
-			return *this ;
-		}
+		) ;
 		
 		SNPDataSource& read_next_matching_snp(
 			IntegerSetter set_number_of_samples,
@@ -112,25 +114,63 @@ namespace genfile {
 			AlleleSetter set_allele2,
 			GenotypeProbabilitySetter set_genotype_probabilities,
 			SNPMatcher snp_matcher
-		) {
-			read_next_matching_snp_impl(
-				set_number_of_samples,
-				set_SNPID,
-				set_RSID,
-				set_SNP_position,
-				set_allele1,
-				set_allele2,
-				set_genotype_probabilities,
-				snp_matcher
-			) ;
-			return *this ;
-		}
+		) ;
 		
-		
+		virtual void get_snp_identifying_data(
+			IntegerSetter const& set_number_of_samples,
+			StringSetter const& set_SNPID,
+			StringSetter const& set_RSID,
+			SNPPositionSetter const& set_SNP_position,
+			AlleleSetter const& set_allele1,
+			AlleleSetter const& set_allele2
+		) ;
+
+		virtual void read_snp_probability_data(
+			uint32_t* number_of_samples,
+			GenotypeProbabilitySetter const& set_genotype_probabilities
+		) ;
+
+		virtual void ignore_snp_probability_data( uint32_t number_of_samples ) ;
+
+	protected:
+
+		enum State { e_HaveReadIdentifyingData, e_HaveNotReadIdentifyingData } ;
+		State const& state() const { return m_state ; }
+
 	private:
 		std::size_t m_number_of_snps_read ;
 		SNPDataSource( SNPDataSource const& other ) ;
 		SNPDataSource& operator=( SNPDataSource const& other ) ;
+
+		// state variable SNP identifying data
+		State m_state ;
+	} ;
+
+	class IdentifyingDataCachingSNPDataSource: public SNPDataSource
+	{
+		virtual void read_snp_identifying_data_impl( 
+			uint32_t* number_of_samples,
+			std::string* SNPID,
+			std::string* RSID,
+			uint32_t* SNP_position,
+			char* allele1,
+			char* allele2
+		) = 0 ;
+
+		void get_snp_identifying_data_impl( 
+			IntegerSetter const& set_number_of_samples,
+			StringSetter const& set_SNPID,
+			StringSetter const& set_RSID,
+			SNPPositionSetter const& set_SNP_position,
+			AlleleSetter const& set_allele1,
+			AlleleSetter const& set_allele2
+		) ;
+
+	private:
+		bool m_have_cached_identifying_data ;
+		uint32_t m_cached_number_of_samples, m_cached_SNP_position ;
+		std::string m_cached_SNPID, m_cached_RSID ;
+		char m_cached_allele1, m_cached_allele2 ;
 	} ;
 }
 

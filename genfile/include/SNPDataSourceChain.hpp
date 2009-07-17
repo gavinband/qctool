@@ -57,33 +57,38 @@ namespace genfile {
 			}
 		}
 
-	private:
-		
-		void read_snp_impl(
+	protected:
+
+		void get_snp_identifying_data_impl( 
 			IntegerSetter const& set_number_of_samples,
 			StringSetter const& set_SNPID,
 			StringSetter const& set_RSID,
 			SNPPositionSetter const& set_SNP_position,
 			AlleleSetter const& set_allele1,
-			AlleleSetter const& set_allele2,
-			GenotypeProbabilitySetter const& set_genotype_probabilities
+			AlleleSetter const& set_allele2
 		) {
-			move_to_next_nonempty_source() ;
-
+			move_to_next_nonempty_source_if_necessary() ;
 			if( m_current_source < m_sources.size() ) {
-				m_sources[m_current_source]->read_snp(
-					set_number_of_samples,
-					set_SNPID,
-					set_RSID,
-					set_SNP_position,
-					set_allele1,
-					set_allele2,
-					set_genotype_probabilities
-				) ;
+				m_sources[m_current_source]->get_snp_identifying_data( set_number_of_samples, set_SNPID, set_RSID, set_SNP_position, set_allele1, set_allele2 ) ;
 			}
 		}
 
-		void read_next_matching_snp_impl(
+		void read_snp_probability_data_impl(
+			uint32_t* number_of_samples,
+			GenotypeProbabilitySetter const& set_genotype_probabilities
+		) {
+			assert( m_current_source < m_sources.size() ) ;
+			m_sources[m_current_source]->read_snp_probability_data( number_of_samples, set_genotype_probabilities ) ;
+		}
+
+		void ignore_snp_probability_data_impl(
+			uint32_t number_of_samples
+		) {
+			assert( m_current_source < m_sources.size() ) ;
+			m_sources[m_current_source]->ignore_snp_probability_data( number_of_samples ) ;
+		}
+
+		std::size_t read_next_matching_snp_impl(
 			IntegerSetter const& set_number_of_samples,
 			StringSetter const& set_SNPID,
 			StringSetter const& set_RSID,
@@ -93,21 +98,26 @@ namespace genfile {
 			GenotypeProbabilitySetter const& set_genotype_probabilities,
 			SNPMatcher const& snp_matcher
 		) {
-			// Move to the next nonempty source, if needed.
-
-			do {
-				move_to_next_nonempty_source() ;
+			std::size_t number_of_snps_read = 0;
+			bool found = false ;
+			
+			while( (*this) &&  (!found)) {
+				move_to_next_nonempty_source_if_necessary() ;
+				std::size_t saved_source_number_of_snps_read = m_sources[ m_current_source ]->number_of_snps_read() ;
+				found = m_sources[ m_current_source ]->read_next_matching_snp(
+					set_number_of_samples,
+					set_SNPID,
+					set_RSID,
+					set_SNP_position,
+					set_allele1,
+					set_allele2,
+					set_genotype_probabilities,
+					snp_matcher
+				) ;
+				number_of_snps_read += m_sources[ m_current_source ]->number_of_snps_read() - saved_source_number_of_snps_read ;
 			}
-			while(( m_current_source < m_sources.size())  && (!m_sources[ m_current_source ]->read_next_matching_snp(
-				set_number_of_samples,
-				set_SNPID,
-				set_RSID,
-				set_SNP_position,
-				set_allele1,
-				set_allele2,
-				set_genotype_probabilities,
-				snp_matcher
-			))) ;
+
+			return number_of_snps_read ;
 		}
 
 	public:
@@ -129,7 +139,7 @@ namespace genfile {
 			}
 		}
 
-		void move_to_next_nonempty_source() {
+		void move_to_next_nonempty_source_if_necessary() {
 			while(( m_current_source < m_sources.size())
 				&& (m_sources[ m_current_source ]->number_of_snps_read() >= m_sources[m_current_source]->total_number_of_snps())) {
 				move_to_next_source() ;
