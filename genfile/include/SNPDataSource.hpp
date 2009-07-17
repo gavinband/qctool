@@ -25,22 +25,94 @@ namespace genfile {
 		SNPDataSource() ;
 		virtual ~SNPDataSource() ;
 
-		// The following methods must be overriden in derived classes
 	public:
-		virtual operator bool() const = 0 ;
-		virtual unsigned int number_of_samples() const = 0;
-		virtual unsigned int total_number_of_snps() const = 0 ;
+		// The following methods are factory functions
+		static std::auto_ptr< SNPDataSource > create( std::string const& filename ) ;
+		static std::auto_ptr< SNPDataSource > create( std::string const& filename, CompressionType compression_type ) ;
+		static std::auto_ptr< SNPDataSource > create( std::vector< std::string > const& filenames ) ;
 
-	public:
-		std::size_t number_of_snps_read() const { return m_number_of_snps_read ; }
 
-	protected:
 
+		// The next five functions form the main interface for reading snp data. 
+		// These typedefs reflect the signatures which the various setter objects
+		// needed by these functions must support.
 		typedef boost::function< void ( uint32_t ) > IntegerSetter ;
 		typedef boost::function< void ( std::string const& ) > StringSetter ;
 		typedef boost::function< void ( char ) > AlleleSetter ;
 		typedef boost::function< void ( uint32_t ) > SNPPositionSetter ;
 		typedef boost::function< void ( std::size_t, double, double, double ) > GenotypeProbabilitySetter ;
+		
+		// Function: read_snp()
+		// Read the data for the next snp from the source (and remove it from the source)
+		// Store the data using the given setter objects / function pointers.
+		// The returned object evaluates to true if the read was successful, otherwise false.
+		SNPDataSource& read_snp(
+			IntegerSetter set_number_of_samples,
+			StringSetter set_SNPID,
+			StringSetter set_RSID,
+			SNPPositionSetter set_SNP_position,
+			AlleleSetter set_allele1,
+			AlleleSetter set_allele2,
+			GenotypeProbabilitySetter set_genotype_probabilities
+		) ;
+		
+		// Function: read_next_snp_with_specified_position()
+		// Read and discard snps until a snp with the given position or higher is found,
+		// or the source is exhausted.
+		// Return true if a snp with the specified position is found, otherwise false.
+		bool read_next_snp_with_specified_position(
+			IntegerSetter const& set_number_of_samples,
+			StringSetter const& set_SNPID,
+			StringSetter const& set_RSID,
+			SNPPositionSetter const& set_SNP_position,
+			AlleleSetter const& set_allele1,
+			AlleleSetter const& set_allele2,
+			GenotypeProbabilitySetter const& set_genotype_probabilities,
+			uint32_t specified_SNP_position
+		) ;
+		
+		// Function: get_snp_identifying_data()
+		// Get the SNP ID, RS ID, position, and alleles of the next snp in the source.
+		// Repeated calls to this function return the data for the same snp, until a call to
+		// read_snp_probability_data() or ignore_snp_probability_data() is made.
+		SNPDataSource& get_snp_identifying_data(
+			IntegerSetter const& set_number_of_samples,
+			StringSetter const& set_SNPID,
+			StringSetter const& set_RSID,
+			SNPPositionSetter const& set_SNP_position,
+			AlleleSetter const& set_allele1,
+			AlleleSetter const& set_allele2
+		) ;
+
+		// Function: read_snp_probability_data()
+		// Read the probability data for the next snp in the source, storing it
+		// using the given setter object / function pointer.
+		// For each snp, you must call get_snp_identifying_data() at least once before
+		// calling this function.
+		SNPDataSource& read_snp_probability_data(
+			uint32_t* number_of_samples,
+			GenotypeProbabilitySetter const& set_genotype_probabilities
+		) ;
+
+		// Function: ignore_snp_probability_data()
+		// Read and discard the probability data for the next snp in the source.
+		// For each snp, you must call get_snp_identifying_data() at least once before
+		// calling this function.
+		SNPDataSource& ignore_snp_probability_data( uint32_t number_of_samples ) ;
+
+	public:
+		// Implicit conversion to bool.  Return true if there have been no errors so far.
+		virtual operator bool() const = 0 ;
+		// Return the number of samples represented in the snps in this source.
+		virtual unsigned int number_of_samples() const = 0;
+		// Return the total number of snps the source contains.
+		virtual unsigned int total_number_of_snps() const = 0 ;
+
+	public:
+		// Return the number of snps which have been read from the source so far.
+		std::size_t number_of_snps_read() const { return m_number_of_snps_read ; }
+
+	protected:
 
 		virtual void get_snp_identifying_data_impl( 
 			IntegerSetter const& set_number_of_samples,
@@ -59,80 +131,6 @@ namespace genfile {
 		virtual void ignore_snp_probability_data_impl(
 			uint32_t number_of_samples
 		) = 0 ;
-
-		virtual void read_snp_impl(
-			IntegerSetter const& set_number_of_samples,
-			StringSetter const& set_SNPID,
-			StringSetter const& set_RSID,
-			SNPPositionSetter const& set_SNP_position,
-			AlleleSetter const& set_allele1,
-			AlleleSetter const& set_allele2,
-			GenotypeProbabilitySetter const& set_genotype_probabilities
-		) ;
-
-		typedef boost::function< bool( std::string const&, std::string const&, uint32_t, char, char ) > SNPMatcher ;
-
-		virtual std::size_t read_next_matching_snp_impl(
-			IntegerSetter const& set_number_of_samples,
-			StringSetter const& set_SNPID,
-			StringSetter const& set_RSID,
-			SNPPositionSetter const& set_SNP_position,
-			AlleleSetter const& set_allele1,
-			AlleleSetter const& set_allele2,
-			GenotypeProbabilitySetter const& set_genotype_probabilities,
-			SNPMatcher const& snp_matcher,
-			SNPMatcher const& have_past_snp
-		) ;
-
-	public:
-		// The following methods are factory functions
-		static std::auto_ptr< SNPDataSource > create( std::string const& filename ) ;
-		static std::auto_ptr< SNPDataSource > create( std::string const& filename, CompressionType compression_type ) ;
-		static std::auto_ptr< SNPDataSource > create( std::vector< std::string > const& filenames ) ;
-
-		// Function read_snp().
-		// This is the method which returns snp data from the source.
-		// Ideally this would also be a virtual member function.
-		// However, a template member function can't be virtual.
-		// Therefore, we dispatch to the correct implementation using the format()
-		// and stream() members which implementations must provide.
-		SNPDataSource& read_snp(
-			IntegerSetter set_number_of_samples,
-			StringSetter set_SNPID,
-			StringSetter set_RSID,
-			SNPPositionSetter set_SNP_position,
-			AlleleSetter set_allele1,
-			AlleleSetter set_allele2,
-			GenotypeProbabilitySetter set_genotype_probabilities
-		) ;
-		
-		SNPDataSource& read_next_matching_snp(
-			IntegerSetter const& set_number_of_samples,
-			StringSetter const& set_SNPID,
-			StringSetter const& set_RSID,
-			SNPPositionSetter const& set_SNP_position,
-			AlleleSetter const& set_allele1,
-			AlleleSetter const& set_allele2,
-			GenotypeProbabilitySetter const& set_genotype_probabilities,
-			SNPMatcher const& snp_matcher,
-			SNPMatcher const& have_past_snp = SNPMatcher() 
-		) ;
-		
-		void get_snp_identifying_data(
-			IntegerSetter const& set_number_of_samples,
-			StringSetter const& set_SNPID,
-			StringSetter const& set_RSID,
-			SNPPositionSetter const& set_SNP_position,
-			AlleleSetter const& set_allele1,
-			AlleleSetter const& set_allele2
-		) ;
-
-		void read_snp_probability_data(
-			uint32_t* number_of_samples,
-			GenotypeProbabilitySetter const& set_genotype_probabilities
-		) ;
-
-		void ignore_snp_probability_data( uint32_t number_of_samples ) ;
 
 	protected:
 

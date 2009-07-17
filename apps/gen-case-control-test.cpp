@@ -319,7 +319,7 @@ private:
 		while( read_snp( *m_case_gen_input_chain, case_row )) {
 			++number_of_case_snps_processed ;
 			std::size_t number_of_matching_snps = 0 ;
-			if( read_next_matching_snp( *m_control_gen_input_chain, control_row, SNPsHaveSamePositionChecker( case_row ), SNPHasLargerPosition( case_row ))) {
+			while( read_next_snp_with_specified_position( *m_control_gen_input_chain, control_row, case_row.SNP_position())) {
 				++number_of_matching_snps ;
 				++number_of_control_snps_matched ;
 				// I think we'd expect all the SNP identifying data to be the same for the two snps.
@@ -407,8 +407,8 @@ private:
 		) ;
 	}
 
-	bool read_next_matching_snp( genfile::SNPDataSource& snp_data_source, GenRow& row, SNPMatcher const& snp_matcher, SNPMatcher const& have_past_snp ) {
-		return snp_data_source.read_next_matching_snp(
+	bool read_next_snp_with_specified_position( genfile::SNPDataSource& snp_data_source, GenRow& row, uint32_t specified_SNP_position ) {
+		return snp_data_source.read_next_snp_with_specified_position(
 			boost::bind< void >( &GenRow::set_number_of_samples, &row, _1 ),
 			boost::bind< void >( &GenRow::set_SNPID, &row, _1 ),
 			boost::bind< void >( &GenRow::set_RSID, &row, _1 ),
@@ -416,8 +416,7 @@ private:
 			boost::bind< void >( &GenRow::set_allele1, &row, _1 ),
 			boost::bind< void >( &GenRow::set_allele2, &row, _1 ),
 			boost::bind< void >( &GenRow::set_genotype_probabilities, &row, _1, _2, _3, _4 ),
-			snp_matcher,
-			have_past_snp
+			specified_SNP_position 
 		) ;
 	}
 
