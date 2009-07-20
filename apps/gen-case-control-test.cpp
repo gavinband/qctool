@@ -7,7 +7,7 @@
 #include <set>
 #include <fstream>
 #include <numeric>
-#include "GenRow.hpp"
+#include "ExternalStorageGenRow.hpp"
 #include "SampleRow.hpp"
 #include "AlleleProportions.hpp"
 #include "GToolException.hpp"
@@ -287,10 +287,14 @@ private:
 	void unsafe_process() {
 		Timer timer ;
 
-		InternalStorageGenRow control_row, case_row ;
-		control_row.set_number_of_samples( m_control_gen_input_chain->number_of_samples() ) ;
-		case_row.set_number_of_samples( m_case_gen_input_chain->number_of_samples() ) ;
+		std::size_t number_of_control_samples = m_control_gen_input_chain->number_of_samples(),
+			number_of_case_samples = m_case_gen_input_chain->number_of_samples() ;
 
+		std::vector< GenotypeProbabilities > probabilities( number_of_control_samples + number_of_case_samples ) ;
+		ExternalStorageGenRow
+			control_row( &probabilities[0], number_of_control_samples ),
+			case_row( &probabilities[ number_of_control_samples ], number_of_case_samples ) ;
+		
 		m_cout << "Processing SNPs...\n" ;
 
 		double last_time = -5.0 ;
@@ -324,7 +328,7 @@ private:
 			<< "\nProcessed case / control data ("
 			<< m_case_gen_input_chain->number_of_snps_read() << " case SNPs, "
 			<< number_of_control_snps_matched << " matched control SNPs) in "
-			<< std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
+			<< std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
 	
 		m_cout << "Post-processing..." << std::flush ;
 		timer.restart() ;

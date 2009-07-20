@@ -98,6 +98,7 @@ def build( bld ):
 			'src/GToolException.cpp',
 			'src/GenRow.cpp',
 			'src/GenRowIO.cpp',
+			'src/ExternalStorageGenRow.cpp',
 			'src/GenRowSource.cpp',
 			'src/GenRowSink.cpp',
 			'src/GenRowStatistics.cpp',

@@ -54,6 +54,7 @@ struct GenotypeProportions
 		double m_proportion_of_BB ;
 } ;
 
+typedef GenotypeProportions GenotypeProbabilities ;
 
 // non-member operators
 GenotypeProportions operator+( GenotypeProportions const& left, GenotypeProportions const& right ) ;
