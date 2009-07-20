@@ -28,9 +28,6 @@ struct StatisticNotFoundException: public GenotypeAssayStatisticException
 // Forward declaration
 struct GenotypeAssayStatistic ;
 
-// This class holds data representing an assay of one or more SNPs.
-// It has methods to return the amounts of AA, AB and BB genotypes in the sample,
-// as well as genotype proportions and allele proportions. 
 struct GenotypeAssayStatistics: public GenotypeAssayBasicStatistics, public string_to_value_map
 {
 	typedef GenotypeAssayBasicStatistics base_t ;
@@ -67,9 +64,6 @@ struct GenotypeAssayStatistics: public GenotypeAssayBasicStatistics, public stri
 } ;
 
 // Base class for individual statistics
-// This class contains a statistic value cache.
-// The reset() method is provided to reset this cache before
-// using the statistic on a different GenotypeAssayStatistics object.
 struct GenotypeAssayStatistic
 {
 	public:
