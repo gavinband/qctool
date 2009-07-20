@@ -150,6 +150,14 @@ def build( bld ):
 
 	bld.new_task_gen(
 		features = 'cxx cprogram',
+		target = 'gen-compare',
+		source = [  'apps/gen-compare.cpp' ],
+		includes='./include ./genfile/include',
+		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile'
+	)
+
+	bld.new_task_gen(
+		features = 'cxx cprogram',
 		target = 'gen-case-control-test',
 		source = [  'apps/gen-case-control-test.cpp' ],
 		includes='./include ./genfile/include',

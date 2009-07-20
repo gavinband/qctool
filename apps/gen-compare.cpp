@@ -7,7 +7,6 @@
 #include <set>
 #include <fstream>
 #include <numeric>
-#include "ExternalStorageGenRow.hpp"
 #include "SampleRow.hpp"
 #include "AlleleProportions.hpp"
 #include "GToolException.hpp"
@@ -26,115 +25,54 @@
 #include "Timer.hpp"
 
 namespace globals {
-	std::string const program_name = "gen-case-control-test" ;
+	std::string const program_name = "gen-compare" ;
 }
 
-struct GenCaseControlProcessorException: public GToolException
+struct GenCompareProcessorException: public GToolException
 {
-	char const* what() const throw() { return "GenCaseControlProcessorException" ; }
+	char const* what() const throw() { return "GenCompareProcessorException" ; }
 } ;
 
-struct GenCaseControlUsageError: public GenCaseControlProcessorException
+struct GenCompareUsageError: public GenCompareProcessorException
 {
-	char const* what() const throw() { return "GenCaseControlUsageError" ; }
+	char const* what() const throw() { return "GenCompareUsageError" ; }
 } ;
 
 // thrown to indicate that the numbers of files specified for -cases or -controls
 // is not two
-struct GenCaseControlFileCountError: public GenCaseControlProcessorException
+struct GenCompareFileCountError: public GenCompareProcessorException
 {
-	char const* what() const throw() { return "GenCaseControlFileCountError" ; }
+	char const* what() const throw() { return "GenCompareFileCountError" ; }
 } ;
 
 // thrown to indicate that an output file with wildcard appeared, but the corresponding input
 // file had no wildcard.
-struct GenCaseControlFileWildcardMismatchError: public GenCaseControlProcessorException
+struct GenCompareFileWildcardMismatchError: public GenCompareProcessorException
 {
-	char const* what() const throw() { return "GenCaseControlFileWildcardMismatchError" ; }
+	char const* what() const throw() { return "GenCompareFileWildcardMismatchError" ; }
 } ;
 
-std::vector< std::string > try_to_put_sample_file_first( std::string const& option_name, std::vector< std::string > const& filenames ) {
-	std::vector< std::string > result( filenames ) ;
-	if( filenames.size() != 2 ) {
-		throw OptionValueInvalidException( option_name, filenames, "Two files, a sample and a gen file, must be specified for this option." ) ;
-	}
-	// swap the two options if it looks like the gen file is last.	
-	if( !genfile::filename_indicates_gen_or_bgen_format( filenames[1] ) && genfile::filename_indicates_gen_or_bgen_format( filenames[0] )) {
-		// Guess that sample file is listed second.
-		std::swap( result[0], result[1] ) ;
-	}
-	return result ;
-}
-
-/*
-struct SampleSpec
-{
-	public:
-		SampleSpec( SampleRow const& row, double probability_of_case_status )
-			: m_sample_row( row ), m_probability_of_case_status( probability_of_case_status )
-		{
-		}
-		
-		SampleRow const& sample_row() const { return m_sample_row ; }
-		double probability_of_case_status() const { return m_probability_of_case_status ; }
-
-	private:
-		SampleRow const& m_sample_row ;
-		double m_probability_of_case_status ;
-} ;
-*/
-/*
-struct CaseControlTest
-{
-public:
-	static std::auto_ptr< CaseControlTest > create(
-		std::auto_ptr< ObjectSource< SampleRow > > case_sample_source,
-		std::auto_ptr< genfile::SNPDataSource > control_snp_data_source,
-		std::auto_ptr< ObjectSource< SampleRow > > control_sample_source,
-		std::auto_ptr< genfile::SNPDataSource > case_snp_data_source
-	) {
-	}
-
-private:
-	
-	void add_sample( SampleRow const& row, double probability_sample_is_case ) {
-		std::size_t sample_index = m_samples.size() ;
-		m_samples.push_back( SampleSpec( row, probability_sample_is_case )) ;
-		m_samples_by_probability.insert( std::make_pair( probability_sample_is_case, sample_index )) ;
-	}
-
-	std::vector< SampleSpec > m_samples ;
-	std::multimap< double, std::size_t > m_samples_by_probability ;
-} ;
-*/
-
-struct GenCaseControlProcessor
+struct GenCompareProcessor
 {
 public:
 	static void declare_options( OptionProcessor & options ) {
 		
-		// File options		
-	    options[ "-cases" ]
+		// File options
+	    options[ "-g1" ]
 	        .set_description( "Path of gen file to input" )
 			.set_is_required()
-			.set_takes_values()
-			.set_maximum_number_of_repeats( 1 )
-			.set_number_of_values_per_use( 2 )
-			.add_value_preprocessor( &try_to_put_sample_file_first ) ;
+			.set_takes_single_value() ;
 
-	    options[ "-controls" ]
+	    options[ "-g2" ]
 	        .set_description( "Path of gen file to input" )
 			.set_is_required()
-			.set_takes_values()
-			.set_maximum_number_of_repeats( 1 )
-			.set_number_of_values_per_use( 2 )
-			.add_value_preprocessor( &try_to_put_sample_file_first ) ;
+			.set_takes_single_value() ;
 
 		options [ "--force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
 	}
 
-	GenCaseControlProcessor( OptionProcessor const& options )
+	GenCompareProcessor( OptionProcessor const& options )
 		: m_cout( std::cout.rdbuf() ),
 		  m_options( options )
 	{
@@ -142,7 +80,7 @@ public:
 		setup() ;
 	}
 
-	~GenCaseControlProcessor() {
+	~GenCompareProcessor() {
 		write_end_banner( m_cout ) ;
 	}
 	
@@ -151,8 +89,6 @@ private:
 		try {
 			get_required_filenames() ;
 			open_gen_files() ;
-			open_sample_files() ;
-			// m_case_control_test.reset( CaseControlTest::create( m_control_sample_source, m_control_gen_input_chain, m_case_sample_source, m_case_gen_input_chain )) ;
 		}
 		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
 			m_cout << "The GEN files specified did not all have the same sample size.\n" ;
@@ -167,17 +103,11 @@ private:
 	}
 
 	void get_required_filenames() {
-		std::vector< std::string > case_filenames, control_filenames ;
-
-		control_filenames = m_options.get_values< std::string >( "-controls" ) ;
-		assert( control_filenames.size() == 2 ) ;
-		add_filename( &m_control_sample_filenames, control_filenames[0] ) ;
-		expand_and_add_filename( &m_control_gen_filenames, control_filenames[1] ) ;
-
-		case_filenames = m_options.get_values< std::string >( "-cases" ) ;
-		assert( case_filenames.size() == 2 ) ;
-		add_filename( &m_case_sample_filenames, case_filenames[0] ) ;
-		expand_and_add_filename( &m_case_gen_filenames, case_filenames[1] ) ;
+		std::string case_filename, control_filename ;
+		control_filename = m_options.get_value< std::string >( "-g1" ) ;
+		expand_and_add_filename( &m_control_gen_filenames, control_filename ) ;
+		case_filename = m_options.get_value< std::string >( "-g2" ) ;
+		expand_and_add_filename( &m_case_gen_filenames, case_filename ) ;
 	}
 
 	void expand_and_add_filename( std::vector< std::string >* filename_list_ptr, std::string const& filename ) {
@@ -232,13 +162,6 @@ private:
 		m_cout << " (" << timer.elapsed() << "s)\n" ;
 	}
 
-	void open_sample_files() {
-		assert( m_control_sample_filenames.size() == 1 ) ;
-		Timer timer ;
-		// m_control_sample_source.reset( new SampleInputFile< SimpleFileObjectSource< SampleRow > >( open_file_for_input( m_control_sample_filenames[0] ))) ;
-		// m_case_sample_source.reset( new SampleInputFile< SimpleFileObjectSource< SampleRow > >( open_file_for_input( m_case_sample_filenames[0] ))) ;
-	}
-
 public:
 	
 	void write_start_banner( std::ostream& oStream ) const {
@@ -254,9 +177,9 @@ public:
 	void write_preamble( std::ostream& oStream ) const {
 		oStream << std::string( 72, '=' ) << "\n\n" ;
 		try {
-			oStream << "Control GEN files:\n" ;
+			oStream << "First set of GEN files:\n" ;
 			print_gen_files( oStream, m_control_gen_filenames, m_control_gen_input_chain ) ;
-			oStream << "Case GEN files:\n" ;
+			oStream << "Second set of GEN files:\n" ;
 			print_gen_files( oStream, m_case_gen_filenames, m_case_gen_input_chain ) ;
 			oStream << std::string( 72, '=' ) << "\n\n" ;
 		}
@@ -287,18 +210,15 @@ private:
 	void unsafe_process() {
 		Timer timer ;
 
-		std::size_t number_of_control_samples = m_control_gen_input_chain->number_of_samples(),
-			number_of_case_samples = m_case_gen_input_chain->number_of_samples() ;
+		InternalStorageGenRow case_row, control_row ;
+		control_row.set_number_of_samples( m_control_gen_input_chain->number_of_samples() ) ;
+		case_row.set_number_of_samples( m_case_gen_input_chain->number_of_samples() ) ;
 
-		std::vector< GenotypeProbabilities > probabilities( number_of_control_samples + number_of_case_samples ) ;
-		ExternalStorageGenRow
-			control_row( &probabilities[0], number_of_control_samples ),
-			case_row( &probabilities[ number_of_control_samples ], number_of_case_samples ) ;
-		
-		m_cout << "Processing SNPs...\n" ;
+		m_cout << "Comparing SNPs in gen files...\n" ;
 
 		double last_time = -5.0 ;
 		std::size_t number_of_control_snps_matched = 0 ;
+		bool these_ones_matched = true ;
 		while( read_snp( *m_case_gen_input_chain, case_row )) {
 			std::size_t number_of_matching_snps = 0 ;
 			while( read_next_snp_with_specified_position( *m_control_gen_input_chain, control_row, case_row.SNP_position())) {
@@ -306,13 +226,22 @@ private:
 				++number_of_control_snps_matched ;
 				// I think we'd expect all the SNP identifying data to be the same for the two snps.
 				// If there are mismatches, print out some information about them.
-				compare_snps( case_row, control_row ) ;
+				bool this_one_matched = compare_snps( case_row, control_row ) ;
+				if( !this_one_matched ) {
+					m_cout << "Rows "
+						<< m_case_gen_input_chain->number_of_snps_read()
+						<< " of first file, and "
+						<< m_control_gen_input_chain->number_of_snps_read()
+						<< " of second file differ (but match).\n" ;
+				}
+				these_ones_matched = these_ones_matched && this_one_matched ;
 				
 				// print a progress message every second.
 				double time_now = timer.elapsed() ;
 				if( (time_now - last_time >= 1.0) || (m_case_gen_input_chain->number_of_snps_read() == m_case_gen_input_chain->total_number_of_snps()) ) {
-					print_progress( time_now ) ;
+					print_progress( time_now, these_ones_matched ) ;
 					last_time = time_now ;
+					these_ones_matched = true ;
 				}
 			}
 			if( number_of_matching_snps != 1 ) {
@@ -325,54 +254,71 @@ private:
 		}
 
 		std::cerr
-			<< "\nProcessed case / control data ("
-			<< m_case_gen_input_chain->number_of_snps_read() << " case SNPs, "
-			<< number_of_control_snps_matched << " matched control SNPs) in "
+			<< "\nProcessed all SNPs ("
+			<< m_case_gen_input_chain->number_of_snps_read() << " SNPs in first file, "
+			<< number_of_control_snps_matched << " matched SNPs in second file) in "
 			<< std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
 	
 		close_all_files() ;
 	}
 	
-	void compare_snps( GenRow const& case_row, GenRow const& control_row ) {
+	bool compare_snps( GenRow const& case_row, GenRow const& control_row ) {
+		bool matched = true ;
+		if( case_row != control_row ) {
+			m_cout << "\nRows differ!\n" ;
+			matched = false ;
+		}
 		if( case_row.SNPID() != control_row.SNPID() ) {
 			m_cout << "\nMatching rows have differing SNPIDs " << case_row.SNPID() << " and " << control_row.SNPID() << ".\n" ;
+			matched = false ;
 		}
 		if( case_row.RSID() != control_row.RSID() ) {
 			m_cout << "\nMatching rows have differing RSIDs " << case_row.RSID() << " and " << control_row.RSID() << ".\n" ;
+			matched = false ;
 		}
 		if( case_row.SNP_position() != control_row.SNP_position() ) {
 			m_cout << "\nMatching rows have different positions " << case_row.SNP_position() << " and " << control_row.SNP_position() << ".\n" ;
+			matched = false ;
 		}
 		if( case_row.first_allele() != control_row.first_allele() || case_row.second_allele() != control_row.second_allele() ) {
 			m_cout 	<< "\nMatching rows have differing alleles "
 					<< case_row.first_allele() << " " << case_row.second_allele()
 					<< " and " << control_row.first_allele() << " " << control_row.second_allele() << ".\n" ;
+				matched = false ;
 		}
+		return matched ;
 	}
 
-	void print_progress( double time_now ) {
+	void print_progress( double time_now, bool these_ones_matched ) {
 		double case_progress = (static_cast< double >( m_case_gen_input_chain->number_of_snps_read() ) / m_case_gen_input_chain->total_number_of_snps()) ;
 		double control_progress = (static_cast< double >( m_control_gen_input_chain->number_of_snps_read() ) / m_control_gen_input_chain->total_number_of_snps()) ;
 		m_cout
 			<< "\r"
-			<< get_progress_bar( 30, case_progress )
+			<< get_progress_bar( 30, case_progress, these_ones_matched )
 			<< " (" << m_case_gen_input_chain->number_of_snps_read() << "/" << m_case_gen_input_chain->total_number_of_snps() << ")"
 			<< " "
-			<< get_progress_bar( 30, control_progress )
+			<< get_progress_bar( 30, control_progress, these_ones_matched )
 			<< " (" << m_control_gen_input_chain->number_of_snps_read() << "/" << m_control_gen_input_chain->total_number_of_snps() << ")"
 			<< " (" << std::fixed << std::setprecision(1) << time_now << "s)"
 			<< std::string( std::size_t(5), ' ' )
 			<< std::flush ;
 	}
 
-	std::string get_progress_bar( std::size_t width, double progress ) {
+	std::string get_progress_bar( std::size_t width, double progress, bool these_ones_matched ) {
 		progress = std::min( std::max( progress, 0.0 ), 1.0 ) ;
 		std::size_t visible_progress = progress * width ;
-		return
-			"["
-			+ std::string( std::size_t( visible_progress ), '*' )
-			+ std::string( std::size_t( width - visible_progress ), ' ' )
-			+ "]" ;
+
+		if( visible_progress > 0 ) {
+			return
+				"["
+				+ std::string( std::size_t( visible_progress - 1 ), '*' )
+				+ std::string( std::size_t(1), these_ones_matched ? '*' : '!' )
+				+ std::string( std::size_t( width - visible_progress ), ' ' )
+				+ "]" ;
+		}
+		else {
+			return "[" + std::string( std::size_t( width ), ' ' ) + "]" ;
+		}
 	}
 
 	typedef boost::function< bool( std::string const&, std::string const&, uint32_t, char, char ) > SNPMatcher ;
@@ -428,7 +374,7 @@ private:
 int main( int argc, char** argv ) {
 	OptionProcessor options ;
     try {
-		GenCaseControlProcessor::declare_options( options ) ;
+		GenCompareProcessor::declare_options( options ) ;
 		options.process( argc, argv ) ;
     }
     catch( std::exception const& exception ) {
@@ -442,7 +388,7 @@ int main( int argc, char** argv ) {
 	// main section
 
 	try	{
-		GenCaseControlProcessor processor( options ) ;
+		GenCompareProcessor processor( options ) ;
 		processor.do_checks() ;
 		processor.write_preamble( std::cout ) ;
 		processor.process() ;

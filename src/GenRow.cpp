@@ -41,6 +41,10 @@ bool GenRow::operator==( GenRow const& right ) const {
 	return false ;
 }
 
+bool GenRow::operator!=( GenRow const& right ) const {
+	return !(*this == right) ;
+}
+
 std::size_t GenRow::number_of_samples() const {
 	return std::distance( begin_genotype_proportions(), end_genotype_proportions() ) ; 
 }

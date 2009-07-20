@@ -58,6 +58,7 @@ class GenRow: public GenRowIdentifyingData
 	public:
 
 		bool operator==( GenRow const& right ) const ;
+		bool operator!=( GenRow const& right ) const ;
 
 		std::ostream& write_to_text_stream( std::ostream& ) const ;
 		std::istream& read_from_text_stream( std::istream& ) ;
