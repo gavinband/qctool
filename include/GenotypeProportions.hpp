@@ -29,6 +29,9 @@ struct GenotypeProportions
 	double BB() const { return m_proportion_of_BB ; }
 	double sum() const { return m_proportion_of_AA + m_proportion_of_BB + m_proportion_of_AB ; }
 
+	double& operator[]( std::size_t i ) ;
+	double operator[]( std::size_t i ) const ;
+
 	bool operator==( GenotypeProportions const& other ) const ;
 	bool operator!=( GenotypeProportions const& other ) const ;
 

@@ -7,6 +7,8 @@
 #include <set>
 #include <fstream>
 #include <numeric>
+#include <boost/math/special_functions/beta.hpp>
+
 #include "ExternalStorageGenRow.hpp"
 #include "SampleRow.hpp"
 #include "AlleleProportions.hpp"
@@ -16,6 +18,7 @@
 #include "FileUtil.hpp"
 #include "GenRowSource.hpp"
 #include "GenRowSink.hpp"
+#include "GenotypeAssayStatistics.hpp"
 #include "SNPDataSource.hpp"
 #include "SNPDataSourceChain.hpp"
 #include "SNPDataSink.hpp"
@@ -66,47 +69,100 @@ std::vector< std::string > try_to_put_sample_file_first( std::string const& opti
 	return result ;
 }
 
-/*
-struct SampleSpec
+
+// Base class for individual statistics
+struct CaseControlStatistic
 {
 	public:
-		SampleSpec( SampleRow const& row, double probability_of_case_status )
-			: m_sample_row( row ), m_probability_of_case_status( probability_of_case_status )
-		{
-		}
-		
-		SampleRow const& sample_row() const { return m_sample_row ; }
-		double probability_of_case_status() const { return m_probability_of_case_status ; }
+		CaseControlStatistic() {} ;
+		virtual ~CaseControlStatistic() {}
 
-	private:
-		SampleRow const& m_sample_row ;
-		double m_probability_of_case_status ;
+		typedef std::map< double, GenotypeAssayStatistics > case_status_statistic_map_t ;
+
+		template< typename T >
+		T get_value( case_status_statistic_map_t const& ) const ;
+
+	protected:
+		virtual double calculate_value( case_status_statistic_map_t const& ) const = 0;
 } ;
-*/
-/*
-struct CaseControlTest
+
+
+template<>
+double CaseControlStatistic::get_value< double >( case_status_statistic_map_t const& case_status_statistic_map ) const
 {
-public:
-	static std::auto_ptr< CaseControlTest > create(
-		std::auto_ptr< ObjectSource< SampleRow > > case_sample_source,
-		std::auto_ptr< genfile::SNPDataSource > control_snp_data_source,
-		std::auto_ptr< ObjectSource< SampleRow > > control_sample_source,
-		std::auto_ptr< genfile::SNPDataSource > case_snp_data_source
-	) {
+	return calculate_value( case_status_statistic_map ) ;
+}
+
+
+//
+// Calculate a bayes factor for case/control data sets,
+// as on p.15 of  the 'Supplementary Methods' paper for
+// "A new multipoint method for genome-wide association studies...", Marchini et al, 2007.
+//
+struct SimpleBayesFactor: public CaseControlStatistic
+{
+	SimpleBayesFactor(
+		double phi_0 = 1.0,
+		double eta_0 = 1.0,
+		double phi_1 = 1.0,
+		double eta_1 = 1.0,
+		double phi_2 = 1.0,
+		double eta_2 = 1.0
+	)
+		: m_phi(3), m_eta(3), m_precomputed_beta_of_phi_and_eta(3)
+	{
+		m_phi[0] = phi_0 ;
+		m_eta[0] = eta_0 ;
+		m_phi[1] = phi_1 ;
+		m_eta[1] = eta_1 ;
+		m_phi[2] = phi_2 ;
+		m_eta[2] = eta_2 ;
+		
+		for( std::size_t i = 0; i < 3u; ++i ) {
+			m_precomputed_beta_of_phi_and_eta[i] = beta( m_phi[i], m_eta[i] ) ;
+		}
+	}
+	
+protected:
+	
+	double calculate_value( case_status_statistic_map_t const& case_status_statistic_map ) const {
+		// Assume we have map keys 0.0 and 1.0, and ignore all others.
+		case_status_statistic_map_t::const_iterator
+			control_i = case_status_statistic_map.find( 0.0 ),
+			case_i = case_status_statistic_map.find( 1.0 ) ;
+
+		GenotypeProbabilities const& control_genotype_amounts = control_i->second.get_genotype_amounts() ;
+		GenotypeProbabilities const& case_genotype_amounts = case_i->second.get_genotype_amounts() ;
+		return probability_of_data_given_M4( control_genotype_amounts, case_genotype_amounts )
+			/ probability_of_data_given_M0( control_genotype_amounts, case_genotype_amounts ) ;
 	}
 
+	double beta( double a, double b ) const {
+		return boost::math::beta( a, b ) ;
+	}
+	
+	double probability_of_data_given_M4( GenotypeProbabilities const& control_genotype_amounts, GenotypeProbabilities const& case_genotype_amounts ) const {
+		double result_for_AA_to_0_coding = 0.5;
+		double result_for_BB_to_0_coding = 0.5 ;
+		for( std::size_t i = 0; i < 3u; ++i ) {
+			result_for_AA_to_0_coding *= beta( case_genotype_amounts[i] + m_phi[i], control_genotype_amounts[i] + m_eta[i] ) / m_precomputed_beta_of_phi_and_eta[i] ;
+			result_for_BB_to_0_coding *= beta( case_genotype_amounts[2-i] + m_phi[i], control_genotype_amounts[2-i] + m_eta[i] ) / m_precomputed_beta_of_phi_and_eta[i] ;
+		}
+		return result_for_AA_to_0_coding + result_for_BB_to_0_coding ;
+	}
+
+	double probability_of_data_given_M0( GenotypeProbabilities const& control_genotype_amounts, GenotypeProbabilities const& case_genotype_amounts ) const {
+		return beta( case_genotype_amounts.sum() + m_phi[0], control_genotype_amounts.sum() + m_eta[0] )
+			/ m_precomputed_beta_of_phi_and_eta[0] ;
+	}
+	
 private:
 	
-	void add_sample( SampleRow const& row, double probability_sample_is_case ) {
-		std::size_t sample_index = m_samples.size() ;
-		m_samples.push_back( SampleSpec( row, probability_sample_is_case )) ;
-		m_samples_by_probability.insert( std::make_pair( probability_sample_is_case, sample_index )) ;
-	}
-
-	std::vector< SampleSpec > m_samples ;
-	std::multimap< double, std::size_t > m_samples_by_probability ;
+	std::vector< double > m_phi ;
+	std::vector< double > m_eta ;
+	std::vector< double > m_precomputed_beta_of_phi_and_eta ;
 } ;
-*/
+
 
 struct GenCaseControlProcessor
 {
@@ -129,6 +185,11 @@ public:
 			.set_maximum_number_of_repeats( 1 )
 			.set_number_of_values_per_use( 2 )
 			.add_value_preprocessor( &try_to_put_sample_file_first ) ;
+
+		options[ "-number-of-permutations" ]
+			.set_description( "The number of random permutations of case-control status to carry out at each SNP")
+			.set_takes_single_value()
+			.set_default_value( 1000 ) ;
 
 		options [ "--force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
@@ -153,6 +214,7 @@ private:
 			open_gen_files() ;
 			open_sample_files() ;
 			// m_case_control_test.reset( CaseControlTest::create( m_control_sample_source, m_control_gen_input_chain, m_case_sample_source, m_case_gen_input_chain )) ;
+			m_number_of_permutations = m_options.get_value<std::size_t >( "-number-of-permutations" ) ;
 		}
 		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
 			m_cout << "The GEN files specified did not all have the same sample size.\n" ;
@@ -297,6 +359,11 @@ private:
 		
 		m_cout << "Processing SNPs...\n" ;
 
+		SimpleBayesFactor bayes_factor ;
+		std::map< double, GenotypeAssayStatistics > case_control_statistic_map ;
+		case_control_statistic_map[0.0] = GenotypeAssayStatistics() ;
+		case_control_statistic_map[1.0] = GenotypeAssayStatistics() ;
+		
 		double last_time = -5.0 ;
 		std::size_t number_of_control_snps_matched = 0 ;
 		while( read_snp( *m_case_gen_input_chain, case_row )) {
@@ -307,7 +374,27 @@ private:
 				// I think we'd expect all the SNP identifying data to be the same for the two snps.
 				// If there are mismatches, print out some information about them.
 				compare_snps( case_row, control_row ) ;
-				
+
+				case_control_statistic_map[0.0].process( control_row.begin_genotype_proportions(), control_row.end_genotype_proportions() ) ;
+				case_control_statistic_map[1.0].process( case_row.begin_genotype_proportions(), case_row.end_genotype_proportions()	 ) ;
+
+				double BF = bayes_factor.get_value< double >( case_control_statistic_map ) ;
+				m_cout << "\nCalculated bayes factor: " << std::fixed << std::setprecision(6) << BF << ".\n" ;
+				{
+					Timer bayes_factor_timer ;
+					for( std::size_t i = 0; i < m_number_of_permutations; ++i ) {
+						permute_probabilities( probabilities ) ;
+						case_control_statistic_map[0.0].process( control_row.begin_genotype_proportions(), control_row.end_genotype_proportions() ) ;
+						case_control_statistic_map[1.0].process( case_row.begin_genotype_proportions(), case_row.end_genotype_proportions()	 ) ;
+						
+						bayes_factor.get_value< double >( case_control_statistic_map ) ;
+					}	
+
+					m_cout << "Computed " << m_number_of_permutations << " bayes factors in "
+						<< std::fixed << std::setprecision(1) << bayes_factor_timer.elapsed()
+						<< "s (" << (m_number_of_permutations / bayes_factor_timer.elapsed()) << " BFs per sec).\n" ;
+				}
+
 				// print a progress message every second.
 				double time_now = timer.elapsed() ;
 				if( (time_now - last_time >= 1.0) || (m_case_gen_input_chain->number_of_snps_read() == m_case_gen_input_chain->total_number_of_snps()) ) {
@@ -348,6 +435,10 @@ private:
 					<< case_row.first_allele() << " " << case_row.second_allele()
 					<< " and " << control_row.first_allele() << " " << control_row.second_allele() << ".\n" ;
 		}
+	}
+
+	void permute_probabilities( std::vector< GenotypeProbabilities >& probabilities ) {
+		// do nothing for now.
 	}
 
 	void print_progress( double time_now ) {
@@ -413,6 +504,8 @@ private:
 	
 	std::auto_ptr< genfile::SNPDataSourceChain > m_case_gen_input_chain ;
 	std::auto_ptr< genfile::SNPDataSourceChain > m_control_gen_input_chain ;
+
+	std::size_t m_number_of_permutations ;
 
 	OptionProcessor const& m_options ;
 	

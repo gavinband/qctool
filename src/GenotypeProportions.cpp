@@ -14,6 +14,32 @@ GenotypeProportions::GenotypeProportions( double aa, double ab, double bb )
     m_proportion_of_BB( bb )
 {}
 
+double& GenotypeProportions::operator[]( std::size_t i ) {
+	switch( i ) {
+		case(0):
+			return m_proportion_of_AA ; break ;
+		case(1):
+			return m_proportion_of_AA ; break ;
+		case(2):
+			return m_proportion_of_AA ; break ;
+		case(3):
+			assert(0) ; break ;
+	}
+}
+
+double GenotypeProportions::operator[]( std::size_t i ) const {
+	switch( i ) {
+		case(0):
+			return m_proportion_of_AA ; break ;
+		case(1):
+			return m_proportion_of_AA ; break ;
+		case(2):
+			return m_proportion_of_AA ; break ;
+		case(3):
+			assert(0) ; break ;
+	}
+}
+
 bool GenotypeProportions::operator==( GenotypeProportions const& other ) const {
 	return m_proportion_of_AA == other.m_proportion_of_AA
 		&& m_proportion_of_AB == other.m_proportion_of_AB
