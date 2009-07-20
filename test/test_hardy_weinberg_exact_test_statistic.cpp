@@ -65,7 +65,7 @@ void test_hardy_weinberg_exact_test_statistic( std::map< std::string, double > c
 	for( ; i != end_i; ++i ) {
 		std::istringstream inStream( i->first ) ;
 		++ count ;
-		GenRow row ;
+		InternalStorageGenRow row ;
 		inStream >> row ;
 		row_statistics.process( row ) ;
 		std::cout << "row " << std::setw(3) << count << ": " << row_statistics << "\n" ;

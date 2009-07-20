@@ -53,14 +53,14 @@ std::string more_data =
 	"SA11 rs011 10100000 C T 0 0 0 0 1 0 5.2E-01 0 0 1E00 0 0 0.67E00 0 0.23\n" ;
 }
 
-// Test that we can read in GenRows, output them, and that this gives the same results.
+// Test that we can read in InternalStorageGenRows, output them, and that this gives the same results.
 AUTO_TEST_CASE( test_genrow_io ) {
 	std::string data = data::data ;
 	std::cout << "test_genrow_io\n" ;
 	std::istringstream inStream( data ) ;
 	std::ostringstream outStream ;
 
-	GenRow row, row2 ;
+	InternalStorageGenRow row, row2 ;
 	int count = 0;
 	
 	while( inStream >> row ) {
@@ -74,13 +74,13 @@ AUTO_TEST_CASE( test_genrow_io ) {
 }
 
 
-// Test that we can read in GenRows, output them, read them in, and they're the same.
+// Test that we can read in InternalStorageGenRows, output them, read them in, and they're the same.
 AUTO_TEST_CASE( test_genrow_io2 ) {
 	std::string data = data::data + data::more_data ;
 	std::cout << "test_genrow_io2\n" ;
 	std::istringstream inStream( data ) ;
 
-	GenRow row, row2 ;
+	InternalStorageGenRow row, row2 ;
 	int count = 0;
 	
 	while( inStream >> row ) {
@@ -96,13 +96,13 @@ AUTO_TEST_CASE( test_genrow_io2 ) {
 	assert( count == 28 ) ;
 }
 
-// Test that we can read in GenRows, output them, read them in, and they're the same.
+// Test that we can read in InternalStorageGenRows, output them, read them in, and they're the same.
 AUTO_TEST_CASE( test_genrow_binary_io ) {
 	std::string data = data::data + data::more_data ;
 	std::cout << "test_genrow_binary_io\n" ;
 	std::istringstream inStream( data ) ;
 
-	GenRow row, row2 ;
+	InternalStorageGenRow row, row2 ;
 	int count = 0;
 	
 	while( inStream >> row ) {
@@ -119,21 +119,21 @@ AUTO_TEST_CASE( test_genrow_binary_io ) {
 			row.SNP_position(),
 			row.first_allele(),
 			row.second_allele(),
-			boost::bind< double >( &GenRow::get_AA_probability, &row, _1 ),
-			boost::bind< double >( &GenRow::get_AB_probability, &row, _1 ),
-			boost::bind< double >( &GenRow::get_BB_probability, &row, _1 )
+			boost::bind< double >( &InternalStorageGenRow::get_AA_probability, &row, _1 ),
+			boost::bind< double >( &InternalStorageGenRow::get_AB_probability, &row, _1 ),
+			boost::bind< double >( &InternalStorageGenRow::get_BB_probability, &row, _1 )
 		) ;
 		std::istringstream anotherInStream( outStream.str() ) ;
 
 		genfile::bgen::read_snp_block(
 			anotherInStream,
-			boost::bind< void >( &GenRow::set_number_of_samples, &row2, _1 ),
-			boost::bind< void >( &GenRow::set_SNPID, &row2, _1 ),
-			boost::bind< void >( &GenRow::set_RSID, &row2, _1 ),
-			boost::bind< void >( &GenRow::set_SNP_position, &row2, _1 ),
-			boost::bind< void >( &GenRow::set_allele1, &row2, _1 ),
-			boost::bind< void >( &GenRow::set_allele2, &row2, _1 ),
-			boost::bind< void >( &GenRow::set_genotype_probabilities, &row2, _1, _2, _3, _4 )
+			boost::bind< void >( &InternalStorageGenRow::set_number_of_samples, &row2, _1 ),
+			boost::bind< void >( &InternalStorageGenRow::set_SNPID, &row2, _1 ),
+			boost::bind< void >( &InternalStorageGenRow::set_RSID, &row2, _1 ),
+			boost::bind< void >( &InternalStorageGenRow::set_SNP_position, &row2, _1 ),
+			boost::bind< void >( &InternalStorageGenRow::set_allele1, &row2, _1 ),
+			boost::bind< void >( &InternalStorageGenRow::set_allele2, &row2, _1 ),
+			boost::bind< void >( &InternalStorageGenRow::set_genotype_probabilities, &row2, _1, _2, _3, _4 )
 		) ;
 		std::cout << row2 ;
 		assert( row2 == row ) ;

@@ -72,7 +72,7 @@ void print_results( std::ostream&, std::map< double, std::vector< std::string > 
 void process_gen_rows( ObjectSource< GenRow >& gen_row_source, OptionProcessor const& options ) {
 	// Begin by reading 100 rows from the input file (or as many as possible)
 	Whitespace whitespace ;
-	GenRow row ;
+	InternalStorageGenRow row ;
 
 	std::size_t number_of_rows_to_read = options.get_value< std::size_t >( "--nr" ) ;
 	std::size_t number_of_iterations = options.get_value< std::size_t >( "--ni" ) ;
@@ -82,11 +82,11 @@ void process_gen_rows( ObjectSource< GenRow >& gen_row_source, OptionProcessor c
 
 	try {		
 		// Read in a list of genRows.
-		std::vector<GenRow> genrows ;
-		GenRow genrow ;
+		std::vector<InternalStorageGenRow> genrows ;
+		InternalStorageGenRow genrow ;
 		{
 			std::size_t count = 0;
-			while(( count < number_of_rows_to_read ) && ( gen_row_source >> genrow )) {
+			while(( count < number_of_rows_to_read ) && ( gen_row_source >> static_cast< GenRow& >(genrow) )) {
 				genrows.push_back( genrow ) ;
 				++count ;
 			}

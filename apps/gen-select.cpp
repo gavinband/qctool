@@ -12,6 +12,7 @@
 #include <map>
 #include <set>
 #include <fstream>
+#include <memory>
 #include <numeric>
 #include "Timer.hpp"
 #include "GenRow.hpp"
@@ -27,6 +28,7 @@
 #include "GenRowStatistics.hpp"
 #include "SampleRowStatistics.hpp"
 #include "GenRowSource.hpp"
+#include "ObjectSource.hpp"
 #include "GenRowSink.hpp"
 #include "SNPDataSource.hpp"
 #include "SNPDataSourceChain.hpp"
@@ -518,10 +520,10 @@ private:
 			m_row_statistics.format_column_headers( *genStatisticOutputFile ) << "\n";
 		}
 
-		GenRow row ;
+		InternalStorageGenRow row ;
 		m_total_number_of_snps = 0 ;
 		
-		while( (*gen_row_source) >> row ) {
+		while( read_gen_row( row )) {
 			preprocess_gen_row( row ) ;
 			process_gen_row( row, ++m_total_number_of_snps ) ;
 			if( m_total_number_of_snps % 1000 == 0 ) {
@@ -539,7 +541,11 @@ private:
 		std::cerr << " (" << timer.elapsed() << "s)\n" ;
 	}
 
-	void preprocess_gen_row( GenRow& row ) const {
+	bool read_gen_row( GenRow& row ) {
+		return (*gen_row_source) >> row ;
+	}
+
+	void preprocess_gen_row( InternalStorageGenRow& row ) const {
 		check_gen_row( row ) ;
 		row.filter_out_samples_with_indices( m_indices_of_filtered_out_sample_rows ) ;
 	}

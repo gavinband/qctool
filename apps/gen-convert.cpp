@@ -301,7 +301,7 @@ private:
 		Timer timer ;
 		open_gen_output_files() ;
 
-		GenRow row ;
+		InternalStorageGenRow row ;
 		row.set_number_of_samples( m_number_of_samples_from_gen_file ) ;
 
 		m_cout << "Converting GEN files...\n" ;

@@ -11,31 +11,41 @@
 #include "Whitespace.hpp"
 #include "GenotypeProportions.hpp"
 
-std::size_t GenRow::number_of_columns() const {
-	return (m_genotype_proportions.size() * 3) + std::size_t(5) ;
-}
-
-
-std::size_t GenRow::number_of_samples() const {
-	return m_genotype_proportions.size() ;
-}
-
-GenotypeProportions const& GenRow::genotype_proportions_for_sample( std::size_t sampleNumber ) const {
-	assert( sampleNumber < number_of_samples() ) ;
-	return m_genotype_proportions[ sampleNumber ] ;
-}
-
-bool GenRow::operator==( GenRow const& right ) const {
-	return ( m_SNPID == right.m_SNPID )
+bool GenRowIdentifyingData::operator==( GenRowIdentifyingData const& right ) const {
+	return (
+		( m_SNPID == right.m_SNPID )
 		&& ( m_RSID == right.m_RSID )
 		&& ( m_SNP_position == right.m_SNP_position )
 		&& ( m_1st_allele == right.m_1st_allele )
 		&& ( m_2nd_allele == right.m_2nd_allele )
-		&& ( m_genotype_proportions == right.m_genotype_proportions ) ;
-
+	) ;
 }
 
-void GenRow::filter_out_samples_with_indices( std::vector< std::size_t > const& indices_to_filter_out ) {
+bool GenRow::operator==( GenRow const& right ) const {
+	if(
+		GenRowIdentifyingData::operator==( right )
+		&& ( number_of_samples() == right.number_of_samples() )
+	) {
+		genotype_proportion_const_iterator
+			i( begin_genotype_proportions() ),
+			end_i( end_genotype_proportions() ),
+			j( right.begin_genotype_proportions() ) ;
+		for( ; i != end_i; ++i, ++j ) {
+			if( *i != *j ) {
+				return false ;
+			}
+		} 
+		return true ;
+	}
+
+	return false ;
+}
+
+std::size_t GenRow::number_of_samples() const {
+	return std::distance( begin_genotype_proportions(), end_genotype_proportions() ) ; 
+}
+
+void InternalStorageGenRow::filter_out_samples_with_indices( std::vector< std::size_t > const& indices_to_filter_out ) {
 	if( indices_to_filter_out.empty()) {
 		return ;
 	}

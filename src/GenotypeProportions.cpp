@@ -20,6 +20,12 @@ bool GenotypeProportions::operator==( GenotypeProportions const& other ) const {
 		&& m_proportion_of_BB == other.m_proportion_of_BB ;
 }
 
+bool GenotypeProportions::operator!=( GenotypeProportions const& other ) const {
+	return m_proportion_of_AA != other.m_proportion_of_AA
+		|| m_proportion_of_AB != other.m_proportion_of_AB
+		|| m_proportion_of_BB != other.m_proportion_of_BB ;
+}
+
 void GenotypeProportions::floor() {
 	m_proportion_of_AA = std::floor( m_proportion_of_AA ) ;
 	m_proportion_of_AB = std::floor( m_proportion_of_AB ) ;

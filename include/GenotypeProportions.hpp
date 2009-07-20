@@ -30,6 +30,7 @@ struct GenotypeProportions
 	double sum() const { return m_proportion_of_AA + m_proportion_of_BB + m_proportion_of_AB ; }
 
 	bool operator==( GenotypeProportions const& other ) const ;
+	bool operator!=( GenotypeProportions const& other ) const ;
 
 	// Convenient operators
 	GenotypeProportions& operator+=( GenotypeProportions const& right ) {

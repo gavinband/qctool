@@ -254,7 +254,7 @@ void test_hardy_weinberg_exact_test_implementations( std::string const& data, do
 	row_statistics.format_column_headers( std::cout ) << "\n" ;
 
 	do {
-		GenRow row ;
+		InternalStorageGenRow row ;
 		inStream >> row ;
 		++count ;
 		row_statistics.process( row ) ;

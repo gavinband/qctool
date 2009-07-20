@@ -36,7 +36,7 @@ std::map< std::string, double > get_data() {
 	return data ;
 }
 
-// Test that we can read in GenRows, output them, and that this gives the same results.
+// Test that we can read in InternalStorageGenRows, output them, and that this gives the same results.
 AUTO_TEST_CASE( test_maf ) {
 	std::map< std::string, double >
 		data = get_data() ;
@@ -57,7 +57,7 @@ AUTO_TEST_CASE( test_maf ) {
 
 	for( ; i != end_i; ++i ) {
 		std::istringstream inStream( i->first ) ;
-		GenRow row ;
+		InternalStorageGenRow row ;
 		inStream >> row ;
 		row_statistics.process( row ) ;
 		std::cout << "row " << std::setw(3) << ++count << " : " << row_statistics << "\n" ;

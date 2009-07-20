@@ -31,4 +31,6 @@ private:
 	std::auto_ptr< genfile::SNPDataSource > m_snp_data_source ;
 } ;
 
+ObjectSource< GenRow >& operator>>( ObjectSource< GenRow >& source, GenRow& row ) ;
+
 #endif

@@ -284,40 +284,18 @@ public:
 
 private:
 
-	struct SNPsHaveSamePositionChecker
-	{
-		SNPsHaveSamePositionChecker( GenRow const& row ): m_row( row ) {}
-		bool operator()( std::string const&, std::string const&, int SNP_position, char, char ) const {
-			return m_row.SNP_position() == SNP_position ;
-		}
-	private:
-		GenRow const& m_row ;
-	} ;
-
-	struct SNPHasLargerPosition
-	{
-		SNPHasLargerPosition( GenRow const& row ): m_row( row ) {}
-		bool operator()( std::string const&, std::string const&, int SNP_position, char, char ) const {
-			return m_row.SNP_position() < SNP_position ;
-		}
-	private:
-		GenRow const& m_row ;
-	} ;
-
 	void unsafe_process() {
 		Timer timer ;
 
-		GenRow control_row, case_row ;
+		InternalStorageGenRow control_row, case_row ;
 		control_row.set_number_of_samples( m_control_gen_input_chain->number_of_samples() ) ;
 		case_row.set_number_of_samples( m_case_gen_input_chain->number_of_samples() ) ;
 
 		m_cout << "Processing SNPs...\n" ;
 
 		double last_time = -5.0 ;
-		std::size_t number_of_case_snps_processed = 0 ;
 		std::size_t number_of_control_snps_matched = 0 ;
 		while( read_snp( *m_case_gen_input_chain, case_row )) {
-			++number_of_case_snps_processed ;
 			std::size_t number_of_matching_snps = 0 ;
 			while( read_next_snp_with_specified_position( *m_control_gen_input_chain, control_row, case_row.SNP_position())) {
 				++number_of_matching_snps ;
@@ -328,7 +306,7 @@ private:
 				
 				// print a progress message every second.
 				double time_now = timer.elapsed() ;
-				if( 1 ) {//(time_now - last_time >= 1.0) || (number_of_case_snps_processed == m_case_gen_input_chain->total_number_of_snps()) ) {
+				if( (time_now - last_time >= 1.0) || (m_case_gen_input_chain->number_of_snps_read() == m_case_gen_input_chain->total_number_of_snps()) ) {
 					print_progress( time_now ) ;
 					last_time = time_now ;
 				}
@@ -342,13 +320,17 @@ private:
 			}
 		}
 
-		std::cerr << "\nProcessed case / control data (" << number_of_case_snps_processed << " case SNPs, " << number_of_control_snps_matched << " matched control SNPs) in " << timer.elapsed() << " seconds.\n" ;
+		std::cerr
+			<< "\nProcessed case / control data ("
+			<< m_case_gen_input_chain->number_of_snps_read() << " case SNPs, "
+			<< number_of_control_snps_matched << " matched control SNPs) in "
+			<< std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
 	
 		m_cout << "Post-processing..." << std::flush ;
 		timer.restart() ;
 		// Close the output gen file(s) now
 		close_all_files() ;
-		std::cerr << " (" << timer.elapsed() << "s)\n" ;
+		std::cerr << " (" << std::setprecision(1) << timer.elapsed() << "s)\n" ;
 	}
 	
 	void compare_snps( GenRow const& case_row, GenRow const& control_row ) {

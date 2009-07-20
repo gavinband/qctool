@@ -59,7 +59,7 @@ void test_maximum_likelihood( std::map< std::string, double > const& data, std::
 	for( ; i != end_i; ++i ) {
 		std::istringstream inStream( i->first ) ;
 		++ count ;
-		GenRow row ;
+		InternalStorageGenRow row ;
 		inStream >> row ;
 		row_statistics.process( row ) ;
 		std::cout << "row " << std::setw(3) << count << ": " << row_statistics << "\n" ;

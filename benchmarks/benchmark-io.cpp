@@ -63,7 +63,7 @@ void print_results( std::ostream&, std::map< double, std::vector< std::string > 
 
 
 void process_gen_rows( ObjectSource< GenRow >& gen_row_source, OptionProcessor const& options ) {
-	GenRow row ;
+	InternalStorageGenRow row ;
 
 	std::size_t number_of_rows_to_read = options.get_value< std::size_t >( "--nr" ) ;
 

@@ -57,20 +57,24 @@ double read_float( std::istream& aStream ) {
 }
 
 
+std::istream& GenRowIdentifyingData::read_from_text_stream( std::istream& aStream ) {
+	aStream >> m_SNPID ;
+	aStream >> m_RSID ;
+	aStream >> m_SNP_position ;
+	aStream >> m_1st_allele ;
+	return aStream >> m_2nd_allele ;
+}	
+
 std::istream& GenRow::read_from_text_stream( std::istream& inStream ) {
 	// For speed, first read a line from the file.
 	std::string line ;
 	std::getline( inStream, line ) ;
 	std::istringstream aStream( line ) ;
 
-	aStream >> m_SNPID ;
-	aStream >> m_RSID ;
-	aStream >> m_SNP_position ;
-	aStream >> m_1st_allele ;
-	aStream >> m_2nd_allele ;
+	GenRowIdentifyingData::read_from_text_stream( aStream ) ;
 
 	if( aStream ) {
-		m_genotype_proportions.clear() ;	
+		set_number_of_samples( 0 ) ;	
 		int count = 0 ;
 	
 		while( aStream ) {
@@ -84,7 +88,7 @@ std::istream& GenRow::read_from_text_stream( std::istream& inStream ) {
 			sample_genotype_proportions.BB() = read_float( aStream ) ;
 			if( !aStream ) break ;
 			++count ;
-			m_genotype_proportions.push_back( sample_genotype_proportions ) ;
+			add_genotype_proportions( sample_genotype_proportions ) ;
 			aStream.peek() ; // flag eof if we reached it.
 		} ;
 
@@ -114,9 +118,9 @@ std::ostream& GenRow::write_to_text_stream( std::ostream& aStream ) const {
 		}
 		
 		aStream
-			<< genotype_proportions_for_sample(i).AA() << " "
-			<< genotype_proportions_for_sample(i).AB() << " "
-			<< genotype_proportions_for_sample(i).BB() ;
+			<< get_AA_probability(i) << " "
+			<< get_AB_probability(i) << " "
+			<< get_BB_probability(i) ;
 
 	}
 

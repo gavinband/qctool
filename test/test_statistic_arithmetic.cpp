@@ -109,7 +109,7 @@ void do_test( std::string statistic_spec, std::map< std::string, double > const&
 
 	for( ; i != end_i; ++i ) {
 		std::istringstream inStream( i->first ) ;
-		GenRow row ;
+		InternalStorageGenRow row ;
 		inStream >> row ;
 		row_statistics.process( row ) ;
 		std::cout << "row " << std::setw(3) << ++count << " : " << row_statistics << " -- expected: " << i->second << ".\n" ;

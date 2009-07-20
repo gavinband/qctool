@@ -17,4 +17,6 @@ SNPDataSourceGenRowSource& SNPDataSourceGenRowSource::read( GenRow & row ){
 	return *this ;
 }
 
-
+ObjectSource< GenRow >& operator>>( ObjectSource< GenRow >& source, GenRow& row ) {
+	return source.read( row ) ;
+}
