@@ -227,7 +227,7 @@ public:
 		options[ "-number-of-permutations" ]
 			.set_description( "The number of random permutations of case-control status to carry out at each SNP")
 			.set_takes_single_value()
-			.set_default_value( 1000000 ) ;
+			.set_default_value( 100000 ) ;
 
 		options [ "--force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
@@ -392,7 +392,7 @@ public:
 private:
 
 	void unsafe_process() {
-		Timer timer ;
+		m_timer.restart() ;
 
 		std::size_t number_of_control_samples = m_control_gen_input_chain->number_of_samples(),
 			number_of_case_samples = m_case_gen_input_chain->number_of_samples() ;
@@ -405,7 +405,7 @@ private:
 		m_cout << "Processing SNPs...\n" ;
 
 		SimpleBayesFactor< CachingBetaCalculator > bayes_factor ;
-		double last_time = -5.0 ;
+		m_last_time = -5.0 ;
 		std::size_t number_of_control_snps_matched = 0 ;
 		while( read_snp( *m_case_gen_input_chain, case_row )) {
 			std::size_t number_of_matching_snps = 0 ;
@@ -414,12 +414,7 @@ private:
 				++number_of_control_snps_matched ;
 				process_snp( case_row, control_row, bayes_factor, probabilities ) ;
 
-				// print a progress message every second.
-				double time_now = timer.elapsed() ;
-				if( (time_now - last_time >= 1.0) || (m_case_gen_input_chain->number_of_snps_read() == m_case_gen_input_chain->total_number_of_snps()) ) {
-					print_progress( time_now ) ;
-					last_time = time_now ;
-				}
+				print_progress_if_needed() ;
 			}
 			if( number_of_matching_snps != 1 ) {
 				m_cout << "\nA strange number (" << number_of_matching_snps << ") of control snps matched the case snp "
@@ -434,9 +429,17 @@ private:
 			<< "\nProcessed case / control data ("
 			<< m_case_gen_input_chain->number_of_snps_read() << " case SNPs, "
 			<< number_of_control_snps_matched << " matched control SNPs) in "
-			<< std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
+			<< std::fixed << std::setprecision(1) << m_timer.elapsed() << " seconds.\n" ;
 	
 		close_all_files() ;
+	}
+	
+	void print_progress_if_needed() {
+		double time_now = m_timer.elapsed() ;
+		if( (time_now - m_last_time >= 1.0) || (m_case_gen_input_chain->number_of_snps_read() == m_case_gen_input_chain->total_number_of_snps()) ) {
+			print_progress( time_now ) ;
+			m_last_time = time_now ;
+		}
 	}
 	
 	void process_snp( GenRow const& case_row, GenRow const& control_row, CaseControlStatistic const& bayes_factor, std::vector< GenotypeProportions >& probabilities ) {
@@ -473,6 +476,7 @@ private:
 		double average_BF = 0.0 ;
 		Timer bayes_factor_timer ;
 		for( std::size_t i = 0; i < m_number_of_permutations; ++i ) {
+			print_progress_if_needed() ;
 			case_control_statistic_map[0.0].process( control_row.begin_genotype_proportions(), control_row.end_genotype_proportions() ) ;
 			case_control_statistic_map[1.0].process( case_row.begin_genotype_proportions(), case_row.end_genotype_proportions()	 ) ;
 			double this_BF = bayes_factor.get_value< double >( case_control_statistic_map ) ;
@@ -592,6 +596,9 @@ private:
 	std::vector< std::string > m_errors ;
 	
 	boost::mt19937* m_rng ;
+
+	Timer m_timer ;
+	double m_last_time ;
 } ;
 
 
