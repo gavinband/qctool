@@ -8,6 +8,8 @@
 #include <fstream>
 #include <numeric>
 #include <boost/math/special_functions/beta.hpp>
+#include <boost/random/mersenne_twister.hpp>
+#include <algorithm>
 
 #include "ExternalStorageGenRow.hpp"
 #include "SampleRow.hpp"
@@ -94,12 +96,49 @@ double CaseControlStatistic::get_value< double >( case_status_statistic_map_t co
 }
 
 
+struct BetaCalculator
+{
+	double beta( double a, double b ) const {
+		return boost::math::beta( a, b ) ;
+	}
+} ;
+
+struct CachingBetaCalculator
+{
+	double beta( double a, double b ) const {
+		assert( m_beta_cache.size() < 10000000 ) ;
+
+		std::pair< double, double >
+			a_and_b( a, b ) ;
+
+		beta_cache_t::const_iterator
+			where = m_beta_cache.find( a_and_b ) ;
+		double result ;
+		if( where == m_beta_cache.end() ) {
+			result = boost::math::beta( a, b ) ;
+			m_beta_cache[ a_and_b ] = result ;
+		}
+		else {
+			result = where->second ;
+		}
+		return result ;
+	}
+	
+	std::size_t size() const { return m_beta_cache.size() ; }
+	
+private:
+	typedef std::map< std::pair< double, double >, double > beta_cache_t ;
+	mutable beta_cache_t m_beta_cache ;	
+} ;
+
+
 //
 // Calculate a bayes factor for case/control data sets,
 // as on p.15 of  the 'Supplementary Methods' paper for
 // "A new multipoint method for genome-wide association studies...", Marchini et al, 2007.
 //
-struct SimpleBayesFactor: public CaseControlStatistic
+template< typename BetaCalculatorT >
+struct SimpleBayesFactor: public CaseControlStatistic, public BetaCalculatorT
 {
 	SimpleBayesFactor(
 		double phi_0 = 1.0,
@@ -125,6 +164,10 @@ struct SimpleBayesFactor: public CaseControlStatistic
 	
 protected:
 	
+	double beta( double a, double b ) const {
+		return BetaCalculatorT::beta( a, b ) ;
+	}
+	
 	double calculate_value( case_status_statistic_map_t const& case_status_statistic_map ) const {
 		// Assume we have map keys 0.0 and 1.0, and ignore all others.
 		case_status_statistic_map_t::const_iterator
@@ -137,10 +180,6 @@ protected:
 			/ probability_of_data_given_M0( control_genotype_amounts, case_genotype_amounts ) ;
 	}
 
-	double beta( double a, double b ) const {
-		return boost::math::beta( a, b ) ;
-	}
-	
 	double probability_of_data_given_M4( GenotypeProbabilities const& control_genotype_amounts, GenotypeProbabilities const& case_genotype_amounts ) const {
 		double result_for_AA_to_0_coding = 0.5;
 		double result_for_BB_to_0_coding = 0.5 ;
@@ -162,7 +201,6 @@ private:
 	std::vector< double > m_eta ;
 	std::vector< double > m_precomputed_beta_of_phi_and_eta ;
 } ;
-
 
 struct GenCaseControlProcessor
 {
@@ -189,7 +227,7 @@ public:
 		options[ "-number-of-permutations" ]
 			.set_description( "The number of random permutations of case-control status to carry out at each SNP")
 			.set_takes_single_value()
-			.set_default_value( 1000 ) ;
+			.set_default_value( 1000000 ) ;
 
 		options [ "--force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
@@ -197,7 +235,8 @@ public:
 
 	GenCaseControlProcessor( OptionProcessor const& options )
 		: m_cout( std::cout.rdbuf() ),
-		  m_options( options )
+		  m_options( options ),
+		  m_rng(0)
 	{
 		write_start_banner( m_cout ) ;
 		setup() ;
@@ -213,6 +252,7 @@ private:
 			get_required_filenames() ;
 			open_gen_files() ;
 			open_sample_files() ;
+			construct_rng() ;
 			// m_case_control_test.reset( CaseControlTest::create( m_control_sample_source, m_control_gen_input_chain, m_case_sample_source, m_case_gen_input_chain )) ;
 			m_number_of_permutations = m_options.get_value<std::size_t >( "-number-of-permutations" ) ;
 		}
@@ -301,6 +341,11 @@ private:
 		// m_case_sample_source.reset( new SampleInputFile< SimpleFileObjectSource< SampleRow > >( open_file_for_input( m_case_sample_filenames[0] ))) ;
 	}
 
+	void construct_rng() {
+		m_rng = new boost::mt19937 ;
+		m_cout << "mt19937: " << m_rng->min() << " " << m_rng->max() << ".\n" ;
+	}
+	
 public:
 	
 	void write_start_banner( std::ostream& oStream ) const {
@@ -359,11 +404,7 @@ private:
 		
 		m_cout << "Processing SNPs...\n" ;
 
-		SimpleBayesFactor bayes_factor ;
-		std::map< double, GenotypeAssayStatistics > case_control_statistic_map ;
-		case_control_statistic_map[0.0] = GenotypeAssayStatistics() ;
-		case_control_statistic_map[1.0] = GenotypeAssayStatistics() ;
-		
+		SimpleBayesFactor< CachingBetaCalculator > bayes_factor ;
 		double last_time = -5.0 ;
 		std::size_t number_of_control_snps_matched = 0 ;
 		while( read_snp( *m_case_gen_input_chain, case_row )) {
@@ -371,29 +412,7 @@ private:
 			while( read_next_snp_with_specified_position( *m_control_gen_input_chain, control_row, case_row.SNP_position())) {
 				++number_of_matching_snps ;
 				++number_of_control_snps_matched ;
-				// I think we'd expect all the SNP identifying data to be the same for the two snps.
-				// If there are mismatches, print out some information about them.
-				compare_snps( case_row, control_row ) ;
-
-				case_control_statistic_map[0.0].process( control_row.begin_genotype_proportions(), control_row.end_genotype_proportions() ) ;
-				case_control_statistic_map[1.0].process( case_row.begin_genotype_proportions(), case_row.end_genotype_proportions()	 ) ;
-
-				double BF = bayes_factor.get_value< double >( case_control_statistic_map ) ;
-				m_cout << "\nCalculated bayes factor: " << std::fixed << std::setprecision(6) << BF << ".\n" ;
-				{
-					Timer bayes_factor_timer ;
-					for( std::size_t i = 0; i < m_number_of_permutations; ++i ) {
-						permute_probabilities( probabilities ) ;
-						case_control_statistic_map[0.0].process( control_row.begin_genotype_proportions(), control_row.end_genotype_proportions() ) ;
-						case_control_statistic_map[1.0].process( case_row.begin_genotype_proportions(), case_row.end_genotype_proportions()	 ) ;
-						
-						bayes_factor.get_value< double >( case_control_statistic_map ) ;
-					}	
-
-					m_cout << "Computed " << m_number_of_permutations << " bayes factors in "
-						<< std::fixed << std::setprecision(1) << bayes_factor_timer.elapsed()
-						<< "s (" << (m_number_of_permutations / bayes_factor_timer.elapsed()) << " BFs per sec).\n" ;
-				}
+				process_snp( case_row, control_row, bayes_factor, probabilities ) ;
 
 				// print a progress message every second.
 				double time_now = timer.elapsed() ;
@@ -420,6 +439,13 @@ private:
 		close_all_files() ;
 	}
 	
+	void process_snp( GenRow const& case_row, GenRow const& control_row, CaseControlStatistic const& bayes_factor, std::vector< GenotypeProportions >& probabilities ) {
+		// I think we'd expect all the SNP identifying data to be the same for the two snps.
+		// If there are mismatches, print out some information about them.
+		compare_snps( case_row, control_row ) ;
+		calculate_bayes_factors( case_row, control_row, bayes_factor, probabilities ) ;
+	}
+	
 	void compare_snps( GenRow const& case_row, GenRow const& control_row ) {
 		if( case_row.SNPID() != control_row.SNPID() ) {
 			m_cout << "\nMatching rows have differing SNPIDs " << case_row.SNPID() << " and " << control_row.SNPID() << ".\n" ;
@@ -437,8 +463,57 @@ private:
 		}
 	}
 
+	void calculate_bayes_factors( GenRow const& control_row, GenRow const& case_row, CaseControlStatistic const& bayes_factor, std::vector< GenotypeProbabilities >& probabilities )
+	{
+		std::map< double, GenotypeAssayStatistics > case_control_statistic_map ;
+		case_control_statistic_map[0.0] = GenotypeAssayStatistics() ;
+		case_control_statistic_map[1.0] = GenotypeAssayStatistics() ;
+
+		double BF ;
+		double average_BF = 0.0 ;
+		Timer bayes_factor_timer ;
+		for( std::size_t i = 0; i < m_number_of_permutations; ++i ) {
+			case_control_statistic_map[0.0].process( control_row.begin_genotype_proportions(), control_row.end_genotype_proportions() ) ;
+			case_control_statistic_map[1.0].process( case_row.begin_genotype_proportions(), case_row.end_genotype_proportions()	 ) ;
+			double this_BF = bayes_factor.get_value< double >( case_control_statistic_map ) ;
+			if( i == 0 ) {
+				BF = this_BF ;
+			}
+			average_BF += this_BF ;
+			permute_probabilities( probabilities ) ;
+		}
+
+		m_cout << "\nComputed " << m_number_of_permutations << " bayes factors in "
+			<< std::fixed << std::setprecision(1) << bayes_factor_timer.elapsed()
+			<< "s (" << (m_number_of_permutations / bayes_factor_timer.elapsed()) << " BFs per sec).\n" ;
+		average_BF /= (m_number_of_permutations) ;
+		m_cout << "BF = " << BF << ", average BF = " << average_BF << ".\n" ;
+	}
+
 	void permute_probabilities( std::vector< GenotypeProbabilities >& probabilities ) {
-		// do nothing for now.
+		randomly_permute_probabilities( probabilities ) ;
+	}
+
+	void randomly_permute_probabilities( std::vector< GenotypeProbabilities >& probabilities ) {
+		// Do a random permutation, using Knuth's shuffle as described on the wikipedia page.
+		for( std::size_t i = 0; i < probabilities.size(); ++i ) {
+			std::size_t k = get_random_number( probabilities.size() - i - 1 );
+			if( k != ( probabilities.size() - i - 1)) {
+				std::swap( probabilities[k], probabilities[ probabilities.size() - i - 1]) ;
+			}
+		}
+	}
+
+	// Get a random integer (hopefully) uniformly distributed in the range [0, L]
+	std::size_t get_random_number( std::size_t L ) {
+		// We take the output of the random number generator (which lies in the range [0, m_rng->max()])
+		// Then multiply by L / m_rng->max().
+		// Note that there are probably issues with the uniformity of the resulting number.
+		return (static_cast< double >(L) / m_rng->max()) * static_cast< double >((*m_rng)()) ;
+	}
+
+	void cyclically_permute_probabilities( std::vector< GenotypeProbabilities >& probabilities ) {
+		std::rotate( probabilities.begin(), probabilities.begin() + 1, probabilities.end() ) ;
 	}
 
 	void print_progress( double time_now ) {
@@ -515,6 +590,8 @@ private:
 	std::vector< std::string > m_control_sample_filenames ;
 
 	std::vector< std::string > m_errors ;
+	
+	boost::mt19937* m_rng ;
 } ;
 
 
