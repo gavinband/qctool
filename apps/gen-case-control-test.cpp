@@ -477,8 +477,10 @@ private:
 		Timer bayes_factor_timer ;
 		for( std::size_t i = 0; i < m_number_of_permutations; ++i ) {
 			print_progress_if_needed() ;
-			case_control_statistic_map[0.0].process( control_row.begin_genotype_proportions(), control_row.end_genotype_proportions() ) ;
-			case_control_statistic_map[1.0].process( case_row.begin_genotype_proportions(), case_row.end_genotype_proportions()	 ) ;
+			if( i == 0 ) {
+				case_control_statistic_map[0.0].process( control_row.begin_genotype_proportions(), control_row.end_genotype_proportions() ) ;
+				case_control_statistic_map[1.0].process( case_row.begin_genotype_proportions(), case_row.end_genotype_proportions()	 ) ;
+			}
 			double this_BF = bayes_factor.get_value< double >( case_control_statistic_map ) ;
 			if( i == 0 ) {
 				BF = this_BF ;
@@ -495,15 +497,17 @@ private:
 	}
 
 	void permute_probabilities( std::vector< GenotypeProbabilities >& probabilities ) {
-		randomly_permute_probabilities( probabilities ) ;
+		// cyclically_permute_probabilities( probabilities ) ;
 	}
 
 	void randomly_permute_probabilities( std::vector< GenotypeProbabilities >& probabilities ) {
 		// Do a random permutation, using Knuth's shuffle as described on the wikipedia page.
-		for( std::size_t i = 0; i < probabilities.size(); ++i ) {
-			std::size_t k = get_random_number( probabilities.size() - i - 1 );
-			if( k != ( probabilities.size() - i - 1)) {
-				std::swap( probabilities[k], probabilities[ probabilities.size() - i - 1]) ;
+		std::size_t N = probabilities.size() ;
+		GenotypeProbabilities* first_prob = &probabilities[0] ;
+		for( std::size_t i = 1; i <= N; ++i ) {
+			std::size_t k = get_random_number( N - i );
+			if( k != ( N - i )) {
+				std::swap( *(first_prob + k), *(first_prob + (probabilities.size() - i))) ;
 			}
 		}
 	}
@@ -517,7 +521,7 @@ private:
 	}
 
 	void cyclically_permute_probabilities( std::vector< GenotypeProbabilities >& probabilities ) {
-		std::rotate( probabilities.begin(), probabilities.begin() + 1, probabilities.end() ) ;
+		std::rotate( &probabilities[0], &probabilities[1], (&probabilities[0]) + probabilities.size() ) ;
 	}
 
 	void print_progress( double time_now ) {
