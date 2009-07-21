@@ -22,8 +22,10 @@ struct GenotypeAssayBasicStatistics
 		void process( Iterator begin, Iterator const& end ) {
 			reset() ;
 			m_number_of_samples = std::distance( begin, end ) ;
-			GenotypeProportions zero_amounts( 0.0, 0.0, 0.0 ) ;
-			m_genotype_amounts = std::accumulate( begin, end, zero_amounts ) ;
+			m_genotype_amounts = GenotypeProbabilities( 0.0, 0.0, 0.0 ) ;
+			for( ; begin != end; ++begin) {
+				m_genotype_amounts += *begin ;
+			}
 		}
 
 		// Get basic statistics about the assay.
