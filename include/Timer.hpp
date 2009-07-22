@@ -8,7 +8,7 @@
 #else
 	struct Timer
 	{
-		double elapsed_time() const { return 0.0 ; }
+		double elapsed() const { return 0.0 ; }
 		void restart() {} ;
 	} ;
 #endif

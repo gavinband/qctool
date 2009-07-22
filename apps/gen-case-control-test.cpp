@@ -29,8 +29,12 @@
 #include "wildcard.hpp"
 #include "parse_utils.hpp"
 #include "Timer.hpp"
+#include "progress_bar.hpp"
 
+#include "CaseControlProbabilityPermuter.hpp"
 #include "CaseControlPermutationsFileReader.hpp"
+#include "CaseControlStatistic.hpp"
+#include "BayesFactor.hpp"
 
 namespace globals {
 	std::string const program_name = "gen-case-control-test" ;
@@ -58,305 +62,7 @@ struct GenCaseControlFileCountError: public GenCaseControlProcessorException
 struct GenCaseControlFileWildcardMismatchError: public GenCaseControlProcessorException
 {
 	char const* what() const throw() { return "GenCaseControlFileWildcardMismatchError" ; }
-} ;
-
-// Base class for individual statistics
-struct CaseControlStatistic
-{
-	public:
-		CaseControlStatistic() {} ;
-		virtual ~CaseControlStatistic() {}
-
-		typedef std::map< double, GenotypeAmounts > case_status_statistic_map_t ;
-
-		template< typename T >
-		T get_value( case_status_statistic_map_t const& ) const ;
-
-	protected:
-		virtual double calculate_value( case_status_statistic_map_t const& ) const = 0;
-} ;
-
-
-template<>
-double CaseControlStatistic::get_value< double >( case_status_statistic_map_t const& case_status_statistic_map ) const
-{
-	return calculate_value( case_status_statistic_map ) ;
-}
-
-
-struct BetaCalculator
-{
-	double beta( double a, double b ) const {
-		return boost::math::beta( a, b ) ;
-	}
-} ;
-
-struct CachingBetaCalculator
-{
-	double beta( double a, double b ) const {
-		assert( m_beta_cache.size() < 10000000 ) ;
-
-		std::pair< double, double >
-			a_and_b( a, b ) ;
-
-		beta_cache_t::const_iterator
-			where = m_beta_cache.find( a_and_b ) ;
-		double result ;
-		if( where == m_beta_cache.end() ) {
-			result = boost::math::beta( a, b ) ;
-			m_beta_cache[ a_and_b ] = result ;
-		}
-		else {
-			result = where->second ;
-		}
-		return result ;
-	}
-	
-	std::size_t size() const { return m_beta_cache.size() ; }
-	
-private:
-	typedef std::map< std::pair< double, double >, double > beta_cache_t ;
-	mutable beta_cache_t m_beta_cache ;	
-} ;
-
-
-//
-// Calculate a bayes factor for case/control data sets,
-// as on p.15 of  the 'Supplementary Methods' paper for
-// "A new multipoint method for genome-wide association studies...", Marchini et al, 2007.
-//
-template< typename BetaCalculatorT >
-struct SimpleBayesFactor: public CaseControlStatistic, public BetaCalculatorT
-{
-	SimpleBayesFactor(
-		double phi_0 = 1.0,
-		double eta_0 = 1.0,
-		double phi_1 = 1.0,
-		double eta_1 = 1.0,
-		double phi_2 = 1.0,
-		double eta_2 = 1.0
-	)
-		: m_phi(3), m_eta(3), m_precomputed_beta_of_phi_and_eta(3)
-	{
-		m_phi[0] = phi_0 ;
-		m_eta[0] = eta_0 ;
-		m_phi[1] = phi_1 ;
-		m_eta[1] = eta_1 ;
-		m_phi[2] = phi_2 ;
-		m_eta[2] = eta_2 ;
-		
-		for( std::size_t i = 0; i < 3u; ++i ) {
-			m_precomputed_beta_of_phi_and_eta[i] = beta( m_phi[i], m_eta[i] ) ;
-		}
-	}
-	
-protected:
-	
-	double beta( double a, double b ) const {
-		return BetaCalculatorT::beta( a, b ) ;
-	}
-	
-	double calculate_value( case_status_statistic_map_t const& case_status_statistic_map ) const {
-		// Assume we have map keys 0.0 and 1.0, and ignore all others.
-		case_status_statistic_map_t::const_iterator
-			control_i = case_status_statistic_map.find( 0.0 ),
-			case_i = case_status_statistic_map.find( 1.0 ) ;
-
-		GenotypeProbabilities const& control_genotype_amounts = control_i->second ;
-		GenotypeProbabilities const& case_genotype_amounts = case_i->second ;
-		return probability_of_data_given_M4( control_genotype_amounts, case_genotype_amounts )
-			/ probability_of_data_given_M0( control_genotype_amounts, case_genotype_amounts ) ;
-	}
-
-	double probability_of_data_given_M4( GenotypeProbabilities const& control_genotype_amounts, GenotypeProbabilities const& case_genotype_amounts ) const {
-		double result_for_AA_to_0_coding = 0.5;
-		double result_for_BB_to_0_coding = 0.5 ;
-		for( std::size_t i = 0; i < 3u; ++i ) {
-			result_for_AA_to_0_coding *= beta( case_genotype_amounts[i] + m_phi[i], control_genotype_amounts[i] + m_eta[i] ) / m_precomputed_beta_of_phi_and_eta[i] ;
-			result_for_BB_to_0_coding *= beta( case_genotype_amounts[2-i] + m_phi[i], control_genotype_amounts[2-i] + m_eta[i] ) / m_precomputed_beta_of_phi_and_eta[i] ;
-		}
-		return result_for_AA_to_0_coding + result_for_BB_to_0_coding ;
-	}
-
-	double probability_of_data_given_M0( GenotypeProbabilities const& control_genotype_amounts, GenotypeProbabilities const& case_genotype_amounts ) const {
-		return beta( case_genotype_amounts.sum() + m_phi[0], control_genotype_amounts.sum() + m_eta[0] )
-			/ m_precomputed_beta_of_phi_and_eta[0] ;
-	}
-	
-private:
-	
-	std::vector< double > m_phi ;
-	std::vector< double > m_eta ;
-	std::vector< double > m_precomputed_beta_of_phi_and_eta ;
-} ;
-
-
-class CaseControlProbabilityPermuter
-{
-public:
-	CaseControlProbabilityPermuter( std::string const& permutations_filename )
-	: 	m_current_permutation(0),
-		m_control_genotype_amounts( 0.0, 0.0, 0.0 ),
-		m_case_genotype_amounts( 0.0, 0.0, 0.0 ),
-		m_genotype_probabilities(0)
-	{
-		CaseControlPermutationsFileReader file_reader( permutations_filename ) ;
-		m_permutations = file_reader.permutations() ;
-		m_number_of_controls = file_reader.number_of_zeroes() ;
-	}
-
-public:
-	std::size_t number_of_permutations() const { return m_permutations.size() ; }
-	std::size_t current_permutation() const { return m_current_permutation ; }
-	std::size_t size_of_permutations() const { return m_permutations[0].size() ; }
-	std::size_t number_of_controls() const { return m_number_of_controls ; }
-	std::size_t number_of_cases() const { return size_of_permutations() - m_number_of_controls ; }
-
-	GenotypeAmounts const& get_control_genotype_amounts() const { return m_control_genotype_amounts ; }
-	GenotypeAmounts const& get_case_genotype_amounts() const { return m_case_genotype_amounts ; }
-
-	void reset( std::vector< GenotypeProbabilities > const& probabilities ) {
-		assert( probabilities.size() == size_of_permutations() ) ;
-		m_genotype_probabilities = probabilities ;
-		m_current_permutation = 0 ;
-		calculate_genotype_amounts_for_permutation( m_current_permutation, &m_control_genotype_amounts, &m_case_genotype_amounts ) ;
-	}
-	
-protected:
-	void calculate_genotype_amounts_for_permutation( std::size_t permutation_i, GenotypeAmounts* control_genotype_amounts, GenotypeAmounts* case_genotype_amounts ) {
-		assert( permutation_i < m_permutations.size() ) ;
-
-		(*control_genotype_amounts) = GenotypeAmounts( 0.0, 0.0, 0.0 ) ;
-		(*case_genotype_amounts) = GenotypeAmounts( 0.0, 0.0, 0.0 ) ;
-
-		for( std::size_t i = 0; i < m_permutations[ permutation_i ].size(); ++i ) {
-			if( m_permutations[ permutation_i ][ i ] == 0 ) {
-				(*control_genotype_amounts) += genotype_probabilities()[i] ;
-			}
-			else {
-				(*case_genotype_amounts) += genotype_probabilities()[i] ;
-			}
-		}
-	}
-
-	std::vector< GenotypeProbabilities > const& genotype_probabilities() const { return m_genotype_probabilities ; }
-	std::vector< std::vector< char > > const& permutations() const { return m_permutations ; }
-
-public:
-	
-	bool move_to_next_permutation() {
-		if( (++m_current_permutation) < m_permutations.size() ) {
-			calculate_next_genotype_amounts( m_current_permutation, &m_control_genotype_amounts, &m_case_genotype_amounts ) ;
-			return true ;
-		}
-		else {
-			m_genotype_probabilities.clear() ;
-			return false ;
-		}
-	}
-
-protected:
-
-	// Given that the passed-in genotype amounts correspond to the amounts for the permutation
-	// just before the current one, calculate the amounts for the current permutation.
-	virtual void calculate_next_genotype_amounts( std::size_t current_permutation, GenotypeAmounts* control_genotype_amounts, GenotypeAmounts* case_genotype_amounts ) = 0 ;
-	
-	std::vector< std::vector< char > >& permutations() { return m_permutations ; }
-
-	bool check_first_permutation_has_all_controls_first() const {
-		bool found_nonzero = false ;
-		for( std::size_t i = 0; i < m_permutations[0].size(); ++i ) {
-			found_nonzero = ( m_permutations[ 0 ][ i ] != 0 ) ;
-			if( found_nonzero && (i < m_number_of_controls )) {
-				return false ;
-			}
-		}
-		
-		return true ;
-	}
-
-private:
-	std::vector< std::vector< char > > m_permutations ;
-	std::size_t m_size_of_permutations ;
-	std::size_t m_current_permutation ;
-	std::size_t m_number_of_controls ;
-	
-	GenotypeAmounts m_control_genotype_amounts, m_case_genotype_amounts ;
-	std::vector< GenotypeProbabilities > m_genotype_probabilities ;
-} ;
-
-
-class SimpleCaseControlProbabilityPermuter: public CaseControlProbabilityPermuter
-{
-public:
-	SimpleCaseControlProbabilityPermuter( std::string const& permutations_filename )
-		: CaseControlProbabilityPermuter( permutations_filename )
-	{}
-
-private:
-	void calculate_next_genotype_amounts( std::size_t current_permutation, GenotypeAmounts* control_genotype_amounts, GenotypeAmounts* case_genotype_amounts ) {
-		calculate_genotype_amounts_for_permutation( current_permutation, control_genotype_amounts, case_genotype_amounts ) ;
-	}
-} ;
-
-class DifferentialCaseControlProbabilityPermuter: public CaseControlProbabilityPermuter
-{
-public:
-	DifferentialCaseControlProbabilityPermuter( std::string const& permutations_filename )
-		: CaseControlProbabilityPermuter( permutations_filename )
-	{
-		std::sort( permutations().begin(), permutations().end() ) ;
-		if( !check_first_permutation_has_all_controls_first() ) {
-			throw PermutationFileFirstPermutationMalformedError() ;
-		}
-		m_differential_permutations = calculate_differential_permutations() ;
-	}
-
-private:
-
-	void calculate_next_genotype_amounts( std::size_t current_permutation, GenotypeAmounts* control_genotype_amounts, GenotypeAmounts* case_genotype_amounts ) {
-		GenotypeAmounts case_genotype_amount_adjustment( 0.0, 0.0, 0.0 ) ;
-		for( std::size_t i = 0; i < size_of_permutations(); ++i ) {
-			char ith_difference = m_differential_permutations[ current_permutation ][i] ;
-			if( ith_difference == -1 ) {
-				case_genotype_amount_adjustment -= genotype_probabilities()[ i ] ;
-			} else if( ith_difference == 1 ) {
-				case_genotype_amount_adjustment += genotype_probabilities()[ i ] ;
-			}
-		}
-		(*control_genotype_amounts) -= case_genotype_amount_adjustment ;
-		(*case_genotype_amounts) += case_genotype_amount_adjustment ;
-	}
-
-private:
-
-	std::vector< std::vector< char > > calculate_differential_permutations() {
-		std::vector< std::vector< char > > differential_permutations( permutations().size() ) ;
-		differential_permutations[0] = permutations()[0] ;
-		for( std::size_t i = 1; i < number_of_permutations(); ++i ) {
-			differential_permutations[i] = calculate_entry_diffences( permutations()[i-1], permutations()[i] ) ;
-		}
-		return differential_permutations ;
-	}
-
-	// Return a vector whose ith entry is vector2[i] - vector1[i].
-	// To spell it out, the entry is
-	//   0 if the two entries are equal
-	//  -1 if vector1[i] is 1 and vector2[i] is 0
-	//   1 if vector1[i] is 0 and vector2[i] is 1
-	std::vector< char > calculate_entry_diffences( std::vector<char> const& vector1, std::vector<char> const& vector2 ) const {
-		assert( vector1.size() == vector2.size() ) ;
-		std::vector< char > result( vector1.size() ) ;
-		for( std::size_t i = 0; i < vector1.size(); ++i ) {
-			result[i] = vector2[i] - vector1[i] ;
-		}
-		return result ;
-	}
-
-private:
-
-	std::vector< std::vector< char > > m_differential_permutations ;
-} ;
+} ;	
 
 
 struct GenCaseControlProcessor
@@ -493,13 +199,15 @@ private:
 	}
 
 	void open_permutations_file() {
+		Timer timer ;
+		m_cout << "(Opening permutations file \"" << m_permutations_filename << "\"...)" << std::flush ;
 		if( m_options.check_if_option_was_supplied( "-use-differential-permuter" )) {
 			m_case_control_probability_permuter.reset( new DifferentialCaseControlProbabilityPermuter( m_permutations_filename )) ;
 		}
 		else {
 			m_case_control_probability_permuter.reset( new SimpleCaseControlProbabilityPermuter( m_permutations_filename )) ;
-			
 		}
+		m_cout << " (" << timer.elapsed() << "s)\n" ;
 	}
 
 	void construct_rng() {
@@ -636,18 +344,30 @@ private:
 		double average_BF = 0.0 ;
 		Timer bayes_factor_timer ;
 
+		GenotypeAssayStatistics stats1, stats2 ;
+
+		std::size_t count = 0 ;
+
 		m_case_control_probability_permuter->reset( probabilities ) ;
 		do {
 			print_progress_if_needed() ;
+
+#if 0
+			stats1.process( control_row.begin_genotype_proportions(), control_row.end_genotype_proportions() ) ;
+			stats2.process( case_row.begin_genotype_proportions(), case_row.end_genotype_proportions() ) ;
+			status_to_genotype_amount_map[0.0] = stats1.get_genotype_amounts() ; //m_case_control_probability_permuter->get_control_genotype_amounts() ;
+			status_to_genotype_amount_map[1.0] = stats2.get_genotype_amounts() ; //m_case_control_probability_permuter->get_case_genotype_amounts() ;
+#else
 			status_to_genotype_amount_map[0.0] = m_case_control_probability_permuter->get_control_genotype_amounts() ;
 			status_to_genotype_amount_map[1.0] = m_case_control_probability_permuter->get_case_genotype_amounts() ;
-
+#endif
 			double this_BF = bayes_factor.get_value< double >( status_to_genotype_amount_map ) ;
-			if( m_case_control_probability_permuter->current_permutation() == 0 ) {
+			if( count == 0 ) { //m_case_control_probability_permuter->current_permutation() == 0 ) {
 				BF = this_BF ;
 			}
 			average_BF += this_BF ;
 		}
+//		while( ++count < m_case_control_probability_permuter->number_of_permutations() ) ; //m_case_control_probability_permuter->move_to_next_permutation() ) ;
 		while( m_case_control_probability_permuter->move_to_next_permutation() ) ;
 
 		m_cout << "\nComputed " << m_case_control_probability_permuter->number_of_permutations() << " bayes factors in "
@@ -658,7 +378,7 @@ private:
 	}
 
 	void permute_probabilities( std::vector< GenotypeProbabilities >& probabilities ) {
-		// cyclically_permute_probabilities( probabilities ) ;
+		cyclically_permute_probabilities( probabilities ) ;
 	}
 
 	void randomly_permute_probabilities( std::vector< GenotypeProbabilities >& probabilities ) {
@@ -698,16 +418,6 @@ private:
 			<< " (" << std::fixed << std::setprecision(1) << time_now << "s)"
 			<< std::string( std::size_t(5), ' ' )
 			<< std::flush ;
-	}
-
-	std::string get_progress_bar( std::size_t width, double progress ) {
-		progress = std::min( std::max( progress, 0.0 ), 1.0 ) ;
-		std::size_t visible_progress = progress * width ;
-		return
-			"["
-			+ std::string( std::size_t( visible_progress ), '*' )
-			+ std::string( std::size_t( width - visible_progress ), ' ' )
-			+ "]" ;
 	}
 
 	typedef boost::function< bool( std::string const&, std::string const&, uint32_t, char, char ) > SNPMatcher ;

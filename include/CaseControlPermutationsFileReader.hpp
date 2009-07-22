@@ -5,6 +5,7 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include "endianness_utils.hpp"
 
 struct PermutationFileFormatError: public std::exception
 {
@@ -21,19 +22,14 @@ struct PermutationFileEmptyError: public std::exception
 	char const* what() const throw() { return "PermutationFileEmptyError" ; }
 } ;
 
-struct PermutationFileRowSizesDifferError: public std::exception
-{
-	char const* what() const throw() { return "PermutationFileRowSizesDifferError" ; }
-} ;
-
 struct PermutationFileNumbersOfZeroesDifferError: public std::exception
 {
 	char const* what() const throw() { return "PermutationFileNumbersOfZeroesDifferError" ; }
 } ;
 
-struct PermutationFileMalformedEntryError: public std::exception
+struct PermutationFileMalformedError: public std::exception
 {
-	char const* what() const throw() { return "PermutationFileMalformedEntryError" ; }
+	char const* what() const throw() { return "PermutationFileMalformedError" ; }
 } ;
 
 struct PermutationFileFirstPermutationMalformedError: public std::exception
@@ -55,38 +51,25 @@ struct CaseControlPermutationsFileReader
 private:
 
 	std::vector< std::vector< char > > read_permutations_file( std::string const& permutations_filename ) {
-		std::ifstream file( permutations_filename.c_str() ) ;
+		std::ifstream file( permutations_filename.c_str(), std::ios::binary ) ;
 		std::string line ;
 		std::vector< std::vector< char > > permutations ;
 
-		std::size_t size_of_permutations = 0u ;
+		uint32_t offset, number_of_zeroes, number_of_ones, number_of_permutations ;
+		
+		read_little_endian_integer( file, &offset ) ;
+		file.ignore( offset ) ;
+		read_little_endian_integer( file, &number_of_zeroes ) ;
+		read_little_endian_integer( file, &number_of_ones ) ;
+		read_little_endian_integer( file, &number_of_permutations ) ;
 
-		while( std::getline( file, line )) {
-			if( line.substr( 0, 2 ) == "//" ) {
-				// skip the comment line
-			}
-			else {
-				// line is a whitespace-separated list of 0s and 1s
-				std::vector< std::string > entries = split_and_strip( line, " " ) ;
-				if( entries.size() == 0 ) {
-					throw PermutationFileEmptyRowError() ;
-				}
-				else if( size_of_permutations == 0 ) {
-					size_of_permutations = entries.size() ;
-				}
-				else if( size_of_permutations != entries.size() ){
-					throw PermutationFileRowSizesDifferError() ;
-				}
+		std::size_t size_of_permutations = number_of_zeroes + number_of_ones ;
 
-				permutations.push_back( std::vector< char >( size_of_permutations )) ;
-				for( std::size_t i = 0; i < size_of_permutations ; ++i ) {
-					if( entries[i].size() == 1 ) {
-						permutations.back()[i] = entries[i][0] ;
-					}
-					else {
-						throw PermutationFileMalformedEntryError() ;
-					}	
-				}
+		for( uint32_t i = 0; i < number_of_permutations; ++i ) {
+			permutations.push_back( std::vector< char >( size_of_permutations )) ;
+			file.read( &(permutations.back()[0]), size_of_permutations ) ;
+			if( !file || (static_cast< std::size_t > (file.gcount()) != size_of_permutations )) {
+				throw PermutationFileMalformedError() ;
 			}
 		}
 		
