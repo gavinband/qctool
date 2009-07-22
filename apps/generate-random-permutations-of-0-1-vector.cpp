@@ -4,17 +4,17 @@
 #include "random_permutation.hpp"
 
 namespace globals {
-	std::string const program_name = "generate_random_case_control_status_file" ;
+	std::string const program_name = "generate-random-permutations-of-0-1-vector" ;
 }
 
 struct RandomCaseControlStatusGenerator
 {
 	static void declare_options( OptionProcessor& options ) {
-		options[ "-number-of-cases" ]
+		options[ "-number-of-zeroes" ]
 			.set_takes_single_value()
 			.set_is_required() ;
 
-		options[ "-number-of-controls" ]
+		options[ "-number-of-ones" ]
 			.set_takes_single_value()
 			.set_is_required() ;
 			
@@ -47,23 +47,23 @@ struct RandomCaseControlStatusGenerator
 	}
 
 	void setup() {
-		m_number_of_cases = m_options.get_value< std::size_t >( "-number-of-cases" ) ;
-		m_number_of_controls = m_options.get_value< std::size_t >( "-number-of-controls" ) ;
+		m_number_of_ones = m_options.get_value< std::size_t >( "-number-of-zeroes" ) ;
+		m_number_of_zeroes = m_options.get_value< std::size_t >( "-number-of-ones" ) ;
 		m_number_of_permutations = m_options.get_value< std::size_t >( "-number-of-permutations" ) ;
 		assert( m_number_of_permutations > 1 ) ;
-		m_case_control_status_vector.resize( m_number_of_cases + m_number_of_controls ) ;
+		m_0_1_vector.resize( m_number_of_ones + m_number_of_zeroes ) ;
 	}
 
 	void process() {
-		std::cout << "Description: This file contains " << m_number_of_permutations << " random permutations of the 0-1 vector in the fourth line.\n" ;
+		std::cout << "// Description: This file contains " << m_number_of_permutations << " random permutations of the 0-1 vector in the fourth line.\n" ;
 		std::cout
-			<< "number-of-zeroes: " << m_number_of_cases << "\n"
-			<< "number-of-ones: " << m_number_of_controls << "\n"
-			<< "number-of-permutations: " << m_number_of_permutations << "\n" ;
+			<< "// number-of-zeroes: " << m_number_of_ones << "\n"
+			<< "// number-of-ones: " << m_number_of_zeroes << "\n"
+			<< "// number-of-permutations: " << m_number_of_permutations << "\n" ;
 		construct_initial_state() ;
 		print_state() ;
 		for( std::size_t i = 0; i < m_number_of_permutations ; ++i ) {
-			randomly_permute_range( m_case_control_status_vector.begin(), m_case_control_status_vector.end(), &generate_random_number_in_range_0_to_L ) ;
+			randomly_permute_range( m_0_1_vector.begin(), m_0_1_vector.end(), &generate_random_number_in_range_0_to_L ) ;
 			print_state() ;
 		}
 	}
@@ -76,28 +76,28 @@ private:
 
 	void construct_initial_state() {
 		std::size_t i = 0 ;
-		for( ; i < m_number_of_controls; ++i ) {
-			m_case_control_status_vector[i] = '0' ;
+		for( ; i < m_number_of_zeroes; ++i ) {
+			m_0_1_vector[i] = '0' ;
 		}
-		for( ; i < m_number_of_controls + m_number_of_cases; ++i ) {
-			m_case_control_status_vector[i] = '1' ;
+		for( ; i < m_number_of_zeroes + m_number_of_ones; ++i ) {
+			m_0_1_vector[i] = '1' ;
 		}
 	}
 
 	void print_state() {
-		for( std::size_t i = 0 ; i < (m_number_of_cases + m_number_of_controls) ; ++i ) {
+		for( std::size_t i = 0 ; i < (m_number_of_ones + m_number_of_zeroes) ; ++i ) {
 			if( i > 0 ) {
 				std::cout << ' ' ;
 			}
-			std::cout << m_case_control_status_vector[i] ;
+			std::cout << m_0_1_vector[i] ;
 		}
 		std::cout << '\n' ;
 	}
 
 private:
 	OptionProcessor const& m_options ;
-	std::size_t m_number_of_cases, m_number_of_controls, m_number_of_permutations ;
-	std::vector< char > m_case_control_status_vector ;
+	std::size_t m_number_of_ones, m_number_of_zeroes, m_number_of_permutations ;
+	std::vector< char > m_0_1_vector ;
 	static boost::mt19937 m_rng ;
 } ;
 

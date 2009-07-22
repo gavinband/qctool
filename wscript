@@ -169,8 +169,8 @@ def build( bld ):
 
 	bld.new_task_gen(
 		features = 'cxx cprogram',
-		target = 'generate-random-case-control-status-file',
-		source = [  'apps/generate-random-case-control-status-file.cpp' ],
+		target = 'generate-random-permutations-of-0-1-vector',
+		source = [  'apps/generate-random-permutations-of-0-1-vector.cpp' ],
 		includes='./include ./genfile/include',
 		uselib_local = 'gtool-exception gtool-optionprocessor',
 		uselib = 'BOOST BOOST_RANDOM'

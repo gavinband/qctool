@@ -38,15 +38,23 @@ struct GenotypeProportions
 	// Convenient operators
 	GenotypeProportions& operator+=( GenotypeProportions const& right ) {
 		m_proportion_of_AA += right.m_proportion_of_AA ;
-		m_proportion_of_BB += right.m_proportion_of_BB ;
 		m_proportion_of_AB += right.m_proportion_of_AB ;
+		m_proportion_of_BB += right.m_proportion_of_BB ;
+        return *this ;
+	}
+
+	// Convenient operators
+	GenotypeProportions& operator-=( GenotypeProportions const& right ) {
+		m_proportion_of_AA -= right.m_proportion_of_AA ;
+		m_proportion_of_AB -= right.m_proportion_of_AB ;
+		m_proportion_of_BB -= right.m_proportion_of_BB ;
         return *this ;
 	}
 
 	GenotypeProportions& operator/=( double scalar ) {
 		m_proportion_of_AA /= scalar ;
-		m_proportion_of_BB /= scalar ;
 		m_proportion_of_AB /= scalar ;
+		m_proportion_of_BB /= scalar ;
         return *this ;
 	}
 	
@@ -57,6 +65,7 @@ struct GenotypeProportions
 		double m_proportion_of_BB ;
 } ;
 
+typedef GenotypeProportions GenotypeAmounts ;
 typedef GenotypeProportions GenotypeProbabilities ;
 
 // non-member operators

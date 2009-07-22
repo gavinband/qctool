@@ -30,6 +30,8 @@
 #include "parse_utils.hpp"
 #include "Timer.hpp"
 
+#include "CaseControlPermutationsFileReader.hpp"
+
 namespace globals {
 	std::string const program_name = "gen-case-control-test" ;
 }
@@ -58,20 +60,6 @@ struct GenCaseControlFileWildcardMismatchError: public GenCaseControlProcessorEx
 	char const* what() const throw() { return "GenCaseControlFileWildcardMismatchError" ; }
 } ;
 
-std::vector< std::string > try_to_put_sample_file_first( std::string const& option_name, std::vector< std::string > const& filenames ) {
-	std::vector< std::string > result( filenames ) ;
-	if( filenames.size() != 2 ) {
-		throw OptionValueInvalidException( option_name, filenames, "Two files, a sample and a gen file, must be specified for this option." ) ;
-	}
-	// swap the two options if it looks like the gen file is last.	
-	if( !genfile::filename_indicates_gen_or_bgen_format( filenames[1] ) && genfile::filename_indicates_gen_or_bgen_format( filenames[0] )) {
-		// Guess that sample file is listed second.
-		std::swap( result[0], result[1] ) ;
-	}
-	return result ;
-}
-
-
 // Base class for individual statistics
 struct CaseControlStatistic
 {
@@ -79,7 +67,7 @@ struct CaseControlStatistic
 		CaseControlStatistic() {} ;
 		virtual ~CaseControlStatistic() {}
 
-		typedef std::map< double, GenotypeAssayStatistics > case_status_statistic_map_t ;
+		typedef std::map< double, GenotypeAmounts > case_status_statistic_map_t ;
 
 		template< typename T >
 		T get_value( case_status_statistic_map_t const& ) const ;
@@ -174,8 +162,8 @@ protected:
 			control_i = case_status_statistic_map.find( 0.0 ),
 			case_i = case_status_statistic_map.find( 1.0 ) ;
 
-		GenotypeProbabilities const& control_genotype_amounts = control_i->second.get_genotype_amounts() ;
-		GenotypeProbabilities const& case_genotype_amounts = case_i->second.get_genotype_amounts() ;
+		GenotypeProbabilities const& control_genotype_amounts = control_i->second ;
+		GenotypeProbabilities const& case_genotype_amounts = case_i->second ;
 		return probability_of_data_given_M4( control_genotype_amounts, case_genotype_amounts )
 			/ probability_of_data_given_M0( control_genotype_amounts, case_genotype_amounts ) ;
 	}
@@ -202,6 +190,175 @@ private:
 	std::vector< double > m_precomputed_beta_of_phi_and_eta ;
 } ;
 
+
+class CaseControlProbabilityPermuter
+{
+public:
+	CaseControlProbabilityPermuter( std::string const& permutations_filename )
+	: 	m_current_permutation(0),
+		m_control_genotype_amounts( 0.0, 0.0, 0.0 ),
+		m_case_genotype_amounts( 0.0, 0.0, 0.0 ),
+		m_genotype_probabilities(0)
+	{
+		CaseControlPermutationsFileReader file_reader( permutations_filename ) ;
+		m_permutations = file_reader.permutations() ;
+		m_number_of_controls = file_reader.number_of_zeroes() ;
+	}
+
+public:
+	std::size_t number_of_permutations() const { return m_permutations.size() ; }
+	std::size_t current_permutation() const { return m_current_permutation ; }
+	std::size_t size_of_permutations() const { return m_permutations[0].size() ; }
+	std::size_t number_of_controls() const { return m_number_of_controls ; }
+	std::size_t number_of_cases() const { return size_of_permutations() - m_number_of_controls ; }
+
+	GenotypeAmounts const& get_control_genotype_amounts() const { return m_control_genotype_amounts ; }
+	GenotypeAmounts const& get_case_genotype_amounts() const { return m_case_genotype_amounts ; }
+
+	void reset( std::vector< GenotypeProbabilities > const& probabilities ) {
+		assert( probabilities.size() == size_of_permutations() ) ;
+		m_genotype_probabilities = probabilities ;
+		m_current_permutation = 0 ;
+		calculate_genotype_amounts_for_permutation( m_current_permutation, &m_control_genotype_amounts, &m_case_genotype_amounts ) ;
+	}
+	
+protected:
+	void calculate_genotype_amounts_for_permutation( std::size_t permutation_i, GenotypeAmounts* control_genotype_amounts, GenotypeAmounts* case_genotype_amounts ) {
+		assert( permutation_i < m_permutations.size() ) ;
+
+		(*control_genotype_amounts) = GenotypeAmounts( 0.0, 0.0, 0.0 ) ;
+		(*case_genotype_amounts) = GenotypeAmounts( 0.0, 0.0, 0.0 ) ;
+
+		for( std::size_t i = 0; i < m_permutations[ permutation_i ].size(); ++i ) {
+			if( m_permutations[ permutation_i ][ i ] == 0 ) {
+				(*control_genotype_amounts) += genotype_probabilities()[i] ;
+			}
+			else {
+				(*case_genotype_amounts) += genotype_probabilities()[i] ;
+			}
+		}
+	}
+
+	std::vector< GenotypeProbabilities > const& genotype_probabilities() const { return m_genotype_probabilities ; }
+	std::vector< std::vector< char > > const& permutations() const { return m_permutations ; }
+
+public:
+	
+	bool move_to_next_permutation() {
+		if( (++m_current_permutation) < m_permutations.size() ) {
+			calculate_next_genotype_amounts( m_current_permutation, &m_control_genotype_amounts, &m_case_genotype_amounts ) ;
+			return true ;
+		}
+		else {
+			m_genotype_probabilities.clear() ;
+			return false ;
+		}
+	}
+
+protected:
+
+	// Given that the passed-in genotype amounts correspond to the amounts for the permutation
+	// just before the current one, calculate the amounts for the current permutation.
+	virtual void calculate_next_genotype_amounts( std::size_t current_permutation, GenotypeAmounts* control_genotype_amounts, GenotypeAmounts* case_genotype_amounts ) = 0 ;
+	
+	std::vector< std::vector< char > >& permutations() { return m_permutations ; }
+
+	bool check_first_permutation_has_all_controls_first() const {
+		bool found_nonzero = false ;
+		for( std::size_t i = 0; i < m_permutations[0].size(); ++i ) {
+			found_nonzero = ( m_permutations[ 0 ][ i ] != 0 ) ;
+			if( found_nonzero && (i < m_number_of_controls )) {
+				return false ;
+			}
+		}
+		
+		return true ;
+	}
+
+private:
+	std::vector< std::vector< char > > m_permutations ;
+	std::size_t m_size_of_permutations ;
+	std::size_t m_current_permutation ;
+	std::size_t m_number_of_controls ;
+	
+	GenotypeAmounts m_control_genotype_amounts, m_case_genotype_amounts ;
+	std::vector< GenotypeProbabilities > m_genotype_probabilities ;
+} ;
+
+
+class SimpleCaseControlProbabilityPermuter: public CaseControlProbabilityPermuter
+{
+public:
+	SimpleCaseControlProbabilityPermuter( std::string const& permutations_filename )
+		: CaseControlProbabilityPermuter( permutations_filename )
+	{}
+
+private:
+	void calculate_next_genotype_amounts( std::size_t current_permutation, GenotypeAmounts* control_genotype_amounts, GenotypeAmounts* case_genotype_amounts ) {
+		calculate_genotype_amounts_for_permutation( current_permutation, control_genotype_amounts, case_genotype_amounts ) ;
+	}
+} ;
+
+class DifferentialCaseControlProbabilityPermuter: public CaseControlProbabilityPermuter
+{
+public:
+	DifferentialCaseControlProbabilityPermuter( std::string const& permutations_filename )
+		: CaseControlProbabilityPermuter( permutations_filename )
+	{
+		std::sort( permutations().begin(), permutations().end() ) ;
+		if( !check_first_permutation_has_all_controls_first() ) {
+			throw PermutationFileFirstPermutationMalformedError() ;
+		}
+		m_differential_permutations = calculate_differential_permutations() ;
+	}
+
+private:
+
+	void calculate_next_genotype_amounts( std::size_t current_permutation, GenotypeAmounts* control_genotype_amounts, GenotypeAmounts* case_genotype_amounts ) {
+		GenotypeAmounts case_genotype_amount_adjustment( 0.0, 0.0, 0.0 ) ;
+		for( std::size_t i = 0; i < size_of_permutations(); ++i ) {
+			char ith_difference = m_differential_permutations[ current_permutation ][i] ;
+			if( ith_difference == -1 ) {
+				case_genotype_amount_adjustment -= genotype_probabilities()[ i ] ;
+			} else if( ith_difference == 1 ) {
+				case_genotype_amount_adjustment += genotype_probabilities()[ i ] ;
+			}
+		}
+		(*control_genotype_amounts) -= case_genotype_amount_adjustment ;
+		(*case_genotype_amounts) += case_genotype_amount_adjustment ;
+	}
+
+private:
+
+	std::vector< std::vector< char > > calculate_differential_permutations() {
+		std::vector< std::vector< char > > differential_permutations( permutations().size() ) ;
+		differential_permutations[0] = permutations()[0] ;
+		for( std::size_t i = 1; i < number_of_permutations(); ++i ) {
+			differential_permutations[i] = calculate_entry_diffences( permutations()[i-1], permutations()[i] ) ;
+		}
+		return differential_permutations ;
+	}
+
+	// Return a vector whose ith entry is vector2[i] - vector1[i].
+	// To spell it out, the entry is
+	//   0 if the two entries are equal
+	//  -1 if vector1[i] is 1 and vector2[i] is 0
+	//   1 if vector1[i] is 0 and vector2[i] is 1
+	std::vector< char > calculate_entry_diffences( std::vector<char> const& vector1, std::vector<char> const& vector2 ) const {
+		assert( vector1.size() == vector2.size() ) ;
+		std::vector< char > result( vector1.size() ) ;
+		for( std::size_t i = 0; i < vector1.size(); ++i ) {
+			result[i] = vector2[i] - vector1[i] ;
+		}
+		return result ;
+	}
+
+private:
+
+	std::vector< std::vector< char > > m_differential_permutations ;
+} ;
+
+
 struct GenCaseControlProcessor
 {
 public:
@@ -212,31 +369,31 @@ public:
 	        .set_description( "Path of gen file to input" )
 			.set_is_required()
 			.set_takes_values()
-			.set_maximum_number_of_repeats( 1 )
-			.set_number_of_values_per_use( 2 )
-			.add_value_preprocessor( &try_to_put_sample_file_first ) ;
+			.set_number_of_values_per_use( 1 ) ;
 
 	    options[ "-controls" ]
 	        .set_description( "Path of gen file to input" )
 			.set_is_required()
 			.set_takes_values()
-			.set_maximum_number_of_repeats( 1 )
-			.set_number_of_values_per_use( 2 )
-			.add_value_preprocessor( &try_to_put_sample_file_first ) ;
+			.set_number_of_values_per_use( 1 ) ;
 
-		options[ "-number-of-permutations" ]
-			.set_description( "The number of random permutations of case-control status to carry out at each SNP")
-			.set_takes_single_value()
-			.set_default_value( 100000 ) ;
+		options [ "-permutations" ]
+			.set_description( "Path of sample permutation file to input.")
+			.set_is_required()
+			.set_takes_single_value() ;
+
+		options ["-use-differential-permuter"]
+			.set_description( "Use the differential genotype probability permuter (which should be faster)")
+			.set_default_value( false ) ;
 
 		options [ "--force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
 	}
 
 	GenCaseControlProcessor( OptionProcessor const& options )
-		: m_cout( std::cout.rdbuf() ),
-		  m_options( options ),
-		  m_rng(0)
+	:   m_options( options ),
+		m_cout( std::cout.rdbuf() ),
+	  	m_rng(0)
 	{
 		write_start_banner( m_cout ) ;
 		setup() ;
@@ -251,10 +408,8 @@ private:
 		try {
 			get_required_filenames() ;
 			open_gen_files() ;
-			open_sample_files() ;
+			open_permutations_file() ;
 			construct_rng() ;
-			// m_case_control_test.reset( CaseControlTest::create( m_control_sample_source, m_control_gen_input_chain, m_case_sample_source, m_case_gen_input_chain )) ;
-			m_number_of_permutations = m_options.get_value<std::size_t >( "-number-of-permutations" ) ;
 		}
 		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
 			m_cout << "The GEN files specified did not all have the same sample size.\n" ;
@@ -271,15 +426,18 @@ private:
 	void get_required_filenames() {
 		std::vector< std::string > case_filenames, control_filenames ;
 
-		control_filenames = m_options.get_values< std::string >( "-controls" ) ;
-		assert( control_filenames.size() == 2 ) ;
-		add_filename( &m_control_sample_filenames, control_filenames[0] ) ;
-		expand_and_add_filename( &m_control_gen_filenames, control_filenames[1] ) ;
+		get_gen_filenames( &m_control_gen_filenames, m_options.get_values< std::string >( "-controls" )) ;
+		get_gen_filenames( &m_case_gen_filenames, m_options.get_values< std::string >( "-cases" )) ;
+		m_permutations_filename = m_options.get_value< std::string >( "-permutations" ) ;
+		assert( m_control_gen_filenames.size() > 0 ) ;
+		assert( m_case_gen_filenames.size() > 0 ) ;
+	}
 
-		case_filenames = m_options.get_values< std::string >( "-cases" ) ;
-		assert( case_filenames.size() == 2 ) ;
-		add_filename( &m_case_sample_filenames, case_filenames[0] ) ;
-		expand_and_add_filename( &m_case_gen_filenames, case_filenames[1] ) ;
+	void get_gen_filenames( std::vector< std::string >* filename_list_ptr, std::vector< std::string > const& filenames ) {
+		assert( filenames.size() > 0 ) ;
+		for( std::size_t i = 0; i < filenames.size(); ++i ) {
+			expand_and_add_filename( filename_list_ptr, filenames[i] ) ;
+		}
 	}
 
 	void expand_and_add_filename( std::vector< std::string >* filename_list_ptr, std::string const& filename ) {
@@ -334,15 +492,18 @@ private:
 		m_cout << " (" << timer.elapsed() << "s)\n" ;
 	}
 
-	void open_sample_files() {
-		assert( m_control_sample_filenames.size() == 1 ) ;
-		Timer timer ;
-		// m_control_sample_source.reset( new SampleInputFile< SimpleFileObjectSource< SampleRow > >( open_file_for_input( m_control_sample_filenames[0] ))) ;
-		// m_case_sample_source.reset( new SampleInputFile< SimpleFileObjectSource< SampleRow > >( open_file_for_input( m_case_sample_filenames[0] ))) ;
+	void open_permutations_file() {
+		if( m_options.check_if_option_was_supplied( "-use-differential-permuter" )) {
+			m_case_control_probability_permuter.reset( new DifferentialCaseControlProbabilityPermuter( m_permutations_filename )) ;
+		}
+		else {
+			m_case_control_probability_permuter.reset( new SimpleCaseControlProbabilityPermuter( m_permutations_filename )) ;
+			
+		}
 	}
 
 	void construct_rng() {
-		m_rng = new boost::mt19937 ;
+		m_rng.reset( new boost::mt19937 ) ;
 		m_cout << "mt19937: " << m_rng->min() << " " << m_rng->max() << ".\n" ;
 	}
 	
@@ -365,6 +526,7 @@ public:
 			print_gen_files( oStream, m_control_gen_filenames, m_control_gen_input_chain ) ;
 			oStream << "Case GEN files:\n" ;
 			print_gen_files( oStream, m_case_gen_filenames, m_case_gen_input_chain ) ;
+			oStream << "Number of permutations: " << m_case_control_probability_permuter->number_of_permutations() << ".\n" ;
 			oStream << std::string( 72, '=' ) << "\n\n" ;
 		}
 		catch (...) {
@@ -468,31 +630,30 @@ private:
 
 	void calculate_bayes_factors( GenRow const& control_row, GenRow const& case_row, CaseControlStatistic const& bayes_factor, std::vector< GenotypeProbabilities >& probabilities )
 	{
-		std::map< double, GenotypeAssayStatistics > case_control_statistic_map ;
-		case_control_statistic_map[0.0] = GenotypeAssayStatistics() ;
-		case_control_statistic_map[1.0] = GenotypeAssayStatistics() ;
+		std::map< double, GenotypeAmounts > status_to_genotype_amount_map ;
 
 		double BF ;
 		double average_BF = 0.0 ;
 		Timer bayes_factor_timer ;
-		for( std::size_t i = 0; i < m_number_of_permutations; ++i ) {
+
+		m_case_control_probability_permuter->reset( probabilities ) ;
+		do {
 			print_progress_if_needed() ;
-			if( i == 0 ) {
-				case_control_statistic_map[0.0].process( control_row.begin_genotype_proportions(), control_row.end_genotype_proportions() ) ;
-				case_control_statistic_map[1.0].process( case_row.begin_genotype_proportions(), case_row.end_genotype_proportions()	 ) ;
-			}
-			double this_BF = bayes_factor.get_value< double >( case_control_statistic_map ) ;
-			if( i == 0 ) {
+			status_to_genotype_amount_map[0.0] = m_case_control_probability_permuter->get_control_genotype_amounts() ;
+			status_to_genotype_amount_map[1.0] = m_case_control_probability_permuter->get_case_genotype_amounts() ;
+
+			double this_BF = bayes_factor.get_value< double >( status_to_genotype_amount_map ) ;
+			if( m_case_control_probability_permuter->current_permutation() == 0 ) {
 				BF = this_BF ;
 			}
 			average_BF += this_BF ;
-			permute_probabilities( probabilities ) ;
 		}
+		while( m_case_control_probability_permuter->move_to_next_permutation() ) ;
 
-		m_cout << "\nComputed " << m_number_of_permutations << " bayes factors in "
+		m_cout << "\nComputed " << m_case_control_probability_permuter->number_of_permutations() << " bayes factors in "
 			<< std::fixed << std::setprecision(1) << bayes_factor_timer.elapsed()
-			<< "s (" << (m_number_of_permutations / bayes_factor_timer.elapsed()) << " BFs per sec).\n" ;
-		average_BF /= (m_number_of_permutations) ;
+			<< "s (" << (m_case_control_probability_permuter->number_of_permutations() / bayes_factor_timer.elapsed()) << " BFs per sec).\n" ;
+		average_BF /= (m_case_control_probability_permuter->number_of_permutations()) ;
 		m_cout << "BF = " << BF << ", average BF = " << average_BF << ".\n" ;
 	}
 
@@ -582,27 +743,26 @@ private:
 	}
 	
 private:
-	
-	std::ostream m_cout ;
-	
-	std::auto_ptr< genfile::SNPDataSourceChain > m_case_gen_input_chain ;
-	std::auto_ptr< genfile::SNPDataSourceChain > m_control_gen_input_chain ;
-
-	std::size_t m_number_of_permutations ;
-
+	// Program options
 	OptionProcessor const& m_options ;
 	
+	// filenames and files
 	std::vector< std::string > m_case_gen_filenames ;
-	std::vector< std::string > m_case_sample_filenames ;
 	std::vector< std::string > m_control_gen_filenames ;
-	std::vector< std::string > m_control_sample_filenames ;
+	std::string m_permutations_filename ;
+	std::auto_ptr< genfile::SNPDataSourceChain > m_case_gen_input_chain ;
+	std::auto_ptr< genfile::SNPDataSourceChain > m_control_gen_input_chain ;
+	std::ostream m_cout ;
 
+	// Program operation
 	std::vector< std::string > m_errors ;
-	
-	boost::mt19937* m_rng ;
-
 	Timer m_timer ;
 	double m_last_time ;
+	std::auto_ptr< boost::mt19937 > m_rng ;
+
+	// Genotype probability related
+	std::vector< GenotypeProbabilities > m_probabilities ;
+	std::auto_ptr< CaseControlProbabilityPermuter > m_case_control_probability_permuter ;
 } ;
 
 

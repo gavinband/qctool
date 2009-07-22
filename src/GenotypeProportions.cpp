@@ -19,12 +19,13 @@ double& GenotypeProportions::operator[]( std::size_t i ) {
 		case(0):
 			return m_proportion_of_AA ; break ;
 		case(1):
-			return m_proportion_of_AA ; break ;
+			return m_proportion_of_AB ; break ;
 		case(2):
-			return m_proportion_of_AA ; break ;
+			return m_proportion_of_BB ; break ;
 		case(3):
 			assert(0) ; break ;
 	}
+	return m_proportion_of_AA ; //suppress warning.
 }
 
 double GenotypeProportions::operator[]( std::size_t i ) const {
@@ -32,12 +33,13 @@ double GenotypeProportions::operator[]( std::size_t i ) const {
 		case(0):
 			return m_proportion_of_AA ; break ;
 		case(1):
-			return m_proportion_of_AA ; break ;
+			return m_proportion_of_AB ; break ;
 		case(2):
-			return m_proportion_of_AA ; break ;
+			return m_proportion_of_BB ; break ;
 		case(3):
 			assert(0) ; break ;
 	}
+	return 0 ; //suppress warning.
 }
 
 bool GenotypeProportions::operator==( GenotypeProportions const& other ) const {

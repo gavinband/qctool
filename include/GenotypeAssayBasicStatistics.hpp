@@ -22,7 +22,7 @@ struct GenotypeAssayBasicStatistics
 		void process( Iterator begin, Iterator const& end ) {
 			reset() ;
 			m_number_of_samples = std::distance( begin, end ) ;
-			m_genotype_amounts = GenotypeProbabilities( 0.0, 0.0, 0.0 ) ;
+			m_genotype_amounts = GenotypeAmounts( 0.0, 0.0, 0.0 ) ;
 			for( ; begin != end; ++begin) {
 				m_genotype_amounts += *begin ;
 			}
