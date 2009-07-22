@@ -55,10 +55,14 @@ struct RandomCaseControlStatusGenerator
 	}
 
 	void process() {
-		std::cout << "This file contains " << m_number_of_permutations << " random permutations of the vector in the first line below.\n" ;
+		std::cout << "Description: This file contains " << m_number_of_permutations << " random permutations of the 0-1 vector in the fourth line.\n" ;
+		std::cout
+			<< "number-of-zeroes: " << m_number_of_cases << "\n"
+			<< "number-of-ones: " << m_number_of_controls << "\n"
+			<< "number-of-permutations: " << m_number_of_permutations << "\n" ;
 		construct_initial_state() ;
 		print_state() ;
-		for( std::size_t i = 0; i < m_number_of_permutations - 1; ++i ) {
+		for( std::size_t i = 0; i < m_number_of_permutations ; ++i ) {
 			randomly_permute_range( m_case_control_status_vector.begin(), m_case_control_status_vector.end(), &generate_random_number_in_range_0_to_L ) ;
 			print_state() ;
 		}
