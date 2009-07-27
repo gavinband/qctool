@@ -123,40 +123,67 @@ void OptionProcessor::parse_options( int argc, char** argv ) {
 	while( ++i < argc ) {
 		std::string arg = argv[i] ;
 		std::map< std::string, OptionDefinition >::const_iterator arg_i = m_option_definitions.find( arg ) ;
-		if( arg_i != m_option_definitions.end() ) {
-			if( arg_i->second.number_of_values_per_use() > 0 ) {
-				for( unsigned int value_i = 0; value_i < arg_i->second.number_of_values_per_use(); ++value_i ) {
-					if( ++i == argc ) {
-						std::ostringstream ostr ;
-						ostr << "Option\"" << arg << "\" takes " << arg_i->second.number_of_values_per_use() << " values per use." ;
-						throw OptionParseException( arg, m_option_values[ arg ], ostr.str() ) ;
-					}
-					else {
-						m_option_values[ arg ].push_back( argv[i] ) ;
-					}
-				}
-			}
-			else {
-				m_option_values[ arg ].push_back( "1" ) ;
-			}
-		}
-		else
-		{
-			m_unknown_options.insert( argv[i] ) ;
+		if( !try_to_parse_named_option_and_values( argc, argv, i )) {
+			if( !try_to_parse_positional_option( argc, argv, i )) {
+				m_unknown_options[i] = argv[i] ;
+			} ;
 		}
 	}
 	
 	if( !m_unknown_options.empty()) {
-		std::string unknown_args ;
-		std::set< std::string >::const_iterator i = m_unknown_options.begin() ;
-		for( ; i != m_unknown_options.end(); ++i ) {
-			if( i != m_unknown_options.begin() )
-				unknown_args += ", " ;
-			unknown_args += *i ;
-		}
-		throw OptionParseException( "", std::vector< std::string >(), "The following options were not recognised: " + unknown_args + "." ) ;
+		process_unknown_options() ;
 	}
+}	
+
+bool OptionProcessor::try_to_parse_named_option_and_values( int argc, char** argv, int i ) {
+	std::string arg = argv[i] ;
+	std::map< std::string, OptionDefinition >::const_iterator arg_i = m_option_definitions.find( arg ) ;
+	if( arg_i != m_option_definitions.end() ) {
+		if( arg_i->second.number_of_values_per_use() > 0 ) {
+			for( unsigned int value_i = 0; value_i < arg_i->second.number_of_values_per_use(); ++value_i ) {
+				if( ++i == argc ) {
+					std::ostringstream ostr ;
+					ostr << "Option\"" << arg << "\" takes " << arg_i->second.number_of_values_per_use() << " values per use." ;
+					throw OptionParseException( arg, m_option_values[ arg ], ostr.str() ) ;
+				}
+				else {
+					m_option_values[ arg ].push_back( argv[i] ) ;
+				}
+			}
+		}
+		else {
+			m_option_values[ arg ].push_back( "1" ) ;
+		}
+		return true ;
+	}
+	return false ;
 }
+
+bool OptionProcessor::try_to_parse_positional_option( int argc, char** argv, int position ) {
+	OptionDefinitions::const_iterator
+		defn_i = m_option_definitions.begin(),
+		end_defn_i = m_option_definitions.end() ;
+		
+	for( ; defn_i != end_defn_i; ++defn_i ) {
+		if( defn_i->second.takes_value_by_position() && defn_i->second.position() == position ) {
+			m_option_values[ defn_i->first ].push_back( argv[ position ] ) ;
+			return true ;
+		}
+	}
+	return false ;
+}
+
+void OptionProcessor::process_unknown_options() {
+	std::string unknown_args ;
+	std::map< int, std::string >::const_iterator i = m_unknown_options.begin() ;
+	for( ; i != m_unknown_options.end(); ++i ) {
+		if( i != m_unknown_options.begin() )
+			unknown_args += ", " ;
+		unknown_args += i->second ;
+	}
+	throw OptionParseException( "", std::vector< std::string >(), "The following options were not recognised: " + unknown_args + "." ) ;
+}
+
 
 void OptionProcessor::check_required_options_are_supplied() {
 	std::map< std::string, OptionDefinition >::const_iterator

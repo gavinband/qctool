@@ -86,6 +86,9 @@ namespace genfile {
 			}
 			// skip any remaining bytes before the first snp block
 			m_stream_ptr->ignore( offset - header_size ) ;
+			if( !*m_stream_ptr ) {
+				throw FileStructureInvalidError() ;
+			}
 		}
 	
 		bgen::uint32_t read_header_data() {

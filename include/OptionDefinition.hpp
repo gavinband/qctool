@@ -29,7 +29,9 @@ struct OptionDefinition {
 		std::vector< value_preprocessor_t > value_preprocessors() const { return m_value_preprocessors ; } 
 		bool has_default_value() const { return m_has_default_value ; }
 		std::string default_value() const { return m_default_value ; }
-
+		bool takes_value_by_position() const { return m_position > 0 ; }
+		int position() const { return m_position ; }
+			
 		OptionDefinition& set_description( char const* desc ) { m_description = desc ; return *this ; }
 		OptionDefinition& set_is_required() { m_is_required = true ; return *this ; }
 		OptionDefinition& set_takes_single_value() {
@@ -70,6 +72,10 @@ struct OptionDefinition {
 			m_has_default_value = true ;
 			return *this ;
 		}
+		OptionDefinition& set_takes_value_by_position( int position ) {
+			m_position = position ;
+			return *this ;
+		}
 
 		std::vector< std::string > preprocess_option_values( std::string const& option_name, std::vector< std::string > const& option_values ) const ;
 		void check_option_values( std::string const& option_name, std::vector< std::string > const& option_values ) const ;
@@ -83,6 +89,7 @@ struct OptionDefinition {
 		std::vector< value_preprocessor_t > m_value_preprocessors ;
 		bool m_has_default_value ;
 		std::string m_default_value ;
+		int m_position ;
 } ;
 
 typedef OptionDefinition OptionDefinition ;

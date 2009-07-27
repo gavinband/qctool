@@ -12,7 +12,8 @@ OptionDefinition::OptionDefinition()
 		m_lower_number_of_permitted_values( 0 ),
 		m_upper_number_of_permitted_values( 1 ),
 		m_has_default_value( false ),
-		m_default_value( "" )
+		m_default_value( "" ),
+		m_position( -1 )
 {}
 
 OptionDefinition::OptionDefinition( OptionDefinition const& other )
