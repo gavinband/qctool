@@ -77,32 +77,10 @@ std::ostream& operator<<( std::ostream& aStream, OptionProcessor::OptionDefiniti
         aStream << std::setw( max_option_length+1 )
                 << std::right
                 << defn_i->first
-                << " " ;
+				<< "  : "
+				<< defn_i->second.description() ;
 		
-		std::ostringstream flags ;
-        if( defn_i->second.is_required() ) {
-            flags << "required" ;
-		}
-        if( defn_i->second.takes_values() ) {
-			if( flags.str().size() > 0 ) {
-				flags << "," ;
-			}
-			flags << "takes values";
-		}
-		if( defn_i->second.has_default_value()) {
-			if( flags.str().size() > 0 ) {
-				flags << "," ;
-			}
-			flags << "default: " << defn_i->second.default_value() ;
-		}
-
-        aStream << ":\t"
-                << std::setw( max_description_length+1 )
-                << std::left
-                << defn_i->second.description()
-                << "\t"
-				<< "(" + flags.str() + ")"
-				<< ".\n" ;
+		aStream << ".\n" ;
     }
 
     return aStream ;

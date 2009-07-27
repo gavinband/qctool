@@ -11,6 +11,8 @@ class string_to_value_map
 {
 public:
 	
+	virtual ~string_to_value_map() {} ;
+	
 	template< typename T >
 	T get_value( std::string const& name ) const ;
 

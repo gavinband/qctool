@@ -14,29 +14,24 @@ def set_options( opt ):
 
 def configure( conf ):
 	conf.check_tool( 'compiler_cxx ')
-
+	
 	platform_specific_configure( conf )
 	check_for_boost_components( conf )
 	check_for_zlib( conf )
 	misc_configure( conf )
 
 	create_variant( conf, 'release' )
-	create_default_variant( conf )
-	create_release_variant( conf )
+	configure_variant( conf, 'default', ['-g', '-p', '-Wall'] )
+	configure_variant( conf, 'release', ['-Wall', '-O3'] )
 
 def create_variant( conf, variant_name ):
 	variant = conf.env.copy()
 	conf.set_env_name( variant_name, variant )
 	variant.set_variant( variant_name )
 
-def create_default_variant( conf ):
-	conf.setenv( 'default')
-	conf.env.append_value( 'CXXFLAGS', [ '-g', '-Wall', '-p' ] )
-	conf.write_config_header( 'config.hpp' )
-
-def create_release_variant( conf ):
-	conf.setenv( 'release' )
-	conf.env.append_value( 'CXXFLAGS', '-Wall' ) 
+def configure_variant( conf, variant_name, cxxflags ):
+	conf.setenv( variant_name )
+	conf.env.append_value( 'CXXFLAGS', cxxflags )
 	conf.write_config_header( 'config.hpp' )
 
 def check_for_3rd_part_components( conf ):
@@ -60,7 +55,7 @@ def check_for_boost_components( conf ):
 		conf.define( 'HAVE_BOOST_RANDOM', 1 )
 
 def check_for_zlib( conf ):
-	if conf.check_cxx( lib = 'z', uselib_store='ZLIB' ):
+	if conf.check_cxx( lib='z', uselib_store='ZLIB' ):
 		conf.define( 'HAVE_ZLIB', 1 )
 
 def platform_specific_configure( conf ):
@@ -146,46 +141,11 @@ def build( bld ):
 	#---------------------
 	# programs
 	#---------------------
-	bld.new_task_gen(
-		features = 'cxx cprogram',
-		target = 'gen-select',
-		source = [  'apps/gen-select.cpp' ],
-		includes='./include ./genfile/include',
-		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile'
-	)
-
-	bld.new_task_gen(
-		features = 'cxx cprogram',
-		target = 'gen-convert',
-		source = [  'apps/gen-convert.cpp' ],
-		includes='./include ./genfile/include',
-		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile'
-	)
-
-	bld.new_task_gen(
-		features = 'cxx cprogram',
-		target = 'gen-compare',
-		source = [  'apps/gen-compare.cpp' ],
-		includes='./include ./genfile/include',
-		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile'
-	)
-
-	bld.new_task_gen(
-		features = 'cxx cprogram',
-		target = 'gen-case-control-test',
-		source = [  'apps/gen-case-control-test.cpp' ],
-		includes='./include ./genfile/include',
-		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile'
-	)
-
-	bld.new_task_gen(
-		features = 'cxx cprogram',
-		target = 'generate-random-permutations-of-0-1-vector',
-		source = [  'apps/generate-random-permutations-of-0-1-vector.cpp' ],
-		includes='./include ./genfile/include',
-		uselib_local = 'gtool-exception gtool-optionprocessor',
-		uselib = 'BOOST BOOST_RANDOM'
-	)
+	create_app( bld, name='qc-tool', uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile' )
+	create_app( bld, name='gen-convert', uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile' )
+	create_app( bld, name='gen-compare', uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile' )
+	create_app( bld, name='gen-case-control-test', uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile' )
+	create_app( bld, name='generate-random-permutations-of-0-1-vector', uselib_local = 'gtool-exception gtool-optionprocessor', uselib = 'BOOST BOOST_RANDOM' )
 
 	#---------------------
 	# benchmarks
@@ -211,6 +171,16 @@ def build( bld ):
 	create_test( bld, 'test_statistic_arithmetic' )
 	create_test( bld, 'test_fileutil' )
 
+
+def create_app( bld, name, uselib = '', uselib_local = '' ):
+	bld.new_task_gen(
+		features = 'cxx cprogram',
+		target = name,
+		source = [  'apps/' + name + '.cpp' ],
+		includes='./include ./genfile/include',
+		uselib_local = uselib_local,
+		uselib = uselib
+	)
 
 def create_test( bld, name ):
 	bld.new_task_gen(

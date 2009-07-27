@@ -20,6 +20,8 @@ public:
 		m_number_of_controls = file_reader.number_of_zeroes() ;
 	}
 
+	virtual ~CaseControlProbabilityPermuter() {}
+
 public:
 	std::size_t number_of_permutations() const { return m_permutations.size() ; }
 	std::size_t current_permutation() const { return m_current_permutation ; }

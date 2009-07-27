@@ -41,6 +41,7 @@ class SampleRow: public string_to_value_map
 		SampleRow() ;
 		SampleRow( std::vector<std::string> const& column_headings, std::vector<char> const& column_types ) ;
 
+		virtual ~SampleRow() {} ;
 	public:
 
 		void reset( std::vector<std::string> const& column_headings, std::vector<char> const& column_types ) ;

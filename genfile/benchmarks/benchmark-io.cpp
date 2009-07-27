@@ -45,7 +45,7 @@ struct probabilities_t {
 struct ProbabilitySetter {
 	ProbabilitySetter( std::vector< probabilities_t >& probabilities ): m_probabilities( probabilities ) {}
 	void operator() ( std::size_t i, double aa, double ab, double bb ) {
-		if( m_probabilities.size() < i + 1 ) {
+		if( m_probabilities.size() < (i + 1) ) {
 			m_probabilities.resize( i + 1) ;
 		}
 		m_probabilities[i].AA = aa ;  
