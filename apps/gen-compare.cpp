@@ -90,8 +90,12 @@ private:
 			get_required_filenames() ;
 			open_gen_files() ;
 		}
+		catch( genfile::FileStructureInvalidError const& ) {
+			m_cout << "\nThe GEN file specified does not seem to be in a valid gen or bgen format.\n" ;
+			throw ;
+		}
 		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
-			m_cout << "The GEN files specified did not all have the same sample size.\n" ;
+			m_cout << "\nThe GEN files specified did not all have the same sample size.\n" ;
 			throw ;
 		}
 		catch ( genfile::FileHasTwoConsecutiveNewlinesError const& e ) {

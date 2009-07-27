@@ -55,7 +55,6 @@ namespace genfile {
 			std::string line ;
 			std::getline( stream(), line ) ;
 		}
-		
 
 	private:
 		std::string m_filename ;
@@ -64,13 +63,9 @@ namespace genfile {
 
 		void setup( std::string const& filename, CompressionType compression_type ) {
 			m_stream_ptr = open_text_file_for_input( filename, compression_type ) ;
-			if( !(*m_stream_ptr)) {
-				throw FileNotOpenedError() ;
-			}
-			read_header_data() ;
+			read_header_data() ;				
 			// That will have consumed the file, so re-open it.
 			m_stream_ptr = open_text_file_for_input( filename, compression_type ) ;
-			assert( *m_stream_ptr ) ;
 		}
 
 		void read_header_data() {

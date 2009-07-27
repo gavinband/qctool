@@ -187,6 +187,9 @@ namespace genfile {
 		) {
 			uint32_t number_of_samples ;
 			read_snp_block( aStream, set_value( number_of_samples ), ignore(), ignore(), ignore(), ignore(), ignore(), ignore() ) ;
+			if( !aStream && !aStream.eof()) {
+				throw FileStructureInvalidError() ;
+			}
 
 			uint32_t number_of_snp_blocks = 1 ;
 			std::vector< char > buffer( 10000000 ) ;
