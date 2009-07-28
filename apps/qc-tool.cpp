@@ -1,5 +1,5 @@
 /*
- * This program, gen-select, selects rows from a GEN file according to certain criteria.
+ * This program, qc-tool, selects rows from a GEN file according to certain criteria.
  * - rows where some genotype data is missing, or none is.
  * - rows where genotype data is, or is not in hardy-weinberg equilibrium.
  * - rows with SNP IDs in a given list.
@@ -39,6 +39,7 @@
 #include "wildcard.hpp"
 #include "string_utils.hpp"
 #include "parse_utils.hpp"
+#include "progress_bar.hpp"
 
 std::vector< std::string > expand_filename_wildcards( std::string const& option_name, std::vector< std::string > const& filenames ) ;
 void check_files_are_readable( std::string const& option_name, std::vector< std::string > const& filenames ) ;
@@ -146,7 +147,13 @@ public:
 		: m_cout( std::cout.rdbuf() ),
 		  m_options( options )
 	{
+		write_start_banner( m_cout ) ;
 		setup() ;
+	}
+
+	~GenSelectProcessor()
+	{
+		write_end_banner( m_cout ) ;
 	}
 	
 private:
@@ -356,9 +363,16 @@ private:
 
 public:
 	
-	void write_preamble( std::ostream& oStream ) const {
-		oStream << "\nWelcome to gen-select\n"
+	void write_start_banner( std::ostream& oStream ) const {
+		oStream << "\nWelcome to qc-tool\n"
 		 	<< "(C) 2009 University of Oxford\n\n";
+	}
+
+	void write_end_banner( std::ostream& oStream ) const {
+		oStream << "\nThank you for using qc-tool.\n" ;
+	}
+	
+	void write_preamble( std::ostream& oStream ) const {
 		oStream << std::string( 72, '=' ) << "\n\n" ;
 		try {
 			oStream << std::setw(30) << "Input GEN files:" ;
@@ -390,7 +404,7 @@ public:
 				for( std::size_t i = 0; i < m_errors.size(); ++i ) {
 					oStream << "!! ERROR: " << m_errors[i] << "\n\n" ;
 				}
-				oStream << "!! Please correct the above errors and re-run gen-select.\n\n" ;
+				oStream << "!! Please correct the above errors and re-run qc-tool.\n\n" ;
 				throw GenSelectProcessorException( "Errors were encountered." ) ;
 			}
 
@@ -444,11 +458,14 @@ public:
 		if( strings_are_nonempty_and_equal( m_gen_statistic_filename, m_sample_statistic_filename )) {
 			m_errors.push_back( "The gen statistic and sample statistic filenames must differ." ) ;
 		}
-		if( m_sample_output_filename != "" && m_gen_filenames.size() != 24 ) {
-			m_warnings.push_back( "You are outputting a sample file, but the number of gen files is not 24.") ;
+		if( m_sample_output_filename != "" && m_gen_filenames.size() != 23 ) {
+			m_warnings.push_back( "You are outputting a sample file, but the number of gen files is not 23.") ;
 		}
-		if( m_sample_statistic_filename != "" && m_gen_filenames.size() != 24 ) {
-			m_warnings.push_back( "You are outputting a sample statistic file, but the number of gen files is not 24.") ;
+		if( m_sample_statistic_filename != "" && m_gen_filenames.size() != 23 ) {
+			m_warnings.push_back( "You are outputting a sample statistic file, but the number of gen files is not 23.") ;
+		}
+		if( m_sample_statistic_filename != "" && m_sample_filename == "" ) {
+			m_warnings.push_back( "You are outputting a sample statistic file, but no input sample file has been supplied.") ;
 		}
 		if( m_gen_output_filename == "" && m_sample_output_filename == "" && m_gen_statistic_filename == "" && m_sample_statistic_filename == "" ) {
 			m_warnings.push_back( "You have not specified any output files.  This will produce only console output." ) ;
@@ -487,6 +504,7 @@ private:
 	}
 
 	void filter_sample_rows() {
+		m_cout << "Processing sample file...\n" ;
 		open_sample_row_source() ;
 		SampleRow sample_row ;
 		m_number_of_sample_file_rows = 0 ;
@@ -499,10 +517,11 @@ private:
 			}
 		}
 		
-		m_cout << "gen-select: total samples " << m_number_of_sample_file_rows << ", keeping " << m_indices_of_filtered_in_sample_rows.size() << ", filtering out " << m_indices_of_filtered_out_sample_rows.size() << ".\n" ;
+		m_cout << "Total samples " << m_number_of_sample_file_rows << ", keeping " << m_indices_of_filtered_in_sample_rows.size() << ", filtering out " << m_indices_of_filtered_out_sample_rows.size() << ".\n" ;
 	}
 
 	void process_gen_rows() {
+		m_cout << "Processing GEN file(s)...\n" ;
 		Timer timer ;
 		open_gen_row_sink() ;
 		open_gen_stats_file() ;
@@ -512,19 +531,28 @@ private:
 			m_row_statistics.format_column_headers( *genStatisticOutputFile ) << "\n";
 		}
 
+		double last_time = -1 ;
 		InternalStorageGenRow row ;
-		m_total_number_of_snps = 0 ;
-		
+		row.set_number_of_samples( m_number_of_samples_from_gen_file ) ;
+		std::size_t number_of_snps_processed = 0 ;
 		while( read_gen_row( row )) {
 			preprocess_gen_row( row ) ;
-			process_gen_row( row, ++m_total_number_of_snps ) ;
-			if( m_total_number_of_snps % 1000 == 0 ) {
-				m_cout << "Processed " << m_total_number_of_snps << " rows (" << timer.elapsed() << "s)...\n" ;
-			}
+			process_gen_row( row, ++number_of_snps_processed ) ;
 			accumulate_per_column_amounts( row, m_per_column_amounts ) ;
+			double time_now = timer.elapsed() ;
+			if( (time_now - last_time > 1.0) || (number_of_snps_processed == m_total_number_of_snps) ) {
+				m_cout
+					<< "\r"
+					<< get_progress_bar( 30, static_cast< double >( number_of_snps_processed ) / m_total_number_of_snps )
+					<< " (" << number_of_snps_processed << " / " << m_total_number_of_snps
+					<< ", " << std::fixed << std::setprecision(1) << time_now << "s)"
+					<< std::flush ;
+				last_time = time_now ;
+			}
 		}
-		
-		std::cerr << "gen-select: processed GEN file(s) (" << m_total_number_of_snps << " rows) in " << timer.elapsed() << " seconds.\n" ;
+		m_cout << "\n" ;
+		assert( number_of_snps_processed = m_total_number_of_snps ) ;
+		std::cerr << "\nProcessed GEN file(s) (" << m_total_number_of_snps << " rows) in " << timer.elapsed() << " seconds.\n" ;
 	
 		m_cout << "Post-processing (updating file header, compression)..." << std::flush ;
 		timer.restart() ;
@@ -592,7 +620,7 @@ private:
 			(*m_sample_row_sink) << sample_row ;
 		}
 
-		std::cerr << "gen-select: processed sample file (" << i << " rows) in " << timer.elapsed() << " seconds.\n" ;
+		std::cerr << "Processed sample file (" << i << " rows) in " << timer.elapsed() << " seconds.\n" ;
 	}
 
 	void process_gen_row( GenRow const& row, std::size_t row_number ) {
@@ -681,7 +709,7 @@ int main( int argc, char** argv ) {
     }
     catch( std::exception const& exception ) {
         std::cerr << "!! Error: " << exception.what() << ".\n";
-        std::cerr << "Usage: gen-select [options]\n"
+        std::cerr << "Usage: qc-tool [options]\n"
                 << options
                 << "\n" ;
         return -1 ;

@@ -111,6 +111,11 @@ Snp-filtering options:
 -snp-incl-list  : Filter out SNPs whose SNP ID or RSID does not lie in the given file (which must contain a list of whitespace-separated strings).
 -snp-interval  : Filter out SNPs with position outside the interval [a,b], where a and b are the first and second supplied values.
 
+Other options:
+
+-force :	Proceed even if there are warnings.
+
+Note: qc-tool will emit a warning and quit if it thinks the options supplied don't make sense.  To override this, use the -force option.
 
 
 USAGE: gen-convert
