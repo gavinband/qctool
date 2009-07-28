@@ -57,18 +57,18 @@ public:
 	static void declare_options( OptionProcessor & options ) {
 		
 		// File options		
-	    options[ "--g" ]
+	    options[ "-g" ]
 	        .set_description( "Path of gen file to input" )
 	        .set_is_required()
 			.set_takes_values()
 			.set_maximum_number_of_repeats( 100 ) ;
 
-	    options[ "--og" ]
+	    options[ "-og" ]
 	        .set_description( "Path of gen file to output" )
 			.set_takes_values()
 			.set_maximum_number_of_repeats( 100 ) ;
 			
-		options [ "--force" ] 
+		options [ "-force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
 	}
 
@@ -91,7 +91,7 @@ private:
 			throw ;
 		}
 		catch( GenConvertFileCountMismatchError const& ) {
-			m_cout << "The number of files specified for --g must match that for --og.\n" ;
+			m_cout << "The number of files specified for -g must match that for -og.\n" ;
 			throw ;
 		}
 		catch( GenConvertFileWildcardMismatchError const& ) {
@@ -102,11 +102,11 @@ private:
 
 	void get_required_filenames() {
 		std::vector< std::string > gen_filenames, gen_output_filenames ;
-		if( m_options.check_if_option_was_supplied( "--g" ) ) {
-			gen_filenames = m_options.get_values< std::string >( "--g" ) ;
+		if( m_options.check_if_option_was_supplied( "-g" ) ) {
+			gen_filenames = m_options.get_values< std::string >( "-g" ) ;
 		}
-		if( m_options.check_if_option_was_supplied( "--og" ) ) {
-			gen_output_filenames = m_options.get_values< std::string >( "--og" ) ;
+		if( m_options.check_if_option_was_supplied( "-og" ) ) {
+			gen_output_filenames = m_options.get_values< std::string >( "-og" ) ;
 		}
 
 		if( gen_filenames.size() != gen_output_filenames.size() ) {

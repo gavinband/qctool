@@ -92,7 +92,7 @@ public:
 			.set_description( "Use the differential genotype probability permuter (which should be faster)")
 			.set_default_value( false ) ;
 
-		options [ "--force" ] 
+		options [ "-force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
 	}
 

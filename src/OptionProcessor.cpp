@@ -135,7 +135,7 @@ void OptionProcessor::parse_options( int argc, char** argv ) {
 	}
 }	
 
-bool OptionProcessor::try_to_parse_named_option_and_values( int argc, char** argv, int i ) {
+bool OptionProcessor::try_to_parse_named_option_and_values( int argc, char** argv, int& i ) {
 	std::string arg = argv[i] ;
 	std::map< std::string, OptionDefinition >::const_iterator arg_i = m_option_definitions.find( arg ) ;
 	if( arg_i != m_option_definitions.end() ) {
@@ -159,7 +159,7 @@ bool OptionProcessor::try_to_parse_named_option_and_values( int argc, char** arg
 	return false ;
 }
 
-bool OptionProcessor::try_to_parse_positional_option( int argc, char** argv, int position ) {
+bool OptionProcessor::try_to_parse_positional_option( int argc, char** argv, int& position ) {
 	OptionDefinitions::const_iterator
 		defn_i = m_option_definitions.begin(),
 		end_defn_i = m_option_definitions.end() ;
@@ -167,10 +167,12 @@ bool OptionProcessor::try_to_parse_positional_option( int argc, char** argv, int
 	for( ; defn_i != end_defn_i; ++defn_i ) {
 		if( defn_i->second.takes_value_by_position() && defn_i->second.position() == position ) {
 			m_option_values[ defn_i->first ].push_back( argv[ position ] ) ;
-			return true ;
+			++position ;
+			return 1 ;
 		}
 	}
-	return false ;
+	
+	return 0 ;
 }
 
 void OptionProcessor::process_unknown_options() {

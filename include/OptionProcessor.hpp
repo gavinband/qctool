@@ -55,8 +55,8 @@ class OptionProcessor {
 
 		// Parse the options.  Store option values.  Ignore, but store unknown args for later reference
 		void parse_options( int argc, char** argv ) ;
-		bool try_to_parse_named_option_and_values( int argc, char** argv, int i ) ;
-		bool try_to_parse_positional_option( int argc, char** argv, int i ) ;
+		bool try_to_parse_named_option_and_values( int argc, char** argv, int& i ) ;
+		bool try_to_parse_positional_option( int argc, char** argv, int& i ) ;
 		void process_unknown_options() ;
 		void check_required_options_are_supplied() ;
 		void preprocess_option_values() ;

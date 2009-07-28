@@ -65,7 +65,7 @@ public:
 	static void declare_options( OptionProcessor & options ) {
 		
 		// File options		
-	    options[ "--g" ]
+	    options[ "-g" ]
 	        .set_description( "Path of gen file to input" )
 	        .set_is_required()
 			.set_takes_values()
@@ -73,79 +73,72 @@ public:
 			.add_value_preprocessor( &expand_filename_wildcards )
 	        .add_value_checker( &check_files_are_readable ) ;
 
-	    options[ "--s" ]
+	    options[ "-s" ]
 	        .set_description( "Path of sample file to input" )
 	        .set_takes_single_value()
 	        .add_value_checker( &check_files_are_readable ) ;
 
-	    options[ "--og" ]
+	    options[ "-og" ]
 	        .set_description( "Path of gen file to output" )
 	        .set_takes_single_value() ;
 
-		options[ "--os" ]
+		options[ "-os" ]
 	        .set_description( "Path of sample file to output" )
 	        .set_takes_single_value() ;
 
-	    options[ "--ogs" ]
-	        .set_description( "Path of gen statistic file to output  This defaults to the console if not supplied." )
+	    options[ "-snp-stats" ]
+	        .set_description( "Output snp-wise statistics to the given file." )
 	        .set_takes_single_value() ;
 
-	    options[ "--oss" ]
-	        .set_description( "Path of sample statistic file to output.  This defaults to the console if not supplied." )
+	    options[ "-sample-stats" ]
+	        .set_description( "Output sample-wise statistics to the given file." )
 	        .set_takes_single_value() ;
-
-
-		// Statistics-related options
-		options[ "--snp-stats" ]
-	        .set_description( "Output per-snp statistics." ) ;
-		options[ "--sample-stats" ]
-	        .set_description( "Output per-sample statistics for missing rate and heterozygosity" ) ;
 
 		// SNP filtering options
-		options[ "--hwe"]
+		options[ "-hwe"]
 			.set_description( "Filter out SNPs with HWE exact test statistics less than or equal to the value specified.")
 			.set_takes_single_value() ;
-		options[ "--snp-missing-rate"]
+		options[ "-snp-missing-rate"]
 			.set_description( "Filter out SNPs with missing data rate greater than or equal to the value specified.")
 			.set_takes_single_value() ;
-		options[ "--snp-interval"]
+		options[ "-snp-interval"]
 			.set_description( "Filter out SNPs with position outside the interval [a,b], where a and b are the first and second supplied values" )
 			.set_number_of_values_per_use( 2 ) ;
-		options[ "--maf"]
+		options[ "-maf"]
 			.set_description( "Filter out SNPs whose minor allele frequency lies outside the interval [a,b], where a and b are the first and second supplied values." )
 			.set_number_of_values_per_use( 2 ) ;
-		options[ "--snp-incl-list"]
+		options[ "-snp-incl-list"]
 			.set_description( "Filter out SNPs whose SNP ID or RSID does not lie in the given file (which must contain a list of whitespace-separated strings)")
 			.set_takes_single_value() ;
-		options[ "--snp-excl-list"]
+		options[ "-snp-excl-list"]
 			.set_description( "Filter out SNPs whose SNP ID or RSID lies in the given file (which must contain a list of whitespace-separated strings)")
 			.set_takes_single_value() ;
 
 		// Sample filtering options
-		options[ "--sample-missing-rate" ]
+		options[ "-sample-missing-rate" ]
 			.set_description( "Filter out samples with missing data rate greater than the value specified.  Note that a full-genome set of GEN files must be supplied.")
 			.set_takes_single_value() ;
-		options[ "--heterozygosity" ]
+		options[ "-heterozygosity" ]
 			.set_description( "Filter out samples with heterozygosity outside the inteval [a,b], where a and b are the first and second supplied values" )
 			.set_number_of_values_per_use( 2 ) ;
-		options[ "--sample-incl-list"]
+		options[ "-sample-incl-list"]
 			.set_description( "Filter out samples whose sample ID does not lie in the given file (which must contain a list of whitespace-separated strings)")
 			.set_takes_single_value() ;
-		options[ "--sample-excl-list"]
+		options[ "-sample-excl-list"]
 			.set_description( "Filter out samples whose sample ID lies in the given file (which must contain a list of whitespace-separated strings)")
 			.set_takes_single_value() ;
 
-		options[ "--snp-statistics" ]
+		options[ "-snp-statistics" ]
 	        .set_description( "Comma-seperated list of statistics to calculate in genstat file" )
 			.set_takes_single_value()
 			.set_default_value( "SNPID, RSID, position, alleles, MAF, HWE, missing" ) ;
 
-		options[ "--sample-statistics" ]
+		options[ "-sample-statistics" ]
 	        .set_description( "Comma-seperated list of statistics to calculate in samplestat file" )
 			.set_takes_single_value()
 			.set_default_value( std::string("ID1, ID2, missing, heterozygosity") ) ;
 			
-		options [ "--force" ] 
+		options [ "-force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
 	}
 
@@ -158,7 +151,7 @@ public:
 	
 private:
 	void setup() {
-		m_ignore_warnings = m_options.check_if_option_was_supplied( "--force" ) ;
+		m_ignore_warnings = m_options.check_if_option_was_supplied( "-force" ) ;
 		get_required_filenames() ;
 		try {
 			open_gen_row_source() ;
@@ -175,26 +168,26 @@ private:
 	}
 
 	void get_required_filenames() {
-		if( m_options.check_if_option_was_supplied( "--g" ) ) {
-			m_gen_filenames = m_options.get_values< std::string >( "--g" ) ;
+		if( m_options.check_if_option_was_supplied( "-g" ) ) {
+			m_gen_filenames = m_options.get_values< std::string >( "-g" ) ;
 		}
-		if( m_options.check_if_option_was_supplied( "--s" ) ) {
-			m_sample_filename = m_options.get_value< std::string >( "--s" ) ;
+		if( m_options.check_if_option_was_supplied( "-s" ) ) {
+			m_sample_filename = m_options.get_value< std::string >( "-s" ) ;
 		}
-		if( m_options.check_if_option_was_supplied( "--og" ) ) {
-			m_gen_output_filename = m_options.get_value< std::string >( "--og" ) ;
+		if( m_options.check_if_option_was_supplied( "-og" ) ) {
+			m_gen_output_filename = m_options.get_value< std::string >( "-og" ) ;
 		}
-		if( m_options.check_if_option_was_supplied( "--ogs" ) ) {
-			m_gen_statistic_filename = m_options.get_value< std::string >( "--ogs" ) ;
+		if( m_options.check_if_option_was_supplied( "-snp-stats" ) ) {
+			m_gen_statistic_filename = m_options.get_value< std::string >( "-snp-stats" ) ;
 		}
-		if( m_options.check_if_option_was_supplied( "--oss" ) ) {
-			m_sample_statistic_filename = m_options.get_value< std::string >( "--oss" ) ;
+		if( m_options.check_if_option_was_supplied( "-sample-stats" ) ) {
+			m_sample_statistic_filename = m_options.get_value< std::string >( "-sample-stats" ) ;
 		}
-		if( m_options.check_if_option_was_supplied( "--os" )) {
-			m_sample_output_filename = m_options.get_value< std::string >( "--os" ) ;
+		if( m_options.check_if_option_was_supplied( "-os" )) {
+			m_sample_output_filename = m_options.get_value< std::string >( "-os" ) ;
 		}
-		if( m_options.check_if_option_was_supplied( "--oss" ) ) {
-			m_sample_statistic_filename = m_options.get_value< std::string >( "--oss" ) ;
+		if( m_options.check_if_option_was_supplied( "-oss" ) ) {
+			m_sample_statistic_filename = m_options.get_value< std::string >( "-oss" ) ;
 		}
 	}
 
@@ -277,42 +270,42 @@ private:
 	}
 
 	void construct_snp_statistics() {
-		std::vector< std::string > row_statistics_specs = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "--snp-statistics" ), "," ) ;
+		std::vector< std::string > row_statistics_specs = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-snp-statistics" ), "," ) ;
 		GenRowStatisticFactory::add_statistics( row_statistics_specs, m_row_statistics ) ;
 	}
 
 	void construct_sample_statistics() {
-		std::vector< std::string > sample_statistics_specs = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "--sample-statistics" ), "," ) ;
+		std::vector< std::string > sample_statistics_specs = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-sample-statistics" ), "," ) ;
 		SampleRowStatisticFactory::add_statistics( sample_statistics_specs, m_sample_statistics ) ;
 	}
 
 	void construct_snp_filter() {
 		std::auto_ptr< AndRowCondition > snp_filter( new AndRowCondition() ) ;
 
-		if( m_options.check_if_option_was_supplied( "--hwe" ) ) {
-			add_one_arg_condition_to_filter< StatisticGreaterThan >( *snp_filter, "HWE", m_options.get_value< double >( "--hwe" )) ;
+		if( m_options.check_if_option_was_supplied( "-hwe" ) ) {
+			add_one_arg_condition_to_filter< StatisticGreaterThan >( *snp_filter, "HWE", m_options.get_value< double >( "-hwe" )) ;
 		}
 
-		if( m_options.check_if_option_was_supplied( "--snp-missing-rate" ) ) {
-			add_one_arg_condition_to_filter< StatisticLessThan >( *snp_filter, "missing", m_options.get_value< double >( "--snp-missing-rate" )) ;
+		if( m_options.check_if_option_was_supplied( "-snp-missing-rate" ) ) {
+			add_one_arg_condition_to_filter< StatisticLessThan >( *snp_filter, "missing", m_options.get_value< double >( "-snp-missing-rate" )) ;
 		}
 
-		if( m_options.check_if_option_was_supplied( "--snp-interval" ) ) {
-			add_two_arg_condition_to_filter< StatisticInInclusiveRange >( *snp_filter, "snp-position", m_options.get_values< double >( "--snp-interval" )) ;
+		if( m_options.check_if_option_was_supplied( "-snp-interval" ) ) {
+			add_two_arg_condition_to_filter< StatisticInInclusiveRange >( *snp_filter, "snp-position", m_options.get_values< double >( "-snp-interval" )) ;
 		}
 
-		if( m_options.check_if_option_was_supplied( "--maf" ) ) {
-			add_two_arg_condition_to_filter< StatisticInInclusiveRange >( *snp_filter, "MAF", m_options.get_values< double >( "--maf" )) ;
+		if( m_options.check_if_option_was_supplied( "-maf" ) ) {
+			add_two_arg_condition_to_filter< StatisticInInclusiveRange >( *snp_filter, "MAF", m_options.get_values< double >( "-maf" )) ;
 		}
 
-		if( m_options.check_if_option_was_supplied( "--snp-incl-list" ) ) {
-			std::string filename = m_options.get_value< std::string >( "--snp-incl-list" ) ;
+		if( m_options.check_if_option_was_supplied( "-snp-incl-list" ) ) {
+			std::string filename = m_options.get_value< std::string >( "-snp-incl-list" ) ;
 			std::auto_ptr< RowCondition > snp_incl_condition( new SNPInListCondition( filename )) ;
 			snp_filter->add_subcondition( snp_incl_condition ) ;
 		}
 
-		if( m_options.check_if_option_was_supplied( "--snp-excl-list" ) ) {
-			std::string filename = m_options.get_value< std::string >( "--snp-excl-list" ) ;
+		if( m_options.check_if_option_was_supplied( "-snp-excl-list" ) ) {
+			std::string filename = m_options.get_value< std::string >( "-snp-excl-list" ) ;
 			std::auto_ptr< RowCondition > snp_incl_condition( new SNPInListCondition( filename )) ;
 			std::auto_ptr< RowCondition > snp_excl_condition( new NotRowCondition( snp_incl_condition )) ;
 			snp_filter->add_subcondition( snp_excl_condition ) ;
@@ -324,22 +317,22 @@ private:
 	void construct_sample_filter() {
 		std::auto_ptr< AndRowCondition > sample_filter( new AndRowCondition() ) ;
 		
-		if( m_options.check_if_option_was_supplied( "--sample-missing-rate" ) ) {
-			add_one_arg_condition_to_filter< StatisticLessThan >( *sample_filter, "missing", m_options.get_value< double >( "--sample-missing-rate" )) ;
+		if( m_options.check_if_option_was_supplied( "-sample-missing-rate" ) ) {
+			add_one_arg_condition_to_filter< StatisticLessThan >( *sample_filter, "missing", m_options.get_value< double >( "-sample-missing-rate" )) ;
 		}
 
-		if( m_options.check_if_option_was_supplied( "--heterozygosity" ) ) {
-			add_two_arg_condition_to_filter< StatisticInInclusiveRange >( *sample_filter, "heterozygosity", m_options.get_values< double >( "--heterozygosity" )) ;
+		if( m_options.check_if_option_was_supplied( "-heterozygosity" ) ) {
+			add_two_arg_condition_to_filter< StatisticInInclusiveRange >( *sample_filter, "heterozygosity", m_options.get_values< double >( "-heterozygosity" )) ;
 		}
 
-		if( m_options.check_if_option_was_supplied( "--sample-incl-list" ) ) {
-			std::string filename = m_options.get_value< std::string >( "--sample-incl-list" ) ;
+		if( m_options.check_if_option_was_supplied( "-sample-incl-list" ) ) {
+			std::string filename = m_options.get_value< std::string >( "-sample-incl-list" ) ;
 			std::auto_ptr< RowCondition > sample_incl_condition( new SampleInListCondition( filename )) ;
 			sample_filter->add_subcondition( sample_incl_condition ) ;
 		}
 
-		if( m_options.check_if_option_was_supplied( "--sample-excl-list" ) ) {
-			std::string filename = m_options.get_value< std::string >( "--sample-excl-list" ) ;
+		if( m_options.check_if_option_was_supplied( "-sample-excl-list" ) ) {
+			std::string filename = m_options.get_value< std::string >( "-sample-excl-list" ) ;
 			std::auto_ptr< RowCondition > sample_incl_condition( new SampleInListCondition( filename )) ;
 			std::auto_ptr< RowCondition > sample_excl_condition( new NotRowCondition( sample_incl_condition )) ;
 			sample_filter->add_subcondition( sample_excl_condition ) ;
@@ -407,10 +400,10 @@ public:
 					oStream << "!! WARNING: " << m_warnings[i] << "\n\n" ;
 				}
 				if( m_ignore_warnings ) {
-					oStream << "!! Warnings encountered, but proceeding anyway as --force was supplied.\n\n" ;
+					oStream << "!! Warnings encountered, but proceeding anyway as -force was supplied.\n\n" ;
 				}
 				else {
-					oStream << "!! To proceed anyway, please run again with the --force option.\n\n" ;
+					oStream << "!! To proceed anyway, please run again with the -force option.\n\n" ;
 					throw GenSelectProcessorException( "Warnings were encountered." ) ;
 				}
 			}
@@ -471,7 +464,6 @@ public:
 	bool strings_are_nonempty_and_equal( std::string const& left, std::string const& right ) {
 		return (!left.empty()) && (!right.empty()) && (left == right) ;
 	}
-
 	
 	void process() {
 		try {
@@ -479,7 +471,7 @@ public:
 		}
 		catch( StatisticNotFoundException const& e ) {
 			std::cerr << "!! ERROR: " << e << ".\n" ;
-			std::cerr << "Note: required statistics must be added using --statistics.\n" ;
+			std::cerr << "Note: required statistics must be added using -statistics.\n" ;
 		}
 		catch( GToolException const& e) {
 			std::cerr << "!! ERROR: " << e << ".\n" ;

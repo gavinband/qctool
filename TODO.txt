@@ -2,12 +2,10 @@ gen-tools TODO LIST 27/07/2009
 
 Done?	Description
 -----   -----------
-		Use of boost::function in read_snp() does lead to a performance decrease for bgen files.
-			This should improve if probability getters can be called fewer times, e.g. with a range
-			of values.  Do this!
-
-		Currently it's possible to pass in a non-gen file to a --g option (I guess this is in GenFileSNPDataSource).
-		It seems to conclude it's a file with 0 snps in.  Make an error for this.
+		OptionProcessor: options should be grouped for display purposes.
+		OptionProcessor: format option descriptions better (with line-wrapping)
+*		gen-compare: Make files come in numerical order if wildcard is used.
+*		OptionProcessor: Support positional options.
 
 gen-tools TODO LIST 16/07/2009
 
@@ -17,16 +15,16 @@ Done?	Description
 			This should improve if probability getters can be called fewer times, e.g. with a range
 			of values.  Do this!
 
-		Currently it's possible to pass in a non-gen file to a --g option (I guess this is in GenFileSNPDataSource).
-		It seems to conclude it's a file with 0 snps in.  Make an error for this.
+*		Bug: currently it's possible to pass in a non-gen file to a --g option (I guess this is in GenFileSNPDataSource).
+			It seems to conclude it's a file with 0 snps in.  Make an error for this.
 
 gen-select TODO LIST 10/07/2009
 
 Done?	Description
 -----   -----------
-		Implement full check that full set of chromosome files has been supplied for --sample-stats option.
-		Support overwriting sample file (with warning and pause?)
-		Support multiple output gen files numbered corresponding to the input files.
+		gen-select: Implement full check that full set of chromosome files has been supplied for --sample-stats option.
+		gen-select: Support overwriting sample file (with warning and pause?)
+*		gen-convert: Support multiple output gen files numbered corresponding to the input files.
 
 gen-select TODO LIST 08/07/2009
 

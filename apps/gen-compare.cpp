@@ -70,7 +70,7 @@ public:
 			.set_takes_single_value()
 			.set_takes_value_by_position( 2 ) ;
 
-		options [ "--force" ] 
+		options [ "-force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
 	}
 
