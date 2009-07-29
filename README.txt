@@ -57,6 +57,8 @@ The configuration step (see below) will attempt to find these libraries.
 COMPILATION
 ===========
 
+Note: all built programs wind up the 'build/release' (release build) and 'build/default' (debug build) directories.
+
 Compilation involves two steps: configuration and build.
 To configure the package, from the top-level directory run
 > ./waf-1.5.8 configure

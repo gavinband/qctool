@@ -17,9 +17,8 @@
 		double elapsed() const { return 0.0 ;}
 	} ;
 #endif
-#include "FileUtil.hpp"
 #include "SNPDataSource.hpp"
-#include "string_utils.hpp"
+
 
 // The following section defines the needed objects for use with the bgen.hpp implementation.
 template< typename T >
@@ -153,7 +152,7 @@ int main( int argc, char** argv ) {
 			<< ((a + b + c) / 3.0)
 			<< ".\n" ;
 	}
-	catch( GToolException const& e )
+	catch( std::exception const& e )
 	{
 		std::cerr << "!! Error: " << e.what() << ".\n" ;
 		return -1 ;

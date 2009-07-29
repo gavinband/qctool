@@ -31,8 +31,9 @@ def create_variant( conf, variant_name ):
 
 def configure_variant( conf, variant_name, cxxflags ):
 	conf.setenv( variant_name )
-	conf.env.append_value( 'CXXFLAGS', cxxflags )
+	conf.env[ 'CXXFLAGS' ] = cxxflags
 	conf.write_config_header( 'config.hpp' )
+	conf.write_config_header( 'genfile/config.hpp' )
 
 def check_for_3rd_part_components( conf ):
 	check_for_boost_components( conf )

@@ -27,6 +27,17 @@ namespace genfile {
 	private:
 		T& m_t ;
 	} ;
+	
+	template<>
+	struct ValueSetter< std::string >
+	{
+		ValueSetter< std::string >( std::string& t ): m_t(t) {}
+		void operator()( char const& c ) { m_t.assign( std::size_t(1), c ) ; }
+		template< typename T2 > void operator()( T2 const& t ) { m_t = t ; }
+	private:
+		std::string& m_t ;
+	} ;
+
 
 	template< typename T > ValueSetter< T > set_value( T& t ) {
 		return ValueSetter< T >( t ) ;

@@ -55,11 +55,31 @@ namespace genfile {
 			AlleleSetter set_allele2,
 			GenotypeProbabilitySetter set_genotype_probabilities
 		) ;
-		
+
+		// Function: read_next_snp_with_position_in_range()
+		// Move forwards through the source until either
+		// 1. a snp with a position in the given range is found;
+		// 2. a snp with position greater than the upper bound is found; or
+		// 3. the source is exhausted
+		// In case 1., read the snp data and return true; otherwise return false.
+		bool read_next_snp_with_position_in_range(
+			IntegerSetter const& set_number_of_samples,
+			StringSetter const& set_SNPID,
+			StringSetter const& set_RSID,
+			SNPPositionSetter const& set_SNP_position,
+			AlleleSetter const& set_allele1,
+			AlleleSetter const& set_allele2,
+			GenotypeProbabilitySetter const& set_genotype_probabilities,
+			uint32_t position_lower_bound,
+			uint32_t position_upper_bound
+		) ;
+
 		// Function: read_next_snp_with_specified_position()
-		// Read and discard snps until a snp with the given position or higher is found,
-		// or the source is exhausted.
-		// Return true if a snp with the specified position is found, otherwise false.
+		// Move forwards through the source until either
+		// 1. a snp with the given position is found;
+		// 2. a snp with position greater than the given position is found; or
+		// 3. the source is exhausted
+		// In case 1., read the snp data and return true; otherwise return false.
 		bool read_next_snp_with_specified_position(
 			IntegerSetter const& set_number_of_samples,
 			StringSetter const& set_SNPID,
