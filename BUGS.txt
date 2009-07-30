@@ -1,0 +1,14 @@
+Known bugs for qc-tool
+======================
+Fixed?		Description:
+------		------------
+			-snp-stats output: alleles represent two columns so should have seperate 'allele_A' and 'allele_B' column headers.
+			(otherwise R can't read it easily).
+
+			Sample file: incorrect samples output when filtering.
+
+*			Crash when running file with lots of missing data.  Happens in SNPHWE.cpp
+			FIX: SNPHWE.hpp: catch case where all observed counts are 0.  Return probability of 1 in this case.
+			
+			SNP missing data rates can get reported that are greater than 1.0 i.e. 1.0408 
+			

@@ -611,7 +611,7 @@ private:
 			}
 
 			m_sample_statistics.process( sample_row, m_per_column_amounts[i], m_total_number_of_snps ) ;
-			
+
 			if( sampleStatisticOutputFile.get() ) {
 				*sampleStatisticOutputFile << std::setw(8) << (i+1) << m_sample_statistics << "\n" ;
 			}

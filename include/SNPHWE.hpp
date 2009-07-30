@@ -9,7 +9,12 @@ double SNPHWE(int obs_hets, int obs_hom1, int obs_hom2) ;
 struct SNPHWEStatistic: public GenotypeAssayStatistic
 {
 	double calculate_value( GenotypeAssayStatistics const& statistics ) const {
-		return SNPHWE( statistics.get_genotype_amounts().AB(), statistics.get_genotype_amounts().AA(), statistics.get_genotype_amounts().BB() ) ;
+		if( statistics.get_genotype_amounts().sum() > 0.0 ) {
+			return SNPHWE( statistics.get_genotype_amounts().AB(), statistics.get_genotype_amounts().AA(), statistics.get_genotype_amounts().BB() ) ;
+		}
+		else {
+			return 1.0 ;
+		}
 	}
 } ;
 
