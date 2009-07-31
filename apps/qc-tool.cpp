@@ -67,6 +67,20 @@ struct NumberOfSamplesMismatchException: public GenSelectProcessorException
 	{}
 } ;
 
+struct SampleFileHasTooFewSamplesException: public GenSelectProcessorException
+{
+	SampleFileHasTooFewSamplesException()
+		: GenSelectProcessorException( "SampleFileHasTooFewSamplesException" )
+	{}
+} ;
+
+struct ProblemsWereEncountered: public GenSelectProcessorException
+{
+	ProblemsWereEncountered()
+		: GenSelectProcessorException( "ProblemsWereEncountered" )
+	{}
+} ;
+
 
 struct GenSelectProcessor
 {
@@ -277,7 +291,6 @@ private:
 		}
 	} ;
 
-
 	void open_sample_row_sink() {
 		m_sample_row_sink.reset( new NullObjectSink< SampleRow >() ) ;
 		if( m_sample_output_filename != "" ) {
@@ -416,13 +429,24 @@ public:
 			oStream << std::setw(30) << "SNP filter:"
 				<< "  " << *m_snp_filter << ".\n" ;
 			oStream << "\n" ;
-		
+
+			oStream << std::setw(30) << "# of samples in input files:"
+				<< "  " << m_number_of_samples_from_gen_file << ".\n" ;
+			if( m_gen_output_filename != "" || m_sample_output_filename != "" ) {
+				oStream << std::setw(30) << "# of samples in output files:"
+					<< "  " << m_number_of_samples_from_gen_file - m_indices_of_filtered_out_samples.size() << ".\n" ; 
+				oStream << std::setw(30) << " " << "  (" << m_indices_of_filtered_out_samples.size()
+					<< " filtered out.)\n" ;
+			}
+			
+			oStream << "\n" << std::string( 72, '=' ) << "\n\n" ;
+
 			if( !m_errors.empty() ) {
 				for( std::size_t i = 0; i < m_errors.size(); ++i ) {
 					oStream << "!! ERROR: " << m_errors[i] << "\n\n" ;
 				}
-				oStream << "!! Please correct the above errors and re-run qc-tool.\n\n" ;
-				throw GenSelectProcessorException( "Errors were encountered." ) ;
+				oStream << "!! Please correct the above errors and re-run qc-tool.\n" ;
+				throw ProblemsWereEncountered() ;
 			}
 
 
@@ -431,23 +455,74 @@ public:
 					oStream << "!! WARNING: " << m_warnings[i] << "\n\n" ;
 				}
 				if( m_ignore_warnings ) {
-					oStream << "!! Warnings encountered, but proceeding anyway as -force was supplied.\n\n" ;
+					oStream << "!! Warnings were encountered, but proceeding anyway as -force was supplied.\n" ;
 				}
 				else {
-					oStream << "!! To proceed anyway, please run again with the -force option.\n\n" ;
-					throw GenSelectProcessorException( "Warnings were encountered." ) ;
+					oStream << "!! Warnings were encountered.  To proceed anyway, please run again with the -force option.\n" ;
+					throw ProblemsWereEncountered() ;
 				}
 			}
 
-			oStream << std::string( 72, '=' ) << "\n\n" ;
 		}
 		catch (...) {
-			oStream << std::string( 72, '=' ) << "\n\n" ;
 			throw ;
 		}
 	}
 
-	void do_checks() {
+	void preprocess() {
+		filter_sample_rows() ;
+		check_for_errors_and_warnings() ;
+	}
+
+	bool strings_are_nonempty_and_equal( std::string const& left, std::string const& right ) {
+		return (!left.empty()) && (!right.empty()) && (left == right) ;
+	}
+	
+	void process() {
+		try {
+			unsafe_process() ;
+		}
+		catch( StatisticNotFoundException const& e ) {
+			std::cerr << "!! ERROR: " << e << ".\n" ;
+			std::cerr << "Note: required statistics must be added using -statistics.\n" ;
+		}
+		catch( GToolException const& e) {
+			std::cerr << "!! ERROR: " << e << ".\n" ;
+		}
+	}
+
+private:
+
+	void filter_sample_rows() {
+		if( m_sample_filename != "" ) {
+			Timer timer ;
+			m_cout << "(Preprocessing sample file...)" ;
+			open_sample_row_source() ;
+			SampleRow sample_row ;
+			m_number_of_sample_file_rows = 0 ;
+			for( ; (*m_sample_row_source) >> sample_row; ++m_number_of_sample_file_rows ) {
+				if( !m_sample_filter->check_if_satisfied( sample_row )) {
+					m_indices_of_filtered_out_samples.push_back( m_number_of_sample_file_rows ) ;
+				}
+			}
+
+			m_cout << "(" << std::fixed << std::setprecision(1) << timer.elapsed() << "s)\n" ;
+			m_cout
+				<< "Total samples " << m_number_of_sample_file_rows
+				<< ", keeping " << ( m_number_of_sample_file_rows - m_indices_of_filtered_out_samples.size())
+				<< ", filtering out " << m_indices_of_filtered_out_samples.size() << ".\n" ;
+			if( m_number_of_sample_file_rows != m_number_of_samples_from_gen_file ) {
+				throw NumberOfSamplesMismatchException() ;
+			}
+		}
+	}
+
+	void check_for_errors_and_warnings() {
+		check_for_errors() ;
+		check_for_warnings() ;
+	}
+
+	void check_for_errors() {
 		for( std::size_t i = 0; i < m_gen_filenames.size(); ++i ) {
 			if( strings_are_nonempty_and_equal( m_gen_output_filename, m_gen_filenames[i] )) {
 				m_errors.push_back( "Output GEN file \"" + m_gen_output_filename +"\" also specified as input GEN file." ) ;
@@ -475,6 +550,12 @@ public:
 		if( strings_are_nonempty_and_equal( m_gen_statistic_filename, m_sample_statistic_filename )) {
 			m_errors.push_back( "The gen statistic and sample statistic filenames must differ." ) ;
 		}
+		if( m_sample_filename == "" && m_sample_filter->number_of_subconditions() != 0 ) {
+			m_errors.push_back( "To filter on samples, please supply an input sample file." ) ;
+		}
+	}
+	
+	void check_for_warnings() {
 		if( m_sample_output_filename != "" && m_gen_filenames.size() != 23 ) {
 			m_warnings.push_back( "You are outputting a sample file, but the number of gen files is not 23.") ;
 		}
@@ -495,49 +576,9 @@ public:
 		}
 	}
 	
-	bool strings_are_nonempty_and_equal( std::string const& left, std::string const& right ) {
-		return (!left.empty()) && (!right.empty()) && (left == right) ;
-	}
-	
-	void process() {
-		try {
-			unsafe_process() ;
-		}
-		catch( StatisticNotFoundException const& e ) {
-			std::cerr << "!! ERROR: " << e << ".\n" ;
-			std::cerr << "Note: required statistics must be added using -statistics.\n" ;
-		}
-		catch( GToolException const& e) {
-			std::cerr << "!! ERROR: " << e << ".\n" ;
-		}
-	}
-
-private:
-
 	void unsafe_process() {
-		filter_sample_rows() ;
 		process_gen_rows() ;
 		process_sample_rows() ;
-	}
-
-	void filter_sample_rows() {
-		m_cout << "Processing sample file...\n" ;
-		open_sample_row_source() ;
-		SampleRow sample_row ;
-		m_number_of_sample_file_rows = 0 ;
-		for( ; (*m_sample_row_source) >> sample_row; ++m_number_of_sample_file_rows ) {
-			if( m_sample_filter->check_if_satisfied( sample_row )) {
-				m_indices_of_filtered_in_sample_rows.push_back( m_number_of_sample_file_rows ) ;
-			}
-			else {
-				m_indices_of_filtered_out_sample_rows.push_back( m_number_of_sample_file_rows ) ;
-			}
-		}
-
-		m_cout << "Total samples " << m_number_of_sample_file_rows << ", keeping " << m_indices_of_filtered_in_sample_rows.size() << ", filtering out " << m_indices_of_filtered_out_sample_rows.size() << ".\n" ;
-		if( m_number_of_sample_file_rows != m_number_of_samples_from_gen_file ) {
-			throw NumberOfSamplesMismatchException() ;
-		}
 	}
 
 	void process_gen_rows() {
@@ -587,7 +628,7 @@ private:
 
 	void preprocess_gen_row( InternalStorageGenRow& row ) const {
 		check_gen_row( row ) ;
-		row.filter_out_samples_with_indices( m_indices_of_filtered_out_sample_rows ) ;
+		row.filter_out_samples_with_indices( m_indices_of_filtered_out_samples ) ;
 	}
 	
 	void check_gen_row( GenRow& row ) const {
@@ -622,12 +663,14 @@ private:
 		}
 
 		SampleRow sample_row ;
-
+		std::size_t sample_row_index = 0 ;
+		
 		std::size_t i = 0 ;
 		for( ; i < m_per_column_amounts.size(); ++i ) {
 			if( m_have_sample_file ) {
-				(*m_sample_row_source) >> sample_row ;
-				assert( *m_sample_row_source ) ; // assume sample file has not changed since count_sample_rows()
+				if( !read_next_filtered_in_sample_row( sample_row, sample_row_index )) {
+					throw SampleFileHasTooFewSamplesException() ;
+				}
 			}
 
 			m_sample_statistics.process( sample_row, m_per_column_amounts[i], m_total_number_of_snps ) ;
@@ -641,6 +684,17 @@ private:
 		}
 
 		std::cerr << "Processed sample file (" << i << " rows) in " << timer.elapsed() << " seconds.\n" ;
+	}
+
+	bool read_next_filtered_in_sample_row( SampleRow& sample_row, std::size_t& sample_row_index ) {
+		while( sample_row_is_filtered_out( sample_row_index ) && m_sample_row_source->read( sample_row )) {
+			++sample_row_index ;
+		}
+		return (*m_sample_row_source) ;
+	}
+
+	bool sample_row_is_filtered_out( std::size_t const sample_row_index ) {
+		return std::binary_search( m_indices_of_filtered_out_samples.begin(), m_indices_of_filtered_out_samples.end(), sample_row_index ) ;
 	}
 
 	void process_gen_row( GenRow const& row, std::size_t row_number ) {
@@ -706,8 +760,7 @@ private:
 	
 	std::vector< GenotypeProportions > m_per_column_amounts ;
 
-	std::vector< std::size_t > m_indices_of_filtered_in_sample_rows ;
-	std::vector< std::size_t > m_indices_of_filtered_out_sample_rows ;
+	std::vector< std::size_t > m_indices_of_filtered_out_samples ;
 	
 	std::vector< std::string > m_gen_filenames ;
 	std::string m_sample_filename ;
@@ -718,6 +771,7 @@ private:
 	
 	std::vector< std::string > m_warnings ;
 	std::vector< std::string > m_errors ;
+	
 	bool m_ignore_warnings ;
 } ;
 
@@ -744,9 +798,12 @@ int main( int argc, char** argv ) {
 
 	try	{
 		GenSelectProcessor processor( options ) ;
-		processor.do_checks() ;
+		processor.preprocess() ;
 		processor.write_preamble( std::cout ) ;
 		processor.process() ;
+	}
+	catch( ProblemsWereEncountered const& ) {
+		return -1 ;
 	}
 	catch( std::exception const& e )
 	{
