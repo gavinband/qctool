@@ -60,14 +60,26 @@ struct GenAndSampleFileMismatchException: public GenSelectProcessorException
 	{}
 } ;
 
+struct NumberOfSamplesMismatchException: public GenSelectProcessorException
+{
+	NumberOfSamplesMismatchException()
+		: GenSelectProcessorException( "NumberOfSamplesMismatchException" )
+	{}
+} ;
+
+
 struct GenSelectProcessor
 {
 public:
 	static void declare_options( OptionProcessor & options ) {
+
+		// Meta-options
+		options.set_help_option( "-help" ) ;
 		
-		// File options		
+		// File options	
+		options.declare_group( "Data file options" ) ;
 	    options[ "-g" ]
-	        .set_description( "Path of gen file to input" )
+	        .set_description( "Path of gen file to input.  Repeat this option, or use the numerical wildcard character '#', to specify several files." )
 	        .set_is_required()
 			.set_takes_values()
 			.set_maximum_number_of_repeats( 100 )
@@ -87,6 +99,8 @@ public:
 	        .set_description( "Path of sample file to output" )
 	        .set_takes_single_value() ;
 
+		// Statistic file options
+		options.declare_group( "Statistic file options" ) ;
 	    options[ "-snp-stats" ]
 	        .set_description( "Output snp-wise statistics to the given file." )
 	        .set_takes_single_value() ;
@@ -95,50 +109,53 @@ public:
 	        .set_description( "Output sample-wise statistics to the given file." )
 	        .set_takes_single_value() ;
 
+		options[ "-snp-statistics" ]
+	        .set_description( "Comma-seperated list of statistics to calculate in genstat file." )
+			.set_takes_single_value()
+			.set_default_value( "SNPID, RSID, position, alleles, MAF, HWE, missing" ) ;
+
+		options[ "-sample-statistics" ]
+	        .set_description( "Comma-seperated list of statistics to calculate in samplestat file." )
+			.set_takes_single_value()
+			.set_default_value( std::string("ID1, ID2, missing, heterozygosity") ) ;
+
 		// SNP filtering options
+		options.declare_group( "SNP filtering options" ) ;
 		options[ "-hwe"]
-			.set_description( "Filter out SNPs with HWE exact test statistics less than or equal to the value specified.")
+			.set_description( "Filter out SNPs with HWE p-value less than or equal to the value specified.")
 			.set_takes_single_value() ;
 		options[ "-snp-missing-rate"]
 			.set_description( "Filter out SNPs with missing data rate greater than or equal to the value specified.")
 			.set_takes_single_value() ;
 		options[ "-snp-interval"]
-			.set_description( "Filter out SNPs with position outside the interval [a,b], where a and b are the first and second supplied values" )
+			.set_description( "Filter out SNPs with position outside the interval [a,b]." )
 			.set_number_of_values_per_use( 2 ) ;
 		options[ "-maf"]
-			.set_description( "Filter out SNPs whose minor allele frequency lies outside the interval [a,b], where a and b are the first and second supplied values." )
+			.set_description( "Filter out SNPs whose minor allele frequency lies outside the interval [a,b]." )
 			.set_number_of_values_per_use( 2 ) ;
 		options[ "-snp-incl-list"]
-			.set_description( "Filter out SNPs whose SNP ID or RSID does not lie in the given file (which must contain a list of whitespace-separated strings)")
+			.set_description( "Filter out SNPs whose SNP ID or RSID does not lie in the given file.")
 			.set_takes_single_value() ;
 		options[ "-snp-excl-list"]
-			.set_description( "Filter out SNPs whose SNP ID or RSID lies in the given file (which must contain a list of whitespace-separated strings)")
+			.set_description( "Filter out SNPs whose SNP ID or RSID lies in the given file.")
 			.set_takes_single_value() ;
 
 		// Sample filtering options
+		options.declare_group( "Sample filtering options" ) ;
 		options[ "-sample-missing-rate" ]
-			.set_description( "Filter out samples with missing data rate greater than the value specified.  Note that a full-genome set of GEN files must be supplied.")
+			.set_description( "Filter out samples with missing data rate greater than the value specified.")
 			.set_takes_single_value() ;
 		options[ "-heterozygosity" ]
-			.set_description( "Filter out samples with heterozygosity outside the inteval [a,b], where a and b are the first and second supplied values" )
+			.set_description( "Filter out samples with heterozygosity outside the inteval [a,b]." )
 			.set_number_of_values_per_use( 2 ) ;
 		options[ "-sample-incl-list"]
-			.set_description( "Filter out samples whose sample ID does not lie in the given file (which must contain a list of whitespace-separated strings)")
+			.set_description( "Filter out samples whose sample ID does not lie in the given file.")
 			.set_takes_single_value() ;
 		options[ "-sample-excl-list"]
-			.set_description( "Filter out samples whose sample ID lies in the given file (which must contain a list of whitespace-separated strings)")
+			.set_description( "Filter out samples whose sample ID lies in the given file.")
 			.set_takes_single_value() ;
 
-		options[ "-snp-statistics" ]
-	        .set_description( "Comma-seperated list of statistics to calculate in genstat file" )
-			.set_takes_single_value()
-			.set_default_value( "SNPID, RSID, position, alleles, MAF, HWE, missing" ) ;
-
-		options[ "-sample-statistics" ]
-	        .set_description( "Comma-seperated list of statistics to calculate in samplestat file" )
-			.set_takes_single_value()
-			.set_default_value( std::string("ID1, ID2, missing, heterozygosity") ) ;
-			
+		options.declare_group( "Other options" ) ;
 		options [ "-force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
 	}
@@ -217,7 +234,7 @@ private:
 					<< "!!     : Please check that each SNP in the file is terminated by a single newline.\n" ;
 				throw ;
 			}
-			m_cout << " (" << file_timer.elapsed() << "s\n" ;
+			m_cout << " (" << file_timer.elapsed() << "s)\n" ;
 		}
 
 		m_number_of_samples_from_gen_file = chain->number_of_samples() ;
@@ -516,8 +533,11 @@ private:
 				m_indices_of_filtered_out_sample_rows.push_back( m_number_of_sample_file_rows ) ;
 			}
 		}
-		
+
 		m_cout << "Total samples " << m_number_of_sample_file_rows << ", keeping " << m_indices_of_filtered_in_sample_rows.size() << ", filtering out " << m_indices_of_filtered_out_sample_rows.size() << ".\n" ;
+		if( m_number_of_sample_file_rows != m_number_of_samples_from_gen_file ) {
+			throw NumberOfSamplesMismatchException() ;
+		}
 	}
 
 	void process_gen_rows() {
@@ -535,7 +555,7 @@ private:
 		InternalStorageGenRow row ;
 		row.set_number_of_samples( m_number_of_samples_from_gen_file ) ;
 		std::size_t number_of_snps_processed = 0 ;
-		while( read_gen_row( row )) {
+		for( ; read_gen_row( row ); row.set_number_of_samples( m_number_of_samples_from_gen_file )) {
 			preprocess_gen_row( row ) ;
 			process_gen_row( row, ++number_of_snps_processed ) ;
 			accumulate_per_column_amounts( row, m_per_column_amounts ) ;
@@ -707,11 +727,16 @@ int main( int argc, char** argv ) {
 		GenSelectProcessor::declare_options( options ) ;
 		options.process( argc, argv ) ;
     }
+	catch( OptionProcessorHelpRequestedException const& ) {
+	    std::cerr << "Usage: qc-tool <options>\n"
+			<< "\nOPTIONS:\n"
+            << options
+            << "\n" ;
+		return 0 ;
+	}
     catch( std::exception const& exception ) {
         std::cerr << "!! Error: " << exception.what() << ".\n";
-        std::cerr << "Usage: qc-tool [options]\n"
-                << options
-                << "\n" ;
+		std::cerr << "Please use \"qc-tool -help\" to see a list of options.\n" ;
         return -1 ;
     }
 

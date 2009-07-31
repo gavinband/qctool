@@ -13,7 +13,7 @@ double MissingDataStatistic::calculate_value( GenotypeAssayStatistics const& sta
 }
 
 double MissingDataProportionStatistic::calculate_value( GenotypeAssayStatistics const& statistics ) const {
-	return (statistics.number_of_samples() - statistics.get_genotype_amounts().sum()) / statistics.get_genotype_amounts().sum() ;
+	return (statistics.number_of_samples() - statistics.get_genotype_amounts().sum()) / statistics.number_of_samples() ;
 }
 
 double NumberOfSamplesStatistic::calculate_value( GenotypeAssayStatistics const& statistics ) const {

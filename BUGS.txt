@@ -5,10 +5,41 @@ Fixed?		Description:
 			-snp-stats output: alleles represent two columns so should have seperate 'allele_A' and 'allele_B' column headers.
 			(otherwise R can't read it easily).
 
+			Only round genotype probabilities where needed (just for HWE I think).
+
 			Sample file: incorrect samples output when filtering.
+
+*			Due to change in GenRow implementations, need to reset genrow number of samples
+			before reading each row.
 
 *			Crash when running file with lots of missing data.  Happens in SNPHWE.cpp
 			FIX: SNPHWE.hpp: catch case where all observed counts are 0.  Return probability of 1 in this case.
-			
-			SNP missing data rates can get reported that are greater than 1.0 i.e. 1.0408 
-			
+
+*			SNP missing data rates can get reported that are greater than 1.0 i.e. 1.0408 
+			FIX: in SimpleGenotypeAssayStatistics.cpp: divide by number of samples, not genotype amount sum.
+
+Non-bugs / misfeatures for qc-tool
+==================================
+
+Misfeature
+----------
+
+You can filter on any sample file, even if it has dodgy missing or heterozygosity values
+Using -heterozygosity leads to assert if heterozygosity field doesn't appear in sample file.
+
+Below is Jonathan's suggestion:
+
+we have one option
+
+-calc-stats file
+
+which basically runs
+
+-snp-stats file.snpstats -sample-stats file.samplestats
+
+AND overwrites the input sample file with the missing and heterozygosity rates. The stats files can then be examined by the user and filter options decided upon.
+
+You could make it so that this option cannot be run with any of the filters so then you have the filter options as a second step.
+
+I think you should also not allow people to specify output files when running -calc-stats.
+

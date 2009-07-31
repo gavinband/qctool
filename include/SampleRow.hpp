@@ -54,7 +54,7 @@ class SampleRow: public string_to_value_map
 		std::vector<char> const& column_types() const { return m_column_types ; }
 		
 		bool have_column( std::string const& heading ) const ;
-		void add_column( std::string const& heading, char type ) ;
+		void add_column( std::string const& heading, char type, double value = 0.0 ) ;
 		void set_value( std::string const& heading, double value ) ;
 
 		friend std::istream& operator>>( std::istream& aStream, SampleRow& row ) ;

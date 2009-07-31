@@ -38,11 +38,11 @@ double SampleRow::further_data( std::string const& column_heading ) const {
 	return further_data_i->second ;
 }
 
-void SampleRow::add_column( std::string const& heading, char type ) {
+void SampleRow::add_column( std::string const& heading, char type, double value ) {
 	if( !have_column( heading )) {
 		m_column_headings.push_back( heading ) ;
 		m_column_types.push_back( type ) ;
-		m_further_data[heading] = 0.0 ;
+		m_further_data[heading] = value ;
 	}
 }
 

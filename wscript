@@ -162,12 +162,14 @@ def build( bld ):
 	#---------------------
 	create_test( bld, 'test_log_of_gamma' )
 	create_test( bld, 'test_log_of_factorial' )
+	create_test( bld, 'test_genrow' )
 	create_test( bld, 'test_genrow_io' )
 	create_test( bld, 'test_genbin_snp_format' )
 	create_test( bld, 'test_hardy_weinberg_exact_test_statistic' )
 	create_test( bld, 'test_maximum_likelihood_statistics' )
 	create_test( bld, 'test_hardy_weinberg_exact_test_statistic_against_SNPHWE' )
-	create_test( bld, 'test_simple_statistics' )
+	create_test( bld, 'test_maf' )
+	create_test( bld, 'test_missing' )
 	create_test( bld, 'test_statistic_arithmetic' )
 	create_test( bld, 'test_fileutil' )
 

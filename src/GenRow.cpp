@@ -68,7 +68,7 @@ void InternalStorageGenRow::filter_out_samples_with_indices( std::vector< std::s
 	for( ++i, g_1st = g_2nd + 1; i != indices_to_filter_out.end(); ++i, g_1st = g_2nd + 1 ) {
 		assert( *i < m_genotype_proportions.size() ) ;
 		g_2nd = m_genotype_proportions.begin() + *i ;
-		assert( std::distance( g_1st, g_2nd ) > 0 ) ;
+		assert( std::distance( g_1st, g_2nd ) >= 0 ) ;
 		std::copy( g_1st, g_2nd, std::back_inserter( new_genotype_proportions )) ;
 	}
 

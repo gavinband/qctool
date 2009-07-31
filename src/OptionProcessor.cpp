@@ -33,7 +33,6 @@ OptionValueInvalidException::OptionValueInvalidException( std::string option, st
 : OptionProcessingException( option, values, msg )
 {}
 
-
 char const* OptionProcessingException::OptionProcessingException::what() const throw() {
 	try {
 		std::ostringstream ostr ;
@@ -58,63 +57,59 @@ char const* OptionProcessingException::OptionProcessingException::what() const t
 }
 
 
-std::ostream& operator<<( std::ostream& aStream, OptionProcessor::OptionDefinitions const& option_definitions ) {
-    // Find longest option and longest option description
-    OptionProcessor::OptionDefinitions::const_iterator
-        defn_i = option_definitions.begin(),
-        defn_end = option_definitions.end() ;
-
-    std::size_t max_option_length = 0, max_description_length = 0 ;
-     
-    for( ; defn_i != defn_end; ++defn_i ) {
-        max_option_length = std::max( max_option_length, defn_i->first.size()) ;
-        max_description_length = std::max( max_description_length, defn_i->second.description().size() ) ;
-    }
-
-	// print options
-    defn_i = option_definitions.begin() ;
-    for( ; defn_i != defn_end; ++defn_i ) {
-        aStream << std::setw( max_option_length+1 )
-                << std::right
-                << defn_i->first
-				<< "  : "
-				<< defn_i->second.description() ;
-		
-		aStream << ".\n" ;
-    }
-
-    return aStream ;
-}
-
-
 OptionProcessor::OptionProcessor() {}
+
 OptionProcessor::OptionProcessor( OptionProcessor const& other )
 	: m_option_definitions( other.m_option_definitions ),
 		m_option_values( other.m_option_values ),
-		m_unknown_options( other.m_unknown_options )
+		m_unknown_options( other.m_unknown_options ),
+		m_current_group( other.m_current_group ),
+		m_option_groups( other.m_option_groups ),
+		m_help_option_name( other.m_help_option_name )
 {}
 
 OptionProcessor::~OptionProcessor() {} ;
-		
+
 OptionProcessor::OptionDefinitions const& OptionProcessor::option_definitions() const { return m_option_definitions ; }
 
 OptionDefinition& OptionProcessor::operator[]( std::string const& arg ) {
+	// Prevent modification of an option that's already defined.
+	assert( m_option_definitions.find( arg ) == m_option_definitions.end() ) ;
+	m_option_definitions[arg].set_group( m_current_group ) ;
+	m_option_groups[ m_current_group ].insert( arg ) ;
+	if( std::count( m_option_group_names.begin(), m_option_group_names.end(), m_current_group ) == 0 ) {
+		m_option_group_names.push_back( m_current_group ) ;
+	}
 	return m_option_definitions[ arg ] ;
 }
 
 OptionDefinition const& OptionProcessor::operator[] ( std::string const& arg ) const {
 	OptionDefinitions::const_iterator defn_i = m_option_definitions.find( arg ) ;
-	if( defn_i == m_option_definitions.end() )
-		throw OptionValueInvalidException( arg, std::vector< std::string >(), "Option \"" + arg + "\" is not defined." ) ;
+	assert( defn_i != m_option_definitions.end() ) ;
 	return defn_i->second ;
+}
+
+void OptionProcessor::declare_group( std::string const& group ) {
+	m_option_groups[ group ] ;
+	m_current_group = group ;
 }
 
 // Parse the options from argv, performing all needed checks.
 void OptionProcessor::process( int argc, char** argv ) {
+	// calculate_option_groups() ;
 	parse_options( argc, argv ) ;
 	check_required_options_are_supplied() ;
 	preprocess_option_values() ;
 	check_option_values() ;
+}
+
+void OptionProcessor::calculate_option_groups() {
+	std::map< std::string, OptionDefinition >::const_iterator
+		defn_i = m_option_definitions.begin(), 
+		defn_end = m_option_definitions.end() ;
+	for( ; defn_i != defn_end; ++defn_i ) {
+		m_option_groups[ defn_i->second.group() ].insert( defn_i->first ) ;
+	}
 }
 
 // Parse the options.  Store option values.  Ignore, but store unknown args for later reference
@@ -122,6 +117,9 @@ void OptionProcessor::parse_options( int argc, char** argv ) {
 	int i = 0;
 	while( ++i < argc ) {
 		std::string arg = argv[i] ;
+		if( arg == m_help_option_name ) {
+			throw OptionProcessorHelpRequestedException() ;
+		}
 		std::map< std::string, OptionDefinition >::const_iterator arg_i = m_option_definitions.find( arg ) ;
 		if( !try_to_parse_named_option_and_values( argc, argv, i )) {
 			if( !try_to_parse_positional_option( argc, argv, i )) {
@@ -240,8 +238,77 @@ std::string OptionProcessor::get_default_value( std::string const& arg ) const {
 }
 
 std::ostream& operator<<( std::ostream& aStream, OptionProcessor const& options ) {
-	return aStream << "Options:\n" << options.option_definitions() ;
+	options.format_options( aStream ) ;
+	return aStream ;
 }
+
+
+void OptionProcessor::format_options( std::ostream& aStream ) const {
+	std::vector< std::string >::const_iterator
+		group_name_i = m_option_group_names.begin(),
+		group_name_end = m_option_group_names.end() ;
+	for( ; group_name_i != group_name_end ; ++group_name_i ) {
+		format_option_group( aStream, *group_name_i ) ;
+	}
+}
+
+void OptionProcessor::format_option_group( std::ostream& aStream, std::string const& group_name ) const {
+	aStream << group_name << ":\n" ;
+
+	std::map< std::string, std::set< std::string > >::const_iterator
+		group_i = m_option_groups.find( group_name ) ;
+	assert( group_i != m_option_groups.end() ) ;
+	std::set< std::string >::const_iterator
+		option_i = group_i->second.begin(),
+		end_option_i = group_i->second.end() ;
+
+	std::size_t max_option_length = get_maximum_option_length( group_name ) ;
+
+	for( ; option_i != end_option_i; ++option_i ) {
+		std::string const& option_name = *option_i ;
+		aStream << " " ;
+		format_option_and_description( aStream, option_name, max_option_length ) ;
+	}
+
+   	aStream << "\n";
+}
+
+std::string OptionProcessor::format_option_and_arguments( std::string const& option_name ) const {
+	std::ostringstream oStream ;
+	oStream
+		<< option_name ;
+	char arg_name = 'a' ;
+	for( std::size_t i = 1 ; i <= (*this)[option_name].number_of_values_per_use(); ++i ) {
+		oStream << " <" << arg_name++ << ">" ;
+	}
+	return oStream.str() ;
+}
+
+void OptionProcessor::format_option_and_description( std::ostream& aStream, std::string const& option_name, std::size_t max_option_length ) const {
+	aStream
+		<< std::setw( max_option_length+1 )
+		<< std::right
+		<< format_option_and_arguments( option_name ) ;
+
+	aStream << ": "
+		<< (*this)[option_name].description()
+		<< "\n" ;
+}
+
+std::size_t OptionProcessor::get_maximum_option_length( std::string const& group ) const {
+	std::map< std::string, std::set< std::string > >::const_iterator
+		group_i = m_option_groups.find( group ) ;
+	assert( group_i != m_option_groups.end() ) ;
+    std::set< std::string >::const_iterator
+		option_i = group_i->second.begin(),
+		end_option_i = group_i->second.end() ;
+	std::size_t max_option_length = 0 ;
+    for( ; option_i != end_option_i; ++option_i ) {
+        max_option_length = std::max( max_option_length, format_option_and_arguments( *option_i ).size() ) ;
+    }
+	return max_option_length ;
+}
+
 
 // get the values of the given option as a whitespace-separated string
 // Note: from this function, it may not possible to determine if an option value
