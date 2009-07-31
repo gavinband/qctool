@@ -2,10 +2,11 @@ gen-tools TODO LIST 27/07/2009
 
 Done?	Description
 -----   -----------
-		OptionProcessor: options should be grouped for display purposes.
-		OptionProcessor: format option descriptions better (with line-wrapping)
+*		OptionProcessor: options should be grouped for display purposes.
+*		OptionProcessor: format option descriptions better.
+		OptionProcessor: format option descriptions with line-wrapping.
 *		gen-compare: Make files come in numerical order if wildcard is used.
-*		OptionProcessor: Support positional options.
+		OptionProcessor: Support positional options.
 
 gen-tools TODO LIST 16/07/2009
 
@@ -14,6 +15,7 @@ Done?	Description
 		Use of boost::function in read_snp() does lead to a performance decrease for bgen files.
 			This should improve if probability getters can be called fewer times, e.g. with a range
 			of values.  Do this!
+		(This is done in impute branch of genfile.)
 
 *		Bug: currently it's possible to pass in a non-gen file to a --g option (I guess this is in GenFileSNPDataSource).
 			It seems to conclude it's a file with 0 snps in.  Make an error for this.

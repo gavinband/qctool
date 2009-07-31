@@ -736,7 +736,7 @@ int main( int argc, char** argv ) {
 	}
     catch( std::exception const& exception ) {
         std::cerr << "!! Error: " << exception.what() << ".\n";
-		std::cerr << "Please use \"qc-tool -help\" to see a list of options.\n" ;
+		std::cerr << "Please use \"qc-tool -help\" to see a usage description.\n" ;
         return -1 ;
     }
 
