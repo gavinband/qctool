@@ -14,6 +14,7 @@
 #include <fstream>
 #include <memory>
 #include <numeric>
+
 #include "Timer.hpp"
 #include "GenRow.hpp"
 #include "SampleRow.hpp"
@@ -23,7 +24,6 @@
 #include "RowCondition.hpp"
 #include "SNPInListCondition.hpp"
 #include "SampleInListCondition.hpp"
-#include "Whitespace.hpp"
 #include "FileUtil.hpp"
 #include "GenRowStatistics.hpp"
 #include "SampleRowStatistics.hpp"
@@ -40,6 +40,7 @@
 #include "string_utils.hpp"
 #include "parse_utils.hpp"
 #include "progress_bar.hpp"
+#include "VerboseMessageWriter.hpp"
 
 std::vector< std::string > expand_filename_wildcards( std::string const& option_name, std::vector< std::string > const& filenames ) ;
 void check_files_are_readable( std::string const& option_name, std::vector< std::string > const& filenames ) ;
@@ -172,11 +173,16 @@ public:
 		options.declare_group( "Other options" ) ;
 		options [ "-force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
+		options [ "-v" ]
+			.set_description( "Be verbose, particularly about sample-wise operations." ) ;
+		options [ "-vv" ]
+			.set_description( "Be very verbose, including information about sample-wise and snp-wise operations.") ;
 	}
 
 	GenSelectProcessor( OptionProcessor const& options )
 		: m_cout( std::cout.rdbuf() ),
-		  m_options( options )
+		  m_options( options ),
+		  m_verbose_message_writer( m_cout )
 	{
 		write_start_banner( m_cout ) ;
 		setup() ;
@@ -189,7 +195,6 @@ public:
 	
 private:
 	void setup() {
-		m_ignore_warnings = m_options.check_if_option_was_supplied( "-force" ) ;
 		get_required_filenames() ;
 		try {
 			open_gen_row_source() ;
@@ -203,6 +208,7 @@ private:
 		construct_sample_statistics() ;
 		construct_snp_filter() ;
 		construct_sample_filter() ;
+		process_other_options() ;
 	}
 
 	void get_required_filenames() {
@@ -391,6 +397,16 @@ private:
 		filter.add_subcondition( condition ) ;
 	}
 
+	void process_other_options() {
+		m_ignore_warnings = m_options.check_if_option_was_supplied( "-force" ) ;
+		if( m_options.check_if_option_was_supplied( "-v" )) {
+			m_verbose_message_writer.add_level( "sample-wise", 1 ) ;
+		}
+		if( m_options.check_if_option_was_supplied( "-vv" )) {
+			m_verbose_message_writer.add_level( "sample and snp-wise", 2 ) ;
+		}
+	}
+	
 public:
 	
 	void write_start_banner( std::ostream& oStream ) const {
@@ -432,12 +448,10 @@ public:
 
 			oStream << std::setw(30) << "# of samples in input files:"
 				<< "  " << m_number_of_samples_from_gen_file << ".\n" ;
-			if( m_gen_output_filename != "" || m_sample_output_filename != "" ) {
-				oStream << std::setw(30) << "# of samples in output files:"
-					<< "  " << m_number_of_samples_from_gen_file - m_indices_of_filtered_out_samples.size() << ".\n" ; 
-				oStream << std::setw(30) << " " << "  (" << m_indices_of_filtered_out_samples.size()
-					<< " filtered out.)\n" ;
-			}
+			oStream << std::setw(30) << "# of samples after filtering:"
+				<< "  " << m_number_of_samples_from_gen_file - m_indices_of_filtered_out_samples.size()
+				<< " (" << m_indices_of_filtered_out_samples.size()
+				<< " filtered out).\n" ;
 			
 			oStream << "\n" << std::string( 72, '=' ) << "\n\n" ;
 
@@ -474,10 +488,6 @@ public:
 		check_for_errors_and_warnings() ;
 	}
 
-	bool strings_are_nonempty_and_equal( std::string const& left, std::string const& right ) {
-		return (!left.empty()) && (!right.empty()) && (left == right) ;
-	}
-	
 	void process() {
 		try {
 			unsafe_process() ;
@@ -507,10 +517,6 @@ private:
 			}
 
 			m_cout << "(" << std::fixed << std::setprecision(1) << timer.elapsed() << "s)\n" ;
-			m_cout
-				<< "Total samples " << m_number_of_sample_file_rows
-				<< ", keeping " << ( m_number_of_sample_file_rows - m_indices_of_filtered_out_samples.size())
-				<< ", filtering out " << m_indices_of_filtered_out_samples.size() << ".\n" ;
 			if( m_number_of_sample_file_rows != m_number_of_samples_from_gen_file ) {
 				throw NumberOfSamplesMismatchException() ;
 			}
@@ -574,6 +580,10 @@ private:
 			"This will just copy input to output files (taking into account any\n"
 			"file format changes).  You can do this faster with gen-convert." ) ;
 		}
+	}
+	
+	bool strings_are_nonempty_and_equal( std::string const& left, std::string const& right ) {
+		return (!left.empty()) && (!right.empty()) && (left == right) ;
 	}
 	
 	void unsafe_process() {
@@ -772,6 +782,8 @@ private:
 	std::vector< std::string > m_warnings ;
 	std::vector< std::string > m_errors ;
 	
+	VerboseMessageWriter m_verbose_message_writer ;
+	
 	bool m_ignore_warnings ;
 } ;
 
@@ -869,6 +881,3 @@ void check_condition_spec( std::string const& option_name, std::vector< std::str
 		}
 	}
 }
-
-
-
