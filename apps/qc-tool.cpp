@@ -495,6 +495,17 @@ public:
 private:
 
 	void preprocess_sample_rows() {
+		try {
+			unsafe_preprocess_sample_rows() ;
+		}
+		catch( ConditionValueNotFoundException const& ) {
+			m_cout << "\n\n!! ERROR: The input sample file must contain entries for all values used to filter on.\n"
+				<< "!! This includes \"missing\" and \"heterozygosity\".\n" ;
+			throw ;
+		}
+	}
+
+	void unsafe_preprocess_sample_rows() {
 		if( m_sample_filename != "" ) {
 			Timer timer ;
 			m_cout << "(Preprocessing sample file...)" ;
@@ -542,9 +553,6 @@ private:
 				break ;
 			}
 		}
-		if( strings_are_nonempty_and_equal( m_sample_output_filename, m_sample_filename )) {
-			m_errors.push_back( "Output sample file \"" + m_sample_filename + "\" also specified as input sample file." ) ;
-		}
 		if( strings_are_nonempty_and_equal( m_sample_output_filename, m_gen_output_filename )) {
 			m_errors.push_back( "The GEN and SAMPLE output filenames must differ." ) ;
 		}
@@ -554,14 +562,15 @@ private:
 		if( m_sample_filename == "" && m_sample_filter->number_of_subconditions() != 0 ) {
 			m_errors.push_back( "To filter on samples, please supply an input sample file." ) ;
 		}
+		if( m_sample_output_filename != "" && m_sample_filter->number_of_subconditions() != 0) {
+			m_errors.push_back( "I will not let you both filter and output a sample file at the same time.\n"
+			 	"Please output the sample file first, and then run qc-tool again to filter using those values.\n" ) ;
+		}
 	}
 	
 	void check_for_warnings() {
-		if( m_sample_output_filename != "" && m_gen_filenames.size() != 23 ) {
-			m_warnings.push_back( "You are outputting a sample file, but the number of gen files is not 23.") ;
-		}
-		if( m_sample_statistic_filename != "" && m_gen_filenames.size() != 23 ) {
-			m_warnings.push_back( "You are outputting a sample statistic file, but the number of gen files is not 23.") ;
+		if( (m_sample_output_filename != "" || m_sample_statistic_filename != "") && m_gen_filenames.size() != 23 ) {
+			m_warnings.push_back( "You are outputting a sample or sample statistic file, but the number of gen files is not 23." ) ;
 		}
 		if( m_sample_statistic_filename != "" && m_sample_filename == "" ) {
 			m_warnings.push_back( "You are outputting a sample statistic file, but no input sample file has been supplied.") ;
@@ -569,11 +578,16 @@ private:
 		if( m_gen_output_filename == "" && m_sample_output_filename == "" && m_gen_statistic_filename == "" && m_sample_statistic_filename == "" ) {
 			m_warnings.push_back( "You have not specified any output files.  This will produce only console output." ) ;
 		}
-		if( (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0) && (m_gen_statistic_filename == "") && (m_sample_statistic_filename == "") ) {
+		if( (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0) && (m_gen_statistic_filename == "") && (m_sample_statistic_filename == "") && (m_sample_output_filename == "")) {
 			m_warnings.push_back(
-			"You have not specified any filters, nor any statistic output files.\n"
-			"This will just copy input to output files (taking into account any\n"
-			"file format changes).  You can do this faster with gen-convert." ) ;
+			"You have not specified any filters, nor any statistic output files,\n"
+			"not a sample output filename.  This will just copy input GEN files\n"
+			"to output GEN files (taking into account any file format changes).\n"
+			"You can do this faster with gen-convert." ) ;
+		}
+		if( strings_are_nonempty_and_equal( m_sample_output_filename, m_sample_filename )) {
+			m_warnings.push_back( "Input sample file \"" + m_sample_filename + "\" would be overwritten with output sample file.\n"
+				"I advise choosing a different filename or taking a backup of the original file first." ) ;
 		}
 	}
 	
@@ -650,19 +664,18 @@ private:
 
 	void process_sample_rows() {
 		Timer timer ;
-		
+
 		apply_sample_filter() ;
 		assert( m_sample_rows.size() == m_per_column_amounts.size() ) ;
-		
+
 		open_sample_row_sink() ;
 		open_sample_stats_file() ;
-		
+
 		if( sampleStatisticOutputFile.get() ) {
 			*sampleStatisticOutputFile << "        " ;
 			m_sample_statistics.format_column_headers( *sampleStatisticOutputFile ) << "\n" ;
 		}
 
-		
 		for( std::size_t i = 0 ; i < m_per_column_amounts.size(); ++i ) {
 			SampleRow& sample_row = m_sample_rows[i] ;
 			m_sample_statistics.process( sample_row, m_per_column_amounts[i], m_total_number_of_snps ) ;

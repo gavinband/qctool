@@ -61,6 +61,10 @@ bool SampleRow::have_column( std::string const& heading ) const {
 	return ( where != m_further_data.end()) ;
 }
 
+bool SampleRow::has_value( std::string const& name ) const {
+	return SampleRow::have_column( name ) ;
+}
+
 void SampleRow::set_value( std::string const& heading, double value ) {
 	assert( have_column( heading )) ;
 	m_further_data[ heading ] = value ;

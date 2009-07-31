@@ -9,8 +9,11 @@ StatisticInInclusiveRange::StatisticInInclusiveRange( std::string const& statist
 	m_epsilon( epsilon )
 {} ;
 
-bool StatisticInInclusiveRange::check_if_satisfied( string_to_value_map const& row_genotype_statistics ) const {
-	double statistic_value = row_genotype_statistics.get_value< double >( m_statistic_name ) ;
+bool StatisticInInclusiveRange::check_if_satisfied( string_to_value_map const& statistics ) const {
+	if( !statistics.has_value( m_statistic_name )) {
+		throw ConditionValueNotFoundException() ;
+	}
+	double statistic_value = statistics.get_value< double >( m_statistic_name ) ;
 	return ( statistic_value >= ( m_lower_bound - m_epsilon ))
 		&& ( statistic_value <= ( m_upper_bound - m_epsilon )) ;
 }
@@ -32,8 +35,11 @@ StatisticInExclusiveRange::StatisticInExclusiveRange( std::string const& statist
 	m_epsilon( epsilon )
 {} ;
 
-bool StatisticInExclusiveRange::check_if_satisfied( string_to_value_map const& row_genotype_statistics ) const {
-	double statistic_value = row_genotype_statistics.get_value< double >( m_statistic_name ) ;
+bool StatisticInExclusiveRange::check_if_satisfied( string_to_value_map const& statistics ) const {
+	if( !statistics.has_value( m_statistic_name )) {
+		throw ConditionValueNotFoundException() ;
+	}
+	double statistic_value = statistics.get_value< double >( m_statistic_name ) ;
 	return ( statistic_value > ( m_lower_bound - m_epsilon ))
 		&& ( statistic_value < ( m_upper_bound - m_epsilon )) ;
 }
@@ -54,8 +60,11 @@ StatisticGreaterThan::StatisticGreaterThan( std::string const& statistic_name, d
 	m_epsilon( epsilon )
 {} ;
 
-bool StatisticGreaterThan::check_if_satisfied( string_to_value_map const& row_genotype_statistics ) const {
-	double statistic_value = row_genotype_statistics.get_value< double >( m_statistic_name ) ;
+bool StatisticGreaterThan::check_if_satisfied( string_to_value_map const& statistics ) const {
+	if( !statistics.has_value( m_statistic_name )) {
+		throw ConditionValueNotFoundException() ;
+	}
+	double statistic_value = statistics.get_value< double >( m_statistic_name ) ;
 	return ( statistic_value > ( m_lower_bound - m_epsilon )) ;
 }
 
@@ -72,8 +81,11 @@ StatisticLessThan::StatisticLessThan( std::string const& statistic_name, double 
 	m_epsilon( epsilon )
 {} ;
 
-bool StatisticLessThan::check_if_satisfied( string_to_value_map const& row_genotype_statistics ) const {
-	double statistic_value = row_genotype_statistics.get_value< double >( m_statistic_name ) ;
+bool StatisticLessThan::check_if_satisfied( string_to_value_map const& statistics ) const {
+	if( !statistics.has_value( m_statistic_name )) {
+		throw ConditionValueNotFoundException() ;
+	}
+	double statistic_value = statistics.get_value< double >( m_statistic_name ) ;
 	return ( statistic_value < ( m_upper_bound - m_epsilon )) ;
 }
 

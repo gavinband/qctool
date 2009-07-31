@@ -16,6 +16,8 @@ public:
 	template< typename T >
 	T get_value( std::string const& name ) const ;
 
+	virtual bool has_value( std::string const& name ) const = 0 ;
+
 protected:
 
 	virtual double get_double_value( std::string const& name ) const = 0 ;

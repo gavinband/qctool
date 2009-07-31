@@ -42,6 +42,7 @@ struct GenotypeAssayStatistics: public GenotypeAssayBasicStatistics, public stri
 
 	protected:
 		
+		bool has_value( std::string const& name ) const ;
 		double get_double_value( std::string const& name ) const ;
 		std::string get_string_value( std::string const& name ) const ;
 		

@@ -64,6 +64,11 @@ void GenotypeAssayStatistics::reset() {
 	}
 }
 
+bool GenotypeAssayStatistics::has_value( std::string const& name ) const {
+	statistics_t::const_iterator i = m_statistics.find( name ) ;
+	return ( i != m_statistics.end() ) ;
+}
+
 double GenotypeAssayStatistics::get_double_value( std::string const& name ) const {
 	statistics_t::const_iterator i = m_statistics.find( name ) ;
 	assert( i != m_statistics.end() ) ;

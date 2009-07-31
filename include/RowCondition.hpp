@@ -8,6 +8,10 @@
 #include "Condition.hpp"
 #include "string_to_value_map.hpp"
 
+struct ConditionValueNotFoundException: public std::exception {
+	char const* what() const throw() { return "ConditionValueNotFoundException" ; }
+} ;
+
 typedef Condition< string_to_value_map > RowCondition ;
 typedef CompoundCondition< string_to_value_map > CompoundRowCondition ;
 typedef AndCondition< string_to_value_map > AndRowCondition ;
