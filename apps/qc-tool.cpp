@@ -173,10 +173,8 @@ public:
 		options.declare_group( "Other options" ) ;
 		options [ "-force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
-		options [ "-v" ]
-			.set_description( "Be verbose, particularly about sample-wise operations." ) ;
-		options [ "-vv" ]
-			.set_description( "Be very verbose, including information about sample-wise and snp-wise operations.") ;
+		options [ "-diagnose-sample-filter" ]
+			.set_description( "Print diagnostic information about each filtered out sample." ) ;
 	}
 
 	GenSelectProcessor( OptionProcessor const& options )
@@ -290,10 +288,8 @@ private:
 
 	void open_sample_row_source() {
 		m_sample_row_source.reset( new NullObjectSource< SampleRow >()) ;
-		m_have_sample_file = false ;
 		if( m_sample_filename != "" ) {
 			m_sample_row_source.reset( new SampleInputFile< SimpleFileObjectSource< SampleRow > >( open_file_for_input( m_sample_filename ))) ;
-			m_have_sample_file = true ;
 		}
 	} ;
 
@@ -398,13 +394,8 @@ private:
 	}
 
 	void process_other_options() {
+		m_diagnose_sample_filter = m_options.check_if_option_was_supplied( "-diagnose-sample-filter" ) ;
 		m_ignore_warnings = m_options.check_if_option_was_supplied( "-force" ) ;
-		if( m_options.check_if_option_was_supplied( "-v" )) {
-			m_verbose_message_writer.add_level( "sample-wise", 1 ) ;
-		}
-		if( m_options.check_if_option_was_supplied( "-vv" )) {
-			m_verbose_message_writer.add_level( "sample and snp-wise", 2 ) ;
-		}
 	}
 	
 public:
@@ -484,7 +475,7 @@ public:
 	}
 
 	void preprocess() {
-		filter_sample_rows() ;
+		preprocess_sample_rows() ;
 		check_for_errors_and_warnings() ;
 	}
 
@@ -503,7 +494,7 @@ public:
 
 private:
 
-	void filter_sample_rows() {
+	void preprocess_sample_rows() {
 		if( m_sample_filename != "" ) {
 			Timer timer ;
 			m_cout << "(Preprocessing sample file...)" ;
@@ -511,6 +502,7 @@ private:
 			SampleRow sample_row ;
 			m_number_of_sample_file_rows = 0 ;
 			for( ; (*m_sample_row_source) >> sample_row; ++m_number_of_sample_file_rows ) {
+				m_sample_rows.push_back( sample_row ) ;
 				if( !m_sample_filter->check_if_satisfied( sample_row )) {
 					m_indices_of_filtered_out_samples.push_back( m_number_of_sample_file_rows ) ;
 				}
@@ -520,6 +512,9 @@ private:
 			if( m_number_of_sample_file_rows != m_number_of_samples_from_gen_file ) {
 				throw NumberOfSamplesMismatchException() ;
 			}
+		}
+		else {
+			m_sample_rows.resize( m_number_of_samples_from_gen_file ) ;
 		}
 	}
 
@@ -646,7 +641,7 @@ private:
 	}
 
 	void check_gen_row_has_correct_number_of_samples( GenRow& row ) const {
-		if( m_have_sample_file ) {
+		if( have_sample_file() ) {
 			if( row.number_of_samples() != m_number_of_sample_file_rows ) {
 				throw GenAndSampleFileMismatchException( "GEN file and sample file have mismatching number of samples." ) ;
 			}
@@ -656,35 +651,21 @@ private:
 	void process_sample_rows() {
 		Timer timer ;
 		
-		// re-open sample row source.
-		open_sample_row_source() ;
+		apply_sample_filter() ;
+		assert( m_sample_rows.size() == m_per_column_amounts.size() ) ;
+		
 		open_sample_row_sink() ;
 		open_sample_stats_file() ;
-		
-		if( m_have_sample_file ) {
-			if( m_number_of_sample_file_rows != m_per_column_amounts.size() ) {
-				throw GenAndSampleFileMismatchException( "Sample file and GEN file have mismatching number of samples." ) ;
-			}
-		}
 		
 		if( sampleStatisticOutputFile.get() ) {
 			*sampleStatisticOutputFile << "        " ;
 			m_sample_statistics.format_column_headers( *sampleStatisticOutputFile ) << "\n" ;
 		}
 
-		SampleRow sample_row ;
-		std::size_t sample_row_index = 0 ;
 		
-		std::size_t i = 0 ;
-		for( ; i < m_per_column_amounts.size(); ++i ) {
-			if( m_have_sample_file ) {
-				if( !read_next_filtered_in_sample_row( sample_row, sample_row_index )) {
-					throw SampleFileHasTooFewSamplesException() ;
-				}
-			}
-
+		for( std::size_t i = 0 ; i < m_per_column_amounts.size(); ++i ) {
+			SampleRow& sample_row = m_sample_rows[i] ;
 			m_sample_statistics.process( sample_row, m_per_column_amounts[i], m_total_number_of_snps ) ;
-
 			if( sampleStatisticOutputFile.get() ) {
 				*sampleStatisticOutputFile << std::setw(8) << (i+1) << m_sample_statistics << "\n" ;
 			}
@@ -693,18 +674,41 @@ private:
 			(*m_sample_row_sink) << sample_row ;
 		}
 
-		std::cerr << "Processed sample file (" << i << " rows) in " << timer.elapsed() << " seconds.\n" ;
+		std::cerr << "Processed sample file (" << m_sample_rows.size() << " rows) in " << timer.elapsed() << " seconds.\n" ;
 	}
 
-	bool read_next_filtered_in_sample_row( SampleRow& sample_row, std::size_t& sample_row_index ) {
-		while( sample_row_is_filtered_out( sample_row_index ) && m_sample_row_source->read( sample_row )) {
-			++sample_row_index ;
+	void apply_sample_filter() {
+		for( std::size_t i = 0, count = 0; i < m_sample_rows.size(); ++count ) {
+			if( sample_row_is_filtered_out( i ) ) {
+				if( m_diagnose_sample_filter ) {
+					print_sample_filter_diagnostics( m_sample_rows[ i ], count ) ;
+				}
+				m_sample_rows.erase( m_sample_rows.begin() + i ) ;
+			}
+			else {
+				++i ;
+			}
 		}
-		return (*m_sample_row_source) ;
 	}
 
 	bool sample_row_is_filtered_out( std::size_t const sample_row_index ) {
 		return std::binary_search( m_indices_of_filtered_out_samples.begin(), m_indices_of_filtered_out_samples.end(), sample_row_index ) ;
+	}
+
+	void print_sample_filter_diagnostics( SampleRow const& sample_row, std::size_t const sample_row_index ) {
+		m_cout
+			<< "Filtered out sample row " << sample_row_index << " (" << sample_row.ID1() << " " << sample_row.ID2() << ")"
+			<< " because it does not satisfy " ;
+		for( std::size_t i = 0, failed_condition_count = 0; i < m_sample_filter->number_of_subconditions() ; ++i ) {
+			if( !m_sample_filter->subcondition(i).check_if_satisfied( sample_row )) {
+				if( failed_condition_count > 0 ) {
+					m_cout << " or " ;
+				}
+				m_cout << "\"" << m_sample_filter->subcondition(i) << "\"" ;
+				++failed_condition_count ;
+			}
+		}
+		m_cout << ".\n" ;
 	}
 
 	void process_gen_row( GenRow const& row, std::size_t row_number ) {
@@ -745,6 +749,10 @@ private:
 		}
 	}
 	
+	bool have_sample_file() const {
+		return m_sample_filename != "" ;
+	}
+	
 private:
 	
 	std::ostream m_cout ;
@@ -766,7 +774,6 @@ private:
 	std::size_t m_total_number_of_snps ;
 	std::size_t m_number_of_samples_from_gen_file ;
 	std::size_t m_number_of_sample_file_rows ;
-	bool m_have_sample_file ;
 	
 	std::vector< GenotypeProportions > m_per_column_amounts ;
 
@@ -784,7 +791,10 @@ private:
 	
 	VerboseMessageWriter m_verbose_message_writer ;
 	
+	std::vector< SampleRow > m_sample_rows ;
+	
 	bool m_ignore_warnings ;
+	bool m_diagnose_sample_filter ;
 } ;
 
 int main( int argc, char** argv ) {

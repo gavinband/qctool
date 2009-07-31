@@ -53,7 +53,7 @@ void InternalStorageGenRow::filter_out_samples_with_indices( std::vector< std::s
 	if( indices_to_filter_out.empty()) {
 		return ;
 	}
-	assert( indices_to_filter_out.size() < m_genotype_proportions.size() ) ;
+	assert( indices_to_filter_out.size() <= m_genotype_proportions.size() ) ;
 
 	std::vector< GenotypeProportions > new_genotype_proportions ;
 	new_genotype_proportions.reserve( m_genotype_proportions.size() - indices_to_filter_out.size() ) ;

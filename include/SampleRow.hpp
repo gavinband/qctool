@@ -40,6 +40,7 @@ class SampleRow: public string_to_value_map
 		// Read column headings and types from strings, in which the entities should be whitespace-separated.
 		SampleRow() ;
 		SampleRow( std::vector<std::string> const& column_headings, std::vector<char> const& column_types ) ;
+		SampleRow( SampleRow const& other ) ;
 
 		virtual ~SampleRow() {} ;
 	public:
@@ -71,7 +72,6 @@ class SampleRow: public string_to_value_map
 		std::vector<std::string> m_column_headings ;
 		std::vector<char> m_column_types ;		
 
-		SampleRow( SampleRow const& other ) ;
 } ;
 
 std::ostream& operator<<( std::ostream& aStream, SampleRow const& row ) ;

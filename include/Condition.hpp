@@ -109,6 +109,7 @@ struct CompoundCondition: public Condition< MandatoryData >
 		}
 
 		std::size_t number_of_subconditions() const { return m_subconditions.size() ; }
+		base_t& subcondition( std::size_t i ) const { return *m_subconditions[i] ; }
 		subcondition_iterator_t begin_subconditions() const { return m_subconditions.begin() ; }
 		subcondition_iterator_t end_subconditions() const { return m_subconditions.end() ; }
 

@@ -17,6 +17,15 @@ SampleRow::SampleRow( std::vector< std::string > const& column_headings, std::ve
 	reset( column_headings, column_types ) ;
 }
 
+SampleRow::SampleRow( SampleRow const& other ) :
+	m_id1( other.m_id1 ),
+	m_id2( other.m_id2 ),
+	m_further_data( other.m_further_data ),
+	m_column_headings( other.m_column_headings ),
+	m_column_types( other.m_column_types )
+{
+}
+
 void SampleRow::reset( std::vector<std::string> const& column_headings, std::vector<char> const& column_types ) {
 	m_column_headings = column_headings ;
 	m_column_types = column_types ;
