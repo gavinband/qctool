@@ -20,59 +20,69 @@
 	#define TEST_ASSERT( param ) assert( param )
 #endif
 
-std::map< std::string, bool > get_data() {
-	// rightmost value is whether the missing data proportion is > 0.5
-	std::map< std::string, bool > data ;
-	data[ "SA1 rs001 10000000 A G 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0" ] = true ;
-	data[ "SA1 rs001 10000000 A G 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0" ] = true ;
-	data[ "SA1 rs001 10000000 A G 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0" ] = true ;
-	data[ "SA1 rs001 10000000 A G 1 0 0 0.5 0 0 0 0 0 0 0 0 0 0 0" ] = true ;
-	data[ "SA1 rs001 10000000 A G 1 0 0 1 0 0 0 0 0 0 0 0 0 0 0" ] = true ;
-	data[ "SA1 rs001 10000000 A G 1 0 0 1 0 0 0 0.4 0 0 0 0 0 0 0" ] = true ;
-	data[ "SA1 rs001 10000000 A G 1 0 0 1 0 0 0 0.5 0 0 0 0 0 0 0" ] = false ;
-	data[ "SA1 rs001 10000000 A G 0 0 0 0 0 0 0 0 0 0 0 0.5721 0 0.0207 0.9792" ] = true ;
-	data[ "SA2 rs002 10010000 A G 0 0 1 0 1 0 1 0 0 0 1 0 1 0 0" ] = false ;
-	data[ "SA3 rs003 10020000 C T 1 0 0 0 1 0 0 0 1 0 0.9967 0 0 0 1" ] = false ;
-	data[ "SA4 rs004 10030000 G T 1 0 0 0 1 0 0 0 1 0 1 0 0 0 1" ] = false ;
-	data[ "SA5 rs005 10040000 C G 0 0 .5 0 .5 0 .5 0 0 0 .5 0 .5 0 0" ] = false ;
-	data[ "SA6 rs006 10050000 A G 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0" ] = true ;
-	data[ "SA7 rs007 10060000 G T 0.5 0.5 0 0 0.5 0 1 0 0 0.5 0 0 0.5 0 0" ] = false ;
+struct TestStringToValueMap: public string_to_value_map {
 
-	return data ;
+	bool has_value( std::string const& name ) const {
+		return m_values.find( name ) != m_values.end() ;
+	}
+
+	double get_double_value( std::string const& name ) const {
+		return m_values.find( name )->second ;
+	}
+
+	std::string get_string_value( std::string const& name ) const {
+		assert(0) ;
+	}
+
+	std::map< std::string, double > m_values ;
+} ;
+
+std::vector< TestStringToValueMap > get_data() {
+	std::vector< TestStringToValueMap > result ;
+	for( int i = 0; i < 1000; ++i ) {
+		result.push_back( TestStringToValueMap() ) ;
+		result.back().m_values[ "value" ] = static_cast< double >(i) / 1000 ;
+	}
+	return result ;
 }
 
 AUTO_TEST_CASE( test_less_than_greater_than ) {
-	std::map< std::string, bool >
-		data = get_data() ;
+	std::vector< TestStringToValueMap > data = get_data() ;
 	
-	std::map< std::string, bool >::const_iterator
+	std::vector< TestStringToValueMap >::const_iterator
 		i( data.begin() ),
 		end_i( data.end() ) ;
 
-	int count = 0 ;
-
-	GenRowStatistics row_statistics ;
-	std::auto_ptr< GenotypeAssayStatistic > statistic( new MissingDataProportionStatistic ) ;
-	statistic->set_precision( 5 ) ;
-	row_statistics.add_statistic( "missing", statistic ) ;
-	row_statistics.format_column_headers( std::cout ) << "\n" ;
-
-	StatisticGreaterThan gt_condition( "missing", 0.5 ) ;
-	StatisticLessThan lt_condition( "missing", 0.5 ) ;
+	StatisticGreaterThan gt_condition( "value", 0.5 ) ;
+	StatisticLessThan lt_condition( "value", 0.5 ) ;
 
 	for( ; i != end_i; ++i ) {
-		std::istringstream inStream( i->first ) ;
-		InternalStorageGenRow row ;
-		inStream >> row ;
-		row_statistics.process( row ) ;
-		std::cout << "row " << std::setw(3) << ++count << " : " << row_statistics << ": " << std::boolalpha << i->second << "\n" ;
-		TEST_ASSERT( gt_condition.check_if_satisfied( row_statistics ) == i->second ) ;
-		TEST_ASSERT(( row_statistics.get_value< double >( "missing" ) == 0.5 ) || ( lt_condition.check_if_satisfied( row_statistics ) != i->second )) ;
+		double value = i->get_value< double >( "value" ) ;
+		TEST_ASSERT( gt_condition.check_if_satisfied( *i ) == (value > 0.5)) ;
+		TEST_ASSERT( lt_condition.check_if_satisfied( *i ) == (value < 0.5)) ;
+	}
+}
+
+AUTO_TEST_CASE( test_range ) {
+	std::vector< TestStringToValueMap > data = get_data() ;
+	
+	std::vector< TestStringToValueMap >::const_iterator
+		i( data.begin() ),
+		end_i( data.end() ) ;
+
+	StatisticInInclusiveRange inclusive_condition( "value", 0.3, 0.7 ) ;
+	StatisticInExclusiveRange exclusive_condition( "value", 0.3, 0.7 ) ;
+
+	for( ; i != end_i; ++i ) {
+		double value = i->get_value< double >( "value" ) ;
+		TEST_ASSERT( inclusive_condition.check_if_satisfied( *i ) == ((value >= 0.3) && (value <= 0.7))) ;
+		TEST_ASSERT( exclusive_condition.check_if_satisfied( *i ) == ((value > 0.3) && (value < 0.7))) ;
 	}
 }
 
 #ifndef HAVE_BOOST_UNIT_TEST
 	int main( int argc, char** argv ) {
 		test_less_than_greater_than() ;
+		test_range() ;
 	}
 #endif
