@@ -721,15 +721,15 @@ private:
 	}
 
 	void apply_sample_filter() {
-		for( std::size_t i = 0, count = 0; i < m_sample_rows.size(); ++count ) {
-			if( sample_row_is_filtered_out( i ) ) {
+		for( std::size_t pre_filter_i = 0, post_filter_i = 0; post_filter_i < m_sample_rows.size(); ++pre_filter_i ) {
+			if( sample_row_is_filtered_out( pre_filter_i ) ) {
 				if( m_diagnose_sample_filter ) {
-					print_sample_filter_diagnostics( m_sample_rows[ i ], count ) ;
+						print_sample_filter_diagnostics( m_sample_rows[ post_filter_i ], pre_filter_i ) ;
 				}
-				m_sample_rows.erase( m_sample_rows.begin() + i ) ;
+				m_sample_rows.erase( m_sample_rows.begin() + post_filter_i ) ;
 			}
 			else {
-				++i ;
+				++post_filter_i ;
 			}
 		}
 	}

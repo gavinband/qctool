@@ -16,7 +16,6 @@ public:
 protected:
 
 		std::auto_ptr< genfile::SNPDataSink > m_snp_data_sink ;
-	
 } ;
 
 #endif
