@@ -18,6 +18,12 @@ void GenotypeAssayBasicStatistics::zero_genotype_amounts() {
 	m_genotype_amounts.zero() ;
 }
 
+GenotypeAmounts GenotypeAssayBasicStatistics::get_rounded_genotype_amounts() const {
+	GenotypeAmounts amounts = get_genotype_amounts() ;
+	amounts.round() ;
+	return amounts ;
+}
+
 void GenotypeAssayBasicStatistics::reset() {
 	m_genotype_amounts.zero() ;
 	m_number_of_samples = 0 ;

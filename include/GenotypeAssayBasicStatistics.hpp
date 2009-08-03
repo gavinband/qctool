@@ -32,6 +32,7 @@ struct GenotypeAssayBasicStatistics
 		std::size_t number_of_samples() const { return m_number_of_samples ; }
 
 		GenotypeProportions const& get_genotype_amounts() const { return m_genotype_amounts ; }
+		GenotypeProportions get_rounded_genotype_amounts() const ;
 		GenotypeProportions get_mean_genotype_proportions() const { return m_genotype_amounts / m_genotype_amounts.sum() ; }
 		AlleleProportions get_allele_amounts() const {
 			return AlleleProportions( 	2.0 * m_genotype_amounts.AA() + m_genotype_amounts.AB(),

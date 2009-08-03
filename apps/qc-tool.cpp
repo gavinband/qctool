@@ -175,6 +175,8 @@ public:
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
 		options [ "-diagnose-sample-filter" ]
 			.set_description( "Print diagnostic information about each filtered out sample." ) ;
+		options [ "-diagnose-snp-filter" ]
+			.set_description( "Print diagnostic information about each filtered out snp." ) ;
 
 		options.option_excludes_group( "-snp-stats", "SNP filtering options" ) ;
 		options.option_excludes_group( "-sample-stats", "Sample filtering options" ) ;
@@ -182,8 +184,7 @@ public:
 
 	GenSelectProcessor( OptionProcessor const& options )
 		: m_cout( std::cout.rdbuf() ),
-		  m_options( options ),
-		  m_verbose_message_writer( m_cout )
+		  m_options( options )
 	{
 		write_start_banner( m_cout ) ;
 		setup() ;
@@ -397,8 +398,9 @@ private:
 	}
 
 	void process_other_options() {
-		m_diagnose_sample_filter = m_options.check_if_option_was_supplied( "-diagnose-sample-filter" ) ;
 		m_ignore_warnings = m_options.check_if_option_was_supplied( "-force" ) ;
+		m_diagnose_sample_filter = m_options.check_if_option_was_supplied( "-diagnose-sample-filter" ) ;
+		m_diagnose_snp_filter = m_options.check_if_option_was_supplied( "-diagnose-snp-filter" ) ;
 	}
 	
 public:
@@ -464,6 +466,7 @@ public:
 				}
 				if( m_ignore_warnings ) {
 					oStream << "!! Warnings were encountered, but proceeding anyway as -force was supplied.\n" ;
+					oStream << "\n" << std::string( 72, '=' ) << "\n\n" ;
 				}
 				else {
 					oStream << "!! Warnings were encountered.  To proceed anyway, please run again with the -force option.\n" ;
@@ -633,13 +636,14 @@ private:
 		}
 		m_cout << "\n" ;
 		assert( number_of_snps_processed = m_total_number_of_snps ) ;
-		std::cerr << "\nProcessed GEN file(s) (" << m_total_number_of_snps << " rows) in " << timer.elapsed() << " seconds.\n" ;
+		std::cerr << "Processed GEN file(s) (" << m_total_number_of_snps << " rows) in "
+			<< std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
 	
-		m_cout << "Post-processing (updating file header, compression)..." << std::flush ;
+		m_cout << "Post-processing..." << std::flush ;
 		timer.restart() ;
 		// Close the output gen file(s) now
 		close_gen_row_sink() ;
-		std::cerr << " (" << timer.elapsed() << "s)\n" ;
+		std::cerr << " (" << std::fixed << std::setprecision(1) << timer.elapsed() << "s)\n" ;
 	}
 
 	bool read_gen_row( GenRow& row ) {
@@ -688,7 +692,7 @@ private:
 			(*m_sample_row_sink) << sample_row ;
 		}
 
-		std::cerr << "Processed sample file (" << m_sample_rows.size() << " rows) in " << timer.elapsed() << " seconds.\n" ;
+		std::cerr << "Processed " << m_sample_rows.size() << " samples in " << std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
 	}
 
 	void apply_sample_filter() {
@@ -727,10 +731,12 @@ private:
 
 	void process_gen_row( GenRow const& row, std::size_t row_number ) {
 		m_row_statistics.process( row ) ;
-		m_row_statistics.round_genotype_amounts() ;
 		if( m_snp_filter->check_if_satisfied( m_row_statistics )) {
 			output_gen_row( row ) ;
 			output_gen_row_stats( m_row_statistics, row_number ) ;
+		}
+		else if( m_diagnose_snp_filter ) {
+			print_snp_filter_diagnostics( m_row_statistics, row_number ) ;
 		}
 	}
 
@@ -746,6 +752,22 @@ private:
 					<< m_row_statistics << "\n" ;
 			}
 		}
+	}
+
+	void print_snp_filter_diagnostics( GenRowStatistics const& row_statistics, std::size_t const row_index ) {
+		m_cout
+			<< "\rFiltered out snp #" << row_index << " (" << row_statistics.row().SNPID() << " " << row_statistics.row().RSID() << " " << row_statistics.row().SNP_position() << ")"
+			<< " because it does not satisfy " ;
+		for( std::size_t i = 0, failed_condition_count = 0; i < m_snp_filter->number_of_subconditions() ; ++i ) {
+			if( !m_snp_filter->subcondition(i).check_if_satisfied( row_statistics )) {
+				if( failed_condition_count > 0 ) {
+					m_cout << " or " ;
+				}
+				m_cout << "\"" << m_snp_filter->subcondition(i) << "\"" ;
+				++failed_condition_count ;
+			}
+		}
+		m_cout << ".\n" ;
 	}
 
 	void accumulate_per_column_amounts( GenRow& row, std::vector< GenotypeProportions >& per_column_amounts ) {
@@ -803,12 +825,11 @@ private:
 	std::vector< std::string > m_warnings ;
 	std::vector< std::string > m_errors ;
 	
-	VerboseMessageWriter m_verbose_message_writer ;
-	
 	std::vector< SampleRow > m_sample_rows ;
 	
 	bool m_ignore_warnings ;
 	bool m_diagnose_sample_filter ;
+	bool m_diagnose_snp_filter ;
 } ;
 
 int main( int argc, char** argv ) {
