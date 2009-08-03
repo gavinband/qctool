@@ -115,7 +115,6 @@ def build( bld ):
 			'src/GenotypeAssayBasicStatistics.cpp',
 			'src/GenotypeAssayStatisticArithmetic.cpp',
 			'src/GenotypeAssayStatisticFactory.cpp',
-			'src/GenotypeAssayStatisticInRange.cpp',
 			'src/GenotypeAssayStatistics.cpp',
 			'src/GenotypeProportions.cpp',
 			'src/HardyWeinbergExactTestStatistic.cpp',
