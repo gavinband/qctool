@@ -417,7 +417,7 @@ public:
 	void write_end_banner( std::ostream& oStream ) const {
 		oStream << "\nThank you for using qc-tool.\n" ;
 	}
-	
+		
 	void write_preamble( std::ostream& oStream ) const {
 		oStream << std::string( 72, '=' ) << "\n\n" ;
 		try {
@@ -608,10 +608,10 @@ private:
 	}
 
 	void process_gen_rows() {
-		m_cout << "Processing SNPs...\n" ;
-		Timer timer ;
 		backup_file_if_necessary( m_gen_output_filename ) ;
 		backup_file_if_necessary( m_gen_statistic_filename ) ;
+		m_cout << "Processing SNPs...\n" ;
+		Timer timer ;
 		open_gen_row_sink() ;
 		open_gen_stats_file() ;
 
@@ -620,13 +620,13 @@ private:
 			m_row_statistics.format_column_headers( *genStatisticOutputFile ) << "\n";
 		}
 
-		double last_time = -1 ;
 		InternalStorageGenRow row ;
-		row.set_number_of_samples( m_number_of_samples_from_gen_file ) ;
+		double last_time = -1 ;
+		std::size_t number_of_filtered_in_snps = 0 ;
 		std::size_t number_of_snps_processed = 0 ;
-		for( ; read_gen_row( row ); row.set_number_of_samples( m_number_of_samples_from_gen_file )) {
+		for( row.set_number_of_samples( m_number_of_samples_from_gen_file ) ; read_gen_row( row ); row.set_number_of_samples( m_number_of_samples_from_gen_file )) {
 			preprocess_gen_row( row ) ;
-			process_gen_row( row, ++number_of_snps_processed ) ;
+			process_gen_row( row, ++number_of_snps_processed, number_of_filtered_in_snps ) ;
 			accumulate_per_column_amounts( row, m_per_column_amounts ) ;
 			double time_now = timer.elapsed() ;
 			if( (time_now - last_time > 1.0) || (number_of_snps_processed == m_total_number_of_snps) ) {
@@ -643,7 +643,9 @@ private:
 		assert( number_of_snps_processed = m_total_number_of_snps ) ;
 		std::cerr << "Processed " << m_total_number_of_snps << " SNPs in "
 			<< std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
-	
+		if( m_snp_filter->number_of_subconditions() > 0 ) {
+			std::cerr << "(" << number_of_filtered_in_snps << " of " << m_total_number_of_snps << " SNPs passed the filter.)\n" ;
+		}
 		m_cout << "Post-processing..." << std::flush ;
 		timer.restart() ;
 		// Close the output gen file(s) now
@@ -700,7 +702,10 @@ private:
 			(*m_sample_row_sink) << sample_row ;
 		}
 
-		std::cerr << "Processed " << m_sample_rows.size() << " samples in " << std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
+		m_cout << "Processed " << m_number_of_samples_from_gen_file << " samples in " << std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
+		if( m_sample_filter->number_of_subconditions() > 0 ) {
+			m_cout << "(" << m_sample_rows.size() << " of " << m_number_of_samples_from_gen_file << " samples passed the filter.)\n" ;
+		}
 	}
 
 	std::string backup_file_if_necessary( std::string const& filename ) {
@@ -754,9 +759,10 @@ private:
 		m_cout << ".\n" ;
 	}
 
-	void process_gen_row( GenRow const& row, std::size_t row_number ) {
+	void process_gen_row( GenRow const& row, std::size_t row_number, std::size_t number_of_filtered_in_snps ) {
 		m_row_statistics.process( row ) ;
 		if( m_snp_filter->check_if_satisfied( m_row_statistics )) {
+			++number_of_filtered_in_snps ;
 			output_gen_row( row ) ;
 			output_gen_row_stats( m_row_statistics, row_number ) ;
 		}
