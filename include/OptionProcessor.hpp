@@ -42,6 +42,25 @@ struct OptionProcessorHelpRequestedException: public std::exception {
 	char const* what() const throw() { return "OptionProcessorHelpRequestedException" ; }
 } ;
 
+struct OptionProcessorMutuallyExclusiveOptionsSuppliedException: public std::exception {
+	OptionProcessorMutuallyExclusiveOptionsSuppliedException( std::string const& option1, std::string const& option2 )
+	: m_option1( option1 ),
+	m_option2( option2 )
+	{}
+	
+	~OptionProcessorMutuallyExclusiveOptionsSuppliedException() throw() {}
+
+	char const* what() const throw() { return "OptionProcessorMutuallyExclusiveOptionsSuppliedException" ; }
+
+	std::string const& first_option() const { return m_option1 ; }
+	std::string const& second_option() const { return m_option2 ; }
+
+private:
+	
+	std::string m_option1 ;
+	std::string m_option2 ;
+} ;
+
 class OptionProcessor {
 		typedef std::map< std::string, OptionDefinition > OptionDefinitions ;
 		typedef std::map< std::string, std::vector< std::string > > OptionValues ; 
@@ -57,6 +76,9 @@ class OptionProcessor {
 
 		void declare_group( std::string const& ) ;
 		void set_help_option( std::string const& help_option_name ) { m_help_option_name = help_option_name ; }
+
+		void option_excludes( std::string const& excluding_option, std::string const& excluded_option ) ;
+		void option_excludes_group( std::string const& excluding_option, std::string const& excluded_option_group ) ;
 
 		// Parse the options from argv, performing all needed checks.
 		void process( int argc, char** argv ) ;
@@ -98,7 +120,8 @@ class OptionProcessor {
 		bool try_to_parse_named_option_and_values( int argc, char** argv, int& i ) ;
 		bool try_to_parse_positional_option( int argc, char** argv, int& i ) ;
 		void process_unknown_options() ;
-		void check_required_options_are_supplied() ;
+		void check_required_options_are_supplied() const ;
+		void check_mutually_exclusive_options_are_not_supplied() const ;
 		void preprocess_option_values() ;
 		void check_option_values() ;
 		std::string get_default_value( std::string const& arg ) const ;
@@ -115,6 +138,7 @@ class OptionProcessor {
 		std::map< std::string, std::set< std::string > > m_option_groups ;
 		std::vector< std::string > m_option_group_names ;
 		std::string m_help_option_name ;
+		std::map< std::string, std::set< std::string > > m_option_exclusions ;
 } ;
 
 

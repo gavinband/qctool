@@ -1,31 +1,23 @@
-gen-tools TODO LIST 27/07/2009
+gen-tools TODO LIST 31/07/2009
 
 Done?	Description
 -----   -----------
+		qc-tool: Verify input sample file has needed statistics.
+*		qc-tool: Don't allow filtering and sample file writing at the same time.
+*		qc-tool: Support overwriting sample file with warning.
+		qc-tool: Implement full check that full set of chromosome files has been supplied for --sample-stats option.
+		qc-tool: Make files come in numerical order if wildcard is used, a la gen-compare.
+		genfile: port range-based probability setters as in impute branch.
+		OptionProcessor: format option descriptions with line-wrapping.
+		OptionProcessor: Fully support positional options.
 *		OptionProcessor: options should be grouped for display purposes.
 *		OptionProcessor: format option descriptions better.
-		OptionProcessor: format option descriptions with line-wrapping.
 *		gen-compare: Make files come in numerical order if wildcard is used.
-		OptionProcessor: Support positional options.
-
-gen-tools TODO LIST 16/07/2009
-
-Done?	Description
------   -----------
-		Use of boost::function in read_snp() does lead to a performance decrease for bgen files.
-			This should improve if probability getters can be called fewer times, e.g. with a range
-			of values.  Do this!
-		(This is done in impute branch of genfile.)
-
-*		Bug: currently it's possible to pass in a non-gen file to a --g option (I guess this is in GenFileSNPDataSource).
-			It seems to conclude it's a file with 0 snps in.  Make an error for this.
 
 gen-select TODO LIST 10/07/2009
 
 Done?	Description
 -----   -----------
-		gen-select: Implement full check that full set of chromosome files has been supplied for --sample-stats option.
-		gen-select: Support overwriting sample file (with warning and pause?)
 *		gen-convert: Support multiple output gen files numbered corresponding to the input files.
 
 gen-select TODO LIST 08/07/2009

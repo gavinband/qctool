@@ -94,11 +94,34 @@ void OptionProcessor::declare_group( std::string const& group ) {
 	m_current_group = group ;
 }
 
+void OptionProcessor::option_excludes( std::string const& excluding_option, std::string const& excluded_option ) {
+	assert( m_option_definitions.find( excluding_option ) != m_option_definitions.end() ) ;
+	assert( m_option_definitions.find( excluded_option ) != m_option_definitions.end() ) ;
+
+	m_option_exclusions[excluding_option].insert( excluded_option ) ;
+}
+
+
+void OptionProcessor::option_excludes_group( std::string const& excluding_option, std::string const& excluded_option_group ) {
+	assert( m_option_definitions.find( excluding_option ) != m_option_definitions.end() ) ;
+	std::map< std::string, std::set< std::string > >::const_iterator
+		option_group_i = m_option_groups.find( excluded_option_group ) ;
+	assert( option_group_i != m_option_groups.end() ) ;
+	std::set< std::string >::const_iterator
+		i = option_group_i->second.begin(),
+		end = option_group_i->second.end() ;
+
+	for( ; i != end; ++i ) {
+		option_excludes( excluding_option, *i ) ;
+	}
+}
+
 // Parse the options from argv, performing all needed checks.
 void OptionProcessor::process( int argc, char** argv ) {
 	// calculate_option_groups() ;
 	parse_options( argc, argv ) ;
 	check_required_options_are_supplied() ;
+	check_mutually_exclusive_options_are_not_supplied() ;
 	preprocess_option_values() ;
 	check_option_values() ;
 }
@@ -185,7 +208,7 @@ void OptionProcessor::process_unknown_options() {
 }
 
 
-void OptionProcessor::check_required_options_are_supplied() {
+void OptionProcessor::check_required_options_are_supplied() const {
 	std::map< std::string, OptionDefinition >::const_iterator
 		defn_i = m_option_definitions.begin(), 
 		defn_end = m_option_definitions.end() ;
@@ -196,6 +219,26 @@ void OptionProcessor::check_required_options_are_supplied() {
 		}
 	}
 }
+
+void OptionProcessor::check_mutually_exclusive_options_are_not_supplied() const {
+	std::map< std::string, std::set< std::string > > ::const_iterator
+		i = m_option_exclusions.begin(),
+		end_i = m_option_exclusions.end() ;
+
+	for( ; i != end_i ; ++i ) {
+		if( check_if_option_was_supplied( i->first )) {
+			std::set< std::string >::const_iterator
+				j = i->second.begin(),
+				end_j = i->second.end() ;
+			for( ; j != end_j ; ++j ) {
+				if( check_if_option_was_supplied( *j )) {
+					throw OptionProcessorMutuallyExclusiveOptionsSuppliedException( i->first, *j ) ;
+				}
+			}
+		}
+	}
+}
+
 
 void OptionProcessor::preprocess_option_values() {
 	OptionValues::iterator

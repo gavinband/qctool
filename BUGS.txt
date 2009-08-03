@@ -7,7 +7,7 @@ Fixed?		Description:
 
 			Only round genotype probabilities where needed (just for HWE I think).
 
-			Sample file: incorrect samples output when filtering.
+*			Sample file: incorrect samples output when filtering.
 
 *			Due to change in GenRow implementations, need to reset genrow number of samples
 			before reading each row.
