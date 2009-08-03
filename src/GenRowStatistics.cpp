@@ -86,4 +86,23 @@ std::string GenRowAlleles::calculate_string_value( GenRowStatistics const& row_s
 	return ostr.str() ;
 }
 
+GenRowAllele::GenRowAllele( AlleleSelector const& selector ) : m_selector( selector ) {}
+
+double GenRowAllele::calculate_value( GenRowStatistics const& row_statistics ) const {
+	throw GenotypeAssayStatisticException( "GenRowAllele does not support double values." ) ;	
+}
+
+std::string GenRowAllele::calculate_string_value( GenRowStatistics const& row_statistics ) const {
+	AlleleProportions allele_proportions = row_statistics.get_mean_allele_proportions() ;
+	bool choose_first_allele
+		= ((m_selector == minor) && ( allele_proportions.A() <= allele_proportions.B()))
+		| ((m_selector == major) && ( allele_proportions.A() >= allele_proportions.B())) ;
+	if( choose_first_allele ) {
+		return std::string( std::size_t(1), row_statistics.row().first_allele() ) ;
+	}
+	else {
+		return std::string( std::size_t(1), row_statistics.row().second_allele() ) ;
+	}
+}
+
 

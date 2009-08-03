@@ -145,6 +145,12 @@ std::auto_ptr< GenotypeAssayStatistic > GenRowStatisticFactory::create_statistic
 	else if( statistic_spec == "alleles" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowAlleles ) ;
 	}
+	else if( statistic_spec == "minor_allele" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowAllele( GenRowAllele::minor ) ) ;
+	}
+	else if( statistic_spec == "major_allele" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowAllele( GenRowAllele::major ) ) ;
+	}
 	else {
 		return std::auto_ptr< GenotypeAssayStatistic >() ;
 	}

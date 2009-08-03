@@ -2,7 +2,7 @@ Known bugs for qc-tool
 ======================
 Fixed?		Description:
 ------		------------
-			-snp-stats output: alleles represent two columns so should have seperate 'allele_A' and 'allele_B' column headers.
+*			-snp-stats output: alleles represent two columns so should have seperate 'allele_A' and 'allele_B' column headers.
 			(otherwise R can't read it easily).
 
 			Only round genotype probabilities where needed (just for HWE I think).

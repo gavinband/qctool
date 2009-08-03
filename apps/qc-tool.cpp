@@ -127,7 +127,7 @@ public:
 		options[ "-snp-statistics" ]
 	        .set_description( "Comma-seperated list of statistics to calculate in genstat file." )
 			.set_takes_single_value()
-			.set_default_value( "SNPID, RSID, position, alleles, MAF, HWE, missing" ) ;
+			.set_default_value( "SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing" ) ;
 
 		options[ "-sample-statistics" ]
 	        .set_description( "Comma-seperated list of statistics to calculate in samplestat file." )

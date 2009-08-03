@@ -67,5 +67,17 @@ struct GenRowAlleles: public GenRowSpecificStatistic
 	std::string calculate_string_value( GenRowStatistics const& row_statistics ) const ;
 } ;
 
+// Return minor or major allele
+struct GenRowAllele: public GenRowSpecificStatistic
+{
+public:
+	enum AlleleSelector { minor = 0, major = 1 } ;
+	GenRowAllele( AlleleSelector const& selector ) ;
+	double calculate_value( GenRowStatistics const& row_statistics ) const ;
+	std::string calculate_string_value( GenRowStatistics const& row_statistics ) const ;
+private:	
+	AlleleSelector m_selector ;
+} ;
+
 #endif
 
