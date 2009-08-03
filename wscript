@@ -169,6 +169,7 @@ def build( bld ):
 	create_test( bld, 'test_hardy_weinberg_exact_test_statistic_against_SNPHWE' )
 	create_test( bld, 'test_maf' )
 	create_test( bld, 'test_missing' )
+	create_test( bld, 'test_heterozygosity' )
 	create_test( bld, 'test_statistic_arithmetic' )
 	create_test( bld, 'test_fileutil' )
 

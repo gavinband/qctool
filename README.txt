@@ -79,16 +79,17 @@ Given a collection of GEN files and a sample file, qc-tool can be used to:
 
 You can also filter samples or snps based on inclusion or exclusion lists, a la gtool's select mode.
 
+Other options:
+
+-force :	Proceed even if there are warnings.
+
 OPTIONS:
 
-file-related options:
-
--g  			: Path of gen file to input.
--s  			: Path of sample file to input.
--og  			: Path of gen file to output.
--os  			: Path of sample file to output.
--snp-stats  	: Output snp-wise statistics to the given file.
--sample-stats  : Output sample-wise statistics to the given file.
+Data file options:
+   -g <a>: Path of gen file to input.  Repeat this option, or use the numerical wildcard character '#', to specify several files.
+  -og <a>: Path of gen file to output
+  -os <a>: Path of sample file to output
+   -s <a>: Path of sample file to input
 
 Note that the -g option can take a filename containing a single '#' wildcard character.
 This character matches any number from 1 to 100.  For example, if you have 23 files representing
@@ -96,26 +97,30 @@ data from 23 human chromosomes, these might be number file1.gen, file2.gen, ...,
 
 > qc-tool -g file#.gen
 
+Statistic file options:
+  -sample-statistics <a>: Comma-seperated list of statistics to calculate in samplestat file.
+       -sample-stats <a>: Output sample-wise statistics to the given file.
+     -snp-statistics <a>: Comma-seperated list of statistics to calculate in genstat file.
+          -snp-stats <a>: Output snp-wise statistics to the given file.
 
-Sample-filtering options:
+SNP filtering options:
+               -hwe <a>: Filter out SNPs with HWE p-value less than or equal to the value specified.
+           -maf <a> <b>: Filter out SNPs whose minor allele frequency lies outside the interval [a,b].
+     -snp-excl-list <a>: Filter out SNPs whose SNP ID or RSID lies in the given file.
+     -snp-incl-list <a>: Filter out SNPs whose SNP ID or RSID does not lie in the given file.
+  -snp-interval <a> <b>: Filter out SNPs with position outside the interval [a,b].
+  -snp-missing-rate <a>: Filter out SNPs with missing data rate greater than or equal to the value specified.
 
--heterozygosity  		: Filter out samples with heterozygosity outside the inteval [a,b], where a and b are the first and second supplied values.
--sample-missing-rate  	: Filter out samples with missing data rate greater than the value specified.  Note that a full-genome set of GEN files must be supplied..
--sample-excl-list  	: Filter out samples whose sample ID lies in the given file (which must contain a list of whitespace-separated strings).
--sample-incl-list  	: Filter out samples whose sample ID does not lie in the given file (which must contain a list of whitespace-separated strings).
-
-Snp-filtering options:
-
--hwe  : Filter out SNPs with HWE exact test statistics less than or equal to the value specified..
--maf  : Filter out SNPs whose minor allele frequency lies outside the interval [a,b], where a and b are the first and second supplied values..
--snp-missing-rate  : Filter out SNPs with missing data rate greater than or equal to the value specified..
--snp-excl-list  : Filter out SNPs whose SNP ID or RSID lies in the given file (which must contain a list of whitespace-separated strings).
--snp-incl-list  : Filter out SNPs whose SNP ID or RSID does not lie in the given file (which must contain a list of whitespace-separated strings).
--snp-interval  : Filter out SNPs with position outside the interval [a,b], where a and b are the first and second supplied values.
+Sample filtering options:
+   -heterozygosity <a> <b>: Filter out samples with heterozygosity outside the inteval [a,b].
+     -sample-excl-list <a>: Filter out samples whose sample ID lies in the given file.
+     -sample-incl-list <a>: Filter out samples whose sample ID does not lie in the given file.
+  -sample-missing-rate <a>: Filter out samples with missing data rate greater than the value specified.
 
 Other options:
-
--force :	Proceed even if there are warnings.
+  -diagnose-sample-filter: Print diagnostic information about each filtered out sample.
+     -diagnose-snp-filter: Print diagnostic information about each filtered out snp.
+                   -force: Ignore warnings and proceed with requested action.
 
 Note: qc-tool will emit a warning and quit if it thinks the options supplied don't make sense.  To override this, use the -force option.
 
