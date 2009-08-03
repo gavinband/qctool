@@ -172,6 +172,7 @@ def build( bld ):
 	create_test( bld, 'test_heterozygosity' )
 	create_test( bld, 'test_alleles' )
 	create_test( bld, 'test_statistic_arithmetic' )
+	create_test( bld, 'test_row_conditions' )
 	create_test( bld, 'test_fileutil' )
 
 
