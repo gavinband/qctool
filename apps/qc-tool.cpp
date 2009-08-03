@@ -759,7 +759,7 @@ private:
 		m_cout << ".\n" ;
 	}
 
-	void process_gen_row( GenRow const& row, std::size_t row_number, std::size_t number_of_filtered_in_snps ) {
+	void process_gen_row( GenRow const& row, std::size_t row_number, std::size_t& number_of_filtered_in_snps ) {
 		m_row_statistics.process( row ) ;
 		if( m_snp_filter->check_if_satisfied( m_row_statistics )) {
 			++number_of_filtered_in_snps ;
