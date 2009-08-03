@@ -44,6 +44,7 @@ open_file_for_output( std::string const& filename ) ;
 
 bool exists( std::string const& filename ) ;
 bool is_regular( std::string const& filename ) ;
-
+void copy_file( std::string const& filename1, std::string const& filename2 ) ;
+void rename( std::string const& filename1, std::string const& filename2 ) ;
 #endif
 

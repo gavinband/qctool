@@ -143,3 +143,19 @@ bool is_regular( std::string const& filename ) {
 	assert(0) ;
 #endif
 }
+
+void copy_file( std::string const& filename1, std::string const& filename2 ) {
+#if HAVE_BOOST_FILESYSTEM
+	return BFS::copy_file( filename1, filename2 ) ;
+#else
+	assert(0) ;
+#endif
+}
+
+void rename( std::string const& filename1, std::string const& filename2 ) {
+#if HAVE_BOOST_FILESYSTEM
+	return BFS::rename( filename1, filename2 ) ;
+#else
+	assert(0) ;
+#endif
+}

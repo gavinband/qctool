@@ -61,3 +61,20 @@ std::vector< std::string > split_and_strip_discarding_empty_entries( std::string
 	return impl::split_and_strip( string_to_split, splitter, impl::eDiscardEmptyEntries, strip_chars ) ;	
 }
 
+std::string to_lower( std::string aString ) {
+	for( std::string::iterator i = aString.begin(); i != aString.end(); ++i ) {
+		if( *i >= 'A' && *i <= 'Z' ) {
+			*i += 40 ;
+		}
+	}
+	return aString ;
+}
+
+std::string to_upper( std::string aString ) {
+	for( std::string::iterator i = aString.begin(); i != aString.end(); ++i ) {
+		if( *i >= 'a' && *i <= 'z' ) {
+			*i -= 40 ;
+		}
+	}
+	return aString ;
+}

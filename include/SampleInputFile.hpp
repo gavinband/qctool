@@ -29,7 +29,7 @@ struct SampleInputFile: public ObjectSource< SampleRow >
 		// Read the column headings and column row.
 		std::string line ;
 		std::getline( *stream_ptr, line ) ;
-		m_column_headers = split_discarding_empty_entries( line, " " ) ;
+		m_column_headers = split_discarding_empty_entries( to_lower( line ), " " ) ;
 		std::getline( *stream_ptr, line ) ;
 		std::vector<std::string> column_type_vector = split_discarding_empty_entries( line, " " ) ;
 		m_column_types.resize( column_type_vector.size() ) ;

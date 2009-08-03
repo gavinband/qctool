@@ -232,6 +232,10 @@ private:
 		if( m_options.check_if_option_was_supplied( "-os" )) {
 			m_sample_output_filename = m_options.get_value< std::string >( "-os" ) ;
 		}
+		else if( m_options.check_if_option_was_supplied( "-sample-stats" )) {
+			// sample output file defaults to overwriting sample file.
+			m_sample_output_filename = m_sample_filename ;
+		}
 		if( m_options.check_if_option_was_supplied( "-oss" ) ) {
 			m_sample_statistic_filename = m_options.get_value< std::string >( "-oss" ) ;
 		}
@@ -473,7 +477,6 @@ public:
 					throw ProblemsWereEncountered() ;
 				}
 			}
-
 		}
 		catch (...) {
 			throw ;
@@ -573,7 +576,7 @@ private:
 	void check_for_warnings() {
 		if( (m_sample_output_filename != "" || m_sample_statistic_filename != "") && m_gen_filenames.size() != 23 ) {
 			m_warnings.push_back( "You are outputting a sample or sample statistic file, but the number of gen files is not 23.\n"
-			"   I suspect there is not the whole genomes' worth of data." ) ;
+			"   (I suspect there is not the whole genomes' worth of data?)" ) ;
 		}
 		if( m_sample_statistic_filename != "" && m_sample_filename == "" ) {
 			m_warnings.push_back( "You are outputting a sample statistic file, but no input sample file has been supplied.\n"
@@ -582,7 +585,7 @@ private:
 		if( m_gen_output_filename == "" && m_sample_output_filename == "" && m_gen_statistic_filename == "" && m_sample_statistic_filename == "" ) {
 			m_warnings.push_back( "You have not specified any output files.  This will produce only console output." ) ;
 		}
-		if( (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0) && (m_gen_statistic_filename == "") && (m_sample_statistic_filename == "") && (m_sample_output_filename == "")) {
+		if( (m_gen_output_filename != "") &&  (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0) && (m_gen_statistic_filename == "") && (m_sample_statistic_filename == "") && (m_sample_output_filename == "")) {
 			m_warnings.push_back(
 			"You have not specified any filters, nor any statistic output files,\n"
 			"not a sample output filename.  This will just copy input GEN files\n"
@@ -590,8 +593,8 @@ private:
 			"You can do this faster with gen-convert." ) ;
 		}
 		if( strings_are_nonempty_and_equal( m_sample_output_filename, m_sample_filename )) {
-			m_warnings.push_back( "Input sample file \"" + m_sample_filename + "\" would be overwritten with output sample file.\n"
-				"I advise choosing a different filename or taking a backup of the original file first." ) ;
+			m_warnings.push_back( "The input sample file \"" + m_sample_filename + "\" will be overwritten with the output sample file.\n"
+				"  (A backup will be taken, but if overwriting is not desired, please use the -os option to choose a different filename.)" ) ;
 		}
 	}
 	
@@ -605,8 +608,10 @@ private:
 	}
 
 	void process_gen_rows() {
-		m_cout << "Processing GEN file(s)...\n" ;
+		m_cout << "Processing SNPs...\n" ;
 		Timer timer ;
+		backup_file_if_necessary( m_gen_output_filename ) ;
+		backup_file_if_necessary( m_gen_statistic_filename ) ;
 		open_gen_row_sink() ;
 		open_gen_stats_file() ;
 
@@ -636,14 +641,14 @@ private:
 		}
 		m_cout << "\n" ;
 		assert( number_of_snps_processed = m_total_number_of_snps ) ;
-		std::cerr << "Processed GEN file(s) (" << m_total_number_of_snps << " rows) in "
+		std::cerr << "Processed " << m_total_number_of_snps << " SNPs in "
 			<< std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
 	
 		m_cout << "Post-processing..." << std::flush ;
 		timer.restart() ;
 		// Close the output gen file(s) now
 		close_gen_row_sink() ;
-		std::cerr << " (" << std::fixed << std::setprecision(1) << timer.elapsed() << "s)\n" ;
+		std::cerr << " (" << std::fixed << std::setprecision(1) << timer.elapsed() << "s)\n\n" ;
 	}
 
 	bool read_gen_row( GenRow& row ) {
@@ -668,11 +673,14 @@ private:
 	}
 
 	void process_sample_rows() {
+		m_cout << "Processing samples...\n" ;
 		Timer timer ;
 
 		apply_sample_filter() ;
 		assert( m_sample_rows.size() == m_per_column_amounts.size() ) ;
 
+		backup_file_if_necessary( m_sample_output_filename ) ;
+		backup_file_if_necessary( m_sample_statistic_filename ) ;
 		open_sample_row_sink() ;
 		open_sample_stats_file() ;
 
@@ -693,6 +701,23 @@ private:
 		}
 
 		std::cerr << "Processed " << m_sample_rows.size() << " samples in " << std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
+	}
+
+	std::string backup_file_if_necessary( std::string const& filename ) {
+		try {
+			if( filename != "" && exists( filename )) {
+				std::string backup_filename = tmpnam(0) ;
+				m_cout << "Backing up existing file \"" << filename << "\" as \"" << backup_filename << "\"...\n" ;
+				rename( filename, backup_filename ) ;
+				return backup_filename ;
+			}
+		}
+		catch( FileException const& e ) {
+			m_cout << "A problem occured backing up the file \"" << filename << "\".\n"
+				<< e.what() << ".\n" ;
+			throw ;
+		}
+		return "" ;
 	}
 
 	void apply_sample_filter() {
@@ -879,32 +904,44 @@ int main( int argc, char** argv ) {
 }
 
 
-bool check_if_string_is_a_number_from_1_to_100( std::string const& a_string ) {
-	return parse_integer_in_half_open_range( a_string, 1, 101 ) != 101 ;
+bool parse_number_from_1_to_100( std::string const& a_string, int* number ) {
+	int a_number = parse_integer_in_half_open_range( a_string, 1, 101 ) ;
+	if( a_number != 101 ) {
+		*number = a_number ;
+		std::cout << "number is " << a_number << ".\n" ;
+		return true ;
+	}
+	else {
+		return false ;
+	}
 }
-
 
 std::vector< std::string > expand_filename_wildcards( std::string const& option_name, std::vector< std::string > const& filenames ) {
 	std::vector< std::string > result ;
 	for( std::size_t i = 0; i < filenames.size(); ++i ) {
 		if( filenames[i].find( '#' ) != std::string::npos ) {
+			std::map< int, std::string > results_by_number ;
 			std::pair< std::vector< std::string >, std::vector< std::string > > expanded_filename = find_files_matching_path_with_wildcard( filenames[i], '#' ) ;
 			if( expanded_filename.first.empty() ) {
 				throw OptionValueInvalidException( option_name, filenames, "No file can be found matching filename \"" + filenames[i] + "\"." ) ;
 			}
 
 			// We only allow matches corresponding to numbers 1 to 100
-			for( std::size_t j = 0; j < expanded_filename.first.size(); ) {
-				if( !check_if_string_is_a_number_from_1_to_100( expanded_filename.second[j] )) {
-					expanded_filename.first.erase( expanded_filename.first.begin() + j ) ;
-					expanded_filename.second.erase( expanded_filename.second.begin() + j ) ;
-				}
-				else {
-					++j ;
+			for( std::size_t j = 0; j < expanded_filename.first.size(); ++j ) {
+				int number ;
+				if( parse_number_from_1_to_100( expanded_filename.second[j], &number )) {
+					results_by_number[ number ] = expanded_filename.first[j] ;
 				}
 			}
 
-			std::copy( expanded_filename.first.begin(), expanded_filename.first.end(), std::back_inserter( result )) ;
+			// Copy filenames over (in numerical order)
+			for(
+				std::map< int, std::string >::const_iterator result_i = results_by_number.begin() ;
+				result_i != results_by_number.end() ;
+				++result_i
+			) {
+				result.push_back( result_i->second ) ;
+			}
 		}
 		else {
 			result.push_back( filenames[i] ) ;
