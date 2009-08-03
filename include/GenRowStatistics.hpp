@@ -60,13 +60,6 @@ struct GenRowRSID: public GenRowSpecificStatistic
 	std::string calculate_string_value( GenRowStatistics const& row_statistics ) const ;
 } ;
 
-// Return alleles, ordered with minor allele first.
-struct GenRowAlleles: public GenRowSpecificStatistic
-{
-	double calculate_value( GenRowStatistics const& row_statistics ) const ;
-	std::string calculate_string_value( GenRowStatistics const& row_statistics ) const ;
-} ;
-
 // Return minor or major allele
 struct GenRowAllele: public GenRowSpecificStatistic
 {
