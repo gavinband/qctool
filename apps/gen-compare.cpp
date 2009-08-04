@@ -7,14 +7,14 @@
 #include <set>
 #include <fstream>
 #include <numeric>
+#include <boost/bind.hpp>
 #include "SampleRow.hpp"
 #include "AlleleProportions.hpp"
 #include "GToolException.hpp"
 #include "OptionProcessor.hpp"
 #include "Whitespace.hpp"
 #include "FileUtil.hpp"
-#include "GenRowSource.hpp"
-#include "GenRowSink.hpp"
+#include "GenRow.hpp"
 #include "SNPDataSource.hpp"
 #include "SNPDataSourceChain.hpp"
 #include "SNPDataSink.hpp"

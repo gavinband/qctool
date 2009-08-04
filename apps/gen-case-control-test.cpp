@@ -9,6 +9,8 @@
 #include <numeric>
 #include <boost/math/special_functions/beta.hpp>
 #include <boost/random/mersenne_twister.hpp>
+#include <boost/bind.hpp>
+
 #include <algorithm>
 
 #include "ExternalStorageGenRow.hpp"
@@ -18,8 +20,6 @@
 #include "OptionProcessor.hpp"
 #include "Whitespace.hpp"
 #include "FileUtil.hpp"
-#include "GenRowSource.hpp"
-#include "GenRowSink.hpp"
 #include "GenotypeAssayStatistics.hpp"
 #include "SNPDataSource.hpp"
 #include "SNPDataSourceChain.hpp"

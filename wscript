@@ -109,8 +109,6 @@ def build( bld ):
 			'src/GenRow.cpp',
 			'src/GenRowIO.cpp',
 			'src/ExternalStorageGenRow.cpp',
-			'src/GenRowSource.cpp',
-			'src/GenRowSink.cpp',
 			'src/GenRowStatistics.cpp',
 			'src/GenotypeAssayBasicStatistics.cpp',
 			'src/GenotypeAssayStatisticArithmetic.cpp',
