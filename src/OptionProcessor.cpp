@@ -6,7 +6,6 @@
 #include <iostream>
 #include <iomanip>
 #include <cassert>
-#include "GenRow.hpp"
 #include "GToolException.hpp"
 #include "OptionDefinition.hpp"
 #include "OptionProcessor.hpp"

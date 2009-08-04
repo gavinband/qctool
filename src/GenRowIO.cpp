@@ -10,6 +10,8 @@
 #include "GenRow.hpp"
 #include "Whitespace.hpp"
 #include "GenotypeProportions.hpp"
+#include "SNPDataSource.hpp"
+#include "SNPDataSink.hpp"
 
 
 double read_float( std::istream& aStream ) {
@@ -139,4 +141,29 @@ std::ostream& operator<<( std::ostream& aStream, GenRow const& aRow ) {
 	return aStream ;
 }
 
+genfile::SNPDataSource& GenRow::read_from_source( genfile::SNPDataSource& snp_data_source ) {
+	return snp_data_source.read_snp(
+		boost::bind< void >( &GenRow::set_number_of_samples, this, _1 ),
+		boost::bind< void >( &GenRow::set_SNPID, this, _1 ),
+		boost::bind< void >( &GenRow::set_RSID, this, _1 ),
+		boost::bind< void >( &GenRow::set_SNP_position, this, _1 ),
+		boost::bind< void >( &GenRow::set_allele1, this, _1 ),
+		boost::bind< void >( &GenRow::set_allele2, this, _1 ),
+		boost::bind< void >( &GenRow::set_genotype_probabilities, this, _1, _2, _3, _4 )
+	) ;
+}
+
+genfile::SNPDataSink& GenRow::write_to_sink( genfile::SNPDataSink& snp_data_sink ) const {
+	return snp_data_sink.write_snp (
+		number_of_samples(),
+		SNPID(),
+		RSID(),
+		SNP_position(),
+		first_allele(),
+		second_allele(),
+		boost::bind< double >( &GenRow::get_AA_probability, this, _1 ),
+		boost::bind< double >( &GenRow::get_AB_probability, this, _1 ),
+		boost::bind< double >( &GenRow::get_BB_probability, this, _1 )
+	) ;
+}
 

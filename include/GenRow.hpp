@@ -5,6 +5,8 @@
 #include <string>
 #include <iostream>
 #include "GenotypeProportions.hpp"
+#include "SNPDataSource.hpp"
+#include "SNPDataSink.hpp"
 
 class GenRowIdentifyingData
 {
@@ -54,6 +56,9 @@ class GenRow: public GenRowIdentifyingData
 		virtual genotype_proportion_iterator end_genotype_proportions() = 0 ;
 
 		virtual void add_genotype_proportions( GenotypeProportions const& ) = 0 ;
+
+		genfile::SNPDataSource& read_from_source( genfile::SNPDataSource& snp_data_source ) ;
+		genfile::SNPDataSink& write_to_sink( genfile::SNPDataSink& snp_data_sink ) const ;
 
 	public:
 
