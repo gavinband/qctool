@@ -41,7 +41,6 @@
 #include "string_utils.hpp"
 #include "parse_utils.hpp"
 #include "progress_bar.hpp"
-#include "VerboseMessageWriter.hpp"
 
 std::vector< std::string > expand_filename_wildcards( std::string const& option_name, std::vector< std::string > const& filenames ) ;
 void check_files_are_readable( std::string const& option_name, std::vector< std::string > const& filenames ) ;
@@ -84,7 +83,63 @@ struct ProblemsWereEncountered: public GenSelectProcessorException
 } ;
 
 
-struct GenSelectProcessor
+class OstreamTee: public std::ostream  {
+public:
+
+	void add_stream( std::string const& name, std::ostream& stream ) {
+		m_streams[ name ] = &stream ;
+	}
+
+	template< typename T >
+	friend OstreamTee& operator<<( OstreamTee & ostream_tee, T const& t ) ;
+
+	std::ostream& operator[]( std::string const& name ) { return *(m_streams.find( name )->second) ; }
+
+private:
+	std::map< std::string, std::ostream* > m_streams ;
+} ;
+
+template< typename T >
+OstreamTee& operator<<( OstreamTee& ostream_tee, T const& t ) {
+	for(
+		std::map< std::string, std::ostream* >::const_iterator i = ostream_tee.m_streams.begin() ;
+		i != ostream_tee.m_streams.end() ;
+		++i
+	) {
+		(*(i->second)) << t ;
+	}
+
+	return ostream_tee ;
+}
+
+
+class FileBackerUpper {
+public:
+	void backup_file_if_necessary( std::string const& filename ) {
+		std::string backup_filename ;
+		backup_filename = tmpnam(0) ;
+		backup_file_if_necessary( filename, backup_filename ) ;
+	}
+
+
+protected:
+	void backup_file_if_necessary( std::string const& filename, std::string const& backup_filename ) {
+		if( filename != "" && exists( filename )) {
+			rename( filename, backup_filename ) ;
+			m_backed_up_files[ filename ] = backup_filename ;
+		}
+	}
+	
+	std::map< std::string, std::string > const& backed_up_files() const { return m_backed_up_files ; }	
+
+private:
+
+	std::map< std::string, std::string > m_backed_up_files ;	
+} ;
+
+
+
+struct GenSelectProcessor: public FileBackerUpper
 {
 public:
 	static void declare_options( OptionProcessor & options ) {
@@ -174,19 +229,19 @@ public:
 		options.declare_group( "Other options" ) ;
 		options [ "-force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
-		options [ "-diagnose-sample-filter" ]
-			.set_description( "Print diagnostic information about each filtered out sample." ) ;
-		options [ "-diagnose-snp-filter" ]
-			.set_description( "Print diagnostic information about each filtered out snp." ) ;
+		options [ "-log" ]
+			.set_description( "Path of log file written by qc-tool.")
+			.set_takes_single_value()
+			.set_default_value( std::string( "qc-tool.log" )) ;
 
 		options.option_excludes_group( "-snp-stats", "SNP filtering options" ) ;
 		options.option_excludes_group( "-sample-stats", "Sample filtering options" ) ;
 	}
 
 	GenSelectProcessor( OptionProcessor const& options )
-		: m_cout( std::cout.rdbuf() ),
-		  m_options( options )
+		: m_options( options )
 	{
+		m_cout.add_stream( "screen", std::cout ) ;
 		write_start_banner( m_cout ) ;
 		setup() ;
 		preprocess() ;
@@ -200,6 +255,7 @@ public:
 private:
 	void setup() {
 		get_required_filenames() ;
+		open_log_file() ;
 		try {
 			open_m_gen_row_source() ;
 		}
@@ -243,6 +299,16 @@ private:
 		}
 	}
 
+	void open_log_file() {
+		m_log_filename = m_options.get_value< std::string >( "-log" ) ;
+		backup_file_if_necessary( m_log_filename ) ;
+		m_log.open( m_log_filename.c_str() ) ;
+		if( m_log.is_open() ) {
+			// Make all output go to the log as well.
+			m_cout.add_stream( "log", m_log ) ;
+		}
+	}
+	
 	void open_m_gen_row_source() {
 		Timer timer ;
 		
@@ -400,77 +466,75 @@ private:
 
 	void process_other_options() {
 		m_ignore_warnings = m_options.check_if_option_was_supplied( "-force" ) ;
-		m_diagnose_sample_filter = m_options.check_if_option_was_supplied( "-diagnose-sample-filter" ) ;
-		m_diagnose_snp_filter = m_options.check_if_option_was_supplied( "-diagnose-snp-filter" ) ;
 	}
 	
 public:
 	
-	void write_start_banner( std::ostream& oStream ) const {
-		oStream << "\nWelcome to qc-tool\n"
+	void write_start_banner( std::ostream& ) {
+		m_cout << "\nWelcome to qc-tool\n"
 		 	<< "(C) 2009 University of Oxford\n\n";
 	}
 
-	void write_end_banner( std::ostream& oStream ) const {
-		oStream << "\nThank you for using qc-tool.\n" ;
+	void write_end_banner( std::ostream& ) {
+		m_cout << "\nThank you for using qc-tool.\n" ;
 	}
 		
-	void write_preamble( std::ostream& oStream ) const {
-		oStream << std::string( 72, '=' ) << "\n\n" ;
+	void write_preamble() {
+		m_cout << std::string( 72, '=' ) << "\n\n" ;
 		try {
-			oStream << std::setw(30) << "Input GEN files:" ;
+			m_cout << std::setw(30) << "Input GEN files:" ;
 			for( std::size_t i = 0; i < m_gen_filenames.size(); ++i ) {
 				if( i > 0 ) {
-					oStream << std::string( 30, ' ' ) ;
+					m_cout << std::string( 30, ' ' ) ;
 				}
-				oStream << "  (" << std::setw(6) << m_gen_row_source->number_of_snps_in_source( i ) << " snps)  " ;
-				oStream << "\"" << m_gen_filenames[i] << "\"\n" ;
+				m_cout << "  (" << std::setw(6) << m_gen_row_source->number_of_snps_in_source( i ) << " snps)  " ;
+				m_cout << "\"" << m_gen_filenames[i] << "\"\n" ;
 			}
-			oStream << std::string( 30, ' ' ) << "  (total " << m_gen_row_source->total_number_of_snps() << " snps).\n" ;
-			oStream << std::setw(30) << "Output GEN files:"
+			m_cout << std::string( 30, ' ' ) << "  (total " << m_gen_row_source->total_number_of_snps() << " snps).\n" ;
+			m_cout << std::setw(30) << "Output GEN files:"
 				<< "  \"" << m_gen_output_filename << "\".\n" ;
-			oStream << std::setw(30) << "Input SAMPLE files:"
+			m_cout << std::setw(30) << "Input SAMPLE files:"
 				<< "  \"" << m_sample_filename << "\".\n" ;
-			oStream << std::setw(30) << "Output SAMPLE files:"
+			m_cout << std::setw(30) << "Output SAMPLE files:"
 				<< "  \"" << m_sample_output_filename << "\".\n" ;
-			oStream << std::setw(30) << "SNP statistic output file:"
+			m_cout << std::setw(30) << "SNP statistic output file:"
 				<< "  \"" << m_gen_statistic_filename << "\".\n" ;
-			oStream << std::setw(30) << "Sample statistic output file:"
+			m_cout << std::setw(30) << "Sample statistic output file:"
 				<< "  \"" << m_sample_statistic_filename << "\".\n" ;
-			oStream << std::setw(30) << "Sample filter:" 
+			m_cout << std::setw(30) << "Sample filter:" 
 				<< "  " << *m_sample_filter << ".\n" ;
-			oStream << std::setw(30) << "SNP filter:"
+			m_cout << std::setw(30) << "SNP filter:"
 				<< "  " << *m_snp_filter << ".\n" ;
-			oStream << "\n" ;
+			m_cout << "\n" ;
 
-			oStream << std::setw(30) << "# of samples in input files:"
+			m_cout << std::setw(30) << "# of samples in input files:"
 				<< "  " << m_gen_row_source->number_of_samples() << ".\n" ;
-			oStream << std::setw(30) << "# of samples after filtering:"
+			m_cout << std::setw(30) << "# of samples after filtering:"
 				<< "  " << m_gen_row_source->number_of_samples() - m_indices_of_filtered_out_samples.size()
 				<< " (" << m_indices_of_filtered_out_samples.size()
 				<< " filtered out).\n" ;
 			
-			oStream << "\n" << std::string( 72, '=' ) << "\n\n" ;
+			m_cout << "\n" << std::string( 72, '=' ) << "\n\n" ;
 
 			if( !m_errors.empty() ) {
 				for( std::size_t i = 0; i < m_errors.size(); ++i ) {
-					oStream << "!! ERROR: " << m_errors[i] << "\n\n" ;
+					m_cout << "!! ERROR: " << m_errors[i] << "\n\n" ;
 				}
-				oStream << "!! Please correct the above errors and re-run qc-tool.\n" ;
+				m_cout << "!! Please correct the above errors and re-run qc-tool.\n" ;
 				throw ProblemsWereEncountered() ;
 			}
 
 
 			if( !m_warnings.empty() ) {
 				for( std::size_t i = 0; i < m_warnings.size(); ++i ) {
-					oStream << "!! WARNING: " << m_warnings[i] << "\n\n" ;
+					m_cout << "!! WARNING: " << m_warnings[i] << "\n\n" ;
 				}
 				if( m_ignore_warnings ) {
-					oStream << "!! Warnings were encountered, but proceeding anyway as -force was supplied.\n" ;
-					oStream << "\n" << std::string( 72, '=' ) << "\n\n" ;
+					m_cout << "!! Warnings were encountered, but proceeding anyway as -force was supplied.\n" ;
+					m_cout << "\n" << std::string( 72, '=' ) << "\n\n" ;
 				}
 				else {
-					oStream << "!! Warnings were encountered.  To proceed anyway, please run again with the -force option.\n" ;
+					m_cout << "!! Warnings were encountered.  To proceed anyway, please run again with the -force option.\n" ;
 					throw ProblemsWereEncountered() ;
 				}
 			}
@@ -480,10 +544,25 @@ public:
 		}
 	}
 
-	void write_postamble( std::ostream& oStream ) const {
-		oStream << std::string( 72, '=' ) << "\n\n" ;
+	void write_postamble() {
+		m_cout << std::string( 72, '=' ) << "\n\n" ;
 		try {
-			oStream << std::setw(36) << "Number of SNPs in input file(s):"
+			if( backed_up_files().size() > 0 ) {
+				m_cout << std::setw(36) << "I took backups of the following files before overwriting:\n"
+					<< "  " ;
+				for(
+					std::map< std::string, std::string >::const_iterator i = backed_up_files().begin() ;
+					i != backed_up_files().end() ;
+					++i
+				) {
+					m_cout << "  \"" << i->first << "\" to \"" << i->second << "\"\n" ;
+				}
+
+				m_cout << "\n" ;
+				m_cout << std::string( 72, '=' ) << "\n\n" ;
+			}
+
+			m_cout << std::setw(36) << "Number of SNPs in input file(s):"
 				<< "  " << m_gen_row_source->total_number_of_snps() << ".\n" ;
 			if( m_snp_filter->number_of_subconditions() > 0 ) {
 				for(
@@ -491,17 +570,17 @@ public:
 					i != m_snp_filter_failure_counts.end(); 
 					++i
 				) {
-					oStream << std::setw(36) << ("...which failed \"" + to_string( m_snp_filter->subcondition( i->first )) + "\":")
+					m_cout << std::setw(36) << ("...which failed \"" + to_string( m_snp_filter->subcondition( i->first )) + "\":")
 						<< "  " << i->second << ".\n" ;
 				}
 
-				oStream << std::setw(36) << "(total failures:"
+				m_cout << std::setw(36) << "(total failures:"
 					<< "  " << m_gen_row_source->total_number_of_snps() - m_number_of_filtered_in_snps << ").\n" ;
 			}
 			
-			oStream << "\n" ;
+			m_cout << "\n" ;
 
-			oStream << std::setw(36) << "Number of samples in input file(s):"
+			m_cout << std::setw(36) << "Number of samples in input file(s):"
 				<< "  " << m_gen_row_source->number_of_samples() << ".\n" ;
 			if( m_sample_filter->number_of_subconditions() > 0 ) {
 				for(
@@ -509,35 +588,36 @@ public:
 					i != m_sample_filter_failure_counts.end(); 
 					++i
 				) {
-					oStream << std::setw(36) << ("...which failed \"" + to_string( m_sample_filter->subcondition( i->first )) + "\":")
+					m_cout << std::setw(36) << ("...which failed \"" + to_string( m_sample_filter->subcondition( i->first )) + "\":")
 						<< "  " << i->second << ".\n" ;
 				}
-				oStream << std::setw(36) << "(total failures:"
+				m_cout << std::setw(36) << "(total failures:"
 					<< "  " << m_gen_row_source->number_of_samples() - m_sample_rows.size() << ").\n" ;
 			}
 
-			oStream << "\n" ;
+			m_cout << "\n" ;
 
 			if( m_gen_output_filename != "" ) {
-				oStream << std::setw(30) << "Output GEN files:"
+				m_cout << std::setw(30) << "Output GEN files:"
 					<< "  \"" << m_gen_output_filename << "\".\n"
 					<< std::setw(30) << " " << "  (" << m_gen_row_sink->number_of_snps_written() << " SNPs)\n";
 			}
 			if( m_sample_output_filename != "" ) {
-				oStream << std::setw(30) << "Output SAMPLE files:"
+				m_cout << std::setw(30) << "Output SAMPLE files:"
 					<< "  \"" << m_sample_output_filename << "\".\n"
 					<< std::setw(30) << " " << "  (" << m_sample_rows.size() << " samples)\n" ;
 			}
 			if( m_gen_statistic_filename != "" ) {
-				oStream << std::setw(30) << "SNP statistic output file:"
+				m_cout << std::setw(30) << "SNP statistic output file:"
 					<< "  \"" << m_gen_statistic_filename << "\".\n" ;
 			}
 			if( m_sample_statistic_filename != "" ) {
-				oStream << std::setw(30) << "Sample statistic output file:"
+				m_cout << std::setw(30) << "Sample statistic output file:"
 					<< "  \"" << m_sample_statistic_filename << "\".\n" ;
 			}
 
-			oStream << std::string( 72, '=' ) << "\n\n" ;
+			m_cout[ "screen" ] << "More details are in the log file \"" << m_log_filename << "\".\n" ;
+			m_cout << std::string( 72, '=' ) << "\n\n" ;
 		}
 		catch (...) {
 			throw ;
@@ -551,7 +631,9 @@ public:
 
 	void process() {
 		try {
+			write_preamble() ;
 			unsafe_process() ;
+			write_postamble() ;
 		}
 		catch( StatisticNotFoundException const& e ) {
 			std::cerr << "!! ERROR: " << e << ".\n" ;
@@ -691,7 +773,7 @@ private:
 			accumulate_per_column_amounts( row, m_per_column_amounts ) ;
 			double time_now = timer.elapsed() ;
 			if( (time_now - last_time > 1.0) || (number_of_snps_processed == m_gen_row_source->total_number_of_snps()) ) {
-				m_cout
+				m_cout[ "screen" ]
 					<< "\r"
 					<< get_progress_bar( 30, static_cast< double >( number_of_snps_processed ) / m_gen_row_source->total_number_of_snps() )
 					<< " (" << number_of_snps_processed << " / " << m_gen_row_source->total_number_of_snps()
@@ -702,16 +784,16 @@ private:
 		}
 		m_cout << "\n" ;
 		assert( number_of_snps_processed = m_gen_row_source->total_number_of_snps() ) ;
-		std::cerr << "Processed " << m_gen_row_source->total_number_of_snps() << " SNPs in "
+		m_cout << "Processed " << m_gen_row_source->total_number_of_snps() << " SNPs in "
 			<< std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
 		if( m_snp_filter->number_of_subconditions() > 0 ) {
-			std::cerr << "(" << m_number_of_filtered_in_snps << " of " << m_gen_row_source->total_number_of_snps() << " SNPs passed the filter.)\n" ;
+			m_cout << "(" << m_number_of_filtered_in_snps << " of " << m_gen_row_source->total_number_of_snps() << " SNPs passed the filter.)\n" ;
 		}
 		m_cout << "Post-processing..." << std::flush ;
 		timer.restart() ;
 		// Close the output gen file(s) now
 		reset_gen_row_sink() ;
-		std::cerr << " (" << std::fixed << std::setprecision(1) << timer.elapsed() << "s)\n\n" ;
+		m_cout << " (" << std::fixed << std::setprecision(1) << timer.elapsed() << "s)\n\n" ;
 	}
 
 	bool read_gen_row( GenRow& row ) {
@@ -770,29 +852,10 @@ private:
 		m_cout << "\n" ;
 	}
 
-	std::string backup_file_if_necessary( std::string const& filename ) {
-		try {
-			if( filename != "" && exists( filename )) {
-				std::string backup_filename = tmpnam(0) ;
-				m_cout << "Backing up existing file \"" << filename << "\" as \"" << backup_filename << "\"...\n" ;
-				rename( filename, backup_filename ) ;
-				return backup_filename ;
-			}
-		}
-		catch( FileException const& e ) {
-			m_cout << "A problem occured backing up the file \"" << filename << "\".\n"
-				<< e.what() << ".\n" ;
-			throw ;
-		}
-		return "" ;
-	}
-
 	void apply_sample_filter() {
 		for( std::size_t pre_filter_i = 0, post_filter_i = 0; post_filter_i < m_sample_rows.size(); ++pre_filter_i ) {
 			if( sample_row_is_filtered_out( pre_filter_i ) ) {
-				if( m_diagnose_sample_filter ) {
-						do_sample_filter_diagnostics( m_sample_rows[ post_filter_i ], pre_filter_i ) ;
-				}
+				do_sample_filter_diagnostics( m_sample_rows[ post_filter_i ], pre_filter_i ) ;
 				m_sample_rows.erase( m_sample_rows.begin() + post_filter_i ) ;
 			}
 			else {
@@ -806,22 +869,21 @@ private:
 	}
 
 	void do_sample_filter_diagnostics( SampleRow const& sample_row, std::size_t const sample_row_index ) {
-		m_cout
+		std::ostream& log = m_cout["log"] ;
+		log
 			<< "Filtered out sample row " << sample_row_index << " (" << sample_row.ID1() << " " << sample_row.ID2() << ")"
 			<< " because it does not satisfy " ;
 		for( std::size_t i = 0, failed_condition_count = 0; i < m_sample_filter->number_of_subconditions() ; ++i ) {
 			if( !m_sample_filter->subcondition(i).check_if_satisfied( sample_row )) {
-
 				++m_sample_filter_failure_counts[ i ] ;
-
 				if( failed_condition_count > 0 ) {
-					m_cout << " or " ;
+					log << " or " ;
 				}
-				m_cout << "\"" << m_sample_filter->subcondition(i) << "\"" ;
+				log << "\"" << m_sample_filter->subcondition(i) << "\"" ;
 				++failed_condition_count ;
 			}
 		}
-		m_cout << ".\n" ;
+		log << ".\n" ;
 	}
 
 	void process_gen_row( GenRow const& row, std::size_t row_number, std::size_t& m_number_of_filtered_in_snps ) {
@@ -831,7 +893,7 @@ private:
 			output_gen_row( row ) ;
 			output_gen_row_stats( m_row_statistics, row_number ) ;
 		}
-		else if( m_diagnose_snp_filter ) {
+		else {
 			do_snp_filter_diagnostics( m_row_statistics, row_number ) ;
 		}
 	}
@@ -851,8 +913,9 @@ private:
 	}
 
 	void do_snp_filter_diagnostics( GenRowStatistics const& row_statistics, std::size_t const row_index ) {
-		m_cout
-			<< "\rFiltered out snp #" << row_index << " (" << row_statistics.row().SNPID() << " " << row_statistics.row().RSID() << " " << row_statistics.row().SNP_position() << ")"
+		std::ostream& log = m_cout["log"] ;
+		log
+			<< "Filtered out snp #" << row_index << " (" << row_statistics.row().SNPID() << " " << row_statistics.row().RSID() << " " << row_statistics.row().SNP_position() << ")"
 			<< " because it does not satisfy " ;
 		for( std::size_t i = 0, failed_condition_count = 0; i < m_snp_filter->number_of_subconditions() ; ++i ) {
 			if( !m_snp_filter->subcondition(i).check_if_satisfied( row_statistics )) {
@@ -860,13 +923,13 @@ private:
 				++m_snp_filter_failure_counts[ i ] ;
 
 				if( failed_condition_count > 0 ) {
-					m_cout << " or " ;
+					log << " or " ;
 				}
-				m_cout << "\"" << m_snp_filter->subcondition(i) << "\"" ;
+				log << "\"" << m_snp_filter->subcondition(i) << "\"" ;
 				++failed_condition_count ;
 			}
 		}
-		m_cout << ".\n" ;
+		log << ".\n" ;
 	}
 
 	void accumulate_per_column_amounts( GenRow& row, std::vector< GenotypeProportions >& per_column_amounts ) {
@@ -890,7 +953,9 @@ private:
 	
 private:
 	
-	std::ostream m_cout ;
+	std::string m_log_filename ;
+	std::ofstream m_log ;
+	OstreamTee m_cout ;
 	
 	std::auto_ptr< genfile::SNPDataSourceChain > m_gen_row_source ;
 	std::auto_ptr< genfile::SNPDataSinkChain > m_gen_row_sink ;
@@ -928,8 +993,6 @@ private:
 	std::vector< SampleRow > m_sample_rows ;
 	
 	bool m_ignore_warnings ;
-	bool m_diagnose_sample_filter ;
-	bool m_diagnose_snp_filter ;
 } ;
 
 int main( int argc, char** argv ) {
@@ -962,9 +1025,7 @@ int main( int argc, char** argv ) {
 
 	try	{
 		GenSelectProcessor processor( options ) ;
-		processor.write_preamble( std::cout ) ;
 		processor.process() ;
-		processor.write_postamble( std::cout ) ;
 	}
 	catch( ProblemsWereEncountered const& ) {
 		return -1 ;
