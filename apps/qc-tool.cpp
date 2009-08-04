@@ -30,9 +30,10 @@
 #include "ObjectSource.hpp"
 #include "SimpleFileObjectSource.hpp"
 #include "SimpleFileObjectSink.hpp"
-#include "SNPDataSource.hpp"
 #include "SNPDataSourceChain.hpp"
-#include "SNPDataSink.hpp"
+#include "SNPDataSinkChain.hpp"
+#include "TrivialSNPDataSink.hpp"
+#include "TrivialSNPDataSink.hpp"
 #include "SampleInputFile.hpp"
 #include "SampleOutputFile.hpp"
 #include "GenotypeAssayStatisticFactory.hpp"
@@ -41,8 +42,6 @@
 #include "parse_utils.hpp"
 #include "progress_bar.hpp"
 #include "VerboseMessageWriter.hpp"
-#include "SNPDataSinkChain.hpp"
-#include "SNPDataSourceChain.hpp"
 
 std::vector< std::string > expand_filename_wildcards( std::string const& option_name, std::vector< std::string > const& filenames ) ;
 void check_files_are_readable( std::string const& option_name, std::vector< std::string > const& filenames ) ;
@@ -272,7 +271,10 @@ private:
 
 	void open_gen_row_sink() {
 		reset_gen_row_sink() ;
-		if( m_gen_output_filename != "" ) {
+		if( m_gen_output_filename == "" ) {
+			m_gen_row_sink->add_sink( std::auto_ptr< genfile::SNPDataSink >( new genfile::TrivialSNPDataSink() )) ;
+		}
+		else {
 			m_gen_row_sink->add_sink( genfile::SNPDataSink::create( m_gen_output_filename )) ;
 		}
 	}
@@ -484,10 +486,17 @@ public:
 			oStream << std::setw(36) << "Number of SNPs in input file(s):"
 				<< "  " << m_gen_row_source->total_number_of_snps() << ".\n" ;
 			if( m_snp_filter->number_of_subconditions() > 0 ) {
-				oStream << std::setw(36) << "...which passed the filter:"
-					<< "  " << m_gen_row_sink->number_of_snps_written() << ".\n" ;
-				oStream << std::setw(36) << "...which failed the filter:"
-					<< "  " << m_gen_row_source->total_number_of_snps() - m_gen_row_sink->number_of_snps_written() << ".\n" ;
+				for(
+					std::map< std::size_t, std::size_t >::const_iterator i = m_snp_filter_failure_counts.begin() ;
+					i != m_snp_filter_failure_counts.end(); 
+					++i
+				) {
+					oStream << std::setw(36) << ("...which failed \"" + to_string( m_snp_filter->subcondition( i->first )) + "\":")
+						<< "  " << i->second << ".\n" ;
+				}
+
+				oStream << std::setw(36) << "(total failures:"
+					<< "  " << m_gen_row_source->total_number_of_snps() - m_number_of_filtered_in_snps << ").\n" ;
 			}
 			
 			oStream << "\n" ;
@@ -495,10 +504,16 @@ public:
 			oStream << std::setw(36) << "Number of samples in input file(s):"
 				<< "  " << m_gen_row_source->number_of_samples() << ".\n" ;
 			if( m_sample_filter->number_of_subconditions() > 0 ) {
-				oStream << std::setw(36) << "...which passed the filter:"
-					<< "  " << m_sample_rows.size() << ".\n" ;
-				oStream << std::setw(36) << "...which failed the filter:"
-					<< "  " << m_gen_row_source->number_of_samples() - m_sample_rows.size() << ".\n" ;
+				for(
+					std::map< std::size_t, std::size_t >::const_iterator i = m_sample_filter_failure_counts.begin() ;
+					i != m_sample_filter_failure_counts.end(); 
+					++i
+				) {
+					oStream << std::setw(36) << ("...which failed \"" + to_string( m_sample_filter->subcondition( i->first )) + "\":")
+						<< "  " << i->second << ".\n" ;
+				}
+				oStream << std::setw(36) << "(total failures:"
+					<< "  " << m_gen_row_source->number_of_samples() - m_sample_rows.size() << ").\n" ;
 			}
 
 			oStream << "\n" ;
@@ -668,11 +683,11 @@ private:
 
 		InternalStorageGenRow row ;
 		double last_time = -1 ;
-		std::size_t number_of_filtered_in_snps = 0 ;
+		m_number_of_filtered_in_snps = 0 ;
 		std::size_t number_of_snps_processed = 0 ;
 		for( row.set_number_of_samples( m_gen_row_source->number_of_samples() ) ; read_gen_row( row ); row.set_number_of_samples( m_gen_row_source->number_of_samples() )) {
 			preprocess_gen_row( row ) ;
-			process_gen_row( row, ++number_of_snps_processed, number_of_filtered_in_snps ) ;
+			process_gen_row( row, ++number_of_snps_processed, m_number_of_filtered_in_snps ) ;
 			accumulate_per_column_amounts( row, m_per_column_amounts ) ;
 			double time_now = timer.elapsed() ;
 			if( (time_now - last_time > 1.0) || (number_of_snps_processed == m_gen_row_source->total_number_of_snps()) ) {
@@ -690,7 +705,7 @@ private:
 		std::cerr << "Processed " << m_gen_row_source->total_number_of_snps() << " SNPs in "
 			<< std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
 		if( m_snp_filter->number_of_subconditions() > 0 ) {
-			std::cerr << "(" << number_of_filtered_in_snps << " of " << m_gen_row_source->total_number_of_snps() << " SNPs passed the filter.)\n" ;
+			std::cerr << "(" << m_number_of_filtered_in_snps << " of " << m_gen_row_source->total_number_of_snps() << " SNPs passed the filter.)\n" ;
 		}
 		m_cout << "Post-processing..." << std::flush ;
 		timer.restart() ;
@@ -797,7 +812,7 @@ private:
 		for( std::size_t i = 0, failed_condition_count = 0; i < m_sample_filter->number_of_subconditions() ; ++i ) {
 			if( !m_sample_filter->subcondition(i).check_if_satisfied( sample_row )) {
 
-				++m_sample_filter_failure_counts[ &m_sample_filter->subcondition(i) ] ;
+				++m_sample_filter_failure_counts[ i ] ;
 
 				if( failed_condition_count > 0 ) {
 					m_cout << " or " ;
@@ -809,10 +824,10 @@ private:
 		m_cout << ".\n" ;
 	}
 
-	void process_gen_row( GenRow const& row, std::size_t row_number, std::size_t& number_of_filtered_in_snps ) {
+	void process_gen_row( GenRow const& row, std::size_t row_number, std::size_t& m_number_of_filtered_in_snps ) {
 		m_row_statistics.process( row ) ;
 		if( m_snp_filter->check_if_satisfied( m_row_statistics )) {
-			++number_of_filtered_in_snps ;
+			++m_number_of_filtered_in_snps ;
 			output_gen_row( row ) ;
 			output_gen_row_stats( m_row_statistics, row_number ) ;
 		}
@@ -822,9 +837,7 @@ private:
 	}
 
 	void output_gen_row( GenRow const& row ) {
-		if( *m_gen_row_sink ) {
-			row.write_to_sink( *m_gen_row_sink ) ;
-		}
+		row.write_to_sink( *m_gen_row_sink ) ;
 	}
 
 	void output_gen_row_stats( GenotypeAssayStatistics const& row_statistics, std::size_t row_number ) {
@@ -844,7 +857,7 @@ private:
 		for( std::size_t i = 0, failed_condition_count = 0; i < m_snp_filter->number_of_subconditions() ; ++i ) {
 			if( !m_snp_filter->subcondition(i).check_if_satisfied( row_statistics )) {
 
-				++m_snp_filter_failure_counts[ &m_snp_filter->subcondition(i) ] ;
+				++m_snp_filter_failure_counts[ i ] ;
 
 				if( failed_condition_count > 0 ) {
 					m_cout << " or " ;
@@ -893,9 +906,10 @@ private:
 	std::auto_ptr< AndRowCondition > m_sample_filter ;
 	
 	std::size_t m_number_of_sample_file_rows ;
+	std::size_t m_number_of_filtered_in_snps ;
 	
-	std::map< RowCondition*, std::size_t > m_snp_filter_failure_counts ;
-	std::map< RowCondition*, std::size_t > m_sample_filter_failure_counts ;
+	std::map< std::size_t, std::size_t > m_snp_filter_failure_counts ;
+	std::map< std::size_t, std::size_t > m_sample_filter_failure_counts ;
 	
 	std::vector< GenotypeProportions > m_per_column_amounts ;
 
