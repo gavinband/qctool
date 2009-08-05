@@ -4,6 +4,8 @@ import UnitTest
 
 srcdir="."
 
+def get_version():
+	return "1.0_beta3"
 
 def set_options( opt ):
 	opt.tool_options( 'compiler_cxx' )
@@ -16,8 +18,7 @@ def configure( conf ):
 	conf.check_tool( 'compiler_cxx ')
 	
 	platform_specific_configure( conf )
-	check_for_boost_components( conf )
-	check_for_zlib( conf )
+	check_for_3rd_party_components( conf )
 	misc_configure( conf )
 
 	create_variant( conf, 'release' )
@@ -35,7 +36,7 @@ def configure_variant( conf, variant_name, cxxflags ):
 	conf.write_config_header( 'config.hpp' )
 	conf.write_config_header( 'genfile/config.hpp' )
 
-def check_for_3rd_part_components( conf ):
+def check_for_3rd_party_components( conf ):
 	check_for_boost_components( conf )
 	check_for_zlib( conf )
 
@@ -139,7 +140,7 @@ def build( bld ):
 	#---------------------
 	# programs
 	#---------------------
-	create_app( bld, name='qc-tool', uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile' )
+	create_app( bld, name='qc-tool', uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile', uselib = 'RLIB' )
 	create_app( bld, name='gen-convert', uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile' )
 	create_app( bld, name='gen-compare', uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile' )
 	create_app( bld, name='gen-case-control-test', uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile' )
@@ -171,7 +172,7 @@ def build( bld ):
 	create_test( bld, 'test_alleles' )
 	create_test( bld, 'test_statistic_arithmetic' )
 	create_test( bld, 'test_row_conditions' )
-	create_test( bld, 'test_fileutil' )
+	create_test( bld, 'test_wildcard' )
 
 
 def create_app( bld, name, uselib = '', uselib_local = '' ):

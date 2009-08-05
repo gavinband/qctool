@@ -2,16 +2,16 @@ gen-tools TODO LIST 04/08/2009
 
 Done?	Description
 -----   -----------
-		qc-tool: Send screen output to a log file.
-		qc-tool: Create post-processing information block.
-*		qc-tool: Verify input sample file has needed statistics.
-*		qc-tool: Don't allow filtering and sample file writing at the same time.
-*		qc-tool: Support overwriting sample file with warning.
 		qc-tool: Implement full check that full set of chromosome files has been supplied for --sample-stats option.
-*		qc-tool: Make files come in numerical order if wildcard is used, a la gen-compare.
 		genfile: port range-based probability setters as in impute branch.
 		OptionProcessor: format option descriptions with line-wrapping.
 		OptionProcessor: Fully support positional options.
+*		qc-tool: Send screen output to a log file.
+*		qc-tool: Create post-processing information block.
+*		qc-tool: Verify input sample file has needed statistics.
+*		qc-tool: Don't allow filtering and sample file writing at the same time.
+*		qc-tool: Support overwriting sample file with warning.
+*		qc-tool: Make files come in numerical order if wildcard is used, a la gen-compare.
 *		OptionProcessor: options should be grouped for display purposes.
 *		OptionProcessor: format option descriptions better.
 *		gen-compare: Make files come in numerical order if wildcard is used.

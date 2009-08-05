@@ -233,7 +233,10 @@ public:
 			.set_description( "Path of log file written by qc-tool.")
 			.set_takes_single_value()
 			.set_default_value( std::string( "qc-tool.log" )) ;
-
+		options [ "-plot" ]
+			.set_description( "Path of file to produce plots in.")
+			.set_takes_single_value() ;
+			
 		options.option_excludes_group( "-snp-stats", "SNP filtering options" ) ;
 		options.option_excludes_group( "-sample-stats", "Sample filtering options" ) ;
 	}
@@ -296,6 +299,9 @@ private:
 		}
 		if( m_options.check_if_option_was_supplied( "-oss" ) ) {
 			m_sample_statistic_filename = m_options.get_value< std::string >( "-oss" ) ;
+		}
+		if( m_options.check_if_option_was_supplied( "-plot" )) {
+			m_plot_filename = m_options.get_value< std::string >( "-plot" ) ;
 		}
 	}
 
@@ -377,6 +383,14 @@ private:
 		if( m_sample_statistic_filename != "" ) {
 			sampleStatisticOutputFile = open_file_for_output( m_sample_statistic_filename ) ;
 		}
+	}
+	
+	void reset_sample_statistics_file() {
+		sampleStatisticOutputFile.reset() ;
+	}
+
+	void reset_gen_statistics_file() {
+		genStatisticOutputFile.reset() ;
 	}
 
 	void construct_snp_statistics() {
@@ -548,14 +562,22 @@ public:
 		m_cout << std::string( 72, '=' ) << "\n\n" ;
 		try {
 			if( backed_up_files().size() > 0 ) {
-				m_cout << std::setw(36) << "I took backups of the following files before overwriting:\n"
-					<< "  " ;
+				m_cout << std::setw(36) << "I took backups of the following files before overwriting:\n" ;
+				std::size_t max_length = 0u ;
 				for(
 					std::map< std::string, std::string >::const_iterator i = backed_up_files().begin() ;
 					i != backed_up_files().end() ;
 					++i
 				) {
-					m_cout << "  \"" << i->first << "\" to \"" << i->second << "\"\n" ;
+					max_length = std::max( max_length, i->first.size() ) ;
+				}
+
+				for(
+					std::map< std::string, std::string >::const_iterator i = backed_up_files().begin() ;
+					i != backed_up_files().end() ;
+					++i
+				) {
+					m_cout << "  " << std::setw( max_length + 2 ) << std::left << ("\"" + i->first + "\"") << " to \"" << i->second << "\"\n" ;
 				}
 
 				m_cout << "\n" ;
@@ -598,25 +620,26 @@ public:
 			m_cout << "\n" ;
 
 			if( m_gen_output_filename != "" ) {
-				m_cout << std::setw(30) << "Output GEN files:"
+				m_cout << std::setw(36) << "Output GEN files:"
 					<< "  \"" << m_gen_output_filename << "\".\n"
-					<< std::setw(30) << " " << "  (" << m_gen_row_sink->number_of_snps_written() << " SNPs)\n";
+					<< std::setw(36) << " " << "  (" << m_gen_row_sink->number_of_snps_written() << " SNPs)\n";
 			}
 			if( m_sample_output_filename != "" ) {
-				m_cout << std::setw(30) << "Output SAMPLE files:"
-					<< "  \"" << m_sample_output_filename << "\".\n"
-					<< std::setw(30) << " " << "  (" << m_sample_rows.size() << " samples)\n" ;
+				m_cout << std::setw(36) << "Output SAMPLE files:"
+					<< "  \"" << m_sample_output_filename << "\""
+					<< "  (" << m_sample_rows.size() << " samples)\n" ;
 			}
 			if( m_gen_statistic_filename != "" ) {
-				m_cout << std::setw(30) << "SNP statistic output file:"
+				m_cout << std::setw(36) << "SNP statistic output file:"
 					<< "  \"" << m_gen_statistic_filename << "\".\n" ;
 			}
 			if( m_sample_statistic_filename != "" ) {
-				m_cout << std::setw(30) << "Sample statistic output file:"
+				m_cout << std::setw(36) << "Sample statistic output file:"
 					<< "  \"" << m_sample_statistic_filename << "\".\n" ;
 			}
 
-			m_cout[ "screen" ] << "More details are in the log file \"" << m_log_filename << "\".\n" ;
+			m_cout[ "screen" ] << std::setw( 36 ) << "\nMore details are in the log file:"
+				<< "  \"" << m_log_filename << "\".\n" ;
 			m_cout << std::string( 72, '=' ) << "\n\n" ;
 		}
 		catch (...) {
@@ -748,6 +771,7 @@ private:
 	void unsafe_process() {
 		process_gen_rows() ;
 		process_sample_rows() ;
+		construct_plots() ;
 	}
 
 	void process_gen_rows() {
@@ -951,6 +975,10 @@ private:
 		return m_sample_filename != "" ;
 	}
 	
+	void construct_plots() {
+		// not implemented.
+	}
+	
 private:
 	
 	std::string m_log_filename ;
@@ -986,7 +1014,8 @@ private:
 	std::string m_sample_output_filename ;
 	std::string m_gen_statistic_filename ;
 	std::string m_sample_statistic_filename ;
-	
+	std::string m_plot_filename ;
+
 	std::vector< std::string > m_warnings ;
 	std::vector< std::string > m_errors ;
 	
@@ -1039,44 +1068,24 @@ int main( int argc, char** argv ) {
     return 0 ;
 }
 
-
-bool parse_number_from_1_to_100( std::string const& a_string, int* number ) {
-	int a_number = parse_integer_in_half_open_range( a_string, 1, 101 ) ;
-	if( a_number != 101 ) {
-		*number = a_number ;
-		std::cout << "number is " << a_number << ".\n" ;
-		return true ;
-	}
-	else {
-		return false ;
-	}
-}
-
 std::vector< std::string > expand_filename_wildcards( std::string const& option_name, std::vector< std::string > const& filenames ) {
 	std::vector< std::string > result ;
 	for( std::size_t i = 0; i < filenames.size(); ++i ) {
 		if( filenames[i].find( '#' ) != std::string::npos ) {
-			std::map< int, std::string > results_by_number ;
-			std::pair< std::vector< std::string >, std::vector< std::string > > expanded_filename = find_files_matching_path_with_wildcard( filenames[i], '#' ) ;
-			if( expanded_filename.first.empty() ) {
-				throw OptionValueInvalidException( option_name, filenames, "No file can be found matching filename \"" + filenames[i] + "\"." ) ;
-			}
-
-			// We only allow matches corresponding to numbers 1 to 100
-			for( std::size_t j = 0; j < expanded_filename.first.size(); ++j ) {
-				int number ;
-				if( parse_number_from_1_to_100( expanded_filename.second[j], &number )) {
-					results_by_number[ number ] = expanded_filename.first[j] ;
+			std::vector< wildcard::FilenameMatch > matching_filenames
+				= wildcard::find_files_matching_path_with_integer_wildcard( filenames[i], '#', 1, 100 ) ;
+			if( matching_filenames.size() > 0 ) {
+				for(
+					std::vector< wildcard::FilenameMatch >::const_iterator j = matching_filenames.begin();
+					j != matching_filenames.end();
+					++j
+				) {
+				 	result.push_back( j->filename() ) ;
 				}
 			}
-
-			// Copy filenames over (in numerical order)
-			for(
-				std::map< int, std::string >::const_iterator result_i = results_by_number.begin() ;
-				result_i != results_by_number.end() ;
-				++result_i
-			) {
-				result.push_back( result_i->second ) ;
+			else {
+				// no matches, assume the filename wildcard is not a real wildcard.
+				result.push_back( filenames[i] ) ;
 			}
 		}
 		else {

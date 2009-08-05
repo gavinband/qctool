@@ -149,15 +149,10 @@ private:
 	void expand_and_add_filename( std::vector< std::string >* filename_list_ptr, std::string const& filename ) {
 		bool input_file_has_wildcard = ( filename.find( '#' ) != std::string::npos ) ;
 		if( input_file_has_wildcard ) {
-			std::pair< std::vector< std::string >, std::vector< std::string > >
-				expanded_filename = find_files_matching_path_with_wildcard( filename, '#' ) ;
-
-			// we only use matching filenames if the match is a number from 1 to 100
-			// For such filenames, we add the filename to our list for cases.
-			for( std::size_t j = 0; j < expanded_filename.first.size(); ++j ) {
-				if( check_if_string_is_a_number_from_1_to_100( expanded_filename.second[j] )) {
-					add_filename( filename_list_ptr, expanded_filename.first[j] ) ;
-				}
+			std::vector< wildcard::FilenameMatch >
+				matches = wildcard::find_files_matching_path_with_integer_wildcard( filename, '#', 1, 100 ) ;
+			for( std::size_t i = 0; i < matches.size(); ++i ) {
+				add_filename( filename_list_ptr, matches[i].filename() ) ;
 			}
 		}
 		else {

@@ -87,6 +87,8 @@ public:
 	}
 	
 private:
+	typedef std::vector< wildcard::FilenameMatch > GenFileList ;
+	
 	void setup() {
 		try {
 			get_required_filenames() ;
@@ -116,40 +118,23 @@ private:
 		expand_and_add_filename( &m_case_gen_filenames, case_filename ) ;
 	}
 
-	void expand_and_add_filename( std::map< int, std::string >* filename_list_ptr, std::string const& filename ) {
+	void expand_and_add_filename( GenFileList* filename_list_ptr, std::string const& filename ) {
 		bool input_file_has_wildcard = ( filename.find( '#' ) != std::string::npos ) ;
 		if( input_file_has_wildcard ) {
-			std::pair< std::vector< std::string >, std::vector< std::string > >
-				expanded_filename = find_files_matching_path_with_wildcard( filename, '#' ) ;
-
+			std::vector< wildcard::FilenameMatch > expanded_filename = wildcard::find_files_matching_path_with_integer_wildcard( filename, '#' ) ;
 			// we only use matching filenames if the match is a number from 1 to 100
 			// For such filenames, we add the filename to our list for cases.
-			for( std::size_t j = 0; j < expanded_filename.first.size(); ++j ) {
-				int file_number ;
-				if( parse_number_from_1_to_100( expanded_filename.second[j], &file_number )) {
-					add_filename( filename_list_ptr, file_number, expanded_filename.first[j] ) ;
-				}
+			for( std::size_t j = 0; j < expanded_filename.size(); ++j ) {
+				add_filename( filename_list_ptr, expanded_filename[j] ) ;
 			}
 		}
 		else {
-			add_filename( filename_list_ptr, 1, filename ) ;
+			add_filename( filename_list_ptr, filename ) ;
 		}
 	}
 
-	bool parse_number_from_1_to_100( std::string const& a_string, int* number ) {
-		int a_number = parse_integer_in_half_open_range( a_string, 1, 101 ) ;
-		if( a_number != 101 ) {
-			*number = a_number ;
-			std::cout << "number is " << a_number << ".\n" ;
-			return true ;
-		}
-		else {
-			return false ;
-		}
-	}
-
-	void add_filename( std::map< int, std::string >* filename_list_ptr, int file_number, std::string const& filename ) {
-		filename_list_ptr->insert( std::make_pair( file_number, filename )) ;
+	void add_filename( GenFileList* filename_list_ptr, wildcard::FilenameMatch const& match ) {
+		filename_list_ptr->push_back( match ) ;
 	}
 
 	void open_gen_files() {
@@ -162,13 +147,13 @@ private:
 		}
 	}
 	
-	void open_gen_files( std::map< int, std::string > const& filenames, std::auto_ptr< genfile::SNPDataSourceChain >& chain ) {
+	void open_gen_files( GenFileList const& filenames, std::auto_ptr< genfile::SNPDataSourceChain >& chain ) {
 		chain.reset( new genfile::SNPDataSourceChain() ) ;
-		std::map< int, std::string >::const_iterator
+		GenFileList::const_iterator
 			i = filenames.begin(),
 			end_i = filenames.end() ;
 		for( ; i != end_i ; ++i ) {
-			add_gen_file_to_chain( *chain, i->second ) ;
+			add_gen_file_to_chain( *chain, i->filename() ) ;
 		}
 	}
 
@@ -207,15 +192,15 @@ public:
 		}
 	}
 
-	void print_gen_files( std::ostream& oStream, std::map< int, std::string > const& filenames, std::auto_ptr< genfile::SNPDataSourceChain > const& chain ) const {
-		std::map< int, std::string >::const_iterator
+	void print_gen_files( std::ostream& oStream, GenFileList const& filenames, std::auto_ptr< genfile::SNPDataSourceChain > const& chain ) const {
+		GenFileList::const_iterator
 			i = filenames.begin(),
 			end_i = filenames.end() ;
 		std::size_t count = 0 ;
 		for( ; i != end_i ; ++i, ++count ) {
 			oStream
 				<< "  (" << std::setw(6) << chain->number_of_snps_in_source( count ) << " snps)  "
-				<< "\"" << std::setw(20) << i->second << "\"\n" ;
+				<< "\"" << std::setw(20) << i->filename() << "\"\n" ;
 		}
 		oStream << "  (total " << chain->total_number_of_snps() << " snps).\n\n" ;
 	}
@@ -384,8 +369,9 @@ private:
 
 	OptionProcessor const& m_options ;
 	
-	std::map< int, std::string > m_case_gen_filenames ;
-	std::map< int, std::string > m_control_gen_filenames ;
+	// typedef std::vector< wildcard::FilenameMatch > GenFileList ;
+	GenFileList m_case_gen_filenames ;
+	GenFileList m_control_gen_filenames ;
 
 	std::vector< std::string > m_errors ;
 } ;

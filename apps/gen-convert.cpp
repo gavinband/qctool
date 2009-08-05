@@ -51,6 +51,19 @@ struct GenConvertFileWildcardMismatchError: public GenConvertProcessorException
 	char const* what() const throw() { return "GenConvertFileWildcardMismatchError" ; }
 } ;
 
+// thrown to indicate that a specified GEN file could not be found.
+struct GenConvertNoGenFileMatchesFound: public GenConvertProcessorException
+{
+	GenConvertNoGenFileMatchesFound( std::string const& filename ): m_filename( filename ) {}
+	~GenConvertNoGenFileMatchesFound() throw() {}
+
+	char const* what() const throw() { return "GenConvertNoGenFileMatchesFound" ; }
+	
+	std::string const& filename() const { return m_filename ; }
+private:
+	std::string const m_filename ;
+} ;
+
 struct GenConvertProcessor
 {
 public:
@@ -113,8 +126,13 @@ private:
 			throw GenConvertFileCountMismatchError() ;
 		}
 
-		add_expanded_filenames( gen_filenames, gen_output_filenames ) ;
-
+		try {
+			add_expanded_filenames( gen_filenames, gen_output_filenames ) ;
+		}
+		catch( GenConvertNoGenFileMatchesFound const& e ) {
+			m_cout << "No files matching \"" << e.filename()  << "\" could be found.\n" ;
+			throw ;
+		}
 		// For each entry in m_gen_input_filenames, there should now be a corresponding (index, output filename)
 		// entry in m_gen_output_filenames.
 		assert( m_gen_input_filenames.size() == m_gen_output_filenames.size() ) ;
@@ -135,14 +153,18 @@ private:
 		}
 
 		if( input_file_has_wildcard ) {
-			std::pair< std::vector< std::string >, std::vector< std::string > >
-				expanded_input_filename = find_files_matching_path_with_wildcard( input_filename, '#' ) ;
-
-			// we only use matching filenames if the match is a number from 1 to 100
-			// For such filenames, we place a corresponding filename in the list of output files.
-			for( std::size_t j = 0; j < expanded_input_filename.first.size(); ++j ) {
-				if( check_if_string_is_a_number_from_1_to_100( expanded_input_filename.second[j] )) {
-					add_input_and_corresponding_output_filename( expanded_input_filename.first[j], output_filename, expanded_input_filename.second[j] ) ;
+			std::vector< wildcard::FilenameMatch >
+				matches = wildcard::find_files_matching_path_with_integer_wildcard( input_filename, '#' ) ;
+			if( matches.empty() ) {
+				throw GenConvertNoGenFileMatchesFound( input_filename ) ;
+			}
+			else {
+				for(
+					std::vector< wildcard::FilenameMatch >::const_iterator i = matches.begin() ;
+					i != matches.end() ; 
+					++i 
+				) {
+					add_input_and_corresponding_output_filename( i->filename(), output_filename, i->match() ) ;
 				}
 			}
 		}
