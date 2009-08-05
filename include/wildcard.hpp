@@ -22,6 +22,7 @@ namespace wildcard {
 	} ;
 
 	bool operator<( FilenameMatch const& left, FilenameMatch const& right ) ;
+	bool operator==( FilenameMatch const& left, FilenameMatch const& right ) ;
 
 	std::vector< FilenameMatch >
 	find_files_matching_path_with_wildcard(
@@ -36,6 +37,19 @@ namespace wildcard {
 		int match_lower_bound = 1,
 		int match_upper_bound = 100
 	) ;
+	
+	// Return a list of FilenameMatches consisting of filenames
+	// made from the given output_filename by substituting the matches
+	// from the given input filenames in place of the wildcard (if any)
+	// in the output filename.  The size of the returned list is always
+	// the same as the size of the input_filename_matches argument.
+	std::vector< FilenameMatch >
+	construct_corresponding_filenames(
+		std::vector< FilenameMatch > const& input_filename_matches,
+		std::string const& output_filename,
+		char wildcard_char
+	) ;
+	
 }
 
 #endif

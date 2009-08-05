@@ -42,6 +42,9 @@ namespace genfile {
 			++m_current_sink ;
 		}
 
+		SNPDataSink const& sink( std::size_t i ) const { return *m_sinks[ i ] ; }
+
+		std::size_t index_of_current_sink() const { return m_current_sink ; }
 
 	private:
 		void write_snp_impl(

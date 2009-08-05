@@ -14,6 +14,7 @@
 #include <fstream>
 #include <memory>
 #include <numeric>
+#include <boost/bind.hpp>
 
 #include "Timer.hpp"
 #include "GenRow.hpp"
@@ -41,47 +42,52 @@
 #include "string_utils.hpp"
 #include "parse_utils.hpp"
 #include "progress_bar.hpp"
+#include "FileBackupCreator.hpp"
+#include "InputToOutputFilenameMapper.hpp"
 
-std::vector< std::string > expand_filename_wildcards( std::string const& option_name, std::vector< std::string > const& filenames ) ;
 void check_files_are_readable( std::string const& option_name, std::vector< std::string > const& filenames ) ;
 void check_condition_spec( std::string const& option_name, std::string const& condition_spec ) ;
 
-
-struct GenSelectProcessorException: public GToolException
+struct QCToolProcessorException: public std::exception
 {
-	GenSelectProcessorException( std::string const& msg )
-		: GToolException( msg )
-	{}
+	char const* what() const throw() {return "QCToolProcessorException" ; }
 } ;
 
-struct GenAndSampleFileMismatchException: public GenSelectProcessorException
+struct GenAndSampleFileMismatchException: public QCToolProcessorException
 {
-	GenAndSampleFileMismatchException( std::string const& msg )
-		: GenSelectProcessorException( msg )
-	{}
+	char const* what() const throw() {return "GenAndSampleFileMismatchException" ; }
 } ;
 
-struct NumberOfSamplesMismatchException: public GenSelectProcessorException
+struct NumberOfSamplesMismatchException: public QCToolProcessorException
 {
-	NumberOfSamplesMismatchException()
-		: GenSelectProcessorException( "NumberOfSamplesMismatchException" )
-	{}
+	char const* what() const throw() {return "NumberOfSamplesMismatchException" ; }
 } ;
 
-struct SampleFileHasTooFewSamplesException: public GenSelectProcessorException
+struct SampleFileHasTooFewSamplesException: public QCToolProcessorException
 {
-	SampleFileHasTooFewSamplesException()
-		: GenSelectProcessorException( "SampleFileHasTooFewSamplesException" )
-	{}
+	char const* what() const throw() {return "SampleFileHasTooFewSamplesException" ; }
 } ;
 
-struct ProblemsWereEncountered: public GenSelectProcessorException
+struct ProblemsWereEncountered: public QCToolProcessorException
 {
-	ProblemsWereEncountered()
-		: GenSelectProcessorException( "ProblemsWereEncountered" )
-	{}
+	char const* what() const throw() {return "ProblemsWereEncountered" ; }
 } ;
 
+// Thrown to indicate that the numbers of input and output files specified on the command line differ.
+struct QCToolFileCountMismatchError: public QCToolProcessorException
+{
+	char const* what() const throw() {return "QCToolFileCountMismatchError" ; }
+} ;
+
+struct NoMatchingFileFound: public QCToolProcessorException
+{
+	NoMatchingFileFound( std::string const& filename ): m_filename( filename ) {}
+	~NoMatchingFileFound() throw() {}
+	char const* what() const throw() { return "NoMatchingFileFound" ; }
+	std::string const& filename() const { return m_filename ; }
+private:
+	std::string m_filename ;
+} ;
 
 class OstreamTee: public std::ostream  {
 public:
@@ -113,33 +119,7 @@ OstreamTee& operator<<( OstreamTee& ostream_tee, T const& t ) {
 }
 
 
-class FileBackerUpper {
-public:
-	void backup_file_if_necessary( std::string const& filename ) {
-		std::string backup_filename ;
-		backup_filename = tmpnam(0) ;
-		backup_file_if_necessary( filename, backup_filename ) ;
-	}
-
-
-protected:
-	void backup_file_if_necessary( std::string const& filename, std::string const& backup_filename ) {
-		if( filename != "" && exists( filename )) {
-			rename( filename, backup_filename ) ;
-			m_backed_up_files[ filename ] = backup_filename ;
-		}
-	}
-	
-	std::map< std::string, std::string > const& backed_up_files() const { return m_backed_up_files ; }	
-
-private:
-
-	std::map< std::string, std::string > m_backed_up_files ;	
-} ;
-
-
-
-struct GenSelectProcessor: public FileBackerUpper
+struct QCToolProcessor: public FileBackupCreator
 {
 public:
 	static void declare_options( OptionProcessor & options ) {
@@ -153,9 +133,7 @@ public:
 	        .set_description( "Path of gen file to input.  Repeat this option, or use the numerical wildcard character '#', to specify several files." )
 	        .set_is_required()
 			.set_takes_values()
-			.set_maximum_number_of_repeats( 100 )
-			.add_value_preprocessor( &expand_filename_wildcards )
-	        .add_value_checker( &check_files_are_readable ) ;
+			.set_maximum_number_of_repeats( 100 ) ;
 
 	    options[ "-s" ]
 	        .set_description( "Path of sample file to input" )
@@ -241,7 +219,7 @@ public:
 		options.option_excludes_group( "-sample-stats", "Sample filtering options" ) ;
 	}
 
-	GenSelectProcessor( OptionProcessor const& options )
+	QCToolProcessor( OptionProcessor const& options )
 		: m_options( options )
 	{
 		m_cout.add_stream( "screen", std::cout ) ;
@@ -250,7 +228,7 @@ public:
 		preprocess() ;
 	}
 
-	~GenSelectProcessor()
+	~QCToolProcessor()
 	{
 		write_end_banner( m_cout ) ;
 	}
@@ -266,7 +244,6 @@ private:
 			m_cout << "The GEN files specified did not all have the same sample size.\n" ;
 			throw ;
 		}
-		open_sample_row_source() ;
 		construct_snp_statistics() ;
 		construct_sample_statistics() ;
 		construct_snp_filter() ;
@@ -275,17 +252,10 @@ private:
 	}
 
 	void get_required_filenames() {
-		if( m_options.check_if_option_was_supplied( "-g" ) ) {
-			m_gen_filenames = m_options.get_values< std::string >( "-g" ) ;
-		}
+		get_gen_filenames() ;
+
 		if( m_options.check_if_option_was_supplied( "-s" ) ) {
 			m_sample_filename = m_options.get_value< std::string >( "-s" ) ;
-		}
-		if( m_options.check_if_option_was_supplied( "-og" ) ) {
-			m_gen_output_filename = m_options.get_value< std::string >( "-og" ) ;
-		}
-		if( m_options.check_if_option_was_supplied( "-snp-stats" ) ) {
-			m_gen_statistic_filename = m_options.get_value< std::string >( "-snp-stats" ) ;
 		}
 		if( m_options.check_if_option_was_supplied( "-sample-stats" ) ) {
 			m_sample_statistic_filename = m_options.get_value< std::string >( "-sample-stats" ) ;
@@ -305,6 +275,35 @@ private:
 		}
 	}
 
+	void get_gen_filenames() {
+		assert( m_options.check_if_option_was_supplied( "-g" )) ;
+		std::vector< std::string >
+			input_gen_filenames_supplied = m_options.get_values< std::string >( "-g" ),
+			output_gen_filenames_supplied( input_gen_filenames_supplied.size(), "" ),
+			output_snp_stats_filenames_supplied( input_gen_filenames_supplied.size(), "" ) ;
+
+		if( m_options.check_if_option_was_supplied( "-og" ) ) {
+			output_gen_filenames_supplied = m_options.get_values< std::string >( "-og" ) ;
+		}
+
+		if( m_options.check_if_option_was_supplied( "-snp-stats" ) ) {
+			output_snp_stats_filenames_supplied = m_options.get_values< std::string >( "-snp-stats" ) ;
+		}
+
+		if( output_gen_filenames_supplied.size() != input_gen_filenames_supplied.size() ) {
+			throw QCToolFileCountMismatchError() ;
+		}
+
+		if( output_snp_stats_filenames_supplied.size() != input_gen_filenames_supplied.size() ) {
+			throw QCToolFileCountMismatchError() ;
+		}
+
+		for( std::size_t i = 0; i < input_gen_filenames_supplied.size(); ++i ) {
+			m_gen_file_mapper.add_filename_pair( input_gen_filenames_supplied[i], output_gen_filenames_supplied[i] ) ;
+			m_snp_stats_file_mapper.add_filename_pair( input_gen_filenames_supplied[i], output_snp_stats_filenames_supplied[i] ) ;
+		}
+	}
+
 	void open_log_file() {
 		m_log_filename = m_options.get_value< std::string >( "-log" ) ;
 		backup_file_if_necessary( m_log_filename ) ;
@@ -319,11 +318,13 @@ private:
 		Timer timer ;
 		
 		std::auto_ptr< genfile::SNPDataSourceChain > chain( new genfile::SNPDataSourceChain() ) ;
-		for( std::size_t i = 0; i < m_gen_filenames.size(); ++i ) {
+		chain->set_moved_to_next_source_callback( boost::bind( &QCToolProcessor::move_to_next_output_file, this, _1 )) ;
+
+		for( std::size_t i = 0; i < m_gen_file_mapper.input_files().size(); ++i ) {
 			Timer file_timer ;
-			m_cout << "(Opening gen file \"" << m_gen_filenames[i] << "\"...)" << std::flush ;
+			m_cout << "(Opening gen file \"" << m_gen_file_mapper.input_files()[i] << "\"...)" << std::flush ;
 			try {
-				chain->add_source( genfile::SNPDataSource::create( m_gen_filenames[i] ) ) ;
+				chain->add_source( genfile::SNPDataSource::create( m_gen_file_mapper.input_files()[i] ) ) ;
 			}
 			catch ( genfile::FileHasTwoConsecutiveNewlinesError const& e ) {
 				std::cerr << "\n!!ERROR: a GEN file was specified having two consecutive newlines.\n"
@@ -337,30 +338,40 @@ private:
 		m_gen_row_source = chain ;
 
 		if( timer.elapsed() > 1.0 ) {
-			m_cout << "Opened " << m_gen_filenames.size() << " GEN files in " << timer.elapsed() << "s.\n" ;\
+			m_cout << "Opened " << m_gen_file_mapper.input_files().size() << " GEN files in " << timer.elapsed() << "s.\n" ;\
+		}
+	}
+
+	void move_to_next_output_file( std::size_t index ) {
+		if( index < m_gen_file_mapper.input_files().size() ) {
+			if( m_gen_file_mapper.output_filenames().size() > 0 ) {
+				if( m_gen_file_mapper.filename_corresponding_to( index ) != m_gen_row_sink->index_of_current_sink() ) {
+					m_gen_row_sink->move_to_next_sink() ;
+				}
+			}
+			
+			if( m_snp_stats_file_mapper.output_filenames().size() > 0 ) {
+				if( m_snp_stats_file_mapper.filename_corresponding_to( index ) != m_current_snp_stats_filename_index ) {
+					open_gen_stats_file( ++m_current_snp_stats_filename_index, m_row_statistics ) ;
+				}
+			}
 		}
 	}
 
 	void open_gen_row_sink() {
 		reset_gen_row_sink() ;
-		if( m_gen_output_filename == "" ) {
+		if( m_gen_file_mapper.output_filenames().size() == 0 ) {
 			m_gen_row_sink->add_sink( std::auto_ptr< genfile::SNPDataSink >( new genfile::TrivialSNPDataSink() )) ;
 		}
 		else {
-			m_gen_row_sink->add_sink( genfile::SNPDataSink::create( m_gen_output_filename )) ;
+			for( std::size_t i = 0; i < m_gen_file_mapper.output_filenames().size(); ++i ) {
+				m_gen_row_sink->add_sink( genfile::SNPDataSink::create( m_gen_file_mapper.output_filenames()[i] )) ;
+			}
 		}
 	}
 
 	void reset_gen_row_sink() {
 		m_gen_row_sink = std::auto_ptr< genfile::SNPDataSinkChain >( new genfile::SNPDataSinkChain() ) ;
-	}
-
-	void open_gen_stats_file() {
-		// Output GEN stats to std output if no file is supplied.
-		// genStatisticOutputFile = OUTPUT_FILE_PTR( new std::ostream( m_cout.rdbuf() )) ;
-		if( m_gen_statistic_filename != "" ) {
-			genStatisticOutputFile = open_file_for_output( m_gen_statistic_filename ) ;
-		}
 	}
 
 	void open_sample_row_source() {
@@ -496,25 +507,48 @@ public:
 	void write_preamble() {
 		m_cout << std::string( 72, '=' ) << "\n\n" ;
 		try {
-			m_cout << std::setw(30) << "Input GEN files:" ;
-			for( std::size_t i = 0; i < m_gen_filenames.size(); ++i ) {
+			m_cout << std::setw(30) << "Input SAMPLE file:"
+				<< "  \"" << m_sample_filename << "\".\n" ;
+			m_cout << std::setw(30) << "Output SAMPLE file:"
+				<< "  \"" << m_sample_output_filename << "\".\n" ;
+			m_cout << std::setw(30) << "Sample statistic output file:"
+				<< "  \"" << m_sample_statistic_filename << "\".\n" ;
+			m_cout << "\n" ;
+
+			m_cout << std::setw(30) << "Input GEN file(s):" ;
+			for( std::size_t i = 0; i < m_gen_file_mapper.input_files().size(); ++i ) {
 				if( i > 0 ) {
 					m_cout << std::string( 30, ' ' ) ;
 				}
 				m_cout << "  (" << std::setw(6) << m_gen_row_source->number_of_snps_in_source( i ) << " snps)  " ;
-				m_cout << "\"" << m_gen_filenames[i] << "\"\n" ;
+				m_cout << "\"" << m_gen_file_mapper.input_files()[i] << "\"" ;				
+				m_cout << "\n" ;
 			}
-			m_cout << std::string( 30, ' ' ) << "  (total " << m_gen_row_source->total_number_of_snps() << " snps).\n" ;
-			m_cout << std::setw(30) << "Output GEN files:"
-				<< "  \"" << m_gen_output_filename << "\".\n" ;
-			m_cout << std::setw(30) << "Input SAMPLE files:"
-				<< "  \"" << m_sample_filename << "\".\n" ;
-			m_cout << std::setw(30) << "Output SAMPLE files:"
-				<< "  \"" << m_sample_output_filename << "\".\n" ;
-			m_cout << std::setw(30) << "SNP statistic output file:"
-				<< "  \"" << m_gen_statistic_filename << "\".\n" ;
-			m_cout << std::setw(30) << "Sample statistic output file:"
-				<< "  \"" << m_sample_statistic_filename << "\".\n" ;
+			m_cout << std::string( 30, ' ' ) << "  (total " << m_gen_row_source->total_number_of_snps() << " snps in input).\n" ;
+			if( m_gen_file_mapper.input_files().size() > 1 ) {
+				m_cout << "\n" ;
+			}
+
+			m_cout << std::setw(30) << "Output GEN file(s):" ;
+			for( std::size_t i = 0; i < m_gen_file_mapper.output_filenames().size(); ++i ) {
+				if( i > 0 ) {
+					m_cout << std::string( 30, ' ' ) ;
+				}
+				m_cout << "  \"" << m_gen_file_mapper.output_filenames()[i] << "\"" ;				
+				m_cout << "\n" ;
+			}
+			if( m_gen_file_mapper.output_filenames().size() > 1 ) {
+				m_cout << "\n" ;
+			}
+			
+			m_cout << std::setw(30) << "SNP statistic output file(s):" ;
+			for( std::size_t i = 0; i < m_snp_stats_file_mapper.output_filenames().size(); ++i ) {
+				if( i > 0 ) {
+					m_cout << std::string( 30, ' ' ) ;
+				}
+				m_cout << "  \"" << m_snp_stats_file_mapper.output_filenames()[i] << "\"\n" ;
+			}
+			m_cout << "\n" ;
 			m_cout << std::setw(30) << "Sample filter:" 
 				<< "  " << *m_sample_filter << ".\n" ;
 			m_cout << std::setw(30) << "SNP filter:"
@@ -619,19 +653,32 @@ public:
 
 			m_cout << "\n" ;
 
-			if( m_gen_output_filename != "" ) {
-				m_cout << std::setw(36) << "Output GEN files:"
-					<< "  \"" << m_gen_output_filename << "\".\n"
-					<< std::setw(36) << " " << "  (" << m_gen_row_sink->number_of_snps_written() << " SNPs)\n";
+			if( m_gen_file_mapper.output_filenames().size() > 0 ) {
+				m_cout << std::setw(30) << "Output GEN files:" ;
+				for( std::size_t i = 0; i < m_gen_file_mapper.output_filenames().size(); ++i ) {
+					if( i > 0 ) {
+						m_cout << std::string( 30, ' ' ) ;
+					}
+					if( m_gen_row_sink.get() ) {
+						m_cout << "  (" << std::setw(6) << m_gen_row_sink->sink(i).number_of_snps_written() << " snps)  " ;
+					}
+					m_cout << "\"" << m_gen_file_mapper.input_files()[i] << "\"\n" ;
+				}
+				m_cout << std::string( 30, ' ' ) << "  (total " << m_gen_row_sink->number_of_snps_written() << " snps).\n" ;
 			}
 			if( m_sample_output_filename != "" ) {
 				m_cout << std::setw(36) << "Output SAMPLE files:"
 					<< "  \"" << m_sample_output_filename << "\""
 					<< "  (" << m_sample_rows.size() << " samples)\n" ;
 			}
-			if( m_gen_statistic_filename != "" ) {
-				m_cout << std::setw(36) << "SNP statistic output file:"
-					<< "  \"" << m_gen_statistic_filename << "\".\n" ;
+			if( m_snp_stats_file_mapper.output_filenames().size() > 0 ) {
+				m_cout << std::setw(30) << "SNP statistic output file(s):" ;
+				for( std::size_t i = 0; i < m_snp_stats_file_mapper.output_filenames().size(); ++i ) {
+					if( i > 0 ) {
+						m_cout << std::string( 30, ' ' ) ;
+					}
+					m_cout << "  \"" << m_snp_stats_file_mapper.output_filenames()[i] << "\"\n" ;
+				}
 			}
 			if( m_sample_statistic_filename != "" ) {
 				m_cout << std::setw(36) << "Sample statistic output file:"
@@ -648,6 +695,7 @@ public:
 	}
 
 	void preprocess() {
+		open_sample_row_source() ;
 		preprocess_sample_rows() ;
 		check_for_errors_and_warnings() ;
 	}
@@ -710,29 +758,41 @@ private:
 	}
 
 	void check_for_errors() {
-		for( std::size_t i = 0; i < m_gen_filenames.size(); ++i ) {
-			if( strings_are_nonempty_and_equal( m_gen_output_filename, m_gen_filenames[i] )) {
-				m_errors.push_back( "Output GEN file \"" + m_gen_output_filename +"\" also specified as input GEN file." ) ;
+		if( m_gen_file_mapper.input_files().size() == 0 ) {
+			m_errors.push_back( "At least one GEN input file must be supplied." ) ;
+		}
+
+		for( std::size_t i = 0; i < m_gen_file_mapper.input_files().size(); ++i ) {
+			for( std::size_t j = 0; j < m_gen_file_mapper.output_filenames().size(); ++j ) {
+				if( strings_are_nonempty_and_equal( m_gen_file_mapper.output_filenames()[j], m_gen_file_mapper.input_files()[i] )) {
+					m_errors.push_back( "Output GEN file \"" + m_gen_file_mapper.output_filenames()[j] +"\" also specified as input GEN file." ) ;
+					break ;
+				}
+			}
+			if( strings_are_nonempty_and_equal( m_sample_output_filename, m_gen_file_mapper.input_files()[i] )) {
+				m_errors.push_back( "Output SAMPLE file \"" + m_sample_output_filename +"\" also specified as input GEN file." ) ;
 				break ;
 			}
-			if( strings_are_nonempty_and_equal( m_sample_output_filename, m_gen_filenames[i] )) {
-				m_errors.push_back( "Output SAMPLE file \"" + m_gen_output_filename +"\" also specified as input GEN file." ) ;
-				break ;
+			for( std::size_t j = 0; j < m_snp_stats_file_mapper.output_filenames().size(); ++j ) {
+				if( strings_are_nonempty_and_equal( m_snp_stats_file_mapper.output_filenames()[j], m_gen_file_mapper.input_files()[i] )) {
+					m_errors.push_back( "Output GEN statistic file \"" + m_snp_stats_file_mapper.output_filenames()[j] +"\" also specified as input GEN file." ) ;
+					break ;
+				}
 			}
-			if( strings_are_nonempty_and_equal( m_gen_statistic_filename, m_gen_filenames[i] )) {
-				m_errors.push_back( "Output GEN statistic file \"" + m_gen_output_filename +"\" also specified as input GEN file." ) ;
-				break ;
-			}
-			if( strings_are_nonempty_and_equal( m_sample_statistic_filename, m_gen_filenames[i] )) {
-				m_errors.push_back( "Output SAMPLE statistic file \"" + m_gen_output_filename +"\" also specified as input GEN file." ) ;
+			if( strings_are_nonempty_and_equal( m_sample_statistic_filename, m_gen_file_mapper.input_files()[i] )) {
+				m_errors.push_back( "Output SAMPLE statistic file \"" + m_sample_statistic_filename +"\" also specified as input GEN file." ) ;
 				break ;
 			}
 		}
-		if( strings_are_nonempty_and_equal( m_sample_output_filename, m_gen_output_filename )) {
-			m_errors.push_back( "The GEN and SAMPLE output filenames must differ." ) ;
+		for( std::size_t j = 0; j < m_gen_file_mapper.output_filenames().size(); ++j ) {
+			if( strings_are_nonempty_and_equal( m_sample_output_filename, m_gen_file_mapper.output_filenames()[j] )) {
+				m_errors.push_back( "The GEN and SAMPLE output filenames must differ." ) ;
+			}
 		}
-		if( strings_are_nonempty_and_equal( m_gen_statistic_filename, m_sample_statistic_filename )) {
-			m_errors.push_back( "The gen statistic and sample statistic filenames must differ." ) ;
+		for( std::size_t j = 0; j < m_snp_stats_file_mapper.output_filenames().size(); ++j ) {
+			if( strings_are_nonempty_and_equal( m_snp_stats_file_mapper.output_filenames()[j], m_sample_statistic_filename )) {
+				m_errors.push_back( "The gen statistic and sample statistic filenames must differ." ) ;
+			}
 		}
 		if( m_sample_filename == "" && m_sample_filter->number_of_subconditions() != 0 ) {
 			m_errors.push_back( "To filter on samples, please supply an input sample file." ) ;
@@ -740,7 +800,7 @@ private:
 	}
 	
 	void check_for_warnings() {
-		if( (m_sample_output_filename != "" || m_sample_statistic_filename != "") && m_gen_filenames.size() != 23 ) {
+		if( (m_sample_output_filename != "" || m_sample_statistic_filename != "") && m_gen_file_mapper.input_files().size() != 23 ) {
 			m_warnings.push_back( "You are outputting a sample or sample statistic file, but the number of gen files is not 23.\n"
 			"   (I suspect there is not the whole genomes' worth of data?)" ) ;
 		}
@@ -748,15 +808,18 @@ private:
 			m_warnings.push_back( "You are outputting a sample statistic file, but no input sample file has been supplied.\n"
 			"   Statistics will be output but the ID fields will be left blank.") ;
 		}
-		if( m_gen_output_filename == "" && m_sample_output_filename == "" && m_gen_statistic_filename == "" && m_sample_statistic_filename == "" ) {
+		if( m_gen_file_mapper.output_filenames().size() == 0 && m_sample_output_filename == "" && m_snp_stats_file_mapper.output_filenames().size() == 0 && m_sample_statistic_filename == "" ) {
 			m_warnings.push_back( "You have not specified any output files.  This will produce only console output." ) ;
 		}
-		if( (m_gen_output_filename != "") &&  (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0) && (m_gen_statistic_filename == "") && (m_sample_statistic_filename == "") && (m_sample_output_filename == "")) {
-			m_warnings.push_back(
-			"You have not specified any filters, nor any statistic output files,\n"
-			"not a sample output filename.  This will just copy input GEN files\n"
-			"to output GEN files (taking into account any file format changes).\n"
-			"You can do this faster with gen-convert." ) ;
+		if( (m_gen_file_mapper.output_filenames().size() > 0) &&  (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0)) {
+			m_warnings.push_back( "You have specified output GEN files, but no filters.\n"
+			 	"The output GEN files will contain the same data as the input ones.") ;
+		}
+		if(m_gen_file_mapper.output_filenames().size() == 0 && ((m_snp_filter->number_of_subconditions() > 0) || (m_sample_filter->number_of_subconditions() > 0))) {
+			m_warnings.push_back( "You have not specified filters, but no output GEN files." ) ;
+		}
+		if(m_sample_output_filename == "" && (m_sample_filter->number_of_subconditions() > 0)) {
+			m_warnings.push_back( "You have not specified sample filters, but no output sample file.\n" ) ;
 		}
 		if( strings_are_nonempty_and_equal( m_sample_output_filename, m_sample_filename )) {
 			m_warnings.push_back( "The input sample file \"" + m_sample_filename + "\" will be overwritten with the output sample file.\n"
@@ -775,16 +838,17 @@ private:
 	}
 
 	void process_gen_rows() {
-		backup_file_if_necessary( m_gen_output_filename ) ;
-		backup_file_if_necessary( m_gen_statistic_filename ) ;
+		for( std::size_t i = 0; i < m_gen_file_mapper.output_filenames().size(); ++i ) {
+			backup_file_if_necessary( m_gen_file_mapper.output_filenames()[i] ) ;
+		}
+		for( std::size_t i = 0; i < m_snp_stats_file_mapper.output_filenames().size(); ++i ) {
+			backup_file_if_necessary( m_snp_stats_file_mapper.output_filenames()[i] ) ;
+		}
 		m_cout << "Processing SNPs...\n" ;
 		Timer timer ;
 		open_gen_row_sink() ;
-		open_gen_stats_file() ;
-
-		if( genStatisticOutputFile.get() ) { 
-			*genStatisticOutputFile << "        " ;
-			m_row_statistics.format_column_headers( *genStatisticOutputFile ) << "\n";
+		if( m_snp_stats_file_mapper.output_filenames().size() > 0 ) {
+			open_gen_stats_file( 0, m_row_statistics ) ;
 		}
 
 		InternalStorageGenRow row ;
@@ -813,12 +877,26 @@ private:
 		if( m_snp_filter->number_of_subconditions() > 0 ) {
 			m_cout << "(" << m_number_of_filtered_in_snps << " of " << m_gen_row_source->total_number_of_snps() << " SNPs passed the filter.)\n" ;
 		}
+		/*
 		m_cout << "Post-processing..." << std::flush ;
 		timer.restart() ;
 		// Close the output gen file(s) now
 		reset_gen_row_sink() ;
 		m_cout << " (" << std::fixed << std::setprecision(1) << timer.elapsed() << "s)\n\n" ;
+		*/
 	}
+
+	void open_gen_stats_file( std::size_t index, GenRowStatistics const& row_statistics ) {
+		assert( index < m_snp_stats_file_mapper.output_filenames().size()) ;
+		m_current_snp_stats_filename_index = index ;
+		genStatisticOutputFile = open_file_for_output( m_snp_stats_file_mapper.output_filenames()[ index ] ) ;
+		if( genStatisticOutputFile.get() ) { 
+			*genStatisticOutputFile << "        " ;
+			m_row_statistics.format_column_headers( *genStatisticOutputFile ) << "\n";
+		}
+
+	}
+
 
 	bool read_gen_row( GenRow& row ) {
 		return row.read_from_source( *m_gen_row_source ) ;
@@ -836,7 +914,7 @@ private:
 	void check_gen_row_has_correct_number_of_samples( GenRow& row ) const {
 		if( have_sample_file() ) {
 			if( row.number_of_samples() != m_number_of_sample_file_rows ) {
-				throw GenAndSampleFileMismatchException( "GEN file and sample file have mismatching number of samples." ) ;
+				throw GenAndSampleFileMismatchException() ;
 			}
 		}
 	}
@@ -1007,12 +1085,13 @@ private:
 	std::vector< GenotypeProportions > m_per_column_amounts ;
 
 	std::vector< std::size_t > m_indices_of_filtered_out_samples ;
-	
-	std::vector< std::string > m_gen_filenames ;
+		
+	InputToOutputFilenameMapper m_gen_file_mapper ;
+	InputToOutputFilenameMapper m_snp_stats_file_mapper ;
+	std::size_t m_current_snp_stats_filename_index ;
+
 	std::string m_sample_filename ;
-	std::string m_gen_output_filename ;
 	std::string m_sample_output_filename ;
-	std::string m_gen_statistic_filename ;
 	std::string m_sample_statistic_filename ;
 	std::string m_plot_filename ;
 
@@ -1027,7 +1106,7 @@ private:
 int main( int argc, char** argv ) {
 	OptionProcessor options ;
     try {
-		GenSelectProcessor::declare_options( options ) ;
+		QCToolProcessor::declare_options( options ) ;
 		options.process( argc, argv ) ;
     }
 	catch( OptionProcessorMutuallyExclusiveOptionsSuppliedException const& e ) {
@@ -1053,7 +1132,7 @@ int main( int argc, char** argv ) {
 	// main section
 
 	try	{
-		GenSelectProcessor processor( options ) ;
+		QCToolProcessor processor( options ) ;
 		processor.process() ;
 	}
 	catch( ProblemsWereEncountered const& ) {
@@ -1066,34 +1145,6 @@ int main( int argc, char** argv ) {
 	}
 
     return 0 ;
-}
-
-std::vector< std::string > expand_filename_wildcards( std::string const& option_name, std::vector< std::string > const& filenames ) {
-	std::vector< std::string > result ;
-	for( std::size_t i = 0; i < filenames.size(); ++i ) {
-		if( filenames[i].find( '#' ) != std::string::npos ) {
-			std::vector< wildcard::FilenameMatch > matching_filenames
-				= wildcard::find_files_matching_path_with_integer_wildcard( filenames[i], '#', 1, 100 ) ;
-			if( matching_filenames.size() > 0 ) {
-				for(
-					std::vector< wildcard::FilenameMatch >::const_iterator j = matching_filenames.begin();
-					j != matching_filenames.end();
-					++j
-				) {
-				 	result.push_back( j->filename() ) ;
-				}
-			}
-			else {
-				// no matches, assume the filename wildcard is not a real wildcard.
-				result.push_back( filenames[i] ) ;
-			}
-		}
-		else {
-			result.push_back( filenames[i] ) ;
-		}
-	}
-
-	return result ;
 }
 
 void check_files_are_readable( std::string const& option_name, std::vector< std::string > const& filenames ) {

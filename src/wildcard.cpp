@@ -45,12 +45,10 @@ namespace wildcard {
 	#if HAVE_BOOST_FILESYSTEM
 		BFS::path dir = impl::get_dir_part( filename_with_wildcard ) ;BFS::path( filename_with_wildcard ).parent_path() ;
 	  	filename_with_wildcard = BFS::path( filename_with_wildcard ).filename() ;
-		if( !impl::has_wildcard( filename_with_wildcard, wildcard_char )) {
-			if( BFS::exists( dir / filename_with_wildcard )) {
-				result.push_back( FilenameMatch( (dir / filename_with_wildcard).string(), "" )) ;
-			}
+		if( BFS::exists( dir / filename_with_wildcard )) {
+			result.push_back( FilenameMatch( (dir / filename_with_wildcard).string(), "" )) ;
 		}
-		else {
+		else if( impl::has_wildcard( filename_with_wildcard, wildcard_char )) {
 			std::size_t wildcard_pos = filename_with_wildcard.find( wildcard_char ) ;
 			std::string filename_before_wildcard = filename_with_wildcard.substr( 0, wildcard_pos ) ;
 			std::string filename_after_wildcard = filename_with_wildcard.substr( wildcard_pos + 1, filename_with_wildcard.size() ) ;
@@ -65,7 +63,11 @@ namespace wildcard {
 	}
 
 	bool operator<( FilenameMatch const& left, FilenameMatch const& right ) {
-		return left.match() < right.match() ;
+		return ( left.match() < right.match() ) || ( left.filename() < right.filename() ) ;
+	}
+
+	bool operator==( FilenameMatch const& left, FilenameMatch const& right ) {
+		return ( left.match() == right.match() ) && ( left.filename() == right.filename() ) ;
 	}
 
 	std::vector< FilenameMatch > find_files_matching_path_with_integer_wildcard(
@@ -78,12 +80,10 @@ namespace wildcard {
 	#if HAVE_BOOST_FILESYSTEM
 		BFS::path dir = impl::get_dir_part( filename_with_wildcard ) ;BFS::path( filename_with_wildcard ).parent_path() ;
 	  	filename_with_wildcard = BFS::path( filename_with_wildcard ).filename() ;
-		if( !impl::has_wildcard( filename_with_wildcard, wildcard_char )) {
-			if( BFS::exists( dir / filename_with_wildcard )) {
-				result.push_back( FilenameMatch( (dir / filename_with_wildcard).string(), "" )) ;
-			}
+		if( BFS::exists( dir / filename_with_wildcard )) {
+			result.push_back( FilenameMatch( (dir / filename_with_wildcard).string(), "" )) ;
 		}
-		else {
+		else if( impl::has_wildcard( filename_with_wildcard, wildcard_char )) {
 			std::size_t wildcard_pos = filename_with_wildcard.find( wildcard_char ) ;
 			std::string filename_before_wildcard = filename_with_wildcard.substr( 0, wildcard_pos ) ;
 			std::string filename_after_wildcard = filename_with_wildcard.substr( wildcard_pos + 1, filename_with_wildcard.size() ) ;
@@ -113,7 +113,30 @@ namespace wildcard {
 		// Oh dear, no boost support.  Return empty map.
 	#endif
 
+		return result ;
+	}
+	
+	std::vector< FilenameMatch >
+	construct_corresponding_filenames(
+		std::vector< FilenameMatch > const& input_filename_matches,
+		std::string const& output_filename,
+		char wildcard_char
+	) {
+		std::vector< FilenameMatch > result ;
 
+		if( impl::has_wildcard( output_filename, wildcard_char )) {
+			std::size_t wildcard_pos = output_filename.find( wildcard_char ) ;
+			for( std::size_t i = 0; i < input_filename_matches.size(); ++i ) {
+				std::string this_output_filename = output_filename ;
+				this_output_filename.replace( wildcard_pos, 1, input_filename_matches[i].match()) ;
+				result.push_back( FilenameMatch( this_output_filename, input_filename_matches[i].match())) ;
+			}
+		}
+		else {
+			for( std::size_t i = 0; i < input_filename_matches.size(); ++i ) {
+				result.push_back( FilenameMatch( output_filename ) ) ;
+			}
+		}
 		return result ;
 	}
 }
