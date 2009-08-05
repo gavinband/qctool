@@ -132,8 +132,7 @@ public:
 	    options[ "-g" ]
 	        .set_description( "Path of gen file to input.  Repeat this option, or use the numerical wildcard character '#', to specify several files." )
 	        .set_is_required()
-			.set_takes_values()
-			.set_maximum_number_of_repeats( 100 ) ;
+			.set_takes_single_value() ;
 
 	    options[ "-s" ]
 	        .set_description( "Path of sample file to input" )
@@ -530,17 +529,19 @@ public:
 			}
 
 			m_cout << std::setw(30) << "Output GEN file(s):" ;
-			for( std::size_t i = 0; i < m_gen_file_mapper.output_filenames().size(); ++i ) {
-				if( i > 0 ) {
-					m_cout << std::string( 30, ' ' ) ;
+			if( m_gen_file_mapper.output_filenames().empty() ) {
+				m_cout << "  (n/a)\n" ;
+			}
+			else {
+				for( std::size_t i = 0; i < m_gen_file_mapper.output_filenames().size(); ++i ) {
+					if( i > 0 ) {
+						m_cout << "\n" << std::string( 30, ' ' ) ;
+					}
+					m_cout << "  \"" << m_gen_file_mapper.output_filenames()[i] << "\"" ;				
 				}
-				m_cout << "  \"" << m_gen_file_mapper.output_filenames()[i] << "\"" ;				
 				m_cout << "\n" ;
 			}
-			if( m_gen_file_mapper.output_filenames().size() > 1 ) {
-				m_cout << "\n" ;
-			}
-			
+
 			m_cout << std::setw(30) << "SNP statistic output file(s):" ;
 			for( std::size_t i = 0; i < m_snp_stats_file_mapper.output_filenames().size(); ++i ) {
 				if( i > 0 ) {
