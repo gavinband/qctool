@@ -34,20 +34,7 @@ OptionValueInvalidException::OptionValueInvalidException( std::string option, st
 
 char const* OptionProcessingException::OptionProcessingException::what() const throw() {
 	try {
-		std::ostringstream ostr ;
-		if( m_option.size() > 0 ) {
-			ostr << "For option \"" << m_option << "\": " ;
-		}
-		ostr
-			<< m_msg
-			<< " (values supplied:" ;
-		for( std::size_t i = 0; i < m_values.size() ; ++i ) {
-			if( i > 0 )
-				ostr << "," ;
-			ostr << m_values[i] ;
-		}
-		ostr << ")" ;
-		set_message( ostr.str() ) ;
+		set_message( m_msg ) ;
 		return GToolException::what() ;
 	}
 	catch (... ) {

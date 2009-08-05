@@ -130,7 +130,7 @@ public:
 		// File options	
 		options.declare_group( "Data file options" ) ;
 	    options[ "-g" ]
-	        .set_description( "Path of gen file to input.  Repeat this option, or use the numerical wildcard character '#', to specify several files." )
+	        .set_description( "Path of gen file to input. Use the numerical wildcard character '#', to specify several files." )
 	        .set_is_required()
 			.set_takes_single_value() ;
 
