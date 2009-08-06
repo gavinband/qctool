@@ -26,6 +26,23 @@ namespace genfile {
 		}
 	}
 
+	std::string strip_gen_file_extension_if_present( std::string const& filename ) {
+		std::string recognised_extensions[4] = {
+			".gen",
+			".gen.gz",
+			".bgen",
+			".bgen.gz"
+		} ;
+		
+		for( std::size_t i = 0; i < 4u; ++i ) {
+			if( filename.substr( filename.size() - recognised_extensions[i].size(), recognised_extensions[i].size() ) == recognised_extensions[i] ) {
+				return filename.substr( 0, filename.size() - recognised_extensions[i].size() ) ;
+			}
+		}
+
+		return filename ;
+	}
+
 	std::auto_ptr< std::istream > open_text_file_for_input( std::string filename, CompressionType compression_type ) {
 		std::auto_ptr< boost::iostreams::filtering_istream > gen_file_ptr( new boost::iostreams::filtering_istream ) ;
 	    if (compression_type == e_GzipCompression) gen_file_ptr->push(boost::iostreams::gzip_decompressor());

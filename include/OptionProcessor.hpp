@@ -84,6 +84,8 @@ class OptionProcessor {
 
 		// check if the given option (which must be valid) was supplied.
 		bool check_if_option_was_supplied( std::string const& arg ) const ;
+		// check if any option in the given group was supplied.
+		bool check_if_option_was_supplied_in_group( std::string const& group ) const ;
 
 		// get the value of the given option as the given type.
 		template< typename T >

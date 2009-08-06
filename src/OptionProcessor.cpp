@@ -259,6 +259,22 @@ bool OptionProcessor::check_if_option_was_supplied( std::string const& arg ) con
 	return ( m_option_values.find( arg ) != m_option_values.end() ) ;
 }
 
+bool OptionProcessor::check_if_option_was_supplied_in_group( std::string const& group_name ) const {
+	std::map< std::string, std::set< std::string > >::const_iterator
+		group_i = m_option_groups.find( group_name ) ;
+	assert( group_i != m_option_groups.end() ) ;
+	std::set< std::string >::const_iterator
+		option_i = group_i->second.begin(),
+		end_option_i = group_i->second.end() ;
+
+	for( ; option_i != end_option_i; ++option_i ) {
+		if( check_if_option_was_supplied( *option_i )) {
+			return true ;
+		}
+	}
+	return false ;
+}
+
 std::string OptionProcessor::get_default_value( std::string const& arg ) const {
 	std::map< std::string, OptionDefinition >::const_iterator defn_i
 		= m_option_definitions.find( arg ) ;

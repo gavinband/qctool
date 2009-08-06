@@ -139,7 +139,8 @@ public:
 			.set_maximum_number_of_repeats(23) ;
 
 	    options[ "-og" ]
-	        .set_description( 	"Path of gen file(s) to output.  If this option is used, it must appear the same number of times as the -g option. "
+	        .set_description( 	"Override the auto-generated path(s) of the output gen file(s).  "
+								"If this option is supplied, it must appear the same number of times as the -g option. "
 	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
 								"also be used here to specify numbered output files corresponding to the input files." )
 	        .set_takes_values()
@@ -151,34 +152,38 @@ public:
 	        .add_value_checker( &check_files_are_readable ) ;
 
 		options[ "-os" ]
-	        .set_description( "Path of sample file to output" )
+	        .set_description( 	"Override the auto-generated path of the output sample file.  " )
 	        .set_takes_single_value() ;
 
 		// Statistic file options
-		options.declare_group( "Statistic file options" ) ;
+		options.declare_group( "Statistic calculation options" ) ;
 	    options[ "-snp-stats" ]
-	        .set_description( "Output snp-wise statistics to the given file.  If used, it must appear as many times as the -g option.  "
+			.set_description( "Calculated and output snp-wise statistics." ) ;
+	    options[ "-snp-stats-file" ]
+	        .set_description( 	"Override the auto-generated path(s) of the files in which snp-wise statistics will be output.  "
+								"If used, this option must appear as many times as the -g option.  "
 	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
 								"also be used here to specify numbered output files corresponding to the input files." )
 	        .set_takes_values()
 			.set_maximum_number_of_repeats(23) ;
 
-	    options[ "-sample-stats" ]
-	        .set_description( "Output sample-wise statistics to the given file." )
-	        .set_takes_single_value() ;
-
-		options[ "-snp-statistics" ]
-	        .set_description( "Comma-seperated list of statistics to calculate in genstat file.  "
-	 						"By default, the columns in this file are: "
+		options[ "-snp-stats-columns" ]
+	        .set_description( "Comma-seperated list of columns to output in the snp-wise statistics file.  "
+	 						"By default, the columns are: "
 							"SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, and missing" )
 			.set_takes_single_value()
 			.set_default_value( "SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing" ) ;
 
-		options[ "-sample-statistics" ]
-	        .set_description( "Comma-seperated list of statistics to calculate in samplestat file."
-	 						 "  By default, the columns in this file are: ID1, ID2, missing, and heterozygosity.")
+	    options[ "-sample-stats" ]
+			.set_description( "Calculate and output sample-wise statistics." ) ;
+		options[ "-sample-stats-columns" ]
+	        .set_description( "Comma-seperated list of statistics to output in the sample-wise statistics file."
+	 						 "  By default, the columns are: ID1, ID2, missing, and heterozygosity.")
 			.set_takes_single_value()
 			.set_default_value( std::string("ID1, ID2, missing, heterozygosity") ) ;
+	    options[ "-sample-stats-file" ]
+	        .set_description( 	"Override the auto-generated path of the file in which sample-wise statistics will be output.  " )
+	        .set_takes_single_value() ;
 
 		// SNP filtering options
 		options.declare_group( "SNP filtering options" ) ;
@@ -226,7 +231,7 @@ public:
 		options [ "-plot" ]
 			.set_description( "Path of file to produce plots in.")
 			.set_takes_single_value() ;
-			
+
 		options.option_excludes_group( "-snp-stats", "SNP filtering options" ) ;
 		options.option_excludes_group( "-sample-stats", "Sample filtering options" ) ;
 	}
@@ -265,23 +270,7 @@ private:
 
 	void get_required_filenames() {
 		get_gen_filenames() ;
-
-		if( m_options.check_if_option_was_supplied( "-s" ) ) {
-			m_sample_filename = m_options.get_value< std::string >( "-s" ) ;
-		}
-		if( m_options.check_if_option_was_supplied( "-sample-stats" ) ) {
-			m_sample_statistic_filename = m_options.get_value< std::string >( "-sample-stats" ) ;
-		}
-		if( m_options.check_if_option_was_supplied( "-os" )) {
-			m_sample_output_filename = m_options.get_value< std::string >( "-os" ) ;
-		}
-		else if( m_options.check_if_option_was_supplied( "-sample-stats" )) {
-			// sample output file defaults to overwriting sample file.
-			m_sample_output_filename = m_sample_filename ;
-		}
-		if( m_options.check_if_option_was_supplied( "-oss" ) ) {
-			m_sample_statistic_filename = m_options.get_value< std::string >( "-oss" ) ;
-		}
+		get_sample_filenames() ;
 		if( m_options.check_if_option_was_supplied( "-plot" )) {
 			m_plot_filename = m_options.get_value< std::string >( "-plot" ) ;
 		}
@@ -291,29 +280,82 @@ private:
 		assert( m_options.check_if_option_was_supplied( "-g" )) ;
 		std::vector< std::string >
 			input_gen_filenames_supplied = m_options.get_values< std::string >( "-g" ),
-			output_gen_filenames_supplied( input_gen_filenames_supplied.size(), "" ),
-			output_snp_stats_filenames_supplied( input_gen_filenames_supplied.size(), "" ) ;
-
-		if( m_options.check_if_option_was_supplied( "-og" ) ) {
-			output_gen_filenames_supplied = m_options.get_values< std::string >( "-og" ) ;
-		}
-
-		if( m_options.check_if_option_was_supplied( "-snp-stats" ) ) {
-			output_snp_stats_filenames_supplied = m_options.get_values< std::string >( "-snp-stats" ) ;
-		}
-
-		if( output_gen_filenames_supplied.size() != input_gen_filenames_supplied.size() ) {
-			throw QCToolFileCountMismatchError() ;
-		}
-
-		if( output_snp_stats_filenames_supplied.size() != input_gen_filenames_supplied.size() ) {
-			throw QCToolFileCountMismatchError() ;
-		}
+			output_gen_filenames_supplied = construct_output_gen_filenames( input_gen_filenames_supplied ),
+			output_snp_stats_filenames_supplied = construct_snp_stats_filenames( input_gen_filenames_supplied ) ;
 
 		for( std::size_t i = 0; i < input_gen_filenames_supplied.size(); ++i ) {
 			m_gen_file_mapper.add_filename_pair( input_gen_filenames_supplied[i], output_gen_filenames_supplied[i] ) ;
 			m_snp_stats_file_mapper.add_filename_pair( input_gen_filenames_supplied[i], output_snp_stats_filenames_supplied[i] ) ;
 		}
+	}
+
+	void get_sample_filenames() {
+		if( m_options.check_if_option_was_supplied( "-s" ) ) {
+			m_sample_filename = m_options.get_value< std::string >( "-s" ) ;
+		}
+		if( m_options.check_if_option_was_supplied( "-sample-stats" ) ) {
+			if( m_options.check_if_option_was_supplied( "-sample-stats-file" )) {
+				m_sample_statistic_filename = m_options.get_value< std::string >( "-sample-stats-file" ) ;
+			}
+			else {
+				m_sample_statistic_filename = strip_sample_file_extension_if_present( m_sample_filename ) + ".sample-stats";
+			}
+
+			if( m_options.check_if_option_was_supplied( "-os" )) {
+				m_sample_output_filename = m_options.get_value< std::string >( "-os" ) ;
+			}
+			else {
+				m_sample_output_filename = m_sample_filename ;
+			}
+		}
+		if( m_options.check_if_option_was_supplied_in_group( "Sample filtering options" )) {
+			if( m_options.check_if_option_was_supplied( "-os" )) {
+				m_sample_output_filename = m_options.get_value< std::string >( "-os" ) ;
+			}
+			else {
+				m_sample_output_filename = strip_sample_file_extension_if_present( m_sample_filename ) + ".fltrd.sample" ;
+			}
+		}
+	}
+
+	std::string strip_sample_file_extension_if_present( std::string filename ) {
+		if( filename.size() >= 7 && filename.substr( filename.size() - 7, 7 ) == ".sample" ) {
+			filename.resize( filename.size() - 7 ) ;
+		}
+		return filename ;
+	}
+
+	std::vector< std::string > construct_output_gen_filenames( std::vector< std::string > const& input_gen_filenames_supplied ) {
+		std::vector< std::string > result( input_gen_filenames_supplied.size(), "" ) ;
+		if( m_options.check_if_option_was_supplied( "-og" ) ) {
+			result = m_options.get_values< std::string >( "-og" ) ;
+		} else if( m_options.check_if_option_was_supplied_in_group( "SNP filtering options" ) || m_options.check_if_option_was_supplied_in_group( "Sample filtering options" )) {
+			for( std::size_t i = 0; i < input_gen_filenames_supplied.size(); ++i ) {
+				result[i] = genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) + ".fltrd.bgen" ;
+			}
+		}
+		if( result.size() != input_gen_filenames_supplied.size() ) {
+			throw QCToolFileCountMismatchError() ;
+		}
+		return result ;
+	}
+
+	std::vector< std::string > construct_snp_stats_filenames( std::vector< std::string > const& input_gen_filenames_supplied ) {
+		std::vector< std::string > result( input_gen_filenames_supplied.size(), "" ) ;
+		if( m_options.check_if_option_was_supplied( "-snp-stats" ) ) {
+			if( m_options.check_if_option_was_supplied( "-snp-stats-file" )) {
+				result = m_options.get_values< std::string >( "-snp-stats-file" ) ;
+			}
+			else {
+				for( std::size_t i = 0; i < input_gen_filenames_supplied.size() ; ++i ) {
+					result[i] = genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) + ".snp-stats" ;
+				}
+			}
+		}
+		if( result.size() != input_gen_filenames_supplied.size() ) {
+			throw QCToolFileCountMismatchError() ;
+		}
+		return result ;
 	}
 
 	void open_log_file() {
@@ -417,12 +459,12 @@ private:
 	}
 
 	void construct_snp_statistics() {
-		std::vector< std::string > row_statistics_specs = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-snp-statistics" ), "," ) ;
+		std::vector< std::string > row_statistics_specs = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-snp-stats-columns" ), "," ) ;
 		GenRowStatisticFactory::add_statistics( row_statistics_specs, m_row_statistics ) ;
 	}
 
 	void construct_sample_statistics() {
-		std::vector< std::string > sample_statistics_specs = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-sample-statistics" ), "," ) ;
+		std::vector< std::string > sample_statistics_specs = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-sample-stats-columns" ), "," ) ;
 		SampleRowStatisticFactory::add_statistics( sample_statistics_specs, m_sample_statistics ) ;
 	}
 
@@ -668,17 +710,17 @@ public:
 			m_cout << "\n" ;
 
 			if( m_gen_file_mapper.output_filenames().size() > 0 ) {
-				m_cout << std::setw(30) << "Output GEN files:" ;
+				m_cout << std::setw(36) << "Output GEN files:" ;
 				for( std::size_t i = 0; i < m_gen_file_mapper.output_filenames().size(); ++i ) {
 					if( i > 0 ) {
-						m_cout << std::string( 30, ' ' ) ;
+						m_cout << std::string( 36, ' ' ) ;
 					}
 					if( m_gen_row_sink.get() ) {
 						m_cout << "  (" << std::setw(6) << m_gen_row_sink->sink(i).number_of_snps_written() << " snps)  " ;
 					}
-					m_cout << "\"" << m_gen_file_mapper.input_files()[i] << "\"\n" ;
+					m_cout << "\"" << m_gen_file_mapper.output_filenames()[i] << "\"\n" ;
 				}
-				m_cout << std::string( 30, ' ' ) << "  (total " << m_gen_row_sink->number_of_snps_written() << " snps).\n" ;
+				m_cout << std::string( 36, ' ' ) << "  (total " << m_gen_row_sink->number_of_snps_written() << " snps).\n" ;
 			}
 			if( m_sample_output_filename != "" ) {
 				m_cout << std::setw(36) << "Output SAMPLE files:"
@@ -686,7 +728,7 @@ public:
 					<< "  (" << m_sample_rows.size() << " samples)\n" ;
 			}
 			if( m_snp_stats_file_mapper.output_filenames().size() > 0 ) {
-				m_cout << std::setw(30) << "SNP statistic output file(s):" ;
+				m_cout << std::setw(36) << "SNP statistic output file(s):" ;
 				for( std::size_t i = 0; i < m_snp_stats_file_mapper.output_filenames().size(); ++i ) {
 					if( i > 0 ) {
 						m_cout << std::string( 30, ' ' ) ;

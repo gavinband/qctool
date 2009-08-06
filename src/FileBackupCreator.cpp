@@ -1,5 +1,4 @@
 #include <string>
-
 #include "FileUtil.hpp"
 #include "FileBackupCreator.hpp"
 
