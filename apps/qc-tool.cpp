@@ -182,7 +182,7 @@ public:
 			.set_takes_single_value()
 			.set_default_value( std::string("ID1, ID2, missing, heterozygosity") ) ;
 	    options[ "-sample-stats-file" ]
-	        .set_description( 	"Override the auto-generated path of the file in which sample-wise statistics will be output.  " )
+	        .set_description( 	"Override the auto-generated path of the file in which sample-wise statistics will be output." )
 	        .set_takes_single_value() ;
 
 		// SNP filtering options
@@ -293,6 +293,7 @@ private:
 		if( m_options.check_if_option_was_supplied( "-s" ) ) {
 			m_sample_filename = m_options.get_value< std::string >( "-s" ) ;
 		}
+
 		if( m_options.check_if_option_was_supplied( "-sample-stats" ) ) {
 			if( m_options.check_if_option_was_supplied( "-sample-stats-file" )) {
 				m_sample_statistic_filename = m_options.get_value< std::string >( "-sample-stats-file" ) ;
@@ -308,6 +309,7 @@ private:
 				m_sample_output_filename = m_sample_filename ;
 			}
 		}
+
 		if( m_options.check_if_option_was_supplied_in_group( "Sample filtering options" )) {
 			if( m_options.check_if_option_was_supplied( "-os" )) {
 				m_sample_output_filename = m_options.get_value< std::string >( "-os" ) ;

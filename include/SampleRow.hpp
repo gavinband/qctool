@@ -54,7 +54,7 @@ class SampleRow: public string_to_value_map
 		std::vector<std::string> const& column_headings() const { return m_column_headings ; }
 		std::vector<char> const& column_types() const { return m_column_types ; }
 		
-		bool have_column( std::string const& heading ) const ;
+		bool has_column( std::string const& heading ) const ;
 		void add_column( std::string const& heading, char type, double value = 0.0 ) ;
 		void set_value( std::string const& heading, double value ) ;
 

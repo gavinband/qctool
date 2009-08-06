@@ -48,25 +48,25 @@ double SampleRow::further_data( std::string const& column_heading ) const {
 }
 
 void SampleRow::add_column( std::string const& heading, char type, double value ) {
-	if( !have_column( heading )) {
+	if( !has_column( heading )) {
 		m_column_headings.push_back( heading ) ;
 		m_column_types.push_back( type ) ;
 		m_further_data[heading] = value ;
 	}
 }
 
-bool SampleRow::have_column( std::string const& heading ) const {
+bool SampleRow::has_column( std::string const& heading ) const {
 	std::map< std::string, double >::const_iterator
 		where = m_further_data.find( heading ) ;
 	return ( where != m_further_data.end()) ;
 }
 
 bool SampleRow::has_value( std::string const& name ) const {
-	return SampleRow::have_column( name ) ;
+	return SampleRow::has_column( name ) ;
 }
 
 void SampleRow::set_value( std::string const& heading, double value ) {
-	assert( have_column( heading )) ;
+	assert( has_column( heading )) ;
 	m_further_data[ heading ] = value ;
 }
 
