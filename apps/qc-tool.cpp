@@ -130,18 +130,25 @@ public:
 		// File options	
 		options.declare_group( "Data file options" ) ;
 	    options[ "-g" ]
-	        .set_description( "Path of gen file to input. Use the numerical wildcard character '#', to specify several files." )
+	        .set_description( 	"Path of gen file(s) to input.  "
+								"To specify several files, either repeat this option or use the numerical wildcard character '#', which "
+								"matches numbers from 1 to 100.  For example, \"qc-tool -g myfile_#.gen\" will find all files of "
+								"the form \"myfile_N.gen\", where N can be 1, 002, 099, etc." )
 	        .set_is_required()
-			.set_takes_single_value() ;
+			.set_takes_values()
+			.set_maximum_number_of_repeats(23) ;
+
+	    options[ "-og" ]
+	        .set_description( 	"Path of gen file(s) to output.  If this option is used, it must appear the same number of times as the -g option. "
+	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
+								"also be used here to specify numbered output files corresponding to the input files." )
+	        .set_takes_values()
+			.set_maximum_number_of_repeats(23) ;
 
 	    options[ "-s" ]
 	        .set_description( "Path of sample file to input" )
 	        .set_takes_single_value()
 	        .add_value_checker( &check_files_are_readable ) ;
-
-	    options[ "-og" ]
-	        .set_description( "Path of gen file to output" )
-	        .set_takes_single_value() ;
 
 		options[ "-os" ]
 	        .set_description( "Path of sample file to output" )
@@ -150,20 +157,26 @@ public:
 		// Statistic file options
 		options.declare_group( "Statistic file options" ) ;
 	    options[ "-snp-stats" ]
-	        .set_description( "Output snp-wise statistics to the given file." )
-	        .set_takes_single_value() ;
+	        .set_description( "Output snp-wise statistics to the given file.  If used, it must appear as many times as the -g option.  "
+	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
+								"also be used here to specify numbered output files corresponding to the input files." )
+	        .set_takes_values()
+			.set_maximum_number_of_repeats(23) ;
 
 	    options[ "-sample-stats" ]
 	        .set_description( "Output sample-wise statistics to the given file." )
 	        .set_takes_single_value() ;
 
 		options[ "-snp-statistics" ]
-	        .set_description( "Comma-seperated list of statistics to calculate in genstat file." )
+	        .set_description( "Comma-seperated list of statistics to calculate in genstat file.  "
+	 						"By default, the columns in this file are: "
+							"SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, and missing" )
 			.set_takes_single_value()
 			.set_default_value( "SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing" ) ;
 
 		options[ "-sample-statistics" ]
-	        .set_description( "Comma-seperated list of statistics to calculate in samplestat file." )
+	        .set_description( "Comma-seperated list of statistics to calculate in samplestat file."
+	 						 "  By default, the columns in this file are: ID1, ID2, missing, and heterozygosity.")
 			.set_takes_single_value()
 			.set_default_value( std::string("ID1, ID2, missing, heterozygosity") ) ;
 

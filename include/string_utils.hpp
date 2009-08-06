@@ -12,8 +12,9 @@ std::vector< std::string > split_and_strip( std::string string_to_split, std::st
 std::vector< std::string > split_and_strip_discarding_empty_entries( std::string string_to_split, std::string splitter, std::string strip_chars = " " ) ;
 std::string to_lower( std::string ) ;
 std::string to_upper( std::string ) ;
-template< typename T > std::string to_string( T const& t ) ;
+std::string wrap( std::string const& string_to_wrap, unsigned int wrap_column, unsigned int starting_column = 0u, std::size_t indent_amount = 0u ) ;
 
+template< typename T > std::string to_string( T const& t ) ;
 
 //
 // Implementation

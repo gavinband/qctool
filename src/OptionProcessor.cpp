@@ -9,6 +9,7 @@
 #include "GToolException.hpp"
 #include "OptionDefinition.hpp"
 #include "OptionProcessor.hpp"
+#include "string_utils.hpp"
 
 OptionProcessingException::OptionProcessingException( std::string option, std::vector< std::string > values, std::string msg )
 : 	m_option( option ),
@@ -291,7 +292,7 @@ void OptionProcessor::format_option_group( std::ostream& aStream, std::string co
 		option_i = group_i->second.begin(),
 		end_option_i = group_i->second.end() ;
 
-	std::size_t max_option_length = get_maximum_option_length( group_name ) ;
+	std::size_t max_option_length = get_maximum_option_length() ;
 
 	for( ; option_i != end_option_i; ++option_i ) {
 		std::string const& option_name = *option_i ;
@@ -319,9 +320,22 @@ void OptionProcessor::format_option_and_description( std::ostream& aStream, std:
 		<< std::right
 		<< format_option_and_arguments( option_name ) ;
 
-	aStream << ": "
-		<< (*this)[option_name].description()
+	aStream << ": " ;
+	unsigned int current_column = max_option_length+4 ;
+
+	aStream << wrap((*this)[option_name].description(), 100, current_column, current_column )
 		<< "\n" ;
+}
+
+std::size_t OptionProcessor::get_maximum_option_length() const {
+	OptionDefinitions::const_iterator
+		option_i = m_option_definitions.begin(),
+		end_option_i = m_option_definitions.end() ;
+	std::size_t max_option_length = 0 ;
+	for( ; option_i != end_option_i ; ++option_i ) {
+		max_option_length = std::max( max_option_length, format_option_and_arguments( option_i->first ).size() ) ;
+	}
+	return max_option_length ;
 }
 
 std::size_t OptionProcessor::get_maximum_option_length( std::string const& group ) const {

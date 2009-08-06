@@ -124,6 +124,7 @@ class OptionProcessor {
 		void preprocess_option_values() ;
 		void check_option_values() ;
 		std::string get_default_value( std::string const& arg ) const ;
+		std::size_t get_maximum_option_length() const ;
 		std::size_t get_maximum_option_length( std::string const& group ) const ;
 		std::string format_option_and_arguments( std::string const& option_name ) const ;
 		void format_options( std::ostream& ) const ;

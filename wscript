@@ -83,24 +83,31 @@ def build( bld ):
 	#---------------------
 	bld.new_task_gen(
 		features = 'cxx cstaticlib',
-		target = 'gtool-exception',
+		target = 'gen-tools-exception',
 		source = [  'src/GToolException.cpp' ],
 		includes='./include'
 	)
 
 	bld.new_task_gen(
 		features = 'cxx cstaticlib',
-		target = 'gtool-optionprocessor',
-		source = [  'src/OptionProcessor.cpp',
-		 			'src/OptionDefinition.cpp'
-		],
-		includes='./include',
-		uselib = 'gtool-exception'
+		target = 'gen-tools-string',
+		source = [  'src/string_utils.cpp' ],
+		includes='./include'
 	)
 
 	bld.new_task_gen(
 		features = 'cxx cstaticlib',
-		target = 'gtool-lib',
+		target = 'gen-tools-optionprocessor',
+		source = [  'src/OptionProcessor.cpp',
+		 			'src/OptionDefinition.cpp'
+		],
+		includes='./include',
+		uselib = 'gen-tools-exception gen-tools-string'
+	)
+
+	bld.new_task_gen(
+		features = 'cxx cstaticlib',
+		target = 'gen-tools-lib',
 		source = [  
 			'src/AlleleProportions.cpp',
 			'src/Condition.cpp',
@@ -118,7 +125,6 @@ def build( bld ):
 			'src/GenotypeProportions.cpp',
 			'src/HardyWeinbergExactTestStatistic.cpp',
 			'src/LikelihoodRatioTestStatistic.cpp',
-			'src/OptionProcessor.cpp',
 			'src/RowCondition.cpp',
 			'src/SNPHWE.cpp',
 			'src/SNPInListCondition.cpp',
@@ -130,7 +136,6 @@ def build( bld ):
 			'src/distributions.cpp',
 			'src/gamma.cpp',
 			'src/parse_utils.cpp',
-			'src/string_utils.cpp',
 			'src/string_to_value_map.cpp',
 			'src/FileBackupCreator.cpp',
 			'src/InputToOutputFilenameMapper.cpp'
@@ -142,11 +147,11 @@ def build( bld ):
 	#---------------------
 	# programs
 	#---------------------
-	create_app( bld, name='qc-tool', uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile', uselib = 'RLIB' )
-	create_app( bld, name='gen-convert', uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile' )
-	create_app( bld, name='gen-compare', uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile' )
-	create_app( bld, name='gen-case-control-test', uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile' )
-	create_app( bld, name='generate-random-permutations-of-0-1-vector', uselib_local = 'gtool-exception gtool-optionprocessor', uselib = 'BOOST BOOST_RANDOM' )
+	create_app( bld, name='qc-tool', uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile', uselib = 'RLIB' )
+	create_app( bld, name='gen-convert', uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile' )
+	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile' )
+	create_app( bld, name='gen-case-control-test', uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile' )
+	create_app( bld, name='generate-random-permutations-of-0-1-vector', uselib_local = 'gen-tools-string gen-tools-exception gen-tools-optionprocessor', uselib = 'BOOST BOOST_RANDOM' )
 
 	#---------------------
 	# benchmarks
@@ -192,7 +197,7 @@ def create_test( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'test/' + name + '.cpp' ],
-		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile',
+		uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile',
 		includes='./include ./genfile/include',
 		unit_test=1
 	)
@@ -202,7 +207,7 @@ def create_benchmark( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'benchmarks/' + name + '.cpp' ],
-		uselib_local = 'gtool-lib gtool-exception gtool-optionprocessor genfile',
+		uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile',
 		includes='./include ./genfile/include',
 		unit_test=1
 	)
