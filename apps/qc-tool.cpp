@@ -503,6 +503,7 @@ private:
 		}
 		
 		m_snp_filter = snp_filter ;
+		m_snp_filter_failure_counts.resize( m_snp_filter->number_of_subconditions() ) ;
 	}
 
 	void construct_sample_filter() {
@@ -530,6 +531,7 @@ private:
 		}
 		
 		m_sample_filter = sample_filter ;
+		m_sample_filter_failure_counts.resize( m_sample_filter->number_of_subconditions() ) ;
 	}
 
 	template< typename ConditionType >
@@ -679,13 +681,9 @@ public:
 			m_cout << std::setw(36) << "Number of SNPs in input file(s):"
 				<< "  " << m_gen_row_source->total_number_of_snps() << ".\n" ;
 			if( m_snp_filter->number_of_subconditions() > 0 ) {
-				for(
-					std::map< std::size_t, std::size_t >::const_iterator i = m_snp_filter_failure_counts.begin() ;
-					i != m_snp_filter_failure_counts.end(); 
-					++i
-				) {
-					m_cout << std::setw(36) << ("...which failed \"" + to_string( m_snp_filter->subcondition( i->first )) + "\":")
-						<< "  " << i->second << ".\n" ;
+				for( std::size_t i = 0; i < m_snp_filter->number_of_subconditions(); ++i ) {
+					m_cout << std::setw(36) << ("...which failed \"" + to_string( m_snp_filter->subcondition( i )) + "\":")
+						<< "  " << m_snp_filter_failure_counts[i] << ".\n" ;
 				}
 
 				m_cout << std::setw(36) << "(total failures:"
@@ -697,13 +695,9 @@ public:
 			m_cout << std::setw(36) << "Number of samples in input file(s):"
 				<< "  " << m_gen_row_source->number_of_samples() << ".\n" ;
 			if( m_sample_filter->number_of_subconditions() > 0 ) {
-				for(
-					std::map< std::size_t, std::size_t >::const_iterator i = m_sample_filter_failure_counts.begin() ;
-					i != m_sample_filter_failure_counts.end(); 
-					++i
-				) {
-					m_cout << std::setw(36) << ("...which failed \"" + to_string( m_sample_filter->subcondition( i->first )) + "\":")
-						<< "  " << i->second << ".\n" ;
+				for( std::size_t i = 0 ; i < m_sample_filter_failure_counts.size(); ++ i ) {
+					m_cout << std::setw(36) << ("...which failed \"" + to_string( m_sample_filter->subcondition( i )) + "\":")
+						<< "  " << m_sample_filter_failure_counts[i] << ".\n" ;
 				}
 				m_cout << std::setw(36) << "(total failures:"
 					<< "  " << m_gen_row_source->number_of_samples() - m_sample_rows.size() << ").\n" ;
@@ -1137,8 +1131,8 @@ private:
 	std::size_t m_number_of_sample_file_rows ;
 	std::size_t m_number_of_filtered_in_snps ;
 	
-	std::map< std::size_t, std::size_t > m_snp_filter_failure_counts ;
-	std::map< std::size_t, std::size_t > m_sample_filter_failure_counts ;
+	std::vector< std::size_t > m_snp_filter_failure_counts ;
+	std::vector< std::size_t > m_sample_filter_failure_counts ;
 	
 	std::vector< GenotypeProportions > m_per_column_amounts ;
 
