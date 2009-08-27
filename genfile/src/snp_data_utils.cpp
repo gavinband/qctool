@@ -27,6 +27,11 @@ namespace genfile {
 	}
 
 	std::string strip_gen_file_extension_if_present( std::string const& filename ) {
+		std::string extension = get_gen_file_extension_if_present( filename ) ;
+		return filename.substr( 0, filename.size() - extension.size() ) ;
+	}
+
+	std::string get_gen_file_extension_if_present( std::string const& filename ) {
 		std::string recognised_extensions[4] = {
 			".gen",
 			".gen.gz",
@@ -36,11 +41,11 @@ namespace genfile {
 		
 		for( std::size_t i = 0; i < 4u; ++i ) {
 			if( filename.substr( filename.size() - recognised_extensions[i].size(), recognised_extensions[i].size() ) == recognised_extensions[i] ) {
-				return filename.substr( 0, filename.size() - recognised_extensions[i].size() ) ;
+				return recognised_extensions[i] ;
 			}
 		}
 
-		return filename ;
+		return "" ;
 	}
 
 	std::auto_ptr< std::istream > open_text_file_for_input( std::string filename, CompressionType compression_type ) {

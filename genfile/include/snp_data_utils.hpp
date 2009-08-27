@@ -50,6 +50,7 @@ namespace genfile {
 	bool filename_indicates_gen_or_bgen_format( std::string const& filename ) ;
 	CompressionType get_compression_type_indicated_by_filename( std::string const& filename ) ;
 
+	std::string get_gen_file_extension_if_present( std::string const& filename ) ;
 	std::string strip_gen_file_extension_if_present( std::string const& filename ) ;
 
 	std::auto_ptr< std::istream > open_text_file_for_input( std::string filename, CompressionType compression_type ) ;

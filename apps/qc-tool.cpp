@@ -336,7 +336,10 @@ private:
 			result = m_options.get_values< std::string >( "-og" ) ;
 		} else if( m_options.check_if_option_was_supplied_in_group( "SNP filtering options" ) || m_options.check_if_option_was_supplied_in_group( "Sample filtering options" )) {
 			for( std::size_t i = 0; i < input_gen_filenames_supplied.size(); ++i ) {
-				result[i] = genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) + ".fltrd.bgen" ;
+				result[i]
+					= genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] )
+					+ ".fltrd"
+					+ genfile::get_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) ;
 			}
 		}
 		if( result.size() != input_gen_filenames_supplied.size() ) {
