@@ -86,7 +86,7 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 		return std::auto_ptr< GenotypeAssayStatistic >( new MinorAlleleProportionStatistic ) ;
 	}
 	else if( statistic_spec == "HWE" ) {
-		return std::auto_ptr< GenotypeAssayStatistic >( new SNPHWEStatistic ) ;
+		return std::auto_ptr< GenotypeAssayStatistic >( new MinusLog10SNPHWEStatistic ) ;
 	}
 	else if( statistic_spec == "missing" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new MissingDataProportionStatistic ) ; 

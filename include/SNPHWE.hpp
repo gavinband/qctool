@@ -2,6 +2,7 @@
 #ifndef __GTOOL__SNPHWE_HPP__
 #define __GTOOL__SNPHWE_HPP__
 
+#include <cmath>
 #include "GenotypeAssayStatistics.hpp"
 
 double SNPHWE(int obs_hets, int obs_hom1, int obs_hom2) ;
@@ -16,6 +17,18 @@ struct SNPHWEStatistic: public GenotypeAssayStatistic
 			return 1.0 ;
 		}
 	}
+} ;
+
+struct MinusLog10SNPHWEStatistic: public GenotypeAssayStatistic
+{
+	double calculate_value( GenotypeAssayStatistics const& statistics ) const {
+		return -std::log10( m_snp_hwe_statistic.calculate_value( statistics )) ;
+	}
+	
+private:
+	
+	SNPHWEStatistic m_snp_hwe_statistic ;
+	
 } ;
 
 #endif
