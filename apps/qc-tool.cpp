@@ -240,14 +240,14 @@ public:
 		: m_options( options )
 	{
 		m_cout.add_stream( "screen", std::cout ) ;
-		write_start_banner( m_cout ) ;
+		write_start_banner() ;
 		setup() ;
 		preprocess() ;
 	}
 
 	~QCToolProcessor()
 	{
-		write_end_banner( m_cout ) ;
+		write_end_banner() ;
 	}
 	
 private:
@@ -553,12 +553,12 @@ private:
 	
 public:
 	
-	void write_start_banner( std::ostream& ) {
+	void write_start_banner() {
 		m_cout << "\nWelcome to qc-tool\n"
 		 	<< "(C) 2009 University of Oxford\n\n";
 	}
 
-	void write_end_banner( std::ostream& ) {
+	void write_end_banner() {
 		m_cout << "\nThank you for using qc-tool.\n" ;
 	}
 		

@@ -5,7 +5,7 @@ import UnitTest
 srcdir="."
 
 def get_version():
-	return "1.0_beta3"
+	return "1.0_beta4"
 
 def set_options( opt ):
 	opt.tool_options( 'compiler_cxx' )
