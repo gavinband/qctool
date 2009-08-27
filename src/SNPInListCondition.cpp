@@ -7,6 +7,7 @@
 #include "GenotypeAssayStatistics.hpp"
 #include "SNPInListCondition.hpp"
 #include "GenRowStatistics.hpp"
+#include "string_utils.hpp"
 
 SNPInListCondition::SNPInListCondition( std::string const& filename )
  : m_filenames( std::size_t(1), filename )
@@ -32,10 +33,9 @@ bool SNPInListCondition::check_if_satisfied( string_to_value_map const& statisti
 	if( !row_statistics_ptr ) {
 		throw ConditionException( "SNPInListCondition only supports GenRowStatistics." ) ;
 	}
-	if( list_contains( row_statistics_ptr->row().SNPID() ) || list_contains( row_statistics_ptr->row().RSID() )) {
-		return true ;
-	}
-	return false ;
+	return list_contains( row_statistics_ptr->row().SNPID() )
+		|| list_contains( row_statistics_ptr->row().RSID() )
+		|| list_contains( to_string( row_statistics_ptr->row().SNP_position() ) ) ;
 }
 
 bool SNPInListCondition::list_contains( std::string const& elt ) const {

@@ -152,7 +152,7 @@ public:
 	        .add_value_checker( &check_files_are_readable ) ;
 
 		options[ "-os" ]
-	        .set_description( 	"Override the auto-generated path of the output sample file.  " )
+	        .set_description( "Override the auto-generated path of the output sample file.  " )
 	        .set_takes_single_value() ;
 
 		// Statistic file options
@@ -375,7 +375,7 @@ private:
 			m_cout.add_stream( "log", m_log ) ;
 		}
 	}
-	
+
 	void open_m_gen_row_source() {
 		Timer timer ;
 		
