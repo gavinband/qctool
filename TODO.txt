@@ -1,7 +1,12 @@
-gen-tools TODO LIST 04/08/2009
+
+
+
+gen-tools TODO LIST 27/08/2009
 
 Done?	Description
 -----   -----------
+		qc-tool: Make output GEN file have same format as input GEN file unless specified.
+		qc-tool: Support multiple files for snp-incl-list and/or snp-excl-list.
 		qc-tool: Implement full check that full set of chromosome files has been supplied for --sample-stats option.
 		genfile: port range-based probability setters as in impute branch.
 		OptionProcessor: format option descriptions with line-wrapping.

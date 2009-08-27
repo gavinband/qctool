@@ -10,12 +10,19 @@
 
 struct SNPInListCondition: public RowCondition
 {
-	SNPInListCondition( std::string filename ) ;
+public:
+	SNPInListCondition( std::string const& filename ) ;
+	SNPInListCondition( std::vector< std::string > const& filenames ) ;
 	bool check_if_satisfied( string_to_value_map const& ) const ;
 	void format_to_stream( std::ostream& oStream ) const ;
-	protected:
-		FromFileSet< std::set< std::string > > m_id_list ;
-		std::string m_filename ;
+
+private:
+		void setup() ;
+		bool list_contains( std::string const& ) const ;
+
+private:		
+		std::set< std::string > m_id_list ;
+		std::vector< std::string > m_filenames ;
 } ;
 
 

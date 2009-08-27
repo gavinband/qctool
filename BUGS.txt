@@ -2,6 +2,9 @@ Known bugs for qc-tool
 ======================
 Fixed?		Description:
 ------		------------
+
+*			SNPInListCondition only filters on SNPID, not RSID.
+
 *			-snp-stats output: alleles represent two columns so should have seperate 'allele_A' and 'allele_B' column headers.
 			(otherwise R can't read it easily).
 

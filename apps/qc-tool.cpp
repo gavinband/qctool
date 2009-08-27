@@ -200,11 +200,13 @@ public:
 			.set_description( "Filter out SNPs whose minor allele frequency lies outside the interval [a,b]." )
 			.set_number_of_values_per_use( 2 ) ;
 		options[ "-snp-incl-list"]
-			.set_description( "Filter out SNPs whose SNP ID or RSID does not lie in the given file.")
-			.set_takes_single_value() ;
+			.set_description( "Filter out SNPs whose SNP ID or RSID does not lie in the given file(s).")
+			.set_takes_values() 
+			.set_number_of_values_per_use( 1 ) ;
 		options[ "-snp-excl-list"]
-			.set_description( "Filter out SNPs whose SNP ID or RSID lies in the given file.")
-			.set_takes_single_value() ;
+			.set_description( "Filter out SNPs whose SNP ID or RSID lies in the given file(s).")
+			.set_takes_values() 
+			.set_number_of_values_per_use( 1 ) ;
 
 		// Sample filtering options
 		options.declare_group( "Sample filtering options" ) ;
@@ -221,6 +223,7 @@ public:
 			.set_description( "Filter out samples whose sample ID lies in the given file.")
 			.set_takes_single_value() ;
 
+		// Other options
 		options.declare_group( "Other options" ) ;
 		options [ "-force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
@@ -490,14 +493,14 @@ private:
 		}
 
 		if( m_options.check_if_option_was_supplied( "-snp-incl-list" ) ) {
-			std::string filename = m_options.get_value< std::string >( "-snp-incl-list" ) ;
-			std::auto_ptr< RowCondition > snp_incl_condition( new SNPInListCondition( filename )) ;
+			std::vector< std::string > filenames = m_options.get_values< std::string >( "-snp-incl-list" ) ;
+			std::auto_ptr< RowCondition > snp_incl_condition( new SNPInListCondition( filenames )) ;
 			snp_filter->add_subcondition( snp_incl_condition ) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "-snp-excl-list" ) ) {
-			std::string filename = m_options.get_value< std::string >( "-snp-excl-list" ) ;
-			std::auto_ptr< RowCondition > snp_incl_condition( new SNPInListCondition( filename )) ;
+			std::vector< std::string > filenames = m_options.get_values< std::string >( "-snp-excl-list" ) ;
+			std::auto_ptr< RowCondition > snp_incl_condition( new SNPInListCondition( filenames )) ;
 			std::auto_ptr< RowCondition > snp_excl_condition( new NotRowCondition( snp_incl_condition )) ;
 			snp_filter->add_subcondition( snp_excl_condition ) ;
 		}
