@@ -41,12 +41,19 @@ open_file_for_input( std::string const& filename, int mode_flags ) {
 		default:
 			break ;
 	}
-	stream_ptr->push( bio::file_source( filename, open_mode )) ;
+	bio::file_source source( filename, open_mode ) ;
+	if( !source.is_open() ) {
+		throw FileNotOpenedError( filename ) ;
+	}
+	stream_ptr->push( source ) ;
 #else
 	if( compression_flags != e_None ) {
 		throw FileException( "File compression requested.  Please recompile with boost support.") ;		
 	}
 	std::auto_ptr< std::ifstream > stream_ptr( new std::ifstream( filename.c_str(), open_mode )) ;
+	if( !stream_ptr->is_open() ) {
+		throw FileNotOpenedError( filename ) ;
+	}
 #endif
 	
 	return INPUT_FILE_PTR( stream_ptr.release() ) ;
@@ -77,13 +84,21 @@ open_file_for_output( std::string const& filename, int mode_flags ) {
 			assert(0) ; 
 			break ;
 	}
-	stream_ptr->push( bio::file_sink( filename, open_mode )) ;
+	bio::file_sink sink( filename, open_mode ) ;
+	if( !sink.is_open() ) {
+		throw FileNotOpenedError( filename ) ;
+	}
+	stream_ptr->push( sink ) ;
 #else
 	if( compression_flags != e_None ) {
 		throw FileException( "File compression requested.  Please recompile with boost support.") ;		
 	}
 	std::auto_ptr< std::ofstream > stream_ptr( new std::ofstream( filename.c_str(), open_mode )) ;
+	if( !stream_ptr->is_open() ) {
+		throw FileNotOpenedError( filename ) ;
+	}
 #endif
+
 	return OUTPUT_FILE_PTR( stream_ptr.release() ) ;
 }
 

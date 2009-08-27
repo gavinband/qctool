@@ -7,17 +7,27 @@
 #include <vector>
 #include <iterator>
 #include <iostream>
-#include <GToolException.hpp>
+#include <exception>
 
 typedef std::auto_ptr< std::istream > INPUT_FILE_PTR ;
 typedef std::auto_ptr< std::ostream > OUTPUT_FILE_PTR ;
 
-struct FileException: public GToolException
+struct FileError: public std::exception
 {
-	FileException( std::string const& msg )
-		: GToolException( msg )
-	{}
+        char const* what() const throw() { return "FileError" ; }
 } ;
+
+// thrown to indicate that an output file with wildcard appeared, but the corresponding input
+// file had no wildcard.
+struct FileNotOpenedError: public FileError
+{
+        FileNotOpenedError( std::string const& filename ): m_filename( filename ) {}
+        ~FileNotOpenedError() throw() {}
+        char const* what() const throw() { return "FileNotOpenedError" ; }
+        std::string const& filename() const { return m_filename ; }
+private:
+        std::string const m_filename ;
+} ;     
 
 //
 enum FileCompressionType {e_None = 0x1, e_Gzip = 0x2, e_Bzip2 = 0x4, e_FileCompressionMask = 0xf } ;

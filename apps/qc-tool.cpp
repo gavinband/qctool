@@ -44,6 +44,7 @@
 #include "progress_bar.hpp"
 #include "FileBackupCreator.hpp"
 #include "InputToOutputFilenameMapper.hpp"
+#include "OstreamTee.hpp"
 
 void check_files_are_readable( std::string const& option_name, std::vector< std::string > const& filenames ) ;
 void check_condition_spec( std::string const& option_name, std::string const& condition_spec ) ;
@@ -89,34 +90,38 @@ private:
 	std::string m_filename ;
 } ;
 
-class OstreamTee: public std::ostream  {
-public:
-
-	void add_stream( std::string const& name, std::ostream& stream ) {
-		m_streams[ name ] = &stream ;
+struct SNPPositionSink: public genfile::SNPDataSink
+{
+	SNPPositionSink( std::string const& filename ) {
+		setup( filename ) ;
 	}
+	
+	operator bool() const { return *m_stream_ptr ; }
 
-	template< typename T >
-	friend OstreamTee& operator<<( OstreamTee & ostream_tee, T const& t ) ;
-
-	std::ostream& operator[]( std::string const& name ) { return *(m_streams.find( name )->second) ; }
-
-private:
-	std::map< std::string, std::ostream* > m_streams ;
-} ;
-
-template< typename T >
-OstreamTee& operator<<( OstreamTee& ostream_tee, T const& t ) {
-	for(
-		std::map< std::string, std::ostream* >::const_iterator i = ostream_tee.m_streams.begin() ;
-		i != ostream_tee.m_streams.end() ;
-		++i
+	void write_snp_impl(
+		uint32_t,
+		std::string,
+		std::string,
+		uint32_t SNP_position,
+		char,
+		char,
+		GenotypeProbabilityGetter const&,
+		GenotypeProbabilityGetter const&,
+		GenotypeProbabilityGetter const&
 	) {
-		(*(i->second)) << t ;
+		stream() << SNP_position << "\n" ;
+	} ;
+	
+private:
+	
+	std::ostream& stream() { return *m_stream_ptr ; }
+	
+	void setup( std::string const& filename ) {
+		m_stream_ptr = open_file_for_output( filename ) ;
 	}
-
-	return ostream_tee ;
-}
+	
+	OUTPUT_FILE_PTR m_stream_ptr ;
+} ;
 
 
 struct QCToolProcessor: public FileBackupCreator
@@ -207,6 +212,9 @@ public:
 			.set_description( "Filter out SNPs whose SNP ID or RSID lies in the given file(s).")
 			.set_takes_values() 
 			.set_number_of_values_per_use( 1 ) ;
+		options [ "-snp-positions-only" ]
+			.set_description( "Don't output full GEN files: instead, write files containing the positions that would be filtered in."
+			"  These files are suitable for use as input to the -snp-incl-list option on a subsequent run." ) ;
 
 		// Sample filtering options
 		options.declare_group( "Sample filtering options" ) ;
@@ -338,8 +346,13 @@ private:
 			for( std::size_t i = 0; i < input_gen_filenames_supplied.size(); ++i ) {
 				result[i]
 					= genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] )
-					+ ".fltrd"
-					+ genfile::get_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) ;
+					+ ".fltrd-in" ;
+				if( m_options.check_if_option_was_supplied( "-write-snp-incl-list" )) {
+					result[i] += ".snp-incl" ;
+				}
+				else {
+					result[i] += genfile::get_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) ;
+				}
 			}
 		}
 		if( result.size() != input_gen_filenames_supplied.size() ) {
@@ -421,19 +434,29 @@ private:
 	}
 
 	void open_gen_row_sink() {
-		reset_gen_row_sink() ;
+		reset_filtered_in_gen_row_sink() ;
+		open_filtered_in_gen_row_sink() ;
+	}
+
+	void reset_filtered_in_gen_row_sink() {
+		m_gen_row_sink = std::auto_ptr< genfile::SNPDataSinkChain >( new genfile::SNPDataSinkChain() ) ;
+	}
+
+	void open_filtered_in_gen_row_sink() {
 		if( m_gen_file_mapper.output_filenames().size() == 0 ) {
 			m_gen_row_sink->add_sink( std::auto_ptr< genfile::SNPDataSink >( new genfile::TrivialSNPDataSink() )) ;
 		}
 		else {
 			for( std::size_t i = 0; i < m_gen_file_mapper.output_filenames().size(); ++i ) {
-				m_gen_row_sink->add_sink( genfile::SNPDataSink::create( m_gen_file_mapper.output_filenames()[i] )) ;
+				std::string const& filename = m_gen_file_mapper.output_filenames()[i] ;
+				if( filename.substr( filename.size() - 9, 9 ) == ".snp-incl" ) {
+					m_gen_row_sink->add_sink( std::auto_ptr< genfile::SNPDataSink >( new SNPPositionSink( filename ))) ;
+				}
+				else {
+					m_gen_row_sink->add_sink( genfile::SNPDataSink::create( filename )) ;
+				}
 			}
 		}
-	}
-
-	void reset_gen_row_sink() {
-		m_gen_row_sink = std::auto_ptr< genfile::SNPDataSinkChain >( new genfile::SNPDataSinkChain() ) ;
 	}
 
 	void open_sample_row_source() {

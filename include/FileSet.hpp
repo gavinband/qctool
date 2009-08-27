@@ -24,6 +24,19 @@ Set read_set_from_file( std::string filename, int mode_flags ) {
 }
 
 
+// thrown to indicate that a file was read with bad format.n output file with wildcard appeared, but the corresponding input
+// file had no wildcard.
+struct FromFileSetFormatError: public FileError
+{
+        FromFileSetFormatError( std::string const& filename ): m_filename( filename ) {}
+        ~FromFileSetFormatError() throw() {}
+        char const* what() const throw() { return "FromFileSetFormatError" ; }
+        std::string const& filename() const { return m_filename ; }
+private:
+        std::string const m_filename ;
+} ;     
+
+
 template< typename Set >
 struct FromFileSet: Set
 {
@@ -31,10 +44,6 @@ struct FromFileSet: Set
 	
 	FromFileSet( std::string filename ) {
 		INPUT_FILE_PTR aStream( open_file_for_input( filename )) ;
-		if( !(*aStream) ) {
-			throw FileException( "FromFileSet: Error opening file \"" + filename + "\".  Must be a readable file." ) ;
-		}
-
 		value_type value ;
 
 		while( (*aStream) >> value ) {
@@ -42,7 +51,7 @@ struct FromFileSet: Set
 		}
 		
 		if( aStream->bad() ) {
-			throw FileException( "FromFileSet: Error reading entries -- the file must be a whitespace-separated list." ) ;
+			throw FromFileSetFormatError( filename ) ;
 		}
 	}
 } ;

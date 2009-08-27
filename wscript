@@ -139,6 +139,7 @@ def build( bld ):
 			'src/string_to_value_map.cpp',
 			'src/FileBackupCreator.cpp',
 			'src/InputToOutputFilenameMapper.cpp',
+			'src/OstreamTee.cpp'
 		],
 		includes='./include ./genfile/include',
 		uselib = 'BOOST BOOST_IOSTREAMS BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'
