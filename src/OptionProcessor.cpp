@@ -109,8 +109,8 @@ void OptionProcessor::process( int argc, char** argv ) {
 	parse_options( argc, argv ) ;
 	check_required_options_are_supplied() ;
 	check_mutually_exclusive_options_are_not_supplied() ;
-	preprocess_option_values() ;
 	check_option_values() ;
+	preprocess_option_values() ;
 }
 
 void OptionProcessor::calculate_option_groups() {
@@ -228,16 +228,7 @@ void OptionProcessor::check_mutually_exclusive_options_are_not_supplied() const 
 
 
 void OptionProcessor::preprocess_option_values() {
-	OptionValues::iterator
-		arg_i = m_option_values.begin(),
-		arg_end = m_option_values.end() ;
-
-	for( ; arg_i != arg_end; ++arg_i ) {
-		OptionDefinitions::const_iterator defn_i
-			= m_option_definitions.find( arg_i->first ) ;
-	
-		arg_i->second = defn_i->second.preprocess_option_values( arg_i->first, arg_i->second ) ;
-	}
+	// Do nothing in base class.
 }
 
 void OptionProcessor::check_option_values() {

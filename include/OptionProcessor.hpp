@@ -67,7 +67,7 @@ class OptionProcessor {
 	public:
 		OptionProcessor() ;
 		OptionProcessor( OptionProcessor const& other ) ;
-		~OptionProcessor() ;
+		virtual ~OptionProcessor() ;
 		
 		OptionDefinitions const& option_definitions() const ;
 		OptionDefinition& operator[]( std::string const& arg ) ;
@@ -80,7 +80,7 @@ class OptionProcessor {
 		void option_excludes_group( std::string const& excluding_option, std::string const& excluded_option_group ) ;
 
 		// Parse the options from argv, performing all needed checks.
-		void process( int argc, char** argv ) ;
+		virtual void process( int argc, char** argv ) ;
 
 		// check if the given option (which must be valid) was supplied.
 		bool check_if_option_was_supplied( std::string const& arg ) const ;
@@ -114,6 +114,10 @@ class OptionProcessor {
 		friend std::ostream& operator<<( std::ostream& aStream, OptionProcessor::OptionDefinitions const& option_definitions ) ;
 		friend std::ostream& operator<<( std::ostream& aStream, OptionProcessor const& options ) ;
 
+	protected:
+		
+		std::string const& get_help_option_name() const { return m_help_option_name ; }
+
 	private:
 		void calculate_option_groups() ;
 		// Parse the options.  Store option values.  Ignore, but store unknown args for later reference
@@ -123,8 +127,8 @@ class OptionProcessor {
 		void process_unknown_options() ;
 		void check_required_options_are_supplied() const ;
 		void check_mutually_exclusive_options_are_not_supplied() const ;
-		void preprocess_option_values() ;
-		void check_option_values() ;
+		virtual void preprocess_option_values() ;
+		virtual void check_option_values() ;
 		std::string get_default_value( std::string const& arg ) const ;
 		std::size_t get_maximum_option_length() const ;
 		std::size_t get_maximum_option_length( std::string const& group ) const ;
