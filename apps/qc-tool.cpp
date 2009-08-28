@@ -46,34 +46,20 @@
 #include "InputToOutputFilenameMapper.hpp"
 #include "OstreamTee.hpp"
 #include "null_ostream.hpp"
+#include "SNPPositionSink.hpp"
+#include "statfile/RFormatStatSink.hpp"
+
+#include "QCToolContext.hpp"
+#include "QCToolProcessor.hpp"
+
 
 namespace globals {
 	std::string const program_name = "qc-tool" ;
 }
 
-struct QCToolProcessorException: public std::exception
-{
-	char const* what() const throw() {return "QCToolProcessorException" ; }
-} ;
-
-struct GenAndSampleFileMismatchException: public QCToolProcessorException
-{
-	char const* what() const throw() {return "GenAndSampleFileMismatchException" ; }
-} ;
-
 struct NumberOfSamplesMismatchException: public QCToolProcessorException
 {
 	char const* what() const throw() {return "NumberOfSamplesMismatchException" ; }
-} ;
-
-struct SampleFileHasTooFewSamplesException: public QCToolProcessorException
-{
-	char const* what() const throw() {return "SampleFileHasTooFewSamplesException" ; }
-} ;
-
-struct ProblemsWereEncountered: public QCToolProcessorException
-{
-	char const* what() const throw() {return "ProblemsWereEncountered" ; }
 } ;
 
 // Thrown to indicate that the numbers of input and output files specified on the command line differ.
@@ -81,50 +67,6 @@ struct QCToolFileCountMismatchError: public QCToolProcessorException
 {
 	char const* what() const throw() {return "QCToolFileCountMismatchError" ; }
 } ;
-
-struct NoMatchingFileFound: public QCToolProcessorException
-{
-	NoMatchingFileFound( std::string const& filename ): m_filename( filename ) {}
-	~NoMatchingFileFound() throw() {}
-	char const* what() const throw() { return "NoMatchingFileFound" ; }
-	std::string const& filename() const { return m_filename ; }
-private:
-	std::string m_filename ;
-} ;
-
-struct SNPPositionSink: public genfile::SNPDataSink
-{
-	SNPPositionSink( std::string const& filename ) {
-		setup( filename ) ;
-	}
-	
-	operator bool() const { return *m_stream_ptr ; }
-
-	void write_snp_impl(
-		uint32_t,
-		std::string,
-		std::string,
-		uint32_t SNP_position,
-		char,
-		char,
-		GenotypeProbabilityGetter const&,
-		GenotypeProbabilityGetter const&,
-		GenotypeProbabilityGetter const&
-	) {
-		stream() << SNP_position << "\n" ;
-	} ;
-	
-private:
-	
-	std::ostream& stream() { return *m_stream_ptr ; }
-	
-	void setup( std::string const& filename ) {
-		m_stream_ptr = open_file_for_output( filename ) ;
-	}
-	
-	OUTPUT_FILE_PTR m_stream_ptr ;
-} ;
-
 
 struct QCToolOptionProcessor: public CmdLineOptionProcessor
 {
@@ -262,10 +204,10 @@ public:
 	std::string const& output_sample_filename() const { return m_output_sample_filename ; }
 	std::string const& output_sample_stats_filename() const { return m_sample_statistic_filename ; }
 	std::string const& plot_filename() const { return m_plot_filename ; }
-	std::string const& log_filename() const { return m_log_filename ; }
-	InputToOutputFilenameMapper gen_filename_mapper() const { return m_gen_file_mapper ; }
-	InputToOutputFilenameMapper snp_stats_filename_mapper() const { return m_snp_stats_file_mapper ; }
-	InputToOutputFilenameMapper output_snp_excl_filename_mapper() const { return m_output_snp_excl_file_mapper ; }
+	std::string const log_filename() const { return get_value< std::string > ( "-log" ) ; }
+	InputToOutputFilenameMapper const& gen_filename_mapper() const { return m_gen_file_mapper ; }
+	InputToOutputFilenameMapper const& snp_stats_filename_mapper() const { return m_snp_stats_sink_mapper ; }
+	InputToOutputFilenameMapper const& snp_excl_list_filename_mapper() const { return m_output_snp_excl_file_mapper ; }
 	std::vector< std::string > row_statistics_specs() const {
 		return split_and_strip_discarding_empty_entries( get_value< std::string >( "-snp-stats-columns" ), "," ) ;
 	}
@@ -293,7 +235,7 @@ private:
 
 		for( std::size_t i = 0; i < input_gen_filenames_supplied.size(); ++i ) {
 			m_gen_file_mapper.add_filename_pair( input_gen_filenames_supplied[i], output_gen_filenames_supplied[i] ) ;
-			m_snp_stats_file_mapper.add_filename_pair( input_gen_filenames_supplied[i], output_snp_stats_filenames_supplied[i] ) ;
+			m_snp_stats_sink_mapper.add_filename_pair( input_gen_filenames_supplied[i], output_snp_stats_filenames_supplied[i] ) ;
 			m_output_snp_excl_file_mapper.add_filename_pair( input_gen_filenames_supplied[i], output_snp_excl_filenames_supplied[i] ) ;
 		}
 	}
@@ -338,14 +280,16 @@ private:
 
 	std::vector< std::string > construct_output_gen_filenames( std::vector< std::string > const& input_gen_filenames_supplied ) {
 		std::vector< std::string > result( input_gen_filenames_supplied.size(), "" ) ;
-		if( check_if_option_was_supplied( "-og" ) ) {
-			result = get_values< std::string >( "-og" ) ;
-		} else if( check_if_option_was_supplied_in_group( "SNP filtering options" ) || check_if_option_was_supplied_in_group( "Sample filtering options" )) {
-			for( std::size_t i = 0; i < input_gen_filenames_supplied.size(); ++i ) {
-				result[i]
-					= genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] )
-					+ ".fltrd-in"
-					+ genfile::get_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) ;
+		if( !check_if_option_was_supplied( "-write-excl-list" )) {
+			if( check_if_option_was_supplied( "-og" ) ) {
+				result = get_values< std::string >( "-og" ) ;
+			} else if( check_if_option_was_supplied_in_group( "SNP filtering options" ) || check_if_option_was_supplied_in_group( "Sample filtering options" )) {
+				for( std::size_t i = 0; i < input_gen_filenames_supplied.size(); ++i ) {
+					result[i]
+						= genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] )
+						+ ".fltrd-in"
+						+ genfile::get_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) ;
+				}
 			}
 		}
 		if( result.size() != input_gen_filenames_supplied.size() ) {
@@ -398,36 +342,8 @@ private:
 	std::string m_plot_filename ;
 	std::string m_log_filename ;
 	InputToOutputFilenameMapper m_gen_file_mapper ;
-	InputToOutputFilenameMapper m_snp_stats_file_mapper ;
+	InputToOutputFilenameMapper m_snp_stats_sink_mapper ;
 	InputToOutputFilenameMapper m_output_snp_excl_file_mapper ;
-} ;
-
-
-struct QCToolContext
-{
-	typedef genfile::SNPDataSource SNPDataSource ;
-	typedef genfile::SNPDataSink SNPDataSink ;
-	
-	virtual ~QCToolContext() {}
-	
-	virtual SNPDataSource& snp_data_source() const = 0 ;
-	virtual SNPDataSink& fltrd_in_snp_data_sink() const = 0 ;
-	virtual SNPDataSink& fltrd_out_snp_data_sink() const = 0 ;
-	virtual ObjectSink< SampleRow >& fltrd_in_sample_sink() const = 0 ;
-	virtual ObjectSink< SampleRow >& fltrd_out_sample_sink() const = 0 ;
-	virtual std::ostream& snp_stats_sink() const = 0 ;
-	virtual std::ostream& sample_stats_sink() const = 0 ;
-	virtual AndRowCondition& snp_filter() const = 0 ;
-	virtual AndRowCondition& sample_filter() const = 0 ;
-	virtual std::vector< std::size_t >& snp_filter_failure_counts() = 0 ;
-	virtual std::vector< std::size_t >& sample_filter_failure_counts() = 0 ;
-	virtual GenRowStatistics& snp_statistics() = 0 ;
-	virtual SampleRowStatistics& sample_statistics() = 0 ;
-	virtual std::vector< SampleRow >& sample_rows() = 0 ;
-
-	virtual void print_progress_if_necessary() = 0 ;
-
-	virtual OstreamTee& logger() = 0 ;
 } ;
 
 
@@ -442,6 +358,7 @@ struct QCToolCmdLineContext: public QCToolContext
 	}
 	
 	~QCToolCmdLineContext() {
+		write_postamble() ;
 		write_end_banner() ;
 	}
 	
@@ -469,14 +386,14 @@ struct QCToolCmdLineContext: public QCToolContext
 		return *m_fltrd_out_sample_sink ;
 	}
 
-	std::ostream& snp_stats_sink() const {
-		assert( m_snp_stats_file.get() ) ;
-		return *m_snp_stats_file ;
+	statfile::BuiltInTypeStatSink& snp_stats_sink() const {
+		assert( m_snp_stats_sink.get() ) ;
+		return *m_snp_stats_sink ;
 	}
 
-	std::ostream& sample_stats_sink() const {
-		assert( m_sample_stats_file.get() ) ;
-		return *m_sample_stats_file ;
+	statfile::BuiltInTypeStatSink& sample_stats_sink() const {
+		assert( m_sample_stats_sink.get() ) ;
+		return *m_sample_stats_sink ;
 	}
 	
 	AndRowCondition& snp_filter() const {
@@ -505,7 +422,7 @@ struct QCToolCmdLineContext: public QCToolContext
 	
 	std::vector< std::size_t >& snp_filter_failure_counts() { return m_snp_filter_failure_counts ; }
 	std::vector< std::size_t >& sample_filter_failure_counts() { return m_sample_filter_failure_counts ; }
-	
+
 	void write_start_banner() {
 		m_logger << "\nWelcome to qc-tool\n"
 		 	<< "(C) 2009 University of Oxford\n\n";
@@ -514,8 +431,10 @@ struct QCToolCmdLineContext: public QCToolContext
 	void write_end_banner() {
 		m_logger << "\nThank you for using qc-tool.\n" ;
 	}
-		
+
 	void write_preamble() {
+		m_logger << std::string( 72, '=' ) << "\n\n" ;
+
 		m_logger << std::setw(30) << "Input SAMPLE file:"
 			<< "  \"" << m_options.input_sample_filename() << "\".\n" ;
 		m_logger << std::setw(30) << "Output SAMPLE file:"
@@ -552,6 +471,20 @@ struct QCToolCmdLineContext: public QCToolContext
 			m_logger << "\n" ;
 		}
 
+		m_logger << std::setw(30) << "Output SNP position file(s):" ;
+		if( m_options.snp_excl_list_filename_mapper().output_filenames().empty() ) {
+			m_logger << "  (n/a)\n" ;
+		}
+		else {
+			for( std::size_t i = 0; i < m_options.snp_excl_list_filename_mapper().output_filenames().size(); ++i ) {
+				if( i > 0 ) {
+					m_logger << "\n" << std::string( 30, ' ' ) ;
+				}
+				m_logger << "  \"" << m_options.snp_excl_list_filename_mapper().output_filenames()[i] << "\"" ;				
+			}
+			m_logger << "\n" ;
+		}
+
 		m_logger << std::setw(30) << "SNP statistic output file(s):" ;
 		for( std::size_t i = 0; i < m_options.snp_stats_filename_mapper().output_filenames().size(); ++i ) {
 			if( i > 0 ) {
@@ -572,7 +505,7 @@ struct QCToolCmdLineContext: public QCToolContext
 			<< "  " << m_snp_data_source->number_of_samples() - m_indices_of_filtered_out_samples.size()
 			<< " (" << m_indices_of_filtered_out_samples.size()
 			<< " filtered out).\n" ;
-			
+
 		m_logger << "\n" << std::string( 72, '=' ) << "\n\n" ;
 
 		if( !m_errors.empty() ) {
@@ -634,7 +567,7 @@ struct QCToolCmdLineContext: public QCToolContext
 				}
 
 				m_logger << std::setw(36) << "(total failures:"
-					<< "  " << m_snp_data_source->total_number_of_snps() - m_fltrd_out_snp_data_sink->number_of_snps_written() << ").\n" ;
+					<< "  " << m_fltrd_out_snp_data_sink->number_of_snps_written() << ").\n" ;
 			}
 			
 			m_logger << "\n" ;
@@ -669,6 +602,21 @@ struct QCToolCmdLineContext: public QCToolContext
 				}
 				m_logger << std::string( 36, ' ' ) << "  (total " << m_fltrd_in_snp_data_sink->number_of_snps_written() << " snps).\n" ;
 			}
+			
+			if( m_options.snp_excl_list_filename_mapper().output_filenames().size() > 0 ) {
+				m_logger << std::setw(36) << "Output SNP position file(s):" ;
+				for( std::size_t i = 0; i < m_options.snp_excl_list_filename_mapper().output_filenames().size(); ++i ) {
+					if( i > 0 ) {
+						m_logger << std::string( 36, ' ' ) ;
+					}
+					if( m_fltrd_out_snp_data_sink.get() ) {
+						m_logger << "  (" << std::setw(6) << m_fltrd_out_snp_data_sink->sink(i).number_of_snps_written() << " snps)  " ;
+					}
+					m_logger << "  \"" << m_options.snp_excl_list_filename_mapper().output_filenames()[i] << "\"\n" ;				
+				}
+				m_logger << std::string( 36, ' ' ) << "  (total " << m_fltrd_out_snp_data_sink->number_of_snps_written() << " snps).\n" ;
+			}
+			
 			if( m_options.output_sample_filename() != "" ) {
 				m_logger << std::setw(36) << "Output SAMPLE files:"
 					<< "  \"" << m_options.output_sample_filename() << "\""
@@ -728,33 +676,34 @@ private:
 
 		try {
 			open_snp_data_source() ;
-			open_sample_row_source() ;
-			open_sample_row_sink() ;
-			open_snp_data_sink() ;
-			open_snp_stats_sink( 0, m_snp_statistics ) ;
-			open_sample_stats_sink() ;
 		}
 		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
 			m_logger << "The GEN files specified did not all have the same sample size.\n" ;
 			throw ;
 		}
 
-		load_sample_rows() ;
-		reset_sample_row_source() ;
+		load_sample_rows( m_snp_data_source->number_of_samples() ) ;
 
 		check_for_errors_and_warnings() ;
 
-		
+		write_preamble() ;
+
+		open_sample_row_sink() ;
+		open_snp_data_sinks() ;
+		open_snp_stats_sink( 0, m_snp_statistics ) ;
+		open_sample_stats_sink() ;
 	}
 	
 	void open_log() {
 		m_logger.add_stream( "screen", std::cout ) ;
 		m_backup_creator.backup_file_if_necessary( m_options.log_filename() ) ;
 		m_log.open( m_options.log_filename().c_str() ) ;
-		if( m_log.is_open() ) {
-			// Make all output go to the log as well.
-			m_logger.add_stream( "log", m_log ) ;
+		if( !m_log.is_open() ) {
+			std::cout << m_options.log_filename() << ".\n" ;
+			throw FileNotOpenedError( m_options.log_filename() ) ;
 		}
+		// Make all output go to the log as well.
+		m_logger.add_stream( "log", m_log ) ;
 	}
 
 	void open_snp_data_source() {
@@ -801,10 +750,8 @@ private:
 		}
 	}
 
-	void open_snp_data_sink() {
-		reset_filtered_in_snp_data_sink() ;
+	void open_snp_data_sinks() {
 		open_filtered_in_snp_data_sink() ;
-		reset_filtered_out_snp_data_sink() ;
 		open_filtered_out_snp_data_sink() ;
 	}
 
@@ -813,10 +760,12 @@ private:
 	}
 
 	void open_filtered_in_snp_data_sink() {
+		reset_filtered_in_snp_data_sink() ;
 		if( m_options.gen_filename_mapper().output_filenames().size() == 0 ) {
 			m_fltrd_in_snp_data_sink->add_sink( std::auto_ptr< genfile::SNPDataSink >( new genfile::TrivialSNPDataSink() )) ;
 		}
 		else {
+			std::cout << m_options.gen_filename_mapper().output_filenames().size() << "\n" ;
 			for( std::size_t i = 0; i < m_options.gen_filename_mapper().output_filenames().size(); ++i ) {
 				std::string const& filename = m_options.gen_filename_mapper().output_filenames()[i] ;
 				m_fltrd_in_snp_data_sink->add_sink( genfile::SNPDataSink::create( filename )) ;
@@ -824,13 +773,23 @@ private:
 		}
 	}
 
+	void open_filtered_out_snp_data_sink() {
+		reset_filtered_out_snp_data_sink() ;
+		if( m_options.check_if_option_was_supplied( "-write-excl-list" ) && m_options.snp_excl_list_filename_mapper().output_filenames().size() > 0 ) {
+			for( std::size_t i = 0; i < m_options.snp_excl_list_filename_mapper().output_filenames().size(); ++i ) {
+				std::string const& filename = m_options.snp_excl_list_filename_mapper().output_filenames()[i] ;
+				m_fltrd_out_snp_data_sink->add_sink( std::auto_ptr< genfile::SNPDataSink >( new SNPPositionSink( filename ))) ;
+			}
+		}
+		else {
+			m_fltrd_out_snp_data_sink->add_sink( std::auto_ptr< genfile::SNPDataSink >( new genfile::TrivialSNPDataSink() )) ;
+		}
+	}
+
 	void reset_filtered_out_snp_data_sink() {
 		m_fltrd_out_snp_data_sink.reset( new genfile::SNPDataSinkChain() ) ;
 	}
 
-	void open_filtered_out_snp_data_sink() {
-		m_fltrd_out_snp_data_sink->add_sink( std::auto_ptr< genfile::SNPDataSink >( new genfile::TrivialSNPDataSink() )) ;
-	}
 
 	void open_sample_row_source() {
 		m_sample_source.reset( new NullObjectSource< SampleRow >()) ;
@@ -858,34 +817,38 @@ private:
 
 	void open_snp_stats_sink( std::size_t index, GenRowStatistics const& snp_statistics ) {
 		if( m_options.snp_stats_filename_mapper().output_filenames().size() == 0 ) {
-			m_snp_stats_file.reset( new null_ostream() ) ;
+			m_snp_stats_sink.reset( new statfile::TrivialBuiltInTypeStatSink() ) ;
 		}
 		else {
 			assert( index < m_options.snp_stats_filename_mapper().output_filenames().size()) ;
 			m_current_snp_stats_filename_index = index ;
-			m_snp_stats_file = open_file_for_output( m_options.snp_stats_filename_mapper().output_filenames()[ index ] ) ;
-			*m_snp_stats_file << "        " ;
-			snp_statistics.format_column_headers( *m_snp_stats_file ) << "\n";
+			m_snp_stats_sink.reset( new statfile::RFormatStatSink( m_options.snp_stats_filename_mapper().output_filenames()[ index ] )) ;
+		}
+		m_snp_stats_sink->add_column( "" ) ;
+		for( std::size_t i = 0; i < snp_statistics.size(); ++i ) {
+			m_snp_stats_sink->add_column( snp_statistics.get_statistic_name( i )) ;
 		}
 	}
 
 	void reset_snp_stats_sink() {
-		m_snp_stats_file.reset() ;
+		m_snp_stats_sink.reset() ;
 	}
 
 	void open_sample_stats_sink() {
-		if( m_options.output_sample_stats_filename() != "" ) {
-			m_sample_stats_file = open_file_for_output( m_options.output_sample_stats_filename() ) ;
-			m_sample_statistics.format_column_headers( *m_sample_stats_file ) ;
-			(*m_sample_stats_file) << "\n" ;
+		if( m_options.output_sample_stats_filename() == "" ) {
+			m_sample_stats_sink.reset( new statfile::TrivialBuiltInTypeStatSink() ) ;
 		}
 		else {
-			m_sample_stats_file.reset( new null_ostream() ) ;
+			m_sample_stats_sink.reset( new statfile::RFormatStatSink( m_options.output_sample_stats_filename() )) ;
+		}
+		m_sample_stats_sink->add_column( "" ) ;
+		for( std::size_t i = 0; i < m_sample_statistics.size(); ++i ) {
+			m_sample_stats_sink->add_column( m_sample_statistics.get_statistic_name( i )) ;
 		}
 	}
 	
 	void reset_sample_stats_sink() {
-		m_sample_stats_file.reset() ;
+		m_sample_stats_sink.reset() ;
 	}
 
 	void construct_snp_statistics() {
@@ -978,22 +941,24 @@ private:
 		m_ignore_warnings = m_options.check_if_option_was_supplied( "-force" ) ;
 	}
 	
-	void load_sample_rows() {
+	void load_sample_rows( std::size_t const expected_number_of_samples ) {
+		
 		try {
-			unsafe_load_sample_rows() ;
+			unsafe_load_sample_rows( expected_number_of_samples ) ;
 		}
 		catch( ConditionValueNotFoundException const& ) {
 			m_logger << "\n\n!! ERROR: The input sample file must contain entries for all values used to filter on.\n"
 				<< "!! This includes \"missing\" and \"heterozygosity\".\n" ;
 			throw ;
 		}
+		
 	}
 	
-	void unsafe_load_sample_rows() {
+	void unsafe_load_sample_rows( std::size_t const expected_number_of_samples ) {
 		if( m_options.input_sample_filename() != "" ) {
 			Timer timer ;
 			m_logger << "(Preprocessing sample file...)" ;
-			open_sample_row_source() ;
+			open_sample_row_source() ;			
 			SampleRow sample_row ;
 			while((*m_sample_source) >> sample_row ) {
 				m_sample_rows.push_back( sample_row ) ;
@@ -1003,12 +968,13 @@ private:
 			}
 
 			m_logger << "(" << std::fixed << std::setprecision(1) << timer.elapsed() << "s)\n" ;
-			if( m_sample_rows.size() != m_snp_data_source->number_of_samples() ) {
+			if( m_sample_rows.size() != expected_number_of_samples ) {
 				throw NumberOfSamplesMismatchException() ;
 			}
+			reset_sample_row_source() ;
 		}
 		else {
-			m_sample_rows.resize( m_snp_data_source->number_of_samples() ) ;
+			m_sample_rows.resize( expected_number_of_samples ) ;
 		}
 	}
 	
@@ -1068,15 +1034,15 @@ private:
 			m_warnings.push_back( "You are outputting a sample statistic file, but no input sample file has been supplied.\n"
 			"   Statistics will be output but the ID fields will be left blank.") ;
 		}
-		if( m_options.gen_filename_mapper().output_filenames().size() == 0 && m_options.output_sample_filename() == "" && m_options.snp_stats_filename_mapper().output_filenames().size() == 0 && m_options.output_sample_stats_filename() == "" ) {
+		if( m_options.gen_filename_mapper().output_filenames().size() == 0 && m_options.output_sample_filename() == "" && m_options.snp_stats_filename_mapper().output_filenames().size() == 0 && m_options.output_sample_stats_filename() == "" && m_options.snp_excl_list_filename_mapper().output_filenames().size() == 0 ) {
 			m_warnings.push_back( "You have not specified any output files.  This will produce only console output." ) ;
 		}
-		if( (m_options.gen_filename_mapper().output_filenames().size() > 0) &&  (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0)) {
-			m_warnings.push_back( "You have specified output GEN files, but no filters.\n"
-			 	"The output GEN files will contain the same data as the input ones.") ;
+		if( ((m_options.gen_filename_mapper().output_filenames().size() > 0) || ( m_options.snp_excl_list_filename_mapper().output_filenames().size() > 0)) &&  (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0)) {
+			m_warnings.push_back( "You have specified output GEN (or snp exclusion) files, but no filters.\n"
+				" To convert GEN file formats, use gen-convert." ) ;
 		}
-		if(m_options.gen_filename_mapper().output_filenames().size() == 0 && ((m_snp_filter->number_of_subconditions() > 0) || (m_sample_filter->number_of_subconditions() > 0))) {
-			m_warnings.push_back( "You have not specified filters, but no output GEN files." ) ;
+		if( m_options.gen_filename_mapper().output_filenames().size() == 0 && m_options.snp_excl_list_filename_mapper().output_filenames().size() == 0 && ((m_snp_filter->number_of_subconditions() > 0) || (m_sample_filter->number_of_subconditions() > 0))) {
+			m_warnings.push_back( "You have specified filters, but no output GEN (or snp exclusion) files." ) ;
 		}
 		if(m_options.output_sample_filename() == "" && (m_sample_filter->number_of_subconditions() > 0)) {
 			m_warnings.push_back( "You have not specified sample filters, but no output sample file.\n" ) ;
@@ -1109,8 +1075,8 @@ private:
 
 	std::auto_ptr< ObjectSink< SampleRow > > m_fltrd_in_sample_sink ;
 	std::auto_ptr< ObjectSink< SampleRow > > m_fltrd_out_sample_sink ;
-	OUTPUT_FILE_PTR m_snp_stats_file ;
-	OUTPUT_FILE_PTR m_sample_stats_file ;
+	std::auto_ptr< statfile::BuiltInTypeStatSink > m_snp_stats_sink ;
+	std::auto_ptr< statfile::BuiltInTypeStatSink > m_sample_stats_sink ;
 
 	std::vector< std::size_t > m_snp_filter_failure_counts ;
 	std::vector< std::size_t > m_sample_filter_failure_counts ;
@@ -1134,210 +1100,12 @@ private:
 } ;
 
 
-struct QCToolProcessor
-{
-public:
-	QCToolProcessor( QCToolContext & context )
-		: m_context( context )
-	{
-	}
-
-	void process() {
-		try {
-			unsafe_process() ;
-		}
-		catch( StatisticNotFoundException const& e ) {
-			std::cerr << "!! ERROR: " << e << ".\n" ;
-			std::cerr << "Note: required statistics must be added using -statistics.\n" ;
-		}
-		catch( GToolException const& e) {
-			std::cerr << "!! ERROR: " << e << ".\n" ;
-		}
-	}
-
-private:
-
-	void unsafe_process() {
-		process_gen_rows() ;
-		process_sample_rows() ;
-		construct_plots() ;
-	}
-
-	void process_gen_rows() {
-		m_context.logger() << "Processing SNPs...\n" ;
-		Timer timer ;
-
-		InternalStorageGenRow row ;
-		std::size_t number_of_snps_processed = 0 ;
-		for(
-			row.set_number_of_samples( m_context.snp_data_source().number_of_samples() ) ;
-			row.read_from_source( m_context.snp_data_source() ) ;
-			row.set_number_of_samples( m_context.snp_data_source().number_of_samples() )
-		) {
-			preprocess_gen_row( row ) ;
-			process_gen_row( row, ++number_of_snps_processed ) ;
-			accumulate_per_column_amounts( row, m_per_column_amounts ) ;
-			m_context.print_progress_if_necessary() ;
-		}
-		m_context.logger() << "\n" ;
-		assert( m_context.snp_data_source().number_of_snps_read() == m_context.snp_data_source().total_number_of_snps() ) ;
-		m_context.logger() << "Processed " << m_context.snp_data_source().total_number_of_snps() << " SNPs in "
-			<< std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
-		if( m_context.snp_filter().number_of_subconditions() > 0 ) {
-			m_context.logger() << "(" << m_context.fltrd_in_snp_data_sink().number_of_snps_written() << " of " << m_context.snp_data_source().total_number_of_snps() << " SNPs passed the filter.)\n" ;
-		}
-	}
-	
-	void preprocess_gen_row( InternalStorageGenRow& row ) const {
-		check_gen_row( row ) ;
-		row.filter_out_samples_with_indices( m_indices_of_filtered_out_samples ) ;
-	}
-	
-	void check_gen_row( GenRow& row ) const {
-		check_gen_row_has_correct_number_of_samples( row ) ;
-	}
-
-	void check_gen_row_has_correct_number_of_samples( GenRow& row ) const {
-		if( row.number_of_samples() != m_context.sample_rows().size() ) {
-			throw GenAndSampleFileMismatchException() ;
-		}
-	}
-
-	void process_gen_row( GenRow const& row, std::size_t row_number ) {
-		m_context.snp_statistics().process( row ) ;
-		if( m_context.snp_filter().check_if_satisfied( m_context.snp_statistics() )) {
-			row.write_to_sink( m_context.fltrd_in_snp_data_sink() ) ;
-			output_gen_row_stats( m_context.snp_statistics(), row_number ) ;
-		}
-		else {
-			row.write_to_sink( m_context.fltrd_out_snp_data_sink() ) ;
-			do_snp_filter_diagnostics( m_context.snp_statistics(), row_number ) ;
-		}
-	}
-
-	void output_gen_row_stats( GenotypeAssayStatistics const& row_statistics, std::size_t row_number ) {
-		if( m_context.snp_statistics().size() > 0 ) {
-			m_context.snp_stats_sink()
-				<< std::setw(8) << std::left << row_number
-				<< m_context.snp_statistics() << "\n" ;
-		}
-	}
-
-	void do_snp_filter_diagnostics( GenRowStatistics const& row_statistics, std::size_t const row_index ) {
-		std::ostream& log = m_context.logger()["log"] ;
-		log
-			<< "Filtered out snp #" << row_index << " (" << row_statistics.row().SNPID() << " " << row_statistics.row().RSID() << " " << row_statistics.row().SNP_position() << ")"
-			<< " because it does not satisfy " ;
-		for( std::size_t i = 0, failed_condition_count = 0; i < m_context.snp_filter().number_of_subconditions() ; ++i ) {
-			if( !m_context.snp_filter().subcondition(i).check_if_satisfied( row_statistics )) {
-
-				++m_context.snp_filter_failure_counts()[ i ] ;
-
-				if( failed_condition_count > 0 ) {
-					log << " or " ;
-				}
-				log << "\"" << m_context.snp_filter().subcondition(i) << "\"" ;
-				++failed_condition_count ;
-			}
-		}
-		log << ".\n" ;
-	}
-
-	void accumulate_per_column_amounts( GenRow& row, std::vector< GenotypeProportions >& per_column_amounts ) {
-		// Keep totals for per-column stats.
-		if( per_column_amounts.empty() ) {
-			per_column_amounts.reserve( row.number_of_samples() ) ;
-			std::copy( row.begin_genotype_proportions(), row.end_genotype_proportions(), std::back_inserter( per_column_amounts )) ;
-		}
-		else {
-			assert( per_column_amounts.size() == row.number_of_samples() ) ;
-			std::transform( per_column_amounts.begin(), per_column_amounts.end(),
-			 				row.begin_genotype_proportions(),
-			 				per_column_amounts.begin(),
-							std::plus< GenotypeProportions >() ) ;
-		}
-	}
-	
-
-	void process_sample_rows() {
-		m_context.logger() << "Processing samples...\n" ;
-		Timer timer ;
-
-		apply_sample_filter() ;
-		assert( m_context.sample_rows().size() == m_per_column_amounts.size() ) ;
-
-		for( std::size_t i = 0 ; i < m_per_column_amounts.size(); ++i ) {
-			SampleRow& sample_row = m_context.sample_rows()[i] ;
-			m_context.sample_statistics().process( sample_row, m_per_column_amounts[i], m_context.snp_data_source().total_number_of_snps() ) ;
-			m_context.sample_stats_sink() << std::setw(8) << (i+1) << m_context.sample_statistics() << "\n" ;
-			m_context.sample_statistics().add_to_sample_row( sample_row, "missing" ) ;
-			m_context.sample_statistics().add_to_sample_row( sample_row, "heterozygosity" ) ;
-			m_context.fltrd_in_sample_sink() << sample_row ;
-		}
-
-		m_context.logger() << "Processed " << m_context.snp_data_source().number_of_samples() << " samples in " << std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
-		if( m_context.sample_filter().number_of_subconditions() > 0 ) {
-			m_context.logger() << "(" << m_context.sample_rows().size() << " of " << m_context.snp_data_source().number_of_samples() << " samples passed the filter.)\n" ;
-		}
-		m_context.logger() << "\n" ;
-	}
-
-	void apply_sample_filter() {
-		for( std::size_t pre_filter_i = 0, post_filter_i = 0; post_filter_i < m_context.sample_rows().size(); ++pre_filter_i ) {
-			if( sample_row_is_filtered_out( pre_filter_i ) ) {
-				do_sample_filter_diagnostics( m_context.sample_rows()[ post_filter_i ], pre_filter_i ) ;
-				m_context.sample_rows().erase( m_context.sample_rows().begin() + post_filter_i ) ;
-			}
-			else {
-				++post_filter_i ;
-			}
-		}
-	}
-
-	bool sample_row_is_filtered_out( std::size_t const sample_row_index ) {
-		return std::binary_search( m_indices_of_filtered_out_samples.begin(), m_indices_of_filtered_out_samples.end(), sample_row_index ) ;
-	}
-
-	void do_sample_filter_diagnostics( SampleRow const& sample_row, std::size_t const sample_row_index ) {
-		std::ostream& log = m_context.logger()["log"] ;
-		log
-			<< "Filtered out sample row " << sample_row_index << " (" << sample_row.ID1() << " " << sample_row.ID2() << ")"
-			<< " because it does not satisfy " ;
-		for( std::size_t i = 0, failed_condition_count = 0; i < m_context.sample_filter().number_of_subconditions() ; ++i ) {
-			if( !m_context.sample_filter().subcondition(i).check_if_satisfied( sample_row )) {
-				++m_context.sample_filter_failure_counts()[ i ] ;
-				if( failed_condition_count > 0 ) {
-					log << " or " ;
-				}
-				log << "\"" << m_context.sample_filter().subcondition(i) << "\"" ;
-				++failed_condition_count ;
-			}
-		}
-		log << ".\n" ;
-	}
-
-	void construct_plots() {
-		// not implemented.
-	}
-
-private:
-	QCToolContext& m_context ;
-
-	std::size_t m_number_of_sample_file_rows ;
-	std::size_t m_number_of_filtered_in_snps ;
-	std::vector< GenotypeProportions > m_per_column_amounts ;
-	std::vector< std::size_t > m_indices_of_filtered_out_samples ;
-} ;
-
-
 int main( int argc, char** argv ) {
 	OptionProcessor options ;
     try {
 		QCToolCmdLineContext context( argc, argv ) ;
-		context.write_preamble() ;
 		QCToolProcessor processor( context ) ;
 		processor.process() ;
-		context.write_postamble() ;
     }
 	catch( HaltProgramWithReturnCode const& e ) {
 		return e.return_code() ;

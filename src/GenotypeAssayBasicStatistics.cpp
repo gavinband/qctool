@@ -41,3 +41,4 @@ std::ostream& GenotypeAssayBasicStatistics::format_statistic_values( std::ostrea
 std::ostream& operator<<( std::ostream& aStream, GenotypeAssayBasicStatistics const& statistics ) {
 	return statistics.format_statistic_values( aStream ) ;
 }
+

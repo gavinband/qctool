@@ -49,7 +49,6 @@ struct GenotypeAssayBasicStatistics
 		// Methods for formatted output.
 		virtual std::ostream& format_column_headers( std::ostream& ) const ;
 		virtual std::ostream& format_statistic_values( std::ostream& aStream ) const ;
-
 	protected:
 		void set_number_of_samples( std::size_t number_of_samples ) { m_number_of_samples = number_of_samples ;}
 

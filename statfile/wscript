@@ -1,0 +1,46 @@
+import os.path
+import glob
+import UnitTest
+
+def configure( conf ):
+	pass
+
+def create_test( bld, name ):
+	bld.new_task_gen(
+		features = 'cxx cprogram',
+		target = name,
+		source = [  'test/' + name + '.cpp' ],
+		uselib_local = 'statfile',
+		includes='./include',
+		unit_test=1
+	)
+
+def create_benchmark( bld, name ):
+	bld.new_task_gen(
+		features = 'cxx cprogram',
+		target = name,
+		source = [  'benchmarks/' + name + '.cpp' ],
+		uselib_local = 'statfile',
+		includes='./include'
+	)
+
+
+def build( bld ):
+	import Options
+	
+	#---------------------
+	# libs
+	#---------------------
+	bld.new_task_gen(
+		features = 'cxx cstaticlib',
+		target = 'statfile',
+		source = [
+			'src/statfile_utils.cpp',
+			'src/RFormatStatSink.cpp',
+			'src/RFormatStatSource.cpp'
+		],
+		includes='./include',
+		uselib = 'BOOST BOOST_IOSTREAMS ZLIB'
+	)
+
+	create_test( bld, 'test_RFormat' )

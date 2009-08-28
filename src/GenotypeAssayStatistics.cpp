@@ -97,4 +97,3 @@ std::ostream& GenotypeAssayStatistics::format_statistic_values( std::ostream& aS
 		
 	return aStream ;
 }
-

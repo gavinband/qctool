@@ -77,6 +77,7 @@ def build( bld ):
 	import Options
 	
 	bld.add_subdirs( 'genfile' )
+	bld.add_subdirs( 'statfile' )
 	
 	#---------------------
 	# libs
@@ -149,7 +150,7 @@ def build( bld ):
 	#---------------------
 	# programs
 	#---------------------
-	create_app( bld, name='qc-tool', uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile', uselib = 'RLIB' )
+	create_app( bld, name='qc-tool', uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile statfile', uselib = 'RLIB' )
 	create_app( bld, name='gen-convert', uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile' )
 	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile' )
 	create_app( bld, name='gen-case-control-test', uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile' )
@@ -189,7 +190,7 @@ def create_app( bld, name, uselib = '', uselib_local = '' ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'apps/' + name + '.cpp' ],
-		includes='./include ./genfile/include',
+		includes='./include ./genfile/include ./statfile/include',
 		uselib_local = uselib_local,
 		uselib = uselib
 	)

@@ -39,6 +39,7 @@ struct GenotypeAssayStatistics: public GenotypeAssayBasicStatistics, public stri
 		// Methods to manipulate list of statistics
 		void add_statistic( std::string const& name, std::auto_ptr< GenotypeAssayStatistic > statistic_ptr ) ;
 		std::size_t size() const { return m_statistics.size() ; }
+		std::string const& get_statistic_name( std::size_t i ) const { return m_statistic_names[i] ; }
 
 	protected:
 		
@@ -47,13 +48,8 @@ struct GenotypeAssayStatistics: public GenotypeAssayBasicStatistics, public stri
 		std::string get_string_value( std::string const& name ) const ;
 		
 		typedef std::map< std::string, GenotypeAssayStatistic* > statistics_t ;
-		typedef statistics_t::const_iterator statistic_iterator_t ;
-		std::vector<std::string>::const_iterator begin_statistics() const { return m_statistic_names.begin() ; }
-		std::vector<std::string>::const_iterator end_statistics() const { return m_statistic_names.end() ; }
-
 
 	private:
-
 		void reset() ;
 	
 		statistics_t m_statistics ;
