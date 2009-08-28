@@ -81,7 +81,7 @@ std::string GenotypeAssayStatistics::get_string_value( std::string const& name )
 	return i->second->get_value<std::string>( *this ) ;
 }
 
-std::ostream& GenotypeAssayStatistics::format_column_headers( std::ostream& aStream ) {
+std::ostream& GenotypeAssayStatistics::format_column_headers( std::ostream& aStream ) const {
 	base_t::format_column_headers( aStream ) ;
 	for( std::vector< std::string >::const_iterator i = m_statistic_names.begin(); i != m_statistic_names.end(); ++i ) {
 		aStream << std::setw( std::max( std::size_t(8), i->size() )) << std::left << (*i) << "  " ;

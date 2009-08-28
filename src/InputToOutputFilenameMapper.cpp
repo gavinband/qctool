@@ -31,6 +31,6 @@ void InputToOutputFilenameMapper::add_filename_pair( std::string const& path_to_
 	}
 }
 
-std::size_t InputToOutputFilenameMapper::filename_corresponding_to( std::size_t index ) const {
+std::size_t InputToOutputFilenameMapper::index_of_filename_corresponding_to( std::size_t index ) const {
 	return m_filename_correspondence.find( index )->second ;
 }

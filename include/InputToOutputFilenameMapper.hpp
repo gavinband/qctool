@@ -13,7 +13,7 @@ public:
 	std::vector< std::string > const& input_files() const { return m_names_of_existing_files ; }
 	std::vector< std::string > const& output_filenames() const { return m_constructed_filenames ; }
 	typedef std::map< std::size_t, std::size_t > FilenameCorrespondence ;
-	std::size_t filename_corresponding_to( std::size_t index ) const ;
+	std::size_t index_of_filename_corresponding_to( std::size_t index ) const ;
 
 private:
 

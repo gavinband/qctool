@@ -60,7 +60,7 @@ struct GenotypeAssayStatistics: public GenotypeAssayBasicStatistics, public stri
 		std::vector< std::string > m_statistic_names ;
 
 	public:
-		std::ostream& format_column_headers( std::ostream& ) ;
+		std::ostream& format_column_headers( std::ostream& ) const ;
 		std::ostream& format_statistic_values( std::ostream& aStream ) const ;
 } ;
 

@@ -76,7 +76,7 @@ class OptionProcessor {
 		void declare_group( std::string const& ) ;
 		void set_help_option( std::string const& help_option_name ) { m_help_option_name = help_option_name ; }
 
-		void option_excludes( std::string const& excluding_option, std::string const& excluded_option ) ;
+		void option_excludes_option( std::string const& excluding_option, std::string const& excluded_option ) ;
 		void option_excludes_group( std::string const& excluding_option, std::string const& excluded_option_group ) ;
 
 		// Parse the options from argv, performing all needed checks.

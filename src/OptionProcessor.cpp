@@ -81,7 +81,7 @@ void OptionProcessor::declare_group( std::string const& group ) {
 	m_current_group = group ;
 }
 
-void OptionProcessor::option_excludes( std::string const& excluding_option, std::string const& excluded_option ) {
+void OptionProcessor::option_excludes_option( std::string const& excluding_option, std::string const& excluded_option ) {
 	assert( m_option_definitions.find( excluding_option ) != m_option_definitions.end() ) ;
 	assert( m_option_definitions.find( excluded_option ) != m_option_definitions.end() ) ;
 
@@ -99,7 +99,7 @@ void OptionProcessor::option_excludes_group( std::string const& excluding_option
 		end = option_group_i->second.end() ;
 
 	for( ; i != end; ++i ) {
-		option_excludes( excluding_option, *i ) ;
+		option_excludes_option( excluding_option, *i ) ;
 	}
 }
 
