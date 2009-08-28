@@ -45,6 +45,7 @@
 #include "FileBackupCreator.hpp"
 #include "InputToOutputFilenameMapper.hpp"
 #include "OstreamTee.hpp"
+#include "null_ostream.hpp"
 
 namespace globals {
 	std::string const program_name = "qc-tool" ;
@@ -314,7 +315,7 @@ private:
 				m_output_sample_filename = get_value< std::string >( "-os" ) ;
 			}
 			else {
-				m_output_sample_filename = m_input_sample_filename ;
+				m_output_sample_filename = m_input_sample_filename + ".qc-tool" ;
 			}
 		}
 
@@ -434,10 +435,10 @@ struct QCToolCmdLineContext: public QCToolContext
 {
 	QCToolCmdLineContext( int argc, char** argv ) {
 		timestamp() ;
-		write_start_banner() ;
 		m_options.process( argc, argv ) ;
 		setup() ;
 		timestamp() ;
+		write_start_banner() ;
 	}
 	
 	~QCToolCmdLineContext() {
@@ -571,6 +572,31 @@ struct QCToolCmdLineContext: public QCToolContext
 			<< "  " << m_snp_data_source->number_of_samples() - m_indices_of_filtered_out_samples.size()
 			<< " (" << m_indices_of_filtered_out_samples.size()
 			<< " filtered out).\n" ;
+			
+		m_logger << "\n" << std::string( 72, '=' ) << "\n\n" ;
+
+		if( !m_errors.empty() ) {
+			for( std::size_t i = 0; i < m_errors.size(); ++i ) {
+				m_logger << "!! ERROR: " << m_errors[i] << "\n\n" ;
+			}
+			m_logger << "!! Please correct the above errors and re-run qc-tool.\n" ;
+			throw HaltProgramWithReturnCode( -1 ) ;
+		}
+
+		if( !m_warnings.empty() ) {
+			for( std::size_t i = 0; i < m_warnings.size(); ++i ) {
+				m_logger << "!! WARNING: " << m_warnings[i] << "\n\n" ;
+			}
+			if( m_ignore_warnings ) {
+				m_logger << "!! Warnings were encountered, but proceeding anyway as -force was supplied.\n" ;
+				m_logger << "\n" << std::string( 72, '=' ) << "\n\n" ;
+			}
+			else {
+				m_logger << "!! Warnings were encountered.  To proceed anyway, please run again with the -force option.\n" ;
+				throw HaltProgramWithReturnCode( -1 ) ;
+			}
+		}
+		
 	}
 	
 	void write_postamble() {
@@ -694,20 +720,31 @@ private:
 	
 	void setup() {
 		open_log() ;
-		try {
-			open_gen_row_source() ;
-		}
-		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
-			m_logger << "The GEN files specified did not all have the same sample size.\n" ;
-			throw ;
-		}
 		construct_snp_statistics() ;
 		construct_sample_statistics() ;
 		construct_snp_filter() ;
 		construct_sample_filter() ;
 		process_other_options() ;
+
+		try {
+			open_snp_data_source() ;
+			open_sample_row_source() ;
+			open_sample_row_sink() ;
+			open_snp_data_sink() ;
+			open_snp_stats_sink( 0, m_snp_statistics ) ;
+			open_sample_stats_sink() ;
+		}
+		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
+			m_logger << "The GEN files specified did not all have the same sample size.\n" ;
+			throw ;
+		}
+
 		load_sample_rows() ;
+		reset_sample_row_source() ;
+
 		check_for_errors_and_warnings() ;
+
+		
 	}
 	
 	void open_log() {
@@ -720,7 +757,7 @@ private:
 		}
 	}
 
-	void open_gen_row_source() {
+	void open_snp_data_source() {
 		Timer timer ;
 		
 		std::auto_ptr< genfile::SNPDataSourceChain > chain( new genfile::SNPDataSourceChain() ) ;
@@ -758,7 +795,7 @@ private:
 			
 			if( m_options.snp_stats_filename_mapper().output_filenames().size() > 0 ) {
 				if( m_options.snp_stats_filename_mapper().index_of_filename_corresponding_to( index ) != m_current_snp_stats_filename_index ) {
-					open_snp_stats_file( ++m_current_snp_stats_filename_index, m_snp_statistics ) ;
+					open_snp_stats_sink( ++m_current_snp_stats_filename_index, m_snp_statistics ) ;
 				}
 			}
 		}
@@ -798,9 +835,19 @@ private:
 	void open_sample_row_source() {
 		m_sample_source.reset( new NullObjectSource< SampleRow >()) ;
 		if( m_options.input_sample_filename() != "" ) {
-			m_sample_source.reset( new SampleInputFile< SimpleFileObjectSource< SampleRow > >( open_file_for_input( m_options.input_sample_filename() ))) ;
+			try {
+				m_sample_source.reset( new SampleInputFile< SimpleFileObjectSource< SampleRow > >( open_file_for_input( m_options.input_sample_filename() ))) ;
+			}
+			catch (SampleInputFileException const& e ) {
+				m_logger << "A problem occurred opening the sample file.\n" ;
+				throw HaltProgramWithReturnCode( -1 ) ;
+			}
 		}
 	} ;
+
+	void reset_sample_row_source() {
+		m_sample_source.reset( new NullObjectSource< SampleRow >()) ;
+	}
 
 	void open_sample_row_sink() {
 		m_fltrd_in_sample_sink.reset( new NullObjectSink< SampleRow >() ) ;
@@ -809,28 +856,36 @@ private:
 		}
 	}
 
+	void open_snp_stats_sink( std::size_t index, GenRowStatistics const& snp_statistics ) {
+		if( m_options.snp_stats_filename_mapper().output_filenames().size() == 0 ) {
+			m_snp_stats_file.reset( new null_ostream() ) ;
+		}
+		else {
+			assert( index < m_options.snp_stats_filename_mapper().output_filenames().size()) ;
+			m_current_snp_stats_filename_index = index ;
+			m_snp_stats_file = open_file_for_output( m_options.snp_stats_filename_mapper().output_filenames()[ index ] ) ;
+			*m_snp_stats_file << "        " ;
+			snp_statistics.format_column_headers( *m_snp_stats_file ) << "\n";
+		}
+	}
+
+	void reset_snp_stats_sink() {
+		m_snp_stats_file.reset() ;
+	}
+
 	void open_sample_stats_sink() {
 		if( m_options.output_sample_stats_filename() != "" ) {
 			m_sample_stats_file = open_file_for_output( m_options.output_sample_stats_filename() ) ;
 			m_sample_statistics.format_column_headers( *m_sample_stats_file ) ;
 			(*m_sample_stats_file) << "\n" ;
 		}
+		else {
+			m_sample_stats_file.reset( new null_ostream() ) ;
+		}
 	}
 	
 	void reset_sample_stats_sink() {
 		m_sample_stats_file.reset() ;
-	}
-
-	void open_snp_stats_file( std::size_t index, GenRowStatistics const& snp_statistics ) {
-		assert( index < m_options.snp_stats_filename_mapper().output_filenames().size()) ;
-		m_current_snp_stats_filename_index = index ;
-		m_snp_stats_file = open_file_for_output( m_options.snp_stats_filename_mapper().output_filenames()[ index ] ) ;
-		*m_snp_stats_file << "        " ;
-		snp_statistics.format_column_headers( *m_snp_stats_file ) << "\n";
-	}
-
-	void reset_snp_stats_sink() {
-		m_snp_stats_file.reset() ;
 	}
 
 	void construct_snp_statistics() {
@@ -1279,8 +1334,10 @@ int main( int argc, char** argv ) {
 	OptionProcessor options ;
     try {
 		QCToolCmdLineContext context( argc, argv ) ;
+		context.write_preamble() ;
 		QCToolProcessor processor( context ) ;
 		processor.process() ;
+		context.write_postamble() ;
     }
 	catch( HaltProgramWithReturnCode const& e ) {
 		return e.return_code() ;
