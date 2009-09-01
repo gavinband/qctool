@@ -89,7 +89,8 @@ public:
 			.set_maximum_number_of_repeats(23) ;
 
 	    options[ "-og" ]
-	        .set_description( 	"Override the auto-generated path(s) of the output gen file(s).  "
+	        .set_description( 	"Override the auto-generated path(s) of the output gen file(s) to use when filtering.  "
+								"(By default, the paths are formed by adding \".fltrd\" to the input gen filename(s).)  "
 								"If this option is supplied, it must appear the same number of times as the -g option. "
 	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
 								"also be used here to specify numbered output files corresponding to the input files." )
@@ -109,7 +110,8 @@ public:
 	    options[ "-snp-stats" ]
 			.set_description( "Calculated and output snp-wise statistics." ) ;
 	    options[ "-snp-stats-file" ]
-	        .set_description( 	"Override the auto-generated path(s) of the files in which snp-wise statistics will be output.  "
+	        .set_description( 	"Override the auto-generated path(s) of the snp-stats file to use when outputting snp-wise statistics.  "
+								"(By default, the paths are formed by adding \".snp-stats\" to the input gen filename(s).)  "
 								"If used, this option must appear as many times as the -g option.  "
 	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
 								"also be used here to specify numbered output files corresponding to the input files." )
@@ -137,7 +139,7 @@ public:
 		// SNP filtering options
 		options.declare_group( "SNP filtering options" ) ;
 		options[ "-hwe"]
-			.set_description( "Filter out SNPs with HWE p-value less than or equal to the value specified.")
+			.set_description( "Filter out SNPs with -log10( HWE p-value ) less than or equal to the value specified.")
 			.set_takes_single_value() ;
 		options[ "-info" ]
 			.set_description( "Filter out SNPs with information measure lying outside the given range.")
@@ -163,8 +165,12 @@ public:
 			.set_description( "Don't apply the filter; instead, write files containing the positions of SNPs that would be filtered out."
 			"  These files are suitable for use as the input to -snp-incl-list option on a subsequent run." ) ;
 		options [ "-write-excl-list-file" ]
-			.set_description( "Don't apply the filter; instead, write files containing the positions of SNPs that would be filtered out."
-			"  These files are suitable for use as the input to -snp-incl-list option on a subsequent run." ) ;
+	        .set_description( 	"Override the auto-generated path(s) of the file to use when outputting the positions of filtered out SNPs.  "
+								"(By default, the paths are formed by adding \".excl-list\" to the input gen filename(s).)  "
+								"If used, this option must appear as many times as the -g option.  "
+	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
+								"also be used here to specify numbered output files corresponding to the input files." )
+			.set_takes_single_value() ;
 		options.option_excludes_option( "-write-excl-list", "-og" ) ;
 
 		// Sample filtering options
@@ -196,6 +202,7 @@ public:
 
 		options.option_excludes_group( "-snp-stats", "SNP filtering options" ) ;
 		options.option_excludes_group( "-sample-stats", "Sample filtering options" ) ;
+		options.option_excludes_group( "-write-excl-list", "Sample filtering options" ) ;
 	}
 	
 	void process( int argc, char** argv ) {
@@ -290,7 +297,7 @@ private:
 				for( std::size_t i = 0; i < input_gen_filenames_supplied.size(); ++i ) {
 					result[i]
 						= genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] )
-						+ ".fltrd-in"
+						+ ".fltrd"
 						+ genfile::get_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) ;
 				}
 			}
@@ -327,7 +334,7 @@ private:
 			}
 			else {
 				for( std::size_t i = 0; i < input_gen_filenames_supplied.size() ; ++i ) {
-					result[i] = genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) + ".snp-excl" ;
+					result[i] = genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) + ".excl-list" ;
 				}
 			}
 		}
