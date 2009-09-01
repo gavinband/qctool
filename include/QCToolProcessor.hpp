@@ -89,7 +89,7 @@ private:
 	
 	void preprocess_gen_row( InternalStorageGenRow& row ) const {
 		check_gen_row( row ) ;
-		row.filter_out_samples_with_indices( m_indices_of_filtered_out_samples ) ;
+		row.filter_out_samples_with_indices( m_context.indices_of_filtered_out_samples() ) ;
 	}
 	
 	void check_gen_row( GenRow& row ) const {
@@ -156,7 +156,6 @@ private:
 							std::plus< GenotypeProportions >() ) ;
 		}
 	}
-	
 
 	void process_sample_rows() {
 		m_context.logger() << "Processing samples...\n" ;
@@ -203,7 +202,7 @@ private:
 	}
 
 	bool sample_row_is_filtered_out( std::size_t const sample_row_index ) {
-		return std::binary_search( m_indices_of_filtered_out_samples.begin(), m_indices_of_filtered_out_samples.end(), sample_row_index ) ;
+		return std::binary_search( m_context.indices_of_filtered_out_samples().begin(), m_context.indices_of_filtered_out_samples().end(), sample_row_index ) ;
 	}
 
 	void do_sample_filter_diagnostics( SampleRow const& sample_row, std::size_t const sample_row_index ) {
@@ -231,10 +230,7 @@ private:
 private:
 	QCToolContext& m_context ;
 
-	std::size_t m_number_of_sample_file_rows ;
-	std::size_t m_number_of_filtered_in_snps ;
 	std::vector< GenotypeProportions > m_per_column_amounts ;
-	std::vector< std::size_t > m_indices_of_filtered_out_samples ;
 } ;
 
 #endif

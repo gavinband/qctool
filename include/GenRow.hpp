@@ -81,6 +81,8 @@ class GenRow: public GenRowIdentifyingData
 		double get_AB_probability( std::size_t i ) const { return (begin_genotype_proportions() + i)->AB() ; }
 		double get_BB_probability( std::size_t i ) const { return (begin_genotype_proportions() + i)->BB() ; }
 
+		static bool check_if_equal( GenRow const& left, GenRow const& right, double epsilon = 0.0 ) ;
+
 	private:
 	    friend std::istream& operator>>( std::istream&, GenRow& ) ;
 } ;

@@ -10,6 +10,7 @@
 #include "GenRow.hpp"
 #include "Whitespace.hpp"
 #include "GenotypeProportions.hpp"
+#include "floating_point_utils.hpp"
 
 bool GenRowIdentifyingData::operator==( GenRowIdentifyingData const& right ) const {
 	return (
@@ -49,6 +50,34 @@ std::size_t GenRow::number_of_samples() const {
 	return std::distance( begin_genotype_proportions(), end_genotype_proportions() ) ; 
 }
 
+bool GenRow::check_if_equal( GenRow const& left, GenRow const& right, double epsilon ) {
+	if( ! (static_cast< GenRowIdentifyingData >( left ) == right )) {
+		return false ;
+	}
+	if( left.number_of_samples() != right.number_of_samples() ) {
+		return false ;
+	}
+	
+	genotype_proportion_const_iterator
+		i = left.begin_genotype_proportions(),
+		end_i = left.end_genotype_proportions(),
+		j = right.begin_genotype_proportions() ;
+		
+	for( ; i != end_i ; ++i, ++j ) {
+		if( !floats_are_equal_to_within_epsilon( i->AA(), j->AA(), epsilon )) {
+			return false ;
+		}
+		else if ( !floats_are_equal_to_within_epsilon( i->AB(), j->AB(), epsilon )) {
+			return false ;
+		}
+		else if( !floats_are_equal_to_within_epsilon( i->BB(), j->BB(), epsilon )) {
+			return false ;
+		}
+	}
+	
+	return true ;
+}
+
 void InternalStorageGenRow::filter_out_samples_with_indices( std::vector< std::size_t > const& indices_to_filter_out ) {
 	if( indices_to_filter_out.empty()) {
 		return ;
@@ -79,3 +108,4 @@ void InternalStorageGenRow::filter_out_samples_with_indices( std::vector< std::s
 
 	m_genotype_proportions = new_genotype_proportions ;
 }
+

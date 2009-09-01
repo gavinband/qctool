@@ -119,9 +119,9 @@ public:
 		options[ "-snp-stats-columns" ]
 	        .set_description( "Comma-seperated list of columns to output in the snp-wise statistics file.  "
 	 						"By default, the columns are: "
-							"SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, and missing" )
+							"SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing, and information" )
 			.set_takes_single_value()
-			.set_default_value( "SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing" ) ;
+			.set_default_value( "SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing, information" ) ;
 
 	    options[ "-sample-stats" ]
 			.set_description( "Calculate and output sample-wise statistics." ) ;
@@ -139,6 +139,9 @@ public:
 		options[ "-hwe"]
 			.set_description( "Filter out SNPs with HWE p-value less than or equal to the value specified.")
 			.set_takes_single_value() ;
+		options[ "-info" ]
+			.set_description( "Filter out SNPs with information measure lying outside the given range.")
+			.set_number_of_values_per_use( 2 ) ;
 		options[ "-snp-missing-rate"]
 			.set_description( "Filter out SNPs with missing data rate greater than or equal to the value specified.")
 			.set_takes_single_value() ;
@@ -411,6 +414,8 @@ struct QCToolCmdLineContext: public QCToolContext
 	SampleRowStatistics& sample_statistics() {
 		return m_sample_statistics ;
 	}
+	
+	std::vector< std::size_t > const& indices_of_filtered_out_samples() const { return m_indices_of_filtered_out_samples ; }
 	
 	bool ignore_warnings() const {
 		return m_ignore_warnings ;
@@ -865,6 +870,10 @@ private:
 
 		if( m_options.check_if_option_was_supplied( "-hwe" ) ) {
 			add_one_arg_condition_to_filter< StatisticGreaterThan >( *snp_filter, "HWE", m_options.get_value< double >( "-hwe" )) ;
+		}
+
+		if( m_options.check_if_option_was_supplied( "-info" ) ) {
+			add_two_arg_condition_to_filter< StatisticInInclusiveRange >( *snp_filter, "information", m_options.get_values< double >( "-info" )) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "-snp-missing-rate" ) ) {

@@ -39,9 +39,8 @@ struct QCToolContext
 	virtual GenRowStatistics& snp_statistics() = 0 ;
 	virtual SampleRowStatistics& sample_statistics() = 0 ;
 	virtual std::vector< SampleRow >& sample_rows() = 0 ;
-
+	virtual std::vector< std::size_t > const& indices_of_filtered_out_samples() const = 0 ;
 	virtual void print_progress_if_necessary() = 0 ;
-
 	virtual OstreamTee& logger() = 0 ;
 } ;
 

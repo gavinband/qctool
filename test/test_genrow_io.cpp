@@ -15,7 +15,8 @@
 #include "GenRow.hpp"
 #include "endianness_utils.hpp"
 #include "stdint.h"
-#include "bgen.hpp"
+#include "BGenFileSNPDataSink.hpp"
+#include "BGenFileSNPDataSource.hpp"
 
 namespace data {
 // Note: this first set of data must be in the format output -- e.g. no trailing spaces on the line
@@ -69,8 +70,8 @@ AUTO_TEST_CASE( test_genrow_io ) {
 		outStream << row ;
 	}
 
-	assert( count == 11 ) ;
-	assert( outStream.str() == data ) ;
+	TEST_ASSERT( count == 11 ) ;
+	TEST_ASSERT( outStream.str() == data ) ;
 }
 
 
@@ -90,56 +91,44 @@ AUTO_TEST_CASE( test_genrow_io2 ) {
 		outStream << row ;
 		std::istringstream anotherInStream( outStream.str() ) ;
 		anotherInStream >> row2 ;
-		assert( row2 == row ) ;
+		TEST_ASSERT( row2 == row ) ;
 	}
 
-	assert( count == 28 ) ;
+	TEST_ASSERT( count == 28 ) ;
 }
 
-// Test that we can read in InternalStorageGenRows, output them, read them in, and they're the same.
 AUTO_TEST_CASE( test_genrow_binary_io ) {
-	std::string data = data::data + data::more_data ;
 	std::cout << "test_genrow_binary_io\n" ;
-	std::istringstream inStream( data ) ;
+	std::istringstream inStream( data::data + data::more_data ) ;
 
 	InternalStorageGenRow row, row2 ;
-	int count = 0;
 	
+	// Since binary format entails conversion to 2-byte integer, there's bound to be
+	// some discrepancy in the low-significance bits.  We cover that using epsilon.
+	// I expected 4 d.p.s to work here, actually we get more.
+	double epsilon = 0.0000001 ;
+
+	std::string filename = tmpnam(0) ;
+	std::cout << "test_genrow_binary_io: filename = \"" << filename << "\".\n" ;
+	int count = 0 ;
 	while( inStream >> row ) {
 		++count ;
-		std::cout << "row " << count << "\n" ;
-		std::cout << row ;
-		std::ostringstream outStream ;
-		genfile::bgen::write_snp_block(
-			outStream,
-			row.number_of_samples(),
-			20,
-			row.SNPID(),
-			row.RSID(),
-			row.SNP_position(),
-			row.first_allele(),
-			row.second_allele(),
-			boost::bind< double >( &InternalStorageGenRow::get_AA_probability, &row, _1 ),
-			boost::bind< double >( &InternalStorageGenRow::get_AB_probability, &row, _1 ),
-			boost::bind< double >( &InternalStorageGenRow::get_BB_probability, &row, _1 )
-		) ;
-		std::istringstream anotherInStream( outStream.str() ) ;
-
-		genfile::bgen::read_snp_block(
-			anotherInStream,
-			boost::bind< void >( &InternalStorageGenRow::set_number_of_samples, &row2, _1 ),
-			boost::bind< void >( &InternalStorageGenRow::set_SNPID, &row2, _1 ),
-			boost::bind< void >( &InternalStorageGenRow::set_RSID, &row2, _1 ),
-			boost::bind< void >( &InternalStorageGenRow::set_SNP_position, &row2, _1 ),
-			boost::bind< void >( &InternalStorageGenRow::set_allele1, &row2, _1 ),
-			boost::bind< void >( &InternalStorageGenRow::set_allele2, &row2, _1 ),
-			boost::bind< void >( &InternalStorageGenRow::set_genotype_probabilities, &row2, _1, _2, _3, _4 )
-		) ;
-		std::cout << row2 ;
-		assert( row2 == row ) ;
+		{
+			genfile::BGenFileSNPDataSink sink( filename, "", genfile::e_NoCompression ) ;
+			row.write_to_sink( sink ) ;
+		}
+		{
+			genfile::BGenFileSNPDataSource source( filename ) ;
+			row2.set_number_of_samples( source.number_of_samples() ) ;
+			row2.read_from_source( source ) ;
+			TEST_ASSERT( GenRow::check_if_equal( row, row2, epsilon )) ;
+			if( row != row2 ) {
+				std::cout << "Warning: rows with SNPID=" << row.SNPID() << ", RSID=" << row.RSID() << ", position=" << row.SNP_position() << " are not exactly equal.\n" ;
+			}
+		}
 	}
 
-	assert( count == 28 ) ;
+	TEST_ASSERT( count == 28 ) ;
 }
 
 #ifndef HAVE_BOOST_UNIT_TEST

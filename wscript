@@ -141,7 +141,8 @@ def build( bld ):
 			'src/FileBackupCreator.cpp',
 			'src/InputToOutputFilenameMapper.cpp',
 			'src/OstreamTee.cpp',
-			'src/CmdLineOptionProcessor.cpp'
+			'src/CmdLineOptionProcessor.cpp',
+			'src/InformationStatistic.cpp'
 		],
 		includes='./include ./genfile/include',
 		uselib = 'BOOST BOOST_IOSTREAMS BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'
@@ -168,22 +169,24 @@ def build( bld ):
 	#---------------------
 	# tests
 	#---------------------
+	# misc tests...
 	create_test( bld, 'test_log_of_gamma' )
 	create_test( bld, 'test_log_of_factorial' )
 	create_test( bld, 'test_genrow' )
 	create_test( bld, 'test_genrow_io' )
 	create_test( bld, 'test_genbin_snp_format' )
-	create_test( bld, 'test_hardy_weinberg_exact_test_statistic' )
+	create_test( bld, 'test_row_conditions' )
+	create_test( bld, 'test_wildcard' )
+	# Statistic tests...
+	create_test( bld, 'test_hwe' )
 	create_test( bld, 'test_maximum_likelihood_statistics' )
-	create_test( bld, 'test_hardy_weinberg_exact_test_statistic_against_SNPHWE' )
+	create_test( bld, 'test_hwe_against_SNPHWE' )
 	create_test( bld, 'test_maf' )
 	create_test( bld, 'test_missing' )
 	create_test( bld, 'test_heterozygosity' )
 	create_test( bld, 'test_alleles' )
 	create_test( bld, 'test_statistic_arithmetic' )
-	create_test( bld, 'test_row_conditions' )
-	create_test( bld, 'test_wildcard' )
-
+	create_test( bld, 'test_information' )
 
 def create_app( bld, name, uselib = '', uselib_local = '' ):
 	bld.new_task_gen(

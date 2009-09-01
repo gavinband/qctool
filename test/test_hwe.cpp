@@ -6,6 +6,7 @@
 #include <string>
 #include <map>
 #include "HardyWeinbergExactTestStatistic.hpp"
+#include "SNPHWE.hpp"
 #include "floating_point_utils.hpp"
 #include "OptionProcessor.hpp"
 #include "GenotypeAssayStatistics.hpp"
@@ -60,6 +61,7 @@ void test_hardy_weinberg_exact_test_statistic( std::map< std::string, double > c
 	std::cout << "         " ;
 	GenRowStatistics row_statistics ;
 	row_statistics.add_statistic( "HWE", std::auto_ptr< GenotypeAssayStatistic >( new HardyWeinbergExactTestStatistic )) ;
+	row_statistics.add_statistic( "SNPHWE", std::auto_ptr< GenotypeAssayStatistic >( new SNPHWEStatistic )) ;
 	row_statistics.format_column_headers( std::cout ) << "\n" ;
 
 	for( ; i != end_i; ++i ) {
@@ -71,6 +73,7 @@ void test_hardy_weinberg_exact_test_statistic( std::map< std::string, double > c
 		std::cout << "row " << std::setw(3) << count << ": " << row_statistics << "\n" ;
 		
 		assert( floats_are_equal_to_within_epsilon( row_statistics.get_value< double >( "HWE" ), i->second, epsilon )) ;
+		assert( floats_are_equal_to_within_epsilon( row_statistics.get_value< double >( "SNPHWE" ), i->second, epsilon )) ;
 	}
 }
 

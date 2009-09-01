@@ -8,6 +8,7 @@
 #include "SNPHWE.hpp"
 #include "HardyWeinbergExactTestStatistic.hpp"
 #include "LikelihoodRatioTestStatistic.hpp"	
+#include "InformationStatistic.hpp"
 #include "string_utils.hpp"
 
 
@@ -87,6 +88,9 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 	}
 	else if( statistic_spec == "HWE" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new MinusLog10SNPHWEStatistic ) ;
+	}
+	else if( statistic_spec == "information" ) {
+		return std::auto_ptr< GenotypeAssayStatistic > ( new InformationStatistic ) ;
 	}
 	else if( statistic_spec == "missing" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new MissingDataProportionStatistic ) ; 
