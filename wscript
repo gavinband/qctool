@@ -3,9 +3,8 @@ import glob
 import UnitTest
 
 srcdir="."
-
-def get_version():
-	return "1.0_beta4"
+APPNAME = "gen-tools"
+VERSION = "1.0_beta4"
 
 def set_options( opt ):
 	opt.tool_options( 'compiler_cxx' )
