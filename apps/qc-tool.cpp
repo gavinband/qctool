@@ -594,12 +594,7 @@ struct QCToolCmdLineContext: public QCToolContext
 					m_logger << std::setw(36) << ("...which failed \"" + to_string( m_sample_filter->subcondition( i )) + "\":")
 						<< "  " << m_sample_filter_failure_counts[i] << ".\n" ;
 				}
-				m_logger << std::setw(36) << "(total failures:" ;
-				{
-					std::size_t total_failures = 0 ;
-					total_failures = std::accumulate( m_sample_filter_failure_counts.begin(), m_sample_filter_failure_counts.end(), total_failures ) ;
-					m_logger << "  " << total_failures << ").\n" ;
-				}
+				m_logger << std::setw(36) << "(total failures:" << "  " << m_indices_of_filtered_out_samples.size() << ").\n" ;
 			}
 
 			m_logger << "\n" ;
@@ -804,7 +799,6 @@ private:
 	void reset_filtered_out_snp_data_sink() {
 		m_fltrd_out_snp_data_sink.reset( new genfile::SNPDataSinkChain() ) ;
 	}
-
 
 	void open_sample_row_source() {
 		m_sample_source.reset( new NullObjectSource< SampleRow >()) ;

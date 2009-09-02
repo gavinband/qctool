@@ -36,7 +36,7 @@ struct OptionDefinition {
 		int position() const { return m_position ; }
 		
 		OptionDefinition& set_group( std::string const& group ) { m_group = group ; return *this ; }
-		OptionDefinition& set_description( char const* desc ) { m_description = desc ; return *this ; }
+		OptionDefinition& set_description( std::string desc ) { m_description = desc ; return *this ; }
 		OptionDefinition& set_is_required() { m_is_required = true ; return *this ; }
 		OptionDefinition& set_takes_single_value() {
 			m_number_of_values_per_use = 1u ;
@@ -87,7 +87,7 @@ struct OptionDefinition {
     private:
 
 		std::string m_group ;
-		char const* m_description ;
+		std::string m_description ;
 		bool m_is_required ;
 		unsigned int m_number_of_values_per_use, m_lower_number_of_permitted_values, m_upper_number_of_permitted_values ;
 		std::vector< value_checker_t > m_value_checkers ;

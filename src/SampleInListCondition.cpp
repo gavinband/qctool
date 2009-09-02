@@ -2,7 +2,7 @@
 #include <cassert>
 #include <fstream>
 
-#include "GenRow.hpp"
+#include "SampleRow.hpp"
 #include "SampleInListCondition.hpp"
 #include "SampleRowStatistics.hpp"
 #include "string_to_value_map.hpp"
@@ -13,13 +13,11 @@ SampleInListCondition::SampleInListCondition( std::string filename )
 {}
 
 bool SampleInListCondition::check_if_satisfied( string_to_value_map const& statistics ) const {
-	SampleRowStatistics const* row_statistics_ptr = dynamic_cast< SampleRowStatistics const* >( &statistics ) ;
-	if( !row_statistics_ptr ) {
-		throw ConditionException( "SampleInListCondition only supports SampleRowStatistics." ) ;
-	}
+	SampleRow const* row_ptr = dynamic_cast< SampleRow const* >( &statistics ) ;
+	assert( row_ptr ) ;
 
-	return ( m_id_list.find( row_statistics_ptr->row().ID1() ) != m_id_list.end() )
-		|| ( m_id_list.find( row_statistics_ptr->row().ID2() ) != m_id_list.end() ) ;
+	return ( m_id_list.find( row_ptr->ID1() ) != m_id_list.end() )
+		|| ( m_id_list.find( row_ptr->ID2() ) != m_id_list.end() ) ;
 }
 
 void SampleInListCondition::format_to_stream( std::ostream& oStream ) const {
