@@ -139,10 +139,10 @@ public:
 		// SNP filtering options
 		options.declare_group( "SNP filtering options" ) ;
 		options[ "-hwe"]
-			.set_description( "Filter out SNPs with -log10( HWE p-value ) less than or equal to the value specified.")
+			.set_description( "Filter out SNPs with -log10( HWE p-value ) greater than or equal to the value specified.")
 			.set_takes_single_value() ;
 		options[ "-info" ]
-			.set_description( "Filter out SNPs with information measure lying outside the given range.")
+			.set_description( "Filter out SNPs with Fisher information lying outside the given range.")
 			.set_number_of_values_per_use( 2 ) ;
 		options[ "-snp-missing-rate"]
 			.set_description( "Filter out SNPs with missing data rate greater than or equal to the value specified.")
@@ -156,11 +156,13 @@ public:
 		options[ "-snp-incl-list"]
 			.set_description( "Filter out SNPs whose SNP ID or RSID does not lie in the given file(s).")
 			.set_takes_values() 
-			.set_number_of_values_per_use( 1 ) ;
+			.set_number_of_values_per_use( 1 )
+			.set_maximum_number_of_repeats( 100 ) ;
 		options[ "-snp-excl-list"]
 			.set_description( "Filter out SNPs whose SNP ID or RSID lies in the given file(s).")
 			.set_takes_values() 
-			.set_number_of_values_per_use( 1 ) ;
+			.set_number_of_values_per_use( 1 )
+			.set_maximum_number_of_repeats( 100 ) ;
 		options [ "-write-excl-list" ]
 			.set_description( "Don't apply the filter; instead, write files containing the positions of SNPs that would be filtered out."
 			"  These files are suitable for use as the input to -snp-incl-list option on a subsequent run." ) ;
@@ -193,9 +195,10 @@ public:
 		options [ "-force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
 		options [ "-log" ]
-			.set_description( "Path of log file written by qc-tool.")
+			.set_description( "Override the default path of the log file written by " + globals::program_name + "."
+				"  By default, this is " + globals::program_name + ".log." )
 			.set_takes_single_value()
-			.set_default_value( std::string( "qc-tool.log" )) ;
+			.set_default_value( globals::program_name + ".log" ) ;
 		options [ "-plot" ]
 			.set_description( "Path of file to produce plots in.")
 			.set_takes_single_value() ;
@@ -876,7 +879,7 @@ private:
 		std::auto_ptr< AndRowCondition > snp_filter( new AndRowCondition() ) ;
 
 		if( m_options.check_if_option_was_supplied( "-hwe" ) ) {
-			add_one_arg_condition_to_filter< StatisticGreaterThan >( *snp_filter, "HWE", m_options.get_value< double >( "-hwe" )) ;
+			add_one_arg_condition_to_filter< StatisticLessThan >( *snp_filter, "HWE", m_options.get_value< double >( "-hwe" )) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "-info" ) ) {

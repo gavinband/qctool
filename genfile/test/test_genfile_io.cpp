@@ -92,6 +92,7 @@ struct ProbabilityGetter {
 			assert(0); 
 			break ;
 		}
+		return 0.0 ;
 	}
 private:
 	std::vector<probabilities_t> const& m_probabilities ;

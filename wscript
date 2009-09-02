@@ -1,6 +1,7 @@
 import os.path
 import glob
 import UnitTest
+import Options
 
 srcdir="."
 APPNAME = "gen-tools"
@@ -8,6 +9,7 @@ VERSION = "1.0_beta4"
 
 def set_options( opt ):
 	opt.tool_options( 'compiler_cxx' )
+	opt.add_option( "--static", action='store_true', default='False', help='Create statically-linked executables if possible.')
 
 #-----------------------------------
 # CONFIGURE
@@ -41,23 +43,30 @@ def check_for_3rd_party_components( conf ):
 
 def check_for_boost_components( conf ):
 	conf.check_tool( 'boost' )
-
 	if conf.check_boost( min_version='1.36.1' ):
 		conf.define( 'HAVE_BOOST_TIMER', 1 )
 		conf.define( 'HAVE_BOOST_MATH', 1 )
 		conf.define( 'HAVE_BOOST_FUNCTION', 1 )
-	if conf.check_boost( lib='iostreams', min_version='1.36', uselib="BOOST_IOSTREAMS" ):
-		conf.define( 'HAVE_BOOST_IOSTREAMS', 1 )
-	if conf.check_boost( lib='filesystem', min_version='1.36', uselib="BOOST_FILESYSTEM" ):
-		conf.define( 'HAVE_BOOST_FILESYSTEM', 1 )
-	if conf.check_boost( lib='system', min_version='1.36', uselib="BOOST_SYSTEM" ):
-		conf.define( 'HAVE_BOOST_SYSTEM', 1 )
-	if conf.check_boost( lib='random', min_version='1.36', uselib='BOOST_RANDOM' ):
-		conf.define( 'HAVE_BOOST_RANDOM', 1 )
+	check_for_boost_lib( conf, 'iostreams', min_version='1.36', uselib="BOOST_IOSTREAMS" )
+	check_for_boost_lib( conf, 'filesystem', min_version='1.36', uselib="BOOST_FILESYSTEM" )
+	check_for_boost_lib( conf, 'system', min_version='1.36', uselib="BOOST_SYSTEM" )
+	check_for_boost_lib( conf, 'random', min_version='1.36', uselib="BOOST_RANDOM" )
+
+def check_for_boost_lib( conf, lib, min_version, uselib ):
+	if Options.options.static:
+		static_selector = 'onlystatic'
+	else:
+		static_selector = 'nostatic'
+	if conf.check_boost( lib = lib, min_version = min_version, static=static_selector, uselib = uselib+'_STATIC' ):
+		conf.define( 'HAVE_' + uselib, 1 )
 
 def check_for_zlib( conf ):
-	if conf.check_cxx( lib='z', uselib_store='ZLIB' ):
-		conf.define( 'HAVE_ZLIB', 1 )
+	if Options.options.static:
+		if conf.check_cxx( staticlib='z', uselib_store='ZLIB' ):
+			conf.define( 'HAVE_ZLIB', 1 )
+	else:
+		if conf.check_cxx( lib='z', uselib_store='ZLIB' ):
+			conf.define( 'HAVE_ZLIB', 1 )
 
 def platform_specific_configure( conf ):
 	import platform
