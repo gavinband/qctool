@@ -5,7 +5,7 @@ import Options
 
 srcdir="."
 APPNAME = "gen-tools"
-VERSION = "1.0_beta4"
+VERSION = "1.0_beta5"
 
 def set_options( opt ):
 	opt.tool_options( 'compiler_cxx' )
