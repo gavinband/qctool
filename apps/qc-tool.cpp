@@ -550,110 +550,105 @@ struct QCToolCmdLineContext: public QCToolContext
 	
 	void write_postamble() {
 		m_logger << std::string( 72, '=' ) << "\n\n" ;
-		try {
-			if( m_backup_creator.backed_up_files().size() > 0 ) {
-				m_logger << std::setw(36) << "I took backups of the following files before overwriting:\n" ;
-				std::size_t max_length = 0u ;
-				for(
-					std::map< std::string, std::string >::const_iterator i = m_backup_creator.backed_up_files().begin() ;
-					i != m_backup_creator.backed_up_files().end() ;
-					++i
-				) {
-					max_length = std::max( max_length, i->first.size() ) ;
-				}
-
-				for(
-					std::map< std::string, std::string >::const_iterator i = m_backup_creator.backed_up_files().begin() ;
-					i != m_backup_creator.backed_up_files().end() ;
-					++i
-				) {
-					m_logger << "  " << std::setw( max_length + 2 ) << std::left << ("\"" + i->first + "\"") << " to \"" << i->second << "\"\n" ;
-				}
-
-				m_logger << "\n" ;
-				m_logger << std::string( 72, '=' ) << "\n\n" ;
+		if( m_backup_creator.backed_up_files().size() > 0 ) {
+			m_logger << std::setw(36) << "I took backups of the following files before overwriting:\n" ;
+			std::size_t max_length = 0u ;
+			for(
+				std::map< std::string, std::string >::const_iterator i = m_backup_creator.backed_up_files().begin() ;
+				i != m_backup_creator.backed_up_files().end() ;
+				++i
+			) {
+				max_length = std::max( max_length, i->first.size() ) ;
 			}
 
-			m_logger << std::setw(36) << "Number of SNPs in input file(s):"
-				<< "  " << m_snp_data_source->total_number_of_snps() << ".\n" ;
-			if( m_snp_filter->number_of_subconditions() > 0 ) {
-				for( std::size_t i = 0; i < m_snp_filter->number_of_subconditions(); ++i ) {
-					m_logger << std::setw(36) << ("...which failed \"" + to_string( m_snp_filter->subcondition( i )) + "\":")
-						<< "  " << m_snp_filter_failure_counts[i] << ".\n" ;
-				}
-
-				m_logger << std::setw(36) << "(total failures:"
-					<< "  " << m_fltrd_out_snp_data_sink->number_of_snps_written() << ").\n" ;
-			}
-			
-			m_logger << "\n" ;
-
-			m_logger << std::setw(36) << "Number of samples in input file(s):"
-				<< "  " << m_snp_data_source->number_of_samples() << ".\n" ;
-			if( m_sample_filter->number_of_subconditions() > 0 ) {
-				for( std::size_t i = 0 ; i < m_sample_filter_failure_counts.size(); ++ i ) {
-					m_logger << std::setw(36) << ("...which failed \"" + to_string( m_sample_filter->subcondition( i )) + "\":")
-						<< "  " << m_sample_filter_failure_counts[i] << ".\n" ;
-				}
-				m_logger << std::setw(36) << "(total failures:" << "  " << m_indices_of_filtered_out_samples.size() << ").\n" ;
+			for(
+				std::map< std::string, std::string >::const_iterator i = m_backup_creator.backed_up_files().begin() ;
+				i != m_backup_creator.backed_up_files().end() ;
+				++i
+			) {
+				m_logger << "  " << std::setw( max_length + 2 ) << std::left << ("\"" + i->first + "\"") << " to \"" << i->second << "\"\n" ;
 			}
 
 			m_logger << "\n" ;
-
-			if( m_options.gen_filename_mapper().output_filenames().size() > 0 ) {
-				m_logger << std::setw(36) << "Output GEN files:" ;
-				for( std::size_t i = 0; i < m_options.gen_filename_mapper().output_filenames().size(); ++i ) {
-					if( i > 0 ) {
-						m_logger << std::string( 36, ' ' ) ;
-					}
-					if( m_fltrd_in_snp_data_sink.get() ) {
-						m_logger << "  (" << std::setw(6) << m_fltrd_in_snp_data_sink->sink(i).number_of_snps_written() << " snps)  " ;
-					}
-					m_logger << "\"" << m_options.gen_filename_mapper().output_filenames()[i] << "\"\n" ;
-				}
-				m_logger << std::string( 36, ' ' ) << "  (total " << m_fltrd_in_snp_data_sink->number_of_snps_written() << " snps).\n" ;
-			}
-			
-			if( m_options.snp_excl_list_filename_mapper().output_filenames().size() > 0 ) {
-				m_logger << std::setw(36) << "Output SNP position file(s):" ;
-				for( std::size_t i = 0; i < m_options.snp_excl_list_filename_mapper().output_filenames().size(); ++i ) {
-					if( i > 0 ) {
-						m_logger << std::string( 36, ' ' ) ;
-					}
-					if( m_fltrd_out_snp_data_sink.get() ) {
-						m_logger << "  (" << std::setw(6) << m_fltrd_out_snp_data_sink->sink(i).number_of_snps_written() << " snps)  " ;
-					}
-					m_logger << "  \"" << m_options.snp_excl_list_filename_mapper().output_filenames()[i] << "\"\n" ;				
-				}
-				m_logger << std::string( 36, ' ' ) << "  (total " << m_fltrd_out_snp_data_sink->number_of_snps_written() << " snps).\n" ;
-			}
-			
-			if( m_options.output_sample_filename() != "" ) {
-				m_logger << std::setw(36) << "Output SAMPLE files:"
-					<< "  \"" << m_options.output_sample_filename() << "\""
-					<< "  (" << m_sample_rows.size() << " samples)\n" ;
-			}
-			if( m_options.snp_stats_filename_mapper().output_filenames().size() > 0 ) {
-				m_logger << std::setw(36) << "SNP statistic output file(s):" ;
-				for( std::size_t i = 0; i < m_options.snp_stats_filename_mapper().output_filenames().size(); ++i ) {
-					if( i > 0 ) {
-						m_logger << std::string( 30, ' ' ) ;
-					}
-					m_logger << "  \"" << m_options.snp_stats_filename_mapper().output_filenames()[i] << "\"\n" ;
-				}
-			}
-			if( m_options.output_sample_stats_filename() != "" ) {
-				m_logger << std::setw(36) << "Sample statistic output file:"
-					<< "  \"" << m_options.output_sample_stats_filename() << "\".\n" ;
-			}
-
-			m_logger[ "screen" ] << std::setw( 36 ) << "\nMore details are in the log file:"
-				<< "  \"" << m_options.log_filename() << "\".\n" ;
 			m_logger << std::string( 72, '=' ) << "\n\n" ;
 		}
-		catch (...) {
-			throw ;
+
+		m_logger << std::setw(36) << "Number of SNPs in input file(s):"
+			<< "  " << m_snp_data_source->total_number_of_snps() << ".\n" ;
+		if( m_snp_filter->number_of_subconditions() > 0 ) {
+			for( std::size_t i = 0; i < m_snp_filter->number_of_subconditions(); ++i ) {
+				m_logger << std::setw(36) << ("...which failed \"" + to_string( m_snp_filter->subcondition( i )) + "\":")
+					<< "  " << m_snp_filter_failure_counts[i] << ".\n" ;
+			}
+
+			m_logger << std::setw(36) << "(total failures:"
+				<< "  " << m_fltrd_out_snp_data_sink->number_of_snps_written() << ").\n" ;
 		}
+		
+		m_logger << "\n" ;
+
+		m_logger << std::setw(36) << "Number of samples in input file(s):"
+			<< "  " << m_snp_data_source->number_of_samples() << ".\n" ;
+		if( m_sample_filter->number_of_subconditions() > 0 ) {
+			for( std::size_t i = 0 ; i < m_sample_filter_failure_counts.size(); ++ i ) {
+				m_logger << std::setw(36) << ("...which failed \"" + to_string( m_sample_filter->subcondition( i )) + "\":")
+					<< "  " << m_sample_filter_failure_counts[i] << ".\n" ;
+			}
+			m_logger << std::setw(36) << "(total failures:" << "  " << m_indices_of_filtered_out_samples.size() << ").\n" ;
+		}
+
+		m_logger << "\n" ;
+
+		if( m_options.gen_filename_mapper().output_filenames().size() > 0 ) {
+			m_logger << std::setw(36) << "Output GEN files:" ;
+			for( std::size_t i = 0; i < m_options.gen_filename_mapper().output_filenames().size(); ++i ) {
+				if( i > 0 ) {
+					m_logger << std::string( 36, ' ' ) ;
+				}
+				if( m_fltrd_in_snp_data_sink.get() ) {
+					m_logger << "  (" << std::setw(6) << m_fltrd_in_snp_data_sink->sink(i).number_of_snps_written() << " snps)  " ;
+				}
+				m_logger << "\"" << m_options.gen_filename_mapper().output_filenames()[i] << "\"\n" ;
+			}
+			m_logger << std::string( 36, ' ' ) << "  (total " << m_fltrd_in_snp_data_sink->number_of_snps_written() << " snps).\n" ;
+		}
+		
+		if( m_options.snp_excl_list_filename_mapper().output_filenames().size() > 0 ) {
+			m_logger << std::setw(36) << "Output SNP position file(s):" ;
+			for( std::size_t i = 0; i < m_options.snp_excl_list_filename_mapper().output_filenames().size(); ++i ) {
+				if( i > 0 ) {
+					m_logger << std::string( 36, ' ' ) ;
+				}
+				if( m_fltrd_out_snp_data_sink.get() ) {
+					m_logger << "  (" << std::setw(6) << m_fltrd_out_snp_data_sink->sink(i).number_of_snps_written() << " snps)  " ;
+				}
+				m_logger << "  \"" << m_options.snp_excl_list_filename_mapper().output_filenames()[i] << "\"\n" ;				
+			}
+			m_logger << std::string( 36, ' ' ) << "  (total " << m_fltrd_out_snp_data_sink->number_of_snps_written() << " snps).\n" ;
+		}
+		
+		if( m_options.output_sample_filename() != "" ) {
+			m_logger << std::setw(36) << "Output SAMPLE files:"
+				<< "  \"" << m_options.output_sample_filename() << "\""
+				<< "  (" << m_sample_rows.size() << " samples)\n" ;
+		}
+		if( m_options.snp_stats_filename_mapper().output_filenames().size() > 0 ) {
+			m_logger << std::setw(36) << "SNP statistic output file(s):" ;
+			for( std::size_t i = 0; i < m_options.snp_stats_filename_mapper().output_filenames().size(); ++i ) {
+				if( i > 0 ) {
+					m_logger << std::string( 30, ' ' ) ;
+				}
+				m_logger << "  \"" << m_options.snp_stats_filename_mapper().output_filenames()[i] << "\"\n" ;
+			}
+		}
+		if( m_options.output_sample_stats_filename() != "" ) {
+			m_logger << std::setw(36) << "Sample statistic output file:"
+				<< "  \"" << m_options.output_sample_stats_filename() << "\".\n" ;
+		}
+
+		m_logger[ "screen" ] << std::setw( 36 ) << "\nMore details are in the log file:"
+			<< "  \"" << m_options.log_filename() << "\".\n" ;
+		m_logger << std::string( 72, '=' ) << "\n\n" ;
 	}
 
 	void print_progress_if_necessary() {
@@ -692,11 +687,15 @@ private:
 			check_for_errors_and_warnings() ;
 
 			write_preamble() ;
-
+			std::cerr << "h\n" ;
 			open_sample_row_sink() ;
+			std::cerr << "h\n" ;
 			open_snp_data_sinks() ;
+			std::cerr << "h\n" ;
 			open_snp_stats_sink( 0, m_snp_statistics ) ;
+			std::cerr << "h\n" ;
 			open_sample_stats_sink() ;
+			std::cerr << "h\n" ;
 		}
 		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
 			m_logger << "Error: The GEN files specified did not all have the same sample size.\n" ;
@@ -783,7 +782,6 @@ private:
 			m_fltrd_in_snp_data_sink->add_sink( std::auto_ptr< genfile::SNPDataSink >( new genfile::TrivialSNPDataSink() )) ;
 		}
 		else {
-			std::cout << m_options.gen_filename_mapper().output_filenames().size() << "\n" ;
 			for( std::size_t i = 0; i < m_options.gen_filename_mapper().output_filenames().size(); ++i ) {
 				std::string const& filename = m_options.gen_filename_mapper().output_filenames()[i] ;
 				m_fltrd_in_snp_data_sink->add_sink( genfile::SNPDataSink::create( filename )) ;
@@ -1125,8 +1123,9 @@ int main( int argc, char** argv ) {
 	OptionProcessor options ;
     try {
 		QCToolCmdLineContext context( argc, argv ) ;
-		QCToolProcessor processor( context ) ;
-		processor.process() ;
+		//QCToolProcessor processor( context ) ;
+		//processor.process() ;
+		std::cerr << "Hello\n" ;
     }
 	catch( HaltProgramWithReturnCode const& e ) {
 		return e.return_code() ;
