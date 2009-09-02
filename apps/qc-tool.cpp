@@ -687,15 +687,10 @@ private:
 			check_for_errors_and_warnings() ;
 
 			write_preamble() ;
-			std::cerr << "h\n" ;
 			open_sample_row_sink() ;
-			std::cerr << "h\n" ;
 			open_snp_data_sinks() ;
-			std::cerr << "h\n" ;
 			open_snp_stats_sink( 0, m_snp_statistics ) ;
-			std::cerr << "h\n" ;
 			open_sample_stats_sink() ;
-			std::cerr << "h\n" ;
 		}
 		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
 			m_logger << "Error: The GEN files specified did not all have the same sample size.\n" ;
@@ -1050,7 +1045,7 @@ private:
 			"   Statistics will be output but the ID fields will be left blank.") ;
 		}
 		if( m_options.gen_filename_mapper().output_filenames().size() == 0 && m_options.output_sample_filename() == "" && m_options.snp_stats_filename_mapper().output_filenames().size() == 0 && m_options.output_sample_stats_filename() == "" && m_options.snp_excl_list_filename_mapper().output_filenames().size() == 0 ) {
-			m_warnings.push_back( "You have not specified any output files.  This will produce only console output." ) ;
+			m_warnings.push_back( "You have not specified any output files.  This will produce only logging output." ) ;
 		}
 		if( ((m_options.gen_filename_mapper().output_filenames().size() > 0) || ( m_options.snp_excl_list_filename_mapper().output_filenames().size() > 0)) &&  (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0)) {
 			m_warnings.push_back( "You have specified output GEN (or snp exclusion) files, but no filters.\n"
@@ -1119,9 +1114,8 @@ int main( int argc, char** argv ) {
 	OptionProcessor options ;
     try {
 		QCToolCmdLineContext context( argc, argv ) ;
-		//QCToolProcessor processor( context ) ;
-		//processor.process() ;
-		std::cerr << "Hello\n" ;
+		QCToolProcessor processor( context ) ;
+		processor.process() ;
     }
 	catch( HaltProgramWithReturnCode const& e ) {
 		return e.return_code() ;
