@@ -365,9 +365,10 @@ struct QCToolCmdLineContext: public QCToolContext
 	QCToolCmdLineContext( int argc, char** argv ) {
 		timestamp() ;
 		m_options.process( argc, argv ) ;
+		open_log() ;
+		write_start_banner() ;
 		setup() ;
 		timestamp() ;
-		write_start_banner() ;
 	}
 	
 	~QCToolCmdLineContext() {
@@ -677,31 +678,38 @@ struct QCToolCmdLineContext: public QCToolContext
 private:
 	
 	void setup() {
-		open_log() ;
-		construct_snp_statistics() ;
-		construct_sample_statistics() ;
-		construct_snp_filter() ;
-		construct_sample_filter() ;
-		process_other_options() ;
-
 		try {
+			construct_snp_statistics() ;
+			construct_sample_statistics() ;
+			construct_snp_filter() ;
+			construct_sample_filter() ;
+			process_other_options() ;
+
 			open_snp_data_source() ;
+
+			load_sample_rows( m_snp_data_source->number_of_samples() ) ;
+
+			check_for_errors_and_warnings() ;
+
+			write_preamble() ;
+
+			open_sample_row_sink() ;
+			open_snp_data_sinks() ;
+			open_snp_stats_sink( 0, m_snp_statistics ) ;
+			open_sample_stats_sink() ;
 		}
 		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
-			m_logger << "The GEN files specified did not all have the same sample size.\n" ;
-			throw ;
+			m_logger << "Error: The GEN files specified did not all have the same sample size.\n" ;
+			throw HaltProgramWithReturnCode( -1 ) ;
 		}
-
-		load_sample_rows( m_snp_data_source->number_of_samples() ) ;
-
-		check_for_errors_and_warnings() ;
-
-		write_preamble() ;
-
-		open_sample_row_sink() ;
-		open_snp_data_sinks() ;
-		open_snp_stats_sink( 0, m_snp_statistics ) ;
-		open_sample_stats_sink() ;
+		catch ( FileError const& e ) {
+			m_logger << "Caught exception: " << e.what() << ": relating to file \"" << e.filename() << "\".\n" ;
+			throw HaltProgramWithReturnCode( -1 ) ;
+		}
+		catch ( std::exception const& e ) {
+			m_logger << "Caught exception: " << e.what() << ".\n" ;
+			throw HaltProgramWithReturnCode( -1 ) ;
+		}
 	}
 	
 	void open_log() {

@@ -14,20 +14,30 @@ typedef std::auto_ptr< std::ostream > OUTPUT_FILE_PTR ;
 
 struct FileError: public std::exception
 {
-        char const* what() const throw() { return "FileError" ; }
+public:
+	FileError( std::string const& filename ): m_filename( filename ) {}
+	virtual ~FileError() throw() {}
+	
+	char const* what() const throw() { return "FileError" ; }
+	std::string const& filename() const { return m_filename ; }
+
+private:
+	std::string const m_filename ;
 } ;
 
 // thrown to indicate that an output file with wildcard appeared, but the corresponding input
 // file had no wildcard.
 struct FileNotOpenedError: public FileError
 {
-        FileNotOpenedError( std::string const& filename ): m_filename( filename ) {}
-        ~FileNotOpenedError() throw() {}
-        char const* what() const throw() { return "FileNotOpenedError" ; }
-        std::string const& filename() const { return m_filename ; }
-private:
-        std::string const m_filename ;
+	FileNotOpenedError( std::string const& filename ): FileError( filename ) {}
+	char const* what() const throw() { return "FileNotOpenedError" ; }
 } ;     
+
+struct InvalidFileFormatError: public FileError
+{
+	InvalidFileFormatError( std::string const& filename ): FileError( filename ) {}
+	char const* what() const throw() { return "InvalidFileFormatError" ; }
+} ;
 
 //
 enum FileCompressionType {e_None = 0x1, e_Gzip = 0x2, e_Bzip2 = 0x4, e_FileCompressionMask = 0xf } ;
