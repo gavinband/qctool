@@ -702,11 +702,7 @@ private:
 			throw HaltProgramWithReturnCode( -1 ) ;
 		}
 		catch ( FileError const& e ) {
-			m_logger << "Caught exception: " << e.what() << ": relating to file \"" << e.filename() << "\".\n" ;
-			throw HaltProgramWithReturnCode( -1 ) ;
-		}
-		catch ( std::exception const& e ) {
-			m_logger << "Caught exception: " << e.what() << ".\n" ;
+			m_logger << "File handling exception: " << e.what() << ": relating to file \"" << e.filename() << "\".\n" ;
 			throw HaltProgramWithReturnCode( -1 ) ;
 		}
 	}
