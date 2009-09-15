@@ -9,7 +9,7 @@ VERSION = "1.0_beta5"
 
 def set_options( opt ):
 	opt.tool_options( 'compiler_cxx' )
-	opt.add_option( "--static", action='store_true', default='False', help='Create statically-linked executables if possible.')
+	opt.add_option( "--staticonly", action='store_true', default='False', help='Create statically-linked executables if possible.')
 
 #-----------------------------------
 # CONFIGURE
