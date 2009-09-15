@@ -190,7 +190,7 @@ def build( bld ):
 			'src/InformationStatistic.cpp'
 		],
 		includes='./include ./genfile/include',
-		uselib = 'BOOST BOOST_IOSTREAMS BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'
+		uselib = 'BOOST ZLIB BOOST_IOSTREAMS ZLIB BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'
 	)
 
 	#---------------------

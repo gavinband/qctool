@@ -40,7 +40,7 @@ def build( bld ):
 			'src/RFormatStatSource.cpp'
 		],
 		includes='./include',
-		uselib = 'BOOST BOOST_IOSTREAMS ZLIB'
+		uselib = 'BOOST ZLIB BOOST_IOSTREAMS'
 	)
 
 	create_test( bld, 'test_RFormat' )

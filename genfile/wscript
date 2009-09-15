@@ -42,7 +42,7 @@ def build( bld ):
 			'src/snp_data_utils.cpp'
 		],
 		includes='./include',
-		uselib = 'BOOST BOOST_IOSTREAMS ZLIB'
+		uselib = 'BOOST ZLIB BOOST_IOSTREAMS'
 	)
 	
 	create_benchmark( bld, 'benchmark-io' )
