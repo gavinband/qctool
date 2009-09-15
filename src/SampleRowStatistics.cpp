@@ -1,6 +1,8 @@
 #include <vector>
 #include <iostream>
 #include <map>
+#include <exception>
+#include <typeinfo>
 #include "SampleRow.hpp"
 #include "SampleRowStatistics.hpp"
 #include "GenotypeProportions.hpp"

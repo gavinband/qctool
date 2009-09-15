@@ -1,6 +1,7 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <cassert>
 #include "OstreamTee.hpp"
 
 void OstreamTee::add_stream( std::string const& name, std::ostream& stream ) {

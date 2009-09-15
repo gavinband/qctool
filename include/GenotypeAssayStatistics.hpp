@@ -4,6 +4,7 @@
 #include <vector>
 #include <iostream>
 #include <map>
+#include <memory>
 #include "GenotypeProportions.hpp"
 #include "AlleleProportions.hpp"
 #include "GToolException.hpp"
