@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <algorithm>
 #include <stdint.h>
 #include "snp_data_utils.hpp"
 

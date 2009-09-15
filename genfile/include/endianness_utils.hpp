@@ -6,6 +6,8 @@
 */
 
 #include <iostream>
+#include <algorithm>
+#include <cassert>
 #include "stdint.h"
 
 namespace impl {

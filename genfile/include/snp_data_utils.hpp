@@ -3,6 +3,10 @@
 
 #define GENFILE_USE_FAST_PARSE_METHODS 1
 
+#include <cassert>
+#include <string>
+#include <memory>
+
 namespace genfile {
 	
 	struct SNPDataBase {
