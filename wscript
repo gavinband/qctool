@@ -248,7 +248,7 @@ def create_test( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'test/' + name + '.cpp' ],
-		uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile',
+		uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception gen-tools-lib genfile',
 		includes='./include ./genfile/include',
 		unit_test=1
 	)
@@ -258,7 +258,7 @@ def create_benchmark( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'benchmarks/' + name + '.cpp' ],
-		uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile',
+		uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception gen-tools-lib genfile',
 		includes='./include ./genfile/include',
 		unit_test=1
 	)
