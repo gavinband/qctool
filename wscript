@@ -48,7 +48,6 @@ def check_for_boost_components( conf ):
 		check_for_boost_lib( conf, 'iostreams', min_version='1.36', uselib="BOOST_IOSTREAMS" )
 		check_for_boost_lib( conf, 'filesystem', min_version='1.36', uselib="BOOST_FILESYSTEM" )
 		check_for_boost_lib( conf, 'system', min_version='1.36', uselib="BOOST_SYSTEM" )
-		check_for_boost_lib( conf, 'random', min_version='1.36', uselib="BOOST_RANDOM" )
 
 def check_for_boost_headers( conf, min_version ):
 	if Options.options.boost_prefix != '':
@@ -57,6 +56,7 @@ def check_for_boost_headers( conf, min_version ):
 			conf.define( 'HAVE_BOOST_TIMER', 1 )
 			conf.define( 'HAVE_BOOST_MATH', 1 )
 			conf.define( 'HAVE_BOOST_FUNCTION', 1 )
+			conf.define( 'HAVE_BOOST_RANDOM', 1 )
 			return True
 	else:
 		if conf.check_boost( min_version='1.36.1' ):
@@ -70,7 +70,7 @@ def get_boost_paths( boost_prefix ):
 	if boost_prefix[-1] != '/':
 		boost_prefix += '/'
 	for version in ['1_40', '1_39', '1_38', '1_37', '1_36']:
-		include_path = boost_prefix + 'include/boost' + version
+		include_path = boost_prefix + 'include/boost-' + version
 		if os.path.exists( include_path ):
 			break
 	lib_path = boost_prefix + 'lib'
@@ -83,7 +83,7 @@ def check_for_boost_lib( conf, lib, min_version, uselib ):
 		static_selector = 'nostatic'
 
 	if Options.options.boost_prefix != '':
-		(lib_path, include_path) = get_boost_paths()
+		(lib_path, include_path) = get_boost_paths( Options.options.boost_prefix )
 		if conf.check_boost( lib = lib, min_version = min_version, static=static_selector, uselib = uselib+'_STATIC', cpppath = include_path, libpath = lib_path ):
 			conf.define( 'HAVE_' + uselib, 1 )
 	else:
@@ -200,7 +200,7 @@ def build( bld ):
 	create_app( bld, name='gen-convert', uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile' )
 	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile' )
 	create_app( bld, name='gen-case-control-test', uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile' )
-	create_app( bld, name='generate-random-permutations-of-0-1-vector', uselib_local = 'gen-tools-string gen-tools-exception gen-tools-optionprocessor', uselib = 'BOOST BOOST_RANDOM' )
+	create_app( bld, name='generate-random-permutations-of-0-1-vector', uselib_local = 'gen-tools-string gen-tools-exception gen-tools-optionprocessor', uselib = 'BOOST' )
 
 	#---------------------
 	# benchmarks
