@@ -105,17 +105,6 @@ def platform_specific_configure( conf ):
 
 def misc_configure( conf ) :
 	conf.define ( 'GENFILE_USE_FAST_PARSE_METHODS', 1 )
-	# if linking statically, force static versions of these libs.
-	# Otherwise the compiler supplies shared versions.
-	if Options.options.staticbuild:
-		conf.check_cxx( staticlib='stdc++' )
-		conf.check_cxx( staticlib='m' )
-		conf.check_cxx( staticlib='c' )
-	else:
-		conf.check_cxx( lib='stdc++' )
-		conf.check_cxx( lib='m' )
-		conf.check_cxx( lib='c' )
-
 
 def get_cxx_flags( variant_name ):
 	cxxflags = ['-Wall']
