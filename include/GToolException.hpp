@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <exception>
+#include <string.h>
 
 struct GToolException: public std::exception
 {

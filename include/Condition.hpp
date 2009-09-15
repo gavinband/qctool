@@ -4,6 +4,7 @@
 
 #include <set>
 #include <vector>
+#include <memory>
 #include "GToolException.hpp"
 
 struct ConditionException: public GToolException

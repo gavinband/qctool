@@ -8,6 +8,7 @@
 #include <iterator>
 #include <iostream>
 #include <exception>
+#include <memory>
 
 typedef std::auto_ptr< std::istream > INPUT_FILE_PTR ;
 typedef std::auto_ptr< std::ostream > OUTPUT_FILE_PTR ;

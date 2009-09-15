@@ -2,6 +2,7 @@
 #define __GTOOL_ALLELEPROPORTIONS__
 
 #include <vector>
+#include <iostream>
 
 /* Example usage:
 GenotypeProportions acc( 0.0, 0.0, 0.0 ) ;

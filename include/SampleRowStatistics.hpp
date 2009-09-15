@@ -4,6 +4,7 @@
 #include <vector>
 #include <iostream>
 #include <map>
+#include <string>
 #include "SampleRow.hpp"
 #include "GenotypeProportions.hpp"
 #include "GToolException.hpp"

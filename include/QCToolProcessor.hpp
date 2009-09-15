@@ -20,7 +20,7 @@
 #include "ObjectSource.hpp"
 #include "SimpleFileObjectSource.hpp"
 #include "SimpleFileObjectSink.hpp"
-#include "OStreamTee.hpp"
+#include "OstreamTee.hpp"
 #include "QCToolContext.hpp"
 
 struct QCToolProcessorException: public std::exception
