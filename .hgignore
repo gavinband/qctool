@@ -1,4 +1,4 @@
 build
-.wscript-lock
+.lock-wscript
 doc/html
 .waf-*
