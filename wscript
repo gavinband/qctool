@@ -51,29 +51,39 @@ def check_for_boost_components( conf ):
 		check_for_boost_lib( conf, 'random', min_version='1.36', uselib="BOOST_RANDOM" )
 
 def check_for_boost_headers( conf, min_version ):
-	if conf.check_boost( min_version='1.36.1' ):
-		conf.define( 'HAVE_BOOST_TIMER', 1 )
-		conf.define( 'HAVE_BOOST_MATH', 1 )
-		conf.define( 'HAVE_BOOST_FUNCTION', 1 )
-		return True
+	if Options.options.boost_prefix != '':
+		(lib_path, include_path) = get_boost_paths( Options.options.boost_prefix )
+		if conf.check_boost( min_version='1.36.1', cpppath = include_path ):
+			conf.define( 'HAVE_BOOST_TIMER', 1 )
+			conf.define( 'HAVE_BOOST_MATH', 1 )
+			conf.define( 'HAVE_BOOST_FUNCTION', 1 )
+			return True
+	else:
+		if conf.check_boost( min_version='1.36.1' ):
+			conf.define( 'HAVE_BOOST_TIMER', 1 )
+			conf.define( 'HAVE_BOOST_MATH', 1 )
+			conf.define( 'HAVE_BOOST_FUNCTION', 1 )
+			return True
 	return False
+
+def get_boost_paths( boost_prefix ):
+	if boost_prefix[-1] != '/':
+		boost_prefix += '/'
+	for version in ['1_40', '1_39', '1_38', '1_37', '1_36']:
+		include_path = boost_prefix + 'include/' + version
+		if os.path.exists( include_path ):
+			break
+	lib_path = boost_prefix + 'lib'
+	return (lib_path, include_path)
 
 def check_for_boost_lib( conf, lib, min_version, uselib ):
 	if Options.options.static:
 		static_selector = 'onlystatic'
 	else:
 		static_selector = 'nostatic'
-		
-	if Options.options.boost_prefix != '':
-		boost_prefix = Options.options.boost_prefix
-		if boost_prefix[-1] != '/':
-			boost_prefix += '/'
-		for version in ['1_40', '1_39', '1_38', '1_37', '1_36']:
-			include_path = boost_prefix + 'include/' + version
-			if os.path.exists( include_path ):
-				break
-		lib_path = boost_prefix + 'lib'
 
+	if Options.options.boost_prefix != '':
+		(lib_path, include_path) = get_boost_paths()
 		if conf.check_boost( lib = lib, min_version = min_version, static=static_selector, uselib = uselib+'_STATIC', cpppath = include_path, libpath = lib_path ):
 			conf.define( 'HAVE_' + uselib, 1 )
 	else:
