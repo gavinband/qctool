@@ -196,11 +196,11 @@ def build( bld ):
 	#---------------------
 	# programs
 	#---------------------
-	create_app( bld, name='qc-tool', uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile statfile', uselib = 'RLIB' )
-	create_app( bld, name='gen-convert', uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile' )
-	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile' )
+	create_app( bld, name='qc-tool', uselib_local = 'gen-tools-optionprocessor gen-tools-lib gen-tools-string gen-tools-exception genfile statfile', uselib = 'RLIB' )
+	create_app( bld, name='gen-convert', uselib_local = 'gen-tools-string gen-tools-exception gen-tools-lib genfile' )
+	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception gen-tools-lib gen-tools-optionprocessor genfile' )
 	create_app( bld, name='gen-case-control-test', uselib_local = 'gen-tools-lib gen-tools-string gen-tools-exception gen-tools-optionprocessor genfile' )
-	create_app( bld, name='generate-random-permutations-of-0-1-vector', uselib_local = 'gen-tools-string gen-tools-exception gen-tools-optionprocessor', uselib = 'BOOST' )
+	create_app( bld, name='generate-random-permutations-of-0-1-vector', uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception', uselib = 'BOOST' )
 
 	#---------------------
 	# benchmarks
