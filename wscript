@@ -70,7 +70,7 @@ def get_boost_paths( boost_prefix ):
 	if boost_prefix[-1] != '/':
 		boost_prefix += '/'
 	for version in ['1_40', '1_39', '1_38', '1_37', '1_36']:
-		include_path = boost_prefix + 'include/' + version
+		include_path = boost_prefix + 'include/boost' + version
 		if os.path.exists( include_path ):
 			break
 	lib_path = boost_prefix + 'lib'
