@@ -105,18 +105,7 @@ def platform_specific_configure( conf ):
 
 def misc_configure( conf ) :
 	conf.define ( 'GENFILE_USE_FAST_PARSE_METHODS', 1 )
-	
-	# if linking statically, force static versions of these libs.
-	# Otherwise the compiler supplies shared versions.
-	if Options.options.staticbuild:
-		conf.check_cxx( staticlib='stdc++' )
-		conf.check_cxx( staticlib='m' )
-		conf.check_cxx( staticlib='c' )
-	else:
-		conf.check_cxx( lib='stdc++' )
-		conf.check_cxx( lib='m' )
-		conf.check_cxx( lib='c' )
-		
+
 def get_cxx_flags( variant_name ):
 	cxxflags = ['-Wall']
 	if Options.options.staticbuild:
@@ -201,13 +190,13 @@ def build( bld ):
 			'src/InformationStatistic.cpp'
 		],
 		includes='./include ./genfile/include',
-		uselib = 'BOOST BOOST_IOSTREAMS ZLIB BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'
+		uselib = 'BOOST ZLIB BOOST_IOSTREAMS ZLIB BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'
 	)
 
 	#---------------------
 	# programs
 	#---------------------
-	create_app( bld, name='qc-tool', uselib_local = 'gen-tools-optionprocessor gen-tools-lib gen-tools-string gen-tools-exception genfile statfile' )
+	create_app( bld, name='qc-tool', uselib_local = 'gen-tools-optionprocessor gen-tools-lib gen-tools-string gen-tools-exception genfile statfile', uselib = 'RLIB' )
 	create_app( bld, name='gen-convert', uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception gen-tools-lib genfile' )
 	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception gen-tools-lib gen-tools-optionprocessor genfile' )
 
