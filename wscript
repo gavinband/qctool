@@ -9,7 +9,7 @@ VERSION = "1.0_beta5"
 
 def set_options( opt ):
 	opt.tool_options( 'compiler_cxx' )
-	opt.add_option( "--static", action='store_true', default=False, help='Create statically-linked executables if possible.')
+	opt.add_option( "--staticbuild", action='store_true', default=False, help='Create statically-linked executables if possible.')
 	opt.add_option( '--boost_prefix', default='', help='Path to the boost installion (if not in a system-wide location)')
 
 #-----------------------------------
@@ -77,7 +77,7 @@ def get_boost_paths( boost_prefix ):
 	return (lib_path, include_path)
 
 def check_for_boost_lib( conf, lib, min_version, uselib ):
-	if Options.options.static:
+	if Options.options.staticbuild:
 		static_selector = 'onlystatic'
 	else:
 		static_selector = 'nostatic'
@@ -91,7 +91,7 @@ def check_for_boost_lib( conf, lib, min_version, uselib ):
 			conf.define( 'HAVE_' + uselib, 1 )
 
 def check_for_zlib( conf ):
-	if Options.options.static:
+	if Options.options.staticbuild:
 		if conf.check_cxx( staticlib='z', uselib_store='ZLIB' ):
 			conf.define( 'HAVE_ZLIB', 1 )
 	else:
@@ -108,7 +108,7 @@ def misc_configure( conf ) :
 
 def get_cxx_flags( variant_name ):
 	cxxflags = ['-Wall']
-	if Options.options.static:
+	if Options.options.staticbuild:
 		cxxflags.append( '-static' )
 	if variant_name == 'debug':
 		cxxflags.extend( ['-g', '-p' ])
