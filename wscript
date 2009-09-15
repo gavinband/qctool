@@ -9,7 +9,8 @@ VERSION = "1.0_beta5"
 
 def set_options( opt ):
 	opt.tool_options( 'compiler_cxx' )
-	opt.add_option( "--staticonly", action='store_true', default='False', help='Create statically-linked executables if possible.')
+	opt.add_option( "--static", action='store_true', default=False, help='Create statically-linked executables if possible.')
+	opt.add_option( '--boost_prefix', default='', help='Path to the boost installion (if not in a system-wide location)')
 
 #-----------------------------------
 # CONFIGURE
@@ -23,8 +24,8 @@ def configure( conf ):
 	misc_configure( conf )
 
 	create_variant( conf, 'release' )
-	configure_variant( conf, 'default', ['-g', '-p', '-Wall'] )
-	configure_variant( conf, 'release', ['-Wall', '-O3'] )
+	configure_variant( conf, 'default', get_cxx_flags( 'debug' ))
+	configure_variant( conf, 'release', get_cxx_flags( 'release' ))
 
 def create_variant( conf, variant_name ):
 	variant = conf.env.copy()
@@ -43,22 +44,41 @@ def check_for_3rd_party_components( conf ):
 
 def check_for_boost_components( conf ):
 	conf.check_tool( 'boost' )
+	if check_for_boost_headers( conf, '1.36.1' ):
+		check_for_boost_lib( conf, 'iostreams', min_version='1.36', uselib="BOOST_IOSTREAMS" )
+		check_for_boost_lib( conf, 'filesystem', min_version='1.36', uselib="BOOST_FILESYSTEM" )
+		check_for_boost_lib( conf, 'system', min_version='1.36', uselib="BOOST_SYSTEM" )
+		check_for_boost_lib( conf, 'random', min_version='1.36', uselib="BOOST_RANDOM" )
+
+def check_for_boost_headers( conf, min_version ):
 	if conf.check_boost( min_version='1.36.1' ):
 		conf.define( 'HAVE_BOOST_TIMER', 1 )
 		conf.define( 'HAVE_BOOST_MATH', 1 )
 		conf.define( 'HAVE_BOOST_FUNCTION', 1 )
-	check_for_boost_lib( conf, 'iostreams', min_version='1.36', uselib="BOOST_IOSTREAMS" )
-	check_for_boost_lib( conf, 'filesystem', min_version='1.36', uselib="BOOST_FILESYSTEM" )
-	check_for_boost_lib( conf, 'system', min_version='1.36', uselib="BOOST_SYSTEM" )
-	check_for_boost_lib( conf, 'random', min_version='1.36', uselib="BOOST_RANDOM" )
+		return True
+	return False
 
 def check_for_boost_lib( conf, lib, min_version, uselib ):
 	if Options.options.static:
 		static_selector = 'onlystatic'
 	else:
 		static_selector = 'nostatic'
-	if conf.check_boost( lib = lib, min_version = min_version, static=static_selector, uselib = uselib+'_STATIC' ):
-		conf.define( 'HAVE_' + uselib, 1 )
+		
+	if Options.options.boost_prefix != '':
+		boost_prefix = Options.options.boost_prefix
+		if boost_prefix[-1] != '/':
+			boost_prefix += '/'
+		for version in ['1_40', '1_39', '1_38', '1_37', '1_36']:
+			include_path = boost_prefix + 'include/' + version
+			if os.path.exists( include_path ):
+				break
+		lib_path = boost_prefix + 'lib'
+
+		if conf.check_boost( lib = lib, min_version = min_version, static=static_selector, uselib = uselib+'_STATIC', cpppath = include_path, libpath = lib_path ):
+			conf.define( 'HAVE_' + uselib, 1 )
+	else:
+		if conf.check_boost( lib = lib, min_version = min_version, static=static_selector, uselib = uselib+'_STATIC' ):
+			conf.define( 'HAVE_' + uselib, 1 )
 
 def check_for_zlib( conf ):
 	if Options.options.static:
@@ -76,6 +96,13 @@ def platform_specific_configure( conf ):
 def misc_configure( conf ) :
 	conf.define ( 'GENFILE_USE_FAST_PARSE_METHODS', 1 )
 
+def get_cxx_flags( variant_name ):
+	cxxflags = ['-Wall']
+	if Options.options.static:
+		cxxflags.append( '-static' )
+	if variant_name == 'debug':
+		cxxflags.extend( ['-g', '-p' ])
+	return cxxflags
 
 #-----------------------------------
 # BUILD
