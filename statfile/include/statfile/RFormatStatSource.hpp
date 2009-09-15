@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 #include "statfile/StatSource.hpp"
-#include "statfile/IStreamAggregator.hpp"
+#include "statfile/IstreamAggregator.hpp"
 
 namespace statfile {
 	// Outputs numerical data in a format suitable for reading with

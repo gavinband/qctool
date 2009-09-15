@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <limits>
 #include "statfile/RFormatStatSource.hpp"
 
 namespace statfile {

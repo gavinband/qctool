@@ -2,6 +2,7 @@
 #include <string>
 #include <iostream>
 #include <iomanip>
+#include <limits>
 #include "statfile/RFormatStatSink.hpp"
 
 namespace statfile {
