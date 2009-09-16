@@ -115,6 +115,8 @@ def get_cxx_flags( variant_name ):
 
 def get_ld_flags( variant_name ):
 	ldflags = []
+	if Options.options.staticbuild:
+		ldflags.extend( ['-static', '-static-libgcc'] )
 	return ldflags
 
 #-----------------------------------
