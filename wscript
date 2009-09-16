@@ -24,17 +24,18 @@ def configure( conf ):
 	misc_configure( conf )
 
 	create_variant( conf, 'release' )
-	configure_variant( conf, 'default', get_cxx_flags( 'debug' ))
-	configure_variant( conf, 'release', get_cxx_flags( 'release' ))
+	configure_variant( conf, 'default', get_cxx_flags( 'default' ), get_ld_flags( 'default' ))
+	configure_variant( conf, 'release', get_cxx_flags( 'release' ), get_ld_flags( 'release' ))
 
 def create_variant( conf, variant_name ):
 	variant = conf.env.copy()
 	conf.set_env_name( variant_name, variant )
 	variant.set_variant( variant_name )
 
-def configure_variant( conf, variant_name, cxxflags ):
+def configure_variant( conf, variant_name, cxxflags, ldflags ):
 	conf.setenv( variant_name )
 	conf.env[ 'CXXFLAGS' ] = cxxflags
+	conf.env[ 'LINKFLAGS' ] = ldflags
 	conf.write_config_header( 'config.hpp' )
 	conf.write_config_header( 'genfile/config.hpp' )
 
@@ -108,11 +109,13 @@ def misc_configure( conf ) :
 
 def get_cxx_flags( variant_name ):
 	cxxflags = ['-Wall']
-	if Options.options.staticbuild:
-		cxxflags.append( '-static' )
-	if variant_name == 'debug':
+	if variant_name == 'default':
 		cxxflags.extend( ['-g', '-p' ])
 	return cxxflags
+
+def get_ld_flags( variant_name ):
+	ldflags = []
+	return ldflags
 
 #-----------------------------------
 # BUILD
