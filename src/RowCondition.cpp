@@ -1,4 +1,5 @@
-
+#include <iostream>
+#include <iomanip>
 #include <cassert>
 #include "RowCondition.hpp"
 
@@ -26,9 +27,9 @@ void StatisticInInclusiveRange::format_to_stream( std::ostream& oStream ) const 
 	oStream
 		<< m_statistic_name
 		<< " in ["
-	 	<< m_lower_bound
+	 	<< std::fixed << std::setprecision( 5 ) << m_lower_bound
 		<< ","
-		<< m_upper_bound
+		<< std::fixed << std::setprecision( 5 ) << m_upper_bound
 		<< "]" ;
 }
 
@@ -52,9 +53,9 @@ void StatisticInExclusiveRange::format_to_stream( std::ostream& oStream ) const 
 	oStream
 		<< m_statistic_name
 		<< " in ("
-	 	<< m_lower_bound
+	 	<< std::fixed << std::setprecision( 5 ) << m_lower_bound
 		<< ","
-		<< m_upper_bound
+		<< std::fixed << std::setprecision( 5 ) << m_upper_bound
 		<< ")" ;
 }
 
@@ -76,7 +77,7 @@ void StatisticGreaterThan::format_to_stream( std::ostream& oStream ) const {
 	oStream
 		<< m_statistic_name
 		<< " > "
-		<< m_lower_bound ;
+		<< std::fixed << std::setprecision( 5 ) << m_lower_bound ;
 }
 
 StatisticLessThan::StatisticLessThan( std::string const& statistic_name, double upper_bound, double epsilon )
@@ -97,6 +98,6 @@ void StatisticLessThan::format_to_stream( std::ostream& oStream ) const {
 	oStream
 		<< m_statistic_name
 		<< " < "
-		<< m_upper_bound ;
+		<< std::fixed << std::setprecision( 5 ) << m_upper_bound ;
 }
 
