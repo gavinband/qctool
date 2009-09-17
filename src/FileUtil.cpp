@@ -161,7 +161,7 @@ bool is_regular( std::string const& filename ) {
 
 void copy_file( std::string const& filename1, std::string const& filename2 ) {
 #if HAVE_BOOST_FILESYSTEM
-	return BFS::copy_file( filename1, filename2 ) ;
+	BFS::copy_file( filename1, filename2 ) ;
 #else
 	assert(0) ;
 #endif
@@ -169,8 +169,17 @@ void copy_file( std::string const& filename1, std::string const& filename2 ) {
 
 void rename( std::string const& filename1, std::string const& filename2 ) {
 #if HAVE_BOOST_FILESYSTEM
-	return BFS::rename( filename1, filename2 ) ;
+	BFS::rename( filename1, filename2 ) ;
 #else
 	assert(0) ;
 #endif
+}
+
+void remove( std::string const& filename ) {
+#if HAVE_BOOST_FILESYSTEM
+	BFS::remove( filename ) ;
+#else
+	assert(0) ;
+#endif
+	
 }
