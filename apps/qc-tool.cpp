@@ -270,7 +270,13 @@ private:
 				m_output_sample_filename = get_value< std::string >( "-os" ) ;
 			}
 			else {
-				m_output_sample_filename = m_input_sample_filename + ".qc-tool" ;
+				m_output_sample_filename = strip_sample_file_extension_if_present( m_input_sample_filename ) ;
+				if( m_output_sample_filename.size() < m_input_sample_filename.size() ) {
+					m_output_sample_filename = m_input_sample_filename + ".qc-tool.sample" ;
+				}
+				else {
+					m_output_sample_filename = m_input_sample_filename + ".qc-tool" ;
+				}
 			}
 		}
 
@@ -1103,7 +1109,7 @@ private:
 	
 	std::vector< std::size_t > m_indices_of_filtered_out_samples ;
 	
-	FileBackupCreator m_backup_creator ;
+	ToNumberedFileBackupCreator m_backup_creator ;
 	
 	std::vector< std::string > m_warnings ;
 	std::vector< std::string > m_errors ;
