@@ -272,10 +272,10 @@ private:
 			else {
 				m_output_sample_filename = strip_sample_file_extension_if_present( m_input_sample_filename ) ;
 				if( m_output_sample_filename.size() < m_input_sample_filename.size() ) {
-					m_output_sample_filename = m_input_sample_filename + ".qc-tool.sample" ;
+					m_output_sample_filename = m_output_sample_filename + ".qc-tool.sample" ;
 				}
 				else {
-					m_output_sample_filename = m_input_sample_filename + ".qc-tool" ;
+					m_output_sample_filename = m_output_sample_filename + ".qc-tool" ;
 				}
 			}
 		}
