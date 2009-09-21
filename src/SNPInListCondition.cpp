@@ -26,11 +26,14 @@ SNPInListCondition::SNPInListCondition( std::vector< std::string > const& filena
 
 void SNPInListCondition::setup() {
 	for( std::size_t i = 0; i < m_filenames.size(); ++i ) {
-		if( file_appears_to_be_plain( m_filenames[i] )) {
-			load_from_plain_file( m_filenames[i] ) ;			
-		}
-		else {
-			load_from_gen_files( m_filenames[i] ) ;
+		std::vector< std::string > actual_filenames = wildcard::find_files_matching_path_with_integer_wildcard( m_filenames[i] ) ;
+		for( std::size_t j = 0; j < actual_filenames.size(); ++j ) {
+			if( file_appears_to_be_plain( actual_filenames[j] )) {
+				load_from_plain_file( actual_filenames[j] ) ;			
+			}
+			else {
+				load_from_gen_file( actual_filenames[j] ) ;
+			}
 		}
 	}
 }
@@ -56,11 +59,11 @@ bool SNPInListCondition::file_appears_to_be_plain( std::string const& filename )
 }
 
 
-void SNPInListCondition::load_from_gen_files( std::string const& filename ) {
-	std::auto_ptr< genfile::SNPDataSource > source = genfile::SNPDataSource::create( wildcard::find_files_matching_path_with_integer_wildcard( filename )) ;
+void SNPInListCondition::load_from_gen_file( std::string const& filename ) {
+	std::auto_ptr< genfile::SNPDataSource > source = genfile::SNPDataSource::create( filename ) ;
 	uint32_t number_of_samples, SNP_position ;
 	std::set< std::string > SNP_positions ;
-	
+		
 	while( (*source).get_snp_identifying_data( 
 			genfile::set_value( number_of_samples ),
 			genfile::ignore(),
