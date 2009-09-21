@@ -879,6 +879,9 @@ private:
 	}
 
 	void construct_snp_filter() {
+		Timer timer ;
+		m_logger << "(Constructing SNP filter...)" ;
+		
 		std::auto_ptr< AndRowCondition > snp_filter( new AndRowCondition() ) ;
 
 		if( m_options.check_if_option_was_supplied( "-hwe" ) ) {
@@ -923,9 +926,14 @@ private:
 		
 		m_snp_filter = snp_filter ;
 		m_snp_filter_failure_counts.resize( m_snp_filter->number_of_subconditions(), 0 ) ;
+		
+		m_logger << " (" << std::fixed << std::setprecision(1) << timer.elapsed() << "s)\n" ;
 	}
 
 	void construct_sample_filter() {
+		Timer timer ;
+		m_logger << "(Constructing sample filter...)" ;
+		
 		std::auto_ptr< AndRowCondition > sample_filter( new AndRowCondition() ) ;
 		
 		if( m_options.check_if_option_was_supplied( "-sample-missing-rate" ) ) {
@@ -951,6 +959,8 @@ private:
 		
 		m_sample_filter = sample_filter ;
 		m_sample_filter_failure_counts.resize( m_sample_filter->number_of_subconditions(), 0 ) ;
+		
+		m_logger << " (" << std::fixed << std::setprecision(1) << timer.elapsed() << "s)\n" ;
 	}
 
 	template< typename ConditionType >
