@@ -108,7 +108,7 @@ struct IDDataPrinter
 			genfile::set_value( allele2 )
 		)) {
 			if( m_context.position_range().contains( SNP_position )) {
-				std::cout << std::setw(10) << SNPID << std::setw(10) << RSID << std::setw(10) << SNP_position << std::setw(2) << allele1 << std::setw(2) << allele2 << "\n" ;
+				std::cout << std::setw(16) << SNPID << " " << std::setw( 16 ) << RSID << " " << SNP_position << " " << allele1 << " " << allele2 << "\n" ;
 			}
 			m_context.snp_data_source().ignore_snp_probability_data( number_of_samples ) ;
 		}
