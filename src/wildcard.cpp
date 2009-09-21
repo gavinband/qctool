@@ -70,7 +70,7 @@ namespace wildcard {
 		return ( left.match() == right.match() ) && ( left.filename() == right.filename() ) ;
 	}
 
-	std::vector< FilenameMatch > find_files_matching_path_with_integer_wildcard(
+	std::vector< FilenameMatch > find_matches_for_path_with_integer_wildcard(
 		std::string filename_with_wildcard,
 		char wildcard_char,
 		int match_lower_bound,
@@ -116,16 +116,37 @@ namespace wildcard {
 		return result ;
 	}
 	
-	std::vector< FilenameMatch >
+	std::vector< std::string > find_files_matching_path_with_integer_wildcard(
+		std::string filename_with_wildcard,
+		char wildcard_char,
+		int match_lower_bound,
+		int match_upper_bound
+	) {
+		std::vector< FilenameMatch > matches = find_matches_for_path_with_integer_wildcard(
+			filename_with_wildcard,
+			wildcard_char,
+			match_lower_bound,
+			match_upper_bound
+		) ;
+
+		std::vector< std::string > result( matches.size() ) ;
+		
+		for( std::size_t i = 0; i < result.size(); ++i ) {
+			result.push_back( matches[i].filename() ) ;
+		}
+		return result ;
+	}
+	
+	std::vector< std::string >
 	find_files_matching_paths_with_integer_wildcard(
 		std::vector< std::string > filenames,
 		char wildcard_char,
 		int match_lower_bound,
 		int match_upper_bound
 	) {
-		std::vector< FilenameMatch > result ;
+		std::vector< std::string > result ;
 		for( std::size_t i = 0; i < filenames.size(); ++i ) {
-			std::vector< FilenameMatch > these_filenames = find_files_matching_path_with_integer_wildcard(
+			std::vector< std::string > these_filenames = find_files_matching_path_with_integer_wildcard(
 				filenames[i], wildcard_char, match_upper_bound, match_lower_bound
 			) ;
 			result.insert( result.end(), these_filenames.begin(), these_filenames.end() ) ;

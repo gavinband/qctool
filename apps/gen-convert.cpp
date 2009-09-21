@@ -154,7 +154,7 @@ private:
 
 		if( input_file_has_wildcard ) {
 			std::vector< wildcard::FilenameMatch >
-				matches = wildcard::find_files_matching_path_with_integer_wildcard( input_filename, '#' ) ;
+				matches = wildcard::find_matches_for_path_with_integer_wildcard( input_filename, '#' ) ;
 			if( matches.empty() ) {
 				throw GenConvertNoGenFileMatchesFound( input_filename ) ;
 			}

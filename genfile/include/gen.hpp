@@ -172,7 +172,6 @@ namespace genfile {
 					set_number_of_samples( number_of_samples ) ;
 				}
 			}
-			
 		}
 
 		template<

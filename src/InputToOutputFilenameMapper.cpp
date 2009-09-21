@@ -6,7 +6,7 @@
 
 void InputToOutputFilenameMapper::add_filename_pair( std::string const& path_to_existing_files, std::string const& filename_template ) {
 	std::vector< wildcard::FilenameMatch >
-		existing_files = wildcard::find_files_matching_path_with_integer_wildcard( path_to_existing_files, '#', 1, 100 ) ;
+		existing_files = wildcard::find_matches_for_path_with_integer_wildcard( path_to_existing_files, '#', 1, 100 ) ;
 
 	if( filename_template == "" ) {
 		for( std::size_t j = 0; j < existing_files.size(); ++j ) {

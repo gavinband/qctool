@@ -20,6 +20,10 @@ private:
 		void setup() ;
 		bool list_contains( std::string const& ) const ;
 
+		bool file_appears_to_be_plain( std::string const& filename ) ;
+		void load_from_gen_files( std::string const& filename ) ;
+		void load_from_plain_file( std::string const& filename ) ;
+
 private:		
 		std::set< std::string > m_id_list ;
 		std::vector< std::string > m_filenames ;

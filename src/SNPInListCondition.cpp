@@ -9,6 +9,9 @@
 #include "GenRowStatistics.hpp"
 #include "string_utils.hpp"
 
+#include "SNPDataSource.hpp"
+#include "wildcard.hpp"
+
 SNPInListCondition::SNPInListCondition( std::string const& filename )
  : m_filenames( std::size_t(1), filename )
 {
@@ -23,9 +26,58 @@ SNPInListCondition::SNPInListCondition( std::vector< std::string > const& filena
 
 void SNPInListCondition::setup() {
 	for( std::size_t i = 0; i < m_filenames.size(); ++i ) {
-		FromFileSet< std::set< std::string > > strings_in_file( m_filenames[i] ) ;
-		m_id_list.insert( strings_in_file.begin(), strings_in_file.end() ) ;
+		if( file_appears_to_be_plain( m_filenames[i] )) {
+			load_from_plain_file( m_filenames[i] ) ;			
+		}
+		else {
+			load_from_gen_files( m_filenames[i] ) ;
+		}
 	}
+}
+
+bool SNPInListCondition::file_appears_to_be_plain( std::string const& filename ) {
+	// return true if the first (up to) ten lines (or 1000-character blocks) contain a single
+	// string containing only printable non-whitespace chars.
+	std::ifstream file( filename.c_str() ) ;
+	std::vector< char > buffer( 1000 ) ;
+
+	for( std::size_t count = 0; file.getline( &buffer[0], buffer.size(), '\n' ) && count < 10 ; ++count ) {
+		std::string line( buffer.begin(), buffer.end() ) ;
+		if( line.find_first_not_of( "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-*:$" ) != std::string::npos ) {
+			return false ;
+		}
+	}
+	return true ;
+}
+
+
+void SNPInListCondition::load_from_gen_files( std::string const& filename ) {
+	std::auto_ptr< genfile::SNPDataSource > source = genfile::SNPDataSource::create( wildcard::find_files_matching_path_with_integer_wildcard( filename )) ;
+	uint32_t number_of_samples, SNP_position ;
+	std::set< std::string > SNP_positions ;
+	
+	while( (*source).get_snp_identifying_data( 
+			genfile::set_value( number_of_samples ),
+			genfile::ignore(),
+			genfile::ignore(),
+			genfile::set_value( SNP_position ),
+			genfile::ignore(),
+			genfile::ignore()
+		)
+	) {
+		SNP_positions.insert( to_string( SNP_position )) ;
+		(*source).ignore_snp_probability_data( number_of_samples ) ;
+	}
+
+	if( source->number_of_snps_read() != source->total_number_of_snps() ) {
+		throw genfile::FileStructureInvalidError() ;
+	}
+	m_id_list.insert( SNP_positions.begin(), SNP_positions.end() ) ;
+}
+
+void SNPInListCondition::load_from_plain_file( std::string const& filename ) {
+	FromFileSet< std::set< std::string > > strings_in_file( filename ) ;
+	m_id_list.insert( strings_in_file.begin(), strings_in_file.end() ) ;
 }
 
 bool SNPInListCondition::check_if_satisfied( string_to_value_map const& statistics ) const {

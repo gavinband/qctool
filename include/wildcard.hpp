@@ -31,6 +31,14 @@ namespace wildcard {
 	) ;
 
 	std::vector< FilenameMatch >
+	find_matches_for_path_with_integer_wildcard(
+		std::string filename_with_wildcard,
+		char wildcard_char = '#',
+		int match_lower_bound = 1,
+		int match_upper_bound = 100
+	) ;
+
+	std::vector< std::string >
 	find_files_matching_path_with_integer_wildcard(
 		std::string filename_with_wildcard,
 		char wildcard_char = '#',
@@ -38,7 +46,7 @@ namespace wildcard {
 		int match_upper_bound = 100
 	) ;
 
-	std::vector< FilenameMatch >
+	std::vector< std::string >
 	find_files_matching_paths_with_integer_wildcard(
 		std::vector< std::string > filename_with_wildcard,
 		char wildcard_char = '#',

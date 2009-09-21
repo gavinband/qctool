@@ -121,7 +121,7 @@ private:
 	void expand_and_add_filename( GenFileList* filename_list_ptr, std::string const& filename ) {
 		bool input_file_has_wildcard = ( filename.find( '#' ) != std::string::npos ) ;
 		if( input_file_has_wildcard ) {
-			std::vector< wildcard::FilenameMatch > expanded_filename = wildcard::find_files_matching_path_with_integer_wildcard( filename, '#' ) ;
+			std::vector< wildcard::FilenameMatch > expanded_filename = wildcard::find_matches_for_path_with_integer_wildcard( filename, '#' ) ;
 			// we only use matching filenames if the match is a number from 1 to 100
 			// For such filenames, we add the filename to our list for cases.
 			for( std::size_t j = 0; j < expanded_filename.size(); ++j ) {

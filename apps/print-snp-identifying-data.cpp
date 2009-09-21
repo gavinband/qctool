@@ -52,12 +52,7 @@ struct IDDataPrinterContext
 	IDDataPrinterContext( int argc, char** argv ) {
 		write_start_banner() ;
 		m_options.process( argc, argv ) ;
-		std::vector< wildcard::FilenameMatch > matches = wildcard::find_files_matching_paths_with_integer_wildcard( m_options.gen_filenames() ) ;
-		std::vector< std::string > filenames( matches.size() ) ;
-		for( std::size_t i = 0; i < filenames.size(); ++i ) {
-			filenames[i] = matches[i].filename() ;
-		}
-		m_snp_data_source = genfile::SNPDataSource::create( filenames ) ;
+		m_snp_data_source = genfile::SNPDataSource::create( wildcard::find_files_matching_paths_with_integer_wildcard( m_options.gen_filenames() )) ;
 		write_preamble() ;
 	}
 
