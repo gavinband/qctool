@@ -880,7 +880,7 @@ private:
 
 	void construct_snp_filter() {
 		Timer timer ;
-		m_logger << "(Constructing SNP filter...)" ;
+		m_logger << "(Constructing SNP filter...)" << std::flush ;
 		
 		std::auto_ptr< AndRowCondition > snp_filter( new AndRowCondition() ) ;
 
@@ -932,7 +932,7 @@ private:
 
 	void construct_sample_filter() {
 		Timer timer ;
-		m_logger << "(Constructing sample filter...)" ;
+		m_logger << "(Constructing sample filter...)" << std::flush  ;
 		
 		std::auto_ptr< AndRowCondition > sample_filter( new AndRowCondition() ) ;
 		
