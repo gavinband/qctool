@@ -19,7 +19,8 @@ struct IDDataPrinterOptionProcessor: public CmdLineOptionProcessor
 		options.declare_group( "File-related options" ) ;
 		options[ "-g" ]
 			.set_description( "Specify the name (or names) of gen files to process." )
-			.set_is_required() ;
+			.set_is_required()
+			.set_takes_values() ;
 			
 		options.declare_group( "SNP Selection options" ) ;
 		options[ "-snp-interval" ]
