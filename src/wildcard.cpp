@@ -117,6 +117,23 @@ namespace wildcard {
 	}
 	
 	std::vector< FilenameMatch >
+	find_files_matching_paths_with_integer_wildcard(
+		std::vector< std::string > filenames,
+		char wildcard_char,
+		int match_lower_bound,
+		int match_upper_bound
+	) {
+		std::vector< FilenameMatch > result ;
+		for( std::size_t i = 0; i < filenames.size(); ++i ) {
+			std::vector< FilenameMatch > these_filenames = find_files_matching_path_with_integer_wildcard(
+				filenames[i], wildcard_char, match_upper_bound, match_lower_bound
+			) ;
+			result.insert( result.end(), these_filenames.begin(), these_filenames.end() ) ;
+		}
+		return result ;
+	}
+	
+	std::vector< FilenameMatch >
 	construct_corresponding_filenames(
 		std::vector< FilenameMatch > const& input_filename_matches,
 		std::string const& output_filename,

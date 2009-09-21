@@ -214,7 +214,8 @@ def build( bld ):
 	#---------------------
 	create_app( bld, name='qc-tool', uselib_local = 'gen-tools-optionprocessor gen-tools-lib gen-tools-string gen-tools-exception genfile statfile' )
 	create_app( bld, name='gen-convert', uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception gen-tools-lib genfile' )
-	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception gen-tools-lib gen-tools-optionprocessor genfile' )
+	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception gen-tools-lib genfile' )
+	create_app( bld, name='print-snp-identifying-data', uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception gen-tools-lib genfile' )
 
 	#---------------------
 	# benchmarks

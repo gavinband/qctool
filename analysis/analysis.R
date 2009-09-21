@@ -4,8 +4,8 @@ qc.snpstats = function( snpstats, single.chr = T ) {
 	par(mfcol = c(1,4+2*single.chr))
 	if(single.chr) plot(s$position, s$MAF, xlab = "position", ylab = "MAF", main = "SNP MAF")
 	plot(s$position, s$information, xlab = "position", ylab = "Information", main = "SNP Information" )
-	hist(s$MAF, n = 20, xlab = "MAF", main = "Histogram of MAF")
-	bb = c(seq(0, 0.1, 0.02), 0.15, 0.3, 0.5, 0.75, 1)
+	hist(s$MAF, n = 100, xlab = "MAF", main = "Histogram of MAF")
+	bb = c(seq(0, 0.1, 0.01), 0.15, 0.3, 0.5, 0.75, 1)
 	d = hist(s$missing,breaks = bb , plot = F)
 	d1 = d$counts
 	plot(0:1, 0:1, type ="n", axes = F, xlab = "", ylab = "", main = "SNP Missing rate counts")
