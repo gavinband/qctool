@@ -41,9 +41,14 @@ bool SNPInListCondition::file_appears_to_be_plain( std::string const& filename )
 	std::ifstream file( filename.c_str() ) ;
 	std::vector< char > buffer( 1000 ) ;
 
-	for( std::size_t count = 0; file.getline( &buffer[0], buffer.size(), '\n' ) && count < 10 ; ++count ) {
-		std::string line( buffer.begin(), buffer.end() ) ;
-		if( line.find_first_not_of( "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-*:$" ) != std::string::npos ) {
+	for( std::size_t count = 0; file.get( &buffer[0], buffer.size(), '\n' ) && count < 10 ; ++count ) {
+		std::size_t count = file.gcount() ;
+		if( buffer[ count - 1] == '\n' ) {
+			--count ;
+		}
+		std::string line( buffer.begin(), buffer.begin() + count ) ;
+		std::size_t pos = line.find_first_not_of( "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-*:$" ) ;
+		if( pos != std::string::npos ) {
 			return false ;
 		}
 	}

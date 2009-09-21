@@ -131,8 +131,8 @@ namespace wildcard {
 
 		std::vector< std::string > result( matches.size() ) ;
 		
-		for( std::size_t i = 0; i < result.size(); ++i ) {
-			result.push_back( matches[i].filename() ) ;
+		for( std::size_t i = 0; i < matches.size(); ++i ) {
+			result[i] = matches[i].filename() ;
 		}
 		return result ;
 	}
