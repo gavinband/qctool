@@ -254,6 +254,12 @@ namespace genfile {
                 }
             }
 
+			void read_snp_probability_data(
+				std::istream& aStream,
+				uint32_t number_of_samples,
+				Ignorer const&
+			) ;
+
 			template<
 				typename GenotypeProbabilitySetter
 			>
@@ -287,6 +293,12 @@ namespace genfile {
                 }
             }
 
+			void read_compressed_snp_probability_data(
+				std::istream& aStream,
+				uint32_t number_of_samples,
+				Ignorer const&
+			) ;
+
             void write_snp_identifying_data(
                 std::ostream& aStream,
                 uint32_t number_of_samples,
@@ -318,7 +330,6 @@ namespace genfile {
                 }
             }
         }
-
 
         template< typename OffsetType >
         void read_offset( std::istream& iStream, OffsetType* offset ) {

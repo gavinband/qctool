@@ -62,6 +62,25 @@ namespace genfile {
                 aStream.put( first_allele ) ;
                 aStream.put( second_allele ) ;
             }
+
+			void read_snp_probability_data(
+				std::istream& aStream,
+				uint32_t number_of_samples,
+				Ignorer const&
+			) {
+				aStream.ignore( 6 * number_of_samples ) ;
+			}
+
+			void read_compressed_snp_probability_data(
+				std::istream& aStream,
+				uint32_t number_of_samples,
+				Ignorer const&
+			) {
+				// read the size of the compressed data
+				uint32_t compressed_data_size ;
+				impl::read_little_endian_integer( aStream, &compressed_data_size ) ;
+				aStream.ignore( compressed_data_size ) ;
+			}
 		}
 		
 		/* Function: get_header_blocK-size()

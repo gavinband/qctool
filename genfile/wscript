@@ -35,11 +35,11 @@ def build( bld ):
 		features = 'cxx cstaticlib',
 		target = 'genfile',
 		source = [
+			'src/snp_data_utils.cpp',
 			'src/SNPDataSource.cpp',
 			'src/SNPDataSink.cpp',
 			'src/bgen.cpp',
-			'src/gen.cpp',
-			'src/snp_data_utils.cpp'
+			'src/gen.cpp'
 		],
 		includes='./include',
 		uselib = 'BOOST ZLIB BOOST_IOSTREAMS'
