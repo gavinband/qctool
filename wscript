@@ -203,7 +203,8 @@ def build( bld ):
 			'src/InputToOutputFilenameMapper.cpp',
 			'src/OstreamTee.cpp',
 			'src/CmdLineOptionProcessor.cpp',
-			'src/InformationStatistic.cpp'
+			'src/InformationStatistic.cpp',
+			'src/SNPIDMatchesCondition.cpp'
 		],
 		includes='./include ./genfile/include',
 		uselib = 'BOOST BOOST_IOSTREAMS ZLIB BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'

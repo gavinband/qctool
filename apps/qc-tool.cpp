@@ -24,6 +24,7 @@
 #include "CmdLineOptionProcessor.hpp"
 #include "RowCondition.hpp"
 #include "SNPInListCondition.hpp"
+#include "SNPIDMatchesCondition.hpp"
 #include "SampleInListCondition.hpp"
 #include "FileUtil.hpp"
 #include "GenRowStatistics.hpp"
@@ -163,6 +164,11 @@ public:
 			.set_takes_values() 
 			.set_number_of_values_per_use( 1 )
 			.set_maximum_number_of_repeats( 100 ) ;
+		options[ "-snpid-filter" ]
+			.set_description( "Filter out snps whose SNPID doesn't match the given argument.  "
+						"The argument must be a string, optionally containing a wildcard character ('*')"
+						" which matches any sequence of characters.")
+			.set_takes_single_value() ;
 		options [ "-write-excl-list" ]
 			.set_description( "Don't apply the filter; instead, write files containing the positions of SNPs that would be filtered out."
 			"  These files are suitable for use as the input to -snp-incl-list option on a subsequent run." ) ;
@@ -899,6 +905,13 @@ private:
 			std::vector< std::string > filenames = m_options.get_values< std::string >( "-snp-incl-list" ) ;
 			std::auto_ptr< RowCondition > snp_incl_condition( new SNPInListCondition( filenames )) ;
 			snp_filter->add_subcondition( snp_incl_condition ) ;
+		}
+
+		if( m_options.check_if_option_was_supplied( "-snpid-filter" ) ) {
+			std::string expression = m_options.get_value< std::string >( "-snpid-filter" ) ;
+			std::auto_ptr< RowCondition > snpid_condition( new SNPIDMatchesCondition( expression )) ;
+			std::auto_ptr< RowCondition > real_snpid_condition( new NotRowCondition( snpid_condition )) ;
+			snp_filter->add_subcondition( real_snpid_condition ) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "-snp-excl-list" ) ) {
