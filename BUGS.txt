@@ -2,7 +2,11 @@ Known bugs for qc-tool
 ======================
 Fixed?		Description:
 ------		------------
-
+			
+			(From Jonathan:) (qc-tool): one slight comment i have is that when applying SNP filters the -os flag doesn't seem to work i.e. no new sample file is written.
+			I know the SNP filters don't change the sample file but if you use the -og option its nice to be able to also use the -os option
+			to get a sample file with the same name. Minor point.
+			
 *			SNPInListCondition only filters on SNPID, not RSID.
 
 *			-snp-stats output: alleles represent two columns so should have seperate 'allele_A' and 'allele_B' column headers.

@@ -9,7 +9,7 @@
 
 class FileBackupCreator {
 public:
-	~FileBackupCreator() {};
+	virtual ~FileBackupCreator() {};
 	void backup_file_if_necessary( std::string const& filename ) ;
 	std::map< std::string, std::string > const& backed_up_files() const { return m_backed_up_files ; }	
 protected:

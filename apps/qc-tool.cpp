@@ -48,6 +48,7 @@
 #include "OstreamTee.hpp"
 #include "null_ostream.hpp"
 #include "SNPPositionSink.hpp"
+#include "SNPIDSink.hpp"
 #include "statfile/RFormatStatSink.hpp"
 
 #include "QCToolContext.hpp"
@@ -109,7 +110,7 @@ public:
 		// Statistic file options
 		options.declare_group( "Statistic calculation options" ) ;
 	    options[ "-snp-stats" ]
-			.set_description( "Calculated and output snp-wise statistics." ) ;
+			.set_description( "Calculate and output snp-wise statistics." ) ;
 	    options[ "-snp-stats-file" ]
 	        .set_description( 	"Override the auto-generated path(s) of the snp-stats file to use when outputting snp-wise statistics.  "
 								"(By default, the paths are formed by adding \".snp-stats\" to the input gen filename(s).)  "
@@ -145,21 +146,21 @@ public:
 		options[ "-info" ]
 			.set_description( "Filter out SNPs with Fisher information lying outside the given range.")
 			.set_number_of_values_per_use( 2 ) ;
-		options[ "-snp-missing-rate"]
+		options[ "-snp-missing-rate" ]
 			.set_description( "Filter out SNPs with missing data rate greater than or equal to the value specified.")
 			.set_takes_single_value() ;
-		options[ "-snp-interval"]
+		options[ "-snp-interval" ]
 			.set_description( "Filter out SNPs with position outside the interval [a,b]." )
 			.set_number_of_values_per_use( 2 ) ;
-		options[ "-maf"]
+		options[ "-maf" ]
 			.set_description( "Filter out SNPs whose minor allele frequency lies outside the interval [a,b]." )
 			.set_number_of_values_per_use( 2 ) ;
-		options[ "-snp-incl-list"]
+		options[ "-snp-incl-list" ]
 			.set_description( "Filter out SNPs whose SNP ID or RSID does not lie in the given file(s).")
 			.set_takes_values() 
 			.set_number_of_values_per_use( 1 )
 			.set_maximum_number_of_repeats( 100 ) ;
-		options[ "-snp-excl-list"]
+		options[ "-snp-excl-list" ]
 			.set_description( "Filter out SNPs whose SNP ID or RSID lies in the given file(s).")
 			.set_takes_values() 
 			.set_number_of_values_per_use( 1 )
@@ -169,17 +170,17 @@ public:
 						"The argument must be a string, optionally containing a wildcard character ('*')"
 						" which matches any sequence of characters.")
 			.set_takes_single_value() ;
-		options [ "-write-excl-list" ]
+		options [ "-write-excluded-snpids" ]
 			.set_description( "Don't apply the filter; instead, write files containing the positions of SNPs that would be filtered out."
 			"  These files are suitable for use as the input to -snp-incl-list option on a subsequent run." ) ;
-		options [ "-write-excl-list-file" ]
+		options [ "-write-excluded-snpids-file" ]
 	        .set_description( 	"Override the auto-generated path(s) of the file to use when outputting the positions of filtered out SNPs.  "
 								"(By default, the paths are formed by adding \".excl-list\" to the input gen filename(s).)  "
 								"If used, this option must appear as many times as the -g option.  "
 	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
 								"also be used here to specify numbered output files corresponding to the input files." )
 			.set_takes_single_value() ;
-		options.option_excludes_option( "-write-excl-list", "-og" ) ;
+		options.option_excludes_option( "-write-excluded-snpids", "-og" ) ;
 
 		// Sample filtering options
 		options.declare_group( "Sample filtering options" ) ;
@@ -211,7 +212,7 @@ public:
 
 		options.option_excludes_group( "-snp-stats", "SNP filtering options" ) ;
 		options.option_excludes_group( "-sample-stats", "Sample filtering options" ) ;
-		options.option_excludes_group( "-write-excl-list", "Sample filtering options" ) ;
+		options.option_excludes_group( "-write-excluded-snpids", "Sample filtering options" ) ;
 	}
 	
 	void process( int argc, char** argv ) {
@@ -276,13 +277,7 @@ private:
 				m_output_sample_filename = get_value< std::string >( "-os" ) ;
 			}
 			else {
-				m_output_sample_filename = strip_sample_file_extension_if_present( m_input_sample_filename ) ;
-				if( m_output_sample_filename.size() < m_input_sample_filename.size() ) {
-					m_output_sample_filename = m_output_sample_filename + ".qc-tool.sample" ;
-				}
-				else {
-					m_output_sample_filename = m_output_sample_filename + ".qc-tool" ;
-				}
+				m_output_sample_filename = m_input_sample_filename ;
 			}
 		}
 
@@ -305,7 +300,7 @@ private:
 
 	std::vector< std::string > construct_output_gen_filenames( std::vector< std::string > const& input_gen_filenames_supplied ) {
 		std::vector< std::string > result( input_gen_filenames_supplied.size(), "" ) ;
-		if( !check_if_option_was_supplied( "-write-excl-list" )) {
+		if( !check_if_option_was_supplied( "-write-excluded-snpids" )) {
 			if( check_if_option_was_supplied( "-og" ) ) {
 				result = get_values< std::string >( "-og" ) ;
 			} else if( check_if_option_was_supplied_in_group( "SNP filtering options" ) || check_if_option_was_supplied_in_group( "Sample filtering options" )) {
@@ -343,9 +338,9 @@ private:
 
 	std::vector< std::string > construct_output_snp_excl_list_filenames( std::vector< std::string > const& input_gen_filenames_supplied ) {
 		std::vector< std::string > result( input_gen_filenames_supplied.size(), "" ) ;
-		if( check_if_option_was_supplied( "-write-excl-list" ) ) {
-			if( check_if_option_was_supplied( "-write-excl-list-file" )) {
-				result = get_values< std::string >( "-write-excl-list-file" ) ;
+		if( check_if_option_was_supplied( "-write-excluded-snpids" ) ) {
+			if( check_if_option_was_supplied( "-write-excluded-snpids-file" )) {
+				result = get_values< std::string >( "-write-excluded-snpids-file" ) ;
 			}
 			else {
 				for( std::size_t i = 0; i < input_gen_filenames_supplied.size() ; ++i ) {
@@ -794,10 +789,10 @@ private:
 
 	void open_filtered_out_snp_data_sink() {
 		reset_filtered_out_snp_data_sink() ;
-		if( m_options.check_if_option_was_supplied( "-write-excl-list" ) && m_options.snp_excl_list_filename_mapper().output_filenames().size() > 0 ) {
+		if( m_options.check_if_option_was_supplied( "-write-excluded-snpids" ) && m_options.snp_excl_list_filename_mapper().output_filenames().size() > 0 ) {
 			for( std::size_t i = 0; i < m_options.snp_excl_list_filename_mapper().output_filenames().size(); ++i ) {
 				std::string const& filename = m_options.snp_excl_list_filename_mapper().output_filenames()[i] ;
-				m_fltrd_out_snp_data_sink->add_sink( std::auto_ptr< genfile::SNPDataSink >( new SNPPositionSink( filename ))) ;
+				m_fltrd_out_snp_data_sink->add_sink( std::auto_ptr< genfile::SNPDataSink >( new SNPIDSink( filename ))) ;
 			}
 		}
 		else {
@@ -829,6 +824,7 @@ private:
 	void open_sample_row_sink() {
 		m_fltrd_in_sample_sink.reset( new NullObjectSink< SampleRow >() ) ;
 		if( m_options.output_sample_filename() != "" ) {
+			m_backup_creator.backup_file_if_necessary( m_options.output_sample_filename() ) ;
 			m_fltrd_in_sample_sink.reset( new SampleOutputFile< SimpleFileObjectSink< SampleRow > >( open_file_for_output( m_options.output_sample_filename() ))) ;
 		}
 	}
