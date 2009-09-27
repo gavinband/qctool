@@ -85,10 +85,10 @@ def check_for_boost_lib( conf, lib, min_version, uselib ):
 
 	if Options.options.boost_prefix != '':
 		(lib_path, include_path) = get_boost_paths( Options.options.boost_prefix )
-		if conf.check_boost( lib = lib, min_version = min_version, static=static_selector, uselib = uselib+'_STATIC', cpppath = include_path, libpath = lib_path ):
+		if conf.check_boost( lib = lib, min_version = min_version, static=static_selector, uselib = uselib, cpppath = include_path, libpath = lib_path ):
 			conf.define( 'HAVE_' + uselib, 1 )
 	else:
-		if conf.check_boost( lib = lib, min_version = min_version, static=static_selector, uselib = uselib+'_STATIC' ):
+		if conf.check_boost( lib = lib, min_version = min_version, static=static_selector, uselib = uselib ):
 			conf.define( 'HAVE_' + uselib, 1 )
 
 def check_for_zlib( conf ):
@@ -106,17 +106,6 @@ def platform_specific_configure( conf ):
 
 def misc_configure( conf ) :
 	conf.define ( 'GENFILE_USE_FAST_PARSE_METHODS', 1 )
-	
-	# if linking statically, force static versions of these libs.
-	# Otherwise the compiler supplies shared versions.
-	if Options.options.staticbuild:
-		conf.check_cxx( staticlib='stdc++' )
-		conf.check_cxx( staticlib='m' )
-		conf.check_cxx( staticlib='c' )
-	else:
-		conf.check_cxx( lib='stdc++' )
-		conf.check_cxx( lib='m' )
-		conf.check_cxx( lib='c' )
 		
 def get_cxx_flags( variant_name ):
 	cxxflags = ['-Wall']
@@ -127,7 +116,7 @@ def get_cxx_flags( variant_name ):
 def get_ld_flags( variant_name ):
 	ldflags = []
 	if Options.options.staticbuild:
-		ldflags.extend( ['-static', '-static-libgcc'] )
+		ldflags += [ '-static' ]
 	return ldflags
 
 #-----------------------------------

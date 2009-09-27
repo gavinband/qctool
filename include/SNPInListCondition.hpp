@@ -16,6 +16,8 @@ public:
 	bool check_if_satisfied( string_to_value_map const& ) const ;
 	void format_to_stream( std::ostream& oStream ) const ;
 
+	static std::string make_key( std::string const& SNPID, std::string const& RSID, uint32_t SNP_position ) ;
+
 private:
 		void setup() ;
 		bool list_contains( std::string const& ) const ;

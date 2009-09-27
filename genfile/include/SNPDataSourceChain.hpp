@@ -82,10 +82,9 @@ namespace genfile {
 		}
 
 		void ignore_snp_probability_data_impl(
-			uint32_t number_of_samples
 		) {
 			assert( m_current_source < m_sources.size() ) ;
-			m_sources[m_current_source]->ignore_snp_probability_data( number_of_samples ) ;
+			m_sources[m_current_source]->ignore_snp_probability_data() ;
 		}
 
 	public:

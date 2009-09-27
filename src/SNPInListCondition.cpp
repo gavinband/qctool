@@ -62,25 +62,30 @@ bool SNPInListCondition::file_appears_to_be_plain( std::string const& filename )
 void SNPInListCondition::load_from_gen_file( std::string const& filename ) {
 	std::auto_ptr< genfile::SNPDataSource > source = genfile::SNPDataSource::create( filename ) ;
 	uint32_t number_of_samples, SNP_position ;
+	std::string SNPID, RSID ;
 	std::set< std::string > SNP_positions ;
 		
 	while( (*source).get_snp_identifying_data( 
 			genfile::set_value( number_of_samples ),
-			genfile::ignore(),
-			genfile::ignore(),
+			genfile::set_value( SNPID ),
+			genfile::set_value( RSID ),
 			genfile::set_value( SNP_position ),
 			genfile::ignore(),
 			genfile::ignore()
 		)
 	) {
-		SNP_positions.insert( to_string( SNP_position )) ;
-		(*source).ignore_snp_probability_data( number_of_samples ) ;
+		SNP_positions.insert( make_key( SNPID, RSID, SNP_position )) ;
+		(*source).ignore_snp_probability_data() ;
 	}
 
 	if( source->number_of_snps_read() != source->total_number_of_snps() ) {
 		throw genfile::FileStructureInvalidError() ;
 	}
 	m_id_list.insert( SNP_positions.begin(), SNP_positions.end() ) ;
+}
+
+std::string SNPInListCondition::make_key( std::string const& SNPID, std::string const& RSID, uint32_t /* SNP_position */ ) {
+	return SNPID + ":" + RSID ;
 }
 
 void SNPInListCondition::load_from_plain_file( std::string const& filename ) {
@@ -93,9 +98,14 @@ bool SNPInListCondition::check_if_satisfied( string_to_value_map const& statisti
 	if( !row_statistics_ptr ) {
 		throw ConditionException( "SNPInListCondition only supports GenRowStatistics." ) ;
 	}
-	return list_contains( row_statistics_ptr->row().SNPID() )
-		|| list_contains( row_statistics_ptr->row().RSID() )
-		|| list_contains( to_string( row_statistics_ptr->row().SNP_position() ) ) ;
+	
+	return
+		// We hope to have been given a combined version of the fields as a key in our favourite format...
+		list_contains( make_key( row_statistics_ptr->row().SNPID(), row_statistics_ptr->row().RSID(), row_statistics_ptr->row().SNP_position() ))
+		// ..but we also recognise just the SNPID or RSID on its own, for compatibility with
+		// other exclusion / inclusion lists.
+		|| list_contains( row_statistics_ptr->row().SNPID() )
+		|| list_contains( row_statistics_ptr->row().RSID() ) ;
 }
 
 bool SNPInListCondition::list_contains( std::string const& elt ) const {

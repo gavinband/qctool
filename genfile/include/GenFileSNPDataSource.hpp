@@ -51,7 +51,7 @@ namespace genfile {
 			gen::impl::read_snp_probability_data( stream(), set_value( *number_of_samples ), set_genotype_probabilities ) ;
 		}
 
-		void ignore_snp_probability_data_impl( uint32_t number_of_samples ) {
+		void ignore_snp_probability_data_impl() {
 			std::string line ;
 			std::getline( stream(), line ) ;
 		}

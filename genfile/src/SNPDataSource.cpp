@@ -100,7 +100,7 @@ namespace genfile {
 
 			if( *this ) {
 				if( SNP_position < position_lower_bound ) {
-					ignore_snp_probability_data( number_of_samples ) ;
+					ignore_snp_probability_data() ;
 				}
 				else if( SNP_position > position_upper_bound ) {
 					return false ;
@@ -157,11 +157,9 @@ namespace genfile {
 		return *this ;
 	} ;
 
-	SNPDataSource& SNPDataSource::ignore_snp_probability_data(
-		uint32_t number_of_samples
-	) {
+	SNPDataSource& SNPDataSource::ignore_snp_probability_data() {
 		assert( m_state == e_HaveReadIdentifyingData ) ;
-		ignore_snp_probability_data_impl( number_of_samples ) ;
+		ignore_snp_probability_data_impl() ;
 		if( *this ) {
 			m_state = e_HaveNotReadIdentifyingData ;
 			++m_number_of_snps_read ;

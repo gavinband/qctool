@@ -118,7 +118,7 @@ namespace genfile {
 		// Read and discard the probability data for the next snp in the source.
 		// For each snp, you must call get_snp_identifying_data() at least once before
 		// calling this function.
-		SNPDataSource& ignore_snp_probability_data( uint32_t number_of_samples ) ;
+		SNPDataSource& ignore_snp_probability_data() ;
 
 	public:
 		// Implicit conversion to bool.  Return true if there have been no errors so far.
@@ -148,9 +148,7 @@ namespace genfile {
 			GenotypeProbabilitySetter const& set_genotype_probabilities
 		) = 0 ;
 
-		virtual void ignore_snp_probability_data_impl(
-			uint32_t number_of_samples
-		) = 0 ;
+		virtual void ignore_snp_probability_data_impl() = 0 ;
 
 	protected:
 

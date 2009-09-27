@@ -57,14 +57,12 @@ namespace genfile {
 			}
 		}
 
-		void ignore_snp_probability_data_impl(
-			uint32_t number_of_samples
-		) {
+		void ignore_snp_probability_data_impl() {
 			if( m_flags & bgen::e_CompressedSNPBlocks ) {
-				bgen::impl::read_compressed_snp_probability_data( stream(), number_of_samples, ignore() ) ;
+				bgen::impl::read_compressed_snp_probability_data( stream(), number_of_samples(), ignore() ) ;
 			}
 			else {
-				bgen::impl::read_snp_probability_data( stream(), number_of_samples, ignore() ) ;
+				bgen::impl::read_snp_probability_data( stream(), number_of_samples(), ignore() ) ;
 			}
 		}
 

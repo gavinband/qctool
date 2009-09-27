@@ -105,7 +105,7 @@ struct IDDataPrinter
 			if( m_context.position_range().contains( SNP_position )) {
 				std::cout << std::setw(16) << SNPID << " " << std::setw( 16 ) << RSID << " " << SNP_position << " " << allele1 << " " << allele2 << "\n" ;
 			}
-			m_context.snp_data_source().ignore_snp_probability_data( number_of_samples ) ;
+			m_context.snp_data_source().ignore_snp_probability_data() ;
 		}
 	}
 	
