@@ -762,6 +762,12 @@ private:
 					open_snp_stats_sink( ++m_current_snp_stats_filename_index, m_snp_statistics ) ;
 				}
 			}
+			
+			if( m_options.snp_excl_list_filename_mapper().output_filenames().size() > 0 ) {
+				if( m_options.snp_excl_list_filename_mapper().index_of_filename_corresponding_to( index ) != m_fltrd_out_snp_excl_list->index_of_current_sink() ) {
+					m_fltrd_out_snp_excl_list->move_to_next_sink() ;
+				})
+			}
 		}
 	}
 
@@ -1119,7 +1125,7 @@ private:
 	bool m_ignore_warnings ; 
 	
 	std::size_t m_current_snp_stats_filename_index ;
-	
+
 	std::auto_ptr< AndRowCondition > m_snp_filter ;
 	std::auto_ptr< AndRowCondition > m_sample_filter ;
 
