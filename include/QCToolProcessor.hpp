@@ -192,6 +192,7 @@ private:
 	void apply_sample_filter() {
 		for( std::size_t pre_filter_i = 0, post_filter_i = 0; post_filter_i < m_context.sample_rows().size(); ++pre_filter_i ) {
 			if( sample_row_is_filtered_out( pre_filter_i ) ) {
+				m_context.fltrd_out_sample_sink().write( m_context.sample_rows()[ post_filter_i] ) ;
 				do_sample_filter_diagnostics( m_context.sample_rows()[ post_filter_i ], pre_filter_i ) ;
 				m_context.sample_rows().erase( m_context.sample_rows().begin() + post_filter_i ) ;
 			}

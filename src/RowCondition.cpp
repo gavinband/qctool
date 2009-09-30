@@ -27,9 +27,14 @@ void StatisticInInclusiveRange::format_to_stream( std::ostream& oStream ) const 
 	oStream
 		<< m_statistic_name
 		<< " in ["
+	 	<< m_lower_bound
+		<< ","
+		<< m_upper_bound
+/*
 	 	<< std::fixed << std::setprecision( 5 ) << m_lower_bound
 		<< ","
 		<< std::fixed << std::setprecision( 5 ) << m_upper_bound
+*/
 		<< "]" ;
 }
 

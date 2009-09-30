@@ -60,6 +60,25 @@ private:
 	std::string m_option2 ;
 } ;
 
+struct OptionProcessorImpliedOptionNotSuppliedException: public std::exception {
+	OptionProcessorImpliedOptionNotSuppliedException( std::string const& option1, std::string const& option2 )
+	: m_option1( option1 ),
+	m_option2( option2 )
+	{}
+	
+	~OptionProcessorImpliedOptionNotSuppliedException() throw() {}
+
+	char const* what() const throw() { return "OptionProcessorImpliedOptionNotSuppliedException" ; }
+
+	std::string const& first_option() const { return m_option1 ; }
+	std::string const& second_option() const { return m_option2 ; }
+
+private:
+	
+	std::string m_option1 ;
+	std::string m_option2 ;
+} ;
+
 class OptionProcessor {
 		typedef std::map< std::string, OptionDefinition > OptionDefinitions ;
 		typedef std::map< std::string, std::vector< std::string > > OptionValues ; 
@@ -78,6 +97,8 @@ class OptionProcessor {
 
 		void option_excludes_option( std::string const& excluding_option, std::string const& excluded_option ) ;
 		void option_excludes_group( std::string const& excluding_option, std::string const& excluded_option_group ) ;
+
+		void option_implies_option( std::string const& option, std::string const& implied_option ) ;
 
 		// Parse the options from argv, performing all needed checks.
 		virtual void process( int argc, char** argv ) ;
@@ -127,6 +148,7 @@ class OptionProcessor {
 		void process_unknown_options() ;
 		void check_required_options_are_supplied() const ;
 		void check_mutually_exclusive_options_are_not_supplied() const ;
+		void check_implied_options_are_supplied() const ;
 		virtual void preprocess_option_values() ;
 		virtual void check_option_values() ;
 		std::string get_default_value( std::string const& arg ) const ;
@@ -145,6 +167,7 @@ class OptionProcessor {
 		std::vector< std::string > m_option_group_names ;
 		std::string m_help_option_name ;
 		std::map< std::string, std::set< std::string > > m_option_exclusions ;
+		std::map< std::string, std::set< std::string > > m_option_implications ;
 } ;
 
 

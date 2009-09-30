@@ -88,6 +88,13 @@ void OptionProcessor::option_excludes_option( std::string const& excluding_optio
 	m_option_exclusions[excluding_option].insert( excluded_option ) ;
 }
 
+void OptionProcessor::option_implies_option( std::string const& option, std::string const& implied_option ) {
+	assert( m_option_definitions.find( option ) != m_option_definitions.end() ) ;
+	assert( m_option_definitions.find( implied_option ) != m_option_definitions.end() ) ;
+
+	m_option_implications[option].insert( implied_option ) ;
+}
+
 
 void OptionProcessor::option_excludes_group( std::string const& excluding_option, std::string const& excluded_option_group ) {
 	assert( m_option_definitions.find( excluding_option ) != m_option_definitions.end() ) ;
@@ -109,6 +116,7 @@ void OptionProcessor::process( int argc, char** argv ) {
 	parse_options( argc, argv ) ;
 	check_required_options_are_supplied() ;
 	check_mutually_exclusive_options_are_not_supplied() ;
+	check_implied_options_are_supplied() ; 
 	check_option_values() ;
 	preprocess_option_values() ;
 }
@@ -130,6 +138,7 @@ void OptionProcessor::parse_options( int argc, char** argv ) {
 		if( arg == m_help_option_name ) {
 			throw OptionProcessorHelpRequestedException() ;
 		}
+		std::map< std::string, OptionDefinition >::const_iterator arg_i = m_option_definitions.find( arg ) ;
 		if( !try_to_parse_named_option_and_values( argc, argv, i )) {
 			if( !try_to_parse_positional_option( argc, argv, i )) {
 				m_unknown_options[i] = argv[i] ;
@@ -174,7 +183,7 @@ bool OptionProcessor::try_to_parse_positional_option( int argc, char** argv, int
 	for( ; defn_i != end_defn_i; ++defn_i ) {
 		if( defn_i->second.takes_value_by_position() && defn_i->second.position() == position ) {
 			m_option_values[ defn_i->first ].push_back( argv[ position ] ) ;
-			// ++position ;
+			++position ;
 			return 1 ;
 		}
 	}
@@ -219,6 +228,25 @@ void OptionProcessor::check_mutually_exclusive_options_are_not_supplied() const 
 			for( ; j != end_j ; ++j ) {
 				if( check_if_option_was_supplied( *j )) {
 					throw OptionProcessorMutuallyExclusiveOptionsSuppliedException( i->first, *j ) ;
+				}
+			}
+		}
+	}
+}
+
+void OptionProcessor::check_implied_options_are_supplied() const {
+	std::map< std::string, std::set< std::string > > ::const_iterator
+		i = m_option_implications.begin(),
+		end_i = m_option_implications.end() ;
+
+	for( ; i != end_i ; ++i ) {
+		if( check_if_option_was_supplied( i->first )) {
+			std::set< std::string >::const_iterator
+				j = i->second.begin(),
+				end_j = i->second.end() ;
+			for( ; j != end_j ; ++j ) {
+				if( !check_if_option_was_supplied( *j )) {
+					throw OptionProcessorImpliedOptionNotSuppliedException( i->first, *j ) ;
 				}
 			}
 		}
