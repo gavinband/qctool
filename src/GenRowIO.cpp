@@ -62,7 +62,7 @@ double read_float( std::istream& aStream ) {
 std::istream& GenRowIdentifyingData::read_from_text_stream( std::istream& aStream ) {
 	aStream >> m_SNPID ;
 	aStream >> m_RSID ;
-	aStream >> m_chromosome ;
+	// aStream >> m_chromosome ;
 	aStream >> m_SNP_position ;
 	aStream >> m_1st_allele ;
 	return aStream >> m_2nd_allele ;
@@ -111,7 +111,7 @@ std::ostream& GenRowIdentifyingData::write_to_text_stream( std::ostream& aStream
 	aStream
 		<< SNPID() << " "
 		<< RSID() << " "
-		<< chromosome() << " "
+		// << chromosome() << " "
 		<< SNP_position() << " "
 		<< first_allele() << " "
 		<< second_allele() ;

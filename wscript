@@ -263,8 +263,7 @@ def create_benchmark( bld, name ):
 		target = name,
 		source = [  'benchmarks/' + name + '.cpp' ],
 		uselib_local = 'gen-tools-optionprocessor gen-tools-lib gen-tools-string gen-tools-exception genfile',
-		includes='./include ./genfile/include',
-		unit_test=1
+		includes='./include ./genfile/include'
 	)
 
 #-----------------------------------

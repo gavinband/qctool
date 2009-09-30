@@ -59,6 +59,7 @@ AUTO_TEST_CASE( test_RFormat )
 			for( std::size_t i = 0; i < doubles.size(); ++i ) {
 				stat_sink_1 << doubles[i] ;
 			}
+			stat_sink_1 << statfile::end_row() ;
 		}
 	}
 	
