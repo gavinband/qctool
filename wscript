@@ -202,7 +202,7 @@ def build( bld ):
 	#---------------------
 	# programs
 	#---------------------
-	create_app( bld, name='qc-tool', uselib_local = 'gen-tools-optionprocessor gen-tools-lib gen-tools-string gen-tools-exception genfile statfile' )
+	create_app( bld, name='qctool', uselib_local = 'gen-tools-optionprocessor gen-tools-lib gen-tools-string gen-tools-exception genfile statfile' )
 	create_app( bld, name='gen-convert', uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception gen-tools-lib genfile' )
 	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception gen-tools-lib genfile' )
 	create_app( bld, name='gen-grep', uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception gen-tools-lib genfile' )

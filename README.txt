@@ -1,5 +1,5 @@
 ===========================================
-gen-tools version 1.0 - README
+gen-tools version 1.2 - README
 Copyright 2009 Gavin Band, University of Oxford
 ===========================================
 
@@ -8,25 +8,21 @@ ACKNOWLEDGEMENTS:
 This package includes the SNPHWE code from Wigginton et al, "A Note on Exact
 Tests of Hardy-Weinberg Equilibrium", Am J Hum Genet (2005).
 
-The package is built with the waf build system (included) 
+The package is built with the waf build system (included with the source).  See http://code.google.com/p/waf/
 
 DESCRIPTION:
 ============
 
-This package comprises the qc-tool program for quality control of a set of SNP marker data,
+This package comprises the QCTOOL program for quality control of a set of SNP marker data,
 together with some other utility programs.  The programs included are:
 
-qc-tool: 		main quality control tool
+qctool: 		main quality control tool
 gen-convert: 	convert between different gen file formats.
 gen-compare: 	compare two gen files
+gen-grep:		find entries in a gen file (or files)
 
 There are also a number of tests (whose names begin with 'test') and some benchmark programs
 (whose names beginning with 'benchmark').  
-
-In addition, the following two programs are currently included but should really be in a seperate package:
-generate-random-permutations-of-0-1-vector
-gen-case-control-test
-
 
 FILE FORMATS:
 =============
@@ -68,7 +64,7 @@ To build the package, run
 These commands build two versions of the programs: debug and release.  They can be found in the
 build/default/ and build/release/ subdirectories respectively.
 
-USAGE: qc-tool
+USAGE: qctool
 ==============
 
 Given a collection of GEN files and a sample file, qc-tool can be used to:

@@ -56,7 +56,7 @@
 
 
 namespace globals {
-	std::string const program_name = "qc-tool" ;
+	std::string const program_name = "qctool" ;
 }
 
 struct NumberOfSamplesMismatchException: public QCToolProcessorException
