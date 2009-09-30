@@ -1,0 +1,74 @@
+table.filespec {
+	width: 60% ;
+	border-width: 5px;
+	border-spacing: ;
+	border-style: dotted;
+	border-color: gray;
+	border-collapse: collapse;
+	background-color: white;
+}
+table.filespec th {
+	border-width: 2px;
+	padding: 4px;
+	border-style: solid;
+	border-color: black;
+	background-color: #D0D0D0;
+	-moz-border-radius: ;
+	v-align: middle;
+}
+table.filespec td {
+	border-width: 1px;
+	padding: 4px;
+	border-style: solid;
+	border-color: gray;
+	background-color: white;
+	-moz-border-radius: ;
+	
+	text-align: center ;
+	v-align: middle;
+}
+
+table.linkedfiles {
+	width: 60% ;
+	border-width: 5px;
+	border-spacing: ;
+	border-style: dotted;
+	border-color: gray;
+	border-collapse: collapse;
+	background-color: white;
+}
+table.linkedfiles th {
+	border-width: 2px;
+	padding: 4px;
+	border-style: solid;
+	border-color: black;
+	background-color: #D0D0D0;
+	-moz-border-radius: ;
+	v-align: middle;
+}
+table.linkedfiles td {
+	border-width: 1px;
+	padding: 4px;
+	border-style: solid;
+	border-color: gray;
+	background-color: white;
+	-moz-border-radius: ;
+	
+	text-align: center ;
+	v-align: middle;
+}
+
+table.field_encoding_scheme {
+	width: 80% ;
+	font-family: monospace ;
+	border: 0px ;
+	margin-left margin-right: 10% ;
+}
+
+table.field_encoding_scheme td {
+	width: 1px ;
+	border: 0px ;
+	padding: 0px ;
+	padding-right: 10px ;
+	text-align: left ;
+}

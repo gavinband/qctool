@@ -67,7 +67,7 @@ build/default/ and build/release/ subdirectories respectively.
 USAGE: qctool
 ==============
 
-Given a collection of GEN files and a sample file, qc-tool can be used to:
+Given a collection of GEN files and a sample file, qctool can be used to:
 - Print sample-wise statistics (missing data rate and heterozygosity) about the data (using -sample-stats flag).
 - Filter out samples based on those statistics (using -sample-missing-rate and -heterozygosity).
 - Print SNP-wise statistics (missing data rate, hwe exact test, minor allele frequency) about the data (using -snp-stats flag).
@@ -91,7 +91,7 @@ Note that the -g option can take a filename containing a single '#' wildcard cha
 This character matches any number from 1 to 100.  For example, if you have 23 files representing
 data from 23 human chromosomes, these might be number file1.gen, file2.gen, ..., file23.gen you could run
 
-> qc-tool -g file#.gen
+> qctool -g file#.gen
 
 Statistic file options:
   -sample-statistics <a>: Comma-seperated list of statistics to calculate in samplestat file.
@@ -118,7 +118,7 @@ Other options:
      -diagnose-snp-filter: Print diagnostic information about each filtered out snp.
                    -force: Ignore warnings and proceed with requested action.
 
-Note: qc-tool will emit a warning and quit if it thinks the options supplied don't make sense.  To override this, use the -force option.
+Note: qctool will emit a warning and quit if it thinks the options supplied don't make sense.  To override this, use the -force option.
 
 
 USAGE: gen-convert
@@ -130,7 +130,7 @@ Typical usage is:
 > gen-convert -g (input files) -og (output files)
 
 The -g option must appear the same number of times as the -og option.
-As with qc-tool, a '#' wildcard character may appear in the input file and matches a number from 1 to 100.
+As with qctool, a '#' wildcard character may appear in the input file and matches a number from 1 to 100.
 If such a wildcard appears in the -g option, a similar wildcard may appear for the -og option.  For example,
 with the files as above we could write
 
