@@ -130,7 +130,6 @@ void OptionProcessor::parse_options( int argc, char** argv ) {
 		if( arg == m_help_option_name ) {
 			throw OptionProcessorHelpRequestedException() ;
 		}
-		std::map< std::string, OptionDefinition >::const_iterator arg_i = m_option_definitions.find( arg ) ;
 		if( !try_to_parse_named_option_and_values( argc, argv, i )) {
 			if( !try_to_parse_positional_option( argc, argv, i )) {
 				m_unknown_options[i] = argv[i] ;
@@ -175,7 +174,7 @@ bool OptionProcessor::try_to_parse_positional_option( int argc, char** argv, int
 	for( ; defn_i != end_defn_i; ++defn_i ) {
 		if( defn_i->second.takes_value_by_position() && defn_i->second.position() == position ) {
 			m_option_values[ defn_i->first ].push_back( argv[ position ] ) ;
-			++position ;
+			// ++position ;
 			return 1 ;
 		}
 	}

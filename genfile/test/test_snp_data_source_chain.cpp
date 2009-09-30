@@ -54,7 +54,8 @@ template< typename T >
 struct Setter
 {
 	Setter( T& field ): m_field( field ) {} ;
-	void operator()( T const& value ) { m_field = value ; }
+	template< typename T2 >
+	void operator()( T2 const& value ) { m_field = T( value ) ; }
 private:
 	T& m_field ;
 } ;
@@ -106,6 +107,7 @@ struct SnpData {
 	
 	uint32_t number_of_samples ;
 	std::string SNPID, RSID ;
+	genfile::Chromosome chromosome ;
 	uint32_t SNP_position ;
 	char allele1, allele2 ;
 	std::vector< probabilities_t > probabilities ;
@@ -114,6 +116,8 @@ struct SnpData {
 		return number_of_samples == other.number_of_samples
 			&& SNPID == other.SNPID
 			&& RSID == other.RSID
+			&& chromosome == other.chromosome
+			&& SNP_position == other.SNP_position
 			&& allele1 == other.allele1
 			&& allele2 == other.allele2
 			&& probabilities == other.probabilities ;
@@ -128,6 +132,7 @@ void copy_gen_file( genfile::SNPDataSource& snp_data_source, genfile::SNPDataSin
 		make_setter( snp_data.number_of_samples ),
 		make_setter( snp_data.SNPID ),
 		make_setter( snp_data.RSID ),
+		make_setter( snp_data.chromosome ),
 		make_setter( snp_data.SNP_position ),
 		make_setter( snp_data.allele1 ), 
 		make_setter( snp_data.allele2 ),
@@ -137,6 +142,7 @@ void copy_gen_file( genfile::SNPDataSource& snp_data_source, genfile::SNPDataSin
 			snp_data.number_of_samples,
 			snp_data.SNPID,
 			snp_data.RSID,
+			snp_data.chromosome,
 			snp_data.SNP_position,
 			snp_data.allele1,
 			snp_data.allele2,
@@ -148,7 +154,7 @@ void copy_gen_file( genfile::SNPDataSource& snp_data_source, genfile::SNPDataSin
 }
 
 void copy_gen_file( std::string original, genfile::SNPDataSink& target ) {
-	genfile::GenFileSNPDataSource gen_file_snp_data_source( original ) ;
+	genfile::GenFileSNPDataSource gen_file_snp_data_source( original, genfile::UnidentifiedChromosome ) ;
 	TEST_ASSERT( gen_file_snp_data_source.total_number_of_snps() == data::number_of_snps ) ;
 	copy_gen_file( gen_file_snp_data_source, target ) ;
 }
@@ -180,6 +186,7 @@ std::vector< SnpData > read_snp_data( genfile::SNPDataSource& snp_data_source ) 
 		make_setter( snp_data.number_of_samples ),
 		make_setter( snp_data.SNPID ),
 		make_setter( snp_data.RSID ),
+		make_setter( snp_data.chromosome ),
 		make_setter( snp_data.SNP_position ),
 		make_setter( snp_data.allele1 ), 
 		make_setter( snp_data.allele2 ),

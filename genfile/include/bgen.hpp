@@ -113,6 +113,7 @@ namespace genfile {
         typename IntegerSetter,
         typename StringSetter,
         typename AlleleSetter,
+        typename ChromosomeSetter,
         typename SNPPositionSetter,
         typename GenotypeProbabilitySetter
         >
@@ -121,6 +122,7 @@ namespace genfile {
             IntegerSetter set_number_of_samples,
             StringSetter set_SNPID,
             StringSetter set_RSID,
+			ChromosomeSetter set_chromosome,
             SNPPositionSetter set_SNP_position,
             AlleleSetter set_allele1,
             AlleleSetter set_allele2,
@@ -144,6 +146,7 @@ namespace genfile {
             unsigned char max_id_size,
             std::string SNPID,
             std::string RSID,
+			unsigned char chromosome,
             uint32_t SNP_position,
             char first_allele,
             char second_allele,
@@ -156,6 +159,7 @@ namespace genfile {
 	        typename IntegerSetter,
 	        typename StringSetter,
 	        typename AlleleSetter,
+	        typename ChromosomeSetter,
 	        typename SNPPositionSetter,
 	        typename GenotypeProbabilitySetter
 	    >
@@ -164,6 +168,7 @@ namespace genfile {
 	        IntegerSetter set_number_of_samples,
 	        StringSetter set_SNPID,
 	        StringSetter set_RSID,
+			ChromosomeSetter set_chromosome,
 	        SNPPositionSetter set_SNP_position,
 	        AlleleSetter set_allele1,
 	        AlleleSetter set_allele2,
@@ -177,6 +182,7 @@ namespace genfile {
             unsigned char max_id_size,
             std::string SNPID,
             std::string RSID,
+			unsigned char chromosome,
             uint32_t SNP_position,
             char first_allele,
             char second_allele,
@@ -226,6 +232,7 @@ namespace genfile {
                 uint32_t* number_of_samples,
                 std::string* SNPID,
                 std::string* RSID,
+				unsigned char* chromosome,
                 uint32_t* SNP_position,
                 char* first_allele,
                 char* second_allele
@@ -305,6 +312,7 @@ namespace genfile {
                 unsigned char max_id_size,
                 std::string SNPID,
                 std::string RSID,
+				unsigned char chromosome,
                 uint32_t SNP_position,
                 char first_allele,
                 char second_allele
@@ -393,6 +401,7 @@ namespace genfile {
         typename IntegerSetter,
         typename StringSetter,
         typename AlleleSetter,
+		typename ChromosomeSetter,
         typename SNPPositionSetter,
         typename GenotypeProbabilitySetter
         >
@@ -401,6 +410,7 @@ namespace genfile {
             IntegerSetter set_number_of_samples,
             StringSetter set_SNPID,
             StringSetter set_RSID,
+			ChromosomeSetter set_chromosome,
             SNPPositionSetter set_SNP_position,
             AlleleSetter set_allele1,
             AlleleSetter set_allele2,
@@ -412,10 +422,11 @@ namespace genfile {
             impl::uint32_t number_of_samples = 0;
             std::string SNPID ;
             std::string RSID ;
+			unsigned char chromosome ;
             impl::uint32_t SNP_position = 0;
             char first_allele, second_allele ;
 
-            impl::read_snp_identifying_data( aStream, &number_of_samples, &SNPID, &RSID, &SNP_position, &first_allele, &second_allele ) ;
+            impl::read_snp_identifying_data( aStream, &number_of_samples, &SNPID, &RSID, &chromosome, &SNP_position, &first_allele, &second_allele ) ;
 
             if ( aStream ) {
                 // If all ok thus far, we'll take the plunge, calling the callbacks to (presumably)
@@ -426,6 +437,7 @@ namespace genfile {
                 set_number_of_samples( number_of_samples ) ;
                 set_SNPID( SNPID ) ;
                 set_RSID( RSID ) ;
+				set_chromosome( chromosome ) ;
                 set_SNP_position( SNP_position ) ;
                 set_allele1( first_allele ) ;
                 set_allele2( second_allele ) ;
@@ -442,6 +454,7 @@ namespace genfile {
             unsigned char max_id_size,
 			std::string SNPID,
             std::string RSID,
+			unsigned char chromosome,
             uint32_t SNP_position,
             char first_allele,
             char second_allele,
@@ -449,7 +462,7 @@ namespace genfile {
             GenotypeProbabilityGetter get_AB_probability,
             GenotypeProbabilityGetter get_BB_probability
         ) {
-            impl::write_snp_identifying_data( aStream, number_of_samples, max_id_size, SNPID, RSID, SNP_position, first_allele, second_allele ) ;
+            impl::write_snp_identifying_data( aStream, number_of_samples, max_id_size, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele ) ;
             impl::write_snp_probability_data( aStream, number_of_samples, get_AA_probability, get_AB_probability, get_BB_probability ) ;
         }
 
@@ -458,6 +471,7 @@ namespace genfile {
 	        typename IntegerSetter,
 	        typename StringSetter,
 	        typename AlleleSetter,
+			typename ChromosomeSetter,
 	        typename SNPPositionSetter,
 	        typename GenotypeProbabilitySetter
         >
@@ -466,6 +480,7 @@ namespace genfile {
             IntegerSetter set_number_of_samples,
             StringSetter set_SNPID,
             StringSetter set_RSID,
+			ChromosomeSetter set_chromosome,
             SNPPositionSetter set_SNP_position,
             AlleleSetter set_allele1,
             AlleleSetter set_allele2,
@@ -480,15 +495,17 @@ namespace genfile {
             impl::uint32_t number_of_samples = 0;
             std::string SNPID ;
             std::string RSID ;
+			unsigned char chromosome ;
             impl::uint32_t SNP_position = 0;
             char first_allele, second_allele ;
 
-            impl::read_snp_identifying_data( aStream, &number_of_samples, &SNPID, &RSID, &SNP_position, &first_allele, &second_allele ) ;
+            impl::read_snp_identifying_data( aStream, &number_of_samples, &SNPID, &RSID, &chromosome, &SNP_position, &first_allele, &second_allele ) ;
 
             if ( aStream ) {
 	            set_number_of_samples( number_of_samples ) ;
                 set_SNPID( SNPID ) ;
                 set_RSID( RSID ) ;
+				set_chromosome( chromosome ) ;
                 set_SNP_position( SNP_position ) ;
                 set_allele1( first_allele ) ;
                 set_allele2( second_allele ) ;
@@ -505,6 +522,7 @@ namespace genfile {
             unsigned char max_id_size,
             std::string SNPID,
             std::string RSID,
+			unsigned char chromosome,
             uint32_t SNP_position,
             char first_allele,
             char second_allele,
@@ -515,7 +533,7 @@ namespace genfile {
 #if !HAVE_ZLIB
 			assert(0) ; // zlib is required for compression support.
 #else
-            impl::write_snp_identifying_data( aStream, number_of_samples, max_id_size, SNPID, RSID, SNP_position, first_allele, second_allele ) ;
+            impl::write_snp_identifying_data( aStream, number_of_samples, max_id_size, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele ) ;
 
             // Construct a buffer into which we will compress.
             uLongf uncompressed_data_size = (6 * number_of_samples) ;

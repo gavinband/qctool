@@ -23,6 +23,7 @@
 #include "string_utils.hpp"
 #include "parse_utils.hpp"
 #include "wildcard.hpp"
+#include "InputToOutputFilenameMapper.hpp"
 
 namespace globals {
 	std::string const program_name = "gen-convert" ;
@@ -74,12 +75,14 @@ public:
 	        .set_description( "Path of gen file to input" )
 	        .set_is_required()
 			.set_takes_values()
-			.set_maximum_number_of_repeats( 100 ) ;
+			.set_maximum_number_of_repeats( 100 )
+			.set_takes_value_by_position(1) ;
 
 	    options[ "-og" ]
 	        .set_description( "Path of gen file to output" )
 			.set_takes_values()
-			.set_maximum_number_of_repeats( 100 ) ;
+			.set_maximum_number_of_repeats( 100 )
+			.set_takes_value_by_position(2) ;
 			
 		options [ "-force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
@@ -120,71 +123,15 @@ private:
 		}
 		if( m_options.check_if_option_was_supplied( "-og" ) ) {
 			gen_output_filenames = m_options.get_values< std::string >( "-og" ) ;
+		} else {
+			gen_output_filenames.resize( gen_filenames.size() ) ;
 		}
 
 		if( gen_filenames.size() != gen_output_filenames.size() ) {
 			throw GenConvertFileCountMismatchError() ;
 		}
 
-		try {
-			add_expanded_filenames( gen_filenames, gen_output_filenames ) ;
-		}
-		catch( GenConvertNoGenFileMatchesFound const& e ) {
-			m_cout << "No files matching \"" << e.filename()  << "\" could be found.\n" ;
-			throw ;
-		}
-		// For each entry in m_gen_input_filenames, there should now be a corresponding (index, output filename)
-		// entry in m_gen_output_filenames.
-		assert( m_gen_input_filenames.size() == m_gen_output_filenames.size() ) ;
-	}
-
-	void add_expanded_filenames( std::vector< std::string > const& gen_filenames, std::vector< std::string > const& gen_output_filenames ) {		
-		for( std::size_t i = 0; i < gen_filenames.size(); ++i ) {
-			add_expanded_filename( gen_filenames[i], gen_output_filenames[i] ) ;
-		}
-	}
-
-	void add_expanded_filename( std::string const& input_filename, std::string const& output_filename ) {
-		bool input_file_has_wildcard = ( input_filename.find( '#' ) != std::string::npos ) ;
-		bool output_file_has_wildcard = ( output_filename.find( '#' ) != std::string::npos ) ;
-		
-		if( output_file_has_wildcard && !input_file_has_wildcard ) {
-			throw GenConvertFileWildcardMismatchError() ;
-		}
-
-		if( input_file_has_wildcard ) {
-			std::vector< wildcard::FilenameMatch >
-				matches = wildcard::find_matches_for_path_with_integer_wildcard( input_filename, '#' ) ;
-			if( matches.empty() ) {
-				throw GenConvertNoGenFileMatchesFound( input_filename ) ;
-			}
-			else {
-				for(
-					std::vector< wildcard::FilenameMatch >::const_iterator i = matches.begin() ;
-					i != matches.end() ; 
-					++i 
-				) {
-					add_input_and_corresponding_output_filename( i->filename(), output_filename, i->match() ) ;
-				}
-			}
-		}
-		else {
-			add_input_and_corresponding_output_filename( input_filename, output_filename, "" ) ;
-		}
-	}
-
-	bool check_if_string_is_a_number_from_1_to_100( std::string const& a_string ) {
-		return parse_integer_in_half_open_range( a_string, 1, 101 ) != 101 ;
-	}
-
-	void add_input_and_corresponding_output_filename( std::string const& input_filename, std::string const& output_filename, std::string const& input_filename_wildcard_match ) {
-		std::string expanded_output_filename = output_filename ;
-		std::size_t wildcard_pos = output_filename.find( '#' ) ;
-		if( wildcard_pos != std::string::npos ) {
-			expanded_output_filename.replace( wildcard_pos, 1, input_filename_wildcard_match ) ;			
-		}
-		m_gen_input_filenames.push_back( input_filename ) ;
-		m_gen_output_filenames.push_back( expanded_output_filename ) ;
+		m_gen_file_mapper.add_filename_pairs( gen_filenames, gen_output_filenames ) ;
 	}
 
 	void open_gen_input_files() {
@@ -193,22 +140,22 @@ private:
 		m_input_chain.reset( new genfile::SNPDataSourceChain() ) ;
 		m_input_chain->set_moved_to_next_source_callback( boost::bind( &GenConvertProcessor::move_to_next_output_file, this, _1 )) ;
 		
-		for( std::size_t i = 0; i < m_gen_input_filenames.size(); ++i ) {
-			add_gen_file_to_chain( *m_input_chain, m_gen_input_filenames[i] ) ;
+		for( std::size_t i = 0; i < m_gen_file_mapper.input_files().size(); ++i ) {
+			add_gen_file_to_chain( *m_input_chain, m_gen_file_mapper.input_file(i), m_gen_file_mapper.matched_part(i) ) ;
 		}
 		
 		m_number_of_samples_from_gen_file = m_input_chain->number_of_samples() ;
 		
 		if( timer.elapsed() > 1.0 ) {
-			m_cout << "Opened " << m_gen_input_filenames.size() << " GEN files in " << timer.elapsed() << "s.\n" ;\
+			m_cout << "Opened " << m_gen_file_mapper.input_files().size() << " GEN files in " << timer.elapsed() << "s.\n" ;\
 		}
 	}
 
-	void add_gen_file_to_chain( genfile::SNPDataSourceChain& chain, std::string const& filename ) {
+	void add_gen_file_to_chain( genfile::SNPDataSourceChain& chain, std::string const& filename, std::string const& matched_part ) {
 		boost::timer file_timer ;
 		m_cout << "(Opening gen file \"" << filename << "\"...)" << std::flush ;
 		try {
-			std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( filename )) ;
+			std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( filename, matched_part )) ;
 			chain.add_source( snp_data_source ) ;
 		}
 		catch ( genfile::FileHasTwoConsecutiveNewlinesError const& e ) {
@@ -223,15 +170,12 @@ private:
 	void open_gen_output_files() {
 		m_output_chain.reset( new genfile::SNPDataSinkChain() ) ;
 		std::string output_filename = "" ;
-		for( std::size_t i = 0 ; i < m_gen_output_filenames.size(); ++i ) {
-			if( m_gen_output_filenames[i] != output_filename ) {
-				output_filename = m_gen_output_filenames[i] ;
-				add_gen_file_to_chain( *m_output_chain, output_filename ) ;
-			}
+		for( std::size_t i = 0 ; i < m_gen_file_mapper.output_filenames().size(); ++i ) {
+				add_gen_file_to_chain( *m_output_chain, m_gen_file_mapper.output_filename(i) ) ;
 		}
+
 		// Set up the current output filename so we can track changes to the filename.
-		
-		m_current_output_filename = m_gen_output_filenames.front() ;
+		m_current_output_filename = m_gen_file_mapper.output_filenames().front() ;
 	}
 
 	void add_gen_file_to_chain( genfile::SNPDataSinkChain& chain, std::string const& filename ) {
@@ -240,15 +184,12 @@ private:
 	}
 
 	void move_to_next_output_file( std::size_t index ) {
-		if( index < m_gen_input_filenames.size() ) {
-			m_output_file_index = index ;
-			if( m_gen_output_filenames[ index ] != m_current_output_filename ) {
-				m_current_output_filename = m_gen_output_filenames[ index ] ;
-				m_output_chain->move_to_next_sink() ;
+		if( index < m_gen_file_mapper.input_files().size() ) {
+			if( m_gen_file_mapper.output_filenames().size() > 0 ) {
+				if( m_gen_file_mapper.filename_corresponding_to( index ) != m_output_chain->index_of_current_sink() ) {
+					m_output_chain->move_to_next_sink() ;
+				}
 			}
-		}
-		else {
-			m_cout << "\n" ;
 		}
 	}
 
@@ -263,12 +204,12 @@ public:
 		oStream << std::string( 72, '=' ) << "\n\n" ;
 		try {
 			oStream << std::setw(30) << "Input and output GEN files:\n" ;
-			for( std::size_t i = 0; i < m_gen_input_filenames.size(); ++i ) {
+			for( std::size_t i = 0; i < m_gen_file_mapper.input_files().size(); ++i ) {
 				oStream
 					<< "  - "
 					<< " (" << std::setw(6) << (m_input_chain->number_of_snps_in_source(i)) << " snps)  "
-					<< "\"" << std::setw(20) << m_gen_input_filenames[i] << "\""
-					<< " -> \"" << m_gen_output_filenames[i] << "\"\n";
+					<< "\"" << std::setw(20) << m_gen_file_mapper.input_file(i) << "\""
+					<< " -> \"" << m_gen_file_mapper.output_filename( m_gen_file_mapper.filename_corresponding_to( i ) ) << "\"\n";
 			}
 			oStream << "  - (total " << m_input_chain->total_number_of_snps() << " snps).\n\n" ;
 
@@ -294,10 +235,10 @@ public:
 	}
 
 	void do_checks() {
-		for( std::size_t i = 0; i < m_gen_input_filenames.size(); ++i ) {
-			for( std::size_t j = 0; j < m_gen_output_filenames.size(); ++j ) {
-				if( strings_are_nonempty_and_equal( m_gen_input_filenames[i], m_gen_output_filenames[j] )) {
-					m_errors.push_back( "Output GEN file \"" + m_gen_output_filenames[j] +"\" also specified as input GEN file." ) ;
+		for( std::size_t i = 0; i < m_gen_file_mapper.input_files().size(); ++i ) {
+			for( std::size_t j = 0; j < m_gen_file_mapper.output_filenames().size(); ++j ) {
+				if( strings_are_nonempty_and_equal( m_gen_file_mapper.input_file(i), m_gen_file_mapper.output_filenames()[j] )) {
+					m_errors.push_back( "Output GEN file \"" + m_gen_file_mapper.output_filenames()[j] +"\" also specified as input GEN file." ) ;
 					break ;
 				}
 			}
@@ -308,7 +249,6 @@ public:
 		return (!left.empty()) && (!right.empty()) && (left == right) ;
 	}
 
-	
 	void process() {
 		unsafe_process() ;
 	}
@@ -358,9 +298,8 @@ private:
 			write_snp(row) ;
 		}
 
-		m_cout << "Converted GEN file(s) (" << number_of_snps_processed << " SNPs) in " << timer.elapsed() << " seconds.\n" ;
+		m_cout << "\nConverted GEN file(s) (" << number_of_snps_processed << " SNPs) in " << timer.elapsed() << " seconds.\n" ;
 	
-		m_cout << "Post-processing (updating file header, compression)..." << std::flush ;
 		timer.restart() ;
 		// Close the output gen file(s) now
 		close_all_files() ;
@@ -368,29 +307,11 @@ private:
 	}
 
 	bool read_snp( GenRow& row ) {
-		return m_input_chain->read_snp(
-			boost::bind< void >( &GenRow::set_number_of_samples, &row, _1 ),
-			boost::bind< void >( &GenRow::set_SNPID, &row, _1 ),
-			boost::bind< void >( &GenRow::set_RSID, &row, _1 ),
-			boost::bind< void >( &GenRow::set_SNP_position, &row, _1 ),
-			boost::bind< void >( &GenRow::set_allele1, &row, _1 ),
-			boost::bind< void >( &GenRow::set_allele2, &row, _1 ),
-			boost::bind< void >( &GenRow::set_genotype_probabilities, &row, _1, _2, _3, _4 )
-		) ;
+		return row.read_from_source( *m_input_chain ) ;
 	}
 
 	bool write_snp( GenRow& row ) {
-		return m_output_chain->write_snp(
-			row.number_of_samples(),
-			row.SNPID(),
-			row.RSID(),
-			row.SNP_position(),
-			row.first_allele(),
-			row.second_allele(),
-			boost::bind< double >( &GenRow::get_AA_probability, &row, _1 ),
-			boost::bind< double >( &GenRow::get_AB_probability, &row, _1 ),
-			boost::bind< double >( &GenRow::get_BB_probability, &row, _1 )
-		) ;
+		return row.write_to_sink( *m_output_chain ) ;
 	}
 
 	void close_all_files() {
@@ -410,9 +331,7 @@ private:
 	
 	std::size_t m_number_of_samples_from_gen_file ;
 	
-	std::vector< std::string > m_gen_input_filenames ;
-	typedef std::vector< std::string > output_filenames_t ;
-	output_filenames_t m_gen_output_filenames ;
+	InputToOutputFilenameMapper m_gen_file_mapper ;
 
 	std::size_t m_output_file_index ;
 

@@ -22,6 +22,7 @@ namespace data {
 		unsigned char max_id_size,
 		std::string SNPID,
 		std::string RSID,
+		genfile::Chromosome chromosome,
 		uint32_t SNP_position,
 		char a_allele,
 		char b_allele
@@ -35,6 +36,8 @@ namespace data {
 		write_little_endian_integer( oStream, static_cast< char >( RSID.size() )) ;
 		oStream.write( RSID.data(), RSID.size() ) ;
 		oStream.write( "                ", max_id_size - RSID.size()) ;
+		unsigned char chr = chromosome ;
+		write_little_endian_integer( oStream, chr ) ;
 		write_little_endian_integer( oStream, SNP_position ) ;
 		oStream.put( a_allele ) ;
 		oStream.put( b_allele ) ;
@@ -64,7 +67,8 @@ template< typename T >
 struct Setter
 {
 	Setter( T& field ): m_field( field ) {} ;
-	void operator()( T const& value ) { m_field = value ; }
+	template< typename T2 >
+	void operator()( T2 const& value ) { m_field = T(value) ; }
 private:
 	T& m_field ;
 } ;
@@ -96,6 +100,7 @@ void do_snp_block_read_test(
 		unsigned char ID_field_length,
 		std::string SNPID,
 		std::string RSID,
+		genfile::Chromosome chromosome,
 		uint32_t SNP_position,
 		char a,
 		char b
@@ -107,6 +112,7 @@ void do_snp_block_read_test(
 			ID_field_length,
 			SNPID,
 			RSID,
+			chromosome,
 			SNP_position,
 			a,
 			b
@@ -116,6 +122,7 @@ void do_snp_block_read_test(
 	uint32_t number_of_individuals2 ;
 	std::string SNPID2 ;
 	std::string RSID2 ;
+	genfile::Chromosome chromosome2 ;
 	uint32_t SNP_position2 ;
 	char a2 ;
 	char b2 ;
@@ -127,6 +134,7 @@ void do_snp_block_read_test(
 		make_setter( number_of_individuals2 ),
 		make_setter( SNPID2 ),
 		make_setter( RSID2 ),
+		make_setter( chromosome2 ),
 		make_setter( SNP_position2 ),
 		make_setter( a2 ),
 		make_setter( b2 ),
@@ -136,6 +144,7 @@ void do_snp_block_read_test(
 	TEST_ASSERT( number_of_individuals2 == number_of_individuals ) ;
 	TEST_ASSERT( SNPID2 == SNPID ) ;
 	TEST_ASSERT( RSID2 == RSID ) ;
+	TEST_ASSERT( chromosome2 == chromosome ) ;
 	TEST_ASSERT( SNP_position2 == SNP_position ) ;
 	TEST_ASSERT( a2 == a ) ;
 	TEST_ASSERT( b2 == b ) ;
@@ -153,17 +162,20 @@ void do_snp_block_write_test(
 		unsigned char ID_field_length,
 		std::string SNPID,
 		std::string RSID,
+		genfile::Chromosome chromosome,
 		uint32_t SNP_position,
 		char a,
 		char b
 	) {
 	std::ostringstream outStream ;
+	
 	genfile::bgen::write_snp_block( 
 		outStream,
 		number_of_individuals,
 		ID_field_length,
 		SNPID,
 		RSID,
+		chromosome,
 		SNP_position,
 		a,
 		b,
@@ -177,6 +189,7 @@ void do_snp_block_write_test(
 		ID_field_length,
 		SNPID,
 		RSID,
+		chromosome,
 		SNP_position,
 		a,
 		b
@@ -191,14 +204,14 @@ void do_snp_block_write_test(
 
 AUTO_TEST_CASE( test_snp_block_input ) {
 	std::cout << "test_snp_block_input\n" ;
-	do_snp_block_read_test( 6, 6, "SNP 01", "RS 01", 1000001, 'A', 'C' ) ;
-	do_snp_block_read_test( 1000, 50, "01234567890123456789012345678901234567890123456789", "01234567890123456789012345678901234567890123456789", 4294967295u, 'G', 'T' ) ;
+	do_snp_block_read_test( 6, 6, "SNP 01", "RS 01", genfile::Chromosome1, 1000001, 'A', 'C' ) ;
+	do_snp_block_read_test( 1000, 50, "01234567890123456789012345678901234567890123456789", "01234567890123456789012345678901234567890123456789", genfile::Chromosome22, 4294967295u, 'G', 'T' ) ;
 }
 
 AUTO_TEST_CASE( test_snp_block_output ) {
 	std::cout << "test_snp_block_output\n" ;
-	do_snp_block_write_test( 6, 6, "SNP 01", "RS 01", 1000001, 'A', 'C' ) ;
-	do_snp_block_write_test( 1000, 50, "01234567890123456789012345678901234567890123456789", "01234567890123456789012345678901234567890123456789", 4294967295u, 'G', 'T' ) ;
+	do_snp_block_write_test( 6, 6, "SNP 01", "RS 01", genfile::Chromosome1, 1000001, 'A', 'C' ) ;
+	do_snp_block_write_test( 1000, 50, "01234567890123456789012345678901234567890123456789", "01234567890123456789012345678901234567890123456789", genfile::Chromosome22, 4294967295u, 'G', 'T' ) ;
 }
 
 #ifndef HAVE_BOOST_UNIT_TEST

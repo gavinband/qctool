@@ -1,12 +1,59 @@
 #include <iostream>
 #include <string>
 #include <cstdio>
+#include <vector>
+#include <sstream>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/device/file.hpp>
 #include "snp_data_utils.hpp"
 
 namespace genfile {
+	std::ostream& operator<<( std::ostream& oStream, Chromosome const& chromosome ) {
+		if( chromosome == XYPseudoAutosomalDNA ) {
+			return oStream << "XY" ;
+		}
+		else if( chromosome == MitochondrialDNA ) {
+			return oStream << "MT" ;
+		}
+		else if( chromosome == UnidentifiedChromosome ) {
+			return oStream << "Unknown" ;
+		}
+		else {
+			return oStream << int( chromosome ) ;
+		}
+	}
+
+	std::istream& operator>>( std::istream& inStream, Chromosome& chromosome ) {
+		std::string s;
+		inStream >> s ;
+		chromosome = Chromosome( s ) ;
+		return inStream ;
+	}
+
+	Chromosome::Chromosome( std::string const& s ) {
+		if( s == "Unknown" || s == "" ) {
+			m_chromosome_e = UnidentifiedChromosome ;
+		}
+		else if( s == "MT" ) {
+			m_chromosome_e = MitochondrialDNA ;
+		}
+		else if( s == "XY" ) {
+			m_chromosome_e = XYPseudoAutosomalDNA ;
+		}
+		else {
+			int i ;
+			std::istringstream istr( s ) ;
+			istr >> i ;
+			if( i > 0 && i < 23 ) {
+				m_chromosome_e = Chromosome( i ) ;
+			}
+			else {
+				assert(0) ;
+			}
+		}
+	}
+
 	bool filename_indicates_gen_format( std::string const& filename ) {
 		return ( filename.find( ".gen") != std::string::npos ) ;
 	}
@@ -24,6 +71,34 @@ namespace genfile {
 		else {
 			return e_NoCompression ;
 		}
+	}
+
+	Chromosome get_chromosome_indicated_by_filename( std::string const& filename ) {
+		std::vector< Chromosome > indicated_chromosomes ;
+		std::ostringstream ostr ;
+		for( unsigned char i = 0; i < 23; ++i ) {
+			ostr.str( "" ) ;
+			ostr << Chromosome( i ) ;
+			if( filename.find( ostr.str() ) != std::string::npos ) {
+				indicated_chromosomes.push_back( Chromosome( i )) ;
+			}
+		}
+		ostr.str( "" ) ;
+		ostr << XYPseudoAutosomalDNA ;
+		if( filename.find( ostr.str() ) != std::string::npos ) {
+			indicated_chromosomes.push_back( XYPseudoAutosomalDNA ) ;
+		}
+		ostr.str( "" ) ;
+		ostr << MitochondrialDNA ;
+		if( filename.find( ostr.str() ) != std::string::npos ) {
+			indicated_chromosomes.push_back( MitochondrialDNA ) ;
+		}
+
+		if( indicated_chromosomes.size() != 1 ) {
+			return UnidentifiedChromosome ;
+		}
+
+		return indicated_chromosomes[0] ;
 	}
 
 	std::string strip_gen_file_extension_if_present( std::string const& filename ) {

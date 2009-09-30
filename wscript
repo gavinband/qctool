@@ -5,7 +5,7 @@ import Options
 
 srcdir="."
 APPNAME = "gen-tools"
-VERSION = "1.0_beta5"
+VERSION = "1.2"
 
 def set_options( opt ):
 	opt.tool_options( 'compiler_cxx' )
@@ -205,7 +205,7 @@ def build( bld ):
 	create_app( bld, name='qc-tool', uselib_local = 'gen-tools-optionprocessor gen-tools-lib gen-tools-string gen-tools-exception genfile statfile' )
 	create_app( bld, name='gen-convert', uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception gen-tools-lib genfile' )
 	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception gen-tools-lib genfile' )
-	create_app( bld, name='print-snp-identifying-data', uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception gen-tools-lib genfile' )
+	create_app( bld, name='gen-grep', uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception gen-tools-lib genfile' )
 
 	#---------------------
 	# benchmarks
@@ -224,7 +224,6 @@ def build( bld ):
 	create_test( bld, 'test_log_of_factorial' )
 	create_test( bld, 'test_genrow' )
 	create_test( bld, 'test_genrow_io' )
-	create_test( bld, 'test_genbin_snp_format' )
 	create_test( bld, 'test_row_conditions' )
 	create_test( bld, 'test_wildcard' )
 	# Statistic tests...

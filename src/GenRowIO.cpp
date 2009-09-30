@@ -62,6 +62,7 @@ double read_float( std::istream& aStream ) {
 std::istream& GenRowIdentifyingData::read_from_text_stream( std::istream& aStream ) {
 	aStream >> m_SNPID ;
 	aStream >> m_RSID ;
+	aStream >> m_chromosome ;
 	aStream >> m_SNP_position ;
 	aStream >> m_1st_allele ;
 	return aStream >> m_2nd_allele ;
@@ -106,14 +107,21 @@ std::istream& GenRow::read_from_text_stream( std::istream& inStream ) {
 	return inStream ;
 }
 
-std::ostream& GenRow::write_to_text_stream( std::ostream& aStream ) const {
+std::ostream& GenRowIdentifyingData::write_to_text_stream( std::ostream& aStream ) const {
 	aStream
 		<< SNPID() << " "
 		<< RSID() << " "
+		<< chromosome() << " "
 		<< SNP_position() << " "
 		<< first_allele() << " "
-		<< second_allele() << " " ;
+		<< second_allele() ;
+	return aStream ;
+}
 
+std::ostream& GenRow::write_to_text_stream( std::ostream& aStream ) const {
+	GenRowIdentifyingData::write_to_text_stream( aStream ) ;
+	aStream << " " ;
+	
 	for( std::size_t i = 0 ; i < number_of_samples() ; ++i ) {
 		if( i > 0 ) {
 			aStream << " " ;
@@ -136,6 +144,11 @@ std::istream& operator>>( std::istream& inStream, GenRow& aRow ) {
 	return inStream ;
 }
 
+std::ostream& operator<<( std::ostream& aStream, GenRowIdentifyingData const& aRow ) {
+	aRow.write_to_text_stream( aStream ) ;
+	return aStream ;
+}
+
 std::ostream& operator<<( std::ostream& aStream, GenRow const& aRow ) {
 	aRow.write_to_text_stream( aStream ) ;
 	return aStream ;
@@ -146,6 +159,7 @@ genfile::SNPDataSource& GenRow::read_from_source( genfile::SNPDataSource& snp_da
 		boost::bind< void >( &GenRow::set_number_of_samples, this, _1 ),
 		boost::bind< void >( &GenRow::set_SNPID, this, _1 ),
 		boost::bind< void >( &GenRow::set_RSID, this, _1 ),
+		boost::bind< void >( &GenRow::set_chromosome, this, _1 ),
 		boost::bind< void >( &GenRow::set_SNP_position, this, _1 ),
 		boost::bind< void >( &GenRow::set_allele1, this, _1 ),
 		boost::bind< void >( &GenRow::set_allele2, this, _1 ),
@@ -158,6 +172,7 @@ genfile::SNPDataSink& GenRow::write_to_sink( genfile::SNPDataSink& snp_data_sink
 		number_of_samples(),
 		SNPID(),
 		RSID(),
+		chromosome(),
 		SNP_position(),
 		first_allele(),
 		second_allele(),

@@ -32,7 +32,7 @@ namespace genfile {
 			}
 		}
 		else {
-			return std::auto_ptr< SNPDataSink >( new GenFileSNPDataSink( filename, compression_type )) ;
+			return std::auto_ptr< SNPDataSink >( new GenFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
 		}
 	}
 }

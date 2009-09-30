@@ -20,6 +20,7 @@ namespace genfile {
 			uint32_t number_of_samples,
 			std::string SNPID,
 			std::string RSID,
+			Chromosome chromosome,
 			uint32_t SNP_position,
 			char first_allele,
 			char second_allele,

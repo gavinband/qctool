@@ -752,21 +752,21 @@ private:
 	void move_to_next_output_file( std::size_t index ) {
 		if( index < m_options.gen_filename_mapper().input_files().size() ) {
 			if( m_options.gen_filename_mapper().output_filenames().size() > 0 ) {
-				if( m_options.gen_filename_mapper().index_of_filename_corresponding_to( index ) != m_fltrd_in_snp_data_sink->index_of_current_sink() ) {
+				if( m_options.gen_filename_mapper().filename_corresponding_to( index ) != m_fltrd_in_snp_data_sink->index_of_current_sink() ) {
 					m_fltrd_in_snp_data_sink->move_to_next_sink() ;
 				}
 			}
 			
 			if( m_options.snp_stats_filename_mapper().output_filenames().size() > 0 ) {
-				if( m_options.snp_stats_filename_mapper().index_of_filename_corresponding_to( index ) != m_current_snp_stats_filename_index ) {
+				if( m_options.snp_stats_filename_mapper().filename_corresponding_to( index ) != m_current_snp_stats_filename_index ) {
 					open_snp_stats_sink( ++m_current_snp_stats_filename_index, m_snp_statistics ) ;
 				}
 			}
 			
 			if( m_options.snp_excl_list_filename_mapper().output_filenames().size() > 0 ) {
-				if( m_options.snp_excl_list_filename_mapper().index_of_filename_corresponding_to( index ) != m_fltrd_out_snp_excl_list->index_of_current_sink() ) {
-					m_fltrd_out_snp_excl_list->move_to_next_sink() ;
-				})
+				if( m_options.snp_excl_list_filename_mapper().filename_corresponding_to( index ) != m_fltrd_out_snp_data_sink->index_of_current_sink() ) {
+					m_fltrd_out_snp_data_sink->move_to_next_sink() ;
+				}
 			}
 		}
 	}

@@ -61,6 +61,7 @@ bool SNPInListCondition::file_appears_to_be_plain( std::string const& filename )
 
 void SNPInListCondition::load_from_gen_file( std::string const& filename ) {
 	std::auto_ptr< genfile::SNPDataSource > source = genfile::SNPDataSource::create( filename ) ;
+	genfile::Chromosome chromosome ;
 	uint32_t number_of_samples, SNP_position ;
 	std::string SNPID, RSID ;
 	std::set< std::string > SNP_positions ;
@@ -69,6 +70,7 @@ void SNPInListCondition::load_from_gen_file( std::string const& filename ) {
 			genfile::set_value( number_of_samples ),
 			genfile::set_value( SNPID ),
 			genfile::set_value( RSID ),
+			genfile::set_value( chromosome ),
 			genfile::set_value( SNP_position ),
 			genfile::ignore(),
 			genfile::ignore()

@@ -32,6 +32,7 @@ namespace genfile {
 			uint32_t number_of_samples,
 			std::string SNPID,
 			std::string RSID,
+			Chromosome chromosome,
 			uint32_t SNP_position,
 			char first_allele,
 			char second_allele,
@@ -45,7 +46,7 @@ namespace genfile {
 			else {
 				assert( number_of_samples == m_number_of_samples ) ;
 			}
-			write_snp_impl( number_of_samples, SNPID, RSID, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
+			write_snp_impl( number_of_samples, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
 			if( *this ) {
 				++m_number_of_snps_written ;
 			}
@@ -72,6 +73,7 @@ namespace genfile {
 			uint32_t number_of_samples,
 			std::string SNPID,
 			std::string RSID,
+			Chromosome chromosome,
 			uint32_t SNP_position,
 			char first_allele,
 			char second_allele,

@@ -19,7 +19,7 @@ void SampleRowStatistics::add_to_sample_row( SampleRow& row, std::string const& 
 	if( sample_row_name == "" ) {
 		sample_row_name = statistic_name ;
 	}
-	row.add_column( sample_row_name, '0' ) ;
+	row.add_column( sample_row_name, '3' ) ;
 	row.set_value( sample_row_name, get_value< double >( statistic_name )) ;
 }
 

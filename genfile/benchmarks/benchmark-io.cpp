@@ -79,6 +79,7 @@ struct SnpData {
 	
 	uint32_t number_of_samples ;
 	std::string SNPID, RSID ;
+	genfile::Chromosome chromosome ;
 	uint32_t SNP_position ;
 	char allele1, allele2 ;
 	std::vector< probabilities_t > probabilities ;
@@ -87,6 +88,8 @@ struct SnpData {
 		return number_of_samples == other.number_of_samples
 			&& SNPID == other.SNPID
 			&& RSID == other.RSID
+			&& chromosome == other.chromosome
+			&& SNP_position == other.SNP_position
 			&& allele1 == other.allele1
 			&& allele2 == other.allele2
 			&& probabilities == other.probabilities ;
@@ -104,6 +107,7 @@ double process_gen_file( genfile::SNPDataSource& snp_data_source, std::size_t nu
 		make_setter( snp_data.number_of_samples ),
 		make_setter( snp_data.SNPID ),
 		make_setter( snp_data.RSID ),
+		make_setter( snp_data.chromosome ),
 		make_setter( snp_data.SNP_position ),
 		make_setter( snp_data.allele1 ), 
 		make_setter( snp_data.allele2 ),

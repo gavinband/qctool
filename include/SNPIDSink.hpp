@@ -21,6 +21,7 @@ struct SNPIDSink: public genfile::SNPDataSink
 		uint32_t,
 		std::string SNPID,
 		std::string RSID,
+		genfile::Chromosome chromosome,
 		uint32_t SNP_position,
 		char,
 		char,

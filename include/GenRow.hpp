@@ -11,22 +11,26 @@
 class GenRowIdentifyingData
 {
 public:
+	typedef genfile::Chromosome Chromosome ;
+public:
 	std::string SNPID() const { return m_SNPID ; } 
-	std::string RSID() const { return m_RSID ; } 
+	std::string RSID() const { return m_RSID ; }
+	Chromosome chromosome() const { return m_chromosome ; }
 	int SNP_position() const { return m_SNP_position ; }
 	char first_allele() const { return m_1st_allele; }
 	char second_allele() const { return m_2nd_allele; }
 	
-	// Data accessors, needed for binary gen file support.
+	// Data setters, needed for genfile support.
 	void set_SNPID( std::string const& str ) { m_SNPID = str ; }
 	void set_RSID( std::string const& str ) { m_RSID = str ; }
+	void set_chromosome( Chromosome chromosome ) { m_chromosome = chromosome ; }
 	void set_SNP_position( int pos ) { m_SNP_position = pos ; }
 	void set_allele1( char a ) { m_1st_allele = a ; }
 	void set_allele2( char b ) { m_2nd_allele = b ; }
 
 	bool operator==( GenRowIdentifyingData const& right ) const ;
 
-protected:
+public:
 	
 	std::ostream& write_to_text_stream( std::ostream& ) const ;
 	std::istream& read_from_text_stream( std::istream& ) ;
@@ -35,9 +39,12 @@ private:
 	// Data fields
 	std::string m_SNPID ;
 	std::string m_RSID ;
+	Chromosome m_chromosome ;
 	int m_SNP_position ;
 	char m_1st_allele, m_2nd_allele ;
 } ;
+
+std::ostream& operator<<( std::ostream&, GenRowIdentifyingData const& ) ;
 
 class GenRow: public GenRowIdentifyingData
 {

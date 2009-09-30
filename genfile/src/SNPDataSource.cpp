@@ -8,16 +8,16 @@
 #include "SNPDataSourceChain.hpp"
 
 namespace genfile {
-	std::auto_ptr< SNPDataSource > SNPDataSource::create( std::string const& filename ) {
-		return SNPDataSource::create( filename, get_compression_type_indicated_by_filename( filename )) ;
+	std::auto_ptr< SNPDataSource > SNPDataSource::create( std::string const& filename, Chromosome chromosome_hint ) {
+		return SNPDataSource::create( filename, chromosome_hint, get_compression_type_indicated_by_filename( filename )) ;
 	}
 
-	std::auto_ptr< SNPDataSource > SNPDataSource::create( std::string const& filename, CompressionType compression_type ) {
+	std::auto_ptr< SNPDataSource > SNPDataSource::create( std::string const& filename, Chromosome chromosome_hint, CompressionType compression_type ) {
 		if( filename_indicates_bgen_format( filename )) {
 			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( filename, compression_type )) ;
 		}
 		else {
-			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( filename, compression_type )) ;
+			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( filename, chromosome_hint, compression_type )) ;
 		}
 	}
 
@@ -39,6 +39,7 @@ namespace genfile {
 		IntegerSetter set_number_of_samples,
 		StringSetter set_SNPID,
 		StringSetter set_RSID,
+		ChromosomeSetter set_chromosome,
 		SNPPositionSetter set_SNP_position,
 		AlleleSetter set_allele1,
 		AlleleSetter set_allele2,
@@ -46,7 +47,7 @@ namespace genfile {
 	)
 	{
 		uint32_t number_of_samples ;
-		get_snp_identifying_data( set_value( number_of_samples ), set_SNPID, set_RSID, set_SNP_position, set_allele1, set_allele2 ) ;
+		get_snp_identifying_data( set_value( number_of_samples ), set_SNPID, set_RSID, set_chromosome, set_SNP_position, set_allele1, set_allele2 ) ;
 		if( *this ) {
 			read_snp_probability_data( &number_of_samples, set_genotype_probabilities ) ;
 			set_number_of_samples( number_of_samples ) ;
@@ -58,20 +59,25 @@ namespace genfile {
 		IntegerSetter const& set_number_of_samples,
 		StringSetter const& set_SNPID,
 		StringSetter const& set_RSID,
+		ChromosomeSetter const& set_chromosome,
 		SNPPositionSetter const& set_SNP_position,
 		AlleleSetter const& set_allele1,
 		AlleleSetter const& set_allele2,
 		GenotypeProbabilitySetter const& set_genotype_probabilities,
+		Chromosome specified_chromosome,
 		uint32_t specified_SNP_position
 	) {
 		return read_next_snp_with_position_in_range(
 			set_number_of_samples,
 			set_SNPID,
 			set_RSID,
+			set_chromosome,
 			set_SNP_position,
 			set_allele1,
 			set_allele2,
 			set_genotype_probabilities,
+			specified_chromosome,
+			specified_chromosome,
 			specified_SNP_position,
 			specified_SNP_position
 		) ;
@@ -81,33 +87,39 @@ namespace genfile {
 		IntegerSetter const& set_number_of_samples,
 		StringSetter const& set_SNPID,
 		StringSetter const& set_RSID,
+		ChromosomeSetter const& set_chromosome,
 		SNPPositionSetter const& set_SNP_position,
 		AlleleSetter const& set_allele1,
 		AlleleSetter const& set_allele2,
 		GenotypeProbabilitySetter const& set_genotype_probabilities,
+		Chromosome chromosome_lower_bound,
+		Chromosome chromosome_upper_bound,
 		uint32_t position_lower_bound,
 		uint32_t position_upper_bound
 	) {
+		assert( chromosome_lower_bound <= chromosome_upper_bound ) ;
 		assert( position_lower_bound <= position_upper_bound ) ;
 
 		uint32_t number_of_samples ;
 		std::string SNPID, RSID ;
+		unsigned char chromosome ;
 		uint32_t SNP_position ;
 		char first_allele, second_allele ;
 
 		while( *this )  {
-			get_snp_identifying_data( set_value( number_of_samples ), set_value( SNPID ), set_value( RSID ), set_value( SNP_position ), set_value( first_allele ), set_value( second_allele ) ) ;
+			get_snp_identifying_data( set_value( number_of_samples ), set_value( SNPID ), set_value( RSID ), set_value( chromosome ), set_value( SNP_position ), set_value( first_allele ), set_value( second_allele ) ) ;
 
 			if( *this ) {
-				if( SNP_position < position_lower_bound ) {
+				if( chromosome < chromosome_lower_bound || ((chromosome <= chromosome_upper_bound) && (SNP_position < position_lower_bound ))) {
 					ignore_snp_probability_data() ;
 				}
-				else if( SNP_position > position_upper_bound ) {
+				else if( chromosome > chromosome_upper_bound || SNP_position > position_upper_bound ) {
 					return false ;
 				}
 				else {
 					set_SNPID( SNPID ) ;
 					set_RSID( RSID ) ;
+					set_chromosome( Chromosome( chromosome )) ;
 					set_SNP_position( SNP_position ) ;
 					set_allele1( first_allele ) ;
 					set_allele2( second_allele ) ;
@@ -126,6 +138,7 @@ namespace genfile {
 		IntegerSetter const& set_number_of_samples,
 		StringSetter const& set_SNPID,
 		StringSetter const& set_RSID,
+		ChromosomeSetter const& set_chromosome,
 		SNPPositionSetter const& set_SNP_position,
 		AlleleSetter const& set_allele1,
 		AlleleSetter const& set_allele2
@@ -134,6 +147,7 @@ namespace genfile {
 			set_number_of_samples,
 			set_SNPID,
 			set_RSID,
+			set_chromosome,
 			set_SNP_position,
 			set_allele1,
 			set_allele2
@@ -171,6 +185,7 @@ namespace genfile {
 		IntegerSetter const& set_number_of_samples,
 		StringSetter const& set_SNPID,
 		StringSetter const& set_RSID,
+		ChromosomeSetter const& set_chromosome,
 		SNPPositionSetter const& set_SNP_position,
 		AlleleSetter const& set_allele1,
 		AlleleSetter const& set_allele2
@@ -180,6 +195,7 @@ namespace genfile {
 				&m_cached_number_of_samples,
 				&m_cached_SNPID,
 				&m_cached_RSID,
+				&m_cached_chromosome,
 				&m_cached_SNP_position,
 				&m_cached_allele1,
 				&m_cached_allele2
@@ -189,6 +205,7 @@ namespace genfile {
 		set_number_of_samples( m_cached_number_of_samples ) ;
 		set_SNPID( m_cached_SNPID ) ;
 		set_RSID( m_cached_RSID ) ;
+		set_chromosome( m_cached_chromosome ) ;
 		set_SNP_position( m_cached_SNP_position ) ;
 		set_allele1( m_cached_allele1 ) ;
 		set_allele2( m_cached_allele2 ) ;

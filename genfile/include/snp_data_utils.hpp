@@ -3,15 +3,92 @@
 
 #define GENFILE_USE_FAST_PARSE_METHODS 1
 
+#include <iostream>
 #include <cassert>
 #include <string>
 #include <memory>
 
 namespace genfile {
 	
-	struct SNPDataBase {
-		 enum FormatType { e_GenFormat = 0, e_BGenFormat = 1, e_BGenCompressedFormat = 2 } ;
+	enum ChromosomeEnum {
+		Chromosome1 = 1,
+		Chromosome2,
+		Chromosome3,
+		Chromosome4,
+		Chromosome5,
+		Chromosome6,
+		Chromosome7,
+		Chromosome8,
+		Chromosome9,
+		Chromosome10,
+		Chromosome11,
+		Chromosome12,
+		Chromosome13,
+		Chromosome14,
+		Chromosome15,
+		Chromosome16,
+		Chromosome17,
+		Chromosome18,
+		Chromosome19,
+		Chromosome20,
+		Chromosome21,
+		Chromosome22,
+		XYPseudoAutosomalDNA = 253,
+		MitochondrialDNA = 254,
+		UnidentifiedChromosome = 255,
 	} ;
+	
+	struct Chromosome
+	{
+		Chromosome()
+			: m_chromosome_e( UnidentifiedChromosome )
+		{}
+
+		Chromosome( ChromosomeEnum chromosome_e )
+			: m_chromosome_e( chromosome_e )
+		{}
+
+		Chromosome( unsigned char c )
+			: m_chromosome_e( ChromosomeEnum( c ) )
+		{}
+
+		Chromosome( std::string const& chromosome_str ) ;
+		
+		Chromosome& operator=( ChromosomeEnum chromosome_e ) {
+			m_chromosome_e = chromosome_e ;
+			return *this ;
+		}
+		
+		bool operator==( Chromosome other ) {
+			return m_chromosome_e == other.m_chromosome_e ;
+		}
+		
+		bool operator<=( Chromosome other ) {
+			return m_chromosome_e <= other.m_chromosome_e ;
+		}
+
+		bool operator>=( Chromosome other ) {
+			return m_chromosome_e >= other.m_chromosome_e ;
+		}
+
+		bool operator<( Chromosome other ) {
+			return m_chromosome_e < other.m_chromosome_e ;
+		}
+
+		bool operator>( Chromosome other ) {
+			return m_chromosome_e > other.m_chromosome_e ;
+		}
+		
+		operator ChromosomeEnum() const { return m_chromosome_e ; }
+
+	private:
+		ChromosomeEnum m_chromosome_e ;
+	} ;
+	
+	std::ostream& operator<<( std::ostream&, Chromosome const& ) ;
+	std::istream& operator>>( std::istream&, Chromosome& ) ;
+	
+	struct SNPDataBase {} ;
 	
 	struct Ignorer
 	{
@@ -27,7 +104,8 @@ namespace genfile {
 	struct ValueSetter
 	{
 		ValueSetter( T& t ): m_t(t) {}
-		void operator()( T const& t ) { m_t = t ; }
+		template< typename T2 >
+		void operator()( T2 const& t ) { m_t = T(t) ; }
 	private:
 		T& m_t ;
 	} ;
@@ -41,8 +119,17 @@ namespace genfile {
 	private:
 		std::string& m_t ;
 	} ;
-
-
+/*
+	template<>
+	struct ValueSetter< Chromosome >
+	{
+		ValueSetter< Chromosome >( Chromosome& t ): m_t(t) {}
+		void operator()( unsigned char c ) { m_t = Chromosome( c ) ; }
+		template< typename T2 > void operator()( T2 const& t ) { m_t = t ; }
+	private:
+		Chromosome& m_t ;
+	} ;
+*/
 	template< typename T > ValueSetter< T > set_value( T& t ) {
 		return ValueSetter< T >( t ) ;
 	}
@@ -53,6 +140,7 @@ namespace genfile {
 	bool filename_indicates_bgen_format( std::string const& filename ) ;
 	bool filename_indicates_gen_or_bgen_format( std::string const& filename ) ;
 	CompressionType get_compression_type_indicated_by_filename( std::string const& filename ) ;
+	Chromosome get_chromosome_indicated_by_filename( std::string const& filename ) ;
 
 	std::string get_gen_file_extension_if_present( std::string const& filename ) ;
 	std::string strip_gen_file_extension_if_present( std::string const& filename ) ;
@@ -69,6 +157,38 @@ namespace genfile {
 	struct FormatUnsupportedError: public SNPDataError { char const* what() const throw() { return "FormatUnsupportedError" ; } } ;
 	struct FileStructureInvalidError: public SNPDataError { char const* what() const throw() { return "FileStructureInvalidError" ; } } ;
 	struct FileHasTwoConsecutiveNewlinesError: public SNPDataError { char const* what() const throw() { return "FileHasTwoConsecutiveNewlinesError" ; } } ;
+	struct ChromosomeNotRecognisedError: public SNPDataError
+	{
+		ChromosomeNotRecognisedError( std::string const& input )
+			: m_input( input )
+		{}
+		
+		virtual ~ChromosomeNotRecognisedError() throw() {} ;
+		
+		char const* what() const throw() { return "ChromosomeNotRecognisedError" ; }
+		
+		std::string const& input() const { return m_input ; }
+	private:
+		
+		std::string m_input ;
+	} ;
+	
+	struct ChromosomeMismatchError: public SNPDataError
+	{
+		ChromosomeMismatchError( Chromosome expected, Chromosome got )
+			: m_expected( expected ),
+			m_got( got )
+		{}
+		
+		virtual ~ChromosomeMismatchError() throw() {}
+		char const* what() const throw() { return "ChromosomeMismatchError" ; }
+
+		Chromosome const& expected() const { return m_expected ; }
+		Chromosome const& got() const { return m_got ; }
+	private:
+		Chromosome m_expected, m_got ;
+	} ;
+
 }
 
 #endif

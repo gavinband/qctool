@@ -1,13 +1,14 @@
 #include <limits>
 
 #include "SNPDataSource.hpp"
+#include "SNPDataSourceChain.hpp"
 #include "CmdLineOptionProcessor.hpp"
 #include "ProgramFlow.hpp"
 #include "PositionRange.hpp"
 #include "wildcard.hpp"
 
 namespace globals {
-	std::string program_name = "print-snp-identifying-data" ;
+	std::string program_name = "gen-grep" ;
 }
 
 struct IDDataPrinterOptionProcessor: public CmdLineOptionProcessor
@@ -52,7 +53,7 @@ struct IDDataPrinterContext
 	IDDataPrinterContext( int argc, char** argv ) {
 		write_start_banner() ;
 		m_options.process( argc, argv ) ;
-		m_snp_data_source = genfile::SNPDataSource::create( wildcard::find_files_matching_paths_with_integer_wildcard( m_options.gen_filenames() )) ;
+		construct_snp_data_source() ;
 		write_preamble() ;
 	}
 
@@ -79,6 +80,15 @@ private:
 		
 	}
 
+	void construct_snp_data_source() {
+		std::auto_ptr< genfile::SNPDataSourceChain > chain( new genfile::SNPDataSourceChain ) ;
+		std::vector< wildcard::FilenameMatch > matches = wildcard::find_matches_for_paths_with_integer_wildcard( m_options.gen_filenames() ) ;
+		for( std::size_t i = 0; i < matches.size(); ++i ) {
+			chain->add_source( genfile::SNPDataSource::create( matches[i].filename(), matches[i].match() )) ;
+		}
+		m_snp_data_source.reset( chain.release() ) ;
+	}
+	
 private:
 	IDDataPrinterOptionProcessor m_options ;
 	std::auto_ptr< genfile::SNPDataSource > m_snp_data_source ;
@@ -92,18 +102,20 @@ struct IDDataPrinter
 
 	void process() {
 		std::string SNPID, RSID ;
+		genfile::Chromosome chromosome ;
 		uint32_t number_of_samples, SNP_position ;
 		char allele1, allele2 ;
 		while( m_context.snp_data_source().get_snp_identifying_data(
 		 	genfile::set_value( number_of_samples ),
 			genfile::set_value( SNPID ),
 			genfile::set_value( RSID ),
+			genfile::set_value( chromosome ),
 			genfile::set_value( SNP_position ),
 			genfile::set_value( allele1 ),
 			genfile::set_value( allele2 )
 		)) {
 			if( m_context.position_range().contains( SNP_position )) {
-				std::cout << std::setw(16) << SNPID << " " << std::setw( 16 ) << RSID << " " << SNP_position << " " << allele1 << " " << allele2 << "\n" ;
+				std::cout << std::setw(16) << std::left << SNPID << " " << std::setw( 16 ) << std::left << RSID << " " << std::setw(4) << std::left << chromosome << " "<< SNP_position << " " << allele1 << " " << allele2 << "\n" ;
 			}
 			m_context.snp_data_source().ignore_snp_probability_data() ;
 		}

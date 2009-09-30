@@ -38,11 +38,14 @@ namespace genfile {
 			uint32_t* number_of_samples,
 			std::string* SNPID,
 			std::string* RSID,
+			Chromosome* chromosome,
 			uint32_t* SNP_position,
 			char* allele1,
 			char* allele2
 		) {
-			bgen::impl::read_snp_identifying_data( stream(), number_of_samples, SNPID, RSID, SNP_position, allele1, allele2 ) ;
+			unsigned char chr ;
+			bgen::impl::read_snp_identifying_data( stream(), number_of_samples, SNPID, RSID, &chr, SNP_position, allele1, allele2 ) ;
+			*chromosome = Chromosome( chr ) ;
 		}
 
 		void read_snp_probability_data_impl(

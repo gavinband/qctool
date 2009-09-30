@@ -10,6 +10,7 @@ namespace genfile {
                 uint32_t* number_of_samples,
                 std::string* SNPID,
                 std::string* RSID,
+				unsigned char* chromosome,
                 uint32_t* SNP_position,
                 char* first_allele,
                 char* second_allele
@@ -29,6 +30,7 @@ namespace genfile {
                 assert( RSID_size <= max_id_size ) ;
                 aStream.ignore( max_id_size - RSID_size ) ;
 
+				impl::read_little_endian_integer( aStream, chromosome ) ;
                 impl::read_little_endian_integer( aStream, SNP_position ) ;
 
                 *first_allele = aStream.get() ;
@@ -41,6 +43,7 @@ namespace genfile {
                 unsigned char max_id_size,
                 std::string SNPID,
                 std::string RSID,
+				unsigned char chromosome,
                 uint32_t SNP_position,
                 char first_allele,
                 char second_allele
@@ -58,6 +61,7 @@ namespace genfile {
                 aStream.write( SNPID.data() + SNPID_size, max_id_size - SNPID_size ) ;
                 write_length_followed_by_data( aStream, RSID_size, RSID.data() ) ;
                 aStream.write( RSID.data() + RSID_size, max_id_size - RSID_size ) ;
+				write_little_endian_integer( aStream, chromosome ) ;
                 write_little_endian_integer( aStream, SNP_position ) ;
                 aStream.put( first_allele ) ;
                 aStream.put( second_allele ) ;

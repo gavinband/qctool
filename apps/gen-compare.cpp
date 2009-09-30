@@ -112,10 +112,10 @@ private:
 
 	void get_required_filenames() {
 		std::string case_filename, control_filename ;
-		control_filename = m_options.get_value< std::string >( "-g1" ) ;
-		expand_and_add_filename( &m_control_gen_filenames, control_filename ) ;
-		case_filename = m_options.get_value< std::string >( "-g2" ) ;
+		case_filename = m_options.get_value< std::string >( "-g1" ) ;
 		expand_and_add_filename( &m_case_gen_filenames, case_filename ) ;
+		control_filename = m_options.get_value< std::string >( "-g2" ) ;
+		expand_and_add_filename( &m_control_gen_filenames, control_filename ) ;
 	}
 
 	void expand_and_add_filename( GenFileList* filename_list_ptr, std::string const& filename ) {
@@ -153,14 +153,14 @@ private:
 			i = filenames.begin(),
 			end_i = filenames.end() ;
 		for( ; i != end_i ; ++i ) {
-			add_gen_file_to_chain( *chain, i->filename() ) ;
+			add_gen_file_to_chain( *chain, *i ) ;
 		}
 	}
 
-	void add_gen_file_to_chain( genfile::SNPDataSourceChain& chain, std::string const& filename ) {
+	void add_gen_file_to_chain( genfile::SNPDataSourceChain& chain, wildcard::FilenameMatch const& match ) {
 		Timer timer ;
-		m_cout << "(Opening gen file \"" << filename << "\"...)" << std::flush ;
-		std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( filename )) ;
+		m_cout << "(Opening gen file \"" << match.filename() << "\"...)" << std::flush ;
+		std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( match.filename(), match.match() )) ;
 		chain.add_source( snp_data_source ) ;
 		m_cout << " (" << timer.elapsed() << "s)\n" ;
 	}
@@ -228,7 +228,7 @@ private:
 		bool these_ones_matched = true ;
 		while( read_snp( *m_case_gen_input_chain, case_row )) {
 			std::size_t number_of_matching_snps = 0 ;
-			while( read_next_snp_with_specified_position( *m_control_gen_input_chain, control_row, case_row.SNP_position())) {
+			while( read_next_snp_with_specified_position( *m_control_gen_input_chain, control_row, case_row.chromosome(), case_row.SNP_position())) {
 				++number_of_matching_snps ;
 				++number_of_control_snps_matched ;
 				// I think we'd expect all the SNP identifying data to be the same for the two snps.
@@ -252,10 +252,8 @@ private:
 				}
 			}
 			if( number_of_matching_snps != 1 ) {
-				m_cout << "\nA strange number (" << number_of_matching_snps << ") of control snps matched the case snp "
-					<< case_row.SNPID() << " "
-					<< case_row.RSID() << " "
-					<< case_row.SNP_position()
+				m_cout << "\nA strange number (" << number_of_matching_snps << ") of 2nd-file snps matched the 1st-file snp: "
+					<< static_cast< GenRowIdentifyingData >( case_row )
 					<< ".\n" ;
 			}
 		}
@@ -275,20 +273,23 @@ private:
 			m_cout << "\nRows differ!\n" ;
 			matched = false ;
 		}
+		if( case_row.chromosome() != control_row.chromosome() ) {
+			m_cout << "Matching rows with position " << case_row.SNP_position() << " have differing chromosomes (" << case_row.chromosome() << " and " << control_row.chromosome() << ").\n" ;
+		}
 		if( case_row.SNPID() != control_row.SNPID() ) {
-			m_cout << "\nMatching rows have differing SNPIDs " << case_row.SNPID() << " and " << control_row.SNPID() << ".\n" ;
+			m_cout << "Matching rows with position " << case_row.SNP_position() << " have differing SNPIDs (" << case_row.SNPID() << " and " << control_row.SNPID() << ").\n" ;
 			matched = false ;
 		}
 		if( case_row.RSID() != control_row.RSID() ) {
-			m_cout << "\nMatching rows have differing RSIDs " << case_row.RSID() << " and " << control_row.RSID() << ".\n" ;
+			m_cout << "Matching rows with position " << case_row.SNP_position() << " have differing RSIDs (" << case_row.RSID() << " and " << control_row.RSID() << ").\n" ;
 			matched = false ;
 		}
 		if( case_row.SNP_position() != control_row.SNP_position() ) {
-			m_cout << "\nMatching rows have different positions " << case_row.SNP_position() << " and " << control_row.SNP_position() << ".\n" ;
+			m_cout << "Matching rows with position " << case_row.SNP_position() << " have differing positions (" << case_row.SNP_position() << " and " << control_row.SNP_position() << ").\n" ;
 			matched = false ;
 		}
 		if( case_row.first_allele() != control_row.first_allele() || case_row.second_allele() != control_row.second_allele() ) {
-			m_cout 	<< "\nMatching rows have differing alleles "
+			m_cout << "Matching rows with position " << case_row.SNP_position() << " have differing alleles "
 					<< case_row.first_allele() << " " << case_row.second_allele()
 					<< " and " << control_row.first_allele() << " " << control_row.second_allele() << ".\n" ;
 				matched = false ;
@@ -335,6 +336,7 @@ private:
 			boost::bind< void >( &GenRow::set_number_of_samples, &row, _1 ),
 			boost::bind< void >( &GenRow::set_SNPID, &row, _1 ),
 			boost::bind< void >( &GenRow::set_RSID, &row, _1 ),
+			boost::bind< void >( &GenRow::set_chromosome, &row, _1 ),
 			boost::bind< void >( &GenRow::set_SNP_position, &row, _1 ),
 			boost::bind< void >( &GenRow::set_allele1, &row, _1 ),
 			boost::bind< void >( &GenRow::set_allele2, &row, _1 ),
@@ -342,15 +344,17 @@ private:
 		) ;
 	}
 
-	bool read_next_snp_with_specified_position( genfile::SNPDataSource& snp_data_source, GenRow& row, uint32_t specified_SNP_position ) {
+	bool read_next_snp_with_specified_position( genfile::SNPDataSource& snp_data_source, GenRow& row, genfile::Chromosome chromosome, uint32_t specified_SNP_position ) {
 		return snp_data_source.read_next_snp_with_specified_position(
 			boost::bind< void >( &GenRow::set_number_of_samples, &row, _1 ),
 			boost::bind< void >( &GenRow::set_SNPID, &row, _1 ),
 			boost::bind< void >( &GenRow::set_RSID, &row, _1 ),
+			boost::bind< void >( &GenRow::set_chromosome, &row, _1 ),
 			boost::bind< void >( &GenRow::set_SNP_position, &row, _1 ),
 			boost::bind< void >( &GenRow::set_allele1, &row, _1 ),
 			boost::bind< void >( &GenRow::set_allele2, &row, _1 ),
 			boost::bind< void >( &GenRow::set_genotype_probabilities, &row, _1, _2, _3, _4 ),
+			chromosome,
 			specified_SNP_position 
 		) ;
 	}

@@ -27,8 +27,8 @@ namespace genfile {
 
 	public:
 		// The following methods are factory functions
-		static std::auto_ptr< SNPDataSource > create( std::string const& filename ) ;
-		static std::auto_ptr< SNPDataSource > create( std::string const& filename, CompressionType compression_type ) ;
+		static std::auto_ptr< SNPDataSource > create( std::string const& filename, Chromosome = UnidentifiedChromosome ) ;
+		static std::auto_ptr< SNPDataSource > create( std::string const& filename, Chromosome, CompressionType compression_type ) ;
 		static std::auto_ptr< SNPDataSource > create( std::vector< std::string > const& filenames ) ;
 
 
@@ -40,6 +40,7 @@ namespace genfile {
 		typedef boost::function< void ( std::string const& ) > StringSetter ;
 		typedef boost::function< void ( char ) > AlleleSetter ;
 		typedef boost::function< void ( uint32_t ) > SNPPositionSetter ;
+		typedef boost::function< void ( Chromosome ) > ChromosomeSetter ;
 		typedef boost::function< void ( std::size_t, double, double, double ) > GenotypeProbabilitySetter ;
 		
 		// Function: read_snp()
@@ -50,6 +51,7 @@ namespace genfile {
 			IntegerSetter set_number_of_samples,
 			StringSetter set_SNPID,
 			StringSetter set_RSID,
+			ChromosomeSetter set_chromosome,
 			SNPPositionSetter set_SNP_position,
 			AlleleSetter set_allele1,
 			AlleleSetter set_allele2,
@@ -58,18 +60,21 @@ namespace genfile {
 
 		// Function: read_next_snp_with_position_in_range()
 		// Move forwards through the source until either
-		// 1. a snp with a position in the given range is found;
-		// 2. a snp with position greater than the upper bound is found; or
+		// 1. a snp with a chromosome/position in the given range is found;
+		// 2. a snp with chromosome/position greater than the upper bound is found; or
 		// 3. the source is exhausted
 		// In case 1., read the snp data and return true; otherwise return false.
 		bool read_next_snp_with_position_in_range(
 			IntegerSetter const& set_number_of_samples,
 			StringSetter const& set_SNPID,
 			StringSetter const& set_RSID,
+			ChromosomeSetter const& set_chromosome,
 			SNPPositionSetter const& set_SNP_position,
 			AlleleSetter const& set_allele1,
 			AlleleSetter const& set_allele2,
 			GenotypeProbabilitySetter const& set_genotype_probabilities,
+			Chromosome chromosome_lower_bound,
+			Chromosome chromosome_upper_bound,
 			uint32_t position_lower_bound,
 			uint32_t position_upper_bound
 		) ;
@@ -84,10 +89,12 @@ namespace genfile {
 			IntegerSetter const& set_number_of_samples,
 			StringSetter const& set_SNPID,
 			StringSetter const& set_RSID,
+			ChromosomeSetter const& set_chromosome,
 			SNPPositionSetter const& set_SNP_position,
 			AlleleSetter const& set_allele1,
 			AlleleSetter const& set_allele2,
 			GenotypeProbabilitySetter const& set_genotype_probabilities,
+			Chromosome specified_chromosome,
 			uint32_t specified_SNP_position
 		) ;
 		
@@ -99,6 +106,7 @@ namespace genfile {
 			IntegerSetter const& set_number_of_samples,
 			StringSetter const& set_SNPID,
 			StringSetter const& set_RSID,
+			ChromosomeSetter const& set_chromosome,
 			SNPPositionSetter const& set_SNP_position,
 			AlleleSetter const& set_allele1,
 			AlleleSetter const& set_allele2
@@ -138,6 +146,7 @@ namespace genfile {
 			IntegerSetter const& set_number_of_samples,
 			StringSetter const& set_SNPID,
 			StringSetter const& set_RSID,
+			ChromosomeSetter const& set_chromosome,
 			SNPPositionSetter const& set_SNP_position,
 			AlleleSetter const& set_allele1,
 			AlleleSetter const& set_allele2
@@ -170,6 +179,7 @@ namespace genfile {
 			uint32_t* number_of_samples,
 			std::string* SNPID,
 			std::string* RSID,
+			Chromosome* chromosome,
 			uint32_t* SNP_position,
 			char* allele1,
 			char* allele2
@@ -179,6 +189,7 @@ namespace genfile {
 			IntegerSetter const& set_number_of_samples,
 			StringSetter const& set_SNPID,
 			StringSetter const& set_RSID,
+			ChromosomeSetter const& set_chromosome,
 			SNPPositionSetter const& set_SNP_position,
 			AlleleSetter const& set_allele1,
 			AlleleSetter const& set_allele2
@@ -186,6 +197,7 @@ namespace genfile {
 
 	private:
 		bool m_have_cached_identifying_data ;
+		Chromosome m_cached_chromosome ;
 		uint32_t m_cached_number_of_samples, m_cached_SNP_position ;
 		std::string m_cached_SNPID, m_cached_RSID ;
 		char m_cached_allele1, m_cached_allele2 ;

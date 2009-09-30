@@ -13,14 +13,16 @@ namespace genfile {
 	class GenFileSNPDataSource: public IdentifyingDataCachingSNPDataSource
 	{
 	public:
-		GenFileSNPDataSource( std::string const& filename )
-			: m_filename( filename )
+		GenFileSNPDataSource( std::string const& filename, Chromosome chromosome )
+			: m_filename( filename ),
+			  m_chromosome( chromosome )
 		{
 			setup( filename, get_compression_type_indicated_by_filename( filename )) ;
 		}
 
-		GenFileSNPDataSource( std::string const& filename, CompressionType compression_type )
-			: m_filename( filename )
+		GenFileSNPDataSource( std::string const& filename, Chromosome chromosome, CompressionType compression_type )
+			: m_filename( filename ),
+			  m_chromosome( chromosome )
 		{
 			setup( filename, compression_type ) ;
 		}
@@ -32,16 +34,20 @@ namespace genfile {
 		std::istream& stream() { return *m_stream_ptr ; }
 		std::istream const& stream() const { return *m_stream_ptr ; }
 
+		Chromosome chromosome() const { return m_chromosome ; }
+
 	private:
 		void read_snp_identifying_data_impl( 
 			uint32_t*, // number_of_samples is unused.
 			std::string* SNPID,
 			std::string* RSID,
+			Chromosome* chromosome,
 			uint32_t* SNP_position,
 			char* allele1,
 			char* allele2
 		) {
 			gen::impl::read_snp_identifying_data( stream(), SNPID, RSID, SNP_position, allele1, allele2 ) ;
+			*chromosome = m_chromosome ;
 		}
 
 		void read_snp_probability_data_impl(
@@ -60,6 +66,7 @@ namespace genfile {
 		std::string m_filename ;
 		unsigned int m_number_of_samples, m_total_number_of_snps ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
+		Chromosome m_chromosome ;
 
 		void setup( std::string const& filename, CompressionType compression_type ) {
 			m_stream_ptr = open_text_file_for_input( filename, compression_type ) ;

@@ -16,6 +16,7 @@ bool GenRowIdentifyingData::operator==( GenRowIdentifyingData const& right ) con
 	return (
 		( m_SNPID == right.m_SNPID )
 		&& ( m_RSID == right.m_RSID )
+		&& ( m_chromosome == right.m_chromosome )
 		&& ( m_SNP_position == right.m_SNP_position )
 		&& ( m_1st_allele == right.m_1st_allele )
 		&& ( m_2nd_allele == right.m_2nd_allele )
