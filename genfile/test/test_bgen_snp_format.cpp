@@ -195,8 +195,8 @@ void do_snp_block_write_test(
 		b
 		) ;
 	
-	std::cout << "\"" << data::to_hex( outStream.str() ) << "\"\n" ;
-	std::cout << "\"" << data::to_hex( expected ) << "\"\n" ;
+	// std::cout << "\"" << data::to_hex( outStream.str() ) << "\"\n" ;
+	// std::cout << "\"" << data::to_hex( expected ) << "\"\n" ;
 
 	TEST_ASSERT( outStream.str() == expected ) ;
 }
