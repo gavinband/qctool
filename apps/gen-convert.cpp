@@ -87,7 +87,7 @@ public:
 		options [ "-force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
 			
-		options [ "-chr" ]
+		options [ "-chromosome" ]
 			.set_description( "Override the chromosomal values inferred from the input file(s).")
 			.set_takes_single_value() ;
 	}
