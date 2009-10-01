@@ -32,7 +32,20 @@ struct HeterozygosityStatistic: public GenotypeAssayStatistic
 	double calculate_value( GenotypeAssayStatistics const& statistics ) const ;
 } ;
 
+struct AAStatistic: public GenotypeAssayStatistic
+{
+	double calculate_value( GenotypeAssayStatistics const& statistics ) const ;
+} ;
 
+struct ABStatistic: public GenotypeAssayStatistic
+{
+	double calculate_value( GenotypeAssayStatistics const& statistics ) const ;
+} ;
+
+struct BBStatistic: public GenotypeAssayStatistic
+{
+	double calculate_value( GenotypeAssayStatistics const& statistics ) const ;
+} ;
 
 #endif
 

@@ -125,7 +125,7 @@ public:
 	 						"By default, the columns are: "
 							"SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing, and information" )
 			.set_takes_single_value()
-			.set_default_value( "SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing, information" ) ;
+			.set_default_value( "SNPID, RSID, position, minor_allele, major_allele, AA, AB, BB, MAF, HWE, missing, information" ) ;
 
 	    options[ "-sample-stats" ]
 			.set_description( "Calculate and output sample-wise statistics." ) ;
@@ -155,30 +155,10 @@ public:
 		options[ "-maf" ]
 			.set_description( "Filter out SNPs whose minor allele frequency lies outside the interval [a,b]." )
 			.set_number_of_values_per_use( 2 ) ;
-		options[ "-snp-incl-list" ]
-			.set_description( "Filter out SNPs whose SNP ID or RSID does not lie in the given file(s).")
-			.set_takes_values() 
-			.set_number_of_values_per_use( 1 )
-			.set_maximum_number_of_repeats( 100 ) ;
-		options[ "-snp-excl-list" ]
-			.set_description( "Filter out SNPs whose SNP ID or RSID lies in the given file(s).")
-			.set_takes_values() 
-			.set_number_of_values_per_use( 1 )
-			.set_maximum_number_of_repeats( 100 ) ;
 		options[ "-snpid-filter" ]
 			.set_description( "Filter out snps whose SNPID doesn't match the given argument.  "
 						"The argument must be a string, optionally containing a wildcard character ('*')"
 						" which matches any sequence of characters.")
-			.set_takes_single_value() ;
-		options [ "-write-snp-excl-list" ]
-			.set_description( "Don't apply the filter; instead, write files containing the positions of SNPs that would be filtered out."
-			"  These files are suitable for use as the input to -snp-incl-list option on a subsequent run." ) ;
-		options [ "-write-snp-excl-list-file" ]
-	        .set_description( 	"Override the auto-generated path(s) of the file to use when outputting the positions of filtered out SNPs.  "
-								"(By default, the paths are formed by adding \".excl-list\" to the input gen filename(s).)  "
-								"If used, this option must appear as many times as the -g option.  "
-	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
-								"also be used here to specify numbered output files corresponding to the input files." )
 			.set_takes_single_value() ;
 
 		// Sample filtering options
@@ -189,6 +169,9 @@ public:
 		options[ "-heterozygosity" ]
 			.set_description( "Filter out samples with heterozygosity outside the inteval [a,b]." )
 			.set_number_of_values_per_use( 2 ) ;
+
+		// Inclusion / exclusion list options
+		options.declare_group( "Inclusion / exclusion list options" ) ;
 		options[ "-sample-incl-list"]
 			.set_description( "Filter out samples whose sample ID does not lie in the given file.")
 			.set_takes_single_value() ;
@@ -201,8 +184,30 @@ public:
 		options[ "-write-sample-excl-list-file" ]
 			.set_description( "Override default name of the file to use in -write-sample-excl-list" )
 			.set_takes_single_value() ;
+		options[ "-snp-incl-list" ]
+			.set_description( "Filter out SNPs whose SNP ID or RSID does not lie in the given file(s).")
+			.set_takes_values() 
+			.set_number_of_values_per_use( 1 )
+			.set_maximum_number_of_repeats( 100 ) ;
+		options[ "-snp-excl-list" ]
+			.set_description( "Filter out SNPs whose SNP ID or RSID lies in the given file(s).")
+			.set_takes_values() 
+			.set_number_of_values_per_use( 1 )
+			.set_maximum_number_of_repeats( 100 ) ;
+		options [ "-write-snp-excl-list" ]
+			.set_description( "Don't apply the filter; instead, write files containing the positions of SNPs that would be filtered out."
+			"  These files are suitable for use as the input to -snp-incl-list option on a subsequent run." ) ;
+		options [ "-write-snp-excl-list-file" ]
+	        .set_description( 	"Override the auto-generated path(s) of the file to use when outputting the positions of filtered out SNPs.  "
+								"(By default, the paths are formed by adding \".snp-excl-list\" to the input gen filename(s).)  "
+								"If used, this option must appear as many times as the -g option.  "
+	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
+								"also be used here to specify numbered output files corresponding to the input files." )
+			.set_takes_single_value() ;
+		options[ "-apply-excl-lists" ]
+			.set_description( "Apply inclusion / exclusion lists supplied as arguments to the options "
+			"-sample-excl-list, -sample-incl-list, -snp-excl-list, -snp-incl-list, as though filtering." ) ;
 
-		
 		// Other options
 		options.declare_group( "Other options" ) ;
 		options [ "-force" ] 
@@ -225,9 +230,16 @@ public:
 
 		options.option_implies_option( "-write-sample-excl-list-file", "-write-sample-excl-list" ) ;
 		options.option_excludes_option( "-write-sample-excl-list", "-os" ) ;
+		options.option_excludes_option( "-write-sample-excl-list", "-sample-stats" ) ;
 
 		options.option_implies_option( "-write-snp-excl-list-file", "-write-snp-excl-list" ) ;
 		options.option_excludes_option( "-write-snp-excl-list", "-og" ) ;
+		options.option_excludes_option( "-write-snp-excl-list", "-snp-stats" ) ;
+
+		options.option_implies_option( "-sample-excl-list", "-s" ) ;
+		options.option_implies_option( "-sample-incl-list", "-s" ) ;
+		options.option_implies_option( "-snp-excl-list", "-g" ) ;
+		options.option_implies_option( "-snp-incl-list", "-g" ) ;
 	}
 	
 	void process( int argc, char** argv ) {
@@ -281,6 +293,7 @@ private:
 			m_input_sample_filename = get_value< std::string >( "-s" ) ;
 		}
 
+		// We need to write a sample stats file if -sample-stats was given.
 		if( check_if_option_was_supplied( "-sample-stats" ) ) {
 			if( check_if_option_was_supplied( "-sample-stats-file" )) {
 				m_sample_statistic_filename = get_value< std::string >( "-sample-stats-file" ) ;
@@ -288,30 +301,39 @@ private:
 			else {
 				m_sample_statistic_filename = strip_sample_file_extension_if_present( m_input_sample_filename ) + ".sample-stats";
 			}
+		}
+		// Otherwise, we need to write a sample exclusion list file if -write-sample-excl-list was given.
+		else if( check_if_option_was_supplied( "-write-sample-excl-list" )) {
+			if( check_if_option_was_supplied( "-write-sample-excl-list-file" )) {
+				m_output_sample_excl_list_filename = get_value< std::string > ( "-write-sample-excl-list-file" ) ;
+			}
+			else {
+				m_output_sample_excl_list_filename = strip_sample_file_extension_if_present( m_input_sample_filename ) + ".sample-excl-list" ;
+			}
+		}
 
+		// We need to write a sample file if either
+		// -write-sample-excl-list is NOT given
+		// AND EITHER
+		//	 * -sample-stats is given, in which case we just add the 
+		//   * OR some sample filters are given
+		//   * OR -sample-excl-list and -apply-excl-lists are both given.
+		bool sample_filtering
+			= check_if_option_was_supplied_in_group( "Sample filtering options" )
+			|| ( check_if_option_was_supplied( "-sample-excl-list" ) && check_if_option_was_supplied( "-apply-excl-lists" )) ;
+
+		if( !check_if_option_was_supplied( "-write-sample-excl-list" )
+			&& ( check_if_option_was_supplied( "-sample-stats" ) || sample_filtering )
+		) {
 			if( check_if_option_was_supplied( "-os" )) {
 				m_output_sample_filename = get_value< std::string >( "-os" ) ;
 			}
 			else {
-				m_output_sample_filename = m_input_sample_filename ;
-			}
-		}
-
-		if( check_if_option_was_supplied_in_group( "Sample filtering options" )) {
-			if( check_if_option_was_supplied( "-write-sample-excl-list" )) {
-				if( check_if_option_was_supplied( "-write-sample-excl-list-file" )) {
-					m_output_sample_excl_list_filename = get_value< std::string > ( "-write-sample-excl-list-file" ) ;
+				if( sample_filtering ) {
+					m_output_sample_filename = strip_sample_file_extension_if_present( m_input_sample_filename ) + ".fltrd.sample";
 				}
 				else {
-					m_output_sample_excl_list_filename = strip_sample_file_extension_if_present( m_input_sample_filename ) + ".sample-excl-list" ;
-				}
-			}
-			else {
-				if( check_if_option_was_supplied( "-os" )) {
-					m_output_sample_filename = get_value< std::string >( "-os" ) ;
-				}
-				else {
-					m_output_sample_filename = strip_sample_file_extension_if_present( m_input_sample_filename ) + ".fltrd.sample" ;
+					m_output_sample_filename = m_input_sample_filename ;
 				}
 			}
 		}
@@ -326,13 +348,24 @@ private:
 
 	std::vector< std::string > construct_output_gen_filenames( std::vector< std::string > const& input_gen_filenames_supplied ) {
 		std::vector< std::string > result( input_gen_filenames_supplied.size(), "" ) ;
+		// We need to produce output gen files if
+		//  * -write-snp-excl-list is not set
+		//  AND EITHER
+		//    * some sample filters are given (but not -write-sample-excl-list)
+		//    * OR some SNP filters are given
+		//    * OR -sample-excl-list or -snp-excl-list ios given and the -apply-excl-lists option is given.
 		if( !check_if_option_was_supplied( "-write-snp-excl-list" )
-			&& !check_if_option_was_supplied( "-write-sample-excl-list" )
-			&& !check_if_option_was_supplied( "-sample-stats" )
-			&& !check_if_option_was_supplied( "-snp-stats")) {
+			&& (
+				(check_if_option_was_supplied_in_group( "Sample filtering options" ) && !check_if_option_was_supplied( "-write-sample-excl-list" ))
+				||
+				check_if_option_was_supplied_in_group( "SNP filtering options" )
+				||
+				((check_if_option_was_supplied( "-sample-excl-list" ) || check_if_option_was_supplied( "-sample-incl-list" ) || check_if_option_was_supplied( "-snp-excl-list" ) || check_if_option_was_supplied( "-snp-incl-list" )) && check_if_option_was_supplied( "-apply-excl-lists" ))
+			)
+		) {
 			if( check_if_option_was_supplied( "-og" ) ) {
 				result = get_values< std::string >( "-og" ) ;
-			} else if( check_if_option_was_supplied_in_group( "SNP filtering options" ) || check_if_option_was_supplied_in_group( "Sample filtering options" )) {
+			} else {
 				for( std::size_t i = 0; i < input_gen_filenames_supplied.size(); ++i ) {
 					result[i]
 						= genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] )
@@ -373,7 +406,7 @@ private:
 			}
 			else {
 				for( std::size_t i = 0; i < input_gen_filenames_supplied.size() ; ++i ) {
-					result[i] = genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) + ".excl-list" ;
+					result[i] = genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) + ".snp-excl-list" ;
 				}
 			}
 		}
@@ -667,7 +700,7 @@ struct QCToolCmdLineContext: public QCToolContext
 		}
 		
 		if( m_options.snp_excl_list_filename_mapper().output_filenames().size() > 0 ) {
-			m_logger << std::setw(36) << "Output SNP position file(s):" ;
+			m_logger << std::setw(36) << "Output SNP exclusion list(s):" ;
 			for( std::size_t i = 0; i < m_options.snp_excl_list_filename_mapper().output_filenames().size(); ++i ) {
 				if( i > 0 ) {
 					m_logger << std::string( 36, ' ' ) ;
@@ -689,7 +722,7 @@ struct QCToolCmdLineContext: public QCToolContext
 			m_logger << std::setw(36) << "SNP statistic output file(s):" ;
 			for( std::size_t i = 0; i < m_options.snp_stats_filename_mapper().output_filenames().size(); ++i ) {
 				if( i > 0 ) {
-					m_logger << std::string( 30, ' ' ) ;
+					m_logger << std::string( 36, ' ' ) ;
 				}
 				m_logger << "  \"" << m_options.snp_stats_filename_mapper().output_filenames()[i] << "\"\n" ;
 			}
@@ -746,11 +779,20 @@ private:
 			open_sample_stats_sink() ;
 		}
 		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
-			m_logger << "Error: The GEN files specified did not all have the same sample size.\n" ;
+			m_logger << "\nError: The GEN files specified did not all have the same sample size.\n" ;
 			throw HaltProgramWithReturnCode( -1 ) ;
 		}
 		catch ( FileError const& e ) {
-			m_logger << "File handling exception: " << e.what() << ": relating to file \"" << e.filename() << "\".\n" ;
+			m_logger << "\nFile handling exception: " << e.what() << ": relating to file \"" << e.filename() << "\".\n" ;
+			throw HaltProgramWithReturnCode( -1 ) ;
+		}
+		catch ( OptionValueInvalidException const& e ) {
+			m_logger << "\nError: " << e.what() << "."
+			 	<< "  (Note: " << e.option() << " takes " << e.values().size() << " values.)\n";
+			throw HaltProgramWithReturnCode( -1 ) ;
+		}
+		catch ( OptionProcessingException const& e ) {
+			m_logger << "\nError: " << e.what() << ": relating to option \"" << e.option() << "\".\n" ;
 			throw HaltProgramWithReturnCode( -1 ) ;
 		}
 	}
@@ -1115,7 +1157,7 @@ private:
 		if( m_options.input_sample_filename() == "" && m_sample_filter->number_of_subconditions() != 0 ) {
 			m_errors.push_back( "To filter on samples, please supply an input sample file." ) ;
 		}
-		if( m_sample_filter->number_of_subconditions() > 0 && m_options.output_sample_excl_list_filename() == "" && m_options.gen_filename_mapper().output_filenames().size() == 0 && m_options.snp_stats_filename_mapper().output_filenames().size() == 0 ) {
+		if( m_options.check_if_option_was_supplied_in_group( "Sample filtering options") && m_options.output_sample_excl_list_filename() == "" && m_options.gen_filename_mapper().output_filenames().size() == 0 && m_options.snp_stats_filename_mapper().output_filenames().size() == 0 ) {
 			m_errors.push_back( "You have specified sample filters, but not an output sample exclusion list, nor any output GEN files, nor any output SNP statistic files." ) ;
 		}
 		if( m_snp_filter->number_of_subconditions() > 0 && m_options.snp_excl_list_filename_mapper().output_filenames().size() == 0 && m_options.gen_filename_mapper().output_filenames().size() == 0 ) {
@@ -1124,8 +1166,8 @@ private:
 	}
 	
 	void check_for_warnings() {
-		if( (m_options.output_sample_filename() != "" || m_options.output_sample_stats_filename() != "" || m_options.output_sample_excl_list_filename() != "" ) && m_options.gen_filename_mapper().input_files().size() != 23 ) {
-			m_warnings.push_back( "You are outputting a sample, sample statistic, or sample exclusion file, but the number of gen files is not 23.\n"
+		if( (m_options.output_sample_filename() != "" || m_options.output_sample_stats_filename() != "" || m_options.output_sample_excl_list_filename() != "" ) && m_options.gen_filename_mapper().input_files().size() != 22 ) {
+			m_warnings.push_back( "You are outputting a sample, sample statistic, or sample exclusion file, but the number of gen files is not 22.\n"
 			"   (I suspect there is not the whole genomes' worth of data?)" ) ;
 		}
 		if( m_options.output_sample_stats_filename() != "" && m_options.input_sample_filename() == "" ) {
@@ -1138,10 +1180,6 @@ private:
 		if( ((m_options.gen_filename_mapper().output_filenames().size() > 0) || ( m_options.snp_excl_list_filename_mapper().output_filenames().size() > 0)) &&  (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0)) {
 			m_warnings.push_back( "You have specified output GEN (or snp exclusion) files, but no filters.\n"
 				" To convert GEN file formats, use gen-convert." ) ;
-		}
-		if( strings_are_nonempty_and_equal( m_options.output_sample_filename(), m_options.input_sample_filename() )) {
-			m_warnings.push_back( "The input sample file \"" + m_options.input_sample_filename() + "\" will be overwritten with the output sample file.\n"
-				"  (A backup will be taken, but if overwriting is not desired, please use the -os option to choose a different filename.)" ) ;
 		}
 	}
 	

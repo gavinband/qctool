@@ -100,7 +100,16 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 	}
 
 	// Other stats, these might not be used.
-	if( statistic_spec == "HWE(slow)" ) {
+	if( statistic_spec == "AA" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new AAStatistic ) ;
+	}
+	if( statistic_spec == "AB" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new ABStatistic ) ;
+	}
+	if( statistic_spec == "BB" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new BBStatistic ) ;
+	}
+	else if( statistic_spec == "HWE(slow)" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new HardyWeinbergExactTestStatistic ) ;
 	}
 	else if( statistic_spec == "MLIG" ) {

@@ -20,6 +20,10 @@ struct OptionProcessingException: public GToolException
 	~OptionProcessingException() throw() ;
 	
 	char const* what() const throw() ;
+	
+	std::string const& option() const { return m_option ; }
+	std::vector< std::string > const& values() const { return m_values ; }
+
 private:
 	
 	std::string m_option ;
@@ -127,6 +131,10 @@ class OptionProcessor {
 				std::istringstream istr( values[i] ) ;
 				T t ;
 				istr >> t ;
+				istr.peek() ;
+				if( !istr.eof() ) {
+					throw OptionValueInvalidException( arg, values, "value \"" + values[i] + "\" for option \"" + arg + "\" is incorrect" ) ;
+				}
 				result.push_back( t ) ;
 			}
 			return result ;

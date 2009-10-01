@@ -8,7 +8,7 @@
 #include "floating_point_utils.hpp"
 
 GenotypeAssayStatistic::GenotypeAssayStatistic()
-: m_precision( 4 )
+: m_precision( 5 )
 {} ;
 
 template<>
