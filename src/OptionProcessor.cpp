@@ -183,7 +183,7 @@ bool OptionProcessor::try_to_parse_positional_option( int argc, char** argv, int
 	for( ; defn_i != end_defn_i; ++defn_i ) {
 		if( defn_i->second.takes_value_by_position() && defn_i->second.position() == position ) {
 			m_option_values[ defn_i->first ].push_back( argv[ position ] ) ;
-			++position ;
+			// ++position ;
 			return 1 ;
 		}
 	}

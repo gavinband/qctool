@@ -86,6 +86,10 @@ public:
 			
 		options [ "-force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
+			
+		options [ "-chr" ]
+			.set_description( "Override the chromosomal values inferred from the input file(s).")
+			.set_takes_single_value() ;
 	}
 
 	GenConvertProcessor( OptionProcessor const& options )
@@ -101,6 +105,7 @@ private:
 		try {
 			get_required_filenames() ;
 			open_gen_input_files() ;
+			get_chromosome_if_specified() ;
 		}
 		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
 			m_cout << "The GEN files specified did not all have the same sample size.\n" ;
@@ -190,6 +195,16 @@ private:
 					m_output_chain->move_to_next_sink() ;
 				}
 			}
+		}
+	}
+	
+	void get_chromosome_if_specified() {
+		if( m_options.check_if_option_was_supplied( "-chromosome" )) {
+			m_override_chromosome = true ;
+			m_chromosome = m_options.get_value< std::string >( "-chromosome" ) ;
+		}
+		else {
+			m_override_chromosome = false ;
 		}
 	}
 
@@ -295,6 +310,11 @@ private:
 						<< std::flush ;
 				last_time = time_now ;
 			}
+
+			if( m_override_chromosome ) {
+				row.set_chromosome( m_chromosome ) ;
+			}
+			
 			write_snp(row) ;
 		}
 
@@ -336,6 +356,9 @@ private:
 	std::size_t m_output_file_index ;
 
 	std::vector< std::string > m_errors ;
+	
+	bool m_override_chromosome ;
+	genfile::Chromosome m_chromosome ;
 } ;
 
 
