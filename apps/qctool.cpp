@@ -206,7 +206,7 @@ public:
 			.set_takes_single_value() ;
 		options[ "-apply-excl-lists" ]
 			.set_description( "Apply inclusion / exclusion lists supplied as arguments to the options "
-			"-sample-excl-list, -sample-incl-list, -snp-excl-list, -snp-incl-list, as though filtering." ) ;
+			"-sample-excl-list, -sample-incl-list, -snp-excl-list, -snp-incl-list, to produce new sample / GEN files." ) ;
 
 		// Other options
 		options.declare_group( "Other options" ) ;
@@ -432,12 +432,31 @@ private:
 struct QCToolCmdLineContext: public QCToolContext
 {
 	QCToolCmdLineContext( int argc, char** argv ) {
-		timestamp() ;
-		m_options.process( argc, argv ) ;
-		open_log() ;
-		write_start_banner() ;
-		setup() ;
-		timestamp() ;
+		try {
+			timestamp() ;
+			m_options.process( argc, argv ) ;
+			open_log() ;
+			write_start_banner() ;
+			setup() ;
+			timestamp() ;
+		}
+		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
+			m_logger << "\nError: The GEN files specified did not all have the same sample size.\n" ;
+			throw HaltProgramWithReturnCode( -1 ) ;
+		} 
+		catch ( FileError const& e ) {
+			m_logger << "\nFile handling exception: " << e.what() << ": relating to file \"" << e.filename() << "\".\n" ;
+			throw HaltProgramWithReturnCode( -1 ) ;
+		}
+		catch ( OptionValueInvalidException const& e ) {
+			m_logger << "\nError: " << e.what() << "."
+			 	<< "  (Note: " << e.option() << " takes " << e.values().size() << " values.)\n";
+			throw HaltProgramWithReturnCode( -1 ) ;
+		}
+		catch ( OptionProcessingException const& e ) {
+			m_logger << "\nError: " << e.what() << ": relating to option \"" << e.option() << "\".\n" ;
+			throw HaltProgramWithReturnCode( -1 ) ;
+		}
 	}
 	
 	~QCToolCmdLineContext() {
@@ -759,7 +778,6 @@ struct QCToolCmdLineContext: public QCToolContext
 private:
 	
 	void setup() {
-		try {
 			construct_snp_statistics() ;
 			construct_sample_statistics() ;
 			construct_snp_filter() ;
@@ -777,24 +795,6 @@ private:
 			open_snp_data_sinks() ;
 			open_snp_stats_sink( 0, m_snp_statistics ) ;
 			open_sample_stats_sink() ;
-		}
-		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
-			m_logger << "\nError: The GEN files specified did not all have the same sample size.\n" ;
-			throw HaltProgramWithReturnCode( -1 ) ;
-		}
-		catch ( FileError const& e ) {
-			m_logger << "\nFile handling exception: " << e.what() << ": relating to file \"" << e.filename() << "\".\n" ;
-			throw HaltProgramWithReturnCode( -1 ) ;
-		}
-		catch ( OptionValueInvalidException const& e ) {
-			m_logger << "\nError: " << e.what() << "."
-			 	<< "  (Note: " << e.option() << " takes " << e.values().size() << " values.)\n";
-			throw HaltProgramWithReturnCode( -1 ) ;
-		}
-		catch ( OptionProcessingException const& e ) {
-			m_logger << "\nError: " << e.what() << ": relating to option \"" << e.option() << "\".\n" ;
-			throw HaltProgramWithReturnCode( -1 ) ;
-		}
 	}
 	
 	void open_log() {
