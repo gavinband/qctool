@@ -1,6 +1,7 @@
 #include <cassert>
 #include <vector>
 #include <string>
+#include <iostream>
 #include "string_utils.hpp"
 
 namespace impl {
@@ -64,7 +65,7 @@ std::vector< std::string > split_and_strip_discarding_empty_entries( std::string
 std::string to_lower( std::string aString ) {
 	for( std::string::iterator i = aString.begin(); i != aString.end(); ++i ) {
 		if( *i >= 'A' && *i <= 'Z' ) {
-			*i += 40 ;
+			*i += 32 ;
 		}
 	}
 	return aString ;
@@ -73,7 +74,7 @@ std::string to_lower( std::string aString ) {
 std::string to_upper( std::string aString ) {
 	for( std::string::iterator i = aString.begin(); i != aString.end(); ++i ) {
 		if( *i >= 'a' && *i <= 'z' ) {
-			*i -= 40 ;
+			*i -= 32 ;
 		}
 	}
 	return aString ;

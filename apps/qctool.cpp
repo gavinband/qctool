@@ -314,7 +314,7 @@ private:
 		// We need to write a sample file if either
 		// -write-sample-excl-list is NOT given
 		// AND EITHER
-		//	 * -sample-stats is given, in which case we just add the 
+		//	 * -sample-stats is given, (in which case we modify the input sample file unless overridden)
 		//   * OR some sample filters are given
 		//   * OR -sample-excl-list and -apply-excl-lists are both given.
 		bool sample_filtering
