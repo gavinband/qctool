@@ -65,6 +65,11 @@ private:
 	std::string const m_filename ;
 } ;
 
+struct ChromosomeNotSuppliedError: public GenConvertProcessorException
+{
+	char const* what() const throw() { return "ChromosomeNotSuppliedError" ; }
+} ;
+
 struct GenConvertProcessor
 {
 public:
@@ -74,14 +79,12 @@ public:
 	    options[ "-g" ]
 	        .set_description( "Path of gen file to input" )
 	        .set_is_required()
-			.set_takes_values()
-			.set_maximum_number_of_repeats( 100 )
+			.set_takes_single_value()
 			.set_takes_value_by_position(1) ;
 
 	    options[ "-og" ]
 	        .set_description( "Path of gen file to output" )
-			.set_takes_values()
-			.set_maximum_number_of_repeats( 100 )
+			.set_takes_single_value()
 			.set_takes_value_by_position(2) ;
 			
 		options [ "-force" ] 
@@ -119,6 +122,12 @@ private:
 			m_cout << "The output file contained a wildcard character, so the input should also.\n" ;
 			throw ;
 		}
+		catch( ChromosomeNotSuppliedError const& ) {
+			m_cout << wrap( "Error: the input filename contained no wildcard (#) character.  The gen file format does "
+				"not support chromosome entries, and I can't deduce it from context, so you must specify the "
+				"chromosome using the -chromosome option.\n", 80 );
+			throw ;
+		}
 	}
 
 	void get_required_filenames() {
@@ -134,6 +143,14 @@ private:
 
 		if( gen_filenames.size() != gen_output_filenames.size() ) {
 			throw GenConvertFileCountMismatchError() ;
+		}
+
+		for( std::size_t i = 0; i < gen_filenames.size(); ++i ) {
+			if(( gen_filenames[i].find( '#' ) == std::string::npos )
+				&& genfile::filename_indicates_gen_format( gen_filenames[i] )
+				&& ( !m_options.check_if_option_was_supplied( "-chromosome" ))) {
+					throw ChromosomeNotSuppliedError() ;
+			}
 		}
 
 		m_gen_file_mapper.add_filename_pairs( gen_filenames, gen_output_filenames ) ;
