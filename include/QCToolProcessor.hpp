@@ -30,7 +30,22 @@ struct QCToolProcessorException: public std::exception
 
 struct GenAndSampleFileMismatchException: public QCToolProcessorException
 {
+	GenAndSampleFileMismatchException( GenRowIdentifyingData const& data, std::size_t actual_number_of_samples, std::size_t expected_number_of_samples )
+		: m_expected_number_of_samples( expected_number_of_samples ),
+		m_actual_number_of_samples( actual_number_of_samples ),
+		m_data( data )
+	{}
+
+	~GenAndSampleFileMismatchException() throw() {}
+	
 	char const* what() const throw() {return "GenAndSampleFileMismatchException" ; }
+
+	std::size_t expected_number_of_samples() const { return m_expected_number_of_samples ; }
+	std::size_t actual_number_of_samples() const { return m_actual_number_of_samples ; }
+	GenRowIdentifyingData data() const { return m_data ; }
+private:
+	std::size_t m_expected_number_of_samples, m_actual_number_of_samples ;
+	GenRowIdentifyingData m_data ;
 } ;
 
 struct QCToolProcessor
@@ -48,9 +63,19 @@ public:
 		catch( StatisticNotFoundException const& e ) {
 			std::cerr << "!! ERROR: " << e << ".\n" ;
 			std::cerr << "Note: required statistics must be added using -statistics.\n" ;
+			throw HaltProgramWithReturnCode( -1 ) ;
 		}
 		catch( GToolException const& e) {
 			std::cerr << "!! ERROR: " << e << ".\n" ;
+			throw HaltProgramWithReturnCode( -1 ) ;
+		}
+		catch( GenAndSampleFileMismatchException const e ) {
+			std::cerr << "!! ERROR: " << e.what() << ":\n"
+				<< "I think the SNP identified as "
+				<< e.data()
+				<< " has the wrong number of samples.\n"
+				<< "  (" << e.actual_number_of_samples() << " instead of " << e.expected_number_of_samples() << ").\n" ; 
+			throw HaltProgramWithReturnCode( -1 ) ;
 		}
 	}
 
@@ -98,7 +123,7 @@ private:
 
 	void check_gen_row_has_correct_number_of_samples( GenRow& row ) const {
 		if( row.number_of_samples() != m_context.sample_rows().size() ) {
-			throw GenAndSampleFileMismatchException() ;
+			throw GenAndSampleFileMismatchException( row, row.number_of_samples(), m_context.sample_rows().size() ) ;
 		}
 	}
 
