@@ -9,7 +9,7 @@
 
 GenotypeAssayStatistic::GenotypeAssayStatistic()
 : m_precision( 5 )
-{} ;
+{}
 
 template<>
 double GenotypeAssayStatistic::get_value<double>( GenotypeAssayStatistics const& statistics ) const {

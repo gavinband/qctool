@@ -106,11 +106,13 @@ def platform_specific_configure( conf ):
 
 def misc_configure( conf ) :
 	conf.define ( 'GENFILE_USE_FAST_PARSE_METHODS', 1 )
-		
+
 def get_cxx_flags( variant_name ):
-	cxxflags = ['-Wall']
+	cxxflags = ['-Wall', '-pedantic']
 	if variant_name == 'default':
 		cxxflags.extend( ['-g', '-p' ])
+	elif variant_name == 'release':
+		cxxflags.extend( [ '-O3' ])
 	return cxxflags
 
 def get_ld_flags( variant_name ):

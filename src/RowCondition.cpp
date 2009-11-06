@@ -12,7 +12,7 @@ StatisticInInclusiveRange::StatisticInInclusiveRange( std::string const& statist
 	m_lower_bound( lower_bound ),
 	m_upper_bound( upper_bound ),
 	m_epsilon( epsilon )
-{} ;
+{}
 
 bool StatisticInInclusiveRange::check_if_satisfied( string_to_value_map const& statistics ) const {
 	if( !statistics.has_value( m_statistic_name )) {
@@ -43,7 +43,7 @@ StatisticInExclusiveRange::StatisticInExclusiveRange( std::string const& statist
 	m_lower_bound( lower_bound ),
 	m_upper_bound( upper_bound ),
 	m_epsilon( epsilon )
-{} ;
+{}
 
 bool StatisticInExclusiveRange::check_if_satisfied( string_to_value_map const& statistics ) const {
 	if( !statistics.has_value( m_statistic_name )) {
@@ -68,7 +68,7 @@ StatisticGreaterThan::StatisticGreaterThan( std::string const& statistic_name, d
 : m_statistic_name( statistic_name ),
 	m_lower_bound( lower_bound ),
 	m_epsilon( epsilon )
-{} ;
+{}
 
 bool StatisticGreaterThan::check_if_satisfied( string_to_value_map const& statistics ) const {
 	if( !statistics.has_value( m_statistic_name )) {
@@ -89,7 +89,7 @@ StatisticLessThan::StatisticLessThan( std::string const& statistic_name, double 
 : m_statistic_name( statistic_name ),
 	m_upper_bound( upper_bound ),
 	m_epsilon( epsilon )
-{} ;
+{}
 
 bool StatisticLessThan::check_if_satisfied( string_to_value_map const& statistics ) const {
 	if( !statistics.has_value( m_statistic_name )) {

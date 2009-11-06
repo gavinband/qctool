@@ -23,7 +23,7 @@ OptionProcessingException::OptionProcessingException( std::string option, std::s
 {}
 
 OptionProcessingException::~OptionProcessingException() throw()
-{} ;
+{}
 
 OptionParseException::OptionParseException( std::string option, std::vector< std::string > values, std::string msg )
 : OptionProcessingException( option, values, msg )
@@ -55,7 +55,7 @@ OptionProcessor::OptionProcessor( OptionProcessor const& other )
 		m_help_option_name( other.m_help_option_name )
 {}
 
-OptionProcessor::~OptionProcessor() {} ;
+OptionProcessor::~OptionProcessor() {}
 
 OptionProcessor::OptionDefinitions const& OptionProcessor::option_definitions() const { return m_option_definitions ; }
 

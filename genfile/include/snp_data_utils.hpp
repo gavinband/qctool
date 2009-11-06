@@ -35,7 +35,7 @@ namespace genfile {
 		Chromosome22,
 		XYPseudoAutosomalDNA = 253,
 		MitochondrialDNA = 254,
-		UnidentifiedChromosome = 255,
+		UnidentifiedChromosome = 255
 	} ;
 	
 	struct Chromosome
@@ -92,10 +92,10 @@ namespace genfile {
 	
 	struct Ignorer
 	{
-		template< typename T > void operator()( T const& ) {} ;
-		template< typename T > void operator()( T const&, T const& ) {} ;
-		template< typename T > void operator()( T const&, T const&, T const& ) {} ;
-		template< typename T1, typename T2 > void operator()( T1 const&, T2 const&, T2 const&, T2 const& ) {} ;
+		template< typename T > void operator()( T const& ) {}
+		template< typename T > void operator()( T const&, T const& ) {}
+		template< typename T > void operator()( T const&, T const&, T const& ) {}
+		template< typename T1, typename T2 > void operator()( T1 const&, T2 const&, T2 const&, T2 const& ) {}
 	} ;
 
 	Ignorer ignore() ;

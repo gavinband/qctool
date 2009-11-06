@@ -33,7 +33,7 @@ namespace genfile {
 	: m_number_of_snps_read(0), m_state( e_HaveNotReadIdentifyingData )
 	{}
 
-	SNPDataSource::~SNPDataSource() {} ;
+	SNPDataSource::~SNPDataSource() {}
 
 	SNPDataSource& SNPDataSource::read_snp(
 		IntegerSetter set_number_of_samples,
@@ -169,7 +169,7 @@ namespace genfile {
 			++m_number_of_snps_read ;
 		}
 		return *this ;
-	} ;
+	}
 
 	SNPDataSource& SNPDataSource::ignore_snp_probability_data() {
 		assert( m_state == e_HaveReadIdentifyingData ) ;
