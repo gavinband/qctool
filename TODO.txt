@@ -5,7 +5,7 @@ Done?	Description
 		qc-tool: Remove number_of_samples argument from SNPDataSource::ignore_snp_probability_data().
 				This should just involve a new function ignore_snp_probability_data in bgen.hpp.
 		qc-tool: fix static build.  Here is the command line I used on linux:
-g++ -O3 -o build/release/qc-tool-static src/*.cpp genfile/src/*.cpp statfile/src/*.cpp ../usr/lib/libboost_iostreams-gcc43-mt-1_39.a ../usr/lib/libboost_filesystem-gcc43-mt-1_39.a /usr/lib/libz.a -static-libgcc -static -I include/ -I genfile/include/ -I statfile/include/ -I ../usr/include/boost-1_39/ /usr/lib/libz.a -I build/release/statfile/ -DHAVE_ZLIB=1 -DHAVE_BOOST=1 -DHAVE_BOOST_FILESYSTEM=1 -I build/release/genfile/include/ apps/qc-tool.cpp ../usr/lib/libboost_system-gcc43-mt-1_39.a
+g++ -O3 -o build/release/qctool-static src/*.cpp genfile/src/*.cpp statfile/src/*.cpp ../usr/lib/libboost_iostreams-gcc43-mt-1_39.a ../usr/lib/libboost_filesystem-gcc43-mt-1_39.a /usr/lib/libz.a -static-libgcc -static -I include/ -I genfile/include/ -I statfile/include/ -I ../usr/include/boost-1_39/ /usr/lib/libz.a -I build/release/statfile/ -DHAVE_ZLIB=1 -DHAVE_BOOST=1 -DHAVE_BOOST_FILESYSTEM=1 -I build/release/genfile/include/ apps/qctool.cpp ../usr/lib/libboost_system-gcc43-mt-1_39.a
 		For some reason my attempts using waf don't work, perhaps because htere's a trailing 'Wl,-Bdynamic'
 		qc-tool: Support parallellisation over chromosomal files.
 		genfile: Create threaded SNPDataSink / SNPDataSource adapters.

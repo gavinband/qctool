@@ -11,7 +11,7 @@
 
 // Read a set of things from a file (optionally gzipped).
 template< typename Set >
-Set read_set_from_file( std::string filename, int mode_flags ) {
+Set read_set_from_file( std::string const& filename, int mode_flags = e_TextMode ) {
 	Set aSet ;
 	INPUT_FILE_PTR aStream( open_file_for_input( filename, mode_flags )) ;
 	if( aStream.get() && aStream->good() ) {
