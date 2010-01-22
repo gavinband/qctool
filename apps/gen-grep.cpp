@@ -33,6 +33,10 @@ struct IDDataPrinterOptionProcessor: public CmdLineOptionProcessor
 		options[ "-snp-id-file" ]
 			.set_description( "Specify a file containing SNP ids to match" )
 			.set_takes_single_value() ;
+
+		options[ "-rsid-file" ]
+			.set_description( "Specify a file containing RSids to match" )
+			.set_takes_single_value() ;
 	}
 	
 	
@@ -47,9 +51,21 @@ struct IDDataPrinterOptionProcessor: public CmdLineOptionProcessor
 		}
 		return result ;
 	}
+
+	std::set< std::string > rsids() const {
+		std::set< std::string > result ;
+		if( check_if_option_was_supplied( "-rsid-file" )) {
+			result = read_set_from_file< std::set< std::string > >( get_value< std::string >( "-rsid-file" ) ) ;
+		}
+		return result ;
+	}
 	
 	bool have_snp_ids() const {
 		return check_if_option_was_supplied( "-snp-id-file" ) ;
+	}
+
+	bool have_rsids() const {
+		return check_if_option_was_supplied( "-rsid-file" ) ;
 	}
 	
 	PositionRange position_range() const {
@@ -74,6 +90,9 @@ struct IDDataPrinterContext
 		if( m_options.have_snp_ids() ) {
 			m_snp_ids = m_options.snp_ids() ;
 		}
+		if( m_options.have_rsids() ) {
+			m_rsids = m_options.rsids() ;
+		}
 		write_preamble() ;
 	}
 
@@ -87,6 +106,9 @@ struct IDDataPrinterContext
 
  	bool have_snp_ids() const { return m_options.have_snp_ids() ; }
 	std::set< std::string > const& snp_ids() const { return m_snp_ids ; }
+
+ 	bool have_rsids() const { return m_options.have_rsids() ; }
+	std::set< std::string > const& rsids() const { return m_rsids ; }
 	
 private:
 
@@ -116,6 +138,7 @@ private:
 	IDDataPrinterOptionProcessor m_options ;
 	std::auto_ptr< genfile::SNPDataSource > m_snp_data_source ;
 	std::set< std::string > m_snp_ids ;
+	std::set< std::string > m_rsids ;
 } ;
 
 struct IDDataPrinter
@@ -138,10 +161,18 @@ struct IDDataPrinter
 			genfile::set_value( allele1 ),
 			genfile::set_value( allele2 )
 		)) {
-			if( m_context.position_range().contains( SNP_position )) {
-				if( !m_context.have_snp_ids() || ( m_context.snp_ids().find( SNPID ) != m_context.snp_ids().end() )) { 	
-					std::cout << std::setw(16) << std::left << SNPID << " " << std::setw( 16 ) << std::left << RSID << " " << std::setw(4) << std::left << chromosome << " "<< SNP_position << " " << allele1 << " " << allele2 << "\n" ;
-				}
+			if(
+				m_context.position_range().contains( SNP_position )
+				&& (
+					!m_context.have_snp_ids()
+					|| ( m_context.snp_ids().find( SNPID ) != m_context.snp_ids().end() )
+					)
+				&& (
+					!m_context.have_rsids()
+					|| ( m_context.rsids().find( RSID ) != m_context.rsids().end() )
+				)
+			) { 	
+				std::cout << std::setw(16) << std::left << SNPID << " " << std::setw( 16 ) << std::left << RSID << " " << std::setw(4) << std::left << chromosome << " "<< SNP_position << " " << allele1 << " " << allele2 << "\n" ;
 			}
 			m_context.snp_data_source().ignore_snp_probability_data() ;
 		}
