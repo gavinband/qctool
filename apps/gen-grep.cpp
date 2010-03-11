@@ -84,7 +84,7 @@ struct IDDataPrinterOptionProcessor: public CmdLineOptionProcessor
 struct IDDataPrinterContext
 {
 	IDDataPrinterContext( int argc, char** argv ) {
-		write_start_banner() ;
+		//write_start_banner() ;
 		m_options.process( argc, argv ) ;
 		construct_snp_data_source() ;
 		if( m_options.have_snp_ids() ) {
@@ -97,7 +97,7 @@ struct IDDataPrinterContext
 	}
 
 	~IDDataPrinterContext() {
-		write_end_banner() ;
+		//write_end_banner() ;
 	}
 
 	genfile::SNPDataSource& snp_data_source() { return *m_snp_data_source ; }
@@ -171,8 +171,8 @@ struct IDDataPrinter
 					!m_context.have_rsids()
 					|| ( m_context.rsids().find( RSID ) != m_context.rsids().end() )
 				)
-			) { 	
-				std::cout << std::setw(16) << std::left << SNPID << " " << std::setw( 16 ) << std::left << RSID << " " << std::setw(4) << std::left << chromosome << " "<< SNP_position << " " << allele1 << " " << allele2 << "\n" ;
+			) {
+				std::cout << SNPID << " " << RSID << " " << chromosome << " " << SNP_position << " " << allele1 << " " << allele2 << "\n" ;
 			}
 			m_context.snp_data_source().ignore_snp_probability_data() ;
 		}
