@@ -148,6 +148,8 @@ struct IDDataPrinter
 	{}
 
 	void process() {
+		std::cout << "SNPID RSID chromosome position allele1 allele2\n" ;
+		
 		std::string SNPID, RSID ;
 		genfile::Chromosome chromosome ;
 		uint32_t number_of_samples, SNP_position ;
