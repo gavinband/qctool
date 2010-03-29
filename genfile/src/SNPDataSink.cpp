@@ -24,12 +24,8 @@ namespace genfile {
 		std::string const& free_data
 	) {
 		if( filename_indicates_bgen_format( filename )) {
-			if( compression_type == e_GzipCompression ) {
-				return std::auto_ptr< SNPDataSink >( new ZippedBGenFileSNPDataSink( filename, free_data )) ;
-			}
-			else {
-				return std::auto_ptr< SNPDataSink >( new BGenFileSNPDataSink( filename, free_data, bgen::e_CompressedSNPBlocks )) ;
-			}
+			assert( compression_type == e_NoCompression ) ;
+			return std::auto_ptr< SNPDataSink >( new BGenFileSNPDataSink( filename, free_data, bgen::e_CompressedSNPBlocks )) ;
 		}
 		else {
 			return std::auto_ptr< SNPDataSink >( new GenFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
