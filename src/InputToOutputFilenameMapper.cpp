@@ -1,11 +1,16 @@
 #include <string>
 #include <map>
 #include <vector>
+#include "genfile/snp_data_utils.hpp"
 #include "InputToOutputFilenameMapper.hpp"
 #include "wildcard.hpp"
 
 void InputToOutputFilenameMapper::add_filename_pair( std::string const& path_to_existing_files, std::string const& filename_template ) {
 	m_existing_files = wildcard::find_matches_for_path_with_integer_wildcard( path_to_existing_files, '#', 1, 100 ) ;
+
+	if( m_existing_files.size() == 0 ) {
+		throw genfile::FileNotFoundError( path_to_existing_files ) ;
+	}
 
 	if( filename_template != "" ) {
 		std::vector< wildcard::FilenameMatch >

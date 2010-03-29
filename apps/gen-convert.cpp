@@ -203,7 +203,9 @@ private:
 		}
 
 		// Set up the current output filename so we can track changes to the filename.
-		m_current_output_filename = m_gen_file_mapper.output_filenames().front() ;
+		if( m_gen_file_mapper.output_filenames().size() > 0 ) {
+			m_current_output_filename = m_gen_file_mapper.output_filenames().front() ;
+		}
 	}
 
 	void add_gen_file_to_chain( genfile::SNPDataSinkChain& chain, std::string const& filename ) {
