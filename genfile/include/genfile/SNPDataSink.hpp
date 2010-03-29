@@ -21,8 +21,18 @@ namespace genfile {
 		virtual ~SNPDataSink() {} ;
 
 		// Factory functions
-		static std::auto_ptr< SNPDataSink > create( std::string const& filename, std::string const& free_data = "" ) ;
-		static std::auto_ptr< SNPDataSink > create( std::string const& filename, CompressionType compression_type, std::string const& free_data = "" ) ;
+		static std::auto_ptr< SNPDataSink > create(
+			std::string const& filename,
+			std::string const& free_data = "",
+			bool sort = false
+		) ;
+
+		static std::auto_ptr< SNPDataSink > create(
+			std::string const& filename,
+			CompressionType compression_type,
+			std::string const& free_data = "",
+			bool sort = false
+		) ;
 
 	public:		
 
