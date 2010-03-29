@@ -19,6 +19,7 @@
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/GenFileSNPDataSink.hpp"
 #include "genfile/BGenFileSNPDataSink.hpp"
+#include "genfile/SortingBGenFileSNPDataSink.hpp"
 #include "genfile/bgen.hpp"
 #include "stdint.h"
 
@@ -157,13 +158,13 @@ void copy_gen_file( std::string original, genfile::SNPDataSink& target ) {
 	copy_gen_file( gen_file_snp_data_source, target ) ;
 }
 
-void copy_gen_file( std::string const& original, std::string const& target ) {
-	std::auto_ptr< genfile::SNPDataSink > snp_data_sink( genfile::SNPDataSink::create( target )) ;
+void copy_gen_file( std::string const& original, std::string const& target, bool sort = false ) {
+	std::auto_ptr< genfile::SNPDataSink > snp_data_sink( genfile::SNPDataSink::create( target, "", sort )) ;
 	copy_gen_file( original, *snp_data_sink ) ;
 }
 
 // The following section contains the main tests.
-void create_files( std::string original, std::string gen, std::string bgen, std::string zgen ) {
+void create_files( std::string original, std::string gen, std::string bgen, std::string sorted_bgen, std::string compressed_bgen, std::string zgen ) {
 	// set up our original file.
 	{
 		std::cerr << "Creating original...\n" ;
@@ -189,6 +190,20 @@ void create_files( std::string original, std::string gen, std::string bgen, std:
 		copy_gen_file( original, bgen_file_snp_data_sink ) ;
 	}
 
+	// Construct sorted bgen file
+	{
+		std::cerr << "Creating sorted bgen...\n" ;
+		genfile::SortingBGenFileSNPDataSink bgen_file_snp_data_sink( sorted_bgen, "Free Data", genfile::bgen::e_CompressedSNPBlocks ) ;
+		copy_gen_file( original, bgen_file_snp_data_sink ) ;
+	}
+
+	// Construct compressed bgen file
+	{
+		std::cerr << "Creating compressed bgen...\n" ;
+		genfile::BGenFileSNPDataSink bgen_file_snp_data_sink( compressed_bgen, "Free Data", genfile::bgen::e_CompressedSNPBlocks ) ;
+		copy_gen_file( original, bgen_file_snp_data_sink ) ;
+	}
+
 	// Construct zipped gen file
 	{
 		std::cerr << "Creating gen.gz...\n" ;
@@ -198,11 +213,15 @@ void create_files( std::string original, std::string gen, std::string bgen, std:
 }
 
 // The following section contains the main tests.
-void create_files2( std::string original, std::string gen, std::string bgen, std::string zgen ) {
+void create_files2( std::string original, std::string gen, std::string bgen, std::string sorted_bgen, std::string compressed_bgen, std::string zgen ) {
 	std::cerr << "Creating gen...\n" ;
 	copy_gen_file( original, gen ) ;
 	std::cerr << "Creating bgen...\n" ;
 	copy_gen_file( original, bgen ) ;
+	std::cerr << "Creating bgen...\n" ;
+	copy_gen_file( original, compressed_bgen ) ;
+	std::cerr << "Creating sorted bgen...\n" ;
+	copy_gen_file( original, sorted_bgen, true ) ;
 	std::cerr << "Creating gen.gz...\n" ;
 	copy_gen_file( original, zgen ) ;
 }
@@ -232,26 +251,39 @@ std::vector< SnpData > read_gen_file( std::string filename ) {
 }
 
 AUTO_TEST_CASE( test_formats ) {
-	std::string original = tmpnam(0) + std::string( ".gen" );
-	std::string gen = tmpnam(0) + std::string( ".gen" );
-	std::string gen2 = tmpnam(0) + std::string( ".gen" );
-	std::string bgen = tmpnam(0) + std::string( ".bgen" );
-	std::string bgen2 = tmpnam(0) + std::string( ".bgen" );
-	std::string zgen = tmpnam(0) + std::string( ".gen.gz" );
-	std::string zgen2 = tmpnam(0) + std::string( ".gen.gz" );
+	std::string original = tmpnam(0) + std::string( ".gen" ) ;
+	std::string gen = tmpnam(0) + std::string( ".gen" ) ;
+	std::string gen2 = tmpnam(0) + std::string( ".gen" ) ;
+	std::string bgen = tmpnam(0) + std::string( ".bgen" ) ;
+	std::string bgen2 = tmpnam(0) + std::string( ".bgen" ) ;
+	std::string sorted_bgen = tmpnam(0) + std::string( ".sorted.bgen" ) ;
+	std::string sorted_bgen2 = tmpnam(0) + std::string( ".sorted.bgen" ) ;
+	std::string compressed_bgen = tmpnam(0) + std::string( ".compressed.bgen" ) ;
+	std::string compressed_bgen2 = tmpnam(0) + std::string( ".compressed.bgen" ) ;
+	std::string zgen = tmpnam(0) + std::string( ".gen.gz" ) ;
+	std::string zgen2 = tmpnam(0) + std::string( ".gen.gz" ) ;
 
 	std::cerr << "Creating files...\n" ;
 	
-	create_files( original, gen, bgen, zgen ) ;
-	create_files2( original, gen2, bgen2, zgen2 ) ;
+	create_files( original, gen, bgen, sorted_bgen, compressed_bgen, zgen ) ;
+	create_files2( original, gen2, bgen2, sorted_bgen2, compressed_bgen2, zgen2 ) ;
 	
 	genfile::GenFileSNPDataSource original_file_snp_data_source( original, genfile::UnidentifiedChromosome, genfile::e_NoCompression ) ;
+
 	genfile::GenFileSNPDataSource gen_file_snp_data_source( gen, genfile::UnidentifiedChromosome, genfile::e_NoCompression ) ;
-	genfile::BGenFileSNPDataSource bgen_file_snp_data_source( bgen ) ;
-	genfile::GenFileSNPDataSource zgen_file_snp_data_source( zgen, genfile::UnidentifiedChromosome, genfile::e_GzipCompression ) ;
 	genfile::GenFileSNPDataSource gen_file_snp_data_source2( gen2, genfile::UnidentifiedChromosome ) ;
-	genfile::BGenFileSNPDataSource bgen_file_snp_data_source2( bgen2 ) ;
+
+	genfile::GenFileSNPDataSource zgen_file_snp_data_source( zgen, genfile::UnidentifiedChromosome, genfile::e_GzipCompression ) ;
 	genfile::GenFileSNPDataSource zgen_file_snp_data_source2( zgen, genfile::UnidentifiedChromosome, genfile::e_GzipCompression ) ;
+
+	genfile::BGenFileSNPDataSource bgen_file_snp_data_source( bgen ) ;
+	genfile::BGenFileSNPDataSource bgen_file_snp_data_source2( bgen2 ) ;
+
+	genfile::BGenFileSNPDataSource sorted_bgen_file_snp_data_source( sorted_bgen ) ;
+	genfile::BGenFileSNPDataSource sorted_bgen_file_snp_data_source2( sorted_bgen2 ) ;
+
+	genfile::BGenFileSNPDataSource compressed_bgen_file_snp_data_source( compressed_bgen ) ;
+	genfile::BGenFileSNPDataSource compressed_bgen_file_snp_data_source2( compressed_bgen2 ) ;
 
 	std::vector< std::vector< SnpData > > results ;
 
@@ -262,6 +294,10 @@ AUTO_TEST_CASE( test_formats ) {
 	results.push_back( read_gen_file( gen_file_snp_data_source )) ;
 	std::cerr << "Reading bgen file...\n" ;
 	results.push_back( read_gen_file( bgen_file_snp_data_source )) ;
+	std::cerr << "Reading sorted bgen file...\n" ;
+	results.push_back( read_gen_file( sorted_bgen_file_snp_data_source )) ;
+	std::cerr << "Reading compressed bgen file...\n" ;
+	results.push_back( read_gen_file( compressed_bgen_file_snp_data_source )) ;
 	std::cerr << "Reading gen.gz file...\n" ;
 	results.push_back( read_gen_file( zgen_file_snp_data_source )) ;
 
@@ -269,6 +305,10 @@ AUTO_TEST_CASE( test_formats ) {
 	results.push_back( read_gen_file( gen )) ;
 	std::cerr << "Reading bgen file \"" << bgen << "\"...\n" ;
 	results.push_back( read_gen_file( bgen )) ;
+	std::cerr << "Reading sorted bgen file...\n" ;
+	results.push_back( read_gen_file( sorted_bgen )) ;
+	std::cerr << "Reading compressed bgen file...\n" ;
+	results.push_back( read_gen_file( compressed_bgen )) ;
 	std::cerr << "Reading gen.gz file \"" << zgen << "\"...\n" ;
 	results.push_back( read_gen_file( zgen )) ;
 
@@ -276,6 +316,10 @@ AUTO_TEST_CASE( test_formats ) {
 	results.push_back( read_gen_file( gen_file_snp_data_source2 )) ;
 	std::cerr << "Reading bgen file...\n" ;
 	results.push_back( read_gen_file( bgen_file_snp_data_source2 )) ;
+	std::cerr << "Reading sorted bgen file...\n" ;
+	results.push_back( read_gen_file( sorted_bgen_file_snp_data_source2 )) ;
+	std::cerr << "Reading compressed bgen file...\n" ;
+	results.push_back( read_gen_file( compressed_bgen_file_snp_data_source2 )) ;
 	std::cerr << "Reading bgen.gz file...\n" ;
 	results.push_back( read_gen_file( zgen_file_snp_data_source2 )) ;
 	
@@ -283,23 +327,35 @@ AUTO_TEST_CASE( test_formats ) {
 	results.push_back( read_gen_file( gen2 )) ;
 	std::cerr << "Reading bgen file \"" << bgen2 << "\"...\n" ;
 	results.push_back( read_gen_file( bgen2 )) ;
+	std::cerr << "Reading sorted bgen file \"" << sorted_bgen2 << "\"...\n" ;
+	results.push_back( read_gen_file( sorted_bgen2 )) ;
+	std::cerr << "Reading compressed bgen file \"" << sorted_bgen2 << "\"...\n" ;
+	results.push_back( read_gen_file( compressed_bgen2 )) ;
 	std::cerr << "Reading gen.gz file \"" << zgen2 << "\"...\n" ;
 	results.push_back( read_gen_file( zgen2 )) ;
 
 	TEST_ASSERT( gen_file_snp_data_source.number_of_samples() == data::number_of_samples ) ;
 	TEST_ASSERT( bgen_file_snp_data_source.number_of_samples() == data::number_of_samples ) ;
+	TEST_ASSERT( sorted_bgen_file_snp_data_source.number_of_samples() == data::number_of_samples ) ;
+	TEST_ASSERT( compressed_bgen_file_snp_data_source.number_of_samples() == data::number_of_samples ) ;
 	TEST_ASSERT( zgen_file_snp_data_source.number_of_samples() == data::number_of_samples ) ;
 
 	TEST_ASSERT( gen_file_snp_data_source.total_number_of_snps() == data::number_of_snps ) ;
 	TEST_ASSERT( bgen_file_snp_data_source.total_number_of_snps() == data::number_of_snps ) ;
+	TEST_ASSERT( sorted_bgen_file_snp_data_source.total_number_of_snps() == data::number_of_snps ) ;
+	TEST_ASSERT( compressed_bgen_file_snp_data_source.total_number_of_snps() == data::number_of_snps ) ;
 	TEST_ASSERT( zgen_file_snp_data_source.total_number_of_snps() == data::number_of_snps ) ;
 
 	TEST_ASSERT( gen_file_snp_data_source2.number_of_samples() == data::number_of_samples ) ;
 	TEST_ASSERT( bgen_file_snp_data_source2.number_of_samples() == data::number_of_samples ) ;
+	TEST_ASSERT( sorted_bgen_file_snp_data_source2.number_of_samples() == data::number_of_samples ) ;
+	TEST_ASSERT( compressed_bgen_file_snp_data_source2.number_of_samples() == data::number_of_samples ) ;
 	TEST_ASSERT( zgen_file_snp_data_source2.number_of_samples() == data::number_of_samples ) ;
 
 	TEST_ASSERT( gen_file_snp_data_source2.total_number_of_snps() == data::number_of_snps ) ;
 	TEST_ASSERT( bgen_file_snp_data_source2.total_number_of_snps() == data::number_of_snps ) ;
+	TEST_ASSERT( sorted_bgen_file_snp_data_source2.total_number_of_snps() == data::number_of_snps ) ;
+	TEST_ASSERT( compressed_bgen_file_snp_data_source2.total_number_of_snps() == data::number_of_snps ) ;
 	TEST_ASSERT( zgen_file_snp_data_source2.total_number_of_snps() == data::number_of_snps ) ;
 
 	for( std::size_t i = 0; i < results.size(); ++i ) {

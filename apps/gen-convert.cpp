@@ -75,7 +75,8 @@ struct GenConvertProcessor
 public:
 	static void declare_options( OptionProcessor & options ) {
 		
-		// File options		
+		// File options
+		options.declare_group( "File options" ) ;
 	    options[ "-g" ]
 	        .set_description( "Path of gen file to input" )
 	        .set_is_required()
@@ -86,6 +87,8 @@ public:
 	        .set_description( "Path of gen file to output" )
 			.set_takes_single_value()
 			.set_takes_value_by_position(2) ;
+
+		options.declare_group( "Other options" ) ;
 			
 		options [ "-force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
@@ -93,6 +96,9 @@ public:
 		options [ "-chromosome" ]
 			.set_description( "Override the chromosomal values inferred from the input file(s).")
 			.set_takes_single_value() ;
+		options [ "-sort" ]
+			.set_description( "Sort the output files by SNP chromosome, position, and RSID.  This is only "
+				"supported if bgen output format is used." ) ;
 	}
 
 	GenConvertProcessor( OptionProcessor const& options )
@@ -201,7 +207,13 @@ private:
 	}
 
 	void add_gen_file_to_chain( genfile::SNPDataSinkChain& chain, std::string const& filename ) {
-			std::auto_ptr< genfile::SNPDataSink > snp_data_sink( genfile::SNPDataSink::create( filename )) ;
+			std::auto_ptr< genfile::SNPDataSink > snp_data_sink(
+				genfile::SNPDataSink::create(
+					filename,
+					"Created by gen-convert",
+					m_options.check_if_option_was_supplied( "-sort" )
+				)
+			) ;
 			chain.add_sink( snp_data_sink ) ;
 	}
 
