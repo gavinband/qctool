@@ -13,14 +13,14 @@
 	#define AUTO_TEST_CASE( param ) void param()
 	#define TEST_ASSERT( param ) assert( param )
 #endif
-#include "SNPDataSource.hpp"
-#include "SNPDataSourceChain.hpp"
-#include "GenFileSNPDataSource.hpp"
-#include "BGenFileSNPDataSource.hpp"
-#include "SNPDataSink.hpp"
-#include "GenFileSNPDataSink.hpp"
-#include "BGenFileSNPDataSink.hpp"
-#include "bgen.hpp"
+#include "genfile/SNPDataSource.hpp"
+#include "genfile/SNPDataSourceChain.hpp"
+#include "genfile/GenFileSNPDataSource.hpp"
+#include "genfile/BGenFileSNPDataSource.hpp"
+#include "genfile/SNPDataSink.hpp"
+#include "genfile/GenFileSNPDataSink.hpp"
+#include "genfile/BGenFileSNPDataSink.hpp"
+#include "genfile/bgen.hpp"
 #include "stdint.h"
 
 
@@ -197,8 +197,8 @@ std::vector< SnpData > read_snp_data( genfile::SNPDataSource& snp_data_source ) 
 	return result ;
 }
 
-std::vector< SnpData > read_gen_files( std::vector< std::string > const& filenames ) {
-	std::auto_ptr< genfile::SNPDataSource > snp_data_source = genfile::SNPDataSource::create( filenames ) ;
+std::vector< SnpData > read_gen_files( std::vector< genfile::wildcard::FilenameMatch > const& filenames ) {
+	std::auto_ptr< genfile::SNPDataSource > snp_data_source = genfile::SNPDataSource::create_chain( filenames ) ;
 	return read_snp_data( *snp_data_source ) ;
 }
 
@@ -207,7 +207,7 @@ AUTO_TEST_CASE( test_snp_data_source_chain ) {
 	std::string gen = tmpnam(0) + std::string( ".gen" );
 	std::string gen2 = tmpnam(0) + std::string( ".gen" );
 
-	std::vector< std::string > filenames ;
+	std::vector< genfile::wildcard::FilenameMatch > filenames ;
 	filenames.push_back( gen ) ;
 	filenames.push_back( gen2 ) ;
 

@@ -4,8 +4,13 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "../config.hpp"
+#if HAVE_BOOST_FUNCTION
 #include <boost/function.hpp>
+#endif
 #include "snp_data_utils.hpp"
+#include "wildcard.hpp"
+#include "GenomePosition.hpp"
 
 namespace genfile {
 	struct SNPDataSourceError: public SNPDataError { char const* what() const throw() { return "SNPDataSourceError" ; } } ;
@@ -21,17 +26,25 @@ namespace genfile {
 	class SNPDataSource: public SNPDataBase
 	{
 	public:
-
+		typedef std::auto_ptr< SNPDataSource > UniquePtr ;
+		// The following methods are factory functions
+		static UniquePtr create( std::string const& filename, Chromosome = UnidentifiedChromosome ) ;
+		static UniquePtr create( std::string const& filename, Chromosome, CompressionType compression_type ) ;
+		static UniquePtr create_chain( std::vector< wildcard::FilenameMatch > const& matches ) ;
+		
+	public:
 		SNPDataSource() ;
 		virtual ~SNPDataSource() ;
 
-	public:
-		// The following methods are factory functions
-		static std::auto_ptr< SNPDataSource > create( std::string const& filename, Chromosome = UnidentifiedChromosome ) ;
-		static std::auto_ptr< SNPDataSource > create( std::string const& filename, Chromosome, CompressionType compression_type ) ;
-		static std::auto_ptr< SNPDataSource > create( std::vector< std::string > const& filenames ) ;
+		void reset_to_start() ;
 
+		#if HAVE_BOOST_FUNCTION
+			typedef boost::function< void() > source_reset_callback_t ;
+		#else
+			typedef void( *source_reset_callback_t )() ;
+		#endif
 
+		void set_source_reset_callback( source_reset_callback_t ) ;
 
 		// The next five functions form the main interface for reading snp data. 
 		// These typedefs reflect the signatures which the various setter objects
@@ -64,7 +77,7 @@ namespace genfile {
 		// 2. a snp with chromosome/position greater than the upper bound is found; or
 		// 3. the source is exhausted
 		// In case 1., read the snp data and return true; otherwise return false.
-		bool read_next_snp_with_position_in_range(
+		bool get_next_snp_with_position_in_range(
 			IntegerSetter const& set_number_of_samples,
 			StringSetter const& set_SNPID,
 			StringSetter const& set_RSID,
@@ -72,7 +85,6 @@ namespace genfile {
 			SNPPositionSetter const& set_SNP_position,
 			AlleleSetter const& set_allele1,
 			AlleleSetter const& set_allele2,
-			GenotypeProbabilitySetter const& set_genotype_probabilities,
 			Chromosome chromosome_lower_bound,
 			Chromosome chromosome_upper_bound,
 			uint32_t position_lower_bound,
@@ -85,7 +97,7 @@ namespace genfile {
 		// 2. a snp with position greater than the given position is found; or
 		// 3. the source is exhausted
 		// In case 1., read the snp data and return true; otherwise return false.
-		bool read_next_snp_with_specified_position(
+		bool get_next_snp_with_specified_position(
 			IntegerSetter const& set_number_of_samples,
 			StringSetter const& set_SNPID,
 			StringSetter const& set_RSID,
@@ -93,9 +105,20 @@ namespace genfile {
 			SNPPositionSetter const& set_SNP_position,
 			AlleleSetter const& set_allele1,
 			AlleleSetter const& set_allele2,
-			GenotypeProbabilitySetter const& set_genotype_probabilities,
 			Chromosome specified_chromosome,
 			uint32_t specified_SNP_position
+		) ;
+		
+		// As above but take a GenomePosition.
+		bool get_next_snp_with_specified_position(
+			IntegerSetter const& set_number_of_samples,
+			StringSetter const& set_SNPID,
+			StringSetter const& set_RSID,
+			ChromosomeSetter const& set_chromosome,
+			SNPPositionSetter const& set_SNP_position,
+			AlleleSetter const& set_allele1,
+			AlleleSetter const& set_allele2,
+			GenomePosition specified_position
 		) ;
 		
 		// Function: get_snp_identifying_data()
@@ -118,7 +141,6 @@ namespace genfile {
 		// For each snp, you must call get_snp_identifying_data() at least once before
 		// calling this function.
 		SNPDataSource& read_snp_probability_data(
-			uint32_t* number_of_samples,
 			GenotypeProbabilitySetter const& set_genotype_probabilities
 		) ;
 
@@ -129,16 +151,15 @@ namespace genfile {
 		SNPDataSource& ignore_snp_probability_data() ;
 
 	public:
+		// Return the number of snps which have been read from the source so far.
+		std::size_t number_of_snps_read() const { return m_number_of_snps_read ; }
+
 		// Implicit conversion to bool.  Return true if there have been no errors so far.
 		virtual operator bool() const = 0 ;
 		// Return the number of samples represented in the snps in this source.
 		virtual unsigned int number_of_samples() const = 0;
 		// Return the total number of snps the source contains.
 		virtual unsigned int total_number_of_snps() const = 0 ;
-
-	public:
-		// Return the number of snps which have been read from the source so far.
-		std::size_t number_of_snps_read() const { return m_number_of_snps_read ; }
 
 	protected:
 
@@ -153,11 +174,11 @@ namespace genfile {
 		) = 0 ;	
 
 		virtual void read_snp_probability_data_impl(
-		 	uint32_t* number_of_samples,
 			GenotypeProbabilitySetter const& set_genotype_probabilities
 		) = 0 ;
 
 		virtual void ignore_snp_probability_data_impl() = 0 ;
+		virtual void reset_to_start_impl() = 0 ;
 
 	protected:
 
@@ -171,6 +192,9 @@ namespace genfile {
 
 		// state variable SNP identifying data
 		State m_state ;
+
+		// callbacks
+		source_reset_callback_t m_source_reset_callback ;
 	} ;
 
 	class IdentifyingDataCachingSNPDataSource: public SNPDataSource
@@ -184,6 +208,7 @@ namespace genfile {
 			char* allele1,
 			char* allele2
 		) = 0 ;
+		
 
 		void get_snp_identifying_data_impl( 
 			IntegerSetter const& set_number_of_samples,

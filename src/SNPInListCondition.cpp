@@ -9,7 +9,7 @@
 #include "GenRowStatistics.hpp"
 #include "string_utils.hpp"
 
-#include "SNPDataSource.hpp"
+#include "genfile/SNPDataSource.hpp"
 #include "wildcard.hpp"
 
 SNPInListCondition::SNPInListCondition( std::string const& filename )

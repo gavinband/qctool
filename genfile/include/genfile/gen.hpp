@@ -187,7 +187,7 @@ namespace genfile {
 		) {
 			uint32_t number_of_samples ;
 			read_snp_block( aStream, set_value( number_of_samples ), ignore(), ignore(), ignore(), ignore(), ignore(), ignore() ) ;
-			if( !aStream && !aStream.eof()) {
+			if( !aStream ) {
 				throw FileStructureInvalidError() ;
 			}
 
@@ -210,9 +210,11 @@ namespace genfile {
 			// Most editors (vim, nano, but not emacs) automatically add a newline to the end of the file.
 			// If the file has a trailing newline, we already have the correct count.
 			// But if not, we've undercounted by one.
-			std::size_t pos = aStream.gcount() - 1 ;
-			if( buffer[pos] != '\n' ) {
-				++number_of_snp_blocks ;
+			if( aStream.gcount() > 0 ) {
+				std::size_t pos = aStream.gcount() - 1 ;
+				if( buffer[pos] != '\n' ) {
+					++number_of_snp_blocks ;
+				}
 			}
 
 			// We should have reached eof.
@@ -221,6 +223,8 @@ namespace genfile {
 				set_number_of_snp_blocks( number_of_snp_blocks ) ;
 				set_number_of_samples( number_of_samples ) ;
 				set_flags( 0 ) ;
+			} else {
+				throw FileStructureInvalidError() ;
 			}
 		}
 

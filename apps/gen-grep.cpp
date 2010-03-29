@@ -1,7 +1,7 @@
 #include <limits>
 
-#include "SNPDataSource.hpp"
-#include "SNPDataSourceChain.hpp"
+#include "genfile/SNPDataSource.hpp"
+#include "genfile/SNPDataSourceChain.hpp"
 #include "CmdLineOptionProcessor.hpp"
 #include "ProgramFlow.hpp"
 #include "PositionRange.hpp"

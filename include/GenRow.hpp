@@ -5,8 +5,8 @@
 #include <string>
 #include <iostream>
 #include "GenotypeProportions.hpp"
-#include "SNPDataSource.hpp"
-#include "SNPDataSink.hpp"
+#include "genfile/SNPDataSource.hpp"
+#include "genfile/SNPDataSink.hpp"
 
 class GenRowIdentifyingData
 {

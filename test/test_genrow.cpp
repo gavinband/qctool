@@ -13,9 +13,9 @@
 	#define TEST_ASSERT( param ) assert( param )
 #endif
 #include "GenRow.hpp"
-#include "endianness_utils.hpp"
+#include "genfile/endianness_utils.hpp"
 #include "stdint.h"
-#include "bgen.hpp"
+#include "genfile/bgen.hpp"
 
 namespace data {
 	std::string data =

@@ -25,6 +25,7 @@ namespace genfile {
 				m_current_sink = 0 ;
 			}
 			m_sinks.push_back( sink.release() ) ;
+			
 		}
 
 		operator bool() const {
@@ -43,7 +44,6 @@ namespace genfile {
 		}
 
 		SNPDataSink const& sink( std::size_t i ) const { return *m_sinks[ i ] ; }
-
 		std::size_t index_of_current_sink() const { return m_current_sink ; }
 
 	private:

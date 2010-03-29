@@ -3,8 +3,8 @@
 
 #include <vector>
 
-#include "SNPDataSource.hpp"
-#include "SNPDataSink.hpp"
+#include "genfile/SNPDataSource.hpp"
+#include "genfile/SNPDataSink.hpp"
 #include "ObjectSource.hpp"
 #include "Timer.hpp"
 #include "GenRow.hpp"

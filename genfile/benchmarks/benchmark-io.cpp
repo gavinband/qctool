@@ -17,7 +17,7 @@
 		double elapsed() const { return 0.0 ;}
 	} ;
 #endif
-#include "SNPDataSource.hpp"
+#include "genfile/SNPDataSource.hpp"
 
 
 // The following section defines the needed objects for use with the bgen.hpp implementation.

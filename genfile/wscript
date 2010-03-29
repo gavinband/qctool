@@ -12,7 +12,8 @@ def create_test( bld, name ):
 		source = [  'test/' + name + '.cpp' ],
 		uselib_local = 'genfile',
 		includes='./include',
-		unit_test=1
+		unit_test=1,
+		install_path=None
 	)
 
 def create_benchmark( bld, name ):
@@ -21,7 +22,8 @@ def create_benchmark( bld, name ):
 		target = name,
 		source = [  'benchmarks/' + name + '.cpp' ],
 		uselib_local = 'genfile',
-		includes='./include'
+		includes='./include',
+		install_path=None
 	)
 
 
@@ -38,11 +40,23 @@ def build( bld ):
 			'src/snp_data_utils.cpp',
 			'src/SNPDataSource.cpp',
 			'src/SNPDataSink.cpp',
+			'src/SNPDataSourceChain.cpp',
+			'src/SNPDataSourceRack.cpp',
 			'src/bgen.cpp',
-			'src/gen.cpp'
+			'src/gen.cpp',
+			'src/wildcard.cpp',
+			'src/Chromosome.cpp',
+			'src/GenFileSNPDataSource.cpp',
+			'src/BGenFileSNPDataSource.cpp',
+			'src/GenomePosition.cpp',
+			'src/SampleFilteringSNPDataSource.cpp',
+			'src/SNPIdentifyingDataTest.cpp',
+			'src/SNPFilteringSNPDataSource.cpp',
+			'src/SNPIDFieldsInListTest.cpp'
 		],
 		includes='./include',
-		uselib = 'BOOST ZLIB BOOST_IOSTREAMS'
+		uselib = 'BOOST ZLIB BOOST_IOSTREAMS BOOST_FILESYSTEM BOOST_SYSTEM',
+		export_incdirs = './include'
 	)
 	
 	create_benchmark( bld, 'benchmark-io' )
@@ -51,3 +65,5 @@ def build( bld ):
 	create_test( bld, 'test_bgen_snp_format' )
 	create_test( bld, 'test_genfile_io' )
 	create_test( bld, 'test_snp_data_source_chain' )
+	create_test( bld, 'test_snp_data_source_rack' )
+	create_test( bld, 'test_sample_filtering_snp_data_source' )

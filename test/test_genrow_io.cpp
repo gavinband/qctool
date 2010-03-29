@@ -13,10 +13,10 @@
 	#define TEST_ASSERT( param ) assert( param )
 #endif
 #include "GenRow.hpp"
-#include "endianness_utils.hpp"
+#include "genfile/endianness_utils.hpp"
 #include "stdint.h"
-#include "BGenFileSNPDataSink.hpp"
-#include "BGenFileSNPDataSource.hpp"
+#include "genfile/BGenFileSNPDataSink.hpp"
+#include "genfile/BGenFileSNPDataSource.hpp"
 
 namespace data {
 // Note: this first set of data must be in the format output -- e.g. no trailing spaces on the line

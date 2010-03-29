@@ -1,6 +1,6 @@
 #include <iostream>
-#include "endianness_utils.hpp"
-#include "bgen.hpp"
+#include "genfile/endianness_utils.hpp"
+#include "genfile/bgen.hpp"
 
 namespace genfile {
 	namespace bgen {

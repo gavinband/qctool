@@ -13,13 +13,13 @@
 	#define AUTO_TEST_CASE( param ) void param()
 	#define TEST_ASSERT( param ) assert( param )
 #endif
-#include "SNPDataSource.hpp"
-#include "GenFileSNPDataSource.hpp"
-#include "BGenFileSNPDataSource.hpp"
-#include "SNPDataSink.hpp"
-#include "GenFileSNPDataSink.hpp"
-#include "BGenFileSNPDataSink.hpp"
-#include "bgen.hpp"
+#include "genfile/SNPDataSource.hpp"
+#include "genfile/GenFileSNPDataSource.hpp"
+#include "genfile/BGenFileSNPDataSource.hpp"
+#include "genfile/SNPDataSink.hpp"
+#include "genfile/GenFileSNPDataSink.hpp"
+#include "genfile/BGenFileSNPDataSink.hpp"
+#include "genfile/bgen.hpp"
 #include "stdint.h"
 
 

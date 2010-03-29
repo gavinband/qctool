@@ -15,10 +15,10 @@
 #include "Whitespace.hpp"
 #include "FileUtil.hpp"
 #include "GenRow.hpp"
-#include "SNPDataSource.hpp"
-#include "SNPDataSourceChain.hpp"
-#include "SNPDataSink.hpp"
-#include "SNPDataSinkChain.hpp"
+#include "genfile/SNPDataSource.hpp"
+#include "genfile/SNPDataSourceChain.hpp"
+#include "genfile/SNPDataSink.hpp"
+#include "genfile/SNPDataSinkChain.hpp"
 #include "string_utils.hpp"
 #include "wildcard.hpp"
 #include "parse_utils.hpp"
@@ -345,7 +345,7 @@ private:
 	}
 
 	bool read_next_snp_with_specified_position( genfile::SNPDataSource& snp_data_source, GenRow& row, genfile::Chromosome chromosome, uint32_t specified_SNP_position ) {
-		return snp_data_source.read_next_snp_with_specified_position(
+		if( snp_data_source.get_next_snp_with_specified_position(
 			boost::bind< void >( &GenRow::set_number_of_samples, &row, _1 ),
 			boost::bind< void >( &GenRow::set_SNPID, &row, _1 ),
 			boost::bind< void >( &GenRow::set_RSID, &row, _1 ),
@@ -353,10 +353,14 @@ private:
 			boost::bind< void >( &GenRow::set_SNP_position, &row, _1 ),
 			boost::bind< void >( &GenRow::set_allele1, &row, _1 ),
 			boost::bind< void >( &GenRow::set_allele2, &row, _1 ),
-			boost::bind< void >( &GenRow::set_genotype_probabilities, &row, _1, _2, _3, _4 ),
-			chromosome,
-			specified_SNP_position 
-		) ;
+			genfile::GenomePosition( chromosome, specified_SNP_position )
+		)) {
+			return snp_data_source.read_snp_probability_data(
+				boost::bind< void >( &GenRow::set_genotype_probabilities, &row, _1, _2, _3, _4 )
+			) ;
+		} else {
+			return false ;
+		}
 	}
 
 	void close_all_files() {

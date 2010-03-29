@@ -6,7 +6,7 @@
 #include <memory>
 #include <stddef.h>
 
-#include "SNPDataSink.hpp"
+#include "genfile/SNPDataSink.hpp"
 
 struct SNPPositionSink: public genfile::SNPDataSink
 {

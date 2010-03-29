@@ -7,7 +7,7 @@
 #include <stddef.h>
 
 #include "SNPInListCondition.hpp"
-#include "SNPDataSink.hpp"
+#include "genfile/SNPDataSink.hpp"
 
 struct SNPIDSink: public genfile::SNPDataSink
 {

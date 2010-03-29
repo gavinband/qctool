@@ -4,10 +4,10 @@
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/device/file.hpp>
 
-#include "snp_data_utils.hpp"
-#include "SNPDataSink.hpp"
-#include "GenFileSNPDataSink.hpp"
-#include "BGenFileSNPDataSink.hpp"
+#include "genfile/snp_data_utils.hpp"
+#include "genfile/SNPDataSink.hpp"
+#include "genfile/GenFileSNPDataSink.hpp"
+#include "genfile/BGenFileSNPDataSink.hpp"
 
 namespace genfile {
 
