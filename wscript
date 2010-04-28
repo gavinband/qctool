@@ -9,8 +9,8 @@ VERSION = "1.2"
 
 def set_options( opt ):
 	opt.tool_options( 'compiler_cxx' )
+	opt.tool_options( 'boost' )
 	opt.add_option( "--staticbuild", action='store_true', default=False, help='Create statically-linked executables if possible.')
-	opt.add_option( '--boost_prefix', default='', help='Path to the boost installion (if not in a system-wide location)')
 
 #-----------------------------------
 # CONFIGURE
@@ -51,45 +51,20 @@ def check_for_boost_components( conf ):
 		check_for_boost_lib( conf, 'system', min_version='1.36', uselib="BOOST_SYSTEM" )
 
 def check_for_boost_headers( conf, min_version ):
-	if Options.options.boost_prefix != '':
-		(lib_path, include_path) = get_boost_paths( Options.options.boost_prefix )
-		if conf.check_boost( min_version='1.36.1', cpppath = include_path ):
-			conf.define( 'HAVE_BOOST_TIMER', 1 )
-			conf.define( 'HAVE_BOOST_MATH', 1 )
-			conf.define( 'HAVE_BOOST_FUNCTION', 1 )
-			conf.define( 'HAVE_BOOST_RANDOM', 1 )
-			return True
-	else:
-		if conf.check_boost( min_version='1.36.1' ):
-			conf.define( 'HAVE_BOOST_TIMER', 1 )
-			conf.define( 'HAVE_BOOST_MATH', 1 )
-			conf.define( 'HAVE_BOOST_FUNCTION', 1 )
-			return True
+	if conf.check_boost( min_version='1.36.1' ):
+		conf.define( 'HAVE_BOOST_TIMER', 1 )
+		conf.define( 'HAVE_BOOST_MATH', 1 )
+		conf.define( 'HAVE_BOOST_FUNCTION', 1 )
+		return True
 	return False
-
-def get_boost_paths( boost_prefix ):
-	if boost_prefix[-1] != '/':
-		boost_prefix += '/'
-	for version in ['1_40', '1_39', '1_38', '1_37', '1_36']:
-		include_path = boost_prefix + 'include/boost-' + version
-		if os.path.exists( include_path ):
-			break
-	lib_path = boost_prefix + 'lib'
-	return (lib_path, include_path)
 
 def check_for_boost_lib( conf, lib, min_version, uselib ):
 	if Options.options.staticbuild:
 		static_selector = 'onlystatic'
 	else:
 		static_selector = 'nostatic'
-
-	if Options.options.boost_prefix != '':
-		(lib_path, include_path) = get_boost_paths( Options.options.boost_prefix )
-		if conf.check_boost( lib = lib, min_version = min_version, static=static_selector, uselib = uselib, cpppath = include_path, libpath = lib_path ):
-			conf.define( 'HAVE_' + uselib, 1 )
-	else:
-		if conf.check_boost( lib = lib, min_version = min_version, static=static_selector, uselib = uselib ):
-			conf.define( 'HAVE_' + uselib, 1 )
+	if conf.check_boost( lib = lib, min_version = min_version, static=static_selector, uselib = uselib ):
+		conf.define( 'HAVE_' + uselib, 1 )
 
 def check_for_zlib( conf ):
 	if Options.options.staticbuild:
