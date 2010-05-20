@@ -51,7 +51,7 @@ def check_for_boost_components( conf ):
 		check_for_boost_lib( conf, 'system', min_version='1.36', uselib="BOOST_SYSTEM" )
 
 def check_for_boost_headers( conf, min_version ):
-	if conf.check_boost( min_version='1.36.1' ):
+	if conf.check_boost( min_version = min_version ):
 		conf.define( 'HAVE_BOOST_TIMER', 1 )
 		conf.define( 'HAVE_BOOST_MATH', 1 )
 		conf.define( 'HAVE_BOOST_FUNCTION', 1 )
@@ -191,7 +191,10 @@ def build( bld ):
 
 	# Build release variants as well.
 	for obj in [] + bld.all_task_gen:
+	    install_path = obj.install_path
 	    new_obj = obj.clone('release')
+	    new_obj.install_path = install_path
+	    obj.install_path = None
 
 	#---------------------
 	# tests
@@ -221,7 +224,8 @@ def create_app( bld, name, uselib = '', uselib_local = '' ):
 		source = [  'apps/' + name + '.cpp' ],
 		includes='./include ./genfile/include ./statfile/include',
 		uselib_local = uselib_local,
-		uselib = uselib
+		uselib = uselib,
+		install_path = os.path.join( bld.env[ 'PREFIX' ], 'bin' )
 	)
 
 def create_test( bld, name ):
@@ -231,7 +235,8 @@ def create_test( bld, name ):
 		source = [  'test/' + name + '.cpp' ],
 		uselib_local = 'gen-tools-optionprocessor gen-tools-lib gen-tools-string gen-tools-exception genfile',
 		includes='./include ./genfile/include',
-		unit_test=1
+		unit_test=1,
+		install_path=None
 	)
 
 def create_benchmark( bld, name ):
@@ -240,7 +245,8 @@ def create_benchmark( bld, name ):
 		target = name,
 		source = [  'benchmarks/' + name + '.cpp' ],
 		uselib_local = 'gen-tools-optionprocessor gen-tools-lib gen-tools-string gen-tools-exception genfile',
-		includes='./include ./genfile/include'
+		includes='./include ./genfile/include',
+		install_path=None
 	)
 
 #-----------------------------------

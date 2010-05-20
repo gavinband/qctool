@@ -1,5 +1,5 @@
 /*
- * This program, qc-tool, selects rows from a GEN file according to certain criteria.
+ * This program, qctool, selects rows from a GEN file according to certain criteria.
  * - rows where some genotype data is missing, or none is.
  * - rows where genotype data is, or is not in hardy-weinberg equilibrium.
  * - rows with SNP IDs in a given list.
@@ -83,7 +83,7 @@ public:
 	    options[ "-g" ]
 	        .set_description( 	"Path of gen file(s) to input.  "
 								"To specify several files, either repeat this option or use the numerical wildcard character '#', which "
-								"matches numbers from 1 to 100.  For example, \"qc-tool -g myfile_#.gen\" will find all files of "
+								"matches numbers from 1 to 100.  For example, \"qctool -g myfile_#.gen\" will find all files of "
 								"the form \"myfile_N.gen\", where N can be 1, 002, 099, etc." )
 	        .set_is_required()
 			.set_takes_values()
@@ -526,12 +526,12 @@ struct QCToolCmdLineContext: public QCToolContext
 	std::vector< std::size_t >& sample_filter_failure_counts() { return m_sample_filter_failure_counts ; }
 
 	void write_start_banner() {
-		m_logger << "\nWelcome to qc-tool\n"
+		m_logger << "\nWelcome to qctool\n"
 		 	<< "(C) 2009 University of Oxford\n\n";
 	}
 
 	void write_end_banner() {
-		m_logger << "\nThank you for using qc-tool.\n" ;
+		m_logger << "\nThank you for using qctool.\n" ;
 	}
 
 	void write_preamble() {
@@ -616,7 +616,7 @@ struct QCToolCmdLineContext: public QCToolContext
 			for( std::size_t i = 0; i < m_errors.size(); ++i ) {
 				m_logger << "!! ERROR: " << m_errors[i] << "\n\n" ;
 			}
-			m_logger << "!! Please correct the above errors and re-run qc-tool.\n" ;
+			m_logger << "!! Please correct the above errors and re-run qctool.\n" ;
 			throw HaltProgramWithReturnCode( -1 ) ;
 		}
 

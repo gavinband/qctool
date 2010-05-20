@@ -12,7 +12,8 @@ def create_test( bld, name ):
 		source = [  'test/' + name + '.cpp' ],
 		uselib_local = 'statfile',
 		includes='./include',
-		unit_test=1
+		unit_test=1,
+		install_path=None
 	)
 
 def create_benchmark( bld, name ):
@@ -21,7 +22,8 @@ def create_benchmark( bld, name ):
 		target = name,
 		source = [  'benchmarks/' + name + '.cpp' ],
 		uselib_local = 'statfile',
-		includes='./include'
+		includes='./include',
+		install_path=None
 	)
 
 
