@@ -92,7 +92,7 @@ namespace genfile {
 		std::vector< std::string > result ;
 		std::string line ;
 		std::getline( stream, line ) ;
-		result = string_utils::split_discarding_empty_entries( string_utils::to_lower( line )) ;
+		result = string_utils::split_discarding_empty_entries( string_utils::to_lower( line ), " " ) ;
 		if( result.size() < 3 ) {
 			throw MalformedInputError( m_filename, 0 ) ;
 		}
@@ -112,7 +112,7 @@ namespace genfile {
 		std::vector< ColumnType > result ;
 		std::string line ;
 		std::getline( stream, line ) ;
-		std::vector< std::string > type_strings = string_utils::split_discarding_empty_entries( line ) ;
+		std::vector< std::string > type_strings = string_utils::split_discarding_empty_entries( line, " " ) ;
 		if( type_strings.size() != column_names.size() ) {
 			throw MalformedInputError( m_filename, 1 ) ;
 		}
@@ -163,7 +163,7 @@ namespace genfile {
 		std::vector< std::vector< Entry > > result ;
 		std::string line ;
 		while( std::getline( stream, line ) ) {
-			std::vector< std::string > string_entries = string_utils::split_discarding_empty_entries( line ) ;
+			std::vector< std::string > string_entries = string_utils::split_discarding_empty_entries( line, " " ) ;
 			if( string_entries.size() != column_types.size() ) {
 				throw MalformedInputError( m_filename, 2 + result.size() ) ;
 			}
