@@ -32,7 +32,6 @@ void SampleRow::reset( std::vector< genfile::CohortIndividualSource::SingleColum
 		assert( ostr.str().size() == 1 ) ;
 		m_column_types[i] = ostr.str()[0] ;
 	}
-	m_id1 = m_id2 = "" ;
 	m_further_data.clear() ;
 
 	assert( m_column_headings.size() >= 3 ) ;
@@ -58,8 +57,8 @@ void SampleRow::add_column( std::string const& heading, char type, Entry value )
 }
 
 bool SampleRow::has_column( std::string const& heading ) const {
-	FurtherData::const_iterator where = m_further_data.find( heading ) ;
-	return ( where != m_further_data.end()) ;
+	std::vector< std::string >::const_iterator where = std::find( m_column_headings.begin(), m_column_headings.end(), heading ) ;
+	return ( where != m_column_headings.end()) ;
 }
 
 bool SampleRow::has_value( std::string const& name ) const {
@@ -77,19 +76,12 @@ double SampleRow::get_double_value( std::string const& heading ) const {
 	return where->second.as< double >() ;
 }
 
-std::string SampleRow::get_string_value( std::string const& name ) const {
-	if( name == "ID1" ) {
-		return m_id1 ;
-	}
-	else if( name == "ID2" ) {
-		return m_id2 ;
-	}
-	else {
-		double value = get_double_value( name ) ;
-		std::ostringstream ostr ;
-		ostr << value ;
-		return ostr.str() ;
-	}
+std::string SampleRow::get_string_value( std::string const& heading ) const {
+	std::ostringstream ostr ;
+	FurtherData::const_iterator where = m_further_data.find( heading ) ;
+	assert( where != m_further_data.end() ) ;
+	ostr << where->second ;
+	return ostr.str() ;
 }
 
 void SampleRow::read_ith_sample_from_source( std::size_t sample_i, genfile::CohortIndividualSource const& source ) {
@@ -102,8 +94,7 @@ void SampleRow::read_ith_sample_from_source( std::size_t sample_i, genfile::Coho
 } 
 
 std::ostream& operator<<( std::ostream& aStream, SampleRow const& row ) {
-	aStream << row.ID1() << " " << row.ID2() ;
-	for( std::size_t i = 2 ; i < row.column_headings().size(); ++i ) {
+	for( std::size_t i = 0 ; i < row.column_headings().size(); ++i ) {
 		if( i > 0 )
 			aStream << " " ;
 		aStream << row.further_data( row.column_headings()[i] );
