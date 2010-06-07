@@ -35,12 +35,13 @@
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/SNPDataSinkChain.hpp"
 #include "genfile/TrivialSNPDataSink.hpp"
-#include "SampleInputFile.hpp"
+#include "genfile/CategoricalCohortIndividualSource.hpp"
+
 #include "SampleOutputFile.hpp"
 #include "GenotypeAssayStatisticFactory.hpp"
 #include "wildcard.hpp"
-#include "string_utils.hpp"
-#include "parse_utils.hpp"
+#include "string_utils/string_utils.hpp"
+#include "string_utils/parse_utils.hpp"
 #include "progress_bar.hpp"
 #include "FileBackupCreator.hpp"
 #include "InputToOutputFilenameMapper.hpp"
@@ -255,10 +256,10 @@ public:
 	InputToOutputFilenameMapper const& snp_stats_filename_mapper() const { return m_snp_stats_sink_mapper ; }
 	InputToOutputFilenameMapper const& snp_excl_list_filename_mapper() const { return m_output_snp_excl_file_mapper ; }
 	std::vector< std::string > row_statistics_specs() const {
-		return split_and_strip_discarding_empty_entries( get_value< std::string >( "-snp-stats-columns" ), "," ) ;
+		return string_utils::split_and_strip_discarding_empty_entries( get_value< std::string >( "-snp-stats-columns" ), "," ) ;
 	}
 	std::vector< std::string > sample_statistics_specs() const {
-		return split_and_strip_discarding_empty_entries( get_value< std::string >( "-sample-stats-columns" ), "," ) ;
+		return string_utils::split_and_strip_discarding_empty_entries( get_value< std::string >( "-sample-stats-columns" ), "," ) ;
 	}
 	
 private:
@@ -674,7 +675,7 @@ struct QCToolCmdLineContext: public QCToolContext
 			<< "  " << m_snp_data_source->total_number_of_snps() << ".\n" ;
 		if( m_snp_filter->number_of_subconditions() > 0 ) {
 			for( std::size_t i = 0; i < m_snp_filter->number_of_subconditions(); ++i ) {
-				m_logger << std::setw(36) << ("...which failed \"" + to_string( m_snp_filter->subcondition( i )) + "\":")
+				m_logger << std::setw(36) << ("...which failed \"" + string_utils::to_string( m_snp_filter->subcondition( i )) + "\":")
 					<< "  " << m_snp_filter_failure_counts[i] << ".\n" ;
 			}
 
@@ -688,7 +689,7 @@ struct QCToolCmdLineContext: public QCToolContext
 			<< "  " << m_snp_data_source->number_of_samples() << ".\n" ;
 		if( m_sample_filter->number_of_subconditions() > 0 ) {
 			for( std::size_t i = 0 ; i < m_sample_filter_failure_counts.size(); ++ i ) {
-				m_logger << std::setw(36) << ("...which failed \"" + to_string( m_sample_filter->subcondition( i )) + "\":")
+				m_logger << std::setw(36) << ("...which failed \"" + string_utils::to_string( m_sample_filter->subcondition( i )) + "\":")
 					<< "  " << m_sample_filter_failure_counts[i] << ".\n" ;
 			}
 			m_logger << std::setw(36) << "(total failures:" << "  " << m_indices_of_filtered_out_samples.size() << ").\n" ;
@@ -896,23 +897,6 @@ private:
 		m_fltrd_out_snp_data_sink.reset( new genfile::SNPDataSinkChain() ) ;
 	}
 
-	void open_sample_row_source() {
-		m_sample_source.reset( new NullObjectSource< SampleRow >()) ;
-		if( m_options.input_sample_filename() != "" ) {
-			try {
-				m_sample_source.reset( new SampleInputFile< SimpleFileObjectSource< SampleRow > >( open_file_for_input( m_options.input_sample_filename() ))) ;
-			}
-			catch (SampleInputFileException const& e ) {
-				m_logger << "A problem occurred opening the sample file.\n" ;
-				throw HaltProgramWithReturnCode( -1 ) ;
-			}
-		}
-	} ;
-
-	void reset_sample_row_source() {
-		m_sample_source.reset( new NullObjectSource< SampleRow >()) ;
-	}
-
 	void open_sample_row_sink() {
 		m_fltrd_in_sample_sink.reset( new NullObjectSink< SampleRow >() ) ;
 		if( m_options.output_sample_filename() != "" ) {
@@ -967,7 +951,7 @@ private:
 	}
 
 	void construct_sample_statistics() {
-		std::vector< std::string > sample_statistics_specs = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-sample-stats-columns" ), "," ) ;
+		std::vector< std::string > sample_statistics_specs = string_utils::split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-sample-stats-columns" ), "," ) ;
 		SampleRowStatisticFactory::add_statistics( sample_statistics_specs, m_sample_statistics ) ;
 	}
 
@@ -1088,22 +1072,18 @@ private:
 	
 	void unsafe_load_sample_rows( std::size_t const expected_number_of_samples ) {
 		if( m_options.input_sample_filename() != "" ) {
-			Timer timer ;
-			m_logger << "(Preprocessing sample file...)" ;
-			open_sample_row_source() ;			
+			genfile::CategoricalCohortIndividualSource sample_source( m_options.input_sample_filename() ) ;
 			SampleRow sample_row ;
-			while((*m_sample_source) >> sample_row ) {
+			for( std::size_t i = 0; i < sample_source.get_number_of_individuals(); ++i ) {
+				sample_row.read_ith_sample_from_source( i, sample_source ) ;
 				m_sample_rows.push_back( sample_row ) ;
 				if( !m_sample_filter->check_if_satisfied( sample_row )) {
 					m_indices_of_filtered_out_samples.push_back( m_sample_rows.size() - 1 ) ;
 				}
 			}
-
-			m_logger << "(" << std::fixed << std::setprecision(1) << timer.elapsed() << "s)\n" ;
 			if( m_sample_rows.size() != expected_number_of_samples ) {
 				throw NumberOfSamplesMismatchException() ;
 			}
-			reset_sample_row_source() ;
 		}
 		else {
 			m_sample_rows.resize( expected_number_of_samples ) ;
