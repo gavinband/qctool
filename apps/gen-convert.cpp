@@ -20,8 +20,8 @@
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/SNPDataSinkChain.hpp"
-#include "string_utils.hpp"
-#include "parse_utils.hpp"
+#include "string_utils/string_utils.hpp"
+#include "string_utils/parse_utils.hpp"
 #include "wildcard.hpp"
 #include "InputToOutputFilenameMapper.hpp"
 
@@ -129,7 +129,7 @@ private:
 			throw ;
 		}
 		catch( ChromosomeNotSuppliedError const& ) {
-			m_cout << wrap( "Error: the input filename contained no wildcard (#) character.  The gen file format does "
+			m_cout << string_utils::wrap( "Error: the input filename contained no wildcard (#) character.  The gen file format does "
 				"not support chromosome entries, and I can't deduce it from context, so you must specify the "
 				"chromosome using the -chromosome option.\n", 80 );
 			throw ;

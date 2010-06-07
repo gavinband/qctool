@@ -19,9 +19,9 @@
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/SNPDataSinkChain.hpp"
-#include "string_utils.hpp"
+#include "string_utils/string_utils.hpp"
 #include "wildcard.hpp"
-#include "parse_utils.hpp"
+#include "string_utils/parse_utils.hpp"
 #include "Timer.hpp"
 
 namespace globals {

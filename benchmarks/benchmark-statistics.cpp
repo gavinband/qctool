@@ -29,7 +29,7 @@
 #include "SimpleFileObjectSource.hpp"
 #include "GenotypeAssayStatisticFactory.hpp"
 #include "HardyWeinbergExactTestStatistic.hpp"
-#include "string_utils.hpp"
+#include "string_utils/string_utils.hpp"
 
 void process_options( OptionProcessor& options, int argc, char** argv ) {
     options[ "--g" ]
@@ -78,7 +78,7 @@ void process_gen_rows( ObjectSource< GenRow >& gen_row_source, OptionProcessor c
 	std::size_t number_of_iterations = options.get_value< std::size_t >( "--ni" ) ;
 
 	std::string statistics_spec_str = options.get_value< std::string >( "--statistics" ) ;
-	std::vector< std::string > statistic_specs = split_and_strip_discarding_empty_entries( statistics_spec_str, "," ) ;
+	std::vector< std::string > statistic_specs = string_utils::split_and_strip_discarding_empty_entries( statistics_spec_str, "," ) ;
 
 	try {		
 		// Read in a list of genRows.
