@@ -9,7 +9,7 @@
 #include "HardyWeinbergExactTestStatistic.hpp"
 #include "LikelihoodRatioTestStatistic.hpp"	
 #include "InformationStatistic.hpp"
-#include "string_utils.hpp"
+#include "string_utils/string_utils.hpp"
 
 
 void GenotypeAssayStatisticFactory::add_statistics( std::vector< std::string > statistic_specs, GenotypeAssayStatistics& statistics ) {
@@ -19,10 +19,10 @@ void GenotypeAssayStatisticFactory::add_statistics( std::vector< std::string > s
 }
 
 std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_statistic( std::string statistic_spec ) {
-	statistic_spec = strip( statistic_spec ) ;
+	statistic_spec = string_utils::strip( statistic_spec ) ;
 
 	// Handle statistic arithmetic
-	std::vector< std::string > bits = split( statistic_spec, "/" ) ;
+	std::vector< std::string > bits = string_utils::split( statistic_spec, "/" ) ;
 	if (bits.size() == 2) {
 		try {
 			std::auto_ptr< GenotypeAssayStatistic > first_stat_ptr, second_stat_ptr ;
@@ -34,7 +34,7 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 		}
 	}	
 
-	bits = split( statistic_spec, "*" ) ;
+	bits = string_utils::split( statistic_spec, "*" ) ;
 	if (bits.size() == 2) {
 		try {
 			std::auto_ptr< GenotypeAssayStatistic > first_stat_ptr, second_stat_ptr ;
@@ -46,7 +46,7 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 		}
 	}	
 
-	bits = split( statistic_spec, "+" ) ;
+	bits = string_utils::split( statistic_spec, "+" ) ;
 	if (bits.size() == 2) {
 		std::auto_ptr< GenotypeAssayStatistic > first_stat_ptr, second_stat_ptr ;
 		try {
@@ -58,7 +58,7 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 		}
 	}	
 
-	bits = split( statistic_spec, "-" ) ;
+	bits = string_utils::split( statistic_spec, "-" ) ;
 	if (bits.size() == 2) {
 		try {
 			std::auto_ptr< GenotypeAssayStatistic > first_stat_ptr, second_stat_ptr ;
@@ -152,7 +152,7 @@ std::auto_ptr< GenotypeAssayStatistic > GenRowStatisticFactory::create_statistic
 }
 
 std::auto_ptr< GenotypeAssayStatistic > SampleRowStatisticFactory::create_statistic( std::string statistic_spec ) {
-	statistic_spec = strip( statistic_spec ) ;
+	statistic_spec = string_utils::strip( statistic_spec ) ;
 	if( statistic_spec == "ID1" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new SampleRowID1 ) ;
 	}

@@ -16,7 +16,7 @@
 	#include <boost/filesystem.hpp>
 	namespace BFS = boost::filesystem ;
 #endif
-#include "parse_utils.hpp"
+#include "string_utils/parse_utils.hpp"
 
 // Return a stream representing a given input file, optionally with gzip decompression
 INPUT_FILE_PTR

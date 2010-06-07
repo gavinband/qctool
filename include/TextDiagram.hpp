@@ -273,15 +273,15 @@ namespace textutils {
 		}
 		
 		Dimensions get_space_needed_for_axes() const {
-			std::string y_lower_limit = to_string( y_limits().first ) ;
-			std::string y_upper_limit = to_string( y_limits().second ) ;
+			std::string y_lower_limit = string_utils::to_string( y_limits().first ) ;
+			std::string y_upper_limit = string_utils::to_string( y_limits().second ) ;
 			return Dimensions(
 				std::max( y_lower_limit.size(), y_upper_limit.size() ) + 2,
 				2
 			) ;
 		}
 		
-		std::string to_string( double const value ) const {
+		std::string string_utils::to_string( double const value ) const {
 			std::ostringstream ostr ;
 			ostr << std::fixed << value ;
 			return ostr.str() ;
@@ -301,8 +301,8 @@ namespace textutils {
 		}
 		
 		void draw_x_limits_if_there_is_space( Dimensions const& axes_dimensions, Dimensions const& canvas_dimensions, Canvas& canvas ) const {
-			std::string x_lower_limit = to_string( x_limits().first ) ;
-			std::string x_upper_limit = to_string( x_limits().second ) ;
+			std::string x_lower_limit = string_utils::to_string( x_limits().first ) ;
+			std::string x_upper_limit = string_utils::to_string( x_limits().second ) ;
 			
 			if( canvas_dimensions.first > ( x_lower_limit.size() + axes_dimensions.first - 1 )) {
 				for( std::size_t i = 0; i < x_lower_limit.size(); ++i ) {
@@ -318,8 +318,8 @@ namespace textutils {
 		}
 
 		void draw_y_limits_if_there_is_space( Dimensions const& axes_dimensions, Dimensions const& canvas_dimensions, Canvas& canvas ) const {
-			std::string y_lower_limit = to_string( y_limits().first ) ;
-			std::string y_upper_limit = to_string( y_limits().second ) ;
+			std::string y_lower_limit = string_utils::to_string( y_limits().first ) ;
+			std::string y_upper_limit = string_utils::to_string( y_limits().second ) ;
 			
 			if( canvas_dimensions.second >= axes_dimensions.second ) {
 				for( std::size_t i = 0; i < y_lower_limit.size(); ++i ) {

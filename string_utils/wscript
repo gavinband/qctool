@@ -10,10 +10,10 @@ def create_test( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'test/' + name + '.cpp' ],
-		uselib_local = 'genfile',
+		uselib_local = 'string_utils',
 		includes='./include',
 		unit_test=1,
-		install_path=None
+		install_path = None
 	)
 
 def create_benchmark( bld, name ):
@@ -21,9 +21,9 @@ def create_benchmark( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'benchmarks/' + name + '.cpp' ],
-		uselib_local = 'genfile',
+		uselib_local = 'string_utils',
 		includes='./include',
-		install_path=None
+		install_path = None
 	)
 
 
@@ -35,19 +35,10 @@ def build( bld ):
 	#---------------------
 	bld.new_task_gen(
 		features = 'cxx cstaticlib',
-		target = 'genfile',
+		target = 'string_utils',
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include',
-		uselib = 'BOOST ZLIB BOOST_IOSTREAMS BOOST_FILESYSTEM BOOST_SYSTEM',
-		uselib_local = 'string_utils',
+		uselib = 'BOOST',
 		export_incdirs = './include'
 	)
 	
-	create_benchmark( bld, 'benchmark-io' )
-	
-	create_test( bld, 'test_bgen_header_format' )
-	create_test( bld, 'test_bgen_snp_format' )
-	create_test( bld, 'test_genfile_io' )
-	create_test( bld, 'test_snp_data_source_chain' )
-	create_test( bld, 'test_snp_data_source_rack' )
-	create_test( bld, 'test_sample_filtering_snp_data_source' )

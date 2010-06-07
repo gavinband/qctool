@@ -6,7 +6,7 @@
 #include "ObjectSource.hpp"
 #include "SampleRow.hpp"
 #include "GToolException.hpp"
-#include "string_utils.hpp"
+#include "string_utils/string_utils.hpp"
 
 struct SampleInputFileException: public GToolException
 {
@@ -29,9 +29,9 @@ struct SampleInputFile: public ObjectSource< SampleRow >
 		// Read the column headings and column row.
 		std::string line ;
 		std::getline( *stream_ptr, line ) ;
-		m_column_headers = split_discarding_empty_entries( to_lower( line ), " " ) ;
+		m_column_headers = string_utils::split_discarding_empty_entries( string_utils::to_lower( line ), " " ) ;
 		std::getline( *stream_ptr, line ) ;
-		std::vector<std::string> column_type_vector = split_discarding_empty_entries( line, " " ) ;
+		std::vector<std::string> column_type_vector = string_utils::split_discarding_empty_entries( line, " " ) ;
 		m_column_types.resize( column_type_vector.size() ) ;
 		for( std::size_t i = 0; i < column_type_vector.size(); ++i ) {
 			m_column_types[i] = column_type_vector[i][0] ;

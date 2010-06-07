@@ -4,7 +4,7 @@
 #include <sstream>
 #include <cassert>
 #include "SampleRow.hpp"
-#include "string_utils.hpp"
+#include "string_utils/string_utils.hpp"
 #include "Whitespace.hpp"
 
 bool check_char_is_space( char c ) { return c == ' ' ; }

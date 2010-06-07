@@ -9,7 +9,7 @@
 #include "GToolException.hpp"
 #include "OptionDefinition.hpp"
 #include "OptionProcessor.hpp"
-#include "string_utils.hpp"
+#include "string_utils/string_utils.hpp"
 
 OptionProcessingException::OptionProcessingException( std::string option, std::vector< std::string > values, std::string msg )
 : 	m_option( option ),
@@ -357,7 +357,7 @@ void OptionProcessor::format_option_and_description( std::ostream& aStream, std:
 	aStream << ": " ;
 	unsigned int current_column = max_option_length+4 ;
 
-	aStream << wrap((*this)[option_name].description(), 100, current_column, current_column )
+	aStream << string_utils::wrap((*this)[option_name].description(), 100, current_column, current_column )
 		<< "\n" ;
 }
 

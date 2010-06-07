@@ -7,6 +7,8 @@ srcdir="."
 APPNAME = "gen-tools"
 VERSION = "1.2"
 
+subdirs = [ 'genfile', 'statfile', 'string_utils' ]
+
 def set_options( opt ):
 	opt.tool_options( 'compiler_cxx' )
 	opt.tool_options( 'boost' )
@@ -102,9 +104,9 @@ def get_ld_flags( variant_name ):
 
 def build( bld ):
 	import Options
-	
-	bld.add_subdirs( 'genfile' )
-	bld.add_subdirs( 'statfile' )
+
+	for subdir in subdirs:	
+		bld.add_subdirs( subdir )
 	
 	#---------------------
 	# libs
@@ -118,71 +120,30 @@ def build( bld ):
 
 	bld.new_task_gen(
 		features = 'cxx cstaticlib',
-		target = 'gen-tools-string',
-		source = [  'src/string_utils.cpp' ],
-		includes='./include'
-	)
-
-	bld.new_task_gen(
-		features = 'cxx cstaticlib',
 		target = 'gen-tools-optionprocessor',
 		source = [  'src/OptionProcessor.cpp',
 		 			'src/OptionDefinition.cpp'
 		],
 		includes='./include',
-		uselib = 'gen-tools-exception gen-tools-string'
+		uselib_local = 'gen-tools-exception string_utils'
 	)
 
 	bld.new_task_gen(
 		features = 'cxx cstaticlib',
 		target = 'gen-tools-lib',
-		source = [  
-			'src/AlleleProportions.cpp',
-			'src/Condition.cpp',
-			'src/FileUtil.cpp',
-			'src/wildcard.cpp',
-			'src/GToolException.cpp',
-			'src/GenRow.cpp',
-			'src/GenRowIO.cpp',
-			'src/ExternalStorageGenRow.cpp',
-			'src/GenRowStatistics.cpp',
-			'src/GenotypeAssayBasicStatistics.cpp',
-			'src/GenotypeAssayStatisticArithmetic.cpp',
-			'src/GenotypeAssayStatisticFactory.cpp',
-			'src/GenotypeAssayStatistics.cpp',
-			'src/GenotypeProportions.cpp',
-			'src/HardyWeinbergExactTestStatistic.cpp',
-			'src/LikelihoodRatioTestStatistic.cpp',
-			'src/RowCondition.cpp',
-			'src/SNPHWE.cpp',
-			'src/SNPInListCondition.cpp',
-			'src/SampleRow.cpp',
-			'src/SampleRowStatistics.cpp',
-			'src/SimpleGenotypeAssayStatistics.cpp',
-			'src/SampleInListCondition.cpp',
-			'src/Whitespace.cpp',
-			'src/distributions.cpp',
-			'src/gamma.cpp',
-			'src/parse_utils.cpp',
-			'src/string_to_value_map.cpp',
-			'src/FileBackupCreator.cpp',
-			'src/InputToOutputFilenameMapper.cpp',
-			'src/OstreamTee.cpp',
-			'src/CmdLineOptionProcessor.cpp',
-			'src/InformationStatistic.cpp',
-			'src/SNPIDMatchesCondition.cpp'
-		],
+		source = bld.glob( 'src/*.cpp' ),
 		includes='./include ./genfile/include',
+		uselib_local = 'string_utils',
 		uselib = 'BOOST BOOST_IOSTREAMS ZLIB BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'
 	)
 
 	#---------------------
 	# programs
 	#---------------------
-	create_app( bld, name='qctool', uselib_local = 'gen-tools-optionprocessor gen-tools-lib gen-tools-string gen-tools-exception genfile statfile' )
-	create_app( bld, name='gen-convert', uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception gen-tools-lib genfile' )
-	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception gen-tools-lib genfile' )
-	create_app( bld, name='gen-grep', uselib_local = 'gen-tools-optionprocessor gen-tools-string gen-tools-exception gen-tools-lib genfile' )
+	create_app( bld, name='qctool', uselib_local = 'gen-tools-optionprocessor gen-tools-lib string_utils gen-tools-exception genfile statfile' )
+	create_app( bld, name='gen-convert', uselib_local = 'gen-tools-optionprocessor string_utils gen-tools-exception gen-tools-lib genfile' )
+	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-optionprocessor string_utils gen-tools-exception gen-tools-lib genfile' )
+	create_app( bld, name='gen-grep', uselib_local = 'gen-tools-optionprocessor string_utils gen-tools-exception gen-tools-lib genfile' )
 
 	#---------------------
 	# benchmarks
@@ -233,7 +194,7 @@ def create_test( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'test/' + name + '.cpp' ],
-		uselib_local = 'gen-tools-optionprocessor gen-tools-lib gen-tools-string gen-tools-exception genfile',
+		uselib_local = 'gen-tools-optionprocessor gen-tools-lib string_utils gen-tools-exception genfile',
 		includes='./include ./genfile/include',
 		unit_test=1,
 		install_path=None
@@ -244,7 +205,7 @@ def create_benchmark( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'benchmarks/' + name + '.cpp' ],
-		uselib_local = 'gen-tools-optionprocessor gen-tools-lib gen-tools-string gen-tools-exception genfile',
+		uselib_local = 'gen-tools-optionprocessor gen-tools-lib string_utils gen-tools-exception genfile',
 		includes='./include ./genfile/include',
 		install_path=None
 	)

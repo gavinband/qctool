@@ -7,7 +7,7 @@
 	#include <boost/filesystem.hpp>
 	namespace BFS = boost::filesystem ;
 #endif
-#include "parse_utils.hpp"
+#include "string_utils/parse_utils.hpp"
 #include "wildcard.hpp"
 
 namespace wildcard {
@@ -19,7 +19,7 @@ namespace wildcard {
 			for( ; dir_i != end_dir_i; ++dir_i ) {
 				std::string filename = dir_i->filename() ;
 				std::string matching_part ;
-				if( string_has_prefix_and_suffix( filename, prefix, suffix, &matching_part )) {
+				if( string_utils::string_has_prefix_and_suffix( filename, prefix, suffix, &matching_part )) {
 					result.push_back( FilenameMatch( (directory / filename).string(), matching_part )) ;
 				}
 			}
@@ -95,7 +95,7 @@ namespace wildcard {
 			// zeroes, so ordering by the matching string is the wrong thing to do.
 			std::map< int, FilenameMatch > matching_files ;
 			for( std::size_t i = 0; i < candidates.size(); ++i ) {
-				int matching_number = parse_integer_in_half_open_range( candidates[i].match(), match_lower_bound, match_upper_bound + 1 ) ;
+				int matching_number = string_utils::parse_integer_in_half_open_range( candidates[i].match(), match_lower_bound, match_upper_bound + 1 ) ;
 				if( matching_number <= match_upper_bound ) {
 					matching_files[ matching_number ] = candidates[i] ;
 				}

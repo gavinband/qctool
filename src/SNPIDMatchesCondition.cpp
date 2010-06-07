@@ -7,7 +7,7 @@
 #include "GenotypeAssayStatistics.hpp"
 #include "SNPIDMatchesCondition.hpp"
 #include "GenRowStatistics.hpp"
-#include "parse_utils.hpp"
+#include "string_utils/parse_utils.hpp"
 
 SNPIDMatchesCondition::SNPIDMatchesCondition( std::string const& expression )
  : m_expression( expression ),
@@ -34,7 +34,7 @@ bool SNPIDMatchesCondition::check_if_satisfied( string_to_value_map const& stati
 		throw ConditionException( "SNPIDMatchesCondition only supports GenRowStatistics." ) ;
 	}
 	std::string const& SNPID = row_statistics_ptr->row().SNPID() ;
-	return string_has_prefix_and_suffix( SNPID, m_prefix, m_suffix ) ;
+	return string_utils::string_has_prefix_and_suffix( SNPID, m_prefix, m_suffix ) ;
 }
 
 void SNPIDMatchesCondition::format_to_stream( std::ostream& oStream ) const {

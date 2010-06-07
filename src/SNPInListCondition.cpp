@@ -7,7 +7,7 @@
 #include "GenotypeAssayStatistics.hpp"
 #include "SNPInListCondition.hpp"
 #include "GenRowStatistics.hpp"
-#include "string_utils.hpp"
+#include "string_utils/string_utils.hpp"
 
 #include "genfile/SNPDataSource.hpp"
 #include "wildcard.hpp"

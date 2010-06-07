@@ -6,7 +6,7 @@
 #include "ObjectSink.hpp"
 #include "SampleRow.hpp"
 #include "GToolException.hpp"
-#include "string_utils.hpp"
+#include "string_utils/string_utils.hpp"
 
 struct SampleIDSinkException: public std::exception
 {
