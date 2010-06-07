@@ -51,8 +51,15 @@ SampleRow::Entry SampleRow::further_data( std::string const& column_heading ) co
 
 void SampleRow::add_column( std::string const& heading, char type, Entry value ) {
 	if( !has_column( heading )) {
-		m_column_headings.push_back( heading ) ;
-		m_column_types.push_back( type ) ;
+		// A kludge.
+		// To avoid breaking the order of rows (covariates first)
+		// We insert all new columns as the 4th column.
+		assert( m_column_headings.size() >= 3 ) ;
+		assert( m_column_types.size() >= 3 ) ;
+		std::vector<std::string>::iterator fourth_column_heading = m_column_headings.begin() + 4 ;
+		std::vector<char>::iterator fourth_column_type = m_column_types.begin() + 4 ;
+		m_column_headings.insert( fourth_column_heading, heading ) ;
+		m_column_types.insert( fourth_column_type, type ) ;
 		m_further_data[heading] = value ;
 	}
 }
