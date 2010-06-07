@@ -51,7 +51,10 @@ namespace statfile {
 	}
 	
 	void RFormatStatSink::write_descriptive_text() {
-		stream() << m_descriptive_text << "\n" ;
+		stream() << m_descriptive_text ;
+		if( m_descriptive_text.size() > 0 && m_descriptive_text[ m_descriptive_text.size() - 1] != '\n' ) {
+			stream() << "\n" ;
+		}
 	}
 	
 	void RFormatStatSink::write_column_names() {
