@@ -10,24 +10,34 @@ namespace genfile {
 	// This class forms a base class for classes which read sample information from flat files
 	// in a format like the one described here:
 	// http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format_new.html
-	// To allow flexibility, this class takes as a parameters a function, get_entry_from_string,
-	// which should return an Entry object given its string representation.
-	// This can be used for varying the allowed formats.
+	// To allow flexibility, this class takes as a parameters two functions.  The
+	// first, get_entry_from_string, should return an Entry object given its string
+	// representation.  
+	//
+	// The second, get_column_type_from_string, returns a ColumnType given a string.  Two possible
+	// implementations are provided as static functions; the first implements the file format above
+	// while the second also accepts files formatted in "v1" format.
+	// It does this by mapping the column types as follows:
+	// 1,2 -> discrete covariate, 3 -> continuous covariate, P -> phenotype
+	//
 	class FromFileCohortIndividualSource: public CohortIndividualSource
 	{
 	public:
 		typedef boost::function< Entry ( std::string const&, ColumnType ) > GetEntryFromString ;
+		typedef boost::function< ColumnType ( std::string const& ) > GetColumnTypeFromString ;
 		typedef boost::function< void ( CohortIndividualSource const& ) > Check ;
 	public:
 		FromFileCohortIndividualSource(
 			std::string const& filename,
 			std::vector< std::string > const& missing_values,
-			GetEntryFromString get_entry_from_string
+			GetEntryFromString get_entry_from_string,
+			GetColumnTypeFromString get_column_type_from_string
 		) ;
 		FromFileCohortIndividualSource(
 			std::istream& stream,
 			std::vector< std::string > const& missing_values,
-			GetEntryFromString get_entry_from_string
+			GetEntryFromString get_entry_from_string,
+			GetColumnTypeFromString get_column_type_from_string
 		) ;
 
 		virtual ~FromFileCohortIndividualSource() {}
@@ -54,6 +64,7 @@ namespace genfile {
 		std::string const m_filename ;
 		std::vector< std::string > const m_missing_values ;
 		GetEntryFromString m_get_entry_from_string ;
+		GetColumnTypeFromString m_get_column_type_from_string ;
 		std::vector< std::string > m_column_names ;
 		std::vector< ColumnType > m_column_types ;
 		// Entries stored by sample and then by column
@@ -74,6 +85,10 @@ namespace genfile {
 		) const ;
 		
 		Entry get_possibly_missing_entry_from_string( std::string const& entry_as_string, ColumnType column_type ) const ;
+	protected:
+		// For convenience, here are two possible implementations for the get_column_type_from_string constructor argument
+		static ColumnType get_column_type_from_string_strict( std::string const& string ) ;
+		static ColumnType get_column_type_from_string_relaxed( std::string const& string ) ;
 	} ;
 }
 

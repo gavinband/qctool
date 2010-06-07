@@ -19,6 +19,12 @@ namespace genfile {
 
 	struct MalformedInputError: public InputError
 	{
+		MalformedInputError():
+			InputError( "(unknown)" ),
+			m_line( -1 ),
+			m_column( -1 )
+		{}
+
 		MalformedInputError( std::string const& source, int line, int column = -1 ):
 			InputError( source ),
 			m_line( line ),

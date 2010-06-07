@@ -12,7 +12,8 @@ namespace genfile {
 		FromFileCohortIndividualSource(
 			filename,
 			string_utils::split_discarding_empty_entries( missing_values, ",", " \t" ),
-			&CategoricalCohortIndividualSource::get_entry_from_string
+			&CategoricalCohortIndividualSource::get_entry_from_string,
+			&FromFileCohortIndividualSource::get_column_type_from_string_relaxed
 		)
 	{
 		check_sample_ids() ;
@@ -22,7 +23,8 @@ namespace genfile {
 		FromFileCohortIndividualSource(
 			stream,
 			string_utils::split_discarding_empty_entries( missing_values, ",", " \t" ),
-			&CategoricalCohortIndividualSource::get_entry_from_string
+			&CategoricalCohortIndividualSource::get_entry_from_string,
+			&FromFileCohortIndividualSource::get_column_type_from_string_relaxed
 		)
 	{
 		check_sample_ids() ;

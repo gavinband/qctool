@@ -12,11 +12,13 @@ namespace genfile {
 	FromFileCohortIndividualSource::FromFileCohortIndividualSource(
 		std::string const& filename,
 		std::vector< std::string > const& missing_values,
-		GetEntryFromString get_entry_from_string
+		GetEntryFromString get_entry_from_string,
+		GetColumnTypeFromString get_column_type_from_string
 	):
 		m_filename( filename ),
 		m_missing_values( missing_values ),
-		m_get_entry_from_string( get_entry_from_string )
+		m_get_entry_from_string( get_entry_from_string ),
+		m_get_column_type_from_string( get_column_type_from_string )
 	{
 		assert( m_get_entry_from_string ) ;
 		std::ifstream stream( m_filename.c_str() ) ;
@@ -27,11 +29,13 @@ namespace genfile {
 	FromFileCohortIndividualSource::FromFileCohortIndividualSource(
 		std::istream& stream,
 		std::vector< std::string > const& missing_values,
-		GetEntryFromString get_entry_from_string
+		GetEntryFromString get_entry_from_string,
+		GetColumnTypeFromString get_column_type_from_string
 	):
 		m_filename( "(none)" ),
 		m_missing_values( missing_values ),
-		m_get_entry_from_string( get_entry_from_string )
+		m_get_entry_from_string( get_entry_from_string ),
+		m_get_column_type_from_string( get_column_type_from_string )
 	{
 		assert( m_get_entry_from_string ) ;
 		setup( stream ) ; 
@@ -117,28 +121,11 @@ namespace genfile {
 			throw MalformedInputError( m_filename, 1 ) ;
 		}
 		for( std::size_t i = 0; i < type_strings.size(); ++i ) {
-			if( type_strings[i].size() != 1 ) {
-				throw MalformedInputError( m_filename, 1, i ) ;
+			try {
+				result.push_back( m_get_column_type_from_string( type_strings[i] )) ;
 			}
-			switch( type_strings[i][0] ) {
-				case '0':
-					result.push_back( e_ID_COLUMN ) ;
-					break ;
-				case 'D':
-					result.push_back( e_DISCRETE_COVARIATE ) ;
-					break ;
-				case 'C':
-					result.push_back( e_CONTINUOUS_COVARIATE ) ;
-					break ;
-				case 'B':
-					result.push_back( e_BINARY_PHENOTYPE ) ;
-					break ;
-				case 'P':
-					result.push_back( e_CONTINUOUS_PHENOTYPE ) ;
-					break ;
-				default:
-					throw MalformedInputError( m_filename, 1, i ) ;
-					break ;
+			catch( MalformedInputError const& e ) {
+				throw MalformedInputError( m_filename, 1, i ) ;
 			}
 		}
 		assert( result.size() == column_names.size() ) ;
@@ -158,6 +145,62 @@ namespace genfile {
 		
 		return result ;
 	}
+
+	CohortIndividualSource::ColumnType FromFileCohortIndividualSource::get_column_type_from_string_strict( std::string const& a_string ) {
+		if( a_string.size() != 1 ) {
+			throw MalformedInputError() ;
+		}
+		switch( a_string[0] ) {
+			case '0':
+				return e_ID_COLUMN ;
+				break ;
+			case 'D':
+				return e_DISCRETE_COVARIATE ;
+				break ;
+			case 'C':
+				return e_CONTINUOUS_COVARIATE ;
+				break ;
+			case 'B':
+				return e_BINARY_PHENOTYPE ;
+				break ;
+			case 'P':
+				return e_CONTINUOUS_PHENOTYPE ;
+				break ;
+			default:
+				throw MalformedInputError() ;
+				break ;
+		}
+	}
+
+	CohortIndividualSource::ColumnType FromFileCohortIndividualSource::get_column_type_from_string_relaxed( std::string const& a_string ) {
+		if( a_string.size() != 1 ) {
+			throw MalformedInputError() ;
+		}
+		switch( a_string[0] ) {
+			case '0':
+				return e_ID_COLUMN ;
+				break ;
+			case 'D':
+			case '1':
+			case '2':
+				return e_DISCRETE_COVARIATE ;
+				break ;
+			case 'C':
+			case '3':
+				return e_CONTINUOUS_COVARIATE ;
+				break ;
+			case 'B':
+				return e_BINARY_PHENOTYPE ;
+				break ;
+			case 'P':
+				return e_CONTINUOUS_PHENOTYPE ;
+				break ;
+			default:
+				throw MalformedInputError() ;
+				break ;
+		}
+	}
+	
 
 	std::vector< std::vector< CohortIndividualSource::Entry > > FromFileCohortIndividualSource::read_entries( std::istream& stream, std::vector< ColumnType > const& column_types ) const {
 		std::vector< std::vector< Entry > > result ;
