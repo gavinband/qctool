@@ -917,7 +917,9 @@ private:
 		else {
 			assert( index < m_options.snp_stats_filename_mapper().output_filenames().size()) ;
 			m_current_snp_stats_filename_index = index ;
-			m_snp_stats_sink.reset( new statfile::RFormatStatSink( m_options.snp_stats_filename_mapper().output_filenames()[ index ] )) ;
+			statfile::RFormatStatSink::UniquePtr sink( new statfile::RFormatStatSink( m_options.snp_stats_filename_mapper().output_filenames()[ index ] )) ;
+			sink->set_descriptive_text( "Created using qctool (http://www.well.ox.ac.uk/~gav/qctool.html)." ) ;
+			m_snp_stats_sink.reset( sink.release() ) ;
 		}
 		m_snp_stats_sink->add_column( "" ) ;
 		for( std::size_t i = 0; i < snp_statistics.size(); ++i ) {
@@ -934,7 +936,9 @@ private:
 			m_sample_stats_sink.reset( new statfile::TrivialBuiltInTypeStatSink() ) ;
 		}
 		else {
-			m_sample_stats_sink.reset( new statfile::RFormatStatSink( m_options.output_sample_stats_filename() )) ;
+			statfile::RFormatStatSink::UniquePtr sink( new statfile::RFormatStatSink( m_options.output_sample_stats_filename() )) ;
+			sink->set_descriptive_text( "Created using qctool (http://www.well.ox.ac.uk/~gav/qctool.html)." ) ;
+			m_sample_stats_sink.reset( sink.release() ) ;
 		}
 		m_sample_stats_sink->add_column( "" ) ;
 		for( std::size_t i = 0; i < m_sample_statistics.size(); ++i ) {
