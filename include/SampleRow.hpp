@@ -50,8 +50,8 @@ class SampleRow: public string_to_value_map
 
 		void reset( std::vector< genfile::CohortIndividualSource::SingleColumnSpec > const& column_spec ) ;
 
-		std::string ID1() const { return m_id1 ; }
-		std::string ID2() const { return m_id2 ; }
+		std::string ID1() const ;
+		std::string ID2() const ;
 
 		Entry further_data( std::string const& ) const ;
 		std::vector<std::string> const& column_headings() const { return m_column_headings ; }
@@ -71,7 +71,6 @@ class SampleRow: public string_to_value_map
 		std::string get_string_value( std::string const& name ) const ;
 
 	private:
-		std::string m_id1, m_id2 ;
 		typedef std::map< std::string, Entry > FurtherData ;
 		FurtherData m_further_data ;
 		std::vector<std::string> m_column_headings ;

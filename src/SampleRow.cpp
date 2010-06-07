@@ -15,8 +15,6 @@ bool check_char_is_newline( char c ) { return c == '\n' ; }
 SampleRow::SampleRow() {}
 
 SampleRow::SampleRow( SampleRow const& other ) :
-	m_id1( other.m_id1 ),
-	m_id2( other.m_id2 ),
 	m_further_data( other.m_further_data ),
 	m_column_headings( other.m_column_headings ),
 	m_column_types( other.m_column_types )
@@ -41,6 +39,17 @@ void SampleRow::reset( std::vector< genfile::CohortIndividualSource::SingleColum
 	assert( m_column_types[0] == '0' ) ;
 	assert( m_column_types[1] == '0' ) ;
 	assert( m_column_types[2] == '0' ) ;
+}
+
+std::string SampleRow::ID1() const {
+	FurtherData::const_iterator where = m_further_data.find( m_column_headings[0] ) ;
+	assert( where != m_further_data.end() ) ;
+	return where->second.as< std::string >() ;
+}
+std::string SampleRow::ID2() const {
+	FurtherData::const_iterator where = m_further_data.find( m_column_headings[1] ) ;
+	assert( where != m_further_data.end() ) ;
+	return where->second.as< std::string >() ;
 }
 
 SampleRow::Entry SampleRow::further_data( std::string const& column_heading ) const {
