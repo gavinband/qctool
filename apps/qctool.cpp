@@ -1067,7 +1067,15 @@ private:
 				<< "!! This includes \"missing\" and \"heterozygosity\".\n" ;
 			throw ;
 		}
-		
+		catch( genfile::MalformedInputError const& e ) {
+			m_logger << "\n\n!! ERROR (" << e.what() << "): the sample file \"" << e.source() << " is malformed on line "
+				<< e.line() ;
+			if( e.has_column() ) {
+				m_logger << ", column " << e.column() ;
+			}
+			m_logger << ".  Quitting.\n" ;
+			throw ;
+		}
 	}
 	
 	void unsafe_load_sample_rows( std::size_t const expected_number_of_samples ) {
