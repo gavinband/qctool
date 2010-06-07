@@ -23,11 +23,11 @@ namespace statfile {
 	}
 
 	void RFormatStatSink::set_descriptive_text( std::string const& text ) {
-		m_descriptive_text = "#" ;
+		m_descriptive_text = "# " ;
 		for( std::string::const_iterator i = text.begin(); i != text.end(); ++i ) {
 			m_descriptive_text += *i ;
 			if( *i == '\n' ) {
-				m_descriptive_text.append( "#" ) ;
+				m_descriptive_text.append( "# " ) ;
 			}
 		}
 	}

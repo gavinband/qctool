@@ -918,7 +918,6 @@ private:
 			assert( index < m_options.snp_stats_filename_mapper().output_filenames().size()) ;
 			m_current_snp_stats_filename_index = index ;
 			statfile::RFormatStatSink::UniquePtr sink( new statfile::RFormatStatSink( m_options.snp_stats_filename_mapper().output_filenames()[ index ] )) ;
-			sink->set_descriptive_text( "Created using qctool (http://www.well.ox.ac.uk/~gav/qctool.html)." ) ;
 			m_snp_stats_sink.reset( sink.release() ) ;
 		}
 		m_snp_stats_sink->add_column( "" ) ;
@@ -937,7 +936,6 @@ private:
 		}
 		else {
 			statfile::RFormatStatSink::UniquePtr sink( new statfile::RFormatStatSink( m_options.output_sample_stats_filename() )) ;
-			sink->set_descriptive_text( "Created using qctool (http://www.well.ox.ac.uk/~gav/qctool.html)." ) ;
 			m_sample_stats_sink.reset( sink.release() ) ;
 		}
 		m_sample_stats_sink->add_column( "" ) ;
