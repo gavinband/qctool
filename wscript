@@ -140,10 +140,10 @@ def build( bld ):
 	#---------------------
 	# programs
 	#---------------------
-	create_app( bld, name='qctool', uselib_local = 'gen-tools-optionprocessor gen-tools-lib string_utils gen-tools-exception genfile statfile' )
-	create_app( bld, name='gen-convert', uselib_local = 'gen-tools-optionprocessor string_utils gen-tools-exception gen-tools-lib genfile' )
-	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-optionprocessor string_utils gen-tools-exception gen-tools-lib genfile' )
-	create_app( bld, name='gen-grep', uselib_local = 'gen-tools-optionprocessor string_utils gen-tools-exception gen-tools-lib genfile' )
+	create_app( bld, name='qctool', uselib_local = 'gen-tools-optionprocessor gen-tools-lib gen-tools-exception genfile statfile string_utils' )
+	create_app( bld, name='gen-convert', uselib_local = 'gen-tools-optionprocessor gen-tools-exception gen-tools-lib genfile string_utils' )
+	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-optionprocessor gen-tools-exception gen-tools-lib genfile string_utils' )
+	create_app( bld, name='gen-grep', uselib_local = 'gen-tools-optionprocessor gen-tools-exception gen-tools-lib genfile string_utils' )
 
 	#---------------------
 	# benchmarks
