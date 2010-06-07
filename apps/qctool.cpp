@@ -1071,9 +1071,9 @@ private:
 		}
 		catch( genfile::MalformedInputError const& e ) {
 			m_logger << "\n\n!! ERROR (" << e.what() << "): the sample file \"" << e.source() << " is malformed on line "
-				<< e.line() ;
+				<< e.line() + 1 ;
 			if( e.has_column() ) {
-				m_logger << ", column " << e.column() ;
+				m_logger << ", column " << e.column() + 1 ;
 			}
 			m_logger << ".  Quitting.\n" ;
 			throw ;
