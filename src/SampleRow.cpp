@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <cassert>
+#include <algorithm>
 #include "SampleRow.hpp"
 #include "string_utils/string_utils.hpp"
 #include "Whitespace.hpp"
