@@ -12,7 +12,17 @@
 bool check_char_is_space( char c ) { return c == ' ' ; }
 bool check_char_is_newline( char c ) { return c == '\n' ; }
 
-SampleRow::SampleRow() {}
+SampleRow::SampleRow() {
+	m_column_headings.push_back( "id_1" ) ;
+	m_column_headings.push_back( "id_2" ) ;
+	m_column_headings.push_back( "missing" ) ;
+	m_column_types.push_back( '0' ) ;
+	m_column_types.push_back( '0' ) ;
+	m_column_types.push_back( '0' ) ;
+	m_further_data[ "id_1" ] = "NA" ;
+	m_further_data[ "id_2" ] = "NA" ;
+	m_further_data[ "missing" ] = "NA" ;
+}
 
 SampleRow::SampleRow( SampleRow const& other ) :
 	m_further_data( other.m_further_data ),
