@@ -1,4 +1,12 @@
 #!/bin/bash
+#
+# This script creates a fully static build of qctool.
+# It is intended for use on Linux machines; on Mac OS, one should only really link to static
+# boost libraries which can be done with some juggling of the waf configure options.
+# For example, link to the static iostreams, filesystem, and system libs from a new directory boost-static,
+# and run waf configure --static --boost-libs=/Users/gav/Projects/Software/qctool/boost-static
+# The result can be checked with otool build/release/qctool
+
 BOOST_PREFIX=/home/gav/Projects/Software/usr
 
 echo "This will create a statically built version of qctool, called qctool-static, in the current directory."

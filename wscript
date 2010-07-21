@@ -12,7 +12,7 @@ subdirs = [ 'genfile', 'statfile', 'string_utils' ]
 def set_options( opt ):
 	opt.tool_options( 'compiler_cxx' )
 	opt.tool_options( 'boost' )
-	opt.add_option( "--staticbuild", action='store_true', default=False, help='Create statically-linked executables if possible.')
+	opt.add_option( "--static", action='store_true', default=False, help='Create statically-linked executables if possible.')
 
 #-----------------------------------
 # CONFIGURE
@@ -61,15 +61,16 @@ def check_for_boost_headers( conf, min_version ):
 	return False
 
 def check_for_boost_lib( conf, lib, min_version, uselib ):
-	if Options.options.staticbuild:
+	if Options.options.static:
 		static_selector = 'onlystatic'
+		print "Looking for static", lib
 	else:
 		static_selector = 'nostatic'
 	if conf.check_boost( lib = lib, min_version = min_version, static=static_selector, uselib = uselib ):
 		conf.define( 'HAVE_' + uselib, 1 )
 
 def check_for_zlib( conf ):
-	if Options.options.staticbuild:
+	if Options.options.static:
 		if conf.check_cxx( staticlib='z', uselib_store='ZLIB' ):
 			conf.define( 'HAVE_ZLIB', 1 )
 	else:
@@ -78,7 +79,7 @@ def check_for_zlib( conf ):
 
 def platform_specific_configure( conf ):
 	import platform
-	if( platform.system() == 'Darwin' ):
+	if platform.system() == 'Darwin':
 		pass
 
 def misc_configure( conf ) :
@@ -93,9 +94,10 @@ def get_cxx_flags( variant_name ):
 	return cxxflags
 
 def get_ld_flags( variant_name ):
+	import platform
 	ldflags = []
-	if Options.options.staticbuild:
-		ldflags += [ '-static' ]
+	if Options.options.static and platform.system() != 'Darwin':
+		ldflags.extent( [ '-static' ] )
 	return ldflags
 
 #-----------------------------------
