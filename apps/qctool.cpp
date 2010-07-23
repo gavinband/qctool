@@ -314,16 +314,17 @@ private:
 		// AND EITHER
 		//	 * -sample-stats is given,
 		//   * OR some sample filters are given
-		bool sample_filtering = check_if_option_was_supplied_in_group( "Sample filtering options" ) ;
-
 		if( !check_if_option_was_supplied( "-write-sample-excl-list" )
-			&& ( check_if_option_was_supplied( "-sample-stats" ) || sample_filtering )
+			&& (
+				check_if_option_was_supplied( "-sample-stats" ) ||
+				check_if_option_was_supplied_in_group( "Sample filtering options" )
+			)
 		) {
 			if( check_if_option_was_supplied( "-os" )) {
 				m_output_sample_filename = get_value< std::string >( "-os" ) ;
 			}
 			else {
-				if( sample_filtering ) {
+				if( check_if_option_was_supplied_in_group( "Sample filtering options" ) ) {
 					m_output_sample_filename = strip_sample_file_extension_if_present( m_input_sample_filename ) + ".fltrd.sample";
 				}
 				else {
