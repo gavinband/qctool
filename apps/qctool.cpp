@@ -110,7 +110,7 @@ public:
 		// Statistic file options
 		options.declare_group( "Statistic calculation options" ) ;
 	    options[ "-snp-stats" ]
-			.set_description( "Calculate and output snp-wise statistics." ) ;
+			.set_description( "Calculate and output per-SNP statistics.  This implies that no SNP filtering options are used." ) ;
 	    options[ "-snp-stats-file" ]
 	        .set_description( 	"Override the auto-generated path(s) of the snp-stats file to use when outputting snp-wise statistics.  "
 								"(By default, the paths are formed by adding \".snp-stats\" to the input gen filename(s).)  "
@@ -161,29 +161,6 @@ public:
 						" which matches any sequence of characters.")
 			.set_takes_single_value() ;
 
-		// Sample filtering options
-		options.declare_group( "Sample filtering options" ) ;
-		options[ "-sample-missing-rate" ]
-			.set_description( "Filter out samples with missing data rate greater than the value specified.")
-			.set_takes_single_value() ;
-		options[ "-heterozygosity" ]
-			.set_description( "Filter out samples with heterozygosity outside the inteval [a,b]." )
-			.set_number_of_values_per_use( 2 ) ;
-
-		// Inclusion / exclusion list options
-		options.declare_group( "Inclusion / exclusion list options" ) ;
-		options[ "-sample-incl-list"]
-			.set_description( "Filter out samples whose sample ID does not lie in the given file.")
-			.set_takes_single_value() ;
-		options[ "-sample-excl-list"]
-			.set_description( "Filter out samples whose sample ID lies in the given file.")
-			.set_takes_single_value() ;
-		options[ "-write-sample-excl-list" ]
-			.set_description( "Do not apply sample filters directly.  Instead, write a file containing a list of the ids"
-			"  of individuals which would be filtered out by the filter." ) ;
-		options[ "-write-sample-excl-list-file" ]
-			.set_description( "Override default name of the file to use in -write-sample-excl-list" )
-			.set_takes_single_value() ;
 		options[ "-snp-incl-list" ]
 			.set_description( "Filter out SNPs whose SNP ID or RSID does not lie in the given file(s).")
 			.set_takes_values() 
@@ -194,6 +171,30 @@ public:
 			.set_takes_values() 
 			.set_number_of_values_per_use( 1 )
 			.set_maximum_number_of_repeats( 100 ) ;
+
+		// Sample filtering options
+		options.declare_group( "Sample filtering options" ) ;
+		options[ "-sample-missing-rate" ]
+			.set_description( "Filter out samples with missing data rate greater than the value specified.")
+			.set_takes_single_value() ;
+		options[ "-heterozygosity" ]
+			.set_description( "Filter out samples with heterozygosity outside the inteval [a,b]." )
+			.set_number_of_values_per_use( 2 ) ;
+		options[ "-sample-incl-list"]
+			.set_description( "Filter out samples whose sample ID does not lie in the given file.")
+			.set_takes_single_value() ;
+		options[ "-sample-excl-list"]
+			.set_description( "Filter out samples whose sample ID lies in the given file.")
+			.set_takes_single_value() ;
+
+		// Inclusion / exclusion list options
+		options.declare_group( "Inclusion / exclusion list options" ) ;
+		options[ "-write-sample-excl-list" ]
+			.set_description( "Do not apply sample filters directly.  Instead, write a file containing a list of the ids"
+			"  of individuals which would be filtered out by the filter." ) ;
+		options[ "-write-sample-excl-list-file" ]
+			.set_description( "Override default name of the file to use in -write-sample-excl-list" )
+			.set_takes_single_value() ;
 		options [ "-write-snp-excl-list" ]
 			.set_description( "Don't apply the filter; instead, write files containing the positions of SNPs that would be filtered out."
 			"  These files are suitable for use as the input to -snp-incl-list option on a subsequent run." ) ;
@@ -204,9 +205,6 @@ public:
 	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
 								"also be used here to specify numbered output files corresponding to the input files." )
 			.set_takes_single_value() ;
-		options[ "-apply-excl-lists" ]
-			.set_description( "Apply inclusion / exclusion lists supplied as arguments to the options "
-			"-sample-excl-list, -sample-incl-list, -snp-excl-list, -snp-incl-list, to produce new sample / GEN files." ) ;
 
 		// Other options
 		options.declare_group( "Other options" ) ;
@@ -311,15 +309,12 @@ private:
 			}
 		}
 
-		// We need to write a sample file if either
+		// We need to write a sample file if:
 		// -write-sample-excl-list is NOT given
 		// AND EITHER
-		//	 * -sample-stats is given, (in which case we modify the input sample file unless overridden)
+		//	 * -sample-stats is given,
 		//   * OR some sample filters are given
-		//   * OR -sample-excl-list and -apply-excl-lists are both given.
-		bool sample_filtering
-			= check_if_option_was_supplied_in_group( "Sample filtering options" )
-			|| ( check_if_option_was_supplied( "-sample-excl-list" ) && check_if_option_was_supplied( "-apply-excl-lists" )) ;
+		bool sample_filtering = check_if_option_was_supplied_in_group( "Sample filtering options" ) ;
 
 		if( !check_if_option_was_supplied( "-write-sample-excl-list" )
 			&& ( check_if_option_was_supplied( "-sample-stats" ) || sample_filtering )
@@ -351,15 +346,12 @@ private:
 		//  * -write-snp-excl-list is not set
 		//  AND EITHER
 		//    * some sample filters are given (but not -write-sample-excl-list)
-		//    * OR some SNP filters are given
-		//    * OR -sample-excl-list or -snp-excl-list ios given and the -apply-excl-lists option is given.
+		//    * OR some SNP filters are given.
 		if( !check_if_option_was_supplied( "-write-snp-excl-list" )
 			&& (
 				(check_if_option_was_supplied_in_group( "Sample filtering options" ) && !check_if_option_was_supplied( "-write-sample-excl-list" ))
 				||
 				check_if_option_was_supplied_in_group( "SNP filtering options" )
-				||
-				((check_if_option_was_supplied( "-sample-excl-list" ) || check_if_option_was_supplied( "-sample-incl-list" ) || check_if_option_was_supplied( "-snp-excl-list" ) || check_if_option_was_supplied( "-snp-incl-list" )) && check_if_option_was_supplied( "-apply-excl-lists" ))
 			)
 		) {
 			if( check_if_option_was_supplied( "-og" ) ) {
