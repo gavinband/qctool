@@ -328,7 +328,7 @@ private:
 					m_output_sample_filename = strip_sample_file_extension_if_present( m_input_sample_filename ) + ".fltrd.sample";
 				}
 				else {
-					m_output_sample_filename = m_input_sample_filename ;
+					m_output_sample_filename = strip_sample_file_extension_if_present( m_input_sample_filename ) + ".sample-stats.sample" ;
 				}
 			}
 		}
@@ -1063,7 +1063,7 @@ private:
 			throw ;
 		}
 		catch( genfile::MalformedInputError const& e ) {
-			m_logger << "\n\n!! ERROR (" << e.what() << "): the sample file \"" << e.source() << " is malformed on line "
+			m_logger << "\n\n!! ERROR (" << e.what() << "): the sample file \"" << e.source() << "\" is malformed on line "
 				<< e.line() + 1 ;
 			if( e.has_column() ) {
 				m_logger << ", column " << e.column() + 1 ;
