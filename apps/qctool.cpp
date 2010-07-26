@@ -348,11 +348,14 @@ private:
 		//  AND EITHER
 		//    * some sample filters are given (but not -write-sample-excl-list)
 		//    * OR some SNP filters are given.
-		if( !check_if_option_was_supplied( "-write-snp-excl-list" )
-			&& (
-				(check_if_option_was_supplied_in_group( "Sample filtering options" ) && !check_if_option_was_supplied( "-write-sample-excl-list" ))
-				||
-				check_if_option_was_supplied_in_group( "SNP filtering options" )
+		if( check_if_option_was_supplied( "-og" )
+			|| (
+				!check_if_option_was_supplied( "-write-snp-excl-list" )
+				&& (
+					(check_if_option_was_supplied_in_group( "Sample filtering options" ) && !check_if_option_was_supplied( "-write-sample-excl-list" ))
+					||
+					check_if_option_was_supplied_in_group( "SNP filtering options" )
+				)
 			)
 		) {
 			if( check_if_option_was_supplied( "-og" ) ) {
@@ -434,6 +437,10 @@ struct QCToolCmdLineContext: public QCToolContext
 		}
 		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
 			m_logger << "\nError: The GEN files specified did not all have the same sample size.\n" ;
+			throw HaltProgramWithReturnCode( -1 ) ;
+		} 
+		catch( genfile::FileNotFoundError const& e ) {
+			m_logger << "\nError: No file matching \"" << e.filespec() << "\" could be found.\n" ;
 			throw HaltProgramWithReturnCode( -1 ) ;
 		} 
 		catch ( FileError const& e ) {
@@ -1160,7 +1167,8 @@ private:
 		}
 		if( ((m_options.gen_filename_mapper().output_filenames().size() > 0) || ( m_options.snp_excl_list_filename_mapper().output_filenames().size() > 0)) &&  (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0)) {
 			m_warnings.push_back( "You have specified output GEN (or snp exclusion) files, but no filters.\n"
-				" To convert GEN file formats, use gen-convert." ) ;
+				" This will just output the same gen files (converting formats if necessary).\n"
+				" Consider using gen-convert, included with the qctool source code, instead." ) ;
 		}
 	}
 	
