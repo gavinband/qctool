@@ -10,7 +10,7 @@
 #include "string_utils/string_utils.hpp"
 
 #include "genfile/SNPDataSource.hpp"
-#include "wildcard.hpp"
+#include "genfile/wildcard.hpp"
 
 SNPInListCondition::SNPInListCondition( std::string const& filename )
  : m_filenames( std::size_t(1), filename )
@@ -26,13 +26,13 @@ SNPInListCondition::SNPInListCondition( std::vector< std::string > const& filena
 
 void SNPInListCondition::setup() {
 	for( std::size_t i = 0; i < m_filenames.size(); ++i ) {
-		std::vector< std::string > actual_filenames = wildcard::find_files_matching_path_with_integer_wildcard( m_filenames[i] ) ;
+		std::vector< genfile::wildcard::FilenameMatch > actual_filenames = genfile::wildcard::find_gen_files( m_filenames[i] ) ;
 		for( std::size_t j = 0; j < actual_filenames.size(); ++j ) {
-			if( file_appears_to_be_plain( actual_filenames[j] )) {
-				load_from_plain_file( actual_filenames[j] ) ;			
+			if( file_appears_to_be_plain( actual_filenames[j].filename() )) {
+				load_from_plain_file( actual_filenames[j].filename() ) ;			
 			}
 			else {
-				load_from_gen_file( actual_filenames[j] ) ;
+				load_from_gen_file( actual_filenames[j].filename() ) ;
 			}
 		}
 	}
