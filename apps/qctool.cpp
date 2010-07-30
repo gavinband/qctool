@@ -344,7 +344,7 @@ private:
 					m_output_sample_filename = stub + ".fltrd.sample";
 				}
 				else {
-					m_output_sample_filename = stub + ".sample-stats.sample" ;
+					m_output_sample_filename = stub + ".qctool.sample" ;
 				}
 			}
 		}
