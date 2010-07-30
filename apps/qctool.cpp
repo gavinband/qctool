@@ -429,6 +429,7 @@ struct QCToolCmdLineContext: public QCToolContext
 	QCToolCmdLineContext( int argc, char** argv ) {
 		try {
 			timestamp() ;
+			m_logger.add_stream( "screen", std::cout ) ;
 			m_options.process( argc, argv ) ;
 			open_log() ;
 			write_start_banner() ;
@@ -797,7 +798,6 @@ private:
 	}
 	
 	void open_log() {
-		m_logger.add_stream( "screen", std::cout ) ;
 		m_backup_creator.backup_file_if_necessary( m_options.log_filename() ) ;
 		m_log.open( m_options.log_filename().c_str() ) ;
 		if( !m_log.is_open() ) {
