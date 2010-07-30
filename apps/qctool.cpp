@@ -296,7 +296,15 @@ private:
 				m_sample_statistic_filename = get_value< std::string >( "-sample-stats-file" ) ;
 			}
 			else {
-				m_sample_statistic_filename = strip_sample_file_extension_if_present( m_input_sample_filename ) + ".sample-stats";
+				std::string stub ;
+				if( m_input_sample_filename != "" ) {
+					stub = strip_sample_file_extension_if_present( m_input_sample_filename ) ;
+				}
+				else {
+					stub = "qctool" ;
+				}
+
+				m_sample_statistic_filename = stub + ".sample-stats";
 			}
 		}
 		// Otherwise, we need to write a sample exclusion list file if -write-sample-excl-list was given.
@@ -324,11 +332,19 @@ private:
 				m_output_sample_filename = get_value< std::string >( "-os" ) ;
 			}
 			else {
-				if( check_if_option_was_supplied_in_group( "Sample filtering options" ) ) {
-					m_output_sample_filename = strip_sample_file_extension_if_present( m_input_sample_filename ) + ".fltrd.sample";
+				std::string stub ;
+				if( m_input_sample_filename != "" ) {
+					stub = strip_sample_file_extension_if_present( m_input_sample_filename ) ;
 				}
 				else {
-					m_output_sample_filename = strip_sample_file_extension_if_present( m_input_sample_filename ) + ".sample-stats.sample" ;
+					stub = "qctool" ;
+				}
+
+				if( check_if_option_was_supplied_in_group( "Sample filtering options" ) ) {
+					m_output_sample_filename = stub + ".fltrd.sample";
+				}
+				else {
+					m_output_sample_filename = stub + ".sample-stats.sample" ;
 				}
 			}
 		}
