@@ -222,11 +222,18 @@ namespace genfile {
                 ::write_little_endian_integer( out_stream, integer ) ;
             }
 
-            template< typename FloatType >
-            uint16_t round_to_nearest_integer( FloatType number ) {
-                return static_cast< uint16_t > ( number + 0.5 ) ;
-            }
+			template< typename FloatType >
+			uint16_t round_to_nearest_integer( FloatType number ) {
+				assert( number >= 0.0 ) ;
+				return uint16_t( number + 0.5 ) ;
+			}
 
+			template< typename FloatType >
+			uint16_t convert_to_uint16( FloatType number ) {
+				assert( number >= 0.0 && number < 6.55355 ) ;
+				return round_to_nearest_integer( std::min( std::max( number, 0.0 ) * PROBABILITY_CONVERSION_FACTOR, 65535.0 ) ) ;
+			}
+			
             void read_snp_identifying_data(
                 std::istream& aStream,
                 uint32_t* number_of_samples,
@@ -328,9 +335,9 @@ namespace genfile {
             ) {
                 for ( impl::uint32_t i = 0 ; i < number_of_samples ; ++i ) {
                     impl::uint16_t
-                    AA = round_to_nearest_integer( get_AA_probability( i ) * impl::PROBABILITY_CONVERSION_FACTOR ),
-                         AB = round_to_nearest_integer( get_AB_probability( i ) * impl::PROBABILITY_CONVERSION_FACTOR ),
-                              BB = round_to_nearest_integer( get_BB_probability( i ) * impl::PROBABILITY_CONVERSION_FACTOR ) ;
+                    AA = convert_to_uint16( get_AA_probability( i ) ),
+                         AB = convert_to_uint16( get_AB_probability( i ) ),
+                              BB = convert_to_uint16( get_BB_probability( i ) ) ;
 
                     write_little_endian_integer( aStream, AA ) ;
                     write_little_endian_integer( aStream, AB ) ;
