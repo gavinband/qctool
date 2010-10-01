@@ -1,0 +1,417 @@
+<!doctype html public "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html>
+	<head>
+		<!-- Jquery library -->
+		<script type = "text/javascript" src = "js/jquery-1.4.2.min.js"></script>
+		<script type = "text/javascript" src = "js/jquery.ba-hashchange.min.js"></script>
+		<script type = "text/javascript" src = "js/local.js"></script>
+		<!-- Page behaviour.-->
+		<script type = "text/javascript">
+			$(document).ready(
+				function() {
+					setFirstPage( "introduction" ) ;
+				}
+			) ;
+		</script>
+		<link href="style/css/qctool.css" REL="stylesheet">
+	</head>
+	<body>
+		<div class = "header" id = "header1">
+			<a href="qctool.html"><img src = "style/images/qctool.png" class = "header_img"></img></a>
+			<div class = "header_subtext">
+				tutorial
+			</div>
+		</div>
+		<div class = "button_bar" >
+			<!--><img src="style/images/arrow.tl.br.png" class = "header_arrow"><img>-->
+			<div style = "width: 600px; margin-left: auto; margin-right: auto" >
+				<img src="style/images/introduction.png" class="nav_button" name = "introduction"></img>
+				<img src="style/images/summary_stats.png" class="nav_button" name = "summary_stats"></img>
+				<img src="style/images/filtering.png" class="nav_button" name = "filtering"></img>
+			</div>
+		</div>
+		<div class = "main_text">
+			<div id = "summary_stats" style = "display:none" >
+				UNDER CONSTRUCTION
+			</div>
+			<div id = "filtering" style = "display:none" >
+				UNDER CONSTRUCTION
+			</div>
+			<div id = "introduction" style = "display:none" >
+				<p>
+					This page contains some examples of basic usage of qctool.  To visit the main qctool site, go <a href="qctool.html#overview">here</a>.
+				</p>
+				<p>
+					The tutorials suppose you have a directory containing 22 chromosome's worth of genotypes
+					as follows (click the screens to expand):
+				</p>
+
+				<div class="terminal_display" style="height:110px" >
+					<pre>
+$ ls
+example.sample	example_04.gen	example_08.gen	example_12.gen	example_16.gen	example_20.gen
+example_01.gen	example_05.gen	example_09.gen	example_13.gen	example_17.gen	example_21.gen
+example_02.gen	example_06.gen	example_10.gen	example_14.gen	example_18.gen	example_22.gen
+example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
+$
+					</pre>
+				</div>
+				<h4>Conversion of file formats:</h4>
+				<p>Here is an example of converting GEN files into BGEN format.:</p>
+				<div class="terminal_display">
+					<pre>$ qctool -g cohort1_#.gen -og cohort1_#.bgen -force
+Welcome to qctool
+(C) 2009 University of Oxford
+
+========================================================================
+
+            Input SAMPLE file:  "(n/a)".
+           Output SAMPLE file:  "(n/a)".
+ Sample statistic output file:  "(n/a)".
+ Sample exclusion output file:  "(n/a)".
+
+            Input GEN file(s):  (   200 snps)  "./example_01.gen"
+                                                          .
+                                                          .
+                                                          .
+                                (   200 snps)  "./example_22.gen"
+                                (total 4400 snps in input).
+
+           Output GEN file(s):  "example_01.bgen"
+                                         .
+                                         .
+                                         .
+                                "example_22.bgen"
+  Output SNP position file(s):  (n/a)
+ SNP statistic output file(s):
+                Sample filter:  (none).
+                   SNP filter:  (none).
+
+  # of samples in input files:  500.
+ # of samples after filtering:  500 (0 filtered out).
+
+========================================================================
+
+!! WARNING: You have specified output GEN (or snp exclusion) files, but no filters.
+ This will just output the same gen files (converting formats if necessary).
+ Consider using gen-convert, included with the qctool source code, instead.
+
+!! Warnings were encountered, but proceeding anyway as -force was supplied.
+
+========================================================================
+
+Processing SNPs...
+[******************************] (4400 / 4400, 5.3s)
+Processed 4400 SNPs in 4.7 seconds.
+Processing samples...
+Processed 500 samples in 0.0 seconds.
+
+========================================================================
+
+I took backups of the following files before overwriting:
+  "qctool.log" to "qctool.log.~1"
+
+========================================================================
+
+Number of SNPs in input file(s):      4400.
+
+Number of samples in input file(s):   500.
+
+Output GEN files:                     (200    snps)  "example_01.bgen"
+                                                              .
+                                                              .
+                                                              .
+                                      (200    snps)  "example_22.bgen"
+                                      (total 4400 snps).
+
+More details are in the log file:    "qctool.log".
+========================================================================
+
+
+Thank you for using qctool.
+$
+					</pre>
+				</div>
+						
+				<h4>Generating per-sample summary statistics:</h4>
+				<div class="terminal_display">
+					<pre>$ qctool -g example_#.gen -s example.sample -sample-stats
+
+Welcome to qctool
+(C) 2009 University of Oxford
+
+========================================================================
+
+            Input SAMPLE file:  "example.sample".
+           Output SAMPLE file:  "example.sample".
+ Sample statistic output file:  "example.sample-stats".
+ Sample exclusion output file:  "(n/a)".
+
+            Input GEN file(s):  (    13 snps)  "./example_01.gen"
+                                                        .
+                                                        .
+                                                        .
+                                (    13 snps)  "./example_22.gen"
+                                (total 286 snps in input).
+
+           Output GEN file(s):  (n/a)
+  Output SNP position file(s):  (n/a)
+ SNP statistic output file(s):
+                Sample filter:  (none).
+                   SNP filter:  (none).
+
+  # of samples in input files:  5.
+ # of samples after filtering:  5 (0 filtered out).
+
+========================================================================
+
+Processing SNPs...
+[******************************] (286 / 286, 0.1s)
+Processed 286 SNPs in 0.0 seconds.
+Processing samples...
+Processed 5 samples in 0.0 seconds.
+
+========================================================================
+
+I took backups of the following files before overwriting:
+  "example.sample" to "example.sample.~1"
+  "qctool.log"     to "qctool.log.~1"
+
+========================================================================
+
+Number of SNPs in input file(s):      286.
+
+Number of samples in input file(s):   5.
+
+Output SAMPLE files:                  "example.sample"  (5 samples)
+Sample statistic output file:         "example.sample-stats".
+
+More details are in the log file:    "qctool.log".
+========================================================================
+
+
+Thank you for using qctool.
+$
+					</pre>
+				</div>
+				<h4>Sample filtering:</h4>
+				<div class="terminal_display">
+					<pre>
+$ qctool -g example_#.gen -s example.sample -sample-missing-rate 0.2 -heterozygosity 0.1 0.9
+
+Welcome to qctool
+(C) 2009 University of Oxford
+
+========================================================================
+
+            Input SAMPLE file:  "example.sample".
+           Output SAMPLE file:  "example.fltrd.sample".
+ Sample statistic output file:  "(n/a)".
+ Sample exclusion output file:  "(n/a)".
+
+            Input GEN file(s):  (    13 snps)  "./example_01.gen"
+                                                        .
+                                                        .
+                                                        .
+                                (    13 snps)  "./example_22.gen"
+                                (total 286 snps in input).
+
+           Output GEN file(s):  "example_01.fltrd.gen"
+                                           .
+                                           .
+                                           .
+                                "example_22.fltrd.gen"
+  Output SNP position file(s):  (n/a)
+ SNP statistic output file(s):
+                Sample filter:  missing < 0.20000 AND heterozygosity in [0.10000,0.90000].
+                   SNP filter:  (none).
+
+  # of samples in input files:  5.
+ # of samples after filtering:  3 (2 filtered out).
+
+========================================================================
+
+Processing SNPs...
+[******************************] (286 / 286, 0.1s)
+Processed 286 SNPs in 0.0 seconds.
+Processing samples...
+Processed 5 samples in 0.0 seconds.
+(3 of 5 samples passed the filter.)
+
+========================================================================
+
+I took backups of the following files before overwriting:
+  "example.fltrd.sample" to "example.fltrd.sample.~1"
+  "qctool.log"           to "qctool.log.~1"
+
+========================================================================
+
+Number of SNPs in input file(s):      286.
+
+Number of samples in input file(s):   5.
+...which failed "missing < 0.20000":  0.
+...which failed "heterozygosity in [0.1,0.9]":  2.
+(total failures:                      2).
+
+Output GEN files:                     (13     snps)  "example_01.fltrd.gen"
+                                                               .
+                                                               .
+                                                               .
+                                      (13     snps)  "example_22.fltrd.gen"
+                                      (total 286 snps).
+Output SAMPLE files:                  "example.fltrd.sample"  (3 samples)
+
+More details are in the log file:    "qctool.log".
+========================================================================
+
+
+Thank you for using qctool.
+$
+					</pre>
+				</div>
+				<h4>Generating SNP summary statistics:</h4>
+				<div class="terminal_display">
+					<pre>
+$ qctool -g example_#.gen -snp-stats
+
+Welcome to qctool
+(C) 2009 University of Oxford
+
+========================================================================
+
+            Input SAMPLE file:  "(n/a)".
+           Output SAMPLE file:  "(n/a)".
+ Sample statistic output file:  "(n/a)".
+ Sample exclusion output file:  "(n/a)".
+
+            Input GEN file(s):  (    13 snps)  "./example_01.gen"
+                                                         .
+                                                         .
+                                                         .
+                                (    13 snps)  "./example_22.gen"
+                                (total 286 snps in input).
+
+           Output GEN file(s):  (n/a)
+  Output SNP position file(s):  (n/a)
+ SNP statistic output file(s):  "example_01.snp-stats"
+                                           .
+                                           .
+                                           .
+                                "example_22.snp-stats"
+
+                Sample filter:  (none).
+                   SNP filter:  (none).
+
+  # of samples in input files:  5.
+ # of samples after filtering:  5 (0 filtered out).
+
+========================================================================
+
+Processing SNPs...
+[******************************] (286 / 286, 0.1s)
+Processed 286 SNPs in 0.0 seconds.
+Processing samples...
+Processed 5 samples in 0.0 seconds.
+
+========================================================================
+
+I took backups of the following files before overwriting:
+  "qctool.log" to "qctool.log.~1"
+
+========================================================================
+
+Number of SNPs in input file(s):      286.
+
+Number of samples in input file(s):   5.
+
+SNP statistic output file(s):         "example_01.snp-stats"
+                                                .
+                                                .
+                                                .
+                                      "example_22.snp-stats"
+
+More details are in the log file:    "qctool.log".
+========================================================================
+
+
+Thank you for using qctool.
+$
+					</pre>
+				</div>
+				<h4>Filtering SNPs:</h4>
+				<div class="terminal_display">
+					<pre>
+qctool -g example_#.gen -snp-missing-rate 0.1 -info 0.8 1
+
+Welcome to qctool
+(C) 2009 University of Oxford
+
+========================================================================
+
+            Input SAMPLE file:  "(n/a)".
+           Output SAMPLE file:  "(n/a)".
+ Sample statistic output file:  "(n/a)".
+ Sample exclusion output file:  "(n/a)".
+
+            Input GEN file(s):  (    13 snps)  "./example_01.gen"
+                                                         .
+                                                         .
+                                                         .
+                                (    13 snps)  "./example_22.gen"
+                                (total 286 snps in input).
+
+           Output GEN file(s):  "example_01.fltrd.gen"
+                                          .
+                                          .
+                                          .
+                                "example_22.fltrd.gen"
+  Output SNP position file(s):  (n/a)
+ SNP statistic output file(s):
+                Sample filter:  (none).
+                   SNP filter:  information in [0.8,1.0] AND missing < 0.10000.
+
+  # of samples in input files:  5.
+ # of samples after filtering:  5 (0 filtered out).
+
+========================================================================
+
+Processing SNPs...
+[******************************] (286 / 286, 0.1s)
+Processed 286 SNPs in 0.0 seconds.
+(242 of 286 SNPs passed the filter.)
+Processing samples...
+Processed 5 samples in 0.0 seconds.
+
+========================================================================
+
+I took backups of the following files before overwriting:
+  "qctool.log" to "qctool.log.~1"
+
+========================================================================
+
+Number of SNPs in input file(s):      286.
+...which failed "information in [0.8,1]":  22.
+...which failed "missing < 0.10000":  22.
+(total failures:                      44).
+
+Number of samples in input file(s):   5.
+
+Output GEN files:                     (11     snps)  "example_01.fltrd.gen"
+                                                               .
+                                                               .
+                                                               .
+                                      (11     snps)  "example_22.fltrd.gen"
+                                      (total 242 snps).
+
+More details are in the log file:    "qctool.log".
+========================================================================
+
+
+Thank you for using qctool.
+$ 
+					</pre>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

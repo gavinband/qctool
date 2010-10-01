@@ -1,0 +1,208 @@
+<!doctype html public "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html>
+	<head>
+		<!-- Jquery library -->
+		<script type = "text/javascript" src = "js/jquery-1.4.2.min.js"></script>
+		<script type = "text/javascript" src = "js/jquery.ba-hashchange.min.js"></script>
+		<script type = "text/javascript" src = "js/local.js"></script>
+		<!-- Page behaviour.-->
+		<script type = "text/javascript">
+			$(document).ready(
+				function() {
+					setFirstPage( "overview" ) ;
+				}
+			) ;
+		</script>
+		<link href="style/css/qctool.css" REL="stylesheet">
+	</head>
+	<body>
+		<div class = "header" id = "header1">
+			<img src = "style/images/qctool.png" class = "header_img" ></img>
+			<div class = "header_subtext">
+				A tool for quality control and analysis of gwas datasets.
+			</div>
+		</div>
+		<div class = "button_bar" >
+			<!--><img src="style/images/arrow.tl.br.png" class = "header_arrow"><img>-->
+			<img src="style/images/overview.png" class="nav_button" name = "overview"></img>
+			<img src="style/images/documentation.png" class="nav_button" name = "documentation" ></img>
+			<img src="style/images/download.png" class="nav_button" name = "download"></img>
+		</div>
+		<div class = "main_text">
+			<div id = "overview" style = "display:none" >
+				<p>
+					QCTOOL is a command-line utility program for basic quality control of gwas datasets.
+					It supports the same <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format_new.html">file formats</a>
+					used by the <a href="http://www.wtccc.org.uk/">WTCCC studies</a>, as well as the binary file format
+					described <a href="http://www.well.ox.ac.uk/~gav/bgen_format.html">here</a>,
+					and is designed to work seamlessly with
+					<a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/gwas.html">SNPTEST and related tools</a>.
+					QCTOOL computes per-sample and per-SNP summary statistics, and uses these to filter out samples and SNPs
+					from the dataset (either by removing them from the files or by writing exclusion lists).
+				</p>
+				<p>
+					QCTOOL can be used to :
+					<ul>
+						<li>
+							Calculate per-sample and per-SNP summary statistics;
+						</li>
+						<li>
+							Filter out samples and SNPs, either by creating new data files or by creating exclusion lists.
+						</li>
+						<li>
+							Populate sample files with missingness and heterozygosity information;
+						</li>
+						<li>
+							Convert files between different GEN file formats.
+						</li>
+					</ul>
+				</p>
+				<p>
+					QCTOOL has a number of features designed to make it easy to use :
+					<ul>
+						<li>
+							Automatically run across the whole genome (using the chromosomal wildcard character '#' to find matching files)
+						</li>
+						<li>
+							Robust file reading and careful error checking - QCTOOL will tell you if it thinks you are doing something wrong.
+						</li>
+						<li>
+							Informative output and progress bars giving an estimate of remaining runtime.
+						</li>
+					</ul>
+				</p>
+				<p>
+					<strong>Acknowledgements.</strong>
+					The following people contributed to the design and implementation of qctool:
+					<ul>
+						<li><a href="http://www.well.ox.ac.uk/~gav/">Gavin Band</a></li>
+						<li><a href="http://www.stats.ox.ac.uk/~marchini/">Jonathan Marchini</a></li>
+					</ul>
+					In addition, QCTOOL contains the <a href="http://www.sph.umich.edu/csg/abecasis/Exact/index.html">SNP-HWE</a> code
+					by Jan Wigginton et al., described in "A Note on Exact Tests of Hardy-Weinberg Equilibrium",
+					Wigginton et al, <i>Am. J. Hum. Genet</i> (2005) 76:887-93
+				</p>
+
+				<p>
+					<strong>Contact.</strong>
+					For more information or questions, please contact me at the following email address: <pre style="font-style: monospace">gavin.band (at) well.ox.ac.uk.</pre>
+				</p>
+				
+			</div>
+			<div id = "documentation" style = "display:none" >
+				<div class="display_diagram_right">
+					<object data="style/images/schematic.svg" width=328 height=500 type="image/svg+xml" align="center"></object>
+				</div>
+				<p>
+				QCTOOL works according to the schematic on the right.
+				A detailed list of options is given by the command <pre>
+$ qctool -help
+				</pre>
+				which produces <a href="qctool_help.txt">this output</a>.
+				</p>
+				<p>
+					Qctool works with the following per-sample summary statistics, calculated using the -sample-stats option:
+					<dl>
+						<dt style="font-weight: bold ;">Missingness</dt>
+						<dd>the total proportion of missing genotype data for this sample across all SNPs.
+							This is the sum of the three genotype probabilities for the sample across all SNPs,
+							divided by the total number of SNPs.  A large missing data proportion might be due, for example, to
+							a badly-prepared sample.  You can filter on missingness using the
+							-sample-missing-rate option.
+						</dd>
+						<dt style="font-weight: bold ;">Heterozygosity</dt>
+						<dd>This is the sum of heterozygote call probabilities across all SNPs
+							divided by the total number of SNPs.  A high value of heterozygosity might indicate, for example, that
+							the DNA from this sample was been accidentally mixed with another sample during processing; a low value
+							might indicate a higher degree of relatedness than expected among the ancestors of the
+							individual.  You can filter on heterozygosity using the -heterozygosity option.
+						</dd>
+					</dl>
+					You can filter samples based on these summary statistics, or using lists of sample ids.
+				</p>
+				<p>
+					Qctool works with the following per-SNP summary statistics:
+					<dl>
+						<dt style="font-weight: bold ;">
+							Missingness
+						</dt>
+						<dd> The proportion of missing genotype data across all samples for the SNP.
+							A high value indicates that the SNP is not well called.  You can filter these SNPs
+							out using the -snp-missing-rate option.
+						</dd>
+						<dt style="font-weight: bold ;">
+							Minor allele frequency
+						</dt>
+						<dd>
+							The estimated frequency of the less common allele.  The -maf option can be used to retain only SNPs within
+							a given range of minor allele frequencies.
+						</dd>
+						<dt style="font-weight: bold ;">Information</dt>
+						<dd>
+ 							A measure of much statistical information the genotypes provide about the allele frequency,
+							ranging from 0 (least information) to 1 (most information).
+							Use the -info option to filter on this statistic.
+						</dd>
+					</dl>
+					You can filter out SNPs based on these summary statistics, on position, or based on the SNP ids.
+				</p>
+				<p>
+					In general, qctool tries to warn you if it thinks you are doing something wrong.
+					In these cases you can override qctool using the -force option.
+				</p>
+				<p>
+					For more information, see the <a href="qctool_tutorial.html"> tutorial</a>.
+				</p>
+			</div>
+			<div id = "download" style = "display:none" >
+				<p>
+				QCTOOL is available either as binaries or as source code.
+				</p>
+				<h3>Binaries</h3>
+				<p>
+					Pre-compiled binaries are available for the following platforms.
+					<table>
+						<tr><th>Platform</th><th>File</th></tr>
+						<tr>
+							<td>Linux x86-64 static build</td>
+							<td><a href="resources/qctool-static-linux-x86-64.bz2">qctool-static-linux-x86-64.bz2</a> (918kb)</td>
+						</tr>
+						<tr>
+							<td>Mac OS X 10.6.3</td>
+							<td><a href="resources/qctool-static-osx-10.6.3.bz2">qctool-static-osx-10.6.3.bz2</a> (385kb)</td>
+						</tr>
+					</table>
+				</p>
+				<h3>Source</h3>
+				<p>
+					The source code to qctool is available as a mercurial repository
+					<a href="http://www.bitbucket.org/gavinband/qctool">here</a>.
+					Assuming you have mercurial installed, a basic download and compilation sequence would be:
+					<div class = "terminal">
+						<pre>
+$ hg clone https://gavinband@bitbucket.org/gavinband/qctool
+destination directory: qctool
+requesting all changes
+adding changesets
+adding manifests
+adding file changes
+added 232 changesets with 1170 changes to 270 files
+updating to branch default
+201 files updated, 0 files merged, 0 files removed, 0 files unresolved
+$ cd qctool
+$ ./waf-1.5.8 configure
+$ ./waf-1.5.8
+						</pre>
+					</div>
+					This produces an executable
+					<pre>./build/release/qctool</pre>
+				</p>
+				<p>
+					You will need <a href="http://www.boost.org">boost</a> and <a href="http://www.zlib.net">zlib</a> installed.
+					More detailed build instructions can be found on the QCTOOL
+					<a href="http://www.bitbucket.org/gavinband/qctool-dev/wiki/Home">wiki</a>.
+				</p>
+			</div>
+		</div>
+	</body>
+</html>

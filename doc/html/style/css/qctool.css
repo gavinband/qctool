@@ -1,0 +1,108 @@
+/*
+img {
+	border: 1px solid red;
+}
+div {
+	border: 1px dotted blue ;
+}
+*/
+
+body {
+	width: 1000px ;
+	margin-left: auto ;
+	margin-right: auto ;
+}
+
+img.header_img {
+	float: left ;
+	padding-left: 10px ;
+	padding-right: 10px ;
+}
+
+img.header_arrow {
+	float: left;
+	clear: left ;
+	padding-left: 80px ;
+}
+
+div.header_subtext {
+	padding-top: 20px ;
+	padding-left: 100px ;
+}
+
+div.header {
+	border-bottom: 2px solid black ;
+	font-family: sans-serif ;
+	font-size: 15px ;
+}
+
+strong {
+	font-family: sans-serif ;
+}
+
+img.nav_button {
+	margin-left: 10px ;
+	margin-right: 10px ;
+	margin-top: 10px ;
+	padding: 10px ;
+}
+
+
+div.button_bar {
+	width:670px ;
+	margin-left: auto ;
+	margin-right: auto ;
+}
+
+dt {
+	font-weight: bold ;
+	font-style: italic ;
+}
+
+div.main_text {
+	width: 800px ;
+	padding-top: 20px ;
+	margin-left: auto ;
+	margin-right: auto ;
+	font-family: serif ;
+	//border: 1px dotted red ;
+}
+
+.main_text .display_diagram {
+	padding-top: 20px ;
+	width: 460px ;
+	margin-left: auto ;
+	margin-right: auto ;
+}
+
+.display_diagram_right {
+	padding-top: 0px ;
+	margin-left: 50px ;
+	float: right ;
+}
+
+.main_text .terminal_display {
+	height: 110px ;
+	overflow: auto ;
+	padding: 10px ;
+	margin-top: 10px ;
+	border: 1px dotted black ;
+	background-color: #22AD57 ;
+}
+
+#download table {
+	text-align: left ;
+	width: 500px ;
+	border: 1px solid black ;
+	background-color: #CCCCCC ;
+	padding: 10px ;
+}
+
+th {
+	border-bottom: 1px solid black ;
+	font-family: sans-serif ;
+}
+
+h1, h2, h3, h4 {
+	font-family: sans-serif ;
+}
