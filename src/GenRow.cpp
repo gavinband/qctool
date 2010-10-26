@@ -12,6 +12,27 @@
 #include "GenotypeProportions.hpp"
 #include "floating_point_utils.hpp"
 
+GenRowIdentifyingData::GenRowIdentifyingData() {}
+
+GenRowIdentifyingData::GenRowIdentifyingData( GenRowIdentifyingData const& other ):
+	m_SNPID( other.m_SNPID ),
+	m_RSID( other.m_RSID ),
+	m_chromosome( other.m_chromosome ),
+	m_SNP_position( other.m_SNP_position ),
+	m_1st_allele( other.m_1st_allele ),
+	m_2nd_allele( other.m_2nd_allele )
+{}
+
+GenRowIdentifyingData& GenRowIdentifyingData::operator=( GenRowIdentifyingData const& other ) {
+	m_SNPID = other.m_SNPID ;
+	m_RSID = other.m_RSID ;
+	m_chromosome = other.m_chromosome ;
+	m_SNP_position = other.m_SNP_position ;
+	m_1st_allele = other.m_1st_allele ;
+	m_2nd_allele = other.m_2nd_allele ;
+	return *this ;
+}
+
 bool GenRowIdentifyingData::operator==( GenRowIdentifyingData const& right ) const {
 	return (
 		( m_SNPID == right.m_SNPID )
@@ -21,6 +42,17 @@ bool GenRowIdentifyingData::operator==( GenRowIdentifyingData const& right ) con
 		&& ( m_1st_allele == right.m_1st_allele )
 		&& ( m_2nd_allele == right.m_2nd_allele )
 	) ;
+}
+
+GenRow::GenRow() {}
+
+GenRow::GenRow( GenRow const& other ):
+ 	GenRowIdentifyingData( other )
+{}
+
+GenRow& GenRow::operator=( GenRow const& other ) {
+	GenRowIdentifyingData::operator=( other ) ;
+	return *this ;
 }
 
 bool GenRow::operator==( GenRow const& right ) const {
@@ -77,6 +109,20 @@ bool GenRow::check_if_equal( GenRow const& left, GenRow const& right, double eps
 	}
 	
 	return true ;
+}
+
+InternalStorageGenRow::InternalStorageGenRow()
+{}
+
+InternalStorageGenRow::InternalStorageGenRow( GenRow const& other ):
+	GenRow( other ),
+	m_genotype_proportions( other.begin_genotype_proportions(), other.end_genotype_proportions() )
+{}
+
+InternalStorageGenRow& InternalStorageGenRow::operator=( GenRow const& other ) {
+	GenRow::operator=( other ) ;
+	m_genotype_proportions.assign( other.begin_genotype_proportions(), other.end_genotype_proportions() ) ;
+	return *this ;
 }
 
 void InternalStorageGenRow::filter_out_samples_with_indices( std::vector< std::size_t > const& indices_to_filter_out ) {

@@ -1,18 +1,21 @@
 #include "InformationStatistic.hpp"
+#include "fill_genotype_probabilities.hpp"
+#include "rescale_genotype_probabilities.hpp"
 
 // Calculate Information statistic as per J.Marchini's email to me
 // on 28/09/2009.
-double InformationStatistic::calculate_value( GenRowStatistics const& stats ) const {
+// Update 26/10/2010: rescale the genotype probabilities per person to avoid problem
+// with info when there is missing data.  (To wit, flipping the alleles can give
+// drastically different info values.)
+double InformationStatistic::calculate_value( GenRow const& row ) const {
 
 	double result ;
-
-	GenRow const& row = stats.row() ;
 
 	if( row.number_of_samples() == 0 ) {
 		return 0.0 ;
 	}
 
-	double T1 = stats.get_genotype_amounts().sum() ;
+	double T1 = 0.0 ;
 	double T2 = 0.0 ;
 	std::vector< double > e( row.number_of_samples() ) ;
 	std::vector< double > f( row.number_of_samples() ) ;
@@ -24,9 +27,10 @@ double InformationStatistic::calculate_value( GenRowStatistics const& stats ) co
 	for( std::size_t index = 0; i != end_i ; ++i, ++index ) {
 		e[index] = i->AB() + (2.0 * i->BB()) ;
 		f[index] = i->AB() + (4.0 * i->BB()) ;
+		T1 += i->sum() ;
 		T2 += e[index] ;
 	}
-
+	
 	if( T1 == 0.0 ) {
 		return (T2 == 0.0) ? 1.0 : 0.0 ;
 	}
@@ -52,5 +56,21 @@ double InformationStatistic::calculate_value( GenRowStatistics const& stats ) co
 	}
 	
 	return result ;
+}
+
+double PlainInformationStatistic::calculate_value( GenRowStatistics const& stats ) const {
+	return InformationStatistic::calculate_value( stats.row() ) ;
+}
+
+double FillingInformationStatistic::calculate_value( GenRowStatistics const& stats ) const {
+	InternalStorageGenRow row( stats.row() ) ;
+	fill_genotype_probabilities( &row, 0.25, 0.5, 0.25 ) ;
+	return InformationStatistic::calculate_value( row ) ;
+}
+
+double ScalingInformationStatistic::calculate_value( GenRowStatistics const& stats ) const {
+	InternalStorageGenRow row( stats.row() ) ;
+	rescale_genotype_probabilities( &row, 0.1 ) ;
+	return InformationStatistic::calculate_value( row ) ;
 }
 

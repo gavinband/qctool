@@ -13,6 +13,10 @@ class GenRowIdentifyingData
 public:
 	typedef genfile::Chromosome Chromosome ;
 public:
+	GenRowIdentifyingData() ;
+	GenRowIdentifyingData( GenRowIdentifyingData const& other ) ;
+	GenRowIdentifyingData& operator=( GenRowIdentifyingData const& other ) ;
+	
 	std::string SNPID() const { return m_SNPID ; } 
 	std::string RSID() const { return m_RSID ; }
 	Chromosome chromosome() const { return m_chromosome ; }
@@ -50,6 +54,9 @@ class GenRow: public GenRowIdentifyingData
 {
 	public:
 		virtual ~GenRow() {} ;
+		GenRow() ;
+		GenRow( GenRow const& other ) ;
+		GenRow& operator=( GenRow const& other ) ;
 		
 		std::size_t number_of_samples() const ;
 		virtual void set_number_of_samples( std::size_t n ) = 0 ;
@@ -101,6 +108,10 @@ std::ostream& operator<<( std::ostream&, GenRow const& ) ;
 class InternalStorageGenRow: public GenRow
 {
 public:
+	InternalStorageGenRow() ;
+	InternalStorageGenRow( GenRow const& other ) ;
+	InternalStorageGenRow& operator=( GenRow const& other ) ;
+	
 	void set_number_of_samples( std::size_t n ) { m_genotype_proportions.resize( n ) ; }
 	
 	virtual genotype_proportion_const_iterator begin_genotype_proportions() const { return (&m_genotype_proportions[0]) ; }

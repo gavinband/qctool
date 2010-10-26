@@ -123,7 +123,7 @@ public:
 		options[ "-snp-stats-columns" ]
 	        .set_description( "Comma-seperated list of columns to output in the snp-wise statistics file.  "
 	 						"By default, the columns are: "
-							"SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing, and information" )
+							"SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing, information, and old_information" )
 			.set_takes_single_value()
 			.set_default_value( "SNPID, RSID, position, minor_allele, major_allele, AA, AB, BB, MAF, HWE, missing, information" ) ;
 
@@ -254,7 +254,10 @@ public:
 	InputToOutputFilenameMapper const& snp_stats_filename_mapper() const { return m_snp_stats_sink_mapper ; }
 	InputToOutputFilenameMapper const& snp_excl_list_filename_mapper() const { return m_output_snp_excl_file_mapper ; }
 	std::vector< std::string > row_statistics_specs() const {
-		return string_utils::split_and_strip_discarding_empty_entries( get_value< std::string >( "-snp-stats-columns" ), "," ) ;
+		// Add default columns
+		std::string column_spec = "SNPID, RSID, position, minor_allele, major_allele, AA, AB, BB, MAF, HWE, missing, information, " ;
+		column_spec += get_value< std::string >( "-snp-stats-columns" ) ;
+		return string_utils::split_and_strip_discarding_empty_entries( column_spec, "," ) ;
 	}
 	std::vector< std::string > sample_statistics_specs() const {
 		return string_utils::split_and_strip_discarding_empty_entries( get_value< std::string >( "-sample-stats-columns" ), "," ) ;

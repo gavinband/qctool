@@ -90,7 +90,13 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 		return std::auto_ptr< GenotypeAssayStatistic >( new MinusLog10SNPHWEStatistic ) ;
 	}
 	else if( statistic_spec == "information" ) {
-		return std::auto_ptr< GenotypeAssayStatistic > ( new InformationStatistic ) ;
+		return std::auto_ptr< GenotypeAssayStatistic > ( new PlainInformationStatistic() ) ;
+	}
+	else if( statistic_spec == "filled_information" ) {
+		return std::auto_ptr< GenotypeAssayStatistic > ( new FillingInformationStatistic()) ;
+	}
+	else if( statistic_spec == "scaled_information" ) {
+		return std::auto_ptr< GenotypeAssayStatistic > ( new ScalingInformationStatistic()) ;
 	}
 	else if( statistic_spec == "missing" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new MissingDataProportionStatistic ) ; 
