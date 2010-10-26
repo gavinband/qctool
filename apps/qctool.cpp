@@ -121,11 +121,12 @@ public:
 			.set_maximum_number_of_repeats(23) ;
 
 		options[ "-snp-stats-columns" ]
-	        .set_description( "Comma-seperated list of columns to output in the snp-wise statistics file.  "
-	 						"By default, the columns are: "
-							"SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing, information, and old_information" )
+	        .set_description( "Comma-seperated list of extra columns to output in the snp-wise statistics file.  "
+	 						"The standard columns are: "
+							"SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing, information."
+							" Your choices here are filled_information and scaled_information." )
 			.set_takes_single_value()
-			.set_default_value( "SNPID, RSID, position, minor_allele, major_allele, AA, AB, BB, MAF, HWE, missing, information" ) ;
+			.set_default_value( "" ) ;
 
 	    options[ "-sample-stats" ]
 			.set_description( "Calculate and output sample-wise statistics." ) ;
