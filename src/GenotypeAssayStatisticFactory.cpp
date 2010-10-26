@@ -9,6 +9,7 @@
 #include "HardyWeinbergExactTestStatistic.hpp"
 #include "LikelihoodRatioTestStatistic.hpp"	
 #include "InformationStatistic.hpp"
+#include "MachRsquaredStatistic.hpp"
 #include "string_utils/string_utils.hpp"
 
 
@@ -97,6 +98,15 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 	}
 	else if( statistic_spec == "scaled_information" ) {
 		return std::auto_ptr< GenotypeAssayStatistic > ( new ScalingInformationStatistic()) ;
+	}
+	else if( statistic_spec == "mach_r2" ) {
+		return std::auto_ptr< GenotypeAssayStatistic > ( new PlainMachRsquaredStatistic() ) ;
+	}
+	else if( statistic_spec == "filled_mach_r2" ) {
+		return std::auto_ptr< GenotypeAssayStatistic > ( new FillingMachRsquaredStatistic()) ;
+	}
+	else if( statistic_spec == "scaled_mach_r2" ) {
+		return std::auto_ptr< GenotypeAssayStatistic > ( new ScalingMachRsquaredStatistic()) ;
 	}
 	else if( statistic_spec == "missing" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new MissingDataProportionStatistic ) ; 

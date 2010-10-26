@@ -124,7 +124,7 @@ public:
 	        .set_description( "Comma-seperated list of extra columns to output in the snp-wise statistics file.  "
 	 						"The standard columns are: "
 							"SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing, information."
-							" Your choices here are filled_information and scaled_information." )
+							" Your choices here are filled_information, scaled_information, mach_r2, scaled_mach_r2, and filled_mach_r2." )
 			.set_takes_single_value()
 			.set_default_value( "" ) ;
 
