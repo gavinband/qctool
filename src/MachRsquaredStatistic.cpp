@@ -13,8 +13,8 @@ double MachRsquaredStatistic::calculate_value( GenRow const& row ) const {
 	}
 
 	double N = 0.0 ;
-	double T1 = 0.0 ;
-	double T2 = 0.0 ;
+	double sum_of_squared_dosages = 0.0 ;
+	double sum_of_dosages = 0.0 ;
 	std::vector< double > e( row.number_of_samples() ) ;
 	std::vector< double > e_squared( row.number_of_samples() ) ;
 
@@ -25,22 +25,22 @@ double MachRsquaredStatistic::calculate_value( GenRow const& row ) const {
 	for( std::size_t index = 0; i != end_i ; ++i, ++index ) {
 		N += i->sum() ;
 		double e = i->AB() + (2.0 * i->BB()) ;
-		T1 += e*e ;
-		T2 += e ;
+		sum_of_squared_dosages += e*e ;
+		sum_of_dosages += e ;
 	}
 	
 	if( N == 0.0 ) {
-		return (T2 == 0.0) ? 1.0 : 0.0 ;
+		return (sum_of_dosages == 0.0) ? 1.0 : 0.0 ;
 	}
 
-	double theta = T2 / (2.0 * N) ;
+	double allele_frequency = sum_of_dosages / (2.0 * N) ;
 
-	if( theta == 0 || theta == 1 ) {
+	if( allele_frequency == 0 || allele_frequency == 1 ) {
 		result = 1.0 ;
 	}
 	else {
-		result = T1 - (T2*T2) ;
-		result /= T2 * ( 1 - theta ) ;
+		result = (sum_of_squared_dosages / N) - ((sum_of_dosages*sum_of_dosages)/(N*N)) ;
+		result /= 2* allele_frequency * ( 1 - allele_frequency ) ;
 	}
 	
 	return result ;

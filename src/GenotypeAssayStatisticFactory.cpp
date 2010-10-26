@@ -10,6 +10,8 @@
 #include "LikelihoodRatioTestStatistic.hpp"	
 #include "InformationStatistic.hpp"
 #include "MachRsquaredStatistic.hpp"
+#include "EntropyStatistic.hpp"
+#include "HardyWeinbergEntropyStatistic.hpp"
 #include "string_utils/string_utils.hpp"
 
 
@@ -107,6 +109,24 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 	}
 	else if( statistic_spec == "scaled_mach_r2" ) {
 		return std::auto_ptr< GenotypeAssayStatistic > ( new ScalingMachRsquaredStatistic()) ;
+	}
+	else if( statistic_spec == "entropy" ) {
+		return std::auto_ptr< GenotypeAssayStatistic > ( new PlainEntropyStatistic() ) ;
+	}
+	else if( statistic_spec == "filled_entropy" ) {
+		return std::auto_ptr< GenotypeAssayStatistic > ( new FillingEntropyStatistic()) ;
+	}
+	else if( statistic_spec == "scaled_entropy" ) {
+		return std::auto_ptr< GenotypeAssayStatistic > ( new ScalingEntropyStatistic()) ;
+	}
+	else if( statistic_spec == "hw_entropy" ) {
+		return std::auto_ptr< GenotypeAssayStatistic > ( new PlainHardyWeinbergEntropyStatistic() ) ;
+	}
+	else if( statistic_spec == "filled_hw_entropy" ) {
+		return std::auto_ptr< GenotypeAssayStatistic > ( new FillingHardyWeinbergEntropyStatistic()) ;
+	}
+	else if( statistic_spec == "scaled_hw_entropy" ) {
+		return std::auto_ptr< GenotypeAssayStatistic > ( new ScalingHardyWeinbergEntropyStatistic()) ;
 	}
 	else if( statistic_spec == "missing" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new MissingDataProportionStatistic ) ; 
