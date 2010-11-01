@@ -12,6 +12,7 @@
 #include "MachRsquaredStatistic.hpp"
 #include "EntropyStatistic.hpp"
 #include "HardyWeinbergEntropyStatistic.hpp"
+#include "MissingCallProportionStatistic.hpp"
 #include "string_utils/string_utils.hpp"
 
 
@@ -128,11 +129,14 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 	else if( statistic_spec == "scaled_hw_entropy" ) {
 		return std::auto_ptr< GenotypeAssayStatistic > ( new ScalingHardyWeinbergEntropyStatistic()) ;
 	}
+	else if( statistic_spec == "missing_calls" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new MissingCallProportionStatistic() ) ; 
+	}
 	else if( statistic_spec == "missing" ) {
-		return std::auto_ptr< GenotypeAssayStatistic >( new MissingDataProportionStatistic ) ; 
+		return std::auto_ptr< GenotypeAssayStatistic >( new MissingDataProportionStatistic() ) ; 
 	}
 	else if( statistic_spec == "heterozygosity" ) {
-		return std::auto_ptr< GenotypeAssayStatistic >( new HeterozygosityStatistic ) ; 
+		return std::auto_ptr< GenotypeAssayStatistic >( new HeterozygosityStatistic() ) ; 
 	}
 
 	// Other stats, these might not be used.
@@ -161,8 +165,7 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 		return std::auto_ptr< GenotypeAssayStatistic >( new NullStatistic ) ;
 	}
 	else {
-		throw StatisticNotFoundException( "Unable to construct statistic \"" + statistic_spec
-			+ "\" -- possible values are \"MAF\", \"HWE\", \"missing-rate\", \"heterozygosity\", \"SNPID\", \"RSID\", \"alleles\", \"ID1\", \"ID2\"." ) ;
+		throw StatisticNotFoundException( "Unable to construct statistic \"" + statistic_spec + "\" -- statistic not known to me." ) ;
 	}
 }
 

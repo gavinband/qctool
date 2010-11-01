@@ -7,9 +7,15 @@
 #include "GenotypeAssayStatistics.hpp"
 #include "SimpleGenotypeAssayStatistics.hpp"
 #include "floating_point_utils.hpp"
+#include "GenRow.hpp"
 
 double MissingDataProportionStatistic::calculate_value( GenotypeAssayStatistics const& statistics ) const {
-	return (statistics.number_of_samples() - statistics.get_genotype_amounts().sum()) / statistics.number_of_samples() ;
+	if( statistics.number_of_samples() > 0 ) {
+		return (statistics.number_of_samples() - statistics.get_genotype_amounts().sum()) / statistics.number_of_samples() ;
+	}
+	else {
+		return std::numeric_limits< double >::quiet_NaN() ;
+	}
 }
 
 double MinorAlleleProportionStatistic::calculate_value( GenotypeAssayStatistics const& statistics ) const {
@@ -31,4 +37,5 @@ double ABStatistic::calculate_value( GenotypeAssayStatistics const& statistics )
 double BBStatistic::calculate_value( GenotypeAssayStatistics const& statistics ) const {
 	return statistics.get_genotype_amounts().BB() ;
 }
+
 
