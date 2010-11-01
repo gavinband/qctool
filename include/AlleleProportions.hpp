@@ -1,7 +1,6 @@
-#ifndef __GTOOL_ALLELEPROPORTIONS_HPP__
-#define __GTOOL_ALLELEPROPORTIONS_HPP__
+#ifndef ALLELEPROPORTIONS_HPP
+#define ALLELEPROPORTIONS_HPP
 
-#include <numeric>
 #include <iostream>
 #include "GenotypeProportions.hpp"
 
@@ -28,6 +27,10 @@ struct AlleleProportions {
         double B() const { return m_proportion_of_B ; }
         double minor() const { return std::min( m_proportion_of_A, m_proportion_of_B ) ; }
         double major() const { return std::max( m_proportion_of_A, m_proportion_of_B ) ; }
+	// The following synonyms are here to work round what is apparently
+	// A GCC bug (complaining about gnu_dev_minor).
+	double minor_allele_proportion() const { return minor() ; }
+        double major_allele_proportion() const { return major() ; }
         double sum() const { return m_proportion_of_A + m_proportion_of_B ; }
 
         GenotypeProportions genotype_proportions_at_hardy_weinberg() const ;

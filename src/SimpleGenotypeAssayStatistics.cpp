@@ -1,13 +1,9 @@
-#include <cassert>
-#include <iostream>
-#include <iomanip>
-#include <sstream>
-#include <numeric>
-
 #include "GenotypeAssayStatistics.hpp"
+#include "AlleleProportions.hpp"
 #include "SimpleGenotypeAssayStatistics.hpp"
 #include "floating_point_utils.hpp"
 #include "GenRow.hpp"
+#include <limits>
 
 double MissingDataProportionStatistic::calculate_value( GenotypeAssayStatistics const& statistics ) const {
 	if( statistics.number_of_samples() > 0 ) {
@@ -19,7 +15,7 @@ double MissingDataProportionStatistic::calculate_value( GenotypeAssayStatistics 
 }
 
 double MinorAlleleProportionStatistic::calculate_value( GenotypeAssayStatistics const& statistics ) const {
-	return statistics.get_mean_allele_proportions().minor() ;
+	return statistics.get_mean_allele_proportions().minor_allele_proportion() ;
 }
 
 double HeterozygosityStatistic::calculate_value( GenotypeAssayStatistics const& statistics ) const {
