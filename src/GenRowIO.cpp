@@ -13,9 +13,8 @@
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSink.hpp"
 
-
 double read_float( std::istream& aStream ) {
-#if GTOOL_USE_FAST_FLOAT_PARSER
+#if GENFILE_USE_FAST_PARSE_METHODS
 	std::string float_str ;
 	aStream >> float_str ;
 	std::string::const_iterator i = float_str.begin() ,
@@ -52,7 +51,7 @@ double read_float( std::istream& aStream ) {
 		inStream >> result ;
 	}
 #else
-	float result ;
+	double result ;
 	aStream >> result ;
 #endif
 	return result ;

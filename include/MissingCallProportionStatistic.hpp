@@ -5,7 +5,7 @@
 
 struct MissingCallProportionStatistic: public GenRowSpecificStatistic
 {
-	MissingCallProportionStatistic( double threshhold = 0.89999 ) ;
+	MissingCallProportionStatistic( double threshhold = 0.9 ) ;
 	double calculate_value( GenRowStatistics const& ) const ;
 private:
 	double const m_threshhold ;
