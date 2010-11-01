@@ -151,6 +151,9 @@ public:
 		options[ "-snp-missing-rate" ]
 			.set_description( "Filter out SNPs with missing data rate greater than or equal to the value specified.")
 			.set_takes_single_value() ;
+		options[ "-missing-call-rate" ]
+			.set_description( "Filter out SNPs with missing call rate greater than or equal to the value specified.")
+			.set_takes_single_value() ;
 		options[ "-snp-interval" ]
 			.set_description( "Filter out SNPs with position outside the interval [a,b]." )
 			.set_number_of_values_per_use( 2 ) ;
@@ -994,6 +997,10 @@ private:
 
 		if( m_options.check_if_option_was_supplied( "-snp-missing-rate" ) ) {
 			add_one_arg_condition_to_filter< StatisticLessThan >( *snp_filter, "missing", m_options.get_value< double >( "-snp-missing-rate" )) ;
+		}
+
+		if( m_options.check_if_option_was_supplied( "-snp-missing-call-rate" ) ) {
+			add_one_arg_condition_to_filter< StatisticLessThan >( *snp_filter, "missing_calls", m_options.get_value< double >( "-snp-missing-call-rate" )) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "-snp-interval" ) ) {
