@@ -103,7 +103,7 @@ $ qctool -help
 				<p>
 					Qctool works with the following per-sample summary statistics, calculated using the -sample-stats option:
 					<dl>
-						<dt style="font-weight: bold ;">Missingness</dt>
+						<dt style="font-weight: bold ;">Missing data proportion</dt>
 						<dd>the total proportion of missing genotype data for this sample across all SNPs.
 							This is the sum of the three genotype probabilities for the sample across all SNPs,
 							divided by the total number of SNPs.  A large missing data proportion might be due, for example, to
@@ -124,11 +124,15 @@ $ qctool -help
 					Qctool works with the following per-SNP summary statistics:
 					<dl>
 						<dt style="font-weight: bold ;">
-							Missingness
+							Missing data proportion
 						</dt>
-						<dd> The proportion of missing genotype data across all samples for the SNP.
+						<dd> The proportion of missing genotype data (null genotype call probabilities) across all samples for the SNP.
 							A high value indicates that the SNP is not well called.  You can filter these SNPs
 							out using the -snp-missing-rate option.
+						</dd>
+						<dt style="font-weight: bold ;">Missing call proportion</dt>
+						<dd>The proportion of individuals for which the maximum genotype probability is less than a threshhold of 0.9.
+							You can filter these SNPs out using the -snp-missing-call-rate option.
 						</dd>
 						<dt style="font-weight: bold ;">
 							Minor allele frequency
