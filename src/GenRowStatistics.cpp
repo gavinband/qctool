@@ -72,16 +72,29 @@ double GenRowAllele::calculate_value( GenRowStatistics const& row_statistics ) c
 }
 
 std::string GenRowAllele::calculate_string_value( GenRowStatistics const& row_statistics ) const {
-	AlleleProportions allele_proportions = row_statistics.get_mean_allele_proportions() ;
-	bool choose_first_allele
-		= ((m_selector == minor) && ( allele_proportions.A() <= allele_proportions.B()))
-		| ((m_selector == major) && ( allele_proportions.A() >= allele_proportions.B())) ;
-	if( choose_first_allele ) {
-		return std::string( std::size_t(1), row_statistics.row().first_allele() ) ;
+	std::string result ;
+	switch( m_selector ) {
+		case first_allele:
+			result = std::string( std::size_t(1), row_statistics.row().first_allele() ) ;
+			break ;
+		case second_allele:
+			result = std::string( std::size_t(1), row_statistics.row().second_allele() ) ;
+			break ;
+		case minor_allele:
+		case major_allele:
+			AlleleProportions allele_proportions = row_statistics.get_mean_allele_proportions() ;
+			bool choose_first_allele
+				= ((m_selector == minor_allele) && ( allele_proportions.A() <= allele_proportions.B()))
+				| ((m_selector == major_allele) && ( allele_proportions.A() >= allele_proportions.B())) ;
+			if( choose_first_allele ) {
+				result = std::string( std::size_t(1), row_statistics.row().first_allele() ) ;
+			}
+			else {
+				result = std::string( std::size_t(1), row_statistics.row().second_allele() ) ;
+			}
+			break ;
 	}
-	else {
-		return std::string( std::size_t(1), row_statistics.row().second_allele() ) ;
-	}
+	return result ;
 }
 
 

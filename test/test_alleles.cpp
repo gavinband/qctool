@@ -39,8 +39,8 @@ AUTO_TEST_CASE( test_alleles ) {
 	int count = 0 ;
 
 	GenRowStatistics row_statistics ;
-	std::auto_ptr< GenotypeAssayStatistic > minor_allele_statistic( new GenRowAllele( GenRowAllele::minor ) ) ;
-	std::auto_ptr< GenotypeAssayStatistic > major_allele_statistic( new GenRowAllele( GenRowAllele::major ) ) ;
+	std::auto_ptr< GenotypeAssayStatistic > minor_allele_statistic( new GenRowAllele( GenRowAllele::minor_allele ) ) ;
+	std::auto_ptr< GenotypeAssayStatistic > major_allele_statistic( new GenRowAllele( GenRowAllele::major_allele ) ) ;
 	row_statistics.add_statistic( "minor allele", minor_allele_statistic ) ;
 	row_statistics.add_statistic( "major allele", major_allele_statistic ) ;
 	row_statistics.format_column_headers( std::cout ) << "\n" ;

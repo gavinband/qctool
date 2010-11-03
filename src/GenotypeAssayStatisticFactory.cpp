@@ -180,10 +180,16 @@ std::auto_ptr< GenotypeAssayStatistic > GenRowStatisticFactory::create_statistic
 		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowRSID ) ;
 	}
 	else if( statistic_spec == "minor_allele" ) {
-		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowAllele( GenRowAllele::minor ) ) ;
+		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowAllele( GenRowAllele::minor_allele ) ) ;
 	}
 	else if( statistic_spec == "major_allele" ) {
-		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowAllele( GenRowAllele::major ) ) ;
+		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowAllele( GenRowAllele::major_allele ) ) ;
+	}
+	else if( statistic_spec == "first_allele" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowAllele( GenRowAllele::first_allele ) ) ;
+	}
+	else if( statistic_spec == "second_allele" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowAllele( GenRowAllele::second_allele ) ) ;
 	}
 	else {
 		return std::auto_ptr< GenotypeAssayStatistic >() ;

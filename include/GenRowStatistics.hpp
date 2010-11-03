@@ -64,7 +64,7 @@ struct GenRowRSID: public GenRowSpecificStatistic
 struct GenRowAllele: public GenRowSpecificStatistic
 {
 public:
-	enum AlleleSelector { minor = 0, major = 1 } ;
+	enum AlleleSelector { minor_allele = 0, major_allele = 1, first_allele = 2, second_allele = 3 } ;
 	GenRowAllele( AlleleSelector const& selector ) ;
 	double calculate_value( GenRowStatistics const& row_statistics ) const ;
 	std::string calculate_string_value( GenRowStatistics const& row_statistics ) const ;
