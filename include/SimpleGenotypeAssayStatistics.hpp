@@ -22,9 +22,13 @@ struct MissingDataProportionStatistic: public GenotypeAssayStatistic
 	double calculate_value( GenotypeAssayStatistics const& ) const ;
 } ;
 
-struct MinorAlleleProportionStatistic: public GenotypeAssayStatistic
+struct AlleleProportionStatistic: public GenotypeAssayStatistic
 {
+	enum Choice { minor_allele = 0, major_allele = 1, first_allele = 2, second_allele = 3 } ;
+	AlleleProportionStatistic( Choice choice ) ;
 	double calculate_value( GenotypeAssayStatistics const& statistics ) const ;
+private:
+	Choice const m_choice ;
 } ;
 
 struct HeterozygosityStatistic: public GenotypeAssayStatistic
