@@ -50,7 +50,7 @@ AUTO_TEST_CASE( test_maf ) {
 	double epsilon = 0.000001 ;
 
 	GenRowStatistics row_statistics ;
-	std::auto_ptr< GenotypeAssayStatistic > statistic( new MinorAlleleProportionStatistic ) ;
+	std::auto_ptr< GenotypeAssayStatistic > statistic( new AlleleProportionStatistic( AlleleProportionStatistic::minor_allele ) ) ;
 	statistic->set_precision( 5 ) ;
 	row_statistics.add_statistic( "MAF", statistic ) ;
 	row_statistics.format_column_headers( std::cout ) << "\n" ;

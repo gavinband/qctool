@@ -87,8 +87,17 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 	// if none of the above, just create a single stat.
 	
 	// Stats from whiteboard 26/06/09:
-	if( statistic_spec == "MAF" ) {
-		return std::auto_ptr< GenotypeAssayStatistic >( new MinorAlleleProportionStatistic ) ;
+	if( statistic_spec == "MAF" || statistic_spec == "minor_allele_frequency" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new AlleleProportionStatistic( AlleleProportionStatistic::minor_allele ) ) ;
+	}
+	else if( statistic_spec == "major_allele_frequency" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new AlleleProportionStatistic( AlleleProportionStatistic::major_allele ) ) ;
+	}
+	else if( statistic_spec == "A_allele_frequency" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new AlleleProportionStatistic( AlleleProportionStatistic::first_allele ) ) ;
+	}
+	else if( statistic_spec == "B_allele_frequency" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new AlleleProportionStatistic( AlleleProportionStatistic::second_allele ) ) ;
 	}
 	else if( statistic_spec == "HWE" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new MinusLog10SNPHWEStatistic ) ;
