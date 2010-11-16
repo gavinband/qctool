@@ -14,8 +14,24 @@ double MissingDataProportionStatistic::calculate_value( GenotypeAssayStatistics 
 	}
 }
 
-double MinorAlleleProportionStatistic::calculate_value( GenotypeAssayStatistics const& statistics ) const {
-	return statistics.get_mean_allele_proportions().minor_allele_proportion() ;
+AlleleProportionStatistic::AlleleProportionStatistic( Choice choice ): m_choice( choice ) {}
+
+double AlleleProportionStatistic::calculate_value( GenotypeAssayStatistics const& statistics ) const {
+	double result ;
+	switch( m_choice ) {
+		case minor_allele:
+			result = statistics.get_mean_allele_proportions().minor_allele_proportion() ;
+			break ;
+		case major_allele:
+			result = statistics.get_mean_allele_proportions().major_allele_proportion() ;
+			break ;
+		case first_allele:
+			result = statistics.get_mean_allele_proportions().proportion_of_A() ;
+			break ;
+		case second_allele:
+			result = statistics.get_mean_allele_proportions().proportion_of_B() ;
+			break ;
+	}
 }
 
 double HeterozygosityStatistic::calculate_value( GenotypeAssayStatistics const& statistics ) const {
