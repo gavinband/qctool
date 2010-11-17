@@ -11,6 +11,7 @@
 
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/wildcard.hpp"
+#include "genfile/get_set.hpp"
 
 SNPInListCondition::SNPInListCondition( std::string const& filename )
  : m_filenames( std::size_t(1), filename )

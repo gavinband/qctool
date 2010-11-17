@@ -31,7 +31,7 @@ SampleRow::SampleRow( SampleRow const& other ) :
 {
 }
 
-void SampleRow::reset( std::vector< genfile::CohortIndividualSource::SingleColumnSpec > const& column_spec ) {
+void SampleRow::reset( genfile::CohortIndividualSource::ColumnSpec const& column_spec ) {
 	m_column_headings.resize( column_spec.size() ) ;
 	m_column_types.resize( column_spec.size() ) ;
 	for( std::size_t i = 0; i < column_spec.size(); ++i ) {
@@ -113,9 +113,9 @@ std::string SampleRow::get_string_value( std::string const& heading ) const {
 
 void SampleRow::read_ith_sample_from_source( std::size_t sample_i, genfile::CohortIndividualSource const& source ) {
 	assert( sample_i < source.get_number_of_individuals() ) ;
-	std::vector< genfile::CohortIndividualSource::SingleColumnSpec > column_spec = source.get_column_spec() ;
+	genfile::CohortIndividualSource::ColumnSpec column_spec = source.get_column_spec() ;
 	reset( column_spec ) ;
-	for( std::size_t i = 0; i < source.get_number_of_columns(); ++i ) {
+	for( std::size_t i = 0; i < column_spec.size(); ++i ) {
 		set_value( column_spec[i].name(), source.get_entry( sample_i, column_spec[i].name() )) ;
 	}
 } 

@@ -26,14 +26,11 @@
 //
 double HardyWeinbergEntropyStatistic::calculate_value( GenRow const& row ) const {
 
-	double result ;
-
 	if( row.number_of_samples() == 0 ) {
 		return 0.0 ;
 	}
 
 	double number_of_non_missing_samples = 0.0 ;
-	double T2 = 0.0 ;
 	std::vector< double > e( row.number_of_samples() ) ;
 	std::vector< double > f( row.number_of_samples() ) ;
 

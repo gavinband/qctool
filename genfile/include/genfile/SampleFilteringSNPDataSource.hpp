@@ -9,10 +9,16 @@ namespace genfile {
 	class SampleFilteringSNPDataSource: public SNPDataSource
 	{
 	public:
-		// Create a SampleFilteringSNPDataSource from the given source and the given sample indices.
-		static std::auto_ptr< SampleFilteringSNPDataSource > create( SNPDataSource& source, std::set< std::size_t > const& indices_of_samples_to_filter_out ) ;
+		typedef std::auto_ptr< SampleFilteringSNPDataSource > UniquePtr ;
+	public:
 		
-		SampleFilteringSNPDataSource( SNPDataSource& source, std::set< std::size_t > const& indices_of_samples_to_filter_out ) ;
+		// Create a SampleFilteringSNPDataSource from the given source and the given sample indices.
+		static std::auto_ptr< SampleFilteringSNPDataSource > create(
+			std::auto_ptr< SNPDataSource > source,
+			std::set< std::size_t > const& indices_of_samples_to_filter_out
+		) ;
+		
+		SampleFilteringSNPDataSource( std::auto_ptr< SNPDataSource > source, std::set< std::size_t > const& indices_of_samples_to_filter_out ) ;
 		~SampleFilteringSNPDataSource() ;
 
 	public:
@@ -20,6 +26,10 @@ namespace genfile {
 		operator bool() const ;
 		unsigned int number_of_samples() const ;
 		unsigned int total_number_of_snps() const ;
+		std::string get_source_spec() const ;
+		
+		SNPDataSource const& get_parent_source() const ;
+		SNPDataSource const& get_base_source() const ;
 
 	public:
 		struct SampleIndexOutOfRangeError: public SNPDataError
@@ -59,7 +69,7 @@ namespace genfile {
 		void return_filtered_genotype_probabilities( GenotypeProbabilitySetter const& ) ;
 		void set_unfiltered_genotype_probabilities( std::size_t i, double aa, double ab, double bb ) ;
 
-		SNPDataSource& m_source ;
+		std::auto_ptr< SNPDataSource > m_source ;
 		std::set< std::size_t > m_indices_of_samples_to_filter_out ;
 		std::vector< double > m_genotype_data ;
 	} ;

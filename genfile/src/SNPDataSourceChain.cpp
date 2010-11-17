@@ -11,26 +11,45 @@
 #include "genfile/wildcard.hpp"
 
 namespace genfile {
-	std::auto_ptr< SNPDataSourceChain > SNPDataSourceChain::create( std::vector< wildcard::FilenameMatch > const& filenames ) {
+	std::auto_ptr< SNPDataSourceChain > SNPDataSourceChain::create(
+		std::vector< wildcard::FilenameMatch > const& filenames,
+		NotifyProgress notify_progress
+	) {
 		std::auto_ptr< SNPDataSourceChain > chain( new SNPDataSourceChain() ) ;
 		for( std::size_t i = 0; i < filenames.size(); ++i ) {
+			if( notify_progress ) {
+				notify_progress( i, filenames.size() ) ;
+			}
 			chain->add_source( SNPDataSource::create( filenames[i].filename(), filenames[i].match() )) ;
+			if( notify_progress ) {
+				notify_progress( i + 1, filenames.size() ) ;
+			}
 		}
 		return chain ;
 	}
 
-	std::auto_ptr< SNPDataSourceChain > SNPDataSourceChain::create( std::vector< std::vector< wildcard::FilenameMatch > > const& filenames ) {
+	std::auto_ptr< SNPDataSourceChain > SNPDataSourceChain::create(
+		std::vector< std::vector< wildcard::FilenameMatch > > const& filenames,
+		NotifyProgress notify_progress
+	) {
+		for( std::size_t i = 1; i < filenames.size(); ++i ) {
+			assert( filenames[i].size() == filenames[0].size() ) ;
+		}
+
+		std::size_t total_number_of_files = filenames.empty() ? 0 : ( filenames[0].size() * filenames.size() ) ;
+		std::size_t count = 0 ;
+
 		std::auto_ptr< SNPDataSourceChain > chain( new SNPDataSourceChain() ) ;
 		if( filenames.size() > 0 ) {
-			for( std::size_t i = 1; i < filenames.size(); ++i ) {
-				assert( filenames[i].size() == filenames[0].size() ) ;
-			}
 			for( std::size_t i = 0; i < filenames[0].size(); ++i ) {
 				std::vector< wildcard::FilenameMatch > slice( filenames.size() ) ;
 				for( std::size_t j = 0; j < slice.size(); ++j ) {
 					slice[j] = filenames[j][i] ;
 				}
 				chain->add_source( std::auto_ptr< SNPDataSource >( SNPDataSourceRack::create( slice ))) ;
+				if( notify_progress ) {
+					notify_progress( ++count, total_number_of_files ) ;
+				}
 			}
 		}
 		return chain ;
@@ -92,6 +111,17 @@ namespace genfile {
 		}
 	}
 	
+	std::string SNPDataSourceChain::get_source_spec() const {
+		std::string result = "chain:" ;
+		for( std::size_t i = 0; i < m_sources.size(); ++i ) {
+			if( i > 0 ) {
+				result += "," ;
+			}
+			result += m_sources[i]->get_source_spec() ;
+		}
+		return result ;
+	}
+
 	void SNPDataSourceChain::reset_to_start_impl() {
 		for( std::size_t i = 0; i < m_sources.size(); ++i ) {
 			m_sources[i]->reset_to_start() ;

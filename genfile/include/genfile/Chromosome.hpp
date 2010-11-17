@@ -77,6 +77,10 @@ namespace genfile {
 			return m_chromosome_e > other.m_chromosome_e ;
 		}
 		
+		Chromosome& operator++() ;
+		
+		bool is_sex_determining() const ;
+        
 		operator ChromosomeEnum() const { return m_chromosome_e ; }
 		
 		operator std::string () const ;
@@ -89,22 +93,6 @@ namespace genfile {
 	std::istream& operator>>( std::istream&, Chromosome& ) ;
 
 
-	struct ChromosomeNotRecognisedError: public std::exception
-	{
-		ChromosomeNotRecognisedError( std::string const& input )
-			: m_input( input )
-		{}
-		
-		virtual ~ChromosomeNotRecognisedError() throw() {} ;
-		
-		char const* what() const throw() { return "ChromosomeNotRecognisedError" ; }
-		
-		std::string const& input() const { return m_input ; }
-	private:
-		
-		std::string m_input ;
-	} ;
-	
 	struct ChromosomeMismatchError: public std::exception
 	{
 		ChromosomeMismatchError( Chromosome expected, Chromosome got )

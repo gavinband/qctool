@@ -13,9 +13,9 @@ namespace genfile {
 	// However, this class allows columns of type "D" (discrete) to contain entries other than
 	// positive integers.  These columns are interpreted as strings.  The intention is to use this 
 	// with an additional mechanism, such as the CrossCohortCovariateValueMapping class,
-	// to map these values to categories.  In addition, for Binary phenotype columns, we allow the
-	// coding "case/control" as well as "0/1".
-	// 
+	// to map these values to categories.
+	//
+	// In addition, for Binary phenotype columns, we allow the coding "case/control" as well as "0/1"
 	class CategoricalCohortIndividualSource: public FromFileCohortIndividualSource
 	{
 	public:

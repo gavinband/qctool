@@ -1,18 +1,27 @@
-#ifndef SNPIDENTIFYINGDATATEST_HPP
-#define SNPIDENTIFYINGDATATEST_HPP
+#ifndef GENFILE_SNPIDENTIFYINGDATATEST_HPP
+#define GENFILE_SNPIDENTIFYINGDATATEST_HPP
 
 #include <string>
 #include <memory>
 #include <vector>
+#include <map>
 #include "unistd.h"
 #include "genfile/GenomePosition.hpp"
 #include "genfile/Chromosome.hpp"
+#include "genfile/SNPIdentifyingData.hpp"
 
 namespace genfile {
+	
+	// Base class for objects which represent a boolean test of a SNP's "identifying data"
+	// (i.e. position, ids, and alleles)
+	//
 	class SNPIdentifyingDataTest
 	{
 	public:
+		typedef std::auto_ptr< SNPIdentifyingDataTest > UniquePtr ;
+	public:
 		virtual ~SNPIdentifyingDataTest() {} ;
+
 		virtual bool operator()(
 			std::string SNPID,
 			std::string RSID,
@@ -20,6 +29,15 @@ namespace genfile {
 			char first_allele,
 			char second_allele
 		) const = 0 ;
+		
+		virtual std::string display() const = 0 ;
+	
+		virtual bool operator()( SNPIdentifyingData const& data ) const {
+			return operator()( data.get_SNPID(), data.get_rsid(), data.get_position(), data.get_first_allele(), data.get_second_allele() ) ;
+		}
+		
+		std::vector< std::size_t > get_indices_of_filtered_in_snps( std::vector< SNPIdentifyingData> const& snps ) const ;
+		
 	protected:
 		SNPIdentifyingDataTest() {} ;
 	private:
@@ -28,9 +46,11 @@ namespace genfile {
 		SNPIdentifyingDataTest& operator=( SNPIdentifyingDataTest const& ) ;
 	} ;
 	
+	std::ostream& operator<<( std::ostream&, SNPIdentifyingDataTest const& ) ;
+	
 	struct SNPIdentifyingDataTestNegation: public SNPIdentifyingDataTest
 	{
-		SNPIdentifyingDataTestNegation( std::auto_ptr< SNPIdentifyingDataTest > ) ;
+		SNPIdentifyingDataTestNegation( SNPIdentifyingDataTest::UniquePtr ) ;
 		bool operator()(
 			std::string SNPID,
 			std::string RSID,
@@ -38,14 +58,16 @@ namespace genfile {
 			char first_allele,
 			char second_allele
 		) const ;
+		
+		std::string display() const ;
 	private:
-		std::auto_ptr< SNPIdentifyingDataTest > m_subtest ;
+		SNPIdentifyingDataTest::UniquePtr m_subtest ;
 	} ;
 	
 	struct CompoundSNPIdentifyingDataTest: public SNPIdentifyingDataTest
 	{
-		~CompoundSNPIdentifyingDataTest() ;
-		void add_subtest( std::auto_ptr< SNPIdentifyingDataTest > subtest ) ;
+		virtual ~CompoundSNPIdentifyingDataTest() ;
+		void add_subtest( SNPIdentifyingDataTest::UniquePtr subtest ) ;
 		std::size_t get_number_of_subtests() const ;
 		SNPIdentifyingDataTest const& get_subtest( std::size_t index ) const ;
 	private:
@@ -54,6 +76,9 @@ namespace genfile {
 
 	struct SNPIdentifyingDataTestConjunction: public CompoundSNPIdentifyingDataTest
 	{
+	public:
+		typedef std::auto_ptr< SNPIdentifyingDataTestConjunction > UniquePtr ;
+	public:
 		bool operator()(
 			std::string SNPID,
 			std::string RSID,
@@ -61,6 +86,24 @@ namespace genfile {
 			char first_allele,
 			char second_allele
 		) const ;
+		
+		std::string display() const ;
+	} ;
+
+	struct SNPIdentifyingDataTestDisjunction: public CompoundSNPIdentifyingDataTest
+	{
+	public:
+		typedef std::auto_ptr< SNPIdentifyingDataTestDisjunction > UniquePtr ;
+	public:
+		bool operator()(
+			std::string SNPID,
+			std::string RSID,
+			GenomePosition position,
+			char first_allele,
+			char second_allele
+		) const ;
+		
+		std::string display() const ;
 	} ;
 }
 

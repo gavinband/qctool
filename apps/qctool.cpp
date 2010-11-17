@@ -844,7 +844,7 @@ private:
 			try {
 				chain->add_source( genfile::SNPDataSource::create( m_options.gen_filename_mapper().input_files()[i] ) ) ;
 			}
-			catch ( genfile::FileHasTwoConsecutiveNewlinesError const& e ) {
+			catch ( genfile::FileHasTwoTrailingNewlinesError const& e ) {
 				std::cerr << "\n!!ERROR: a GEN file was specified having two consecutive newlines.\n"
 					<< "!! NOTE: popular editors, such as vim and nano, automatically add an extra newline to the file (which you can't see).\n"
 					<< "!!     : Please check that each SNP in the file is terminated by a single newline.\n" ;

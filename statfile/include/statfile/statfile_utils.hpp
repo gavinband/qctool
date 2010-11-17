@@ -74,7 +74,7 @@ namespace statfile {
 	struct FileNotOpenedError: public StatError { char const* what() const throw() { return "FileNotOpenedError" ; } } ;
 	struct FormatUnsupportedError: public StatError { char const* what() const throw() { return "FormatUnsupportedError" ; } } ;
 	struct FileStructureInvalidError: public StatError { char const* what() const throw() { return "FileStructureInvalidError" ; } } ;
-	struct FileHasTwoConsecutiveNewlinesError: public StatError { char const* what() const throw() { return "FileHasTwoConsecutiveNewlinesError" ; } } ;
+	struct FileHasTwoTrailingNewlinesError: public StatError { char const* what() const throw() { return "FileHasTwoTrailingNewlinesError" ; } } ;
 }
 
 #endif

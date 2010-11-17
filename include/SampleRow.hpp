@@ -48,7 +48,7 @@ class SampleRow: public string_to_value_map
 		typedef genfile::CohortIndividualSource::Entry Entry ;
 	public:
 
-		void reset( std::vector< genfile::CohortIndividualSource::SingleColumnSpec > const& column_spec ) ;
+		void reset( genfile::CohortIndividualSource::ColumnSpec const& column_spec ) ;
 
 		std::string ID1() const ;
 		std::string ID2() const ;

@@ -54,8 +54,11 @@ namespace genfile {
 		char* allele2
 	) {
 		gen::impl::read_snp_identifying_data( stream(), SNPID, RSID, SNP_position, allele1, allele2 ) ;
-		*number_of_samples = m_number_of_samples ;
-		*chromosome = m_chromosome ;
+
+		if( *this ) {
+			*number_of_samples = m_number_of_samples ;
+			*chromosome = m_chromosome ;
+		}
 	}
 
 	void GenFileSNPDataSource::read_snp_probability_data_impl(
@@ -74,12 +77,17 @@ namespace genfile {
 	}
 
 	void GenFileSNPDataSource::read_header_data() {
-		gen::read_header_information(
-			*m_stream_ptr,
-			set_value( m_total_number_of_snps ),
-			set_value( m_number_of_samples ),
-			ignore()
-		) ;
+		try {
+			gen::read_header_information(
+				*m_stream_ptr,
+				set_value( m_total_number_of_snps ),
+				set_value( m_number_of_samples ),
+				ignore()
+			) ;
+		}
+		catch( MalformedInputError const& e ) {
+			throw MalformedInputError( m_filename, e.line(), e.column() ) ;
+		}
 	}
 }
 

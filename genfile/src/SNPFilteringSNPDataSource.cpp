@@ -2,74 +2,64 @@
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPIdentifyingDataTest.hpp"
 #include "genfile/SNPFilteringSNPDataSource.hpp"
+#include "genfile/get_set.hpp"
 
 namespace genfile {
 	// Create a SNPFilteringSNPDataSource from the given source and the given sample indices.
 	std::auto_ptr< SNPFilteringSNPDataSource > SNPFilteringSNPDataSource::create(
-		SNPDataSource& source,
-		std::auto_ptr< SNPIdentifyingDataTest > snp_inclusion_test
+		SNPDataSource::UniquePtr source,
+		IndexList const& indices_of_snps_to_include
 	) {
-		return std::auto_ptr< SNPFilteringSNPDataSource >(
-			new SNPFilteringSNPDataSource( source, snp_inclusion_test )
+		return SNPFilteringSNPDataSource::UniquePtr(
+			new SNPFilteringSNPDataSource( source, indices_of_snps_to_include )
 		) ;
 	}
 
 	SNPFilteringSNPDataSource::SNPFilteringSNPDataSource(
-		SNPDataSource& source,
-		std::auto_ptr< SNPIdentifyingDataTest > snp_inclusion_test
+		SNPDataSource::UniquePtr source,
+		IndexList indices_of_snps_to_include
 	):
-	 	m_source( source ),
-		m_snp_inclusion_test( snp_inclusion_test )
+	 	m_source( source )
 	{
-		m_indices_of_excluded_snps = get_indices_of_excluded_snps() ;
-		m_source.reset_to_start() ;
-	}
-
-	std::set< std::size_t > SNPFilteringSNPDataSource::get_indices_of_excluded_snps() {
-		std::set< std::size_t > indices_of_excluded_snps ;
-		std::string SNPID, RSID ;
-		GenomePosition position ;
-		char allele1, allele2 ;
-		while( m_source.get_snp_identifying_data(
-				genfile::ignore(),
-				genfile::set_value( SNPID ),
-				genfile::set_value( RSID ),
-				genfile::set_value( position.chromosome() ),
-				genfile::set_value( position.position() ),
-				genfile::set_value( allele1 ),
-				genfile::set_value( allele2 )
-			)
-		) {
-			if( !m_snp_inclusion_test->operator()( SNPID, RSID, position, allele1, allele2 )) {
-				indices_of_excluded_snps.insert( indices_of_excluded_snps.end(), m_source.number_of_snps_read() ) ;
+		m_source->reset_to_start() ;
+		std::sort( indices_of_snps_to_include.begin(), indices_of_snps_to_include.end() ) ;
+		for( std::size_t i = 0; i < m_source->total_number_of_snps(); ++i ) {
+			if( !std::binary_search( indices_of_snps_to_include.begin(), indices_of_snps_to_include.end(), i )) {
+				m_indices_of_excluded_snps.insert( i ) ;
 			}
-			m_source.ignore_snp_probability_data() ;
 		}
-		return indices_of_excluded_snps ;
 	}
 
 	SNPFilteringSNPDataSource::operator bool() const {
-		return m_source ;
+		return (*m_source) ;
 	}
 
 	unsigned int SNPFilteringSNPDataSource::number_of_samples() const {
-		return m_source.number_of_samples() ;
+		return m_source->number_of_samples() ;
 	}
 
 	unsigned int SNPFilteringSNPDataSource::total_number_of_snps() const {
-		return m_source.total_number_of_snps() - m_indices_of_excluded_snps.size() ;
+		return m_source->total_number_of_snps() - m_indices_of_excluded_snps.size() ;
 	}
 
 	unsigned int SNPFilteringSNPDataSource::total_number_of_snps_before_filtering() const {
-		return m_source.total_number_of_snps() ;
+		return m_source->total_number_of_snps() ;
+	}
+	
+	std::string SNPFilteringSNPDataSource::get_source_spec() const {
+		return "snp-filtered:" + m_source->get_source_spec() ;
+	}
+	
+	SNPDataSource const& SNPFilteringSNPDataSource::get_parent_source() const {
+		return (*m_source) ;
 	}
 
-	SNPIdentifyingDataTest const& SNPFilteringSNPDataSource::get_snp_inclusion_test() const {
-		return *m_snp_inclusion_test ;
+	SNPDataSource const& SNPFilteringSNPDataSource::get_base_source() const {
+		return m_source->get_base_source() ;
 	}
 
 	void SNPFilteringSNPDataSource::reset_to_start_impl() {
-		m_source.reset_to_start() ;
+		m_source->reset_to_start() ;
 	}
 
 	void SNPFilteringSNPDataSource::get_snp_identifying_data_impl( 
@@ -81,8 +71,8 @@ namespace genfile {
 		AlleleSetter const& set_allele1,
 		AlleleSetter const& set_allele2
 	) {
-		while( m_source && m_indices_of_excluded_snps.find( m_source.number_of_snps_read() ) != m_indices_of_excluded_snps.end() ) {
-			m_source.get_snp_identifying_data(
+		while( (*m_source) && m_indices_of_excluded_snps.find( m_source->number_of_snps_read() ) != m_indices_of_excluded_snps.end() ) {
+			m_source->get_snp_identifying_data(
 				ignore(),
 				ignore(),
 				ignore(),
@@ -91,9 +81,10 @@ namespace genfile {
 				ignore(),
 				ignore()
 			) ;
-			m_source.ignore_snp_probability_data() ;
+			
+			m_source->ignore_snp_probability_data() ;
 		}
-		m_source.get_snp_identifying_data(
+		m_source->get_snp_identifying_data(
 			set_number_of_samples,
 			set_SNPID,
 			set_RSID,
@@ -107,10 +98,10 @@ namespace genfile {
 	void SNPFilteringSNPDataSource::read_snp_probability_data_impl(
 		GenotypeProbabilitySetter const& set_genotype_probabilities
 	) {
-		m_source.read_snp_probability_data( set_genotype_probabilities ) ;
+		m_source->read_snp_probability_data( set_genotype_probabilities ) ;
 	}
 
 	void SNPFilteringSNPDataSource::ignore_snp_probability_data_impl() {
-		m_source.ignore_snp_probability_data() ;
+		m_source->ignore_snp_probability_data() ;
 	}
 }

@@ -2,23 +2,24 @@
 #include <boost/bind.hpp>
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SampleFilteringSNPDataSource.hpp"
+#include "genfile/get_set.hpp"
 
 namespace genfile {
 	// Create a chain of SNPDataSources taking data from the specified files.
 	std::auto_ptr< SampleFilteringSNPDataSource > SampleFilteringSNPDataSource::create(
-		SNPDataSource& source,
+		std::auto_ptr< SNPDataSource > source,
 		std::set< std::size_t > const& indices_of_samples_to_filter_out
 	) {
 		return std::auto_ptr< SampleFilteringSNPDataSource >( new SampleFilteringSNPDataSource( source, indices_of_samples_to_filter_out )) ;
 	}
 	
 	SampleFilteringSNPDataSource::SampleFilteringSNPDataSource(
-		SNPDataSource& source,
+		std::auto_ptr< SNPDataSource > source,
 		std::set< std::size_t > const& indices_of_samples_to_filter_out
 	)
 		: m_source( source ),
 		  m_indices_of_samples_to_filter_out( indices_of_samples_to_filter_out ),
-		  m_genotype_data( m_source.number_of_samples() * 3 )
+		  m_genotype_data( m_source->number_of_samples() * 3 )
 	{
 		verify_indices( m_indices_of_samples_to_filter_out ) ;
 	}
@@ -28,8 +29,8 @@ namespace genfile {
 			i = indices.begin(),
 			end_i = indices.end() ;
 		for( ; i != end_i; ++i ) {
-			if( *i >= m_source.number_of_samples() ) {
-				throw SampleIndexOutOfRangeError( *i, m_source.number_of_samples() ) ;
+			if( *i >= m_source->number_of_samples() ) {
+				throw SampleIndexOutOfRangeError( *i, m_source->number_of_samples() ) ;
 			}
 		}
 	}
@@ -37,18 +38,30 @@ namespace genfile {
 	SampleFilteringSNPDataSource::~SampleFilteringSNPDataSource() {}
 
 	unsigned int SampleFilteringSNPDataSource::number_of_samples() const {
-		return m_source.number_of_samples() - m_indices_of_samples_to_filter_out.size() ;
+		return m_source->number_of_samples() - m_indices_of_samples_to_filter_out.size() ;
 	}
 	unsigned int SampleFilteringSNPDataSource::total_number_of_snps() const {
-		return m_source.total_number_of_snps() ;
+		return m_source->total_number_of_snps() ;
+	}
+
+	std::string SampleFilteringSNPDataSource::get_source_spec() const {
+		return "sample-filtered:" + m_source->get_source_spec() ;
+	}
+
+	SNPDataSource const& SampleFilteringSNPDataSource::get_parent_source() const {
+		return *m_source ;
+	}
+
+	SNPDataSource const& SampleFilteringSNPDataSource::get_base_source() const {
+		return m_source->get_base_source() ;
 	}
 
 	SampleFilteringSNPDataSource::operator bool() const {
-		return m_source ;
+		return *m_source ;
 	}
 
 	void SampleFilteringSNPDataSource::reset_to_start_impl() {
-		m_source.reset_to_start() ;
+		m_source->reset_to_start() ;
 	}
 
 	void SampleFilteringSNPDataSource::get_snp_identifying_data_impl( 
@@ -61,7 +74,7 @@ namespace genfile {
 		AlleleSetter const& set_allele2
 	) {
 		uint32_t number_of_samples ;
-		m_source.get_snp_identifying_data( 
+		m_source->get_snp_identifying_data( 
 			set_value( number_of_samples ),
 			set_SNPID,
 			set_RSID,
@@ -71,7 +84,7 @@ namespace genfile {
 			set_allele2
 		) ;
 		
-		set_number_of_samples( m_source.number_of_samples() - m_indices_of_samples_to_filter_out.size() ) ;
+		set_number_of_samples( this->number_of_samples() ) ;
 	}
 
 	void SampleFilteringSNPDataSource::read_snp_probability_data_impl(
@@ -82,7 +95,7 @@ namespace genfile {
 	}
 	
 	void SampleFilteringSNPDataSource::read_source_probability_data() {
-		m_source.read_snp_probability_data(
+		m_source->read_snp_probability_data(
 		 	boost::bind( &SampleFilteringSNPDataSource::set_unfiltered_genotype_probabilities, this, _1, _2, _3, _4 )
 		) ;
 	}
@@ -110,7 +123,7 @@ namespace genfile {
 			index_of_last_unfiltered_sample = (*i) + 1 ;
 		}
 
-		for( std::size_t sample_i = index_of_last_unfiltered_sample; sample_i < m_source.number_of_samples() ; ++sample_i ) {
+		for( std::size_t sample_i = index_of_last_unfiltered_sample; sample_i < m_source->number_of_samples() ; ++sample_i ) {
 			std::size_t genotype_data_index = sample_i * 3 ;
 			set_genotype_probabilities(
 				index_of_filtered_sample++,
@@ -130,7 +143,7 @@ namespace genfile {
 	}
 
 	void SampleFilteringSNPDataSource::ignore_snp_probability_data_impl() {
-		m_source.ignore_snp_probability_data() ;
+		m_source->ignore_snp_probability_data() ;
 	}
 
 }

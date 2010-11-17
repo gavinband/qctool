@@ -5,9 +5,7 @@
 #include <string>
 #include <vector>
 #include "../config.hpp"
-#if HAVE_BOOST_FUNCTION
 #include <boost/function.hpp>
-#endif
 #include "snp_data_utils.hpp"
 #include "wildcard.hpp"
 #include "GenomePosition.hpp"
@@ -23,14 +21,19 @@ namespace genfile {
 	// 1. the number_of_samples() and total_number_of_snps() functions return information
 	// reflecting the data in the file or source, and
 	// 2. The stream accessible through stream() is readable and pointing to the first snp in the file.
-	class SNPDataSource: public SNPDataBase
+	class SNPDataSource
 	{
 	public:
 		typedef std::auto_ptr< SNPDataSource > UniquePtr ;
+		typedef boost::function< void ( std::size_t, std::size_t ) > NotifyProgress ;
+		
 		// The following methods are factory functions
 		static UniquePtr create( std::string const& filename, Chromosome = UnidentifiedChromosome ) ;
 		static UniquePtr create( std::string const& filename, Chromosome, CompressionType compression_type ) ;
-		static UniquePtr create_chain( std::vector< wildcard::FilenameMatch > const& matches ) ;
+		static UniquePtr create_chain(
+			std::vector< wildcard::FilenameMatch > const& matches,
+			NotifyProgress notify_progress = NotifyProgress()
+		 ) ;
 		
 	public:
 		SNPDataSource() ;
@@ -38,11 +41,7 @@ namespace genfile {
 
 		void reset_to_start() ;
 
-		#if HAVE_BOOST_FUNCTION
-			typedef boost::function< void() > source_reset_callback_t ;
-		#else
-			typedef void( *source_reset_callback_t )() ;
-		#endif
+		typedef boost::function< void() > source_reset_callback_t ;
 
 		void set_source_reset_callback( source_reset_callback_t ) ;
 
@@ -55,7 +54,7 @@ namespace genfile {
 		typedef boost::function< void ( uint32_t ) > SNPPositionSetter ;
 		typedef boost::function< void ( Chromosome ) > ChromosomeSetter ;
 		typedef boost::function< void ( std::size_t, double, double, double ) > GenotypeProbabilitySetter ;
-		
+
 		// Function: read_snp()
 		// Read the data for the next snp from the source (and remove it from the source)
 		// Store the data using the given setter objects / function pointers.
@@ -160,6 +159,22 @@ namespace genfile {
 		virtual unsigned int number_of_samples() const = 0;
 		// Return the total number of snps the source contains.
 		virtual unsigned int total_number_of_snps() const = 0 ;
+
+		// Return a string identifying the source of the SNP data
+		virtual std::string get_source_spec() const = 0 ;
+		
+		// In order to support filtered views of source data, we interpret the source
+		// as forming a hierarchy.  This method returns the parent in the hierarchy.
+		// For the base class, we just return this object.
+		virtual SNPDataSource const& get_parent_source() const {
+			return *this ;
+		}
+
+		// This method returns the base (i.e. eventual parent) in the hierarchy.
+		// For the base class, we just return this object.
+		virtual SNPDataSource const& get_base_source() const {
+			return *this ;
+		}
 
 	protected:
 

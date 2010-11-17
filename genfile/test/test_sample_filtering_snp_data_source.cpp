@@ -148,8 +148,8 @@ AUTO_TEST_CASE( test_sample_filtering_snp_data_source ) {
 			i = subsets.begin(),
 			end_i = subsets.end() ;
 		for( ; i != end_i; ++i ) {
-			genfile::GenFileSNPDataSource source( filename, genfile::Chromosome() ) ;
-			std::auto_ptr< genfile::SampleFilteringSNPDataSource > filtering_source = genfile::SampleFilteringSNPDataSource::create(
+			genfile::SNPDataSource::UniquePtr source( new genfile::GenFileSNPDataSource( filename, genfile::Chromosome() )) ;
+			genfile::SampleFilteringSNPDataSource::UniquePtr filtering_source = genfile::SampleFilteringSNPDataSource::create(
 				source,
 				*i
 			) ;
@@ -158,7 +158,7 @@ AUTO_TEST_CASE( test_sample_filtering_snp_data_source ) {
 			TEST_ASSERT( filtering_source->number_of_samples() == filtered_number_of_samples ) ;
 
 			std::vector< SnpData > data = read_snp_data( *filtering_source ) ;
-			TEST_ASSERT( data.size() == source.total_number_of_snps() ) ;
+			TEST_ASSERT( data.size() == filtering_source->get_parent_source().total_number_of_snps() ) ;
 			for( std::size_t j = 0; j < data.size(); ++j ) {
 
 				TEST_ASSERT( data[j].number_of_samples == filtered_number_of_samples ) ;

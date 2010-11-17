@@ -1,6 +1,7 @@
 #include <vector>
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceRack.hpp"
+#include "genfile/get_set.hpp"
 
 namespace genfile {
 	
@@ -86,6 +87,14 @@ namespace genfile {
 			}
 		}
 		return !m_sources.empty() ;
+	}
+	
+	std::string SNPDataSourceRack::get_source_spec() const {
+		std::string result = "rack:" ;
+		for( std::size_t i = 0; i < m_sources.size(); ++i ) {
+			result += "," + m_sources[i]->get_source_spec() ;
+		}
+		return result ;
 	}
 
 	SNPDataSource& SNPDataSourceRack::get_source( std::size_t index ) const {

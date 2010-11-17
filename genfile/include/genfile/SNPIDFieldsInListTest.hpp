@@ -16,6 +16,8 @@ namespace genfile {
 			char,
 			char
 		) const ;
+		
+		std::string display() const ;
 	private:
 		std::set< std::string > m_id_fields ;
 	} ;

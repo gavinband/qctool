@@ -2,6 +2,7 @@
 
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
+#include "genfile/get_set.hpp"
 #include "CmdLineOptionProcessor.hpp"
 #include "ProgramFlow.hpp"
 #include "PositionRange.hpp"

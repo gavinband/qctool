@@ -24,6 +24,7 @@ namespace genfile {
 		std::istream const& stream() const { return *m_stream_ptr ; }
 
 		Chromosome chromosome() const { return m_chromosome ; }
+		std::string get_source_spec() const { return m_filename ; }
 
 	private:
 		void reset_to_start_impl() ;

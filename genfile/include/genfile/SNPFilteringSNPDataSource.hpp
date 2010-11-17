@@ -1,27 +1,37 @@
 #ifndef GENFILE_SNPFILTERINGSNPDATASOURCE_HPP
 #define GENFILE_SNPFILTERINGSNPDATASOURCE_HPP
 
+#include <vector>
 #include <set>
+#include <memory>
 #include "genfile/Error.hpp"
 #include "genfile/SNPDataSource.hpp"
-#include "genfile/SNPIdentifyingDataTest.hpp"
 
 namespace genfile {
+	// class SNPFilteringSNPDataSource
+	// This class represents a view of its parent SNPDataSource such that
+	// only SNPs whose chromosome, position, id fields and alleles satisfy the
+	// given test are visible.
 	class SNPFilteringSNPDataSource: public SNPDataSource
 	{
 	public:
+		typedef std::auto_ptr< SNPFilteringSNPDataSource > UniquePtr ;
+		typedef std::vector< std::size_t > IndexList ;
+	public:
 		// Create a SNPFilteringSNPDataSource from the given source and the given sample indices.
-		static std::auto_ptr< SNPFilteringSNPDataSource > create( SNPDataSource& source, std::auto_ptr< SNPIdentifyingDataTest > snp_inclusion_test ) ;
+		static UniquePtr create( SNPDataSource::UniquePtr source, IndexList const& indices_of_snps_to_include ) ;
 		
 	public:
-		SNPFilteringSNPDataSource( SNPDataSource& source, std::auto_ptr< SNPIdentifyingDataTest > snp_inclusion_test ) ;
+		SNPFilteringSNPDataSource( SNPDataSource::UniquePtr source, IndexList indices_of_snps_to_include ) ;
 
 		operator bool() const ;
 		unsigned int number_of_samples() const ;
 		unsigned int total_number_of_snps() const ;
 		unsigned int total_number_of_snps_before_filtering() const ;
+		std::string get_source_spec() const ;
 
-		SNPIdentifyingDataTest const& get_snp_inclusion_test() const ;
+		SNPDataSource const& get_parent_source() const ;
+		SNPDataSource const& get_base_source() const ;
 		
 	private:
 		void reset_to_start_impl() ;
@@ -42,14 +52,13 @@ namespace genfile {
 		
 		void ignore_snp_probability_data_impl() ;
 
-
-
+	protected:
+		SNPDataSource& source() { return *m_source ; }
+		
 	private:
 		
-		std::set< std::size_t > get_indices_of_excluded_snps() ;
-		
-		SNPDataSource& m_source ;
-		std::auto_ptr< SNPIdentifyingDataTest > m_snp_inclusion_test ;
+		SNPDataSource::UniquePtr m_source ;
+		std::size_t m_snp_index ;
 		std::set< std::size_t > m_indices_of_excluded_snps ;
 	} ;
 }

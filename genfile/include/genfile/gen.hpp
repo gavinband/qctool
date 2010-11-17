@@ -13,7 +13,9 @@
 #include <cmath>
 #include <algorithm>
 #include <stdint.h>
-#include "snp_data_utils.hpp"
+#include "genfile/snp_data_utils.hpp"
+#include "genfile/Error.hpp"
+#include "genfile/get_set.hpp"
 
 namespace genfile {
 	namespace gen {
@@ -188,7 +190,7 @@ namespace genfile {
 			uint32_t number_of_samples ;
 			read_snp_block( aStream, set_value( number_of_samples ), ignore(), ignore(), ignore(), ignore(), ignore(), ignore() ) ;
 			if( !aStream ) {
-				throw FileStructureInvalidError() ;
+				throw MalformedInputError( "(unknown)", 0 ) ;
 			}
 
 			uint32_t number_of_snp_blocks = 1 ;
@@ -202,7 +204,7 @@ namespace genfile {
 				// with our count.
 				// Therefore we check here for the special case where what we've read ends in two newlines.
 				if( (aStream.gcount() > 1) && (buffer[ aStream.gcount() - 1] == '\n') && (buffer[ aStream.gcount() - 2] == '\n') ) {
-					throw FileHasTwoConsecutiveNewlinesError() ;
+					throw FileHasTwoTrailingNewlinesError( "(unknown)", number_of_snp_blocks ) ;
 				}
 			}
 			while( aStream ) ;
@@ -224,7 +226,7 @@ namespace genfile {
 				set_number_of_samples( number_of_samples ) ;
 				set_flags( 0 ) ;
 			} else {
-				throw FileStructureInvalidError() ;
+				throw MalformedInputError( "(unknown)",  number_of_snp_blocks ) ;
 			}
 		}
 

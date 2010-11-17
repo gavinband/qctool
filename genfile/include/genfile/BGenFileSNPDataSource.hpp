@@ -22,6 +22,7 @@ namespace genfile {
 
 		std::istream& stream() { return *m_stream_ptr ; }
 		std::istream const& stream() const { return *m_stream_ptr ; }
+		std::string get_source_spec() const { return m_filename ; }
 
 	private:
 

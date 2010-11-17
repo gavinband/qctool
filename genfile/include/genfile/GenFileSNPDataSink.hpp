@@ -3,10 +3,10 @@
 
 #include <iostream>
 #include <string>
-#include "snp_data_utils.hpp"
-#include "gen.hpp"
-#include "SNPDataSink.hpp"
-#include "SNPDataSource.hpp"
+#include "genfile/snp_data_utils.hpp"
+#include "genfile/gen.hpp"
+#include "genfile/SNPDataSink.hpp"
+#include "genfile/SNPDataSource.hpp"
 
 namespace genfile {
 	
@@ -48,7 +48,7 @@ namespace genfile {
 				m_chromosome = chromosome ;
 			}
 			else if( m_chromosome != chromosome ) {
-				throw ChromosomeMismatchError( m_chromosome, chromosome ) ;
+				throw BadArgumentError( "GenFileSNPDataSink::write_snp_impl()", "chromosome=" + string_utils::to_string( chromosome ) ) ;
 			}
 
 			gen::write_snp_block( *m_stream_ptr, number_of_samples, SNPID, RSID, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
@@ -59,7 +59,7 @@ namespace genfile {
 		void setup( std::string const& filename, CompressionType compression_type ) {
 			m_stream_ptr = open_text_file_for_output( filename, compression_type ) ;
 			if( !(*m_stream_ptr)) {
-				throw FileNotOpenedError() ;
+				throw ResourceNotOpenedError( m_filename ) ;
 			}
 			assert( *m_stream_ptr ) ;
 		}

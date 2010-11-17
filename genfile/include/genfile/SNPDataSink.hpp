@@ -14,25 +14,15 @@ namespace genfile {
 	// After the class is constructed, the intention is that
 	// 2. The stream accessible through stream() is writeable so that the snps may be written,
 	// one at a time.
-	class SNPDataSink: public SNPDataBase
+	class SNPDataSink
 	{
 	public:
 		SNPDataSink(): m_number_of_samples(0u), m_number_of_snps_written(0u) {} ;
 		virtual ~SNPDataSink() {} ;
 
 		// Factory functions
-		static std::auto_ptr< SNPDataSink > create(
-			std::string const& filename,
-			std::string const& free_data = "",
-			bool sort = false
-		) ;
-
-		static std::auto_ptr< SNPDataSink > create(
-			std::string const& filename,
-			CompressionType compression_type,
-			std::string const& free_data = "",
-			bool sort = false
-		) ;
+		static std::auto_ptr< SNPDataSink > create( std::string const& filename, std::string const& free_data = "" ) ;
+		static std::auto_ptr< SNPDataSink > create( std::string const& filename, CompressionType compression_type, std::string const& free_data = "" ) ;
 
 	public:		
 

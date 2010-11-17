@@ -1,5 +1,5 @@
-#ifndef GTOOL_WILDCARD_HPP__
-#define GTOOL_WILDCARD_HPP__
+#ifndef QCTOOL_WILDCARD_HPP
+#define QCTOOL_WILDCARD_HPP
 
 #include <iostream>
 #include <algorithm>

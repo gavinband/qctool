@@ -33,6 +33,12 @@ namespace genfile {
 			std::string path,
 			char wildcard_char = '#'
 		) ;
+
+		std::vector< FilenameMatch >
+		find_nonsexdetermining_gen_files(
+			std::string path,
+			char wildcard_char = '#'
+		) ;
 	
 		// Return a list of FilenameMatches consisting of filenames
 		// made from the given output_filename by substituting the matches

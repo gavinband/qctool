@@ -59,7 +59,8 @@ namespace genfile {
 		unsigned int number_of_samples() const ;
 		unsigned int total_number_of_snps() const ;
 		operator bool() const ;
-
+		std::string get_source_spec() const ;
+		
 	protected:
 
 		void reset_to_start_impl() ;

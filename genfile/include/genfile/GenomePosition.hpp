@@ -28,6 +28,11 @@ namespace genfile {
 			m_data = other.m_data ;
 			return *this ;
 		}
+
+		// Load a genome position in one of the following formats:
+		// CC:xxxxxx (chromosome / position pair)
+		// xxxxx (unknown chromosome / position pair).
+		GenomePosition( std::string const& position_spec ) ;
 	
 		Chromosome const& chromosome() const { return m_data.first ; }
 		Chromosome& chromosome() { return m_data.first ; }
@@ -38,12 +43,17 @@ namespace genfile {
 		friend bool operator<=( GenomePosition const& left, GenomePosition const& right ) ;
 		friend bool operator==( GenomePosition const& left, GenomePosition const& right ) ;
 		friend bool operator!=( GenomePosition const& left, GenomePosition const& right ) ;
+
+		static Position get_max_position( Chromosome chromosome ) ;
+		static Position get_min_position( Chromosome chromosome ) ;
 	private:
 	
 		std::pair< Chromosome, Position > m_data ;
 	} ;
 
 	std::ostream& operator<<( std::ostream&, GenomePosition const& ) ;
+	std::istream& operator>>( std::istream& oStream, GenomePosition& pos ) ;
+	
 }
 
 #endif

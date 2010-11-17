@@ -2,9 +2,9 @@
 #include <set>
 #include <fstream>
 #include <boost/variant/variant.hpp>
+#include <boost/bind.hpp>
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/FromFileCohortIndividualSource.hpp"
-#include "string_utils/string_utils.hpp"
 
 namespace genfile {
 	// Read a sample file in the format described here:
@@ -12,13 +12,11 @@ namespace genfile {
 	FromFileCohortIndividualSource::FromFileCohortIndividualSource(
 		std::string const& filename,
 		std::vector< std::string > const& missing_values,
-		GetEntryFromString get_entry_from_string,
-		GetColumnTypeFromString get_column_type_from_string
+		GetEntryFromString get_entry_from_string
 	):
 		m_filename( filename ),
 		m_missing_values( missing_values ),
-		m_get_entry_from_string( get_entry_from_string ),
-		m_get_column_type_from_string( get_column_type_from_string )
+		m_get_entry_from_string( get_entry_from_string )
 	{
 		assert( m_get_entry_from_string ) ;
 		std::ifstream stream( m_filename.c_str() ) ;
@@ -29,29 +27,17 @@ namespace genfile {
 	FromFileCohortIndividualSource::FromFileCohortIndividualSource(
 		std::istream& stream,
 		std::vector< std::string > const& missing_values,
-		GetEntryFromString get_entry_from_string,
-		GetColumnTypeFromString get_column_type_from_string
+		GetEntryFromString get_entry_from_string
 	):
 		m_filename( "(none)" ),
 		m_missing_values( missing_values ),
-		m_get_entry_from_string( get_entry_from_string ),
-		m_get_column_type_from_string( get_column_type_from_string )
+		m_get_entry_from_string( get_entry_from_string )
 	{
 		assert( m_get_entry_from_string ) ;
 		setup( stream ) ; 
 	}
 
 	std::size_t FromFileCohortIndividualSource::get_number_of_individuals() const { return m_entries.size() ; }
-
-	std::size_t FromFileCohortIndividualSource::get_number_of_covariates() const {
-		return std::count( m_column_types.begin(), m_column_types.end(), e_DISCRETE_COVARIATE )
-			+ std::count( m_column_types.begin(), m_column_types.end(), e_CONTINUOUS_COVARIATE ) ;
-	}
-
-	std::size_t FromFileCohortIndividualSource::get_number_of_phenotypes() const {
-		return std::count( m_column_types.begin(), m_column_types.end(), e_BINARY_PHENOTYPE )
-			+ std::count( m_column_types.begin(), m_column_types.end(), e_CONTINUOUS_PHENOTYPE ) ;
-	}
 
 	FromFileCohortIndividualSource::Entry FromFileCohortIndividualSource::get_entry( std::size_t sample_i, std::string const& column_name ) const {
 		std::size_t const column_i = find_column_name( column_name ) ;
@@ -60,17 +46,38 @@ namespace genfile {
 
 	std::string const& FromFileCohortIndividualSource::get_filename() const { return m_filename ; }
 
-	std::vector< CohortIndividualSource::SingleColumnSpec > FromFileCohortIndividualSource::get_column_spec() const {
-		assert( m_column_names.size() == m_column_types.size() ) ;
-		std::vector< SingleColumnSpec > result( m_column_names.size() ) ;
-		for( std::size_t i = 0; i < result.size(); ++i ) {
-			result[i] = SingleColumnSpec( m_column_names[i], m_column_types[i] ) ;
+	std::string FromFileCohortIndividualSource::get_source_spec() const {
+		if( m_filename == "(none)" ) {
+			return "(unknown)" ;
 		}
-		return result ;
+		else {
+			return "file://" + m_filename ;
+		}
 	}
 
+	CohortIndividualSource::ColumnSpec FromFileCohortIndividualSource::get_column_spec() const {
+		return ColumnSpec( m_column_names, m_column_types ) ;
+	}
+
+	bool FromFileCohortIndividualSource::check_for_column( std::string const& column_name ) const {
+		std::vector< std::string >::const_iterator where = find_column_name_impl( column_name ) ;
+		return ( where != m_column_names.end() ) ;
+	}
+
+	std::vector< std::string >::const_iterator FromFileCohortIndividualSource::find_column_name_impl( std::string const& column_name ) const {
+		return std::find_if(
+			m_column_names.begin(),
+			m_column_names.end(),
+			boost::bind(
+				string_utils::case_insensitive_equality,
+				column_name,
+				_1
+			)
+		) ;
+	}
+	
 	std::size_t FromFileCohortIndividualSource::find_column_name( std::string const& column_name ) const {
-		std::vector< std::string >::const_iterator where = std::find( m_column_names.begin(), m_column_names.end(), column_name ) ;
+		std::vector< std::string >::const_iterator where = find_column_name_impl( column_name ) ;
 		assert( where != m_column_names.end() ) ;
 		return std::size_t( where - m_column_names.begin() ) ;
 	}
@@ -96,17 +103,17 @@ namespace genfile {
 		std::vector< std::string > result ;
 		std::string line ;
 		std::getline( stream, line ) ;
-		result = string_utils::split_discarding_empty_entries( string_utils::to_lower( line ), " " ) ;
+		result = string_utils::split_discarding_empty_entries( line ) ;
 		if( result.size() < 3 ) {
 			throw MalformedInputError( m_filename, 0 ) ;
 		}
-		if( result[0] != "id_1" ) {
+		if( string_utils::to_lower( result[0] ) != "id_1" ) {
 			throw MalformedInputError( m_filename, 0, 0 ) ;
 		}
-		if( result[1] != "id_2" ) {
+		if( string_utils::to_lower( result[1] ) != "id_2" ) {
 			throw MalformedInputError( m_filename, 0, 1 ) ;
 		}
-		if( result[2] != "missing" ) {
+		if( string_utils::to_lower( result[2] ) != "missing" ) {
 			throw MalformedInputError( m_filename, 0, 2 ) ;
 		}
 		return result ;
@@ -116,16 +123,33 @@ namespace genfile {
 		std::vector< ColumnType > result ;
 		std::string line ;
 		std::getline( stream, line ) ;
-		std::vector< std::string > type_strings = string_utils::split_discarding_empty_entries( line, " " ) ;
+		std::vector< std::string > type_strings = string_utils::split_discarding_empty_entries( line ) ;
 		if( type_strings.size() != column_names.size() ) {
 			throw MalformedInputError( m_filename, 1 ) ;
 		}
 		for( std::size_t i = 0; i < type_strings.size(); ++i ) {
-			try {
-				result.push_back( m_get_column_type_from_string( type_strings[i] )) ;
-			}
-			catch( MalformedInputError const& e ) {
+			if( type_strings[i].size() != 1 ) {
 				throw MalformedInputError( m_filename, 1, i ) ;
+			}
+			switch( type_strings[i][0] ) {
+				case '0':
+					result.push_back( e_ID_COLUMN ) ;
+					break ;
+				case 'D':
+					result.push_back( e_DISCRETE_COVARIATE ) ;
+					break ;
+				case 'C':
+					result.push_back( e_CONTINUOUS_COVARIATE ) ;
+					break ;
+				case 'B':
+					result.push_back( e_BINARY_PHENOTYPE ) ;
+					break ;
+				case 'P':
+					result.push_back( e_CONTINUOUS_PHENOTYPE ) ;
+					break ;
+				default:
+					throw MalformedInputError( m_filename, 1, i ) ;
+					break ;
 			}
 		}
 		assert( result.size() == column_names.size() ) ;
@@ -146,67 +170,11 @@ namespace genfile {
 		return result ;
 	}
 
-	CohortIndividualSource::ColumnType FromFileCohortIndividualSource::get_column_type_from_string_strict( std::string const& a_string ) {
-		if( a_string.size() != 1 ) {
-			throw MalformedInputError() ;
-		}
-		switch( a_string[0] ) {
-			case '0':
-				return e_ID_COLUMN ;
-				break ;
-			case 'D':
-				return e_DISCRETE_COVARIATE ;
-				break ;
-			case 'C':
-				return e_CONTINUOUS_COVARIATE ;
-				break ;
-			case 'B':
-				return e_BINARY_PHENOTYPE ;
-				break ;
-			case 'P':
-				return e_CONTINUOUS_PHENOTYPE ;
-				break ;
-			default:
-				throw MalformedInputError() ;
-				break ;
-		}
-	}
-
-	CohortIndividualSource::ColumnType FromFileCohortIndividualSource::get_column_type_from_string_relaxed( std::string const& a_string ) {
-		if( a_string.size() != 1 ) {
-			throw MalformedInputError() ;
-		}
-		switch( a_string[0] ) {
-			case '0':
-				return e_ID_COLUMN ;
-				break ;
-			case 'D':
-			case '1':
-			case '2':
-				return e_DISCRETE_COVARIATE ;
-				break ;
-			case 'C':
-			case '3':
-				return e_CONTINUOUS_COVARIATE ;
-				break ;
-			case 'B':
-				return e_BINARY_PHENOTYPE ;
-				break ;
-			case 'P':
-				return e_CONTINUOUS_PHENOTYPE ;
-				break ;
-			default:
-				throw MalformedInputError() ;
-				break ;
-		}
-	}
-	
-
 	std::vector< std::vector< CohortIndividualSource::Entry > > FromFileCohortIndividualSource::read_entries( std::istream& stream, std::vector< ColumnType > const& column_types ) const {
 		std::vector< std::vector< Entry > > result ;
 		std::string line ;
 		while( std::getline( stream, line ) ) {
-			std::vector< std::string > string_entries = string_utils::split_discarding_empty_entries( line, " " ) ;
+			std::vector< std::string > string_entries = string_utils::split_discarding_empty_entries( line ) ;
 			if( string_entries.size() != column_types.size() ) {
 				throw MalformedInputError( m_filename, 2 + result.size() ) ;
 			}

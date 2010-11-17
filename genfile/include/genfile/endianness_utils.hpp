@@ -55,3 +55,4 @@ void write_little_endian_integer( std::ostream& out_stream, IntegerType const in
 }
 
 #endif
+

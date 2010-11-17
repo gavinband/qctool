@@ -8,6 +8,8 @@
 	namespace BFS = boost::filesystem ;
 #endif
 #include "genfile/wildcard.hpp"
+#include "genfile/Error.hpp"
+#include "genfile/Chromosome.hpp"
 
 namespace genfile {
 	namespace wildcard {
@@ -47,11 +49,12 @@ namespace genfile {
 				}
 				return dir ;
 			}
-
+		#endif
 			bool has_wildcard( std::string const& a_string, char const wildcard ) {
 				return a_string.find( wildcard ) != std::string::npos ;
 			}
 		
+		#if HAVE_BOOST_FILESYSTEM
 			std::vector< FilenameMatch > find_files_matching_path_with_chromosomal_wildcard( std::string path, char const wildcard_char ) {
 				std::vector< FilenameMatch > result ;
 				BFS::path dir = impl::get_dir_part( path ) ;
@@ -71,7 +74,7 @@ namespace genfile {
 						Chromosome chromosome( candidates[i].match() ) ;
 						matching_files[ chromosome ] = candidates[i] ;
 					}
-					catch( ChromosomeNotRecognisedError const& e ) {
+					catch( BadArgumentError const& e ) {
 						// Filename doesn't indicate a chromosome.
 					}
 				}
@@ -104,7 +107,7 @@ namespace genfile {
 						Chromosome chromosome( possible_match ) ;
 						return chromosome ;
 					}
-					catch( ChromosomeNotRecognisedError const& ) {
+					catch( BadArgumentError const& ) {
 						pos = pos2 ;
 					}
 				}
@@ -133,7 +136,7 @@ namespace genfile {
 			std::vector< FilenameMatch > result ;
 		#if HAVE_BOOST_FILESYSTEM
 			if( BFS::exists( path )) {
-				result.push_back( FilenameMatch( path, impl::determine_chromosome_match( BFS::path( path ).filename() ))) ;
+				result.push_back( FilenameMatch( path, "" )) ;
 			}
 			else if( impl::has_wildcard( path, wildcard_char )) {
 				result = impl::find_files_matching_path_with_chromosomal_wildcard( path, wildcard_char ) ;
@@ -146,6 +149,23 @@ namespace genfile {
 				throw FileNotFoundError( path ) ;
 			}
 
+			return result ;
+		}
+	
+		std::vector< FilenameMatch >
+		find_nonsexdetermining_gen_files(
+			std::string path,
+			char wildcard_char
+		) {
+			std::vector< FilenameMatch > result = find_gen_files( path, wildcard_char ) ;
+			for( std::size_t i = 0; i < result.size(); ) {
+				if( Chromosome( result[i].match() ).is_sex_determining() ) {
+					result.erase( result.begin() + i ) ;
+				}
+				else {
+					++i ;
+				}
+			}
 			return result ;
 		}
 	

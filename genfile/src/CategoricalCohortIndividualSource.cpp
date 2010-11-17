@@ -12,8 +12,7 @@ namespace genfile {
 		FromFileCohortIndividualSource(
 			filename,
 			string_utils::split_discarding_empty_entries( missing_values, ",", " \t" ),
-			&CategoricalCohortIndividualSource::get_entry_from_string,
-			&FromFileCohortIndividualSource::get_column_type_from_string_relaxed
+			&CategoricalCohortIndividualSource::get_entry_from_string
 		)
 	{
 		check_sample_ids() ;
@@ -23,8 +22,7 @@ namespace genfile {
 		FromFileCohortIndividualSource(
 			stream,
 			string_utils::split_discarding_empty_entries( missing_values, ",", " \t" ),
-			&CategoricalCohortIndividualSource::get_entry_from_string,
-			&FromFileCohortIndividualSource::get_column_type_from_string_relaxed
+			&CategoricalCohortIndividualSource::get_entry_from_string
 		)
 	{
 		check_sample_ids() ;
@@ -67,13 +65,13 @@ namespace genfile {
 	}
 	
 	void CategoricalCohortIndividualSource::check_sample_ids() const {
-		// id_1 and id_2 fields, put together, should be unique.
+		// combination of id_1 and id_2 fields should be unique.
 		{
 			std::set< std::string > sample_ids ;
 			for( std::size_t i = 0; i < get_number_of_individuals(); ++i ) {
 				std::string id = get_entry( i, "id_1" ).as< std::string >() + " " + get_entry( i, "id_2" ).as< std::string >();
 				if( sample_ids.find( id ) != sample_ids.end() ) {
-					throw DuplicateKeyError( get_filename(), i + 2, find_column_name( "id_1" ) ) ;
+					throw DuplicateIndividualError( get_filename(), get_entry( i, "id_1" ).as< std::string >(), get_entry( i, "id_2" ).as< std::string >(), i + 2) ;
 				}
 				sample_ids.insert( id ) ;
 			}

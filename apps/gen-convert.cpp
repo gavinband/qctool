@@ -20,6 +20,7 @@
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/SNPDataSinkChain.hpp"
+#include "genfile/SortingBGenFileSNPDataSink.hpp"
 #include "string_utils/string_utils.hpp"
 #include "string_utils/parse_utils.hpp"
 #include "wildcard.hpp"
@@ -186,7 +187,7 @@ private:
 			std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( filename, matched_part )) ;
 			chain.add_source( snp_data_source ) ;
 		}
-		catch ( genfile::FileHasTwoConsecutiveNewlinesError const& e ) {
+		catch ( genfile::FileHasTwoTrailingNewlinesError const& e ) {
 			std::cerr << "\n!!ERROR: a GEN file was specified having two consecutive newlines.\n"
 				<< "!! NOTE: popular editors, such as vim and nano, automatically add an extra newline to the file (which you can't see).\n"
 				<< "!!     : Please check that each SNP in the file is terminated by a single newline.\n" ;
@@ -209,14 +210,29 @@ private:
 	}
 
 	void add_gen_file_to_chain( genfile::SNPDataSinkChain& chain, std::string const& filename ) {
+		std::auto_ptr< genfile::SNPDataSink > snp_data_sink ;
+
+		if( m_options.check_if_option_was_supplied( "-sort" ) ) {
+			if( genfile::filename_indicates_bgen_format( filename ) ) {
+				snp_data_sink.reset(
+					new genfile::SortingBGenFileSNPDataSink(
+						filename,
+						"Created by gen-convert"
+					)
+				) ;
+			}
+			else {
+				throw genfile::BadArgumentError( "GenConvertProcessor::add_gen_file_to_chain()", "option:\"-sort\" supplied, but file \"" + filename + "\" is not BGEN file" ) ;
+			}
+		} else {
 			std::auto_ptr< genfile::SNPDataSink > snp_data_sink(
 				genfile::SNPDataSink::create(
 					filename,
-					"Created by gen-convert",
-					m_options.check_if_option_was_supplied( "-sort" )
+					"Created by gen-convert"
 				)
 			) ;
-			chain.add_sink( snp_data_sink ) ;
+		}
+		chain.add_sink( snp_data_sink ) ;
 	}
 
 	void move_to_next_output_file( std::size_t index ) {

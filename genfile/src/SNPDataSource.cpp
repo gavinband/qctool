@@ -6,6 +6,7 @@
 #include "genfile/GenFileSNPDataSource.hpp"
 #include "genfile/BGenFileSNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
+#include "genfile/Error.hpp"
 
 namespace genfile {
 	std::auto_ptr< SNPDataSource > SNPDataSource::create( std::string const& filename, Chromosome chromosome_hint )
@@ -22,8 +23,11 @@ namespace genfile {
 		}
 	}
 
-	std::auto_ptr< SNPDataSource > SNPDataSource::create_chain( std::vector< wildcard::FilenameMatch > const& matches ) {
-		std::auto_ptr< SNPDataSourceChain > ptr = SNPDataSourceChain::create( matches ) ;
+	std::auto_ptr< SNPDataSource > SNPDataSource::create_chain(
+		std::vector< wildcard::FilenameMatch > const& matches,
+		NotifyProgress notify_progress
+	) {
+		std::auto_ptr< SNPDataSourceChain > ptr = SNPDataSourceChain::create( matches, notify_progress ) ;
 		return std::auto_ptr< SNPDataSource >( ptr.release() ) ;
 	}
 
@@ -200,6 +204,8 @@ namespace genfile {
 		if( *this ) {
 			m_state = e_HaveNotReadIdentifyingData ;
 			++m_number_of_snps_read ;
+		} else {
+			throw MalformedInputError( get_source_spec(), m_number_of_snps_read ) ;
 		}
 		return *this ;
 	}

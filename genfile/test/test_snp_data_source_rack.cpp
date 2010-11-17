@@ -24,8 +24,6 @@
 #include "genfile/GenFileSNPDataSource.hpp"
 #include "stdint.h"
 
-
-
 // The following section contains a simple snp block writer.
 namespace data {
 	// this data has 1504 samples per row.

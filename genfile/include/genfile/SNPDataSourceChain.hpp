@@ -18,11 +18,18 @@ namespace genfile {
 	{
 	public:
 		// Create a chain of SNPDataSources taking data from the specified files.
-		static std::auto_ptr< SNPDataSourceChain > create( std::vector< wildcard::FilenameMatch > const& filenames ) ;
+		static std::auto_ptr< SNPDataSourceChain > create(
+			std::vector< wildcard::FilenameMatch > const& filenames,
+			NotifyProgress notify_progress = NotifyProgress()
+		) ;
+
 		// Create a chain of SNPDataSourceRacks taking data from the specified files.
 		// Each entry of the outer vector is understood as a list of files which must be chained together.
 		// Each entry of the outer vector must therefore have the same size.
-		static std::auto_ptr< SNPDataSourceChain > create( std::vector< std::vector< wildcard::FilenameMatch > > const& filenames ) ;
+		static std::auto_ptr< SNPDataSourceChain > create(
+			std::vector< std::vector< wildcard::FilenameMatch > > const& filenames,
+			NotifyProgress notify_progress = NotifyProgress()
+		) ;
 		
 		SNPDataSourceChain() ;
 		~SNPDataSourceChain() ;
@@ -34,6 +41,7 @@ namespace genfile {
 		unsigned int number_of_snps_in_source( std::size_t source_index ) const ;
 		SNPDataSource const& get_source( std::size_t source_index ) const ;
 		operator bool() const ;
+		std::string get_source_spec() const ;
 
 	protected:
 
