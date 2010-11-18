@@ -42,6 +42,7 @@ def build( bld ):
 			'src/RFormatStatSource.cpp'
 		],
 		includes='./include',
+		export_incdirs='./include',
 		uselib = 'BOOST ZLIB BOOST_IOSTREAMS'
 	)
 
