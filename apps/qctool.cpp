@@ -32,10 +32,13 @@
 #include "ObjectSource.hpp"
 #include "SimpleFileObjectSource.hpp"
 #include "SimpleFileObjectSink.hpp"
+
+#include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/SNPDataSinkChain.hpp"
 #include "genfile/TrivialSNPDataSink.hpp"
 #include "genfile/CategoricalCohortIndividualSource.hpp"
+#include "genfile/SampleFilteringSNPDataSource.hpp"
 
 #include "SampleOutputFile.hpp"
 #include "GenotypeAssayStatisticFactory.hpp"
@@ -52,20 +55,20 @@
 #include "statfile/RFormatStatSink.hpp"
 #include "SampleIDSink.hpp"
 #include "QCToolContext.hpp"
-#include "QCToolProcessor.hpp"
+#include "QCTool.hpp"
 
 
 namespace globals {
 	std::string const program_name = "qctool" ;
 }
 
-struct NumberOfSamplesMismatchException: public QCToolProcessorException
+struct NumberOfSamplesMismatchException: public QCToolException
 {
 	char const* what() const throw() {return "NumberOfSamplesMismatchException" ; }
 } ;
 
 // Thrown to indicate that the numbers of input and output files specified on the command line differ.
-struct QCToolFileCountMismatchError: public QCToolProcessorException
+struct QCToolFileCountMismatchError: public QCToolException
 {
 	char const* what() const throw() {return "QCToolFileCountMismatchError" ; }
 } ;
@@ -573,16 +576,8 @@ struct QCToolCmdLineContext: public QCToolContext
 			<< "  \"" << format_filename( m_options.output_sample_excl_list_filename()) << "\".\n" ;
 		m_logger << "\n" ;
 
-		m_logger << std::setw(30) << "Input GEN file(s):" ;
-		for( std::size_t i = 0; i < m_options.gen_filename_mapper().input_files().size(); ++i ) {
-			if( i > 0 ) {
-				m_logger << std::string( 30, ' ' ) ;
-			}
-			m_logger << "  (" << std::setw(6) << m_snp_data_source->number_of_snps_in_source( i ) << " snps)  " ;
-			m_logger << "\"" << m_options.gen_filename_mapper().input_files()[i] << "\"" ;				
-			m_logger << "\n" ;
-		}
-		m_logger << std::string( 30, ' ' ) << "  (total " << m_snp_data_source->total_number_of_snps() << " snps in input).\n" ;
+		m_logger << std::setw(30) << "Input GEN file(s):\n" ;
+		m_logger<< m_snp_data_source->get_summary( "", 40 ) ;
 		if( m_options.gen_filename_mapper().input_files().size() > 1 ) {
 			m_logger << "\n" ;
 		}
@@ -807,14 +802,24 @@ private:
 			construct_snp_filter() ;
 			construct_sample_filter() ;
 			process_other_options() ;
-
-			open_snp_data_source() ;
-
+			
+			m_snp_data_source = open_snp_data_source() ;
+			
 			load_sample_rows( m_snp_data_source->number_of_samples() ) ;
-
+			
 			check_for_errors_and_warnings() ;
-
+			
+			if( m_indices_of_filtered_out_samples.size() > 0 ) {
+				m_snp_data_source.reset(
+					new genfile::SampleFilteringSNPDataSource(
+						m_snp_data_source,
+						std::set< std::size_t >( m_indices_of_filtered_out_samples.begin(), m_indices_of_filtered_out_samples.end() )
+					)
+				) ;
+			}
+			
 			write_preamble() ;
+			
 			open_sample_row_sink() ;
 			open_snp_data_sinks() ;
 			open_snp_stats_sink( 0, m_snp_statistics ) ;
@@ -832,8 +837,9 @@ private:
 		m_logger.add_stream( "log", m_log ) ;
 	}
 
-	void open_snp_data_source() {
+	genfile::SNPDataSource::UniquePtr open_snp_data_source() {
 		Timer timer ;
+		genfile::SNPDataSource::UniquePtr result ;
 		
 		std::auto_ptr< genfile::SNPDataSourceChain > chain( new genfile::SNPDataSourceChain() ) ;
 		chain->set_moved_to_next_source_callback( boost::bind( &QCToolCmdLineContext::move_to_next_output_file, this, _1 )) ;
@@ -853,11 +859,11 @@ private:
 			m_logger << " (" << file_timer.elapsed() << "s)\n" ;
 		}
 
-		m_snp_data_source = chain ;
-
 		if( timer.elapsed() > 1.0 ) {
 			m_logger << "Opened " << m_options.gen_filename_mapper().input_files().size() << " GEN files in " << timer.elapsed() << "s.\n" ;\
 		}
+		result.reset( chain.release() ) ;
+		return result ;
 	}
 
 	void move_to_next_output_file( std::size_t index ) {
@@ -1213,7 +1219,7 @@ private:
 	std::ofstream m_log ;
 	OstreamTee m_logger ;
 	
-	std::auto_ptr< genfile::SNPDataSourceChain > m_snp_data_source ;
+	std::auto_ptr< genfile::SNPDataSource > m_snp_data_source ;
 	std::auto_ptr< genfile::SNPDataSinkChain > m_fltrd_in_snp_data_sink ;
 	std::auto_ptr< genfile::SNPDataSinkChain > m_fltrd_out_snp_data_sink ;
 	std::auto_ptr< ObjectSource< SampleRow > > m_sample_source ;
@@ -1251,8 +1257,10 @@ int main( int argc, char** argv ) {
 	OptionProcessor options ;
     try {
 		QCToolCmdLineContext context( argc, argv ) ;
-		QCToolProcessor processor( context ) ;
-		processor.process() ;
+		QCTool qctool( context ) ;
+		genfile::SimpleSNPDataSourceProcessor processor ;
+		processor.add_callback( qctool ) ;
+		processor.process( context.snp_data_source() ) ;
     }
 	catch( HaltProgramWithReturnCode const& e ) {
 		return e.return_code() ;

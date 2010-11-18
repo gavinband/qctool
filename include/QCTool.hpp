@@ -8,6 +8,9 @@
 #include <memory>
 #include <numeric>
 #include <boost/bind.hpp>
+#include <boost/function.hpp>
+
+#include "genfile/SNPDataSourceProcessor.hpp"
 
 #include "Timer.hpp"
 #include "GenRow.hpp"
@@ -23,17 +26,16 @@
 #include "OstreamTee.hpp"
 #include "QCToolContext.hpp"
 
-struct QCToolProcessorException: public std::exception
+struct QCToolException: public std::exception
 {
-	char const* what() const throw() {return "QCToolProcessorException" ; }
+	char const* what() const throw() {return "QCToolException" ; }
 } ;
 
-struct GenAndSampleFileMismatchException: public QCToolProcessorException
+struct GenAndSampleFileMismatchException: public QCToolException
 {
-	GenAndSampleFileMismatchException( GenRowIdentifyingData const& data, std::size_t actual_number_of_samples, std::size_t expected_number_of_samples )
+	GenAndSampleFileMismatchException( std::size_t actual_number_of_samples, std::size_t expected_number_of_samples )
 		: m_expected_number_of_samples( expected_number_of_samples ),
-		m_actual_number_of_samples( actual_number_of_samples ),
-		m_data( data )
+			m_actual_number_of_samples( actual_number_of_samples )
 	{}
 
 	~GenAndSampleFileMismatchException() throw() {}
@@ -42,23 +44,36 @@ struct GenAndSampleFileMismatchException: public QCToolProcessorException
 
 	std::size_t expected_number_of_samples() const { return m_expected_number_of_samples ; }
 	std::size_t actual_number_of_samples() const { return m_actual_number_of_samples ; }
-	GenRowIdentifyingData data() const { return m_data ; }
 private:
 	std::size_t m_expected_number_of_samples, m_actual_number_of_samples ;
-	GenRowIdentifyingData m_data ;
 } ;
 
-struct QCToolProcessor
+struct QCTool: public genfile::SNPDataSourceProcessor::Callback
 {
 public:
-	QCToolProcessor( QCToolContext & context )
-		: m_context( context )
+	QCTool( QCToolContext & context ):
+		m_context( context ),
+		m_number_of_snps_processed( 0 )
 	{
 	}
 
-	void process() {
+	void begin_processing_snps(
+		std::size_t number_of_samples,
+		std::size_t number_of_snps
+	) {
+		m_number_of_samples = number_of_samples ;
+		m_number_of_snps = number_of_snps ;
+		m_number_of_snps_processed = 0 ;
+		m_timer.restart() ;
+		m_context.logger() << "Processing SNPs...\n" ;
+	}
+
+	void processed_snp(
+		genfile::SNPIdentifyingData const& id_data,
+		genfile::SingleSNPGenotypeProbabilities const& genotypes
+	) {
 		try {
-			unsafe_process() ;
+			unsafe_call_processed_snp( id_data, genotypes ) ;
 		}
 		catch( StatisticNotFoundException const& e ) {
 			std::cerr << "!! ERROR: " << e << ".\n" ;
@@ -71,61 +86,49 @@ public:
 		}
 		catch( GenAndSampleFileMismatchException const e ) {
 			std::cerr << "!! ERROR: " << e.what() << ":\n"
-				<< "I think the SNP identified as "
-				<< e.data()
-				<< " has the wrong number of samples.\n"
-				<< "  (" << e.actual_number_of_samples() << " instead of " << e.expected_number_of_samples() << ").\n" ; 
+				<< "There is a mismatch in sample counts between the GEN and sample files.\n"
+				<< "  (" << e.actual_number_of_samples() << " in the GEN files versus " << e.expected_number_of_samples() << " in the sample files).\n" ; 
+			throw HaltProgramWithReturnCode( -1 ) ;
+		}
+	}
+
+	void end_processing_snps() {
+		assert( m_number_of_snps == m_number_of_snps_processed ) ;
+		m_context.logger() << "\nProcessed " << m_number_of_snps << " SNPs in "
+			<< std::fixed << std::setprecision(1) << m_timer.elapsed() << " seconds.\n" ;
+
+		if( m_context.snp_filter().number_of_subconditions() > 0 ) {
+			m_context.logger() << "(" << m_context.fltrd_in_snp_data_sink().number_of_snps_written() << " of " << m_number_of_snps << " SNPs passed the filter.)\n" ;
+		}
+
+		try {
+			process_sample_rows() ;
+			construct_plots() ;
+		}
+		catch( StatisticNotFoundException const& e ) {
+			std::cerr << "!! ERROR: " << e << ".\n" ;
+			std::cerr << "Note: required statistics must be added using -statistics.\n" ;
 			throw HaltProgramWithReturnCode( -1 ) ;
 		}
 	}
 
 private:
+	QCToolContext& m_context ;
+	std::size_t m_number_of_samples ;
+	std::size_t m_number_of_snps ;
+	std::size_t m_number_of_snps_processed ;
+	std::vector< GenotypeProportions > m_per_column_amounts ;
+	Timer m_timer ;
 
-	void unsafe_process() {
-		process_gen_rows() ;
-		process_sample_rows() ;
-		construct_plots() ;
-	}
-
-	void process_gen_rows() {
-		m_context.logger() << "Processing SNPs...\n" ;
-		Timer timer ;
-
-		InternalStorageGenRow row ;
-		std::size_t number_of_snps_processed = 0 ;
-		for(
-			row.set_number_of_samples( m_context.snp_data_source().number_of_samples() ) ;
-			row.read_from_source( m_context.snp_data_source() ) ;
-			row.set_number_of_samples( m_context.snp_data_source().number_of_samples() )
-		) {
-			preprocess_gen_row( row ) ;
-			process_gen_row( row, ++number_of_snps_processed ) ;
-			accumulate_per_column_amounts( row, m_per_column_amounts ) ;
-			m_context.print_progress_if_necessary() ;
-		}
-		m_context.logger() << "\n" ;
-		assert( m_context.snp_data_source().number_of_snps_read() == m_context.snp_data_source().total_number_of_snps() ) ;
-		m_context.logger() << "Processed " << m_context.snp_data_source().total_number_of_snps() << " SNPs in "
-			<< std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
-		if( m_context.snp_filter().number_of_subconditions() > 0 ) {
-			m_context.logger() << "(" << m_context.fltrd_in_snp_data_sink().number_of_snps_written() << " of " << m_context.snp_data_source().total_number_of_snps() << " SNPs passed the filter.)\n" ;
-		}
-	}
-	
-	void preprocess_gen_row( InternalStorageGenRow& row ) const {
-		check_gen_row( row ) ;
-		row.filter_out_samples_with_indices( m_context.indices_of_filtered_out_samples() ) ;
-	}
-	
-	void check_gen_row( GenRow& row ) const {
-		check_gen_row_has_correct_number_of_samples( row ) ;
-	}
-
-	void check_gen_row_has_correct_number_of_samples( GenRow& row ) const {
-		if( row.number_of_samples() != m_context.sample_rows().size() ) {
-			throw GenAndSampleFileMismatchException( row, row.number_of_samples(), m_context.sample_rows().size() ) ;
-		}
-	}
+	void unsafe_call_processed_snp(
+		genfile::SNPIdentifyingData const& id_data,
+		genfile::SingleSNPGenotypeProbabilities const& genotypes
+	) {
+		InternalStorageGenRow row( id_data, genotypes ) ;
+		process_gen_row( row, ++m_number_of_snps_processed ) ;
+		accumulate_per_column_amounts( row, m_per_column_amounts ) ;
+		m_context.print_progress_if_necessary() ;
+	}		
 
 	void process_gen_row( GenRow const& row, std::size_t row_number ) {
 		m_context.snp_statistics().process( row ) ;
@@ -191,7 +194,7 @@ private:
 
 		for( std::size_t i = 0 ; i < m_per_column_amounts.size(); ++i ) {
 			SampleRow& sample_row = m_context.sample_rows()[i] ;
-			m_context.sample_statistics().process( sample_row, m_per_column_amounts[i], m_context.snp_data_source().total_number_of_snps() ) ;
+			m_context.sample_statistics().process( sample_row, m_per_column_amounts[i], m_number_of_snps ) ;
 			output_sample_stats( i + 1, m_context.sample_statistics() ) ;
 			
 			m_context.sample_statistics().add_to_sample_row( sample_row, "missing" ) ;
@@ -199,9 +202,9 @@ private:
 			m_context.fltrd_in_sample_sink() << sample_row ;
 		}
 
-		m_context.logger() << "Processed " << m_context.snp_data_source().number_of_samples() << " samples in " << std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
+		m_context.logger() << "Processed " << m_number_of_samples << " samples in " << std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
 		if( m_context.sample_filter().number_of_subconditions() > 0 ) {
-			m_context.logger() << "(" << m_context.sample_rows().size() << " of " << m_context.snp_data_source().number_of_samples() << " samples passed the filter.)\n" ;
+			m_context.logger() << "(" << m_context.sample_rows().size() << " of " << m_number_of_samples << " samples passed the filter.)\n" ;
 		}
 		m_context.logger() << "\n" ;
 	}
@@ -253,10 +256,6 @@ private:
 		// not implemented.
 	}
 
-private:
-	QCToolContext& m_context ;
-
-	std::vector< GenotypeProportions > m_per_column_amounts ;
 } ;
 
 #endif
