@@ -56,7 +56,7 @@
 #include "SampleIDSink.hpp"
 #include "QCToolContext.hpp"
 #include "QCTool.hpp"
-
+#include "Relatotron.hpp"
 
 namespace globals {
 	std::string const program_name = "qctool" ;
@@ -1252,14 +1252,13 @@ private:
 	std::vector< std::string > m_errors ;
 } ;
 
-
 int main( int argc, char** argv ) {
 	OptionProcessor options ;
     try {
 		QCToolCmdLineContext context( argc, argv ) ;
-		QCTool qctool( context ) ;
+		QCTool qctool_basic( context ) ;
 		genfile::SimpleSNPDataSourceProcessor processor ;
-		processor.add_callback( qctool ) ;
+		processor.add_callback( qctool_basic ) ;
 		processor.process( context.snp_data_source() ) ;
     }
 	catch( HaltProgramWithReturnCode const& e ) {
