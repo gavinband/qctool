@@ -32,6 +32,7 @@ double AlleleProportionStatistic::calculate_value( GenotypeAssayStatistics const
 			result = statistics.get_mean_allele_proportions().proportion_of_B() ;
 			break ;
 	}
+	return result ;
 }
 
 double HeterozygosityStatistic::calculate_value( GenotypeAssayStatistics const& statistics ) const {
