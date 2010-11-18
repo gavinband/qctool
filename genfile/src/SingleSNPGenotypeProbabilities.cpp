@@ -31,7 +31,9 @@ namespace genfile {
 	}
 
 	void SingleSNPGenotypeProbabilities::check_invariant( std::size_t i, double AA, double AB, double BB ) {
-		if( AA + AB + BB > 1.0001 ) {
+		// BGen format is only accurate to 4 decimal places.  The sum of three numbers rounded to 4d.p is
+		// only accurate to 3 d.p.  So we had better only check 3dp of accuracy here.
+		if( AA + AB + BB > 1.001 ) {
 			std::cerr << "AA: " << AA << " AB:" << AB << " BB:" << BB << " sum:" << ( AA + AB + BB ) << ".\n" ;
 			throw BadArgumentError( "SingleSNPGenotypeProbabilities::check_invariant()", "sum of probabilities (individual " + string_utils::to_string( i ) + ") greater than 1" ) ;
 		}
@@ -52,6 +54,10 @@ namespace genfile {
 		m_probabilities = other.m_probabilities ;
 		m_number_of_samples = other.m_number_of_samples ;
 		return *this ;
+	}
+
+	std::size_t SingleSNPGenotypeProbabilities::get_memory_usage_in_bytes() const {
+		return sizeof( SingleSNPGenotypeProbabilities ) + m_probabilities.capacity() * sizeof( double ) ;
 	}
 
 	// Set all the probabilities.

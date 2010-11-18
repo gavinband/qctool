@@ -27,7 +27,14 @@ namespace genfile {
 		std::size_t get_number_of_samples() const {
 			return m_number_of_samples ;
 		}
+		// Return the number of samples we have genotypes for.
+		std::size_t size() const {
+			return m_number_of_samples ;
+		}
 
+		// Return the number of bytes used
+		std::size_t get_memory_usage_in_bytes() const ;
+		
 		// Resize to give storage for the given number of samples.
 		// This has the same semantics as vector resize, i.e. shortenings will lose data,
 		// largenings will keep data in the existing sample.
