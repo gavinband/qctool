@@ -17,7 +17,7 @@ double MissingDataProportionStatistic::calculate_value( GenotypeAssayStatistics 
 AlleleProportionStatistic::AlleleProportionStatistic( Choice choice ): m_choice( choice ) {}
 
 double AlleleProportionStatistic::calculate_value( GenotypeAssayStatistics const& statistics ) const {
-	double result ;
+	double result = std::numeric_limits< double >::quiet_NaN() ;
 	switch( m_choice ) {
 		case minor_allele:
 			result = statistics.get_mean_allele_proportions().minor_allele_proportion() ;
