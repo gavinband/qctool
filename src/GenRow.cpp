@@ -33,6 +33,15 @@ GenRowIdentifyingData& GenRowIdentifyingData::operator=( GenRowIdentifyingData c
 	return *this ;
 }
 
+GenRowIdentifyingData::GenRowIdentifyingData( genfile::SNPIdentifyingData const& id_data ):
+	m_SNPID( id_data.get_SNPID() ),
+	m_RSID( id_data.get_rsid() ),
+	m_chromosome( id_data.get_position().chromosome() ),
+	m_SNP_position( id_data.get_position().position() ),
+	m_1st_allele( id_data.get_first_allele() ),
+	m_2nd_allele( id_data.get_second_allele() )
+{}
+
 bool GenRowIdentifyingData::operator==( GenRowIdentifyingData const& right ) const {
 	return (
 		( m_SNPID == right.m_SNPID )
@@ -45,6 +54,10 @@ bool GenRowIdentifyingData::operator==( GenRowIdentifyingData const& right ) con
 }
 
 GenRow::GenRow() {}
+
+GenRow::GenRow( genfile::SNPIdentifyingData const& id_data ):
+	GenRowIdentifyingData( id_data )
+{}
 
 GenRow::GenRow( GenRow const& other ):
  	GenRowIdentifyingData( other )
@@ -113,6 +126,17 @@ bool GenRow::check_if_equal( GenRow const& left, GenRow const& right, double eps
 
 InternalStorageGenRow::InternalStorageGenRow()
 {}
+
+InternalStorageGenRow::InternalStorageGenRow( genfile::SNPIdentifyingData const& id_data, genfile::SingleSNPGenotypeProbabilities const& genotypes ):
+	GenRow( id_data ),
+	m_genotype_proportions( genotypes.get_number_of_samples() )
+{
+	for( std::size_t i = 0; i < m_genotype_proportions.size(); ++i ) {
+		m_genotype_proportions[i].AA() = genotypes.AA(i) ;
+		m_genotype_proportions[i].AB() = genotypes.AB(i) ;
+		m_genotype_proportions[i].BB() = genotypes.BB(i) ;
+	}
+}
 
 InternalStorageGenRow::InternalStorageGenRow( GenRow const& other ):
 	GenRow( other ),

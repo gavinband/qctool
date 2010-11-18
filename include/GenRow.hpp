@@ -7,6 +7,8 @@
 #include "GenotypeProportions.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSink.hpp"
+#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/SingleSNPGenotypeProbabilities.hpp"
 
 class GenRowIdentifyingData
 {
@@ -16,6 +18,7 @@ public:
 	GenRowIdentifyingData() ;
 	GenRowIdentifyingData( GenRowIdentifyingData const& other ) ;
 	GenRowIdentifyingData& operator=( GenRowIdentifyingData const& other ) ;
+	GenRowIdentifyingData( genfile::SNPIdentifyingData const& id_data ) ;
 	
 	std::string SNPID() const { return m_SNPID ; } 
 	std::string RSID() const { return m_RSID ; }
@@ -55,6 +58,7 @@ class GenRow: public GenRowIdentifyingData
 	public:
 		virtual ~GenRow() {} ;
 		GenRow() ;
+		GenRow( genfile::SNPIdentifyingData const& id_data ) ;
 		GenRow( GenRow const& other ) ;
 		GenRow& operator=( GenRow const& other ) ;
 		
@@ -109,6 +113,7 @@ class InternalStorageGenRow: public GenRow
 {
 public:
 	InternalStorageGenRow() ;
+	InternalStorageGenRow( genfile::SNPIdentifyingData const& id_data, genfile::SingleSNPGenotypeProbabilities const& genotypes ) ;
 	InternalStorageGenRow( GenRow const& other ) ;
 	InternalStorageGenRow& operator=( GenRow const& other ) ;
 	

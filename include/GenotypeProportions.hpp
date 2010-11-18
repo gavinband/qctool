@@ -4,6 +4,8 @@
 #include <vector>
 #include <iostream>
 
+#include "genfile/SingleSNPGenotypeProbabilities.hpp"
+
 /* Example usage:
 GenotypeProportions acc( 0.0, 0.0, 0.0 ) ;
 
