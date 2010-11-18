@@ -30,7 +30,8 @@ namespace genfile {
 		
 		SNPDataSource const& get_parent_source() const ;
 		SNPDataSource const& get_base_source() const ;
-
+		
+		std::string get_summary( std::string const& prefix, std::size_t width ) const ;
 	public:
 		struct SampleIndexOutOfRangeError: public SNPDataError
 		{

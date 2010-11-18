@@ -6,9 +6,9 @@
 #include <vector>
 #include "../config.hpp"
 #include <boost/function.hpp>
-#include "snp_data_utils.hpp"
-#include "wildcard.hpp"
-#include "GenomePosition.hpp"
+#include "genfile/snp_data_utils.hpp"
+#include "genfile/wildcard.hpp"
+#include "genfile/GenomePosition.hpp"
 
 namespace genfile {
 	struct SNPDataSourceError: public SNPDataError { char const* what() const throw() { return "SNPDataSourceError" ; } } ;
@@ -175,6 +175,8 @@ namespace genfile {
 		virtual SNPDataSource const& get_base_source() const {
 			return *this ;
 		}
+		
+		virtual std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 
 	protected:
 

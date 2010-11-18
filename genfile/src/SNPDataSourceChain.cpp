@@ -1,4 +1,6 @@
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 #include <string>
 #include "../config.hpp"
 #if HAVE_BOOST_FUNCTION
@@ -121,6 +123,22 @@ namespace genfile {
 		}
 		return result ;
 	}
+	
+	std::string SNPDataSourceChain::get_summary( std::string const& prefix, std::size_t width ) const {
+		std::ostringstream ostr ;
+		for( std::size_t i = 0; i < m_sources.size(); ++i ) {
+			ostr
+				<< prefix << std::setw( width ) << "" << " ("
+				<< std::setw(6) << number_of_snps_in_source( i )
+				<< " snps)  "
+				<< "\"" << m_sources[i]->get_source_spec()
+				<< "\"\n" ;
+		}
+		ostr << prefix << std::setw( width ) << "" << " (total " << total_number_of_snps() << " snps in " << m_sources.size() << " sources).\n" ;
+		ostr << prefix << std::setw( width ) << "Number of samples:" << " " << number_of_samples() << "\n" ;
+		return ostr.str() ;
+	}
+	
 
 	void SNPDataSourceChain::reset_to_start_impl() {
 		for( std::size_t i = 0; i < m_sources.size(); ++i ) {

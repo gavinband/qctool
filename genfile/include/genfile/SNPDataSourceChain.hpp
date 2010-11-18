@@ -42,6 +42,7 @@ namespace genfile {
 		SNPDataSource const& get_source( std::size_t source_index ) const ;
 		operator bool() const ;
 		std::string get_source_spec() const ;
+		std::string get_summary( std::string const& prefix, std::size_t fill ) const ;
 
 	protected:
 

@@ -1,3 +1,6 @@
+#include <iostream>
+#include <iomanip>
+#include <sstream>
 #include <set>
 #include <boost/bind.hpp>
 #include "genfile/SNPDataSource.hpp"
@@ -54,6 +57,13 @@ namespace genfile {
 
 	SNPDataSource const& SampleFilteringSNPDataSource::get_base_source() const {
 		return m_source->get_base_source() ;
+	}
+
+	std::string SampleFilteringSNPDataSource::get_summary( std::string const& prefix, std::size_t width ) const {
+		std::ostringstream ostr ;
+		ostr << m_source->get_summary( prefix, width ) ;
+		ostr << prefix << std::setw( width ) << "Number of samples (post-filter):" << " " << number_of_samples() << "\n" ;
+		return ostr.str() ;
 	}
 
 	SampleFilteringSNPDataSource::operator bool() const {

@@ -1,5 +1,7 @@
 #include <iostream>
+#include <iomanip>
 #include <string>
+#include <sstream>
 
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSource.hpp"
@@ -220,6 +222,14 @@ namespace genfile {
 		return *this ;
 	}
 
+	std::string SNPDataSource::get_summary( std::string const& prefix, std::size_t width ) const {
+		std::ostringstream ostr ;
+		ostr << prefix << std::setw( width ) << "Spec: " << get_source_spec() << "\n" ;
+		ostr << prefix << std::setw( width ) << "Number of samples: " <<  number_of_samples() << "\n" ;
+		ostr << prefix << std::setw( width ) << "Number of SNPs: " <<  number_of_samples() << "\n" ;
+		return ostr.str() ;
+	}	
+
 	void IdentifyingDataCachingSNPDataSource::get_snp_identifying_data_impl( 
 		IntegerSetter const& set_number_of_samples,
 		StringSetter const& set_SNPID,
@@ -249,5 +259,6 @@ namespace genfile {
 		set_allele1( m_cached_allele1 ) ;
 		set_allele2( m_cached_allele2 ) ;
 	}
+	
 }
 
