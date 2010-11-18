@@ -1,13 +1,13 @@
 import os.path
 import glob
-import UnitTest
+#import UnitTest
 import Options
 
 srcdir="."
 APPNAME = "gen-tools"
 VERSION = "1.2"
 
-subdirs = [ 'genfile', 'statfile', 'string_utils' ]
+subdirs = [ 'genfile', 'statfile', 'string_utils', 'uicontext' ]
 
 def set_options( opt ):
 	opt.tool_options( 'compiler_cxx' )

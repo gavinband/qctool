@@ -1,6 +1,6 @@
 import os.path
 import glob
-import UnitTest
+#import UnitTest
 
 def configure( conf ):
 	pass
