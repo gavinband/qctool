@@ -27,6 +27,13 @@ namespace appcontext {
 		ProgressContextProxy& operator=( ProgressContextProxy const& other ) ;
 		~ProgressContextProxy() ;
 
+		void operator()(
+			std::size_t const count,
+			std::size_t const total_count
+		) const {
+			notify_progress( count, total_count ) ;
+		}
+
 		void notify_progress(
 			std::size_t const count,
 			std::size_t const total_count

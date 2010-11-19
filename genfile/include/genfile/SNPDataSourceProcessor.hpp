@@ -1,6 +1,7 @@
 #ifndef GENFILE_SNP_DATA_SOURCE_PROCESSOR_HPP
 #define GENFILE_SNP_DATA_SOURCE_PROCESSOR_HPP
 
+#include <boost/function.hpp>
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
@@ -11,6 +12,10 @@ namespace genfile {
 		// This class reads all of the SNPs in a SNPDataSource one by one,
 		// and feeds the data out to callback objects.
 	public:
+		
+		typedef boost::function< void ( std::size_t, std::size_t ) > ProgressCallback ;
+		
+		
 		struct Callback {
 			virtual ~Callback() ;
 			virtual void begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) = 0 ;
@@ -20,7 +25,7 @@ namespace genfile {
 		
 		virtual ~SNPDataSourceProcessor() ;
 		virtual void add_callback( Callback& callback ) ;
-		virtual void process( genfile::SNPDataSource& source ) = 0 ;
+		virtual void process( genfile::SNPDataSource& source, ProgressCallback = ProgressCallback() ) = 0 ;
 
 	protected:
 		virtual void call_begin_processing_snps( std::size_t const& number_of_samples, std::size_t const& number_of_snps ) const ;
@@ -35,7 +40,7 @@ namespace genfile {
 		// This class visits each SNP in the source one at a time.
 	{
 	public:
-		virtual void process( genfile::SNPDataSource& source ) ;		
+		virtual void process( genfile::SNPDataSource& source, ProgressCallback = ProgressCallback() ) ;		
 	} ;
 }
 

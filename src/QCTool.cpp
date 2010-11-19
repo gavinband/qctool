@@ -45,7 +45,6 @@ void QCTool::begin_processing_snps(
 	m_number_of_snps = number_of_snps ;
 	m_number_of_snps_processed = 0 ;
 	m_timer.restart() ;
-	m_ui_context.logger() << "Processing SNPs...\n" ;
 }
 
 void QCTool::processed_snp(
@@ -74,9 +73,6 @@ void QCTool::processed_snp(
 
 void QCTool::end_processing_snps() {
 	assert( m_number_of_snps == m_number_of_snps_processed ) ;
-	m_ui_context.logger() << "\nProcessed " << m_number_of_snps << " SNPs in "
-		<< std::fixed << std::setprecision(1) << m_timer.elapsed() << " seconds.\n" ;
-
 	if( m_context.snp_filter().number_of_subconditions() > 0 ) {
 		m_ui_context.logger() << "(" << m_context.fltrd_in_snp_data_sink().number_of_snps_written() << " of " << m_number_of_snps << " SNPs passed the filter.)\n" ;
 	}
@@ -99,7 +95,6 @@ void QCTool::unsafe_call_processed_snp(
 	InternalStorageGenRow row( id_data, genotypes ) ;
 	process_gen_row( row, ++m_number_of_snps_processed ) ;
 	accumulate_per_column_amounts( row, m_per_column_amounts ) ;
-	m_context.print_progress_if_necessary() ;
 }		
 
 void QCTool::process_gen_row( GenRow const& row, std::size_t row_number ) {
@@ -158,7 +153,6 @@ void QCTool::accumulate_per_column_amounts( GenRow& row, std::vector< GenotypePr
 }
 
 void QCTool::process_sample_rows() {
-	m_ui_context.logger() << "Processing samples...\n" ;
 	Timer timer ;
 
 	apply_sample_filter() ;
@@ -174,7 +168,6 @@ void QCTool::process_sample_rows() {
 		m_context.fltrd_in_sample_sink() << sample_row ;
 	}
 
-	m_ui_context.logger() << "Processed " << m_number_of_samples << " samples in " << std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
 	if( m_context.sample_filter().number_of_subconditions() > 0 ) {
 		m_ui_context.logger() << "(" << m_context.sample_rows().size() << " of " << m_number_of_samples << " samples passed the filter.)\n" ;
 	}

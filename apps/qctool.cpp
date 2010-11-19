@@ -277,8 +277,6 @@ struct QCToolOptionMangler {
 	
 private:
 	
-	appcontext::OptionProcessor const& m_options ;
-	
 	void process_filenames() {
 		get_snp_related_filenames() ;
 		get_sample_related_filenames() ;
@@ -444,7 +442,8 @@ private:
 		return result ;
 	}
 
-private:	
+private:
+	appcontext::OptionProcessor const& m_options ;
 	std::string m_input_sample_filename ;
 	std::string m_output_sample_filename ;
 	std::string m_output_sample_excl_list_filename ; 
@@ -466,7 +465,6 @@ struct QCToolCmdLineContext: public QCToolContext
 	{
 		try {
 			timestamp() ;
-			write_start_banner() ;
 			setup() ;
 			timestamp() ;
 		}
@@ -495,7 +493,6 @@ struct QCToolCmdLineContext: public QCToolContext
 	
 	~QCToolCmdLineContext() {
 		write_postamble() ;
-		write_end_banner() ;
 	}
 	
 	SNPDataSource& snp_data_source() const {
@@ -556,15 +553,6 @@ struct QCToolCmdLineContext: public QCToolContext
 
 	std::vector< std::size_t >& snp_filter_failure_counts() { return m_snp_filter_failure_counts ; }
 	std::vector< std::size_t >& sample_filter_failure_counts() { return m_sample_filter_failure_counts ; }
-
-	void write_start_banner() {
-		m_ui_context.logger() << "\nWelcome to qctool\n"
-		 	<< "(C) 2009 University of Oxford\n\n";
-	}
-
-	void write_end_banner() {
-		m_ui_context.logger() << "\nThank you for using qctool.\n" ;
-	}
 
 	void write_preamble() {
 		m_ui_context.logger() << std::string( 72, '=' ) << "\n\n" ;
@@ -1206,7 +1194,7 @@ private:
 	Timer m_timer ;
 	double m_last_timestamp ;
 	appcontext::OptionProcessor const& m_options ;
-	QCToolOptionMangler const& m_mangled_options ;
+	QCToolOptionMangler const m_mangled_options ;
 	appcontext::UIContext& m_ui_context ;
 
 	std::auto_ptr< genfile::SNPDataSource > m_snp_data_source ;
@@ -1268,7 +1256,10 @@ private:
 		) ;
 		genfile::SimpleSNPDataSourceProcessor processor ;
 		processor.add_callback( qctool_basic ) ;
-		processor.process( context.snp_data_source() ) ;
+		
+		UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Processing SNPs" ) ;
+		
+		processor.process( context.snp_data_source(), progress_context ) ;
 	}
 } ;
 

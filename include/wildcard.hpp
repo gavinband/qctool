@@ -14,6 +14,11 @@ namespace wildcard {
 	struct FilenameMatch {
 		FilenameMatch( std::string const& filename = "", std::string const& match = "" ) : m_filename( filename ), m_match( match ) {}
 		FilenameMatch( FilenameMatch const& other ): m_filename (other.m_filename), m_match( other.m_match ) {}
+		FilenameMatch& operator=( FilenameMatch const& other ) {
+			m_filename = other.m_filename ;
+			m_match = other.m_match ;
+			return *this ;
+		}
 		std::string const& filename() const { return m_filename ; }
 		std::string const& match() const { return m_match ; }
 		private:
