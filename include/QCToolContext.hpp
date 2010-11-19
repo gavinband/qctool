@@ -15,7 +15,6 @@
 #include "RowCondition.hpp"
 #include "SimpleFileObjectSource.hpp"
 #include "SimpleFileObjectSink.hpp"
-#include "OstreamTee.hpp"
 #include "statfile/StatSink.hpp"
 
 struct QCToolContext
@@ -41,7 +40,6 @@ struct QCToolContext
 	virtual std::vector< SampleRow >& sample_rows() = 0 ;
 	virtual std::vector< std::size_t > const& indices_of_filtered_out_samples() const = 0 ;
 	virtual void print_progress_if_necessary() = 0 ;
-	virtual OstreamTee& logger() = 0 ;
 } ;
 
 #endif

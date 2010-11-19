@@ -7,7 +7,7 @@ srcdir="."
 APPNAME = "gen-tools"
 VERSION = "1.2"
 
-subdirs = [ 'genfile', 'statfile', 'string_utils', 'uicontext' ]
+subdirs = [ 'genfile', 'statfile', 'string_utils', 'appcontext' ]
 
 def set_options( opt ):
 	opt.tool_options( 'compiler_cxx' )
@@ -122,30 +122,20 @@ def build( bld ):
 
 	bld.new_task_gen(
 		features = 'cxx cstaticlib',
-		target = 'gen-tools-optionprocessor',
-		source = [  'src/OptionProcessor.cpp',
-		 			'src/OptionDefinition.cpp'
-		],
-		includes='./include',
-		uselib_local = 'gen-tools-exception string_utils'
-	)
-
-	bld.new_task_gen(
-		features = 'cxx cstaticlib',
 		target = 'gen-tools-lib',
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include ./genfile/include',
-		uselib_local = 'string_utils statfile',
+		uselib_local = 'string_utils statfile appcontext',
 		uselib = 'BOOST BOOST_IOSTREAMS ZLIB BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'
 	)
 
 	#---------------------
 	# programs
 	#---------------------
-	create_app( bld, name='qctool', uselib_local = 'gen-tools-optionprocessor gen-tools-lib gen-tools-exception genfile statfile string_utils' )
-	create_app( bld, name='gen-convert', uselib_local = 'gen-tools-optionprocessor gen-tools-exception gen-tools-lib genfile string_utils' )
-	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-optionprocessor gen-tools-exception gen-tools-lib genfile string_utils' )
-	create_app( bld, name='gen-grep', uselib_local = 'gen-tools-optionprocessor gen-tools-exception gen-tools-lib genfile string_utils' )
+	create_app( bld, name='qctool', uselib_local = 'gen-tools-lib gen-tools-exception appcontext genfile statfile string_utils' )
+	create_app( bld, name='gen-convert', uselib_local = 'gen-tools-exception gen-tools-lib genfile string_utils' )
+	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-exception gen-tools-lib genfile string_utils' )
+	create_app( bld, name='gen-grep', uselib_local = 'gen-tools-exception gen-tools-lib genfile string_utils' )
 
 	#---------------------
 	# benchmarks
@@ -197,7 +187,7 @@ def create_test( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'test/' + name + '.cpp' ],
-		uselib_local = 'gen-tools-optionprocessor gen-tools-lib string_utils gen-tools-exception genfile',
+		uselib_local = 'gen-tools-lib string_utils gen-tools-exception genfile',
 		includes='./include ./genfile/include',
 		unit_test=1,
 		install_path=None
@@ -208,7 +198,7 @@ def create_benchmark( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'benchmarks/' + name + '.cpp' ],
-		uselib_local = 'gen-tools-optionprocessor gen-tools-lib string_utils gen-tools-exception genfile',
+		uselib_local = 'gen-tools-lib string_utils gen-tools-exception genfile',
 		includes='./include ./genfile/include',
 		install_path=None
 	)

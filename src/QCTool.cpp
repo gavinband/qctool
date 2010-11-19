@@ -10,6 +10,8 @@
 #include <iomanip>
 #include "genfile/SNPDataSourceProcessor.hpp"
 
+#include "appcontext/ProgramFlow.hpp"
+
 #include "Timer.hpp"
 #include "GenRow.hpp"
 #include "SampleRow.hpp"
@@ -22,12 +24,15 @@
 #include "SimpleFileObjectSource.hpp"
 #include "SimpleFileObjectSink.hpp"
 #include "OstreamTee.hpp"
-#include "ProgramFlow.hpp"
 #include "QCTool.hpp"
 #include "QCToolContext.hpp"
 
-QCTool::QCTool( QCToolContext & context ):
+QCTool::QCTool(
+	QCToolContext& context,
+	appcontext::UIContext& ui_context
+):
 	m_context( context ),
+	m_ui_context( ui_context ),
 	m_number_of_snps_processed( 0 )
 {
 }
@@ -40,7 +45,7 @@ void QCTool::begin_processing_snps(
 	m_number_of_snps = number_of_snps ;
 	m_number_of_snps_processed = 0 ;
 	m_timer.restart() ;
-	m_context.logger() << "Processing SNPs...\n" ;
+	m_ui_context.logger() << "Processing SNPs...\n" ;
 }
 
 void QCTool::processed_snp(
@@ -53,27 +58,27 @@ void QCTool::processed_snp(
 	catch( StatisticNotFoundException const& e ) {
 		std::cerr << "!! ERROR: " << e << ".\n" ;
 		std::cerr << "Note: required statistics must be added using -statistics.\n" ;
-		throw HaltProgramWithReturnCode( -1 ) ;
+		throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 	}
 	catch( GToolException const& e) {
 		std::cerr << "!! ERROR: " << e << ".\n" ;
-		throw HaltProgramWithReturnCode( -1 ) ;
+		throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 	}
 	catch( GenAndSampleFileMismatchException const e ) {
 		std::cerr << "!! ERROR: " << e.what() << ":\n"
 			<< "There is a mismatch in sample counts between the GEN and sample files.\n"
 			<< "  (" << e.actual_number_of_samples() << " in the GEN files versus " << e.expected_number_of_samples() << " in the sample files).\n" ; 
-		throw HaltProgramWithReturnCode( -1 ) ;
+		throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 	}
 }
 
 void QCTool::end_processing_snps() {
 	assert( m_number_of_snps == m_number_of_snps_processed ) ;
-	m_context.logger() << "\nProcessed " << m_number_of_snps << " SNPs in "
+	m_ui_context.logger() << "\nProcessed " << m_number_of_snps << " SNPs in "
 		<< std::fixed << std::setprecision(1) << m_timer.elapsed() << " seconds.\n" ;
 
 	if( m_context.snp_filter().number_of_subconditions() > 0 ) {
-		m_context.logger() << "(" << m_context.fltrd_in_snp_data_sink().number_of_snps_written() << " of " << m_number_of_snps << " SNPs passed the filter.)\n" ;
+		m_ui_context.logger() << "(" << m_context.fltrd_in_snp_data_sink().number_of_snps_written() << " of " << m_number_of_snps << " SNPs passed the filter.)\n" ;
 	}
 
 	try {
@@ -83,7 +88,7 @@ void QCTool::end_processing_snps() {
 	catch( StatisticNotFoundException const& e ) {
 		std::cerr << "!! ERROR: " << e << ".\n" ;
 		std::cerr << "Note: required statistics must be added using -statistics.\n" ;
-		throw HaltProgramWithReturnCode( -1 ) ;
+		throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 	}
 }
 
@@ -120,7 +125,7 @@ void QCTool::output_gen_row_stats( GenotypeAssayStatistics const& row_statistics
 }
 
 void QCTool::do_snp_filter_diagnostics( GenRowStatistics const& row_statistics, std::size_t const row_index ) {
-	std::ostream& log = m_context.logger()[ "log" ] ;
+	std::ostream& log = m_ui_context.logger()[ "log" ] ;
 	log
 		<< "Filtered out snp #" << row_index << " (" << row_statistics.row().SNPID() << " " << row_statistics.row().RSID() << " " << row_statistics.row().SNP_position() << ")"
 		<< " because it does not satisfy " ;
@@ -153,7 +158,7 @@ void QCTool::accumulate_per_column_amounts( GenRow& row, std::vector< GenotypePr
 }
 
 void QCTool::process_sample_rows() {
-	m_context.logger() << "Processing samples...\n" ;
+	m_ui_context.logger() << "Processing samples...\n" ;
 	Timer timer ;
 
 	apply_sample_filter() ;
@@ -169,11 +174,11 @@ void QCTool::process_sample_rows() {
 		m_context.fltrd_in_sample_sink() << sample_row ;
 	}
 
-	m_context.logger() << "Processed " << m_number_of_samples << " samples in " << std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
+	m_ui_context.logger() << "Processed " << m_number_of_samples << " samples in " << std::fixed << std::setprecision(1) << timer.elapsed() << " seconds.\n" ;
 	if( m_context.sample_filter().number_of_subconditions() > 0 ) {
-		m_context.logger() << "(" << m_context.sample_rows().size() << " of " << m_number_of_samples << " samples passed the filter.)\n" ;
+		m_ui_context.logger() << "(" << m_context.sample_rows().size() << " of " << m_number_of_samples << " samples passed the filter.)\n" ;
 	}
-	m_context.logger() << "\n" ;
+	m_ui_context.logger() << "\n" ;
 }
 
 void QCTool::output_sample_stats( std::size_t index, GenotypeAssayStatistics const& stats ) {
@@ -202,7 +207,7 @@ bool QCTool::sample_row_is_filtered_out( std::size_t const sample_row_index ) {
 }
 
 void QCTool::do_sample_filter_diagnostics( SampleRow const& sample_row, std::size_t const sample_row_index ) {
-	std::ostream& log = m_context.logger()["log"] ;
+	std::ostream& log = m_ui_context.logger()["log"] ;
 	log
 		<< "Filtered out sample row " << sample_row_index << " (" << sample_row.ID1() << " " << sample_row.ID2() << ")"
 		<< " because it does not satisfy " ;

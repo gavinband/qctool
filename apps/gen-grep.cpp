@@ -3,11 +3,13 @@
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/get_set.hpp"
-#include "CmdLineOptionProcessor.hpp"
-#include "ProgramFlow.hpp"
+#include "appcontext/CmdLineOptionProcessor.hpp"
+#include "appcontext/ProgramFlow.hpp"
 #include "PositionRange.hpp"
 #include "wildcard.hpp"
 #include "FileSet.hpp"
+
+using namespace appcontext ;
 
 namespace globals {
 	std::string program_name = "gen-grep" ;

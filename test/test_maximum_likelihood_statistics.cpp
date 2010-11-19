@@ -7,7 +7,7 @@
 #include <map>
 #include "LikelihoodRatioTestStatistic.hpp"
 #include "floating_point_utils.hpp"
-#include "OptionProcessor.hpp"
+#include "appcontext/OptionProcessor.hpp"
 #include "GenotypeAssayStatistics.hpp"
 #include "GenRowStatistics.hpp"
 #include "GenotypeAssayStatisticFactory.hpp"
@@ -70,7 +70,7 @@ void test_maximum_likelihood( std::map< std::string, double > const& data, std::
 
 
 int main( int argc, char** argv ) {
-	OptionProcessor options ;
+	appcontext::OptionProcessor options ;
     try {
 		options[ "--epsilon" ]
 			.set_description( "Epsilon to use when comparing floating point numbers" )

@@ -1,5 +1,5 @@
-#ifndef __GTOOL__FILEUTIL_HPP__
-#define __GTOOL__FILEUTIL_HPP__
+#ifndef QCTOOL_FILEUTIL_HPP__
+#define QCTOOL_FILEUTIL_HPP__
 
 #include <iostream>
 #include <algorithm>

@@ -14,7 +14,7 @@
 #include "SampleRow.hpp"
 #include "AlleleProportions.hpp"
 #include "GToolException.hpp"
-#include "OptionProcessor.hpp"
+#include "appcontext/OptionProcessor.hpp"
 #include "FileUtil.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
@@ -25,6 +25,8 @@
 #include "string_utils/parse_utils.hpp"
 #include "wildcard.hpp"
 #include "InputToOutputFilenameMapper.hpp"
+
+using namespace appcontext ;
 
 namespace globals {
 	std::string const program_name = "gen-convert" ;

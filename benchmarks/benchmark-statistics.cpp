@@ -23,15 +23,18 @@
 #include "GenRow.hpp"
 #include "AlleleProportions.hpp"
 #include "GToolException.hpp"
-#include "OptionProcessor.hpp"
+#include "appcontext/OptionProcessor.hpp"
 #include "FileUtil.hpp"
 #include "GenRowStatistics.hpp"
 #include "SimpleFileObjectSource.hpp"
 #include "GenotypeAssayStatisticFactory.hpp"
 #include "HardyWeinbergExactTestStatistic.hpp"
 #include "string_utils/string_utils.hpp"
+#include "appcontext/appcontext.hpp"
 
-void process_options( OptionProcessor& options, int argc, char** argv ) {
+using namespace appcontext ;
+
+void process_options( appcontext::OptionProcessor& options, int argc, char** argv ) {
     options[ "--g" ]
         .set_description( "Path of gen file to input" )
         .set_is_required()
@@ -100,7 +103,7 @@ void process_gen_rows( ObjectSource< GenRow >& gen_row_source, OptionProcessor c
 			std::cout << "Benchmarking statistic \"" << statistic_specs[i] << "\".\n" ;
 			GenRowStatistics row_statistics ;
 			row_statistics.add_statistic( statistic_specs[i], GenotypeAssayStatisticFactory::create_statistic( statistic_specs[i] )) ;
-			Timer timer ;
+			appcontext::Timer timer ;
 			for( std::size_t n = 0; n < number_of_iterations; ++n ) {
 				for( std::size_t j = 0; j < genrows.size(); ++j ) {
 					row_statistics.process( genrows[j] ) ;
@@ -122,7 +125,7 @@ void process_gen_rows( ObjectSource< GenRow >& gen_row_source, OptionProcessor c
 
 
 int main( int argc, char** argv ) {
-	OptionProcessor options ;
+	appcontext::OptionProcessor options ;
     try {
         process_options( options, argc, argv ) ;
     }

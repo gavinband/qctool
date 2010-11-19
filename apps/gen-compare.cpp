@@ -11,7 +11,7 @@
 #include "SampleRow.hpp"
 #include "AlleleProportions.hpp"
 #include "GToolException.hpp"
-#include "OptionProcessor.hpp"
+#include "appcontext/OptionProcessor.hpp"
 #include "Whitespace.hpp"
 #include "FileUtil.hpp"
 #include "GenRow.hpp"
@@ -23,6 +23,8 @@
 #include "wildcard.hpp"
 #include "string_utils/parse_utils.hpp"
 #include "Timer.hpp"
+
+using namespace appcontext ;
 
 namespace globals {
 	std::string const program_name = "gen-compare" ;

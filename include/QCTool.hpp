@@ -12,6 +12,8 @@
 
 #include "genfile/SNPDataSourceProcessor.hpp"
 
+#include "appcontext/UIContext.hpp"
+
 #include "Timer.hpp"
 #include "GenRow.hpp"
 #include "SampleRow.hpp"
@@ -51,7 +53,10 @@ private:
 struct QCTool: public genfile::SNPDataSourceProcessor::Callback
 {
 public:
-	QCTool( QCToolContext & context ) ;
+	QCTool(
+		QCToolContext & context,
+		appcontext::UIContext& ui_context
+	) ;
 	
 	void begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) ;
 	void processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::SingleSNPGenotypeProbabilities const& genotypes ) ;
@@ -59,6 +64,7 @@ public:
 
 private:
 	QCToolContext& m_context ;
+	appcontext::UIContext& m_ui_context ;
 	std::size_t m_number_of_samples ;
 	std::size_t m_number_of_snps ;
 	std::size_t m_number_of_snps_processed ;

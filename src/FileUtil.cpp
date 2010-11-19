@@ -1,7 +1,6 @@
 #include <iostream>
 #include <string>
 #include <cassert>
-#include "FileUtil.hpp"
 #include "../config.hpp"
 #ifdef HAVE_BOOST_IOSTREAMS
 	#include <boost/iostreams/filtering_stream.hpp>
@@ -17,6 +16,7 @@
 	namespace BFS = boost::filesystem ;
 #endif
 #include "string_utils/parse_utils.hpp"
+#include "FileUtil.hpp"
 
 // Return a stream representing a given input file, optionally with gzip decompression
 INPUT_FILE_PTR
@@ -55,7 +55,7 @@ open_file_for_input( std::string const& filename, int mode_flags ) {
 		throw FileNotOpenedError( filename ) ;
 	}
 #endif
-	
+
 	return INPUT_FILE_PTR( stream_ptr.release() ) ;
 }
 
@@ -181,5 +181,5 @@ void remove( std::string const& filename ) {
 #else
 	assert(0) ;
 #endif
-	
+
 }

@@ -5,7 +5,7 @@
 #include <iomanip>
 #include "gamma.hpp"
 #include "floating_point_utils.hpp"
-#include "OptionProcessor.hpp"
+#include "appcontext/OptionProcessor.hpp"
 
 double naive_log_of_factorial( double x ) {
 	assert( x > 0.0 ) ;
@@ -31,7 +31,7 @@ void test_log_of_factorial( double tolerance ) {
 }
 
 int main( int argc, char** argv ) {
-	OptionProcessor options ;
+	appcontext::OptionProcessor options ;
     try {
 		options[ "--floating_point_tolerance" ]
 			.set_description( "Tolerance to use in floating point comparisons" )

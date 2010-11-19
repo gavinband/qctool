@@ -6,7 +6,7 @@
 #include <string>
 #include <map>
 #include "floating_point_utils.hpp"
-#include "OptionProcessor.hpp"
+#include "appcontext/OptionProcessor.hpp"
 #include "GenotypeAssayStatistics.hpp"
 #include "GenRowStatistics.hpp"
 #include "HardyWeinbergExactTestStatistic.hpp"
@@ -271,7 +271,7 @@ void test_hardy_weinberg_exact_test_implementations( std::string const& data, do
 
 
 int main( int argc, char** argv ) {
-	OptionProcessor options ;
+	appcontext::OptionProcessor options ;
     try {
 		options[ "--epsilon" ]
 			.set_description( "Epsilon to use when comparing floating point numbers" )
