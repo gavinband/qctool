@@ -29,7 +29,7 @@ struct SNPIDSink: public genfile::SNPDataSink
 		GenotypeProbabilityGetter const&,
 		GenotypeProbabilityGetter const&
 	) {
-		stream() << SNPInListCondition::make_key( SNPID, RSID, SNP_position ) << "\n" ;
+		stream() << SNPID << " " << RSID << " " << chromosome << " " << SNP_position << "\n" ;
 	} ;
 	
 private:

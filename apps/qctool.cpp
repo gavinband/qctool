@@ -1159,8 +1159,8 @@ private:
 		if( m_mangled_options.input_sample_filename() == "" && m_sample_filter->number_of_subconditions() != 0 ) {
 			m_errors.push_back( "To filter on samples, please supply an input sample file." ) ;
 		}
-		if( m_options.check_if_option_was_supplied_in_group( "Sample filtering options") && m_mangled_options.output_sample_excl_list_filename() == "" && m_mangled_options.gen_filename_mapper().output_filenames().size() == 0 && m_mangled_options.snp_stats_filename_mapper().output_filenames().size() == 0 ) {
-			m_errors.push_back( "You have specified sample filters, but not an output sample exclusion list, nor any output GEN files, nor any output SNP statistic files." ) ;
+		if( m_options.check_if_option_was_supplied_in_group( "Sample filtering options") && m_mangled_options.output_sample_excl_list_filename() == "" && m_mangled_options.gen_filename_mapper().output_filenames().size() == 0 && m_mangled_options.snp_stats_filename_mapper().output_filenames().size() == 0 && m_mangled_options.m_options.snp_excl_list_filename_mapper().output_filenames().size() == 0 ) {
+			m_errors.push_back( "You have specified sample filters, but not an output sample or SNP exclusion list, nor any output GEN files, nor any output SNP statistic files." ) ;
 		}
 		if( m_snp_filter->number_of_subconditions() > 0 && m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() == 0 && m_mangled_options.gen_filename_mapper().output_filenames().size() == 0 ) {
 			m_errors.push_back( "You have specified SNP filters, but no output SNP exclusion list or output GEN files.\n" ) ;
