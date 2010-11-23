@@ -151,8 +151,6 @@ namespace appcontext {
 			friend std::ostream& operator<<( std::ostream& aStream, OptionProcessor::OptionDefinitions const& option_definitions ) ;
 			friend std::ostream& operator<<( std::ostream& aStream, OptionProcessor const& options ) ;
 
-		protected:
-		
 			std::string const& get_help_option_name() const { return m_help_option_name ; }
 
 		private:

@@ -7,7 +7,7 @@ srcdir="."
 APPNAME = "gen-tools"
 VERSION = "1.2"
 
-subdirs = [ 'genfile', 'statfile', 'string_utils', 'appcontext' ]
+subdirs = [ 'genfile', 'statfile', 'string_utils', 'appcontext', 'fputils' ]
 
 def set_options( opt ):
 	opt.tool_options( 'compiler_cxx' )
@@ -132,7 +132,7 @@ def build( bld ):
 	#---------------------
 	# programs
 	#---------------------
-	create_app( bld, name='qctool', uselib_local = 'gen-tools-lib gen-tools-exception appcontext genfile statfile string_utils' )
+	create_app( bld, name='qctool', uselib_local = 'gen-tools-lib gen-tools-exception appcontext genfile statfile string_utils fputils' )
 	create_app( bld, name='gen-convert', uselib_local = 'gen-tools-exception gen-tools-lib genfile string_utils' )
 	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-exception gen-tools-lib genfile string_utils' )
 	create_app( bld, name='gen-grep', uselib_local = 'gen-tools-exception gen-tools-lib genfile string_utils' )

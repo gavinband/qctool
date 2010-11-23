@@ -7,6 +7,7 @@
 #include "appcontext/ApplicationContext.hpp"
 #include "appcontext/FileUtil.hpp"
 #include "appcontext/null_ostream.hpp"
+#include "appcontext/ProgramFlow.hpp"
 
 namespace appcontext {
 	ApplicationContext::ApplicationContext(
@@ -20,7 +21,55 @@ namespace appcontext {
 		  m_options( options ),
 		  m_ui_context( new appcontext::CmdLineUIContext )
 	{
-		m_options->process( argc, argv ) ;
+		try {
+			get_ui_context().logger().add_stream( "screen", std::cout ) ;
+			m_options->process( argc, argv ) ;
+		}
+		catch( OptionProcessorMutuallyExclusiveOptionsSuppliedException const& e ) {
+			get_ui_context().logger() << "!! Error (" << e.what() << "):\n" ;
+			get_ui_context().logger() << "Options \"" << e.first_option()
+			<< "\" and \"" << e.second_option()
+			<< "\" cannot be supplied at the same time.\n"
+			<< "Please consult the documentation, or use \""
+			<< m_application_name << " " << m_options->get_help_option_name()
+			<< "\" for more information.\n" ;
+			throw HaltProgramWithReturnCode( -1 ) ;
+		}
+		catch( OptionProcessorImpliedOptionNotSuppliedException const& e ) {
+			get_ui_context().logger() << "!! Error (" << e.what() << "):\n" ;
+			get_ui_context().logger() << "When using option \"" << e.first_option()
+			<< "\", option \"" << e.second_option()
+			<< "\" must also be supplied.\n"
+			<< "Please consult the documentation, or use \""
+			<< m_application_name << " " << m_options->get_help_option_name()
+			<< "\" for more information.\n" ;
+			throw HaltProgramWithReturnCode( -1 ) ;
+		}
+		catch ( appcontext::OptionValueInvalidException const& e ) {
+			get_ui_context().logger() << "\nError: " << e.what() << "."
+			 	<< "  (Note: " << e.option() << " takes " << e.values().size() << " values.)\n";
+			throw HaltProgramWithReturnCode( -1 ) ;
+		}
+		catch( OptionProcessingException const& e ) {
+			get_ui_context().logger() << "!! Error (" << e.what() << "): " << e.message() << ".\n" ;
+			throw HaltProgramWithReturnCode( 0 );
+		}
+		catch( OptionProcessorHelpRequestedException const& ) {
+			get_ui_context().logger() << "Usage: "
+			<< m_application_name << " <options>\n"
+			<< "\nOPTIONS:\n"
+			<< *(m_options)
+			<< "\n" ;
+			throw HaltProgramWithReturnCode( 0 );
+		}
+		catch( std::exception const& exception ) {
+			get_ui_context().logger() << "!! Error: " << exception.what() << ".\n";
+			get_ui_context().logger() << "Please use \""
+			<< m_application_name << " " << m_options->get_help_option_name()
+			<< "\" for more information.\n" ;
+			throw HaltProgramWithReturnCode( -1 ) ;
+		}
+		
 		construct_logger( log_option ) ;
 		write_start_banner() ;
 	}
@@ -30,7 +79,6 @@ namespace appcontext {
 	}
 
 	void ApplicationContext::construct_logger( std::string const& log_option ) {
-		get_ui_context().logger().add_stream( "screen", std::cout ) ;
 		std::string filename ;
 		if( options().check_if_option_is_defined( log_option ) && options().check_if_option_has_value( log_option )) {
 			std::string const& filename = options().get_value< std::string > ( log_option ) ;

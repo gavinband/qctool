@@ -216,6 +216,11 @@ public:
 								"also be used here to specify numbered output files corresponding to the input files." )
 			.set_takes_single_value() ;
 
+		// Relatedness check options
+		options.declare_group( "Relatedness options" ) ;
+		options[ "-relatedness" ]
+			.set_description( "Compute relatedness matrices pairwise for all samples.  (This can take a long time)." ) ;
+
 		// Other options
 		options.declare_group( "Other options" ) ;
 		options [ "-force" ] 
@@ -478,15 +483,6 @@ struct QCToolCmdLineContext: public QCToolContext
 		} 
 		catch ( FileError const& e ) {
 			m_ui_context.logger() << "\nFile handling exception: " << e.what() << ": relating to file \"" << e.filename() << "\".\n" ;
-			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
-		}
-		catch ( appcontext::OptionValueInvalidException const& e ) {
-			m_ui_context.logger() << "\nError: " << e.what() << "."
-			 	<< "  (Note: " << e.option() << " takes " << e.values().size() << " values.)\n";
-			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
-		}
-		catch ( appcontext::OptionProcessingException const& e ) {
-			m_ui_context.logger() << "\nError: " << e.what() << ": relating to option \"" << e.option() << "\".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 	}
@@ -1257,9 +1253,19 @@ private:
 		genfile::SimpleSNPDataSourceProcessor processor ;
 		processor.add_callback( qctool_basic ) ;
 		
+
+		std::auto_ptr< Relatotron > relatotron ;
+		if( options().check_if_option_was_supplied( "-relatedness" )) {
+			relatotron.reset( new Relatotron( get_ui_context() )) ;
+			processor.add_callback( *relatotron ) ;
+		}
+
 		UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Processing SNPs" ) ;
-		
 		processor.process( context.snp_data_source(), progress_context ) ;
+		
+		if( relatotron.get() ) {
+			relatotron->process() ;
+		}
 	}
 } ;
 
