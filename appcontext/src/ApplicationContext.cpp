@@ -109,4 +109,9 @@ namespace appcontext {
 		m_ui_context->logger() << "\n"
 			<< "Thank you for using " << m_application_name << ".\n" ;
 	}
+	
+	std::string const& ApplicationContext::application_name() const {
+		return m_application_name ;
+	}
+	
 }

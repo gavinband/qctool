@@ -27,6 +27,7 @@ namespace string_utils {
 		assert( bits.size() == 2 ) ;
 		result.first = to_repr< T >( bits[0] ) ;
 		result.second = to_repr< T >( bits[1] ) ;
+		assert( result.first <= result.second ) ;
 		return result ;
 	}
 }

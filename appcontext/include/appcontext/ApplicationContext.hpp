@@ -26,6 +26,8 @@ namespace appcontext {
 		OptionProcessor& options() const ;
 		virtual UIContext& get_ui_context() const ;
 
+		std::string const& application_name() const ;
+
 	private:
 		void write_start_banner() ;
 		void write_end_banner() ;

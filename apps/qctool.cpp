@@ -38,6 +38,7 @@
 #include "genfile/SNPDataSinkChain.hpp"
 #include "genfile/TrivialSNPDataSink.hpp"
 #include "genfile/CategoricalCohortIndividualSource.hpp"
+#include "genfile/SampleFilteringCohortIndividualSource.hpp"
 #include "genfile/SampleFilteringSNPDataSource.hpp"
 
 #include "appcontext/appcontext.hpp"
@@ -216,10 +217,8 @@ public:
 								"also be used here to specify numbered output files corresponding to the input files." )
 			.set_takes_single_value() ;
 
-		// Relatedness check options
-		options.declare_group( "Relatedness options" ) ;
-		options[ "-relatedness" ]
-			.set_description( "Compute relatedness matrices pairwise for all samples.  (This can take a long time)." ) ;
+		Relatotron::declare_options( options ) ;
+		options.option_implies_option( "-relatedness", "-s" ) ; // insist on sample file if doing relatedness.
 
 		// Other options
 		options.declare_group( "Other options" ) ;
@@ -469,9 +468,7 @@ struct QCToolCmdLineContext: public QCToolContext
 		m_ui_context( ui_context )
 	{
 		try {
-			timestamp() ;
 			setup() ;
-			timestamp() ;
 		}
 		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
 			m_ui_context.logger() << "\nError: The GEN files specified did not all have the same sample size.\n" ;
@@ -612,9 +609,9 @@ struct QCToolCmdLineContext: public QCToolContext
 		m_ui_context.logger() << "\n" ;
 
 		m_ui_context.logger() << std::setw(30) << "# of samples in input files:"
-			<< "  " << m_snp_data_source->number_of_samples() << ".\n" ;
+			<< "  " << m_snp_data_source->get_base_source().number_of_samples() << ".\n" ;
 		m_ui_context.logger() << std::setw(30) << "# of samples after filtering:"
-			<< "  " << m_snp_data_source->number_of_samples() - m_indices_of_filtered_out_samples.size()
+			<< "  " << m_snp_data_source->number_of_samples()
 			<< " (" << m_indices_of_filtered_out_samples.size()
 			<< " filtered out).\n" ;
 
@@ -762,24 +759,7 @@ struct QCToolCmdLineContext: public QCToolContext
 		m_ui_context.logger() << std::string( 72, '=' ) << "\n\n" ;
 	}
 
-	void print_progress_if_necessary() {
-		double time_now = m_timer.elapsed() ;
-		if( (time_now - m_last_timestamp > 1.0) || ( snp_data_source().number_of_snps_read() == snp_data_source().total_number_of_snps()) ) {
-			print_progress() ;
-			timestamp() ;
-		}
-	}
-
-	void print_progress() {
-		m_ui_context.logger()[ "screen" ]
-			<< "\r"
-			<< get_progress_bar( 30, static_cast< double >( m_snp_data_source->number_of_snps_read() ) / m_snp_data_source->total_number_of_snps() )
-			<< " (" << m_snp_data_source->number_of_snps_read() << " / " << m_snp_data_source->total_number_of_snps()
-			<< ", " << std::fixed << std::setprecision(1) << m_timer.elapsed() << "s)"
-			<< std::flush ;
-	}
-	
-	void timestamp() { m_last_timestamp = m_timer.elapsed() ; }
+	genfile::CohortIndividualSource const& get_cohort_individual_source() const { assert( m_cohort_individual_source.get() ) ; return *m_cohort_individual_source ; }
 
 private:
 	
@@ -792,7 +772,7 @@ private:
 			
 			m_snp_data_source = open_snp_data_source() ;
 			
-			load_sample_rows( m_snp_data_source->number_of_samples() ) ;
+			m_cohort_individual_source = load_sample_rows( m_snp_data_source->number_of_samples() ) ;
 			
 			check_for_errors_and_warnings() ;
 			
@@ -803,6 +783,15 @@ private:
 						std::set< std::size_t >( m_indices_of_filtered_out_samples.begin(), m_indices_of_filtered_out_samples.end() )
 					)
 				) ;
+				
+				if( m_cohort_individual_source.get() ) {
+					m_cohort_individual_source.reset(
+						genfile::SampleFilteringCohortIndividualSource::create(
+							m_cohort_individual_source,
+							std::set< std::size_t >( m_indices_of_filtered_out_samples.begin(), m_indices_of_filtered_out_samples.end() )
+						).release()
+					) ;
+				}
 			}
 			
 			write_preamble() ;
@@ -1069,10 +1058,10 @@ private:
 		m_ignore_warnings = m_options.check_if_option_was_supplied( "-force" ) ;
 	}
 	
-	void load_sample_rows( std::size_t const expected_number_of_samples ) {
+	genfile::CohortIndividualSource::UniquePtr load_sample_rows( std::size_t const expected_number_of_samples ) {
 		
 		try {
-			unsafe_load_sample_rows( expected_number_of_samples ) ;
+			return unsafe_load_sample_rows( expected_number_of_samples ) ;
 		}
 		catch( ConditionValueNotFoundException const& ) {
 			m_ui_context.logger() << "\n\n!! ERROR: The input sample file must contain entries for all values used to filter on.\n"
@@ -1090,12 +1079,13 @@ private:
 		}
 	}
 	
-	void unsafe_load_sample_rows( std::size_t const expected_number_of_samples ) {
+	genfile::CohortIndividualSource::UniquePtr unsafe_load_sample_rows( std::size_t const expected_number_of_samples ) {
+		genfile::CohortIndividualSource::UniquePtr sample_source ;
 		if( m_mangled_options.input_sample_filename() != "" ) {
-			genfile::CategoricalCohortIndividualSource sample_source( m_mangled_options.input_sample_filename() ) ;
+			sample_source.reset( new genfile::CategoricalCohortIndividualSource( m_mangled_options.input_sample_filename() )) ;
 			SampleRow sample_row ;
-			for( std::size_t i = 0; i < sample_source.get_number_of_individuals(); ++i ) {
-				sample_row.read_ith_sample_from_source( i, sample_source ) ;
+			for( std::size_t i = 0; i < sample_source->get_number_of_individuals(); ++i ) {
+				sample_row.read_ith_sample_from_source( i, *sample_source ) ;
 				m_sample_rows.push_back( sample_row ) ;
 				if( !m_sample_filter->check_if_satisfied( sample_row )) {
 					m_indices_of_filtered_out_samples.push_back( m_sample_rows.size() - 1 ) ;
@@ -1108,6 +1098,7 @@ private:
 		else {
 			m_sample_rows.resize( expected_number_of_samples ) ;
 		}
+		return sample_source ;
 	}
 	
 	void check_for_errors_and_warnings() {
@@ -1187,8 +1178,6 @@ private:
 	}
 
 private:
-	Timer m_timer ;
-	double m_last_timestamp ;
 	appcontext::OptionProcessor const& m_options ;
 	QCToolOptionMangler const m_mangled_options ;
 	appcontext::UIContext& m_ui_context ;
@@ -1224,6 +1213,8 @@ private:
 	
 	std::vector< std::string > m_warnings ;
 	std::vector< std::string > m_errors ;
+	
+	genfile::CohortIndividualSource::UniquePtr m_cohort_individual_source ;
 } ;
 
 struct QCToolApplication: public appcontext::ApplicationContext
@@ -1256,12 +1247,14 @@ private:
 
 		std::auto_ptr< Relatotron > relatotron ;
 		if( options().check_if_option_was_supplied( "-relatedness" )) {
-			relatotron.reset( new Relatotron( get_ui_context() )) ;
+			relatotron.reset( new Relatotron( options(), context.get_cohort_individual_source(), get_ui_context() )) ;
 			processor.add_callback( *relatotron ) ;
 		}
 
-		UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Processing SNPs" ) ;
-		processor.process( context.snp_data_source(), progress_context ) ;
+		{
+			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Processing SNPs" ) ;
+			processor.process( context.snp_data_source(), progress_context ) ;
+		}
 		
 		if( relatotron.get() ) {
 			relatotron->process() ;

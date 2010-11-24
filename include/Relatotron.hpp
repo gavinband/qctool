@@ -3,26 +3,54 @@
 
 
 #include <limits>
+#include <numeric>
 
 #include <boost/numeric/ublas/matrix.hpp>
+#include <boost/numeric/ublas/io.hpp>
 
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
 #include "genfile/SNPDataSourceProcessor.hpp"
+#include "genfile/CohortIndividualSource.hpp"
 
 #include "fputils/floating_point_utils.hpp"
 
+#include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
+#include "appcontext/FileUtil.hpp"
+#include "appcontext/get_current_time_as_string.hpp"
+
+#include "string_utils/parse_utils.hpp"
 
 #include "OstreamTee.hpp"
 
 struct Relatotron: public genfile::SNPDataSourceProcessor::Callback
 {
+	static void declare_options( appcontext::OptionProcessor& options ) {
+		options.declare_group( "Relatedness options" ) ;
+		options[ "-relatedness" ]
+			.set_description( "Compute relatedness matrices pairwise for all samples.  (This can take a long time)." )
+			.set_takes_single_value() ;
+		options[ "-relatedness-samples" ]
+			.set_description( "Choose ranges of samples to compute relatedness for."
+				" This option should be in the form a-b,c-d where a-b and c-d are the sample ranges between which"
+				" to compute relatedness." )
+			.set_takes_single_value() ;
+		options[ "-relatedness-epsilon" ]
+			.set_description( "Set the probability of genotyping error at a SNP."
+				" This is used to make the model tolerant to genotyping errors." )
+			.set_takes_single_value()
+			.set_default_value( 1/1000.0 ) ;
+	}
+	
 	typedef genfile::SingleSNPGenotypeProbabilities SingleSNPGenotypeProbabilities ;
 	typedef genfile::SNPIdentifyingData SNPIdentifyingData ;
 
-	Relatotron( appcontext::UIContext& ui_context ):
-	 	m_ui_context( ui_context )
+	Relatotron( appcontext::OptionProcessor const& options, genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ):
+		m_options( options ),
+		m_samples( samples ),
+	 	m_ui_context( ui_context ),
+		m_probability_of_genotyping_error_per_snp( options.get_value< double >( "-relatedness-epsilon" ))
 	{} ;
 	
 	void begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) {
@@ -43,7 +71,11 @@ struct Relatotron: public genfile::SNPDataSourceProcessor::Callback
 		m_snps.push_back( id_data ) ;
 		m_genotypes.push_back( genotypes ) ;
 		m_allele_frequencies.push_back( compute_maximum_likelihood_allele_frequency( genotypes )) ;
+		assert( m_allele_frequencies.back() >= 0.0 ) ;
+		assert( m_allele_frequencies.back() <= 1.0 ) ;
 		m_genotype_per_ibd_matrices.push_back( compute_genotype_probability_matrix( m_allele_frequencies.back() )) ;
+		m_ui_context.logger() << "Genotype per IBD matrix (SNP " << m_genotype_per_ibd_matrices.size() - 1 << " is: [\n" ;
+		print_matrix( m_genotype_per_ibd_matrices.back() ) ;
 	}
 
 	void end_processing_snps() {
@@ -63,6 +95,13 @@ struct Relatotron: public genfile::SNPDataSourceProcessor::Callback
 			<< " SNPs, memory usage is "
 			<< std::fixed << std::setprecision( 1 ) << ( estimated_memory_usage / 1000000.0 )
 			<< "Mb.\n" ;
+			
+		m_ui_context.logger()
+			<< "Relatotron: first few allele frequencies are:\n" ;
+		for( std::size_t i = 0; i < std::min( std::size_t( 10 ), m_allele_frequencies.size() ); ++i ) {
+			m_ui_context.logger() << std::setprecision( 5 ) << std::setw( 8 ) << m_allele_frequencies[i] << " " ;
+		}
+		m_ui_context.logger() << "\n" ;
 	}
 	
 	void process() {
@@ -72,30 +111,66 @@ struct Relatotron: public genfile::SNPDataSourceProcessor::Callback
 		unrelated(2) = 0.0 ;
 
 		Vector duplicate( 3 ) ;
-		unrelated(0) = 0.0 ;
-		unrelated(1) = 0.0 ;
-		unrelated(2) = 1.0 ;
+		duplicate(0) = 0.0 ;
+		duplicate(1) = 0.0 ;
+		duplicate(2) = 1.0 ;
 		
-		Matrix bf_matrix( m_number_of_samples, m_number_of_samples ) ; // inefficient; this could be upper-triangular.
-		{
+		// Store the results in a plain matrix.  This is inefficient storage-wise.
+		Matrix bf_matrix = ConstantMatrix( m_number_of_samples, m_number_of_samples, -std::numeric_limits< double >::infinity() ) ; 
+		
+		if( m_options.check_if_option_was_supplied( "-relatedness-samples" )) {
+			std::string const range_spec = m_options.get_value< std::string >( "-relatedness-samples" ) ;
+			std::vector< std::string > range_specs = string_utils::split_and_strip( range_spec, "," ) ;
+			if( !range_specs.size() == 2 ) {
+				throw genfile::BadArgumentError( "Relatotron::process()", "value \"" + range_spec + "\" for option -relatedness-samples") ;
+			}
+			std::vector< std::pair< std::size_t, std::size_t > > ranges ;
+			ranges.push_back( string_utils::parse_range< std::size_t >( range_specs[0] )) ;
+			ranges.push_back( string_utils::parse_range< std::size_t >( range_specs[1] )) ;
+			
+			if( ranges.front().first > m_number_of_samples || ranges.front().second > m_number_of_samples ) {
+				throw genfile::BadArgumentError( "Relatotron::process()", "first range spec exceeds number of samples (" + string_utils::to_string( m_number_of_samples ) + ")") ;
+			}
+			if( ranges.back().first > m_number_of_samples || ranges.back().second > m_number_of_samples ) {
+				throw genfile::BadArgumentError( "Relatotron::process()", "second range spec exceeds number of samples (" + string_utils::to_string( m_number_of_samples ) + ")") ;
+			}
+			
+			appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Calculating relatedness Bayes factors" ) ;
+			compute_pairwise_relatedness_log_bayes_factors(
+				unrelated,
+				duplicate,
+				&bf_matrix,
+				ranges.front(),
+				ranges.back(),
+				progress_context
+			) ;
+		}
+		else {
 			appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Calculating relatedness Bayes factors" ) ;
 			compute_pairwise_relatedness_log_bayes_factors( unrelated, duplicate, &bf_matrix, progress_context ) ;
 		}
 		
 		m_ui_context.logger() << "Top left of relatedness matrix: [\n" ;
-		for( std::size_t i = 0; i < 10; ++i ) {
-			for( std::size_t j = 0; j < 10; ++j ) {
-				m_ui_context.logger() << std::setprecision( 2 ) << std::setw(5) << bf_matrix(i,j)  << " " ;
+		for( std::size_t i = 0; i < std::min( std::size_t( 10 ), m_number_of_samples ); ++i ) {
+			for( std::size_t j = 0; j < std::min( std::size_t( 10 ), m_number_of_samples ); ++j ) {
+				m_ui_context.logger() << std::setprecision( 2 ) << std::setw(8) << std::exp( bf_matrix(i,j) )  << " " ;
 			}
 			m_ui_context.logger()  << "\n" ;
 		}
 		m_ui_context.logger() << "]\n" ;
+		
+		if( m_options.check_if_option_was_supplied( "-relatedness" )) {
+			write_relatedness_matrix( bf_matrix, m_options.get_value< std::string >( "-relatedness" ) ) ;
+		}
 	}
 	
 private:
 	
+	appcontext::OptionProcessor const& m_options ;
+	genfile::CohortIndividualSource const& m_samples ;
 	appcontext::UIContext& m_ui_context ;
 	std::size_t m_number_of_samples ;
+	double const m_probability_of_genotyping_error_per_snp ;
 	
 	std::vector< SNPIdentifyingData > m_snps ;
 	std::vector< SingleSNPGenotypeProbabilities > m_genotypes ;
@@ -103,12 +178,26 @@ private:
 	
 	typedef boost::numeric::ublas::vector< double > Vector ;
 	typedef boost::numeric::ublas::matrix< double > Matrix ;
+	typedef boost::numeric::ublas::zero_matrix< double > ZeroMatrix ;
+	typedef boost::numeric::ublas::scalar_matrix< double > ConstantMatrix ;
 
 	enum GenotypePair { e00 = 0, e01 = 1, e02 = 2, e10 = 3, e11 = 4, e12 = 5, e20 = 6, e21 = 7, e22 = 8 } ;
 	
 	std::vector< Matrix > m_genotype_per_ibd_matrices ;
 	
 private:
+	
+	void print_matrix( Matrix const& matrix, std::size_t const max_rows = 100, std::size_t const max_cols = 10 ) const {
+		m_ui_context.logger() << "[\n" ;
+		for( std::size_t i = 0; i < std::min( max_rows, matrix.size1() ); ++i ) {
+			for( std::size_t j = 0; j < std::min( max_cols, matrix.size2() ); ++j ) {
+				m_ui_context.logger() << std::setprecision( 3 ) << std::setw(8) << matrix( i, j ) << " " ;
+			}
+			m_ui_context.logger() << "\n" ;
+		}
+		m_ui_context.logger() << "].\n" ;
+	}
+
 	double compute_maximum_likelihood_allele_frequency( SingleSNPGenotypeProbabilities const& genotypes ) const {
 		// Under a model in which alleles are drawn randomly from a population of haplotypes,
 		// with given allele frequency, return the maximum likelihood allele frequency.
@@ -121,7 +210,7 @@ private:
 		}
 
 		if( data_count > 0.0 ) {
-			return allele_count / 2 * data_count ;
+			return allele_count / (2.0 * data_count ) ;
 		}
 		else {
 			return std::numeric_limits< double >::quiet_NaN() ;
@@ -192,11 +281,34 @@ private:
 		Matrix* result,
 		appcontext::UIContext::ProgressContext& progress_context
 	) const {
+		return compute_pairwise_relatedness_log_bayes_factors(
+			null_ibd_probabilities,
+			alternative_ibd_probabilities,
+			result,
+			std::make_pair( std::size_t( 0 ), m_number_of_samples - 1 ),
+			std::make_pair( std::size_t( 0 ), m_number_of_samples - 1 ),
+			progress_context
+		) ;
+	}
+
+	void compute_pairwise_relatedness_log_bayes_factors(
+		Vector const& null_ibd_probabilities,
+		Vector const& alternative_ibd_probabilities,
+		Matrix* result,
+		std::pair< std::size_t, std::size_t > const& sample1_range,
+		std::pair< std::size_t, std::size_t > const& sample2_range,
+		appcontext::UIContext::ProgressContext& progress_context
+	) const {
 		assert( result->size1() == m_number_of_samples ) ;
 		assert( result->size2() == m_number_of_samples ) ;
+		assert( sample1_range.first < m_number_of_samples ) ;
+		assert( sample1_range.second < m_number_of_samples ) ;
+		assert( sample2_range.first < m_number_of_samples ) ;
+		assert( sample2_range.second < m_number_of_samples ) ;
+		std::cerr << sample1_range.first << ":" << sample1_range.second << ", " << sample2_range.first << ":" << sample2_range.second << ".\n" ;
 		progress_context.notify_progress( 0, m_number_of_samples ) ;
-		for( std::size_t sample1 = 0; sample1 < m_number_of_samples; ++sample1 ) {
-			for( std::size_t sample2 = sample1; sample2 < m_number_of_samples; ++sample2 ) {
+		for( std::size_t sample1 = sample1_range.first; sample1 <= sample1_range.second; ++sample1 ) {
+			for( std::size_t sample2 = std::max( sample2_range.first, sample1 ); sample2 <= sample2_range.second; ++sample2 ) {
 				(*result)( sample1, sample2 ) = compute_pairwise_relatedness_log_probability(
 					sample1,
 					sample2,
@@ -219,16 +331,24 @@ private:
 	) const {
 		std::vector< double > per_snp_log_probabilities( m_snps.size() ) ;
 		for( std::size_t snp_i = 0; snp_i < m_snps.size(); ++snp_i ) {
+			// To be tolerant to genotyping error, with probability m_genotype_error_probability,
+			// we ignore the SNP's data.  Otherwise we use it.
 			per_snp_log_probabilities[ snp_i ] = std::log(
-				compute_pairwise_relatedness_coefficients(
+				(1 - m_probability_of_genotyping_error_per_snp ) * compute_pairwise_relatedness_coefficients(
 					snp_i,
 					sample1,
 					sample2,
 					ibd_state_probabilities
 				)
+				+
+				m_probability_of_genotyping_error_per_snp
 			) ;
+			//std::cerr << "probability ( " << ibd_state_probabilities << " ) for " << sample1 << ", " << sample2 << ", snp " << snp_i << " is " << std::exp( per_snp_log_probabilities[ snp_i ] ) << ".\n" ;
+
 		}
-		return fputils::log_sum_exp( per_snp_log_probabilities ) ;
+		double result = std::accumulate( per_snp_log_probabilities.begin(), per_snp_log_probabilities.end(), 0.0 ) ;
+		//std::cerr << "model " << ibd_state_probabilities << ": likelihood for " << sample1 << ", " << sample2 << " is " << std::exp( result ) << ".\n" ;
+		return result ;
 	}
 	
 	double compute_pairwise_relatedness_coefficients(
@@ -262,23 +382,35 @@ private:
 		double const theta // allele frequency
 	) const {
 		Matrix result( 1, 9 ) ;
-		for( std::size_t g1 = 0; g1 < 2; ++g1 ) {
-			for( std::size_t g2 = 0; g2 < 2; ++g2 ) {
-				result( 0, (3*g1)+g2 ) = compute_probability_of_genotype_given_observations(
-					snp_i,
-					sample1,
-					g1,
-					theta
-				) *
-				compute_probability_of_genotype_given_observations(
-					snp_i,
-					sample2,
-					g2,
-					theta
-				) ;
-			}
-		}
 
+		for( std::size_t g1 = 0; g1 < 3; ++g1 ) {
+			double p1 = compute_probability_of_genotype_given_observations(
+				snp_i,
+				sample1,
+				g1,
+				theta
+			) ;
+			result( 0, (3*g1) ) = p1 ;
+			result( 0, (3*g1) + 1 ) = p1 ;
+			result( 0, (3*g1) + 2 ) = p1 ;
+		}
+		
+		for( std::size_t g2 = 0; g2 < 3; ++g2 ) {
+			double p2 = compute_probability_of_genotype_given_observations(
+				snp_i,
+				sample2,
+				g2,
+				theta
+			) ;
+			result( 0, g2 ) *= p2 ;
+			result( 0, 3+g2 ) *= p2 ;
+			result( 0, 6+g2 ) *= p2 ;
+		}
+		/*
+		std::cerr << "compute_probability_of_pair_of_genotypes_given_observations( "
+			<< snp_i << ", " << sample1 << ", " << sample2 << ", " << theta << " ): result is:\n" ;
+		std::cerr << result << "\n" ;
+		*/	
 		return result ;
 	}
 
@@ -305,7 +437,38 @@ private:
 			default:
 				assert(0) ;
 		}
+		
 		return result ;
+	}
+	
+	void write_relatedness_matrix( Matrix const& bf_matrix, std::string const& filename ) const {
+		appcontext::OUTPUT_FILE_PTR file = open_file_for_output( filename ) ;
+		(*file) << "# Written by Relatotron, " << appcontext::get_current_time_as_string() << "\n" ;
+		if( m_genotypes.size() > 0 ) {
+			assert( bf_matrix.size1() == m_genotypes[0].size() ) ;
+			assert( bf_matrix.size2() == m_genotypes[0].size() ) ;
+			assert( bf_matrix.size2() == m_samples.get_number_of_individuals() ) ;
+			
+			(*file) << "id," ;
+			for( std::size_t i = 0; i < m_samples.get_number_of_individuals(); ++i ) {
+				if( i > 0 ) {
+					(*file) << "," ;
+				}
+				(*file) << m_samples.get_entry( i, "id_1" ).as< std::string >() ;
+			}
+			(*file) << "\n" ;
+
+			for( std::size_t i = 0; i < bf_matrix.size1(); ++i ) {
+				(*file) << m_samples.get_entry( i, "id_1" ).as< std::string >() << "," ;
+				for( std::size_t j = 0; j < bf_matrix.size2(); ++j ) {
+					if( j > 0 ) {
+						(*file) << "," ;
+					}
+					(*file) << bf_matrix( i, j ) ;
+				}
+				(*file) << "\n" ;
+			}
+		}
 	}
 	
 } ;
