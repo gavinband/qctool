@@ -99,9 +99,12 @@ namespace appcontext {
 			m_ui_context.logger()["screen"]
 				<< get_progress_bar( 30, progress )
 				<< " (" << count << "/" << total_count
-				<< "," << m_timer.display()
-				<< "," << std::fixed << std::setprecision(1) << (static_cast< double >( count ) / m_timer.elapsed()) << "/s"
-				<< ")" << std::flush ;
+				<< "," << m_timer.display() ;
+			if( m_timer.elapsed() > 0.0 ) {
+				m_ui_context.logger()["screen"]
+					<< "," << std::fixed << std::setprecision(1) << (static_cast< double >( count ) / m_timer.elapsed()) << "/s" ;
+			}
+			m_ui_context.logger()["screen"] << ")" << std::flush ;
 		}
 	}
 }
