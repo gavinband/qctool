@@ -37,7 +37,7 @@ struct Relatotron: public genfile::SNPDataSourceProcessor::Callback
 				" A single value means a 1-element range; a range of the form a- or -a means all samples up to and including the given one." )
 			.set_takes_single_value()
 			.set_default_value( "0-" ) ;
-		options[ "-relatedness-sample-rows" ]
+		options[ "-relatedness-sample-columns" ]
 			.set_description( "Choose ranges of samples to compute relatedness for."
 				" This option should be a comma-separated list of ranges of the form a-b, meaning use all rows between a and b inclusive."
 				" A single value means a 1-element range; a range of the form a- or -a means all samples up to and including the given one." )
