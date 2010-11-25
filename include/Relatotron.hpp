@@ -322,7 +322,7 @@ private:
 	) const {
 		assert( result->size1() == m_number_of_samples ) ;
 		assert( result->size2() == m_number_of_samples ) ;
-		progress_context.notify_progress( 0, m_number_of_samples ) ;
+		progress_context.notify_progress( 0, sample1_choice.size() ) ;
 		for( std::size_t sample1_i = 0; sample1_i < sample1_choice.size(); ++sample1_i ) {
 			std::size_t const sample1 = sample1_choice[ sample1_i ] ;
 			for( std::size_t sample2_i = 0; sample2_i < sample2_choice.size(); ++sample2_i ) {
