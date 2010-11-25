@@ -71,11 +71,18 @@ struct Relatotron: public genfile::SNPDataSourceProcessor::Callback
 		m_snps.push_back( id_data ) ;
 		m_genotypes.push_back( genotypes ) ;
 		m_allele_frequencies.push_back( compute_maximum_likelihood_allele_frequency( genotypes )) ;
-		assert( m_allele_frequencies.back() >= 0.0 ) ;
-		assert( m_allele_frequencies.back() <= 1.0 ) ;
-		m_genotype_per_ibd_matrices.push_back( compute_genotype_probability_matrix( m_allele_frequencies.back() )) ;
-		m_ui_context.logger() << "Genotype per IBD matrix (SNP " << m_genotype_per_ibd_matrices.size() - 1 << " is: [\n" ;
-		print_matrix( m_genotype_per_ibd_matrices.back() ) ;
+		std::cerr << "Allele frequency snp " << m_allele_frequencies.size() - 1 << " is " << m_allele_frequencies.back() << ".\n" ;
+		if( m_allele_frequencies.back() == m_allele_frequencies.back() ) { // if is not NaN 
+			assert( m_allele_frequencies.back() >= 0.0 ) ;
+			assert( m_allele_frequencies.back() <= 1.0 ) ;
+			m_genotype_per_ibd_matrices.push_back( compute_genotype_probability_matrix( m_allele_frequencies.back() )) ;
+			m_ui_context.logger() << "Genotype per IBD matrix (SNP " << m_genotype_per_ibd_matrices.size() - 1 << " is: [\n" ;
+			print_matrix( m_genotype_per_ibd_matrices.back() ) ;
+		}
+		else {
+			m_genotype_per_ibd_matrices.push_back( Matrix( 0, 0 )) ;
+			m_ui_context.logger() << "Allele frequency at SNP " << m_genotype_per_ibd_matrices.size() - 1 << " was not estimated.\n" ;
+		}
 	}
 
 	void end_processing_snps() {
@@ -331,20 +338,25 @@ private:
 	) const {
 		std::vector< double > per_snp_log_probabilities( m_snps.size() ) ;
 		for( std::size_t snp_i = 0; snp_i < m_snps.size(); ++snp_i ) {
-			// To be tolerant to genotyping error, with probability m_genotype_error_probability,
-			// we ignore the SNP's data.  Otherwise we use it.
-			per_snp_log_probabilities[ snp_i ] = std::log(
-				(1 - m_probability_of_genotyping_error_per_snp ) * compute_pairwise_relatedness_coefficients(
-					snp_i,
-					sample1,
-					sample2,
-					ibd_state_probabilities
-				)
-				+
-				m_probability_of_genotyping_error_per_snp
-			) ;
-			//std::cerr << "probability ( " << ibd_state_probabilities << " ) for " << sample1 << ", " << sample2 << ", snp " << snp_i << " is " << std::exp( per_snp_log_probabilities[ snp_i ] ) << ".\n" ;
-
+			if( m_allele_frequencies[ snp_i ] == m_allele_frequencies[ snp_i ] ) { // if not NaN
+				// To be tolerant to genotyping error, with probability m_genotype_error_probability,
+				// we ignore the SNP's data.  Otherwise we use it.
+				per_snp_log_probabilities[ snp_i ] = std::log(
+					(1 - m_probability_of_genotyping_error_per_snp ) * compute_pairwise_relatedness_coefficients(
+						snp_i,
+						sample1,
+						sample2,
+						ibd_state_probabilities
+					)
+					+
+					m_probability_of_genotyping_error_per_snp
+				) ;
+				//std::cerr << "probability ( " << ibd_state_probabilities << " ) for " << sample1 << ", " << sample2 << ", snp " << snp_i << " is " << std::exp( per_snp_log_probabilities[ snp_i ] ) << ".\n" ;
+			}
+			else {
+				// ignore the snp.
+				per_snp_log_probabilities[ snp_i ] = 0.0 ;
+			}
 		}
 		double result = std::accumulate( per_snp_log_probabilities.begin(), per_snp_log_probabilities.end(), 0.0 ) ;
 		//std::cerr << "model " << ibd_state_probabilities << ": likelihood for " << sample1 << ", " << sample2 << " is " << std::exp( result ) << ".\n" ;
