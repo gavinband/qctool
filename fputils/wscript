@@ -1,0 +1,44 @@
+import os.path
+import glob
+#import UnitTest
+
+def configure( conf ):
+	pass
+
+def create_test( bld, name ):
+	bld(
+		features = 'cxx cprogram',
+		target = name,
+		source = [  'test/' + name + '.cpp' ],
+		uselib_local = 'fputils',
+		includes='./include',
+		unit_test=1,
+		install_path = None
+	)
+
+def create_benchmark( bld, name ):
+	bld(
+		features = 'cxx cprogram',
+		target = name,
+		source = [  'benchmarks/' + name + '.cpp' ],
+		uselib_local = 'fputils',
+		includes='./include',
+		install_path = None
+	)
+
+
+def build( bld ):
+	#---------------------
+	# libs
+	#---------------------
+	bld(
+		features = 'cxx cstaticlib',
+		target = 'fputils',
+		source = bld.glob( 'src/*.cpp' ),
+		includes='./include',
+		uselib = 'BOOST',
+		export_incdirs = './include'
+	)
+	
+	create_test( bld, 'test_log_sum_exp' )
+	create_test( bld, 'test_log_multiply_exp' )
