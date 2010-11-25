@@ -31,11 +31,19 @@ struct Relatotron: public genfile::SNPDataSourceProcessor::Callback
 		options[ "-relatedness" ]
 			.set_description( "Compute relatedness matrices pairwise for all samples.  (This can take a long time)." )
 			.set_takes_single_value() ;
-		options[ "-relatedness-samples" ]
+		options[ "-relatedness-sample-rows" ]
 			.set_description( "Choose ranges of samples to compute relatedness for."
-				" This option should be in the form a-b,c-d where a-b and c-d are the sample ranges between which"
-				" to compute relatedness." )
-			.set_takes_single_value() ;
+				" This option should be a comma-separated list of ranges of the form a-b, meaning use all rows between a and b inclusive."
+				" A single value means a 1-element range; a range of the form a- or -a means all samples up to and including the given one." )
+			.set_takes_single_value()
+			.set_default_value( "0-" ) ;
+		options[ "-relatedness-sample-rows" ]
+			.set_description( "Choose ranges of samples to compute relatedness for."
+				" This option should be a comma-separated list of ranges of the form a-b, meaning use all rows between a and b inclusive."
+				" A single value means a 1-element range; a range of the form a- or -a means all samples up to and including the given one." )
+			.set_takes_single_value()
+			.set_default_value( "0-" ) ;
+
 		options[ "-relatedness-epsilon" ]
 			.set_description( "Set the probability of genotyping error at a SNP."
 				" This is used to make the model tolerant to genotyping errors." )
@@ -125,37 +133,19 @@ struct Relatotron: public genfile::SNPDataSourceProcessor::Callback
 		// Store the results in a plain matrix.  This is inefficient storage-wise.
 		Matrix bf_matrix = ConstantMatrix( m_number_of_samples, m_number_of_samples, -std::numeric_limits< double >::infinity() ) ; 
 		
-		if( m_options.check_if_option_was_supplied( "-relatedness-samples" )) {
-			std::string const range_spec = m_options.get_value< std::string >( "-relatedness-samples" ) ;
-			std::vector< std::string > range_specs = string_utils::split_and_strip( range_spec, "," ) ;
-			if( !range_specs.size() == 2 ) {
-				throw genfile::BadArgumentError( "Relatotron::process()", "value \"" + range_spec + "\" for option -relatedness-samples") ;
-			}
-			std::vector< std::pair< std::size_t, std::size_t > > ranges ;
-			ranges.push_back( string_utils::parse_range< std::size_t >( range_specs[0] )) ;
-			ranges.push_back( string_utils::parse_range< std::size_t >( range_specs[1] )) ;
+		m_row_samples = parse_row_spec( m_options.get_value< std::string >( "-relatedness-sample-rows" )) ;
+		m_column_samples = parse_row_spec( m_options.get_value< std::string >( "-relatedness-sample-columns" )) ;
+
 			
-			if( ranges.front().first > m_number_of_samples || ranges.front().second > m_number_of_samples ) {
-				throw genfile::BadArgumentError( "Relatotron::process()", "first range spec exceeds number of samples (" + string_utils::to_string( m_number_of_samples ) + ")") ;
-			}
-			if( ranges.back().first > m_number_of_samples || ranges.back().second > m_number_of_samples ) {
-				throw genfile::BadArgumentError( "Relatotron::process()", "second range spec exceeds number of samples (" + string_utils::to_string( m_number_of_samples ) + ")") ;
-			}
-			
-			appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Calculating relatedness Bayes factors" ) ;
-			compute_pairwise_relatedness_log_bayes_factors(
-				unrelated,
-				duplicate,
-				&bf_matrix,
-				ranges.front(),
-				ranges.back(),
-				progress_context
-			) ;
-		}
-		else {
-			appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Calculating relatedness Bayes factors" ) ;
-			compute_pairwise_relatedness_log_bayes_factors( unrelated, duplicate, &bf_matrix, progress_context ) ;
-		}
+		appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Calculating relatedness Bayes factors" ) ;
+		compute_pairwise_relatedness_log_bayes_factors(
+			unrelated,
+			duplicate,
+			&bf_matrix,
+			m_row_samples,
+			m_column_samples,
+			progress_context
+		) ;
 		
 		m_ui_context.logger() << "Top left of relatedness matrix: [\n" ;
 		for( std::size_t i = 0; i < std::min( std::size_t( 10 ), m_number_of_samples ); ++i ) {
@@ -167,7 +157,12 @@ struct Relatotron: public genfile::SNPDataSourceProcessor::Callback
 		m_ui_context.logger() << "]\n" ;
 		
 		if( m_options.check_if_option_was_supplied( "-relatedness" )) {
-			write_relatedness_matrix( bf_matrix, m_options.get_value< std::string >( "-relatedness" ) ) ;
+			write_relatedness_matrix(
+				bf_matrix,
+				m_options.get_value< std::string >( "-relatedness" ),
+				m_row_samples,
+				m_column_samples
+			) ;
 		}
 	}
 	
@@ -192,7 +187,42 @@ private:
 	
 	std::vector< Matrix > m_genotype_per_ibd_matrices ;
 	
+	std::vector< std::size_t > m_row_samples ;
+	std::vector< std::size_t > m_column_samples ;
+	
 private:
+	
+	std::vector< std::size_t > parse_row_spec( std::string const& spec ) const {
+		std::set< std::size_t > result ;
+		std::vector< std::string > specs = string_utils::split_and_strip( spec, "," ) ;
+		for( std::size_t i = 0; i < specs.size(); ++i ) {
+			std::vector< std::string > this_spec = string_utils::split_and_strip( specs[i], "-" ) ;
+			std::size_t a = 0 ;
+			std::size_t b = m_number_of_samples - 1 ;
+			if( this_spec.size() == 1 ) {
+				this_spec.push_back( this_spec[0] ) ;
+			}
+			if( this_spec.size() != 2 ) {
+				throw genfile::BadArgumentError( "Relatotron::parse_row_spec()", "spec \"" + specs[i] + "\" is malformed." ) ;
+			}
+			if( this_spec[0].size() > 0 ) {
+				a = string_utils::to_repr< std::size_t > ( this_spec[0] ) ;
+			}
+			if( this_spec[1].size() > 0 ) {
+				b = string_utils::to_repr< std::size_t > ( this_spec[1] ) ;
+			}
+			if( a > b ) {
+				throw genfile::BadArgumentError( "Relatotron::parse_row_spec()", "spec \"" + specs[i] + "\" is not a valid range." ) ;
+			}
+			if( a >= m_number_of_samples || b >= m_number_of_samples ) {
+				throw genfile::BadArgumentError( "Relatotron::parse_row_spec()", "spec \"" + specs[i] + "\" goes past maximum sample id " + string_utils::to_string( m_number_of_samples - 1 ) + "." ) ;
+			}
+			for( std::size_t i = a; i <= b; ++i ) {
+				result.insert( i ) ;
+			}
+		}
+		return std::vector< std::size_t >( result.begin(), result.end() ) ;
+	}
 	
 	void print_matrix( Matrix const& matrix, std::size_t const max_rows = 100, std::size_t const max_cols = 10 ) const {
 		m_ui_context.logger() << "[\n" ;
@@ -286,48 +316,31 @@ private:
 		Vector const& null_ibd_probabilities,
 		Vector const& alternative_ibd_probabilities,
 		Matrix* result,
-		appcontext::UIContext::ProgressContext& progress_context
-	) const {
-		return compute_pairwise_relatedness_log_bayes_factors(
-			null_ibd_probabilities,
-			alternative_ibd_probabilities,
-			result,
-			std::make_pair( std::size_t( 0 ), m_number_of_samples - 1 ),
-			std::make_pair( std::size_t( 0 ), m_number_of_samples - 1 ),
-			progress_context
-		) ;
-	}
-
-	void compute_pairwise_relatedness_log_bayes_factors(
-		Vector const& null_ibd_probabilities,
-		Vector const& alternative_ibd_probabilities,
-		Matrix* result,
-		std::pair< std::size_t, std::size_t > const& sample1_range,
-		std::pair< std::size_t, std::size_t > const& sample2_range,
+		std::vector< std::size_t > const& sample1_choice,
+		std::vector< std::size_t > const& sample2_choice,
 		appcontext::UIContext::ProgressContext& progress_context
 	) const {
 		assert( result->size1() == m_number_of_samples ) ;
 		assert( result->size2() == m_number_of_samples ) ;
-		assert( sample1_range.first < m_number_of_samples ) ;
-		assert( sample1_range.second < m_number_of_samples ) ;
-		assert( sample2_range.first < m_number_of_samples ) ;
-		assert( sample2_range.second < m_number_of_samples ) ;
-		std::cerr << sample1_range.first << ":" << sample1_range.second << ", " << sample2_range.first << ":" << sample2_range.second << ".\n" ;
 		progress_context.notify_progress( 0, m_number_of_samples ) ;
-		for( std::size_t sample1 = sample1_range.first; sample1 <= sample1_range.second; ++sample1 ) {
-			for( std::size_t sample2 = std::max( sample2_range.first, sample1 ); sample2 <= sample2_range.second; ++sample2 ) {
-				(*result)( sample1, sample2 ) = compute_pairwise_relatedness_log_probability(
-					sample1,
-					sample2,
-					alternative_ibd_probabilities
-				)
-				- compute_pairwise_relatedness_log_probability(
-					sample1,
-					sample2,
-					null_ibd_probabilities
-				) ;
+		for( std::size_t sample1_i = 0; sample1_i < sample1_choice.size(); ++sample1_i ) {
+			std::size_t const sample1 = sample1_choice[ sample1_i ] ;
+			for( std::size_t sample2_i = 0; sample2_i < sample2_choice.size(); ++sample2_i ) {
+				std::size_t const sample2 = sample2_choice[ sample2_i ] ;
+				if( sample2 >= sample1 ) {
+					(*result)( sample1, sample2 ) = compute_pairwise_relatedness_log_probability(
+						sample1,
+						sample2,
+						alternative_ibd_probabilities
+					)
+					- compute_pairwise_relatedness_log_probability(
+						sample1,
+						sample2,
+						null_ibd_probabilities
+					) ;
+				}
 			}
-			progress_context.notify_progress( sample1 + 1, m_number_of_samples ) ;
+			progress_context.notify_progress( sample1_i + 1, sample1_choice.size() ) ;
 		}
 	}
 	
@@ -453,7 +466,12 @@ private:
 		return result ;
 	}
 	
-	void write_relatedness_matrix( Matrix const& bf_matrix, std::string const& filename ) const {
+	void write_relatedness_matrix(
+		Matrix const& bf_matrix,
+		std::string const& filename,
+		std::vector< std::size_t > const& row_samples,
+		std::vector< std::size_t > const& column_samples
+	) const {
 		appcontext::OUTPUT_FILE_PTR file = open_file_for_output( filename ) ;
 		(*file) << "# Written by Relatotron, " << appcontext::get_current_time_as_string() << "\n" ;
 		if( m_genotypes.size() > 0 ) {
@@ -462,21 +480,21 @@ private:
 			assert( bf_matrix.size2() == m_samples.get_number_of_individuals() ) ;
 			
 			(*file) << "id," ;
-			for( std::size_t i = 0; i < m_samples.get_number_of_individuals(); ++i ) {
-				if( i > 0 ) {
+			for( std::size_t sample_i = 0; sample_i < column_samples.size(); ++sample_i ) {
+				if( sample_i > 0 ) {
 					(*file) << "," ;
 				}
-				(*file) << m_samples.get_entry( i, "id_1" ).as< std::string >() ;
+				(*file) << m_samples.get_entry( column_samples[sample_i], "id_1" ).as< std::string >() ;
 			}
 			(*file) << "\n" ;
 
-			for( std::size_t i = 0; i < bf_matrix.size1(); ++i ) {
-				(*file) << m_samples.get_entry( i, "id_1" ).as< std::string >() << "," ;
-				for( std::size_t j = 0; j < bf_matrix.size2(); ++j ) {
-					if( j > 0 ) {
+			for( std::size_t sample_i = 0; sample_i < row_samples.size(); ++sample_i ) {
+				(*file) << m_samples.get_entry( row_samples[ sample_i ], "id_1" ).as< std::string >() << "," ;
+				for( std::size_t sample_j = 0; sample_j < column_samples.size(); ++sample_j ) {
+					if( sample_j > 0 ) {
 						(*file) << "," ;
 					}
-					(*file) << bf_matrix( i, j ) ;
+					(*file) << bf_matrix( row_samples[ sample_i ], column_samples[ sample_j ] ) ;
 				}
 				(*file) << "\n" ;
 			}

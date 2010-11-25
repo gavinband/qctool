@@ -775,7 +775,7 @@ private:
 			m_cohort_individual_source = load_sample_rows( m_snp_data_source->number_of_samples() ) ;
 			
 			check_for_errors_and_warnings() ;
-			
+				
 			if( m_indices_of_filtered_out_samples.size() > 0 ) {
 				m_snp_data_source.reset(
 					new genfile::SampleFilteringSNPDataSource(
@@ -792,6 +792,15 @@ private:
 						).release()
 					) ;
 				}
+			}
+			
+			if( m_options.check_if_option_was_supplied( "-snp-excl-list" )) {
+				m_snp_data_source.reset(
+					new genfile::SampleFilteringSNPDataSource(
+						m_snp_data_source,
+						std::set< std::size_t >( m_indices_of_filtered_out_samples.begin(), m_indices_of_filtered_out_samples.end() )
+					)
+				) ;
 			}
 			
 			write_preamble() ;
