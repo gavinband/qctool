@@ -40,6 +40,9 @@
 #include "genfile/CategoricalCohortIndividualSource.hpp"
 #include "genfile/SampleFilteringCohortIndividualSource.hpp"
 #include "genfile/SampleFilteringSNPDataSource.hpp"
+#include "genfile/CommonSNPFilter.hpp"
+#include "genfile/SNPFilteringSNPDataSource.hpp"
+#include "genfile/get_list_of_snps_in_source.hpp"
 
 #include "appcontext/appcontext.hpp"
 
@@ -171,14 +174,26 @@ public:
 						"The argument must be a string, optionally containing a wildcard character ('*')"
 						" which matches any sequence of characters.")
 			.set_takes_single_value() ;
+			
+		options.declare_group( "SNP exclusion options" ) ;
 
-		options[ "-snp-incl-list" ]
-			.set_description( "Filter out SNPs whose SNP ID or RSID does not lie in the given file(s).")
+		options[ "-excl-snpids" ]
+			.set_description( "Exclude all SNPs whose SNPID is in the given file(s) from the analysis.")
 			.set_takes_values() 
 			.set_number_of_values_per_use( 1 )
 			.set_maximum_number_of_repeats( 100 ) ;
-		options[ "-snp-excl-list" ]
-			.set_description( "Filter out SNPs whose SNP ID or RSID lies in the given file(s).")
+		options[ "-excl-rsids" ]
+			.set_description( "Exclude all SNPs whose RSID is in the given file(s) from the analysis.")
+			.set_takes_values() 
+			.set_number_of_values_per_use( 1 )
+			.set_maximum_number_of_repeats( 100 ) ;
+		options[ "-incl-snpids" ]
+			.set_description( "Exclude all SNPs whose SNPID is not in the given file(s) from the analysis.")
+			.set_takes_values() 
+			.set_number_of_values_per_use( 1 )
+			.set_maximum_number_of_repeats( 100 ) ;
+		options[ "-incl-rsids" ]
+			.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.")
 			.set_takes_values() 
 			.set_number_of_values_per_use( 1 )
 			.set_maximum_number_of_repeats( 100 ) ;
@@ -249,8 +264,6 @@ public:
 
 		options.option_implies_option( "-sample-excl-list", "-s" ) ;
 		options.option_implies_option( "-sample-incl-list", "-s" ) ;
-		options.option_implies_option( "-snp-excl-list", "-g" ) ;
-		options.option_implies_option( "-snp-incl-list", "-g" ) ;
 	}
 } ;
 
@@ -473,11 +486,11 @@ struct QCToolCmdLineContext: public QCToolContext
 		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
 			m_ui_context.logger() << "\nError: The GEN files specified did not all have the same sample size.\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
-		} 
+		}
 		catch( genfile::FileNotFoundError const& e ) {
 			m_ui_context.logger() << "\nError: No file matching \"" << e.filespec() << "\" could be found.\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
-		} 
+		}
 		catch ( FileError const& e ) {
 			m_ui_context.logger() << "\nFile handling exception: " << e.what() << ": relating to file \"" << e.filename() << "\".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
@@ -793,15 +806,48 @@ private:
 					) ;
 				}
 			}
-			
-			if( m_options.check_if_option_was_supplied( "-snp-excl-list" )) {
+
+			if( m_options.check_if_option_was_supplied_in_group( "SNP exclusion options" )) {
+				genfile::CommonSNPFilter snp_filter ;
+				
+				if( m_options.check_if_option_was_supplied( "-excl-snpids" )) {
+					snp_filter.exclude_snps_in_file(
+						m_options.get_value< std::string >( "-excl-snpids" ),
+						genfile::CommonSNPFilter::SNPIDs
+					) ;
+				}
+
+				if( m_options.check_if_option_was_supplied( "-excl-rsids" )) {
+					snp_filter.exclude_snps_in_file(
+						m_options.get_value< std::string >( "-excl-rsids" ),
+						genfile::CommonSNPFilter::RSIDs
+					) ;
+				}
+
+				if( m_options.check_if_option_was_supplied( "-incl-snpids" )) {
+					snp_filter.exclude_snps_not_in_file(
+						m_options.get_value< std::string >( "-incl-snpids" ),
+						genfile::CommonSNPFilter::SNPIDs
+					) ;
+				}
+
+				if( m_options.check_if_option_was_supplied( "-incl-rsids" )) {
+					snp_filter.exclude_snps_not_in_file(
+						m_options.get_value< std::string >( "-incl-rsids" ),
+						genfile::CommonSNPFilter::RSIDs
+					) ;
+				}
+
+				std::vector< genfile::SNPIdentifyingData > snps = genfile::get_list_of_snps_in_source( *m_snp_data_source ) ;
+				m_snp_data_source->reset_to_start() ;
 				m_snp_data_source.reset(
-					new genfile::SampleFilteringSNPDataSource(
+					genfile::SNPFilteringSNPDataSource::create(
 						m_snp_data_source,
-						std::set< std::size_t >( m_indices_of_filtered_out_samples.begin(), m_indices_of_filtered_out_samples.end() )
-					)
+						snp_filter.get_indices_of_filtered_in_snps( snps )
+					).release()
 				) ;
 			}
+			
 			
 			write_preamble() ;
 			
@@ -991,12 +1037,6 @@ private:
 			add_two_arg_condition_to_filter< StatisticInInclusiveRange >( *snp_filter, "MAF", m_options.get_values< double >( "-maf" )) ;
 		}
 
-		if( m_options.check_if_option_was_supplied( "-snp-incl-list" ) ) {
-			std::vector< std::string > filenames = m_options.get_values< std::string >( "-snp-incl-list" ) ;
-			std::auto_ptr< RowCondition > snp_incl_condition( new SNPInListCondition( filenames )) ;
-			snp_filter->add_subcondition( snp_incl_condition ) ;
-		}
-
 		if( m_options.check_if_option_was_supplied( "-snpid-filter" ) ) {
 			std::string expression = m_options.get_value< std::string >( "-snpid-filter" ) ;
 			std::auto_ptr< RowCondition > snpid_condition( new SNPIDMatchesCondition( expression )) ;
@@ -1004,13 +1044,6 @@ private:
 			snp_filter->add_subcondition( real_snpid_condition ) ;
 		}
 
-		if( m_options.check_if_option_was_supplied( "-snp-excl-list" ) ) {
-			std::vector< std::string > filenames = m_options.get_values< std::string >( "-snp-excl-list" ) ;
-			std::auto_ptr< RowCondition > snp_incl_condition( new SNPInListCondition( filenames )) ;
-			std::auto_ptr< RowCondition > snp_excl_condition( new NotRowCondition( snp_incl_condition )) ;
-			snp_filter->add_subcondition( snp_excl_condition ) ;
-		}
-		
 		m_snp_filter = snp_filter ;
 		m_snp_filter_failure_counts.resize( m_snp_filter->number_of_subconditions(), 0 ) ;
 		
