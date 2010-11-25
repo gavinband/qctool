@@ -1229,7 +1229,13 @@ public:
 private:
 	
 	void process() {
-		unsafe_process() ;
+		try {
+			unsafe_process() ;
+		}
+		catch( genfile::BadArgumentError const& e ) {
+			get_ui_context().logger() << "!! Error (" << e.what() << "): in argument to function " << e.function() << ": " << e.arguments() << ".\n" ;
+			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+		}
 	}
 	
 	void unsafe_process() {
