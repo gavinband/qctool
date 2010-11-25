@@ -132,10 +132,10 @@ def build( bld ):
 	#---------------------
 	# programs
 	#---------------------
-	create_app( bld, name='qctool', uselib_local = 'gen-tools-lib gen-tools-exception appcontext genfile statfile string_utils fputils' )
-	create_app( bld, name='gen-convert', uselib_local = 'gen-tools-exception gen-tools-lib genfile string_utils' )
-	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-exception gen-tools-lib genfile string_utils' )
-	create_app( bld, name='gen-grep', uselib_local = 'gen-tools-exception gen-tools-lib genfile string_utils' )
+	create_app( bld, name='qctool', uselib_local = 'gen-tools-lib gen-tools-exception appcontext genfile statfile appcontext string_utils fputils' )
+	create_app( bld, name='gen-convert', uselib_local = 'gen-tools-exception gen-tools-lib genfile appcontext string_utils' )
+	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-exception gen-tools-lib genfile appcontext string_utils' )
+	create_app( bld, name='gen-grep', uselib_local = 'gen-tools-exception gen-tools-lib genfile appcontext string_utils' )
 
 	#---------------------
 	# benchmarks
@@ -187,7 +187,7 @@ def create_test( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'test/' + name + '.cpp' ],
-		uselib_local = 'gen-tools-lib string_utils gen-tools-exception genfile',
+		uselib_local = 'gen-tools-lib gen-tools-exception genfile appcontext string_utils',
 		includes='./include ./genfile/include',
 		unit_test=1,
 		install_path=None

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>
 #include <cassert>
+#include <cstdio>
 #include <boost/bind.hpp>
 #include "../config.hpp"
 #if HAVE_BOOST_UNIT_TEST

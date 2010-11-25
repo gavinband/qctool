@@ -10,6 +10,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cassert>
+#include <memory>
 #include "appcontext/OptionDefinition.hpp"
 
 namespace appcontext {

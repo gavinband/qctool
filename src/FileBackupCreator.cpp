@@ -1,5 +1,6 @@
 #include <vector>
 #include <string>
+#include <cstdio>
 #include "FileUtil.hpp"
 #include "FileBackupCreator.hpp"
 #include "string_utils/string_utils.hpp"
