@@ -7,7 +7,7 @@ srcdir="."
 APPNAME = "gen-tools"
 VERSION = "1.2"
 
-subdirs = [ 'genfile', 'statfile', 'string_utils', 'appcontext', 'fputils' ]
+subdirs = [ 'genfile', 'statfile', 'string_utils', 'appcontext', 'fputils', 'worker' ]
 
 def set_options( opt ):
 	opt.tool_options( 'compiler_cxx' )
@@ -51,6 +51,7 @@ def check_for_boost_components( conf ):
 		check_for_boost_lib( conf, 'iostreams', min_version='1.36', uselib="BOOST_IOSTREAMS" )
 		check_for_boost_lib( conf, 'filesystem', min_version='1.36', uselib="BOOST_FILESYSTEM" )
 		check_for_boost_lib( conf, 'system', min_version='1.36', uselib="BOOST_SYSTEM" )
+		check_for_boost_lib( conf, 'thread', min_version='1.36', uselib="BOOST_THREAD" )
 
 def check_for_boost_headers( conf, min_version ):
 	if conf.check_boost( min_version = min_version ):
