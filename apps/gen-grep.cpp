@@ -25,13 +25,13 @@ struct IDDataPrinterOptionProcessor: public CmdLineOptionProcessor
 		options[ "-g" ]
 			.set_description( "Specify the name (or names) of gen files to process." )
 			.set_is_required()
-			.set_takes_values() ;
+			.set_takes_values_per_use() ;
 			
 		options.declare_group( "SNP Selection options" ) ;
 		options[ "-snp-interval" ]
 			.set_description( "Only output SNPs in the given interval" )
-			.set_number_of_values_per_use( 2 )
-			.set_maximum_number_of_repeats( 1 ) ;
+			.set_takes_values_per_use( 2 )
+			.set_maximum_multiplicity( 1 ) ;
 			
 		options[ "-snp-id-file" ]
 			.set_description( "Specify a file containing SNP ids to match" )
