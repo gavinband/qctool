@@ -130,7 +130,8 @@ void Relatotron::end_processing_snps() {
 	m_ui_context.logger() << "\n" ;
 	
 	m_ui_context.logger() << "Relatotron: first few genotype-by-IBD matrices are:\n" ;
-	for( std::size_t i = 0; i < std::max( m_genotype_per_ibd_matrices.size(), std::size_t( 3 )); ++i ) {
+	for( std::size_t i = 0; i < std::min( m_genotype_per_ibd_matrices.size(), std::size_t( 3 )); ++i ) {
+		m_ui_context.logger() << "SNP " << i << " (frequency = " << m_allele_frequencies[i] << "): " ;
 		print_matrix( m_genotype_per_ibd_matrices[i] ) ;
 	}
 	m_ui_context.logger() << "\n" ;
