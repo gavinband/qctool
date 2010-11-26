@@ -98,7 +98,7 @@ public:
 								"matches numbers from 1 to 100.  For example, \"qctool -g myfile_#.gen\" will find all files of "
 								"the form \"myfile_N.gen\", where N can be 1, 002, 099, etc." )
 	        .set_is_required()
-			.set_takes_values_per_use()
+			.set_takes_values_per_use( 1 )
 			.set_maximum_multiplicity(23) ;
 
 	    options[ "-og" ]

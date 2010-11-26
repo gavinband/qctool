@@ -157,7 +157,7 @@ namespace appcontext {
 				}
 			}
 			else {
-				m_option_values[ arg ].push_back( "1" ) ;
+				m_option_values[ arg ] = std::vector< std::string >() ; // empty arguments.
 			}
 			return true ;
 		}
