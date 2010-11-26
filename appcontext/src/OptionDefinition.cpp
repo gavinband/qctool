@@ -34,19 +34,19 @@ namespace appcontext {
 	void OptionDefinition::check_option_values( std::string const& option_name, std::vector< std::string > const& option_values ) const {
 
 		// Check if number or values is too few...
-		if( option_values.size() < m_lower_number_of_permitted_values ) {
+		if( option_values.size() < m_minimum_multiplicity * number_of_values_per_use() ) {
 			std::ostringstream ostr ;
-			ostr << "Option \"" << option_name << "\" requires at least " << m_lower_number_of_permitted_values << " value" ;
-			if( m_lower_number_of_permitted_values > 1 ) ostr << "s" ;
+			ostr << "Option \"" << option_name << "\" requires at least " << m_minimum_multiplicity * number_of_values_per_use() << " value" ;
+			if( m_minimum_multiplicity * number_of_values_per_use() > 1 ) ostr << "s" ;
 		
 			throw OptionValueInvalidException( option_name, option_values, ostr.str() ) ;
 		}
 
 		// ...or too many.
-		if( option_values.size() > m_upper_number_of_permitted_values ) {
+		if( option_values.size() > m_maximum_multiplicity * number_of_values_per_use() ) {
 			std::ostringstream ostr ;
-			ostr << "Option \"" << option_name << "\" takes at most " << m_upper_number_of_permitted_values << " value" ;
-			if( m_upper_number_of_permitted_values > 1 ) ostr << "s" ;
+			ostr << "Option \"" << option_name << "\" takes at most " << m_maximum_multiplicity * number_of_values_per_use() << " value" ;
+			if( m_maximum_multiplicity * number_of_values_per_use() > 1 ) ostr << "s" ;
 
 			throw OptionValueInvalidException( option_name, option_values, ostr.str() ) ;
 		}

@@ -24,9 +24,7 @@ namespace appcontext {
 			bool is_required() const { return m_minimum_multiplicity > 0 ; }
 			unsigned int number_of_values_per_use() const { return m_number_of_values_per_use ; }
 		
-			unsigned int minimum_number_of_permitted_values() const { return m_upper_number_of_permitted_values ; }
-			unsigned int maximum_number_of_permitted_values() const { return m_upper_number_of_permitted_values ; }
-			bool takes_values() const { return m_upper_number_of_permitted_values > 0 ; }
+			bool takes_values() const { return m_number_of_values_per_use > 0  ; }
 			std::vector< value_checker_t > value_checkers() const { return m_value_checkers ; } 
 			bool has_default_value() const { return m_default_values.size() > 0 ; }
 			std::string default_value() const { assert( m_default_values.size() == 1 ) ; return m_default_values[0] ; }
@@ -61,7 +59,7 @@ namespace appcontext {
 				return *this ;
 			}
 			OptionDefinition& set_takes_single_value() {
-				m_number_of_values_per_use = 1u ;
+				m_number_of_values_per_use = 1u ;	
 				m_minimum_multiplicity = 0u ;
 				m_maximum_multiplicity = 1u ;
 				return *this ;
@@ -89,7 +87,7 @@ namespace appcontext {
 			std::string m_group ;
 			std::string m_description ;
 			bool m_is_required ;
-			unsigned int m_number_of_values_per_use, m_lower_number_of_permitted_values, m_upper_number_of_permitted_values ;
+			unsigned int m_number_of_values_per_use ;
 			unsigned int m_minimum_multiplicity, m_maximum_multiplicity ;
 			std::vector< value_checker_t > m_value_checkers ;
 			std::vector< std::string > m_default_values ;

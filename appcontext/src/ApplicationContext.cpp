@@ -45,11 +45,6 @@ namespace appcontext {
 			<< "\" for more information.\n" ;
 			throw HaltProgramWithReturnCode( -1 ) ;
 		}
-		catch ( appcontext::OptionValueInvalidException const& e ) {
-			get_ui_context().logger() << "\nError: " << e.what() << "."
-			 	<< "  (Note: " << e.option() << " takes " << e.values().size() << " values.)\n";
-			throw HaltProgramWithReturnCode( -1 ) ;
-		}
 		catch( OptionProcessingException const& e ) {
 			get_ui_context().logger() << "!! Error (" << e.what() << "): " << e.message() << ".\n" ;
 			throw HaltProgramWithReturnCode( 0 );
