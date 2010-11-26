@@ -126,14 +126,14 @@ def build( bld ):
 		target = 'gen-tools-lib',
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include ./genfile/include',
-		uselib_local = 'string_utils statfile appcontext',
+		uselib_local = 'string_utils statfile appcontext fputils worker',
 		uselib = 'BOOST BOOST_IOSTREAMS ZLIB BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'
 	)
 
 	#---------------------
 	# programs
 	#---------------------
-	create_app( bld, name='qctool', uselib_local = 'gen-tools-lib gen-tools-exception appcontext genfile statfile appcontext string_utils fputils' )
+	create_app( bld, name='qctool', uselib = 'BOOST_THREAD', uselib_local = 'gen-tools-lib gen-tools-exception appcontext genfile statfile appcontext string_utils fputils worker' )
 	create_app( bld, name='gen-convert', uselib_local = 'gen-tools-exception gen-tools-lib genfile appcontext string_utils' )
 	create_app( bld, name='gen-compare', uselib_local = 'gen-tools-exception gen-tools-lib genfile appcontext string_utils' )
 	create_app( bld, name='gen-grep', uselib_local = 'gen-tools-exception gen-tools-lib genfile appcontext string_utils' )

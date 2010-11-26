@@ -46,6 +46,8 @@
 
 #include "appcontext/appcontext.hpp"
 
+#include "worker/QueuedMultiThreadedWorker.hpp"
+
 #include "SampleOutputFile.hpp"
 #include "GenotypeAssayStatisticFactory.hpp"
 #include "wildcard.hpp"
@@ -96,8 +98,8 @@ public:
 								"matches numbers from 1 to 100.  For example, \"qctool -g myfile_#.gen\" will find all files of "
 								"the form \"myfile_N.gen\", where N can be 1, 002, 099, etc." )
 	        .set_is_required()
-			.set_takes_values()
-			.set_maximum_number_of_repeats(23) ;
+			.set_takes_values_per_use()
+			.set_maximum_multiplicity(23) ;
 
 	    options[ "-og" ]
 	        .set_description( 	"Override the auto-generated path(s) of the output gen file(s) to use when filtering.  "
@@ -105,8 +107,8 @@ public:
 								"If this option is supplied, it must appear the same number of times as the -g option. "
 	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
 								"also be used here to specify numbered output files corresponding to the input files." )
-	        .set_takes_values()
-			.set_maximum_number_of_repeats(23) ;
+	        .set_takes_values_per_use()
+			.set_maximum_multiplicity(23) ;
 
 	    options[ "-s" ]
 	        .set_description( "Path of sample file to input" )
@@ -126,8 +128,8 @@ public:
 								"If used, this option must appear as many times as the -g option.  "
 	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
 								"also be used here to specify numbered output files corresponding to the input files." )
-	        .set_takes_values()
-			.set_maximum_number_of_repeats(23) ;
+	        .set_takes_values_per_use()
+			.set_maximum_multiplicity(23) ;
 
 		options[ "-snp-stats-columns" ]
 	        .set_description( "Comma-seperated list of extra columns to output in the snp-wise statistics file.  "
@@ -156,7 +158,7 @@ public:
 			.set_takes_single_value() ;
 		options[ "-info" ]
 			.set_description( "Filter out SNPs with Fisher information lying outside the given range.")
-			.set_number_of_values_per_use( 2 ) ;
+			.set_takes_values_per_use( 2 ) ;
 		options[ "-snp-missing-rate" ]
 			.set_description( "Filter out SNPs with missing data rate greater than or equal to the value specified.")
 			.set_takes_single_value() ;
@@ -165,39 +167,16 @@ public:
 			.set_takes_single_value() ;
 		options[ "-snp-interval" ]
 			.set_description( "Filter out SNPs with position outside the interval [a,b]." )
-			.set_number_of_values_per_use( 2 ) ;
+			.set_takes_values_per_use( 2 ) ;
 		options[ "-maf" ]
 			.set_description( "Filter out SNPs whose minor allele frequency lies outside the interval [a,b]." )
-			.set_number_of_values_per_use( 2 ) ;
+			.set_takes_values_per_use( 2 ) ;
 		options[ "-snpid-filter" ]
 			.set_description( "Filter out snps whose SNPID doesn't match the given argument.  "
 						"The argument must be a string, optionally containing a wildcard character ('*')"
 						" which matches any sequence of characters.")
 			.set_takes_single_value() ;
 			
-		options.declare_group( "SNP exclusion options" ) ;
-
-		options[ "-excl-snpids" ]
-			.set_description( "Exclude all SNPs whose SNPID is in the given file(s) from the analysis.")
-			.set_takes_values() 
-			.set_number_of_values_per_use( 1 )
-			.set_maximum_number_of_repeats( 100 ) ;
-		options[ "-excl-rsids" ]
-			.set_description( "Exclude all SNPs whose RSID is in the given file(s) from the analysis.")
-			.set_takes_values() 
-			.set_number_of_values_per_use( 1 )
-			.set_maximum_number_of_repeats( 100 ) ;
-		options[ "-incl-snpids" ]
-			.set_description( "Exclude all SNPs whose SNPID is not in the given file(s) from the analysis.")
-			.set_takes_values() 
-			.set_number_of_values_per_use( 1 )
-			.set_maximum_number_of_repeats( 100 ) ;
-		options[ "-incl-rsids" ]
-			.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.")
-			.set_takes_values() 
-			.set_number_of_values_per_use( 1 )
-			.set_maximum_number_of_repeats( 100 ) ;
-
 		// Sample filtering options
 		options.declare_group( "Sample filtering options" ) ;
 		options[ "-sample-missing-rate" ]
@@ -205,13 +184,36 @@ public:
 			.set_takes_single_value() ;
 		options[ "-heterozygosity" ]
 			.set_description( "Filter out samples with heterozygosity outside the inteval [a,b]." )
-			.set_number_of_values_per_use( 2 ) ;
+			.set_takes_values_per_use( 2 ) ;
 		options[ "-sample-incl-list"]
 			.set_description( "Filter out samples whose sample ID does not lie in the given file.")
 			.set_takes_single_value() ;
 		options[ "-sample-excl-list"]
 			.set_description( "Filter out samples whose sample ID lies in the given file.")
 			.set_takes_single_value() ;
+
+		// SNP exclusion options
+		options.declare_group( "SNP exclusion options" ) ;
+		options[ "-excl-snpids" ]
+			.set_description( "Exclude all SNPs whose SNPID is in the given file(s) from the analysis.")
+			.set_takes_values_per_use() 
+			.set_takes_values_per_use( 1 )
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-excl-rsids" ]
+			.set_description( "Exclude all SNPs whose RSID is in the given file(s) from the analysis.")
+			.set_takes_values_per_use() 
+			.set_takes_values_per_use( 1 )
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-incl-snpids" ]
+			.set_description( "Exclude all SNPs whose SNPID is not in the given file(s) from the analysis.")
+			.set_takes_values_per_use() 
+			.set_takes_values_per_use( 1 )
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-incl-rsids" ]
+			.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.")
+			.set_takes_values_per_use() 
+			.set_takes_values_per_use( 1 )
+			.set_maximum_multiplicity( 100 ) ;
 
 		// Inclusion / exclusion list options
 		options.declare_group( "Inclusion / exclusion list options" ) ;
@@ -247,6 +249,10 @@ public:
 		options [ "-plot" ]
 			.set_description( "Path of file to produce plots in.")
 			.set_takes_single_value() ;
+		options [ "-T" ]
+			.set_description( "Specify the number of worker threads to use in computationally intensive tasks." )
+			.set_takes_single_value()
+			.set_default_value( 0 ) ;
 
 		options.option_excludes_option( "-snp-stats", "-og" ) ;
 		options.option_excludes_option( "-snp-stats", "-os" ) ;
@@ -1289,10 +1295,10 @@ private:
 			context,
 			get_ui_context()
 		) ;
+		
 		genfile::SimpleSNPDataSourceProcessor processor ;
 		processor.add_callback( qctool_basic ) ;
 		
-
 		std::auto_ptr< Relatotron > relatotron ;
 		if( options().check_if_option_was_supplied( "-relatedness" )) {
 			relatotron.reset( new Relatotron( options(), context.get_cohort_individual_source(), get_ui_context() )) ;
@@ -1305,7 +1311,12 @@ private:
 		}
 		
 		if( relatotron.get() ) {
-			relatotron->process() ;
+			std::size_t const number_of_threads = options().get_value< std::size_t >( "-T" ) ;
+			worker::Worker::UniquePtr worker ;
+			if( number_of_threads > 0 ) {
+				worker.reset( new worker::QueuedMultiThreadedWorker( number_of_threads )) ;
+			}
+			relatotron->process( worker.get() ) ;
 		}
 	}
 } ;

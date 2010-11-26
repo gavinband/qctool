@@ -9,7 +9,7 @@ namespace worker {
 	{
 	public:
 		template< typename Function >
-		FunctionTask( function const& function ):
+		FunctionTask( Function const& function ):
 			m_function( function )
 		{
 			assert( m_function ) ;
@@ -21,6 +21,7 @@ namespace worker {
 		
 	private:
 		boost::function< void () > m_function ;
+		FunctionTask( FunctionTask const& other ) ; //forbid copying.
 	} ;
 }
 
