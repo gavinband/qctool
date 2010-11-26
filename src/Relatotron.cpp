@@ -92,13 +92,11 @@ void Relatotron::processed_snp( SNPIdentifyingData const& id_data, SingleSNPGeno
 	m_snps.push_back( id_data ) ;
 	m_genotypes.push_back( genotypes ) ;
 	m_allele_frequencies.push_back( compute_maximum_likelihood_allele_frequency( genotypes )) ;
-	std::cerr << "Allele frequency snp " << m_allele_frequencies.size() - 1 << " is " << m_allele_frequencies.back() << ".\n" ;
+	//m_ui_context.logger() << "Allele frequency snp " << m_allele_frequencies.size() - 1 << " is " << m_allele_frequencies.back() << ".\n" ;
 	if( m_allele_frequencies.back() == m_allele_frequencies.back() ) { // if is not NaN 
 		assert( m_allele_frequencies.back() >= 0.0 ) ;
 		assert( m_allele_frequencies.back() <= 1.0 ) ;
 		m_genotype_per_ibd_matrices.push_back( compute_genotype_probability_matrix( m_allele_frequencies.back() )) ;
-		m_ui_context.logger() << "Genotype per IBD matrix (SNP " << m_genotype_per_ibd_matrices.size() - 1 << " is: [\n" ;
-		print_matrix( m_genotype_per_ibd_matrices.back() ) ;
 	}
 	else {
 		m_genotype_per_ibd_matrices.push_back( Matrix( 0, 0 )) ;
@@ -128,6 +126,12 @@ void Relatotron::end_processing_snps() {
 		<< "Relatotron: first few allele frequencies are:\n" ;
 	for( std::size_t i = 0; i < std::min( std::size_t( 10 ), m_allele_frequencies.size() ); ++i ) {
 		m_ui_context.logger() << std::setprecision( 5 ) << std::setw( 8 ) << m_allele_frequencies[i] << " " ;
+	}
+	m_ui_context.logger() << "\n" ;
+	
+	m_ui_context.logger() << "Relatotron: first few genotype-by-IBD matrices are:\n" ;
+	for( std::size_t i = 0; i < std::max( m_genotype_per_ibd_matrices.size(), std::size_t( 3 )); ++i ) {
+		print_matrix( m_genotype_per_ibd_matrices[i] ) ;
 	}
 	m_ui_context.logger() << "\n" ;
 }
