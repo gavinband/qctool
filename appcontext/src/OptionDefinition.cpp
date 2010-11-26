@@ -5,24 +5,31 @@
 #include "appcontext/OptionProcessor.hpp"
 
 namespace appcontext {
-	OptionDefinition::OptionDefinition()
-		: m_description(""),
-			m_is_required( false ),
-			m_number_of_values_per_use( 0 ),
-			m_lower_number_of_permitted_values( 0 ),
-			m_upper_number_of_permitted_values( 1 ),
-			m_default_values(),
-			m_position( -1 )
+	OptionDefinition::OptionDefinition():
+		m_description(""),
+		m_number_of_values_per_use( 0 ),
+		m_minimum_multiplicity( 0 ),
+		m_maximum_multiplicity( 1 ),
+		m_default_values(),
+		m_position( -1 )
 	{}
 
-	OptionDefinition::OptionDefinition( OptionDefinition const& other )
-		: m_description( other.m_description ),
-			m_is_required( other.m_is_required ),
-			m_number_of_values_per_use( other.m_number_of_values_per_use ),
-			m_lower_number_of_permitted_values( other.m_lower_number_of_permitted_values ),
-			m_upper_number_of_permitted_values( other.m_upper_number_of_permitted_values ),
-			m_default_values( other.m_default_values )
+	OptionDefinition::OptionDefinition( OptionDefinition const& other ):
+		m_description( other.m_description ),
+		m_number_of_values_per_use( other.m_number_of_values_per_use ),
+		m_minimum_multiplicity( other.m_minimum_multiplicity ),
+		m_maximum_multiplicity( other.m_maximum_multiplicity ),
+		m_default_values( other.m_default_values )
 	{}
+
+	OptionDefinition& OptionDefinition::operator=( OptionDefinition const& other ) {
+		m_description = other.m_description ;
+		m_number_of_values_per_use = other.m_number_of_values_per_use ;
+		m_minimum_multiplicity = other.m_minimum_multiplicity ;
+		m_maximum_multiplicity = other.m_maximum_multiplicity ;
+		m_default_values = other.m_default_values ;
+		return *this ;
+	}
 
 	void OptionDefinition::check_option_values( std::string const& option_name, std::vector< std::string > const& option_values ) const {
 
