@@ -15,6 +15,9 @@ namespace genfile {
 		* of common SNPIdentifyingDataTest types.
 		*/
 	{
+	public:
+		typedef std::auto_ptr< CommonSNPFilter > UniquePtr ;
+		
 		using SNPIdentifyingDataTest::operator() ;
 		bool operator()(
 			std::string SNPID,

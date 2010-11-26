@@ -17,8 +17,10 @@ namespace genfile {
 	class SNPDataSourceChain: public SNPDataSource
 	{
 	public:
+		typedef std::auto_ptr< SNPDataSourceChain > UniquePtr ;
+		
 		// Create a chain of SNPDataSources taking data from the specified files.
-		static std::auto_ptr< SNPDataSourceChain > create(
+		static UniquePtr create(
 			std::vector< wildcard::FilenameMatch > const& filenames,
 			NotifyProgress notify_progress = NotifyProgress()
 		) ;
@@ -26,7 +28,7 @@ namespace genfile {
 		// Create a chain of SNPDataSourceRacks taking data from the specified files.
 		// Each entry of the outer vector is understood as a list of files which must be chained together.
 		// Each entry of the outer vector must therefore have the same size.
-		static std::auto_ptr< SNPDataSourceChain > create(
+		static UniquePtr create(
 			std::vector< std::vector< wildcard::FilenameMatch > > const& filenames,
 			NotifyProgress notify_progress = NotifyProgress()
 		) ;

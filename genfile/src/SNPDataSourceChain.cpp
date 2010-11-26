@@ -13,7 +13,7 @@
 #include "genfile/wildcard.hpp"
 
 namespace genfile {
-	std::auto_ptr< SNPDataSourceChain > SNPDataSourceChain::create(
+	SNPDataSourceChain::UniquePtr SNPDataSourceChain::create(
 		std::vector< wildcard::FilenameMatch > const& filenames,
 		NotifyProgress notify_progress
 	) {
@@ -30,7 +30,7 @@ namespace genfile {
 		return chain ;
 	}
 
-	std::auto_ptr< SNPDataSourceChain > SNPDataSourceChain::create(
+	SNPDataSourceChain::UniquePtr SNPDataSourceChain::create(
 		std::vector< std::vector< wildcard::FilenameMatch > > const& filenames,
 		NotifyProgress notify_progress
 	) {

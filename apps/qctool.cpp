@@ -813,48 +813,6 @@ private:
 				}
 			}
 
-			if( m_options.check_if_option_was_supplied_in_group( "SNP exclusion options" )) {
-				genfile::CommonSNPFilter snp_filter ;
-				
-				if( m_options.check_if_option_was_supplied( "-excl-snpids" )) {
-					snp_filter.exclude_snps_in_file(
-						m_options.get_value< std::string >( "-excl-snpids" ),
-						genfile::CommonSNPFilter::SNPIDs
-					) ;
-				}
-
-				if( m_options.check_if_option_was_supplied( "-excl-rsids" )) {
-					snp_filter.exclude_snps_in_file(
-						m_options.get_value< std::string >( "-excl-rsids" ),
-						genfile::CommonSNPFilter::RSIDs
-					) ;
-				}
-
-				if( m_options.check_if_option_was_supplied( "-incl-snpids" )) {
-					snp_filter.exclude_snps_not_in_file(
-						m_options.get_value< std::string >( "-incl-snpids" ),
-						genfile::CommonSNPFilter::SNPIDs
-					) ;
-				}
-
-				if( m_options.check_if_option_was_supplied( "-incl-rsids" )) {
-					snp_filter.exclude_snps_not_in_file(
-						m_options.get_value< std::string >( "-incl-rsids" ),
-						genfile::CommonSNPFilter::RSIDs
-					) ;
-				}
-
-				std::vector< genfile::SNPIdentifyingData > snps = genfile::get_list_of_snps_in_source( *m_snp_data_source ) ;
-				m_snp_data_source->reset_to_start() ;
-				m_snp_data_source.reset(
-					genfile::SNPFilteringSNPDataSource::create(
-						m_snp_data_source,
-						snp_filter.get_indices_of_filtered_in_snps( snps )
-					).release()
-				) ;
-			}
-			
-			
 			write_preamble() ;
 			
 			open_sample_row_sink() ;
@@ -864,17 +822,16 @@ private:
 	}
 	
 	genfile::SNPDataSource::UniquePtr open_snp_data_source() {
-		Timer timer ;
 		genfile::SNPDataSource::UniquePtr result ;
-		
-		std::auto_ptr< genfile::SNPDataSourceChain > chain( new genfile::SNPDataSourceChain() ) ;
-		chain->set_moved_to_next_source_callback( boost::bind( &QCToolCmdLineContext::move_to_next_output_file, this, _1 )) ;
 
+		appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Opening genotype files" ) ;
+		progress_context.notify_progress( 0, m_mangled_options.gen_filename_mapper().input_files().size() ) ;
+
+		genfile::SNPDataSourceChain::UniquePtr chain( new genfile::SNPDataSourceChain() ) ;
 		for( std::size_t i = 0; i < m_mangled_options.gen_filename_mapper().input_files().size(); ++i ) {
-			Timer file_timer ;
-			m_ui_context.logger() << "(Opening gen file \"" << m_mangled_options.gen_filename_mapper().input_files()[i] << "\"...)" << std::flush ;
+			genfile::SNPDataSource::UniquePtr source ;
 			try {
-				chain->add_source( genfile::SNPDataSource::create( m_mangled_options.gen_filename_mapper().input_files()[i] ) ) ;
+				source = genfile::SNPDataSource::create( m_mangled_options.gen_filename_mapper().input_files()[i] ) ;
 			}
 			catch ( genfile::FileHasTwoTrailingNewlinesError const& e ) {
 				std::cerr << "\n!!ERROR: a GEN file was specified having two consecutive newlines.\n"
@@ -882,33 +839,85 @@ private:
 					<< "!!     : Please check that each SNP in the file is terminated by a single newline.\n" ;
 				throw ;
 			}
-			m_ui_context.logger() << " (" << file_timer.elapsed() << "s)\n" ;
+			
+			genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter() ;
+			if( snp_filter.get() ) {
+				std::vector< genfile::SNPIdentifyingData > snps = genfile::get_list_of_snps_in_source( *source ) ;
+				source.reset(
+					genfile::SNPFilteringSNPDataSource::create(
+						source,
+						snp_filter->get_indices_of_filtered_in_snps( snps )
+					).release()
+				) ;
+			}
+			chain->add_source( source ) ;
+			progress_context.notify_progress( i+1, m_mangled_options.gen_filename_mapper().input_files().size() ) ;
 		}
-
-		if( timer.elapsed() > 1.0 ) {
-			m_ui_context.logger() << "Opened " << m_mangled_options.gen_filename_mapper().input_files().size() << " GEN files in " << timer.elapsed() << "s.\n" ;\
-		}
-		result.reset( chain.release() ) ;
-		return result ;
+		chain->set_moved_to_next_source_callback( boost::bind( &QCToolCmdLineContext::move_to_next_output_file, this, _1 )) ;
+		return genfile::SNPDataSource::UniquePtr( chain.release() ) ;
 	}
+		
+	genfile::CommonSNPFilter::UniquePtr get_snp_exclusion_filter() const {
+		genfile::CommonSNPFilter::UniquePtr snp_filter ;
 
+		if( m_options.check_if_option_was_supplied_in_group( "SNP exclusion options" )) {
+			snp_filter.reset( new genfile::CommonSNPFilter ) ;
+
+			if( m_options.check_if_option_was_supplied( "-excl-snpids" )) {
+				snp_filter->exclude_snps_in_file(
+					m_options.get_value< std::string >( "-excl-snpids" ),
+					genfile::CommonSNPFilter::SNPIDs
+				) ;
+			}
+
+			if( m_options.check_if_option_was_supplied( "-excl-rsids" )) {
+				snp_filter->exclude_snps_in_file(
+					m_options.get_value< std::string >( "-excl-rsids" ),
+					genfile::CommonSNPFilter::RSIDs
+				) ;
+			}
+
+			if( m_options.check_if_option_was_supplied( "-incl-snpids" )) {
+				snp_filter->exclude_snps_not_in_file(
+					m_options.get_value< std::string >( "-incl-snpids" ),
+					genfile::CommonSNPFilter::SNPIDs
+				) ;
+			}
+
+			if( m_options.check_if_option_was_supplied( "-incl-rsids" )) {
+				snp_filter->exclude_snps_not_in_file(
+					m_options.get_value< std::string >( "-incl-rsids" ),
+					genfile::CommonSNPFilter::RSIDs
+				) ;
+			}
+		}
+		return snp_filter ;
+	}
+	
 	void move_to_next_output_file( std::size_t index ) {
-		if( index < m_mangled_options.gen_filename_mapper().input_files().size() ) {
-			if( m_mangled_options.gen_filename_mapper().output_filenames().size() > 0 ) {
-				if( m_mangled_options.gen_filename_mapper().filename_corresponding_to( index ) != m_fltrd_in_snp_data_sink->index_of_current_sink() ) {
-					m_fltrd_in_snp_data_sink->move_to_next_sink() ;
+		// Kludge: don't move through outputs until they are actually created.
+		// Actually, we only want to move through outputs once during the main
+		// processing, but for example id filtering takes place first and has nothing
+		// to do with the outputs. On the other hand, filtering should probably
+		// happen before the
+		if( m_fltrd_in_snp_data_sink.get() ) {
+			if( index < m_mangled_options.gen_filename_mapper().input_files().size() ) {
+				if( m_mangled_options.gen_filename_mapper().output_filenames().size() > 0 ) {
+					if( m_mangled_options.gen_filename_mapper().filename_corresponding_to( index ) != m_fltrd_in_snp_data_sink->index_of_current_sink() ) {
+						m_fltrd_in_snp_data_sink->move_to_next_sink() ;
+					}
 				}
-			}
 			
-			if( m_mangled_options.snp_stats_filename_mapper().output_filenames().size() > 0 ) {
-				if( m_mangled_options.snp_stats_filename_mapper().filename_corresponding_to( index ) != m_current_snp_stats_filename_index ) {
-					open_snp_stats_sink( ++m_current_snp_stats_filename_index, m_snp_statistics ) ;
+				if( m_mangled_options.snp_stats_filename_mapper().output_filenames().size() > 0 ) {
+					if( m_mangled_options.snp_stats_filename_mapper().filename_corresponding_to( index ) != m_current_snp_stats_filename_index ) {
+						open_snp_stats_sink( ++m_current_snp_stats_filename_index, m_snp_statistics ) ;
+					}
 				}
-			}
 			
-			if( m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() > 0 ) {
-				if( m_mangled_options.snp_excl_list_filename_mapper().filename_corresponding_to( index ) != m_fltrd_out_snp_data_sink->index_of_current_sink() ) {
-					m_fltrd_out_snp_data_sink->move_to_next_sink() ;
+				if( m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() > 0 ) {
+					if( m_mangled_options.snp_excl_list_filename_mapper().filename_corresponding_to( index ) != m_fltrd_out_snp_data_sink->index_of_current_sink() ) {
+						m_fltrd_out_snp_data_sink->move_to_next_sink() ;
+					}
 				}
 			}
 		}
