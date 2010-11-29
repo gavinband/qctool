@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 #include "statfile/StatSink.hpp"
 #include "statfile/OstreamAggregator.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
@@ -13,6 +14,8 @@ namespace statfile {
 	class RFormatStatSink: public ColumnNamingStatSink< BuiltInTypeStatSink >, public OstreamAggregator
 	{
 	public:
+		typedef std::auto_ptr< RFormatStatSink > UniquePtr ;
+
 		RFormatStatSink( std::string const& filename ) ;
 		RFormatStatSink( std::auto_ptr< std::ostream > stream_ptr ) ;
 

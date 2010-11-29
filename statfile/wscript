@@ -36,21 +36,9 @@ def build( bld ):
 	bld(
 		features = 'cxx cstaticlib',
 		target = 'statfile',
-		source = [
-			'src/statfile_utils.cpp',
-			'src/RFormatStatSink.cpp',
-			'src/RFormatStatSource.cpp',
-			'src/TabDelimitedStatSource.cpp',
-			'src/BinFormatStatSink.cpp',
-			'src/BinFormatStatSource.cpp',
-			'src/PackedBinFormatStatSink.cpp',
-			'src/PackedBinFormatStatSource.cpp',
-			'src/BuiltInTypeStatSource.cpp',
-			'src/BuiltInTypeStatSourceChain.cpp',
-			'src/BuiltInTypeStatSink.cpp',
-			'src/BuiltInTypeStatSinkChain.cpp'
-		],
+		source = bld.glob( 'src/*.cpp' ),
 		includes='./include ../genfile/include',
+		uselib_local = 'genfile',
 		uselib = 'BOOST BOOST_IOSTREAMS ZLIB',
 		export_incdirs = './include'
 	)
