@@ -33,8 +33,8 @@ namespace genfile {
 		std::vector< FilenameMatch >
 		find_files_by_chromosome(
 			std::string path,
-			char wildcard_char = '#',
-			WildcardMatchChoice choice = eNON_SEX_CHROMOSOMES
+			WildcardMatchChoice choice = eNON_SEX_CHROMOSOMES,
+			char wildcard_char = '#'
 		) ;
 
 		// Return a list of FilenameMatches consisting of filenames

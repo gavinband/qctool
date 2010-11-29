@@ -165,8 +165,8 @@ namespace genfile {
 
 		std::vector< FilenameMatch > find_files_by_chromosome(
 			std::string path,
-			char wildcard_char,
-			WildcardMatchChoice choice
+			WildcardMatchChoice choice,
+			char wildcard_char
 		) {
 			std::vector< FilenameMatch > result ;
 		#if HAVE_BOOST_FILESYSTEM
