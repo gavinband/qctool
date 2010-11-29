@@ -225,6 +225,11 @@ public:
 				"The argument should be a string which can contain a * wildcard character (which matches any substring). "
 				"Optionally, prefix with snpid~ or rsid~ to only match against snp id or rsid fields." )
 			.set_takes_single_value() ;
+		options[ "-incl-snps-matching" ]
+			.set_description( "Filter out snps whose SNPID does not match the given argument. "
+				"The argument should be a string which can contain a * wildcard character (which matches any substring). "
+				"Optionally, prefix with snpid~ or rsid~ to only match against snp id or rsid fields." )
+			.set_takes_single_value() ;
 
 		// Inclusion / exclusion list options
 		options.declare_group( "Inclusion / exclusion list options" ) ;
@@ -956,9 +961,15 @@ private:
 				) ;
 			}
 
-			if( m_options.check_if_option_was_supplied( "-excl-matching-snps" )) {
+			if( m_options.check_if_option_was_supplied( "-excl-snps-matching" )) {
 				snp_filter->exclude_snps_matching(
-					m_options.get_value< std::string >( "-excl-matching-snps" )
+					m_options.get_value< std::string >( "-excl-snps-matching" )
+				) ;
+			}
+
+			if( m_options.check_if_option_was_supplied( "-incl-snps-matching" )) {
+				snp_filter->exclude_snps_not_matching(
+					m_options.get_value< std::string >( "-incl-snps-matching" )
 				) ;
 			}
 		}
