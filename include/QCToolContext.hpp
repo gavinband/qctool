@@ -5,6 +5,8 @@
 
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSink.hpp"
+#include "statfile/BuiltInTypeStatSink.hpp"
+
 #include "ObjectSource.hpp"
 #include "Timer.hpp"
 #include "GenRow.hpp"
@@ -15,7 +17,6 @@
 #include "RowCondition.hpp"
 #include "SimpleFileObjectSource.hpp"
 #include "SimpleFileObjectSink.hpp"
-#include "statfile/StatSink.hpp"
 
 struct QCToolContext
 {

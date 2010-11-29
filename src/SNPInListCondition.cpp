@@ -27,7 +27,7 @@ SNPInListCondition::SNPInListCondition( std::vector< std::string > const& filena
 
 void SNPInListCondition::setup() {
 	for( std::size_t i = 0; i < m_filenames.size(); ++i ) {
-		std::vector< genfile::wildcard::FilenameMatch > actual_filenames = genfile::wildcard::find_gen_files( m_filenames[i] ) ;
+		std::vector< genfile::wildcard::FilenameMatch > actual_filenames = genfile::wildcard::find_files_by_chromosome( m_filenames[i] ) ;
 		for( std::size_t j = 0; j < actual_filenames.size(); ++j ) {
 			if( file_appears_to_be_plain( actual_filenames[j].filename() )) {
 				load_from_plain_file( actual_filenames[j].filename() ) ;			

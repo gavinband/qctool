@@ -40,9 +40,13 @@
 #include "genfile/CategoricalCohortIndividualSource.hpp"
 #include "genfile/SampleFilteringCohortIndividualSource.hpp"
 #include "genfile/SampleFilteringSNPDataSource.hpp"
+#include "genfile/SNPTranslatingSNPDataSource.hpp"
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/SNPFilteringSNPDataSource.hpp"
 #include "genfile/get_list_of_snps_in_source.hpp"
+
+#include "statfile/BuiltInTypeStatSource.hpp"
+#include "statfile/from_string.hpp"
 
 #include "appcontext/appcontext.hpp"
 
@@ -117,6 +121,13 @@ public:
 		options[ "-os" ]
 	        .set_description( "Override the auto-generated path of the output sample file.  " )
 	        .set_takes_single_value() ;
+
+		options[ "-translate-snps" ]
+			.set_description( "Specify a \"dictionary\" of chromosome / position to chromosome / position mappings."
+				" (This should come as a four-column file with source_chromosome source_position target_chromosome and target_position columns.)"
+				" Positions of SNPs will be mapped through this dictionary before processing." )
+			.set_takes_single_value() ;
+			
 
 		// Statistic file options
 		options.declare_group( "Statistic calculation options" ) ;
@@ -829,32 +840,86 @@ private:
 
 		genfile::SNPDataSourceChain::UniquePtr chain( new genfile::SNPDataSourceChain() ) ;
 		for( std::size_t i = 0; i < m_mangled_options.gen_filename_mapper().input_files().size(); ++i ) {
-			genfile::SNPDataSource::UniquePtr source ;
-			try {
-				source = genfile::SNPDataSource::create( m_mangled_options.gen_filename_mapper().input_files()[i] ) ;
-			}
-			catch ( genfile::FileHasTwoTrailingNewlinesError const& e ) {
-				std::cerr << "\n!!ERROR: a GEN file was specified having two consecutive newlines.\n"
-					<< "!! NOTE: popular editors, such as vim and nano, automatically add an extra newline to the file (which you can't see).\n"
-					<< "!!     : Please check that each SNP in the file is terminated by a single newline.\n" ;
-				throw ;
-			}
-			
-			genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter() ;
-			if( snp_filter.get() ) {
-				std::vector< genfile::SNPIdentifyingData > snps = genfile::get_list_of_snps_in_source( *source ) ;
-				source.reset(
-					genfile::SNPFilteringSNPDataSource::create(
-						source,
-						snp_filter->get_indices_of_filtered_in_snps( snps )
-					).release()
-				) ;
-			}
+			genfile::SNPDataSource::UniquePtr source = open_snp_data_source(
+				m_mangled_options.gen_filename_mapper().input_file( i ),
+				m_mangled_options.gen_filename_mapper().matched_part( i )
+			) ;
 			chain->add_source( source ) ;
 			progress_context.notify_progress( i+1, m_mangled_options.gen_filename_mapper().input_files().size() ) ;
 		}
 		chain->set_moved_to_next_source_callback( boost::bind( &QCToolCmdLineContext::move_to_next_output_file, this, _1 )) ;
 		return genfile::SNPDataSource::UniquePtr( chain.release() ) ;
+	}
+	
+	genfile::SNPDataSource::UniquePtr open_snp_data_source( std::string const& filename, std::string const& chromosome_indicator ) const {
+		genfile::SNPDataSource::UniquePtr source ;
+		try {
+			source = genfile::SNPDataSource::create(
+				filename,
+				chromosome_indicator
+			) ;
+		}
+		catch ( genfile::FileHasTwoTrailingNewlinesError const& e ) {
+			std::cerr << "\n!!ERROR: a GEN file was specified having two consecutive newlines.\n"
+				<< "!! NOTE: popular editors, such as vim and nano, automatically add an extra newline to the file (which you can't see).\n"
+				<< "!!     : Please check that each SNP in the file is terminated by a single newline.\n" ;
+			throw ;
+		}
+		
+		// Filter SNPs if necessary
+		genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter() ;
+		if( snp_filter.get() ) {
+			std::vector< genfile::SNPIdentifyingData > snps = genfile::get_list_of_snps_in_source( *source ) ;
+			source.reset(
+				genfile::SNPFilteringSNPDataSource::create(
+					source,
+					snp_filter->get_indices_of_filtered_in_snps( snps )
+				).release()
+			) ;
+		}
+		
+		// Translate SNP identifying data if necessary
+		if( m_options.check_if_option_has_value( "-translate-snps" )) {
+			source.reset(
+				genfile::SNPTranslatingSNPDataSource::create(
+					source,
+					load_snp_dictionary( m_options.get_value< std::string >( "-translate-snps" ) )
+				).release()
+			) ;
+		}
+		
+		return source ;
+	}
+		
+	std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData > load_snp_dictionary( std::string const& filename ) const {
+		std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData > result ;
+		statfile::BuiltInTypeStatSource::UniquePtr source( 
+			statfile::BuiltInTypeStatSource::open(
+				genfile::wildcard::find_files_by_chromosome( filename )
+			).release()
+		) ;
+		
+		if( !source->number_of_columns() == 10 ) {
+			throw genfile::MalformedInputError( filename, 1 ) ;
+		}
+		
+		genfile::SNPIdentifyingData data1, data2 ;
+		while(
+			(*source)
+				>> data1.position().chromosome() >> data1.position().position()
+				>> data1.SNPID() >> data1.rsid()
+				>> data1.first_allele() >> data1.second_allele()
+				>> data2.position().chromosome() >> data2.position().position()
+				>> data2.SNPID() >> data2.rsid()
+				>> data2.first_allele() >> data2.second_allele()
+		) {
+			std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData >::const_iterator where = result.find( data1 ) ;
+			if( where != result.end() ) {
+				throw genfile::DuplicateSNPError( filename, genfile::string_utils::to_string( data1 ) ) ;
+			}
+			result[ data1 ] = data2 ;
+		}
+		return result ;
 	}
 		
 	genfile::CommonSNPFilter::UniquePtr get_snp_exclusion_filter() const {
@@ -1223,7 +1288,7 @@ private:
 		if( m_mangled_options.gen_filename_mapper().output_filenames().size() == 0 && m_mangled_options.output_sample_filename() == "" && m_mangled_options.snp_stats_filename_mapper().output_filenames().size() == 0 && m_mangled_options.output_sample_stats_filename() == "" && m_mangled_options.output_sample_excl_list_filename() == "" && m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() == 0 ) {
 			m_warnings.push_back( "You have not specified any output files.  This will produce only logging output." ) ;
 		}
-		if( ((m_mangled_options.gen_filename_mapper().output_filenames().size() > 0) || ( m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() > 0)) &&  (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0)) {
+		if( ((m_mangled_options.gen_filename_mapper().output_filenames().size() > 0) || ( m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() > 0)) &&  (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0) && !m_options.check_if_option_was_supplied_in_group( "SNP exclusion options" )) {
 			m_warnings.push_back( "You have specified output GEN (or snp exclusion) files, but no filters.\n"
 				" This will just output the same gen files (converting formats if necessary).\n"
 				" Consider using gen-convert, included with the qctool source code, instead." ) ;
