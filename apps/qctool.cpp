@@ -182,11 +182,6 @@ public:
 		options[ "-maf" ]
 			.set_description( "Filter out SNPs whose minor allele frequency lies outside the interval [a,b]." )
 			.set_takes_values_per_use( 2 ) ;
-		options[ "-snpid-filter" ]
-			.set_description( "Filter out snps whose SNPID doesn't match the given argument.  "
-						"The argument must be a string, optionally containing a wildcard character ('*')"
-						" which matches any sequence of characters.")
-			.set_takes_single_value() ;
 			
 		// Sample filtering options
 		options.declare_group( "Sample filtering options" ) ;
@@ -225,6 +220,11 @@ public:
 			.set_takes_values_per_use() 
 			.set_takes_values_per_use( 1 )
 			.set_maximum_multiplicity( 100 ) ;
+		options[ "-excl-snps-matching" ]
+			.set_description( "Filter out snps whose SNPID matches the given argument. "
+				"The argument should be a string which can contain a * wildcard character (which matches any substring). "
+				"Optionally, prefix with snpid~ or rsid~ to only match against snp id or rsid fields." )
+			.set_takes_single_value() ;
 
 		// Inclusion / exclusion list options
 		options.declare_group( "Inclusion / exclusion list options" ) ;
@@ -955,6 +955,12 @@ private:
 					genfile::CommonSNPFilter::RSIDs
 				) ;
 			}
+
+			if( m_options.check_if_option_was_supplied( "-excl-matching-snps" )) {
+				snp_filter->exclude_snps_matching(
+					m_options.get_value< std::string >( "-excl-matching-snps" )
+				) ;
+			}
 		}
 		return snp_filter ;
 	}
@@ -1115,13 +1121,6 @@ private:
 
 		if( m_options.check_if_option_was_supplied( "-maf" ) ) {
 			add_two_arg_condition_to_filter< StatisticInInclusiveRange >( *snp_filter, "MAF", m_options.get_values< double >( "-maf" )) ;
-		}
-
-		if( m_options.check_if_option_was_supplied( "-snpid-filter" ) ) {
-			std::string expression = m_options.get_value< std::string >( "-snpid-filter" ) ;
-			std::auto_ptr< RowCondition > snpid_condition( new SNPIDMatchesCondition( expression )) ;
-			std::auto_ptr< RowCondition > real_snpid_condition( new NotRowCondition( snpid_condition )) ;
-			snp_filter->add_subcondition( real_snpid_condition ) ;
 		}
 
 		m_snp_filter = snp_filter ;
