@@ -3,6 +3,7 @@
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/get_set.hpp"
+#include "genfile/wildcard.hpp"
 #include "appcontext/CmdLineOptionProcessor.hpp"
 #include "appcontext/ProgramFlow.hpp"
 #include "PositionRange.hpp"
@@ -25,7 +26,8 @@ struct IDDataPrinterOptionProcessor: public CmdLineOptionProcessor
 		options[ "-g" ]
 			.set_description( "Specify the name (or names) of gen files to process." )
 			.set_is_required()
-			.set_takes_values_per_use() ;
+			.set_takes_single_value()
+			.set_takes_value_by_position( 1 ) ;
 			
 		options.declare_group( "SNP Selection options" ) ;
 		options[ "-snp-interval" ]
@@ -43,8 +45,8 @@ struct IDDataPrinterOptionProcessor: public CmdLineOptionProcessor
 	}
 	
 	
-	std::vector< std::string > gen_filenames() const {
-		return get_values< std::string > ( "-g" ) ;
+	std::string gen_filename() const {
+		return get_value< std::string > ( "-g" ) ;
 	}
 
 	std::set< std::string > snp_ids() const {
@@ -129,11 +131,13 @@ private:
 	}
 
 	void construct_snp_data_source() {
-		std::auto_ptr< genfile::SNPDataSourceChain > chain( new genfile::SNPDataSourceChain ) ;
-		std::vector< wildcard::FilenameMatch > matches = wildcard::find_matches_for_paths_with_integer_wildcard( m_options.gen_filenames() ) ;
-		for( std::size_t i = 0; i < matches.size(); ++i ) {
-			chain->add_source( genfile::SNPDataSource::create( matches[i].filename(), matches[i].match() )) ;
-		}
+		genfile::SNPDataSourceChain::UniquePtr chain = genfile::SNPDataSourceChain::create(
+			genfile::wildcard::find_files_by_chromosome(
+				m_options.gen_filename(),
+				genfile::wildcard::eALL_CHROMOSOMES
+			)
+		) ;
+		
 		m_snp_data_source.reset( chain.release() ) ;
 	}
 	
