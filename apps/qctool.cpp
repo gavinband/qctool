@@ -911,11 +911,11 @@ private:
 		genfile::SNPIdentifyingData data1, data2 ;
 		while(
 			(*source)
-				>> data1.position().chromosome() >> data1.position().position()
 				>> data1.SNPID() >> data1.rsid()
+				>> data1.position().chromosome() >> data1.position().position()
 				>> data1.first_allele() >> data1.second_allele()
-				>> data2.position().chromosome() >> data2.position().position()
 				>> data2.SNPID() >> data2.rsid()
+				>> data2.position().chromosome() >> data2.position().position()
 				>> data2.first_allele() >> data2.second_allele()
 		) {
 			std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData >::const_iterator where = result.find( data1 ) ;
