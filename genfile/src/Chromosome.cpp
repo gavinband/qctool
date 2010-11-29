@@ -86,4 +86,8 @@ namespace genfile {
 	bool Chromosome::is_sex_determining() const {
         return m_chromosome_e == XChromosome || m_chromosome_e == YChromosome ;
     }
+
+	bool Chromosome::is_autosome() const {
+		return m_chromosome_e <= Chromosome22 ;
+	}
 }

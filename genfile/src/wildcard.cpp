@@ -129,9 +129,44 @@ namespace genfile {
 			return oStream << match.filename() << "(" << match.match() << ")" ;
 		}
 
-		std::vector< FilenameMatch > find_gen_files(
+		namespace impl {
+			std::vector< FilenameMatch > choose_chromosomes(
+				std::vector< FilenameMatch > matches,
+				WildcardMatchChoice choice
+			) {
+				if( choice != eALL_CHROMOSOMES ) {
+					for( std::size_t i = 0; i < matches.size(); ++i ) {
+						bool keep_match = false ;
+						switch( choice ) {
+							case eAUTOSOMAL_CHROMOSOMES:
+								keep_match = Chromosome( matches[i].match() ).is_autosome() ;
+								break ;
+							case eSEX_CHROMOSOMES:
+								keep_match = Chromosome( matches[i].match() ).is_sex_determining() ;
+								break ;
+							case eNON_SEX_CHROMOSOMES:
+								keep_match = !Chromosome( matches[i].match() ).is_sex_determining() ;
+								break ;
+							default:
+								assert(0) ;
+								break ;
+						}
+						if( !keep_match ) {
+							matches.erase( matches.begin() + i ) ;
+						}
+						else {
+							++i ;
+						}
+					}
+				}
+				return matches ;
+			}
+		}
+
+		std::vector< FilenameMatch > find_files_by_chromosome(
 			std::string path,
-			char wildcard_char
+			char wildcard_char,
+			WildcardMatchChoice choice
 		) {
 			std::vector< FilenameMatch > result ;
 		#if HAVE_BOOST_FILESYSTEM
@@ -149,24 +184,7 @@ namespace genfile {
 				throw FileNotFoundError( path ) ;
 			}
 
-			return result ;
-		}
-	
-		std::vector< FilenameMatch >
-		find_nonsexdetermining_gen_files(
-			std::string path,
-			char wildcard_char
-		) {
-			std::vector< FilenameMatch > result = find_gen_files( path, wildcard_char ) ;
-			for( std::size_t i = 0; i < result.size(); ) {
-				if( Chromosome( result[i].match() ).is_sex_determining() ) {
-					result.erase( result.begin() + i ) ;
-				}
-				else {
-					++i ;
-				}
-			}
-			return result ;
+			return impl::choose_chromosomes( result, choice ) ; ;
 		}
 	
 		std::vector< FilenameMatch >

@@ -32,6 +32,9 @@ namespace genfile {
 		char m_second_allele ;
 	} ;	
 	
+	// Compare by chromosome/position, rsid, SNPID, then alleles.
+	bool operator<( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) ;
+
 	std::ostream& operator<<( std::ostream&, SNPIdentifyingData const& ) ;
 }
 

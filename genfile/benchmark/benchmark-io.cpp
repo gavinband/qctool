@@ -137,7 +137,7 @@ int main( int argc, char** argv ) {
 	try	{
 		std::string genFileName = argv[1] ;
 		std::auto_ptr< genfile::SNPDataSource > source
-			= genfile::SNPDataSource::create_chain( genfile::wildcard::find_gen_files( genFileName )) ;
+			= genfile::SNPDataSource::create_chain( genfile::wildcard::find_files_by_chromosome( genFileName )) ;
 
 		int number_of_snps_to_read = 10000 ;
 		if( argc == 3 ) {

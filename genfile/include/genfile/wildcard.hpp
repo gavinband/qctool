@@ -26,20 +26,17 @@ namespace genfile {
 		bool operator==( FilenameMatch const& left, FilenameMatch const& right ) ;
 		std::ostream& operator<<( std::ostream& oStream, FilenameMatch const& match ) ;
 	
+		enum WildcardMatchChoice { eALL_CHROMOSOMES, eAUTOSOMAL_CHROMOSOMES, eNON_SEX_CHROMOSOMES, eSEX_CHROMOSOMES } ;
+	
 		// Find all files matching the template.
 		// If the template contains the wildcard char
 		std::vector< FilenameMatch >
-		find_gen_files(
+		find_files_by_chromosome(
 			std::string path,
-			char wildcard_char = '#'
+			char wildcard_char = '#',
+			WildcardMatchChoice choice = eNON_SEX_CHROMOSOMES
 		) ;
 
-		std::vector< FilenameMatch >
-		find_nonsexdetermining_gen_files(
-			std::string path,
-			char wildcard_char = '#'
-		) ;
-	
 		// Return a list of FilenameMatches consisting of filenames
 		// made from the given output_filename by substituting the matches
 		// from the given input filenames in place of the wildcard (if any)

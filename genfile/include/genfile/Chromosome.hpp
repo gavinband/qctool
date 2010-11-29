@@ -80,6 +80,7 @@ namespace genfile {
 		Chromosome& operator++() ;
 		
 		bool is_sex_determining() const ;
+		bool is_autosome() const ;
         
 		operator ChromosomeEnum() const { return m_chromosome_e ; }
 		

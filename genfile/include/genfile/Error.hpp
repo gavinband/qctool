@@ -6,16 +6,16 @@
 #include <sstream>
 
 namespace genfile {
-	struct KeyAlreadyExistsError: public std::exception
+	struct DuplicateKeyError: public std::exception
 	{
-		KeyAlreadyExistsError( std::string const& source, std::string const& key ):
+		DuplicateKeyError( std::string const& source, std::string const& key ):
 			m_source( source ),
 			m_key( key )
 		{}
 		
-		virtual ~KeyAlreadyExistsError() throw() {}
+		virtual ~DuplicateKeyError() throw() {}
 	
-		char const* what() const throw() { return "genfile::KeyAlreadyExistsError" ; }
+		char const* what() const throw() { return "genfile::DuplicateKeyError" ; }
 		std::string const& source() const { return m_source ; }
 		std::string const& key() const { return m_key ; }
 		
@@ -23,18 +23,18 @@ namespace genfile {
 		std::string const m_source, m_key ;
 	} ;
 
-	struct SNPAlreadyExistsError: public KeyAlreadyExistsError
+	struct DuplicateSNPError: public DuplicateKeyError
 	{
-		SNPAlreadyExistsError( std::string const& source, std::string const& key ):
-			KeyAlreadyExistsError( source, key )
+		DuplicateSNPError( std::string const& source, std::string const& key ):
+			DuplicateKeyError( source, key )
 		{}
-		char const* what() const throw() { return "genfile::SNPAlreadyExistsError" ; }	
+		char const* what() const throw() { return "genfile::DuplicateSNPError" ; }	
 	} ;
 
-	struct ColumnAlreadyExistsError: public KeyAlreadyExistsError
+	struct ColumnAlreadyExistsError: public DuplicateKeyError
 	{
 		ColumnAlreadyExistsError( std::string const& source, std::string const& key ):
-			KeyAlreadyExistsError( source, key )
+			DuplicateKeyError( source, key )
 		{}
 		char const* what() const throw() { return "genfile::ColumnAlreadyExistsError" ; }	
 	} ;
