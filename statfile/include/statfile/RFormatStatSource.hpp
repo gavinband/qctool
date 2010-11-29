@@ -5,21 +5,23 @@
 #include <string>
 #include "statfile/StatSource.hpp"
 #include "statfile/IstreamAggregator.hpp"
+#include "statfile/BuiltInTypeStatSource.hpp"
 
 namespace statfile {
 	// Outputs numerical data in a format suitable for reading with
 	// R's read.table().
 	class RFormatStatSource: public ColumnNamingStatSource< BuiltInTypeStatSource >, public IstreamAggregator
 	{
+		typedef ColumnNamingStatSource< BuiltInTypeStatSource > base_t ;
 	public:
 		RFormatStatSource( std::string const& filename ) ;
 		RFormatStatSource( std::auto_ptr< std::istream > stream_ptr ) ;
-
 	public:
-		std::size_t total_number_of_rows() const { return m_total_number_of_rows ; } ;
-		operator void*() const { return IstreamAggregator::operator void*() ; }
+		std::size_t number_of_rows() const { return m_number_of_rows ; } ;
 
 		std::string const& get_descriptive_text() const { return m_descriptive_text ; }
+
+		void reset_to_start() ;
 
 	protected:
 
@@ -41,7 +43,8 @@ namespace statfile {
 
 	private:
 		char m_comment_character ;
-		std::size_t m_total_number_of_rows ;
+		std::size_t m_number_of_comment_lines ;
+		std::size_t m_number_of_rows ;
 		std::string m_descriptive_text ;
 	} ;
 }

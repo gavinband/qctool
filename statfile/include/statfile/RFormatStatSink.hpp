@@ -3,17 +3,15 @@
 
 #include <vector>
 #include <string>
-#include <memory>
 #include "statfile/StatSink.hpp"
 #include "statfile/OstreamAggregator.hpp"
+#include "statfile/BuiltInTypeStatSink.hpp"
 
 namespace statfile {
 	// Outputs numerical data in a format suitable for reading with
 	// R's read.table().
 	class RFormatStatSink: public ColumnNamingStatSink< BuiltInTypeStatSink >, public OstreamAggregator
 	{
-	public:
-		typedef std::auto_ptr< RFormatStatSink > UniquePtr ;
 	public:
 		RFormatStatSink( std::string const& filename ) ;
 		RFormatStatSink( std::auto_ptr< std::ostream > stream_ptr ) ;
@@ -24,17 +22,11 @@ namespace statfile {
 
 	protected:
 
-		void write_value( int const& value ) {
-			write_value_impl< int >( value ) ;
+		void write_value( int32_t const& value ) {
+			write_value_impl< int32_t >( value ) ;
 		}
-		void write_value( unsigned int const& value ) {
-			write_value_impl< unsigned int >( value ) ;
-		}
-		void write_value( long int const& value ) {
-			write_value_impl< long int >( value ) ;
-		}
-		void write_value( long unsigned int const& value ) {
-			write_value_impl< long unsigned int >( value ) ;
+		void write_value( uint32_t const& value ) {
+			write_value_impl< uint32_t >( value ) ;
 		}
 		void write_value( std::string const& value ) {
 			write_value_impl< std::string >( value ) ;

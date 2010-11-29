@@ -7,7 +7,7 @@
 #include "statfile/statfile_utils.hpp"
 
 namespace statfile {
-	IgnoreOne ignore() { return IgnoreOne() ; }
+	IgnoreSome ignore( std::size_t n ) { return IgnoreSome( n ) ; }
 	IgnoreAll ignore_all() { return IgnoreAll() ; }
 	EndRow end_row() { return EndRow() ; }
 
@@ -32,10 +32,21 @@ namespace statfile {
 	}
 	
 	FileFormatType get_file_format_type_indicated_by_filename( std::string const& filename ) {
-		if( filename.size() > 6 && filename.substr( filename.size() - 6, 6 ) == ".rdata" ) {
+		if( filename.size() > 4 && filename.substr( filename.size() - 4, 4 ) == ".ssv" ) {
 			return e_RFormat ;
 		}
-		return e_UnknownFormat ;
+		else if( filename.size() > 4 && filename.substr( filename.size() - 4, 4 ) == ".tsv" ) {
+			return e_TabDelimitedFormat ;
+		}
+		else if( filename.size() > 4 && filename.substr( filename.size() - 4, 4 ) == ".bnv" ) {
+			return e_BinFormat ;
+		}
+		else if( filename.size() > 4 && filename.substr( filename.size() - 4, 4 ) == ".pbv" ) {
+			return e_PackedBinFormat ;
+		}
+		else {
+			return e_UnknownFormat ;
+		}
 	}
 
 	CompressionType get_compression_type_indicated_by_filename( std::string const& filename ) {
@@ -66,7 +77,7 @@ namespace statfile {
 	    if (compression_type == e_GzipCompression) gen_file_ptr->push(boost::iostreams::gzip_decompressor());
 		boost::iostreams::file_source file( filename.c_str() ) ;
 		if( !file.is_open() ) {
-			throw FileNotOpenedError() ;
+			throw FileNotOpenedError( filename ) ;
 		}
 		gen_file_ptr->push( file ) ;
 		return std::auto_ptr< std::istream >( gen_file_ptr ) ;
@@ -77,7 +88,7 @@ namespace statfile {
 	    if (compression_type == e_GzipCompression) gen_file_ptr->push(boost::iostreams::gzip_compressor());
 		boost::iostreams::file_sink file(filename.c_str()) ;
 		if( !file.is_open() ) {
-			throw FileNotOpenedError() ;
+			throw FileNotOpenedError( filename ) ;
 		}
 		gen_file_ptr->push( file ); 
 		return std::auto_ptr< std::ostream >( gen_file_ptr ) ;
@@ -88,7 +99,7 @@ namespace statfile {
 	    if (compression_type == e_GzipCompression) gen_file_ptr->push( boost::iostreams::gzip_decompressor() ) ;
 		boost::iostreams::file_source file( filename.c_str(), std::ios::binary ) ;
 		if( !file.is_open() ) {
-			throw FileNotOpenedError() ;
+			throw FileNotOpenedError( filename ) ;
 		}
 		gen_file_ptr->push( file ) ;
 		return std::auto_ptr< std::istream >( gen_file_ptr ) ;
@@ -99,7 +110,7 @@ namespace statfile {
 	    if (compression_type == e_GzipCompression) gen_file_ptr->push(boost::iostreams::gzip_compressor()) ;
 		boost::iostreams::file_sink file(filename.c_str(), std::ios::binary ) ;
 		if( !file.is_open() ) {
-			throw FileNotOpenedError() ;
+			throw FileNotOpenedError( filename ) ;
 		}
 		gen_file_ptr->push( file ); 
 		return std::auto_ptr< std::ostream >( gen_file_ptr ) ;

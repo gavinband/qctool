@@ -54,6 +54,7 @@ AUTO_TEST_CASE( test_RFormat )
 			for( std::size_t i = 0; i < doubles.size(); ++i ) {
 				stat_source_1 >> doubles[i] ;
 			}
+			stat_source_1 >> statfile::end_row() ;
 
 			stat_sink_1 << index << column1 << column2 << column3 ;
 			for( std::size_t i = 0; i < doubles.size(); ++i ) {
@@ -85,6 +86,7 @@ AUTO_TEST_CASE( test_RFormat )
 				stat_source_1 >> doubles1[i] ;
 				stat_source_2 >> doubles2[i] ;
 			}
+			
 			TEST_ASSERT( stat_source_1 ) ;
 			TEST_ASSERT( stat_source_2 ) ;
 			std::cout << "Comparing lines with index " << index1 << ", " << index2 << "...\n" ;
@@ -96,6 +98,9 @@ AUTO_TEST_CASE( test_RFormat )
 			for( std::size_t i = 0; i < doubles1.size(); ++i ) {
 				TEST_ASSERT( std::abs( doubles1[i] - doubles2[i]) < epsilon ) ;
 			}
+
+			stat_source_1 >> statfile::end_row() ;
+			stat_source_2 >> statfile::end_row() ;
 		}
 	}
 	

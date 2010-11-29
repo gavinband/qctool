@@ -20,7 +20,7 @@ namespace statfile {
 	struct TypeWriterBase: public TypeWriterBase< T2, T3, T4, T5, T6, T7, T8, T9, T10 >
 	{
 		using TypeWriterBase< T2, T3, T4, T5, T6, T7, T8, T9, T10 >::write_value ;
-		virtual void write_value( T1 const& ) = 0 ;
+		virtual void write_value( T1 const& ) {} ;
 	} ;
 
 	template<>

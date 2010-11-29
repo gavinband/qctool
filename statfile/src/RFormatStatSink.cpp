@@ -2,6 +2,7 @@
 #include <string>
 #include <iostream>
 #include <iomanip>
+#include <memory>
 #include <limits>
 #include "statfile/RFormatStatSink.hpp"
 
@@ -9,7 +10,7 @@ namespace statfile {
 	RFormatStatSink::RFormatStatSink( std::auto_ptr< std::ostream > stream_ptr )
 	: 	m_comment_character( '#' ),
 		have_written_header( false ),
-		m_precision(6)
+		m_precision(15)
 	{
 		setup( stream_ptr ) ;
 	}
@@ -17,17 +18,17 @@ namespace statfile {
 	RFormatStatSink::RFormatStatSink( std::string const& filename )
 	: 	m_comment_character( '#' ),
 		have_written_header( false ),
-		m_precision(6)
+		m_precision(15)
 	{
 		setup( filename ) ;
 	}
 
 	void RFormatStatSink::set_descriptive_text( std::string const& text ) {
-		m_descriptive_text = "# " ;
+		m_descriptive_text = "#" ;
 		for( std::string::const_iterator i = text.begin(); i != text.end(); ++i ) {
 			m_descriptive_text += *i ;
 			if( *i == '\n' ) {
-				m_descriptive_text.append( "# " ) ;
+				m_descriptive_text.append( "#" ) ;
 			}
 		}
 	}
@@ -59,7 +60,10 @@ namespace statfile {
 	
 	void RFormatStatSink::write_column_names() {
 		for( std::size_t i = 0; i < number_of_columns(); ++i ) {
-			stream() << column_names()[i] << " " ;
+			if( i > 0 ) {
+				stream() << " " ;
+			}
+			stream() << column_names()[i] ;
 		}
 	}
 }

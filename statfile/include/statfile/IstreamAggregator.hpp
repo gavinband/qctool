@@ -7,19 +7,30 @@
 namespace statfile {
 	struct IstreamAggregator
 	{
-	public:
-	
-		operator void*() const { return *m_stream_ptr ; }
-
 	protected:
 	
 		std::istream& stream() { return *m_stream_ptr ; }
-		void set_stream( std::auto_ptr< std::istream > stream_ptr ) { m_stream_ptr = stream_ptr ; }
+		void set_stream( std::auto_ptr< std::istream > stream_ptr ) {
+			m_stream_ptr = stream_ptr ;
+			turn_on_ios_exceptions() ;
+		}
 
 		void reset_stream_to_start() {
+			reset_stream_to( 0u ) ;
+		}
+		
+		void reset_stream_to( std::streamoff position ) {
 			m_stream_ptr->clear() ;
 			assert( *m_stream_ptr ) ;
-			m_stream_ptr->seekg(0) ;
+			m_stream_ptr->seekg( position, std::ios::beg ) ;
+		}
+		
+		void turn_off_ios_exceptions() const {
+			m_stream_ptr->exceptions( std::ios::badbit ) ;
+		}
+
+		void turn_on_ios_exceptions() const {
+			m_stream_ptr->exceptions( std::ios::failbit | std::ios::badbit ) ;
 		}
 		
 	private:

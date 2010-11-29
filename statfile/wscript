@@ -6,7 +6,7 @@ def configure( conf ):
 	pass
 
 def create_test( bld, name ):
-	bld.new_task_gen(
+	bld(
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'test/' + name + '.cpp' ],
@@ -17,7 +17,7 @@ def create_test( bld, name ):
 	)
 
 def create_benchmark( bld, name ):
-	bld.new_task_gen(
+	bld(
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'benchmarks/' + name + '.cpp' ],
@@ -33,17 +33,29 @@ def build( bld ):
 	#---------------------
 	# libs
 	#---------------------
-	bld.new_task_gen(
+	bld(
 		features = 'cxx cstaticlib',
 		target = 'statfile',
 		source = [
 			'src/statfile_utils.cpp',
 			'src/RFormatStatSink.cpp',
-			'src/RFormatStatSource.cpp'
+			'src/RFormatStatSource.cpp',
+			'src/TabDelimitedStatSource.cpp',
+			'src/BinFormatStatSink.cpp',
+			'src/BinFormatStatSource.cpp',
+			'src/PackedBinFormatStatSink.cpp',
+			'src/PackedBinFormatStatSource.cpp',
+			'src/BuiltInTypeStatSource.cpp',
+			'src/BuiltInTypeStatSourceChain.cpp',
+			'src/BuiltInTypeStatSink.cpp',
+			'src/BuiltInTypeStatSinkChain.cpp'
 		],
-		includes='./include',
-		export_incdirs='./include',
-		uselib = 'BOOST ZLIB BOOST_IOSTREAMS'
+		includes='./include ../genfile/include',
+		uselib = 'BOOST BOOST_IOSTREAMS ZLIB',
+		export_incdirs = './include'
 	)
 
 	create_test( bld, 'test_RFormat' )
+	create_test( bld, 'test_TabDelimitedFormat' )
+	create_test( bld, 'test_BinFormat' )
+	create_test( bld, 'test_PackedBinFormat' )

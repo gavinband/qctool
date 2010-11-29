@@ -8,7 +8,13 @@
 namespace statfile {
 	
 	enum CompressionType { e_NoCompression = 0, e_GzipCompression = 1 } ;
-	enum FileFormatType { e_UnknownFormat = 0, e_RFormat = 1 } ;
+	enum FileFormatType {
+		e_UnknownFormat = 0,
+		e_RFormat = 1,
+		e_TabDelimitedFormat = 2,
+		e_BinFormat = 3,
+		e_PackedBinFormat = 4
+	} ;
 
 	struct MapValueSetter
 	{
@@ -31,9 +37,14 @@ namespace statfile {
 		return ValueSetter< T >( t ) ;
 	}
 
-	struct IgnoreOne {
+	struct IgnoreSome {
+		IgnoreSome( std::size_t n = 1 ): m_number_to_ignore( n ) {}
+		std::size_t number_to_ignore() const { return m_number_to_ignore ; }
+	private:
+		std::size_t m_number_to_ignore ;
 	} ;
-	IgnoreOne ignore() ;
+
+	IgnoreSome ignore( std::size_t n = 1 ) ;
 
 	struct IgnoreAll {
 	} ;
@@ -67,14 +78,30 @@ namespace statfile {
 
 	std::auto_ptr< std::istream > open_text_file_for_input( std::string filename, CompressionType compression_type ) ;
 	std::auto_ptr< std::ostream > open_text_file_for_output( std::string filename, CompressionType compression_type ) ;
-	std::auto_ptr< std::istream > open_binary_file_for_input( std::string filename, CompressionType compression_type ) ;
-	std::auto_ptr< std::ostream > open_binary_file_for_output( std::string filename, CompressionType compression_type ) ;
+	std::auto_ptr< std::istream > open_binary_file_for_input( std::string filename, CompressionType compression_type = e_NoCompression ) ;
+	std::auto_ptr< std::ostream > open_binary_file_for_output( std::string filename, CompressionType compression_type = e_NoCompression ) ;
 
 	struct StatError: public std::exception { char const* what() const throw() { return "StatError" ; } } ;
-	struct FileNotOpenedError: public StatError { char const* what() const throw() { return "FileNotOpenedError" ; } } ;
+	struct FileNotOpenedError: public StatError {
+		FileNotOpenedError( std::string const& filename = "(unknown)" ): m_filename( filename ) {}
+		~FileNotOpenedError() throw() {}
+		char const* what() const throw() { return "FileNotOpenedError" ; }
+		std::string const& filename() const { return m_filename ; }
+	private:
+		std::string const m_filename ;
+	} ;
 	struct FormatUnsupportedError: public StatError { char const* what() const throw() { return "FormatUnsupportedError" ; } } ;
 	struct FileStructureInvalidError: public StatError { char const* what() const throw() { return "FileStructureInvalidError" ; } } ;
-	struct FileHasTwoTrailingNewlinesError: public StatError { char const* what() const throw() { return "FileHasTwoTrailingNewlinesError" ; } } ;
+	struct FileHasTwoConsecutiveNewlinesError: public StatError { char const* what() const throw() { return "FileHasTwoConsecutiveNewlinesError" ; } } ;
+	struct InvalidColumnNameError: public StatError
+	{
+		InvalidColumnNameError( std::string const& name ): m_name( name ) {}
+		~InvalidColumnNameError() throw() {}
+		char const* what() const throw() { return "InvalidColumnNameError" ; }
+		std::string const& name() const { return m_name ; }
+	private:
+		std::string const m_name ;
+	} ;
 }
 
 #endif

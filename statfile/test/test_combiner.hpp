@@ -16,7 +16,7 @@ struct TestWeighter: public BayesFactorWeighter::Base
 
 struct TestCombinerContext: public BayesFactorCombinerContext
 {
-	TestCombinerContext( std::string const& input_string, std::vector< TranscriptDefn > const& transcript_defns )
+	TestCombinerContext( std::string const& input_string, std::vector< pathway::TranscriptDefn > const& transcript_defns )
 		: m_stat_sink( m_result_stream ),
 		  m_input_stream( input_string ),
   		  m_transcript_defns( transcript_defns ),
@@ -37,11 +37,11 @@ struct TestCombinerContext: public BayesFactorCombinerContext
 private:
 	std::ostringstream m_result_stream ;
 	std::istringstream m_input_stream ;
-	std::vector< TranscriptDefinition > m_transcript_defns ;
+	std::vector< pathway::TranscriptDefinition > m_transcript_defns ;
 	
 	TestWeighter m_bf_weighter ;
 	RFormatStatSink m_stat_sink ;
 	RFormatStatSource m_stat_source ;
-	VectorStatSource< TranscriptDefinition > m_transcript_source ;
+	VectorStatSource< pathway::TranscriptDefinition > m_transcript_source ;
 	OstreamTee m_ostream_tee ;
 } ;

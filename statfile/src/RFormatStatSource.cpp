@@ -18,6 +18,16 @@ namespace statfile {
 		setup( filename ) ;
 	}
 
+	void RFormatStatSource::reset_to_start() {
+		reset_stream_to_start() ;
+		// Skip comment and column header lines.
+		std::string line ;
+		for( std::size_t i = 0; i < m_number_of_comment_lines + 1; ++i ) {
+			std::getline( stream(), line ) ;
+		}
+		base_t::reset_to_start() ;
+	}
+
 	void RFormatStatSource::read_value( int32_t& field ) {
 		stream() >> field ;
 	}
@@ -33,13 +43,20 @@ namespace statfile {
 	void RFormatStatSource::read_value( double& field ) {
 		std::string str_field ;
 		stream() >> str_field ;
-		if( str_field == "inf" ) {
-			field = std::numeric_limits< double >::infinity() ;
-		} else {
-			std::istringstream istr( str_field ) ;
-			istr >> field ;
-			istr.peek() ;
-			assert( istr.eof()) ;	
+		if( stream() ) {
+			if( str_field == "inf" ) {
+				field = std::numeric_limits< double >::infinity() ;
+			} else {
+				std::istringstream aStream( str_field ) ;
+				aStream >> field ;
+				if( !aStream ) {
+					throw FileStructureInvalidError() ;
+				}
+				aStream.peek() ;
+				if( !aStream.eof()) {
+					throw FileStructureInvalidError() ;
+				}
+			}
 		}
 	}
 
@@ -57,10 +74,12 @@ namespace statfile {
 		// First count the lines in the file.
 		set_stream( stream_ptr ) ;
 		read_descriptive_comments() ;
-		m_total_number_of_rows = count_remaining_lines() - 1 ;
+		turn_off_ios_exceptions() ;
+		m_number_of_rows = count_remaining_lines() - 1 ;
 		// Go back to the start and get the column names, prepare for reading.
 		reset_stream_to_start() ;
 		assert( stream() ) ;
+		turn_on_ios_exceptions() ;
 		m_descriptive_text = read_descriptive_comments() ;
 		read_column_names() ;
 	}
@@ -71,6 +90,7 @@ namespace statfile {
 
 	std::string RFormatStatSource::read_descriptive_comments() {
 		std::string line, result ;
+		m_number_of_comment_lines = 0 ;
 		while( stream().peek() == m_comment_character || stream().peek() == '\n' ) {
 			std::getline( stream(), line ) ;
 			if( line.size() > 0 ) {
@@ -80,6 +100,7 @@ namespace statfile {
 				result += '\n' ;
 			}
 			result += line ;
+			++m_number_of_comment_lines ;
 		}
 		return result ;
 	}

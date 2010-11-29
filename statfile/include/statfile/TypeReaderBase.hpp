@@ -20,7 +20,7 @@ namespace statfile {
 	struct TypeReaderBase: public TypeReaderBase< T2, T3, T4, T5, T6, T7, T8, T9, T10 >
 	{
 		using TypeReaderBase< T2, T3, T4, T5, T6, T7, T8, T9, T10 >::read_value ;
-		virtual void read_value( T1& ) = 0 ;
+		virtual void read_value( T1& ) {} ;
 	} ;
 
 	template<>

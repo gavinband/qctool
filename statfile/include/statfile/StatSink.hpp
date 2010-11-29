@@ -35,18 +35,26 @@ namespace statfile {
 		   m_current_column(0u),
 		   m_number_of_rows_written(0u)
 		{}
+
+		virtual ~StatSink() {}
+
 	private:
 		// Forbid copying and assignment
 		StatSink( StatSink const& other ) ;
 		StatSink& operator=( StatSink const& other ) ;
+
 	public:
 		void add_columns( std::vector< std::string > const& names ) {
-			for( std::size_t i = 0; i < names.size(); ++i ) {
-				add_column( names[i] ) ;
-			}
+			add_columns_impl( names ) ;
 		} ;
 
-		// Use this to add index and identifying members to each row.
+		// Use this to add column headers.
+		StatSink& operator|( std::string const& column_name ) {
+			add_column( column_name ) ;
+			return *this ;
+		}
+
+		// Use this to add entries to each row.
 		template< typename T >
 		StatSink& operator<<( T const& value ) {
 			assert( m_current_column < number_of_columns() ) ;
@@ -60,7 +68,10 @@ namespace statfile {
 
 		StatSink& operator<<( EndRow const& ) {
 			assert( m_current_column == number_of_columns()) ;
-			move_to_next_row() ;
+			if( *this ) {
+				end_row() ;
+				move_to_next_row() ;
+			}
 			return *this ;
 		}
 
@@ -72,9 +83,19 @@ namespace statfile {
 		// Return a nonzero pointer iff there have been no errors so far.
 		virtual operator void*() const = 0 ;
 		// Column-related functions which must be supplied by derived classes.
-		virtual void add_column( std::string const& name ) = 0 ;
+		void add_column( std::string const& name ) {
+			assert( m_number_of_rows_written == 0 && m_current_column == 0 ) ;
+			add_column_impl( name ) ;
+		}
+		virtual void add_column_impl( std::string const& name ) = 0 ;
+		virtual void add_columns_impl( std::vector< std::string > const& names ) {
+			for( std::size_t i = 0; i < names.size(); ++i ) {
+				add_column( names[i] ) ;
+			}
+		}
 		virtual std::size_t number_of_columns() const = 0 ;
 		virtual std::vector< std::string > const& column_names() const = 0 ;
+		virtual void end_row() {} ;
 
 		// The next two functions return the tracked column and row numbers.
 		std::size_t number_of_rows_written() const { return m_number_of_rows_written ; }
@@ -108,31 +129,21 @@ namespace statfile {
 		std::size_t m_number_of_rows_written ;
 	} ;
 	
-	typedef StatSink< int, unsigned int, long int, long unsigned int, std::string, double > BuiltInTypeStatSink ;
-	
 	template<
 		typename StatSinkT
 	>
 	struct ColumnNamingStatSink: public virtual StatSinkT
 	{
-		void add_column( std::string const& name ) {
-			m_column_names.push_back( name ) ;
-		} ;
+	public:
 		std::size_t number_of_columns() const { return m_column_names.size(); }
 		std::vector< std::string > const& column_names() const { return m_column_names ; }
+		std::string const& column_name( std::size_t i ) const { assert( i < m_column_names.size() ) ;  return m_column_names[i] ; }
+	protected:
+		void add_column_impl( std::string const& name ) {
+			m_column_names.push_back( name ) ;
+		} ;
 	private:
 		std::vector< std::string > m_column_names ;
-	} ;
-	
-	struct TrivialBuiltInTypeStatSink: public ColumnNamingStatSink< BuiltInTypeStatSink >
-	{
-		operator void*() const { return reinterpret_cast< void* > ( const_cast< TrivialBuiltInTypeStatSink* >( this )) ; }
-		void write_value( int const& ) {}
-		void write_value( unsigned int const& ) {}
-		void write_value( long int const& ) {}
-		void write_value( long unsigned int const& ) {}
-		void write_value( double const& ) {}
-		void write_value( std::string const& ) {}
 	} ;
 }
 
