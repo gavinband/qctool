@@ -7,6 +7,7 @@
 #include "genfile/SNPIDInListTest.hpp"
 #include "genfile/SNPIDFieldsInListTest.hpp"
 #include "genfile/ChromosomeInSetTest.hpp"
+#include "genfile/SNPIDMatchesTest.hpp"
 #include "genfile/snp_data_utils.hpp"
 
 namespace genfile {
@@ -82,4 +83,18 @@ namespace genfile {
 		m_filter.add_subtest( test ) ;
 		return *this ;
 	}
+
+	CommonSNPFilter& CommonSNPFilter::exclude_snps_matching( std::string const& expression ) {
+		SNPIdentifyingDataTest::UniquePtr test( new SNPIDMatchesTest( expression ) ) ;
+		test.reset( new SNPIdentifyingDataTestNegation( test )) ;
+		m_filter.add_subtest( test ) ;
+		return *this ;
+	}
+
+	CommonSNPFilter& CommonSNPFilter::exclude_snps_not_matching( std::string const& expression ) {
+		SNPIdentifyingDataTest::UniquePtr test( new SNPIDMatchesTest( expression ) ) ;
+		m_filter.add_subtest( test ) ;
+		return *this ;
+	}
+
 }

@@ -1,19 +1,23 @@
 #include <string>
+#include <cassert>
 #include "genfile/SNPIdentifyingDataTest.hpp"
-#include "genfile/SNPIDMatchTest.hpp"
+#include "genfile/SNPIDMatchesTest.hpp"
 #include "genfile/string_utils.hpp"
 #include "genfile/Error.hpp"
 
 namespace genfile {
-	SNPIDMatchTest::SNPIDMatchTest( std::string const& expression ) {
+	SNPIDMatchesTest::SNPIDMatchesTest( std::string const& expression ) {
 		setup( expression ) ;
 	}
 
-	void SNPIDMatchTest::setup( std::string const& expression ) {
+	void SNPIDMatchesTest::setup( std::string const& expression ) {
 		std::string lowered_expression = string_utils::to_lower( expression ) ;
 		std::vector< std::string > bits = string_utils::split_and_strip( lowered_expression, "~" ) ;
-		if( bits.size() != 2 || ( bits[0] != "snpid" && bits[0] != "rsid" )) {
-			throw BadArgumentError( "SNPIDMatchTest::setup()", "expression = \"" + expression + "\"" ) ;
+		if( bits.size() == 1 ) {
+			bits.insert( bits.begin(), "either" ) ;
+		}
+		if( bits.size() != 2 || ( bits[0] != "snpid" && bits[0] != "rsid" && bits[0] != "either" )) {
+			throw BadArgumentError( "SNPIDMatchesTest::setup()", "expression = \"" + expression + "\"" ) ;
 		}
 		if( bits[0] == "snpid" ) {
 			m_type = eSNPID ;
@@ -21,6 +25,10 @@ namespace genfile {
 		else if( bits[0] == "rsid" ) {
 			m_type = eRSID ;
 		}
+		else if( bits[0] == "either" ) {
+			m_type == eEITHER ;
+		}
+
 		m_expression = bits[1] ;
 		std::size_t pos = m_expression.find( m_wildcard_char ) ;
 		if( pos == std::string::npos ) {
@@ -33,7 +41,7 @@ namespace genfile {
 		}
 	}
 
-	bool SNPIDMatchTest::operator()(
+	bool SNPIDMatchesTest::operator()(
 		std::string SNPID,
 		std::string RSID,
 		GenomePosition,
@@ -46,18 +54,27 @@ namespace genfile {
 		else if( m_type == eRSID ) {
 			return match( RSID ) ;
 		}
+		else if( m_type == eEITHER ) {
+			return match( SNPID ) || match( RSID ) ;
+		}
+		else {
+			assert(0) ;
+		}
 	}
 	
-	bool SNPIDMatchTest::match( std::string const& s ) const {
+	bool SNPIDMatchesTest::match( std::string const& s ) const {
 		return s.size() >= (m_prefix.size() + m_suffix.size()) && s.compare( 0, m_prefix.size(), m_prefix ) == 0 && s.compare( s.size() - m_suffix.size(), m_suffix.size(), m_suffix ) == 0 ;
 	}
 	
-	std::string SNPIDMatchTest::display() const {
+	std::string SNPIDMatchesTest::display() const {
 		if( m_type == eSNPID ) {
 			return "SNPID~" + m_expression ;
 		}
 		else if( m_type == eRSID ) {
 			return "RSID~" + m_expression ;
+		}
+		else if( m_type == eEITHER ) {
+			return "(SNPID or RSID)~" + m_expression ;
 		}
 	}
 }

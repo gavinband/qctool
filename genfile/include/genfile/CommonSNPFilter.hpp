@@ -31,17 +31,21 @@ namespace genfile {
 
 	public:
 		CommonSNPFilter() ;
-
+		
 		enum Field { RSIDs = 1, SNPIDs = 2 } ;
-
+		
 		CommonSNPFilter& exclude_snps_in_file( std::string const& filename, int fields ) ;
 		CommonSNPFilter& exclude_snps_not_in_file( std::string const& filename, int fields ) ;
-
+		
 		CommonSNPFilter& exclude_snps_in_set( std::set< std::string > const& set, int fields ) ;
 		CommonSNPFilter& exclude_snps_not_in_set( std::set< std::string > const& set, int fields ) ;
-
+		
 		CommonSNPFilter& exclude_chromosomes_in_set( std::set< genfile::Chromosome > const& set ) ;
 		CommonSNPFilter& exclude_chromosomes_not_in_set( std::set< genfile::Chromosome > const& set ) ;
+		
+		CommonSNPFilter& exclude_snps_matching( std::string const& expression ) ;
+		CommonSNPFilter& exclude_snps_not_matching( std::string const& expression ) ;
+
 	private:
 		SNPIdentifyingDataTestConjunction m_filter ;
 

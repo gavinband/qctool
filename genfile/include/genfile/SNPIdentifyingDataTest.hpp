@@ -22,6 +22,7 @@ namespace genfile {
 	public:
 		virtual ~SNPIdentifyingDataTest() {} ;
 
+		// Return true if the SNP passes the test.
 		virtual bool operator()(
 			std::string SNPID,
 			std::string RSID,
@@ -36,6 +37,7 @@ namespace genfile {
 			return operator()( data.get_SNPID(), data.get_rsid(), data.get_position(), data.get_first_allele(), data.get_second_allele() ) ;
 		}
 		
+		// Return a vector of indices of SNPs which pass the test.
 		std::vector< std::size_t > get_indices_of_filtered_in_snps( std::vector< SNPIdentifyingData> const& snps ) const ;
 		
 	protected:
