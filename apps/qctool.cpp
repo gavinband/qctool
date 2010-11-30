@@ -101,9 +101,9 @@ public:
 								"To specify several files, either repeat this option or use the numerical wildcard character '#', which "
 								"matches numbers from 1 to 100.  For example, \"qctool -g myfile_#.gen\" will find all files of "
 								"the form \"myfile_N.gen\", where N can be 1, 002, 099, etc." )
-	        .set_is_required()
 			.set_takes_values_per_use( 1 )
-			.set_maximum_multiplicity(23) ;
+			.set_minimum_multiplicity( 1 )
+			.set_maximum_multiplicity( 100 ) ;
 
 	    options[ "-og" ]
 	        .set_description( 	"Override the auto-generated path(s) of the output gen file(s) to use when filtering.  "
@@ -136,11 +136,9 @@ public:
 	    options[ "-snp-stats-file" ]
 	        .set_description( 	"Override the auto-generated path(s) of the snp-stats file to use when outputting snp-wise statistics.  "
 								"(By default, the paths are formed by adding \".snp-stats\" to the input gen filename(s).)  "
-								"If used, this option must appear as many times as the -g option.  "
-	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
-								"also be used here to specify numbered output files corresponding to the input files." )
+								"The '#' character can also be used here to specify one output file per chromosome." )
 	        .set_takes_values_per_use()
-			.set_maximum_multiplicity(23) ;
+			.set_maximum_multiplicity(1) ;
 
 		options[ "-snp-stats-columns" ]
 	        .set_description( "Comma-seperated list of extra columns to output in the snp-wise statistics file.  "
@@ -240,9 +238,19 @@ public:
 			.set_description( "Override default name of the file to use in -write-sample-excl-list" )
 			.set_takes_single_value() ;
 		options [ "-write-snp-excl-list" ]
-			.set_description( "Don't apply the filter; instead, write files containing the positions of SNPs that would be filtered out."
-			"  These files are suitable for use as the input to -snp-incl-list option on a subsequent run." ) ;
+			.set_description( "Don't output a new genotypes file; instead, write files containing the positions of SNPs that are filtered out." )
+			.set_takes_single_value() ;
 		options [ "-write-snp-excl-list-file" ]
+	        .set_description( 	"Override the auto-generated path(s) of the file to use when outputting the positions of filtered out SNPs.  "
+								"(By default, the paths are formed by adding \".snp-excl-list\" to the input gen filename(s).)  "
+								"If used, this option must appear as many times as the -g option.  "
+	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
+								"also be used here to specify numbered output files corresponding to the input files." )
+			.set_takes_single_value() ;
+		options [ "-write-snp-incl-list" ]
+			.set_description( "Don't output a new genotypes file; instead, write files containing the positions of SNPs that are filtered in." )
+			.set_takes_single_value() ;
+		options [ "-write-snp-incl-list-file" ]
 	        .set_description( 	"Override the auto-generated path(s) of the file to use when outputting the positions of filtered out SNPs.  "
 								"(By default, the paths are formed by adding \".snp-excl-list\" to the input gen filename(s).)  "
 								"If used, this option must appear as many times as the -g option.  "
@@ -420,7 +428,7 @@ private:
 		//    * OR some SNP filters are given.
 		if( m_options.check_if_option_was_supplied( "-og" )
 			|| (
-				!m_options.check_if_option_was_supplied( "-write-snp-excl-list" )
+				!( m_options.check_if_option_was_supplied( "-write-snp-excl-list" ) || m_options.check_if_option_was_supplied( "-write-snp-incl-list" ) )
 				&& (
 					(m_options.check_if_option_was_supplied_in_group( "Sample filtering options" ) && !m_options.check_if_option_was_supplied( "-write-sample-excl-list" ))
 					||
@@ -472,6 +480,24 @@ private:
 			else {
 				for( std::size_t i = 0; i < input_gen_filenames_supplied.size() ; ++i ) {
 					result[i] = genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) + ".snp-excl-list" ;
+				}
+			}
+		}
+		if( result.size() != input_gen_filenames_supplied.size() ) {
+			throw QCToolFileCountMismatchError() ;
+		}
+		return result ;
+	}
+
+	std::vector< std::string > construct_output_snp_incl_list_filenames( std::vector< std::string > const& input_gen_filenames_supplied ) {
+		std::vector< std::string > result( input_gen_filenames_supplied.size(), "" ) ;
+		if( m_options.check_if_option_was_supplied( "-write-snp-incl-list" ) ) {
+			if( m_options.check_if_option_was_supplied( "-write-snp-incl-list-file" )) {
+				result = m_options.get_values< std::string >( "-write-snp-incl-list-file" ) ;
+			}
+			else {
+				for( std::size_t i = 0; i < input_gen_filenames_supplied.size() ; ++i ) {
+					result[i] = genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) + ".snp-incl-list" ;
 				}
 			}
 		}
@@ -838,19 +864,23 @@ private:
 	}
 	
 	genfile::SNPDataSource::UniquePtr open_snp_data_source() {
+		open_snp_data_source( m_mangled_options.gen_filename_mapper().input_files() ) ;
+	}
+	
+	genfile::SNPDataSource::UniquePtr open_snp_data_source( std::vector< genfile::wildcard::FilenameMatch > const& matches ) {
 		genfile::SNPDataSource::UniquePtr result ;
 
 		appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Opening genotype files" ) ;
-		progress_context.notify_progress( 0, m_mangled_options.gen_filename_mapper().input_files().size() ) ;
+		progress_context.notify_progress( 0, matches.size() ) ;
 
 		genfile::SNPDataSourceChain::UniquePtr chain( new genfile::SNPDataSourceChain() ) ;
-		for( std::size_t i = 0; i < m_mangled_options.gen_filename_mapper().input_files().size(); ++i ) {
+		for( std::size_t i = 0; i < matches.size(); ++i ) {
 			genfile::SNPDataSource::UniquePtr source = open_snp_data_source(
-				m_mangled_options.gen_filename_mapper().input_file( i ),
-				m_mangled_options.gen_filename_mapper().matched_part( i )
+				matches[i].filename(),
+				matches[i].match()
 			) ;
 			chain->add_source( source ) ;
-			progress_context.notify_progress( i+1, m_mangled_options.gen_filename_mapper().input_files().size() ) ;
+			progress_context.notify_progress( i+1, matches.size() ) ;
 		}
 		chain->set_moved_to_next_source_callback( boost::bind( &QCToolCmdLineContext::move_to_next_output_file, this, _1 )) ;
 		return genfile::SNPDataSource::UniquePtr( chain.release() ) ;
@@ -923,6 +953,7 @@ private:
 				throw genfile::DuplicateSNPError( filename, genfile::string_utils::to_string( data1 ) ) ;
 			}
 			result[ data1 ] = data2 ;
+			(*source) >> statfile::end_row() ;
 		}
 		return result ;
 	}
@@ -1245,22 +1276,22 @@ private:
 
 		for( std::size_t i = 0; i < m_mangled_options.gen_filename_mapper().input_files().size(); ++i ) {
 			for( std::size_t j = 0; j < m_mangled_options.gen_filename_mapper().output_filenames().size(); ++j ) {
-				if( strings_are_nonempty_and_equal( m_mangled_options.gen_filename_mapper().output_filenames()[j], m_mangled_options.gen_filename_mapper().input_files()[i] )) {
+				if( strings_are_nonempty_and_equal( m_mangled_options.gen_filename_mapper().output_filenames()[j], m_mangled_options.gen_filename_mapper().input_file( i ).filename() )) {
 					m_errors.push_back( "Output GEN file \"" + m_mangled_options.gen_filename_mapper().output_filenames()[j] +"\" also specified as input GEN file." ) ;
 					break ;
 				}
 			}
-			if( strings_are_nonempty_and_equal( m_mangled_options.output_sample_filename(), m_mangled_options.gen_filename_mapper().input_files()[i] )) {
+			if( strings_are_nonempty_and_equal( m_mangled_options.output_sample_filename(), m_mangled_options.gen_filename_mapper().input_file( i ).filename() )) {
 				m_errors.push_back( "Output SAMPLE file \"" + m_mangled_options.output_sample_filename() +"\" also specified as input GEN file." ) ;
 				break ;
 			}
 			for( std::size_t j = 0; j < m_mangled_options.snp_stats_filename_mapper().output_filenames().size(); ++j ) {
-				if( strings_are_nonempty_and_equal( m_mangled_options.snp_stats_filename_mapper().output_filenames()[j], m_mangled_options.gen_filename_mapper().input_files()[i] )) {
+				if( strings_are_nonempty_and_equal( m_mangled_options.snp_stats_filename_mapper().output_filenames()[j], m_mangled_options.gen_filename_mapper().input_file( i ).filename() )) {
 					m_errors.push_back( "Output GEN statistic file \"" + m_mangled_options.snp_stats_filename_mapper().output_filenames()[j] +"\" also specified as input GEN file." ) ;
 					break ;
 				}
 			}
-			if( strings_are_nonempty_and_equal( m_mangled_options.output_sample_stats_filename(), m_mangled_options.gen_filename_mapper().input_files()[i] )) {
+			if( strings_are_nonempty_and_equal( m_mangled_options.output_sample_stats_filename(), m_mangled_options.gen_filename_mapper().input_file( i ).filename() )) {
 				m_errors.push_back( "Output SAMPLE statistic file \"" + m_mangled_options.output_sample_stats_filename() +"\" also specified as input GEN file." ) ;
 				break ;
 			}
@@ -1298,10 +1329,9 @@ private:
 		if( m_mangled_options.gen_filename_mapper().output_filenames().size() == 0 && m_mangled_options.output_sample_filename() == "" && m_mangled_options.snp_stats_filename_mapper().output_filenames().size() == 0 && m_mangled_options.output_sample_stats_filename() == "" && m_mangled_options.output_sample_excl_list_filename() == "" && m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() == 0 ) {
 			m_warnings.push_back( "You have not specified any output files.  This will produce only logging output." ) ;
 		}
-		if( ((m_mangled_options.gen_filename_mapper().output_filenames().size() > 0) || ( m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() > 0)) &&  (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0) && !m_options.check_if_option_was_supplied_in_group( "SNP exclusion options" )) {
+		if( ((m_mangled_options.gen_filename_mapper().output_filenames().size() > 0) || ( m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() > 0)) &&  (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0) && !m_options.check_if_option_was_supplied_in_group( "SNP exclusion options" ) && !m_options.check_if_option_was_supplied( "-translate-snps" )) {
 			m_warnings.push_back( "You have specified output GEN (or snp exclusion) files, but no filters.\n"
-				" This will just output the same gen files (converting formats if necessary).\n"
-				" Consider using gen-convert, included with the qctool source code, instead." ) ;
+				" This will just output the same gen files (converting formats if necessary)." ) ;
 		}
 	}
 	

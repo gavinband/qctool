@@ -2,19 +2,25 @@
 #include <map>
 #include <vector>
 #include "genfile/snp_data_utils.hpp"
+#include "genfile/wildcard.hpp"
 #include "InputToOutputFilenameMapper.hpp"
-#include "wildcard.hpp"
 
 void InputToOutputFilenameMapper::add_filename_pair( std::string const& path_to_existing_files, std::string const& filename_template ) {
-	m_existing_files = wildcard::find_matches_for_path_with_integer_wildcard( path_to_existing_files, '#', 1, 100 ) ;
+	m_existing_files = genfile::wildcard::find_files_by_chromosome(
+		path_to_existing_files,
+		genfile::wildcard::eNON_SEX_CHROMOSOMES
+	) ;
 
 	if( m_existing_files.size() == 0 ) {
 		throw genfile::FileNotFoundError( path_to_existing_files ) ;
 	}
 
 	if( filename_template != "" ) {
-		std::vector< wildcard::FilenameMatch >
-			constructed_filenames = wildcard::construct_corresponding_filenames( m_existing_files, filename_template, '#' ) ;
+		std::vector< genfile::wildcard::FilenameMatch > constructed_filenames = genfile::wildcard::construct_corresponding_filenames(
+			m_existing_files,
+			filename_template,
+			'#'
+		) ;
 		assert( constructed_filenames.size() == m_existing_files.size() ) ;
 
 		// Construct the filename->filename mapping.

@@ -172,7 +172,7 @@ private:
 		m_input_chain->set_moved_to_next_source_callback( boost::bind( &GenConvertProcessor::move_to_next_output_file, this, _1 )) ;
 		
 		for( std::size_t i = 0; i < m_gen_file_mapper.input_files().size(); ++i ) {
-			add_gen_file_to_chain( *m_input_chain, m_gen_file_mapper.input_file(i), m_gen_file_mapper.matched_part(i) ) ;
+			add_gen_file_to_chain( *m_input_chain, m_gen_file_mapper.input_file(i).filename(), m_gen_file_mapper.input_file(i).match() ) ;
 		}
 		
 		m_number_of_samples_from_gen_file = m_input_chain->number_of_samples() ;
@@ -301,7 +301,7 @@ public:
 	void do_checks() {
 		for( std::size_t i = 0; i < m_gen_file_mapper.input_files().size(); ++i ) {
 			for( std::size_t j = 0; j < m_gen_file_mapper.output_filenames().size(); ++j ) {
-				if( strings_are_nonempty_and_equal( m_gen_file_mapper.input_file(i), m_gen_file_mapper.output_filenames()[j] )) {
+				if( strings_are_nonempty_and_equal( m_gen_file_mapper.input_file(i).filename(), m_gen_file_mapper.output_filenames()[j] )) {
 					m_errors.push_back( "Output GEN file \"" + m_gen_file_mapper.output_filenames()[j] +"\" also specified as input GEN file." ) ;
 					break ;
 				}

@@ -17,8 +17,8 @@ namespace genfile {
 	class SNPDataSink
 	{
 	public:
-		SNPDataSink(): m_number_of_samples(0u), m_number_of_snps_written(0u) {} ;
-		virtual ~SNPDataSink() {} ;
+		SNPDataSink() ;
+		virtual ~SNPDataSink() ;
 
 		// Factory functions
 		static std::auto_ptr< SNPDataSink > create( std::string const& filename, std::string const& free_data = "" ) ;
@@ -39,19 +39,7 @@ namespace genfile {
 			GenotypeProbabilityGetter const& get_AA_probability,
 			GenotypeProbabilityGetter const& get_AB_probability,
 			GenotypeProbabilityGetter const& get_BB_probability
-		) {
-			if( m_number_of_samples == 0 ) {
-				m_number_of_samples = number_of_samples ;
-			}
-			else {
-				assert( number_of_samples == m_number_of_samples ) ;
-			}
-			write_snp_impl( number_of_samples, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
-			if( *this ) {
-				++m_number_of_snps_written ;
-			}
-			return *this ;
-		} ;
+		) ;
 
 	public:
 

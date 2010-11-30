@@ -5,7 +5,7 @@
 #include <map>
 #include <vector>
 #include <cassert>
-#include "wildcard.hpp"
+#include "genfile/wildcard.hpp"
 
 class InputToOutputFilenameMapper
 {
@@ -17,24 +17,16 @@ public:
 	std::size_t number_of_input_files() const { return m_existing_files.size() ; }
 	std::size_t number_of_output_filenames() const { return m_constructed_filenames.size() ; }
 
-	std::string const& input_file( std::size_t i ) const {
-		return m_existing_files[i].filename() ;
+	genfile::wildcard::FilenameMatch const& input_file( std::size_t i ) const {
+		return m_existing_files[i] ;
+	}
+
+	std::vector< genfile::wildcard::FilenameMatch > const& input_files() const {
+		return m_existing_files ;
 	}
 
 	std::string const& output_filename( std::size_t i ) const {
 		return m_constructed_filenames[i] ;
-	}
-
-	std::string const& matched_part( std::size_t i ) const {
-		return m_existing_files[i].match() ;
-	}
-
-	std::vector< std::string > input_files() const {
-		std::vector< std::string > result( m_existing_files.size() ) ;
-		for( std::size_t i = 0; i < result.size(); ++i ) {
-			result[i] = m_existing_files[i].filename() ;
-		}
-		return result ;
 	}
 
 	std::vector< std::string > const& output_filenames() const {
@@ -46,7 +38,7 @@ public:
 
 private:
 
-	std::vector< wildcard::FilenameMatch > m_existing_files ;
+	std::vector< genfile::wildcard::FilenameMatch > m_existing_files ;
 	std::vector< std::string > m_constructed_filenames ;
 	std::map< std::size_t, std::size_t > m_filename_correspondence ;
 } ;
