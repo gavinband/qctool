@@ -41,6 +41,7 @@
 #include "genfile/TrivialSNPDataSink.hpp"
 #include "genfile/CategoricalCohortIndividualSource.hpp"
 #include "genfile/SampleFilteringCohortIndividualSource.hpp"
+#include "genfile/CohortIndividualSourceChain.hpp"
 #include "genfile/SampleFilteringSNPDataSource.hpp"
 #include "genfile/SNPTranslatingSNPDataSource.hpp"
 #include "genfile/CommonSNPFilter.hpp"
@@ -309,7 +310,7 @@ struct QCToolOptionMangler {
 	{
 		process_filenames() ;
 	}
-	std::string const& input_sample_filename() const { return m_input_sample_filename ; }
+	std::vector< std::string > const& input_sample_filenames() const { return m_input_sample_filenames ; }
 	std::string const& output_sample_filename() const { return m_output_sample_filename ; }
 	std::string const& output_sample_excl_list_filename() const { return m_output_sample_excl_list_filename ; }
 	std::string const& output_sample_stats_filename() const { return m_sample_statistic_filename ; }
@@ -363,7 +364,8 @@ private:
 
 	void get_sample_related_filenames() {
 		if( m_options.check_if_option_was_supplied( "-s" ) ) {
-			m_input_sample_filename = m_options.get_value< std::string >( "-s" ) ;
+			m_input_sample_filenames = m_options.get_values< std::string >( "-s" ) ;
+			assert( m_input_sample_filenames.size() == m_gen_filenames.size() ) ;
 		}
 
 		// We need to write a sample stats file if -sample-stats was given.
@@ -373,8 +375,8 @@ private:
 			}
 			else {
 				std::string stub ;
-				if( m_input_sample_filename != "" ) {
-					stub = strip_sample_file_extension_if_present( m_input_sample_filename ) ;
+				if( m_input_sample_filenames.size() > 0 ) {
+					stub = strip_sample_file_extension_if_present( m_input_sample_filenames[0] ) ;
 				}
 				else {
 					stub = "qctool" ;
@@ -389,7 +391,12 @@ private:
 				m_output_sample_excl_list_filename = m_options.get_value< std::string > ( "-write-sample-excl-list-file" ) ;
 			}
 			else {
-				m_output_sample_excl_list_filename = strip_sample_file_extension_if_present( m_input_sample_filename ) + ".sample-excl-list" ;
+				if( m_input_sample_filenames.size() > 0 ) {
+					m_output_sample_excl_list_filename = strip_sample_file_extension_if_present( m_input_sample_filenames[0] ) + ".sample-excl-list" ;
+				}
+				else {
+					m_output_sample_excl_list_filename = "qctool.sample-excl-list" ;
+				}
 			}
 		}
 
@@ -409,8 +416,8 @@ private:
 			}
 			else {
 				std::string stub ;
-				if( m_input_sample_filename != "" ) {
-					stub = strip_sample_file_extension_if_present( m_input_sample_filename ) ;
+				if( m_input_sample_filenames.size() > 0 ) {
+					stub = strip_sample_file_extension_if_present( m_input_sample_filenames[0] ) ;
 				}
 				else {
 					stub = "qctool" ;
@@ -490,7 +497,7 @@ private:
 
 private:
 	appcontext::OptionProcessor const& m_options ;
-	std::string m_input_sample_filename ;
+	std::vector< std::string > m_input_sample_filenames ;
 	std::string m_output_sample_filename ;
 	std::string m_output_sample_excl_list_filename ; 
 	std::string m_sample_statistic_filename ;
@@ -593,8 +600,13 @@ struct QCToolCmdLineContext: public QCToolContext
 	void write_preamble() {
 		m_ui_context.logger() << std::string( 72, '=' ) << "\n\n" ;
 
-		m_ui_context.logger() << std::setw(30) << "Input SAMPLE file:"
-			<< "  \"" << format_filename( m_mangled_options.input_sample_filename()) << "\".\n" ;
+		m_ui_context.logger() << std::setw(30) << "Input SAMPLE file(s):" ;
+		for( std::size_t i = 0; i < m_mangled_options.input_sample_filenames().size(); ++i ) {
+			if( i > 0 ) {
+				m_ui_context.logger() << std::setw(30) << "" ;
+			}
+			m_ui_context.logger() << "  \"" << format_filename( m_mangled_options.input_sample_filenames()[i]) << "\"\n" ;
+		}
 		m_ui_context.logger() << std::setw(30) << "Output SAMPLE file:"
 			<< "  \"" << format_filename( m_mangled_options.output_sample_filename()) << "\".\n" ;
 		m_ui_context.logger() << std::setw(30) << "Sample statistic output file:"
@@ -1263,8 +1275,19 @@ private:
 	
 	genfile::CohortIndividualSource::UniquePtr unsafe_load_sample_rows( std::size_t const expected_number_of_samples ) {
 		genfile::CohortIndividualSource::UniquePtr sample_source ;
-		if( m_mangled_options.input_sample_filename() != "" ) {
-			sample_source.reset( new genfile::CategoricalCohortIndividualSource( m_mangled_options.input_sample_filename() )) ;
+		if( m_mangled_options.input_sample_filenames().size() > 0 ) {
+			genfile::CohortIndividualSourceChain::UniquePtr source_chain( new genfile::CohortIndividualSourceChain() ) ;
+			for( std::size_t i = 0; i < m_mangled_options.input_sample_filenames().size(); ++i ) {
+				source_chain->add_source(
+					genfile::CohortIndividualSource::UniquePtr(
+						new genfile::CategoricalCohortIndividualSource(
+							m_mangled_options.input_sample_filenames()[i]
+						)
+					)
+				) ;
+			}
+			sample_source.reset( source_chain.release() ) ;
+
 			SampleRow sample_row ;
 			for( std::size_t i = 0; i < sample_source->get_number_of_individuals(); ++i ) {
 				sample_row.read_ith_sample_from_source( i, *sample_source ) ;
@@ -1325,8 +1348,8 @@ private:
 				m_errors.push_back( "The gen statistic and sample statistic filenames must differ." ) ;
 			}
 		}
-		if( m_mangled_options.input_sample_filename() == "" && m_sample_filter->number_of_subconditions() != 0 ) {
-			m_errors.push_back( "To filter on samples, please supply an input sample file." ) ;
+		if( m_mangled_options.input_sample_filenames().size() == 0 && m_sample_filter->number_of_subconditions() != 0 ) {
+			m_errors.push_back( "To filter on samples, please supply input sample files." ) ;
 		}
 		if( m_options.check_if_option_was_supplied_in_group( "Sample filtering options") && m_mangled_options.output_sample_excl_list_filename() == "" && m_mangled_options.gen_filename_mapper().output_filenames().size() == 0 && m_mangled_options.snp_stats_filename_mapper().output_filenames().size() == 0 && m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() == 0 ) {
 			m_errors.push_back( "You have specified sample filters, but not an output sample or SNP exclusion list, nor any output GEN files, nor any output SNP statistic files." ) ;
@@ -1341,8 +1364,8 @@ private:
 			m_warnings.push_back( "You are outputting a sample, sample statistic, or sample exclusion file, but the number of gen files is not 22.\n"
 			"   (I suspect there is not the whole genomes' worth of data?)" ) ;
 		}
-		if( m_mangled_options.output_sample_stats_filename() != "" && m_mangled_options.input_sample_filename() == "" ) {
-			m_warnings.push_back( "You are outputting a sample statistic file, but no input sample file has been supplied.\n"
+		if( m_mangled_options.output_sample_stats_filename() != "" && m_mangled_options.input_sample_filenames().size() == 0 ) {
+			m_warnings.push_back( "You are outputting a sample statistic file, but no input sample files have been supplied.\n"
 			"   Statistics will be output but the ID fields will be left blank.") ;
 		}
 		if( m_mangled_options.gen_filename_mapper().output_filenames().size() == 0 && m_mangled_options.output_sample_filename() == "" && m_mangled_options.snp_stats_filename_mapper().output_filenames().size() == 0 && m_mangled_options.output_sample_stats_filename() == "" && m_mangled_options.output_sample_excl_list_filename() == "" && m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() == 0 ) {

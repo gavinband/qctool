@@ -11,6 +11,7 @@
 #include <iomanip>
 #include <cassert>
 #include <memory>
+#include <boost/function.hpp>
 #include "appcontext/OptionDefinition.hpp"
 
 namespace appcontext {
@@ -154,6 +155,13 @@ namespace appcontext {
 
 			std::string const& get_help_option_name() const { return m_help_option_name ; }
 
+		public:
+			// checks
+			typedef boost::function< void ( OptionProcessor& ) > Check ;
+			void add_check( Check check ) ;
+
+			void check_equal_multiplicity( std::string const& option1, std::string const& option2 ) ;
+
 		private:
 			void calculate_option_groups() ;
 			// Parse the options.  Store option values.  Ignore, but store unknown args for later reference
@@ -164,8 +172,8 @@ namespace appcontext {
 			void check_required_options_are_supplied() const ;
 			void check_mutually_exclusive_options_are_not_supplied() const ;
 			void check_implied_options_are_supplied() const ;
-			virtual void preprocess_option_values() ;
 			virtual void check_option_values() ;
+			void run_user_checks() ;
 			std::string get_default_value( std::string const& arg ) const ;
 			std::vector< std::string > get_default_values( std::string const& arg ) const ;
 			std::size_t get_maximum_option_length() const ;
@@ -184,6 +192,7 @@ namespace appcontext {
 			std::string m_help_option_name ;
 			std::map< std::string, std::set< std::string > > m_option_exclusions ;
 			std::map< std::string, std::set< std::string > > m_option_implications ;
+			std::vector< Check > m_checks ;
 	} ;
 }
 

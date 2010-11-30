@@ -107,7 +107,7 @@ namespace appcontext {
 		check_mutually_exclusive_options_are_not_supplied() ;
 		check_implied_options_are_supplied() ; 
 		check_option_values() ;
-		preprocess_option_values() ;
+		run_user_checks() ;
 	}
 
 	void OptionProcessor::calculate_option_groups() {
@@ -243,10 +243,6 @@ namespace appcontext {
 	}
 
 
-	void OptionProcessor::preprocess_option_values() {
-		// Do nothing in base class.
-	}
-
 	void OptionProcessor::check_option_values() {
 		OptionValues::const_iterator
 			arg_i = m_option_values.begin(),
@@ -258,6 +254,16 @@ namespace appcontext {
 
 			// Run user-supplied checker if supplied
 		   defn_i->second.check_option_values( arg_i->first, arg_i->second ) ; 
+		}
+	}
+
+	void OptionProcessor::add_check( Check check ) {
+		m_checks.push_back( check ) ;
+	}
+
+	void OptionProcessor::run_user_checks() {
+		for( std::size_t i = 0; i < m_checks.size(); ++i ) {
+			m_checks[i]( *this ) ;
 		}
 	}
 
