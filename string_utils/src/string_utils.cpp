@@ -116,37 +116,37 @@ namespace string_utils {
 		std::string::const_iterator
 			this_char = string_to_wrap.begin(),
 			next_char = string_to_wrap.begin() ;
-		for( ++next_char; this_char != string_to_wrap.end(); ++this_char, ++next_char ) {
+		for( ++next_char; this_char < string_to_wrap.end(); ++this_char, ++next_char ) {
 			if( current_column == 0 ) {
 				result.append( indent ) ;
 				current_column = indent_amount ;
 				// skip whitespace at beginning of line
-				for( ; this_char < string_to_wrap.end() && impl::is_blank( *this_char ); ++this_char ) ; 
+				for( ; this_char < string_to_wrap.end() && impl::is_blank( *this_char ); ++this_char, ++next_char ) ; 
 			}
 
-			result.push_back( *this_char ) ;
-			if( *this_char == '\n' ) {
-				current_column = 0 ;
-			}
-			else if( ++current_column < wrap_column || next_char == string_to_wrap.end() ) {
-			}
-			else {
-				if( impl::is_alphabetic( *this_char ) && impl::is_alphabetic( *next_char )) {
-					// we are in the middle of a word.
-					result.push_back( '-' ) ;
-					result.push_back( '\n' ) ;
+			if( this_char < string_to_wrap.end() ) {
+				result.push_back( *this_char ) ;
+				if( *this_char == '\n' ) {
 					current_column = 0 ;
-				
 				}
-				else if( impl::is_blank( *this_char ) || impl::is_blank( *next_char )) {
-					result.push_back( '\n' ) ;
-					current_column = 0 ;
+				else if( ++current_column < wrap_column || next_char == string_to_wrap.end() ) {
 				}
 				else {
-					// do nothing in case this is something which can't be split.
+					if( impl::is_alphabetic( *this_char ) && impl::is_alphabetic( *next_char )) {
+						// we are in the middle of a word.
+						result.push_back( '-' ) ;
+						result.push_back( '\n' ) ;
+						current_column = 0 ;
+					}
+					else if( impl::is_blank( *this_char ) || impl::is_blank( *next_char )) {
+						result.push_back( '\n' ) ;
+						current_column = 0 ;
+					}
+					else {
+						// do nothing in case this is something which can't be split.
+					}
 				}
 			}
-		
 		}
 	
 		return result ;
