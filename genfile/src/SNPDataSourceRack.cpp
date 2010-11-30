@@ -1,7 +1,11 @@
+#include <iostream>
+#include <iomanip>
+#include <sstream>
 #include <vector>
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceRack.hpp"
 #include "genfile/get_set.hpp"
+#include "genfile/get_list_of_snps_in_source.hpp"
 
 namespace genfile {
 	
@@ -26,53 +30,39 @@ namespace genfile {
 	}
 
 	void SNPDataSourceRack::add_source( std::auto_ptr< SNPDataSource > source ) {
+		std::vector< SNPIdentifyingData > const snps = get_list_of_snps_in_source( *source ) ;
+		add_source( source, snps ) ;
+	}
+
+	void SNPDataSourceRack::add_source(
+		std::auto_ptr< SNPDataSource > source,
+		std::vector< SNPIdentifyingData > const& snps
+	) {
 		m_sources.push_back( source.release() ) ;
 		m_number_of_samples += m_sources.back()->number_of_samples() ;
-		std::vector< GenomePosition > intersected_positions = get_intersected_snp_positions( m_positions_of_included_snps, *m_sources.back() ) ;
-		m_positions_of_included_snps.swap( intersected_positions ) ;
 		m_sources.back()->reset_to_start() ;
-	}
-
-	std::vector< GenomePosition > SNPDataSourceRack::get_intersected_snp_positions(
-		std::vector< GenomePosition > const& snp_positions,
-		SNPDataSource& source
-	) const {
-		std::vector< GenomePosition > source_positions = get_source_snp_positions( source ) ;
-		std::vector< GenomePosition > intersected_positions ;
+		
 		if( m_sources.size() == 1 ) {
-			intersected_positions.swap( source_positions ) ;
+			m_included_snps = snps ;
 		}
 		else {
-			intersected_positions.reserve( source_positions.size() ) ;
-			std::set_intersection(
-				snp_positions.begin(), snp_positions.end(),
-				source_positions.begin(), source_positions.end(),
-				std::back_inserter( intersected_positions )
-			) ;
+			m_included_snps = get_intersected_snps( m_included_snps, snps ) ;
 		}
-
-		return intersected_positions ;
 	}
 
-	std::vector< GenomePosition > SNPDataSourceRack::get_source_snp_positions( SNPDataSource& source ) const {
-		std::vector< GenomePosition > result ;
-		result.reserve( source.total_number_of_snps() ) ;
-		for(
-			GenomePosition position ;
-			source.get_snp_identifying_data(
-				genfile::ignore(),
-				genfile::ignore(),
-				genfile::ignore(),
-				genfile::set_value( position.chromosome() ),
-				genfile::set_value( position.position() ),
-				genfile::ignore(),
-				genfile::ignore()
-			) ;
-			source.ignore_snp_probability_data()
-		) {
-			result.push_back( position ) ;
-		}
-		return result ;
+	std::vector< SNPIdentifyingData > SNPDataSourceRack::get_intersected_snps(
+		std::vector< SNPIdentifyingData > const& snps1,
+		std::vector< SNPIdentifyingData > const& snps2
+	) const {
+		std::vector< SNPIdentifyingData > intersected_snps ;
+		intersected_snps.reserve( snps1.size() ) ;
+		std::set_intersection(
+			snps1.begin(), snps1.end(),
+			snps2.begin(), snps2.end(),
+			std::back_inserter( intersected_snps )
+		) ;
+
+		return intersected_snps ;
 	}
 
 	// Implicit conversion to bool.  Return true if there have been no errors so far.
@@ -96,6 +86,17 @@ namespace genfile {
 		}
 		return result ;
 	}
+	
+	std::string SNPDataSourceRack::get_summary( std::string const& prefix, std::size_t width ) const {
+		std::ostringstream ostr ;
+		for( std::size_t i = 0; i < m_sources.size(); ++i ) {
+			ostr << prefix << std::setw( width ) << "cohort " << (i+1) << ":\n" ;
+			ostr << m_sources[i]->get_summary( prefix, width ) ;
+			ostr << "\n" ;
+		}
+		ostr << prefix << std::setw( width ) << "Total all cohorts:" << " " << number_of_samples() << " samples, " << total_number_of_snps() << " overlap SNPs.\n" ;
+		return ostr.str() ;
+	}
 
 	SNPDataSource& SNPDataSourceRack::get_source( std::size_t index ) const {
 		assert( index < m_sources.size() ) ;
@@ -109,7 +110,7 @@ namespace genfile {
 
 	// Return the total number of snps the source contains.
 	unsigned int SNPDataSourceRack::total_number_of_snps() const {
-		return m_positions_of_included_snps.size() ;
+		return m_included_snps.size() ;
 	}
 
 	void SNPDataSourceRack::reset_to_start_impl() {
@@ -137,7 +138,7 @@ namespace genfile {
 		uint32_t SNP_position ;
 		char allele1, allele2 ;
 		
-		if( number_of_snps_read() == m_positions_of_included_snps.size() ) {
+		if( number_of_snps_read() == m_included_snps.size() ) {
 			m_read_past_end = true ;
 		}
 		else if(
@@ -149,11 +150,11 @@ namespace genfile {
 				set_value( SNP_position ),
 				set_value( allele1 ),
 				set_value( allele2 ),
-				m_positions_of_included_snps[ number_of_snps_read() ].chromosome(),
-				m_positions_of_included_snps[ number_of_snps_read() ].position()
+				m_included_snps[ number_of_snps_read() ].get_position().chromosome(),
+				m_included_snps[ number_of_snps_read() ].get_position().position()
 			)
 		) {
-			throw MissingSNPError( 0, m_positions_of_included_snps[ number_of_snps_read() ] ) ;
+			throw MissingSNPError( 0, m_included_snps[ number_of_snps_read() ] ) ;
 		}
 		else {
 			if( *this ) {
@@ -195,6 +196,7 @@ namespace genfile {
 		char allele1,
 		char allele2
 	) {
+		assert( source_i > 0 ) ;
 		std::string this_source_SNPID, this_source_RSID ;
 		Chromosome this_source_chromosome ;
 		uint32_t this_source_SNP_position ;
@@ -213,14 +215,14 @@ namespace genfile {
 				SNP_position
 			)
 		) {
-			throw MissingSNPError( source_i, GenomePosition( chromosome, SNP_position )) ;
+			throw MissingSNPError( source_i, SNPIdentifyingData( SNPID, RSID, GenomePosition( chromosome, SNP_position ), allele1, allele2 )) ;
 		}
 		else if( this_source_SNPID != SNPID
 				|| this_source_RSID != RSID
 				|| this_source_allele1 != allele1
 				|| this_source_allele2 != allele2
 		) {
-				throw SNPMismatchError( source_i, GenomePosition( chromosome, SNP_position )) ;
+				throw SNPMismatchError( source_i, SNPIdentifyingData( SNPID, RSID, GenomePosition( chromosome, SNP_position ), allele1, allele2 )) ;
 		}
 		else {
 			return ;

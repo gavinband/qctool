@@ -15,6 +15,7 @@
 #include <memory>
 #include <numeric>
 #include <boost/bind.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "Timer.hpp"
 #include "GenRow.hpp"
@@ -35,6 +36,7 @@
 
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
+#include "genfile/SNPDataSourceRack.hpp"
 #include "genfile/SNPDataSinkChain.hpp"
 #include "genfile/TrivialSNPDataSink.hpp"
 #include "genfile/CategoricalCohortIndividualSource.hpp"
@@ -69,6 +71,7 @@
 #include "QCToolContext.hpp"
 #include "QCTool.hpp"
 #include "Relatotron.hpp"
+#include "genfile/utility.hpp"
 
 namespace globals {
 	std::string const program_name = "qctool" ;
@@ -111,8 +114,8 @@ public:
 								"If this option is supplied, it must appear the same number of times as the -g option. "
 	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
 								"also be used here to specify numbered output files corresponding to the input files." )
-	        .set_takes_values_per_use()
-			.set_maximum_multiplicity(23) ;
+	        .set_takes_values_per_use( 1 )
+			.set_maximum_multiplicity( 1 ) ;
 
 	    options[ "-s" ]
 	        .set_description( "Path of sample file to input" )
@@ -247,9 +250,11 @@ public:
 	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
 								"also be used here to specify numbered output files corresponding to the input files." )
 			.set_takes_single_value() ;
+		/*
 		options [ "-write-snp-incl-list" ]
 			.set_description( "Don't output a new genotypes file; instead, write files containing the positions of SNPs that are filtered in." )
 			.set_takes_single_value() ;
+
 		options [ "-write-snp-incl-list-file" ]
 	        .set_description( 	"Override the auto-generated path(s) of the file to use when outputting the positions of filtered out SNPs.  "
 								"(By default, the paths are formed by adding \".snp-excl-list\" to the input gen filename(s).)  "
@@ -257,6 +262,7 @@ public:
 	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
 								"also be used here to specify numbered output files corresponding to the input files." )
 			.set_takes_single_value() ;
+		*/
 
 		Relatotron::declare_options( options ) ;
 		options.option_implies_option( "-relatedness", "-s" ) ; // insist on sample file if doing relatedness.
@@ -310,6 +316,7 @@ struct QCToolOptionMangler {
 	std::string const& plot_filename() const { return m_plot_filename ; }
 	std::string const log_filename() const { return m_options.get_value< std::string > ( "-log" ) ; }
 	InputToOutputFilenameMapper const& gen_filename_mapper() const { return m_gen_file_mapper ; }
+	std::vector< std::vector< genfile::wildcard::FilenameMatch > > const& gen_filenames() const { return m_gen_filenames ; } 
 	InputToOutputFilenameMapper const& snp_stats_filename_mapper() const { return m_snp_stats_sink_mapper ; }
 	InputToOutputFilenameMapper const& snp_excl_list_filename_mapper() const { return m_output_snp_excl_file_mapper ; }
 	std::vector< std::string > row_statistics_specs() const {
@@ -334,16 +341,23 @@ private:
 
 	void get_snp_related_filenames() {
 		assert( m_options.check_if_option_was_supplied( "-g" )) ;
-		std::vector< std::string >
-			input_gen_filenames_supplied = m_options.get_values< std::string >( "-g" ),
-			output_gen_filenames_supplied = construct_output_gen_filenames( input_gen_filenames_supplied ),
-			output_snp_stats_filenames_supplied = construct_snp_stats_filenames( input_gen_filenames_supplied ),
-			output_snp_excl_filenames_supplied = construct_output_snp_excl_list_filenames( input_gen_filenames_supplied ) ;
+		std::vector< std::string > input_gen_filenames_supplied = m_options.get_values< std::string >( "-g" ) ;
+		assert( input_gen_filenames_supplied.size() >= 1 ) ;
+		std::string
+			output_gen_filename = construct_output_gen_filename( input_gen_filenames_supplied[0] ),
+			output_snp_stats_filename = construct_snp_stats_filename( input_gen_filenames_supplied[0] ),
+			output_snp_excl_filename = construct_output_snp_excl_list_filename( input_gen_filenames_supplied[0] ) ;
 
+		m_gen_file_mapper.add_filename_pair( input_gen_filenames_supplied[0], output_gen_filename ) ;
+		m_snp_stats_sink_mapper.add_filename_pair( input_gen_filenames_supplied[0], output_snp_stats_filename ) ;
+		m_output_snp_excl_file_mapper.add_filename_pair( input_gen_filenames_supplied[0], output_snp_excl_filename ) ;
+
+		m_gen_filenames.resize( input_gen_filenames_supplied.size() ) ;
 		for( std::size_t i = 0; i < input_gen_filenames_supplied.size(); ++i ) {
-			m_gen_file_mapper.add_filename_pair( input_gen_filenames_supplied[i], output_gen_filenames_supplied[i] ) ;
-			m_snp_stats_sink_mapper.add_filename_pair( input_gen_filenames_supplied[i], output_snp_stats_filenames_supplied[i] ) ;
-			m_output_snp_excl_file_mapper.add_filename_pair( input_gen_filenames_supplied[i], output_snp_excl_filenames_supplied[i] ) ;
+			m_gen_filenames[i] = genfile::wildcard::find_files_by_chromosome(
+				input_gen_filenames_supplied[i],
+				genfile::wildcard::eNON_SEX_CHROMOSOMES
+			) ;
 		}
 	}
 
@@ -419,8 +433,8 @@ private:
 		return filename ;
 	}
 
-	std::vector< std::string > construct_output_gen_filenames( std::vector< std::string > const& input_gen_filenames_supplied ) {
-		std::vector< std::string > result( input_gen_filenames_supplied.size(), "" ) ;
+	std::string construct_output_gen_filename( std::string const& input_gen_filename_supplied ) {
+		std::string result ;
 		// We need to produce output gen files if
 		//  * -write-snp-excl-list is not set
 		//  AND EITHER
@@ -437,72 +451,39 @@ private:
 			)
 		) {
 			if( m_options.check_if_option_was_supplied( "-og" ) ) {
-				result = m_options.get_values< std::string >( "-og" ) ;
+				result = m_options.get_value< std::string >( "-og" ) ;
 			} else {
-				for( std::size_t i = 0; i < input_gen_filenames_supplied.size(); ++i ) {
-					result[i]
-						= genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] )
-						+ ".fltrd"
-						+ genfile::get_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) ;
-				}
+				result
+					= genfile::strip_gen_file_extension_if_present( input_gen_filename_supplied )
+					+ ".fltrd"
+					+ genfile::get_gen_file_extension_if_present( input_gen_filename_supplied ) ;
 			}
-		}
-		if( result.size() != input_gen_filenames_supplied.size() ) {
-			throw QCToolFileCountMismatchError() ;
 		}
 		return result ;
 	}
 
-	std::vector< std::string > construct_snp_stats_filenames( std::vector< std::string > const& input_gen_filenames_supplied ) {
-		std::vector< std::string > result( input_gen_filenames_supplied.size(), "" ) ;
+	std::string construct_snp_stats_filename( std::string const& input_gen_filename_supplied ) {
+		std::string result ;
 		if( m_options.check_if_option_was_supplied( "-snp-stats" ) ) {
 			if( m_options.check_if_option_was_supplied( "-snp-stats-file" )) {
-				result = m_options.get_values< std::string >( "-snp-stats-file" ) ;
+				result = m_options.get_value< std::string >( "-snp-stats-file" ) ;
 			}
 			else {
-				for( std::size_t i = 0; i < input_gen_filenames_supplied.size() ; ++i ) {
-					result[i] = genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) + ".snp-stats" ;
-				}
+				result = genfile::strip_gen_file_extension_if_present( input_gen_filename_supplied ) + ".snp-stats" ;
 			}
-		}
-		if( result.size() != input_gen_filenames_supplied.size() ) {
-			throw QCToolFileCountMismatchError() ;
 		}
 		return result ;
 	}
 
-	std::vector< std::string > construct_output_snp_excl_list_filenames( std::vector< std::string > const& input_gen_filenames_supplied ) {
-		std::vector< std::string > result( input_gen_filenames_supplied.size(), "" ) ;
+	std::string construct_output_snp_excl_list_filename( std::string const& input_gen_filename_supplied ) {
+		std::string result ;
 		if( m_options.check_if_option_was_supplied( "-write-snp-excl-list" ) ) {
 			if( m_options.check_if_option_was_supplied( "-write-snp-excl-list-file" )) {
-				result = m_options.get_values< std::string >( "-write-snp-excl-list-file" ) ;
+				result = m_options.get_value< std::string >( "-write-snp-excl-list-file" ) ;
 			}
 			else {
-				for( std::size_t i = 0; i < input_gen_filenames_supplied.size() ; ++i ) {
-					result[i] = genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) + ".snp-excl-list" ;
-				}
+				result = genfile::strip_gen_file_extension_if_present( input_gen_filename_supplied ) + ".snp-excl-list" ;
 			}
-		}
-		if( result.size() != input_gen_filenames_supplied.size() ) {
-			throw QCToolFileCountMismatchError() ;
-		}
-		return result ;
-	}
-
-	std::vector< std::string > construct_output_snp_incl_list_filenames( std::vector< std::string > const& input_gen_filenames_supplied ) {
-		std::vector< std::string > result( input_gen_filenames_supplied.size(), "" ) ;
-		if( m_options.check_if_option_was_supplied( "-write-snp-incl-list" ) ) {
-			if( m_options.check_if_option_was_supplied( "-write-snp-incl-list-file" )) {
-				result = m_options.get_values< std::string >( "-write-snp-incl-list-file" ) ;
-			}
-			else {
-				for( std::size_t i = 0; i < input_gen_filenames_supplied.size() ; ++i ) {
-					result[i] = genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) + ".snp-incl-list" ;
-				}
-			}
-		}
-		if( result.size() != input_gen_filenames_supplied.size() ) {
-			throw QCToolFileCountMismatchError() ;
 		}
 		return result ;
 	}
@@ -518,6 +499,7 @@ private:
 	InputToOutputFilenameMapper m_gen_file_mapper ;
 	InputToOutputFilenameMapper m_snp_stats_sink_mapper ;
 	InputToOutputFilenameMapper m_output_snp_excl_file_mapper ;
+	std::vector< std::vector< genfile::wildcard::FilenameMatch > > m_gen_filenames ;
 } ;
 
 
@@ -864,29 +846,55 @@ private:
 	}
 	
 	genfile::SNPDataSource::UniquePtr open_snp_data_source() {
-		open_snp_data_source( m_mangled_options.gen_filename_mapper().input_files() ) ;
-	}
-	
-	genfile::SNPDataSource::UniquePtr open_snp_data_source( std::vector< genfile::wildcard::FilenameMatch > const& matches ) {
-		genfile::SNPDataSource::UniquePtr result ;
+		genfile::SNPDataSourceRack::UniquePtr rack( new genfile::SNPDataSourceRack() ) ;
+
+		// count files.
+		std::size_t file_count = 0 ;
+		for( std::size_t i = 0; i < m_mangled_options.gen_filenames().size(); ++i ) {
+			file_count += m_mangled_options.gen_filenames()[i].size() ;
+		}
 
 		appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Opening genotype files" ) ;
-		progress_context.notify_progress( 0, matches.size() ) ;
+		progress_context.notify_progress( 0, file_count ) ;
 
-		genfile::SNPDataSourceChain::UniquePtr chain( new genfile::SNPDataSourceChain() ) ;
-		for( std::size_t i = 0; i < matches.size(); ++i ) {
-			genfile::SNPDataSource::UniquePtr source = open_snp_data_source(
-				matches[i].filename(),
-				matches[i].match()
+		std::size_t progress_count = 0 ;
+
+		for( std::size_t i = 0; i < m_mangled_options.gen_filenames().size(); ++i ) {
+			genfile::SNPDataSourceChain::UniquePtr chain( new genfile::SNPDataSourceChain() ) ;
+			std::vector< genfile::SNPIdentifyingData > snps ;
+
+			for( std::size_t j = 0; j < m_mangled_options.gen_filenames()[i].size(); ++j ) {
+				std::pair< genfile::SNPDataSource*, std::vector< genfile::SNPIdentifyingData > > source = open_snp_data_source(
+					m_mangled_options.gen_filenames()[i][j].filename(),
+					m_mangled_options.gen_filenames()[i][j].match()
+				) ;
+
+				// Add the source to the chain.
+				chain->add_source( genfile::SNPDataSource::UniquePtr( source.first ) ) ;
+				// Add the source's SNPs to our list.
+				snps.insert( snps.end(), source.second.begin(), source.second.end() ) ;
+
+				progress_context.notify_progress( ++progress_count, file_count ) ;
+			}
+
+			// sanity check.
+			assert( snps.size() == chain->total_number_of_snps() ) ;
+
+			if( i == 0 ) {
+				// set up the trigger by which we move through output files.
+				chain->set_moved_to_next_source_callback( boost::bind( &QCToolCmdLineContext::move_to_next_output_file, this, _1 )) ;
+			}
+			
+			rack->add_source(
+				genfile::SNPDataSource::UniquePtr( chain.release() ),
+				snps
 			) ;
-			chain->add_source( source ) ;
-			progress_context.notify_progress( i+1, matches.size() ) ;
 		}
-		chain->set_moved_to_next_source_callback( boost::bind( &QCToolCmdLineContext::move_to_next_output_file, this, _1 )) ;
-		return genfile::SNPDataSource::UniquePtr( chain.release() ) ;
+		return genfile::SNPDataSource::UniquePtr( rack.release() ) ;		
 	}
 	
-	genfile::SNPDataSource::UniquePtr open_snp_data_source( std::string const& filename, std::string const& chromosome_indicator ) const {
+	std::pair< genfile::SNPDataSource*, std::vector< genfile::SNPIdentifyingData > >
+	open_snp_data_source( std::string const& filename, std::string const& chromosome_indicator ) const {
 		genfile::SNPDataSource::UniquePtr source ;
 		try {
 			source = genfile::SNPDataSource::create(
@@ -901,29 +909,49 @@ private:
 			throw ;
 		}
 		
+		std::vector< genfile::SNPIdentifyingData > snps = genfile::get_list_of_snps_in_source( *source ) ;
+
 		// Filter SNPs if necessary
 		genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter() ;
 		if( snp_filter.get() ) {
-			std::vector< genfile::SNPIdentifyingData > snps = genfile::get_list_of_snps_in_source( *source ) ;
+			std::vector< std::size_t > indices_of_filtered_in_snps = snp_filter->get_indices_of_filtered_in_snps( snps ) ;
 			source.reset(
 				genfile::SNPFilteringSNPDataSource::create(
 					source,
-					snp_filter->get_indices_of_filtered_in_snps( snps )
+					indices_of_filtered_in_snps
 				).release()
 			) ;
+			
+			// Keep track of the SNPs in the source by hand.
+			// This prevents an extra scan through the file, which can be slow.
+			snps = genfile::utility::select_entries( snps, indices_of_filtered_in_snps ) ;
 		}
 		
 		// Translate SNP identifying data if necessary
 		if( m_options.check_if_option_has_value( "-translate-snps" )) {
+			std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData >
+				dictionary = load_snp_dictionary( m_options.get_value< std::string >( "-translate-snps" ) ) ;
+			
 			source.reset(
 				genfile::SNPTranslatingSNPDataSource::create(
 					source,
-					load_snp_dictionary( m_options.get_value< std::string >( "-translate-snps" ) )
+					dictionary
 				).release()
 			) ;
+			
+			// Keep track of the SNPs in the source by hand.
+			// This prevents an extra scan through the file, which can be slow.
+			for( std::size_t i = 0; i < snps.size(); ++i ) {
+				std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData >::const_iterator where = dictionary.find( snps[i] ) ;
+				if( where != dictionary.end() ) {
+					snps[i] = where->second ;
+				}
+			}
 		}
-		
-		return source ;
+		return std::make_pair(
+			source.release(),
+			snps
+		) ;
 	}
 		
 	std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData > load_snp_dictionary( std::string const& filename ) const {

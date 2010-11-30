@@ -3,8 +3,9 @@
 
 #include <vector>
 #include <memory>
-#include "SNPDataSource.hpp"
-#include "GenomePosition.hpp"
+#include "genfile/SNPDataSource.hpp"
+#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/GenomePosition.hpp"
 
 namespace genfile {
 	
@@ -13,25 +14,25 @@ namespace genfile {
 	public:
 		struct Error: public SNPDataError
 		{
-			Error( std::size_t source_index, GenomePosition position )
+			Error( std::size_t source_index, SNPIdentifyingData snp )
 				: m_source_index( source_index ),
-				  m_position( position )
+				  m_snp( snp )
 			{}
 
 			~Error() throw() {}
 
 			std::size_t source_index() const { return m_source_index ; }
-			GenomePosition position() const { return m_position ; }
+			SNPIdentifyingData snp() const { return m_snp ; }
 
 		private:
 			std::size_t m_source_index ;
-			GenomePosition m_position ;
+			SNPIdentifyingData m_snp ;
 		} ;
 
 		struct MissingSNPError: public Error
 		{
-			MissingSNPError( std::size_t source_index, GenomePosition position )
-				: Error( source_index, position )
+			MissingSNPError( std::size_t source_index, SNPIdentifyingData snp )
+				: Error( source_index, snp )
 			{}
 			// ~MissingSNPError() throw() {}
 			char const* what() const throw() { return "MissingSNPError" ; }
@@ -39,27 +40,32 @@ namespace genfile {
 
 		struct SNPMismatchError: public Error
 		{
-			SNPMismatchError( std::size_t source_index, GenomePosition position )
-				: Error( source_index, position )
+			SNPMismatchError( std::size_t source_index, SNPIdentifyingData snp )
+				: Error( source_index, snp )
 			{}
 			// ~SNPMismatchError() throw() {}
 			char const* what() const throw() { return "SNPMismatchError" ; }
 		} ;
 		
 	public:
-
-		static std::auto_ptr< SNPDataSourceRack > create( std::vector< wildcard::FilenameMatch > const& filenames ) ;
+		typedef std::auto_ptr< SNPDataSourceRack > UniquePtr ;
+		static UniquePtr create( std::vector< wildcard::FilenameMatch > const& filenames ) ;
 
 	public:
 		SNPDataSourceRack() ;
 		~SNPDataSourceRack() ;
 		void add_source( std::auto_ptr< SNPDataSource > source ) ;
+		void add_source(
+			std::auto_ptr< SNPDataSource > source,
+			std::vector< SNPIdentifyingData > const& snps
+		) ;
 		SNPDataSource& get_source( std::size_t ) const ;
 
 		unsigned int number_of_samples() const ;
 		unsigned int total_number_of_snps() const ;
 		operator bool() const ;
 		std::string get_source_spec() const ;
+		std::string get_summary( std::string const& prefix, std::size_t width ) const ;
 		
 	protected:
 
@@ -93,12 +99,11 @@ namespace genfile {
 			char allele2
 		) ;
 		
-		std::vector< GenomePosition > get_intersected_snp_positions(
-			std::vector< GenomePosition > const& snp_positions,
-			SNPDataSource& source
+		std::vector< SNPIdentifyingData > get_intersected_snps(
+			std::vector< SNPIdentifyingData > const& snps1,
+			std::vector< SNPIdentifyingData > const& snps2
 		) const ;
-		std::vector< GenomePosition > get_source_snp_positions( SNPDataSource& source ) const ;
-		
+
 		struct RackGenotypeProbabilitySetter
 		{
 			RackGenotypeProbabilitySetter( GenotypeProbabilitySetter const& base_setter, uint32_t index_of_first_sample ) ;
@@ -112,7 +117,7 @@ namespace genfile {
 		
 		std::vector< SNPDataSource* > m_sources ;
 		uint32_t m_number_of_samples ;
-		std::vector< GenomePosition > m_positions_of_included_snps ;
+		std::vector< SNPIdentifyingData > m_included_snps ;
 		bool m_read_past_end ;
 	} ;
 }
