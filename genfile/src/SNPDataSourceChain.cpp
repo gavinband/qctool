@@ -76,6 +76,7 @@ namespace genfile {
 			throw FileContainsSNPsOfDifferentSizes() ;
 		}
 		m_sources.push_back( source.release() ) ;
+		m_sources.back()->reset_to_start() ;
 	}
 
 	unsigned int SNPDataSourceChain::number_of_samples() const {

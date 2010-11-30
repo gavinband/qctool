@@ -54,8 +54,6 @@ namespace genfile {
 	}
 	
 	SNPIdentifyingDataTest::UniquePtr CommonSNPFilter::construct_test( std::set< std::string > const& set, int fields ) {
-		int const mask = ~( RSIDs | SNPIDs ) ;
-		assert( fields & mask == 0 ) ;
 		SNPIdentifyingDataTest::UniquePtr test ;
 		switch( fields ) {
 			case RSIDs:
@@ -67,6 +65,8 @@ namespace genfile {
 			case RSIDs | SNPIDs:
 				test.reset( new SNPIDFieldsInListTest( set ) ) ;
 				break ;
+			default:
+				assert(0) ;
 		}
 		return test ;
 	}

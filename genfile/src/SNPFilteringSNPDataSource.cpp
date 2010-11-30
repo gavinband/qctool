@@ -21,13 +21,13 @@ namespace genfile {
 	):
 	 	m_source( source )
 	{
-		m_source->reset_to_start() ;
 		std::sort( indices_of_snps_to_include.begin(), indices_of_snps_to_include.end() ) ;
 		for( std::size_t i = 0; i < m_source->total_number_of_snps(); ++i ) {
 			if( !std::binary_search( indices_of_snps_to_include.begin(), indices_of_snps_to_include.end(), i )) {
 				m_indices_of_excluded_snps.insert( i ) ;
 			}
 		}
+		m_source->reset_to_start() ;
 	}
 
 	SNPFilteringSNPDataSource::operator bool() const {
