@@ -4,25 +4,28 @@
 #include "GenRowStatistics.hpp"
 
 // Implementation of information statistic for GenRows with no missing data.
+struct OldInformationStatistic: public GenRowSpecificStatistic
+{
+public:
+	virtual ~OldInformationStatistic() {} ;
+	virtual double calculate_value( GenRow const& ) const ;
+	double calculate_value( GenRowStatistics const& ) const ;
+	
+} ;
+
 struct InformationStatistic: public GenRowSpecificStatistic
 {
 public:
 	virtual ~InformationStatistic() {} ;
 	virtual double calculate_value( GenRow const& ) const ;
-} ;
-
-struct PlainInformationStatistic: public InformationStatistic
-{
 	double calculate_value( GenRowStatistics const& ) const ;
 } ;
 
-struct FillingInformationStatistic: public InformationStatistic
+struct GavinsInformationStatistic: public GenRowSpecificStatistic
 {
-	double calculate_value( GenRowStatistics const& ) const ;
-} ;
-
-struct ScalingInformationStatistic: public InformationStatistic
-{
+public:
+	virtual ~GavinsInformationStatistic() {} ;
+	virtual double calculate_value( GenRow const& ) const ;
 	double calculate_value( GenRowStatistics const& ) const ;
 } ;
 
