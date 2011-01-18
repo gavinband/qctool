@@ -13,9 +13,6 @@ namespace impl {
 // Calculate information statistic, updated to deal with missing genotype calls, as per J.Marchini's email to me
 // on 26 October 2010.
 double InformationStatistic::calculate_value( GenRow const& row ) const {
-
-	double result ;
-
 	if( row.number_of_samples() == 0 ) {
 		return 0.0 ;
 	}
@@ -27,8 +24,7 @@ double InformationStatistic::calculate_value( GenRow const& row ) const {
 
 	GenRow::genotype_proportion_const_iterator
 		begin_genotypes = row.begin_genotype_proportions(),
-		end_genotypes = row.end_genotype_proportions(),
-		i = begin_genotypes ;
+		end_genotypes = row.end_genotype_proportions() ;
 	
 	for(
 		GenRow::genotype_proportion_const_iterator i = begin_genotypes;
@@ -42,8 +38,6 @@ double InformationStatistic::calculate_value( GenRow const& row ) const {
 			c[g] -= (*i)[g] * (*i)[ (g+1) % 3 ] ;
 		}
 	}
-
-	double const missingness = row.number_of_samples() - non_missing_calls ;
 
 	if( non_missing_calls == 0.0 ) {
 		return 0.0 ;
