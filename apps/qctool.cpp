@@ -99,7 +99,7 @@ public:
 		options.set_help_option( "-help" ) ;
 
 		// File options	
-		options.declare_group( "Data file options" ) ;
+		options.declare_group( "Input file options" ) ;
 	    options[ "-g" ]
 	        .set_description( 	"Path of gen file(s) to input.  "
 								"To specify several files, either repeat this option or use the numerical wildcard character '#', which "
@@ -109,6 +109,60 @@ public:
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 100 ) ;
 
+	    options[ "-s" ]
+	        .set_description( "Path of sample file to input" )
+			.set_takes_values_per_use( 1 )
+			.set_minimum_multiplicity( 0 )
+			.set_maximum_multiplicity( 100 ) ;
+
+		options[ "-translate-snps" ]
+			.set_description( "Specify a \"dictionary\" of chromosome / position to chromosome / position mappings."
+				" (This should come as a four-column file with source_chromosome source_position target_chromosome and target_position columns.)"
+				" Positions of SNPs will be mapped through this dictionary before processing." )
+			.set_takes_single_value() ;
+
+		options.declare_group( "Sample exclusion options" ) ;
+		options[ "-incl-samples"]
+			.set_description( "Filter out samples whose sample ID does not lie in the given file.")
+			.set_takes_single_value() ;
+		options[ "-excl-samples"]
+			.set_description( "Filter out samples whose sample ID lies in the given file.")
+			.set_takes_single_value() ;
+
+		// SNP exclusion options
+		options.declare_group( "SNP exclusion options" ) ;
+		options[ "-excl-snpids" ]
+			.set_description( "Exclude all SNPs whose SNPID is in the given file(s) from the analysis.")
+			.set_takes_values_per_use() 
+			.set_takes_values_per_use( 1 )
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-excl-rsids" ]
+			.set_description( "Exclude all SNPs whose RSID is in the given file(s) from the analysis.")
+			.set_takes_values_per_use() 
+			.set_takes_values_per_use( 1 )
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-incl-snpids" ]
+			.set_description( "Exclude all SNPs whose SNPID is not in the given file(s) from the analysis.")
+			.set_takes_values_per_use() 
+			.set_takes_values_per_use( 1 )
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-incl-rsids" ]
+			.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.")
+			.set_takes_values_per_use() 
+			.set_takes_values_per_use( 1 )
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-excl-snps-matching" ]
+			.set_description( "Filter out snps whose SNPID matches the given argument. "
+				"The argument should be a string which can contain a * wildcard character (which matches any substring). "
+				"Optionally, prefix with snpid~ or rsid~ to only match against snp id or rsid fields." )
+			.set_takes_single_value() ;
+		options[ "-incl-snps-matching" ]
+			.set_description( "Filter out snps whose SNPID does not match the given argument. "
+				"The argument should be a string which can contain a * wildcard character (which matches any substring). "
+				"Optionally, prefix with snpid~ or rsid~ to only match against snp id or rsid fields." )
+			.set_takes_single_value() ;
+
+		options.declare_group( "Output file options" ) ;
 	    options[ "-og" ]
 	        .set_description( 	"Override the auto-generated path(s) of the output gen file(s) to use when filtering.  "
 								"(By default, the paths are formed by adding \".fltrd\" to the input gen filename(s).)  "
@@ -118,20 +172,9 @@ public:
 	        .set_takes_values_per_use( 1 )
 			.set_maximum_multiplicity( 1 ) ;
 
-	    options[ "-s" ]
-	        .set_description( "Path of sample file to input" )
-			.set_takes_single_value() ;
-
 		options[ "-os" ]
 	        .set_description( "Override the auto-generated path of the output sample file.  " )
 	        .set_takes_single_value() ;
-
-		options[ "-translate-snps" ]
-			.set_description( "Specify a \"dictionary\" of chromosome / position to chromosome / position mappings."
-				" (This should come as a four-column file with source_chromosome source_position target_chromosome and target_position columns.)"
-				" Positions of SNPs will be mapped through this dictionary before processing." )
-			.set_takes_single_value() ;
-			
 
 		// Statistic file options
 		options.declare_group( "Statistic calculation options" ) ;
@@ -148,8 +191,7 @@ public:
 	        .set_description( "Comma-seperated list of extra columns to output in the snp-wise statistics file.  "
 	 						"The standard columns are: "
 							"SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing, information."
-							" Your choices here are filled_information, scaled_information, mach_r2, filled_mach_r2,"
-							" scaled_mach_r2, entropy, filled_entropy, and scaled_entropy." )
+							" Your choices here are old_information, jonathans_information, mach_r2, and entropy." )
 			.set_takes_single_value()
 			.set_default_value( "" ) ;
 
@@ -193,45 +235,6 @@ public:
 		options[ "-heterozygosity" ]
 			.set_description( "Filter out samples with heterozygosity outside the inteval [a,b]." )
 			.set_takes_values_per_use( 2 ) ;
-		options[ "-sample-incl-list"]
-			.set_description( "Filter out samples whose sample ID does not lie in the given file.")
-			.set_takes_single_value() ;
-		options[ "-sample-excl-list"]
-			.set_description( "Filter out samples whose sample ID lies in the given file.")
-			.set_takes_single_value() ;
-
-		// SNP exclusion options
-		options.declare_group( "SNP exclusion options" ) ;
-		options[ "-excl-snpids" ]
-			.set_description( "Exclude all SNPs whose SNPID is in the given file(s) from the analysis.")
-			.set_takes_values_per_use() 
-			.set_takes_values_per_use( 1 )
-			.set_maximum_multiplicity( 100 ) ;
-		options[ "-excl-rsids" ]
-			.set_description( "Exclude all SNPs whose RSID is in the given file(s) from the analysis.")
-			.set_takes_values_per_use() 
-			.set_takes_values_per_use( 1 )
-			.set_maximum_multiplicity( 100 ) ;
-		options[ "-incl-snpids" ]
-			.set_description( "Exclude all SNPs whose SNPID is not in the given file(s) from the analysis.")
-			.set_takes_values_per_use() 
-			.set_takes_values_per_use( 1 )
-			.set_maximum_multiplicity( 100 ) ;
-		options[ "-incl-rsids" ]
-			.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.")
-			.set_takes_values_per_use() 
-			.set_takes_values_per_use( 1 )
-			.set_maximum_multiplicity( 100 ) ;
-		options[ "-excl-snps-matching" ]
-			.set_description( "Filter out snps whose SNPID matches the given argument. "
-				"The argument should be a string which can contain a * wildcard character (which matches any substring). "
-				"Optionally, prefix with snpid~ or rsid~ to only match against snp id or rsid fields." )
-			.set_takes_single_value() ;
-		options[ "-incl-snps-matching" ]
-			.set_description( "Filter out snps whose SNPID does not match the given argument. "
-				"The argument should be a string which can contain a * wildcard character (which matches any substring). "
-				"Optionally, prefix with snpid~ or rsid~ to only match against snp id or rsid fields." )
-			.set_takes_single_value() ;
 
 		// Inclusion / exclusion list options
 		options.declare_group( "Inclusion / exclusion list options" ) ;
@@ -299,8 +302,8 @@ public:
 		options.option_excludes_option( "-write-snp-excl-list", "-og" ) ;
 		options.option_excludes_option( "-write-snp-excl-list", "-snp-stats" ) ;
 
-		options.option_implies_option( "-sample-excl-list", "-s" ) ;
-		options.option_implies_option( "-sample-incl-list", "-s" ) ;
+		options.option_implies_option( "-excl-samples", "-s" ) ;
+		options.option_implies_option( "-incl-samples", "-s" ) ;
 	}
 } ;
 
@@ -345,9 +348,9 @@ private:
 		std::vector< std::string > input_gen_filenames_supplied = m_options.get_values< std::string >( "-g" ) ;
 		assert( input_gen_filenames_supplied.size() >= 1 ) ;
 		std::string
-			output_gen_filename = construct_output_gen_filename( input_gen_filenames_supplied[0] ),
-			output_snp_stats_filename = construct_snp_stats_filename( input_gen_filenames_supplied[0] ),
-			output_snp_excl_filename = construct_output_snp_excl_list_filename( input_gen_filenames_supplied[0] ) ;
+			output_gen_filename = construct_output_gen_filename( input_gen_filenames_supplied ),
+			output_snp_stats_filename = construct_snp_stats_filename( input_gen_filenames_supplied ),
+			output_snp_excl_filename = construct_output_snp_excl_list_filename( input_gen_filenames_supplied ) ;
 
 		m_gen_file_mapper.add_filename_pair( input_gen_filenames_supplied[0], output_gen_filename ) ;
 		m_snp_stats_sink_mapper.add_filename_pair( input_gen_filenames_supplied[0], output_snp_stats_filename ) ;
@@ -440,13 +443,15 @@ private:
 		return filename ;
 	}
 
-	std::string construct_output_gen_filename( std::string const& input_gen_filename_supplied ) {
+	std::string construct_output_gen_filename( std::vector< std::string > const& input_gen_filenames_supplied ) {
 		std::string result ;
 		// We need to produce output gen files if
-		//  * -write-snp-excl-list is not set
-		//  AND EITHER
-		//    * some sample filters are given (but not -write-sample-excl-list)
-		//    * OR some SNP filters are given.
+		//  * -og is given
+		//  OR
+		//  ** -write-snp-excl-list is not set
+		//  * AND EITHER
+		//  ** some sample filters are given (but not -write-sample-excl-list)
+		//  ** OR some SNP filters are given.
 		if( m_options.check_if_option_was_supplied( "-og" )
 			|| (
 				!( m_options.check_if_option_was_supplied( "-write-snp-excl-list" ) || m_options.check_if_option_was_supplied( "-write-snp-incl-list" ) )
@@ -460,36 +465,60 @@ private:
 			if( m_options.check_if_option_was_supplied( "-og" ) ) {
 				result = m_options.get_value< std::string >( "-og" ) ;
 			} else {
+				assert( input_gen_filenames_supplied.size() > 0 ) ;
+				std::string stub ;
+				if( input_gen_filenames_supplied.size() == 1 )  {
+					stub = input_gen_filenames_supplied[0] ;
+				}
+				else {
+					stub = "qctool_cohorts_1-" + string_utils::to_string( input_gen_filenames_supplied.size() ) ;
+				}
 				result
-					= genfile::strip_gen_file_extension_if_present( input_gen_filename_supplied )
+					= genfile::strip_gen_file_extension_if_present( stub )
 					+ ".fltrd"
-					+ genfile::get_gen_file_extension_if_present( input_gen_filename_supplied ) ;
+					+ genfile::get_gen_file_extension_if_present( input_gen_filenames_supplied[0] ) ;
 			}
 		}
 		return result ;
 	}
 
-	std::string construct_snp_stats_filename( std::string const& input_gen_filename_supplied ) {
+	std::string construct_snp_stats_filename( std::vector< std::string > const& input_gen_filenames_supplied ) {
 		std::string result ;
 		if( m_options.check_if_option_was_supplied( "-snp-stats" ) ) {
 			if( m_options.check_if_option_was_supplied( "-snp-stats-file" )) {
 				result = m_options.get_value< std::string >( "-snp-stats-file" ) ;
 			}
 			else {
-				result = genfile::strip_gen_file_extension_if_present( input_gen_filename_supplied ) + ".snp-stats" ;
+				assert( input_gen_filenames_supplied.size() > 0 ) ;
+				std::string stub ;
+				if( input_gen_filenames_supplied.size() == 1 ) {
+					stub = input_gen_filenames_supplied[0] ;
+				}
+				else {
+					stub = "qctool_cohorts_1-" + string_utils::to_string( input_gen_filenames_supplied.size() ) ;
+				}
+				result = genfile::strip_gen_file_extension_if_present( stub ) + ".snp-stats" ;
 			}
 		}
 		return result ;
 	}
 
-	std::string construct_output_snp_excl_list_filename( std::string const& input_gen_filename_supplied ) {
+	std::string construct_output_snp_excl_list_filename( std::vector< std::string > const& input_gen_filenames_supplied ) {
 		std::string result ;
 		if( m_options.check_if_option_was_supplied( "-write-snp-excl-list" ) ) {
 			if( m_options.check_if_option_was_supplied( "-write-snp-excl-list-file" )) {
 				result = m_options.get_value< std::string >( "-write-snp-excl-list-file" ) ;
 			}
 			else {
-				result = genfile::strip_gen_file_extension_if_present( input_gen_filename_supplied ) + ".snp-excl-list" ;
+				assert( input_gen_filenames_supplied.size() > 0 ) ;
+				std::string stub ;
+				if( input_gen_filenames_supplied.size() == 1 ) {
+					stub = input_gen_filenames_supplied[0] ;
+				}
+				else {
+					stub = "qctool_cohorts_1-" + string_utils::to_string( input_gen_filenames_supplied.size() ) ;
+				}
+				result = genfile::strip_gen_file_extension_if_present( stub ) + ".snp-excl-list" ;
 			}
 		}
 		return result ;
@@ -1218,14 +1247,14 @@ private:
 			add_two_arg_condition_to_filter< StatisticInInclusiveRange >( *sample_filter, "heterozygosity", m_options.get_values< double >( "-heterozygosity" )) ;
 		}
 
-		if( m_options.check_if_option_was_supplied( "-sample-incl-list" ) ) {
-			std::string filename = m_options.get_value< std::string >( "-sample-incl-list" ) ;
+		if( m_options.check_if_option_was_supplied( "-incl-samples" ) ) {
+			std::string filename = m_options.get_value< std::string >( "-incl-samples" ) ;
 			std::auto_ptr< RowCondition > sample_incl_condition( new SampleInListCondition( filename )) ;
 			sample_filter->add_subcondition( sample_incl_condition ) ;
 		}
 
-		if( m_options.check_if_option_was_supplied( "-sample-excl-list" ) ) {
-			std::string filename = m_options.get_value< std::string >( "-sample-excl-list" ) ;
+		if( m_options.check_if_option_was_supplied( "-excl-samples" ) ) {
+			std::string filename = m_options.get_value< std::string >( "-excl-samples" ) ;
 			std::auto_ptr< RowCondition > sample_incl_condition( new SampleInListCondition( filename )) ;
 			std::auto_ptr< RowCondition > sample_excl_condition( new NotRowCondition( sample_incl_condition )) ;
 			sample_filter->add_subcondition( sample_excl_condition ) ;
