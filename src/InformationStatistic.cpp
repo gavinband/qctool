@@ -126,7 +126,7 @@ double OldInformationStatistic::calculate_value( GenRow const& row ) const {
 			V += f[i] - (e[i]*e[i]) ;
 		}
 		// result =  1.0 - ( V / (2.0 * non_missingness ) * theta_mle * ( 1.0 - theta_mle ) ) ;
-		result =  1.0 - ( V / (2.0 * row.number_of_samples() ) * theta_mle * ( 1.0 - theta_mle ) ) ;
+		result =  1.0 - ( V / (2.0 * row.number_of_samples() * theta_mle * ( 1.0 - theta_mle )) ) ;
 	}
 	
 /*	if( result < 0.0 ) {
