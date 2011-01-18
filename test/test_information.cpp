@@ -82,7 +82,7 @@ AUTO_TEST_CASE( test_information ) {
 	double epsilon = 0.000001 ;
 
 	GenRowStatistics row_statistics ;
-	std::auto_ptr< GenotypeAssayStatistic > statistic( new FillingInformationStatistic ) ;
+	std::auto_ptr< GenotypeAssayStatistic > statistic( new OldInformationStatistic ) ;
 	statistic->set_precision( 5 ) ;
 	row_statistics.add_statistic( "Information", statistic ) ;
 	row_statistics.format_column_headers( std::cout ) << "\n" ;
@@ -103,7 +103,7 @@ AUTO_TEST_CASE( test_allele_flipping ) {
 	std::vector< std::string > data = get_flipping_data() ;
 	
 	GenRowStatistics row_statistics ;
-	std::auto_ptr< GenotypeAssayStatistic > statistic( new FillingInformationStatistic ) ;
+	std::auto_ptr< GenotypeAssayStatistic > statistic( new InformationStatistic ) ;
 	statistic->set_precision( 5 ) ;
 	row_statistics.add_statistic( "Information", statistic ) ;
 	row_statistics.format_column_headers( std::cout ) << "\n" ;
