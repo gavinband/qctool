@@ -72,9 +72,6 @@ double InformationStatistic::calculate_value( GenRow const& row ) const {
 		- ( 8.0 * theta_mle * ( 1 - theta_mle ) * c[2] )
 		+ ( 4.0 * ( 1.0 - theta_mle ) * (1.0 - 2 * theta_mle ) * c[1] ) ;
 
-	vU /= std::pow( theta_mle * ( 1 - theta_mle ), 2 ) ;
-
-
 	double const I = 1.0 - ( vU / (2 * non_missingness * theta_mle * ( 1- theta_mle )) ) ;
 	// std::cerr << "jonathans_information: theta_mle = " << theta_mle << ", eI = " << expected_I << ", vU = " << vU << "...\n" ;
 	return I ;
