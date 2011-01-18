@@ -77,7 +77,7 @@ double InformationStatistic::calculate_value( GenRow const& row ) const {
 	vU /= std::pow( theta_mle * ( 1 - theta_mle ), 2 ) ;
 
 
-	double const I = ( expected_I - vU ) / expected_I ;
+	double const I = 1.0 - ( vU / expected_I ) ;
 	// std::cerr << "jonathans_information: theta_mle = " << theta_mle << ", eI = " << expected_I << ", vU = " << vU << "...\n" ;
 	return I ;
 }
@@ -131,10 +131,10 @@ double OldInformationStatistic::calculate_value( GenRow const& row ) const {
 		result =  (I1 - V) / I1 ;
 	}
 	
-	if( result < 0.0 ) {
+/*	if( result < 0.0 ) {
 		result = 0.0 ;
 	}
-	
+*/	
 	return result ;
 }
 
@@ -193,10 +193,6 @@ double GavinsInformationStatistic::calculate_value( GenRow const& row ) const {
 	
 	// std::cerr << "missingness is " << missingness << ", variance is " << variance << "`...\n" ;
 
-	if( result < 0.0 ) {
-		result = 0.0 ;
-	}
-	
 	return result ;
 }
 
