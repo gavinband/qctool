@@ -17,7 +17,7 @@ double InformationStatistic::calculate_value( GenRow const& row ) const {
 		return 0.0 ;
 	}
 
-	double non_missing_calls = 0.0 ;
+	double non_missingness = 0.0 ;
 	double theta_mle = 0.0 ;
 	double v[3] = { 0.0, 0.0, 0.0 } ;
 	double c[3] = { 0.0, 0.0, 0.0 } ;
@@ -31,7 +31,7 @@ double InformationStatistic::calculate_value( GenRow const& row ) const {
 		i != end_genotypes;
 		++i
 	) {
-		non_missing_calls += i->sum() ;
+		non_missingness += i->sum() ;
 		theta_mle += i->AB() + 2.0 * i->BB() ;
 		for( std::size_t g = 0; g < 3; ++g ) {
 			v[g] += (*i)[g] * ( 1 - (*i)[g] ) ;
@@ -39,14 +39,12 @@ double InformationStatistic::calculate_value( GenRow const& row ) const {
 		}
 	}
 
-	if( non_missing_calls == 0.0 ) {
+	if( non_missingness == 0.0 ) {
 		return 0.0 ;
 	}
 	else {
-		theta_mle /= 2.0 * non_missing_calls ;
+		theta_mle /= 2.0 * non_missingness ;
 	}
-
-	double const expected_I = ( 2.0 * non_missing_calls ) / (theta_mle * ( 1 - theta_mle )) ;
 
 	//
 	//      F_1 + 2F_2     2F_0 + F_1
@@ -77,7 +75,7 @@ double InformationStatistic::calculate_value( GenRow const& row ) const {
 	vU /= std::pow( theta_mle * ( 1 - theta_mle ), 2 ) ;
 
 
-	double const I = 1.0 - ( vU / expected_I ) ;
+	double const I = 1.0 - ( vU / (2 * non_missingness * theta_mle * ( 1- theta_mle )) ) ;
 	// std::cerr << "jonathans_information: theta_mle = " << theta_mle << ", eI = " << expected_I << ", vU = " << vU << "...\n" ;
 	return I ;
 }
