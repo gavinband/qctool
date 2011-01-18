@@ -96,8 +96,8 @@ double OldInformationStatistic::calculate_value( GenRow const& row ) const {
 		return 0.0 ;
 	}
 
-	double T1 = 0.0 ;
-	double T2 = 0.0 ;
+	double non_missingness = 0.0 ;
+	double theta_mle = 0.0 ;
 	std::vector< double > e( row.number_of_samples() ) ;
 	std::vector< double > f( row.number_of_samples() ) ;
 	GenRow::genotype_proportion_const_iterator
@@ -107,28 +107,26 @@ double OldInformationStatistic::calculate_value( GenRow const& row ) const {
 	for( std::size_t index = 0; i != end_i ; ++i, ++index ) {
 		e[index] = i->AB() + (2.0 * i->BB()) ;
 		f[index] = i->AB() + (4.0 * i->BB()) ;
-		T1 += i->sum() ;
-		T2 += e[index] ;
+		theta_mle += e[index] ;
+		non_missingness += i->sum() ;
 	}
 	
-	if( T1 == 0.0 ) {
-		return (T2 == 0.0) ? 1.0 : 0.0 ;
+	if( non_missingness == 0.0 ) {
+		return (theta_mle == 0.0) ? 1.0 : 0.0 ;
 	}
 
-	double E = T2 / (2.0 * T1) ;
+	theta_mle /= (2.0 * non_missingness) ;
 
-	if( E == 0 || E == 1 ) {
+	if( theta_mle == 0.0 || theta_mle == 1.0 ) {
 		result = 1.0 ;
 	}
 	else {
-		double E_times_1_minus_E = E * ( 1.0 - E ) ;
-		double I1 = (2.0 * T1) / E_times_1_minus_E ;
 		double V = 0.0 ;
 		for( std::size_t i = 0; i < row.number_of_samples(); ++i ) {
 			V += f[i] - (e[i]*e[i]) ;
 		}
-		V /= E_times_1_minus_E * E_times_1_minus_E ;
-		result =  (I1 - V) / I1 ;
+		// result =  1.0 - ( V / (2.0 * non_missingness ) * theta_mle * ( 1.0 - theta_mle ) ) ;
+		result =  1.0 - ( V / (2.0 * row.number_of_samples() ) * theta_mle * ( 1.0 - theta_mle ) ) ;
 	}
 	
 /*	if( result < 0.0 ) {
