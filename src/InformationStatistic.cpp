@@ -62,7 +62,7 @@ double InformationStatistic::calculate_value( GenRow const& row ) const {
 	// We calculated the variance as sum of variances of terms
 	// plus twice the sum of covariances between terms.
 	//
-	std::cerr << "jonathans_information: v0 = " << v[0] << ", v1 = " << v[1]<< ", v2 = " << v[2] << ", c01 = " << c[0] << ", c12 = " << c[1] << ", c02 = " << c[2] << "...\n" ;
+	// std::cerr << "jonathans_information: v0 = " << v[0] << ", v1 = " << v[1]<< ", v2 = " << v[2] << ", c01 = " << c[0] << ", c12 = " << c[1] << ", c02 = " << c[2] << "...\n" ;
 	
 	double vU
 		// variance terms
@@ -78,7 +78,7 @@ double InformationStatistic::calculate_value( GenRow const& row ) const {
 
 
 	double const I = ( expected_I - vU ) / expected_I ;
-	std::cerr << "jonathans_information: theta_mle = " << theta_mle << ", eI = " << expected_I << ", vU = " << vU << "...\n" ;
+	// std::cerr << "jonathans_information: theta_mle = " << theta_mle << ", eI = " << expected_I << ", vU = " << vU << "...\n" ;
 	return I ;
 }
 
@@ -182,7 +182,7 @@ double GavinsInformationStatistic::calculate_value( GenRow const& row ) const {
 		// So far as with the old statistic.  Now do the adjustments
 		variance -= 4.0 * theta_mle * adjustment1[ i ] ;
 		variance -= 4.0 * theta_mle * theta_mle * adjustment2[ i ] ;
-		std::cerr << "i = " << i << ", adjustment1 is " << adjustment1[i] << ", adjustment2 is " << adjustment2[ i ] << ".\n" ;
+		// std::cerr << "i = " << i << ", adjustment1 is " << adjustment1[i] << ", adjustment2 is " << adjustment2[ i ] << ".\n" ;
 	}
 	double const missingness = row.number_of_samples() - non_missingness ;
 
@@ -191,7 +191,7 @@ double GavinsInformationStatistic::calculate_value( GenRow const& row ) const {
 	double denominator = 2.0 * row.number_of_samples() * theta_mle * ( 1.0 - theta_mle ) ;
 	double result = 1.0 - ( variance / denominator ) ;
 	
-	std::cerr << "missingness is " << missingness << ", variance is " << variance << "`...\n" ;
+	// std::cerr << "missingness is " << missingness << ", variance is " << variance << "`...\n" ;
 
 	if( result < 0.0 ) {
 		result = 0.0 ;
