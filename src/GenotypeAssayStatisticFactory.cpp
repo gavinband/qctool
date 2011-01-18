@@ -102,32 +102,20 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 	else if( statistic_spec == "HWE" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new MinusLog10SNPHWEStatistic ) ;
 	}
+	else if( statistic_spec == "jonathans_information" ) {
+		return std::auto_ptr< GenotypeAssayStatistic > ( new InformationStatistic()) ;
+	}
 	else if( statistic_spec == "information" ) {
-		return std::auto_ptr< GenotypeAssayStatistic > ( new PlainInformationStatistic() ) ;
+		return std::auto_ptr< GenotypeAssayStatistic > ( new GavinsInformationStatistic()) ;
 	}
-	else if( statistic_spec == "filled_information" ) {
-		return std::auto_ptr< GenotypeAssayStatistic > ( new FillingInformationStatistic()) ;
-	}
-	else if( statistic_spec == "scaled_information" ) {
-		return std::auto_ptr< GenotypeAssayStatistic > ( new ScalingInformationStatistic()) ;
+	else if( statistic_spec == "old_information" ) {
+		return std::auto_ptr< GenotypeAssayStatistic > ( new OldInformationStatistic() ) ;
 	}
 	else if( statistic_spec == "mach_r2" ) {
 		return std::auto_ptr< GenotypeAssayStatistic > ( new PlainMachRsquaredStatistic() ) ;
 	}
-	else if( statistic_spec == "filled_mach_r2" ) {
-		return std::auto_ptr< GenotypeAssayStatistic > ( new FillingMachRsquaredStatistic()) ;
-	}
-	else if( statistic_spec == "scaled_mach_r2" ) {
-		return std::auto_ptr< GenotypeAssayStatistic > ( new ScalingMachRsquaredStatistic()) ;
-	}
 	else if( statistic_spec == "entropy" ) {
 		return std::auto_ptr< GenotypeAssayStatistic > ( new PlainEntropyStatistic() ) ;
-	}
-	else if( statistic_spec == "filled_entropy" ) {
-		return std::auto_ptr< GenotypeAssayStatistic > ( new FillingEntropyStatistic()) ;
-	}
-	else if( statistic_spec == "scaled_entropy" ) {
-		return std::auto_ptr< GenotypeAssayStatistic > ( new ScalingEntropyStatistic()) ;
 	}
 	else if( statistic_spec == "hw_entropy" ) {
 		return std::auto_ptr< GenotypeAssayStatistic > ( new PlainHardyWeinbergEntropyStatistic() ) ;
