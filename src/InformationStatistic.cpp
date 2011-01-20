@@ -60,7 +60,7 @@ double InformationStatistic::calculate_value( GenRow const& row ) const {
 	// We calculated the variance as sum of variances of terms
 	// plus twice the sum of covariances between terms.
 	//
-	// std::cerr << "jonathans_information: v0 = " << v[0] << ", v1 = " << v[1]<< ", v2 = " << v[2] << ", c01 = " << c[0] << ", c12 = " << c[1] << ", c02 = " << c[2] << "...\n" ;
+	//std::cerr << "jonathans_information: v0 = " << v[0] << ", v1 = " << v[1]<< ", v2 = " << v[2] << ", c01 = " << c[0] << ", c12 = " << c[1] << ", c02 = " << c[2] << "...\n" ;
 	
 	double vU
 		// variance terms
@@ -69,8 +69,8 @@ double InformationStatistic::calculate_value( GenRow const& row ) const {
 		+ 4.0 * std::pow( 1.0 - theta_mle, 2) * v[2]
 		// covariance terms
 		- ( 4.0 * theta_mle * ( 1 - 2.0 * theta_mle ) * c[0] )
-		- ( 8.0 * theta_mle * ( 1 - theta_mle ) * c[2] )
-		+ ( 4.0 * ( 1.0 - theta_mle ) * (1.0 - 2 * theta_mle ) * c[1] ) ;
+		+ ( 4.0 * ( 1.0 - theta_mle ) * (1.0 - 2 * theta_mle ) * c[1] )
+		- ( 8.0 * theta_mle * ( 1 - theta_mle ) * c[2] ) ;
 
 	double const I = 1.0 - ( vU / (2 * non_missingness * theta_mle * ( 1- theta_mle )) ) ;
 	// std::cerr << "jonathans_information: theta_mle = " << theta_mle << ", eI = " << expected_I << ", vU = " << vU << "...\n" ;
