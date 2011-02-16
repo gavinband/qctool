@@ -9,8 +9,9 @@ namespace genfile {
 	
 	struct SingleSNPGenotypeProbabilities
 	// class SingleSNPGenotypeProbabilities
-	// This class holds genotype probabilities for a number of samples at a single SNP.
-	// the sum of genotype probabilities for each sample is at most 1.
+	// This class holds genotype probabilities for a number of individuals at a single SNP,
+	// and provides methods to access that data.
+	// Invariant: the sum of probabilities for each individual is at most 1, to 3d.p accuracy.
 	{
 	public:
 		// Empty set of probabilities (no samples)
