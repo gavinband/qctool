@@ -16,11 +16,34 @@ namespace appcontext {
 		int argc,
 		char** argv,
 		std::string const& log_option
-	 )
-		: m_application_name( application_name ),
-		  m_options( options ),
-		  m_ui_context( new appcontext::CmdLineUIContext )
+	 ):
+		m_application_name( application_name ),
+		m_application_version( "" ),
+		m_options( options ),
+		m_ui_context( new appcontext::CmdLineUIContext )
 	{
+		process_options( argc, argv, log_option ) ;
+		write_start_banner() ;
+	}
+
+	ApplicationContext::ApplicationContext(
+		std::string const& application_name,
+		std::string const& application_version,
+		std::auto_ptr< OptionProcessor > options,
+		int argc,
+		char** argv,
+		std::string const& log_option
+	 ):
+		m_application_name( application_name ),
+		m_application_version( application_version ),
+		m_options( options ),
+		m_ui_context( new appcontext::CmdLineUIContext )
+	{
+		process_options( argc, argv, log_option ) ;
+		write_start_banner() ;
+	}
+	
+	void ApplicationContext::process_options( int argc, char** argv, std::string const& log_option ) {
 		try {
 			get_ui_context().logger().add_stream( "screen", std::cout ) ;
 			m_options->process( argc, argv ) ;
@@ -66,7 +89,6 @@ namespace appcontext {
 		}
 		
 		construct_logger( log_option ) ;
-		write_start_banner() ;
 	}
 
 	ApplicationContext::~ApplicationContext() {
@@ -96,8 +118,11 @@ namespace appcontext {
 	}
 
 	void ApplicationContext::write_start_banner() {
-		m_ui_context->logger() << "\nWelcome to " << m_application_name << "\n"
-		 	<< "(C) 2009-2010 University of Oxford\n\n";
+		m_ui_context->logger() << "\nWelcome to " << m_application_name << "\n" ;
+		if( m_application_version != "" ) {
+			m_ui_context->logger() << "(revision: " << m_application_version << ")\n" ;
+		}
+		m_ui_context->logger() << "\n(C) 2009-2010 University of Oxford\n\n";
 	}
 
 	void ApplicationContext::write_end_banner() {

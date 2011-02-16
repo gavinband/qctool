@@ -19,7 +19,7 @@ void SampleRowStatistics::add_to_sample_row( SampleRow& row, std::string const& 
 	if( sample_row_name == "" ) {
 		sample_row_name = statistic_name ;
 	}
-	row.add_column( sample_row_name, 'C' ) ;
+	row.add_column( sample_row_name, 'C' ) ; // add as a continuous covariate.
 	row.set_value( sample_row_name, get_value< double >( statistic_name )) ;
 }
 
