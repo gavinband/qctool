@@ -26,7 +26,7 @@ namespace genfile {
 			m_type = eRSID ;
 		}
 		else if( bits[0] == "either" ) {
-			m_type == eEITHER ;
+			m_type = eEITHER ;
 		}
 
 		m_expression = bits[1] ;
@@ -75,6 +75,9 @@ namespace genfile {
 		}
 		else if( m_type == eEITHER ) {
 			return "(SNPID or RSID)~" + m_expression ;
+		}
+		else {
+			assert(0) ;
 		}
 	}
 }

@@ -2,6 +2,7 @@
 #define GENFILE_SNP_IDENTIFYING_DATA_HPP
 
 #include <string>
+#include <vector>
 #include "genfile/GenomePosition.hpp"
 
 namespace genfile {
@@ -32,10 +33,10 @@ namespace genfile {
 		char m_second_allele ;
 	} ;	
 	
-	// Compare by chromosome/position, rsid, SNPID, then alleles.
-	bool operator<( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) ;
-
 	std::ostream& operator<<( std::ostream&, SNPIdentifyingData const& ) ;
+	std::ostream& operator<<( std::ostream&, std::vector< SNPIdentifyingData > const& ) ;
+	bool operator==( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) ;
+	bool operator<( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) ;
 }
 
 #endif

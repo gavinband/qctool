@@ -36,6 +36,9 @@ namespace genfile {
 			{}
 			// ~MissingSNPError() throw() {}
 			char const* what() const throw() { return "MissingSNPError" ; }
+			SNPIdentifyingData const& snp() const { return m_snp ; }
+		private:
+			SNPIdentifyingData const m_snp ;
 		} ;
 
 		struct SNPMismatchError: public Error

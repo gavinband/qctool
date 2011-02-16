@@ -36,10 +36,33 @@ namespace genfile {
 		return *this ;
 	}
 	
-	bool operator<( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) {
+	std::ostream& operator<<( std::ostream& out, SNPIdentifyingData const& data ) {
+		return out << data.get_SNPID()
+			<< " " << data.get_rsid()
+			<< " " << data.get_position()
+			<< " " << data.get_first_allele()
+			<< " " << data.get_second_allele() ;
+	}
+
+	std::ostream& operator<<( std::ostream& out, std::vector< SNPIdentifyingData > const& data ) {
+		for( std::size_t i = 0; i < data.size(); ++i ) {
+			out << data[i] << "\n" ;
+		}
+		return out ;
+	}
+	
+	bool operator==( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) {
+		return left.get_SNPID() == right.get_SNPID() &&
+			left.get_rsid() == right.get_rsid() &&
+			left.get_position() == right.get_position() &&
+			left.get_first_allele() == right.get_first_allele() &&
+			left.get_second_allele() == right.get_second_allele() ;
+	}
+	
+    bool operator<( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) {
 		return(
 			(left.get_position() < right.get_position())
-		 	||
+			||
 			(
 				(left.get_position() == right.get_position())
 				&&
@@ -61,9 +84,7 @@ namespace genfile {
 									(
 										(left.get_first_allele() == right.get_first_allele())
 										&&
-										(
-											(left.get_second_allele() < right.get_second_allele())
-										)
+										(left.get_second_allele() < right.get_second_allele())
 									)
 								)
 							)
@@ -73,13 +94,4 @@ namespace genfile {
 			)
 		) ;
 	}
-	
-	std::ostream& operator<<( std::ostream& out, SNPIdentifyingData const& data ) {
-		return out << data.get_SNPID()
-			<< " " << data.get_rsid()
-			<< " " << data.get_position()
-			<< " " << data.get_first_allele()
-			<< " " << data.get_second_allele() ;
-	}
-	
 }
