@@ -4,7 +4,7 @@ import glob
 import Options
 
 srcdir="."
-APPNAME = "gen-tools"
+APPNAME = "qctool"
 VERSION = "1.2"
 
 subdirs = [ 'genfile', 'statfile', 'string_utils', 'appcontext', 'fputils', 'worker' ]
