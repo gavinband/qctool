@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <string>
-#include <stddef.h>
+#include <stdint.h>
 #include <boost/function.hpp>
 #include "snp_data_utils.hpp"
 
