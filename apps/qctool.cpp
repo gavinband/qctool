@@ -20,8 +20,6 @@
 #include "Timer.hpp"
 #include "GenRow.hpp"
 #include "SampleRow.hpp"
-#include "AlleleProportions.hpp"
-#include "GToolException.hpp"
 #include "appcontext/CmdLineOptionProcessor.hpp"
 #include "RowCondition.hpp"
 #include "SNPInListCondition.hpp"
@@ -47,6 +45,7 @@
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/SNPFilteringSNPDataSource.hpp"
 #include "genfile/get_list_of_snps_in_source.hpp"
+#include "genfile/utility.hpp"
 
 #include "statfile/BuiltInTypeStatSource.hpp"
 #include "statfile/from_string.hpp"
@@ -72,7 +71,6 @@
 #include "QCToolContext.hpp"
 #include "QCTool.hpp"
 #include "Relatotron.hpp"
-#include "genfile/utility.hpp"
 
 namespace globals {
 	std::string const program_name = "qctool" ;
@@ -1476,6 +1474,7 @@ private:
 			options(),
 			get_ui_context()
 		) ;
+
 		QCTool qctool_basic(
 			context,
 			get_ui_context()
