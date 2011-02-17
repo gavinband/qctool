@@ -10,10 +10,11 @@ namespace statfile {
 	enum CompressionType { e_NoCompression = 0, e_GzipCompression = 1 } ;
 	enum FileFormatType {
 		e_UnknownFormat = 0,
-		e_RFormat = 1,
-		e_TabDelimitedFormat = 2,
-		e_BinFormat = 3,
-		e_PackedBinFormat = 4
+		e_RFormat = 1,					// Readable by R's read.table( <filename>, header = T )
+		e_CommaDelimitedFormat = 2,		// CSV format, same number of column headers as columns.
+		e_TabDelimitedFormat = 3,		// Tab-delimited format, same number of column headers as columns.
+		e_BinFormat = 4,				// My binary format.
+		e_PackedBinFormat = 5			// My sparse binary format.
 	} ;
 
 	struct MapValueSetter

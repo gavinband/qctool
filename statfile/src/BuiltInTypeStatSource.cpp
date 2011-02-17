@@ -5,7 +5,7 @@
 #include "statfile/BinFormatStatSource.hpp"
 #include "statfile/PackedBinFormatStatSource.hpp"
 #include "statfile/RFormatStatSource.hpp"
-#include "statfile/TabDelimitedStatSource.hpp"
+#include "statfile/DelimitedStatSource.hpp"
 #include "statfile/BuiltInTypeStatSource.hpp"
 #include "statfile/BuiltInTypeStatSourceChain.hpp"
 
@@ -19,8 +19,11 @@ namespace statfile {
 		else if( format == e_PackedBinFormat ) {
 			source.reset( new statfile::PackedBinFormatStatSource( filename )) ;
 		}
+		else if( format == e_CommaDelimitedFormat ){
+			source.reset( new statfile::DelimitedStatSource( filename, "," )) ;
+		}
 		else if( format == e_TabDelimitedFormat ){
-			source.reset( new statfile::TabDelimitedStatSource( filename )) ;
+			source.reset( new statfile::DelimitedStatSource( filename, "\t" )) ;
 		}
 		else if( format == e_RFormat ) {
 			source.reset( new statfile::RFormatStatSource( filename )) ;

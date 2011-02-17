@@ -1,5 +1,5 @@
-#ifndef TABDELIMITEDSTATSOURCE_HPP
-#define TABDELIMITEDSTATSOURCE_HPP
+#ifndef DELIMITEDSTATSOURCE_HPP
+#define DELIMITEDSTATSOURCE_HPP
 
 #include <vector>
 #include <string>
@@ -9,14 +9,17 @@
 #include "statfile/BuiltInTypeStatSource.hpp"
 
 namespace statfile {
-	// Outputs numerical data in a format suitable for reading with
-	// R's read.table().
-	class TabDelimitedStatSource: public ColumnNamingStatSource< BuiltInTypeStatSource >, public IstreamAggregator
+	
+	class DelimitedStatSource: public ColumnNamingStatSource< BuiltInTypeStatSource >, public IstreamAggregator
+		// Class DelimitedStatSource will read files with fields separated by spaces, tabs, commas, or other characters.
+		// It allows a number of comment lines at the start of the file, followed by a list of column names (one per column).
+		// Although it will strip quotes from around fields, this is currently incorrectly implemented in that
+		// the splitting character may not occur within the quoted strings.
 	{
 		typedef ColumnNamingStatSource< BuiltInTypeStatSource > base_t ;
 	public:
-		TabDelimitedStatSource( std::string const& filename ) ;
-		TabDelimitedStatSource( std::auto_ptr< std::istream > stream_ptr ) ;
+		DelimitedStatSource( std::string const& filename, std::string delimiter ) ;
+		DelimitedStatSource( std::auto_ptr< std::istream > stream_ptr, std::string delimiter ) ;
 
 		void reset_to_start() ;
 
@@ -49,7 +52,8 @@ namespace statfile {
 		}
 
 		void read_one_line() ;
-		std::vector< std::string > split_line( std::string const& line, char delimiter ) const ;
+		static std::vector< std::string > split_line( std::string const& line, std::string const& delimiter, std::string const& strip_chars ) ;
+		static std::string strip( std::string const& string_to_strip, std::string const& strip_chars ) ;
 
 		void setup( std::auto_ptr< std::istream > stream_ptr ) ;
 		void setup( std::string const& filename ) ;
@@ -60,8 +64,9 @@ namespace statfile {
 
 	private:
 		std::vector< std::string > m_current_fields ;
-		char m_comment_character ;
-		char m_delimiter ;
+		char const m_comment_character ;
+		std::string const m_delimiter ;
+		std::string const m_strip_chars ;
 		std::size_t m_number_of_rows ;
 		std::string m_descriptive_text ;
 		std::size_t m_number_of_comment_lines ;
@@ -69,12 +74,12 @@ namespace statfile {
 	
 	// Specialisation of do_read_value for strings, since we don't need the istringstream here.
 	template<>
-	void TabDelimitedStatSource::do_read_value< std::string >( std::string& value ) ;
+	void DelimitedStatSource::do_read_value< std::string >( std::string& value ) ;
 
 	// Specialisation of do_read_value for doubles, to deal with infinities
 	// represented in the file as "inf".
 	template<>
-	void TabDelimitedStatSource::do_read_value< double >( double& value ) ;
+	void DelimitedStatSource::do_read_value< double >( double& value ) ;
 }
 
 #endif

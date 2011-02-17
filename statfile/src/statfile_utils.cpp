@@ -32,8 +32,11 @@ namespace statfile {
 	}
 	
 	FileFormatType get_file_format_type_indicated_by_filename( std::string const& filename ) {
-		if( filename.size() > 4 && filename.substr( filename.size() - 4, 4 ) == ".ssv" ) {
+		if( filename.size() > 4 && ( filename.substr( filename.size() - 4, 4 ) == ".ssv" || filename.substr( filename.size() - 4, 4 ) == ".txt" )) {
 			return e_RFormat ;
+		}
+		else if( filename.size() > 4 && filename.substr( filename.size() - 4, 4 ) == ".csv" ) {
+			return e_CommaDelimitedFormat ;
 		}
 		else if( filename.size() > 4 && filename.substr( filename.size() - 4, 4 ) == ".tsv" ) {
 			return e_TabDelimitedFormat ;

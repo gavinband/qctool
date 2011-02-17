@@ -44,6 +44,6 @@ def build( bld ):
 	)
 
 	create_test( bld, 'test_RFormat' )
-	create_test( bld, 'test_TabDelimitedFormat' )
+	create_test( bld, 'test_delimited_format' )
 	create_test( bld, 'test_BinFormat' )
 	create_test( bld, 'test_PackedBinFormat' )
