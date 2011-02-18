@@ -53,5 +53,6 @@ def build( bld ):
 	create_test( bld, 'test_snp_data_source_chain' )
 	create_test( bld, 'test_snp_data_source_rack' )
 	create_test( bld, 'test_sample_filtering_snp_data_source' )
+	create_test( bld, 'test_strand_aligning_source' )
 
 	create_benchmark( bld, 'benchmark-io' )
