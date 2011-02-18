@@ -13,6 +13,7 @@ namespace genfile {
 	class GenFileSNPDataSource: public IdentifyingDataCachingSNPDataSource
 	{
 	public:
+		GenFileSNPDataSource( std::auto_ptr< std::istream > stream, Chromosome chromosome ) ;
 		GenFileSNPDataSource( std::string const& filename, Chromosome chromosome ) ;
 		GenFileSNPDataSource( std::string const& filename, Chromosome chromosome, CompressionType compression_type ) ;
 
@@ -53,6 +54,7 @@ namespace genfile {
 		Chromosome m_chromosome ;
 
 		void setup( std::string const& filename, CompressionType compression_type ) ;
+		void setup( std::auto_ptr< std::istream > stream_ptr ) ;
 		void read_header_data() ;
 	} ;
 }

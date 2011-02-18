@@ -6,6 +6,15 @@
 #include "genfile/GenFileSNPDataSource.hpp"
 
 namespace genfile {
+	GenFileSNPDataSource::GenFileSNPDataSource( std::auto_ptr< std::istream > stream, Chromosome chromosome ):
+		m_filename( "(unnamed stream)" ),
+		m_number_of_samples( 0 ),
+		m_total_number_of_snps( 0 ),
+		m_chromosome( chromosome )
+	{
+		setup( stream ) ;
+	}
+	
 	GenFileSNPDataSource::GenFileSNPDataSource( std::string const& filename, Chromosome chromosome )
 		: m_filename( filename ),
 		  m_number_of_samples( 0 ),
@@ -28,8 +37,13 @@ namespace genfile {
 	void GenFileSNPDataSource::setup( std::string const& filename, CompressionType compression_type ) {
 		m_stream_ptr = open_text_file_for_input( filename, compression_type ) ;
 		read_header_data() ;				
-		// That will have consumed the file, so re-open it.
-		m_stream_ptr = open_text_file_for_input( filename, compression_type ) ;
+		reset_to_start() ;
+	}
+
+	void GenFileSNPDataSource::setup( std::auto_ptr< std::istream > stream_ptr ) {
+		m_stream_ptr = stream_ptr ;
+		read_header_data() ;
+		reset_to_start() ;
 	}
 
 	void GenFileSNPDataSource::reset_to_start_impl() {
