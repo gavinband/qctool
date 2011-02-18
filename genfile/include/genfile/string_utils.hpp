@@ -12,7 +12,11 @@ namespace genfile {
 		std::string to_lower( std::string aString ) ;
 		bool case_insensitive_equality( std::string const& left, std::string const& right ) ;
 		std::string strip( std::string string_to_strip, std::string chars ) ;
-		std::vector< std::string > split_and_strip( std::string string_to_split, std::string const& split_chars = " \t\n", std::string const& strip_chars = " \t\n" ) ;
+		std::vector< std::string > split_and_strip(
+			std::string string_to_split,
+			std::string const& split_chars = " \t\n",
+			std::string const& strip_chars = " \t\n"
+		) ;
 		std::vector< std::string > split_discarding_empty_entries( std::string string_to_split, std::string const& split_chars = " \t\n", std::string const& strip_chars = " \t\n" ) ;
 		std::string strip_all_whitespace( std::string input ) ;
 		
