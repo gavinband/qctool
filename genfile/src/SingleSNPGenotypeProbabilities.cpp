@@ -7,8 +7,9 @@
 
 namespace genfile {
 	
-	SingleSNPGenotypeProbabilities::SingleSNPGenotypeProbabilities():
-	 	m_number_of_samples( 0 )
+	SingleSNPGenotypeProbabilities::SingleSNPGenotypeProbabilities( std::size_t number_of_samples ):
+	 	m_number_of_samples( number_of_samples ),
+		m_probabilities( number_of_samples * 3, 0.0 )
 	{}
 
 	// Construct from a range of doubles.

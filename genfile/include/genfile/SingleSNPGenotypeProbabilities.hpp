@@ -14,8 +14,8 @@ namespace genfile {
 	// Invariant: the sum of probabilities for each individual is at most 1, to 3d.p accuracy.
 	{
 	public:
-		// Empty set of probabilities (no samples)
-		SingleSNPGenotypeProbabilities() ;
+		// zero-initialised set of probabilities.
+		SingleSNPGenotypeProbabilities( std::size_t number_of_samples = 0 ) ;
 		// Construct from a range of doubles.
 		// These come in the order: AA(sample 1) AB(sample 1) BB( sample 1) AA( sample 2 )...
 		SingleSNPGenotypeProbabilities( double const* begin, double const* end ) ;
@@ -66,7 +66,6 @@ namespace genfile {
 		double sum( std::size_t i ) const ;
 		// Return the amount of null call for sample i, i.e. 1 - sum( i )
 		double null_call( std::size_t i ) const ; 
-
 
 	private:
 		std::vector< double > m_probabilities ;
