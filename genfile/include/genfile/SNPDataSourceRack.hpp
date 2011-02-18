@@ -69,7 +69,8 @@ namespace genfile {
 		operator bool() const ;
 		std::string get_source_spec() const ;
 		std::string get_summary( std::string const& prefix, std::size_t width ) const ;
-		
+		std::vector< SNPIdentifyingData > const& get_snps() const { return m_included_snps ; }
+
 	protected:
 
 		void reset_to_start_impl() ;
