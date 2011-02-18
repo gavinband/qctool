@@ -42,6 +42,7 @@
 #include "genfile/CohortIndividualSourceChain.hpp"
 #include "genfile/SampleFilteringSNPDataSource.hpp"
 #include "genfile/SNPTranslatingSNPDataSource.hpp"
+#include "genfile/StrandAligningSNPDataSource.hpp"
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/SNPFilteringSNPDataSource.hpp"
 #include "genfile/get_list_of_snps_in_source.hpp"
@@ -49,6 +50,7 @@
 
 #include "statfile/BuiltInTypeStatSource.hpp"
 #include "statfile/from_string.hpp"
+#include "statfile/read_values.hpp"
 
 #include "appcontext/appcontext.hpp"
 
@@ -102,17 +104,37 @@ public:
 		options.declare_group( "Input file options" ) ;
 	    options[ "-g" ]
 	        .set_description( 	"Path of gen file(s) to input.  "
-								"To specify several files, either repeat this option or use the numerical wildcard character '#', which "
-								"matches numbers from 1 to 100.  For example, \"qctool -g myfile_#.gen\" will find all files of "
-								"the form \"myfile_N.gen\", where N can be 1, 002, 099, etc." )
+								"The given filename may contain the wildcard character '#', which expands to match a"
+								" two-character chromosome identifier.  (For example, \"qctool -g myfile_#.gen\" will find all files of "
+								"the form \"myfile_01.gen\", \"myfile_02.gen\", etc.)  Only Human autosomes are matched this way.\n"
+								"This option may be repeated, in which case each invocation is treated as a seperate cohort and cohorts"
+								"are joined together to create one big dataset." )
 			.set_takes_values_per_use( 1 )
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 100 ) ;
 
 	    options[ "-s" ]
-	        .set_description( "Path of sample file to input" )
+	        .set_description( "Path of sample file to input.  If specified, this option must occur as often as the -g option"
+							" to specify one sample file per cohort." )
 			.set_takes_values_per_use( 1 )
 			.set_minimum_multiplicity( 0 )
+			.set_maximum_multiplicity( 100 ) ;
+
+/*	    options[ "-i" ]
+	        .set_description( 	"Path of intensity file(s) to input.  "
+								"If specified, this option must occur the same number of times as the -g option, to specify"
+								" one intensity file per cohort."
+								"As with -g the '#' wildcard character may be used to match chromosomes." )
+			.set_takes_values_per_use( 1 )
+			.set_minimum_multiplicity( 1 )
+			.set_maximum_multiplicity( 100 ) ;
+*/
+	    options[ "-strand" ]
+	        .set_description( 	"Path of strand file(s) to input.  "
+								"If specified, this option must occur the same number of times as the -g option, to specify"
+								" one intensity file per cohort." )
+			.set_takes_values_per_use( 1 )
+			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 100 ) ;
 
 		options[ "-translate-snps" ]
@@ -549,6 +571,10 @@ struct QCToolCmdLineContext: public QCToolContext
 		try {
 			setup() ;
 		}
+		catch( genfile::MalformedInputError const& e ) {
+			m_ui_context.logger() << "\nError (" << e.what() <<"): " << e.format_message() << ".\n" ;
+			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+		}
 		catch( genfile::FileContainsSNPsOfDifferentSizes const& ) {
 			m_ui_context.logger() << "\nError: The GEN files specified did not all have the same sample size.\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
@@ -559,6 +585,10 @@ struct QCToolCmdLineContext: public QCToolContext
 		}
 		catch ( FileError const& e ) {
 			m_ui_context.logger() << "\nFile handling exception: " << e.what() << ": relating to file \"" << e.filename() << "\".\n" ;
+			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+		}
+		catch ( genfile::KeyNotFoundError const& e ) {
+			m_ui_context.logger() << "\nKey \"" << e.key() << "\" was not found in source \"" << e.source() << "\".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 	}
@@ -846,6 +876,47 @@ struct QCToolCmdLineContext: public QCToolContext
 	genfile::CohortIndividualSource const& get_cohort_individual_source() const { assert( m_cohort_individual_source.get() ) ; return *m_cohort_individual_source ; }
 
 private:
+	appcontext::OptionProcessor const& m_options ;
+	QCToolOptionMangler const m_mangled_options ;
+	appcontext::UIContext& m_ui_context ;
+
+	typedef std::map< genfile::SNPIdentifyingData, char > StrandSpec ;
+	typedef std::vector< StrandSpec > StrandSpecs ;
+	std::auto_ptr< StrandSpecs > m_strand_specs ;
+	std::auto_ptr< genfile::SNPDataSource > m_snp_data_source ;
+	std::auto_ptr< genfile::SNPDataSinkChain > m_fltrd_in_snp_data_sink ;
+	std::auto_ptr< genfile::SNPDataSinkChain > m_fltrd_out_snp_data_sink ;
+	std::auto_ptr< ObjectSource< SampleRow > > m_sample_source ;
+	genfile::CohortIndividualSource::UniquePtr m_cohort_individual_source ;
+
+	std::vector< SampleRow > m_sample_rows ;
+
+	std::auto_ptr< ObjectSink< SampleRow > > m_fltrd_in_sample_sink ;
+	std::auto_ptr< ObjectSink< SampleRow > > m_fltrd_out_sample_sink ;
+	std::auto_ptr< statfile::BuiltInTypeStatSink > m_snp_stats_sink ;
+	std::auto_ptr< statfile::BuiltInTypeStatSink > m_sample_stats_sink ;
+
+	std::vector< std::size_t > m_snp_filter_failure_counts ;
+	std::vector< std::size_t > m_sample_filter_failure_counts ;
+	
+	bool m_ignore_warnings ; 
+	
+	std::size_t m_current_snp_stats_filename_index ;
+
+	std::auto_ptr< AndRowCondition > m_snp_filter ;
+	std::auto_ptr< AndRowCondition > m_sample_filter ;
+
+	GenRowStatistics m_snp_statistics ;
+	SampleRowStatistics m_sample_statistics ;
+	
+	std::vector< std::size_t > m_indices_of_filtered_out_samples ;
+	
+	ToNumberedFileBackupCreator m_backup_creator ;
+	
+	std::vector< std::string > m_warnings ;
+	std::vector< std::string > m_errors ;
+	
+private:
 	
 	void setup() {
 			construct_snp_statistics() ;
@@ -854,7 +925,11 @@ private:
 			construct_sample_filter() ;
 			process_other_options() ;
 			
-			m_snp_data_source = open_snp_data_source() ;
+			if( m_options.check_if_option_has_value( "-strand" )) {
+				m_strand_specs = get_strand_specs( m_options.get_values< std::string >( "-strand" )) ;
+			}
+			
+			m_snp_data_source = open_snp_data_sources() ;
 			
 			m_cohort_individual_source = load_sample_rows( m_snp_data_source->number_of_samples() ) ;
 			
@@ -886,7 +961,83 @@ private:
 			open_sample_stats_sink() ;
 	}
 	
-	genfile::SNPDataSource::UniquePtr open_snp_data_source() {
+	std::auto_ptr< StrandSpecs > get_strand_specs( std::vector< std::string > const& filenames ) const {
+		std::auto_ptr< StrandSpecs > result( new StrandSpecs( filenames.size() ) ) ;
+		
+		appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Loading strand files" ) ;
+		progress_context.notify_progress( 0, filenames.size() ) ;
+		
+		for( std::size_t i = 0; i < filenames.size(); ++i ) {
+			statfile::BuiltInTypeStatSource::UniquePtr source( statfile::BuiltInTypeStatSource::open( filenames[i] )) ;
+			if( source->number_of_columns() < 6 ) {
+				throw genfile::MalformedInputError( filenames[i], 1 ) ;
+			}
+
+			std::string platform_column_names ;
+			if( source->name_of_column(1) == "Affy SNP ID" ) {
+				platform_column_names = "Chromosome|Physical Position|Affy SNP ID|dbSNP RS ID|Allele A|Allele B|Strand" ;
+			}
+			else if( source->name_of_column(1) == "IlmnID" ) {
+				platform_column_names = "Chromosome|position|IlmnID|rsid|alleleA|alleleB|strand" ;
+			}
+			else if( source->name_of_column(1) == "SNPID" ) {
+				platform_column_names = "chromosome|position|SNPID|rsid|alleleA|alleleB|strand" ;
+			}
+			else {
+				throw genfile::MalformedInputError( source->get_source_spec(), 1, 2 ) ;
+			}
+
+			while( *source ) {
+				genfile::SNPIdentifyingData snp ;
+				std::string strand ;
+				if(
+					statfile::read_values(
+						*source,
+						platform_column_names,
+						boost::tie(
+							snp.position().chromosome(),
+							snp.position().position(),
+							snp.SNPID(),
+							snp.rsid(),
+							snp.first_allele(),
+							snp.second_allele(),
+							strand
+						)
+					)
+				) {
+					// Support illumina "FWD" and "REV" strands.
+					if( strand == "REV" || strand == "-" ) {
+						strand = genfile::StrandAligningSNPDataSource::eReverseStrand ;
+					}
+					else if( strand == "FWD" || strand == "+" ) {
+						strand = genfile::StrandAligningSNPDataSource::eForwardStrand ;
+					}
+					else if( strand == "?" ) {
+						strand = genfile::StrandAligningSNPDataSource::eUnknownStrand ;
+					}
+					else {
+						throw genfile::MalformedInputError( source->get_source_spec(), source->number_of_rows_read() + 1 ) ;
+					}
+				
+					StrandSpec::iterator where = result->at(i).find( snp ) ;
+					if( where != result->at(i).end() ) {
+						throw genfile::DuplicateKeyError( source->get_source_spec(), genfile::string_utils::to_string( snp ) ) ;
+					}
+					result->at(i)[ snp ] = strand[0] ;
+				
+					(*source) >> statfile::ignore_all() ;
+				}
+			}
+			assert( source->number_of_rows_read() == source->number_of_rows() ) ;
+
+			progress_context.notify_progress( i+1, filenames.size() ) ;
+		}
+		return result ;
+	}
+	
+	genfile::SNPDataSource::UniquePtr open_snp_data_sources()
+	// Open the gen files, taking care of filtering, strand alignment, translation, etc.
+	{
 		genfile::SNPDataSourceRack::UniquePtr rack( new genfile::SNPDataSourceRack() ) ;
 
 		// count files.
@@ -926,8 +1077,27 @@ private:
 				chain->set_moved_to_next_source_callback( boost::bind( &QCToolCmdLineContext::move_to_next_output_file, this, _1 )) ;
 			}
 			
+			genfile::SNPDataSource::UniquePtr source( chain.release() ) ;
+			
+			// If we have strand alignment information, implement it now
+			if( m_strand_specs.get() ) {
+				assert( m_strand_specs->size() == m_mangled_options.gen_filenames().size() ) ;
+				genfile::StrandAligningSNPDataSource::StrandAlignments strand_alignments ;
+				boost::tie( snps, strand_alignments ) = genfile::StrandAligningSNPDataSource::create_strand_alignments(
+					snps,
+					m_strand_specs->at(i)
+				) ;
+				source.reset(
+					genfile::StrandAligningSNPDataSource::create(
+						source,
+						strand_alignments
+					)
+					.release()
+				) ;
+			}
+			
 			rack->add_source(
-				genfile::SNPDataSource::UniquePtr( chain.release() ),
+				source,
 				snps
 			) ;
 		}
@@ -937,18 +1107,10 @@ private:
 	std::pair< genfile::SNPDataSource*, std::vector< genfile::SNPIdentifyingData > >
 	open_snp_data_source( std::string const& filename, std::string const& chromosome_indicator ) const {
 		genfile::SNPDataSource::UniquePtr source ;
-		try {
-			source = genfile::SNPDataSource::create(
-				filename,
-				chromosome_indicator
-			) ;
-		}
-		catch ( genfile::FileHasTwoTrailingNewlinesError const& e ) {
-			std::cerr << "\n!!ERROR: a GEN file was specified having two consecutive newlines.\n"
-				<< "!! NOTE: popular editors, such as vim and nano, automatically add an extra newline to the file (which you can't see).\n"
-				<< "!!     : Please check that each SNP in the file is terminated by a single newline.\n" ;
-			throw ;
-		}
+		source = genfile::SNPDataSource::create(
+			filename,
+			chromosome_indicator
+		) ;
 		
 		std::vector< genfile::SNPIdentifyingData > snps = genfile::get_list_of_snps_in_source( *source ) ;
 		source->reset_to_start() ;
@@ -990,6 +1152,7 @@ private:
 				}
 			}
 		}
+
 		return std::make_pair(
 			source.release(),
 			snps
@@ -1410,44 +1573,6 @@ private:
 		return (!left.empty()) && (!right.empty()) && (left == right) ;
 	}
 
-private:
-	appcontext::OptionProcessor const& m_options ;
-	QCToolOptionMangler const m_mangled_options ;
-	appcontext::UIContext& m_ui_context ;
-
-	std::auto_ptr< genfile::SNPDataSource > m_snp_data_source ;
-	std::auto_ptr< genfile::SNPDataSinkChain > m_fltrd_in_snp_data_sink ;
-	std::auto_ptr< genfile::SNPDataSinkChain > m_fltrd_out_snp_data_sink ;
-	std::auto_ptr< ObjectSource< SampleRow > > m_sample_source ;
-
-	std::vector< SampleRow > m_sample_rows ;
-
-	std::auto_ptr< ObjectSink< SampleRow > > m_fltrd_in_sample_sink ;
-	std::auto_ptr< ObjectSink< SampleRow > > m_fltrd_out_sample_sink ;
-	std::auto_ptr< statfile::BuiltInTypeStatSink > m_snp_stats_sink ;
-	std::auto_ptr< statfile::BuiltInTypeStatSink > m_sample_stats_sink ;
-
-	std::vector< std::size_t > m_snp_filter_failure_counts ;
-	std::vector< std::size_t > m_sample_filter_failure_counts ;
-	
-	bool m_ignore_warnings ; 
-	
-	std::size_t m_current_snp_stats_filename_index ;
-
-	std::auto_ptr< AndRowCondition > m_snp_filter ;
-	std::auto_ptr< AndRowCondition > m_sample_filter ;
-
-	GenRowStatistics m_snp_statistics ;
-	SampleRowStatistics m_sample_statistics ;
-	
-	std::vector< std::size_t > m_indices_of_filtered_out_samples ;
-	
-	ToNumberedFileBackupCreator m_backup_creator ;
-	
-	std::vector< std::string > m_warnings ;
-	std::vector< std::string > m_errors ;
-	
-	genfile::CohortIndividualSource::UniquePtr m_cohort_individual_source ;
 } ;
 
 struct QCToolApplication: public appcontext::ApplicationContext
