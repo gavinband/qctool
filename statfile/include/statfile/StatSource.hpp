@@ -135,6 +135,13 @@ namespace statfile {
 			}
 			return where - names.begin() ;
 		}
+
+		// Return true or false if the source has the given column.
+		bool has_column( std::string const& name ) const {
+			std::vector< std::string > const& names = column_names() ;
+			return( std::find( names.begin(), names.end(), name ) != names.end() ) ;
+		}
+
 		// Return the current column.
 		std::size_t current_column() { return m_current_column ; }
 		virtual std::string get_source_spec() const { return "(unknown)" ; }

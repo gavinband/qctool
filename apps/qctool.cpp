@@ -974,13 +974,13 @@ private:
 			}
 
 			std::string platform_column_names ;
-			if( source->name_of_column(1) == "Affy SNP ID" ) {
+			if( source->has_column( "Affy SNP ID" )) {
 				platform_column_names = "Chromosome|Physical Position|Affy SNP ID|dbSNP RS ID|Allele A|Allele B|Strand" ;
 			}
-			else if( source->name_of_column(1) == "IlmnID" ) {
+			else if( source->has_column( "IlmnID" )) {
 				platform_column_names = "Chromosome|position|IlmnID|rsid|alleleA|alleleB|strand" ;
 			}
-			else if( source->name_of_column(1) == "SNPID" ) {
+			else if( source->has_column( "SNPID" ) ) {
 				platform_column_names = "chromosome|position|SNPID|rsid|alleleA|alleleB|strand" ;
 			}
 			else {
