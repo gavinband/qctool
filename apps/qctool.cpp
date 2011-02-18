@@ -43,6 +43,7 @@
 #include "genfile/SampleFilteringSNPDataSource.hpp"
 #include "genfile/SNPTranslatingSNPDataSource.hpp"
 #include "genfile/StrandAligningSNPDataSource.hpp"
+#include "genfile/AlleleFlippingSNPDataSource.hpp"
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/SNPFilteringSNPDataSource.hpp"
 #include "genfile/get_list_of_snps_in_source.hpp"
@@ -134,7 +135,7 @@ public:
 								"If specified, this option must occur the same number of times as the -g option, to specify"
 								" one intensity file per cohort." )
 			.set_takes_values_per_use( 1 )
-			.set_minimum_multiplicity( 1 )
+			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
 
 		options[ "-translate-snps" ]
@@ -142,6 +143,11 @@ public:
 				" (This should come as a four-column file with source_chromosome source_position target_chromosome and target_position columns.)"
 				" Positions of SNPs will be mapped through this dictionary before processing." )
 			.set_takes_single_value() ;
+
+		options[ "-match-alleles" ]
+			.set_description( "Specify that alleles (and corresponding genotypes) in all cohorts should be switched, if necessary,"
+				" so as to match the alleles of the first cohort.  This does not perform allele complementation,"
+				" but you can use the -strand option to complement alleles first." ) ;
 
 		options.declare_group( "Sample exclusion options" ) ;
 		options[ "-incl-samples"]
@@ -1091,6 +1097,22 @@ private:
 					genfile::StrandAligningSNPDataSource::create(
 						source,
 						strand_alignments
+					)
+					.release()
+				) ;
+			}
+
+			if( m_options.check_if_option_was_supplied( "-match-alleles" ) && i > 0 ) {
+				genfile::AlleleFlippingSNPDataSource::AlleleFlipSpec allele_flip_spec ;
+				boost::tie( snps, allele_flip_spec ) = genfile::AlleleFlippingSNPDataSource::get_allele_flip_spec(
+					rack->get_snps(),
+					snps
+				) ;
+				
+				source.reset(
+					genfile::AlleleFlippingSNPDataSource::create(
+						source,
+						allele_flip_spec
 					)
 					.release()
 				) ;

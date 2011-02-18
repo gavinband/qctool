@@ -49,14 +49,6 @@ namespace genfile {
 
 	private:
 
-		struct StrandFlippingGenotypeProbabilitySetter
-		{
-			StrandFlippingGenotypeProbabilitySetter( GenotypeProbabilitySetter setter ) ;
-			void operator()( std::size_t i, double AA, double AB, double BB ) const ;
-		private:
-			GenotypeProbabilitySetter m_setter ;
-		} ;
-
 		void get_snp_identifying_data_impl( 
 			IntegerSetter const& set_number_of_samples,
 			StringSetter const& set_SNPID,
@@ -73,6 +65,8 @@ namespace genfile {
 
 		void ignore_snp_probability_data_impl() ;
 		void reset_to_start_impl() ;
+		
+		static char complement( char allele ) ;
 	} ;
 }
 

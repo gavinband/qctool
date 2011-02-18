@@ -36,6 +36,7 @@ namespace genfile {
 	std::ostream& operator<<( std::ostream&, SNPIdentifyingData const& ) ;
 	std::ostream& operator<<( std::ostream&, std::vector< SNPIdentifyingData > const& ) ;
 	bool operator==( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) ;
+	bool operator!=( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) ;
 	bool operator<( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) ;
 }
 

@@ -3,6 +3,7 @@
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/StrandAligningSNPDataSource.hpp"
 #include "genfile/get_set.hpp"
+#include "genfile/Error.hpp"
 
 namespace genfile {
 	std::pair< std::vector< SNPIdentifyingData >, StrandAligningSNPDataSource::StrandAlignments > StrandAligningSNPDataSource::create_strand_alignments(
@@ -73,6 +74,8 @@ namespace genfile {
 		if( number_of_snps_read() < m_strand_alignments.size() ) {
 			strand_alignment = m_strand_alignments[ number_of_snps_read() ] ;
 		}
+		char allele1, allele2 ;
+		
 		switch( strand_alignment ) {
 			case eForwardStrand:
 				m_source->get_snp_identifying_data(
@@ -92,9 +95,11 @@ namespace genfile {
 					set_RSID,
 					set_chromosome,
 					set_SNP_position,
-					set_allele2,
-					set_allele1
+					set_value( allele1 ),
+					set_value( allele2 )
 				) ;
+				set_allele1( complement( allele1 )) ;
+				set_allele2( complement( allele2 )) ;
 				break ;
 			case eUnknownStrand:
 				m_source->get_snp_identifying_data(
@@ -114,35 +119,23 @@ namespace genfile {
 		}
 	}
 
-	void StrandAligningSNPDataSource::read_snp_probability_data_impl(
-		GenotypeProbabilitySetter const& set_genotype_probabilities
-	) {
-		switch( m_strand_alignments[ m_source->number_of_snps_read() ] ) {
-			case eForwardStrand:
-				m_source->read_snp_probability_data( set_genotype_probabilities ) ;
-				break ;
-			case eReverseStrand:
-				m_source->read_snp_probability_data(
-					StrandFlippingGenotypeProbabilitySetter( set_genotype_probabilities )
-				);
-				break ;
-			case eUnknownStrand:
-				m_source->ignore_snp_probability_data() ;
-				for( std::size_t i = 0; i < number_of_samples(); ++i ) {
-					set_genotype_probabilities( i, 0.0, 0.0, 0.0 ) ;
-				}
-				break ; 
+	char StrandAligningSNPDataSource::complement( char allele ) {
+		switch( allele ) {
+			case 'A': return 'T' ; break ;
+			case 'T': return 'A' ; break ;
+			case 'C': return 'G' ; break ;
+			case 'G': return 'C' ; break ;
+			case '?': return '?' ; break ;
 			default:
-				assert(0) ; 
+				throw BadArgumentError( "StrandAligningSNPDataSource::complement", "allele=" + std::string( 1, allele ) ) ;
+				break ;
 		}
 	}
 
-	StrandAligningSNPDataSource::StrandFlippingGenotypeProbabilitySetter::StrandFlippingGenotypeProbabilitySetter( GenotypeProbabilitySetter setter ):
-		m_setter( setter )
-	{}
-
-	void StrandAligningSNPDataSource::StrandFlippingGenotypeProbabilitySetter::operator()( std::size_t i, double AA, double AB, double BB ) const {
-		m_setter( i, BB, AB, AA ) ;
+	void StrandAligningSNPDataSource::read_snp_probability_data_impl(
+		GenotypeProbabilitySetter const& set_genotype_probabilities
+	) {
+		m_source->read_snp_probability_data( set_genotype_probabilities ) ;
 	}
 
 	void StrandAligningSNPDataSource::ignore_snp_probability_data_impl() {

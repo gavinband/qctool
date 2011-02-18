@@ -58,6 +58,14 @@ namespace genfile {
 			left.get_first_allele() == right.get_first_allele() &&
 			left.get_second_allele() == right.get_second_allele() ;
 	}
+
+	bool operator!=( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) {
+		return left.get_SNPID() != right.get_SNPID() ||
+			left.get_rsid() != right.get_rsid() ||
+			left.get_position() != right.get_position() ||
+			left.get_first_allele() != right.get_first_allele() ||
+			left.get_second_allele() != right.get_second_allele() ;
+	}
 	
     bool operator<( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) {
 		return(
