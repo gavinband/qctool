@@ -8,6 +8,7 @@
 #include "genfile/GenFileSNPDataSource.hpp"
 #include "genfile/BGenFileSNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
+#include "genfile/get_set.hpp"
 #include "genfile/Error.hpp"
 
 namespace genfile {
@@ -198,6 +199,20 @@ namespace genfile {
 		return *this ;
 	}
 
+	SNPDataSource& SNPDataSource::get_snp_identifying_data(
+		SNPIdentifyingData& snp
+	) {
+		return get_snp_identifying_data(
+			ignore(),
+			set_value( snp.SNPID() ),
+			set_value( snp.rsid() ),
+			set_value( snp.position().chromosome() ),
+			set_value( snp.position().position() ),
+			set_value( snp.first_allele() ),
+			set_value( snp.second_allele() )
+		) ;
+	}
+
 	SNPDataSource& SNPDataSource::read_snp_probability_data(
 		GenotypeProbabilitySetter const& set_genotype_probabilities
 	) {
@@ -211,7 +226,7 @@ namespace genfile {
 		}
 		return *this ;
 	}
-
+	
 	SNPDataSource& SNPDataSource::ignore_snp_probability_data() {
 		assert( m_state == e_HaveReadIdentifyingData ) ;
 		ignore_snp_probability_data_impl() ;

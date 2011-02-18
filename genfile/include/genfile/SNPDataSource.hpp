@@ -9,6 +9,8 @@
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/wildcard.hpp"
 #include "genfile/GenomePosition.hpp"
+#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/SingleSNPGenotypeProbabilities.hpp"
 
 namespace genfile {
 	struct SNPDataSourceError: public SNPDataError { char const* what() const throw() { return "SNPDataSourceError" ; } } ;
@@ -132,6 +134,14 @@ namespace genfile {
 			SNPPositionSetter const& set_SNP_position,
 			AlleleSetter const& set_allele1,
 			AlleleSetter const& set_allele2
+		) ;
+
+		// Function: get_snp_identifying_data()
+		// Get the SNP ID, RS ID, position, and alleles of the next snp in the source.
+		// Repeated calls to this function return the data for the same snp, until a call to
+		// read_snp_probability_data() or ignore_snp_probability_data() is made.
+		SNPDataSource& get_snp_identifying_data(
+			SNPIdentifyingData& snp
 		) ;
 
 		// Function: read_snp_probability_data()
