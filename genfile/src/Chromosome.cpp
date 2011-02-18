@@ -31,7 +31,7 @@ namespace genfile {
 			return "0Y" ;
 		}
 		else if( m_chromosome_e == UnidentifiedChromosome ) {
-			return "Unknown" ;
+			return "??" ;
 		}
 		else {
 			std::ostringstream oStream ;
@@ -41,7 +41,7 @@ namespace genfile {
 	}
 
 	Chromosome::Chromosome( std::string const& s ) {
-		if( s == "Unknown" || s == "" ) {
+		if( s == "??" || s == "" ) {
 			m_chromosome_e = UnidentifiedChromosome ;
 		}
 		else if( s == "MT" ) {
@@ -50,21 +50,22 @@ namespace genfile {
 		else if( s == "XY" ) {
 			m_chromosome_e = XYPseudoAutosomalDNA ;
 		}
-		else if( s == "0X" ) {
+		else if( s == "0X" || s == "X" ) {
 			m_chromosome_e = XChromosome ;
 		}
-		else if( s == "0Y" ) {
+		else if( s == "0Y" || s == "Y" ) {
 			m_chromosome_e = YChromosome ;
 		}
 		else {
 			int i ;
 			std::istringstream istr( s ) ;
 			istr >> i ;
-			if( i > 0 && i < 23 ) {
-				m_chromosome_e = Chromosome( i ) ;
+			istr.peek() ;
+			if( !istr.eof() || i < 1 || i > 22 ) {
+				throw BadArgumentError( "Chromosome::Chromosome()", s ) ;
 			}
 			else {
-				throw BadArgumentError( Chromosome::Chromosome(), s ) ;
+				m_chromosome_e = Chromosome( i ) ;
 			}
 		}
 	}
