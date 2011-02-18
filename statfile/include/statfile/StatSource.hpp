@@ -137,6 +137,7 @@ namespace statfile {
 		}
 		// Return the current column.
 		std::size_t current_column() { return m_current_column ; }
+		virtual std::string get_source_spec() const { return "(unknown)" ; }
 
 	protected:
 
