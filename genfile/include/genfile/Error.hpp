@@ -89,7 +89,7 @@ namespace genfile {
 
 	struct KeyNotFoundError: public InputError
 	{
-		KeyNotFoundError( std::string const& key, std::string const& source ):
+		KeyNotFoundError( std::string const& source, std::string const& key ):
 			InputError( source ),
 			m_key( key)
 		{}
@@ -123,7 +123,7 @@ namespace genfile {
 
 		char const* what() const throw() { return "genfile::MalformedInputError" ; }
 
-		std::string format_message() const {
+		virtual std::string format_message() const {
 			std::ostringstream ostr ;
 			ostr << "Source \"" << source() << "\" is malformed on line " << ( line() + 1 ) ;
 			if( has_column() ) {
@@ -174,6 +174,10 @@ namespace genfile {
 		FileHasTwoTrailingNewlinesError( std::string const& source, int line ):
 			MalformedInputError( source, line )
 		{}
+
+		std::string format_message() const {
+			return MalformedInputError::format_message() + "\nThe file has two consecutive newlines.  Note that popular editors add an extra newline to the end of the file (which you can't see).\n" ;
+		}
 
 		char const* what() const throw() { return "genfile::FileHasTwoTrailingNewlinesError" ; }
 	} ;
