@@ -11,10 +11,9 @@
 
 namespace statfile {
 	struct StatSourceError: public StatError { char const* what() const throw() { return "StatSourceError" ; } } ;
-	struct FileIsInvalidError: public StatSourceError { char const* what() const throw() { return "FileIsInvalidError" ; } } ;
-	struct FileHasTrailingDataAfterLastSNP: public FileIsInvalidError { char const* what() const throw() { return "FileHasTrailingDataAfterLastSNP" ; } } ;
-	struct FileContainsSNPsOfDifferentSizes: public FileIsInvalidError { char const* what() const throw() { return "FileContainsSNPsOfDifferentSizes" ; } } ;
-	struct ReadPastEndError: public FileIsInvalidError { char const* what() const throw() { return "ReadPastEndError" ; } } ;
+	struct FileHasTrailingDataAfterLastSNP: public StatSourceError { char const* what() const throw() { return "FileHasTrailingDataAfterLastSNP" ; } } ;
+	struct FileContainsSNPsOfDifferentSizes: public StatSourceError { char const* what() const throw() { return "FileContainsSNPsOfDifferentSizes" ; } } ;
+	struct ReadPastEndError: public StatSourceError { char const* what() const throw() { return "ReadPastEndError" ; } } ;
 
 
 	// Base class for classes which provide data, nominally organised into rows and columns.

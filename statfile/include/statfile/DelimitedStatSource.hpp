@@ -47,13 +47,14 @@ namespace statfile {
 			istr >> value ;
 			istr.peek() ;
 			if( !istr.eof() ) {
-				throw FileIsInvalidError() ;
+				throw genfile::MalformedInputError( get_source_spec(), number_of_rows_read(), current_column() ) ;
 			}
 		}
 
 		void read_one_line() ;
-		static std::vector< std::string > split_line( std::string const& line, std::string const& delimiter, std::string const& strip_chars ) ;
+		std::vector< std::string > split_line( std::string const& line, std::string const& delimiter, std::string const& strip_chars ) const ;
 		static std::string strip( std::string const& string_to_strip, std::string const& strip_chars ) ;
+		static std::string get_unquoted_substring( std::string const& big_string, std::size_t pos, std::size_t length, std::string const& quotes ) ;
 
 		void setup( std::auto_ptr< std::istream > stream_ptr ) ;
 		void setup( std::string const& filename ) ;
@@ -61,12 +62,13 @@ namespace statfile {
 		std::string read_descriptive_comments() ;
 		void read_column_names() ;
 		std::size_t count_remaining_lines() ;
-
+		std::string get_source_spec() const ;
 	private:
+		std::string const m_filename ;
 		std::vector< std::string > m_current_fields ;
 		char const m_comment_character ;
 		std::string const m_delimiter ;
-		std::string const m_strip_chars ;
+		std::string const m_quotes ;
 		std::size_t m_number_of_rows ;
 		std::string m_descriptive_text ;
 		std::size_t m_number_of_comment_lines ;
