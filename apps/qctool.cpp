@@ -973,6 +973,8 @@ private:
 		appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Loading strand files" ) ;
 		progress_context.notify_progress( 0, filenames.size() ) ;
 		
+		std::vector< std::pair< int, int > > summaries( filenames.size(), std::make_pair( 0, 0 ) ) ; // first = row count, second = failure count.
+		
 		for( std::size_t i = 0; i < filenames.size(); ++i ) {
 			statfile::BuiltInTypeStatSource::UniquePtr source( statfile::BuiltInTypeStatSource::open( filenames[i] )) ;
 			if( source->number_of_columns() < 6 ) {
@@ -990,47 +992,55 @@ private:
 				platform_column_names = "chromosome|position|SNPID|rsid|alleleA|alleleB|strand" ;
 			}
 			else {
-				throw genfile::MalformedInputError( source->get_source_spec(), 1, 2 ) ;
+				throw genfile::MalformedInputError( source->get_source_spec(), 0 ) ;
 			}
+
+			summaries[i].first = source->number_of_rows() ; // row count.
 
 			while( *source ) {
 				genfile::SNPIdentifyingData snp ;
 				std::string strand ;
-				if(
-					statfile::read_values(
-						*source,
-						platform_column_names,
-						boost::tie(
-							snp.position().chromosome(),
-							snp.position().position(),
-							snp.SNPID(),
-							snp.rsid(),
-							snp.first_allele(),
-							snp.second_allele(),
-							strand
+				try {
+					if(
+						statfile::read_values(
+							*source,
+							platform_column_names,
+							boost::tie(
+								snp.position().chromosome(),
+								snp.position().position(),
+								snp.SNPID(),
+								snp.rsid(),
+								snp.first_allele(),
+								snp.second_allele(),
+								strand
+							)
 						)
-					)
-				) {
-					// Support illumina "FWD" and "REV" strands.
-					if( strand == "REV" || strand == "-" ) {
-						strand = genfile::StrandAligningSNPDataSource::eReverseStrand ;
-					}
-					else if( strand == "FWD" || strand == "+" ) {
-						strand = genfile::StrandAligningSNPDataSource::eForwardStrand ;
-					}
-					else if( strand == "?" ) {
-						strand = genfile::StrandAligningSNPDataSource::eUnknownStrand ;
-					}
-					else {
-						throw genfile::MalformedInputError( source->get_source_spec(), source->number_of_rows_read() + 1 ) ;
-					}
+					) {
+						// Support illumina "FWD" and "REV" strands.
+						if( strand == "REV" || strand == "-" ) {
+							strand = genfile::StrandAligningSNPDataSource::eReverseStrand ;
+						}
+						else if( strand == "FWD" || strand == "+" ) {
+							strand = genfile::StrandAligningSNPDataSource::eForwardStrand ;
+						}
+						else if( strand == "?" ) {
+							strand = genfile::StrandAligningSNPDataSource::eUnknownStrand ;
+						}
+						else {
+							m_ui_context.logger() << "!! Error: found unrecognised strand \"" << strand << "\" in strand alignment file.\n" ;
+							throw genfile::MalformedInputError( source->get_source_spec(), source->number_of_rows_read() + 1 ) ;
+						}
 				
-					StrandSpec::iterator where = result->at(i).find( snp ) ;
-					if( where != result->at(i).end() ) {
-						throw genfile::DuplicateKeyError( source->get_source_spec(), genfile::string_utils::to_string( snp ) ) ;
+						StrandSpec::iterator where = result->at(i).find( snp ) ;
+						if( where != result->at(i).end() ) {
+							throw genfile::DuplicateKeyError( source->get_source_spec(), genfile::string_utils::to_string( snp ) ) ;
+						}
+						result->at(i)[ snp ] = strand[0] ;
+						(*source) >> statfile::ignore_all() ;
 					}
-					result->at(i)[ snp ] = strand[0] ;
-				
+				}
+				catch( genfile::InputError ) {
+					++summaries[i].second ; // failure count
 					(*source) >> statfile::ignore_all() ;
 				}
 			}
@@ -1038,6 +1048,16 @@ private:
 
 			progress_context.notify_progress( i+1, filenames.size() ) ;
 		}
+		
+		m_ui_context.logger() << "\nStrand file summary:\n" ;
+		for( std::size_t i = 0; i < summaries.size(); ++i ) {
+			m_ui_context.logger() << std::setw( 30) << ( "  \"" + filenames[i] + "\"" ) << ": " << std::setw( 7 ) << summaries[i].first << " rows" ;
+			if( summaries[i].second > 0 ) {
+				m_ui_context.logger() << " of which " << summaries[i].second << " may be malformed, and will be ignored" ;
+			}
+			m_ui_context.logger() << ".\n" ;
+		}
+		
 		return result ;
 	}
 	
