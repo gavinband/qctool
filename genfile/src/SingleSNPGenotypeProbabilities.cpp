@@ -15,8 +15,8 @@ namespace genfile {
 	// Construct from a range of doubles.
 	// These come in the order: AA(sample 1) AB(sample 1) BB( sample 1) AA( sample 2 )...
 	SingleSNPGenotypeProbabilities::SingleSNPGenotypeProbabilities( double const* begin, double const* end ):
-		m_probabilities( begin, end ),
-		m_number_of_samples( m_probabilities.size() % 3 )
+		m_number_of_samples( ( end - begin ) % 3 ),
+		m_probabilities( begin, end )
 	{
 		check_invariant( m_probabilities ) ;
 	}

@@ -12,6 +12,11 @@ namespace genfile {
 			m_source( source ),
 			m_key( key )
 		{}
+
+		DuplicateKeyError( DuplicateKeyError const& other ):
+			m_source( other.m_source ),
+			m_key( other.m_key )
+		{}
 		
 		virtual ~DuplicateKeyError() throw() {}
 	
@@ -28,6 +33,10 @@ namespace genfile {
 		DuplicateSNPError( std::string const& source, std::string const& key ):
 			DuplicateKeyError( source, key )
 		{}
+		DuplicateSNPError( DuplicateSNPError const& other ):
+			DuplicateKeyError( other )
+		{}
+
 		char const* what() const throw() { return "genfile::DuplicateSNPError" ; }	
 	} ;
 
@@ -36,6 +45,11 @@ namespace genfile {
 		ColumnAlreadyExistsError( std::string const& source, std::string const& key ):
 			DuplicateKeyError( source, key )
 		{}
+		
+		ColumnAlreadyExistsError( ColumnAlreadyExistsError const& other ):
+			DuplicateKeyError( other )
+		{}
+			
 		char const* what() const throw() { return "genfile::ColumnAlreadyExistsError" ; }	
 	} ;
 	
@@ -46,6 +60,11 @@ namespace genfile {
 		MismatchError( std::string const& object1, std::string const& object2 ):
 			m_object1( object1 ),
 			m_object2( object2 )
+		{}
+
+		MismatchError( MismatchError const& other ):
+			m_object1( other.m_object1 ),
+			m_object2( other.m_object2 )
 		{}
 		
 		~MismatchError() throw() {}
@@ -62,6 +81,11 @@ namespace genfile {
 		InputError( std::string const& source ):
 			m_source( source )
 		{}
+		
+		InputError( InputError const& other ):
+			m_source( other.m_source )
+		{}
+
 		virtual ~InputError() throw() {}
 		std::string const& source() const { return m_source ; }
 		const char* what() const throw() { return "genfile:InputError" ; }
@@ -75,6 +99,12 @@ namespace genfile {
 			InputError( "arguments to " + function ),
 			m_function( function ),
 			m_arguments( arguments )
+		{}
+
+		BadArgumentError( BadArgumentError const& other ):
+			InputError( other ),
+			m_function( other.m_function ),
+			m_arguments( other.m_arguments )
 		{}
 		
 		~BadArgumentError() throw() {}
@@ -93,6 +123,12 @@ namespace genfile {
 			InputError( source ),
 			m_key( key)
 		{}
+
+		KeyNotFoundError( KeyNotFoundError const& other ):
+			InputError( other ),
+			m_key( other.m_key )
+		{}
+
 		~KeyNotFoundError() throw() {}
 		std::string const& key() const { return m_key ; }
 		char const* what() const throw() { return "genfile::KeyNotFoundError" ; }
@@ -105,6 +141,9 @@ namespace genfile {
 	{
 		ResourceNotOpenedError( std::string const& source ):
 			InputError( source )
+		{}
+		ResourceNotOpenedError( ResourceNotOpenedError const& other ):
+			InputError( other )
 		{}
 		~ResourceNotOpenedError() throw() {}
 
@@ -119,6 +158,12 @@ namespace genfile {
 			m_column( column )
 		{}
 
+		MalformedInputError( MalformedInputError const& other ):
+			InputError( other ),
+			m_line( other.m_line ),
+			m_column( other.m_column )
+		{}
+
 		~MalformedInputError() throw() {}
 
 		char const* what() const throw() { return "genfile::MalformedInputError" ; }
@@ -127,7 +172,7 @@ namespace genfile {
 			std::ostringstream ostr ;
 			ostr << "Source \"" << source() << "\" is malformed on line " << ( line() + 1 ) ;
 			if( has_column() ) {
-				ostr << ", column " + ( column() + 1 ) ;
+				ostr << ", column " << ( column() + 1 ) ;
 			}
 			ostr << "." ;
 			return ostr.str() ;
@@ -147,6 +192,10 @@ namespace genfile {
 		UnexpectedMissingValueError( std::string const& source, int line, int column = -1 ):
 			MalformedInputError( source, line, column )
 		{}
+		
+		UnexpectedMissingValueError( UnexpectedMissingValueError const& other ):
+			MalformedInputError( other )
+		{}
 
 		char const* what() const throw() { return "genfile::UnexpectedMissingValueError" ; }
 	} ;
@@ -160,6 +209,12 @@ namespace genfile {
 			m_id_2( id_2 )
 		{}
 
+		DuplicateIndividualError( DuplicateIndividualError const& other ):
+			MalformedInputError( other ),
+			m_id_1( other.m_id_1 ),
+			m_id_2( other.m_id_2 )
+		{}
+		
 		~DuplicateIndividualError() throw() {}
 		
 		char const* what() const throw() { return "genfile::DuplicateIndividualError" ; }
@@ -173,6 +228,10 @@ namespace genfile {
 	{
 		FileHasTwoTrailingNewlinesError( std::string const& source, int line ):
 			MalformedInputError( source, line )
+		{}
+		
+		FileHasTwoTrailingNewlinesError( FileHasTwoTrailingNewlinesError const& other ):
+			MalformedInputError( other )
 		{}
 
 		std::string format_message() const {
