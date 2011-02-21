@@ -149,6 +149,13 @@ public:
 				" so as to match the alleles of the first cohort.  This does not perform allele complementation,"
 				" but you can use the -strand option to complement alleles first." ) ;
 
+		options[ "-snp-match-fields" ]
+			.set_description( "By default, matching SNPs between cohorts uses all the available fields (position, rsid, SNPID, and alleles.)"
+				" Use this option to specify a comma-separated subset of those fields to use instead."
+				" This is useful, for example, when SNPs are typed on different platforms so have different SNPID fields." )
+			.set_takes_single_value()
+			.set_default_value( "position,rsid,SNPID,alleles" ) ;
+
 		options.declare_group( "Sample exclusion options" ) ;
 		options[ "-incl-samples"]
 			.set_description( "Filter out samples whose sample ID does not lie in the given file.")
@@ -180,14 +187,15 @@ public:
 			.set_takes_values_per_use( 1 )
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-excl-snps-matching" ]
-			.set_description( "Filter out snps whose SNPID matches the given argument. "
-				"The argument should be a string which can contain a * wildcard character (which matches any substring). "
-				"Optionally, prefix with snpid~ or rsid~ to only match against snp id or rsid fields." )
+			.set_description( "Filter out snps whose rsid or SNPID matches the given value. "
+				"The value should be a string which can contain a % wildcard character (which matches any substring). "
+				"If you use *, you should place the argument in quotes."
+				"Optionally, prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields." )
 			.set_takes_single_value() ;
 		options[ "-incl-snps-matching" ]
-			.set_description( "Filter out snps whose SNPID does not match the given argument. "
-				"The argument should be a string which can contain a * wildcard character (which matches any substring). "
-				"Optionally, prefix with snpid~ or rsid~ to only match against snp id or rsid fields." )
+			.set_description( "Filter out snps whose rsid or SNPID does not match the given value. "
+				"The value should be a string which can contain a % wildcard character (which matches any substring). "
+				"Optionally, prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields." )
 			.set_takes_single_value() ;
 
 		options.declare_group( "Output file options" ) ;
@@ -1064,7 +1072,9 @@ private:
 	genfile::SNPDataSource::UniquePtr open_snp_data_sources()
 	// Open the gen files, taking care of filtering, strand alignment, translation, etc.
 	{
-		genfile::SNPDataSourceRack::UniquePtr rack( new genfile::SNPDataSourceRack() ) ;
+		genfile::SNPDataSourceRack::UniquePtr rack(
+			new genfile::SNPDataSourceRack( m_options.get_value< std::string >( "-snp-match-fields" ) )
+		) ;
 
 		// count files.
 		std::size_t file_count = 0 ;
@@ -1209,6 +1219,8 @@ private:
 			).release()
 		) ;
 		
+		appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Opening position translation dictionary" ) ;
+		
 		if( !source->number_of_columns() == 10 ) {
 			throw genfile::MalformedInputError( filename, 1 ) ;
 		}
@@ -1229,6 +1241,7 @@ private:
 			}
 			result[ data1 ] = data2 ;
 			(*source) >> statfile::end_row() ;
+			progress_context( source->number_of_rows_read(), source->number_of_rows() ) ;
 		}
 		return result ;
 	}
@@ -1608,6 +1621,12 @@ private:
 		if( ((m_mangled_options.gen_filename_mapper().output_filenames().size() > 0) || ( m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() > 0)) &&  (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0) && !m_options.check_if_option_was_supplied_in_group( "SNP exclusion options" ) && !m_options.check_if_option_was_supplied( "-translate-snps" )) {
 			m_warnings.push_back( "You have specified output GEN (or snp exclusion) files, but no filters.\n"
 				" This will just output the same gen files (converting formats if necessary)." ) ;
+		}
+		if( m_snp_data_source->total_number_of_snps() == 0 ) {
+			m_warnings.push_back( "There are no SNPs in the source files (after exclusions, translation, aligning and matching between cohorts where relevant).\n" ) ;
+		}
+		if( m_sample_rows.size() == 0 ) {
+			m_warnings.push_back( "There are no individuals in the source files (after exclusions, translation, aligning and matching between cohorts where relevant).\n" ) ;
 		}
 	}
 	
