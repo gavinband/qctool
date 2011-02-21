@@ -102,14 +102,14 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 	else if( statistic_spec == "HWE" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new MinusLog10SNPHWEStatistic ) ;
 	}
-	else if( statistic_spec == "jonathans_information" ) {
+	else if( statistic_spec == "information" ) {
+		return std::auto_ptr< GenotypeAssayStatistic > ( new OldInformationStatistic()) ;
+	}
+	else if( statistic_spec == "info_variant2" ) {
 		return std::auto_ptr< GenotypeAssayStatistic > ( new InformationStatistic()) ;
 	}
-	else if( statistic_spec == "information" ) {
-		return std::auto_ptr< GenotypeAssayStatistic > ( new GavinsInformationStatistic()) ;
-	}
-	else if( statistic_spec == "old_information" ) {
-		return std::auto_ptr< GenotypeAssayStatistic > ( new OldInformationStatistic() ) ;
+	else if( statistic_spec == "info_variant1" ) {
+		return std::auto_ptr< GenotypeAssayStatistic > ( new GavinsInformationStatistic() ) ;
 	}
 	else if( statistic_spec == "mach_r2" ) {
 		return std::auto_ptr< GenotypeAssayStatistic > ( new PlainMachRsquaredStatistic() ) ;
