@@ -991,7 +991,7 @@ private:
 
 			std::string platform_column_names ;
 			if( source->has_column( "Affy SNP ID" )) {
-				platform_column_names = "Chromosome|Physical Position|Affy SNP ID|dbSNP RS ID|Allele A|Allele B|Strand" ;
+				platform_column_names = "Chromosome|Physical Position|Probe Set ID|dbSNP RS ID|Allele A|Allele B|Strand" ;
 			}
 			else if( source->has_column( "IlmnID" )) {
 				platform_column_names = "Chromosome|position|IlmnID|rsid|alleleA|alleleB|strand" ;
@@ -1032,6 +1032,7 @@ private:
 							strand = genfile::StrandAligningSNPDataSource::eForwardStrand ;
 						}
 						else if( strand == "?" ) {
+							// std::cerr << "strand = ?: SNP is " << snp << ".\n" ;
 							strand = genfile::StrandAligningSNPDataSource::eUnknownStrand ;
 						}
 						else {
@@ -1055,8 +1056,6 @@ private:
 			assert( source->number_of_rows_read() == source->number_of_rows() ) ;
 
 			progress_context.notify_progress( i+1, filenames.size() ) ;
-
-			return result ;
 		}
 		
 		m_ui_context.logger() << "\nStrand file summary:\n" ;
@@ -1138,7 +1137,8 @@ private:
 				genfile::AlleleFlippingSNPDataSource::AlleleFlipSpec allele_flip_spec ;
 				boost::tie( snps, allele_flip_spec ) = genfile::AlleleFlippingSNPDataSource::get_allele_flip_spec(
 					rack->get_snps(),
-					snps
+					snps,
+					genfile::SNPIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ))
 				) ;
 				
 				source.reset(
