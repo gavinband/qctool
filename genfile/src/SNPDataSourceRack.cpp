@@ -237,26 +237,22 @@ namespace genfile {
 		) ;
 		SNPIdentifyingData this_snp ;
 		
-		if(
-			!m_sources[source_i]->get_next_snp_with_specified_position(
-				ignore(),
-				set_value( this_snp.SNPID() ),
-				set_value( this_snp.rsid() ),
-				set_value( this_snp.position().chromosome() ),
-				set_value( this_snp.position().position() ),
-				set_value( this_snp.first_allele() ),
-				set_value( this_snp.second_allele() ),
-				chromosome,
-				SNP_position
-			)
-		) {
-			throw MissingSNPError( source_i, reference_snp ) ;
-		}
-		else if( !m_comparator.are_equal( reference_snp, this_snp )) {
-				throw SNPMismatchError( source_i, reference_snp ) ;
-		}
-		else {
-			return ;
+		while( !m_comparator.are_equal( this_snp, reference_snp )) {
+			if(
+				!m_sources[source_i]->get_next_snp_with_specified_position(
+					ignore(),
+					set_value( this_snp.SNPID() ),
+					set_value( this_snp.rsid() ),
+					set_value( this_snp.position().chromosome() ),
+					set_value( this_snp.position().position() ),
+					set_value( this_snp.first_allele() ),
+					set_value( this_snp.second_allele() ),
+					chromosome,
+					SNP_position
+				)
+			) {
+				throw MissingSNPError( source_i, reference_snp ) ;
+			}
 		}
 	}
 		

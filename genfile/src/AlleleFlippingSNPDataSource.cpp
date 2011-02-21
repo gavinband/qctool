@@ -9,17 +9,11 @@
 namespace genfile {
 	std::pair< std::vector< SNPIdentifyingData >, AlleleFlippingSNPDataSource::AlleleFlipSpec >
 	AlleleFlippingSNPDataSource::get_allele_flip_spec(
-		std::vector< SNPIdentifyingData > const& reference_snps,
+		std::vector< SNPIdentifyingData > reference_snps,
 		std::vector< SNPIdentifyingData > snps_to_match,
 		SNPIdentifyingData::CompareFields const& comparator
 	) {
-		// Check reference snps are sorted.
-		for( std::size_t i = 1; i < reference_snps.size(); ++i ) {
-			if( comparator( reference_snps[i], reference_snps[i-1] ) ) {
-				throw BadArgumentError( "AlleleFlippingSNPDataSource::get_allele_matches", "reference_snps (unsorted)" ) ;
-			}
-		}
-
+		std::sort( reference_snps.begin(), reference_snps.end(), comparator ) ;
 		AlleleFlipSpec allele_flips( snps_to_match.size() ) ;
 		
 		for( std::size_t i = 0; i < snps_to_match.size(); ++i ) {

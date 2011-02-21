@@ -16,7 +16,7 @@ namespace genfile {
 		static char const eFlip  = '-' ;
 
 		static std::pair< std::vector< SNPIdentifyingData >, AlleleFlipSpec > get_allele_flip_spec(
-			std::vector< SNPIdentifyingData > const& reference_snps,
+			std::vector< SNPIdentifyingData > reference_snps,
 			std::vector< SNPIdentifyingData > snps_to_match,
 			SNPIdentifyingData::CompareFields const&
 		) ;
