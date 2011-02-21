@@ -42,6 +42,7 @@ void QCTool::begin_processing_snps(
 	std::size_t number_of_snps
 ) {
 	m_number_of_samples = number_of_samples ;
+	m_per_column_amounts.resize( number_of_samples ) ;
 	m_number_of_snps = number_of_snps ;
 	m_number_of_snps_processed = 0 ;
 	m_timer.restart() ;
@@ -139,22 +140,15 @@ void QCTool::do_snp_filter_diagnostics( GenRowStatistics const& row_statistics, 
 
 void QCTool::accumulate_per_column_amounts( GenRow& row, std::vector< GenotypeProportions >& per_column_amounts ) {
 	// Keep totals for per-column stats.
-	if( per_column_amounts.empty() ) {
-		per_column_amounts.reserve( row.number_of_samples() ) ;
-		std::copy( row.begin_genotype_proportions(), row.end_genotype_proportions(), std::back_inserter( per_column_amounts )) ;
-	}
-	else {
-		assert( per_column_amounts.size() == row.number_of_samples() ) ;
-		std::transform( per_column_amounts.begin(), per_column_amounts.end(),
-		 				row.begin_genotype_proportions(),
-		 				per_column_amounts.begin(),
-						std::plus< GenotypeProportions >() ) ;
-	}
+	assert( per_column_amounts.size() == row.number_of_samples() ) ;
+	std::transform( per_column_amounts.begin(), per_column_amounts.end(),
+	 				row.begin_genotype_proportions(),
+	 				per_column_amounts.begin(),
+					std::plus< GenotypeProportions >() ) ;
 }
 
 void QCTool::process_sample_rows() {
 	Timer timer ;
-
 	apply_sample_filter() ;
 	assert( m_context.sample_rows().size() == m_per_column_amounts.size() ) ;
 
