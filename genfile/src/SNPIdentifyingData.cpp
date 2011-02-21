@@ -183,6 +183,7 @@ namespace genfile {
 					else if( left.get_second_allele() < right.get_second_allele() ) {
 						return true ;
 					}
+					break ;
 				default:
 					assert(0) ;
 					break ;
