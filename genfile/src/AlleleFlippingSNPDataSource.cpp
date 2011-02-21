@@ -10,11 +10,12 @@ namespace genfile {
 	std::pair< std::vector< SNPIdentifyingData >, AlleleFlippingSNPDataSource::AlleleFlipSpec >
 	AlleleFlippingSNPDataSource::get_allele_flip_spec(
 		std::vector< SNPIdentifyingData > const& reference_snps,
-		std::vector< SNPIdentifyingData > snps_to_match
+		std::vector< SNPIdentifyingData > snps_to_match,
+		SNPIdentifyingData::CompareFields const& comparator
 	) {
 		// Check reference snps are sorted.
 		for( std::size_t i = 1; i < reference_snps.size(); ++i ) {
-			if( reference_snps[i] < reference_snps[i-1] ) {
+			if( comparator( reference_snps[i], reference_snps[i-1] ) ) {
 				throw BadArgumentError( "AlleleFlippingSNPDataSource::get_allele_matches", "reference_snps (unsorted)" ) ;
 			}
 		}
@@ -24,10 +25,27 @@ namespace genfile {
 		for( std::size_t i = 0; i < snps_to_match.size(); ++i ) {
 			SNPIdentifyingData swapped_snp = snps_to_match[i] ;
 			std::swap( swapped_snp.first_allele(), swapped_snp.second_allele() ) ;
-			if( std::binary_search( reference_snps.begin(), reference_snps.end(), snps_to_match[i] ) ) {
+			if( snps_to_match[i].first_allele() == '?' || snps_to_match[i].first_allele() == '?' ) {
+				allele_flips[i] = eUnknownFlip ;
+			}
+			else if(
+				std::binary_search(
+					reference_snps.begin(),
+					reference_snps.end(),
+					snps_to_match[i],
+					comparator
+				)
+			) {
 				allele_flips[i] = eNoFlip ;
 			}
-			else if( std::binary_search( reference_snps.begin(), reference_snps.end(), swapped_snp ) ) {
+			else if(
+				std::binary_search(
+					reference_snps.begin(),
+					reference_snps.end(),
+					swapped_snp,
+					comparator
+				)
+			) {
 				snps_to_match[i] = swapped_snp ;
 				allele_flips[i] = eFlip ;
 			}

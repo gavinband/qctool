@@ -1,6 +1,7 @@
 #include <string>
 #include <vector>
 #include <cassert>
+#include <algorithm>
 #include "genfile/GenomePosition.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/string_utils.hpp"
@@ -224,6 +225,15 @@ namespace genfile {
 			}
 		}
 		return true ;
+	}
+	
+	bool SNPIdentifyingData::CompareFields::check_if_comparable_fields_are_known( SNPIdentifyingData const& value ) const {
+		if( std::find( m_fields_to_compare.begin(), m_fields_to_compare.end(), int( eAlleles ) ) != m_fields_to_compare.end() ) {
+			return value.get_first_allele() != '?' && value.get_second_allele() != '?' ;
+		}
+		else {
+			return true ;
+		}
 	}
 	
 }

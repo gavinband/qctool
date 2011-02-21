@@ -39,6 +39,8 @@ namespace genfile {
 			enum { eSNPID = 0x1, eRSID = 0x2, ePosition = 0x4, eAlleles = 0x8, eMask = 0xF } ;
 			bool operator()( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) const ;
 			bool are_equal( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) const ;
+			bool check_if_comparable_fields_are_known( SNPIdentifyingData const& value ) const ;
+
 		private:
 			static std::vector< int > parse_fields_to_compare( std::string const& field_spec ) ;
 			

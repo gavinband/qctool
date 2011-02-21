@@ -17,7 +17,8 @@ namespace genfile {
 
 		static std::pair< std::vector< SNPIdentifyingData >, AlleleFlipSpec > get_allele_flip_spec(
 			std::vector< SNPIdentifyingData > const& reference_snps,
-			std::vector< SNPIdentifyingData > snps_to_match
+			std::vector< SNPIdentifyingData > snps_to_match,
+			SNPIdentifyingData::CompareFields const&
 		) ;
 		
 	public:

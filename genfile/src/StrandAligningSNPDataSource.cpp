@@ -120,12 +120,18 @@ namespace genfile {
 	}
 
 	char StrandAligningSNPDataSource::complement( char allele ) {
-		switch( allele ) {
+			switch( allele ) {
 			case 'A': return 'T' ; break ;
 			case 'T': return 'A' ; break ;
 			case 'C': return 'G' ; break ;
 			case 'G': return 'C' ; break ;
 			case '?': return '?' ; break ;
+			case 'I':
+			case 'D':
+				// Some platforms have indels.  I guess these stay the same when complemented: if DNA
+				// is deleted on one strand, it must be on the other as well.
+				return allele ;
+				break ;
 			default:
 				throw BadArgumentError( "StrandAligningSNPDataSource::complement", "allele=" + std::string( 1, allele ) ) ;
 				break ;

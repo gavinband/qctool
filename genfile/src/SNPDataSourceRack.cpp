@@ -83,6 +83,16 @@ namespace genfile {
 			m_comparator
 		) ;
 
+		// Remove SNPs that have unknown alleles.
+		for( std::size_t i = 0; i < intersected_snps.size(); ) {
+			if( !m_comparator.check_if_comparable_fields_are_known( intersected_snps[i] )) {
+				intersected_snps.erase( intersected_snps.begin() + i ) ;
+			}
+			else {
+				++i ;
+			}
+		}
+
 		return intersected_snps ;
 	}
 
