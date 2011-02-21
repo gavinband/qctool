@@ -90,7 +90,18 @@ struct IDDataPrinterContext
 {
 	IDDataPrinterContext( int argc, char** argv ) {
 		//write_start_banner() ;
-		m_options.process( argc, argv ) ;
+		try {
+			m_options.process( argc, argv ) ;
+		}
+		catch( appcontext::OptionProcessorHelpRequestedException const& e ) {
+			std::cerr << "Usage: "
+			<< globals::program_name << " <options>\n"
+			<< "\nOPTIONS:\n"
+			<< m_options
+			<< "\n" ;
+			throw HaltProgramWithReturnCode( 0 );
+		}
+		
 		construct_snp_data_source() ;
 		if( m_options.have_snp_ids() ) {
 			m_snp_ids = m_options.snp_ids() ;
