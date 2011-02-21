@@ -6,27 +6,31 @@
 #include "genfile/Error.hpp"
 
 namespace genfile {
-	SNPIDMatchesTest::SNPIDMatchesTest( std::string const& expression ) {
+	SNPIDMatchesTest::SNPIDMatchesTest( std::string const& expression ):
+	 	m_wildcard_char( '%' )
+	{
 		setup( expression ) ;
 	}
 
 	void SNPIDMatchesTest::setup( std::string const& expression ) {
-		std::string lowered_expression = string_utils::to_lower( expression ) ;
-		std::vector< std::string > bits = string_utils::split_and_strip( lowered_expression, "~" ) ;
+		std::vector< std::string > bits = string_utils::split_and_strip( expression, "~" ) ;
 		if( bits.size() == 1 ) {
 			bits.insert( bits.begin(), "either" ) ;
 		}
-		if( bits.size() != 2 || ( bits[0] != "snpid" && bits[0] != "rsid" && bits[0] != "either" )) {
+		if( bits.size() != 2 ) {
 			throw BadArgumentError( "SNPIDMatchesTest::setup()", "expression = \"" + expression + "\"" ) ;
 		}
-		if( bits[0] == "snpid" ) {
+		if( string_utils::to_lower( bits[0] ) == "snpid" ) {
 			m_type = eSNPID ;
 		}
-		else if( bits[0] == "rsid" ) {
+		else if( string_utils::to_lower( bits[0] ) == "rsid" ) {
 			m_type = eRSID ;
 		}
-		else if( bits[0] == "either" ) {
+		else if( string_utils::to_lower( bits[0] ) == "either" ) {
 			m_type = eEITHER ;
+		}
+		else {
+			throw BadArgumentError( "SNPIDMatchesTest::setup()", "expression = \"" + expression + "\"" ) ;
 		}
 
 		m_expression = bits[1] ;

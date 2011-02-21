@@ -52,10 +52,18 @@ namespace genfile {
 		
 	public:
 		typedef std::auto_ptr< SNPDataSourceRack > UniquePtr ;
-		static UniquePtr create( std::vector< wildcard::FilenameMatch > const& filenames ) ;
+		static UniquePtr create(
+			std::vector< wildcard::FilenameMatch > const& filenames
+		) ;
+
+		static UniquePtr create(
+			std::vector< wildcard::FilenameMatch > const& filenames,
+			std::string const& snp_match_fields
+		) ;
 
 	public:
 		SNPDataSourceRack() ;
+		SNPDataSourceRack( std::string const& snp_match_fields ) ;
 		~SNPDataSourceRack() ;
 		void add_source( std::auto_ptr< SNPDataSource > source ) ;
 		void add_source(
@@ -123,6 +131,7 @@ namespace genfile {
 		uint32_t m_number_of_samples ;
 		std::vector< SNPIdentifyingData > m_included_snps ;
 		bool m_read_past_end ;
+		SNPIdentifyingData::CompareFields m_comparator ;
 	} ;
 }
 

@@ -25,8 +25,16 @@ namespace genfile {
 		return left.m_data < right.m_data ;
 	}
 
+	bool operator>( GenomePosition const& left, GenomePosition const& right ) {
+		return left.m_data > right.m_data ;
+	}
+
 	bool operator<=( GenomePosition const& left, GenomePosition const& right ) {
 		return left.m_data <= right.m_data ;
+	}
+
+	bool operator>=( GenomePosition const& left, GenomePosition const& right ) {
+		return left.m_data >= right.m_data ;
 	}
 
 	bool operator==( GenomePosition const& left, GenomePosition const& right ) {

@@ -1,6 +1,9 @@
 #include <string>
+#include <vector>
+#include <cassert>
 #include "genfile/GenomePosition.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/string_utils.hpp"
 
 namespace genfile {
 	SNPIdentifyingData::SNPIdentifyingData() {}
@@ -67,6 +70,7 @@ namespace genfile {
 			left.get_second_allele() != right.get_second_allele() ;
 	}
 	
+	
     bool operator<( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) {
 		return(
 			(left.get_position() < right.get_position())
@@ -102,4 +106,122 @@ namespace genfile {
 			)
 		) ;
 	}
+	
+	SNPIdentifyingData::CompareFields::CompareFields( std::string const& fields_to_compare ):
+		m_fields_to_compare( parse_fields_to_compare( fields_to_compare ) )
+	{
+		assert( !m_fields_to_compare.empty() ) ;
+	}
+	
+	SNPIdentifyingData::CompareFields::CompareFields( CompareFields const& other ):
+		m_fields_to_compare( other.m_fields_to_compare )
+	{}
+
+	std::vector< int > SNPIdentifyingData::CompareFields::parse_fields_to_compare( std::string const& field_spec ) {
+		std::vector< std::string > elts = string_utils::split_and_strip( field_spec, ",", " \t\n\r" ) ;
+		assert( elts.size() > 0 ) ;
+		std::vector< int > result ;
+		for( std::size_t i = 0; i < elts.size(); ++i ) {
+			if( elts[i] == "SNPID" ) {
+				result.push_back( eSNPID ) ;
+			}
+			else if( elts[i] == "rsid" ) {
+				result.push_back( eRSID ) ;
+			}
+			else if( elts[i] == "position" ) {
+				result.push_back( ePosition ) ;
+			}
+			else if( elts[i] == "alleles" ) {
+				result.push_back( eAlleles ) ;
+			}
+			else {
+				assert(0) ;
+			}
+		}
+		return result ;
+	}
+
+	bool SNPIdentifyingData::CompareFields::operator()( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) const {
+		// Lexicographical compare in the same order as operator< above, but using only the specified fields.
+
+		for( std::size_t i = 0; i < m_fields_to_compare.size(); ++i ) {
+			switch( m_fields_to_compare[i] ) {
+				case ePosition:
+					if( left.get_position() > right.get_position() ) {
+						return false ;
+					}
+					else if( left.get_position() < right.get_position() ) {
+						return true ;
+					}
+					break ;
+				case eRSID:
+					if( left.get_rsid() > right.get_rsid() ) {
+						return false ;
+					}
+					else if( left.get_rsid() < right.get_rsid() ) {
+						return true ;
+					}
+					break ;
+				case eSNPID:
+					if( left.get_SNPID() > right.get_SNPID() ) {
+						return false ;
+					}
+					else if( left.get_SNPID() < right.get_SNPID() ) {
+						return true ;
+					}
+					break ;
+				case eAlleles:
+					if( left.get_first_allele() > right.get_first_allele() ) {
+						return false ;
+					}
+					else if( left.get_first_allele() < right.get_first_allele() ) {
+						return true ;
+					}
+					else if( left.get_second_allele() > right.get_second_allele() ) {
+						return false ;
+					}
+					else if( left.get_second_allele() < right.get_second_allele() ) {
+						return true ;
+					}
+				default:
+					assert(0) ;
+					break ;
+			}
+		}
+		return false ;
+	}
+	
+	bool SNPIdentifyingData::CompareFields::are_equal( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) const {
+		for( std::size_t i = 0; i < m_fields_to_compare.size(); ++i ) {
+			switch( m_fields_to_compare[i] ) {
+				case ePosition:
+					if( left.get_position() != right.get_position() ) {
+						return false ;
+					}
+					break ;
+				case eRSID:
+					if( left.get_rsid() != right.get_rsid() ) {
+						return false ;
+					}
+					break ;
+				case eSNPID:
+					if( left.get_SNPID() != right.get_SNPID() ) {
+						return false ;
+					}
+					break ;
+				case eAlleles:
+					if( left.get_first_allele() != right.get_first_allele() ) {
+						return false ;
+					}
+					if( left.get_second_allele() != right.get_second_allele() ) {
+						return false ;
+					}
+				default:
+					assert(0) ;
+					break ;
+			}
+		}
+		return true ;
+	}
+	
 }

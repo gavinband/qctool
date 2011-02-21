@@ -16,11 +16,31 @@ namespace genfile {
 		}
 		return rack ;
 	}
+
+	std::auto_ptr< SNPDataSourceRack > SNPDataSourceRack::create(
+		std::vector< wildcard::FilenameMatch > const& filenames,
+		std::string const& snp_match_fields
+	) {
+		std::auto_ptr< SNPDataSourceRack > rack( new SNPDataSourceRack( snp_match_fields ) ) ;
+		for( std::size_t i = 0; i < filenames.size(); ++i ) {
+			rack->add_source( SNPDataSource::create( filenames[i].filename(), filenames[i].match() )) ;
+		}
+		return rack ;
+	}
 	
 	SNPDataSourceRack::SNPDataSourceRack()
 		: m_number_of_samples(0),
-		  m_read_past_end( false )
+		  m_read_past_end( false ),
+		  m_comparator( "position,rsid,SNPID,alleles" )
 	{
+	}
+
+	SNPDataSourceRack::SNPDataSourceRack( std::string const& snp_match_fields )
+		: m_number_of_samples(0),
+		  m_read_past_end( false ),
+		  m_comparator( snp_match_fields )
+	{
+		assert( snp_match_fields.find( "position" ) != std::string::npos ) ;
 	}
 
 	SNPDataSourceRack::~SNPDataSourceRack() {
@@ -59,7 +79,8 @@ namespace genfile {
 		std::set_intersection(
 			snps1.begin(), snps1.end(),
 			snps2.begin(), snps2.end(),
-			std::back_inserter( intersected_snps )
+			std::back_inserter( intersected_snps ),
+			m_comparator
 		) ;
 
 		return intersected_snps ;
@@ -197,32 +218,32 @@ namespace genfile {
 		char allele2
 	) {
 		assert( source_i > 0 ) ;
-		std::string this_source_SNPID, this_source_RSID ;
-		Chromosome this_source_chromosome ;
-		uint32_t this_source_SNP_position ;
-		char this_source_allele1, this_source_allele2 ;
+		SNPIdentifyingData reference_snp(
+			SNPID,
+			RSID,
+			GenomePosition( chromosome, SNP_position ),
+			allele1,
+			allele2
+		) ;
+		SNPIdentifyingData this_snp ;
 		
 		if(
 			!m_sources[source_i]->get_next_snp_with_specified_position(
 				ignore(),
-				set_value( this_source_SNPID ),
-				set_value( this_source_RSID ),
-				set_value( this_source_chromosome ),
-				set_value( this_source_SNP_position ),
-				set_value( this_source_allele1 ),
-				set_value( this_source_allele2 ),
+				set_value( this_snp.SNPID() ),
+				set_value( this_snp.rsid() ),
+				set_value( this_snp.position().chromosome() ),
+				set_value( this_snp.position().position() ),
+				set_value( this_snp.first_allele() ),
+				set_value( this_snp.second_allele() ),
 				chromosome,
 				SNP_position
 			)
 		) {
-			throw MissingSNPError( source_i, SNPIdentifyingData( SNPID, RSID, GenomePosition( chromosome, SNP_position ), allele1, allele2 )) ;
+			throw MissingSNPError( source_i, reference_snp ) ;
 		}
-		else if( this_source_SNPID != SNPID
-				|| this_source_RSID != RSID
-				|| this_source_allele1 != allele1
-				|| this_source_allele2 != allele2
-		) {
-				throw SNPMismatchError( source_i, SNPIdentifyingData( SNPID, RSID, GenomePosition( chromosome, SNP_position ), allele1, allele2 )) ;
+		else if( !m_comparator.are_equal( reference_snp, this_snp )) {
+				throw SNPMismatchError( source_i, reference_snp ) ;
 		}
 		else {
 			return ;

@@ -40,7 +40,9 @@ namespace genfile {
 		Position& position() { return m_data.second ; }
 	
 		friend bool operator<( GenomePosition const& left, GenomePosition const& right ) ;
+		friend bool operator>( GenomePosition const& left, GenomePosition const& right ) ;
 		friend bool operator<=( GenomePosition const& left, GenomePosition const& right ) ;
+		friend bool operator>=( GenomePosition const& left, GenomePosition const& right ) ;
 		friend bool operator==( GenomePosition const& left, GenomePosition const& right ) ;
 		friend bool operator!=( GenomePosition const& left, GenomePosition const& right ) ;
 
