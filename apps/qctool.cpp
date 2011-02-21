@@ -1055,6 +1055,8 @@ private:
 			assert( source->number_of_rows_read() == source->number_of_rows() ) ;
 
 			progress_context.notify_progress( i+1, filenames.size() ) ;
+
+			return result ;
 		}
 		
 		m_ui_context.logger() << "\nStrand file summary:\n" ;
