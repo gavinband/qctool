@@ -110,7 +110,7 @@ namespace genfile {
 
 		std::vector< SNPIdentifyingData > intersected_snps ;
 
-		for( ; i1 != i1_end; ++i1, ++i2 ) {
+		for( ; i1 != i1_end && i2 != i2_end ; ++i1 ) {
 			// Find next SNP with matching position.
 			std::vector< SNPIdentifyingData >::const_iterator
 				i2_pos = std::lower_bound( i2, i2_end, *i1, position_comparator ) ;
@@ -119,6 +119,7 @@ namespace genfile {
 
 			if( i2_pos != i2_end && i2_pos->get_position() == i1->get_position() ) {
 				intersected_snps.push_back( *i1 ) ;
+				++i2_pos ;
 			}
 			i2 = i2_pos ;
 		}
