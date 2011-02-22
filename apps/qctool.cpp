@@ -138,21 +138,23 @@ public:
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
 
-		options[ "-translate-snps" ]
+		options[ "-translate-snp-positions" ]
 			.set_description( "Specify a \"dictionary\" of chromosome / position to chromosome / position mappings."
 				" (This should come as a four-column file with source_chromosome source_position target_chromosome and target_position columns.)"
 				" Positions of SNPs will be mapped through this dictionary before processing." )
 			.set_takes_single_value() ;
 
-		options[ "-match-alleles" ]
+		options[ "-match-alleles-to-cohort1" ]
 			.set_description( "Specify that alleles (and corresponding genotypes) in all cohorts should be switched, if necessary,"
 				" so as to match the alleles of the first cohort.  This does not perform allele complementation,"
 				" but you can use the -strand option to complement alleles first." ) ;
 
 		options[ "-snp-match-fields" ]
-			.set_description( "By default, matching SNPs between cohorts uses all the available fields (position, rsid, SNPID, and alleles.)"
+			.set_description( "By default, matching SNPs between cohorts uses all the available fields"
+				" (position, rsid, SNPID, and alleles.)"
 				" Use this option to specify a comma-separated subset of those fields to use instead."
-				" This is useful, for example, when SNPs are typed on different platforms so have different SNPID fields." )
+				" The first entry must be \"position\"."
+				" This option can be used, for example, when cohorts are typed on different platforms so have different SNPID fields." )
 			.set_takes_single_value()
 			.set_default_value( "position,rsid,SNPID,alleles" ) ;
 
@@ -1133,7 +1135,7 @@ private:
 				) ;
 			}
 
-			if( m_options.check_if_option_was_supplied( "-match-alleles" ) && i > 0 ) {
+			if( m_options.check_if_option_was_supplied( "-match-alleles-to-cohort1" ) && i > 0 ) {
 				genfile::AlleleFlippingSNPDataSource::AlleleFlipSpec allele_flip_spec ;
 				boost::tie( snps, allele_flip_spec ) = genfile::AlleleFlippingSNPDataSource::get_allele_flip_spec(
 					rack->get_snps(),
@@ -1186,9 +1188,9 @@ private:
 		}
 		
 		// Translate SNP identifying data if necessary
-		if( m_options.check_if_option_has_value( "-translate-snps" )) {
+		if( m_options.check_if_option_has_value( "-translate-snp-positions" )) {
 			std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData >
-				dictionary = load_snp_dictionary( m_options.get_value< std::string >( "-translate-snps" ) ) ;
+				dictionary = load_snp_dictionary( m_options.get_value< std::string >( "-translate-snp-positions" ) ) ;
 			
 			source.reset(
 				genfile::SNPTranslatingSNPDataSource::create(
@@ -1620,7 +1622,7 @@ private:
 		if( m_mangled_options.gen_filename_mapper().output_filenames().size() == 0 && m_mangled_options.output_sample_filename() == "" && m_mangled_options.snp_stats_filename_mapper().output_filenames().size() == 0 && m_mangled_options.output_sample_stats_filename() == "" && m_mangled_options.output_sample_excl_list_filename() == "" && m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() == 0 ) {
 			m_warnings.push_back( "You have not specified any output files.  This will produce only logging output." ) ;
 		}
-		if( ((m_mangled_options.gen_filename_mapper().output_filenames().size() > 0) || ( m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() > 0)) &&  (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0) && !m_options.check_if_option_was_supplied_in_group( "SNP exclusion options" ) && !m_options.check_if_option_was_supplied( "-translate-snps" )) {
+		if( ((m_mangled_options.gen_filename_mapper().output_filenames().size() > 0) || ( m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() > 0)) &&  (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0) && !m_options.check_if_option_was_supplied_in_group( "SNP exclusion options" ) && !m_options.check_if_option_was_supplied( "-translate-snp-positions" )) {
 			m_warnings.push_back( "You have specified output GEN (or snp exclusion) files, but no filters.\n"
 				" This will just output the same gen files (converting formats if necessary)." ) ;
 		}
