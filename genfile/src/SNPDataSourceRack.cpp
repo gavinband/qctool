@@ -203,44 +203,25 @@ namespace genfile {
 		if( number_of_snps_read() == m_included_snps.size() ) {
 			m_read_past_end = true ;
 		}
-		else if(
-			!m_sources[0]->get_next_snp_with_specified_position(
-				ignore(),
-				set_value( SNPID ),
-				set_value( RSID ),
-				set_value( chromosome ),
-				set_value( SNP_position ),
-				set_value( allele1 ),
-				set_value( allele2 ),
-				m_included_snps[ number_of_snps_read() ].get_position().chromosome(),
-				m_included_snps[ number_of_snps_read() ].get_position().position()
-			)
-		) {
-			throw MissingSNPError( 0, m_included_snps[ number_of_snps_read() ] ) ;
-		}
 		else {
+			SNPIdentifyingData const& this_snp = m_included_snps[ number_of_snps_read() ] ;
 			if( *this ) {
-				for( std::size_t i = 1; i < m_sources.size(); ++i ) {
+				for( std::size_t i = 0; i < m_sources.size(); ++i ) {
 					move_source_to_snp_matching(
 						i,
-						SNPID,
-						RSID,
-						chromosome,
-						SNP_position,
-						allele1,
-						allele2
+						this_snp
 					) ;
 				}
 			}
 		
 			if( *this ) {
 				set_number_of_samples( m_number_of_samples ) ;
-				set_SNPID( SNPID ) ;
-				set_RSID( RSID ) ;
-				set_chromosome( chromosome ) ;
-				set_SNP_position( SNP_position ) ;
-				set_allele1( allele1 ) ;
-				set_allele2( allele2 ) ;
+				set_SNPID( this_snp.get_SNPID() ) ;
+				set_RSID( this_snp.get_rsid() ) ;
+				set_chromosome( this_snp.get_position().chromosome() ) ;
+				set_SNP_position( this_snp.get_position().position() ) ;
+				set_allele1( this_snp.get_first_allele() ) ;
+				set_allele2( this_snp.get_second_allele() ) ;
 			}
 		}
 	}
@@ -251,21 +232,9 @@ namespace genfile {
 	// If such a SNP is found but it has different SNPID, RSID, or alleles, throw SNPMismatchError.
 	void SNPDataSourceRack::move_source_to_snp_matching(
 		std::size_t source_i,
-		std::string SNPID,
-		std::string RSID,
-		Chromosome chromosome,
-		uint32_t SNP_position,
-		char allele1,
-		char allele2
+		SNPIdentifyingData const& reference_snp
 	) {
 		assert( source_i > 0 ) ;
-		SNPIdentifyingData reference_snp(
-			SNPID,
-			RSID,
-			GenomePosition( chromosome, SNP_position ),
-			allele1,
-			allele2
-		) ;
 		SNPIdentifyingData this_snp ;
 		
 		while( m_sources[source_i]->get_next_snp_with_specified_position(
@@ -276,8 +245,8 @@ namespace genfile {
 			set_value( this_snp.position().position() ),
 			set_value( this_snp.first_allele() ),
 			set_value( this_snp.second_allele() ),
-			chromosome,
-			SNP_position
+			reference_snp.get_position().chromosome(),
+			reference_snp.get_position().position()
 		) ) {
 			if( m_comparator.are_equal( this_snp, reference_snp )) {
 				return ;

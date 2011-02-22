@@ -103,12 +103,7 @@ namespace genfile {
 		
 		void move_source_to_snp_matching(
 			std::size_t source_i,
-			std::string SNPID,
-			std::string RSID,
-			Chromosome chromosome,
-			uint32_t SNP_position,
-			char allele1,
-			char allele2
+			SNPIdentifyingData const& reference_snp
 		) ;
 		
 		std::vector< SNPIdentifyingData > get_intersected_snps(
