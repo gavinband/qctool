@@ -195,12 +195,6 @@ namespace genfile {
 		if( m_sources.size() == 0 ) {
 			return ;
 		}
-		std::string SNPID ;
-		std::string RSID ;
-		Chromosome chromosome ;
-		uint32_t SNP_position ;
-		char allele1, allele2 ;
-		
 		if( number_of_snps_read() == m_included_snps.size() ) {
 			m_read_past_end = true ;
 		}
