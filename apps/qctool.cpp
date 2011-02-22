@@ -440,34 +440,34 @@ private:
 		}
 
 		// We need to write a sample file if:
+		// -os is given
+		// OR
 		// -write-sample-excl-list is NOT given
 		// AND EITHER
 		//	 * -sample-stats is given,
 		//   * OR some sample filters are given
-		if( !m_options.check_if_option_was_supplied( "-write-sample-excl-list" )
+		if( m_options.check_if_option_was_supplied( "-os" )) {
+			m_output_sample_filename = m_options.get_value< std::string >( "-os" ) ;
+		}
+		else if( !m_options.check_if_option_was_supplied( "-write-sample-excl-list" )
 			&& (
 				m_options.check_if_option_was_supplied( "-sample-stats" ) ||
 				m_options.check_if_option_was_supplied_in_group( "Sample filtering options" )
 			)
 		) {
-			if( m_options.check_if_option_was_supplied( "-os" )) {
-				m_output_sample_filename = m_options.get_value< std::string >( "-os" ) ;
+			std::string stub ;
+			if( m_input_sample_filenames.size() > 0 ) {
+				stub = strip_sample_file_extension_if_present( m_input_sample_filenames[0] ) ;
 			}
 			else {
-				std::string stub ;
-				if( m_input_sample_filenames.size() > 0 ) {
-					stub = strip_sample_file_extension_if_present( m_input_sample_filenames[0] ) ;
-				}
-				else {
-					stub = "qctool" ;
-				}
+				stub = "qctool" ;
+			}
 
-				if( m_options.check_if_option_was_supplied_in_group( "Sample filtering options" ) ) {
-					m_output_sample_filename = stub + ".fltrd.sample";
-				}
-				else {
-					m_output_sample_filename = stub + ".qctool.sample" ;
-				}
+			if( m_options.check_if_option_was_supplied_in_group( "Sample filtering options" ) ) {
+				m_output_sample_filename = stub + ".fltrd.sample";
+			}
+			else {
+				m_output_sample_filename = stub + ".qctool.sample" ;
 			}
 		}
 	}
