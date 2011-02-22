@@ -65,8 +65,6 @@ namespace genfile {
 
 		void ignore_snp_probability_data_impl() ;
 		void reset_to_start_impl() ;
-		
-		static char complement( char allele ) ;
 	} ;
 }
 

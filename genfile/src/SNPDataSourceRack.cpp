@@ -234,7 +234,6 @@ namespace genfile {
 		std::size_t source_i,
 		SNPIdentifyingData const& reference_snp
 	) {
-		assert( source_i > 0 ) ;
 		SNPIdentifyingData this_snp ;
 		
 		while( m_sources[source_i]->get_next_snp_with_specified_position(
@@ -254,6 +253,9 @@ namespace genfile {
 
 			m_sources[source_i]->ignore_snp_probability_data() ;
 		}
+        std::cerr << "|| Error in source " << source_i << ":\n"
+                << reference_snp << ",\n"
+                << this_snp << ".\n" ;
 		throw MissingSNPError( source_i, reference_snp ) ;
 	}
 		
