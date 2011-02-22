@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <sstream>
 #include <vector>
+#include "genfile/Error.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceRack.hpp"
 #include "genfile/get_set.hpp"
@@ -70,27 +71,56 @@ namespace genfile {
 		}
 	}
 
+	bool SNPDataSourceRack::check_snps_are_sorted_by_position(
+		std::vector< SNPIdentifyingData > const& snps
+	) {
+		for( std::size_t i = 1; i < snps.size(); ++i ) {
+			if( snps[i].get_position() < snps[i-1].get_position() ) {
+				return false ;
+			}
+		}
+		return true ;
+	}
+
 	std::vector< SNPIdentifyingData > SNPDataSourceRack::get_intersected_snps(
 		std::vector< SNPIdentifyingData > const& snps1,
 		std::vector< SNPIdentifyingData > const& snps2
 	) const {
-		std::vector< SNPIdentifyingData > intersected_snps ;
-		intersected_snps.reserve( snps1.size() ) ;
-		std::set_intersection(
-			snps1.begin(), snps1.end(),
-			snps2.begin(), snps2.end(),
-			std::back_inserter( intersected_snps ),
-			m_comparator
-		) ;
+		if( !check_snps_are_sorted_by_position( snps1 )) {
+			throw BadArgumentError( "SNPDataSourceRack::get_intersected_snps()", "snps1 should be in nondecreasing order of position" ) ;
+		}
+		if( !check_snps_are_sorted_by_position( snps2 )) {
+			throw BadArgumentError( "SNPDataSourceRack::get_intersected_snps()", "snps2 should be in nondecreasing order of position" ) ;
+		}
 
-		// Remove SNPs that have unknown alleles.
-		for( std::size_t i = 0; i < intersected_snps.size(); ) {
-			if( !m_comparator.check_if_comparable_fields_are_known( intersected_snps[i] )) {
-				intersected_snps.erase( intersected_snps.begin() + i ) ;
+		//
+		// The algorithm here must match that for get_snp_identifying_data_impl.
+		// This has the following feature: each list can only be traversed once,
+		// forwards.
+		// For each snp in the first list we find the first SNP not already considered in
+		// the second list which (has the same position and) matches according to our comparator.
+		// 
+		std::vector< SNPIdentifyingData >::const_iterator
+			i1 = snps1.begin(),
+			i1_end = snps1.end(),
+			i2 = snps2.begin(),
+			i2_end = snps2.end() ;
+
+		SNPIdentifyingData::CompareFields position_comparator( "position" ) ;
+
+		std::vector< SNPIdentifyingData > intersected_snps ;
+
+		for( ; i1 != i1_end; ++i1, ++i2 ) {
+			// Find next SNP with matching position.
+			std::vector< SNPIdentifyingData >::const_iterator
+				i2_pos = std::lower_bound( i2, i2_end, *i1, position_comparator ) ;
+			// Find next SNP with all fields matching, including position.
+			for( ; i2_pos != i2_end && !m_comparator.are_equal( *i2_pos, *i1 ) && i2_pos->get_position() == i1->get_position(); ++i2_pos ) ;
+
+			if( i2_pos != i2_end && i2_pos->get_position() == i1->get_position() ) {
+				intersected_snps.push_back( *i1 ) ;
 			}
-			else {
-				++i ;
-			}
+			i2 = i2_pos ;
 		}
 
 		return intersected_snps ;
@@ -237,23 +267,24 @@ namespace genfile {
 		) ;
 		SNPIdentifyingData this_snp ;
 		
-		while( !m_comparator.are_equal( this_snp, reference_snp )) {
-			if(
-				!m_sources[source_i]->get_next_snp_with_specified_position(
-					ignore(),
-					set_value( this_snp.SNPID() ),
-					set_value( this_snp.rsid() ),
-					set_value( this_snp.position().chromosome() ),
-					set_value( this_snp.position().position() ),
-					set_value( this_snp.first_allele() ),
-					set_value( this_snp.second_allele() ),
-					chromosome,
-					SNP_position
-				)
-			) {
-				throw MissingSNPError( source_i, reference_snp ) ;
+		while( m_sources[source_i]->get_next_snp_with_specified_position(
+			ignore(),
+			set_value( this_snp.SNPID() ),
+			set_value( this_snp.rsid() ),
+			set_value( this_snp.position().chromosome() ),
+			set_value( this_snp.position().position() ),
+			set_value( this_snp.first_allele() ),
+			set_value( this_snp.second_allele() ),
+			chromosome,
+			SNP_position
+		) ) {
+			if( m_comparator.are_equal( this_snp, reference_snp )) {
+				return ;
 			}
+
+			m_sources[source_i]->ignore_snp_probability_data() ;
 		}
+		throw MissingSNPError( source_i, reference_snp ) ;
 	}
 		
 

@@ -7,7 +7,13 @@
 #include "genfile/string_utils.hpp"
 
 namespace genfile {
-	SNPIdentifyingData::SNPIdentifyingData() {}
+	SNPIdentifyingData::SNPIdentifyingData():
+	 	m_SNPID( "" ),
+		m_RSID( "" ),
+		m_position( Chromosome(), 0 ),
+		m_first_allele( '?' ),
+		m_second_allele( '?' )
+	{}
 	
 	SNPIdentifyingData::SNPIdentifyingData(
 		std::string const& SNPID,
