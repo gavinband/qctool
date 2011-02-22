@@ -101,7 +101,7 @@ namespace genfile {
 	
 	private:
 		
-		void move_source_to_snp_matching(
+		SNPIdentifyingData move_source_to_snp_matching(
 			std::size_t source_i,
 			SNPIdentifyingData const& reference_snp
 		) ;
