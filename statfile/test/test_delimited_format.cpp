@@ -54,7 +54,7 @@ AUTO_TEST_CASE( test_TabDelimitedFormat )
 		std::string column1, column2, column3 ;
 		std::vector< double > doubles( 10 ) ;
 
-		std::size_t count = 0 ;
+		int count = 0 ;
 		while( stat_source_1 >> index ) {
 			TEST_ASSERT( index == count++ ) ;
 			stat_source_1 >> column1 >> column2 >> column3 ;
@@ -76,7 +76,7 @@ AUTO_TEST_CASE( test_TabDelimitedFormat )
 		std::string column1, column2, column3 ;
 		std::vector< double > doubles( 10 ) ;
 
-		std::size_t count = 0 ;
+		int count = 0 ;
 		while( stat_source_1 >> index ) {
 			TEST_ASSERT( index == count++ ) ;
 			stat_source_1 >> column1 >> column2 >> column3 ;
@@ -109,7 +109,7 @@ AUTO_TEST_CASE( test_CommaDelimitedFormat )
 		std::string column1, column2, column3 ;
 		std::vector< double > doubles( 10 ) ;
 
-		std::size_t count = 0 ;
+		int count = 0 ;
 		while( stat_source_1 >> index ) {
 			TEST_ASSERT( index == count++ ) ;
 			stat_source_1 >> column1 >> column2 >> column3 ;
@@ -131,7 +131,7 @@ AUTO_TEST_CASE( test_CommaDelimitedFormat )
 		std::string column1, column2, column3 ;
 		std::vector< double > doubles( 10 ) ;
 
-		std::size_t count = 0 ;
+		int count = 0 ;
 		while( stat_source_1 >> index ) {
 			TEST_ASSERT( index == count++ ) ;
 			stat_source_1 >> column1 >> column2 >> column3 ;

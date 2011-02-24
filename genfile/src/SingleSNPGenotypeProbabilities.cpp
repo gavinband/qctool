@@ -7,6 +7,11 @@
 
 namespace genfile {
 	
+	SingleSNPGenotypeProbabilities::SingleSNPGenotypeProbabilities( SingleSNPGenotypeProbabilities const& other ):
+		m_number_of_samples( other.m_number_of_samples ),
+		m_probabilities( other.m_probabilities )
+	{}
+	
 	SingleSNPGenotypeProbabilities::SingleSNPGenotypeProbabilities( std::size_t number_of_samples ):
 	 	m_number_of_samples( number_of_samples ),
 		m_probabilities( number_of_samples * 3, 0.0 )
@@ -40,11 +45,6 @@ namespace genfile {
 		}
 	}
 
-	SingleSNPGenotypeProbabilities::SingleSNPGenotypeProbabilities( SingleSNPGenotypeProbabilities const& other ):
-		m_probabilities( other.m_probabilities ),
-		m_number_of_samples( other.m_number_of_samples )
-	{}
-	
 	void SingleSNPGenotypeProbabilities::resize( std::size_t number_of_samples ) {
 		m_probabilities.resize( number_of_samples * 3, 0.0 ) ;
 		m_number_of_samples = number_of_samples ;

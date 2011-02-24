@@ -160,7 +160,7 @@ void copy_gen_file( std::string original, genfile::SNPDataSink& target ) {
 }
 
 void copy_gen_file( std::string const& original, std::string const& target ) {
-	std::auto_ptr< genfile::SNPDataSink > snp_data_sink( genfile::SNPDataSink::create( target )) ;
+	genfile::SNPDataSink::UniquePtr snp_data_sink( genfile::SNPDataSink::create( target )) ;
 	copy_gen_file( original, *snp_data_sink ) ;
 }
 

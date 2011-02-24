@@ -59,7 +59,7 @@ namespace genfile {
 			return impl::split( string_to_split, split_chars, strip_chars, true ) ;
 		}
 
-		std::vector< std::string > split_discarding_empty_entries( std::string string_to_split, std::string const& split_chars, std::string const& strip_chars ) {
+		std::vector< std::string > split_and_strip_discarding_empty_entries( std::string string_to_split, std::string const& split_chars, std::string const& strip_chars ) {
 			return impl::split( string_to_split, split_chars, strip_chars, false ) ;
 		}
 		

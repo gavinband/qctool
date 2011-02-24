@@ -17,7 +17,7 @@ namespace genfile {
 			std::string const& split_chars = " \t\n",
 			std::string const& strip_chars = " \t\n"
 		) ;
-		std::vector< std::string > split_discarding_empty_entries( std::string string_to_split, std::string const& split_chars = " \t\n", std::string const& strip_chars = " \t\n" ) ;
+		std::vector< std::string > split_and_strip_discarding_empty_entries( std::string string_to_split, std::string const& split_chars = " \t\n", std::string const& strip_chars = " \t\n" ) ;
 		std::string strip_all_whitespace( std::string input ) ;
 		
 		template< typename T >

@@ -17,12 +17,14 @@ namespace genfile {
 	class SNPDataSink
 	{
 	public:
+		typedef std::auto_ptr< SNPDataSink > UniquePtr ;
+	public:
 		SNPDataSink() ;
 		virtual ~SNPDataSink() ;
 
 		// Factory functions
-		static std::auto_ptr< SNPDataSink > create( std::string const& filename, std::string const& free_data = "" ) ;
-		static std::auto_ptr< SNPDataSink > create( std::string const& filename, CompressionType compression_type, std::string const& free_data = "" ) ;
+		static UniquePtr create( std::string const& filename, std::string const& free_data = "" ) ;
+		static UniquePtr create( std::string const& filename, CompressionType compression_type, std::string const& free_data = "" ) ;
 
 	public:		
 

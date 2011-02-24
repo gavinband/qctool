@@ -184,6 +184,16 @@ namespace genfile {
 		return "(unknown)" ;
 	}
 	
+	std::vector< std::size_t > CohortIndividualSource::find_entries( Entry const& entry, std::string const& column_name ) const {
+		std::vector< std::size_t > result ;
+		for( std::size_t i = 0; i < get_number_of_individuals(); ++i ) {
+			if( get_entry( i, column_name ) == entry ) {
+				result.push_back( i ) ;
+			}
+		}
+		return result ;
+	}
+	
 	
 	std::size_t CohortIndividualSource::ColumnSpec::get_number_of_covariates() const {
 		return std::count( m_column_types.begin(), m_column_types.end(), e_DISCRETE_COVARIATE )

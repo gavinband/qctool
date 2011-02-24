@@ -11,7 +11,7 @@ namespace genfile {
 	CategoricalCohortIndividualSource::CategoricalCohortIndividualSource( std::string const& filename, std::string const& missing_values ):
 		FromFileCohortIndividualSource(
 			filename,
-			string_utils::split_discarding_empty_entries( missing_values, ",", " \t" ),
+			string_utils::split_and_strip_discarding_empty_entries( missing_values, ",", " \t" ),
 			&CategoricalCohortIndividualSource::get_entry_from_string
 		)
 	{
@@ -21,7 +21,7 @@ namespace genfile {
 	CategoricalCohortIndividualSource::CategoricalCohortIndividualSource( std::istream& stream, std::string const& missing_values ):
 		FromFileCohortIndividualSource(
 			stream,
-			string_utils::split_discarding_empty_entries( missing_values, ",", " \t" ),
+			string_utils::split_and_strip_discarding_empty_entries( missing_values, ",", " \t" ),
 			&CategoricalCohortIndividualSource::get_entry_from_string
 		)
 	{

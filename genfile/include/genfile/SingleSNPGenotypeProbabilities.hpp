@@ -68,8 +68,8 @@ namespace genfile {
 		double null_call( std::size_t i ) const ; 
 
 	private:
-		std::vector< double > m_probabilities ;
 		std::size_t m_number_of_samples ;
+		std::vector< double > m_probabilities ;
 		void check_invariant( std::vector< double > const& probabilities ) ;
 		void check_invariant( std::size_t i, double AA, double AB, double BB ) ;
 	} ;

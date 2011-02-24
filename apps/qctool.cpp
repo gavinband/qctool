@@ -44,6 +44,8 @@
 #include "genfile/SNPTranslatingSNPDataSource.hpp"
 #include "genfile/StrandAligningSNPDataSource.hpp"
 #include "genfile/AlleleFlippingSNPDataSource.hpp"
+#include "genfile/Pedigree.hpp"
+#include "genfile/PedFileSNPDataSink.hpp"
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/SNPFilteringSNPDataSource.hpp"
 #include "genfile/get_list_of_snps_in_source.hpp"
@@ -213,6 +215,29 @@ public:
 		options[ "-os" ]
 	        .set_description( "Override the auto-generated path of the output sample file.  " )
 	        .set_takes_single_value() ;
+
+		options.declare_group( "Pedigree file options" ) ;
+		options[ "-op" ]
+			.set_description( "Output a pedigree file instead of a GEN-type file."
+			 	" You must also input a pedigree using -ip for this to work." )
+			.set_takes_values_per_use( 1 )
+			.set_maximum_multiplicity( 1 ) ;
+		options[ "-ip" ]
+			.set_description( "Input a pedigree from the specified file."
+			 	" The first six columns of this file should represent a PED format pedigree,"
+				" according to the spec on the PLINK website.  (Other columns are ignored.)"
+				" Ids are treated as non-whitespace strings and sex can be either"
+				" \"1\" or \"M\" (male) or \"2\" or \"F\" (female) or \"other\"." )
+			.set_takes_values_per_use( 1 )
+			.set_maximum_multiplicity( 1 ) ;
+
+		options[ "-phenotype" ]
+			.set_description( "Specify a phenotype to output in the PED file, when -op is used." )
+			.set_takes_values_per_use( 1 )
+			.set_maximum_multiplicity( 1 ) ;
+
+		options.option_implies_option( "-op", "-ip" ) ;
+		options.option_implies_option( "-op", "-phenotype" ) ;
 
 		// Statistic file options
 		options.declare_group( "Statistic calculation options" ) ;
@@ -611,6 +636,12 @@ struct QCToolCmdLineContext: public QCToolContext
 	
 	~QCToolCmdLineContext() {
 		write_postamble() ;
+		// Ensure a fixed deconstruction order so that samples and pedigree outlive
+		// the SNP Data Sinks.
+		m_fltrd_out_snp_data_sink.reset() ;
+		m_fltrd_in_snp_data_sink.reset() ;
+		m_cohort_individual_source.reset() ;
+		m_pedigree.reset() ;
 	}
 	
 	SNPDataSource& snp_data_source() const {
@@ -899,11 +930,12 @@ private:
 	typedef std::map< genfile::SNPIdentifyingData, char > StrandSpec ;
 	typedef std::vector< StrandSpec > StrandSpecs ;
 	std::auto_ptr< StrandSpecs > m_strand_specs ;
+	genfile::Pedigree::UniquePtr m_pedigree ;	// this must go before snp_data_sinks.
+	genfile::CohortIndividualSource::UniquePtr m_cohort_individual_source ; // this must go before the snp_data_sinks.
 	std::auto_ptr< genfile::SNPDataSource > m_snp_data_source ;
 	std::auto_ptr< genfile::SNPDataSinkChain > m_fltrd_in_snp_data_sink ;
 	std::auto_ptr< genfile::SNPDataSinkChain > m_fltrd_out_snp_data_sink ;
 	std::auto_ptr< ObjectSource< SampleRow > > m_sample_source ;
-	genfile::CohortIndividualSource::UniquePtr m_cohort_individual_source ;
 
 	std::vector< SampleRow > m_sample_rows ;
 
@@ -1339,8 +1371,28 @@ private:
 
 	void open_filtered_in_snp_data_sink() {
 		reset_filtered_in_snp_data_sink() ;
-		if( m_mangled_options.gen_filename_mapper().output_filenames().size() == 0 ) {
-			m_fltrd_in_snp_data_sink->add_sink( std::auto_ptr< genfile::SNPDataSink >( new genfile::TrivialSNPDataSink() )) ;
+		if( m_options.check_if_option_was_supplied( "-op" )) {
+			assert( m_options.check_if_option_was_supplied( "-ip" )) ;
+			assert( m_options.check_if_option_was_supplied( "-phenotype" )) ;
+			assert( !m_options.check_if_option_was_supplied( "-og" )) ;
+			
+			m_pedigree = genfile::Pedigree::create(
+				"file:" + m_options.get_value< std::string >( "-ip" )
+			) ;
+
+			m_fltrd_in_snp_data_sink->add_sink(
+				genfile::SNPDataSink::UniquePtr(
+					new genfile::PedFileSNPDataSink(
+						*m_cohort_individual_source,
+						*m_pedigree,
+						m_options.get_value< std::string > ( "-phenotype" ),
+						m_options.get_value< std::string >( "-op" )
+					)
+				)
+			) ;
+		}
+		else if( m_mangled_options.gen_filename_mapper().output_filenames().size() == 0 ) {
+			m_fltrd_in_snp_data_sink->add_sink( genfile::SNPDataSink::UniquePtr( new genfile::TrivialSNPDataSink() )) ;
 		}
 		else {
 			for( std::size_t i = 0; i < m_mangled_options.gen_filename_mapper().output_filenames().size(); ++i ) {
@@ -1355,11 +1407,11 @@ private:
 		if( m_options.check_if_option_was_supplied( "-write-snp-excl-list" ) && m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() > 0 ) {
 			for( std::size_t i = 0; i < m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size(); ++i ) {
 				std::string const& filename = m_mangled_options.snp_excl_list_filename_mapper().output_filenames()[i] ;
-				m_fltrd_out_snp_data_sink->add_sink( std::auto_ptr< genfile::SNPDataSink >( new SNPIDSink( filename ))) ;
+				m_fltrd_out_snp_data_sink->add_sink( genfile::SNPDataSink::UniquePtr( new SNPIDSink( filename ))) ;
 			}
 		}
 		else {
-			m_fltrd_out_snp_data_sink->add_sink( std::auto_ptr< genfile::SNPDataSink >( new genfile::TrivialSNPDataSink() )) ;
+			m_fltrd_out_snp_data_sink->add_sink( genfile::SNPDataSink::UniquePtr( new genfile::TrivialSNPDataSink() )) ;
 		}
 	}
 

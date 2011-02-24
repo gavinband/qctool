@@ -48,7 +48,14 @@ namespace genfile {
 		// Find the parent of this source
 		virtual CohortIndividualSource const& get_parent_source() const ;
 
+		// method: get_source_spec()
+		// get_source_spec() returns a human-readable specification for this source.
 		virtual std::string get_source_spec() const ;
+
+		// method find_entries()
+		// find_entry returns the set of rows for which the given column equals the given entry.
+		std::vector< std::size_t > find_entries( Entry const& entry, std::string const& column_name ) const ;
+
 	public:
 		enum ColumnType { e_ID_COLUMN = 0, e_MISSINGNESS_COLUMN, e_DISCRETE_COVARIATE, e_CONTINUOUS_COVARIATE, e_BINARY_PHENOTYPE, e_CONTINUOUS_PHENOTYPE } ;
 		friend std::ostream& operator<< ( std::ostream& out, ColumnType const& type ) ;

@@ -212,7 +212,7 @@ private:
 	}
 
 	void add_gen_file_to_chain( genfile::SNPDataSinkChain& chain, std::string const& filename ) {
-		std::auto_ptr< genfile::SNPDataSink > snp_data_sink ;
+		genfile::SNPDataSink::UniquePtr snp_data_sink ;
 
 		if( m_options.check_if_option_was_supplied( "-sort" ) ) {
 			if( genfile::filename_indicates_bgen_format( filename ) ) {
@@ -227,7 +227,7 @@ private:
 				throw genfile::BadArgumentError( "GenConvertProcessor::add_gen_file_to_chain()", "option:\"-sort\" supplied, but file \"" + filename + "\" is not BGEN file" ) ;
 			}
 		} else {
-			std::auto_ptr< genfile::SNPDataSink > snp_data_sink(
+			genfile::SNPDataSink::UniquePtr snp_data_sink(
 				genfile::SNPDataSink::create(
 					filename,
 					"Created by gen-convert"

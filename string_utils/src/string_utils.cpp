@@ -46,7 +46,7 @@ namespace string_utils {
 		return impl::split_and_strip( string_to_split, splitter, impl::ePreserveEmptyEntries, "" ) ;
 	}
 
-	std::vector< std::string > split_discarding_empty_entries( std::string string_to_split, std::string splitter, std::string strip_chars ) {
+	std::vector< std::string > split_and_strip_discarding_empty_entries( std::string string_to_split, std::string splitter, std::string strip_chars ) {
 		return impl::split_and_strip( string_to_split, splitter, impl::eDiscardEmptyEntries, strip_chars ) ;
 	}
 
@@ -67,10 +67,6 @@ namespace string_utils {
 
 	std::vector< std::string > split_and_strip( std::string string_to_split, std::string splitter, std::string strip_chars ) {
 		return impl::split_and_strip( string_to_split, splitter, impl::ePreserveEmptyEntries, strip_chars ) ;
-	}
-
-	std::vector< std::string > split_and_strip_discarding_empty_entries( std::string string_to_split, std::string splitter, std::string strip_chars ) {
-		return impl::split_and_strip( string_to_split, splitter, impl::eDiscardEmptyEntries, strip_chars ) ;	
 	}
 
 	std::string to_lower( std::string aString ) {

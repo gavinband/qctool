@@ -20,7 +20,7 @@ namespace genfile {
 			}
 		} ;
 
-		void add_sink( std::auto_ptr< SNPDataSink > sink ) {
+		void add_sink( SNPDataSink::UniquePtr sink ) {
 			if( m_sinks.empty() ) {
 				m_current_sink = 0 ;
 			}

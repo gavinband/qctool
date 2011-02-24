@@ -11,28 +11,28 @@
 
 namespace genfile {
 
-	std::auto_ptr< SNPDataSink > SNPDataSink::create(
+	SNPDataSink::UniquePtr SNPDataSink::create(
 		std::string const& filename,
 		std::string const& free_data
 	) {
 		return SNPDataSink::create( filename, get_compression_type_indicated_by_filename( filename ), free_data ) ;
 	}
 
-	std::auto_ptr< SNPDataSink > SNPDataSink::create(
+	SNPDataSink::UniquePtr SNPDataSink::create(
 		std::string const& filename,
 		CompressionType compression_type,
 		std::string const& free_data
 	) {
 		if( filename_indicates_bgen_format( filename )) {
 			if( compression_type == e_GzipCompression ) {
-				return std::auto_ptr< SNPDataSink >( new ZippedBGenFileSNPDataSink( filename, free_data )) ;
+				return SNPDataSink::UniquePtr( new ZippedBGenFileSNPDataSink( filename, free_data )) ;
 			}
 			else {
-				return std::auto_ptr< SNPDataSink >( new BGenFileSNPDataSink( filename, free_data, bgen::e_CompressedSNPBlocks )) ;
+				return SNPDataSink::UniquePtr( new BGenFileSNPDataSink( filename, free_data, bgen::e_CompressedSNPBlocks )) ;
 			}
 		}
 		else {
-			return std::auto_ptr< SNPDataSink >( new GenFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
+			return SNPDataSink::UniquePtr( new GenFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
 		}
 	}
 	
