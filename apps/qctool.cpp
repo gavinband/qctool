@@ -238,7 +238,7 @@ public:
 
 		options.option_implies_option( "-op", "-ip" ) ;
 		options.option_implies_option( "-op", "-phenotype" ) ;
-		options.option_implies_option( "-op", "s" ) ;
+		options.option_implies_option( "-op", "-s" ) ;
 
 		// Statistic file options
 		options.declare_group( "Statistic calculation options" ) ;
