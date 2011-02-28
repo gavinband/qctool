@@ -5,6 +5,7 @@
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/Pedigree.hpp"
 #include "genfile/PedFileSNPDataSink.hpp"
+#include "genfile/string_utils.hpp"
 
 namespace genfile {
 	namespace impl {
@@ -31,13 +32,13 @@ namespace genfile {
 	PedFileSNPDataSink::PedFileSNPDataSink(
 		CohortIndividualSource const& samples,
 		Pedigree const& pedigree,
-		std::string const& phenotype,
+		std::string const& phenotypes,
 		std::string const& output_filename,
 		double call_threshhold
 	):
 		m_samples( samples ),
 		m_pedigree( pedigree ),
-		m_phenotype( phenotype ),
+		m_phenotypes( string_utils::split_and_strip( phenotypes, ",", " \t" )),
 		m_pedigree_to_sample_mapping( get_pedigree_to_sample_mapping( pedigree, samples )),
 		m_output_filename( output_filename ),
 		m_call_threshhold( call_threshhold )
@@ -53,8 +54,10 @@ namespace genfile {
 			throw BadArgumentError( "PedFileSNPDataSink::PedFileSNPDataSink", "output_filename = \"" + output_filename + "\"" ) ;
 		}
 
-		if( !samples.check_for_column( phenotype )) {
-			throw BadArgumentError( "PedFileSNPDataSink::PedFileSNPDataSink", "phenotype = \"" + phenotype + "\"" ) ;
+		for( std::size_t i = 0; i < m_phenotypes.size(); ++i ) {
+			if( !samples.check_for_column( m_phenotypes[i] )) {
+				throw BadArgumentError( "PedFileSNPDataSink::PedFileSNPDataSink", "phenotypes = \"" + phenotypes + "\"" ) ;
+			}
 		}
 	}
 	
@@ -119,10 +122,13 @@ namespace genfile {
 				<< " " << m_pedigree.get_parents_of( id )[0]
 				<< " " << m_pedigree.get_parents_of( id )[1]
 				<< " " << impl::sex_to_string( m_pedigree.get_sex_of( id ) ) ;
-			// Sixth column is phenotype
+
 			std::map< std::string, std::size_t >::const_iterator sample = m_pedigree_to_sample_mapping.find( id ) ;
 			if( sample != m_pedigree_to_sample_mapping.end() ) {
-				(*out) << " " << m_samples.get_entry( sample->second, m_phenotype ) ;
+				// Next columns are phenotypes
+				for( std::size_t phenotype_i = 0; phenotype_i < m_phenotypes.size(); ++phenotype_i ) {
+					(*out) << " " << m_samples.get_entry( sample->second, m_phenotypes[ phenotype_i ] ) ;
+				}
 				// Next columns are the SNPs, which we go through in order.
 				for( std::size_t i = 0; i < m_written_alleles.size(); ++i ) {
 					(*out) << " "
@@ -132,7 +138,9 @@ namespace genfile {
 				}
 			}
 			else {
-				(*out) << " NA" ;
+				for( std::size_t phenotype_i = 0; phenotype_i < m_phenotypes.size(); ++phenotype_i ) {
+					(*out) << " NA" ;
+				}
 				for( std::size_t i = 0 ; i < m_written_alleles.size(); ++i ) {
 					(*out) << " NA/NA" ;
 				}
@@ -149,7 +157,9 @@ namespace genfile {
 				get_compression_type_indicated_by_filename( output_filename )
 			)
 		) ;
-		(*out) << "T " << m_phenotype << "\n" ;
+		for( std::size_t phenotype_i = 0; phenotype_i < m_phenotypes.size(); ++phenotype_i ) {
+			(*out) << "T " << m_phenotypes[ phenotype_i ] << "\n" ;
+		}
 		for( std::size_t i = 0 ; i < m_written_snps.size(); ++i ) {
 			(*out) << "M " << m_written_snps[i].get_rsid() << "\n" ;
 		}

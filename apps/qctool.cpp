@@ -238,6 +238,7 @@ public:
 
 		options.option_implies_option( "-op", "-ip" ) ;
 		options.option_implies_option( "-op", "-phenotype" ) ;
+		options.option_implies_option( "-op", "s" ) ;
 
 		// Statistic file options
 		options.declare_group( "Statistic calculation options" ) ;
@@ -1673,10 +1674,6 @@ private:
 		}
 		if( m_mangled_options.gen_filename_mapper().output_filenames().size() == 0 && m_mangled_options.output_sample_filename() == "" && m_mangled_options.snp_stats_filename_mapper().output_filenames().size() == 0 && m_mangled_options.output_sample_stats_filename() == "" && m_mangled_options.output_sample_excl_list_filename() == "" && m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() == 0 ) {
 			m_warnings.push_back( "You have not specified any output files.  This will produce only logging output." ) ;
-		}
-		if( ((m_mangled_options.gen_filename_mapper().output_filenames().size() > 0) || ( m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() > 0)) &&  (m_snp_filter->number_of_subconditions() == 0) && (m_sample_filter->number_of_subconditions() == 0) && !m_options.check_if_option_was_supplied_in_group( "SNP exclusion options" ) && !m_options.check_if_option_was_supplied( "-translate-snp-positions" )) {
-			m_warnings.push_back( "You have specified output GEN (or snp exclusion) files, but no filters.\n"
-				" This will just output the same gen files (converting formats if necessary)." ) ;
 		}
 		if( m_snp_data_source->total_number_of_snps() == 0 ) {
 			m_warnings.push_back( "There are no SNPs in the source files (after exclusions, translation, aligning and matching between cohorts where relevant).\n" ) ;

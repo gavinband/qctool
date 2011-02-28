@@ -16,7 +16,7 @@ namespace genfile {
 		PedFileSNPDataSink(
 			CohortIndividualSource const& samples,
 			Pedigree const& pedigree,
-			std::string const& phenotype,
+			std::string const& phenotypes,
 			std::string const& output_filename,
 			double call_threshhold = 0.9
 		) ;
@@ -31,14 +31,13 @@ namespace genfile {
 	private:
 		CohortIndividualSource const& m_samples ;
 		Pedigree const& m_pedigree ;
-		std::string const m_phenotype ;
+		std::vector< std::string > const m_phenotypes ;
 		std::map< std::string, std::size_t > m_pedigree_to_sample_mapping ;
 		std::string const m_output_filename ;
 		std::vector< SNPIdentifyingData > m_written_snps ;
 		std::vector< std::vector< std::pair< char, char > > > m_written_alleles ;
 		double const m_call_threshhold ;
 	private:
-		
 		static std::map< std::string, std::size_t > get_pedigree_to_sample_mapping( Pedigree const& pedigree, CohortIndividualSource const& samples ) ;
 		void write_ped_file( std::string const& output_filename ) const ;
 		void write_map_file( std::string const& output_filename ) const ;
