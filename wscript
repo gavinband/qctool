@@ -7,7 +7,7 @@ srcdir="."
 APPNAME = "qctool"
 VERSION = "1.2"
 
-subdirs = [ 'genfile', 'statfile', 'string_utils', 'appcontext', 'fputils', 'worker' ]
+subdirs = [ 'genfile', 'statfile', 'string_utils', 'appcontext', 'fputils', 'worker', 'snptest', 'integration', '3rd_party' ]
 
 def set_options( opt ):
 	opt.tool_options( 'compiler_cxx' )
@@ -87,7 +87,11 @@ def misc_configure( conf ) :
 	conf.define ( 'GENFILE_USE_FAST_PARSE_METHODS', 1 )
 
 def get_cxx_flags( variant_name ):
-	cxxflags = ['-Wall', '-pedantic']
+	cxxflags = [
+		'-Wall',
+		'-pedantic',
+		'-Wno-long-long' # don't warn about the long long thing, it comes up in Eigen and Boost.
+	]
 	if variant_name == 'default':
 		cxxflags.extend( ['-g', '-p' ])
 	elif variant_name == 'release':

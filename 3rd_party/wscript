@@ -1,0 +1,6 @@
+def build( bld ):
+	bld(
+            name = 'eigen',
+            export_incdirs = 'eigen',
+            uselib = ''
+    )
