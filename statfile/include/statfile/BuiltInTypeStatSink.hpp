@@ -4,12 +4,14 @@
 #include <unistd.h>
 #include <memory>
 #include <string>
+#include "genfile/Chromosome.hpp"
 #include "statfile/StatSink.hpp"
 
 namespace statfile {
-	struct BuiltInTypeStatSink: public StatSink< int32_t, uint32_t, std::string, double >
+	struct BuiltInTypeStatSink: public StatSink< int32_t, uint32_t, std::string, double, genfile::Chromosome >
 	{
-		static std::auto_ptr< BuiltInTypeStatSink > open( std::string const& filename ) ;
+		typedef std::auto_ptr< BuiltInTypeStatSink > UniquePtr ;
+		static UniquePtr open( std::string const& filename ) ;
 	} ;
 	
 	struct NullBuiltInTypeStatSink: public ColumnNamingStatSink< BuiltInTypeStatSink >

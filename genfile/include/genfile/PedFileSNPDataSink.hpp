@@ -16,7 +16,6 @@ namespace genfile {
 		PedFileSNPDataSink(
 			CohortIndividualSource const& samples,
 			Pedigree const& pedigree,
-			std::string const& phenotypes,
 			std::string const& output_filename,
 			double call_threshhold = 0.9
 		) ;

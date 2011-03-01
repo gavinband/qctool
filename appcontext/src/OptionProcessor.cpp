@@ -381,7 +381,7 @@ namespace appcontext {
 		if( (*this)[option_name].has_default_value() ) {
 			description += "  Defaults to \"" + string_utils::join( (*this)[option_name].default_values(), ", " ) + "\"." ;
 		}
-		aStream << string_utils::wrap( description, 100, current_column, current_column )
+		aStream << string_utils::wrap( description, 120, current_column, current_column )
 			<< "\n" ;
 	}
 

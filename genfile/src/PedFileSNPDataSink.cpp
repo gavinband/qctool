@@ -27,18 +27,28 @@ namespace genfile {
 			}
 			return "NA";
 		}
+		
+		std::vector< std::string > get_phenotypes( genfile::CohortIndividualSource const& samples ) {
+			std::vector< std::string > result ;
+			genfile::CohortIndividualSource::ColumnSpec column_spec = samples.get_column_spec() ;
+			for( std::size_t i = 0; i < column_spec.size(); ++i ) {
+				if( column_spec.get_spec(i).is_phenotype() ) {
+					result.push_back( column_spec[i].name() ) ;
+				}
+			}
+			return result ;
+		}
 	}
 
 	PedFileSNPDataSink::PedFileSNPDataSink(
 		CohortIndividualSource const& samples,
 		Pedigree const& pedigree,
-		std::string const& phenotypes,
 		std::string const& output_filename,
 		double call_threshhold
 	):
 		m_samples( samples ),
 		m_pedigree( pedigree ),
-		m_phenotypes( string_utils::split_and_strip( phenotypes, ",", " \t" )),
+		m_phenotypes( impl::get_phenotypes( samples )),
 		m_pedigree_to_sample_mapping( get_pedigree_to_sample_mapping( pedigree, samples )),
 		m_output_filename( output_filename ),
 		m_call_threshhold( call_threshhold )
@@ -52,12 +62,6 @@ namespace genfile {
 			)
 		) {
 			throw BadArgumentError( "PedFileSNPDataSink::PedFileSNPDataSink", "output_filename = \"" + output_filename + "\"" ) ;
-		}
-
-		for( std::size_t i = 0; i < m_phenotypes.size(); ++i ) {
-			if( !samples.check_for_column( m_phenotypes[i] )) {
-				throw BadArgumentError( "PedFileSNPDataSink::PedFileSNPDataSink", "phenotypes = \"" + phenotypes + "\"" ) ;
-			}
 		}
 	}
 	

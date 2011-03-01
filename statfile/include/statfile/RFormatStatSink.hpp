@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include "genfile/Chromosome.hpp"
 #include "statfile/StatSink.hpp"
 #include "statfile/OstreamAggregator.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
