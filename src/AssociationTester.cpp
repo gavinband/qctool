@@ -38,7 +38,7 @@ AssociationTester::AssociationTester(
 	m_phenotypes( get_phenotypes( samples, m_options.get_value< std::string >( "-test" ))),
 	m_indices_of_samples_to_include( get_indices_of_samples_to_include( m_phenotypes, m_samples )),
 	m_phenotype_values( get_phenotype_values( m_phenotypes, m_samples, m_indices_of_samples_to_include )),
-	m_fill_null_genotypes( false ),
+	m_fill_null_genotypes( true ),
 	m_chi_squared( 1.0 )
 {
 	assert( m_phenotypes.size() > 0 ) ;
@@ -106,8 +106,9 @@ void AssociationTester::processed_snp( SNPIdentifyingData const& id_data, Single
 		<< id_data.get_rsid()
 		<< std::string( id_data.get_position().chromosome() )
 		<< id_data.get_position().position()
-		<< id_data.get_first_allele()
-		<< id_data.get_second_allele() ;
+		<< std::string( 1, id_data.get_first_allele() )
+		<< std::string( 1, id_data.get_second_allele() )
+	;
 	for( std::size_t i = 0; i < m_phenotypes.size(); ++i ) {
 		FrequentistTestResults results = get_frequentist_test_results(
 			m_phenotype_values[i],
