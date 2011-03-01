@@ -135,7 +135,7 @@ def build( bld ):
 		target = 'gen-tools-lib',
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include ./genfile/include',
-		uselib_local = 'string_utils statfile appcontext fputils worker',
+		uselib_local = 'string_utils statfile appcontext fputils worker snptest integration',
 		uselib = 'BOOST BOOST_IOSTREAMS ZLIB BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'
 	)
 

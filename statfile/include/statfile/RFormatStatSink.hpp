@@ -23,6 +23,7 @@ namespace statfile {
 		operator void*() const { return OstreamAggregator::operator void*() ; }
 
 		void set_descriptive_text( std::string const& ) ;
+		void write_metadata( std::string const& metadata ) { set_descriptive_text( metadata ) ; }
 
 	protected:
 

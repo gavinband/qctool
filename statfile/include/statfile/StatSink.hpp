@@ -75,6 +75,8 @@ namespace statfile {
 			return *this ;
 		}
 
+		virtual void write_metadata( std::string const& metadata ) {}
+
 	public:
 		// In addition to write( T const& ) which derived classes must supply for
 		// each T != empty in the template parameter list, the following functions

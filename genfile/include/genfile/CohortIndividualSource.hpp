@@ -92,7 +92,6 @@ namespace genfile {
 			SingleColumnSpec( SingleColumnSpec const& other ) ;
 			SingleColumnSpec& operator=( SingleColumnSpec const& other ) ;
 
-
 			std::string const& name() const ;
 			ColumnType const type() const ;
 			bool is_discrete() const ;
@@ -117,6 +116,8 @@ namespace genfile {
 			std::vector< ColumnType > get_types() const ;
 			SingleColumnSpec get_spec( std::size_t i ) const ;
 			SingleColumnSpec operator[]( std::size_t i ) const ;
+			
+			std::size_t find_column( std::string const& name ) const ;
 			
 			std::size_t get_number_of_covariates() const ;
 			std::size_t get_number_of_phenotypes() const ;

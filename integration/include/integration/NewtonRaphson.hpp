@@ -81,8 +81,8 @@ namespace integration {
 		evaluator.evaluate_at( point ) ;
 		Vector function_value = evaluator.get_value_of_function() ;
 		Matrix derivative_value ;
-		std::cerr << std::setprecision( 6 ) ;
-		std::cerr << "find_root_by_newton_raphson(): point = " << point << ", function = " << function_value ;
+		// std::cerr << std::setprecision( 6 ) ;
+		// std::cerr << "find_root_by_newton_raphson(): point = " << point << ", function = " << function_value ;
 		
 		double max = std::max( std::abs( function_value.minCoeff() ), std::abs( function_value.maxCoeff() ) ) ;
 		if( max >= tolerance ) {
@@ -96,8 +96,6 @@ namespace integration {
 			do {
 				derivative_value = evaluator.get_value_of_first_derivative() ;
 				solver.compute( derivative_value ) ;
-				std::cerr << ", derivative value = {" << derivative_value << "}.\n" ;
-				std::cerr << ", addition = {" << solver.solve( -function_value ) << "}.\n" ;
                 // The following line does not work with Eigen beta 1
 				//point += solver.solve( -function_value ) ; // 
 				point = point + solver.solve( -function_value ) ;
@@ -106,11 +104,8 @@ namespace integration {
 				max = std::max( std::abs( function_value.minCoeff() ), std::abs( function_value.maxCoeff() ) ) ;				
 				//std::cerr << "NR: point = " << point << ".\n" ;
 				//std::cerr << "NR: tolerance = " << tolerance << ", value = " << function_value << ", max coeff = " << max << ".\n" ;
-				std::cerr << "find_root_by_newton_raphson(): point = " << point
-					<< ", function = " << function_value ;
 			}
             while( max > tolerance ) ;
-			std::cerr << ".\n" ;
 		}
 		return point ;
 	}

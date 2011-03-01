@@ -1248,7 +1248,7 @@ private:
 			snps
 		) ;
 	}
-		
+	
 	std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData > load_snp_dictionary( std::string const& filename ) const {
 		std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData > result ;
 		statfile::BuiltInTypeStatSource::UniquePtr source( 

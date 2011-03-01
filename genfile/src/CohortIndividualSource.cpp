@@ -245,4 +245,13 @@ namespace genfile {
 	std::ostream& operator<<( std::ostream& ostr, CohortIndividualSource::Entry const& entry ) {
 		return ostr << entry.m_entrydata ;
 	}
+	
+	std::size_t CohortIndividualSource::ColumnSpec::find_column( std::string const& column_name ) const {
+		std::vector< std::string >::const_iterator
+			where = std::find( m_column_names.begin(), m_column_names.end(), column_name ) ;
+		if( where == m_column_names.end() ) {
+			throw BadArgumentError( "CohortIndividualSource::ColumnSpec::find_column()", "column_name = \"" + column_name + "\".\n" ) ;
+		}
+		return std::size_t( where - m_column_names.begin() ) ;
+	}
 }
