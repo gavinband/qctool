@@ -1,4 +1,4 @@
 build
 .lock-wscript
-doc/html
 .waf-*
+doc/doxygen
