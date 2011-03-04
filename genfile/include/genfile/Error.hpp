@@ -86,6 +86,8 @@ namespace genfile {
 			m_source( other.m_source )
 		{}
 
+		virtual std::string format_message() const { return "An unknown input error occurred in source \"" + source() + "\"." ; }
+
 		virtual ~InputError() throw() {}
 		std::string const& source() const { return m_source ; }
 		const char* what() const throw() { return "genfile:InputError" ; }
@@ -93,6 +95,25 @@ namespace genfile {
 		std::string const m_source ;
 	} ;
 
+	struct OutputError: public std::exception 
+	{
+		OutputError( std::string const& source ):
+			m_source( source )
+		{}
+		
+		OutputError( OutputError const& other ):
+			m_source( other.m_source )
+		{}
+
+		virtual std::string format_message() const { return "An unknown output error occurred in source \"" + source() + "\"." ; }
+
+		virtual ~OutputError() throw() {}
+		std::string const& source() const { return m_source ; }
+		const char* what() const throw() { return "genfile:OutputError" ; }
+	private:
+		std::string const m_source ;
+	} ;
+	
 	struct BadArgumentError: public InputError
 	{
 		BadArgumentError( std::string const& function, std::string const& arguments ):
@@ -185,6 +206,29 @@ namespace genfile {
 	private:
 		int const m_line ;
 		int const m_column ;
+	} ;
+
+	struct FormatUnsupportedError: public InputError
+	{
+		FormatUnsupportedError( std::string const& source, std::string const& format ):
+			InputError( source ),
+			m_format( format )
+		{}
+		
+		~FormatUnsupportedError() throw() {}
+		
+		char const* what() const throw() { return "genfile::FormatUnsupportedError" ; }
+
+		virtual std::string format_message() const {
+			return "Source \"" + source() + "\" is in format \"" + format() + "\", which is unsupported." ;
+		}
+		
+		std::string const& format() const {
+			return m_format ;
+		}
+		
+	private:
+		std::string const m_format ;
 	} ;
 
 	struct UnexpectedMissingValueError: public MalformedInputError

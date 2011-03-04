@@ -3,9 +3,10 @@
 
 #include <iostream>
 #include <string>
-#include "snp_data_utils.hpp"
-#include "SNPDataSink.hpp"
-#include "bgen.hpp"
+#include "genfile/snp_data_utils.hpp"
+#include "genfile/SNPDataSink.hpp"
+#include "genfile/bgen.hpp"
+#include "genfile/Error.hpp"
 
 namespace genfile {
 
@@ -103,7 +104,7 @@ namespace genfile {
 			// The header comes after the offset which is 4 bytes.
 			stream_ptr()->seekp(4, std::ios_base::beg ) ;
 			if( stream_ptr()->bad() ) {
-				throw FormatUnsupportedError() ;
+				throw OutputError( filename() ) ;
 			}
 
 			write_header_data( *stream_ptr() ) ;

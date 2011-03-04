@@ -55,7 +55,7 @@ namespace genfile {
 		// Now we must seek back to the beginning and write the header block.
 		stream_ptr()->seekp(4, std::ios_base::beg ) ;
 		if( stream_ptr()->bad() ) {
-			throw FormatUnsupportedError() ;
+			throw OutputError( filename() ) ;
 		}
 
 		write_header_data( *stream_ptr() ) ;
