@@ -25,12 +25,12 @@ namespace integration {
 		Function const& function,
 		Derivative const& derivative,
 		Vector point,
-		double tolerance = 0.0000000001
+		double tolerance
 	) {
         typedef typename impl::VectorTraits< Vector >::Matrix Matrix ;
 
 	    // We compare against squared norm so square the tolerance here.
-        //tolerance *= tolerance ;
+		//tolerance *= tolerance ;
 		assert( tolerance > 0.0 ) ;
 		
 		Vector function_value = function( point ) ;
@@ -75,8 +75,8 @@ namespace integration {
 		typedef typename FunctionAndDerivativeEvaluator::Vector Vector ;
 		typedef typename FunctionAndDerivativeEvaluator::Matrix Matrix ;
 		
-	    // We compare against squared norm so square the tolerance here.
-        //tolerance *= tolerance ;
+		// We compare against squared norm so square the tolerance here.
+		//tolerance *= tolerance ;
 		assert( tolerance > 0.0 ) ;
 		evaluator.evaluate_at( point ) ;
 		Vector function_value = evaluator.get_value_of_function() ;
