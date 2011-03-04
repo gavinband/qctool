@@ -181,14 +181,16 @@ AssociationTester::FrequentistTestResults AssociationTester::get_frequentist_tes
 	integration::Derivative< snptest2::NullModelLogLikelihood > null_loglikelihood_derivative= derivative( null_loglikelihood ) ;
 	Vector null_parameters = integration::find_root_by_newton_raphson(
 		null_loglikelihood_derivative,
-		Vector::Zero( 1 )
+		Vector::Zero( 1 ),
+		0.00001
 	) ;
 
+	/*
 	m_ui_context.logger() << "AssociationTester:        null: MLE is " << null_parameters << ".\n" ;
 	m_ui_context.logger() << "AssociationTester:        null: loglikelihood is " << null_loglikelihood.get_value_of_function() << ".\n" ;
 
 	m_ui_context.logger() << "AssociationTester: alternative: Finding MLE...\n" ;
-
+	*/
 	snptest2::AlternativeModelLogLikelihood alternative_loglikelihood(
 		phenotype_values,
 		genotypes,
@@ -197,13 +199,14 @@ AssociationTester::FrequentistTestResults AssociationTester::get_frequentist_tes
 	integration::Derivative< snptest2::AlternativeModelLogLikelihood > alternative_loglikelihood_derivative = derivative( alternative_loglikelihood ) ;
 	Vector alternative_parameters = integration::find_root_by_newton_raphson(
 		alternative_loglikelihood_derivative,
-		Vector::Zero( 2 )
+		Vector::Zero( 2 ),
+		0.00001
 	) ;
-
+/*
 	m_ui_context.logger() << "AssociationTester: alternative: MLE is " << alternative_parameters << ".\n" ;
 	m_ui_context.logger() << "AssociationTester: alternative: loglikelihood is " << alternative_loglikelihood.get_value_of_function() << ".\n" ;
 	m_ui_context.logger() << "AssociationTester: -2LR = " << -2.0 * ( null_loglikelihood.get_value_of_function() - alternative_loglikelihood.get_value_of_function() ) << ".\n" ;
-
+*/
 	FrequentistTestResults result ;
 	result.test_statistic = result.p_value = result.beta = result.standard_error = std::numeric_limits< double >::quiet_NaN() ;
 	result.test_statistic = -2.0 * ( null_loglikelihood.get_value_of_function() - alternative_loglikelihood.get_value_of_function() ) ;
