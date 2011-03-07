@@ -8,13 +8,14 @@ namespace genfile {
 	struct VCFFormatMetaDataParser {
 		VCFFormatMetaDataParser( std::string const& spec, std::istream& stream ) ;
 
-		std::map< std::string, std::map< std::string, std::string > > const& get_metadata() const { return m_metadata ;}
+		typedef std::multimap< std::string, std::map< std::string, std::string > > Metadata ;
+		Metadata const& get_metadata() const { return m_metadata ;}
 
 	private:
 		std::string const m_spec ;
-		std::map< std::string, std::map< std::string, std::string > > m_metadata ;
+		Metadata m_metadata ;
 	private:
-		std::map< std::string, std::map< std::string, std::string > > read_metadata( std::istream& in ) const ;
+		Metadata read_metadata( std::istream& in ) const ;
 		std::pair< std::string, std::map< std::string, std::string > > parse_meta_line(
 			std::size_t line_number,
 			std::string const& line

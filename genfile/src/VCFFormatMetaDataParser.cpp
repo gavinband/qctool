@@ -1,5 +1,6 @@
 #include <string>
 #include <map>
+
 #include <memory>
 #include <iostream>
 #include <boost/tuple/tuple.hpp>
@@ -17,10 +18,10 @@ namespace genfile {
 		m_metadata( read_metadata( stream ))
 	{}
 	
-	std::map< std::string, std::map< std::string, std::string > > VCFFormatMetaDataParser::read_metadata( std::istream& in ) const {
+	VCFFormatMetaDataParser::Metadata VCFFormatMetaDataParser::read_metadata( std::istream& in ) const {
 		std::istream::iostate old_exceptions = in.exceptions() ;
 		in.exceptions( std::ios::eofbit | std::ios::failbit | std::ios::badbit ) ;
-		std::map< std::string, std::map< std::string, std::string > > result ;
+		Metadata result ;
 		
 		for( std::size_t line_number = 0; in; ++line_number ) {
 			try {
@@ -72,7 +73,8 @@ namespace genfile {
 				throw FormatUnsupportedError( m_spec, value ) ;
 			}
 		}
-		else if( key == "INFO" || key == "FILTER" || key == "FORMAT") {
+
+		if( key == "INFO" || key == "FILTER" || key == "FORMAT") {
 			result = parse_meta_value( line_number, key, value ) ;
 			if( !validate_meta_value( key, result )) {
 				throw MalformedInputError( m_spec, line_number ) ;

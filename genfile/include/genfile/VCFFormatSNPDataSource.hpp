@@ -11,14 +11,15 @@ namespace genfile {
 	// http://www.1000genomes.org/wiki/Analysis/Variant Call Format/vcf-variant-call-format-version-41
 	// to implement this.
 	{
+	public:
 		VCFFormatSNPDataSource( std::auto_ptr< std::istream > stream_ptr ) ;
 		VCFFormatSNPDataSource( std::string const& filename ) ;
 
-	protected:
-		operator bool() const = 0 ;
-		unsigned int number_of_samples() const = 0;
-		unsigned int total_number_of_snps() const = 0 ;
-		std::string get_source_spec() const = 0 ;
+	public:
+		operator bool() const ;
+		unsigned int number_of_samples() const ;
+		unsigned int total_number_of_snps() const ;
+		std::string get_source_spec() const ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 
 	protected:
@@ -43,6 +44,15 @@ namespace genfile {
 	private:
 		std::string const m_spec ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
+		VCFFormatMetaDataParser::Metadata const m_metadata ;
+		std::vector< std::string > const m_column_names ;
+		std::ios::streampos const m_start_of_data ;
+		std::size_t const m_number_of_lines ;
+
+	private:
+		std::vector< std::string > read_column_names( std::istream& stream ) const ;
+		std::size_t count_lines( std::istream& ) const ;
+		void reset_stream() const ;
 
 	private:
 		VCFFormatSNPDataSource( VCFFormatSNPDataSource const& other ) ;

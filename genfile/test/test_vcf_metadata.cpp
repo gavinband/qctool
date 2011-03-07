@@ -35,24 +35,71 @@ namespace data {
 		"##FORMAT=<ID=HQ,Number=2,Type=Integer,Description=\"Haplotype Quality\">\n" ;
 		
 	std::string const ex5 =
-		"#CHROM POS     ID        REF ALT    QUAL FILTER INFO                              FORMAT      NA00001        NA00002        NA00003\n" ;
+		"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tNA00001\tNA00002\tNA00003\n" ;
 
 	std::string const ex6 = 
-		"20     14370   rs6054257 G      A       29   PASS   NS=3;DP=14;AF=0.5;DB;H2           GT:GQ:DP:HQ 0|0:48:1:51,51 1|0:48:8:51,51 1/1:43:5:.,.\n"
-		"20     17330   .         T      A       3    q10    NS=3;DP=11;AF=0.017               GT:GQ:DP:HQ 0|0:49:3:58,50 0|1:3:5:65,3   0/0:41:3\n"
-		"20     1110696 rs6040355 A      G,T     67   PASS   NS=2;DP=10;AF=0.333,0.667;AA=T;DB GT:GQ:DP:HQ 1|2:21:6:23,27 2|1:2:0:18,2   2/2:35:4\n"
-		"20     1230237 .         T      .       47   PASS   NS=3;DP=13;AA=T                   GT:GQ:DP:HQ 0|0:54:7:56,60 0|0:48:4:51,51 0/0:61:2\n"
-		"20     1234567 microsat1 GTC    G,GTCTC 50   PASS   NS=3;DP=9;AA=G                    GT:GQ:DP    0/1:35:4       0/2:17:2       1/1:40:3\n" ;
+		"20\t14370\trs6054257\tG\tA\t29\tPASS\tNS=3;DP=14;AF=0.5;DB;H2\tGT:GQ:DP:HQ 0|0:48:1:51,51 1|0:48:8:51,51 1/1:43:5:.,.\n"
+		"20\t17330\t.\tT\tA\t3\tq10\tNS=3;DP=11;AF=0.017\tGT:GQ:DP:HQ\t0|0:49:3:58,50\t0|1:3:5:65,3\t0/0:41:3\n"
+		"20\t1110696\trs6040355\tA\tG,T\t67\tPASS\tNS=2;DP=10;AF=0.333,0.667;AA=T;DB\tGT:GQ:DP:HQ\t1|2:21:6:23,27\t2|1:2:0:18,2\t2/2:35:4\n"
+		"20\t1230237\t.\tT\t.\t47\tPASS\tNS=3;DP=13;AA=T\tGT:GQ:DP:HQ\t0|0:54:7:56,60\t0|0:48:4:51,51\t0/0:61:2\n"
+		"20\t1234567\tmicrosat1\tGTC\tG,GTCTC\t50\tPASS\tNS=3;DP=9;AA=G\tGT:GQ:DP\t0/1:35:4\t0/2:17:2\t1/1:40:3\n" ;
 }
 
 AUTO_TEST_CASE( test_spec_example ) {
 	using namespace data ;
 	std::cerr << "test_spec_example()..." ;
 	std::istringstream istr( ex1 + ex2 + ex3 + ex4 + ex5 + ex6 ) ;
-	genfile::VCFFormatMetaDataParser( "VCF_4_1_example_file", istr ) ;
+	genfile::VCFFormatMetaDataParser parser( "VCF_4_1_example_file", istr ) ;
 	std::string s ;
 	istr >> s ;
 	TEST_ASSERT( s == "#CHROM" ) ;
+
+	// Test the metadata is correct.
+	// Actually, these tests might fail because multimap is not guaranteed to preserve
+	// the order of the elements inseretd in a range of elements comparing equal.
+	// For now I'll just assume it does though.
+	genfile::VCFFormatMetaDataParser::Metadata metadata = parser.get_metadata() ;
+	TEST_ASSERT( std::distance( metadata.equal_range( "fileformat" ).first, metadata.equal_range( "fileformat" ).second ) == 1 )  ;
+	TEST_ASSERT( std::distance( metadata.equal_range( "fileDate" ).first, metadata.equal_range( "fileDate" ).second ) == 1 )  ;
+	TEST_ASSERT( std::distance( metadata.equal_range( "source" ).first, metadata.equal_range( "source" ).second ) == 1 )  ;
+	TEST_ASSERT( std::distance( metadata.equal_range( "reference" ).first, metadata.equal_range( "reference" ).second ) == 1 )  ;
+	TEST_ASSERT( std::distance( metadata.equal_range( "contig" ).first, metadata.equal_range( "contig" ).second ) == 1 )  ;
+	TEST_ASSERT( std::distance( metadata.equal_range( "phasing" ).first, metadata.equal_range( "phasing" ).second ) == 1 )  ;
+	TEST_ASSERT( std::distance( metadata.equal_range( "INFO" ).first, metadata.equal_range( "INFO" ).second ) == 6 )  ;
+	TEST_ASSERT( std::distance( metadata.equal_range( "FILTER" ).first, metadata.equal_range( "FILTER" ).second ) == 2 )  ;
+	TEST_ASSERT( std::distance( metadata.equal_range( "FORMAT" ).first, metadata.equal_range( "FORMAT" ).second ) == 4 )  ;
+	TEST_ASSERT( metadata.equal_range( "DUMMY" ).first == metadata.equal_range( "DUMMY" ).second ) ;
+	TEST_ASSERT( metadata.equal_range( "INFO2" ).first == metadata.equal_range( "INFO2" ).second ) ;
+
+	// Check data for some rows
+	genfile::VCFFormatMetaDataParser::Metadata::const_iterator where ;
+	where = metadata.equal_range( "fileformat" ).first ;
+	TEST_ASSERT( where->second.find( "" ) != where->second.end() ) ;
+	TEST_ASSERT( where->second.find( "" )->second == "VCFv4.1" ) ;
+
+	// INFO
+	where = metadata.equal_range( "INFO" ).first ;
+	TEST_ASSERT( where->second.find( "ID" ) != where->second.end() ) ;
+	TEST_ASSERT( where->second.find( "ID" )->second == "NS" ) ;
+	TEST_ASSERT( where->second.find( "Number" ) != where->second.end() ) ;
+	TEST_ASSERT( where->second.find( "Number" )->second == "1" ) ;
+	TEST_ASSERT( where->second.find( "Type" ) != where->second.end() ) ;
+	TEST_ASSERT( where->second.find( "Type" )->second == "Integer" ) ;
+	TEST_ASSERT( where->second.find( "Description" ) != where->second.end() ) ;
+	TEST_ASSERT( where->second.find( "Description" )->second == "\"Number of Samples With Data\"" ) ;
+	++++where ;
+	TEST_ASSERT( where->second.find( "ID" ) != where->second.end() ) ;
+	TEST_ASSERT( where->second.find( "ID" )->second == "AF" ) ;
+	TEST_ASSERT( where->second.find( "Number" ) != where->second.end() ) ;
+	TEST_ASSERT( where->second.find( "Number" )->second == "A" ) ;
+	TEST_ASSERT( where->second.find( "Type" ) != where->second.end() ) ;
+	TEST_ASSERT( where->second.find( "Type" )->second == "Float" ) ;
+	TEST_ASSERT( where->second.find( "Description" ) != where->second.end() ) ;
+	TEST_ASSERT( where->second.find( "Description" )->second == "\"Allele Frequency\"" ) ;
+	
+	// FILTER
+	where = metadata.equal_range( "FILTER" ).first ;
+	
 	std::cerr << "ok.\n" ;
 }
 
@@ -259,7 +306,7 @@ AUTO_TEST_CASE( test_tab_characters ) {
 	std::string base_content = ex1 + ex2 + ex3 + ex4 ;
 	for( std::size_t i = 0; i < base_content.size(); ++i ) {
 		std::string content = base_content.substr(0, i) + "\t" + base_content.substr( i, base_content.size() ) + "END" ;
-		std::cerr << i << " " ;
+		// std::cerr << i << " " ;
 		try {
 			std::istringstream istr( content ) ;
 			genfile::VCFFormatMetaDataParser( "VCF_4_1_example_file", istr ) ;
@@ -269,7 +316,7 @@ AUTO_TEST_CASE( test_tab_characters ) {
 			// ok.
 		}
 	}
-	std::cerr << "ok." ;
+	std::cerr << "ok.\n" ;
 }
 
 

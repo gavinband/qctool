@@ -56,5 +56,6 @@ def build( bld ):
 	create_test( bld, 'test_allele_flipping_snp_data_source' )
 	create_test( bld, 'test_strand_aligning_snp_data_source' )
 	create_test( bld, 'test_vcf_metadata' )
+	create_test( bld, 'test_vcf_format_source' )
 
 	create_benchmark( bld, 'benchmark-io' )
