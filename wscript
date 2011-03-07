@@ -151,6 +151,7 @@ def build( bld ):
 	# benchmarks
 	#---------------------
 	create_benchmark( bld, 'benchmark-statistics' )
+	create_benchmark( bld, 'benchmark-variant-io' )
 
 	# Build release variants as well.
 	for obj in [] + bld.all_task_gen:
