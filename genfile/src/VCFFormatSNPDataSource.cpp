@@ -88,7 +88,7 @@ namespace genfile {
 	}
 
 	unsigned int VCFFormatSNPDataSource::number_of_samples() const {
-		assert(0) ;
+		return m_column_names.size() - 8 ;
 	}
 
 	unsigned int VCFFormatSNPDataSource::total_number_of_snps() const {
@@ -112,16 +112,48 @@ namespace genfile {
 		AlleleSetter const& set_allele1,
 		AlleleSetter const& set_allele2
 	) {
+		std::vector< std::string > ids ;
+		GenomePosition pos ;
+		std::vector< std::string > alleles ;
+		//m_id_data_reader( *m_stream_ptr, set_value( pos ), set_value( ids ), set_value( alleles ), ignore(), ignore() ) ;
+		//m_info_reader( *m_stream_ptr, ignore() ) ;
 		assert(0) ;
+		
+		set_number_of_samples( number_of_samples() ) ;
+		set_chromosome( pos.chromosome() ) ;
+		set_SNP_position( pos.position() ) ;
+
+		// We currently only support SNPs
+		if( alleles.size() == 2 && alleles[0].size() == 1 && alleles[1].size() == 1 ) {
+			set_allele1( alleles[0][0] ) ;
+			set_allele2( alleles[1][0] ) ;
+		}
+		else {
+			set_allele1( '?' ) ;
+			set_allele2( '?' ) ;
+		}
+		
+		if( ids.size() == 0 ) {
+			set_RSID( "?" ) ;
+			set_SNPID( "?" ) ;
+		}
+		else if( ids.size() > 0 ) {
+			set_RSID( ids[0] ) ;
+		}
+		if( ids.size() > 1 ) {
+			set_SNPID( ids[1] ) ;
+		}
 	}
 
 	void VCFFormatSNPDataSource::read_snp_probability_data_impl(
 		GenotypeProbabilitySetter const& set_genotype_probabilities
 	) {
+		//m_call_data_reader( *m_stream_ptr, "GL", set_genotype_probabilities() ) ;
 		assert(0) ;
 	}
 
 	void VCFFormatSNPDataSource::ignore_snp_probability_data_impl() {
+		// m_call_data_reader( *m_stream_ptr, "", ignore() ) ;
 		assert(0) ;
 	}
 

@@ -35,6 +35,15 @@ namespace genfile {
 		) ;
 	}
 	
+	struct IDDataReader
+	{
+		typedef boost::function< void ( GenomePosition const& ) > PositionSetter ;
+		typedef boost::function< void ( std::vector< std::string > const& ) > IDSetter ;
+		typedef boost::function< void ( std::vector< std::string > const& ) > AlleleSetter ;
+		typedef boost::function< void ( double ) > QualSetter ;
+		void operator()( std::istream&, PositionSetter, IDSetter, AlleleSetter, QualSetter ) const ;
+	} ;
+	
 	struct InfoDataAccessor
 	{
 		typedef std::multimap< std::string, std::map< std::string, std::string > > Metadata ;
