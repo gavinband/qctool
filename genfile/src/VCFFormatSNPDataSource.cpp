@@ -15,9 +15,8 @@ namespace genfile {
 	VCFFormatSNPDataSource::VCFFormatSNPDataSource( std::auto_ptr< std::istream > stream_ptr ):
 		m_spec( "(unnamed stream)" ),
 		m_stream_ptr( stream_ptr ),
-		m_metadata( VCFFormatMetaDataParser( m_spec, *m_stream_ptr ).get_metadata() ),
+		m_metadata( vcf::MetadataParser( m_spec, *m_stream_ptr ).get_metadata() ),
 		m_column_names( read_column_names( *m_stream_ptr )),
-		m_start_of_data( m_stream_ptr->tellg() ),
 		m_number_of_lines( count_lines( *m_stream_ptr ))
 	{
 		reset_stream() ;
@@ -26,17 +25,14 @@ namespace genfile {
 	VCFFormatSNPDataSource::VCFFormatSNPDataSource( std::string const& filename ):
 		m_spec( "file://" + filename ),
 		m_stream_ptr( open_text_file_for_input( filename, get_compression_type_indicated_by_filename( filename ))),
-		m_metadata( VCFFormatMetaDataParser( m_spec, *m_stream_ptr ).get_metadata() ),
+		m_metadata( vcf::MetadataParser( m_spec, *m_stream_ptr ).get_metadata() ),
 		m_column_names( read_column_names( *m_stream_ptr )),
-		m_start_of_data( m_stream_ptr->tellg() ),
 		m_number_of_lines( count_lines( *m_stream_ptr ))
 	{
 	}
 
 	void VCFFormatSNPDataSource::reset_stream() const {
-		m_stream_ptr->clear() ;
-		m_stream_ptr->seekg( m_start_of_data ) ;
-		assert( *m_stream_ptr ) ;
+		assert( 0 ) ;
 	}
 
 	std::vector< std::string > VCFFormatSNPDataSource::read_column_names( std::istream& stream ) const {
@@ -115,9 +111,8 @@ namespace genfile {
 		std::vector< std::string > ids ;
 		GenomePosition pos ;
 		std::vector< std::string > alleles ;
-		//m_id_data_reader( *m_stream_ptr, set_value( pos ), set_value( ids ), set_value( alleles ), ignore(), ignore() ) ;
-		//m_info_reader( *m_stream_ptr, ignore() ) ;
-		assert(0) ;
+		//m_data_reader.read_id_data( set_value( pos ), set_value( ids ), set_value( alleles ), ignore(), ignore() ) ;
+		//m_data_reader.read_info( ignore() ) ;
 		
 		set_number_of_samples( number_of_samples() ) ;
 		set_chromosome( pos.chromosome() ) ;

@@ -2,7 +2,7 @@
 #define GENFILE_VCF_FORMAT_SNP_DATA_SOURCE_HPP
 
 #include "genfile/SNPDataSource.hpp"
-#include "genfile/VCFFormatMetaDataParser.hpp"
+#include "genfile/vcf/MetadataParser.hpp"
 
 namespace genfile {
 	class VCFFormatSNPDataSource: public SNPDataSource
@@ -44,9 +44,8 @@ namespace genfile {
 	private:
 		std::string const m_spec ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
-		VCFFormatMetaDataParser::Metadata const m_metadata ;
+		vcf::MetadataParser::Metadata const m_metadata ;
 		std::vector< std::string > const m_column_names ;
-		std::ios::streampos const m_start_of_data ;
 		std::size_t const m_number_of_lines ;
 
 	private:

@@ -6,7 +6,7 @@
 #include "genfile/MissingValue.hpp"
 
 namespace genfile {
-	typedef boost::variant< MissingValue, std::string, int, double > EntryData ;
+	typedef boost::variant< MissingValue, std::string, int, double, bool > VariantEntry ;
 }
 
 #endif
