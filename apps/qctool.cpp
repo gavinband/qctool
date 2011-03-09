@@ -161,6 +161,10 @@ public:
 				" This option can be used, for example, when cohorts are typed on different platforms so have different SNPID fields." )
 			.set_takes_single_value()
 			.set_default_value( "position,rsid,SNPID,alleles" ) ;
+		options[ "-assume-chromosome" ]
+			.set_description( "Treat each SNP whose chromosome cannot be determined"
+				" as though it lies on the specified chromosome." )
+			.set_takes_single_value() ;
 
 		options.declare_group( "Sample exclusion options" ) ;
 		options[ "-incl-samples"]
@@ -1195,7 +1199,10 @@ private:
 	}
 	
 	std::pair< genfile::SNPDataSource*, std::vector< genfile::SNPIdentifyingData > >
-	open_snp_data_source( std::string const& filename, std::string const& chromosome_indicator ) const {
+	open_snp_data_source( std::string const& filename, std::string chromosome_indicator ) const {
+		if( chromosome_indicator == "" && m_options.check_if_option_was_supplied( "-assume-chromosome" )) {
+			chromosome_indicator = m_options.get_value< std::string >( "-assume-chromosome" ) ;
+		}
 		genfile::SNPDataSource::UniquePtr source ;
 		source = genfile::SNPDataSource::create(
 			filename,
