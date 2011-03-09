@@ -933,6 +933,9 @@ private:
 	QCToolOptionMangler const m_mangled_options ;
 	appcontext::UIContext& m_ui_context ;
 
+	typedef std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData > SNPDictionary ;
+	std::auto_ptr< SNPDictionary > m_snp_dictionary ;
+
 	typedef std::map< genfile::SNPIdentifyingData, char > StrandSpec ;
 	typedef std::vector< StrandSpec > StrandSpecs ;
 	std::auto_ptr< StrandSpecs > m_strand_specs ;
@@ -979,6 +982,10 @@ private:
 			construct_sample_filter() ;
 			process_other_options() ;
 			
+			if( m_options.check_if_option_has_value( "-translate-snp-positions" )) {
+				m_snp_dictionary = load_snp_dictionary( m_options.get_value< std::string >( "-translate-snp-positions" ) ) ;
+			}
+
 			if( m_options.check_if_option_has_value( "-strand" )) {
 				m_strand_specs = get_strand_specs( m_options.get_values< std::string >( "-strand" )) ;
 			}
@@ -1229,22 +1236,19 @@ private:
 		}
 		
 		// Translate SNP identifying data if necessary
-		if( m_options.check_if_option_has_value( "-translate-snp-positions" )) {
-			std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData >
-				dictionary = load_snp_dictionary( m_options.get_value< std::string >( "-translate-snp-positions" ) ) ;
-			
+		if( m_snp_dictionary.get() ) {
 			source.reset(
 				genfile::SNPTranslatingSNPDataSource::create(
 					source,
-					dictionary
+					*m_snp_dictionary
 				).release()
 			) ;
 			
 			// Keep track of the SNPs in the source by hand.
 			// This prevents an extra scan through the file, which can be slow.
 			for( std::size_t i = 0; i < snps.size(); ++i ) {
-				std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData >::const_iterator where = dictionary.find( snps[i] ) ;
-				if( where != dictionary.end() ) {
+				std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData >::const_iterator where = m_snp_dictionary->find( snps[i] ) ;
+				if( where != m_snp_dictionary->end() ) {
 					snps[i] = where->second ;
 				}
 			}
@@ -1256,8 +1260,8 @@ private:
 		) ;
 	}
 	
-	std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData > load_snp_dictionary( std::string const& filename ) const {
-		std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData > result ;
+	std::auto_ptr< SNPDictionary > load_snp_dictionary( std::string const& filename ) const {
+		std::auto_ptr< SNPDictionary > result( new SNPDictionary ) ;
 		statfile::BuiltInTypeStatSource::UniquePtr source( 
 			statfile::BuiltInTypeStatSource::open(
 				genfile::wildcard::find_files_by_chromosome( filename )
@@ -1280,11 +1284,11 @@ private:
 				>> data2.position().chromosome() >> data2.position().position()
 				>> data2.first_allele() >> data2.second_allele()
 		) {
-			std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData >::const_iterator where = result.find( data1 ) ;
-			if( where != result.end() ) {
+			std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData >::const_iterator where = result->find( data1 ) ;
+			if( where != result->end() ) {
 				throw genfile::DuplicateSNPError( filename, genfile::string_utils::to_string( data1 ) ) ;
 			}
-			result[ data1 ] = data2 ;
+			(*result)[ data1 ] = data2 ;
 			(*source) >> statfile::end_row() ;
 			progress_context( source->number_of_rows_read(), source->number_of_rows() ) ;
 		}
