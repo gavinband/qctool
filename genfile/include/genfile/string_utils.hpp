@@ -50,6 +50,9 @@ namespace genfile {
 			}
 			return t ;
 		}
+		
+		template<>
+		double to_repr< double >( std::string const& s ) ;
 	}
 }
 

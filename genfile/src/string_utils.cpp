@@ -4,6 +4,7 @@
 #include <exception>
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>
 #include "genfile/Error.hpp"
 #include "genfile/string_utils.hpp"
 
@@ -37,7 +38,34 @@ namespace genfile {
 			return string_to_strip.substr( lpos, rpos - lpos + 1 ) ;
 		}
 
+		// Specialisation of this function for speed purposes.
+		// (std::istringstream appears painfully slow in this case).
+		template<> double to_repr( std::string const& s ) {
+			char* endptr ;
+			double result = strtod( s.c_str(), &endptr ) ;
+			if( endptr == s.c_str() || std::size_t( endptr - s.c_str() ) != s.size() ) {
+				throw StringConversionError() ;
+			}
+			return result ;
+		}
+
 		namespace impl {
+			std::string strip( std::string const& string_to_strip, std::size_t start, std::size_t end, std::string chars ) {
+				assert( end >= start ) ;
+				if( chars.empty() || start == end ) {
+					return string_to_strip.substr( start, end - start ) ;
+				}
+
+				std::size_t lpos = string_to_strip.find_first_not_of( chars, start ) ;
+				if( lpos == std::string::npos || lpos >= end ) {
+					return "" ;
+				}
+
+				std::size_t rpos = string_to_strip.find_last_not_of( chars, end - 1 ) ;
+				assert( rpos >= start ) ;
+				return string_to_strip.substr( lpos, rpos - lpos + 1 ) ;
+			}
+
 			std::vector< std::string > split(
 				std::string string_to_split,
 				std::string const& split_chars,
@@ -45,18 +73,17 @@ namespace genfile {
 				bool preserve_empty_entries
 			) {
 				std::vector< std::string > substrings ;
-				std::size_t pos = 0 ;
-				do {
-					pos = string_to_split.find_first_of( split_chars ) ;
-					std::string substr = strip( string_to_split.substr(0, pos), strip_chars ) ;
+				std::size_t last_pos = 0, pos = 0 ;
+				for( ; pos != string_to_split.size(); last_pos = pos + 1 ) {
+					pos = string_to_split.find_first_of( split_chars, last_pos ) ;
+					if( pos == std::string::npos ) {
+						pos = string_to_split.size() ;
+					}
+					std::string substr = strip( string_to_split, last_pos, pos, strip_chars ) ;
 					if( preserve_empty_entries || substr.size() > 0 ) {
 						substrings.push_back( substr ) ;
 					}
-					if( pos != std::string::npos ) {
-						string_to_split = string_to_split.substr( pos + 1, string_to_split.size() ) ;
-					}
 				}
-				while( pos != std::string::npos ) ;
 
 				return substrings ;	
 			}
@@ -109,4 +136,5 @@ namespace genfile {
 			return result ;
 		}
 	}
+	
 }
