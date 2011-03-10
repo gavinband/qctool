@@ -27,20 +27,13 @@ namespace genfile {
 		{
 		private:
 			typedef boost::function< void ( std::size_t i, std::vector< Entry > const& ) > Setter ;
-			typedef std::map< std::size_t, Setter > Setters ;
-		private:
+			typedef std::multimap< std::size_t, Setter > Setters ;
+		public:
 			CallReader(
 				std::string const& format,
 				std::string const& data,
 				boost::ptr_map< std::string, VCFEntryType > const& entry_types
 			) ;
-	
-			// Return a vector of pointers to VCFEntryType objects in the supplied map,
-			// with the ith VCFEntryType appropriate for the ith format element.
-			std::vector< VCFEntryType const* > get_entries_by_position(
-				std::vector< std::string > const& format_elts,
-				boost::ptr_map< std::string, VCFEntryType > const& entry_types
-			) const ;
 	
 			CallReader& operator()( std::string const& spec, Setter setter ) ;
 	
@@ -54,6 +47,13 @@ namespace genfile {
 			Setters m_setters ;
 			
 		private:
+			// Return a vector of pointers to VCFEntryType objects in the supplied map,
+			// with the ith VCFEntryType appropriate for the ith format element.
+			std::vector< VCFEntryType const* > get_entries_by_position(
+				std::vector< std::string > const& format_elts,
+				boost::ptr_map< std::string, VCFEntryType > const& entry_types
+			) const ;
+	
 			void set_values( std::vector< std::string > const& elts, Setters const& setters ) const ;
 			void set_values( std::size_t individual_i, std::string const& elt, Setters const& setters ) const ;
 			

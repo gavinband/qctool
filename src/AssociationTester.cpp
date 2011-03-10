@@ -1,6 +1,7 @@
 #include <boost/math/distributions/chi_squared.hpp>
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/string_utils.hpp"
+#include "genfile/VariantEntry.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
 #include "snptest/SNPTEST2NullModel.hpp"
 #include "snptest/SNPTEST2AlternativeModel.hpp"

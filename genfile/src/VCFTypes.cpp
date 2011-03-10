@@ -37,6 +37,7 @@ namespace genfile {
 			}
 			
 			Entry IntegerType::parse( std::string const& value ) const {
+				std::cerr << "IntegerType::parse(): value is " << value << ".\n" ;
 				return Entry( string_utils::to_repr< int >( value ) ) ;
 			}
 
@@ -65,7 +66,7 @@ namespace genfile {
 				}
 				VCFEntryType::UniquePtr result ;
 				if( number->second == "A" ) {
-					result.reset( new OnePerAlleleVCFEntryType( SimpleType::create( type->second ))) ;
+					result.reset( new OnePerAlternateAlleleVCFEntryType( SimpleType::create( type->second ))) ;
 				}
 				else if( number->second == "G" ) {
 					result.reset( new OnePerGenotypeVCFEntryType( SimpleType::create( type->second ))) ;
@@ -107,6 +108,26 @@ namespace genfile {
 				return std::vector< Entry >( get_number(), MissingValue() ) ;
 			}
 			
+			FixedNumberVCFEntryType::FixedNumberVCFEntryType( std::size_t number, SimpleType::UniquePtr type ):
+				VCFEntryType( type ),
+				m_number( number )
+			{}
+			
+			void OnePerAlternateAlleleVCFEntryType::set_alleles( std::vector< std::string > const& alleles ) {
+				set_number( alleles.size() - 1 ) ;
+			}
+
+			void OnePerGenotypeVCFEntryType::set_alleles( std::vector< std::string > const& alleles ) {
+				// Assume that there are two DNA molecules for the variant.
+				// So we need number of alleles choose 2.
+				if( alleles.size() == 1 ) {
+					set_number( 1 ) ;
+				}
+				else {
+					set_number( alleles.size() * ( alleles.size() - 1 ) / 2 ) ;
+				}
+			}
+			
 			std::auto_ptr< boost::ptr_map< std::string, VCFEntryType > > get_entry_types(
 				std::multimap< std::string, VCFEntryType::Spec > const& metadata,
 				std::string const& key
@@ -120,7 +141,9 @@ namespace genfile {
 						throw BadArgumentError( "genfile::vcf::get_specs()", "metadata" ) ;
 					}
 					else {
-						result.insert( where->first, VCFEntryType::create( range.first->second ) ) ;
+						if( !result.insert( where->second, VCFEntryType::create( range.first->second ) ).second ) {
+							assert(0) ;
+						}
 					}
 				}
 				return result.release() ;

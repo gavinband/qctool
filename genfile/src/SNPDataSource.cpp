@@ -8,6 +8,7 @@
 #include "genfile/GenFileSNPDataSource.hpp"
 #include "genfile/BGenFileSNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
+#include "genfile/VCFFormatSNPDataSource.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/Error.hpp"
 
@@ -18,11 +19,19 @@ namespace genfile {
 	}
 
 	std::auto_ptr< SNPDataSource > SNPDataSource::create( std::string const& filename, Chromosome chromosome_hint, CompressionType compression_type ) {
-		if( filename_indicates_bgen_format( filename )) {
-			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( filename, compression_type )) ;
+		std::pair< std::string, std::string > uf = uniformise( filename ) ;
+		if( uf.first == "bgen" ) {
+			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second, compression_type )) ;
+		}
+		else if( uf.first == "vcf" ) {
+			return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second )) ;
+		}
+		else if( uf.first == "gen" ) {
+			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, compression_type )) ;
 		}
 		else {
-			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( filename, chromosome_hint, compression_type )) ;
+			// assume GEN format.
+			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, compression_type )) ;
 		}
 	}
 

@@ -1,8 +1,11 @@
 #ifndef GENFILE_VCF_FORMAT_SNP_DATA_SOURCE_HPP
 #define GENFILE_VCF_FORMAT_SNP_DATA_SOURCE_HPP
 
+#include <boost/ptr_container/ptr_map.hpp>
+#include "genfile/VariantEntry.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/vcf/MetadataParser.hpp"
+#include "genfile/vcf/Types.hpp"
 
 namespace genfile {
 	class VCFFormatSNPDataSource: public SNPDataSource
@@ -45,9 +48,14 @@ namespace genfile {
 		std::string const m_spec ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
 		vcf::MetadataParser::Metadata const m_metadata ;
-		std::vector< std::string > const m_column_names ;
-		std::size_t const m_number_of_lines ;
+		typedef boost::ptr_map< std::string, vcf::VCFEntryType > EntryTypeMap ;
+		EntryTypeMap m_info_types ;
+		EntryTypeMap m_format_types ;
+		std::string m_genotype_probability_field ;
 
+		std::vector< std::string > const m_column_names ;
+		std::ios::streampos m_start_of_data ;
+		std::size_t const m_number_of_lines ;
 	private:
 		std::vector< std::string > read_column_names( std::istream& stream ) const ;
 		std::size_t count_lines( std::istream& ) const ;

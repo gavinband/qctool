@@ -216,36 +216,6 @@ namespace genfile {
 		return get_column_spec().get_number_of_phenotypes() ;
 	}
 	
-	
-	CohortIndividualSource::Entry::Entry():
-		m_entrydata( MissingValue() )
-	{}
-	
-	bool CohortIndividualSource::Entry::is_missing() const {
-		return boost::get< MissingValue >( &m_entrydata ) ;
-	}
-	
-	template<> double CohortIndividualSource::Entry::as() const {
-		if( int const* v = boost::get< int >( &m_entrydata )) {
-			return double( *v ) ;
-		}
-		else {
-			return boost::get< double >( m_entrydata ) ;
-		} 
-	}
-	
-	bool CohortIndividualSource::Entry::operator==( Entry const& rhs ) const {
-		return m_entrydata == rhs.m_entrydata ;
-	}
-	
-	bool CohortIndividualSource::Entry::operator<( Entry const& rhs ) const {
-		return m_entrydata < rhs.m_entrydata ;
-	}
-	
-	std::ostream& operator<<( std::ostream& ostr, CohortIndividualSource::Entry const& entry ) {
-		return ostr << entry.m_entrydata ;
-	}
-	
 	std::size_t CohortIndividualSource::ColumnSpec::find_column( std::string const& column_name ) const {
 		std::vector< std::string >::const_iterator
 			where = std::find( m_column_names.begin(), m_column_names.end(), column_name ) ;

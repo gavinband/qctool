@@ -64,7 +64,7 @@ namespace genfile {
 			// of possible alleles and, e.g. for sex chromosomes, on other information
 			// such as the sex of the individual.  To account for this we add two hooks
 			// here which must be implemented in subclasses.
-			virtual void set_number( std::size_t count ) = 0 ;
+			virtual void set_alleles( std::vector< std::string > const& alleles ) = 0 ;
 			virtual std::size_t get_number() const = 0;
 		private:
 			static std::string m_missing_value ;
@@ -74,7 +74,7 @@ namespace genfile {
 		
 		struct FixedNumberVCFEntryType: public VCFEntryType {
 			FixedNumberVCFEntryType( std::size_t number, SimpleType::UniquePtr type ) ;
-			void set_number( std::size_t ) { assert(0) ; }
+			void set_alleles( std::vector< std::string > const& ) { /* Do nothing */ }
 			std::size_t get_number() const { return m_number ; }
 		private:
 			std::size_t m_number ;
@@ -82,18 +82,21 @@ namespace genfile {
 
 		struct DynamicNumberVCFEntryType: public VCFEntryType {
 			DynamicNumberVCFEntryType( SimpleType::UniquePtr type ): VCFEntryType( type ) {} ;
-			void set_number( std::size_t number ) { m_number = number ; }
 			std::size_t get_number() const { return m_number ; }
+		protected:
+			void set_number( std::size_t number ) { m_number = number ; }
 		private:
 			std::size_t m_number ;
 		} ;
 
-		struct OnePerAlleleVCFEntryType: public DynamicNumberVCFEntryType {
-			OnePerAlleleVCFEntryType( SimpleType::UniquePtr type ): DynamicNumberVCFEntryType( type ) {} ;
+		struct OnePerAlternateAlleleVCFEntryType: public DynamicNumberVCFEntryType {
+			OnePerAlternateAlleleVCFEntryType( SimpleType::UniquePtr type ): DynamicNumberVCFEntryType( type ) {} ;
+			void set_alleles( std::vector< std::string > const& alleles ) ;
 		} ;
 
 		struct OnePerGenotypeVCFEntryType: public DynamicNumberVCFEntryType {
 			OnePerGenotypeVCFEntryType( SimpleType::UniquePtr type ): DynamicNumberVCFEntryType( type ) {} ;
+			void set_alleles( std::vector< std::string > const& alleles ) ;
 		} ;
 
 		std::auto_ptr< boost::ptr_map< std::string, VCFEntryType > > get_entry_types(

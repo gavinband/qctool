@@ -36,18 +36,14 @@ namespace genfile {
 
 		CallReader& CallReader::operator()( std::string const& spec, Setter setter ) {
 			std::vector< std::string >::const_iterator where = std::find( m_format_elts.begin(), m_format_elts.end(), spec ) ;
-			if( where == m_format_elts.end() ) {
-				throw BadArgumentError( "genfile::vcf::CallReader::operator()", "spec = \"" + spec + "\"" ) ;
-			}
-			else if( m_setters.find( where - m_format_elts.begin() ) != m_setters.end() ) {
-				throw DuplicateKeyError( "genfile::vcf::CallReader::operator()", "spec = \"" + spec + "\"" ) ;
-			}
 			m_setters.insert( std::make_pair( where - m_format_elts.begin(), setter )) ;
 			return *this ;
 		}
 
 		CallReader::~CallReader() {
-			set_values( string_utils::split_and_strip( m_data, "\t", "\r\n" ), m_setters ) ;
+			if( m_setters.size() > 0 ) {
+				set_values( string_utils::split_and_strip( m_data, "\t", "\r\n" ), m_setters ) ;
+			}
 		}
 
 		void CallReader::set_values( std::vector< std::string > const& elts, Setters const& setters ) const {
@@ -59,16 +55,22 @@ namespace genfile {
 		void CallReader::set_values( std::size_t individual_i, std::string const& elt, Setters const& setters ) const {
 			std::vector< std::string > components = string_utils::split( elt, ":" ) ;
 			if( components.size() > m_entries_by_position.size() ) {
-				throw MalformedInputError( "(unknown source)", 0 ) ;
+				throw MalformedInputError( "(data)", 0, individual_i ) ;
 			}
 			Setters::const_iterator i = m_setters.begin(), end_i = m_setters.end() ;
-			for( ; i != end_i; ++i ) {
-				std::size_t element_pos = i->first ;
-				if( element_pos >= components.size() ) {
-					i->second.operator()( individual_i, m_entries_by_position[ element_pos ]->missing() ) ;
+			try {
+				for( ; i != end_i; ++i ) {
+					std::size_t element_pos = i->first ;
+					if( element_pos >= components.size() ) {
+						i->second.operator()( individual_i, m_entries_by_position[ element_pos ]->missing() ) ;
+					}
+					else {
+						i->second.operator()( individual_i, m_entries_by_position[ element_pos ]->parse( components[ element_pos ] )) ;
+					}
 				}
-				assert( element_pos < m_entries_by_position.size() ) ;
-				i->second.operator()( individual_i, m_entries_by_position[ element_pos ]->parse( components[ element_pos ] )) ;
+			}
+			catch( string_utils::StringConversionError const& ) {
+				throw MalformedInputError( "(data)", 0, individual_i ) ;
 			}
 		}
 	}

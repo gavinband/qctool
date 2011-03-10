@@ -1718,6 +1718,10 @@ private:
 			get_ui_context().logger() << "!! Error (" << e.what() << "): in argument to function " << e.function() << ": " << e.arguments() << ".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
+		catch( genfile::MalformedInputError const& e ) {
+			get_ui_context().logger() << "\nError (" << e.what() <<"): " << e.format_message() << ".\n" ;
+			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+		}
 	}
 	
 	void unsafe_process() {

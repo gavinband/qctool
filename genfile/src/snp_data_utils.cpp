@@ -127,4 +127,19 @@ namespace genfile {
 	std::string create_temporary_filename() {
 		return std::tmpnam( 0 ) ;
 	}
+	
+	std::pair< std::string, std::string > uniformise( std::string filename ) {
+		if( filename.find( ".gen") != std::string::npos ) {
+			return std::make_pair( "gen", filename ) ;
+		}
+		else if( filename.find( ".bgen" ) != std::string::npos ) {
+			return std::make_pair( "bgen", filename ) ;
+		}
+		else if( filename.find( ".vcf" ) != std::string::npos ) {
+			return std::make_pair( "vcf", filename ) ;
+		}
+		else {
+			return std::make_pair( "", filename ) ;
+		}
+	}
 }

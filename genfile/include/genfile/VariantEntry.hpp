@@ -2,11 +2,50 @@
 #define GENFILE_VARIANTENTRY_HPP
 
 #include <string>
-#include <boost/variant/variant.hpp>
+#include <boost/variant.hpp>
 #include "genfile/MissingValue.hpp"
 
 namespace genfile {
-	typedef boost::variant< MissingValue, std::string, int, double, bool > VariantEntry ;
+	class VariantEntry {
+	public:
+		template< typename T > VariantEntry( T const& value ) ;
+		template< typename T > VariantEntry& operator=( T const& value ) ;
+		VariantEntry() ; // Initialise with MissingValue.
+	public:
+		bool is_missing() const ;
+		template< typename T > T as() const ;
+	public:
+
+		bool operator==( VariantEntry const& rhs ) const ;
+		template< typename T > void operator==( T const& rhs ) const ; // this prevents implicit conversion to VariantEntry.
+		bool operator<( VariantEntry const& rhs ) const ;
+		template< typename T > void operator<( T const& rhs ) const ; // this prevents implicit conversion to VariantEntry.
+
+		friend std::ostream& operator<<( std::ostream&, VariantEntry const& ) ;
+	private:
+		typedef boost::variant< MissingValue, std::string, int, double > EntryData ;
+		EntryData m_entrydata ;
+	} ;
+	
+	template< typename T >
+	VariantEntry::VariantEntry( T const& value ):
+		m_entrydata( value )
+	{}
+
+	template< typename T >
+	VariantEntry& VariantEntry::operator=( T const& value ) {
+		this->m_entrydata = value ;
+		return *this ;
+	}
+	
+	template< typename T >
+	T VariantEntry::as() const {
+		return boost::get< T >( m_entrydata ) ;
+	}
+	
+	// The following specialisation allows the user to get either a double or integer entry as a double.
+	// This simplifies some uses.
+	template<> double VariantEntry::as() const ;
 }
 
 #endif
