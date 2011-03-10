@@ -15,8 +15,14 @@ namespace genfile {
 	// to implement this.
 	{
 	public:
-		VCFFormatSNPDataSource( std::auto_ptr< std::istream > stream_ptr ) ;
-		VCFFormatSNPDataSource( std::string const& filename ) ;
+		VCFFormatSNPDataSource(
+			std::auto_ptr< std::istream > stream_ptr,
+			std::string const& genotype_probability_field
+		) ;
+		VCFFormatSNPDataSource(
+			std::string const& filename,
+			std::string const& genotype_probability_field
+		) ;
 
 	public:
 		operator bool() const ;
@@ -57,6 +63,7 @@ namespace genfile {
 		std::ios::streampos m_start_of_data ;
 		std::size_t const m_number_of_lines ;
 	private:
+		void setup() ;
 		std::vector< std::string > read_column_names( std::istream& stream ) const ;
 		std::size_t count_lines( std::istream& ) const ;
 		void reset_stream() const ;

@@ -24,7 +24,7 @@ namespace genfile {
 			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second, compression_type )) ;
 		}
 		else if( uf.first == "vcf" ) {
-			return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second )) ;
+			return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second, "GLI" )) ;
 		}
 		else if( uf.first == "gen" ) {
 			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, compression_type )) ;

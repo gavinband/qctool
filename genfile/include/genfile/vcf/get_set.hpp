@@ -10,7 +10,7 @@ namespace genfile {
 		{
 			GenotypeProbabilitySetter( Setter setter ): m_setter( setter ) {}
 			void operator()( std::size_t i, std::vector< vcf::Entry > const& values ) {
-				assert( values.size() >= 3 ) ;
+				assert( values.size() == 3 ) ;
 				double AA = values[0].is_missing() ? 0.0 : values[0].as< double >() ;
 				double AB = values[1].is_missing() ? 0.0 : values[1].as< double >() ;
 				double BB = values[2].is_missing() ? 0.0 : values[2].as< double >() ;

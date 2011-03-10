@@ -16,32 +16,45 @@
 using boost::tuples::tie ;
 
 namespace genfile {
-	VCFFormatSNPDataSource::VCFFormatSNPDataSource( std::auto_ptr< std::istream > stream_ptr ):
+	VCFFormatSNPDataSource::VCFFormatSNPDataSource(
+		std::auto_ptr< std::istream > stream_ptr,
+		std::string const& genotype_probability_field
+	):
 		m_spec( "(unnamed stream)" ),
 		m_stream_ptr( stream_ptr ),
 		m_metadata( vcf::MetadataParser( m_spec, *m_stream_ptr ).get_metadata() ),
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
-		m_genotype_probability_field( "GL" ),
+		m_genotype_probability_field( genotype_probability_field ),
 		m_column_names( read_column_names( *m_stream_ptr )),
 		m_start_of_data( m_stream_ptr->tellg() ),
 		m_number_of_lines( count_lines( *m_stream_ptr ))
 	{
-		reset_stream() ;
-		m_stream_ptr->exceptions( std::ios::eofbit | std::ios::failbit | std::ios::badbit ) ;
+		setup() ;
 	}
 
-	VCFFormatSNPDataSource::VCFFormatSNPDataSource( std::string const& filename ):
+	VCFFormatSNPDataSource::VCFFormatSNPDataSource(
+		std::string const& filename,
+		std::string const& genotype_probability_field
+	):
 		m_spec( "file://" + filename ),
 		m_stream_ptr( open_text_file_for_input( filename, get_compression_type_indicated_by_filename( filename ))),
 		m_metadata( vcf::MetadataParser( m_spec, *m_stream_ptr ).get_metadata() ),
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
-		m_genotype_probability_field( "GLI" ),
+		m_genotype_probability_field( genotype_probability_field ),
 		m_column_names( read_column_names( *m_stream_ptr )),
 		m_start_of_data( m_stream_ptr->tellg() ),
 		m_number_of_lines( count_lines( *m_stream_ptr ))
 	{
+		setup() ;
+	}
+	
+	void VCFFormatSNPDataSource::setup() {
+		EntryTypeMap::const_iterator where = m_format_types.find( m_genotype_probability_field ) ;
+		if( where == m_format_types.end() || dynamic_cast< vcf::OnePerGenotypeVCFEntryType const* >( &(*where->second) ) == 0 ) {
+			throw BadArgumentError( "genfile::VCFFormatSNPDataSource::setup()", "m_genotype_probability_field = \"" + m_genotype_probability_field + "\"" ) ;
+		}
 		reset_stream() ;
 		m_stream_ptr->exceptions( std::ios::eofbit | std::ios::failbit | std::ios::badbit ) ;
 	}

@@ -32,7 +32,8 @@ namespace data {
 		"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n"
 		"##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype Quality\">\n"
 		"##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Read Depth\">\n"
-		"##FORMAT=<ID=HQ,Number=2,Type=Integer,Description=\"Haplotype Quality\">\n" ;
+		"##FORMAT=<ID=HQ,Number=2,Type=Integer,Description=\"Haplotype Quality\">\n"
+		"##FORMAT=<ID=GL,Number=3,Type=Float,Description=\"Genotype Likelihoods\">\n" ;
 		
 	std::string const ex5 =
 		"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tNA00001\tNA00002\tNA00003\n" ;
@@ -50,12 +51,12 @@ AUTO_TEST_CASE( test_spec_example ) {
 	std::cerr << "test_spec_example()..." ;
 	{
 		std::auto_ptr< std::istream > istr( new std::istringstream( ex1 + ex2 + ex3 + ex4 + ex5 + ex6 ) ) ;
-		genfile::VCFFormatSNPDataSource source( istr ) ;
+		genfile::VCFFormatSNPDataSource source( istr, "GL" ) ;
 		TEST_ASSERT( source.total_number_of_snps() == 5 ) ;
 	}
 	{
 		std::auto_ptr< std::istream > istr( new std::istringstream( ex1 + ex2 + ex3 + ex4 + ex5 ) ) ;
-		genfile::VCFFormatSNPDataSource source( istr ) ;
+		genfile::VCFFormatSNPDataSource source( istr, "GL" ) ;
 		TEST_ASSERT( source.total_number_of_snps() == 0 ) ;
 	}
 	std::cerr << "ok.\n" ;
