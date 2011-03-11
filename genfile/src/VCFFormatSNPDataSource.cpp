@@ -33,6 +33,24 @@ namespace genfile {
 		setup() ;
 	}
 
+	namespace impl {
+		std::string get_file_part_of_spec( std::string const& spec ) {
+			std::vector< std::string > elts = string_utils::split( spec, ":" ) ;
+			if( !elts.size() == 2 ) {
+				throw BadArgumentError( "genfile::impl::get_file_part_of_spec()", "spec = \"" + spec +"\"" ) ;
+			}
+			return elts[0] ;
+		}
+
+		std::string get_field_part_of_spec( std::string const& spec ) {
+			std::vector< std::string > elts = string_utils::split( spec, ":" ) ;
+			if( !elts.size() == 2 ) {
+				throw BadArgumentError( "genfile::impl::get_file_part_of_spec()", "spec = \"" + spec +"\"" ) ;
+			}
+			return elts[1] ;
+		}
+	}
+	
 	VCFFormatSNPDataSource::VCFFormatSNPDataSource(
 		std::string const& filename,
 		std::string const& genotype_probability_field

@@ -18,7 +18,11 @@ namespace genfile {
 		return SNPDataSource::create( filename, chromosome_hint, get_compression_type_indicated_by_filename( filename )) ;
 	}
 
-	std::auto_ptr< SNPDataSource > SNPDataSource::create( std::string const& filename, Chromosome chromosome_hint, CompressionType compression_type ) {
+	std::auto_ptr< SNPDataSource > SNPDataSource::create(
+		std::string const& filename,
+		Chromosome chromosome_hint,
+		CompressionType compression_type
+	) {
 		std::pair< std::string, std::string > uf = uniformise( filename ) ;
 		if( uf.first == "bgen" ) {
 			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second, compression_type )) ;

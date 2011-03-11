@@ -37,7 +37,7 @@ def build( bld ):
 	bld.new_task_gen(
 		features = 'cxx cstaticlib',
 		target = 'genfile',
-		source = bld.glob( 'src/*.cpp' ),
+		source = bld.glob( 'src/*.cpp' ) + bld.glob( 'src/vcf/*.cpp' ),
 		includes='./include',
 		uselib = 'ZLIB BOOST BOOST_IOSTREAMS BOOST_SYSTEM BOOST_FILESYSTEM',
 		export_incdirs = './include'
