@@ -20,7 +20,11 @@ namespace genfile {
 		//		( "DB", set_dbSNP_membership ) ;
 		{
 		public:
-			InfoReader( std::string const& data, boost::ptr_map< std::string, VCFEntryType > const& entry_types ) ;
+			InfoReader(
+				std::size_t number_of_alleles,
+				std::string const& data,
+				boost::ptr_map< std::string, VCFEntryType > const& entry_types
+			) ;
 			
 			typedef boost::function< void( std::vector< Entry > const& ) > Setter ;
 
@@ -30,6 +34,7 @@ namespace genfile {
 			~InfoReader() ;
 
 		private:
+			std::size_t const m_number_of_alleles ;
 			std::map< std::string, std::string > const m_data ;
 			boost::ptr_map< std::string, VCFEntryType > const& m_entry_types ;
 			typedef std::map< std::string, Setter > Setters ;

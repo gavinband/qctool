@@ -37,7 +37,6 @@ namespace genfile {
 			}
 			
 			Entry IntegerType::parse( std::string const& value ) const {
-				std::cerr << "IntegerType::parse(): value is " << value << ".\n" ;
 				return Entry( string_utils::to_repr< int >( value ) ) ;
 			}
 
@@ -59,17 +58,30 @@ namespace genfile {
 			std::string VCFEntryType::m_missing_value = "." ;
 			
 			VCFEntryType::UniquePtr VCFEntryType::create( Spec const& spec ) {
+				Spec::const_iterator ID = spec.find( "ID" ) ;
 				Spec::const_iterator number = spec.find( "Number" ) ;
 				Spec::const_iterator type = spec.find( "Type" ) ;
-				if( number == spec.end() || type == spec.end() ) {
+				if( ID == spec.end() || number == spec.end() || type == spec.end() ) {
 					throw BadArgumentError( "genfile::vcf::VCFEntryType::create()", "spec" ) ;
 				}
 				VCFEntryType::UniquePtr result ;
-				if( number->second == "A" ) {
+
+				if( ID->second == "GT" ) {
+					if( number->second != "." || type->second != "Integer" ) {
+						throw BadArgumentError( "genfile::vcf::VCFEntryType::create()", "spec" ) ;
+					}
+					result.reset( new GenotypeCallVCFEntryType( SimpleType::create( type->second ))) ;
+				}
+				else if( number->second == "A" ) {
 					result.reset( new OnePerAlternateAlleleVCFEntryType( SimpleType::create( type->second ))) ;
 				}
 				else if( number->second == "G" ) {
 					result.reset( new OnePerGenotypeVCFEntryType( SimpleType::create( type->second ))) ;
+				}
+				else if( number->second == "." ) {
+					new DynamicNumberVCFEntryType(
+						SimpleType::create( type->second )
+					) ;
 				}
 				else {
 					result.reset(
@@ -87,11 +99,33 @@ namespace genfile {
 			{
 			}
 			
-			std::vector< Entry > VCFEntryType::parse( std::string const& value ) const {
-				std::vector< std::string > elts = string_utils::split( value, "," ) ;
-				if( elts.size() != std::size_t( get_number() ) ) {
-					throw BadArgumentError( "genfile::vcf::VCFEntryType::parse()", "value = \"" + value + "\"" ) ;
+			std::vector< Entry > VCFEntryType::parse( std::string const& value, std::size_t number_of_alleles, std::size_t ploidy ) const {
+				return parse_elts( lex( value, number_of_alleles, ploidy )) ;
+			}
+
+			std::vector< Entry > VCFEntryType::parse( std::string const& value, std::size_t number_of_alleles ) const {
+				return parse_elts( lex( value, number_of_alleles )) ;
+			}
+			
+			std::vector< std::string > ListVCFEntryType::lex( std::string const& value, std::size_t number_of_alleles, std::size_t ploidy ) const {
+				std::vector< std::string > result = string_utils::split( value, "," ) ;
+				ValueCountRange range = get_value_count_range( number_of_alleles, ploidy ) ;
+				if( result.size() < range.first || result.size() > range.second ) {
+					throw BadArgumentError( "genfile::vcf::ListVCFEntryType::lex()", "value = \"" + value + "\"" ) ;
 				}
+				return result ;
+			}
+
+			std::vector< std::string > ListVCFEntryType::lex( std::string const& value, std::size_t number_of_alleles ) const {
+				std::vector< std::string > result = string_utils::split( value, "," ) ;
+				ValueCountRange range = get_value_count_range( number_of_alleles ) ;
+				if( result.size() < range.first || result.size() > range.second ) {
+					throw BadArgumentError( "genfile::vcf::ListVCFEntryType::lex()", "value = \"" + value + "\"" ) ;
+				}
+				return result ;
+			}
+			
+			std::vector< Entry > VCFEntryType::parse_elts( std::vector< std::string > const& elts ) const {
 				std::vector< Entry > result( elts.size() ) ;
 				for( std::size_t i = 0; i < result.size(); ++i ) {
 					if( elts[i] == m_missing_value ) {
@@ -104,30 +138,69 @@ namespace genfile {
 				return result ;
 			}
 			
-			std::vector< Entry > VCFEntryType::missing() const {
-				return std::vector< Entry >( get_number(), MissingValue() ) ;
+			std::vector< Entry > ListVCFEntryType::get_missing_value( std::size_t number_of_alleles, std::size_t ploidy ) const {
+				return std::vector< Entry >( get_value_count_range( number_of_alleles, ploidy ).first, MissingValue() ) ;
+			}
+
+			std::vector< Entry > ListVCFEntryType::get_missing_value( std::size_t number_of_alleles ) const {
+				return std::vector< Entry >( get_value_count_range( number_of_alleles ).first, MissingValue() ) ;
 			}
 			
 			FixedNumberVCFEntryType::FixedNumberVCFEntryType( std::size_t number, SimpleType::UniquePtr type ):
-				VCFEntryType( type ),
+				ListVCFEntryType( type ),
 				m_number( number )
 			{}
 			
-			void OnePerAlternateAlleleVCFEntryType::set_alleles( std::vector< std::string > const& alleles ) {
-				set_number( alleles.size() - 1 ) ;
-			}
-
-			void OnePerGenotypeVCFEntryType::set_alleles( std::vector< std::string > const& alleles ) {
-				// Assume that there are two DNA molecules for the variant.
-				// So we need number of alleles choose 2.
-				if( alleles.size() == 1 ) {
-					set_number( 1 ) ;
-				}
-				else {
-					set_number( alleles.size() * ( alleles.size() - 1 ) / 2 ) ;
+			
+			namespace impl {
+				std::size_t n_choose_k( std::size_t const n, std::size_t const k ) {
+					// calculate n choose k, assuming no overflow, using the
+					// multiplicative formula given on http://en.wikipedia.org/wiki/Binomial_coefficient
+					double result = 0 ;
+					for( std::size_t i = 1; i <= k; ++i ) {
+						result *= double( n - k - i ) / double( i ) ;
+					}
+					return std::size_t( result ) ;
 				}
 			}
 			
+			ListVCFEntryType::ValueCountRange OnePerGenotypeVCFEntryType::get_value_count_range( std::size_t number_of_alleles, std::size_t ploidy ) const {
+				std::size_t N = impl::n_choose_k( number_of_alleles, ploidy ) ;
+				return ValueCountRange( N, N ) ;
+			}
+			
+			ListVCFEntryType::ValueCountRange OnePerGenotypeVCFEntryType::get_value_count_range( std::size_t number_of_alleles ) const {
+				// OnePerGenotypeVCFEntryType requires the ploidy.
+				assert(0) ;
+			}
+			
+			std::vector< std::string > GenotypeCallVCFEntryType::lex( std::string const& value, std::size_t, std::size_t ploidy ) const {
+				std::vector< std::string > elts = string_utils::split( value, "|/" ) ;
+				if( elts.size() != ploidy ) {
+					throw BadArgumentError( "genfile::vcf::GenotypeCallVCFEntryType::lex()", "value = \"" + value + "\"" ) ;
+				}
+				return elts ;
+			}
+
+			std::vector< std::string > GenotypeCallVCFEntryType::lex( std::string const& value, std::size_t ) const {
+				return string_utils::split( value, "|/" ) ;
+			}
+
+			std::vector< Entry > GenotypeCallVCFEntryType::get_missing_value( std::size_t, std::size_t ploidy ) const {
+				return std::vector< Entry >( ploidy, MissingValue() ) ;
+			}
+
+			std::vector< Entry > GenotypeCallVCFEntryType::get_missing_value( std::size_t number_of_alleles ) const {
+				assert(0) ;
+			}
+
+			std::vector< Entry > GenotypeCallVCFEntryType::parse(
+				std::string const& value,
+				std::size_t number_of_alleles
+			) const {
+				return parse_elts( string_utils::split( value, "|/" ) ) ;
+			}
+
 			std::auto_ptr< boost::ptr_map< std::string, VCFEntryType > > get_entry_types(
 				std::multimap< std::string, VCFEntryType::Spec > const& metadata,
 				std::string const& key

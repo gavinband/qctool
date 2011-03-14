@@ -17,11 +17,11 @@ namespace genfile {
 	public:
 		VCFFormatSNPDataSource(
 			std::auto_ptr< std::istream > stream_ptr,
-			std::string const& genotype_probability_field
+			std::string const& genotype_probability_field = "GT"
 		) ;
 		VCFFormatSNPDataSource(
 			std::string const& filename,
-			std::string const& genotype_probability_field
+			std::string const& genotype_probability_field = "GT"
 		) ;
 
 	public:
@@ -30,6 +30,7 @@ namespace genfile {
 		unsigned int total_number_of_snps() const ;
 		std::string get_source_spec() const ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
+		void set_genotype_probability_field( std::string const& ) ;
 
 	protected:
 
@@ -62,12 +63,15 @@ namespace genfile {
 		std::vector< std::string > const m_column_names ;
 		std::ios::streampos m_start_of_data ;
 		std::size_t const m_number_of_lines ;
+		
+		// We record the alleles per SNP, so that they can be used on subsequent SNPs.
+		std::vector< std::string > m_variant_alleles ; 
 	private:
 		void setup() ;
 		std::vector< std::string > read_column_names( std::istream& stream ) const ;
 		std::size_t count_lines( std::istream& ) const ;
 		void reset_stream() const ;
-
+		void read_element( std::string& elt, char delim, std::size_t column ) const ;
 	private:
 		VCFFormatSNPDataSource( VCFFormatSNPDataSource const& other ) ;
 	} ;

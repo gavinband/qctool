@@ -28,7 +28,12 @@ namespace genfile {
 			}
 		}
 
-		InfoReader::InfoReader( std::string const& data, boost::ptr_map< std::string, VCFEntryType > const& entry_types ):
+		InfoReader::InfoReader(
+			std::size_t number_of_alleles,
+			std::string const& data,
+			boost::ptr_map< std::string, VCFEntryType > const& entry_types
+		):
+			m_number_of_alleles( number_of_alleles ),
 			m_data( impl::parse_data( data ) ),
 			m_entry_types( entry_types )
 		{}
@@ -50,10 +55,10 @@ namespace genfile {
 				boost::ptr_map< std::string, VCFEntryType >::const_iterator entry_type_i = m_entry_types.find( i->first ) ;
 				assert( entry_type_i != m_entry_types.end() ) ;
 				if( where == m_data.end() ) {
-					i->second( entry_type_i->second->missing() ) ;
+					i->second( entry_type_i->second->get_missing_value( m_number_of_alleles ) ) ;
 				}
 				else {
-					i->second( entry_type_i->second->parse( where->second )) ;
+					i->second( entry_type_i->second->parse( where->second, m_number_of_alleles )) ;
 				}
 			}
 		}

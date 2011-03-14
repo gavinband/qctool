@@ -55,48 +55,84 @@ namespace genfile {
 			VCFEntryType( SimpleType::UniquePtr type ) ;
 			virtual ~VCFEntryType() {}
 
-			std::vector< Entry > parse( std::string const& ) const ;
-			std::vector< Entry > missing() const ;
+			std::vector< Entry > parse( std::string const&, std::size_t number_of_alleles, std::size_t ploidy ) const ;
+			std::vector< Entry > parse( std::string const&, std::size_t number_of_alleles ) const ;
 
-			// In general, some VCF entries expect a number of values
-			// that depends on the number of alleles and/or possible genotypes.
-			// The number of possible genotypes can depend both on the number
-			// of possible alleles and, e.g. for sex chromosomes, on other information
-			// such as the sex of the individual.  To account for this we add two hooks
-			// here which must be implemented in subclasses.
-			virtual void set_alleles( std::vector< std::string > const& alleles ) = 0 ;
-			virtual std::size_t get_number() const = 0;
+			virtual std::vector< Entry > get_missing_value( std::size_t number_of_alleles, std::size_t ploidy ) const = 0 ;
+			virtual std::vector< Entry > get_missing_value( std::size_t number_of_alleles ) const = 0 ;
+
+		protected:
+			virtual std::vector< std::string > lex(
+				std::string const& value,
+				std::size_t number_of_alleles,
+				std::size_t ploidy
+			) const = 0 ;
+
+			virtual std::vector< std::string > lex(
+				std::string const& value,
+				std::size_t number_of_alleles
+			) const = 0 ;
+
+			std::vector< Entry > parse_elts( std::vector< std::string > const& elts ) const ;
+
 		private:
 			static std::string m_missing_value ;
-			Spec const m_spec ;
 			SimpleType::SharedPtr m_type ;
 		} ;
 		
-		struct FixedNumberVCFEntryType: public VCFEntryType {
+		struct ListVCFEntryType: public VCFEntryType {
+			ListVCFEntryType( SimpleType::UniquePtr type ): VCFEntryType( type ) {}
+			std::vector< std::string > lex( std::string const& value, std::size_t number_of_alleles, std::size_t ploidy ) const ;
+			std::vector< std::string > lex( std::string const& value, std::size_t number_of_alleles ) const ;
+			virtual std::vector< Entry > get_missing_value( std::size_t number_of_alleles, std::size_t ploidy ) const ;
+			virtual std::vector< Entry > get_missing_value( std::size_t number_of_alleles ) const ;
+
+			typedef std::pair< std::size_t, std::size_t > ValueCountRange ;
+			virtual ValueCountRange get_value_count_range( std::size_t number_of_alleles, std::size_t ploidy ) const {
+				return get_value_count_range( number_of_alleles ) ;
+			} ;
+			virtual ValueCountRange get_value_count_range( std::size_t number_of_alleles ) const = 0 ;
+		} ;
+		
+		struct FixedNumberVCFEntryType: public ListVCFEntryType {
 			FixedNumberVCFEntryType( std::size_t number, SimpleType::UniquePtr type ) ;
-			void set_alleles( std::vector< std::string > const& ) { /* Do nothing */ }
-			std::size_t get_number() const { return m_number ; }
+			ValueCountRange get_value_count_range( std::size_t ) const { return ValueCountRange( m_number, m_number ) ; }
 		private:
 			std::size_t m_number ;
 		} ;
 
-		struct DynamicNumberVCFEntryType: public VCFEntryType {
-			DynamicNumberVCFEntryType( SimpleType::UniquePtr type ): VCFEntryType( type ) {} ;
-			std::size_t get_number() const { return m_number ; }
-		protected:
-			void set_number( std::size_t number ) { m_number = number ; }
-		private:
-			std::size_t m_number ;
+		struct DynamicNumberVCFEntryType: public ListVCFEntryType {
+			DynamicNumberVCFEntryType( SimpleType::UniquePtr type ): ListVCFEntryType( type ) {} ;
+			ValueCountRange get_value_count_range( std::size_t ) const {
+				return ValueCountRange( 0, std::numeric_limits< std::size_t >::max() ) ;
+			}
 		} ;
-
-		struct OnePerAlternateAlleleVCFEntryType: public DynamicNumberVCFEntryType {
-			OnePerAlternateAlleleVCFEntryType( SimpleType::UniquePtr type ): DynamicNumberVCFEntryType( type ) {} ;
-			void set_alleles( std::vector< std::string > const& alleles ) ;
+		
+		struct OnePerAlternateAlleleVCFEntryType: public ListVCFEntryType {
+			OnePerAlternateAlleleVCFEntryType( SimpleType::UniquePtr type ): ListVCFEntryType( type ) {} ;
+			ValueCountRange get_value_count_range( std::size_t number_of_alleles ) const {
+				return ValueCountRange( number_of_alleles, number_of_alleles ) ;
+			}
 		} ;
+		
+		struct OnePerGenotypeVCFEntryType: public ListVCFEntryType {
+			OnePerGenotypeVCFEntryType( SimpleType::UniquePtr type ): ListVCFEntryType( type ) {} ;
+			ValueCountRange get_value_count_range( std::size_t number_of_alleles, std::size_t ploidy ) const ;
+			ValueCountRange get_value_count_range( std::size_t number_of_alleles ) const ;
+		} ;
+		
+		struct GenotypeCallVCFEntryType: public VCFEntryType {
+			GenotypeCallVCFEntryType( SimpleType::UniquePtr type ): VCFEntryType( type ) {} ;
 
-		struct OnePerGenotypeVCFEntryType: public DynamicNumberVCFEntryType {
-			OnePerGenotypeVCFEntryType( SimpleType::UniquePtr type ): DynamicNumberVCFEntryType( type ) {} ;
-			void set_alleles( std::vector< std::string > const& alleles ) ;
+			std::vector< std::string > lex( std::string const& value, std::size_t number_of_alleles, std::size_t ploidy ) const ;
+			std::vector< std::string > lex( std::string const& value, std::size_t number_of_alleles ) const ;
+			std::vector< Entry > get_missing_value( std::size_t, std::size_t ploidy ) const ;
+			std::vector< Entry > get_missing_value( std::size_t number_of_alleles ) const ;
+
+			// A special use of the genotype call is to infer ploidy for the other data.
+			// To support this we give them their own extra parse function which does not
+			// take the ploidy as an argument.
+			std::vector< Entry > parse( std::string const& value, std::size_t number_of_alleles ) const ;
 		} ;
 
 		std::auto_ptr< boost::ptr_map< std::string, VCFEntryType > > get_entry_types(

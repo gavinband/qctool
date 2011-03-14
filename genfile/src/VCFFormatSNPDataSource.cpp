@@ -70,8 +70,17 @@ namespace genfile {
 	
 	void VCFFormatSNPDataSource::setup() {
 		EntryTypeMap::const_iterator where = m_format_types.find( m_genotype_probability_field ) ;
-		if( where == m_format_types.end() || dynamic_cast< vcf::OnePerGenotypeVCFEntryType const* >( &(*where->second) ) == 0 ) {
-			throw BadArgumentError( "genfile::VCFFormatSNPDataSource::setup()", "m_genotype_probability_field = \"" + m_genotype_probability_field + "\"" ) ;
+		if(
+			where == m_format_types.end()
+			|| (
+				dynamic_cast< vcf::GenotypeCallVCFEntryType const* >( &(*where->second) ) == 0
+			&& dynamic_cast< vcf::OnePerGenotypeVCFEntryType const* >( &(*where->second) ) == 0
+			)
+		) {
+			throw BadArgumentError(
+				"genfile::VCFFormatSNPDataSource::setup()",
+				"m_genotype_probability_field = \"" + m_genotype_probability_field + "\""
+			) ;
 		}
 		reset_stream() ;
 		m_stream_ptr->exceptions( std::ios::eofbit | std::ios::failbit | std::ios::badbit ) ;
@@ -90,7 +99,7 @@ namespace genfile {
 		}
 		std::vector< std::string > elts = string_utils::split( line, "\t" ) ;
 		if( elts.size() < 8 ) {
-			throw MalformedInputError( m_spec, m_metadata.size() + 1 ) ;
+			throw MalformedInputError( m_spec, m_metadata.size() ) ;
 		}
 		else if(
 			elts[0] != "#CHROM"
@@ -111,8 +120,12 @@ namespace genfile {
 	std::size_t VCFFormatSNPDataSource::count_lines( std::istream& str ) const {
 		std::size_t count = 0 ;
 		std::vector< char > buffer( 10000000 ) ;
+		std::size_t last_read_size = 0 ;
 		do {
 			str.read( &(buffer[0]), 10000000 ) ;
+			if( str.gcount() > 0 ) {
+				last_read_size = str.gcount() ;
+			}
 			count += std::count( buffer.begin(), buffer.begin() + str.gcount(), '\n' ) ;
 			// A vcf file can't contain a blank line.
 			// Because popular editors (vim, nano, ..., but not emacs) typically add a trailing newline,
@@ -120,10 +133,17 @@ namespace genfile {
 			// with our count.
 			// Therefore we check here for the special case where what we've read ends in two newlines.
 			if( (str.gcount() > 1) && (buffer[ str.gcount() - 1] == '\n') && (buffer[ str.gcount() - 2] == '\n') ) {
-				throw FileHasTwoTrailingNewlinesError( "(unknown)", count ) ;
+				throw FileHasTwoTrailingNewlinesError( get_source_spec(), count ) ;
 			}
 		}
 		while( str ) ;
+		assert( last_read_size < buffer.size() ) ;
+		if( last_read_size == 0 ) {
+			throw MalformedInputError( get_source_spec(), 0 ) ;
+		}
+		else if( buffer[ last_read_size - 1 ] != '\n' ) {
+			throw MissingTrailingNewlineError( get_source_spec(), count ) ;
+		}
 		return count ;
 	}
 	
@@ -146,7 +166,11 @@ namespace genfile {
 	std::string VCFFormatSNPDataSource::get_summary( std::string const& prefix, std::size_t column_width ) const {
 		return prefix + m_spec ;
 	}
-
+	
+	void VCFFormatSNPDataSource::set_genotype_probability_field( std::string const& value ) {
+		m_genotype_probability_field = value ;
+	}
+	
 	void VCFFormatSNPDataSource::get_snp_identifying_data_impl( 
 		IntegerSetter const& set_number_of_samples,
 		StringSetter const& set_SNPID,
@@ -165,30 +189,23 @@ namespace genfile {
 		std::string FILTER ;
 		std::string INFO ;
 
+		std::size_t entry_count = 0 ;
 		try {
-			std::getline( *m_stream_ptr, CHROM, '\t' ) ;
+			read_element( CHROM, '\t', entry_count++ ) ;
 		}
 		catch( std::ios_base::failure const& ) {
 			// end of data, this is not an error.
 			return ;
 		}
 
-		std::size_t entry_count = 1 ;
 		try {
-			std::getline( *m_stream_ptr, POS, '\t' ) ;
-			++entry_count ;
-			std::getline( *m_stream_ptr, ID, '\t' ) ;
-			++entry_count ;
-			std::getline( *m_stream_ptr, REF, '\t' ) ;
-			++entry_count ;
-			std::getline( *m_stream_ptr, ALT, '\t' ) ;
-			++entry_count ;
-			std::getline( *m_stream_ptr, QUAL, '\t' ) ;
-			++entry_count ;
-			std::getline( *m_stream_ptr, FILTER, '\t' ) ;
-			++entry_count ;
-			std::getline( *m_stream_ptr, INFO, '\t' ) ;
-			++entry_count ;
+			read_element( POS, '\t', entry_count++ ) ;
+			read_element( ID, '\t', entry_count++ ) ;
+			read_element( REF, '\t', entry_count++ ) ;
+			read_element( ALT, '\t', entry_count++ ) ;
+			read_element( QUAL, '\t', entry_count++ ) ;
+			read_element( FILTER, '\t', entry_count++ ) ;
+			read_element( INFO, '\t', entry_count++ ) ;
 		}
 		catch( std::ios_base::failure const& ) {
 			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, entry_count ) ;
@@ -214,38 +231,36 @@ namespace genfile {
 		set_chromosome( Chromosome( CHROM ) ) ;
 		set_SNP_position( string_utils::to_repr< Position >( POS ) ) ;
 
-		std::vector< std::string > variant_alleles = string_utils::split( ALT, "," ) ;
-		variant_alleles.insert( variant_alleles.begin(), REF ) ;
-
-		// Tell all the entry types how many alleles we have
-		for( EntryTypeMap::iterator i = m_info_types.begin(); i != m_info_types.end(); ++i ) {
-			i->second->set_alleles( variant_alleles ) ;
-		}
-		for( EntryTypeMap::iterator i = m_format_types.begin(); i != m_format_types.end(); ++i ) {
-			i->second->set_alleles( variant_alleles ) ;
-		}
-		
+		m_variant_alleles = string_utils::split( ALT, "," ) ;
+		m_variant_alleles.insert( m_variant_alleles.begin(), REF ) ;
 
 	 	// We ignore the INFO, but may as well verify that it's sane
 		// insofar as we can easily do so.
-		vcf::InfoReader( INFO, m_info_types ) ;
+		vcf::InfoReader( m_variant_alleles.size(), INFO, m_info_types ) ;
 
-		if( REF.size() == 1 && REF != "." ) {
-			set_allele1( REF[0] ) ;
+		if( m_variant_alleles.size() >= 1 && m_variant_alleles[0].size() == 1 && m_variant_alleles[0] != "." ) {
+			set_allele1( m_variant_alleles[0][0] ) ;
 		}
 		else {
 			set_allele1( '?' ) ;
 		}
 
-		std::vector< std::string > alt_alleles = string_utils::split( ALT, "," ) ;
-		if( alt_alleles.size() == 1 && alt_alleles[0].size() == 1 && alt_alleles[0] != "." ) {
-			set_allele2( alt_alleles[0][0] ) ;
+		if( m_variant_alleles.size() == 2 && m_variant_alleles[1].size() == 1 && m_variant_alleles[1] != "." ) {
+			set_allele2( m_variant_alleles[1][0] ) ;
 		}
 		else {
 			set_allele2( '?' ) ;
 		}
 	}
 
+	void VCFFormatSNPDataSource::read_element( std::string& elt, char delim, std::size_t column ) const {
+		std::getline( *m_stream_ptr, elt, delim ) ;
+		// ensure element contains no whitespace.
+		if( elt.find_first_of( " \t\n\r" ) != std::string::npos ) {
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, column ) ;
+		}
+	}
+	
 	void VCFFormatSNPDataSource::read_snp_probability_data_impl(
 		GenotypeProbabilitySetter const& set_genotype_probabilities
 	) {
@@ -253,21 +268,21 @@ namespace genfile {
 		std::string data ;
 		std::size_t count = 7 ;
 		try {
-			std::getline( *m_stream_ptr, FORMAT, '\t' ) ;
-			++count ;
+			read_element( FORMAT, '\t', count++ ) ;
 			std::getline( *m_stream_ptr, data ) ;
+			++count ;
 		}
 		catch( std::ios_base::failure const& ) {
 			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, count ) ;
 		}
 
 		try {
-			vcf::CallReader( FORMAT, data, m_format_types )
+			vcf::CallReader( m_variant_alleles.size(), FORMAT, data, m_format_types )
 				( m_genotype_probability_field, vcf::make_genotype_probability_setter( set_genotype_probabilities ) ) ;
 		}
 		catch( BadArgumentError const& ) {
 			// problem with FORMAT
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, 7 ) ;
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, 8 ) ;
 		}
 		catch( MalformedInputError const& e ) {
 			// problem with entry
@@ -285,20 +300,20 @@ namespace genfile {
 		std::string data ;
 		std::size_t count = 7 ;
 		try {
-			std::getline( *m_stream_ptr, FORMAT, '\t' ) ;
-			++count ;
+			read_element( FORMAT, '\t', count++ ) ;
 			std::getline( *m_stream_ptr, data ) ;
+			++count ;
 		}
 		catch( std::ios_base::failure const& ) {
 			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, count ) ;
 		}
 		// We ignore the data, but parse the FORMAT spec anyway.
 		try {
-			vcf::CallReader( FORMAT, data, m_format_types ) ;
+			vcf::CallReader( m_variant_alleles.size(), FORMAT, data, m_format_types ) ;
 		}
 		catch( BadArgumentError const& ) {
 			// problem with FORMAT
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, 7 ) ;
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, 8 ) ;
 		}
 	}
 

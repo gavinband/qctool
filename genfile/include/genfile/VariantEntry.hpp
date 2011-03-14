@@ -13,18 +13,21 @@ namespace genfile {
 		VariantEntry() ; // Initialise with MissingValue.
 	public:
 		bool is_missing() const ;
+		bool is_string() const ;
+		bool is_int() const ;
+		bool is_double() const ;
 		template< typename T > T as() const ;
 	public:
-
 		bool operator==( VariantEntry const& rhs ) const ;
-		template< typename T > void operator==( T const& rhs ) const ; // this prevents implicit conversion to VariantEntry.
 		bool operator<( VariantEntry const& rhs ) const ;
-		template< typename T > void operator<( T const& rhs ) const ; // this prevents implicit conversion to VariantEntry.
-
 		friend std::ostream& operator<<( std::ostream&, VariantEntry const& ) ;
 	private:
 		typedef boost::variant< MissingValue, std::string, int, double > EntryData ;
 		EntryData m_entrydata ;
+	private:
+		// prevent implicit conversion to VariantEntry in comparisons.
+		template< typename T > bool operator==( T const& rhs ) const ; 
+		template< typename T > bool operator<( T const& rhs ) const ; // this prevents implicit conversion to VariantEntry.
 	} ;
 	
 	template< typename T >

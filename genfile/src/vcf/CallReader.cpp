@@ -5,15 +5,28 @@
 namespace genfile {
 	namespace vcf {
 		CallReader::CallReader(
+			std::size_t number_of_alleles,
 			std::string const& format,
 			std::string const& data,
 			boost::ptr_map< std::string, VCFEntryType > const& entry_types
 		):
+			m_number_of_alleles( number_of_alleles ),
 			m_format_elts( string_utils::split( format, ":" )),
 			m_data( data ),
 			m_entry_types( entry_types ),
 			m_entries_by_position( get_entries_by_position( m_format_elts, entry_types ))
-		{}
+		{
+			if( m_format_elts.empty() || m_format_elts[0] != "GT" ) {
+				throw BadArgumentError( "genfile::vcf::CallReader::CallReader()", "format = \"" + format + "\"" ) ;
+			}
+			m_genotype_entry_type.reset(
+			 	new GenotypeCallVCFEntryType(
+					SimpleType::UniquePtr(
+						new IntegerType()
+					)
+				)
+			) ;
+		}
 
 		// Return a vector of pointers to VCFEntryType objects in the supplied map,
 		// with the ith VCFEntryType appropriate for the ith format element.
@@ -54,22 +67,31 @@ namespace genfile {
 
 		void CallReader::set_values( std::size_t individual_i, std::string const& elt, Setters const& setters ) const {
 			std::vector< std::string > components = string_utils::split( elt, ":" ) ;
-			if( components.size() > m_entries_by_position.size() ) {
+			if( components.empty() || components.size() > m_entries_by_position.size() ) {
 				throw MalformedInputError( "(data)", 0, individual_i ) ;
 			}
+
+			// First read the genotype calls, which must be present.
+			
+			std::vector< Entry > genotypes = m_genotype_entry_type->parse( components[0], m_number_of_alleles ) ;
+			std::size_t const ploidy = genotypes.size() ;
+			
 			Setters::const_iterator i = m_setters.begin(), end_i = m_setters.end() ;
 			try {
 				for( ; i != end_i; ++i ) {
 					std::size_t element_pos = i->first ;
 					if( element_pos >= components.size() ) {
-						i->second.operator()( individual_i, m_entries_by_position[ element_pos ]->missing() ) ;
+						i->second.operator()( individual_i, m_entries_by_position[ element_pos ]->get_missing_value( m_number_of_alleles, ploidy ) ) ;
 					}
 					else {
-						i->second.operator()( individual_i, m_entries_by_position[ element_pos ]->parse( components[ element_pos ] )) ;
+						i->second.operator()( individual_i, m_entries_by_position[ element_pos ]->parse( components[ element_pos ], m_number_of_alleles, ploidy )) ;
 					}
 				}
 			}
 			catch( string_utils::StringConversionError const& ) {
+				throw MalformedInputError( "(data)", 0, individual_i ) ;
+			}
+			catch( BadArgumentError const& e ) {
 				throw MalformedInputError( "(data)", 0, individual_i ) ;
 			}
 		}

@@ -7,7 +7,19 @@ namespace genfile {
 	{}
 	
 	bool VariantEntry::is_missing() const {
-		return boost::get< MissingValue >( &m_entrydata ) ;
+		return m_entrydata.which() == 0 ;
+	}
+
+	bool VariantEntry::is_string() const {
+		return m_entrydata.which() == 1 ;
+	}
+
+	bool VariantEntry::is_int() const {
+		return m_entrydata.which() == 2 ;
+	}
+
+	bool VariantEntry::is_double() const {
+		return m_entrydata.which() == 3 ;
 	}
 	
 	template<> double VariantEntry::as() const {

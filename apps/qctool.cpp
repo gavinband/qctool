@@ -44,6 +44,7 @@
 #include "genfile/SNPTranslatingSNPDataSource.hpp"
 #include "genfile/StrandAligningSNPDataSource.hpp"
 #include "genfile/AlleleFlippingSNPDataSource.hpp"
+#include "genfile/VCFFormatSNPDataSource.hpp"
 #include "genfile/Pedigree.hpp"
 #include "genfile/PedFileSNPDataSink.hpp"
 #include "genfile/CommonSNPFilter.hpp"
@@ -239,6 +240,17 @@ public:
 
 		options.option_implies_option( "-op", "-ip" ) ;
 		options.option_implies_option( "-op", "-s" ) ;
+
+		// VCF file options
+		options.declare_group( "VCF file options" ) ;
+		options[ "-vcf-genotype-field" ]
+			.set_description( "Specify the name of the field in a VCF or VCF-like file "
+				"from which genotype call probabilities will be taken. "
+				"This must either be the GT field (in which case calls are treated as certain "
+				"calls with the given genotype), or a field of type Float with Number equal to \"3\", \"G\", "
+				"or the missing value \".\"." )
+			.set_takes_single_value()
+			.set_default_value( "GT" ) ;
 
 		// Statistic file options
 		options.declare_group( "Statistic calculation options" ) ;
@@ -1215,6 +1227,13 @@ private:
 			filename,
 			chromosome_indicator
 		) ;
+		
+		{
+			genfile::VCFFormatSNPDataSource* vcf_source = dynamic_cast< genfile::VCFFormatSNPDataSource* >( source.get() ) ;
+			if( vcf_source ) {
+				vcf_source->set_genotype_probability_field( m_options.get_value< std::string >( "-vcf-genotype-field" )) ;
+			}
+		}
 		
 		std::vector< genfile::SNPIdentifyingData > snps = genfile::get_list_of_snps_in_source( *source ) ;
 		source->reset_to_start() ;

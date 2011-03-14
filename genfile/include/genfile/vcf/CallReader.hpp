@@ -30,6 +30,7 @@ namespace genfile {
 			typedef std::multimap< std::size_t, Setter > Setters ;
 		public:
 			CallReader(
+				std::size_t number_of_alleles,
 				std::string const& format,
 				std::string const& data,
 				boost::ptr_map< std::string, VCFEntryType > const& entry_types
@@ -40,11 +41,13 @@ namespace genfile {
 			~CallReader() ;
 	
 		private:
+			std::size_t const m_number_of_alleles ;
 			std::vector< std::string > const m_format_elts ;
 			std::string const& m_data ;
 			boost::ptr_map< std::string, VCFEntryType > const& m_entry_types ;
 			std::vector< VCFEntryType const* > m_entries_by_position ;
 			Setters m_setters ;
+			std::auto_ptr< vcf::GenotypeCallVCFEntryType > m_genotype_entry_type ;
 			
 		private:
 			// Return a vector of pointers to VCFEntryType objects in the supplied map,

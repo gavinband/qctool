@@ -279,10 +279,27 @@ namespace genfile {
 		{}
 
 		std::string format_message() const {
-			return MalformedInputError::format_message() + "\nThe file has two consecutive newlines.  Note that popular editors add an extra newline to the end of the file (which you can't see).\n" ;
+			return MalformedInputError::format_message() + "\nThe file has two consecutive newlines.  Note that popular editors add an extra newline to the end of the file (which you can't see)." ;
 		}
 
 		char const* what() const throw() { return "genfile::FileHasTwoTrailingNewlinesError" ; }
+	} ;
+
+	struct MissingTrailingNewlineError: public MalformedInputError
+	{
+		MissingTrailingNewlineError( std::string const& source, int line ):
+			MalformedInputError( source, line )
+		{}
+		
+		MissingTrailingNewlineError( FileHasTwoTrailingNewlinesError const& other ):
+			MalformedInputError( other )
+		{}
+
+		std::string format_message() const {
+			return MalformedInputError::format_message() + "\nThe file should end in a newline." ;
+		}
+
+		char const* what() const throw() { return "genfile::MissingTrailingNewlineError" ; }
 	} ;
 }
 
