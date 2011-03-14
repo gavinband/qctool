@@ -38,7 +38,7 @@ namespace genfile {
 			return string_to_strip.substr( lpos, rpos - lpos + 1 ) ;
 		}
 
-		// Specialisation of this function for speed purposes.
+		// Specialisations of to_repr for speed purposes.
 		// (std::istringstream appears painfully slow in this case).
 		template<> double to_repr( std::string const& s ) {
 			char* endptr ;
@@ -47,6 +47,15 @@ namespace genfile {
 				throw StringConversionError() ;
 			}
 			return result ;
+		}
+
+		template<> int to_repr( std::string const& s ) {
+			char* endptr ;
+			long int result = strtol( s.c_str(), &endptr, 10 ) ;
+			if( endptr == s.c_str() || std::size_t( endptr - s.c_str() ) != s.size() || result > std::numeric_limits< int >::max() ) {
+				throw StringConversionError() ;
+			}
+			return int( result ) ;
 		}
 
 		namespace impl {

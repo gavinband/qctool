@@ -35,11 +35,11 @@ namespace genfile {
 				std::string const& data,
 				boost::ptr_map< std::string, VCFEntryType > const& entry_types
 			) ;
-	
+		
 			CallReader& operator()( std::string const& spec, Setter setter ) ;
-	
+		
 			~CallReader() ;
-	
+		
 		private:
 			std::size_t const m_number_of_alleles ;
 			std::vector< std::string > const m_format_elts ;

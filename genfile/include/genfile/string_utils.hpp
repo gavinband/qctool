@@ -51,8 +51,9 @@ namespace genfile {
 			return t ;
 		}
 		
-		template<>
-		double to_repr< double >( std::string const& s ) ;
+		// We specialise to_repr<> for some types for performance reasons.
+		template<> double to_repr< double >( std::string const& s ) ;
+		template<> int to_repr< int >( std::string const& s ) ;
 	}
 }
 
