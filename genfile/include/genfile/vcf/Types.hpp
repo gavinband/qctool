@@ -9,10 +9,12 @@
 #include <boost/noncopyable.hpp>
 #include "genfile/MissingValue.hpp"
 #include "genfile/VariantEntry.hpp"
+#include "genfile/StringView.hpp"
 
 namespace genfile {
 	namespace vcf {
 		typedef genfile::VariantEntry Entry ;
+		using stringview::StringView ;
 		
 		struct SimpleType: public boost::noncopyable {
 			SimpleType() {}
@@ -20,27 +22,27 @@ namespace genfile {
 			typedef std::auto_ptr< SimpleType > UniquePtr ;
 			typedef boost::shared_ptr< SimpleType > SharedPtr ;
 			static UniquePtr create( std::string const& spec ) ;
-			virtual Entry parse( std::string const& value ) const = 0 ;
+			virtual Entry parse( StringView const& value ) const = 0 ;
 		} ;
 		
 		struct StringType: public SimpleType {
-			Entry parse( std::string const& value ) const ;
+			Entry parse( StringView const& value ) const ;
 		} ;
 		
 		struct IntegerType: public SimpleType {
-			Entry parse( std::string const& value ) const ;
+			Entry parse( StringView const& value ) const ;
 		} ;
 
 		struct FloatType: public SimpleType {
-			Entry parse( std::string const& value ) const ;
+			Entry parse( StringView const& value ) const ;
 		} ;
 
 		struct CharacterType: public SimpleType {
-			Entry parse( std::string const& value ) const ;
+			Entry parse( StringView const& value ) const ;
 		} ;
 
 		struct FlagType: public SimpleType {
-			Entry parse( std::string const& value ) const ;
+			Entry parse( StringView const& value ) const ;
 		} ;
 		
 		struct VCFEntryType: public boost::noncopyable
@@ -62,18 +64,18 @@ namespace genfile {
 			virtual std::vector< Entry > get_missing_value( std::size_t number_of_alleles ) const = 0 ;
 
 		protected:
-			virtual std::vector< std::string > lex(
+			virtual std::vector< StringView > lex(
 				std::string const& value,
 				std::size_t number_of_alleles,
 				std::size_t ploidy
 			) const = 0 ;
 
-			virtual std::vector< std::string > lex(
+			virtual std::vector< StringView > lex(
 				std::string const& value,
 				std::size_t number_of_alleles
 			) const = 0 ;
 
-			std::vector< Entry > parse_elts( std::vector< std::string > const& elts ) const ;
+			std::vector< Entry > parse_elts( std::vector< StringView > const& elts ) const ;
 
 		private:
 			static std::string m_missing_value ;
@@ -82,8 +84,8 @@ namespace genfile {
 		
 		struct ListVCFEntryType: public VCFEntryType {
 			ListVCFEntryType( SimpleType::UniquePtr type ): VCFEntryType( type ) {}
-			std::vector< std::string > lex( std::string const& value, std::size_t number_of_alleles, std::size_t ploidy ) const ;
-			std::vector< std::string > lex( std::string const& value, std::size_t number_of_alleles ) const ;
+			std::vector< StringView > lex( std::string const& value, std::size_t number_of_alleles, std::size_t ploidy ) const ;
+			std::vector< StringView > lex( std::string const& value, std::size_t number_of_alleles ) const ;
 			virtual std::vector< Entry > get_missing_value( std::size_t number_of_alleles, std::size_t ploidy ) const ;
 			virtual std::vector< Entry > get_missing_value( std::size_t number_of_alleles ) const ;
 
@@ -124,8 +126,8 @@ namespace genfile {
 		struct GenotypeCallVCFEntryType: public VCFEntryType {
 			GenotypeCallVCFEntryType( SimpleType::UniquePtr type ): VCFEntryType( type ) {} ;
 
-			std::vector< std::string > lex( std::string const& value, std::size_t number_of_alleles, std::size_t ploidy ) const ;
-			std::vector< std::string > lex( std::string const& value, std::size_t number_of_alleles ) const ;
+			std::vector< StringView > lex( std::string const& value, std::size_t number_of_alleles, std::size_t ploidy ) const ;
+			std::vector< StringView > lex( std::string const& value, std::size_t number_of_alleles ) const ;
 			std::vector< Entry > get_missing_value( std::size_t, std::size_t ploidy ) const ;
 			std::vector< Entry > get_missing_value( std::size_t number_of_alleles ) const ;
 

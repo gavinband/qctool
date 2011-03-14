@@ -59,24 +59,23 @@ namespace genfile {
 
 		CallReader::~CallReader() {
 			if( m_setters.size() > 0 ) {
-				set_values( string_utils::split_and_strip( m_data, "\t", "\r\n" ), m_setters ) ;
+				set_values( stringview::split( m_data, "\t" ), m_setters ) ;
 			}
 		}
 
-		void CallReader::set_values( std::vector< std::string > const& elts, Setters const& setters ) const {
+		void CallReader::set_values( std::vector< stringview::StringView > const& elts, Setters const& setters ) const {
 			for( std::size_t i = 0; i < elts.size(); ++i ) {
 				set_values( i, elts[i], m_setters ) ;
 			}
 		}
-
-		void CallReader::set_values( std::size_t individual_i, std::string const& elt, Setters const& setters ) const {
-			std::vector< std::string > components = string_utils::split( elt, ":" ) ;
+		
+		void CallReader::set_values( std::size_t individual_i, stringview::StringView const& elt, Setters const& setters ) const {
+			std::vector< stringview::StringView > components = stringview::split( elt, ":" ) ;
 			if( components.empty() || components.size() > m_entries_by_position.size() ) {
 				throw MalformedInputError( "(data)", 0, individual_i ) ;
 			}
-
-			// First read the genotype calls, which must be present.
 			
+			// First read the genotype calls, which must be present.
 			std::vector< Entry > genotypes = m_genotype_entry_type->parse( components[0], m_number_of_alleles ) ;
 			std::size_t const ploidy = genotypes.size() ;
 			

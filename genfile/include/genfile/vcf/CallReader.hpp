@@ -8,6 +8,7 @@
 #include <boost/function.hpp>
 #include "genfile/MissingValue.hpp"
 #include "genfile/vcf/Types.hpp"
+#include "genfile/StringView.hpp"
 
 namespace genfile {
 	namespace vcf {
@@ -57,8 +58,8 @@ namespace genfile {
 				boost::ptr_map< std::string, VCFEntryType > const& entry_types
 			) const ;
 	
-			void set_values( std::vector< std::string > const& elts, Setters const& setters ) const ;
-			void set_values( std::size_t individual_i, std::string const& elt, Setters const& setters ) const ;
+			void set_values( std::vector< stringview::StringView > const& elts, Setters const& setters ) const ;
+			void set_values( std::size_t individual_i, stringview::StringView const& elt, Setters const& setters ) const ;
 			
 			// Forbid copying and assignment.
 			CallReader( CallReader const& other ) ;
