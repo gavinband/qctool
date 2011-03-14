@@ -69,21 +69,34 @@ namespace genfile {
 	}
 	
 	void VCFFormatSNPDataSource::setup() {
-		EntryTypeMap::const_iterator where = m_format_types.find( m_genotype_probability_field ) ;
-		if(
-			where == m_format_types.end()
-			|| (
-				dynamic_cast< vcf::GenotypeCallVCFEntryType const* >( &(*where->second) ) == 0
-			&& dynamic_cast< vcf::OnePerGenotypeVCFEntryType const* >( &(*where->second) ) == 0
-			)
-		) {
-			throw BadArgumentError(
-				"genfile::VCFFormatSNPDataSource::setup()",
-				"m_genotype_probability_field = \"" + m_genotype_probability_field + "\""
-			) ;
-		}
+		check_genotype_probability_field( m_genotype_probability_field ) ;
 		reset_stream() ;
 		m_stream_ptr->exceptions( std::ios::eofbit | std::ios::failbit | std::ios::badbit ) ;
+	}
+
+	void VCFFormatSNPDataSource::check_genotype_probability_field( std::string const& field ) const {
+		EntryTypeMap::const_iterator where = m_format_types.find( field ) ;
+		if(
+			where == m_format_types.end()
+		) {
+			throw KeyNotFoundError( "FORMAT definitions of " + get_source_spec(), field ) ;
+		}
+		else if( dynamic_cast< vcf::GenotypeCallVCFEntryType const* >( &(*where->second) ) != 0  ) {
+			// fine, do nothing.
+		}
+		else {
+			vcf::ListVCFEntryType const* type = dynamic_cast< vcf::ListVCFEntryType const* >( &(*where->second) ) ;
+			if(
+				type == 0
+				|| ( type->get_value_count_range( 2, 2 ).first != 3 && type->get_value_count_range( 2, 2 ).first != 4 )
+				|| ( type->get_value_count_range( 2, 2 ).second != 3 && type->get_value_count_range( 2, 2 ).first != 4 )
+			) {
+				throw BadArgumentError(
+					"genfile::VCFFormatSNPDataSource::check_genotype_probability_field()",
+					"field = \"" + field + "\""
+				) ;
+			}
+		}
 	}
 
 	void VCFFormatSNPDataSource::reset_stream() const {
@@ -152,7 +165,7 @@ namespace genfile {
 	}
 
 	unsigned int VCFFormatSNPDataSource::number_of_samples() const {
-		return m_column_names.size() - 8 ;
+		return m_column_names.size() - 9 ;
 	}
 
 	unsigned int VCFFormatSNPDataSource::total_number_of_snps() const {
@@ -168,6 +181,7 @@ namespace genfile {
 	}
 	
 	void VCFFormatSNPDataSource::set_genotype_probability_field( std::string const& value ) {
+		check_genotype_probability_field( value ) ;
 		m_genotype_probability_field = value ;
 	}
 	

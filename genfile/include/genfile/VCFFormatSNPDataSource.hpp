@@ -68,6 +68,7 @@ namespace genfile {
 		std::vector< std::string > m_variant_alleles ; 
 	private:
 		void setup() ;
+		void check_genotype_probability_field( std::string const& field ) const ;
 		std::vector< std::string > read_column_names( std::istream& stream ) const ;
 		std::size_t count_lines( std::istream& ) const ;
 		void reset_stream() const ;

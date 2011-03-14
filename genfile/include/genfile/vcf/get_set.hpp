@@ -28,7 +28,7 @@ namespace genfile {
 						}
 					}
 				}
-				else if( values[0].is_double() && values.size() == 3 ) {
+				else if( values[0].is_double() && ( values.size() == 3 || values.size() == 4 )) {
 					AA = values[0].is_missing() ? 0.0 : values[0].as< double >() ;
 					AB = values[1].is_missing() ? 0.0 : values[1].as< double >() ;
 					BB = values[2].is_missing() ? 0.0 : values[2].as< double >() ;

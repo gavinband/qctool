@@ -48,6 +48,10 @@ namespace genfile {
 		}
 
 		CallReader& CallReader::operator()( std::string const& spec, Setter setter ) {
+			boost::ptr_map< std::string, VCFEntryType >::const_iterator entry_type_i = m_entry_types.find( spec ) ;
+			if( entry_type_i == m_entry_types.end() ) {
+				throw BadArgumentError( "genfile::vcf::CallReader::operator()", "spec = \"" + spec + "\"" ) ;
+			}
 			std::vector< std::string >::const_iterator where = std::find( m_format_elts.begin(), m_format_elts.end(), spec ) ;
 			m_setters.insert( std::make_pair( where - m_format_elts.begin(), setter )) ;
 			return *this ;
