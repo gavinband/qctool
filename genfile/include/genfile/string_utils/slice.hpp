@@ -20,8 +20,7 @@ namespace genfile {
 			slice( slice const& other ) ;
 			slice& operator=( slice const& other ) ;
 
-			char operator[]( std::size_t pos ) const { return (*m_string)[ m_start + pos ] ; }
-			char const& operator[]( std::size_t pos ) { return (*m_string)[ m_start + pos ] ; }
+			char const& operator[]( std::size_t pos ) const { return (*m_string)[ m_start + pos ] ; }
 
 			operator std::string() const { return m_string->substr( m_start, m_end - m_start ) ; }
 
