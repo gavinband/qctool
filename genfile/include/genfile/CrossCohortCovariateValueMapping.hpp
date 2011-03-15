@@ -18,6 +18,8 @@ namespace genfile {
 	public:
 		virtual ~CrossCohortCovariateValueMapping() {}
 		virtual void add_source( CohortIndividualSource const& source ) = 0 ;
+		virtual std::size_t get_number_of_unmapped_values() const = 0 ;
+		virtual std::size_t get_number_of_distinct_unmapped_values() const = 0 ;
 		virtual std::size_t get_number_of_distinct_mapped_values() const = 0 ;
 		virtual std::size_t get_number_of_missing_values() const = 0 ;
 		
@@ -43,13 +45,16 @@ namespace genfile {
 		) ;
 		
 		void add_source( CohortIndividualSource const& source ) ;
-		std::size_t get_number_of_distinct_mapped_values() const ;
+		std::size_t get_number_of_unmapped_values() const ;
+		std::size_t get_number_of_distinct_unmapped_values() const ;
 		std::size_t get_number_of_missing_values() const ;
 		
 	public:
 		typedef std::map< Entry, unsigned int > Entries ;
 
 	protected:
+		// function: entries()
+		// Return a map from Entries to their multiplicities in the data.
 		Entries const& entries() const { return m_entries ; }
 		
 	private:
@@ -75,6 +80,8 @@ namespace genfile {
 			std::string const& column_name
 		) ;
 		
+		std::size_t get_number_of_distinct_mapped_values() const ;
+
 		// Return the entry corresponding to level i.
 		// i must be a positive integer in the range 1...number of distinct entries
 		Entry get_unmapped_value( Entry const& level ) const ;
@@ -85,6 +92,7 @@ namespace genfile {
 		Entry get_mapped_value( Entry const& entry ) const ;
 		
 		std::string get_summary( std::string const& prefix = "" ) const ;
+		
 	} ;
 	
 	class ContinuousVariableCrossCohortCovariateValueMapping: public LevelCountingCrossCohortCovariateValueMapping
@@ -95,14 +103,29 @@ namespace genfile {
 			std::string const& column_name
 		) ;
 		
+		std::size_t get_number_of_distinct_mapped_values() const ;
 		Entry get_unmapped_value( Entry const& level ) const ;
 		Entry get_mapped_value( Entry const& entry ) const ;
 		
 		std::string get_summary( std::string const& prefix = "" ) const ;
 
+	public:
+		virtual std::string get_mapping_name() const { return "normalised" ; }
+
 	protected:
 		
 		static void calculate_mean_and_variance( Entries const& entries, double* mean, double* variance ) ;
+		typedef std::map< std::pair< double, double >, double > Histogram ;
+		Histogram get_histogram(
+			Entries const& entries,
+		 	std::size_t number_of_bins
+		) const ;
+		std::string print_histogram(
+			Histogram const& histogram,
+			std::string const& prefix,
+			std::size_t const height,
+			std::size_t const bin_width
+		) const ;
 	} ;
 	
 	class NormalisingCrossCohortCovariateValueMapping: public ContinuousVariableCrossCohortCovariateValueMapping
@@ -116,10 +139,13 @@ namespace genfile {
 		
 		void add_source( CohortIndividualSource const& source ) ;
 		
+		std::size_t get_number_of_distinct_mapped_values() const ;
 		Entry get_unmapped_value( Entry const& level ) const ;
 		Entry get_mapped_value( Entry const& entry ) const ;
 		
-		std::string get_summary( std::string const& prefix = "" ) const ;
+		// std::string get_summary( std::string const& prefix = "" ) const ;
+		
+		virtual std::string get_mapping_name() const { return "normalised" ; }
 		
 	private:
 		double m_mean, m_variance, m_standard_deviation ;
