@@ -3,6 +3,7 @@
 #include <cassert>
 #include <iostream>
 #include <set>
+#include <algorithm>
 #include "genfile/Pedigree.hpp"
 #include "genfile/FromPedFilePedigree.hpp"
 #include "genfile/snp_data_utils.hpp"

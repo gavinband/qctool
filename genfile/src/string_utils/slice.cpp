@@ -1,3 +1,5 @@
+#include <cstring>
+#include <limits>
 #include <iostream>
 #include <vector>
 #include <string>

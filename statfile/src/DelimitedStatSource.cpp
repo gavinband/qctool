@@ -85,7 +85,7 @@ namespace statfile {
 		int in_quote = 0 ;
 		std::size_t last_i = 0 ;
 		for( std::size_t i = 0; i < line.size(); ) {
-			if( !in_quote & line.compare( i, delimiter.size(), delimiter ) == 0 ) {
+			if( !in_quote && line.compare( i, delimiter.size(), delimiter ) == 0 ) {
 				result.push_back( get_unquoted_substring( line, last_i, i - last_i, quotes )) ;
 				i += delimiter.size() ;
 				last_i = i ;
