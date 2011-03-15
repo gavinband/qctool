@@ -1,24 +1,24 @@
-#ifndef GENFILE_STRINGVIEW_HPP
-#define GENFILE_STRINGVIEW_HPP
+#ifndef GENFILE_STRING_UTILS_SLICE_HPP
+#define GENFILE_STRING_UTILS_SLICE_HPP
 
 #include <vector>
 #include <string>
 
 namespace genfile {
-	namespace stringview {
-		// class StringView provides a (perhaps empty) view of a (possibly) larger string.
+	namespace string_utils {
+		// class slice provides a (perhaps empty) view of a (possibly) larger string.
 		// Assumption: the string object is managed elsewhere and outlives the view.
-		// Invariant: any constructed StringView is a valid view into a possibly
+		// Invariant: any constructed slice is a valid view into a possibly
 		// larger string.
-		struct StringView
+		struct slice
 		{
 			// A view of the whole string.
-			StringView( std::string const& ) ;
+			slice( std::string const& ) ;
 			// A view of the whole string.
-			StringView( std::string const&, std::size_t start, std::size_t end ) ;
-			StringView( StringView const&, std::size_t start, std::size_t end ) ;
-			StringView( StringView const& other ) ;
-			StringView& operator=( StringView const& other ) ;
+			slice( std::string const&, std::size_t start, std::size_t end ) ;
+			slice( slice const&, std::size_t start, std::size_t end ) ;
+			slice( slice const& other ) ;
+			slice& operator=( slice const& other ) ;
 
 			char operator[]( std::size_t pos ) const { return (*m_string)[ m_start + pos ] ; }
 			char const& operator[]( std::size_t pos ) { return (*m_string)[ m_start + pos ] ; }
@@ -38,7 +38,7 @@ namespace genfile {
 			std::size_t m_start, m_end ;
 		} ;
 		
-		std::vector< StringView > split( StringView const& string_to_split, std::string const& split_chars ) ;
+		std::vector< slice > split( slice const& string_to_split, std::string const& split_chars ) ;
 	}
 }
 
