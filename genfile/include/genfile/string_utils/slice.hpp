@@ -31,14 +31,18 @@ namespace genfile {
 			
 			std::size_t find( char c, std::size_t pos = 0 ) const ;
 			std::size_t find_first_of( std::string const& chars, std::size_t pos = 0 ) const ;
+
+			std::vector< slice > split( std::string const& split_chars ) const ;
 			
 			bool operator==( std::string const& other ) const ;
 		private:
 			std::string const* m_string ;
 			std::size_t m_start, m_end ;
+
+		private:
+			std::size_t find_first_of( char* membership_array, std::size_t pos = 0 ) const ;
 		} ;
 		
-		std::vector< slice > split( slice const& string_to_split, std::string const& split_chars ) ;
 	}
 }
 

@@ -59,7 +59,7 @@ namespace genfile {
 
 		CallReader::~CallReader() {
 			if( m_setters.size() > 0 ) {
-				set_values( string_utils::split( m_data, "\t" ), m_setters ) ;
+				set_values( string_utils::slice( m_data ).split( "\t" ), m_setters ) ;
 			}
 		}
 
@@ -70,7 +70,7 @@ namespace genfile {
 		}
 		
 		void CallReader::set_values( std::size_t individual_i, string_utils::slice const& elt, Setters const& setters ) const {
-			std::vector< string_utils::slice > components = string_utils::split( elt, ":" ) ;
+			std::vector< string_utils::slice > components = elt.split( ":" ) ;
 			if( components.empty() || components.size() > m_entries_by_position.size() ) {
 				throw MalformedInputError( "(data)", 0, individual_i ) ;
 			}

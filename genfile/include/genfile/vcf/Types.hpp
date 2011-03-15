@@ -87,11 +87,8 @@ namespace genfile {
 			std::vector< string_utils::slice > lex( std::string const& value, std::size_t number_of_alleles ) const ;
 			virtual std::vector< Entry > get_missing_value( std::size_t number_of_alleles, std::size_t ploidy ) const ;
 			virtual std::vector< Entry > get_missing_value( std::size_t number_of_alleles ) const ;
-
 			typedef std::pair< std::size_t, std::size_t > ValueCountRange ;
-			virtual ValueCountRange get_value_count_range( std::size_t number_of_alleles, std::size_t ploidy ) const {
-				return get_value_count_range( number_of_alleles ) ;
-			} ;
+			virtual ValueCountRange get_value_count_range( std::size_t number_of_alleles, std::size_t ploidy ) const ;
 			virtual ValueCountRange get_value_count_range( std::size_t number_of_alleles ) const = 0 ;
 		} ;
 		

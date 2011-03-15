@@ -108,24 +108,6 @@ namespace genfile {
 				return parse_elts( lex( value, number_of_alleles )) ;
 			}
 			
-			std::vector< string_utils::slice > ListVCFEntryType::lex( std::string const& value, std::size_t number_of_alleles, std::size_t ploidy ) const {
-				std::vector< string_utils::slice > result = string_utils::split( value, "," ) ;
-				ValueCountRange range = get_value_count_range( number_of_alleles, ploidy ) ;
-				if( result.size() < range.first || result.size() > range.second ) {
-					throw BadArgumentError( "genfile::vcf::ListVCFEntryType::lex()", "value = \"" + value + "\"" ) ;
-				}
-				return result ;
-			}
-
-			std::vector< string_utils::slice > ListVCFEntryType::lex( std::string const& value, std::size_t number_of_alleles ) const {
-				std::vector< string_utils::slice > result = string_utils::split( value, "," ) ;
-				ValueCountRange range = get_value_count_range( number_of_alleles ) ;
-				if( result.size() < range.first || result.size() > range.second ) {
-					throw BadArgumentError( "genfile::vcf::ListVCFEntryType::lex()", "value = \"" + value + "\"" ) ;
-				}
-				return result ;
-			}
-			
 			std::vector< Entry > VCFEntryType::parse_elts( std::vector< string_utils::slice > const& elts ) const {
 				std::vector< Entry > result( elts.size() ) ;
 				for( std::size_t i = 0; i < result.size(); ++i ) {
@@ -137,6 +119,23 @@ namespace genfile {
 					}
 				}
 				return result ;
+			}
+			
+			std::vector< string_utils::slice > ListVCFEntryType::lex( std::string const& value, std::size_t number_of_alleles, std::size_t ) const {
+				return lex( value, number_of_alleles ) ;
+			}
+
+			std::vector< string_utils::slice > ListVCFEntryType::lex( std::string const& value, std::size_t number_of_alleles ) const {
+				std::vector< string_utils::slice > result = string_utils::slice( value ).split( "," ) ;
+				ValueCountRange range = get_value_count_range( number_of_alleles ) ;
+				if( result.size() < range.first || result.size() > range.second ) {
+					throw BadArgumentError( "genfile::vcf::ListVCFEntryType::lex()", "value = \"" + value + "\"" ) ;
+				}
+				return result ;
+			}
+			
+			ListVCFEntryType::ValueCountRange ListVCFEntryType::get_value_count_range( std::size_t number_of_alleles, std::size_t ploidy ) const {
+				return get_value_count_range( number_of_alleles ) ;
 			}
 			
 			std::vector< Entry > ListVCFEntryType::get_missing_value( std::size_t number_of_alleles, std::size_t ploidy ) const {
@@ -176,7 +175,7 @@ namespace genfile {
 			}
 			
 			std::vector< string_utils::slice > GenotypeCallVCFEntryType::lex( std::string const& value, std::size_t, std::size_t ploidy ) const {
-				std::vector< string_utils::slice > elts = string_utils::split( value, "|/" ) ;
+				std::vector< string_utils::slice > elts = string_utils::slice( value ).split( "|/" ) ;
 				if( elts.size() != ploidy ) {
 					throw BadArgumentError( "genfile::vcf::GenotypeCallVCFEntryType::lex()", "value = \"" + value + "\"" ) ;
 				}
@@ -184,7 +183,7 @@ namespace genfile {
 			}
 
 			std::vector< string_utils::slice > GenotypeCallVCFEntryType::lex( std::string const& value, std::size_t ) const {
-				return string_utils::split( value, "|/" ) ;
+				return string_utils::slice( value ).split( "|/" ) ;
 			}
 
 			std::vector< Entry > GenotypeCallVCFEntryType::get_missing_value( std::size_t, std::size_t ploidy ) const {
@@ -199,7 +198,7 @@ namespace genfile {
 				std::string const& value,
 				std::size_t number_of_alleles
 			) const {
-				return parse_elts( string_utils::split( value, "|/" ) ) ;
+				return parse_elts( string_utils::slice( value ).split( "|/" ) ) ;
 			}
 
 			std::auto_ptr< boost::ptr_map< std::string, VCFEntryType > > get_entry_types(
