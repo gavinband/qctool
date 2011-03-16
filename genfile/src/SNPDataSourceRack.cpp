@@ -65,7 +65,10 @@ namespace genfile {
 		m_sources.back()->reset_to_start() ;
 		
 		if( !check_snps_are_sorted_by_position( snps )) {
-			throw BadArgumentError( "genfile::SNPDataSourceRack::add_source()", "snps in cohort " + string_utils::to_string( m_sources.size() + 1 ) + " must be in nondecreasing order of position." ) ;
+			throw BadArgumentError(
+				"genfile::SNPDataSourceRack::add_source()",
+				"snps in cohort " + string_utils::to_string( m_sources.size() ) + " must be in nondecreasing order of position."
+			) ;
 		}
 		if( m_sources.size() == 1 ) {
 			m_included_snps = snps ;
@@ -90,13 +93,6 @@ namespace genfile {
 		std::vector< SNPIdentifyingData > const& snps1,
 		std::vector< SNPIdentifyingData > const& snps2
 	) const {
-		if( !check_snps_are_sorted_by_position( snps1 )) {
-			throw BadArgumentError( "SNPDataSourceRack::get_intersected_snps()", "snps1 should be in nondecreasing order of position" ) ;
-		}
-		if( !check_snps_are_sorted_by_position( snps2 )) {
-			throw BadArgumentError( "SNPDataSourceRack::get_intersected_snps()", "snps2 should be in nondecreasing order of position" ) ;
-		}
-
 		//
 		// The algorithm here must match that for get_snp_identifying_data_impl.
 		// This has the following feature: each list can only be traversed once,
