@@ -64,6 +64,9 @@ namespace genfile {
 		m_number_of_samples += m_sources.back()->number_of_samples() ;
 		m_sources.back()->reset_to_start() ;
 		
+		if( !check_snps_are_sorted_by_position( snps )) {
+			throw BadArgumentError( "genfile::SNPDataSourceRack::add_source()", "snps in cohort " + string_utils::to_string( m_sources.size() + 1 ) + " must be in nondecreasing order of position." ) ;
+		}
 		if( m_sources.size() == 1 ) {
 			m_included_snps = snps ;
 		}
