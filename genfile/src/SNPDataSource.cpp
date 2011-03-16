@@ -31,11 +31,11 @@ namespace genfile {
 			return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second )) ;
 		}
 		else if( uf.first == "gen" ) {
-			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, compression_type )) ;
+			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
 		}
 		else {
 			// assume GEN format.
-			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, compression_type )) ;
+			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
 		}
 	}
 

@@ -39,7 +39,7 @@ namespace genfile {
 	) {
 		unsigned char chr ;
 		bgen::impl::read_snp_identifying_data( stream(), number_of_samples, SNPID, RSID, &chr, SNP_position, allele1, allele2 ) ;
-		*chromosome = Chromosome( chr ) ;
+		*chromosome = Chromosome( ChromosomeEnum( chr ) ) ;
 	}
 
 	void BGenFileSNPDataSource::read_snp_probability_data_impl(
