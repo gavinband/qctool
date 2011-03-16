@@ -50,10 +50,6 @@ namespace appcontext {
 				m_maximum_multiplicity = multiplicity ;
 				return *this ;
 			}
-			OptionDefinition& set_takes_values_per_use() {
-				m_number_of_values_per_use = std::max( m_number_of_values_per_use, 1u ) ;
-				return *this ;
-			}
 			OptionDefinition& set_takes_values_per_use( unsigned int n ) {
 				m_number_of_values_per_use = n ;
 				return *this ;
