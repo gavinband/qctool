@@ -59,8 +59,6 @@ namespace genfile {
 
 	public:
 		enum ColumnType { e_ID_COLUMN = 0, e_MISSINGNESS_COLUMN, e_DISCRETE_COVARIATE, e_CONTINUOUS_COVARIATE, e_BINARY_PHENOTYPE, e_CONTINUOUS_PHENOTYPE } ;
-		friend std::ostream& operator<< ( std::ostream& out, ColumnType const& type ) ;
-
 	public:
 		
 		struct SingleColumnSpec: private std::pair< std::string, ColumnType >
@@ -112,7 +110,11 @@ namespace genfile {
 			std::vector< std::string > m_column_names ;
 			std::vector< ColumnType > m_column_types ;
 		} ;
+
 	} ;
+ 	std::ostream& operator<< ( std::ostream& out, CohortIndividualSource::ColumnType const& type ) ;
+	std::ostream& operator<<( std::ostream& ostr, CohortIndividualSource::SingleColumnSpec const& spec ) ;
+	std::ostream& operator<<( std::ostream& ostr, CohortIndividualSource::ColumnSpec const& spec ) ;
 }
 
 #endif

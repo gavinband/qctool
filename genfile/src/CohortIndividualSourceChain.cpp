@@ -12,7 +12,12 @@ namespace genfile {
 	
 	void CohortIndividualSourceChain::add_source( CohortIndividualSource::UniquePtr source ) {
 		if( m_sources.size() > 0 && source->get_column_spec() != m_sources[0].get_column_spec() ) {
-			throw BadArgumentError( "CohortIndividualSourceChain::add_source()", "Column name mismatch in source." ) ;
+			throw BadArgumentError( "CohortIndividualSourceChain::add_source()",
+				"Columns (" + string_utils::to_string( source->get_column_spec() ) + ")"
+				+ " for source \"" + source->get_source_spec() + "\" do not match columns ("
+				+ string_utils::to_string( m_sources[0].get_column_spec() )
+				+ ") for first cohort."
+			) ;
 		}
 		m_sources.push_back( source.release() ) ;
 	}

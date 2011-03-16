@@ -15,28 +15,6 @@
 #include "genfile/CategoricalCohortIndividualSource.hpp"
 
 namespace genfile {
-	std::ostream& operator<< ( std::ostream& out, CohortIndividualSource::ColumnType const& type ) {
-			switch( type ) {
-				case CohortIndividualSource::e_ID_COLUMN:
-				case CohortIndividualSource::e_MISSINGNESS_COLUMN:
-					out << "0" ;
-					break ;
-				case CohortIndividualSource::e_DISCRETE_COVARIATE:
-					out << "D" ;
-					break ;
-				case CohortIndividualSource::e_CONTINUOUS_COVARIATE:
-					out << "C" ;
-					break ;
-				case CohortIndividualSource::e_BINARY_PHENOTYPE:
-					out << "B" ;
-					break ;
-				case CohortIndividualSource::e_CONTINUOUS_PHENOTYPE:
-					out << "P" ;
-					break ;
-			}
-			return out ;
-		}
-
 	CohortIndividualSource::SingleColumnSpec::SingleColumnSpec( std::string const& name, CohortIndividualSource::ColumnType const& type ):
 		Base( name, type )
 	{}
@@ -224,4 +202,41 @@ namespace genfile {
 		}
 		return std::size_t( where - m_column_names.begin() ) ;
 	}
+	
+	std::ostream& operator<< ( std::ostream& out, CohortIndividualSource::ColumnType const& type ) {
+		switch( type ) {
+			case CohortIndividualSource::e_ID_COLUMN:
+			case CohortIndividualSource::e_MISSINGNESS_COLUMN:
+				out << "0" ;
+				break ;
+			case CohortIndividualSource::e_DISCRETE_COVARIATE:
+				out << "D" ;
+				break ;
+			case CohortIndividualSource::e_CONTINUOUS_COVARIATE:
+				out << "C" ;
+				break ;
+			case CohortIndividualSource::e_BINARY_PHENOTYPE:
+				out << "B" ;
+				break ;
+			case CohortIndividualSource::e_CONTINUOUS_PHENOTYPE:
+				out << "P" ;
+				break ;
+		}
+		return out ;
+	}
+
+	std::ostream& operator<<( std::ostream& ostr, CohortIndividualSource::SingleColumnSpec const& spec ) {
+		return ostr << spec.name() << ":" << spec.type() ;
+	}
+
+	std::ostream& operator<<( std::ostream& ostr, CohortIndividualSource::ColumnSpec const& spec ) {
+		for( std::size_t i = 0; i < spec.size(); ++i ) {
+			if( i > 0 ) {
+				ostr << "," ;
+			}
+			ostr << spec[i] ;
+		}
+		return ostr ;
+	}
+	
 }
