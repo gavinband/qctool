@@ -51,6 +51,8 @@
 #include "genfile/SNPFilteringSNPDataSource.hpp"
 #include "genfile/get_list_of_snps_in_source.hpp"
 #include "genfile/utility.hpp"
+#include "genfile/QuantileNormalisingCrossCohortCovariateValueMapping.hpp"
+#include "genfile/ValueMappingCohortIndividualSource.hpp"
 
 #include "statfile/BuiltInTypeStatSource.hpp"
 #include "statfile/from_string.hpp"
@@ -135,38 +137,6 @@ public:
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 100 ) ;
 */
-	    options[ "-strand" ]
-	        .set_description( 	"Path of strand file(s) to input.  "
-								"If specified, this option must occur the same number of times as the -g option, to specify"
-								" one intensity file per cohort." )
-			.set_takes_values_per_use( 1 )
-			.set_minimum_multiplicity( 0 )
-			.set_maximum_multiplicity( 100 ) ;
-
-		options[ "-translate-snp-positions" ]
-			.set_description( "Specify a \"dictionary\" of chromosome / position to chromosome / position mappings."
-				" (This should come as a four-column file with source_chromosome source_position target_chromosome and target_position columns.)"
-				" Positions of SNPs will be mapped through this dictionary before processing." )
-			.set_takes_single_value() ;
-
-		options[ "-match-alleles-to-cohort1" ]
-			.set_description( "Specify that alleles (and corresponding genotypes) in all cohorts should be switched, if necessary,"
-				" so as to match the alleles of the first cohort.  This does not perform allele complementation,"
-				" but you can use the -strand option to complement alleles first." ) ;
-
-		options[ "-snp-match-fields" ]
-			.set_description( "By default, matching SNPs between cohorts uses all the available fields"
-				" (position, rsid, SNPID, and alleles.)"
-				" Use this option to specify a comma-separated subset of those fields to use instead."
-				" The first entry must be \"position\"."
-				" This option can be used, for example, when cohorts are typed on different platforms so have different SNPID fields." )
-			.set_takes_single_value()
-			.set_default_value( "position,rsid,SNPID,alleles" ) ;
-		options[ "-assume-chromosome" ]
-			.set_description( "Treat each SNP whose chromosome cannot be determined"
-				" as though it lies on the specified chromosome." )
-			.set_takes_single_value() ;
-
 		options.declare_group( "Sample exclusion options" ) ;
 		options[ "-incl-samples"]
 			.set_description( "Filter out samples whose sample ID does not lie in the given file.")
@@ -175,26 +145,36 @@ public:
 			.set_description( "Filter out samples whose sample ID lies in the given file.")
 			.set_takes_single_value() ;
 
+		options.declare_group( "Options for adjusting sample data" ) ;
+		options[ "-quantile-normalise" ]
+			.set_description( "Quantile normalise each specified continuous phenotype or covariate "
+			 	"by ranking its values and mapping to quantiles of the standard normal distribution N(0,1). "
+				"Ties are handled by sending tied values to the average of the corresponding quantiles."
+				"The argument should be a comma-separated list of column names from the sample file." )
+			.set_takes_single_value() ;
+		options[ "-missing-code" ]
+			.set_description( "Specify a comma-separated list of strings to be treated as missing values "
+				"when encountered in the sample file(s)." )
+			.set_takes_single_value()
+			.set_default_value( "NA" ) ;
+				
+		options.option_implies_option( "-quantile-normalise", "-s" ) ;
 		// SNP exclusion options
 		options.declare_group( "SNP exclusion options" ) ;
 		options[ "-excl-snpids" ]
 			.set_description( "Exclude all SNPs whose SNPID is in the given file(s) from the analysis.")
-			.set_takes_values_per_use() 
 			.set_takes_values_per_use( 1 )
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-excl-rsids" ]
 			.set_description( "Exclude all SNPs whose RSID is in the given file(s) from the analysis.")
-			.set_takes_values_per_use() 
 			.set_takes_values_per_use( 1 )
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-incl-snpids" ]
 			.set_description( "Exclude all SNPs whose SNPID is not in the given file(s) from the analysis.")
-			.set_takes_values_per_use() 
 			.set_takes_values_per_use( 1 )
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-incl-rsids" ]
 			.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.")
-			.set_takes_values_per_use() 
 			.set_takes_values_per_use( 1 )
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-excl-snps-matching" ]
@@ -207,6 +187,36 @@ public:
 			.set_description( "Filter out snps whose rsid or SNPID does not match the given value. "
 				"The value should be a string which can contain a % wildcard character (which matches any substring). "
 				"Optionally, prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields." )
+			.set_takes_single_value() ;
+
+		options.declare_group( "Options for adjusting SNPs" ) ;
+	    options[ "-strand" ]
+	        .set_description( 	"Path of strand file(s) to input.  "
+								"If specified, this option must occur the same number of times as the -g option, to specify"
+								" one intensity file per cohort." )
+			.set_takes_values_per_use( 1 )
+			.set_minimum_multiplicity( 0 )
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-translate-snp-positions" ]
+			.set_description( "Specify a \"dictionary\" of chromosome / position to chromosome / position mappings."
+				" (This should come as a four-column file with source_chromosome source_position target_chromosome and target_position columns.)"
+				" Positions of SNPs will be mapped through this dictionary before processing." )
+			.set_takes_single_value() ;
+		options[ "-match-alleles-to-cohort1" ]
+			.set_description( "Specify that alleles (and corresponding genotypes) in all cohorts should be switched, if necessary,"
+				" so as to match the alleles of the first cohort.  This does not perform allele complementation,"
+				" but you can use the -strand option to complement alleles first." ) ;
+		options[ "-snp-match-fields" ]
+			.set_description( "By default, matching SNPs between cohorts uses all the available fields"
+				" (position, rsid, SNPID, and alleles.)"
+				" Use this option to specify a comma-separated subset of those fields to use instead."
+				" The first entry must be \"position\"."
+				" This option can be used, for example, when cohorts are typed on different platforms so have different SNPID fields." )
+			.set_takes_single_value()
+			.set_default_value( "position,rsid,SNPID,alleles" ) ;
+		options[ "-assume-chromosome" ]
+			.set_description( "Treat each SNP whose chromosome cannot be determined"
+				" as though it lies on the specified chromosome." )
 			.set_takes_single_value() ;
 
 		options.declare_group( "Output file options" ) ;
@@ -260,7 +270,7 @@ public:
 	        .set_description( 	"Override the auto-generated path(s) of the snp-stats file to use when outputting snp-wise statistics.  "
 								"(By default, the paths are formed by adding \".snp-stats\" to the input gen filename(s).)  "
 								"The '#' character can also be used here to specify one output file per chromosome." )
-	        .set_takes_values_per_use()
+	        .set_takes_values_per_use(1)
 			.set_maximum_multiplicity(1) ;
 
 		options[ "-snp-stats-columns" ]
@@ -731,6 +741,15 @@ struct QCToolCmdLineContext: public QCToolContext
 			}
 			m_ui_context.logger() << "  \"" << format_filename( m_mangled_options.input_sample_filenames()[i]) << "\"\n" ;
 		}
+		
+		if(
+			genfile::ValueMappingCohortIndividualSource const* source
+				= dynamic_cast< genfile::ValueMappingCohortIndividualSource const* >( m_cohort_individual_source.get() )
+		) {
+			m_ui_context.logger() << std::setw(30) << "Sample file summary:" << "  " ;
+			m_ui_context.logger() << source->get_summary( std::string( 32, ' ' )) << "\n" ;
+		}
+		
 		m_ui_context.logger() << std::setw(30) << "Output SAMPLE file:"
 			<< "  \"" << format_filename( m_mangled_options.output_sample_filename()) << "\".\n" ;
 		m_ui_context.logger() << std::setw(30) << "Sample statistic output file:"
@@ -1614,13 +1633,24 @@ private:
 				source_chain->add_source(
 					genfile::CohortIndividualSource::UniquePtr(
 						new genfile::CategoricalCohortIndividualSource(
-							m_mangled_options.input_sample_filenames()[i]
+							m_mangled_options.input_sample_filenames()[i],
+							m_options.get_value< std::string >( "-missing-code" )
 						)
 					)
 				) ;
 			}
 			sample_source.reset( source_chain.release() ) ;
-
+			
+			if( m_options.check_if_option_was_supplied( "-quantile-normalise" )) {
+				sample_source = quantile_normalise_columns(
+					sample_source,
+					genfile::string_utils::split_and_strip(
+						m_options.get_value< std::string >( "-quantile-normalise" ),
+						","
+					)
+				) ;
+			}
+			
 			SampleRow sample_row ;
 			for( std::size_t i = 0; i < sample_source->get_number_of_individuals(); ++i ) {
 				sample_row.read_ith_sample_from_source( i, *sample_source ) ;
@@ -1639,6 +1669,35 @@ private:
 		return sample_source ;
 	}
 	
+	genfile::CohortIndividualSource::UniquePtr quantile_normalise_columns(
+		genfile::CohortIndividualSource::UniquePtr source,
+		std::vector< std::string > const& column_names
+	) const {
+		genfile::ValueMappingCohortIndividualSource::UniquePtr value_mapping_source(
+			new genfile::ValueMappingCohortIndividualSource( source )
+		) ;
+		for( std::size_t i = 0; i < column_names.size(); ++i ) {
+			add_normalisation( *value_mapping_source, column_names[i] ) ;
+		}
+		return genfile::CohortIndividualSource::UniquePtr( value_mapping_source.release() ) ;
+	}
+
+ 	void add_normalisation(
+		genfile::ValueMappingCohortIndividualSource& source,
+		std::string const& column_name
+	) const {
+		genfile::CohortIndividualSource::ColumnSpec column_spec = source.get_column_spec() ;
+		std::size_t column_i = column_spec.find_column( column_name ) ;
+		if( !column_spec[ column_i ].is_continuous() ) {
+			throw genfile::BadArgumentError( "qctool::quantile_normalise_columns()", "column_name = \"" + column_name + "\"" ) ;
+		}
+		genfile::CrossCohortCovariateValueMapping::UniquePtr mapping(
+			new genfile::QuantileNormalisingCrossCohortCovariateValueMapping( column_name )
+		) ;
+		mapping->add_source( source ) ;
+		source.add_mapping( column_name, mapping ) ;
+	}
+
 	void check_for_errors_and_warnings() {
 		check_for_errors() ;
 		check_for_warnings() ;
