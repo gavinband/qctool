@@ -3,6 +3,7 @@
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/get_list_of_snps_in_source.hpp"
 #include "genfile/get_set.hpp"
+#include "genfile/Error.hpp"
 
 namespace genfile {
 	std::vector< SNPIdentifyingData > get_list_of_snps_in_source(
@@ -30,7 +31,9 @@ namespace genfile {
 				progress_callback( source.number_of_snps_read() + 1, source.total_number_of_snps() ) ;
 			}
 		}
-		assert( result.size() == source.total_number_of_snps() ) ;
+		if( result.size() != source.total_number_of_snps() ) {
+			throw genfile::MalformedInputError( source.get_source_spec(), result.size() ) ;
+		}
 		return result ;
 	}
 }

@@ -8,6 +8,7 @@
 namespace genfile {
 	GenFileSNPDataSource::GenFileSNPDataSource( std::auto_ptr< std::istream > stream, Chromosome chromosome ):
 		m_filename( "(unnamed stream)" ),
+		m_compression_type( e_NoCompression ),
 		m_number_of_samples( 0 ),
 		m_total_number_of_snps( 0 ),
 		m_chromosome( chromosome )
@@ -17,11 +18,12 @@ namespace genfile {
 	
 	GenFileSNPDataSource::GenFileSNPDataSource( std::string const& filename, Chromosome chromosome )
 		: m_filename( filename ),
+		  m_compression_type( get_compression_type_indicated_by_filename( filename ) ),
 		  m_number_of_samples( 0 ),
 		  m_total_number_of_snps( 0 ),
 		  m_chromosome( chromosome )
 	{
-		setup( filename, get_compression_type_indicated_by_filename( filename )) ;
+		setup( filename, m_compression_type ) ; 
 	}
 
 	GenFileSNPDataSource::GenFileSNPDataSource( std::string const& filename, Chromosome chromosome, CompressionType compression_type )
