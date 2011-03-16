@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include "genfile/string_utils/string_utils.hpp"
 
 namespace genfile {
 	struct Ignorer
@@ -20,7 +21,9 @@ namespace genfile {
 	{
 		ValueSetter( T& t ): m_t(t) {}
 		template< typename T2 >
-		void operator()( T2 const& t ) { m_t = T(t) ; }
+		void operator()( T2 const& t ) {
+			m_t = T(t) ;
+		}
 	private:
 		T& m_t ;
 	} ;
@@ -29,22 +32,14 @@ namespace genfile {
 	struct ValueSetter< std::string >
 	{
 		ValueSetter< std::string >( std::string& t ): m_t(t) {}
-		void operator()( char const& c ) { m_t.assign( std::size_t(1), c ) ; }
-		template< typename T2 > void operator()( T2 const& t ) { m_t = t ; }
+		void operator()( char const c ) ;
+		template< typename T2 > void operator()( T2 const& t ) {
+			m_t = string_utils::to_string( t ) ;
+		}
 	private:
 		std::string& m_t ;
 	} ;
-/*
-	template<>
-	struct ValueSetter< Chromosome >
-	{
-		ValueSetter< Chromosome >( Chromosome& t ): m_t(t) {}
-		void operator()( unsigned char c ) { m_t = Chromosome( c ) ; }
-		template< typename T2 > void operator()( T2 const& t ) { m_t = t ; }
-	private:
-		Chromosome& m_t ;
-	} ;
-*/
+
 	template< typename T > ValueSetter< T > set_value( T& t ) {
 		return ValueSetter< T >( t ) ;
 	}

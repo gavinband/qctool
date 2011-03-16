@@ -3,6 +3,10 @@
 namespace genfile {
 	Ignorer ignore() { return Ignorer() ; }	
 
+	void ValueSetter< std::string >::operator()( char const c ) {
+		m_t.assign( std::size_t(1), c ) ;
+	}
+
 	GenotypeSetter< std::vector< double > >::GenotypeSetter( std::vector< double >& genotypes ):
 		m_genotypes( genotypes )
 	{}
