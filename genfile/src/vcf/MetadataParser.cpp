@@ -16,45 +16,75 @@ namespace genfile {
 	namespace vcf {
 		MetadataParser::MetadataParser( std::string const& spec, std::istream& stream ):
 			m_spec( spec ),
-			m_metadata( read_metadata( stream ))
+			m_version( read_version( stream )),
+			m_metadata( read_metadata( stream, m_version ))
 		{}
 	
-		MetadataParser::Metadata MetadataParser::read_metadata( std::istream& in ) const {
+		std::string MetadataParser::read_version( std::istream& in ) const {
+			std::istream::iostate old_exceptions = in.exceptions() ;
+			in.exceptions( std::ios::eofbit | std::ios::failbit | std::ios::badbit ) ;
+			Metadata fileformat_spec ;
+			if( !read_metadata_line( in, 0, &fileformat_spec )) {
+				throw MalformedInputError( m_spec, 0 ) ;
+			}
+			assert( fileformat_spec.size() == 1 ) ;
+			Metadata::const_iterator i = fileformat_spec.find( "fileformat" ) ;
+			assert( i != fileformat_spec.end() ) ;
+			std::map< std::string, std::string >::const_iterator j = i->second.find( "version" ) ;
+			assert( j != i->second.end() ) ;
+			std::string const result = j->second ;
+			assert( result == "4.0" || result == "4.1" ) ;
+			in.exceptions( old_exceptions ) ;
+			return result ;
+		}
+
+		MetadataParser::Metadata MetadataParser::read_metadata( std::istream& in, std::string const& version ) const {
 			std::istream::iostate old_exceptions = in.exceptions() ;
 			in.exceptions( std::ios::eofbit | std::ios::failbit | std::ios::badbit ) ;
 			Metadata result ;
-		
-			for( std::size_t line_number = 0; in; ++line_number ) {
-				try {
-					char a_char = static_cast< char >( in.get() ) ;
-					char next_char = static_cast< char >( in.peek() ) ;
-					if( a_char == '\t' || next_char == '\t' ) {
-						throw MalformedInputError( m_spec, line_number ) ;
-					}
-					if( a_char == '#' && next_char == '#' ) {
-						in.get() ;
-						std::string line ;
-						std::getline( in, line ) ;
-						if( line.find( "\t" ) != std::string::npos ) {
-							throw MalformedInputError( m_spec, line_number ) ;
-						}
-						result.insert( parse_meta_line( line_number, line )) ;
-					} else {
-						in.putback( a_char ) ;
-						break ;
-					}
-				}
-				catch( std::exception const& ) {
-					throw MalformedInputError( m_spec, line_number ) ;
+			{
+				// put version information into the result.
+				std::map< std::string, std::string > A ;
+				A[ "version" ] = version ;
+				result.insert( std::make_pair( "fileformat", A )) ;
+			}
+			for( std::size_t line_number = 1; in; ++line_number ) {
+				if( !read_metadata_line( in, line_number, &result ) ) {
+					break ;
 				}
 			}
-		
 			if( result.empty() ) {
 				throw MalformedInputError( m_spec, 0 ) ;
 			}
 		
 			in.exceptions( old_exceptions ) ;
 			return result ;
+		}
+
+		bool MetadataParser::read_metadata_line( std::istream& in, std::size_t line_number, Metadata* result ) const {
+			try {
+				char a_char = static_cast< char >( in.get() ) ;
+				char next_char = static_cast< char >( in.peek() ) ;
+				if( a_char == '\t' || next_char == '\t' ) {
+					throw MalformedInputError( m_spec, line_number ) ;
+				}
+				if( a_char == '#' && next_char == '#' ) {
+					in.get() ;
+					std::string line ;
+					std::getline( in, line ) ;
+					if( line.find( "\t" ) != std::string::npos ) {
+						throw MalformedInputError( m_spec, line_number ) ;
+					}
+					result->insert( parse_meta_line( line_number, line )) ;
+				} else {
+					in.putback( a_char ) ;
+					return false ;
+				}
+			}
+			catch( std::ios_base::failure const& ) {
+				throw MalformedInputError( m_spec, line_number ) ;
+			}
+			return true ;
 		}
 	
 		std::pair< std::string, std::map< std::string, std::string > > MetadataParser::parse_meta_line(
@@ -70,12 +100,12 @@ namespace genfile {
 			std::map< std::string, std::string > result ;
 		
 			if( key == "fileformat" ) {
-				if( value != "VCFv4.1" ) {
+				if( value != "VCFv4.1" && value != "VCFv4.0" ) {
 					throw FormatUnsupportedError( m_spec, value ) ;
 				}
+				result[ "version" ] = value.substr( 4, 3 ) ;
 			}
-
-			if( key == "INFO" || key == "FILTER" || key == "FORMAT") {
+			else if( key == "INFO" || key == "FILTER" || key == "FORMAT") {
 				result = parse_meta_value( line_number, key, value ) ;
 				if( !validate_meta_value( key, result )) {
 					throw MalformedInputError( m_spec, line_number ) ;
@@ -92,7 +122,8 @@ namespace genfile {
 		std::pair< std::string, std::string > MetadataParser::parse_key_value_pair( std::string const& line ) const {
 			std::size_t pos = line.find( '=' ) ;
 			if( pos == std::string::npos ) {
-				throw BadArgumentError( "MetadataParser::parse_key_value_pair()", "line = \"" + line + "\"" ) ;
+				// Take "" as key, whole line as value.
+				return std::make_pair( "", line ) ;
 			}
 			return std::make_pair( line.substr( 0, pos ), line.substr( pos + 1, line.size() )) ;
 		}
@@ -160,7 +191,10 @@ namespace genfile {
 				}
 				// validate Number
 				if( ( where = meta_value.find( "Number" ) ) == meta_value.end() ) { return false ; }
-				if( where->second != "A" && where->second != "G" && where->second != "." ) {
+				if( where->second == "." || ( m_version == "4.1" && ( where->second == "A" || where->second == "G" ))) {
+					// Ok, a non-numerical type.
+				}
+				else {
 					// Must be an integer.
 					try {
 						string_utils::to_repr< unsigned int >( where->second ) ;

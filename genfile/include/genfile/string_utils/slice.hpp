@@ -18,7 +18,7 @@ namespace genfile {
 			slice( std::string const&, std::size_t start, std::size_t end ) ;
 			slice( slice const&, std::size_t start, std::size_t end ) ;
 			slice( slice const& other ) ;
-			slice& operator=( slice const& other ) ;
+			// slice& operator=( slice const& other ) ;
 
 			char const& operator[]( std::size_t pos ) const { return (*m_string)[ m_start + pos ] ; }
 

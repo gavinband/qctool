@@ -38,16 +38,26 @@ namespace genfile {
 			}
 			
 			Entry IntegerType::parse( string_utils::slice const& value ) const {
-				return Entry( string_utils::to_repr< int >( value ) ) ;
+				try {
+					return Entry( string_utils::to_repr< int >( value ) ) ;
+				}
+				catch( string_utils::StringConversionError const& ) {
+					throw BadArgumentError( "genfile::vcf::IntegerType::parse()", "value = \"" + std::string( value ) + "\"" ) ;
+				}
 			}
 
 			Entry FloatType::parse( string_utils::slice const& value ) const {
-				return Entry( string_utils::to_repr< double >( value )) ;
+				try {
+					return Entry( string_utils::to_repr< double >( value )) ;
+				}
+				catch( string_utils::StringConversionError const& ) {
+					throw BadArgumentError( "genfile::vcf::FloatType::parse()", "value = \"" + std::string( value ) + "\"" ) ;
+				}
 			}
 
 			Entry CharacterType::parse( string_utils::slice const& value ) const {
-				if( !value.size() == 1 ) {
-					throw BadArgumentError("genfile::vcf::types::CharacterType::parse()", "value = \"" + std::string( value ) +"\"" ) ;
+				if( value.size() != 1 ) {
+					throw BadArgumentError("genfile::vcf::CharacterType::parse()", "value = \"" + std::string( value ) +"\"" ) ;
 				}
 				return Entry( value ) ;
 			}

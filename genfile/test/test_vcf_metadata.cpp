@@ -15,11 +15,25 @@ namespace data {
 		"##reference=file:/seq/references/1000GenomesPilot-NCBI36.fasta\n"
 		"##contig=<name=20,length=62435964,assembly=B36,md5=f126cdf8a6e0c7f379d618ff66beb2da,species=Homo sapiens,taxonomy=x>\n"
 		"##phasing=partial\n" ;
+
+	std::string const ex1b =
+		"##fileformat=VCFv4.0\n" ;
+
+	std::string const ex1c =
+		"##fileformat=VCFv3.9\n" ;
 	
 	std::string const ex2 =
 		"##INFO=<ID=NS,Number=1,Type=Integer,Description=\"Number of Samples With Data\">\n"
 		"##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n"
 		"##INFO=<ID=AF,Number=A,Type=Float,Description=\"Allele Frequency\">\n"
+		"##INFO=<ID=AA,Number=1,Type=String,Description=\"Ancestral Allele\">\n"
+		"##INFO=<ID=DB,Number=0,Type=Flag,Description=\"dbSNP membership, build 129\">\n"
+		"##INFO=<ID=H2,Number=0,Type=Flag,Description=\"HapMap2 membership\">\n" ;
+
+	std::string const ex2b =
+		"##INFO=<ID=NS,Number=1,Type=Integer,Description=\"Number of Samples With Data\">\n"
+		"##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n"
+		"##INFO=<ID=AF,Number=.,Type=Float,Description=\"Allele Frequency\">\n"
 		"##INFO=<ID=AA,Number=1,Type=String,Description=\"Ancestral Allele\">\n"
 		"##INFO=<ID=DB,Number=0,Type=Flag,Description=\"dbSNP membership, build 129\">\n"
 		"##INFO=<ID=H2,Number=0,Type=Flag,Description=\"HapMap2 membership\">\n" ;
@@ -74,8 +88,8 @@ AUTO_TEST_CASE( test_spec_example ) {
 	// Check data for some rows
 	genfile::vcf::MetadataParser::Metadata::const_iterator where ;
 	where = metadata.equal_range( "fileformat" ).first ;
-	TEST_ASSERT( where->second.find( "" ) != where->second.end() ) ;
-	TEST_ASSERT( where->second.find( "" )->second == "VCFv4.1" ) ;
+	TEST_ASSERT( where->second.find( "version" ) != where->second.end() ) ;
+	TEST_ASSERT( where->second.find( "version" )->second == "4.1" ) ;
 
 	// INFO
 	where = metadata.equal_range( "INFO" ).first ;
@@ -319,6 +333,37 @@ AUTO_TEST_CASE( test_tab_characters ) {
 	std::cerr << "ok.\n" ;
 }
 
+AUTO_TEST_CASE( test_v4_0 ) {
+	using namespace data ;
+	std::cerr << "test_v4_0()..." ;
+	try {
+		std::istringstream istr( ex1b + ex2 + ex3 + ex4 + ex5 + ex6 ) ;
+		genfile::vcf::MetadataParser parser( "VCF_4_0_example_file", istr ) ;
+		TEST_ASSERT(0) ;
+	}
+	catch( genfile::MalformedInputError const& ) {
+		// ok.
+	}
+
+	try {
+		std::istringstream istr( ex1b + ex2b + ex3 + ex4 + ex5 + ex6 ) ;
+		genfile::vcf::MetadataParser parser( "VCF_4_0_example_file", istr ) ;
+		// ok.
+	}
+	catch( genfile::MalformedInputError const& ) {
+		TEST_ASSERT(0) ;
+	}
+
+	try {
+		std::istringstream istr( ex1c + ex2 + ex3 + ex4 + ex5 + ex6 ) ;
+		genfile::vcf::MetadataParser parser( "VCF_4_0_example_file", istr ) ;
+		TEST_ASSERT(0) ;
+	}
+	catch( genfile::FormatUnsupportedError const& ) {
+		// ok.
+	}
+	std::cerr << "ok.\n" ;
+}
 
 AUTO_TEST_MAIN {
 	test_spec_example() ;
@@ -327,4 +372,5 @@ AUTO_TEST_MAIN {
 	test_info_and_format_fields() ;
 	test_filter_fields() ;
 	test_tab_characters() ;
+	test_v4_0() ;
 }

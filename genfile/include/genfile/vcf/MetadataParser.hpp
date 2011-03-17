@@ -14,9 +14,12 @@ namespace genfile {
 
 		private:
 			std::string const m_spec ;
-			Metadata m_metadata ;
+			std::string const m_version ;
+			Metadata const m_metadata ;
 		private:
-			Metadata read_metadata( std::istream& in ) const ;
+			std::string read_version( std::istream& in ) const ;
+			Metadata read_metadata( std::istream& in, std::string const& version ) const ;
+			bool read_metadata_line( std::istream& in, std::size_t line_number, Metadata* result ) const ;
 			std::pair< std::string, std::map< std::string, std::string > > parse_meta_line(
 				std::size_t line_number,
 				std::string const& line
@@ -35,6 +38,7 @@ namespace genfile {
 				std::string const& key,
 				std::map< std::string, std::string > const& meta_value
 			) const ;
+		
 			MetadataParser( MetadataParser const& other ) ;
 		} ;
 	}

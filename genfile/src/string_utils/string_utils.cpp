@@ -42,8 +42,12 @@ namespace genfile {
 		// Specialisations of to_repr for speed purposes.
 		// (std::istringstream appears painfully slow in this case).
 		template<> double to_repr( std::string const& s ) {
+			// explicitly forbid preceding whitespace, as this is allowed by strtod.
+			if( s.empty() || std::isspace( s[0] )) {
+				throw StringConversionError() ;
+			}
 			char* endptr ;
-			double result = strtod( s.c_str(), &endptr ) ;
+			double result = std::strtod( s.c_str(), &endptr ) ;
 			if( endptr == s.c_str() || std::size_t( endptr - s.c_str() ) != s.size() ) {
 				throw StringConversionError() ;
 			}

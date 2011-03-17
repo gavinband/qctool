@@ -40,12 +40,14 @@ namespace genfile {
 			m_end( other.m_end )
 		{}
 		
+		/*
 		slice& slice::operator=( slice const& other ) {
 			m_string = other.m_string ;
 			m_start = other.m_start ;
 			m_end = other.m_end ;
 			return *this ;
 		}
+		*/
 		
 		std::size_t slice::find( char c, std::size_t pos ) const {
 			for( std::size_t i = m_start + pos; i < m_end; ++i ) {
