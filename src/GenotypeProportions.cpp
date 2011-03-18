@@ -6,6 +6,9 @@
 #include "GenotypeProportions.hpp"
 
 GenotypeProportions::GenotypeProportions()
+	: m_proportion_of_AA( 0 ),
+	  m_proportion_of_AB( 0 ),
+	  m_proportion_of_BB( 0 )
 {}
 
 GenotypeProportions::GenotypeProportions( double aa, double ab, double bb )

@@ -8,7 +8,7 @@
 void InputToOutputFilenameMapper::add_filename_pair( std::string const& path_to_existing_files, std::string const& filename_template ) {
 	m_existing_files = genfile::wildcard::find_files_by_chromosome(
 		path_to_existing_files,
-		genfile::wildcard::eNON_SEX_CHROMOSOMES
+		genfile::wildcard::eALL_CHROMOSOMES
 	) ;
 
 	if( m_existing_files.size() == 0 ) {

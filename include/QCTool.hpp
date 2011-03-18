@@ -77,6 +77,7 @@ private:
 	) ;
 	void process_gen_row( GenRow const& row, std::size_t row_number ) ;
 	void output_gen_row_stats( GenotypeAssayStatistics const& row_statistics, std::size_t row_number ) ;
+	void output_missing_gen_row_stats( GenotypeAssayStatistics const& row_statistics, std::size_t row_number ) ;
 	void do_snp_filter_diagnostics( GenRowStatistics const& row_statistics, std::size_t const row_index ) ;
 	void accumulate_per_column_amounts( GenRow& row, std::vector< GenotypeProportions >& per_column_amounts ) ;
 	void process_sample_rows() ;
