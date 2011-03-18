@@ -59,5 +59,6 @@ def build( bld ):
 	create_test( bld, 'test_vcf_metadata' )
 	create_test( bld, 'test_vcf_format_source' )
 	create_test( bld, 'test_vcf_types' )
+	create_test( bld, 'test_vcf_call_reader' )
 
 	create_benchmark( bld, 'benchmark-io' )
