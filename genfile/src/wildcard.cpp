@@ -135,7 +135,7 @@ namespace genfile {
 				WildcardMatchChoice choice
 			) {
 				if( choice != eALL_CHROMOSOMES ) {
-					for( std::size_t i = 0; i < matches.size(); ++i ) {
+					for( std::size_t i = 0; i < matches.size(); ) {
 						bool keep_match = false ;
 						switch( choice ) {
 							case eAUTOSOMAL_CHROMOSOMES:
