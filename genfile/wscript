@@ -43,6 +43,7 @@ def build( bld ):
 		export_incdirs = './include'
 	)
 	
+	create_test( bld, 'test_string_utils' )
 	create_test( bld, 'test_cohort_individual_source' )
 	create_test( bld, 'test_sample_filtering_cohort_individual_source' )
 	create_test( bld, 'test_cross_cohort_covariate_value_mapping' )
