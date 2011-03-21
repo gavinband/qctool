@@ -45,6 +45,7 @@ void QCTool::begin_processing_snps(
 	m_per_column_amounts.resize( number_of_samples ) ;
 	m_number_of_snps = number_of_snps ;
 	m_number_of_snps_processed = 0 ;
+	m_number_of_autosomal_snps_processed = 0 ;
 	m_timer.restart() ;
 }
 
@@ -74,6 +75,7 @@ void QCTool::processed_snp(
 
 void QCTool::end_processing_snps() {
 	assert( m_number_of_snps == m_number_of_snps_processed ) ;
+	assert( m_number_of_autosomal_snps_processed <= m_number_of_snps_processed ) ;
 	if( m_context.snp_filter().number_of_subconditions() > 0 ) {
 		m_ui_context.logger() << "(" << m_context.fltrd_in_snp_data_sink().number_of_snps_written() << " of " << m_number_of_snps << " SNPs passed the filter.)\n" ;
 	}
@@ -102,7 +104,7 @@ void QCTool::process_gen_row( GenRow const& row, std::size_t row_number ) {
 	if( row.chromosome().is_sex_determining() ) {
 		// Sex chromosome.  Don't filter, and output NAs to snp stats file.
 		row.write_to_sink( m_context.fltrd_in_snp_data_sink() ) ;
-		output_missing_gen_row_stats( m_context.snp_statistics(), row_number ) ;
+		output_missing_gen_row_stats( row, m_context.snp_statistics(), row_number ) ;
 	}
 	else {
 		m_context.snp_statistics().process( row ) ;
@@ -114,12 +116,12 @@ void QCTool::process_gen_row( GenRow const& row, std::size_t row_number ) {
 			row.write_to_sink( m_context.fltrd_out_snp_data_sink() ) ;
 			do_snp_filter_diagnostics( m_context.snp_statistics(), row_number ) ;
 		}
+		++m_number_of_autosomal_snps_processed ;
 	}
 }
 
 void QCTool::output_gen_row_stats( GenotypeAssayStatistics const& row_statistics, std::size_t row_number ) {
 	if( m_context.snp_statistics().size() > 0 ) {
-		m_context.snp_stats_sink() << uint32_t( row_number ) ;
 		for( std::size_t i = 0 ; i < row_statistics.size(); ++i ) {
 			m_context.snp_stats_sink() << row_statistics.get_value< std::string >( row_statistics.get_statistic_name( i )) ;
 		}
@@ -127,10 +129,10 @@ void QCTool::output_gen_row_stats( GenotypeAssayStatistics const& row_statistics
 	}
 }
 
-void QCTool::output_missing_gen_row_stats( GenotypeAssayStatistics const& row_statistics, std::size_t row_number ) {
+void QCTool::output_missing_gen_row_stats( GenRow const& row, GenotypeAssayStatistics const& row_statistics, std::size_t row_number ) {
 	if( m_context.snp_statistics().size() > 0 ) {
-		m_context.snp_stats_sink() << uint32_t( row_number ) ;
-		for( std::size_t i = 0 ; i < row_statistics.size(); ++i ) {
+		m_context.snp_stats_sink() << row.SNPID() << row.RSID() << row.SNP_position() ;
+		for( std::size_t i = 3 ; i < row_statistics.size(); ++i ) {
 			m_context.snp_stats_sink() << "NA" ;
 		}
 		m_context.snp_stats_sink() << statfile::end_row() ;
@@ -159,7 +161,7 @@ void QCTool::accumulate_per_column_amounts( GenRow& row, std::vector< GenotypePr
 	// Keep totals for per-column stats.
 	assert( per_column_amounts.size() == row.number_of_samples() ) ;
 	// We do not deal with sex chromosomes.
-	if( row.chromosome().is_sex_determining() ) {
+	if( !row.chromosome().is_sex_determining() ) {
 		std::transform(
 			per_column_amounts.begin(), per_column_amounts.end(),
 			row.begin_genotype_proportions(),
@@ -176,7 +178,7 @@ void QCTool::process_sample_rows() {
 
 	for( std::size_t i = 0 ; i < m_per_column_amounts.size(); ++i ) {
 		SampleRow& sample_row = m_context.sample_rows()[i] ;
-		m_context.sample_statistics().process( sample_row, m_per_column_amounts[i], m_number_of_snps ) ;
+		m_context.sample_statistics().process( sample_row, m_per_column_amounts[i], m_number_of_autosomal_snps_processed ) ;
 		output_sample_stats( i + 1, m_context.sample_statistics() ) ;
 		
 		m_context.sample_statistics().add_to_sample_row( sample_row, "missing" ) ;

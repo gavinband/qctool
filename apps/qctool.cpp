@@ -1491,7 +1491,6 @@ private:
 			statfile::RFormatStatSink::UniquePtr sink( new statfile::RFormatStatSink( m_mangled_options.snp_stats_filename_mapper().output_filenames()[ index ] )) ;
 			m_snp_stats_sink.reset( sink.release() ) ;
 		}
-		m_snp_stats_sink->add_column( "" ) ;
 		for( std::size_t i = 0; i < snp_statistics.size(); ++i ) {
 			m_snp_stats_sink->add_column( snp_statistics.get_statistic_name( i )) ;
 		}
@@ -1752,8 +1751,8 @@ private:
 	}
 	
 	void check_for_warnings() {
-		if( (m_mangled_options.output_sample_filename() != "" || m_mangled_options.output_sample_stats_filename() != "" || m_mangled_options.output_sample_excl_list_filename() != "" ) && m_mangled_options.gen_filename_mapper().input_files().size() != 22 ) {
-			m_warnings.push_back( "You are outputting a sample, sample statistic, or sample exclusion file, but the number of gen files is not 22.\n"
+		if( (m_mangled_options.output_sample_filename() != "" || m_mangled_options.output_sample_stats_filename() != "" || m_mangled_options.output_sample_excl_list_filename() != "" ) && m_mangled_options.gen_filename_mapper().input_files().size() < 22 ) {
+			m_warnings.push_back( "You are outputting a sample, sample statistic, or sample exclusion file, but the number of gen files is less than 22.\n"
 			"   (I suspect there is not the whole genomes' worth of data?)" ) ;
 		}
 		if( m_mangled_options.output_sample_stats_filename() != "" && m_mangled_options.input_sample_filenames().size() == 0 ) {

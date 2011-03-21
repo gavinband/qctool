@@ -68,6 +68,7 @@ private:
 	std::size_t m_number_of_samples ;
 	std::size_t m_number_of_snps ;
 	std::size_t m_number_of_snps_processed ;
+	std::size_t m_number_of_autosomal_snps_processed ;
 	std::vector< GenotypeProportions > m_per_column_amounts ;
 	Timer m_timer ;
 
@@ -77,7 +78,7 @@ private:
 	) ;
 	void process_gen_row( GenRow const& row, std::size_t row_number ) ;
 	void output_gen_row_stats( GenotypeAssayStatistics const& row_statistics, std::size_t row_number ) ;
-	void output_missing_gen_row_stats( GenotypeAssayStatistics const& row_statistics, std::size_t row_number ) ;
+	void output_missing_gen_row_stats( GenRow const& row, GenotypeAssayStatistics const& row_statistics, std::size_t row_number ) ;
 	void do_snp_filter_diagnostics( GenRowStatistics const& row_statistics, std::size_t const row_index ) ;
 	void accumulate_per_column_amounts( GenRow& row, std::vector< GenotypeProportions >& per_column_amounts ) ;
 	void process_sample_rows() ;
