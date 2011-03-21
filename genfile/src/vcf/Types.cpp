@@ -208,7 +208,15 @@ namespace genfile {
 				std::string const& value,
 				std::size_t number_of_alleles
 			) const {
-				return parse_elts( string_utils::slice( value ).split( "|/" ) ) ;
+				std::vector< Entry > result = parse_elts( string_utils::slice( value ).split( "|/" ) ) ;
+				assert( number_of_alleles > 0 ) ;
+				Entry max( int( number_of_alleles - 1 ) ) ;
+				for( std::size_t i = 0; i < result.size(); ++i ) {
+					if( max < result[ i ] ) {
+						throw BadArgumentError( "genfile::vcf::GenotypeCallVCFEntryType::parse()", "value = \"" + value + "\"" ) ;
+					}
+				}
+				return result ;
 			}
 
 			std::auto_ptr< boost::ptr_map< std::string, VCFEntryType > > get_entry_types(
