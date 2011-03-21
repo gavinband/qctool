@@ -55,6 +55,14 @@ namespace genfile {
 		}
 
 		template<> int to_repr( std::string const& s ) {
+			if( s.empty() || std::isspace( s[0] )) {
+				throw StringConversionError() ;
+			}
+			for( std::size_t i = 0; i < s.size(); ++i ) {
+				if( s[i] == char( 0 ) ) {
+					throw StringConversionError() ;
+				}
+			}
 			char* endptr ;
 			long int result = strtol( s.c_str(), &endptr, 10 ) ;
 			if( endptr == s.c_str() || std::size_t( endptr - s.c_str() ) != s.size() || result > std::numeric_limits< int >::max() ) {
