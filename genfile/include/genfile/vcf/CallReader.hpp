@@ -51,13 +51,6 @@ namespace genfile {
 			std::auto_ptr< vcf::GenotypeCallVCFEntryType > m_genotype_entry_type ;
 			
 		private:
-			// Return a vector of pointers to VCFEntryType objects in the supplied map,
-			// with the ith VCFEntryType appropriate for the ith format element.
-			std::vector< VCFEntryType const* > get_entries_by_position(
-				std::vector< std::string > const& format_elts,
-				boost::ptr_map< std::string, VCFEntryType > const& entry_types
-			) const ;
-	
 			void set_values( std::vector< string_utils::slice > const& elts, Setters const& setters ) const ;
 			void set_values( std::size_t individual_i, string_utils::slice const& elt, Setters const& setters ) const ;
 			
