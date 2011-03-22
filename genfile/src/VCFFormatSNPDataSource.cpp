@@ -88,8 +88,10 @@ namespace genfile {
 			vcf::ListVCFEntryType const* type = dynamic_cast< vcf::ListVCFEntryType const* >( &(*where->second) ) ;
 			if(
 				type == 0
-				|| ( type->get_value_count_range( 2, 2 ).first != 3 && type->get_value_count_range( 2, 2 ).first != 4 )
-				|| ( type->get_value_count_range( 2, 2 ).second != 3 && type->get_value_count_range( 2, 2 ).first != 4 )
+				|| 
+				type->get_value_count_range( 2, 2 ).first > 3 
+				||
+				type->get_value_count_range( 2, 2 ).second < 3
 			) {
 				throw BadArgumentError(
 					"genfile::VCFFormatSNPDataSource::check_genotype_probability_field()",

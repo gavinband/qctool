@@ -595,7 +595,6 @@ AUTO_TEST_CASE( test_one_per_genotype_entry_type ) {
 				TEST_ASSERT( r.size() == 1 ) ;
 				TEST_ASSERT( r[0] == Entry( 0 )) ;
 			} catch( BadArgumentError const& ) {
-				std::cerr << ploidy << ".\n" ;
 				TEST_ASSERT( ploidy == 0 ) ;
 			}
 		}
@@ -727,6 +726,78 @@ AUTO_TEST_CASE( test_genotype_call_entry_type ) {
 	std::cerr << "ok.\n" ;
 }
 
+void test_gt_spec() {
+
+	std::string const GT = "GT" ;
+
+	try {
+		std::string const GT = "GT" ;
+		VCFEntryType::Spec spec ;
+		spec[ "ID" ] = GT ;
+		spec[ "Number" ] = "1" ;
+		spec[ "Type" ] = "Integer" ;
+		spec[ "Description" ] = "A test" ;
+		VCFEntryType::create( spec ) ;
+	}
+	catch( genfile::BadArgumentError const& ) {
+		TEST_ASSERT(0) ;
+	}
+
+	try {
+		VCFEntryType::Spec spec ;
+		spec[ "ID" ] = GT ;
+		spec[ "Number" ] = "." ;
+		spec[ "Type" ] = "Integer" ;
+		spec[ "Description" ] = "A test" ;
+		VCFEntryType::create( spec ) ;
+		TEST_ASSERT(0) ;
+	}
+	catch( genfile::BadArgumentError const& ) {}
+
+	try {
+		VCFEntryType::Spec spec ;
+		spec[ "ID" ] = GT ;
+		spec[ "Number" ] = "2" ;
+		spec[ "Type" ] = "Integer" ;
+		spec[ "Description" ] = "A test" ;
+		VCFEntryType::create( spec ) ;
+		TEST_ASSERT(0) ;
+	}
+	catch( genfile::BadArgumentError const& ) {}
+
+	try {
+		VCFEntryType::Spec spec ;
+		spec[ "ID" ] = GT ;
+		spec[ "Number" ] = "1" ;
+		spec[ "Type" ] = "String" ;
+		spec[ "Description" ] = "A test" ;
+		VCFEntryType::create( spec ) ;
+		TEST_ASSERT(0) ;
+	}
+	catch( genfile::BadArgumentError const& ) {}
+
+	try {
+		VCFEntryType::Spec spec ;
+		spec[ "ID" ] = GT ;
+		spec[ "Number" ] = "1" ;
+		spec[ "Type" ] = "Float" ;
+		spec[ "Description" ] = "A test" ;
+		VCFEntryType::create( spec ) ;
+		TEST_ASSERT(0) ;
+	}
+	catch( genfile::BadArgumentError const& ) {}
+
+	try {
+		VCFEntryType::Spec spec ;
+		spec[ "ID" ] = GT ;
+		spec[ "Number" ] = "1" ;
+		spec[ "Type" ] = "Flag" ;
+		spec[ "Description" ] = "A test" ;
+		VCFEntryType::create( spec ) ;
+		TEST_ASSERT(0) ;
+	}
+	catch( genfile::BadArgumentError const& ) {}	
+}
 
 AUTO_TEST_MAIN {
 	test_string() ;
@@ -738,4 +809,5 @@ AUTO_TEST_MAIN {
 	test_one_per_alternate_allele_entry_type() ;
 	test_one_per_genotype_entry_type() ;
 	test_genotype_call_entry_type() ;
+	test_gt_spec() ;
 }
