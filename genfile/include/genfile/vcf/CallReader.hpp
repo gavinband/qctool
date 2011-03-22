@@ -23,12 +23,10 @@ namespace genfile {
 		//		( "GQ", set_genotype_qualities )
 		//		( "GI", set_genotype_intensities ) ;
 		//
-		// Setters passed as second argument must take a vector of Entry values.
-		//
 		{
 		private:
 			typedef boost::function< void ( std::size_t i, std::vector< Entry > const& ) > Setter ;
-			typedef std::multimap< std::size_t, Setter > Setters ;
+			typedef std::multimap< std::size_t, std::pair< Setter, VCFEntryType const* > > Setters ;
 		public:
 			CallReader(
 				std::size_t number_of_alleles,

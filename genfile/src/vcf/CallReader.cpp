@@ -38,9 +38,8 @@ namespace genfile {
 				}
 				return result ;
 			}
-
-			
 		}
+		
 		CallReader::CallReader(
 			std::size_t number_of_alleles,
 			std::string const& format,
@@ -66,12 +65,16 @@ namespace genfile {
 				throw BadArgumentError( "genfile::vcf::CallReader::operator()", "spec = \"" + spec + "\"" ) ;
 			}
 			std::vector< std::string >::const_iterator where = std::find( m_format_elts.begin(), m_format_elts.end(), spec ) ;
-			m_setters.insert( std::make_pair( where - m_format_elts.begin(), setter )) ;
+			m_setters.insert( std::make_pair( where - m_format_elts.begin(), std::make_pair( setter, entry_type_i->second ))) ;
 			return *this ;
 		}
 
 		CallReader::~CallReader() {
-			set_values( string_utils::slice( m_data ).split( "\t" ), m_setters ) ;
+			// The case of empty data is special:
+			// It is not one individual with empty (hence malformed) data, it is no individuals at all.
+			if( m_data.size() > 0 ) {
+				set_values( string_utils::slice( m_data ).split( "\t" ), m_setters ) ;
+			}
 		}
 
 		void CallReader::set_values( std::vector< string_utils::slice > const& elts, Setters const& setters ) const {
@@ -82,7 +85,7 @@ namespace genfile {
 		
 		void CallReader::set_values( std::size_t individual_i, string_utils::slice const& elt, Setters const& setters ) const {
 			std::vector< string_utils::slice > components = elt.split( ":" ) ;
-			if( components.empty() || components.size() > m_entries_by_position.size() ) {
+			if( components.empty() || components.size() > m_format_elts.size() ) {
 				throw MalformedInputError( "(data)", 0, individual_i ) ;
 			}
 			
@@ -94,11 +97,11 @@ namespace genfile {
 				Setters::const_iterator i = m_setters.begin(), end_i = m_setters.end() ;
 				for( ; i != end_i; ++i ) {
 					std::size_t element_pos = i->first ;
-					if( element_pos >= components.size() ) {
-						i->second.operator()( individual_i, m_entries_by_position[ element_pos ]->get_missing_value( m_number_of_alleles, ploidy ) ) ;
+					if( element_pos >= components.size() || element_pos >= m_format_elts.size() ) {
+						i->second.first.operator()( individual_i, i->second.second->get_missing_value( m_number_of_alleles, ploidy ) ) ;
 					}
 					else {
-						i->second.operator()( individual_i, m_entries_by_position[ element_pos ]->parse( components[ element_pos ], m_number_of_alleles, ploidy )) ;
+						i->second.first.operator()( individual_i, i->second.second->parse( components[ element_pos ], m_number_of_alleles, ploidy )) ;
 					}
 				}
 			}
