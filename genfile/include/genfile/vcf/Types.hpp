@@ -120,7 +120,7 @@ namespace genfile {
 		} ;
 		
 		struct GenotypeCallVCFEntryType: public VCFEntryType {
-			GenotypeCallVCFEntryType( SimpleType::UniquePtr type ): VCFEntryType( type ) {} ;
+			GenotypeCallVCFEntryType() ;
 
 			std::vector< string_utils::slice > lex( std::string const& value, std::size_t number_of_alleles, std::size_t ploidy ) const ;
 			std::vector< string_utils::slice > lex( std::string const& value, std::size_t number_of_alleles ) const ;
@@ -128,8 +128,8 @@ namespace genfile {
 			std::vector< Entry > get_missing_value( std::size_t number_of_alleles ) const ;
 
 			// A special use of the genotype call is to infer ploidy for the other data.
-			// To support this we give them their own extra parse function which does not
-			// take the ploidy as an argument.
+			// For this use we need to specialise the parse() function.
+			using VCFEntryType::parse ;
 			std::vector< Entry > parse( std::string const& value, std::size_t number_of_alleles ) const ;
 		} ;
 

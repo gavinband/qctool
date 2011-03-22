@@ -81,7 +81,7 @@ namespace genfile {
 					if( number->second != "." || type->second != "Integer" ) {
 						throw BadArgumentError( "genfile::vcf::VCFEntryType::create()", "spec" ) ;
 					}
-					result.reset( new GenotypeCallVCFEntryType( SimpleType::create( type->second ))) ;
+					result.reset( new GenotypeCallVCFEntryType()) ;
 				}
 				else if( number->second == "A" ) {
 					result.reset( new OnePerAlternateAlleleVCFEntryType( SimpleType::create( type->second ))) ;
@@ -90,8 +90,10 @@ namespace genfile {
 					result.reset( new OnePerGenotypeVCFEntryType( SimpleType::create( type->second ))) ;
 				}
 				else if( number->second == "." ) {
-					new DynamicNumberVCFEntryType(
-						SimpleType::create( type->second )
+					result.reset(
+						new DynamicNumberVCFEntryType(
+							SimpleType::create( type->second )
+						)
 					) ;
 				}
 				else {
@@ -131,8 +133,13 @@ namespace genfile {
 				return result ;
 			}
 			
-			std::vector< string_utils::slice > ListVCFEntryType::lex( std::string const& value, std::size_t number_of_alleles, std::size_t ) const {
-				return lex( value, number_of_alleles ) ;
+			std::vector< string_utils::slice > ListVCFEntryType::lex( std::string const& value, std::size_t number_of_alleles, std::size_t ploidy ) const {
+				std::vector< string_utils::slice > result = string_utils::slice( value ).split( "," ) ;
+				ValueCountRange range = get_value_count_range( number_of_alleles, ploidy ) ;
+				if( result.size() < range.first || result.size() > range.second ) {
+					throw BadArgumentError( "genfile::vcf::ListVCFEntryType::lex()", "value = \"" + value + "\"" ) ;
+				}
+				return result ;
 			}
 
 			std::vector< string_utils::slice > ListVCFEntryType::lex( std::string const& value, std::size_t number_of_alleles ) const {
@@ -166,16 +173,52 @@ namespace genfile {
 				std::size_t n_choose_k( std::size_t const n, std::size_t const k ) {
 					// calculate n choose k, assuming no overflow, using the
 					// multiplicative formula given on http://en.wikipedia.org/wiki/Binomial_coefficient
-					double result = 0 ;
+					double result = 1.0 ;
 					for( std::size_t i = 1; i <= k; ++i ) {
-						result *= double( n - k - i ) / double( i ) ;
+						result *= double( n - k + i ) / double( i ) ;
 					}
-					return std::size_t( result ) ;
+					return result ;
+				}
+				
+				std::size_t get_number_of_unphased_genotypes( std::size_t const n_alleles, std::size_t const ploidy ) {
+					// The number is equal to the number of ways to fill an n-vector
+					// (where n is the number of alleles)
+					// with nonnegative integers so that the sum is the ploidy.
+					// This has a recursive expression involving filling the first
+					// entry and then filling the others.
+					// There is one special case: if the ploidy is zero, there are no genotypes at all.
+					assert( n_alleles > 0 ) ;
+					if( ploidy == 0 || n_alleles == 1 ) {
+						return 1 ;
+					}
+					std::size_t result = 0 ;
+					for( std::size_t i = 0; i <= ploidy; ++i ) {
+						result += get_number_of_unphased_genotypes( n_alleles - 1, ploidy - i ) ;
+					}
+					return result ;
+				}
+
+				std::size_t get_number_of_phased_genotypes( std::size_t n_alleles, std::size_t ploidy ) {
+					// The number is (number of alleles)^(ploidy)
+					// except that if the ploidy is zero we report 0 phased genotypes, consistent
+					// with 0 unphased genotypes.
+					if( ploidy == 0 ) {
+						return 0 ;
+					}
+					std::size_t result = 1 ;
+					for( std::size_t i = 0; i < ploidy; ++i ) {
+						result *= n_alleles ;
+					}
+					return result ;
 				}
 			}
 			
 			ListVCFEntryType::ValueCountRange OnePerGenotypeVCFEntryType::get_value_count_range( std::size_t number_of_alleles, std::size_t ploidy ) const {
-				std::size_t N = impl::n_choose_k( number_of_alleles, ploidy ) ;
+				if( number_of_alleles == 0 && ploidy > 0 ) {
+					throw BadArgumentError( "genfile::vcf::OnePerGenotypeVCFEntryType::get_value_count_range()", "number_of_alleles = 0" ) ;
+				}
+				std::size_t N = ( ploidy == 0 ) ? 0 : impl::get_number_of_unphased_genotypes( number_of_alleles, ploidy ) ;
+				//std::cerr << "number_of_alleles = " << number_of_alleles << ", ploidy = " << ploidy << ", N = " << N << ".\n" ;
 				return ValueCountRange( N, N ) ;
 			}
 			
@@ -183,6 +226,10 @@ namespace genfile {
 				// OnePerGenotypeVCFEntryType requires the ploidy.
 				assert(0) ;
 			}
+			
+			GenotypeCallVCFEntryType::GenotypeCallVCFEntryType():
+				VCFEntryType( SimpleType::create( "Integer" ))
+			{}
 			
 			std::vector< string_utils::slice > GenotypeCallVCFEntryType::lex( std::string const& value, std::size_t, std::size_t ploidy ) const {
 				std::vector< string_utils::slice > elts = string_utils::slice( value ).split( "|/" ) ;
@@ -208,12 +255,20 @@ namespace genfile {
 				std::string const& value,
 				std::size_t number_of_alleles
 			) const {
-				std::vector< Entry > result = parse_elts( string_utils::slice( value ).split( "|/" ) ) ;
-				assert( number_of_alleles > 0 ) ;
-				Entry max( int( number_of_alleles - 1 ) ) ;
-				for( std::size_t i = 0; i < result.size(); ++i ) {
-					if( max < result[ i ] ) {
+				if( number_of_alleles == 0 ) {
+					if( value != "" ) {
 						throw BadArgumentError( "genfile::vcf::GenotypeCallVCFEntryType::parse()", "value = \"" + value + "\"" ) ;
+					}
+					return std::vector< Entry >() ;
+				}
+				std::vector< Entry > result = parse_elts( string_utils::slice( value ).split( "|/" ) ) ;
+				int max = number_of_alleles - 1 ;
+				for( std::size_t i = 0; i < result.size(); ++i ) {
+					if( !result[i].is_missing() ) {
+						int v = result[i].as< int >() ;
+						if( v < 0 || v > max ) {
+							throw BadArgumentError( "genfile::vcf::GenotypeCallVCFEntryType::parse()", "value = \"" + value + "\"" ) ;
+						}
 					}
 				}
 				return result ;

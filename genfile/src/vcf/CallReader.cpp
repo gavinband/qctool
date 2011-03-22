@@ -57,13 +57,7 @@ namespace genfile {
 				throw BadArgumentError( "genfile::vcf::CallReader::CallReader()", "number_of_alleles = " + string_utils::to_string( number_of_alleles ) ) ;
 			}
 
-			m_genotype_entry_type.reset(
-			 	new GenotypeCallVCFEntryType(
-					SimpleType::UniquePtr(
-						new IntegerType()
-					)
-				)
-			) ;
+			m_genotype_entry_type.reset( new GenotypeCallVCFEntryType ) ;
 		}
 
 		CallReader& CallReader::operator()( std::string const& spec, Setter setter ) {
