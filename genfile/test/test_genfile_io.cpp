@@ -3,16 +3,7 @@
 #include <sstream>
 #include <cassert>
 #include <fstream>
-#include "../config.hpp"
-#if HAVE_BOOST_UNIT_TEST
-	#define BOOST_AUTO_TEST_MAIN
-	#include "boost/test/auto_unit_test.hpp"
-	#define AUTO_TEST_CASE( param ) BOOST_AUTO_TEST_CASE(param)
-	#define TEST_ASSERT( param ) BOOST_ASSERT( param )
-#else
-	#define AUTO_TEST_CASE( param ) void param()
-	#define TEST_ASSERT( param ) assert( param )
-#endif
+#include "test_case.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/GenFileSNPDataSource.hpp"
 #include "genfile/BGenFileSNPDataSource.hpp"
@@ -358,11 +349,7 @@ AUTO_TEST_CASE( test_formats ) {
 	}
 }
 
-#ifndef HAVE_BOOST_UNIT_TEST
-
-int main( int argc, char** argv ) {
+AUTO_TEST_MAIN {
 	test_formats() ;
 }
-
-#endif
 

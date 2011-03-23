@@ -134,63 +134,78 @@ AUTO_TEST_CASE( test_split ) {
 	std::cerr << "test_split()..." ;
 
 	{
-		std::string const test_string = "" ;
-		std::vector< slice > elts = slice( test_string ).split( "," ) ;
-		TEST_ASSERT( elts.size() == 0 ) ;
-	}	
-
-	{
-		std::string const test_string = "" ;
-		std::vector< slice > elts = slice( test_string ).split( ",\t" ) ;
-		TEST_ASSERT( elts.size() == 0 ) ;
-	}	
-
-	{
-		std::string const test_string = "," ;
-		std::vector< slice > elts = slice( test_string ).split( "," ) ;
-		TEST_ASSERT( elts.size() == 2 ) ;
-		TEST_ASSERT( elts[0] == "" ) ;
-		TEST_ASSERT( elts[1] == "" ) ;
-	}	
-
-	{
-		std::string const test_string = "Hello,This, is me, and\tI, am A" ;
-		std::vector< slice > elts = slice( test_string ).split( "," ) ;
-		TEST_ASSERT( elts.size() == 5 ) ;
-		TEST_ASSERT( elts[0] == "Hello" ) ;
-		TEST_ASSERT( elts[1] == "This" ) ;
-		TEST_ASSERT( elts[2] == " is me" ) ;
-		TEST_ASSERT( elts[3] == " and\tI" ) ;
-		TEST_ASSERT( elts[4] == " am A" ) ;
-	}	
-
-	{
-		std::string const test_string = "Hello,This, is me, and\tI, am A" ;
-		std::vector< slice > elts = slice( test_string ).split( ",\t" ) ;
-		TEST_ASSERT( elts.size() == 6 ) ;
-		TEST_ASSERT( elts[0] == "Hello" ) ;
-		TEST_ASSERT( elts[1] == "This" ) ;
-		TEST_ASSERT( elts[2] == " is me" ) ;
-		TEST_ASSERT( elts[3] == " and" ) ;
-		TEST_ASSERT( elts[4] == "I" ) ;
-		TEST_ASSERT( elts[5] == " am A" ) ;
-	}	
-
-	{
-		std::string const test_string = "Hello,This, is me, and\tI, am A" ;
-		std::vector< slice > elts = slice( test_string ).split( ",\tl" ) ;
-		TEST_ASSERT( elts.size() == 8 ) ;
-		TEST_ASSERT( elts[0] == "He" ) ;
-		TEST_ASSERT( elts[1] == "" ) ;
-		TEST_ASSERT( elts[2] == "o" ) ;
-		TEST_ASSERT( elts[3] == "This" ) ;
-		TEST_ASSERT( elts[4] == " is me" ) ;
-		TEST_ASSERT( elts[5] == " and" ) ;
-		TEST_ASSERT( elts[6] == "I" ) ;
-		TEST_ASSERT( elts[7] == " am A" ) ;
+		std::string data = "" ;
+		std::vector< slice > expected ;
+		expected.push_back( data ) ;
+		TEST_ASSERT( expected == slice( data ).split( "," )) ;
+		TEST_ASSERT( expected == slice( data ).split( ":" )) ;
 	}
+	{
+		std::string data = "hello" ;
+		std::vector< slice > expected ;
+		expected.push_back( data ) ;
+		TEST_ASSERT( expected == slice( data ).split( "," )) ;
+	}
+	{
+		std::string data = "hello,there" ;
+		std::vector< slice > expected ;
+		expected.push_back( slice( data, 0, 5 )) ;
+		expected.push_back( slice( data, 6, 11 )) ;
+		TEST_ASSERT( expected == slice( data ).split( "," )) ;
+	}
+	{
+		std::string data = "hello,there, you" ;
+		std::vector< slice > expected ;
+		expected.push_back( slice( data, 0, 5 ) ) ;
+		expected.push_back( slice( data, 6, 11 ) ) ;
+		expected.push_back( slice( data, 12, 16 ) ) ;
+		TEST_ASSERT( expected == slice( data ).split( "," )) ;
+	}
+	{
+		std::string data = "hello,there, you, beautiful\t#" ;
+		std::vector< slice > expected ;
+		expected.push_back( slice( data, 0, 5 ) ) ;
+		expected.push_back( slice( data, 6, 11 ) ) ;
+		expected.push_back( slice( data, 12, 16 ) ) ;
+		expected.push_back( slice( data, 17, 29 ) ) ;
+		TEST_ASSERT( expected == slice( data ).split( "," )) ;
+	}
+	{
+		std::string data = "hello,there, you, beautiful\t#" + std::string( 1, 0 ) + "creature" ;
+		std::vector< slice > expected ;
+		expected.push_back( slice( data, 0, 5 ) ) ;
+		expected.push_back( slice( data, 6, 11 ) ) ;
+		expected.push_back( slice( data, 12, 16 ) ) ;
+		expected.push_back( slice( data, 17, data.size() ) ) ;
+		TEST_ASSERT( expected == slice( data ).split( "," )) ;
+	}
+
+	{
+		std::string data = "hello,there, you, beautiful\t#" + std::string( 1, 0 ) + "creature" ;
+		std::vector< slice > expected ;
+		expected.push_back( slice( data, 0, 5 ) ) ;
+		expected.push_back( slice( data, 6, 11 ) ) ;
+		expected.push_back( slice( data, 12, 16 ) ) ;
+		expected.push_back( slice( data, 17, 29 ) ) ;
+		expected.push_back( slice( data, 30, data.size() ) ) ;
+		TEST_ASSERT( expected == slice( data ).split( std::string( "," ) + std::string( 1, 0 ) )) ;
+	}
+
+	{
+		std::string data = "hello,there, you, beautiful\t#" + std::string( 1, 0 ) + "creature" ;
+		std::vector< slice > expected ;
+		expected.push_back( slice( data, 0, 5 ) ) ;
+		expected.push_back( slice( data, 6, 11 ) ) ;
+		expected.push_back( slice( data, 12, 16 ) ) ;
+		expected.push_back( slice( data, 17, 27 ) ) ;
+		expected.push_back( slice( data, 28, 29 ) ) ;
+		expected.push_back( slice( data, 30, data.size() ) ) ;
+		TEST_ASSERT( expected == slice( data ).split( std::string( ",\t" ) + std::string( 1, 0 ) )) ;
+	}
+
 	std::cerr << "ok.\n" ;
 }
+
 
 AUTO_TEST_MAIN {
 	test_constructors() ;

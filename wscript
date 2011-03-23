@@ -52,12 +52,14 @@ def check_for_boost_components( conf ):
 		check_for_boost_lib( conf, 'filesystem', min_version='1.36', uselib="BOOST_FILESYSTEM" )
 		check_for_boost_lib( conf, 'system', min_version='1.36', uselib="BOOST_SYSTEM" )
 		check_for_boost_lib( conf, 'thread', min_version='1.36', uselib="BOOST_THREAD" )
+		check_for_boost_lib( conf, 'unit_test_framework', min_version='1.36', uselib = "BOOST_UNIT_TEST" )
 
 def check_for_boost_headers( conf, min_version ):
 	if conf.check_boost( min_version = min_version ):
 		conf.define( 'HAVE_BOOST_TIMER', 1 )
 		conf.define( 'HAVE_BOOST_MATH', 1 )
 		conf.define( 'HAVE_BOOST_FUNCTION', 1 )
+		conf.define( 'BOOST_TEST_DYN_LINK', 1 )
 		return True
 	return False
 
@@ -67,7 +69,7 @@ def check_for_boost_lib( conf, lib, min_version, uselib ):
 		print "Looking for static", lib
 	else:
 		static_selector = 'nostatic'
-	if conf.check_boost( lib = lib, min_version = min_version, static=static_selector, uselib = uselib ):
+	if conf.check_boost( lib = lib, min_version = min_version, static = static_selector, uselib = uselib ):
 		conf.define( 'HAVE_' + uselib, 1 )
 
 def check_for_zlib( conf ):
@@ -200,6 +202,7 @@ def create_test( bld, name ):
 		source = [  'test/' + name + '.cpp' ],
 		uselib_local = 'gen-tools-lib gen-tools-exception genfile appcontext string_utils',
 		includes='./include ./genfile/include',
+		uselib = 'BOOST_UNIT_TEST_FRAMEWORK',
 		unit_test=1,
 		install_path=None
 	)

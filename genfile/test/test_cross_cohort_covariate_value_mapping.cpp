@@ -3,12 +3,11 @@
 #include <iostream>
 #include <sstream>
 #include <cmath>
+#include "test_case.hpp"
 #include "genfile/TraditionalStrictCohortIndividualSource.hpp"
 #include "genfile/CrossCohortCovariateValueMapping.hpp"
 #include "genfile/string_utils.hpp"
 #include <cassert>
-
-#define TEST_ASSERT( thing ) assert( thing )
 
 struct CategoricalValueMappingTester
 {
@@ -418,8 +417,7 @@ struct NormalisingValueMappingTester
 	}
 } ;
 
-
-int main() {
+AUTO_TEST_MAIN {
 	CategoricalValueMappingTester tester1 ;
 	ContinuousValueMappingTester tester2 ;
 	NormalisingValueMappingTester tester3 ;	

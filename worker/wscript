@@ -11,7 +11,7 @@ def create_test( bld, name ):
 		target = name,
 		source = [  'test/' + name + '.cpp' ],
 		uselib_local = 'worker',
-		uselib = 'BOOST_THREAD',
+		uselib = 'BOOST_THREAD BOOST_UNIT_TEST_FRAMEWORK',
 		includes='./include',
 		unit_test=1
 	)

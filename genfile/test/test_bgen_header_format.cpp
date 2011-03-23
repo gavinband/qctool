@@ -2,16 +2,8 @@
 #include <iomanip>
 #include <sstream>
 #include <cassert>
-#include "../config.hpp"
-#if HAVE_BOOST_UNIT_TEST
-	#define BOOST_AUTO_TEST_MAIN
-	#include "boost/test/auto_unit_test.hpp"
-	#define AUTO_TEST_CASE( param ) BOOST_AUTO_TEST_CASE(param)
-	#define TEST_ASSERT( param ) BOOST_ASSERT( param )
-#else
-	#define AUTO_TEST_CASE( param ) void param()
-	#define TEST_ASSERT( param ) assert( param )
-#endif
+#include "test_case.hpp"
+#include "genfile/string_utils/hex.hpp"
 #include "genfile/bgen.hpp"
 #include "stdint.h"
 
@@ -33,16 +25,6 @@ namespace data {
 		write_little_endian_integer( oStream, flags ) ;
 
 		return oStream.str() ;
-	}
-
-	std::string to_hex( std::string const& str ) {
-		std::ostringstream o ;
-		for( std::size_t i = 0; i < str.size(); ++i ) {
-			if( i % 4 == 0 )
-				o << "|" ;
-			o << std::hex << std::setw(2) << std::setfill('0') << static_cast<int> (str[i]) ;
-		}
-		return o.str() ;
 	}
 }
 
@@ -116,8 +98,8 @@ void do_header_block_write_test(
 		flags
 	) ;
 	
-	std::cout << "\"" << data::to_hex( outStream.str() ) << "\"\n" ;
-	std::cout << "\"" << data::to_hex( expected ) << "\"\n" ;
+	std::cout << "\"" << genfile::string_utils::to_hex( outStream.str() ) << "\"\n" ;
+	std::cout << "\"" << genfile::string_utils::to_hex( expected ) << "\"\n" ;
 
 	TEST_ASSERT( outStream.str() == expected ) ;
 }
@@ -137,12 +119,8 @@ AUTO_TEST_CASE( test_header_block_output ) {
 	do_header_block_write_test( 0, 0, "", 1 ) ;
 }
 
-#ifndef HAVE_BOOST_UNIT_TEST
-
-int main( int argc, char** argv ) {
+AUTO_TEST_MAIN {
 	test_header_block_input() ;
 	test_header_block_output() ;
 }
-
-#endif
 

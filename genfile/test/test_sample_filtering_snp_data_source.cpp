@@ -177,11 +177,7 @@ AUTO_TEST_CASE( test_sample_filtering_snp_data_source ) {
 	std::cout << "==== success ====\n" ;
 }
 
-#ifndef HAVE_BOOST_UNIT_TEST
-
-int main( int argc, char** argv ) {
+AUTO_TEST_MAIN {
 	test_sample_filtering_snp_data_source() ;
 }
-
-#endif
 

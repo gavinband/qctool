@@ -142,7 +142,7 @@ void test_newton_raphson_nd_2() {
 	}
 }
 
-int main(){
+AUTO_TEST_MAIN {
 	test_newton_raphson_1d() ;
 	test_newton_raphson_nd_1() ;
 	test_newton_raphson_nd_2() ;

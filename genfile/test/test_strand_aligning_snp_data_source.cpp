@@ -3,16 +3,7 @@
 #include <sstream>
 #include <cassert>
 #include <fstream>
-#include "../config.hpp"
-#if HAVE_BOOST_UNIT_TEST
-	#define BOOST_AUTO_TEST_MAIN
-	#include "boost/test/auto_unit_test.hpp"
-	#define AUTO_TEST_CASE( param ) BOOST_AUTO_TEST_CASE(param)
-	#define TEST_ASSERT( param ) BOOST_ASSERT( param )
-#else
-	#define AUTO_TEST_CASE( param ) void param()
-	#define TEST_ASSERT( param ) assert( param )
-#endif
+#include "test_case.hpp"
 #include "genfile/GenFileSNPDataSource.hpp"
 #include "genfile/GenFileSNPDataSink.hpp"
 #include "genfile/StrandAligningSNPDataSource.hpp"
@@ -225,12 +216,8 @@ AUTO_TEST_CASE( test_create_strand_alignments ) {
 	std::cerr << "ok.\n" ;
 }
 
-#ifndef HAVE_BOOST_UNIT_TEST
-
-int main( int argc, char** argv ) {
+AUTO_TEST_MAIN {
 	test_create_strand_alignments() ;
 	test_strand_aligning_snp_data_source() ;
 }
-
-#endif
 

@@ -2,11 +2,10 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include "test_case.hpp"
 #include "genfile/TraditionalStrictCohortIndividualSource.hpp"
 #include "genfile/CategoricalCohortIndividualSource.hpp"
 #include <cassert>
-
-#define TEST_ASSERT( thing ) assert( thing )
 
 typedef boost::function< genfile::CohortIndividualSource::UniquePtr ( std::istream&, std::string const& ) > SourceConstructor ;
 genfile::CohortIndividualSource::UniquePtr create_strict_source( std::istream& stream, std::string const& missing_values ) {
@@ -582,6 +581,10 @@ struct TraditionalStrictCohortIndividualSourceTester
 	}
 } ;
 
-int main() {
+AUTO_TEST_CASE( all_tests ) {
 	TraditionalStrictCohortIndividualSourceTester tester ;
+}
+
+AUTO_TEST_MAIN {
+	all_tests() ;
 }

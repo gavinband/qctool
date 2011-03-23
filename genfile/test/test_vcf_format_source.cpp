@@ -48,12 +48,12 @@ namespace data {
 	;
 }
 
-void test_against_cvcft(
+void perform_test_against_cvcft(
 	std::string const& data,
 	std::size_t const number_of_lines,
 	std::string const& key,
 	std::size_t const number_of_probs_per_snp
-)  {
+) {
 	using namespace data ;
 	{
 		std::vector< genfile::SNPIdentifyingData > cvcft_snps ;
@@ -120,15 +120,15 @@ void test_against_cvcft(
 
 AUTO_TEST_CASE( test_against_cvcft ) {
 	std::cerr << "test_against_cvcft()..." ;
-	test_against_cvcft( data::metadata4_0 + data::data1, 7, "GL1", 4*3 ) ;
-	test_against_cvcft( data::metadata4_0 + data::data1, 7, "GL3", 4*3 ) ;
-	test_against_cvcft( data::metadata4_0 + data::data2, 5, "GL1", 4*3 ) ;
-	test_against_cvcft( data::metadata4_0 + data::data2, 5, "GL3", 4*3 ) ;
+	perform_test_against_cvcft( data::metadata4_0 + data::data1, 7, "GL1", 4*3 ) ;
+	perform_test_against_cvcft( data::metadata4_0 + data::data1, 7, "GL3", 4*3 ) ;
+	perform_test_against_cvcft( data::metadata4_0 + data::data2, 5, "GL1", 4*3 ) ;
+	perform_test_against_cvcft( data::metadata4_0 + data::data2, 5, "GL3", 4*3 ) ;
 
-	test_against_cvcft( data::metadata4_1 + data::data1, 7, "GL1", 4*3 ) ;
-	test_against_cvcft( data::metadata4_1 + data::data1, 7, "GL3", 4*3 ) ;
-	test_against_cvcft( data::metadata4_1 + data::data2, 5, "GL1", 4*3 ) ;
-	test_against_cvcft( data::metadata4_1 + data::data2, 5, "GL3", 4*3 ) ;
+	perform_test_against_cvcft( data::metadata4_1 + data::data1, 7, "GL1", 4*3 ) ;
+	perform_test_against_cvcft( data::metadata4_1 + data::data1, 7, "GL3", 4*3 ) ;
+	perform_test_against_cvcft( data::metadata4_1 + data::data2, 5, "GL1", 4*3 ) ;
+	perform_test_against_cvcft( data::metadata4_1 + data::data2, 5, "GL3", 4*3 ) ;
 	std::cerr << "ok.\n" ;
 }
 

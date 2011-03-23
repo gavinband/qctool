@@ -2,16 +2,7 @@
 #include <iomanip>
 #include <sstream>
 #include <cassert>
-#include "../config.hpp"
-#if HAVE_BOOST_UNIT_TEST
-	#define BOOST_AUTO_TEST_MAIN
-	#include "boost/test/auto_unit_test.hpp"
-	#define AUTO_TEST_CASE( param ) BOOST_AUTO_TEST_CASE(param)
-	#define TEST_ASSERT( param ) BOOST_ASSERT( param )
-#else
-	#define AUTO_TEST_CASE( param ) void param()
-	#define TEST_ASSERT( param ) assert( param )
-#endif
+#include "test_case.hpp"
 #include "genfile/bgen.hpp"
 #include "stdint.h"
 
@@ -49,16 +40,6 @@ namespace data {
 		}
 
 		return oStream.str() ;
-	}
-	
-	std::string to_hex( std::string const& str ) {
-		std::ostringstream o ;
-		for( std::size_t i = 0; i < str.size(); ++i ) {
-			if( i % 4 == 0 )
-				o << "|" ;
-			o << std::hex << std::setw(2) << std::setfill('0') << static_cast<int> (str[i]) ;
-		}
-		return o.str() ;
 	}
 }
 
@@ -195,8 +176,8 @@ void do_snp_block_write_test(
 		b
 		) ;
 	
-	// std::cout << "\"" << data::to_hex( outStream.str() ) << "\"\n" ;
-	// std::cout << "\"" << data::to_hex( expected ) << "\"\n" ;
+	// std::cout << "\"" << genfile::string_utils::to_hex( outStream.str() ) << "\"\n" ;
+	// std::cout << "\"" << genfile::string_utils::to_hex( expected ) << "\"\n" ;
 
 	TEST_ASSERT( outStream.str() == expected ) ;
 }
@@ -214,12 +195,8 @@ AUTO_TEST_CASE( test_snp_block_output ) {
 	do_snp_block_write_test( 1000, 50, "01234567890123456789012345678901234567890123456789", "01234567890123456789012345678901234567890123456789", genfile::Chromosome22, 4294967295u, 'G', 'T' ) ;
 }
 
-#ifndef HAVE_BOOST_UNIT_TEST
-
-int main( int argc, char** argv ) {
+AUTO_TEST_MAIN {
 	test_snp_block_input() ;
 	test_snp_block_output() ;
 }
-
-#endif
 

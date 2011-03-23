@@ -11,6 +11,7 @@ def create_test( bld, name ):
 		target = name,
 		source = [  'test/' + name + '.cpp' ],
 		uselib_local = 'integration',
+		uselib = 'BOOST_UNIT_TEST_FRAMEWORK',
 		includes='./include',
 		unit_test=1,
 		install_path = None

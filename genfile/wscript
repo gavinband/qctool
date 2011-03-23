@@ -9,8 +9,21 @@ def create_test( bld, name ):
 	bld.new_task_gen(
 		features = 'cxx cprogram',
 		target = name,
-		source = [  'test/' + name + '.cpp' ],
+		source = [  'test/' + name + '.cpp', 'test/test_case.cpp' ],
 		uselib_local = 'genfile',
+		uselib = 'BOOST_UNIT_TEST_FRAMEWORK',
+		includes='./include',
+		unit_test=1,
+		install_path=None
+	)
+
+def create_tests( bld ):
+	bld.new_task_gen(
+		features = 'cxx cprogram',
+		target = 'all_tests',
+		source = bld.glob( 'test/*.cpp' ),
+		uselib_local = 'genfile',
+		uselib = 'BOOST_UNIT_TEST_FRAMEWORK',
 		includes='./include',
 		unit_test=1,
 		install_path=None
@@ -42,12 +55,12 @@ def build( bld ):
 		uselib = 'ZLIB BOOST BOOST_IOSTREAMS BOOST_SYSTEM BOOST_FILESYSTEM',
 		export_incdirs = './include'
 	)
-	
+
 	create_test( bld, 'test_string_utils' )
 	create_test( bld, 'test_cohort_individual_source' )
 	create_test( bld, 'test_sample_filtering_cohort_individual_source' )
 	create_test( bld, 'test_cross_cohort_covariate_value_mapping' )
-
+    
 	create_test( bld, 'test_bgen_header_format' )
 	create_test( bld, 'test_bgen_snp_format' )
 	create_test( bld, 'test_genfile_io' )
@@ -61,5 +74,7 @@ def build( bld ):
 	create_test( bld, 'test_vcf_format_source' )
 	create_test( bld, 'test_vcf_types' )
 	create_test( bld, 'test_vcf_call_reader' )
+
+	#create_tests( bld )
 
 	create_benchmark( bld, 'benchmark-io' )

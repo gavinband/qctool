@@ -2,11 +2,10 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include "test_case.hpp"
 #include "genfile/CategoricalCohortIndividualSource.hpp"
 #include "genfile/SampleFilteringCohortIndividualSource.hpp"
 #include <cassert>
-
-#define TEST_ASSERT( thing ) assert( thing )
 
 struct SampleFilteringCohortIndividualSourceTester
 {
@@ -88,6 +87,6 @@ struct SampleFilteringCohortIndividualSourceTester
 	
 } ;
 
-int main() {
+AUTO_TEST_MAIN {
 	SampleFilteringCohortIndividualSourceTester tester ;
 }
