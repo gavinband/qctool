@@ -84,7 +84,7 @@ int CVCFT :: ReadNext(void) {
 		bf = (char*)calloc(line.size() + 10, sizeof(char));
 		strcpy(bf, line.c_str());
 
-		ikeyid = -1 ;
+		ikeyid = std::numeric_limits< int >::max() ;
 
 		split(bf, '\t', data);
 		//      printf("key = %s, data = %s\n", keyid.c_str(), data[8]);
@@ -94,7 +94,7 @@ int CVCFT :: ReadNext(void) {
 
 		for (int i = 0; i != (int) ts.size(); ++i)
 			if (strcmp(ts[i], keyid.c_str()) == 0) ikeyid = i;
-		if (ikeyid == -1)  return 0;
+		//if (ikeyid == -1)  return 0;
 		if (strlen(data[3]) > 1 || strlen(data[4]) > 1)	return 0;  //not biallele
 		else       return 1;
 	}

@@ -91,17 +91,23 @@ namespace genfile {
 			
 			// First read the genotype calls, which must be present.
 			try {
-				std::size_t ploidy = m_genotype_entry_type->parse( components[0], m_number_of_alleles ).size() ;
+				std::vector< Entry > const& genotype_calls = m_genotype_entry_type->parse( components[0], m_number_of_alleles ) ;
+				std::size_t const ploidy = genotype_calls.size() ;
 
 				Setters::const_iterator i = m_setters.begin(), end_i = m_setters.end() ;
 				for( ; i != end_i; ++i ) {
 					std::size_t element_pos = i->first ;
-					bool const entry_is_missing = ( element_pos >= components.size() || element_pos >= m_format_elts.size() ) ;
-					if( entry_is_missing ) {
-						i->second.first.operator()( individual_i, i->second.second->get_missing_value( m_number_of_alleles, ploidy ) ) ;
+					if( element_pos == 0 ) {
+						i->second.first.operator()( individual_i, genotype_calls ) ;
 					}
 					else {
-						i->second.first.operator()( individual_i, i->second.second->parse( components[ element_pos ], m_number_of_alleles, ploidy )) ;
+						bool const entry_is_missing = ( element_pos >= components.size() || element_pos >= m_format_elts.size() ) ;
+						if( entry_is_missing ) {
+							i->second.first.operator()( individual_i, i->second.second->get_missing_value( m_number_of_alleles, ploidy ) ) ;
+						}
+						else {
+							i->second.first.operator()( individual_i, i->second.second->parse( components[ element_pos ], m_number_of_alleles, ploidy )) ;
+						}
 					}
 				}
 			}
