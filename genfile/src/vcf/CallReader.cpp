@@ -89,24 +89,42 @@ namespace genfile {
 				throw MalformedInputError( "(data)", 0, individual_i ) ;
 			}
 			
-			// First read the genotype calls, which must be present.
 			try {
-				std::vector< Entry > const& genotype_calls = m_genotype_entry_type->parse( components[0], m_number_of_alleles ) ;
-				std::size_t const ploidy = genotype_calls.size() ;
+				// We will lazily parse the genotype calls.
+				// i.e. only parse them if they are needed.
+				std::vector< Entry > genotype_calls ;
+				std::size_t ploidy = 0 ;
 
 				Setters::const_iterator i = m_setters.begin(), end_i = m_setters.end() ;
 				for( ; i != end_i; ++i ) {
 					std::size_t element_pos = i->first ;
 					if( element_pos == 0 ) {
+						if( genotype_calls.empty() ) {
+							genotype_calls = m_genotype_entry_type->parse( components[0], m_number_of_alleles ) ;
+							ploidy = genotype_calls.size() ;
+						}
 						i->second.first.operator()( individual_i, genotype_calls ) ;
 					}
-					else {
+					else if( i->second.second->check_if_requires_ploidy() ) {
+						if( genotype_calls.empty() ) {
+							genotype_calls = m_genotype_entry_type->parse( components[0], m_number_of_alleles ) ;
+							ploidy = genotype_calls.size() ;
+						}
 						bool const entry_is_missing = ( element_pos >= components.size() || element_pos >= m_format_elts.size() ) ;
 						if( entry_is_missing ) {
 							i->second.first.operator()( individual_i, i->second.second->get_missing_value( m_number_of_alleles, ploidy ) ) ;
 						}
 						else {
 							i->second.first.operator()( individual_i, i->second.second->parse( components[ element_pos ], m_number_of_alleles, ploidy )) ;
+						}
+					}
+					else {
+						bool const entry_is_missing = ( element_pos >= components.size() || element_pos >= m_format_elts.size() ) ;
+						if( entry_is_missing ) {
+							i->second.first.operator()( individual_i, i->second.second->get_missing_value( m_number_of_alleles ) ) ;
+						}
+						else {
+							i->second.first.operator()( individual_i, i->second.second->parse( components[ element_pos ], m_number_of_alleles )) ;
 						}
 					}
 				}

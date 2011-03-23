@@ -480,15 +480,6 @@ void test_malformed_format() {
 		spec[ "Description" ] = "Another test type" ;
 		types.insert( ID, VCFEntryType::create( spec )) ;
 	}
-	{
-		std::string const ID = "another_type" ;
-		VCFEntryType::Spec spec ;
-		spec[ "ID" ] = ID ;
-		spec[ "Number" ] = "1" ;
-		spec[ "Type" ] = "String" ;
-		spec[ "Description" ] = "Another test type" ;
-		types.insert( ID, VCFEntryType::create( spec )) ;
-	}
 
 	std::string format = "GT:HQ:another_type" ;
 	for( int c = 0; c < std::numeric_limits< char >::max(); ++c ) {
@@ -668,7 +659,9 @@ AUTO_TEST_CASE( test_simple_gt_values ) {
 
 			try {
 				std::string data = "1|1\t1|" + std::string( 1, c2 ) + "\t" + std::string( 1, c1 ) + "|" + std::string( 1, c2 ) ;
-				CallReader( 5, "GT", data, types ) ;
+
+				CallReader( 5, "GT", data, types )( "GT", Ignore() ) ;
+
 				if( bad_c1 || bad_c2 ) {
 					// std::cerr << "c1 = " << c1 << "('" << char(c1) << "')" << ", c2 = " << c2 << "('" << char(c2) << "').\n" ;
 					TEST_ASSERT(0) ;
@@ -759,7 +752,7 @@ AUTO_TEST_CASE( test_gt_delimiter ) {
 					used_data[ (i*6) + 1 ] = char( c ) ;
 				}
 
-				CallReader( 5, "GT:AT", used_data, types ) ;
+				CallReader( 5, "GT:AT", used_data, types )( "GT", Ignore() ) ;
 
 				if( number_of_individuals > 0 ) {
 					// std::cerr << "data = \"" << data << "\".\n" ;
