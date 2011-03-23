@@ -89,7 +89,10 @@ namespace genfile {
 			if(
 				type == 0
 				|| 
-				type->get_value_count_range( 2, 2 ).first > 3 
+				// We allow either fields with 3 or 4 entries.
+				// (In the latter case the 4th entry is treated as a NULL genotype call).
+				// Here we just check that the entry type's range does not exclude this number of entries.
+				type->get_value_count_range( 2, 2 ).first > 4
 				||
 				type->get_value_count_range( 2, 2 ).second < 3
 			) {
