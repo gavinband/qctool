@@ -1,6 +1,7 @@
 #ifndef GENFILE_VCF_TYPES_HPP
 #define GENFILE_VCF_TYPES_HPP
 
+#include <limits>
 #include <map>
 #include <vector>
 #include <string>
