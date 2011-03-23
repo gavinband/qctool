@@ -71,7 +71,7 @@ namespace genfile {
 
 		CallReader::~CallReader() {
 			// The case of empty data is special:
-			// It is not one individual with empty (hence malformed) data, it is no individuals at all.
+			// It is not one individual with empty data, it is no individuals at all.
 			if( m_data.size() > 0 ) {
 				set_values( string_utils::slice( m_data ).split( "\t" ), m_setters ) ;
 			}
@@ -91,13 +91,13 @@ namespace genfile {
 			
 			// First read the genotype calls, which must be present.
 			try {
-				std::vector< Entry > genotypes = m_genotype_entry_type->parse( components[0], m_number_of_alleles ) ;
-				std::size_t const ploidy = genotypes.size() ;
-			
+				std::size_t ploidy = m_genotype_entry_type->parse( components[0], m_number_of_alleles ).size() ;
+
 				Setters::const_iterator i = m_setters.begin(), end_i = m_setters.end() ;
 				for( ; i != end_i; ++i ) {
 					std::size_t element_pos = i->first ;
-					if( element_pos >= components.size() || element_pos >= m_format_elts.size() ) {
+					bool const entry_is_missing = ( element_pos >= components.size() || element_pos >= m_format_elts.size() ) ;
+					if( entry_is_missing ) {
 						i->second.first.operator()( individual_i, i->second.second->get_missing_value( m_number_of_alleles, ploidy ) ) ;
 					}
 					else {

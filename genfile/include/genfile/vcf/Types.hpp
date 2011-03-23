@@ -61,6 +61,7 @@ namespace genfile {
 
 			virtual std::vector< Entry > get_missing_value( std::size_t number_of_alleles, std::size_t ploidy ) const = 0 ;
 			virtual std::vector< Entry > get_missing_value( std::size_t number_of_alleles ) const = 0 ;
+			virtual bool check_if_requires_ploidy() const = 0 ;
 
 		protected:
 			virtual std::vector< string_utils::slice > lex(
@@ -90,6 +91,7 @@ namespace genfile {
 			typedef std::pair< std::size_t, std::size_t > ValueCountRange ;
 			virtual ValueCountRange get_value_count_range( std::size_t number_of_alleles, std::size_t ploidy ) const ;
 			virtual ValueCountRange get_value_count_range( std::size_t number_of_alleles ) const = 0 ;
+			bool check_if_requires_ploidy() const { return false ; }
 		} ;
 		
 		struct FixedNumberVCFEntryType: public ListVCFEntryType {
@@ -117,6 +119,7 @@ namespace genfile {
 			OnePerGenotypeVCFEntryType( SimpleType::UniquePtr type ): ListVCFEntryType( type ) {} ;
 			ValueCountRange get_value_count_range( std::size_t number_of_alleles, std::size_t ploidy ) const ;
 			ValueCountRange get_value_count_range( std::size_t number_of_alleles ) const ;
+			bool check_if_requires_ploidy() const { return true ; }
 		} ;
 		
 		struct GenotypeCallVCFEntryType: public VCFEntryType {
@@ -126,6 +129,8 @@ namespace genfile {
 			std::vector< string_utils::slice > lex( std::string const& value, std::size_t number_of_alleles ) const ;
 			std::vector< Entry > get_missing_value( std::size_t, std::size_t ploidy ) const ;
 			std::vector< Entry > get_missing_value( std::size_t number_of_alleles ) const ;
+
+			bool check_if_requires_ploidy() const { return true ; }
 
 			// A special use of the genotype call is to infer ploidy for the other data.
 			// For this use we need to specialise the parse() function.
