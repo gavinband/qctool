@@ -304,9 +304,10 @@ namespace genfile {
 			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, 8 ) ;
 		}
 		catch( MalformedInputError const& e ) {
-			// problem with entry
+			// problem with entry.
 			if( e.has_column() ) {
-				throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, e.column() + 8 ) ;
+				// error column is the individual index (starting from 0), we add 9 to get the column number.
+				throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, e.column() + 9 ) ;
 			}
 			else {
 				throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1 ) ;
