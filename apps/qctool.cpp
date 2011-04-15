@@ -329,11 +329,14 @@ private:
 		// -write-sample-excl-list is NOT given
 		// AND EITHER
 		//	 * -sample-stats is given,
-		//   * OR some sample filters are given
+		//   * OR some sample filters are given and not -snp-stats.
 		if( !check_if_option_was_supplied( "-write-sample-excl-list" )
 			&& (
 				check_if_option_was_supplied( "-sample-stats" ) ||
-				check_if_option_was_supplied_in_group( "Sample filtering options" )
+				(
+					check_if_option_was_supplied_in_group( "Sample filtering options" )
+					&& !check_if_option_was_supplied( "-snp-stats" )
+				)
 			)
 		) {
 			if( check_if_option_was_supplied( "-os" )) {
