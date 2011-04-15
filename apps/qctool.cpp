@@ -367,30 +367,27 @@ private:
 
 	std::vector< std::string > construct_output_gen_filenames( std::vector< std::string > const& input_gen_filenames_supplied ) {
 		std::vector< std::string > result( input_gen_filenames_supplied.size(), "" ) ;
-		// We need to produce output gen files if
-		//  * -write-snp-excl-list is not set
-		//  AND EITHER
-		//    * some sample filters are given (but not -write-sample-excl-list)
-		//    * OR some SNP filters are given.
-		if( check_if_option_was_supplied( "-og" )
-			|| (
-				!check_if_option_was_supplied( "-write-snp-excl-list" )
-				&& (
-					(check_if_option_was_supplied_in_group( "Sample filtering options" ) && !check_if_option_was_supplied( "-write-sample-excl-list" ))
-					||
-					check_if_option_was_supplied_in_group( "SNP filtering options" )
-				)
+		// We need to produce output gen files if -og is set.
+		// Otherwise, we use the following heuristic.
+		// If -snp-stats is set, we don't produce a file.
+		// If -write-snp-excl-list is set, we don't produce a file.
+		// Otherwise we produce a file if some sample filters or some SNP filters are given.
+		if( check_if_option_was_supplied( "-og" ) ) {
+			result = get_values< std::string >( "-og" ) ;
+		}
+		else if(
+			!( check_if_option_was_supplied( "-write-snp-excl-list" ) || check_if_option_was_supplied( "-snp-stats" ) )
+			&& (
+				(check_if_option_was_supplied_in_group( "Sample filtering options" ) && !check_if_option_was_supplied( "-write-sample-excl-list" ))
+				||
+				check_if_option_was_supplied_in_group( "SNP filtering options" )
 			)
 		) {
-			if( check_if_option_was_supplied( "-og" ) ) {
-				result = get_values< std::string >( "-og" ) ;
-			} else {
-				for( std::size_t i = 0; i < input_gen_filenames_supplied.size(); ++i ) {
-					result[i]
-						= genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] )
-						+ ".fltrd"
-						+ genfile::get_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) ;
-				}
+			for( std::size_t i = 0; i < input_gen_filenames_supplied.size(); ++i ) {
+				result[i]
+					= genfile::strip_gen_file_extension_if_present( input_gen_filenames_supplied[i] )
+					+ ".fltrd"
+					+ genfile::get_gen_file_extension_if_present( input_gen_filenames_supplied[i] ) ;
 			}
 		}
 		if( result.size() != input_gen_filenames_supplied.size() ) {
