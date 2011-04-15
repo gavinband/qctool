@@ -1,5 +1,6 @@
 #include <iostream>
 #include <sstream>
+#include <cstdio>
 #include <cassert>
 #include <boost/bind.hpp>
 #include "../config.hpp"

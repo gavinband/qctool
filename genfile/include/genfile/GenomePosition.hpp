@@ -2,7 +2,7 @@
 #define GENFILE_GENOME_POSITION_HPP
 
 #include <iostream>
-#include <stddef.h>
+#include <stdint.h>
 #include <utility>
 #include "genfile/Chromosome.hpp"
 #include "genfile/GenomePosition.hpp"
