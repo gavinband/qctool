@@ -5,27 +5,6 @@ import glob
 def configure( conf ):
 	pass
 
-def create_test( bld, name ):
-	bld(
-		features = 'cxx cprogram',
-		target = name,
-		source = [  'test/' + name + '.cpp' ],
-		uselib_local = 'worker',
-		uselib = 'BOOST_THREAD BOOST_UNIT_TEST_FRAMEWORK',
-		includes='./include',
-		unit_test=1
-	)
-
-def create_benchmark( bld, name ):
-	bld(
-		features = 'cxx cprogram',
-		target = name,
-		source = [  'benchmarks/' + name + '.cpp' ],
-		uselib_local = 'worker',
-		includes='./include'
-	)
-
-
 def build( bld ):
 	import Options
 	
@@ -35,10 +14,24 @@ def build( bld ):
 	bld(
 		features = 'cxx cstaticlib',
 		target = 'worker',
-		source = bld.glob( 'src/*.cpp' ),
+		source = [
+			'src/Worker.cpp',
+			'src/SynchronousWorker.cpp',
+			'src/MultiThreadedWorker.cpp',
+			'src/QueuedMultiThreadedWorker.cpp'
+		],
 		includes='./include',
-		uselib = 'BOOST',
+		uselib = 'BOOST BOOST_THREAD',
 		export_incdirs = './include'	
 	)
 	
-	create_test( bld, 'test_workers' )
+	bld(
+		features = 'cxx cprogram',
+		target = 'test_worker',
+		source = bld.glob( 'test/*.cpp' ),
+		includes='./include',
+		uselib_local = 'worker',
+		uselib = 'BOOST BOOST_UNIT_TEST_FRAMEWORK',
+		unit_test = 1,
+		install_path = None
+	)

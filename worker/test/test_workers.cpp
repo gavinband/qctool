@@ -166,9 +166,3 @@ AUTO_TEST_CASE( test_queued_multi_threaded_worker ) {
 		}
 	}
 }
-
-AUTO_TEST_MAIN {
-	test_synchronous_worker() ;
-	test_multi_threaded_worker() ;
-	test_queued_multi_threaded_worker() ;
-}
