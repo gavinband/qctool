@@ -45,7 +45,7 @@ namespace impl {
 	}
 }
 
-void test_newton_raphson_1d() {
+AUTO_TEST_CASE( test_newton_raphson_1d ) {
 	std::cerr << "test_newton_raphson_1d(): finding roots of  5 x - 2...\n" ;
 	for( double epsilon = 0.1; epsilon > 0.0000000000001; epsilon /= 10 ) {
 		std::cerr << "epsilon = " << epsilon << ".\n" ;
@@ -84,7 +84,7 @@ void test_newton_raphson_1d() {
 	}
 }
 
-void test_newton_raphson_nd_1() {
+AUTO_TEST_CASE( test_newton_raphson_nd_1 ) {
 	std::cerr << "test_newton_raphson_nd_1(): finding roots of \\Sigma x = 0...\n" ;
 	
 	Eigen::MatrixXd sigma ;
@@ -113,7 +113,7 @@ void test_newton_raphson_nd_1() {
 	}
 }
 
-void test_newton_raphson_nd_2() {
+AUTO_TEST_CASE( test_newton_raphson_nd_2 ) {
 	std::cerr << "test_newton_raphson_nd_2(): finding roots of \\Sigma x = 0...\n" ;
 	
 	Eigen::MatrixXd sigma ; // variance-covariance matrix
@@ -140,10 +140,4 @@ void test_newton_raphson_nd_2() {
 		std::cerr << "root is " << root << ".\n" ;
 		TEST_ASSERT( impl::another_map( root, sigma, actual_root ).maxCoeff() < epsilon ) ;
 	}
-}
-
-AUTO_TEST_MAIN {
-	test_newton_raphson_1d() ;
-	test_newton_raphson_nd_1() ;
-	test_newton_raphson_nd_2() ;
 }

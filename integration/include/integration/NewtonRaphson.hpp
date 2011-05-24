@@ -75,15 +75,10 @@ namespace integration {
 		typedef typename FunctionAndDerivativeEvaluator::Vector Vector ;
 		typedef typename FunctionAndDerivativeEvaluator::Matrix Matrix ;
 		
-		// We compare against squared norm so square the tolerance here.
-		//tolerance *= tolerance ;
 		assert( tolerance > 0.0 ) ;
 		evaluator.evaluate_at( point ) ;
 		Vector function_value = evaluator.get_value_of_function() ;
 		Matrix derivative_value ;
-		// std::cerr << std::setprecision( 6 ) ;
-		// std::cerr << "find_root_by_newton_raphson(): point = " << point << ", function = " << function_value ;
-		
 		double max = std::max( std::abs( function_value.minCoeff() ), std::abs( function_value.maxCoeff() ) ) ;
 		if( max >= tolerance ) {
 			// The Newton-Raphson rule comes from the observation that if
@@ -96,14 +91,10 @@ namespace integration {
 			do {
 				derivative_value = evaluator.get_value_of_first_derivative() ;
 				solver.compute( derivative_value ) ;
-                // The following line does not work with Eigen beta 1
-				//point += solver.solve( -function_value ) ; // 
-				point = point + solver.solve( -function_value ) ;
+				point += solver.solve( -function_value ) ; // 
 				evaluator.evaluate_at( point ) ;
 				function_value = evaluator.get_value_of_function() ;
 				max = std::max( std::abs( function_value.minCoeff() ), std::abs( function_value.maxCoeff() ) ) ;				
-				//std::cerr << "NR: point = " << point << ".\n" ;
-				//std::cerr << "NR: tolerance = " << tolerance << ", value = " << function_value << ", max coeff = " << max << ".\n" ;
 			}
             while( max > tolerance ) ;
 		}
