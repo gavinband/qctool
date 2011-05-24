@@ -46,7 +46,11 @@ namespace statfile {
 		if( stream() ) {
 			if( str_field == "inf" ) {
 				field = std::numeric_limits< double >::infinity() ;
-			} else {
+			}
+			else if( str_field == "nan" || str_field == "NA" ) {
+				field = std::numeric_limits< double >::quiet_NaN() ;
+			}
+			else {
 				std::istringstream aStream( str_field ) ;
 				aStream >> field ;
 				if( !aStream ) {
