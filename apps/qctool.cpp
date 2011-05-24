@@ -1816,7 +1816,7 @@ private:
 		processor.add_callback( qctool_basic ) ;
 		
 		std::auto_ptr< Relatotron > relatotron ;
-		if( options().check_if_option_was_supplied( "-relatedness" )) {
+		if( options().check_if_option_was_supplied( "-relatedness" ) || options().check_if_option_was_supplied( "-concordance" )) {
 			relatotron.reset( new Relatotron( options(), context.get_cohort_individual_source(), get_ui_context() )) ;
 			processor.add_callback( *relatotron ) ;
 		}

@@ -25,16 +25,23 @@
 #include "string_utils/parse_utils.hpp"
 
 #include "Relatotron.hpp"
+#include "SampleBySampleComputation.hpp"
+#include "RelatednessBayesFactorComputation.hpp"
+#include "ConcordanceComputation.hpp"
 
 void Relatotron::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "Relatedness options" ) ;
 	options[ "-relatedness" ]
 		.set_description( "Compute relatedness matrices pairwise for all samples.  (This can take a long time)." )
-		.set_takes_single_value() ;
+		;
+	options[ "-concordance" ]
+		.set_description( "Compute concordance and pairwise non-missing-call matrices for all samples.  (This can take a long time)." )
+		;
 	options[ "-relatedness-sample-rows" ]
 		.set_description( "Choose ranges of samples to compute relatedness for."
 			" This option should be a comma-separated list of ranges of the form a-b, meaning use all rows between a and b inclusive."
-			" A single value means a 1-element range; a range of the form a- or -a means all samples up to and including the given one." )
+			" A single value means a 1-element range; a range of the form a- or -a means all samples from, or up to"
+			" the given one, inclusive." )
 		.set_takes_single_value()
 		.set_default_value( "0-" ) ;
 	options[ "-relatedness-sample-columns" ]
@@ -70,9 +77,32 @@ void Relatotron::declare_options( appcontext::OptionProcessor& options ) {
 Relatotron::Relatotron( appcontext::OptionProcessor const& options, genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ):
 	m_options( options ),
 	m_samples( samples ),
- 	m_ui_context( ui_context ),
-	m_probability_of_genotyping_error_per_snp( options.get_value< double >( "-relatedness-epsilon" ))
-{}
+ 	m_ui_context( ui_context )
+{
+	construct_computations() ;
+}
+
+void Relatotron::construct_computations() {
+	if( m_options.check_if_option_was_supplied( "-relatedness" )) {
+		std::string name = "relatedness" ;
+		m_computations.insert(
+			name,
+			SampleBySampleComputation::create( name, m_options, m_ui_context )
+		) ;
+	}
+	if( m_options.check_if_option_was_supplied( "-concordance" )) {
+		std::string name = "concordance" ;
+		m_computations.insert(
+			name,
+			SampleBySampleComputation::create( name, m_options, m_ui_context )
+		) ;
+		name = "pairwise_non_missing_count" ;
+		m_computations.insert(
+			name,
+			SampleBySampleComputation::create( name, m_options, m_ui_context )
+		) ;
+	}
+}
 
 void Relatotron::begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) {
 	m_number_of_samples = number_of_samples ;
@@ -80,10 +110,6 @@ void Relatotron::begin_processing_snps( std::size_t number_of_samples, std::size
 	m_snps.reserve( number_of_snps ) ;
 	m_genotypes.clear() ;
 	m_genotypes.reserve( number_of_snps ) ;
-	m_allele_frequencies.clear() ;
-	m_allele_frequencies.reserve( number_of_snps ) ;
-	m_genotype_per_ibd_matrices.clear() ;
-	m_genotype_per_ibd_matrices.reserve( number_of_snps ) ;
 }
 
 void Relatotron::processed_snp( SNPIdentifyingData const& id_data, SingleSNPGenotypeProbabilities const& genotypes ) {
@@ -91,29 +117,15 @@ void Relatotron::processed_snp( SNPIdentifyingData const& id_data, SingleSNPGeno
 	assert( m_snps.size() == m_genotypes.size() ) ;
 	m_snps.push_back( id_data ) ;
 	m_genotypes.push_back( genotypes ) ;
-	m_allele_frequencies.push_back( compute_maximum_likelihood_allele_frequency( genotypes )) ;
-	//m_ui_context.logger() << "Allele frequency snp " << m_allele_frequencies.size() - 1 << " is " << m_allele_frequencies.back() << ".\n" ;
-	if( m_allele_frequencies.back() == m_allele_frequencies.back() ) { // if is not NaN 
-		assert( m_allele_frequencies.back() >= 0.0 ) ;
-		assert( m_allele_frequencies.back() <= 1.0 ) ;
-		m_genotype_per_ibd_matrices.push_back( compute_genotype_probability_matrix( m_allele_frequencies.back() )) ;
-	}
-	else {
-		m_genotype_per_ibd_matrices.push_back( Matrix( 0, 0 )) ;
-		m_ui_context.logger() << "Allele frequency at SNP " << m_genotype_per_ibd_matrices.size() - 1 << " was not estimated.\n" ;
-	}
+	
 }
 
 void Relatotron::end_processing_snps() {
 	assert( m_snps.size() == m_genotypes.size() ) ;
-	assert( m_snps.size() == m_allele_frequencies.size() ) ;
 
 	std::size_t estimated_memory_usage = ( m_snps.capacity() * sizeof( SNPIdentifyingData ) )
 		+ ( m_genotypes.capacity() * sizeof( SingleSNPGenotypeProbabilities ))
-		+ ( m_genotypes.capacity() * m_number_of_samples * 3 * sizeof( double ))
-		+ m_allele_frequencies.size() * sizeof( double )
-		+ m_genotype_per_ibd_matrices.size() * sizeof( Matrix )
-		+ m_genotype_per_ibd_matrices.size() * 27 * sizeof( double ) ;
+		+ ( m_genotypes.capacity() * m_number_of_samples * 3 * sizeof( double )) ;
 	
 	m_ui_context.logger()
 		<< "Relatotron: finished loading "
@@ -122,64 +134,57 @@ void Relatotron::end_processing_snps() {
 		<< std::fixed << std::setprecision( 1 ) << ( estimated_memory_usage / 1000000.0 )
 		<< "Mb.\n" ;
 		
-	m_ui_context.logger()
-		<< "Relatotron: first few allele frequencies are:\n" ;
-	for( std::size_t i = 0; i < std::min( std::size_t( 10 ), m_allele_frequencies.size() ); ++i ) {
-		m_ui_context.logger() << std::setprecision( 5 ) << std::setw( 8 ) << m_allele_frequencies[i] << " " ;
+	for( Computations::iterator i = m_computations.begin(); i != m_computations.end(); ++i ) {
+		i->second->prepare( m_snps, m_genotypes ) ;
 	}
-	m_ui_context.logger() << "\n" ;
-	
-	m_ui_context.logger() << "Relatotron: first few genotype-by-IBD matrices are:\n" ;
-	for( std::size_t i = 0; i < std::min( m_genotype_per_ibd_matrices.size(), std::size_t( 3 )); ++i ) {
-		m_ui_context.logger() << "SNP " << i << " (frequency = " << m_allele_frequencies[i] << "): " ;
-		print_matrix( m_genotype_per_ibd_matrices[i] ) ;
-	}
-	m_ui_context.logger() << "\n" ;
 }
 
 void Relatotron::process( worker::Worker* worker ) {
-	// Store the results in a plain matrix.  This is inefficient storage-wise.
-	Matrix bf_matrix = ConstantMatrix( m_number_of_samples, m_number_of_samples, -std::numeric_limits< double >::infinity() ) ; 
-	
 	std::vector< std::size_t > row_samples = parse_row_spec( m_options.get_value< std::string >( "-relatedness-sample-rows" )) ;
 	std::vector< std::size_t > column_samples = parse_row_spec( m_options.get_value< std::string >( "-relatedness-sample-columns" )) ;
 
-	Vector const null_model = get_model_probabilities( m_options.get_values< double >( "-relatedness-null" ) ) ;
-	Vector const alternative_model = get_model_probabilities(  m_options.get_values< double >( "-relatedness-alternative" ) ) ;
+	for( Computations::iterator computation_i = m_computations.begin(); computation_i != m_computations.end(); ++computation_i ) {
+		// Store the results in a plain matrix.  This is space-inefficient because we only compute the
+		// upper diagonal, but it's the easiest thing to do.
 
-	if( worker ) {
-		process_multithreaded(
-			null_model,
-			alternative_model,
-			&bf_matrix,
-			row_samples,
-			column_samples,
-			*worker
-		) ;
-	}
-	else {
-		process_singlethreaded(
-			null_model,
-			alternative_model,
-			&bf_matrix,
-			row_samples,
-			column_samples
-		) ;
-	}
-	
-	m_ui_context.logger() << "Top left of relatedness matrix: [\n" ;
-	for( std::size_t i = 0; i < std::min( std::size_t( 10 ), row_samples.size() ); ++i ) {
-		for( std::size_t j = 0; j < std::min( std::size_t( 10 ), column_samples.size() ); ++j ) {
-			m_ui_context.logger() << std::setprecision( 2 ) << std::setw(8) << std::exp( bf_matrix(i,j) )  << " " ;
+		Matrix result = ConstantMatrix( m_number_of_samples, m_number_of_samples, -std::numeric_limits< double >::infinity() ) ;
+
+		if( worker ) {
+			process_multithreaded(
+				*(computation_i->second),
+				&result,
+				row_samples,
+				column_samples,
+				*worker
+			) ;
 		}
-		m_ui_context.logger()  << "\n" ;
-	}
-	m_ui_context.logger() << "]\n" ;
-	
-	if( m_options.check_if_option_was_supplied( "-relatedness" )) {
-		write_relatedness_matrix(
-			bf_matrix,
-			m_options.get_value< std::string >( "-relatedness" ),
+		else {
+			process_singlethreaded(
+				*(computation_i->second),
+				&result,
+				row_samples,
+				column_samples
+			) ;
+		}
+
+		m_ui_context.logger() << "Top left of " << computation_i->first << " matrix: [\n" ;
+		for( std::size_t i = 0; i < std::min( std::size_t( 6 ), row_samples.size() ); ++i ) {
+			for( std::size_t j = 0; j < std::min( std::size_t( 6 ), column_samples.size() ); ++j ) {
+				m_ui_context.logger() << std::setprecision( 2 ) << std::setw(8) ;
+				if( result( row_samples[i], column_samples[j] ) == -std::numeric_limits< double >::infinity() ) {
+					m_ui_context.logger() << "" << " " ;
+				}
+				else {
+					m_ui_context.logger() << result( row_samples[i], column_samples[j] ) << " " ;
+				}
+			}
+			m_ui_context.logger()  << "\n" ;
+		}
+		m_ui_context.logger() << "]\n" ;
+		
+		write_sample_by_sample_matrix(
+			result,
+			computation_i->first + ".txt",
 			row_samples,
 			column_samples
 		) ;
@@ -219,25 +224,23 @@ std::vector< std::size_t > Relatotron::parse_row_spec( std::string const& spec )
 }
 
 void Relatotron::process_multithreaded(
-	Vector const& null_model,
-	Vector const& alternative_model,
+	SampleBySampleComputation& computation,
 	Matrix* result,
 	std::vector< std::size_t > const& row_samples,
 	std::vector< std::size_t > const& column_samples,
 	worker::Worker& worker
 ) {
 	boost::ptr_vector< worker::Task > m_tasks ;
-	appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Calculating relatedness Bayes factors" ) ;
+	appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Performing sample-by-sample computation" ) ;
 	progress_context.notify_progress( 0, row_samples.size() ) ;
 	// Simple scheme: one task per row sample.
 	for( std::size_t i = 0; i < row_samples.size(); ++i ) {
 		m_tasks.push_back(
 			new worker::FunctionTask(
 			 	boost::bind(
-					&Relatotron::compute_pairwise_relatedness_log_bayes_factors,
+					&Relatotron::perform_pairwise_computations,
 					this,
-					null_model,
-					alternative_model,
+					boost::ref( computation ),
 					result,
 					std::vector< std::size_t >( 1, row_samples[i] ),
 					boost::ref( column_samples ),
@@ -252,7 +255,6 @@ void Relatotron::process_multithreaded(
 	}
 
 	// Wait for them all to finish...
-	// Wait for completion
 	while( worker.get_number_of_tasks_completed() != m_tasks.size() ) {
 		boost::this_thread::sleep( boost::posix_time::milliseconds( 10 ) ) ;
 		progress_context.notify_progress( worker.get_number_of_tasks_completed(), m_tasks.size() ) ;
@@ -261,17 +263,15 @@ void Relatotron::process_multithreaded(
 }
 
 void Relatotron::process_singlethreaded(
-	Vector const& null_model,
-	Vector const& alternative_model,
+	SampleBySampleComputation& computation,
 	Matrix* result,
 	std::vector< std::size_t > const& row_samples,
 	std::vector< std::size_t > const& column_samples
 ) {
-	appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Calculating relatedness Bayes factors" ) ;
+	appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Performing sample-by-sample computation" ) ;
 
-	this->compute_pairwise_relatedness_log_bayes_factors(
-		null_model,
-		alternative_model,
+	this->perform_pairwise_computations(
+		computation,
 		result,
 		row_samples,
 		column_samples,
@@ -279,109 +279,8 @@ void Relatotron::process_singlethreaded(
 	) ;
 }
 
-Relatotron::Vector Relatotron::get_model_probabilities( std::vector< double > const& probabilities ) const {
-	assert( probabilities.size() == 3 ) ;
-	Vector result( 3 ) ;
-	double sum = 0.0 ;
-	for( std::size_t i = 0; i < 3; ++i ) {
-		result(i) = probabilities[i] ;
-		sum += probabilities[i] ;
-	}
-	assert( sum == 1.0 ) ;
-	return result ;
-}
-
-void Relatotron::print_matrix( Matrix const& matrix, std::size_t const max_rows, std::size_t const max_cols ) const {
-	m_ui_context.logger() << "[\n" ;
-	for( std::size_t i = 0; i < std::min( max_rows, matrix.size1() ); ++i ) {
-		for( std::size_t j = 0; j < std::min( max_cols, matrix.size2() ); ++j ) {
-			m_ui_context.logger() << std::setprecision( 3 ) << std::setw(8) << matrix( i, j ) << " " ;
-		}
-		m_ui_context.logger() << "\n" ;
-	}
-	m_ui_context.logger() << "].\n" ;
-}
-
-double Relatotron::compute_maximum_likelihood_allele_frequency( SingleSNPGenotypeProbabilities const& genotypes ) const {
-	// Under a model in which alleles are drawn randomly from a population of haplotypes,
-	// with given allele frequency, return the maximum likelihood allele frequency.
-	// Note that this does deal with null genotype calls (= missing data).
-	double allele_count = 0.0 ;
-	double data_count = 0.0 ;
-	for( std::size_t i = 0; i < genotypes.size(); ++i ) {
-		allele_count += genotypes.AB( i ) + 2.0 * genotypes.BB( i ) ; 
-		data_count += genotypes.sum( i ) ;
-	}
-
-	if( data_count > 0.0 ) {
-		return allele_count / (2.0 * data_count ) ;
-	}
-	else {
-		return std::numeric_limits< double >::quiet_NaN() ;
-	}
-}
-
-Relatotron::Matrix Relatotron::compute_genotype_probability_matrix(
-	double const allele_frequency
-) const {
-	// This matrix has 9 rows corresponding to the 3*3 possible genotypes of two samples,
-	// and 3 columns corresponding to IBD0, IBD1, IBD2.
-	Matrix result( 9, 3 ) ;
-
-	double const pb = allele_frequency ; // shorthand
-	double const pb_2 = std::pow( pb, 2.0 ) ;
-	double const pb_3 = std::pow( pb, 3.0 ) ;
-	double const pb_4 = std::pow( pb, 4.0 ) ;
-	double const pa = 1.0 - allele_frequency ;
-	double const pa_2 = std::pow( pa, 2.0 ) ;
-	double const pa_3 = std::pow( pa, 3.0 ) ;
-	double const pa_4 = std::pow( pa, 4.0 ) ;
-
-	using std::pow ;
-
-	// 0, 0
-	result( e00, 0 ) = pa_4 ;
-	result( e00, 1 ) = pa_3 ;
-	result( e00, 2 ) = pa_2 ;
-	// 0, 1
-	result( e01, 0 ) = 2.0*pa_3*pb ;
-	result( e01, 1 ) = pa_2*pb ;
-	result( e01, 2 ) = 0.0 ;
-	// 0, 2
-	result( e02, 0 ) = pa_2 * pb_2 ;
-	result( e02, 1 ) = 0.0 ;
-	result( e02, 2 ) = 0.0 ;
-	// 1, 0
-	result( e10, 0 ) = 2.0*pa_3*pb ;
-	result( e10, 1 ) = pa_2 * pb ;
-	result( e10, 2 ) = 0.0 ;
-	// 1, 1
-	result( e11, 0 ) = 4.0*pa_2*pb_2 ;
-	result( e11, 1 ) = pa*pb*(pa+pb) ;
-	result( e11, 2 ) = 2.0*pa*pb ;
-	// 1, 2
-	result( e12, 0 ) = 2*pa*pb_3 ;
-	result( e12, 1 ) = pa*pb_2 ;
-	result( e12, 2 ) = 0.0 ;
-	// 2, 0
-	result( e20, 0 ) = pa_2*pb_2 ;
-	result( e20, 1 ) = 0.0 ;
-	result( e20, 2 ) = 0.0 ;
-	// 2, 1
-	result( e21, 0 ) = 2*pa*pb_3 ;
-	result( e21, 1 ) = pa*pb_2 ;
-	result( e21, 2 ) = 0.0 ;
-	// 2, 2
-	result( e22, 0 ) = pb_4 ;
-	result( e22, 1 ) = pb_3 ;
-	result( e22, 2 ) = pb_2 ;
-
-	return result ;
-}
-
-void Relatotron::compute_pairwise_relatedness_log_bayes_factors(
-	Vector const& null_ibd_probabilities,
-	Vector const& alternative_ibd_probabilities,
+void Relatotron::perform_pairwise_computations(
+	SampleBySampleComputation& computation,
 	Matrix* result,
 	std::vector< std::size_t > const& sample1_choice,
 	std::vector< std::size_t > const& sample2_choice,
@@ -397,16 +296,8 @@ void Relatotron::compute_pairwise_relatedness_log_bayes_factors(
 		for( std::size_t sample2_i = 0; sample2_i < sample2_choice.size(); ++sample2_i ) {
 			std::size_t const sample2 = sample2_choice[ sample2_i ] ;
 			if( sample2 >= sample1 ) {
-				(*result)( sample1, sample2 ) = compute_pairwise_relatedness_log_probability(
-					sample1,
-					sample2,
-					alternative_ibd_probabilities
-				)
-				- compute_pairwise_relatedness_log_probability(
-					sample1,
-					sample2,
-					null_ibd_probabilities
-				) ;
+				double this_result = computation( sample1, sample2, m_genotypes ) ; ;
+				(*result)( sample1, sample2 ) = this_result ;
 			}
 		}
 		if( progress_context ) {
@@ -415,129 +306,7 @@ void Relatotron::compute_pairwise_relatedness_log_bayes_factors(
 	}
 }
 
-double Relatotron::compute_pairwise_relatedness_log_probability(
-	std::size_t const sample1,
-	std::size_t const sample2,
-	Vector const& ibd_state_probabilities
-) const {
-	std::vector< double > per_snp_log_probabilities( m_snps.size() ) ;
-	for( std::size_t snp_i = 0; snp_i < m_snps.size(); ++snp_i ) {
-		if( m_allele_frequencies[ snp_i ] == m_allele_frequencies[ snp_i ] ) { // if not NaN
-			// To be tolerant to genotyping error, with probability m_genotype_error_probability,
-			// we ignore the SNP's data.  Otherwise we use it.
-			per_snp_log_probabilities[ snp_i ] = std::log(
-				(1 - m_probability_of_genotyping_error_per_snp ) * compute_pairwise_relatedness_coefficients(
-					snp_i,
-					sample1,
-					sample2,
-					ibd_state_probabilities
-				)
-				+
-				m_probability_of_genotyping_error_per_snp
-			) ;
-			//std::cerr << "probability ( " << ibd_state_probabilities << " ) for " << sample1 << ", " << sample2 << ", snp " << snp_i << " is " << std::exp( per_snp_log_probabilities[ snp_i ] ) << ".\n" ;
-		}
-		else {
-			// ignore the snp.
-			per_snp_log_probabilities[ snp_i ] = 0.0 ;
-		}
-	}
-	double result = std::accumulate( per_snp_log_probabilities.begin(), per_snp_log_probabilities.end(), 0.0 ) ;
-	//std::cerr << "model " << ibd_state_probabilities << ": likelihood for " << sample1 << ", " << sample2 << " is " << std::exp( result ) << ".\n" ;
-	return result ;
-}
-
-double Relatotron::compute_pairwise_relatedness_coefficients(
-	std::size_t snp_i,
-	std::size_t sample1,
-	std::size_t sample2,
-	Vector const& ibd_state_probabilities
-) const {
-	// Compute the product of the vector of genotype-pair probabilities
-	// times the genotype-per-IBD matrix.
-	// Then 
-	using namespace boost::numeric::ublas ;
-	return prod(
-		prod(
-			compute_probability_of_pair_of_genotypes_given_observations(
-				snp_i,
-				sample1,
-				sample2,
-				m_allele_frequencies[ snp_i ]
-			),
-			m_genotype_per_ibd_matrices[ snp_i ]
-		),
-		ibd_state_probabilities
-	)( 0 ) ;
-}
-
-Relatotron::Matrix Relatotron::compute_probability_of_pair_of_genotypes_given_observations(
-	std::size_t snp_i,
-	std::size_t sample1,
-	std::size_t sample2,
-	double const theta // allele frequency
-) const {
-	Matrix result( 1, 9 ) ;
-
-	for( std::size_t g1 = 0; g1 < 3; ++g1 ) {
-		double p1 = compute_probability_of_genotype_given_observations(
-			snp_i,
-			sample1,
-			g1,
-			theta
-		) ;
-		result( 0, (3*g1) ) = p1 ;
-		result( 0, (3*g1) + 1 ) = p1 ;
-		result( 0, (3*g1) + 2 ) = p1 ;
-	}
-	
-	for( std::size_t g2 = 0; g2 < 3; ++g2 ) {
-		double p2 = compute_probability_of_genotype_given_observations(
-			snp_i,
-			sample2,
-			g2,
-			theta
-		) ;
-		result( 0, g2 ) *= p2 ;
-		result( 0, 3+g2 ) *= p2 ;
-		result( 0, 6+g2 ) *= p2 ;
-	}
-	/*
-	std::cerr << "compute_probability_of_pair_of_genotypes_given_observations( "
-		<< snp_i << ", " << sample1 << ", " << sample2 << ", " << theta << " ): result is:\n" ;
-	std::cerr << result << "\n" ;
-	*/	
-	return result ;
-}
-
-double Relatotron::compute_probability_of_genotype_given_observations(
-	std::size_t snp_i,
-	std::size_t sample,
-	std::size_t g,
-	double const theta // allele frequency
-) const {
-	double result = m_genotypes[ snp_i ]( sample, g ) ;
-	double const null_call = m_genotypes[ snp_i ].null_call( sample ) ;
-	// If  genotype is missing (null call), we fill in the probability
-	// from the allele frequency.
-	switch( g ) {
-		case 0:
-			result += null_call * (1-theta) * (1-theta) ;
-			break ;
-		case 1:
-			result += null_call * 2.0 * theta * ( 1 - theta ) ;
-			break ;
-		case 2:
-			result += null_call * theta * theta ;
-			break ;
-		default:
-			assert(0) ;
-	}
-	
-	return result ;
-}
-
-void Relatotron::write_relatedness_matrix(
+void Relatotron::write_sample_by_sample_matrix(
 	Matrix const& bf_matrix,
 	std::string const& filename,
 	std::vector< std::size_t > const& row_samples,

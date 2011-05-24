@@ -2,7 +2,7 @@
 #define SNPTEST2_ALTERNATIVE_MODEL_HPP
 
 #include <vector>
-#include "Eigen/Eigen"
+#include "Eigen/Core"
 
 namespace snptest2 {
 	
