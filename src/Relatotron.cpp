@@ -140,8 +140,8 @@ void Relatotron::end_processing_snps() {
 }
 
 void Relatotron::process( worker::Worker* worker ) {
-	std::vector< std::size_t > row_samples = parse_row_spec( m_options.get_value< std::string >( "-relatedness-sample-rows" )) ;
-	std::vector< std::size_t > column_samples = parse_row_spec( m_options.get_value< std::string >( "-relatedness-sample-columns" )) ;
+	std::vector< std::size_t > row_samples = parse_row_spec( m_options.get_value< std::string >( "-pairwise-sample-rows" )) ;
+	std::vector< std::size_t > column_samples = parse_row_spec( m_options.get_value< std::string >( "-pairwise-sample-columns" )) ;
 
 	for( Computations::iterator computation_i = m_computations.begin(); computation_i != m_computations.end(); ++computation_i ) {
 		// Store the results in a plain matrix.  This is space-inefficient because we only compute the
