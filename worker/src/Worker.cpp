@@ -12,12 +12,11 @@ namespace worker {
 		return m_is_complete ;
 	}
 
-	bool Task::wait_until_complete() const {
+	void Task::wait_until_complete() const {
 		ScopedLock lock( m_mutex ) ;
 		while( !m_is_complete ) {
 			m_condition.wait( lock ) ;
 		}
-		return m_is_complete ;
 	}
 	
 	void Task::perform() {

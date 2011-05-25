@@ -21,7 +21,7 @@ namespace worker {
 
 	public:
 		bool check_if_complete() const ;
-		bool wait_until_complete() const ;
+		void wait_until_complete() const ;
 
 	private:
 		bool m_is_complete ;

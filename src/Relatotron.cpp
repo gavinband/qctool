@@ -255,8 +255,8 @@ void Relatotron::process_multithreaded(
 	}
 
 	// Wait for them all to finish...
-	while( worker.get_number_of_tasks_completed() != m_tasks.size() ) {
-		boost::this_thread::sleep( boost::posix_time::milliseconds( 10 ) ) ;
+	for( std::size_t i = 0; i < m_tasks.size(); ++i ) {
+		m_tasks[i].wait_until_complete() ;
 		progress_context.notify_progress( worker.get_number_of_tasks_completed(), m_tasks.size() ) ;
 	}
 	progress_context.notify_progress( worker.get_number_of_tasks_completed(), m_tasks.size() ) ;
