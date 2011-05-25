@@ -37,14 +37,14 @@ void Relatotron::declare_options( appcontext::OptionProcessor& options ) {
 	options[ "-concordance" ]
 		.set_description( "Compute concordance and pairwise non-missing-call matrices for all samples.  (This can take a long time)." )
 		;
-	options[ "-relatedness-sample-rows" ]
+	options[ "-pairwise-sample-rows" ]
 		.set_description( "Choose ranges of samples to compute relatedness for."
 			" This option should be a comma-separated list of ranges of the form a-b, meaning use all rows between a and b inclusive."
 			" A single value means a 1-element range; a range of the form a- or -a means all samples from, or up to"
 			" the given one, inclusive." )
 		.set_takes_single_value()
 		.set_default_value( "0-" ) ;
-	options[ "-relatedness-sample-columns" ]
+	options[ "-pairwise-sample-columns" ]
 		.set_description( "Choose ranges of samples to compute relatedness for."
 			" This option should be a comma-separated list of ranges of the form a-b, meaning use all rows between a and b inclusive."
 			" A single value means a 1-element range; a range of the form a- or -a means all samples up to and including the given one." )
@@ -184,7 +184,7 @@ void Relatotron::process( worker::Worker* worker ) {
 		
 		write_sample_by_sample_matrix(
 			result,
-			computation_i->first + ".txt",
+			computation_i->first + ".csv",
 			row_samples,
 			column_samples
 		) ;
@@ -216,7 +216,7 @@ std::vector< std::size_t > Relatotron::parse_row_spec( std::string const& spec )
 		if( a >= m_number_of_samples || b >= m_number_of_samples ) {
 			throw genfile::BadArgumentError( "Relatotron::parse_row_spec()", "spec \"" + specs[i] + "\" goes past maximum sample id " + string_utils::to_string( m_number_of_samples - 1 ) + "." ) ;
 		}
-		for( std::size_t i = a; i <= b; ++i ) {
+			for( std::size_t i = a; i <= b; ++i ) {
 			result.insert( i ) ;
 		}
 	}

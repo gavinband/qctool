@@ -374,7 +374,7 @@ public:
 		options [ "-plot" ]
 			.set_description( "Path of file to produce plots in.")
 			.set_takes_single_value() ;
-		options [ "-T" ]
+		options [ "-threads" ]
 			.set_description( "Specify the number of worker threads to use in computationally intensive tasks." )
 			.set_takes_single_value()
 			.set_default_value( 0 ) ;
@@ -1833,7 +1833,7 @@ private:
 		}
 		
 		if( relatotron.get() ) {
-			std::size_t const number_of_threads = options().get_value< std::size_t >( "-T" ) ;
+			std::size_t const number_of_threads = options().get_value< std::size_t >( "-threads" ) ;
 			worker::Worker::UniquePtr worker ;
 			if( number_of_threads > 0 ) {
 				worker.reset( new worker::QueuedMultiThreadedWorker( number_of_threads )) ;
