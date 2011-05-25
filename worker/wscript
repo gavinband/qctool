@@ -14,12 +14,7 @@ def build( bld ):
 	bld(
 		features = 'cxx cstaticlib',
 		target = 'worker',
-		source = [
-			'src/Worker.cpp',
-			'src/SynchronousWorker.cpp',
-			'src/MultiThreadedWorker.cpp',
-			'src/QueuedMultiThreadedWorker.cpp'
-		],
+		source = bld.glob( 'src/*.cpp' ),
 		includes='./include',
 		uselib = 'BOOST BOOST_THREAD',
 		export_incdirs = './include'	

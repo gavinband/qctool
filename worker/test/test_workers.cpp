@@ -2,7 +2,6 @@
 #include "test_case.hpp"
 #include "worker/Worker.hpp"
 #include "worker/SynchronousWorker.hpp"
-#include "worker/MultiThreadedWorker.hpp"
 #include "worker/QueuedMultiThreadedWorker.hpp"
 
 struct Multiply: public worker::Task
@@ -73,10 +72,10 @@ void test_worker( worker::Worker& worker ) {
 			boost::this_thread::yield() ;
 		}
 	}
-
+	
 	// Wait until the worker has finished
-	while( worker.get_number_of_tasks_completed() != numbers.size() ) {
-		boost::this_thread::yield() ;
+	for( std::size_t i = 0; i < tasks.size(); ++i ) {
+		tasks[i].wait_until_complete() ;
 	}
 
 	// Check all of the multiplications were performed
@@ -103,8 +102,8 @@ void test_worker2( worker::Worker& worker ) {
 	}
 
 	// Wait until the worker has finished
-	while( worker.get_number_of_tasks_completed() != numbers.size() ) {
-		boost::this_thread::yield() ;
+	for( std::size_t i = 0; i < tasks.size(); ++i ) {
+		tasks[i].wait_until_complete() ;
 	}
 
 	// Check all of the multiplications were performed
@@ -129,35 +128,19 @@ AUTO_TEST_CASE( test_synchronous_worker ) {
 		TEST_ASSERT(0) ;
 	}
 }
-AUTO_TEST_CASE( test_multi_threaded_worker ) {
-	std::cerr << "Testing multi-threaded worker...\n" ;
-	for( std::size_t number_of_threads = 1; number_of_threads < 100; ++number_of_threads ) {
-		try {
-			worker::MultiThreadedWorker worker( number_of_threads ) ;
-			test_worker( worker ) ;
-			test_worker2( worker ) ;
-		}
-		catch( TestFailedException const& e ) {
-			std::cerr << "!! Error: task " << e.get_task_address() << ": expected " << e.get_expected_value() << ", got: " << e.get_actual_value() << ".\n" ;
-			TEST_ASSERT(0) ;
-		}
-	}
-}
 
 AUTO_TEST_CASE( test_queued_multi_threaded_worker ) {
-	std::cerr << "Testing queued multi-threaded worker...\n" ;
+	std::cerr << "Testing queued multi-threaded worker..." ;
 	for( std::size_t number_of_threads = 1; number_of_threads < 100; ++number_of_threads ) {
-		std::cerr << "Number of threads = " << number_of_threads << ".\n" ;
+		std::cerr << number_of_threads << " " ;
 		try {
 			{
 				worker::QueuedMultiThreadedWorker worker( number_of_threads ) ;
 				test_worker( worker ) ;
-				std::cerr << "Completed test, destructing worker...\n" ;
 			}
 			{
 				worker::QueuedMultiThreadedWorker worker( number_of_threads ) ;
 				test_worker2( worker ) ;
-				std::cerr << "Completed test, destructing worker...\n" ;
 			}
 		}
 		catch( TestFailedException const& e ) {
@@ -165,4 +148,5 @@ AUTO_TEST_CASE( test_queued_multi_threaded_worker ) {
 			TEST_ASSERT(0) ;
 		}
 	}
+	std::cerr << "done.\n" ;
 }
