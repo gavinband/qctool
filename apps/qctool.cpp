@@ -141,12 +141,12 @@ public:
 		options[ "-incl-samples"]
 			.set_description( "Filter out samples whose sample ID does not lie in the given file.")
 			.set_takes_values_per_use( 1 )
-			.set_minimum_multiplicity( 1 )
+			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-excl-samples"]
 			.set_description( "Filter out samples whose sample ID lies in the given file.")
 			.set_takes_values_per_use( 1 )
-			.set_minimum_multiplicity( 1 )
+			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
 
 		options.declare_group( "Options for adjusting sample data" ) ;
