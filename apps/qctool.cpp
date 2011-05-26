@@ -140,10 +140,14 @@ public:
 		options.declare_group( "Sample exclusion options" ) ;
 		options[ "-incl-samples"]
 			.set_description( "Filter out samples whose sample ID does not lie in the given file.")
-			.set_takes_single_value() ;
+			.set_takes_values_per_use( 1 )
+			.set_minimum_multiplicity( 1 )
+			.set_maximum_multiplicity( 100 ) ;
 		options[ "-excl-samples"]
 			.set_description( "Filter out samples whose sample ID lies in the given file.")
-			.set_takes_single_value() ;
+			.set_takes_values_per_use( 1 )
+			.set_minimum_multiplicity( 1 )
+			.set_maximum_multiplicity( 100 ) ;
 
 		options.declare_group( "Options for adjusting sample data" ) ;
 		options[ "-quantile-normalise" ]
@@ -1220,7 +1224,9 @@ private:
 				boost::tie( snps, allele_flip_spec ) = genfile::AlleleFlippingSNPDataSource::get_allele_flip_spec(
 					rack->get_snps(),
 					snps,
-					genfile::SNPIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ))
+					genfile::SNPIdentifyingData::CompareFields(
+						m_options.get_value< std::string >( "-snp-match-fields" ) + ",alleles"
+					)
 				) ;
 				
 				source.reset(
@@ -1574,16 +1580,20 @@ private:
 		}
 
 		if( m_options.check_if_option_was_supplied( "-incl-samples" ) ) {
-			std::string filename = m_options.get_value< std::string >( "-incl-samples" ) ;
-			std::auto_ptr< RowCondition > sample_incl_condition( new SampleInListCondition( filename )) ;
-			sample_filter->add_subcondition( sample_incl_condition ) ;
+			std::vector< std::string > filenames = m_options.get_values< std::string >( "-incl-samples" ) ;
+			for( std::size_t i = 0; i < filenames.size(); ++i ) {
+				std::auto_ptr< RowCondition > sample_incl_condition( new SampleInListCondition( filenames[i] )) ;
+				sample_filter->add_subcondition( sample_incl_condition ) ;
+			}
 		}
 
 		if( m_options.check_if_option_was_supplied( "-excl-samples" ) ) {
-			std::string filename = m_options.get_value< std::string >( "-excl-samples" ) ;
-			std::auto_ptr< RowCondition > sample_incl_condition( new SampleInListCondition( filename )) ;
-			std::auto_ptr< RowCondition > sample_excl_condition( new NotRowCondition( sample_incl_condition )) ;
-			sample_filter->add_subcondition( sample_excl_condition ) ;
+			std::vector< std::string > filenames = m_options.get_values< std::string >( "-excl-samples" ) ;
+			for( std::size_t i = 0; i < filenames.size(); ++i ) {
+				std::auto_ptr< RowCondition > sample_incl_condition( new SampleInListCondition( filenames[i] )) ;
+				std::auto_ptr< RowCondition > sample_excl_condition( new NotRowCondition( sample_incl_condition )) ;
+				sample_filter->add_subcondition( sample_excl_condition ) ;
+			}
 		}
 		
 		m_sample_filter = sample_filter ;
