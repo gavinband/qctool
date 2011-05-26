@@ -19,7 +19,7 @@ namespace genfile {
 		for( std::size_t i = 0; i < snps_to_match.size(); ++i ) {
 			SNPIdentifyingData swapped_snp = snps_to_match[i] ;
 			std::swap( swapped_snp.first_allele(), swapped_snp.second_allele() ) ;
-			if( snps_to_match[i].first_allele() == '?' || snps_to_match[i].first_allele() == '?' ) {
+			if( snps_to_match[i].first_allele() == '?' || snps_to_match[i].second_allele() == '?' ) {
 				allele_flips[i] = eUnknownFlip ;
 			}
 			else if(
