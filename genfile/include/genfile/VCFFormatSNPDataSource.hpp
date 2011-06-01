@@ -61,6 +61,7 @@ namespace genfile {
 		std::string m_genotype_probability_field ;
 
 		std::vector< std::string > const m_column_names ;
+		std::size_t m_number_of_samples ;
 		std::ios::streampos m_start_of_data ;
 		std::size_t const m_number_of_lines ;
 		
@@ -70,6 +71,7 @@ namespace genfile {
 		void setup() ;
 		void check_genotype_probability_field( std::string const& field ) const ;
 		std::vector< std::string > read_column_names( std::istream& stream ) const ;
+		char read_format_and_get_trailing_char( std::string& format, std::size_t column ) const ;
 		std::size_t count_lines( std::istream& ) const ;
 		void reset_stream() const ;
 		void read_element( std::string& elt, char delim, std::size_t column ) const ;

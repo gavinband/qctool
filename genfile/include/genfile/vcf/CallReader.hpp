@@ -26,9 +26,12 @@ namespace genfile {
 		{
 		private:
 			typedef boost::function< void ( std::size_t i, std::vector< Entry > const& ) > Setter ;
+			// Setters holds position in the format string (one past the end if field not present),
+			// the setter object, and a pointer to the entry type.
 			typedef std::multimap< std::size_t, std::pair< Setter, VCFEntryType const* > > Setters ;
 		public:
 			CallReader(
+				std::size_t number_of_samples,
 				std::size_t number_of_alleles,
 				std::string const& format,
 				std::string const& data,
@@ -40,6 +43,7 @@ namespace genfile {
 			~CallReader() ;
 		
 		private:
+			std::size_t const m_number_of_samples ;
 			std::size_t const m_number_of_alleles ;
 			std::vector< std::string > const m_format_elts ;
 			std::string const& m_data ;

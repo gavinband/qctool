@@ -27,6 +27,7 @@ namespace genfile {
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_genotype_probability_field( genotype_probability_field ),
 		m_column_names( read_column_names( *m_stream_ptr )),
+		m_number_of_samples( m_column_names.size() - 9 ),
 		m_start_of_data( m_stream_ptr->tellg() ),
 		m_number_of_lines( count_lines( *m_stream_ptr ))
 	{
@@ -62,6 +63,7 @@ namespace genfile {
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_genotype_probability_field( genotype_probability_field ),
 		m_column_names( read_column_names( *m_stream_ptr )),
+		m_number_of_samples( m_column_names.size() - 9 ),
 		m_start_of_data( m_stream_ptr->tellg() ),
 		m_number_of_lines( count_lines( *m_stream_ptr ))
 	{
@@ -280,37 +282,55 @@ namespace genfile {
 		}
 	}
 	
+	char VCFFormatSNPDataSource::read_format_and_get_trailing_char( std::string& format, std::size_t column ) const {
+		char after_format ;
+		for( after_format = m_stream_ptr->get(); after_format != '\n' && after_format != '\t'; after_format = m_stream_ptr->get() ) {
+			format.append( 1, after_format ) ;
+		}
+		if( format.find_first_of( " \t\n\r" ) != std::string::npos ) {
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, column ) ;
+		}
+		return after_format ;
+	}
+	
 	void VCFFormatSNPDataSource::read_snp_probability_data_impl(
 		GenotypeProbabilitySetter const& set_genotype_probabilities
 	) {
 		std::string FORMAT ;
 		std::string data ;
-		std::size_t count = 7 ;
+		std::size_t count = 8 ;
+		char after_format ;
 		try {
-			read_element( FORMAT, '\t', count++ ) ;
-			std::getline( *m_stream_ptr, data ) ;
-			++count ;
+			after_format = read_format_and_get_trailing_char( FORMAT, count++ ) ;
 		}
 		catch( std::ios_base::failure const& ) {
 			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, count ) ;
 		}
 
-		try {
-			vcf::CallReader( m_variant_alleles.size(), FORMAT, data, m_format_types )
-				( m_genotype_probability_field, vcf::make_genotype_probability_setter( set_genotype_probabilities ) ) ;
+		if(( m_number_of_samples == 0 && after_format != '\n' ) || ( m_number_of_samples > 0 && after_format != '\t' )) {
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, count ) ;
 		}
-		catch( BadArgumentError const& ) {
-			// problem with FORMAT
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, 8 ) ;
-		}
-		catch( MalformedInputError const& e ) {
-			// problem with entry.
-			if( e.has_column() ) {
-				// error column is the individual index (starting from 0), we add 9 to get the column number.
-				throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, e.column() + 9 ) ;
+
+		if( m_number_of_samples > 0 ) {
+			std::getline( *m_stream_ptr, data ) ;
+			++count ;
+			try {
+				vcf::CallReader( m_number_of_samples, m_variant_alleles.size(), FORMAT, data, m_format_types )
+					( m_genotype_probability_field, vcf::make_genotype_probability_setter( set_genotype_probabilities ) ) ;
 			}
-			else {
-				throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1 ) ;
+			catch( BadArgumentError const& ) {
+				// problem with FORMAT
+				throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, 8 ) ;
+			}
+			catch( MalformedInputError const& e ) {
+				// problem with entry.
+				if( e.has_column() ) {
+					// error column is the individual index (starting from 0), we add 9 to get the column number.
+					throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, e.column() + 9 ) ;
+				}
+				else {
+					throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1 ) ;
+				}
 			}
 		}
 	}
@@ -329,7 +349,7 @@ namespace genfile {
 		}
 		// We ignore the data, but parse the FORMAT spec anyway.
 		try {
-			vcf::CallReader( m_variant_alleles.size(), FORMAT, data, m_format_types ) ;
+			vcf::CallReader( m_number_of_samples, m_variant_alleles.size(), FORMAT, data, m_format_types ) ;
 		}
 		catch( BadArgumentError const& ) {
 			// problem with FORMAT

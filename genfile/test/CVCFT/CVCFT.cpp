@@ -10,9 +10,6 @@ CVCFT :: CVCFT (std::istream &i_ins, const char* key)
 	keyid = key;
 	ins = &i_ins;
 
-
-
-
 	while (std::getline((*ins), line))
 		if (strstr(line.c_str(), "#CHROM") == line.c_str()) break; //find the #CHROM
 
@@ -59,7 +56,10 @@ void CVCFT :: GetProb(vector<double> & prob)
 	for (int i = 0; i != ns; ++i)
 	{
 		//      printf("%s\n", data[i+9]);
-		if (split(data[i+9], ':', ts) <= ikeyid || split(ts[ikeyid], ',', ts1) < 3)
+		if( ikeyid == std::numeric_limits< int >::max() ) {
+			// Key not in format.  Don't set anything.
+		}
+		else if (split(data[i+9], ':', ts) <= ikeyid || split(ts[ikeyid], ',', ts1) < 3)
 		{
 			prob.push_back(0);
 			prob.push_back(0);

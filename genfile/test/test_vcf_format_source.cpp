@@ -97,7 +97,7 @@ void perform_test_against_cvcft(
 			while( source.get_snp_identifying_data( snp )) {
 				std::vector< double > probs ;
 				source.read_snp_probability_data( genfile::set_genotypes( probs )) ;
-				TEST_ASSERT( probs.size() == number_of_probs_per_snp ) ;
+				TEST_ASSERT( probs.size() == 0 || probs.size() == number_of_probs_per_snp ) ;
 				my_snps.push_back( snp ) ;
 				my_probs.push_back( probs ) ;
 			}
