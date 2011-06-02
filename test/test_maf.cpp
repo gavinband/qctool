@@ -8,32 +8,25 @@
 #include "GenRowStatistics.hpp"
 #include "SimpleGenotypeAssayStatistics.hpp"
 #include "floating_point_utils.hpp"
-#include "../config.hpp"
-#if HAVE_BOOST_UNIT_TEST
-	#define BOOST_AUTO_TEST_MAIN
-	#include "boost/test/auto_unit_test.hpp"
-	#define AUTO_TEST_CASE( param ) BOOST_AUTO_TEST_CASE(param)
-	#define TEST_ASSERT( param ) BOOST_ASSERT( param )
-#else
-	#define AUTO_TEST_CASE( param ) void param()
-	#define TEST_ASSERT( param ) assert( param )
-#endif
+#include "test_case.hpp"
 
-std::map< std::string, double > get_data() {
-	std::map< std::string, double > data ;
-	data[ "SA1 rs001 10000000 A G 0 0 0 0 0 0 0 0 0 0 0 0.5721 0 0.0207 0.9792" ] = .00658396946564885496 ;
-	data[ "SA2 rs002 10010000 A G 0 0 1 0 1 0 1 0 0 0 1 0 1 0 0" ] = 0.4 ;
-	data[ "SA3 rs003 10020000 C T 1 0 0 0 1 0 0 0 1 0 0.9967 0 0 0 1" ] = 0.39993395651123141273 ;
-	data[ "SA4 rs004 10030000 G T 1 0 0 0 1 0 0 0 1 0 1 0 0 0 1" ] = 0.4 ;
-	data[ "SA5 rs005 10040000 C G 0 0 1 0 1 0 1 0 0 0 1 0 1 0 0" ] = 0.4 ;
-	data[ "SA6 rs006 10050000 A G 0 1 0 0 1 0 1 0 0 0 1 0 1 0 0" ] = 0.3 ;
-	data[ "SA7 rs007 10060000 G T 1 0 0 0 1 0 1 0 0 1 0 0 1 0 0" ] = 0.1 ;
-	data[ "SA8 rs008 10070000 G T 1 0 0 0 1 0 0 0 1 0 1 0 0 0 1" ] = 0.4 ;
-	data[ "SA9 rs009 10080000 G T 0 0 1 0 1 0 0 0 1 0 1 0 0 0 1" ] = 0.2 ;
-	data[ "SA10 rs010 10090000 A G 0 0 1 0 1 0 1 0 0 0 1 0 1 0 0" ] = 0.4 ;
-	data[ "SA11 rs011 10100000 C T 0 0 0 0 1 0 1 0 0 1 0 0 0.67 0 0.23" ] = .18717948717948717948 ;
+namespace {
+	std::map< std::string, double > get_data() {
+		std::map< std::string, double > data ;
+		data[ "SA1 rs001 10000000 A G 0 0 0 0 0 0 0 0 0 0 0 0.5721 0 0.0207 0.9792" ] = .00658396946564885496 ;
+		data[ "SA2 rs002 10010000 A G 0 0 1 0 1 0 1 0 0 0 1 0 1 0 0" ] = 0.4 ;
+		data[ "SA3 rs003 10020000 C T 1 0 0 0 1 0 0 0 1 0 0.9967 0 0 0 1" ] = 0.39993395651123141273 ;
+		data[ "SA4 rs004 10030000 G T 1 0 0 0 1 0 0 0 1 0 1 0 0 0 1" ] = 0.4 ;
+		data[ "SA5 rs005 10040000 C G 0 0 1 0 1 0 1 0 0 0 1 0 1 0 0" ] = 0.4 ;
+		data[ "SA6 rs006 10050000 A G 0 1 0 0 1 0 1 0 0 0 1 0 1 0 0" ] = 0.3 ;
+		data[ "SA7 rs007 10060000 G T 1 0 0 0 1 0 1 0 0 1 0 0 1 0 0" ] = 0.1 ;
+		data[ "SA8 rs008 10070000 G T 1 0 0 0 1 0 0 0 1 0 1 0 0 0 1" ] = 0.4 ;
+		data[ "SA9 rs009 10080000 G T 0 0 1 0 1 0 0 0 1 0 1 0 0 0 1" ] = 0.2 ;
+		data[ "SA10 rs010 10090000 A G 0 0 1 0 1 0 1 0 0 0 1 0 1 0 0" ] = 0.4 ;
+		data[ "SA11 rs011 10100000 C T 0 0 0 0 1 0 1 0 0 1 0 0 0.67 0 0.23" ] = .18717948717948717948 ;
 
-	return data ;
+		return data ;
+	}
 }
 
 // Test that we can read in InternalStorageGenRows, output them, and that this gives the same results.
@@ -66,8 +59,3 @@ AUTO_TEST_CASE( test_maf ) {
 	}
 }
 
-#ifndef HAVE_BOOST_UNIT_TEST
-	int main( int argc, char** argv ) {
-		test_maf() ;
-	}
-#endif

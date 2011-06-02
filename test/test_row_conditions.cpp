@@ -9,41 +9,34 @@
 #include "SimpleGenotypeAssayStatistics.hpp"
 #include "floating_point_utils.hpp"
 #include "RowCondition.hpp"
-#include "../config.hpp"
-#if HAVE_BOOST_UNIT_TEST
-	#define BOOST_AUTO_TEST_MAIN
-	#include "boost/test/auto_unit_test.hpp"
-	#define AUTO_TEST_CASE( param ) BOOST_AUTO_TEST_CASE(param)
-	#define TEST_ASSERT( param ) BOOST_ASSERT( param )
-#else
-	#define AUTO_TEST_CASE( param ) void param()
-	#define TEST_ASSERT( param ) assert( param )
-#endif
+#include "test_case.hpp"
 
-struct TestStringToValueMap: public string_to_value_map {
+namespace {
+	struct TestStringToValueMap: public string_to_value_map {
 
-	bool has_value( std::string const& name ) const {
-		return m_values.find( name ) != m_values.end() ;
+		bool has_value( std::string const& name ) const {
+			return m_values.find( name ) != m_values.end() ;
+		}
+
+		double get_double_value( std::string const& name ) const {
+			return m_values.find( name )->second ;
+		}
+
+		std::string get_string_value( std::string const& name ) const {
+			assert(0) ;
+		}
+
+		std::map< std::string, double > m_values ;
+	} ;
+
+	std::vector< TestStringToValueMap > get_data() {
+		std::vector< TestStringToValueMap > result ;
+		for( int i = 0; i < 1000; ++i ) {
+			result.push_back( TestStringToValueMap() ) ;
+			result.back().m_values[ "value" ] = static_cast< double >(i) / 1000 ;
+		}
+		return result ;
 	}
-
-	double get_double_value( std::string const& name ) const {
-		return m_values.find( name )->second ;
-	}
-
-	std::string get_string_value( std::string const& name ) const {
-		assert(0) ;
-	}
-
-	std::map< std::string, double > m_values ;
-} ;
-
-std::vector< TestStringToValueMap > get_data() {
-	std::vector< TestStringToValueMap > result ;
-	for( int i = 0; i < 1000; ++i ) {
-		result.push_back( TestStringToValueMap() ) ;
-		result.back().m_values[ "value" ] = static_cast< double >(i) / 1000 ;
-	}
-	return result ;
 }
 
 AUTO_TEST_CASE( test_less_than_greater_than ) {
@@ -79,10 +72,3 @@ AUTO_TEST_CASE( test_range ) {
 		TEST_ASSERT( exclusive_condition.check_if_satisfied( *i ) == ((value > 0.3) && (value < 0.7))) ;
 	}
 }
-
-#ifndef HAVE_BOOST_UNIT_TEST
-	int main( int argc, char** argv ) {
-		test_less_than_greater_than() ;
-		test_range() ;
-	}
-#endif

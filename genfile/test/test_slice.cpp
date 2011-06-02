@@ -130,8 +130,8 @@ AUTO_TEST_CASE( test_find_first_of ) {
 	std::cerr << "ok.\n" ;
 }
 
-AUTO_TEST_CASE( test_split ) {
-	std::cerr << "test_split()..." ;
+AUTO_TEST_CASE( test_split_slice ) {
+	std::cerr << "test_split_slice()..." ;
 
 	{
 		std::string data = "" ;
@@ -206,10 +206,3 @@ AUTO_TEST_CASE( test_split ) {
 	std::cerr << "ok.\n" ;
 }
 
-
-AUTO_TEST_MAIN {
-	test_constructors() ;
-	test_find() ;
-	test_find_first_of() ;
-	test_split() ;
-}

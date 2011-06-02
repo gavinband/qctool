@@ -18,7 +18,7 @@ def build( bld ):
 		includes='./include',
 		uselib = 'BOOST BOOST_THREAD',
 		export_incdirs = './include'	
-	)
+	)	
 	
 	bld(
 		features = 'cxx cprogram',

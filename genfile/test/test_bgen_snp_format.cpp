@@ -194,9 +194,3 @@ AUTO_TEST_CASE( test_snp_block_output ) {
 	do_snp_block_write_test( 6, 6, "SNP 01", "RS 01", genfile::Chromosome1, 1000001, 'A', 'C' ) ;
 	do_snp_block_write_test( 1000, 50, "01234567890123456789012345678901234567890123456789", "01234567890123456789012345678901234567890123456789", genfile::Chromosome22, 4294967295u, 'G', 'T' ) ;
 }
-
-AUTO_TEST_MAIN {
-	test_snp_block_input() ;
-	test_snp_block_output() ;
-}
-

@@ -9,35 +9,38 @@
 #include "statfile/DelimitedStatSource.hpp"
 
 namespace globals {
-	std::string data =
-	"# This is a file\n"
-	"# These lines are comments, which should be ignored.\n"
-	"#\n"
-	"index\tColumn1\tColumn2\tColumn3\t0\t1\t2\t3\t4\t5\t6\t7\t8\t9\n"
-	"0\tHello\thello\thello\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\n"
-	"1\tH\te\tL\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\n"
-	"2\tHere's\ta\ttest\t100.0\t100000.254\t576.22\t-0.1\t-100.001\t100.001\t1000000\t4294967296\t9007199254740992\t-9007199254740992\n"
-	"3\tA\tB\tC\t0.00001\t9999.99999\t0.00001\t9999.99999\t0.00001\t9999.99999\t0.00001\t9999.99999\t0.00001\t9999.99999\n" ;
+	namespace {
+		std::string data =
+		"# This is a file\n"
+		"# These lines are comments, which should be ignored.\n"
+		"#\n"
+		"index\tColumn1\tColumn2\tColumn3\t0\t1\t2\t3\t4\t5\t6\t7\t8\t9\n"
+		"0\tHello\thello\thello\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\n"
+		"1\tH\te\tL\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\n"
+		"2\tHere's\ta\ttest\t100.0\t100000.254\t576.22\t-0.1\t-100.001\t100.001\t1000000\t4294967296\t9007199254740992\t-9007199254740992\n"
+		"3\tA\tB\tC\t0.00001\t9999.99999\t0.00001\t9999.99999\t0.00001\t9999.99999\t0.00001\t9999.99999\t0.00001\t9999.99999\n" ;
 
-	std::string quoted_data =
-	"# This is a file\n"
-	"# These lines are comments, which should be ignored.\n"
-	"#\n"
-	"\"index\"\t\"Column1\"\t\"Column2\"\t\"Column3\"\t\"0\"\t\"1\"\t\"2\"\t\"3\"\t\"4\"\t\"5\"\t\"6\"\t\"7\"\t\"8\"\t\"9\"\n"
-	"\"0\"\t\"Hello\"\t\"hello\"\t\"hello\"\t\"0\"\t\"0\"\t\"0\"\t\"0\"\t\"0\"\t\"0\"\t\"0\"\t\"0\"\t\"0\"\t\"0\"\n"
-	"\"1\"\t\"H\"\t\"e\"\t\"L\"\t\"0.0\"\t\"0.0\"\t\"0.0\"\t\"0.0\"\t\"0.0\"\t\"0.0\"\t\"0.0\"\t\"0.0\"\t\"0.0\"\t\"0.0\"\n"
-	"\"2\"\t\"Here's\"\t\"a\"\t\"test\"\t\"100.0\"\t\"100000.254\"\t\"576.22\"\t\"-0.1\"\t\"-100.001\"\t\"100.001\"\t\"1000000\"\t\"4294967296\"\t\"9007199254740992\"\t\"-9007199254740992\"\n"
-	"\"3\"\t\"A\"\t\"B\"\t\"C\"\t\"0.00001\"\t\"9999.99999\"\t\"0.00001\"\t\"9999.99999\"\t\"0.00001\"\t\"9999.99999\"\t\"0.00001\"\t\"9999.99999\"\t\"0.00001\"\t\"9999.99999\"\n" ;
+		std::string quoted_data =
+		"# This is a file\n"
+		"# These lines are comments, which should be ignored.\n"
+		"#\n"
+		"\"index\"\t\"Column1\"\t\"Column2\"\t\"Column3\"\t\"0\"\t\"1\"\t\"2\"\t\"3\"\t\"4\"\t\"5\"\t\"6\"\t\"7\"\t\"8\"\t\"9\"\n"
+		"\"0\"\t\"Hello\"\t\"hello\"\t\"hello\"\t\"0\"\t\"0\"\t\"0\"\t\"0\"\t\"0\"\t\"0\"\t\"0\"\t\"0\"\t\"0\"\t\"0\"\n"
+		"\"1\"\t\"H\"\t\"e\"\t\"L\"\t\"0.0\"\t\"0.0\"\t\"0.0\"\t\"0.0\"\t\"0.0\"\t\"0.0\"\t\"0.0\"\t\"0.0\"\t\"0.0\"\t\"0.0\"\n"
+		"\"2\"\t\"Here's\"\t\"a\"\t\"test\"\t\"100.0\"\t\"100000.254\"\t\"576.22\"\t\"-0.1\"\t\"-100.001\"\t\"100.001\"\t\"1000000\"\t\"4294967296\"\t\"9007199254740992\"\t\"-9007199254740992\"\n"
+		"\"3\"\t\"A\"\t\"B\"\t\"C\"\t\"0.00001\"\t\"9999.99999\"\t\"0.00001\"\t\"9999.99999\"\t\"0.00001\"\t\"9999.99999\"\t\"0.00001\"\t\"9999.99999\"\t\"0.00001\"\t\"9999.99999\"\n" ;
 
-	int number_of_data_columns = 10 ;
-	std::size_t number_of_rows = 4 ;
+		std::size_t number_of_rows = 4 ;
+	}
 }
 
-void copy_data_to_file( std::string const& data, std::string const& filename ) {
-	std::ofstream file( filename.c_str() ) ;
-	TEST_ASSERT( file.is_open() ) ;
-	file << data ;
-	file.close() ;
+namespace {
+	void copy_data_to_file( std::string const& data, std::string const& filename ) {
+		std::ofstream file( filename.c_str() ) ;
+		TEST_ASSERT( file.is_open() ) ;
+		file << data ;
+		file.close() ;
+	}
 }
 
 AUTO_TEST_CASE( test_TabDelimitedFormat ) 
@@ -197,9 +200,3 @@ AUTO_TEST_CASE( test_column_names ) {
 	
 }
 
-AUTO_TEST_MAIN
-{
-	test_TabDelimitedFormat() ;
-	test_CommaDelimitedFormat() ;
-	test_column_names() ;
-}

@@ -155,9 +155,3 @@ AUTO_TEST_CASE( test_log_space_matrix_multiply ) {
 		TEST_ASSERT( m == expected_results[i] ) ;
 	}
 }
-
-AUTO_TEST_MAIN
-{
-	test_log_space_matrix_multiply() ;
-}
-

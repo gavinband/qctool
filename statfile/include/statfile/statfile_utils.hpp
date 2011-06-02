@@ -5,9 +5,10 @@
 #include <map>
 #include <string>
 
+#include "genfile/FileUtils.hpp"
+
 namespace statfile {
 	
-	enum CompressionType { e_NoCompression = 0, e_GzipCompression = 1 } ;
 	enum FileFormatType {
 		e_UnknownFormat = 0,
 		e_RFormat = 1,					// Readable by R's read.table( <filename>, header = T )
@@ -73,14 +74,13 @@ namespace statfile {
 	ColumnSpecList operator|( ColumnSpecList const& left, ColumnSpec const& right ) ;
 
 	FileFormatType get_file_format_type_indicated_by_filename( std::string const& filename ) ;
-	CompressionType get_compression_type_indicated_by_filename( std::string const& filename ) ;
 
-	std::string strip_file_format_extension_if_present( std::string const& filename ) ;
-
-	std::auto_ptr< std::istream > open_text_file_for_input( std::string filename, CompressionType compression_type ) ;
-	std::auto_ptr< std::ostream > open_text_file_for_output( std::string filename, CompressionType compression_type ) ;
-	std::auto_ptr< std::istream > open_binary_file_for_input( std::string filename, CompressionType compression_type = e_NoCompression ) ;
-	std::auto_ptr< std::ostream > open_binary_file_for_output( std::string filename, CompressionType compression_type = e_NoCompression ) ;
+	using genfile::get_compression_type_indicated_by_filename ;
+	using genfile::open_text_file_for_input ;
+	using genfile::open_text_file_for_input ;
+	using genfile::open_text_file_for_output  ;
+	using genfile::open_binary_file_for_input ;
+	using genfile::open_binary_file_for_output ;
 
 	struct StatError: public std::exception { char const* what() const throw() { return "StatError" ; } } ;
 	struct FileNotOpenedError: public StatError {

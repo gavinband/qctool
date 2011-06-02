@@ -94,9 +94,3 @@ AUTO_TEST_CASE( test_log_diff_exp ) {
 	std::cerr << "success.\n" ;	
 }
 
-AUTO_TEST_MAIN
-{
-	test_log_sum_exp() ;
-	test_log_diff_exp() ;
-}
-

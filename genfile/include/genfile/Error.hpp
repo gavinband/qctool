@@ -114,6 +114,27 @@ namespace genfile {
 		std::string const m_source ;
 	} ;
 	
+	struct OperationUnsupportedError: public std::exception
+	{
+		OperationUnsupportedError( std::string const& operation, std::string const& object ):
+			m_operation( operation ),
+			m_object( object )
+		{}
+
+		OperationUnsupportedError( OperationUnsupportedError const& other ):
+			m_operation( other.m_operation ),
+			m_object( other.m_object )
+		{}
+		
+		virtual ~OperationUnsupportedError() throw() {}
+		
+		std::string const& operation() const { return m_operation ;}
+		std::string const& object() const { return m_object ;}
+	private:
+		std::string const m_operation ;
+		std::string const m_object ;
+	} ;
+	
 	struct BadArgumentError: public InputError
 	{
 		BadArgumentError( std::string const& function, std::string const& arguments ):

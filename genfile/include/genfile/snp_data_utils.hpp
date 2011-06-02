@@ -25,7 +25,7 @@ namespace genfile {
 
 	struct OperationFailedError: public std::exception { char const* what() const throw() { return "genfile::OperationFailedError" ; } } ;
 	struct FileStructureInvalidError: public SNPDataError { char const* what() const throw() { return "genfile::FileStructureInvalidError" ; } } ;
-	struct FileNotFoundError: public SNPDataError	
+	struct FileNotFoundError: public SNPDataError
 	{
 		FileNotFoundError( std::string const& filespec ): m_filespec( filespec ) {}
 		~FileNotFoundError() throw() {}

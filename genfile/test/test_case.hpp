@@ -7,8 +7,8 @@
 #include <iostream>
 #include "../../config.hpp"
 
-#if HAVE_BOOST_UNIT_TEST
-	#include "boost/test/unit_test.hpp"
+#if HAVE_BOOST_UNIT_TEST_FRAMEWORK
+	#include "boost/test/auto_unit_test.hpp"
 	#define AUTO_TEST_CASE( param ) BOOST_AUTO_TEST_CASE(param)
 	#define TEST_ASSERT( param ) BOOST_ASSERT( param )
 	#define AUTO_TEST_MAIN namespace { void test_case_dummy_function_WILL_NOT_BE_CALLED() ; } void test_case_dummy_function_WILL_NOT_BE_CALLED() 

@@ -86,7 +86,3 @@ struct SampleFilteringCohortIndividualSourceTester
 	}
 	
 } ;
-
-AUTO_TEST_MAIN {
-	SampleFilteringCohortIndividualSourceTester tester ;
-}

@@ -292,9 +292,3 @@ AUTO_TEST_CASE( test_PackedBinFormatStatSource ) {
 	}
 }
 
-
-AUTO_TEST_MAIN
-{
-	test_PackedBinFormatStatSink() ;
-	test_PackedBinFormatStatSource() ;
-}

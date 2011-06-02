@@ -11,135 +11,136 @@
 #include "statfile/BinFormatStatSource.hpp"
 #include "statfile/endianness_utils.hpp"
 
-void write_header_block( std::ostream& stream, uint32_t number_of_rows, uint32_t number_of_columns, uint32_t number_of_id_columns, std::string const& version_text, std::string const& descriptive_text ) {
-	uint32_t header_block_size = 5 + 5 + 5 + 5 + version_text.size() + 5 + descriptive_text.size() + 5 ;
-	// we will write number_of_columns 4-byte strings
-	header_block_size += (9 * number_of_columns) ;
-	stream.put( 'u' ) ;
-	statfile::write_little_endian_integer( stream, header_block_size ) ;
-	stream.put( 's' ) ;
-	uint32_t size = version_text.size() ;
-	statfile::write_little_endian_integer( stream, size ) ;
-	stream.write( version_text.data(), size ) ;
-	stream.put( 'u' ) ;
-	statfile::write_little_endian_integer( stream, number_of_rows ) ;
-	stream.put( 'u' ) ;
-	statfile::write_little_endian_integer( stream, number_of_columns ) ;
-	stream.put( 'u' ) ;
-	statfile::write_little_endian_integer( stream, number_of_id_columns ) ; // number of id columns.
-	stream.put( 's' ) ;
-	size = descriptive_text.size() ;
-	statfile::write_little_endian_integer( stream, size ) ;
-	stream.write( descriptive_text.data(), size ) ;
-
-	// Write column headers.
-	for( std::size_t i = 0; i < number_of_columns; ++i ) {
+namespace {
+	void write_header_block( std::ostream& stream, uint32_t number_of_rows, uint32_t number_of_columns, uint32_t number_of_id_columns, std::string const& version_text, std::string const& descriptive_text ) {
+		uint32_t header_block_size = 5 + 5 + 5 + 5 + version_text.size() + 5 + descriptive_text.size() + 5 ;
+		// we will write number_of_columns 4-byte strings
+		header_block_size += (9 * number_of_columns) ;
+		stream.put( 'u' ) ;
+		statfile::write_little_endian_integer( stream, header_block_size ) ;
 		stream.put( 's' ) ;
-		size = 4 ;
-		std::ostringstream ostr ;
-		ostr << std::setw(4) << i ;
+		uint32_t size = version_text.size() ;
 		statfile::write_little_endian_integer( stream, size ) ;
-		stream.write( ostr.str().data(), 4 ) ;		
+		stream.write( version_text.data(), size ) ;
+		stream.put( 'u' ) ;
+		statfile::write_little_endian_integer( stream, number_of_rows ) ;
+		stream.put( 'u' ) ;
+		statfile::write_little_endian_integer( stream, number_of_columns ) ;
+		stream.put( 'u' ) ;
+		statfile::write_little_endian_integer( stream, number_of_id_columns ) ; // number of id columns.
+		stream.put( 's' ) ;
+		size = descriptive_text.size() ;
+		statfile::write_little_endian_integer( stream, size ) ;
+		stream.write( descriptive_text.data(), size ) ;
+
+		// Write column headers.
+		for( std::size_t i = 0; i < number_of_columns; ++i ) {
+			stream.put( 's' ) ;
+			size = 4 ;
+			std::ostringstream ostr ;
+			ostr << std::setw(4) << i ;
+			statfile::write_little_endian_integer( stream, size ) ;
+			stream.write( ostr.str().data(), 4 ) ;		
+		}
 	}
-}
 
-typedef boost::tuple< uint32_t, uint32_t, std::string > data_t ;
+	typedef boost::tuple< uint32_t, uint32_t, std::string > data_t ;
 
-using statfile::write_little_endian_integer ;
+	using statfile::write_little_endian_integer ;
 
-void construct_test_data(
-	std::ostream & stream,
-	uint32_t number_of_rows,
-	uint32_t number_of_columns,
-	std::string const& descriptive_text
-) {
-	std::string version_text = "statfilebin_v1" ;
-	std::size_t number_of_id_columns = number_of_columns / 2;
-	write_header_block( stream, number_of_rows, number_of_columns, number_of_id_columns, version_text, descriptive_text ) ;
+	void construct_test_data(
+		std::ostream & stream,
+		uint32_t number_of_rows,
+		uint32_t number_of_columns,
+		std::string const& descriptive_text
+	) {
+		std::string version_text = "statfilebin_v1" ;
+		std::size_t number_of_id_columns = number_of_columns / 2;
+		write_header_block( stream, number_of_rows, number_of_columns, number_of_id_columns, version_text, descriptive_text ) ;
 
-	for( std::size_t i = 0; i < number_of_rows; ++i ) {
-		for( std::size_t j = 0; j < number_of_id_columns; ++j ) {
-			int c = (i+j) % 4 ;
-			double value = std::exp( i+j ) ;
-			std::ostringstream str ;
-			str << ( i+j ) ;
-			uint32_t str_size = str.str().size() ;
-			switch( c ) {
-				case 0:
-					stream.put( 'i' ) ;
-					write_little_endian_integer( stream, int32_t( i+j ) ) ;
-					break ;
-				case 1:
-					stream.put( 'u' ) ;
-					write_little_endian_integer( stream, uint32_t( i+j ) ) ;
-					break ;
-				case 2:
-					stream.put( 'd' ) ;
-					stream.write( reinterpret_cast< char const* >( &value ), sizeof( value )) ;
-					break ;
-				case 3:
-					stream.put( 's' ) ;
-					write_little_endian_integer( stream, str_size ) ;
-					stream.write( str.str().data(), str_size ) ;
-					break ;
-				default:
-					assert( 0 ) ;
+		for( std::size_t i = 0; i < number_of_rows; ++i ) {
+			for( std::size_t j = 0; j < number_of_id_columns; ++j ) {
+				int c = (i+j) % 4 ;
+				double value = std::exp( i+j ) ;
+				std::ostringstream str ;
+				str << ( i+j ) ;
+				uint32_t str_size = str.str().size() ;
+				switch( c ) {
+					case 0:
+						stream.put( 'i' ) ;
+						write_little_endian_integer( stream, int32_t( i+j ) ) ;
+						break ;
+					case 1:
+						stream.put( 'u' ) ;
+						write_little_endian_integer( stream, uint32_t( i+j ) ) ;
+						break ;
+					case 2:
+						stream.put( 'd' ) ;
+						stream.write( reinterpret_cast< char const* >( &value ), sizeof( value )) ;
+						break ;
+					case 3:
+						stream.put( 's' ) ;
+						write_little_endian_integer( stream, str_size ) ;
+						stream.write( str.str().data(), str_size ) ;
+						break ;
+					default:
+						assert( 0 ) ;
+				}
 			}
-		}
 		
-		for( std::size_t j = number_of_id_columns; j < number_of_columns; ++j ) {
-			double value = std::exp( i+j ) ;
-			stream.write( reinterpret_cast< char const* >( &value ), sizeof( value )) ;
-		}
-	} 
-}
-
-void write_test_data(
-	statfile::BinFormatStatSink& sink,
-	data_t const& data
-) {
-	// set the descriptive text
-	sink.set_descriptive_text( data.get<2>() ) ;
-
-	// set up the column names.
-	for( std::size_t i = 0; i < data.get<1>() ; ++i ) {
-		std::ostringstream ostr ;
-		ostr << std::setw(4) << i ;
-		sink | ostr.str() ;
-	}
-
-	std::size_t number_of_id_columns = data.get<1>() / 2;
-
-	for( std::size_t i = 0; i < data.get<0>(); ++i ) {
-		for( std::size_t j = 0; j < number_of_id_columns; ++j ) {
-			int c = (i+j) % 4 ;
-			std::ostringstream str ;
-			str << (i+j) ;
-			switch( c ) {
-				case 0:
-					sink << int32_t( i+j ) ;
-					break ;
-				case 1:
-					sink << uint32_t( i+j ) ;
-					break ;
-				case 2:
-					sink << double( std::exp( i+j ) ) ;
-					break ;
-				case 3:
-					sink << str.str() ;
-					break ;
-				default:
-					assert( 0 ) ;
+			for( std::size_t j = number_of_id_columns; j < number_of_columns; ++j ) {
+				double value = std::exp( i+j ) ;
+				stream.write( reinterpret_cast< char const* >( &value ), sizeof( value )) ;
 			}
+		} 
+	}
+
+	void write_test_data(
+		statfile::BinFormatStatSink& sink,
+		data_t const& data
+	) {
+		// set the descriptive text
+		sink.set_descriptive_text( data.get<2>() ) ;
+
+		// set up the column names.
+		for( std::size_t i = 0; i < data.get<1>() ; ++i ) {
+			std::ostringstream ostr ;
+			ostr << std::setw(4) << i ;
+			sink | ostr.str() ;
 		}
+
+		std::size_t number_of_id_columns = data.get<1>() / 2;
+
+		for( std::size_t i = 0; i < data.get<0>(); ++i ) {
+			for( std::size_t j = 0; j < number_of_id_columns; ++j ) {
+				int c = (i+j) % 4 ;
+				std::ostringstream str ;
+				str << (i+j) ;
+				switch( c ) {
+					case 0:
+						sink << int32_t( i+j ) ;
+						break ;
+					case 1:
+						sink << uint32_t( i+j ) ;
+						break ;
+					case 2:
+						sink << double( std::exp( i+j ) ) ;
+						break ;
+					case 3:
+						sink << str.str() ;
+						break ;
+					default:
+						assert( 0 ) ;
+				}
+			}
 		
-		for( std::size_t j = number_of_id_columns; j < data.get<1>(); ++j ) {
-			sink << double( std::exp( i+j ) ) ;
+			for( std::size_t j = number_of_id_columns; j < data.get<1>(); ++j ) {
+				sink << double( std::exp( i+j ) ) ;
+			}
+			sink << statfile::end_row() ;
 		}
-		sink << statfile::end_row() ;
 	}
 }
-
 
 AUTO_TEST_CASE( test_BinFormatStatSink ) 
 {
@@ -269,11 +270,4 @@ AUTO_TEST_CASE( test_BinFormatStatSource ) {
 			TEST_ASSERT( source ) ;
 		}
 	}
-}
-
-
-AUTO_TEST_MAIN
-{
-	test_BinFormatStatSink() ;
-	test_BinFormatStatSource() ;
 }

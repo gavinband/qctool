@@ -107,7 +107,3 @@ AUTO_TEST_CASE( test_RFormat )
 	std::cout << "Success.\n" ;
 }
 
-AUTO_TEST_MAIN
-{
-	test_RFormat() ;
-}

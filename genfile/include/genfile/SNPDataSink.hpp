@@ -24,7 +24,8 @@ namespace genfile {
 
 		// Factory functions
 		static UniquePtr create( std::string const& filename, std::string const& free_data = "" ) ;
-		static UniquePtr create( std::string const& filename, CompressionType compression_type, std::string const& free_data = "" ) ;
+	private:
+		static UniquePtr create_impl( std::string const& filename, CompressionType compression_type, std::string const& free_data = "" ) ;
 
 	public:		
 

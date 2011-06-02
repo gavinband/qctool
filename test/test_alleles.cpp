@@ -8,24 +8,18 @@
 #include "GenRowStatistics.hpp"
 #include "floating_point_utils.hpp"
 #include "../config.hpp"
-#if HAVE_BOOST_UNIT_TEST
-	#define BOOST_AUTO_TEST_MAIN
-	#include "boost/test/auto_unit_test.hpp"
-	#define AUTO_TEST_CASE( param ) BOOST_AUTO_TEST_CASE(param)
-	#define TEST_ASSERT( param ) BOOST_ASSERT( param )
-#else
-	#define AUTO_TEST_CASE( param ) void param()
-	#define TEST_ASSERT( param ) assert( param )
-#endif
+#include "test_case.hpp"
 
-std::map< std::string, std::string > get_data() {
-	std::map< std::string, std::string > data ;
-	data[ "S1 S1 0 A G 1 0 0"  ] = "G" ;
-	data[ "S1 S1 0 A G 0 0 1"  ] = "A" ;
-	data[ "S1 S1 0 A G 0.8 0.2 0"  ] = "G" ;
-	data[ "S1 S1 0 A G 0 0.2 0.8"  ] = "A" ;
-	
-	return data ;
+namespace {
+	std::map< std::string, std::string > get_data() {
+		std::map< std::string, std::string > data ;
+		data[ "S1 S1 0 A G 1 0 0"  ] = "G" ;
+		data[ "S1 S1 0 A G 0 0 1"  ] = "A" ;
+		data[ "S1 S1 0 A G 0.8 0.2 0"  ] = "G" ;
+		data[ "S1 S1 0 A G 0 0.2 0.8"  ] = "A" ;
+		
+		return data ;
+	}
 }
 
 AUTO_TEST_CASE( test_alleles ) {
@@ -56,8 +50,3 @@ AUTO_TEST_CASE( test_alleles ) {
 	}
 }
 
-#ifndef HAVE_BOOST_UNIT_TEST
-	int main( int argc, char** argv ) {
-		test_alleles() ;
-	}
-#endif

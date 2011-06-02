@@ -23,7 +23,6 @@
 #include "genfile/SortingBGenFileSNPDataSink.hpp"
 #include "string_utils/string_utils.hpp"
 #include "string_utils/parse_utils.hpp"
-#include "wildcard.hpp"
 #include "InputToOutputFilenameMapper.hpp"
 
 using namespace appcontext ;

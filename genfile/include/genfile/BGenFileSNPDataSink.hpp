@@ -94,7 +94,7 @@ namespace genfile {
 			std::string const& free_data,
 			bgen::uint32_t flags
 		)
-		: 	BasicBGenFileSNPDataSink( filename, free_data, e_NoCompression, flags )
+		: 	BasicBGenFileSNPDataSink( filename, free_data, "no_compression", flags )
 		{
 		}
 
@@ -125,7 +125,7 @@ namespace genfile {
 		: 	BasicBGenFileSNPDataSink(
 				create_temporary_filename(),
 				free_data,
-				e_NoCompression,
+				"no_compression",
 				bgen::e_NoFlags
 			),
 			m_filename( filename ),
@@ -141,8 +141,8 @@ namespace genfile {
 			// Close the file we were writing.
 			stream_ptr().reset() ;
 			// Copy the temp file created by our base class, zipping it as we go.
-			std::auto_ptr< std::istream > input_file_ptr = open_binary_file_for_input( temp_filename(), e_NoCompression ) ;
-			std::auto_ptr< std::ostream > output_file_ptr = open_binary_file_for_output( m_filename, e_GzipCompression ) ;
+			std::auto_ptr< std::istream > input_file_ptr = open_binary_file_for_input( temp_filename(), "no_compression" ) ;
+			std::auto_ptr< std::ostream > output_file_ptr = open_binary_file_for_output( m_filename, "gzip_compression" ) ;
 
 			bgen::uint32_t offset ;
 			bgen::read_offset( *input_file_ptr, &offset ) ;

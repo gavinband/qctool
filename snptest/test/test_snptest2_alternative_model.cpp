@@ -80,7 +80,3 @@ AUTO_TEST_CASE( test_alternative_model_one_individual ) {
 	test_alternative_model_certain_genotypes_one_individual( 2 ) ;
 }
 
-AUTO_TEST_MAIN
-{
-	test_alternative_model_one_individual() ;
-}

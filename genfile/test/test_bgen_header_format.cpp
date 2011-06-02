@@ -118,9 +118,3 @@ AUTO_TEST_CASE( test_header_block_output ) {
 	do_header_block_write_test( 4294967295u, 4294967295u, "Some more free text here, you see &&&& $$$ $$$", 4294967295u ) ;
 	do_header_block_write_test( 0, 0, "", 1 ) ;
 }
-
-AUTO_TEST_MAIN {
-	test_header_block_input() ;
-	test_header_block_output() ;
-}
-

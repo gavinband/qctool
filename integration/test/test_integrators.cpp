@@ -175,8 +175,3 @@ AUTO_TEST_CASE( test_gander_gauschi_log )
 	}
 }
 
-AUTO_TEST_MAIN
-{
-	test_gander_gauschi() ;
-	test_gander_gauschi_log() ;
-}

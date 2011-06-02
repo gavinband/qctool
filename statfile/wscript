@@ -5,11 +5,11 @@ import glob
 def configure( conf ):
 	pass
 
-def create_test( bld, name ):
+def create_tests( bld, name ):
 	bld(
 		features = 'cxx cprogram',
 		target = name,
-		source = [  'test/' + name + '.cpp' ],
+		source = bld.glob( 'test/*.cpp' ),
 		uselib_local = 'statfile',
 		uselib = 'BOOST_UNIT_TEST_FRAMEWORK',
 		includes='./include',
@@ -44,7 +44,4 @@ def build( bld ):
 		export_incdirs = './include'
 	)
 
-	create_test( bld, 'test_RFormat' )
-	create_test( bld, 'test_delimited_format' )
-	create_test( bld, 'test_BinFormat' )
-	create_test( bld, 'test_PackedBinFormat' )
+	create_tests( bld, 'test_statfile' )

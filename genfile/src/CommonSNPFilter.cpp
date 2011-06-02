@@ -48,7 +48,7 @@ namespace genfile {
 
 	std::set< std::string > CommonSNPFilter::read_strings_from_file( std::string const& filename ) {
 		std::set< std::string > result ;
-		std::auto_ptr< std::istream > file = open_text_file_for_input( filename, e_NoCompression ) ;
+		std::auto_ptr< std::istream > file = open_text_file_for_input( filename, "no_compression" ) ;
 		result.insert( std::istream_iterator< std::string >( *file ), std::istream_iterator< std::string >() ) ;
 		return result ;
 	}

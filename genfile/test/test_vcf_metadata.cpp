@@ -365,12 +365,3 @@ AUTO_TEST_CASE( test_v4_0 ) {
 	std::cerr << "ok.\n" ;
 }
 
-AUTO_TEST_MAIN {
-	test_spec_example() ;
-	test_no_fileformat() ;
-	test_malformed_file() ;
-	test_info_and_format_fields() ;
-	test_filter_fields() ;
-	test_tab_characters() ;
-	test_v4_0() ;
-}

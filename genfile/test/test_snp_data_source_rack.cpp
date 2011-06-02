@@ -214,8 +214,3 @@ AUTO_TEST_CASE( test_snp_data_source_rack ) {
 	std::cout << "==== success ====\n" ;
 	
 }
-
-AUTO_TEST_MAIN {
-	test_snp_data_source_rack() ;
-}
-

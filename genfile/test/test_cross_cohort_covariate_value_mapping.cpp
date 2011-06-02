@@ -416,9 +416,3 @@ struct NormalisingValueMappingTester
 		}
 	}
 } ;
-
-AUTO_TEST_MAIN {
-	CategoricalValueMappingTester tester1 ;
-	ContinuousValueMappingTester tester2 ;
-	NormalisingValueMappingTester tester3 ;	
-}

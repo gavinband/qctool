@@ -52,7 +52,7 @@ def check_for_boost_components( conf ):
 		check_for_boost_lib( conf, 'filesystem', min_version='1.36', uselib="BOOST_FILESYSTEM" )
 		check_for_boost_lib( conf, 'system', min_version='1.36', uselib="BOOST_SYSTEM" )
 		check_for_boost_lib( conf, 'thread', min_version='1.36', uselib="BOOST_THREAD" )
-		check_for_boost_lib( conf, 'unit_test_framework', min_version='1.36', uselib = "BOOST_UNIT_TEST" )
+		check_for_boost_lib( conf, 'unit_test_framework', min_version='1.36', uselib = "BOOST_UNIT_TEST_FRAMEWORK" )
 
 def check_for_boost_headers( conf, min_version ):
 	if conf.check_boost( min_version = min_version ):
@@ -166,23 +166,8 @@ def build( bld ):
 	# tests
 	#---------------------
 	# misc tests...
-	create_test( bld, 'test_log_of_gamma' )
-	create_test( bld, 'test_log_of_factorial' )
-	create_test( bld, 'test_genrow' )
-	create_test( bld, 'test_genrow_io' )
-	create_test( bld, 'test_row_conditions' )
-	create_test( bld, 'test_wildcard' )
-	# Statistic tests...
-	create_test( bld, 'test_hwe' )
-	create_test( bld, 'test_maximum_likelihood_statistics' )
-	create_test( bld, 'test_hwe_against_SNPHWE' )
-	create_test( bld, 'test_maf' )
-	create_test( bld, 'test_missing' )
-	create_test( bld, 'test_missing_calls' )
-	create_test( bld, 'test_heterozygosity' )
-	create_test( bld, 'test_alleles' )
-	create_test( bld, 'test_statistic_arithmetic' )
-	create_test( bld, 'test_information' )
+
+	create_tests( bld )
 
 def create_app( bld, name, uselib = '', uselib_local = '' ):
 	bld.new_task_gen(
@@ -195,11 +180,11 @@ def create_app( bld, name, uselib = '', uselib_local = '' ):
 		install_path = os.path.join( bld.env[ 'PREFIX' ], 'bin' )
 	)
 
-def create_test( bld, name ):
+def create_tests( bld ):
 	bld.new_task_gen(
 		features = 'cxx cprogram',
-		target = name,
-		source = [  'test/' + name + '.cpp' ],
+		target = 'test_qctool',
+		source = bld.glob( 'test/*.cpp' ),
 		uselib_local = 'gen-tools-lib gen-tools-exception genfile appcontext string_utils',
 		includes='./include ./genfile/include',
 		uselib = 'BOOST_UNIT_TEST_FRAMEWORK',

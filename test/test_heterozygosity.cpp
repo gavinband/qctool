@@ -9,43 +9,37 @@
 #include "SimpleGenotypeAssayStatistics.hpp"
 #include "floating_point_utils.hpp"
 #include "../config.hpp"
-#if HAVE_BOOST_UNIT_TEST
-	#define BOOST_AUTO_TEST_MAIN
-	#include "boost/test/auto_unit_test.hpp"
-	#define AUTO_TEST_CASE( param ) BOOST_AUTO_TEST_CASE(param)
-	#define TEST_ASSERT( param ) BOOST_ASSERT( param )
-#else
-	#define AUTO_TEST_CASE( param ) void param()
-	#define TEST_ASSERT( param ) assert( param )
-#endif
+#include "test_case.hpp"
 
-std::map< std::string, double > get_data() {
-	std::map< std::string, double > data ;
-	data[ "S1 S1 0 A G 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0" ] = 1.0 ;
-	data[ "S1 S1 0 A G 1 0 0 0 1 0 0 1 0 0 1 0 0 1 0" ] = 4.0 / 5.0 ;
-	data[ "S1 S1 0 A G 1 0 0 1 0 0 0 1 0 0 1 0 0 1 0" ] = 3.0 / 5.0 ;
-	data[ "S1 S1 0 A G 1 0 0 1 0 0 1 0 0 0 1 0 0 1 0" ] = 2.0 / 5.0 ;
-	data[ "S1 S1 0 A G 1 0 0 1 0 0 1 0 0 1 0 0 0 1 0" ] = 1.0 / 5.0 ;
-	data[ "S1 S1 0 A G 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0" ] = 0.0 ;
+namespace {
+	std::map< std::string, double > get_data() {
+		std::map< std::string, double > data ;
+		data[ "S1 S1 0 A G 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0" ] = 1.0 ;
+		data[ "S1 S1 0 A G 1 0 0 0 1 0 0 1 0 0 1 0 0 1 0" ] = 4.0 / 5.0 ;
+		data[ "S1 S1 0 A G 1 0 0 1 0 0 0 1 0 0 1 0 0 1 0" ] = 3.0 / 5.0 ;
+		data[ "S1 S1 0 A G 1 0 0 1 0 0 1 0 0 0 1 0 0 1 0" ] = 2.0 / 5.0 ;
+		data[ "S1 S1 0 A G 1 0 0 1 0 0 1 0 0 1 0 0 0 1 0" ] = 1.0 / 5.0 ;
+		data[ "S1 S1 0 A G 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0" ] = 0.0 ;
                  
-	data[ "S1 S1 0 A G 0 0 1 0 1 0 0 1 0 0 1 0 0 1 0" ] = 4.0/5.0 ;
-	data[ "S1 S1 0 A G 0 0 1 0 0 1 0 1 0 0 1 0 0 1 0" ] = 3.0/5.0 ;
-	data[ "S1 S1 0 A G 0 0 1 0 0 1 0 0 1 0 1 0 0 1 0" ] = 2.0/5.0 ;
-	data[ "S1 S1 0 A G 0 0 1 0 0 1 0 0 1 0 0 1 0 1 0" ] = 1.0/5.0 ;
-	data[ "S1 S1 0 A G 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1" ] = 0.0 ;
+		data[ "S1 S1 0 A G 0 0 1 0 1 0 0 1 0 0 1 0 0 1 0" ] = 4.0/5.0 ;
+		data[ "S1 S1 0 A G 0 0 1 0 0 1 0 1 0 0 1 0 0 1 0" ] = 3.0/5.0 ;
+		data[ "S1 S1 0 A G 0 0 1 0 0 1 0 0 1 0 1 0 0 1 0" ] = 2.0/5.0 ;
+		data[ "S1 S1 0 A G 0 0 1 0 0 1 0 0 1 0 0 1 0 1 0" ] = 1.0/5.0 ;
+		data[ "S1 S1 0 A G 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1" ] = 0.0 ;
                  
-	data[ "S1 S1 0 A G 0 0.5 0 0 0.2 0 0 0.9 0 0 0.1 0 0 0.2 0" ] = 1.0 ;
-	data[ "S1 S1 0 A G 0.5 0.0 0 0 0.2 0 0 0.9 0 0 0.1 0 0 0.2 0" ] = 1.4 / 1.9 ;
+		data[ "S1 S1 0 A G 0 0.5 0 0 0.2 0 0 0.9 0 0 0.1 0 0 0.2 0" ] = 1.0 ;
+		data[ "S1 S1 0 A G 0.5 0.0 0 0 0.2 0 0 0.9 0 0 0.1 0 0 0.2 0" ] = 1.4 / 1.9 ;
 
-	data[ "SA1 rs001 10000000 A G 0 0 0 0 0 0 0 0 0 0 0 0.5721 0 0.0207 0.9792" ] = 0.0207 / (0.0207 + 0.5721 + 0.9792) ;
-	data[ "SA2 rs002 10010000 A G 0 0 1 0 1 0 1 0 0 0 1 0 1 0 0" ] = 2.0 / 5.0 ;
-	data[ "SA3 rs003 10020000 C T 1 0 0 0 1 0 0 0 1 0 0.9967 0 0 0 1" ] = 1.9967 / 4.9967 ;
-	data[ "SA4 rs004 10030000 G T 1 0 0 0 1 0 0 0 1 0 1 0 0 0 1" ] = 2.0 / 5.0 ;
-	data[ "SA5 rs005 10040000 C G 0 0 .5 0 .5 0 .5 0 0 0 .5 0 .5 0 0" ] = 1.0 / 2.5 ;
-	data[ "SA7 rs007 10060000 G T 0.5 0.5 0 0 0.5 0 1 0 0 0.5 0 0 0.5 0 0" ] = 1.0 / 3.5 ;
+		data[ "SA1 rs001 10000000 A G 0 0 0 0 0 0 0 0 0 0 0 0.5721 0 0.0207 0.9792" ] = 0.0207 / (0.0207 + 0.5721 + 0.9792) ;
+		data[ "SA2 rs002 10010000 A G 0 0 1 0 1 0 1 0 0 0 1 0 1 0 0" ] = 2.0 / 5.0 ;
+		data[ "SA3 rs003 10020000 C T 1 0 0 0 1 0 0 0 1 0 0.9967 0 0 0 1" ] = 1.9967 / 4.9967 ;
+		data[ "SA4 rs004 10030000 G T 1 0 0 0 1 0 0 0 1 0 1 0 0 0 1" ] = 2.0 / 5.0 ;
+		data[ "SA5 rs005 10040000 C G 0 0 .5 0 .5 0 .5 0 0 0 .5 0 .5 0 0" ] = 1.0 / 2.5 ;
+		data[ "SA7 rs007 10060000 G T 0.5 0.5 0 0 0.5 0 1 0 0 0.5 0 0 0.5 0 0" ] = 1.0 / 3.5 ;
 
 
-	return data ;
+		return data ;
+	}
 }
 
 AUTO_TEST_CASE( test_heterozygosity ) {
@@ -76,7 +70,7 @@ AUTO_TEST_CASE( test_heterozygosity ) {
 	}
 }
 
-#ifndef HAVE_BOOST_UNIT_TEST
+#ifndef HAVE_BOOST_UNIT_TEST_FRAMEWORK
 	int main( int argc, char** argv ) {
 		test_heterozygosity() ;
 	}

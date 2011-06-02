@@ -14,7 +14,7 @@ namespace genfile {
 		std::string const& free_data,
 		bgen::uint32_t flags
 	)
-	: 	BasicBGenFileSNPDataSink( filename, free_data, e_NoCompression, flags )
+	: 	BasicBGenFileSNPDataSink( filename, free_data, "no_compression", flags )
 	{
 		assert( flags & bgen::e_CompressedSNPBlocks ) ;
 		// Reserve enough space for lots of data!

@@ -7,7 +7,7 @@
 #include <iostream>
 #include "../../config.hpp"
 
-#if HAVE_BOOST_UNIT_TEST
+#if HAVE_BOOST_UNIT_TEST_FRAMEWORK
 	#define BOOST_TEST_MODULE integration
 	#include "boost/test/unit_test.hpp"
 	#define AUTO_TEST_CASE( param ) BOOST_AUTO_TEST_CASE(param)

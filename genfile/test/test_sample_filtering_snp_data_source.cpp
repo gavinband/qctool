@@ -20,103 +20,107 @@
 
 // The following section contains a simple snp block writer.
 namespace data {
-	// this data has 1504 samples per row.
-	unsigned int const number_of_samples = 1504 ;
-	unsigned int const number_of_snps = 16 ;
+	namespace {
+		// this data has 1504 samples per row.
+		unsigned int const number_of_samples = 1504 ;
+		unsigned int const number_of_snps = 16 ;
+	}
 }
 
-// The following section defines the needed objects for use with the bgen.hpp implementation.
-template< typename T >
-struct Setter
-{
-	Setter( T& field ): m_field( field ) {} ;
-	template< typename T2 >
-	void operator()( T2 const& value ) { m_field = T( value ) ; }
-private:
-	T& m_field ;
-} ;
+namespace {
+	// The following section defines the needed objects for use with the bgen.hpp implementation.
+	template< typename T >
+	struct Setter
+	{
+		Setter( T& field ): m_field( field ) {} ;
+		template< typename T2 >
+		void operator()( T2 const& value ) { m_field = T( value ) ; }
+	private:
+		T& m_field ;
+	} ;
 
-template< typename T >
-Setter< T > make_setter( T& field ) { return Setter<T>( field ) ; }
+	template< typename T >
+	Setter< T > make_setter( T& field ) { return Setter<T>( field ) ; }
 
 
-struct probabilities_t {
-	double AA, AB, BB ;
-	bool operator==( probabilities_t const& other ) const {
-		return AA == other.AA && AB == other.AB && BB == other.BB ;
-	}
-} ;
+	struct probabilities_t {
+		double AA, AB, BB ;
+		bool operator==( probabilities_t const& other ) const {
+			return AA == other.AA && AB == other.AB && BB == other.BB ;
+		}
+	} ;
 
-struct ProbabilitySetter {
-	ProbabilitySetter( std::vector< probabilities_t >& probabilities ): m_probabilities( probabilities ) {}
-	void operator() ( std::size_t i, double aa, double ab, double bb ) {
-		m_probabilities[i].AA = aa ;  
-		m_probabilities[i].AB = ab ;  
-		m_probabilities[i].BB = bb ;  
-	}
+	struct ProbabilitySetter {
+		ProbabilitySetter( std::vector< probabilities_t >& probabilities ): m_probabilities( probabilities ) {}
+		void operator() ( std::size_t i, double aa, double ab, double bb ) {
+			m_probabilities[i].AA = aa ;  
+			m_probabilities[i].AB = ab ;  
+			m_probabilities[i].BB = bb ;  
+		}
 
-private:
-	std::vector<probabilities_t>& m_probabilities ;
-} ;
+	private:
+		std::vector<probabilities_t>& m_probabilities ;
+	} ;
 
-struct SnpData {
+	struct SnpData {
 	
-	SnpData(): probabilities( data::number_of_samples ) {} ;
+		SnpData(): probabilities( data::number_of_samples ) {} ;
 	
-	uint32_t number_of_samples ;
-	std::string SNPID, RSID ;
-	genfile::Chromosome chromosome ;
-	uint32_t SNP_position ;
-	char allele1, allele2 ;
-	std::vector< probabilities_t > probabilities ;
+		uint32_t number_of_samples ;
+		std::string SNPID, RSID ;
+		genfile::Chromosome chromosome ;
+		uint32_t SNP_position ;
+		char allele1, allele2 ;
+		std::vector< probabilities_t > probabilities ;
 	
-	bool operator==( SnpData const& other ) const {
-		return number_of_samples == other.number_of_samples
-			&& SNPID == other.SNPID
-			&& RSID == other.RSID
-			&& chromosome == other.chromosome
-			&& SNP_position == other.SNP_position
-			&& allele1 == other.allele1
-			&& allele2 == other.allele2
-			&& probabilities == other.probabilities ;
+		bool operator==( SnpData const& other ) const {
+			return number_of_samples == other.number_of_samples
+				&& SNPID == other.SNPID
+				&& RSID == other.RSID
+				&& chromosome == other.chromosome
+				&& SNP_position == other.SNP_position
+				&& allele1 == other.allele1
+				&& allele2 == other.allele2
+				&& probabilities == other.probabilities ;
+		}
+	} ;
+
+
+	void create_file( std::string const& data, std::string const& filename ) {
+		// set up our original file.
+		std::ofstream file( filename.c_str() ) ;
+		file << data ;
 	}
-} ;
 
-
-void create_file( std::string const& data, std::string const& filename ) {
-	// set up our original file.
-	std::ofstream file( filename.c_str() ) ;
-	file << data ;
-}
-
-std::vector< SnpData > read_snp_data( genfile::SNPDataSource& snp_data_source ) {
-	std::vector< SnpData > result ;
-	SnpData snp_data ;
+	std::vector< SnpData > read_snp_data( genfile::SNPDataSource& snp_data_source ) {
+		std::vector< SnpData > result ;
+		SnpData snp_data ;
 	
-	while( snp_data_source.read_snp(
-		make_setter( snp_data.number_of_samples ),
-		make_setter( snp_data.SNPID ),
-		make_setter( snp_data.RSID ),
-		make_setter( snp_data.chromosome ),
-		make_setter( snp_data.SNP_position ),
-		make_setter( snp_data.allele1 ), 
-		make_setter( snp_data.allele2 ),
-		ProbabilitySetter( snp_data.probabilities )
-	)) {
-		result.push_back( snp_data ) ;
+		while( snp_data_source.read_snp(
+			make_setter( snp_data.number_of_samples ),
+			make_setter( snp_data.SNPID ),
+			make_setter( snp_data.RSID ),
+			make_setter( snp_data.chromosome ),
+			make_setter( snp_data.SNP_position ),
+			make_setter( snp_data.allele1 ), 
+			make_setter( snp_data.allele2 ),
+			ProbabilitySetter( snp_data.probabilities )
+		)) {
+			result.push_back( snp_data ) ;
+		}
+		return result ;
 	}
-	return result ;
-}
 
-std::vector< std::string > construct_data() {
-	std::vector< std::string > data ;
-	data.push_back( "" ) ;
-	data.push_back( "SNP1 RS1 1000 a g 1 2 3 \n" ) ;
-	data.push_back( "SNP1 RS1 1000 a g 1 2 3 4 5 6\n" ) ;
-	data.push_back( "SNP1 RS1 1000 a g 1 2 3 4 5 6 7 8 9 \n" ) ;
-	data.push_back( "SNP1 RS1 1000 a g 1 2 3 4 5 6 7 8 9 10 11 12\n" ) ;
-	data.push_back( "SNP1 RS1 1000 a g 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15\n" ) ;
-	return data ;
+	std::vector< std::string > construct_data() {
+		std::vector< std::string > data ;
+		data.push_back( "" ) ;
+		data.push_back( "SNP1 RS1 1000 a g 1 2 3 \n" ) ;
+		data.push_back( "SNP1 RS1 1000 a g 1 2 3 4 5 6\n" ) ;
+		data.push_back( "SNP1 RS1 1000 a g 1 2 3 4 5 6 7 8 9 \n" ) ;
+		data.push_back( "SNP1 RS1 1000 a g 1 2 3 4 5 6 7 8 9 10 11 12\n" ) ;
+		data.push_back( "SNP1 RS1 1000 a g 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15\n" ) ;
+		return data ;
+	}
 }
 
 AUTO_TEST_CASE( test_sample_filtering_snp_data_source ) {
@@ -176,8 +180,3 @@ AUTO_TEST_CASE( test_sample_filtering_snp_data_source ) {
 	}
 	std::cout << "==== success ====\n" ;
 }
-
-AUTO_TEST_MAIN {
-	test_sample_filtering_snp_data_source() ;
-}
-

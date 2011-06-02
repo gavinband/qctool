@@ -584,7 +584,3 @@ struct TraditionalStrictCohortIndividualSourceTester
 AUTO_TEST_CASE( all_tests ) {
 	TraditionalStrictCohortIndividualSourceTester tester ;
 }
-
-AUTO_TEST_MAIN {
-	all_tests() ;
-}

@@ -132,6 +132,3 @@ AUTO_TEST_CASE( test_against_cvcft ) {
 	std::cerr << "ok.\n" ;
 }
 
-AUTO_TEST_MAIN {
-	test_against_cvcft() ;
-}

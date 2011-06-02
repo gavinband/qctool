@@ -21,6 +21,7 @@ namespace genfile {
 		std::string const& genotype_probability_field
 	):
 		m_spec( "(unnamed stream)" ),
+		m_compression_type( "no_compression" ),
 		m_stream_ptr( stream_ptr ),
 		m_metadata( vcf::MetadataParser( m_spec, *m_stream_ptr ).get_metadata() ),
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
@@ -28,7 +29,6 @@ namespace genfile {
 		m_genotype_probability_field( genotype_probability_field ),
 		m_column_names( read_column_names( *m_stream_ptr )),
 		m_number_of_samples( m_column_names.size() - 9 ),
-		m_start_of_data( m_stream_ptr->tellg() ),
 		m_number_of_lines( count_lines( *m_stream_ptr ))
 	{
 		setup() ;
@@ -56,15 +56,15 @@ namespace genfile {
 		std::string const& filename,
 		std::string const& genotype_probability_field
 	):
-		m_spec( "file://" + filename ),
-		m_stream_ptr( open_text_file_for_input( filename, get_compression_type_indicated_by_filename( filename ))),
+		m_spec( filename ),
+		m_compression_type( get_compression_type_indicated_by_filename( filename )),
+		m_stream_ptr( open_text_file_for_input( filename, m_compression_type ) ),
 		m_metadata( vcf::MetadataParser( m_spec, *m_stream_ptr ).get_metadata() ),
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_genotype_probability_field( genotype_probability_field ),
 		m_column_names( read_column_names( *m_stream_ptr )),
 		m_number_of_samples( m_column_names.size() - 9 ),
-		m_start_of_data( m_stream_ptr->tellg() ),
 		m_number_of_lines( count_lines( *m_stream_ptr ))
 	{
 		setup() ;
@@ -106,9 +106,24 @@ namespace genfile {
 		}
 	}
 
-	void VCFFormatSNPDataSource::reset_stream() const {
+	void VCFFormatSNPDataSource::reset_stream() {
 		m_stream_ptr->clear() ;
-		m_stream_ptr->seekg( m_start_of_data ) ;
+		if( m_compression_type == "no_compression" ) {
+			m_stream_ptr->seekg( 0 ) ;
+		}
+		else if( m_spec != "(unnamed stream)" ) {
+			m_stream_ptr = open_text_file_for_input( m_spec, m_compression_type ) ;
+		}
+		else {
+			throw OperationUnsupportedError( "Open", m_spec ) ;
+		}
+
+		// Find our way back to the start of data.
+		for( std::size_t i = 0; i < ( m_metadata.size() + 1 ); ++i ) {
+			std::string line ;
+			std::getline( *m_stream_ptr, line ) ;
+		}
+
 		assert( *m_stream_ptr ) ;
 	}
 

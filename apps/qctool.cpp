@@ -64,7 +64,6 @@
 
 #include "SampleOutputFile.hpp"
 #include "GenotypeAssayStatisticFactory.hpp"
-#include "wildcard.hpp"
 #include "string_utils/string_utils.hpp"
 #include "string_utils/parse_utils.hpp"
 #include "progress_bar.hpp"

@@ -798,16 +798,3 @@ void test_gt_spec() {
 	}
 	catch( genfile::BadArgumentError const& ) {}	
 }
-
-AUTO_TEST_MAIN {
-	test_string() ;
-	test_character() ;
-	test_integer() ;
-	test_float() ;
-	test_fixed_number_entry_type() ;
-	test_dynamic_number_entry_type() ;
-	test_one_per_alternate_allele_entry_type() ;
-	test_one_per_genotype_entry_type() ;
-	test_genotype_call_entry_type() ;
-	test_gt_spec() ;
-}

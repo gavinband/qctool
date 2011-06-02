@@ -26,6 +26,3 @@ AUTO_TEST_CASE( test_split ) {
 	std::cerr << "ok.\n" ;
 }
 
-AUTO_TEST_MAIN {
-	test_split() ;
-}

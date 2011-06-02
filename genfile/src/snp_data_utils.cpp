@@ -11,6 +11,37 @@
 #include "genfile/get_set.hpp"
 
 namespace genfile {
+	CompressionType::CompressionType( char const* type ):
+		m_type( type )
+	{
+		check_type() ;
+	}
+
+	CompressionType::CompressionType( std::string const& type ):
+		m_type( type )
+	{
+		check_type() ;
+	}
+
+	void CompressionType::check_type() const {
+		if( m_type != "no_compression" && m_type != "gzip_compression" ) {
+			throw BadArgumentError( "CompressionType::check_type()", "type==\"" + m_type + "\"." ) ;
+		}
+	}
+	
+	CompressionType::CompressionType( CompressionType const& other ):
+		m_type( other.m_type )
+	{}
+	
+	CompressionType& CompressionType::operator=( CompressionType const& other ) {
+		m_type = other.m_type ;
+		return *this ;
+	}
+
+	bool CompressionType::operator==( CompressionType const& other ) {
+		return m_type == other.m_type ;
+	}
+	
 	bool filename_indicates_gen_format( std::string const& filename ) {
 		return ( filename.find( ".gen") != std::string::npos ) ;
 	}
@@ -23,10 +54,10 @@ namespace genfile {
 
 	CompressionType get_compression_type_indicated_by_filename( std::string const& filename ) {
 		if( filename.find( ".gz") != std::string::npos ) {
-			return e_GzipCompression ;
+			return "gzip_compression" ;
 		}
 		else {
-			return e_NoCompression ;
+			return "no_compression" ;
 		}
 	}
 
@@ -76,54 +107,68 @@ namespace genfile {
 				return recognised_extensions[i] ;
 			}
 		}
-
+		
 		return "" ;
 	}
 
 	std::auto_ptr< std::istream > open_text_file_for_input( std::string filename, CompressionType compression_type ) {
-		std::auto_ptr< boost::iostreams::filtering_istream > gen_file_ptr( new boost::iostreams::filtering_istream ) ;
-	    if (compression_type == e_GzipCompression) gen_file_ptr->push(boost::iostreams::gzip_decompressor());
+		std::auto_ptr< boost::iostreams::filtering_istream > file_ptr( new boost::iostreams::filtering_istream ) ;
+		if (compression_type == "gzip_compression") file_ptr->push(boost::iostreams::gzip_decompressor());
 		boost::iostreams::file_source file( filename.c_str() ) ;
 		if( !file.is_open() ) {
 			throw ResourceNotOpenedError( filename ) ;
 		}
-		gen_file_ptr->push( file ) ;
-		return std::auto_ptr< std::istream >( gen_file_ptr ) ;
+		file_ptr->push( file ) ;
+		return std::auto_ptr< std::istream >( file_ptr ) ;
   	}
 
+	std::auto_ptr< std::istream > open_text_file_for_input( std::string filename ) {
+		return open_text_file_for_input( filename, get_compression_type_indicated_by_filename( filename )) ;
+	}
+
 	std::auto_ptr< std::ostream > open_text_file_for_output( std::string filename, CompressionType compression_type ) {
-		std::auto_ptr< boost::iostreams::filtering_ostream > gen_file_ptr( new boost::iostreams::filtering_ostream ) ;
-	    if (compression_type == e_GzipCompression) gen_file_ptr->push(boost::iostreams::gzip_compressor());
+		std::auto_ptr< boost::iostreams::filtering_ostream > file_ptr( new boost::iostreams::filtering_ostream ) ;
+		if( compression_type == "gzip_compression" ) {
+			file_ptr->push( boost::iostreams::gzip_compressor() ) ;
+		}
 		boost::iostreams::file_sink file(filename.c_str()) ;
 		if( !file.is_open() ) {
 			throw ResourceNotOpenedError( filename ) ;
 		}
-		gen_file_ptr->push( file ); 
-		return std::auto_ptr< std::ostream >( gen_file_ptr ) ;
-  	}
+		file_ptr->push( file ); 
+		return std::auto_ptr< std::ostream >( file_ptr ) ;
+	}
 
 	std::auto_ptr< std::istream > open_binary_file_for_input( std::string filename, CompressionType compression_type ) {
-		std::auto_ptr< boost::iostreams::filtering_istream > gen_file_ptr( new boost::iostreams::filtering_istream ) ;
-	    if (compression_type == e_GzipCompression) gen_file_ptr->push( boost::iostreams::gzip_decompressor() ) ;
+		std::auto_ptr< boost::iostreams::filtering_istream > file_ptr( new boost::iostreams::filtering_istream ) ;
+	    if (compression_type == "gzip_compression") file_ptr->push( boost::iostreams::gzip_decompressor() ) ;
 		boost::iostreams::file_source file( filename.c_str(), std::ios::binary ) ;
 		if( !file.is_open() ) {
 			throw ResourceNotOpenedError( filename ) ;
 		}
-		gen_file_ptr->push( file ) ;
-		return std::auto_ptr< std::istream >( gen_file_ptr ) ;
+		file_ptr->push( file ) ;
+		return std::auto_ptr< std::istream >( file_ptr ) ;
   	}
 
+	std::auto_ptr< std::istream > open_binary_file_for_input( std::string filename ) {
+		return open_binary_file_for_input( filename, get_compression_type_indicated_by_filename( filename )) ;
+	}
+
 	std::auto_ptr< std::ostream > open_binary_file_for_output( std::string filename, CompressionType compression_type ) {
-		std::auto_ptr< boost::iostreams::filtering_ostream > gen_file_ptr( new boost::iostreams::filtering_ostream ) ;
-	    if (compression_type == e_GzipCompression) gen_file_ptr->push(boost::iostreams::gzip_compressor()) ;
+		std::auto_ptr< boost::iostreams::filtering_ostream > file_ptr( new boost::iostreams::filtering_ostream ) ;
+	    if (compression_type == "gzip_compression") file_ptr->push(boost::iostreams::gzip_compressor()) ;
 		boost::iostreams::file_sink file(filename.c_str(), std::ios::binary ) ;
 		if( !file.is_open() ) {
 			throw ResourceNotOpenedError( filename ) ;
 		}
-		gen_file_ptr->push( file ); 
-		return std::auto_ptr< std::ostream >( gen_file_ptr ) ;
+		file_ptr->push( file ); 
+		return std::auto_ptr< std::ostream >( file_ptr ) ;
   	}
 
+	std::auto_ptr< std::ostream > open_binary_file_for_output( std::string filename ) {
+		return open_binary_file_for_output( filename, get_compression_type_indicated_by_filename( filename )) ;
+	}
+	
 	std::string create_temporary_filename() {
 		return std::tmpnam( 0 ) ;
 	}
@@ -143,3 +188,4 @@ namespace genfile {
 		}
 	}
 }
+

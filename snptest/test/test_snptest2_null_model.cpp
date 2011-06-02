@@ -50,7 +50,3 @@ AUTO_TEST_CASE( test_null_model_small_datasets )
 	std::cerr << "ok.\n" ;
 }
 
-AUTO_TEST_MAIN
-{
-	test_null_model_small_datasets() ;
-}

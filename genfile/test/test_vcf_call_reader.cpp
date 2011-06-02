@@ -1082,14 +1082,3 @@ AUTO_TEST_CASE( test_float_fields ) {
 	std::cerr << "ok.\n" ;
 }
 
-AUTO_TEST_MAIN {
-	test_format() ;
-	test_alleles() ;
-	test_omitted_values() ;
-	test_setters() ;
-	test_float_fields() ;
-	test_simple_gt_values() ;
-	test_gt_delimiter() ;
-	test_complex_gt_values() ;
-	test_gt_genotype_bounds() ;
-}

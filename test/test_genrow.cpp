@@ -3,72 +3,66 @@
 #include <cassert>
 #include <boost/bind.hpp>
 #include "../config.hpp"
-#if HAVE_BOOST_UNIT_TEST
-	#define BOOST_AUTO_TEST_MAIN
-	#include "boost/test/auto_unit_test.hpp"
-	#define AUTO_TEST_CASE( param ) BOOST_AUTO_TEST_CASE(param)
-	#define TEST_ASSERT( param ) BOOST_ASSERT( param )
-#else
-	#define AUTO_TEST_CASE( param ) void param()
-	#define TEST_ASSERT( param ) assert( param )
-#endif
+#include "test_case.hpp"
 #include "GenRow.hpp"
 #include "genfile/endianness_utils.hpp"
 #include "stdint.h"
 #include "genfile/bgen.hpp"
 
 namespace data {
-	std::string data =
-		"SA1 rs001 10000000 A G 0 0 0 0 0 0 0 0 0 0 0 0.5721 0 0.0207 0.9792\n"
-		"SA2 rs002 10010000 A G 0 0 1 0 1 0 1 0 0 0 1 0 1 0 0\n"
-		"SA3 rs003 10020000 C T 1 0 0 0 1 0 0 0 1 0 0.9967 0 0 0 1\n"
-		"SA4 rs004 10030000 G T 1 0 0 0 1 0 0 0 1 0 1 0 0 0 1\n"
-		"SA5 rs005 10040000 C G 0 0 1 0 1 0 1 0 0 0 1 0 1 0 0\n"
-		"SA6 rs006 10050000 A G 0 1 0 0 1 0 1 0 0 0 1 0 1 0 0\n"
-		"SA7 rs007 10060000 G T 1 0 0 0 1 0 1 0 0 1 0 0 1 0 0\n"
-		"SA8 rs008 10070000 G T 1 0 0 0 1 0 0 0 1 0 1 0 0 0 1\n"
-		"SA9 rs009 10080000 G T 0 0 1 0 1 0 0 0 1 0 1 0 0 0 1\n"
-		"SA10 rs010 10090000 A G 0 0 1 0 1 0 1 0 0 0 1 0 1 0 0\n"
-		"SA11 rs011 10100000 C T 0 0 0 0 1 0 1 0 0 1 0 0 0.67 0 0.23\n" ;
+	namespace {
+		std::string data =
+			"SA1 rs001 10000000 A G 0 0 0 0 0 0 0 0 0 0 0 0.5721 0 0.0207 0.9792\n"
+			"SA2 rs002 10010000 A G 0 0 1 0 1 0 1 0 0 0 1 0 1 0 0\n"
+			"SA3 rs003 10020000 C T 1 0 0 0 1 0 0 0 1 0 0.9967 0 0 0 1\n"
+			"SA4 rs004 10030000 G T 1 0 0 0 1 0 0 0 1 0 1 0 0 0 1\n"
+			"SA5 rs005 10040000 C G 0 0 1 0 1 0 1 0 0 0 1 0 1 0 0\n"
+			"SA6 rs006 10050000 A G 0 1 0 0 1 0 1 0 0 0 1 0 1 0 0\n"
+			"SA7 rs007 10060000 G T 1 0 0 0 1 0 1 0 0 1 0 0 1 0 0\n"
+			"SA8 rs008 10070000 G T 1 0 0 0 1 0 0 0 1 0 1 0 0 0 1\n"
+			"SA9 rs009 10080000 G T 0 0 1 0 1 0 0 0 1 0 1 0 0 0 1\n"
+			"SA10 rs010 10090000 A G 0 0 1 0 1 0 1 0 0 0 1 0 1 0 0\n"
+			"SA11 rs011 10100000 C T 0 0 0 0 1 0 1 0 0 1 0 0 0.67 0 0.23\n" ;
 
-	std::string data_missing_0th_and_3rd_samples =
-		"SA1 rs001 10000000 A G 0 0 0 0 0 0 0 0.0207 0.9792\n"
-		"SA2 rs002 10010000 A G 0 1 0 1 0 0 1 0 0\n"
-		"SA3 rs003 10020000 C T 0 1 0 0 0 1 0 0 1\n"
-		"SA4 rs004 10030000 G T 0 1 0 0 0 1 0 0 1\n"
-		"SA5 rs005 10040000 C G 0 1 0 1 0 0 1 0 0\n"
-		"SA6 rs006 10050000 A G 0 1 0 1 0 0 1 0 0\n"
-		"SA7 rs007 10060000 G T 0 1 0 1 0 0 1 0 0\n"
-		"SA8 rs008 10070000 G T 0 1 0 0 0 1 0 0 1\n"
-		"SA9 rs009 10080000 G T 0 1 0 0 0 1 0 0 1\n"
-		"SA10 rs010 10090000 A G 0 1 0 1 0 0 1 0 0\n"
-		"SA11 rs011 10100000 C T 0 1 0 1 0 0 0.67 0 0.23\n" ;
+		std::string data_missing_0th_and_3rd_samples =
+			"SA1 rs001 10000000 A G 0 0 0 0 0 0 0 0.0207 0.9792\n"
+			"SA2 rs002 10010000 A G 0 1 0 1 0 0 1 0 0\n"
+			"SA3 rs003 10020000 C T 0 1 0 0 0 1 0 0 1\n"
+			"SA4 rs004 10030000 G T 0 1 0 0 0 1 0 0 1\n"
+			"SA5 rs005 10040000 C G 0 1 0 1 0 0 1 0 0\n"
+			"SA6 rs006 10050000 A G 0 1 0 1 0 0 1 0 0\n"
+			"SA7 rs007 10060000 G T 0 1 0 1 0 0 1 0 0\n"
+			"SA8 rs008 10070000 G T 0 1 0 0 0 1 0 0 1\n"
+			"SA9 rs009 10080000 G T 0 1 0 0 0 1 0 0 1\n"
+			"SA10 rs010 10090000 A G 0 1 0 1 0 0 1 0 0\n"
+			"SA11 rs011 10100000 C T 0 1 0 1 0 0 0.67 0 0.23\n" ;
 
-	std::string data_missing_3rd_and_4th_samples =
-		"SA1 rs001 10000000 A G 0 0 0 0 0 0 0 0 0\n"
-		"SA2 rs002 10010000 A G 0 0 1 0 1 0 1 0 0\n"
-		"SA3 rs003 10020000 C T 1 0 0 0 1 0 0 0 1\n"
-		"SA4 rs004 10030000 G T 1 0 0 0 1 0 0 0 1\n"
-		"SA5 rs005 10040000 C G 0 0 1 0 1 0 1 0 0\n"
-		"SA6 rs006 10050000 A G 0 1 0 0 1 0 1 0 0\n"
-		"SA7 rs007 10060000 G T 1 0 0 0 1 0 1 0 0\n"
-		"SA8 rs008 10070000 G T 1 0 0 0 1 0 0 0 1\n"
-		"SA9 rs009 10080000 G T 0 0 1 0 1 0 0 0 1\n"
-		"SA10 rs010 10090000 A G 0 0 1 0 1 0 1 0 0\n"
-		"SA11 rs011 10100000 C T 0 0 0 0 1 0 1 0 0\n" ;
+		std::string data_missing_3rd_and_4th_samples =
+			"SA1 rs001 10000000 A G 0 0 0 0 0 0 0 0 0\n"
+			"SA2 rs002 10010000 A G 0 0 1 0 1 0 1 0 0\n"
+			"SA3 rs003 10020000 C T 1 0 0 0 1 0 0 0 1\n"
+			"SA4 rs004 10030000 G T 1 0 0 0 1 0 0 0 1\n"
+			"SA5 rs005 10040000 C G 0 0 1 0 1 0 1 0 0\n"
+			"SA6 rs006 10050000 A G 0 1 0 0 1 0 1 0 0\n"
+			"SA7 rs007 10060000 G T 1 0 0 0 1 0 1 0 0\n"
+			"SA8 rs008 10070000 G T 1 0 0 0 1 0 0 0 1\n"
+			"SA9 rs009 10080000 G T 0 0 1 0 1 0 0 0 1\n"
+			"SA10 rs010 10090000 A G 0 0 1 0 1 0 1 0 0\n"
+			"SA11 rs011 10100000 C T 0 0 0 0 1 0 1 0 0\n" ;
 
-	std::string data_missing_all_samples =
-		"SA1 rs001 10000000 A G\n"
-		"SA2 rs002 10010000 A G\n"
-		"SA3 rs003 10020000 C T\n"
-		"SA4 rs004 10030000 G T\n"
-		"SA5 rs005 10040000 C G\n"
-		"SA6 rs006 10050000 A G\n"
-		"SA7 rs007 10060000 G T\n"
-		"SA8 rs008 10070000 G T\n"
-		"SA9 rs009 10080000 G T\n"
-		"SA10 rs010 10090000 A G\n"
-		"SA11 rs011 10100000 C T\n" ;
+		std::string data_missing_all_samples =
+			"SA1 rs001 10000000 A G\n"
+			"SA2 rs002 10010000 A G\n"
+			"SA3 rs003 10020000 C T\n"
+			"SA4 rs004 10030000 G T\n"
+			"SA5 rs005 10040000 C G\n"
+			"SA6 rs006 10050000 A G\n"
+			"SA7 rs007 10060000 G T\n"
+			"SA8 rs008 10070000 G T\n"
+			"SA9 rs009 10080000 G T\n"
+			"SA10 rs010 10090000 A G\n"
+			"SA11 rs011 10100000 C T\n" ;
+	}
 }
 
 // Test that we can read in InternalStorageGenRows, output them, and that this gives the same results.
@@ -112,12 +106,4 @@ AUTO_TEST_CASE( test_genrow_sample_filtering ) {
 	
 	TEST_ASSERT( count == 11 ) ;
 }
-
-#ifndef HAVE_BOOST_UNIT_TEST
-
-int main( int argc, char** argv ) {
-	test_genrow_sample_filtering() ;
-}
-
-#endif
 

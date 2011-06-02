@@ -8,7 +8,7 @@
 namespace genfile {
 	GenFileSNPDataSource::GenFileSNPDataSource( std::auto_ptr< std::istream > stream, Chromosome chromosome ):
 		m_filename( "(unnamed stream)" ),
-		m_compression_type( e_NoCompression ),
+		m_compression_type( "no_compression" ),
 		m_number_of_samples( 0 ),
 		m_total_number_of_snps( 0 ),
 		m_chromosome( chromosome )

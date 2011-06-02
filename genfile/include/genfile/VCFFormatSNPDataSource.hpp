@@ -53,6 +53,7 @@ namespace genfile {
 
 	private:
 		std::string const m_spec ;
+		CompressionType m_compression_type ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
 		vcf::MetadataParser::Metadata const m_metadata ;
 		typedef boost::ptr_map< std::string, vcf::VCFEntryType > EntryTypeMap ;
@@ -62,7 +63,6 @@ namespace genfile {
 
 		std::vector< std::string > const m_column_names ;
 		std::size_t m_number_of_samples ;
-		std::ios::streampos m_start_of_data ;
 		std::size_t const m_number_of_lines ;
 		
 		// We record the alleles per SNP, so that they can be used on subsequent SNPs.
@@ -73,7 +73,7 @@ namespace genfile {
 		std::vector< std::string > read_column_names( std::istream& stream ) const ;
 		char read_format_and_get_trailing_char( std::string& format, std::size_t column ) const ;
 		std::size_t count_lines( std::istream& ) const ;
-		void reset_stream() const ;
+		void reset_stream() ;
 		void read_element( std::string& elt, char delim, std::size_t column ) const ;
 	private:
 		VCFFormatSNPDataSource( VCFFormatSNPDataSource const& other ) ;

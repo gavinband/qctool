@@ -15,16 +15,16 @@ namespace genfile {
 		std::string const& filename,
 		std::string const& free_data
 	) {
-		return SNPDataSink::create( filename, get_compression_type_indicated_by_filename( filename ), free_data ) ;
+		return SNPDataSink::create_impl( filename, get_compression_type_indicated_by_filename( filename ), free_data ) ;
 	}
 
-	SNPDataSink::UniquePtr SNPDataSink::create(
+	SNPDataSink::UniquePtr SNPDataSink::create_impl(
 		std::string const& filename,
 		CompressionType compression_type,
 		std::string const& free_data
 	) {
 		if( filename_indicates_bgen_format( filename )) {
-			if( compression_type == e_GzipCompression ) {
+			if( compression_type == "gzip_compression" ) {
 				return SNPDataSink::UniquePtr( new ZippedBGenFileSNPDataSink( filename, free_data )) ;
 			}
 			else {

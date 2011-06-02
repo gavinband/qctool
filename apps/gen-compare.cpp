@@ -19,8 +19,8 @@
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/SNPDataSinkChain.hpp"
+#include "genfile/wildcard.hpp"
 #include "string_utils/string_utils.hpp"
-#include "wildcard.hpp"
 #include "string_utils/parse_utils.hpp"
 #include "Timer.hpp"
 
@@ -89,7 +89,7 @@ public:
 	}
 	
 private:
-	typedef std::vector< wildcard::FilenameMatch > GenFileList ;
+	typedef std::vector< genfile::wildcard::FilenameMatch > GenFileList ;
 	
 	void setup() {
 		try {
@@ -123,7 +123,7 @@ private:
 	void expand_and_add_filename( GenFileList* filename_list_ptr, std::string const& filename ) {
 		bool input_file_has_wildcard = ( filename.find( '#' ) != std::string::npos ) ;
 		if( input_file_has_wildcard ) {
-			std::vector< wildcard::FilenameMatch > expanded_filename = wildcard::find_matches_for_path_with_integer_wildcard( filename, '#' ) ;
+			std::vector< genfile::wildcard::FilenameMatch > expanded_filename = genfile::wildcard::find_files_by_chromosome( filename, genfile::wildcard::eALL_CHROMOSOMES, '#' ) ;
 			// we only use matching filenames if the match is a number from 1 to 100
 			// For such filenames, we add the filename to our list for cases.
 			for( std::size_t j = 0; j < expanded_filename.size(); ++j ) {
@@ -135,7 +135,7 @@ private:
 		}
 	}
 
-	void add_filename( GenFileList* filename_list_ptr, wildcard::FilenameMatch const& match ) {
+	void add_filename( GenFileList* filename_list_ptr, genfile::wildcard::FilenameMatch const& match ) {
 		filename_list_ptr->push_back( match ) ;
 	}
 
@@ -159,7 +159,7 @@ private:
 		}
 	}
 
-	void add_gen_file_to_chain( genfile::SNPDataSourceChain& chain, wildcard::FilenameMatch const& match ) {
+	void add_gen_file_to_chain( genfile::SNPDataSourceChain& chain, genfile::wildcard::FilenameMatch const& match ) {
 		Timer timer ;
 		m_cout << "(Opening gen file \"" << match.filename() << "\"...)" << std::flush ;
 		std::auto_ptr< genfile::SNPDataSource > snp_data_source( genfile::SNPDataSource::create( match.filename(), match.match() )) ;
@@ -379,7 +379,7 @@ private:
 
 	OptionProcessor const& m_options ;
 	
-	// typedef std::vector< wildcard::FilenameMatch > GenFileList ;
+	// typedef std::vector< genfile::wildcard::FilenameMatch > GenFileList ;
 	GenFileList m_case_gen_filenames ;
 	GenFileList m_control_gen_filenames ;
 

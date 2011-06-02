@@ -197,7 +197,7 @@ void create_files( std::string original, std::string gen, std::string bgen, std:
 	// Construct zipped gen file
 	{
 		std::cerr << "Creating gen.gz...\n" ;
-		genfile::GenFileSNPDataSink zipped_gen_file_snp_data_sink( zgen, genfile::UnidentifiedChromosome, genfile::e_GzipCompression ) ;
+		genfile::GenFileSNPDataSink zipped_gen_file_snp_data_sink( zgen, genfile::UnidentifiedChromosome, "gzip_compression" ) ;
 		copy_gen_file( original, zipped_gen_file_snp_data_sink ) ;
 	}
 }
@@ -258,17 +258,17 @@ AUTO_TEST_CASE( test_formats ) {
 	create_files( original, gen, bgen, bzgen, zbgen, zgen ) ;
 	create_files2( original, gen2, bgen2, bzgen2, zbgen2, zgen2 ) ;
 	
-	genfile::GenFileSNPDataSource original_file_snp_data_source( original, genfile::UnidentifiedChromosome, genfile::e_NoCompression ) ;
-	genfile::GenFileSNPDataSource gen_file_snp_data_source( gen, genfile::UnidentifiedChromosome, genfile::e_NoCompression ) ;
+	genfile::GenFileSNPDataSource original_file_snp_data_source( original, genfile::UnidentifiedChromosome,"no_compression" ) ;
+	genfile::GenFileSNPDataSource gen_file_snp_data_source( gen, genfile::UnidentifiedChromosome,"no_compression" ) ;
 	genfile::BGenFileSNPDataSource bgen_file_snp_data_source( bgen ) ;
 	genfile::BGenFileSNPDataSource bzgen_file_snp_data_source( bzgen ) ;
-	genfile::BGenFileSNPDataSource zbgen_file_snp_data_source( zbgen, genfile::e_GzipCompression ) ;
-	genfile::GenFileSNPDataSource zgen_file_snp_data_source( zgen, genfile::UnidentifiedChromosome, genfile::e_GzipCompression ) ;
+	genfile::BGenFileSNPDataSource zbgen_file_snp_data_source( zbgen, "gzip_compression" ) ;
+	genfile::GenFileSNPDataSource zgen_file_snp_data_source( zgen, genfile::UnidentifiedChromosome,"gzip_compression" ) ;
 	genfile::GenFileSNPDataSource gen_file_snp_data_source2( gen2, genfile::UnidentifiedChromosome ) ;
 	genfile::BGenFileSNPDataSource bgen_file_snp_data_source2( bgen2 ) ;
 	genfile::BGenFileSNPDataSource bzgen_file_snp_data_source2( bzgen2 ) ;
-	genfile::BGenFileSNPDataSource zbgen_file_snp_data_source2( zbgen2, genfile::e_GzipCompression ) ;
-	genfile::GenFileSNPDataSource zgen_file_snp_data_source2( zgen, genfile::UnidentifiedChromosome, genfile::e_GzipCompression ) ;
+	genfile::BGenFileSNPDataSource zbgen_file_snp_data_source2( zbgen2, "gzip_compression" ) ;
+	genfile::GenFileSNPDataSource zgen_file_snp_data_source2( zgen, genfile::UnidentifiedChromosome,"gzip_compression" ) ;
 
 	std::vector< std::vector< SnpData > > results ;
 
@@ -348,8 +348,3 @@ AUTO_TEST_CASE( test_formats ) {
 		TEST_ASSERT( results[i] == results[0] ) ;
 	}
 }
-
-AUTO_TEST_MAIN {
-	test_formats() ;
-}
-

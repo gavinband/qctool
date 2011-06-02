@@ -7,7 +7,6 @@
 #include "appcontext/CmdLineOptionProcessor.hpp"
 #include "appcontext/ProgramFlow.hpp"
 #include "PositionRange.hpp"
-#include "wildcard.hpp"
 #include "FileSet.hpp"
 
 using namespace appcontext ;
