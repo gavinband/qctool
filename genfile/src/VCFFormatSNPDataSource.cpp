@@ -73,7 +73,6 @@ namespace genfile {
 	void VCFFormatSNPDataSource::setup() {
 		check_genotype_probability_field( m_genotype_probability_field ) ;
 		reset_stream() ;
-		m_stream_ptr->exceptions( std::ios::eofbit | std::ios::failbit | std::ios::badbit ) ;
 	}
 
 	void VCFFormatSNPDataSource::check_genotype_probability_field( std::string const& field ) const {
@@ -117,6 +116,8 @@ namespace genfile {
 		else {
 			throw OperationUnsupportedError( "Open", m_spec ) ;
 		}
+
+		m_stream_ptr->exceptions( std::ios::eofbit | std::ios::failbit | std::ios::badbit ) ;
 
 		// Find our way back to the start of data.
 		for( std::size_t i = 0; i < ( m_metadata.size() + 1 ); ++i ) {
