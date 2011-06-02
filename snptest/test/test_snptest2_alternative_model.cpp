@@ -4,6 +4,19 @@
 #include "snptest/SNPTEST2AlternativeModel.hpp"
 #include "Eigen/Eigen"
 
+namespace {
+	template< typename M1, typename M2 >
+	void check_equal( M1 const& left, M2 const& right, double tolerance = 0.0001 ) {
+		BOOST_CHECK_EQUAL( left.rows(), right.rows() ) ;
+		BOOST_CHECK_EQUAL( left.cols(), right.cols() ) ;
+		for( int i = 0; i < left.rows(); ++i ) {
+			for( int j = 0; j < left.cols(); ++j ) {
+				BOOST_CHECK_CLOSE( left(i,j), right(i,j), tolerance ) ;
+			}
+		}
+	}
+}
+
 void test_alternative_model_certain_genotypes_one_individual( std::size_t g ) {
 	std::cerr << "Testing SNPTEST2 alternative model (one individual with certain genotype " << g << ")..." ;
 	typedef Eigen::VectorXd Vector ;
@@ -48,7 +61,7 @@ void test_alternative_model_certain_genotypes_one_individual( std::size_t g ) {
 	
 	ll.evaluate_at( parameters ) ;
 	TEST_ASSERT( ll.get_value_of_function() == std::log( p0 ) ) ;
-	TEST_ASSERT( ll.get_value_of_first_derivative() == -p1 * design_matrix ) ;
+	check_equal( ll.get_value_of_first_derivative(), -p1 * design_matrix, 0.00000000001 ) ;
 	TEST_ASSERT( ll.get_value_of_second_derivative() == (( -p1 * ( 1.0 - 2.0 * p1 )) - ( p1 * p1 )) * design_matrix_squared ) ;
 
 	// Change baseline parameter
@@ -68,7 +81,7 @@ void test_alternative_model_certain_genotypes_one_individual( std::size_t g ) {
 	
 	ll.evaluate_at( parameters ) ;
 	TEST_ASSERT( ll.get_value_of_function() == std::log( p0 ) ) ;
-	TEST_ASSERT( ll.get_value_of_first_derivative() == -p1 * design_matrix ) ;
+	check_equal( ll.get_value_of_first_derivative(), -p1 * design_matrix, 0.000000000001 ) ;
 	TEST_ASSERT( ll.get_value_of_second_derivative() == (( -p1 * ( 1.0 - 2.0 * p1 )) - ( p1 * p1 )) * design_matrix_squared ) ;
 
 	std::cerr << "ok.\n" ;
