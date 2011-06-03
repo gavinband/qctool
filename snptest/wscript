@@ -37,9 +37,9 @@ def build( bld ):
 	bld(
 		features = 'cxx cstaticlib',
 		target = 'snptest',
-		source = bld.glob( 'src/*.cpp' ),
+		source = bld.glob( 'src/*.cpp' ) + bld.glob( 'src/case_control/*.cpp' ),
 		includes='./include',
-		uselib_local='fputils eigen',
+		uselib_local='fputils eigen genfile integration',
 		uselib = 'BOOST',
 		export_incdirs = './include'
 	)

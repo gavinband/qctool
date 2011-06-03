@@ -1,7 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include "test_case.hpp"
-#include "snptest/SNPTEST2NullModel.hpp"
+#include "snptest/case_control/NullModelLogLikelihood.hpp"
 #include "Eigen/Eigen"
 
 AUTO_TEST_CASE( test_null_model_small_datasets )
@@ -13,7 +13,7 @@ AUTO_TEST_CASE( test_null_model_small_datasets )
 	{
 		Vector const phenotypes = Vector::Zero( 1 ) ;
 	
-		snptest2::NullModelLogLikelihood ll( phenotypes ) ;
+		snptest::case_control::NullModelLogLikelihood ll( phenotypes ) ;
 		Vector parameters = Vector::Zero( 1 ) ;
 		ll.evaluate_at( parameters ) ;
 		TEST_ASSERT( ll.get_value_of_function() == std::log( 0.5 ) ) ;
@@ -32,7 +32,7 @@ AUTO_TEST_CASE( test_null_model_small_datasets )
 	{
 		Vector phenotypes( 2 ) ;
 		phenotypes << 0.0, 1.0 ;
-		snptest2::NullModelLogLikelihood ll( phenotypes ) ;
+		snptest::case_control::NullModelLogLikelihood ll( phenotypes ) ;
 		Vector parameters = Vector::Zero( 1 ) ;
 		ll.evaluate_at( parameters ) ;
 		TEST_ASSERT( ll.get_value_of_function() == std::log( 0.5 ) + std::log( 0.5 ) ) ;

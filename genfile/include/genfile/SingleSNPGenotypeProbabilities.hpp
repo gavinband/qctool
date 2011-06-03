@@ -46,15 +46,6 @@ namespace genfile {
 		// Set the probabilities for individual i.
 		void set( std::size_t i, double AA, double AB, double BB ) ;
 
-		double AA( std::size_t i ) const {
-			return operator()( i, 0 ) ;
-		}
-		double AB( std::size_t i ) const {
-			return operator()( i, 1 ) ;
-		}
-		double BB( std::size_t i ) const {
-			return operator()( i, 2 ) ;
-		}
 		// Return genotype probability g for individual i.
 		// g is 0:AA 1:AB 2:BB
 		double operator()( std::size_t i, std::size_t g ) const {
@@ -80,7 +71,6 @@ namespace genfile {
 	{
 		GenotypeSetter( SingleSNPGenotypeProbabilities& genotypes ) ;
 		void operator()( std::size_t i, double, double, double ) const ;	
-
 		private:
 			SingleSNPGenotypeProbabilities& m_genotypes ;
 	} ;

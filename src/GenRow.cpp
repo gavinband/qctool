@@ -132,9 +132,9 @@ InternalStorageGenRow::InternalStorageGenRow( genfile::SNPIdentifyingData const&
 	m_genotype_proportions( genotypes.get_number_of_samples() )
 {
 	for( std::size_t i = 0; i < m_genotype_proportions.size(); ++i ) {
-		m_genotype_proportions[i].AA() = genotypes.AA(i) ;
-		m_genotype_proportions[i].AB() = genotypes.AB(i) ;
-		m_genotype_proportions[i].BB() = genotypes.BB(i) ;
+		m_genotype_proportions[i].AA() = genotypes( i, 0 ) ;
+		m_genotype_proportions[i].AB() = genotypes( i, 1 ) ;
+		m_genotype_proportions[i].BB() = genotypes( i, 2 ) ;
 	}
 }
 

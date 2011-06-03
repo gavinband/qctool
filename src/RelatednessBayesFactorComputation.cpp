@@ -113,7 +113,7 @@ double RelatednessBayesFactorComputation::compute_maximum_likelihood_allele_freq
 	double allele_count = 0.0 ;
 	double data_count = 0.0 ;
 	for( std::size_t i = 0; i < genotypes.size(); ++i ) {
-		allele_count += genotypes.AB( i ) + 2.0 * genotypes.BB( i ) ; 
+		allele_count += genotypes( i, 1 ) + 2.0 * genotypes( i, 2 ) ; 
 		data_count += genotypes.sum( i ) ;
 	}
 

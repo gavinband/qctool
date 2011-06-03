@@ -1,7 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include "test_case.hpp"
-#include "snptest/SNPTEST2AlternativeModel.hpp"
+#include "snptest/case_control/AlternativeModelLogLikelihood.hpp"
 #include "Eigen/Eigen"
 
 namespace {
@@ -41,7 +41,7 @@ void test_alternative_model_certain_genotypes_one_individual( std::size_t g ) {
 	double p0 ;
 	double p1 ;
 
-	snptest2::AlternativeModelLogLikelihood ll( phenotypes, genotypes, genotype_levels ) ;
+	snptest::case_control::AlternativeModelLogLikelihood ll( phenotypes, genotypes, genotype_levels ) ;
 	Vector parameters( 2 ) ;
 	parameters << 0.0, 0.0 ;
 
