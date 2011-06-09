@@ -58,7 +58,8 @@ namespace genfile {
 		std::string const m_spec ;
 		CompressionType m_compression_type ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
-		vcf::MetadataParser::Metadata m_metadata ;
+		vcf::MetadataParser m_metadata_parser ;
+		vcf::MetadataParser::Metadata m_metadata  ;
 		typedef boost::ptr_map< std::string, vcf::VCFEntryType > EntryTypeMap ;
 		EntryTypeMap m_info_types ;
 		EntryTypeMap m_format_types ;

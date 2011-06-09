@@ -299,10 +299,8 @@ namespace genfile {
 					if( where == range.first->second.end() ) {
 						throw BadArgumentError( "genfile::vcf::get_specs()", "metadata" ) ;
 					}
-					else {
-						if( !result.insert( where->second, VCFEntryType::create( range.first->second ) ).second ) {
+					else if( !result.insert( where->second, VCFEntryType::create( range.first->second ) ).second ) {
 							assert(0) ;
-						}
 					}
 				}
 				return result.release() ;

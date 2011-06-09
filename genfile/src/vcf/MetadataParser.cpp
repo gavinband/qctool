@@ -53,7 +53,6 @@ namespace genfile {
 
 		MetadataParser::Metadata MetadataParser::read_metadata( std::istream& in, std::string const& version ) const {
 			std::istream::iostate old_exceptions = in.exceptions() ;
-			in.exceptions( std::ios::eofbit | std::ios::failbit | std::ios::badbit ) ;
 			Metadata result ;
 			{
 				// put version information into the result.
@@ -76,7 +75,13 @@ namespace genfile {
 
 		bool MetadataParser::read_metadata_line( std::istream& in, std::size_t line_number, Metadata* result ) const {
 			try {
+				in.exceptions( std::ios::badbit ) ;
 				char a_char = static_cast< char >( in.get() ) ;
+				if( !in ) {
+					return false ;
+				}
+				in.exceptions( std::ios::eofbit | std::ios::failbit | std::ios::badbit ) ;
+				
 				char next_char = static_cast< char >( in.peek() ) ;
 				if( a_char == '\t' || next_char == '\t' ) {
 					throw MalformedInputError( m_spec, line_number ) ;

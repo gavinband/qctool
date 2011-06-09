@@ -11,7 +11,8 @@ namespace genfile {
 			MetadataParser( std::string const& spec, std::istream& stream ) ;
 
 			typedef std::multimap< std::string, std::map< std::string, std::string > > Metadata ;
-			Metadata const& get_metadata() const { return m_metadata ;}
+			Metadata const& get_metadata() const { return m_metadata ; }
+			std::size_t get_number_of_lines() const { return m_metadata.size() ; }
 
 		private:
 			std::string const m_spec ;

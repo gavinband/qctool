@@ -23,7 +23,8 @@ namespace genfile {
 		m_spec( "(unnamed stream)" ),
 		m_compression_type( "no_compression" ),
 		m_stream_ptr( stream_ptr ),
-		m_metadata( vcf::MetadataParser( m_spec, *m_stream_ptr ).get_metadata() ),
+		m_metadata_parser( m_spec, *m_stream_ptr ),
+		m_metadata( m_metadata_parser.get_metadata() ),
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_genotype_probability_field( genotype_probability_field ),
@@ -59,7 +60,8 @@ namespace genfile {
 		m_spec( filename ),
 		m_compression_type( get_compression_type_indicated_by_filename( filename )),
 		m_stream_ptr( open_text_file_for_input( filename, m_compression_type ) ),
-		m_metadata( vcf::MetadataParser( m_spec, *m_stream_ptr ).get_metadata() ),
+		m_metadata_parser( m_spec, *m_stream_ptr ),
+		m_metadata( m_metadata_parser.get_metadata() ),
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_genotype_probability_field( genotype_probability_field ),
@@ -71,7 +73,7 @@ namespace genfile {
 	}
 	
 	void VCFFormatSNPDataSource::setup() {
-		check_genotype_probability_field( m_genotype_probability_field ) ;
+		// check_genotype_probability_field( m_genotype_probability_field ) ;
 		reset_stream() ;
 	}
 
@@ -120,7 +122,7 @@ namespace genfile {
 		m_stream_ptr->exceptions( std::ios::eofbit | std::ios::failbit | std::ios::badbit ) ;
 
 		// Find our way back to the start of data.
-		for( std::size_t i = 0; i < ( m_metadata.size() + 1 ); ++i ) {
+		for( std::size_t i = 0; i < ( m_metadata_parser.get_number_of_lines() + 1 ); ++i ) {
 			std::string line ;
 			std::getline( *m_stream_ptr, line ) ;
 		}
@@ -131,11 +133,11 @@ namespace genfile {
 	std::vector< std::string > VCFFormatSNPDataSource::read_column_names( std::istream& stream ) const {
 		std::string line ;
 		if( !std::getline( stream, line ) ) {
-			throw MalformedInputError( m_spec, m_metadata.size() ) ;
+			throw MalformedInputError( m_spec, m_metadata_parser.get_number_of_lines() ) ;
 		}
 		std::vector< std::string > elts = string_utils::split( line, "\t" ) ;
 		if( elts.size() < 8 ) {
-			throw MalformedInputError( m_spec, m_metadata.size() ) ;
+			throw MalformedInputError( m_spec, m_metadata_parser.get_number_of_lines() ) ;
 		}
 		else if(
 			elts[0] != "#CHROM"
@@ -148,7 +150,7 @@ namespace genfile {
 			|| elts[7] != "INFO"
 			|| elts[8] != "FORMAT"
 		) {
-			throw MalformedInputError( m_spec, m_metadata.size() ) ;
+			throw MalformedInputError( m_spec, m_metadata_parser.get_number_of_lines() ) ;
 		}
 		return elts ;
 	}
@@ -184,13 +186,7 @@ namespace genfile {
 	}
 	
 	void VCFFormatSNPDataSource::update_metadata( Metadata const& metadata ) {
-		for( Metadata::const_iterator i = metadata.begin(); i != metadata.end(); ++i ) {
-			Metadata::const_iterator existing = m_metadata.find( i->first ) ;
-			if( existing != m_metadata.end() && i->second != existing->second ) {
-				throw BadArgumentError( "genfile::VCFFormatSNPDataSource::update_metadata()", "metadata key \"" + i->first + "\"" ) ;
-			}
-			m_metadata.insert( *i ) ;
-		}
+		m_metadata.insert( metadata.begin(), metadata.end() ) ;
 		m_info_types = vcf::get_entry_types( m_metadata, "INFO" ) ;
 		m_format_types = vcf::get_entry_types( m_metadata, "FORMAT" ) ;
 	}
@@ -216,7 +212,7 @@ namespace genfile {
 	}
 	
 	void VCFFormatSNPDataSource::set_genotype_probability_field( std::string const& value ) {
-		check_genotype_probability_field( value ) ;
+		// check_genotype_probability_field( value ) ;
 		m_genotype_probability_field = value ;
 	}
 	
@@ -257,7 +253,7 @@ namespace genfile {
 			read_element( INFO, '\t', entry_count++ ) ;
 		}
 		catch( std::ios_base::failure const& ) {
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, entry_count ) ;
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, entry_count ) ;
 		}
 		
 		// If we get here reading was successful.
@@ -306,7 +302,7 @@ namespace genfile {
 		std::getline( *m_stream_ptr, elt, delim ) ;
 		// ensure element contains no whitespace.
 		if( elt.find_first_of( " \t\n\r" ) != std::string::npos ) {
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, column ) ;
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, column ) ;
 		}
 	}
 	
@@ -316,7 +312,7 @@ namespace genfile {
 			format.append( 1, after_format ) ;
 		}
 		if( format.find_first_of( " \t\n\r" ) != std::string::npos ) {
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, column ) ;
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, column ) ;
 		}
 		return after_format ;
 	}
@@ -332,11 +328,11 @@ namespace genfile {
 			after_format = read_format_and_get_trailing_char( FORMAT, count++ ) ;
 		}
 		catch( std::ios_base::failure const& ) {
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, count ) ;
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, count ) ;
 		}
 
 		if(( m_number_of_samples == 0 && after_format != '\n' ) || ( m_number_of_samples > 0 && after_format != '\t' )) {
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, count ) ;
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, count ) ;
 		}
 
 		if( m_number_of_samples > 0 ) {
@@ -348,16 +344,16 @@ namespace genfile {
 			}
 			catch( BadArgumentError const& ) {
 				// problem with FORMAT
-				throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, 8 ) ;
+				throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, 8 ) ;
 			}
 			catch( MalformedInputError const& e ) {
 				// problem with entry.
 				if( e.has_column() ) {
 					// error column is the individual index (starting from 0), we add 9 to get the column number.
-					throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, e.column() + 9 ) ;
+					throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, e.column() + 9 ) ;
 				}
 				else {
-					throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1 ) ;
+					throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1 ) ;
 				}
 			}
 		}
@@ -373,7 +369,7 @@ namespace genfile {
 			++count ;
 		}
 		catch( std::ios_base::failure const& ) {
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, count ) ;
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, count ) ;
 		}
 		// We ignore the data, but parse the FORMAT spec anyway.
 		try {
@@ -381,7 +377,7 @@ namespace genfile {
 		}
 		catch( BadArgumentError const& ) {
 			// problem with FORMAT
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata.size() + 1, 8 ) ;
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, 8 ) ;
 		}
 	}
 
