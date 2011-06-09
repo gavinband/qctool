@@ -264,6 +264,13 @@ public:
 				"or the missing value \".\"." )
 			.set_takes_single_value()
 			.set_default_value( "GT" ) ;
+		options[ "-vcf-metadata" ]
+			.set_description(
+				"Specify the name of a file containing VCF metadata to be used to parse "
+				"a VCF file.  Keys in this file must either not be present in the VCF file, or must have "
+				"identical values."
+			)
+			.set_takes_single_value() ;
 
 		// Statistic file options
 		options.declare_group( "Statistic calculation options" ) ;
@@ -1260,6 +1267,14 @@ private:
 			genfile::VCFFormatSNPDataSource* vcf_source = dynamic_cast< genfile::VCFFormatSNPDataSource* >( source.get() ) ;
 			if( vcf_source ) {
 				vcf_source->set_genotype_probability_field( m_options.get_value< std::string >( "-vcf-genotype-field" )) ;
+
+				if( m_options-check_if_option_has_valu( "-vcf-metadata" )) {
+					vcf_source->update_metadata(
+						genfile::vcf::MetadataParser(
+							m_options.get_value< std::string >( "-vcf-metadata" )
+						).get_metadata()
+					) ;
+				}
 			}
 		}
 		

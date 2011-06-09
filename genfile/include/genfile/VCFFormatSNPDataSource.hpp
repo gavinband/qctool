@@ -25,6 +25,9 @@ namespace genfile {
 		) ;
 
 	public:
+		typedef vcf::MetadataParser::Metadata Metadata ;
+		void update_metadata( Metadata const& metadata ) ;
+		
 		operator bool() const ;
 		unsigned int number_of_samples() const ;
 		unsigned int total_number_of_snps() const ;
@@ -55,7 +58,7 @@ namespace genfile {
 		std::string const m_spec ;
 		CompressionType m_compression_type ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
-		vcf::MetadataParser::Metadata const m_metadata ;
+		vcf::MetadataParser::Metadata m_metadata ;
 		typedef boost::ptr_map< std::string, vcf::VCFEntryType > EntryTypeMap ;
 		EntryTypeMap m_info_types ;
 		EntryTypeMap m_format_types ;

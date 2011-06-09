@@ -183,6 +183,18 @@ namespace genfile {
 		return count ;
 	}
 	
+	void VCFFormatSNPDataSource::update_metadata( Metadata const& metadata ) {
+		for( Metadata::const_iterator i = metadata.begin(); i != metadata.end(); ++i ) {
+			Metadata::const_iterator existing = m_metadata.find( i->first ) ;
+			if( existing != m_metadata.end() && i->second != existing->second ) {
+				throw BadArgumentError( "genfile::VCFFormatSNPDataSource::update_metadata()", "metadata key \"" + i->first + "\"" ) ;
+			}
+			m_metadata.insert( *i ) ;
+		}
+		m_info_types = vcf::get_entry_types( m_metadata, "INFO" ) ;
+		m_format_types = vcf::get_entry_types( m_metadata, "FORMAT" ) ;
+	}
+	
 	VCFFormatSNPDataSource::operator bool() const {
 		return *m_stream_ptr ;
 	}
