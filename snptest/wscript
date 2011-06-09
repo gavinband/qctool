@@ -39,7 +39,7 @@ def build( bld ):
 		target = 'snptest',
 		source = bld.glob( 'src/*.cpp' ) + bld.glob( 'src/case_control/*.cpp' ),
 		includes='./include',
-		uselib_local='fputils eigen genfile integration',
+		uselib_local='fputils eigen genfile integration appcontext',
 		uselib = 'BOOST',
 		export_incdirs = './include'
 	)

@@ -8,17 +8,22 @@
 namespace snptest {
 	namespace case_control {
 		struct FrequentistTest: public PerSnpFrequentistTest {
-			FrequentistTest() ;
-		
+			FrequentistTest(
+				double sample_inclusion_threshhold = 0.1,
+				bool mimic_snptest = false
+			) ;
+			
 			Results test(
 				Vector const& phenotype_values,
 				Matrix const& covariate_values,
+				genfile::SNPIdentifyingData const& snp,
 				genfile::SingleSNPGenotypeProbabilities const& all_genotypes,
 				std::vector< std::size_t > const& indices_of_samples_to_include
 			) const ;
 		
 		private:
-			bool m_fill_null_genotypes ;
+			double m_sample_inclusion_threshold ;
+			bool m_mimic_snptest ;
 			boost::math::chi_squared_distribution< double > m_chi_squared ;	
 		} ;	
 	}

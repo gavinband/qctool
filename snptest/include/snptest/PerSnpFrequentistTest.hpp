@@ -4,6 +4,7 @@
 #include <memory>
 #include "boost/noncopyable.hpp"
 #include "Eigen/Core"
+#include "appcontext/OptionProcessor.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
 
@@ -13,7 +14,7 @@ namespace snptest {
 		typedef std::auto_ptr< PerSnpFrequentistTest > UniquePtr ;
 		
 		// Create a test appropriate for the given snp.
-		static UniquePtr create( genfile::SNPIdentifyingData const& snp ) ;
+		static UniquePtr create( genfile::SNPIdentifyingData const& snp, appcontext::OptionProcessor const& options ) ;
 
 		typedef Eigen::VectorXd Point ;
 		typedef Eigen::VectorXd Vector ;
@@ -36,6 +37,7 @@ namespace snptest {
 		virtual Results test(
 			Vector const& phenotype_values,
 			Matrix const& covariate_values,
+			genfile::SNPIdentifyingData const& snp,
 			genfile::SingleSNPGenotypeProbabilities const& all_genotypes,
 			std::vector< std::size_t > const& indices_of_samples_to_include
 		) const = 0 ;

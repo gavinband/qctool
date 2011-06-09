@@ -1772,7 +1772,7 @@ private:
 			m_warnings.push_back( "You are outputting a sample statistic file, but no input sample files have been supplied.\n"
 			"   Statistics will be output but the ID fields will be left blank.") ;
 		}
-		if( m_mangled_options.gen_filename_mapper().output_filenames().size() == 0 && m_mangled_options.output_sample_filename() == "" && m_mangled_options.snp_stats_filename_mapper().output_filenames().size() == 0 && m_mangled_options.output_sample_stats_filename() == "" && m_mangled_options.output_sample_excl_list_filename() == "" && m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() == 0 ) {
+		if( m_mangled_options.gen_filename_mapper().output_filenames().size() == 0 && m_mangled_options.output_sample_filename() == "" && m_mangled_options.snp_stats_filename_mapper().output_filenames().size() == 0 && m_mangled_options.output_sample_stats_filename() == "" && m_mangled_options.output_sample_excl_list_filename() == "" && m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() == 0 && !m_options.check_if_option_was_supplied( "-test" )) {
 			m_warnings.push_back( "You have not specified any output files.  This will produce only logging output." ) ;
 		}
 		if( m_snp_data_source->total_number_of_snps() == 0 ) {

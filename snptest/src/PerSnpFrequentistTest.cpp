@@ -1,14 +1,19 @@
 #include <limits>
 #include "genfile/SNPIdentifyingData.hpp"
+#include "appcontext/OptionProcessor.hpp"
 #include "snptest/PerSnpFrequentistTest.hpp"
 #include "snptest/NullPerSnpFrequentistTest.hpp"
 #include "snptest/case_control/FrequentistTest.hpp"
 
 namespace snptest {
-	PerSnpFrequentistTest::UniquePtr PerSnpFrequentistTest::create( genfile::SNPIdentifyingData const& snp ) {
+	PerSnpFrequentistTest::UniquePtr PerSnpFrequentistTest::create(
+		genfile::SNPIdentifyingData const& snp,
+		appcontext::OptionProcessor const& options
+	) {
 		PerSnpFrequentistTest::UniquePtr result ;
 		if( !snp.get_position().chromosome().is_sex_determining() ) {
-			result.reset( new case_control::FrequentistTest() ) ;
+			result.reset( new case_control::FrequentistTest(
+			) ) ;
 		}
 		else {
 			result.reset( new NullPerSnpFrequentistTest() ) ;

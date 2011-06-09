@@ -1,12 +1,14 @@
 #ifndef SNPTEST2_NULL_MODEL_HPP
 #define SNPTEST2_NULL_MODEL_HPP
 
+#include <boost/noncopyable.hpp>
 #include <vector>
 #include "Eigen/Eigen"
+#include "snptest/FinitelySupportedFunctionSet.hpp"
 
 namespace snptest {
 	namespace case_control {
-		struct NullModelLogLikelihood
+		struct NullModelLogLikelihood:public boost::noncopyable
 		{
 		public:
 			typedef Eigen::VectorXd Point ;
@@ -14,7 +16,15 @@ namespace snptest {
 			typedef Eigen::MatrixXd Matrix ;
 			
 			NullModelLogLikelihood(
-				Vector const& phenotypes
+				Vector const& phenotypes,
+				FinitelySupportedFunctionSet const& genotypes,
+				bool weight_by_genotypes
+			) ;
+
+			NullModelLogLikelihood(
+				Vector const& phenotypes,
+				FinitelySupportedFunctionSet const& genotypes
+				std::vector< int > const& included_samples
 			) ;
 		
 			void evaluate_at( Vector const& parameters ) ;
@@ -22,6 +32,12 @@ namespace snptest {
 			double get_value_of_function() const ;
 			Vector get_value_of_first_derivative() const ;
 			Matrix get_value_of_second_derivative() const ;
+		private:
+			Vector const& m_phenotypes ;
+			FinitelySupportedFunctionSet const& m_genotypes ;
+			bool m_weight_by_genotypes ;
+			std::vector< int > const m_included_samples ;
+			Matrix m_p_thetas ;
 		
 		private:
 			NullModelLogLikelihood( NullModelLogLikelihood const& other ) ;
@@ -41,9 +57,6 @@ namespace snptest {
 				Vector const& phenotypes,
 				Matrix const& p_thetas
 			) const ;
-		
-			Vector const& m_phenotypes ;
-			Matrix m_p_thetas ;
 		} ;
 	
 		typedef NullModelLogLikelihood NullModelEvaluator ;

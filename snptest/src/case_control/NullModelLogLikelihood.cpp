@@ -1,22 +1,38 @@
 #include <iostream>
 #include <vector>
+#include <boost/iterator/counting_iterator.hpp>
 #include "snptest/case_control/NullModelLogLikelihood.hpp"
 
 namespace snptest {
 	namespace case_control {
 		NullModelLogLikelihood::NullModelLogLikelihood(
-			NullModelLogLikelihood const& other
+			Vector const& phenotypes,
+			FinitelySupportedFunctionSet const& genotypes,
+			bool weight_by_genotypes
 		):
-			m_phenotypes( other.m_phenotypes )
-		{
-			assert(0) ;
-		}
+			m_phenotypes( phenotypes ),
+			m_genotypes( genotypes ),
+			m_weight_by_genotypes( weight_by_genotypes ),
+			m_included_samples( std::vector< int >(
+					boost::counting_iterator< int >( 0 ),
+					boost::counting_iterator< int >( phenotypes.size() )
+				)
+			)
+		{}
 
 		NullModelLogLikelihood::NullModelLogLikelihood(
-			Vector const& phenotypes
+			Vector const& phenotypes,
+			FinitelySupportedFunctionSet const& genotypes,
+			bool weight_by_genotypes,
+			std::vector< int > const& included_samples
 		):
-			m_phenotypes( phenotypes )
-		{}
+			m_phenotypes( phenotypes ),
+			m_genotypes( genotypes ),
+			m_weight_by_genotypes( weight_by_genotypes ),
+			m_included_samples( included_samples )
+		{
+			assert( m_included_samples.size() <= std::size_t( m_phenotypes.size() ) ) ;
+		}
 
 		void NullModelLogLikelihood::evaluate_at( Vector const& parameters ) {
 			m_p_thetas = calculate_p_thetas( parameters ) ;
@@ -54,8 +70,10 @@ namespace snptest {
 			Matrix const& p_thetas
 		) const {
 			double result = 0.0 ;
-			for( int i = 0; i < phenotypes.rows(); ++i ) {
-				result += std::log( p_thetas( int( phenotypes(i) ) ) ) ;
+			for( std::size_t i = 0; i < m_included_samples.size(); ++i ) {
+				int const sample_i = m_included_samples[i] ;
+				result += std::log(
+					( m_weight_by_genotypes ? m_genotypes.values( sample_i ).sum() : 1.0 ) * p_thetas( int( phenotypes( sample_i ) ) ) ) ;
 			}
 			return result ;
 		}
@@ -79,8 +97,9 @@ namespace snptest {
 			Matrix const& p_thetas
 		) const {
 			Vector result = Vector::Zero( 1 ) ;
-			for( int i = 0; i < phenotypes.size(); ++i ) {
-				result( 0 ) += phenotypes( i ) - p_thetas( 1 ) ;
+			for( std::size_t i = 0; i < m_included_samples.size(); ++i ) {
+				int const sample_i = m_included_samples[i] ;
+				result( 0 ) += phenotypes( sample_i ) - p_thetas( 1 ) ;
 				//result( 0 ) = result(0) + phenotypes( i ) - p_thetas( 1 ) ;
 			}
 			return result ;

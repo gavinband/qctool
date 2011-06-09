@@ -1,15 +1,16 @@
 #ifndef ASSOCIATION_TESTER_HPP
 #define ASSOCIATION_TESTER_HPP
 
+#include <boost/noncopyable.hpp>
 #include "Eigen/Core"
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
-#include "snptest/case_control/NullModelLogLikelihood.hpp"
+#include "snptest/FinitelySupportedFunctionSet.hpp"
 
-struct AssociationTester: public genfile::SNPDataSourceProcessor::Callback
+struct AssociationTester: public genfile::SNPDataSourceProcessor::Callback, public boost::noncopyable
 {
 	static void declare_options( appcontext::OptionProcessor& options ) ;
 
@@ -45,7 +46,7 @@ private:
 		genfile::CohortIndividualSource const& samples,
 		std::string const& phenotype_spec
 	) const ;
-		
+	
 	std::vector< std::vector< std::size_t > > get_indices_of_samples_to_include(
 		std::vector< std::string > const& phenotypes,
 		genfile::CohortIndividualSource const& samples
@@ -57,8 +58,11 @@ private:
 		std::vector< std::vector< std::size_t > > indices_of_samples_to_includes
 	) const ;
 
-	// forbid copying
-	AssociationTester( AssociationTester const& other ) ;
+	FinitelySupportedFunctionSet get_genotype_matrix(
+		genfile::SingleSNPGenotypeProbabilities const& genotypes,
+		std::vector< std::size_t > const& indices_of_samples_to_include
+	) ;
+
 } ;
 
 #endif

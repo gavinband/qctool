@@ -21,6 +21,11 @@ void AssociationTester::declare_options( appcontext::OptionProcessor& options ) 
 		.set_description( "Override the default name of the association test output file." )
 		.set_takes_single_value()
 		.set_default_value( "qctool.test" ) ;
+	options[ "-mimic-snptest" ]
+		.set_description(
+			"Configure things so the tests agree as far as possible with those of SNPTEST (v2.2.0)."
+			" This affects how qctool deals with NULL genotype calls."
+		) ;
 
 	options.option_implies_option( "-ot", "-test" ) ;
 	options.option_implies_option( "-covariates", "-test" ) ;
@@ -96,7 +101,10 @@ void AssociationTester::begin_processing_snps( std::size_t number_of_samples, st
 	}
 }
 
-void AssociationTester::processed_snp( SNPIdentifyingData const& id_data, SingleSNPGenotypeProbabilities const& genotypes ) {
+void AssociationTester::processed_snp(
+	SNPIdentifyingData const& id_data,
+	SingleSNPGenotypeProbabilities const& genotypes
+) {
 	assert( m_sink.get() ) ;
 	(*m_sink)
 		<< id_data.get_SNPID()
@@ -106,11 +114,19 @@ void AssociationTester::processed_snp( SNPIdentifyingData const& id_data, Single
 		<< std::string( 1, id_data.get_first_allele() )
 		<< std::string( 1, id_data.get_second_allele() )
 	;
+	
 	for( std::size_t i = 0; i < m_phenotypes.size(); ++i ) {
-		snptest::PerSnpFrequentistTest::UniquePtr test = snptest::PerSnpFrequentistTest::create( id_data ) ;
+		FinitelySupportedFunctionSet genotype_matrix = get_genotypes( genotypes, m_indices_of_samples_to_include[i] ) ;
+		
+		snptest::PerSnpFrequentistTest::UniquePtr test = snptest::PerSnpFrequentistTest::create(
+			id_data,
+			m_options
+		) ;
+
 		snptest::PerSnpFrequentistTest::Results results = test->test(
 			m_phenotype_values[i],
 			m_covariate_values,
+			id_data,
 			genotypes,
 			m_indices_of_samples_to_include[i]
 		) ;
@@ -125,6 +141,35 @@ void AssociationTester::processed_snp( SNPIdentifyingData const& id_data, Single
 		;
 	}
 	(*m_sink) << statfile::end_row() ;
+}
+
+FinitelySupportedFunctionSet AssociationTester::get_genotype_matrix(
+	genfile::SingleSNPGenotypeProbabilities const& genotypes,
+	std::vector< std::size_t > const& indices_of_samples_to_include
+ ) {
+	FinitelySupportedFunctionSet result(
+		Vector::Constant(
+			3,
+			std::numeric_limits< double >::quiet_NaN()
+		),
+		Matrix::Constant(
+			indices_of_samples_to_include.size(),
+			std::numeric_limits< double >::quiet_NaN()
+		)
+	) ;
+
+	std::size_t const N = result.get_number_of_functions() ;
+
+	for( int i = 0; i < N; ++i ) {
+		for( std::size_t g = 0; g < 3; ++g ) {
+			result.get_values( i, g ) = genotypes( indices_of_samples_to_include[i], g ) ;
+		}
+	}
+	// mean-centre the genotypes.
+	double mean_genotype = ( result.values().col(1) + 2.0 * result.values().col(2) ).sum() / N ;
+	for( std::size_t g = 0; g < 3; ++g ) {
+		result.get_support()( g ) = double( g ) - mean_genotype ;
+	}
 }
 
 void AssociationTester::end_processing_snps() {

@@ -41,7 +41,7 @@ void test_alternative_model_certain_genotypes_one_individual( std::size_t g ) {
 	double p0 ;
 	double p1 ;
 
-	snptest::case_control::AlternativeModelLogLikelihood ll( phenotypes, genotypes, genotype_levels ) ;
+	snptest::case_control::AlternativeModelLogLikelihood ll( phenotypes, genotypes, genotype_levels, std::vector< int >( 1, 1 ) ) ;
 	Vector parameters( 2 ) ;
 	parameters << 0.0, 0.0 ;
 

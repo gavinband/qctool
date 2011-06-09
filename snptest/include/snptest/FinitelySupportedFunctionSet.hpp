@@ -19,6 +19,8 @@ namespace snptest {
 		typedef Eigen::MatrixXd Matrix ;
 		typedef Matrix::RowXpr RowExpression ;
 		typedef Matrix::ConstRowXpr ConstRowExpression ;
+		typedef Matrix::ColXpr ColumnExpression ;
+		typedef Matrix::ConstColXpr ConstColumnExpression ;
 		
 		FinitelySupportedFunctionSet(
 			Vector const& support,
@@ -44,7 +46,11 @@ namespace snptest {
 		RowExpression get_values( std::size_t i ) {
 			return m_matrix.row( i ) ;
 		}
-
+		
+		Matrix const& get_values() {
+			return m_matrix ;
+		}
+		
 	protected:
 		Vector m_support ;
 		Matrix m_matrix ;
