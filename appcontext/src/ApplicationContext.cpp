@@ -47,6 +47,7 @@ namespace appcontext {
 		try {
 			get_ui_context().logger().add_stream( "screen", std::cout ) ;
 			m_options->process( argc, argv ) ;
+			construct_logger( log_option ) ;
 		}
 		catch( OptionProcessorMutuallyExclusiveOptionsSuppliedException const& e ) {
 			get_ui_context().logger() << "!! Error (" << e.what() << "):\n" ;
@@ -80,15 +81,18 @@ namespace appcontext {
 			<< "\n" ;
 			throw HaltProgramWithReturnCode( 0 );
 		}
-		catch( std::exception const& exception ) {
-			get_ui_context().logger() << "!! Error: " << exception.what() << ".\n";
+		catch( FileNotOpenedError const& e ) {
+			get_ui_context().logger() << "!! Error (" << e.what() << "): Could not open the file \"" + e.filename() + "\".\n" ;
+			throw HaltProgramWithReturnCode( -1 ) ;
+		}
+		catch( std::exception const& e ) {
+			get_ui_context().logger() << "!! Error (" << e.what() << "): \n";
 			get_ui_context().logger() << "Please use \""
 			<< m_application_name << " " << m_options->get_help_option_name()
 			<< "\" for more information.\n" ;
 			throw HaltProgramWithReturnCode( -1 ) ;
 		}
 		
-		construct_logger( log_option ) ;
 	}
 
 	ApplicationContext::~ApplicationContext() {
