@@ -4,7 +4,7 @@
 #include "genfile/string_utils.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
-#include "snptest/PerSNPFrequentistTest.hpp"
+#include "snptest/PerSnpFrequentistTest.hpp"
 #include "integration/Derivative.hpp"
 #include "integration/NewtonRaphson.hpp"
 #include "AssociationTester.hpp"
