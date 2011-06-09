@@ -23,14 +23,19 @@ namespace snptest {
 			Vector const& phenotypes,
 			Matrix const& covariates,
 			genfile::SNPIdentifyingData const& snp,
-			FinitelySupportedFunctionSet const& genotypes,
-			std::vector< std::size_t > const& indices_of_samples_to_include
+			FinitelySupportedFunctionSet const& genotypes
 		) const {
-			assert( std::size_t( phenotypes.size() ) == indices_of_samples_to_include.size() ) ;
 			if( covariates.rows() != 0 || covariates.cols() != 0 ) {
 				throw genfile::BadArgumentError( "CaseControlFrequentistTest::test()", "covariates (nonempty)" ) ;
 			}
 			
+			std::vector< std::size_t > included_samples ;
+			for( int i = 0; i < phenotypes.size(); ++i ) {
+				if( genotypes.get_values( i ).sum() >= m_sample_inclusion_threshold ) {
+					included_samples.push_back( i ) ;
+				}
+			}
+
 			using integration::derivative ;
 			snptest::case_control::NullModelLogLikelihood null_loglikelihood(
 				phenotypes,
@@ -46,7 +51,7 @@ namespace snptest {
 				0.00001
 			) ;
 
-#if 1
+#if 0
 			std::cerr << "AssociationTester:        ################ testing SNP " << snp.get_rsid() << " ################\n" ;
 			std::cerr << "AssociationTester:        null: MLE is " << null_parameters << ".\n" ;
 			std::cerr << "AssociationTester:        null: loglikelihood is " << null_loglikelihood.get_value_of_function() << ".\n" ;
@@ -57,7 +62,7 @@ namespace snptest {
 				genotypes,
 				included_samples
 			) ;
-#if 1
+#if 0
 		alternative_loglikelihood.evaluate_at( Vector::Zero( 2 ) ) ;
 		std::cerr << "AssociationTester: alternative: Initial derivative of LL is " << alternative_loglikelihood.get_value_of_first_derivative() << ".\n" ;
 #endif
@@ -67,7 +72,7 @@ namespace snptest {
 				Vector::Zero( 2 ),
 				0.00001
 			) ;
-#if 1
+#if 0
 			std::cerr << "AssociationTester: alternative: MLE is " << alternative_parameters << ".\n" ;
 			std::cerr << "AssociationTester: alternative: loglikelihood is " << alternative_loglikelihood.get_value_of_function() << ".\n" ;
 			std::cerr << "AssociationTester: -2LR = " << -2.0 * ( null_loglikelihood.get_value_of_function() - alternative_loglikelihood.get_value_of_function() ) << ".\n" ;

@@ -58,10 +58,10 @@ private:
 		std::vector< std::vector< std::size_t > > indices_of_samples_to_includes
 	) const ;
 
-	FinitelySupportedFunctionSet get_genotype_matrix(
+	snptest::FinitelySupportedFunctionSet get_genotype_matrix(
 		genfile::SingleSNPGenotypeProbabilities const& genotypes,
 		std::vector< std::size_t > const& indices_of_samples_to_include
-	) ;
+	) const ;
 
 } ;
 

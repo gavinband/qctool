@@ -18,13 +18,14 @@ namespace snptest {
 			NullModelLogLikelihood(
 				Vector const& phenotypes,
 				FinitelySupportedFunctionSet const& genotypes,
-				bool weight_by_genotypes
+				bool weight_by_genotypes = false
 			) ;
 
 			NullModelLogLikelihood(
 				Vector const& phenotypes,
-				FinitelySupportedFunctionSet const& genotypes
-				std::vector< int > const& included_samples
+				FinitelySupportedFunctionSet const& genotypes,
+				bool weight_by_genotypes,
+				std::vector< std::size_t > const& included_samples
 			) ;
 		
 			void evaluate_at( Vector const& parameters ) ;
@@ -36,7 +37,7 @@ namespace snptest {
 			Vector const& m_phenotypes ;
 			FinitelySupportedFunctionSet const& m_genotypes ;
 			bool m_weight_by_genotypes ;
-			std::vector< int > const m_included_samples ;
+			std::vector< std::size_t > const m_included_samples ;
 			Matrix m_p_thetas ;
 		
 		private:

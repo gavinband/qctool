@@ -12,8 +12,12 @@ namespace snptest {
 	) {
 		PerSnpFrequentistTest::UniquePtr result ;
 		if( !snp.get_position().chromosome().is_sex_determining() ) {
-			result.reset( new case_control::FrequentistTest(
-			) ) ;
+			result.reset(
+				new case_control::FrequentistTest(
+					0.1,
+					options.check_if_option_was_supplied( "-mimic-snptest" )
+				)
+			) ;
 		}
 		else {
 			result.reset( new NullPerSnpFrequentistTest() ) ;

@@ -2,7 +2,6 @@
 #define SNPTEST_FINITELY_SUPPORTED_FUNCTION_SET_HPP
 
 #include <memory>
-#include <boost/noncopyable.hpp>
 #include "Eigen/Core"
 
 namespace snptest {
@@ -12,7 +11,7 @@ namespace snptest {
 	// of points on the real line.
 	// An example would be a numerical-valued covariate whose values for each sample
 	// are only known with some uncertainty (so we only have a distribution.) 
-	struct FinitelySupportedFunctionSet: public boost::noncopyable {
+	struct FinitelySupportedFunctionSet {
 	public:
 		typedef std::auto_ptr< FinitelySupportedFunctionSet > UniquePtr ;
 		typedef Eigen::VectorXd Vector ;
@@ -26,6 +25,14 @@ namespace snptest {
 			Vector const& support,
 			Matrix const& matrix
 		) ;
+
+		FinitelySupportedFunctionSet(
+			FinitelySupportedFunctionSet const& other
+		) ;
+
+		FinitelySupportedFunctionSet& operator=(
+			FinitelySupportedFunctionSet const& other
+		) ;
 		
 		std::size_t get_size_of_support() const {
 			return m_support.size() ;
@@ -33,6 +40,14 @@ namespace snptest {
 
 		Vector const& get_support() const {
 			return m_support ;
+		}
+
+		double const& get_support( std::size_t i ) const {
+			return m_support(i) ;
+		}
+
+		double& get_support( std::size_t i ) {
+			return m_support(i) ;
 		}
 
 		std::size_t get_number_of_functions() const {
@@ -47,7 +62,7 @@ namespace snptest {
 			return m_matrix.row( i ) ;
 		}
 		
-		Matrix const& get_values() {
+		Matrix const& get_values() const {
 			return m_matrix ;
 		}
 		

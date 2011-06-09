@@ -13,9 +13,9 @@ namespace snptest {
 			m_phenotypes( phenotypes ),
 			m_genotypes( genotypes ),
 			m_weight_by_genotypes( weight_by_genotypes ),
-			m_included_samples( std::vector< int >(
-					boost::counting_iterator< int >( 0 ),
-					boost::counting_iterator< int >( phenotypes.size() )
+			m_included_samples( std::vector< std::size_t >(
+					boost::counting_iterator< std::size_t >( 0 ),
+					boost::counting_iterator< std::size_t >( phenotypes.size() )
 				)
 			)
 		{}
@@ -24,7 +24,7 @@ namespace snptest {
 			Vector const& phenotypes,
 			FinitelySupportedFunctionSet const& genotypes,
 			bool weight_by_genotypes,
-			std::vector< int > const& included_samples
+			std::vector< std::size_t > const& included_samples
 		):
 			m_phenotypes( phenotypes ),
 			m_genotypes( genotypes ),
@@ -73,7 +73,7 @@ namespace snptest {
 			for( std::size_t i = 0; i < m_included_samples.size(); ++i ) {
 				int const sample_i = m_included_samples[i] ;
 				result += std::log(
-					( m_weight_by_genotypes ? m_genotypes.values( sample_i ).sum() : 1.0 ) * p_thetas( int( phenotypes( sample_i ) ) ) ) ;
+					( m_weight_by_genotypes ? m_genotypes.get_values( sample_i ).sum() : 1.0 ) * p_thetas( int( phenotypes( sample_i ) ) ) ) ;
 			}
 			return result ;
 		}

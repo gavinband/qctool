@@ -22,13 +22,10 @@ void test_alternative_model_certain_genotypes_one_individual( std::size_t g ) {
 	typedef Eigen::VectorXd Vector ;
 	typedef Eigen::MatrixXd Matrix ;
 
-	std::vector< double > genotype_levels( 3 ) ;
-	genotype_levels[0] = 0.0 ;
-	genotype_levels[1] = 1.0 ;
-	genotype_levels[2] = 2.0 ;
-
 	Vector const phenotypes = Vector::Zero( 1 ) ;
 	Matrix genotypes = Matrix::Zero( 1, 3 )  ;
+	Vector genotype_levels( 3 ) ;
+	genotype_levels << 0, 1, 2 ;
 	genotypes( 0, g ) = 1.0 ;
 
 	Vector design_matrix( 2 ) ;
@@ -41,11 +38,16 @@ void test_alternative_model_certain_genotypes_one_individual( std::size_t g ) {
 	double p0 ;
 	double p1 ;
 
-	snptest::case_control::AlternativeModelLogLikelihood ll( phenotypes, genotypes, genotype_levels, std::vector< int >( 1, 1 ) ) ;
+	snptest::case_control::AlternativeModelLogLikelihood ll(
+		phenotypes,
+		snptest::FinitelySupportedFunctionSet( genotype_levels, genotypes ),
+		std::vector< std::size_t >( 1, 1 )
+	) ;
+
 	Vector parameters( 2 ) ;
 	parameters << 0.0, 0.0 ;
 
-	p1 = std::exp( parameters(0) + genotype_levels[g] * parameters(1) ) ;
+	p1 = std::exp( parameters(0) + genotype_levels(g) * parameters(1) ) ;
 	p0 = 1.0 / ( 1.0 + p1 ) ;
 	p1 = p1 / ( 1.0 + p1 ) ;
 
@@ -55,7 +57,7 @@ void test_alternative_model_certain_genotypes_one_individual( std::size_t g ) {
 	TEST_ASSERT( ll.get_value_of_second_derivative() == (( -p1 * ( 1.0 - 2.0 * p1 )) - ( p1 * p1 )) * design_matrix_squared ) ;
 
 	parameters << 0.0, 1.0 ;
-	p1 = std::exp( parameters(0) + genotype_levels[g] * parameters(1) ) ;
+	p1 = std::exp( parameters(0) + genotype_levels(g) * parameters(1) ) ;
 	p0 = 1.0 / ( 1.0 + p1 ) ;
 	p1 = p1 / ( 1.0 + p1 ) ;
 	
@@ -66,7 +68,7 @@ void test_alternative_model_certain_genotypes_one_individual( std::size_t g ) {
 
 	// Change baseline parameter
 	parameters << 1.0, 0.0 ;
-	p1 = std::exp( parameters(0) + genotype_levels[g] * parameters(1) ) ;
+	p1 = std::exp( parameters(0) + genotype_levels(g) * parameters(1) ) ;
 	p0 = 1.0 / ( 1.0 + p1 ) ;
 	p1 = p1 / ( 1.0 + p1 ) ;
 	ll.evaluate_at( parameters ) ;
@@ -75,7 +77,7 @@ void test_alternative_model_certain_genotypes_one_individual( std::size_t g ) {
 	TEST_ASSERT( ll.get_value_of_second_derivative() == (( -p1 * ( 1.0 - 2.0 * p1 )) - ( p1 * p1 )) * design_matrix_squared ) ;
 
 	parameters << 1.0, 1.0 ;
-	p1 = std::exp( parameters(0) + genotype_levels[g] * parameters(1) ) ;
+	p1 = std::exp( parameters(0) + genotype_levels(g) * parameters(1) ) ;
 	p0 = 1.0 / ( 1.0 + p1 ) ;
 	p1 = p1 / ( 1.0 + p1 ) ;
 	

@@ -8,7 +8,7 @@ namespace snptest {
 	namespace case_control {
 		AlternativeModelLogLikelihood::AlternativeModelLogLikelihood(
 			Vector const& phenotypes,
-			FinitelySupportedFunctionSet const& genotypes,
+			FinitelySupportedFunctionSet const& genotypes
 		):
 			LogLikelihood( phenotypes, genotypes )
 		{}
@@ -16,7 +16,7 @@ namespace snptest {
 		AlternativeModelLogLikelihood::AlternativeModelLogLikelihood(
 			Vector const& phenotypes,
 			FinitelySupportedFunctionSet const& genotypes,
-			std::vector< int > const& included_samples
+			std::vector< std::size_t > const& included_samples
 		):
 			LogLikelihood( phenotypes, genotypes, included_samples )
 		{}

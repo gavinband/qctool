@@ -14,4 +14,20 @@ namespace snptest {
 	{
 		assert( m_support.size() == m_matrix.cols() ) ;
 	}
+	
+	FinitelySupportedFunctionSet::FinitelySupportedFunctionSet(
+		FinitelySupportedFunctionSet const& other
+	):
+		m_support( other.m_support ),
+		m_matrix( other.m_matrix )
+	{}
+
+	FinitelySupportedFunctionSet& FinitelySupportedFunctionSet::operator=(
+		FinitelySupportedFunctionSet const& other
+	) {
+		m_support = other.m_support ;
+		m_matrix = other.m_matrix ;
+		return *this ;
+	}
+	
 }

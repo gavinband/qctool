@@ -1,4 +1,5 @@
 #include <boost/math/distributions/chi_squared.hpp>
+#include <boost/iterator/counting_iterator.hpp>
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/string_utils.hpp"
 #include "genfile/VariantEntry.hpp"
@@ -103,7 +104,7 @@ void AssociationTester::begin_processing_snps( std::size_t number_of_samples, st
 
 void AssociationTester::processed_snp(
 	SNPIdentifyingData const& id_data,
-	SingleSNPGenotypeProbabilities const& genotypes
+	SingleSNPGenotypeProbabilities const& raw_genotypes
 ) {
 	assert( m_sink.get() ) ;
 	(*m_sink)
@@ -116,7 +117,7 @@ void AssociationTester::processed_snp(
 	;
 	
 	for( std::size_t i = 0; i < m_phenotypes.size(); ++i ) {
-		FinitelySupportedFunctionSet genotype_matrix = get_genotypes( genotypes, m_indices_of_samples_to_include[i] ) ;
+		snptest::FinitelySupportedFunctionSet genotypes = get_genotype_matrix( raw_genotypes, m_indices_of_samples_to_include[i] ) ;
 		
 		snptest::PerSnpFrequentistTest::UniquePtr test = snptest::PerSnpFrequentistTest::create(
 			id_data,
@@ -127,9 +128,9 @@ void AssociationTester::processed_snp(
 			m_phenotype_values[i],
 			m_covariate_values,
 			id_data,
-			genotypes,
-			m_indices_of_samples_to_include[i]
+			genotypes
 		) ;
+
 		(*m_sink)
 			<< results.p_value
 			<< results.beta
@@ -143,33 +144,29 @@ void AssociationTester::processed_snp(
 	(*m_sink) << statfile::end_row() ;
 }
 
-FinitelySupportedFunctionSet AssociationTester::get_genotype_matrix(
+snptest::FinitelySupportedFunctionSet AssociationTester::get_genotype_matrix(
 	genfile::SingleSNPGenotypeProbabilities const& genotypes,
 	std::vector< std::size_t > const& indices_of_samples_to_include
- ) {
-	FinitelySupportedFunctionSet result(
-		Vector::Constant(
-			3,
-			std::numeric_limits< double >::quiet_NaN()
-		),
-		Matrix::Constant(
-			indices_of_samples_to_include.size(),
-			std::numeric_limits< double >::quiet_NaN()
-		)
+ ) const {
+	std::size_t const N = indices_of_samples_to_include.size() ;
+	double const NaN = std::numeric_limits< double >::quiet_NaN() ;
+	snptest::FinitelySupportedFunctionSet result(
+		Vector::Constant( 3, NaN ),
+		Matrix::Constant( N, 3, NaN )
 	) ;
 
-	std::size_t const N = result.get_number_of_functions() ;
-
-	for( int i = 0; i < N; ++i ) {
+	for( std::size_t i = 0; i < N; ++i ) {
 		for( std::size_t g = 0; g < 3; ++g ) {
-			result.get_values( i, g ) = genotypes( indices_of_samples_to_include[i], g ) ;
+			result.get_values( i )( g ) = genotypes( indices_of_samples_to_include[ i ], g ) ;
 		}
 	}
 	// mean-centre the genotypes.
-	double mean_genotype = ( result.values().col(1) + 2.0 * result.values().col(2) ).sum() / N ;
+	double mean_genotype = ( result.get_values().col(1) + 2.0 * result.get_values().col(2) ).sum() / N ;
 	for( std::size_t g = 0; g < 3; ++g ) {
-		result.get_support()( g ) = double( g ) - mean_genotype ;
+		result.get_support( g ) = double( g ) - mean_genotype ;
 	}
+	
+	return result ;
 }
 
 void AssociationTester::end_processing_snps() {

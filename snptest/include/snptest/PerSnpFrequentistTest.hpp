@@ -7,6 +7,7 @@
 #include "appcontext/OptionProcessor.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
+#include "snptest/FinitelySupportedFunctionSet.hpp"
 
 namespace snptest {
 	struct PerSnpFrequentistTest: public boost::noncopyable {
@@ -38,8 +39,7 @@ namespace snptest {
 			Vector const& phenotype_values,
 			Matrix const& covariate_values,
 			genfile::SNPIdentifyingData const& snp,
-			genfile::SingleSNPGenotypeProbabilities const& all_genotypes,
-			std::vector< std::size_t > const& indices_of_samples_to_include
+			FinitelySupportedFunctionSet const& all_genotypes
 		) const = 0 ;
 	} ;
 	
