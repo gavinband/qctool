@@ -7,6 +7,7 @@
 namespace genfile {
 	namespace vcf {
 		struct MetadataParser {
+			MetadataParser( std::string const& filename ) ;
 			MetadataParser( std::string const& spec, std::istream& stream ) ;
 
 			typedef std::multimap< std::string, std::map< std::string, std::string > > Metadata ;
@@ -14,9 +15,10 @@ namespace genfile {
 
 		private:
 			std::string const m_spec ;
-			std::string const m_version ;
-			Metadata const m_metadata ;
+			std::string m_version ;
+			Metadata m_metadata ;
 		private:
+			void setup( std::string const& spec, std::istream& stream ) ;
 			std::string read_version( std::istream& in ) const ;
 			Metadata read_metadata( std::istream& in, std::string const& version ) const ;
 			bool read_metadata_line( std::istream& in, std::size_t line_number, Metadata* result ) const ;

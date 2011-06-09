@@ -14,11 +14,24 @@ using boost::tuples::tie ;
 
 namespace genfile {
 	namespace vcf {
+		MetadataParser::MetadataParser( std::string const& filename ):
+			m_spec( filename )
+		{
+			std::auto_ptr< std::istream > stream = open_text_file_for_input( filename ) ;
+			setup( filename, *stream ) ;
+		}
+
 		MetadataParser::MetadataParser( std::string const& spec, std::istream& stream ):
-			m_spec( spec ),
-			m_version( read_version( stream )),
-			m_metadata( read_metadata( stream, m_version ))
-		{}
+			m_spec( spec )
+		{
+			setup( spec, stream ) ;
+		}
+		
+		void MetadataParser::setup( std::string const& spec, std::istream& stream ) {
+			assert( stream ) ;
+			m_version = read_version( stream ) ;
+			m_metadata = read_metadata( stream, m_version ) ;
+		}
 	
 		std::string MetadataParser::read_version( std::istream& in ) const {
 			std::istream::iostate old_exceptions = in.exceptions() ;

@@ -1268,7 +1268,7 @@ private:
 			if( vcf_source ) {
 				vcf_source->set_genotype_probability_field( m_options.get_value< std::string >( "-vcf-genotype-field" )) ;
 
-				if( m_options-check_if_option_has_valu( "-vcf-metadata" )) {
+				if( m_options.check_if_option_has_value( "-vcf-metadata" )) {
 					vcf_source->update_metadata(
 						genfile::vcf::MetadataParser(
 							m_options.get_value< std::string >( "-vcf-metadata" )
