@@ -2,7 +2,6 @@
 #include <iomanip>
 #include <string>
 #include <sstream>
-
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/GenFileSNPDataSource.hpp"
@@ -28,7 +27,16 @@ namespace genfile {
 			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second, compression_type )) ;
 		}
 		else if( uf.first == "vcf" ) {
-			return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second )) ;
+			try {
+				{
+					// test if there's a readable index file.
+					std::auto_ptr< std::istream > index_filename = open_text_file_for_input( uf.second + ".index" ) ;
+				}
+				return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second, uf.second + ".index", "GT" )) ;
+			}
+			catch( ResourceNotOpenedError const& e ) {
+				return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second, "GT" )) ;
+			}
 		}
 		else if( uf.first == "gen" ) {
 			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;

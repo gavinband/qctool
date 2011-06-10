@@ -41,10 +41,10 @@ struct GenotypeAssayStatistics: public GenotypeAssayBasicStatistics, public stri
 		void add_statistic( std::string const& name, std::auto_ptr< GenotypeAssayStatistic > statistic_ptr ) ;
 		std::size_t size() const { return m_statistics.size() ; }
 		std::string const& get_statistic_name( std::size_t i ) const { return m_statistic_names[i] ; }
+		bool has_value( std::string const& name ) const ;
 
 	protected:
 		
-		bool has_value( std::string const& name ) const ;
 		double get_double_value( std::string const& name ) const ;
 		std::string get_string_value( std::string const& name ) const ;
 		

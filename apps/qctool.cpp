@@ -431,7 +431,11 @@ struct QCToolOptionMangler {
 		return string_utils::split_and_strip_discarding_empty_entries( column_spec, "," ) ;
 	}
 	std::vector< std::string > sample_statistics_specs() const {
-		return string_utils::split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-sample-stats-columns" ), "," ) ;
+		std::vector< std::string > result ;
+		if( m_options.check_if_option_was_supplied( "-sample-stats" )) {
+			result = string_utils::split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-sample-stats-columns" ), "," ) ;
+		}
+		return result ;
 	}
 	
 private:
@@ -1779,10 +1783,6 @@ private:
 	}
 	
 	void check_for_warnings() {
-		if( (m_mangled_options.output_sample_filename() != "" || m_mangled_options.output_sample_stats_filename() != "" || m_mangled_options.output_sample_excl_list_filename() != "" ) && m_mangled_options.gen_filename_mapper().input_files().size() < 22 ) {
-			m_warnings.push_back( "You are outputting a sample, sample statistic, or sample exclusion file, but the number of gen files is less than 22.\n"
-			"   (I suspect there is not the whole genomes' worth of data?)" ) ;
-		}
 		if( m_mangled_options.output_sample_stats_filename() != "" && m_mangled_options.input_sample_filenames().size() == 0 ) {
 			m_warnings.push_back( "You are outputting a sample statistic file, but no input sample files have been supplied.\n"
 			"   Statistics will be output but the ID fields will be left blank.") ;

@@ -181,8 +181,12 @@ void QCTool::process_sample_rows() {
 		m_context.sample_statistics().process( sample_row, m_per_column_amounts[i], m_number_of_autosomal_snps_processed ) ;
 		output_sample_stats( i + 1, m_context.sample_statistics() ) ;
 		
-		m_context.sample_statistics().add_to_sample_row( sample_row, "missing" ) ;
-		m_context.sample_statistics().add_to_sample_row( sample_row, "heterozygosity" ) ;
+		if( m_context.sample_statistics().has_value( "missing" )) {
+			m_context.sample_statistics().add_to_sample_row( sample_row, "missing" ) ;
+		}
+		if( m_context.sample_statistics().has_value( "heterozygosity" )) {
+			m_context.sample_statistics().add_to_sample_row( sample_row, "heterozygosity" ) ;
+		}
 		m_context.fltrd_in_sample_sink() << sample_row ;
 	}
 
