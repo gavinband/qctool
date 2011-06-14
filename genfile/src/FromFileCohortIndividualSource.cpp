@@ -3,6 +3,7 @@
 #include <fstream>
 #include <boost/variant/variant.hpp>
 #include <boost/bind.hpp>
+#include "genfile/FileUtils.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/FromFileCohortIndividualSource.hpp"
 
@@ -19,9 +20,9 @@ namespace genfile {
 		m_get_entry_from_string( get_entry_from_string )
 	{
 		assert( m_get_entry_from_string ) ;
-		std::ifstream stream( m_filename.c_str() ) ;
+		std::auto_ptr< std::istream > stream = open_text_file_for_input( m_filename ) ;
 		// stream.exceptions( std::ios::failbit | std::ios::badbit ) ;
-		setup( stream ) ; 
+		setup( *stream ) ; 
 	}
 
 	FromFileCohortIndividualSource::FromFileCohortIndividualSource(
