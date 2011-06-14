@@ -32,11 +32,18 @@
 void Relatotron::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "Relatedness options" ) ;
 	options[ "-relatedness" ]
-		.set_description( "Compute relatedness matrices pairwise for all samples.  (This can take a long time)." )
-		;
+		.set_description( "Compute relatedness matrices pairwise for all samples."
+		 	" The value is the stub of the filename containing relatednesses to produce." )
+		.set_takes_single_value() ;
 	options[ "-concordance" ]
-		.set_description( "Compute concordance and pairwise non-missing-call matrices for all samples.  (This can take a long time)." )
-		;
+		.set_description( "Compute concordance for all samples." )
+		.set_takes_single_value() ;
+	options[ "-pairwise-non-missing-count" ]
+		.set_description( "Compute pairwise non-missing-call count matrices for all samples." )
+		.set_takes_single_value() ;
+	options.option_implies_option( "-relatedness", "-s" ) ;
+	options.option_implies_option( "-concordance", "-s" ) ;
+
 	options[ "-pairwise-sample-rows" ]
 		.set_description( "Choose ranges of samples to compute relatedness for."
 			" This option should be a comma-separated list of ranges of the form a-b, meaning use all rows between a and b inclusive."
@@ -69,9 +76,8 @@ void Relatotron::declare_options( appcontext::OptionProcessor& options ) {
 		.set_takes_values_per_use( 3 )
 		.set_maximum_multiplicity( 1 )
 		.set_default_value( 0.0 )
-		.set_default_value( 0.0 )
+		.set_default_value( 0.0 )	
 		.set_default_value( 1.0 ) ;
-		
 }
 
 Relatotron::Relatotron( appcontext::OptionProcessor const& options, genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ):
@@ -89,6 +95,7 @@ void Relatotron::construct_computations() {
 			name,
 			SampleBySampleComputation::create( name, m_options, m_ui_context )
 		) ;
+		m_computation_files[ "relatedness" ] = m_options.get_value< std::string >( "-relatedness" ) ;
 	}
 	if( m_options.check_if_option_was_supplied( "-concordance" )) {
 		std::string name = "concordance" ;
@@ -96,11 +103,15 @@ void Relatotron::construct_computations() {
 			name,
 			SampleBySampleComputation::create( name, m_options, m_ui_context )
 		) ;
-		name = "pairwise_non_missing_count" ;
+		m_computation_files[ "concordance" ] = m_options.get_value< std::string >( "-concordance" ) ;
+	}
+	if( m_options.check_if_option_was_supplied( "-pairwise-non-missing-count" )) {
+		std::string name = "pairwise-non-missing-count" ;
 		m_computations.insert(
 			name,
 			SampleBySampleComputation::create( name, m_options, m_ui_context )
 		) ;
+		m_computation_files[ "pairwise-non-missing-count" ] = m_options.get_value< std::string >( "-pairwise-non-missing-count" ) ;
 	}
 }
 
@@ -117,7 +128,6 @@ void Relatotron::processed_snp( SNPIdentifyingData const& id_data, SingleSNPGeno
 	assert( m_snps.size() == m_genotypes.size() ) ;
 	m_snps.push_back( id_data ) ;
 	m_genotypes.push_back( genotypes ) ;
-	
 }
 
 void Relatotron::end_processing_snps() {
@@ -182,9 +192,12 @@ void Relatotron::process( worker::Worker* worker ) {
 		}
 		m_ui_context.logger() << "]\n" ;
 		
+		std::string const filename = m_computation_files.find( computation_i->first )->second ;
+		
 		write_sample_by_sample_matrix(
 			result,
-			computation_i->first + ".csv",
+			filename,
+			computation_i->second->get_summary(),
 			row_samples,
 			column_samples
 		) ;
@@ -309,11 +322,14 @@ void Relatotron::perform_pairwise_computations(
 void Relatotron::write_sample_by_sample_matrix(
 	Matrix const& bf_matrix,
 	std::string const& filename,
+	std::string const& description,
 	std::vector< std::size_t > const& row_samples,
 	std::vector< std::size_t > const& column_samples
 ) const {
 	appcontext::OUTPUT_FILE_PTR file = appcontext::open_file_for_output( filename ) ;
 	(*file) << "# Written by Relatotron, " << appcontext::get_current_time_as_string() << "\n" ;
+	(*file) << "# Description: " << description << "\n" ;
+	(*file) << "# Number of SNPs: " << m_snps.size() << ".\n" ;
 	if( m_genotypes.size() > 0 ) {
 		assert( bf_matrix.size1() == m_genotypes[0].size() ) ;
 		assert( bf_matrix.size2() == m_genotypes[0].size() ) ;

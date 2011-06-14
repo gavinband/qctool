@@ -1,5 +1,7 @@
 #include <limits>
 #include <numeric>
+#include <string>
+#include <sstream>
 
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/io.hpp>
@@ -54,6 +56,14 @@ RelatednessBayesFactorComputation::RelatednessBayesFactorComputation(
 	m_null_model_probabilities( get_model_probabilities( options.get_values< double >( "-relatedness-null" ))),
 	m_alternative_model_probabilities( get_model_probabilities( options.get_values< double >( "-relatedness-alternative" )))
 {}
+
+std::string RelatednessBayesFactorComputation::get_summary() const {
+	std::ostringstream ostr ;
+	ostr << "Bayes factor, a la Thompson (1975) comparing models of relatedness: "
+		<< m_null_model_probabilities << " (null) and "
+		<< m_alternative_model_probabilities << " (alternative)." ;
+	return ostr.str() ;
+}
 
 void RelatednessBayesFactorComputation::prepare(
 	std::vector< SNPIdentifyingData > const& snps,

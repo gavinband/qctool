@@ -43,6 +43,14 @@ double ConcordanceComputation::operator()(
 	return concordant_count / non_missing_count ;
 }
 
+std::string ConcordanceComputation::get_summary() const {
+	return "Concordance (proportion of SNPs with identical genotypes) between samples.  Only SNPs well-called in both samples are considered." ;
+}
+
+std::string PairwiseNonMissingnessComputation::get_summary() const {
+	return "Number of SNPs which are well called in both samples." ;
+}
+
 PairwiseNonMissingnessComputation::PairwiseNonMissingnessComputation( appcontext::OptionProcessor const&, appcontext::UIContext& ):
 	m_threshhold( 0.9 )
 {}

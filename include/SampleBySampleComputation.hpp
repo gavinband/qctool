@@ -27,6 +27,8 @@ public:
 		std::size_t second_sample_i,
 		std::vector< genfile::SingleSNPGenotypeProbabilities > const& genotypes
 	) = 0 ;
+	
+	virtual std::string get_summary() const = 0 ;
 } ;
 
 #endif

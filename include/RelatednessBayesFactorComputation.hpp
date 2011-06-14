@@ -33,6 +33,8 @@ struct RelatednessBayesFactorComputation: public SampleBySampleComputation
 		std::vector< SingleSNPGenotypeProbabilities > const& genotypes
 	) ;
 	
+	std::string get_summary() const ;
+	
 private:
 	
 	typedef boost::numeric::ublas::vector< double > Vector ;

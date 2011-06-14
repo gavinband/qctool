@@ -23,6 +23,8 @@ struct ConcordanceComputation: public SampleBySampleComputation {
 		std::vector< genfile::SingleSNPGenotypeProbabilities > const& genotypes
 	) ;	
 	
+	std::string get_summary() const ;
+	
 private:
 	double m_threshhold ;
 } ;
@@ -41,6 +43,8 @@ struct PairwiseNonMissingnessComputation: public SampleBySampleComputation {
 		std::size_t const sample2,
 		std::vector< genfile::SingleSNPGenotypeProbabilities > const& genotypes
 	) ;	
+
+	std::string get_summary() const ;
 
 private:
 	double m_threshhold ;

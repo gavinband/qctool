@@ -40,6 +40,8 @@ private:
 	
 	typedef boost::ptr_map< std::string, SampleBySampleComputation > Computations ;
 	Computations m_computations ;
+	typedef std::map< std::string, std::string > ComputationFiles ;
+	ComputationFiles m_computation_files ;
 	
 	std::vector< SNPIdentifyingData > m_snps ;
 	std::vector< SingleSNPGenotypeProbabilities > m_genotypes ;
@@ -84,6 +86,7 @@ private:
 	void write_sample_by_sample_matrix(
 		Matrix const& bf_matrix,
 		std::string const& filename,
+		std::string const& description,
 		std::vector< std::size_t > const& row_samples,
 		std::vector< std::size_t > const& column_samples
 	) const ;

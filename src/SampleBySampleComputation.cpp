@@ -24,7 +24,7 @@ SampleBySampleComputation::UniquePtr SampleBySampleComputation::create( std::str
 			)
 		) ;
 	}
-	else if( name == "pairwise_non_missing_count" ) {
+	else if( name == "pairwise-non-missing-count" ) {
 		result.reset(
 			new PairwiseNonMissingnessComputation(
 				options,
