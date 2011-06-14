@@ -56,7 +56,6 @@ private:
 	
 	Vector get_model_probabilities( std::vector< double > const& probabilities ) const ;
 	
-	double compute_maximum_likelihood_allele_frequency( SingleSNPGenotypeProbabilities const& genotypes ) const ;
 	Matrix compute_genotype_probability_matrix( double const allele_frequency ) const ;
 
 	double compute_pairwise_relatedness_log_probability(

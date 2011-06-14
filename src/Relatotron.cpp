@@ -97,13 +97,21 @@ void Relatotron::construct_computations() {
 		) ;
 		m_computation_files[ "relatedness" ] = m_options.get_value< std::string >( "-relatedness" ) ;
 	}
+	if( m_options.check_if_option_was_supplied( "-kinship" )) {
+		std::string name = "kinship" ;
+		m_computations.insert(
+			name,
+			SampleBySampleComputation::create( name, m_options, m_ui_context )
+		) ;
+		m_computation_files[ name ] = m_options.get_value< std::string >( "-kinship" ) ;
+	}
 	if( m_options.check_if_option_was_supplied( "-concordance" )) {
 		std::string name = "concordance" ;
 		m_computations.insert(
 			name,
 			SampleBySampleComputation::create( name, m_options, m_ui_context )
 		) ;
-		m_computation_files[ "concordance" ] = m_options.get_value< std::string >( "-concordance" ) ;
+		m_computation_files[ name ] = m_options.get_value< std::string >( "-concordance" ) ;
 	}
 	if( m_options.check_if_option_was_supplied( "-pairwise-non-missing-count" )) {
 		std::string name = "pairwise-non-missing-count" ;
@@ -111,7 +119,7 @@ void Relatotron::construct_computations() {
 			name,
 			SampleBySampleComputation::create( name, m_options, m_ui_context )
 		) ;
-		m_computation_files[ "pairwise-non-missing-count" ] = m_options.get_value< std::string >( "-pairwise-non-missing-count" ) ;
+		m_computation_files[ name ] = m_options.get_value< std::string >( "-pairwise-non-missing-count" ) ;
 	}
 }
 
