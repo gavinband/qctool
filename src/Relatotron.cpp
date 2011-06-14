@@ -41,8 +41,12 @@ void Relatotron::declare_options( appcontext::OptionProcessor& options ) {
 	options[ "-pairwise-non-missing-count" ]
 		.set_description( "Compute pairwise non-missing-call count matrices for all samples." )
 		.set_takes_single_value() ;
+	options[ "-kinship" ]
+		.set_description( "Compute kinship coefficients, as in Powell, Visscher and Goddard (2010) or Astle & Balding (2009)." )
+		.set_takes_single_value() ;
 	options.option_implies_option( "-relatedness", "-s" ) ;
 	options.option_implies_option( "-concordance", "-s" ) ;
+	options.option_implies_option( "-kinship", "-s" ) ;
 
 	options[ "-pairwise-sample-rows" ]
 		.set_description( "Choose ranges of samples to compute relatedness for."
