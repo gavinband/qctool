@@ -1827,6 +1827,10 @@ private:
 			get_ui_context().logger() << "\nError (" << e.what() <<"): " << e.format_message() << ".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
+		catch( genfile::FileNotFoundError const& e ) {
+			get_ui_context().logger() << "\nError: No file matching \"" << e.filespec() << "\" could be found.\n" ;
+			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+		}
 	}
 	
 	void unsafe_process() {
