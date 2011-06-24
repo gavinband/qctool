@@ -60,6 +60,7 @@ def check_for_boost_headers( conf, min_version ):
 		conf.define( 'HAVE_BOOST_MATH', 1 )
 		conf.define( 'HAVE_BOOST_FUNCTION', 1 )
 		conf.define( 'BOOST_TEST_DYN_LINK', 1 )
+		conf.define( 'BOOST_FILESYSTEM_VERSION', 2 )
 		return True
 	return False
 

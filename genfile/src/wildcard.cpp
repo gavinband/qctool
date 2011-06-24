@@ -28,12 +28,16 @@ namespace genfile {
 				return true ;
 			}
 
-		#if HAVE_BOOST_FILESYSTEM
+#if HAVE_BOOST_FILESYSTEM
 			std::vector< FilenameMatch > find_files_with_prefix_and_suffix( BFS::path const& directory, std::string const& prefix, std::string const& suffix ) {
 				std::vector< FilenameMatch > result ;
 				BFS::directory_iterator dir_i( directory ), end_dir_i ;
 				for( ; dir_i != end_dir_i; ++dir_i ) {
+#if BOOST_FILESYSTEM_VERSION < 3
 					std::string filename = dir_i->filename() ;
+#else
+					std::string filename = dir_i->path().filename() ;
+#endif
 					if( string_has_prefix_and_suffix( filename, prefix, suffix )) {
 						std::string matching_part = filename.substr( prefix.size(), filename.size() - suffix.size() - prefix.size() ) ;
 						result.push_back( FilenameMatch( (directory / filename).string(), matching_part )) ;
@@ -49,12 +53,12 @@ namespace genfile {
 				}
 				return dir ;
 			}
-		#endif
+#endif
 			bool has_wildcard( std::string const& a_string, char const wildcard ) {
 				return a_string.find( wildcard ) != std::string::npos ;
 			}
 		
-		#if HAVE_BOOST_FILESYSTEM
+#if HAVE_BOOST_FILESYSTEM
 			std::vector< FilenameMatch > find_files_matching_path_with_chromosomal_wildcard( std::string path, char const wildcard_char ) {
 				std::vector< FilenameMatch > result ;
 				BFS::path dir = impl::get_dir_part( path ) ;
@@ -88,7 +92,7 @@ namespace genfile {
 				}
 				return result ;
 			}
-		#endif
+#endif
 
 			// Look through the filename for any part that appears to specify the chromosome.
 			// If we find one, return that chromosome.  Otherwise, return the "Unknown" chromosome
@@ -169,16 +173,16 @@ namespace genfile {
 			char wildcard_char
 		) {
 			std::vector< FilenameMatch > result ;
-		#if HAVE_BOOST_FILESYSTEM
+#if HAVE_BOOST_FILESYSTEM
 			if( BFS::exists( path )) {
 				result.push_back( FilenameMatch( path, "" )) ;
 			}
 			else if( impl::has_wildcard( path, wildcard_char )) {
 				result = impl::find_files_matching_path_with_chromosomal_wildcard( path, wildcard_char ) ;
 			}
-		#else
+#else
 			result.push_back( FilenameMatch( path, "" )) ;
-		#endif
+#endif
 
 			if( result.empty() ) {
 				throw FileNotFoundError( path ) ;
