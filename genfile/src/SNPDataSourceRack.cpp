@@ -86,7 +86,9 @@ namespace genfile {
 					"genfile::SNPDataSourceRack::add_source()",
 					"snps in cohort "
 						+ string_utils::to_string( cohort_index + 1 )
-						+ " must be in nondecreasing order of position, at SNP with position "
+						+ " must be in nondecreasing order of position, at SNP "
+						+ string_utils::to_string( i )
+						+ " with position "
 						+ string_utils::to_string( snps[i].get_position() )
 				) ;
 			}
