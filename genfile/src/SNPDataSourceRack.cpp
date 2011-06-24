@@ -68,31 +68,29 @@ namespace genfile {
 			m_included_snps = snps ;
 		}
 		else {
-			if( m_sources.size() == 2 && !check_snps_are_sorted_by_position( m_included_snps )) {
-				throw BadArgumentError(
-					"genfile::SNPDataSourceRack::add_source()",
-					"snps in cohort " + string_utils::to_string( 1 ) + " must be in nondecreasing order of position."
-				) ;
+			if( m_sources.size() == 2 ) {
+				check_snps_are_sorted_by_position( m_included_snps, 0 ) ; 
 			}
-			if( !check_snps_are_sorted_by_position( snps )) {
-				throw BadArgumentError(
-					"genfile::SNPDataSourceRack::add_source()",
-					"snps in cohort " + string_utils::to_string( m_sources.size() ) + " must be in nondecreasing order of position."
-				) ;
-			}
+			check_snps_are_sorted_by_position( snps, m_sources.size() - 1 ) ;
 			m_included_snps = get_intersected_snps( m_included_snps, snps ) ;
 		}
 	}
 
-	bool SNPDataSourceRack::check_snps_are_sorted_by_position(
-		std::vector< SNPIdentifyingData > const& snps
+	void SNPDataSourceRack::check_snps_are_sorted_by_position(
+		std::vector< SNPIdentifyingData > const& snps,
+		std::size_t cohort_index
 	) {
 		for( std::size_t i = 1; i < snps.size(); ++i ) {
 			if( snps[i].get_position() < snps[i-1].get_position() ) {
-				return false ;
+				throw BadArgumentError(
+					"genfile::SNPDataSourceRack::add_source()",
+					"snps in cohort "
+						+ string_utils::to_string( cohort_index + 1 )
+						+ " must be in nondecreasing order of position, at SNP with position "
+						+ string_utils::to_string( snps[i].get_position() )
+				) ;
 			}
 		}
-		return true ;
 	}
 
 	std::vector< SNPIdentifyingData > SNPDataSourceRack::get_intersected_snps(

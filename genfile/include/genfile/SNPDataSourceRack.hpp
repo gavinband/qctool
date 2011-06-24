@@ -111,7 +111,7 @@ namespace genfile {
 			std::vector< SNPIdentifyingData > const& snps2
 		) const ;
 
-		static bool check_snps_are_sorted_by_position( std::vector< SNPIdentifyingData > const& snps ) ;
+		void check_snps_are_sorted_by_position( std::vector< SNPIdentifyingData > const& snps, std::size_t cohort_index ) ;
 
 		struct RackGenotypeProbabilitySetter
 		{
