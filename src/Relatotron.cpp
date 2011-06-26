@@ -169,7 +169,7 @@ void Relatotron::process( worker::Worker* worker ) {
 		// Store the results in a plain matrix.  This is space-inefficient because we only compute the
 		// upper diagonal, but it's the easiest thing to do.
 
-		Matrix result = ConstantMatrix( m_number_of_samples, m_number_of_samples, -std::numeric_limits< double >::infinity() ) ;
+		Matrix result = ConstantMatrix( m_number_of_samples, m_number_of_samples, std::numeric_limits< double >::quiet_NaN() ) ;
 
 		if( worker ) {
 			process_multithreaded(
