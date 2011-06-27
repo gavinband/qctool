@@ -7,6 +7,8 @@ namespace genfile {
 	// Class GenomePositionRange
 	// Represents a closed, nonempty range of physical positions in the genome.
 	struct GenomePositionRange {
+		static GenomePositionRange parse( std::string const& spec ) ;
+
 		GenomePositionRange( GenomePosition start, GenomePosition end ) ;
 		GenomePositionRange( GenomePositionRange const& ) ;
 		GenomePositionRange& operator=( GenomePositionRange const& other ) ;
