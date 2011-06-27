@@ -8,6 +8,7 @@
 #include "genfile/SNPIDFieldsInListTest.hpp"
 #include "genfile/ChromosomeInSetTest.hpp"
 #include "genfile/SNPIDMatchesTest.hpp"
+#include "genfile/SNPPositionInRangeTest.hpp"
 #include "genfile/snp_data_utils.hpp"
 
 namespace genfile {
@@ -93,6 +94,19 @@ namespace genfile {
 
 	CommonSNPFilter& CommonSNPFilter::exclude_snps_not_matching( std::string const& expression ) {
 		SNPIdentifyingDataTest::UniquePtr test( new SNPIDMatchesTest( expression ) ) ;
+		m_filter.add_subtest( test ) ;
+		return *this ;
+	}
+
+	CommonSNPFilter& CommonSNPFilter::exclude_snps_in_range( genfile::GenomePositionRange const& range ) {
+		SNPIdentifyingDataTest::UniquePtr test( new SNPPositionInRangeTest( range ) ) ;
+		test.reset( new SNPIdentifyingDataTestNegation( test )) ;
+		m_filter.add_subtest( test ) ;
+		return *this ;
+	}
+
+	CommonSNPFilter& CommonSNPFilter::exclude_snps_not_in_range( genfile::GenomePositionRange const& range ) {
+		SNPIdentifyingDataTest::UniquePtr test( new SNPPositionInRangeTest( range ) ) ;
 		m_filter.add_subtest( test ) ;
 		return *this ;
 	}

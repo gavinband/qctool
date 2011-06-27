@@ -9,7 +9,7 @@ namespace genfile {
 	GenomePositionRange GenomePositionRange::parse( std::string const& spec ) {
 		std::vector< std::string > pieces = string_utils::split_and_strip( spec, ":", " " ) ;
 		if ( pieces.size() == 1 ) {
-			pieces.insert( pieces.begin(), "Unknown" ) ;
+			pieces.insert( pieces.begin(), "??" ) ;
 		}
 		if ( pieces.size() != 2 ) {
 			throw genfile::BadArgumentError( "genfile::GenomePositionRange::parse", "spec=\"" + spec + "\"" ) ;

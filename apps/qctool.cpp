@@ -191,7 +191,12 @@ public:
 				"The value should be a string which can contain a % wildcard character (which matches any substring). "
 				"Optionally, prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields." )
 			.set_takes_single_value() ;
-
+		options[ "-range" ]
+			.set_description( "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to operate on. "
+				"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
+				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
+				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
+			.set_takes_single_value() ;
 		options.declare_group( "Options for adjusting SNPs" ) ;
 	    options[ "-strand" ]
 	        .set_description( 	"Path of strand file(s) to input.  "
@@ -1405,6 +1410,15 @@ private:
 				snp_filter->exclude_snps_not_matching(
 					m_options.get_value< std::string >( "-incl-snps-matching" )
 				) ;
+			}
+			
+			if( m_options.check_if_option_was_supplied( "-range" )) {
+				std::vector< std::string > specs = m_options.get_values< std::string >( "-range" ) ;
+				for ( std::size_t i = 0; i < specs.size(); ++i ) {
+					snp_filter->exclude_snps_not_in_range(
+						genfile::GenomePositionRange::parse( specs[i] )
+					) ;
+				}
 			}
 		}
 		return snp_filter ;

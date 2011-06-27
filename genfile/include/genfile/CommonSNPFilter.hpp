@@ -6,6 +6,7 @@
 #include <set>
 #include <string>
 #include "genfile/GenomePosition.hpp"
+#include "genfile/GenomePositionRange.hpp"
 #include "genfile/SNPIdentifyingDataTest.hpp"
 
 namespace genfile {
@@ -45,6 +46,9 @@ namespace genfile {
 		
 		CommonSNPFilter& exclude_snps_matching( std::string const& expression ) ;
 		CommonSNPFilter& exclude_snps_not_matching( std::string const& expression ) ;
+
+		CommonSNPFilter& exclude_snps_in_range( genfile::GenomePositionRange const& range ) ;
+		CommonSNPFilter& exclude_snps_not_in_range( genfile::GenomePositionRange const& range ) ;
 
 	private:
 		SNPIdentifyingDataTestConjunction m_filter ;
