@@ -379,7 +379,7 @@ namespace genfile {
 			++count ;
 			try {
 				vcf::CallReader( m_number_of_samples, m_variant_alleles.size(), FORMAT, data, m_format_types )
-					( m_genotype_probability_field, vcf::make_genotype_probability_setter( set_genotype_probabilities ) ) ;
+					.get( m_genotype_probability_field, vcf::make_genotype_probability_setter( set_genotype_probabilities ) ) ;
 			}
 			catch( BadArgumentError const& ) {
 				// problem with FORMAT

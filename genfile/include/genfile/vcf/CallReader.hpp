@@ -38,9 +38,9 @@ namespace genfile {
 				boost::ptr_map< std::string, VCFEntryType > const& entry_types
 			) ;
 		
-			CallReader& operator()( std::string const& spec, Setter setter ) ;
+			CallReader& get( std::string const& spec, Setter setter ) ;
 		
-			~CallReader() ;
+			~CallReader() {} ;
 		
 		private:
 			std::size_t const m_number_of_samples ;
@@ -50,11 +50,32 @@ namespace genfile {
 			boost::ptr_map< std::string, VCFEntryType > const& m_entry_types ;
 			std::vector< VCFEntryType const* > m_entries_by_position ;
 			Setters m_setters ;
-			std::auto_ptr< vcf::GenotypeCallVCFEntryType > m_genotype_entry_type ;
 			
+			std::vector< std::vector< string_utils::slice > > m_components ;
+			std::vector< std::vector< Entry > > m_genotype_calls ;
 		private:
-			void set_values( std::vector< string_utils::slice > const& elts, Setters const& setters ) const ;
-			void set_values( std::size_t individual_i, string_utils::slice const& elt, Setters const& setters ) const ;
+			void set_values(
+				std::vector< std::vector< string_utils::slice > > const& elts,
+				std::size_t const field_i,
+				VCFEntryType const& entry_type,
+				Setter const& setter
+			) ;
+
+			void set_values(
+				std::size_t individual_i,
+				std::vector< string_utils::slice > const& components,
+				std::size_t element_pos,
+				VCFEntryType const& entry_type,
+				Setter const& setter
+			) ;
+
+			void unsafe_set_values(
+				std::size_t individual_i,
+				std::vector< string_utils::slice > const& components,
+				std::size_t element_pos,
+				VCFEntryType const& entry_type,
+				Setter const& setter
+			) ;
 			
 			// Forbid copying and assignment.
 			CallReader( CallReader const& other ) ;

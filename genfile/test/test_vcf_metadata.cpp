@@ -137,14 +137,13 @@ AUTO_TEST_CASE( test_no_fileformat ) {
 AUTO_TEST_CASE( test_malformed_file ) {
 	using namespace data ;
 	std::cerr << "test_malformed_file()..." ;
-	// ex1 and a final line not starting with ## must be present.
+	// ex1 must be present.  Metadata ends with EOF or a a final line not starting with ##.
 	try {
 		std::istringstream istr( ex1 + ex2 + ex3 + ex4 ) ;
 		genfile::vcf::MetadataParser( "VCF_4_1_example_file", istr ) ;
-		TEST_ASSERT(0) ;
 	}
 	catch( genfile::MalformedInputError const& e ) {
-		// ok.
+		TEST_ASSERT(0) ;
 	}
 
 	try {

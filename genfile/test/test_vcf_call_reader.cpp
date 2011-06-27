@@ -403,7 +403,7 @@ AUTO_TEST_CASE( test_setters ) {
 		std::vector< std::vector< Entry > > expected ;
 		expected.push_back( std::vector< Entry >( 2, Entry( 1 ))) ;
 		CallReader( 1, 2, "GT", "1|1", types )
-			( "GT", boost::cref( GenotypeCallChecker( expected ))) ;
+			.get( "GT", boost::cref( GenotypeCallChecker( expected ))) ;
 	}
 	catch( BadArgumentError const& ) {
 		TEST_ASSERT(0) ;
@@ -416,7 +416,7 @@ AUTO_TEST_CASE( test_setters ) {
 		std::vector< std::vector< Entry > > expected ;
 		// HQ entry not in format; we do not expect it to be set.
 		CallReader( 1, 2, "GT", "1|1", types )
-			( "HQ", boost::cref( GenotypeCallChecker( expected ))) ;
+			.get( "HQ", boost::cref( GenotypeCallChecker( expected ))) ;
 	}
 	catch( BadArgumentError const& ) {
 		TEST_ASSERT(0) ;
@@ -430,7 +430,7 @@ AUTO_TEST_CASE( test_setters ) {
 		expected.push_back( std::vector< Entry >( 5, MissingValue() )) ;
 		// HQ entry in format; we expect it to be set to missing values.
 		CallReader( 1, 2, "GT:HQ", "1|1", types )
-			( "HQ", boost::cref( GenotypeCallChecker( expected ))) ;
+			.get( "HQ", boost::cref( GenotypeCallChecker( expected ))) ;
 	}
 	catch( BadArgumentError const& ) {
 		TEST_ASSERT(0) ;
@@ -443,8 +443,8 @@ AUTO_TEST_CASE( test_setters ) {
 		std::vector< std::vector< Entry > > expected ;
 		// HQ not in format, not expected to be set.
 		CallReader( 1, 2, "GT", "1|1", types )
-			( "GT", Ignore() )
-			( "HQ", boost::cref( GenotypeCallChecker( expected ))) ;
+			.get( "GT", Ignore() )
+			.get( "HQ", boost::cref( GenotypeCallChecker( expected ))) ;
 	}
 	catch( BadArgumentError const& ) {
 		TEST_ASSERT(0) ;
@@ -458,22 +458,22 @@ AUTO_TEST_CASE( test_setters ) {
 		// another_type not in format, not expected to be called.
 		{
 			CallReader( 1, 2, "GT:HQ", "1|1", types )
-				( "another_type", boost::cref( GenotypeCallChecker( expected ))) ;
+				.get( "another_type", boost::cref( GenotypeCallChecker( expected ))) ;
 		}
 		{
 			CallReader( 2, 2, "GT:HQ", "1|1\t1|1", types )
-				( "another_type", boost::cref( GenotypeCallChecker( expected ))) ;
+				.get( "another_type", boost::cref( GenotypeCallChecker( expected ))) ;
 		}
 		// another_type in format, expected to be called.
 		expected.push_back( std::vector< Entry >( 1, MissingValue() )) ;
 		{
 			CallReader( 1, 2, "GT:HQ:another_type", "1|1", types )
-				( "another_type", boost::cref( GenotypeCallChecker( expected ))) ;
+				.get( "another_type", boost::cref( GenotypeCallChecker( expected ))) ;
 		}
 		expected.push_back( std::vector< Entry >( 1, MissingValue() )) ;
 		{
 			CallReader( 2, 2, "GT:HQ:another_type", "1|1\t1|1", types )
-				( "another_type", boost::cref( GenotypeCallChecker( expected ))) ;
+				.get( "another_type", boost::cref( GenotypeCallChecker( expected ))) ;
 		}
 	}
 	catch( BadArgumentError const& ) {
@@ -653,10 +653,10 @@ AUTO_TEST_CASE( test_simple_gt_values ) {
 				}
 
 				{
-					// std::cerr << data << ".\n" ;
+					// std::cerr << "data (size " << data.size() << ") = \"" << data << "\".\n" ;
 					GenotypeCallChecker checker( expected_calls ) ;
 					CallReader( 1, 5, "GT", data, types )
-						( "GT", boost::ref( checker ) ) ;
+						.get( "GT", boost::ref( checker ) ) ;
 				}
 				
 				if( bad_c1 || bad_c2 ) {
@@ -685,7 +685,7 @@ AUTO_TEST_CASE( test_simple_gt_values ) {
 			try {
 				std::string data = "1|1\t1|" + std::string( 1, c2 ) + "\t" + std::string( 1, c1 ) + "|" + std::string( 1, c2 ) ;
 
-				CallReader( 3, 5, "GT", data, types )( "GT", Ignore() ) ;
+				CallReader( 3, 5, "GT", data, types ).get( "GT", Ignore() ) ;
 
 				if( bad_c1 || bad_c2 ) {
 					// std::cerr << "c1 = " << c1 << "('" << char(c1) << "')" << ", c2 = " << c2 << "('" << char(c2) << "').\n" ;
@@ -722,7 +722,7 @@ AUTO_TEST_CASE( test_omitted_values ) {
 
 	try {
 		CallReader( 1, 2, "GT:AT", "1|1:", types )
-			( "AT", Ignore() ) ;
+			.get( "AT", Ignore() ) ;
 		TEST_ASSERT(0) ;
 	}
 	catch( genfile::MalformedInputError const& ) {
@@ -734,7 +734,7 @@ AUTO_TEST_CASE( test_omitted_values ) {
 		std::vector< std::vector< Entry > > expected_values ;
 		expected_values.push_back( std::vector< Entry >( 1, MissingValue() )) ;
 		CallReader( 1, 2, "GT:AT", "1|1", types )
-			( "AT", boost::cref( GenotypeCallChecker( expected_values ))) ;
+			.get( "AT", boost::cref( GenotypeCallChecker( expected_values ))) ;
 	}
 	catch( genfile::MalformedInputError const& ) {
 		TEST_ASSERT(0) ;
@@ -747,7 +747,7 @@ AUTO_TEST_CASE( test_omitted_values ) {
 		expected_values.push_back( std::vector< Entry >( 1, std::string( "hello" ) )) ;
 		expected_values.push_back( std::vector< Entry >( 1, MissingValue() )) ;
 		CallReader( 2, 2, "GT:AT", "1|1:hello\t0|1", types )
-			( "AT", boost::cref( GenotypeCallChecker( expected_values ))) ;
+			.get( "AT", boost::cref( GenotypeCallChecker( expected_values ))) ;
 	}
 	catch( genfile::MalformedInputError const& ) {
 		TEST_ASSERT(0) ;
@@ -777,7 +777,7 @@ AUTO_TEST_CASE( test_gt_delimiter ) {
 					used_data[ (i*6) + 1 ] = char( c ) ;
 				}
 
-				CallReader( number_of_individuals, 5, "GT:AT", used_data, types )( "GT", Ignore() ) ;
+				CallReader( number_of_individuals, 5, "GT:AT", used_data, types ).get( "GT", Ignore() ) ;
 				TEST_ASSERT(0) ;
 			}
 			catch( genfile::MalformedInputError const& ) {
@@ -810,13 +810,13 @@ AUTO_TEST_CASE( test_complex_gt_values ) {
 						CallReader( number_of_individuals, number_of_alleles, "GT:AT", phased_data, types ) ;
 						GenotypeCallChecker checker( expected_calls ) ;
 						CallReader( number_of_individuals, number_of_alleles, "GT:AT", phased_data, types )
-						 	( "GT", boost::ref( checker )) ;
+						 	.get( "GT", boost::ref( checker )) ;
 					}
 					{
 						CallReader( number_of_individuals, number_of_alleles, "GT:AT", unphased_data, types ) ;
 						GenotypeCallChecker checker( expected_calls ) ;
 						CallReader( number_of_individuals, number_of_alleles, "GT:AT", unphased_data, types )
-						 	( "GT", boost::ref( checker )) ;
+						 	.get( "GT", boost::ref( checker )) ;
 					}
 				}
 				catch( genfile::MalformedInputError const& e ) {
@@ -851,7 +851,7 @@ AUTO_TEST_CASE( test_gt_genotype_bounds ) {
 					::to_string( call ),
 					types
 				)
-				( "GT", boost::ref( checker )) ;
+				.get( "GT", boost::ref( checker )) ;
 				
 				if( bad_call ) {
 					TEST_ASSERT(0) ;
@@ -886,7 +886,7 @@ AUTO_TEST_CASE( test_gt_genotype_bounds ) {
 					data,
 					types
 				)
-				( "GT", boost::ref( checker )) ;
+				.get( "GT", boost::ref( checker )) ;
 				
 				if( bad_call ) {
 					TEST_ASSERT(0) ;
@@ -935,7 +935,7 @@ AUTO_TEST_CASE( test_float_fields ) {
 		try {
 			std::vector< std::vector< Entry > > expected_result( 1, std::vector< Entry >( 1, Entry() )) ;
 			CallReader( 1, 2, "GT:F1", "1|1", types )
-				( "F1", boost::cref( GenotypeCallChecker( expected_result )) ) ;
+				.get( "F1", boost::cref( GenotypeCallChecker( expected_result )) ) ;
 		}
 		catch( genfile::MalformedInputError const& ) {
 		}
@@ -944,7 +944,7 @@ AUTO_TEST_CASE( test_float_fields ) {
 			std::vector< std::vector< Entry > > expected_result ;
 			expected_result.push_back( std::vector< Entry >( 1, 0.1 )) ;
 			CallReader( 1, 2, "GT:F1", "1|1:0.1", types )
-				( "F1", boost::cref( GenotypeCallChecker( expected_result ) )) ;
+				.get( "F1", boost::cref( GenotypeCallChecker( expected_result ) )) ;
 		}
 		catch( genfile::MalformedInputError const& ) {
 			TEST_ASSERT(0) ;
@@ -956,7 +956,7 @@ AUTO_TEST_CASE( test_float_fields ) {
 			expected_result.push_back( std::vector< Entry >( 1, 1.1 )) ;
 			expected_result.push_back( std::vector< Entry >( 1, 2.1 )) ;
 			CallReader( 3, 2, "GT:F1", "1|1:0.1\t0|1:1.1\t0|0:2.1", types )
-			 	( "F1", boost::cref( GenotypeCallChecker( expected_result ) )) ;
+			 	.get( "F1", boost::cref( GenotypeCallChecker( expected_result ) )) ;
 		}
 		catch( genfile::MalformedInputError const& ) {
 			TEST_ASSERT(0) ;
@@ -969,7 +969,7 @@ AUTO_TEST_CASE( test_float_fields ) {
 			expected_result.push_back( std::vector< Entry >( 1, 2.1 )) ;
 
 			CallReader( 3, 2, "GT:F1", "1|1:0.1\t0|1:.\t0|0:2.1", types )
-			 	( "F1", boost::cref( GenotypeCallChecker( expected_result ) )) ;
+			 	.get( "F1", boost::cref( GenotypeCallChecker( expected_result ) )) ;
 		}
 		catch( genfile::MalformedInputError const& ) {
 			TEST_ASSERT(0) ;
@@ -978,7 +978,7 @@ AUTO_TEST_CASE( test_float_fields ) {
 		try {
 			std::vector< std::vector< Entry > > expected_result( 1, std::vector< Entry >( 3, Entry() )) ;
 			CallReader( 1, 2, "GT:F2", "1|1", types )
-			 	( "F2", boost::cref( GenotypeCallChecker( expected_result )) ) ;
+			 	.get( "F2", boost::cref( GenotypeCallChecker( expected_result )) ) ;
 		}
 		catch( genfile::MalformedInputError const& ) {
 			TEST_ASSERT(0) ;
@@ -992,7 +992,7 @@ AUTO_TEST_CASE( test_float_fields ) {
 			expected_result.back().push_back( -1e-08 ) ;
 			
 			CallReader( 1, 2, "GT:F2", "1|1:0.1,-1.5568,-1e-08", types )
-			 	( "F2", boost::cref( GenotypeCallChecker( expected_result )) ) ;
+			 	.get( "F2", boost::cref( GenotypeCallChecker( expected_result )) ) ;
 		}
 		catch( genfile::MalformedInputError const& ) {
 			TEST_ASSERT(0) ;
@@ -1010,7 +1010,7 @@ AUTO_TEST_CASE( test_float_fields ) {
 			expected_result.back().push_back( double( 10 ) ) ;
 			
 			CallReader( 2, 2, "GT:F2", "1|1:0.1,-1.5568,-1e-08\t0/1:.,-1000.556,10", types )
-			 	( "F2", boost::cref( GenotypeCallChecker( expected_result ) )) ;
+			 	.get( "F2", boost::cref( GenotypeCallChecker( expected_result ) )) ;
 		}
 		catch( genfile::MalformedInputError const& ) {
 			TEST_ASSERT(0) ;
@@ -1032,7 +1032,7 @@ AUTO_TEST_CASE( test_float_fields ) {
 			expected_result.back().push_back( double( 100000 ) ) ;
 			
 			CallReader( 3, 2, "GT:F2", "1|1:0.1,-1.5568,-1e-08\t0/1:.,-1000.556,10\t0|0:1000,10000,100000", types )
-			 	( "F2", boost::cref( GenotypeCallChecker( expected_result ) )) ;
+			 	.get( "F2", boost::cref( GenotypeCallChecker( expected_result ) )) ;
 		}
 		catch( genfile::MalformedInputError const& ) {
 			TEST_ASSERT(0) ;
@@ -1062,17 +1062,17 @@ AUTO_TEST_CASE( test_float_fields ) {
 			expected_result2.back().push_back( double( 100000 ) ) ;
 			
 			CallReader( 3, 2, "GT:F1:F2", "1|1:15.05:0.1,-1.5568,-1e-08\t0/1:110.110e02:.,-1000.556,10\t0|0:16.2:1000,10000,100000", types )
-			 	( "F1", boost::cref( GenotypeCallChecker( expected_result1 ) ))
-				( "F2", boost::cref( GenotypeCallChecker( expected_result2 ) )) ;
+			 	.get( "F1", boost::cref( GenotypeCallChecker( expected_result1 ) ))
+				.get( "F2", boost::cref( GenotypeCallChecker( expected_result2 ) )) ;
 
 			CallReader( 3, 2, "GT:F1:F2", "1|1:15.05:0.1,-1.5568,-1e-08\t0/1:110.110e02:.,-1000.556,10\t0|0:16.2:1000,10000,100000", types )
-			 	( "F1", boost::cref( GenotypeCallChecker( expected_result1 ) ))
-			 	( "F2", boost::cref( GenotypeCallChecker( expected_result2 ) ))
-			 	( "F2", boost::cref( GenotypeCallChecker( expected_result2 ) )) ;
+			 	.get( "F1", boost::cref( GenotypeCallChecker( expected_result1 ) ))
+			 	.get( "F2", boost::cref( GenotypeCallChecker( expected_result2 ) ))
+			 	.get( "F2", boost::cref( GenotypeCallChecker( expected_result2 ) )) ;
 
 			CallReader( 3, 2, "GT:F2:F1", "1|1:0.1,-1.5568,-1e-08:15.05\t0/1:.,-1000.556,10:110.110e02\t0|0:1000,10000,100000:16.2", types )
-			 	( "F1", boost::cref( GenotypeCallChecker( expected_result1 ) ))
-				( "F2", boost::cref( GenotypeCallChecker( expected_result2 ) )) ;
+			 	.get( "F1", boost::cref( GenotypeCallChecker( expected_result1 ) ))
+				.get( "F2", boost::cref( GenotypeCallChecker( expected_result2 ) )) ;
 		}
 		catch( genfile::MalformedInputError const& ) {
 			TEST_ASSERT(0) ;

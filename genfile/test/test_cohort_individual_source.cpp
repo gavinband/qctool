@@ -338,30 +338,40 @@ struct TraditionalStrictCohortIndividualSourceTester
 	void test_sample_ids() {
 		std::cerr << "test_sample_ids\n" ;
 		std::vector< std::string > test_data ;
-		std::vector< bool > expected_success ;
+		std::vector< bool > expected_success_strict ;
+		std::vector< bool > expected_success_categorical ;
 	
-		// We should not be allowed repeated entries in ID_1, regardless of ID_2
+		// We are not allowed individuals with identical ID1/ID2 combinatio
 		test_data.push_back( "ID_1 ID_2 missing\n0 0 0\n" ) ;
-		expected_success.push_back( true ) ;
+		expected_success_strict.push_back( true ) ;
+		expected_success_categorical.push_back( true ) ;
 		test_data.push_back( "ID_1 ID_2 missing\n0 0 0\nS1 S1 0.0\n" ) ;
-		expected_success.push_back( true ) ;
+		expected_success_strict.push_back( true ) ;
+		expected_success_categorical.push_back( true ) ;
 		test_data.push_back( "ID_1 ID_2 missing\n0 0 0\nS1 S1A 0.0\n" ) ;
-		expected_success.push_back( true ) ;
+		expected_success_strict.push_back( true ) ;
+		expected_success_categorical.push_back( true ) ;
 		test_data.push_back( "ID_1 ID_2 missing\n0 0 0\nS1 S1A 0.0\nS1 S1A 0.0\n" ) ;
-		expected_success.push_back( false ) ;
+		expected_success_strict.push_back( false ) ;
+		expected_success_categorical.push_back( false ) ;
 		test_data.push_back( "ID_1 ID_2 missing\n0 0 0\nS1 S1A 0.0\nS2 S1A 0.0\n" ) ;
-		expected_success.push_back( false ) ;
+		expected_success_strict.push_back( false ) ;
+		expected_success_categorical.push_back( true ) ;
 		test_data.push_back( "ID_1 ID_2 missing\n0 0 0\nS1 S1A 0.0\nS1 S2A 0.0\n" ) ;
-		expected_success.push_back( false ) ;
+		expected_success_strict.push_back( false ) ;
+		expected_success_categorical.push_back( true ) ;
 		test_data.push_back( "ID_1 ID_2 missing\n0 0 0\nS1 S1A 0.0\nS2 S2A 0.0\n" ) ;
-		expected_success.push_back( true ) ;
+		expected_success_strict.push_back( true ) ;
+		expected_success_categorical.push_back( true ) ;
 		test_data.push_back( "ID_1 ID_2 missing\n0 0 0\nS1 S1A 0.0\nS2 S2A 0.0\nS1 S1 0.0" ) ;
-		expected_success.push_back( false ) ;
+		expected_success_strict.push_back( false ) ;
+		expected_success_categorical.push_back( true ) ;
 		test_data.push_back( "ID_1 ID_2 missing\n0 0 0\nS1 S1A 0.0\nS2 S2A 0.0\nS1 S1A 0.0" ) ;
-		expected_success.push_back( false ) ;
+		expected_success_strict.push_back( false ) ;
+		expected_success_categorical.push_back( false ) ;
 
-		run_test( test_data, expected_success, &create_strict_source ) ;		
-		run_test( test_data, expected_success, &create_categorical_source ) ;		
+		run_test( test_data, expected_success_strict, &create_strict_source ) ;		
+		run_test( test_data, expected_success_categorical, &create_categorical_source ) ;		
 	}
 	
 	void test_missing_values() {
