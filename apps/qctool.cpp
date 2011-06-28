@@ -1138,7 +1138,7 @@ private:
 						else if( strand == "FWD" || strand == "+" ) {
 							strand = genfile::StrandAligningSNPDataSource::eForwardStrand ;
 						}
-						else if( strand == "?" ) {
+						else if( strand == "?" || strand == "NA" ) {
 							// std::cerr << "strand = ?: SNP is " << snp << ".\n" ;
 							strand = genfile::StrandAligningSNPDataSource::eUnknownStrand ;
 						}
