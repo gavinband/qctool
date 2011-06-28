@@ -1,5 +1,6 @@
 #include <map>
 #include <string>
+#include <iostream>
 #include <boost/ptr_container/ptr_map.hpp>
 #include "genfile/MissingValue.hpp"
 #include "genfile/VariantEntry.hpp"
@@ -123,7 +124,7 @@ namespace genfile {
 			std::vector< Entry > VCFEntryType::parse_elts( std::vector< string_utils::slice > const& elts ) const {
 				std::vector< Entry > result( elts.size() ) ;
 				for( std::size_t i = 0; i < result.size(); ++i ) {
-					if( elts[i] == m_missing_value ) {
+					if( elts[i] == m_missing_value || elts[i] == "x" ) {
 						result[i] = Entry( MissingValue() ) ;
 					}
 					else {

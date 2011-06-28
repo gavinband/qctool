@@ -677,6 +677,10 @@ struct QCToolCmdLineContext: public QCToolContext
 			m_ui_context.logger() << "\nError: No file matching \"" << e.filespec() << "\" could be found.\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
+		catch( genfile::ResourceNotOpenedError const& e ) {
+			m_ui_context.logger() << "\nError: (" << e.what() << "): resource \"" << e.source() << "\" could not be opened.\n" ;
+			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+		}
 		catch ( FileError const& e ) {
 			m_ui_context.logger() << "\nFile handling exception: " << e.what() << ": relating to file \"" << e.filename() << "\".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
