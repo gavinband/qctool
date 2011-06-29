@@ -248,6 +248,16 @@ namespace genfile {
 		return *this ;
 	}
 	
+	VariantDataReader::UniquePtr SNPDataSource::read_variant_data() {
+		assert( m_state == e_HaveReadIdentifyingData ) ;
+		VariantDataReader::UniquePtr result = read_variant_data_impl() ;
+		if( *this ) {
+			m_state = e_HaveNotReadIdentifyingData ;
+			++m_number_of_snps_read ;
+		}
+		return result ;
+	}
+	
 	SNPDataSource& SNPDataSource::ignore_snp_probability_data() {
 		assert( m_state == e_HaveReadIdentifyingData ) ;
 		ignore_snp_probability_data_impl() ;

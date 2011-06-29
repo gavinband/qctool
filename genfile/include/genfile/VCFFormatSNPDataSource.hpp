@@ -6,6 +6,7 @@
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/vcf/MetadataParser.hpp"
 #include "genfile/vcf/Types.hpp"
+#include "genfile/VariantDataReader.hpp"
 
 namespace genfile {
 	class VCFFormatSNPDataSource: public SNPDataSource
@@ -39,6 +40,8 @@ namespace genfile {
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 		void set_genotype_probability_field( std::string const& ) ;
 
+		std::size_t get_index_of_first_data_line() const { return m_metadata_parser.get_number_of_lines() + 1 ; }
+		std::size_t get_index_of_first_data_column() const { return 9 ; }
 	protected:
 
 		void get_snp_identifying_data_impl( 
@@ -54,6 +57,8 @@ namespace genfile {
 		void read_snp_probability_data_impl(
 			GenotypeProbabilitySetter const& set_genotype_probabilities
 		) ;
+		
+		VariantDataReader::UniquePtr read_variant_data_impl() ;
 
 		void ignore_snp_probability_data_impl() ;
 		void reset_to_start_impl() ;
@@ -91,6 +96,8 @@ namespace genfile {
 	private:
 		VCFFormatSNPDataSource( VCFFormatSNPDataSource const& other ) ;
 	} ;
+	
+	
 }
 
 #endif

@@ -9,10 +9,11 @@
 #include "genfile/MissingValue.hpp"
 #include "genfile/vcf/Types.hpp"
 #include "genfile/string_utils/slice.hpp"
+#include "genfile/VariantDataReader.hpp"
 
 namespace genfile {
 	namespace vcf {
-		struct CallReader
+		struct CallReader: public VariantDataReader
 		//
 		// This class reads a set of specific entries of the per-individual data
 		// from the given string
@@ -48,8 +49,8 @@ namespace genfile {
 			std::vector< std::string > const m_format_elts ;
 			std::string const& m_data ;
 			boost::ptr_map< std::string, VCFEntryType > const& m_entry_types ;
+			std::size_t m_index ;
 			std::vector< VCFEntryType const* > m_entries_by_position ;
-			Setters m_setters ;
 			
 			std::vector< std::vector< string_utils::slice > > m_components ;
 			std::vector< std::vector< Entry > > m_genotype_calls ;

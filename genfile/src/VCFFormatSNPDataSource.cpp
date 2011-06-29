@@ -356,6 +356,71 @@ namespace genfile {
 		return after_format ;
 	}
 	
+	namespace impl {
+		// Wrap a vcf::CallReader with its VCFFormatSNPDataSource in such a way that sensible error messages are returned.
+		struct VCFFormatDataReader: public VariantDataReader {
+			VCFFormatDataReader(
+				VCFFormatSNPDataSource const& source,
+				VariantDataReader::UniquePtr data_reader
+			):
+			 	m_source( source ),
+				m_data_reader( data_reader )
+			{}
+			
+			VCFFormatDataReader& get( std::string const& spec, Setter setter ) {
+				try {
+					m_data_reader->get( spec, setter ) ;
+				}
+				catch( MalformedInputError const& e ) {
+					// problem with entry.
+					if( e.has_column() ) {
+						// error column is the individual index (starting from 0), we add 9 to get the column number.
+						throw MalformedInputError( m_source.get_source_spec(), m_source.number_of_snps_read() + m_source.get_index_of_first_data_line(), e.column() + m_source.get_index_of_first_data_column() ) ;
+					}
+					else {
+						throw MalformedInputError( m_source.get_source_spec(), m_source.number_of_snps_read() + m_source.get_index_of_first_data_line() + m_source.get_index_of_first_data_column() ) ;
+					}
+				}
+				return *this ;
+			}
+		private:
+			VCFFormatSNPDataSource const& m_source ;
+			VariantDataReader::UniquePtr m_data_reader ;
+		} ;
+	}
+
+	VariantDataReader::UniquePtr VCFFormatSNPDataSource::read_variant_data_impl() {
+		std::string FORMAT ;
+		std::size_t count = 8 ;
+		char after_format ;
+		try {
+			after_format = read_format_and_get_trailing_char( FORMAT, count++ ) ;
+		}
+		catch( std::ios_base::failure const& ) {
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, count ) ;
+		}
+
+		if(( m_number_of_samples == 0 && after_format != '\n' ) || ( m_number_of_samples > 0 && after_format != '\t' )) {
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, count ) ;
+		}
+
+		VariantDataReader::UniquePtr result ;
+		std::string data ;
+		if( m_number_of_samples > 0 ) {
+			std::getline( *m_stream_ptr, data ) ;
+			++count ;
+			try {
+				result.reset( new vcf::CallReader( m_number_of_samples, m_variant_alleles.size(), FORMAT, data, m_format_types ) ) ;
+				result.reset( new impl::VCFFormatDataReader( *this, result )) ;
+			}
+			catch( BadArgumentError const& ) {
+				// problem with FORMAT
+				throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, 8 ) ;
+			}
+		}
+		return result ;
+	}
+	
 	void VCFFormatSNPDataSource::read_snp_probability_data_impl(
 		GenotypeProbabilitySetter const& set_genotype_probabilities
 	) {
@@ -389,7 +454,7 @@ namespace genfile {
 				// problem with entry.
 				if( e.has_column() ) {
 					// error column is the individual index (starting from 0), we add 9 to get the column number.
-					throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, e.column() + 9 ) ;
+					throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, e.column() + get_index_of_first_data_column() ) ;
 				}
 				else {
 					throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1 ) ;

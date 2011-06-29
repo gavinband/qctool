@@ -11,6 +11,7 @@
 #include "genfile/GenomePosition.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
+#include "genfile/VariantDataReader.hpp"
 
 namespace genfile {
 	struct SNPDataSourceError: public SNPDataError { char const* what() const throw() { return "SNPDataSourceError" ; } } ;
@@ -153,11 +154,16 @@ namespace genfile {
 			GenotypeProbabilitySetter const& set_genotype_probabilities
 		) ;
 
+		// Function: read_variant_data()
+		// Return an object that can be used to read data from the next snp in the source.
+		VariantDataReader::UniquePtr read_variant_data() ;
+
 		// Function: ignore_snp_probability_data()
 		// Read and discard the probability data for the next snp in the source.
 		// For each snp, you must call get_snp_identifying_data() at least once before
 		// calling this function.
 		SNPDataSource& ignore_snp_probability_data() ;
+		void pop() { ignore_snp_probability_data() ; }
 
 	public:
 		// Return the number of snps which have been read from the source so far.
@@ -203,6 +209,11 @@ namespace genfile {
 		virtual void read_snp_probability_data_impl(
 			GenotypeProbabilitySetter const& set_genotype_probabilities
 		) = 0 ;
+
+		virtual VariantDataReader::UniquePtr read_variant_data_impl() {
+			// Not implemented by default.
+			assert(0) ;
+		}
 
 		virtual void ignore_snp_probability_data_impl() = 0 ;
 		virtual void reset_to_start_impl() = 0 ;

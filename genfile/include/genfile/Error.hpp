@@ -228,7 +228,7 @@ namespace genfile {
 		int const m_line ;
 		int const m_column ;
 	} ;
-
+	
 	struct FormatUnsupportedError: public InputError
 	{
 		FormatUnsupportedError( std::string const& source, std::string const& format ):
