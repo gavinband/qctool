@@ -8,6 +8,8 @@
 #include "genfile/BGenFileSNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/VCFFormatSNPDataSource.hpp"
+#include "genfile/HapmapHaplotypesSNPDataSource.hpp"
+#include "genfile/ImputeHaplotypesSNPDataSource.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/Error.hpp"
 
@@ -40,6 +42,12 @@ namespace genfile {
 		}
 		else if( uf.first == "gen" ) {
 			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+		}
+		else if( uf.first == "hapmap_haplotypes" ) {
+			return std::auto_ptr< SNPDataSource >( new HapmapHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+		}
+		else if( uf.first == "impute_haplotypes" ) {
+			return std::auto_ptr< SNPDataSource >( new ImputeHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
 		}
 		else {
 			// assume GEN format.

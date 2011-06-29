@@ -94,6 +94,23 @@ namespace genfile {
 		return filename.substr( 0, filename.size() - extension.size() ) ;
 	}
 
+	std::string replace_or_add_extension( std::string const& filename, std::string const& new_extension ) {
+		std::string result ;
+		std::size_t pos = filename.rfind( "." ) ;
+
+		if( pos == std::string::npos ) {
+			result = filename ;
+		}
+		else {
+			result = filename.substr( 0, pos ) ;
+		}
+		if( new_extension.size() == 0 || new_extension[0] != '.' ) {
+			result += "." ;
+		}
+		result += new_extension ;
+		return result ;
+	}
+
 	std::string get_gen_file_extension_if_present( std::string const& filename ) {
 		std::string recognised_extensions[4] = {
 			".gen",
@@ -183,9 +200,52 @@ namespace genfile {
 		else if( filename.find( ".vcf" ) != std::string::npos ) {
 			return std::make_pair( "vcf", filename ) ;
 		}
+		else if( filename.find( ".haps" ) != std::string::npos ) {
+			return std::make_pair( "impute_haplotypes", filename ) ;
+		}
+		else if( filename.find( ".phased" ) != std::string::npos ) {
+			return std::make_pair( "hapmap_haplotypes", filename ) ;
+		}
 		else {
 			return std::make_pair( "", filename ) ;
 		}
+	}
+	
+	std::size_t count_lines_left_in_stream( std::istream& aStream, bool allow_empty_lines ) {
+		uint32_t number_of_lines = 0 ;
+		std::vector< char > buffer( 1048576 ) ;
+		do {
+			aStream.read( &(buffer[0]), buffer.size() ) ;
+			number_of_lines += std::count( buffer.begin(), buffer.begin() + aStream.gcount(), '\n' ) ;
+			if( !allow_empty_lines ) {
+				// A gen file can't contain a blank line.
+				// Because popular editors (vim, nano, ..., but not emacs) typically add a trailing newline,
+				// we might get in the situation where the GEN file has two trailing newlines thus messing
+				// with our count.
+				// Therefore we check here for the special case where what we've read ends in two newlines.
+				if( (aStream.gcount() > 1) && (buffer[ aStream.gcount() - 1] == '\n') && (buffer[ aStream.gcount() - 2] == '\n') ) {
+					throw FileHasTwoTrailingNewlinesError( "(stream)", number_of_lines ) ;
+				}
+			}
+		}
+		while( aStream ) ;
+
+		// Most editors (vim, nano, but not emacs) automatically add a newline to the end of the file.
+		// If the file has a trailing newline, we already have the correct count.
+		// But if not, we've undercounted by one.
+		if( aStream.gcount() > 0 ) {
+			std::size_t pos = aStream.gcount() - 1 ;
+			if( buffer[pos] != '\n' ) {
+				++number_of_lines ;
+			}
+		}
+
+		// We should have reached eof.
+		// If so, report the data now.
+		if( !aStream.eof() ) {
+			throw MalformedInputError( "(stream)",  number_of_lines ) ;
+		}
+		return number_of_lines ;
 	}
 }
 

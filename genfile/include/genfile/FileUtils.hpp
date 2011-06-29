@@ -27,7 +27,7 @@ namespace genfile {
 
 	std::string get_gen_file_extension_if_present( std::string const& filename ) ;
 	std::string strip_gen_file_extension_if_present( std::string const& filename ) ;
-
+	std::string replace_or_add_extension( std::string const& filename, std::string const& new_extension ) ;
 	std::string create_temporary_filename() ;
 
 	std::auto_ptr< std::istream > open_text_file_for_input( std::string filename, CompressionType compression_type ) ;
@@ -37,6 +37,8 @@ namespace genfile {
 	std::auto_ptr< std::istream > open_binary_file_for_input( std::string filename ) ;
 	std::auto_ptr< std::ostream > open_binary_file_for_output( std::string filename, CompressionType compression_type ) ;
 	std::auto_ptr< std::ostream > open_binary_file_for_output( std::string filename ) ;
+
+	std::size_t count_lines_left_in_stream( std::istream& aStream, bool allow_empty_lines = false ) ;
 }
 
 #endif

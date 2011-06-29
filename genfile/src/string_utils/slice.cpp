@@ -95,7 +95,23 @@ namespace genfile {
 			}
 			return true ;
 		}
-		
+
+		bool slice::operator!=( std::string const& other ) const {
+			return !( *this == other ) ;
+		}
+
+		bool slice::operator==( slice const& other ) const {
+			if( size() != other.size() ) {
+				return false ;
+			}
+			for( std::size_t i = m_start; i < m_end; ++i ) {
+				if( (*m_string)[i] != other[ i - m_start ] ) {
+					return false ;
+				}
+			}
+			return true ;
+		}
+
 		std::vector< slice > slice::split( std::string const& split_chars ) const {
 			std::vector< slice > result ;
 			assert( std::numeric_limits< unsigned char >::max() + 1 == 256 ) ;
