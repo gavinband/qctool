@@ -215,10 +215,10 @@ namespace genfile {
 						this_snp
 					) ;
 					if( this_source_snp.get_SNPID() != consensus_snp.get_SNPID() ) {
-						consensus_snp.SNPID() = "?" ;
+						consensus_snp.SNPID() += "/" + this_source_snp.get_SNPID() ;
 					}
 					if( this_source_snp.get_rsid() != consensus_snp.get_rsid() ) {
-						consensus_snp.rsid() = "?" ;
+						consensus_snp.rsid() += "/" + this_source_snp.get_SNPID() ;
 					}
 					if( this_source_snp.get_first_allele() != consensus_snp.get_first_allele() ) {
 						consensus_snp.first_allele() = '?' ;
