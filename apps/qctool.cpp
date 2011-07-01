@@ -353,7 +353,7 @@ public:
 			.set_takes_single_value() ;
 		options [ "-write-snp-excl-list" ]
 			.set_description( "Don't output a new genotypes file; instead, write files containing the positions of SNPs that are filtered out." )
-			.set_takes_single_value() ;
+		;
 		options [ "-write-snp-excl-list-file" ]
 	        .set_description( 	"Override the auto-generated path(s) of the file to use when outputting the positions of filtered out SNPs.  "
 								"(By default, the paths are formed by adding \".snp-excl-list\" to the input gen filename(s).)  "
