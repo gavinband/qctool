@@ -9,12 +9,18 @@
 #include "genfile/VariantDataReader.hpp"
 
 namespace genfile {
+	
+	namespace impl {
+		struct VCFFormatDataReader ;
+	}
+	
 	class VCFFormatSNPDataSource: public SNPDataSource
 	// SNPDataSource which obtains data from a file in VCF format.
 	// I used the 4.1 spec, available here:
 	// http://www.1000genomes.org/wiki/Analysis/Variant Call Format/vcf-variant-call-format-version-41
 	// to implement this.
 	{
+		friend class impl::VCFFormatDataReader ;
 	public:
 		VCFFormatSNPDataSource(
 			std::auto_ptr< std::istream > stream_ptr,
@@ -84,7 +90,7 @@ namespace genfile {
 		void setup() ;
 		void check_genotype_probability_field( std::string const& field ) const ;
 		std::vector< std::string > read_column_names( std::istream& stream ) const ;
-		char read_format_and_get_trailing_char( std::string& format, std::size_t column ) const ;
+		std::string read_format() ;
 		std::size_t determine_number_of_lines(
 			std::istream& vcf_file_stream,
 			vcf::MetadataParser::Metadata const& metadata,

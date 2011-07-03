@@ -14,11 +14,10 @@ namespace genfile {
 		typedef std::auto_ptr< VariantDataReader > UniquePtr ;
 		typedef genfile::VariantEntry Entry ;
 	public:
-		typedef boost::function< void ( std::size_t i, std::vector< Entry > const& ) > Setter ;
+		typedef boost::function< void ( std::size_t i, std::vector< Entry > const& ) > PerSampleSetter ;
 	public:
 		virtual ~VariantDataReader() {} ;
-
-		virtual VariantDataReader& get( std::string const& spec, Setter setter ) = 0 ;
+		virtual VariantDataReader& get( std::string const& spec, PerSampleSetter setter ) = 0 ;
 	} ;
 }
 

@@ -249,6 +249,27 @@ namespace genfile {
 		m_genotype_probability_field = value ;
 	}
 	
+	namespace impl {
+		void read_element( std::istream& stream, std::string& elt, char delim, std::size_t column ) {
+			std::getline( stream, elt, delim ) ;
+			// ensure element contains no whitespace.
+			if( elt.find_first_of( " \t\n\r" ) != std::string::npos ) {
+				throw MalformedInputError( "(unnamed stream)", 0, column ) ;
+			}
+		}
+
+		char read_format_and_get_trailing_char( std::istream& stream, std::string& format, std::size_t column ) {
+			char after_format ;
+			for( after_format = stream.get(); after_format != '\n' && after_format != '\t'; after_format = stream.get() ) {
+				format.append( 1, after_format ) ;
+			}
+			if( format.find_first_of( " \t\n\r" ) != std::string::npos ) {
+				throw MalformedInputError( "(unnamed stream)", 0, column ) ;
+			}
+			return after_format ;
+		}
+	}
+	
 	void VCFFormatSNPDataSource::get_snp_identifying_data_impl( 
 		IntegerSetter const& set_number_of_samples,
 		StringSetter const& set_SNPID,
@@ -269,7 +290,7 @@ namespace genfile {
 
 		std::size_t entry_count = 0 ;
 		try {
-			read_element( CHROM, '\t', entry_count++ ) ;
+			impl::read_element( *m_stream_ptr,CHROM, '\t', entry_count++ ) ;
 			if( number_of_snps_read() == m_number_of_lines ) {
 				throw MalformedInputError( m_spec, number_of_snps_read() ) ;
 			}
@@ -281,18 +302,24 @@ namespace genfile {
 			}
 			return ;
 		}
+		catch( MalformedInputError const& e ) {
+			throw MalformedInputError( m_spec, number_of_snps_read(), e.column() ) ;
+		}
 
 		try {
-			read_element( POS, '\t', entry_count++ ) ;
-			read_element( ID, '\t', entry_count++ ) ;
-			read_element( REF, '\t', entry_count++ ) ;
-			read_element( ALT, '\t', entry_count++ ) ;
-			read_element( QUAL, '\t', entry_count++ ) ;
-			read_element( FILTER, '\t', entry_count++ ) ;
-			read_element( INFO, '\t', entry_count++ ) ;
+			impl::read_element( *m_stream_ptr,POS, '\t', entry_count++ ) ;
+			impl::read_element( *m_stream_ptr,ID, '\t', entry_count++ ) ;
+			impl::read_element( *m_stream_ptr,REF, '\t', entry_count++ ) ;
+			impl::read_element( *m_stream_ptr,ALT, '\t', entry_count++ ) ;
+			impl::read_element( *m_stream_ptr,QUAL, '\t', entry_count++ ) ;
+			impl::read_element( *m_stream_ptr,FILTER, '\t', entry_count++ ) ;
+			impl::read_element( *m_stream_ptr,INFO, '\t', entry_count++ ) ;
 		}
 		catch( std::ios_base::failure const& ) {
 			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, entry_count ) ;
+		}
+		catch( MalformedInputError const& e ) {
+			throw MalformedInputError( m_spec, number_of_snps_read(), e.column() ) ;
 		}
 		
 		// If we get here reading was successful.
@@ -337,81 +364,72 @@ namespace genfile {
 		}
 	}
 
-	void VCFFormatSNPDataSource::read_element( std::string& elt, char delim, std::size_t column ) const {
-		std::getline( *m_stream_ptr, elt, delim ) ;
-		// ensure element contains no whitespace.
-		if( elt.find_first_of( " \t\n\r" ) != std::string::npos ) {
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, column ) ;
-		}
-	}
-	
-	char VCFFormatSNPDataSource::read_format_and_get_trailing_char( std::string& format, std::size_t column ) const {
-		char after_format ;
-		for( after_format = m_stream_ptr->get(); after_format != '\n' && after_format != '\t'; after_format = m_stream_ptr->get() ) {
-			format.append( 1, after_format ) ;
-		}
-		if( format.find_first_of( " \t\n\r" ) != std::string::npos ) {
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, column ) ;
-		}
-		return after_format ;
-	}
-	
 	namespace impl {
 		// Wrap a vcf::CallReader with its VCFFormatSNPDataSource in such a way that sensible error messages are returned.
 		struct VCFFormatDataReader: public VariantDataReader {
 			VCFFormatDataReader(
 				VCFFormatSNPDataSource const& source,
-				VariantDataReader::UniquePtr data_reader
+				std::vector< std::string > const& variant_alleles,
+				std::string const& FORMAT,
+				boost::ptr_map< std::string, vcf::VCFEntryType > const& format_types
 			):
-			 	m_source( source ),
-				m_data_reader( data_reader )
-			{}
-			
-			VCFFormatDataReader& get( std::string const& spec, Setter setter ) {
-				try {
-					m_data_reader->get( spec, setter ) ;
+			 	m_source( source )
+			{
+				if( m_source.number_of_samples() > 0 ) {
+					std::getline( *(m_source.m_stream_ptr), m_data ) ;
+					m_data_reader.reset( new vcf::CallReader( m_source.number_of_samples(), variant_alleles.size(), FORMAT, m_data, format_types ) ) ;
 				}
-				catch( MalformedInputError const& e ) {
-					// problem with entry.
-					if( e.has_column() ) {
-						// error column is the individual index (starting from 0), we add 9 to get the column number.
-						throw MalformedInputError( m_source.get_source_spec(), m_source.number_of_snps_read() + m_source.get_index_of_first_data_line(), e.column() + m_source.get_index_of_first_data_column() ) ;
+			}
+			
+			VCFFormatDataReader& get( std::string const& spec, PerSampleSetter setter ) {
+				if( m_source.number_of_samples() > 0 ) {
+					try {
+						m_data_reader->get( spec, setter ) ;
 					}
-					else {
-						throw MalformedInputError( m_source.get_source_spec(), m_source.number_of_snps_read() + m_source.get_index_of_first_data_line() + m_source.get_index_of_first_data_column() ) ;
+					catch( MalformedInputError const& e ) {
+						// problem with entry.
+						if( e.has_column() ) {
+							// error column is the individual index (starting from 0), we add 9 to get the column number.
+							throw MalformedInputError( m_source.get_source_spec(), m_source.number_of_snps_read() + m_source.get_index_of_first_data_line(), e.column() + m_source.get_index_of_first_data_column() ) ;
+						}
+						else {
+							throw MalformedInputError( m_source.get_source_spec(), m_source.number_of_snps_read() + m_source.get_index_of_first_data_line() + m_source.get_index_of_first_data_column() ) ;
+						}
 					}
 				}
 				return *this ;
 			}
 		private:
 			VCFFormatSNPDataSource const& m_source ;
-			VariantDataReader::UniquePtr m_data_reader ;
+			std::string m_data ;
+			vcf::CallReader::UniquePtr m_data_reader ;
 		} ;
 	}
-
-	VariantDataReader::UniquePtr VCFFormatSNPDataSource::read_variant_data_impl() {
+	
+	std::string VCFFormatSNPDataSource::read_format() {
 		std::string FORMAT ;
 		std::size_t count = 8 ;
 		char after_format ;
 		try {
-			after_format = read_format_and_get_trailing_char( FORMAT, count++ ) ;
+			after_format = impl::read_format_and_get_trailing_char( *m_stream_ptr,FORMAT, count++ ) ;
 		}
 		catch( std::ios_base::failure const& ) {
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, count ) ;
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + get_index_of_first_data_line(), count ) ;
 		}
 
 		if(( m_number_of_samples == 0 && after_format != '\n' ) || ( m_number_of_samples > 0 && after_format != '\t' )) {
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, count ) ;
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + get_index_of_first_data_line(), count ) ;
 		}
 
+		return FORMAT ;
+	}
+
+	VariantDataReader::UniquePtr VCFFormatSNPDataSource::read_variant_data_impl() {
+		std::string FORMAT = read_format() ;
 		VariantDataReader::UniquePtr result ;
-		std::string data ;
 		if( m_number_of_samples > 0 ) {
-			std::getline( *m_stream_ptr, data ) ;
-			++count ;
 			try {
-				result.reset( new vcf::CallReader( m_number_of_samples, m_variant_alleles.size(), FORMAT, data, m_format_types ) ) ;
-				result.reset( new impl::VCFFormatDataReader( *this, result )) ;
+				result.reset( new impl::VCFFormatDataReader( *this, m_variant_alleles, FORMAT, m_format_types )) ;
 			}
 			catch( BadArgumentError const& ) {
 				// problem with FORMAT
@@ -424,42 +442,9 @@ namespace genfile {
 	void VCFFormatSNPDataSource::read_snp_probability_data_impl(
 		GenotypeProbabilitySetter const& set_genotype_probabilities
 	) {
-		std::string FORMAT ;
-		std::string data ;
-		std::size_t count = 8 ;
-		char after_format ;
-		try {
-			after_format = read_format_and_get_trailing_char( FORMAT, count++ ) ;
-		}
-		catch( std::ios_base::failure const& ) {
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, count ) ;
-		}
-
-		if(( m_number_of_samples == 0 && after_format != '\n' ) || ( m_number_of_samples > 0 && after_format != '\t' )) {
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, count ) ;
-		}
-
-		if( m_number_of_samples > 0 ) {
-			std::getline( *m_stream_ptr, data ) ;
-			++count ;
-			try {
-				vcf::CallReader( m_number_of_samples, m_variant_alleles.size(), FORMAT, data, m_format_types )
-					.get( m_genotype_probability_field, vcf::make_genotype_probability_setter( set_genotype_probabilities ) ) ;
-			}
-			catch( BadArgumentError const& ) {
-				// problem with FORMAT
-				throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, 8 ) ;
-			}
-			catch( MalformedInputError const& e ) {
-				// problem with entry.
-				if( e.has_column() ) {
-					// error column is the individual index (starting from 0), we add 9 to get the column number.
-					throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, e.column() + get_index_of_first_data_column() ) ;
-				}
-				else {
-					throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1 ) ;
-				}
-			}
+		VariantDataReader::UniquePtr reader = read_variant_data_impl() ;
+		if( reader.get() ) {
+			reader->get( m_genotype_probability_field, vcf::make_genotype_probability_setter( set_genotype_probabilities ) ) ;
 		}
 	}
 
@@ -468,7 +453,7 @@ namespace genfile {
 		std::string data ;
 		std::size_t count = 7 ;
 		try {
-			read_element( FORMAT, '\t', count++ ) ;
+			impl::read_element( *m_stream_ptr,FORMAT, '\t', count++ ) ;
 			std::getline( *m_stream_ptr, data ) ;
 			++count ;
 		}

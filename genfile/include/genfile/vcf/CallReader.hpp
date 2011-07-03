@@ -9,11 +9,10 @@
 #include "genfile/MissingValue.hpp"
 #include "genfile/vcf/Types.hpp"
 #include "genfile/string_utils/slice.hpp"
-#include "genfile/VariantDataReader.hpp"
 
 namespace genfile {
 	namespace vcf {
-		struct CallReader: public VariantDataReader
+		struct CallReader
 		//
 		// This class reads a set of specific entries of the per-individual data
 		// from the given string
@@ -27,10 +26,9 @@ namespace genfile {
 		{
 		private:
 			typedef boost::function< void ( std::size_t i, std::vector< Entry > const& ) > Setter ;
-			// Setters holds position in the format string (one past the end if field not present),
-			// the setter object, and a pointer to the entry type.
-			typedef std::multimap< std::size_t, std::pair< Setter, VCFEntryType const* > > Setters ;
 		public:
+			typedef std::auto_ptr< CallReader > UniquePtr ;
+			
 			CallReader(
 				std::size_t number_of_samples,
 				std::size_t number_of_alleles,
