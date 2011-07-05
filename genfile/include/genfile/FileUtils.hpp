@@ -33,6 +33,7 @@ namespace genfile {
 	std::auto_ptr< std::istream > open_text_file_for_input( std::string filename, CompressionType compression_type ) ;
 	std::auto_ptr< std::istream > open_text_file_for_input( std::string filename ) ;
 	std::auto_ptr< std::ostream > open_text_file_for_output( std::string filename, CompressionType compression_type ) ;
+	std::auto_ptr< std::ostream > open_text_file_for_output( std::string filename ) ;
 	std::auto_ptr< std::istream > open_binary_file_for_input( std::string filename, CompressionType compression_type ) ;
 	std::auto_ptr< std::istream > open_binary_file_for_input( std::string filename ) ;
 	std::auto_ptr< std::ostream > open_binary_file_for_output( std::string filename, CompressionType compression_type ) ;

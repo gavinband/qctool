@@ -167,7 +167,6 @@ namespace genfile {
 			throw MalformedInputError( m_haplotypes_filename, number_of_snps_read() ) ;
 		}
 
-		std::size_t a_count = 0, b_count = 0 ;
 		for( std::size_t i = 0; i < m_number_of_samples; ++i ) {
 			if( elts[2*i].size() != 1 ) {
 				throw MalformedInputError( m_haplotypes_filename, number_of_snps_read(), 2*i ) ;

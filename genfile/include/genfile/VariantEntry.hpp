@@ -4,6 +4,7 @@
 #include <string>
 #include <boost/variant.hpp>
 #include "genfile/MissingValue.hpp"
+#include "genfile/GenomePosition.hpp"
 
 namespace genfile {
 	class VariantEntry {
@@ -16,13 +17,15 @@ namespace genfile {
 		bool is_string() const ;
 		bool is_int() const ;
 		bool is_double() const ;
+		bool is_chromosome() const ;
+		bool is_position() const ;
 		template< typename T > T as() const ;
 	public:
 		bool operator==( VariantEntry const& rhs ) const ;
 		bool operator<( VariantEntry const& rhs ) const ;
 		friend std::ostream& operator<<( std::ostream&, VariantEntry const& ) ;
 	private:
-		typedef boost::variant< MissingValue, std::string, int, double > EntryData ;
+		typedef boost::variant< MissingValue, std::string, int, double, Chromosome, GenomePosition > EntryData ;
 		EntryData m_entrydata ;
 	private:
 		// prevent implicit conversion to VariantEntry in comparisons.

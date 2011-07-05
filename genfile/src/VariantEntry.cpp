@@ -21,6 +21,14 @@ namespace genfile {
 	bool VariantEntry::is_double() const {
 		return m_entrydata.which() == 3 ;
 	}
+
+	bool VariantEntry::is_chromosome() const {
+		return m_entrydata.which() == 4 ;
+	}
+
+	bool VariantEntry::is_position() const {
+		return m_entrydata.which() == 5 ;
+	}
 	
 	template<> double VariantEntry::as() const {
 		if( int const* v = boost::get< int >( &m_entrydata )) {

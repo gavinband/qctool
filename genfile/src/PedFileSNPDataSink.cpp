@@ -2,13 +2,14 @@
 #include <utility>
 #include <fstream>
 #include "genfile/SNPDataSink.hpp"
+#include "genfile/Chromosome.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/Pedigree.hpp"
 #include "genfile/PedFileSNPDataSink.hpp"
 #include "genfile/string_utils.hpp"
 
 namespace genfile {
-	namespace impl {
+	namespace {
 		char get_representation_of_allele( char allele ) {
 			switch( allele ) {
 				case 'A': return '1'; break ;
@@ -21,8 +22,8 @@ namespace genfile {
 		
 		std::string sex_to_string( Pedigree::Sex sex ) {
 			switch( sex ) {
-				case Pedigree::eMale: return "M"; break ;
-				case Pedigree::eFemale: return "F"; break ;
+				case Pedigree::eMale: return "1"; break ;
+				case Pedigree::eFemale: return "2"; break ;
 				case Pedigree::eUnknown: return "NA"; break ;
 			}
 			return "NA";
@@ -43,26 +44,20 @@ namespace genfile {
 	PedFileSNPDataSink::PedFileSNPDataSink(
 		CohortIndividualSource const& samples,
 		Pedigree const& pedigree,
-		std::string const& output_filename,
+		std::string const& output_ped_filename,
 		double call_threshhold
 	):
 		m_samples( samples ),
 		m_pedigree( pedigree ),
-		m_phenotypes( impl::get_phenotypes( samples )),
+		m_phenotypes( get_phenotypes( samples )),
 		m_pedigree_to_sample_mapping( get_pedigree_to_sample_mapping( pedigree, samples )),
-		m_output_filename( output_filename ),
 		m_call_threshhold( call_threshhold )
 	{
 		assert( call_threshhold > 0.5 ) ;
-		if( m_output_filename.size() >= 4 &&
-			(
-				( m_output_filename.substr( m_output_filename.size() - 4, 4 ) == ".ped" )
-				||
-				( m_output_filename.substr( m_output_filename.size() - 4, 4 ) == ".map" )
-			)
-		) {
-			throw BadArgumentError( "PedFileSNPDataSink::PedFileSNPDataSink", "output_filename = \"" + output_filename + "\"" ) ;
+		if( output_ped_filename.size() < 4 || output_ped_filename.substr( output_ped_filename.size() - 4, 4 ) != ".ped" ) {
+			throw BadArgumentError( "PedFileSNPDataSink::PedFileSNPDataSink", "output_ped_filename = \"" + output_ped_filename + "\"" ) ;
 		}
+		m_output_filename_stub = output_ped_filename.substr( 0, output_ped_filename.size() - 4 ) ;
 	}
 	
 	std::map< std::string, std::size_t > PedFileSNPDataSink::get_pedigree_to_sample_mapping(
@@ -101,8 +96,9 @@ namespace genfile {
 	}
 	
 	PedFileSNPDataSink::~PedFileSNPDataSink() {
-		write_ped_file( m_output_filename + ".ped" ) ;
-		write_map_file( m_output_filename + ".map" ) ;
+		write_ped_file( m_output_filename_stub + ".ped" ) ;
+		write_dat_file( m_output_filename_stub + ".dat" ) ;
+		write_map_file( m_output_filename_stub + ".map" ) ;
 	}
 	
 	void PedFileSNPDataSink::write_ped_file( std::string const& output_filename ) const {
@@ -125,7 +121,7 @@ namespace genfile {
 				<< " " << id
 				<< " " << m_pedigree.get_parents_of( id )[0]
 				<< " " << m_pedigree.get_parents_of( id )[1]
-				<< " " << impl::sex_to_string( m_pedigree.get_sex_of( id ) ) ;
+				<< " " << sex_to_string( m_pedigree.get_sex_of( id ) ) ;
 
 			std::map< std::string, std::size_t >::const_iterator sample = m_pedigree_to_sample_mapping.find( id ) ;
 			if( sample != m_pedigree_to_sample_mapping.end() ) {
@@ -154,7 +150,7 @@ namespace genfile {
 		assert( (*out) ) ;
 	}
 	
-	void PedFileSNPDataSink::write_map_file( std::string const& output_filename ) const {
+	void PedFileSNPDataSink::write_dat_file( std::string const& output_filename ) const {
 		std::auto_ptr< std::ostream> out(
 			open_text_file_for_output(
 				output_filename,
@@ -168,6 +164,20 @@ namespace genfile {
 			(*out) << "M " << m_written_snps[i].get_rsid() << "\n" ;
 		}
 		assert( (*out) ) ;
+	}
+
+	void PedFileSNPDataSink::write_map_file( std::string const& output_filename ) const {
+		std::auto_ptr< std::ostream > file = open_text_file_for_output( output_filename ) ;
+		for( std::size_t i = 0; i < m_written_snps.size(); ++i ) {
+			SNPIdentifyingData const& snp = m_written_snps[i] ;
+			(*file)
+				<< snp.get_position().chromosome()
+				<< " "
+				<< snp.get_rsid()
+				<< " "
+				<< snp.get_position().position()
+				<< "\n" ;
+		}
 	}
 	
 	void PedFileSNPDataSink::write_snp_impl(
@@ -206,14 +216,14 @@ namespace genfile {
 			std::pair< char, char > alleles ;
 			// use the folloiwn
 			if( AA > m_call_threshhold ) {
-				alleles.first = alleles.second = impl::get_representation_of_allele( snp.get_first_allele() ) ;
+				alleles.first = alleles.second = get_representation_of_allele( snp.get_first_allele() ) ;
 			}
 			else if( AB > m_call_threshhold ) {
-				alleles.first = impl::get_representation_of_allele( snp.get_first_allele() ) ;
-				alleles.second = impl::get_representation_of_allele( snp.get_second_allele() ) ;
+				alleles.first = get_representation_of_allele( snp.get_first_allele() ) ;
+				alleles.second = get_representation_of_allele( snp.get_second_allele() ) ;
 			}
 			else if( BB > m_call_threshhold ) {
-				alleles.first = alleles.second = impl::get_representation_of_allele( snp.get_second_allele() ) ;
+				alleles.first = alleles.second = get_representation_of_allele( snp.get_second_allele() ) ;
 			}
 			else {
 				alleles.first = alleles.second = '?' ;

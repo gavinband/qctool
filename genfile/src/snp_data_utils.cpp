@@ -128,7 +128,8 @@ namespace genfile {
 		return "" ;
 	}
 
-	std::auto_ptr< std::istream > open_text_file_for_input( std::string filename, CompressionType compression_type ) {
+	std::auto_ptr< std::istream > 
+	open_text_file_for_input( std::string filename, CompressionType compression_type ) {
 		std::auto_ptr< boost::iostreams::filtering_istream > file_ptr( new boost::iostreams::filtering_istream ) ;
 		if (compression_type == "gzip_compression") file_ptr->push(boost::iostreams::gzip_decompressor());
 		boost::iostreams::file_source file( filename.c_str() ) ;
@@ -154,6 +155,10 @@ namespace genfile {
 		}
 		file_ptr->push( file ); 
 		return std::auto_ptr< std::ostream >( file_ptr ) ;
+	}
+	
+	std::auto_ptr< std::ostream > open_text_file_for_output( std::string filename ) {
+		return open_text_file_for_output( filename, get_compression_type_indicated_by_filename( filename )) ;
 	}
 
 	std::auto_ptr< std::istream > open_binary_file_for_input( std::string filename, CompressionType compression_type ) {
