@@ -126,7 +126,7 @@ namespace genfile {
 				assert(0) ;
 		}
 	}
-
+	
 	void AlleleFlippingSNPDataSource::read_snp_probability_data_impl(
 		GenotypeProbabilitySetter const& set_genotype_probabilities
 	) {

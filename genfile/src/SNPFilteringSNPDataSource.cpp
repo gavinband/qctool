@@ -95,6 +95,10 @@ namespace genfile {
 		) ;
 	}
 
+	VariantDataReader::UniquePtr SNPFilteringSNPDataSource::read_variant_data_impl() {
+		return m_source->read_variant_data() ;
+	}
+
 	void SNPFilteringSNPDataSource::read_snp_probability_data_impl(
 		GenotypeProbabilitySetter const& set_genotype_probabilities
 	) {

@@ -24,7 +24,7 @@ struct AssociationTester: public genfile::SNPDataSourceProcessor::Callback, publ
 	) ;
 	
 	void begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) ;
-	void processed_snp( SNPIdentifyingData const& id_data, SingleSNPGenotypeProbabilities const& genotypes ) ;
+	void processed_snp( SNPIdentifyingData const& id_data, genfile::VariantDataReader& data_reader ) ;
 	void end_processing_snps() ;
 
 private:
@@ -42,6 +42,8 @@ private:
 
 	statfile::BuiltInTypeStatSink::UniquePtr m_sink ;
 private:
+	void processed_snp( SNPIdentifyingData const& id_data, SingleSNPGenotypeProbabilities const& genotypes ) ;
+	
 	std::vector< std::string > get_phenotypes(
 		genfile::CohortIndividualSource const& samples,
 		std::string const& phenotype_spec

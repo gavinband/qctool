@@ -51,9 +51,11 @@ void QCTool::begin_processing_snps(
 
 void QCTool::processed_snp(
 	genfile::SNPIdentifyingData const& id_data,
-	genfile::SingleSNPGenotypeProbabilities const& genotypes
+	genfile::VariantDataReader& data_reader
 ) {
 	try {
+		genfile::SingleSNPGenotypeProbabilities genotypes ;
+		data_reader.get( "genotypes", genfile::VariantDataReader::set( genotypes )) ;
 		unsafe_call_processed_snp( id_data, genotypes ) ;
 	}
 	catch( StatisticNotFoundException const& e ) {

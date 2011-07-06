@@ -93,6 +93,8 @@ namespace genfile {
 			AlleleSetter const& set_allele2
 		) ;	
 
+		VariantDataReader::UniquePtr read_variant_data_impl() ;
+	
 		void read_snp_probability_data_impl(
 			GenotypeProbabilitySetter const& set_genotype_probabilities
 		) ;
@@ -122,6 +124,17 @@ namespace genfile {
 		private:
 			GenotypeProbabilitySetter const& m_base_setter ;
 			uint32_t const m_index_of_first_sample ;
+		} ;
+		
+		friend class RackVariantDataReader ;
+		struct RackVariantDataReader: public VariantDataReader
+		{
+			RackVariantDataReader( SNPDataSourceRack& rack ) ;
+			~RackVariantDataReader() ;
+			RackVariantDataReader& get( std::string const& spec, PerSampleSetter setter ) ;
+			private:
+				std::vector< VariantDataReader* > m_data_readers ;
+				SNPDataSourceRack& m_rack ;
 		} ;
 		
 		std::vector< SNPDataSource* > m_sources ;

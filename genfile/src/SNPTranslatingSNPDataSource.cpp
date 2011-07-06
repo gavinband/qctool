@@ -66,6 +66,10 @@ namespace genfile {
 		}
 	}
 
+	VariantDataReader::UniquePtr SNPTranslatingSNPDataSource::read_variant_data_impl() {
+		return m_source->read_variant_data() ;
+	}
+
 	void SNPTranslatingSNPDataSource::read_snp_probability_data_impl(
 		GenotypeProbabilitySetter const& set_genotype_probabilities
 	) {

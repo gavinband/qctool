@@ -19,9 +19,9 @@ namespace genfile {
 		}
 	}
 	
-	void SNPDataSourceProcessor::call_processed_snp(  SNPIdentifyingData const& id_data, SingleSNPGenotypeProbabilities const& genotypes ) const {
+	void SNPDataSourceProcessor::call_processed_snp(  SNPIdentifyingData const& id_data, VariantDataReader& data_reader ) const {
 		for( std::size_t i = 0; i < m_callbacks.size(); ++i ) {
-			m_callbacks[i]->processed_snp( id_data, genotypes ) ;
+			m_callbacks[i]->processed_snp( id_data, data_reader ) ;
 		}
 	}
 
@@ -37,18 +37,18 @@ namespace genfile {
 		
 		call_begin_processing_snps( source.number_of_samples(), source.total_number_of_snps() ) ;
 
-		while( source.read_snp(
+		while( source.get_snp_identifying_data(
 				ignore(),
 				set_value( id_data.SNPID() ),
 				set_value( id_data.rsid() ),
 				set_value( id_data.position().chromosome() ),
 				set_value( id_data.position().position() ),
 				set_value( id_data.first_allele() ),
-				set_value( id_data.second_allele() ),
-				set_genotypes( genotypes )
+				set_value( id_data.second_allele() )
 			)
 		) {
-			call_processed_snp( id_data, genotypes ) ;
+			VariantDataReader::UniquePtr data_reader = source.read_variant_data() ;
+			call_processed_snp( id_data, *data_reader ) ;
 			if( progress_callback ) {
 				progress_callback( source.number_of_snps_read(), source.total_number_of_snps() ) ;
 			}

@@ -77,6 +77,10 @@ namespace genfile {
 		}
 	}
 
+	VariantDataReader::UniquePtr GenFileSNPDataSource::read_variant_data_impl() {
+		throw OperationUnsupportedError( "genfile::GenFileSNPDataSource::read_variant_data_impl()", get_source_spec() ) ;
+	}
+
 	void GenFileSNPDataSource::read_snp_probability_data_impl(
 		GenotypeProbabilitySetter const& set_genotype_probabilities
 	) {

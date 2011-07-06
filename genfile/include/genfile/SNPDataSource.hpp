@@ -210,10 +210,7 @@ namespace genfile {
 			GenotypeProbabilitySetter const& set_genotype_probabilities
 		) = 0 ;
 
-		virtual VariantDataReader::UniquePtr read_variant_data_impl() {
-			// Not implemented by default.
-			assert(0) ;
-		}
+		virtual VariantDataReader::UniquePtr read_variant_data_impl() = 0 ;
 
 		virtual void ignore_snp_probability_data_impl() = 0 ;
 		virtual void reset_to_start_impl() = 0 ;

@@ -104,6 +104,18 @@ void AssociationTester::begin_processing_snps( std::size_t number_of_samples, st
 
 void AssociationTester::processed_snp(
 	SNPIdentifyingData const& id_data,
+	genfile::VariantDataReader& data_reader
+) {
+	SingleSNPGenotypeProbabilities genotypes ;
+	data_reader.get( "genotypes", genfile::VariantDataReader::set( genotypes )) ;
+	processed_snp(
+		id_data,
+		genotypes
+		) ;
+}
+
+void AssociationTester::processed_snp(
+	SNPIdentifyingData const& id_data,
 	SingleSNPGenotypeProbabilities const& raw_genotypes
 ) {
 	assert( m_sink.get() ) ;

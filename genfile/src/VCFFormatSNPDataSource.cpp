@@ -384,7 +384,12 @@ namespace genfile {
 			VCFFormatDataReader& get( std::string const& spec, PerSampleSetter setter ) {
 				if( m_source.number_of_samples() > 0 ) {
 					try {
-						m_data_reader->get( spec, setter ) ;
+						if( spec == "genotypes" ) {
+							m_data_reader->get( m_source.m_genotype_probability_field, setter ) ;
+						}
+						else {
+							throw BadArgumentError( "genfile::impl:VCFFormatDataReader::get()", "spec=\"" + spec + "\"" ) ;
+						}
 					}
 					catch( MalformedInputError const& e ) {
 						// problem with entry.
@@ -444,7 +449,7 @@ namespace genfile {
 	) {
 		VariantDataReader::UniquePtr reader = read_variant_data_impl() ;
 		if( reader.get() ) {
-			reader->get( m_genotype_probability_field, vcf::make_genotype_probability_setter( set_genotype_probabilities ) ) ;
+			reader->get( "genotypes", vcf::make_genotype_probability_setter( set_genotype_probabilities ) ) ;
 		}
 	}
 

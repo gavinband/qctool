@@ -6,6 +6,7 @@
 #include "genfile/HapmapHaplotypesSNPDataSource.hpp"
 #include "genfile/string_utils/slice.hpp"
 #include "genfile/FileUtils.hpp"
+#include "genfile/Error.hpp"
 
 namespace genfile {
 	HapmapHaplotypesSNPDataSource::HapmapHaplotypesSNPDataSource( std::auto_ptr< std::istream > stream, Chromosome chromosome ):
@@ -145,6 +146,10 @@ namespace genfile {
 			set_allele1( allele1 ) ;
 			set_allele2( allele2 ) ;
 		}
+	}
+
+	VariantDataReader::UniquePtr HapmapHaplotypesSNPDataSource::read_variant_data_impl() {
+		throw OperationUnsupportedError( "genfile::HapmapHaplotypesSNPDataSource::read_variant_data()", get_source_spec() ) ;
 	}
 
 	void HapmapHaplotypesSNPDataSource::read_snp_probability_data_impl(

@@ -5,6 +5,7 @@
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
+#include "genfile/VariantDataReader.hpp"
 
 namespace genfile {
 	class SNPDataSourceProcessor {
@@ -19,7 +20,7 @@ namespace genfile {
 		struct Callback {
 			virtual ~Callback() ;
 			virtual void begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) = 0 ;
-			virtual void processed_snp( SNPIdentifyingData const& , SingleSNPGenotypeProbabilities const& genotypes ) = 0 ;
+			virtual void processed_snp( SNPIdentifyingData const& , VariantDataReader& data_reader ) = 0 ;
 			virtual void end_processing_snps() = 0 ;
 		} ;
 		
@@ -29,7 +30,7 @@ namespace genfile {
 
 	protected:
 		virtual void call_begin_processing_snps( std::size_t const& number_of_samples, std::size_t const& number_of_snps ) const ;
-		virtual void call_processed_snp(  SNPIdentifyingData const& id_data, SingleSNPGenotypeProbabilities const& genotypes ) const ;
+		virtual void call_processed_snp(  SNPIdentifyingData const& id_data, VariantDataReader& data_reader ) const ;
 		virtual void call_end_processing_snps() const ;
 
 	private:

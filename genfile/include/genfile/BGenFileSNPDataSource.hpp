@@ -38,6 +38,8 @@ namespace genfile {
 			char* allele2
 		) ;
 
+		VariantDataReader::UniquePtr read_variant_data_impl() { assert(0) ; } ;
+
 		void read_snp_probability_data_impl(
 			GenotypeProbabilitySetter const& set_genotype_probabilities
 		) ;

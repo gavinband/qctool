@@ -70,6 +70,8 @@ namespace genfile {
 			AlleleSetter const& set_allele2
 		) ;
 
+		VariantDataReader::UniquePtr read_variant_data_impl() ;
+
 		void read_snp_probability_data_impl(
 			GenotypeProbabilitySetter const& set_genotype_probabilities
 		) ;

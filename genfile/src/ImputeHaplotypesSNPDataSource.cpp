@@ -149,6 +149,11 @@ namespace genfile {
 		}
 	}
 
+	VariantDataReader::UniquePtr ImputeHaplotypesSNPDataSource::read_variant_data_impl() {
+		throw OperationUnsupportedError( "genfile::ImputeHaplotypesSNPDataSource::read_variant_data()", get_source_spec() ) ;
+	}
+
+
 	void ImputeHaplotypesSNPDataSource::read_snp_probability_data_impl(
 		GenotypeProbabilitySetter const& set_genotype_probabilities
 	) {

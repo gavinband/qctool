@@ -3,6 +3,7 @@
 
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
+#include "genfile/SingleSNPGenotypeProbabilities.hpp"
 
 namespace genfile {
 	namespace vcf {
@@ -10,6 +11,8 @@ namespace genfile {
 		struct GenotypeProbabilitySetter
 		{
 			GenotypeProbabilitySetter( Setter setter ): m_setter( setter ) {}
+			GenotypeProbabilitySetter( SingleSNPGenotypeProbabilities& probabilities ): m_setter( genfile::set_genotypes( probabilities ) ) {}
+
 			void operator()( std::size_t i, std::vector< vcf::Entry > const& values ) {
 				double AA = 0.0, AB = 0.0, BB = 0.0 ; // zero genotypes to represent missing call.
 				if( !values.empty() ) {
