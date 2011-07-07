@@ -1,5 +1,6 @@
 #include <vector>
 #include <boost/tuple/tuple.hpp>
+#include <boost/bind.hpp>
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/AlleleFlippingSNPDataSource.hpp"
@@ -125,6 +126,82 @@ namespace genfile {
 			default:
 				assert(0) ;
 		}
+	}
+
+	namespace impl {
+		void set_flipped_genotype_alleles( VariantDataReader::PerSampleSetter setter, std::size_t sample_i, std::vector< VariantDataReader::Entry > const& values ) {
+			std::vector< VariantDataReader::Entry > new_values = values ;
+			if( new_values.size() == 3 ) {
+				// ploidy = 2
+				std::swap( new_values[0], new_values[2] ) ;
+			}
+			else if( values.size() == 2 ) {
+				// ploidy = 1
+				std::swap( new_values[0], new_values[1] ) ;
+			}
+			else {
+				assert(0) ;
+			}
+			setter( sample_i, new_values ) ;
+		}
+		
+		void set_unknown_alleles( VariantDataReader::PerSampleSetter setter, std::size_t sample_i, std::vector< VariantDataReader::Entry > const& values ) {
+			std::vector< VariantDataReader::Entry > new_values( values.size(), MissingValue() ) ;
+			setter( sample_i, new_values ) ;
+		}
+
+		void set_flipped_intensity_alleles( VariantDataReader::PerSampleSetter setter, std::size_t sample_i, std::vector< VariantDataReader::Entry > const& values ) {
+			assert( values.size() == 2 ) ;
+			std::vector< VariantDataReader::Entry > new_values( values ) ;
+			std::swap( new_values[0], new_values[1] ) ;
+			setter( sample_i, new_values ) ;
+		}
+		
+		class AlleleFlippingSNPDataReader: public VariantDataReader {
+			AlleleFlippingSNPDataReader(
+				AlleleFlippingSNPDataSource& source,
+				AlleleFlippingSNPDataSource::AlleleFlipSpec const& allele_flips
+			):
+				m_source( source ),
+				m_allele_flips( allele_flips ),
+				m_base_reader( m_source.m_source->read_variant_data() )
+			{}
+			
+			AlleleFlippingSNPDataReader& get( std::string const& spec, PerSampleSetter setter ) {
+				switch( m_allele_flips[ m_source.number_of_snps_read() ] ) {
+					case AlleleFlippingSNPDataSource::eNoFlip:
+						m_base_reader->get( spec, setter ) ;
+						break ;
+					case AlleleFlippingSNPDataSource::eFlip:
+						if( spec == "genotypes" ) {
+							m_base_reader->get( spec, boost::bind( &set_flipped_genotype_alleles, setter, _1, _2 )) ;
+						}
+						else if( spec == "intensities" ) {
+							m_base_reader->get( spec, boost::bind( &set_flipped_intensity_alleles, setter, _1, _2 )) ;
+						}
+						else {
+							// Pass through to base reader.
+							m_base_reader->get( spec, setter ) ;
+						}
+						break ;
+					case AlleleFlippingSNPDataSource::eUnknownFlip:
+						m_base_reader->get( spec, boost::bind( &set_unknown_alleles, setter, _1, _2 )) ;
+						break ; 
+					default:
+						assert(0) ;
+				}
+				return *this ;
+			}
+			
+		private:
+			AlleleFlippingSNPDataSource& m_source ;
+			AlleleFlippingSNPDataSource::AlleleFlipSpec const& m_allele_flips ;
+			VariantDataReader::UniquePtr m_base_reader ;
+		} ;
+	}
+
+	VariantDataReader::UniquePtr AlleleFlippingSNPDataSource::read_variant_data_impl() {
+		assert( 0 ) ;
 	}
 	
 	void AlleleFlippingSNPDataSource::read_snp_probability_data_impl(

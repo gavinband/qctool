@@ -8,10 +8,14 @@
 #include "SNPDataSource.hpp"
 
 namespace genfile {
+	namespace impl {
+		struct GenFileSNPDataReader ;
+	}
 	// This class represents a SNPDataSource which reads its data
 	// from a plain GEN file.
 	class GenFileSNPDataSource: public IdentifyingDataCachingSNPDataSource
 	{
+		friend class impl::GenFileSNPDataReader ;
 	public:
 		GenFileSNPDataSource( std::auto_ptr< std::istream > stream, Chromosome chromosome ) ;
 		GenFileSNPDataSource( std::string const& filename, Chromosome chromosome ) ;

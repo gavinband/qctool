@@ -8,10 +8,15 @@
 #include "bgen.hpp"
 
 namespace genfile {
+	namespace impl {
+		struct BGenFileSNPDataReader ;
+	}
+
 	// This class represents a SNPDataSource which reads its data
 	// from a BGEN file.
 	class BGenFileSNPDataSource: public IdentifyingDataCachingSNPDataSource
 	{
+		friend class impl::BGenFileSNPDataReader ;
 	public:
 		BGenFileSNPDataSource( std::string const& filename ) ;
 		BGenFileSNPDataSource( std::string const& filename, CompressionType compression_type ) ;
@@ -38,7 +43,7 @@ namespace genfile {
 			char* allele2
 		) ;
 
-		VariantDataReader::UniquePtr read_variant_data_impl() { assert(0) ; } ;
+		VariantDataReader::UniquePtr read_variant_data_impl() ;
 
 		void read_snp_probability_data_impl(
 			GenotypeProbabilitySetter const& set_genotype_probabilities

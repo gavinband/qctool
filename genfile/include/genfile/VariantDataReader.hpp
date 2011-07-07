@@ -6,6 +6,8 @@
 #include <string>
 #include "boost/noncopyable.hpp"
 #include "genfile/VariantEntry.hpp"
+#include "genfile/get_set.hpp"
+#include "genfile/SingleSNPGenotypeProbabilities.hpp"
 
 namespace genfile {
 	class VariantDataReader: public boost::noncopyable

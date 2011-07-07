@@ -77,8 +77,37 @@ namespace genfile {
 		}
 	}
 
+	namespace impl {
+		struct GenFileSNPDataReader: public VariantDataReader {
+			GenFileSNPDataReader( GenFileSNPDataSource& source )
+			{
+				uint32_t this_data_number_of_samples ;
+				gen::impl::read_snp_probability_data(
+					source.stream(),
+					set_value( this_data_number_of_samples ),
+					set_genotypes( m_genotypes )
+				) ;
+				assert( source ) ;
+				assert(( m_genotypes.size() % 3 ) == 0 ) ;
+			}
+			
+			GenFileSNPDataReader& get( std::string const& spec, PerSampleSetter setter ) {
+				std::vector< Entry > entries( 3 ) ;
+				for( std::size_t i = 0; i < ( m_genotypes.size() / 3 ); ++i ) {
+					for( std::size_t g = 0; g < 3; ++g ) {
+						entries[g] = m_genotypes[ 3*i + g ] ;
+					}
+					setter( i, entries ) ;
+				}
+				return *this ;
+			}
+		private:
+			std::vector< double > m_genotypes ;
+		} ;
+	}
+
 	VariantDataReader::UniquePtr GenFileSNPDataSource::read_variant_data_impl() {
-		throw OperationUnsupportedError( "genfile::GenFileSNPDataSource::read_variant_data_impl()", get_source_spec() ) ;
+		return VariantDataReader::UniquePtr( new impl::GenFileSNPDataReader( *this ) ) ;
 	}
 
 	void GenFileSNPDataSource::read_snp_probability_data_impl(

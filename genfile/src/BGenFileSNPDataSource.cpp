@@ -42,6 +42,47 @@ namespace genfile {
 		*chromosome = Chromosome( ChromosomeEnum( chr ) ) ;
 	}
 
+	namespace impl {
+		struct BGenFileSNPDataReader: public VariantDataReader {
+			BGenFileSNPDataReader( BGenFileSNPDataSource& source )
+			{
+				if( source.m_flags & bgen::e_CompressedSNPBlocks ) {
+					bgen::impl::read_compressed_snp_probability_data(
+						source.stream(),
+						source.number_of_samples(),
+						set_genotypes( m_genotypes )
+					) ;
+				}
+				else {
+					bgen::impl::read_snp_probability_data(
+						source.stream(),
+						source.number_of_samples(),
+						set_genotypes( m_genotypes )
+					) ;
+				}
+				assert( source ) ;
+				assert(( m_genotypes.size() % 3 ) == 0 ) ;
+			}
+			
+			BGenFileSNPDataReader& get( std::string const& spec, PerSampleSetter setter ) {
+				std::vector< Entry > entries( 3 ) ;
+				for( std::size_t i = 0; i < ( m_genotypes.size() / 3 ); ++i ) {
+					for( std::size_t g = 0; g < 3; ++g ) {
+						entries[g] = m_genotypes[ 3*i + g ] ;
+					}
+					setter( i, entries ) ;
+				}
+				return *this ;
+			}
+		private:
+			std::vector< double > m_genotypes ;
+		} ;
+	}
+
+	VariantDataReader::UniquePtr BGenFileSNPDataSource::read_variant_data_impl() {
+		return VariantDataReader::UniquePtr( new impl::BGenFileSNPDataReader( *this )) ;
+	}
+
 	void BGenFileSNPDataSource::read_snp_probability_data_impl(
 		GenotypeProbabilitySetter const& set_genotype_probabilities
 	) {

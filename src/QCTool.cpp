@@ -54,7 +54,7 @@ void QCTool::processed_snp(
 	genfile::VariantDataReader& data_reader
 ) {
 	try {
-		genfile::SingleSNPGenotypeProbabilities genotypes ;
+		genfile::SingleSNPGenotypeProbabilities genotypes( m_number_of_samples ) ;
 		data_reader.get( "genotypes", genfile::VariantDataReader::set( genotypes )) ;
 		unsafe_call_processed_snp( id_data, genotypes ) ;
 	}

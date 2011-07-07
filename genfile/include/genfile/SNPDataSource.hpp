@@ -10,7 +10,6 @@
 #include "genfile/wildcard.hpp"
 #include "genfile/GenomePosition.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
-#include "genfile/SingleSNPGenotypeProbabilities.hpp"
 #include "genfile/VariantDataReader.hpp"
 
 namespace genfile {
