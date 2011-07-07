@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <set>
 #include "boost/noncopyable.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/get_set.hpp"
@@ -17,10 +18,12 @@ namespace genfile {
 		typedef genfile::VariantEntry Entry ;
 	public:
 		typedef boost::function< void ( std::size_t i, std::vector< Entry > const& ) > PerSampleSetter ;
+		typedef boost::function< void ( std::string ) > SpecSetter ;
 	public:
 		virtual ~VariantDataReader() {} ;
 		virtual VariantDataReader& get( std::string const& spec, PerSampleSetter setter ) = 0 ;
 		virtual bool supports( std::string const& spec ) const = 0 ;
+		virtual void get_supported_specs( SpecSetter ) const = 0 ;
 		
 		struct VectorSetter {
 		public:

@@ -62,6 +62,13 @@ namespace genfile {
 			}
 		}
 
+		void CallReader::get_format_elts( boost::function< void ( std::string ) > setter ) const {
+			for( std::size_t i = 0; i < m_format_elts.size(); ++i ) {
+				setter( m_format_elts[i] ) ;
+			}
+		}
+
+
 		CallReader& CallReader::get( std::string const& spec, Setter setter ) {
 			boost::ptr_map< std::string, VCFEntryType >::const_iterator entry_type_i = m_entry_types.find( spec ) ;
 			if( entry_type_i == m_entry_types.end() ) {

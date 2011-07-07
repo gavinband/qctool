@@ -2,6 +2,8 @@
 #include <iomanip>
 #include <sstream>
 #include <vector>
+#include <set>
+#include <boost/bind.hpp>
 #include "genfile/Error.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceRack.hpp"
@@ -332,6 +334,38 @@ namespace genfile {
 					}
 				}
 				return true ;
+			}
+			
+			void get_supported_specs( SpecSetter setter ) const {
+				if( m_data_readers.empty() ) {
+					return ;
+				}
+
+				typedef std::vector< std::string > SetOfThings ;
+				SetOfThings things ;
+				for( std::size_t i = 0; i < m_data_readers.size(); ++i ) {
+					SetOfThings these_things ;
+					m_data_readers[0]->get_supported_specs( boost::bind( &SetOfThings::push_back, &these_things, _1 )) ;
+					if( i == 0 ) {
+						things = these_things ;
+					}
+					else {
+						for( SetOfThings::iterator thing_i = things.begin(); thing_i != things.end(); ) {
+							SetOfThings::iterator where = std::find( these_things.begin(), these_things.end(), *thing_i ) ;
+
+							if( where == these_things.end() ) {
+								SetOfThings::iterator this_thing = thing_i++ ;
+								things.erase( this_thing ) ;
+							}
+							else{
+								++thing_i ;
+							}
+						}
+					}
+				}
+				for( SetOfThings::const_iterator thing_i = things.begin(); thing_i != things.end(); ++thing_i ) {
+					setter( *thing_i ) ;
+				}
 			}
 
 			private:

@@ -2,6 +2,7 @@
 #define GENFILE_VCF_FORMAT_SNP_DATA_SOURCE_HPP
 
 #include <boost/ptr_container/ptr_map.hpp>
+#include <boost/bimap.hpp>
 #include "genfile/VariantEntry.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/vcf/MetadataParser.hpp"
@@ -79,7 +80,8 @@ namespace genfile {
 		typedef boost::ptr_map< std::string, vcf::VCFEntryType > EntryTypeMap ;
 		EntryTypeMap m_info_types ;
 		EntryTypeMap m_format_types ;
-		std::map< std::string, std::string > m_field_mapping ;
+		typedef boost::bimap< std::string, std::string > FieldMapping ;
+		FieldMapping m_field_mapping ;
 
 		std::vector< std::string > const m_column_names ;
 		std::size_t const m_number_of_samples ;

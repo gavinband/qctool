@@ -4,6 +4,7 @@
 #include <memory>
 #include <iostream>
 #include <boost/tuple/tuple.hpp>
+#include <boost/bimap.hpp>
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/string_utils.hpp"
@@ -32,7 +33,7 @@ namespace genfile {
 		m_number_of_samples( m_column_names.size() - 9 ),
 		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata ) )
 	{
-		m_field_mapping[ "genotypes" ] = genotype_probability_field ;
+		m_field_mapping.insert( FieldMapping::value_type( "genotypes", genotype_probability_field )) ;
 		setup() ;
 	}
 
@@ -51,7 +52,7 @@ namespace genfile {
 		m_number_of_samples( m_column_names.size() - 9 ),
 		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata ))
 	{
-		m_field_mapping[ "genotypes" ] = genotype_probability_field ;
+		m_field_mapping.insert( FieldMapping::value_type( "genotypes", genotype_probability_field )) ;
 		setup() ;
 	}
 
@@ -71,7 +72,7 @@ namespace genfile {
 		m_number_of_samples( m_column_names.size() - 9 ),
 		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata, open_text_file_for_input( index_filename ) ))
 	{
-		m_field_mapping[ "genotypes" ] = genotype_probability_field ;
+		m_field_mapping.insert( FieldMapping::value_type( "genotypes", genotype_probability_field )) ;
 		setup() ;
 	}
 	
@@ -247,11 +248,23 @@ namespace genfile {
 	
 	void VCFFormatSNPDataSource::set_genotype_probability_field( std::string const& value ) {
 		// check_genotype_probability_field( value ) ;
-		m_field_mapping[ "genotypes" ] = value ;
+		FieldMapping::left_iterator where = m_field_mapping.left.find( "genotypes" ) ;
+		if( where == m_field_mapping.left.end() ) {
+			m_field_mapping.insert( FieldMapping::value_type( "genotypes", value )) ;
+		}
+		else {
+			m_field_mapping.left.replace_data( where, value ) ;
+		}
 	}
 	
 	void VCFFormatSNPDataSource::set_intensity_field( std::string const& value ) {
-		m_field_mapping[ "intensities" ] = value ;
+		FieldMapping::left_iterator where = m_field_mapping.left.find( "intensities" ) ;
+		if( where == m_field_mapping.left.end() ) {
+			m_field_mapping.insert( FieldMapping::value_type( "intensities", value )) ;
+		}
+		else {
+			m_field_mapping.left.replace_data( where, value ) ;
+		}
 	}
 	
 	namespace impl {
@@ -377,7 +390,7 @@ namespace genfile {
 				std::vector< std::string > const& variant_alleles,
 				std::string const& FORMAT,
 				boost::ptr_map< std::string, vcf::VCFEntryType > const& format_types,
-				std::map< std::string, std::string > field_mapping
+				VCFFormatSNPDataSource::FieldMapping field_mapping
 			):
 			 	m_source( source ),
 				m_field_mapping( field_mapping )
@@ -386,17 +399,15 @@ namespace genfile {
 					std::getline( *(m_source.m_stream_ptr), m_data ) ;
 					m_data_reader.reset( new vcf::CallReader( m_source.number_of_samples(), variant_alleles.size(), FORMAT, m_data, format_types ) ) ;
 				}
-				
-				std::vector< std::string > const& format_elts = m_data_reader->get_format_elts() ;
-				m_supported_fields.insert( format_elts.begin(), format_elts.end() ) ;
 			}
-			
+
+		public:
 			VCFFormatDataReader& get( std::string const& spec, PerSampleSetter setter ) {
 				if( m_source.number_of_samples() > 0 ) {
 					try {
-						std::string mapped_spec = get_mapped_spec( spec ) ;
-						if( m_supported_fields.find( mapped_spec ) != m_supported_fields.end() ) {
-							m_data_reader->get( mapped_spec, setter ) ;
+						FieldMapping::left_const_iterator where = m_field_mapping.left.find( spec ) ;
+						if( where != m_field_mapping.left.end() ) {
+							m_data_reader->get( where->second, setter ) ;
 						}
 						else {
 							throw OperationUnsupportedError( "genfile::impl::VCFFormatDataReader::get()", m_source.get_source_spec() ) ;
@@ -417,23 +428,25 @@ namespace genfile {
 			}
 			
 			bool supports( std::string const& spec ) const {
-				return m_supported_fields.find( get_mapped_spec( spec ) ) != m_supported_fields.end() ;
+				return m_field_mapping.left.find( spec ) != m_field_mapping.left.end() ;
+			}
+
+			void get_supported_specs( SpecSetter setter ) const {
+				// We support everything on the left of the field mapping.
+				FieldMapping::left_map::const_iterator 
+					begin_i = m_field_mapping.left.begin(),
+					end_i = m_field_mapping.left.end() ;
+				for( ; begin_i != end_i; ++begin_i ) {
+					setter( begin_i->first ) ;
+				}
 			}
 
 		private:
 			VCFFormatSNPDataSource const& m_source ;
-			std::map< std::string, std::string > const m_field_mapping ;
-			std::set< std::string > m_supported_fields ;
+			typedef VCFFormatSNPDataSource::FieldMapping FieldMapping ;
+			FieldMapping m_field_mapping ;
 			std::string m_data ;
 			vcf::CallReader::UniquePtr m_data_reader ;
-			
-			std::string get_mapped_spec( std::string const& spec ) const {
-				std::map< std::string, std::string >::const_iterator where = m_field_mapping.find( spec ) ;
-				if( where != m_field_mapping.end() ) {
-					return where->second ;
-				}
-				return spec ;
-			}
 		} ;
 	}
 	

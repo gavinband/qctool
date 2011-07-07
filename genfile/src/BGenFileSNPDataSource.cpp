@@ -79,6 +79,10 @@ namespace genfile {
 				return spec == "genotypes" ;
 			}
 
+			void get_supported_specs( SpecSetter setter ) const {
+				setter( "genotypes" ) ;
+			}
+
 		private:
 			std::vector< double > m_genotypes ;
 		} ;
