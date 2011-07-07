@@ -7,10 +7,11 @@ srcdir="."
 APPNAME = "qctool"
 VERSION = "dev"
 
-subdirs = [ 'genfile', 'statfile', 'string_utils', 'appcontext', 'fputils', 'worker', 'snptest', 'integration', '3rd_party' ]
+subdirs = [ 'genfile', 'statfile', 'string_utils', 'appcontext', 'fputils', 'worker', 'snptest', 'integration', '3rd_party', 'db' ]
 
 def set_options( opt ):
 	opt.tool_options( 'compiler_cxx' )
+	opt.tool_options( 'compiler_cc' )
 	opt.tool_options( 'boost' )
 	opt.add_option( "--static", action='store_true', default=False, help='Create statically-linked executables if possible.')
 
@@ -19,7 +20,8 @@ def set_options( opt ):
 #-----------------------------------
 
 def configure( conf ):
-	conf.check_tool( 'compiler_cxx ')
+	conf.check_tool( 'compiler_cxx')
+	conf.check_tool( 'compiler_cc')
 	
 	platform_specific_configure( conf )
 	check_for_3rd_party_components( conf )
@@ -44,6 +46,7 @@ def configure_variant( conf, variant_name, cxxflags, ldflags ):
 def check_for_3rd_party_components( conf ):
 	check_for_boost_components( conf )
 	check_for_zlib( conf )
+	conf.define( 'HAVE_SQLITE3', 1 )
 
 def check_for_boost_components( conf ):
 	conf.check_tool( 'boost' )
@@ -138,7 +141,7 @@ def build( bld ):
 		target = 'gen-tools-lib',
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include ./genfile/include',
-		uselib_local = 'string_utils statfile appcontext fputils worker snptest genfile integration',
+		uselib_local = 'string_utils statfile appcontext fputils worker snptest genfile integration db',
 		uselib = 'BOOST BOOST_IOSTREAMS ZLIB BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'
 	)
 

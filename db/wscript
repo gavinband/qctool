@@ -1,0 +1,48 @@
+import os.path
+import glob
+#import UnitTest
+
+def configure( conf ):
+	pass
+
+def create_test( bld, name ):
+	bld(
+		features = 'cxx cprogram',
+		target = name,
+		source = [  'test/' + name + '.cpp' ],
+		uselib_local = 'db',
+		uselib = 'BOOST_UNIT_TEST_FRAMEWORK',
+		includes='./include',
+		unit_test=1,
+		install_path=None
+	)
+
+def create_benchmark( bld, name ):
+	bld(
+		features = 'cxx cprogram',
+		target = name,
+		source = [  'benchmarks/' + name + '.cpp' ],
+		uselib_local = 'db',
+		includes='./include',
+		install_path=None
+	)
+
+
+def build( bld ):
+	import Options
+	
+	#---------------------
+	# libs
+	#---------------------
+	bld(
+		features = 'cxx cstaticlib',
+		target = 'db',
+		source = bld.glob( 'src/*.cpp' ),
+		includes='./include',
+		uselib_local = 'sqlite3 genfile',
+		export_incdirs = './include'
+	)
+	
+	create_test( bld, "test_fill_SQL" ) ;
+	create_test( bld, "test_get_unique_id" ) ;
+	create_test( bld, "test_load_key_value_pairs" ) ;

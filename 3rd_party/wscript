@@ -1,6 +1,16 @@
 def build( bld ):
 	bld(
-            name = 'eigen',
-            export_incdirs = 'eigen',
-            uselib = ''
-    )
+		name = 'eigen',
+		export_incdirs = 'eigen',
+		uselib = ''
+	)
+	
+	bld(
+		features = 'cc cshlib',
+		target = 'sqlite3',
+		source = [ 'sqlite3/sqlite3/sqlite3.c' ],
+		includes = 'sqlite3/',
+		defines = 'SQLITE_ENABLE_COLUMN_METADATA',
+		uselib = 'DL',
+		export_incdirs = 'sqlite3'
+	)
