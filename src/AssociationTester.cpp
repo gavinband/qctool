@@ -106,7 +106,7 @@ void AssociationTester::processed_snp(
 	SNPIdentifyingData const& id_data,
 	genfile::VariantDataReader& data_reader
 ) {
-	SingleSNPGenotypeProbabilities genotypes ;
+	SingleSNPGenotypeProbabilities genotypes( m_samples.get_number_of_individuals() ) ;
 	data_reader.get( "genotypes", genfile::VariantDataReader::set( genotypes )) ;
 	processed_snp(
 		id_data,
