@@ -126,6 +126,8 @@ namespace genfile {
 			m_object( other.m_object )
 		{}
 		
+		char const* what() const throw() { return "genfile::OperationUnsupportedError" ; }
+		
 		virtual ~OperationUnsupportedError() throw() {}
 		
 		std::string const& operation() const { return m_operation ;}
@@ -133,6 +135,33 @@ namespace genfile {
 	private:
 		std::string const m_operation ;
 		std::string const m_object ;
+	} ;
+
+	struct OperationFailedError: public std::exception
+	{
+		OperationFailedError( std::string const& caller, std::string const& object, std::string const& operation ):
+			m_caller( caller ),
+			m_object( object ),
+			m_operation( operation )
+		{}
+
+		OperationFailedError( OperationFailedError const& other ):
+			m_caller( other.m_caller ),
+			m_object( other.m_object ),
+			m_operation( other.m_operation )
+		{}
+		
+		virtual ~OperationFailedError() throw() {}
+
+		char const* what() const throw() { return "genfile::OperationFailedError" ; }
+		
+		std::string const& caller() const { return m_caller ;}
+		std::string const& operation() const { return m_operation ;}
+		std::string const& object() const { return m_object ;}
+	private:
+		std::string const m_caller ;
+		std::string const m_object ;
+		std::string const m_operation ;
 	} ;
 	
 	struct BadArgumentError: public InputError

@@ -9,6 +9,10 @@
 
 namespace genfile {
 	
+	namespace impl {
+		struct RackVariantDataReader ;
+	}
+
 	struct SNPDataSourceRack: public SNPDataSource
 	{
 	public:
@@ -126,17 +130,8 @@ namespace genfile {
 			uint32_t const m_index_of_first_sample ;
 		} ;
 		
-		friend class RackVariantDataReader ;
-		struct RackVariantDataReader: public VariantDataReader
-		{
-			RackVariantDataReader( SNPDataSourceRack& rack ) ;
-			~RackVariantDataReader() ;
-			RackVariantDataReader& get( std::string const& spec, PerSampleSetter setter ) ;
-			private:
-				std::vector< VariantDataReader* > m_data_readers ;
-				SNPDataSourceRack& m_rack ;
-		} ;
-		
+		friend class impl::RackVariantDataReader ;
+
 		std::vector< SNPDataSource* > m_sources ;
 		uint32_t m_number_of_samples ;
 		std::vector< SNPIdentifyingData > m_included_snps ;

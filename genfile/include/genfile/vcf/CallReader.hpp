@@ -39,6 +39,8 @@ namespace genfile {
 		
 			CallReader& get( std::string const& spec, Setter setter ) ;
 		
+			std::vector< std::string > const& get_format_elts() const { return m_format_elts ; }
+		
 			~CallReader() {} ;
 		
 		private:

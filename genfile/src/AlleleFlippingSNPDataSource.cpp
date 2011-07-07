@@ -193,6 +193,10 @@ namespace genfile {
 				return *this ;
 			}
 			
+			bool supports( std::string const& spec ) const {
+				return m_base_reader->supports( spec ) ;
+			}
+
 		private:
 			AlleleFlippingSNPDataSource& m_source ;
 			AlleleFlippingSNPDataSource::AlleleFlipSpec const& m_allele_flips ;

@@ -1,5 +1,6 @@
 #include <string>
 #include <map>
+#include <set>
 #include <memory>
 #include <iostream>
 #include <boost/tuple/tuple.hpp>
@@ -27,11 +28,11 @@ namespace genfile {
 		m_metadata( m_metadata_parser.get_metadata() ),
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
-		m_genotype_probability_field( genotype_probability_field ),
 		m_column_names( read_column_names( *m_stream_ptr )),
 		m_number_of_samples( m_column_names.size() - 9 ),
 		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata ) )
 	{
+		m_field_mapping[ "genotypes" ] = genotype_probability_field ;
 		setup() ;
 	}
 
@@ -46,11 +47,11 @@ namespace genfile {
 		m_metadata( m_metadata_parser.get_metadata() ),
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
-		m_genotype_probability_field( genotype_probability_field ),
 		m_column_names( read_column_names( *m_stream_ptr )),
 		m_number_of_samples( m_column_names.size() - 9 ),
 		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata ))
 	{
+		m_field_mapping[ "genotypes" ] = genotype_probability_field ;
 		setup() ;
 	}
 
@@ -66,16 +67,16 @@ namespace genfile {
 		m_metadata( m_metadata_parser.get_metadata() ),
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
-		m_genotype_probability_field( genotype_probability_field ),
 		m_column_names( read_column_names( *m_stream_ptr )),
 		m_number_of_samples( m_column_names.size() - 9 ),
 		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata, open_text_file_for_input( index_filename ) ))
 	{
+		m_field_mapping[ "genotypes" ] = genotype_probability_field ;
 		setup() ;
 	}
 	
 	void VCFFormatSNPDataSource::setup() {
-		// check_genotype_probability_field( m_genotype_probability_field ) ;
+		// check_genotype_probability_field( m_field_mapping ) ;
 		reset_stream() ;
 	}
 
@@ -246,7 +247,11 @@ namespace genfile {
 	
 	void VCFFormatSNPDataSource::set_genotype_probability_field( std::string const& value ) {
 		// check_genotype_probability_field( value ) ;
-		m_genotype_probability_field = value ;
+		m_field_mapping[ "genotypes" ] = value ;
+	}
+	
+	void VCFFormatSNPDataSource::set_intensity_field( std::string const& value ) {
+		m_field_mapping[ "intensities" ] = value ;
 	}
 	
 	namespace impl {
@@ -371,24 +376,30 @@ namespace genfile {
 				VCFFormatSNPDataSource const& source,
 				std::vector< std::string > const& variant_alleles,
 				std::string const& FORMAT,
-				boost::ptr_map< std::string, vcf::VCFEntryType > const& format_types
+				boost::ptr_map< std::string, vcf::VCFEntryType > const& format_types,
+				std::map< std::string, std::string > field_mapping
 			):
-			 	m_source( source )
+			 	m_source( source ),
+				m_field_mapping( field_mapping )
 			{
 				if( m_source.number_of_samples() > 0 ) {
 					std::getline( *(m_source.m_stream_ptr), m_data ) ;
 					m_data_reader.reset( new vcf::CallReader( m_source.number_of_samples(), variant_alleles.size(), FORMAT, m_data, format_types ) ) ;
 				}
+				
+				std::vector< std::string > const& format_elts = m_data_reader->get_format_elts() ;
+				m_supported_fields.insert( format_elts.begin(), format_elts.end() ) ;
 			}
 			
 			VCFFormatDataReader& get( std::string const& spec, PerSampleSetter setter ) {
 				if( m_source.number_of_samples() > 0 ) {
 					try {
-						if( spec == "genotypes" ) {
-							m_data_reader->get( m_source.m_genotype_probability_field, setter ) ;
+						std::string mapped_spec = get_mapped_spec( spec ) ;
+						if( m_supported_fields.find( mapped_spec ) != m_supported_fields.end() ) {
+							m_data_reader->get( mapped_spec, setter ) ;
 						}
 						else {
-							throw BadArgumentError( "genfile::impl:VCFFormatDataReader::get()", "spec=\"" + spec + "\"" ) ;
+							throw OperationUnsupportedError( "genfile::impl::VCFFormatDataReader::get()", m_source.get_source_spec() ) ;
 						}
 					}
 					catch( MalformedInputError const& e ) {
@@ -404,10 +415,25 @@ namespace genfile {
 				}
 				return *this ;
 			}
+			
+			bool supports( std::string const& spec ) const {
+				return m_supported_fields.find( get_mapped_spec( spec ) ) != m_supported_fields.end() ;
+			}
+
 		private:
 			VCFFormatSNPDataSource const& m_source ;
+			std::map< std::string, std::string > const m_field_mapping ;
+			std::set< std::string > m_supported_fields ;
 			std::string m_data ;
 			vcf::CallReader::UniquePtr m_data_reader ;
+			
+			std::string get_mapped_spec( std::string const& spec ) const {
+				std::map< std::string, std::string >::const_iterator where = m_field_mapping.find( spec ) ;
+				if( where != m_field_mapping.end() ) {
+					return where->second ;
+				}
+				return spec ;
+			}
 		} ;
 	}
 	
@@ -434,7 +460,7 @@ namespace genfile {
 		VariantDataReader::UniquePtr result ;
 		if( m_number_of_samples > 0 ) {
 			try {
-				result.reset( new impl::VCFFormatDataReader( *this, m_variant_alleles, FORMAT, m_format_types )) ;
+				result.reset( new impl::VCFFormatDataReader( *this, m_variant_alleles, FORMAT, m_format_types, m_field_mapping )) ;
 			}
 			catch( BadArgumentError const& ) {
 				// problem with FORMAT

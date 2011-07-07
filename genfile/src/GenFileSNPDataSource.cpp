@@ -56,7 +56,7 @@ namespace genfile {
 			m_stream_ptr = open_text_file_for_input( m_filename, m_compression_type ) ;
 		}
 		if( !stream() ) {
-			throw OperationFailedError() ;
+			throw OperationFailedError( "genfile::GenFileSNPDataSource::reset_to_start_impl()", get_source_spec(), "reset to start" ) ;
 		}
 	}
 	
@@ -101,6 +101,11 @@ namespace genfile {
 				}
 				return *this ;
 			}
+			
+			bool supports( std::string const& spec ) const {
+				return spec == "genotypes" ;
+			}
+			
 		private:
 			std::vector< double > m_genotypes ;
 		} ;

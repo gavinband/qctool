@@ -275,26 +275,6 @@ namespace genfile {
 	}
 		
 
-	VariantDataReader::UniquePtr SNPDataSourceRack::read_variant_data_impl() {
-		VariantDataReader::UniquePtr result( new RackVariantDataReader( *this ) ) ;
-		return result ;
-	}
-
-	SNPDataSourceRack::RackVariantDataReader::RackVariantDataReader( SNPDataSourceRack& rack )
-		: m_rack( rack )
-	{
-		for( std::size_t i = 0; i < m_rack.m_sources.size(); ++i ) {
-			m_data_readers.push_back( m_rack.m_sources[i]->read_variant_data().release() ) ;
-		}
-	}
-
-	SNPDataSourceRack::RackVariantDataReader::~RackVariantDataReader()
-	{
-		for( std::size_t i = 0; i < m_data_readers.size(); ++i ) {
-			delete m_data_readers[i] ;
-		}
-	}
-
 	namespace impl {
 		struct OffsetSampleSetter {
 			OffsetSampleSetter( VariantDataReader::PerSampleSetter setter, std::size_t offset ):
@@ -318,15 +298,51 @@ namespace genfile {
 			VariantDataReader::PerSampleSetter m_setter ;
 			std::size_t m_offset ;
 		} ;
+		
+		struct RackVariantDataReader: public VariantDataReader
+		{
+			RackVariantDataReader( SNPDataSourceRack& rack )
+				: m_rack( rack )
+			{
+				for( std::size_t i = 0; i < m_rack.m_sources.size(); ++i ) {
+					m_data_readers.push_back( m_rack.m_sources[i]->read_variant_data().release() ) ;
+				}
+			}
+
+			~RackVariantDataReader() {
+				for( std::size_t i = 0; i < m_data_readers.size(); ++i ) {
+					delete m_data_readers[i] ;
+				}
+			}
+
+			RackVariantDataReader& get( std::string const& spec, PerSampleSetter setter ) {
+				OffsetSampleSetter offset_sample_setter( setter, 0 ) ;
+				for( std::size_t i = 0; i < m_rack.m_sources.size(); ++i ) {
+					m_data_readers[i]->get( spec, offset_sample_setter ) ;
+					offset_sample_setter.set_offset( offset_sample_setter.get_offset() + m_rack.m_sources[i]->number_of_samples() ) ;
+				}
+				return *this ;
+			}
+
+			// True if all the constituent sources support the spec.
+			bool supports( std::string const& spec ) const {
+				for( std::size_t i = 0; i < m_data_readers.size(); ++i ) {
+					if( !m_data_readers[i]->supports( spec )) {
+						return false ;
+					}
+				}
+				return true ;
+			}
+
+			private:
+				std::vector< VariantDataReader* > m_data_readers ;
+				SNPDataSourceRack& m_rack ;
+		} ;
 	}
 
-	SNPDataSourceRack::RackVariantDataReader& SNPDataSourceRack::RackVariantDataReader::get( std::string const& spec, PerSampleSetter setter ) {
-		impl::OffsetSampleSetter offset_sample_setter( setter, 0 ) ;
-		for( std::size_t i = 0; i < m_rack.m_sources.size(); ++i ) {
-			m_data_readers[i]->get( spec, offset_sample_setter ) ;
-			offset_sample_setter.set_offset( offset_sample_setter.get_offset() + m_rack.m_sources[i]->number_of_samples() ) ;
-		}
-		return *this ;
+	VariantDataReader::UniquePtr SNPDataSourceRack::read_variant_data_impl() {
+		VariantDataReader::UniquePtr result( new impl::RackVariantDataReader( *this ) ) ;
+		return result ;
 	}
 
 	void SNPDataSourceRack::read_snp_probability_data_impl(

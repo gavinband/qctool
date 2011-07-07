@@ -45,6 +45,7 @@ namespace genfile {
 		std::string get_source_spec() const ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 		void set_genotype_probability_field( std::string const& ) ;
+		void set_intensity_field( std::string const& ) ;
 
 		std::size_t get_index_of_first_data_line() const { return m_metadata_parser.get_number_of_lines() + 1 ; }
 		std::size_t get_index_of_first_data_column() const { return 9 ; }
@@ -78,7 +79,7 @@ namespace genfile {
 		typedef boost::ptr_map< std::string, vcf::VCFEntryType > EntryTypeMap ;
 		EntryTypeMap m_info_types ;
 		EntryTypeMap m_format_types ;
-		std::string m_genotype_probability_field ;
+		std::map< std::string, std::string > m_field_mapping ;
 
 		std::vector< std::string > const m_column_names ;
 		std::size_t const m_number_of_samples ;

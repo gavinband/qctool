@@ -121,7 +121,7 @@ namespace genfile {
 			m_stream_ptr = open_text_file_for_input( m_haplotypes_filename, m_compression_type ) ;
 		}
 		if( !stream() ) {
-			throw OperationFailedError() ;
+			throw OperationFailedError( "genfile::ImputeHaplotypesSNPDataSource::reset_to_start_impl()", get_source_spec(), "reset to start" ) ;
 		}
 		m_good = true ;
 	}

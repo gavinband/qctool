@@ -20,6 +20,31 @@ namespace genfile {
 	public:
 		virtual ~VariantDataReader() {} ;
 		virtual VariantDataReader& get( std::string const& spec, PerSampleSetter setter ) = 0 ;
+		virtual bool supports( std::string const& spec ) const = 0 ;
+		
+		struct VectorSetter {
+		public:
+			VectorSetter( std::vector< std::vector< Entry > >& values ):
+				m_values( values )
+			{}
+
+			VectorSetter( VectorSetter const& other ):
+				m_values( other.m_values )
+			{}
+			
+			void operator()( std::size_t i, std::vector< VariantDataReader::Entry > const& values ) {
+				if( m_values.size() < (i+1) ) {
+					m_values.resize( i+1 ) ;
+				}
+				m_values[i] = values ;
+			}
+		private:
+			std::vector< std::vector< Entry > >& m_values ;
+		} ;
+		
+		static VectorSetter set( std::vector< std::vector< Entry > >& values ) {
+			return VectorSetter( values ) ;
+		}
 
 		template< typename Setter >
 		struct GenotypeSetter {

@@ -74,6 +74,11 @@ namespace genfile {
 				}
 				return *this ;
 			}
+			
+			bool supports( std::string const& spec ) const {
+				return spec == "genotypes" ;
+			}
+
 		private:
 			std::vector< double > m_genotypes ;
 		} ;

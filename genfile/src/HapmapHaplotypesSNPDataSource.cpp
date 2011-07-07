@@ -88,7 +88,7 @@ namespace genfile {
 		std::string line ;
 		std::getline( *m_stream_ptr, line ) ;
 		if( !stream() ) {
-			throw OperationFailedError() ;
+			throw OperationFailedError( "genfile::HapmapHaplotypesSNPDataSource::reset_to_start_impl()", get_source_spec(), "reset to start" ) ;
 		}
 	}
 	
