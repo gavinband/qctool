@@ -47,7 +47,7 @@ def check_for_3rd_party_components( conf ):
 	check_for_boost_components( conf )
 	check_for_zlib( conf )
 	conf.define( 'HAVE_SQLITE3', 1 )
-
+	conf.check_cxx( lib = 'dl', uselib_store='DL' )	
 def check_for_boost_components( conf ):
 	conf.check_tool( 'boost' )
 	if check_for_boost_headers( conf, '1.36.1' ):
