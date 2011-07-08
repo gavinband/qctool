@@ -24,7 +24,6 @@ namespace db {
 		void bind( std::size_t i, uint32_t value ) const ;
 		void bind( std::size_t i, int64_t value ) const ;
 		void bind( std::size_t i, uint64_t value ) const ;
-		void bind( std::size_t i, std::size_t value ) const ;
 		void bind( std::size_t i, std::string const& value ) const ;
 		void bind( std::size_t i, char const* buffer, std::size_t n ) const ;
 
