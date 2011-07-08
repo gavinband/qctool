@@ -246,26 +246,16 @@ namespace genfile {
 		return prefix + m_spec ;
 	}
 	
-	void VCFFormatSNPDataSource::set_genotype_probability_field( std::string const& value ) {
-		// check_genotype_probability_field( value ) ;
-		FieldMapping::left_iterator where = m_field_mapping.left.find( "genotypes" ) ;
+	void VCFFormatSNPDataSource::set_field_mapping( std::string const& key, std::string const& value ) {
+		FieldMapping::left_iterator where = m_field_mapping.left.find( key ) ;
 		if( where == m_field_mapping.left.end() ) {
-			m_field_mapping.insert( FieldMapping::value_type( "genotypes", value )) ;
+			m_field_mapping.insert( FieldMapping::value_type( key, value )) ;
 		}
 		else {
 			m_field_mapping.left.replace_data( where, value ) ;
 		}
 	}
 	
-	void VCFFormatSNPDataSource::set_intensity_field( std::string const& value ) {
-		FieldMapping::left_iterator where = m_field_mapping.left.find( "intensities" ) ;
-		if( where == m_field_mapping.left.end() ) {
-			m_field_mapping.insert( FieldMapping::value_type( "intensities", value )) ;
-		}
-		else {
-			m_field_mapping.left.replace_data( where, value ) ;
-		}
-	}
 	
 	namespace impl {
 		void read_element( std::istream& stream, std::string& elt, char delim, std::size_t column ) {
@@ -417,10 +407,10 @@ namespace genfile {
 						// problem with entry.
 						if( e.has_column() ) {
 							// error column is the individual index (starting from 0), we add 9 to get the column number.
-							throw MalformedInputError( m_source.get_source_spec(), m_source.number_of_snps_read() + m_source.get_index_of_first_data_line(), e.column() + m_source.get_index_of_first_data_column() ) ;
+							throw MalformedInputError( m_source.get_source_spec(), m_source.number_of_snps_read() - 1 + m_source.get_index_of_first_data_line(), e.column() + m_source.get_index_of_first_data_column() ) ;
 						}
 						else {
-							throw MalformedInputError( m_source.get_source_spec(), m_source.number_of_snps_read() + m_source.get_index_of_first_data_line() + m_source.get_index_of_first_data_column() ) ;
+							throw MalformedInputError( m_source.get_source_spec(), m_source.number_of_snps_read() -1 + m_source.get_index_of_first_data_line() + m_source.get_index_of_first_data_column() ) ;
 						}
 					}
 				}

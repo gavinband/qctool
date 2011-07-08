@@ -273,19 +273,14 @@ public:
 
 		// VCF file options
 		options.declare_group( "VCF file options" ) ;
-		options[ "-vcf-genotype-field" ]
-			.set_description( "Specify the name of the field in a VCF or VCF-like file "
-				"from which genotype call probabilities will be taken. "
-				"This must either be the GT field (in which case calls are treated as certain "
-				"calls with the given genotype), or a field of type Float with Number equal to \"3\", \"G\", "
-				"or the missing value \".\"." )
+		options[ "-vcf-field-map" ]
+			.set_description(
+				"Specify a mapping of keys (such as \"genotypes\") which qctool will use internally, "
+				"to values (such as \"GT\") which are present in the VCF file.  This allows flexibility in the choice "
+				"of data used in a VCF file."
+			)
 			.set_takes_single_value()
-			.set_default_value( "GT" ) ;
-		options[ "-vcf-intensity-field" ]
-			.set_description( "Specify the name of the field in a VCF or VCF-like file "
-				"from which SNP intensities will be taken." )
-			.set_takes_single_value()
-			.set_default_value( "XY" ) ;
+			.set_default_value( "genotypes:GT" ) ;
 		options[ "-vcf-metadata" ]
 			.set_description(
 				"Specify the name of a file containing VCF metadata to be used to parse "
@@ -1306,8 +1301,20 @@ private:
 		{
 			genfile::VCFFormatSNPDataSource* vcf_source = dynamic_cast< genfile::VCFFormatSNPDataSource* >( source.get() ) ;
 			if( vcf_source ) {
-				vcf_source->set_genotype_probability_field( m_options.get_value< std::string >( "-vcf-genotype-field" )) ;
-				vcf_source->set_intensity_field( m_options.get_value< std::string >( "-vcf-intensity-field" )) ;
+				std::vector< std::string > fields = genfile::string_utils::split_and_strip(
+					m_options.get_value< std::string >( "-vcf-field-map" ),
+					","
+					" \t"
+				) ;
+				for( std::size_t i = 0; i < fields.size(); ++i ) {
+					std::vector< std::string > key_value = genfile::string_utils::split_and_strip( fields[i], ":", " \t" ) ;
+					if( key_value.size() != 2 ) {
+						throw genfile::BadArgumentError(
+							"QCToolCmdLineContext::open_snp_data_source()", "-vcf-field-map=\"" + m_options.get_value< std::string >( "-vcf-field-map" ) + "\"."
+						) ;
+					}
+					vcf_source->set_field_mapping( key_value[0], key_value[1] ) ;
+				}
 
 				if( m_options.check_if_option_has_value( "-vcf-metadata" )) {
 					vcf_source->update_metadata(

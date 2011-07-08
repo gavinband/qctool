@@ -1,3 +1,8 @@
+#ifndef GENFILE_ZLIB_HPP
+#define GENFILE_ZLIB_HPP
+
+#include <vector>
+#include "../config.hpp"
 #ifdef HAVE_ZLIB
 #include <sstream>
 #include <zlib.h>
@@ -26,7 +31,7 @@ namespace genfile {
 			assert( result == Z_OK ) ;
 			dest->resize( compressed_size ) ;
 		#else
-			assert( 0 ) // no zlib support.
+			assert( 0 ) ; // no zlib support.
 		#endif
 	}
 
@@ -43,7 +48,9 @@ namespace genfile {
 			assert( dest_size % sizeof( T ) == 0 ) ;
 			dest->resize( dest_size / sizeof( T )) ;
 		#else
-			assert( 0 ) // no zlib support.
+			assert( 0 ) ; // no zlib support.
 		#endif
 	}
 }
+
+#endif

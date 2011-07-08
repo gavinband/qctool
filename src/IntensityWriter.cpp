@@ -1,10 +1,11 @@
 #include <iostream>
+#include <boost/bind.hpp>
 #include "genfile/FileUtils.hpp"
-#include "IntensityWriter.hpp"
 #include "db/SQLite3Connection.hpp"
 #include "db/SQLStatement.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/zlib.hpp"
+#include "IntensityWriter.hpp"
 
 IntensityWriter::IntensityWriter( std::string const& filename ):
 	m_filename( filename ),
@@ -16,33 +17,27 @@ IntensityWriter::IntensityWriter( std::string const& filename ):
 void IntensityWriter::setup( db::Connection& connection ) {
 	db::Connection::StatementPtr statement ;
 	statement = connection.get_statement(
-		"CREATE TABLE IF NOT EXISTS Storage ( id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE )"
+		"CREATE TABLE IF NOT EXISTS Meta ( id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, description TEXT )"
 	) ;
 	statement->step() ;
 	statement = connection.get_statement(
-		"INSERT OR REPLACE INTO Storage VALUES( ?1, ?2 ) ;"
+		"INSERT OR REPLACE INTO Meta VALUES( ?1, ?2, ?3 ) ;"
 	) ;
 	statement->bind( 1, 1 ) ;
-	statement->bind( 2, "uncompressed data" ) ;
-	statement->step() ;
-	statement->reset() ;
-	statement->bind( 1, 2 ) ;
-	statement->bind( 2, "Gzip compressed data" ) ;
+	statement->bind( 2, "no compression" ) ;
+	statement->bind( 3, "Indicates that the data is not compressed" ) ;
 	statement->step() ;
 
-	statement = connection.get_statement(
-		"CREATE TABLE IF NOT EXISTS Field ( id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE )"
-	) ;
-	statement->step() ;
-	statement = connection.get_statement(
-		"INSERT OR REPLACE INTO Field VALUES( ?1, ?2 ) ;"
-	) ;
-	statement->bind( 1, 0 ) ;
-	statement->bind( 2, "genotypes" ) ;
-	statement->step() ;
 	statement->reset() ;
-	statement->bind( 1, 1 ) ;
-	statement->bind( 2, "intensities" ) ;
+	statement->bind( 1, 2 ) ;
+	statement->bind( 2, "zlib compression" ) ;
+	statement->bind( 3, "Indicates that the data is compressed with zlib" ) ;
+	statement->step() ;
+
+	statement->reset() ;
+	statement->bind( 1, 3 ) ;
+	statement->bind( 2, "bzip2 compression" ) ;
+	statement->bind( 3, "Indicates that the data is compressed with libbzip2" ) ;
 	statement->step() ;
 
 	statement = connection.get_statement(
@@ -80,16 +75,17 @@ void IntensityWriter::begin_processing_snps( std::size_t number_of_samples, std:
 
 void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 	std::vector< std::string > fields ;
-	fields.push_back( "genotypes" ) ;
-	fields.push_back( "intensities" ) ;
+	data_reader.get_supported_specs( boost::bind( &std::vector< std::string >::push_back, &fields, _1 )) ;
+	
 	try {
+		db::Connection::StatementPtr statement ;
 		db::Connection::StatementPtr transaction = m_connection->get_statement(
 			"BEGIN"
 		) ;
 		transaction->step() ;
-		
+
 		{
-			db::Connection::StatementPtr statement  = m_connection->get_statement(
+			statement  = m_connection->get_statement(
 				"INSERT INTO SNP VALUES( ?1, ?2, ?3, ?4, ?5, ?6 )"
 			) ;
 			statement->bind( 1, m_number_of_snps_written ) ;
@@ -103,7 +99,32 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 		
 		for( std::size_t field_i = 0; field_i < fields.size(); ++field_i ) {
 			std::string const field = fields[ field_i ] ;
+			// Make sure we've got these fields in Meta
+			statement = m_connection->get_statement(
+				"SELECT id FROM Meta WHERE name == ?1"
+			) ;
+			statement->bind( 1, field ) ;
+			statement->step() ;
+			if( statement->empty() ) {
+				statement = m_connection->get_statement(
+					"INSERT INTO Meta( name ) VALUES( ?1 )"
+				) ;
+				statement->bind( 1, field ) ;
+				statement->step() ;
 
+				statement = m_connection->get_statement(
+					"SELECT id FROM Meta WHERE name == ?1"
+				) ;
+				statement->bind( 1, field ) ;
+				statement->step() ;
+			}
+
+			std::size_t meta_id = statement->get_column< int >( 0 ) ;
+			statement->step() ;
+			if( !statement->empty() ) {
+				throw genfile::DuplicateKeyError( m_filename + ":Meta", "name=\"" + field + "\"" ) ;
+			}
+			
 			std::vector< std::vector< genfile::VariantEntry > > data( m_number_of_samples ) ;
 			data_reader.get( field, genfile::VariantDataReader::set( data ) ) ;
 			assert( data.size() == m_number_of_samples ) ;
@@ -128,7 +149,7 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 				"INSERT INTO Data VALUES( ?1, ?2, ?3, ?4, ?5 )"
 			) ;
 			statement->bind( 1, m_number_of_snps_written ) ;
-			statement->bind( 2, field_i ) ;
+			statement->bind( 2, meta_id ) ;
 			statement->bind( 3, 2 ) ; // gzip compressed data.
 			statement->bind( 4, buffer.size() ) ;
 			statement->bind( 5, &buffer[0], buffer.size() ) ;

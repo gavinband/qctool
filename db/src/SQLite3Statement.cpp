@@ -29,11 +29,8 @@ namespace db {
 		return m_have_results ;
 	}
 
-	SQLite3Statement::operator void*() const {
-		if( m_have_results ) {
-			return reinterpret_cast< void* >( m_statement ) ;
-		}
-		return 0 ;
+	bool SQLite3Statement::empty() const {
+		return !m_have_results ;
 	}
 
 	std::size_t SQLite3Statement::get_number_of_columns() const {

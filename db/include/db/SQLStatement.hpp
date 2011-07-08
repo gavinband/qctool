@@ -27,7 +27,10 @@ namespace db {
 		// Return false if there is no next row, otherwise true.
 		virtual bool step() = 0 ;
 		// Return 
-		virtual operator void*() const = 0 ;
+		virtual bool empty() const = 0 ;
+		
+		// Get the result for the given column.
+		// Columns are 0-indexed.
 		template< typename T > T get_column( int column_id ) const ;
 		
 		virtual std::size_t get_number_of_columns() const = 0 ;

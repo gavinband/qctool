@@ -45,8 +45,7 @@ namespace genfile {
 		unsigned int total_number_of_snps() const ;
 		std::string get_source_spec() const ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
-		void set_genotype_probability_field( std::string const& ) ;
-		void set_intensity_field( std::string const& ) ;
+		void set_field_mapping( std::string const& key, std::string const& value ) ;
 
 		std::size_t get_index_of_first_data_line() const { return m_metadata_parser.get_number_of_lines() + 1 ; }
 		std::size_t get_index_of_first_data_column() const { return 9 ; }

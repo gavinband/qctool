@@ -16,8 +16,8 @@ namespace db {
 		SQLite3Statement( SQLite3Connection* connector, std::string const& SQL ) ;
 		~SQLite3Statement() ;
 		bool step() ;
-		operator void*() const ;
-
+		bool empty() const ;
+		
 		std::size_t get_number_of_columns() const ;
 		std::string get_name_of_column( std::size_t i ) const ;
 		void bind( std::size_t i, int value ) const ;
