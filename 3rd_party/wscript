@@ -14,13 +14,3 @@ def build( bld ):
 		uselib = 'DL',
 		export_incdirs = 'sqlite3'
 	)
-
-	bld(
-		features = 'cc cshlib',
-		target = 'sqlite3_zlib',
-		source = [ 'sqlite3/sqlite3/mycompress.c' ],
-		includes = 'sqlite3/',
-		uselib_local = 'sqlite3',
-		uselib = 'SQLITE3 ZLIB',
-		export_incdirs = 'sqlite3'
-	)
