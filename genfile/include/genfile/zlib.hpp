@@ -36,9 +36,9 @@ namespace genfile {
 			dest->resize( compressed_size + 8 ) ;
 			// Write the compressed size as a 64-bit unsigned integer
 			// in little-endian (low-order byte first) format.
-			uint64_t compressed_size64 = compressed_size ;
+			uint64_t uncompressed_size = ( source.size() * sizeof( T ) ) ;
 			for( std::size_t byte = 0; byte < 8; ++byte ) {
-				dest->operator[]( byte ) = ( compressed_size64 >> ( byte * 8 ) ) && 0xFF ;
+				(*dest)[ byte ] = ( uncompressed_size >> ( byte * 8 ) ) & 0xFF ;
 			}
 		#else
 			assert( 0 ) ; // no zlib support.

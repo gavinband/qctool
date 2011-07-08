@@ -189,7 +189,7 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 			statement->bind( 1, snp_row_id ) ;
 			statement->bind( 2, meta_id ) ;
 			statement->bind( 3, 2 ) ; // gzip compressed data.
-			statement->bind( 4, uint64_t( buffer.size() ) ) ;
+			statement->bind( 4, uint64_t( values.size() * sizeof( double ) ) ) ;
 			statement->bind( 5, &buffer[0], buffer.size() ) ;
 			statement->step() ;
 		}
