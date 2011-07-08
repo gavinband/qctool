@@ -4,6 +4,7 @@
 #include <cassert>
 #include <string>
 #include <exception>
+#include <stdint.h>
 #include "sqlite3/sqlite3.h"
 #include "db/SQLite3Connection.hpp"
 
@@ -39,7 +40,10 @@ namespace db {
 		// For parameterised queries, bind an integer value to the ith placeholder.
 		// Placeholders are indexed starting from 1 on the left.
 		// Named placeholders with the same name have the same index.
-		virtual void bind( std::size_t i, int value ) const = 0 ;
+		virtual void bind( std::size_t i, int32_t value ) const = 0 ;
+		virtual void bind( std::size_t i, uint32_t value ) const = 0 ;
+		virtual void bind( std::size_t i, int64_t value ) const = 0 ;
+		virtual void bind( std::size_t i, uint64_t value ) const = 0 ;
 		// For parameterised queries, bind a string value to the ith placeholder.
 		// Placeholders are indexed starting from 1 on the left.
 		// Named placeholders with the same name have the same index.
@@ -59,12 +63,14 @@ namespace db {
 		
 	protected:
 		virtual int get_column_int( int column_id ) const = 0 ;
+		virtual int64_t get_column_int64( int column_id ) const = 0 ;
 		virtual double get_column_double( int column_id ) const = 0 ;
 		virtual std::string get_column_string( int column_id ) const = 0 ;
 		virtual char get_column_char( int column_id ) const = 0 ;
 	} ;
 	
 	template<> int SQLStatement::get_column< int >( int column_id ) const ;
+	template<> int64_t SQLStatement::get_column< int64_t >( int column_id ) const ;
 	template<> double SQLStatement::get_column< double >( int column_id ) const ;
 	template<> std::string SQLStatement::get_column< std::string >( int column_id ) const ;
 }

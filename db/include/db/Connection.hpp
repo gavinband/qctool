@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <stdint.h>
 
 namespace db {
 
@@ -22,6 +23,8 @@ namespace db {
 
 		virtual StatementPtr get_statement( std::string const& SQL ) = 0 ;
 		virtual std::string get_spec() const = 0 ;
+		typedef int64_t RowId ;
+		virtual RowId get_last_insert_row_id() const = 0 ;
 	} ;	
 }
 

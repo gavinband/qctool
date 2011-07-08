@@ -27,7 +27,7 @@ AUTO_TEST_CASE( test_get_unique_id ) {
 			"INSERT INTO Fields VALUES( ?1, ?2 ) ;"
 		) ;
 		
-		for( std::size_t i = 0; i < 10; ++i ) {
+		for( uint64_t i = 0; i < 10; ++i ) {
 			statement->reset() ;
 			statement->bind( 1, i ) ;
 			statement->bind( 2, i*2 ) ;

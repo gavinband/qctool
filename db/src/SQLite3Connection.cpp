@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include "db/SQLite3Connection.hpp"
 #include "db/SQLite3Statement.hpp"
 
@@ -5,6 +6,11 @@ namespace db {
 	SQLite3Connection::StatementPtr SQLite3Connection::get_statement( std::string const& SQL ) {
 		return StatementPtr( new SQLite3Statement( this, SQL ) ) ;
 	}	
+
+	Connection::RowId SQLite3Connection::get_last_insert_row_id() const {
+		uint64_t result = sqlite3_last_insert_rowid( m_db_connection ) ;
+		return result ;
+	}
 
 	sqlite3_stmt* SQLite3Connection::prepare_sql( std::string const& SQL ) const {
 		assert( m_db_connection != 0 ) ;

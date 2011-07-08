@@ -41,13 +41,26 @@ void IntensityWriter::setup( db::Connection& connection ) {
 	statement->step() ;
 
 	statement = connection.get_statement(
-		"CREATE TABLE IF NOT EXISTS SNP ( id INTEGER PRIMARY KEY, rsid TEXT NOT NULL, chromosome TEXT NOT NULL, position INTEGER NOT NULL, alleleA TEXT NOT NULL, alleleB TEXT NOT NULL )"
+		"CREATE TABLE IF NOT EXISTS SNP ( "
+		"id INTEGER PRIMARY KEY, "
+		"rsid TEXT NOT NULL, "
+		"chromosome TEXT NOT NULL, "
+		"position INTEGER NOT NULL, "
+		"alleleA TEXT NOT NULL, "
+		"alleleB TEXT NOT NULL, "
+		"UNIQUE( rsid, chromosome, position ) "
+		")"
 	) ;
 	statement->step() ;
 	statement = connection.get_statement(
-		"DELETE FROM SNP"
+		"CREATE INDEX IF NOT EXISTS SNP_rsid ON SNP( rsid )"
 	) ;
 	statement->step() ;
+	statement = connection.get_statement(
+		"CREATE INDEX IF NOT EXISTS SNP_position ON SNP( chromosome, position )"
+	) ;
+	statement->step() ;
+	
 	statement = connection.get_statement(
 		"CREATE TABLE IF NOT EXISTS Data ( "
 			"snp_id INTEGER NOT NULL, "
@@ -84,18 +97,42 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 		) ;
 		transaction->step() ;
 
+
+		db::Connection::RowId snp_row_id ;
 		{
 			statement  = m_connection->get_statement(
-				"INSERT INTO SNP VALUES( ?1, ?2, ?3, ?4, ?5, ?6 )"
+				"SELECT id, rsid, chromosome, position, alleleA, alleleB FROM SNP WHERE rsid = ?1 AND chromosome = ?2 AND position = ?3"
 			) ;
-			statement->bind( 1, m_number_of_snps_written ) ;
-			statement->bind( 2, snp.get_rsid() ) ;
-			statement->bind( 3, genfile::string_utils::to_string( snp.get_position().chromosome() )) ;
-			statement->bind( 4, snp.get_position().position() ) ;
-			statement->bind( 5, std::string( 1, snp.get_first_allele() ) ) ;
-			statement->bind( 6, std::string( 1, snp.get_second_allele() ) ) ;
+			statement->bind( 1, snp.get_rsid() ) ;
+			statement->bind( 2, genfile::string_utils::to_string( snp.get_position().chromosome() )) ;
+			statement->bind( 3, snp.get_position().position() ) ;
 			statement->step() ;
+			if( statement->empty() ) {
+				statement  = m_connection->get_statement(
+					"INSERT INTO SNP( rsid, chromosome, position, alleleA, alleleB ) VALUES( ?1, ?2, ?3, ?4, ?5 )"
+				) ;
+				statement->bind( 1, snp.get_rsid() ) ;
+				statement->bind( 2, genfile::string_utils::to_string( snp.get_position().chromosome() )) ;
+				statement->bind( 3, snp.get_position().position() ) ;
+				statement->bind( 4, std::string( 1, snp.get_first_allele() ) ) ;
+				statement->bind( 5, std::string( 1, snp.get_second_allele() ) ) ;
+				statement->step() ;
+				snp_row_id = m_connection->get_last_insert_row_id() ;
+			}
+			else {
+				snp_row_id = statement->get_column< db::Connection::RowId >( 0 ) ;
+				std::string alleleA = statement->get_column< std::string >( 4 ) ;
+				std::string alleleB = statement->get_column< std::string >( 5 ) ;
+				if( alleleA != std::string( 1, snp.get_first_allele() ) || alleleB != std::string( 1, snp.get_second_allele() )) {
+					throw genfile::MismatchError(
+						"IntensityWriter::processed_snp()", m_filename + ":SNP",
+						genfile::string_utils::to_string( snp ),
+						"entry with id " + genfile::string_utils::to_string( snp_row_id )
+					) ;
+				}
+			}
 		}
+		// If we get here, the right SNP is present and we have its snp_row_id.
 		
 		for( std::size_t field_i = 0; field_i < fields.size(); ++field_i ) {
 			std::string const field = fields[ field_i ] ;
@@ -119,12 +156,13 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 				statement->step() ;
 			}
 
-			std::size_t meta_id = statement->get_column< int >( 0 ) ;
+			db::Connection::RowId meta_id = statement->get_column< int >( 0 ) ;
 			statement->step() ;
 			if( !statement->empty() ) {
 				throw genfile::DuplicateKeyError( m_filename + ":Meta", "name=\"" + field + "\"" ) ;
 			}
 			
+			// Compress the data and store it.
 			std::vector< std::vector< genfile::VariantEntry > > data( m_number_of_samples ) ;
 			data_reader.get( field, genfile::VariantDataReader::set( data ) ) ;
 			assert( data.size() == m_number_of_samples ) ;
@@ -148,10 +186,10 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 			db::Connection::StatementPtr statement = m_connection->get_statement(
 				"INSERT INTO Data VALUES( ?1, ?2, ?3, ?4, ?5 )"
 			) ;
-			statement->bind( 1, m_number_of_snps_written ) ;
+			statement->bind( 1, snp_row_id ) ;
 			statement->bind( 2, meta_id ) ;
 			statement->bind( 3, 2 ) ; // gzip compressed data.
-			statement->bind( 4, buffer.size() ) ;
+			statement->bind( 4, uint64_t( buffer.size() ) ) ;
 			statement->bind( 5, &buffer[0], buffer.size() ) ;
 			statement->step() ;
 		}

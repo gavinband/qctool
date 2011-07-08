@@ -52,9 +52,9 @@ namespace db {
 	public:
 
 		StatementPtr get_statement( std::string const& SQL ) ;
-	
-	public:
+		RowId get_last_insert_row_id() const ;
 
+	public:
 		sqlite3_stmt* prepare_sql( std::string const& SQL ) const ;
 		int finalise_statement( sqlite3_stmt* statement ) ;
 		int step_statement( sqlite3_stmt* statement ) ;

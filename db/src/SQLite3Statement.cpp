@@ -43,9 +43,33 @@ namespace db {
 		return std::string( sqlite3_column_origin_name( m_statement, i )) ;
 	}
 
-	void SQLite3Statement::bind( std::size_t i, int value ) const {
+	void SQLite3Statement::bind( std::size_t i, int32_t value ) const {
 		assert( m_statement != 0 ) ;
 		int error = sqlite3_bind_int( m_statement, i, value ) ;
+		if( error != SQLITE_OK ) {
+			throw SQLite3Error( "SQLite3Statement::bind()", error ) ;
+		}
+	}
+
+	void SQLite3Statement::bind( std::size_t i, uint32_t value ) const {
+		assert( m_statement != 0 ) ;
+		int error = sqlite3_bind_int( m_statement, i, value ) ;
+		if( error != SQLITE_OK ) {
+			throw SQLite3Error( "SQLite3Statement::bind()", error ) ;
+		}
+	}
+
+	void SQLite3Statement::bind( std::size_t i, int64_t value ) const {
+		assert( m_statement != 0 ) ;
+		int error = sqlite3_bind_int64( m_statement, i, sqlite3_int64( value ) ) ;
+		if( error != SQLITE_OK ) {
+			throw SQLite3Error( "SQLite3Statement::bind()", error ) ;
+		}
+	}
+
+	void SQLite3Statement::bind( std::size_t i, uint64_t value ) const {
+		assert( m_statement != 0 ) ;
+		int error = sqlite3_bind_int64( m_statement, i, sqlite3_int64( value ) ) ;
 		if( error != SQLITE_OK ) {
 			throw SQLite3Error( "SQLite3Statement::bind()", error ) ;
 		}
@@ -83,6 +107,11 @@ namespace db {
 	int SQLite3Statement::get_column_int( int column_id ) const {
 		assert( m_statement != 0 ) ;
 		return sqlite3_column_int( m_statement, column_id ) ;
+	}
+
+	int64_t SQLite3Statement::get_column_int64( int column_id ) const {
+		assert( m_statement != 0 ) ;
+		return sqlite3_column_int64( m_statement, column_id ) ;
 	}
 
 	double SQLite3Statement::get_column_double( int column_id ) const {

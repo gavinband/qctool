@@ -1,5 +1,6 @@
 #include <cassert>
 #include <string>
+#include <stdint.h>
 #include "sqlite3/sqlite3.h"
 #include "db/SQLStatement.hpp"
 
@@ -10,6 +11,11 @@ namespace db {
 	template<>
 	int SQLStatement::get_column< int >( int column_id ) const {
 		return this->get_column_int( column_id ) ;
+	}
+
+	template<>
+	int64_t SQLStatement::get_column< int64_t >( int column_id ) const {
+		return this->get_column_int64( column_id ) ;
 	}
 
 	template<>

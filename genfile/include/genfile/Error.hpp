@@ -57,23 +57,28 @@ namespace genfile {
 		// Error thrown when two objects that should match (in some respect)
 		// actually don't match.
 	{
-		MismatchError( std::string const& object1, std::string const& object2 ):
-			m_object1( object1 ),
-			m_object2( object2 )
+		MismatchError( std::string const& caller, std::string const& source, std::string const& key1, std::string const& key2 ):
+			m_caller( caller ),
+			m_source( source ),
+			m_key1( key1 ),
+			m_key2( key2 )
 		{}
 
 		MismatchError( MismatchError const& other ):
-			m_object1( other.m_object1 ),
-			m_object2( other.m_object2 )
+			m_caller( other.m_caller ),
+			m_source( other.m_source ),
+			m_key1( other.m_key1 ),
+			m_key2( other.m_key2 )
 		{}
 		
 		~MismatchError() throw() {}
 		char const* what() const throw() { return "genfile::MismatchError" ; }
-		std::string const& object1() const { return m_object1 ; }
-		std::string const& object2() const { return m_object2 ; }
+		std::string const& source() const { return m_source ; } 
+		std::string const& caller() const { return m_caller ; } 
+		std::string const& key1() const { return m_key1 ; }
+		std::string const& key2() const { return m_key2 ; }
 	private:
-		
-		std::string const m_object1, m_object2 ;
+		std::string const m_caller, m_source, m_key1, m_key2 ;
 	} ;
 	
 	struct InputError: public std::exception 
