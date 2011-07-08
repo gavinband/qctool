@@ -695,6 +695,10 @@ struct QCToolCmdLineContext: public QCToolContext
 			m_ui_context.logger() << "\nKey \"" << e.key() << "\" was not found in source \"" << e.source() << "\".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
+		catch ( genfile::DuplicateKeyError const& e ) {
+			m_ui_context.logger() << "\nError (" << e.what() << "): Duplicate key \"" << e.key() << "\" was found encountered in source \"" << e.source() << "\".\n" ;
+			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+		}
 		catch( statfile::FileNotOpenedError const& e ) {
 			m_ui_context.logger() << "\nError: No file matching \"" << e.filename() << "\" could be found.\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
