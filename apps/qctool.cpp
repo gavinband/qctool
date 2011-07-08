@@ -1314,7 +1314,7 @@ private:
 					std::vector< std::string > key_value = genfile::string_utils::split_and_strip( fields[i], ":", " \t" ) ;
 					if( key_value.size() != 2 ) {
 						throw genfile::BadArgumentError(
-							"QCToolCmdLineContext::open_snp_data_source()", "-vcf-field-map=\"" + m_options.get_value< std::string >( "-vcf-field-map" ) + "\"."
+							"QCToolCmdLineContext::open_snp_data_source()", "vcf field map \"" + fields[i] + "\"."
 						) ;
 					}
 					vcf_source->set_field_mapping( key_value[0], key_value[1] ) ;
@@ -1925,7 +1925,15 @@ private:
 		) ;
 		
 		genfile::SimpleSNPDataSourceProcessor processor ;
-		processor.add_callback( qctool_basic ) ;
+
+		if(
+			options().check_if_option_was_supplied( "-snp-stats" )
+			|| options().check_if_option_was_supplied( "-sample-stats" )
+			|| options().check_if_option_was_supplied( "-og" )
+			|| options().check_if_option_was_supplied( "-os" )
+		) {
+			processor.add_callback( qctool_basic ) ;
+		}
 		
 		std::auto_ptr< Relatotron > relatotron ;
 		if( options().check_if_option_was_supplied_in_group( "Relatedness options" )) {
