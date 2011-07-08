@@ -301,7 +301,7 @@ namespace genfile {
 						throw BadArgumentError( "genfile::vcf::get_specs()", "metadata" ) ;
 					}
 					else if( !result.insert( where->second, VCFEntryType::create( range.first->second ) ).second ) {
-							assert(0) ;
+						throw DuplicateKeyError( "result of genfile::vcf::get_entry_types", key + " field with ID=\"" + where->second + "\"" ) ;
 					}
 				}
 				return result.release() ;
