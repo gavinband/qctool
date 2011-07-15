@@ -1931,6 +1931,7 @@ private:
 			|| options().check_if_option_was_supplied( "-sample-stats" )
 			|| options().check_if_option_was_supplied( "-og" )
 			|| options().check_if_option_was_supplied( "-os" )
+			|| options().check_if_option_was_supplied( "-op" )
 		) {
 			processor.add_callback( qctool_basic ) ;
 		}

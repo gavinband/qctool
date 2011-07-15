@@ -17,12 +17,12 @@ namespace data {
 		uint32_t reserved = 0;
 		std::ostringstream oStream ;
 		uint32_t header_length = free_data.size() + 20 ;
-		write_little_endian_integer( oStream, header_length ) ;
-		write_little_endian_integer( oStream, number_of_snp_blocks ) ;
-		write_little_endian_integer( oStream, number_of_samples ) ;
-		write_little_endian_integer( oStream, reserved ) ;
+		genfile::write_little_endian_integer( oStream, header_length ) ;
+		genfile::write_little_endian_integer( oStream, number_of_snp_blocks ) ;
+		genfile::write_little_endian_integer( oStream, number_of_samples ) ;
+		genfile::write_little_endian_integer( oStream, reserved ) ;
 		oStream.write( free_data.data(), free_data.size() ) ;
-		write_little_endian_integer( oStream, flags ) ;
+		genfile::write_little_endian_integer( oStream, flags ) ;
 
 		return oStream.str() ;
 	}

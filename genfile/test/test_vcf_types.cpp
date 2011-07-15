@@ -137,7 +137,8 @@ AUTO_TEST_CASE( test_float ) {
 AUTO_TEST_CASE( test_fixed_number_entry_type ) {
 	std::cerr << "test_fixed_number_entry_type()..." ;
 
-	using namespace genfile ;
+	using genfile::BadArgumentError ;
+	using genfile::MissingValue ;
 	
 	// First test some simple parseable values.	
 	{
@@ -554,7 +555,7 @@ namespace impl {
 AUTO_TEST_CASE( test_one_per_genotype_entry_type ) {
 	std::cerr << "test_one_per_genotype_entry_type()..." ;
 
-	using namespace genfile ;
+	using genfile::BadArgumentError ;
 	using genfile::string_utils::to_string ;
 
 	typedef std::vector< Entry > Result ;

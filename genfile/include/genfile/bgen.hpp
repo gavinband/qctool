@@ -215,12 +215,12 @@ namespace genfile {
 
             template< typename IntegerType >
             void read_little_endian_integer( std::istream& in_stream, IntegerType* integer_ptr ) {
-                ::read_little_endian_integer( in_stream, integer_ptr ) ;
+                genfile::read_little_endian_integer( in_stream, integer_ptr ) ;
             }
 
             template< typename IntegerType >
             void write_little_endian_integer( std::ostream& out_stream, IntegerType integer ) {
-                ::write_little_endian_integer( out_stream, integer ) ;
+                genfile::write_little_endian_integer( out_stream, integer ) ;
             }
 
             template< typename FloatType >

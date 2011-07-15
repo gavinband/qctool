@@ -5,6 +5,7 @@
 #include "db/SQLStatement.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/zlib.hpp"
+#include "genfile/endianness_utils.hpp"
 #include "IntensityWriter.hpp"
 
 IntensityWriter::IntensityWriter( std::string const& filename ):
@@ -16,31 +17,21 @@ IntensityWriter::IntensityWriter( std::string const& filename ):
 
 void IntensityWriter::setup( db::Connection& connection ) {
 	db::Connection::StatementPtr statement ;
-	statement = connection.get_statement(
-		"CREATE TABLE IF NOT EXISTS Meta ( id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, description TEXT )"
+	connection.run_statement(
+		"CREATE TABLE IF NOT EXISTS Meta ( id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, description TEXT ); "
+		"CREATE INDEX IF NOT EXISTS Meta_name ON Meta( name )"
 	) ;
-	statement->step() ;
+
 	statement = connection.get_statement(
 		"INSERT OR REPLACE INTO Meta VALUES( ?1, ?2, ?3 ) ;"
 	) ;
+
 	statement->bind( 1, 1 ) ;
-	statement->bind( 2, "no compression" ) ;
-	statement->bind( 3, "Indicates that the data is not compressed" ) ;
+	statement->bind( 2, "zlib_compressed_serialized" ) ;
+	statement->bind( 4, "zlib compressed data, serialized using qctool." ) ;
 	statement->step() ;
 
-	statement->reset() ;
-	statement->bind( 1, 2 ) ;
-	statement->bind( 2, "zlib compression" ) ;
-	statement->bind( 3, "Indicates that the data is compressed with zlib" ) ;
-	statement->step() ;
-
-	statement->reset() ;
-	statement->bind( 1, 3 ) ;
-	statement->bind( 2, "bzip2 compression" ) ;
-	statement->bind( 3, "Indicates that the data is compressed with libbzip2" ) ;
-	statement->step() ;
-
-	statement = connection.get_statement(
+	connection.run_statement(
 		"CREATE TABLE IF NOT EXISTS SNP ( "
 		"id INTEGER PRIMARY KEY, "
 		"rsid TEXT NOT NULL, "
@@ -48,14 +39,14 @@ void IntensityWriter::setup( db::Connection& connection ) {
 		"position INTEGER NOT NULL, "
 		"alleleA TEXT NOT NULL, "
 		"alleleB TEXT NOT NULL, "
+		"FOREIGN KEY build_id REFERENCES Meta( id ),"
 		"UNIQUE( rsid, chromosome, position ) "
 		")"
 	) ;
-	statement->step() ;
-	statement = connection.get_statement(
+
+	connection.run_statement(
 		"CREATE INDEX IF NOT EXISTS SNP_rsid ON SNP( rsid )"
 	) ;
-	statement->step() ;
 	statement = connection.get_statement(
 		"CREATE INDEX IF NOT EXISTS SNP_position ON SNP( chromosome, position )"
 	) ;
@@ -74,6 +65,19 @@ void IntensityWriter::setup( db::Connection& connection ) {
 			") ;"
 	) ;
 	statement->step() ;
+	statement = connection.get_statement(
+		"CREATE INDEX IF NOT EXISTS Data_snp ON Data( snp_id )"
+	) ;
+	statement->step() ;
+	statement = connection.get_statement(
+		"CREATE INDEX IF NOT EXISTS Data_field ON Data( field_id )"
+	) ;
+	statement->step() ;
+	statement = connection.get_statement(
+		"CREATE INDEX IF NOT EXISTS Data_storage ON Data( storage_id )"
+	) ;
+	statement->step() ;
+
 	statement = connection.get_statement(
 		"DELETE FROM Data"
 	) ;
@@ -133,7 +137,7 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 			}
 		}
 		// If we get here, the right SNP is present and we have its snp_row_id.
-		
+
 		for( std::size_t field_i = 0; field_i < fields.size(); ++field_i ) {
 			std::string const field = fields[ field_i ] ;
 			// Make sure we've got these fields in Meta
@@ -167,6 +171,25 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 			data_reader.get( field, genfile::VariantDataReader::set( data ) ) ;
 			assert( data.size() == m_number_of_samples ) ;
 
+			// count the data
+			std::size_t count = 0 ;
+			for( std::size_t i = 0; i < data.size(); ++i ) {
+				count += data[i].size() ;
+			}
+
+			std::vector< char > buffer( count * 8 ) ;
+			{
+				char* begin = &buffer[0] ;
+				char* end = begin + buffer.size() ;
+				genfile::write_small_integer( begin, end, uint64_t( data.size() ) ) ;
+				for( std::size_t i = 0; i < data.size(); ++i ) {
+					begin = genfile::write_small_integer( begin, end, data[i].size() ) ;
+					for( std::size_t j = 0; j < data[i].size(); ++j ) {
+						begin = data[i][j].serialize( begin, end ) ;
+					}
+				}
+			}
+
 			// count the data.
 			std::vector< double > values ;
 			values.reserve( m_number_of_samples * 3 ) ;
@@ -181,14 +204,13 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 				}
 			}
 
-			std::vector< char > buffer ;
 			genfile::zlib_compress( values, &buffer ) ;
 			db::Connection::StatementPtr statement = m_connection->get_statement(
 				"INSERT INTO Data VALUES( ?1, ?2, ?3, ?4, ?5 )"
 			) ;
 			statement->bind( 1, snp_row_id ) ;
 			statement->bind( 2, meta_id ) ;
-			statement->bind( 3, 2 ) ; // gzip compressed data.
+			statement->bind( 3, 1 ) ; // zlib-compressed, serialised.
 			statement->bind( 4, uint64_t( values.size() * sizeof( double ) ) ) ;
 			statement->bind( 5, &buffer[0], buffer.size() ) ;
 			statement->step() ;

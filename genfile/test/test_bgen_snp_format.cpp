@@ -19,24 +19,24 @@ namespace data {
 		char b_allele
 	) {
 		std::ostringstream oStream ;
-		write_little_endian_integer( oStream, number_of_samples ) ;
-		write_little_endian_integer( oStream, max_id_size ) ;
-		write_little_endian_integer( oStream, static_cast< char >( SNPID.size() )) ;
+		genfile::write_little_endian_integer( oStream, number_of_samples ) ;
+		genfile::write_little_endian_integer( oStream, max_id_size ) ;
+		genfile::write_little_endian_integer( oStream, static_cast< char >( SNPID.size() )) ;
 		oStream.write( SNPID.data(), SNPID.size() ) ;
 		oStream.write( "                ", max_id_size - SNPID.size()) ;
-		write_little_endian_integer( oStream, static_cast< char >( RSID.size() )) ;
+		genfile::write_little_endian_integer( oStream, static_cast< char >( RSID.size() )) ;
 		oStream.write( RSID.data(), RSID.size() ) ;
 		oStream.write( "                ", max_id_size - RSID.size()) ;
 		unsigned char chr = chromosome ;
-		write_little_endian_integer( oStream, chr ) ;
-		write_little_endian_integer( oStream, SNP_position ) ;
+		genfile::write_little_endian_integer( oStream, chr ) ;
+		genfile::write_little_endian_integer( oStream, SNP_position ) ;
 		oStream.put( a_allele ) ;
 		oStream.put( b_allele ) ;
 		for( std::size_t i = 0; i < number_of_samples; ++i ) {
 			uint16_t AA = i, AB = i, BB = i ;
-			write_little_endian_integer( oStream, AA ) ;
-			write_little_endian_integer( oStream, AB ) ;
-			write_little_endian_integer( oStream, BB ) ;
+			genfile::write_little_endian_integer( oStream, AA ) ;
+			genfile::write_little_endian_integer( oStream, AB ) ;
+			genfile::write_little_endian_integer( oStream, BB ) ;
 		}
 
 		return oStream.str() ;

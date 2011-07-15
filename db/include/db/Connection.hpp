@@ -22,6 +22,7 @@ namespace db {
 		virtual ~Connection() {}
 
 		virtual StatementPtr get_statement( std::string const& SQL ) = 0 ;
+		virtual void run_statement( std::string const& SQL ) ;
 		virtual std::string get_spec() const = 0 ;
 		typedef int64_t RowId ;
 		virtual RowId get_last_insert_row_id() const = 0 ;
