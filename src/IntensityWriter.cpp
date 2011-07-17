@@ -67,27 +67,15 @@ void IntensityWriter::setup( db::Connection& connection ) {
 	) ;
 	statement->step() ;
 	statement = connection.get_statement(
-<<<<<<< local
-		"CREATE INDEX IF NOT EXISTS Data_index ON Data( snp_id, field_id, storage_id )"
-=======
 		"CREATE INDEX IF NOT EXISTS Data_snp ON Data( snp_id )"
->>>>>>> other
 	) ;
 	statement->step() ;
 	statement = connection.get_statement(
-<<<<<<< local
-=======
 		"CREATE INDEX IF NOT EXISTS Data_field ON Data( field_id )"
 	) ;
 	statement->step() ;
 	statement = connection.get_statement(
 		"CREATE INDEX IF NOT EXISTS Data_storage ON Data( storage_id )"
-	) ;
-	statement->step() ;
-
-	statement = connection.get_statement(
->>>>>>> other
-		"DELETE FROM Data"
 	) ;
 	statement->step() ;
 }
@@ -198,29 +186,16 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 				}
 			}
 
-			// count the data.
-			std::vector< double > values ;
-			values.reserve( m_number_of_samples * 3 ) ;
-			for( std::size_t i = 0; i < m_number_of_samples; ++i ) {
-				for( std::size_t j = 0; j < data[i].size(); ++j ) {
-					if( data[i][j].is_missing() ) {
-						values.push_back( std::numeric_limits< double >::quiet_NaN() ) ;
-					}
-					else {
-						values.push_back( data[i][j].as< double >() ) ;
-					}
-				}
-			}
-
-			genfile::zlib_compress( values, &buffer ) ;
+			std::vector< char > compressed_buffer( count * 8 ) ;
+			genfile::zlib_compress( buffer, &compressed_buffer ) ;
 			db::Connection::StatementPtr statement = m_connection->get_statement(
 				"INSERT INTO Data VALUES( ?1, ?2, ?3, ?4, ?5 )"
 			) ;
 			statement->bind( 1, snp_row_id ) ;
 			statement->bind( 2, meta_id ) ;
 			statement->bind( 3, 1 ) ; // zlib-compressed, serialised.
-			statement->bind( 4, uint64_t( values.size() * sizeof( double ) ) ) ;
-			statement->bind( 5, &buffer[0], buffer.size() ) ;
+			statement->bind( 4, uint64_t( count ) ) ;
+			statement->bind( 5, &compressed_buffer[0], compressed_buffer.size() ) ;
 			statement->step() ;
 		}
 		transaction = m_connection->get_statement(
