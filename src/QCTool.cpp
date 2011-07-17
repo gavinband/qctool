@@ -112,7 +112,7 @@ void QCTool::process_gen_row( GenRow const& row, std::size_t row_number ) {
 		m_context.snp_statistics().process( row ) ;
 		if( m_context.snp_filter().check_if_satisfied( m_context.snp_statistics() )) {
 			row.write_to_sink( m_context.fltrd_in_snp_data_sink() ) ;
-			output_gen_row_stats( m_context.snp_statistics(), row_number ) ;
+			output_gen_row_stats( m_context.snp_statistics() ) ;
 		}
 		else {
 			row.write_to_sink( m_context.fltrd_out_snp_data_sink() ) ;
@@ -122,7 +122,7 @@ void QCTool::process_gen_row( GenRow const& row, std::size_t row_number ) {
 	}
 }
 
-void QCTool::output_gen_row_stats( GenotypeAssayStatistics const& row_statistics, std::size_t row_number ) {
+void QCTool::output_gen_row_stats( GenotypeAssayStatistics const& row_statistics ) {
 	if( m_context.snp_statistics().size() > 0 ) {
 		for( std::size_t i = 0 ; i < row_statistics.size(); ++i ) {
 			m_context.snp_stats_sink() << row_statistics.get_value< std::string >( row_statistics.get_statistic_name( i )) ;
