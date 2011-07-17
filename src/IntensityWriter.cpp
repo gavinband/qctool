@@ -59,6 +59,7 @@ void IntensityWriter::setup( db::Connection& connection ) {
 			"storage_id INTEGER NOT NULL, "
 			"uncompressed_size INTEGER NOT NULL, "
 			"data BLOB, "
+			"UNIQUE( snp_id, field_id, storage_id )"
 			"FOREIGN KEY (field_id) REFERENCES Field( id ), "
 			"FOREIGN KEY (snp_id) REFERENCES SNP( id ), "
 			"FOREIGN KEY (storage_id) REFERENCES Storage( id ) "
@@ -66,10 +67,16 @@ void IntensityWriter::setup( db::Connection& connection ) {
 	) ;
 	statement->step() ;
 	statement = connection.get_statement(
+<<<<<<< local
+		"CREATE INDEX IF NOT EXISTS Data_index ON Data( snp_id, field_id, storage_id )"
+=======
 		"CREATE INDEX IF NOT EXISTS Data_snp ON Data( snp_id )"
+>>>>>>> other
 	) ;
 	statement->step() ;
 	statement = connection.get_statement(
+<<<<<<< local
+=======
 		"CREATE INDEX IF NOT EXISTS Data_field ON Data( field_id )"
 	) ;
 	statement->step() ;
@@ -79,6 +86,7 @@ void IntensityWriter::setup( db::Connection& connection ) {
 	statement->step() ;
 
 	statement = connection.get_statement(
+>>>>>>> other
 		"DELETE FROM Data"
 	) ;
 	statement->step() ;

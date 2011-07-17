@@ -248,7 +248,7 @@ public:
 		options[ "-os" ]
 	        .set_description( "Override the auto-generated path of the output sample file.  " )
 	        .set_takes_single_value() ;
-		options[ "-write-intensities" ]
+		options[ "-write-db" ]
 			.set_description( "Write intensities to the given file.  Intensity data must be present "
 				"in the input data for this to work." )
 			.set_takes_single_value() ;
@@ -1930,6 +1930,7 @@ private:
 			options().check_if_option_was_supplied( "-snp-stats" )
 			|| options().check_if_option_was_supplied( "-sample-stats" )
 			|| options().check_if_option_was_supplied( "-og" )
+			|| options().check_if_option_was_supplied( "-op" )
 			|| options().check_if_option_was_supplied( "-os" )
 			|| options().check_if_option_was_supplied( "-op" )
 		) {
@@ -1949,8 +1950,8 @@ private:
 		}
 
 		std::auto_ptr< IntensityWriter > intensity_writer ;
-		if( options().check_if_option_was_supplied( "-write-intensities" )) {
-			intensity_writer.reset( new IntensityWriter( options().get_value< std::string >( "-write-intensities" ))) ;
+		if( options().check_if_option_was_supplied( "-write-db" )) {
+			intensity_writer.reset( new IntensityWriter( options().get_value< std::string >( "-write-db" ))) ;
 			processor.add_callback( *intensity_writer ) ;
 		}
 
