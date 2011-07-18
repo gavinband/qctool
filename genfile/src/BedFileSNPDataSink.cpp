@@ -47,6 +47,11 @@ namespace genfile {
 		if( output_bed_filename.size() < 4 || output_bed_filename.substr( output_bed_filename.size() - 4, 4 ) != ".bed" ) {
 			throw BadArgumentError( "BedFileSNPDataSink::BedFileSNPDataSink", "output_bed_filename = \"" + output_bed_filename + "\"" ) ;
 		}
+		if( m_pedigree_to_sample_mapping.empty() ) {
+			// No matches between sample file and pedigree could be found.
+			// All output genotypes would be NA, let's throw an error in this case.
+			throw MismatchError( "genfile::PedFileSNPDataSink::PedFileSNPDataSink()", "Pedigree / sample file", "Individual id (column 2 of pedigree file)", "ID_1 / ID_2 column." ) ;
+		}
 		m_output_filename_stub = output_bed_filename.substr( 0, output_bed_filename.size() - 4 ) ;
 		setup() ;
 	}
