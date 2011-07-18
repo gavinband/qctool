@@ -39,7 +39,9 @@ namespace genfile {
 		for( ; std::getline( stream, line ); ++line_count ) {
 			std::vector< std::string > elts = string_utils::split_and_strip_discarding_empty_entries( line, " \t", "\r\t " ) ;
 			// First 6 columns have the relevant info.
+			// family_id individual_id father_id mother_id sex phenotype.
 			// See http://pngu.mgh.harvard.edu/~purcell/plink/data.shtml
+			// We ignore the phenotype column here as we are only interested in family structure.
 			std::string const& id = elts[1] ;
 			individuals.push_back( id ) ;
 			families[ id ] = elts[0] ;
