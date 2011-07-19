@@ -28,7 +28,7 @@ void IntensityWriter::setup( db::Connection& connection ) {
 
 	statement->bind( 1, 1 ) ;
 	statement->bind( 2, "zlib_compressed_serialized" ) ;
-	statement->bind( 4, "zlib compressed data, serialized using qctool." ) ;
+	statement->bind( 3, "zlib compressed data, serialized using qctool." ) ;
 	statement->step() ;
 
 	connection.run_statement(
@@ -39,7 +39,6 @@ void IntensityWriter::setup( db::Connection& connection ) {
 		"position INTEGER NOT NULL, "
 		"alleleA TEXT NOT NULL, "
 		"alleleB TEXT NOT NULL, "
-		"FOREIGN KEY build_id REFERENCES Meta( id ),"
 		"UNIQUE( rsid, chromosome, position ) "
 		")"
 	) ;
@@ -181,12 +180,18 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 				for( std::size_t i = 0; i < data.size(); ++i ) {
 					begin = genfile::write_small_integer( begin, end, data[i].size() ) ;
 					for( std::size_t j = 0; j < data[i].size(); ++j ) {
+						if( end < begin + 100 ) {
+							std::size_t index = begin - &buffer[0] ;
+							buffer.resize( buffer.size() + 1000 ) ;
+							begin = &buffer[0] + index ;
+							end = &buffer[0] + buffer.size() ;
+						}
 						begin = data[i][j].serialize( begin, end ) ;
 					}
 				}
 			}
 
-			std::vector< char > compressed_buffer( count * 8 ) ;
+			std::vector< char > compressed_buffer ;
 			genfile::zlib_compress( buffer, &compressed_buffer ) ;
 			db::Connection::StatementPtr statement = m_connection->get_statement(
 				"INSERT INTO Data VALUES( ?1, ?2, ?3, ?4, ?5 )"
