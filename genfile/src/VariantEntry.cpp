@@ -51,8 +51,10 @@ namespace genfile {
 	}
 
 	template<> int VariantEntry::as() const {
-		assert( sizeof( int ) >= sizeof( Integer )) ;
-		return int( boost::get< Integer  >( m_entrydata )) ;
+		Integer integer = boost::get< Integer >( m_entrydata ) ;
+		int result( integer ) ;
+		assert( result == integer ) ;
+		return result ;
 	}
 	
 	bool VariantEntry::operator==( VariantEntry const& rhs ) const {

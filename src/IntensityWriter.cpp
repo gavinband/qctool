@@ -18,6 +18,16 @@ IntensityWriter::IntensityWriter( std::string const& filename ):
 void IntensityWriter::setup( db::Connection& connection ) {
 	db::Connection::StatementPtr statement ;
 	connection.run_statement(
+		"CREATE TABLE IF NOT EXISTS FileInfo ( key TEXT NOT NULL UNIQUE, value TEXT );"
+	) ;
+	statement = connection.get_statement(
+		"INSERT OR REPLACE INTO FileInfo VALUES( ?1, ?2 )"
+	) ;
+	statement->bind( 1, "format" ) ;
+	statement->bind( 2, "VCDBv0.1" ) ;
+	statement->step() ;
+
+	connection.run_statement(
 		"CREATE TABLE IF NOT EXISTS Meta ( id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, description TEXT ); "
 		"CREATE INDEX IF NOT EXISTS Meta_name ON Meta( name )"
 	) ;
@@ -76,6 +86,7 @@ void IntensityWriter::setup( db::Connection& connection ) {
 	statement = connection.get_statement(
 		"CREATE INDEX IF NOT EXISTS Data_storage ON Data( storage_id )"
 	) ;
+
 	statement->step() ;
 }
 
@@ -176,9 +187,12 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 			{
 				char* begin = &buffer[0] ;
 				char* end = begin + buffer.size() ;
-				genfile::write_small_integer( begin, end, uint64_t( data.size() ) ) ;
+				begin = genfile::write_small_integer( begin, end, uint64_t( m_number_of_samples ) ) ;
 				for( std::size_t i = 0; i < data.size(); ++i ) {
 					begin = genfile::write_small_integer( begin, end, data[i].size() ) ;
+					if( field == "genotypes" && i < 10 ) {
+						std::cerr << "sample " << i << ", field: " << field << ", number of data is " << data[i].size() << ", first is " << data[i][0]  << ".\n" ;
+					}
 					for( std::size_t j = 0; j < data[i].size(); ++j ) {
 						if( end < begin + 100 ) {
 							std::size_t index = begin - &buffer[0] ;
@@ -189,17 +203,18 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 						begin = data[i][j].serialize( begin, end ) ;
 					}
 				}
+				buffer.resize( begin - &buffer[0] ) ;
 			}
-
+			
 			std::vector< char > compressed_buffer ;
 			genfile::zlib_compress( buffer, &compressed_buffer ) ;
 			db::Connection::StatementPtr statement = m_connection->get_statement(
-				"INSERT INTO Data VALUES( ?1, ?2, ?3, ?4, ?5 )"
+				"INSERT OR REPLACE INTO Data VALUES( ?1, ?2, ?3, ?4, ?5 )"
 			) ;
 			statement->bind( 1, snp_row_id ) ;
 			statement->bind( 2, meta_id ) ;
 			statement->bind( 3, 1 ) ; // zlib-compressed, serialised.
-			statement->bind( 4, uint64_t( count ) ) ;
+			statement->bind( 4, uint64_t( buffer.size() ) ) ;
 			statement->bind( 5, &compressed_buffer[0], compressed_buffer.size() ) ;
 			statement->step() ;
 		}
