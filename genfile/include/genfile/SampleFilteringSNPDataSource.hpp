@@ -6,6 +6,9 @@
 #include "genfile/SNPDataSource.hpp"
 
 namespace genfile {
+	namespace impl {
+		class SampleFilteringVariantDataReader ;
+	}
 	class SampleFilteringSNPDataSource: public SNPDataSource
 	{
 	public:
@@ -46,6 +49,8 @@ namespace genfile {
 		} ;
 
 	private:
+		friend class impl::SampleFilteringVariantDataReader ;
+
 		void reset_to_start_impl() ;
 
 		void get_snp_identifying_data_impl( 
@@ -58,7 +63,7 @@ namespace genfile {
 			AlleleSetter const& set_allele2
 		) ;
 
-		VariantDataReader::UniquePtr read_variant_data_impl() { assert(0) ; } ;
+		VariantDataReader::UniquePtr read_variant_data_impl() ;
 
 		void read_snp_probability_data_impl(
 			GenotypeProbabilitySetter const& set_genotype_probabilities
