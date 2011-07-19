@@ -29,16 +29,7 @@ namespace genfile {
 			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second, compression_type )) ;
 		}
 		else if( uf.first == "vcf" ) {
-			try {
-				{
-					// test if there's a readable index file.
-					std::auto_ptr< std::istream > index_filename = open_text_file_for_input( uf.second + ".index" ) ;
-				}
-				return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second, uf.second + ".index", "GT" )) ;
-			}
-			catch( ResourceNotOpenedError const& e ) {
-				return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second, "GT" )) ;
-			}
+			return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second, "GT" )) ;
 		}
 		else if( uf.first == "gen" ) {
 			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;

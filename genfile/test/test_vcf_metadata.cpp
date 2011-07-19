@@ -2,7 +2,7 @@
 #include <vector>
 #include <string>
 #include <set>
-#include "genfile/vcf/MetadataParser.hpp"
+#include "genfile/vcf/StrictMetadataParser.hpp"
 #include "genfile/Error.hpp"
 #include "test_case.hpp"
 
@@ -63,7 +63,7 @@ AUTO_TEST_CASE( test_spec_example ) {
 	using namespace data ;
 	std::cerr << "test_spec_example()..." ;
 	std::istringstream istr( ex1 + ex2 + ex3 + ex4 + ex5 + ex6 ) ;
-	genfile::vcf::MetadataParser parser( "VCF_4_1_example_file", istr ) ;
+	genfile::vcf::StrictMetadataParser parser( "VCF_4_1_example_file", istr ) ;
 	std::string s ;
 	istr >> s ;
 	TEST_ASSERT( s == "#CHROM" ) ;
@@ -72,7 +72,7 @@ AUTO_TEST_CASE( test_spec_example ) {
 	// Actually, these tests might fail because multimap is not guaranteed to preserve
 	// the order of the elements inseretd in a range of elements comparing equal.
 	// For now I'll just assume it does though.
-	genfile::vcf::MetadataParser::Metadata metadata = parser.get_metadata() ;
+	genfile::vcf::StrictMetadataParser::Metadata metadata = parser.get_metadata() ;
 	TEST_ASSERT( std::distance( metadata.equal_range( "fileformat" ).first, metadata.equal_range( "fileformat" ).second ) == 1 )  ;
 	TEST_ASSERT( std::distance( metadata.equal_range( "fileDate" ).first, metadata.equal_range( "fileDate" ).second ) == 1 )  ;
 	TEST_ASSERT( std::distance( metadata.equal_range( "source" ).first, metadata.equal_range( "source" ).second ) == 1 )  ;
@@ -86,7 +86,7 @@ AUTO_TEST_CASE( test_spec_example ) {
 	TEST_ASSERT( metadata.equal_range( "INFO2" ).first == metadata.equal_range( "INFO2" ).second ) ;
 
 	// Check data for some rows
-	genfile::vcf::MetadataParser::Metadata::const_iterator where ;
+	genfile::vcf::StrictMetadataParser::Metadata::const_iterator where ;
 	where = metadata.equal_range( "fileformat" ).first ;
 	TEST_ASSERT( where->second.find( "version" ) != where->second.end() ) ;
 	TEST_ASSERT( where->second.find( "version" )->second == "4.1" ) ;
@@ -125,7 +125,7 @@ AUTO_TEST_CASE( test_no_fileformat ) {
 	content[3] = 'g' ;
 	std::istringstream istr( content ) ;
 	try {
-		genfile::vcf::MetadataParser( "VCF_4_1_example_file", istr ) ;
+		genfile::vcf::StrictMetadataParser( "VCF_4_1_example_file", istr ) ;
 		TEST_ASSERT(0) ;
 	}
 	catch( genfile::MalformedInputError const& e ) {
@@ -140,7 +140,7 @@ AUTO_TEST_CASE( test_malformed_file ) {
 	// ex1 must be present.  Metadata ends with EOF or a a final line not starting with ##.
 	try {
 		std::istringstream istr( ex1 + ex2 + ex3 + ex4 ) ;
-		genfile::vcf::MetadataParser( "VCF_4_1_example_file", istr ) ;
+		genfile::vcf::StrictMetadataParser( "VCF_4_1_example_file", istr ) ;
 	}
 	catch( genfile::MalformedInputError const& e ) {
 		TEST_ASSERT(0) ;
@@ -148,7 +148,7 @@ AUTO_TEST_CASE( test_malformed_file ) {
 
 	try {
 		std::istringstream istr( ex2 + ex3 + ex4 ) ;
-		genfile::vcf::MetadataParser( "VCF_4_1_example_file", istr ) ;
+		genfile::vcf::StrictMetadataParser( "VCF_4_1_example_file", istr ) ;
 		TEST_ASSERT(0) ;
 	}
 	catch( genfile::MalformedInputError const& e ) {
@@ -157,7 +157,7 @@ AUTO_TEST_CASE( test_malformed_file ) {
 
 	try {
 		std::istringstream istr( ex2 + ex3 + ex4 + ex5 ) ;
-		genfile::vcf::MetadataParser( "VCF_4_1_example_file", istr ) ;
+		genfile::vcf::StrictMetadataParser( "VCF_4_1_example_file", istr ) ;
 		TEST_ASSERT(0) ;
 	}
 	catch( genfile::MalformedInputError const& e ) {
@@ -230,7 +230,7 @@ void test_info_or_format_field( std::string const& field ) {
 					content = content + "END" ;
 					std::istringstream istr( content ) ;
 					try {
-						genfile::vcf::MetadataParser( "VCF_4_1_example_file", istr ) ;
+						genfile::vcf::StrictMetadataParser( "VCF_4_1_example_file", istr ) ;
 						TEST_ASSERT(
 							bad_IDs.count( id_i ) == 0
 							&& bad_numbers.count( number_i ) == 0
@@ -291,7 +291,7 @@ AUTO_TEST_CASE( test_filter_fields ) {
 			content = content + "END" ;
 			std::istringstream istr( content ) ;
 			try {
-				genfile::vcf::MetadataParser( "VCF_4_1_example_file", istr ) ;
+				genfile::vcf::StrictMetadataParser( "VCF_4_1_example_file", istr ) ;
 				TEST_ASSERT(
 					bad_IDs.count( id_i ) == 0
 					&& bad_descriptions.count( description_i ) == 0
@@ -322,7 +322,7 @@ AUTO_TEST_CASE( test_tab_characters ) {
 		// std::cerr << i << " " ;
 		try {
 			std::istringstream istr( content ) ;
-			genfile::vcf::MetadataParser( "VCF_4_1_example_file", istr ) ;
+			genfile::vcf::StrictMetadataParser( "VCF_4_1_example_file", istr ) ;
 			TEST_ASSERT( 0 ) ;
 		}
 		catch( genfile::MalformedInputError const& ) {
@@ -337,7 +337,7 @@ AUTO_TEST_CASE( test_v4_0 ) {
 	std::cerr << "test_v4_0()..." ;
 	try {
 		std::istringstream istr( ex1b + ex2 + ex3 + ex4 + ex5 + ex6 ) ;
-		genfile::vcf::MetadataParser parser( "VCF_4_0_example_file", istr ) ;
+		genfile::vcf::StrictMetadataParser parser( "VCF_4_0_example_file", istr ) ;
 		TEST_ASSERT(0) ;
 	}
 	catch( genfile::MalformedInputError const& ) {
@@ -346,7 +346,7 @@ AUTO_TEST_CASE( test_v4_0 ) {
 
 	try {
 		std::istringstream istr( ex1b + ex2b + ex3 + ex4 + ex5 + ex6 ) ;
-		genfile::vcf::MetadataParser parser( "VCF_4_0_example_file", istr ) ;
+		genfile::vcf::StrictMetadataParser parser( "VCF_4_0_example_file", istr ) ;
 		// ok.
 	}
 	catch( genfile::MalformedInputError const& ) {
@@ -355,7 +355,7 @@ AUTO_TEST_CASE( test_v4_0 ) {
 
 	try {
 		std::istringstream istr( ex1c + ex2 + ex3 + ex4 + ex5 + ex6 ) ;
-		genfile::vcf::MetadataParser parser( "VCF_4_0_example_file", istr ) ;
+		genfile::vcf::StrictMetadataParser parser( "VCF_4_0_example_file", istr ) ;
 		TEST_ASSERT(0) ;
 	}
 	catch( genfile::FormatUnsupportedError const& ) {

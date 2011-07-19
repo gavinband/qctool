@@ -23,6 +23,9 @@ namespace genfile {
 	{
 		friend class impl::VCFFormatDataReader ;
 	public:
+		typedef std::auto_ptr< VCFFormatSNPDataSource > UniquePtr ;
+		typedef vcf::MetadataParser::Metadata Metadata ;
+		
 		VCFFormatSNPDataSource(
 			std::auto_ptr< std::istream > stream_ptr,
 			std::string const& genotype_probability_field
@@ -33,13 +36,10 @@ namespace genfile {
 		) ;
 		VCFFormatSNPDataSource(
 			std::string const& filename,
-			std::string const& index_filename,
-			std::string const& genotype_probability_field
+			std::string const& genotype_probability_field,
+			Metadata const& metadata
 		) ;
 	public:
-		typedef vcf::MetadataParser::Metadata Metadata ;
-		void update_metadata( Metadata const& metadata ) ;
-		
 		operator bool() const ;
 		unsigned int number_of_samples() const ;
 		unsigned int total_number_of_snps() const ;
@@ -47,8 +47,9 @@ namespace genfile {
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 		void set_field_mapping( std::string const& key, std::string const& value ) ;
 
-		std::size_t get_index_of_first_data_line() const { return m_metadata_parser.get_number_of_lines() + 1 ; }
+		std::size_t get_index_of_first_data_line() const { return m_metadata_parser->get_number_of_lines() + 1 ; }
 		std::size_t get_index_of_first_data_column() const { return 9 ; }
+
 	protected:
 
 		void get_snp_identifying_data_impl( 
@@ -74,7 +75,7 @@ namespace genfile {
 		std::string const m_spec ;
 		CompressionType m_compression_type ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
-		vcf::MetadataParser m_metadata_parser ;
+		vcf::MetadataParser::UniquePtr m_metadata_parser ;
 		vcf::MetadataParser::Metadata m_metadata  ;
 		typedef boost::ptr_map< std::string, vcf::VCFEntryType > EntryTypeMap ;
 		EntryTypeMap m_info_types ;
@@ -95,8 +96,7 @@ namespace genfile {
 		std::string read_format() ;
 		std::size_t determine_number_of_lines(
 			std::istream& vcf_file_stream,
-			vcf::MetadataParser::Metadata const& metadata,
-			std::auto_ptr< std::istream > index_file = std::auto_ptr< std::istream >()
+			vcf::MetadataParser::Metadata const& metadata
 		) const ;
 		std::size_t count_lines( std::istream& ) const ;
 		void reset_stream() ;

@@ -54,6 +54,7 @@
 #include "genfile/utility.hpp"
 #include "genfile/QuantileNormalisingCrossCohortCovariateValueMapping.hpp"
 #include "genfile/ValueMappingCohortIndividualSource.hpp"
+#include "genfile/vcf/StrictMetadataParser.hpp"
 
 #include "statfile/BuiltInTypeStatSource.hpp"
 #include "statfile/from_string.hpp"
@@ -1296,38 +1297,19 @@ private:
 		if( chromosome_indicator == "" && m_options.check_if_option_was_supplied( "-assume-chromosome" )) {
 			chromosome_indicator = m_options.get_value< std::string >( "-assume-chromosome" ) ;
 		}
-		genfile::SNPDataSource::UniquePtr source ;
-		source = genfile::SNPDataSource::create(
-			filename,
-			chromosome_indicator
-		) ;
-		
-		{
-			genfile::VCFFormatSNPDataSource* vcf_source = dynamic_cast< genfile::VCFFormatSNPDataSource* >( source.get() ) ;
-			if( vcf_source ) {
-				std::vector< std::string > fields = genfile::string_utils::split_and_strip(
-					m_options.get_value< std::string >( "-vcf-field-map" ),
-					","
-					" \t"
-				) ;
-				for( std::size_t i = 0; i < fields.size(); ++i ) {
-					std::vector< std::string > key_value = genfile::string_utils::split_and_strip( fields[i], ":", " \t" ) ;
-					if( key_value.size() != 2 ) {
-						throw genfile::BadArgumentError(
-							"QCToolCmdLineContext::open_snp_data_source()", "vcf field map \"" + fields[i] + "\"."
-						) ;
-					}
-					vcf_source->set_field_mapping( key_value[0], key_value[1] ) ;
-				}
 
-				if( m_options.check_if_option_has_value( "-vcf-metadata" )) {
-					vcf_source->update_metadata(
-						genfile::vcf::MetadataParser(
-							m_options.get_value< std::string >( "-vcf-metadata" )
-						).get_metadata()
-					) ;
-				}
-			}
+		genfile::SNPDataSource::UniquePtr source ;
+
+		std::pair< std::string, std::string > uf = genfile::uniformise( filename ) ;
+
+		if( uf.first == "vcf" ) {
+			source = open_vcf_format_snp_data_source( uf, chromosome_indicator ) ;
+		}
+		else {
+			source = genfile::SNPDataSource::create(
+				filename,
+				chromosome_indicator
+			) ;
 		}
 		
 		std::vector< genfile::SNPIdentifyingData > snps = genfile::get_list_of_snps_in_source( *source ) ;
@@ -1372,6 +1354,48 @@ private:
 			source.release(),
 			snps
 		) ;
+	}
+	
+	genfile::SNPDataSource::UniquePtr
+	open_vcf_format_snp_data_source( std::pair< std::string, std::string > const& uf, std::string chromosome_indicator ) const {
+		genfile::VCFFormatSNPDataSource::UniquePtr source ;
+		if( m_options.check_if_option_was_supplied( "-vcf-metadata" )) {
+			source.reset(
+				new genfile::VCFFormatSNPDataSource(
+					uf.second,
+					"GT",
+					genfile::vcf::StrictMetadataParser(
+						m_options.get_value< std::string >( "-vcf-metadata" )
+					).get_metadata()
+				)
+			) ;
+		}
+		else {
+			source.reset(
+				new genfile::VCFFormatSNPDataSource(
+					uf.second,
+					"GT"
+				)
+			) ;
+		}
+		
+		std::vector< std::string > fields = genfile::string_utils::split_and_strip(
+			m_options.get_value< std::string >( "-vcf-field-map" ),
+			","
+			" \t"
+		) ;
+		
+		for( std::size_t i = 0; i < fields.size(); ++i ) {
+			std::vector< std::string > key_value = genfile::string_utils::split_and_strip( fields[i], ":", " \t" ) ;
+			if( key_value.size() != 2 ) {
+				throw genfile::BadArgumentError(
+					"QCToolCmdLineContext::open_vcf_format_snp_data_source()", "vcf field map \"" + fields[i] + "\"."
+				) ;
+			}
+			source->set_field_mapping( key_value[0], key_value[1] ) ;
+		}
+		
+		return genfile::SNPDataSource::UniquePtr( source.release() ) ;
 	}
 	
 	std::auto_ptr< SNPDictionary > load_snp_dictionary( std::string const& filename ) const {

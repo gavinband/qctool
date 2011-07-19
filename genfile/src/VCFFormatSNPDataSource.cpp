@@ -10,6 +10,8 @@
 #include "genfile/string_utils.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/VCFFormatSNPDataSource.hpp"
+#include "genfile/vcf/StrictMetadataParser.hpp"
+#include "genfile/vcf/TrivialMetadataParser.hpp"
 #include "genfile/vcf/Types.hpp"
 #include "genfile/vcf/InfoReader.hpp"
 #include "genfile/vcf/CallReader.hpp"
@@ -25,8 +27,8 @@ namespace genfile {
 		m_spec( "(unnamed stream)" ),
 		m_compression_type( "no_compression" ),
 		m_stream_ptr( stream_ptr ),
-		m_metadata_parser( m_spec, *m_stream_ptr ),
-		m_metadata( m_metadata_parser.get_metadata() ),
+		m_metadata_parser( new vcf::StrictMetadataParser( m_spec, *m_stream_ptr ) ),
+		m_metadata( m_metadata_parser->get_metadata() ),
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_column_names( read_column_names( *m_stream_ptr )),
@@ -44,8 +46,8 @@ namespace genfile {
 		m_spec( filename ),
 		m_compression_type( get_compression_type_indicated_by_filename( filename )),
 		m_stream_ptr( open_text_file_for_input( filename, m_compression_type ) ),
-		m_metadata_parser( m_spec, *m_stream_ptr ),
-		m_metadata( m_metadata_parser.get_metadata() ),
+		m_metadata_parser( new vcf::StrictMetadataParser( m_spec, *m_stream_ptr ) ),
+		m_metadata( m_metadata_parser->get_metadata() ),
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_column_names( read_column_names( *m_stream_ptr )),
@@ -58,19 +60,19 @@ namespace genfile {
 
 	VCFFormatSNPDataSource::VCFFormatSNPDataSource(
 		std::string const& filename,
-		std::string const& index_filename,
-		std::string const& genotype_probability_field
+		std::string const& genotype_probability_field,
+		Metadata const& metadata
 	):
 		m_spec( filename ),
 		m_compression_type( get_compression_type_indicated_by_filename( filename )),
 		m_stream_ptr( open_text_file_for_input( filename, m_compression_type ) ),
-		m_metadata_parser( m_spec, *m_stream_ptr ),
-		m_metadata( m_metadata_parser.get_metadata() ),
+		m_metadata_parser( new vcf::TrivialMetadataParser( m_spec, *m_stream_ptr ) ),
+		m_metadata( metadata ),
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_column_names( read_column_names( *m_stream_ptr )),
 		m_number_of_samples( m_column_names.size() - 9 ),
-		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata, open_text_file_for_input( index_filename ) ))
+		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata ))
 	{
 		m_field_mapping.insert( FieldMapping::value_type( "genotypes", genotype_probability_field )) ;
 		setup() ;
@@ -126,7 +128,7 @@ namespace genfile {
 		m_stream_ptr->exceptions( std::ios::eofbit | std::ios::failbit | std::ios::badbit ) ;
 
 		// Find our way back to the start of data.
-		for( std::size_t i = 0; i < ( m_metadata_parser.get_number_of_lines() + 1 ); ++i ) {
+		for( std::size_t i = 0; i < ( m_metadata_parser->get_number_of_lines() + 1 ); ++i ) {
 			std::string line ;
 			std::getline( *m_stream_ptr, line ) ;
 		}
@@ -137,11 +139,11 @@ namespace genfile {
 	std::vector< std::string > VCFFormatSNPDataSource::read_column_names( std::istream& stream ) const {
 		std::string line ;
 		if( !std::getline( stream, line ) ) {
-			throw MalformedInputError( m_spec, m_metadata_parser.get_number_of_lines() ) ;
+			throw MalformedInputError( m_spec, m_metadata_parser->get_number_of_lines() ) ;
 		}
 		std::vector< std::string > elts = string_utils::split( line, "\t" ) ;
 		if( elts.size() < 8 ) {
-			throw MalformedInputError( m_spec, m_metadata_parser.get_number_of_lines() ) ;
+			throw MalformedInputError( m_spec, m_metadata_parser->get_number_of_lines() ) ;
 		}
 		else if(
 			elts[0] != "#CHROM"
@@ -154,15 +156,14 @@ namespace genfile {
 			|| elts[7] != "INFO"
 			|| elts[8] != "FORMAT"
 		) {
-			throw MalformedInputError( m_spec, m_metadata_parser.get_number_of_lines() ) ;
+			throw MalformedInputError( m_spec, m_metadata_parser->get_number_of_lines() ) ;
 		}
 		return elts ;
 	}
 
 	std::size_t VCFFormatSNPDataSource::determine_number_of_lines(
 		std::istream& vcf_file_stream,
-		vcf::MetadataParser::Metadata const& metadata,
-		std::auto_ptr< std::istream > index_file
+		vcf::MetadataParser::Metadata const& metadata
 	) const {
 		typedef vcf::MetadataParser::Metadata::const_iterator MetadataIterator ;
 		std::pair< MetadataIterator, MetadataIterator > range = metadata.equal_range( "number-of-variants" ) ;
@@ -180,12 +181,7 @@ namespace genfile {
 			}
 		}
 		else {
-			if( index_file.get() ) {
-				result = count_lines( *index_file ) ;
-			}
-			else {
-				result = count_lines( vcf_file_stream ) ;
-			}
+			result = count_lines( vcf_file_stream ) ;
 		}
 		return result ;
 	}
@@ -218,12 +214,6 @@ namespace genfile {
 			throw MissingTrailingNewlineError( get_source_spec(), count ) ;
 		}
 		return count ;
-	}
-	
-	void VCFFormatSNPDataSource::update_metadata( Metadata const& metadata ) {
-		m_metadata.insert( metadata.begin(), metadata.end() ) ;
-		m_info_types = vcf::get_entry_types( m_metadata, "INFO" ) ;
-		m_format_types = vcf::get_entry_types( m_metadata, "FORMAT" ) ;
 	}
 	
 	VCFFormatSNPDataSource::operator bool() const {
@@ -324,7 +314,7 @@ namespace genfile {
 			impl::read_element( *m_stream_ptr,INFO, '\t', entry_count++ ) ;
 		}
 		catch( std::ios_base::failure const& ) {
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, entry_count ) ;
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser->get_number_of_lines() + 1, entry_count ) ;
 		}
 		catch( MalformedInputError const& e ) {
 			throw MalformedInputError( m_spec, number_of_snps_read(), e.column() ) ;
@@ -467,7 +457,7 @@ namespace genfile {
 			}
 			catch( BadArgumentError const& ) {
 				// problem with FORMAT
-				throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, 8 ) ;
+				throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser->get_number_of_lines() + 1, 8 ) ;
 			}
 		}
 		return result ;
@@ -492,7 +482,7 @@ namespace genfile {
 			++count ;
 		}
 		catch( std::ios_base::failure const& ) {
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, count ) ;
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser->get_number_of_lines() + 1, count ) ;
 		}
 		// We ignore the data, but parse the FORMAT spec anyway.
 		try {
@@ -500,7 +490,7 @@ namespace genfile {
 		}
 		catch( BadArgumentError const& ) {
 			// problem with FORMAT
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser.get_number_of_lines() + 1, 8 ) ;
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser->get_number_of_lines() + 1, 8 ) ;
 		}
 	}
 

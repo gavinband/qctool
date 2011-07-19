@@ -8,32 +8,32 @@
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/string_utils.hpp"
 #include "genfile/Error.hpp"
-#include "genfile/vcf/MetadataParser.hpp"
+#include "genfile/vcf/StrictMetadataParser.hpp"
 
 using boost::tuples::tie ;
 
 namespace genfile {
 	namespace vcf {
-		MetadataParser::MetadataParser( std::string const& filename ):
+		StrictMetadataParser::StrictMetadataParser( std::string const& filename ):
 			m_spec( filename )
 		{
 			std::auto_ptr< std::istream > stream = open_text_file_for_input( filename ) ;
 			setup( filename, *stream ) ;
 		}
 
-		MetadataParser::MetadataParser( std::string const& spec, std::istream& stream ):
+		StrictMetadataParser::StrictMetadataParser( std::string const& spec, std::istream& stream ):
 			m_spec( spec )
 		{
 			setup( spec, stream ) ;
 		}
 		
-		void MetadataParser::setup( std::string const& spec, std::istream& stream ) {
+		void StrictMetadataParser::setup( std::string const& spec, std::istream& stream ) {
 			assert( stream ) ;
 			m_version = read_version( stream ) ;
 			m_metadata = read_metadata( stream, m_version ) ;
 		}
 	
-		std::string MetadataParser::read_version( std::istream& in ) const {
+		std::string StrictMetadataParser::read_version( std::istream& in ) const {
 			std::istream::iostate old_exceptions = in.exceptions() ;
 			in.exceptions( std::ios::eofbit | std::ios::failbit | std::ios::badbit ) ;
 			Metadata fileformat_spec ;
@@ -51,7 +51,7 @@ namespace genfile {
 			return result ;
 		}
 
-		MetadataParser::Metadata MetadataParser::read_metadata( std::istream& in, std::string const& version ) const {
+		StrictMetadataParser::Metadata StrictMetadataParser::read_metadata( std::istream& in, std::string const& version ) const {
 			std::istream::iostate old_exceptions = in.exceptions() ;
 			Metadata result ;
 			{
@@ -73,7 +73,7 @@ namespace genfile {
 			return result ;
 		}
 
-		bool MetadataParser::read_metadata_line( std::istream& in, std::size_t line_number, Metadata* result ) const {
+		bool StrictMetadataParser::read_metadata_line( std::istream& in, std::size_t line_number, Metadata* result ) const {
 			try {
 				in.exceptions( std::ios::badbit ) ;
 				char a_char = static_cast< char >( in.get() ) ;
@@ -105,7 +105,7 @@ namespace genfile {
 			return true ;
 		}
 	
-		std::pair< std::string, std::map< std::string, std::string > > MetadataParser::parse_meta_line(
+		std::pair< std::string, std::map< std::string, std::string > > StrictMetadataParser::parse_meta_line(
 			std::size_t line_number,
 			std::string const& line
 		) const {
@@ -137,7 +137,7 @@ namespace genfile {
 			return std::make_pair( key, result ) ;
 		}
 
-		std::pair< std::string, std::string > MetadataParser::parse_key_value_pair( std::string const& line ) const {
+		std::pair< std::string, std::string > StrictMetadataParser::parse_key_value_pair( std::string const& line ) const {
 			std::size_t pos = line.find( '=' ) ;
 			if( pos == std::string::npos ) {
 				// Take "" as key, whole line as value.
@@ -146,7 +146,7 @@ namespace genfile {
 			return std::make_pair( line.substr( 0, pos ), line.substr( pos + 1, line.size() )) ;
 		}
 
-		bool MetadataParser::validate_meta_key(
+		bool StrictMetadataParser::validate_meta_key(
 			std::size_t line_number,
 			std::string const& key
 		) const {
@@ -159,7 +159,7 @@ namespace genfile {
 			return true ;
 		}
 	
-		std::map< std::string, std::string > MetadataParser::parse_meta_value(
+		std::map< std::string, std::string > StrictMetadataParser::parse_meta_value(
 			std::size_t line_number,
 			std::string const& key,
 			std::string value
@@ -185,7 +185,7 @@ namespace genfile {
 			return result ;
 		}
 	
-		bool MetadataParser::validate_meta_value(
+		bool StrictMetadataParser::validate_meta_value(
 			std::string const& key,
 			std::map< std::string,
 			std::string > const& meta_value
