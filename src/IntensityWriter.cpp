@@ -190,9 +190,6 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 				begin = genfile::write_small_integer( begin, end, uint64_t( m_number_of_samples ) ) ;
 				for( std::size_t i = 0; i < data.size(); ++i ) {
 					begin = genfile::write_small_integer( begin, end, data[i].size() ) ;
-					if( field == "genotypes" && i < 10 ) {
-						std::cerr << "sample " << i << ", field: " << field << ", number of data is " << data[i].size() << ", first is " << data[i][0]  << ".\n" ;
-					}
 					for( std::size_t j = 0; j < data[i].size(); ++j ) {
 						if( end < begin + 100 ) {
 							std::size_t index = begin - &buffer[0] ;
