@@ -57,12 +57,13 @@ namespace genfile {
 			m_chromosome_e = YChromosome ;
 		}
 		else {
-			int i ;
+			int i = 0 ;
 			std::istringstream istr( s ) ;
 			istr >> i ;
 			istr.peek() ;
 			if( !istr.eof() || i < 1 || i > 22 ) {
-				throw BadArgumentError( "Chromosome::Chromosome()", s ) ;
+				m_chromosome_e = UnidentifiedChromosome ;
+				// throw BadArgumentError( "Chromosome::Chromosome()", s ) ;
 			}
 			else {
 				m_chromosome_e = Chromosome( i ) ;
