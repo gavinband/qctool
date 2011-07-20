@@ -206,7 +206,7 @@ namespace genfile {
 			char const* read( char const* buffer, char const* const end, IntegerType* integer ) const {
 				assert( end >= buffer + 1 ) ;
 				char num_bytes = *buffer++ ;
-				assert( num_bytes & 0x80 == 0 ) ; // only allow reading into an unsigned integer type.
+				assert(( num_bytes & 0x80 ) == 0 ) ; // only allow reading into an unsigned integer type.
 				if( num_bytes == 0 ) {
 					*integer = 0 ;
 				}
