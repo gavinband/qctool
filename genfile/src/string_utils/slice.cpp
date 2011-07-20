@@ -114,6 +114,7 @@ namespace genfile {
 
 		std::vector< slice > slice::split( std::string const& split_chars ) const {
 			std::vector< slice > result ;
+			result.reserve( 1000 ) ;
 			assert( std::numeric_limits< unsigned char >::max() + 1 == 256 ) ;
 			char array[ 256 ] ;
 			impl::make_membership_array( split_chars, array, 256 ) ;
