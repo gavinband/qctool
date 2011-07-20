@@ -19,7 +19,7 @@ namespace genfile {
 		assert( end >= buffer + sizeof( IntegerType )) ;
 		*integer_ptr = 0 ;
 		for( std::size_t byte_i = 0; byte_i < sizeof( IntegerType ); ++byte_i ) {
-			(*integer_ptr) |= IntegerType( *buffer++ ) << ( 8 * byte_i ) ;
+			(*integer_ptr) |= IntegerType( *reinterpret_cast< unsigned char const* >( buffer++ )) << ( 8 * byte_i ) ;
 		}
 		return buffer ;
 	}
@@ -31,7 +31,7 @@ namespace genfile {
 	template< typename IntegerType >
 	void read_little_endian_integer( std::istream& in_stream, IntegerType* integer_ptr ) {
 		char buffer[ sizeof( IntegerType ) ] ;
-		in_stream.read( buffer, sizeof( IntegerType )) ;
+		in_stream.read	( buffer, sizeof( IntegerType )) ;
 		read_little_endian_integer( buffer, buffer + sizeof( IntegerType ), integer_ptr ) ;
 	}
 
