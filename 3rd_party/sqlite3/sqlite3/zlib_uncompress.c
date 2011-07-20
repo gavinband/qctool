@@ -19,7 +19,7 @@ static void uncompressFunc( sqlite3_context *context, int argc, sqlite3_value **
 
 	unsigned char const* inBuf = sqlite3_value_blob( argv[1] ) ;
 	unsigned char* outBuf = malloc( uncompressed_size ) ;
-	sqlite3_int64 out_size = uncompressed_size ;
+	uLongf out_size = uncompressed_size ;
 	int rc = uncompress( outBuf, &out_size, &inBuf[0], nIn ) ;
 	if( rc != Z_OK ) {
 		free( outBuf ) ;

@@ -156,5 +156,69 @@ namespace genfile {
 		m_source->ignore_snp_probability_data() ;
 	}
 
+	namespace impl {
+		
+		struct SampleFilteringPerSampleSetter {
+			SampleFilteringPerSampleSetter(
+				VariantDataReader::PerSampleSetter setter,
+				std::set< std::size_t > const& indices_of_samples_to_filter_out
+				
+			):
+					m_setter( setter ),
+					m_indices_of_samples_to_filter_out( indices_of_samples_to_filter_out ),
+					m_index( 0 )
+			{}
+			
+			void operator()( std::size_t i, std::vector< VariantDataReader::Entry > const& data ) {
+				if( m_indices_of_samples_to_filter_out.find( i ) == m_indices_of_samples_to_filter_out.end() ) {
+					m_setter( m_index++, data ) ;
+				}
+			}
+
+		private:
+			VariantDataReader::PerSampleSetter m_setter ;
+			std::set< std::size_t > const& m_indices_of_samples_to_filter_out ;
+			std::size_t m_index ;
+		} ;
+		
+		struct SampleFilteringVariantDataReader: public VariantDataReader {
+			SampleFilteringVariantDataReader(
+				VariantDataReader::UniquePtr data_reader,
+				std::set< std::size_t > const& indices_of_samples_to_filter_out
+			):
+				m_data_reader( data_reader ),
+				m_indices_of_samples_to_filter_out( indices_of_samples_to_filter_out )
+			{}
+
+			VariantDataReader& get( std::string const& spec, PerSampleSetter setter ) {
+				m_data_reader->get(
+					spec,
+					SampleFilteringPerSampleSetter( setter, m_indices_of_samples_to_filter_out )
+				) ;
+				return *this ;
+			}
+
+			bool supports( std::string const& spec ) const {
+				return m_data_reader->supports( spec ) ;
+			}
+
+			void get_supported_specs( SpecSetter setter ) const {
+				return m_data_reader->get_supported_specs( setter ) ;
+			}
+
+		private:
+			VariantDataReader::UniquePtr m_data_reader ;
+			std::set< std::size_t > const& m_indices_of_samples_to_filter_out ;
+		} ;
+	}
+
+	VariantDataReader::UniquePtr SampleFilteringSNPDataSource::read_variant_data_impl() {
+		return VariantDataReader::UniquePtr(
+			new impl::SampleFilteringVariantDataReader(
+				m_source->read_variant_data(),
+				m_indices_of_samples_to_filter_out
+			)
+		) ;
+	}
 }
 
