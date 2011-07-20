@@ -477,7 +477,7 @@ namespace genfile {
 		std::string data ;
 		std::size_t count = 7 ;
 		try {
-			impl::read_element( *m_stream_ptr,FORMAT, '\t', count++ ) ;
+			impl::read_element( *m_stream_ptr, FORMAT, '\t', count++ ) ;
 			std::getline( *m_stream_ptr, data ) ;
 			++count ;
 		}

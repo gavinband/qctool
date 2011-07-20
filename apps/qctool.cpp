@@ -1205,6 +1205,15 @@ private:
 	genfile::SNPDataSource::UniquePtr open_snp_data_sources()
 	// Open the gen files, taking care of filtering, strand alignment, translation, etc.
 	{
+		/// Kludge: this optimisation ensures that a vcf file can be opened relatively quickly.
+		if( m_mangled_options.gen_filenames().size() == 1 && m_mangled_options.gen_filenames()[0].size() == 1 ) {
+			std::string filename = m_mangled_options.gen_filenames()[0][0].filename() ;
+			std::pair< std::string, std::string > uf = genfile::uniformise( filename ) ;
+			if( uf.first == "vcf" ) {
+				return open_vcf_format_snp_data_source( uf ) ;
+			}
+		}
+	
 		genfile::SNPDataSourceRack::UniquePtr rack(
 			new genfile::SNPDataSourceRack( m_options.get_value< std::string >( "-snp-match-fields" ) )
 		) ;
@@ -1303,7 +1312,7 @@ private:
 		std::pair< std::string, std::string > uf = genfile::uniformise( filename ) ;
 
 		if( uf.first == "vcf" ) {
-			source = open_vcf_format_snp_data_source( uf, chromosome_indicator ) ;
+			source = open_vcf_format_snp_data_source( uf ) ;
 		}
 		else {
 			source = genfile::SNPDataSource::create(
@@ -1357,7 +1366,7 @@ private:
 	}
 	
 	genfile::SNPDataSource::UniquePtr
-	open_vcf_format_snp_data_source( std::pair< std::string, std::string > const& uf, std::string chromosome_indicator ) const {
+	open_vcf_format_snp_data_source( std::pair< std::string, std::string > const& uf ) const {
 		genfile::VCFFormatSNPDataSource::UniquePtr source ;
 		if( m_options.check_if_option_was_supplied( "-vcf-metadata" )) {
 			source.reset(
