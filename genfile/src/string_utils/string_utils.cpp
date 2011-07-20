@@ -142,7 +142,7 @@ namespace genfile {
 			int in_quote = 0 ;
 			std::size_t last_i = 0 ;
 			for( std::size_t i = 0; i < line.size(); ++i ) {
-				if( !in_quote & split_chars.find( line[i] ) != std::string::npos ) {
+				if( !in_quote && split_chars.find( line[i] ) != std::string::npos ) {
 					result.push_back( line.substr( last_i, i - last_i )) ;
 					last_i = i + 1 ;
 				}
