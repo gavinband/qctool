@@ -74,7 +74,7 @@ private:
 
 	void unsafe_call_processed_snp(
 		genfile::SNPIdentifyingData const& id_data,
-		genfile::SingleSNPGenotypeProbabilities const& genotypes
+		genfile::VariantDataReader& data_reader
 	) ;
 	void process_gen_row( GenRow const& row, std::size_t row_number ) ;
 	void output_gen_row_stats( GenotypeAssayStatistics const& row_statistics ) ;

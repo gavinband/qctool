@@ -1205,8 +1205,17 @@ private:
 	genfile::SNPDataSource::UniquePtr open_snp_data_sources()
 	// Open the gen files, taking care of filtering, strand alignment, translation, etc.
 	{
-		/// Kludge: this optimisation ensures that a vcf file can be opened relatively quickly.
-		if( m_mangled_options.gen_filenames().size() == 1 && m_mangled_options.gen_filenames()[0].size() == 1 ) {
+		// Kludge: this optimisation ensures that a vcf file, which can be huge,
+		// can be opened relatively quickly.  It will be especially fast
+		// if it has a ##number-of-variants=N line in the metadata.  Before doing this we check
+		// that there is only one file, that no strand alignment or SNP exclusions or
+		// snp translation are necessary.
+		if(
+			( m_mangled_options.gen_filenames().size() == 1 && m_mangled_options.gen_filenames()[0].size() == 1 )
+			&& !m_strand_specs.get()
+			&& !get_snp_exclusion_filter().get()
+			&& !m_snp_dictionary.get() 
+		) {
 			std::string filename = m_mangled_options.gen_filenames()[0][0].filename() ;
 			std::pair< std::string, std::string > uf = genfile::uniformise( filename ) ;
 			if( uf.first == "vcf" ) {

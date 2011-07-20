@@ -54,9 +54,7 @@ void QCTool::processed_snp(
 	genfile::VariantDataReader& data_reader
 ) {
 	try {
-		genfile::SingleSNPGenotypeProbabilities genotypes( m_number_of_samples ) ;
-		data_reader.get( "genotypes", genfile::VariantDataReader::set( genotypes )) ;
-		unsafe_call_processed_snp( id_data, genotypes ) ;
+		unsafe_call_processed_snp( id_data, data_reader ) ;
 	}
 	catch( StatisticNotFoundException const& e ) {
 		std::cerr << "!! ERROR: " << e << ".\n" ;
@@ -95,8 +93,10 @@ void QCTool::end_processing_snps() {
 
 void QCTool::unsafe_call_processed_snp(
 	genfile::SNPIdentifyingData const& id_data,
-	genfile::SingleSNPGenotypeProbabilities const& genotypes
+	genfile::VariantDataReader& data_reader
 ) {
+	genfile::SingleSNPGenotypeProbabilities genotypes( m_number_of_samples ) ;
+	data_reader.get( "genotypes", genfile::VariantDataReader::set( genotypes )) ;
 	InternalStorageGenRow row( id_data, genotypes ) ;
 	process_gen_row( row, ++m_number_of_snps_processed ) ;
 	accumulate_per_column_amounts( row, m_per_column_amounts ) ;
