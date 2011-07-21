@@ -41,7 +41,7 @@ namespace genfile {
 	}
 
 	Chromosome::Chromosome( std::string const& s ) {
-		if( s == "??" || s == "" ) {
+		if( s == "??" || s == "" || s == "NA" ) {
 			m_chromosome_e = UnidentifiedChromosome ;
 		}
 		else if( s == "MT" ) {
