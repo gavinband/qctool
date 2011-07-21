@@ -31,7 +31,7 @@ namespace genfile {
 			return "0Y" ;
 		}
 		else if( m_chromosome_e == UnidentifiedChromosome ) {
-			return "??" ;
+			return "NA" ;
 		}
 		else {
 			std::ostringstream oStream ;
