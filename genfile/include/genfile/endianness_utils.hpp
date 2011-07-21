@@ -31,7 +31,9 @@ namespace genfile {
 	void read_little_endian_integer( std::istream& in_stream, IntegerType* integer_ptr ) {
 		char buffer[ sizeof( IntegerType ) ] ;
 		in_stream.read( buffer, sizeof( IntegerType )) ;
-		read_little_endian_integer( buffer, buffer + sizeof( IntegerType ), integer_ptr ) ;
+		if( in_stream ) {
+			read_little_endian_integer( buffer, buffer + sizeof( IntegerType ), integer_ptr ) ;
+		}
 	}
 
 	// Write an integer to the buffer in little-endian format.

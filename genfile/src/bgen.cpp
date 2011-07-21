@@ -19,22 +19,29 @@ namespace genfile {
                 unsigned char SNPID_size = 0;
                 unsigned char RSID_size = 0;
 
-                impl::read_little_endian_integer( aStream, number_of_samples ) ;
-                impl::read_little_endian_integer( aStream, &max_id_size ) ;
+				if( aStream ) {
+                	impl::read_little_endian_integer( aStream, number_of_samples ) ;
+				}
+				if( aStream ) {
+	                impl::read_little_endian_integer( aStream, &max_id_size ) ;
+				}
+				if( aStream ) {
+                	impl::read_length_followed_by_data( aStream, &SNPID_size, SNPID ) ;
+	                assert( SNPID_size <= max_id_size ) ;
+	                aStream.ignore( max_id_size - SNPID_size ) ;
+				}
+				if( aStream ) {
+                	impl::read_length_followed_by_data( aStream, &RSID_size, RSID ) ;
+	                assert( RSID_size <= max_id_size ) ;
+	                aStream.ignore( max_id_size - RSID_size ) ;
+				}
+				if( aStream ) {
+					impl::read_little_endian_integer( aStream, chromosome ) ;
+	                impl::read_little_endian_integer( aStream, SNP_position ) ;
 
-                impl::read_length_followed_by_data( aStream, &SNPID_size, SNPID ) ;
-                assert( SNPID_size <= max_id_size ) ;
-                aStream.ignore( max_id_size - SNPID_size ) ;
-
-                impl::read_length_followed_by_data( aStream, &RSID_size, RSID ) ;
-                assert( RSID_size <= max_id_size ) ;
-                aStream.ignore( max_id_size - RSID_size ) ;
-
-				impl::read_little_endian_integer( aStream, chromosome ) ;
-                impl::read_little_endian_integer( aStream, SNP_position ) ;
-
-                *first_allele = aStream.get() ;
-                *second_allele = aStream.get() ;
+	                *first_allele = aStream.get() ;
+	                *second_allele = aStream.get() ;
+				}
             }
             
 			void write_snp_identifying_data(

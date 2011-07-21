@@ -78,7 +78,7 @@ namespace {
 	template< typename T >
 	void read_little_endian_test( char const* data ) {
 		// This is if the machine is little-endian
-		if( machine_is_little_endian ) {
+		if( machine_is_little_endian() ) {
 			little_endian_tester< T >()( data, *( reinterpret_cast< T const* >( data ))) ;
 		}
 		else {
