@@ -24,14 +24,13 @@ namespace genfile {
 		return buffer ;
 	}
 
-
 	// Read an integer stored in little-endian format into an integer stored
 	// in memory.
 	// The stream is assumed to have sizeof( Integertype ) readable bytes.
 	template< typename IntegerType >
 	void read_little_endian_integer( std::istream& in_stream, IntegerType* integer_ptr ) {
 		char buffer[ sizeof( IntegerType ) ] ;
-		in_stream.read	( buffer, sizeof( IntegerType )) ;
+		in_stream.read( buffer, sizeof( IntegerType )) ;
 		read_little_endian_integer( buffer, buffer + sizeof( IntegerType ), integer_ptr ) ;
 	}
 
