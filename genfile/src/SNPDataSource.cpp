@@ -11,6 +11,7 @@
 #include "genfile/HapmapHaplotypesSNPDataSource.hpp"
 #include "genfile/ImputeHaplotypesSNPDataSource.hpp"
 #include "genfile/get_set.hpp"
+#include "genfile/vcf/get_set.hpp"
 #include "genfile/Error.hpp"
 
 namespace genfile {
@@ -245,6 +246,15 @@ namespace genfile {
 			throw MalformedInputError( get_source_spec(), m_number_of_snps_read ) ;
 		}
 		return *this ;
+	}
+
+ 	void SNPDataSource::read_snp_probability_data_impl(
+		GenotypeProbabilitySetter const& set_genotype_probabilities
+	) {
+		VariantDataReader::UniquePtr reader = read_variant_data_impl() ;
+		if( reader.get() ) {
+			reader->get( "genotypes", vcf::make_genotype_probability_setter( set_genotype_probabilities ) ) ;
+		}
 	}
 	
 	VariantDataReader::UniquePtr SNPDataSource::read_variant_data() {

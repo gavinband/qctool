@@ -158,13 +158,15 @@ namespace genfile {
 		}
 		
 		class AlleleFlippingSNPDataReader: public VariantDataReader {
+		public:
 			AlleleFlippingSNPDataReader(
 				AlleleFlippingSNPDataSource& source,
+				VariantDataReader::UniquePtr base_reader,
 				AlleleFlippingSNPDataSource::AlleleFlipSpec const& allele_flips
 			):
 				m_source( source ),
-				m_allele_flips( allele_flips ),
-				m_base_reader( m_source.m_source->read_variant_data() )
+				m_base_reader( base_reader ),
+				m_allele_flips( allele_flips )
 			{}
 			
 			AlleleFlippingSNPDataReader& get( std::string const& spec, PerSampleSetter setter ) {
@@ -196,16 +198,22 @@ namespace genfile {
 			bool supports( std::string const& spec ) const {
 				return m_base_reader->supports( spec ) ;
 			}
+			
+			void get_supported_specs( SpecSetter setter ) const {
+				return m_base_reader->get_supported_specs( setter ) ;
+			}
 
 		private:
 			AlleleFlippingSNPDataSource& m_source ;
-			AlleleFlippingSNPDataSource::AlleleFlipSpec const& m_allele_flips ;
 			VariantDataReader::UniquePtr m_base_reader ;
+			AlleleFlippingSNPDataSource::AlleleFlipSpec const& m_allele_flips ;
 		} ;
 	}
 
 	VariantDataReader::UniquePtr AlleleFlippingSNPDataSource::read_variant_data_impl() {
-		assert( 0 ) ;
+		return VariantDataReader::UniquePtr(
+			new impl::AlleleFlippingSNPDataReader( *this, m_source->read_variant_data(), m_allele_flips )
+		) ;
 	}
 	
 	void AlleleFlippingSNPDataSource::read_snp_probability_data_impl(
