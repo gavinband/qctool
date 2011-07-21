@@ -156,7 +156,7 @@ namespace genfile {
 				if( GT_field_pos != 0 || components.size() == 0 ) {
 					throw MalformedInputError( "(data)", 0, sample_i ) ;
 				}
-				m_genotype_calls[ sample_i ] = GenotypeCallVCFEntryType().parse( components[ 0 ], m_number_of_alleles ) ;
+				m_genotype_calls[ sample_i ] = m_genotype_call_entry_type.parse( components[ 0 ], m_number_of_alleles ) ;
 			}
 
 			// Decide if element is trailing (so not specified).

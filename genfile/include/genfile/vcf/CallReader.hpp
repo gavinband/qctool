@@ -51,7 +51,7 @@ namespace genfile {
 			boost::ptr_map< std::string, VCFEntryType > const& m_entry_types ;
 			std::size_t m_index ;
 			std::vector< VCFEntryType const* > m_entries_by_position ;
-			
+			GenotypeCallVCFEntryType m_genotype_call_entry_type ;
 			std::vector< std::vector< string_utils::slice > > m_components ;
 			std::vector< std::vector< Entry > > m_genotype_calls ;
 		private:
