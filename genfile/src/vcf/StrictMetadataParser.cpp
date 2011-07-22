@@ -227,6 +227,7 @@ namespace genfile {
 						|| where->second == "Float"
 						|| where->second == "Character"
 						|| where->second == "String"
+						|| where->second == "Genotype"
 						|| ( key == "INFO" && where->second == "Flag" )
 					)
 				) {

@@ -78,8 +78,11 @@ namespace genfile {
 				}
 				VCFEntryType::UniquePtr result ;
 
-				if( ID->second == "GT" ) {
-					if( number->second != "1" || type->second != "Integer" ) {
+				if( ID->second == "GT" || type->second == "Genotype" ) {
+					if( number->second != "." ) {
+						throw BadArgumentError( "genfile::vcf::VCFEntryType::create()", "spec" ) ;
+					}
+					if( type->second != "String" && type->second != "Genotype" ) {
 						throw BadArgumentError( "genfile::vcf::VCFEntryType::create()", "spec" ) ;
 					}
 					result.reset( new GenotypeCallVCFEntryType()) ;
