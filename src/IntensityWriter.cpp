@@ -166,54 +166,64 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 				statement->step() ;
 			}
 
-			db::Connection::RowId meta_id = statement->get_column< int >( 0 ) ;
+			db::Connection::RowId field_id = statement->get_column< int >( 0 ) ;
 			statement->step() ;
 			if( !statement->empty() ) {
 				throw genfile::DuplicateKeyError( m_filename + ":Meta", "name=\"" + field + "\"" ) ;
 			}
 			
-			// Compress the data and store it.
-			std::vector< std::vector< genfile::VariantEntry > > data( m_number_of_samples ) ;
-			data_reader.get( field, genfile::VariantDataReader::set( data ) ) ;
-			assert( data.size() == m_number_of_samples ) ;
-
-			// count the data
-			std::size_t count = 0 ;
-			for( std::size_t i = 0; i < data.size(); ++i ) {
-				count += data[i].size() ;
-			}
-
-			std::vector< char > buffer( count * 8 ) ;
-			{
-				char* begin = &buffer[0] ;
-				char* end = begin + buffer.size() ;
-				begin = genfile::write_small_integer( begin, end, uint64_t( m_number_of_samples ) ) ;
-				for( std::size_t i = 0; i < data.size(); ++i ) {
-					begin = genfile::write_small_integer( begin, end, data[i].size() ) ;
-					for( std::size_t j = 0; j < data[i].size(); ++j ) {
-						if( end < begin + 100 ) {
-							std::size_t index = begin - &buffer[0] ;
-							buffer.resize( buffer.size() + 1000 ) ;
-							begin = &buffer[0] + index ;
-							end = &buffer[0] + buffer.size() ;
-						}
-						begin = data[i][j].serialize( begin, end ) ;
-					}
-				}
-				buffer.resize( begin - &buffer[0] ) ;
-			}
-			
-			std::vector< char > compressed_buffer ;
-			genfile::zlib_compress( buffer, &compressed_buffer ) ;
-			db::Connection::StatementPtr statement = m_connection->get_statement(
-				"INSERT OR REPLACE INTO Data VALUES( ?1, ?2, ?3, ?4, ?5 )"
+			// Look to see if the data is there already.
+			statement = m_connection->get_statement(
+				"SELECT snp_id FROM Data WHERE snp_id == ?1 AND field_id == ?3"
 			) ;
 			statement->bind( 1, snp_row_id ) ;
-			statement->bind( 2, meta_id ) ;
-			statement->bind( 3, 1 ) ; // zlib-compressed, serialised.
-			statement->bind( 4, uint64_t( buffer.size() ) ) ;
-			statement->bind( 5, &compressed_buffer[0], compressed_buffer.size() ) ;
+			statement->bind( 2, field_id ) ;
 			statement->step() ;
+			if( statement->empty() ) {
+				// No data already.
+				// Compress the data and store it.
+				std::vector< std::vector< genfile::VariantEntry > > data( m_number_of_samples ) ;
+				data_reader.get( field, genfile::VariantDataReader::set( data ) ) ;
+				assert( data.size() == m_number_of_samples ) ;
+
+				// count the data
+				std::size_t count = 0 ;
+				for( std::size_t i = 0; i < data.size(); ++i ) {
+					count += data[i].size() ;
+				}
+
+				std::vector< char > buffer( count * 8 ) ;
+				{
+					char* begin = &buffer[0] ;
+					char* end = begin + buffer.size() ;
+					begin = genfile::write_small_integer( begin, end, uint64_t( m_number_of_samples ) ) ;
+					for( std::size_t i = 0; i < data.size(); ++i ) {
+						begin = genfile::write_small_integer( begin, end, data[i].size() ) ;
+						for( std::size_t j = 0; j < data[i].size(); ++j ) {
+							if( end < begin + 100 ) {
+								std::size_t index = begin - &buffer[0] ;
+								buffer.resize( buffer.size() + 1000 ) ;
+								begin = &buffer[0] + index ;
+								end = &buffer[0] + buffer.size() ;
+							}
+							begin = data[i][j].serialize( begin, end ) ;
+						}
+					}
+					buffer.resize( begin - &buffer[0] ) ;
+				}
+			
+				std::vector< char > compressed_buffer ;
+				genfile::zlib_compress( buffer, &compressed_buffer ) ;
+				db::Connection::StatementPtr statement = m_connection->get_statement(
+					"INSERT OR REPLACE INTO Data VALUES( ?1, ?2, ?3, ?4, ?5 )"
+				) ;
+				statement->bind( 1, snp_row_id ) ;
+				statement->bind( 2, field_id ) ;
+				statement->bind( 3, 1 ) ; // zlib-compressed, serialised.
+				statement->bind( 4, uint64_t( buffer.size() ) ) ;
+				statement->bind( 5, &compressed_buffer[0], compressed_buffer.size() ) ;
+				statement->step() ;
+			}
 		}
 		transaction = m_connection->get_statement(
 			"COMMIT"
