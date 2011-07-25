@@ -41,7 +41,9 @@ namespace genfile {
 		// only accurate to 3 d.p.  So we had better only check 3dp of accuracy here.
 		if( AA + AB + BB >= 1.001 ) {
 			// std::cerr << "AA: " << AA << " AB:" << AB << " BB:" << BB << " sum:" << ( AA + AB + BB ) << ".\n" ;
-			throw BadArgumentError( "SingleSNPGenotypeProbabilities::check_invariant()", "sum of probabilities (individual " + string_utils::to_string( i ) + ") greater than 1" ) ;
+			throw BadArgumentError(
+				"SingleSNPGenotypeProbabilities::check_invariant()",
+				"sum of probabilities (individual " + string_utils::to_string( i ) + ") greater than 1" ) ;
 		}
 	}
 
