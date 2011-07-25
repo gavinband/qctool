@@ -8,6 +8,10 @@
 #include "db/Connection.hpp"
 #include "db/SQLite3Error.hpp"
 
+extern "C" {
+	void sqlite3_trace_callback( void* udp, const char* sql ) ;
+}
+
 namespace db {
 	struct SQLite3OpenDBError: public SQLite3Error
 	{
@@ -37,17 +41,8 @@ namespace db {
 		// Open a connection to an on-disk database.
 		// If the filename is ":memory:", open instead a connection
 		// to a new private in-memory DB.
-		SQLite3Connection( std::string const& filename ):
-			m_filename( filename ),
-			m_db_connection(0),
-			m_managed( true )
-		{
-			open_db_connection( filename ) ;
-		}
-
-		virtual ~SQLite3Connection() {
-			close_db_connection_if_necessary() ;
-		}
+		SQLite3Connection( std::string const& filename ) ;
+		virtual ~SQLite3Connection() ;
 
 	public:
 

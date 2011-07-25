@@ -174,12 +174,13 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 			
 			// Look to see if the data is there already.
 			statement = m_connection->get_statement(
-				"SELECT snp_id FROM Data WHERE snp_id == ?1 AND field_id == ?3"
+				"SELECT snp_id FROM Data WHERE snp_id == ?1 AND field_id == ?2"
 			) ;
 			statement->bind( 1, snp_row_id ) ;
 			statement->bind( 2, field_id ) ;
 			statement->step() ;
 			if( statement->empty() ) {
+				std::cerr << "SNP " << snp_row_id << ", field_id " << field_id << ", statement is empty.\n" ;
 				// No data already.
 				// Compress the data and store it.
 				std::vector< std::vector< genfile::VariantEntry > > data( m_number_of_samples ) ;

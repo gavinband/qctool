@@ -96,7 +96,15 @@ void QCTool::unsafe_call_processed_snp(
 	genfile::VariantDataReader& data_reader
 ) {
 	genfile::SingleSNPGenotypeProbabilities genotypes( m_number_of_samples ) ;
-	data_reader.get( "genotypes", genfile::VariantDataReader::set( genotypes )) ;
+	try {
+		data_reader.get( "genotypes", genfile::VariantDataReader::set( genotypes )) ;
+	}
+	catch( genfile::BadArgumentError const& e ) {
+		m_ui_context.logger() << "!! Error (" << e.what() << ") at " << id_data.get_rsid() << ": in " << e.function() << ": " << e.arguments() << ".\n" ;
+		m_ui_context.logger() << "!! SNP " << id_data.get_rsid() << " will be treated as missing.\n" ;
+		// reset all genotypes to zero.
+		genotypes = genfile::SingleSNPGenotypeProbabilities( m_number_of_samples ) ;
+	}
 	InternalStorageGenRow row( id_data, genotypes ) ;
 	process_gen_row( row, ++m_number_of_snps_processed ) ;
 	accumulate_per_column_amounts( row, m_per_column_amounts ) ;

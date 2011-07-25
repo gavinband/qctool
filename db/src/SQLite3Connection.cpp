@@ -1,8 +1,28 @@
+#include <iostream>
 #include <stdint.h>
 #include "db/SQLite3Connection.hpp"
 #include "db/SQLite3Statement.hpp"
 
+extern "C" {
+	void sqlite3_trace_callback( void* udp, const char* sql ) {
+		std::cerr << "SQLite3 trace: SQL = \"" << sql << "\".\n" ;
+	}
+}
+
 namespace db {
+	SQLite3Connection::SQLite3Connection( std::string const& filename ):
+		m_filename( filename ),
+		m_db_connection(0),
+		m_managed( true )
+	{
+		open_db_connection( filename ) ;
+	}
+
+	SQLite3Connection::~SQLite3Connection() {
+		close_db_connection_if_necessary() ;
+	}
+
+	
 	SQLite3Connection::StatementPtr SQLite3Connection::get_statement( std::string const& SQL ) {
 		return StatementPtr( new SQLite3Statement( this, SQL ) ) ;
 	}	
@@ -49,6 +69,7 @@ namespace db {
 		if( code != SQLITE_OK ) {
 			throw SQLite3OpenDBError( "SQLite3Connection::open_db_connection()", code ) ;
 		}
+		// sqlite3_trace( m_db_connection, &sqlite3_trace_callback, NULL ) ;
 	}
 
 	void SQLite3Connection::close_db_connection_if_necessary() {
