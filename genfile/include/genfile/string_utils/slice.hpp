@@ -25,6 +25,7 @@ namespace genfile {
 			operator std::string() const { return m_string->substr( m_start, m_end - m_start ) ; }
 
 			std::size_t size() const { return m_end - m_start ; }
+			bool empty() const { return m_end == m_start ; }
 			std::size_t get_start() const { return m_start ; }
 			std::size_t get_end() const { return m_end ; }
 			
