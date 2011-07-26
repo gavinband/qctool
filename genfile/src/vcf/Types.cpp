@@ -129,7 +129,7 @@ namespace genfile {
 			std::vector< Entry > VCFEntryType::parse_elts( std::vector< string_utils::slice > const& elts ) const {
 				std::vector< Entry > result( elts.size() ) ;
 				for( std::size_t i = 0; i < result.size(); ++i ) {
-					if( elts[i] == m_missing_value || elts[i] == "x" ) {
+					if( elts[i] == m_missing_value ) {
 						result[i] = Entry( MissingValue() ) ;
 					}
 					else {

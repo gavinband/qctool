@@ -248,7 +248,7 @@ namespace genfile {
                 GenotypeProbabilitySetter set_genotype_probabilities
             ) {
                 for ( uint32_t i = 0 ; i < number_of_samples ; ++i ) {
-                    uint16_t AA, AB, BB ;
+                    uint16_t AA = 0, AB = 0, BB = 0 ;
                     read_little_endian_integer( aStream, &AA ) ;
                     read_little_endian_integer( aStream, &AB ) ;
                     read_little_endian_integer( aStream, &BB ) ;
@@ -277,7 +277,7 @@ namespace genfile {
 				GenotypeProbabilitySetter set_genotype_probabilities
 			) {
                 // read the size of the compressed data
-                uint32_t compressed_data_size ;
+                uint32_t compressed_data_size = 0 ;
                 impl::read_little_endian_integer( aStream, &compressed_data_size ) ;
                 uLongf uncompressed_data_size = (6 * number_of_samples) ;
                 // Construct buffers for the uncompressed and compressed data
@@ -369,11 +369,11 @@ namespace genfile {
             FlagsSetter set_flags
         ) {
             impl::uint32_t
-            header_size,
-            number_of_snp_blocks,
-            number_of_samples,
-            reserved,
-            flags ;
+            header_size = 0,
+            number_of_snp_blocks = 0,
+            number_of_samples = 0,
+            reserved = 0,
+            flags = 0 ;
 
             std::size_t fixed_data_size
             = get_header_block_size( "" ) ;

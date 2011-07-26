@@ -25,10 +25,11 @@
  */
 
 /*
- * Modifications to strtod for non-null terminated (C++-style) strings.
+ * Modifications to strtod for slices of non-null terminated (C++-style) strings.
  * Copyright (c) 2011 Gavin Band
 */
 
+#include <limits>
 #include "genfile/string_utils/strtod.hpp"
 #include "genfile/string_utils/slice.hpp"
 #include "genfile/string_utils/string_utils.hpp"
