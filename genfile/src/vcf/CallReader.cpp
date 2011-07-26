@@ -68,6 +68,20 @@ namespace genfile {
 			}
 		}
 
+		namespace impl {
+			struct CallReaderGenotypeSetter {
+				CallReaderGenotypeSetter( std::vector< std::vector< Entry > >& result ):
+					m_result( result )
+				{}
+				
+				void operator()( std::size_t sample_i, std::vector< Entry > const& values ) {
+					assert( sample_i < m_result.size() ) ;
+					m_result[sample_i] = values ;
+				}
+			private:
+				std::vector< std::vector< Entry > >& m_result ;
+			} ;
+		}
 
 		CallReader& CallReader::get( std::string const& spec, Setter setter ) {
 			boost::ptr_map< std::string, VCFEntryType >::const_iterator entry_type_i = m_entry_types.find( spec ) ;
@@ -80,7 +94,6 @@ namespace genfile {
 				if( elts.size() != m_number_of_samples ) {
 					throw MalformedInputError( "(data)", 0 ) ;
 				}
-				m_genotype_calls.resize( m_number_of_samples ) ;
 				m_components.resize( m_number_of_samples ) ;
 				for( std::size_t sample_i = 0; sample_i < elts.size(); ++sample_i ) {
 					if( elts[ sample_i ].size() > 0 ) {
@@ -94,29 +107,43 @@ namespace genfile {
 			std::vector< std::string >::const_iterator where = std::find( m_format_elts.begin(), m_format_elts.end(), spec ) ;
 
 			if( where != m_format_elts.end() ) {
-				set_values( m_components, ( where - m_format_elts.begin()), *(entry_type_i->second), setter ) ;
+				// Find out if we need to parse the GT field...
+				if(
+					( spec == "GT" || entry_type_i->second->check_if_requires_ploidy() )
+					&&
+					( m_genotype_calls.size() != m_number_of_samples )
+				) {
+					m_genotype_calls.resize( m_number_of_samples ) ;
+					// Find the GT field in the format string...
+					std::size_t const GT_field_pos = std::find( m_format_elts.begin(), m_format_elts.end(), "GT" ) - m_format_elts.begin() ;
+					// ...it is required to be the first field.
+					if( GT_field_pos != 0 ) {
+						throw MalformedInputError( "(data)", 0 ) ;
+					}
+					impl::CallReaderGenotypeSetter genotype_setter( m_genotype_calls ) ;
+					for( std::size_t sample_i = 0; sample_i < m_components.size(); ++sample_i ) {
+						m_genotype_calls[ sample_i ] = m_genotype_call_entry_type.parse( m_components[ sample_i ][ GT_field_pos ], m_number_of_alleles ) ;
+					}
+				}
+				if( spec == "GT" ) {
+					for( std::size_t sample_i = 0; sample_i < m_components.size(); ++sample_i ) {
+						setter( sample_i, m_genotype_calls[ sample_i ] ) ;
+					}
+				}
+				else {
+					for( std::size_t sample_i = 0; sample_i < m_components.size(); ++sample_i ) {
+						set_values( sample_i, m_components[ sample_i ], ( where - m_format_elts.begin()), *(entry_type_i->second), setter ) ;
+					}
+				}
 			}
 
 			return *this ;
 		}
 
 		void CallReader::set_values(
-			std::vector< std::vector< string_utils::slice > > const& elts,
-			std::size_t const field_i,
-			VCFEntryType const& entry_type,
-			Setter const& setter
-		) {
-			assert( elts.size() == m_number_of_samples ) ;
-			assert( field_i < m_format_elts.size() ) ;
-			for( std::size_t sample_i = 0; sample_i < elts.size(); ++sample_i ) {
-				set_values( sample_i, elts[ sample_i ], field_i, entry_type, setter ) ;
-			}
-		}
-		
-		void CallReader::set_values(
 				std::size_t sample_i,
 				std::vector< string_utils::slice > const& components,
-				std::size_t element_pos,
+				std::size_t field_i,
 				VCFEntryType const& entry_type,
 				Setter const& setter
 		) {
@@ -124,7 +151,7 @@ namespace genfile {
 				unsafe_set_values(
 					sample_i,
 					components,
-					element_pos,
+					field_i,
 					entry_type,
 					setter
 				) ;
@@ -140,39 +167,22 @@ namespace genfile {
 		void CallReader::unsafe_set_values(
 			std::size_t sample_i,
 			std::vector< string_utils::slice > const& components,
-			std::size_t element_pos,
+			std::size_t field_i,
 			VCFEntryType const& entry_type,
 			Setter const& setter
 		) {
-			// parse genotype call if either 1. the GT field is requested or 2. the requested field requires
-			// ploidy information to parse.
-			bool const need_genotype_calls = ( m_format_elts[ element_pos ] == "GT" || entry_type.check_if_requires_ploidy() ) ;
-
-			if( need_genotype_calls && m_genotype_calls[ sample_i ].empty() ) {
-				// Find the GT field in the format string: must either be 0 or one-past-the-end if not present.
-				std::size_t const GT_field_pos = std::find( m_format_elts.begin(), m_format_elts.end(), "GT" ) - m_format_elts.begin() ;
-				assert( GT_field_pos == 0 || GT_field_pos == m_format_elts.size() ) ;
-				// GT field must be present in the format and in the data
-				if( GT_field_pos != 0 || components.size() == 0 ) {
-					throw MalformedInputError( "(data)", 0, sample_i ) ;
-				}
-				m_genotype_calls[ sample_i ] = m_genotype_call_entry_type.parse( components[ 0 ], m_number_of_alleles ) ;
-			}
-
+			// GT should be handled elsewhere.
+			assert( m_format_elts[ field_i ] != "GT" ) ;
 			// Decide if element is trailing (so not specified).
-			bool const elt_is_trailing = ( element_pos >= components.size() ) ;
-
-			if( m_format_elts[ element_pos ] == "GT" ) {
-				assert( !elt_is_trailing ) ;
-				setter( sample_i, m_genotype_calls[ sample_i ] ) ;
-			}
-			else if( entry_type.check_if_requires_ploidy() ) {
+			bool const elt_is_trailing = ( field_i >= components.size() ) ;
+			if( entry_type.check_if_requires_ploidy() ) {
+				assert( m_genotype_calls.size() == m_number_of_samples ) ;
 				std::size_t ploidy = m_genotype_calls[ sample_i ].size() ;
 				if( elt_is_trailing ) {
 					setter( sample_i, entry_type.get_missing_value( m_number_of_alleles, ploidy ) ) ;
 				}
 				else {
-					setter( sample_i, entry_type.parse( components[ element_pos ], m_number_of_alleles, ploidy )) ;
+					setter( sample_i, entry_type.parse( components[ field_i ], m_number_of_alleles, ploidy )) ;
 				}
 			}
 			else {
@@ -180,7 +190,7 @@ namespace genfile {
 					setter( sample_i, entry_type.get_missing_value( m_number_of_alleles ) ) ;
 				}
 				else {
-					setter( sample_i, entry_type.parse( components[ element_pos ], m_number_of_alleles )) ;
+					setter( sample_i, entry_type.parse( components[ field_i ], m_number_of_alleles )) ;
 				}
 			}
 		}

@@ -56,13 +56,6 @@ namespace genfile {
 			std::vector< std::vector< Entry > > m_genotype_calls ;
 		private:
 			void set_values(
-				std::vector< std::vector< string_utils::slice > > const& elts,
-				std::size_t const field_i,
-				VCFEntryType const& entry_type,
-				Setter const& setter
-			) ;
-
-			void set_values(
 				std::size_t individual_i,
 				std::vector< string_utils::slice > const& components,
 				std::size_t element_pos,
