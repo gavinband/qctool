@@ -180,7 +180,7 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 			statement->bind( 2, field_id ) ;
 			statement->step() ;
 			if( statement->empty() ) {
-				std::cerr << "SNP " << snp_row_id << ", field_id " << field_id << ", statement is empty.\n" ;
+				// std::cerr << "SNP " << snp_row_id << ", field_id " << field_id << ", statement is empty.\n" ;
 				// No data already.
 				// Compress the data and store it.
 				std::vector< std::vector< genfile::VariantEntry > > data( m_number_of_samples ) ;
