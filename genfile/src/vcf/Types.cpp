@@ -8,6 +8,7 @@
 #include "genfile/vcf/Types.hpp"
 #include "genfile/string_utils.hpp"
 #include "genfile/string_utils/slice.hpp"
+#include "genfile/string_utils/strtod.hpp"
 
 namespace genfile {
 	namespace vcf {
@@ -49,7 +50,8 @@ namespace genfile {
 
 			Entry FloatType::parse( string_utils::slice const& value ) const {
 				try {
-					return Entry( string_utils::to_repr< double >( value )) ;
+					return Entry( string_utils::strtod( value )) ;
+					// return Entry( string_utils::to_repr< double >( value )) ;
 				}
 				catch( string_utils::StringConversionError const& ) {
 					throw BadArgumentError( "genfile::vcf::FloatType::parse()", "value = \"" + std::string( value ) + "\"" ) ;
@@ -278,13 +280,40 @@ namespace genfile {
 					}
 					return std::vector< Entry >() ;
 				}
-				std::vector< Entry > result = parse_elts( lex( value, number_of_alleles ) ) ;
-				int max = number_of_alleles - 1 ;
-				for( std::size_t i = 0; i < result.size(); ++i ) {
-					if( !result[i].is_missing() ) {
-						int v = result[i].as< int >() ;
-						if( v < 0 || v > max ) {
-							throw BadArgumentError( "genfile::vcf::GenotypeCallVCFEntryType::parse()", "value = \"" + std::string( value ) + "\"" ) ;
+				int const max = number_of_alleles - 1 ;
+
+				std::vector< Entry > result ;
+				
+				// Most GT values have one character per allele.  We treat this as a special case.
+				bool simple_parse_success = true ;
+				if( value.size() % 2 == 1 ) {
+					result.resize( ( value.size() + 1 ) / 2 ) ;
+					for( std::size_t i = 0; i < value.size(); i += 2 ) {
+						if( i > 0 && value[i-1] != '|' && value[i-1] != '/' ) {
+							simple_parse_success = false ;
+							break ;
+						}
+						if( value[i] == m_missing_value[0] ) {
+							result[i/2] = Entry( MissingValue() ) ;
+						}
+						else if( value[i] >= '0' && value[i] <= ( '0' + max ) ) {
+							result[i/2] = int( value[i] - '0' ) ;
+						}
+						else {
+							simple_parse_success = false ;
+							break ;
+						}
+					}
+				}
+				if( !simple_parse_success ) {
+					result = parse_elts( lex( value, number_of_alleles ) ) ;
+					int max = number_of_alleles - 1 ;
+					for( std::size_t i = 0; i < result.size(); ++i ) {
+						if( !result[i].is_missing() ) {
+							int v = result[i].as< int >() ;
+							if( v < 0 || v > max ) {
+								throw BadArgumentError( "genfile::vcf::GenotypeCallVCFEntryType::parse()", "value = \"" + std::string( value ) + "\"" ) ;
+							}
 						}
 					}
 				}

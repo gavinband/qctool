@@ -57,8 +57,8 @@ namespace genfile {
 			VCFEntryType( SimpleType::UniquePtr type ) ;
 			virtual ~VCFEntryType() {}
 
-			std::vector< Entry > parse( string_utils::slice const&, std::size_t number_of_alleles, std::size_t ploidy ) const ;
-			std::vector< Entry > parse( string_utils::slice const&, std::size_t number_of_alleles ) const ;
+			virtual std::vector< Entry > parse( string_utils::slice const&, std::size_t number_of_alleles, std::size_t ploidy ) const ;
+			virtual std::vector< Entry > parse( string_utils::slice const&, std::size_t number_of_alleles ) const ;
 
 			std::vector< Entry > parse( std::string const& value, std::size_t number_of_alleles, std::size_t ploidy ) const {
 				return parse( string_utils::slice( value ), number_of_alleles, ploidy ) ;
@@ -84,9 +84,9 @@ namespace genfile {
 			) const = 0 ;
 
 			std::vector< Entry > parse_elts( std::vector< string_utils::slice > const& elts ) const ;
-
-		private:
+		protected:
 			static std::string m_missing_value ;
+		private:
 			SimpleType::SharedPtr m_type ;
 		} ;
 		

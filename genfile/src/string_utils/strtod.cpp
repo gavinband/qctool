@@ -24,6 +24,10 @@
  *
  */
 
+/*
+ * Modifications to strtod for non-null terminated (C++-style) strings.
+ * Copyright (c) 2011 Gavin Band
+*/
 
 #include "genfile/string_utils/strtod.hpp"
 #include "genfile/string_utils/slice.hpp"
@@ -119,6 +123,16 @@ namespace genfile {
 				if( p == end_p ) {
 					throw StringConversionError() ;
 				}
+
+				if(
+					(end_p - p) == 3
+					&& ( *p == 'n' || *p == 'N' )
+					&& ( *(p+1) == 'a' || *(p+1) == 'A' )
+					&& ( *(p+2) == 'n' || *(p+2) == 'N' )
+				) {
+					return std::numeric_limits< double >::quiet_NaN() ;
+				}
+				
 
 				/*
 				 * Count the number of digits in the mantissa (including the decimal
@@ -228,7 +242,6 @@ namespace genfile {
 				 * many powers of 2 of 10. Then combine the exponent with the
 				 * fraction.
 				 */
-
 				if (exp < 0) {
 					expSign = true;
 					exp = -exp;
