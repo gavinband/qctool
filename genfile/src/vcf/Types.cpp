@@ -116,11 +116,11 @@ namespace genfile {
 			{
 			}
 			
-			std::vector< Entry > VCFEntryType::parse( std::string const& value, std::size_t number_of_alleles, std::size_t ploidy ) const {
+			std::vector< Entry > VCFEntryType::parse( string_utils::slice const& value, std::size_t number_of_alleles, std::size_t ploidy ) const {
 				return parse_elts( lex( value, number_of_alleles, ploidy )) ;
 			}
 
-			std::vector< Entry > VCFEntryType::parse( std::string const& value, std::size_t number_of_alleles ) const {
+			std::vector< Entry > VCFEntryType::parse( string_utils::slice const& value, std::size_t number_of_alleles ) const {
 				return parse_elts( lex( value, number_of_alleles )) ;
 			}
 			
@@ -137,7 +137,7 @@ namespace genfile {
 				return result ;
 			}
 			
-			std::vector< string_utils::slice > ListVCFEntryType::lex( std::string const& value, std::size_t number_of_alleles, std::size_t ploidy ) const {
+			std::vector< string_utils::slice > ListVCFEntryType::lex( string_utils::slice const& value, std::size_t number_of_alleles, std::size_t ploidy ) const {
 				std::vector< string_utils::slice > result ;
 				// An empty value is treated as an empty list, (not a list with one empty value)
 				if( !value.empty() ) {
@@ -145,12 +145,12 @@ namespace genfile {
 				}
 				ValueCountRange range = get_value_count_range( number_of_alleles, ploidy ) ;
 				if( result.size() < range.first || result.size() > range.second ) {
-					throw BadArgumentError( "genfile::vcf::ListVCFEntryType::lex()", "value = \"" + value + "\"" ) ;
+					throw BadArgumentError( "genfile::vcf::ListVCFEntryType::lex()", "value = \"" + std::string( value ) + "\"" ) ;
 				}
 				return result ;
 			}
 
-			std::vector< string_utils::slice > ListVCFEntryType::lex( std::string const& value, std::size_t number_of_alleles ) const {
+			std::vector< string_utils::slice > ListVCFEntryType::lex( string_utils::slice const& value, std::size_t number_of_alleles ) const {
 				std::vector< string_utils::slice > result ;
 				// An empty value is treated as an empty list, (not a list with one empty value)
 				if( !value.empty() ) {
@@ -158,7 +158,7 @@ namespace genfile {
 				}
 				ValueCountRange range = get_value_count_range( number_of_alleles ) ;
 				if( result.size() < range.first || result.size() > range.second ) {
-					throw BadArgumentError( "genfile::vcf::ListVCFEntryType::lex()", "value = \"" + value + "\"" ) ;
+					throw BadArgumentError( "genfile::vcf::ListVCFEntryType::lex()", "value = \"" + std::string( value ) + "\"" ) ;
 				}
 				return result ;
 			}
@@ -243,15 +243,15 @@ namespace genfile {
 				VCFEntryType( SimpleType::create( "Integer" ))
 			{}
 			
-			std::vector< string_utils::slice > GenotypeCallVCFEntryType::lex( std::string const& value, std::size_t number_of_alleles, std::size_t ploidy ) const {
+			std::vector< string_utils::slice > GenotypeCallVCFEntryType::lex( string_utils::slice const& value, std::size_t number_of_alleles, std::size_t ploidy ) const {
 				std::vector< string_utils::slice > elts = lex( value, number_of_alleles ) ;
 				if( elts.size() != ploidy ) {
-					throw BadArgumentError( "genfile::vcf::GenotypeCallVCFEntryType::lex()", "value = \"" + value + "\"" ) ;
+					throw BadArgumentError( "genfile::vcf::GenotypeCallVCFEntryType::lex()", "value = \"" + std::string( value ) + "\"" ) ;
 				}
 				return elts ;
 			}
 
-			std::vector< string_utils::slice > GenotypeCallVCFEntryType::lex( std::string const& value, std::size_t ) const {
+			std::vector< string_utils::slice > GenotypeCallVCFEntryType::lex( string_utils::slice const& value, std::size_t ) const {
 				std::vector< string_utils::slice > elts ;
 				// empty value is treated as empty list.
 				if( !value.empty() ) {
@@ -269,12 +269,12 @@ namespace genfile {
 			}
 
 			std::vector< Entry > GenotypeCallVCFEntryType::parse(
-				std::string const& value,
+				string_utils::slice const& value,
 				std::size_t number_of_alleles
 			) const {
 				if( number_of_alleles == 0 ) {
 					if( value != "" ) {
-						throw BadArgumentError( "genfile::vcf::GenotypeCallVCFEntryType::parse()", "value = \"" + value + "\"" ) ;
+						throw BadArgumentError( "genfile::vcf::GenotypeCallVCFEntryType::parse()", "value = \"" + std::string( value ) + "\"" ) ;
 					}
 					return std::vector< Entry >() ;
 				}
@@ -284,7 +284,7 @@ namespace genfile {
 					if( !result[i].is_missing() ) {
 						int v = result[i].as< int >() ;
 						if( v < 0 || v > max ) {
-							throw BadArgumentError( "genfile::vcf::GenotypeCallVCFEntryType::parse()", "value = \"" + value + "\"" ) ;
+							throw BadArgumentError( "genfile::vcf::GenotypeCallVCFEntryType::parse()", "value = \"" + std::string( value ) + "\"" ) ;
 						}
 					}
 				}
