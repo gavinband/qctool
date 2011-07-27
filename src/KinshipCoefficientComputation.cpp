@@ -7,7 +7,6 @@ KinshipCoefficientComputation::KinshipCoefficientComputation(
 ):
 	m_threshhold( 0.9 )
 {}
-	
 
 void KinshipCoefficientComputation::prepare(
 	std::vector< genfile::SNPIdentifyingData > const& snps,
@@ -15,7 +14,18 @@ void KinshipCoefficientComputation::prepare(
 ) {
 	m_allele_frequencies.resize( snps.size() ) ;
 	for( std::size_t i = 0; i < snps.size(); ++i ) {
-		m_allele_frequencies[i] = compute_maximum_likelihood_allele_frequency( genotypes[ i ] ) ;
+		double allele_sum = 0.0 ;
+		double N = 0.0 ;
+		for( std::size_t sample_i = 0; sample_i < genotypes[i].get_number_of_samples(); ++sample_i ) {
+			for( std::size_t g = 0; g < 3; ++g ) {
+				if( genotypes[ i ]( sample_i, g ) > m_threshhold ) {
+					++N ;
+					allele_sum += g ;
+					break ;
+				}
+			}
+			m_allele_frequencies[i] = allele_sum / 2 * N ;
+		}
 	}
 }
 
