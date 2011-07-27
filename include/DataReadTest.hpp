@@ -19,6 +19,7 @@ private:
 	std::size_t m_number_of_samples ;
 	std::size_t m_number_of_snps ;
 	std::size_t m_number_of_snps_read ;
+	std::vector< std::vector< genfile::VariantEntry > > m_data ;
 } ;
 
 #endif

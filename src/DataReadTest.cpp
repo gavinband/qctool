@@ -22,6 +22,7 @@ void DataReadTest::begin_processing_snps( std::size_t number_of_samples, std::si
 	m_number_of_samples = number_of_samples ;
 	m_number_of_snps = number_of_snps ;
 	m_number_of_snps_read = 0 ;
+	m_data.resize( m_number_of_samples ) ;
 }
 
 void DataReadTest::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
@@ -31,9 +32,7 @@ void DataReadTest::processed_snp( genfile::SNPIdentifyingData const& snp, genfil
 	for( std::size_t field_i = 0; field_i < fields.size(); ++field_i ) {
 		std::string const field = fields[ field_i ] ;
 		// Make sure we've got these fields in Entity
-		std::vector< std::vector< genfile::VariantEntry > > data( m_number_of_samples ) ;
-		data_reader.get( field, genfile::VariantDataReader::set( data ) ) ;
-		assert( data.size() == m_number_of_samples ) ;
+		data_reader.get( field, genfile::VariantDataReader::set( m_data ) ) ;
 	}
 }
 
