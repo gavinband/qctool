@@ -24,21 +24,21 @@ namespace impl {
 		):
 			m_number_of_samples( number_of_samples ),
 			m_id_data( id_data ),
-			m_data_reader( data_reader ),
 			m_result( result ),
 			m_non_missing_count( missing_count ),
-			m_threshhold( 0.9 )
-		{}
+			m_threshhold( 0.9 ),
+			m_genotypes( m_number_of_samples )
+		{
+			data_reader.get( "genotypes", genfile::VariantDataReader::set( m_genotypes )) ;
+		}
 
 		void operator()() {
-			genfile::SingleSNPGenotypeProbabilities genotypes ;
-			m_data_reader.get( "genotypes", genfile::VariantDataReader::set( genotypes )) ;
 			Eigen::VectorXd data = Eigen::VectorXd::Constant( m_number_of_samples, std::numeric_limits< double >::quiet_NaN() ) ;
 			Eigen::VectorXd non_missingness_matrix = Eigen::VectorXd::Zero( m_number_of_samples ) ;
 			double allele_sum = 0.0 ;
 			for( std::size_t sample_i = 0; sample_i < m_number_of_samples; ++sample_i ) {
 				for( std::size_t g = 0; g < 3; ++g ) {
-					if( genotypes( sample_i, g ) >= m_threshhold ) {
+					if( m_genotypes( sample_i, g ) >= m_threshhold ) {
 						data( sample_i ) = double( g ) ;
 						non_missingness_matrix( sample_i ) = 1.0 ;
 						allele_sum += g ;
@@ -62,10 +62,10 @@ namespace impl {
 	private:
 		std::size_t const m_number_of_samples ;
 		genfile::SNPIdentifyingData const& m_id_data ;
-		genfile::VariantDataReader& m_data_reader ;
 		Eigen::MatrixXd* m_result ;
 		Eigen::MatrixXd* m_non_missing_count ;
 		double const m_threshhold ;
+		genfile::SingleSNPGenotypeProbabilities m_genotypes ;
 	} ;
 	
 }
@@ -99,7 +99,7 @@ public:
 
 	void processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader& data_reader ) {
 		if( m_tasks.size() <= m_current_task ) {
-			assert( m_current_task == m_tasks.size() + 1 ) ;
+			assert( m_current_task == m_tasks.size() ) ;
 			m_tasks.push_back(
 				new impl::KinshipCoefficientComputerTask(
 					m_number_of_samples,
@@ -134,6 +134,7 @@ public:
 			m_non_missing_count[0].noalias() += m_non_missing_count[i] ;
 		}
 		m_result[0].array() /= m_non_missing_count[0].array() ;
+		write_output() ;
 	}
 
 private:
@@ -154,6 +155,9 @@ private:
 		for( std::size_t sample_i = 0; sample_i < m_number_of_samples; ++sample_i ) {
 			(*file) << m_samples.get_entry( sample_i, "id_1" ).as< std::string >() << "," ;
 			for( std::size_t sample_j = 0; sample_j < m_number_of_samples; ++sample_j ) {
+				if( sample_j > 0 ) {
+					(*file) << "," ;
+				}
 				(*file) << m_result[0]( sample_i, sample_j ) ;
 			}
 			(*file) << "\n" ;

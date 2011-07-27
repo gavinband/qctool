@@ -24,8 +24,8 @@ void KinshipCoefficientComputation::prepare(
 					break ;
 				}
 			}
-			m_allele_frequencies[i] = allele_sum / 2 * N ;
 		}
+		m_allele_frequencies[i] = allele_sum / ( 2 * N ) ;
 	}
 }
 

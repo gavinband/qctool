@@ -2,6 +2,7 @@
 #define QCTOOL_KINSHIP_COEFFICIENT_COMPUTATION_HPP
 
 #include <vector>
+#include "Eigen/Eigen"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
 #include "SampleBySampleComputation.hpp"
 
@@ -32,6 +33,7 @@ struct KinshipCoefficientComputation: public SampleBySampleComputation {
 private:
 	double m_threshhold ;
 	std::vector< double > m_allele_frequencies ;
+	Eigen::MatrixXd m_result ;
 } ;
 
 
