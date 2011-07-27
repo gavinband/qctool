@@ -53,6 +53,10 @@ AUTO_TEST_CASE( test_strtod ) {
 		ostr << x ;
 		test_it( ostr.str() ) ;
 	}
+	
+	// Here are some values known to cause problems for some implementations.
+	test_it( "225073858507201e-308" ) ; // http://code.google.com/p/mochiweb/issues/detail?id=59#c0	
+	test_it( "1.15507e-173" ) ; // found using test_strtod_random
 }
 
 
