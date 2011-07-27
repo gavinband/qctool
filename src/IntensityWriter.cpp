@@ -24,21 +24,65 @@ void IntensityWriter::setup( db::Connection& connection ) {
 		"INSERT OR REPLACE INTO FileInfo VALUES( ?1, ?2 )"
 	) ;
 	statement->bind( 1, "format" ) ;
-	statement->bind( 2, "VCDBv0.1" ) ;
+	statement->bind( 2, "VCDBv0.2" ) ;
 	statement->step() ;
 
 	connection.run_statement(
-		"CREATE TABLE IF NOT EXISTS Meta ( id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, description TEXT ); "
-		"CREATE INDEX IF NOT EXISTS Meta_name ON Meta( name )"
+		"CREATE TABLE IF NOT EXISTS Entity ( id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, description TEXT ) ; "
+		"CREATE INDEX IF NOT EXISTS Entity_name ON Entity( name )"
 	) ;
 
 	statement = connection.get_statement(
-		"INSERT OR REPLACE INTO Meta VALUES( ?1, ?2, ?3 ) ;"
+		"INSERT OR REPLACE INTO Entity VALUES( ?1, ?2, ?3 ) ;"
 	) ;
 
 	statement->bind( 1, 1 ) ;
+	statement->bind( 2, "is_a" ) ;
+	statement->bind( 3, "Indicates that a is an object of class b." ) ;
+	statement->step() ;
+
+	statement->bind( 1, 2 ) ;
+	statement->bind( 2, "stored_as" ) ;
+	statement->bind( 3, "Indicates that a is stored in the format specified by b." ) ;
+	statement->step() ;
+
+	statement->bind( 1, 3 ) ;
+	statement->bind( 2, "storage_type" ) ;
+	statement->bind( 3, "Class of entities representing storage types." ) ;
+	statement->step() ;
+
+	statement->bind( 1, 4 ) ;
 	statement->bind( 2, "zlib_compressed_serialized" ) ;
 	statement->bind( 3, "zlib compressed data, serialized using qctool." ) ;
+	statement->step() ;
+
+	statement->bind( 1, 5 ) ;
+	statement->bind( 2, "double" ) ;
+	statement->bind( 3, "A single floating-point literal in native format" ) ;
+	statement->step() ;
+
+	statement->bind( 1, 6 ) ;
+	statement->bind( 2, "cohort" ) ;
+	statement->bind( 3, "A cohort." ) ;
+	statement->step() ;
+
+	connection.run_statement(
+		"CREATE TABLE IF NOT EXISTS EntityRelationship ( "
+			"entity1_id INTEGER NOT NULL, "
+			"entity2_id INTEGER NOT NULL, "
+			"relationship_id INTEGER NOT NULL, "
+			"FOREIGN KEY( entity1_id ) REFERENCES Entity( id ), "
+			"FOREIGN KEY( entity2_id ) REFERENCES Entity( id ), "
+			"FOREIGN KEY( relationship_id ) REFERENCES Entity( id ) "
+		");"
+	) ;
+
+	statement = connection.get_statement(
+		"INSERT OR REPLACE INTO EntityRelationship VALUES( ?1, ?2, ?3 ) ;"
+	) ;
+	statement->bind( 1, 3 ) ;
+	statement->bind( 2, 2 ) ;
+	statement->bind( 3, 1 ) ;
 	statement->step() ;
 
 	connection.run_statement(
@@ -107,7 +151,6 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 		) ;
 		transaction->step() ;
 
-
 		db::Connection::RowId snp_row_id ;
 		{
 			statement  = m_connection->get_statement(
@@ -146,21 +189,21 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 
 		for( std::size_t field_i = 0; field_i < fields.size(); ++field_i ) {
 			std::string const field = fields[ field_i ] ;
-			// Make sure we've got these fields in Meta
+			// Make sure we've got these fields in Entity
 			statement = m_connection->get_statement(
-				"SELECT id FROM Meta WHERE name == ?1"
+				"SELECT id FROM Entity WHERE name == ?1"
 			) ;
 			statement->bind( 1, field ) ;
 			statement->step() ;
 			if( statement->empty() ) {
 				statement = m_connection->get_statement(
-					"INSERT INTO Meta( name ) VALUES( ?1 )"
+					"INSERT INTO Entity( name ) VALUES( ?1 )"
 				) ;
 				statement->bind( 1, field ) ;
 				statement->step() ;
 
 				statement = m_connection->get_statement(
-					"SELECT id FROM Meta WHERE name == ?1"
+					"SELECT id FROM Entity WHERE name == ?1"
 				) ;
 				statement->bind( 1, field ) ;
 				statement->step() ;
@@ -169,7 +212,7 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 			db::Connection::RowId field_id = statement->get_column< int >( 0 ) ;
 			statement->step() ;
 			if( !statement->empty() ) {
-				throw genfile::DuplicateKeyError( m_filename + ":Meta", "name=\"" + field + "\"" ) ;
+				throw genfile::DuplicateKeyError( m_filename + ":Entity", "name=\"" + field + "\"" ) ;
 			}
 			
 			// Look to see if the data is there already.
