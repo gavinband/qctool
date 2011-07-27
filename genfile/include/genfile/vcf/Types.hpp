@@ -60,13 +60,6 @@ namespace genfile {
 			virtual std::vector< Entry > parse( string_utils::slice const&, std::size_t number_of_alleles, std::size_t ploidy ) const ;
 			virtual std::vector< Entry > parse( string_utils::slice const&, std::size_t number_of_alleles ) const ;
 
-			std::vector< Entry > parse( std::string const& value, std::size_t number_of_alleles, std::size_t ploidy ) const {
-				return parse( string_utils::slice( value ), number_of_alleles, ploidy ) ;
-			}
-			std::vector< Entry > parse( std::string const& value, std::size_t number_of_alleles ) const {
-				return parse( string_utils::slice( value ), number_of_alleles ) ;
-			}
-
 			virtual std::vector< Entry > get_missing_value( std::size_t number_of_alleles, std::size_t ploidy ) const = 0 ;
 			virtual std::vector< Entry > get_missing_value( std::size_t number_of_alleles ) const = 0 ;
 			virtual bool check_if_requires_ploidy() const = 0 ;
