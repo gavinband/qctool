@@ -5,7 +5,9 @@
 #include <string>
 #include <stdint.h>
 #include <boost/function.hpp>
-#include "snp_data_utils.hpp"
+#include "genfile/snp_data_utils.hpp"
+#include "genfile/VariantDataReader.hpp"
+#include "genfile/SNPIdentifyingData.hpp"
 
 namespace genfile {
 	struct SNPDataSinkError: public std::exception { char const* what() const throw() { return "SNPDataSinkError" ; } } ;
@@ -44,21 +46,23 @@ namespace genfile {
 			GenotypeProbabilityGetter const& get_BB_probability
 		) ;
 
-	public:
+		SNPDataSink& write_variant_data(
+			SNPIdentifyingData const& id_data,
+			VariantDataReader& data_reader
+		) ;
 
+	public:
 		// return the number of samples represented in SNPs in the file.
 		// The value returned is undefined until after the first snp has been written.
 		uint32_t number_of_samples() const { return m_number_of_samples ; }
 		// return the number of SNPs that have been written to the file so far.
 		std::size_t number_of_snps_written() const { return m_number_of_snps_written ; }
 
-
 	public:
 		// The following functions must be implemented by derived classes.
 		virtual operator bool() const = 0 ;
 
 	protected:
-		
 		// This function implements the SNP writing, and must be implemented by derived classes.
 		virtual void write_snp_impl(
 			uint32_t number_of_samples,
@@ -72,6 +76,11 @@ namespace genfile {
 			GenotypeProbabilityGetter const& get_AB_probability,
 			GenotypeProbabilityGetter const& get_BB_probability
 		) = 0 ;
+
+		virtual void write_variant_data_impl(
+			SNPIdentifyingData const& id_data,
+			VariantDataReader& data_reader
+		) ;
 
 	private:
 	

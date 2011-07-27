@@ -149,7 +149,7 @@ namespace genfile {
 	}
 
 	VariantDataReader::UniquePtr HapmapHaplotypesSNPDataSource::read_variant_data_impl() {
-		throw OperationUnsupportedError( "genfile::HapmapHaplotypesSNPDataSource::read_variant_data()", get_source_spec() ) ;
+		throw OperationUnsupportedError( "genfile::HapmapHaplotypesSNPDataSource::read_variant_data()", "call", get_source_spec() ) ;
 	}
 
 	void HapmapHaplotypesSNPDataSource::read_snp_probability_data_impl(

@@ -68,4 +68,31 @@ namespace genfile {
 		}
 		return *this ;
 	}
+
+	SNPDataSink& SNPDataSink::write_variant_data(
+		SNPIdentifyingData const& id_data,
+		VariantDataReader& data_reader
+	) {
+		assert(0) ;
+		/*
+		if( m_number_of_samples == 0 ) {
+			m_number_of_samples = id_data.get_number_of_samples() ;
+		}
+		else {
+			assert( id_data.get_number_of_samples() == m_number_of_samples ) ;
+		}
+		write_variant_data( id_data, data_reader ) ;
+		if( *this ) {
+			++m_number_of_snps_written ;
+		}
+		*/
+		return *this ;
+	}
+	
+	void SNPDataSink::write_variant_data_impl(
+		SNPIdentifyingData const& id_data,
+		VariantDataReader& data_reader
+	) {
+		assert(0) ;
+	}
 }

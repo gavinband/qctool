@@ -292,7 +292,7 @@ namespace genfile {
 			void set_offset( std::size_t offset ) { m_offset = offset ; }
 			std::size_t get_offset() const { return m_offset ; }
 
-			void operator()( std::size_t i, std::vector< genfile::VariantEntry > const& values ) {
+			void operator()( std::size_t i, std::vector< genfile::VariantEntry >& values ) {
 				m_setter( i + m_offset, values ) ;
 			}
 

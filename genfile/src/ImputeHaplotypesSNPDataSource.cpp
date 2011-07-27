@@ -150,7 +150,7 @@ namespace genfile {
 	}
 
 	VariantDataReader::UniquePtr ImputeHaplotypesSNPDataSource::read_variant_data_impl() {
-		throw OperationUnsupportedError( "genfile::ImputeHaplotypesSNPDataSource::read_variant_data()", get_source_spec() ) ;
+		throw OperationUnsupportedError( "genfile::ImputeHaplotypesSNPDataSource::read_variant_data()", "call", get_source_spec() ) ;
 	}
 
 
