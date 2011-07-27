@@ -1984,7 +1984,7 @@ private:
 		
 		std::auto_ptr< DataReadTest > data_read_test ;
 		if( options().check_if_option_was_supplied( "-read-test" )) {
-			data_read_test.reset() ;
+			data_read_test.reset( new DataReadTest() ) ;
 			processor.add_callback( *data_read_test ) ;
 		}
 		
