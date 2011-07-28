@@ -158,12 +158,18 @@ namespace genfile {
 			} ;
 		}
 
-		std::vector< Entry > VCFEntryType::parse( string_utils::slice const&, std::size_t number_of_alleles, std::size_t ploidy ) const {
-			
+		std::vector< Entry > VCFEntryType::parse( string_utils::slice const& value, std::size_t number_of_alleles, std::size_t ploidy ) const {
+			std::vector< Entry > result ;
+			impl::VariantEntriesEntriesSetter setter( result ) ;
+			parse( value, number_of_alleles, ploidy, setter ) ;
+			return result ;
 		}
 
-		std::vector< Entry > VCFEntryType::parse( string_utils::slice const&, std::size_t number_of_alleles ) const {
-			
+		std::vector< Entry > VCFEntryType::parse( string_utils::slice const& value, std::size_t number_of_alleles ) const {
+			std::vector< Entry > result ;
+			impl::VariantEntriesEntriesSetter setter( result ) ;
+			parse( value, number_of_alleles, setter ) ;
+			return result ;
 		}
 
 		void VCFEntryType::parse(

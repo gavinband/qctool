@@ -21,8 +21,8 @@ namespace genfile {
 	public:
 		struct PerSampleSetter: public vcf::EntriesSetter, public boost::noncopyable {
 			virtual ~PerSampleSetter() throw() {}
-			virtual void set_number_of_samples( std::size_t n ) ;
-			virtual void set_sample( std::size_t i ) ;
+			virtual void set_number_of_samples( std::size_t n ) = 0 ;
+			virtual void set_sample( std::size_t i ) = 0 ;
 		} ;
 		typedef boost::function< void ( std::string ) > SpecSetter ;
 	public:

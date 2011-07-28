@@ -153,8 +153,8 @@ namespace genfile {
 
 		private:
 			VariantDataReader::PerSampleSetter& m_setter ;
-			std::size_t m_number_of_entries ;
 			std::vector< VariantEntry > m_values ;
+			std::size_t m_number_of_entries ;
 			std::size_t m_entry_i ;
 
 			template< typename T >
