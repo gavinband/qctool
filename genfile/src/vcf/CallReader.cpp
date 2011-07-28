@@ -71,17 +71,18 @@ namespace genfile {
 		namespace impl {
 			struct CallReaderGenotypeSetter: public CallReader::Setter {
 				CallReaderGenotypeSetter(
-					std::vector< std::vector< vcf::EntrySetter::Integer > >& entries,
+					std::vector< vcf::EntrySetter::Integer >& entries,
 					std::vector< std::size_t >& ploidies
 				):
 					m_entries( entries ),
 					m_ploidies( ploidies ),
-					m_sample_i( 0 )
+					m_sample_i( 0 ),
+					m_current_i( 0 )
 				{}
 
 				void set_number_of_samples( std::size_t n ) {
 					m_ploidies.resize( n ) ;
-					m_entries.resize( n ) ;
+					m_entries.reserve( n * 2 ) ;
 				}
 				
 				void set_sample( std::size_t sample_i ) {
@@ -90,21 +91,24 @@ namespace genfile {
 				}
 
 				void set_number_of_entries( std::size_t n ) {
-					m_entries[ m_sample_i ].reserve( n ) ;
+					m_entries.resize( m_current_i + n ) ;
 				}
 			
 				void operator()( MissingValue const value ) {
-					m_entries[ m_sample_i ].push_back( -1 ) ;
+					assert( m_current_i < m_entries.size() ) ;
+					m_entries[ m_current_i++ ] = -1 ;
 				}
 
 				void operator()( Integer const value ) {
-					m_entries[ m_sample_i ].push_back( value ) ;
+					assert( m_current_i < m_entries.size() ) ;
+					m_entries[ m_current_i++ ] = value ;
 				}
 
 			private:
-				std::vector< std::vector< vcf::EntrySetter::Integer > >& m_entries ;
+				std::vector< vcf::EntrySetter::Integer >& m_entries ;
 				std::vector< std::size_t >& m_ploidies ;
 				std::size_t m_sample_i ;
+				std::size_t m_current_i ;
 			} ;
 		}
 
@@ -154,15 +158,18 @@ namespace genfile {
 					}
 				}
 				if( spec == "GT" ) {
-					assert( m_genotype_calls.size() == m_number_of_samples ) ;
+					assert( m_genotype_calls.size() > 0 ) ;
+					std::size_t index = 0 ;
 					for( std::size_t sample_i = 0; sample_i < m_components.size(); ++sample_i ) {
 						setter.set_sample( sample_i ) ;
-						setter.set_number_of_entries( m_genotype_calls[ sample_i ].size() ) ;
-						for( std::size_t call_i = 0; call_i < m_genotype_calls[ sample_i ].size(); ++call_i ) {
-							if( m_genotype_calls[ sample_i ][ call_i ] == -1 ) {
+						std::size_t const ploidy = m_ploidy[ sample_i ] ;
+						setter.set_number_of_entries( ploidy ) ;
+						assert( m_genotype_calls.size() >= ( index + ploidy ) ) ;
+						for( std::size_t const current_index = index; index < ( current_index + ploidy ); ++index ) {
+							if( m_genotype_calls[ index ] == -1 ) {
 								setter( MissingValue() ) ;
 							} else {
-								setter( m_genotype_calls[ sample_i ][ call_i ] ) ;
+								setter( m_genotype_calls[ index ] ) ;
 							}
 						}
 					}

@@ -378,7 +378,29 @@ namespace genfile {
 			
 			// Most GT values have one character per allele.  We treat this as a special case.
 			bool simple_parse_success = true ;
-			if( value.size() % 2 == 1 ) {
+
+			if( value.size() == 3 && ( value[1] == '|' || value[1] == '/' ) ) {
+				char a, b ;
+				a = ( value[0] == m_missing_value[0] ) ? -1 : ( value[0] - '0' ) ;
+				b = ( value[2] == m_missing_value[0] ) ? -1 : ( value[2] - '0' ) ;
+				if(( a == -1 || ( a >= 0 && a <= max ) ) && ( b == -1 || ( b >= 0 && b <= max ) ) ) {
+					setter.set_number_of_entries( 2 ) ;
+					if( a == -1 ) {
+						setter( MissingValue() ) ;
+					} else {
+						setter( EntriesSetter::Integer( a ) ) ;
+					}
+					if( b == -1 ) {
+						setter( MissingValue() ) ;
+					} else {
+						setter( EntriesSetter::Integer( b ) ) ;
+					}
+				}
+				else {
+					simple_parse_success = false ;
+				}
+			}
+			else if( value.size() % 2 == 1 ) {
 				std::vector< char > simple_values( ( value.size() + 1 ) / 2 ) ;
 				for( std::size_t i = 0; i < value.size(); i += 2 ) {
 					if( i > 0 && value[i-1] != '|' && value[i-1] != '/' ) {

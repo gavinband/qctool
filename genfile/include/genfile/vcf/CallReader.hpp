@@ -55,7 +55,7 @@ namespace genfile {
 			std::vector< VCFEntryType const* > m_entries_by_position ;
 			GenotypeCallVCFEntryType m_genotype_call_entry_type ;
 			std::vector< std::vector< string_utils::slice > > m_components ;
-			std::vector< std::vector< Setter::Integer > > m_genotype_calls ;
+			std::vector< Setter::Integer > m_genotype_calls ;
 			std::vector< std::size_t > m_ploidy ;
 		private:
 			void set_values(
