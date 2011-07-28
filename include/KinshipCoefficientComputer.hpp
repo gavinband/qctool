@@ -55,7 +55,7 @@ namespace impl {
 					data( sample_i ) = 0.0 ; // this sample does not contribute for this SNP.
 				}
 			}
-			m_result->noalias() += ( data * data.transpose() ) / ( 2.0 * allele_freq * ( 1 - allele_freq ) ) ;
+			m_result->noalias() += ( data * data.transpose() ) / ( 2.0 * allele_freq * ( 1.0 - allele_freq ) ) ;
 			m_non_missing_count->noalias() += non_missingness_matrix * non_missingness_matrix.transpose() ;
 		}
 		
