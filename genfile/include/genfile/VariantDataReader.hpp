@@ -6,6 +6,7 @@
 #include <string>
 #include <set>
 #include "boost/noncopyable.hpp"
+#include "boost/function.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
@@ -17,7 +18,7 @@ namespace genfile {
 		typedef std::auto_ptr< VariantDataReader > UniquePtr ;
 		typedef genfile::VariantEntry Entry ;
 	public:
-		typedef boost::function< void ( std::size_t i, std::vector< Entry > const& ) > PerSampleSetter ;
+		typedef boost::function< void ( std::size_t i, std::vector< Entry >& ) > PerSampleSetter ;
 		typedef boost::function< void ( std::string ) > SpecSetter ;
 	public:
 		virtual ~VariantDataReader() {} ;
@@ -35,11 +36,11 @@ namespace genfile {
 				m_values( other.m_values )
 			{}
 			
-			void operator()( std::size_t i, std::vector< VariantDataReader::Entry > const& values ) {
+			void operator()( std::size_t i, std::vector< VariantDataReader::Entry >& values ) {
 				if( m_values.size() < (i+1) ) {
 					m_values.resize( i+1 ) ;
 				}
-				m_values[i] = values ;
+				m_values[i].swap( values ) ;
 			}
 		private:
 			std::vector< std::vector< Entry > >& m_values ;

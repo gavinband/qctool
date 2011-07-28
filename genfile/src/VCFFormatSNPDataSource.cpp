@@ -122,7 +122,7 @@ namespace genfile {
 			m_stream_ptr = open_text_file_for_input( m_spec, m_compression_type ) ;
 		}
 		else {
-			throw OperationUnsupportedError( "Open", m_spec ) ;
+			throw OperationUnsupportedError( "void VCFFormatSNPDataSource::reset_stream()", "open stream", m_spec ) ;
 		}
 
 		m_stream_ptr->exceptions( std::ios::eofbit | std::ios::failbit | std::ios::badbit ) ;
@@ -390,7 +390,7 @@ namespace genfile {
 							m_data_reader->get( where->second, setter ) ;
 						}
 						else {
-							throw OperationUnsupportedError( "genfile::impl::VCFFormatDataReader::get()", m_source.get_source_spec() ) ;
+							throw OperationUnsupportedError( "genfile::impl::VCFFormatDataReader::get()", "get", m_source.get_source_spec() ) ;
 						}
 					}
 					catch( MalformedInputError const& e ) {

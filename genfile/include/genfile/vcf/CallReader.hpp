@@ -25,7 +25,7 @@ namespace genfile {
 		//
 		{
 		private:
-			typedef boost::function< void ( std::size_t i, std::vector< Entry > const& ) > Setter ;
+			typedef boost::function< void ( std::size_t i, std::vector< Entry >& ) > Setter ;
 		public:
 			typedef std::auto_ptr< CallReader > UniquePtr ;
 			
@@ -54,6 +54,7 @@ namespace genfile {
 			GenotypeCallVCFEntryType m_genotype_call_entry_type ;
 			std::vector< std::vector< string_utils::slice > > m_components ;
 			std::vector< std::vector< Entry > > m_genotype_calls ;
+			std::vector< std::size_t > m_ploidy ;
 		private:
 			void set_values(
 				std::size_t individual_i,

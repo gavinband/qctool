@@ -169,7 +169,7 @@ namespace genfile {
 					m_index( 0 )
 			{}
 			
-			void operator()( std::size_t i, std::vector< VariantDataReader::Entry > const& data ) {
+			void operator()( std::size_t i, std::vector< VariantDataReader::Entry >& data ) {
 				if( m_indices_of_samples_to_filter_out.find( i ) == m_indices_of_samples_to_filter_out.end() ) {
 					m_setter( m_index++, data ) ;
 				}

@@ -121,7 +121,8 @@ namespace genfile {
 	
 	struct OperationUnsupportedError: public std::exception
 	{
-		OperationUnsupportedError( std::string const& operation, std::string const& object ):
+		OperationUnsupportedError( std::string const& caller, std::string const& operation, std::string const& object ):
+			m_caller( caller ),
 			m_operation( operation ),
 			m_object( object )
 		{}
@@ -135,9 +136,11 @@ namespace genfile {
 		
 		virtual ~OperationUnsupportedError() throw() {}
 		
+		std::string const& caller() const { return m_caller ;}
 		std::string const& operation() const { return m_operation ;}
 		std::string const& object() const { return m_object ;}
 	private:
+		std::string const m_caller ;
 		std::string const m_operation ;
 		std::string const m_object ;
 	} ;

@@ -74,9 +74,9 @@ namespace genfile {
 					m_result( result )
 				{}
 				
-				void operator()( std::size_t sample_i, std::vector< Entry > const& values ) {
+				void operator()( std::size_t sample_i, std::vector< Entry >& values ) {
 					assert( sample_i < m_result.size() ) ;
-					m_result[sample_i] = values ;
+					m_result[sample_i].swap( values ) ;
 				}
 			private:
 				std::vector< std::vector< Entry > >& m_result ;
@@ -111,28 +111,39 @@ namespace genfile {
 				if(
 					( spec == "GT" || entry_type_i->second->check_if_requires_ploidy() )
 					&&
-					( m_genotype_calls.size() != m_number_of_samples )
+					( m_ploidy.size() != m_number_of_samples )
 				) {
-					m_genotype_calls.resize( m_number_of_samples ) ;
 					// Find the GT field in the format string...
 					std::size_t const GT_field_pos = std::find( m_format_elts.begin(), m_format_elts.end(), "GT" ) - m_format_elts.begin() ;
 					// ...it is required to be the first field.
 					if( GT_field_pos != 0 ) {
 						throw MalformedInputError( "(data)", 0 ) ;
 					}
+
+					m_ploidy.resize( m_number_of_samples ) ;
+					m_genotype_calls.resize( m_number_of_samples ) ;
+
 					impl::CallReaderGenotypeSetter genotype_setter( m_genotype_calls ) ;
 					for( std::size_t sample_i = 0; sample_i < m_components.size(); ++sample_i ) {
 						m_genotype_calls[ sample_i ] = m_genotype_call_entry_type.parse( m_components[ sample_i ][ GT_field_pos ], m_number_of_alleles ) ;
+						m_ploidy[ sample_i ] = m_genotype_calls[ sample_i ].size() ;
 					}
 				}
 				if( spec == "GT" ) {
+					assert( m_genotype_calls.size() == m_number_of_samples ) ;
 					for( std::size_t sample_i = 0; sample_i < m_components.size(); ++sample_i ) {
 						setter( sample_i, m_genotype_calls[ sample_i ] ) ;
 					}
 				}
 				else {
 					for( std::size_t sample_i = 0; sample_i < m_components.size(); ++sample_i ) {
-						set_values( sample_i, m_components[ sample_i ], ( where - m_format_elts.begin()), *(entry_type_i->second), setter ) ;
+						set_values(
+							sample_i,
+							m_components[ sample_i ],
+							( where - m_format_elts.begin()),
+							*(entry_type_i->second),
+							setter
+						) ;
 					}
 				}
 			}
@@ -176,21 +187,25 @@ namespace genfile {
 			// Decide if element is trailing (so not specified).
 			bool const elt_is_trailing = ( field_i >= components.size() ) ;
 			if( entry_type.check_if_requires_ploidy() ) {
-				assert( m_genotype_calls.size() == m_number_of_samples ) ;
-				std::size_t ploidy = m_genotype_calls[ sample_i ].size() ;
+				assert( m_ploidy.size() == m_number_of_samples ) ;
+				std::size_t ploidy = m_ploidy[ sample_i ] ;
 				if( elt_is_trailing ) {
-					setter( sample_i, entry_type.get_missing_value( m_number_of_alleles, ploidy ) ) ;
+					std::vector< Entry > values( entry_type.get_missing_value( m_number_of_alleles, ploidy ) ) ;
+					setter( sample_i, values ) ;
 				}
 				else {
-					setter( sample_i, entry_type.parse( components[ field_i ], m_number_of_alleles, ploidy )) ;
+					std::vector< Entry > values( entry_type.parse( components[ field_i ], m_number_of_alleles, ploidy ) ) ;
+					setter( sample_i, values ) ;
 				}
 			}
 			else {
 				if( elt_is_trailing ) {
-					setter( sample_i, entry_type.get_missing_value( m_number_of_alleles ) ) ;
+					std::vector< Entry > values( entry_type.get_missing_value( m_number_of_alleles ) ) ;
+					setter( sample_i, values ) ;
 				}
 				else {
-					setter( sample_i, entry_type.parse( components[ field_i ], m_number_of_alleles )) ;
+					std::vector< Entry > values( entry_type.parse( components[ field_i ], m_number_of_alleles ) ) ;
+					setter( sample_i, values ) ;
 				}
 			}
 		}
