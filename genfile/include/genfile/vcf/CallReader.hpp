@@ -7,8 +7,9 @@
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/function.hpp>
 #include "genfile/MissingValue.hpp"
-#include "genfile/vcf/Types.hpp"
+#include "genfile/vcf/TypesNew.hpp"
 #include "genfile/string_utils/slice.hpp"
+#include "genfile/VariantDataReader.hpp"
 
 namespace genfile {
 	namespace vcf {
@@ -24,8 +25,9 @@ namespace genfile {
 		//		( "GI", set_genotype_intensities ) ;
 		//
 		{
-		private:
-			typedef boost::function< void ( std::size_t i, std::vector< Entry >& ) > Setter ;
+		public:
+			// typedef boost::function< void ( std::size_t i, std::vector< Entry >& ) > Setter ;
+			typedef VariantDataReader::PerSampleSetter Setter ;
 		public:
 			typedef std::auto_ptr< CallReader > UniquePtr ;
 			
@@ -37,7 +39,7 @@ namespace genfile {
 				boost::ptr_map< std::string, VCFEntryType > const& entry_types
 			) ;
 		
-			CallReader& get( std::string const& spec, Setter setter ) ;
+			CallReader& get( std::string const& spec, Setter& setter ) ;
 		
 			void get_format_elts( boost::function< void ( std::string ) > ) const ;
 		
@@ -53,7 +55,7 @@ namespace genfile {
 			std::vector< VCFEntryType const* > m_entries_by_position ;
 			GenotypeCallVCFEntryType m_genotype_call_entry_type ;
 			std::vector< std::vector< string_utils::slice > > m_components ;
-			std::vector< std::vector< Entry > > m_genotype_calls ;
+			std::vector< std::vector< Setter::Integer > > m_genotype_calls ;
 			std::vector< std::size_t > m_ploidy ;
 		private:
 			void set_values(
@@ -61,7 +63,7 @@ namespace genfile {
 				std::vector< string_utils::slice > const& components,
 				std::size_t element_pos,
 				VCFEntryType const& entry_type,
-				Setter const& setter
+				Setter& setter
 			) ;
 
 			void unsafe_set_values(
@@ -69,7 +71,7 @@ namespace genfile {
 				std::vector< string_utils::slice > const& components,
 				std::size_t element_pos,
 				VCFEntryType const& entry_type,
-				Setter const& setter
+				Setter& setter
 			) ;
 			
 			// Forbid copying and assignment.

@@ -38,8 +38,8 @@ namespace genfile {
 			m_entry_types( entry_types )
 		{}
 			
-		InfoReader& InfoReader::operator()( std::string const& spec, Setter setter ) {
-			if( !m_setters.insert( std::make_pair( spec, setter )).second ) {
+		InfoReader& InfoReader::operator()( std::string const& spec, Setter& setter ) {
+			if( !m_setters.insert( std::make_pair( spec, &setter )).second ) {
 				throw BadArgumentError( "genfile::vcf::InfoReader::operator()", "spec = \"" + spec + "\"" ) ;
 			}
 			return *this ;
@@ -55,10 +55,10 @@ namespace genfile {
 				boost::ptr_map< std::string, VCFEntryType >::const_iterator entry_type_i = m_entry_types.find( i->first ) ;
 				assert( entry_type_i != m_entry_types.end() ) ;
 				if( where == m_data.end() ) {
-					i->second( entry_type_i->second->get_missing_value( m_number_of_alleles ) ) ;
+					entry_type_i->second->get_missing_value( m_number_of_alleles, *i->second ) ;
 				}
 				else {
-					i->second( entry_type_i->second->parse( where->second, m_number_of_alleles )) ;
+					entry_type_i->second->parse( where->second, m_number_of_alleles, *i->second ) ;
 				}
 			}
 		}

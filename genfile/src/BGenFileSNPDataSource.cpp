@@ -64,13 +64,15 @@ namespace genfile {
 				assert(( m_genotypes.size() % 3 ) == 0 ) ;
 			}
 			
-			BGenFileSNPDataReader& get( std::string const& spec, PerSampleSetter setter ) {
-				std::vector< Entry > entries( 3 ) ;
-				for( std::size_t i = 0; i < ( m_genotypes.size() / 3 ); ++i ) {
+			BGenFileSNPDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
+				std::size_t const N = m_genotypes.size() / 3 ;
+				setter.set_number_of_samples( N ) ;
+				for( std::size_t i = 0; i < N; ++i ) {
+					setter.set_sample( i ) ;
+					setter.set_number_of_entries( 3 ) ;
 					for( std::size_t g = 0; g < 3; ++g ) {
-						entries[g] = m_genotypes[ 3*i + g ] ;
+						setter( m_genotypes[ 3*i + g ] ) ;
 					}
-					setter( i, entries ) ;
 				}
 				return *this ;
 			}

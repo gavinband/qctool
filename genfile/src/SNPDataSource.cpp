@@ -253,7 +253,8 @@ namespace genfile {
 	) {
 		VariantDataReader::UniquePtr reader = read_variant_data_impl() ;
 		if( reader.get() ) {
-			reader->get( "genotypes", vcf::make_genotype_probability_setter( set_genotype_probabilities ) ) ;
+			vcf::GenotypeProbabilitySetter< GenotypeProbabilitySetter > setter( set_genotype_probabilities ) ;
+			reader->get( "genotypes", setter ) ;
 		}
 	}
 	

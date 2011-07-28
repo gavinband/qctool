@@ -5,11 +5,12 @@
 #include <vector>
 #include <string>
 #include <set>
-#include "boost/noncopyable.hpp"
-#include "boost/function.hpp"
+#include <boost/noncopyable.hpp>
+#include <boost/function.hpp>
 #include "genfile/VariantEntry.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
+#include "vcf/Types.hpp"
 
 namespace genfile {
 	class VariantDataReader: public boost::noncopyable
@@ -18,85 +19,61 @@ namespace genfile {
 		typedef std::auto_ptr< VariantDataReader > UniquePtr ;
 		typedef genfile::VariantEntry Entry ;
 	public:
-		typedef boost::function< void ( std::size_t i, std::vector< Entry >& ) > PerSampleSetter ;
+		struct PerSampleSetter: public vcf::EntriesSetter, public boost::noncopyable {
+			virtual ~PerSampleSetter() throw() {}
+			virtual void set_number_of_samples( std::size_t n ) ;
+			virtual void set_sample( std::size_t i ) ;
+		} ;
 		typedef boost::function< void ( std::string ) > SpecSetter ;
 	public:
 		virtual ~VariantDataReader() {} ;
-		virtual VariantDataReader& get( std::string const& spec, PerSampleSetter setter ) = 0 ;
+		virtual VariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) = 0 ;
+
 		virtual bool supports( std::string const& spec ) const = 0 ;
 		virtual void get_supported_specs( SpecSetter ) const = 0 ;
 		
-		struct VectorSetter {
+		struct VectorSetter: public PerSampleSetter {
 		public:
-			VectorSetter( std::vector< std::vector< Entry > >& values ):
-				m_values( values )
+			VectorSetter( std::vector< std::vector< Entry > >& data ):
+				m_data( data )
 			{}
 
-			VectorSetter( VectorSetter const& other ):
-				m_values( other.m_values )
-			{}
-			
-			void operator()( std::size_t i, std::vector< VariantDataReader::Entry >& values ) {
-				if( m_values.size() < (i+1) ) {
-					m_values.resize( i+1 ) ;
-				}
-				m_values[i].swap( values ) ;
-			}
+			void set_number_of_samples( std::size_t n ) { m_data.resize( n ) ; }
+			void set_sample( std::size_t n ) { assert( n < m_data.size() ) ; m_sample = n ; }
+			void set_number_of_entries( std::size_t n ) { m_data[ m_sample ].resize( n ) ; m_entry_i = 0 ; }
+
 		private:
-			std::vector< std::vector< Entry > >& m_values ;
+			template< typename T >
+			void set( T value ) {
+				assert( m_entry_i < m_data[ m_sample ].size() ) ;
+				m_data[ m_sample ][ m_entry_i++ ] = value ;
+			}
+		public:
+			void operator()( MissingValue const value ) { set( value ) ; }
+			void operator()( std::string& value ) { set( value ) ; }
+			void operator()( Integer const value ) { set( value ) ; }
+			void operator()( double const value ) { set( value ) ; }
+
+		private:
+			std::vector< std::vector< Entry > >& m_data ;
+			std::size_t m_number_of_samples ;
+			std::size_t m_sample ;
+			std::size_t m_entry_i ;
 		} ;
 		
-		static VectorSetter set( std::vector< std::vector< Entry > >& values ) {
-			return VectorSetter( values ) ;
+		// Convenience method.
+		VariantDataReader& get( std::string const& spec, std::vector< std::vector< Entry > >& data ) {
+			VectorSetter setter( data ) ;
+			get( spec, setter ) ;
+			return *this ;
 		}
 
-		template< typename Setter >
-		struct GenotypeSetter {
-		public:
-			typedef VariantDataReader::PerSampleSetter PerSampleSetter ;
-
-			GenotypeSetter( Setter setter ): m_setter( setter ) {}
-
-			void operator()( std::size_t i, std::vector< VariantDataReader::Entry > const& values ) {
-				double AA = 0.0, AB = 0.0, BB = 0.0 ; // zero genotypes to represent missing call.
-				if( !values.empty() ) {
-					if(
-						values[0].is_int()
-					) {
-						if(
-							values.size() == 2
-						) {
-							int A = values[0].as< int >(),
-								B = values[1].as< int >() ;
-
-							if( A >= 0 && A < 2 && B >= 0 && B < 2 ) {
-								AA = ( A == 0 && B == 0 ) ;
-								AB = ( A + B == 1 ) ;
-								BB = ( A == 1 && B == 1 ) ;
-							}
-						}
-					}
-					else if( values[0].is_double() && ( values.size() == 3 || values.size() == 4 )) {
-						AA = values[0].is_missing() ? 0.0 : values[0].as< double >() ;
-						AB = values[1].is_missing() ? 0.0 : values[1].as< double >() ;
-						BB = values[2].is_missing() ? 0.0 : values[2].as< double >() ;
-					}
-				}
-				m_setter( i, AA, AB, BB ) ;
-			}
-			
-		private:
-			Setter m_setter ;
-		} ;
+		// Convenience method setting SingleSNPGenotypeProbabilities.
+		VariantDataReader& get( std::string const& spec, SingleSNPGenotypeProbabilities& data ) ;
 
 		template< typename Setter >
 		static GenotypeSetter< Setter > set( Setter setter ) {
 			return GenotypeSetter< Setter >( setter ) ;
-		}
-
-		static GenotypeSetter< ::genfile::GenotypeSetter< SingleSNPGenotypeProbabilities > >
-			set( SingleSNPGenotypeProbabilities& genotypes ) {
-			return set( set_genotypes( genotypes ) ) ;
 		}
 	} ;
 }

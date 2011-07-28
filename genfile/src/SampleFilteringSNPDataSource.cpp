@@ -158,27 +158,53 @@ namespace genfile {
 
 	namespace impl {
 		
-		struct SampleFilteringPerSampleSetter {
+		struct SampleFilteringPerSampleSetter: public VariantDataReader::PerSampleSetter {
 			SampleFilteringPerSampleSetter(
-				VariantDataReader::PerSampleSetter setter,
+				VariantDataReader::PerSampleSetter& setter,
 				std::set< std::size_t > const& indices_of_samples_to_filter_out
 				
 			):
 					m_setter( setter ),
 					m_indices_of_samples_to_filter_out( indices_of_samples_to_filter_out ),
-					m_index( 0 )
+					m_filter_out_this_sample( false )
 			{}
 			
-			void operator()( std::size_t i, std::vector< VariantDataReader::Entry >& data ) {
-				if( m_indices_of_samples_to_filter_out.find( i ) == m_indices_of_samples_to_filter_out.end() ) {
-					m_setter( m_index++, data ) ;
+			void set_number_of_samples( std::size_t n ) {
+				m_setter.set_number_of_samples( n - m_indices_of_samples_to_filter_out.size() ) ;
+			}
+
+			void set_sample( std::size_t n ) {
+				// count samples less than this.
+				std::set< std::size_t >::const_iterator where = std::lower_bound(
+					m_indices_of_samples_to_filter_out.begin(),
+					m_indices_of_samples_to_filter_out.end(),
+					n
+				) ;
+				if( where != m_indices_of_samples_to_filter_out.end() && *where == n ) {
+					m_filter_out_this_sample = true ;
+				}
+				else {
+					m_filter_out_this_sample = false ;
+					std::size_t number_of_filtered_out_samples_before_this = std::distance( m_indices_of_samples_to_filter_out.begin(), where ) ;
+					m_setter.set_sample( n - number_of_filtered_out_samples_before_this ) ;
 				}
 			}
 
+			void set_number_of_entries( std::size_t n ) {
+				if( !m_filter_out_this_sample ) {
+					m_setter.set_number_of_entries( n ) ;
+				}
+			}
+
+			void operator()( MissingValue const value ) { if( !m_filter_out_this_sample ) { m_setter( value ) ; } }
+			void operator()( std::string& value ) { if( !m_filter_out_this_sample ) { m_setter( value ) ; } }
+			void operator()( VariantEntry::Integer const value ) { if( !m_filter_out_this_sample ) { m_setter( value ) ; } }
+			void operator()( double const value ) { if( !m_filter_out_this_sample ) { m_setter( value ) ; } }
+
 		private:
-			VariantDataReader::PerSampleSetter m_setter ;
+			VariantDataReader::PerSampleSetter& m_setter ;
 			std::set< std::size_t > const& m_indices_of_samples_to_filter_out ;
-			std::size_t m_index ;
+			bool m_filter_out_this_sample ;
 		} ;
 		
 		struct SampleFilteringVariantDataReader: public VariantDataReader {
@@ -190,10 +216,11 @@ namespace genfile {
 				m_indices_of_samples_to_filter_out( indices_of_samples_to_filter_out )
 			{}
 
-			VariantDataReader& get( std::string const& spec, PerSampleSetter setter ) {
+			VariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
+				SampleFilteringPerSampleSetter filtering_setter( setter, m_indices_of_samples_to_filter_out ) ;
 				m_data_reader->get(
 					spec,
-					SampleFilteringPerSampleSetter( setter, m_indices_of_samples_to_filter_out )
+					filtering_setter
 				) ;
 				return *this ;
 			}

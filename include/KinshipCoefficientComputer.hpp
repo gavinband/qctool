@@ -29,7 +29,7 @@ namespace impl {
 			m_threshhold( 0.9 ),
 			m_genotypes( m_number_of_samples )
 		{
-			data_reader.get( "genotypes", genfile::VariantDataReader::set( m_genotypes )) ;
+			data_reader.get( "genotypes", m_genotypes ) ;
 		}
 
 		void operator()() {

@@ -69,21 +69,46 @@ namespace genfile {
 		}
 
 		namespace impl {
-			struct CallReaderGenotypeSetter {
-				CallReaderGenotypeSetter( std::vector< std::vector< Entry > >& result ):
-					m_result( result )
+			struct CallReaderGenotypeSetter: public CallReader::Setter {
+				CallReaderGenotypeSetter(
+					std::vector< std::vector< vcf::EntrySetter::Integer > >& entries,
+					std::vector< std::size_t >& ploidies
+				):
+					m_entries( entries ),
+					m_ploidies( ploidies ),
+					m_sample_i( 0 )
 				{}
-				
-				void operator()( std::size_t sample_i, std::vector< Entry >& values ) {
-					assert( sample_i < m_result.size() ) ;
-					m_result[sample_i].swap( values ) ;
+
+				void set_number_of_samples( std::size_t n ) {
+					m_ploidies.resize( n ) ;
+					m_entries.resize( n ) ;
 				}
+				
+				void set_sample( std::size_t sample_i ) {
+					assert( sample_i < m_ploidies.size() ) ;
+					m_sample_i = sample_i ;
+				}
+
+				void set_number_of_entries( std::size_t n ) {
+					m_entries[ m_sample_i ].reserve( n ) ;
+				}
+			
+				void operator()( MissingValue const value ) {
+					m_entries[ m_sample_i ].push_back( -1 ) ;
+				}
+
+				void operator()( Integer const value ) {
+					m_entries[ m_sample_i ].push_back( value ) ;
+				}
+
 			private:
-				std::vector< std::vector< Entry > >& m_result ;
+				std::vector< std::vector< vcf::EntrySetter::Integer > >& m_entries ;
+				std::vector< std::size_t >& m_ploidies ;
+				std::size_t m_sample_i ;
 			} ;
 		}
 
-		CallReader& CallReader::get( std::string const& spec, Setter setter ) {
+		CallReader& CallReader::get( std::string const& spec, Setter& setter ) {
 			boost::ptr_map< std::string, VCFEntryType >::const_iterator entry_type_i = m_entry_types.find( spec ) ;
 			if( entry_type_i == m_entry_types.end() ) {
 				throw BadArgumentError( "genfile::vcf::CallReader::operator()", "spec = \"" + spec + "\"" ) ;
@@ -123,20 +148,28 @@ namespace genfile {
 					m_ploidy.resize( m_number_of_samples ) ;
 					m_genotype_calls.resize( m_number_of_samples ) ;
 
-					impl::CallReaderGenotypeSetter genotype_setter( m_genotype_calls ) ;
+					impl::CallReaderGenotypeSetter genotype_setter( m_genotype_calls, m_ploidy ) ;
 					for( std::size_t sample_i = 0; sample_i < m_components.size(); ++sample_i ) {
-						m_genotype_calls[ sample_i ] = m_genotype_call_entry_type.parse( m_components[ sample_i ][ GT_field_pos ], m_number_of_alleles ) ;
-						m_ploidy[ sample_i ] = m_genotype_calls[ sample_i ].size() ;
+						m_genotype_call_entry_type.parse( m_components[ sample_i ][ GT_field_pos ], m_number_of_alleles, genotype_setter ) ;
 					}
 				}
 				if( spec == "GT" ) {
 					assert( m_genotype_calls.size() == m_number_of_samples ) ;
 					for( std::size_t sample_i = 0; sample_i < m_components.size(); ++sample_i ) {
-						setter( sample_i, m_genotype_calls[ sample_i ] ) ;
+						setter.set_sample( sample_i ) ;
+						setter.set_number_of_entries( m_genotype_calls[ sample_i ].size() ) ;
+						for( std::size_t call_i = 0; call_i < m_genotype_calls[ sample_i ].size(); ++call_i ) {
+							if( m_genotype_calls[ sample_i ][ call_i ] == -1 ) {
+								setter( MissingValue() ) ;
+							} else {
+								setter( m_genotype_calls[ sample_i ][ call_i ] ) ;
+							}
+						}
 					}
 				}
 				else {
 					for( std::size_t sample_i = 0; sample_i < m_components.size(); ++sample_i ) {
+						setter.set_sample( sample_i ) ;
 						set_values(
 							sample_i,
 							m_components[ sample_i ],
@@ -156,7 +189,7 @@ namespace genfile {
 				std::vector< string_utils::slice > const& components,
 				std::size_t field_i,
 				VCFEntryType const& entry_type,
-				Setter const& setter
+				Setter& setter
 		) {
 			try {
 				unsafe_set_values(
@@ -180,7 +213,7 @@ namespace genfile {
 			std::vector< string_utils::slice > const& components,
 			std::size_t field_i,
 			VCFEntryType const& entry_type,
-			Setter const& setter
+			Setter& setter
 		) {
 			// GT should be handled elsewhere.
 			assert( m_format_elts[ field_i ] != "GT" ) ;
@@ -190,22 +223,18 @@ namespace genfile {
 				assert( m_ploidy.size() == m_number_of_samples ) ;
 				std::size_t ploidy = m_ploidy[ sample_i ] ;
 				if( elt_is_trailing ) {
-					std::vector< Entry > values( entry_type.get_missing_value( m_number_of_alleles, ploidy ) ) ;
-					setter( sample_i, values ) ;
+					entry_type.get_missing_value( m_number_of_alleles, ploidy, setter ) ;
 				}
 				else {
-					std::vector< Entry > values( entry_type.parse( components[ field_i ], m_number_of_alleles, ploidy ) ) ;
-					setter( sample_i, values ) ;
+					entry_type.parse( components[ field_i ], m_number_of_alleles, ploidy, setter ) ;
 				}
 			}
 			else {
 				if( elt_is_trailing ) {
-					std::vector< Entry > values( entry_type.get_missing_value( m_number_of_alleles ) ) ;
-					setter( sample_i, values ) ;
+					entry_type.get_missing_value( m_number_of_alleles, setter ) ;
 				}
 				else {
-					std::vector< Entry > values( entry_type.parse( components[ field_i ], m_number_of_alleles ) ) ;
-					setter( sample_i, values ) ;
+					entry_type.parse( components[ field_i ], m_number_of_alleles, setter ) ;
 				}
 			}
 		}

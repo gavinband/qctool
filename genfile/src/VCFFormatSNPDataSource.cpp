@@ -382,7 +382,7 @@ namespace genfile {
 			}
 
 		public:
-			VCFFormatDataReader& get( std::string const& spec, PerSampleSetter setter ) {
+			VCFFormatDataReader& get( std::string const& spec, VariantDataReader::PerSampleSetter& setter ) {
 				if( m_source.number_of_samples() > 0 ) {
 					try {
 						FieldMapping::left_const_iterator where = m_field_mapping.left.find( spec ) ;
@@ -463,15 +463,6 @@ namespace genfile {
 		return result ;
 	}
 	
-	void VCFFormatSNPDataSource::read_snp_probability_data_impl(
-		GenotypeProbabilitySetter const& set_genotype_probabilities
-	) {
-		VariantDataReader::UniquePtr reader = read_variant_data_impl() ;
-		if( reader.get() ) {
-			reader->get( "genotypes", vcf::make_genotype_probability_setter( set_genotype_probabilities ) ) ;
-		}
-	}
-
 	void VCFFormatSNPDataSource::ignore_snp_probability_data_impl() {
 		std::string FORMAT ;
 		std::string data ;

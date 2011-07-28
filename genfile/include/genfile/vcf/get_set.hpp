@@ -4,44 +4,101 @@
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
+#include "genfile/VariantDataReader.hpp"
 
 namespace genfile {
 	namespace vcf {
 		template< typename Setter >
-		struct GenotypeProbabilitySetter
+		struct GenotypeProbabilitySetter: public VariantDataReader::PerSampleSetter
 		{
-			GenotypeProbabilitySetter( Setter setter ): m_setter( setter ) {}
-			GenotypeProbabilitySetter( SingleSNPGenotypeProbabilities& probabilities ): m_setter( genfile::set_genotypes( probabilities ) ) {}
+			GenotypeProbabilitySetter( Setter const& setter ): m_setter( setter ) {}
+			GenotypeProbabilitySetter( SingleSNPGenotypeProbabilities& probabilities ):
+				m_setter( genfile::set_genotypes( probabilities ) )
+			{}
 
-			void operator()( std::size_t i, std::vector< vcf::Entry > const& values ) {
-				double AA = 0.0, AB = 0.0, BB = 0.0 ; // zero genotypes to represent missing call.
-				if( !values.empty() ) {
-					if(
-						values[0].is_int()
-					) {
-						if(
-							values.size() == 2
-						) {
-							int A = values[0].as< int >(),
-								B = values[1].as< int >() ;
+			void set_number_of_samples( std::size_t n ) {
+				// destination is supposed to know its size.
+				m_number_of_samples = n ;
+			}
 
-							if( A >= 0 && A < 2 && B >= 0 && B < 2 ) {
-								AA = ( A == 0 && B == 0 ) ;
-								AB = ( A + B == 1 ) ;
-								BB = ( A == 1 && B == 1 ) ;
-							}
-						}
-					}
-					else if( values[0].is_double() && ( values.size() == 3 || values.size() == 4 )) {
-						AA = values[0].is_missing() ? 0.0 : values[0].as< double >() ;
-						AB = values[1].is_missing() ? 0.0 : values[1].as< double >() ;
-						BB = values[2].is_missing() ? 0.0 : values[2].as< double >() ;
+			void set_sample( std::size_t n ) {
+				assert( n < m_number_of_samples ) ;
+				m_sample = n ;
+				m_missing = false ;
+			}
+			void set_number_of_entries( std::size_t n ) {
+				m_number_of_entries = n ;
+				m_entry_i = 0 ;
+			}
+
+			void operator()( MissingValue const value ) {
+				// if any prob is missing, all are.
+				m_missing = true ;
+				if( ++m_entry_i == m_number_of_entries ) {
+					set() ;
+				}
+			}
+
+			template< typename T >
+			void store( T const value ) {
+				if( m_number_of_entries == 2 ) {
+					// Treat as two calls.
+					assert( value == 0 || value == 1 ) ;
+					m_A += ( value == 0 ) ? 1 : 0 ;
+					m_B += ( value == 0 ) ? 0 : 1 ;
+				}
+				else if( m_number_of_entries == 3 || m_number_of_entries == 4 ) {
+					// treat as probabilities.  Ignore the fourth probability, which we interpret as NULL call.
+					if( m_entry_i < 3 ) {
+						m_store[ m_entry_i ] = value ;
 					}
 				}
-				m_setter( i, AA, AB, BB ) ;
+				else {
+					assert(0) ;
+				}
+				++m_entry_i ;
+				if( ++m_entry_i == m_number_of_entries ) {
+					set() ;
+				}
 			}
+
+			void set() {
+				if( m_missing ) {
+					m_setter( m_sample, 0.0, 0.0, 0.0 ) ;
+				}
+				else if( m_number_of_entries == 2 ) {
+					if( m_A == 0 && m_B == 2 ) {
+						m_setter( m_sample, 0.0, 0.0, 1.0 ) ;
+					}
+					else if( m_A == 1 && m_B == 1 ) {
+						m_setter( m_sample, 1.0, 0.0, 0.0 ) ;
+					}
+					else {
+						m_setter( m_sample, 0.0, 1.0, 0.0 ) ;
+					}
+				}
+				else {
+					m_setter( m_sample, m_store[0], m_store[1], m_store[2] ) ;
+				}
+			}
+
+			void operator()( Integer const value ) {
+				store( value ) ;
+			}
+
+			void operator()( double const value ) {
+				store( value ) ;
+			}
+
 		private:
-			Setter m_setter ;
+			Setter const& m_setter ;
+			std::size_t m_number_of_samples ;
+			std::size_t m_sample ;
+			std::size_t m_number_of_entries ;
+			std::size_t m_entry_i ;
+			double m_store[3] ;
+			double m_A, m_B ;
+			bool m_missing ;
 		} ;
 		
 		template< typename Setter >

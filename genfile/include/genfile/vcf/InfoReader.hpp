@@ -26,9 +26,9 @@ namespace genfile {
 				boost::ptr_map< std::string, VCFEntryType > const& entry_types
 			) ;
 			
-			typedef boost::function< void( std::vector< Entry > const& ) > Setter ;
+			typedef EntriesSetter Setter ;
 
-			InfoReader& operator()( std::string const& spec, Setter ) ;
+			InfoReader& operator()( std::string const& spec, Setter& setter ) ;
 
 			// Deconstruct.  This performs the actual work of setting values.
 			~InfoReader() ;
@@ -37,7 +37,7 @@ namespace genfile {
 			std::size_t const m_number_of_alleles ;
 			std::map< std::string, std::string > const m_data ;
 			boost::ptr_map< std::string, VCFEntryType > const& m_entry_types ;
-			typedef std::map< std::string, Setter > Setters ;
+			typedef std::map< std::string, Setter* > Setters ;
 			Setters m_setters ;
 		private:
 			void set_values() const ;

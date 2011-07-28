@@ -97,7 +97,7 @@ void QCTool::unsafe_call_processed_snp(
 ) {
 	genfile::SingleSNPGenotypeProbabilities genotypes( m_number_of_samples ) ;
 	try {
-		data_reader.get( "genotypes", genfile::VariantDataReader::set( genotypes )) ;
+		data_reader.get( "genotypes", genotypes ) ;
 	}
 	catch( genfile::BadArgumentError const& e ) {
 		m_ui_context.logger() << "!! Error (" << e.what() << ") at " << id_data.get_rsid() << ": in " << e.function() << ": " << e.arguments() << ".\n" ;

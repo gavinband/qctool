@@ -129,34 +129,79 @@ namespace genfile {
 	}
 
 	namespace impl {
-		void set_flipped_genotype_alleles( VariantDataReader::PerSampleSetter setter, std::size_t sample_i, std::vector< VariantDataReader::Entry > const& values ) {
-			std::vector< VariantDataReader::Entry > new_values = values ;
-			if( new_values.size() == 3 ) {
-				// ploidy = 2
-				std::swap( new_values[0], new_values[2] ) ;
+		struct FlippedAlleleSetter: public VariantDataReader::PerSampleSetter {
+			~FlippedAlleleSetter() throw() {}
+			
+			FlippedAlleleSetter( VariantDataReader::PerSampleSetter& setter ):
+				m_setter( setter ),
+				m_values( 3 ),
+				m_number_of_entries( 0 ),
+				m_entry_i( 0 )
+			{}
+			void set_number_of_samples( std::size_t n ) { m_setter.set_number_of_samples( n ) ; }
+			void set_sample( std::size_t n ) { m_setter.set_sample( n ) ; }
+			void set_number_of_entries( std::size_t n ) {
+				m_number_of_entries = n ;
+				m_entry_i = 0 ;
+				m_setter.set_number_of_entries( n ) ;
 			}
-			else if( values.size() == 2 ) {
-				// ploidy = 1
-				std::swap( new_values[0], new_values[1] ) ;
-			}
-			else {
-				assert(0) ;
-			}
-			setter( sample_i, new_values ) ;
-		}
-		
-		void set_unknown_alleles( VariantDataReader::PerSampleSetter setter, std::size_t sample_i, std::vector< VariantDataReader::Entry > const& values ) {
-			std::vector< VariantDataReader::Entry > new_values( values.size(), MissingValue() ) ;
-			setter( sample_i, new_values ) ;
-		}
 
-		void set_flipped_intensity_alleles( VariantDataReader::PerSampleSetter setter, std::size_t sample_i, std::vector< VariantDataReader::Entry > const& values ) {
-			assert( values.size() == 2 ) ;
-			std::vector< VariantDataReader::Entry > new_values( values ) ;
-			std::swap( new_values[0], new_values[1] ) ;
-			setter( sample_i, new_values ) ;
-		}
+			void operator()( MissingValue const value ) { store( value ) ; }
+			void operator()( std::string& value ) { store( value ) ; }
+			void operator()( Integer const value ) { store( value ) ; }
+			void operator()( double const value ) { store( value ) ; }
+
+		private:
+			VariantDataReader::PerSampleSetter& m_setter ;
+			std::size_t m_number_of_entries ;
+			std::vector< VariantEntry > m_values ;
+			std::size_t m_entry_i ;
+
+			template< typename T >
+			void store( T value ) {
+				if( m_values.size() < ( m_entry_i + 1 ) ) {
+					m_values.resize( m_entry_i + 1 ) ;
+				}
+				m_values[ m_entry_i++ ] = value ;
+				if( m_entry_i == m_number_of_entries ) {
+					set_values() ;
+				}
+			}
+
+			void set_values() {
+				for( std::size_t i = 0; i < m_number_of_entries; ++i ) {
+					VariantEntry const& entry = m_values[ m_number_of_entries - 1 - i ] ;
+					if( entry.is_missing() ) {
+						m_setter( MissingValue() ) ;
+					} else if( entry.is_string() ) {
+						std::string value = entry.as< std::string >() ;
+						m_setter( value ) ;
+					} else if( entry.is_int() ) {
+						m_setter( entry.as< VariantEntry::Integer >() ) ;
+					} else if( entry.is_double() ) {
+						m_setter( entry.as< double >() ) ;
+					} else {
+						assert(0) ;
+					}
+				}
+			}
+		} ;
 		
+		struct UnknownAlleleSetter: public VariantDataReader::PerSampleSetter {
+			UnknownAlleleSetter( VariantDataReader::PerSampleSetter& setter ):
+				m_setter( setter )
+			{}
+			
+			void set_number_of_samples( std::size_t n ) { m_setter.set_number_of_samples( n ) ; }
+			void set_sample( std::size_t n ) { m_setter.set_sample( n ) ; }
+			void set_number_of_entries( std::size_t n ) { m_setter.set_number_of_entries( n ) ; }
+			void operator()( MissingValue const value ) { m_setter( value ) ; }
+			void operator()( Integer const value ) { m_setter( MissingValue() ) ; }
+			void operator()( double const value ) { m_setter( MissingValue() ) ; }
+		private:
+			VariantDataReader::PerSampleSetter& m_setter ;
+		} ;
+
 		class AlleleFlippingSNPDataReader: public VariantDataReader {
 		public:
 			AlleleFlippingSNPDataReader(
@@ -169,17 +214,15 @@ namespace genfile {
 				m_allele_flips( allele_flips )
 			{}
 			
-			AlleleFlippingSNPDataReader& get( std::string const& spec, PerSampleSetter setter ) {
+			AlleleFlippingSNPDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
 				switch( m_allele_flips[ m_source.number_of_snps_read() ] ) {
 					case AlleleFlippingSNPDataSource::eNoFlip:
 						m_base_reader->get( spec, setter ) ;
 						break ;
 					case AlleleFlippingSNPDataSource::eFlip:
-						if( spec == "genotypes" ) {
-							m_base_reader->get( spec, boost::bind( &set_flipped_genotype_alleles, setter, _1, _2 )) ;
-						}
-						else if( spec == "intensities" ) {
-							m_base_reader->get( spec, boost::bind( &set_flipped_intensity_alleles, setter, _1, _2 )) ;
+						if( spec == "genotypes" || spec == "intensities" ) {
+							FlippedAlleleSetter flipped_setter( setter ) ;
+							m_base_reader->get( spec, flipped_setter ) ;
 						}
 						else {
 							// Pass through to base reader.
@@ -187,7 +230,13 @@ namespace genfile {
 						}
 						break ;
 					case AlleleFlippingSNPDataSource::eUnknownFlip:
-						m_base_reader->get( spec, boost::bind( &set_unknown_alleles, setter, _1, _2 )) ;
+						if( spec == "genotypes" || spec == "intensities" ) {
+							UnknownAlleleSetter unknown_allele_setter( setter ) ;
+							m_base_reader->get( spec, unknown_allele_setter ) ;
+						}
+						else {
+							m_base_reader->get( spec, setter ) ;
+						}
 						break ; 
 					default:
 						assert(0) ;

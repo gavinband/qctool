@@ -10,6 +10,7 @@
 #include "genfile/string_utils/slice.hpp"
 #include "genfile/string_utils/strtod.hpp"
 
+#if 0
 namespace genfile {
 	namespace vcf {
 			SimpleType::UniquePtr SimpleType::create( std::string const& spec ) {
@@ -340,3 +341,4 @@ namespace genfile {
 			}
 	}
 }
+#endif

@@ -137,7 +137,7 @@ void Relatotron::begin_processing_snps( std::size_t number_of_samples, std::size
 
 void Relatotron::processed_snp( SNPIdentifyingData const& id_data, genfile::VariantDataReader& data_reader ) {
 	SingleSNPGenotypeProbabilities genotypes( m_number_of_samples ) ;
-	data_reader.get( "genotypes", genfile::VariantDataReader::set( genotypes )) ;
+	data_reader.get( "genotypes", genotypes ) ;
 	assert( genotypes.get_number_of_samples() == m_number_of_samples ) ;
 	assert( m_snps.size() == m_genotypes.size() ) ;
 	m_snps.push_back( id_data ) ;

@@ -278,27 +278,41 @@ namespace genfile {
 		
 
 	namespace impl {
-		struct OffsetSampleSetter {
-			OffsetSampleSetter( VariantDataReader::PerSampleSetter setter, std::size_t offset ):
+		struct OffsetSampleSetter: public VariantDataReader::PerSampleSetter {
+			OffsetSampleSetter(
+				VariantDataReader::PerSampleSetter& setter,
+				std::size_t offset,
+				std::size_t number_of_samples
+			):
 				m_setter( setter ),
-				m_offset( offset )
-			{}
+				m_offset( offset ),
+				m_number_of_samples( number_of_samples )
+			{
+				m_setter.set_number_of_samples( m_number_of_samples ) ;
+			}
 
-			OffsetSampleSetter( OffsetSampleSetter const& other ):
-				m_setter( other.m_setter ),
-				m_offset( other.m_offset )
-			{}
+			void set_number_of_samples( std::size_t n ) { /* do nothing. */ }
+			void set_sample( std::size_t n ) {
+				assert( ( n + m_offset ) < m_number_of_samples ) ;
+				m_setter.set_sample( n + m_offset ) ;
+			}
+
+			void set_number_of_entries( std::size_t n ) {
+				m_setter.set_number_of_entries( n ) ;
+			}
+
+			void operator()( MissingValue const value ) { m_setter( value ) ; }
+			void operator()( std::string& value ) { m_setter( value ) ; }
+			void operator()( Integer const value ) { m_setter( value ) ; }
+			void operator()( double const value ) { m_setter( value ) ; }
 
 			void set_offset( std::size_t offset ) { m_offset = offset ; }
 			std::size_t get_offset() const { return m_offset ; }
 
-			void operator()( std::size_t i, std::vector< genfile::VariantEntry >& values ) {
-				m_setter( i + m_offset, values ) ;
-			}
-
 		private:
-			VariantDataReader::PerSampleSetter m_setter ;
+			VariantDataReader::PerSampleSetter& m_setter ;
 			std::size_t m_offset ;
+			std::size_t m_number_of_samples ;
 		} ;
 		
 		struct RackVariantDataReader: public VariantDataReader
@@ -317,8 +331,8 @@ namespace genfile {
 				}
 			}
 
-			RackVariantDataReader& get( std::string const& spec, PerSampleSetter setter ) {
-				OffsetSampleSetter offset_sample_setter( setter, 0 ) ;
+			RackVariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
+				OffsetSampleSetter offset_sample_setter( setter, 0 , m_rack.number_of_samples() ) ;
 				for( std::size_t i = 0; i < m_rack.m_sources.size(); ++i ) {
 					m_data_readers[i]->get( spec, offset_sample_setter ) ;
 					offset_sample_setter.set_offset( offset_sample_setter.get_offset() + m_rack.m_sources[i]->number_of_samples() ) ;

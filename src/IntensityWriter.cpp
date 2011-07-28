@@ -227,7 +227,7 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 				// No data already.
 				// Compress the data and store it.
 				std::vector< std::vector< genfile::VariantEntry > > data( m_number_of_samples ) ;
-				data_reader.get( field, genfile::VariantDataReader::set( data ) ) ;
+				data_reader.get( field, data ) ;
 				assert( data.size() == m_number_of_samples ) ;
 
 				// count the data
