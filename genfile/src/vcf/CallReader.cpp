@@ -119,14 +119,16 @@ namespace genfile {
 			}
 
 			if( m_components.empty() ) {
-				std::vector< string_utils::slice > elts = string_utils::slice( m_data ).split( "\t" ) ;
+				std::vector< string_utils::slice > elts ;
+				elts.reserve( m_number_of_samples ) ;
+				string_utils::slice( m_data ).split( "\t", &elts ) ;
 				if( elts.size() != m_number_of_samples ) {
 					throw MalformedInputError( "(data)", 0 ) ;
 				}
 				m_components.resize( m_number_of_samples ) ;
 				for( std::size_t sample_i = 0; sample_i < elts.size(); ++sample_i ) {
 					if( elts[ sample_i ].size() > 0 ) {
-						m_components[ sample_i ] = elts[ sample_i ].split( ":" ) ;
+						elts[ sample_i ].split( ":", &m_components[ sample_i ] ) ;
 						if( m_components[ sample_i ].size() > m_format_elts.size() ) {
 							throw MalformedInputError( "(data)", 0, sample_i ) ;
 						}

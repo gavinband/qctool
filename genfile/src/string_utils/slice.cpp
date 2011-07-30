@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 #include <cassert>
-
+#include <boost/bind.hpp>
 #include "genfile/string_utils/slice.hpp"
 
 
@@ -118,7 +118,6 @@ namespace genfile {
 			assert( std::numeric_limits< unsigned char >::max() + 1 == 256 ) ;
 			char array[ 256 ] ;
 			impl::make_membership_array( split_chars, array, 256 ) ;
-
 			std::size_t last_pos = 0, pos = 0 ;
 			do {
 				pos = find_first_of( array, last_pos ) ;
@@ -129,9 +128,25 @@ namespace genfile {
 				last_pos = pos + 1 ;
 			}
 			while( pos != size() ) ;
-
 			return result ;	
 		}
+
+		void slice::split( std::string const& split_chars, std::vector< slice >* result ) const {
+			assert( std::numeric_limits< unsigned char >::max() + 1 == 256 ) ;
+			char array[ 256 ] ;
+			impl::make_membership_array( split_chars, array, 256 ) ;
+			std::size_t last_pos = 0, pos = 0 ;
+			do {
+				pos = find_first_of( array, last_pos ) ;
+				if( pos == std::string::npos ) {
+					pos = size() ;
+				}
+				result->push_back( slice( *this, last_pos, pos ) ) ;
+				last_pos = pos + 1 ;
+			}
+			while( pos != size() ) ;
+		}
+
 		
 		
 		

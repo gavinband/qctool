@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <cassert>
 
 namespace genfile {
 	namespace string_utils {
@@ -33,6 +34,7 @@ namespace genfile {
 			std::size_t find_first_of( std::string const& chars, std::size_t pos = 0 ) const ;
 
 			std::vector< slice > split( std::string const& split_chars ) const ;
+			void split( std::string const& split_chars, std::vector< slice >* result ) const ;
 			
 			bool operator==( std::string const& other ) const ;
 			bool operator!=( std::string const& other ) const ;
