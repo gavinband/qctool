@@ -49,18 +49,24 @@ namespace genfile {
 			std::size_t const m_number_of_samples ;
 			std::size_t const m_number_of_alleles ;
 			std::vector< std::string > const m_format_elts ;
-			std::string const& m_data ;
+			std::string const m_data ;
 			boost::ptr_map< std::string, VCFEntryType > const& m_entry_types ;
 			std::size_t m_index ;
 			std::vector< VCFEntryType const* > m_entries_by_position ;
 			GenotypeCallVCFEntryType m_genotype_call_entry_type ;
-			std::vector< std::vector< string_utils::slice > > m_components ;
+			std::vector< string_utils::slice > m_components ;
+			std::vector< std::size_t > m_component_counts ;
+			// std::vector< std::size_t > m_components_sizes ;
+			// std::vector< string_utils::slice > m_components ;
 			std::vector< Setter::Integer > m_genotype_calls ;
 			std::vector< std::size_t > m_ploidy ;
 		private:
+			void split_data() ;
+			void load_genotypes() ;
 			void set_values(
 				std::size_t individual_i,
-				std::vector< string_utils::slice > const& components,
+				string_utils::slice const* begin_components,
+				string_utils::slice const* end_components,
 				std::size_t element_pos,
 				VCFEntryType const& entry_type,
 				Setter& setter
@@ -68,7 +74,8 @@ namespace genfile {
 
 			void unsafe_set_values(
 				std::size_t individual_i,
-				std::vector< string_utils::slice > const& components,
+				string_utils::slice const* begin_components,
+				string_utils::slice const* end_components,
 				std::size_t element_pos,
 				VCFEntryType const& entry_type,
 				Setter& setter

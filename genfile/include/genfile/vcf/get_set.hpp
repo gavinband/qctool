@@ -57,7 +57,7 @@ namespace genfile {
 					assert(0) ;
 				}
 				++m_entry_i ;
-				if( ++m_entry_i == m_number_of_entries ) {
+				if( m_entry_i == m_number_of_entries ) {
 					set() ;
 				}
 			}

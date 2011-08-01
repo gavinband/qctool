@@ -117,85 +117,38 @@ void test_format_types() {
 	boost::ptr_map< std::string, VCFEntryType > types ;
 
 	// Test with no types.  Only empty format is allowed.
-	try {
-		CallReader( 1, 2, "", "", types ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {
-		TEST_ASSERT( 0 ) ;
-	}
+	BOOST_CHECK_NO_THROW( CallReader( 1, 2, "", "", types ) ) ;
 
-	try {
-		CallReader( 1, 2, "GT", "", types ) ;
-		TEST_ASSERT( 0 ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {}
+	BOOST_CHECK_THROW( CallReader( 1, 2, "GT", "", types ), genfile::BadArgumentError ) ;
 
-	try {
-		CallReader( 1, 2, "HQ", "", types ) ;
-		TEST_ASSERT( 0 ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {}
+	BOOST_CHECK_THROW( CallReader( 1, 2, "HQ", "", types ), genfile::BadArgumentError ) ;
 
-	try {
-		CallReader( 1, 2, "GT:HQ", "", types ) ;
-		TEST_ASSERT( 0 ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {}
+	BOOST_CHECK_THROW( CallReader( 1, 2, "GT:HQ", "", types ), genfile::BadArgumentError ) ;
 
-	try {
-		CallReader( 1, 2, "HQ:GT", "", types ) ;
-		TEST_ASSERT( 0 ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {}
+	BOOST_CHECK_THROW( CallReader( 1, 2, "HQ:GT", "", types ), genfile::BadArgumentError ) ;
 
 	// Test with GT type only.  Only empty format or GT format allowed.
 	{
 		std::string const GT = "GT" ;
 		VCFEntryType::Spec spec ;
 		spec[ "ID" ] = GT ;
-		spec[ "Number" ] = "1" ;
-		spec[ "Type" ] = "Integer" ;
+		spec[ "Number" ] = "." ;
+		spec[ "Type" ] = "String" ;
 		spec[ "Description" ] = "A test" ;
 		types.insert( GT, VCFEntryType::create( spec )) ;
 	}
 
-	try {
-		CallReader( 1, 2, "", "", types ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {
-		TEST_ASSERT( 0 ) ;
-	}
+	BOOST_CHECK_NO_THROW( CallReader( 1, 2, "", "", types ) ) ;
 
-	try {
-		CallReader( 1, 2, "GT", "", types ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {
-		TEST_ASSERT( 0 ) ;
-	}
+	BOOST_CHECK_NO_THROW( CallReader( 1, 2, "GT", "", types ) ) ;
 
-	try {
-		CallReader( 1, 2, "GT:GT", "", types ) ;
-		TEST_ASSERT( 0 ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {}
+	BOOST_CHECK_THROW( CallReader( 1, 2, "GT:GT", "", types ), genfile::BadArgumentError ) ;
 
-	try {
-		CallReader( 1, 2, "HQ", "", types ) ;
-		TEST_ASSERT( 0 ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {}
+	BOOST_CHECK_THROW( CallReader( 1, 2, "HQ", "", types ), genfile::BadArgumentError ) ;
 
-	try {
-		CallReader( 1, 2, "GT:HQ", "", types ) ;
-		TEST_ASSERT( 0 ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {}
+	BOOST_CHECK_THROW( CallReader( 1, 2, "GT:HQ", "", types ), genfile::BadArgumentError ) ;
 	
-	try {
-		CallReader( 1, 2, "HQ:GT", "", types ) ;
-		TEST_ASSERT( 0 ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {}
+	BOOST_CHECK_THROW( CallReader( 1, 2, "HQ:GT", "", types ), genfile::BadArgumentError ) ;
 
 	// Test with HQ type only.
 
@@ -210,96 +163,35 @@ void test_format_types() {
 		types.insert( ID, VCFEntryType::create( spec )) ;
 	}
 	
-	try {
-		CallReader( 1, 2, "", "", types ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {
-		TEST_ASSERT( 0 ) ;
-	}
-
-	try {
-		CallReader( 1, 2, "GT", "", types ) ;
-		TEST_ASSERT( 0 ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {
-	}
-
-	try {
-		CallReader( 1, 2, "GT:GT", "", types ) ;
-		TEST_ASSERT( 0 ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {}
-
-	try {
-		CallReader( 1, 2, "HQ", "", types ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {
-		TEST_ASSERT( 0 ) ;
-	}
-
-	try {
-		CallReader( 1, 2, "GT:HQ", "", types ) ;
-		TEST_ASSERT( 0 ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {
-	}
-	
-	try {
-		CallReader( 1, 2, "HQ:GT", "", types ) ;
-		TEST_ASSERT( 0 ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {}
+	BOOST_CHECK_NO_THROW( CallReader( 1, 2, "", "", types ) ) ;
+	BOOST_CHECK_THROW( CallReader( 1, 2, "GT", "", types ), genfile::BadArgumentError ) ;
+	BOOST_CHECK_THROW( CallReader( 1, 2, "GT:GT", "", types ), genfile::BadArgumentError ) ;
+	BOOST_CHECK_NO_THROW( CallReader( 1, 2, "HQ", "", types ) ) ;
+	BOOST_CHECK_THROW( CallReader( 1, 2, "GT:HQ", "", types ), genfile::BadArgumentError ) ;
+	BOOST_CHECK_THROW( CallReader( 1, 2, "HQ:GT", "", types ), genfile::BadArgumentError ) ;
 	
 	// Test with GT and HQ type.	
 	{
 		std::string const GT = "GT" ;
 		VCFEntryType::Spec spec ;
 		spec[ "ID" ] = GT ;
-		spec[ "Number" ] = "1" ;
-		spec[ "Type" ] = "Integer" ;
+		spec[ "Number" ] = "." ;
+		spec[ "Type" ] = "String" ;
 		spec[ "Description" ] = "A test" ;
 		types.insert( GT, VCFEntryType::create( spec )) ;
 	}
 	
-	try {
-		CallReader( 1, 2, "", "", types ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {
-		TEST_ASSERT( 0 ) ;
-	}
+	BOOST_CHECK_NO_THROW( CallReader( 1, 2, "", "", types ) ) ;
 
-	try {
-		CallReader( 1, 2, "GT", "", types ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {
-		TEST_ASSERT( 0 ) ;
-	}
+	BOOST_CHECK_NO_THROW( CallReader( 1, 2, "GT", "", types ) ) ;
 
-	try {
-		CallReader( 1, 2, "GT:GT", "", types ) ;
-		TEST_ASSERT( 0 ) ; // only one GT allowed.
-	}
-	catch( genfile::BadArgumentError const& e ) {}
+	BOOST_CHECK_THROW( CallReader( 1, 2, "GT:GT", "", types ), genfile::BadArgumentError ) ;
 
-	try {
-		CallReader( 1, 2, "HQ", "", types ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {
-		TEST_ASSERT( 0 ) ;
-	}
+	BOOST_CHECK_NO_THROW( CallReader( 1, 2, "HQ", "", types ) ) ;
 
-	try {
-		CallReader( 1, 2, "GT:HQ", "", types ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {
-		TEST_ASSERT( 0 ) ;
-	}
+	BOOST_CHECK_NO_THROW( CallReader( 1, 2, "GT:HQ", "", types ) ) ;
 	
-	try {
-		CallReader( 1, 2, "HQ:GT", "", types ) ;
-		TEST_ASSERT( 0 ) ; // GT must come first if specified.
-	}
-	catch( genfile::BadArgumentError const& e ) {}
+	BOOST_CHECK_THROW( CallReader( 1, 2, "HQ:GT", "", types ), genfile::BadArgumentError ) ;
 	
 	// Test with three types
 	{
@@ -311,88 +203,19 @@ void test_format_types() {
 		spec[ "Description" ] = "Another test type" ;
 		types.insert( ID, VCFEntryType::create( spec )) ;
 	}
-	
-	try {
-		CallReader( 1, 2, "", "", types ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {
-		TEST_ASSERT( 0 ) ;
-	}
 
-	try {
-		CallReader( 1, 2, "GT", "", types ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {
-		TEST_ASSERT( 0 ) ;
-	}
-
-	try {
-		CallReader( 1, 2, "GT:GT", "", types ) ;
-		TEST_ASSERT( 0 ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {}
-
-	try {
-		CallReader( 1, 2, "HQ", "", types ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {
-		TEST_ASSERT( 0 ) ;
-	}
-
-	try {
-		CallReader( 1, 2, "GT:HQ", "", types ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {
-		TEST_ASSERT( 0 ) ;
-	}
-	
-	try {
-		CallReader( 1, 2, "HQ:GT", "", types ) ;
-		TEST_ASSERT( 0 ) ; // GT must come first if specified
-	}
-	catch( genfile::BadArgumentError const& e ) {}
-	
-	try {
-		CallReader( 1, 2, "GT:another_type", "", types ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {
-		TEST_ASSERT( 0 ) ;
-	}
-
-	try {
-		CallReader( 1, 2, "GT:HQ:another_type", "", types ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {
-		TEST_ASSERT( 0 ) ;
-	}
-
-	try {
-		CallReader( 1, 2, "GT:another_type:HQ", "", types ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {
-		TEST_ASSERT( 0 ) ;
-	}
-
-	try {
-		CallReader( 1, 2, "another_type:GT:HQ", "", types ) ;
-		TEST_ASSERT( 0 ) ; // GT must come first if specified
-	}
-	catch( genfile::BadArgumentError const& e ) {
-	}
-
-	try {
-		CallReader( 1, 2, "another_type:HQ:GT", "", types ) ;
-		TEST_ASSERT( 0 ) ; // GT must come first if specified
-	}
-	catch( genfile::BadArgumentError const& e ) {
-	}
-
-	try {
-		CallReader( 1, 2, "GT:another_type:HQ:another_type", "", types ) ;
-		TEST_ASSERT( 0 ) ;
-	}
-	catch( genfile::BadArgumentError const& e ) {
-	}
+	BOOST_CHECK_NO_THROW( CallReader( 1, 2, "", "", types ) ) ;
+	BOOST_CHECK_NO_THROW( CallReader( 1, 2, "GT", "", types ) ) ;
+	BOOST_CHECK_THROW( CallReader( 1, 2, "GT:GT", "", types ), genfile::BadArgumentError ) ;
+	BOOST_CHECK_NO_THROW( CallReader( 1, 2, "HQ", "", types ) ) ;
+	BOOST_CHECK_NO_THROW( CallReader( 1, 2, "GT:HQ", "", types ) ) ;
+	BOOST_CHECK_THROW( CallReader( 1, 2, "HQ:GT", "", types ), genfile::BadArgumentError ) ;
+	BOOST_CHECK_NO_THROW( CallReader( 1, 2, "GT:another_type", "", types ) ) ;
+	BOOST_CHECK_NO_THROW( CallReader( 1, 2, "GT:HQ:another_type", "", types ) ) ;
+	BOOST_CHECK_NO_THROW( CallReader( 1, 2, "GT:another_type:HQ", "", types ) ) ;
+	BOOST_CHECK_THROW( CallReader( 1, 2, "another_type:GT:HQ", "", types ), genfile::BadArgumentError ) ;
+	BOOST_CHECK_THROW( CallReader( 1, 2, "another_type:HQ:GT", "", types ), genfile::BadArgumentError ) ;
+	BOOST_CHECK_THROW( CallReader( 1, 2, "GT:another_type:HQ:another_type", "", types ), genfile::BadArgumentError ) ;
 }
 
 AUTO_TEST_CASE( test_setters ) {
@@ -407,8 +230,8 @@ AUTO_TEST_CASE( test_setters ) {
 		std::string const GT = "GT" ;
 		VCFEntryType::Spec spec ;
 		spec[ "ID" ] = GT ;
-		spec[ "Number" ] = "1" ;
-		spec[ "Type" ] = "Integer" ;
+		spec[ "Number" ] = "." ;
+		spec[ "Type" ] = "String" ;
 		spec[ "Description" ] = "A test" ;
 		types.insert( GT, VCFEntryType::create( spec )) ;
 	}
@@ -431,15 +254,7 @@ AUTO_TEST_CASE( test_setters ) {
 		types.insert( ID, VCFEntryType::create( spec )) ;
 	}
 	
-	try {
-		CallReader( 1, 2, "GT", "1|1", types ) ;
-	}
-	catch( BadArgumentError const& ) {
-		TEST_ASSERT(0) ;
-	}
-	catch( MalformedInputError const& ) {
-		TEST_ASSERT(0) ;
-	}
+	BOOST_CHECK_NO_THROW( CallReader( 1, 2, "GT", "1|1", types ) ) ;
 
 	try {
 		std::vector< std::vector< Entry > > expected ;
@@ -474,7 +289,8 @@ AUTO_TEST_CASE( test_setters ) {
 		expected.push_back( std::vector< Entry >( 5, MissingValue() )) ;
 		// HQ entry in format; we expect it to be set to missing values.
 		GenotypeCallChecker checker( expected ) ;
-			CallReader( 1, 2, "GT:HQ", "1|1", types )
+		std::string data = "1|1" ;
+		CallReader( 1, 2, "GT:HQ", data, types )
 			.get( "HQ", checker ) ;
 	}
 	catch( BadArgumentError const& ) {
@@ -488,7 +304,8 @@ AUTO_TEST_CASE( test_setters ) {
 		std::vector< std::vector< Entry > > expected ;
 		GenotypeCallChecker checker( expected ) ;
 		// HQ not in format, not expected to be set.
-		CallReader( 1, 2, "GT", "1|1", types )
+		std::string data = "1|1" ;
+		CallReader( 1, 2, "GT", data, types )
 			.get( "GT", ignore )
 			.get( "HQ", checker ) ;
 	}
@@ -541,8 +358,8 @@ void test_malformed_format() {
 		std::string const GT = "GT" ;
 		VCFEntryType::Spec spec ;
 		spec[ "ID" ] = GT ;
-		spec[ "Number" ] = "1" ;
-		spec[ "Type" ] = "Integer" ;
+		spec[ "Number" ] = "." ;
+		spec[ "Type" ] = "String" ;
 		spec[ "Description" ] = "A test" ;
 		types.insert( GT, VCFEntryType::create( spec )) ;
 	}
@@ -577,8 +394,8 @@ AUTO_TEST_CASE( test_alleles ) {
 		std::string const GT = "GT" ;
 		VCFEntryType::Spec spec ;
 		spec[ "ID" ] = GT ;
-		spec[ "Number" ] = "1" ;
-		spec[ "Type" ] = "Integer" ;
+		spec[ "Number" ] = "." ;
+		spec[ "Type" ] = "String" ;
 		spec[ "Description" ] = "A test" ;
 		types.insert( GT, VCFEntryType::create( spec )) ;
 	}

@@ -376,8 +376,9 @@ namespace genfile {
 				m_field_mapping( field_mapping )
 			{
 				if( m_source.number_of_samples() > 0 ) {
-					std::getline( *(m_source.m_stream_ptr), m_data ) ;
-					m_data_reader.reset( new vcf::CallReader( m_source.number_of_samples(), variant_alleles.size(), FORMAT, m_data, format_types ) ) ;
+					std::string data ;
+					std::getline( *(m_source.m_stream_ptr), data ) ;
+					m_data_reader.reset( new vcf::CallReader( m_source.number_of_samples(), variant_alleles.size(), FORMAT, data, format_types ) ) ;
 				}
 			}
 
@@ -425,7 +426,6 @@ namespace genfile {
 			VCFFormatSNPDataSource const& m_source ;
 			typedef VCFFormatSNPDataSource::FieldMapping FieldMapping ;
 			FieldMapping m_field_mapping ;
-			std::string m_data ;
 			vcf::CallReader::UniquePtr m_data_reader ;
 		} ;
 	}

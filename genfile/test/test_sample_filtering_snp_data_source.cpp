@@ -169,9 +169,9 @@ AUTO_TEST_CASE( test_sample_filtering_snp_data_source ) {
 
 				for( std::size_t elt = 0, filtered_elt = 0; elt < number_of_samples; ++elt ) {
 					if( i->find( elt ) == i->end() ) {
-						TEST_ASSERT( data[ j ].probabilities[ filtered_elt ].AA == (3*elt) + 1) ;
-						TEST_ASSERT( data[ j ].probabilities[ filtered_elt ].AB == ((3*elt) + 2) ) ;
-						TEST_ASSERT( data[ j ].probabilities[ filtered_elt ].BB == ((3*elt) + 3) ) ;
+						TEST_ASSERT( data[ j ].probabilities[ filtered_elt ].AA == (3*elt) + 1 ) ;
+						TEST_ASSERT( data[ j ].probabilities[ filtered_elt ].AB == (3*elt) + 2 ) ;
+						TEST_ASSERT( data[ j ].probabilities[ filtered_elt ].BB == (3*elt) + 3 ) ;
 						++filtered_elt ;
 					}
 				}
