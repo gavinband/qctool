@@ -381,16 +381,16 @@ namespace genfile {
 
 			if( value.size() == 3 && ( value[1] == '|' || value[1] == '/' ) ) {
 				char a, b ;
-				a = ( value[0] == m_missing_value[0] ) ? -1 : ( value[0] - '0' ) ;
-				b = ( value[2] == m_missing_value[0] ) ? -1 : ( value[2] - '0' ) ;
-				if(( a == -1 || ( a >= 0 && a <= max ) ) && ( b == -1 || ( b >= 0 && b <= max ) ) ) {
+				a = value[0] - '0' ;
+				b = value[2] - '0' ;
+				if((( value[0] == m_missing_value[0] ) || ( a >= 0 && a <= max ) ) && ( ( value[2] == m_missing_value[0] ) || ( b >= 0 && b <= max ) ) ) {
 					setter.set_number_of_entries( 2 ) ;
-					if( a == -1 ) {
+					if( value[0] == m_missing_value[0] ) {
 						setter( MissingValue() ) ;
 					} else {
 						setter( EntriesSetter::Integer( a ) ) ;
 					}
-					if( b == -1 ) {
+					if( value[2] == m_missing_value[0] ) {
 						setter( MissingValue() ) ;
 					} else {
 						setter( EntriesSetter::Integer( b ) ) ;
@@ -424,10 +424,13 @@ namespace genfile {
 						if( simple_values[i] == -1 ) {
 							setter( MissingValue() ) ;
 						} else {
-							setter( EntriesSetter::Integer( simple_values[i] - '0' )) ;
+							setter( EntriesSetter::Integer( simple_values[i] )) ;
 						}
 					}
 				}
+			}
+			else {
+				simple_parse_success = false ;
 			}
 
 			if( !simple_parse_success ) {

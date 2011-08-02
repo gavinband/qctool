@@ -14,6 +14,18 @@ using namespace genfile::string_utils ;
 void test_format_types() ;
 void test_malformed_format() ;
 
+struct NullCallChecker: public genfile::vcf::CallReader::Setter
+{
+	~NullCallChecker() throw() {}
+	void set_number_of_samples( std::size_t n ) {}
+	void set_sample( std::size_t i ) {}
+	void set_number_of_entries( std::size_t n ) {}
+	void operator()( genfile::MissingValue const value ) {}
+	void operator()( std::string& value ) {}
+	void operator()( Integer const value ) {}
+	void operator()( double const value ) {}
+} ;
+
 struct GenotypeCallChecker: public genfile::vcf::CallReader::Setter
 // struct GenotypeCallChecker
 // checks the output of CallReader against a specified set of expected calls.
@@ -24,6 +36,15 @@ struct GenotypeCallChecker: public genfile::vcf::CallReader::Setter
 {
 	GenotypeCallChecker( std::vector< std::vector< Entry > > const& expected_calls ):
 		m_calls( expected_calls ),
+		m_number_of_samples( expected_calls.size() ),
+		m_sample_i( 0 ),
+		m_call_i( 0 )
+	{
+	}
+
+	GenotypeCallChecker( std::size_t number_of_samples, std::vector< std::vector< Entry > > const& expected_calls ):
+		m_calls( expected_calls ),
+		m_number_of_samples( number_of_samples ),
 		m_sample_i( 0 ),
 		m_call_i( 0 )
 	{
@@ -49,44 +70,46 @@ struct GenotypeCallChecker: public genfile::vcf::CallReader::Setter
 	}
 
 	void set_number_of_samples( std::size_t n ) {
-		TEST_ASSERT( m_calls.size() == n ) ;
+		BOOST_CHECK_EQUAL( m_number_of_samples, n ) ;
 	}
 
 	void set_sample( std::size_t i ) {
 		TEST_ASSERT( i < m_calls.size() ) ;
+		m_sample_i = i ;
 		m_call_i = 0 ;
 	}
 
 	void set_number_of_entries( std::size_t n ) {
-		TEST_ASSERT( m_calls[ m_sample_i ].size() == n ) ;
+		BOOST_CHECK_EQUAL( m_calls[ m_sample_i ].size(), n ) ;
 	}
 
 	void operator()( genfile::MissingValue const value ) {
 		m_indices_of_set_values.insert( std::make_pair( m_sample_i, m_call_i )) ;
 		TEST_ASSERT( m_call_i < m_calls[ m_sample_i ].size() ) ;
-		TEST_ASSERT( m_calls[ m_sample_i ][ m_call_i++ ] == Entry( value ) ) ;
+		BOOST_CHECK_EQUAL( m_calls[ m_sample_i ][ m_call_i++ ], Entry( value ) ) ;
 	}
 
 	void operator()( std::string& value ) {
 		m_indices_of_set_values.insert( std::make_pair( m_sample_i, m_call_i )) ;
 		TEST_ASSERT( m_call_i < m_calls[ m_sample_i ].size() ) ;
-		TEST_ASSERT( m_calls[ m_sample_i ][ m_call_i++ ] == Entry( value ) ) ;
+		BOOST_CHECK_EQUAL( m_calls[ m_sample_i ][ m_call_i++ ], Entry( value ) ) ;
 	}
 
 	void operator()( Integer const value ) {
 		m_indices_of_set_values.insert( std::make_pair( m_sample_i, m_call_i )) ;
 		TEST_ASSERT( m_call_i < m_calls[ m_sample_i ].size() ) ;
-		TEST_ASSERT( m_calls[ m_sample_i ][ m_call_i++ ] == Entry( value ) ) ;
+		BOOST_CHECK_EQUAL( m_calls[ m_sample_i ][ m_call_i++ ], Entry( value ) ) ;
 	}
 
 	void operator()( double const value ) {
 		m_indices_of_set_values.insert( std::make_pair( m_sample_i, m_call_i )) ;
 		TEST_ASSERT( m_call_i < m_calls[ m_sample_i ].size() ) ;
-		TEST_ASSERT( m_calls[ m_sample_i ][ m_call_i++ ] == Entry( value ) ) ;
+		BOOST_CHECK_EQUAL( m_calls[ m_sample_i ][ m_call_i++ ], Entry( value ) ) ;
 	}
 
 	private:
 		std::vector< std::vector< Entry > > const m_calls ;
+		std::size_t m_number_of_samples ;
 		std::set< std::pair< std::size_t, std::size_t > > m_indices_of_set_values ;
 		std::size_t m_sample_i ;
 		std::size_t m_call_i ;
@@ -231,7 +254,7 @@ AUTO_TEST_CASE( test_setters ) {
 		VCFEntryType::Spec spec ;
 		spec[ "ID" ] = GT ;
 		spec[ "Number" ] = "." ;
-		spec[ "Type" ] = "String" ;
+		spec[ "Type" ] = "Genotype" ;
 		spec[ "Description" ] = "A test" ;
 		types.insert( GT, VCFEntryType::create( spec )) ;
 	}
@@ -469,8 +492,8 @@ std::auto_ptr< boost::ptr_map< std::string, VCFEntryType > > make_some_types() {
 		std::string const GT = "GT" ;
 		VCFEntryType::Spec spec ;
 		spec[ "ID" ] = GT ;
-		spec[ "Number" ] = "1" ;
-		spec[ "Type" ] = "Integer" ;
+		spec[ "Number" ] = "." ;
+		spec[ "Type" ] = "Genotype" ;
 		spec[ "Description" ] = "A test" ;
 		types.insert( GT, VCFEntryType::create( spec )) ;
 	}
@@ -522,20 +545,26 @@ AUTO_TEST_CASE( test_simple_gt_values ) {
 				}
 
 				{
-					// std::cerr << "data (size " << data.size() << ") = \"" << data << "\".\n" ;
-					GenotypeCallChecker checker( expected_calls ) ;
+					std::cerr << "data (size " << data.size() << ") = \"" << data << "\".\n" ;
+					std::auto_ptr< genfile::vcf::CallReader::Setter > checker ;
+					if( bad_c1 || bad_c2 ) {
+						checker.reset( new NullCallChecker() ) ;
+					} else {
+						checker.reset( new GenotypeCallChecker( expected_calls ) ) ;
+						
+					}
 					CallReader( 1, 5, "GT", data, types )
-						.get( "GT", boost::ref( checker ) ) ;
+						.get( "GT", boost::ref( *checker ) ) ;
 				}
 				
 				if( bad_c1 || bad_c2 ) {
-					// std::cerr << "c1 = " << c1 << "('" << char(c1) << "')" << ", c2 = " << c2 << "('" << char(c2) << "').\n" ;
+					std::cerr << "c1 = " << c1 << "('" << char(c1) << "')" << ", c2 = " << c2 << "('" << char(c2) << "').\n" ;
 					TEST_ASSERT(0) ;
 				}
 			}
 			catch( genfile::MalformedInputError const& ) {
 				if( !bad_c1 && !bad_c2 ) {
-					// std::cerr << "c1 = " << c1 << "('" << char(c1) << "')" << ", c2 = " << c2 << "('" << char(c2) << "').\n" ;
+					std::cerr << "c1 = " << c1 << "('" << char(c1) << "')" << ", c2 = " << c2 << "('" << char(c2) << "').\n" ;
 					TEST_ASSERT(0) ;
 				}
 			}
@@ -659,7 +688,7 @@ AUTO_TEST_CASE( test_gt_delimiter ) {
 				TEST_ASSERT( number_of_individuals != 0 ) ;
 			}
 			catch( genfile::BadArgumentError const& ) {
-				TEST_ASSERT( number_of_individuals == 0 ) ;
+				BOOST_CHECK_EQUAL( number_of_individuals, 0 ) ;
 			}
 		}
 	}
@@ -698,7 +727,7 @@ AUTO_TEST_CASE( test_complex_gt_values ) {
 					TEST_ASSERT(0) ;
 				}
 				catch( genfile::BadArgumentError const& e ) {
-					TEST_ASSERT( number_of_individuals == 0 ) ;
+					BOOST_CHECK_EQUAL( number_of_individuals, 0 ) ;
 				}
 			}
 		}
@@ -746,6 +775,7 @@ AUTO_TEST_CASE( test_gt_genotype_bounds ) {
 	for( int n_alleles = 1; n_alleles < 100; ++n_alleles ) {
 		for( int call = 0; call < 110; ++call ) {
 			std::string data = to_string( std::min( call, n_alleles - 1 ) ) + "\t" + to_string( call ) ;
+			std::cerr << "data = \"" << data << "\".\n" ;
 			bool bad_call = ( call >= n_alleles ) ;
 			std::vector< std::vector< Entry > > expected_set_calls ;
 			expected_set_calls.push_back( std::vector< Entry >( 1, std::min( call, n_alleles - 1 ) ) ) ;
@@ -753,7 +783,7 @@ AUTO_TEST_CASE( test_gt_genotype_bounds ) {
 				expected_set_calls.push_back( std::vector< Entry >( 1, call )) ;
 			}
 			try {
-				GenotypeCallChecker checker( expected_set_calls ) ;
+				GenotypeCallChecker checker( 2, expected_set_calls ) ;
 				CallReader(
 					2,
 					n_alleles,

@@ -161,11 +161,11 @@ namespace genfile {
 						component_index += m_component_counts[ sample_i++ ]
 					) {
 						setter.set_sample( sample_i ) ;
-						assert( m_components.size() <= ( component_index + m_components[ sample_i ].size() ) ) ;
+						assert( m_components.size() >= ( component_index + m_component_counts[ sample_i ] ) ) ;
 						set_values(
 							sample_i,
 							&m_components[ 0 ] + component_index,
-							&m_components[ 0 ] + ( component_index + m_components[ sample_i ].size() ),
+							&m_components[ 0 ] + ( component_index + m_component_counts[ sample_i ] ),
 							( where - m_format_elts.begin()),
 							*(entry_type_i->second),
 							setter
@@ -214,7 +214,16 @@ namespace genfile {
 				sample_i < m_number_of_samples;
 				component_index += m_component_counts[ sample_i++ ]
 			) {
-				m_genotype_call_entry_type.parse( m_components[ component_index + GT_field_pos ], m_number_of_alleles, genotype_setter ) ;
+				try {
+					genotype_setter.set_sample( sample_i ) ;
+					m_genotype_call_entry_type.parse( m_components[ component_index + GT_field_pos ], m_number_of_alleles, genotype_setter ) ;
+				}
+				catch( string_utils::StringConversionError const& ) {
+					throw MalformedInputError( "(data)", 0, sample_i ) ;
+				}
+				catch( BadArgumentError const& e ) {
+					throw MalformedInputError( "(data)", 0, sample_i ) ;
+				}
 			}
 		}
 		
