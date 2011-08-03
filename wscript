@@ -99,7 +99,7 @@ def platform_specific_configure( conf ):
 		):
 			conf.define( 'HAVE_CBLAS', 1 ) ;
 	else:
-		if conf.check_cxx( lib = 'cblas', fragment = '#include "cblas.h"\nint main() {}', uselib_store = 'CBLAS' ):
+		if conf.check_cxx( lib = 'blas', fragment = '#include "cblas.h"\nint main() {}', uselib_store = 'CBLAS' ):
 			conf.define( 'HAVE_CBLAS', 1 ) ;
 		
 def misc_configure( conf ) :
