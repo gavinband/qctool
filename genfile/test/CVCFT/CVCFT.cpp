@@ -66,8 +66,9 @@ void CVCFT :: GetProb(vector<double> & prob)
 			prob.push_back(0);
 			//	  fprintf(stderr, "no data for sample: %s at site %s\n", names[i].c_str(), data[2]);
 		}
-		else
+		else {
 			for (int k = 0; k != 3; ++k) prob.push_back( atof (ts1[k]));
+		}
 	}
 }
 

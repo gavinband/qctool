@@ -13,7 +13,7 @@ namespace data {
 	// This example is from http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41
 	std::string const metadata4_0 =
 		"##fileformat=VCFv4.0\n"
-		"##FORMAT=<ID=GT,Number=1,Type=Integer,Description=\"Genotype\">\n"
+		"##FORMAT=<ID=GT,Number=.,Type=String,Description=\"Genotype\">\n"
 		"##FORMAT=<ID=GL1,Number=3,Type=Float,Description=\"Genotype Likelihoods\">\n"
 		"##FORMAT=<ID=GL3,Number=3,Type=Float,Description=\"Genotype Likelihoods\">\n"
 		"##FORMAT=<ID=GL4,Number=4,Type=Float,Description=\"Genotype Likelihoods\">\n"
@@ -21,8 +21,8 @@ namespace data {
 
 	std::string const metadata4_1 =
 		"##fileformat=VCFv4.1\n"
-		"##FORMAT=<ID=GT,Number=1,Type=Integer,Description=\"Genotype\">\n"
-		"##FORMAT=<ID=GL1,Number=.,Type=Float,Description=\"Genotype Likelihoods\">\n"
+		"##FORMAT=<ID=GT,Number=.,Type=String,Description=\"Genotype\">\n"
+		"##FORMAT=<ID=GL1,Number=3,Type=Float,Description=\"Genotype Likelihoods\">\n"
 		"##FORMAT=<ID=GL3,Number=G,Type=Float,Description=\"Genotype Likelihoods\">\n"
 		"##FORMAT=<ID=GL4,Number=4,Type=Float,Description=\"Genotype Likelihoods\">\n"
 	;
@@ -118,17 +118,28 @@ void perform_test_against_cvcft(
 	}
 }
 
-AUTO_TEST_CASE( test_against_cvcft ) {
-	std::cerr << "test_against_cvcft()..." ;
+AUTO_TEST_CASE( test_against_cvcft1 ) {
 	perform_test_against_cvcft( data::metadata4_0 + data::data1, 7, "GL1", 4*3 ) ;
+}
+AUTO_TEST_CASE( test_against_cvcft2 ) {
 	perform_test_against_cvcft( data::metadata4_0 + data::data1, 7, "GL3", 4*3 ) ;
+}
+AUTO_TEST_CASE( test_against_cvcft3 ) {
 	perform_test_against_cvcft( data::metadata4_0 + data::data2, 5, "GL1", 4*3 ) ;
+}
+AUTO_TEST_CASE( test_against_cvcft4 ) {
 	perform_test_against_cvcft( data::metadata4_0 + data::data2, 5, "GL3", 4*3 ) ;
-
+}
+AUTO_TEST_CASE( test_against_cvcft5 ) {
 	perform_test_against_cvcft( data::metadata4_1 + data::data1, 7, "GL1", 4*3 ) ;
+}
+AUTO_TEST_CASE( test_against_cvcft6 ) {
 	perform_test_against_cvcft( data::metadata4_1 + data::data1, 7, "GL3", 4*3 ) ;
+}
+AUTO_TEST_CASE( test_against_cvcft7 ) {
 	perform_test_against_cvcft( data::metadata4_1 + data::data2, 5, "GL1", 4*3 ) ;
+}
+AUTO_TEST_CASE( test_against_cvcft8 ) {
 	perform_test_against_cvcft( data::metadata4_1 + data::data2, 5, "GL3", 4*3 ) ;
-	std::cerr << "ok.\n" ;
 }
 

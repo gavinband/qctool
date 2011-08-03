@@ -138,7 +138,7 @@ namespace genfile {
 				}
 
 				if( spec == "GT" ) {
-					assert( m_genotype_calls.size() > 0 ) ;
+					assert( m_ploidy.size() > 0 ) ;
 					std::size_t index = 0 ;
 					for( std::size_t sample_i = 0; sample_i < m_number_of_samples; ++sample_i ) {
 						std::size_t const ploidy = m_ploidy[ sample_i ] ;
@@ -207,7 +207,7 @@ namespace genfile {
 
 			m_ploidy.resize( m_number_of_samples ) ;
 			m_genotype_calls.reserve( m_number_of_samples * 2 ) ;
-
+			std::size_t total_number_of_calls = 0 ;
 			impl::CallReaderGenotypeSetter genotype_setter( m_genotype_calls, m_ploidy ) ;
 			for(
 				std::size_t sample_i = 0, component_index = 0;
@@ -217,6 +217,7 @@ namespace genfile {
 				try {
 					genotype_setter.set_sample( sample_i ) ;
 					m_genotype_call_entry_type.parse( m_components[ component_index + GT_field_pos ], m_number_of_alleles, genotype_setter ) ;
+					total_number_of_calls += m_ploidy[ sample_i ] ;
 				}
 				catch( string_utils::StringConversionError const& ) {
 					throw MalformedInputError( "(data)", 0, sample_i ) ;
@@ -225,6 +226,7 @@ namespace genfile {
 					throw MalformedInputError( "(data)", 0, sample_i ) ;
 				}
 			}
+			assert( m_genotype_calls.size() == total_number_of_calls ) ;
 		}
 		
 		void CallReader::set_values(

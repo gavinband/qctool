@@ -545,8 +545,8 @@ AUTO_TEST_CASE( test_simple_gt_values ) {
 				}
 
 				{
-					std::cerr << "data (size " << data.size() << ") = \"" << data << "\".\n" ;
-					std::auto_ptr< genfile::vcf::CallReader::Setter > checker ;
+					//std::cerr << "data (size " << data.size() << ") = \"" << data << "\".\n" ;
+					genfile::vcf::CallReader::Setter::UniquePtr checker ;
 					if( bad_c1 || bad_c2 ) {
 						checker.reset( new NullCallChecker() ) ;
 					} else {
@@ -558,13 +558,13 @@ AUTO_TEST_CASE( test_simple_gt_values ) {
 				}
 				
 				if( bad_c1 || bad_c2 ) {
-					std::cerr << "c1 = " << c1 << "('" << char(c1) << "')" << ", c2 = " << c2 << "('" << char(c2) << "').\n" ;
+					// std::cerr << "c1 = " << c1 << "('" << char(c1) << "')" << ", c2 = " << c2 << "('" << char(c2) << "').\n" ;
 					TEST_ASSERT(0) ;
 				}
 			}
 			catch( genfile::MalformedInputError const& ) {
 				if( !bad_c1 && !bad_c2 ) {
-					std::cerr << "c1 = " << c1 << "('" << char(c1) << "')" << ", c2 = " << c2 << "('" << char(c2) << "').\n" ;
+					// std::cerr << "c1 = " << c1 << "('" << char(c1) << "')" << ", c2 = " << c2 << "('" << char(c2) << "').\n" ;
 					TEST_ASSERT(0) ;
 				}
 			}
@@ -710,6 +710,7 @@ AUTO_TEST_CASE( test_complex_gt_values ) {
 
 				try {
 					{
+						// std::cerr << "nind = " << number_of_individuals << ", ploidy = " << ploidy << ", phased data: \"" << phased_data << "\".\n" ;
 						// std::cerr << "here:" << number_of_individuals << " " << number_of_alleles << " " << ploidy << ": \"" << phased_data << "\"\n" ;
 						CallReader( number_of_individuals, number_of_alleles, "GT:AT", phased_data, types ) ;
 						GenotypeCallChecker checker( expected_calls ) ;
@@ -717,6 +718,7 @@ AUTO_TEST_CASE( test_complex_gt_values ) {
 						 	.get( "GT", boost::ref( checker )) ;
 					}
 					{
+						// std::cerr << "phased data: \"" << unphased_data << "\".\n" ;
 						CallReader( number_of_individuals, number_of_alleles, "GT:AT", unphased_data, types ) ;
 						GenotypeCallChecker checker( expected_calls ) ;
 						CallReader( number_of_individuals, number_of_alleles, "GT:AT", unphased_data, types )
@@ -742,68 +744,97 @@ AUTO_TEST_CASE( test_gt_genotype_bounds ) {
 	for( int n_alleles = 1; n_alleles < 100; ++n_alleles ) {
 		for( int call = 0; call < 110; ++call ) {
 			bool bad_call = ( call >= n_alleles ) ;
-			std::vector< std::vector< Entry > > expected_set_calls ;
-			if( !bad_call ) {
+			genfile::VariantDataReader::PerSampleSetter::UniquePtr checker ;
+			if( bad_call ) {
+				// behaviour is undefined.
+				checker.reset( new NullCallChecker() ) ;
+			}
+			else {
+				std::vector< std::vector< Entry > > expected_set_calls ;
 				expected_set_calls.push_back( std::vector< Entry >( 1, call )) ;
+				checker.reset( new GenotypeCallChecker( expected_set_calls ) ) ;
 			}
-			try {
-				GenotypeCallChecker checker( expected_set_calls ) ;
-				CallReader(
-					1,
-					n_alleles,
-					"GT",
-					::to_string( call ),
-					types
-				)
-				.get( "GT", boost::ref( checker )) ;
-				
-				if( bad_call ) {
-					TEST_ASSERT(0) ;
-				}
+			
+			if( bad_call ) {
+				BOOST_CHECK_THROW(
+					CallReader(
+						1,
+						n_alleles,
+						"GT",
+						::to_string( call ),
+						types
+					)
+					.get( "GT", boost::ref( *checker )),
+					genfile::MalformedInputError
+				) ;
 			}
-			catch( genfile::MalformedInputError const& ) {
-				if( !bad_call ) {
-					TEST_ASSERT(0) ;
-				}
-			}
-			catch( genfile::BadArgumentError const& ) {
-				TEST_ASSERT(0) ;
+			else {
+				BOOST_CHECK_NO_THROW(
+					CallReader(
+						1,
+						n_alleles,
+						"GT",
+						::to_string( call ),
+						types
+					)
+					.get( "GT", boost::ref( *checker ))
+				) ;
 			}
 		}
 	}
 
+	std::cerr << "ok.\n" ;
+}
+
+AUTO_TEST_CASE( test_gt_genotype_bounds_2_samples ) {
+	std::cerr << "test_gt_genotype_bounds_2_samples..." ;
+	boost::ptr_map< std::string, VCFEntryType > types( make_some_types() ) ;
+
+	std::size_t n_samples = 2 ;
+
 	for( int n_alleles = 1; n_alleles < 100; ++n_alleles ) {
 		for( int call = 0; call < 110; ++call ) {
 			std::string data = to_string( std::min( call, n_alleles - 1 ) ) + "\t" + to_string( call ) ;
-			std::cerr << "data = \"" << data << "\".\n" ;
+			// std::cerr << "data = \"" << data << "\".\n" ;
 			bool bad_call = ( call >= n_alleles ) ;
-			std::vector< std::vector< Entry > > expected_set_calls ;
-			expected_set_calls.push_back( std::vector< Entry >( 1, std::min( call, n_alleles - 1 ) ) ) ;
-			if( !bad_call ) {
+
+			genfile::VariantDataReader::PerSampleSetter::UniquePtr checker ;
+			if( bad_call ) {
+				// behaviour is undefined.
+				checker.reset( new NullCallChecker() ) ;
+			}
+			else {
+				std::vector< std::vector< Entry > > expected_set_calls ;
+				expected_set_calls.push_back( std::vector< Entry >( 1, std::min( call, n_alleles - 1 ) ) ) ;
 				expected_set_calls.push_back( std::vector< Entry >( 1, call )) ;
+				checker.reset( new GenotypeCallChecker( expected_set_calls ) ) ;
 			}
-			try {
-				GenotypeCallChecker checker( 2, expected_set_calls ) ;
-				CallReader(
-					2,
-					n_alleles,
-					"GT",
-					data,
-					types
-				)
-				.get( "GT", boost::ref( checker )) ;
-				
-				if( bad_call ) {
-					TEST_ASSERT(0) ;
-				}
+
+
+			if( bad_call ) {
+				BOOST_CHECK_THROW(
+					CallReader(
+						n_samples,
+						n_alleles,
+						"GT",
+						data,
+						types
+					)
+					.get( "GT", boost::ref( *checker )),
+					genfile::MalformedInputError
+				) ;
 			}
-			catch( genfile::MalformedInputError const& ) {
-				if( !bad_call ) {
-					TEST_ASSERT(0) ;
-				}
-			}
-			catch( genfile::BadArgumentError const& ) {
-				TEST_ASSERT(0) ;
+			else {
+				BOOST_CHECK_NO_THROW(
+					CallReader(
+						n_samples,
+						n_alleles,
+						"GT",
+						data,
+						types
+					)
+					.get( "GT", boost::ref( *checker ))
+				) ;
 			}
 		}
 	}
