@@ -47,8 +47,10 @@ def check_for_3rd_party_components( conf ):
 	check_for_boost_components( conf )
 	check_for_zlib( conf )
 	conf.define( 'HAVE_SQLITE3', 1 )
-	conf.check_cxx( lib = 'dl', uselib_store = 'DL' )	
-	conf.check_cxx( lib = 'bz2', uselib_store = 'BZIP2' )
+	if conf.check_cxx( lib = 'dl', uselib_store = 'DL' ):
+		conf.define( 'HAVE_DL', 1 )
+	if conf.check_cxx( lib = 'bz2', uselib_store = 'BZIP2' ):
+		conf.define( 'HAVE_BZIP2', 1 )
 
 def check_for_boost_components( conf ):
 	conf.check_tool( 'boost' )
@@ -89,10 +91,19 @@ def check_for_zlib( conf ):
 def platform_specific_configure( conf ):
 	import platform
 	if platform.system() == 'Darwin':
-		pass
-
+		if conf.check_cxx(
+			lib = 'cblas',
+			fragment = '#include "cblas.h"\nint main() {}',
+			cxxflags = '-I/System/Library/Frameworks/vecLib.framework/Headers',
+			uselib_store = 'CBLAS'
+		):
+			conf.define( 'HAVE_CBLAS', 1 ) ;
+	else:
+		if conf.check_cxx( lib = 'cblas', fragment = '#include "cblas.h"\nint main() {}', uselib_store = 'CBLAS' ):
+			conf.define( 'HAVE_CBLAS', 1 ) ;
+		
 def misc_configure( conf ) :
-	conf.define ( 'GENFILE_USE_FAST_PARSE_METHODS', 1 )
+	conf.define( 'GENFILE_USE_FAST_PARSE_METHODS', 1 )
 	conf.define( 'EIGEN_NO_DEBUG', 1 )
 
 def get_cxx_flags( variant_name ):
@@ -147,7 +158,7 @@ def build( bld ):
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include ./genfile/include',
 		uselib_local = 'string_utils statfile appcontext fputils worker snptest genfile integration db',
-		uselib = 'BOOST BOOST_IOSTREAMS ZLIB BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'
+		uselib = 'BOOST BOOST_IOSTREAMS ZLIB BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM CBLAS'
 	)
 
 	#---------------------
