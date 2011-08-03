@@ -194,9 +194,9 @@ namespace genfile {
 			}
 
 			uint32_t number_of_snp_blocks = 1 ;
-			std::vector< char > buffer( 10000000 ) ;
+			std::vector< char > buffer( 1024*1024 ) ;
 			do {
-				aStream.read( &(buffer[0]), 10000000 ) ;
+				aStream.read( &(buffer[0]), 1024*1024 ) ;
 				number_of_snp_blocks += std::count( buffer.begin(), buffer.begin() + aStream.gcount(), '\n' ) ;
 				// A gen file can't contain a blank line.
 				// Because popular editors (vim, nano, ..., but not emacs) typically add a trailing newline,
