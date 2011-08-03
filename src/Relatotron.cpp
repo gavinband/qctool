@@ -41,12 +41,12 @@ void Relatotron::declare_options( appcontext::OptionProcessor& options ) {
 	options[ "-pairwise-non-missing-count" ]
 		.set_description( "Compute pairwise non-missing-call count matrices for all samples." )
 		.set_takes_single_value() ;
-	options[ "-kinship" ]
+	options[ "-kinship-old" ]
 		.set_description( "Compute kinship coefficients, as in Powell, Visscher and Goddard (2010) or Astle & Balding (2009)." )
 		.set_takes_single_value() ;
 	options.option_implies_option( "-relatedness", "-s" ) ;
 	options.option_implies_option( "-concordance", "-s" ) ;
-	options.option_implies_option( "-kinship", "-s" ) ;
+	options.option_implies_option( "-kinship-old", "-s" ) ;
 
 	options[ "-pairwise-sample-rows" ]
 		.set_description( "Choose ranges of samples to compute relatedness for."
@@ -101,13 +101,13 @@ void Relatotron::construct_computations() {
 		) ;
 		m_computation_files[ "relatedness" ] = m_options.get_value< std::string >( "-relatedness" ) ;
 	}
-	if( m_options.check_if_option_was_supplied( "-kinship" )) {
+	if( m_options.check_if_option_was_supplied( "-kinship-old" )) {
 		std::string name = "kinship" ;
 		m_computations.insert(
 			name,
 			SampleBySampleComputation::create( name, m_options, m_ui_context )
 		) ;
-		m_computation_files[ name ] = m_options.get_value< std::string >( "-kinship" ) ;
+		m_computation_files[ name ] = m_options.get_value< std::string >( "-kinship-old" ) ;
 	}
 	if( m_options.check_if_option_was_supplied( "-concordance" )) {
 		std::string name = "concordance" ;

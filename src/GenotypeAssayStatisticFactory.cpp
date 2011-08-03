@@ -13,6 +13,7 @@
 #include "EntropyStatistic.hpp"
 #include "HardyWeinbergEntropyStatistic.hpp"
 #include "MissingCallProportionStatistic.hpp"
+#include "CallCountStatistic.hpp"
 #include "string_utils/string_utils.hpp"
 
 
@@ -145,6 +146,15 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 	}
 	if( statistic_spec == "BB" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new BBStatistic ) ;
+	}
+	if( statistic_spec == "AA_calls" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new CallCountStatistic( 0.9, 0 ) ) ;
+	}
+	if( statistic_spec == "AB_calls" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new CallCountStatistic( 0.9, 1 ) ) ;
+	}
+	if( statistic_spec == "BB_calls" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new CallCountStatistic( 0.9, 2 ) ) ;
 	}
 	else if( statistic_spec == "HWE(slow)" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new HardyWeinbergExactTestStatistic ) ;

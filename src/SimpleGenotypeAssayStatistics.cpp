@@ -50,5 +50,3 @@ double ABStatistic::calculate_value( GenotypeAssayStatistics const& statistics )
 double BBStatistic::calculate_value( GenotypeAssayStatistics const& statistics ) const {
 	return statistics.get_genotype_amounts().BB() ;
 }
-
-

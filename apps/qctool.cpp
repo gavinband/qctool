@@ -389,7 +389,7 @@ public:
 		Relatotron::declare_options( options ) ;
 		options.option_implies_option( "-relatedness", "-s" ) ; // insist on sample file if doing relatedness.
 
-		options[ "-kinship2" ]
+		options[ "-kinship" ]
 			.set_description( "Perform kinship computation in the 2nd way." )
 			.set_takes_single_value() ;
 
@@ -453,7 +453,7 @@ struct QCToolOptionMangler {
 	InputToOutputFilenameMapper const& snp_excl_list_filename_mapper() const { return m_output_snp_excl_file_mapper ; }
 	std::vector< std::string > row_statistics_specs() const {
 		// Add default columns
-		std::string column_spec = "SNPID, RSID, position, minor_allele, major_allele, AA, AB, BB, MAF, HWE, missing, missing_calls, information, " ;
+		std::string column_spec = "SNPID, RSID, position, minor_allele, major_allele, AA, AB, BB, AA_calls, AB_calls, BB_calls, MAF, HWE, missing, missing_calls, information, " ;
 		column_spec += m_options.get_value< std::string >( "-snp-stats-columns" ) ;
 		return string_utils::split_and_strip_discarding_empty_entries( column_spec, "," ) ;
 	}
@@ -2021,10 +2021,10 @@ private:
 		}
 
 		std::auto_ptr< KinshipCoefficientComputer > kinship ;
-		if( options().check_if_option_was_supplied( "-kinship2" )) {
+		if( options().check_if_option_was_supplied( "-kinship" )) {
 			kinship.reset(
 				new KinshipCoefficientComputer(
-					options().get_value< std::string >( "-kinship2" ),
+					options().get_value< std::string >( "-kinship" ),
 					context.get_cohort_individual_source(),
 					worker.get()
 				)
