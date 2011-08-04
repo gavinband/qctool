@@ -37,9 +37,10 @@ namespace genfile {
 	}
 
 	void SingleSNPGenotypeProbabilities::check_invariant( std::size_t i, double AA, double AB, double BB ) {
-		// BGen format is only accurate to 4 decimal places.  The sum of three numbers rounded to 4d.p is
-		// only accurate to 3 d.p.  So we had better only check 3dp of accuracy here.
-		if( AA + AB + BB >= 1.001 ) {
+		// We sometimes get files with only 3 decimal places of accuracy in them.  (BGen has about 4dps)
+		// The sum of three numbers to 3 decimal places is accurate only to two,
+		// so we had better allow this tolerance.
+		if( AA + AB + BB > 1.01 ) {
 			// std::cerr << "AA: " << AA << " AB:" << AB << " BB:" << BB << " sum:" << ( AA + AB + BB ) << ".\n" ;
 			throw BadArgumentError(
 				"SingleSNPGenotypeProbabilities::check_invariant()",

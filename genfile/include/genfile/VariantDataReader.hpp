@@ -33,49 +33,10 @@ namespace genfile {
 		virtual bool supports( std::string const& spec ) const = 0 ;
 		virtual void get_supported_specs( SpecSetter ) const = 0 ;
 		
-		struct VectorSetter: public PerSampleSetter {
-		public:
-			VectorSetter( std::vector< std::vector< Entry > >& data ):
-				m_data( data )
-			{}
-
-			void set_number_of_samples( std::size_t n ) { m_data.resize( n ) ; }
-			void set_sample( std::size_t n ) { assert( n < m_data.size() ) ; m_sample = n ; }
-			void set_number_of_entries( std::size_t n ) { m_data[ m_sample ].resize( n ) ; m_entry_i = 0 ; }
-
-		private:
-			template< typename T >
-			void set( T value ) {
-				assert( m_entry_i < m_data[ m_sample ].size() ) ;
-				m_data[ m_sample ][ m_entry_i++ ] = value ;
-			}
-		public:
-			void operator()( MissingValue const value ) { set( value ) ; }
-			void operator()( std::string& value ) { set( value ) ; }
-			void operator()( Integer const value ) { set( value ) ; }
-			void operator()( double const value ) { set( value ) ; }
-
-		private:
-			std::vector< std::vector< Entry > >& m_data ;
-			std::size_t m_number_of_samples ;
-			std::size_t m_sample ;
-			std::size_t m_entry_i ;
-		} ;
-		
 		// Convenience method.
-		VariantDataReader& get( std::string const& spec, std::vector< std::vector< Entry > >& data ) {
-			VectorSetter setter( data ) ;
-			get( spec, setter ) ;
-			return *this ;
-		}
-
+		VariantDataReader& get( std::string const& spec, std::vector< std::vector< Entry > >& data ) ;
 		// Convenience method setting SingleSNPGenotypeProbabilities.
 		VariantDataReader& get( std::string const& spec, SingleSNPGenotypeProbabilities& data ) ;
-
-		template< typename Setter >
-		static GenotypeSetter< Setter > set( Setter setter ) {
-			return GenotypeSetter< Setter >( setter ) ;
-		}
 	} ;
 }
 

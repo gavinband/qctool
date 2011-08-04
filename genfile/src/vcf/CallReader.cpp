@@ -140,6 +140,7 @@ namespace genfile {
 				if( spec == "GT" ) {
 					assert( m_ploidy.size() > 0 ) ;
 					std::size_t index = 0 ;
+					setter.set_number_of_samples( m_number_of_samples ) ;
 					for( std::size_t sample_i = 0; sample_i < m_number_of_samples; ++sample_i ) {
 						std::size_t const ploidy = m_ploidy[ sample_i ] ;
 						assert( m_genotype_calls.size() >= ( index + ploidy ) ) ;
@@ -155,6 +156,7 @@ namespace genfile {
 					}
 				}
 				else {
+					setter.set_number_of_samples( m_number_of_samples ) ;
 					for(
 						std::size_t sample_i = 0, component_index = 0;
 						sample_i < m_number_of_samples;
