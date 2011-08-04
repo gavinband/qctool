@@ -256,12 +256,14 @@ namespace genfile {
 	}
 	
 	void VCFFormatSNPDataSource::set_field_mapping( std::string const& key, std::string const& value ) {
-		FieldMapping::left_iterator where = m_field_mapping.left.find( key ) ;
-		if( where == m_field_mapping.left.end() ) {
-			m_field_mapping.insert( FieldMapping::value_type( key, value )) ;
+		FieldMapping::right_iterator where = m_field_mapping.right.find( value ) ;
+		if( where == m_field_mapping.right.end() ) {
+			throw BadArgumentError( "genfile::VCFFormatSNPDataSource::set_field_mapping()", "value = \"" + value + "\"" ) ;
 		}
-		else {
-			m_field_mapping.left.replace_data( where, value ) ;
+		m_field_mapping.right.replace_data( where, key ) ;
+		std::cerr << "Afterwards:\n" ;
+		for( FieldMapping::left_iterator where = m_field_mapping.left.begin(); where != m_field_mapping.left.end(); ++where ) {
+			std::cerr << "  " << where->first << ":" << where->second << "\n" ;
 		}
 	}
 	

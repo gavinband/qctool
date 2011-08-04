@@ -390,6 +390,7 @@ public:
 		Relatotron::declare_options( options ) ;
 		options.option_implies_option( "-relatedness", "-s" ) ; // insist on sample file if doing relatedness.
 
+		options.declare_group( "Kinship options" ) ;
 		options[ "-kinship" ]
 			.set_description( "Perform kinship computation using threshholded genotype calls and cblas or Eigen libraries." )
 			.set_takes_single_value() ;
@@ -411,9 +412,6 @@ public:
 				"  By default, this is " + globals::program_name + ".log." )
 			.set_takes_single_value()
 			.set_default_value( globals::program_name + ".log" ) ;
-		options [ "-plot" ]
-			.set_description( "Path of file to produce plots in.")
-			.set_takes_single_value() ;
 		options [ "-threads" ]
 			.set_description( "Specify the number of worker threads to use in computationally intensive tasks." )
 			.set_takes_single_value()
@@ -448,7 +446,6 @@ struct QCToolOptionMangler {
 	std::string const& output_sample_filename() const { return m_output_sample_filename ; }
 	std::string const& output_sample_excl_list_filename() const { return m_output_sample_excl_list_filename ; }
 	std::string const& output_sample_stats_filename() const { return m_sample_statistic_filename ; }
-	std::string const& plot_filename() const { return m_plot_filename ; }
 	std::string const log_filename() const { return m_options.get_value< std::string > ( "-log" ) ; }
 	InputToOutputFilenameMapper const& gen_filename_mapper() const { return m_gen_file_mapper ; }
 	std::vector< std::vector< genfile::wildcard::FilenameMatch > > const& gen_filenames() const { return m_gen_filenames ; } 
@@ -473,9 +470,6 @@ private:
 	void process_filenames() {
 		get_snp_related_filenames() ;
 		get_sample_related_filenames() ;
-		if( m_options.check_if_option_was_supplied( "-plot" )) {
-			m_plot_filename = m_options.get_value< std::string >( "-plot" ) ;
-		}
 	}
 
 	void get_snp_related_filenames() {
@@ -665,7 +659,6 @@ private:
 	std::string m_output_sample_filename ;
 	std::string m_output_sample_excl_list_filename ; 
 	std::string m_sample_statistic_filename ;
-	std::string m_plot_filename ;
 	std::string m_log_filename ;
 	InputToOutputFilenameMapper m_gen_file_mapper ;
 	InputToOutputFilenameMapper m_snp_stats_sink_mapper ;
@@ -1395,7 +1388,7 @@ private:
 					uf.second,
 					"GT",
 					genfile::vcf::StrictMetadataParser(
-						m_options.get_value< std::string >( "-vcf-metadata" )
+						m_options.get_value< std::string >( "-metadata" )
 					).get_metadata()
 				)
 			) ;

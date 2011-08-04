@@ -17,72 +17,82 @@
 namespace impl {
 	KinshipCoefficientComputerTask::KinshipCoefficientComputerTask(
 		std::size_t number_of_samples,
-		genfile::SNPIdentifyingData const& id_data,
-		genfile::VariantDataReader& data_reader,
 		Eigen::MatrixXd* result,
 		Eigen::MatrixXd* missing_count
 	):
 		m_number_of_samples( number_of_samples ),
-		m_id_data( id_data ),
 		m_result( result ),
 		m_non_missing_count( missing_count ),
 		m_threshhold( 0.9 ),
-		m_genotypes( m_number_of_samples )
-	{
-		data_reader.get( "genotypes", m_genotypes ) ;
+		m_data( Eigen::VectorXd::Constant( m_number_of_samples, std::numeric_limits< double >::quiet_NaN() ) ),
+		m_non_missingness_matrix( Eigen::VectorXd::Zero( m_number_of_samples ) )
+	{}
+
+	void KinshipCoefficientComputerTask::add_snp(
+		genfile::SNPIdentifyingData const& id_data,
+		genfile::VariantDataReader& data_reader
+	) {
+		m_id_data.push_back( id_data ) ;
+		m_genotypes.push_back( genfile::SingleSNPGenotypeProbabilities( m_number_of_samples ) ) ;
+		data_reader.get( "genotypes", m_genotypes.back() ) ;
 	}
 
 	void KinshipCoefficientComputerTask::operator()() {
-		Eigen::VectorXd data = Eigen::VectorXd::Constant( m_number_of_samples, std::numeric_limits< double >::quiet_NaN() ) ;
-		Eigen::VectorXd non_missingness_matrix = Eigen::VectorXd::Zero( m_number_of_samples ) ;
-		double allele_sum = 0.0 ;
-		for( std::size_t sample_i = 0; sample_i < m_number_of_samples; ++sample_i ) {
-			for( std::size_t g = 0; g < 3; ++g ) {
-				if( m_genotypes( sample_i, g ) >= m_threshhold ) {
-					data( sample_i ) = double( g ) ;
-					non_missingness_matrix( sample_i ) = 1.0 ;
-					allele_sum += g ;
-					break ;
+		Eigen::VectorXd& data = m_data ;
+		Eigen::VectorXd& non_missingness_matrix = m_non_missingness_matrix ;
+		for( std::size_t snp_i = 0; snp_i < m_id_data.size(); ++snp_i ) {
+			data.setZero() ;
+			non_missingness_matrix.setZero() ;
+
+			double allele_sum = 0.0 ;
+			for( std::size_t sample_i = 0; sample_i < m_number_of_samples; ++sample_i ) {
+				for( std::size_t g = 0; g < 3; ++g ) {
+					if( m_genotypes[ snp_i ]( sample_i, g ) >= m_threshhold ) {
+						data( sample_i ) = double( g ) ;
+						non_missingness_matrix( sample_i ) = 1.0 ;
+						allele_sum += g ;
+						break ;
+					}
 				}
 			}
-		}
-		double const allele_freq = allele_sum / ( 2.0 * non_missingness_matrix.sum() ) ;
-		for( std::size_t sample_i = 0; sample_i < m_number_of_samples; ++sample_i ) {
-			if( non_missingness_matrix( sample_i ) ) {
-				data( sample_i ) -= 2.0 * allele_freq ;
+			double const allele_freq = allele_sum / ( 2.0 * non_missingness_matrix.sum() ) ;
+			for( std::size_t sample_i = 0; sample_i < m_number_of_samples; ++sample_i ) {
+				if( non_missingness_matrix( sample_i ) ) {
+					data( sample_i ) -= 2.0 * allele_freq ;
+				}
+				else {
+					data( sample_i ) = 0.0 ; // this sample does not contribute for this SNP.
+				}
 			}
-			else {
-				data( sample_i ) = 0.0 ; // this sample does not contribute for this SNP.
-			}
-		}
 		
-#if HAVE_CBLAS
-		// CBLAS is faster for this usage.  Don't know why.
-		cblas_dsyr(
-			CblasColMajor,
-			CblasUpper,
-			m_number_of_samples,
-			1.0 / ( 2.0 * allele_freq * ( 1.0 - allele_freq )),
-			data.data(),
-			1,
-			m_result->data(),
-			m_number_of_samples
-		) ;
+	#if HAVE_CBLAS
+			// CBLAS is faster for this usage.  Don't know why.
+			cblas_dsyr(
+				CblasColMajor,
+				CblasUpper,
+				m_number_of_samples,
+				1.0 / ( 2.0 * allele_freq * ( 1.0 - allele_freq )),
+				data.data(),
+				1,
+				m_result->data(),
+				m_number_of_samples
+			) ;
 
-		cblas_dsyr(
-			CblasColMajor,
-			CblasUpper,
-			m_number_of_samples,
-			1.0,
-			non_missingness_matrix.data(),
-			1,
-			m_non_missing_count->data(),
-			m_number_of_samples
-		) ;
-#else
-		m_result->selfadjointView< Eigen::Upper >().rankUpdate( data, 1.0 / ( 2.0 * allele_freq * ( 1.0 - allele_freq ) ) ) ;
-		m_non_missing_count->selfadjointView< Eigen::Upper >().rankUpdate( non_missingness_matrix, 1.0 ) ;
-#endif
+			cblas_dsyr(
+				CblasColMajor,
+				CblasUpper,
+				m_number_of_samples,
+				1.0,
+				non_missingness_matrix.data(),
+				1,
+				m_non_missing_count->data(),
+				m_number_of_samples
+			) ;
+	#else
+			m_result->selfadjointView< Eigen::Upper >().rankUpdate( data, 1.0 / ( 2.0 * allele_freq * ( 1.0 - allele_freq ) ) ) ;
+			m_non_missing_count->selfadjointView< Eigen::Upper >().rankUpdate( non_missingness_matrix, 1.0 ) ;
+	#endif
+		}
 	}
 }
 
@@ -100,45 +110,69 @@ namespace impl {
 		assert( m_samples.get_number_of_individuals() == number_of_samples ) ;
 		m_number_of_samples = number_of_samples ;
 		m_number_of_snps = number_of_snps ;
-		m_current_task = 0 ;
 		m_number_of_tasks = m_worker->get_number_of_worker_threads() ;
+		m_number_of_snps_per_task = 10 ;		
 		m_result.resize( m_number_of_tasks ) ;
 		m_non_missing_count.resize( m_number_of_tasks ) ;
 		for( std::size_t i = 0; i < m_result.size(); ++i ) {
 			m_result[i] = Eigen::MatrixXd::Zero( m_number_of_samples, m_number_of_samples ) ;
 			m_non_missing_count[i] = Eigen::MatrixXd::Zero( m_number_of_samples, m_number_of_samples ) ;
 		}
-	}
-
-	void KinshipCoefficientComputer::processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader& data_reader ) {
-		if( m_tasks.size() <= m_current_task ) {
-			assert( m_current_task == m_tasks.size() ) ;
+		for( std::size_t i = 0; i < m_number_of_tasks; ++i ) {
 			m_tasks.push_back(
 				new impl::KinshipCoefficientComputerTask(
 					m_number_of_samples,
-					id_data,
-					data_reader,
-					&m_result[ m_current_task ],
-					&m_non_missing_count[ m_current_task ]
+					&m_result[ i ],
+					&m_non_missing_count[ i ]
 				)
 			) ;
-			m_worker->tell_to_perform_task( m_tasks.back() ) ;
 		}
-		else {
-			m_tasks[ m_current_task ].wait_until_complete() ;
+#if HAVE_CBLAS
+	std::cerr << "KinshipComputer: starting processing, using cblas.\n" ;
+#else
+	std::cerr << "KinshipComputer: starting processing, using Eigen.\n" ;
+#endif
+	}
+
+	void KinshipCoefficientComputer::processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader& data_reader ) {
+		// We add SNPs to tasks in a round-robin way.
+		// When the task gets full, we submit it.
+		// If the task is already full we wait for it to complete.
+		bool task_available = false ;
+		std::size_t chosen_task = m_tasks.size() ;
+		while( chosen_task == m_tasks.size() ) {
+			for( chosen_task = 0; chosen_task < m_tasks.size(); ++chosen_task ) {
+				if( m_tasks[ chosen_task ].check_if_complete() || m_tasks[ chosen_task ].number_of_snps() < m_number_of_snps_per_task ) {
+					break ;
+				}
+			}
+			if( chosen_task == m_tasks.size() ) {
+				// wait for a bit.
+				boost::this_thread::sleep( boost::posix_time::milliseconds( 50 ) ) ;
+			}
+		}
+		
+		assert( chosen_task < m_tasks.size() ) ;
+		
+		if( m_tasks[ chosen_task ].check_if_complete() ) {
 			m_tasks.replace(
-				m_current_task,
+				chosen_task,
 				new impl::KinshipCoefficientComputerTask(
 					m_number_of_samples,
-					id_data,
-					data_reader,
-					&m_result[ m_current_task ],
-					&m_non_missing_count[ m_current_task ]
+					&m_result[ chosen_task ],
+					&m_non_missing_count[ chosen_task ]
 				)
 			) ;
-			m_worker->tell_to_perform_task( m_tasks[ m_current_task ] ) ;
 		}
-		m_current_task = ( m_current_task + 1 ) % m_number_of_tasks ;
+		
+		m_tasks[ chosen_task ].add_snp(
+			id_data,
+			data_reader
+		) ;
+
+		if( m_tasks[ chosen_task ].number_of_snps() == m_number_of_snps_per_task ) {
+			m_worker->tell_to_perform_task( m_tasks[ chosen_task ] ) ;
+		}
 	}
 	
 	void KinshipCoefficientComputer::end_processing_snps() {

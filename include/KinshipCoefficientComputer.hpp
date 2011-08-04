@@ -19,21 +19,29 @@ namespace impl {
 	struct KinshipCoefficientComputerTask: public worker::Task {
 		KinshipCoefficientComputerTask(
 			std::size_t number_of_samples,
-			genfile::SNPIdentifyingData const& id_data,
-			genfile::VariantDataReader& data_reader,
 			Eigen::MatrixXd* result,
 			Eigen::MatrixXd* missing_count
 		) ;
+
+		void add_snp(
+			genfile::SNPIdentifyingData const& id_data,
+			genfile::VariantDataReader& data_reader
+		) ;
+		
+		std::size_t number_of_snps() const { return m_id_data.size() ; }
 
 		void operator()() ;
 		
 	private:
 		std::size_t const m_number_of_samples ;
-		genfile::SNPIdentifyingData const& m_id_data ;
 		Eigen::MatrixXd* m_result ;
 		Eigen::MatrixXd* m_non_missing_count ;
 		double const m_threshhold ;
-		genfile::SingleSNPGenotypeProbabilities m_genotypes ;
+		std::vector< genfile::SNPIdentifyingData > m_id_data ;
+		std::vector< genfile::SingleSNPGenotypeProbabilities > m_genotypes ;
+		
+		Eigen::VectorXd m_data ;
+		Eigen::VectorXd m_non_missingness_matrix ;
 	} ;
 	
 }
@@ -62,8 +70,8 @@ private:
 	boost::ptr_vector< impl::KinshipCoefficientComputerTask > m_tasks ;
 	std::vector< Eigen::MatrixXd > m_result ;
 	std::vector< Eigen::MatrixXd > m_non_missing_count ;
-	std::size_t m_current_task ;
 	std::size_t m_number_of_tasks ;
+	std::size_t m_number_of_snps_per_task ;
 } ;
 
 #endif
