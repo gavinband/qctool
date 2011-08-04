@@ -86,25 +86,6 @@ namespace genfile {
 			FlagsSetter set_flags
 		) ;
 
-		// Read a SNP block from the (plain) gen file
-		template<
-			typename IntegerSetter,
-			typename StringSetter,
-			typename AlleleSetter,
-			typename SNPPositionSetter,
-			typename GenotypeProbabilitySetter
-		>
-		void read_snp_block(
-			std::istream& in,
-			IntegerSetter set_number_of_samples,
-			StringSetter set_SNPID,
-			StringSetter set_RSID,
-			SNPPositionSetter set_SNP_position,
-			AlleleSetter set_allele1,
-			AlleleSetter set_allele2,
-			GenotypeProbabilitySetter set_genotype_probabilities
-		) ;
-
 		/*
 		* Function: write_snp_block()
 		* Write a snp block with the given information to the given ostream object.
@@ -134,13 +115,23 @@ namespace genfile {
 	/* IMPLEMENTATION */
 
 		namespace impl {
-	        void read_snp_identifying_data(
-	            std::istream& aStream,
-	            std::string* SNPID,
-	            std::string* RSID,
-	            uint32_t* SNP_position,
-	            char* first_allele,
-	            char* second_allele
+			void read_snp_identifying_data(
+				std::istream& aStream,
+				std::string* SNPID,
+				std::string* RSID,
+				uint32_t* SNP_position,
+				char* first_allele,
+				char* second_allele
+			) ;
+
+			void read_snp_identifying_data(
+				std::istream& aStream,
+				std::string* SNPID,
+				std::string* RSID,
+				Chromosome* chromosome,
+				uint32_t* SNP_position,
+				char* first_allele,
+				char* second_allele
 			) ;
 			
 			template<
@@ -188,7 +179,26 @@ namespace genfile {
 			FlagsSetter set_flags
 		) {
 			uint32_t number_of_samples ;
-			read_snp_block( aStream, set_value( number_of_samples ), ignore(), ignore(), ignore(), ignore(), ignore(), ignore() ) ;
+			{
+				std::string line ;
+				std::getline( aStream, line ) ;
+				// count spaces.
+				std::string elt ;
+				std::istringstream instr( line ) ;
+				std::size_t count = 0 ;
+				for( ; instr >> elt; ++count ) ;
+				if(( count - 5 ) % 3 == 0 ) {
+					// no chromosome column.
+					number_of_samples = ( count - 5 ) / 3 ;
+				}
+				else if(( count - 6 ) % 3 == 0 ) {
+					// chromosome column present.
+					number_of_samples = ( count - 6 ) / 3 ;
+				}
+				else {
+					throw MalformedInputError( "(unknown)", 0 ) ;
+				}
+			}
 			if( !aStream ) {
 				throw MalformedInputError( "(unknown)", 0 ) ;
 			}
@@ -230,40 +240,6 @@ namespace genfile {
 			}
 		}
 
-		template<
-			typename IntegerSetter,
-			typename StringSetter,
-			typename AlleleSetter,
-			typename SNPPositionSetter,
-			typename GenotypeProbabilitySetter
-		>
-		void read_snp_block(
-			std::istream& inStream,
-			IntegerSetter set_number_of_samples,
-			StringSetter set_SNPID,
-			StringSetter set_RSID,
-			SNPPositionSetter set_SNP_position,
-			AlleleSetter set_allele1,
-			AlleleSetter set_allele2,
-			GenotypeProbabilitySetter set_genotype_probabilities
-		) {
-			std::string SNPID, RSID ;
-			uint32_t position ;
-			char allele1, allele2 ;
-			impl::read_snp_identifying_data( inStream, &SNPID, &RSID, &position, &allele1, &allele2 ) ;
-
-			if( inStream ) {
-				// All good so far; take the plunge and write the data using the supplied setters.
-				set_SNPID( SNPID ) ;
-				set_RSID( RSID ) ;
-				set_SNP_position( position ) ;
-				set_allele1( allele1 ) ;
-				set_allele2( allele2 ) ;
-				
-				impl::read_snp_probability_data( inStream, set_number_of_samples, set_genotype_probabilities ) ;
-			}
-		}
-		
 		/*
 		* Function: write_snp_block()
 		* Write a snp block with the given information to the given ostream object.
