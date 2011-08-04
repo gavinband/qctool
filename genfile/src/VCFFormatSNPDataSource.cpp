@@ -47,9 +47,9 @@ namespace genfile {
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_column_names( read_column_names( *m_stream_ptr )),
+		m_field_mapping( get_field_mapping( m_format_types )),
 		m_number_of_samples( m_column_names.size() - 9 ),
-		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata ) ),
-		m_field_mapping( get_field_mapping( m_format_types ))
+		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata ) )
 	{
 		
 		m_field_mapping.insert( FieldMapping::value_type( "genotypes", genotype_probability_field )) ;
@@ -68,9 +68,9 @@ namespace genfile {
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_column_names( read_column_names( *m_stream_ptr )),
+		m_field_mapping( get_field_mapping( m_format_types )),
 		m_number_of_samples( m_column_names.size() - 9 ),
-		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata )),
-		m_field_mapping( get_field_mapping( m_format_types ))
+		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata ))
 	{
 		m_field_mapping.insert( FieldMapping::value_type( "genotypes", genotype_probability_field )) ;
 		setup() ;
@@ -89,9 +89,9 @@ namespace genfile {
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_column_names( read_column_names( *m_stream_ptr )),
+		m_field_mapping( get_field_mapping( m_format_types )),
 		m_number_of_samples( m_column_names.size() - 9 ),
-		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata )),
-		m_field_mapping( get_field_mapping( m_format_types ))
+		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata ))
 	{
 		m_field_mapping.insert( FieldMapping::value_type( "genotypes", genotype_probability_field )) ;
 		setup() ;

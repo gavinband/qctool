@@ -1,0 +1,104 @@
+#include "genfile/VariantEntry.hpp"
+#include "genfile/Error.hpp"
+#include "genfile/SingleSNPGenotypeProbabilities.hpp"
+#include "genfile/VariantDataReader.hpp"
+#include "genfile/vcf/get_set.hpp"
+
+namespace genfile {
+	namespace vcf {
+		GenotypeSetterBase::~GenotypeSetterBase() throw() {}
+
+		void GenotypeSetterBase::set_number_of_samples( std::size_t n ) {
+			// destination is supposed to know its size.
+			m_number_of_samples = n ;
+		}
+
+		void GenotypeSetterBase::set_sample( std::size_t n ) {
+			assert( n < m_number_of_samples ) ;
+			m_sample = n ;
+			m_missing = false ;
+		}
+
+		void GenotypeSetterBase::set_number_of_entries( std::size_t n ) {
+			m_number_of_entries = n ;
+			m_entry_i = 0 ;
+		}
+
+		void GenotypeSetterBase::operator()( MissingValue const value ) {
+			// if any prob is missing, all are.
+			m_missing = true ;
+			if( ++m_entry_i == m_number_of_entries ) {
+				set() ;
+			}
+		}
+
+		void GenotypeSetterBase::set() {
+			if( m_missing ) {
+				set( m_sample, 0.0, 0.0, 0.0 ) ;
+			}
+			else if( m_number_of_entries == 2 ) {
+				if( m_A == 0 && m_B == 2 ) {
+					set( m_sample, 0.0, 0.0, 1.0 ) ;
+				}
+				else if( m_A == 1 && m_B == 1 ) {
+					set( m_sample, 1.0, 0.0, 0.0 ) ;
+				}
+				else {
+					set( m_sample, 0.0, 1.0, 0.0 ) ;
+				}
+			}
+			else {
+				set( m_sample, m_store[0], m_store[1], m_store[2] ) ;
+			}
+		}
+		
+		void GenotypeSetterBase::operator()( Integer const value ) {
+			store( value ) ;
+		}
+
+		void GenotypeSetterBase::operator()( double const value ) {
+			store( value ) ;
+		}
+
+		GenotypeSetter< SingleSNPGenotypeProbabilities >::GenotypeSetter( SingleSNPGenotypeProbabilities& result ):
+			m_result( result )
+		{}
+
+		void GenotypeSetter< SingleSNPGenotypeProbabilities >::set_number_of_samples( std::size_t n ) {
+			// destination is supposed to know its size.
+			m_result.resize( n ) ;
+		}
+
+		void GenotypeSetter< SingleSNPGenotypeProbabilities >::set( std::size_t sample_i, double AA, double AB, double BB ) {
+			m_result.set( sample_i, AA, AB, BB ) ;
+		}
+		
+		GenotypeSetter< std::vector< VariantEntry > >::
+			GenotypeSetter( std::vector< VariantEntry >& result, double threshhold ):
+			m_result( result ),
+			m_threshhold( threshhold )
+		{}
+
+		void GenotypeSetter< std::vector< VariantEntry > >::set_number_of_samples( std::size_t n ) {
+			m_result.clear() ;
+			m_result.resize( n, MissingValue() ) ;
+		}
+
+		void GenotypeSetter< std::vector< VariantEntry > >::set( std::size_t sample_i, double AA, double AB, double BB ) {
+			if( AA > m_threshhold ) {
+				m_result[ sample_i ] = 0 ;
+			}
+			else if( AB < m_threshhold ) {
+				m_result[ sample_i ] = 1 ;
+			}
+			else if( BB < m_threshhold ) {
+				m_result[ sample_i ] = 2 ;
+			}
+			else {
+				m_result[ sample_i ] = MissingValue() ;
+			}
+		}
+		
+	}
+}
+
