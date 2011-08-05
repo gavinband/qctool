@@ -25,7 +25,8 @@ namespace impl {
 		m_non_missing_count( missing_count ),
 		m_threshhold( 0.9 ),
 		m_data( Eigen::VectorXd::Constant( m_number_of_samples, std::numeric_limits< double >::quiet_NaN() ) ),
-		m_non_missingness_matrix( Eigen::VectorXd::Zero( m_number_of_samples ) )
+		m_non_missingness_matrix( Eigen::VectorXd::Zero( m_number_of_samples ) ),
+		m_finalised( false )
 	{}
 
 	void KinshipCoefficientComputerTask::add_snp(
@@ -110,13 +111,16 @@ namespace impl {
 		assert( m_samples.get_number_of_individuals() == number_of_samples ) ;
 		m_number_of_samples = number_of_samples ;
 		m_number_of_snps = number_of_snps ;
-		m_number_of_tasks = m_worker->get_number_of_worker_threads() ;
-		m_number_of_snps_per_task = 10 ;		
+		m_number_of_snps_processed = 0 ;
+		m_number_of_tasks = 7 ;//m_worker->get_number_of_worker_threads() + 5 ;
+		m_number_of_snps_per_task = 10 ;
 		m_result.resize( m_number_of_tasks ) ;
 		m_non_missing_count.resize( m_number_of_tasks ) ;
 		for( std::size_t i = 0; i < m_result.size(); ++i ) {
-			m_result[i] = Eigen::MatrixXd::Zero( m_number_of_samples, m_number_of_samples ) ;
-			m_non_missing_count[i] = Eigen::MatrixXd::Zero( m_number_of_samples, m_number_of_samples ) ;
+			m_result[i].resize( m_number_of_samples, m_number_of_samples ) ;
+			m_result[i].setZero() ;
+			m_non_missing_count[i].resize( m_number_of_samples, m_number_of_samples ) ;
+			m_non_missing_count[i].setZero() ;
 		}
 		for( std::size_t i = 0; i < m_number_of_tasks; ++i ) {
 			m_tasks.push_back(
@@ -127,6 +131,7 @@ namespace impl {
 				)
 			) ;
 		}
+		m_current_task = 0 ;
 #if HAVE_CBLAS
 	std::cerr << "KinshipComputer: starting processing, using cblas.\n" ;
 #else
@@ -135,47 +140,37 @@ namespace impl {
 	}
 
 	void KinshipCoefficientComputer::processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader& data_reader ) {
-		// We add SNPs to tasks in a round-robin way.
-		// When the task gets full, we submit it.
-		// If the task is already full we wait for it to complete.
-		bool task_available = false ;
-		std::size_t chosen_task = m_tasks.size() ;
-		while( chosen_task == m_tasks.size() ) {
-			for( chosen_task = 0; chosen_task < m_tasks.size(); ++chosen_task ) {
-				if( m_tasks[ chosen_task ].check_if_complete() || m_tasks[ chosen_task ].number_of_snps() < m_number_of_snps_per_task ) {
-					break ;
-				}
-			}
-			if( chosen_task == m_tasks.size() ) {
-				// wait for a bit.
-				boost::this_thread::sleep( boost::posix_time::milliseconds( 50 ) ) ;
-			}
-		}
-		
-		assert( chosen_task < m_tasks.size() ) ;
-		
-		if( m_tasks[ chosen_task ].check_if_complete() ) {
+		if( m_tasks[ m_current_task ].is_finalised() ) {
+			m_tasks[ m_current_task ].wait_until_complete() ;
 			m_tasks.replace(
-				chosen_task,
+				m_current_task,
 				new impl::KinshipCoefficientComputerTask(
 					m_number_of_samples,
-					&m_result[ chosen_task ],
-					&m_non_missing_count[ chosen_task ]
+					&m_result[ m_current_task ],
+					&m_non_missing_count[ m_current_task ]
 				)
 			) ;
 		}
-		
-		m_tasks[ chosen_task ].add_snp(
+
+		m_tasks[ m_current_task ].add_snp(
 			id_data,
 			data_reader
 		) ;
 
-		if( m_tasks[ chosen_task ].number_of_snps() == m_number_of_snps_per_task ) {
-			m_worker->tell_to_perform_task( m_tasks[ chosen_task ] ) ;
+		if(
+			(++m_number_of_snps_processed == m_number_of_snps )
+			|| m_tasks[ m_current_task ].number_of_snps() == m_number_of_snps_per_task
+		) {
+			m_tasks[ m_current_task ].finalise() ;
+			m_worker->tell_to_perform_task( m_tasks[ m_current_task ] ) ;
+			m_current_task = ( m_current_task + 3 ) % m_number_of_tasks ;
 		}
 	}
 	
 	void KinshipCoefficientComputer::end_processing_snps() {
+		for( std::size_t i = 0; i < m_tasks.size(); ++i ) {
+			m_tasks[i].wait_until_complete() ;
+		}
 		for( std::size_t i = 1; i < m_result.size(); ++i ) {
 			m_result[0].noalias() += m_result[i] ;
 			m_non_missing_count[0].noalias() += m_non_missing_count[i] ;

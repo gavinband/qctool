@@ -28,6 +28,9 @@ namespace impl {
 			genfile::VariantDataReader& data_reader
 		) ;
 		
+		void finalise() { m_finalised = true ;}		
+		bool is_finalised() const { return m_finalised ;}
+
 		std::size_t number_of_snps() const { return m_id_data.size() ; }
 
 		void operator()() ;
@@ -42,6 +45,7 @@ namespace impl {
 		
 		Eigen::VectorXd m_data ;
 		Eigen::VectorXd m_non_missingness_matrix ;
+		bool m_finalised ;
 	} ;
 	
 }
@@ -65,6 +69,7 @@ private:
 	std::string const m_filename ;
 	std::size_t m_number_of_samples ;
 	std::size_t m_number_of_snps ;
+	std::size_t m_number_of_snps_processed ;
 	genfile::CohortIndividualSource const& m_samples ;
 	worker::Worker* m_worker ;
 	boost::ptr_vector< impl::KinshipCoefficientComputerTask > m_tasks ;
@@ -72,6 +77,7 @@ private:
 	std::vector< Eigen::MatrixXd > m_non_missing_count ;
 	std::size_t m_number_of_tasks ;
 	std::size_t m_number_of_snps_per_task ;
+	std::size_t m_current_task ;
 } ;
 
 #endif
