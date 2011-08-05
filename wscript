@@ -91,6 +91,8 @@ def check_for_zlib( conf ):
 def platform_specific_configure( conf ):
 	import platform
 	if platform.system() == 'Darwin':
+		if conf.check_cxx( header_name='mach/mach_time.h', uselib_store = 'MACH_TIME' ):
+			conf.define( 'HAVE_MACH_TIME', 1 )
 		if conf.check_cxx(
 			lib = 'cblas',
 			fragment = '#include "cblas.h"\nint main() {}',
