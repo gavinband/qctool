@@ -72,6 +72,20 @@ namespace genfile {
 		void GenotypeSetter< SingleSNPGenotypeProbabilities >::set( std::size_t sample_i, double AA, double AB, double BB ) {
 			m_result.set( sample_i, AA, AB, BB ) ;
 		}
+
+		GenotypeSetter< std::vector< double > >::GenotypeSetter( std::vector< double >& result ):
+			m_result( result )
+		{}
+
+		void GenotypeSetter< std::vector< double > >::set_number_of_samples( std::size_t n ) {
+			m_result.resize( n * 3 ) ;
+		}
+
+		void GenotypeSetter< std::vector< double > >::set( std::size_t sample_i, double AA, double AB, double BB ) {
+			m_result[ sample_i * 3 + 0 ] = AA ;
+			m_result[ sample_i * 3 + 1 ] = AB ;
+			m_result[ sample_i * 3 + 2 ] = BB ;
+		}
 		
 		GenotypeSetter< std::vector< VariantEntry > >::
 			GenotypeSetter( std::vector< VariantEntry >& result, double threshhold ):
@@ -82,6 +96,7 @@ namespace genfile {
 		void GenotypeSetter< std::vector< VariantEntry > >::set_number_of_samples( std::size_t n ) {
 			m_result.clear() ;
 			m_result.resize( n, MissingValue() ) ;
+			GenotypeSetterBase::set_number_of_samples( n ) ;
 		}
 
 		void GenotypeSetter< std::vector< VariantEntry > >::set( std::size_t sample_i, double AA, double AB, double BB ) {
