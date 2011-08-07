@@ -6,6 +6,7 @@
 #include "genfile/VCFFormatSNPDataSource.hpp"
 #include "genfile/vcf/CallReader.hpp"
 #include "genfile/Error.hpp"
+#include "genfile/vcf/get_set.hpp"
 #include "test_case.hpp"
 #include "CVCFT/CVCFT.cpp"
 
@@ -91,12 +92,13 @@ void perform_test_against_cvcft(
 		{
 			std::auto_ptr< std::istream > istr( new std::istringstream( data ) ) ;
 
-			genfile::VCFFormatSNPDataSource source( istr, key ) ;
+			genfile::VCFFormatSNPDataSource source( istr ) ;
 			TEST_ASSERT( source.total_number_of_snps() == number_of_lines ) ;
 			genfile::SNPIdentifyingData snp ;
 			while( source.get_snp_identifying_data( snp )) {
 				std::vector< double > probs ;
-				source.read_snp_probability_data( genfile::set_genotypes( probs )) ;
+				genfile::vcf::GenotypeSetter< std::vector< double > > setter( probs ) ;
+				source.read_variant_data()->get( key, setter ) ;
 				TEST_ASSERT( probs.size() == 0 || probs.size() == number_of_probs_per_snp ) ;
 				my_snps.push_back( snp ) ;
 				my_probs.push_back( probs ) ;
