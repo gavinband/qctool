@@ -40,31 +40,37 @@ void IntensityWriter::setup( db::Connection& connection ) {
 	statement->bind( 2, "is_a" ) ;
 	statement->bind( 3, "Indicates that a is an object of class b." ) ;
 	statement->step() ;
+	statement->reset() ;
 
 	statement->bind( 1, 2 ) ;
 	statement->bind( 2, "stored_as" ) ;
 	statement->bind( 3, "Indicates that a is stored in the format specified by b." ) ;
 	statement->step() ;
+	statement->reset() ;
 
 	statement->bind( 1, 3 ) ;
 	statement->bind( 2, "storage_type" ) ;
 	statement->bind( 3, "Class of entities representing storage types." ) ;
 	statement->step() ;
+	statement->reset() ;
 
 	statement->bind( 1, 4 ) ;
 	statement->bind( 2, "zlib_compressed_serialized" ) ;
 	statement->bind( 3, "zlib compressed data, serialized using qctool." ) ;
 	statement->step() ;
+	statement->reset() ;
 
 	statement->bind( 1, 5 ) ;
 	statement->bind( 2, "double" ) ;
 	statement->bind( 3, "A single floating-point literal in native format" ) ;
 	statement->step() ;
+	statement->reset() ;
 
 	statement->bind( 1, 6 ) ;
 	statement->bind( 2, "cohort" ) ;
 	statement->bind( 3, "A cohort." ) ;
 	statement->step() ;
+	statement->reset() ;
 
 	connection.run_statement(
 		"CREATE TABLE IF NOT EXISTS EntityRelationship ( "

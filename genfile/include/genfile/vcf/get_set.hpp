@@ -108,6 +108,16 @@ namespace genfile {
 		} ;
 
 		template<>
+		struct GenotypeSetter< std::vector< double > >: public GenotypeSetterBase
+		{
+			GenotypeSetter( std::vector< double >& result ) ;
+			void set_number_of_samples( std::size_t n ) ;
+			void set( std::size_t sample_i, double AA, double AB, double BB ) ;
+		private:
+			std::vector< double >& m_result ;
+		} ;
+
+		template<>
 		struct GenotypeSetter< std::vector< VariantEntry > >: public GenotypeSetterBase
 		{
 			GenotypeSetter( std::vector< VariantEntry >& result, double threshhold ) ;

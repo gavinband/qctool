@@ -100,9 +100,6 @@ namespace worker
 	Task* QueuedMultiThreadedWorker::worker_thread_get_task_from_queue() {
 		Task* result = m_task_queue.front() ;
 		m_task_queue.pop() ;
-		if( !m_task_queue.empty() ) {
-			m_have_task_condition.notify_one() ;
-		}
 		m_have_capacity_condition.notify_one() ;
 		return result ;
 	}

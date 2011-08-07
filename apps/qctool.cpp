@@ -1386,7 +1386,6 @@ private:
 			source.reset(
 				new genfile::VCFFormatSNPDataSource(
 					uf.second,
-					"GT",
 					genfile::vcf::StrictMetadataParser(
 						m_options.get_value< std::string >( "-metadata" )
 					).get_metadata()
@@ -1396,8 +1395,7 @@ private:
 		else {
 			source.reset(
 				new genfile::VCFFormatSNPDataSource(
-					uf.second,
-					"GT"
+					uf.second
 				)
 			) ;
 		}
