@@ -1,6 +1,7 @@
 #include <memory>
 #include <vector>
 #include "Eigen/Core"
+#include "Eigen/Cholesky"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/Error.hpp"
@@ -81,7 +82,8 @@ void NormalClusterFitter::processed_snp( genfile::SNPIdentifyingData const& id_d
 		genfile::vcf::GenotypeSetter< std::vector< genfile::VariantEntry > > genotype_setter( genotypes, m_call_threshhold ) ;
 		genfile::vcf::MatrixSetter< Eigen::MatrixXd > intensity_setter( intensities ) ;
 		data_reader
-			.get( m_spec[spec_i].first, genotype_setter )
+			.get( m_spec[spec_i].first, genotype_setter ) ;
+		data_reader
 			.get( m_spec[spec_i].second, intensity_setter )
 		;
 		get_cluster_fit( genotypes, intensities, means, variances, non_missing_counts ) ;
@@ -99,7 +101,7 @@ void NormalClusterFitter::get_cluster_fit(
 	std::vector< std::size_t >& non_missing_counts
 ) {
 	assert( genotypes.size() == m_number_of_samples ) ;
-	assert( intensities.rows() == m_number_of_samples ) ;
+	assert( std::size_t( intensities.rows() ) == m_number_of_samples ) ;
 	assert( intensities.cols() == 2 ) ;
 	assert( means.size() == 3 ) ;
 	assert( variances.size() == 3 ) ;
@@ -135,7 +137,12 @@ void NormalClusterFitter::write_output_columns(
 				<< " " << prefix << ":" << genfile::string_utils::to_string( g ) << ":variance_xx"
 				<< " " << prefix << ":" << genfile::string_utils::to_string( g ) << ":variance_xy"
 				<< " " << prefix << ":" << genfile::string_utils::to_string( g ) << ":variance_yx"
-				<< " " << prefix << ":" << genfile::string_utils::to_string( g ) << ":variance_yy" ;
+				<< " " << prefix << ":" << genfile::string_utils::to_string( g ) << ":variance_yy"
+				<< " " << prefix << ":" << genfile::string_utils::to_string( g ) << ":T_xx"
+				<< " " << prefix << ":" << genfile::string_utils::to_string( g ) << ":T_xy"
+				<< " " << prefix << ":" << genfile::string_utils::to_string( g ) << ":T_yx"
+				<< " " << prefix << ":" << genfile::string_utils::to_string( g ) << ":T_yy"
+			;
 		}
 	}
 	(*m_file) << "\n" ;
@@ -161,9 +168,10 @@ void NormalClusterFitter::write_cluster_fit(
 		(*m_file)
 			<< " " << non_missing_counts[g] ;
 		if( non_missing_counts[g] == 0 ) {
-			(*m_file) << " NA NA NA NA NA NA" ;
+			(*m_file) << " NA NA NA NA NA NA NA NA NA NA" ;
 		}
 		else {
+			Eigen::Matrix2d square_root = variances[g].llt().matrixL() ;
 			(*m_file)
 				<< " " << means[g](0)
 				<< " " << means[g](1)
@@ -171,6 +179,10 @@ void NormalClusterFitter::write_cluster_fit(
 				<< " " << variances[g](0,1)
 				<< " " << variances[g](1,0)
 				<< " " << variances[g](1,1)
+				<< " " << square_root(0,0)
+				<< " " << square_root(0,1)
+				<< " " << square_root(1,0)
+				<< " " << square_root(1,1)
 			;
 		}
 	}
