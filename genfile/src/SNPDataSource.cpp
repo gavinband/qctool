@@ -30,7 +30,7 @@ namespace genfile {
 			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second, compression_type )) ;
 		}
 		else if( uf.first == "vcf" ) {
-			return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second, "GT" )) ;
+			return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second )) ;
 		}
 		else if( uf.first == "gen" ) {
 			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;

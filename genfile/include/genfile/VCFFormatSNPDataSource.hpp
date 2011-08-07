@@ -27,16 +27,13 @@ namespace genfile {
 		typedef vcf::MetadataParser::Metadata Metadata ;
 		
 		VCFFormatSNPDataSource(
-			std::auto_ptr< std::istream > stream_ptr,
-			std::string const& genotype_probability_field
+			std::auto_ptr< std::istream > stream_ptr
+		) ;
+		VCFFormatSNPDataSource(
+			std::string const& filename
 		) ;
 		VCFFormatSNPDataSource(
 			std::string const& filename,
-			std::string const& genotype_probability_field
-		) ;
-		VCFFormatSNPDataSource(
-			std::string const& filename,
-			std::string const& genotype_probability_field,
 			Metadata const& metadata
 		) ;
 	public:
