@@ -133,6 +133,15 @@ namespace genfile {
 				) {
 					return std::numeric_limits< double >::quiet_NaN() ;
 				}
+
+				if(
+					(end_p - p) == 3
+					&& ( *p == 'i' || *p == 'I' )
+					&& ( *(p+1) == 'n' || *(p+1) == 'N' )
+					&& ( *(p+2) == 'f' || *(p+2) == 'F' )
+				) {
+					return (( sign ) ? -1.0 : 1.0 ) * std::numeric_limits< double >::infinity() ;
+				}
 				
 
 				/*

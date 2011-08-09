@@ -45,7 +45,18 @@ AUTO_TEST_CASE( test_strtod ) {
 	test_it( "nAN" ) ;
 	test_it( "Nan" ) ;
 	test_it( "NaN" ) ;
+	test_it( "NAn" ) ;
 	test_it( "NAN" ) ;
+
+	test_it( "inf" ) ;
+	test_it( "inF" ) ;
+	test_it( "iNf" ) ;
+	test_it( "iNF" ) ;
+	test_it( "Inf" ) ;
+	test_it( "InF" ) ;
+	test_it( "INf" ) ;
+	test_it( "INF" ) ;
+
 	test_it( "NA" ) ;
 
 	for( double x = -100.0; x < 100.0; x += 0.0001 ) {
