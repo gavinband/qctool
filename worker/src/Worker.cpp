@@ -25,8 +25,10 @@ namespace worker {
 	}
 	
 	void Task::set_complete() {
-		ScopedLock lock( m_mutex ) ;
-		m_is_complete = true ;
+		{
+			ScopedLock lock( m_mutex ) ;
+			m_is_complete = true ;
+		}
 		m_condition.notify_all() ;
 	}
 
