@@ -120,7 +120,7 @@ namespace genfile {
 		} ;
 		
 		for( std::size_t i = 0; i < 4u; ++i ) {
-			if( filename.substr( filename.size() - recognised_extensions[i].size(), recognised_extensions[i].size() ) == recognised_extensions[i] ) {
+			if( filename.size() > recognised_extensions[i].size() && filename.substr( filename.size() - recognised_extensions[i].size(), recognised_extensions[i].size() ) == recognised_extensions[i] ) {
 				return recognised_extensions[i] ;
 			}
 		}

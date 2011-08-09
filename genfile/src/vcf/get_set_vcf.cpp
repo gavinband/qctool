@@ -22,6 +22,8 @@ namespace genfile {
 		void GenotypeSetterBase::set_number_of_entries( std::size_t n ) {
 			m_number_of_entries = n ;
 			m_entry_i = 0 ;
+			m_A = 0 ;
+			m_B = 0 ;
 		}
 
 		void GenotypeSetterBase::operator()( MissingValue const value ) {
@@ -41,10 +43,10 @@ namespace genfile {
 					set( m_sample, 0.0, 0.0, 1.0 ) ;
 				}
 				else if( m_A == 1 && m_B == 1 ) {
-					set( m_sample, 1.0, 0.0, 0.0 ) ;
+					set( m_sample, 0.0, 1.0, 0.0 ) ;
 				}
 				else {
-					set( m_sample, 0.0, 1.0, 0.0 ) ;
+					set( m_sample, 1.0, 0.0, 0.0 ) ;
 				}
 			}
 			else {
