@@ -140,17 +140,17 @@ namespace genfile {
 			}
 			void set_number_of_entries( std::size_t n ) {
 				if( m_sample == 0 ) {
-					m_result.resize( m_number_of_samples, n ) ;
+					m_result.resize( n, m_number_of_samples ) ;
 				}
-				else if( !n == m_result.cols() ) {
+				else if( !n == m_result.rows() ) {
 					throw BadArgumentError( "genfile::vcf::MatrixSetter::set_number_of_entries()", "n" ) ;
 				}
 			}
 			void operator()( MissingValue const value ) {
-				m_result( m_sample, m_entry_i++ ) = std::numeric_limits< double >::quiet_NaN() ;
+				m_result( m_entry_i++, m_sample ) = std::numeric_limits< double >::quiet_NaN() ;
 			}
 			void operator()( double const value ) {
-				m_result( m_sample, m_entry_i++ ) = value ;
+				m_result( m_entry_i++, m_sample ) = value ;
 			}
 
 		private:

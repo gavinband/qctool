@@ -105,10 +105,10 @@ namespace genfile {
 			if( AA > m_threshhold ) {
 				m_result[ sample_i ] = 0 ;
 			}
-			else if( AB < m_threshhold ) {
+			else if( AB > m_threshhold ) {
 				m_result[ sample_i ] = 1 ;
 			}
-			else if( BB < m_threshhold ) {
+			else if( BB > m_threshhold ) {
 				m_result[ sample_i ] = 2 ;
 			}
 			else {

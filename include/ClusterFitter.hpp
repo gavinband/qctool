@@ -35,7 +35,7 @@ private:
 	void get_cluster_fit(
 		std::vector< genfile::VariantEntry > const& genotypes,
 		Eigen::MatrixXd const& intensities,
-		std::vector< Eigen::RowVector2d >& means,
+		std::vector< Eigen::Vector2d >& means,
 		std::vector< Eigen::Matrix2d >& variances,
 		std::vector< std::size_t >& non_missing_counts
 	) ;
@@ -47,7 +47,7 @@ private:
 	void write_id_data( genfile::SNPIdentifyingData const& id_data ) const ;
 
 	void write_cluster_fit(
-		std::vector< Eigen::RowVector2d > const& means,
+		std::vector< Eigen::Vector2d > const& means,
 		std::vector< Eigen::Matrix2d > const& variances,
 		std::vector< std::size_t > const& non_missing_counts
 	) const ;

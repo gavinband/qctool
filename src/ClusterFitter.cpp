@@ -67,8 +67,8 @@ void NormalClusterFitter::processed_snp( genfile::SNPIdentifyingData const& id_d
 	std::vector< genfile::VariantEntry > genotypes ;
 	Eigen::MatrixXd intensities ;
 
-	std::vector< Eigen::RowVector2d > means( 3 ) ;
-	std::vector< Eigen::Matrix2d > variances( 3 ) ;
+	std::vector< Eigen::Vector2d > means( 3, Eigen::Vector2d( 2 ) ) ;
+	std::vector< Eigen::Matrix2d > variances( 3, Eigen::Matrix2d( 2, 2 ) ) ;
 	std::vector< std::size_t > non_missing_counts( 3 ) ;
 
 	write_id_data( id_data ) ;
@@ -82,12 +82,10 @@ void NormalClusterFitter::processed_snp( genfile::SNPIdentifyingData const& id_d
 		genfile::vcf::GenotypeSetter< std::vector< genfile::VariantEntry > > genotype_setter( genotypes, m_call_threshhold ) ;
 		genfile::vcf::MatrixSetter< Eigen::MatrixXd > intensity_setter( intensities ) ;
 		data_reader
-			.get( m_spec[spec_i].first, genotype_setter ) ;
-		data_reader
+			.get( m_spec[spec_i].first, genotype_setter )
 			.get( m_spec[spec_i].second, intensity_setter )
 		;
 		get_cluster_fit( genotypes, intensities, means, variances, non_missing_counts ) ;
-		
 		write_cluster_fit( means, variances, non_missing_counts ) ;
 	}
 	(*m_file) << "\n" ;
@@ -96,21 +94,21 @@ void NormalClusterFitter::processed_snp( genfile::SNPIdentifyingData const& id_d
 void NormalClusterFitter::get_cluster_fit(
 	std::vector< genfile::VariantEntry > const& genotypes,
 	Eigen::MatrixXd const& intensities,
-	std::vector< Eigen::RowVector2d >& means,
+	std::vector< Eigen::Vector2d >& means,
 	std::vector< Eigen::Matrix2d >& variances,
 	std::vector< std::size_t >& non_missing_counts
 ) {
 	assert( genotypes.size() == m_number_of_samples ) ;
-	assert( std::size_t( intensities.rows() ) == m_number_of_samples ) ;
-	assert( intensities.cols() == 2 ) ;
+	assert( std::size_t( intensities.cols() ) == m_number_of_samples ) ;
+	assert( intensities.rows() == 2 ) ;
 	assert( means.size() == 3 ) ;
 	assert( variances.size() == 3 ) ;
 	assert( non_missing_counts.size() == 3 ) ;
 	for( std::size_t i = 0; i < m_number_of_samples; ++i ) {
-		if( genotypes[i].is_int() && intensities( i, 0 ) == intensities( i, 0 ) && intensities( i, 1 ) == intensities( i, 1 ) ) {
+		if( genotypes[i].is_int() && intensities( 0, i ) == intensities( 0, i ) && intensities( 1, i ) == intensities( 1, i ) ) {
 			std::size_t g = genotypes[i].as< int >() ;
-			means[g].noalias() += intensities.row( i ) ;
-			variances[g].noalias() += intensities.row( i ).transpose() * intensities.row( i ) ;
+			means[g].noalias() += intensities.col( i ) ;
+			variances[g].noalias() += intensities.col( i ) * intensities.col( i ).transpose() ;
 			++non_missing_counts[g] ;
 		} else {
 			// something missing; ignore this.
@@ -118,7 +116,7 @@ void NormalClusterFitter::get_cluster_fit(
 	}
 	for( std::size_t g = 0; g < 3; ++g ) {
 		means[g] /= non_missing_counts[g] ;
-		variances[g].noalias() -= ( means[g].transpose() * means[g] ) ;
+		variances[g].noalias() -= ( means[g] * means[g].transpose() ) ;
 	}
 }
 
@@ -157,7 +155,7 @@ void NormalClusterFitter::write_id_data( genfile::SNPIdentifyingData const& id_d
 }
 
 void NormalClusterFitter::write_cluster_fit(
-	std::vector< Eigen::RowVector2d > const& means,
+	std::vector< Eigen::Vector2d > const& means,
 	std::vector< Eigen::Matrix2d > const& variances,
 	std::vector< std::size_t > const& non_missing_counts
 ) const {
