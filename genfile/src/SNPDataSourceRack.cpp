@@ -315,6 +315,10 @@ namespace genfile {
 			std::size_t m_number_of_samples ;
 		} ;
 		
+		void add_spec_to_map( std::map< std::string, std::string >* map, std::string const& name, std::string const& type ) {
+			(*map)[ name ] = type ;
+		}
+
 		struct RackVariantDataReader: public VariantDataReader
 		{
 			RackVariantDataReader( SNPDataSourceRack& rack )
@@ -355,17 +359,24 @@ namespace genfile {
 					return ;
 				}
 
-				typedef std::vector< std::string > SetOfThings ;
+				typedef std::map< std::string, std::string > SetOfThings ;
 				SetOfThings things ;
 				for( std::size_t i = 0; i < m_data_readers.size(); ++i ) {
 					SetOfThings these_things ;
-					m_data_readers[0]->get_supported_specs( boost::bind( &SetOfThings::push_back, &these_things, _1 )) ;
+					m_data_readers[0]->get_supported_specs(
+						boost::bind(
+							&add_spec_to_map,
+							&these_things,
+							_1,
+							_2
+						)
+					) ;
 					if( i == 0 ) {
 						things = these_things ;
 					}
 					else {
 						for( SetOfThings::iterator thing_i = things.begin(); thing_i != things.end(); ) {
-							SetOfThings::iterator where = std::find( these_things.begin(), these_things.end(), *thing_i ) ;
+							SetOfThings::iterator where = these_things.find( thing_i->first ) ;
 
 							if( where == these_things.end() ) {
 								SetOfThings::iterator this_thing = thing_i++ ;
@@ -378,7 +389,7 @@ namespace genfile {
 					}
 				}
 				for( SetOfThings::const_iterator thing_i = things.begin(); thing_i != things.end(); ++thing_i ) {
-					setter( *thing_i ) ;
+					setter( thing_i->first, thing_i->second ) ;
 				}
 			}
 

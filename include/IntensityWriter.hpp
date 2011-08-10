@@ -19,7 +19,11 @@ private:
 	std::size_t m_number_of_snps_written ;
 	db::Connection::UniquePtr m_connection ;
 
-	void setup( db::Connection& connection ) ;
+	std::map< std::string, db::Connection::RowId > m_entities ;
+
+	void setup() ;
+	db::Connection::RowId get_or_create_entity( std::string const& name, std::string const& description ) const ;
+	void set_relationship( std::string const& left, std::string const& relation, std::string const& right ) const ;
 } ;
 
 #endif

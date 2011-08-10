@@ -12,10 +12,11 @@ IntensityWriter::IntensityWriter( std::string const& filename ):
 	m_filename( filename ),
 	m_connection( new db::SQLite3Connection( filename ))
 {
-	setup( *m_connection ) ;
+	setup() ;
 }
 
-void IntensityWriter::setup( db::Connection& connection ) {
+void IntensityWriter::setup() {
+	db::Connection& connection = *m_connection ;
 	db::Connection::StatementPtr statement ;
 	connection.run_statement(
 		"CREATE TABLE IF NOT EXISTS FileInfo ( key TEXT NOT NULL UNIQUE, value TEXT );"
@@ -32,64 +33,27 @@ void IntensityWriter::setup( db::Connection& connection ) {
 		"CREATE INDEX IF NOT EXISTS Entity_name ON Entity( name )"
 	) ;
 
-	statement = connection.get_statement(
-		"INSERT OR REPLACE INTO Entity VALUES( ?1, ?2, ?3 ) ;"
-	) ;
-
-	statement->bind( 1, 1 ) ;
-	statement->bind( 2, "is_a" ) ;
-	statement->bind( 3, "Indicates that a is an object of class b." ) ;
-	statement->step() ;
-	statement->reset() ;
-
-	statement->bind( 1, 2 ) ;
-	statement->bind( 2, "stored_as" ) ;
-	statement->bind( 3, "Indicates that a is stored in the format specified by b." ) ;
-	statement->step() ;
-	statement->reset() ;
-
-	statement->bind( 1, 3 ) ;
-	statement->bind( 2, "storage_type" ) ;
-	statement->bind( 3, "Class of entities representing storage types." ) ;
-	statement->step() ;
-	statement->reset() ;
-
-	statement->bind( 1, 4 ) ;
-	statement->bind( 2, "zlib_compressed_serialized" ) ;
-	statement->bind( 3, "zlib compressed data, serialized using qctool." ) ;
-	statement->step() ;
-	statement->reset() ;
-
-	statement->bind( 1, 5 ) ;
-	statement->bind( 2, "double" ) ;
-	statement->bind( 3, "A single floating-point literal in native format" ) ;
-	statement->step() ;
-	statement->reset() ;
-
-	statement->bind( 1, 6 ) ;
-	statement->bind( 2, "cohort" ) ;
-	statement->bind( 3, "A cohort." ) ;
-	statement->step() ;
-	statement->reset() ;
+	m_entities[ "is_a" ] = get_or_create_entity( "is_a", "Indicates that a is an object of class b." ) ;
+	m_entities[ "stored_as" ] = get_or_create_entity( "stored_as", "Indicates that a is stored in the format specified by b." ) ;
+	m_entities[ "storage_type" ] = get_or_create_entity( "storage_type", "Class of entities representing storage types." ) ;
+	m_entities[ "zlib_compressed_serialized" ] = get_or_create_entity( "zlib_compressed_serialized", "zlib compressed data, serialized using qctool." ) ;
+	m_entities[ "double" ] = get_or_create_entity( "double", "A single floating-point literal in native format" ) ;
+	m_entities[ "cohort" ] = get_or_create_entity( "cohort", "A cohort" ) ;
 
 	connection.run_statement(
 		"CREATE TABLE IF NOT EXISTS EntityRelationship ( "
 			"entity1_id INTEGER NOT NULL, "
 			"entity2_id INTEGER NOT NULL, "
 			"relationship_id INTEGER NOT NULL, "
+			"UNIQUE ( entity1_id, entity2_id, relationship_id ), "
 			"FOREIGN KEY( entity1_id ) REFERENCES Entity( id ), "
 			"FOREIGN KEY( entity2_id ) REFERENCES Entity( id ), "
 			"FOREIGN KEY( relationship_id ) REFERENCES Entity( id ) "
 		");"
 	) ;
 
-	statement = connection.get_statement(
-		"INSERT OR REPLACE INTO EntityRelationship VALUES( ?1, ?2, ?3 ) ;"
-	) ;
-	statement->bind( 1, 3 ) ;
-	statement->bind( 2, 2 ) ;
-	statement->bind( 3, 1 ) ;
-	statement->step() ;
+	set_relationship( "zlib_compressed_serialized", "is_a", "storage_type" ) ;
+	set_relationship( "double", "is_a", "storage_type" ) ;
 
 	connection.run_statement(
 		"CREATE TABLE IF NOT EXISTS SNP ( "
@@ -115,30 +79,72 @@ void IntensityWriter::setup( db::Connection& connection ) {
 		"CREATE TABLE IF NOT EXISTS Data ( "
 			"snp_id INTEGER NOT NULL, "
 			"field_id INTEGER NOT NULL, "
+			"cohort_id INTEGER NOT NULL, "
 			"storage_id INTEGER NOT NULL, "
 			"uncompressed_size INTEGER NOT NULL, "
 			"data BLOB, "
-			"UNIQUE( snp_id, field_id, storage_id )"
-			"FOREIGN KEY (field_id) REFERENCES Field( id ), "
+			"UNIQUE( snp_id, field_id, storage_id ), "
 			"FOREIGN KEY (snp_id) REFERENCES SNP( id ), "
-			"FOREIGN KEY (storage_id) REFERENCES Storage( id ) "
-			") ;"
+			"FOREIGN KEY (field_id) REFERENCES Entity( id ), "
+			"FOREIGN KEY (cohort_id) REFERENCES Entity( id ), "
+			"FOREIGN KEY (storage_id) REFERENCES Entity( id ) "
+		") ;"
 	) ;
 	statement->step() ;
-	statement = connection.get_statement(
+	connection.run_statement(
 		"CREATE INDEX IF NOT EXISTS Data_snp ON Data( snp_id )"
 	) ;
-	statement->step() ;
-	statement = connection.get_statement(
+	connection.run_statement(
 		"CREATE INDEX IF NOT EXISTS Data_field ON Data( field_id )"
 	) ;
-	statement->step() ;
-	statement = connection.get_statement(
+	connection.run_statement(
 		"CREATE INDEX IF NOT EXISTS Data_storage ON Data( storage_id )"
 	) ;
+	connection.run_statement(
+		"CREATE INDEX IF NOT EXISTS Data_cohort ON Data( cohort_id )"
+	) ;
+}
 
+db::Connection::RowId IntensityWriter::get_or_create_entity( std::string const& name, std::string const& description ) const {
+	db::Connection::RowId result ;
+	db::Connection::StatementPtr statement = m_connection->get_statement(
+		"SELECT id, description FROM Entity WHERE name == ?1"
+	) ;
+	statement->bind( 1, name ) ;
+	statement->step() ;
+	if( statement->empty() ) {
+		statement = m_connection->get_statement(
+			"INSERT INTO Entity ( name, description ) VALUES ( ?1, ?1 )"
+		) ;
+		statement->bind( 1, name ) ;
+		statement->bind( 2, description ) ;
+		result = m_connection->get_last_insert_row_id() ;
+	} else if( !statement->is_null( 1 )) {
+		std::string const stored_description = statement->get_column< std::string >( 1 ) ;
+		if( stored_description != description ) {
+			throw genfile::BadArgumentError( "IntensityWriter::get_or_create_entity()", "description = \"" + description + "\"" ) ;
+		}
+		result = statement->get_column< db::Connection::RowId >( 0 ) ;
+	}
+	return result ;
+}
+
+void IntensityWriter::set_relationship( std::string const& left, std::string const& relation, std::string const& right ) const {
+	db::Connection::StatementPtr statement = m_connection->get_statement(
+		"INSERT OR REPLACE INTO EntityRelationship VALUES( ?1, ?2, ?3 )"
+	) ;
+	std::map< std::string, db::Connection::RowId >::const_iterator where = m_entities.find( left ) ;
+	assert( where != m_entities.end() ) ;
+	statement->bind( 1, where->second ) ;
+	where = m_entities.find( relation ) ;
+	assert( where != m_entities.end() ) ;
+	statement->bind( 2, where->second ) ;
+	where = m_entities.find( right ) ;
+	assert( where != m_entities.end() ) ;
+	statement->bind( 3, where->second ) ;
 	statement->step() ;
 }
+
 
 void IntensityWriter::begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) {
 	m_number_of_samples = number_of_samples ;
@@ -146,9 +152,15 @@ void IntensityWriter::begin_processing_snps( std::size_t number_of_samples, std:
 	m_number_of_snps_written = 0 ;
 }
 
+namespace impl {
+	void add_spec_to_map( std::map< std::string, std::string >* map, std::string const& name, std::string const& type ) {
+		(*map)[ name ] = type ;
+	}
+}
+
 void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
-	std::vector< std::string > fields ;
-	data_reader.get_supported_specs( boost::bind( &std::vector< std::string >::push_back, &fields, _1 )) ;
+	std::map< std::string, std::string > fields ;
+	data_reader.get_supported_specs( boost::bind( &impl::add_spec_to_map, &fields, _1, _2 )) ;
 	
 	try {
 		db::Connection::StatementPtr statement ;
@@ -193,8 +205,18 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 		}
 		// If we get here, the right SNP is present and we have its snp_row_id.
 
-		for( std::size_t field_i = 0; field_i < fields.size(); ++field_i ) {
-			std::string const field = fields[ field_i ] ;
+		for(
+			std::map< std::string, std::string >::const_iterator field_i = fields.begin();
+			field_i != fields.end();
+		 	++field_i
+ 		) {
+			std::string const field = field_i->first ;
+			std::string const type = field_i->second ;
+			get_or_create_entity( field, "" ) ;
+			get_or_create_entity( type, "" ) ;
+			set_relationship( field, "is_a", type ) ;
+			set_relationship( field, "stored_as", "zlib_compressed_serialized" ) ;
+
 			// Make sure we've got these fields in Entity
 			statement = m_connection->get_statement(
 				"SELECT id FROM Entity WHERE name == ?1"

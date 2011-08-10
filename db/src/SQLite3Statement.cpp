@@ -104,6 +104,10 @@ namespace db {
 		return std::string( sqlite3_sql( m_statement )) ;
 	}
 
+	bool SQLite3Statement::is_null( int column_id ) const {
+		return ( sqlite3_column_type( m_statement, column_id ) == SQLITE_NULL ) ;
+	}
+
 	int SQLite3Statement::get_column_int( int column_id ) const {
 		assert( m_statement != 0 ) ;
 		return sqlite3_column_int( m_statement, column_id ) ;

@@ -38,31 +38,37 @@ namespace genfile {
 			static UniquePtr create( std::string const& spec ) ;
 			virtual void parse( string_utils::slice const& value, EntrySetter& setter ) const = 0 ;
 			Entry parse( string_utils::slice const& value ) const ;
+			virtual std::string to_string() const = 0 ;
 		} ;
 		
 		struct StringType: public SimpleType {
 			using SimpleType::parse ;
 			void parse( string_utils::slice const& value, EntrySetter& setter ) const ;
+			std::string to_string() const { return "String" ; }
 		} ;
 		
 		struct IntegerType: public SimpleType {
 			using SimpleType::parse ;
 			void parse( string_utils::slice const& value, EntrySetter& setter ) const ;
+			std::string to_string() const { return "Integer" ; }
 		} ;
 
 		struct FloatType: public SimpleType {
 			using SimpleType::parse ;
 			void parse( string_utils::slice const& value, EntrySetter& setter ) const ;
+			std::string to_string() const { return "Float" ; }
 		} ;
 
 		struct CharacterType: public SimpleType {
 			using SimpleType::parse ;
 			void parse( string_utils::slice const& value, EntrySetter& setter ) const ;
+			std::string to_string() const { return "Character" ; }
 		} ;
 
 		struct FlagType: public SimpleType {
 			using SimpleType::parse ;
 			void parse( string_utils::slice const& value, EntrySetter& setter ) const ;
+			std::string to_string() const { return "Flag" ; }
 		} ;
 		
 		struct VCFEntryType: public boost::noncopyable
@@ -88,6 +94,7 @@ namespace genfile {
 			virtual void get_missing_value( std::size_t number_of_alleles, EntriesSetter& setter ) const = 0 ;
 			virtual bool check_if_requires_ploidy() const = 0 ;
 
+			virtual SimpleType const& get_type() const { return *m_type ; }
 		protected:
 			virtual std::vector< string_utils::slice > lex(
 				string_utils::slice const& value,
