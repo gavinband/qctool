@@ -21,9 +21,14 @@ private:
 
 	std::map< std::string, db::Connection::RowId > m_entities ;
 
+	std::vector< std::vector< genfile::VariantEntry > > m_data ;
+	std::vector< char > m_buffer ;
+	std::vector< char > m_compressed_buffer ;
 	void setup() ;
-	db::Connection::RowId get_or_create_entity( std::string const& name, std::string const& description ) const ;
+	void get_or_create_entity( std::string const& name, std::string const& description ) ;
 	void set_relationship( std::string const& left, std::string const& relation, std::string const& right ) const ;
+
+
 } ;
 
 #endif

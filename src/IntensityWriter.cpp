@@ -33,12 +33,15 @@ void IntensityWriter::setup() {
 		"CREATE INDEX IF NOT EXISTS Entity_name ON Entity( name )"
 	) ;
 
-	m_entities[ "is_a" ] = get_or_create_entity( "is_a", "Indicates that a is an object of class b." ) ;
-	m_entities[ "stored_as" ] = get_or_create_entity( "stored_as", "Indicates that a is stored in the format specified by b." ) ;
-	m_entities[ "storage_type" ] = get_or_create_entity( "storage_type", "Class of entities representing storage types." ) ;
-	m_entities[ "zlib_compressed_serialized" ] = get_or_create_entity( "zlib_compressed_serialized", "zlib compressed data, serialized using qctool." ) ;
-	m_entities[ "double" ] = get_or_create_entity( "double", "A single floating-point literal in native format" ) ;
-	m_entities[ "cohort" ] = get_or_create_entity( "cohort", "A cohort" ) ;
+	get_or_create_entity( "is_a", "Indicates that a is an object of class b." ) ;
+	get_or_create_entity( "stored_as", "Indicates that a is stored in the format specified by b." ) ;
+	get_or_create_entity( "storage_type", "Class of entities representing storage types." ) ;
+	get_or_create_entity( "zlib_compressed_serialized", "zlib compressed data, serialized using qctool." ) ;
+	get_or_create_entity( "double", "A single floating-point literal in native format" ) ;
+	get_or_create_entity( "cohort", "A cohort" ) ;
+	get_or_create_entity( "per_variant_per_sample_data", "Indicates data pertains to each sample at a variant" ) ;
+	get_or_create_entity( "per_variant_data", "Indicates data pertains to a variant as a whole" ) ;
+	get_or_create_entity( "unnamed cohort", "An unnamed cohort" ) ;
 
 	connection.run_statement(
 		"CREATE TABLE IF NOT EXISTS EntityRelationship ( "
@@ -105,7 +108,7 @@ void IntensityWriter::setup() {
 	) ;
 }
 
-db::Connection::RowId IntensityWriter::get_or_create_entity( std::string const& name, std::string const& description ) const {
+void IntensityWriter::get_or_create_entity( std::string const& name, std::string const& description ) {
 	db::Connection::RowId result ;
 	db::Connection::StatementPtr statement = m_connection->get_statement(
 		"SELECT id, description FROM Entity WHERE name == ?1"
@@ -114,7 +117,7 @@ db::Connection::RowId IntensityWriter::get_or_create_entity( std::string const& 
 	statement->step() ;
 	if( statement->empty() ) {
 		statement = m_connection->get_statement(
-			"INSERT INTO Entity ( name, description ) VALUES ( ?1, ?1 )"
+			"INSERT INTO Entity ( name, description ) VALUES ( ?1, ?2 )"
 		) ;
 		statement->bind( 1, name ) ;
 		statement->bind( 2, description ) ;
@@ -126,7 +129,7 @@ db::Connection::RowId IntensityWriter::get_or_create_entity( std::string const& 
 		}
 		result = statement->get_column< db::Connection::RowId >( 0 ) ;
 	}
-	return result ;
+	m_entities[ name ] = result ;
 }
 
 void IntensityWriter::set_relationship( std::string const& left, std::string const& relation, std::string const& right ) const {
@@ -216,6 +219,7 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 			get_or_create_entity( type, "" ) ;
 			set_relationship( field, "is_a", type ) ;
 			set_relationship( field, "stored_as", "zlib_compressed_serialized" ) ;
+			set_relationship( field, "is_a", "per_variant_per_sample_data" ) ;
 
 			// Make sure we've got these fields in Entity
 			statement = m_connection->get_statement(
@@ -254,7 +258,8 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 				// std::cerr << "SNP " << snp_row_id << ", field_id " << field_id << ", statement is empty.\n" ;
 				// No data already.
 				// Compress the data and store it.
-				std::vector< std::vector< genfile::VariantEntry > > data( m_number_of_samples ) ;
+				std::vector< std::vector< genfile::VariantEntry > >& data = m_data ;
+				data.resize( m_number_of_samples ) ;
 				data_reader.get( field, data ) ;
 				assert( data.size() == m_number_of_samples ) ;
 
@@ -264,7 +269,8 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 					count += data[i].size() ;
 				}
 
-				std::vector< char > buffer( count * 8 ) ;
+				std::vector< char >& buffer = m_buffer ;
+				m_buffer.resize( count * 8 ) ;
 				{
 					char* begin = &buffer[0] ;
 					char* end = begin + buffer.size() ;
@@ -284,16 +290,17 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 					buffer.resize( begin - &buffer[0] ) ;
 				}
 			
-				std::vector< char > compressed_buffer ;
+				std::vector< char >& compressed_buffer = m_compressed_buffer ;
 				genfile::zlib_compress( buffer, &compressed_buffer ) ;
 				db::Connection::StatementPtr statement = m_connection->get_statement(
-					"INSERT OR REPLACE INTO Data VALUES( ?1, ?2, ?3, ?4, ?5 )"
+					"INSERT OR REPLACE INTO Data VALUES( ?1, ?2, ?3, ?4, ?5, ?6 )"
 				) ;
 				statement->bind( 1, snp_row_id ) ;
 				statement->bind( 2, field_id ) ;
-				statement->bind( 3, 1 ) ; // zlib-compressed, serialised.
-				statement->bind( 4, uint64_t( buffer.size() ) ) ;
-				statement->bind( 5, &compressed_buffer[0], compressed_buffer.size() ) ;
+				statement->bind( 3, m_entities[ "unnamed cohort" ] ) ;
+				statement->bind( 4, 1 ) ; // zlib-compressed, serialised.
+				statement->bind( 5, uint64_t( buffer.size() ) ) ;
+				statement->bind( 6, &compressed_buffer[0], compressed_buffer.size() ) ;
 				statement->step() ;
 			}
 		}
