@@ -25,7 +25,7 @@ namespace genfile {
 			virtual void set_number_of_samples( std::size_t n ) = 0 ;
 			virtual void set_sample( std::size_t i ) = 0 ;
 		} ;
-		typedef boost::function< void ( std::string ) > SpecSetter ;
+		typedef boost::function< void ( std::string, std::string ) > SpecSetter ;
 	public:
 		virtual ~VariantDataReader() {} ;
 		virtual VariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) = 0 ;

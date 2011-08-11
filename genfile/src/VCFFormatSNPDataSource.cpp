@@ -83,8 +83,8 @@ namespace genfile {
 		m_metadata( metadata ),
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
-		m_column_names( read_column_names( *m_stream_ptr )),
 		m_field_mapping( get_field_mapping( m_format_types )),
+		m_column_names( read_column_names( *m_stream_ptr )),
 		m_number_of_samples( m_column_names.size() - 9 ),
 		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata ))
 	{
@@ -388,6 +388,7 @@ namespace genfile {
 				VCFFormatSNPDataSource::FieldMapping field_mapping
 			):
 			 	m_source( source ),
+				m_format_types( format_types ),
 				m_field_mapping( field_mapping )
 			{
 				if( m_source.number_of_samples() > 0 ) {
@@ -433,12 +434,13 @@ namespace genfile {
 					begin_i = m_field_mapping.left.begin(),
 					end_i = m_field_mapping.left.end() ;
 				for( ; begin_i != end_i; ++begin_i ) {
-					setter( begin_i->first ) ;
+					setter( begin_i->first, m_format_types.find( begin_i->second )->second->get_type().to_string() ) ;
 				}
 			}
 
 		private:
 			VCFFormatSNPDataSource const& m_source ;
+			boost::ptr_map< std::string, vcf::VCFEntryType > const& m_format_types ;
 			typedef VCFFormatSNPDataSource::FieldMapping FieldMapping ;
 			FieldMapping m_field_mapping ;
 			vcf::CallReader::UniquePtr m_data_reader ;

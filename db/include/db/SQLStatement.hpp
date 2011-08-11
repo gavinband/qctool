@@ -33,7 +33,8 @@ namespace db {
 		// Get the result for the given column.
 		// Columns are 0-indexed.
 		template< typename T > T get_column( int column_id ) const ;
-		
+		virtual bool is_null( int column_id ) const = 0 ;
+
 		virtual std::size_t get_number_of_columns() const = 0 ;
 		virtual std::string get_name_of_column( std::size_t i ) const = 0 ;
 

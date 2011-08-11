@@ -63,6 +63,40 @@ namespace genfile {
 			return int( result ) ;
 		}
 
+		template<> long to_repr( std::string const& s ) {
+			if( s.empty() || std::isspace( s[0] )) {
+				throw StringConversionError() ;
+			}
+			for( std::size_t i = 0; i < s.size(); ++i ) {
+				if( s[i] == char( 0 ) ) {
+					throw StringConversionError() ;
+				}
+			}
+			char* endptr ;
+			long result = strtol( s.c_str(), &endptr, 10 ) ;
+			if( endptr == s.c_str() || std::size_t( endptr - s.c_str() ) != s.size() || result > std::numeric_limits< int >::max() ) {
+				throw StringConversionError() ;
+			}
+			return result ;
+		}
+
+		template<> long long to_repr( std::string const& s ) {
+			if( s.empty() || std::isspace( s[0] )) {
+				throw StringConversionError() ;
+			}
+			for( std::size_t i = 0; i < s.size(); ++i ) {
+				if( s[i] == char( 0 ) ) {
+					throw StringConversionError() ;
+				}
+			}
+			char* endptr ;
+			long long result = strtol( s.c_str(), &endptr, 10 ) ;
+			if( endptr == s.c_str() || std::size_t( endptr - s.c_str() ) != s.size() || result > std::numeric_limits< int >::max() ) {
+				throw StringConversionError() ;
+			}
+			return result ;
+		}
+
 		namespace impl {
 			std::string strip( std::string const& string_to_strip, std::size_t start, std::size_t end, std::string chars ) {
 				assert( end >= start ) ;

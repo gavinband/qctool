@@ -20,6 +20,7 @@ namespace db {
 		
 		std::size_t get_number_of_columns() const ;
 		std::string get_name_of_column( std::size_t i ) const ;
+		bool is_null( int column_id ) const ;
 		void bind( std::size_t i, int32_t value ) const ;
 		void bind( std::size_t i, uint32_t value ) const ;
 		void bind( std::size_t i, int64_t value ) const ;
