@@ -35,6 +35,7 @@ void IntensityWriter::setup() {
 
 	get_or_create_entity( "is_a", "Indicates that a is an object of class b." ) ;
 	get_or_create_entity( "stored_as", "Indicates that a is stored in the format specified by b." ) ;
+	get_or_create_entity( "has_type", "Indicates that values of field a have type b." ) ;
 	get_or_create_entity( "storage_type", "Class of entities representing storage types." ) ;
 	get_or_create_entity( "zlib_compressed_serialized", "zlib compressed data, serialized using qctool." ) ;
 	get_or_create_entity( "double", "A single floating-point literal in native format" ) ;
@@ -46,8 +47,8 @@ void IntensityWriter::setup() {
 	connection.run_statement(
 		"CREATE TABLE IF NOT EXISTS EntityRelationship ( "
 			"entity1_id INTEGER NOT NULL, "
-			"entity2_id INTEGER NOT NULL, "
 			"relationship_id INTEGER NOT NULL, "
+			"entity2_id INTEGER NOT NULL, "
 			"UNIQUE ( entity1_id, entity2_id, relationship_id ), "
 			"FOREIGN KEY( entity1_id ) REFERENCES Entity( id ), "
 			"FOREIGN KEY( entity2_id ) REFERENCES Entity( id ), "
@@ -121,6 +122,7 @@ void IntensityWriter::get_or_create_entity( std::string const& name, std::string
 		) ;
 		statement->bind( 1, name ) ;
 		statement->bind( 2, description ) ;
+		statement->step() ;
 		result = m_connection->get_last_insert_row_id() ;
 	} else if( !statement->is_null( 1 )) {
 		std::string const stored_description = statement->get_column< std::string >( 1 ) ;
@@ -217,7 +219,7 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 			std::string const type = field_i->second ;
 			get_or_create_entity( field, "" ) ;
 			get_or_create_entity( type, "" ) ;
-			set_relationship( field, "is_a", type ) ;
+			set_relationship( field, "has_type", type ) ;
 			set_relationship( field, "stored_as", "zlib_compressed_serialized" ) ;
 			set_relationship( field, "is_a", "per_variant_per_sample_data" ) ;
 
