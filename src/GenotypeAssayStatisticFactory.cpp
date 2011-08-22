@@ -180,6 +180,9 @@ std::auto_ptr< GenotypeAssayStatistic > GenRowStatisticFactory::create_statistic
 	if( statistic_spec == "position" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowSNPPosition ) ;
 	}
+	else if( statistic_spec == "chromosome" ) {
+		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowChromosome ) ;
+	}
 	else if( statistic_spec == "SNPID" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowSNPID ) ;
 	}

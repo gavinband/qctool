@@ -39,6 +39,14 @@ struct GenRowSpecificStatistic: public GenotypeAssayStatistic
 		GenRowStatistics const& get_row_statistics( GenotypeAssayStatistics const& statistics ) const ;
 } ;
 
+
+// Return Chromosome
+struct GenRowChromosome: public GenRowSpecificStatistic
+{
+	double calculate_value( GenRowStatistics const& row_statistics ) const ;
+	std::string calculate_string_value( GenRowStatistics const& row_statistics ) const ;
+} ;
+
 // Return SNP Position
 struct GenRowSNPPosition: public GenRowSpecificStatistic
 {
