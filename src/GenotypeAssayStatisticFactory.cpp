@@ -148,13 +148,13 @@ std::auto_ptr< GenotypeAssayStatistic > GenotypeAssayStatisticFactory::create_st
 		return std::auto_ptr< GenotypeAssayStatistic >( new BBStatistic ) ;
 	}
 	if( statistic_spec == "AA_calls" ) {
-		return std::auto_ptr< GenotypeAssayStatistic >( new CallCountStatistic( 0.9, 0 ) ) ;
+		return std::auto_ptr< GenotypeAssayStatistic >( new CallCountStatistic( 0, 0.9 ) ) ;
 	}
 	if( statistic_spec == "AB_calls" ) {
-		return std::auto_ptr< GenotypeAssayStatistic >( new CallCountStatistic( 0.9, 1 ) ) ;
+		return std::auto_ptr< GenotypeAssayStatistic >( new CallCountStatistic( 1, 0.9 ) ) ;
 	}
 	if( statistic_spec == "BB_calls" ) {
-		return std::auto_ptr< GenotypeAssayStatistic >( new CallCountStatistic( 0.9, 2 ) ) ;
+		return std::auto_ptr< GenotypeAssayStatistic >( new CallCountStatistic( 2, 0.9 ) ) ;
 	}
 	else if( statistic_spec == "HWE(slow)" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new HardyWeinbergExactTestStatistic ) ;
