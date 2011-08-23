@@ -56,6 +56,15 @@ void IntensityWriter::setup() {
 		");"
 	) ;
 
+	connection.run_statement(
+		"CREATE VIEW IF NOT EXISTS EntityRelationshipNameView AS "
+		"SELECT ER.entity1_id, E1.name AS entity1_name, ER.relationship_id, ERel.name AS relationship_name, ER.entity2_id, E2.name AS entity2_name "
+		"FROM EntityRelationship ER "
+		"INNER JOIN Entity E1 ON ER.entity1_id = E1.id "
+		"INNER JOIN Entity ERel ON ER.relationship_id = ERel.id "
+		"INNER JOIN Entity E2 ON ER.entity2_id = E2.id ;"
+	) ;
+
 	set_relationship( "zlib_compressed_serialized", "is_a", "storage_type" ) ;
 	set_relationship( "double", "is_a", "storage_type" ) ;
 
@@ -272,7 +281,7 @@ void IntensityWriter::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 				}
 
 				std::vector< char >& buffer = m_buffer ;
-				m_buffer.resize( count * 8 ) ;
+				m_buffer.resize( 100 + (count * 8) ) ;
 				{
 					char* begin = &buffer[0] ;
 					char* end = begin + buffer.size() ;
