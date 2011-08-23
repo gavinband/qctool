@@ -39,6 +39,16 @@ GenRowStatistics const& GenRowSpecificStatistic::get_row_statistics( GenotypeAss
 	}
 }
 
+double GenRowChromosome::calculate_value( GenRowStatistics const& row_statistics ) const {
+	throw GenotypeAssayStatisticException( "GenRowChromosome does not support double values." ) ;
+}
+
+std::string GenRowChromosome::calculate_string_value( GenRowStatistics const& row_statistics ) const {
+	std::ostringstream oStream ;
+	oStream << row_statistics.row().chromosome() ;
+	return oStream.str() ;
+}
+
 double GenRowSNPPosition::calculate_value( GenRowStatistics const& row_statistics ) const {
 	return row_statistics.row().SNP_position() ;
 }
