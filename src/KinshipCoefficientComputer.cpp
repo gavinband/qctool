@@ -9,6 +9,7 @@
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
+#include "statfile/BuiltInTypeStatSink.hpp"
 #include "worker/Task.hpp"
 #include "appcontext/FileUtil.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
@@ -176,37 +177,108 @@ namespace impl {
 			m_non_missing_count[0].noalias() += m_non_missing_count[i] ;
 		}
 		m_result[0].array() /= m_non_missing_count[0].array() ;
+		
 		write_output() ;
 	}
 
-	void KinshipCoefficientComputer::write_output() {
-		appcontext::OUTPUT_FILE_PTR file = appcontext::open_file_for_output( m_filename ) ;
-		(*file) << "# Written by KinshipCoefficientComputer, " << appcontext::get_current_time_as_string() << "\n" ;
-		(*file) << "# Description: " << "" << "\n" ;
-		(*file) << "# Number of SNPs: " << m_number_of_snps << ".\n" ;
-		(*file) << "id," ;
-		for( std::size_t sample_i = 0; sample_i < m_number_of_samples; ++sample_i ) {
-			if( sample_i > 0 ) {
-				(*file) << "," ;
-			}
-			(*file) << m_samples.get_entry( sample_i, "id_1" ).as< std::string >() ;
-		}
-		(*file) << "\n" ;
+	namespace impl {
+		void write_matrix_as_csv(
+			std::string const& filename,
+			Eigen::MatrixXd const& matrix,
+			std::string const& source,
+			std::string const& description,
+			boost::function< genfile::VariantEntry ( std::size_t ) > get_row_names,
+			boost::function< genfile::VariantEntry ( std::size_t ) > get_column_names
+		) {
+			appcontext::OUTPUT_FILE_PTR file = appcontext::open_file_for_output( filename ) ;
+			(*file) << "# Created by " << source << ", " << appcontext::get_current_time_as_string() << "\n" ;
+			(*file) << "# Description: " << description << "\n" ;
 
-		for( std::size_t sample_i = 0; sample_i < m_number_of_samples; ++sample_i ) {
-			(*file) << m_samples.get_entry( sample_i, "id_1" ).as< std::string >() << "," ;
-			for( std::size_t sample_j = 0; sample_j < m_number_of_samples; ++sample_j ) {
-				if( sample_j > 0 ) {
+			if( get_row_names ) {
+				(*file) << "id" ;
+			}
+			for( int j = 0; j < matrix.cols(); ++j ) {
+				if( get_row_names || j > 0 ) {
 					(*file) << "," ;
 				}
-				double value = m_result[0]( sample_i, sample_j ) ;
-				if( value == value ) {
-					(*file) << value ;
-				}
-				else {
-					(*file) << "NA" ;
-				}
+				(*file) << get_column_names( j ) ;
 			}
 			(*file) << "\n" ;
+
+			for( int i = 0; i < matrix.rows(); ++i ) {
+				if( get_row_names ) {
+					(*file) << get_row_names(i) ;
+				}
+				for( int j = 0; j < matrix.cols(); ++j ) {
+					if( get_row_names || j > 0 ) {
+						(*file) << "," ;
+					}
+					double const& value = matrix( i, j ) ;
+					if( value == value ) {
+						(*file) << value ;
+					}
+					else {
+						(*file) << "NA" ;
+					}
+				}
+				(*file) << "\n" ;
+			}
 		}
+
+		void write_matrix(
+			std::string const& filename,
+			Eigen::MatrixXd const& matrix,
+			std::string const& source,
+			std::string const& description,
+			boost::function< genfile::VariantEntry ( std::size_t ) > get_row_names,
+			boost::function< genfile::VariantEntry ( std::size_t ) > get_column_names
+		) {
+			statfile::BuiltInTypeStatSink::UniquePtr sink = statfile::BuiltInTypeStatSink::open( filename ) ;
+			sink->write_metadata( "Created by " + source + ", " + appcontext::get_current_time_as_string() ) ;
+			sink->write_metadata( "# Description: " + description ) ;
+
+			if( get_row_names ) {
+				(*sink) | "id" ;
+			}
+			for( int j = 0; j < matrix.cols(); ++j ) {
+				(*sink) | genfile::string_utils::to_string( get_column_names( j ) ) ;
+			}
+
+			for( int i = 0; i < matrix.rows(); ++i ) {
+				if( get_row_names ) {
+					(*sink) << genfile::string_utils::to_string( get_row_names(i) ) ;
+				}
+				for( int j = 0; j < matrix.cols(); ++j ) {
+					double const& value = matrix( i, j ) ;
+					if( value == value ) {
+						(*sink) << value ;
+					}
+					else {
+						(*sink) << "NA" ;
+					}
+				}
+				(*sink) << statfile::end_row() ;
+			}
+		}
+	}
+
+	void KinshipCoefficientComputer::write_output() {
+		impl::write_matrix_as_csv(
+			m_filename,
+			m_result[0],
+			"KinshipCoefficientComputer",
+			"Number of SNPs: " + genfile::string_utils::to_string( m_number_of_snps ),
+			boost::bind(
+				&genfile::CohortIndividualSource::get_entry,
+				&m_samples,
+				_1,
+				"id_1"
+			),
+			boost::bind(
+				&genfile::CohortIndividualSource::get_entry,
+				&m_samples,
+				_1,
+				"id_1"
+			)
+		) ;
 	}

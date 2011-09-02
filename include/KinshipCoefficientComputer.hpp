@@ -2,6 +2,7 @@
 #define KinshipCoefficientComputation2_HPP
 
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/signals2.hpp>
 #include "Eigen/Core"
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
@@ -50,6 +51,24 @@ namespace impl {
 	
 }
 
+namespace impl {
+	void write_matrix_as_csv(
+		Eigen::MatrixXd const&,
+		std::string const& source,
+		std::string const& description,
+		boost::function< genfile::VariantEntry (std::size_t) > get_row_names = boost::function< std::string (std::size_t) >(),
+		boost::function< genfile::VariantEntry (std::size_t) > get_column_names = boost::function< std::string (std::size_t) >()
+	) ;
+
+	void write_matrix(
+		Eigen::MatrixXd const&,
+		std::string const& source,
+		std::string const& description,
+		boost::function< genfile::VariantEntry (std::size_t) > get_row_names = boost::function< std::string (std::size_t) >(),
+		boost::function< genfile::VariantEntry (std::size_t) > get_column_names = boost::function< std::string (std::size_t) >()
+	) ;
+}
+
 struct KinshipCoefficientComputer: public genfile::SNPDataSourceProcessor::Callback
 {
 public:
@@ -62,6 +81,11 @@ public:
 	void begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) ;
 	void processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader& data_reader ) ;
 	void end_processing_snps() ;
+
+	template< typename Callback >
+	void send_results_to( Callback callback ) {
+		m_result_callback.connect( callback ) ;
+	}
 
 private:
 	void write_output() ;
@@ -78,6 +102,8 @@ private:
 	std::size_t m_number_of_tasks ;
 	std::size_t m_number_of_snps_per_task ;
 	std::size_t m_current_task ;
+	typedef boost::signals2::signal< void( Eigen::MatrixXd, Eigen::MatrixXd ) > ResultCallback ;
+	ResultCallback m_result_callback ;
 } ;
 
 #endif

@@ -395,6 +395,8 @@ public:
 			.set_description( "Perform kinship computation using threshholded genotype calls and cblas or Eigen libraries." )
 			.set_takes_single_value() ;
 
+		options.option_implies_option( "-kinship", "-s" ) ;
+
 		DataReadTest::declare_options( options ) ;
 
 		ClusterFitter::declare_options( options ) ;

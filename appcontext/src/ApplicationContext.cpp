@@ -126,7 +126,7 @@ namespace appcontext {
 		if( m_application_version != "" ) {
 			m_ui_context->logger() << "(revision: " << m_application_version << ")\n" ;
 		}
-		m_ui_context->logger() << "\n(C) 2009-2010 University of Oxford\n\n";
+		m_ui_context->logger() << "\n(C) 2009-2011 University of Oxford\n\n";
 	}
 
 	void ApplicationContext::write_end_banner() {
