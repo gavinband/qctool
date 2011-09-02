@@ -170,7 +170,9 @@ namespace impl {
 	
 	void KinshipCoefficientComputer::end_processing_snps() {
 		for( std::size_t i = 0; i < m_tasks.size(); ++i ) {
-			m_tasks[i].wait_until_complete() ;
+			if( m_tasks[ i ].is_finalised() ) {
+				m_tasks[i].wait_until_complete() ;
+			}
 		}
 		for( std::size_t i = 1; i < m_result.size(); ++i ) {
 			m_result[0].noalias() += m_result[i] ;
