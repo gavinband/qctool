@@ -1,4 +1,5 @@
 #include <vector>
+#include <cassert>
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/vcf/get_set.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
@@ -14,5 +15,9 @@ namespace genfile {
 		vcf::GenotypeSetter< genfile::SingleSNPGenotypeProbabilities > setter( data ) ;
 		get( spec, setter ) ;
 		return *this ;
+	}
+
+	VariantDataReader& VariantDataReader::get( std::string const& spec, PerVariantSetter& data ) {
+		assert( 0 ) ; // This function should not be called.
 	}
 }

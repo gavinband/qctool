@@ -10,7 +10,8 @@
 #include "genfile/VariantEntry.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
-#include "vcf/Types.hpp"
+#include "genfile/BasicTypes.hpp"
+#include "genfile/vcf/Types.hpp"
 
 namespace genfile {
 	class VariantDataReader: public boost::noncopyable
@@ -19,6 +20,11 @@ namespace genfile {
 		typedef std::auto_ptr< VariantDataReader > UniquePtr ;
 		typedef genfile::VariantEntry Entry ;
 	public:
+		struct PerVariantSetter: public vcf::EntriesSetter, public boost::noncopyable {
+			typedef std::auto_ptr< PerVariantSetter > UniquePtr ;
+			virtual ~PerVariantSetter() throw() {}
+			virtual void operator()( std::auto_ptr< Matrix > value ) ;
+		} ;
 		struct PerSampleSetter: public vcf::EntriesSetter, public boost::noncopyable {
 			typedef std::auto_ptr< PerSampleSetter > UniquePtr ;
 			virtual ~PerSampleSetter() throw() {}
@@ -29,7 +35,7 @@ namespace genfile {
 	public:
 		virtual ~VariantDataReader() {} ;
 		virtual VariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) = 0 ;
-
+		virtual VariantDataReader& get( std::string const& spec, PerVariantSetter& setter ) ;
 		virtual bool supports( std::string const& spec ) const = 0 ;
 		virtual void get_supported_specs( SpecSetter ) const = 0 ;
 		

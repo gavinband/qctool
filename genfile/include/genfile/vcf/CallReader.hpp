@@ -7,7 +7,7 @@
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/function.hpp>
 #include "genfile/MissingValue.hpp"
-#include "genfile/vcf/TypesNew.hpp"
+#include "genfile/vcf/Types.hpp"
 #include "genfile/string_utils/slice.hpp"
 #include "genfile/VariantDataReader.hpp"
 
