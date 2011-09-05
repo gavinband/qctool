@@ -386,24 +386,11 @@ public:
 			.set_takes_single_value() ;
 		*/
 
-		// Relatedness options
 		Relatotron::declare_options( options ) ;
-		options.option_implies_option( "-relatedness", "-s" ) ; // insist on sample file if doing relatedness.
-
-		options.declare_group( "Kinship options" ) ;
-		options[ "-kinship" ]
-			.set_description( "Perform kinship computation using threshholded genotype calls and cblas or Eigen libraries." )
-			.set_takes_single_value() ;
-
-		options.option_implies_option( "-kinship", "-s" ) ;
-
+		KinshipCoefficientComputer::declare_options( options ) ;
 		DataReadTest::declare_options( options ) ;
-
 		ClusterFitter::declare_options( options ) ;
-
-		// Association test options
 		AssociationTester::declare_options( options ) ;
-		options.option_implies_option( "-test", "-s" ) ; // insist on sample file if doing association test.
 
 		// Other options
 		options.declare_group( "Other options" ) ;
@@ -2017,9 +2004,10 @@ private:
 		if( options().check_if_option_was_supplied( "-kinship" )) {
 			kinship.reset(
 				new KinshipCoefficientComputer(
-					options().get_value< std::string >( "-kinship" ),
+					options(),
 					context.get_cohort_individual_source(),
-					worker.get()
+					worker.get(),
+					get_ui_context()
 				)
 			) ;
 			processor.add_callback( *kinship ) ;

@@ -11,6 +11,8 @@
 #include "genfile/CohortIndividualSource.hpp"
 #include "worker/Worker.hpp"
 #include "worker/Task.hpp"
+#include "appcontext/UIContext.hpp"
+#include "appcontext/OptionProcessor.hpp"
 #include "appcontext/FileUtil.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
 
@@ -51,46 +53,32 @@ namespace impl {
 	
 }
 
-namespace impl {
-	void write_matrix_as_csv(
-		Eigen::MatrixXd const&,
-		std::string const& source,
-		std::string const& description,
-		boost::function< genfile::VariantEntry (std::size_t) > get_row_names = boost::function< std::string (std::size_t) >(),
-		boost::function< genfile::VariantEntry (std::size_t) > get_column_names = boost::function< std::string (std::size_t) >()
-	) ;
-
-	void write_matrix(
-		Eigen::MatrixXd const&,
-		std::string const& source,
-		std::string const& description,
-		boost::function< genfile::VariantEntry (std::size_t) > get_row_names = boost::function< std::string (std::size_t) >(),
-		boost::function< genfile::VariantEntry (std::size_t) > get_column_names = boost::function< std::string (std::size_t) >()
-	) ;
-}
-
 struct KinshipCoefficientComputer: public genfile::SNPDataSourceProcessor::Callback
 {
 public:
+	static void declare_options( appcontext::OptionProcessor& options ) ;
+
+public:
 	KinshipCoefficientComputer(
-		std::string const& filename,
+		appcontext::OptionProcessor const& options,
 		genfile::CohortIndividualSource const& samples,
-		worker::Worker* worker
+		worker::Worker* worker,
+		appcontext::UIContext& ui_context
 	) ;
 
 	void begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) ;
 	void processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader& data_reader ) ;
 	void end_processing_snps() ;
 
-	template< typename Callback >
-	void send_results_to( Callback callback ) {
-		m_result_callback.connect( callback ) ;
-	}
+	typedef boost::function< void( Eigen::MatrixXd const&, Eigen::MatrixXd const& ) > ResultsCallback ;
+	void send_results_to( ResultsCallback callback ) ;
 
 private:
 	void write_output() ;
 private:
-	std::string const m_filename ;
+	appcontext::OptionProcessor const& m_options ;
+	appcontext::UIContext& m_ui_context ;
+	std::string m_filename ;
 	std::size_t m_number_of_samples ;
 	std::size_t m_number_of_snps ;
 	std::size_t m_number_of_snps_processed ;
@@ -102,8 +90,8 @@ private:
 	std::size_t m_number_of_tasks ;
 	std::size_t m_number_of_snps_per_task ;
 	std::size_t m_current_task ;
-	typedef boost::signals2::signal< void( Eigen::MatrixXd, Eigen::MatrixXd ) > ResultCallback ;
-	ResultCallback m_result_callback ;
+	typedef boost::signals2::signal< void( Eigen::MatrixXd, Eigen::MatrixXd ) > ResultSignal ;
+	ResultSignal m_result_signal ;
 } ;
 
 #endif
