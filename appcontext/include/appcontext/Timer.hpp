@@ -43,30 +43,6 @@ namespace appcontext {
 		mach_timebase_info_data_t m_mach_timebase_info ;
 	} ;
 }
-#elif HAVE_BOOST_TIMER
-#include <boost/timer.hpp>
-namespace appcontext {
-	struct Timer
-	{
-		double elapsed() const {
-			return m_boost_timer.elapsed() ;
-		}
-		
-		void restart() {
-			m_boost_timer.restart() ;
-		}
-		
-		std::string display() const {
-			std::ostringstream os ;
-			os << std::fixed << std::setprecision(1) << elapsed() << "s" ;
-			return os.str() ;
-		}
-
-	private:
-		
-		boost::timer m_boost_timer ;
-	} ;
-}
 #elif HAVE_GETTIMEOFDAY
 #include <sys/time.h>
 namespace appcontext {
@@ -100,6 +76,31 @@ namespace appcontext {
 		timeval m_start_time ;
 	} ;
 }
+#elif HAVE_BOOST_TIMER
+#include <boost/timer.hpp>
+namespace appcontext {
+	struct Timer
+	{
+		double elapsed() const {
+			return m_boost_timer.elapsed() ;
+		}
+		
+		void restart() {
+			m_boost_timer.restart() ;
+		}
+		
+		std::string display() const {
+			std::ostringstream os ;
+			os << std::fixed << std::setprecision(1) << elapsed() << "s" ;
+			return os.str() ;
+		}
+
+	private:
+		
+		boost::timer m_boost_timer ;
+	} ;
+}
+
 #else
 namespace appcontext {
 	struct Timer
