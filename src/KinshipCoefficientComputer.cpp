@@ -105,7 +105,8 @@ void KinshipCoefficientComputer::declare_options( appcontext::OptionProcessor& o
 		.set_description( "Perform kinship computation using threshholded genotype calls and cblas or Eigen libraries." )
 		.set_takes_single_value() ;
 	options[ "-PCA" ]
-		.set_description( "Perform eigenvector/eigenvalue decomposition of kinship matrix after it is computed." ) ;
+		.set_description( "Perform eigenvector/eigenvalue decomposition of kinship matrix after it is computed." )
+		.set_takes_single_value() ;
 
 	options.option_implies_option( "-PCA", "-kinship" ) ;
 	options.option_implies_option( "-kinship", "-s" ) ;
@@ -339,8 +340,9 @@ void KinshipCoefficientComputer::end_processing_snps() {
 		eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) = solver.eigenvalues() ;
 		eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = solver.eigenvectors() ;
 
+		std::string filename = m_options.get< std::string >( "-PCA" ) ;
 		impl::write_matrix_as_csv(
-			m_filename + ".eigendecomposition.csv",
+			filename + ".eigendecomposition.csv",
 			eigendecomposition,
 			"KinshipCoefficientComputer",
 			description,

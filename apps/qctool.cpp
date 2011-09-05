@@ -2001,7 +2001,7 @@ private:
 		}
 
 		std::auto_ptr< KinshipCoefficientComputer > kinship ;
-		if( options().check_if_option_was_supplied( "-kinship" )) {
+		if( options().check_if_option_was_supplied_in_group( "Kinship options" )) {
 			kinship.reset(
 				new KinshipCoefficientComputer(
 					options(),
