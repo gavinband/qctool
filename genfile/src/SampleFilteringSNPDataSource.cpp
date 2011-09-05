@@ -162,31 +162,26 @@ namespace genfile {
 			SampleFilteringPerSampleSetter(
 				VariantDataReader::PerSampleSetter& setter,
 				std::set< std::size_t > const& indices_of_samples_to_filter_out
-				
 			):
 					m_setter( setter ),
-					m_indices_of_samples_to_filter_out( indices_of_samples_to_filter_out ),
+					m_indices_of_samples_to_filter_out( indices_of_samples_to_filter_out.begin(), indices_of_samples_to_filter_out.end() ),
 					m_filter_out_this_sample( false )
 			{}
 			
+			~SampleFilteringPerSampleSetter() throw() {} ;
+			
 			void set_number_of_samples( std::size_t n ) {
 				m_setter.set_number_of_samples( n - m_indices_of_samples_to_filter_out.size() ) ;
+				m_number_filtered_out = 0 ;
 			}
 
 			void set_sample( std::size_t n ) {
-				// count samples less than this.
-				std::set< std::size_t >::const_iterator where = std::lower_bound(
-					m_indices_of_samples_to_filter_out.begin(),
-					m_indices_of_samples_to_filter_out.end(),
-					n
-				) ;
-				if( where != m_indices_of_samples_to_filter_out.end() && *where == n ) {
+			 	if( m_number_filtered_out < m_indices_of_samples_to_filter_out.size() && n == m_indices_of_samples_to_filter_out[ m_number_filtered_out ] ) {
 					m_filter_out_this_sample = true ;
-				}
-				else {
+					++m_number_filtered_out ;
+				} else {
 					m_filter_out_this_sample = false ;
-					std::size_t number_of_filtered_out_samples_before_this = std::distance( m_indices_of_samples_to_filter_out.begin(), where ) ;
-					m_setter.set_sample( n - number_of_filtered_out_samples_before_this ) ;
+					m_setter.set_sample( n - m_number_filtered_out ) ;
 				}
 			}
 
@@ -203,7 +198,8 @@ namespace genfile {
 
 		private:
 			VariantDataReader::PerSampleSetter& m_setter ;
-			std::set< std::size_t > const& m_indices_of_samples_to_filter_out ;
+			std::vector< std::size_t > const m_indices_of_samples_to_filter_out ;
+			std::size_t m_number_filtered_out ;
 			bool m_filter_out_this_sample ;
 		} ;
 		
