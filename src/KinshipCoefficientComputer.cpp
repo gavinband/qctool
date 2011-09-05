@@ -2,7 +2,6 @@
 #include <boost/function.hpp>
 #include "../config.hpp"
 #if HAVE_CBLAS
-	//#include "Accelerate/Accelerate.h"
 	#include "cblas.h"
 #endif
 #include "Eigen/Core"
@@ -211,8 +210,6 @@ namespace impl {
 		appcontext::OUTPUT_FILE_PTR file = appcontext::open_file_for_output( filename ) ;
 		(*file) << "# Created by " << source << ", " << appcontext::get_current_time_as_string() << "\n" ;
 		(*file) << description << "\n" ;
-		if( get_row_names.empty() ) std::cerr << "get_row_names is empty.\n" ;
-		if( get_column_names.empty() ) std::cerr << "get_column_names is empty.\n" ;
 		if( get_column_names ) {
 			if( get_row_names ) {
 				(*file) << "id" ;
@@ -246,8 +243,13 @@ namespace impl {
 		}
 	}
 	
-	genfile::VariantEntry combine_string_and_int( std::string const& prefix, int value ) {
-		return genfile::VariantEntry( prefix + genfile::string_utils::to_string( value ) ) ;
+	genfile::VariantEntry get_eigendecomposition_header( std::string const& prefix, int value ) {
+		if( value == 0 ) {
+			return genfile::VariantEntry( "eigenvalue" ) ;
+		}
+		else {
+			return genfile::VariantEntry( prefix + genfile::string_utils::to_string( value ) ) ;
+		}
 	}
 
 	void write_matrix(
@@ -299,12 +301,6 @@ void KinshipCoefficientComputer::end_processing_snps() {
 	}
 	m_result[0].array() /= m_non_missing_count[0].array() ;
 	
-	// currently we only have the upper triangle, fix this.
-	for( std::size_t i = 0; i < ( m_number_of_samples - 1 ); ++i ) {
-		m_result[0].col(i).tail( m_number_of_samples - i - 1 ) = m_result[0].row(i).tail( m_number_of_samples-i-1 ) ;
-		m_non_missing_count[0].col(i).tail( m_number_of_samples-i-1 ) = m_non_missing_count[0].row( i ).tail( m_number_of_samples-i-1 ) ;
-	}
-	
 	std::string description = "# Number of SNPs: "
 		+ genfile::string_utils::to_string( m_number_of_snps )
 		+ "\n# Number of samples: "
@@ -329,39 +325,29 @@ void KinshipCoefficientComputer::end_processing_snps() {
 		)
 	) ;
 
+	// currently we only have the upper triangle; for SelfAdjointEigenSolver we need the lower.
+	for( std::size_t i = 0; i < ( m_number_of_samples - 1 ); ++i ) {
+		m_result[0].col(i).tail( m_number_of_samples - i - 1 ) = m_result[0].row(i).tail( m_number_of_samples-i-1 ) ;
+		m_non_missing_count[0].col(i).tail( m_number_of_samples-i-1 ) = m_non_missing_count[0].row( i ).tail( m_number_of_samples-i-1 ) ;
+	}
+	
 	if( m_options.check_if_option_was_supplied( "-PCA" )) {
 		m_ui_context.logger() << "KinshipCoefficientComputer: Computing eigenvalue decomposition of kinship matrix...\n" ;
-
 		Eigen::SelfAdjointEigenSolver< Eigen::MatrixXd > solver( m_result[0] ) ;
-		
 		m_ui_context.logger() << "KinshipCoefficientComputer: Done, writing results...\n" ;
-		
+		Eigen::MatrixXd eigendecomposition( m_number_of_samples, m_number_of_samples + 1 ) ;
+		eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) = solver.eigenvalues() ;
+		eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = solver.eigenvectors() ;
+
 		impl::write_matrix_as_csv(
-			m_filename + ".eigenvectors.csv",
-			solver.eigenvectors(),
+			m_filename + ".eigendecomposition.csv",
+			eigendecomposition,
 			"KinshipCoefficientComputer",
 			description,
 			boost::function< genfile::VariantEntry ( int ) >(),
 			boost::bind(
-				&impl::combine_string_and_int,
+				&impl::get_eigendecomposition_header,
 				"v",
-				_1
-			)
-		) ;
-		
-		impl::write_matrix_as_csv(
-			m_filename + ".eigenvalues.csv",
-			solver.eigenvalues(),
-			"KinshipCoefficientComputer",
-			description,
-			boost::bind(
-				&impl::combine_string_and_int,
-				"lambda",
-				_1
-			),
-			boost::bind(
-				&impl::combine_string_and_int,
-				"value",
 				_1
 			)
 		) ;
