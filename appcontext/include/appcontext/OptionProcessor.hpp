@@ -114,6 +114,7 @@ namespace appcontext {
 			bool check_if_option_is_defined( std::string const& arg ) const ;
 			// check if the given option (which must be valid) has a value supplied by the user.
 			bool check_if_option_was_supplied( std::string const& arg ) const ;
+			bool check( std::string const& arg ) const { return check_if_option_was_supplied( arg ) ; }
 			// check if the given option (which must be valid_) has a value (either supplied or default).
 			bool check_if_option_has_value( std::string const& arg ) const ;
 			bool has_value( std::string const& arg ) const { return check_if_option_has_value( arg ) ; }

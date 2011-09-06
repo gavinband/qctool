@@ -11,12 +11,94 @@
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
+#include "statfile/BuiltInTypeStatSource.hpp"
 #include "worker/Task.hpp"
 #include "appcontext/FileUtil.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
 #include "KinshipCoefficientComputer.hpp"
 
 namespace impl {
+	template< typename Matrix >
+	void write_matrix_as_csv(
+		std::string const& filename,
+		Matrix const& matrix,
+		std::string const& source,
+		std::string const& description,
+		boost::function< genfile::VariantEntry ( std::size_t ) > get_row_names = 0,
+		boost::function< genfile::VariantEntry ( std::size_t ) > get_column_names = 0
+	) {
+		appcontext::OUTPUT_FILE_PTR file = appcontext::open_file_for_output( filename ) ;
+		(*file) << "# Created by " << source << ", " << appcontext::get_current_time_as_string() << "\n" ;
+		(*file) << description << "\n" ;
+		if( get_column_names ) {
+			if( get_row_names ) {
+				(*file) << "id" ;
+			}
+			for( int j = 0; j < matrix.cols(); ++j ) {
+				if( get_row_names || ( j > 0 )) {
+					(*file) << "," ;
+				}
+				(*file) << get_column_names( j ) ;
+			}
+			(*file) << "\n" ;
+		}
+
+		for( int i = 0; i < matrix.rows(); ++i ) {
+			if( (!get_row_names.empty()) ) {
+				(*file) << get_row_names(i) ;
+			}
+			for( int j = 0; j < matrix.cols(); ++j ) {
+				if( (!get_row_names.empty()) || ( j > 0 ) ) {
+					(*file) << "," ;
+				}
+				double const& value = matrix( i, j ) ;
+				if( value == value ) {
+					(*file) << value ;
+				}
+				else {
+					(*file) << "NA" ;
+				}
+			}
+			(*file) << "\n" ;
+		}
+	}
+
+	void write_matrix(
+		std::string const& filename,
+		Eigen::MatrixXd const& matrix,
+		std::string const& source,
+		std::string const& description,
+		boost::function< genfile::VariantEntry ( std::size_t ) > get_row_names,
+		boost::function< genfile::VariantEntry ( std::size_t ) > get_column_names
+	) {
+		statfile::BuiltInTypeStatSink::UniquePtr sink = statfile::BuiltInTypeStatSink::open( filename ) ;
+		sink->write_metadata( "Created by " + source + ", " + appcontext::get_current_time_as_string() ) ;
+		sink->write_metadata( "# Description: " + description ) ;
+
+		if( get_row_names ) {
+			(*sink) | "id" ;
+		}
+		for( int j = 0; j < matrix.cols(); ++j ) {
+			(*sink) | genfile::string_utils::to_string( get_column_names( j ) ) ;
+		}
+
+		for( int i = 0; i < matrix.rows(); ++i ) {
+			if( get_row_names ) {
+				(*sink) << genfile::string_utils::to_string( get_row_names(i) ) ;
+			}
+			for( int j = 0; j < matrix.cols(); ++j ) {
+				double const& value = matrix( i, j ) ;
+				if( value == value ) {
+					(*sink) << value ;
+				}
+				else {
+					(*sink) << "NA" ;
+				}
+			}
+			(*sink) << statfile::end_row() ;
+		}
+	}
+
 	KinshipCoefficientComputerTask::KinshipCoefficientComputerTask(
 		std::size_t number_of_samples,
 		Eigen::MatrixXd* result,
@@ -72,7 +154,7 @@ namespace impl {
 			// CBLAS is faster for this usage.  Don't know why.
 			cblas_dsyr(
 				CblasColMajor,
-				CblasUpper,
+				CblasLower,
 				m_number_of_samples,
 				1.0 / ( 2.0 * allele_freq * ( 1.0 - allele_freq )),
 				data.data(),
@@ -83,7 +165,7 @@ namespace impl {
 
 			cblas_dsyr(
 				CblasColMajor,
-				CblasUpper,
+				CblasLower,
 				m_number_of_samples,
 				1.0,
 				non_missingness_matrix.data(),
@@ -92,24 +174,62 @@ namespace impl {
 				m_number_of_samples
 			) ;
 	#else
-			m_result->selfadjointView< Eigen::Upper >().rankUpdate( data, 1.0 / ( 2.0 * allele_freq * ( 1.0 - allele_freq ) ) ) ;
-			m_non_missing_count->selfadjointView< Eigen::Upper >().rankUpdate( non_missingness_matrix, 1.0 ) ;
+			m_result->selfadjointView< Eigen::Lower >().rankUpdate( data, 1.0 / ( 2.0 * allele_freq * ( 1.0 - allele_freq ) ) ) ;
+			m_non_missing_count->selfadjointView< Eigen::Lower >().rankUpdate( non_missingness_matrix, 1.0 ) ;
 	#endif
 		}
 	}
 }
 
-void KinshipCoefficientComputer::declare_options( appcontext::OptionProcessor& options ) {
+void KinshipCoefficientManager::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "Kinship options" ) ;
 	options[ "-kinship" ]
 		.set_description( "Perform kinship computation using threshholded genotype calls and cblas or Eigen libraries." )
+		.set_takes_single_value() ;
+	options[ "-load-kinship" ]
+		.set_description( "Load a previously-computed kinship matrix from the specified file." )
 		.set_takes_single_value() ;
 	options[ "-PCA" ]
 		.set_description( "Perform eigenvector/eigenvalue decomposition of kinship matrix after it is computed." )
 		.set_takes_single_value() ;
 
-	options.option_implies_option( "-PCA", "-kinship" ) ;
 	options.option_implies_option( "-kinship", "-s" ) ;
+	options.option_implies_option( "-load-kinship", "-s" ) ;
+	options.option_implies_option( "-PCA", "-load-kinship" ) ;
+	options.option_excludes_option( "-load-kinship", "-kinship" ) ;
+}
+
+KinshipCoefficientManager::UniquePtr KinshipCoefficientManager::create(
+	appcontext::OptionProcessor const& options,
+	genfile::CohortIndividualSource const& samples,
+	worker::Worker* worker,
+	appcontext::UIContext& ui_context
+) {
+	KinshipCoefficientManager::UniquePtr result ;
+	if( options.check( "-load-kinship" ) ) {
+		result.reset( new PCAComputer( options, samples, worker, ui_context ) ) ;
+	} else if( options.check( "-kinship" )) {
+		result.reset( new KinshipCoefficientComputer( options, samples, worker, ui_context ) ) ;
+	} else {
+		assert(0) ;
+	}
+	result->send_results_to( &impl::write_matrix_as_csv< Eigen::MatrixXd > ) ;
+	return result ;
+}
+
+void KinshipCoefficientManager::send_results_to( ResultsCallback callback ) {
+	m_result_signal.connect( callback ) ;
+}
+
+void KinshipCoefficientManager::send_results(
+	std::string const& name,
+	Eigen::MatrixXd const& matrix,
+	std::string const& source,
+	std::string const& description,
+	GetNames get_row_names,
+	GetNames get_column_names
+) {
+	m_result_signal( name, matrix, source, description, get_row_names, get_column_names ) ;
 }
 
 KinshipCoefficientComputer::KinshipCoefficientComputer(
@@ -123,6 +243,7 @@ KinshipCoefficientComputer::KinshipCoefficientComputer(
 	m_samples( samples ),
 	m_worker( worker )
 {
+	assert( m_options.check( "-kinship" )) ;
 	m_filename = m_options.get< std::string >( "-kinship" ) ;
 	// remove .csv extension if present.
 	std::string const extension = ".csv" ;
@@ -199,51 +320,6 @@ void KinshipCoefficientComputer::processed_snp( genfile::SNPIdentifyingData cons
 }
 
 namespace impl {
-	template< typename Matrix >
-	void write_matrix_as_csv(
-		std::string const& filename,
-		Matrix const& matrix,
-		std::string const& source,
-		std::string const& description,
-		boost::function< genfile::VariantEntry ( std::size_t ) > get_row_names = 0,
-		boost::function< genfile::VariantEntry ( std::size_t ) > get_column_names = 0
-	) {
-		appcontext::OUTPUT_FILE_PTR file = appcontext::open_file_for_output( filename ) ;
-		(*file) << "# Created by " << source << ", " << appcontext::get_current_time_as_string() << "\n" ;
-		(*file) << description << "\n" ;
-		if( get_column_names ) {
-			if( get_row_names ) {
-				(*file) << "id" ;
-			}
-			for( int j = 0; j < matrix.cols(); ++j ) {
-				if( get_row_names || ( j > 0 )) {
-					(*file) << "," ;
-				}
-				(*file) << get_column_names( j ) ;
-			}
-			(*file) << "\n" ;
-		}
-		
-		for( int i = 0; i < matrix.rows(); ++i ) {
-			if( (!get_row_names.empty()) ) {
-				(*file) << get_row_names(i) ;
-			}
-			for( int j = 0; j < matrix.cols(); ++j ) {
-				if( (!get_row_names.empty()) || ( j > 0 ) ) {
-					(*file) << "," ;
-				}
-				double const& value = matrix( i, j ) ;
-				if( value == value ) {
-					(*file) << value ;
-				}
-				else {
-					(*file) << "NA" ;
-				}
-			}
-			(*file) << "\n" ;
-		}
-	}
-	
 	genfile::VariantEntry get_eigendecomposition_header( std::string const& prefix, int value ) {
 		if( value == 0 ) {
 			return genfile::VariantEntry( "eigenvalue" ) ;
@@ -252,41 +328,9 @@ namespace impl {
 			return genfile::VariantEntry( prefix + genfile::string_utils::to_string( value ) ) ;
 		}
 	}
-
-	void write_matrix(
-		std::string const& filename,
-		Eigen::MatrixXd const& matrix,
-		std::string const& source,
-		std::string const& description,
-		boost::function< genfile::VariantEntry ( std::size_t ) > get_row_names,
-		boost::function< genfile::VariantEntry ( std::size_t ) > get_column_names
-	) {
-		statfile::BuiltInTypeStatSink::UniquePtr sink = statfile::BuiltInTypeStatSink::open( filename ) ;
-		sink->write_metadata( "Created by " + source + ", " + appcontext::get_current_time_as_string() ) ;
-		sink->write_metadata( "# Description: " + description ) ;
-
-		if( get_row_names ) {
-			(*sink) | "id" ;
-		}
-		for( int j = 0; j < matrix.cols(); ++j ) {
-			(*sink) | genfile::string_utils::to_string( get_column_names( j ) ) ;
-		}
-
-		for( int i = 0; i < matrix.rows(); ++i ) {
-			if( get_row_names ) {
-				(*sink) << genfile::string_utils::to_string( get_row_names(i) ) ;
-			}
-			for( int j = 0; j < matrix.cols(); ++j ) {
-				double const& value = matrix( i, j ) ;
-				if( value == value ) {
-					(*sink) << value ;
-				}
-				else {
-					(*sink) << "NA" ;
-				}
-			}
-			(*sink) << statfile::end_row() ;
-		}
+	
+	std::string get_concatenated_ids( genfile::CohortIndividualSource const* samples, std::size_t i ) {
+		return samples->get_entry( i, "id_1" ).as< std::string >() + ":" + samples->get_entry( i, "id_2" ).as< std::string >() ;
 	}
 }
 
@@ -307,44 +351,106 @@ void KinshipCoefficientComputer::end_processing_snps() {
 		+ "\n# Number of samples: "
 		+ genfile::string_utils::to_string( m_number_of_samples ) ;
 
-	impl::write_matrix_as_csv(
+	send_results(
 		m_filename + ".csv",
 		m_result[0],
 		"KinshipCoefficientComputer",
 		description,
 		boost::bind(
-			&genfile::CohortIndividualSource::get_entry,
+			&impl::get_concatenated_ids,
 			&m_samples,
-			_1,
-			"id_1"
+			_1
 		),
 		boost::bind(
-			&genfile::CohortIndividualSource::get_entry,
+			&impl::get_concatenated_ids,
 			&m_samples,
-			_1,
-			"id_1"
+			_1
 		)
 	) ;
+}
 
-	// currently we only have the upper triangle; for SelfAdjointEigenSolver we need the lower.
-	for( std::size_t i = 0; i < ( m_number_of_samples - 1 ); ++i ) {
-		m_result[0].col(i).tail( m_number_of_samples - i - 1 ) = m_result[0].row(i).tail( m_number_of_samples-i-1 ) ;
-		m_non_missing_count[0].col(i).tail( m_number_of_samples-i-1 ) = m_non_missing_count[0].row( i ).tail( m_number_of_samples-i-1 ) ;
+PCAComputer::PCAComputer(
+	appcontext::OptionProcessor const& options,
+	genfile::CohortIndividualSource const& samples,
+	worker::Worker* worker,
+	appcontext::UIContext& ui_context
+):
+	m_options( options ),
+	m_ui_context( ui_context ),
+	m_samples( samples )
+{
+	assert( m_options.check( "-load-kinship" )) ;
+	m_filename = m_options.get< std::string >( "-load-kinship" ) ;
+	// remove .csv extension if present.
+	std::string const extension = ".csv" ;
+	if(
+		m_filename.size() >= extension.size()
+		&& ( m_filename.compare(
+			m_filename.size() - extension.size(),
+			extension.size(),
+			extension
+		) == 0 )
+	) {
+		m_filename.resize( m_filename.size() - extension.size() ) ;
 	}
-	
+	load_matrix( m_filename + ".csv", &m_matrix ) ;
+}
+
+void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* matrix ) const {
+	statfile::BuiltInTypeStatSource::UniquePtr source = statfile::BuiltInTypeStatSource::open( filename ) ;
+	matrix->resize( m_samples.get_number_of_individuals(), m_samples.get_number_of_individuals() ) ;
+	std::vector< std::size_t > sample_column_indices( m_samples.get_number_of_individuals() ) ;
+	for( std::size_t sample_i = 0; sample_i < m_samples.get_number_of_individuals(); ++sample_i ) {
+		sample_column_indices[sample_i] = source->index_of_column( impl::get_concatenated_ids( &m_samples, sample_i )) ;
+		if( sample_i > 0 ) {
+			if( sample_column_indices[sample_i] <= sample_column_indices[sample_i-1] ) {
+				m_ui_context.logger() << "!! Error in PCAComputer::load_matrix(): column order does not match samples.\n" ;
+				throw genfile::MalformedInputError( source->get_source_spec(), 0, sample_column_indices[ sample_i ] ) ;
+			}
+		}
+	}
+
+	for( std::size_t sample_i = 0; sample_i < m_samples.get_number_of_individuals(); ++sample_i ) {
+		std::string id ;
+		// find row corresponding to next sample.
+		for( (*source) >> id; (*source) && id != impl::get_concatenated_ids( &m_samples, sample_i ); (*source) >> statfile::end_row() >> id ) ;
+		if( !(*source) ) {
+			throw genfile::MalformedInputError( source->get_source_spec(), source->number_of_rows_read(), 0 ) ;
+		}
+		double v ;
+		for( std::size_t sample_j = 0; sample_j < m_samples.get_number_of_individuals(); ++sample_j ) {
+			(*source)
+				>> statfile::ignore( sample_column_indices[ sample_j ] - source->current_column() )
+				>> (*matrix)( sample_i, sample_j )
+			;
+		}
+		(*source) >> statfile::ignore_all() ;
+	}
+	assert( source->number_of_rows_read() == m_samples.get_number_of_individuals() ) ;
+}
+
+void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) {
+	m_number_of_snps = number_of_snps ;
+	m_number_of_samples = number_of_samples ;
+
 	if( m_options.check_if_option_was_supplied( "-PCA" )) {
-		m_ui_context.logger() << "KinshipCoefficientComputer: Computing eigenvalue decomposition of kinship matrix...\n" ;
-		Eigen::SelfAdjointEigenSolver< Eigen::MatrixXd > solver( m_result[0] ) ;
-		m_ui_context.logger() << "KinshipCoefficientComputer: Done, writing results...\n" ;
+		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix...\n" ;
+		Eigen::SelfAdjointEigenSolver< Eigen::MatrixXd > solver( m_matrix ) ;
+		m_ui_context.logger() << "PCAComputer: Done, writing results...\n" ;
 		Eigen::MatrixXd eigendecomposition( m_number_of_samples, m_number_of_samples + 1 ) ;
 		eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) = solver.eigenvalues() ;
 		eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = solver.eigenvectors() ;
 
+		std::string description = "# Number of SNPs: "
+			+ genfile::string_utils::to_string( m_number_of_snps )
+			+ "\n# Number of samples: "
+			+ genfile::string_utils::to_string( m_number_of_samples ) ;
+
 		std::string filename = m_options.get< std::string >( "-PCA" ) ;
-		impl::write_matrix_as_csv(
+		send_results(
 			filename + ".eigendecomposition.csv",
 			eigendecomposition,
-			"KinshipCoefficientComputer",
+			"PCAComputer",
 			description,
 			boost::function< genfile::VariantEntry ( int ) >(),
 			boost::bind(
@@ -354,13 +460,9 @@ void KinshipCoefficientComputer::end_processing_snps() {
 			)
 		) ;
 	}
-
-	m_result_signal( m_result[0], m_non_missing_count[0] ) ;
 }
 
-void KinshipCoefficientComputer::write_output() {
+void PCAComputer::end_processing_snps() {
+	// nothing to do.
 }
-
-void KinshipCoefficientComputer::send_results_to( ResultsCallback callback ) {
-	m_result_signal.connect( callback ) ;
-}	
+	

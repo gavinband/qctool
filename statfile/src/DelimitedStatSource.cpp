@@ -223,6 +223,8 @@ namespace statfile {
 		do_read_value< std::string >( str_field ) ;
 		if( str_field == "inf" ) {
 			value = std::numeric_limits< double >::infinity() ;
+		} else if( str_field == "NA" ) {
+			value = std::numeric_limits< double >::quiet_NaN() ;
 		} else {
 			std::istringstream istr( str_field ) ;
 			istr >> value ;

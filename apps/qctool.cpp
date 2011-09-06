@@ -387,7 +387,7 @@ public:
 		*/
 
 		Relatotron::declare_options( options ) ;
-		KinshipCoefficientComputer::declare_options( options ) ;
+		KinshipCoefficientManager::declare_options( options ) ;
 		DataReadTest::declare_options( options ) ;
 		ClusterFitter::declare_options( options ) ;
 		AssociationTester::declare_options( options ) ;
@@ -2000,17 +2000,15 @@ private:
 			processor.add_callback( *intensity_writer ) ;
 		}
 
-		std::auto_ptr< KinshipCoefficientComputer > kinship ;
+		KinshipCoefficientManager::UniquePtr kinship ;
 		if( options().check_if_option_was_supplied_in_group( "Kinship options" )) {
-			kinship.reset(
-				new KinshipCoefficientComputer(
-					options(),
-					context.get_cohort_individual_source(),
-					worker.get(),
-					get_ui_context()
-				)
+			kinship = KinshipCoefficientManager::create(
+				options(),
+				context.get_cohort_individual_source(),
+				worker.get(),
+				get_ui_context()
 			) ;
-			processor.add_callback( *kinship ) ;
+			processor.add_callback( *kinship )  ;
 		}
 		
 		ClusterFitter::UniquePtr cluster_fitter ;
