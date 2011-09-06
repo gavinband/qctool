@@ -14,6 +14,15 @@ def build( bld ):
 		uselib = 'DL',
 		export_incdirs = 'sqlite3'
 	)
+	bld(
+		features = 'cc cstaticlib',
+		target = 'sqlite3',
+		source = [ 'sqlite3/sqlite3/sqlite3.c' ],
+		includes = 'sqlite3/',
+		defines = 'SQLITE_ENABLE_COLUMN_METADATA',
+		uselib = 'DL',
+		export_incdirs = 'sqlite3'
+	)
 
 	bld(
 		features = 'cc cshlib',
