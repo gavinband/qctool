@@ -406,8 +406,6 @@ public:
 			.set_takes_single_value()
 			.set_default_value( 0 ) ;
 
-		options.option_excludes_option( "-snp-stats", "-og" ) ;
-		options.option_excludes_option( "-snp-stats", "-os" ) ;
 		options.option_excludes_group( "-snp-stats", "SNP filtering options" ) ;
 		options.option_excludes_group( "-sample-stats", "Sample filtering options" ) ;
 		options.option_excludes_option( "-sample-stats", "-og" ) ;
