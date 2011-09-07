@@ -16,6 +16,7 @@
 #include "appcontext/FileUtil.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
 #include "KinshipCoefficientComputer.hpp"
+#include "PCAComputer.hpp"
 
 namespace impl {
 	template< typename Matrix >
@@ -99,6 +100,46 @@ namespace impl {
 		}
 	}
 
+	void threshhold_genotypes(
+		genfile::SingleSNPGenotypeProbabilities const& genotypes,
+		Eigen::VectorXd* threshholded_genotypes,
+		Eigen::VectorXd* non_missingness_matrix,
+		double* allele_sum,
+		double threshhold
+	) {
+		std::size_t const number_of_samples = genotypes.get_number_of_samples() ;
+		threshholded_genotypes->setConstant( number_of_samples, std::numeric_limits< double >::quiet_NaN() ) ;
+		non_missingness_matrix->setZero( number_of_samples ) ;
+		(*allele_sum) = 0.0 ;
+		for( std::size_t sample_i = 0; sample_i < number_of_samples; ++sample_i ) {
+			for( std::size_t g = 0; g < 3; ++g ) {
+				if( genotypes( sample_i, g ) >= threshhold ) {
+					(*threshholded_genotypes)( sample_i ) = double( g ) ;
+					(*non_missingness_matrix)( sample_i ) = 1.0 ;
+					(*allele_sum) += g ;
+					break ;
+				}
+			}
+		}
+	}
+
+	void mean_centre_genotypes( 
+		Eigen::VectorXd* threshholded_genotypes,
+		Eigen::VectorXd const& non_missingness_matrix,
+		double allele_frequency
+	) {
+		std::size_t const number_of_samples = threshholded_genotypes->size() ;
+		assert( std::size_t( non_missingness_matrix.size() ) == number_of_samples ) ;
+		for( std::size_t sample_i = 0; sample_i < number_of_samples; ++sample_i ) {
+			if( non_missingness_matrix( sample_i ) ) {
+				(*threshholded_genotypes)( sample_i ) -= 2.0 * allele_frequency ;
+			}
+			else {
+				(*threshholded_genotypes)( sample_i ) = 0.0 ; // this sample does not contribute for this SNP.
+			}
+		}
+	}
+
 	KinshipCoefficientComputerTask::KinshipCoefficientComputerTask(
 		std::size_t number_of_samples,
 		Eigen::MatrixXd* result,
@@ -126,37 +167,18 @@ namespace impl {
 		Eigen::VectorXd& data = m_data ;
 		Eigen::VectorXd& non_missingness_matrix = m_non_missingness_matrix ;
 		for( std::size_t snp_i = 0; snp_i < m_id_data.size(); ++snp_i ) {
-			data.setZero() ;
-			non_missingness_matrix.setZero() ;
+			double allele_sum ;
+			threshhold_genotypes( m_genotypes[ snp_i ], &m_data, &non_missingness_matrix, &allele_sum, m_threshhold ) ;
+			double const allele_frequency = allele_sum / ( 2.0 * non_missingness_matrix.sum() ) ;
+			mean_centre_genotypes( &data, non_missingness_matrix, allele_frequency ) ;
 
-			double allele_sum = 0.0 ;
-			for( std::size_t sample_i = 0; sample_i < m_number_of_samples; ++sample_i ) {
-				for( std::size_t g = 0; g < 3; ++g ) {
-					if( m_genotypes[ snp_i ]( sample_i, g ) >= m_threshhold ) {
-						data( sample_i ) = double( g ) ;
-						non_missingness_matrix( sample_i ) = 1.0 ;
-						allele_sum += g ;
-						break ;
-					}
-				}
-			}
-			double const allele_freq = allele_sum / ( 2.0 * non_missingness_matrix.sum() ) ;
-			for( std::size_t sample_i = 0; sample_i < m_number_of_samples; ++sample_i ) {
-				if( non_missingness_matrix( sample_i ) ) {
-					data( sample_i ) -= 2.0 * allele_freq ;
-				}
-				else {
-					data( sample_i ) = 0.0 ; // this sample does not contribute for this SNP.
-				}
-			}
-		
 	#if HAVE_CBLAS
 			// CBLAS is faster for this usage.  Don't know why.
 			cblas_dsyr(
 				CblasColMajor,
 				CblasLower,
 				m_number_of_samples,
-				1.0 / ( 2.0 * allele_freq * ( 1.0 - allele_freq )),
+				1.0 / ( 2.0 * allele_frequency * ( 1.0 - allele_frequency )),
 				data.data(),
 				1,
 				m_result->data(),
@@ -174,7 +196,7 @@ namespace impl {
 				m_number_of_samples
 			) ;
 	#else
-			m_result->selfadjointView< Eigen::Lower >().rankUpdate( data, 1.0 / ( 2.0 * allele_freq * ( 1.0 - allele_freq ) ) ) ;
+			m_result->selfadjointView< Eigen::Lower >().rankUpdate( data, 1.0 / ( 2.0 * allele_frequency * ( 1.0 - allele_frequency ) ) ) ;
 			m_non_missing_count->selfadjointView< Eigen::Lower >().rankUpdate( non_missingness_matrix, 1.0 ) ;
 	#endif
 		}
@@ -192,10 +214,16 @@ void KinshipCoefficientManager::declare_options( appcontext::OptionProcessor& op
 	options[ "-PCA" ]
 		.set_description( "Perform eigenvector/eigenvalue decomposition of kinship matrix after it is computed." )
 		.set_takes_single_value() ;
+	options[ "-loadings" ]
+		.set_description( "Compute loadings in addition to PCA." )
+		.set_takes_single_value()
+		.set_default_value( 0 ) ;
 
 	options.option_implies_option( "-kinship", "-s" ) ;
 	options.option_implies_option( "-load-kinship", "-s" ) ;
+	options.option_implies_option( "-load-kinship", "-PCA" ) ;
 	options.option_implies_option( "-PCA", "-load-kinship" ) ;
+	options.option_implies_option( "-loadings", "-PCA" ) ;
 	options.option_excludes_option( "-load-kinship", "-kinship" ) ;
 }
 
@@ -230,6 +258,14 @@ void KinshipCoefficientManager::send_results(
 	GetNames get_column_names
 ) {
 	m_result_signal( name, matrix, source, description, get_row_names, get_column_names ) ;
+}
+
+void KinshipCoefficientManager::send_per_variant_results_to( PerVariantResultsCallback callback ) {
+	m_per_variant_result_signal.connect( callback ) ;
+}
+
+void KinshipCoefficientManager::send_per_variant_results( std::string const& name, genfile::SNPIdentifyingData const& snp, Eigen::VectorXd const& data, GetNames names ) {
+	m_per_variant_result_signal( name, snp, data, names ) ;
 }
 
 KinshipCoefficientComputer::KinshipCoefficientComputer(
@@ -377,7 +413,10 @@ PCAComputer::PCAComputer(
 ):
 	m_options( options ),
 	m_ui_context( ui_context ),
-	m_samples( samples )
+	m_samples( samples ),
+	m_number_of_eigenvectors_to_compute( 0 ),
+	m_threshhold( 0.9 ),
+	m_number_of_snps_processed( 0 )
 {
 	assert( m_options.check( "-load-kinship" )) ;
 	m_filename = m_options.get< std::string >( "-load-kinship" ) ;
@@ -393,7 +432,11 @@ PCAComputer::PCAComputer(
 	) {
 		m_filename.resize( m_filename.size() - extension.size() ) ;
 	}
-	load_matrix( m_filename + ".csv", &m_matrix ) ;
+	load_matrix( m_filename + ".csv", &m_kinship_matrix ) ;
+	
+	if( m_options.check( "-loadings" ) ) {
+		m_number_of_eigenvectors_to_compute = m_options.get< std::size_t >( "-loadings" ) ;
+	}
 }
 
 void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* matrix ) const {
@@ -417,7 +460,6 @@ void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* mat
 		if( !(*source) ) {
 			throw genfile::MalformedInputError( source->get_source_spec(), source->number_of_rows_read(), 0 ) ;
 		}
-		double v ;
 		for( std::size_t sample_j = 0; sample_j < m_samples.get_number_of_individuals(); ++sample_j ) {
 			(*source)
 				>> statfile::ignore( sample_column_indices[ sample_j ] - source->current_column() )
@@ -432,19 +474,22 @@ void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* mat
 void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) {
 	m_number_of_snps = number_of_snps ;
 	m_number_of_samples = number_of_samples ;
+	m_number_of_snps_processed = 0 ;
 
 	if( m_options.check_if_option_was_supplied( "-PCA" )) {
 		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix...\n" ;
-		Eigen::SelfAdjointEigenSolver< Eigen::MatrixXd > solver( m_matrix ) ;
+		m_solver.compute( m_kinship_matrix ) ;
 		m_ui_context.logger() << "PCAComputer: Done, writing results...\n" ;
 		Eigen::MatrixXd eigendecomposition( m_number_of_samples, m_number_of_samples + 1 ) ;
-		eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) = solver.eigenvalues() ;
-		eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = solver.eigenvectors() ;
+		eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) = m_solver.eigenvalues().reverse() ;
+		eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( m_solver.eigenvectors() ) ;
 
 		std::string description = "# Number of SNPs: "
 			+ genfile::string_utils::to_string( m_number_of_snps )
 			+ "\n# Number of samples: "
-			+ genfile::string_utils::to_string( m_number_of_samples ) ;
+			+ genfile::string_utils::to_string( m_number_of_samples )
+			+ "\n# Note: the first column contains the eigenvalues."
+			+ "\n# Note: column (i+1) contains the eigenvector corresponding to the ith eigenvalue." ;
 
 		std::string filename = m_options.get< std::string >( "-PCA" ) ;
 		send_results(
@@ -460,9 +505,44 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 			)
 		) ;
 	}
+	if( m_number_of_eigenvectors_to_compute > 0 ) {
+		m_number_of_eigenvectors_to_compute = std::min( m_number_of_eigenvectors_to_compute, m_number_of_samples ) ;
+		m_number_of_eigenvectors_to_compute = std::min( m_number_of_eigenvectors_to_compute, m_number_of_snps ) ;
+		m_eigenvectors.resize( m_number_of_snps, m_number_of_eigenvectors_to_compute ) ;
+	}
+}
+
+void PCAComputer::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
+	if( m_number_of_eigenvectors_to_compute > 0 ) {
+		m_genotype_probabilities.resize( m_number_of_samples ) ;
+		data_reader.get( "genotypes", m_genotype_probabilities ) ;
+		double allele_sum ;
+		impl::threshhold_genotypes( m_genotype_probabilities, &m_genotype_calls, &m_non_missingness, &allele_sum, m_threshhold ) ;
+		double const allele_frequency = allele_sum / ( 2.0 * m_non_missingness.sum() ) ;
+		impl::mean_centre_genotypes( &m_genotype_calls, m_non_missingness, allele_frequency ) ;
+
+		//
+		// If X is the L\times n matrix (L SNPs, n samples) of (mean-centred, scaled) genotypes, we have
+		// computed the eigenvalue decomposition X^t X = U D U^t in m_solver.
+		// We want to compute the eigenvectors of X X^t instead.
+		// These are given by the columns of S^t, or the rows of S, where
+		//   S = X U D^{-1/2}
+		// At this point we have a single row of X and so can compute a row of S directly.
+		m_eigenvectors =
+			(
+				m_genotype_calls *
+				Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( m_solver.eigenvectors() )
+					.block( 0, 0, m_number_of_samples, m_number_of_eigenvectors_to_compute )
+			).array() /
+			m_solver.eigenvalues()
+				.reverse()
+				.array()
+				.sqrt()
+			;
+		std::cerr << m_eigenvectors << "\n" ;
+	}
 }
 
 void PCAComputer::end_processing_snps() {
 	// nothing to do.
 }
-	
