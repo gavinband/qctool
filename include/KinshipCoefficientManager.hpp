@@ -5,6 +5,10 @@
 #include <boost/function.hpp>
 #include <boost/signals2/signal.hpp>
 #include <Eigen/Core>
+#include "appcontext/OptionProcessor.hpp"
+#include "appcontext/UIContext.hpp"
+#include "worker/Worker.hpp"
+#include "genfile/CohortIndividualSource.hpp"
 
 struct KinshipCoefficientManager: public genfile::SNPDataSourceProcessor::Callback
 {

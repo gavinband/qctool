@@ -64,6 +64,34 @@ namespace impl {
 		}
 	}
 
+	template< typename Vector >
+	void write_snp_and_vector( boost::shared_ptr< statfile::BuiltInTypeStatSink > sink, std::string const& name, genfile::SNPIdentifyingData snp, Vector const& vector, boost::function< genfile::VariantEntry ( std::size_t ) > get_names ) {
+		if( sink->number_of_rows_written() == 0 && sink->current_column() == 0 ) {
+			(*sink) | "SNPID" | "rsid" | "chromosome" | "position" | "allele_A" | "allele_B" ;
+			if( get_names ) {
+				for( int i = 0; i < vector.size(); ++i ) {
+					(*sink) | get_names( i ).as< std::string >() ;
+				}
+			}
+			else {
+				for( int i = 0; i < vector.size(); ++i ) {
+					(*sink) | ( "v" + genfile::string_utils::to_string( i )) ;
+				}
+			}
+		}
+		(*sink)
+			<< snp.get_SNPID()
+			<< snp.get_rsid()
+			<< std::string( snp.get_position().chromosome() )
+			<< snp.get_position().position()
+			<< snp.get_first_allele()
+			<< snp.get_second_allele() ;
+		for( int i = 0; i < vector.size(); ++i ) {
+			(*sink) << vector(i) ;
+		}
+		(*sink) << statfile::end_row() ;
+	}
+	
 	void write_matrix(
 		std::string const& filename,
 		Eigen::MatrixXd const& matrix,
@@ -214,6 +242,9 @@ void KinshipCoefficientManager::declare_options( appcontext::OptionProcessor& op
 	options[ "-PCA" ]
 		.set_description( "Perform eigenvector/eigenvalue decomposition of kinship matrix after it is computed." )
 		.set_takes_single_value() ;
+	options[ "-PCA-exclusions" ]
+		.set_description( "Output a list of exclusions based on outliers in the first N PCA components." )
+		.set_takes_single_value() ;
 	options[ "-loadings" ]
 		.set_description( "Compute loadings in addition to PCA." )
 		.set_takes_single_value()
@@ -234,20 +265,29 @@ KinshipCoefficientManager::UniquePtr KinshipCoefficientManager::create(
 	appcontext::UIContext& ui_context
 ) {
 	KinshipCoefficientManager::UniquePtr result ;
-	if( options.check( "-load-kinship" ) ) {
+	if( options.check( "-kinship" )) {
+		result.reset( new KinshipCoefficientComputer( options, samples, worker, ui_context ) ) ;
+	}
+	else if( options.check( "-load-kinship" ) ) {
 		result.reset( new PCAComputer( options, samples, worker, ui_context ) ) ;
 		if( options.check( "-loadings" )) {
-			
-			result.send_per_variant_results_to(
-				boost::
-				&impl::write_snp_and_vector< Eigen::VectorXd >
+			// Need to set up an output location.
+			// This should be set up elsewhere, but we do it here for now.
+ 			boost::shared_ptr< statfile::BuiltInTypeStatSink > loadings_file(
+				statfile::BuiltInTypeStatSink::open( options.get< std::string >( "-PCA" ) + ".loadings.csv" ).release()
+			) ;
+			result->send_per_variant_results_to(
+				boost::bind(
+					&impl::write_snp_and_vector< Eigen::VectorXd >,
+					loadings_file,
+					_1, _2, _3, _4
+				)
 			) ;
 		}
-	} else if( options.check( "-kinship" )) {
-		result.reset( new KinshipCoefficientComputer( options, samples, worker, ui_context ) ) ;
 	} else {
 		assert(0) ;
 	}
+
 	result->send_results_to( &impl::write_matrix_as_csv< Eigen::MatrixXd > ) ;
 	return result ;
 }
@@ -375,6 +415,10 @@ namespace impl {
 	std::string get_concatenated_ids( genfile::CohortIndividualSource const* samples, std::size_t i ) {
 		return samples->get_entry( i, "id_1" ).as< std::string >() + ":" + samples->get_entry( i, "id_2" ).as< std::string >() ;
 	}
+
+	std::string string_and_number( std::string const& s, std::size_t i ) {
+		return s + genfile::string_utils::to_string( i ) ;
+	}
 }
 
 void KinshipCoefficientComputer::end_processing_snps() {
@@ -412,39 +456,6 @@ void KinshipCoefficientComputer::end_processing_snps() {
 	) ;
 }
 
-PCAComputer::PCAComputer(
-	appcontext::OptionProcessor const& options,
-	genfile::CohortIndividualSource const& samples,
-	worker::Worker* worker,
-	appcontext::UIContext& ui_context
-):
-	m_options( options ),
-	m_ui_context( ui_context ),
-	m_samples( samples ),
-	m_number_of_eigenvectors_to_compute( 0 ),
-	m_threshhold( 0.9 ),
-	m_number_of_snps_processed( 0 )
-{
-	assert( m_options.check( "-load-kinship" )) ;
-	m_filename = m_options.get< std::string >( "-load-kinship" ) ;
-	// remove .csv extension if present.
-	std::string const extension = ".csv" ;
-	if(
-		m_filename.size() >= extension.size()
-		&& ( m_filename.compare(
-			m_filename.size() - extension.size(),
-			extension.size(),
-			extension
-		) == 0 )
-	) {
-		m_filename.resize( m_filename.size() - extension.size() ) ;
-	}
-	load_matrix( m_filename + ".csv", &m_kinship_matrix ) ;
-	
-	if( m_options.check( "-loadings" ) ) {
-		m_number_of_eigenvectors_to_compute = m_options.get< std::size_t >( "-loadings" ) ;
-	}
-}
 
 void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* matrix ) const {
 	statfile::BuiltInTypeStatSource::UniquePtr source = statfile::BuiltInTypeStatSource::open( filename ) ;
@@ -477,6 +488,7 @@ void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* mat
 	}
 	assert( source->number_of_rows_read() == m_samples.get_number_of_individuals() ) ;
 }
+
 
 void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) {
 	m_number_of_snps = number_of_snps ;
@@ -515,7 +527,10 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 	if( m_number_of_eigenvectors_to_compute > 0 ) {
 		m_number_of_eigenvectors_to_compute = std::min( m_number_of_eigenvectors_to_compute, m_number_of_samples ) ;
 		m_number_of_eigenvectors_to_compute = std::min( m_number_of_eigenvectors_to_compute, m_number_of_snps ) ;
-		m_eigenvectors.resize( m_number_of_snps, m_number_of_eigenvectors_to_compute ) ;
+		m_eigenvectors.resize( m_number_of_eigenvectors_to_compute ) ;
+	}
+	if( m_options.check( "-PCA-exclusions" )) {
+		
 	}
 }
 
@@ -545,12 +560,17 @@ void PCAComputer::processed_snp( genfile::SNPIdentifyingData const& snp, genfile
 				.head( m_number_of_eigenvectors_to_compute )
 				.array()
 				.sqrt()
-				
 			;
-		send_per_variant_results( "PCA eigenvectors", snp, m_eigenvectors, boost::function< genfile::VariantEntry ( int ) >() ) ;
+		send_per_variant_results(
+			"PCA eigenvectors",
+			snp,
+			m_eigenvectors,
+			boost::bind(
+				&impl::string_and_number,
+				"v_",
+				_1
+			)
+			) ;
 	}
 }
 
-void PCAComputer::end_processing_snps() {
-	// nothing to do.
-}
