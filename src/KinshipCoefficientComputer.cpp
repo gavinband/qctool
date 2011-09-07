@@ -236,6 +236,13 @@ KinshipCoefficientManager::UniquePtr KinshipCoefficientManager::create(
 	KinshipCoefficientManager::UniquePtr result ;
 	if( options.check( "-load-kinship" ) ) {
 		result.reset( new PCAComputer( options, samples, worker, ui_context ) ) ;
+		if( options.check( "-loadings" )) {
+			
+			result.send_per_variant_results_to(
+				boost::
+				&impl::write_snp_and_vector< Eigen::VectorXd >
+			) ;
+		}
 	} else if( options.check( "-kinship" )) {
 		result.reset( new KinshipCoefficientComputer( options, samples, worker, ui_context ) ) ;
 	} else {
@@ -520,7 +527,6 @@ void PCAComputer::processed_snp( genfile::SNPIdentifyingData const& snp, genfile
 		impl::threshhold_genotypes( m_genotype_probabilities, &m_genotype_calls, &m_non_missingness, &allele_sum, m_threshhold ) ;
 		double const allele_frequency = allele_sum / ( 2.0 * m_non_missingness.sum() ) ;
 		impl::mean_centre_genotypes( &m_genotype_calls, m_non_missingness, allele_frequency ) ;
-
 		//
 		// If X is the L\times n matrix (L SNPs, n samples) of (mean-centred, scaled) genotypes, we have
 		// computed the eigenvalue decomposition X^t X = U D U^t in m_solver.
@@ -532,14 +538,16 @@ void PCAComputer::processed_snp( genfile::SNPIdentifyingData const& snp, genfile
 			(
 				m_genotype_calls *
 				Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( m_solver.eigenvectors() )
-					.block( 0, 0, m_number_of_samples, m_number_of_eigenvectors_to_compute )
+					.leftCols( m_number_of_eigenvectors_to_compute )
 			).array() /
 			m_solver.eigenvalues()
 				.reverse()
+				.head( m_number_of_eigenvectors_to_compute )
 				.array()
 				.sqrt()
+				
 			;
-		std::cerr << m_eigenvectors << "\n" ;
+		send_per_variant_results( "PCA eigenvectors", snp, m_eigenvectors, boost::function< genfile::VariantEntry ( int ) >() ) ;
 	}
 }
 
