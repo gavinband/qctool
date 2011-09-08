@@ -26,8 +26,8 @@ PCAComputer::PCAComputer(
 	m_ui_context( ui_context ),
 	m_samples( samples ),
 	m_number_of_eigenvectors_to_compute( 0 ),
-	m_threshhold( 0.9 ),
-	m_number_of_snps_processed( 0 )
+	m_number_of_snps_processed( 0 ),
+	m_threshhold( 0.9 )
 {
 	assert( m_options.check( "-load-kinship" )) ;
 	m_filename = m_options.get< std::string >( "-load-kinship" ) ;
