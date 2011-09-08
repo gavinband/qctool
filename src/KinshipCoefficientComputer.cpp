@@ -475,7 +475,7 @@ void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* mat
 		std::string id ;
 		// find row corresponding to next sample.
 		for( (*source) >> id; (*source) && id != impl::get_concatenated_ids( &m_samples, sample_i ); (*source) >> statfile::end_row() >> id ) ;
-		if( !(*source) ) {
+		if( !(*source) || source->number_of_rows_read() == source->number_of_rows() ) {
 			throw genfile::MalformedInputError( source->get_source_spec(), source->number_of_rows_read(), 0 ) ;
 		}
 		for( std::size_t sample_j = 0; sample_j < m_samples.get_number_of_individuals(); ++sample_j ) {
@@ -512,7 +512,7 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 
 		std::string filename = m_options.get< std::string >( "-PCA" ) ;
 		send_results(
-			filename + ".eigendecomposition.csv",
+			filename,
 			eigendecomposition,
 			"PCAComputer",
 			description,
