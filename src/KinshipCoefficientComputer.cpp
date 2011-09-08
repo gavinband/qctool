@@ -17,6 +17,7 @@
 #include "appcontext/get_current_time_as_string.hpp"
 #include "KinshipCoefficientComputer.hpp"
 #include "PCAComputer.hpp"
+#include "LapackEigenDecomposition.hpp"
 
 namespace impl {
 	template< typename Matrix >
@@ -496,12 +497,22 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 	m_number_of_snps_processed = 0 ;
 
 	if( m_options.check_if_option_was_supplied( "-PCA" )) {
-		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix...\n" ;
+		Eigen::MatrixXd eigendecomposition( m_number_of_samples, m_number_of_samples + 1 ) ;
+
+#if HAVE_CLAPACK
+		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using libclapack...\n" ;
+		Eigen::VectorXd eigenvalues( m_number_of_samples ) ;
+		Eigen::MatrixXd eigenvectors( m_number_of_samples, m_number_of_samples ) ;
+		lapack::compute_eigendecomposition( m_kinship_matrix, &eigenvalues, &eigenvectors ) ;
+		eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) = eigenvalues ;
+		eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = eigenvectors ;
+#else
+		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using Eigen...\n" ;
 		m_solver.compute( m_kinship_matrix ) ;
 		m_ui_context.logger() << "PCAComputer: Done, writing results...\n" ;
-		Eigen::MatrixXd eigendecomposition( m_number_of_samples, m_number_of_samples + 1 ) ;
 		eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) = m_solver.eigenvalues().reverse() ;
 		eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( m_solver.eigenvectors() ) ;
+#endif
 
 		std::string description = "# Number of SNPs: "
 			+ genfile::string_utils::to_string( m_number_of_snps )
