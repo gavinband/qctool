@@ -474,7 +474,7 @@ void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* mat
 	for( std::size_t sample_i = 0; sample_i < m_samples.get_number_of_individuals(); ++sample_i ) {
 		std::string id ;
 		// find row corresponding to next sample.
-		for( (*source) >> id; (*source) && id != impl::get_concatenated_ids( &m_samples, sample_i ); (*source) >> statfile::end_row() >> id ) ;
+		for( (*source) >> id; (*source) && id != impl::get_concatenated_ids( &m_samples, sample_i ); (*source) >> statfile::ignore_all() >> id ) ;
 		if( !(*source) || source->number_of_rows_read() == source->number_of_rows() ) {
 			throw genfile::MalformedInputError( source->get_source_spec(), source->number_of_rows_read(), 0 ) ;
 		}
