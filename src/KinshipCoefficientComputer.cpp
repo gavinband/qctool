@@ -515,8 +515,8 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 			Eigen::MatrixXd eigenvectors( m_number_of_samples, m_number_of_samples ) ;
 			m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using lapack...\n" ;
 			lapack::compute_eigendecomposition( m_kinship_matrix, &eigenvalues, &eigenvectors ) ;
-			m_kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 )  = eigenvalues ;
-			m_kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = eigenvectors ;
+			m_kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 )  = eigenvalues.reverse() ;
+			m_kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( eigenvectors ) ;
 #else
 			m_ui_context.logger() << "!! lapack is not supported on your platform.\n"
 				<< "Please re-run with -no-lapack option.\n" ;
