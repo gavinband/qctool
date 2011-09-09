@@ -101,14 +101,21 @@ def platform_specific_configure( conf ):
 		):
 			conf.define( 'HAVE_CBLAS', 1 )
 		if conf.check_cxx(
+			header_name = 'clapack.h',
 			lib = 'clapack',
 			cxxflags = '-I/System/Library/Frameworks/vecLib.framework/Headers',
 			uselib_store = 'CLAPACK'
 		):
 			conf.define( 'HAVE_CLAPACK', 1 )
+			conf.define( 'HAVE_LAPACK', 1 )
 	else:
 		if conf.check_cxx( lib = 'blas', fragment = '#include "cblas.h"\nint main() {}', uselib_store = 'CBLAS' ):
 			conf.define( 'HAVE_CBLAS', 1 ) ;
+		if conf.check_cxx(
+			lib = 'lapack',
+			uselib_store = 'LAPACK'
+		):
+			conf.define( 'HAVE_LAPACK', 1 )
 		
 def misc_configure( conf ) :
 	conf.define( 'GENFILE_USE_FAST_PARSE_METHODS', 1 )
@@ -166,7 +173,7 @@ def build( bld ):
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include ./genfile/include',
 		uselib_local = 'string_utils statfile appcontext fputils worker snptest genfile integration db',
-		uselib = 'BOOST BOOST_IOSTREAMS ZLIB BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM CBLAS CLAPACK'
+		uselib = 'BOOST BOOST_IOSTREAMS ZLIB BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM CBLAS CLAPACK LAPACK'
 	)
 
 	#---------------------

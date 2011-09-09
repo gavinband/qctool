@@ -499,7 +499,7 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 	if( m_options.check_if_option_was_supplied( "-PCA" )) {
 		Eigen::MatrixXd eigendecomposition( m_number_of_samples, m_number_of_samples + 1 ) ;
 
-#if HAVE_CLAPACK
+#if HAVE_LAPACK
 		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using libclapack...\n" ;
 		Eigen::VectorXd eigenvalues( m_number_of_samples ) ;
 		Eigen::MatrixXd eigenvectors( m_number_of_samples, m_number_of_samples ) ;

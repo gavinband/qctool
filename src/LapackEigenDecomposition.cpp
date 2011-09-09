@@ -59,9 +59,9 @@ extern "C" {
 				  off-diagonal elements of an intermediate tridiagonal	 
 				  form did not converge to zero.
 	*/
-	int dsyev_(char *jobz, char *uplo, integer *n, doublereal *a,
-		 integer *lda, doublereal *w, doublereal *work, integer *lwork, 
-		integer *info)
+	int dsyev_(char *jobz, char *uplo, int *n, double *a,
+		 int *lda, double *w, double *work, int *lwork, 
+		int *info) ;
 	// 
 }
 #endif
