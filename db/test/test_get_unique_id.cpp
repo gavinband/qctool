@@ -48,7 +48,7 @@ AUTO_TEST_CASE( test_get_unique_id ) {
 			int id = db::get_unique_id( connection.get(), "Fields", "id", ostr.str() ) ;
 			std::cerr << "value " << value << " found id " << id << ".\n" ;
 			TEST_ASSERT( value % 2 == 0 ) ;
-			TEST_ASSERT( id == value/2 ) ;
+			TEST_ASSERT( id == int( value )/2 ) ;
 			TEST_ASSERT( id != 5 ) ;
 		}
 		catch( genfile::KeyNotFoundError const& e ) {

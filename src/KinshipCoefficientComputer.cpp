@@ -479,6 +479,16 @@ void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* mat
 		if( !(*source) || source->number_of_rows_read() == source->number_of_rows() ) {
 			throw genfile::MalformedInputError( source->get_source_spec(), source->number_of_rows_read(), 0 ) ;
 		}
+		if( source->number_of_rows_read() != ( sample_column_indices[ sample_i ] - 1 ) ) {
+			m_ui_context.logger()
+				<< "!! Error( PCAComputer::load_matrix ): sample " << m_samples.get_entry( sample_i, "id_1" )
+				<< " is on row "
+				<< source->number_of_rows_read()
+				<< " but column "
+				<< sample_column_indices[ sample_i ]
+				<< ".\n" ;
+			throw genfile::MalformedInputError( source->get_source_spec(), source->number_of_rows_read(), 0 ) ;
+		}
 		for( std::size_t sample_j = 0; sample_j < m_samples.get_number_of_individuals(); ++sample_j ) {
 			(*source)
 				>> statfile::ignore( sample_column_indices[ sample_j ] - source->current_column() )
@@ -487,7 +497,6 @@ void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* mat
 		}
 		(*source) >> statfile::ignore_all() ;
 	}
-	assert( source->number_of_rows_read() == m_samples.get_number_of_individuals() ) ;
 }
 
 
@@ -509,7 +518,15 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 #else
 		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using Eigen...\n" ;
 		m_solver.compute( m_kinship_matrix ) ;
-		m_ui_context.logger() << "PCAComputer: Done, writing results...\n" ;
+		if( m_solver.info() == Eigen::Success ) {
+			m_ui_context.logger() << "PCAComputer: Done, writing results...\n" ;
+		} else if( m_solver.info() == Eigen::NumericalIssue ) {
+			m_ui_context.logger() << "PCAComputer: Oh dear, numerical issue, writing results...\n" ;
+		} else if( m_solver.info() == Eigen::NoConvergence ) {
+			m_ui_context.logger() << "PCAComputer: Oh dear, no convergence, writing results...\n" ;
+		} else {
+			m_ui_context.logger() << "PCAComputer: Oh dear, unknown error, writing results...\n" ;
+		}
 		eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) = m_solver.eigenvalues().reverse() ;
 		eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( m_solver.eigenvectors() ) ;
 #endif

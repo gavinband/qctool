@@ -342,7 +342,7 @@ namespace genfile {
 
         template< typename OffsetType >
         void read_offset( std::istream& iStream, OffsetType* offset ) {
-            impl::uint32_t real_offset ;
+            impl::uint32_t real_offset = 0 ;
             read_little_endian_integer( iStream, &real_offset ) ;
             *offset = real_offset ;
         }
