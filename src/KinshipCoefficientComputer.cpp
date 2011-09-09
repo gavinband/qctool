@@ -506,39 +506,40 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 	m_number_of_snps_processed = 0 ;
 
 	if( m_options.check_if_option_was_supplied( "-PCA" )) {
-		Eigen::MatrixXd eigendecomposition( m_number_of_samples, m_number_of_samples + 1 ) ;
+		m_kinship_eigendecomposition.resize( m_number_of_samples, m_number_of_samples + 1 ) ;
 
 #if HAVE_LAPACK
-		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using lapack...\n" ;
 		Eigen::VectorXd eigenvalues( m_number_of_samples ) ;
 		Eigen::MatrixXd eigenvectors( m_number_of_samples, m_number_of_samples ) ;
+		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using lapack...\n" ;
 		lapack::compute_eigendecomposition( m_kinship_matrix, &eigenvalues, &eigenvectors ) ;
 		eigendecomposition.leftCols( 1 ) = eigenvalues ;
 		eigendecomposition.rightCols( m_number_of_samples ) = eigenvectors ;
 #else
 		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using Eigen...\n" ;
-		m_solver.compute( m_kinship_matrix ) ;
-		if( m_solver.info() == Eigen::Success ) {
+		Eigen::SelfAdjointEigenSolver< Eigen::MatrixXd > solver( m_kinship_matrix ) ;
+		if( solver.info() == Eigen::Success ) {
 			m_ui_context.logger() << "PCAComputer: Done, writing results...\n" ;
-		} else if( m_solver.info() == Eigen::NumericalIssue ) {
+		} else if( solver.info() == Eigen::NumericalIssue ) {
 			m_ui_context.logger() << "PCAComputer: Oh dear, numerical issue, writing results...\n" ;
-		} else if( m_solver.info() == Eigen::NoConvergence ) {
+		} else if( solver.info() == Eigen::NoConvergence ) {
 			m_ui_context.logger() << "PCAComputer: Oh dear, no convergence, writing results...\n" ;
 		} else {
 			m_ui_context.logger() << "PCAComputer: Oh dear, unknown error, writing results...\n" ;
 		}
-		eigendecomposition.leftCols( 1 ) = m_solver.eigenvalues().reverse() ;
-		eigendecomposition.rightCols( m_number_of_samples ) = Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( m_solver.eigenvectors() ) ;
+		m_kinship_eigendecomposition.leftCols(1) = solver.eigenvalues().reverse() ;
+		m_kinship_eigendecomposition.rightCols( m_number_of_samples ) = Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( solver.eigenvectors() ) ;
 #endif
+
 
 		// Verify the decomposition.
 		{
 			m_ui_context.logger() << "Verifying the decomposition...\n" ;
-			Eigen::VectorXd v = eigendecomposition.leftCols( 1 ) ;
+			Eigen::VectorXd v = m_kinship_eigendecomposition.leftCols( 1 ) ;
 			Eigen::MatrixXd reconstructed_kinship_matrix
-				= eigendecomposition.rightCols( m_number_of_samples )
+				= m_kinship_eigendecomposition.rightCols( m_number_of_samples )
 					* v.asDiagonal()
-					* eigendecomposition.rightCols( m_number_of_samples ).transpose() ;
+					* m_kinship_eigendecomposition.rightCols( m_number_of_samples ).transpose() ;
 			double diff = 0.0 ;
 			for( std::size_t i = 0; i < m_number_of_samples; ++i ) {
 				for( std::size_t j = 0; j <= i; ++j ) {
@@ -546,6 +547,9 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 				}
 			}
 			m_ui_context.logger() << "...maximum discrepancy in lower diagonal is " << diff << ".\n" ;
+			if( diff != diff || diff > 0.01 ) {
+				assert(0) ;
+			}
 		}
 		std::string description = "# Number of SNPs: "
 			+ genfile::string_utils::to_string( m_number_of_snps )
@@ -557,7 +561,7 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 		std::string filename = m_options.get< std::string >( "-PCA" ) ;
 		send_results(
 			filename,
-			eigendecomposition,
+			m_kinship_eigendecomposition,
 			"PCAComputer",
 			description,
 			boost::function< genfile::VariantEntry ( int ) >(),
@@ -596,14 +600,13 @@ void PCAComputer::processed_snp( genfile::SNPIdentifyingData const& snp, genfile
 		m_eigenvectors =
 			(
 				m_genotype_calls *
-				Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( m_solver.eigenvectors() )
+				Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( m_kinship_eigendecomposition.rightCols( m_number_of_samples ) )
 					.leftCols( m_number_of_eigenvectors_to_compute )
 			).array() /
-			m_solver.eigenvalues()
-				.reverse()
-				.head( m_number_of_eigenvectors_to_compute )
-				.array()
-				.sqrt()
+				m_kinship_eigendecomposition
+					.block( 0, 0, m_number_of_eigenvectors_to_compute, 1 )
+					.array()
+					.sqrt()
 			;
 		send_per_variant_results(
 			"PCA eigenvectors",

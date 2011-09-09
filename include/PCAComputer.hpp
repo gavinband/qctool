@@ -29,7 +29,8 @@ private:
 	std::size_t m_number_of_snps ;
 	std::size_t m_number_of_snps_processed ;
 	Eigen::MatrixXd m_kinship_matrix ;
-	Eigen::SelfAdjointEigenSolver< Eigen::MatrixXd > m_solver ;
+	Eigen::VectorXd m_kinship_eigendecomposition ;
+	
 	std::size_t m_number_of_eigenvectors_to_compute ;
 	double m_threshhold ;
 	genfile::SingleSNPGenotypeProbabilities m_genotype_probabilities ;
