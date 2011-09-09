@@ -573,6 +573,12 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 			Eigen::MatrixXd reconstructed_kinship_matrix = m_kinship_eigendecomposition.block( 0, 1, size, m_number_of_samples ) ;
 			reconstructed_kinship_matrix *= v.asDiagonal() ;
 			reconstructed_kinship_matrix *= m_kinship_eigendecomposition.block( 0, 1, m_number_of_samples, size ).transpose() ;
+			// Knock out the upper triangle for comparison with the original kinship matrix.
+			for( std::size_t i = 0; i < size; ++i ) {
+				for( std::size_t j = i+1; j < size; ++j ) {
+					reconstructed_kinship_matrix(i,j) = std::numeric_limits< double >::quiet_NaN() ;
+				}
+			}
 
 			m_ui_context.logger() << "Top-left of reconstructed kinship matrix is:\n" ;
 			impl::write_matrix_to_stream( m_ui_context.logger(), reconstructed_kinship_matrix.block( 0, 0, size, size )) ;
