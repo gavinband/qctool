@@ -250,6 +250,8 @@ void KinshipCoefficientManager::declare_options( appcontext::OptionProcessor& op
 		.set_description( "Compute loadings in addition to PCA." )
 		.set_takes_single_value()
 		.set_default_value( 0 ) ;
+	options[ "-no-lapack" ]
+		.set_description( "Don't use lapack to perform computations." ) ;
 
 	options.option_implies_option( "-kinship", "-s" ) ;
 	options.option_implies_option( "-load-kinship", "-s" ) ;
@@ -507,39 +509,43 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 
 	if( m_options.check_if_option_was_supplied( "-PCA" )) {
 		m_kinship_eigendecomposition.resize( m_number_of_samples, m_number_of_samples + 1 ) ;
-
+		if( HAVE_LAPACK && !m_options.check( "-no-lapack" )) {
 #if HAVE_LAPACK
-		Eigen::VectorXd eigenvalues( m_number_of_samples ) ;
-		Eigen::MatrixXd eigenvectors( m_number_of_samples, m_number_of_samples ) ;
-		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using lapack...\n" ;
-		lapack::compute_eigendecomposition( m_kinship_matrix, &eigenvalues, &eigenvectors ) ;
-		m_kinship_eigendecomposition.leftCols( 1 ) = eigenvalues ;
-		m_kinship_eigendecomposition.rightCols( m_number_of_samples ) = eigenvectors ;
+			Eigen::VectorXd eigenvalues( m_number_of_samples ) ;
+			Eigen::MatrixXd eigenvectors( m_number_of_samples, m_number_of_samples ) ;
+			m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using lapack...\n" ;
+			lapack::compute_eigendecomposition( m_kinship_matrix, &eigenvalues, &eigenvectors ) ;
+			m_kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 )  = eigenvalues ;
+			m_kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = eigenvectors ;
 #else
-		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using Eigen...\n" ;
-		Eigen::SelfAdjointEigenSolver< Eigen::MatrixXd > solver( m_kinship_matrix ) ;
-		if( solver.info() == Eigen::Success ) {
-			m_ui_context.logger() << "PCAComputer: Done, writing results...\n" ;
-		} else if( solver.info() == Eigen::NumericalIssue ) {
-			m_ui_context.logger() << "PCAComputer: Oh dear, numerical issue, writing results...\n" ;
-		} else if( solver.info() == Eigen::NoConvergence ) {
-			m_ui_context.logger() << "PCAComputer: Oh dear, no convergence, writing results...\n" ;
-		} else {
-			m_ui_context.logger() << "PCAComputer: Oh dear, unknown error, writing results...\n" ;
-		}
-		m_kinship_eigendecomposition.leftCols(1) = solver.eigenvalues().reverse() ;
-		m_kinship_eigendecomposition.rightCols( m_number_of_samples ) = Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( solver.eigenvectors() ) ;
+			m_ui_context.logger() << "!! lapack is not supported on your platform.\n"
+				<< "Please re-run with -no-lapack option.\n" ;
+			assert(0) ;
 #endif
-
+		} else {
+			m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using Eigen...\n" ;
+			Eigen::SelfAdjointEigenSolver< Eigen::MatrixXd > solver( m_kinship_matrix ) ;
+			if( solver.info() == Eigen::Success ) {
+				m_ui_context.logger() << "PCAComputer: Done, writing results...\n" ;
+			} else if( solver.info() == Eigen::NumericalIssue ) {
+				m_ui_context.logger() << "PCAComputer: Oh dear, numerical issue, writing results...\n" ;
+			} else if( solver.info() == Eigen::NoConvergence ) {
+				m_ui_context.logger() << "PCAComputer: Oh dear, no convergence, writing results...\n" ;
+			} else {
+				m_ui_context.logger() << "PCAComputer: Oh dear, unknown error, writing results...\n" ;
+			}
+			m_kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) = solver.eigenvalues().reverse() ;
+			m_kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( solver.eigenvectors() ) ;
+		}
 
 		// Verify the decomposition.
 		{
 			m_ui_context.logger() << "Verifying the decomposition...\n" ;
 			Eigen::VectorXd v = m_kinship_eigendecomposition.leftCols( 1 ) ;
 			Eigen::MatrixXd reconstructed_kinship_matrix
-				= m_kinship_eigendecomposition.rightCols( m_number_of_samples ) ;
+				= m_kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) ;
 			reconstructed_kinship_matrix *= v.asDiagonal() ;
-			reconstructed_kinship_matrix *= m_kinship_eigendecomposition.rightCols( m_number_of_samples ).transpose() ;
+			reconstructed_kinship_matrix *= m_kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ).transpose() ;
 			double diff = 0.0 ;
 			for( std::size_t i = 0; i < m_number_of_samples; ++i ) {
 				for( std::size_t j = 0; j <= i; ++j ) {
@@ -553,6 +559,7 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 				m_ui_context.logger() << "...warning: diff > 0.01.\n" ;
 			}
 		}
+
 		std::string description = "# Number of SNPs: "
 			+ genfile::string_utils::to_string( m_number_of_snps )
 			+ "\n# Number of samples: "

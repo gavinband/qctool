@@ -29,7 +29,7 @@ private:
 	std::size_t m_number_of_snps ;
 	std::size_t m_number_of_snps_processed ;
 	Eigen::MatrixXd m_kinship_matrix ;
-	Eigen::VectorXd m_kinship_eigendecomposition ;
+	Eigen::MatrixXd m_kinship_eigendecomposition ;
 	
 	std::size_t m_number_of_eigenvectors_to_compute ;
 	double m_threshhold ;
