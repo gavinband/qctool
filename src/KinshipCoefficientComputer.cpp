@@ -95,15 +95,15 @@ namespace impl {
 	
 	template< typename Stream, typename Matrix >
 	void write_matrix_to_stream( Stream& stream, Matrix const& matrix ) {
-		for( std::size_t i = 0; i < matrix.rows(); ++i ) {
-			for( std::size_t j = 0; j < matrix.rows(); ++j ) {
-				if( matrix( i,j ) == matrix( i,j )) {
-					stream << std::setw( 10 ) << matrix(i,j) ;
-				} else if( std::abs( matrix( i, j ) ) < 0.001 ) {
+		for( int i = 0; i < matrix.rows(); ++i ) {
+			for( int j = 0; j < matrix.rows(); ++j ) {
+				if( matrix( i,j ) != matrix( i,j )) {
+					stream << std::setw( 10 ) << "NA" ;
+				} else if( std::abs( matrix( i, j ) ) < 0.00001 ) {
 					stream << std::setw( 10 ) << "0" ;
 				}
 				else {
-					stream << std::setw( 10 ) << "NA" ;
+					stream << std::setw( 10 ) << matrix(i,j) ;
 				}
 			}
 			stream << "\n" ;
@@ -533,8 +533,8 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 			Eigen::MatrixXd eigenvectors( m_number_of_samples, m_number_of_samples ) ;
 			m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using lapack...\n" ;
 			lapack::compute_eigendecomposition( m_kinship_matrix, &eigenvalues, &eigenvectors ) ;
-			m_kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 )  = eigenvalues ; //eigenvalues.reverse() ;
-			m_kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = eigenvectors ; //Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( eigenvectors ) ;
+			m_kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 )  = eigenvalues.reverse() ;
+			m_kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( eigenvectors ) ;
 #else
 			m_ui_context.logger() << "!! lapack is not supported on your platform.\n"
 				<< "Please re-run with -no-lapack option.\n" ;
