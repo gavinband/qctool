@@ -509,12 +509,12 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 		Eigen::MatrixXd eigendecomposition( m_number_of_samples, m_number_of_samples + 1 ) ;
 
 #if HAVE_LAPACK
-		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using libclapack...\n" ;
+		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using lapack...\n" ;
 		Eigen::VectorXd eigenvalues( m_number_of_samples ) ;
 		Eigen::MatrixXd eigenvectors( m_number_of_samples, m_number_of_samples ) ;
 		lapack::compute_eigendecomposition( m_kinship_matrix, &eigenvalues, &eigenvectors ) ;
-		eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) = eigenvalues ;
-		eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = eigenvectors ;
+		eigendecomposition.leftCols( 1 ) = eigenvalues ;
+		eigendecomposition.rightCols( m_number_of_samples ) = eigenvectors ;
 #else
 		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using Eigen...\n" ;
 		m_solver.compute( m_kinship_matrix ) ;
@@ -527,10 +527,26 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 		} else {
 			m_ui_context.logger() << "PCAComputer: Oh dear, unknown error, writing results...\n" ;
 		}
-		eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) = m_solver.eigenvalues().reverse() ;
-		eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( m_solver.eigenvectors() ) ;
+		eigendecomposition.leftCols( 1 ) = m_solver.eigenvalues().reverse() ;
+		eigendecomposition.rightCols( m_number_of_samples ) = Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( m_solver.eigenvectors() ) ;
 #endif
 
+		// Verify the decomposition.
+		{
+			m_ui_context.logger() << "Verifying the decomposition...\n" ;
+			Eigen::VectorXd v = eigendecomposition.leftCols( 1 ) ;
+			Eigen::MatrixXd reconstructed_kinship_matrix
+				= eigendecomposition.rightCols( m_number_of_samples )
+					* v.asDiagonal()
+					* eigendecomposition.rightCols( m_number_of_samples ).transpose() ;
+			double diff = 0.0 ;
+			for( std::size_t i = 0; i < m_number_of_samples; ++i ) {
+				for( std::size_t j = 0; j <= i; ++j ) {
+					diff = std::max( diff, std::abs( reconstructed_kinship_matrix(i,j) - m_kinship_matrix( i, j ))) ;
+				}
+			}
+			m_ui_context.logger() << "...maximum discrepancy in lower diagonal is " << diff << ".\n" ;
+		}
 		std::string description = "# Number of SNPs: "
 			+ genfile::string_utils::to_string( m_number_of_snps )
 			+ "\n# Number of samples: "
