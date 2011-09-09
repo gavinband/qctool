@@ -50,10 +50,6 @@ template<typename Scalar, int Mode, int Options> void non_projective_only()
   typedef Translation<Scalar,2> Translation2;
   typedef Translation<Scalar,3> Translation3;
 
-  Scalar largeEps = test_precision<Scalar>();
-  if (internal::is_same<Scalar,float>::value)
-    largeEps = 1e-2f;
-
   Vector3 v0 = Vector3::Random(),
           v1 = Vector3::Random();
 
@@ -124,10 +120,6 @@ template<typename Scalar, int Mode, int Options> void transformations()
   typedef DiagonalMatrix<Scalar,3> AlignedScaling3;
   typedef Translation<Scalar,2> Translation2;
   typedef Translation<Scalar,3> Translation3;
-
-  Scalar largeEps = test_precision<Scalar>();
-  if (internal::is_same<Scalar,float>::value)
-    largeEps = 1e-2f;
 
   Vector3 v0 = Vector3::Random(),
     v1 = Vector3::Random(),
@@ -450,8 +442,9 @@ template<typename Scalar> void transform_alignment()
   
   VERIFY_IS_APPROX( (*p1) * (*p1), (*p2)*(*p3));
   
-  #ifdef EIGEN_VECTORIZE
-  VERIFY_RAISES_ASSERT((::new(reinterpret_cast<void*>(array3u)) Projective3a));
+  #if defined(EIGEN_VECTORIZE) && EIGEN_ALIGN_STATICALLY
+  if(internal::packet_traits<Scalar>::Vectorizable)
+    VERIFY_RAISES_ASSERT((::new(reinterpret_cast<void*>(array3u)) Projective3a));
   #endif
 }
 
@@ -463,9 +456,19 @@ void test_geo_transformations()
     
     CALL_SUBTEST_2(( transformations<float,AffineCompact,AutoAlign>() ));
     CALL_SUBTEST_2(( non_projective_only<float,AffineCompact,AutoAlign>() ));
-
+    CALL_SUBTEST_2(( transform_alignment<float>() ));
+    
     CALL_SUBTEST_3(( transformations<double,Projective,AutoAlign>() ));
     CALL_SUBTEST_3(( transformations<double,Projective,DontAlign>() ));
     CALL_SUBTEST_3(( transform_alignment<double>() ));
+    
+    CALL_SUBTEST_4(( transformations<float,Affine,RowMajor|AutoAlign>() ));
+    CALL_SUBTEST_4(( non_projective_only<float,Affine,RowMajor>() ));
+    
+    CALL_SUBTEST_5(( transformations<double,AffineCompact,RowMajor|AutoAlign>() ));
+    CALL_SUBTEST_5(( non_projective_only<double,AffineCompact,RowMajor>() ));
+
+    CALL_SUBTEST_6(( transformations<double,Projective,RowMajor|AutoAlign>() ));
+    CALL_SUBTEST_6(( transformations<double,Projective,RowMajor|DontAlign>() ));
   }
 }

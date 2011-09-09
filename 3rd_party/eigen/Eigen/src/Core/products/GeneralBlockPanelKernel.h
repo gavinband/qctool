@@ -81,6 +81,7 @@ inline void manage_caching_sizes(Action action, std::ptrdiff_t* l1=0, std::ptrdi
 template<typename LhsScalar, typename RhsScalar, int KcFactor>
 void computeProductBlockingSizes(std::ptrdiff_t& k, std::ptrdiff_t& m, std::ptrdiff_t& n)
 {
+  EIGEN_UNUSED_VARIABLE(n);
   // Explanations:
   // Let's recall the product algorithms form kc x nc horizontal panels B' on the rhs and
   // mc x kc blocks A' on the lhs. A' has to fit into L2 cache. Moreover, B' is processed
@@ -102,7 +103,6 @@ void computeProductBlockingSizes(std::ptrdiff_t& k, std::ptrdiff_t& m, std::ptrd
   k = std::min<std::ptrdiff_t>(k, l1/kdiv);
   std::ptrdiff_t _m = k>0 ? l2/(4 * sizeof(LhsScalar) * k) : 0;
   if(_m<m) m = _m & mr_mask;
-  n = n;
 }
 
 template<typename LhsScalar, typename RhsScalar>
@@ -199,7 +199,7 @@ public:
   EIGEN_STRONG_INLINE void unpackRhs(DenseIndex n, const RhsScalar* rhs, RhsScalar* b)
   {
     for(DenseIndex k=0; k<n; k++)
-      pstore(&b[k*RhsPacketSize], pset1<RhsPacket>(rhs[k]));
+      pstore1<RhsPacket>(&b[k*RhsPacketSize], rhs[k]);
   }
 
   EIGEN_STRONG_INLINE void loadRhs(const RhsScalar* b, RhsPacket& dest) const
@@ -270,7 +270,7 @@ public:
   EIGEN_STRONG_INLINE void unpackRhs(DenseIndex n, const RhsScalar* rhs, RhsScalar* b)
   {
     for(DenseIndex k=0; k<n; k++)
-      pstore(&b[k*RhsPacketSize], pset1<RhsPacket>(rhs[k]));
+      pstore1<RhsPacket>(&b[k*RhsPacketSize], rhs[k]);
   }
 
   EIGEN_STRONG_INLINE void loadRhs(const RhsScalar* b, RhsPacket& dest) const
@@ -363,8 +363,8 @@ public:
     {
       if(Vectorizable)
       {
-        pstore((RealScalar*)&b[k*ResPacketSize*2+0], pset1<RealPacket>(real(rhs[k])));
-        pstore((RealScalar*)&b[k*ResPacketSize*2+ResPacketSize], pset1<RealPacket>(imag(rhs[k])));
+        pstore1<RealPacket>((RealScalar*)&b[k*ResPacketSize*2+0],             real(rhs[k]));
+        pstore1<RealPacket>((RealScalar*)&b[k*ResPacketSize*2+ResPacketSize], imag(rhs[k]));
       }
       else
         b[k] = rhs[k];
@@ -475,7 +475,7 @@ public:
   EIGEN_STRONG_INLINE void unpackRhs(DenseIndex n, const RhsScalar* rhs, RhsScalar* b)
   {
     for(DenseIndex k=0; k<n; k++)
-      pstore(&b[k*RhsPacketSize], pset1<RhsPacket>(rhs[k]));
+      pstore1<RhsPacket>(&b[k*RhsPacketSize], rhs[k]);
   }
 
   EIGEN_STRONG_INLINE void loadRhs(const RhsScalar* b, RhsPacket& dest) const
@@ -1009,12 +1009,7 @@ EIGEN_ASM_COMMENT("mybegin4");
     for(Index j2=packet_cols; j2<cols; j2++)
     {
       // unpack B
-      {
-        traits.unpackRhs(depth, &blockB[j2*strideB+offsetB], unpackedB);
-//         const RhsScalar* blB = &blockB[j2*strideB+offsetB];
-//         for(Index k=0; k<depth; k++)
-//           pstore(&unpackedB[k*RhsPacketSize], pset1<RhsPacket>(blB[k]));
-      }
+      traits.unpackRhs(depth, &blockB[j2*strideB+offsetB], unpackedB);
 
       for(Index i=0; i<peeled_mc; i+=mr)
       {
