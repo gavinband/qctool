@@ -74,7 +74,7 @@ namespace lapack
 		int N = matrix.cols() ;
 		assert( matrix.rows() == N ) ;
 		*eigenvectors = matrix ;
-		int LDA = N ;
+		int LDA = eigenvectors->outerStride() ;
 		int LWORK = -1 ;
 		int info = 0 ;
 		char JOBZ = 'V' ;
