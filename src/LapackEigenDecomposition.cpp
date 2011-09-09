@@ -81,7 +81,7 @@ namespace lapack
 		char UPLO = 'L' ;
 		double work_size ;
 		dsyev_( &JOBZ, &UPLO, &N, 0, &LDA, 0, &work_size, &LWORK, &info ) ;
-		LWORK = work_size ;
+		LWORK = work_size + 32 ;
 		std::vector< double > workspace( work_size ) ;
 		dsyev_( &JOBZ, &UPLO, &N, eigenvectors->data(), &LDA, eigenvalues->data(), &workspace[0], &LWORK, &info ) ;
 		if( info != 0 ) {
