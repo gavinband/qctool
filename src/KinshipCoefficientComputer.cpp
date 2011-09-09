@@ -537,9 +537,9 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 			m_ui_context.logger() << "Verifying the decomposition...\n" ;
 			Eigen::VectorXd v = m_kinship_eigendecomposition.leftCols( 1 ) ;
 			Eigen::MatrixXd reconstructed_kinship_matrix
-				= m_kinship_eigendecomposition.rightCols( m_number_of_samples )
-					* v.asDiagonal()
-					* m_kinship_eigendecomposition.rightCols( m_number_of_samples ).transpose() ;
+				= m_kinship_eigendecomposition.rightCols( m_number_of_samples ) ;
+			reconstructed_kinship_matrix *= v.asDiagonal() ;
+			reconstructed_kinship_matrix *= m_kinship_eigendecomposition.rightCols( m_number_of_samples ).transpose() ;
 			double diff = 0.0 ;
 			for( std::size_t i = 0; i < m_number_of_samples; ++i ) {
 				for( std::size_t j = 0; j <= i; ++j ) {
