@@ -116,7 +116,7 @@ def platform_specific_configure( conf ):
 			uselib_store = 'LAPACK'
 		):
 			conf.define( 'HAVE_LAPACK', 1 )
-		
+			
 def misc_configure( conf ) :
 	conf.define( 'GENFILE_USE_FAST_PARSE_METHODS', 1 )
 	conf.define( 'EIGEN_NO_DEBUG', 1 )

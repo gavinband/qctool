@@ -527,20 +527,10 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 
 	if( m_options.check_if_option_was_supplied( "-PCA" )) {
 		m_kinship_eigendecomposition.resize( m_number_of_samples, m_number_of_samples + 1 ) ;
-		if( HAVE_LAPACK && !m_options.check( "-no-lapack" )) {
 #if HAVE_LAPACK
-			Eigen::VectorXd eigenvalues( m_number_of_samples ) ;
-			Eigen::MatrixXd eigenvectors( m_number_of_samples, m_number_of_samples ) ;
-			m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using lapack...\n" ;
-			lapack::compute_eigendecomposition( m_kinship_matrix, &eigenvalues, &eigenvectors ) ;
-			m_kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 )  = eigenvalues.reverse() ;
-			m_kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( eigenvectors ) ;
-#else
-			m_ui_context.logger() << "!! lapack is not supported on your platform.\n"
-				<< "Please re-run with -no-lapack option.\n" ;
-			assert(0) ;
+		if( m_options.check( "-no-lapack" ))
 #endif
-		} else {
+		{
 			m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using Eigen...\n" ;
 			Eigen::SelfAdjointEigenSolver< Eigen::MatrixXd > solver( m_kinship_matrix ) ;
 			if( solver.info() == Eigen::Success ) {
@@ -555,6 +545,16 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 			m_kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) = solver.eigenvalues().reverse() ;
 			m_kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( solver.eigenvectors() ) ;
 		}
+#if HAVE_LAPACK
+		else { // -no-lapack not specified.
+			Eigen::VectorXd eigenvalues( m_number_of_samples ) ;
+			Eigen::MatrixXd eigenvectors( m_number_of_samples, m_number_of_samples ) ;
+			m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using lapack...\n" ;
+			lapack::compute_eigendecomposition( m_kinship_matrix, &eigenvalues, &eigenvectors ) ;
+			m_kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 )  = eigenvalues.reverse() ;
+			m_kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( eigenvectors ) ;
+		}
+#endif
 
 		// Verify the decomposition.
 		{
