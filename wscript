@@ -116,6 +116,8 @@ def platform_specific_configure( conf ):
 			uselib_store = 'LAPACK'
 		):
 			conf.define( 'HAVE_LAPACK', 1 )
+		if conf.check_cxx( header_name = 'time.h', fragment = '#include "time.h"\nint main() { timeval current_time ; gettimeofday( &current_time, NULL ) ; return 0 ; }' ):
+			conf.define( 'HAVE_GETTIMEOFDAY', 1 )
 			
 def misc_configure( conf ) :
 	conf.define( 'GENFILE_USE_FAST_PARSE_METHODS', 1 )
