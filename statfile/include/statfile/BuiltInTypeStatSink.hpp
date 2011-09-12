@@ -5,13 +5,20 @@
 #include <memory>
 #include <string>
 #include "genfile/Chromosome.hpp"
+#include "genfile/VariantEntry.hpp"
 #include "statfile/StatSink.hpp"
 
 namespace statfile {
-	struct BuiltInTypeStatSink: public StatSink< int32_t, uint32_t, std::string, double, genfile::Chromosome >
+	namespace {
+		typedef StatSink< genfile::MissingValue, long unsigned int, int32_t, uint32_t, int64_t, uint64_t, std::string, double, genfile::Chromosome > Base ;
+	}
+	struct BuiltInTypeStatSink: public Base
 	{
 		typedef std::auto_ptr< BuiltInTypeStatSink > UniquePtr ;
 		static UniquePtr open( std::string const& filename ) ;
+		
+		using Base::write_value ;
+		void write_value( genfile::VariantEntry const& value ) ;
 	} ;
 	
 	struct NullBuiltInTypeStatSink: public ColumnNamingStatSink< BuiltInTypeStatSink >

@@ -48,13 +48,7 @@ namespace statfile {
 		}
 	}
 
-	void BuiltInTypeStatSinkChain::write_value( int32_t const& value ) {
-		if( *this ) {
-			current_sink() << value ;
-		}
-	}
-
-	void BuiltInTypeStatSinkChain::write_value( uint32_t const& value ) {
+	void BuiltInTypeStatSinkChain::write_value( int64_t const& value ) {
 		if( *this ) {
 			current_sink() << value ;
 		}

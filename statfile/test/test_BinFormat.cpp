@@ -118,10 +118,10 @@ namespace {
 				str << (i+j) ;
 				switch( c ) {
 					case 0:
-						sink << int32_t( i+j ) ;
+						sink << int64_t( i+j ) ;
 						break ;
 					case 1:
-						sink << uint32_t( i+j ) ;
+						sink << int64_t( i+j ) ;
 						break ;
 					case 2:
 						sink << double( std::exp( i+j ) ) ;

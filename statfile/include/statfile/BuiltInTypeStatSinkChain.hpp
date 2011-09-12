@@ -26,6 +26,7 @@ namespace statfile {
 		void add_column_impl( std::string const& name ) ;
 		operator void*() const ;
 		void write_value( int32_t const& value ) ;
+		void write_value( int64_t const& value ) ;
 		void write_value( uint32_t const& value ) ;
 		void write_value( std::string const& value ) ;
 		void write_value( double const& value ) ;

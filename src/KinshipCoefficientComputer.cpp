@@ -1,6 +1,5 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/function.hpp>
-#include <boost/io/ios_state.hpp>
 #include "../config.hpp"
 #if HAVE_CBLAS
 	#include "cblas.h"
@@ -95,9 +94,7 @@ namespace impl {
 	}
 	
 	template< typename Stream, typename Matrix >
-	void write_matrix_to_stream( Stream& stream, Matrix const& matrix, int precision = 5 ) {
-		boost::io::ios_precision_saver state_saver( stream ) ;
-		stream.setprecision( precision ) ;
+	void write_matrix_to_stream( Stream& stream, Matrix const& matrix ) {
 		for( int i = 0; i < matrix.rows(); ++i ) {
 			for( int j = 0; j < matrix.rows(); ++j ) {
 				if( matrix( i,j ) != matrix( i,j )) {
@@ -568,7 +565,7 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 				Eigen::MatrixXd UUT = m_kinship_eigendecomposition.block( 0, 1, size, m_number_of_samples ) ;
 				UUT *= m_kinship_eigendecomposition.block( 0, 1, m_number_of_samples, size ).transpose() ;
 				impl::write_matrix_to_stream( m_ui_context.logger(), UUT ) ;
-		}
+			}
 			m_ui_context.logger() << "Top-left of original kinship matrix is:\n" ;
 			impl::write_matrix_to_stream( m_ui_context.logger(), m_kinship_matrix.block( 0, 0, size, size )) ;
 			

@@ -5,6 +5,7 @@
 #include <vector>
 #include <utility>
 #include <string>
+#include <boost/ptr_container/ptr_vector.hpp>
 #include "Eigen/Core"
 #include "genfile/SNPDataSourceProcessor.hpp"
 
@@ -14,7 +15,21 @@ struct ClusterFitter: public genfile::SNPDataSourceProcessor::Callback
 
 	typedef std::auto_ptr< ClusterFitter > UniquePtr ;
 
-	static UniquePtr create( appcontext::OptionProcessor const& options, genfile::SNPDataSourceProcessor::Callback* output = 0 ) ;
+	static UniquePtr create( appcontext::OptionProcessor const& options ) ;
+
+	struct ResultCallback {
+		typedef std::auto_ptr< ResultCallback > UniquePtr ;
+		virtual ~ResultCallback() {}
+		virtual void set_SNP( genfile::SNPIdentifyingData const& ) = 0 ;
+		virtual void write_cluster_fit( std::string const& name, std::vector< std::size_t > const&, Eigen::MatrixXd const& fit ) = 0 ;
+	} ;
+
+	void connect( ResultCallback::UniquePtr callback ) { m_callbacks.push_back( callback ) ; }
+	void processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader& ) ;
+	void send_results( std::string const& name, std::vector< std::size_t > const& non_missing_counts, Eigen::MatrixXd const& fit ) ;
+
+private:
+	boost::ptr_vector< ResultCallback > m_callbacks ;
 } ;
 
 

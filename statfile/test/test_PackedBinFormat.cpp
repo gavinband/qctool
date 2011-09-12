@@ -136,10 +136,10 @@ void write_test_data(
 			}
 			switch( type ) {
 				case 0:
-					sink << int32_t( value ) ;
+					sink << int64_t( value ) ;
 					break ;
 				case 1:
-					sink << uint32_t( value ) ;
+					sink << int64_t( value ) ;
 					break ;
 				case 2:
 					sink << double( value ) ;
