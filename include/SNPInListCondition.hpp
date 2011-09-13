@@ -1,6 +1,5 @@
-
-#ifndef __GTOOL_SNPINLIST_HPP__
-#define __GTOOL_SNPINLIST_HPP__
+#ifndef QCTOOL_SNPINLIST_HPP
+#define QCTOOL_SNPINLIST_HPP
 
 #include <set>
 #include "GenRow.hpp"
