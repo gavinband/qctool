@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <stdint.h>
+#include <cassert>
 #include "../config.hpp"
 #ifdef HAVE_ZLIB
 #include <sstream>
@@ -12,30 +13,21 @@
 
 namespace genfile {
 
-	// Compress the given data into the given destination buffer, prepending with a 64-bit unsigned integer
-	// in little-endian format recording the size in bytes of the uncompressed data.  The destination will be resized
-	// to fit this integer plus the compressed data.  (Since the capacity of dest may be larger than its size,
-	// to save memory it is advisable to copy the contents of dest elsewhere after calling
+	// Compress the given data into the given destination buffer.  The destination will be resized
+	// to fit the compressed data.  (Since the capacity of dest may be larger than its size,
+	// to save memory you may need to copy the contents of dest elsewhere after calling
+	// this function).
+	void zlib_compress( char const* buffer, char const* const end, std::vector< char >* dest ) ;
+
+	// Compress the given data into the given destination buffer.  The destination will be resized
+	// to fit the compressed data.  (Since the capacity of dest may be larger than its size,
+	// to save memory you may need to copy the contents of dest elsewhere after calling
 	// this function).
 	template< typename T >
 	void zlib_compress( std::vector< T > const& source, std::vector< char >* dest ) {
-		assert( dest != 0 ) ;
-		#if HAVE_ZLIB
-			uLongf const source_size = source.size() * sizeof( T ) ;
-			dest->resize( compressBound( source_size ) ) ;
-			uLongf compressed_size = dest->size() ;
-			int result = compress2(
-				reinterpret_cast< Bytef* >( &dest->operator[]( 0 ) ),
-				&compressed_size,
-				reinterpret_cast< Bytef const* >( &source[0] ),
-				source_size,
-				Z_DEFAULT_COMPRESSION
-			) ;
-			assert( result == Z_OK ) ;
-			dest->resize( compressed_size ) ;
-		#else
-			assert( 0 ) ; // no zlib support.
-		#endif
+		char const* begin = reinterpret_cast< char const* >( &source[0] ) ;
+		char const* const end = reinterpret_cast< char const* >( &source[0] + source.size() ) ;
+		return zlib_compress( begin, end, dest ) ;
 	}
 
 	// Uncompress the given data, which should consist of a 64-bit unsigned integer in little-endian
