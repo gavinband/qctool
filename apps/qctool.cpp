@@ -81,7 +81,7 @@
 #include "QCToolContext.hpp"
 #include "QCTool.hpp"
 #include "Relatotron.hpp"
-#include "IntensityWriter.hpp"
+#include "VCDBWriter.hpp"
 #include "DataReadTest.hpp"
 #include "ClusterFitter.hpp"
 #include "KinshipCoefficientComputer.hpp"
@@ -1992,10 +1992,10 @@ private:
 			processor.add_callback( *association_tester ) ;
 		}
 
-		std::auto_ptr< IntensityWriter > intensity_writer ;
+		std::auto_ptr< VCDBWriter > db_writer ;
 		if( options().check_if_option_was_supplied( "-write-db" )) {
-			intensity_writer.reset( new IntensityWriter( options().get_value< std::string >( "-write-db" ))) ;
-			processor.add_callback( *intensity_writer ) ;
+			db_writer = VCDBWriter::create( options().get_value< std::string >( "-write-db" )) ;
+			processor.add_callback( *db_writer ) ;
 		}
 
 		KinshipCoefficientManager::UniquePtr kinship ;
