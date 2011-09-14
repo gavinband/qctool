@@ -5,7 +5,6 @@
 #include "db/SQLStatement.hpp"
 
 namespace db {
-	
 	SQLStatement::~SQLStatement() {}
 	
 	template<>

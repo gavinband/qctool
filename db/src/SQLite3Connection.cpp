@@ -1,11 +1,23 @@
 #include <iostream>
 #include <stdint.h>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/thread/thread_time.hpp>
+#include <boost/thread/thread.hpp>
 #include "db/SQLite3Connection.hpp"
 #include "db/SQLite3Statement.hpp"
+#include "db/Error.hpp"
 
 extern "C" {
 	void sqlite3_trace_callback( void* udp, const char* sql ) {
 		std::cerr << "SQLite3 trace: SQL = \"" << sql << "\".\n" ;
+	}
+	
+	int sqlite3_busy_callback( void*, int number_of_tries ) {
+		if( number_of_tries > 100 ) {
+			return 0 ;
+		}
+		boost::this_thread::sleep( boost::posix_time::milliseconds( 10 * ( number_of_tries + 1 ) ) ) ;
+		return 1 ;
 	}
 }
 
@@ -43,7 +55,7 @@ namespace db {
 			0 // ignore pzTail
 		) ;
 		if( code != SQLITE_OK ) {
-			throw SQLite3PrepareStatementError( "SQLite3Connection::prepare_sql()", code, SQL ) ;
+			throw StatementPreparationError( "SQLite3Connection::prepare_sql()", get_spec(), code, SQL ) ;
 		}
 		// SQLite might return 0 if the SQL consisted of comments and whitespace only
 		// but I want to treat this as a programmer error.
@@ -59,7 +71,7 @@ namespace db {
 	int SQLite3Connection::step_statement( sqlite3_stmt* statement ) {
 		int code = sqlite3_step( statement ) ;
 		if( code != SQLITE_ROW && code != SQLITE_DONE ) {
-			throw SQLite3StepStatementError( "SQLite3Connection::step_statement()", code ) ;
+			throw StatementStepError( "SQLite3Connection::step_statement()", get_spec(), code ) ;
 		}
 		return (code == SQLITE_ROW);
 	}
@@ -67,8 +79,10 @@ namespace db {
 	void SQLite3Connection::open_db_connection( std::string const& filename ) {
 		int code = sqlite3_open( filename.c_str(), &m_db_connection ) ;
 		if( code != SQLITE_OK ) {
-			throw SQLite3OpenDBError( "SQLite3Connection::open_db_connection()", code ) ;
+			throw ConnectionError( "SQLite3Connection::open_db_connection()", get_spec(), code ) ;
 		}
+		// We add a busy handler.  This makes the database more robust by retrying failed transactions.
+		sqlite3_busy_handler( m_db_connection, &sqlite3_busy_callback, NULL ) ;
 		// sqlite3_trace( m_db_connection, &sqlite3_trace_callback, NULL ) ;
 	}
 

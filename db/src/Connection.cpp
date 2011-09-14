@@ -1,5 +1,6 @@
 #include "db/Connection.hpp"
 #include "db/SQLite3Connection.hpp"
+#include "db/SQLStatement.hpp"
 
 namespace db {
 	Connection::UniquePtr Connection::create( std::string const& filename ) {

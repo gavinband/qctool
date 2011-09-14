@@ -21,14 +21,14 @@ namespace db {
 		std::size_t get_number_of_columns() const ;
 		std::string get_name_of_column( std::size_t i ) const ;
 		bool is_null( int column_id ) const ;
-		void bind( std::size_t i, int32_t value ) const ;
-		void bind( std::size_t i, uint32_t value ) const ;
-		void bind( std::size_t i, int64_t value ) const ;
-		void bind( std::size_t i, uint64_t value ) const ;
-		void bind( std::size_t i, std::string const& value ) const ;
-		void bind( std::size_t i, char const* buffer, std::size_t n ) const ;
+		SQLite3Statement& bind( std::size_t i, int32_t value ) ;
+		SQLite3Statement& bind( std::size_t i, uint32_t value ) ;
+		SQLite3Statement& bind( std::size_t i, int64_t value ) ;
+		SQLite3Statement& bind( std::size_t i, uint64_t value ) ;
+		SQLite3Statement& bind( std::size_t i, std::string const& value ) ;
+		SQLite3Statement& bind( std::size_t i, char const* buffer, char const* const end ) ;
 
-		void reset() const ;
+		SQLite3Statement& reset() ;
 
 		std::string get_sql() const ;
 

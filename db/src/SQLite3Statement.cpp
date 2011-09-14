@@ -4,6 +4,7 @@
 #include <exception>
 
 #include "sqlite3/sqlite3.h"
+#include "genfile/string_utils/string_utils.hpp"
 #include "db/SQLite3Connection.hpp"
 #include "db/SQLStatement.hpp"
 #include "db/SQLite3Statement.hpp"
@@ -43,60 +44,67 @@ namespace db {
 		return std::string( sqlite3_column_origin_name( m_statement, i )) ;
 	}
 
-	void SQLite3Statement::bind( std::size_t i, int32_t value ) const {
+	SQLite3Statement& SQLite3Statement::bind( std::size_t i, int32_t value ) {
 		assert( m_statement != 0 ) ;
 		int error = sqlite3_bind_int( m_statement, i, value ) ;
 		if( error != SQLITE_OK ) {
-			throw SQLite3Error( "SQLite3Statement::bind()", error ) ;
+			throw ValueBindError( "SQLite3Statement::bind()", m_connection->get_spec(), error, genfile::string_utils::to_string( i ) ) ;
 		}
+		return *this ;
 	}
 
-	void SQLite3Statement::bind( std::size_t i, uint32_t value ) const {
+	SQLite3Statement& SQLite3Statement::bind( std::size_t i, uint32_t value ) {
 		assert( m_statement != 0 ) ;
 		int error = sqlite3_bind_int( m_statement, i, value ) ;
 		if( error != SQLITE_OK ) {
-			throw SQLite3Error( "SQLite3Statement::bind()", error ) ;
+			throw ValueBindError( "SQLite3Statement::bind()", m_connection->get_spec(), error, genfile::string_utils::to_string( i ) ) ;
 		}
+		return *this ;
 	}
 
-	void SQLite3Statement::bind( std::size_t i, int64_t value ) const {
+	SQLite3Statement& SQLite3Statement::bind( std::size_t i, int64_t value ) {
 		assert( m_statement != 0 ) ;
 		int error = sqlite3_bind_int64( m_statement, i, sqlite3_int64( value ) ) ;
 		if( error != SQLITE_OK ) {
-			throw SQLite3Error( "SQLite3Statement::bind()", error ) ;
+			throw ValueBindError( "SQLite3Statement::bind()", m_connection->get_spec(), error, genfile::string_utils::to_string( i ) ) ;
 		}
+		return *this ;
 	}
 
-	void SQLite3Statement::bind( std::size_t i, uint64_t value ) const {
+	SQLite3Statement& SQLite3Statement::bind( std::size_t i, uint64_t value ) {
 		assert( m_statement != 0 ) ;
 		int error = sqlite3_bind_int64( m_statement, i, sqlite3_int64( value ) ) ;
 		if( error != SQLITE_OK ) {
-			throw SQLite3Error( "SQLite3Statement::bind()", error ) ;
+			throw ValueBindError( "SQLite3Statement::bind()", m_connection->get_spec(), error, genfile::string_utils::to_string( i ) ) ;
 		}
+		return *this ;
 	}
 
-	void SQLite3Statement::bind( std::size_t i, std::string const& value ) const {
+	SQLite3Statement& SQLite3Statement::bind( std::size_t i, std::string const& value ) {
 		assert( m_statement != 0 ) ;
 		int error = sqlite3_bind_text( m_statement, i, value.c_str(), value.size(), SQLITE_TRANSIENT ) ;
 		if( error != SQLITE_OK ) {
-			throw SQLite3Error( "SQLite3Statement::bind()", error ) ;
+			throw ValueBindError( "SQLite3Statement::bind()", m_connection->get_spec(), error, genfile::string_utils::to_string( i ) ) ;
 		}
+		return *this ;
 	}
 
-	void SQLite3Statement::bind( std::size_t i, char const* buffer, std::size_t n ) const {
+	SQLite3Statement& SQLite3Statement::bind( std::size_t i, char const* buffer, char const* const end ) {
 		assert( m_statement != 0 ) ;
-		int error = sqlite3_bind_blob( m_statement, i, reinterpret_cast< void const* >( buffer ), int( n ), SQLITE_TRANSIENT ) ;
+		int error = sqlite3_bind_blob( m_statement, i, reinterpret_cast< void const* >( buffer ), int( end - buffer ), SQLITE_TRANSIENT ) ;
 		if( error != SQLITE_OK ) {
-			throw SQLite3Error( "SQLite3Statement::bind()", error ) ;
+			throw ValueBindError( "SQLite3Statement::bind()", m_connection->get_spec(), error, genfile::string_utils::to_string( i ) ) ;
 		}
+		return *this ;
 	}
 
-	void SQLite3Statement::reset() const {
+	SQLite3Statement& SQLite3Statement::reset() {
 		assert( m_statement != 0 ) ;
 		int error = sqlite3_reset( m_statement ) ;
 		if( error != SQLITE_OK ) {
-			throw SQLite3Error( "SQLite3Statement::reset_to_start()", error ) ;
+			throw db::Error( "SQLite3Statement::reset()", m_connection->get_spec(), error ) ;
 		}
+		return *this ;
 	}
 
 	std::string SQLite3Statement::get_sql() const {

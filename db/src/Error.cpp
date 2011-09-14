@@ -1,17 +1,18 @@
 #include <string>
 #include "db/SQLite3Statement.hpp"
-#include "db/SQLite3Error.hpp"
+#include "db/Error.hpp"
 
 namespace db {
-	SQLite3Error::SQLite3Error( std::string const& caller, int error ):
-		m_error( error )
+	Error::Error( std::string const& caller, std::string const& db_spec, int error ):
+		m_error( error ),
+		m_spec( db_spec )
 	{
 		assert( m_error != SQLite3Statement::Error::OK ) ;
 	}
 	
-	SQLite3Error::~SQLite3Error() throw() {}
+	Error::~Error() throw() {}
 	
-	std::string SQLite3Error::description() const {
+	std::string Error::description() const {
 		typedef db::SQLite3Statement::Error Error ;
 		switch( m_error ) {
 			case Error::ERROR: 		return "SQL error or missing database"; break ;

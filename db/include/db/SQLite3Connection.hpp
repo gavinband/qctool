@@ -6,35 +6,14 @@
 #include <exception>
 #include "sqlite3/sqlite3.h"
 #include "db/Connection.hpp"
-#include "db/SQLite3Error.hpp"
+#include "db/Error.hpp"
 
 extern "C" {
 	void sqlite3_trace_callback( void* udp, const char* sql ) ;
+	int sqlite3_busy_callback( void*, int number_of_tries ) ;
 }
 
 namespace db {
-	struct SQLite3OpenDBError: public SQLite3Error
-	{
-		SQLite3OpenDBError( std::string const& caller, int error_code ): SQLite3Error( caller, error_code ) {}
-		char const* what() const throw() { return "db::SQLite3OpenDBError" ; }
-	} ;
-
-	struct SQLite3PrepareStatementError: public SQLite3Error
-	{
-		SQLite3PrepareStatementError( std::string const& caller, int error_code, std::string SQL ): SQLite3Error( caller, error_code ), m_SQL( SQL ) {}
-		~SQLite3PrepareStatementError() throw() {}
-		char const* what() const throw() { return "db::SQLite3PrepareStatementError" ; }
-		std::string const& get_SQL() const { return m_SQL ; }
-	private:
-		std::string const m_SQL ;
-	} ;
-
-	struct SQLite3StepStatementError: public SQLite3Error
-	{
-		SQLite3StepStatementError( std::string const& caller, int error_code ): SQLite3Error( caller, error_code ) {}
-		char const* what() const throw() { return "db::SQLite3StepStatementError" ; }
-	} ;
-
 	class SQLite3Connection: public Connection
 	{
 	public:

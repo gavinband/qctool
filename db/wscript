@@ -39,6 +39,7 @@ def build( bld ):
 		target = 'db',
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include',
+		uselib = 'BOOST_THREAD',
 		uselib_local = 'sqlite3 genfile',
 		export_incdirs = './include'
 	)

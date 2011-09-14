@@ -33,6 +33,7 @@ namespace db {
 		// Get the result for the given column.
 		// Columns are 0-indexed.
 		template< typename T > T get_column( int column_id ) const ;
+		template< typename T > T get( int column_id ) const { return get_column< T >( column_id ) ; }
 		virtual bool is_null( int column_id ) const = 0 ;
 
 		virtual std::size_t get_number_of_columns() const = 0 ;
@@ -41,23 +42,23 @@ namespace db {
 		// For parameterised queries, bind an integer value to the ith placeholder.
 		// Placeholders are indexed starting from 1 on the left.
 		// Named placeholders with the same name have the same index.
-		virtual void bind( std::size_t i, int32_t value ) const = 0 ;
-		virtual void bind( std::size_t i, uint32_t value ) const = 0 ;
-		virtual void bind( std::size_t i, int64_t value ) const = 0 ;
-		virtual void bind( std::size_t i, uint64_t value ) const = 0 ;
+		virtual SQLStatement& bind( std::size_t i, int32_t value ) = 0 ;
+		virtual SQLStatement& bind( std::size_t i, uint32_t value ) = 0 ;
+		virtual SQLStatement& bind( std::size_t i, int64_t value ) = 0 ;
+		virtual SQLStatement& bind( std::size_t i, uint64_t value ) = 0 ;
 		// For parameterised queries, bind a string value to the ith placeholder.
 		// Placeholders are indexed starting from 1 on the left.
 		// Named placeholders with the same name have the same index.
 		// The string will be copied so the caller need not preserve it beyond the call site.
-		virtual void bind( std::size_t i, std::string const& value ) const = 0 ;
+		virtual SQLStatement& bind( std::size_t i, std::string const& value ) = 0 ;
 		// For parameterised queries, bind a BLOB value (array of chars) to the ith placeholder.
 		// Placeholders are indexed starting from 1 on the left.
 		// Named placeholders with the same name have the same index.
 		// The data will be copied and so the caller need not preserve it beyond the call site.
-		virtual void bind( std::size_t i, char const* buffer, std::size_t n ) const = 0 ;
+		virtual SQLStatement& bind( std::size_t i, char const* buffer, char const* const end ) = 0 ;
 
 		// Reset the statement, ready to be re-executed.
-		virtual void reset() const = 0 ;
+		virtual SQLStatement& reset() = 0 ;
 		
 		// Return the SQL this statement contains.
 		virtual std::string get_sql() const = 0 ;
