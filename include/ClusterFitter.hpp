@@ -8,9 +8,11 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 #include "Eigen/Core"
 #include "genfile/SNPDataSourceProcessor.hpp"
+#include "appcontext/OptionProcessor.hpp"
 
 struct ClusterFitter: public genfile::SNPDataSourceProcessor::Callback
 {
+public:
 	static void declare_options( appcontext::OptionProcessor& options ) ;
 
 	typedef std::auto_ptr< ClusterFitter > UniquePtr ;

@@ -1,10 +1,15 @@
 #include <Eigen/Core>
 #include <Eigen/Cholesky>
 #include "genfile/SNPDataSourceProcessor.hpp"
+#include "genfile/Error.hpp"
+#include "genfile/endianness_utils.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "appcontext/OptionProcessor.hpp"
+#include "db/Connection.hpp"
+#include "db/SQLStatement.hpp"
 #include "ClusterFitter.hpp"
 #include "NormalClusterFitter.hpp"
+#include "DataStore.hpp"
 
 void ClusterFitter::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "Cluster options" ) ;
@@ -99,13 +104,66 @@ namespace impl {
 		statfile::BuiltInTypeStatSink::UniquePtr m_sink ;
 		genfile::SNPIdentifyingData m_snp ;
 	} ;
+	
+	struct ClusterFitDataStoreOutputter: public ClusterFitter::ResultCallback {
+		static UniquePtr create( std::string const& filename ) {
+			UniquePtr result ;
+			result.reset(
+				new ClusterFitDataStoreOutputter(
+					DataStore::create( filename )
+				)
+			) ;
+			return result ;
+		}
+
+		ClusterFitDataStoreOutputter( DataStore::UniquePtr store ):
+			m_store( store ),
+			m_storage_id( m_store->get_or_create_entity( "double_matrix", "A matrix of doubles" ) ),
+			m_cohort_id( m_store->get_or_create_entity( "unnamed cohort", "An unnamed cohort" ) )
+		{
+		}
+		
+		virtual void set_SNP( genfile::SNPIdentifyingData const& snp ) {
+			m_snp_id = m_store->get_or_create_SNP( snp ) ;
+		}
+
+		void write_cluster_fit(
+			std::string const& name,
+			std::vector< std::size_t > const& non_missing_counts,
+			Eigen::MatrixXd const& fit
+		) {
+			std::vector< char > buffer( fit.rows()*fit.cols()*(sizeof( double )+1) + 16 ) ;
+			char* begin = &buffer[0] ;
+			char* const end = &buffer[0] + buffer.size() ;
+			begin = genfile::write_small_integer( begin, end, fit.rows() ) ;
+			begin = genfile::write_small_integer( begin, end, fit.cols() ) ;
+			
+			for( int i = 0; i < fit.rows(); ++i ) {
+				for( int j = 0; j < fit.cols(); ++j ) {
+					if( fit( i, j ) == fit( i, j )) {
+						begin = genfile::VariantEntry( fit( i, j ) ).serialize( begin, end ) ; 
+					} else {
+						begin = genfile::VariantEntry( genfile::MissingValue() ).serialize( begin, end ) ;
+					}
+				}
+			}
+
+			DataStore::EntityId field_id = m_store->get_or_create_entity( name, "" ) ;
+			m_store->store_per_variant_data( m_snp_id, field_id, m_cohort_id, m_storage_id, &buffer[0], begin ) ;
+		}
+	private:
+		DataStore::UniquePtr m_store ;
+		db::Connection::RowId m_snp_id ;
+		db::Connection::RowId m_storage_id ;
+		db::Connection::RowId m_cohort_id ;
+	} ;
 }
 
 ClusterFitter::UniquePtr ClusterFitter::create( appcontext::OptionProcessor const& options ) {
 	ClusterFitter::UniquePtr result ;
 	result.reset( new NormalClusterFitter( options ) ) ;
 	result->connect(
-		impl::ClusterFitFileOutputter::create( options.get< std::string >( "-fit-cluster-file" ))
+		impl::ClusterFitDataStoreOutputter::create( options.get< std::string >( "-fit-cluster-file" ))
 	) ;
 	return result ;
 }

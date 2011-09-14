@@ -624,6 +624,33 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 	if( m_number_of_eigenvectors_to_compute > 0 ) {
 		m_number_of_eigenvectors_to_compute = std::min( m_number_of_eigenvectors_to_compute, m_number_of_samples ) ;
 		m_number_of_eigenvectors_to_compute = std::min( m_number_of_eigenvectors_to_compute, m_number_of_snps ) ;
+
+		Eigen::VectorXd v = m_kinship_eigendecomposition.block( 0, 0, m_number_of_eigenvectors_to_compute, 1 ) ;
+		v = v.array().sqrt() ;
+		Eigen::MatrixXd PCAs =
+			v.asDiagonal() *
+			m_kinship_eigendecomposition.transpose().block( 0, 1, m_number_of_eigenvectors_to_compute, m_number_of_samples ) ;
+
+		std::string description = "# First " + genfile::string_utils::to_string( m_number_of_eigenvectors_to_compute ) + " PCA components\n"
+			+ "# Number of SNPs: "
+			+ genfile::string_utils::to_string( m_number_of_snps )
+			+ "\n# Number of samples: "
+			+ genfile::string_utils::to_string( m_number_of_samples ) ;
+
+		send_results(
+			m_options.get< std::string >( "-PCA" ) + ".PCAs",
+			PCAs,
+			"PCAComputer",
+			description,
+			boost::function< genfile::VariantEntry ( int ) >(),
+			boost::bind(
+				&impl::get_eigendecomposition_header,
+				"v",
+				_1
+			)
+		) ;
+		
+		
 		m_eigenvectors.resize( m_number_of_eigenvectors_to_compute ) ;
 	}
 	if( m_options.check( "-PCA-exclusions" )) {
