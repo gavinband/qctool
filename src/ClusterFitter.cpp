@@ -106,11 +106,11 @@ namespace impl {
 	} ;
 	
 	struct ClusterFitDataStoreOutputter: public ClusterFitter::ResultCallback {
-		static UniquePtr create( std::string const& filename ) {
+		static UniquePtr create( std::string const& spec ) {
 			UniquePtr result ;
 			result.reset(
 				new ClusterFitDataStoreOutputter(
-					DataStore::create( filename )
+					DataStore::create( spec )
 				)
 			) ;
 			return result ;
@@ -162,9 +162,19 @@ namespace impl {
 ClusterFitter::UniquePtr ClusterFitter::create( appcontext::OptionProcessor const& options ) {
 	ClusterFitter::UniquePtr result ;
 	result.reset( new NormalClusterFitter( options ) ) ;
-	result->connect(
-		impl::ClusterFitDataStoreOutputter::create( options.get< std::string >( "-fit-cluster-file" ))
-	) ;
+	std::string filename = options.get< std::string >( "-fit-cluster-file" ) ;
+	try {
+		db::SQLite3Connection connection( filename ) ;
+		result->connect(
+			impl::ClusterFitDataStoreOutputter::create( "sqlite3://" + filename )
+		) ;
+	}
+	catch( db::Error const& ) {
+		// not a sqlite3 file.  Use a file instead.
+		result->connect(
+			impl::ClusterFitFileOutputter::create( filename )
+		) ;
+	}
 	return result ;
 }
 

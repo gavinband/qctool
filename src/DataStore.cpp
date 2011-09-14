@@ -1,13 +1,18 @@
 #include <string>
+#include "genfile/Error.hpp"
 #include "db/Connection.hpp"
 #include "DataStore.hpp"
 #include "VCDBDataStore.hpp"
 
-DataStore::UniquePtr DataStore::create( std::string const& filename ) {
+DataStore::UniquePtr DataStore::create( std::string const& spec ) {
 	DataStore::UniquePtr result ;
-	db::Connection::UniquePtr connection( db::Connection::create( filename )) ;
-	result.reset(
-		new VCDBDataStore( connection )
-	) ;
+	if( spec.compare( 0, 9, "sqlite3://" ) == 0 ) {
+		db::Connection::UniquePtr connection( db::Connection::create( spec.substr( 9, spec.size() ))) ;
+		result.reset(
+			new VCDBDataStore( connection )
+		) ;
+	} else {
+		throw genfile::BadArgumentError( "DataStore::create()", "spec=\"" + spec + "\"" ) ;
+	}
 	return result ;
 }

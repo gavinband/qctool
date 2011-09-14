@@ -13,7 +13,7 @@ VCDBWriter::UniquePtr VCDBWriter::create( std::string const& filename ) {
 	VCDBWriter::UniquePtr result(
 		new VCDBWriter(
 			DataStore::create(
-				filename
+				"sqlite3://" + filename
 			)
 		)
 	) ;
