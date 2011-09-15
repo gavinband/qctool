@@ -6,8 +6,8 @@
 
 DataStore::UniquePtr DataStore::create( std::string const& spec ) {
 	DataStore::UniquePtr result ;
-	if( spec.compare( 0, 9, "sqlite3://" ) == 0 ) {
-		db::Connection::UniquePtr connection( db::Connection::create( spec.substr( 9, spec.size() ))) ;
+	if( spec.compare( 0, 10, "sqlite3://" ) == 0 ) {
+		db::Connection::UniquePtr connection( db::Connection::create( spec.substr( 10, spec.size() ))) ;
 		result.reset(
 			new VCDBDataStore( connection )
 		) ;

@@ -27,14 +27,14 @@ private:
 	DataStore::EntityId m_cohort_id ;
 	DataStore::EntityId m_storage_id ;
 
-	std::map< std::string, db::Connection::RowId > m_entities ;
+	typedef std::map< std::string, db::Connection::RowId > EntityCache ;
+	EntityCache m_entity_cache ;
 
 	std::vector< std::vector< genfile::VariantEntry > > m_data ;
 	std::vector< char > m_buffer ;
 	std::vector< char > m_compressed_buffer ;
 	void setup() ;
-	void get_or_create_entity( std::string const& name, std::string const& description ) ;
-	void set_relationship( std::string const& left, std::string const& relation, std::string const& right ) const ;
+	db::Connection::RowId get_or_create_field( std::string const& field, std::string const& type ) ;
 } ;
 
 #endif

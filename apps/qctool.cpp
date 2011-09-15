@@ -1928,12 +1928,8 @@ private:
 		try {
 			unsafe_process() ;
 		}
-		catch( genfile::BadArgumentError const& e ) {
-			get_ui_context().logger() << "!! Error (" << e.what() << "): in argument to function " << e.function() << ": " << e.arguments() << ".\n" ;
-			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
-		}
-		catch( genfile::MalformedInputError const& e ) {
-			get_ui_context().logger() << "\nError (" << e.what() <<"): " << e.format_message() << ".\n" ;
+		catch( genfile::InputError const& e ) {
+			get_ui_context().logger() << "!! Error (" << e.what() << "): " << e.format_message() << ".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 		catch( genfile::FileNotFoundError const& e ) {
@@ -2023,7 +2019,6 @@ private:
 		if( relatotron.get() ) {
 			relatotron->process( worker.get() ) ;
 		}
-		
 	}
 } ;
 

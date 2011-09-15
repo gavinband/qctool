@@ -6,7 +6,9 @@
 #include "VCDBDataStore.hpp"
 
 VCDBDataStore::VCDBDataStore( db::Connection::UniquePtr connection ):
-	m_connection( connection )
+	m_connection( connection ),
+	m_zlib_compression_id( 0 ),
+	m_no_compression_id( 0 )
 {
 	setup_db( *m_connection ) ;
 }
@@ -21,14 +23,14 @@ void VCDBDataStore::setup_db( db::Connection& connection ) {
 		) ;
 		statement->step() ;
 		if( statement->empty() ) {
-			std::cerr << "VCDBDataStore: Preparing new DB.\n" ;
 			m_db_version = "VCDBv0.3" ;
 			prepare_new_db( connection, m_db_version ) ;
+			std::cerr << "VCDBDataStore: Prepared new DB with format \"" << m_db_version << "\".\n" ;
 		}
 		else {
 			m_db_version = get_db_version( connection ) ;
 			prepare_existing_db( connection, m_db_version ) ;
-			std::cerr << "VCDBDataStore: Opening existing DB with version " << m_db_version << ".\n" ;
+			std::cerr << "VCDBDataStore: Opened DB with format " << m_db_version << ".\n" ;
 		}
 	}
 	catch( db::Error const& e ) {
@@ -68,6 +70,9 @@ void VCDBDataStore::prepare_db( db::Connection& connection, std::string const& v
 	std::string stub = new_db ? "" : "IF NOT EXISTS " ;
 
 	if( new_db ) {
+		connection.run_statement(
+			"PRAGMA page_size = 65536"
+		) ;
 		connection.run_statement(
 			"CREATE TABLE FileInfo ( key TEXT NOT NULL UNIQUE, value TEXT );"
 		) ;
@@ -194,8 +199,8 @@ void VCDBDataStore::prepare_db( db::Connection& connection, std::string const& v
 	}
 	else {
 		get_or_create_entity( "compression_type", "Class of entities representing compression algorithms." ) ;
-		get_or_create_entity( "zlib", "zlib compressed data" ) ;
-		get_or_create_entity( "uncompressed", "uncompressed data" ) ;
+		m_zlib_compression_id = get_or_create_entity( "zlib", "zlib compressed data" ) ;
+		m_no_compression_id = get_or_create_entity( "uncompressed", "uncompressed data" ) ;
 		set_relationship( "zlib", "is_a", "compression_type" ) ;
 		set_relationship( "uncompressed", "is_a", "compression_type" ) ;
 	}
@@ -279,6 +284,7 @@ int64_t VCDBDataStore::get_or_create_entity( std::string name, std::string descr
 
 int64_t VCDBDataStore::get_entity( std::string const& name ) const {
 	db::Connection::RowId result ;
+	
 	db::Connection::StatementPtr statement = m_connection->get_statement(
 		"SELECT id, description FROM Entity WHERE name == ?1"
 	) ;
@@ -366,8 +372,7 @@ void VCDBDataStore::store_per_variant_data(
 		statement->bind( 6, buffer, end ) ;
 	}
 	if( m_db_version >= "VCDBv0.3" ) {
-		int64_t compression_id = get_entity( ( compress_data ) ? "zlib" : "uncompressed" ) ;
-		statement->bind( 7, compression_id ) ;
+		statement->bind( 7, ( compress_data ? m_zlib_compression_id : m_no_compression_id ) ) ;
 	}
 	statement->step() ;
 }

@@ -191,9 +191,32 @@ namespace genfile {
 		char const* what() const throw() { return "genfile::BadArgumentError" ; }
 		std::string const& function() const { return m_function ; }
 		std::string const& arguments() const { return m_arguments ; }
+		
+		std::string format_message() const ;
+		
 		private:
 			std::string const m_function ;
 			std::string const m_arguments ;
+	} ;
+
+	struct BadArgumentWithMessageError: public BadArgumentError
+	{
+		BadArgumentWithMessageError( std::string const& message, std::string const& function, std::string const& arguments ):
+			BadArgumentError( function, arguments ),
+			m_message( message )
+		{}
+
+		BadArgumentWithMessageError( BadArgumentWithMessageError const& other ):
+			BadArgumentError( other ),
+			m_message( other.m_message )
+		{}
+		
+		~BadArgumentWithMessageError() throw() {}
+		
+		std::string format_message() const ;
+		
+	private:
+		std::string const m_message ;
 	} ;
 
 	struct KeyNotFoundError: public InputError

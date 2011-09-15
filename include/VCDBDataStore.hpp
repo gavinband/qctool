@@ -1,6 +1,8 @@
 #ifndef VCDB_DATA_STORE_HPP
 #define VCDB_DATA_STORE_HPP
 
+#include <map>
+#include <string>
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
 #include "DataStore.hpp"
@@ -22,7 +24,10 @@ private:
 	std::vector< char > m_compression_buffer ;
 	std::string m_db_version ;
 	db::Connection::StatementPtr m_store_variant_data_statement ;
+	db::Connection::RowId m_zlib_compression_id ;
+	db::Connection::RowId m_no_compression_id ;
 	
+private:
 	std::string get_db_version( db::Connection& connection ) const ;
 	void prepare_new_db( db::Connection& connection, std::string const& version ) ;
 	void prepare_existing_db( db::Connection& connection, std::string const& version ) ;

@@ -33,12 +33,20 @@ void VCDBWriter::setup() {
 	m_cohort_id = m_store->get_or_create_entity( "unnamed cohort", "An unnamed cohort" ) ;	
 }
 
-void VCDBWriter::get_or_create_entity( std::string const& name, std::string const& description ) {
-	m_store->get_or_create_entity( name, description ) ;
-}
-
-void VCDBWriter::set_relationship( std::string const& left, std::string const& relation, std::string const& right ) const {
-	m_store->set_relationship( left, relation, right ) ;
+db::Connection::RowId VCDBWriter::get_or_create_field( std::string const& field, std::string const& type ) {
+	EntityCache::const_iterator where = m_entity_cache.find( field ) ;
+	if( where != m_entity_cache.end() ) {
+		return where->second ;
+	}
+	else {
+		DataStore::EntityId field_id = m_store->get_or_create_entity( field, "" ) ;
+		m_store->get_or_create_entity( type, "" ) ;
+		m_store->set_relationship( field, "has_type", type ) ;
+		m_store->set_relationship( field, "stored_as", "qctool_serialized" ) ;
+		m_store->set_relationship( field, "is_a", "per_variant_per_sample_data" ) ;
+		m_entity_cache[ field ] = field_id ;
+		return field_id ;
+	}
 }
 
 void VCDBWriter::begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) {
@@ -78,11 +86,7 @@ void VCDBWriter::processed_snp( genfile::SNPIdentifyingData const& snp, genfile:
  		) {
 			std::string const field = field_i->first ;
 			std::string const type = field_i->second ;
-			DataStore::EntityId field_id = m_store->get_or_create_entity( field, "" ) ;
-			m_store->get_or_create_entity( type, "" ) ;
-			m_store->set_relationship( field, "has_type", type ) ;
-			m_store->set_relationship( field, "stored_as", "qctool_serialized" ) ;
-			m_store->set_relationship( field, "is_a", "per_variant_per_sample_data" ) ;
+			DataStore::EntityId const field_id = get_or_create_field( field, type ) ;
 
 			std::vector< std::vector< genfile::VariantEntry > >& data = m_data ;
 			data.resize( m_number_of_samples ) ;
