@@ -71,7 +71,7 @@ void VCDBDataStore::prepare_db( db::Connection& connection, std::string const& v
 
 	if( new_db ) {
 		connection.run_statement(
-			"PRAGMA page_size = 65536"
+			"PRAGMA page_size = 8192"
 		) ;
 		connection.run_statement(
 			"CREATE TABLE FileInfo ( key TEXT NOT NULL UNIQUE, value TEXT );"

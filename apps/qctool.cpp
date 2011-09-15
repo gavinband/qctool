@@ -253,10 +253,6 @@ public:
 		options[ "-os" ]
 	        .set_description( "Override the auto-generated path of the output sample file.  " )
 	        .set_takes_single_value() ;
-		options[ "-write-db" ]
-			.set_description( "Write intensities to the given file.  Intensity data must be present "
-				"in the input data for this to work." )
-			.set_takes_single_value() ;
 
 		options.declare_group( "Pedigree file options" ) ;
 		options[ "-op" ]
@@ -391,6 +387,7 @@ public:
 		DataReadTest::declare_options( options ) ;
 		ClusterFitter::declare_options( options ) ;
 		AssociationTester::declare_options( options ) ;
+		VCDBWriter::declare_options( options ) ;
 
 		// Other options
 		options.declare_group( "Other options" ) ;
@@ -1990,7 +1987,7 @@ private:
 
 		std::auto_ptr< VCDBWriter > db_writer ;
 		if( options().check_if_option_was_supplied( "-write-db" )) {
-			db_writer = VCDBWriter::create( options().get_value< std::string >( "-write-db" )) ;
+			db_writer = VCDBWriter::create( options() ) ;
 			processor.add_callback( *db_writer ) ;
 		}
 
