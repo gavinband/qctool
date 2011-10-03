@@ -26,13 +26,16 @@ private:
 	db::Connection::StatementPtr m_store_variant_data_statement ;
 	db::Connection::RowId m_zlib_compression_id ;
 	db::Connection::RowId m_no_compression_id ;
-	
+	std::vector< std::pair< genfile::SNPIdentifyingData, db::Connection::RowId > > m_variants ;
+
 private:
 	std::string get_db_version( db::Connection& connection ) const ;
 	void prepare_new_db( db::Connection& connection, std::string const& version ) ;
 	void prepare_existing_db( db::Connection& connection, std::string const& version ) ;
 	void prepare_db( db::Connection& connection, std::string const& version, bool new_db ) ;
+	void create_indices( db::Connection& connection ) ;
 	void setup_db( db::Connection& connection ) ;
+	void load_variants( db::Connection& connection ) ;
 	void set_relationship( db::Connection::RowId left, db::Connection::RowId relation, db::Connection::RowId right ) const ;
 	void store_per_variant_data( int64_t snp_id, int64_t field_id, int64_t cohort_id, int64_t storage_id, char const* buffer, char const* const end ) ;
 	void get_entities_by_relation( int64_t relationship, int64_t related_entity, boost::function< void ( db::Connection::RowId, std::string const& ) > callback ) ;

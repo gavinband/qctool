@@ -54,7 +54,8 @@ namespace db {
 		// For parameterised queries, bind a BLOB value (array of chars) to the ith placeholder.
 		// Placeholders are indexed starting from 1 on the left.
 		// Named placeholders with the same name have the same index.
-		// The data will be copied and so the caller need not preserve it beyond the call site.
+		// The data will not be copied and so the caller must preserve the data until
+		// such time as no further steps() are performed, or the parameter is re-bound.
 		virtual SQLStatement& bind( std::size_t i, char const* buffer, char const* const end ) = 0 ;
 
 		// Reset the statement, ready to be re-executed.

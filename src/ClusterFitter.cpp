@@ -132,6 +132,7 @@ namespace impl {
 			std::vector< std::size_t > const& non_missing_counts,
 			Eigen::MatrixXd const& fit
 		) {
+			std::cerr << "Writing matrix:\n" << fit << ".\n" ;
 			std::vector< char > buffer( fit.rows()*fit.cols()*(sizeof( double )+1) + 16 ) ;
 			char* begin = &buffer[0] ;
 			char* const end = &buffer[0] + buffer.size() ;
@@ -164,7 +165,7 @@ ClusterFitter::UniquePtr ClusterFitter::create( appcontext::OptionProcessor cons
 	result.reset( new NormalClusterFitter( options ) ) ;
 	std::string filename = options.get< std::string >( "-fit-cluster-file" ) ;
 	try {
-		db::SQLite3Connection connection( filename ) ;
+		db::SQLite3Connection connection( filename, false ) ;
 		result->connect(
 			impl::ClusterFitDataStoreOutputter::create( "sqlite3://" + filename )
 		) ;

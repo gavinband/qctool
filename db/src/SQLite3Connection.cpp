@@ -22,12 +22,12 @@ extern "C" {
 }
 
 namespace db {
-	SQLite3Connection::SQLite3Connection( std::string const& filename ):
+	SQLite3Connection::SQLite3Connection( std::string const& filename, bool overwrite ):
 		m_filename( filename ),
 		m_db_connection(0),
 		m_managed( true )
 	{
-		open_db_connection( filename ) ;
+		open_db_connection( filename, overwrite ) ;
 	}
 
 	SQLite3Connection::~SQLite3Connection() {
@@ -76,8 +76,12 @@ namespace db {
 		return (code == SQLITE_ROW);
 	}
 	
-	void SQLite3Connection::open_db_connection( std::string const& filename ) {
-		int code = sqlite3_open( filename.c_str(), &m_db_connection ) ;
+	void SQLite3Connection::open_db_connection( std::string const& filename, bool overwrite ) {
+		int flags = SQLITE_OPEN_READWRITE ;
+		if( overwrite ) {
+			flags |= SQLITE_OPEN_CREATE ;
+		}
+		int code = sqlite3_open_v2( filename.c_str(), &m_db_connection, flags, NULL ) ;
 		if( code != SQLITE_OK ) {
 			throw ConnectionError( "SQLite3Connection::open_db_connection()", get_spec(), code ) ;
 		}

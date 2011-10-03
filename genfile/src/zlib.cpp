@@ -15,7 +15,7 @@ namespace genfile {
 			int result = compress2(
 				reinterpret_cast< Bytef* >( const_cast< char* >( &( dest->operator[](0) ) ) ),
 				&compressed_size,
-				reinterpret_cast< Bytef const* >( dest ),
+				reinterpret_cast< Bytef const* >( buffer ),
 				source_size,
 				Z_DEFAULT_COMPRESSION
 			) ;

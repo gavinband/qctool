@@ -36,6 +36,7 @@ private:
 	std::size_t m_number_of_snps_written ;
 	std::size_t m_transaction_count ;
 	std::size_t m_transaction_limit ;
+	DataStore::TransactionPtr m_transaction ;
 	
 	DataStore::EntityId m_cohort_id ;
 	DataStore::EntityId m_storage_id ;

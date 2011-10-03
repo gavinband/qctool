@@ -20,7 +20,7 @@ namespace db {
 		// Open a connection to an on-disk database.
 		// If the filename is ":memory:", open instead a connection
 		// to a new private in-memory DB.
-		SQLite3Connection( std::string const& filename ) ;
+		SQLite3Connection( std::string const& filename, bool overwrite = true ) ;
 		virtual ~SQLite3Connection() ;
 
 	public:
@@ -43,7 +43,7 @@ namespace db {
 		bool m_managed ;
 
 	private:
-		void open_db_connection( std::string const& filename ) ;
+		void open_db_connection( std::string const& filename, bool overwrite ) ;
 		void close_db_connection_if_necessary() ;
 		void finalise_prepared_statements() ;
 	} ;

@@ -1,3 +1,5 @@
+#include <iostream>
+#include <iomanip>
 #include "genfile/string_utils.hpp" 
 #include "genfile/Error.hpp" 
 #include "genfile/zlib.hpp" 
@@ -11,6 +13,7 @@ VCDBDataStore::VCDBDataStore( db::Connection::UniquePtr connection ):
 	m_no_compression_id( 0 )
 {
 	setup_db( *m_connection ) ;
+	load_variants( *m_connection ) ;
 }
 
 void VCDBDataStore::setup_db( db::Connection& connection ) {
@@ -37,6 +40,23 @@ void VCDBDataStore::setup_db( db::Connection& connection ) {
 		std::cerr << "Database " << m_connection->get_spec() << " does not appear to be in vcdb format (no VCDBFileVersion table).\n" ;
 		throw genfile::MalformedInputError( m_connection->get_spec(), 0 ) ;
 	}
+}
+
+void VCDBDataStore::load_variants( db::Connection& connection ) {
+	db::Connection::StatementPtr statement = connection.get_statement(
+		"SELECT id, rsid, chromosome, position, alleleA, alleleB FROM SNP"
+	) ;
+	for( statement->step() ; !statement->empty(); statement->step() ) {
+		m_variants.resize( m_variants.size() + 1 ) ;
+		m_variants.back().first.rsid() = statement->get< std::string >(1) ;
+		m_variants.back().first.SNPID() = statement->get< std::string >(1) ;
+		m_variants.back().first.position().chromosome() = genfile::Chromosome( statement->get< std::string >(2) ) ;
+		m_variants.back().first.position().position() = statement->get< int64_t >( 3 ) ;
+		m_variants.back().first.first_allele() = statement->get< std::string >( 4 )[0] ;
+		m_variants.back().first.second_allele() = statement->get< std::string >( 5 )[0] ;
+	}
+	std::sort( m_variants.begin(), m_variants.end() ) ;
+	std::cerr << "Loaded " << m_variants.size() << " variants.\n" ;
 }
 
 std::string VCDBDataStore::get_db_version( db::Connection& connection ) const {
@@ -83,8 +103,7 @@ void VCDBDataStore::prepare_db( db::Connection& connection, std::string const& v
 	}
 
 	connection.run_statement(
-		"CREATE TABLE " + stub + "Entity ( id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, description TEXT ) ; "
-		"CREATE INDEX " + stub + "Entity_name ON Entity( name )"
+		"CREATE TABLE " + stub + "Entity ( id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, description TEXT )"
 	) ;
 
 	connection.run_statement(
@@ -120,13 +139,6 @@ void VCDBDataStore::prepare_db( db::Connection& connection, std::string const& v
 		")"
 	) ;
 	
-	connection.run_statement(
-		"CREATE INDEX " + stub + "SNP_rsid ON SNP( rsid )"
-	) ;
-	connection.run_statement(
-		"CREATE INDEX " + stub + "SNP_position ON SNP( chromosome, position )"
-	) ;
-
 	connection.get_statement(
 		"CREATE TABLE " + stub + "VariantLocation ("
 		"snp_id INTEGER NOT NULL, "
@@ -177,16 +189,12 @@ void VCDBDataStore::prepare_db( db::Connection& connection, std::string const& v
 	}
 
 	connection.run_statement(
-		"CREATE INDEX " + stub + "Data_snp ON Data( snp_id )"
-	) ;
-	connection.run_statement(
-		"CREATE INDEX " + stub + "Data_field ON Data( field_id )"
-	) ;
-	connection.run_statement(
-		"CREATE INDEX " + stub + "Data_storage ON Data( storage_id )"
-	) ;
-	connection.run_statement(
-		"CREATE INDEX " + stub + "Data_cohort ON Data( cohort_id )"
+		"CREATE VIEW " + stub + "DataNameView AS "
+		"SELECT S.*, D.field_id, F.id AS field_Id, F.name AS field_name, C.id AS cohort_id, C.name AS cohort_name, ST.id AS storage_id, ST.name AS storage_name, uncompressed_size FROM Data D "
+		"INNER JOIN SNP S ON S.id == D.snp_id "
+		"INNER JOIN Entity F ON F.id == D.field_id "
+		"INNER JOIN Entity C ON C.id == D.cohort_id "
+		"INNER JOIN Entity ST ON ST.id == D.storage_id "
 	) ;
 	
 	get_or_create_entity( "is_a", "Indicates that a is an object of class b." ) ;
@@ -208,12 +216,40 @@ void VCDBDataStore::prepare_db( db::Connection& connection, std::string const& v
 	get_or_create_entity( "per_variant_per_sample_data", "Indicates data pertains to each sample at a variant" ) ;
 	get_or_create_entity( "per_variant_data", "Indicates data pertains to a variant as a whole" ) ;
 	get_or_create_entity( "unnamed cohort", "An unnamed cohort" ) ;
+	
+	create_indices( connection ) ;
+}
+
+void VCDBDataStore::create_indices( db::Connection& connection ) {
+	std::string const stub = "IF NOT EXISTS " ;
+	connection.run_statement(
+		"CREATE INDEX " + stub + "Entity_name ON Entity( name )"
+	) ;
+
+	connection.run_statement(
+		"CREATE INDEX " + stub + "SNP_rsid ON SNP( rsid )"
+	) ;
+	connection.run_statement(
+		"CREATE INDEX " + stub + "SNP_position ON SNP( chromosome, position )"
+	) ;
+
+	connection.run_statement(
+		"CREATE INDEX " + stub + "Data_snp ON Data( snp_id )"
+	) ;
+	connection.run_statement(
+		"CREATE INDEX " + stub + "Data_field ON Data( field_id )"
+	) ;
+	connection.run_statement(
+		"CREATE INDEX " + stub + "Data_storage ON Data( storage_id )"
+	) ;
+	connection.run_statement(
+		"CREATE INDEX " + stub + "Data_cohort ON Data( cohort_id )"
+	) ;
 }
 
 std::string VCDBDataStore::get_spec() const {
 	return "VCDBDataStore:" + m_connection->get_spec() ;
 }
-
 
 int64_t VCDBDataStore::get_or_create_SNP( genfile::SNPIdentifyingData const& snp ) {
 	using genfile::string_utils::to_string ;
@@ -367,6 +403,11 @@ void VCDBDataStore::store_per_variant_data(
 		// Compress the data before storing.
 		genfile::zlib_compress( buffer, end, &m_compression_buffer ) ;
 		statement->bind( 6, &m_compression_buffer[0], &m_compression_buffer[0] + m_compression_buffer.size() 	) ;
+		std::cerr << "First few bytes of compressed data are:\n" ;
+		for( std::size_t i = 0; i < 10; ++i ) {
+			std::cerr << " " << std::hex << std::setw(2) << std::setfill( '0' ) << unsigned( static_cast< unsigned char >( m_compression_buffer[i] ) ) ;
+		}
+		std::cerr << std::dec << "...\n" ;
 	}
 	else {
 		statement->bind( 6, buffer, end ) ;
