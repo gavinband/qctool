@@ -1970,6 +1970,7 @@ private:
 			|| options().check_if_option_was_supplied( "-op" )
 			|| options().check_if_option_was_supplied( "-os" )
 			|| options().check_if_option_was_supplied( "-op" )
+			|| options().check_if_option_was_supplied_in_group( "SNP filtering options" )
 		) {
 			processor.add_callback( qctool_basic ) ;
 		}
