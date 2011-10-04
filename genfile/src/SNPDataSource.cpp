@@ -48,7 +48,7 @@ namespace genfile {
 		}
 		else {
 			// assume GEN format.
-			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type, metadata )) ;
 		}
 	}
 
