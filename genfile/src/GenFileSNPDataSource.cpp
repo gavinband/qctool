@@ -28,7 +28,12 @@ namespace genfile {
 		setup( filename, m_compression_type ) ; 
 	}
 
-	GenFileSNPDataSource::GenFileSNPDataSource( std::string const& filename, Chromosome chromosome, CompressionType compression_type )
+	GenFileSNPDataSource::GenFileSNPDataSource(
+		std::string const& filename,
+		Chromosome chromosome,
+		CompressionType compression_type,
+		vcf::MetadataParser::Metadata const& metadata
+	)
 		: m_filename( filename ),
 		  m_compression_type( compression_type ),
 		  m_number_of_samples( 0 ),
@@ -36,18 +41,37 @@ namespace genfile {
 		  m_chromosome( chromosome ),
 		  m_have_chromosome_column( false )
 	{
-		setup( filename, compression_type ) ;
+		setup( filename, compression_type, metadata ) ;
 	}
 
-	void GenFileSNPDataSource::setup( std::string const& filename, CompressionType compression_type ) {
+	void GenFileSNPDataSource::setup( std::string const& filename, CompressionType compression_type, vcf::MetadataParser::Metadata const& metadata ) {
 		m_stream_ptr = open_text_file_for_input( filename, compression_type ) ;
-		read_header_data() ;				
+
+		typedef vcf::MetadataParser::Metadata::const_iterator MetadataIterator ;
+		std::pair< MetadataIterator, MetadataIterator > range = metadata.equal_range( "number-of-variants" ) ;
+		if( range.first != range.second ) {
+			std::size_t total_number_of_snps = 0 ;
+			std::map< std::string, std::string >::const_iterator where = range.first->second.find( "" ) ;
+			if( where == range.first->second.end() ) {
+				throw MalformedInputError( "metadata", std::distance( metadata.begin(), range.first )) ;
+			}
+			else {
+				total_number_of_snps = string_utils::to_repr< std::size_t >( where->second ) ;
+			}
+			if( (++range.first) != range.second ) {
+				throw MalformedInputError( "metadata", std::distance( metadata.begin(), range.first )) ;
+			}
+			m_total_number_of_snps = total_number_of_snps ;
+			read_header_data( false ) ;
+		} else {
+			read_header_data( true ) ;
+		}
 		reset_to_start() ;
 	}
 
 	void GenFileSNPDataSource::setup( std::auto_ptr< std::istream > stream_ptr ) {
 		m_stream_ptr = stream_ptr ;
-		read_header_data() ;
+		read_header_data( true ) ;
 		reset_to_start() ;
 	}
 
@@ -145,7 +169,7 @@ namespace genfile {
 		std::getline( stream(), line ) ;
 	}
 
-	void GenFileSNPDataSource::read_header_data() {
+	void GenFileSNPDataSource::read_header_data( bool count_snps ) {
 		try {
 			// First let's have a look at the file.  If it is empty, we report 0 samples.
 			m_stream_ptr->peek() ;
@@ -157,11 +181,20 @@ namespace genfile {
 					set_value( m_number_of_samples ),
 					set_value( flags )
 				) ;
+				if( !(*m_stream_ptr )) {
+					throw MalformedInputError( m_filename, 1 ) ;
+				}
 
 				if( flags & 0x1 ) {
 					m_have_chromosome_column = true ;
 				} else {
 					m_have_chromosome_column = false ;
+				}
+
+				if( count_snps ) {
+					m_stream_ptr->clear() ;
+					m_stream_ptr->seekg( 0 ) ;
+					m_total_number_of_snps = gen::count_snp_blocks( *m_stream_ptr ) ;
 				}
 			}
 		}

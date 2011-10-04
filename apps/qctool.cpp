@@ -1313,9 +1313,16 @@ private:
 			source = open_vcf_format_snp_data_source( uf ) ;
 		}
 		else {
+			genfile::vcf::MetadataParser::Metadata metadata ;
+			if( m_options.check( "-metadata" )) {
+				metadata = genfile::vcf::StrictMetadataParser(
+					m_options.get_value< std::string >( "-metadata" )
+				).get_metadata() ;
+			}
 			source = genfile::SNPDataSource::create(
 				filename,
-				chromosome_indicator
+				chromosome_indicator,
+				metadata
 			) ;
 		}
 		

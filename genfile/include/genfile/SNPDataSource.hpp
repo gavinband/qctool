@@ -11,6 +11,7 @@
 #include "genfile/GenomePosition.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
+#include "genfile/vcf/MetadataParser.hpp"
 
 namespace genfile {
 	struct SNPDataSourceError: public SNPDataError { char const* what() const throw() { return "SNPDataSourceError" ; } } ;
@@ -30,8 +31,18 @@ namespace genfile {
 		typedef boost::function< void ( std::size_t, std::size_t ) > NotifyProgress ;
 		
 		// The following methods are factory functions
-		static UniquePtr create( std::string const& filename, Chromosome = UnidentifiedChromosome ) ;
+		static UniquePtr create(
+			std::string const& filename,
+			Chromosome = UnidentifiedChromosome,
+			vcf::MetadataParser::Metadata const& = vcf::MetadataParser::Metadata()
+		) ;
 		static UniquePtr create( std::string const& filename, Chromosome, CompressionType compression_type ) ;
+		static UniquePtr create(
+			std::string const& filename,
+			Chromosome,
+			CompressionType compression_type,
+			vcf::MetadataParser::Metadata const& = vcf::MetadataParser::Metadata()
+		) ;
 		static UniquePtr create_chain(
 			std::vector< wildcard::FilenameMatch > const& matches,
 			NotifyProgress notify_progress = NotifyProgress()

@@ -6,6 +6,7 @@
 #include "snp_data_utils.hpp"
 #include "gen.hpp"
 #include "SNPDataSource.hpp"
+#include "vcf/MetadataParser.hpp"
 
 namespace genfile {
 	namespace impl {
@@ -19,7 +20,12 @@ namespace genfile {
 	public:
 		GenFileSNPDataSource( std::auto_ptr< std::istream > stream, Chromosome chromosome ) ;
 		GenFileSNPDataSource( std::string const& filename, Chromosome chromosome ) ;
-		GenFileSNPDataSource( std::string const& filename, Chromosome chromosome, CompressionType compression_type ) ;
+		GenFileSNPDataSource(
+			std::string const& filename,
+			Chromosome chromosome,
+			CompressionType compression_type,
+			vcf::MetadataParser::Metadata const& = vcf::MetadataParser::Metadata()
+		) ;
 
 		unsigned int number_of_samples() const { return m_number_of_samples ; }
 		unsigned int total_number_of_snps() const { return m_total_number_of_snps ; }
@@ -60,9 +66,9 @@ namespace genfile {
 		Chromosome m_chromosome ;
 		bool m_have_chromosome_column ;
 
-		void setup( std::string const& filename, CompressionType compression_type ) ;
+		void setup( std::string const& filename, CompressionType compression_type, vcf::MetadataParser::Metadata const& = vcf::MetadataParser::Metadata() ) ;
 		void setup( std::auto_ptr< std::istream > stream_ptr ) ;
-		void read_header_data() ;
+		void read_header_data( bool count_snps ) ;
 	} ;
 }
 
