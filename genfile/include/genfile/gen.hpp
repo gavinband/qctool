@@ -126,9 +126,9 @@ namespace genfile {
 
 			void read_snp_identifying_data(
 				std::istream& aStream,
+				Chromosome* chromosome,
 				std::string* SNPID,
 				std::string* RSID,
-				Chromosome* chromosome,
 				uint32_t* SNP_position,
 				char* first_allele,
 				char* second_allele
@@ -179,6 +179,7 @@ namespace genfile {
 			FlagsSetter set_flags
 		) {
 			uint32_t number_of_samples ;
+			int flags = 0 ;
 			{
 				std::string line ;
 				std::getline( aStream, line ) ;
@@ -194,6 +195,7 @@ namespace genfile {
 				else if(( count - 6 ) % 3 == 0 ) {
 					// chromosome column present.
 					number_of_samples = ( count - 6 ) / 3 ;
+					flags |= 0x1 ;
 				}
 				else {
 					throw MalformedInputError( "(unknown)", 0 ) ;
@@ -234,10 +236,50 @@ namespace genfile {
 			if( aStream.eof() ) {
 				set_number_of_snp_blocks( number_of_snp_blocks ) ;
 				set_number_of_samples( number_of_samples ) ;
-				set_flags( 0 ) ;
+				set_flags( flags ) ;
 			} else {
 				throw MalformedInputError( "(unknown)",  number_of_snp_blocks ) ;
 			}
+		}
+
+
+		/*
+		* Function: write_snp_block()
+		* Write a snp block with the given information to the given ostream object.
+		* Genotype probabilities must be supplied by the given GenotypeProbabilityGetter
+		* objects, which must be callable as
+		* - get_AA_probability( index )
+		* - get_AB_probability( index )
+		* - get_BB_probability( index )
+		* where index is the index of the individual in the SNP block.
+		*/
+		template< typename GenotypeProbabilityGetter >
+		void write_snp_block(
+			std::ostream& aStream,
+			uint32_t number_of_samples,
+			genfile::Chromosome const& chromosome,
+			std::string SNPID,
+			std::string RSID,
+			uint32_t SNP_position,
+			char first_allele,
+			char second_allele,
+			GenotypeProbabilityGetter get_AA_probability,
+			GenotypeProbabilityGetter get_AB_probability,
+			GenotypeProbabilityGetter get_BB_probability
+		) {
+			aStream << chromosome << " " ;
+			write_snp_block(
+				aStream,
+				number_of_samples,
+				SNPID,
+				RSID,
+				SNP_position,
+				first_allele,
+				second_allele,
+				get_AA_probability,
+				get_AB_probability,
+				get_BB_probability
+			) ;
 		}
 
 		/*

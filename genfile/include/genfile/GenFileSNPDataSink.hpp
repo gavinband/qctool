@@ -15,14 +15,16 @@ namespace genfile {
 	class GenFileSNPDataSink: public SNPDataSink
 	{
 	public:
-		GenFileSNPDataSink( std::string const& filename, Chromosome chromosome )
-			: m_filename( filename )
+		GenFileSNPDataSink( std::string const& filename, Chromosome chromosome ):
+			m_filename( filename ),
+			m_write_chromosome_column( true )
 		{
 			setup( filename, get_compression_type_indicated_by_filename( filename )) ;
 		}
 
-		GenFileSNPDataSink( std::string const& filename, Chromosome chromosome, CompressionType compression_type )
-			: m_filename( filename )
+		GenFileSNPDataSink( std::string const& filename, Chromosome chromosome, CompressionType compression_type ):
+			m_filename( filename ),
+			m_write_chromosome_column( true )
 		{
 			setup( filename, compression_type ) ;
 		}
@@ -44,14 +46,19 @@ namespace genfile {
 			GenotypeProbabilityGetter const& get_AB_probability,
 			GenotypeProbabilityGetter const& get_BB_probability
 		) {
-			if( number_of_snps_written() == 0 ) {
-				m_chromosome = chromosome ;
+			if( m_write_chromosome_column ) {
+				gen::write_snp_block( *m_stream_ptr, number_of_samples, chromosome, SNPID, RSID, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
 			}
-			else if( m_chromosome != chromosome ) {
-				throw BadArgumentError( "GenFileSNPDataSink::write_snp_impl()", "chromosome=" + string_utils::to_string( chromosome ) ) ;
+			else {
+				// Only allow ourselves to write a single chromosome.
+				if( number_of_snps_written() == 0 ) {
+					m_chromosome = chromosome ;
+				}
+				else if( m_chromosome != chromosome ) {
+					throw BadArgumentError( "GenFileSNPDataSink::write_snp_impl()", "chromosome=" + string_utils::to_string( chromosome ) ) ;
+				}
+				gen::write_snp_block( *m_stream_ptr, number_of_samples, SNPID, RSID, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
 			}
-
-			gen::write_snp_block( *m_stream_ptr, number_of_samples, SNPID, RSID, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
 		} ;
 
 	private:
@@ -67,6 +74,7 @@ namespace genfile {
 		std::string m_filename ;
 		std::auto_ptr< std::ostream > m_stream_ptr ;
 		Chromosome m_chromosome ;
+		bool m_write_chromosome_column ;
 	} ;
 }
 

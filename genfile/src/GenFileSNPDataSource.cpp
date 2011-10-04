@@ -11,7 +11,8 @@ namespace genfile {
 		m_compression_type( "no_compression" ),
 		m_number_of_samples( 0 ),
 		m_total_number_of_snps( 0 ),
-		m_chromosome( chromosome )
+		m_chromosome( chromosome ),
+		m_have_chromosome_column( false )
 	{
 		setup( stream ) ;
 	}
@@ -21,7 +22,8 @@ namespace genfile {
 		  m_compression_type( get_compression_type_indicated_by_filename( filename ) ),
 		  m_number_of_samples( 0 ),
 		  m_total_number_of_snps( 0 ),
-		  m_chromosome( chromosome )
+		  m_chromosome( chromosome ),
+		  m_have_chromosome_column( false )
 	{
 		setup( filename, m_compression_type ) ; 
 	}
@@ -31,7 +33,8 @@ namespace genfile {
 		  m_compression_type( compression_type ),
 		  m_number_of_samples( 0 ),
 		  m_total_number_of_snps( 0 ),
-		  m_chromosome( chromosome )
+		  m_chromosome( chromosome ),
+		  m_have_chromosome_column( false )
 	{
 		setup( filename, compression_type ) ;
 	}
@@ -61,7 +64,7 @@ namespace genfile {
 	}
 	
 	void GenFileSNPDataSource::read_snp_identifying_data_impl( 
-		uint32_t* number_of_samples, // number_of_samples is unused.
+		uint32_t* number_of_samples,
 		std::string* SNPID,
 		std::string* RSID,
 		Chromosome* chromosome,
@@ -69,11 +72,17 @@ namespace genfile {
 		char* allele1,
 		char* allele2
 	) {
-		gen::impl::read_snp_identifying_data( stream(), SNPID, RSID, SNP_position, allele1, allele2 ) ;
-
-		if( *this ) {
-			*number_of_samples = m_number_of_samples ;
-			*chromosome = m_chromosome ;
+		if( m_have_chromosome_column ) {
+			gen::impl::read_snp_identifying_data( stream(), chromosome, SNPID, RSID, SNP_position, allele1, allele2 ) ;
+			if( *this ) {
+				*number_of_samples = m_number_of_samples ;
+			}
+		} else {
+			gen::impl::read_snp_identifying_data( stream(), SNPID, RSID, SNP_position, allele1, allele2 ) ;
+			if( *this ) {
+				*number_of_samples = m_number_of_samples ;
+				*chromosome = m_chromosome ;
+			}
 		}
 	}
 
@@ -140,13 +149,20 @@ namespace genfile {
 		try {
 			// First let's have a look at the file.  If it is empty, we report 0 samples.
 			m_stream_ptr->peek() ;
+			int flags ;
 			if( !m_stream_ptr->eof() ) {
 				gen::read_header_information(
 					*m_stream_ptr,
 					set_value( m_total_number_of_snps ),
 					set_value( m_number_of_samples ),
-					ignore()
+					set_value( flags )
 				) ;
+
+				if( flags & 0x1 ) {
+					m_have_chromosome_column = true ;
+				} else {
+					m_have_chromosome_column = false ;
+				}
 			}
 		}
 		catch( MalformedInputError const& e ) {
