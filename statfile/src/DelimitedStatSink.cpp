@@ -48,8 +48,10 @@ namespace statfile {
 		write_seperator_if_necessary() ;
 		if( value == std::numeric_limits< double >::infinity() ) {
 			stream() << "inf" ;
-		} else {
+		} else if( value == value ) {
 			stream() << std::fixed << std::setprecision( m_precision ) << value ;
+		} else {
+			stream() << "NA" ;
 		}
 	}
 	
@@ -63,7 +65,7 @@ namespace statfile {
 	void DelimitedStatSink::write_column_names() {
 		for( std::size_t i = 0; i < number_of_columns(); ++i ) {
 			if( i > 0 ) {
-				stream() << " " ;
+				stream() << m_delimiter ;
 			}
 			stream() << column_names()[i] ;
 		}

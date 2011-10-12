@@ -6,18 +6,18 @@
 #include <boost/function.hpp>
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/SingleSNPGenotypeProbabilities.hpp"
 #include "genfile/VariantEntry.hpp"
 
 struct PairwiseCallComparer {
 	typedef std::auto_ptr< PairwiseCallComparer > UniquePtr ;
+	static UniquePtr create( std::string const& spec ) ;
+
 	virtual ~PairwiseCallComparer() {}
-
-	virtual void get_names( boost::function< void( std::string const& ) > ) const ;
-
 	virtual std::map< std::string, genfile::VariantEntry > compare(
 		genfile::SingleSNPGenotypeProbabilities const& left,
 		genfile::SingleSNPGenotypeProbabilities const& right
-	) const ;
+	) const = 0 ;
 } ;
 
 #endif

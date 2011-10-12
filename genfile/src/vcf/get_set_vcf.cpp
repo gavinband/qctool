@@ -6,6 +6,13 @@
 
 namespace genfile {
 	namespace vcf {
+		GenotypeSetterBase::GenotypeSetterBase():
+			m_number_of_samples(0),
+			m_sample(0),
+			m_number_of_entries(0),
+			m_entry_i(0)
+		{}
+		
 		GenotypeSetterBase::~GenotypeSetterBase() throw() {}
 
 		void GenotypeSetterBase::set_number_of_samples( std::size_t n ) {
@@ -69,6 +76,7 @@ namespace genfile {
 		void GenotypeSetter< SingleSNPGenotypeProbabilities >::set_number_of_samples( std::size_t n ) {
 			// destination is supposed to know its size.
 			m_result.resize( n ) ;
+			GenotypeSetterBase::set_number_of_samples( n ) ;
 		}
 
 		void GenotypeSetter< SingleSNPGenotypeProbabilities >::set( std::size_t sample_i, double AA, double AB, double BB ) {

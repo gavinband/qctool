@@ -25,7 +25,7 @@ namespace statfile {
 			result.reset( new statfile::DelimitedStatSink( filename, "\t" ) ) ;
 		}
 		else if( format == statfile::e_RFormat ) {
-			result.reset( new statfile::RFormatStatSink( filename ) ) ;
+			result.reset( new statfile::DelimitedStatSink( filename, " " ) ) ;
 		}
 		else {
 			// default to R format.

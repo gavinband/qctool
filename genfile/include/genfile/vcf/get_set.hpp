@@ -39,6 +39,7 @@ namespace genfile {
 		
 		struct GenotypeSetterBase: public VariantDataReader::PerSampleSetter
 		{
+			GenotypeSetterBase() ;
 			virtual ~GenotypeSetterBase() throw() ;
 
 			virtual void set_number_of_samples( std::size_t n ) ;
