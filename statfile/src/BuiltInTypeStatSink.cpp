@@ -5,6 +5,7 @@
 #include "statfile/RFormatStatSink.hpp"
 #include "statfile/BinFormatStatSink.hpp"
 #include "statfile/PackedBinFormatStatSink.hpp"
+#include "statfile/DelimitedStatSink.hpp"
 
 namespace statfile {
 	std::auto_ptr< BuiltInTypeStatSink > BuiltInTypeStatSink::open( std::string const& filename ) {
@@ -16,6 +17,12 @@ namespace statfile {
 		}
 		else if( format == statfile::e_PackedBinFormat ) {
 			result.reset( new statfile::PackedBinFormatStatSink( filename ) ) ;
+		}
+		else if( format == statfile::e_CommaDelimitedFormat ) {
+			result.reset( new statfile::DelimitedStatSink( filename, "," ) ) ;
+		}
+		else if( format == statfile::e_TabDelimitedFormat ) {
+			result.reset( new statfile::DelimitedStatSink( filename, "\t" ) ) ;
 		}
 		else if( format == statfile::e_RFormat ) {
 			result.reset( new statfile::RFormatStatSink( filename ) ) ;
