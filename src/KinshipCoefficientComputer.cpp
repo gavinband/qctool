@@ -629,7 +629,7 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 		v = v.array().sqrt() ;
 		Eigen::MatrixXd PCAs =
 			v.asDiagonal() *
-			m_kinship_eigendecomposition.transpose().block( 0, 1, m_number_of_eigenvectors_to_compute, m_number_of_samples ) ;
+			m_kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_eigenvectors_to_compute ).transpose() ;
 
 		std::string description = "# First " + genfile::string_utils::to_string( m_number_of_eigenvectors_to_compute ) + " PCA components\n"
 			+ "# Number of SNPs: "
