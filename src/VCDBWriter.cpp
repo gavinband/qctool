@@ -168,6 +168,7 @@ void VCDBWriter::unsafe_store_field( DataStore::EntityId const snp_id, std::stri
 		}
 		buffer.resize( begin - &buffer[0] ) ;
 	}
+	/*
 	std::cerr << "Storing field " << field << " for SNP " << snp_id << ".  NUmber of samples is " << m_number_of_samples << ".\n" ;
 	std::cerr << "First few bytes are: "
 		<< std::hex << std::setw(2) << std::setfill( '0' ) << int( buffer[0] )
@@ -180,7 +181,7 @@ void VCDBWriter::unsafe_store_field( DataStore::EntityId const snp_id, std::stri
 		<< " " << std::setw(2) << std::setfill( '0' ) << int( buffer[7] ) 
 		<< " " << std::setw(2) << std::setfill( '0' ) << int( buffer[8] ) << std::dec << "...\n" ;
 	std::cerr << "Data has size " << buffer.size() << ".\n" ;
-
+	*/
 	m_store->store_per_variant_data(
 		snp_id,
 		field_id,
@@ -189,7 +190,6 @@ void VCDBWriter::unsafe_store_field( DataStore::EntityId const snp_id, std::stri
 		&buffer[0],
 		&buffer[0] + buffer.size()
 	) ;
-	std::cerr << "After, number of samples is " << m_number_of_samples << ".\n" ;
 	++m_number_of_snps_written ;
 }
 

@@ -403,11 +403,13 @@ void VCDBDataStore::store_per_variant_data(
 		// Compress the data before storing.
 		genfile::zlib_compress( buffer, end, &m_compression_buffer ) ;
 		statement->bind( 6, &m_compression_buffer[0], &m_compression_buffer[0] + m_compression_buffer.size() 	) ;
+		/*
 		std::cerr << "First few bytes of compressed data are:\n" ;
 		for( std::size_t i = 0; i < 10; ++i ) {
 			std::cerr << " " << std::hex << std::setw(2) << std::setfill( '0' ) << unsigned( static_cast< unsigned char >( m_compression_buffer[i] ) ) ;
 		}
 		std::cerr << std::dec << "...\n" ;
+		*/
 	}
 	else {
 		statement->bind( 6, buffer, end ) ;
