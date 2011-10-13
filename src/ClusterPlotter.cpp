@@ -16,7 +16,7 @@
 void ClusterPlotter::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "Cluster plot options" ) ;
 #if HAVE_MGL
-	options[ "-plot-clusters" ]
+	options[ "-cluster-plot" ]
 		.set_description( "Create a plot of the intensities and genotypes for each SNP. "
 		 	"Currently this uses the MathGL library (http://mathgl.sourceforge.net) and so only works "
 			"if this is detected during compilation.")
@@ -24,7 +24,7 @@ void ClusterPlotter::declare_options( appcontext::OptionProcessor& options ) {
 	options[ "-cluster-plot-filename" ]
 		.set_description( "Filename of cluster plots to create" )
 		.set_takes_single_value()
-		.set_default_value( "${snpid}_${rsid}_${chromosome}_${position}_${callset}_${intensities}.png" ) ;
+		.set_default_value( "#rsid_#intensityrm .png" ) ;
 #endif
 }
 
@@ -32,7 +32,7 @@ ClusterPlotter::UniquePtr ClusterPlotter::create( appcontext::OptionProcessor co
 	UniquePtr result(
 		new ClusterPlotter(
 			options.get< std::string >( "-cluster-plot-filename" ),
-			genfile::string_utils::split_and_strip_discarding_empty_entries( options.get< std::string >( "-plot-clusters" ), ",", " \t" ),
+			genfile::string_utils::split_and_strip_discarding_empty_entries( options.get< std::string >( "-cluster-plot" ), ",", " \t" ),
 			worker
 		)
 	) ;
@@ -129,6 +129,13 @@ namespace impl {
 }
 
 void ClusterPlotter::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
+	using genfile::string_utils::substitute ;
+	std::string filename = substitute(
+		substitute( m_filename_template, "#rsid", snp.get_rsid() ),
+		"#intensity",
+		m_intensity_field
+	) ;
+	
 	std::auto_ptr< impl::PlotTask > plot_task(
 		new impl::PlotTask(
 			"cohort1",
@@ -136,10 +143,10 @@ void ClusterPlotter::processed_snp( genfile::SNPIdentifyingData const& snp, genf
 			m_call_fields,
 			snp,
 			data_reader,
-			snp.get_rsid() + "_" + m_intensity_field + ".png"
+			filename
 		)
 	) ;
-		
+	
 	if( m_tasks.size() < m_max_tasks ) {
 		m_tasks.push_back( plot_task ) ;
 		m_worker->tell_to_perform_task( m_tasks.back() ) ;
