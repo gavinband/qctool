@@ -123,6 +123,37 @@ namespace genfile {
 				m_result[ sample_i ] = MissingValue() ;
 			}
 		}
+
+		GenotypeSetter< std::vector< int > >::
+			GenotypeSetter( std::vector< int >& result, double threshhold, int missing_value, int AA_value, int AB_value, int BB_value ):
+			m_result( result ),
+			m_threshhold( threshhold ),
+			m_missing_value( missing_value ),
+			m_AA_value( AA_value ),
+			m_AB_value( AB_value ),
+			m_BB_value( BB_value )
+		{}
+
+		void GenotypeSetter< std::vector< int > >::set_number_of_samples( std::size_t n ) {
+			m_result.clear() ;
+			m_result.resize( n, -1 ) ;
+			GenotypeSetterBase::set_number_of_samples( n ) ;
+		}
+
+		void GenotypeSetter< std::vector< int > >::set( std::size_t sample_i, double AA, double AB, double BB ) {
+			if( AA > m_threshhold ) {
+				m_result[ sample_i ] = m_AA_value ;
+			}
+			else if( AB > m_threshhold ) {
+				m_result[ sample_i ] = m_AB_value ;
+			}
+			else if( BB > m_threshhold ) {
+				m_result[ sample_i ] = m_BB_value ;
+			}
+			else {
+				m_result[ sample_i ] = m_missing_value ;
+			}
+		}
 		
 	}
 }

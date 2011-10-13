@@ -108,6 +108,9 @@ namespace genfile {
 			SingleSNPGenotypeProbabilities& m_result ;
 		} ;
 
+		// Genotype setter which stores genotype probabilities as a single vector of doubles.
+		// Genotype call probabilities for individual i are at indices (3*i), (3*i)+1, (3*i)+2.
+		// A missing call is indicated with three zeroes.
 		template<>
 		struct GenotypeSetter< std::vector< double > >: public GenotypeSetterBase
 		{
@@ -126,6 +129,23 @@ namespace genfile {
 			void set( std::size_t sample_i, double AA, double AB, double BB ) ;
 		private:
 			std::vector< VariantEntry >& m_result ;
+			double const m_threshhold ;
+		} ;
+
+		// Genotype setter which stores genotypes as integers.
+		// A value of -1 denotes the missing value.
+		template<>
+		struct GenotypeSetter< std::vector< int > >: public GenotypeSetterBase
+		{
+			GenotypeSetter( std::vector< int >& result, double threshhold, int missing_value = -1, int AA_value = 0, int AB_value = 1, int BB_value = 2 ) ;
+			void set_number_of_samples( std::size_t n ) ;
+			void set( std::size_t sample_i, double AA, double AB, double BB ) ;
+		private:
+			std::vector< int >& m_result ;
+			int const m_missing_value ;
+			int const m_AA_value ;
+			int const m_AB_value ;
+			int const m_BB_value ;
 			double const m_threshhold ;
 		} ;
 		

@@ -56,7 +56,8 @@ namespace impl {
 void PairwiseCallComparerManager::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "Call comparison options" ) ;
 	options[ "-compare-calls" ]
-		.set_description( "Compare genotype calls from the given fields of a VCF or other file." )
+		.set_description( "Compare genotype calls from the given fields of a VCF or other file. "
+		 	"The value should be a comma-separated list of genotype call fields in the data.")
 		.set_takes_single_value() ;
 	options[ "-compare-calls-file" ]
 		.set_description( "Name of output file to put call comparisons in." )

@@ -20,9 +20,11 @@ def set_options( opt ):
 #-----------------------------------
 
 def configure( conf ):
+	print "Using prefix\t\t\t\t :", conf.env[ 'PREFIX' ]
+
 	conf.check_tool( 'compiler_cxx')
 	conf.check_tool( 'compiler_cc')
-	
+
 	platform_specific_configure( conf )
 	check_for_3rd_party_components( conf )
 	misc_configure( conf )
@@ -51,7 +53,7 @@ def check_for_3rd_party_components( conf ):
 		conf.define( 'HAVE_DL', 1 )
 	if conf.check_cxx( lib = 'bz2', uselib_store = 'BZIP2' ):
 		conf.define( 'HAVE_BZIP2', 1 )
-	if conf.check_cxx( lib = 'mgl', uselib_store = 'MGL', cxxflags = '-I' + conf.env['PREFIX'] + '/include ' + '-L' + conf.env['PREFIX'] + '/lib' ):
+	if conf.check_cxx( lib = 'mgl', uselib_store = 'MGL', cxxflags = '-I' + conf.env['PREFIX'] + '/include', linkflags ='-L' + conf.env['PREFIX'] + '/lib' ):
 		conf.define( 'HAVE_MGL', 1 )
 
 def check_for_boost_components( conf ):
@@ -177,7 +179,7 @@ def build( bld ):
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include ./genfile/include',
 		uselib_local = 'string_utils statfile appcontext fputils worker snptest genfile integration db',
-		uselib = 'BOOST BOOST_IOSTREAMS ZLIB BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM CBLAS CLAPACK LAPACK'
+		uselib = 'BOOST BOOST_IOSTREAMS ZLIB BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM CBLAS CLAPACK LAPACK MGL'
 	)
 
 	#---------------------
