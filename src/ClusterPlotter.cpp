@@ -15,13 +15,17 @@
 
 void ClusterPlotter::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "Cluster plot options" ) ;
+#if HAVE_MGL
 	options[ "-plot-clusters" ]
-		.set_description( "Create a plot of the intensities and genotypes for each SNP" )
+		.set_description( "Create a plot of the intensities and genotypes for each SNP. "
+		 	"Currently this uses the MathGL library (http://mathgl.sourceforge.net) and so only works "
+			"if this is detected during compilation.")
 		.set_takes_single_value() ;
 	options[ "-cluster-plot-filename" ]
 		.set_description( "Filename of cluster plots to create" )
 		.set_takes_single_value()
 		.set_default_value( "${snpid}_${rsid}_${chromosome}_${position}_${callset}_${intensities}.png" ) ;
+#endif
 }
 
 ClusterPlotter::UniquePtr ClusterPlotter::create( appcontext::OptionProcessor const& options, worker::Worker* worker ) {
@@ -158,7 +162,7 @@ void ClusterPlotter::processed_snp( genfile::SNPIdentifyingData const& snp, genf
 }
 #else
 void ClusterPlotter::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
-	throw OperationUnsupportedError( "ClusterPlotter::processed_snp()", "Unable to plot (no MathGL support)", "this" ) ;
+	assert(0) ;
 }
 #endif
 
