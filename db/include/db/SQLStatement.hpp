@@ -46,6 +46,7 @@ namespace db {
 		virtual SQLStatement& bind( std::size_t i, uint32_t value ) = 0 ;
 		virtual SQLStatement& bind( std::size_t i, int64_t value ) = 0 ;
 		virtual SQLStatement& bind( std::size_t i, uint64_t value ) = 0 ;
+		virtual SQLStatement& bind( std::size_t i, double value ) = 0 ;
 		// For parameterised queries, bind a string value to the ith placeholder.
 		// Placeholders are indexed starting from 1 on the left.
 		// Named placeholders with the same name have the same index.

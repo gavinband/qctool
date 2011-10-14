@@ -87,7 +87,7 @@ namespace db {
 		}
 		// We add a busy handler.  This makes the database more robust by retrying failed transactions.
 		sqlite3_busy_handler( m_db_connection, &sqlite3_busy_callback, NULL ) ;
-		// sqlite3_trace( m_db_connection, &sqlite3_trace_callback, NULL ) ;
+		//sqlite3_trace( m_db_connection, &sqlite3_trace_callback, NULL ) ;
 	}
 
 	void SQLite3Connection::close_db_connection_if_necessary() {
