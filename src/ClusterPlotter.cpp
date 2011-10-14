@@ -22,9 +22,10 @@ void ClusterPlotter::declare_options( appcontext::OptionProcessor& options ) {
 			"if this is detected during compilation.")
 		.set_takes_single_value() ;
 	options[ "-cluster-plot-filename" ]
-		.set_description( "Filename of cluster plots to create" )
+		.set_description( "Template for filename of cluster plots to create.  The following symbols will be replaced with appropriate strings, one per SNP:"
+		 	" #rsid (rsid of SNP), #intensity (name of intensity field)." )
 		.set_takes_single_value()
-		.set_default_value( "#rsid_#intensityrm .png" ) ;
+		.set_default_value( "#rsid_#intensity.png" ) ;
 #endif
 }
 
@@ -93,6 +94,7 @@ namespace impl {
 			int M = std::ceil( std::sqrt( m_calls.size() ) ) ;
 			int N = std::ceil( m_calls.size() / M ) ;
 			mglGraphZB graph( 400 * N, 400 * M ) ;
+			graph.Clf( mglColor( 1.0, 1.0, 1.0 ) ) ;
 			mglData x( m_intensities.cols() ), y( m_intensities.cols() ), colour( m_intensities.cols() ) ;
 			
 			std::size_t count = 0 ;
@@ -100,7 +102,6 @@ namespace impl {
 				x.Set( m_intensities.row(0).data(), m_intensities.cols() ) ;
 				y.Set( m_intensities.row(1).data(), m_intensities.cols() ) ;
 				colour.Set( i->second ) ;
-
 				graph.Title( m_snp.get_rsid().c_str(), 0, 4 ) ;
 				graph.SubPlot( N, M, count ) ;
 				graph.SetTickLen( 0.04 ) ;

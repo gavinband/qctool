@@ -9,6 +9,7 @@
 #include "Eigen/Core"
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "appcontext/OptionProcessor.hpp"
+#include "IntensityModel.hpp"
 
 struct ClusterFitter: public genfile::SNPDataSourceProcessor::Callback
 {
