@@ -24,16 +24,46 @@ public:
 		typedef std::auto_ptr< ResultCallback > UniquePtr ;
 		virtual ~ResultCallback() {}
 		virtual void set_SNP( genfile::SNPIdentifyingData const& ) = 0 ;
-		virtual void write_cluster_fit( std::string const& name, std::vector< std::size_t > const&, Eigen::MatrixXd const& fit ) = 0 ;
+		virtual void write_intensity_model(
+			genfile::SNPIdentifyingData const& snp,
+			std::string const& name,
+			Eigen::MatrixXd const& intensities,
+			genfile::SingleSNPGenotypeProbabilities const& genotypes,
+			IntensityModel::SharedPtr model
+		) = 0 ;
 	} ;
 
 	void connect( ResultCallback::UniquePtr callback ) { m_callbacks.push_back( callback ) ; }
 	void processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader& ) ;
-	void send_results( std::string const& name, std::vector< std::size_t > const& non_missing_counts, Eigen::MatrixXd const& fit ) ;
+	void send_results(
+		genfile::SNPIdentifyingData const& snp,
+		std::string const& name,
+		Eigen::MatrixXd const& intensities,
+		genfile::SingleSNPGenotypeProbabilities const& genotypes,
+		IntensityModel::SharedPtr model
+	) ;
 
 private:
 	boost::ptr_vector< ResultCallback > m_callbacks ;
 } ;
 
+struct IntensityModelSNPCaller {
+
+	
+	typedef boost::function< void( std::string const& name, genfile::SingleSNPGenotypeProbabilities const& calls ) > ResultCallback ;
+
+	void connect( ResultCallback )  ;
+
+	void recall_snps(
+		genfile::SNPIdentifyingData const& snp,
+		std::string const& model_name,
+		Eigen::MatrixXd const& intensities,
+		genfile::SingleSNPGenotypeProbabilities const& genotypes,
+		IntensityModel::SharedPtr model
+	) ;
+
+private:
+	boost::ptr_vector< ResultCallback > m_callbacks ;
+} ;
 
 #endif

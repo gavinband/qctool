@@ -17,28 +17,31 @@ struct PairwiseCallComparerManager: public genfile::SNPDataSourceProcessor::Call
 {
 public:
 	typedef std::auto_ptr< PairwiseCallComparerManager > UniquePtr ;
-	static UniquePtr create( appcontext::OptionProcessor const& options ) ;
-	static UniquePtr create( std::string const& spec, std::vector< std::string > const& call_fields ) ;
-	static void declare_options( appcontext::OptionProcessor& options ) ;
+	typedef boost::shared_ptr< PairwiseCallComparerManager > SharedPtr ;
+	static UniquePtr create() ;
 
 public:
+	PairwiseCallComparerManager() ;
 	virtual ~PairwiseCallComparerManager() {}
-	PairwiseCallComparerManager( std::vector< std::string > const& call_fields ) ;
 	void add_comparer( std::string const& name, PairwiseCallComparer::UniquePtr comparer ) ;
+
 	typedef boost::function< void ( genfile::SNPIdentifyingData const&, std::string const&, std::string const&, std::string const&, std::string const&, genfile::VariantEntry const& ) > ResultCallback ;
 	void send_results_to( ResultCallback ) ;
-	
-	void begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) ;
-	void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& data_reader ) ;
-	void end_processing_snps() ;
 
+	void set_SNP( genfile::SNPIdentifyingData const& snp ) ;
+	void add_calls( std::string const& name, genfile::SingleSNPGenotypeProbabilities const& calls ) ;
+
+	void begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) ;
+	void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& ) ;
+	void end_processing_snps() ;
+	
 private:
-	std::vector< std::string > m_call_fields ;
 	typedef boost::ptr_map< std::string, PairwiseCallComparer > Comparers ;
 	Comparers m_comparers ;
 
 	typedef std::map< std::string, genfile::SingleSNPGenotypeProbabilities > Calls ;
 	Calls m_calls ;
+
 	genfile::SNPIdentifyingData m_snp ;
 	
 	typedef boost::signals2::signal<
@@ -54,5 +57,6 @@ private:
 
 	ResultSignal m_result_signal ;
 } ;
+
 
 #endif

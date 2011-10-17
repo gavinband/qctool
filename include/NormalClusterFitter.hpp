@@ -22,13 +22,6 @@ private:
 	double const m_call_threshhold ;
 	std::size_t m_number_of_samples ;
 	std::size_t m_number_of_snps ;
-
-	void get_cluster_fit(
-		std::vector< genfile::VariantEntry > const& genotypes,
-		Eigen::MatrixXd const& intensities,
-		Eigen::MatrixXd& fit,
-		std::vector< std::size_t >& non_missing_counts
-	) ;
 } ;
 
 #endif
