@@ -223,7 +223,8 @@ public:
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-translate-snp-positions" ]
 			.set_description( "Specify a \"dictionary\" of chromosome / position to chromosome / position mappings."
-				" (This should come as a four-column file with source_chromosome source_position target_chromosome and target_position columns.)"
+				" (This should come as a 12-column file with the first six columns the original SNPID rsid chromosome position allele1 allele2"
+				" and the second six columns the same data with possibly different chromosome and position.)"
 				" Positions of SNPs will be mapped through this dictionary before processing." )
 			.set_takes_single_value() ;
 		options[ "-match-alleles-to-cohort1" ]
