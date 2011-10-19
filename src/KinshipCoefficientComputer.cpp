@@ -625,11 +625,14 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 		m_number_of_eigenvectors_to_compute = std::min( m_number_of_eigenvectors_to_compute, m_number_of_samples ) ;
 		m_number_of_eigenvectors_to_compute = std::min( m_number_of_eigenvectors_to_compute, m_number_of_snps ) ;
 
+		m_interesting_eigenvalues = m_kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) ;
+		m_interesting_eigenvectors = m_kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_eigenvectors_to_compute ) ;
+
 		Eigen::VectorXd v = m_kinship_eigendecomposition.block( 0, 0, m_number_of_eigenvectors_to_compute, 1 ) ;
 		v = v.array().sqrt() ;
 		Eigen::MatrixXd PCAs =
 			v.asDiagonal() *
-			m_kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_eigenvectors_to_compute ).transpose() ;
+			m_interesting_eigenvectors.transpose() ;
 
 		std::string description = "# First " + genfile::string_utils::to_string( m_number_of_eigenvectors_to_compute ) + " PCA components\n"
 			+ "# Number of SNPs: "
@@ -649,7 +652,6 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 				_1
 			)
 		) ;
-		
 		
 		m_eigenvectors.resize( m_number_of_eigenvectors_to_compute ) ;
 	}
@@ -676,9 +678,8 @@ void PCAComputer::processed_snp( genfile::SNPIdentifyingData const& snp, genfile
 		m_eigenvectors =
 			(
 				m_genotype_calls *
-				Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( m_kinship_eigendecomposition.rightCols( m_number_of_samples ) )
-					.leftCols( m_number_of_eigenvectors_to_compute )
-			).array() /
+				m_interesting_eigenvectors
+				).array() /
 				m_kinship_eigendecomposition
 					.block( 0, 0, m_number_of_eigenvectors_to_compute, 1 )
 					.array()
