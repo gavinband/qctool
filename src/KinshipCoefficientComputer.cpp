@@ -641,14 +641,18 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 			+ genfile::string_utils::to_string( m_number_of_samples ) ;
 
 		send_results(
-			m_options.get< std::string >( "-PCA" ) + ".PCAs",
-			PCAs,
+			m_options.get< std::string >( "-PCA" ) + ".PCAs.csv",
+			PCAs.transpose(),
 			"PCAComputer",
 			description,
-			boost::function< genfile::VariantEntry ( int ) >(),
 			boost::bind(
-				&impl::get_eigendecomposition_header,
-				"v",
+				&impl::get_concatenated_ids,
+				&m_samples,
+				_1
+			),
+			boost::bind(
+				&impl::string_and_number,
+				"PCA_",
 				_1
 			)
 		) ;
