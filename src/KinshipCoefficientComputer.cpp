@@ -558,7 +558,7 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 
 		// Verify the decomposition.
 		{
-			std::size_t size = std::min( std::size_t(12), m_number_of_samples ) ;
+			std::size_t size = std::min( std::size_t(10), m_number_of_samples ) ;
 			m_ui_context.logger() << "Top-left of U U^t is:\n" ;
 			{
 				
@@ -585,7 +585,7 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 
 			m_ui_context.logger() << "Verifying the decomposition...\n" ;
 			double diff = 0.0 ;
-			for( std::size_t i = 0; i < m_number_of_samples; ++i ) {
+			for( std::size_t i = 0; i < size; ++i ) {
 				for( std::size_t j = 0; j <= i; ++j ) {
 					diff = std::max( diff, std::abs( reconstructed_kinship_matrix(i,j) - m_kinship_matrix( i, j ))) ;
 				}
