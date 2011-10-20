@@ -25,6 +25,7 @@ namespace genfile {
 		std::string get_source_spec() const ;
 	private:
 		boost::ptr_vector< CohortIndividualSource > m_sources ;
+		ColumnSpec m_column_spec ;
 	} ;
 }
 

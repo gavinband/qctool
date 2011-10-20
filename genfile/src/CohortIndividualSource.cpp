@@ -88,6 +88,10 @@ namespace genfile {
 		return get_spec( i ) ;
 	}
 
+	CohortIndividualSource::SingleColumnSpec CohortIndividualSource::ColumnSpec::operator[]( std::string const& column_name ) const {
+		return get_spec( find_column( column_name ) ) ;
+	}
+
 	std::vector< std::string > CohortIndividualSource::ColumnSpec::get_names() const {
 		return m_column_names ;
 	}
@@ -114,6 +118,12 @@ namespace genfile {
 		column_names.insert( column_names.end(), other.m_column_names.begin(), other.m_column_names.end() ) ;
 		column_types.insert( column_types.end(), other.m_column_types.begin(), other.m_column_types.end() ) ;
 		return ColumnSpec( column_names, column_types ) ;
+	}
+	
+	void CohortIndividualSource::ColumnSpec::remove( std::string const& name ) {
+		std::size_t i = find_column( name ) ;
+		m_column_names.erase( m_column_names.begin() + i ) ;
+		m_column_types.erase( m_column_types.begin() + i ) ;
 	}
 	
 	CohortIndividualSource::UniquePtr CohortIndividualSource::create(
@@ -183,8 +193,7 @@ namespace genfile {
 	}
 	
 	bool CohortIndividualSource::check_for_column( std::string const& column_name ) const {
-		std::vector< std::string > column_names = get_column_spec().get_names() ;
-		return std::find( column_names.begin(), column_names.end(), column_name ) != column_names.end() ;
+		return get_column_spec().check_for_column( column_name ) ;
 	}
 	
 	std::size_t CohortIndividualSource::get_number_of_covariates() const {
@@ -194,6 +203,10 @@ namespace genfile {
 		return get_column_spec().get_number_of_phenotypes() ;
 	}
 	
+	bool CohortIndividualSource::ColumnSpec::check_for_column( std::string const& column_name ) const {
+		return std::find( m_column_names.begin(), m_column_names.end(), column_name ) != m_column_names.end() ;
+	}
+
 	std::size_t CohortIndividualSource::ColumnSpec::find_column( std::string const& column_name ) const {
 		std::vector< std::string >::const_iterator
 			where = std::find( m_column_names.begin(), m_column_names.end(), column_name ) ;

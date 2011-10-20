@@ -11,15 +11,29 @@ namespace genfile {
 	CohortIndividualSourceChain::~CohortIndividualSourceChain() {}
 	
 	void CohortIndividualSourceChain::add_source( CohortIndividualSource::UniquePtr source ) {
-		if( m_sources.size() > 0 && source->get_column_spec() != m_sources[0].get_column_spec() ) {
-			throw BadArgumentError( "CohortIndividualSourceChain::add_source()",
-				"Columns (" + string_utils::to_string( source->get_column_spec() ) + ")"
-				+ " for source \"" + source->get_source_spec() + "\" do not match columns ("
-				+ string_utils::to_string( m_sources[0].get_column_spec() )
-				+ ") for first cohort."
-			) ;
-		}
 		m_sources.push_back( source.release() ) ;
+		if( m_sources.size() == 1 ) {
+			m_column_spec = m_sources[0].get_column_spec() ;
+		}
+		else {
+			ColumnSpec new_column_spec = m_sources.back().get_column_spec() ;
+			std::vector< std::string > column_names = new_column_spec.get_names() ;
+			for( std::size_t i = 0; i < column_names.size(); ++i ) {
+				// we remove any columns which match name but mismatch type, and any columns which match completely.
+				// we extend our set of columns with any genuinely new columns.
+				if( m_column_spec.check_for_column( column_names[i] ) ) {
+					if( m_column_spec[ column_names[i] ] != new_column_spec[ column_names[i] ] ) {
+						m_column_spec.remove( column_names[i] ) ;
+						new_column_spec.remove( column_names[i] ) ;
+					}
+					else {
+						new_column_spec.remove( column_names[i] ) ;
+					}
+				}
+			}
+			m_column_spec = m_column_spec + new_column_spec ;
+		}
+		std::cerr << "After adding source " << m_sources.back().get_source_spec() << ", columns are: " << m_column_spec << ".\n" ;
 	}
 	
 	std::size_t CohortIndividualSourceChain::get_number_of_individuals() const {
@@ -35,7 +49,7 @@ namespace genfile {
 			return ColumnSpec() ;
 		}
 		else {
-			return m_sources[0].get_column_spec() ;
+			return m_column_spec ;
 		}
 	}
 
@@ -47,7 +61,9 @@ namespace genfile {
 				sample_i -= m_sources[i].get_number_of_individuals() ;
 			}
 			else {
-				result = m_sources[i].get_entry( sample_i, column_name ) ;
+				if( m_sources[i].check_for_column( column_name )) {
+					result = m_sources[i].get_entry( sample_i, column_name ) ;
+				}
 				break ;
 			}
 		}

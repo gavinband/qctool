@@ -117,6 +117,12 @@ namespace genfile {
 		if( string_utils::to_lower( result[2] ) != "missing" ) {
 			throw MalformedInputError( m_filename, 0, 2 ) ;
 		}
+		// check for uniqueness
+		for( std::size_t i = 0; i < result.size(); ++i ) {
+			if( ( std::find( result.begin(), result.end(), result[i] ) - result.begin() ) < i ) {
+				throw DuplicateKeyError( m_filename, result[i] ) ;
+			}
+		}
 		return result ;
 	}
 

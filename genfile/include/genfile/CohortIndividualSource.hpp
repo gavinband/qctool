@@ -94,7 +94,9 @@ namespace genfile {
 			std::vector< ColumnType > get_types() const ;
 			SingleColumnSpec get_spec( std::size_t i ) const ;
 			SingleColumnSpec operator[]( std::size_t i ) const ;
+			SingleColumnSpec operator[]( std::string const& column_name ) const ;
 			
+			bool check_for_column( std::string const& name ) const ;
 			std::size_t find_column( std::string const& name ) const ;
 			
 			std::size_t get_number_of_covariates() const ;
@@ -105,6 +107,8 @@ namespace genfile {
 			
 			// Concatenate two ColumnSpecs.
 			ColumnSpec operator+( ColumnSpec const& other ) ;
+			// Remove an element
+			void remove( std::string const& name ) ;
 
 		private:
 			std::vector< std::string > m_column_names ;

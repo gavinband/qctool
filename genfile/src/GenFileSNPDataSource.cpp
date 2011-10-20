@@ -192,8 +192,7 @@ namespace genfile {
 				}
 
 				if( count_snps ) {
-					m_stream_ptr->clear() ;
-					m_stream_ptr->seekg( 0 ) ;
+					reset_to_start() ;
 					m_total_number_of_snps = gen::count_snp_blocks( *m_stream_ptr ) ;
 				}
 			}
