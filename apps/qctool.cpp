@@ -1721,10 +1721,12 @@ private:
 
 		if( m_options.check_if_option_was_supplied( "-incl-samples" ) ) {
 			std::vector< std::string > filenames = m_options.get_values< std::string >( "-incl-samples" ) ;
+			std::auto_ptr< OrRowCondition > inclusion_condition( new OrRowCondition() ) ;
 			for( std::size_t i = 0; i < filenames.size(); ++i ) {
 				std::auto_ptr< RowCondition > sample_incl_condition( new SampleInListCondition( filenames[i] )) ;
-				sample_filter->add_subcondition( sample_incl_condition ) ;
+				inclusion_condition->add_subcondition( sample_incl_condition ) ;
 			}
+			sample_filter->add_subcondition( std::auto_ptr< RowCondition >( inclusion_condition.release() ) ) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "-excl-samples" ) ) {

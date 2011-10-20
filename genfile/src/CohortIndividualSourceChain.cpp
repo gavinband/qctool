@@ -33,7 +33,6 @@ namespace genfile {
 			}
 			m_column_spec = m_column_spec + new_column_spec ;
 		}
-		std::cerr << "After adding source " << m_sources.back().get_source_spec() << ", columns are: " << m_column_spec << ".\n" ;
 	}
 	
 	std::size_t CohortIndividualSourceChain::get_number_of_individuals() const {
