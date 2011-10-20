@@ -6,6 +6,7 @@
 #include "genfile/ImputeHaplotypesSNPDataSource.hpp"
 #include "genfile/string_utils/slice.hpp"
 #include "genfile/FileUtils.hpp"
+#include "genfile/VariantDataReader.hpp"
 
 namespace genfile {
 	ImputeHaplotypesSNPDataSource::ImputeHaplotypesSNPDataSource( std::string const& filename, Chromosome chromosome )
@@ -149,62 +150,110 @@ namespace genfile {
 		}
 	}
 
-	VariantDataReader::UniquePtr ImputeHaplotypesSNPDataSource::read_variant_data_impl() {
-		throw OperationUnsupportedError( "genfile::ImputeHaplotypesSNPDataSource::read_variant_data()", "call", get_source_spec() ) ;
+	namespace impl {
+		struct ImputeHaplotypesSNPDataSourceReader: public VariantDataReader {
+			typedef string_utils::slice slice ;
+
+			ImputeHaplotypesSNPDataSourceReader(
+				ImputeHaplotypesSNPDataSource const& source,
+				std::size_t snp_index,
+				std::string& line
+			):
+				m_source( source ),
+				m_snp_index( snp_index )
+			{
+				line.swap( m_line ) ;
+			}
+			
+			ImputeHaplotypesSNPDataSourceReader& get( std::string const& spec, PerSampleSetter& setter ) {
+				if( m_elts.size() != 2 * m_source.number_of_samples() ) {
+					m_elts = slice( m_line ).split( " " ) ;
+				}
+				if( m_elts.size() != 2 * m_source.number_of_samples() ) {
+					throw MalformedInputError( m_source.get_source_spec(), m_snp_index ) ;
+				}
+
+				for( std::size_t i = 0; i < m_source.number_of_samples(); ++i ) {
+					if( m_elts[2*i].size() != 1 ) {
+						throw MalformedInputError( m_source.get_source_spec(), m_snp_index, 2*i ) ;
+					}
+					if( m_elts[(2*i)+1].size() != 1 ) {
+						throw MalformedInputError( m_source.get_source_spec(), m_snp_index, 2*i ) ;
+					}
+					setter.set_sample( i ) ;
+					setter.set_number_of_entries( 3 ) ;
+					char allele1 = m_elts[2*i][0] ;
+					char allele2 = m_elts[(2*i)+1][0] ;
+					std::size_t A_allele_count = std::size_t( allele1 == '0' ) + std::size_t( allele2 == '0' ) ;
+					std::size_t B_allele_count = std::size_t( allele1 == '1' ) + std::size_t( allele2 == '1' ) ;
+					if( A_allele_count == 2 ) {
+						setter( 1.0 ) ;
+						setter( 0.0 ) ;
+						setter( 0.0 ) ;
+					}
+					else if( A_allele_count == 1 && B_allele_count == 1 ) {
+						setter( 0.0 ) ;
+						setter( 1.0 ) ;
+						setter( 0.0 ) ;
+					}
+					else if( B_allele_count == 2 ) {
+						setter( 0.0 ) ;
+						setter( 0.0 ) ;
+						setter( 1.0 ) ;
+					}
+					else {
+						// In any other case, did not recognise the allele, throw an error.
+						// Actually
+						if( m_elts[ 2*i ][0] != '0' && m_elts[ 2*i ][0] != '1' ) {
+							throw MalformedInputError( m_source.get_source_spec(), m_snp_index, (2*i) ) ;
+						}
+						else {
+							throw MalformedInputError( m_source.get_source_spec(), m_snp_index, (2*i)+1 ) ;
+						}
+						// This is what we would do if we didn't throw, which we do, so we don't do this.
+						// setter( 0.0 ) ;
+						// setter( 0.0 ) ;
+						// setter( 0.0 ) ;
+					}
+				}
+				return *this ;
+			}
+			
+			bool supports( std::string const& spec ) const {
+				return spec == "genotypes" ;
+			}
+			
+			void get_supported_specs( SpecSetter setter ) const {
+				setter( "genotypes", "Float" ) ;
+			}
+			
+			private:
+				ImputeHaplotypesSNPDataSource const& m_source ;
+				std::size_t const m_snp_index ;
+				std::string m_line ;
+				std::vector< slice > m_elts ;
+		} ;
 	}
 
-
-	void ImputeHaplotypesSNPDataSource::read_snp_probability_data_impl(
-		GenotypeProbabilitySetter const& set_genotype_probabilities
-	) {
-		if( !m_good ) {
-			return ;
-		}
+	VariantDataReader::UniquePtr ImputeHaplotypesSNPDataSource::read_variant_data_impl() {
+		assert( m_good ) ;
+		std::size_t snp_index = number_of_snps_read() ;
 
 		using string_utils::slice ;
 		std::string line ;
 		std::getline( *m_stream_ptr, line ) ;
+
 		if( !*this ) {
-			throw MalformedInputError( m_haplotypes_filename, number_of_snps_read() ) ;
-		}
-		std::vector< slice > elts = slice( line ).split( " " ) ;
-		if( elts.size() != 2 * m_number_of_samples ) {
-			throw MalformedInputError( m_haplotypes_filename, number_of_snps_read() ) ;
+			throw MalformedInputError( get_source_spec(), snp_index ) ;
 		}
 
-		for( std::size_t i = 0; i < m_number_of_samples; ++i ) {
-			if( elts[2*i].size() != 1 ) {
-				throw MalformedInputError( m_haplotypes_filename, number_of_snps_read(), 2*i ) ;
-			}
-			if( elts[(2*i)+1].size() != 1 ) {
-				throw MalformedInputError( m_haplotypes_filename, number_of_snps_read(), 2*i ) ;
-			}
-			char allele1 = elts[2*i][0] ;
-			char allele2 = elts[(2*i)+1][0] ;
-			std::size_t A_allele_count = std::size_t( allele1 == '0' ) + std::size_t( allele2 == '0' ) ;
-			std::size_t B_allele_count = std::size_t( allele1 == '1' ) + std::size_t( allele2 == '1' ) ;
-			if( A_allele_count == 2 ) {
-				set_genotype_probabilities( i, 1.0, 0.0, 0.0 ) ;
-			}
-			else if( A_allele_count == 1 && B_allele_count == 1 ) {
-				set_genotype_probabilities( i, 0.0, 1.0, 0.0 ) ;
-			}
-			else if( B_allele_count == 2 ) {
-				set_genotype_probabilities( i, 0.0, 0.0, 1.0 ) ;
-			}
-			else {
-				// In any other case, did not recognise the allele, treat it as missing.
-				// Actually
-				if( elts[ 2*i ][0] != '0' && elts[ 2*i ][0] != '1' ) {
-					throw MalformedInputError( m_haplotypes_filename, number_of_snps_read(), (2*i) ) ;
-				}
-				else {
-					throw MalformedInputError( m_haplotypes_filename, number_of_snps_read(), (2*i)+1 ) ;
-				}
-				// This is what we would do if we didn't throw, which we do, so we don't do this.
-				// set_genotype_probabilities( i, 0.0, 0.0, 0.0 ) ;
-			}
-		}
+		return VariantDataReader::UniquePtr(
+			new impl::ImputeHaplotypesSNPDataSourceReader(
+				*this,
+				snp_index,
+				line
+			)
+		) ;
 	}
 
 	void ImputeHaplotypesSNPDataSource::ignore_snp_probability_data_impl() {
