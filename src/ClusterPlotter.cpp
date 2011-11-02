@@ -105,7 +105,18 @@ namespace impl {
 				graph.Title( m_snp.get_rsid().c_str(), 0, 4 ) ;
 				graph.SubPlot( N, M, count ) ;
 				graph.SetTickLen( 0.04 ) ;
-				graph.SetRanges( 0.0, 5.0, 0.0, 5.0 ) ;
+				double x_range_max = std::min(
+					m_intensities.row(0).maxCoeff(),
+					5.0
+				) ;
+				double y_range_max = std::min(
+					m_intensities.row(1).maxCoeff(),
+					5.0
+				) ;
+				graph.SetRanges(
+					0.0, x_range_max,
+					0.0, y_range_max
+				) ;
 				graph.SetCut( false ) ;
 				graph.Axis( "x", true ) ;
 				graph.Axis( "y", true ) ;
