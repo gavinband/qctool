@@ -73,10 +73,18 @@ namespace impl {
 				"CREATE INDEX IF NOT EXISTS Variant_index ON Variant( rsid, chromosome, position )"
 			) ;
 			m_connection->run_statement(
-				"CREATE TABLE IF NOT EXISTS Comparison ( variant_id INT, callset1 TEXT, callset2 TEXT, comparison_method TEXT, comparison_variable TEXT, value FLOAT, FOREIGN KEY( variant_id ) REFERENCES Variant( id ))"
+				"CREATE TABLE IF NOT EXISTS Entity ( entity_id INTEGER PRIMARY KEY, name TEXT, description TEXT )"
+			) ;
+			m_connection->run_statement(
+				"CREATE TABLE IF NOT EXISTS Comparison ( "
+				"variant_id INT, callset1 TEXT, callset2 TEXT, method_id INT, variable_id INT, value FLOAT, "
+				"FOREIGN KEY( variant_id ) REFERENCES Variant( id )), "
+				"FOREIGN KEY( method_id ) REFERENCES Entity( id )), "
+				"FOREIGN KEY( variable_id ) REFERENCES Entity( id ))"
 			) ;
 			m_connection->run_statement( "DELETE FROM Variant" ) ;
 			m_connection->run_statement( "DELETE FROM Comparison" ) ;
+			m_connection->run_statement( "DELETE FROM Entity" ) ;
 			m_connection->run_statement( "BEGIN TRANSACTION" ) ;
 		}
 		
@@ -123,15 +131,44 @@ namespace impl {
 				snp_id = statement->get< db::Connection::RowId >( 0 ) ;
 			}
 
+			db::Connection::RowId method_id ;
+			db::Connection::RowId variable_id ;
+
+			{
+				statement = m_connection->get_statement( "SELECT * FROM Entity WHERE name == ?1" ) ;
+				statement->bind( 1, comparison_method ).step() ;
+
+				if( statement->empty() ) {
+					m_connection->get_statement( "INSERT INTO Entity ( name ) VALUES ( ?1 )" )
+						->bind( 1, comparison_method )
+						.step() ;
+					method_id = m_connection->get_last_insert_row_id() ;
+				} else {
+					method_id = statement->get< db::Connection::RowId >( 0 ) ;
+				}
+
+				statement = m_connection->get_statement( "SELECT * FROM Entity WHERE name == ?1" ) ;
+				statement->bind( 1, comparison_variable ).step() ;
+
+				if( statement->empty() ) {
+					m_connection->get_statement( "INSERT INTO Entity ( name ) VALUES ( ?1 )" )
+						->bind( 1, comparison_variable )
+						.step() ;
+					variable_id = m_connection->get_last_insert_row_id() ;
+				} else {
+					variable_id = statement->get< db::Connection::RowId >( 0 ) ;
+				}
+			}
+			
 			m_connection->get_statement(
-				"INSERT INTO Comparison ( variant_id, callset1, callset2, comparison_method, comparison_variable, value ) "
+				"INSERT INTO Comparison ( variant_id, callset1, callset2, method_id, variable_id, value ) "
 				"VALUES( ?1, ?2, ?3, ?4, ?5, ?6 )"
 			)
 				->bind( 1, snp_id )
 				.bind( 2, callset1 )
 				.bind( 3, callset2 )
-				.bind( 4, comparison_method )
-				.bind( 5, comparison_variable )
+				.bind( 4, method_id )
+				.bind( 5, variable_id )
 				.bind( 6, value.as< double >()  )
 				.step()
 			;
