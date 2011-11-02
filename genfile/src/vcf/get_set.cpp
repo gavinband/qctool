@@ -89,6 +89,7 @@ namespace genfile {
 
 		void GenotypeSetter< std::vector< double > >::set_number_of_samples( std::size_t n ) {
 			m_result.resize( n * 3 ) ;
+			GenotypeSetterBase::set_number_of_samples( n ) ;
 		}
 
 		void GenotypeSetter< std::vector< double > >::set( std::size_t sample_i, double AA, double AB, double BB ) {
