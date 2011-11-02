@@ -70,18 +70,22 @@ namespace impl {
 				"CREATE TABLE IF NOT EXISTS Variant ( id INTEGER PRIMARY KEY, snpid TEXT, rsid TEXT, chromosome TEXT, position INTEGER, alleleA TEXT, alleleB TEXT )"
 			) ;
 			m_connection->run_statement(
-				"CREATE INDEX IF NOT EXISTS Variant_index ON Variant( rsid, chromosome, position )"
+				"CREATE INDEX IF NOT EXISTS Variant_index ON Variant( chromosome, position, rsid )"
 			) ;
 			m_connection->run_statement(
-				"CREATE TABLE IF NOT EXISTS Entity ( entity_id INTEGER PRIMARY KEY, name TEXT, description TEXT )"
+				"CREATE TABLE IF NOT EXISTS Entity ( id INTEGER PRIMARY KEY, name TEXT, description TEXT )"
 			) ;
 			m_connection->run_statement(
 				"CREATE TABLE IF NOT EXISTS Comparison ( "
 				"variant_id INT, callset1 TEXT, callset2 TEXT, method_id INT, variable_id INT, value FLOAT, "
-				"FOREIGN KEY( variant_id ) REFERENCES Variant( id )), "
-				"FOREIGN KEY( method_id ) REFERENCES Entity( id )), "
+				"FOREIGN KEY( variant_id ) REFERENCES Variant( id ), "
+				"FOREIGN KEY( method_id ) REFERENCES Entity( id ), "
 				"FOREIGN KEY( variable_id ) REFERENCES Entity( id ))"
 			) ;
+			m_connection->run_statement(
+				"CREATE INDEX IF NOT EXISTS ComparisonIndex ON Comparison( variant_id, method_id, variable_id )"
+			) ;
+
 			m_connection->run_statement( "DELETE FROM Variant" ) ;
 			m_connection->run_statement( "DELETE FROM Comparison" ) ;
 			m_connection->run_statement( "DELETE FROM Entity" ) ;
