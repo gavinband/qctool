@@ -8,6 +8,7 @@
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/GenFileSNPDataSink.hpp"
 #include "genfile/BGenFileSNPDataSink.hpp"
+#include "genfile/VCFFormatSNPDataSink.hpp"
 
 namespace genfile {
 
@@ -31,6 +32,9 @@ namespace genfile {
 			else {
 				return SNPDataSink::UniquePtr( new BGenFileSNPDataSink( filename, free_data, bgen::e_CompressedSNPBlocks )) ;
 			}
+		}
+		else if( d.first == "vcf" ) {
+			return SNPDataSink::UniquePtr( new VCFFormatSNPDataSink( filename )) ;
 		}
 		else {
 			return SNPDataSink::UniquePtr( new GenFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
