@@ -107,7 +107,7 @@ namespace genfile {
 			VCFEntryType::UniquePtr result ;
 
 			if( ID->second == "GT" || type->second == "Genotype" ) {
-				if( number->second != "." && number.second != '1' ) {
+				if( number->second != "." && number->second != "1" ) {
 					throw BadArgumentWithMessageError(
 						"\"Number\" of GT field must be encoded as . or 1 in metadata.",
 						"genfile::vcf::VCFEntryType::create()",
