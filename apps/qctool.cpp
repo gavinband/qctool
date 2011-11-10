@@ -55,6 +55,7 @@
 #include "genfile/QuantileNormalisingCrossCohortCovariateValueMapping.hpp"
 #include "genfile/ValueMappingCohortIndividualSource.hpp"
 #include "genfile/vcf/StrictMetadataParser.hpp"
+#include "genfile/WithSNPDosagesCohortIndividualSource.hpp"
 
 #include "statfile/BuiltInTypeStatSource.hpp"
 #include "statfile/from_string.hpp"
@@ -170,6 +171,16 @@ public:
 				"when encountered in the sample file(s)." )
 			.set_takes_single_value()
 			.set_default_value( "NA" ) ;
+		options[ "-condition_on" ]
+			.set_description( "Condition on the dosages of a given SNP or set of SNPs."
+				" The argument should be a comma-separated list of values of the form:\n"
+				"   [field]~[value]:[dose][,dose...]\n"
+				"where field is \"rsid\", \"snpid\", or \"pos\", value is the value to match, and "
+				"each dose is one of add,dom,het,rec,or gen."
+				" If the field is omitted, it is assumed to be rsid;"
+				" if the dose is omitted it is assumed to be add."
+			)
+			.set_takes_single_value() ;
 				
 		options.option_implies_option( "-quantile-normalise", "-s" ) ;
 		// SNP exclusion options
@@ -1071,8 +1082,15 @@ private:
 			}
 			
 			m_snp_data_source = open_snp_data_sources() ;
-			
-			m_cohort_individual_source = load_sample_rows( m_snp_data_source->number_of_samples() ) ;
+
+			{
+				m_cohort_individual_source = open_samples( m_snp_data_source->number_of_samples() ) ;
+				if( m_options.check( "-condition_on" )) {
+					m_cohort_individual_source = condition_on( m_cohort_individual_source, *m_snp_data_source, m_options.get< std::string >( "-condition_on" )) ;
+					m_snp_data_source->reset_to_start() ;
+				}
+				load_sample_rows( m_cohort_individual_source, m_snp_data_source->number_of_samples() ) ;
+			}
 			
 			check_for_errors_and_warnings() ;
 				
@@ -1759,10 +1777,9 @@ private:
 		m_ignore_warnings = m_options.check_if_option_was_supplied( "-force" ) ;
 	}
 	
-	genfile::CohortIndividualSource::UniquePtr load_sample_rows( std::size_t const expected_number_of_samples ) {
-		
+	genfile::CohortIndividualSource::UniquePtr open_samples( std::size_t const expected_number_of_samples ) {
 		try {
-			return unsafe_load_sample_rows( expected_number_of_samples ) ;
+			return unsafe_open_samples( expected_number_of_samples ) ;
 		}
 		catch( ConditionValueNotFoundException const& ) {
 			m_ui_context.logger() << "\n\n!! ERROR: The input sample file must contain entries for all values used to filter on.\n"
@@ -1780,7 +1797,7 @@ private:
 		}
 	}
 	
-	genfile::CohortIndividualSource::UniquePtr unsafe_load_sample_rows( std::size_t const expected_number_of_samples ) {
+	genfile::CohortIndividualSource::UniquePtr unsafe_open_samples( std::size_t const expected_number_of_samples ) {
 		genfile::CohortIndividualSource::UniquePtr sample_source ;
 		if( m_mangled_options.input_sample_filenames().size() > 0 ) {
 			genfile::CohortIndividualSourceChain::UniquePtr source_chain( new genfile::CohortIndividualSourceChain() ) ;
@@ -1805,8 +1822,14 @@ private:
 					)
 				) ;
 			}
+		}
+		
+		return sample_source ;
+	}
 			
-			SampleRow sample_row ;
+	void load_sample_rows( genfile::CohortIndividualSource::UniquePtr const& sample_source, std::size_t const expected_number_of_samples ) {
+		SampleRow sample_row ;
+		if( sample_source.get() ) {
 			for( std::size_t i = 0; i < sample_source->get_number_of_individuals(); ++i ) {
 				sample_row.read_ith_sample_from_source( i, *sample_source ) ;
 				m_sample_rows.push_back( sample_row ) ;
@@ -1814,14 +1837,48 @@ private:
 					m_indices_of_filtered_out_samples.push_back( m_sample_rows.size() - 1 ) ;
 				}
 			}
-			if( m_sample_rows.size() != expected_number_of_samples ) {
-				throw NumberOfSamplesMismatchException() ;
-			}
 		}
 		else {
 			m_sample_rows.resize( expected_number_of_samples ) ;
 		}
-		return sample_source ;
+	}
+	
+	genfile::CohortIndividualSource::UniquePtr condition_on(
+		genfile::CohortIndividualSource::UniquePtr samples,
+		genfile::SNPDataSource& snps,
+		std::string const& conditioning_spec
+	) {
+		genfile::WithSNPDosagesCohortIndividualSource::SNPDosageSpec spec ;
+
+		using genfile::string_utils::split_and_strip ;
+		using genfile::string_utils::split ;
+		std::vector< std::string > elts = split_and_strip( conditioning_spec, ",", " \t" ) ;
+		for( std::size_t i = 0; i < elts.size(); ++i ) {
+			std::vector< std::string > parts = split( elts[i], ":" ) ;
+			if( parts.size() == 1 ) {
+				parts.push_back( "add" ) ;
+			}
+			if( parts.size() != 2 ) {
+				throw genfile::BadArgumentError( "QCToolContext::condition_on()", "conditioning_spec=\"..." + elts[i] + "...\"" ) ;
+			}
+			genfile::SNPMatcher::SharedPtr snp_matcher( genfile::SNPMatcher::create( parts[0] ).release() ) ;
+			
+			std::vector< std::string > types = split( parts[1], "," ) ;
+			for( std::size_t j = 0; j < types.size(); ++j ) {
+				if( types[j] == "gen" ) {
+					types[j] = "add" ;
+					types.push_back( "het" ) ;
+				}
+			}
+
+			spec[ snp_matcher ] = std::set< std::string >( types.begin(), types.end() ) ;
+		}
+
+		genfile::CohortIndividualSource::ConstUniquePtr const_samples( samples.release() ) ;
+		return genfile::CohortIndividualSource::UniquePtr(
+			genfile::WithSNPDosagesCohortIndividualSource::create( const_samples, snps, spec )
+			.release()
+		) ;
 	}
 	
 	genfile::CohortIndividualSource::UniquePtr quantile_normalise_columns(
