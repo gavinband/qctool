@@ -259,8 +259,12 @@ void KinshipCoefficientManager::declare_options( appcontext::OptionProcessor& op
 		.set_description( "Load a previously-computed kinship matrix from the specified file." )
 		.set_takes_single_value() ;
 	options[ "-PCA" ]
-		.set_description( "Perform eigenvector/eigenvalue decomposition of kinship matrix after it is computed." )
+		.set_description( "Compute PCA of kinship matrix, storing it in the specified file." )
 		.set_takes_single_value() ;
+	options[ "-number_of_PCAs" ]
+		.set_description( "Specify the number of PCA components to compute when using -PCA." )
+		.set_takes_single_value()
+		.set_default_value( 10 ) ;
 	options[ "-PCA-exclusions" ]
 		.set_description( "Output a list of exclusions based on outliers in the first N PCA components." )
 		.set_takes_single_value() ;
@@ -275,6 +279,7 @@ void KinshipCoefficientManager::declare_options( appcontext::OptionProcessor& op
 	options.option_implies_option( "-load-kinship", "-s" ) ;
 	options.option_implies_option( "-load-kinship", "-PCA" ) ;
 	options.option_implies_option( "-PCA", "-load-kinship" ) ;
+	options.option_implies_option( "-number_of_PCAs", "-PCA" ) ;
 	options.option_implies_option( "-loadings", "-PCA" ) ;
 	options.option_excludes_option( "-load-kinship", "-kinship" ) ;
 }

@@ -2,7 +2,6 @@
 #define RANDOM_ACCESS_SNP_DATA_SOURCE_HPP
 
 #include <boost/function.hpp>
-#include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 
 namespace genfile {
@@ -30,6 +29,7 @@ namespace genfile {
 		// Function: read_snp_probability_data()
 		// Read the probability data for the given snp, storing it
 		// using the given setter object / function pointer.
+		typedef boost::function< void ( std::size_t, double, double, double ) > GenotypeProbabilitySetter ;
 		virtual void get_snp_probability_data(
 			std::size_t snp_index,
 			GenotypeProbabilitySetter const& set_genotype_probabilities

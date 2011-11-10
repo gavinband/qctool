@@ -17,13 +17,13 @@ namespace genfile {
 		typedef boost::function< void ( std::size_t, std::size_t ) > ProgressCallback ;
 
 		static UniquePtr create(
-			SNPDataSource::UniquePtr source,
+			SNPDataSource& source,
 			ProgressCallback progress_callback = ProgressCallback()
 		) ;
 		
 		// Construct taking data SNPData
 		SNPDataSourceRandomAccessCache(
-			SNPDataSource::UniquePtr source,
+			SNPDataSource& source,
 			ProgressCallback progress_callback = ProgressCallback()
 		) ;
 		
@@ -31,7 +31,7 @@ namespace genfile {
 		std::size_t get_estimated_memory_usage_in_bytes() const ;
 		
 		unsigned int number_of_samples() const ; 
-		unsigned int total_number_of_snps() const ;
+		unsigned int number_of_snps() const ;
 
 		// Function: get_snp_identifying_data()
 		// Get the SNP ID, RS ID, position, and alleles of the specified snp.

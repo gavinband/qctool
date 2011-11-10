@@ -27,6 +27,8 @@ namespace genfile {
 
 	std::string get_gen_file_extension_if_present( std::string const& filename ) ;
 	std::string strip_gen_file_extension_if_present( std::string const& filename ) ;
+	std::pair< std::string, std::string > split_extension( std::string const& filename ) ;
+
 	std::string replace_or_add_extension( std::string const& filename, std::string const& new_extension ) ;
 	std::string create_temporary_filename() ;
 

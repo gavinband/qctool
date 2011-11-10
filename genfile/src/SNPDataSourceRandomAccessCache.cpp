@@ -51,23 +51,26 @@ namespace genfile {
 		m_genotype_buffer.resize( m_number_of_samples * 3 ) ;
 
 		SNPIdentifyingData snp ;
-		while( source.read_snp_identifying_data( snp )) {
+		while( source.get_snp_identifying_data( snp )) {
 			source.read_snp_probability_data( set_genotypes( m_genotype_buffer ) ) ;
 			m_snps.push_back( snp ) ;
-			impl::compress( m_genotype_buffer, &m_compression_buffer )
+			impl::compress( m_genotype_buffer, &m_compression_buffer ) ;
 			m_data.push_back( m_compression_buffer ) ;
 			if( progress_callback ) {
 				progress_callback( source.number_of_snps_read(), source.total_number_of_snps() ) ;
 			}
 		}
-		m_compression_buffer.swap( std::vector< char >() ) ;
+		{
+			std::vector< char > empty ;
+			m_compression_buffer.swap( empty ) ;
+		}
 		assert( m_data.size() == m_snps.size() ) ;
 	}
 	
 	std::size_t SNPDataSourceRandomAccessCache::get_estimated_memory_usage_in_bytes() const {
 		std::size_t result = 0 ;
 		for( std::size_t i = 0; i < m_snps.size(); ++i ) {
-			result += sizeof( std::size_t ) + sizeof( GenomePosition ) + 2 + m_snps[i].SNPID.size() + m_snps[i].RSID.size() + m_data[i].capacity() ;
+			result += sizeof( std::size_t ) + sizeof( GenomePosition ) + 2 + m_snps[i].get_SNPID().size() + m_snps[i].get_rsid().size() + m_data[i].capacity() ;
 		}
 		return result ;
 	}
@@ -76,19 +79,19 @@ namespace genfile {
 		return m_number_of_samples ;
 	}
 	
-	unsigned int SNPDataSourceRandomAccessCache::total_number_of_snps() const {
+	unsigned int SNPDataSourceRandomAccessCache::number_of_snps() const {
 		return m_snps.size() ;
 	}
 
 	// Function: get_snp_identifying_data()
 	// Get the SNP ID, RS ID, position, and alleles of the specified snp.
-	void get_snp_identifying_data(
+	void SNPDataSourceRandomAccessCache::get_snp_identifying_data(
 		std::size_t snp_index,
 		SNPIdentifyingData& snp
 	) const {
 		assert( snp_index < m_data.size() ) ;
 		snp = m_snps[ snp_index ] ;
-	} ;
+	}
 	
 	// Function: read_snp_probability_data()
 	// Read the probability data for the given snp, storing it
