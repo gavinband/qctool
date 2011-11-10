@@ -53,6 +53,7 @@ def build( bld ):
 		source = bld.glob( 'src/*.cpp' ) + bld.glob( 'src/vcf/*.cpp' ) + bld.glob( 'src/string_utils/*.cpp' ),
 		includes='./include',
 		uselib = 'ZLIB BOOST BOOST_IOSTREAMS BOOST_SYSTEM BOOST_FILESYSTEM',
+		uselib_local = 'eigen',
 		export_incdirs = './include'
 	)
 
