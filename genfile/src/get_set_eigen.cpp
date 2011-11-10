@@ -1,3 +1,4 @@
+#include "../config.hpp"
 #if HAVE_EIGEN
 #include "genfile/get_set_eigen.hpp"
 
