@@ -205,6 +205,13 @@ namespace genfile {
 					) ;
 				}
 				
+				::Eigen::VectorXd row_sums = probabilities.rowwise().sum() ;
+				for( std::size_t i = 0; i < row_sums.size(); ++i ) {
+					if( row_sums[i] == 0.0 ) {
+						probabilities.row( i ) = ::Eigen::Vector3d::Constant( std::numeric_limits< double >::quiet_NaN() ) ;
+					}
+				}
+				
 				std::string const key = where->first->get_spec() ;
 				
 				if( ( ++( snp_counts[ key ] )) > 1 ) {
@@ -260,6 +267,12 @@ namespace genfile {
 		m_column_names.push_back( column_name ) ;
 		m_column_types.push_back( e_CONTINUOUS_COVARIATE ) ;
 		m_column_data.push_back( std::vector< Entry >( column.data(), column.data() + column.rows() )) ;
+		for( int i = 0;i < column.rows(); ++i ) {
+			double value = m_column_data.back()[i].as< double >() ;
+			if( value != value ) {
+				m_column_data.back()[i] = MissingValue() ;
+			}
+		}
 	}
 }
 
