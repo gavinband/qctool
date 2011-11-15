@@ -2,6 +2,8 @@
 #define GENFILE_UTILITY_HPP
 
 #include <vector>
+#include <algorithm>
+#include <iterator>
 
 namespace genfile {
 	namespace utility {
@@ -31,6 +33,17 @@ namespace genfile {
 					result.push_back( container[i] ) ;
 				}
 			}
+			return result ;
+		}
+		
+		template< typename S >
+		S intersect( S const& set1, S const& set2 ) {
+			S result ;
+			std::set_intersection(
+				set1.begin(), set1.end(),
+				set2.begin(), set2.end(),
+				std::inserter( result, result.end() )
+			) ;
 			return result ;
 		}
 	}

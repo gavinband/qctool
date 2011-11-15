@@ -206,8 +206,8 @@ namespace genfile {
 				}
 				
 				::Eigen::VectorXd row_sums = probabilities.rowwise().sum() ;
-				for( std::size_t i = 0; i < row_sums.size(); ++i ) {
-					if( row_sums[i] == 0.0 ) {
+				for( int i = 0; i < row_sums.size(); ++i ) {
+					if( row_sums(i) == 0.0 ) {
 						probabilities.row( i ) = ::Eigen::Vector3d::Constant( std::numeric_limits< double >::quiet_NaN() ) ;
 					}
 				}

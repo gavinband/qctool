@@ -8,7 +8,7 @@
 #include "../config.hpp"
 #if HAVE_EIGEN
 #include <Eigen/Core>
-
+#endif
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/CompositeCohortIndividualSource.hpp"
 #include "genfile/SNPDataSource.hpp"
@@ -115,5 +115,4 @@ namespace genfile {
 	} ;
 }
 
-#endif
 #endif

@@ -148,7 +148,7 @@ namespace genfile {
 			int const m_BB_value ;
 			double const m_threshhold ;
 		} ;
-		
+
 		template< typename Matrix >
 		struct MatrixSetter: public VariantDataReader::PerSampleSetter
 		{
