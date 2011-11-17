@@ -6,6 +6,7 @@
 #include <exception>
 #include "sqlite3/sqlite3.h"
 #include "db/Connection.hpp"
+#include "db/Transaction.hpp"
 #include "db/Error.hpp"
 
 extern "C" {
@@ -36,7 +37,16 @@ namespace db {
 		std::string get_spec() const {
 			return m_filename ;
 		}
-		
+
+	private:
+		struct Transaction: public db::Transaction {
+			Transaction( SQLite3Connection& connection ) ;
+			~Transaction() ;
+		private:
+			SQLite3Connection& m_connection ;
+		} ;
+	public:
+		ScopedTransactionPtr open_transaction() ;
 	private:
 		std::string m_filename ;
 		sqlite3* m_db_connection ;

@@ -109,4 +109,18 @@ namespace db {
 		}
 #endif
 	}
+	
+	SQLite3Connection::ScopedTransactionPtr SQLite3Connection::open_transaction() {
+		return SQLite3Connection::Transaction::UniquePtr( new SQLite3Connection::Transaction( *this )) ;
+	}
+	
+	SQLite3Connection::Transaction::Transaction( SQLite3Connection& connection ):
+		m_connection( connection )
+	{
+		m_connection.run_statement( "BEGIN TRANSACTION" ) ;
+	}
+	
+	SQLite3Connection::Transaction::~Transaction() {
+		m_connection.run_statement( "COMMIT" ) ;
+	}
 }

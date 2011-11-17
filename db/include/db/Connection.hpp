@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <stdint.h>
+#include "db/Transaction.hpp"
 
 namespace db {
 
@@ -26,6 +27,8 @@ namespace db {
 		virtual std::string get_spec() const = 0 ;
 		typedef int64_t RowId ;
 		virtual RowId get_last_insert_row_id() const = 0 ;
+		typedef Transaction::UniquePtr ScopedTransactionPtr ;
+		virtual ScopedTransactionPtr open_transaction() = 0 ;
 	} ;	
 }
 
