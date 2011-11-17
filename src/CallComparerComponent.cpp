@@ -66,6 +66,7 @@ namespace impl {
 			m_connection( db::Connection::create( filename )),
 			m_max_transaction_count( 10000 )
 		{
+			db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction() ;
 			m_connection->run_statement(
 				"CREATE TABLE IF NOT EXISTS Variant ( id INTEGER PRIMARY KEY, snpid TEXT, rsid TEXT, chromosome TEXT, position INTEGER, alleleA TEXT, alleleB TEXT )"
 			) ;
@@ -86,9 +87,6 @@ namespace impl {
 				"CREATE INDEX IF NOT EXISTS ComparisonIndex ON Comparison( variant_id, method_id, variable_id )"
 			) ;
 
-			m_connection->run_statement( "DELETE FROM Variant" ) ;
-			m_connection->run_statement( "DELETE FROM Comparison" ) ;
-			m_connection->run_statement( "DELETE FROM Entity" ) ;
 			construct_statements() ;
 		}
 		
@@ -150,7 +148,7 @@ namespace impl {
 
 		void write_data( Data const& data ) {
 			db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction() ;
-			for( std::size_t i = 0; i < data.size(); ++i ) {
+			for( std::size_t i = 0; i < m_data.size(); ++i ) {
 				store_comparison(
 					data[i].get<0>(),
 					data[i].get<1>(),
@@ -170,8 +168,8 @@ namespace impl {
 			std::string const& comparison_variable,
 			genfile::VariantEntry const& value
 		) {
-			m_find_variant_statement->reset()
-				.bind( 1, snp.get_rsid() )
+			m_find_variant_statement
+				->bind( 1, snp.get_rsid() )
 				.bind( 2, std::string( snp.get_position().chromosome() ))
 				.bind( 3, snp.get_position().position() )
 				.step()
@@ -180,8 +178,8 @@ namespace impl {
 			db::Connection::RowId snp_id ;
 
 			if( m_find_variant_statement->empty() ) {
-				m_insert_variant_statement->reset()
-					.bind( 1, snp.get_SNPID() )
+				m_insert_variant_statement
+					->bind( 1, snp.get_SNPID() )
 					.bind( 2, snp.get_rsid() )
 					.bind( 3, std::string( snp.get_position().chromosome() ) )
 					.bind( 4, snp.get_position().position() )
@@ -194,17 +192,20 @@ namespace impl {
 			} else {
 				snp_id = m_find_variant_statement->get< db::Connection::RowId >( 0 ) ;
 			}
+			
+			m_find_variant_statement->reset() ;
+			m_insert_variant_statement->reset() ;
 
 			db::Connection::RowId method_id ;
 			db::Connection::RowId variable_id ;
 
 			{
-				m_find_entity_statement->reset()
-					.bind( 1, comparison_method ).step() ;
+				m_find_entity_statement
+					->bind( 1, comparison_method ).step() ;
 
 				if( m_find_entity_statement->empty() ) {
-					m_insert_entity_statement->reset()
-						.bind( 1, comparison_method )
+					m_insert_entity_statement
+						->bind( 1, comparison_method )
 						.step() ;
 					method_id = m_connection->get_last_insert_row_id() ;
 				} else {
@@ -222,10 +223,13 @@ namespace impl {
 				} else {
 					variable_id = m_find_entity_statement->get< db::Connection::RowId >( 0 ) ;
 				}
+				
+				m_find_entity_statement->reset() ;
+				m_insert_entity_statement->reset() ;
 			}
 			
-			m_insert_comparison_statement->reset()
-				.bind( 1, snp_id )
+			m_insert_comparison_statement
+				->bind( 1, snp_id )
 				.bind( 2, callset1 )
 				.bind( 3, callset2 )
 				.bind( 4, method_id )
@@ -233,6 +237,8 @@ namespace impl {
 				.bind( 6, value.as< double >()  )
 				.step()
 			;
+			
+			m_insert_comparison_statement->reset() ;
 		}
 	} ;
 }
