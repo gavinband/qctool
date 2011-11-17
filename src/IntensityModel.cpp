@@ -11,7 +11,6 @@ IntensityModel::UniquePtr IntensityModel::estimate( Eigen::MatrixXd const& inten
 	assert( std::size_t( intensities.cols() ) == number_of_samples ) ;
 	assert( intensities.rows() == 2 ) ;
 
-	double const NaN = std::numeric_limits< double >::quiet_NaN() ;
 	std::vector< Eigen::Vector2d > means( 3, Eigen::Vector2d::Zero() ) ;
 	std::vector< Eigen::Matrix2d > variances( 3, Eigen::Matrix2d::Zero() ) ;
 	std::vector< double > non_missing_counts( 3, 0.0 ) ;

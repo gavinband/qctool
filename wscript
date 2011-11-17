@@ -138,7 +138,7 @@ def get_cxx_flags( variant_name ):
 	if variant_name == 'default':
 		cxxflags.extend( ['-g', '-p' ])
 	elif variant_name == 'release':
-		cxxflags.extend( [ '-O4' ])
+		cxxflags.extend( [ '-O3', '-O4' ])
 	return cxxflags
 
 def get_ld_flags( variant_name ):

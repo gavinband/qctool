@@ -89,13 +89,11 @@ namespace impl {
 			m_connection->run_statement( "DELETE FROM Variant" ) ;
 			m_connection->run_statement( "DELETE FROM Comparison" ) ;
 			m_connection->run_statement( "DELETE FROM Entity" ) ;
-			m_connection->run_statement( "BEGIN TRANSACTION" ) ;
-			
 			construct_statements() ;
 		}
 		
 		~CallComparerDBOutputter() {
-			m_connection->run_statement( "COMMIT TRANSACTION" ) ;
+			write_data( m_data ) ;
 		}
 
 		void write_comparison(
@@ -115,20 +113,23 @@ namespace impl {
 				)
 			) ;
 			if( m_data.size() == m_max_transaction_count ) {
-				db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction() ;
-				for( std::size_t i = 0; i < m_data.size(); ++i ) {
-					store_comparison(
-						m_data[i].get<0>(),
-						m_data[i].get<1>(),
-						m_data[i].get<2>(),
-						m_data[i].get<3>(),
-						m_data[i].get<4>(),
-						m_data[i].get<5>()
-					) ;
-				}
+				write_data( m_data ) ;
 				m_data.clear() ;
 			}
 		}
+
+	private:
+		db::Connection::UniquePtr m_connection ;
+		std::size_t const m_max_transaction_count ;
+
+		db::Connection::StatementPtr m_find_variant_statement ;
+		db::Connection::StatementPtr m_insert_variant_statement ;
+		db::Connection::StatementPtr m_find_entity_statement ;
+		db::Connection::StatementPtr m_insert_entity_statement ;
+		db::Connection::StatementPtr m_insert_comparison_statement ;
+		
+		typedef std::vector< boost::tuple< genfile::SNPIdentifyingData, std::string, std::string, std::string, std::string, genfile::VariantEntry > > Data ;
+		Data m_data ;
 
 	private:
 		void construct_statements() {
@@ -145,6 +146,20 @@ namespace impl {
 				"INSERT INTO Comparison ( variant_id, callset1, callset2, method_id, variable_id, value ) "
 				"VALUES( ?1, ?2, ?3, ?4, ?5, ?6 )"
 			) ;
+		}
+
+		void write_data( Data const& data ) {
+			db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction() ;
+			for( std::size_t i = 0; i < data.size(); ++i ) {
+				store_comparison(
+					data[i].get<0>(),
+					data[i].get<1>(),
+					data[i].get<2>(),
+					data[i].get<3>(),
+					data[i].get<4>(),
+					data[i].get<5>()
+				) ;
+			}
 		}
 
 		void store_comparison(
@@ -219,19 +234,6 @@ namespace impl {
 				.step()
 			;
 		}
-
-	private:
-		db::Connection::UniquePtr m_connection ;
-		std::size_t const m_max_transaction_count ;
-
-		db::Connection::StatementPtr m_find_variant_statement ;
-		db::Connection::StatementPtr m_insert_variant_statement ;
-		db::Connection::StatementPtr m_find_entity_statement ;
-		db::Connection::StatementPtr m_insert_entity_statement ;
-		db::Connection::StatementPtr m_insert_comparison_statement ;
-		
-		typedef std::vector< boost::tuple< genfile::SNPIdentifyingData, std::string, std::string, std::string, std::string, genfile::VariantEntry > > Data ;
-		Data m_data ;
 	} ;
 }
 
