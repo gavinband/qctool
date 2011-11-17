@@ -444,9 +444,13 @@ private:
 				<< table( 1, 1 ) << tab
 				<< table.col( 0 ).sum() << tab
 				<< table.sum() << tab ;
-			
-			FishersExactTest test( table ) ;
-			get_ui_context().logger() << test.get_OR() << tab << test.get_pvalue() << "\n" ;
+			try {
+				FishersExactTest test( table ) ;
+				get_ui_context().logger() << test.get_OR() << tab << test.get_pvalue() << "\n" ;
+			}
+			catch( std::exception const& ) {
+				get_ui_context().logger() << "NA\tNA\n" ;	
+			}
 		}
 	}
 	
