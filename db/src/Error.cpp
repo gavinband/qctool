@@ -4,8 +4,8 @@
 
 namespace db {
 	Error::Error( std::string const& caller, std::string const& db_spec, int error ):
-		m_error( error ),
-		m_spec( db_spec )
+		m_spec( db_spec ),
+		m_error( error )
 	{
 		assert( m_error != SQLite3Statement::Error::OK ) ;
 	}
