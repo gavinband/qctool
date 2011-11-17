@@ -45,7 +45,7 @@ namespace appcontext {
 	
 	void ApplicationContext::process_options( int argc, char** argv, std::string const& log_option ) {
 		try {
-			get_ui_context().logger().add_stream( "screen", std::cout ) ;
+			get_ui_context().logger().add_stream( "screen", std::cerr ) ;
 			m_options->process( argc, argv ) ;
 			construct_logger( log_option ) ;
 		}
