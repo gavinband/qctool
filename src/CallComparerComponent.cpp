@@ -104,14 +104,14 @@ namespace impl {
 			std::string const& comparison_variable,
 			genfile::VariantEntry const& value
 		) {
-			m_data.push_back(
-				boost::make_tuple(
-					snp,
-					callset1, callset2,
-					comparison_method, comparison_variable,
-					value
-				)
-			) ;
+			m_data.resize( m_data.size() + 1 ) ;
+			m_data.back().get<0>() = snp ;
+			m_data.back().get<1>() = callset1 ;
+			m_data.back().get<2>() = callset2 ;
+			m_data.back().get<3>() = comparison_method ;
+			m_data.back().get<4>() = comparison_variable ;
+			m_data.back().get<5>() = value ;
+
 			if( m_data.size() == m_max_transaction_count ) {
 				write_data( m_data ) ;
 				m_data.clear() ;

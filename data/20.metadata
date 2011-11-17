@@ -1,0 +1,9 @@
+##fileformat=VCFv4.0
+##number-of-variants=991
+##FORMAT=<ID=GT,Number=.,Type=Genotype,Description="consensus genotype calls">
+##FORMAT=<ID=GLI,Number=3,Type=Float,Description="Genotype probabilities of Illuminus">
+##FORMAT=<ID=GLG,Number=3,Type=Float,Description="Genotype probabilities of GenoSNP">
+##FORMAT=<ID=GC,Number=1,Type=String,Description="genotype calls of GenCal">
+##FORMAT=<ID=GCS,Number=1,Type=Float,Description="genotype call scores of GenCal">
+##FORMAT=<ID=XY,Number=2,Type=Float,Description="XY value">
+##FORMAT=<ID=CF,Number=1,Type=Integer,Description="Conflict among three callers">
