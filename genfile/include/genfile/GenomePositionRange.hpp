@@ -9,6 +9,7 @@ namespace genfile {
 	struct GenomePositionRange {
 		static GenomePositionRange parse( std::string const& spec ) ;
 
+		GenomePositionRange( Position start, Position end ) ;
 		GenomePositionRange( GenomePosition start, GenomePosition end ) ;
 		GenomePositionRange( GenomePositionRange const& ) ;
 		GenomePositionRange& operator=( GenomePositionRange const& other ) ;
@@ -26,6 +27,7 @@ namespace genfile {
 		private:
 			GenomePosition m_start ;
 			GenomePosition m_end ;
+			bool m_have_chromosome ;
 
 			// forbid default construction.
 			GenomePositionRange() ;

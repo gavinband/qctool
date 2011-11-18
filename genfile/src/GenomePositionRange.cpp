@@ -8,8 +8,9 @@
 namespace genfile {
 	GenomePositionRange GenomePositionRange::parse( std::string const& spec ) {
 		std::vector< std::string > pieces = string_utils::split_and_strip( spec, ":", " " ) ;
-		if ( pieces.size() == 1 ) {
-			pieces.insert( pieces.begin(), "??" ) ;
+		bool all_chromosomes = ( pieces.size() == 1 ) ;
+		if ( all_chromosomes ) {
+			pieces.insert( pieces.begin(), "NA" ) ;
 		}
 		if ( pieces.size() != 2 ) {
 			throw genfile::BadArgumentError( "genfile::GenomePositionRange::parse", "spec=\"" + spec + "\"" ) ;
@@ -32,29 +33,49 @@ namespace genfile {
 			end_position = genfile::string_utils::to_repr< genfile::Position >( pieces[1].substr( separator_pos + 1, pieces[1].size() )) ;
 		}
 
-		return genfile::GenomePositionRange(
-		   GenomePosition( chromosome, start_position ),
-		   GenomePosition( chromosome, end_position )
-	   ) ;
+		if( all_chromosomes ) {
+			return genfile::GenomePositionRange(
+				start_position,
+				end_position
+			) ;
+		}
+		else {
+			return genfile::GenomePositionRange(
+				GenomePosition( chromosome, start_position ),
+				GenomePosition( chromosome, end_position )
+			) ;
+		}
 	}
 
 	// Represents a closed, but possibly empty, range of genome positions.
-	GenomePositionRange::GenomePositionRange( GenomePosition start, GenomePosition end ):
-		m_start( start ),
-		m_end( end )
+	GenomePositionRange::GenomePositionRange( Position start, Position end ):
+		m_start( GenomePosition( Chromosome(), start ) ),
+		m_end( GenomePosition( Chromosome(), end ) ),
+		m_have_chromosome( false )
 	{
 		if( m_end < m_start ) {
 			throw BadArgumentError( "genfile::GenomePositionRange::GenomePositionRange( start, end )", "start, end" ) ;
 		}
-		
-		if(( m_start.chromosome() == Chromosome() || m_start.chromosome() == Chromosome() ) && m_start.chromosome() != m_end.chromosome() ) {
+	}
+
+	GenomePositionRange::GenomePositionRange( GenomePosition start, GenomePosition end ):
+		m_start( start ),
+		m_end( end ),
+		m_have_chromosome( true )
+	{
+		if( m_start.chromosome() != m_end.chromosome() ) {
+			throw BadArgumentError( "genfile::GenomePositionRange::GenomePositionRange( start, end )", "start, end" ) ;
+		}
+
+		if( m_end < m_start ) {
 			throw BadArgumentError( "genfile::GenomePositionRange::GenomePositionRange( start, end )", "start, end" ) ;
 		}
 	}
 	
 	GenomePositionRange::GenomePositionRange( GenomePositionRange const& other ):
 		m_start( other.m_start ),
-		m_end( other.m_end )
+		m_end( other.m_end ),
+		m_have_chromosome( other.m_have_chromosome )
 	{}
 
 	GenomePositionRange& GenomePositionRange::operator=( GenomePositionRange const& other ) {
@@ -64,7 +85,7 @@ namespace genfile {
 	}
 	
 	bool GenomePositionRange::check_if_contains( GenomePosition const& position ) const {
-		if( m_start.chromosome() == Chromosome() ) {
+		if( !m_have_chromosome ) {
 			return m_start.position() <= position.position() && position.position() <= m_end.position() ;
 		}
 		else {
