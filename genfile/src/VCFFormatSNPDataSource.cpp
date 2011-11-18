@@ -93,7 +93,10 @@ namespace genfile {
 	}
 	
 	void VCFFormatSNPDataSource::setup() {
-		std::string const index_filename = m_spec + ".index" ;
+		std::string index_filename = m_spec ;
+		if( index_filename.size() > 3 && index_filename.substr( index_filename.size() - 3, 3 ) == ".gz" ) {
+			index_filename = index_filename.substr( 0, index_filename.size() - 3 ) ;
+		}
 		if( boost::filesystem::exists( index_filename ) ) {
 			m_index_stream_ptr = open_text_file_for_input( index_filename ) ;
 		}
