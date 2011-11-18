@@ -78,13 +78,31 @@ namespace impl {
 			) ;
 			m_connection->run_statement(
 				"CREATE TABLE IF NOT EXISTS Comparison ( "
-				"variant_id INT, callset1 TEXT, callset2 TEXT, method_id INT, variable_id INT, value FLOAT, "
+				"variant_id INT, callset1 INT, callset2 INT, method_id INT, variable_id INT, value FLOAT, "
 				"FOREIGN KEY( variant_id ) REFERENCES Variant( id ), "
 				"FOREIGN KEY( method_id ) REFERENCES Entity( id ), "
 				"FOREIGN KEY( variable_id ) REFERENCES Entity( id ))"
 			) ;
 			m_connection->run_statement(
 				"CREATE INDEX IF NOT EXISTS ComparisonIndex ON Comparison( variant_id, method_id, variable_id )"
+			) ;
+
+			m_connection->run_statement(
+				"CREATE VIEW IF NOT EXISTS SNPLevelView AS"
+				" SELECT V.rsid, V.chromosome, V.position, V.alleleA, V.alleleB, COUNT( C.variant_id ) AS concordance_count,"
+				" GROUP_CONCAT( C.callset1 || \":\" || C.callset2, \",\" ) AS concordant_callsets"
+				" FROM    Variant V"
+				" LEFT OUTER JOIN Comparison C"
+		    	" ON  C.variant_id == V.id AND C.method_id == 1 AND C.variable_id == 3 AND C.value > 0.001"
+				" GROUP BY V.chromosome, V.position, V.rsid "
+			) ;
+
+			m_connection->run_statement(
+				"CREATE VIEW IF NOT EXISTS ComparisonSummaryView AS"
+				" SELECT       COUNT(*), concordant_callsets"
+				" FROM        SNPLevelView"
+				" GROUP BY    concordant_callsets"
+				" ORDER BY COUNT(*) DESC"
 			) ;
 
 			construct_statements() ;
@@ -197,15 +215,41 @@ namespace impl {
 			m_insert_variant_statement->reset() ;
 
 			db::Connection::RowId method_id ;
+			db::Connection::RowId callset1_id ;
+			db::Connection::RowId callset2_id ;
 			db::Connection::RowId variable_id ;
 
 			{
 				m_find_entity_statement
-					->bind( 1, comparison_method ).step() ;
+					->bind( 1, callset1 ).step() ;
 
 				if( m_find_entity_statement->empty() ) {
 					m_insert_entity_statement
-						->bind( 1, comparison_method )
+						->bind( 1, callset1 )
+						.step() ;
+					callset1_id = m_connection->get_last_insert_row_id() ;
+				} else {
+					callset1_id = m_find_entity_statement->get< db::Connection::RowId >( 0 ) ;
+				}
+
+				m_find_entity_statement->reset()
+					.bind( 1, callset2 ).step() ;
+
+				if( m_find_entity_statement->empty() ) {
+					m_insert_entity_statement->reset()
+						.bind( 1, callset2 )
+						.step() ;
+					callset2_id = m_connection->get_last_insert_row_id() ;
+				} else {
+					callset2_id = m_find_entity_statement->get< db::Connection::RowId >( 0 ) ;
+				}
+
+				m_find_entity_statement->reset()
+					.bind( 1, comparison_method ).step() ;
+
+				if( m_find_entity_statement->empty() ) {
+					m_insert_entity_statement->reset()
+						.bind( 1, comparison_method )
 						.step() ;
 					method_id = m_connection->get_last_insert_row_id() ;
 				} else {
@@ -230,8 +274,8 @@ namespace impl {
 			
 			m_insert_comparison_statement
 				->bind( 1, snp_id )
-				.bind( 2, callset1 )
-				.bind( 3, callset2 )
+				.bind( 2, callset1_id )
+				.bind( 3, callset2_id )
 				.bind( 4, method_id )
 				.bind( 5, variable_id )
 				.bind( 6, value.as< double >()  )
