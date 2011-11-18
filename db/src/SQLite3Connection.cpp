@@ -16,7 +16,7 @@ extern "C" {
 		if( number_of_tries > 100 ) {
 			return 0 ;
 		}
-		boost::this_thread::sleep( boost::posix_time::milliseconds( 10 * ( number_of_tries + 1 ) ) ) ;
+		boost::this_thread::sleep( boost::posix_time::milliseconds( number_of_tries + 1 ) ) ;
 		return 1 ;
 	}
 }
@@ -117,7 +117,7 @@ namespace db {
 	SQLite3Connection::Transaction::Transaction( SQLite3Connection& connection ):
 		m_connection( connection )
 	{
-		m_connection.run_statement( "BEGIN TRANSACTION" ) ;
+		m_connection.run_statement( "BEGIN IMMEDIATE TRANSACTION" ) ;
 	}
 	
 	SQLite3Connection::Transaction::~Transaction() {

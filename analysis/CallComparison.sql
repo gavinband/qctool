@@ -34,30 +34,55 @@ LEFT OUTER JOIN Comparison C
 GROUP BY V.chromosome, V.position, V.rsid
 ;
 
+CREATE VIEW IF NOT EXISTS SNPLevelView_1E04 AS
+SELECT V.rsid, V.chromosome, V.position, V.alleleA, V.alleleB, COUNT( C.variant_id ) AS concordance_count, GROUP_CONCAT( C.callset1 || ":" || C.callset2, "," ) AS concordant_callsets
+FROM    Variant V
+LEFT OUTER JOIN Comparison C
+    ON  C.variant_id == V.id AND C.method_id == 1 AND C.variable_id == 3 AND C.value > 0.0001
+GROUP BY V.chromosome, V.position, V.rsid
+;
+
+CREATE VIEW IF NOT EXISTS SNPLevelView_1E05 AS
+SELECT V.rsid, V.chromosome, V.position, V.alleleA, V.alleleB, COUNT( C.variant_id ) AS concordance_count, GROUP_CONCAT( C.callset1 || ":" || C.callset2, "," ) AS concordant_callsets
+FROM    Variant V
+LEFT OUTER JOIN Comparison C
+    ON  C.variant_id == V.id AND C.method_id == 1 AND C.variable_id == 3 AND C.value > 0.00001
+GROUP BY V.chromosome, V.position, V.rsid
+;
+
+CREATE VIEW IF NOT EXISTS SNPLevelView_1E06 AS
+SELECT V.rsid, V.chromosome, V.position, V.alleleA, V.alleleB, COUNT( C.variant_id ) AS concordance_count, GROUP_CONCAT( C.callset1 || ":" || C.callset2, "," ) AS concordant_callsets
+FROM    Variant V
+LEFT OUTER JOIN Comparison C
+    ON  C.variant_id == V.id AND C.method_id == 1 AND C.variable_id == 3 AND C.value > 0.000001
+GROUP BY V.chromosome, V.position, V.rsid
+;
+
 DROP VIEW ComparisonSummaryView ;
 CREATE VIEW ComparisonSummaryView AS
-SELECT      concordant_callsets, COUNT(*)
+SELECT      concordant_callsets, concordance_count, COUNT(*)
 FROM        SNPLevelView
 GROUP BY    concordant_callsets
 ORDER BY COUNT(*) DESC
 ;
 
-
-
-SELECT      callset1, callset2, COUNT(*)
-FROM        Comparison
-WHERE       variable_id == 3 AND method_id ==1 AND value > 0.01
-GROUP BY    callset1, callset2
-LIMIT 10
+CREATE VIEW ComparisonSummaryView1E04 AS
+SELECT      concordant_callsets, concordance_count, COUNT(*)
+FROM        SNPLevelView_1E04
+GROUP BY    concordant_callsets
+ORDER BY COUNT(*) DESC
 ;
 
+CREATE VIEW ComparisonSummaryView1E05 AS
+SELECT      concordant_callsets, concordance_count, COUNT(*)
+FROM        SNPLevelView_1E05
+GROUP BY    concordant_callsets
+ORDER BY COUNT(*) DESC
+;
 
-
-DROP View SNPLevelView2 ;
-CREATE VIEW IF NOT EXISTS SNPLevelView2 AS
-SELECT V.rsid, V.chromosome, V.position, V.alleleA, V.alleleB, E.name AS comparison_method,
-    ( SELECT COUNT( C.variant_id ) FROM Comparison C WHERE C.variant_id == V.id AND C.method_id = 1 AND C.variable_id == 3 AND C.value > 0.01 ) AS concordance_count
-FROM    Variant V
-INNER JOIN Entity E ON E.id == 2
-GROUP BY V.chromosome, V.position, V.rsid
+CREATE VIEW ComparisonSummaryView1E06 AS
+SELECT      concordant_callsets, concordance_count, COUNT(*)
+FROM        SNPLevelView_1E06
+GROUP BY    concordant_callsets
+ORDER BY COUNT(*) DESC
 ;

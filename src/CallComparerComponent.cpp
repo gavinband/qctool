@@ -2,9 +2,15 @@
 #include <boost/signals2/signal.hpp>
 #include <boost/function.hpp>
 #include <boost/tuple/tuple.hpp>
+
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/thread/thread_time.hpp>
+#include <boost/thread/thread.hpp>
+
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
+#include "genfile/Error.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
@@ -165,7 +171,26 @@ namespace impl {
 		}
 
 		void write_data( Data const& data ) {
-			db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction() ;
+			db::Connection::ScopedTransactionPtr transaction ;
+
+			for( std::size_t i = 0; i < 100; ++i ) {
+				try {
+					transaction = m_connection->open_transaction() ;
+					break ;
+				}
+				catch( db::StatementStepError const& e ) {
+					// wait a tenth of a second
+					std::cerr << "CallComparerComponent::write_data(): failed to open transaction, trying again in 0.1s...\n" ;
+					boost::this_thread::sleep( boost::posix_time::milliseconds( 100 ) ) ;
+				}
+				catch( ... ) {
+					std::cerr << "CallComparerComponent::write_data(): OMG, a strange exception was caught.\n" ;
+					boost::this_thread::sleep( boost::posix_time::milliseconds( 100 ) ) ;
+				}
+			}
+			if( !transaction.get() ) {
+				throw genfile::OperationFailedError( "CallComparerComponent::write_data()", m_connection->get_spec(), "Opening transaction." ) ;
+			}
 			for( std::size_t i = 0; i < m_data.size(); ++i ) {
 				store_comparison(
 					data[i].get<0>(),
