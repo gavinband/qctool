@@ -97,9 +97,10 @@ namespace genfile {
 		if( index_filename.size() > 3 && index_filename.substr( index_filename.size() - 3, 3 ) == ".gz" ) {
 			index_filename = index_filename.substr( 0, index_filename.size() - 3 ) ;
 		}
+		index_filename += ".index" ;
 		if( boost::filesystem::exists( index_filename ) ) {
 			m_index_stream_ptr = open_text_file_for_input( index_filename ) ;
-		}
+		} 
 		// check_genotype_probability_field( m_field_mapping ) ;
 		reset_stream() ;
 	}

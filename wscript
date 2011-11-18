@@ -83,7 +83,7 @@ def check_for_boost_lib( conf, lib, min_version, uselib ):
 		print "Looking for static", lib
 	else:
 		static_selector = 'nostatic'
-	if conf.check_boost( lib = lib, min_version = min_version, static = static_selector, uselib = uselib ):
+	if conf.check_boost( lib = lib, min_version = min_version, static = static_selector, uselib = uselib, linkflags = '-L' + conf.env[ 'PREFIX' ] + '/lib' ):
 		conf.define( 'HAVE_' + uselib, 1 )
 
 def check_for_zlib( conf ):
@@ -145,7 +145,7 @@ def get_ld_flags( variant_name ):
 	import platform
 	ldflags = []
 	if Options.options.static and platform.system() != 'Darwin':
-		ldflags.extent( [ '-static' ] )
+		ldflags.extend( [ '-static' ] )
 	return ldflags
 
 #-----------------------------------
