@@ -47,6 +47,8 @@ namespace genfile {
 		std::size_t get_index_of_first_data_line() const { return m_metadata_parser->get_number_of_lines() + 1 ; }
 		std::size_t get_index_of_first_data_column() const { return 9 ; }
 
+		void list_snps( SNPSetter, ProgressCallback ) ;
+
 	protected:
 
 		void get_snp_identifying_data_impl( 
@@ -57,7 +59,19 @@ namespace genfile {
 			SNPPositionSetter const& set_SNP_position,
 			AlleleSetter const& set_allele1,
 			AlleleSetter const& set_allele2
-		) ;	
+		) ;
+		
+		void get_snp_identifying_data_impl( 
+			std::istream* stream_ptr,
+			IntegerSetter const& set_number_of_samples,
+			StringSetter const& set_SNPID,
+			StringSetter const& set_RSID,
+			ChromosomeSetter const& set_chromosome,
+			SNPPositionSetter const& set_SNP_position,
+			AlleleSetter const& set_allele1,
+			AlleleSetter const& set_allele2
+		) ;
+		
 
 		VariantDataReader::UniquePtr read_variant_data_impl() ;
 
@@ -68,6 +82,7 @@ namespace genfile {
 		std::string const m_spec ;
 		CompressionType m_compression_type ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
+		std::auto_ptr< std::istream > m_index_stream_ptr ;
 		vcf::MetadataParser::UniquePtr m_metadata_parser ;
 		vcf::MetadataParser::Metadata m_metadata  ;
 		typedef boost::ptr_map< std::string, vcf::VCFEntryType > EntryTypeMap ;

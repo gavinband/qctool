@@ -67,6 +67,12 @@ namespace genfile {
 		typedef boost::function< void ( uint32_t ) > SNPPositionSetter ;
 		typedef boost::function< void ( Chromosome ) > ChromosomeSetter ;
 		typedef boost::function< void ( std::size_t, double, double, double ) > GenotypeProbabilitySetter ;
+		typedef boost::function< void ( SNPIdentifyingData const& ) > SNPSetter ;
+		typedef boost::function< void( std::size_t, std::size_t ) > ProgressCallback ;
+
+		// Function: list_snps
+		// Return (via the setter object) a list of all SNPs in the source.
+		virtual void list_snps( SNPSetter, ProgressCallback = ProgressCallback() ) ;
 
 		// Function: read_snp()
 		// Read the data for the next snp from the source (and remove it from the source)

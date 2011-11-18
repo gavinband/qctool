@@ -79,6 +79,29 @@ namespace genfile {
 		m_source_reset_callback = callback ;
 	}
 
+	void SNPDataSource::list_snps( SNPSetter setter, boost::function< void( std::size_t, std::size_t ) > progress_callback ) {
+		reset_to_start() ;
+		for(
+			SNPIdentifyingData data ;
+			get_snp_identifying_data(
+				genfile::ignore(),
+				genfile::set_value( data.SNPID() ),
+				genfile::set_value( data.rsid() ),
+				genfile::set_value( data.position().chromosome() ),
+				genfile::set_value( data.position().position() ),
+				genfile::set_value( data.first_allele() ),
+				genfile::set_value( data.second_allele() )
+			) ;
+			ignore_snp_probability_data()
+		) {
+			setter( data ) ;
+			if( progress_callback ) {
+				progress_callback( number_of_snps_read() + 1, total_number_of_snps() ) ;
+			}
+		}
+		
+	}
+
 	SNPDataSource& SNPDataSource::read_snp(
 		IntegerSetter set_number_of_samples,
 		StringSetter set_SNPID,

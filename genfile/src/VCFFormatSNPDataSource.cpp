@@ -5,6 +5,7 @@
 #include <iostream>
 #include <boost/tuple/tuple.hpp>
 #include <boost/bimap.hpp>
+#include <boost/filesystem/operations.hpp>
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/string_utils.hpp"
@@ -92,6 +93,10 @@ namespace genfile {
 	}
 	
 	void VCFFormatSNPDataSource::setup() {
+		std::string const index_filename = m_spec + ".index" ;
+		if( boost::filesystem::exists( index_filename ) ) {
+			m_index_stream_ptr = open_text_file_for_input( index_filename ) ;
+		}
 		// check_genotype_probability_field( m_field_mapping ) ;
 		reset_stream() ;
 	}
@@ -283,7 +288,79 @@ namespace genfile {
 		}
 	}
 	
+	void VCFFormatSNPDataSource::list_snps( SNPSetter setter, ProgressCallback progress_callback ) {
+		std::istream* source = m_index_stream_ptr.get() ;
+		if( !source ) {
+			SNPDataSource::list_snps( setter, progress_callback ) ;
+			return ;
+		}
+		else {
+			using string_utils::slice ;
+
+			std::cerr << "Reading from index file.\n" ;
+
+			source->clear() ;
+			source->seekg(0) ;
+			std::string line ;
+
+			std::getline( *source, line ) ;
+			if( line != "SNPID RSID chromosome position allele1 allele2" ) {
+				throw MalformedInputError( m_spec + ".index", 0 ) ;
+			}
+
+			for( std::size_t count = 1; std::getline( *source, line ); ++count ) {
+				std::vector< slice > elts = slice( line ).split( " " ) ;
+				if( elts.size() != 6 ) {
+					throw MalformedInputError( m_spec + ".index", count, 6 ) ;
+				}
+				if( elts[4].size() != 1 ) {
+					throw MalformedInputError( m_spec + ".index", count, 4 ) ;
+				}
+				if( elts[5].size() != 1 ) {
+					throw MalformedInputError( m_spec + ".index", count, 5 ) ;
+				}
+				setter(
+					SNPIdentifyingData(
+						elts[0],
+						elts[1],
+						GenomePosition(
+							Chromosome( elts[2] ),
+							string_utils::to_repr< Position >( elts[3] )
+						),
+						elts[4][0],
+						elts[5][0]
+					)
+			 	) ;
+				if( progress_callback ) {
+					progress_callback( number_of_snps_read() + 1, total_number_of_snps() ) ;
+				}
+			}
+		}
+	}
+	
 	void VCFFormatSNPDataSource::get_snp_identifying_data_impl( 
+		IntegerSetter const& set_number_of_samples,
+		StringSetter const& set_SNPID,
+		StringSetter const& set_RSID,
+		ChromosomeSetter const& set_chromosome,
+		SNPPositionSetter const& set_SNP_position,
+		AlleleSetter const& set_allele1,
+		AlleleSetter const& set_allele2
+	) {
+		return get_snp_identifying_data_impl(
+			m_stream_ptr.get(),
+			set_number_of_samples,
+			set_SNPID,
+			set_RSID,
+			set_chromosome,
+			set_SNP_position,
+			set_allele1,
+			set_allele2
+		) ;
+	}
+
+	void VCFFormatSNPDataSource::get_snp_identifying_data_impl( 
+		std::istream* stream_ptr,
 		IntegerSetter const& set_number_of_samples,
 		StringSetter const& set_SNPID,
 		StringSetter const& set_RSID,
@@ -303,7 +380,7 @@ namespace genfile {
 
 		std::size_t entry_count = 0 ;
 		try {
-			impl::read_element( *m_stream_ptr,CHROM, '\t', entry_count++ ) ;
+			impl::read_element( *stream_ptr, CHROM, '\t', entry_count++ ) ;
 			if( number_of_snps_read() == m_number_of_lines ) {
 				throw MalformedInputError( m_spec, number_of_snps_read() ) ;
 			}
@@ -320,13 +397,13 @@ namespace genfile {
 		}
 
 		try {
-			impl::read_element( *m_stream_ptr,POS, '\t', entry_count++ ) ;
-			impl::read_element( *m_stream_ptr,ID, '\t', entry_count++ ) ;
-			impl::read_element( *m_stream_ptr,REF, '\t', entry_count++ ) ;
-			impl::read_element( *m_stream_ptr,ALT, '\t', entry_count++ ) ;
-			impl::read_element( *m_stream_ptr,QUAL, '\t', entry_count++ ) ;
-			impl::read_element( *m_stream_ptr,FILTER, '\t', entry_count++ ) ;
-			impl::read_element( *m_stream_ptr,INFO, '\t', entry_count++ ) ;
+			impl::read_element( *stream_ptr,POS, '\t', entry_count++ ) ;
+			impl::read_element( *stream_ptr,ID, '\t', entry_count++ ) ;
+			impl::read_element( *stream_ptr,REF, '\t', entry_count++ ) ;
+			impl::read_element( *stream_ptr,ALT, '\t', entry_count++ ) ;
+			impl::read_element( *stream_ptr,QUAL, '\t', entry_count++ ) ;
+			impl::read_element( *stream_ptr,FILTER, '\t', entry_count++ ) ;
+			impl::read_element( *stream_ptr,INFO, '\t', entry_count++ ) ;
 		}
 		catch( std::ios_base::failure const& ) {
 			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser->get_number_of_lines() + 1, entry_count ) ;
