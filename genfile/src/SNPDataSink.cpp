@@ -30,7 +30,7 @@ namespace genfile {
 				return SNPDataSink::UniquePtr( new ZippedBGenFileSNPDataSink( filename, free_data )) ;
 			}
 			else {
-				return SNPDataSink::UniquePtr( new BGenFileSNPDataSink( filename, free_data, bgen::e_CompressedSNPBlocks )) ;
+				return SNPDataSink::UniquePtr( new BGenFileSNPDataSink( filename, free_data )) ;
 			}
 		}
 		else if( d.first == "vcf" ) {
@@ -54,8 +54,8 @@ namespace genfile {
 		std::string RSID,
 		Chromosome chromosome,
 		uint32_t SNP_position,
-		char first_allele,
-		char second_allele,
+		std::string first_allele,
+		std::string second_allele,
 		GenotypeProbabilityGetter const& get_AA_probability,
 		GenotypeProbabilityGetter const& get_AB_probability,
 		GenotypeProbabilityGetter const& get_BB_probability

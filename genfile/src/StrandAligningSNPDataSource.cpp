@@ -25,6 +25,14 @@ namespace genfile {
 					break ;
 			}
 		}
+		
+		std::string complement( std::string const& allele ) {
+			if( allele.size() != 1 ) {
+				throw BadArgumentError( "StrandAligningSNPDataSource::complement", "allele=" + allele ) ;
+			}
+			return std::string( 1, complement( allele[0] ) ) ;
+		}
+		
 	}
 
 	std::pair< std::vector< SNPIdentifyingData >, StrandAligningSNPDataSource::StrandAlignments > StrandAligningSNPDataSource::create_strand_alignments(
@@ -96,7 +104,7 @@ namespace genfile {
 		if( number_of_snps_read() < m_strand_alignments.size() ) {
 			strand_alignment = m_strand_alignments[ number_of_snps_read() ] ;
 		}
-		char allele1, allele2 ;
+		std::string allele1, allele2 ;
 		
 		switch( strand_alignment ) {
 			case eForwardStrand:
@@ -133,8 +141,8 @@ namespace genfile {
 					ignore(),
 					ignore()
 				) ;
-				set_allele1( '?' ) ;
-				set_allele2( '?' ) ;
+				set_allele1( "?" ) ;
+				set_allele2( "?" ) ;
 				break ;
 			default:
 				assert(0) ;

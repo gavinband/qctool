@@ -117,8 +117,8 @@ namespace genfile {
 			set_RSID( m_elts[0] ) ;
 			set_chromosome( m_chromosome ) ;
 			set_SNP_position( string_utils::to_repr< Position >( m_elts[1] ) ) ;
-			char allele1 = '?' ;
-			char allele2 = '?' ;
+			std::string allele1 = "?" ;
+			std::string allele2 = "?" ;
 
 			std::size_t first_allele_i = 2 ;
 			std::size_t second_allele_i = 2 ;
@@ -131,16 +131,12 @@ namespace genfile {
 			
 			if( first_allele_i < m_elts.size() ) {
 				m_first_allele = m_elts[ first_allele_i ] ;
-				if( m_elts[ first_allele_i ].size() == 1 ) {
-					allele1 = m_elts[ first_allele_i ][0] ;
-				}
+				allele1 = m_elts[ first_allele_i ] ;
 			}
 
 			if( second_allele_i < m_elts.size() ) {
 				m_second_allele = m_elts[ second_allele_i ] ;
-				if( m_elts[ second_allele_i ].size() == 1 ) {
-					allele2 = m_elts[ second_allele_i ][0] ;
-				}
+				allele2 = m_elts[ second_allele_i ] ;
 			}
 			
 			set_allele1( allele1 ) ;

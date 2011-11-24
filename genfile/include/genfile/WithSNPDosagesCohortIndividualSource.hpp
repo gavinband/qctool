@@ -29,8 +29,8 @@ namespace genfile {
 			std::string snpid,
 			std::string rsid,
 			GenomePosition position,
-			char allele1,
-			char allele2
+			std::string allele1,
+			std::string allele2
 		) const {
 			return this->operator()( snpid, rsid, position, allele1, allele2 ) ;
 		}
@@ -46,7 +46,7 @@ namespace genfile {
 	{
 	public:
 		RSIDMatchesTest( std::string const& rsid ) ;
-		bool operator()( std::string, std::string, GenomePosition position, char, char ) const ;
+		bool operator()( std::string, std::string, GenomePosition position, std::string, std::string ) const ;
 		std::string display() const ;
 		std::string get_spec() const ;
 	private:
@@ -57,7 +57,7 @@ namespace genfile {
 	{
 	public:
 		SNPIDMatchesTest( std::string const& snpid ) ;
-		bool operator()( std::string, std::string, GenomePosition position, char, char ) const ;
+		bool operator()( std::string, std::string, GenomePosition position, std::string, std::string ) const ;
 		std::string display() const ;
 		std::string get_spec() const ;
 	private:
@@ -68,7 +68,7 @@ namespace genfile {
 	{
 	public:
 		PositionMatchesTest( GenomePosition const& position ) ;
-		bool operator()( std::string, std::string, GenomePosition position, char, char ) const ;
+		bool operator()( std::string, std::string, GenomePosition position, std::string, std::string ) const ;
  		std::string display() const ;
 		std::string get_spec() const ;
  	private:

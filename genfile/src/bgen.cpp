@@ -7,13 +7,14 @@ namespace genfile {
 		namespace impl {
 			void read_snp_identifying_data(
                 std::istream& aStream,
+				uint32_t const flags,
                 uint32_t* number_of_samples,
                 std::string* SNPID,
                 std::string* RSID,
 				unsigned char* chromosome,
                 uint32_t* SNP_position,
-                char* first_allele,
-                char* second_allele
+                std::string* first_allele,
+                std::string* second_allele
             ) {
                 unsigned char max_id_size = 0;
                 unsigned char SNPID_size = 0;
@@ -39,21 +40,33 @@ namespace genfile {
 					impl::read_little_endian_integer( aStream, chromosome ) ;
 	                impl::read_little_endian_integer( aStream, SNP_position ) ;
 
-	                *first_allele = aStream.get() ;
-	                *second_allele = aStream.get() ;
+					if( flags & e_MultiCharacterAlleles ) {
+						unsigned char allele1_size = 0 ;
+						unsigned char allele2_size = 0 ;
+						impl::read_length_followed_by_data( aStream, &allele1_size, first_allele ) ;
+						assert( allele1_size <= max_id_size ) ;
+						impl::read_length_followed_by_data( aStream, &allele2_size, second_allele ) ;
+						assert( allele2_size <= max_id_size ) ;
+					} else {
+						first_allele->resize( 1 ) ;
+		                (*first_allele)[0] = aStream.get() ;
+						second_allele->resize( 1 ) ;
+		                (*second_allele)[0] = aStream.get() ;
+					}
 				}
             }
             
 			void write_snp_identifying_data(
                 std::ostream& aStream,
+				uint32_t const flags,
                 uint32_t number_of_samples,
                 unsigned char max_id_size,
                 std::string SNPID,
                 std::string RSID,
 				unsigned char chromosome,
                 uint32_t SNP_position,
-                char first_allele,
-                char second_allele
+                std::string first_allele,
+                std::string second_allele
             ) {
                 assert( SNPID.size() <= static_cast< std::size_t >( max_id_size )) ;
                 assert( RSID.size() <= static_cast< std::size_t >( max_id_size )) ;
@@ -70,12 +83,26 @@ namespace genfile {
                 aStream.write( RSID.data() + RSID_size, max_id_size - RSID_size ) ;
 				write_little_endian_integer( aStream, chromosome ) ;
                 write_little_endian_integer( aStream, SNP_position ) ;
-                aStream.put( first_allele ) ;
-                aStream.put( second_allele ) ;
+
+				if( flags & e_MultiCharacterAlleles ) {
+					assert(
+						first_allele.size() <= static_cast< std::size_t >( max_id_size )
+						&& second_allele.size() <= static_cast< std::size_t >( max_id_size )
+					) ;
+					unsigned char allele1_size = first_allele.size() ;
+					unsigned char allele2_size = second_allele.size() ;
+					write_length_followed_by_data( aStream, allele1_size, first_allele.data() ) ;
+					write_length_followed_by_data( aStream, allele2_size, second_allele.data() ) ;
+				} else {
+					assert( first_allele.size() == 1 && second_allele.size() == 1 ) ;
+	                aStream.put( first_allele[0] ) ;
+	                aStream.put( second_allele[0] ) ;
+				}
             }
 
 			void read_snp_probability_data(
 				std::istream& aStream,
+				uint32_t const flags,
 				uint32_t number_of_samples,
 				Ignorer const&
 			) {
@@ -84,6 +111,7 @@ namespace genfile {
 
 			void read_compressed_snp_probability_data(
 				std::istream& aStream,
+				uint32_t const flags,
 				uint32_t number_of_samples,
 				Ignorer const&
 			) {

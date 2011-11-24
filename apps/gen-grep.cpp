@@ -170,7 +170,7 @@ struct IDDataPrinter
 		std::string SNPID, RSID ;
 		genfile::Chromosome chromosome ;
 		uint32_t number_of_samples, SNP_position ;
-		char allele1, allele2 ;
+		std::string allele1, allele2 ;
 		while( m_context.snp_data_source().get_snp_identifying_data(
 		 	genfile::set_value( number_of_samples ),
 			genfile::set_value( SNPID ),

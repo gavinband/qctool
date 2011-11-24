@@ -23,8 +23,8 @@ struct SNPIDSink: public genfile::SNPDataSink
 		std::string RSID,
 		genfile::Chromosome chromosome,
 		uint32_t SNP_position,
-		char,
-		char,
+		std::string,
+		std::string,
 		GenotypeProbabilityGetter const&,
 		GenotypeProbabilityGetter const&,
 		GenotypeProbabilityGetter const&

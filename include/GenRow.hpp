@@ -20,20 +20,20 @@ public:
 	GenRowIdentifyingData& operator=( GenRowIdentifyingData const& other ) ;
 	GenRowIdentifyingData( genfile::SNPIdentifyingData const& id_data ) ;
 	
-	std::string SNPID() const { return m_SNPID ; } 
-	std::string RSID() const { return m_RSID ; }
+	std::string const& SNPID() const { return m_SNPID ; } 
+	std::string const& RSID() const { return m_RSID ; }
 	Chromosome chromosome() const { return m_chromosome ; }
 	int SNP_position() const { return m_SNP_position ; }
-	char first_allele() const { return m_1st_allele; }
-	char second_allele() const { return m_2nd_allele; }
+	std::string const& first_allele() const { return m_1st_allele; }
+	std::string const& second_allele() const { return m_2nd_allele; }
 	
 	// Data setters, needed for genfile support.
 	void set_SNPID( std::string const& str ) { m_SNPID = str ; }
 	void set_RSID( std::string const& str ) { m_RSID = str ; }
 	void set_chromosome( Chromosome chromosome ) { m_chromosome = chromosome ; }
 	void set_SNP_position( int pos ) { m_SNP_position = pos ; }
-	void set_allele1( char a ) { m_1st_allele = a ; }
-	void set_allele2( char b ) { m_2nd_allele = b ; }
+	void set_allele1( std::string a ) { m_1st_allele = a ; }
+	void set_allele2( std::string b ) { m_2nd_allele = b ; }
 
 	bool operator==( GenRowIdentifyingData const& right ) const ;
 
@@ -48,7 +48,7 @@ private:
 	std::string m_RSID ;
 	Chromosome m_chromosome ;
 	int m_SNP_position ;
-	char m_1st_allele, m_2nd_allele ;
+	std::string m_1st_allele, m_2nd_allele ;
 } ;
 
 std::ostream& operator<<( std::ostream&, GenRowIdentifyingData const& ) ;

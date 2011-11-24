@@ -26,8 +26,8 @@ namespace genfile {
 			std::string RSID,
 			Chromosome chromosome,
 			uint32_t SNP_position,
-			char first_allele,
-			char second_allele,
+			std::string first_allele,
+			std::string second_allele,
 			GenotypeProbabilityGetter const& get_AA_probability,
 			GenotypeProbabilityGetter const& get_AB_probability,
 			GenotypeProbabilityGetter const& get_BB_probability
@@ -40,6 +40,7 @@ namespace genfile {
 		typedef std::pair< GenomePosition, RSIDType > SNPKey ;
 		typedef std::pair< SNPKey, DataType > StoredRow ;
 		std::vector< StoredRow > m_rows ;
+		uint32_t const m_flags ;
 	} ;
 }
 

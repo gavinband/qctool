@@ -14,8 +14,8 @@ namespace genfile {
 			std::string SNPID,
 			std::string RSID,
 			GenomePosition position,
-			char first_allele,
-			char second_allele
+			std::string first_allele,
+			std::string second_allele
 		) const ;
 		
 		std::string display() const ;

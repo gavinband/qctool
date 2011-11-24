@@ -39,13 +39,14 @@ namespace data {
 }
 
 namespace {
-	char complement( char allele ) {
-		switch( allele ) {
-			case 'A': return 'T' ; break ;
-			case 'T': return 'A' ; break ;
-			case 'C': return 'G' ; break ;
-			case 'G': return 'C' ; break ;
-			case '?': return '?' ; break ;
+	std::string complement( std::string allele ) {
+		assert( allele.size() == 1 ) ;
+		switch( allele[0] ) {
+			case 'A': return "T" ; break ;
+			case 'T': return "A" ; break ;
+			case 'C': return "G" ; break ;
+			case 'G': return "C" ; break ;
+			case '?': return "?" ; break ;
 			default: assert(0) ; break ;
 		}
 	}

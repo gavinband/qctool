@@ -49,8 +49,8 @@ namespace genfile {
 		std::string SNPID,
 		std::string RSID,
 		GenomePosition,
-		char,
-		char
+		std::string,
+		std::string
 	) const {
 		if( m_type == eSNPID ) {
 			return match( SNPID ) ;

@@ -11,8 +11,8 @@ namespace genfile {
 	 	m_SNPID( "" ),
 		m_RSID( "" ),
 		m_position( Chromosome(), 0 ),
-		m_first_allele( '?' ),
-		m_second_allele( '?' )
+		m_first_allele( "?" ),
+		m_second_allele( "?" )
 	{}
 	
 	SNPIdentifyingData::SNPIdentifyingData(
@@ -25,9 +25,24 @@ namespace genfile {
 		m_SNPID( SNPID ),
 		m_RSID( RSID ),
 		m_position( position ),
+		m_first_allele( 1, first_allele ),
+		m_second_allele( 1, second_allele )
+	{}
+
+	SNPIdentifyingData::SNPIdentifyingData(
+		std::string const& SNPID,
+		std::string const& RSID,
+		GenomePosition const& position,
+		std::string const& first_allele,
+		std::string const& second_allele
+	):
+		m_SNPID( SNPID ),
+		m_RSID( RSID ),
+		m_position( position ),
 		m_first_allele( first_allele ),
 		m_second_allele( second_allele )
 	{}
+	
 	
 	SNPIdentifyingData::SNPIdentifyingData( SNPIdentifyingData const& other ):
 		m_SNPID( other.m_SNPID ),
@@ -235,7 +250,7 @@ namespace genfile {
 	
 	bool SNPIdentifyingData::CompareFields::check_if_comparable_fields_are_known( SNPIdentifyingData const& value ) const {
 		if( std::find( m_fields_to_compare.begin(), m_fields_to_compare.end(), int( eAlleles ) ) != m_fields_to_compare.end() ) {
-			return value.get_first_allele() != '?' && value.get_second_allele() != '?' ;
+			return value.get_first_allele() != "?" && value.get_second_allele() != "?" ;
 		}
 		else {
 			return true ;

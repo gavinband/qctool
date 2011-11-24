@@ -16,8 +16,8 @@ namespace genfile {
 		std::string,
 		std::string,
 		GenomePosition position,
-		char,
-		char
+		std::string,
+		std::string
 	) const {
 		return m_range.check_if_contains( position ) ;
 	}

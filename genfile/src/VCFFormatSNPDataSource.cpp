@@ -443,18 +443,18 @@ namespace genfile {
 		// insofar as we can easily do so.
 		vcf::InfoReader( m_variant_alleles.size(), INFO, m_info_types ) ;
 
-		if( m_variant_alleles.size() >= 1 && m_variant_alleles[0].size() == 1 && m_variant_alleles[0] != "." ) {
-			set_allele1( m_variant_alleles[0][0] ) ;
+		if( m_variant_alleles.size() >= 1 && m_variant_alleles[0] != "." ) {
+			set_allele1( m_variant_alleles[0] ) ;
 		}
 		else {
-			set_allele1( '?' ) ;
+			set_allele1( "?" ) ;
 		}
 
-		if( m_variant_alleles.size() == 2 && m_variant_alleles[1].size() == 1 && m_variant_alleles[1] != "." ) {
-			set_allele2( m_variant_alleles[1][0] ) ;
+		if( m_variant_alleles.size() == 2 && m_variant_alleles[1] != "." ) {
+			set_allele2( m_variant_alleles[1] ) ;
 		}
 		else {
-			set_allele2( '?' ) ;
+			set_allele2( "?" ) ;
 		}
 	}
 

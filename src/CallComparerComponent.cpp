@@ -45,8 +45,8 @@ namespace impl {
 				<< snp.get_rsid()
 				<< std::string( snp.get_position().chromosome() )
 				<< snp.get_position().position()
-				<< std::string( 1, snp.get_first_allele() )
-				<< std::string( 1, snp.get_second_allele() )
+				<< snp.get_first_allele()
+				<< snp.get_second_allele()
 				<< callset1
 				<< callset2
 				<< comparison_method
@@ -226,8 +226,8 @@ namespace impl {
 					.bind( 2, snp.get_rsid() )
 					.bind( 3, std::string( snp.get_position().chromosome() ) )
 					.bind( 4, snp.get_position().position() )
-					.bind( 5, std::string( 1, snp.get_first_allele() ))
-					.bind( 6, std::string( 1, snp.get_second_allele() ))
+					.bind( 5, snp.get_first_allele())
+					.bind( 6, snp.get_second_allele())
 					.step()
 				;
 				

@@ -191,8 +191,8 @@ namespace genfile {
 		std::string RSID,
 		Chromosome chromosome,
 		uint32_t SNP_position,
-		char first_allele,
-		char second_allele,
+		std::string first_allele,
+		std::string second_allele,
 		GenotypeProbabilityGetter const& get_AA_probability,
 		GenotypeProbabilityGetter const& get_AB_probability,
 		GenotypeProbabilityGetter const& get_BB_probability
@@ -218,17 +218,25 @@ namespace genfile {
 			double AA = get_AA_probability( i ),
 				AB = get_AB_probability( i ),
 				BB = get_BB_probability( i ) ;
-			std::pair< char, char > alleles ;
-			// use the folloiwn
+			std::pair< char, char > alleles = std::make_pair( '?', '?' );
+			// use the following
 			if( AA > m_call_threshhold ) {
-				alleles.first = alleles.second = get_representation_of_allele( snp.get_first_allele() ) ;
+				if( snp.get_first_allele().size() == 1 ) {
+					alleles.first = alleles.second = get_representation_of_allele( snp.get_first_allele()[0] ) ;
+				}
 			}
 			else if( AB > m_call_threshhold ) {
-				alleles.first = get_representation_of_allele( snp.get_first_allele() ) ;
-				alleles.second = get_representation_of_allele( snp.get_second_allele() ) ;
+				if( snp.get_first_allele().size() == 1 ) {
+					alleles.first = get_representation_of_allele( snp.get_first_allele()[0] ) ;
+				}
+				if( snp.get_second_allele().size() == 1 ) {
+					alleles.second = get_representation_of_allele( snp.get_second_allele()[0] ) ;
+				}
 			}
 			else if( BB > m_call_threshhold ) {
-				alleles.first = alleles.second = get_representation_of_allele( snp.get_second_allele() ) ;
+				if( snp.get_second_allele().size() == 1 ) {
+					alleles.first = alleles.second = get_representation_of_allele( snp.get_second_allele()[0] ) ;
+				}
 			}
 			else {
 				alleles.first = alleles.second = '?' ;

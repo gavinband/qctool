@@ -50,14 +50,8 @@ namespace genfile {
 				if( elts.size() != header_elts.size() ) {
 					throw MalformedInputError( filename, result.size() + 1 ) ;
 				}
-				char allele1 = '?' ;
-				char allele2 = '?' ;
-				if( elts[2].size() == 1 ) {
-					allele1 = elts[2][0] ;
-				}
-				if( elts[3].size() == 1 ) {
-					allele2 = elts[3][0] ;
-				}
+				std::string allele1 = elts[2] ;
+				std::string allele2 = elts[3] ;
 				
 				result.push_back(
 					SNPIdentifyingData(

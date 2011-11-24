@@ -14,8 +14,8 @@ namespace genfile {
 		std::string,
 		std::string,
 		GenomePosition pos,
-		char,
-		char
+		std::string,
+		std::string
 	) const {
 		return m_chromosomes.find( pos.chromosome() ) != m_chromosomes.end() ;
 	}

@@ -194,7 +194,7 @@ namespace genfile {
 		std::string SNPID, RSID ;
 		unsigned char chromosome ;
 		uint32_t SNP_position ;
-		char first_allele, second_allele ;
+		std::string first_allele, second_allele ;
 
 		while( *this )  {
 			get_snp_identifying_data( set_value( this_number_of_samples ), set_value( SNPID ), set_value( RSID ), set_value( chromosome ), set_value( SNP_position ), set_value( first_allele ), set_value( second_allele ) ) ;

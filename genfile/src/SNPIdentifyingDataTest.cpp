@@ -33,8 +33,8 @@ namespace genfile {
 		std::string SNPID,
 		std::string RSID,
 		GenomePosition position,
-		char first_allele,
-		char second_allele
+		std::string first_allele,
+		std::string second_allele
 	) const {
 		return !m_subtest->operator()( SNPID, RSID, position, first_allele, second_allele ) ;
 	}
@@ -66,8 +66,8 @@ namespace genfile {
 		std::string SNPID,
 		std::string RSID,
 		GenomePosition position,
-		char first_allele,
-		char second_allele
+		std::string first_allele,
+		std::string second_allele
 	) const {
 		for( std::size_t i = 0; i < get_number_of_subtests(); ++i ) {
 			if( !get_subtest(i)(
@@ -107,8 +107,8 @@ namespace genfile {
 		std::string SNPID,
 		std::string RSID,
 		GenomePosition position,
-		char first_allele,
-		char second_allele
+		std::string first_allele,
+		std::string second_allele
 	) const {
 		for( std::size_t i = 0; i < get_number_of_subtests(); ++i ) {
 			if( get_subtest( i )(

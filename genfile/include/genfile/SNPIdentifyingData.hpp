@@ -17,20 +17,27 @@ namespace genfile {
 			char first_allele,
 			char second_allele
 		) ;
+		SNPIdentifyingData(
+			std::string const& SNPID,
+			std::string const& RSID,
+			GenomePosition const& position,
+			std::string const& first_allele,
+			std::string const& second_allele
+		) ;
 		SNPIdentifyingData( SNPIdentifyingData const& other ) ;
 		SNPIdentifyingData& operator=( SNPIdentifyingData const& other ) ;
 
 		std::string& SNPID() { return m_SNPID ; }
 		std::string& rsid() { return m_RSID ;}
 		GenomePosition& position() { return m_position ;}
-		char& first_allele() { return m_first_allele ;}
-		char& second_allele() { return m_second_allele ;}
+		std::string& first_allele() { return m_first_allele ;}
+		std::string& second_allele() { return m_second_allele ;}
 
 		std::string const& get_SNPID() const { return m_SNPID ;}
 		std::string const& get_rsid() const { return m_RSID ;}
 		GenomePosition const& get_position() const { return m_position ;}
-		char get_first_allele() const { return m_first_allele ;}
-		char get_second_allele() const { return m_second_allele ;}
+		std::string const& get_first_allele() const { return m_first_allele ;}
+		std::string const& get_second_allele() const { return m_second_allele ;}
 	public:
 		struct CompareFields {
 			CompareFields( std::string const& fields_to_compare ) ;
@@ -50,8 +57,8 @@ namespace genfile {
 		std::string m_SNPID ;
 		std::string m_RSID ;
 		GenomePosition m_position ;
-		char m_first_allele ;
-		char m_second_allele ;
+		std::string m_first_allele ;
+		std::string m_second_allele ;
 		
 		CompareFields& operator=( CompareFields const& other ) ;
 	} ;	

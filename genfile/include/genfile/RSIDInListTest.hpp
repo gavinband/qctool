@@ -13,8 +13,8 @@ namespace genfile {
 			std::string,
 			std::string RSID,
 			GenomePosition,
-			char,
-			char
+			std::string,
+			std::string
 		) const ;
 		
 		std::string display() const ;

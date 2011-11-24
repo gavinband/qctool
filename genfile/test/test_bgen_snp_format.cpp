@@ -15,8 +15,8 @@ namespace data {
 		std::string RSID,
 		genfile::Chromosome chromosome,
 		uint32_t SNP_position,
-		char a_allele,
-		char b_allele
+		std::string a_allele,
+		std::string b_allele
 	) {
 		std::ostringstream oStream ;
 		genfile::write_little_endian_integer( oStream, number_of_samples ) ;
@@ -30,8 +30,12 @@ namespace data {
 		unsigned char chr = chromosome ;
 		genfile::write_little_endian_integer( oStream, chr ) ;
 		genfile::write_little_endian_integer( oStream, SNP_position ) ;
-		oStream.put( a_allele ) ;
-		oStream.put( b_allele ) ;
+
+		genfile::write_little_endian_integer( oStream, static_cast< char >( a_allele.size() )) ;
+		oStream.write( a_allele.data(), a_allele.size() ) ;
+		genfile::write_little_endian_integer( oStream, static_cast< char >( b_allele.size() )) ;
+		oStream.write( b_allele.data(), b_allele.size() ) ;
+		
 		for( std::size_t i = 0; i < number_of_samples; ++i ) {
 			uint16_t AA = i, AB = i, BB = i ;
 			genfile::write_little_endian_integer( oStream, AA ) ;
@@ -83,9 +87,11 @@ void do_snp_block_read_test(
 		std::string RSID,
 		genfile::Chromosome chromosome,
 		uint32_t SNP_position,
-		char a,
-		char b
-	) {
+		std::string a,
+		std::string b
+) {
+	uint32_t const flags = genfile::bgen::e_CompressedSNPBlocks | genfile::bgen::e_MultiCharacterAlleles ;
+		
 	std::istringstream inStream ;
 	inStream.str(
 		data::construct_snp_block(
@@ -105,13 +111,14 @@ void do_snp_block_read_test(
 	std::string RSID2 ;
 	genfile::Chromosome chromosome2 ;
 	uint32_t SNP_position2 ;
-	char a2 ;
-	char b2 ;
+	std::string a2 ;
+	std::string b2 ;
 	std::vector< probabilities > genotype_probabilities ;
 	genotype_probabilities.resize( 1000 ) ;
 
 	genfile::bgen::read_snp_block(
 		inStream,
+		flags,
 		make_setter( number_of_individuals2 ),
 		make_setter( SNPID2 ),
 		make_setter( RSID2 ),
@@ -145,13 +152,16 @@ void do_snp_block_write_test(
 		std::string RSID,
 		genfile::Chromosome chromosome,
 		uint32_t SNP_position,
-		char a,
-		char b
-	) {
+		std::string a,
+		std::string b
+) {
+	uint32_t const flags = genfile::bgen::e_CompressedSNPBlocks | genfile::bgen::e_MultiCharacterAlleles ;
+	
 	std::ostringstream outStream ;
 	
 	genfile::bgen::write_snp_block( 
 		outStream,
+		flags,
 		number_of_individuals,
 		ID_field_length,
 		SNPID,
@@ -185,12 +195,12 @@ void do_snp_block_write_test(
 
 AUTO_TEST_CASE( test_snp_block_input ) {
 	std::cout << "test_snp_block_input\n" ;
-	do_snp_block_read_test( 6, 6, "SNP 01", "RS 01", genfile::Chromosome1, 1000001, 'A', 'C' ) ;
-	do_snp_block_read_test( 1000, 50, "01234567890123456789012345678901234567890123456789", "01234567890123456789012345678901234567890123456789", genfile::Chromosome22, 4294967295u, 'G', 'T' ) ;
+	do_snp_block_read_test( 6, 6, "SNP 01", "RS 01", genfile::Chromosome1, 1000001, "A", "C" ) ;
+	do_snp_block_read_test( 1000, 50, "01234567890123456789012345678901234567890123456789", "01234567890123456789012345678901234567890123456789", genfile::Chromosome22, 4294967295u, "G", "T" ) ;
 }
 
 AUTO_TEST_CASE( test_snp_block_output ) {
 	std::cout << "test_snp_block_output\n" ;
-	do_snp_block_write_test( 6, 6, "SNP 01", "RS 01", genfile::Chromosome1, 1000001, 'A', 'C' ) ;
-	do_snp_block_write_test( 1000, 50, "01234567890123456789012345678901234567890123456789", "01234567890123456789012345678901234567890123456789", genfile::Chromosome22, 4294967295u, 'G', 'T' ) ;
+	do_snp_block_write_test( 6, 6, "SNP 01", "RS 01", genfile::Chromosome1, 1000001, "A", "C" ) ;
+	do_snp_block_write_test( 1000, 50, "01234567890123456789012345678901234567890123456789", "01234567890123456789012345678901234567890123456789", genfile::Chromosome22, 4294967295u, "G", "T" ) ;
 }

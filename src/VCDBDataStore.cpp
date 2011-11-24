@@ -273,8 +273,8 @@ int64_t VCDBDataStore::get_or_create_SNP( genfile::SNPIdentifyingData const& snp
 			->bind( 1, snp.get_rsid() )
 			.bind( 2, to_string( snp.get_position().chromosome() ))
 			.bind( 3, snp.get_position().position() )
-			.bind( 4, std::string( 1, snp.get_first_allele() ) )
-			.bind( 5, std::string( 1, snp.get_second_allele() ) ) ;
+			.bind( 4, snp.get_first_allele() )
+			.bind( 5, snp.get_second_allele() ) ;
 		statement->step() ;
 		result = m_connection->get_last_insert_row_id() ;
 	}
@@ -282,7 +282,7 @@ int64_t VCDBDataStore::get_or_create_SNP( genfile::SNPIdentifyingData const& snp
 		result = statement->get_column< db::Connection::RowId >( 0 ) ;
 		std::string alleleA = statement->get_column< std::string >( 1 ) ;
 		std::string alleleB = statement->get_column< std::string >( 2 ) ;
-		if( alleleA != std::string( 1, snp.get_first_allele() ) || alleleB != std::string( 1, snp.get_second_allele() )) {
+		if( alleleA != snp.get_first_allele() || alleleB != snp.get_second_allele() ) {
 			throw genfile::MismatchError(
 				"VCDBDataStore::get_or_create_SNP()", m_connection->get_spec() + ":SNP",
 				to_string( snp ),

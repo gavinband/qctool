@@ -53,8 +53,8 @@ namespace genfile {
 		std::string,
 		std::string RSID,
 		GenomePosition,
-		char,
-		char
+		std::string,
+		std::string
 	) const {
 		return RSID == m_rsid ;
 	}
@@ -76,8 +76,8 @@ namespace genfile {
 		std::string SNPID,
 		std::string,
 		GenomePosition,
-		char,
-		char
+		std::string,
+		std::string
 	) const {
 		return SNPID == m_snpid ;
 	}
@@ -98,8 +98,8 @@ namespace genfile {
 		std::string,
 		std::string,
 		GenomePosition position,
-		char,
-		char
+		std::string,
+		std::string
 	) const {
 		return position == m_position ;
 	}
@@ -176,7 +176,7 @@ namespace genfile {
 		std::map< std::string, std::size_t > snp_counts ;
 		std::string snpid, rsid ;
 		GenomePosition position ;
-		char allele1, allele2 ;
+		std::string allele1, allele2 ;
 		while(
 			snp_data_source.get_snp_identifying_data(
 				genfile::ignore(),

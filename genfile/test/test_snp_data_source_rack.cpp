@@ -82,7 +82,7 @@ struct SnpData {
 	std::string SNPID, RSID ;
 	genfile::Chromosome chromosome ;
 	uint32_t SNP_position ;
-	char allele1, allele2 ;
+	std::string allele1, allele2 ;
 	std::vector< probabilities_t > probabilities ;
 	
 	bool operator==( SnpData const& other ) const {

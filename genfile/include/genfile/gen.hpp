@@ -103,8 +103,8 @@ namespace genfile {
 			std::string SNPID,
 			std::string RSID,
 			uint32_t SNP_position,
-			char first_allele,
-			char second_allele,
+			std::string first_allele,
+			std::string second_allele,
 			GenotypeProbabilityGetter get_AA_probability,
 			GenotypeProbabilityGetter get_AB_probability,
 			GenotypeProbabilityGetter get_BB_probability
@@ -120,8 +120,8 @@ namespace genfile {
 				std::string* SNPID,
 				std::string* RSID,
 				uint32_t* SNP_position,
-				char* first_allele,
-				char* second_allele
+				std::string* first_allele,
+				std::string* second_allele
 			) ;
 
 			void read_snp_identifying_data(
@@ -130,8 +130,8 @@ namespace genfile {
 				std::string* SNPID,
 				std::string* RSID,
 				uint32_t* SNP_position,
-				char* first_allele,
-				char* second_allele
+				std::string* first_allele,
+				std::string* second_allele
 			) ;
 			
 			template<
@@ -231,8 +231,8 @@ namespace genfile {
 			std::string SNPID,
 			std::string RSID,
 			uint32_t SNP_position,
-			char first_allele,
-			char second_allele,
+			std::string first_allele,
+			std::string second_allele,
 			GenotypeProbabilityGetter get_AA_probability,
 			GenotypeProbabilityGetter get_AB_probability,
 			GenotypeProbabilityGetter get_BB_probability
@@ -269,8 +269,8 @@ namespace genfile {
 			std::string SNPID,
 			std::string RSID,
 			uint32_t SNP_position,
-			char first_allele,
-			char second_allele,
+			std::string first_allele,
+			std::string second_allele,
 			GenotypeProbabilityGetter get_AA_probability,
 			GenotypeProbabilityGetter get_AB_probability,
 			GenotypeProbabilityGetter get_BB_probability

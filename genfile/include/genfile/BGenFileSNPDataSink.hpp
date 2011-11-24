@@ -38,18 +38,18 @@ namespace genfile {
 			std::string RSID,
 			Chromosome chromosome,
 			uint32_t SNP_position,
-			char first_allele,
-			char second_allele,
+			std::string first_allele,
+			std::string second_allele,
 			GenotypeProbabilityGetter const& get_AA_probability,
 			GenotypeProbabilityGetter const& get_AB_probability,
 			GenotypeProbabilityGetter const& get_BB_probability
 		) {
 			std::size_t id_field_size = std::min( std::max( SNPID.size(), RSID.size() ), static_cast< std::size_t >( 255 )) ;
 			if( m_flags & bgen::e_CompressedSNPBlocks ) {
-				bgen::write_compressed_snp_block( *stream_ptr(), number_of_samples, id_field_size, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;				
+				bgen::write_compressed_snp_block( *stream_ptr(), m_flags, number_of_samples, id_field_size, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
 			}
 			else {
-				bgen::write_snp_block( *stream_ptr(), number_of_samples, id_field_size, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
+				bgen::write_snp_block( *stream_ptr(), m_flags, number_of_samples, id_field_size, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
 			}
 		}
 
@@ -91,8 +91,16 @@ namespace genfile {
 	public:
 		BGenFileSNPDataSink(
 			std::string const& filename,
+			std::string const& free_data
+		)
+		: 	BasicBGenFileSNPDataSink( filename, free_data, "no_compression", bgen::e_CompressedSNPBlocks | bgen::e_MultiCharacterAlleles )
+		{
+		}
+
+		BGenFileSNPDataSink(
+			std::string const& filename,
 			std::string const& free_data,
-			bgen::uint32_t flags
+			uint32_t const flags
 		)
 		: 	BasicBGenFileSNPDataSink( filename, free_data, "no_compression", flags )
 		{
@@ -126,7 +134,7 @@ namespace genfile {
 				create_temporary_filename(),
 				free_data,
 				"no_compression",
-				bgen::e_NoFlags
+				bgen::e_MultiCharacterAlleles
 			),
 			m_filename( filename ),
 			m_buffer_size( buffer_size )

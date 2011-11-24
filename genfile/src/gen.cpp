@@ -9,8 +9,8 @@ namespace genfile {
 	            std::string* SNPID,
 	            std::string* RSID,
 	            uint32_t* SNP_position,
-	            char* first_allele,
-	            char* second_allele
+	            std::string* first_allele,
+	            std::string* second_allele
 			) {
 				aStream >> *SNPID >> *RSID >> *SNP_position >> *first_allele >> *second_allele ;
 			}
@@ -21,8 +21,8 @@ namespace genfile {
 	            std::string* SNPID,
 	            std::string* RSID,
 	            uint32_t* SNP_position,
-	            char* first_allele,
-	            char* second_allele
+	            std::string* first_allele,
+	            std::string* second_allele
 			) {
 				aStream >> *chromosome >> *SNPID >> *RSID >> *SNP_position >> *first_allele >> *second_allele ;
 			}

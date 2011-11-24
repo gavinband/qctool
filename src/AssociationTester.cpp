@@ -124,8 +124,8 @@ void AssociationTester::processed_snp(
 		<< id_data.get_rsid()
 		<< std::string( id_data.get_position().chromosome() )
 		<< id_data.get_position().position()
-		<< std::string( 1, id_data.get_first_allele() )
-		<< std::string( 1, id_data.get_second_allele() )
+		<< id_data.get_first_allele()
+		<< id_data.get_second_allele()
 	;
 	
 	for( std::size_t i = 0; i < m_phenotypes.size(); ++i ) {

@@ -34,11 +34,11 @@ namespace genfile {
 		std::string* RSID,
 		Chromosome* chromosome,
 		uint32_t* SNP_position,
-		char* allele1,
-		char* allele2
+		std::string* allele1,
+		std::string* allele2
 	) {
 		unsigned char chr ;
-		bgen::impl::read_snp_identifying_data( stream(), number_of_samples, SNPID, RSID, &chr, SNP_position, allele1, allele2 ) ;
+		bgen::impl::read_snp_identifying_data( stream(), m_flags, number_of_samples, SNPID, RSID, &chr, SNP_position, allele1, allele2 ) ;
 		*chromosome = Chromosome( ChromosomeEnum( chr ) ) ;
 	}
 
@@ -49,6 +49,7 @@ namespace genfile {
 				if( source.m_flags & bgen::e_CompressedSNPBlocks ) {
 					bgen::impl::read_compressed_snp_probability_data(
 						source.stream(),
+						source.m_flags,
 						source.number_of_samples(),
 						set_genotypes( m_genotypes )
 					) ;
@@ -56,6 +57,7 @@ namespace genfile {
 				else {
 					bgen::impl::read_snp_probability_data(
 						source.stream(),
+						source.m_flags,
 						source.number_of_samples(),
 						set_genotypes( m_genotypes )
 					) ;
@@ -98,19 +100,19 @@ namespace genfile {
 		GenotypeProbabilitySetter const& set_genotype_probabilities
 	) {
 		if( m_flags & bgen::e_CompressedSNPBlocks ) {
-			bgen::impl::read_compressed_snp_probability_data( stream(), number_of_samples(), set_genotype_probabilities ) ;
+			bgen::impl::read_compressed_snp_probability_data( stream(), m_flags, number_of_samples(), set_genotype_probabilities ) ;
 		}
 		else {
-			bgen::impl::read_snp_probability_data( stream(), number_of_samples(), set_genotype_probabilities ) ;
+			bgen::impl::read_snp_probability_data( stream(), m_flags, number_of_samples(), set_genotype_probabilities ) ;
 		}
 	}
 
 	void BGenFileSNPDataSource::ignore_snp_probability_data_impl() {
 		if( m_flags & bgen::e_CompressedSNPBlocks ) {
-			bgen::impl::read_compressed_snp_probability_data( stream(), number_of_samples(), ignore() ) ;
+			bgen::impl::read_compressed_snp_probability_data( stream(), m_flags, number_of_samples(), ignore() ) ;
 		}
 		else {
-			bgen::impl::read_snp_probability_data( stream(), number_of_samples(), ignore() ) ;
+			bgen::impl::read_snp_probability_data( stream(), m_flags, number_of_samples(), ignore() ) ;
 		}
 	}
 

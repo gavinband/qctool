@@ -63,7 +63,7 @@ namespace genfile {
 		// needed by these functions must support.
 		typedef boost::function< void ( uint32_t ) > IntegerSetter ;
 		typedef boost::function< void ( std::string const& ) > StringSetter ;
-		typedef boost::function< void ( char ) > AlleleSetter ;
+		typedef boost::function< void ( std::string const& ) > AlleleSetter ;
 		typedef boost::function< void ( uint32_t ) > SNPPositionSetter ;
 		typedef boost::function< void ( Chromosome ) > ChromosomeSetter ;
 		typedef boost::function< void ( std::size_t, double, double, double ) > GenotypeProbabilitySetter ;
@@ -256,8 +256,8 @@ namespace genfile {
 			std::string* RSID,
 			Chromosome* chromosome,
 			uint32_t* SNP_position,
-			char* allele1,
-			char* allele2
+			std::string* allele1,
+			std::string* allele2
 		) = 0 ;
 		
 
@@ -276,7 +276,7 @@ namespace genfile {
 		Chromosome m_cached_chromosome ;
 		uint32_t m_cached_number_of_samples, m_cached_SNP_position ;
 		std::string m_cached_SNPID, m_cached_RSID ;
-		char m_cached_allele1, m_cached_allele2 ;
+		std::string m_cached_allele1, m_cached_allele2 ;
 	} ;
 }
 

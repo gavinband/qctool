@@ -93,8 +93,8 @@ namespace genfile {
 		std::string* RSID,
 		Chromosome* chromosome,
 		uint32_t* SNP_position,
-		char* allele1,
-		char* allele2
+		std::string* allele1,
+		std::string* allele2
 	) {
 		if( m_have_chromosome_column ) {
 			gen::impl::read_snp_identifying_data( stream(), chromosome, SNPID, RSID, SNP_position, allele1, allele2 ) ;

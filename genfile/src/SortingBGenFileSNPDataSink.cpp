@@ -14,7 +14,8 @@ namespace genfile {
 		std::string const& free_data,
 		bgen::uint32_t flags
 	)
-	: 	BasicBGenFileSNPDataSink( filename, free_data, "no_compression", flags )
+	: 	BasicBGenFileSNPDataSink( filename, free_data, "no_compression", flags ),
+		m_flags( flags )
 	{
 		assert( flags & bgen::e_CompressedSNPBlocks ) ;
 		// Reserve enough space for lots of data!
@@ -27,8 +28,8 @@ namespace genfile {
 		std::string RSID,
 		Chromosome chromosome,
 		uint32_t SNP_position,
-		char first_allele,
-		char second_allele,
+		std::string first_allele,
+		std::string second_allele,
 		GenotypeProbabilityGetter const& get_AA_probability,
 		GenotypeProbabilityGetter const& get_AB_probability,
 		GenotypeProbabilityGetter const& get_BB_probability
@@ -38,7 +39,7 @@ namespace genfile {
 
 		std::size_t id_field_size = std::min( std::max( SNPID.size(), RSID.size() ), static_cast< std::size_t >( 255 )) ;
 		std::ostringstream ostr( std::ios::binary ) ;
-		bgen::write_compressed_snp_block( ostr, number_of_samples, id_field_size, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;				
+		bgen::write_compressed_snp_block( ostr, m_flags, number_of_samples, id_field_size, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;				
 
 		m_rows.back().second = ostr.str() ;
 	}

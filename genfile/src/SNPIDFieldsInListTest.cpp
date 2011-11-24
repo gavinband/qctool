@@ -13,8 +13,8 @@ namespace genfile {
 		std::string SNPID,
 		std::string RSID,
 		GenomePosition,
-		char,
-		char
+		std::string,
+		std::string
 	) const {
 		return (m_id_fields.find( SNPID ) != m_id_fields.end()) || (m_id_fields.find( RSID ) != m_id_fields.end()) ;
 	}
