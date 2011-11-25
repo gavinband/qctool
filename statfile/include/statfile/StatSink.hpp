@@ -6,6 +6,7 @@
 #include <sstream>
 #include <stddef.h>
 #include <boost/function.hpp>
+#include "genfile/VariantEntry.hpp"
 #include "statfile/statfile_utils.hpp"
 #include "statfile/TypeWriterBase.hpp"
 
@@ -63,6 +64,23 @@ namespace statfile {
 			if( *this ) {
 				move_to_next_column() ;
 			}
+			return *this ;
+		}
+
+	private:
+		struct variant_outputter: public boost::static_visitor<>
+		{
+			variant_outputter( StatSink& sink ): m_sink( sink ) {}
+			template< typename T >
+			void operator()( T const& value ) {
+				m_sink << value ;
+			}
+		private:
+			StatSink& m_sink ;
+		} ;
+	public:
+		StatSink& operator<<( genfile::VariantEntry const& value ) {
+			genfile::apply_visitor( variant_outputter( *this ), value ) ;
 			return *this ;
 		}
 

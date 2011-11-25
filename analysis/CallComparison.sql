@@ -34,6 +34,20 @@ LEFT OUTER JOIN Comparison C
 GROUP BY V.chromosome, V.position, V.rsid
 ;
 
+CREATE VIEW IF NOT EXISTS SNPLevelConsensusView AS
+SELECT V.rsid, V.chromosome, V.position, V.alleleA, V.alleleB, COUNT( C.variant_id ) AS concordance_count, GROUP_CONCAT( C.callset1 || ":" || C.callset2, "," ) AS concordant_callsets
+FROM    Variant V
+LEFT OUTER JOIN Comparison C
+    ON  C.variant_id == V.id AND C.method_id == 1 AND C.variable_id == 3 AND C.value > 0.001 AND C.callset2 == 'genotypes'
+GROUP BY V.chromosome, V.position, V.rsid
+;
+
+SELECT  V1.chromosome, V1.position, V1.rsid, V1.alleleA, V1.alleleB
+FROM    SNPLevelConsensusView
+WHERE   
+
+
+
 CREATE VIEW IF NOT EXISTS SNPLevelView_1E04 AS
 SELECT V.rsid, V.chromosome, V.position, V.alleleA, V.alleleB, COUNT( C.variant_id ) AS concordance_count, GROUP_CONCAT( C.callset1 || ":" || C.callset2, "," ) AS concordant_callsets
 FROM    Variant V

@@ -7,9 +7,21 @@ namespace genfile {
 	SNPDataSourceProcessor::Callback::~Callback() {
 	}
 	
-	SNPDataSourceProcessor::~SNPDataSourceProcessor() {}
+	SNPDataSourceProcessor::~SNPDataSourceProcessor() {
+		for( std::size_t i = 0; i < m_callbacks.size(); ++i ) {
+			if( m_should_manage[i] ) {
+				delete m_callbacks[i] ;
+			}
+		}
+	}
+
+	void SNPDataSourceProcessor::add_callback( Callback::UniquePtr callback ) {
+		m_should_manage.push_back( true ) ;
+		m_callbacks.push_back( callback.release() ) ;
+	}
 
 	void SNPDataSourceProcessor::add_callback( Callback& callback ) {
+		m_should_manage.push_back( false ) ;
 		m_callbacks.push_back( &callback ) ;
 	}
 

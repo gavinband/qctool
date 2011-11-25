@@ -170,19 +170,19 @@ double GavinsInformationStatistic::calculate_value( GenRow const& row ) const {
 	}
 
 	double variance = 0.0 ;
+	double adjustment = 0.0 ;
 	for( std::size_t i = 0; i < e.size(); ++i ) {
+		// Compute variance when there's no missingness.
 		variance += f[ i ] - ( e[ i ] * e[ i ] ) ;
-		// So far as with the old statistic.  Now do the adjustments
-		variance -= 4.0 * theta_mle * adjustment1[ i ] ;
-		variance -= 4.0 * theta_mle * theta_mle * adjustment2[ i ] ;
-		// std::cerr << "i = " << i << ", adjustment1 is " << adjustment1[i] << ", adjustment2 is " << adjustment2[ i ] << ".\n" ;
+		// Adjustments for when there is missingness.
+		adjustment += 4.0 * theta_mle * adjustment1[ i ] ;
+		adjustment += 4.0 * theta_mle * theta_mle * adjustment2[ i ] ;
 	}
 	double const missingness = row.number_of_samples() - non_missingness ;
-
-	variance += missingness * 2.0 * theta_mle * ( 1.0 + theta_mle ) ;
+	adjustment += missingness * 2.0 * theta_mle * ( 1.0 + theta_mle ) ;
 
 	double denominator = 2.0 * row.number_of_samples() * theta_mle * ( 1.0 - theta_mle ) ;
-	double result = 1.0 - ( variance / denominator ) ;
+	double result = 1.0 - (( variance + adjustment ) / denominator ) ;
 	
 	// std::cerr << "missingness is " << missingness << ", variance is " << variance << "`...\n" ;
 

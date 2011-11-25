@@ -37,6 +37,5 @@ namespace statfile {
 	std::auto_ptr< BuiltInTypeStatSink > NullBuiltInTypeStatSink::open() {
 		return std::auto_ptr< BuiltInTypeStatSink >( new NullBuiltInTypeStatSink ) ;
 	}
-	
 }
 

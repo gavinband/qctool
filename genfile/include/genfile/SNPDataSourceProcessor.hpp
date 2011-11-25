@@ -18,6 +18,7 @@ namespace genfile {
 		
 		
 		struct Callback {
+			typedef std::auto_ptr< Callback > UniquePtr ;
 			virtual ~Callback() ;
 			virtual void begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) = 0 ;
 			virtual void processed_snp( SNPIdentifyingData const& , VariantDataReader& data_reader ) = 0 ;
@@ -25,6 +26,7 @@ namespace genfile {
 		} ;
 		
 		virtual ~SNPDataSourceProcessor() ;
+		virtual void add_callback( Callback::UniquePtr callback ) ;
 		virtual void add_callback( Callback& callback ) ;
 		virtual void process( genfile::SNPDataSource& source, ProgressCallback = ProgressCallback() ) = 0 ;
 
@@ -35,6 +37,7 @@ namespace genfile {
 
 	private:
 		std::vector< Callback* > m_callbacks ;
+		std::vector< bool > m_should_manage ;
 	} ;
 	
 	class SimpleSNPDataSourceProcessor: public SNPDataSourceProcessor

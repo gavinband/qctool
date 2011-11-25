@@ -30,11 +30,17 @@ namespace genfile {
 		std::size_t get_serialized_size() const ;
 		char* serialize( char* buffer, char* const end ) const ;
 		char const* deserialize( char const* buffer, char const* const end ) ;
+	
+		template< typename Visitor >
+		friend void apply_visitor( Visitor visitor, VariantEntry const& ) ;
+		template< typename Visitor >
+		friend void apply_visitor( Visitor visitor, VariantEntry& ) ;
 	public:
 		bool operator==( VariantEntry const& rhs ) const ;
 		bool operator<( VariantEntry const& rhs ) const ;
 		friend std::ostream& operator<<( std::ostream&, VariantEntry const& ) ;
 		typedef int64_t Integer ;
+
 	private:
 		enum Types { eMissing = 0, eString = 1, eInteger = 2, eDouble = 3, eChromosome = 4, eGenomePosition = 5 } ;
 		typedef boost::variant< MissingValue, std::string, Integer, double, Chromosome, GenomePosition > EntryData ;
@@ -69,6 +75,19 @@ namespace genfile {
 	template<> double VariantEntry::as() const ;
 	// The following specialisation allows the user to get either a value as an int.
 	template<> int VariantEntry::as() const ;
+	
+	template< typename Visitor >
+	void apply_visitor( Visitor visitor, VariantEntry const& value ) {
+		return boost::apply_visitor( visitor, value.m_entrydata ) ;
+	}
+
+	template< typename Visitor >
+	void apply_visitor( Visitor visitor, VariantEntry& value ) {
+		return boost::apply_visitor( visitor, value.m_entrydata ) ;
+		
+	}
+	
+	
 }
 
 #endif

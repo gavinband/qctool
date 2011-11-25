@@ -10,15 +10,12 @@
 
 namespace statfile {
 	namespace {
-		typedef StatSink< genfile::MissingValue, long unsigned int, int32_t, uint32_t, int64_t, uint64_t, std::string, double, genfile::Chromosome > Base ;
+		typedef StatSink< genfile::MissingValue, long unsigned int, int32_t, uint32_t, int64_t, uint64_t, std::string, double, genfile::Chromosome, genfile::GenomePosition > Base ;
 	}
 	struct BuiltInTypeStatSink: public Base
 	{
 		typedef std::auto_ptr< BuiltInTypeStatSink > UniquePtr ;
 		static UniquePtr open( std::string const& filename ) ;
-		
-		using Base::write_value ;
-		void write_value( genfile::VariantEntry const& value ) ;
 	} ;
 	
 	struct NullBuiltInTypeStatSink: public ColumnNamingStatSink< BuiltInTypeStatSink >
