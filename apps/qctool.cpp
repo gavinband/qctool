@@ -842,7 +842,7 @@ private:
 			Timer file_timer ;
 			m_logger << "(Opening gen file \"" << m_options.gen_filename_mapper().input_files()[i] << "\"...)" << std::flush ;
 			try {
-				chain->add_source( genfile::SNPDataSource::create( m_options.gen_filename_mapper().input_files()[i] ) ) ;
+				chain->add_source( genfile::SNPDataSource::create( m_options.gen_filename_mapper().input_file(i), m_options.gen_filename_mapper().matched_part(i))) ;
 			}
 			catch ( genfile::FileHasTwoConsecutiveNewlinesError const& e ) {
 				std::cerr << "\n!!ERROR: a GEN file was specified having two consecutive newlines.\n"

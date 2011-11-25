@@ -33,6 +33,7 @@ namespace genfile {
 	}
 
 	Chromosome::Chromosome( std::string const& s ) {
+		std::cerr << "Constructing chromosome from \"" << s << "\".\n" ;
 		if( s == "Unknown" || s == "" ) {
 			m_chromosome_e = UnidentifiedChromosome ;
 		}
