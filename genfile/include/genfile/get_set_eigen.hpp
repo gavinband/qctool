@@ -8,12 +8,12 @@
 
 namespace genfile {
 	template<>
-	struct GenotypeSetter< ::Eigen::MatrixXd >
+	struct GenotypeSetter< Eigen::MatrixXd >
 	{
-		GenotypeSetter( ::Eigen::MatrixXd& matrix ) ;
+		GenotypeSetter( Eigen::MatrixXd& matrix ) ;
 		void operator()( std::size_t i, double, double, double ) const ;	
 		private:
-			::Eigen::MatrixXd& m_matrix ;
+			Eigen::MatrixXd& m_matrix ;
 	} ;
 }
 

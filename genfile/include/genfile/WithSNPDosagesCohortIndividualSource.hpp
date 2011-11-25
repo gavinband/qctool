@@ -106,7 +106,7 @@ namespace genfile {
 	private:
 		
 		void setup( genfile::SNPDataSource& snp_data_source, SNPDosageSpec const& rsids ) ;
-		void add_column( std::string const& column_name, ::Eigen::MatrixXd const& column ) ;
+		void add_column( std::string const& column_name, Eigen::MatrixXd const& column ) ;
 		
 		CohortIndividualSource::ConstUniquePtr m_source ;
 		std::vector< std::string > m_column_names ;

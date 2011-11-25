@@ -7,6 +7,7 @@
 #include <set>
 #include <boost/noncopyable.hpp>
 #include <boost/function.hpp>
+#include <Eigen/Core>
 #include "genfile/VariantEntry.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
@@ -23,6 +24,7 @@ namespace genfile {
 		struct PerVariantSetter: public vcf::EntriesSetter, public boost::noncopyable {
 			typedef std::auto_ptr< PerVariantSetter > UniquePtr ;
 			virtual ~PerVariantSetter() throw() {}
+			typedef Eigen::MatrixXd Matrix ;
 			virtual void operator()( std::auto_ptr< Matrix > value ) ;
 		} ;
 		struct PerSampleSetter: public vcf::EntriesSetter, public boost::noncopyable {

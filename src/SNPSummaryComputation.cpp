@@ -11,15 +11,13 @@ namespace {
 	{
 		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) const {
 			double result = std::numeric_limits< double >::quiet_NaN() ;
-			double const a_allele_freq = result = 2.0 * genotypes.col(0).sum() + genotypes.col(1).sum() ;
-			double const b_allele_freq = result = 2.0 * genotypes.col(2).sum() + genotypes.col(1).sum() ;
+			double const a_allele_freq = ( ( 2.0 * genotypes.col(0).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.rows() ) ;
+			double const b_allele_freq = ( ( 2.0 * genotypes.col(2).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.rows() ) ;
 
 			bool minor_is_first = a_allele_freq <= b_allele_freq ;
 
-			callback( "first_allele", snp.get_first_allele() ) ;
-			callback( "first_allele_frequency", a_allele_freq ) ;
-			callback( "second_allele", snp.get_second_allele() ) ;
-			callback( "second_allele_frequency", b_allele_freq ) ;
+			callback( "alleleA_frequency", a_allele_freq ) ;
+			callback( "alleleB_frequency", b_allele_freq ) ;
 
 			if( a_allele_freq < b_allele_freq ) {
 				callback( "minor_allele_frequency", a_allele_freq ) ;
@@ -74,16 +72,17 @@ namespace {
 		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) const {
 			Eigen::VectorXd const e = genotypes.col(1) + (2.0 * genotypes.col(2) ) ;
 			Eigen::VectorXd const f = genotypes.col(1) + (4.0 * genotypes.col(2) ) ;
-			double const non_missingness = genotypes.sum() ;
-			Eigen::VectorXd const adjustment1( e.array() * ( Eigen::VectorXd::Ones( genotypes.rows() ) - genotypes.rowwise().sum() ).array() ) ;
+			double const non_missingness = genotypes.rows() - genotypes.sum() ;
+			Eigen::VectorXd adjustment1 = Eigen::VectorXd::Ones( genotypes.rows() ) - genotypes.rowwise().sum() ;
 			Eigen::VectorXd const adjustment2 = adjustment1.array().square() ;
+			adjustment1.array() *= e.array() ;
 
 			if( non_missingness == 0.0 ) {
 				callback( "info", genfile::MissingValue() ) ;
 				callback( "impute_info", genfile::MissingValue() ) ;
 			}
 			else {
-				double const theta_mle = e.sum() / 2.0 * non_missingness ;
+				double const theta_mle = e.sum() / ( 2.0 * non_missingness ) ;
 
 				if( theta_mle == 0.0 || theta_mle == 1.0 ) {
 					callback( "info", 1.0 ) ;
@@ -95,6 +94,17 @@ namespace {
 
 				double const missingness = genotypes.rows() - non_missingness ;
 				adjustment += ( genotypes.rows() - non_missingness ) * 2.0 * theta_mle * ( 1.0 + theta_mle ) ;
+
+				std::cerr << snp.get_SNPID() << ": "
+					<< "genotypes: " << genotypes.rows() << "x" << genotypes.cols() << ", "
+					<< "e.sum() == " << e.sum()  << ", "
+					<< "theta_mle = " << theta_mle << ", "
+					<< "variance = " << variance << ", "
+					<< "adjustment = " << adjustment << ", "
+					<< ".\n" ;
+
+				std::cerr << e << "\n" ;
+
 
 				double denominator = 2.0 * genotypes.rows() * theta_mle * ( 1.0 - theta_mle ) ;
 

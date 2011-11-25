@@ -5,12 +5,6 @@
 
 namespace genfile {
 	typedef int64_t Integer ;
-	namespace Eigen {
-		class MatrixXd ;
-		class VectorXd ;
-	}
-	typedef Eigen::MatrixXd Matrix ;
-	typedef Eigen::VectorXd Vector ;
 }
 
 #endif

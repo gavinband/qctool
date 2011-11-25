@@ -3,10 +3,10 @@
 #include <map>
 #include <iomanip>
 
-#include <Eigen/Core>
 
 #include "../config.hpp"
 #if HAVE_EIGEN
+#include <Eigen/Core>
 
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/CompositeCohortIndividualSource.hpp"
@@ -195,7 +195,7 @@ namespace genfile {
 				}
 			}
 			if( where != snp_matchers.end() ) {
-				::Eigen::MatrixXd probabilities( snp_data_source.number_of_samples(), 3 ) ;
+				Eigen::MatrixXd probabilities( snp_data_source.number_of_samples(), 3 ) ;
 				if( !snp_data_source.read_snp_probability_data(
 						genfile::set_genotypes( probabilities )
 				)) {
@@ -205,10 +205,10 @@ namespace genfile {
 					) ;
 				}
 				
-				::Eigen::VectorXd row_sums = probabilities.rowwise().sum() ;
+				Eigen::VectorXd row_sums = probabilities.rowwise().sum() ;
 				for( int i = 0; i < row_sums.size(); ++i ) {
 					if( row_sums(i) == 0.0 ) {
-						probabilities.row( i ) = ::Eigen::Vector3d::Constant( std::numeric_limits< double >::quiet_NaN() ) ;
+						probabilities.row( i ) = Eigen::Vector3d::Constant( std::numeric_limits< double >::quiet_NaN() ) ;
 					}
 				}
 				
@@ -259,7 +259,7 @@ namespace genfile {
 		}
 	}
 	
-	void WithSNPDosagesCohortIndividualSource::add_column( std::string const& column_name, ::Eigen::MatrixXd const& column ) {
+	void WithSNPDosagesCohortIndividualSource::add_column( std::string const& column_name, Eigen::MatrixXd const& column ) {
 		if( check_for_column( column_name ) ) {
 			throw genfile::ColumnAlreadyExistsError( get_source_spec(), column_name ) ;
 		}
