@@ -3,7 +3,7 @@
 #include <boost/function.hpp>
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
-#include "genfile/vcf/get_set.hpp"
+#include "genfile/vcf/get_set_eigen.hpp"
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "SNPSummaryComponent.hpp"
@@ -22,7 +22,7 @@ void SNPSummaryComputationManager::begin_processing_snps( std::size_t number_of_
 
 void SNPSummaryComputationManager::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 	{
-		genfile::vcf::MatrixSetter< SNPSummaryComputation::Genotypes > setter( m_genotypes ) ;
+		genfile::vcf::GenotypeSetter< Eigen::MatrixBase< SNPSummaryComputation::Genotypes > > setter( m_genotypes ) ;
 		data_reader.get( "genotypes", setter ) ;
 	}
 	Computations::const_iterator i = m_computations.begin(), end_i = m_computations.end() ;

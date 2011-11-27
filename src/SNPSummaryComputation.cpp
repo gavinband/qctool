@@ -11,8 +11,8 @@ namespace {
 	{
 		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) const {
 			double result = std::numeric_limits< double >::quiet_NaN() ;
-			double const a_allele_freq = ( ( 2.0 * genotypes.col(0).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.rows() ) ;
-			double const b_allele_freq = ( ( 2.0 * genotypes.col(2).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.rows() ) ;
+			double const a_allele_freq = ( ( 2.0 * genotypes.col(0).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
+			double const b_allele_freq = ( ( 2.0 * genotypes.col(2).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
 
 			bool minor_is_first = a_allele_freq <= b_allele_freq ;
 
@@ -33,12 +33,13 @@ namespace {
 	struct HWEComputation: public SNPSummaryComputation
 	{
 		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) const {
-			if( genotypes.sum() > 1.0 ) {
-				double HWE_pvalue = SNPHWE(
-					std::floor( genotypes.col(1).sum() + 0.5 ),
-					std::floor( genotypes.col(0).sum() + 0.5 ),
-					std::floor( genotypes.col(2).sum() + 0.5 )
-				) ;
+			double const
+				AA = std::floor( genotypes.col(0).sum() + 0.5 ),
+				AB = std::floor( genotypes.col(1).sum() + 0.5 ),
+				BB = std::floor( genotypes.col(2).sum() + 0.5 ) ;
+
+			if( AA > 0.5 || AB > 0.5 || BB > 0.5 ) {
+				double HWE_pvalue = SNPHWE( AB, AA, BB ) ;
 				callback( "-log_10_exact_HW_p-value", HWE_pvalue ) ;
 			}
 			else {
@@ -50,7 +51,7 @@ namespace {
 	struct MissingnessComputation: public SNPSummaryComputation {
 		MissingnessComputation( double call_threshhold = 0.9 ): m_call_threshhold( call_threshhold ) {}
 		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) const {
-			double missingness = genotypes.sum() - genotypes.rows() ;
+			double missingness = genotypes.rows() - genotypes.sum() ;
 			callback( "missing proportion", missingness / double( genotypes.rows() ) ) ;
 			callback( "missingness", missingness ) ;
 			callback( "non-missingness", genotypes.rows() - missingness ) ;
@@ -72,7 +73,7 @@ namespace {
 		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) const {
 			Eigen::VectorXd const e = genotypes.col(1) + (2.0 * genotypes.col(2) ) ;
 			Eigen::VectorXd const f = genotypes.col(1) + (4.0 * genotypes.col(2) ) ;
-			double const non_missingness = genotypes.rows() - genotypes.sum() ;
+			double const non_missingness = genotypes.sum() ;
 			Eigen::VectorXd adjustment1 = Eigen::VectorXd::Ones( genotypes.rows() ) - genotypes.rowwise().sum() ;
 			Eigen::VectorXd const adjustment2 = adjustment1.array().square() ;
 			adjustment1.array() *= e.array() ;
@@ -97,14 +98,12 @@ namespace {
 
 				std::cerr << snp.get_SNPID() << ": "
 					<< "genotypes: " << genotypes.rows() << "x" << genotypes.cols() << ", "
+					<< "sum: " << genotypes.sum() << ", "
 					<< "e.sum() == " << e.sum()  << ", "
 					<< "theta_mle = " << theta_mle << ", "
 					<< "variance = " << variance << ", "
 					<< "adjustment = " << adjustment << ", "
 					<< ".\n" ;
-
-				std::cerr << e << "\n" ;
-
 
 				double denominator = 2.0 * genotypes.rows() * theta_mle * ( 1.0 - theta_mle ) ;
 

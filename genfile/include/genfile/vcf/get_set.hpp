@@ -87,6 +87,8 @@ namespace genfile {
 			}
 		} ;
 
+		template< typename Setter > struct GenotypeSetter ;
+/*
 		template< typename Setter >
 		struct GenotypeSetter: public GenotypeSetterBase
 		{
@@ -97,7 +99,19 @@ namespace genfile {
 		private:
 			Setter const& m_setter ;
 		} ;
-		
+*/
+		template<>
+		struct GenotypeSetter< boost::function< void ( std::size_t, double, double, double ) > >: public GenotypeSetterBase
+		{
+			typedef boost::function< void ( std::size_t, double, double, double ) > Setter ;
+			GenotypeSetter( Setter const& setter ): m_setter( setter ) {}
+			void set( std::size_t sample_i, double AA, double AB, double BB ) {
+				m_setter( sample_i, AA, AB, BB ) ;
+			}
+		private:
+			Setter const& m_setter ;
+		} ;
+
 		template<>
 		struct GenotypeSetter< SingleSNPGenotypeProbabilities >: public GenotypeSetterBase
 		{
