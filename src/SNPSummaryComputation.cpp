@@ -96,15 +96,6 @@ namespace {
 				double const missingness = genotypes.rows() - non_missingness ;
 				adjustment += ( genotypes.rows() - non_missingness ) * 2.0 * theta_mle * ( 1.0 + theta_mle ) ;
 
-				std::cerr << snp.get_SNPID() << ": "
-					<< "genotypes: " << genotypes.rows() << "x" << genotypes.cols() << ", "
-					<< "sum: " << genotypes.sum() << ", "
-					<< "e.sum() == " << e.sum()  << ", "
-					<< "theta_mle = " << theta_mle << ", "
-					<< "variance = " << variance << ", "
-					<< "adjustment = " << adjustment << ", "
-					<< ".\n" ;
-
 				double denominator = 2.0 * genotypes.rows() * theta_mle * ( 1.0 - theta_mle ) ;
 
 				callback( "info", 1.0 - ( ( variance + adjustment ) / denominator ) ) ;
