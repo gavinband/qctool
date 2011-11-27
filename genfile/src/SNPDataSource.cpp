@@ -18,6 +18,13 @@
 namespace genfile {
 	std::auto_ptr< SNPDataSource > SNPDataSource::create(
 		std::string const& filename,
+		Chromosome chromosome_hint
+	) {
+		return SNPDataSource::create( filename, chromosome_hint, get_compression_type_indicated_by_filename( filename ) ) ;
+	}
+
+	std::auto_ptr< SNPDataSource > SNPDataSource::create(
+		std::string const& filename,
 		Chromosome chromosome_hint,
 		vcf::MetadataParser::Metadata const& metadata
 	) {
@@ -49,6 +56,33 @@ namespace genfile {
 		else {
 			// assume GEN format.
 			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type, metadata )) ;
+		}
+	}
+
+	std::auto_ptr< SNPDataSource > SNPDataSource::create(
+		std::string const& filename,
+		Chromosome chromosome_hint,
+		CompressionType compression_type
+	) {
+		std::pair< std::string, std::string > uf = uniformise( filename ) ;
+		if( uf.first == "bgen" ) {
+			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second, compression_type )) ;
+		}
+		else if( uf.first == "vcf" ) {
+			return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second )) ;
+		}
+		else if( uf.first == "gen" ) {
+			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+		}
+		else if( uf.first == "hapmap_haplotypes" ) {
+			return std::auto_ptr< SNPDataSource >( new HapmapHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+		}
+		else if( uf.first == "impute_haplotypes" ) {
+			return std::auto_ptr< SNPDataSource >( new ImputeHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+		}
+		else {
+			// assume GEN format.
+			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
 		}
 	}
 
@@ -263,10 +297,11 @@ namespace genfile {
 	}
 
 	SNPDataSource& SNPDataSource::read_snp_probability_data(
-		GenotypeProbabilitySetter const& set_genotype_probabilities
+		GenotypeProbabilitySetter const& set_genotype_probabilities,
+		std::string const& genotype_field
 	) {
 		assert( m_state == e_HaveReadIdentifyingData ) ;
-		read_snp_probability_data_impl( set_genotype_probabilities ) ;
+		read_snp_probability_data_impl( set_genotype_probabilities, genotype_field ) ;
 		if( *this ) {
 			m_state = e_HaveNotReadIdentifyingData ;
 			++m_number_of_snps_read ;
@@ -277,12 +312,13 @@ namespace genfile {
 	}
 
  	void SNPDataSource::read_snp_probability_data_impl(
-		GenotypeProbabilitySetter const& set_genotype_probabilities
+		GenotypeProbabilitySetter const& set_genotype_probabilities,
+		std::string const& genotype_field
 	) {
 		VariantDataReader::UniquePtr reader = read_variant_data_impl() ;
 		if( reader.get() ) {
 			vcf::GenotypeSetter< GenotypeProbabilitySetter > setter( set_genotype_probabilities ) ;
-			reader->get( "genotypes", setter ) ;
+			reader->get( genotype_field, setter ) ;
 		}
 	}
 	

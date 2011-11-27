@@ -163,13 +163,6 @@ namespace genfile {
 		}
 	}
 
-	void SNPDataSourceChain::read_snp_probability_data_impl(
-		GenotypeProbabilitySetter const& set_genotype_probabilities
-	) {
-		assert( m_current_source < m_sources.size() ) ;
-		m_sources[m_current_source]->read_snp_probability_data( set_genotype_probabilities ) ;
-	}
-
 	VariantDataReader::UniquePtr SNPDataSourceChain::read_variant_data_impl() {
 		assert( m_current_source < m_sources.size() ) ;
 		return m_sources[m_current_source]->read_variant_data() ;

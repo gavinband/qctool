@@ -31,18 +31,16 @@ namespace genfile {
 		typedef boost::function< void ( std::size_t, std::size_t ) > NotifyProgress ;
 		
 		// The following methods are factory functions
-		static UniquePtr create(
-			std::string const& filename,
-			Chromosome = UnidentifiedChromosome,
-			vcf::MetadataParser::Metadata const& = vcf::MetadataParser::Metadata()
-		) ;
+		static UniquePtr create( std::string const& filename, Chromosome = UnidentifiedChromosome ) ;
 		static UniquePtr create( std::string const& filename, Chromosome, CompressionType compression_type ) ;
+		static UniquePtr create( std::string const& filename, Chromosome, vcf::MetadataParser::Metadata const& ) ;
 		static UniquePtr create(
 			std::string const& filename,
 			Chromosome,
 			CompressionType compression_type,
-			vcf::MetadataParser::Metadata const& = vcf::MetadataParser::Metadata()
+			vcf::MetadataParser::Metadata const&
 		) ;
+
 		static UniquePtr create_chain(
 			std::vector< wildcard::FilenameMatch > const& matches,
 			NotifyProgress notify_progress = NotifyProgress()
@@ -167,7 +165,8 @@ namespace genfile {
 		// For each snp, you must call get_snp_identifying_data() at least once before
 		// calling this function.
 		SNPDataSource& read_snp_probability_data(
-			GenotypeProbabilitySetter const& set_genotype_probabilities
+			GenotypeProbabilitySetter const& set_genotype_probabilities,
+			std::string const& genotype_field = "genotypes"
 		) ;
 
 		// Function: read_variant_data()
@@ -223,7 +222,8 @@ namespace genfile {
 		) = 0 ;	
 
 		void read_snp_probability_data_impl(
-			GenotypeProbabilitySetter const& set_genotype_probabilities
+			GenotypeProbabilitySetter const& ,
+			std::string const& genotype_field
 		) ;
 
 		virtual VariantDataReader::UniquePtr read_variant_data_impl() = 0 ;

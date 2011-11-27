@@ -148,44 +148,6 @@ namespace genfile {
 		throw OperationUnsupportedError( "genfile::HapmapHaplotypesSNPDataSource::read_variant_data()", "call", get_source_spec() ) ;
 	}
 
-	void HapmapHaplotypesSNPDataSource::read_snp_probability_data_impl(
-		GenotypeProbabilitySetter const& set_genotype_probabilities
-	) {
-		assert( m_elts.size() == ( 2 + ( m_number_of_samples * 2 )) ) ;
-		assert( m_first_allele.size() > 0 ) ;
-		assert( m_second_allele.size() > 0 ) ;
-		for( std::size_t i = 0; i < m_number_of_samples; ++i ) {
-			std::size_t A_allele_count = 0 ;
-			std::size_t B_allele_count = 0 ;
-			if( m_elts[ ( 2*i )+2 ] == m_first_allele ) {
-				++A_allele_count ;
-			}
-			else if( m_elts[ ( 2*i )+2 ] == m_second_allele ) {
-				++B_allele_count ;
-			}
-
-			if( m_elts[ ( 2*i )+3 ] == m_first_allele ) {
-				++A_allele_count ;
-			}
-			else if( m_elts[ ( 2*i )+3 ] == m_second_allele ) {
-				++B_allele_count ;
-			}
-			
-			if( A_allele_count == 2 ) {
-				set_genotype_probabilities( i, 1.0, 0.0, 0.0 ) ;
-			}
-			else if( A_allele_count == 1 && B_allele_count == 1 ) {
-				set_genotype_probabilities( i, 0.0, 1.0, 0.0 ) ;
-			}
-			else if( B_allele_count == 2 ) {
-				set_genotype_probabilities( i, 0.0, 0.0, 1.0 ) ;
-			}
-			else {
-				set_genotype_probabilities( i, 0.0, 0.0, 0.0 ) ;
-			}
-		}
-	}
-
 	void HapmapHaplotypesSNPDataSource::ignore_snp_probability_data_impl() {
 		m_line = "" ;
 		m_elts.clear() ;

@@ -96,17 +96,6 @@ namespace genfile {
 		return VariantDataReader::UniquePtr( new impl::BGenFileSNPDataReader( *this )) ;
 	}
 
-	void BGenFileSNPDataSource::read_snp_probability_data_impl(
-		GenotypeProbabilitySetter const& set_genotype_probabilities
-	) {
-		if( m_flags & bgen::e_CompressedSNPBlocks ) {
-			bgen::impl::read_compressed_snp_probability_data( stream(), m_flags, number_of_samples(), set_genotype_probabilities ) ;
-		}
-		else {
-			bgen::impl::read_snp_probability_data( stream(), m_flags, number_of_samples(), set_genotype_probabilities ) ;
-		}
-	}
-
 	void BGenFileSNPDataSource::ignore_snp_probability_data_impl() {
 		if( m_flags & bgen::e_CompressedSNPBlocks ) {
 			bgen::impl::read_compressed_snp_probability_data( stream(), m_flags, number_of_samples(), ignore() ) ;

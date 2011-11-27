@@ -41,10 +41,6 @@ namespace genfile {
 			AlleleSetter const& set_allele2
 		) ;
 
-		void read_snp_probability_data_impl(
-			GenotypeProbabilitySetter const& set_genotype_probabilities
-		) ;
-		
 		void ignore_snp_probability_data_impl() ;
 
 	private:

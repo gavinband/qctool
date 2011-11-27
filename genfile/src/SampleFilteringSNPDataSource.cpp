@@ -97,13 +97,6 @@ namespace genfile {
 		set_number_of_samples( this->number_of_samples() ) ;
 	}
 
-	void SampleFilteringSNPDataSource::read_snp_probability_data_impl(
-		GenotypeProbabilitySetter const& set_genotype_probabilities
-	) {
-		read_source_probability_data() ;
-		return_filtered_genotype_probabilities( set_genotype_probabilities ) ;
-	}
-	
 	void SampleFilteringSNPDataSource::read_source_probability_data() {
 		m_source->read_snp_probability_data(
 		 	boost::bind( &SampleFilteringSNPDataSource::set_unfiltered_genotype_probabilities, this, _1, _2, _3, _4 )

@@ -153,12 +153,6 @@ namespace genfile {
 		return m_source->read_variant_data() ;
 	}
 
-	void StrandAligningSNPDataSource::read_snp_probability_data_impl(
-		GenotypeProbabilitySetter const& set_genotype_probabilities
-	) {
-		m_source->read_snp_probability_data( set_genotype_probabilities ) ;
-	}
-
 	void StrandAligningSNPDataSource::ignore_snp_probability_data_impl() {
 		m_source->ignore_snp_probability_data() ;
 	}

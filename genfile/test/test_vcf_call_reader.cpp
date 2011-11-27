@@ -558,13 +558,13 @@ AUTO_TEST_CASE( test_simple_gt_values ) {
 				}
 				
 				if( bad_c1 || bad_c2 ) {
-					// std::cerr << "c1 = " << c1 << "('" << char(c1) << "')" << ", c2 = " << c2 << "('" << char(c2) << "').\n" ;
+					std::cerr << "c1 = " << c1 << "('" << char(c1) << "')" << ", c2 = " << c2 << "('" << char(c2) << "').\n" ;
 					TEST_ASSERT(0) ;
 				}
 			}
 			catch( genfile::MalformedInputError const& ) {
 				if( !bad_c1 && !bad_c2 ) {
-					// std::cerr << "c1 = " << c1 << "('" << char(c1) << "')" << ", c2 = " << c2 << "('" << char(c2) << "').\n" ;
+					std::cerr << "c1 = " << c1 << "('" << char(c1) << "')" << ", c2 = " << c2 << "('" << char(c2) << "').\n" ;
 					TEST_ASSERT(0) ;
 				}
 			}

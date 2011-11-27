@@ -404,16 +404,6 @@ namespace genfile {
 		return result ;
 	}
 
-	void SNPDataSourceRack::read_snp_probability_data_impl(
-		GenotypeProbabilitySetter const& set_genotype_probabilities
-	) {
-		uint32_t number_of_samples_so_far = 0u ;
-		for( std::size_t i = 0; i < m_sources.size(); ++i ) {
-			m_sources[i]->read_snp_probability_data( RackGenotypeProbabilitySetter( set_genotype_probabilities, number_of_samples_so_far )) ;
-			number_of_samples_so_far += m_sources[i]->number_of_samples() ;
-		}
-	}
-
 	void SNPDataSourceRack::ignore_snp_probability_data_impl() {
 		for( std::size_t i = 0; i < m_sources.size(); ++i ) {
 			m_sources[i]->ignore_snp_probability_data() ;

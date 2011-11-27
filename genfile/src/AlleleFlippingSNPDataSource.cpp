@@ -265,29 +265,6 @@ namespace genfile {
 		) ;
 	}
 	
-	void AlleleFlippingSNPDataSource::read_snp_probability_data_impl(
-		GenotypeProbabilitySetter const& set_genotype_probabilities
-	) {
-		switch( m_allele_flips[ m_source->number_of_snps_read() ] ) {
-			case eNoFlip:
-				m_source->read_snp_probability_data( set_genotype_probabilities ) ;
-				break ;
-			case eFlip:
-				m_source->read_snp_probability_data(
-					AlleleFlippingGenotypeProbabilitySetter( set_genotype_probabilities )
-				);
-				break ;
-			case eUnknownFlip:
-				m_source->ignore_snp_probability_data() ;
-				for( std::size_t i = 0; i < number_of_samples(); ++i ) {
-					set_genotype_probabilities( i, 0.0, 0.0, 0.0 ) ;
-				}
-				break ; 
-			default:
-				assert(0) ; 
-		}
-	}
-
 	AlleleFlippingSNPDataSource::AlleleFlippingGenotypeProbabilitySetter::AlleleFlippingGenotypeProbabilitySetter( GenotypeProbabilitySetter setter ):
 		m_setter( setter )
 	{}

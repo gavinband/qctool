@@ -154,16 +154,6 @@ namespace genfile {
 		return VariantDataReader::UniquePtr( new impl::GenFileSNPDataReader( *this ) ) ;
 	}
 
-	void GenFileSNPDataSource::read_snp_probability_data_impl(
-		GenotypeProbabilitySetter const& set_genotype_probabilities
-	) {
-		uint32_t this_data_number_of_samples ;
-		gen::impl::read_snp_probability_data( stream(), set_value( this_data_number_of_samples ), set_genotype_probabilities ) ;
-		if( *this ) {
-			assert( this_data_number_of_samples == number_of_samples() ) ;
-		}
-	}
-
 	void GenFileSNPDataSource::ignore_snp_probability_data_impl() {
 		std::string line ;
 		std::getline( stream(), line ) ;
