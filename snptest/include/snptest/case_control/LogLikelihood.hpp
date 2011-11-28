@@ -17,12 +17,14 @@ namespace snptest {
 			
 			LogLikelihood(
 				Vector const& phenotypes,
-				FinitelySupportedFunctionSet const& genotypes
+				FinitelySupportedFunctionSet const& genotypes,
+				Matrix const& covariates
 			) ;
 
 			LogLikelihood(
 				Vector const& phenotypes,
 				FinitelySupportedFunctionSet const& genotypes,
+				Matrix const& covariates,
 				std::vector< std::size_t > const& included_samples
 			) ;
 
@@ -34,6 +36,7 @@ namespace snptest {
 		private:
 			Vector const& m_phenotypes ;
 			FinitelySupportedFunctionSet const& m_genotypes ;
+			Matrix const& m_covariates ;
 			std::vector< Vector > m_design_matrices ;
 			std::vector< std::size_t > m_included_samples ;
 			Matrix m_p_g_thetas ;

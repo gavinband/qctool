@@ -8,17 +8,19 @@ namespace snptest {
 	namespace case_control {
 		AlternativeModelLogLikelihood::AlternativeModelLogLikelihood(
 			Vector const& phenotypes,
-			FinitelySupportedFunctionSet const& genotypes
+			FinitelySupportedFunctionSet const& genotypes,
+			Matrix const& covariates
 		):
-			LogLikelihood( phenotypes, genotypes )
+			LogLikelihood( phenotypes, genotypes, covariates )
 		{}
 
 		AlternativeModelLogLikelihood::AlternativeModelLogLikelihood(
 			Vector const& phenotypes,
 			FinitelySupportedFunctionSet const& genotypes,
-			std::vector< std::size_t > const& included_samples
+			std::vector< std::size_t > const& included_samples,
+			Matrix const& covariates
 		):
-			LogLikelihood( phenotypes, genotypes, included_samples )
+			LogLikelihood( phenotypes, genotypes, covariates, included_samples )
 		{}
 		
 		double AlternativeModelLogLikelihood::calculate_p_g_theta(

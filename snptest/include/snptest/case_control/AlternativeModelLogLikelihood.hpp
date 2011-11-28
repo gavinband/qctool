@@ -16,13 +16,15 @@ namespace snptest {
 			
 			AlternativeModelLogLikelihood(
 				Vector const& phenotypes,
-				FinitelySupportedFunctionSet const& genotypes
+				FinitelySupportedFunctionSet const& genotypes,
+				Matrix const& covariates = Matrix()
 			) ;
 
 			AlternativeModelLogLikelihood(
 				Vector const& phenotypes,
 				FinitelySupportedFunctionSet const& genotypes,
-				std::vector< std::size_t > const& included_samples
+				std::vector< std::size_t > const& included_samples,
+				Matrix const& covariates = Matrix()
 			) ;
 
 		private:

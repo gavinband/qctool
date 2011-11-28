@@ -8,10 +8,12 @@ namespace snptest {
 	namespace case_control {
 		LogLikelihood::LogLikelihood(
 			Vector const& phenotypes,
-			FinitelySupportedFunctionSet const& genotypes
+			FinitelySupportedFunctionSet const& genotypes,
+			Matrix const& covariates
 		):
 			m_phenotypes( phenotypes ),
 			m_genotypes( genotypes ),
+			m_covariates( covariates ),
 			m_design_matrices( calculate_design_matrices( genotypes.get_support() ) ),
 			m_included_samples(
 				std::vector< std::size_t >(
@@ -21,6 +23,7 @@ namespace snptest {
 			)
 		{
 			assert( m_phenotypes.size() == m_genotypes.get_number_of_functions() ) ;
+			assert( m_covariates.rows() == m_phenotypes.size() ) ;
 			assert( m_included_samples.size() <= std::size_t( m_genotypes.get_number_of_functions() ) ) ;
 			assert( m_design_matrices.size() == 3 ) ;
 		}
@@ -28,10 +31,12 @@ namespace snptest {
 		LogLikelihood::LogLikelihood(
 			Vector const& phenotypes,
 			FinitelySupportedFunctionSet const& genotypes,
+			Matrix const& covariates,
 			std::vector< std::size_t > const& included_samples
 		):
 			m_phenotypes( phenotypes ),
 			m_genotypes( genotypes ),
+			m_covariates( covariates ),
 			m_design_matrices( calculate_design_matrices( genotypes.get_support() ) ),
 			m_included_samples( included_samples )
 		{
@@ -40,6 +45,12 @@ namespace snptest {
 			assert( m_design_matrices.size() == 3 ) ;
 		}
 
+		// Calculate the design matrices, that is, the matrices of the form
+		// [ 1 ]
+		// [ g ]
+		// where g is a genotype (0, 1 or 2).  These aren't really called "design matrices",
+		// but I don't know what they are called: they are like a single row of the design matrix
+		// if there was no uncertainty in the genotype.
 		std::vector< LogLikelihood::Vector > LogLikelihood::calculate_design_matrices(
 			Vector const& genotype_levels
 		) const {
