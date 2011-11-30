@@ -8,10 +8,11 @@
 namespace snptest {
 	struct NullPerSnpFrequentistTest: public PerSnpFrequentistTest {
 		Results test(
-			Vector const& phenotype_values,
-			Matrix const& covariate_values,
 			genfile::SNPIdentifyingData const& snp,
-			FinitelySupportedFunctionSet const& all_genotypes
+			Vector const& phenotype_values,
+			FinitelySupportedFunctionSet const& all_genotypes,
+			Matrix const& covariate_values,
+			std::vector< std::size_t > const& indices_of_samples_to_exclude = std::vector< std::size_t >()
 		) const {
 			return Results() ;
 		}

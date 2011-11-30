@@ -13,6 +13,7 @@ namespace snptest {
 		public:
 			typedef Eigen::VectorXd Point ;
 			typedef Eigen::VectorXd Vector ;
+			typedef Eigen::RowVectorXd RowVector ;
 			typedef Eigen::MatrixXd Matrix ;
 			
 			LogLikelihood(
@@ -25,7 +26,7 @@ namespace snptest {
 				Vector const& phenotypes,
 				FinitelySupportedFunctionSet const& genotypes,
 				Matrix const& covariates,
-				std::vector< std::size_t > const& included_samples
+				std::vector< std::size_t > const& excluded_samples
 			) ;
 
 			void evaluate_at( Point const& parameters ) ;
@@ -34,36 +35,24 @@ namespace snptest {
 			Matrix get_value_of_second_derivative() const ;
 
 		private:
-			Vector const& m_phenotypes ;
-			FinitelySupportedFunctionSet const& m_genotypes ;
+			Vector m_phenotypes ;
+			FinitelySupportedFunctionSet m_genotypes ;
 			Matrix const& m_covariates ;
-			std::vector< Vector > m_design_matrices ;
-			std::vector< std::size_t > m_included_samples ;
-			Matrix m_p_g_thetas ;
+
+			Matrix m_outcome_probabilities ;
+			Matrix m_design_matrix ;
 			Matrix m_coefficients ;
+			
+			double m_value_of_function ;
+			Vector m_value_of_first_derivative ;
+			Matrix m_value_of_second_derivative ;
 
 		private:
-			std::vector< Vector > calculate_design_matrices( Vector const& genotype_levels ) const ;
-			virtual double calculate_p_g_theta( Vector const& parameters, double genotype, double phenotype ) const = 0 ;
-			Matrix calculate_p_g_thetas( Vector const& parameters, std::vector< Vector > const& design_matrices ) const ;
-			Matrix calculate_coefficients( Matrix const& genotypes, Vector const& phenotypes, Matrix const& p_g_thetas ) const ;
-			double calculate_function(
-				Vector const& phenotypes,
-				Matrix const& genotypes,
-				Matrix const& p_g_thetas
-			) const ;
-			Vector calculate_first_derivative(
-				Vector const& phenotypes,
-				Matrix const& p_g_thetas,
-				Matrix const& zs,
-				std::vector< Vector > const& design_matrices
-			) const ;
-			Matrix calculate_second_derivative(
-				Vector const& phenotypes,
-				Matrix const& p_g_thetas,
-				Matrix const& zs,
-				std::vector< Vector > const& design_matrices
-			) const ;
+			Matrix calculate_design_matrix( Matrix const& covariates ) const ;
+			// Calculate the probability of outcome given the genotype, parameters, and covariates.
+			Vector evaluate_mean_function( Vector const& linear_combinations, Vector const& outcomes ) const ;
+			// Calculate matrix of probabilities of outcome per genotype, given the parameters.
+			Matrix calculate_outcome_probabilities( Vector const& parameters, Vector const& phenotypes, Matrix& design_matrix ) const ;
 		} ;
 	}
 }

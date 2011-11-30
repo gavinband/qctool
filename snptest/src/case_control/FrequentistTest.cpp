@@ -8,6 +8,8 @@
 #include "snptest/case_control/AlternativeModelLogLikelihood.hpp"
 #include "snptest/FinitelySupportedFunctionSet.hpp"
 
+#define DEBUG_TEST 1
+
 namespace snptest {
 	namespace case_control {
 		FrequentistTest::FrequentistTest(
@@ -20,28 +22,24 @@ namespace snptest {
 		{}
 		
 		FrequentistTest::Results FrequentistTest::test(
-			Vector const& phenotypes,
-			Matrix const& covariates,
 			genfile::SNPIdentifyingData const& snp,
-			FinitelySupportedFunctionSet const& genotypes
+			Vector const& phenotypes,
+			FinitelySupportedFunctionSet const& genotypes,
+			Matrix const& covariates,
+			std::vector< std::size_t > const& indices_of_samples_to_exclude
 		) const {
 			if( covariates.rows() != 0 || covariates.cols() != 0 ) {
 				throw genfile::BadArgumentError( "CaseControlFrequentistTest::test()", "covariates (nonempty)" ) ;
 			}
 			
-			std::vector< std::size_t > included_samples ;
-			for( int i = 0; i < phenotypes.size(); ++i ) {
-				if( genotypes.get_values( i ).sum() >= m_sample_inclusion_threshold ) {
-					included_samples.push_back( i ) ;
-				}
-			}
-
+			assert( phenotypes.size() == genotypes.get_values().rows() ) ;
+			
 			using integration::derivative ;
 			snptest::case_control::NullModelLogLikelihood null_loglikelihood(
 				phenotypes,
 				genotypes,
 				m_mimic_snptest,
-				included_samples
+				indices_of_samples_to_exclude
 			) ;
 
 			integration::Derivative< snptest::case_control::NullModelLogLikelihood > null_loglikelihood_derivative = derivative( null_loglikelihood ) ;
@@ -51,7 +49,7 @@ namespace snptest {
 				0.00001
 			) ;
 
-#if 0
+#if DEBUG_TEST
 			std::cerr << "AssociationTester:        ################ testing SNP " << snp.get_rsid() << " ################\n" ;
 			std::cerr << "AssociationTester:        null: MLE is " << null_parameters << ".\n" ;
 			std::cerr << "AssociationTester:        null: loglikelihood is " << null_loglikelihood.get_value_of_function() << ".\n" ;
@@ -60,11 +58,12 @@ namespace snptest {
 			snptest::case_control::AlternativeModelLogLikelihood alternative_loglikelihood(
 				phenotypes,
 				genotypes,
-				included_samples
+				covariates,
+				indices_of_samples_to_exclude
 			) ;
-#if 0
-		alternative_loglikelihood.evaluate_at( Vector::Zero( 2 ) ) ;
-		std::cerr << "AssociationTester: alternative: Initial derivative of LL is " << alternative_loglikelihood.get_value_of_first_derivative() << ".\n" ;
+#if DEBUG_TEST
+		//alternative_loglikelihood.evaluate_at( Vector::Zero( 2 ) ) ;
+		//std::cerr << "AssociationTester: alternative: Initial derivative of LL is " << alternative_loglikelihood.get_value_of_first_derivative() << ".\n" ;
 #endif
 			integration::Derivative< snptest::case_control::AlternativeModelLogLikelihood > alternative_loglikelihood_derivative = derivative( alternative_loglikelihood ) ;
 			Vector alternative_parameters = integration::find_root_by_newton_raphson(
@@ -72,13 +71,15 @@ namespace snptest {
 				Vector::Zero( 2 ),
 				0.00001
 			) ;
-#if 0
+#if DEBUG_TEST
 			std::cerr << "AssociationTester: alternative: MLE is " << alternative_parameters << ".\n" ;
 			std::cerr << "AssociationTester: alternative: loglikelihood is " << alternative_loglikelihood.get_value_of_function() << ".\n" ;
 			std::cerr << "AssociationTester: -2LR = " << -2.0 * ( null_loglikelihood.get_value_of_function() - alternative_loglikelihood.get_value_of_function() ) << ".\n" ;
 #endif
 			Results result ;
 			result.test_statistic = result.p_value = result.beta = result.standard_error = std::numeric_limits< double >::quiet_NaN() ;
+			result.null_loglikelihood = null_loglikelihood.get_value_of_function() ;
+			result.alternative_loglikelihood = alternative_loglikelihood.get_value_of_function() ;
 			result.test_statistic = -2.0 * ( null_loglikelihood.get_value_of_function() - alternative_loglikelihood.get_value_of_function() ) ;
 			if( result.test_statistic > 0.0 ) {
 				result.p_value = boost::math::cdf(

@@ -41,6 +41,7 @@ void test_alternative_model_certain_genotypes_one_individual( std::size_t g ) {
 	snptest::case_control::AlternativeModelLogLikelihood ll(
 		phenotypes,
 		snptest::FinitelySupportedFunctionSet( genotype_levels, genotypes ),
+		Matrix(),
 		std::vector< std::size_t >( 1, 1 )
 	) ;
 

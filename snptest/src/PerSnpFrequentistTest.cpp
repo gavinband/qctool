@@ -26,6 +26,8 @@ namespace snptest {
 	}
 	
 	PerSnpFrequentistTest::Results::Results():
+		null_loglikelihood( std::numeric_limits< double >::quiet_NaN() ),
+		alternative_loglikelihood( std::numeric_limits< double >::quiet_NaN() ),
 		test_statistic( std::numeric_limits< double >::quiet_NaN() ),
 		p_value( std::numeric_limits< double >::quiet_NaN() ),
 		beta( std::numeric_limits< double >::quiet_NaN() ),
@@ -34,6 +36,8 @@ namespace snptest {
 	{}
 
 	PerSnpFrequentistTest::Results::Results( Results const& other ):
+		null_loglikelihood( other.null_loglikelihood ),
+		alternative_loglikelihood( alternative_loglikelihood ),
 		test_statistic( other.test_statistic ),
 		p_value( other.p_value ),
 		beta( other.beta ),
@@ -42,6 +46,8 @@ namespace snptest {
 	{}
 
 	PerSnpFrequentistTest::Results& PerSnpFrequentistTest::Results::operator=( Results const& other ) {
+		null_loglikelihood = other.null_loglikelihood ;
+		alternative_loglikelihood = alternative_loglikelihood ;
 		test_statistic = other.test_statistic ;
 		p_value = other.p_value ;
 		beta = other.beta ;

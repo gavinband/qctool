@@ -14,190 +14,151 @@ namespace snptest {
 			m_phenotypes( phenotypes ),
 			m_genotypes( genotypes ),
 			m_covariates( covariates ),
-			m_design_matrices( calculate_design_matrices( genotypes.get_support() ) ),
-			m_included_samples(
-				std::vector< std::size_t >(
-					boost::counting_iterator< std::size_t >( 0 ),
-					boost::counting_iterator< std::size_t >( m_phenotypes.size() )
-				)
-			)
+			m_design_matrix( calculate_design_matrix( covariates ) )
 		{
 			assert( m_phenotypes.size() == m_genotypes.get_number_of_functions() ) ;
 			assert( m_covariates.rows() == m_phenotypes.size() ) ;
-			assert( m_included_samples.size() <= std::size_t( m_genotypes.get_number_of_functions() ) ) ;
-			assert( m_design_matrices.size() == 3 ) ;
 		}
 
 		LogLikelihood::LogLikelihood(
 			Vector const& phenotypes,
 			FinitelySupportedFunctionSet const& genotypes,
 			Matrix const& covariates,
-			std::vector< std::size_t > const& included_samples
+			std::vector< std::size_t > const& excluded_samples
 		):
 			m_phenotypes( phenotypes ),
 			m_genotypes( genotypes ),
 			m_covariates( covariates ),
-			m_design_matrices( calculate_design_matrices( genotypes.get_support() ) ),
-			m_included_samples( included_samples )
+			m_design_matrix( calculate_design_matrix( covariates ) )
 		{
 			assert( m_phenotypes.size() == m_genotypes.get_number_of_functions() ) ;
-			assert( m_included_samples.size() <= std::size_t( m_genotypes.get_number_of_functions() ) ) ;
-			assert( m_design_matrices.size() == 3 ) ;
-		}
-
-		// Calculate the design matrices, that is, the matrices of the form
-		// [ 1 ]
-		// [ g ]
-		// where g is a genotype (0, 1 or 2).  These aren't really called "design matrices",
-		// but I don't know what they are called: they are like a single row of the design matrix
-		// if there was no uncertainty in the genotype.
-		std::vector< LogLikelihood::Vector > LogLikelihood::calculate_design_matrices(
-			Vector const& genotype_levels
-		) const {
-			assert( genotype_levels.size() == 3 ) ;
-			std::vector< Vector > result( 3, Vector::Zero( 2 ) ) ;
-			for( std::size_t g = 0; g < 3; ++g ) {
-				result[g]( 0 ) = 1.0 ;
-				result[g]( 1 ) = genotype_levels(g) ;
+			assert( excluded_samples.size() <= std::size_t( m_genotypes.get_number_of_functions() ) ) ;
+			for( std::size_t i = 0; i < excluded_samples.size(); ++i ) {
+				// zero all phenotypes and genotypes for the excluded samples.
+				// This ensures they play no role.
+				m_phenotypes( excluded_samples[i] ) = 0.0 ;
+				m_genotypes.get_values( excluded_samples[i] ).setConstant( 0.0 ) ;
 			}
-			return result ;
 		}
 
-		// Calculate  p_{g,\theta}(\psi_i) for each individual i and each genotype, given the parameters.
-		// (This is the probability of the given phenotype from logistic regression).
-		LogLikelihood::Matrix LogLikelihood::calculate_p_g_thetas(
-			Vector const& parameters,
-			std::vector< Vector > const& design_matrices
-		) const {
-			assert( design_matrices.size() == 3 ) ;
-			Matrix result( 2, 3 ) ;
-			for( std::size_t g = 0; g < 3; ++g ) {
-				result( 0, g ) = calculate_p_g_theta( parameters, design_matrices[g]( 1 ), 0.0 ) ;
-				result( 1, g ) = calculate_p_g_theta( parameters, design_matrices[g]( 1 ), 1.0 ) ;
-				assert( result( 0, g ) == result( 0, g ) ) ;
-				assert( result( 1, g ) == result( 1, g ) ) ;
+		LogLikelihood::Matrix LogLikelihood::calculate_design_matrix( Matrix const& covariates ) const {
+			Matrix result( m_phenotypes.rows(), covariates.cols() + 2 ) ;
+			result.leftCols( 1 ).setOnes() ;
+			if( covariates.cols() > 0 ) {
+				result.rightCols( covariates.cols() ) = covariates ;
 			}
 			return result ;
 		}
 
 		void LogLikelihood::evaluate_at( Point const& parameters ) {
-			assert( m_design_matrices.size() == 3 ) ;
-			m_p_g_thetas = calculate_p_g_thetas( parameters, m_design_matrices ) ;
-			m_coefficients = calculate_coefficients( m_genotypes.get_values(), m_phenotypes, m_p_g_thetas ) ;
+			int const N = m_phenotypes.size() ;
+			int const D = m_design_matrix.cols() ;
+			assert( parameters.size() == D ) ;
+
+			m_outcome_probabilities = calculate_outcome_probabilities( parameters, m_phenotypes, m_design_matrix ) ;
+			assert( m_outcome_probabilities.rows() == m_genotypes.get_values().rows() && m_outcome_probabilities.cols() == m_genotypes.get_values().cols() ) ;
+			
+			std::cerr << "==== LogLikelihood::evaluate_at() ====\n" ;
+			std::cerr << "Parameters: " << parameters << "\n" ;
+			std::cerr << "Phenotypes:\n" << m_phenotypes.head( std::min( N, 5 ) ) << "...\n";
+			std::cerr << "Outcome probabilities:\n"
+				<< m_outcome_probabilities.topRows( std::min( N, 5 ) )
+				<< "...\n" ;
+			
+			// Calculate log-likelihood...
+			Matrix V = ( m_genotypes.get_values().array() * m_outcome_probabilities.array() ) ;
+			m_value_of_function = V.rowwise().sum().array().log().sum() ;
+
+			std::cerr << "call probs:\n"
+				<< m_genotypes.get_values().topRows( std::min( N, 5 ) ) << "...\n" ;
+
+			std::cerr << "call values:\n"
+				<< m_genotypes.get_support() << ".\n" ;
+				
+			std::cerr << "V = call probs * outcome probs:\n"
+				<< V.topRows( std::min( N, 5 ) )
+				<< "...\n"
+				<< "Function value = " << m_value_of_function << ".\n" ;
+
+			// ...and its first and second derivatives...
+			for( int i = 0; i < V.rows(); ++i ) {
+				V.row(i) /= V.row(i).sum() ;
+				V.row(i).array() *= ( RowVector::Ones( m_outcome_probabilities.cols() ) - m_outcome_probabilities.row(i) ).array() ;
+			}
+			
+			std::cerr << "V = ( call probs * outcome probs * ( 1 - outcome_probs )) / sum( call probs * outcome probs ):\n"
+				<< V.topRows( std::min( N, 5 ) )
+				<< "...\n" ;
+			
+			m_value_of_first_derivative = Vector::Zero( D ) ;
+			m_value_of_second_derivative = Matrix::Zero( m_design_matrix.cols(), m_design_matrix.cols() ) ;
+
+			{
+				Vector signs = (( m_phenotypes * 2.0 ) - Vector::Ones( N ) ) ; // == (-1)^{phenotype + 1}
+				std::cerr << "signs:\n" << signs.head( std::min( N, 5 )) << "\n" ;
+				for( std::size_t g = 0; g < 3; ++g ) {
+					m_design_matrix.col(1).setConstant( m_genotypes.get_support( g ) ) ;
+					// multiply ith row of design matrix by sign times ith entry of column of V.
+					RowVector second_term = ( V.col( g ).asDiagonal() * m_design_matrix ).colwise().sum() ;
+					m_value_of_first_derivative += (
+						( signs.array() * V.col( g ).array() ).matrix().asDiagonal() * m_design_matrix
+					).colwise().sum() ;
+				}
+			}
+			
+			
+			std::cerr << "first derivative:\n" << m_value_of_first_derivative << ".\n" ;
+			
+			// ...and its second derivative...
+
+			Vector coeffs( N ) ;
+			for( std::size_t g = 0; g < 3; ++g ) {
+				coeffs = V.col( g ).array() * ( Vector::Ones( N ) - 2.0 * m_outcome_probabilities.col( g ) ).array() ;
+				m_design_matrix.col(1).setConstant( m_genotypes.get_support( g ) ) ;
+				for( int sample = 0; sample < N; ++sample ) {
+					m_value_of_second_derivative +=
+						coeffs( sample ) * ( m_design_matrix.row( sample ).transpose() * m_design_matrix.row( sample ) ) ;
+				}
+				RowVector second_term = ( V.col( g ).asDiagonal() * m_design_matrix ).colwise().sum() ;
+				m_value_of_second_derivative -= second_term.transpose() * second_term ;
+			}
+			std::cerr << "second derivative:\n" << m_value_of_second_derivative << ".\n" ;
+			
+			
 		}
 	
-		// Calculate the z coefficients, i.e.
-		// z_ig = p( g_i = g | \psi_i, o_i, \theta )
-		// By Bayes theorem this is given as
-		//              p_{g,\theta}( \psi_i ) c_{ig}
-		//   z_ig =  ---------------------------------
-		//            \sum_g p_g,\theta( \psi_i ) c_ig
-		//
-		// where c_ig is the call probability.
-		LogLikelihood::Matrix LogLikelihood::calculate_coefficients(
-			Matrix const& genotypes,
+		// Calculate P( outcome | genotype, covariates, parameters ).
+		LogLikelihood::Matrix LogLikelihood::calculate_outcome_probabilities(
+			Vector const& parameters,
 			Vector const& phenotypes,
-			Matrix const& p_g_thetas
+			Matrix& design_matrix
 		) const {
-			Matrix result = genotypes ;
-
-			for( int i = 0; i < result.rows(); ++i ) {
-				result.row( i ) = result.row( i ).cwiseProduct( p_g_thetas.row( std::size_t( phenotypes( i )) )) ;
-				double sum = result.row( i ).sum() ;
-				if( sum > 0.0 ) {
-					result.row( i ) = result.row( i ) / result.row( i ).sum() ;
-				}
-				else {
-					result.row( i ) = Vector::Constant( 3, std::numeric_limits< double >::quiet_NaN() ) ;
-				}
+			Matrix result( phenotypes.size(), 3 ) ;
+			Vector linear_combination ;
+			for( std::size_t g = 0; g < 3; ++g ) {
+				design_matrix.col( 1 ).setConstant( m_genotypes.get_support( g ) ) ;
+				result.col( g ) = evaluate_mean_function( design_matrix * parameters, phenotypes ) ;
 			}
-
-			for( int i = 0; i < phenotypes.size(); ++i ) {
-				for( std::size_t g = 0; g < 3; ++g ) {
-					result( i, g ) *= ( phenotypes( i ) - p_g_thetas( 1, g ) ) ;
-				}
-			}
-
 			return result ;
+		}
+
+		LogLikelihood::Vector LogLikelihood::evaluate_mean_function( Vector const& linear_combinations, Vector const& outcomes ) const {
+			assert( linear_combinations.size() == outcomes.size() ) ;
+			Vector exps = linear_combinations.array().exp() ;
+			Vector ones = Vector::Ones( linear_combinations.size() ) ;
+			return ( exps.array() + ( outcomes.array() * ( ones - exps ).array() ) )  / ( ones + exps ).array() ;
 		}
 
 		double LogLikelihood::get_value_of_function() const {
-			return calculate_function(
-				m_phenotypes,
-				m_genotypes.get_values(),
-				m_p_g_thetas
-			) ;
+			return m_value_of_function ;
 		}
 
 		LogLikelihood::Vector LogLikelihood::get_value_of_first_derivative() const {
-			return calculate_first_derivative(
-				m_phenotypes,
-				m_p_g_thetas,
-				m_coefficients,
-				m_design_matrices
-			) ;
+			return m_value_of_first_derivative ;
 		}
 
 		LogLikelihood::Matrix LogLikelihood::get_value_of_second_derivative() const {
-			return calculate_second_derivative(
-				m_phenotypes,
-				m_p_g_thetas,
-				m_coefficients,
-				m_design_matrices
-			) ;
+			return m_value_of_second_derivative ;
 		}
-
-		double LogLikelihood::calculate_function(
-			Vector const& phenotypes,
-			Matrix const& genotypes,
-			Matrix const& p_g_thetas
-		) const {
-			double result = 0.0 ;
-			for( std::size_t i = 0; i < m_included_samples.size(); ++i ) {
-				int const sample_i = m_included_samples[i] ;
-				double x = 0.0 ;
-				for( std::size_t g = 0; g < 3; ++g ) {
-					x += genotypes( sample_i, g ) * p_g_thetas( int( phenotypes( sample_i )), g ) ;
-				}
-				result += std::log( x ) ;
-			}
-			return result ;
-		}
-
-		LogLikelihood::Vector LogLikelihood::calculate_first_derivative(
-			Vector const& phenotypes,
-			Matrix const& p_g_thetas,
-			Matrix const& coefficients,
-			std::vector< Vector > const& design_matrices
-		) const {
-			Vector result = Vector::Zero( 2 ) ;
-			for( std::size_t i = 0; i < m_included_samples.size(); ++i ) {
-				int const sample_i = m_included_samples[i] ;
-				for( std::size_t g = 0; g < 3; ++g ) {
-					result += coefficients( sample_i, g ) * design_matrices[g] ;
-				}
-			}
-			return result ;
-		}
-
-		LogLikelihood::Matrix LogLikelihood::calculate_second_derivative(
-			Vector const& phenotypes,
-			Matrix const& p_g_thetas,
-			Matrix const& coefficients,
-			std::vector< Vector > const& design_matrices
-		) const {
-			Matrix result = Matrix::Zero( 2, 2 ) ;
-			for( std::size_t i = 0; i < m_included_samples.size(); ++i ) {
-				int const sample_i = m_included_samples[i] ;
-				Vector second_term = Vector::Zero( 2 ) ;
-				for( std::size_t g = 0; g < 3; ++g ) {
-					result += coefficients( sample_i, g ) * ( 1.0 - 2.0 * p_g_thetas( 1, g )) * ( design_matrices[g] * design_matrices[g].transpose() ) ;
-					second_term += coefficients( sample_i, g ) * design_matrices[g] ;
-				}
-				result -= second_term * second_term.transpose() ;
-			}
-			return result ;
-		}
-		
 	}
 }

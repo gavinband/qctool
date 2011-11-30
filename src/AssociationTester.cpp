@@ -42,8 +42,8 @@ AssociationTester::AssociationTester(
 	m_samples( samples ),
 	m_ui_context( ui_context ),
 	m_phenotypes( get_phenotypes( samples, m_options.get_value< std::string >( "-test" ))),
-	m_indices_of_samples_to_include( get_indices_of_samples_to_include( m_phenotypes, m_samples )),
-	m_phenotype_values( get_phenotype_values( m_phenotypes, m_samples, m_indices_of_samples_to_include ))
+	m_indices_of_samples_to_exclude( get_indices_of_samples_to_exclude( m_phenotypes, m_samples )),
+	m_phenotype_values( get_phenotype_values( m_phenotypes, m_samples ))
 {
 	assert( m_phenotypes.size() > 0 ) ;
 }
@@ -60,14 +60,14 @@ std::vector< std::string > AssociationTester::get_phenotypes(
 	return phenotypes ;
 }
 
-std::vector< std::vector< std::size_t > > AssociationTester::get_indices_of_samples_to_include(
+std::vector< std::vector< std::size_t > > AssociationTester::get_indices_of_samples_to_exclude(
 	std::vector< std::string > const& phenotypes,
 	genfile::CohortIndividualSource const& samples
 ) const {
 	std::vector< std::vector< std::size_t > > result( phenotypes.size() ) ;
 	for( std::size_t i = 0; i < phenotypes.size(); ++i ) {
 		for( std::size_t j = 0; j < samples.get_number_of_individuals(); ++j ) {
-			if( !samples.get_entry( j, phenotypes[i] ).is_missing() ) {
+			if( samples.get_entry( j, phenotypes[i] ).is_missing() ) {
 				result[i].push_back( j ) ;
 			}
 		}
@@ -77,15 +77,16 @@ std::vector< std::vector< std::size_t > > AssociationTester::get_indices_of_samp
 
 std::vector< AssociationTester::Vector > AssociationTester::get_phenotype_values(
 	std::vector< std::string > const& phenotypes,
-	genfile::CohortIndividualSource const& samples,
-	std::vector< std::vector< std::size_t > > indices_of_samples_to_include
+	genfile::CohortIndividualSource const& samples
 ) const {
-	assert( indices_of_samples_to_include.size() == phenotypes.size() ) ;
 	std::vector< AssociationTester::Vector > result( phenotypes.size() ) ;
 	for( std::size_t i = 0; i < phenotypes.size(); ++i ) {
-		result[i] = Vector::Zero( indices_of_samples_to_include[i].size() ) ;
-		for( std::size_t j = 0; j < indices_of_samples_to_include[i].size(); ++j ) {
-			result[i]( j ) = double( samples.get_entry( indices_of_samples_to_include[i][j], phenotypes[i] ).as< int >() ) ;
+		result[i] = Vector::Constant( samples.get_number_of_individuals(), std::numeric_limits< double >::quiet_NaN() ) ;
+		for( std::size_t j = 0; j < samples.get_number_of_individuals(); ++j ) {
+			genfile::CohortIndividualSource::Entry const& entry = samples.get_entry( j, phenotypes[i] ) ;
+			if( !entry.is_missing() ) {
+				result[i]( j ) = double( entry.as< int >() ) ;
+			}
 		}
 	}
 	return result ;
@@ -111,7 +112,7 @@ void AssociationTester::processed_snp(
 	processed_snp(
 		id_data,
 		genotypes
-		) ;
+	) ;
 }
 
 void AssociationTester::processed_snp(
@@ -129,7 +130,7 @@ void AssociationTester::processed_snp(
 	;
 	
 	for( std::size_t i = 0; i < m_phenotypes.size(); ++i ) {
-		snptest::FinitelySupportedFunctionSet genotypes = get_genotype_matrix( raw_genotypes, m_indices_of_samples_to_include[i] ) ;
+		snptest::FinitelySupportedFunctionSet genotypes = get_genotype_matrix( raw_genotypes ) ;
 		
 		snptest::PerSnpFrequentistTest::UniquePtr test = snptest::PerSnpFrequentistTest::create(
 			id_data,
@@ -137,10 +138,11 @@ void AssociationTester::processed_snp(
 		) ;
 
 		snptest::PerSnpFrequentistTest::Results results = test->test(
-			m_phenotype_values[i],
-			m_covariate_values,
 			id_data,
-			genotypes
+			m_phenotype_values[i],
+			genotypes,
+			m_covariate_values,
+			m_indices_of_samples_to_exclude[i]
 		) ;
 
 		(*m_sink)
@@ -157,10 +159,9 @@ void AssociationTester::processed_snp(
 }
 
 snptest::FinitelySupportedFunctionSet AssociationTester::get_genotype_matrix(
-	genfile::SingleSNPGenotypeProbabilities const& genotypes,
-	std::vector< std::size_t > const& indices_of_samples_to_include
+	genfile::SingleSNPGenotypeProbabilities const& genotypes
  ) const {
-	std::size_t const N = indices_of_samples_to_include.size() ;
+	std::size_t const N = genotypes.size() ;
 	double const NaN = std::numeric_limits< double >::quiet_NaN() ;
 	snptest::FinitelySupportedFunctionSet result(
 		Vector::Constant( 3, NaN ),
@@ -169,11 +170,11 @@ snptest::FinitelySupportedFunctionSet AssociationTester::get_genotype_matrix(
 
 	for( std::size_t i = 0; i < N; ++i ) {
 		for( std::size_t g = 0; g < 3; ++g ) {
-			result.get_values( i )( g ) = genotypes( indices_of_samples_to_include[ i ], g ) ;
+			result.get_values( i )( g ) = genotypes( i, g ) ;
 		}
 	}
-	// mean-centre the genotypes.
-	double mean_genotype = ( result.get_values().col(1) + 2.0 * result.get_values().col(2) ).sum() / N ;
+	// mean-centre the genotypes.  Expected genotype is twice the allele frequency.
+	double mean_genotype = ( result.get_values().col(1) + 2.0 * result.get_values().col(2) ).sum() / result.get_values().sum() ;
 	for( std::size_t g = 0; g < 3; ++g ) {
 		result.get_support( g ) = double( g ) - mean_genotype ;
 	}

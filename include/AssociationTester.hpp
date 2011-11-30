@@ -32,7 +32,7 @@ private:
 	genfile::CohortIndividualSource const& m_samples ;
 	appcontext::UIContext& m_ui_context ;
 	std::vector< std::string > m_phenotypes ;
-	std::vector< std::vector< std::size_t > > m_indices_of_samples_to_include ;
+	std::vector< std::vector< std::size_t > > m_indices_of_samples_to_exclude ;
 
 	typedef Eigen::VectorXd Vector ;
 	typedef Eigen::MatrixXd Matrix ;
@@ -49,20 +49,18 @@ private:
 		std::string const& phenotype_spec
 	) const ;
 	
-	std::vector< std::vector< std::size_t > > get_indices_of_samples_to_include(
+	std::vector< std::vector< std::size_t > > get_indices_of_samples_to_exclude(
 		std::vector< std::string > const& phenotypes,
 		genfile::CohortIndividualSource const& samples
 	) const ;
 	
 	std::vector< AssociationTester::Vector > get_phenotype_values(
 		std::vector< std::string > const& phenotypes,
-		genfile::CohortIndividualSource const& samples,
-		std::vector< std::vector< std::size_t > > indices_of_samples_to_includes
+		genfile::CohortIndividualSource const& samples
 	) const ;
 
 	snptest::FinitelySupportedFunctionSet get_genotype_matrix(
-		genfile::SingleSNPGenotypeProbabilities const& genotypes,
-		std::vector< std::size_t > const& indices_of_samples_to_include
+		genfile::SingleSNPGenotypeProbabilities const& genotypes
 	) const ;
 
 } ;
