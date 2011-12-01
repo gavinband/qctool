@@ -35,7 +35,9 @@ namespace snptest {
 		{
 			assert( m_phenotypes.size() == m_genotype_call_probabilities.rows() ) ;
 			assert( excluded_samples.size() <= std::size_t( m_phenotypes.size() ) ) ;
-			deal_with_exclusions( excluded_samples ) ;
+			if( excluded_samples.size() > 0 ) {
+				deal_with_exclusions( excluded_samples ) ;
+			}
 		}
 
 		LogLikelihood::Matrix LogLikelihood::calculate_design_matrix( Matrix const& covariates ) const {
@@ -77,7 +79,8 @@ namespace snptest {
 
 			m_outcome_probabilities = calculate_outcome_probabilities( parameters, m_phenotypes, m_design_matrix ) ;
 			assert( m_outcome_probabilities.rows() == m_genotype_call_probabilities.rows() && m_outcome_probabilities.cols() == m_genotype_call_probabilities.cols() ) ;
-			
+
+#if DEBUG_LOGLIKELIHOOD
 			std::cerr << "==== LogLikelihood::evaluate_at() ====\n" ;
 			std::cerr << "Number of samples: " << N << ".\n" ;
 			std::cerr << "Parameters: " << parameters << "\n" ;
@@ -85,38 +88,39 @@ namespace snptest {
 			std::cerr << "Outcome probabilities:\n"
 				<< m_outcome_probabilities.topRows( std::min( N, 5 ) )
 				<< "...\n" ;
-			
+#endif			
 			// Calculate log-likelihood.
 			// We sum over samples ignoring missing samples.
 			Matrix V = ( m_genotype_call_probabilities.array() * m_outcome_probabilities.array() ) ;
 			m_value_of_function = V.rowwise().sum().array().log().sum() ;
 
+#if DEBUG_LOGLIKELIHOOD
 			std::cerr << "call probs:\n"
 				<< m_genotype_call_probabilities.topRows( std::min( N, 5 ) ) << "...\n" ;
-
 			std::cerr << "call values:\n"
 				<< m_genotype_levels << ".\n" ;
-				
 			std::cerr << "V = call probs * outcome probs:\n"
 				<< V.topRows( std::min( N, 5 ) )
 				<< "...\n"
 				<< "Function value = " << m_value_of_function << ".\n" ;
+#endif
 
 			// ...and its first derivative...
 			for( int i = 0; i < V.rows(); ++i ) {
 				V.row(i) /= V.row(i).sum() ;
 				V.row(i).array() *= ( RowVector::Ones( m_outcome_probabilities.cols() ) - m_outcome_probabilities.row(i) ).array() ;
 			}
-			
+
+#if DEBUG_LOGLIKELIHOOD
 			std::cerr << "V = ( call probs * outcome probs * ( 1 - outcome_probs )) / sum( call probs * outcome probs ):\n"
 				<< V.topRows( std::min( N, 5 ) )
 				<< "...\n" ;
-			
+#endif
+
 			m_value_of_first_derivative = Vector::Zero( D ) ;
 
 			{
 				Vector signs = (( m_phenotypes * 2.0 ) - Vector::Ones( N ) ) ; // == (-1)^{phenotype + 1}
-				std::cerr << "signs:\n" << signs.head( std::min( N, 5 )) << "\n" ;
 				for( std::size_t g = 0; g < 3; ++g ) {
 					m_design_matrix.col(1).setConstant( m_genotype_levels( g ) ) ;
 					// multiply ith row of design matrix by sign times ith entry of column of V.
@@ -126,8 +130,6 @@ namespace snptest {
 					).colwise().sum() ;
 				}
 			}
-			
-			std::cerr << "first derivative:\n" << m_value_of_first_derivative << ".\n" ;
 			
 			// ...and its second derivative...
 			m_value_of_second_derivative = Matrix::Zero( m_design_matrix.cols(), m_design_matrix.cols() ) ;
@@ -142,9 +144,10 @@ namespace snptest {
 					m_value_of_second_derivative -= second_term.transpose() * second_term ;
 				}
 			}
+#if DEBUG_LOGLIKELIHOOD
+			std::cerr << "first derivative:\n" << m_value_of_first_derivative << ".\n" ;
 			std::cerr << "second derivative:\n" << m_value_of_second_derivative << ".\n" ;
-			
-			
+#endif
 		}
 	
 		// Calculate P( outcome | genotype, covariates, parameters ).

@@ -8,7 +8,7 @@
 #include "snptest/case_control/AlternativeModelLogLikelihood.hpp"
 #include "snptest/FinitelySupportedFunctionSet.hpp"
 
-#define DEBUG_TEST 1
+//#define DEBUG_TEST 1
 
 namespace snptest {
 	namespace case_control {

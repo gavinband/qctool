@@ -11,7 +11,7 @@ namespace snptest {
 			Matrix const& covariates
 		):
 			m_phenotypes( phenotypes ),
-			m_genotypes( genotypes ),
+			m_genotype_call_probabilities( genotypes.get_values() ),
 			m_covariates( covariates ),
 			m_design_matrix( calculate_design_matrix( covariates ) )
 		{
@@ -25,16 +25,14 @@ namespace snptest {
 			std::vector< std::size_t > const& excluded_samples
 		):
 			m_phenotypes( phenotypes ),
-			m_genotypes( genotypes ),
+			m_genotype_call_probabilities( genotypes.get_values() ),
 			m_covariates( covariates ),
 			m_design_matrix( calculate_design_matrix( covariates ) )
 		{
-			assert( m_phenotypes.size() == m_genotypes.get_number_of_functions() ) ;
-			assert( excluded_samples.size() <= std::size_t( m_genotypes.get_number_of_functions() ) ) ;
-			for( std::size_t i = 0; i < excluded_samples.size(); ++i ) {
-				// zero all phenotypes and genotypes for the excluded samples.
-				// This ensures they play no role.
-				m_phenotypes( excluded_samples[i] ) = 0.0 ;
+			assert( m_phenotypes.size() == m_genotype_call_probabilities.rows() ) ;
+			assert( excluded_samples.size() <= std::size_t( m_phenotypes.rows() ) ) ;
+			if( excluded_samples.size() > 0 ) {
+				deal_with_exclusions( excluded_samples ) ;
 			}
 		}
 
@@ -47,6 +45,27 @@ namespace snptest {
 			return result ;
 		}
 
+		void NullModelLogLikelihood::deal_with_exclusions( std::vector< std::size_t > exclusions ) {
+			assert( exclusions.size() > 0 ) ;
+			std::sort( exclusions.begin(), exclusions.end() ) ;
+			assert( exclusions.back() < std::size_t( m_phenotypes.size() ) ) ;
+			exclusions.push_back( m_phenotypes.size() ) ;
+			Matrix remove_exclusions = Matrix::Zero( m_phenotypes.rows() - exclusions.size(), m_phenotypes.rows() ) ;
+			int	block_start_column = 0 ;
+			for( std::size_t i = 0; i < exclusions.size(); ++i ) {
+				int block_start_row = block_start_column - i ;
+				int block_end_column = exclusions[i] ;
+				int block_size = block_end_column - block_start_column ;
+				remove_exclusions.block( block_start_row, block_start_column, block_size, block_size )
+					= Matrix::Identity( block_size, block_size ) ;
+				block_start_column = block_end_column + 1 ;
+			}
+			
+			m_design_matrix = remove_exclusions * m_design_matrix ;
+			m_phenotypes = remove_exclusions * m_phenotypes ;
+			m_genotype_call_probabilities = remove_exclusions * m_genotype_call_probabilities ;
+		}
+
 		void NullModelLogLikelihood::evaluate_at( Point const& parameters ) {
 			int const N = m_phenotypes.size() ;
 			int const D = m_design_matrix.cols() ;
@@ -54,44 +73,46 @@ namespace snptest {
 
 			m_outcome_probabilities = calculate_outcome_probabilities( parameters, m_phenotypes, m_design_matrix ) ;
 			assert( m_outcome_probabilities.rows() == m_phenotypes.size() && m_outcome_probabilities.cols() == 1 ) ;
-			
+
+#if DEBUG_LOGLIKELIHOOD			
 			std::cerr << "==== NullModelLogLikelihood::evaluate_at() ====\n" ;
 			std::cerr << "Parameters: " << parameters << "\n" ;
 			std::cerr << "Phenotypes:\n" << m_phenotypes.head( std::min( N, 5 ) ) << "...\n";
 			std::cerr << "Outcome probabilities:\n"
 				<< m_outcome_probabilities.topRows( std::min( N, 5 ) )
 				<< "...\n" ;
+#endif
 			
 			// Calculate log-likelihood...
-			Vector V = ( m_genotypes.get_values().rowwise().sum().array() * m_outcome_probabilities.array() ) ;
+			Vector V = ( m_genotype_call_probabilities.rowwise().sum().array() * m_outcome_probabilities.array() ) ;
 			m_value_of_function = V.rowwise().sum().array().log().sum() ;
 
+#if DEBUG_LOGLIKELIHOOD			
 			std::cerr << "call prob sums:\n"
-				<< m_genotypes.get_values().rowwise().sum().head( std::min( N, 5 ) ) << "...\n" ;
+				<< m_genotype_call_probabilities.rowwise().sum().head( std::min( N, 5 ) ) << "...\n" ;
 
 			std::cerr << "V = call prob sums * outcome probs:\n"
 				<< V.head( std::min( N, 5 ) )
 				<< "...\n"
 				<< "Function value = " << m_value_of_function << ".\n" ;
-
+#endif
 			// ...and its first and second derivatives...
 			V = Vector::Ones( N ) - m_outcome_probabilities ;
 			
+#if DEBUG_LOGLIKELIHOOD
 			std::cerr << "V = ( 1 - outcome_probs ):\n"
 				<< V.topRows( std::min( N, 5 ) )
 				<< "...\n" ;
+#endif
 
 			{
 				Vector signs = (( m_phenotypes * 2.0 ) - Vector::Ones( N ) ) ; // == (-1)^{phenotype + 1}
-				std::cerr << "signs:\n" << signs.head( std::min( N, 5 )) << "\n" ;
 				// multiply ith row of design matrix by sign times ith entry of column of V.
 				RowVector second_term = ( V.asDiagonal() * m_design_matrix ).colwise().sum() ;
 				m_value_of_first_derivative = (
 					( signs.array() * V.array() ).matrix().asDiagonal() * m_design_matrix
 				).colwise().sum() ;
 			}
-			
-			std::cerr << "first derivative:\n" << m_value_of_first_derivative << ".\n" ;
 			
 			// ...and its second derivative...
 
@@ -103,7 +124,10 @@ namespace snptest {
 				RowVector second_term = V( sample ) * m_design_matrix.row( sample ) ;
 				m_value_of_second_derivative -= second_term.transpose() * second_term ;
 			}
+#if DEBUG_LOGLIKELIHOOD
+			std::cerr << "first derivative:\n" << m_value_of_first_derivative << ".\n" ;
 			std::cerr << "second derivative:\n" << m_value_of_second_derivative << ".\n" ;
+#endif			
 		}
 		
 		// Calculate P( outcome | genotype, covariates, parameters ).
