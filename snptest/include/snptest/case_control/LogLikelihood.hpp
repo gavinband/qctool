@@ -43,7 +43,6 @@ namespace snptest {
 
 			Matrix m_outcome_probabilities ;
 			Matrix m_design_matrix ;
-			Matrix m_coefficients ;
 			
 			double m_value_of_function ;
 			Vector m_value_of_first_derivative ;
@@ -56,6 +55,9 @@ namespace snptest {
 			Vector evaluate_mean_function( Vector const& linear_combinations, Vector const& outcomes ) const ;
 			// Calculate matrix of probabilities of outcome per genotype, given the parameters.
 			Matrix calculate_outcome_probabilities( Vector const& parameters, Vector const& phenotypes, Matrix& design_matrix ) const ;
+			void compute_value_of_function( Matrix const& V ) ;
+			void compute_value_of_first_derivative( Matrix& V ) ;
+			void compute_value_of_second_derivative( Matrix const& V ) ;
 		} ;
 	}
 }
