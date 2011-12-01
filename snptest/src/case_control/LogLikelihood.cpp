@@ -53,8 +53,8 @@ namespace snptest {
 			assert( exclusions.size() > 0 ) ;
 			std::sort( exclusions.begin(), exclusions.end() ) ;
 			assert( exclusions.back() < std::size_t( m_phenotypes.size() ) ) ;
-			exclusions.push_back( m_phenotypes.size() ) ;
 			Matrix remove_exclusions = Matrix::Zero( m_phenotypes.rows() - exclusions.size(), m_phenotypes.rows() ) ;
+			exclusions.push_back( m_phenotypes.size() ) ;
 			int	block_start_column = 0 ;
 			for( std::size_t i = 0; i < exclusions.size(); ++i ) {
 				int block_start_row = block_start_column - i ;
@@ -64,8 +64,6 @@ namespace snptest {
 					= Matrix::Identity( block_size, block_size ) ;
 				block_start_column = block_end_column + 1 ;
 			}
-			
-			std::cerr << "Remove exclusions:\n" << remove_exclusions << "\n";
 			
 			m_design_matrix = remove_exclusions * m_design_matrix ;
 			m_phenotypes = remove_exclusions * m_phenotypes ;

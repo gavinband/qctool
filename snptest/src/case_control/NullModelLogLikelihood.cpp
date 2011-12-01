@@ -49,8 +49,8 @@ namespace snptest {
 			assert( exclusions.size() > 0 ) ;
 			std::sort( exclusions.begin(), exclusions.end() ) ;
 			assert( exclusions.back() < std::size_t( m_phenotypes.size() ) ) ;
-			exclusions.push_back( m_phenotypes.size() ) ;
 			Matrix remove_exclusions = Matrix::Zero( m_phenotypes.rows() - exclusions.size(), m_phenotypes.rows() ) ;
+			exclusions.push_back( m_phenotypes.size() ) ;
 			int	block_start_column = 0 ;
 			for( std::size_t i = 0; i < exclusions.size(); ++i ) {
 				int block_start_row = block_start_column - i ;
