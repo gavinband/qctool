@@ -8,59 +8,52 @@
 
 namespace snptest {
 	namespace case_control {
-		struct NullModelLogLikelihood:public boost::noncopyable
+		struct NullModelLogLikelihood: public boost::noncopyable
 		{
 		public:
 			typedef Eigen::VectorXd Point ;
 			typedef Eigen::VectorXd Vector ;
+			typedef Eigen::RowVectorXd RowVector ;
 			typedef Eigen::MatrixXd Matrix ;
 			
 			NullModelLogLikelihood(
 				Vector const& phenotypes,
 				FinitelySupportedFunctionSet const& genotypes,
-				bool weight_by_genotypes = false
+				Matrix const& covariates = Matrix()
 			) ;
 
 			NullModelLogLikelihood(
 				Vector const& phenotypes,
 				FinitelySupportedFunctionSet const& genotypes,
-				bool weight_by_genotypes,
-				std::vector< std::size_t > const& included_samples
+				Matrix const& covariates,
+				std::vector< std::size_t > const& excluded_samples
 			) ;
-		
-			void evaluate_at( Vector const& parameters ) ;
-		
+
+			void evaluate_at( Point const& parameters ) ;
 			double get_value_of_function() const ;
 			Vector get_value_of_first_derivative() const ;
 			Matrix get_value_of_second_derivative() const ;
+
 		private:
-			Vector const& m_phenotypes ;
-			FinitelySupportedFunctionSet const& m_genotypes ;
-			bool m_weight_by_genotypes ;
-			std::vector< std::size_t > const m_included_samples ;
-			Matrix m_p_thetas ;
-		
+			Vector m_phenotypes ;
+			FinitelySupportedFunctionSet m_genotypes ;
+			Matrix const& m_covariates ;
+
+			Matrix m_outcome_probabilities ;
+			Matrix m_design_matrix ;
+			Matrix m_coefficients ;
+			
+			double m_value_of_function ;
+			Vector m_value_of_first_derivative ;
+			Matrix m_value_of_second_derivative ;
+
 		private:
-			NullModelLogLikelihood( NullModelLogLikelihood const& other ) ;
-		
-			std::vector< Vector > calculate_design_matrices() const ;
-			double calculate_p_theta( Vector const& parameters, double phenotype ) const ;
-			Matrix calculate_p_thetas( Vector const& parameters ) const ;
-			double calculate_function(
-				Vector const& phenotypes,
-				Matrix const& p_thetas
-			) const ;
-			Vector calculate_first_derivative(
-				Vector const& phenotypes,
-				Matrix const& p_thetas
-			) const ;
-			Matrix calculate_second_derivative(
-				Vector const& phenotypes,
-				Matrix const& p_thetas
-			) const ;
+			Matrix calculate_design_matrix( Matrix const& covariates ) const ;
+			// Calculate the probability of outcome given the genotype, parameters, and covariates.
+			Vector evaluate_mean_function( Vector const& linear_combinations, Vector const& outcomes ) const ;
+			// Calculate matrix of probabilities of outcome per genotype, given the parameters.
+			Matrix calculate_outcome_probabilities( Vector const& parameters, Vector const& phenotypes, Matrix& design_matrix ) const ;
 		} ;
-	
-		typedef NullModelLogLikelihood NullModelEvaluator ;
 	}
 }
 

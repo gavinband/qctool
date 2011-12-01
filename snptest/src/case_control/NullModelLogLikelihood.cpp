@@ -8,111 +8,130 @@ namespace snptest {
 		NullModelLogLikelihood::NullModelLogLikelihood(
 			Vector const& phenotypes,
 			FinitelySupportedFunctionSet const& genotypes,
-			bool weight_by_genotypes
+			Matrix const& covariates
 		):
 			m_phenotypes( phenotypes ),
 			m_genotypes( genotypes ),
-			m_weight_by_genotypes( weight_by_genotypes ),
-			m_included_samples( std::vector< std::size_t >(
-					boost::counting_iterator< std::size_t >( 0 ),
-					boost::counting_iterator< std::size_t >( phenotypes.size() )
-				)
-			)
-		{}
+			m_covariates( covariates ),
+			m_design_matrix( calculate_design_matrix( covariates ) )
+		{
+			assert( m_covariates.cols() == 0 || m_covariates.rows() == m_phenotypes.size() ) ;
+		}
 
 		NullModelLogLikelihood::NullModelLogLikelihood(
 			Vector const& phenotypes,
 			FinitelySupportedFunctionSet const& genotypes,
-			bool weight_by_genotypes,
-			std::vector< std::size_t > const& included_samples
+			Matrix const& covariates,
+			std::vector< std::size_t > const& excluded_samples
 		):
 			m_phenotypes( phenotypes ),
 			m_genotypes( genotypes ),
-			m_weight_by_genotypes( weight_by_genotypes ),
-			m_included_samples( included_samples )
+			m_covariates( covariates ),
+			m_design_matrix( calculate_design_matrix( covariates ) )
 		{
-			assert( m_included_samples.size() <= std::size_t( m_phenotypes.size() ) ) ;
+			assert( m_phenotypes.size() == m_genotypes.get_number_of_functions() ) ;
+			assert( excluded_samples.size() <= std::size_t( m_genotypes.get_number_of_functions() ) ) ;
+			for( std::size_t i = 0; i < excluded_samples.size(); ++i ) {
+				// zero all phenotypes and genotypes for the excluded samples.
+				// This ensures they play no role.
+				m_phenotypes( excluded_samples[i] ) = 0.0 ;
+			}
 		}
 
-		void NullModelLogLikelihood::evaluate_at( Vector const& parameters ) {
-			m_p_thetas = calculate_p_thetas( parameters ) ;
-		}
-
-		// Calculate  p_{\theta}(\psi_i) for each individual i, given the parameters.
-		// (This is the probability of the given phenotype from logistic regression).
-		NullModelLogLikelihood::Matrix NullModelLogLikelihood::calculate_p_thetas(
-			Vector const& parameters
-		) const {
-			assert( parameters.size() == 1 ) ;
-			Matrix result( 2, 1 ) ;
-			result( 0, 0 ) = calculate_p_theta( parameters, 0.0 ) ;
-			result( 1, 0 ) = calculate_p_theta( parameters, 1.0 ) ;
-			return result ;
-		}
-
-		double NullModelLogLikelihood::calculate_p_theta(
-			Vector const& parameters,
-			double phenotype
-		) const {
-			double x = std::exp( parameters(0) ) ;
-			return (( phenotype == 1.0 ) ? x : 1.0 ) / ( 1 + x ) ;
-		}
-	
-		double NullModelLogLikelihood::get_value_of_function() const {
-			return calculate_function(
-				m_phenotypes,
-				m_p_thetas
-			) ;
-		}
-
-		double NullModelLogLikelihood::calculate_function(
-			Vector const& phenotypes,
-			Matrix const& p_thetas
-		) const {
-			double result = 0.0 ;
-			for( std::size_t i = 0; i < m_included_samples.size(); ++i ) {
-				int const sample_i = m_included_samples[i] ;
-				result += std::log(
-					( m_weight_by_genotypes ? m_genotypes.get_values( sample_i ).sum() : 1.0 ) * p_thetas( int( phenotypes( sample_i ) ) ) ) ;
+		NullModelLogLikelihood::Matrix NullModelLogLikelihood::calculate_design_matrix( Matrix const& covariates ) const {
+			Matrix result( m_phenotypes.rows(), covariates.cols() + 1 ) ;
+			result.leftCols( 1 ).setOnes() ;
+			if( covariates.cols() > 0 ) {
+				result.rightCols( covariates.cols() ) = covariates ;
 			}
 			return result ;
+		}
+
+		void NullModelLogLikelihood::evaluate_at( Point const& parameters ) {
+			int const N = m_phenotypes.size() ;
+			int const D = m_design_matrix.cols() ;
+			assert( parameters.size() == D ) ;
+
+			m_outcome_probabilities = calculate_outcome_probabilities( parameters, m_phenotypes, m_design_matrix ) ;
+			assert( m_outcome_probabilities.rows() == m_phenotypes.size() && m_outcome_probabilities.cols() == 1 ) ;
+			
+			std::cerr << "==== NullModelLogLikelihood::evaluate_at() ====\n" ;
+			std::cerr << "Parameters: " << parameters << "\n" ;
+			std::cerr << "Phenotypes:\n" << m_phenotypes.head( std::min( N, 5 ) ) << "...\n";
+			std::cerr << "Outcome probabilities:\n"
+				<< m_outcome_probabilities.topRows( std::min( N, 5 ) )
+				<< "...\n" ;
+			
+			// Calculate log-likelihood...
+			Vector V = ( m_genotypes.get_values().rowwise().sum().array() * m_outcome_probabilities.array() ) ;
+			m_value_of_function = V.rowwise().sum().array().log().sum() ;
+
+			std::cerr << "call prob sums:\n"
+				<< m_genotypes.get_values().rowwise().sum().head( std::min( N, 5 ) ) << "...\n" ;
+
+			std::cerr << "V = call prob sums * outcome probs:\n"
+				<< V.head( std::min( N, 5 ) )
+				<< "...\n"
+				<< "Function value = " << m_value_of_function << ".\n" ;
+
+			// ...and its first and second derivatives...
+			V = Vector::Ones( N ) - m_outcome_probabilities ;
+			
+			std::cerr << "V = ( 1 - outcome_probs ):\n"
+				<< V.topRows( std::min( N, 5 ) )
+				<< "...\n" ;
+
+			{
+				Vector signs = (( m_phenotypes * 2.0 ) - Vector::Ones( N ) ) ; // == (-1)^{phenotype + 1}
+				std::cerr << "signs:\n" << signs.head( std::min( N, 5 )) << "\n" ;
+				// multiply ith row of design matrix by sign times ith entry of column of V.
+				RowVector second_term = ( V.asDiagonal() * m_design_matrix ).colwise().sum() ;
+				m_value_of_first_derivative = (
+					( signs.array() * V.array() ).matrix().asDiagonal() * m_design_matrix
+				).colwise().sum() ;
+			}
+			
+			std::cerr << "first derivative:\n" << m_value_of_first_derivative << ".\n" ;
+			
+			// ...and its second derivative...
+
+			m_value_of_second_derivative = Matrix::Zero( m_design_matrix.cols(), m_design_matrix.cols() ) ;
+			Vector coeffs = V.array() * ( Vector::Ones( N ) - 2.0 * m_outcome_probabilities ).array() ;
+			for( int sample = 0; sample < N; ++sample ) {
+				m_value_of_second_derivative +=
+					coeffs( sample ) * ( m_design_matrix.row( sample ).transpose() * m_design_matrix.row( sample ) ) ;
+				RowVector second_term = V( sample ) * m_design_matrix.row( sample ) ;
+				m_value_of_second_derivative -= second_term.transpose() * second_term ;
+			}
+			std::cerr << "second derivative:\n" << m_value_of_second_derivative << ".\n" ;
+		}
+		
+		// Calculate P( outcome | genotype, covariates, parameters ).
+		NullModelLogLikelihood::Matrix NullModelLogLikelihood::calculate_outcome_probabilities(
+			Vector const& parameters,
+			Vector const& phenotypes,
+			Matrix& design_matrix
+		) const {
+			return evaluate_mean_function( design_matrix * parameters, phenotypes ) ;
+		}
+
+		NullModelLogLikelihood::Vector NullModelLogLikelihood::evaluate_mean_function( Vector const& linear_combinations, Vector const& outcomes ) const {
+			assert( linear_combinations.size() == outcomes.size() ) ;
+			Vector exps = linear_combinations.array().exp() ;
+			Vector ones = Vector::Ones( linear_combinations.size() ) ;
+			return ( ones.array() + outcomes.array() * ( exps.array() - ones.array() ) )  / ( ones + exps ).array() ;
+		}
+
+		double NullModelLogLikelihood::get_value_of_function() const {
+			return m_value_of_function ;
 		}
 
 		NullModelLogLikelihood::Vector NullModelLogLikelihood::get_value_of_first_derivative() const {
-			return calculate_first_derivative(
-				m_phenotypes,
-				m_p_thetas
-			) ;
+			return m_value_of_first_derivative ;
 		}
-	
+
 		NullModelLogLikelihood::Matrix NullModelLogLikelihood::get_value_of_second_derivative() const {
-			return calculate_second_derivative(
-				m_phenotypes,
-				m_p_thetas
-			) ;
-		}
-	
-		NullModelLogLikelihood::Vector NullModelLogLikelihood::calculate_first_derivative(
-			Vector const& phenotypes,
-			Matrix const& p_thetas
-		) const {
-			Vector result = Vector::Zero( 1 ) ;
-			for( std::size_t i = 0; i < m_included_samples.size(); ++i ) {
-				int const sample_i = m_included_samples[i] ;
-				result( 0 ) += phenotypes( sample_i ) - p_thetas( 1 ) ;
-				//result( 0 ) = result(0) + phenotypes( i ) - p_thetas( 1 ) ;
-			}
-			return result ;
-		}
-	
-		NullModelLogLikelihood::Matrix NullModelLogLikelihood::calculate_second_derivative(
-			Vector const& phenotypes,
-			Matrix const& p_thetas
-		) const {
-			return Matrix::Constant(
-				1, 1,
-				-double( phenotypes.size() ) * p_thetas( 1 ) * ( 1.0 - p_thetas( 1 ))
-			) ;
+			return m_value_of_second_derivative ;
 		}
 	}
 }

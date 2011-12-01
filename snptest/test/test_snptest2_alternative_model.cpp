@@ -41,11 +41,11 @@ void test_alternative_model_certain_genotypes_one_individual( std::size_t g ) {
 	snptest::case_control::AlternativeModelLogLikelihood ll(
 		phenotypes,
 		snptest::FinitelySupportedFunctionSet( genotype_levels, genotypes ),
-		Matrix(),
-		std::vector< std::size_t >( 1, 1 )
+		Matrix()
 	) ;
 
 	Vector parameters( 2 ) ;
+	// Start at 0,0
 	parameters << 0.0, 0.0 ;
 
 	p1 = std::exp( parameters(0) + genotype_levels(g) * parameters(1) ) ;
@@ -53,39 +53,42 @@ void test_alternative_model_certain_genotypes_one_individual( std::size_t g ) {
 	p1 = p1 / ( 1.0 + p1 ) ;
 
 	ll.evaluate_at( parameters ) ;
-	TEST_ASSERT( ll.get_value_of_function() == std::log( p0 ) ) ;
-	TEST_ASSERT( ll.get_value_of_first_derivative() == -p1 * design_matrix ) ;
-	TEST_ASSERT( ll.get_value_of_second_derivative() == (( -p1 * ( 1.0 - 2.0 * p1 )) - ( p1 * p1 )) * design_matrix_squared ) ;
+	BOOST_CHECK_EQUAL( ll.get_value_of_function(), std::log( p0 ) ) ;
+	BOOST_CHECK_EQUAL( ll.get_value_of_first_derivative(), -p1 * design_matrix ) ;
+	BOOST_CHECK_EQUAL( ll.get_value_of_second_derivative(), (( -p1 * ( 1.0 - 2.0 * p1 )) - ( p1 * p1 )) * design_matrix_squared ) ;
 
+	// Nonzero genetic effect parameter
 	parameters << 0.0, 1.0 ;
 	p1 = std::exp( parameters(0) + genotype_levels(g) * parameters(1) ) ;
 	p0 = 1.0 / ( 1.0 + p1 ) ;
 	p1 = p1 / ( 1.0 + p1 ) ;
 	
 	ll.evaluate_at( parameters ) ;
-	TEST_ASSERT( ll.get_value_of_function() == std::log( p0 ) ) ;
+	BOOST_CHECK_EQUAL( ll.get_value_of_function(), std::log( p0 ) ) ;
 	check_equal( ll.get_value_of_first_derivative(), -p1 * design_matrix, 0.00000000001 ) ;
-	TEST_ASSERT( ll.get_value_of_second_derivative() == (( -p1 * ( 1.0 - 2.0 * p1 )) - ( p1 * p1 )) * design_matrix_squared ) ;
+	BOOST_CHECK_EQUAL( ll.get_value_of_second_derivative(), (( -p1 * ( 1.0 - 2.0 * p1 )) - ( p1 * p1 )) * design_matrix_squared ) ;
 
-	// Change baseline parameter
+	// Nonzero baseline parameter instead
 	parameters << 1.0, 0.0 ;
 	p1 = std::exp( parameters(0) + genotype_levels(g) * parameters(1) ) ;
 	p0 = 1.0 / ( 1.0 + p1 ) ;
 	p1 = p1 / ( 1.0 + p1 ) ;
 	ll.evaluate_at( parameters ) ;
-	TEST_ASSERT( ll.get_value_of_function() == std::log( p0 ) ) ;
-	TEST_ASSERT( ll.get_value_of_first_derivative() == -p1 * design_matrix ) ;
-	TEST_ASSERT( ll.get_value_of_second_derivative() == (( -p1 * ( 1.0 - 2.0 * p1 )) - ( p1 * p1 )) * design_matrix_squared ) ;
+	BOOST_CHECK_EQUAL( ll.get_value_of_function(), std::log( p0 ) ) ;
+	BOOST_CHECK_EQUAL( ll.get_value_of_first_derivative(), -p1 * design_matrix ) ;
+	BOOST_CHECK_EQUAL( ll.get_value_of_second_derivative(), (( -p1 * ( 1.0 - 2.0 * p1 )) - ( p1 * p1 )) * design_matrix_squared ) ;
 
+	// Both parameters nonzero
 	parameters << 1.0, 1.0 ;
 	p1 = std::exp( parameters(0) + genotype_levels(g) * parameters(1) ) ;
 	p0 = 1.0 / ( 1.0 + p1 ) ;
 	p1 = p1 / ( 1.0 + p1 ) ;
 	
 	ll.evaluate_at( parameters ) ;
-	TEST_ASSERT( ll.get_value_of_function() == std::log( p0 ) ) ;
+	BOOST_CHECK_EQUAL( ll.get_value_of_function(), std::log( p0 ) ) ;
 	check_equal( ll.get_value_of_first_derivative(), -p1 * design_matrix, 0.000000000001 ) ;
-	TEST_ASSERT( ll.get_value_of_second_derivative() == (( -p1 * ( 1.0 - 2.0 * p1 )) - ( p1 * p1 )) * design_matrix_squared ) ;
+	Matrix expected_2nd_derivative = (( -p1 * ( 1.0 - 2.0 * p1 )) - ( p1 * p1 )) * design_matrix_squared ;
+	BOOST_CHECK_SMALL(( ll.get_value_of_second_derivative() - expected_2nd_derivative ).maxCoeff(), 0.0000000001 ) ;
 
 	std::cerr << "ok.\n" ;
 }

@@ -38,7 +38,7 @@ namespace snptest {
 			snptest::case_control::NullModelLogLikelihood null_loglikelihood(
 				phenotypes,
 				genotypes,
-				m_mimic_snptest,
+				covariates,
 				indices_of_samples_to_exclude
 			) ;
 
