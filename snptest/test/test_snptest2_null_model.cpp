@@ -62,11 +62,11 @@ AUTO_TEST_CASE( test_null_model_small_datasets )
 	// Should be true even if we have NaNs
 	{
 		Vector phenotypes( 2 ) ;
-		phenotypes << std::numeric_limits< double >::quiet_NaN(), 0.0 ;
+		phenotypes << 0.0, std::numeric_limits< double >::quiet_NaN() ;
 		Matrix genotypes = Matrix::Zero(2,3) ;
 		genotypes(0,0) = 1.0 ; 
 		genotypes(1,0) = 1.0 ; 
-		std::vector< std::size_t > exclusions( 1, 0 ) ;
+		std::vector< std::size_t > exclusions( 1, 1 ) ;
 
 		snptest::case_control::NullModelLogLikelihood ll( phenotypes, FinitelySupportedFunctionSet( levels, genotypes ), Matrix(), exclusions ) ;
 		Vector parameters = Vector::Zero( 1 ) ;
