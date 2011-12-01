@@ -5,7 +5,7 @@
 #include <memory>
 #include <boost/noncopyable.hpp>
 #include <boost/function.hpp>
-#include <eigen/Core>
+#include <Eigen/Core>
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "appcontext/OptionProcessor.hpp"
