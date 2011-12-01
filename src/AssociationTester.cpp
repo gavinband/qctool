@@ -81,7 +81,7 @@ std::vector< AssociationTester::Vector > AssociationTester::get_phenotype_values
 ) const {
 	std::vector< AssociationTester::Vector > result( phenotypes.size() ) ;
 	for( std::size_t i = 0; i < phenotypes.size(); ++i ) {
-		result[i] = Vector::Constant( samples.get_number_of_individuals(), std::numeric_limits< double >::quiet_NaN() ) ;
+		result[i] = Vector::Constant( samples.get_number_of_individuals(), -1 ) ;
 		for( std::size_t j = 0; j < samples.get_number_of_individuals(); ++j ) {
 			genfile::CohortIndividualSource::Entry const& entry = samples.get_entry( j, phenotypes[i] ) ;
 			if( !entry.is_missing() ) {
