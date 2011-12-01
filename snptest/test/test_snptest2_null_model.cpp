@@ -59,10 +59,10 @@ AUTO_TEST_CASE( test_null_model_small_datasets )
 		BOOST_CHECK_EQUAL( ll.get_value_of_second_derivative(), Matrix::Constant( 1, 1, -p1 * p0) ) ;
 	}
 
-	// Should be true even if we have NaNs
+	// Should work the other way round too
 	{
 		Vector phenotypes( 2 ) ;
-		phenotypes << 0.0, std::numeric_limits< double >::quiet_NaN() ;
+		phenotypes << 0.0, -1 ;
 		Matrix genotypes = Matrix::Zero(2,3) ;
 		genotypes(0,0) = 1.0 ; 
 		genotypes(1,0) = 1.0 ; 
