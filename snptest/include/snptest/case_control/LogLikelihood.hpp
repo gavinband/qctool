@@ -39,7 +39,7 @@ namespace snptest {
 			Matrix m_genotype_call_probabilities ;
 			Matrix m_genotype_levels ;
 			Matrix const& m_covariates ;
-			std::vector< std::size_t > m_excluded_samples ;
+			std::vector< std::size_t > m_exclusions ;
 
 			Matrix m_design_matrix ;
 			Matrix m_design_matrix_row_tensor_squares ;
@@ -51,7 +51,7 @@ namespace snptest {
 			Matrix m_value_of_second_derivative ;
 
 		private:
-			void deal_with_exclusions( std::vector< std::size_t > exclusions ) ;
+			void deal_with_exclusions( std::vector< std::size_t > const& exclusions ) ;
 			Matrix calculate_design_matrix( Matrix const& covariates ) const ;
 			void compute_tensor_squares( Matrix& design_matrix ) ;
 			// Calculate the probability of outcome given the genotype, parameters, and covariates.
