@@ -215,7 +215,8 @@ namespace genfile {
 			{}
 			
 			AlleleFlippingSNPDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
-				switch( m_allele_flips[ m_source.number_of_snps_read() ] ) {
+				assert( m_source.number_of_snps_read() > 0 ) ;
+				switch( m_allele_flips[ m_source.number_of_snps_read() - 1 ] ) {
 					case AlleleFlippingSNPDataSource::eNoFlip:
 						m_base_reader->get( spec, setter ) ;
 						break ;
