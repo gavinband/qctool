@@ -105,7 +105,7 @@ namespace snptest {
 				int start_row = 0 ;
 				for( std::size_t i = 0; i < m_exclusions.size(); ++i ) {
 					int const end_row = m_exclusions[i] ;
-					std::cerr << "i = " << i << ", V.rows() = " << V.rows() << ", start_row = " << start_row << ", end_row = " << end_row << ".\n" ;
+					//std::cerr << "i = " << i << ", V.rows() = " << V.rows() << ", start_row = " << start_row << ", end_row = " << end_row << ".\n" ;
 					m_value_of_first_derivative += (
 						( signs.segment( start_row, end_row - start_row ).array() * V.segment( start_row, end_row - start_row ).array() ).matrix().asDiagonal()
 						* m_design_matrix.block( start_row, 0, end_row - start_row, m_design_matrix.cols () )
