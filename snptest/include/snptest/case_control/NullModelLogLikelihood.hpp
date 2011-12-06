@@ -11,7 +11,6 @@ namespace snptest {
 		struct NullModelLogLikelihood: public boost::noncopyable
 		{
 		public:
-			typedef Eigen::VectorXd Point ;
 			typedef Eigen::VectorXd Vector ;
 			typedef Eigen::RowVectorXd RowVector ;
 			typedef Eigen::MatrixXd Matrix ;
@@ -29,7 +28,7 @@ namespace snptest {
 				std::vector< std::size_t > const& excluded_samples
 			) ;
 
-			void evaluate_at( Point const& parameters ) ;
+			void evaluate_at( Vector const& parameters ) ;
 			double get_value_of_function() const ;
 			Vector get_value_of_first_derivative() const ;
 			Matrix get_value_of_second_derivative() const ;

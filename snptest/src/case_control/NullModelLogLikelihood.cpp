@@ -51,7 +51,7 @@ namespace snptest {
 			m_exclusions.assign( sorted_exclusions.begin(), sorted_exclusions.end() ) ;
 		}
 
-		void NullModelLogLikelihood::evaluate_at( Point const& parameters ) {
+		void NullModelLogLikelihood::evaluate_at( Vector const& parameters ) {
 			int const N = m_phenotypes.size() ;
 			int const D = m_design_matrix.cols() ;
 			assert( parameters.size() == D ) ;

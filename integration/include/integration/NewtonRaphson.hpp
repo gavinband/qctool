@@ -59,9 +59,9 @@ namespace integration {
 	}
 
 	template< typename FunctionAndDerivativeEvaluator >
-	typename FunctionAndDerivativeEvaluator::Point find_root_by_newton_raphson(
+	typename FunctionAndDerivativeEvaluator::Vector find_root_by_newton_raphson(
 		FunctionAndDerivativeEvaluator& evaluator,
-		typename FunctionAndDerivativeEvaluator::Point point,
+		typename FunctionAndDerivativeEvaluator::Vector point,
 		double tolerance = 0.0000000001
 	)
 	// The version of Newton-Raphson taking a seperate function and derivative argument
@@ -71,7 +71,6 @@ namespace integration {
 	// The evaluator must expose an Evaluation typedef.  This is an object with two methods,
 	// get_value_of_function() and get_value_of_derivative().
 	{
-		typedef typename FunctionAndDerivativeEvaluator::Point Point ;
 		typedef typename FunctionAndDerivativeEvaluator::Vector Vector ;
 		typedef typename FunctionAndDerivativeEvaluator::Matrix Matrix ;
 		
