@@ -6,6 +6,7 @@
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/RandomAccessSNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
+#include "genfile/SampleFilteringSNPDataSource.hpp"
 #include "genfile/wildcard.hpp"
 #include "genfile/vcf/get_set.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
@@ -276,8 +277,24 @@ namespace impl {
 	} ;
 }
 
-HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create( appcontext::OptionProcessor const& options ) {
+HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
+	appcontext::OptionProcessor const& options,
+	appcontext::UIContext& ui_context,
+	std::vector< std::size_t > const& indices_of_filtered_out_samples
+) {
 	HaplotypeFrequencyComponent::UniquePtr result ;
+
+	genfile::SNPDataSource::UniquePtr source = genfile::SNPDataSource::create_chain(
+		genfile::wildcard::find_files_by_chromosome(
+			options.get< std::string >( "-compute-ld-with" ),
+			genfile::wildcard::eALL_CHROMOSOMES
+		)
+	) ;
+	source = genfile::SampleFilteringSNPDataSource::create(
+		source,
+		std::set< std::size_t >( indices_of_filtered_out_samples.begin(), indices_of_filtered_out_samples.end() )
+	) ;
+	
 	result.reset(
 		new HaplotypeFrequencyComponent(
 			genfile::SNPDataSource::create_chain(
@@ -285,7 +302,8 @@ HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create( appc
 					options.get< std::string >( "-compute-ld-with" ),
 					genfile::wildcard::eALL_CHROMOSOMES
 				)
-			)
+			),
+			ui_context
 		)
 	) ;
 	
@@ -325,9 +343,11 @@ HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create( appc
 }
 
 HaplotypeFrequencyComponent::HaplotypeFrequencyComponent(
-	genfile::SNPDataSource::UniquePtr source
+	genfile::SNPDataSource::UniquePtr source,
+	appcontext::UIContext& ui_context
 ):
 	m_source( source ),
+	m_ui_context( ui_context ),
 	m_threshhold( 0.9 )
 {}
 
@@ -359,11 +379,18 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 	target_data_reader.get( "genotypes", target_getter ) ;
 	assert( genotypes[0].size() == m_source->number_of_samples() ) ;
 	assert( genotypes[0].size() == genotypes[1].size() ) ;
-	compute_ld_measures(
-		source_snp,
-		target_snp,
-		genotypes
-	) ;
+	try {
+		compute_ld_measures(
+			source_snp,
+			target_snp,
+			genotypes
+		) ;
+	} catch( genfile::OperationFailedError const& e ) {
+		m_ui_context.logger() << "!! HaplotypeFrequencyComponent::compute_ld_measures(): could not compute LD measures between SNPs "
+			<< source_snp << " and " << target_snp << ".\n"
+			<< "!! reason: " << e.get_message() << "\n"
+			<< "!! this comparison will not appear in output.\n" ;
+	}
 }
 
 void HaplotypeFrequencyComponent::compute_ld_measures(

@@ -1125,7 +1125,6 @@ private:
 			
 			open_sample_row_sink() ;
 			open_snp_data_sinks() ;
-			open_snp_stats_sink( 0, m_snp_statistics ) ;
 			open_sample_stats_sink() ;
 	}
 	
@@ -1559,12 +1558,6 @@ private:
 					}
 				}
 			
-				if( m_mangled_options.snp_stats_filename_mapper().output_filenames().size() > 0 ) {
-					if( m_mangled_options.snp_stats_filename_mapper().filename_corresponding_to( index ) != m_current_snp_stats_filename_index ) {
-						open_snp_stats_sink( ++m_current_snp_stats_filename_index, m_snp_statistics ) ;
-					}
-				}
-			
 				if( m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() > 0 ) {
 					if( m_mangled_options.snp_excl_list_filename_mapper().filename_corresponding_to( index ) != m_fltrd_out_snp_data_sink->index_of_current_sink() ) {
 						m_fltrd_out_snp_data_sink->move_to_next_sink() ;
@@ -1655,21 +1648,6 @@ private:
 		m_fltrd_out_sample_sink.reset( new NullObjectSink< SampleRow >() ) ;
 		if( m_mangled_options.output_sample_excl_list_filename() != "" ) {
 			m_fltrd_out_sample_sink.reset( new SampleIDSink( open_file_for_output( m_mangled_options.output_sample_excl_list_filename() ))) ;
-		}
-	}
-
-	void open_snp_stats_sink( std::size_t index, GenRowStatistics const& snp_statistics ) {
-		if( m_mangled_options.snp_stats_filename_mapper().output_filenames().size() == 0 ) {
-			m_snp_stats_sink.reset( new statfile::TrivialBuiltInTypeStatSink() ) ;
-		}
-		else {
-			assert( index < m_mangled_options.snp_stats_filename_mapper().output_filenames().size()) ;
-			m_current_snp_stats_filename_index = index ;
-			statfile::RFormatStatSink::UniquePtr sink( new statfile::RFormatStatSink( m_mangled_options.snp_stats_filename_mapper().output_filenames()[ index ] )) ;
-			m_snp_stats_sink.reset( sink.release() ) ;
-		}
-		for( std::size_t i = 0; i < snp_statistics.size(); ++i ) {
-			m_snp_stats_sink->add_column( snp_statistics.get_statistic_name( i )) ;
 		}
 	}
 
@@ -2112,7 +2090,7 @@ private:
 		
 		HaplotypeFrequencyComponent::UniquePtr haplotype_frequency_component ;
 		if( options().check_if_option_was_supplied_in_group( "LD computation options" )) {
-			haplotype_frequency_component = HaplotypeFrequencyComponent::create( options() ) ;
+			haplotype_frequency_component = HaplotypeFrequencyComponent::create( options(), get_ui_context(), context.indices_of_filtered_out_samples() ) ;
 			processor.add_callback( *haplotype_frequency_component ) ;
 		}
 

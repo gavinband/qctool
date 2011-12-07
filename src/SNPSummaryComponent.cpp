@@ -55,7 +55,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 							"The '#' character can also be used here to specify one output file per chromosome." )
         .set_takes_values_per_use(1)
 		.set_maximum_multiplicity(1)
-		.set_default_value( "qctool.snp-stats" ) ;
+		.set_default_value( "" ) ;
 
 	options[ "-snp-stats-columns" ]
         .set_description( "Comma-seperated list of extra columns to output in the snp-wise statistics file.  "
@@ -99,9 +99,14 @@ namespace {
 				<< snp.get_first_allele()
 				<< snp.get_second_allele()
 				<< computation_name
-				<< value_name
-				<< value
-				<< statfile::end_row() ;
+				<< value_name ;
+			if( value == value ) {
+				(*m_sink) << value ;
+			}
+			else {
+				(*m_sink) << genfile::MissingValue() ;
+			}
+			(*m_sink) << statfile::end_row() ;
 			;
 		}
 
@@ -123,10 +128,15 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 	foreach( std::string const& elt, elts ) {
 		manager->add_computation( elt, SNPSummaryComputation::create( elt )) ;
 	}
+
+	std::string filename = m_options.get_value< std::string >( "-snp-stats-file" ) ;
+	if( filename.empty() ) {
+		filename = m_options.get< std::string >( "-g" ) + ".snp-stats" ;
+	}
 	manager->add_result_callback(
 		boost::bind(
 			&FileOutputter::operator(),
-			FileOutputter::SharedPtr( FileOutputter::create( m_options.get_value< std::string >( "-snp-stats-file" )) ),
+			FileOutputter::SharedPtr( FileOutputter::create( filename ) ),
 			_1, _2, _3, _4, _5
 		)
 	) ;

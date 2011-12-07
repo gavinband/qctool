@@ -26,7 +26,7 @@ HaplotypeFrequencyLogLikelihood::Vector HaplotypeFrequencyLogLikelihood::get_MLE
 	Vector pi = estimate_parameters( AB_ab ) ;
 	Vector old_pi ;
 	std::size_t count = 0 ;
-	std::size_t const max_count = 100 ;
+	std::size_t const max_count = 10000 ;
 	double const tolerance = 0.0000001 ;
 	do {
 		old_pi = pi ;

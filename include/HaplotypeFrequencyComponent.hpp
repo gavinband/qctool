@@ -8,6 +8,7 @@
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/RandomAccessSNPDataSource.hpp"
 #include "appcontext/OptionProcessor.hpp"
+#include "appcontext/UIContext.hpp"
 #include "HaplotypeFrequencyLogLikelihood.hpp"
 
 struct HaplotypeFrequencyComponent: public genfile::SNPDataSourceProcessor::Callback {
@@ -15,10 +16,14 @@ public:
 	typedef std::auto_ptr< HaplotypeFrequencyComponent > UniquePtr ;
 
 	static void declare_options( appcontext::OptionProcessor& options ) ;
-	static UniquePtr create( appcontext::OptionProcessor const& options ) ;
+	static UniquePtr create(
+		appcontext::OptionProcessor const& options,
+		appcontext::UIContext& ui_context,
+		std::vector< std::size_t > const& indices_of_filtered_out_samples
+	) ;
 
 public:
-	HaplotypeFrequencyComponent( genfile::SNPDataSource::UniquePtr source ) ;
+	HaplotypeFrequencyComponent( genfile::SNPDataSource::UniquePtr source, appcontext::UIContext& ui_context ) ;
 
 public:
 	void begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) ;
@@ -44,6 +49,7 @@ public:
 private:
 	
 	genfile::SNPDataSource::UniquePtr m_source ;
+	appcontext::UIContext& m_ui_context ;
 	double const m_threshhold ;
 	boost::signals2::signal< void( genfile::SNPIdentifyingData const& source, genfile::SNPIdentifyingData const& target, std::string const&, genfile::VariantEntry const& ) > m_result_signal ;
 } ;

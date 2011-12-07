@@ -166,6 +166,11 @@ namespace genfile {
 		std::string const& caller() const { return m_caller ;}
 		std::string const& operation() const { return m_operation ;}
 		std::string const& object() const { return m_object ;}
+		
+		std::string get_message() const {
+			return m_caller + " (" + m_object + "): operation " + m_operation + " failed." ;
+		}
+
 	private:
 		std::string const m_caller ;
 		std::string const m_object ;
