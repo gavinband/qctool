@@ -38,14 +38,14 @@ public:
 
 	void end_processing_snps() ;
 	
-	typedef boost::function< void( genfile::SNPIdentifyingData const& source, genfile::SNPIdentifyingData const& target, Eigen::VectorXd const& ) > ResultCallback ;
+	typedef boost::function< void( genfile::SNPIdentifyingData const& source, genfile::SNPIdentifyingData const& target, std::string const&, genfile::VariantEntry const& ) > ResultCallback ;
 	void send_results_to( ResultCallback callback ) ;
 
 private:
 	
 	genfile::SNPDataSource::UniquePtr m_source ;
 	double const m_threshhold ;
-	boost::signals2::signal< void( genfile::SNPIdentifyingData const& source, genfile::SNPIdentifyingData const& target, Eigen::VectorXd const& ) > m_result_signal ;
+	boost::signals2::signal< void( genfile::SNPIdentifyingData const& source, genfile::SNPIdentifyingData const& target, std::string const&, genfile::VariantEntry const& ) > m_result_signal ;
 } ;
 
 #endif
