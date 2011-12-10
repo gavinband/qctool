@@ -76,7 +76,9 @@ namespace genfile {
 				for( std::size_t i = 0; i < candidates.size(); ++i ) {
 					try {
 						Chromosome chromosome( candidates[i].match() ) ;
-						matching_files[ chromosome ] = candidates[i] ;
+						if( chromosome != Chromosome() ) {
+							matching_files[ chromosome ] = candidates[i] ;
+						}
 					}
 					catch( BadArgumentError const& e ) {
 						// Filename doesn't indicate a chromosome.
@@ -176,20 +178,19 @@ namespace genfile {
 #if HAVE_BOOST_FILESYSTEM
 			if( BFS::exists( path )) {
 				result.push_back( FilenameMatch( path, "" )) ;
-				return result ;
 			}
 			else if( impl::has_wildcard( path, wildcard_char )) {
 				result = impl::find_files_matching_path_with_chromosomal_wildcard( path, wildcard_char ) ;
 			}
+#else
+			result.push_back( FilenameMatch( path, "" )) ;
+#endif
+
 			if( result.empty() ) {
 				throw FileNotFoundError( path ) ;
 			}
 
-			return impl::choose_chromosomes( result, choice ) ;
-#else
-			result.push_back( FilenameMatch( path, "" )) ;
-			return result ;
-#endif
+			return impl::choose_chromosomes( result, choice ) ; ;
 		}
 	
 		std::vector< FilenameMatch >
