@@ -34,6 +34,7 @@ struct OptionDefinition {
 		std::string default_value() const { return m_default_value ; }
 		bool takes_value_by_position() const { return m_position > 0 ; }
 		int position() const { return m_position ; }
+		bool hidden() const { return m_hidden ; }
 		
 		OptionDefinition& set_group( std::string const& group ) { m_group = group ; return *this ; }
 		OptionDefinition& set_description( std::string desc ) { m_description = desc ; return *this ; }
@@ -80,6 +81,9 @@ struct OptionDefinition {
 			m_position = position ;
 			return *this ;
 		}
+		OptionDefinition& set_hidden() {
+			m_hidden = true ;
+		}
 
 		std::vector< std::string > preprocess_option_values( std::string const& option_name, std::vector< std::string > const& option_values ) const ;
 		void check_option_values( std::string const& option_name, std::vector< std::string > const& option_values ) const ;
@@ -95,6 +99,7 @@ struct OptionDefinition {
 		bool m_has_default_value ;
 		std::string m_default_value ;
 		int m_position ;
+		bool m_hidden ;
 } ;
 
 typedef OptionDefinition OptionDefinition ;

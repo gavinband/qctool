@@ -330,8 +330,10 @@ void OptionProcessor::format_option_group( std::ostream& aStream, std::string co
 
 	for( ; option_i != end_option_i; ++option_i ) {
 		std::string const& option_name = *option_i ;
-		aStream << " " ;
-		format_option_and_description( aStream, option_name, max_option_length ) ;
+		if( !(*this)[ option_name ].hidden() ) {
+			aStream << " " ;
+			format_option_and_description( aStream, option_name, max_option_length ) ;
+		}
 	}
 
    	aStream << "\n";
@@ -367,7 +369,9 @@ std::size_t OptionProcessor::get_maximum_option_length() const {
 		end_option_i = m_option_definitions.end() ;
 	std::size_t max_option_length = 0 ;
 	for( ; option_i != end_option_i ; ++option_i ) {
-		max_option_length = std::max( max_option_length, format_option_and_arguments( option_i->first ).size() ) ;
+		if( !(*this)[ option_i->first ].hidden() ) {
+			max_option_length = std::max( max_option_length, format_option_and_arguments( option_i->first ).size() ) ;
+		}
 	}
 	return max_option_length ;
 }
@@ -381,7 +385,9 @@ std::size_t OptionProcessor::get_maximum_option_length( std::string const& group
 		end_option_i = group_i->second.end() ;
 	std::size_t max_option_length = 0 ;
     for( ; option_i != end_option_i; ++option_i ) {
-        max_option_length = std::max( max_option_length, format_option_and_arguments( *option_i ).size() ) ;
+		if( !(*this)[ *option_i ].hidden() ) {
+        	max_option_length = std::max( max_option_length, format_option_and_arguments( *option_i ).size() ) ;
+		}
     }
 	return max_option_length ;
 }

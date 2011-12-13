@@ -2,13 +2,8 @@
 #include "fill_genotype_probabilities.hpp"
 #include "rescale_genotype_probabilities.hpp"
 
-// Calculate Information statistic as per J.Marchini's email to me
-// on 28/09/2009.
-// Update 26/10/2010: rescale the genotype probabilities per person to avoid problem
-// with info when there is missing data.  (To wit, flipping the alleles can give
-// drastically different info values.)
+// Calculate Information statistic as in IMPUTE or SNPTEST.
 double InformationStatistic::calculate_value( GenRow const& row ) const {
-
 	double result ;
 
 	if( row.number_of_samples() == 0 ) {

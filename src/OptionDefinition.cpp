@@ -13,7 +13,8 @@ OptionDefinition::OptionDefinition()
 		m_upper_number_of_permitted_values( 1 ),
 		m_has_default_value( false ),
 		m_default_value( "" ),
-		m_position( -1 )
+		m_position( -1 ),
+		m_hidden( false )
 {}
 
 OptionDefinition::OptionDefinition( OptionDefinition const& other )
@@ -23,7 +24,8 @@ OptionDefinition::OptionDefinition( OptionDefinition const& other )
 		m_lower_number_of_permitted_values( other.m_lower_number_of_permitted_values ),
 		m_upper_number_of_permitted_values( other.m_upper_number_of_permitted_values ),
 		m_has_default_value( other.m_has_default_value ),
-		m_default_value( other.m_default_value )
+		m_default_value( other.m_default_value ),
+		m_hidden( false )
 {}
 
 std::vector< std::string > OptionDefinition::preprocess_option_values( std::string const& option_name, std::vector< std::string > const& option_values ) const {

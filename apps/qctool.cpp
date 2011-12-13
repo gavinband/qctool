@@ -33,6 +33,7 @@
 #include "SimpleFileObjectSource.hpp"
 #include "SimpleFileObjectSink.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
+#include "genfile/ThresholdingSNPDataSource.hpp"
 #include "genfile/SNPDataSinkChain.hpp"
 #include "genfile/TrivialSNPDataSink.hpp"
 #include "genfile/CategoricalCohortIndividualSource.hpp"
@@ -107,6 +108,10 @@ public:
 	        .set_description( "Override the auto-generated path of the output sample file.  " )
 	        .set_takes_single_value() ;
 
+		options [ "-threshhold" ]
+			.set_description( "Threshhold the genotype call probabilities according to the given threshhold (which must be between 0.5 and 1)." )
+			.set_takes_single_value() ;
+
 		// Statistic file options
 		options.declare_group( "Statistic calculation options" ) ;
 	    options[ "-snp-stats" ]
@@ -123,11 +128,10 @@ public:
 		options[ "-snp-stats-columns" ]
 	        .set_description( "Comma-seperated list of extra columns to output in the snp-wise statistics file.  "
 	 						"The standard columns are: "
-							"SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing, information."
-							" Your choices here are filled_information, scaled_information, mach_r2, filled_mach_r2,"
-							" scaled_mach_r2, entropy, filled_entropy, and scaled_entropy." )
+							"SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing, information." )
 			.set_takes_single_value()
-			.set_default_value( "" ) ;
+			.set_default_value( "" )
+			.set_hidden() ;
 
 	    options[ "-sample-stats" ]
 			.set_description( "Calculate and output sample-wise statistics." ) ;
@@ -135,7 +139,8 @@ public:
 	        .set_description( "Comma-seperated list of statistics to output in the sample-wise statistics file."
 	 						 "  By default, the columns are: ID1, ID2, missing, and heterozygosity.")
 			.set_takes_single_value()
-			.set_default_value( std::string("ID1, ID2, missing, heterozygosity") ) ;
+			.set_default_value( std::string("ID1, ID2, missing, heterozygosity") )
+			.set_hidden() ;
 	    options[ "-sample-stats-file" ]
 	        .set_description( 	"Override the auto-generated path of the file in which sample-wise statistics will be output." )
 	        .set_takes_single_value() ;
@@ -220,9 +225,6 @@ public:
 				"  By default, this is " + globals::program_name + ".log." )
 			.set_takes_single_value()
 			.set_default_value( globals::program_name + ".log" ) ;
-		options [ "-plot" ]
-			.set_description( "Path of file to produce plots in.")
-			.set_takes_single_value() ;
 
 		options.option_excludes_option( "-snp-stats", "-og" ) ;
 		options.option_excludes_option( "-snp-stats", "-os" ) ;
@@ -273,9 +275,6 @@ private:
 	void process_filenames() {
 		get_snp_related_filenames() ;
 		get_sample_related_filenames() ;
-		if( check_if_option_was_supplied( "-plot" )) {
-			m_plot_filename = get_value< std::string >( "-plot" ) ;
-		}
 	}
 
 	void get_snp_related_filenames() {
@@ -842,7 +841,12 @@ private:
 			Timer file_timer ;
 			m_logger << "(Opening gen file \"" << m_options.gen_filename_mapper().input_files()[i] << "\"...)" << std::flush ;
 			try {
-				chain->add_source( genfile::SNPDataSource::create( m_options.gen_filename_mapper().input_file(i), m_options.gen_filename_mapper().matched_part(i))) ;
+				genfile::SNPDataSource::UniquePtr this_source
+					= genfile::SNPDataSource::create( m_options.gen_filename_mapper().input_file(i), m_options.gen_filename_mapper().matched_part(i)) ;
+				if( m_options.check_if_option_was_supplied( "-threshhold" ) ) {
+					this_source.reset( new genfile::ThresholdingSNPDataSource( this_source, m_options.get_value< double >( "-threshhold" ) ) ) ;
+				}
+				chain->add_source( this_source ) ;
 			}
 			catch ( genfile::FileHasTwoConsecutiveNewlinesError const& e ) {
 				std::cerr << "\n!!ERROR: a GEN file was specified having two consecutive newlines.\n"
