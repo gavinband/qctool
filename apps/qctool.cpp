@@ -16,6 +16,8 @@
 #include <numeric>
 #include <boost/bind.hpp>
 
+#include "../config.hpp"
+
 #include "Timer.hpp"
 #include "GenRow.hpp"
 #include "SampleRow.hpp"
@@ -551,8 +553,8 @@ struct QCToolCmdLineContext: public QCToolContext
 	std::vector< std::size_t >& sample_filter_failure_counts() { return m_sample_filter_failure_counts ; }
 
 	void write_start_banner() {
-		m_logger << "\nWelcome to qctool\n"
-		 	<< "(C) 2009 University of Oxford\n\n";
+		m_logger << "\nWelcome to qctool, version " + std::string( QCTOOL_VERSION ) + "\n"
+		 	<< "(C) 2009-2012 University of Oxford\n\n";
 	}
 
 	void write_end_banner() {

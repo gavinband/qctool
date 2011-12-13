@@ -5,7 +5,7 @@ import Options
 
 srcdir="."
 APPNAME = "qctool"
-VERSION = "1.2"
+VERSION = "1.3"
 
 subdirs = [ 'genfile', 'statfile', 'string_utils' ]
 
@@ -20,7 +20,8 @@ def set_options( opt ):
 
 def configure( conf ):
 	conf.check_tool( 'compiler_cxx ')
-	
+
+	conf.define( "QCTOOL_VERSION", VERSION ) ;	
 	platform_specific_configure( conf )
 	check_for_3rd_party_components( conf )
 	misc_configure( conf )

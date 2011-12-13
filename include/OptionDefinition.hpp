@@ -83,6 +83,7 @@ struct OptionDefinition {
 		}
 		OptionDefinition& set_hidden() {
 			m_hidden = true ;
+			return *this ;
 		}
 
 		std::vector< std::string > preprocess_option_values( std::string const& option_name, std::vector< std::string > const& option_values ) const ;
