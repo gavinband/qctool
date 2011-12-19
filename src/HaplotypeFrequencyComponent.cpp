@@ -33,6 +33,7 @@ void HaplotypeFrequencyComponent::declare_options( appcontext::OptionProcessor& 
 		.set_takes_single_value()
 		.set_default_value( "ld.sqlite3" ) ;
 	options.option_implies_option( "-compute-ld-file", "-compute-ld-with" ) ;
+	options.option_implies_option( "-compute-ld-with", "-cohort-name" ) ;
 }
 
 namespace impl {
@@ -295,14 +296,11 @@ HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
 		std::set< std::size_t >( indices_of_filtered_out_samples.begin(), indices_of_filtered_out_samples.end() )
 	) ;
 	
+	std::cerr << "LD SNP samples: " << source->number_of_samples() << " (filtered from " << source->get_parent_source().number_of_samples() << ").\n" ;
+	
 	result.reset(
 		new HaplotypeFrequencyComponent(
-			genfile::SNPDataSource::create_chain(
-				genfile::wildcard::find_files_by_chromosome(
-					options.get< std::string >( "-compute-ld-with" ),
-					genfile::wildcard::eALL_CHROMOSOMES
-				)
-			),
+			source,
 			ui_context
 		)
 	) ;
