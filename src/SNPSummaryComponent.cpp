@@ -89,7 +89,7 @@ namespace {
 			m_filename( filename ),
 			m_sink( statfile::BuiltInTypeStatSink::open( filename ))
 		{
-			(*m_sink) | "SNPID" | "rsid" | "chromosome" | "position" | "alleleA" | "alleleB" | "computation_name" | "value_name" | "value" ;
+			(*m_sink) | "SNPID" | "rsid" | "chromosome" | "position" | "alleleA" | "alleleB" | "computation_name" | "variable" | "value" ;
 		}
 
 		void operator()(
@@ -112,7 +112,7 @@ namespace {
 				(*m_sink) << value ;
 			}
 			else {
-				(*m_sink) << genfile::MissingValue() ;
+				(*m_sink) << "NA" ;
 			}
 			(*m_sink) << statfile::end_row() ;
 			;
