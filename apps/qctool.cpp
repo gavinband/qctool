@@ -409,6 +409,10 @@ public:
 			.set_description( "Specify a human-readable name to label results from this analysis with (for some modules)" )
 			.set_takes_single_value()
 			.set_default_value( "(unknown)" ) ;
+		options[ "-nodb" ]
+			.set_description( "By default, qctool outputs summary data in an sqlite database format.  This allows for more "
+				"flexibility and better memory usage compared to working with flat files. "
+				" This option forces qctool to use a flat file instead." ) ;
 
 		Relatotron::declare_options( options ) ;
 		KinshipCoefficientManager::declare_options( options ) ;

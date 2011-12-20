@@ -83,6 +83,7 @@ namespace {
 		typedef boost::shared_ptr< FileOutputter > SharedPtr ;
 		
 		static UniquePtr create( std::string const& filename ) { return UniquePtr( new FileOutputter( filename ) ) ; }
+		static SharedPtr create_shared( std::string const& filename ) { return SharedPtr( new FileOutputter( filename ) ) ; }
 
 		FileOutputter( std::string const& filename ):
 			m_filename( filename ),
@@ -398,28 +399,38 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 		filename = m_options.get< std::string >( "-g" ) + ".snp-stats" ;
 	}
 	
-	std::string sample_set_spec = "" ;
-	if( m_options.check( "-excl-samples" )) {
-		sample_set_spec += "excluded:" + genfile::string_utils::join( m_options.get_values< std::string >( "-excl-samples"  ), "," ) ;
+	if( m_options.check( "-nodb" )) {
+		manager->add_result_callback(
+			boost::bind(
+				&FileOutputter::operator(),
+				FileOutputter::create_shared( filename ),
+				_1, _2, _3, _4, _5
+			)
+		) ;
 	}
-	if( m_options.check( "-incl-samples" )) {
-		sample_set_spec += "included:" + genfile::string_utils::join( m_options.get_values< std::string >( "-incl-samples"  ), "," ) ;
+	else {
+			std::string sample_set_spec = "" ;
+		if( m_options.check( "-excl-samples" )) {
+			sample_set_spec += "excluded:" + genfile::string_utils::join( m_options.get_values< std::string >( "-excl-samples"  ), "," ) ;
+		}
+		if( m_options.check( "-incl-samples" )) {
+			sample_set_spec += "included:" + genfile::string_utils::join( m_options.get_values< std::string >( "-incl-samples"  ), "," ) ;
+		}
+	
+		DBOutputter::SharedPtr outputter = DBOutputter::create_shared(
+			filename,
+			m_options.get< std::string >( "-cohort-name" ), 
+			sample_set_spec
+		) ;
+	
+		manager->add_result_callback(
+			boost::bind(
+				&DBOutputter::operator(),
+				outputter,
+				_1, _2, _3, _4, _5
+			)
+		) ;
 	}
-	
-	DBOutputter::SharedPtr outputter = DBOutputter::create_shared(
-		filename,
-		m_options.get< std::string >( "-cohort-name" ), 
-		sample_set_spec
-	) ;
-	
-	manager->add_result_callback(
-		boost::bind(
-			&DBOutputter::operator(),
-			outputter,
-			_1, _2, _3, _4, _5
-		)
-	) ;
-
 	return manager ;
 }
 
