@@ -372,20 +372,12 @@ public:
 		options.declare_group( "Inclusion / exclusion list options" ) ;
 		options[ "-write-sample-excl-list" ]
 			.set_description( "Do not apply sample filters directly.  Instead, write a file containing a list of the ids"
-			"  of individuals which would be filtered out by the filter." ) ;
-		options[ "-write-sample-excl-list-file" ]
-			.set_description( "Override default name of the file to use in -write-sample-excl-list" )
+			"  of individuals which would be filtered out by the filter." )
 			.set_takes_single_value() ;
 		options [ "-write-snp-excl-list" ]
-			.set_description( "Don't output a new genotypes file; instead, write files containing the positions of SNPs that are filtered out." )
-		;
-		options [ "-write-snp-excl-list-file" ]
-	        .set_description( 	"Override the auto-generated path(s) of the file to use when outputting the positions of filtered out SNPs.  "
-								"(By default, the paths are formed by adding \".snp-excl-list\" to the input gen filename(s).)  "
-								"If used, this option must appear as many times as the -g option.  "
-	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
-								"also be used here to specify numbered output files corresponding to the input files." )
+			.set_description( "Don't output a new genotypes file; instead, write files containing the SNPs that are filtered out." )
 			.set_takes_single_value() ;
+		;
 		/*
 		options [ "-write-snp-incl-list" ]
 			.set_description( "Don't output a new genotypes file; instead, write files containing the positions of SNPs that are filtered in." )
@@ -433,11 +425,9 @@ public:
 		options.option_excludes_group( "-sample-stats", "Sample filtering options" ) ;
 		options.option_excludes_option( "-sample-stats", "-og" ) ;
 
-		options.option_implies_option( "-write-sample-excl-list-file", "-write-sample-excl-list" ) ;
 		options.option_excludes_option( "-write-sample-excl-list", "-os" ) ;
 		options.option_excludes_option( "-write-sample-excl-list", "-sample-stats" ) ;
 
-		options.option_implies_option( "-write-snp-excl-list-file", "-write-snp-excl-list" ) ;
 		options.option_excludes_option( "-write-snp-excl-list", "-og" ) ;
 		options.option_excludes_option( "-write-snp-excl-list", "-snp-stats" ) ;
 
@@ -529,17 +519,7 @@ private:
 		}
 		// Otherwise, we need to write a sample exclusion list file if -write-sample-excl-list was given.
 		else if( m_options.check_if_option_was_supplied( "-write-sample-excl-list" )) {
-			if( m_options.check_if_option_was_supplied( "-write-sample-excl-list-file" )) {
-				m_output_sample_excl_list_filename = m_options.get_value< std::string > ( "-write-sample-excl-list-file" ) ;
-			}
-			else {
-				if( m_input_sample_filenames.size() > 0 ) {
-					m_output_sample_excl_list_filename = strip_sample_file_extension_if_present( m_input_sample_filenames[0] ) + ".sample-excl-list" ;
-				}
-				else {
-					m_output_sample_excl_list_filename = "qctool.sample-excl-list" ;
-				}
-			}
+			m_output_sample_excl_list_filename = m_options.get_value< std::string > ( "-write-sample-excl-list" ) ;
 		}
 
 		// We need to write a sample file if:
@@ -645,20 +625,7 @@ private:
 	std::string construct_output_snp_excl_list_filename( std::vector< std::string > const& input_gen_filenames_supplied ) {
 		std::string result ;
 		if( m_options.check_if_option_was_supplied( "-write-snp-excl-list" ) ) {
-			if( m_options.check_if_option_was_supplied( "-write-snp-excl-list-file" )) {
-				result = m_options.get_value< std::string >( "-write-snp-excl-list-file" ) ;
-			}
-			else {
-				assert( input_gen_filenames_supplied.size() > 0 ) ;
-				std::string stub ;
-				if( input_gen_filenames_supplied.size() == 1 ) {
-					stub = input_gen_filenames_supplied[0] ;
-				}
-				else {
-					stub = "qctool_cohorts_1-" + string_utils::to_string( input_gen_filenames_supplied.size() ) ;
-				}
-				result = genfile::strip_gen_file_extension_if_present( stub ) + ".snp-excl-list" ;
-			}
+				result = m_options.get_value< std::string >( "-write-snp-excl-list" ) ;
 		}
 		return result ;
 	}

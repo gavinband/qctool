@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include "sqlite3/sqlite3.h"
 #include "db/SQLite3Connection.hpp"
+#include "genfile/VariantEntry.hpp"
 
 namespace db {
 	
@@ -52,12 +53,16 @@ namespace db {
 		// Named placeholders with the same name have the same index.
 		// The string will be copied so the caller need not preserve it beyond the call site.
 		virtual SQLStatement& bind( std::size_t i, std::string const& value ) = 0 ;
+		SQLStatement& bind( std::size_t i, char const* value ) ;
 		// For parameterised queries, bind a BLOB value (array of chars) to the ith placeholder.
 		// Placeholders are indexed starting from 1 on the left.
 		// Named placeholders with the same name have the same index.
 		// The data will not be copied and so the caller must preserve the data until
 		// such time as no further steps() are performed, or the parameter is re-bound.
 		virtual SQLStatement& bind( std::size_t i, char const* buffer, char const* const end ) = 0 ;
+
+		// Bind a genfile::VariantEntry
+		SQLStatement& bind( std::size_t, genfile::VariantEntry const& value ) ;
 
 		// Reset the statement, ready to be re-executed.
 		virtual SQLStatement& reset() = 0 ;

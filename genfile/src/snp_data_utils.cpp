@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <vector>
 #include <sstream>
+#include <map>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/device/file.hpp>
@@ -112,14 +113,15 @@ namespace genfile {
 	}
 
 	std::string get_gen_file_extension_if_present( std::string const& filename ) {
-		std::string recognised_extensions[4] = {
+		std::string recognised_extensions[5] = {
 			".gen",
 			".gen.gz",
 			".bgen",
-			".bgen.gz"
+			".vcf",
+			".vcf.gz"
 		} ;
 		
-		for( std::size_t i = 0; i < 4u; ++i ) {
+		for( std::size_t i = 0; i < 6u; ++i ) {
 			if( filename.size() > recognised_extensions[i].size() && filename.substr( filename.size() - recognised_extensions[i].size(), recognised_extensions[i].size() ) == recognised_extensions[i] ) {
 				return recognised_extensions[i] ;
 			}
@@ -196,24 +198,26 @@ namespace genfile {
 	}
 	
 	std::pair< std::string, std::string > uniformise( std::string filename ) {
-		if( filename.find( ".gen") != std::string::npos ) {
-			return std::make_pair( "gen", filename ) ;
+		std::map< std::string, std::string > types  ;
+		types[ ".bgen" ]							= "bgen" ;
+		types[ ".gen" ] = types[ ".gen.gz" ] 		= "gen" ;
+		types[ ".vcf" ] = types[ ".vcf.gz" ] 		= "vcf" ;
+		types[ ".haps" ] = types[ ".haps.gz" ] 		= "impute_haplotypes" ;
+		types[ ".phased" ] 							= "hapmap_haplotypes" ;
+
+		for(
+			std::map< std::string, std::string >::const_iterator i = types.begin();
+			i != types.end();
+			++i
+		) {
+			if(
+				filename.size() >= i->first.size() &&
+				filename.substr( filename.size()- i->first.size(), i->first.size() ) == i->first
+			) {
+				return std::make_pair( i->second, filename ) ;
+			}
 		}
-		else if( filename.find( ".bgen" ) != std::string::npos ) {
-			return std::make_pair( "bgen", filename ) ;
-		}
-		else if( filename.find( ".vcf" ) != std::string::npos ) {
-			return std::make_pair( "vcf", filename ) ;
-		}
-		else if( filename.find( ".haps" ) != std::string::npos ) {
-			return std::make_pair( "impute_haplotypes", filename ) ;
-		}
-		else if( filename.find( ".phased" ) != std::string::npos ) {
-			return std::make_pair( "hapmap_haplotypes", filename ) ;
-		}
-		else {
-			return std::make_pair( "", filename ) ;
-		}
+		return std::make_pair( "", filename ) ;
 	}
 	
 	std::size_t count_lines_left_in_stream( std::istream& aStream, bool allow_empty_lines ) {
