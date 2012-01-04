@@ -5,7 +5,7 @@ import Options
 
 srcdir="."
 APPNAME = "qctool"
-VERSION = "1.3"
+VERSION = "1.4"
 
 subdirs = [ 'genfile', 'statfile', 'string_utils' ]
 
@@ -99,7 +99,7 @@ def get_ld_flags( variant_name ):
 	import platform
 	ldflags = []
 	if Options.options.static and platform.system() != 'Darwin':
-		ldflags.extent( [ '-static' ] )
+		ldflags.extend( [ '-static' ] )
 	return ldflags
 
 #-----------------------------------
@@ -138,7 +138,7 @@ def build( bld ):
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include ./genfile/include',
 		uselib_local = 'string_utils',
-		uselib = 'BOOST BOOST_IOSTREAMS ZLIB BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'
+		uselib = 'ZLIB BOOST BOOST_IOSTREAMS BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM'
 	)
 
 	#---------------------
