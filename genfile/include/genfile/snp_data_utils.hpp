@@ -78,7 +78,6 @@ namespace genfile {
 
 	struct SNPDataError: public std::exception { char const* what() const throw() { return "genfile::SNPDataError" ; } } ;
 	struct OperationFailedError: public std::exception { char const* what() const throw() { return "genfile::OperationFailedError" ; } } ;
-	struct FileNotOpenedError: public SNPDataError { char const* what() const throw() { return "genfile::FileNotOpenedError" ; } } ;
 	struct FormatUnsupportedError: public SNPDataError { char const* what() const throw() { return "genfile::FormatUnsupportedError" ; } } ;
 	struct FileStructureInvalidError: public SNPDataError { char const* what() const throw() { return "genfile::FileStructureInvalidError" ; } } ;
 	struct FileHasTwoConsecutiveNewlinesError: public SNPDataError { char const* what() const throw() { return "genfile::FileHasTwoConsecutiveNewlinesError" ; } } ;

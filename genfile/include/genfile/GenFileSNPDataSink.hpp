@@ -3,10 +3,11 @@
 
 #include <iostream>
 #include <string>
-#include "snp_data_utils.hpp"
-#include "gen.hpp"
-#include "SNPDataSink.hpp"
-#include "SNPDataSource.hpp"
+#include "genfile/snp_data_utils.hpp"
+#include "genfile/gen.hpp"
+#include "genfile/SNPDataSink.hpp"
+#include "genfile/SNPDataSource.hpp"
+#include "genfile/Error.hpp"
 
 namespace genfile {
 	
@@ -59,7 +60,7 @@ namespace genfile {
 		void setup( std::string const& filename, CompressionType compression_type ) {
 			m_stream_ptr = open_text_file_for_output( filename, compression_type ) ;
 			if( !(*m_stream_ptr)) {
-				throw FileNotOpenedError() ;
+				throw ResourceNotOpenedError( m_filename ) ;
 			}
 			assert( *m_stream_ptr ) ;
 		}

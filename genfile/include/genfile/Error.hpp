@@ -17,6 +17,19 @@ namespace genfile {
 		std::string const m_source ;
 	} ;
 
+	struct ResourceNotOpenedError: public InputError
+	{
+		ResourceNotOpenedError( std::string const& source ):
+			InputError( source )
+		{}
+		ResourceNotOpenedError( ResourceNotOpenedError const& other ):
+			InputError( other )
+		{}
+		~ResourceNotOpenedError() throw() {}
+
+		char const* what() const throw() { return "genfile::ResourceNotOpenedError" ; }
+	} ;
+
 	struct MalformedInputError: public InputError
 	{
 		MalformedInputError():

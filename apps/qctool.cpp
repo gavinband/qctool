@@ -468,7 +468,11 @@ struct QCToolCmdLineContext: public QCToolContext
 		catch( genfile::FileNotFoundError const& e ) {
 			m_logger << "\nError: No file matching \"" << e.filespec() << "\" could be found.\n" ;
 			throw HaltProgramWithReturnCode( -1 ) ;
-		} 
+		}
+		catch( genfile::ResourceNotOpenedError const& e ) {
+			m_logger << "\nError (" << e.what() << "): Error opening resource \"" << e.source() << "\".\n" ;
+			throw HaltProgramWithReturnCode( -1 ) ;
+		}
 		catch ( FileError const& e ) {
 			m_logger << "\nFile handling exception: " << e.what() << ": relating to file \"" << e.filename() << "\".\n" ;
 			throw HaltProgramWithReturnCode( -1 ) ;

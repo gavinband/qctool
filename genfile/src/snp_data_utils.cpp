@@ -7,6 +7,7 @@
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/device/file.hpp>
 #include "genfile/snp_data_utils.hpp"
+#include "genfile/Error.hpp"
 
 namespace genfile {
 	bool filename_indicates_gen_format( std::string const& filename ) {
@@ -83,7 +84,7 @@ namespace genfile {
 	    if (compression_type == e_GzipCompression) gen_file_ptr->push(boost::iostreams::gzip_decompressor());
 		boost::iostreams::file_source file( filename.c_str() ) ;
 		if( !file.is_open() ) {
-			throw FileNotOpenedError() ;
+			throw ResourceNotOpenedError( filename ) ;
 		}
 		gen_file_ptr->push( file ) ;
 		return std::auto_ptr< std::istream >( gen_file_ptr ) ;
@@ -94,7 +95,7 @@ namespace genfile {
 	    if (compression_type == e_GzipCompression) gen_file_ptr->push(boost::iostreams::gzip_compressor());
 		boost::iostreams::file_sink file(filename.c_str()) ;
 		if( !file.is_open() ) {
-			throw FileNotOpenedError() ;
+			throw ResourceNotOpenedError( filename ) ;
 		}
 		gen_file_ptr->push( file ); 
 		return std::auto_ptr< std::ostream >( gen_file_ptr ) ;
@@ -105,7 +106,7 @@ namespace genfile {
 	    if (compression_type == e_GzipCompression) gen_file_ptr->push( boost::iostreams::gzip_decompressor() ) ;
 		boost::iostreams::file_source file( filename.c_str(), std::ios::binary ) ;
 		if( !file.is_open() ) {
-			throw FileNotOpenedError() ;
+			throw ResourceNotOpenedError( filename ) ;
 		}
 		gen_file_ptr->push( file ) ;
 		return std::auto_ptr< std::istream >( gen_file_ptr ) ;
@@ -116,7 +117,7 @@ namespace genfile {
 	    if (compression_type == e_GzipCompression) gen_file_ptr->push(boost::iostreams::gzip_compressor()) ;
 		boost::iostreams::file_sink file(filename.c_str(), std::ios::binary ) ;
 		if( !file.is_open() ) {
-			throw FileNotOpenedError() ;
+			throw ResourceNotOpenedError( filename ) ;
 		}
 		gen_file_ptr->push( file ); 
 		return std::auto_ptr< std::ostream >( gen_file_ptr ) ;
