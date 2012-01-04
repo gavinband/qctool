@@ -61,6 +61,9 @@ namespace db {
 		// such time as no further steps() are performed, or the parameter is re-bound.
 		virtual SQLStatement& bind( std::size_t i, char const* buffer, char const* const end ) = 0 ;
 
+		// bind NULL to a parameter
+		virtual SQLStatement& bind_NULL( std::size_t i ) = 0 ;
+
 		// Bind a genfile::VariantEntry
 		SQLStatement& bind( std::size_t, genfile::VariantEntry const& value ) ;
 

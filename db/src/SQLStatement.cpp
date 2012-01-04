@@ -50,7 +50,7 @@ namespace db {
 				m_statement.bind( m_index, std::string( value ) ) ;
 			}
 			void operator()( genfile::MissingValue const& value ) {
-				m_statement.bind( m_index, genfile::string_utils::to_string( value ) ) ;
+				m_statement.bind_NULL( m_index ) ;
 			}
 			void operator()( genfile::GenomePosition const& value ) {
 				m_statement.bind( m_index, genfile::string_utils::to_string( value ) ) ;

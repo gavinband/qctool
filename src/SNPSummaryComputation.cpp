@@ -40,9 +40,11 @@ namespace {
 
 			if( AA > 0.5 || AB > 0.5 || BB > 0.5 ) {
 				double HWE_pvalue = SNPHWE( AB, AA, BB ) ;
+				callback( "exact_HW_p_value", HWE_pvalue ) ;
 				callback( "minus_log10_exact_HW_p_value", -log10( HWE_pvalue ) ) ;
 			}
 			else {
+				callback( "exact_HW_p_value", genfile::MissingValue() ) ;
 				callback( "minus_log10_exact_HW_p_value", genfile::MissingValue() ) ;
 			}
 		}
