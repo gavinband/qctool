@@ -1,6 +1,7 @@
 #include <vector>
 #include <set>
 #include <fstream>
+#include <cassert>
 #include <boost/variant/variant.hpp>
 #include <boost/bind.hpp>
 #include "genfile/CohortIndividualSource.hpp"
