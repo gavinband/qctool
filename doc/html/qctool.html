@@ -23,6 +23,7 @@
 			</div>
 		</div>
 		<div class = "button_bar" >
+			<!--<img src="style/images/arrow.tl.br.png" class = "header_arrow"><img>-->
 			<img src="style/images/overview.png" class="nav_button" name = "overview"></img>
 			<img src="style/images/documentation.png" class="nav_button" name = "documentation" ></img>
 			<img src="style/images/download.png" class="nav_button" name = "download"></img>
@@ -168,11 +169,11 @@ $ qctool -help
 						<tr><th>Platform</th><th>File</th></tr>
 						<tr>
 							<td>Linux x86-64 static build</td>
-							<td><a href="resources/qctool-static-linux-x86-64.bz2">qctool-static-linux-x86-64.bz2</a> (918kb)</td>
+							<td><a href="resources/qctool-static-linux-x86-64.bz2">qctool-static-linux-x86-64.bz2</a> (1000kb)</td>
 						</tr>
 						<tr>
 							<td>Mac OS X 10.6.3</td>
-							<td><a href="resources/qctool-static-osx-10.6.3.bz2">qctool-static-osx-10.6.3.bz2</a> (385kb)</td>
+							<td><a href="resources/qctool-static-osx-10.6.3.bz2">qctool-static-osx-10.6.3.bz2</a> (432kb)</td>
 						</tr>
 					</table>
 				</p>
@@ -181,16 +182,16 @@ $ qctool -help
 					<pre>$ bunzip2 qctool-static-&lt;machine&gt;.bz2
 $ chmod u+x qctool-static-&lt;machine&gt;
 $ ./qctool-static-&lt;machine&gt; -help
-					</pre>
+</pre>
 				</p>
 				<h3>Source</h3>
 				<p>
 					The source code to qctool is available as a mercurial repository
 					<a href="http://www.bitbucket.org/gavinband/qctool">here</a>.
-					Assuming you have mercurial installed, a basic download and compilation sequence would be:
+					Assuming you have mercurial installed, a basic download and compilation sequence (for the currently released version) would be:
 					<div class = "terminal">
 						<pre>
-$ hg clone https://gavinband@bitbucket.org/gavinband/qctool
+$ hg clone --rev release https://gavinband@bitbucket.org/gavinband/qctool
 destination directory: qctool
 requesting all changes
 adding changesets
@@ -210,7 +211,7 @@ $ ./waf-1.5.8
 				<p>
 					You will need <a href="http://www.boost.org">boost</a> and <a href="http://www.zlib.net">zlib</a> installed.
 					More detailed build instructions can be found on the QCTOOL
-					<a href="http://www.bitbucket.org/gavinband/qctool/wiki/Home">wiki</a>.
+					<a href="http://www.bitbucket.org/gavinband/qctool-dev/wiki/Home">wiki</a>.
 				</p>
 			</div>
 		</div>
