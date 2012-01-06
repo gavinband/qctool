@@ -182,7 +182,27 @@ namespace {
 				"LEFT OUTER JOIN EntityData tool ON tool.entity_id = variable.id AND tool.variable_id = ( SELECT id FROM Entity WHERE name = 'tool' )"
 				"LEFT OUTER JOIN EntityData cohort ON cohort.entity_id = variable.id AND cohort.variable_id = ( SELECT id FROM entity WHERE name = 'cohort') "
 			) ;
-
+			m_connection->run_statement(
+				"CREATE VIEW SNPFilterView AS "
+				"SELECT          V.chromosome, V.position, V.rsid, "
+				"MAF.value AS 'MAF', "
+				"HWE.value AS 'minus_log10_exact_HW_p_value', "
+				"Missing.value AS 'missing_proportion', "
+				"Info.value AS 'impute_info' "
+				"FROM            Variant V "
+				"LEFT OUTER JOIN      SummaryData Missing "
+				"ON          Missing.variable_id = ( SELECT id FROM Entity WHERE name = 'missing proportion' ) "
+				"AND         Missing.variant_id == V.id "
+				"LEFT OUTER JOIN      SummaryData MAF "
+				"ON          MAF.variable_id = ( SELECT id FROM Entity WHERE name = 'minor_allele_frequency' ) "
+				"AND         MAF.variant_id == V.id "
+				"LEFT OUTER JOIN      SummaryData HWE "
+				"ON          HWE.variant_id == V.id "
+				"AND         HWE.variable_id == ( SELECT id FROM Entity WHERE name == 'minus_log10_exact_HW_p_value' ) "
+				"LEFT OUTER JOIN      SummaryData Info "
+				"ON          Info.variant_id == V.id "
+				"AND         Info.variable_id == ( SELECT id FROM Entity WHERE name == 'impute_info' ) "
+			) ;
 			construct_statements() ;
 		}
 

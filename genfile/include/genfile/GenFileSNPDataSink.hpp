@@ -29,6 +29,8 @@ namespace genfile {
 			setup( filename, compression_type ) ;
 		}
 
+		void omit_chromosome() { m_write_chromosome_column = false ; }
+
 	private:
 		
 		// Methods required by SNPDataSink

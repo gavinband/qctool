@@ -14,14 +14,10 @@ namespace genfile {
 				case 'C': return 'G' ; break ;
 				case 'G': return 'C' ; break ;
 				case '?': return '?' ; break ;
-				case 'I':
-				case 'D':
-					// Some platforms have indels.  I guess these stay the same when complemented: if DNA
-					// is deleted on one strand, it must be on the other as well.
-					return allele ;
-					break ;
 				default:
-					throw BadArgumentError( "StrandAligningSNPDataSource::complement", "allele=" + std::string( 1, allele ) ) ;
+					// Anything else we'll just return verbatim, this handles indels and deletions (I and D).
+					// But it would not handle complex alleles made up of base sequences.
+					return allele ;
 					break ;
 			}
 		}
@@ -141,8 +137,8 @@ namespace genfile {
 					ignore(),
 					ignore()
 				) ;
-				set_allele1( "?" ) ;
-				set_allele2( "?" ) ;
+				set_allele1( allele1 ) ;
+				set_allele2( allele2 ) ;
 				break ;
 			default:
 				assert(0) ;

@@ -36,6 +36,7 @@
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/SNPDataSourceRack.hpp"
 #include "genfile/SNPDataSinkChain.hpp"
+#include "genfile/GenFileSNPDataSink.hpp"
 #include "genfile/TrivialSNPDataSink.hpp"
 #include "genfile/CategoricalCohortIndividualSource.hpp"
 #include "genfile/SampleFilteringCohortIndividualSource.hpp"
@@ -270,6 +271,11 @@ public:
 		options[ "-os" ]
 	        .set_description( "Override the auto-generated path of the output sample file.  " )
 	        .set_takes_single_value() ;
+
+		options[ "-omit-chromosome" ]
+			.set_description( "Do not output a chromosome column when outputting a file in GEN format." ) ;
+
+		options.option_implies_option( "-omit-chromosome", "-og" ) ;
 
 		options.declare_group( "Pedigree file options" ) ;
 		options[ "-op" ]
@@ -1121,7 +1127,12 @@ private:
 				platform_column_names = "Chromosome|position|IlmnID|rsid|alleleA|alleleB|strand" ;
 			}
 			else if( source->has_column( "SNPID" ) ) {
-				platform_column_names = "chromosome|position|SNPID|rsid|alleleA|alleleB|strand" ;
+				if( source->index_of_column( "SNPID" ) == 2 && source->has_column( "rsid" ) && source->index_of_column( "rsid" ) == 3 ) {
+					platform_column_names = "chromosome|position|SNPID|rsid|alleleA|alleleB|strand" ;
+				}
+				else {
+					throw genfile::MalformedInputError( source->get_source_spec(), 0 ) ;
+				}
 			}
 			else {
 				throw genfile::MalformedInputError( source->get_source_spec(), 0 ) ;
@@ -1587,7 +1598,14 @@ private:
 		else {
 			for( std::size_t i = 0; i < m_mangled_options.gen_filename_mapper().output_filenames().size(); ++i ) {
 				std::string const& filename = m_mangled_options.gen_filename_mapper().output_filenames()[i] ;
-				m_fltrd_in_snp_data_sink->add_sink( genfile::SNPDataSink::create( filename )) ;
+				genfile::SNPDataSink::UniquePtr sink = genfile::SNPDataSink::create( filename ) ;
+				if( m_options.check_if_option_was_supplied( "-omit-chromosome" )) {
+					genfile::GenFileSNPDataSink* gen_sink = dynamic_cast< genfile::GenFileSNPDataSink* >( sink.get() ) ;
+					if( gen_sink ) {
+						gen_sink->omit_chromosome() ;
+					}
+				}
+				m_fltrd_in_snp_data_sink->add_sink( sink ) ;
 			}
 		}
 	}
