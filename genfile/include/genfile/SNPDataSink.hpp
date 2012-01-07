@@ -8,6 +8,7 @@
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/Error.hpp"
 
 namespace genfile {
 	struct SNPDataSinkError: public std::exception { char const* what() const throw() { return "SNPDataSinkError" ; } } ;
@@ -58,6 +59,13 @@ namespace genfile {
 		// return the number of SNPs that have been written to the file so far.
 		std::size_t number_of_snps_written() const { return m_number_of_snps_written ; }
 
+		virtual std::ostream::streampos get_stream_pos() const {
+			throw OperationUnsupportedError(
+				"genfile::SNPDataSink::get_stream_pos()",
+				"Get write position",
+				"(unknown)"
+			) ;
+		}
 	public:
 		// The following functions must be implemented by derived classes.
 		virtual operator bool() const = 0 ;

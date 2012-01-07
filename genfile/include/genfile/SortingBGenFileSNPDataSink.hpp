@@ -4,6 +4,8 @@
 #include <iostream>
 #include <string>
 #include <utility>
+#include <map>
+#include <stdint.h>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/bgen.hpp"
@@ -11,13 +13,14 @@
 #include "genfile/GenomePosition.hpp"
 
 namespace genfile {
-	class SortingBGenFileSNPDataSink: public BasicBGenFileSNPDataSink
+	// This class constructs a Bgen file which writes its data to a temporary file,
+	// and then copies that file in the right order into the destination.
+	class SortingBGenFileSNPDataSink: public SNPDataSink
 	{
 	public:
 		SortingBGenFileSNPDataSink(
-			std::string const& filename,
-			std::string const& free_data,
-			bgen::uint32_t flags = bgen::e_CompressedSNPBlocks
+			std::string const& filename, 
+			SNPDataSink::UniquePtr m_sink
 		) ;
 
 		void write_snp_impl(
@@ -34,13 +37,23 @@ namespace genfile {
 		) ;
 
 		~SortingBGenFileSNPDataSink() ;
+		
+	public:
+		// return the number of samples represented in SNPs in the file.
+		// The value returned is undefined until after the first snp has been written.
+		uint32_t number_of_samples() const { return m_sink->number_of_samples() ; }
+		// return the number of SNPs that have been written to the file so far.
+		std::size_t number_of_snps_written() const { return m_sink->number_of_snps_written() ; }
+
+	public:
+		// The following functions must be implemented by derived classes.
+		operator bool() const { return m_sink.get() && (*m_sink) ; }
+		
 	private:
-		typedef std::string RSIDType ;
-		typedef std::string DataType ;
-		typedef std::pair< GenomePosition, RSIDType > SNPKey ;
-		typedef std::pair< SNPKey, DataType > StoredRow ;
-		std::vector< StoredRow > m_rows ;
-		uint32_t const m_flags ;
+		std::string m_filename ;
+		SNPDataSink::UniquePtr m_sink ;
+		typedef std::multimap< SNPIdentifyingData, std::pair< std::ostream::streampos, std::ostream::streampos > > OffsetMap ;
+		OffsetMap m_file_offsets ;
 	} ;
 }
 

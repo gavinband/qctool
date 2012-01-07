@@ -154,7 +154,7 @@ void copy_gen_file( std::string const& original, std::string const& target ) {
 }
 
 // The following section contains the main tests.
-void create_files( std::string original, std::string gen, std::string bgen, std::string bzgen, std::string zbgen, std::string zgen ) {
+void create_files( std::string original, std::string gen, std::string bgen, std::string bzgen, std::string zgen ) {
 	// set up our original file.
 	{
 		std::cerr << "Creating original...\n" ;
@@ -187,13 +187,6 @@ void create_files( std::string original, std::string gen, std::string bgen, std:
 		copy_gen_file( original, bzgen_file_snp_data_sink ) ;
 	}
 
-	// Construct zipped bgen file
-	{
-		std::cerr << "Creating bgen.gz...\n" ;
-		genfile::ZippedBGenFileSNPDataSink zipped_bgen_file_snp_data_sink( zbgen, "Free Data" ) ;
-		copy_gen_file( original, zipped_bgen_file_snp_data_sink ) ;
-	}
-
 	// Construct zipped gen file
 	{
 		std::cerr << "Creating gen.gz...\n" ;
@@ -203,15 +196,13 @@ void create_files( std::string original, std::string gen, std::string bgen, std:
 }
 
 // The following section contains the main tests.
-void create_files2( std::string original, std::string gen, std::string bgen, std::string bzgen, std::string zbgen, std::string zgen ) {
+void create_files2( std::string original, std::string gen, std::string bgen, std::string bzgen, std::string zgen ) {
 	std::cerr << "Creating gen...\n" ;
 	copy_gen_file( original, gen ) ;
 	std::cerr << "Creating bgen...\n" ;
 	copy_gen_file( original, bgen ) ;
 	std::cerr << "Creating bzgen...\n" ;
 	copy_gen_file( original, bzgen ) ;
-	std::cerr << "Creating bgen.gz...\n" ;
-	copy_gen_file( original, zbgen ) ;
 	std::cerr << "Creating gen.gz...\n" ;
 	copy_gen_file( original, zgen ) ;
 }
@@ -248,26 +239,22 @@ AUTO_TEST_CASE( test_formats ) {
 	std::string bgen2 = tmpnam(0) + std::string( ".bgen" );
 	std::string bzgen = tmpnam(0) + std::string( ".bgen" );
 	std::string bzgen2 = tmpnam(0) + std::string( ".bgen" );
-	std::string zbgen = tmpnam(0) + std::string( ".bgen.gz" );
-	std::string zbgen2 = tmpnam(0) + std::string( ".bgen.gz" );
 	std::string zgen = tmpnam(0) + std::string( ".gen.gz" );
 	std::string zgen2 = tmpnam(0) + std::string( ".gen.gz" );
 
 	std::cerr << "Creating files...\n" ;
 	
-	create_files( original, gen, bgen, bzgen, zbgen, zgen ) ;
-	create_files2( original, gen2, bgen2, bzgen2, zbgen2, zgen2 ) ;
+	create_files( original, gen, bgen, bzgen, zgen ) ;
+	create_files2( original, gen2, bgen2, bzgen2, zgen2 ) ;
 	
 	genfile::GenFileSNPDataSource original_file_snp_data_source( original, genfile::UnidentifiedChromosome,"no_compression" ) ;
 	genfile::GenFileSNPDataSource gen_file_snp_data_source( gen, genfile::UnidentifiedChromosome,"no_compression" ) ;
 	genfile::BGenFileSNPDataSource bgen_file_snp_data_source( bgen ) ;
 	genfile::BGenFileSNPDataSource bzgen_file_snp_data_source( bzgen ) ;
-	genfile::BGenFileSNPDataSource zbgen_file_snp_data_source( zbgen, "gzip_compression" ) ;
 	genfile::GenFileSNPDataSource zgen_file_snp_data_source( zgen, genfile::UnidentifiedChromosome,"gzip_compression" ) ;
 	genfile::GenFileSNPDataSource gen_file_snp_data_source2( gen2, genfile::UnidentifiedChromosome ) ;
 	genfile::BGenFileSNPDataSource bgen_file_snp_data_source2( bgen2 ) ;
 	genfile::BGenFileSNPDataSource bzgen_file_snp_data_source2( bzgen2 ) ;
-	genfile::BGenFileSNPDataSource zbgen_file_snp_data_source2( zbgen2, "gzip_compression" ) ;
 	genfile::GenFileSNPDataSource zgen_file_snp_data_source2( zgen, genfile::UnidentifiedChromosome,"gzip_compression" ) ;
 
 	std::vector< std::vector< SnpData > > results ;
@@ -281,8 +268,6 @@ AUTO_TEST_CASE( test_formats ) {
 	results.push_back( read_gen_file( bgen_file_snp_data_source )) ;
 	std::cerr << "Reading bzgen file...\n" ;
 	results.push_back( read_gen_file( bzgen_file_snp_data_source )) ;
-	std::cerr << "Reading bgen.gz file...\n" ;
-	results.push_back( read_gen_file( zbgen_file_snp_data_source )) ;
 	std::cerr << "Reading gen.gz file...\n" ;
 	results.push_back( read_gen_file( zgen_file_snp_data_source )) ;
 
@@ -292,8 +277,6 @@ AUTO_TEST_CASE( test_formats ) {
 	results.push_back( read_gen_file( bgen )) ;
 	std::cerr << "Reading bzgen file \"" << bzgen << "\"...\n" ;
 	results.push_back( read_gen_file( bzgen )) ;
-	std::cerr << "Reading bgen.gz file \"" << zbgen << "\"...\n" ;
-	results.push_back( read_gen_file( zbgen )) ;
 	std::cerr << "Reading gen.gz file \"" << zgen << "\"...\n" ;
 	results.push_back( read_gen_file( zgen )) ;
 
@@ -303,9 +286,7 @@ AUTO_TEST_CASE( test_formats ) {
 	results.push_back( read_gen_file( bgen_file_snp_data_source2 )) ;
 	std::cerr << "Reading bzgen file...\n" ;
 	results.push_back( read_gen_file( bzgen_file_snp_data_source2 )) ;
-	std::cerr << "Reading bgen.gz file...\n" ;
-	results.push_back( read_gen_file( zbgen_file_snp_data_source2 )) ;
-	std::cerr << "Reading bgen.gz file...\n" ;
+	std::cerr << "Reading gen.gz file...\n" ;
 	results.push_back( read_gen_file( zgen_file_snp_data_source2 )) ;
 	
 	std::cerr << "Reading gen file \"" << gen2 << "\"...\n" ;
@@ -314,33 +295,27 @@ AUTO_TEST_CASE( test_formats ) {
 	results.push_back( read_gen_file( bgen2 )) ;
 	std::cerr << "Reading bzgen file \"" << bzgen2 << "\"...\n" ;
 	results.push_back( read_gen_file( bzgen2 )) ;
-	std::cerr << "Reading bgen.gz file \"" << zbgen2 << "\"...\n" ;
-	results.push_back( read_gen_file( zbgen2 )) ;
 	std::cerr << "Reading gen.gz file \"" << zgen2 << "\"...\n" ;
 	results.push_back( read_gen_file( zgen2 )) ;
 
 	TEST_ASSERT( gen_file_snp_data_source.number_of_samples() == data::number_of_samples ) ;
 	TEST_ASSERT( bgen_file_snp_data_source.number_of_samples() == data::number_of_samples ) ;
 	TEST_ASSERT( bzgen_file_snp_data_source.number_of_samples() == data::number_of_samples ) ;
-	TEST_ASSERT( zbgen_file_snp_data_source.number_of_samples() == data::number_of_samples ) ;
 	TEST_ASSERT( zgen_file_snp_data_source.number_of_samples() == data::number_of_samples ) ;
 
 	TEST_ASSERT( gen_file_snp_data_source.total_number_of_snps() == data::number_of_snps ) ;
 	TEST_ASSERT( bgen_file_snp_data_source.total_number_of_snps() == data::number_of_snps ) ;
 	TEST_ASSERT( bzgen_file_snp_data_source.total_number_of_snps() == data::number_of_snps ) ;
-	TEST_ASSERT( zbgen_file_snp_data_source.total_number_of_snps() == data::number_of_snps ) ;
 	TEST_ASSERT( zgen_file_snp_data_source.total_number_of_snps() == data::number_of_snps ) ;
 
 	TEST_ASSERT( gen_file_snp_data_source2.number_of_samples() == data::number_of_samples ) ;
 	TEST_ASSERT( bgen_file_snp_data_source2.number_of_samples() == data::number_of_samples ) ;
 	TEST_ASSERT( bzgen_file_snp_data_source2.number_of_samples() == data::number_of_samples ) ;
-	TEST_ASSERT( zbgen_file_snp_data_source2.number_of_samples() == data::number_of_samples ) ;
 	TEST_ASSERT( zgen_file_snp_data_source2.number_of_samples() == data::number_of_samples ) ;
 
 	TEST_ASSERT( gen_file_snp_data_source2.total_number_of_snps() == data::number_of_snps ) ;
 	TEST_ASSERT( bgen_file_snp_data_source2.total_number_of_snps() == data::number_of_snps ) ;
 	TEST_ASSERT( bzgen_file_snp_data_source2.total_number_of_snps() == data::number_of_snps ) ;
-	TEST_ASSERT( zbgen_file_snp_data_source2.total_number_of_snps() == data::number_of_snps ) ;
 	TEST_ASSERT( zgen_file_snp_data_source2.total_number_of_snps() == data::number_of_snps ) ;
 
 	for( std::size_t i = 0; i < results.size(); ++i ) {

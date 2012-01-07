@@ -26,12 +26,7 @@ namespace genfile {
 	) {
 		std::pair< std::string, std::string > d = uniformise( filename ) ;
 		if( d.first == "bgen" ) {
-			if( compression_type == "gzip_compression" ) {
-				return SNPDataSink::UniquePtr( new ZippedBGenFileSNPDataSink( filename, free_data )) ;
-			}
-			else {
-				return SNPDataSink::UniquePtr( new BGenFileSNPDataSink( filename, free_data )) ;
-			}
+			return SNPDataSink::UniquePtr( new BGenFileSNPDataSink( filename, free_data )) ;
 		}
 		else if( d.first == "vcf" ) {
 			return SNPDataSink::UniquePtr( new VCFFormatSNPDataSink( filename )) ;

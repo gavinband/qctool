@@ -23,9 +23,29 @@ namespace genfile {
 		)
 		: 	m_filename( filename ),
 			m_free_data( free_data ),
+			m_stream_ptr( open_binary_file_for_output( m_filename, compression_type ) ),
 			m_flags( flags )
 		{
-			setup( filename, compression_type ) ;
+			setup() ;
+		}
+
+		BasicBGenFileSNPDataSink(
+			std::auto_ptr< std::ostream > stream_ptr,
+			std::string const& filename,
+			std::string const& free_data,
+			CompressionType compression_type,
+			bgen::uint32_t flags
+		)
+		: 	m_filename( filename ),
+			m_free_data( free_data ),
+			m_stream_ptr( stream_ptr ),
+			m_flags( flags )
+		{
+			setup() ;
+		}
+
+		std::ostream::streampos get_stream_pos() const {
+			return m_stream_ptr->tellp() ;
 		}
 
 	public:
@@ -70,8 +90,7 @@ namespace genfile {
 		
 	private:
 
-		void setup( std::string const& filename, CompressionType compression_type ) {
-			m_stream_ptr = open_binary_file_for_output( filename, compression_type ) ;
+		void setup() {
 			bgen::uint32_t offset = bgen::get_header_block_size( m_free_data ) ;
 			bgen::write_offset( (*m_stream_ptr), offset ) ;
 			write_header_data( *m_stream_ptr ) ;
@@ -98,6 +117,16 @@ namespace genfile {
 		}
 
 		BGenFileSNPDataSink(
+			std::auto_ptr< std::ostream > stream_ptr,
+			std::string const& filename,
+			std::string const& free_data,
+			uint32_t const flags
+		)
+		: 	BasicBGenFileSNPDataSink( stream_ptr, filename, free_data, "no_compression", flags )
+		{
+		}
+
+		BGenFileSNPDataSink(
 			std::string const& filename,
 			std::string const& free_data,
 			uint32_t const flags
@@ -117,62 +146,8 @@ namespace genfile {
 
 			write_header_data( *stream_ptr() ) ;
 		}
-	} ;
 
-
-	// This class represents a SNPDataSink which writes its data
-	// to an unzipped BGEN file.
-	class ZippedBGenFileSNPDataSink: public BasicBGenFileSNPDataSink
-	{
-	public:
-		ZippedBGenFileSNPDataSink(
-			std::string const& filename,
-			std::string const& free_data,
-			std::size_t const buffer_size = 500000
-		)
-		: 	BasicBGenFileSNPDataSink(
-				create_temporary_filename(),
-				free_data,
-				"no_compression",
-				bgen::e_MultiCharacterAlleles
-			),
-			m_filename( filename ),
-			m_buffer_size( buffer_size )
-		{
-			std::cout << "ZippedBGenFileSNPDataSink(): filename = \"" << m_filename << "\", temp filename = \"" << temp_filename() << "\".\n" ;
-		}
-	
-		std::string const& filename() const { return m_filename ; }
-		std::string const& temp_filename() const { return BasicBGenFileSNPDataSink::filename() ; }
-
-		~ZippedBGenFileSNPDataSink() {
-			// Close the file we were writing.
-			stream_ptr().reset() ;
-			// Copy the temp file created by our base class, zipping it as we go.
-			std::auto_ptr< std::istream > input_file_ptr = open_binary_file_for_input( temp_filename(), "no_compression" ) ;
-			std::auto_ptr< std::ostream > output_file_ptr = open_binary_file_for_output( m_filename, "gzip_compression" ) ;
-
-			bgen::uint32_t offset ;
-			bgen::read_offset( *input_file_ptr, &offset ) ;
-			bgen::read_header_block( *input_file_ptr, ignore(), ignore(), ignore(), ignore(), ignore()) ;
-
-			// Write the offset and header into the output file.
-			bgen::write_offset( *output_file_ptr, offset ) ;
-			BasicBGenFileSNPDataSink::write_header_data( *output_file_ptr ) ;
-
-			// Copy the rest of the file contents.
-			std::vector< char > buffer( m_buffer_size ) ;
-			do {
-				input_file_ptr->read( &buffer[0], m_buffer_size ) ;
-				output_file_ptr->write( &buffer[0], input_file_ptr->gcount() ) ;
-			}
-			while( *input_file_ptr ) ;
-		}
-	
-	private:
-	
-		std::string m_filename ;
-		std::size_t const m_buffer_size ;
+		friend class SortingBGenFileSNPDataSink ;
 	} ;
 }
 
