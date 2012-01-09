@@ -127,17 +127,18 @@ namespace {
 		typedef std::auto_ptr< DBOutputter > UniquePtr ;
 		typedef boost::shared_ptr< DBOutputter > SharedPtr ;
 
-		static UniquePtr create( std::string const& filename, std::string const& cohort_name, std::string const& exclusions_name ) {
-			return UniquePtr( new DBOutputter( filename, cohort_name, exclusions_name ) ) ;
+		static UniquePtr create( std::string const& filename, std::string const& cohort_name, std::string const& data_source_spec, std::string const& exclusions_name ) {
+			return UniquePtr( new DBOutputter( filename, cohort_name, data_source_spec, exclusions_name ) ) ;
 		}
-		static SharedPtr create_shared( std::string const& filename, std::string const& cohort_name, std::string const& exclusions_name ) {
-			return SharedPtr( new DBOutputter( filename, cohort_name, exclusions_name ) ) ;
+		static SharedPtr create_shared( std::string const& filename, std::string const& cohort_name, std::string const& data_source_spec, std::string const& exclusions_name ) {
+			return SharedPtr( new DBOutputter( filename, cohort_name, data_source_spec, exclusions_name ) ) ;
 		}
 
-		DBOutputter( std::string const& filename, std::string const& cohort_name, std::string const& exclusions_name ):
+		DBOutputter( std::string const& filename, std::string const& cohort_name, std::string const& data_source_spec, std::string const& exclusions_name ):
 			m_connection( db::Connection::create( filename )),
-			m_max_transaction_count( 100 ),
+			m_max_transaction_count( 10000 ),
 			m_cohort_name( cohort_name ),
+			m_source_spec( data_source_spec ),
 			m_exclusions_name( exclusions_name )
 		{
 			db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction() ;
@@ -161,49 +162,56 @@ namespace {
 			) ;
 			m_connection->run_statement(
 				"CREATE TABLE IF NOT EXISTS SummaryData ( "
-				"variant_id INT, variable_id INT, value FLOAT, "
+				"variant_id INT, analysis_id INT, variable_id INT, value FLOAT, "
 				"FOREIGN KEY( variant_id ) REFERENCES Variant( id ), "
+				"FOREIGN KEY( analysis_id ) REFERENCES Entity( id ), "
 				"FOREIGN KEY( variable_id ) REFERENCES Entity( id ), "
-				"UNIQUE( variant_id, variable_id ) "
+				"UNIQUE( analysis_id, variant_id, variable_id ) "
 				")"
 			) ;
 			m_connection->run_statement(
-				"CREATE INDEX IF NOT EXISTS SummaryDataIndex ON SummaryData( variant_id, variable_id )"
+				"CREATE INDEX IF NOT EXISTS SummaryDataIndex ON SummaryData( analysis_id, variant_id, variable_id )"
 			) ;
 			m_connection->run_statement(
 				"CREATE INDEX IF NOT EXISTS EntityDataIndex ON EntityData( entity_id, variable_id )"
 			) ;
 			m_connection->run_statement(
-				"CREATE VIEW IF NOT EXISTS SNPStatsView AS "
-				"SELECT V.chromosome, V.position, V.rsid, cohort.value AS cohort, tool.value AS tool, variable.name AS variable, SD.value "
-				"FROM SummaryData SD "
-				"INNER JOIN Variant V ON V.id == SD.variant_id "
-				"INNER JOIN Entity variable ON variable.id = SD.variable_id "
-				"LEFT OUTER JOIN EntityData tool ON tool.entity_id = variable.id AND tool.variable_id = ( SELECT id FROM Entity WHERE name = 'tool' )"
-				"LEFT OUTER JOIN EntityData cohort ON cohort.entity_id = variable.id AND cohort.variable_id = ( SELECT id FROM entity WHERE name = 'cohort') "
-			) ;
-			m_connection->run_statement(
-				"CREATE VIEW SNPFilterView AS "
-				"SELECT          V.chromosome, V.position, V.rsid, "
+				"CREATE VIEW IF NOT EXISTS SNPFilterView AS "
+				"SELECT          Analysis.name, V.chromosome, V.position, V.rsid, "
 				"MAF.value AS 'MAF', "
 				"HWE.value AS 'minus_log10_exact_HW_p_value', "
 				"Missing.value AS 'missing_proportion', "
 				"Info.value AS 'impute_info' "
 				"FROM            Variant V "
+				"INNER JOIN      Entity Analysis "
 				"LEFT OUTER JOIN      SummaryData Missing "
-				"ON          Missing.variable_id = ( SELECT id FROM Entity WHERE name = 'missing proportion' ) "
+				"ON          Missing.variable_id IN ( SELECT id FROM Entity WHERE name = 'missing proportion' ) "
+				"AND         Missing.analysis_id = Analysis.id "
 				"AND         Missing.variant_id == V.id "
 				"LEFT OUTER JOIN      SummaryData MAF "
 				"ON          MAF.variable_id = ( SELECT id FROM Entity WHERE name = 'minor_allele_frequency' ) "
+				"AND         MAF.analysis_id = Analysis.id "
 				"AND         MAF.variant_id == V.id "
 				"LEFT OUTER JOIN      SummaryData HWE "
 				"ON          HWE.variant_id == V.id "
+				"AND         HWE.analysis_id = Analysis.id "
 				"AND         HWE.variable_id == ( SELECT id FROM Entity WHERE name == 'minus_log10_exact_HW_p_value' ) "
 				"LEFT OUTER JOIN      SummaryData Info "
 				"ON          Info.variant_id == V.id "
+				"AND         Info.analysis_id = Analysis.id "
 				"AND         Info.variable_id == ( SELECT id FROM Entity WHERE name == 'impute_info' ) "
+				"WHERE       EXISTS( SELECT * FROM SummaryData WHERE analysis_id == Analysis.id ) "
 			) ;
+
 			construct_statements() ;
+			
+			m_analysis_id = get_or_create_entity( m_cohort_name ) ;
+			get_or_create_entity_data( m_analysis_id, get_or_create_entity( "data_source" ), m_source_spec ) ;
+			if( m_exclusions_name != "" ) {
+				get_or_create_entity_data( m_analysis_id, get_or_create_entity( "sample_exclusions" ), m_exclusions_name ) ;
+			}
+			
+			reset_statements() ;
 		}
 
 		~DBOutputter() {
@@ -232,14 +240,17 @@ namespace {
 		db::Connection::UniquePtr m_connection ;
 		std::size_t const m_max_transaction_count ;
 		std::string const m_cohort_name ;
+		std::string const m_source_spec ;
 		std::string const m_exclusions_name ;
 
 		db::Connection::StatementPtr m_find_variant_statement ;
 		db::Connection::StatementPtr m_insert_variant_statement ;
 		db::Connection::StatementPtr m_find_entity_statement ;
+		db::Connection::StatementPtr m_find_entity_data_statement ;
 		db::Connection::StatementPtr m_insert_entity_statement ;
-		db::Connection::StatementPtr m_insert_summarydata_statement ;
 		db::Connection::StatementPtr m_insert_entity_data_statement ;
+		db::Connection::StatementPtr m_insert_summarydata_statement ;
+		db::Connection::RowId m_analysis_id ;
 		typedef std::vector< boost::tuple< genfile::SNPIdentifyingData, std::string, genfile::VariantEntry > > Data ;
 		Data m_data ;
 
@@ -252,19 +263,30 @@ namespace {
 				"INSERT INTO Variant ( snpid, rsid, chromosome, position, alleleA, alleleB) "
 				"VALUES( ?1, ?2, ?3, ?4, ?5, ?6 )"
 			) ;
-			m_find_entity_statement = m_connection->get_statement( "SELECT * FROM Entity WHERE name == ?1" ) ;
-			m_insert_entity_statement = m_connection->get_statement( "INSERT INTO Entity ( name ) VALUES ( ?1 )" ) ;
-			m_insert_entity_data_statement = m_connection->get_statement( "INSERT INTO EntityData ( entity_id, variable_id, value ) VALUES ( ?1, ?2, ?3 )" ) ;
+			m_find_entity_statement = m_connection->get_statement( "SELECT * FROM Entity E WHERE name == ?1" ) ;
+			m_insert_entity_statement = m_connection->get_statement( "INSERT INTO Entity ( name, description ) VALUES ( ?1, ?2 )" ) ;
+			m_find_entity_data_statement = m_connection->get_statement( "SELECT * FROM EntityData WHERE entity_id == ?1 AND variable_id == ?2" ) ;
+			m_insert_entity_data_statement = m_connection->get_statement( "INSERT OR REPLACE INTO EntityData ( entity_id, variable_id, value ) VALUES ( ?1, ?2, ?3 )" ) ;
 			m_insert_summarydata_statement = m_connection->get_statement(
-				"INSERT OR REPLACE INTO SummaryData ( variant_id, variable_id, value ) "
-				"VALUES( ?1, ?2, ?3 )"
+				"INSERT OR REPLACE INTO SummaryData ( variant_id, analysis_id, variable_id, value ) "
+				"VALUES( ?1, ?2, ?3, ?4 )"
 			) ;
 		}
 
+		void reset_statements() {
+			m_find_variant_statement->reset() ;
+			m_insert_variant_statement->reset() ;
+			m_find_entity_statement->reset() ;
+			m_insert_entity_statement->reset() ;
+			m_find_entity_data_statement->reset() ;
+			m_insert_entity_data_statement->reset() ;
+			m_insert_summarydata_statement->reset() ;
+		}
+		
 		void write_data( Data const& data ) {
 			db::Connection::ScopedTransactionPtr transaction ;
 
-			for( std::size_t i = 0; i < 100; ++i ) {
+			for( std::size_t i = 0; i < 1000; ++i ) {
 				try {
 					transaction = m_connection->open_transaction() ;
 					break ;
@@ -272,11 +294,11 @@ namespace {
 				catch( db::StatementStepError const& e ) {
 					// wait a tenth of a second
 					std::cerr << "SNPSummaryComponent::DBOutputter::write_data(): failed to open transaction, trying again in 0.1s...\n" ;
-					boost::this_thread::sleep( boost::posix_time::milliseconds( 100 ) ) ;
+					boost::this_thread::sleep( boost::posix_time::milliseconds( 10 ) ) ;
 				}
 				catch( ... ) {
 					std::cerr << "SNPSummaryComponent::write_data(): OMG, a strange exception was caught.\n" ;
-					boost::this_thread::sleep( boost::posix_time::milliseconds( 100 ) ) ;
+					boost::this_thread::sleep( boost::posix_time::milliseconds( 10 ) ) ;
 				}
 			}
 			if( !transaction.get() ) {
@@ -289,6 +311,8 @@ namespace {
 					data[i].get<2>()
 				) ;
 			}
+
+			reset_statements() ;
 		}
 
 		db::Connection::RowId get_or_create_snp( genfile::SNPIdentifyingData const& snp ) const {
@@ -321,7 +345,8 @@ namespace {
 
 			m_find_entity_statement
 				->reset()
-				.bind( 1, name ).step() ;
+				.bind( 1, name )
+				.step() ;
 
 			if( m_find_entity_statement->empty() ) {
 				m_insert_entity_statement
@@ -336,22 +361,6 @@ namespace {
 					.bind( 1, result )
 					.bind( 2, get_or_create_entity( "tool" ))
 					.bind( 3, "qctool revision " + std::string( globals::qctool_revision ) )
-					.step()
-				;
-
-				m_insert_entity_data_statement
-					->reset()
-					.bind( 1, result )
-					.bind( 2, get_or_create_entity( "cohort" ))
-					.bind( 3, m_cohort_name )
-					.step()
-				;
-
-				m_insert_entity_data_statement
-					->reset()
-					.bind( 1, result )
-					.bind( 2, get_or_create_entity( "sample_exclusions" ))
-					.bind( 3, m_exclusions_name )
 					.step()
 				;
 			} else {
@@ -380,6 +389,49 @@ namespace {
 			return result ;
 		}
 
+		db::Connection::RowId get_or_create_entity( std::string const& name, std::string const& description ) const {
+			db::Connection::RowId result ;
+
+			m_find_entity_statement
+				->reset()
+				.bind( 1, name ).step() ;
+
+			if( m_find_entity_statement->empty() ) {
+				m_insert_entity_statement
+					->reset()
+					.bind( 1, name )
+					.bind( 2, description )
+					.step() ;
+					
+				result = m_connection->get_last_insert_row_id() ;
+			} else {
+				result = m_find_entity_statement->get< db::Connection::RowId >( 0 ) ;
+			}
+			return result ;
+		}
+
+		db::Connection::RowId get_or_create_entity_data( db::Connection::RowId const entity_id, db::Connection::RowId const variable_id, genfile::VariantEntry const& value ) const {
+			db::Connection::RowId result ;
+
+			m_find_entity_data_statement
+				->reset()
+				.bind( 1, entity_id )
+				.bind( 2, variable_id ).step() ;
+
+			if( m_find_entity_data_statement->empty() ) {
+				m_insert_entity_data_statement
+					->reset()
+					.bind( 1, entity_id )
+					.bind( 2, variable_id )
+					.bind( 3, value )
+					.step() ;
+				result = m_connection->get_last_insert_row_id() ;
+			} else {
+				result = m_find_entity_data_statement->get< db::Connection::RowId >( 0 ) ;
+			}
+			return result ;
+		}
+
 		void store_data(
 			genfile::SNPIdentifyingData const& snp,
 			std::string const& variable,
@@ -393,8 +445,9 @@ namespace {
 			m_insert_summarydata_statement
 				->reset()
 				.bind( 1, snp_id )
-				.bind( 2, variable_id )
-				.bind( 3, value )
+				.bind( 2, m_analysis_id )
+				.bind( 3, variable_id )
+				.bind( 4, value )
 				.step()
 			;
 		}
@@ -439,7 +492,8 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 	
 		DBOutputter::SharedPtr outputter = DBOutputter::create_shared(
 			filename,
-			m_options.get< std::string >( "-cohort-name" ), 
+			m_options.get< std::string >( "-cohort-name" ),
+			m_options.get< std::string >( "-g" ),
 			sample_set_spec
 		) ;
 	

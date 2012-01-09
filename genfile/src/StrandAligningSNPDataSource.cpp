@@ -40,7 +40,8 @@ namespace genfile {
 			std::map< SNPIdentifyingData, char >::const_iterator where = known_strand_alignments.find( snps[ snp_i ] ) ;
 			if( where == known_strand_alignments.end() ) {
 				result[ snp_i ] = eUnknownStrand ;
-				snps[ snp_i ].first_allele() = snps[ snp_i ].second_allele() = '?' ;
+				snps[ snp_i ].first_allele() = ( snps[ snp_i ].get_first_allele() == impl::complement( snps[ snp_i ].get_first_allele() ) ) ? snps[ snp_i ].get_first_allele() : "?" ;
+				snps[ snp_i ].second_allele() = ( snps[ snp_i ].get_second_allele() == impl::complement( snps[ snp_i ].get_second_allele() ) ) ? snps[ snp_i ].get_second_allele() : "?" ;
 			}
 			else {
 				switch( where->second ) {
@@ -54,8 +55,8 @@ namespace genfile {
 						break ;
 					case eUnknownStrand:
 						result[ snp_i ] = eUnknownStrand ;
-						snps[ snp_i ].first_allele() = '?' ;
-						snps[ snp_i ].second_allele() = '?' ;
+						snps[ snp_i ].first_allele() = ( snps[ snp_i ].get_first_allele() == impl::complement( snps[ snp_i ].get_first_allele() ) ) ? snps[ snp_i ].get_first_allele() : "?" ;
+						snps[ snp_i ].second_allele() = ( snps[ snp_i ].get_second_allele() == impl::complement( snps[ snp_i ].get_second_allele() ) ) ? snps[ snp_i ].get_second_allele() : "?" ;
 						break ;
 					default:
 						assert(0);
@@ -134,11 +135,22 @@ namespace genfile {
 					set_RSID,
 					set_chromosome,
 					set_SNP_position,
-					ignore(),
-					ignore()
+					set_value( allele1 ),
+					set_value( allele2 )
 				) ;
-				set_allele1( allele1 ) ;
-				set_allele2( allele2 ) ;
+				if( allele1 == impl::complement( allele1 ) ) {
+					set_allele1( allele1 ) ;
+				}
+				else {
+					set_allele1( "?" ) ;
+				}
+
+				if( allele2 == impl::complement( allele2 ) ) {
+					set_allele2( allele2 ) ;
+				}
+				else {
+					set_allele2( "?" ) ;
+				}
 				break ;
 			default:
 				assert(0) ;

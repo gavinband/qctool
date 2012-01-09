@@ -39,7 +39,7 @@ namespace genfile {
 		return *this ;
 	}
 
-	bool CompressionType::operator==( CompressionType const& other ) {
+	bool CompressionType::operator==( CompressionType const& other ) const {
 		return m_type == other.m_type ;
 	}
 	

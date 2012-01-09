@@ -1,6 +1,11 @@
 #include <iostream>
 #include <string>
 #include <utility>
+#include <vector>
+#include <fstream>
+#include <cstdio>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/fstream.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/bgen.hpp"
@@ -9,17 +14,32 @@
 #include "genfile/SortingBGenFileSNPDataSink.hpp"
 
 namespace genfile {
+	
+	namespace impl {
+		std::string make_temp_name( std::string filename ) {
+			if( filename.size() < 12 || filename.substr( filename.size() - 12, 12 ) != "XXXXXXXXXXXX" ) {
+				throw BadArgumentError( "genfile::impl::make_temp_name()", "filename=\"" + filename + "\"" ) ;
+			}
+			std::vector< char > buffer(
+				filename.begin(),
+				filename.end()
+			) ;
+			buffer.push_back( '\0' ) ;
+			buffer[ filename.size() - 6 ] = '\0' ;
+			std::tmpnam( &buffer[0] ) ;
+			buffer[ filename.size() - 6 ] = 'X' ;
+			std::tmpnam( &buffer[0] ) ;
+			return std::string( buffer.begin(), buffer.begin() + buffer.size() - 1 ) ;
+		}
+	}
+
 	SortingBGenFileSNPDataSink::SortingBGenFileSNPDataSink(
-		std::string const& filename,
-		std::string const& free_data,
-		bgen::uint32_t flags
-	)
-	: 	BasicBGenFileSNPDataSink( filename, free_data, "no_compression", flags ),
-		m_flags( flags )
+		std::string const& filename, 
+		SNPDataSink::UniquePtr sink
+	):
+		m_filename( filename ),
+		m_sink( sink )
 	{
-		assert( flags & bgen::e_CompressedSNPBlocks ) ;
-		// Reserve enough space for lots of data!
-		m_rows.reserve( 10000 ) ;
 	}
 
 	void SortingBGenFileSNPDataSink::write_snp_impl(
@@ -34,31 +54,101 @@ namespace genfile {
 		GenotypeProbabilityGetter const& get_AB_probability,
 		GenotypeProbabilityGetter const& get_BB_probability
 	) {
-		// Add a row to our data store...
-		m_rows.push_back( StoredRow( SNPKey( GenomePosition( chromosome, SNP_position ), RSID ), std::string() ) ) ;
+		SNPIdentifyingData snp(
+			SNPID,
+			RSID,
+			GenomePosition( chromosome, SNP_position ),
+			first_allele,
+			second_allele
+		) ;
+		OffsetMap::iterator offset_i = m_file_offsets.insert(
+			std::make_pair(
+				snp,
+				std::make_pair(
+					m_sink->get_stream_pos(),
+					m_sink->get_stream_pos()
+				)
+			)
+		) ;
 
-		std::size_t id_field_size = std::min( std::max( SNPID.size(), RSID.size() ), static_cast< std::size_t >( 255 )) ;
-		std::ostringstream ostr( std::ios::binary ) ;
-		bgen::write_compressed_snp_block( ostr, m_flags, number_of_samples, id_field_size, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;				
-
-		m_rows.back().second = ostr.str() ;
+		m_sink->write_snp(
+			number_of_samples,
+			SNPID,
+			RSID,
+			chromosome,
+			SNP_position,
+			first_allele,
+			second_allele,
+			get_AA_probability,
+			get_AB_probability,
+			get_BB_probability
+		) ;
+		
+		offset_i->second.second = m_sink->get_stream_pos() ;
 	}
 
 	SortingBGenFileSNPDataSink::~SortingBGenFileSNPDataSink() {
-		// We are about to close the file.
-		// First sort and write all our rows.
-		std::sort( m_rows.begin(), m_rows.end() ) ;
-		// Now write them.
-		for( std::size_t i = 0; i < m_rows.size(); ++i ) {
-			stream_ptr()->write( m_rows[i].second.data(), m_rows[i].second.size() ) ;
-		}
+		// Ensure temporary file is flushed.
+		m_sink.reset() ;
+		
+		boost::system::error_code ec ;
 
-		// Now we must seek back to the beginning and write the header block.
-		stream_ptr()->seekp(4, std::ios_base::beg ) ;
-		if( stream_ptr()->bad() ) {
-			throw OutputError( filename() ) ;
-		}
+		// Move file to a similarly-named temporary.
+//		boost::filesystem::path temp_filename = boost::filesystem::unique_path( m_filename + ".tmp%%%%-%%%%-%%%%-%%%%", ec ) ;
+		std::string temp_filename = impl::make_temp_name( m_filename + ".tmpXXXXXXXXXXXX" ) ;
 
-		write_header_data( *stream_ptr() ) ;
+		// std::cerr << "Renaming \"" << m_filename << "\" to \"" << temp_filename << "\"...\n" ;
+		boost::filesystem::rename(
+			boost::filesystem::path( m_filename ),
+			boost::filesystem::path( temp_filename )
+		) ;
+		
+		// std::cerr << "Copying file back...\n" ;
+		// Copy temporary back to file in the right order.
+		std::ifstream input( temp_filename.c_str(), std::ios::binary ) ;
+		std::ofstream output( m_filename.c_str(), std::ios::binary | std::ios::trunc ) ;
+
+		std::vector< char > buffer( 1024*1024 ) ;
+
+		if( m_file_offsets.empty() ) {
+			while( input.read( &buffer[0], buffer.size() ) ) {
+				output.write( &buffer[0], input.gcount() ) ;
+			}
+		}
+		else {
+			OffsetMap::const_iterator
+				i = m_file_offsets.begin(),
+				end_i = m_file_offsets.end()
+			;
+
+			// copy header.
+			{
+				std::pair< std::ostream::streampos, std::ostream::streampos > chunk ;
+				chunk.first = 0 ;
+				chunk.second = i->second.first ;
+				// std::cerr << "copying 0th chunk " << chunk.first << " - " << chunk.second << " of " << m_file_offsets.size() << "...\n" ;
+				for( std::ostream::streampos i = 0; i < chunk.second; i += buffer.size() ) {
+					std::size_t n = std::min( std::size_t( chunk.second - i ), buffer.size() ) ;
+					input.read( &buffer[0], n ) ;
+					output.write( &buffer[0], n ) ;
+				}
+			}
+			for( ; i != end_i; ++i ) {
+				std::pair< std::ostream::streampos, std::ostream::streampos > const& chunk = i->second ;
+				input.seekg( chunk.first ) ;
+				// std::cerr << "copying chunk " << chunk.first << " - " << chunk.second << "...\n" ;
+				for( std::ostream::streampos i = chunk.first; i < chunk.second; i += buffer.size() ) {
+					std::size_t n = std::min( std::size_t( chunk.second - i ), buffer.size() ) ;
+					input.read( &buffer[0], n ) ;
+					output.write( &buffer[0], n ) ;
+				}
+			}
+		}
+		output.close() ;
+		input.close() ;
+
+		// remove the temporary file.
+		//boost::filesystem::remove( temp_filename ) ;
+		// ignore the error code.
 	}
 }

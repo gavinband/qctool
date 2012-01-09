@@ -37,6 +37,7 @@
 #include "genfile/SNPDataSourceRack.hpp"
 #include "genfile/SNPDataSinkChain.hpp"
 #include "genfile/GenFileSNPDataSink.hpp"
+#include "genfile/SortingBGenFileSNPDataSink.hpp"
 #include "genfile/TrivialSNPDataSink.hpp"
 #include "genfile/CategoricalCohortIndividualSource.hpp"
 #include "genfile/SampleFilteringCohortIndividualSource.hpp"
@@ -267,6 +268,9 @@ public:
 								"also be used here to specify numbered output files corresponding to the input files." )
 	        .set_takes_values_per_use( 1 )
 			.set_maximum_multiplicity( 1 ) ;
+		options[ "-sort" ]
+			.set_description( "Sort the genotypes in the output file.  This is only supported if bgen format is output." ) ;
+		options.option_implies_option( "-sort", "-og" ) ;
 
 		options[ "-os" ]
 	        .set_description( "Override the auto-generated path of the output sample file.  " )
@@ -1604,6 +1608,11 @@ private:
 					if( gen_sink ) {
 						gen_sink->omit_chromosome() ;
 					}
+				}
+				if( m_options.check( "-sort" )) {
+					sink.reset(
+						new genfile::SortingBGenFileSNPDataSink( filename, sink )
+					) ;
 				}
 				m_fltrd_in_snp_data_sink->add_sink( sink ) ;
 			}

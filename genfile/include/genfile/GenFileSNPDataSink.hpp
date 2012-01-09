@@ -17,16 +17,27 @@ namespace genfile {
 	public:
 		GenFileSNPDataSink( std::string const& filename, Chromosome chromosome ):
 			m_filename( filename ),
-			m_write_chromosome_column( true )
+			m_write_chromosome_column( true ),
+			m_compression_type( get_compression_type_indicated_by_filename( filename ) )
 		{
-			setup( filename, get_compression_type_indicated_by_filename( filename )) ;
+			setup( filename, m_compression_type ) ;
 		}
 
 		GenFileSNPDataSink( std::string const& filename, Chromosome chromosome, CompressionType compression_type ):
 			m_filename( filename ),
-			m_write_chromosome_column( true )
+			m_write_chromosome_column( true ),
+			m_compression_type( compression_type )
 		{
-			setup( filename, compression_type ) ;
+			setup( filename, m_compression_type ) ;
+		}
+
+		std::ostream::streampos get_stream_pos() const {
+			if( m_compression_type == CompressionType( "no_compression" )) {
+				return m_stream_ptr->tellp() ;
+			}
+			else {
+				throw OperationUnsupportedError( "genfile::GenFileSNPDataSink::get_stream_pos()", "get stream position", "GenFileSnpDataSink( \"" + m_filename + "\" )" ) ;
+			}
 		}
 
 		void omit_chromosome() { m_write_chromosome_column = false ; }
@@ -77,6 +88,7 @@ namespace genfile {
 		std::auto_ptr< std::ostream > m_stream_ptr ;
 		Chromosome m_chromosome ;
 		bool m_write_chromosome_column ;
+		CompressionType m_compression_type ;
 	} ;
 }
 

@@ -49,10 +49,10 @@ namespace genfile {
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_field_mapping( get_field_mapping( m_format_types )),
 		m_column_names( read_column_names( *m_stream_ptr )),
-		m_number_of_samples( m_column_names.size() - 9 ),
-		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata ) )
+		m_number_of_samples( m_column_names.size() - 9 )
 	{
 		setup() ;
+		m_number_of_lines = determine_number_of_lines( *m_stream_ptr, m_metadata ) ;
 	}
 
 	VCFFormatSNPDataSource::VCFFormatSNPDataSource(
@@ -67,10 +67,10 @@ namespace genfile {
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_field_mapping( get_field_mapping( m_format_types )),
 		m_column_names( read_column_names( *m_stream_ptr )),
-		m_number_of_samples( m_column_names.size() - 9 ),
-		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata ))
+		m_number_of_samples( m_column_names.size() - 9 )
 	{
 		setup() ;
+		m_number_of_lines = determine_number_of_lines( *m_stream_ptr, m_metadata ) ;
 	}
 
 	VCFFormatSNPDataSource::VCFFormatSNPDataSource(
@@ -86,10 +86,10 @@ namespace genfile {
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_field_mapping( get_field_mapping( m_format_types )),
 		m_column_names( read_column_names( *m_stream_ptr )),
-		m_number_of_samples( m_column_names.size() - 9 ),
-		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata ))
+		m_number_of_samples( m_column_names.size() - 9 )
 	{
 		setup() ;
+		m_number_of_lines = determine_number_of_lines( *m_stream_ptr, m_metadata ) ;
 	}
 	
 	void VCFFormatSNPDataSource::setup() {
@@ -203,7 +203,12 @@ namespace genfile {
 			}
 		}
 		else {
-			result = count_lines( vcf_file_stream ) ;
+			if( m_index_stream_ptr.get() ) {
+				result = count_lines( *m_index_stream_ptr ) - 1 ; // ignore header line.
+			}
+			else {
+				result = count_lines( vcf_file_stream ) ;
+			}
 		}
 		return result ;
 	}
