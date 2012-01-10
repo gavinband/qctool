@@ -35,6 +35,7 @@
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/SNPDataSourceRack.hpp"
+#include "genfile/MergingSNPDataSource.hpp"
 #include "genfile/SNPDataSinkChain.hpp"
 #include "genfile/GenFileSNPDataSink.hpp"
 #include "genfile/SortingBGenFileSNPDataSink.hpp"
@@ -131,6 +132,15 @@ public:
 								"the form \"myfile_01.gen\", \"myfile_02.gen\", etc.)  Only Human autosomes are matched this way.\n"
 								"This option may be repeated, in which case each invocation is treated as a seperate cohort and cohorts"
 								"are joined together to create one big dataset." )
+			.set_takes_values_per_use( 1 )
+			.set_minimum_multiplicity( 1 )
+			.set_maximum_multiplicity( 100 ) ;
+
+		options[ "-merge-in" ]
+			.set_description( "Specify an additional set of genotypes that should be merged in (in position order) to the dataset. "
+				"This must have the same number of samples as the data set for -g. "
+				"Note that filtering, strand alignment, allele matching, or other transformations are not applied to the data "
+				"specified by -merge-in.")
 			.set_takes_values_per_use( 1 )
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 100 ) ;
@@ -1209,27 +1219,27 @@ private:
 		return result ;
 	}
 	
-	genfile::SNPDataSource::UniquePtr open_snp_data_sources()
-	// Open the gen files, taking care of filtering, strand alignment, translation, etc.
-	{
-		// Kludge: this optimisation ensures that a vcf file, which can be huge,
-		// can be opened relatively quickly.  It will be especially fast
-		// if it has a ##number-of-variants=N line in the metadata.  Before doing this we check
-		// that there is only one file, that no strand alignment or SNP exclusions or
-		// snp translation are necessary.
-		if(
-			( m_mangled_options.gen_filenames().size() == 1 && m_mangled_options.gen_filenames()[0].size() == 1 )
-			&& !m_strand_specs.get()
-			&& !get_snp_exclusion_filter().get()
-			&& !m_snp_dictionary.get() 
-		) {
-			std::string filename = m_mangled_options.gen_filenames()[0][0].filename() ;
-			std::pair< std::string, std::string > uf = genfile::uniformise( filename ) ;
-			if( uf.first == "vcf" ) {
-				return open_vcf_format_snp_data_source( uf ) ;
+	genfile::SNPDataSource::UniquePtr open_snp_data_sources() {
+		genfile::SNPDataSource::UniquePtr result = open_main_snp_data_sources() ;
+		if( m_options.check( "-merge-in" )) {
+			std::auto_ptr< genfile::MergingSNPDataSource > merge_in_source( new genfile::MergingSNPDataSource() ) ;
+			merge_in_source->add_source( result ) ;
+			std::vector< std::string > merge_in_files = m_options.get_values< std::string >( "-merge-in" ) ;
+			for( std::size_t i = 0; i < merge_in_files.size(); ++i ) {
+				merge_in_source->add_source(
+					genfile::SNPDataSource::create_chain(
+						genfile::wildcard::find_files_by_chromosome( merge_in_files[i] )
+					)
+				) ;
 			}
+			result.reset( merge_in_source.release() ) ;
 		}
-	
+		return result ;
+	}
+
+	genfile::SNPDataSource::UniquePtr open_main_snp_data_sources()
+	// Open the main gen files, taking care of filtering, strand alignment, translation, etc.
+	{
 		genfile::SNPDataSourceRack::UniquePtr rack(
 			new genfile::SNPDataSourceRack( m_options.get_value< std::string >( "-snp-match-fields" ) )
 		) ;
