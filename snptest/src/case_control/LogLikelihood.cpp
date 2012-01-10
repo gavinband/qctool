@@ -103,8 +103,7 @@ namespace snptest {
 #endif
 			compute_value_of_function( m_V ) ;
 			compute_value_of_first_derivative( m_V ) ;
-			compute_value_of_second_derivative(
-			 m_V ) ;
+			compute_value_of_second_derivative( m_V ) ;
 		}
 
 		void LogLikelihood::compute_value_of_function( Matrix const& V ) {
