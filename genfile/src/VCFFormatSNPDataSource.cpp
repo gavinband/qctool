@@ -324,12 +324,6 @@ namespace genfile {
 				if( elts.size() != 6 ) {
 					throw MalformedInputError( m_spec + ".index", count, 6 ) ;
 				}
-				if( elts[4].size() != 1 ) {
-					throw MalformedInputError( m_spec + ".index", count, 4 ) ;
-				}
-				if( elts[5].size() != 1 ) {
-					throw MalformedInputError( m_spec + ".index", count, 5 ) ;
-				}
 				setter(
 					SNPIdentifyingData(
 						elts[0],
