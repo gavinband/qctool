@@ -190,9 +190,7 @@ namespace genfile {
 		virtual unsigned int number_of_samples() const = 0;
 		// Return the total number of snps the source contains.
 		virtual unsigned int total_number_of_snps() const = 0 ;
-		// Return true if there is an efficient way to enumerate SNPs
-		virtual bool can_efficiently_enumerate_snps() const { return true ; }
-		
+
 		// Return a string identifying the source of the SNP data
 		virtual std::string get_source_spec() const = 0 ;
 		
