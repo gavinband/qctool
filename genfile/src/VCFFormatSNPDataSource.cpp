@@ -53,6 +53,7 @@ namespace genfile {
 	{
 		setup() ;
 		m_number_of_lines = determine_number_of_lines( *m_stream_ptr, m_metadata ) ;
+		reset_stream() ;
 	}
 
 	VCFFormatSNPDataSource::VCFFormatSNPDataSource(
@@ -71,6 +72,7 @@ namespace genfile {
 	{
 		setup() ;
 		m_number_of_lines = determine_number_of_lines( *m_stream_ptr, m_metadata ) ;
+		reset_stream() ;
 	}
 
 	VCFFormatSNPDataSource::VCFFormatSNPDataSource(
@@ -90,6 +92,7 @@ namespace genfile {
 	{
 		setup() ;
 		m_number_of_lines = determine_number_of_lines( *m_stream_ptr, m_metadata ) ;
+		reset_stream() ;
 	}
 	
 	void VCFFormatSNPDataSource::setup() {
@@ -102,7 +105,6 @@ namespace genfile {
 			m_index_stream_ptr = open_text_file_for_input( index_filename ) ;
 		} 
 		// check_genotype_probability_field( m_field_mapping ) ;
-		reset_stream() ;
 	}
 
 	void VCFFormatSNPDataSource::check_genotype_probability_field( std::string const& field ) const {
