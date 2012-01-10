@@ -40,11 +40,9 @@ namespace {
 
 			if( AA > 0.5 || AB > 0.5 || BB > 0.5 ) {
 				double HWE_pvalue = SNPHWE( AB, AA, BB ) ;
-				callback( "exact_HW_p_value", HWE_pvalue ) ;
 				callback( "minus_log10_exact_HW_p_value", -log10( HWE_pvalue ) ) ;
 			}
 			else {
-				callback( "exact_HW_p_value", genfile::MissingValue() ) ;
 				callback( "minus_log10_exact_HW_p_value", genfile::MissingValue() ) ;
 			}
 		}
@@ -56,7 +54,6 @@ namespace {
 			double missingness = genotypes.rows() - genotypes.sum() ;
 			callback( "missing proportion", missingness / double( genotypes.rows() ) ) ;
 			callback( "missingness", missingness ) ;
-			callback( "non-missingness", genotypes.rows() - missingness ) ;
 			
 			double missing_calls = 0.0 ;
 			for( int i = 0; i < genotypes.rows(); ++i ) {
@@ -65,7 +62,6 @@ namespace {
 				}
 			}
 			callback( "missing calls", missing_calls ) ;
-			
 		}
 	private:
 		double const m_call_threshhold ;
@@ -91,17 +87,18 @@ namespace {
 					callback( "info", 1.0 ) ;
 					callback( "impute_info", 1.0 ) ;
 				}
+				else {
+					double const variance = ( f.array() - ( e.array().square() ) ).sum() ;
+					double adjustment = 4.0 * theta_mle * adjustment1.sum() + 4.0 * theta_mle * theta_mle * adjustment2.sum() ;
 
-				double const variance = ( f.array() - ( e.array().square() ) ).sum() ;
-				double adjustment = 4.0 * theta_mle * adjustment1.sum() + 4.0 * theta_mle * theta_mle * adjustment2.sum() ;
+					double const missingness = genotypes.rows() - non_missingness ;
+					adjustment += ( genotypes.rows() - non_missingness ) * 2.0 * theta_mle * ( 1.0 + theta_mle ) ;
 
-				double const missingness = genotypes.rows() - non_missingness ;
-				adjustment += ( genotypes.rows() - non_missingness ) * 2.0 * theta_mle * ( 1.0 + theta_mle ) ;
+					double denominator = 2.0 * genotypes.rows() * theta_mle * ( 1.0 - theta_mle ) ;
 
-				double denominator = 2.0 * genotypes.rows() * theta_mle * ( 1.0 - theta_mle ) ;
-
-				callback( "info", 1.0 - ( ( variance + adjustment ) / denominator ) ) ;
-				callback( "impute_info", 1.0 - ( variance / denominator ) ) ;
+					callback( "info", 1.0 - ( ( variance + adjustment ) / denominator ) ) ;
+					callback( "impute_info", 1.0 - ( variance / denominator ) ) ;
+				}
 			}
 		}
 	} ;
