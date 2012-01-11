@@ -104,7 +104,6 @@ namespace genfile {
 		if( boost::filesystem::exists( index_filename ) ) {
 			m_index_stream_ptr = open_text_file_for_input( index_filename ) ;
 		} 
-		// check_genotype_probability_field( m_field_mapping ) ;
 	}
 
 	void VCFFormatSNPDataSource::check_genotype_probability_field( std::string const& field ) const {
