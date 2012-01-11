@@ -142,7 +142,7 @@ public:
 				"Note that filtering, strand alignment, allele matching, or other transformations are not applied to the data "
 				"specified by -merge-in.")
 			.set_takes_values_per_use( 1 )
-			.set_minimum_multiplicity( 1 )
+			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
 
 	    options[ "-s" ]
@@ -1081,7 +1081,7 @@ private:
 				m_strand_specs = get_strand_specs( m_options.get_values< std::string >( "-strand" )) ;
 			}
 			
-			m_snp_data_source = open_snp_data_sources() ;
+			m_snp_data_source = open_main_snp_data_sources() ;
 
 			{
 				m_cohort_individual_source = open_samples( m_snp_data_source->number_of_samples() ) ;
@@ -1110,6 +1110,10 @@ private:
 						).release()
 					) ;
 				}
+			}
+			
+			if( m_options.check( "-merge-in" )) {
+				m_snp_data_source = open_merged_data_sources() ;
 			}
 
 			write_preamble() ;
@@ -1219,24 +1223,6 @@ private:
 		return result ;
 	}
 	
-	genfile::SNPDataSource::UniquePtr open_snp_data_sources() {
-		genfile::SNPDataSource::UniquePtr result = open_main_snp_data_sources() ;
-		if( m_options.check( "-merge-in" )) {
-			std::auto_ptr< genfile::MergingSNPDataSource > merge_in_source( new genfile::MergingSNPDataSource() ) ;
-			merge_in_source->add_source( result ) ;
-			std::vector< std::string > merge_in_files = m_options.get_values< std::string >( "-merge-in" ) ;
-			for( std::size_t i = 0; i < merge_in_files.size(); ++i ) {
-				merge_in_source->add_source(
-					genfile::SNPDataSource::create_chain(
-						genfile::wildcard::find_files_by_chromosome( merge_in_files[i] )
-					)
-				) ;
-			}
-			result.reset( merge_in_source.release() ) ;
-		}
-		return result ;
-	}
-
 	genfile::SNPDataSource::UniquePtr open_main_snp_data_sources()
 	// Open the main gen files, taking care of filtering, strand alignment, translation, etc.
 	{
@@ -1327,6 +1313,20 @@ private:
 		return genfile::SNPDataSource::UniquePtr( rack.release() ) ;		
 	}
 	
+	genfile::SNPDataSource::UniquePtr open_merged_data_sources() {
+		std::auto_ptr< genfile::MergingSNPDataSource > merged_source( new genfile::MergingSNPDataSource() ) ;
+		merged_source->add_source( m_snp_data_source ) ;
+		std::vector< std::string > merge_in_files = m_options.get_values< std::string >( "-merge-in" ) ;
+		for( std::size_t i = 0; i < merge_in_files.size(); ++i ) {
+			merged_source->add_source(
+				genfile::SNPDataSource::create_chain(
+					genfile::wildcard::find_files_by_chromosome( merge_in_files[i] )
+				)
+			) ;
+		}
+		return genfile::SNPDataSource::UniquePtr( merged_source.release() ) ;
+	}
+		
 	std::pair< genfile::SNPDataSource*, std::vector< genfile::SNPIdentifyingData > >
 	open_snp_data_source( std::string const& filename, std::string chromosome_indicator ) const {
 		if( chromosome_indicator == "" && m_options.check_if_option_was_supplied( "-assume-chromosome" )) {

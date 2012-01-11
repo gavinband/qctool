@@ -1,4 +1,5 @@
 #include <Eigen/Core>
+#include "genfile/Error.hpp"
 #include "HaplotypeFrequencyLogLikelihood.hpp"
 #include "../../config.hpp"
 #include "test_case.hpp"
@@ -264,5 +265,132 @@ AUTO_TEST_CASE( test_haplotype_frequency_loglikelihood_value ) {
 		params << 0.0, 0.0, 1.0 ;
 		ll.evaluate_at( params ) ;
 		BOOST_CHECK_EQUAL( ll.get_value_of_function(), -std::numeric_limits< double >::infinity() ) ;
+	}
+}
+
+namespace {
+	void test_haplotype_frequency_estimation( Eigen::MatrixXd const& genotypes, Eigen::VectorXd const& expected ) {
+		HaplotypeFrequencyLogLikelihood ll( genotypes ) ;
+		std::cerr << "test_haplotype_frequency_estimation: genotypes: " << genotypes
+			<< "\nexpected: " << expected << "\n"
+			<< "\n     got: " << ll.get_MLE_by_EM() << ".\n" ;
+		BOOST_CHECK_SMALL( ( ll.get_MLE_by_EM() - expected ).maxCoeff(), 0.000000000001 ) ;
+	}
+}
+
+AUTO_TEST_CASE( test_haplotype_frequency_exceptions ) {
+	{
+		Eigen::MatrixXd	genotypes = Eigen::MatrixXd::Zero( 3, 3 ) ;
+		BOOST_CHECK_THROW( { HaplotypeFrequencyLogLikelihood ll( genotypes ) ; }, genfile::BadArgumentError ) ;
+	}
+}
+
+AUTO_TEST_CASE( test_single_person_haplotype_frequency_estimation ) {
+	Eigen::MatrixXd	genotypes( 3, 3 ) ;
+	Eigen::VectorXd params( 3 ) ;
+
+	genotypes.setZero() ; params.setZero() ;
+	genotypes( 0, 0 ) = 1 ;
+	test_haplotype_frequency_estimation( genotypes, params ) ;
+
+	genotypes.setZero() ; params.setZero() ;
+	genotypes( 0, 1 ) = 1 ;
+	params(0) = 0.5 ;
+	test_haplotype_frequency_estimation( genotypes, params ) ;
+
+	genotypes.setZero() ; params.setZero() ;
+	genotypes( 0, 2 ) = 1 ;
+	params(0) = 1 ;
+	test_haplotype_frequency_estimation( genotypes, params ) ;
+
+	genotypes.setZero() ; params.setZero() ;
+	genotypes( 1, 0 ) = 1 ;
+	params(1) = 0.5 ;
+	test_haplotype_frequency_estimation( genotypes, params ) ;
+
+	genotypes.setZero() ; params.setZero() ;
+	genotypes( 1, 1 ) = 1 ;
+	// both SNPs heterozygores; half a chance of AB_ab and half of Ab_aB
+	params(0) = 0.25 ;
+	params(1) = 0.25 ;
+	params(2) = 0.25 ;
+	test_haplotype_frequency_estimation( genotypes, params ) ;
+
+	genotypes.setZero() ; params.setZero() ;
+	genotypes( 1, 2 ) = 1 ;
+	params(0) = 0.5 ;
+	params(2) = 0.5 ;
+	test_haplotype_frequency_estimation( genotypes, params ) ;
+
+	genotypes.setZero() ; params.setZero() ;
+	genotypes( 2, 0 ) = 1 ;
+	params(1) = 1 ;
+	test_haplotype_frequency_estimation( genotypes, params ) ;
+
+	genotypes.setZero() ; params.setZero() ;
+	genotypes( 2, 1 ) = 1 ;
+	params(1) = 0.5 ;
+	params(2) = 0.5 ;
+	test_haplotype_frequency_estimation( genotypes, params ) ;
+
+	genotypes.setZero() ; params.setZero() ;
+	genotypes( 2, 2 ) = 1 ;
+	params(2) = 1 ;
+	test_haplotype_frequency_estimation( genotypes, params ) ;
+}
+
+AUTO_TEST_CASE( test_N_person_haplotype_frequency_estimation ) {
+	Eigen::MatrixXd	genotypes( 3, 3 ) ;
+	Eigen::VectorXd params( 3 ) ;
+
+	for( std::size_t N = 1; N < 10; ++N ) {
+		genotypes.setZero() ; params.setZero() ;
+		genotypes( 0, 0 ) = 1 ;
+		test_haplotype_frequency_estimation( genotypes, params ) ;
+
+		genotypes.setZero() ; params.setZero() ;
+		genotypes( 0, 1 )= N ;
+		params(0) = 0.5 ;
+		test_haplotype_frequency_estimation( genotypes, params ) ;
+
+		genotypes.setZero() ; params.setZero() ;
+		genotypes( 0, 2 )= N ;
+		params(0) = 1 ;
+		test_haplotype_frequency_estimation( genotypes, params ) ;
+
+		genotypes.setZero() ; params.setZero() ;
+		genotypes( 1, 0 )= N ;
+		params(1) = 0.5 ;
+		test_haplotype_frequency_estimation( genotypes, params ) ;
+
+		genotypes.setZero() ; params.setZero() ;
+		genotypes( 1, 1 )= N ;
+		// both SNPs heterozygores; half a chance of AB_ab and half of Ab_aB
+		params(0) = 0.25 ;
+		params(1) = 0.25 ;
+		params(2) = 0.25 ;
+		test_haplotype_frequency_estimation( genotypes, params ) ;
+
+		genotypes.setZero() ; params.setZero() ;
+		genotypes( 1, 2 )= N ;
+		params(0) = 0.5 ;
+		params(2) = 0.5 ;
+		test_haplotype_frequency_estimation( genotypes, params ) ;
+
+		genotypes.setZero() ; params.setZero() ;
+		genotypes( 2, 0 )= N ;
+		params(1) = 1 ;
+		test_haplotype_frequency_estimation( genotypes, params ) ;
+
+		genotypes.setZero() ; params.setZero() ;
+		genotypes( 2, 1 )= N ;
+		params(1) = 0.5 ;
+		params(2) = 0.5 ;
+		test_haplotype_frequency_estimation( genotypes, params ) ;
+
+		genotypes.setZero() ; params.setZero() ;
+		genotypes( 2, 2 )= N ;
+		params(2) = 1 ;
+		test_haplotype_frequency_estimation( genotypes, params ) ;
 	}
 }

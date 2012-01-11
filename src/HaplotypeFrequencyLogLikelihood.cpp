@@ -9,6 +9,9 @@ HaplotypeFrequencyLogLikelihood::HaplotypeFrequencyLogLikelihood( Matrix const& 
 	m_D_ll( 3 ),
 	m_DDt_ll( 3, 3 )
 {
+	if( m_genotype_table.array().abs().maxCoeff() == 0 ) {
+		throw genfile::BadArgumentError( "HaplotypeFrequencyLogLikelihood::HaplotypeFrequencyLogLikelihood()", "genotyped_table = 0" ) ;
+	}
 	// store derivatives of elements of the parameters pi with respect to pi.
 	m_dpi.push_back( std::vector< RowVector >( 2, RowVector::Zero( 3 ) )) ;
 	m_dpi.push_back( std::vector< RowVector >( 2, RowVector::Zero( 3 ) )) ;
@@ -24,23 +27,26 @@ HaplotypeFrequencyLogLikelihood::Vector HaplotypeFrequencyLogLikelihood::get_MLE
 	Matrix const& G = m_genotype_table ;
 	double AB_ab = G(1,1) / 2 ;
 	Vector pi = estimate_parameters( AB_ab ) ;
-	Vector old_pi ;
-	std::size_t count = 0 ;
-	std::size_t const max_count = 10000 ;
-	double const tolerance = 0.0000001 ;
-	do {
-		old_pi = pi ;
-		double pi00 = 1.0 - pi(0) - pi(1) - pi(2) ;
-		AB_ab = G(1,1) * ( pi00 * pi( 2 ) ) / ( pi00 * pi(2) + pi( 0 ) * pi( 1 )) ;
-		pi = estimate_parameters( AB_ab ) ;
-	}
-	while( ( pi - old_pi ).squaredNorm() > tolerance && ++count < max_count ) ;
-	if( count == max_count ) {
-		throw genfile::OperationFailedError(
-			"HaplotypeFrequencyLogLikelihood::maximise_by_EM()",
-			"object of type HaplotypeFrequencyLogLikelihood",
-			"convergence"
-		) ;
+
+	if( G(1,1) != 0.0 ) {
+		Vector old_pi ;
+		std::size_t count = 0 ;
+		std::size_t const max_count = 10000 ;
+		double const tolerance = 0.0000001 ;
+		do {
+			old_pi = pi ;
+			double pi00 = 1.0 - pi(0) - pi(1) - pi(2) ;
+			AB_ab = G(1,1) * ( pi00 * pi( 2 ) ) / ( pi00 * pi(2) + pi( 0 ) * pi( 1 )) ;
+			pi = estimate_parameters( AB_ab ) ;
+		}
+		while( ( pi - old_pi ).squaredNorm() > tolerance && ++count < max_count ) ;
+		if( count == max_count ) {
+			throw genfile::OperationFailedError(
+				"HaplotypeFrequencyLogLikelihood::maximise_by_EM()",
+				"object of type HaplotypeFrequencyLogLikelihood",
+				"convergence"
+			) ;
+		}
 	}
 	return pi ;
 }
@@ -52,9 +58,10 @@ HaplotypeFrequencyLogLikelihood::Vector HaplotypeFrequencyLogLikelihood::estimat
 	double const Ab_aB = G( 1, 1 ) - AB_ab ;
 	Vector result( 3 ) ;
 	result <<
+	// 2 * G( 0, 0 ) + G( 0, 1 ) + G( 1, 0 ) + AB_ab
 		G( 0, 1 ) + 2 * G( 0, 2 ) + G( 1, 2 ) + Ab_aB,
 		G( 2, 1 ) + 2 * G( 2, 0 ) + G( 1, 0 ) + Ab_aB,
-		G( 0, 1 ) + 2 * G( 2, 2 ) + G( 1, 2 ) + AB_ab
+		G( 1, 2 ) + 2 * G( 2, 2 ) + G( 2, 1 ) + AB_ab
 	;
 	result /= 2.0 * G.sum() ;
 	return result ;

@@ -206,7 +206,21 @@ namespace genfile {
 		}
 		else {
 			if( m_index_stream_ptr.get() ) {
-				result = count_lines( *m_index_stream_ptr ) - 1 ; // ignore header line.
+				try {
+					m_index_stream_ptr->clear() ;
+					m_index_stream_ptr->seekg(0) ;
+					std::string line ;
+					std::getline( *m_index_stream_ptr, line ) ;
+					if( line == "SNPID RSID chromosome position allele1 allele2" ) {
+						result = count_lines( *m_index_stream_ptr ) ; // ignore header line.
+					}
+					else {
+						result = count_lines( vcf_file_stream ) ;
+					}
+				}
+				catch( MalformedInputError const& e ) {
+					result = count_lines( vcf_file_stream ) ;
+				}
 			}
 			else {
 				result = count_lines( vcf_file_stream ) ;
