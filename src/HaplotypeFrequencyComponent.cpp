@@ -209,6 +209,16 @@ namespace impl {
 					data[i].get<4>()
 				) ;
 			}
+
+			reset_statements() ;
+		}
+		
+		void reset_statements() {
+			m_find_variant_statement->reset() ;
+			m_insert_variant_statement->reset() ;
+			m_find_entity_statement->reset() ;
+			m_insert_entity_statement->reset() ;
+			m_insert_summarydata_statement->reset() ;
 		}
 
 		db::Connection::RowId get_or_create_snp( genfile::SNPIdentifyingData const& snp ) const {
