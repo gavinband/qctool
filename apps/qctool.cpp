@@ -417,10 +417,8 @@ public:
 		options [ "-force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
 		options [ "-log" ]
-			.set_description( "Override the default path of the log file written by " + globals::program_name + "."
-				"  By default, this is " + globals::program_name + ".log." )
-			.set_takes_single_value()
-			.set_default_value( globals::program_name + ".log" ) ;
+			.set_description( "Override the default path of the log file written by " + globals::program_name + "." )
+			.set_takes_single_value() ;
 		options [ "-threads" ]
 			.set_description( "Specify the number of worker threads to use in computationally intensive tasks." )
 			.set_takes_single_value()
@@ -1012,8 +1010,10 @@ struct QCToolCmdLineContext: public QCToolContext
 				<< "  \"" << m_mangled_options.output_sample_stats_filename() << "\".\n" ;
 		}
 
-		m_ui_context.logger()[ "screen" ] << std::setw( 36 ) << "\nMore details are in the log file:"
-			<< "  \"" << m_mangled_options.log_filename() << "\".\n" ;
+		if( m_options.check( "-log" )) {
+			m_ui_context.logger()[ "screen" ] << std::setw( 36 ) << "\nMore details are in the log file:"
+				<< "  \"" << m_mangled_options.log_filename() << "\".\n" ;
+		}
 		m_ui_context.logger() << std::string( 72, '=' ) << "\n\n" ;
 	}
 
