@@ -346,7 +346,7 @@ namespace genfile {
 		std::ostringstream ostr ;
 		ostr << prefix << std::setw( width ) << "Spec: " << get_source_spec() << "\n" ;
 		ostr << prefix << std::setw( width ) << "Number of samples: " <<  number_of_samples() << "\n" ;
-		ostr << prefix << std::setw( width ) << "Number of SNPs: " <<  number_of_samples() << "\n" ;
+		ostr << prefix << std::setw( width ) << "Number of SNPs: " <<  total_number_of_snps() << "\n" ;
 		return ostr.str() ;
 	}	
 

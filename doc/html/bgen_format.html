@@ -92,6 +92,10 @@
 					<tr><th>Bit</th><th>Name</th><th>Value</th><th>Description</th></tr>
 					<tr><td>0</td><td><em>CompressedSNPBlocks</em></td><td>0</td><td>Indicates SNP block probability data is not compressed.</td></tr>
 					<tr><td></td><td></td><td>1</td><td>Indicates SNP block probability data is compressed using zlib's compress() function.</td></tr>
+					<tr><td>1</td><td><em>MultiCharacterAlleles</em></td><td>0</td><td>Indicates alleles are stored as single characters.</td></tr>
+					<tr><td></td><td></td><td>1</td><td>Indicates alleles are stored allowing for multiple characters.
+					    This is supported in <a href="https://mathgen.stats.ox.ac.uk/genetics_software/snptest/snptest.html">SNPTESTv2.3.0</a>
+					    and above, and the <a href="http://www.bitbucket.org/gavinband/qctool">development version</a> of <a href="http://www.well.ox.ac.uk/~gav/qctool.html#overview">QCTOOL</a>.</td></tr>
 				</table>
             </center>
 
@@ -132,8 +136,10 @@
 						</table>
 					</td>
 					<tr><td>4</td><td>The SNP position, encoded as an unsigned 32-bit integer.</td></tr>
-					<tr><td>1</td><td>the A SNP allele, this should be 'A', 'C', 'T', or 'G'.</td></tr>
-					<tr><td>1</td><td>The B SNP allele, this should be 'A', 'C', 'T', or 'G'.</td></tr>
+					<tr><td>1</td><td>(Only present if the <em>MultiCharacterAlleles</em> flag is set). The length LA of the A allele.  If <em>MultiCharacterAlleles</em> is not set then this field is not present and LA = 1.</td></tr>
+					<tr><td>LA</td><td>The A allele.</td></tr>
+					<tr><td>1</td><td>(Only present if the <em>MultiCharacterAlleles</em> flag is set). The length LB of the B allele.  If <em>MultiCharacterAlleles</em> is not set then this field is not present and LB = 1.</td></tr>
+					<tr><td>LB</td><td>The B allele.</td></tr>
 					<tr><td><em>P</em></td><td>Genotype probability data for the SNP for each of the N individuals in
                     the cohort.  If the <em>CompressedSNPBlocks</em> flag is not set, this field consists of <em>P</em>=6*<em>N</em> bytes representing the probabilities.
                  	If <em>CompressedSNPBlocks</em> is set, this field contains a 32-bit unsigned integer specifying the length of the compressed data,
