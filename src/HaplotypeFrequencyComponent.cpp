@@ -31,7 +31,7 @@ void HaplotypeFrequencyComponent::declare_options( appcontext::OptionProcessor& 
 	options[ "-compute-ld-file" ]
 		.set_description( "File in which to place computation of pairwise SNP LD measures." )
 		.set_takes_single_value()
-		.set_default_value( "ld.sqlite3" ) ;
+		.set_default_value( "ld.db" ) ;
 	options.option_implies_option( "-compute-ld-file", "-compute-ld-with" ) ;
 	options.option_implies_option( "-compute-ld-with", "-cohort-name" ) ;
 }
@@ -109,7 +109,7 @@ namespace impl {
 				"CREATE VIEW IF NOT EXISTS LDView AS "
 				"SELECT C.name AS cohort, "
 				"S1.chromosome AS chromosome1, S1.position AS position1, S1.rsid AS rsid1, "
-				"S2.chromosome AS chromosome1, S2.position AS position1, S2.rsid AS rsid1, "
+				"S2.chromosome AS chromosome2, S2.position AS position2, S2.rsid AS rsid2, "
 				"V.name AS variable, PSD.value AS value "
 				"FROM PairwiseSummaryData PSD "
 				"INNER JOIN Entity C ON C.id == PSD.cohort_id "
@@ -209,6 +209,16 @@ namespace impl {
 					data[i].get<4>()
 				) ;
 			}
+
+			reset_statements() ;
+		}
+		
+		void reset_statements() {
+			m_find_variant_statement->reset() ;
+			m_insert_variant_statement->reset() ;
+			m_find_entity_statement->reset() ;
+			m_insert_entity_statement->reset() ;
+			m_insert_summarydata_statement->reset() ;
 		}
 
 		db::Connection::RowId get_or_create_snp( genfile::SNPIdentifyingData const& snp ) const {
@@ -404,29 +414,70 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		}
 	}
 	
-	HaplotypeFrequencyLogLikelihood ll( table ) ;
-	HaplotypeFrequencyLogLikelihood::Vector pi( 4 ) ;
-	pi.tail( 3 ) = ll.get_MLE_by_EM() ;
-	pi(0) = 1.0 - pi.tail( 3 ).sum() ;
-	double D = pi(0) * pi(3) - pi(1) * pi(2) ;
-	double max_D ;
-	if( D < 0 ) {
-		max_D = std::min( (pi(0) + pi(1)) * (pi(0)+pi(2)), (pi(1)+pi(3))*(pi(2)+pi(3)) ) ;
-	}
-	else {
-		max_D = std::min( (pi(0) + pi(1)) * (pi(1)+pi(3)), (pi(0)+pi(2))*(pi(2)+pi(3)) ) ;
-	}
-	double Dprime = D / max_D ;
-	double r = D / std::sqrt( (pi(0)+pi(1)) * (pi(2)+pi(3)) * (pi(0)+pi(2)) * (pi(1)+pi(3))) ;
+	std::cerr << "SNP1: " << source_snp << "\n"
+		<< "SNP2: " << target_snp << "\n"
+		<< "table: " << table << ".\n" ;
+	try {
+		HaplotypeFrequencyLogLikelihood ll( table ) ;
+		HaplotypeFrequencyLogLikelihood::Vector pi( 4 ) ;
+		pi.tail( 3 ) = ll.get_MLE_by_EM() ;
+		pi(0) = 1.0 - pi.tail( 3 ).sum() ;
+		double D = pi(0) * pi(3) - pi(1) * pi(2) ;
+		double max_D ;
+		if( D < 0 ) {
+			max_D = std::min( (pi(0) + pi(1)) * (pi(0)+pi(2)), (pi(1)+pi(3))*(pi(2)+pi(3)) ) ;
+		}
+		else {
+			max_D = std::min( (pi(0) + pi(1)) * (pi(1)+pi(3)), (pi(0)+pi(2))*(pi(2)+pi(3)) ) ;
+		}
+		double Dprime = D / max_D ;
+		double r = D / std::sqrt( (pi(0)+pi(1)) * (pi(2)+pi(3)) * (pi(0)+pi(2)) * (pi(1)+pi(3))) ;
 
-	m_result_signal( source_snp, target_snp, "pi00", pi(0) ) ;
-	m_result_signal( source_snp, target_snp, "pi01", pi(1) ) ;
-	m_result_signal( source_snp, target_snp, "pi10", pi(2) ) ;
-	m_result_signal( source_snp, target_snp, "pi11", pi(3) ) ;
-	m_result_signal( source_snp, target_snp, "D", D ) ;
-	m_result_signal( source_snp, target_snp, "Dprime", Dprime ) ;
-	m_result_signal( source_snp, target_snp, "r", r ) ;
-	m_result_signal( source_snp, target_snp, "r_squared", r * r ) ;
+		m_result_signal( source_snp, target_snp, "pi00", pi(0) ) ;
+		m_result_signal( source_snp, target_snp, "pi01", pi(1) ) ;
+		m_result_signal( source_snp, target_snp, "pi10", pi(2) ) ;
+		m_result_signal( source_snp, target_snp, "pi11", pi(3) ) ;
+		m_result_signal( source_snp, target_snp, "D", D ) ;
+		m_result_signal( source_snp, target_snp, "Dprime", Dprime ) ;
+		m_result_signal( source_snp, target_snp, "r", r ) ;
+		m_result_signal( source_snp, target_snp, "r_squared", r * r ) ;
+	}
+	catch( genfile::BadArgumentError const& ) {
+		m_ui_context.logger() << "!! Could not compute haplotype frequencies for " << source_snp << ", " << target_snp << ".\n"
+			<< "!! table is " << table << ".\n" ;
+		// bad table.
+	}
+	
+	{
+		// compute allele dosage r squared too.
+		Eigen::Vector2d means = Eigen::Vector2d::Zero() ;
+		for( int i = 0; i < 3; ++i ) {
+			means(0) += table.row( i ).sum() * i ;
+			means(1) += table.col( i ).sum() * i ;
+		}
+		
+		means /= table.sum() ;
+	
+		std::cerr << "table: " << table << "\n" ;
+		std::cerr << "means:\n" << std::fixed << std::setprecision( 5 ) <<  means << ".\n" ;
+
+		double dosage_cov = 0.0 ;
+		Eigen::Vector2d variances = Eigen::Vector2d::Zero() ;
+		for( int i = 0; i < 3; ++i ) {
+			for( int j = 0; j < 3; ++j ) {
+				dosage_cov += table(i,j)  * ( i - means(0) ) * ( j - means(1) ) ;
+			}
+			variances(0) += table.row( i ).sum() * ( i - means(0) ) * ( i - means(0) ) ;
+			variances(1) += table.col( i ).sum() * ( i - means(1) ) * ( i - means(1) ) ;
+		}
+		
+		std::cerr << "dosage_cov:\n" << dosage_cov << ".\n" ;
+		std::cerr << "variances:\n" << variances << ".\n" ;
+		
+		double dosage_r = dosage_cov / std::sqrt( variances(0) * variances( 1 ) ) ;
+		m_result_signal( source_snp, target_snp, "dosage_r", dosage_r ) ;
+		m_result_signal( source_snp, target_snp, "dosage_r_squared", dosage_r * dosage_r ) ;
+	}
 }
 
 void HaplotypeFrequencyComponent::end_processing_snps() {}

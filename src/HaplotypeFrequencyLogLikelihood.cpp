@@ -28,18 +28,30 @@ HaplotypeFrequencyLogLikelihood::Vector HaplotypeFrequencyLogLikelihood::get_MLE
 	double AB_ab = G(1,1) / 2 ;
 	Vector pi = estimate_parameters( AB_ab ) ;
 
+	std::cerr << "Maximising likelihood for:\n" << m_genotype_table << ".\n" ;
 	if( G(1,1) != 0.0 ) {
 		Vector old_pi ;
 		std::size_t count = 0 ;
-		std::size_t const max_count = 10000 ;
+		std::size_t const max_count = 100000 ;
 		double const tolerance = 0.0000001 ;
 		do {
 			old_pi = pi ;
 			double pi00 = 1.0 - pi(0) - pi(1) - pi(2) ;
-			AB_ab = G(1,1) * ( pi00 * pi( 2 ) ) / ( pi00 * pi(2) + pi( 0 ) * pi( 1 )) ;
+			// Number of AB_ab among G(1,1) is 
+			// ~ binom( G(1,1), p )
+			// where p = ( pi00 * pi11 ) / ( pi00 * pi11 + pi01 * pi10 )
+			// 
+			double const p = ( pi00 * pi( 2 ) ) / ( pi00 * pi(2) + pi( 0 ) * pi( 1 )) ;
+			if( p == 0.0 || p == 1) {
+				AB_ab = p * G(1,1) ;
+			}
+			else {
+				AB_ab = std::floor( ( G(1,1) + 1 ) * p ) ;
+			}
+			std::cerr << "AB_ab = " << AB_ab << ", pi = " << pi00 << " " << pi(0) << " " << pi(1) << " " << pi(2) << ".\n" ;
 			pi = estimate_parameters( AB_ab ) ;
 		}
-		while( ( pi - old_pi ).squaredNorm() > tolerance && ++count < max_count ) ;
+		while( ( pi - old_pi ).array().abs().maxCoeff() > tolerance && ++count < max_count ) ;
 		if( count == max_count ) {
 			throw genfile::OperationFailedError(
 				"HaplotypeFrequencyLogLikelihood::maximise_by_EM()",
@@ -47,6 +59,7 @@ HaplotypeFrequencyLogLikelihood::Vector HaplotypeFrequencyLogLikelihood::get_MLE
 				"convergence"
 			) ;
 		}
+		std::cerr << "Finally: AB_ab = " << AB_ab << ", pi = " << ( 1 - pi.sum() ) << " " << pi(0) << " " << pi(1) << " " << pi(2) << ".\n" ;
 	}
 	return pi ;
 }

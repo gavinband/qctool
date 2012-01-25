@@ -272,8 +272,8 @@ namespace {
 	void test_haplotype_frequency_estimation( Eigen::MatrixXd const& genotypes, Eigen::VectorXd const& expected ) {
 		HaplotypeFrequencyLogLikelihood ll( genotypes ) ;
 		std::cerr << "test_haplotype_frequency_estimation: genotypes: " << genotypes
-			<< "\nexpected: " << expected << "\n"
-			<< "\n     got: " << ll.get_MLE_by_EM() << ".\n" ;
+			<< "\nexpected: " << expected << "\n" ;
+		std::cerr << "     got: " << ll.get_MLE_by_EM() << ".\n" ;
 		BOOST_CHECK_SMALL( ( ll.get_MLE_by_EM() - expected ).maxCoeff(), 0.000000000001 ) ;
 	}
 }
@@ -393,4 +393,38 @@ AUTO_TEST_CASE( test_N_person_haplotype_frequency_estimation ) {
 		params(2) = 1 ;
 		test_haplotype_frequency_estimation( genotypes, params ) ;
 	}
+}
+
+AUTO_TEST_CASE( test_2_person_haplotype_frequency_estimation ) {
+	Eigen::MatrixXd	genotypes( 3, 3 ) ;
+	Eigen::VectorXd params( 3 ) ;
+
+	genotypes.setZero() ; params.setZero() ;
+	genotypes( 0, 0 ) = 1 ;
+	genotypes( 2, 1 ) = 1 ;
+	params(1) = 0.25 ;
+	params(2) = 0.25 ;
+	test_haplotype_frequency_estimation( genotypes, params ) ;
+
+	genotypes.setZero() ; params.setZero() ;
+	genotypes( 2, 2 ) = 1 ;
+	genotypes( 2, 1 ) = 1 ;
+	params(1) = 0.25 ;
+	params(2) = 0.75 ;
+	test_haplotype_frequency_estimation( genotypes, params ) ;
+
+	genotypes.setZero() ; params.setZero() ;
+	genotypes( 2, 2 ) = 1 ;
+	genotypes( 1, 0 ) = 1 ;
+	params(1) = 0.25 ;
+	params(2) = 0.5 ;
+	test_haplotype_frequency_estimation( genotypes, params ) ;
+
+	genotypes.setZero() ; params.setZero() ;
+	genotypes( 2, 2 ) = 1 ;
+	genotypes( 1, 1 ) = 1 ;
+	params(0) = 0.125 ;
+	params(1) = 0.125 ;
+	params(2) = 0.5 + ( 0.25 * 0.5 );
+	test_haplotype_frequency_estimation( genotypes, params ) ;
 }

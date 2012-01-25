@@ -254,7 +254,7 @@ namespace genfile {
 		// Check SNP counts are all greater than zero.
 		for( SNPDosageSpec::const_iterator where = snp_matchers.begin() ; where != snp_matchers.end(); ++where ) {
 			if( snp_counts[ where->first->get_spec() ] == 0 ) {
-				throw genfile::KeyNotFoundError( where->first->get_spec(), snp_data_source.get_source_spec() ) ;
+				throw genfile::KeyNotFoundError( snp_data_source.get_source_spec(), where->first->get_spec() ) ;
 			}
 		}
 	}

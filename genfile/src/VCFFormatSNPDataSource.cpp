@@ -345,8 +345,8 @@ namespace genfile {
 							Chromosome( elts[2] ),
 							string_utils::to_repr< Position >( elts[3] )
 						),
-						elts[4][0],
-						elts[5][0]
+						elts[4],
+						elts[5]
 					)
 			 	) ;
 				if( progress_callback ) {
