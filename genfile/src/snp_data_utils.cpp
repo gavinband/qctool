@@ -151,11 +151,17 @@ namespace genfile {
 		if( compression_type == "gzip_compression" ) {
 			file_ptr->push( boost::iostreams::gzip_compressor() ) ;
 		}
-		boost::iostreams::file_sink file(filename.c_str()) ;
-		if( !file.is_open() ) {
-			throw ResourceNotOpenedError( filename ) ;
+
+		if( filename == "-" ) {
+			file_ptr->push( std::cout ) ;
 		}
-		file_ptr->push( file ); 
+		else {
+			boost::iostreams::file_sink file(filename.c_str()) ;
+			if( !file.is_open() ) {
+				throw ResourceNotOpenedError( filename ) ;
+			}
+			file_ptr->push( file ); 
+		}
 		return std::auto_ptr< std::ostream >( file_ptr ) ;
 	}
 	
