@@ -23,7 +23,7 @@ struct HaplotypeFrequencyLogLikelihood {
 	Vector get_MLE_by_EM() const ;
 
 	private:
-		Matrix const& m_genotype_table ;
+		Matrix const m_genotype_table ;
 		std::vector< std::vector< RowVector > > m_dpi ;
 		double m_ll ;
 		RowVector m_D_ll ;
