@@ -16,7 +16,8 @@ namespace genfile {
 	}
 
 	void MergingSNPDataSource::add_source(
-		SNPDataSource::UniquePtr source
+		SNPDataSource::UniquePtr source,
+		std::string const& id_prefix
 	) {
 		if( m_sources.size() > 0 && source->number_of_samples() != m_sources[0]->number_of_samples() ) {
 			throw BadArgumentError(
@@ -32,7 +33,8 @@ namespace genfile {
 		}
 		m_sources.push_back( 0 ) ;
 		m_sources.back() = source.release() ;
-	
+		m_merge_id_prefixes.push_back( id_prefix ) ;
+
 		// read first SNP from this source.
 		get_top_snp_in_source( m_sources.size() - 1 ) ;
 	}
@@ -93,8 +95,10 @@ namespace genfile {
 	) {
 		if( m_current_snps.size() > 0 ) {
 			SNPIdentifyingData const& snp = m_current_snps.begin()->first ;
+			std::size_t source_index = m_current_snps.begin()->second ;
 			set_number_of_samples( number_of_samples() ) ;
-			set_SNPID( snp.get_SNPID() ) ;
+
+			set_SNPID( m_merge_id_prefixes[ source_index ] + snp.get_SNPID() ) ;
 			set_RSID( snp.get_rsid() ) ;
 			set_chromosome( snp.get_position().chromosome() ) ;
 			set_SNP_position( snp.get_position().position() ) ;

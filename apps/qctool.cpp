@@ -144,7 +144,11 @@ public:
 			.set_takes_values_per_use( 1 )
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
-
+		options[ "-merge-prefix" ]
+			.set_description( "Specify a string to add as a prefix to ID fields of merged-in variants" )
+			.set_takes_single_value()
+			.set_default_value( "" ) ;
+		
 	    options[ "-s" ]
 	        .set_description( "Path of sample file to input.  If specified, this option must occur as often as the -g option"
 							" to specify one sample file per cohort." )
@@ -197,6 +201,8 @@ public:
 			.set_takes_single_value() ;
 				
 		options.option_implies_option( "-quantile-normalise", "-s" ) ;
+		options.option_implies_option( "-condition_on", "-s" ) ;
+
 		// SNP exclusion options
 		options.declare_group( "SNP exclusion options" ) ;
 		options[ "-excl-snpids" ]
@@ -1317,11 +1323,17 @@ private:
 		std::auto_ptr< genfile::MergingSNPDataSource > merged_source( new genfile::MergingSNPDataSource() ) ;
 		merged_source->add_source( m_snp_data_source ) ;
 		std::vector< std::string > merge_in_files = m_options.get_values< std::string >( "-merge-in" ) ;
+		std::string id_prefix = "" ;
+		if( m_options.check( "-merge-prefix" )) {
+			id_prefix = m_options.get< std::string >( "-merge-prefix" ) ;
+		}
+
 		for( std::size_t i = 0; i < merge_in_files.size(); ++i ) {
 			merged_source->add_source(
 				genfile::SNPDataSource::create_chain(
 					genfile::wildcard::find_files_by_chromosome( merge_in_files[i] )
-				)
+				),
+				id_prefix + ":"
 			) ;
 		}
 		return genfile::SNPDataSource::UniquePtr( merged_source.release() ) ;
@@ -1852,10 +1864,11 @@ private:
 			std::vector< std::string > parts = split( elts[i], ":" ) ;
 			if( parts.size() == 1 ) {
 				parts.push_back( "add" ) ;
-			}
-			if( parts.size() != 2 ) {
+			} 
+			else if( parts.size() != 2 ) {
 				throw genfile::BadArgumentError( "QCToolContext::condition_on()", "conditioning_spec=\"..." + elts[i] + "...\"" ) ;
 			}
+			parts.resize(2) ;
 			genfile::SNPMatcher::SharedPtr snp_matcher( genfile::SNPMatcher::create( parts[0] ).release() ) ;
 			
 			std::vector< std::string > types = split( parts[1], "," ) ;
