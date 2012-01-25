@@ -74,11 +74,11 @@ namespace appcontext {
 			throw HaltProgramWithReturnCode( 0 );
 		}
 		catch( OptionProcessorHelpRequestedException const& ) {
-			get_ui_context().logger() << "Usage: "
-			<< m_application_name << " <options>\n"
-			<< "\nOPTIONS:\n"
-			<< *(m_options)
-			<< "\n" ;
+			std::cout << "Usage: "
+				<< m_application_name << " <options>\n"
+				<< "\nOPTIONS:\n"
+				<< *(m_options)
+				<< "\n" ;
 			throw HaltProgramWithReturnCode( 0 );
 		}
 		catch( FileNotOpenedError const& e ) {
