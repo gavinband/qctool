@@ -14,9 +14,9 @@
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
-#include "PairwiseCallComparer.hpp"
-#include "PairwiseCallComparerManager.hpp"
-#include "CallComparerComponent.hpp"
+#include "components/CallComparerComponent/PairwiseCallComparer.hpp"
+#include "components/CallComparerComponent/PairwiseCallComparerManager.hpp"
+#include "components/CallComparerComponent/CallComparerComponent.hpp"
 
 namespace impl {
 	struct CallComparerFileOutputter {

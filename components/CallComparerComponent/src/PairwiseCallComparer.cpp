@@ -5,8 +5,8 @@
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
-#include "AlleleFrequencyTestCallComparer.hpp"
-#include "PairwiseCallComparer.hpp"
+#include "components/CallComparerComponent/AlleleFrequencyTestCallComparer.hpp"
+#include "components/CallComparerComponent/PairwiseCallComparer.hpp"
 
 PairwiseCallComparer::UniquePtr PairwiseCallComparer::create( std::string const& spec ) {
 	PairwiseCallComparer::UniquePtr result ;

@@ -8,7 +8,7 @@
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "appcontext/OptionProcessor.hpp"
-#include "PairwiseCallComparer.hpp"
+#include "components/CallComparerComponent/PairwiseCallComparer.hpp"
 
 // This class collects a set of PairwiseCallComparers
 // and uses them to compare, pairwise, all the callsets sent to it.

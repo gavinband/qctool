@@ -1,0 +1,5 @@
+def build( bld ):
+	subdirs = [ 'CallComparerComponent' ]
+        for subdir in subdirs:
+                bld.add_subdirs( subdir )
+

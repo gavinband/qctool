@@ -89,7 +89,7 @@
 #include "DataReadTest.hpp"
 #include "ClusterFitter.hpp"
 #include "KinshipCoefficientComputer.hpp"
-#include "CallComparerComponent.hpp"
+#include "components/CallComparerComponent/CallComparerComponent.hpp"
 #include "ClusterPlotter.hpp"
 #include "SNPSummaryComponent.hpp"
 #include "HaplotypeFrequencyComponent.hpp"
