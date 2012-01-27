@@ -10,12 +10,12 @@
 #include "genfile/wildcard.hpp"
 #include "genfile/vcf/get_set.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
-#include "HaplotypeFrequencyComponent.hpp"
 #include "integration/NewtonRaphson.hpp"
 #include "integration/Derivative.hpp"
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
 #include "db/Error.hpp"
+#include "components/HaplotypeFrequencyComponent/HaplotypeFrequencyComponent.hpp"
 
 namespace impl {
 	struct HaplotypeFrequencyFileOutputter ;

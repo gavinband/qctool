@@ -2,7 +2,7 @@
 #include <boost/function.hpp>
 #include <Eigen/Core>
 #include "genfile/Error.hpp"
-#include "HaplotypeFrequencyComponent.hpp"
+#include "components/HaplotypeFrequencyComponent/HaplotypeFrequencyComponent.hpp"
 
 HaplotypeFrequencyLogLikelihood::HaplotypeFrequencyLogLikelihood( Matrix const& genotype_table ):
 	m_genotype_table( genotype_table ),
