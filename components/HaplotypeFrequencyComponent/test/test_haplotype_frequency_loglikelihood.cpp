@@ -1,6 +1,6 @@
 #include <Eigen/Core>
 #include "genfile/Error.hpp"
-#include "HaplotypeFrequencyLogLikelihood.hpp"
+#include "components/HaplotypeFrequencyComponent/HaplotypeFrequencyLogLikelihood.hpp"
 #include "../../config.hpp"
 #include "test_case.hpp"
 
