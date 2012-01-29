@@ -16,18 +16,11 @@ namespace snptest {
 			typedef Eigen::RowVectorXd RowVector ;
 			typedef Eigen::MatrixXd Matrix ;
 			
-			LogLikelihood(
-				Vector const& phenotypes,
-				FinitelySupportedFunctionSet const& genotypes,
-				Matrix const& covariates
-			) ;
+			LogLikelihood() ;
 
-			LogLikelihood(
-				Vector const& phenotypes,
-				FinitelySupportedFunctionSet const& genotypes,
-				Matrix const& covariates,
-				std::vector< std::size_t > const& excluded_samples
-			) ;
+			LogLikelihood& set_phenotypes( Vector const& phenotypes ) ;
+			LogLikelihood& set_genotypes( Matrix const& genotypes, Vector const& levels ) ;
+			LogLikelihood& set_covariates( Matrix const& covariates ) ;
 
 			void evaluate_at( Point const& parameters ) ;
 			double get_value_of_function() const ;
@@ -36,10 +29,10 @@ namespace snptest {
 
 		private:
 			Vector m_phenotypes ;
+			Matrix m_covariates ;
 			Matrix m_genotype_call_probabilities ;
-			Matrix m_genotype_levels ;
-			Matrix const& m_covariates ;
-			std::vector< std::size_t > m_exclusions ;
+			Vector m_genotype_levels ;
+			std::vector< int > m_exclusions ;
 
 			Matrix m_design_matrix ;
 			Matrix m_design_matrix_row_tensor_squares ;
@@ -51,9 +44,10 @@ namespace snptest {
 			Matrix m_value_of_second_derivative ;
 
 		private:
-			void deal_with_exclusions( std::vector< std::size_t > const& exclusions ) ;
+			void add_exclusions( Vector const& v ) ;
+			void add_exclusions( Matrix const& v ) ;
 			Matrix calculate_design_matrix( Matrix const& covariates ) const ;
-			void compute_tensor_squares( Matrix& design_matrix ) ;
+			void compute_tensor_squares_of_rows( Matrix& design_matrix, Matrix& result ) ;
 			// Calculate the probability of outcome given the genotype, parameters, and covariates.
 			Vector evaluate_mean_function( Vector const& linear_combinations, Vector const& outcomes ) const ;
 			// Calculate matrix of probabilities of outcome per genotype, given the parameters.

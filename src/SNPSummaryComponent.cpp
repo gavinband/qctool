@@ -70,10 +70,23 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_takes_single_value()
 		.set_default_value( "alleles,HWE,missingness,information" ) ;
 
+	options.declare_group( "Association test options" ) ;
+	options[ "-test" ]
+		.set_description( "Perform an association test on the given phenotype." )
+		.set_takes_single_value() ;
+	options[ "-covariates" ]
+		.set_description( "Specify a comma-separated list of covariates to use in the association test." )
+		.set_takes_single_value()
+		.set_default_value( "" ) ;
+	
 	options.option_implies_option( "-snp-stats", "-cohort-name" ) ;
 }
 
-SNPSummaryComponent::SNPSummaryComponent( appcontext::OptionProcessor const& options ):
+SNPSummaryComponent::SNPSummaryComponent(
+	genfile::CohortIndividualSource const& samples,
+	appcontext::OptionProcessor const& options
+):
+	m_samples( samples ),
 	m_options( options )
 {}
 
@@ -509,5 +522,9 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 }
 
 SNPSummaryComputation::UniquePtr SNPSummaryComponent::create_computation( std::string const& name ) const {
-	return SNPSummaryComputation::UniquePtr( SNPSummaryComputation::create( name )) ;
+	if( name != "association_test" ) {
+		return SNPSummaryComputation::UniquePtr( SNPSummaryComputation::create( name )) ;
+	} else {
+		assert(0) ;
+	}
 }

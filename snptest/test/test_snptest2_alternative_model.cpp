@@ -38,11 +38,9 @@ void test_alternative_model_certain_genotypes_one_individual( std::size_t g ) {
 	double p0 ;
 	double p1 ;
 
-	snptest::case_control::AlternativeModelLogLikelihood ll(
-		phenotypes,
-		snptest::FinitelySupportedFunctionSet( genotype_levels, genotypes ),
-		Matrix()
-	) ;
+	snptest::case_control::AlternativeModelLogLikelihood ll ;
+	ll.set_phenotypes( phenotypes ) ;
+	ll.set_genotypes( genotypes, genotype_levels ) ;
 
 	Vector parameters( 2 ) ;
 	// Start at 0,0

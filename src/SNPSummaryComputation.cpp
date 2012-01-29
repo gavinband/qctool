@@ -10,11 +10,8 @@ namespace {
 	struct AlleleProportionComputation: public SNPSummaryComputation
 	{
 		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) const {
-			double result = std::numeric_limits< double >::quiet_NaN() ;
 			double const a_allele_freq = ( ( 2.0 * genotypes.col(0).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
 			double const b_allele_freq = ( ( 2.0 * genotypes.col(2).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
-
-			bool minor_is_first = a_allele_freq <= b_allele_freq ;
 
 			callback( "alleleA_frequency", a_allele_freq ) ;
 			callback( "alleleB_frequency", b_allele_freq ) ;
@@ -91,7 +88,6 @@ namespace {
 					double const variance = ( f.array() - ( e.array().square() ) ).sum() ;
 					double adjustment = 4.0 * theta_mle * adjustment1.sum() + 4.0 * theta_mle * theta_mle * adjustment2.sum() ;
 
-					double const missingness = genotypes.rows() - non_missingness ;
 					adjustment += ( genotypes.rows() - non_missingness ) * 2.0 * theta_mle * ( 1.0 + theta_mle ) ;
 
 					double denominator = 2.0 * genotypes.rows() * theta_mle * ( 1.0 - theta_mle ) ;
@@ -105,17 +101,9 @@ namespace {
 
 }
 
-void SNPSummaryComputation::list_computations( boost::function< void ( std::string ) > callback ) {
-	callback( "SNPID" ) ;
-	callback( "rsid" ) ;
-	callback( "alleles" ) ;
-	callback( "HWE" ) ;
-	callback( "missingness" ) ;
-	callback( "information" ) ;
-}
-
-
-SNPSummaryComputation::UniquePtr SNPSummaryComputation::create( std::string const& name ) {
+SNPSummaryComputation::UniquePtr SNPSummaryComputation::create(
+	std::string const& name
+) {
 	UniquePtr result ;
 	if( name == "alleles" ) { result.reset( new AlleleProportionComputation()) ; }
 	else if( name == "HWE" ) { result.reset( new HWEComputation()) ; }

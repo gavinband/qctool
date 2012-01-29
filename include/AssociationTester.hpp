@@ -2,6 +2,7 @@
 #define ASSOCIATION_TESTER_HPP
 
 #include <boost/noncopyable.hpp>
+#include <boost/signals2/signal.hpp>
 #include "Eigen/Core"
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
@@ -27,26 +28,28 @@ struct AssociationTester: public genfile::SNPDataSourceProcessor::Callback, publ
 	void processed_snp( SNPIdentifyingData const& id_data, genfile::VariantDataReader& data_reader ) ;
 	void end_processing_snps() ;
 
+	typedef boost::function< void ( std::size_t index, genfile::SNPIdentifyingData const& snp, std::string const& computation_name, std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
+	void add_result_callback( ResultCallback ) ;
+
 private:
 	appcontext::OptionProcessor const& m_options ;
 	genfile::CohortIndividualSource const& m_samples ;
 	appcontext::UIContext& m_ui_context ;
-	std::vector< std::string > m_phenotypes ;
-	std::vector< std::vector< std::size_t > > m_indices_of_samples_to_exclude ;
+	std::vector< std::string > m_phenotype_names ;
 
 	typedef Eigen::VectorXd Vector ;
 	typedef Eigen::MatrixXd Matrix ;
 
-	std::vector< Vector > m_phenotype_values ;
-	Matrix m_covariate_values ;
+	std::vector< Vector > m_phenotypes ;
+	Matrix m_covariates ;
 
-	statfile::BuiltInTypeStatSink::UniquePtr m_sink ;
+	typedef boost::signals2::signal< void ( std::size_t index, genfile::SNPIdentifyingData const& snp, std::string const& value_name, genfile::VariantEntry const& value ) > ResultSignal ;
+	ResultSignal m_result_signal ;
+
 private:
-	void processed_snp( SNPIdentifyingData const& id_data, SingleSNPGenotypeProbabilities const& genotypes ) ;
-	
-	std::vector< std::string > get_phenotypes(
+	std::vector< std::string > get_sample_column_names(
 		genfile::CohortIndividualSource const& samples,
-		std::string const& phenotype_spec
+		std::string const& spec
 	) const ;
 	
 	std::vector< std::vector< std::size_t > > get_indices_of_samples_to_exclude(
@@ -59,9 +62,7 @@ private:
 		genfile::CohortIndividualSource const& samples
 	) const ;
 
-	snptest::FinitelySupportedFunctionSet get_genotype_matrix(
-		genfile::SingleSNPGenotypeProbabilities const& genotypes
-	) const ;
+Vector get_genotype_levels( Matrix const& genotypes ) const ;
 
 } ;
 

@@ -94,8 +94,8 @@ namespace integration {
 				evaluator.evaluate_at( point ) ;
 				function_value = evaluator.get_value_of_function() ;
 				max = std::max( std::abs( function_value.minCoeff() ), std::abs( function_value.maxCoeff() ) ) ;
-				std::cerr << "NR: point = " << point << ".\n" ;
-				std::cerr << "NR: tolerance = " << tolerance << ", value = " << function_value << ", max coeff = " << max << ".\n" ;
+				// std::cerr << "NR: point = " << point << ".\n" ;
+				// std::cerr << "NR: tolerance = " << tolerance << ", value = " << function_value << ", max coeff = " << max << ".\n" ;
 			}
             while( max > tolerance ) ;
 		}
