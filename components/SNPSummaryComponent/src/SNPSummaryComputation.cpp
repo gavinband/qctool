@@ -3,8 +3,8 @@
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 #include "genfile/Error.hpp"
-#include "SNPHWE.hpp"
-#include "SNPSummaryComputation.hpp"
+#include "components/SNPSummaryComponent/SNPHWE.hpp"
+#include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 
 namespace {
 	struct AlleleProportionComputation: public SNPSummaryComputation
