@@ -1,0 +1,37 @@
+import os.path
+import glob
+#import UnitTest
+
+def configure( conf ):
+	pass
+
+def create_tests( bld ):
+	bld.new_task_gen(
+		features = 'cxx cprogram',
+		target = 'test_snp_summary_component',
+		source = bld.glob( 'test/*.cpp' ),
+		uselib_local = 'genfile',
+		uselib = 'BOOST BOOST_SYSTEM BOOST_UNIT_TEST_FRAMEWORK',
+		includes='./include',
+		unit_test=1,
+		install_path=None
+	)
+
+
+def build( bld ):
+	import Options
+	
+	#---------------------
+	# libs
+	#---------------------
+	bld.new_task_gen(
+		features = 'cxx cstaticlib',
+		target = 'SNPSummaryComponent',
+		source = bld.glob( 'src/*.cpp' ),
+		includes='./include',
+		uselib = 'ZLIB BOOST BOOST_IOSTREAMS BOOST_SYSTEM BOOST_FILESYSTEM',
+		uselib_local = 'eigen genfile db statfile integration appcontext',
+		export_incdirs = './include'
+	)
+
+	#create_tests( bld )
