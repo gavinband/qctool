@@ -34,4 +34,4 @@ def build( bld ):
 		export_incdirs = './include'
 	)
 
-	#create_tests( bld )
+	#qctoocreate_tests( bld )

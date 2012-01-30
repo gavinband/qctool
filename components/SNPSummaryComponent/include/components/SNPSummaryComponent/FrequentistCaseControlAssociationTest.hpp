@@ -5,6 +5,7 @@
 #include "snptest/case_control/LogLikelihood.hpp"
 #include "snptest/case_control/NullModelLogLikelihood.hpp"
 #include "integration/NewtonRaphson.hpp"
+#include "integration/derivative.hpp"
 
 struct FrequentistCaseControlAssociationTest: public AssociationTest {
 	FrequentistCaseControlAssociationTest(
