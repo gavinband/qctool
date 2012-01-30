@@ -3,37 +3,118 @@
 #include <vector>
 #include <boost/iterator/counting_iterator.hpp>
 #include "snptest/case_control/NullModelLogLikelihood.hpp"
+#include "genfile/Error.hpp"
 
 namespace snptest {
 	namespace case_control {
-		NullModelLogLikelihood::NullModelLogLikelihood(
-			Vector const& phenotypes,
-			FinitelySupportedFunctionSet const& genotypes,
-			Matrix const& covariates
-		):
-			m_phenotypes( phenotypes ),
-			m_genotype_call_probabilities( genotypes.get_values() ),
-			m_covariates( covariates ),
-			m_design_matrix( calculate_design_matrix( covariates ) )
-		{
-			assert( m_covariates.cols() == 0 || m_covariates.rows() == m_phenotypes.size() ) ;
-			deal_with_exclusions( std::vector< std::size_t >() ) ;
+		NullModelLogLikelihood::NullModelLogLikelihood() {}
+
+		NullModelLogLikelihood& NullModelLogLikelihood::set_phenotypes( Vector const& phenotypes ) {
+			if( m_genotype_call_probabilities != Matrix() ) {
+				if( !phenotypes.rows() == m_genotype_call_probabilities.rows() ) {
+					throw genfile::BadArgumentError( "snptest::case_control::NullModelLogLikelihood::set_phenotypes()", "phenotypes" ) ;
+				}
+			}
+			
+			if( m_covariates != Matrix() ) {
+				if( !phenotypes.rows() == m_covariates.rows() ) {
+					throw genfile::BadArgumentError( "snptest::case_control::NullModelLogLikelihood::set_phenotypes()", "phenotypes" ) ;
+				}
+			}
+
+			m_phenotypes = phenotypes ;
+			add_exclusions( m_phenotypes ) ;
+
+			calculate_design_matrix( m_covariates ) ;
+
+			return *this ;
+		}
+		
+		void NullModelLogLikelihood::add_exclusions( Vector const& v ) {
+			// add covariate exclusions...
+			for( int i = 0; i < v.size(); ++i ) {
+				if( v(i) != v(i) ) {
+					std::vector< int >::iterator where = std::lower_bound( m_exclusions.begin(), m_exclusions.end(), i ) ;
+					if( *where != i ) {
+						m_exclusions.insert( where, i ) ;
+					}
+				}
+			}
+			if( !std::binary_search( m_exclusions.begin(), m_exclusions.end(), v.size() ) ) {
+				m_exclusions.push_back( v.size() ) ;
+			}
 		}
 
-		NullModelLogLikelihood::NullModelLogLikelihood(
-			Vector const& phenotypes,
-			FinitelySupportedFunctionSet const& genotypes,
-			Matrix const& covariates,
-			std::vector< std::size_t > const& excluded_samples
-		):
-			m_phenotypes( phenotypes ),
-			m_genotype_call_probabilities( genotypes.get_values() ),
-			m_covariates( covariates ),
-			m_design_matrix( calculate_design_matrix( covariates ) )
-		{
-			assert( m_phenotypes.size() == m_genotype_call_probabilities.rows() ) ;
-			assert( excluded_samples.size() <= std::size_t( m_phenotypes.rows() ) ) ;
-			deal_with_exclusions( excluded_samples ) ;
+		NullModelLogLikelihood& NullModelLogLikelihood::set_covariates( Matrix const& covariates ) {
+			if( m_genotype_call_probabilities != Matrix() ) {
+				if( !covariates.rows() == m_genotype_call_probabilities.rows() ) {
+					throw genfile::BadArgumentError( "snptest::case_control::NullModelLogLikelihood::set_covariates()", "phenotypes" ) ;
+				}
+			}
+			
+			if( m_phenotypes != Matrix() ) {
+				if( !covariates.rows() == m_phenotypes.rows() ) {
+					throw genfile::BadArgumentError( "snptest::case_control::NullModelLogLikelihood::set_covariates()", "phenotypes" ) ;
+				}
+			}
+			m_covariates = covariates ;
+			m_design_matrix = calculate_design_matrix( m_covariates ) ;
+			add_exclusions( m_covariates ) ;
+			return *this ;
+		}
+		
+		NullModelLogLikelihood& NullModelLogLikelihood::set_genotypes( Matrix const& genotypes, Vector const& levels ) {
+			if( m_covariates != Matrix() ) {
+				if( !genotypes.rows() == m_covariates.rows() ) {
+					throw genfile::BadArgumentError( "snptest::case_control::NullModelLogLikelihood::set_genotypes()", "phenotypes" ) ;
+				}
+			}
+			
+			if( m_phenotypes != Matrix() ) {
+				if( !genotypes.rows() == m_phenotypes.rows() ) {
+					throw genfile::BadArgumentError( "snptest::case_control::NullModelLogLikelihood::set_genotypes()", "phenotypes" ) ;
+				}
+			}
+
+			assert( levels.size() == genotypes.cols() ) ;
+			m_genotype_call_probabilities = genotypes ;
+			m_genotype_levels = levels ;
+			
+			// treat all-zero genotype calls as really missing...
+			for( int i = 0; i < m_genotype_call_probabilities.rows(); ++i ) {
+				if( m_genotype_call_probabilities.row( i ).maxCoeff() <= 0.0 ) {
+					m_genotype_call_probabilities.row( i ).setConstant( std::numeric_limits< double >::quiet_NaN() ) ;
+				}
+			}
+			
+			add_exclusions( genotypes ) ;
+			return *this ;
+		}
+		
+		void NullModelLogLikelihood::add_exclusions( Matrix const& matrix ) {
+			// add covariate exclusions...
+			for( int i = 0; i < matrix.rows(); ++i ) {
+				double const rowSum = matrix.row( i ).sum() ;
+				if( rowSum != rowSum ) {
+					std::vector< int >::iterator where = std::lower_bound( m_exclusions.begin(), m_exclusions.end(), i ) ;
+					if( *where != i ) {
+						m_exclusions.insert( where, i ) ;
+					}
+				}
+			}
+			if( !std::binary_search( m_exclusions.begin(), m_exclusions.end(), matrix.size() )) {
+				m_exclusions.push_back( matrix.size() ) ;
+			}
+		}
+
+		NullModelLogLikelihood& NullModelLogLikelihood::add_exclusions( std::vector< int > const& exclusions ) {
+			for( int i = 0; i < exclusions.size(); ++i ) {
+				std::vector< int >::iterator where = std::lower_bound( m_exclusions.begin(), m_exclusions.end(), exclusions[i] ) ;
+				if( *where != i ) {
+					m_exclusions.insert( where, exclusions[i] ) ;
+				}
+			}
+			return *this ;
 		}
 
 		NullModelLogLikelihood::Matrix NullModelLogLikelihood::calculate_design_matrix( Matrix const& covariates ) const {
@@ -43,12 +124,6 @@ namespace snptest {
 				result.rightCols( covariates.cols() ) = covariates ;
 			}
 			return result ;
-		}
-
-		void NullModelLogLikelihood::deal_with_exclusions( std::vector< std::size_t > const& exclusions ) {
-			std::set< std::size_t > sorted_exclusions( exclusions.begin(), exclusions.end() ) ;
-			sorted_exclusions.insert( m_phenotypes.size() ) ;
-			m_exclusions.assign( sorted_exclusions.begin(), sorted_exclusions.end() ) ;
 		}
 
 		void NullModelLogLikelihood::evaluate_at( Vector const& parameters ) {

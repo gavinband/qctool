@@ -47,6 +47,7 @@ public:
 
 private:
 	SNPSummaryComputationManager::UniquePtr create_manager() const ;
+	void add_computations( SNPSummaryComputationManager& manager ) const ;
 	SNPSummaryComputation::UniquePtr create_computation( std::string const& name ) const ;
 private:
 	genfile::CohortIndividualSource const& m_samples ;
