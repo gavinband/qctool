@@ -87,7 +87,29 @@ namespace impl {
 				"AND         Info.variable_id == ( SELECT id FROM Entity WHERE name == 'impute_info' ) "
 				"WHERE       EXISTS( SELECT * FROM SummaryData WHERE analysis_id == Analysis.id ) "
 			) ;
-
+			
+			m_connection->run_statement(
+				"CREATE VIEW IF NOT EXISTS SNPTestView AS "
+				"SELECT        Analysis.name, V.chromosome, V.position, V.rsid, "
+				"Beta.value AS beta, "
+				"Se.value AS se, "
+				"Pvalue.value AS pvalue "
+				"FROM          Variant V "
+				"INNER JOIN    Entity Analysis "
+				"LEFT OUTER JOIN SummaryData Beta "
+				"ON       Beta.variable_id IN ( SELECT id FROM Entity WHERE name == 'beta_1' ) "
+				"AND      Beta.analysis_id = Analysis.id "
+				"AND      Beta.variant_id = V.id "
+				"LEFT OUTER JOIN SummaryData SE "
+				"ON       SE.variable_id IN ( SELECT id FROM Entity WHERE name == 'se_1' ) "
+				"AND      SE.analysis_id = Analysis.id "
+				"AND      SE.variant_id = V.id "
+				"LEFT OUTER JOIN SummaryData Pvalue "
+				"ON       Pvalue.variable_id IN ( SELECT id FROM Entity WHERE name == 'p_value' ) "
+				"AND      Pvalue.analysis_id = Analysis.id "
+				"AND      Pvalue.variant_id = V.id "
+				"WHERE       EXISTS( SELECT * FROM SummaryData WHERE analysis_id == Analysis.id ) "
+			) ;
 			construct_statements() ;
 			
 			m_analysis_id = get_or_create_entity( m_cohort_name ) ;

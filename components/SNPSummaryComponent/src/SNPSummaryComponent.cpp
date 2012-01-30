@@ -30,7 +30,7 @@ void SNPSummaryComputationManager::processed_snp( genfile::SNPIdentifyingData co
 		genfile::vcf::GenotypeSetter< Eigen::MatrixBase< SNPSummaryComputation::Genotypes > > setter( m_genotypes ) ;
 		data_reader.get( "genotypes", setter ) ;
 	}
-	Computations::const_iterator i = m_computations.begin(), end_i = m_computations.end() ;
+	Computations::iterator i = m_computations.begin(), end_i = m_computations.end() ;
 	for( ; i != end_i; ++i ) {
 		i->second->operator()(
 			snp,
@@ -80,6 +80,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_default_value( "" ) ;
 	
 	options.option_implies_option( "-snp-stats", "-cohort-name" ) ;
+	options.option_implies_option( "-test", "-cohort-name" ) ;
 }
 
 SNPSummaryComponent::SNPSummaryComponent(
@@ -142,9 +143,11 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 
 void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manager ) const {
 	using genfile::string_utils::split_and_strip_discarding_empty_entries ;
-	std::vector< std::string > elts = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-snp-stats-columns" ), ",", " \t" ) ;
-	foreach( std::string const& elt, elts ) {
-		manager.add_computation( elt, SNPSummaryComputation::create( elt )) ;
+	if( m_options.check( "-snp-stats" )) {
+		std::vector< std::string > elts = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-snp-stats-columns" ), ",", " \t" ) ;
+		foreach( std::string const& elt, elts ) {
+			manager.add_computation( elt, SNPSummaryComputation::create( elt )) ;
+		}
 	}
 	if( m_options.check( "-test" )) {
 		std::vector< std::string > phenotypes = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-test" ), ",", " \t" ) ;

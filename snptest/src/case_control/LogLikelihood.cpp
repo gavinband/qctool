@@ -11,13 +11,13 @@ namespace snptest {
 		LogLikelihood::LogLikelihood() {}
 
 		LogLikelihood& LogLikelihood::set_phenotypes( Vector const& phenotypes ) {
-			if( m_genotype_call_probabilities != Matrix() ) {
+			if( m_genotype_call_probabilities.rows() > 0 || m_genotype_call_probabilities.cols() > 0 ) {
 				if( !phenotypes.rows() == m_genotype_call_probabilities.rows() ) {
 					throw genfile::BadArgumentError( "snptest::case_control::LogLikelihood::set_phenotypes()", "phenotypes" ) ;
 				}
 			}
 			
-			if( m_covariates != Matrix() ) {
+			if( m_covariates.rows() > 0 || m_covariates.cols() > 0 ) {
 				if( !phenotypes.rows() == m_covariates.rows() ) {
 					throw genfile::BadArgumentError( "snptest::case_control::LogLikelihood::set_phenotypes()", "phenotypes" ) ;
 				}
@@ -47,13 +47,13 @@ namespace snptest {
 		}
 
 		LogLikelihood& LogLikelihood::set_covariates( Matrix const& covariates ) {
-			if( m_genotype_call_probabilities != Matrix() ) {
+			if( m_genotype_call_probabilities.rows() > 0 || m_genotype_call_probabilities.cols() > 0 ) {
 				if( !covariates.rows() == m_genotype_call_probabilities.rows() ) {
 					throw genfile::BadArgumentError( "snptest::case_control::LogLikelihood::set_covariates()", "phenotypes" ) ;
 				}
 			}
 			
-			if( m_phenotypes != Matrix() ) {
+			if( m_phenotypes.size() > 0 ) {
 				if( !covariates.rows() == m_phenotypes.rows() ) {
 					throw genfile::BadArgumentError( "snptest::case_control::LogLikelihood::set_covariates()", "phenotypes" ) ;
 				}
@@ -76,20 +76,20 @@ namespace snptest {
 					}
 				}
 			}
-			if( !std::binary_search( m_exclusions.begin(), m_exclusions.end(), matrix.size() )) {
-				m_exclusions.push_back( matrix.size() ) ;
+			if( !std::binary_search( m_exclusions.begin(), m_exclusions.end(), matrix.rows() )) {
+				m_exclusions.push_back( matrix.rows() ) ;
 			}
 		}
 
 		LogLikelihood& LogLikelihood::set_genotypes( Matrix const& genotypes, Vector const& levels ) {
-			if( m_covariates != Matrix() ) {
+			if( m_covariates.rows() > 0 || m_covariates.cols() > 0 ) {
 				if( !genotypes.rows() == m_covariates.rows() ) {
 					throw genfile::BadArgumentError( "snptest::case_control::LogLikelihood::set_genotypes()", "phenotypes" ) ;
 				}
 			}
 			
-			if( m_phenotypes != Matrix() ) {
-				if( !genotypes.rows() == m_phenotypes.rows() ) {
+			if( m_phenotypes.size() > 0 ) {
+				if( !genotypes.rows() == m_phenotypes.size() ) {
 					throw genfile::BadArgumentError( "snptest::case_control::LogLikelihood::set_genotypes()", "phenotypes" ) ;
 				}
 			}
@@ -105,7 +105,17 @@ namespace snptest {
 				}
 			}
 			
+			m_exclusions.clear() ;
+			add_exclusions( m_phenotypes ) ;
+			add_exclusions( m_covariates ) ;
 			add_exclusions( genotypes ) ;
+			
+			// Check if we need to re-compute the design matrix row tensor squares.
+			// (We'll need to re-compute if the number of genotype levels has changed.)
+			if( m_design_matrix_row_tensor_squares.cols() != ( m_design_matrix.cols() * m_genotype_levels.size() ) ) {
+				compute_tensor_squares_of_rows( m_design_matrix, m_design_matrix_row_tensor_squares ) ;
+			}
+			
 			return *this ;
 		}
 

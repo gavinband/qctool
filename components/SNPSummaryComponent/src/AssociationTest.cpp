@@ -7,11 +7,11 @@
 #include "components/SNPSummaryComponent/FrequentistCaseControlAssociationTest.hpp"
 
 namespace {
-	static Vector get_sample_column(
+	AssociationTest::Vector get_sample_column(
 		genfile::CohortIndividualSource const& samples,
 		std::string const& column_name
 	) {
-		Vector result = Vector::Constant( samples.get_number_of_individuals(), std::numeric_limits< double >::quiet_NaN() ) ;
+		AssociationTest::Vector result = AssociationTest::Vector::Constant( samples.get_number_of_individuals(), std::numeric_limits< double >::quiet_NaN() ) ;
 		for( std::size_t i = 0; i < samples.get_number_of_individuals(); ++i ) {
 			genfile::CohortIndividualSource::Entry const& entry = samples.get_entry( i, column_name ) ;
 			if( !entry.is_missing() ) {
@@ -21,7 +21,8 @@ namespace {
 		return result ;
 	}
 }
-static SNPSummaryComputation::UniquePtr AssociationTest::create(
+
+SNPSummaryComputation::UniquePtr AssociationTest::create(
 	std::string const& phenotype_name,
 	std::vector< std::string > const& covariate_names,
 	genfile::CohortIndividualSource const& samples,
@@ -30,9 +31,10 @@ static SNPSummaryComputation::UniquePtr AssociationTest::create(
 	Vector phenotypes = get_sample_column( samples, phenotype_name ) ;
 	Matrix covariates( phenotypes.rows(), covariate_names.size() ) ;
 	for( std::size_t i = 0; i < covariate_names.size(); ++i ) {
-		covariates.col(i) = get_sample_column( sample, covariate_names[i] ) ;
+		covariates.col(i) = get_sample_column( samples, covariate_names[i] ) ;
 	}
 	
-	result.reset( new FrequentistCaseControlAssociationTest( phenotypes, covariates )) ;
-	return result ;
+	return SNPSummaryComputation::UniquePtr(
+		new FrequentistCaseControlAssociationTest( phenotypes, covariates )
+	) ;
 }
