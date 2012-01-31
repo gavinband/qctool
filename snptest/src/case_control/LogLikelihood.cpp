@@ -36,7 +36,7 @@ namespace snptest {
 			for( int i = 0; i < v.size(); ++i ) {
 				if( v(i) != v(i) ) {
 					std::vector< int >::iterator where = std::lower_bound( m_exclusions.begin(), m_exclusions.end(), i ) ;
-					if( *where != i ) {
+					if( where != m_exclusions.end() && *where != i ) {
 						m_exclusions.insert( where, i ) ;
 					}
 				}
@@ -46,6 +46,22 @@ namespace snptest {
 			}
 		}
 
+		void LogLikelihood::add_exclusions( Matrix const& matrix ) {
+			// add covariate exclusions...
+			for( int i = 0; i < matrix.rows(); ++i ) {
+				double const rowSum = matrix.row( i ).sum() ;
+				if( rowSum != rowSum ) {
+					std::vector< int >::iterator where = std::lower_bound( m_exclusions.begin(), m_exclusions.end(), i ) ;
+					if( where != m_exclusions.end() && *where != i ) {
+						m_exclusions.insert( where, i ) ;
+					}
+				}
+			}
+			if( !std::binary_search( m_exclusions.begin(), m_exclusions.end(), matrix.rows() )) {
+				m_exclusions.push_back( matrix.rows() ) ;
+			}
+		}
+		
 		LogLikelihood& LogLikelihood::set_covariates( Matrix const& covariates ) {
 			if( m_genotype_call_probabilities.rows() > 0 || m_genotype_call_probabilities.cols() > 0 ) {
 				if( !covariates.rows() == m_genotype_call_probabilities.rows() ) {
@@ -65,21 +81,7 @@ namespace snptest {
 			return *this ;
 		}
 		
-		void LogLikelihood::add_exclusions( Matrix const& matrix ) {
-			// add covariate exclusions...
-			for( int i = 0; i < matrix.rows(); ++i ) {
-				double const rowSum = matrix.row( i ).sum() ;
-				if( rowSum != rowSum ) {
-					std::vector< int >::iterator where = std::lower_bound( m_exclusions.begin(), m_exclusions.end(), i ) ;
-					if( *where != i ) {
-						m_exclusions.insert( where, i ) ;
-					}
-				}
-			}
-			if( !std::binary_search( m_exclusions.begin(), m_exclusions.end(), matrix.rows() )) {
-				m_exclusions.push_back( matrix.rows() ) ;
-			}
-		}
+
 
 		LogLikelihood& LogLikelihood::set_genotypes( Matrix const& genotypes, Vector const& levels ) {
 			if( m_covariates.rows() > 0 || m_covariates.cols() > 0 ) {

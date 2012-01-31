@@ -35,7 +35,7 @@ namespace snptest {
 			for( int i = 0; i < v.size(); ++i ) {
 				if( v(i) != v(i) ) {
 					std::vector< int >::iterator where = std::lower_bound( m_exclusions.begin(), m_exclusions.end(), i ) ;
-					if( *where != i ) {
+					if( where != m_exclusions.end() && *where != i ) {
 						m_exclusions.insert( where, i ) ;
 					}
 				}
@@ -97,7 +97,7 @@ namespace snptest {
 				double const rowSum = matrix.row( i ).sum() ;
 				if( rowSum != rowSum ) {
 					std::vector< int >::iterator where = std::lower_bound( m_exclusions.begin(), m_exclusions.end(), i ) ;
-					if( *where != i ) {
+					if( where != m_exclusions.end() && *where != i ) {
 						m_exclusions.insert( where, i ) ;
 					}
 				}
@@ -110,7 +110,7 @@ namespace snptest {
 		NullModelLogLikelihood& NullModelLogLikelihood::add_exclusions( std::vector< int > const& exclusions ) {
 			for( std::size_t i = 0; i < exclusions.size(); ++i ) {
 				std::vector< int >::iterator where = std::lower_bound( m_exclusions.begin(), m_exclusions.end(), exclusions[i] ) ;
-				if( *where != exclusions[i] ) {
+				if( where != m_exclusions.end() && *where != exclusions[i] ) {
 					m_exclusions.insert( where, exclusions[i] ) ;
 				}
 			}
