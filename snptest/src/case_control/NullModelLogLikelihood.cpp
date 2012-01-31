@@ -5,6 +5,8 @@
 #include "snptest/case_control/NullModelLogLikelihood.hpp"
 #include "genfile/Error.hpp"
 
+#define DEBUG_LOGLIKELIHOOD 1
+
 namespace snptest {
 	namespace case_control {
 		NullModelLogLikelihood::NullModelLogLikelihood() {}
@@ -20,12 +22,13 @@ namespace snptest {
 				if( !phenotypes.rows() == m_covariates.rows() ) {
 					throw genfile::BadArgumentError( "snptest::case_control::NullModelLogLikelihood::set_phenotypes()", "phenotypes" ) ;
 				}
+			} else {
+				m_covariates = Matrix( phenotypes.rows(), 0 ) ;
 			}
 
 			m_phenotypes = phenotypes ;
 			add_exclusions( m_phenotypes ) ;
 
-			calculate_design_matrix( m_covariates ) ;
 
 			return *this ;
 		}
@@ -87,7 +90,14 @@ namespace snptest {
 				}
 			}
 			
-			add_exclusions( genotypes ) ;
+			m_exclusions.clear() ;
+			add_exclusions( m_phenotypes ) ;
+			add_exclusions( m_covariates ) ;
+			add_exclusions( m_genotype_call_probabilities ) ;
+			
+			if( m_design_matrix.rows() != m_phenotypes.size() ) {
+				m_design_matrix = calculate_design_matrix( m_covariates ) ;
+			}
 			return *this ;
 		}
 		

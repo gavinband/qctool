@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <vector>
 #include <utility>
 #include <algorithm>
@@ -6,6 +7,7 @@
 #include "snptest/case_control/LogLikelihood.hpp"
 #include "genfile/Error.hpp"
 
+#define DEBUG_LOGLIKELIHOOD 1
 namespace snptest {
 	namespace case_control {
 		LogLikelihood::LogLikelihood() {}
@@ -21,12 +23,12 @@ namespace snptest {
 				if( !phenotypes.rows() == m_covariates.rows() ) {
 					throw genfile::BadArgumentError( "snptest::case_control::LogLikelihood::set_phenotypes()", "phenotypes" ) ;
 				}
+			} else {
+				m_covariates = Matrix( phenotypes.rows(), 0 ) ;
 			}
 
 			m_phenotypes = phenotypes ;
 			add_exclusions( m_phenotypes ) ;
-
-			calculate_design_matrix( m_covariates ) ;
 
 			return *this ;
 		}
@@ -110,10 +112,13 @@ namespace snptest {
 			m_exclusions.clear() ;
 			add_exclusions( m_phenotypes ) ;
 			add_exclusions( m_covariates ) ;
-			add_exclusions( genotypes ) ;
+			add_exclusions( m_genotype_call_probabilities ) ;
 			
 			// Check if we need to re-compute the design matrix row tensor squares.
 			// (We'll need to re-compute if the number of genotype levels has changed.)
+			if( m_design_matrix.rows() != m_phenotypes.size() ) {
+				m_design_matrix = calculate_design_matrix( m_covariates ) ;
+			}
 			if( m_design_matrix_row_tensor_squares.cols() != ( m_design_matrix.cols() * m_genotype_levels.size() ) ) {
 				compute_tensor_squares_of_rows( m_design_matrix, m_design_matrix_row_tensor_squares ) ;
 			}
@@ -135,15 +140,19 @@ namespace snptest {
 		// row for the given sample and given genotype.
 		void LogLikelihood::compute_tensor_squares_of_rows( Matrix& design_matrix, Matrix& result ) {
 			int const D = design_matrix.cols() ;
-			result.resize( D * m_phenotypes.size(), D * m_genotype_levels.size() ) ;
-			for( int g = 0; g < m_genotype_levels.size(); ++g ) {
-				design_matrix.col(1).setConstant( m_genotype_levels( g ) ) ;
+			result.resize( D * m_phenotypes.size(), D * m_genotype_levels.size() * m_genotype_levels.size() ) ;
+			for( int g1 = 0; g1 < m_genotype_levels.size(); ++g1 ) {
+				design_matrix.col(1).setConstant( m_genotype_levels( g1 ) ) ;
 				for( int sample = 0; sample < design_matrix.rows(); ++sample ) {
-					if( sample > 0 && design_matrix.row( sample ) == design_matrix.row( sample - 1 )) {
-						result.block( D * sample, D * g, D, D ) = result.block( D * ( sample - 1 ), D * g, D, D ) ;
-					}
-					else {
-						result.block( D * sample, D * g, D, D ) = design_matrix.row( sample ).transpose() * design_matrix.row( sample ) ;
+					for( int g2 = 0; g2 < m_genotype_levels.size(); ++g2 ) {
+						Vector v1 = design_matrix.row( sample ) ;
+						v1(1) = g2 ;
+						if( sample > 0 && design_matrix.row( sample ) == design_matrix.row( sample - 1 )) {
+							result.block( D * sample, D * ( g1 * m_genotype_levels.size() + g2 ), D, D ) = result.block( D * ( sample - 1 ), D * ( g1 * m_genotype_levels.size() + g2 ), D, D ) ;
+						}
+						else {
+							result.block( D * sample, D * ( g1 * m_genotype_levels.size() + g2 ), D, D ) = design_matrix.row( sample ).transpose() * design_matrix.row( sample ) ;
+						}
 					}
 				}
 			}
@@ -154,6 +163,7 @@ namespace snptest {
 			assert( m_outcome_probabilities.rows() == m_genotype_call_probabilities.rows() && m_outcome_probabilities.cols() == m_genotype_call_probabilities.cols() ) ;
 
 #if DEBUG_LOGLIKELIHOOD
+			std::cerr << std::fixed << std::setprecision(4) ;
 			int const N = m_phenotypes.size() ;
 			std::cerr << "==== LogLikelihood::evaluate_at() ====\n" ;
 			std::cerr << "Number of samples: " << N << ".\n" ;
@@ -164,20 +174,20 @@ namespace snptest {
 				<< "...\n" ;
 #endif
 			// Calculate log-likelihood.
-			// We sum over samples ignoring missing samples.
+			// We sum over samples 	 missing samples.
 			m_V = ( m_genotype_call_probabilities.array() * m_outcome_probabilities.array() ) ;
-#if DEBUG_LOGLIKELIHOOD
-			std::cerr << "call probs:\n"
-				<< m_genotype_call_probabilities.topRows( std::min( N, 5 ) ) << "...\n" ;
-			std::cerr << "call values:\n"
-				<< m_genotype_levels << ".\n" ;
-			std::cerr << "V = call probs * outcome probs:\n"
-				<< m_V.topRows( std::min( N, 5 ) )
-				<< "...\n" ;
-#endif
 			compute_value_of_function( m_V ) ;
 			compute_value_of_first_derivative( m_V ) ;
 			compute_value_of_second_derivative( m_V ) ;
+
+#if DEBUG_LOGLIKELIHOOD
+			std::cerr << "function value = \n"
+				<< m_value_of_function << "\n" 
+				<< "derivative = \n"
+				<< m_value_of_first_derivative << "\n"
+				<< "2nd derivative = \n"
+				<< m_value_of_second_derivative << ".\n" ;
+#endif
 		}
 
 		void LogLikelihood::compute_value_of_function( Matrix const& V ) {
@@ -188,9 +198,6 @@ namespace snptest {
 				m_value_of_function += V.block( start_row, 0, end_row - start_row, V.cols() ).rowwise().sum().array().log().sum() ;
 				start_row = end_row + 1 ;
 			}
-		#if DEBUG_LOGLIKELIHOOD
-			std::cerr << "Function value = " << m_value_of_function << ".\n" ;
-		#endif
 		}
 
 		void LogLikelihood::compute_value_of_first_derivative( Matrix& V ) {
@@ -205,11 +212,6 @@ namespace snptest {
 					V.row(i).array() *= ( ones - m_outcome_probabilities.row(i) ).array() ;
 				}
 			}
-		#if DEBUG_LOGLIKELIHOOD
-			std::cerr << "V = ( call probs * outcome probs * ( 1 - outcome_probs )) / sum( call probs * outcome probs ):\n"
-				<< V.topRows( std::min( N, 5 ) )
-				<< "...\n" ;
-		#endif
 
 			m_value_of_first_derivative = Vector::Zero( D ) ;
 			{
@@ -239,6 +241,30 @@ namespace snptest {
 
 			// ...and its second derivative...
 			m_value_of_second_derivative = Matrix::Zero( m_design_matrix.cols(), m_design_matrix.cols() ) ;
+			
+			int start_row = 0 ;
+			for( std::size_t i = 0; i < m_exclusions.size(); ++i ) {
+				int end_row = m_exclusions[i] ;
+				for( int sample = start_row; sample < end_row; ++sample ) {
+					for( int g1 = 0; g1 < m_genotype_levels.size(); ++g1 ) {
+						m_design_matrix( sample, 1 ) = g1 ;
+						m_value_of_second_derivative
+							+= V( sample, g1 )
+							* ( 1 - 2.0 * m_outcome_probabilities( sample, g1 ))
+							* ( m_design_matrix.row( sample ).transpose() * m_design_matrix.row( sample ) ) ;
+
+						for( int g2 = 0; g2 < m_genotype_levels.size(); ++g2 ) {
+							RowVector DM = m_design_matrix.row( sample ) ;
+							DM(1) = g2 ;
+							m_value_of_second_derivative
+								-= V( sample, g1 ) * V( sample, g2 ) * ( m_design_matrix.row( sample ).transpose() * DM ) ;
+						}
+					}
+				}
+				start_row = end_row + 1 ;
+			}
+			
+			/*
 			Vector coeffs( N ) ;
 			for( int g = 0; g < m_genotype_levels.size(); ++g ) {
 				coeffs = V.col( g ).array() * ( Vector::Ones( N ) - 2.0 * m_outcome_probabilities.col( g ) ).array() ;
@@ -246,15 +272,19 @@ namespace snptest {
 				int sample = 0 ;
 				for( std::size_t i = 0; i < m_exclusions.size(); ++i ) {
 					for( ; sample < m_exclusions[i]; ++sample ) {
-						double const coeff = coeffs( sample ) - V( sample, g ) * V( sample, g ) ;
-						m_value_of_second_derivative += coeff * m_design_matrix_row_tensor_squares.block( D * sample, D * g, D, D ) ;
+						m_value_of_second_derivative += coeffs( sample ) * ( m_design_matrix.row( sample ).transpose() * m_design_matrix.row( sample ) ) ; // m_design_matrix_row_tensor_squares.block( D * sample, D * g, D, D ) ;
+						for( int g2 = 0; g2 < m_genotype_levels.size(); ++g2 ) {
+							double const coeff = - V( sample, g ) * V( sample, g2 ) ;
+							int const D = m_design_matrix.cols() ;
+							m_value_of_second_derivative += coeff * m_design_matrix_row_tensor_squares.block(
+								D* sample, D * ( g * m_genotype_levels.size() + g2 ), D, D
+							) ;
+						}
 					}
 					++sample ; // skip excluded sample.
 				}
 			}
-			#if DEBUG_LOGLIKELIHOOD
-				std::cerr << "second derivative:\n" << m_value_of_second_derivative << ".\n" ;
-			#endif
+			*/
 		}
 	
 		// Calculate P( outcome | genotype, covariates, parameters ).

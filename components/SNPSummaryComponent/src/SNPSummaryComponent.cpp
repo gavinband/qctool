@@ -56,7 +56,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_description( "Calculate and output per-SNP statistics.  This implies that no SNP filtering options are used." ) ;
     options[ "-snp-stats-file" ]
         .set_description( 	"Override the auto-generated path(s) of the snp-stats file to use when outputting snp-wise statistics.  "
-							"(By default, the paths are formed by adding \".snp-stats\" to the input gen filename(s).)  "
+							"(By default, the paths are formed by adding \".qctool-db\" to the input gen filename(s).)  "
 							"The '#' character can also be used here to specify one output file per chromosome." )
         .set_takes_values_per_use(1)
 		.set_maximum_multiplicity(1)
@@ -79,8 +79,8 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_takes_single_value()
 		.set_default_value( "" ) ;
 	
-	options.option_implies_option( "-snp-stats", "-cohort-name" ) ;
-	options.option_implies_option( "-test", "-cohort-name" ) ;
+	options.option_implies_option( "-snp-stats", "-analysis-name" ) ;
+	options.option_implies_option( "-test", "-analysis-name" ) ;
 }
 
 SNPSummaryComponent::SNPSummaryComponent(
@@ -99,11 +99,11 @@ genfile::SNPDataSourceProcessor::Callback::UniquePtr SNPSummaryComponent::create
 SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() const {
 	SNPSummaryComputationManager::UniquePtr manager( new SNPSummaryComputationManager() ) ;
 	std::string filename = m_options.get_value< std::string >( "-snp-stats-file" ) ;
-	if( filename.empty() ) {
-		filename = m_options.get< std::string >( "-g" ) + ".snp-stats" ;
-	}
 	
 	if( m_options.check( "-nodb" )) {
+		if( filename.empty() ) {
+			filename = m_options.get< std::string >( "-g" ) + ".qctool.txt" ;
+		}
 		manager->add_result_callback(
 			boost::bind(
 				&FileOutputter::operator(),
@@ -113,7 +113,10 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 		) ;
 	}
 	else {
-			std::string sample_set_spec = "" ;
+		if( filename.empty() ) {
+			filename = m_options.get< std::string >( "-g" ) + ".qctool-db" ;
+		}
+		std::string sample_set_spec = "" ;
 		if( m_options.check( "-excl-samples" )) {
 			sample_set_spec += "excluded:" + genfile::string_utils::join( m_options.get_values< std::string >( "-excl-samples"  ), "," ) ;
 		}
@@ -123,7 +126,7 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 	
 		impl::DBOutputter::SharedPtr outputter = impl::DBOutputter::create_shared(
 			filename,
-			m_options.get< std::string >( "-cohort-name" ),
+			m_options.get< std::string >( "-analysis-name" ),
 			m_options.get< std::string >( "-g" ),
 			sample_set_spec
 		) ;
