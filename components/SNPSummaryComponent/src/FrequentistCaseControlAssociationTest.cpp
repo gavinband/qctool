@@ -13,6 +13,8 @@ FrequentistCaseControlAssociationTest::FrequentistCaseControlAssociationTest(
 	Vector const& phenotypes,
 	Matrix const& covariates
 ):
+	m_phenotypes( phenotypes ),
+	m_covariates( covariates ),
 	m_chi_squared( 1.0 )
 {
 	m_alternative_ll.set_phenotypes( phenotypes ) ;
@@ -29,9 +31,12 @@ void FrequentistCaseControlAssociationTest::operator()( SNPIdentifyingData const
 	m_null_ll.set_genotypes( genotypes, genotype_levels ) ;
 	m_alternative_ll.set_genotypes( genotypes, genotype_levels ) ;
 
-	Vector null_parameters = integration::maximise_by_newton_raphson( m_null_ll, Vector( Vector::Zero( 1 ) ), 0.00001 ) ;
-	Vector alternative_parameters( 2 ) ;
-	alternative_parameters << null_parameters(0), 0 ;
+	Vector null_parameters = Vector::Zero( m_covariates.cols() + 1 ) ;
+	null_parameters = integration::maximise_by_newton_raphson( m_null_ll, null_parameters, 0.00001 ) ;
+
+	Vector alternative_parameters = Vector::Zero( null_parameters.size() + 1 ) ;
+	alternative_parameters( 0 ) = null_parameters(0) ;
+	alternative_parameters.tail( m_covariates.cols() ) = null_parameters.tail( m_covariates.cols() ) ;
 	alternative_parameters = integration::maximise_by_newton_raphson( m_alternative_ll, alternative_parameters, 0.00001 ) ;
 
 	callback( "null_ll", m_null_ll.get_value_of_function() ) ;

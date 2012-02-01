@@ -19,6 +19,8 @@ struct FrequentistCaseControlAssociationTest: public AssociationTest {
 private:
 	snptest::case_control::LogLikelihood m_alternative_ll ;
 	snptest::case_control::NullModelLogLikelihood m_null_ll ;
+	Vector const m_phenotypes ;
+	Matrix const m_covariates ;
 	boost::math::chi_squared_distribution< double > m_chi_squared ;	
 
 private:
