@@ -427,7 +427,7 @@ public:
 			.set_description( "Specify the number of worker threads to use in computationally intensive tasks." )
 			.set_takes_single_value()
 			.set_default_value( 0 ) ;
-		options[ "-cohort-name" ]
+		options[ "-analysis-name" ]
 			.set_description( "Specify a human-readable name to label results from this analysis with (for some modules)" )
 			.set_takes_single_value()
 			.set_default_value( "(unknown)" ) ;

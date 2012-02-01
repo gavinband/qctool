@@ -33,7 +33,7 @@ void HaplotypeFrequencyComponent::declare_options( appcontext::OptionProcessor& 
 		.set_takes_single_value()
 		.set_default_value( "ld.db" ) ;
 	options.option_implies_option( "-compute-ld-file", "-compute-ld-with" ) ;
-	options.option_implies_option( "-compute-ld-with", "-cohort-name" ) ;
+	options.option_implies_option( "-compute-ld-with", "-analysis-name" ) ;
 }
 
 namespace impl {
@@ -323,7 +323,7 @@ HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
 		boost::bind(
 			&impl::HaplotypeFrequencyDBOutputter::operator(),
 			outputter,
-			options.get< std::string >( "-cohort-name" ),
+			options.get< std::string >( "-analysis-name" ),
 			_1,
 			_2,
 			_3,
@@ -339,7 +339,7 @@ HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
 		boost::bind(
 			&impl::HaplotypeFrequencyFileOutputter::operator(),
 			outputter,
-			options.get< std::string >( "-cohort-name" ),
+			options.get< std::string >( "-analysis-name" ),
 			_1,
 			_2,
 			_3,

@@ -60,6 +60,32 @@ AUTO_TEST_CASE( test_null_model_small_datasets )
 		BOOST_CHECK_EQUAL( ll.get_value_of_second_derivative(), Matrix::Constant( 1, 1, -2.0 * p1 * ( 1.0 - p1 )) ) ;
 	}
 
+	{
+		Vector phenotypes( 2 ) ;
+		phenotypes << 0.0, 1.0 ;
+		Matrix genotypes = Matrix::Zero(2,3) ;
+		genotypes(0,0) = 0.5 ; 
+		genotypes(0,1) = 0.5 ; 
+		genotypes(1,0) = 0.6 ; 
+		genotypes(1,1) = 0.4 ; 
+
+		snptest::case_control::NullModelLogLikelihood ll ;
+		ll.set_phenotypes( phenotypes ).set_genotypes( genotypes, levels ) ;
+		Vector parameters = Vector::Zero( 1 ) ;
+		ll.evaluate_at( parameters ) ;
+		BOOST_CHECK_EQUAL( ll.get_value_of_function(), std::log( 0.5 ) + std::log( 0.5 ) ) ;
+		BOOST_CHECK_EQUAL( ll.get_value_of_first_derivative(), Vector::Constant( 1, 0.0 ) ) ;
+		BOOST_CHECK_EQUAL( ll.get_value_of_second_derivative(), Matrix::Constant( 1, 1, -0.5) ) ;
+		
+		parameters( 0 ) = 1.0 ;
+		double p0 = 1.0 / ( 1.0 + std::exp( 1.0 )) ;
+		double p1 = std::exp(1.0) / ( 1.0 + std::exp( 1.0 )) ;
+		ll.evaluate_at( parameters ) ;
+		BOOST_CHECK_EQUAL( ll.get_value_of_function(), std::log( p0 ) + std::log( p1) ) ;
+		BOOST_CHECK_EQUAL( ll.get_value_of_first_derivative(), Vector::Constant( 1, 1.0 - 2.0 * p1) ) ;
+		BOOST_CHECK_EQUAL( ll.get_value_of_second_derivative(), Matrix::Constant( 1, 1, -2.0 * p1 * ( 1.0 - p1 )) ) ;
+	}
+
 	std::cerr << "ok.\n" ;
 }
 

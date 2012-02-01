@@ -67,9 +67,8 @@ void FrequentistCaseControlAssociationTest::operator()( SNPIdentifyingData const
 FrequentistCaseControlAssociationTest::Vector FrequentistCaseControlAssociationTest::get_genotype_levels( Matrix const& genotypes ) const {
 	Vector result( Vector::Zero( 3 )) ;
 	// compute average genotype
-	double const mean_genotype = ( genotypes.col(1) + 2 * genotypes.col(2) ).sum() / ( 2.0 * genotypes.sum() ) ;
-	for( int g = 0; g < 3; ++g ) {
-		result( g ) = g - mean_genotype ;
-	}
+	double const mean_genotype = ( genotypes.col(1) + 2.0 * genotypes.col(2) ).sum() / genotypes.sum() ;
+	result <<
+		-mean_genotype, 1.0 - mean_genotype, 2.0 - mean_genotype ;
 	return result ;
 }

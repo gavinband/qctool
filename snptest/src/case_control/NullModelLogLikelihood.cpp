@@ -5,7 +5,7 @@
 #include "snptest/case_control/NullModelLogLikelihood.hpp"
 #include "genfile/Error.hpp"
 
-#define DEBUG_LOGLIKELIHOOD 1
+//#define DEBUG_LOGLIKELIHOOD 1
 
 namespace snptest {
 	namespace case_control {
