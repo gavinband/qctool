@@ -15,14 +15,14 @@ def build( bld ):
 		export_incdirs = 'sqlite3'
 	)
 
-	bld(
-		features = 'cc cshlib',
-		target = 'sqlite3-extensions',
-		source = [ 'sqlite3/extensions/extension-functions.c' ],
-		includes = 'sqlite3/',
-		defines = 'SQLITE_ENABLE_COLUMN_METADATA',
-		uselib = 'DL'
-	)
+#	bld(
+#		features = 'cc cshlib',
+#		target = 'sqlite3-extensions',
+#		source = [ 'sqlite3/extensions/extension-functions.c' ],
+#		includes = 'sqlite3/',
+#		defines = 'SQLITE_ENABLE_COLUMN_METADATA',
+#		uselib = 'DL'
+#	)
 
 	bld(
 		features = 'cc cstaticlib',

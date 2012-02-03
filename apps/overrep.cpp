@@ -52,8 +52,14 @@ struct OverrepOptions: public appcontext::CmdLineOptionProcessor {
 			.set_description( "Specify the path of a file containing a list of genes to test with." )
 			.set_takes_single_value()
 		;
-		
+
 		options.declare_group( "Miscellaneous options" ) ;
+		options[ "-P-value" ]
+			.set_description( "Output lists of genes for all pathways getting this P-value or better." )
+			.set_takes_single_value()
+			.set_default_value( 0.000001 )
+		;
+
 		options[ "-log" ]
 			.set_description( "Specify the path of the log file." )
 			.set_takes_single_value()
@@ -414,7 +420,7 @@ private:
 			<< "total in pathway" << tab
 			<< "total genes" << tab
 			<< "sample odds ratio" << tab
-			<< "fishers exact test p value"
+			<< "fishers exact test p value" << tab
 			<< "ids.of.hits.in.pathway"
 			<< "\n" ;
 		
@@ -448,7 +454,7 @@ private:
 					}
 				}
 			}
-			
+
 			//get_ui_context().logger()
 			std::cout
 				<< pathway.first << tab
@@ -464,7 +470,7 @@ private:
 				//get_ui_context().logger()
 				std::cout
 					<< test.get_OR() << tab << test.get_pvalue() ;
-				if( test.get_pvalue() < 0.001 && table( 1, 1 ) > 4 ) {
+				if( test.get_pvalue() <= options().get< double >( "-P-value" ) && table( 0, 0 ) > 4  ) {
 					std::cout << tab << hit_genes_in_pathway ;
 				} else {
 					std::cout << tab << "NA" ;
