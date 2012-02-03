@@ -7,8 +7,8 @@
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
-#include "PairwiseCallComparer.hpp"
-#include "PairwiseCallComparerManager.hpp"
+#include "components/CallComparerComponent/PairwiseCallComparer.hpp"
+#include "components/CallComparerComponent/PairwiseCallComparerManager.hpp"
 
 PairwiseCallComparerManager::UniquePtr PairwiseCallComparerManager::create() {
 	PairwiseCallComparerManager::UniquePtr result( new PairwiseCallComparerManager() ) ;

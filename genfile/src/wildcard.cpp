@@ -76,7 +76,9 @@ namespace genfile {
 				for( std::size_t i = 0; i < candidates.size(); ++i ) {
 					try {
 						Chromosome chromosome( candidates[i].match() ) ;
-						matching_files[ chromosome ] = candidates[i] ;
+						if( chromosome != Chromosome() ) {
+							matching_files[ chromosome ] = candidates[i] ;
+						}
 					}
 					catch( BadArgumentError const& e ) {
 						// Filename doesn't indicate a chromosome.

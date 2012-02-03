@@ -42,6 +42,8 @@ namespace genfile {
 			assert( m_current_sink < m_sinks.size() ) ;
 			++m_current_sink ;
 		}
+		
+		std::size_t number_of_sinks() const { return m_sinks.size() ; }
 
 		SNPDataSink const& sink( std::size_t i ) const { return *m_sinks[ i ] ; }
 		std::size_t index_of_current_sink() const { return m_current_sink ; }

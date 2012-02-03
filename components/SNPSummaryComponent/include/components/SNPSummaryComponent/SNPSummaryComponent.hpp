@@ -8,6 +8,7 @@
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/VariantEntry.hpp"
+#include "genfile/CohortIndividualSource.hpp"
 #include "appcontext/OptionProcessor.hpp"
 #include "SNPSummaryComputation.hpp"
 
@@ -37,14 +38,19 @@ struct SNPSummaryComponent: public boost::noncopyable
 {
 public:
 	static void declare_options( appcontext::OptionProcessor& options ) ;
-	SNPSummaryComponent( appcontext::OptionProcessor const& options ) ;
+	SNPSummaryComponent(
+		genfile::CohortIndividualSource const& samples,
+		appcontext::OptionProcessor const& options
+	) ;
 
 	genfile::SNPDataSourceProcessor::Callback::UniquePtr create() const ;
 
 private:
 	SNPSummaryComputationManager::UniquePtr create_manager() const ;
+	void add_computations( SNPSummaryComputationManager& manager ) const ;
 	SNPSummaryComputation::UniquePtr create_computation( std::string const& name ) const ;
 private:
+	genfile::CohortIndividualSource const& m_samples ;
 	appcontext::OptionProcessor const& m_options ;
 } ;
 

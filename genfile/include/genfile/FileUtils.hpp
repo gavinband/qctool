@@ -11,7 +11,7 @@ namespace genfile {
 		CompressionType( std::string const& type ) ;
 		CompressionType( CompressionType const& other ) ;
 		CompressionType& operator=( CompressionType const& other ) ;
-		bool operator==( CompressionType const& other ) ;
+		bool operator==( CompressionType const& other ) const ;
 	private:
 		std::string m_type ;
 		void check_type() const ;

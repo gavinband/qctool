@@ -6,7 +6,7 @@
 #include <Eigen/Core>
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
 #include "integration/NewtonRaphson.hpp"
-#include "AlleleFrequencyTestCallComparer.hpp"
+#include "components/CallComparerComponent/AlleleFrequencyTestCallComparer.hpp"
 
 namespace {
 	struct MultinomialLogLikelihood {

@@ -14,12 +14,11 @@ struct SNPSummaryComputation: public boost::noncopyable {
 	typedef std::auto_ptr< SNPSummaryComputation > UniquePtr ;
 	virtual ~SNPSummaryComputation() {}
 	static UniquePtr create( std::string const& name ) ;
-	static void list_computations( boost::function< void ( std::string ) > callback ) ;
 
 	typedef genfile::SNPIdentifyingData SNPIdentifyingData ;
 	typedef Eigen::MatrixXd Genotypes ;
 	typedef boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
-	virtual void operator()( SNPIdentifyingData const&, Genotypes const&, ResultCallback ) const = 0 ;
+	virtual void operator()( SNPIdentifyingData const&, Genotypes const&, ResultCallback ) = 0 ;
 } ;
 
 #endif

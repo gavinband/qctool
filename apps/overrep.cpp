@@ -403,21 +403,26 @@ private:
 		
 		using std::setw ;
 		std::string const tab = "\t" ;
-		get_ui_context().logger()
+		std::cout
+		//get_ui_context().logger()
 			<< "pathway id" << tab
 			<< "pathway name" << tab
 			<< "hits in pathway" << tab
 			<< "hits not in pathway" << tab
 			<< "nonhits in pathway" << tab
 			<< "nonhits not in pathway" << tab
-			<< "nonhits not in pathway" << tab
 			<< "total in pathway" << tab
 			<< "total genes" << tab
 			<< "sample odds ratio" << tab
-			<< "fishers exact test p value" << "\n" ;
+			<< "fishers exact test p value"
+			<< "ids.of.hits.in.pathway"
+			<< "\n" ;
 		
 		foreach( StringStringSetMap::value_type const& pathway, m_pathway_members ) {
 			table = Eigen::Matrix2d::Zero() ;
+
+			std::string hit_genes_in_pathway ;
+
 			foreach( std::string const& value, m_universe ) {
 				int i = 0, j = 0 ;
 				if( impl::in( value, m_test_genes )) {
@@ -433,9 +438,19 @@ private:
 				}
 				
 				++table( i, j ) ;
+
+				if( i == 1 && j == 1 ) {
+					if( hit_genes_in_pathway.size() == 0 ) {
+						hit_genes_in_pathway = value ;
+					}
+					else {
+						hit_genes_in_pathway += "," + value ;
+					}
+				}
 			}
 			
-			get_ui_context().logger()
+			//get_ui_context().logger()
+			std::cout
 				<< pathway.first << tab
 				<< m_pathway_names[ pathway.first ] << tab
 				<< table( 0, 0 ) << tab
@@ -446,11 +461,21 @@ private:
 				<< table.sum() << tab ;
 			try {
 				FishersExactTest test( table ) ;
-				get_ui_context().logger() << test.get_OR() << tab << test.get_pvalue() << "\n" ;
+				//get_ui_context().logger()
+				std::cout
+					<< test.get_OR() << tab << test.get_pvalue() ;
+				if( test.get_pvalue() < 0.001 && table( 1, 1 ) > 4 ) {
+					std::cout << tab << hit_genes_in_pathway ;
+				} else {
+					std::cout << tab << "NA" ;
+				}
 			}
 			catch( std::exception const& ) {
-				get_ui_context().logger() << "NA\tNA\n" ;	
+				// get_ui_context().logger()
+				std::cout
+					<< "NA\tNA\t" ;	
 			}
+			std::cout << "\n" ;
 		}
 	}
 	

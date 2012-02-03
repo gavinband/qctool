@@ -11,34 +11,28 @@ namespace snptest {
 		struct NullModelLogLikelihood: public boost::noncopyable
 		{
 		public:
-			typedef Eigen::VectorXd Point ;
 			typedef Eigen::VectorXd Vector ;
 			typedef Eigen::RowVectorXd RowVector ;
 			typedef Eigen::MatrixXd Matrix ;
 			
-			NullModelLogLikelihood(
-				Vector const& phenotypes,
-				FinitelySupportedFunctionSet const& genotypes,
-				Matrix const& covariates = Matrix()
-			) ;
+			NullModelLogLikelihood() ;
 
-			NullModelLogLikelihood(
-				Vector const& phenotypes,
-				FinitelySupportedFunctionSet const& genotypes,
-				Matrix const& covariates,
-				std::vector< std::size_t > const& excluded_samples
-			) ;
+			NullModelLogLikelihood& set_phenotypes( Vector const& phenotypes ) ;
+			NullModelLogLikelihood& set_covariates( Matrix const& covariates ) ;
+			NullModelLogLikelihood& set_genotypes( Matrix const& genotypes, Vector const& levels ) ;
+			NullModelLogLikelihood& add_exclusions( std::vector< int > const& exclusions ) ;
 
-			void evaluate_at( Point const& parameters ) ;
+			void evaluate_at( Vector const& parameters ) ;
 			double get_value_of_function() const ;
 			Vector get_value_of_first_derivative() const ;
 			Matrix get_value_of_second_derivative() const ;
 
 		private:
 			Vector m_phenotypes ;
-			Matrix const& m_covariates ;
+			Matrix m_covariates ;
 			Matrix m_genotype_call_probabilities ;
-			std::vector< std::size_t > m_exclusions ;
+			Vector m_genotype_levels ;
+			std::vector< int > m_exclusions ;
 
 			Matrix m_outcome_probabilities ;
 			Matrix m_design_matrix ;
@@ -49,7 +43,8 @@ namespace snptest {
 			Matrix m_value_of_second_derivative ;
 
 		private:
-			void deal_with_exclusions( std::vector< std::size_t > const& exclusions ) ;
+			void add_exclusions( Vector const& v ) ;
+			void add_exclusions( Matrix const& matrix ) ;
 			
 			Matrix calculate_design_matrix( Matrix const& covariates ) const ;
 			// Calculate the probability of outcome given the genotype, parameters, and covariates.

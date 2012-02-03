@@ -17,6 +17,7 @@ struct VCDBDataStore: public DataStore
 	int64_t get_entity( std::string const& name ) const ;
 	void set_relationship( std::string const& left, std::string const& relation, std::string const& right ) const ;
 	void store_per_variant_data( int64_t snp_id, std::string const& field, std::string const& cohort, std::string const& storage, char const* buffer, char const* const end ) ;
+	void store_per_variant_summary_data( int64_t snp_id, std::string const& tool, std::string const& field, std::string const& storage, genfile::VariantEntry const& value ) ;
 	void get_entities_by_relation( std::string const& relationship, std::string const& related_entity, boost::function< void ( db::Connection::RowId, std::string const& ) > callback ) ;
 	Transaction::UniquePtr open_transaction() ;
 private:

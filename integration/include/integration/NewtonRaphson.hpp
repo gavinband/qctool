@@ -49,9 +49,9 @@ namespace integration {
 				//point += decomposer.solve( -function_value ) ; // 
 				point = point + decomposer.solve( -function_value ) ;
                 function_value = function( point ) ;
-				max = std::max( std::abs( function_value.minCoeff() ), std::abs( function_value.maxCoeff() ) ) ;				
-				//std::cerr << "NR: point = " << point << ".\n" ;
-				//std::cerr << "NR: tolerance = " << tolerance << ", value = " << function_value << ", max coeff = " << max << ".\n" ;
+				max = std::max( std::abs( function_value.minCoeff() ), std::abs( function_value.maxCoeff() ) ) ;
+				// std::cerr << "NR: point = " << point << ".\n" ;
+				// std::cerr << "NR: tolerance = " << tolerance << ", value = " << function_value << ", max coeff = " << max << ".\n" ;
 			}
             while( max > tolerance ) ;
 		}
@@ -59,9 +59,9 @@ namespace integration {
 	}
 
 	template< typename FunctionAndDerivativeEvaluator >
-	typename FunctionAndDerivativeEvaluator::Point find_root_by_newton_raphson(
+	typename FunctionAndDerivativeEvaluator::Vector find_root_by_newton_raphson(
 		FunctionAndDerivativeEvaluator& evaluator,
-		typename FunctionAndDerivativeEvaluator::Point point,
+		typename FunctionAndDerivativeEvaluator::Vector point,
 		double tolerance = 0.0000000001
 	)
 	// The version of Newton-Raphson taking a seperate function and derivative argument
@@ -71,7 +71,6 @@ namespace integration {
 	// The evaluator must expose an Evaluation typedef.  This is an object with two methods,
 	// get_value_of_function() and get_value_of_derivative().
 	{
-		typedef typename FunctionAndDerivativeEvaluator::Point Point ;
 		typedef typename FunctionAndDerivativeEvaluator::Vector Vector ;
 		typedef typename FunctionAndDerivativeEvaluator::Matrix Matrix ;
 		
@@ -91,10 +90,12 @@ namespace integration {
 			do {
 				derivative_value = evaluator.get_value_of_first_derivative() ;
 				solver.compute( derivative_value ) ;
-				point += solver.solve( -function_value ) ; // 
+				point += solver.solve( -function_value ) ;
 				evaluator.evaluate_at( point ) ;
 				function_value = evaluator.get_value_of_function() ;
-				max = std::max( std::abs( function_value.minCoeff() ), std::abs( function_value.maxCoeff() ) ) ;				
+				max = std::max( std::abs( function_value.minCoeff() ), std::abs( function_value.maxCoeff() ) ) ;
+				// std::cerr << "NR: point = " << point << ".\n" ;
+				// std::cerr << "NR: tolerance = " << tolerance << ", value = " << function_value << ", max coeff = " << max << ".\n" ;
 			}
             while( max > tolerance ) ;
 		}

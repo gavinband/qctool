@@ -93,7 +93,7 @@ namespace genfile {
 
 		std::vector< std::string > const m_column_names ;
 		std::size_t const m_number_of_samples ;
-		std::size_t const m_number_of_lines ;
+		std::size_t m_number_of_lines ;
 		
 		// We record the alleles per SNP, so that they can be used on subsequent SNPs.
 		std::vector< std::string > m_variant_alleles ; 

@@ -49,10 +49,11 @@ namespace genfile {
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_field_mapping( get_field_mapping( m_format_types )),
 		m_column_names( read_column_names( *m_stream_ptr )),
-		m_number_of_samples( m_column_names.size() - 9 ),
-		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata ) )
+		m_number_of_samples( m_column_names.size() - 9 )
 	{
 		setup() ;
+		m_number_of_lines = determine_number_of_lines( *m_stream_ptr, m_metadata ) ;
+		reset_stream() ;
 	}
 
 	VCFFormatSNPDataSource::VCFFormatSNPDataSource(
@@ -67,10 +68,11 @@ namespace genfile {
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_field_mapping( get_field_mapping( m_format_types )),
 		m_column_names( read_column_names( *m_stream_ptr )),
-		m_number_of_samples( m_column_names.size() - 9 ),
-		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata ))
+		m_number_of_samples( m_column_names.size() - 9 )
 	{
 		setup() ;
+		m_number_of_lines = determine_number_of_lines( *m_stream_ptr, m_metadata ) ;
+		reset_stream() ;
 	}
 
 	VCFFormatSNPDataSource::VCFFormatSNPDataSource(
@@ -86,10 +88,11 @@ namespace genfile {
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_field_mapping( get_field_mapping( m_format_types )),
 		m_column_names( read_column_names( *m_stream_ptr )),
-		m_number_of_samples( m_column_names.size() - 9 ),
-		m_number_of_lines( determine_number_of_lines( *m_stream_ptr, m_metadata ))
+		m_number_of_samples( m_column_names.size() - 9 )
 	{
 		setup() ;
+		m_number_of_lines = determine_number_of_lines( *m_stream_ptr, m_metadata ) ;
+		reset_stream() ;
 	}
 	
 	void VCFFormatSNPDataSource::setup() {
@@ -101,8 +104,6 @@ namespace genfile {
 		if( boost::filesystem::exists( index_filename ) ) {
 			m_index_stream_ptr = open_text_file_for_input( index_filename ) ;
 		} 
-		// check_genotype_probability_field( m_field_mapping ) ;
-		reset_stream() ;
 	}
 
 	void VCFFormatSNPDataSource::check_genotype_probability_field( std::string const& field ) const {
@@ -203,7 +204,26 @@ namespace genfile {
 			}
 		}
 		else {
-			result = count_lines( vcf_file_stream ) ;
+			if( m_index_stream_ptr.get() ) {
+				try {
+					m_index_stream_ptr->clear() ;
+					m_index_stream_ptr->seekg(0) ;
+					std::string line ;
+					std::getline( *m_index_stream_ptr, line ) ;
+					if( line == "SNPID RSID chromosome position allele1 allele2" ) {
+						result = count_lines( *m_index_stream_ptr ) ; // ignore header line.
+					}
+					else {
+						result = count_lines( vcf_file_stream ) ;
+					}
+				}
+				catch( MalformedInputError const& e ) {
+					result = count_lines( vcf_file_stream ) ;
+				}
+			}
+			else {
+				result = count_lines( vcf_file_stream ) ;
+			}
 		}
 		return result ;
 	}
@@ -317,12 +337,6 @@ namespace genfile {
 				if( elts.size() != 6 ) {
 					throw MalformedInputError( m_spec + ".index", count, 6 ) ;
 				}
-				if( elts[4].size() != 1 ) {
-					throw MalformedInputError( m_spec + ".index", count, 4 ) ;
-				}
-				if( elts[5].size() != 1 ) {
-					throw MalformedInputError( m_spec + ".index", count, 5 ) ;
-				}
 				setter(
 					SNPIdentifyingData(
 						elts[0],
@@ -331,8 +345,8 @@ namespace genfile {
 							Chromosome( elts[2] ),
 							string_utils::to_repr< Position >( elts[3] )
 						),
-						elts[4][0],
-						elts[5][0]
+						elts[4],
+						elts[5]
 					)
 			 	) ;
 				if( progress_callback ) {

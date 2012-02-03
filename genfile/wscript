@@ -57,25 +57,6 @@ def build( bld ):
 		export_incdirs = './include'
 	)
 
-	# create_test( bld, 'test_string_utils' )
-	# create_test( bld, 'test_cohort_individual_source' )
-	# create_test( bld, 'test_sample_filtering_cohort_individual_source' )
-	# create_test( bld, 'test_cross_cohort_covariate_value_mapping' )
-    
-	# create_test( bld, 'test_bgen_header_format' )
-	# create_test( bld, 'test_bgen_snp_format' )
-	# create_test( bld, 'test_genfile_io' )
-	# create_test( bld, 'test_snp_data_source_chain' )
-	# create_test( bld, 'test_snp_data_source_rack' )
-	# create_test( bld, 'test_sample_filtering_snp_data_source' )
-	# create_test( bld, 'test_allele_flipping_snp_data_source' )
-	# create_test( bld, 'test_strand_aligning_snp_data_source' )
-	# create_test( bld, 'test_slice' )
-	# create_test( bld, 'test_vcf_metadata' )
-	# create_test( bld, 'test_vcf_format_source' )
-	# create_test( bld, 'test_vcf_types' )
-	# create_test( bld, 'test_vcf_call_reader' )
-
 	create_tests( bld )
 
 	create_benchmark( bld, 'benchmark-io' )

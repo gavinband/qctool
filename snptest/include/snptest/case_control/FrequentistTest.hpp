@@ -5,6 +5,8 @@
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
 #include "snptest/PerSnpFrequentistTest.hpp"
 #include "snptest/FinitelySupportedFunctionSet.hpp"
+#include "snptest/case_control/AlternativeModelLogLikelihood.hpp"
+#include "snptest/case_control/NullModelLogLikelihood.hpp"
 
 namespace snptest {
 	namespace case_control {
@@ -26,6 +28,7 @@ namespace snptest {
 			double m_sample_inclusion_threshold ;
 			bool m_mimic_snptest ;
 			boost::math::chi_squared_distribution< double > m_chi_squared ;	
+			
 		} ;	
 	}
 }
