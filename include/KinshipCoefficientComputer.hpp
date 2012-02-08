@@ -50,7 +50,6 @@ namespace impl {
 		Eigen::VectorXd m_non_missingness_matrix ;
 		bool m_finalised ;
 	} ;
-	
 }
 
 

@@ -271,13 +271,12 @@ void KinshipCoefficientManager::declare_options( appcontext::OptionProcessor& op
 	options[ "-loadings" ]
 		.set_description( "Compute loadings in addition to PCA." )
 		.set_takes_single_value()
-		.set_default_value( 0 ) ;
+		.set_default_value( 10 ) ;
 	options[ "-no-lapack" ]
 		.set_description( "Don't use lapack to perform computations." ) ;
 
 	options.option_implies_option( "-kinship", "-s" ) ;
 	options.option_implies_option( "-load-kinship", "-s" ) ;
-	options.option_implies_option( "-load-kinship", "-PCA" ) ;
 	options.option_implies_option( "-PCA", "-load-kinship" ) ;
 	options.option_implies_option( "-number_of_PCAs", "-PCA" ) ;
 	options.option_implies_option( "-loadings", "-PCA" ) ;
@@ -445,6 +444,15 @@ namespace impl {
 	std::string string_and_number( std::string const& s, std::size_t i ) {
 		return s + genfile::string_utils::to_string( i ) ;
 	}
+	
+	std::string eigenvector_column_names( std::size_t N, std::string const& string1, std::string const& string2, std::size_t i ) {
+		if( i < N ) {
+			return string1 + genfile::string_utils::to_string( i ) ;
+		}
+		else {
+			return string2 + genfile::string_utils::to_string( i - N ) ;
+		}
+	}
 }
 
 void KinshipCoefficientComputer::end_processing_snps() {
@@ -609,12 +617,13 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 			+ genfile::string_utils::to_string( m_number_of_snps )
 			+ "\n# Number of samples: "
 			+ genfile::string_utils::to_string( m_number_of_samples )
-			+ "\n# Note: the first column contains the eigenvalues."
-			+ "\n# Note: column (i+1) contains the eigenvector corresponding to the ith eigenvalue." ;
+			+ "\n# Note: This file contains a U D U^t decomposition of the matrix in \"" + m_filename + "\"."
+			+ "\n# Note: the first column contains the diagonal of D (the eigenvalues)."
+			+ "\n# Note: column (i+1) contains the ith column of U (the eigenvector corresponding to the ith eigenvalue)." ;
 
 		std::string filename = m_options.get< std::string >( "-PCA" ) ;
 		send_results(
-			filename,
+			filename + ".UDUT.csv",
 			m_kinship_eigendecomposition,
 			"PCAComputer",
 			description,
@@ -626,20 +635,20 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 			)
 		) ;
 	}
-	if( m_number_of_eigenvectors_to_compute > 0 ) {
-		m_number_of_eigenvectors_to_compute = std::min( m_number_of_eigenvectors_to_compute, m_number_of_samples ) ;
-		m_number_of_eigenvectors_to_compute = std::min( m_number_of_eigenvectors_to_compute, m_number_of_snps ) ;
+	if( m_number_of_PCAs_to_compute > 0 ) {
+		m_number_of_PCAs_to_compute = std::min( m_number_of_PCAs_to_compute, m_number_of_samples ) ;
+		m_number_of_PCAs_to_compute = std::min( m_number_of_PCAs_to_compute, m_number_of_snps ) ;
 
-		m_interesting_eigenvalues = m_kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) ;
-		m_interesting_eigenvectors = m_kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_eigenvectors_to_compute ) ;
+		m_PCA_eigenvalues = m_kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) ;
+		m_PCA_components = m_kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_PCAs_to_compute ) ;
 
-		Eigen::VectorXd v = m_kinship_eigendecomposition.block( 0, 0, m_number_of_eigenvectors_to_compute, 1 ) ;
+		Eigen::VectorXd v = m_kinship_eigendecomposition.block( 0, 0, m_number_of_PCAs_to_compute, 1 ) ;
 		v = v.array().sqrt() ;
 		Eigen::MatrixXd PCAs =
 			v.asDiagonal() *
-			m_interesting_eigenvectors.transpose() ;
+			m_PCA_components.transpose() ;
 
-		std::string description = "# First " + genfile::string_utils::to_string( m_number_of_eigenvectors_to_compute ) + " PCA components\n"
+		std::string description = "# First " + genfile::string_utils::to_string( m_number_of_PCAs_to_compute ) + " PCA components\n"
 			+ "# Number of SNPs: "
 			+ genfile::string_utils::to_string( m_number_of_snps )
 			+ "\n# Number of samples: "
@@ -662,48 +671,102 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::siz
 			)
 		) ;
 		
-		m_eigenvectors.resize( m_number_of_eigenvectors_to_compute ) ;
+		m_eigenvectors.resize( 2 * m_number_of_PCAs_to_compute ) ;
 	}
-	if( m_options.check( "-PCA-exclusions" )) {
+}
+
+namespace impl {
+	template< typename Vector1, typename Vector2, typename NonMissingVector >
+	double compute_correlation( Vector1 const& v1, Vector2 const& v2, NonMissingVector const& non_missingness_indicator ) {
+		assert( v1.size() == v2.size() ) ;
+		double non_missingness = non_missingness_indicator.sum() ;
+		double mean1 = 0.0 ;
+		double mean2 = 0.0 ;
+		for( int i = 0; i < v1.size(); ++i ) {
+			if( non_missingness_indicator( i )) {
+				mean1 += v1(i) / non_missingness ;
+				mean2 += v2(i) / non_missingness ;
+			}
+		}
+
+		double covariance = 0.0 ;
+		double variance1 = 0.0 ;
+		double variance2 = 0.0 ;
+		for( int i = 0; i < v1.size(); ++i ) {
+			if( non_missingness_indicator( i )) {
+				covariance += ( v1(i) - mean1 ) * ( v2(i) - mean2 ) ;
+				variance1 += ( v1(i) - mean1 ) * ( v1(i) - mean1 ) ;
+				variance2 += ( v2(i) - mean2 ) * ( v2(i) - mean2 ) ;
+			}
+		}
 		
+		// We should divide the covariance by N-1 and also
+		// divide each variance by the same quantity.
+		// But this washes out in the ratio.
+		
+		return covariance / std::sqrt( variance1 * variance2 ) ;
 	}
 }
 
 void PCAComputer::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
-	if( m_number_of_eigenvectors_to_compute > 0 ) {
+	if( m_number_of_PCAs_to_compute > 0 ) {
 		m_genotype_probabilities.resize( m_number_of_samples ) ;
 		data_reader.get( "genotypes", m_genotype_probabilities ) ;
 		double allele_sum ;
 		impl::threshhold_genotypes( m_genotype_probabilities, &m_genotype_calls, &m_non_missingness, &allele_sum, m_threshhold ) ;
+		assert( m_non_missingness.size() == m_PCA_components.rows() ) ;
+		assert( m_genotype_calls.size() == m_PCA_components.rows() ) ;
 		double const allele_frequency = allele_sum / ( 2.0 * m_non_missingness.sum() ) ;
 		impl::mean_centre_genotypes( &m_genotype_calls, m_non_missingness, allele_frequency ) ;
+		//m_genotype_calls /= std::sqrt( 2.0 * allele_frequency * ( 1.0 - allele_frequency ) ) ;
+
 		//
 		// If X is the L\times n matrix (L SNPs, n samples) of (mean-centred, scaled) genotypes, we have
 		// computed the eigenvalue decomposition X^t X = U D U^t in m_solver.
 		// We want to compute the eigenvectors of X X^t instead.
-		// These are given by the columns of S^t, or the rows of S, where
+		// These are given by the columns of S, where
 		//   S = X U D^{-1/2}
-		// At this point we have a single row of X and so can compute a row of S directly.
-		m_eigenvectors =
-			(
-				m_genotype_calls *
-				m_interesting_eigenvectors
-				).array() /
-				m_kinship_eigendecomposition
-					.block( 0, 0, m_number_of_eigenvectors_to_compute, 1 )
-					.array()
-					.sqrt()
-			;
+		// At this point we have :
+		// 	m_PCA_components - equal to S^t X or D^{1/2} U^t
+		//  m_genotype_calls - equal to a row of X.
+		// Thus the current row of S is equal to
+		//   m_genotype_calls.transpose() * ( m_PCA_components^t ) / D
+		//
+		assert( m_eigenvectors.size() == 2 * m_PCA_components.cols() ) ;
+		
+		m_eigenvectors.setConstant( std::numeric_limits< double >::quiet_NaN() ) ;
+		
+		m_eigenvectors.segment( 0, m_PCA_components.cols() )
+			= (
+				m_genotype_calls.transpose() *
+				m_PCA_components
+			).array() /
+			m_kinship_eigendecomposition
+				.block( 0, 0, m_number_of_PCAs_to_compute, 1 )
+				.array()
+		;
+		
+		// We also wish to compute the correlation between the SNP and the PCA component.
+		// This is almost the same computation, but we use only non-missing observations in computing the
+		// standard deviations.  Note genotype calls are alread mean-centred and missing ones set to 0.
+		if( m_non_missingness.sum() > 10 ) {
+			for( int i = 0; i < m_PCA_components.cols(); ++i ) {
+				m_eigenvectors( m_PCA_components.cols() + i ) = impl::compute_correlation( m_genotype_calls, m_PCA_components.col( i ), m_non_missingness ) ;
+			}
+		}
+		
 		send_per_variant_results(
 			"PCA eigenvectors",
 			snp,
 			m_eigenvectors,
 			boost::bind(
-				&impl::string_and_number,
-				"v_",
+				&impl::eigenvector_column_names,
+				m_PCA_components.cols(),
+				"eigenvector_",
+				"correlation_",
 				_1
 			)
-			) ;
+		) ;
 	}
 }
 

@@ -30,15 +30,16 @@ private:
 	std::size_t m_number_of_snps_processed ;
 	Eigen::MatrixXd m_kinship_matrix ;
 	Eigen::MatrixXd m_kinship_eigendecomposition ;
-	Eigen::VectorXd m_interesting_eigenvalues ;
-	Eigen::MatrixXd m_interesting_eigenvectors ;
+	Eigen::VectorXd m_PCA_eigenvalues ;
+	Eigen::MatrixXd m_PCA_components ;
 
-	std::size_t m_number_of_eigenvectors_to_compute ;
+	std::size_t m_number_of_PCAs_to_compute ;
 	double m_threshhold ;
 	genfile::SingleSNPGenotypeProbabilities m_genotype_probabilities ;
 	Eigen::VectorXd m_genotype_calls ;
 	Eigen::VectorXd m_non_missingness ;
 	Eigen::VectorXd m_eigenvectors ;
+	Eigen::MatrixXd m_correlations ;
 	
 	void load_matrix( std::string const& filename, Eigen::MatrixXd* matrix ) const ;
 } ;
