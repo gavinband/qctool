@@ -1331,13 +1331,30 @@ private:
 		}
 
 		for( std::size_t i = 0; i < merge_in_files.size(); ++i ) {
+			genfile::SNPDataSource::UniquePtr source = genfile::SNPDataSource::create_chain(
+				genfile::wildcard::find_files_by_chromosome( merge_in_files[i] )
+			) ;
+			
+			// Make the merged-in source respect the filter.
+			genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter() ;
+			if( snp_filter.get() ) {
+				std::vector< genfile::SNPIdentifyingData > snps = genfile::get_list_of_snps_in_source( *source ) ;
+				
+				std::vector< std::size_t > indices_of_filtered_in_snps = snp_filter->get_indices_of_filtered_in_snps( snps ) ;
+				source.reset(
+					genfile::SNPFilteringSNPDataSource::create(
+						source,
+						indices_of_filtered_in_snps
+					).release()
+				) ;
+			}
+			
 			merged_source->add_source(
-				genfile::SNPDataSource::create_chain(
-					genfile::wildcard::find_files_by_chromosome( merge_in_files[i] )
-				),
+				source,
 				id_prefix + ":"
 			) ;
 		}
+
 		return genfile::SNPDataSource::UniquePtr( merged_source.release() ) ;
 	}
 		
