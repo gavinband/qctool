@@ -1,5 +1,6 @@
 #include <Eigen/Core>
 #include "LapackEigenDecomposition.hpp"
+#include <iostream>
 #include "../config.hpp"
 #if HAVE_CLAPACK
 	#include "clapack.h"
