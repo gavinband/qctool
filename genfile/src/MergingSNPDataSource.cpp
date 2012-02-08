@@ -18,6 +18,7 @@ namespace genfile {
 		else {
 			throw genfile::BadArgumentError( "genfile::MergingSNPDataSource::create()", "merge_strategy=\"" + merge_strategy + "\"" ) ;
 		}
+		return result ;
 	}
 	
 	MergingSNPDataSource::MergingSNPDataSource()
