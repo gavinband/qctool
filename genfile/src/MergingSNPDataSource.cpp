@@ -6,6 +6,21 @@
 #include "genfile/Error.hpp"
 
 namespace genfile {
+	
+	MergingSNPDataSource::UniquePtr MergingSNPDataSource::create( std::string const& merge_strategy ) {
+		MergingSNPDataSource::UniquePtr result ;
+		if( merge_strategy == "keep-all" ) {
+			result.reset( new KeepAllStrategyMergingSNPDataSource ) ;
+		}
+		else if( merge_strategy == "drop-duplicates" ) {
+			result.reset( new DropDuplicatesStrategyMergingSNPDataSource ) ;
+		}
+		else {
+			throw genfile::BadArgumentError( "genfile::MergingSNPDataSource::create()", "merge_strategy=\"" + merge_strategy + "\"" ) ;
+		}
+		return result ;
+	}
+	
 	MergingSNPDataSource::MergingSNPDataSource()
 	{}
 
@@ -46,6 +61,32 @@ namespace genfile {
 			m_current_snps.insert(
 				std::make_pair( snp, source_i )
 			) ;
+		}
+	}
+
+	void MergingSNPDataSource::discard_top_snp_and_get_next_candidate() {
+		assert( m_current_snps.size() > 0 ) ;
+		std::size_t source_i = m_current_snps.begin()->second ;
+		m_current_snps.erase( m_current_snps.begin() ) ;
+		get_top_snp_in_source( source_i ) ;
+	}
+
+	void KeepAllStrategyMergingSNPDataSource::discard_top_snp_and_get_next() {
+		discard_top_snp_and_get_next_candidate() ;
+	}
+
+	void DropDuplicatesStrategyMergingSNPDataSource::discard_top_snp_and_get_next() {
+		assert( current_snps().size() > 0 ) ;
+		
+		genfile::SNPIdentifyingData const current_snp = current_snps().begin()->first ;
+		discard_top_snp_and_get_next_candidate() ;
+
+		while(
+			current_snps().size() > 0
+			&& current_snps().begin()->first.get_position() == current_snp.get_position()
+		) {
+			get_source( current_snps().begin()->second ).ignore_snp_probability_data() ;
+			discard_top_snp_and_get_next_candidate() ;
 		}
 	}
 
@@ -112,8 +153,7 @@ namespace genfile {
 		assert( m_current_snps.size() > 0 ) ;
 		std::size_t source_i = m_current_snps.begin()->second ;
 		result = m_sources[ source_i ]->read_variant_data() ;
-		m_current_snps.erase( m_current_snps.begin() ) ;
-		get_top_snp_in_source( source_i ) ;
+		discard_top_snp_and_get_next() ;
 		return result ;
 	}
 
@@ -121,8 +161,7 @@ namespace genfile {
 		assert( m_current_snps.size() > 0 ) ;
 		std::size_t source_i = m_current_snps.begin()->second ;
 		m_sources[ source_i ]->ignore_snp_probability_data() ;
-		m_current_snps.erase( m_current_snps.begin() ) ;
-		get_top_snp_in_source( source_i ) ;
+		discard_top_snp_and_get_next() ;
 	}
 
 	void MergingSNPDataSource::reset_to_start_impl() {

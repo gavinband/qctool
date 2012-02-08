@@ -1,5 +1,6 @@
 #include <Eigen/Core>
 #include "LapackEigenDecomposition.hpp"
+#include <iostream>
 #include "../config.hpp"
 #if HAVE_CLAPACK
 	#include "clapack.h"
@@ -62,7 +63,16 @@ extern "C" {
 	int dsyev_(char *jobz, char *uplo, int *n, double *a,
 		 int *lda, double *w, double *work, int *lwork, 
 		int *info) ;
-	// 
+
+	/*
+	int dsyevr_(char *jobz, char *range, char *uplo, integer *n, 
+		doublereal *a, integer *lda, doublereal *vl, doublereal *vu, integer *
+		il, integer *iu, doublereal *abstol, integer *m, doublereal *w, 
+		doublereal *z__, integer *ldz, integer *isuppz, doublereal *work, 
+		integer *lwork, integer *iwork, integer *liwork, integer *info)	// 
+
+	doublereal dlamch_( char *cmach ) ;
+	*/
 }
 #endif
 
@@ -85,7 +95,56 @@ namespace lapack
 		std::vector< double > workspace( work_size ) ;
 		dsyev_( &JOBZ, &UPLO, &N, eigenvectors->data(), &LDA, eigenvalues->data(), &workspace[0], &LWORK, &info ) ;
 		if( info != 0 ) {
-			assert( 0 ) ;
+			std::cerr << "!! compute_eigendecomposition(): info = " << info << ".\n" ;
+			if( info < 0 ) {
+				assert( 0 ) ;
+			}
 		}
 	}
+
+/*	void compute_eigendecomposition(
+		Eigen::MatrixXd const& matrix,
+		Eigen::VectorXd* eigenvalues,
+		Eigen::MatrixXd* eigenvectors,
+		double minimum_eigenvalue
+	) {
+		int N = matrix.cols() ;
+		assert( matrix.rows() == N ) ;
+		int M_LDA = matrix->outerStride() ;
+		int EV_LDA = eigenvectors->outerStride() ;
+		int LWORK = -1 ;
+		int info = 0 ;
+		char RANGE = 'V' ;
+		char JOBZ = 'V' ;
+		char UPLO = 'L' ;
+		double maximum_eigenvalue = std::numeric_limits< double >::max() ;
+		double ABSTOL = dlamch_( "Safe minimum" ) ;
+		double work_size ;
+		int M ;
+		dsyev_( &JOBZ, &UPLO, &N, 0, &LDA, 0, &work_size, &LWORK, &info ) ;
+		LWORK = work_size + 32 ;
+		std::vector< double > workspace( work_size ) ;
+
+		dsyevr_(
+			&JOBZ, &RANGE, &UPLO, &N,
+			matrix->data(),
+			&M_LDA,
+			&minimum_eigenvalue, &maximum_eigenvalue,
+			0, 0,
+			&ABSTOL,
+			&M,
+			eigenvalues->data(),
+			eigenvectors->data(),
+			&EV_LDA
+			&workspace[0],
+			&LWORK,
+			&info
+		) ;
+		if( info != 0 ) {
+			std::cerr << "!! compute_eigendecomposition(): info = " << info << ".\n" ;
+			if( info < 0 ) {
+				assert( 0 ) ;
+			}
+		}
+	}*/
 }

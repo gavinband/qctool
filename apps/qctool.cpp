@@ -142,6 +142,11 @@ public:
 			.set_takes_values_per_use( 1 )
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
+		options[ "-merge-strategy" ]
+			.set_description( "Specify a strategy to use when encountering SNPs with the same position in a merge. "
+				"Options are \"keep-all\" and \"drop-duplicates\"." )
+			.set_takes_single_value()
+			.set_default_value( "keep-all" ) ;
 		options[ "-merge-prefix" ]
 			.set_description( "Specify a string to add as a prefix to ID fields of merged-in variants" )
 			.set_takes_single_value()
@@ -1317,7 +1322,7 @@ private:
 	}
 	
 	genfile::SNPDataSource::UniquePtr open_merged_data_sources() {
-		std::auto_ptr< genfile::MergingSNPDataSource > merged_source( new genfile::MergingSNPDataSource() ) ;
+		genfile::MergingSNPDataSource::UniquePtr merged_source = genfile::MergingSNPDataSource::create( m_options.get< std::string >( "-merge-strategy" )) ;
 		merged_source->add_source( m_snp_data_source ) ;
 		std::vector< std::string > merge_in_files = m_options.get_values< std::string >( "-merge-in" ) ;
 		std::string id_prefix = "" ;
@@ -1326,13 +1331,30 @@ private:
 		}
 
 		for( std::size_t i = 0; i < merge_in_files.size(); ++i ) {
+			genfile::SNPDataSource::UniquePtr source = genfile::SNPDataSource::create_chain(
+				genfile::wildcard::find_files_by_chromosome( merge_in_files[i] )
+			) ;
+			
+			// Make the merged-in source respect the filter.
+			genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter() ;
+			if( snp_filter.get() ) {
+				std::vector< genfile::SNPIdentifyingData > snps = genfile::get_list_of_snps_in_source( *source ) ;
+				
+				std::vector< std::size_t > indices_of_filtered_in_snps = snp_filter->get_indices_of_filtered_in_snps( snps ) ;
+				source.reset(
+					genfile::SNPFilteringSNPDataSource::create(
+						source,
+						indices_of_filtered_in_snps
+					).release()
+				) ;
+			}
+			
 			merged_source->add_source(
-				genfile::SNPDataSource::create_chain(
-					genfile::wildcard::find_files_by_chromosome( merge_in_files[i] )
-				),
+				source,
 				id_prefix + ":"
 			) ;
 		}
+
 		return genfile::SNPDataSource::UniquePtr( merged_source.release() ) ;
 	}
 		
