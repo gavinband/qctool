@@ -65,6 +65,10 @@ namespace genfile {
 		m_output_filename_stub = output_ped_filename.substr( 0, output_ped_filename.size() - 4 ) ;
 	}
 	
+	std::string PedFileSNPDataSink::get_spec() const {
+		return m_output_filename_stub + "[.ped|.dat|.map]";
+	}
+	
 	std::map< std::string, std::size_t > PedFileSNPDataSink::get_pedigree_to_sample_mapping(
 		Pedigree const& pedigree,
 		CohortIndividualSource const& samples

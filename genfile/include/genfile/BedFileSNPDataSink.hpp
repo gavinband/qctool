@@ -32,6 +32,8 @@ namespace genfile {
 		operator bool() const {
 			return true ;
 		}
+		
+		std::string get_spec() const ;
 
 	private:
 		CohortIndividualSource const& m_samples ;

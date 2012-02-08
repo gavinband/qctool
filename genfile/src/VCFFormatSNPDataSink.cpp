@@ -22,6 +22,10 @@ namespace genfile {
 		m_sample_name_getter( &int_to_number )
 	{}
 	
+	std::string VCFFormatSNPDataSink::get_spec() const {
+		return m_filename ;
+	}
+	
 	void VCFFormatSNPDataSink::write_header( std::size_t number_of_samples ) const {
 		(*m_stream_ptr) << "##fileformat=VCFv4.1\n"
 			"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype calls\">\n"

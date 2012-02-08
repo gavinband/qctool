@@ -2092,7 +2092,6 @@ private:
 		if( options().check_if_option_was_supplied_in_group( "Call comparison options" ))  {
 			call_comparer_component = CallComparerComponent::create( options() ) ;
 			processor.add_callback( *call_comparer_component ) ;
-			processor.add_callback( call_comparer_component->get_comparer() ) ;
 			if( cluster_fitter.get() ) {
 				
 			}

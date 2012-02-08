@@ -48,6 +48,17 @@ namespace genfile {
 		SNPDataSink const& sink( std::size_t i ) const { return *m_sinks[ i ] ; }
 		std::size_t index_of_current_sink() const { return m_current_sink ; }
 
+		std::string get_spec() const {
+			std::string result = "chain:" ;
+			for( std::size_t i = 0; i < m_sinks.size(); ++i ) {
+				if( i > 0 ) {
+					result += "," ;
+				}
+				result += m_sinks[i]->get_spec() ;
+			}
+			return result ;
+		}
+
 	private:
 		void write_snp_impl(
 			uint32_t number_of_samples,

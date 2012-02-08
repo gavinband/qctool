@@ -40,6 +40,8 @@ namespace genfile {
 			GenotypeProbabilityGetter const& get_BB_probability
 		) ;
 
+		std::string get_spec() const ;
+
 	private:
 		boost::tuple< std::string, std::string, std::string > m_filename_template ;
 		std::string const m_free_data ;

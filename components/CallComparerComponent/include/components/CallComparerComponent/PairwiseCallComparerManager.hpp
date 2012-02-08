@@ -2,7 +2,7 @@
 #define QCTOOL_PAIRWISE_CALL_COMPARER_MANAGER_HPP
 
 #include <string>
-#include <boost/signals2/signal.hpp>
+#include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
@@ -13,7 +13,7 @@
 // This class collects a set of PairwiseCallComparers
 // and uses them to compare, pairwise, all the callsets sent to it.
 // It sends its output to the given signal.
-struct PairwiseCallComparerManager: public genfile::SNPDataSourceProcessor::Callback
+struct PairwiseCallComparerManager
 {
 public:
 	typedef std::auto_ptr< PairwiseCallComparerManager > UniquePtr ;
@@ -25,15 +25,26 @@ public:
 	virtual ~PairwiseCallComparerManager() {}
 	void add_comparer( std::string const& name, PairwiseCallComparer::UniquePtr comparer ) ;
 
-	typedef boost::function< void ( genfile::SNPIdentifyingData const&, std::string const&, std::string const&, std::string const&, std::string const&, genfile::VariantEntry const& ) > ResultCallback ;
-	void send_results_to( ResultCallback ) ;
+	struct Client
+	{
+		typedef boost::shared_ptr< Client > SharedPtr ;
+		virtual ~Client() {} ;
+		virtual void begin_comparisons( genfile::SNPIdentifyingData const& snp ) = 0 ;
+		virtual void set_result(
+			std::string const& first_callset,
+			std::string const& second_callset,
+			std::string const& comparison,
+			std::string const& comparison_value,
+			genfile::VariantEntry const&
+		) = 0 ;
+		virtual void end_comparisons() = 0 ;
+	} ;
 
-	void set_SNP( genfile::SNPIdentifyingData const& snp ) ;
+	void send_results_to( Client::SharedPtr ) ;
+
+	void begin_processing_snp( genfile::SNPIdentifyingData const& snp ) ;
 	void add_calls( std::string const& name, genfile::SingleSNPGenotypeProbabilities const& calls ) ;
-
-	void begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) ;
-	void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& ) ;
-	void end_processing_snps() ;
+	void end_processing_snp() ;
 	
 private:
 	typedef boost::ptr_map< std::string, PairwiseCallComparer > Comparers ;
@@ -43,19 +54,16 @@ private:
 	Calls m_calls ;
 
 	genfile::SNPIdentifyingData m_snp ;
-	
-	typedef boost::signals2::signal<
-		void (
-			genfile::SNPIdentifyingData const& snp,
-			std::string const& first_callset,
-			std::string const& second_callset,
-			std::string const& comparison,
-			std::string const& comparison_value,
-			genfile::VariantEntry const&
-		)
-	> ResultSignal ;
 
-	ResultSignal m_result_signal ;
+public:
+	std::vector< Client::SharedPtr > m_clients ;
+	void send_results_to_clients(
+		std::string const& first_callset,
+		std::string const& second_callset,
+		std::string const& comparison,
+		std::string const& comparison_value,
+		genfile::VariantEntry const&
+	) ;
 } ;
 
 

@@ -19,11 +19,14 @@
 #include "components/CallComparerComponent/CallComparerComponent.hpp"
 
 namespace impl {
-	struct CallComparerFileOutputter {
+	struct CallComparerFileOutputter: public PairwiseCallComparerManager::Client {
 		typedef std::auto_ptr< CallComparerFileOutputter > UniquePtr ;
 		typedef boost::shared_ptr< CallComparerFileOutputter > SharedPtr ;
 		
 		static UniquePtr create( std::string const& filename ) { return UniquePtr( new CallComparerFileOutputter( filename ) ) ; }
+		static PairwiseCallComparerManager::Client::SharedPtr create_shared( std::string const& filename ) {
+			return PairwiseCallComparerManager::Client::SharedPtr( new CallComparerFileOutputter( filename ) ) ;
+		}
 
 		CallComparerFileOutputter( std::string const& filename ):
 			m_filename( filename ),
@@ -32,8 +35,13 @@ namespace impl {
 			(*m_sink) | "SNPID" | "rsid" | "chromosome" | "position" | "alleleA" | "alleleB" | "callset_1" | "callset_2" | "comparison_method" | "comparison_variable" | "value" ;
 		}
 
-		void write_comparison(
-			genfile::SNPIdentifyingData const& snp,
+		void begin_comparisons( genfile::SNPIdentifyingData const& snp ) {
+			m_snp = snp ;
+		}
+
+		void end_comparisons() {}
+
+		void set_result(
 			std::string const& callset1,
 			std::string const& callset2,
 			std::string const& comparison_method,
@@ -41,12 +49,12 @@ namespace impl {
 			genfile::VariantEntry const& value
 		) {
 			(*m_sink)
-				<< snp.get_SNPID()
-				<< snp.get_rsid()
-				<< std::string( snp.get_position().chromosome() )
-				<< snp.get_position().position()
-				<< snp.get_first_allele()
-				<< snp.get_second_allele()
+				<< m_snp.get_SNPID()
+				<< m_snp.get_rsid()
+				<< std::string( m_snp.get_position().chromosome() )
+				<< m_snp.get_position().position()
+				<< m_snp.get_first_allele()
+				<< m_snp.get_second_allele()
 				<< callset1
 				<< callset2
 				<< comparison_method
@@ -60,13 +68,17 @@ namespace impl {
 	private:
 		std::string const m_filename ;
 		statfile::BuiltInTypeStatSink::UniquePtr m_sink ;
+		genfile::SNPIdentifyingData m_snp ;
 	} ;
 
-	struct CallComparerDBOutputter {
+	struct CallComparerDBOutputter: public PairwiseCallComparerManager::Client {
 		typedef std::auto_ptr< CallComparerDBOutputter > UniquePtr ;
 		typedef boost::shared_ptr< CallComparerDBOutputter > SharedPtr ;
 		
 		static UniquePtr create( std::string const& filename ) { return UniquePtr( new CallComparerDBOutputter( filename ) ) ; }
+		static PairwiseCallComparerManager::Client::SharedPtr create_shared( std::string const& filename ) {
+			return PairwiseCallComparerManager::Client::SharedPtr( new CallComparerDBOutputter( filename ) ) ;
+		}
 
 		CallComparerDBOutputter( std::string const& filename ):
 			m_connection( db::Connection::create( filename )),
@@ -118,8 +130,13 @@ namespace impl {
 			write_data( m_data ) ;
 		}
 
-		void write_comparison(
-			genfile::SNPIdentifyingData const& snp,
+		void begin_comparisons( genfile::SNPIdentifyingData const& snp ) {
+			m_snp = snp ;
+		}
+
+		void end_comparisons() {}
+
+		void set_result(
 			std::string const& callset1,
 			std::string const& callset2,
 			std::string const& comparison_method,
@@ -127,7 +144,7 @@ namespace impl {
 			genfile::VariantEntry const& value
 		) {
 			m_data.resize( m_data.size() + 1 ) ;
-			m_data.back().get<0>() = snp ;
+			m_data.back().get<0>() = m_snp ;
 			m_data.back().get<1>() = callset1 ;
 			m_data.back().get<2>() = callset2 ;
 			m_data.back().get<3>() = comparison_method ;
@@ -152,6 +169,8 @@ namespace impl {
 		
 		typedef std::vector< boost::tuple< genfile::SNPIdentifyingData, std::string, std::string, std::string, std::string, genfile::VariantEntry > > Data ;
 		Data m_data ;
+
+		genfile::SNPIdentifyingData m_snp ;
 
 	private:
 		void construct_statements() {
@@ -322,6 +341,10 @@ void CallComparerComponent::declare_options( appcontext::OptionProcessor& option
 		.set_description( "Name of output file to put call comparisons in." )
 		.set_takes_single_value()
 		.set_default_value( "call-comparisons.csv" ) ;
+
+	options[ "-consensus" ]
+		.set_description( "Name of output file to put majority consensus call in." )
+		.set_takes_single_value() ;
 }
 
 CallComparerComponent::UniquePtr CallComparerComponent::create( PairwiseCallComparerManager::UniquePtr comparer, std::vector< std::string > const& call_fields  ) {
@@ -336,21 +359,13 @@ CallComparerComponent::UniquePtr CallComparerComponent::create( appcontext::Opti
 
 	std::string filename = options.get< std::string >( "-compare-calls-file" ) ;
 	std::string const sqlite_suffix = ".sqlite3" ;
-	if( filename.size() > sqlite_suffix.size() && ( filename.compare( filename.size() - sqlite_suffix.size(), sqlite_suffix.size(), sqlite_suffix) == 0 )) {
+	if( options.check( "-nodb" ) ) {
 		comparer->send_results_to(
-			boost::bind(
-				&impl::CallComparerDBOutputter::write_comparison,
-				impl::CallComparerDBOutputter::SharedPtr( impl::CallComparerDBOutputter::create( filename )),
-				_1, _2, _3, _4, _5, _6
-			)
+			impl::CallComparerFileOutputter::create_shared( filename )
 		) ;
 	} else {
 		comparer->send_results_to(
-			boost::bind(
-				&impl::CallComparerFileOutputter::write_comparison,
-				impl::CallComparerFileOutputter::SharedPtr( impl::CallComparerFileOutputter::create( filename )),
-				_1, _2, _3, _4, _5, _6
-			)
+			impl::CallComparerDBOutputter::create_shared( filename )
 		) ;
 	}
 
@@ -379,12 +394,14 @@ void CallComparerComponent::begin_processing_snps( std::size_t number_of_samples
 
 void CallComparerComponent::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 	// Add all the calls to the call comparer.
-	m_call_comparer->set_SNP( snp ) ;
+	m_call_comparer->begin_processing_snp( snp ) ;
 	genfile::SingleSNPGenotypeProbabilities calls ;
 	for( std::size_t i = 0; i < m_call_fields.size(); ++i ) {
 		data_reader.get( m_call_fields[i], calls ) ;
 		m_call_comparer->add_calls( m_call_fields[i], calls ) ;
 	}
+	m_call_comparer->end_processing_snp() ;
+	
 }
 
 void CallComparerComponent::end_processing_snps() {

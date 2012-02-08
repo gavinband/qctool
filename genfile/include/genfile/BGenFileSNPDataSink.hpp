@@ -47,6 +47,8 @@ namespace genfile {
 		std::ostream::streampos get_stream_pos() const {
 			return m_stream_ptr->tellp() ;
 		}
+		
+		std::string get_spec() const { return m_filename ; }
 
 	public:
 		// Methods required by SNPDataSink

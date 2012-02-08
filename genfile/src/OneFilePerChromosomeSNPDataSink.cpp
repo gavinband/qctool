@@ -62,6 +62,11 @@ namespace genfile {
 		} 
 		return true ;
 	}
+	
+	std::string OneFilePerChromosomeSNPDataSink::get_spec() const {
+		return "OneFilePerChromosomeSNPDataSink(" + m_filename_template.get<0>() + '#' + m_filename_template.get<2>() + ")" ;
+	}
+	
 	void OneFilePerChromosomeSNPDataSink::write_snp_impl(
 		uint32_t number_of_samples,
 		std::string SNPID,

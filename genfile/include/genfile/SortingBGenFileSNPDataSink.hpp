@@ -38,6 +38,7 @@ namespace genfile {
 
 		~SortingBGenFileSNPDataSink() ;
 		
+		std::string get_spec() const ;
 	public:
 		// return the number of samples represented in SNPs in the file.
 		// The value returned is undefined until after the first snp has been written.
