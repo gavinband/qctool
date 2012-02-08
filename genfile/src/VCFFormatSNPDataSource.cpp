@@ -440,7 +440,7 @@ namespace genfile {
 		}
 		else if( ids.size() == 1 ) {
 			set_RSID( ids[0] ) ;
-			set_SNPID( "?" ) ;
+			set_SNPID( ids[0] ) ;
 		}
 		else {
 			set_RSID( ids[0] ) ;
