@@ -63,6 +63,7 @@ extern "C" {
 		 int *lda, double *w, double *work, int *lwork, 
 		int *info) ;
 
+	/*
 	int dsyevr_(char *jobz, char *range, char *uplo, integer *n, 
 		doublereal *a, integer *lda, doublereal *vl, doublereal *vu, integer *
 		il, integer *iu, doublereal *abstol, integer *m, doublereal *w, 
@@ -70,6 +71,7 @@ extern "C" {
 		integer *lwork, integer *iwork, integer *liwork, integer *info)	// 
 
 	doublereal dlamch_( char *cmach ) ;
+	*/
 }
 #endif
 
