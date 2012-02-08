@@ -12,7 +12,7 @@ namespace genfile {
 		if( merge_strategy == "keep-all" ) {
 			result.reset( new KeepAllStrategyMergingSNPDataSource ) ;
 		}
-		else if( merge_strategy == "drop" ) {
+		else if( merge_strategy == "drop-duplicates" ) {
 			result.reset( new DropDuplicatesStrategyMergingSNPDataSource ) ;
 		}
 		else {

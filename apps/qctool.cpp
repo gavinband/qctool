@@ -144,7 +144,7 @@ public:
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-merge-strategy" ]
 			.set_description( "Specify a strategy to use when encountering SNPs with the same position in a merge. "
-				"Options are \"keep-all\" and \"drop\"." )
+				"Options are \"keep-all\" and \"drop-duplicates\"." )
 			.set_takes_single_value()
 			.set_default_value( "keep-all" ) ;
 		options[ "-merge-prefix" ]
