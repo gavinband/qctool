@@ -74,7 +74,7 @@ void QCTool::processed_snp(
 }
 
 void QCTool::end_processing_snps() {
-	assert( m_number_of_snps == m_number_of_snps_processed ) ;
+	assert( m_number_of_snps >= m_number_of_snps_processed ) ;
 	assert( m_number_of_autosomal_snps_processed <= m_number_of_snps_processed ) ;
 	if( m_context.snp_filter().number_of_subconditions() > 0 ) {
 		m_ui_context.logger() << "(" << m_context.fltrd_in_snp_data_sink().number_of_snps_written() << " of " << m_number_of_snps << " SNPs passed the filter.)\n" ;

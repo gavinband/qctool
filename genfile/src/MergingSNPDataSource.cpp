@@ -65,26 +65,29 @@ namespace genfile {
 	}
 
 	void MergingSNPDataSource::discard_top_snp_and_get_next_candidate() {
-		assert( !m_current_snps.empty() ) ;
+		assert( m_current_snps.size() > 0 ) ;
 		std::size_t source_i = m_current_snps.begin()->second ;
 		m_current_snps.erase( m_current_snps.begin() ) ;
 		get_top_snp_in_source( source_i ) ;
 	}
 
 	void KeepAllStrategyMergingSNPDataSource::discard_top_snp_and_get_next() {
- 		MergingSNPDataSource::discard_top_snp_and_get_next_candidate() ;
+		discard_top_snp_and_get_next_candidate() ;
 	}
 
 	void DropDuplicatesStrategyMergingSNPDataSource::discard_top_snp_and_get_next() {
+		assert( current_snps().size() > 0 ) ;
+		
 		genfile::SNPIdentifyingData const current_snp = current_snps().begin()->first ;
-		do {
-			MergingSNPDataSource::discard_top_snp_and_get_next_candidate() ;
-		}
+		discard_top_snp_and_get_next_candidate() ;
+
 		while(
-			!current_snps().empty()
-		 	&&
-			current_snps().begin()->first.get_position() == current_snp.get_position()
-		) ;
+			current_snps().size() > 0
+			&& current_snps().begin()->first.get_position() == current_snp.get_position()
+		) {
+			get_source( current_snps().begin()->second ).ignore_snp_probability_data() ;
+			discard_top_snp_and_get_next_candidate() ;
+		}
 	}
 
 	MergingSNPDataSource::operator bool() const {

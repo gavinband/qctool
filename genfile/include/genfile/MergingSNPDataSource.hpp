@@ -48,6 +48,7 @@ namespace genfile {
 		void get_top_snp_in_source( std::size_t source_i ) ;
 	protected:
 		CurrentSnps& current_snps() { return m_current_snps ; }
+		SNPDataSource& get_source( std::size_t i ) { return *m_sources[i] ; }
 		void discard_top_snp_and_get_next_candidate() ;
 		virtual void discard_top_snp_and_get_next() = 0 ;
 	} ;
