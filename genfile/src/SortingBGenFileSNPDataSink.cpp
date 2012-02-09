@@ -42,6 +42,11 @@ namespace genfile {
 	{
 	}
 
+	std::string SortingBGenFileSNPDataSink::get_spec() const {
+		return m_filename ;
+	}
+
+
 	void SortingBGenFileSNPDataSink::write_snp_impl(
 		uint32_t number_of_samples,
 		std::string SNPID,

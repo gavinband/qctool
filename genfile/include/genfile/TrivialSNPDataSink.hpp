@@ -14,6 +14,10 @@ namespace genfile {
 		operator bool() const {
 			return true ;
 		}
+		
+		std::string get_spec() const {
+			return "TrivialSNPDataSink" ;
+		}
 
 	private:
 		void write_snp_impl(

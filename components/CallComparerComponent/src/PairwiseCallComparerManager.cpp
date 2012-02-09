@@ -22,12 +22,12 @@ void PairwiseCallComparerManager::add_comparer( std::string const& name, Pairwis
 	m_comparers.insert( name, comparer ) ;
 }
 
-void PairwiseCallComparerManager::send_results_to( ResultCallback callback ) {
-	m_result_signal.connect( callback ) ;
+void PairwiseCallComparerManager::send_results_to( Client::SharedPtr client ) {
+	m_clients.push_back( client ) ;
 }
 
 
-void PairwiseCallComparerManager::set_SNP( genfile::SNPIdentifyingData const& snp ) {
+void PairwiseCallComparerManager::begin_processing_snp( genfile::SNPIdentifyingData const& snp ) {
 	m_calls.clear() ;
 	m_snp = snp ;
 }
@@ -36,11 +36,11 @@ void PairwiseCallComparerManager::add_calls( std::string const& name, genfile::S
 	m_calls[ name ] = calls ;
 }
 
-void PairwiseCallComparerManager::begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) {
-	m_calls.clear() ;
-}
-
-void PairwiseCallComparerManager::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
+void PairwiseCallComparerManager::end_processing_snp() {
+	for( std::size_t i = 0; i < m_clients.size(); ++i ) {
+		m_clients[i]->begin_comparisons( m_snp ) ;
+	}
+	
 	for( Calls::const_iterator i = m_calls.begin(); i != m_calls.end(); ++i ) {
 		Calls::const_iterator j = i ;
 		for( ++j; j != m_calls.end(); ++j ) {
@@ -50,13 +50,26 @@ void PairwiseCallComparerManager::processed_snp( genfile::SNPIdentifyingData con
 					result_i = result.begin(),
 					result_end = result.end() ;
 				for( ; result_i != result_end; ++result_i ) {
-					m_result_signal( snp, i->first, j->first, comparer_i->first, result_i->first, result_i->second ) ;
+					send_results_to_clients( i->first, j->first, comparer_i->first, result_i->first, result_i->second ) ;
 				}
 			}
 		}
 	}
+	
+	for( std::size_t i = 0; i < m_clients.size(); ++i ) {
+		m_clients[i]->end_comparisons() ;
+	}
 }
 
-void PairwiseCallComparerManager::end_processing_snps() {
-	// nothing to do.
+void PairwiseCallComparerManager::send_results_to_clients(
+	std::string const& first_callset,
+	std::string const& second_callset,
+	std::string const& comparison,
+	std::string const& variable,
+	genfile::VariantEntry const& value
+) {
+	for( std::size_t i = 0; i < m_clients.size(); ++i ) {
+		m_clients[i]->set_result( first_callset, second_callset, comparison, variable, value ) ;
+	}
 }
+

@@ -72,6 +72,7 @@ namespace genfile {
 		SNPIdentifyingData const& id_data,
 		VariantDataReader& data_reader
 	) {
+		throw OperationUnsupportedError( "genfile::SNPDataSink::write_variant_data()", "call", get_spec() ) ;
 		assert(0) ;
 		/*
 		if( m_number_of_samples == 0 ) {

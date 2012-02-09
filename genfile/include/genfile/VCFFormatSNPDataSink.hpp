@@ -29,6 +29,8 @@ namespace genfile {
 			GenotypeProbabilityGetter const& get_BB_probability
 		) ;
 		
+		std::string get_spec() const ;
+		
 	private:
 		std::string m_filename ;
 		std::auto_ptr< std::ostream > m_stream_ptr ;

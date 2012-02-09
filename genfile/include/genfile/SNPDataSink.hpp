@@ -66,6 +66,9 @@ namespace genfile {
 				"(unknown)"
 			) ;
 		}
+		
+		virtual std::string get_spec() const = 0 ;
+
 	public:
 		// The following functions must be implemented by derived classes.
 		virtual operator bool() const = 0 ;

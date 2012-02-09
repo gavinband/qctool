@@ -42,6 +42,8 @@ namespace genfile {
 
 		void omit_chromosome() { m_write_chromosome_column = false ; }
 
+		std::string get_spec() const { return m_filename ; }
+
 	private:
 		
 		// Methods required by SNPDataSink

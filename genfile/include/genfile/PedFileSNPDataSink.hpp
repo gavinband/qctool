@@ -27,6 +27,7 @@ namespace genfile {
 			return true ;
 		}
 
+		std::string get_spec() const ;
 	private:
 		CohortIndividualSource const& m_samples ;
 		Pedigree const& m_pedigree ;

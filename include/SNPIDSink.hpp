@@ -16,7 +16,7 @@ struct SNPIDSink: public genfile::SNPDataSink
 	}
 	
 	operator bool() const { return *m_stream_ptr ; }
-
+	
 	void write_snp_impl(
 		uint32_t,
 		std::string SNPID,
@@ -31,6 +31,8 @@ struct SNPIDSink: public genfile::SNPDataSink
 	) {
 		stream() << SNPID << " " << RSID << " " << chromosome << " " << SNP_position << "\n" ;
 	} ;
+	
+	std::string get_spec() const { return "(SNPIDSink)" ; }
 	
 private:
 	

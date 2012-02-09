@@ -56,6 +56,10 @@ namespace genfile {
 		setup() ;
 	}
 	
+	std::string BedFileSNPDataSink::get_spec() const {
+		return m_output_filename_stub ;
+	}
+	
 	void BedFileSNPDataSink::setup() {
 		m_bed_file = open_binary_file_for_output( m_output_filename_stub + ".bed", "no_compression" ) ;
 		m_bim_file = open_text_file_for_output( m_output_filename_stub + ".bim", "no_compression" ) ;
