@@ -16,6 +16,9 @@
 #include <numeric>
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/foreach.hpp>
+
+#define foreach BOOST_FOREACH
 
 #include "Timer.hpp"
 #include "GenRow.hpp"
@@ -1511,17 +1514,23 @@ private:
 			snp_filter.reset( new genfile::CommonSNPFilter ) ;
 
 			if( m_options.check_if_option_was_supplied( "-excl-snpids" )) {
-				snp_filter->exclude_snps_in_file(
-					m_options.get_value< std::string >( "-excl-snpids" ),
-					genfile::CommonSNPFilter::SNPIDs
-				) ;
+				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-snpids" ) ;
+				foreach( std::string const& filename, files ) {
+					snp_filter->exclude_snps_in_file(
+						filename,
+						genfile::CommonSNPFilter::SNPIDs
+					) ;
+				}
 			}
 
 			if( m_options.check_if_option_was_supplied( "-excl-rsids" )) {
-				snp_filter->exclude_snps_in_file(
-					m_options.get_value< std::string >( "-excl-rsids" ),
-					genfile::CommonSNPFilter::RSIDs
-				) ;
+				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-rsids" ) ;
+				foreach( std::string const& filename, files ) {
+					snp_filter->exclude_snps_in_file(
+						filename,
+						genfile::CommonSNPFilter::RSIDs
+					) ;
+				}
 			}
 
 			if( m_options.check_if_option_was_supplied( "-incl-snpids" )) {
