@@ -17,6 +17,7 @@
 #include "components/CallComparerComponent/PairwiseCallComparer.hpp"
 #include "components/CallComparerComponent/PairwiseCallComparerManager.hpp"
 #include "components/CallComparerComponent/CallComparerComponent.hpp"
+#include "components/CallComparerComponent/ConsensusCaller.hpp"
 
 namespace impl {
 	struct CallComparerFileOutputter: public PairwiseCallComparerManager::Client {
@@ -65,6 +66,27 @@ namespace impl {
 			;
 		}
 
+		void set_result(
+			std::string const& comparison_method,
+			std::string const& comparison_variable,
+			genfile::VariantEntry const& value
+		) {
+			(*m_sink)
+				<< m_snp.get_SNPID()
+				<< m_snp.get_rsid()
+				<< std::string( m_snp.get_position().chromosome() )
+				<< m_snp.get_position().position()
+				<< m_snp.get_first_allele()
+				<< m_snp.get_second_allele()
+				<< "NA"
+				<< "NA"
+				<< comparison_method
+				<< comparison_variable
+				<< value
+				<< statfile::end_row() ;
+			;
+		}
+
 	private:
 		std::string const m_filename ;
 		statfile::BuiltInTypeStatSink::UniquePtr m_sink ;
@@ -106,21 +128,28 @@ namespace impl {
 			) ;
 
 			m_connection->run_statement(
-				"CREATE VIEW IF NOT EXISTS SNPLevelView AS"
-				" SELECT V.rsid, V.chromosome, V.position, V.alleleA, V.alleleB, COUNT( C.variant_id ) AS concordance_count,"
-				" GROUP_CONCAT( C.callset1 || \":\" || C.callset2, \",\" ) AS concordant_callsets"
-				" FROM    Variant V"
-				" LEFT OUTER JOIN Comparison C"
-		    	" ON  C.variant_id == V.id AND C.method_id == 1 AND C.variable_id == 3 AND C.value > 0.001"
-				" GROUP BY V.chromosome, V.position, V.rsid "
+				"CREATE TABLE IF NOT EXISTS SummaryData ( "
+				"variant_id INT, analysis_id INT, variable_id INT, value FLOAT, "
+				"FOREIGN KEY( variant_id ) REFERENCES Variant( id ), "
+				"FOREIGN KEY( analysis_id ) REFERENCES Entity( id ), "
+				"FOREIGN KEY( variable_id ) REFERENCES Entity( id ), "
+				"UNIQUE( analysis_id, variant_id, variable_id ) "
+				")"
 			) ;
 
 			m_connection->run_statement(
-				"CREATE VIEW IF NOT EXISTS ComparisonSummaryView AS"
-				" SELECT       COUNT(*), concordant_callsets"
-				" FROM        SNPLevelView"
-				" GROUP BY    concordant_callsets"
-				" ORDER BY COUNT(*) DESC"
+				"CREATE INDEX IF NOT EXISTS SummaryDataIndex ON SummaryData( analysis_id, variant_id, variable_id )"
+			) ;
+
+			m_connection->run_statement(
+				"CREATE VIEW IF NOT EXISTS SummaryDataView AS "
+				"SELECT          V.id AS variant_id, V.chromosome, V.position, V.rsid, "
+				"SD.analysis_id, Analysis.name, Variable.id AS variable_id, Variable.name AS variable, "
+				"SD.value AS value "
+				"FROM SummaryData SD "
+				"INNER JOIN Variant V ON V.id == SD.variant_id "
+				"INNER JOIN Entity Analysis ON Analysis.id = SD.analysis_id "
+				"INNER JOIN Entity Variable ON Variable.id = SD.variable_id"
 			) ;
 
 			construct_statements() ;
@@ -157,6 +186,25 @@ namespace impl {
 			}
 		}
 
+		void set_result(
+			std::string const& comparison_method,
+			std::string const& comparison_variable,
+			genfile::VariantEntry const& value
+		) {
+			m_data.resize( m_data.size() + 1 ) ;
+			m_data.back().get<0>() = m_snp ;
+			m_data.back().get<1>() = "" ;
+			m_data.back().get<2>() = "" ;
+			m_data.back().get<3>() = comparison_method ;
+			m_data.back().get<4>() = comparison_variable ;
+			m_data.back().get<5>() = value ;
+
+			if( m_data.size() == m_max_transaction_count ) {
+				write_data( m_data ) ;
+				m_data.clear() ;
+			}
+		}
+
 	private:
 		db::Connection::UniquePtr m_connection ;
 		std::size_t const m_max_transaction_count ;
@@ -166,6 +214,7 @@ namespace impl {
 		db::Connection::StatementPtr m_find_entity_statement ;
 		db::Connection::StatementPtr m_insert_entity_statement ;
 		db::Connection::StatementPtr m_insert_comparison_statement ;
+		db::Connection::StatementPtr m_insert_summarydata_statement ;
 		
 		typedef std::vector< boost::tuple< genfile::SNPIdentifyingData, std::string, std::string, std::string, std::string, genfile::VariantEntry > > Data ;
 		Data m_data ;
@@ -186,6 +235,10 @@ namespace impl {
 			m_insert_comparison_statement = m_connection->get_statement(
 				"INSERT INTO Comparison ( variant_id, callset1, callset2, method_id, variable_id, value ) "
 				"VALUES( ?1, ?2, ?3, ?4, ?5, ?6 )"
+			) ;
+			m_insert_summarydata_statement = m_connection->get_statement(
+				"INSERT OR REPLACE INTO SummaryData ( variant_id, analysis_id, variable_id, value ) "
+				"VALUES( ?1, ?2, ?3, ?4 )"
 			) ;
 		}
 
@@ -263,7 +316,8 @@ namespace impl {
 			db::Connection::RowId callset2_id ;
 			db::Connection::RowId variable_id ;
 
-			{
+			if( callset1 == "" ) {
+				assert( callset2 == "" ) ;
 				m_find_entity_statement
 					->bind( 1, callset1 ).step() ;
 
@@ -287,46 +341,57 @@ namespace impl {
 				} else {
 					callset2_id = m_find_entity_statement->get< db::Connection::RowId >( 0 ) ;
 				}
+			}
 
-				m_find_entity_statement->reset()
-					.bind( 1, comparison_method ).step() ;
+			m_find_entity_statement->reset()
+				.bind( 1, comparison_method ).step() ;
 
-				if( m_find_entity_statement->empty() ) {
-					m_insert_entity_statement->reset()
-						.bind( 1, comparison_method )
-						.step() ;
-					method_id = m_connection->get_last_insert_row_id() ;
-				} else {
-					method_id = m_find_entity_statement->get< db::Connection::RowId >( 0 ) ;
-				}
+			if( m_find_entity_statement->empty() ) {
+				m_insert_entity_statement->reset()
+					.bind( 1, comparison_method )
+					.step() ;
+				method_id = m_connection->get_last_insert_row_id() ;
+			} else {
+				method_id = m_find_entity_statement->get< db::Connection::RowId >( 0 ) ;
+			}
 
-				m_find_entity_statement->reset()
-					.bind( 1, comparison_variable ).step() ;
+			m_find_entity_statement->reset()
+				.bind( 1, comparison_variable ).step() ;
 
-				if( m_find_entity_statement->empty() ) {
-					m_insert_entity_statement->reset()
-						.bind( 1, comparison_variable )
-						.step() ;
-					variable_id = m_connection->get_last_insert_row_id() ;
-				} else {
-					variable_id = m_find_entity_statement->get< db::Connection::RowId >( 0 ) ;
-				}
-				
-				m_find_entity_statement->reset() ;
-				m_insert_entity_statement->reset() ;
+			if( m_find_entity_statement->empty() ) {
+				m_insert_entity_statement->reset()
+					.bind( 1, comparison_variable )
+					.step() ;
+				variable_id = m_connection->get_last_insert_row_id() ;
+			} else {
+				variable_id = m_find_entity_statement->get< db::Connection::RowId >( 0 ) ;
 			}
 			
-			m_insert_comparison_statement
-				->bind( 1, snp_id )
-				.bind( 2, callset1_id )
-				.bind( 3, callset2_id )
-				.bind( 4, method_id )
-				.bind( 5, variable_id )
-				.bind( 6, value.as< double >()  )
-				.step()
-			;
+			m_find_entity_statement->reset() ;
+			m_insert_entity_statement->reset() ;
 			
-			m_insert_comparison_statement->reset() ;
+			if( callset1 != "" ) {
+				m_insert_comparison_statement
+					->bind( 1, snp_id )
+					.bind( 2, callset1_id )
+					.bind( 3, callset2_id )
+					.bind( 4, method_id )
+					.bind( 5, variable_id )
+					.bind( 6, value  )
+					.step()
+				;
+				m_insert_comparison_statement->reset() ;
+				
+			} else {
+				m_insert_summarydata_statement
+					->bind( 1, snp_id )
+					.bind( 2, method_id )
+					.bind( 3, variable_id )
+					.bind( 4, value  )
+					.step() ;
+				m_insert_summarydata_statement->reset() ;
+			}
+			
 		}
 	} ;
 }
@@ -340,11 +405,16 @@ void CallComparerComponent::declare_options( appcontext::OptionProcessor& option
 	options[ "-compare-calls-file" ]
 		.set_description( "Name of output file to put call comparisons in." )
 		.set_takes_single_value()
-		.set_default_value( "call-comparisons.csv" ) ;
-
-	options[ "-consensus" ]
-		.set_description( "Name of output file to put majority consensus call in." )
-		.set_takes_single_value() ;
+		.set_default_value( "call-comparisons.qcdb" ) ;
+	options[ "-consensus-call" ]
+		.set_description( "Combine calls from several different genotypers into a single consensus callset. "
+			"The calls to use are specified using the -compare-calls option. "
+			"A consensus call at each SNP is made when no significant difference is found "
+			"between N-1 of the N callsets." ) ;
+	options[ "-consensus-strategy" ]
+		.set_description( "Strategy to use to combine calls in the consensus set of calls. "
+		 	"Currently this must be \"least-missing\"." )
+			.set_default_value( "least-missing" ) ;
 }
 
 CallComparerComponent::UniquePtr CallComparerComponent::create( PairwiseCallComparerManager::UniquePtr comparer, std::vector< std::string > const& call_fields  ) {
@@ -372,6 +442,15 @@ CallComparerComponent::UniquePtr CallComparerComponent::create( appcontext::Opti
 	comparer->add_comparer(
 		"AlleleFrequencyTestCallComparer",
 		PairwiseCallComparer::create( "AlleleFrequencyTestCallComparer" )
+	) ;
+
+	comparer->set_merger(
+		PairwiseCallComparerManager::Merger::UniquePtr(
+			new ConsensusCaller(
+				"AlleleFrequencyTestCallComparer",
+				0.001
+			)
+		)
 	) ;
 
 	return CallComparerComponent::create(

@@ -26,6 +26,9 @@ void PairwiseCallComparerManager::send_results_to( Client::SharedPtr client ) {
 	m_clients.push_back( client ) ;
 }
 
+void PairwiseCallComparerManager::set_merger( Merger::UniquePtr merger ) {
+	m_merger = merger ;
+}
 
 void PairwiseCallComparerManager::begin_processing_snp( genfile::SNPIdentifyingData const& snp ) {
 	m_calls.clear() ;
@@ -40,6 +43,9 @@ void PairwiseCallComparerManager::end_processing_snp() {
 	for( std::size_t i = 0; i < m_clients.size(); ++i ) {
 		m_clients[i]->begin_comparisons( m_snp ) ;
 	}
+	if( m_merger.get() ) {
+		m_merger->begin_comparisons( m_snp ) ;
+	}
 	
 	for( Calls::const_iterator i = m_calls.begin(); i != m_calls.end(); ++i ) {
 		Calls::const_iterator j = i ;
@@ -51,6 +57,9 @@ void PairwiseCallComparerManager::end_processing_snp() {
 					result_end = result.end() ;
 				for( ; result_i != result_end; ++result_i ) {
 					send_results_to_clients( i->first, j->first, comparer_i->first, result_i->first, result_i->second ) ;
+					if( m_merger.get() ) {
+						m_merger->set_result( i->first, j->first, comparer_i->first, result_i->first, result_i->second ) ;
+					}
 				}
 			}
 		}
@@ -58,6 +67,10 @@ void PairwiseCallComparerManager::end_processing_snp() {
 	
 	for( std::size_t i = 0; i < m_clients.size(); ++i ) {
 		m_clients[i]->end_comparisons() ;
+	}
+	if( m_merger.get() ) {
+		m_merger->end_comparisons() ;
+		send_results_to_clients( m_merger->get_spec(), "concordant_calls", m_merger->get_result_as_string() ) ;
 	}
 }
 
@@ -73,3 +86,12 @@ void PairwiseCallComparerManager::send_results_to_clients(
 	}
 }
 
+void PairwiseCallComparerManager::send_results_to_clients(
+	std::string const& comparison,
+	std::string const& variable,
+	genfile::VariantEntry const& value
+) {
+	for( std::size_t i = 0; i < m_clients.size(); ++i ) {
+		m_clients[i]->set_result( comparison, variable, value ) ;
+	}
+}

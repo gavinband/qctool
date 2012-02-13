@@ -37,10 +37,33 @@ public:
 			std::string const& comparison_value,
 			genfile::VariantEntry const&
 		) = 0 ;
+		virtual void set_result(
+			std::string const& comparison,
+			std::string const& comparison_value,
+			genfile::VariantEntry const&
+		) = 0 ;
 		virtual void end_comparisons() = 0 ;
+	} ;
+	
+	struct Merger {
+		typedef std::auto_ptr< Merger > UniquePtr ;
+		typedef boost::shared_ptr< Merger > SharedPtr ;
+		virtual ~Merger() {}
+		virtual void begin_comparisons( genfile::SNPIdentifyingData const& snp ) = 0 ;
+		virtual void set_result(
+			std::string const& first_callset,
+			std::string const& second_callset,
+			std::string const& comparison,
+			std::string const& comparison_value,
+			genfile::VariantEntry const&
+		) = 0 ;
+		virtual void end_comparisons() = 0 ;
+		virtual std::string get_spec() const = 0 ;
+		virtual std::string get_result_as_string() const = 0 ;
 	} ;
 
 	void send_results_to( Client::SharedPtr ) ;
+	void set_merger( Merger::UniquePtr ) ;
 
 	void begin_processing_snp( genfile::SNPIdentifyingData const& snp ) ;
 	void add_calls( std::string const& name, genfile::SingleSNPGenotypeProbabilities const& calls ) ;
@@ -49,7 +72,7 @@ public:
 private:
 	typedef boost::ptr_map< std::string, PairwiseCallComparer > Comparers ;
 	Comparers m_comparers ;
-
+	Merger::UniquePtr m_merger ;
 	typedef std::map< std::string, genfile::SingleSNPGenotypeProbabilities > Calls ;
 	Calls m_calls ;
 
@@ -63,6 +86,11 @@ public:
 		std::string const& comparison,
 		std::string const& comparison_value,
 		genfile::VariantEntry const&
+	) ;
+	void send_results_to_clients(
+		std::string const& comparison,
+		std::string const& variable,
+		genfile::VariantEntry const& value
 	) ;
 } ;
 

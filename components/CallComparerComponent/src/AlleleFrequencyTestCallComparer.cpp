@@ -8,6 +8,8 @@
 #include "integration/NewtonRaphson.hpp"
 #include "components/CallComparerComponent/AlleleFrequencyTestCallComparer.hpp"
 
+#define ALLELE_FREQUENCY_TEST_CALL_COMPARER_DEBUG 0
+
 namespace {
 	struct MultinomialLogLikelihood {
 		typedef Eigen::VectorXd Point ;
@@ -35,15 +37,19 @@ namespace {
 		double get_value_of_function() const {
 			double result = 0.0 ;
 			for( int i = 0; i < m_counts.size(); ++i ) {
-				result += m_counts(i) * std::log( m_parameters( i )) ;
+				if( m_counts(i) > 0.0 ) {
+					result += m_counts(i) * std::log( m_parameters( i )) ;
+				}
 			}
 			return result ;
 		}
 	
 		Vector get_value_of_first_derivative() const {
-			Vector result( m_counts.size() ) ;
+			Vector result = Vector::Zero( m_counts.size() ) ;
 			for( int i = 0; i < result.size(); ++i ) {
-				result(i) = m_counts(i) / m_parameters(i) ;
+				if( m_counts(i) > 0.0 ) {
+					result(i) = m_counts(i) / m_parameters(i) ;
+				}
 			}
 			return result ;
 		}
@@ -51,7 +57,9 @@ namespace {
 		Matrix get_value_of_second_derivative() const {
 			Matrix result = Matrix::Zero( m_counts.size(), m_counts.size() ) ;
 			for( int i = 0; i < result.size(); ++i ) {
-				result( i, i ) = -m_counts(i) / ( m_parameters(i) * m_parameters(i) ) ;
+				if( m_counts(i) != 0.0 ) {
+					result( i, i ) = -m_counts(i) / ( m_parameters(i) * m_parameters(i) ) ;
+				}
 			}
 			return result ;
 		}
@@ -94,6 +102,7 @@ std::map< std::string, genfile::VariantEntry > AlleleFrequencyTestCallComparer::
 			}
 		}
 	}
+
 	
 	Vector null_ml = Vector::Zero( 3 ) ;
 	Matrix alt_ml = Matrix::Zero( 2, 3 ) ;
@@ -127,6 +136,17 @@ std::map< std::string, genfile::VariantEntry > AlleleFrequencyTestCallComparer::
 			)
 		) ;
 	}
+	
+#if ALLELE_FREQUENCY_TEST_CALL_COMPARER_DEBUG
+		std::cerr << "Table is:\n" << table << ".\n" ;
+		std::cerr << "null_ml is:\n" << null_ml << ".\n" ;
+		std::cerr << "alt_ml is:\n" << null_ml << ".\n" ;
+		std::cerr << "alt likelihood is " << alt0.get_value_of_function() << " x " << alt1.get_value_of_function() << ".\n" ;
+		std::cerr << "null likelihood is " << null_model.get_value_of_function() << ".\n" ;
+		std::cerr << "likelihood_ratio_statistic = " << likelihood_ratio_statistic << ".\n" ;
+		std::cerr << "p_value = " << p_value << ".\n" ;
+#endif
+
 	
 	std::map< std::string, genfile::VariantEntry > result ;
 	result[ "likelihood_ratio_test_statistic" ] = likelihood_ratio_statistic ;
