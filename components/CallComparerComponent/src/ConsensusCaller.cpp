@@ -84,34 +84,6 @@ void ConsensusCaller::end_comparisons() {
 		}
 	}
 
-	// At a really good SNP there are no mismatches (=> all rows are zero.)
-	// At a quite good SNP we will have a (N-1)x(N-1) sub-table of zeroes.
-	for( CallNames::left_map::const_iterator i = call_names.left.begin(); i != call_names.left.end(); ++i ) {
-		m_concordant_calls.insert( i->first ) ;
-	}
-	
-	if( mismatches.array().maxCoeff() > 0 ) {
-		// try knocking out one call.
-		for( int i = 0; i < mismatches.rows(); ++i ) {
-			Eigen::RowVectorXd saved_row = mismatches.row(i) ;
-			Eigen::VectorXd saved_col = mismatches.col(i) ;
-			mismatches.row(i).setZero() ;
-			mismatches.col(i).setZero() ;
-			if( mismatches.array().maxCoeff() == 0 ) {
-				m_concordant_calls.erase( call_names.right.at( i ) ) ;
-				break ;
-			}
-			mismatches.col(i) = saved_col ;
-			mismatches.row(i) = saved_row ;
-		}
-		if( m_concordant_calls.size() == call_names.size() ) {
-			m_concordant_calls.clear() ;
-		}
-	}
-	
-	// Look for a 3x3 or 2x2 subtable of zeroes.
-	
-	
 #if CONSENSUS_CALLER_DEBUG
 	std::cerr << std::resetiosflags( std::ios::floatfield ) ;
 	std::cerr << "############################\n" ;
@@ -129,6 +101,37 @@ void ConsensusCaller::end_comparisons() {
 	std::cerr << "\n" ;
 	std::cerr << mismatches << "\n";
 	std::cerr << "\n" ;
+#endif
+
+	// At a really good SNP there are no mismatches (=> all rows are zero.)
+	// At a quite good SNP we will have a (N-1)x(N-1) sub-table of zeroes.
+	for( CallNames::left_map::const_iterator i = call_names.left.begin(); i != call_names.left.end(); ++i ) {
+		m_concordant_calls.insert( i->first ) ;
+	}
+	
+	if( mismatches.array().maxCoeff() > 0 ) {
+		// try knocking out one call.
+		for( int i = 0; i < mismatches.rows(); ++i ) {
+			Eigen::RowVectorXd saved_row = mismatches.row(i) ;
+			Eigen::VectorXd saved_col = mismatches.col(i) ;
+			mismatches.row(i).setZero() ;
+			mismatches.col(i).setZero() ;
+			if( mismatches.array().maxCoeff() == 0 ) {
+				m_concordant_calls.erase( call_names.right.at( i ) ) ;
+				mismatches.col(i) = saved_col ;
+				mismatches.row(i) = saved_row ;
+				break ;
+			}
+			mismatches.col(i) = saved_col ;
+			mismatches.row(i) = saved_row ;
+		}
+		if( m_concordant_calls.size() == call_names.size() ) {
+			m_concordant_calls.clear() ;
+		}
+	}
+	
+
+#if CONSENSUS_CALLER_DEBUG
 	std::cerr << "Consensus calls are: " ;
 	std::copy( m_concordant_calls.begin(), m_concordant_calls.end(), std::ostream_iterator< std::string >( std::cerr, " " ) ) ;
 	std::cerr << ".\n" ;
