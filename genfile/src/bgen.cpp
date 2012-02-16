@@ -44,9 +44,7 @@ namespace genfile {
 						unsigned char allele1_size = 0 ;
 						unsigned char allele2_size = 0 ;
 						impl::read_length_followed_by_data( aStream, &allele1_size, first_allele ) ;
-						assert( allele1_size <= max_id_size ) ;
 						impl::read_length_followed_by_data( aStream, &allele2_size, second_allele ) ;
-						assert( allele2_size <= max_id_size ) ;
 					} else {
 						first_allele->resize( 1 ) ;
 		                (*first_allele)[0] = aStream.get() ;
