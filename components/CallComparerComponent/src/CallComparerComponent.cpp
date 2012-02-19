@@ -17,7 +17,7 @@
 #include "components/CallComparerComponent/PairwiseCallComparer.hpp"
 #include "components/CallComparerComponent/PairwiseCallComparerManager.hpp"
 #include "components/CallComparerComponent/CallComparerComponent.hpp"
-#include "components/CallComparerComponent/ConsensusCaller.hpp"
+#include "components/CallComparerComponent/FrequentistTestCallMerger.hpp"
 
 namespace impl {
 	struct CallComparerFileOutputter: public PairwiseCallComparerManager::Client {
@@ -446,7 +446,7 @@ CallComparerComponent::UniquePtr CallComparerComponent::create( appcontext::Opti
 
 	comparer->set_merger(
 		PairwiseCallComparerManager::Merger::UniquePtr(
-			new ConsensusCaller(
+			new FrequentistTestCallMerger(
 				"AlleleFrequencyTestCallComparer",
 				0.001
 			)

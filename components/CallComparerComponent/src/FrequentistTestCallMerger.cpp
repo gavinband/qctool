@@ -8,24 +8,24 @@
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "components/CallComparerComponent/PairwiseCallComparerManager.hpp"
-#include "components/CallComparerComponent/ConsensusCaller.hpp"
+#include "components/CallComparerComponent/FrequentistTestCallMerger.hpp"
 
 #define CONSENSUS_CALLER_DEBUG 1
 
-ConsensusCaller::SharedPtr ConsensusCaller::create_shared( std::string const& comparison_method, double threshhold ) {
-	return SharedPtr( new ConsensusCaller( comparison_method, threshhold )) ;
+FrequentistTestCallMerger::SharedPtr FrequentistTestCallMerger::create_shared( std::string const& comparison_method, double threshhold ) {
+	return SharedPtr( new FrequentistTestCallMerger( comparison_method, threshhold )) ;
 }
 
-ConsensusCaller::ConsensusCaller( std::string const& comparison_method, double threshhold ):
+FrequentistTestCallMerger::FrequentistTestCallMerger( std::string const& comparison_method, double threshhold ):
 	m_comparison_method( comparison_method ),
 	m_range( std::make_pair( threshhold, 100.0 ))
 {}
 
-std::string ConsensusCaller::get_spec() const {
+std::string FrequentistTestCallMerger::get_spec() const {
 	return m_spec ;
 }
 
-std::string ConsensusCaller::get_result_as_string() const {
+std::string FrequentistTestCallMerger::get_result_as_string() const {
 	std::string result ;
 	foreach( std::string const& call, m_concordant_calls ) {
 		if( result.size() > 0 ) {
@@ -36,13 +36,13 @@ std::string ConsensusCaller::get_result_as_string() const {
 	return result ;
 }
 
-void ConsensusCaller::begin_comparisons( genfile::SNPIdentifyingData const& snp ) {
+void FrequentistTestCallMerger::begin_comparisons( genfile::SNPIdentifyingData const& snp ) {
 	m_snp = snp ;
 	m_comparison_values.clear() ;
 	m_concordant_calls.clear() ;
 }
 
-void ConsensusCaller::set_result(
+void FrequentistTestCallMerger::set_result(
 	std::string const& callset1,
 	std::string const& callset2,
 	std::string const& comparison_method,
@@ -54,7 +54,7 @@ void ConsensusCaller::set_result(
 	}
 }
 
-void ConsensusCaller::end_comparisons() {
+void FrequentistTestCallMerger::end_comparisons() {
 	// Divide the calls into groups of calls all having p-value greater than the threshhold.
 	// We assume comparisons are transitive: in reality this isn't the case but it's simpler to
 	// assume transitivity here.

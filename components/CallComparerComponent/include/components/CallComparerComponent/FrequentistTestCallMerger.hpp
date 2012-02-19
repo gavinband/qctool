@@ -1,5 +1,5 @@
-#ifndef QCTOOL_CALLCOMPARER_COMPONENT_CONSENSUS_CALLER_HPP
-#define QCTOOL_CALLCOMPARER_COMPONENT_CONSENSUS_CALLER_HPP
+#ifndef QCTOOL_CALLCOMPARER_COMPONENT_FREQUENTIST_TEST_CALL_MERGER_HPP
+#define QCTOOL_CALLCOMPARER_COMPONENT_FREQUENTIST_TEST_CALL_MERGER_HPP
 
 #include <map>
 #include <string>
@@ -12,10 +12,10 @@
 #include "genfile/VariantEntry.hpp"
 #include "components/CallComparerComponent/PairwiseCallComparerManager.hpp"
 
-struct ConsensusCaller: PairwiseCallComparerManager::Merger
+struct FrequentistTestCallMerger: PairwiseCallComparerManager::Merger
 {
 	static SharedPtr create_shared( std::string const& comparison_method, double threshhold ) ;
-	ConsensusCaller( std::string const& comparison_method, double threshhold ) ;
+	FrequentistTestCallMerger( std::string const& comparison_method, double threshhold ) ;
 	
 	void begin_comparisons( genfile::SNPIdentifyingData const& snp ) ;
 	void set_result(
