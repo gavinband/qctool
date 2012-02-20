@@ -87,15 +87,18 @@ namespace genfile {
 		return m_sources.size() ;
 	}
 
-	unsigned int SNPDataSourceChain::total_number_of_snps() const {
+	SNPDataSource::OptionalSnpCount SNPDataSourceChain::total_number_of_snps() const {
 		unsigned int total_number_of_snps = 0 ;
 		for( std::size_t i = 0; i < m_sources.size(); ++i ) {
-			total_number_of_snps += m_sources[i]->total_number_of_snps() ;
+			if( !m_sources[i]->total_number_of_snps() ) {
+				return OptionalSnpCount() ;
+			}
+			total_number_of_snps += *m_sources[i]->total_number_of_snps() ;
 		}
 		return total_number_of_snps ;
 	}
 
-	unsigned int SNPDataSourceChain::number_of_snps_in_source( std::size_t source_index ) const {
+	SNPDataSource::OptionalSnpCount SNPDataSourceChain::number_of_snps_in_source( std::size_t source_index ) const {
 		assert( source_index < m_sources.size() ) ;
 		return m_sources[ source_index ]->total_number_of_snps() ;
 	}
@@ -184,8 +187,11 @@ namespace genfile {
 	}
 
 	void SNPDataSourceChain::move_to_next_nonempty_source_if_necessary() {
-		while(( m_current_source < m_sources.size())
-			&& (m_sources[ m_current_source ]->number_of_snps_read() >= m_sources[m_current_source]->total_number_of_snps())) {
+		while(
+			m_current_source < m_sources.size()
+			&&
+			m_sources[ m_current_source ]->get_snp_identifying_data( ignore(), ignore(), ignore(), ignore(), ignore(), ignore(), ignore() )
+		) {
 			move_to_next_source() ;
 		}
 	}

@@ -25,7 +25,7 @@ namespace genfile {
 	public:
 
 		unsigned int number_of_samples() const ;
-		unsigned int total_number_of_snps() const ;
+		OptionalSnpCount total_number_of_snps() const ;
 		operator bool() const ;
 
 	private:

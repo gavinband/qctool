@@ -38,9 +38,9 @@ namespace genfile {
 
 		void add_source( std::auto_ptr< SNPDataSource > source ) ;
 		unsigned int number_of_samples() const ;
-		unsigned int total_number_of_snps() const ;
+		OptionalSnpCount total_number_of_snps() const ;
 		unsigned int number_of_sources() const ;
-		unsigned int number_of_snps_in_source( std::size_t source_index ) const ;
+		OptionalSnpCount number_of_snps_in_source( std::size_t source_index ) const ;
 		SNPDataSource const& get_source( std::size_t source_index ) const ;
 		operator bool() const ;
 		std::string get_source_spec() const ;

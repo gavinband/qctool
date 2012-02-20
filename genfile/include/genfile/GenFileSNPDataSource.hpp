@@ -28,7 +28,7 @@ namespace genfile {
 		) ;
 
 		unsigned int number_of_samples() const { return m_number_of_samples ; }
-		unsigned int total_number_of_snps() const { return m_total_number_of_snps ; }
+		OptionalSnpCount total_number_of_snps() const { return m_total_number_of_snps ; }
 		
 		operator bool() const { return *m_stream_ptr ; }
 		std::istream& stream() { return *m_stream_ptr ; }

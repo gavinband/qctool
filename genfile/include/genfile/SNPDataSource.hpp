@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include "../config.hpp"
+#include <boost/optional.hpp>
 #include <boost/function.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/wildcard.hpp"
@@ -66,7 +67,7 @@ namespace genfile {
 		typedef boost::function< void ( Chromosome ) > ChromosomeSetter ;
 		typedef boost::function< void ( std::size_t, double, double, double ) > GenotypeProbabilitySetter ;
 		typedef boost::function< void ( SNPIdentifyingData const& ) > SNPSetter ;
-		typedef boost::function< void( std::size_t, std::size_t ) > ProgressCallback ;
+		typedef boost::function< void( std::size_t, boost::optional< std::size_t > ) > ProgressCallback ;
 
 		// Function: list_snps
 		// Return (via the setter object) a list of all SNPs in the source.
@@ -189,7 +190,8 @@ namespace genfile {
 		// Return the number of samples represented in the snps in this source.
 		virtual unsigned int number_of_samples() const = 0;
 		// Return the total number of snps the source contains.
-		virtual unsigned int total_number_of_snps() const = 0 ;
+		typedef boost::optional< std::size_t > OptionalSnpCount ;
+		virtual OptionalSnpCount total_number_of_snps() const = 0 ;
 
 		// Return a string identifying the source of the SNP data
 		virtual std::string get_source_spec() const = 0 ;

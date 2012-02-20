@@ -67,7 +67,7 @@ namespace genfile {
 		m_source( source ),
 		m_allele_flips( allele_flips )
 	{
-		assert( m_allele_flips.size() == m_source->total_number_of_snps() ) ;
+		assert( !m_source->total_number_of_snps() || m_allele_flips.size() == *m_source->total_number_of_snps() ) ;
 	}
 	
 	std::string AlleleFlippingSNPDataSource::get_summary( std::string const& prefix, std::size_t column_width ) const {

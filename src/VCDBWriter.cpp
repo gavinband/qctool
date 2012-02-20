@@ -70,9 +70,8 @@ db::Connection::RowId VCDBWriter::get_or_create_field( std::string const& field,
 	}
 }
 
-void VCDBWriter::begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) {
+void VCDBWriter::begin_processing_snps( std::size_t number_of_samples ) {
 	m_number_of_samples = number_of_samples ;
-	m_number_of_snps = number_of_snps ;
 	m_number_of_snps_written = 0 ;
 	m_transaction_count = 0 ;
 	m_transaction_limit = 100 ;

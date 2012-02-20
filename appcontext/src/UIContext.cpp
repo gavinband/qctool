@@ -33,7 +33,7 @@ namespace appcontext {
 
 	void ProgressContextProxy::notify_progress(
 		std::size_t const count,
-		std::size_t const total_count
+		boost::optional< std::size_t > const total_count
 	) const {
 		assert( m_progress_context ) ;
 		m_progress_context->notify_progress( count, total_count ) ;

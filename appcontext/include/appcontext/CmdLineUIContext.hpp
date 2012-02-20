@@ -32,7 +32,7 @@ namespace appcontext {
 
 		void notify_progress(
 			std::size_t const count,
-			std::size_t const total_count
+			boost::optional< std::size_t > const total_count
 		) const ;
 
 		void finish() const ;
@@ -42,7 +42,7 @@ namespace appcontext {
 	private:
 		void print_progress(
 			std::size_t const count,
-			std::size_t const total_count,
+			boost::optional< std::size_t > const total_count,
 			std::string const& msg,
 			std::size_t max_msg_length
 		) const ;

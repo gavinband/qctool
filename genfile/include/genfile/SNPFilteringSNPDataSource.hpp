@@ -26,8 +26,8 @@ namespace genfile {
 
 		operator bool() const ;
 		unsigned int number_of_samples() const ;
-		unsigned int total_number_of_snps() const ;
-		unsigned int total_number_of_snps_before_filtering() const ;
+		OptionalSnpCount total_number_of_snps() const ;
+		OptionalSnpCount total_number_of_snps_before_filtering() const ;
 		std::string get_source_spec() const ;
 
 		SNPDataSource const& get_parent_source() const ;

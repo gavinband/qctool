@@ -113,7 +113,7 @@ namespace genfile {
 		m_source_reset_callback = callback ;
 	}
 
-	void SNPDataSource::list_snps( SNPSetter setter, boost::function< void( std::size_t, std::size_t ) > progress_callback ) {
+	void SNPDataSource::list_snps( SNPSetter setter, boost::function< void( std::size_t, boost::optional< std::size_t > ) > progress_callback ) {
 		reset_to_start() ;
 		for(
 			SNPIdentifyingData data ;

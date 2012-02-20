@@ -367,10 +367,9 @@ KinshipCoefficientComputer::KinshipCoefficientComputer(
 	}
 }
 
-void KinshipCoefficientComputer::begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) {
+void KinshipCoefficientComputer::begin_processing_snps( std::size_t number_of_samples ) {
 	assert( m_samples.get_number_of_individuals() == number_of_samples ) ;
 	m_number_of_samples = number_of_samples ;
-	m_number_of_snps = number_of_snps ;
 	m_number_of_snps_processed = 0 ;
 	m_number_of_tasks = 7 ;//m_worker->get_number_of_worker_threads() + 5 ;
 	m_number_of_snps_per_task = 10 ;
@@ -418,8 +417,7 @@ void KinshipCoefficientComputer::processed_snp( genfile::SNPIdentifyingData cons
 	) ;
 
 	if(
-		(++m_number_of_snps_processed == m_number_of_snps )
-		|| m_tasks[ m_current_task ].number_of_snps() == m_number_of_snps_per_task
+		m_tasks[ m_current_task ].number_of_snps() == m_number_of_snps_per_task
 	) {
 		m_tasks[ m_current_task ].finalise() ;
 		m_worker->tell_to_perform_task( m_tasks[ m_current_task ] ) ;
@@ -456,6 +454,12 @@ namespace impl {
 }
 
 void KinshipCoefficientComputer::end_processing_snps() {
+	if( !m_tasks[ m_current_task ].is_finalised() ) {
+		m_tasks[ m_current_task ].finalise() ;
+		m_worker->tell_to_perform_task( m_tasks[ m_current_task ] ) ;
+		m_current_task = ( m_current_task + 3 ) % m_number_of_tasks ;
+	}
+	
 	for( std::size_t i = 0; i < m_tasks.size(); ++i ) {
 		if( m_tasks[ i ].is_finalised() ) {
 			m_tasks[i].wait_until_complete() ;
@@ -533,8 +537,7 @@ void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* mat
 }
 
 
-void PCAComputer::begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) {
-	m_number_of_snps = number_of_snps ;
+void PCAComputer::begin_processing_snps( std::size_t number_of_samples ) {
 	m_number_of_samples = number_of_samples ;
 	m_number_of_snps_processed = 0 ;
 

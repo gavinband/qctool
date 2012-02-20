@@ -105,10 +105,13 @@ namespace genfile {
 	}
 
 	// Return the total number of snps the source contains.
-	unsigned int MergingSNPDataSource::total_number_of_snps() const {
+	SNPDataSource::OptionalSnpCount MergingSNPDataSource::total_number_of_snps() const {
 		unsigned int result = 0 ;
 		for( std::size_t i = 0; i < m_sources.size(); ++i ) {
-			result += m_sources[i]->total_number_of_snps() ;
+			if( !m_sources[i]->total_number_of_snps() ) {
+				return OptionalSnpCount() ;
+			}
+			result += *m_sources[i]->total_number_of_snps() ;
 		}
 		return result ;
 	}

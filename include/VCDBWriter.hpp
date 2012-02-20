@@ -22,7 +22,7 @@ public:
 public:
 	
 	VCDBWriter( DataStore::UniquePtr store, std::vector< std::string > const& fields ) ;
-	void begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) ;
+	void begin_processing_snps( std::size_t number_of_samples ) ;
 	void processed_snp( genfile::SNPIdentifyingData const& , genfile::VariantDataReader& data_reader ) ;
 	void end_processing_snps() ;
 	void set_SNPs( std::vector< genfile::SNPIdentifyingData > const& snps ) ;
@@ -32,7 +32,6 @@ private:
 	std::set< std::string > const m_fields ;
 	bool m_write_all_fields ;
 	std::size_t m_number_of_samples ;
-	std::size_t m_number_of_snps ;
 	std::size_t m_number_of_snps_written ;
 	std::size_t m_transaction_count ;
 	std::size_t m_transaction_limit ;

@@ -266,7 +266,7 @@ namespace genfile {
 		return m_column_names.size() - 9 ;
 	}
 
-	unsigned int VCFFormatSNPDataSource::total_number_of_snps() const {
+	SNPDataSource::OptionalSnpCount VCFFormatSNPDataSource::total_number_of_snps() const {
 		return m_number_of_lines ;
 	}
 

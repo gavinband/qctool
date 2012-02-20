@@ -55,7 +55,7 @@ namespace appcontext {
 
 	void ProgressBarProgressContext::notify_progress(
 		std::size_t const count,
-		std::size_t const total_count
+		boost::optional< std::size_t > const total_count
 	) const {
 		double time_now = m_timer.elapsed() ;
 		if((count == 0) || (count == total_count) || (time_now - m_last_time) > 1 ) {
@@ -70,11 +70,10 @@ namespace appcontext {
 
 	void ProgressBarProgressContext::print_progress(
 		std::size_t const count,
-		std::size_t const total_count,
+		boost::optional< std::size_t > const total_count,
 		std::string const& msg,
 		std::size_t const max_msg_length
 	) const {
-		double progress = (total_count == 0) ? 1.0 : (static_cast< double >( count ) / total_count ) ;
 
 		m_ui_context.logger()["screen"] << "\r" ;
 	
@@ -87,19 +86,32 @@ namespace appcontext {
 			}
 		}
 	
-		if( count == total_count ) {
-			m_ui_context.logger()
-				<< get_progress_bar( 30, progress )
-				<< " (" << count << "/" << total_count
-				<< "," << m_timer.display()
-				<< "," << std::fixed << std::setprecision(1) << (static_cast< double >( count ) / m_timer.elapsed()) << "/s"
-				<< ")" << std::flush ;
+		if( total_count ) {	
+			double progress = (total_count == 0) ? 1.0 : (static_cast< double >( count ) / *total_count ) ;
+			
+			if( count == *total_count ) {
+				m_ui_context.logger()
+					<< get_progress_bar( 30, progress )
+					<< " (" << count << "/" << *total_count
+					<< "," << m_timer.display()
+					<< "," << std::fixed << std::setprecision(1) << (static_cast< double >( count ) / m_timer.elapsed()) << "/s"
+					<< ")" << std::flush ;
+			}
+			else {
+				m_ui_context.logger()["screen"]
+					<< get_progress_bar( 30, progress )
+					<< " (" << count << "/" << *total_count
+					<< "," << m_timer.display() ;
+				if( m_timer.elapsed() > 0.0 ) {
+					m_ui_context.logger()["screen"]
+						<< "," << std::fixed << std::setprecision(1) << (static_cast< double >( count ) / m_timer.elapsed()) << "/s" ;
+				}
+				m_ui_context.logger()["screen"] << ")" << std::flush ;
+			}
 		}
 		else {
 			m_ui_context.logger()["screen"]
-				<< get_progress_bar( 30, progress )
-				<< " (" << count << "/" << total_count
-				<< "," << m_timer.display() ;
+				<< " (" << count << "/" << "?" << "," << m_timer.display() ;
 			if( m_timer.elapsed() > 0.0 ) {
 				m_ui_context.logger()["screen"]
 					<< "," << std::fixed << std::setprecision(1) << (static_cast< double >( count ) / m_timer.elapsed()) << "/s" ;

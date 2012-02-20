@@ -18,9 +18,8 @@ void DataReadTest::declare_options( appcontext::OptionProcessor& options ) {
 
 DataReadTest::DataReadTest() {}
 
-void DataReadTest::begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) {
+void DataReadTest::begin_processing_snps( std::size_t number_of_samples ) {
 	m_number_of_samples = number_of_samples ;
-	m_number_of_snps = number_of_snps ;
 	m_number_of_snps_read = 0 ;
 	m_data.resize( m_number_of_samples ) ;
 }

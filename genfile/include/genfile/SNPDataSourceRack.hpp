@@ -38,8 +38,7 @@ namespace genfile {
 			MissingSNPError( std::size_t source_index, SNPIdentifyingData snp )
 				: Error( source_index, snp )
 			{}
-			~MissingSNPError() throw() {}
-
+			// ~MissingSNPError() throw() {}
 			char const* what() const throw() { return "MissingSNPError" ; }
 			SNPIdentifyingData const& snp() const { return m_snp ; }
 		private:
@@ -51,7 +50,7 @@ namespace genfile {
 			SNPMismatchError( std::size_t source_index, SNPIdentifyingData snp )
 				: Error( source_index, snp )
 			{}
-			~SNPMismatchError() throw() {}
+			// ~SNPMismatchError() throw() {}
 			char const* what() const throw() { return "SNPMismatchError" ; }
 		} ;
 		
@@ -78,7 +77,7 @@ namespace genfile {
 		SNPDataSource& get_source( std::size_t ) const ;
 
 		unsigned int number_of_samples() const ;
-		unsigned int total_number_of_snps() const ;
+		OptionalSnpCount total_number_of_snps() const ;
 		operator bool() const ;
 		std::string get_source_spec() const ;
 		std::string get_summary( std::string const& prefix, std::size_t width ) const ;

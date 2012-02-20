@@ -144,7 +144,6 @@ void copy_gen_file( genfile::SNPDataSource& snp_data_source, genfile::SNPDataSin
 
 void copy_gen_file( std::string original, genfile::SNPDataSink& target ) {
 	genfile::GenFileSNPDataSource gen_file_snp_data_source( original, genfile::UnidentifiedChromosome ) ;
-	TEST_ASSERT( gen_file_snp_data_source.total_number_of_snps() == data::number_of_snps ) ;
 	copy_gen_file( gen_file_snp_data_source, target ) ;
 }
 
@@ -303,20 +302,10 @@ AUTO_TEST_CASE( test_formats ) {
 	TEST_ASSERT( bzgen_file_snp_data_source.number_of_samples() == data::number_of_samples ) ;
 	TEST_ASSERT( zgen_file_snp_data_source.number_of_samples() == data::number_of_samples ) ;
 
-	TEST_ASSERT( gen_file_snp_data_source.total_number_of_snps() == data::number_of_snps ) ;
-	TEST_ASSERT( bgen_file_snp_data_source.total_number_of_snps() == data::number_of_snps ) ;
-	TEST_ASSERT( bzgen_file_snp_data_source.total_number_of_snps() == data::number_of_snps ) ;
-	TEST_ASSERT( zgen_file_snp_data_source.total_number_of_snps() == data::number_of_snps ) ;
-
 	TEST_ASSERT( gen_file_snp_data_source2.number_of_samples() == data::number_of_samples ) ;
 	TEST_ASSERT( bgen_file_snp_data_source2.number_of_samples() == data::number_of_samples ) ;
 	TEST_ASSERT( bzgen_file_snp_data_source2.number_of_samples() == data::number_of_samples ) ;
 	TEST_ASSERT( zgen_file_snp_data_source2.number_of_samples() == data::number_of_samples ) ;
-
-	TEST_ASSERT( gen_file_snp_data_source2.total_number_of_snps() == data::number_of_snps ) ;
-	TEST_ASSERT( bgen_file_snp_data_source2.total_number_of_snps() == data::number_of_snps ) ;
-	TEST_ASSERT( bzgen_file_snp_data_source2.total_number_of_snps() == data::number_of_snps ) ;
-	TEST_ASSERT( zgen_file_snp_data_source2.total_number_of_snps() == data::number_of_snps ) ;
 
 	for( std::size_t i = 0; i < results.size(); ++i ) {
 		TEST_ASSERT( results[i].size() == data::number_of_snps ) ;

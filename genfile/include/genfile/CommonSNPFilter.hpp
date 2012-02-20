@@ -37,24 +37,30 @@ namespace genfile {
 		
 		CommonSNPFilter& exclude_snps_in_file( std::string const& filename, int fields ) ;
 		CommonSNPFilter& exclude_snps_not_in_file( std::string const& filename, int fields ) ;
+		CommonSNPFilter& include_snps_in_file( std::string const& filename, int fields ) ;
 		
 		CommonSNPFilter& exclude_snps_in_set( std::set< std::string > const& set, int fields ) ;
 		CommonSNPFilter& exclude_snps_not_in_set( std::set< std::string > const& set, int fields ) ;
+		CommonSNPFilter& include_snps_in_set( std::set< std::string > const& set, int fields ) ;
 		
 		CommonSNPFilter& exclude_chromosomes_in_set( std::set< genfile::Chromosome > const& set ) ;
 		CommonSNPFilter& exclude_chromosomes_not_in_set( std::set< genfile::Chromosome > const& set ) ;
+		CommonSNPFilter& include_chromosomes_in_set( std::set< genfile::Chromosome > const& set ) ;
 		
 		CommonSNPFilter& exclude_snps_matching( std::string const& expression ) ;
 		CommonSNPFilter& exclude_snps_not_matching( std::string const& expression ) ;
+		CommonSNPFilter& include_snps_matching( std::string const& expression ) ;
 
 		CommonSNPFilter& exclude_snps_in_range( genfile::GenomePositionRange const& range ) ;
 		CommonSNPFilter& exclude_snps_not_in_range( genfile::GenomePositionRange const& range ) ;
+		CommonSNPFilter& include_snps_in_range( genfile::GenomePositionRange const& range ) ;
 
 	private:
 		SNPIdentifyingDataTestConjunction m_filter ;
-
+		std::map< std::string, CompoundSNPIdentifyingDataTest* > m_inclusion_filters ;
 	private:
-		SNPIdentifyingDataTest::UniquePtr construct_test( std::set< std::string > const& set, int fields ) ;
+		SNPIdentifyingDataTest::UniquePtr construct_snp_exclusion_test( std::set< std::string > const& set, int fields ) ;
+		void add_inclusion_filter_if_necessary( std::string const& name ) ;
 		std::set< std::string > read_strings_from_file( std::string const& filename ) ;
 	} ;
 }

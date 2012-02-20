@@ -2,6 +2,7 @@
 #define UICONTEXT_UICONTEXT_HPP
 
 #include <string>
+#include <boost/optional.hpp>
 #include "appcontext/OstreamTee.hpp"
 
 namespace appcontext {
@@ -9,7 +10,7 @@ namespace appcontext {
 	{
 		virtual void notify_progress(
 			std::size_t const count,
-			std::size_t const total_count
+			boost::optional< std::size_t > const total_count
 		) const = 0 ;
 		virtual void finish() const = 0 ;
 		virtual std::string name() const = 0 ;
@@ -29,14 +30,14 @@ namespace appcontext {
 
 		void operator()(
 			std::size_t const count,
-			std::size_t const total_count
+			boost::optional< std::size_t > const total_count
 		) const {
 			notify_progress( count, total_count ) ;
 		}
 
 		void notify_progress(
 			std::size_t const count,
-			std::size_t const total_count
+			boost::optional< std::size_t > const total_count
 		) const ;
 
 		void finish() const ;

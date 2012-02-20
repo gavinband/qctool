@@ -359,7 +359,7 @@ HaplotypeFrequencyComponent::HaplotypeFrequencyComponent(
 	m_threshhold( 0.9 )
 {}
 
-void HaplotypeFrequencyComponent::begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) {
+void HaplotypeFrequencyComponent::begin_processing_snps( std::size_t number_of_samples ) {
 	assert( m_source->number_of_samples() == number_of_samples ) ;
 }
 

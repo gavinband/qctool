@@ -35,7 +35,7 @@ namespace genfile {
 			return m_source->number_of_samples() ;
 		}
 
-		unsigned int total_number_of_snps() const {
+		OptionalSnpCount total_number_of_snps() const {
 			return m_source->total_number_of_snps() ;
 		}
 

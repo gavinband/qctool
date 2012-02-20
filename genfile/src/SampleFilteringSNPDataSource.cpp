@@ -43,7 +43,8 @@ namespace genfile {
 	unsigned int SampleFilteringSNPDataSource::number_of_samples() const {
 		return m_source->number_of_samples() - m_indices_of_samples_to_filter_out.size() ;
 	}
-	unsigned int SampleFilteringSNPDataSource::total_number_of_snps() const {
+
+	SNPDataSource::OptionalSnpCount SampleFilteringSNPDataSource::total_number_of_snps() const {
 		return m_source->total_number_of_snps() ;
 	}
 

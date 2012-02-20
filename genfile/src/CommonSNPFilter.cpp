@@ -12,7 +12,8 @@
 #include "genfile/snp_data_utils.hpp"
 
 namespace genfile {
-	CommonSNPFilter::CommonSNPFilter() {}
+	CommonSNPFilter::CommonSNPFilter() {
+	}
 
 	bool CommonSNPFilter::operator()(
 		std::string SNPID,
@@ -27,7 +28,11 @@ namespace genfile {
 	std::string CommonSNPFilter::display() const { return m_filter.display() ; }
 	
 	CommonSNPFilter& CommonSNPFilter::exclude_snps_in_file( std::string const& filename, int fields ) {
-		return exclude_snps_in_set( read_strings_from_file( filename ), fields) ;
+		return exclude_snps_in_set( read_strings_from_file( filename ), fields ) ;
+	}
+
+	CommonSNPFilter& CommonSNPFilter::include_snps_in_file( std::string const& filename, int fields ) {
+		return include_snps_in_set( read_strings_from_file( filename ), fields ) ;
 	}
 
 	CommonSNPFilter& CommonSNPFilter::exclude_snps_not_in_file( std::string const& filename, int fields ) {
@@ -35,14 +40,29 @@ namespace genfile {
 	}
 
 	CommonSNPFilter& CommonSNPFilter::exclude_snps_in_set( std::set< std::string > const& set, int fields ) {
-		SNPIdentifyingDataTest::UniquePtr test = construct_test( set, fields ) ;
+		SNPIdentifyingDataTest::UniquePtr test = construct_snp_exclusion_test( set, fields ) ;
 		test.reset( new SNPIdentifyingDataTestNegation( test )) ;
 		m_filter.add_subtest( test ) ;
 		return *this ;
 	}
 
+	CommonSNPFilter& CommonSNPFilter::include_snps_in_set( std::set< std::string > const& set, int fields ) {
+		SNPIdentifyingDataTest::UniquePtr test = construct_snp_exclusion_test( set, fields ) ;
+		add_inclusion_filter_if_necessary( "id" ) ;
+		m_inclusion_filters[ "id" ]->add_subtest( test ) ;
+		return *this ;
+	}
+
+	void CommonSNPFilter::add_inclusion_filter_if_necessary( std::string const& name ) {
+		if( m_inclusion_filters.find( "name" ) == m_inclusion_filters.end() ) {
+			SNPIdentifyingDataTestDisjunction::UniquePtr test( new SNPIdentifyingDataTestDisjunction() ) ;
+			m_inclusion_filters[ name ] = test.get() ;
+			m_filter.add_subtest( SNPIdentifyingDataTest::UniquePtr( test.release() )) ;
+		}
+	}
+
 	CommonSNPFilter& CommonSNPFilter::exclude_snps_not_in_set( std::set< std::string > const& set, int fields ) {
-		SNPIdentifyingDataTest::UniquePtr test = construct_test( set, fields ) ;
+		SNPIdentifyingDataTest::UniquePtr test = construct_snp_exclusion_test( set, fields ) ;
 		m_filter.add_subtest( test ) ;
 		return *this ;
 	}
@@ -54,7 +74,7 @@ namespace genfile {
 		return result ;
 	}
 	
-	SNPIdentifyingDataTest::UniquePtr CommonSNPFilter::construct_test( std::set< std::string > const& set, int fields ) {
+	SNPIdentifyingDataTest::UniquePtr CommonSNPFilter::construct_snp_exclusion_test( std::set< std::string > const& set, int fields ) {
 		SNPIdentifyingDataTest::UniquePtr test ;
 		switch( fields ) {
 			case RSIDs:
@@ -78,6 +98,13 @@ namespace genfile {
 		m_filter.add_subtest( test ) ;
 		return *this ;
 	}
+
+	CommonSNPFilter& CommonSNPFilter::include_chromosomes_in_set( std::set< genfile::Chromosome > const& set ) {
+		SNPIdentifyingDataTest::UniquePtr test( new ChromosomeInSetTest( set ) ) ;
+		add_inclusion_filter_if_necessary( "chromosome" ) ;
+		m_inclusion_filters[ "chromosome" ]->add_subtest( test ) ;
+		return *this ;
+	}
 	
 	CommonSNPFilter& CommonSNPFilter::exclude_chromosomes_not_in_set( std::set< genfile::Chromosome > const& set ) {
 		SNPIdentifyingDataTest::UniquePtr test( new ChromosomeInSetTest( set ) ) ;
@@ -92,6 +119,13 @@ namespace genfile {
 		return *this ;
 	}
 
+	CommonSNPFilter& CommonSNPFilter::include_snps_matching( std::string const& expression ) {
+		SNPIdentifyingDataTest::UniquePtr test( new SNPIDMatchesTest( expression ) ) ;
+		add_inclusion_filter_if_necessary( "match" ) ;
+		m_inclusion_filters[ "match" ]->add_subtest( test ) ;
+		return *this ;
+	}
+
 	CommonSNPFilter& CommonSNPFilter::exclude_snps_not_matching( std::string const& expression ) {
 		SNPIdentifyingDataTest::UniquePtr test( new SNPIDMatchesTest( expression ) ) ;
 		m_filter.add_subtest( test ) ;
@@ -102,6 +136,13 @@ namespace genfile {
 		SNPIdentifyingDataTest::UniquePtr test( new SNPPositionInRangeTest( range ) ) ;
 		test.reset( new SNPIdentifyingDataTestNegation( test )) ;
 		m_filter.add_subtest( test ) ;
+		return *this ;
+	}
+
+	CommonSNPFilter& CommonSNPFilter::include_snps_in_range( genfile::GenomePositionRange const& range ) {
+		SNPIdentifyingDataTest::UniquePtr test( new SNPPositionInRangeTest( range ) ) ;
+		add_inclusion_filter_if_necessary( "range" ) ;
+		m_inclusion_filters[ "range" ]->add_subtest( test ) ;
 		return *this ;
 	}
 

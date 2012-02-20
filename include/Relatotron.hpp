@@ -24,7 +24,7 @@ struct Relatotron: public genfile::SNPDataSourceProcessor::Callback
 
 	Relatotron( appcontext::OptionProcessor const& options, genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ) ;
 	
-	void begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) ;
+	void begin_processing_snps( std::size_t number_of_samples ) ;
 	void processed_snp( SNPIdentifyingData const& id_data, genfile::VariantDataReader& genotypes ) ;
 	void end_processing_snps() ;
 	

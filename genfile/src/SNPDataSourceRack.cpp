@@ -55,7 +55,6 @@ namespace genfile {
 
 	void SNPDataSourceRack::add_source( std::auto_ptr< SNPDataSource > source ) {
 		std::vector< SNPIdentifyingData > const snps = get_list_of_snps_in_source( *source ) ;
-		add_source( source, snps ) ;
 	}
 
 	void SNPDataSourceRack::add_source(
@@ -179,7 +178,7 @@ namespace genfile {
 	}
 
 	// Return the total number of snps the source contains.
-	unsigned int SNPDataSourceRack::total_number_of_snps() const {
+	SNPDataSource::OptionalSnpCount SNPDataSourceRack::total_number_of_snps() const {
 		return m_included_snps.size() ;
 	}
 

@@ -2,6 +2,7 @@
 #define GENFILE_SNP_DATA_SOURCE_PROCESSOR_HPP
 
 #include <boost/function.hpp>
+#include <boost/optional.hpp>
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
@@ -14,13 +15,13 @@ namespace genfile {
 		// and feeds the data out to callback objects.
 	public:
 		
-		typedef boost::function< void ( std::size_t, std::size_t ) > ProgressCallback ;
+		typedef boost::function< void ( std::size_t, boost::optional< std::size_t > ) > ProgressCallback ;
 		
 		
 		struct Callback {
 			typedef std::auto_ptr< Callback > UniquePtr ;
 			virtual ~Callback() ;
-			virtual void begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) = 0 ;
+			virtual void begin_processing_snps( std::size_t number_of_samples ) = 0 ;
 			virtual void processed_snp( SNPIdentifyingData const& , VariantDataReader& data_reader ) = 0 ;
 			virtual void end_processing_snps() = 0 ;
 		} ;
@@ -31,7 +32,7 @@ namespace genfile {
 		virtual void process( genfile::SNPDataSource& source, ProgressCallback = ProgressCallback() ) = 0 ;
 
 	protected:
-		virtual void call_begin_processing_snps( std::size_t const& number_of_samples, std::size_t const& number_of_snps ) const ;
+		virtual void call_begin_processing_snps( std::size_t const& number_of_samples ) const ;
 		virtual void call_processed_snp(  SNPIdentifyingData const& id_data, VariantDataReader& data_reader ) const ;
 		virtual void call_end_processing_snps() const ;
 

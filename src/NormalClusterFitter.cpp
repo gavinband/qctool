@@ -32,9 +32,8 @@ NormalClusterFitter::NormalClusterFitter( appcontext::OptionProcessor const& opt
 	m_call_threshhold( options.get_value< double >( "-call-threshhold" ))
 {}
 
-void NormalClusterFitter::begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) {
+void NormalClusterFitter::begin_processing_snps( std::size_t number_of_samples ) {
 	m_number_of_samples = number_of_samples ;
-	m_number_of_snps = number_of_snps ;
 }
 
 void NormalClusterFitter::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {

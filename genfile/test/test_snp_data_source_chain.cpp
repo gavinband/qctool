@@ -149,7 +149,6 @@ namespace {
 
 	void copy_gen_file( std::string original, genfile::SNPDataSink& target ) {
 		genfile::GenFileSNPDataSource gen_file_snp_data_source( original, genfile::UnidentifiedChromosome ) ;
-		TEST_ASSERT( gen_file_snp_data_source.total_number_of_snps() == data::number_of_snps ) ;
 		copy_gen_file( gen_file_snp_data_source, target ) ;
 	}
 
@@ -215,10 +214,8 @@ AUTO_TEST_CASE( test_snp_data_source_chain ) {
 	std::auto_ptr< genfile::SNPDataSource > gen2source( genfile::SNPDataSource::create( gen2 )) ;
 	chain.add_source( gen1source ) ;
 	TEST_ASSERT( chain.number_of_samples() == data::number_of_samples ) ;
-	TEST_ASSERT( chain.total_number_of_snps() == data::number_of_snps ) ;
 	chain.add_source( gen2source ) ;
 	TEST_ASSERT( chain.number_of_samples() == data::number_of_samples ) ;
-	TEST_ASSERT( chain.total_number_of_snps() == (2 * data::number_of_snps) ) ;
 
 	std::vector< std::vector< SnpData > > results ;
 	std::cerr << "Reading gen files (1)...\n" ;

@@ -14,7 +14,7 @@ namespace genfile {
 	{
 	public:
 		typedef std::auto_ptr< SNPDataSourceRandomAccessCache > UniquePtr ;
-		typedef boost::function< void ( std::size_t, std::size_t ) > ProgressCallback ;
+		typedef boost::function< void ( std::size_t, boost::optional< std::size_t > ) > ProgressCallback ;
 
 		static UniquePtr create(
 			SNPDataSource& source,

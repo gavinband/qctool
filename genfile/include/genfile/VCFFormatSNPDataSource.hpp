@@ -39,7 +39,7 @@ namespace genfile {
 	public:
 		operator bool() const ;
 		unsigned int number_of_samples() const ;
-		unsigned int total_number_of_snps() const ;
+		OptionalSnpCount total_number_of_snps() const ;
 		std::string get_source_spec() const ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 		void set_field_mapping( std::string const& key, std::string const& value ) ;

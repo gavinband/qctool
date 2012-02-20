@@ -38,12 +38,10 @@ QCTool::QCTool(
 }
 
 void QCTool::begin_processing_snps(
-	std::size_t number_of_samples,
-	std::size_t number_of_snps
+	std::size_t number_of_samples
 ) {
 	m_number_of_samples = number_of_samples ;
 	m_per_column_amounts.resize( number_of_samples ) ;
-	m_number_of_snps = number_of_snps ;
 	m_number_of_snps_processed = 0 ;
 	m_number_of_autosomal_snps_processed = 0 ;
 	m_timer.restart() ;

@@ -38,12 +38,22 @@ namespace genfile {
 		return m_source->number_of_samples() ;
 	}
 
-	unsigned int SNPFilteringSNPDataSource::total_number_of_snps() const {
-		return m_source->total_number_of_snps() - m_indices_of_excluded_snps.size() ;
+	SNPDataSource::OptionalSnpCount SNPFilteringSNPDataSource::total_number_of_snps() const {
+		if( m_source->total_number_of_snps() ) {
+			return *m_source->total_number_of_snps() - m_indices_of_excluded_snps.size() ;
+		}
+		else {
+			return OptionalSnpCount() ;
+		}
 	}
 
-	unsigned int SNPFilteringSNPDataSource::total_number_of_snps_before_filtering() const {
-		return m_source->total_number_of_snps() ;
+	SNPDataSource::OptionalSnpCount SNPFilteringSNPDataSource::total_number_of_snps_before_filtering() const {
+		if( m_source->total_number_of_snps() ) {
+			return *m_source->total_number_of_snps() ;
+		}
+		else {
+			return OptionalSnpCount() ;
+		}
 	}
 	
 	std::string SNPFilteringSNPDataSource::get_source_spec() const {

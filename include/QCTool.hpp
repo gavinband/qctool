@@ -58,7 +58,7 @@ public:
 		appcontext::UIContext& ui_context
 	) ;
 	
-	void begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) ;
+	void begin_processing_snps( std::size_t number_of_samples ) ;
 	void processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader& data_reader ) ;
 	void end_processing_snps() ;
 

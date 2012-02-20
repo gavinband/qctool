@@ -21,7 +21,7 @@ void SNPSummaryComputationManager::add_result_callback( ResultCallback callback 
 	m_result_signal.connect( callback ) ;
 }
 
-void SNPSummaryComputationManager::begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) {
+void SNPSummaryComputationManager::begin_processing_snps( std::size_t number_of_samples ) {
 	m_snp_index = 0 ;
 }
 

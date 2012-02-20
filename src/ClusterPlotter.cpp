@@ -52,7 +52,7 @@ ClusterPlotter::ClusterPlotter(
 	m_max_tasks( 10 )
 {}
 
-void ClusterPlotter::begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) {
+void ClusterPlotter::begin_processing_snps( std::size_t number_of_samples ) {
 	m_number_of_samples = number_of_samples ;
 }
 

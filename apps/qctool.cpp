@@ -1385,12 +1385,14 @@ private:
 				metadata
 			) ;
 		}
+
+		genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter() ;
+		bool require_snps = snp_filter.get() ;
 		
 		std::vector< genfile::SNPIdentifyingData > snps = genfile::get_list_of_snps_in_source( *source ) ;
 		source->reset_to_start() ;
 		
 		// Filter SNPs if necessary
-		genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter() ;
 		if( snp_filter.get() ) {
 			std::vector< std::size_t > indices_of_filtered_in_snps = snp_filter->get_indices_of_filtered_in_snps( snps ) ;
 			source.reset(

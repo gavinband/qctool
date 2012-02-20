@@ -41,7 +41,7 @@ namespace genfile {
 	public:
 		operator bool() const { return *m_source ; }
 		unsigned int number_of_samples() const { return m_source->number_of_samples() ; }
-		unsigned int total_number_of_snps() const { return m_source->total_number_of_snps() ; }
+		OptionalSnpCount total_number_of_snps() const { return m_source->total_number_of_snps() ; }
 		std::string get_source_spec() const { return "allele-flipped:" + m_source->get_source_spec() ; }
 		SNPDataSource const& get_parent_source() const {
 			return *m_source ;

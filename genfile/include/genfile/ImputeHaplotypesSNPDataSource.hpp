@@ -17,7 +17,7 @@ namespace genfile {
 		ImputeHaplotypesSNPDataSource( std::string const& haplotypes_filename, Chromosome chromosome, CompressionType compression_type ) ;
 
 		unsigned int number_of_samples() const { return m_number_of_samples ; }
-		unsigned int total_number_of_snps() const { return m_snps.size() ; }
+		OptionalSnpCount total_number_of_snps() const { return m_snps.size() ; }
 		
 		operator bool() const { return m_good ; }
 		std::istream& stream() { return *m_stream_ptr ; }

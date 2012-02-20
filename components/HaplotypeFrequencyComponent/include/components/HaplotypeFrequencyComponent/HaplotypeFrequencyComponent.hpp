@@ -26,7 +26,7 @@ public:
 	HaplotypeFrequencyComponent( genfile::SNPDataSource::UniquePtr source, appcontext::UIContext& ui_context ) ;
 
 public:
-	void begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) ;
+	void begin_processing_snps( std::size_t number_of_samples ) ;
 	void processed_snp( genfile::SNPIdentifyingData const& target_snp, genfile::VariantDataReader& target_data_reader ) ;
 	void compute_ld_measures(
 		genfile::SNPIdentifyingData const& source_snp,

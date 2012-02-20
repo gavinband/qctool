@@ -19,7 +19,7 @@ namespace genfile {
 		// Return the number of samples represented in the snps in this source.
 		unsigned int number_of_samples() const ;
 		// Return the total number of snps the source contains.
-		unsigned int total_number_of_snps() const ;
+		OptionalSnpCount total_number_of_snps() const ;
 
 		// Return a string identifying the source of the SNP data
 		std::string get_source_spec() const ;

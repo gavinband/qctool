@@ -127,12 +127,11 @@ void Relatotron::construct_computations() {
 	}
 }
 
-void Relatotron::begin_processing_snps( std::size_t number_of_samples, std::size_t number_of_snps ) {
+void Relatotron::begin_processing_snps( std::size_t number_of_samples ) {
 	m_number_of_samples = number_of_samples ;
 	m_snps.clear() ;
-	m_snps.reserve( number_of_snps ) ;
+	//m_snps.reserve( number_of_snps ) ;
 	m_genotypes.clear() ;
-	m_genotypes.reserve( number_of_snps ) ;
 }
 
 void Relatotron::processed_snp( SNPIdentifyingData const& id_data, genfile::VariantDataReader& data_reader ) {
