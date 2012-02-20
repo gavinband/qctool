@@ -40,7 +40,7 @@ namespace genfile {
 
         typedef impl::uint32_t uint32_t ;
         typedef impl::uint16_t uint16_t ;
-		enum FlagsType { e_NoFlags = 0, e_CompressedSNPBlocks = 0x1, e_MultiCharacterAlleles = 0x2 } ;
+		enum FlagsType { e_NoFlags = 0, e_CompressedSNPBlocks = 0x1, e_MultiCharacterAlleles = 0x2, e_LongIds = 0x4 } ;
 
         /*
         * Function: read_offset
