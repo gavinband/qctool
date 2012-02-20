@@ -7,6 +7,7 @@
 #include "genfile/Error.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceRack.hpp"
+#include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/get_list_of_snps_in_source.hpp"
 
@@ -53,28 +54,12 @@ namespace genfile {
 		}
 	}
 
-	void SNPDataSourceRack::add_source( std::auto_ptr< SNPDataSource > source ) {
-		std::vector< SNPIdentifyingData > const snps = get_list_of_snps_in_source( *source ) ;
-	}
-
 	void SNPDataSourceRack::add_source(
-		std::auto_ptr< SNPDataSource > source,
-		std::vector< SNPIdentifyingData > const& snps
+		std::auto_ptr< SNPDataSource > source
 	) {
 		m_sources.push_back( source.release() ) ;
 		m_number_of_samples += m_sources.back()->number_of_samples() ;
 		m_sources.back()->reset_to_start() ;
-		
-		if( m_sources.size() == 1 ) {
-			m_included_snps = snps ;
-		}
-		else {
-			if( m_sources.size() == 2 ) {
-				check_snps_are_sorted_by_position( m_included_snps, 0 ) ; 
-			}
-			check_snps_are_sorted_by_position( snps, m_sources.size() - 1 ) ;
-			m_included_snps = get_intersected_snps( m_included_snps, snps ) ;
-		}
 	}
 
 	void SNPDataSourceRack::check_snps_are_sorted_by_position(
@@ -136,16 +121,15 @@ namespace genfile {
 
 	// Implicit conversion to bool.  Return true if there have been no errors so far.
 	SNPDataSourceRack::operator bool() const {
-		if( m_read_past_end ) {
-			return false ;
+		if( m_sources.empty() ) {
+			return 0 ;
 		}
-
-		for( std::size_t i = 0; i < m_sources.size(); ++i ) {
-			if( !m_sources[i]->operator bool() ) {
+		for( std::size_t i = 0; i < m_sources.size(); ++ i ) {
+			if( !*m_sources[i] ) {
 				return false ;
 			}
 		}
-		return !m_sources.empty() ;
+		return true ;
 	}
 	
 	std::string SNPDataSourceRack::get_source_spec() const {
@@ -163,7 +147,7 @@ namespace genfile {
 			ostr << m_sources[i]->get_summary( prefix, width ) ;
 			ostr << "\n" ;
 		}
-		ostr << prefix << std::setw( width ) << "Total all cohorts:" << " " << number_of_samples() << " samples, " << total_number_of_snps() << " overlap SNPs.\n" ;
+		ostr << prefix << std::setw( width ) << "Total all cohorts:" << " " << number_of_samples() << " samples.\n" ;
 		return ostr.str() ;
 	}
 
@@ -179,7 +163,15 @@ namespace genfile {
 
 	// Return the total number of snps the source contains.
 	SNPDataSource::OptionalSnpCount SNPDataSourceRack::total_number_of_snps() const {
-		return m_included_snps.size() ;
+		if( m_sources.size() == 0 ) {
+			return std::size_t( 0 ) ;
+		}
+		else if( m_sources.size() == 1 ) {
+			return m_sources[0]->total_number_of_snps() ;
+		}
+		else {
+			return OptionalSnpCount() ;
+		}
 	}
 
 	void SNPDataSourceRack::reset_to_start_impl() {
@@ -201,32 +193,28 @@ namespace genfile {
 		if( m_sources.size() == 0 ) {
 			return ;
 		}
-		if( number_of_snps_read() == m_included_snps.size() ) {
-			m_read_past_end = true ;
-		}
-		else {
-			SNPIdentifyingData const& this_snp = m_included_snps[ number_of_snps_read() ] ;
+		
+		SNPIdentifyingData this_snp ;
+		m_sources[0]->get_snp_identifying_data( this_snp ) ;
+		if( *this ) {
 			// We will report ?'s in any field that differs between cohorts.
 			SNPIdentifyingData consensus_snp = this_snp ;
-
-			if( *this ) {
-				for( std::size_t i = 0; i < m_sources.size(); ++i ) {
-					SNPIdentifyingData this_source_snp = move_source_to_snp_matching(
-						i,
-						this_snp
-					) ;
-					if( this_source_snp.get_SNPID() != consensus_snp.get_SNPID() ) {
-						consensus_snp.SNPID() += "/" + this_source_snp.get_SNPID() ;
-					}
-					if( this_source_snp.get_rsid() != consensus_snp.get_rsid() ) {
-						consensus_snp.rsid() += "/" + this_source_snp.get_SNPID() ;
-					}
-					if( this_source_snp.get_first_allele() != consensus_snp.get_first_allele() ) {
-						consensus_snp.first_allele() = '?' ;
-					}
-					if( this_source_snp.get_second_allele() != consensus_snp.get_second_allele() ) {
-						consensus_snp.second_allele() = '?' ;
-					}
+			for( std::size_t i = 1; i < m_sources.size(); ++i ) {
+				SNPIdentifyingData this_source_snp = move_source_to_snp_matching(
+					i,
+					this_snp
+				) ;
+				if( this_source_snp.get_SNPID() != consensus_snp.get_SNPID() ) {
+					consensus_snp.SNPID() += "/" + this_source_snp.get_SNPID() ;
+				}
+				if( this_source_snp.get_rsid() != consensus_snp.get_rsid() ) {
+					consensus_snp.rsid() += "/" + this_source_snp.get_SNPID() ;
+				}
+				if( this_source_snp.get_first_allele() != consensus_snp.get_first_allele() ) {
+					consensus_snp.first_allele() = '?' ;
+				}
+				if( this_source_snp.get_second_allele() != consensus_snp.get_second_allele() ) {
+					consensus_snp.second_allele() = '?' ;
 				}
 			}
 		

@@ -54,6 +54,7 @@
 #include "genfile/BedFileSNPDataSink.hpp"
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/SNPFilteringSNPDataSource.hpp"
+#include "genfile/SNPIdentifyingDataFilteringSNPDataSource.hpp"
 #include "genfile/get_list_of_snps_in_source.hpp"
 #include "genfile/utility.hpp"
 #include "genfile/QuantileNormalisingCrossCohortCovariateValueMapping.hpp"
@@ -1235,9 +1236,10 @@ private:
 	genfile::SNPDataSource::UniquePtr open_main_snp_data_sources()
 	// Open the main gen files, taking care of filtering, strand alignment, translation, etc.
 	{
-		genfile::SNPDataSourceRack::UniquePtr rack(
-			new genfile::SNPDataSourceRack( m_options.get_value< std::string >( "-snp-match-fields" ) )
-		) ;
+		genfile::SNPDataSourceRack::UniquePtr rack ;
+		if( m_mangled_options.gen_filenames().size() > 1 ) {
+			rack.reset( new genfile::SNPDataSourceRack( m_options.get_value< std::string >( "-snp-match-fields" ) ) ) ;
+		}
 
 		// count files.
 		std::size_t file_count = 0 ;
@@ -1250,33 +1252,37 @@ private:
 
 		std::size_t progress_count = 0 ;
 
+		genfile::SNPDataSource::UniquePtr source ;
+
+		std::vector< genfile::SNPIdentifyingData > cohort1_snps ;
+		
 		for( std::size_t i = 0; i < m_mangled_options.gen_filenames().size(); ++i ) {
 			genfile::SNPDataSourceChain::UniquePtr chain( new genfile::SNPDataSourceChain() ) ;
-			std::vector< genfile::SNPIdentifyingData > snps ;
 
 			for( std::size_t j = 0; j < m_mangled_options.gen_filenames()[i].size(); ++j ) {
-				std::pair< genfile::SNPDataSource*, std::vector< genfile::SNPIdentifyingData > > source = open_snp_data_source(
+				source = open_snp_data_source(
 					m_mangled_options.gen_filenames()[i][j].filename(),
 					m_mangled_options.gen_filenames()[i][j].match()
 				) ;
 
 				// Add the source to the chain.
-				chain->add_source( genfile::SNPDataSource::UniquePtr( source.first ) ) ;
-				// Add the source's SNPs to our list.
-				snps.insert( snps.end(), source.second.begin(), source.second.end() ) ;
+				chain->add_source( genfile::SNPDataSource::UniquePtr( source ) ) ;
 
 				progress_context.notify_progress( ++progress_count, file_count ) ;
 			}
 
-			// sanity check.
-			assert( snps.size() == chain->total_number_of_snps() ) ;
+			std::vector< genfile::SNPIdentifyingData > snps ;
+			// Do we need a list of SNPs?
+			if( m_strand_specs.get() ||  m_options.check_if_option_was_supplied( "-match-alleles-to-cohort1" )) {
+				snps = genfile::get_list_of_snps_in_source( *chain ) ;
+			}
 
 			if( i == 0 ) {
 				// set up the trigger by which we move through output files.
 				chain->set_moved_to_next_source_callback( boost::bind( &QCToolCmdLineContext::move_to_next_output_file, this, _1 )) ;
 			}
 			
-			genfile::SNPDataSource::UniquePtr source( chain.release() ) ;
+			source.reset( chain.release() ) ;
 			
 			// If we have strand alignment information, implement it now
 			if( m_strand_specs.get() ) {
@@ -1295,31 +1301,43 @@ private:
 				) ;
 			}
 
-			if( m_options.check_if_option_was_supplied( "-match-alleles-to-cohort1" ) && i > 0 ) {
-				genfile::AlleleFlippingSNPDataSource::AlleleFlipSpec allele_flip_spec ;
-				boost::tie( snps, allele_flip_spec ) = genfile::AlleleFlippingSNPDataSource::get_allele_flip_spec(
-					rack->get_snps(),
-					snps,
-					genfile::SNPIdentifyingData::CompareFields(
-						m_options.get_value< std::string >( "-snp-match-fields" ) + ",alleles"
-					)
-				) ;
+			if( m_options.check_if_option_was_supplied( "-match-alleles-to-cohort1" ) ) {
+				if( i == 0 ) {
+					cohort1_snps = snps ;
+				}
+				else {
+					genfile::AlleleFlippingSNPDataSource::AlleleFlipSpec allele_flip_spec ;
+					boost::tie( snps, allele_flip_spec ) = genfile::AlleleFlippingSNPDataSource::get_allele_flip_spec(
+						cohort1_snps,
+						snps,
+						genfile::SNPIdentifyingData::CompareFields(
+							m_options.get_value< std::string >( "-snp-match-fields" ) + ",alleles"
+						)
+					) ;
 				
-				source.reset(
-					genfile::AlleleFlippingSNPDataSource::create(
-						source,
-						allele_flip_spec
-					)
-					.release()
-				) ;
+					source.reset(
+						genfile::AlleleFlippingSNPDataSource::create(
+							source,
+							allele_flip_spec
+						)
+						.release()
+					) ;
+				}
 			}
 			
-			rack->add_source(
-				source,
-				snps
-			) ;
+			if( rack.get() ) {
+				rack->add_source( source ) ;
+			} else {
+				break ;
+			}
 		}
-		return genfile::SNPDataSource::UniquePtr( rack.release() ) ;		
+		
+		if( rack.get() ) {
+			source.reset( rack.release() ) ;
+		}
+
+		source->reset_to_start() ;
+		return source ;
 	}
 	
 	genfile::SNPDataSource::UniquePtr open_merged_data_sources() {
@@ -1359,7 +1377,7 @@ private:
 		return genfile::SNPDataSource::UniquePtr( merged_source.release() ) ;
 	}
 		
-	std::pair< genfile::SNPDataSource*, std::vector< genfile::SNPIdentifyingData > >
+	genfile::SNPDataSource::UniquePtr
 	open_snp_data_source( std::string const& filename, std::string chromosome_indicator ) const {
 		if( chromosome_indicator == "" && m_options.check_if_option_was_supplied( "-assume-chromosome" )) {
 			chromosome_indicator = m_options.get_value< std::string >( "-assume-chromosome" ) ;
@@ -1387,24 +1405,14 @@ private:
 		}
 
 		genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter() ;
-		bool require_snps = snp_filter.get() ;
-		
-		std::vector< genfile::SNPIdentifyingData > snps = genfile::get_list_of_snps_in_source( *source ) ;
-		source->reset_to_start() ;
-		
 		// Filter SNPs if necessary
 		if( snp_filter.get() ) {
-			std::vector< std::size_t > indices_of_filtered_in_snps = snp_filter->get_indices_of_filtered_in_snps( snps ) ;
 			source.reset(
-				genfile::SNPFilteringSNPDataSource::create(
+				genfile::SNPIdentifyingDataFilteringSNPDataSource::create(
 					source,
-					indices_of_filtered_in_snps
+					genfile::SNPIdentifyingDataTest::UniquePtr( snp_filter.release() )
 				).release()
 			) ;
-			
-			// Keep track of the SNPs in the source by hand.
-			// This prevents an extra scan through the file, which can be slow.
-			snps = genfile::utility::select_entries( snps, indices_of_filtered_in_snps ) ;
 		}
 		
 		// Translate SNP identifying data if necessary
@@ -1415,21 +1423,9 @@ private:
 					*m_snp_dictionary
 				).release()
 			) ;
-			
-			// Keep track of the SNPs in the source by hand.
-			// This prevents an extra scan through the file, which can be slow.
-			for( std::size_t i = 0; i < snps.size(); ++i ) {
-				std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData >::const_iterator where = m_snp_dictionary->find( snps[i] ) ;
-				if( where != m_snp_dictionary->end() ) {
-					snps[i] = where->second ;
-				}
-			}
 		}
 
-		return std::make_pair(
-			source.release(),
-			snps
-		) ;
+		return source ;
 	}
 	
 	genfile::SNPDataSource::UniquePtr
@@ -1523,6 +1519,17 @@ private:
 				}
 			}
 
+			if( m_options.check_if_option_was_supplied( "-incl-snpids" )) {
+				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-snpids" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					snp_filter->include_snps_in_file(
+						filename,
+						genfile::CommonSNPFilter::SNPIDs
+					) ;
+				}
+			}
+
+
 			if( m_options.check_if_option_was_supplied( "-excl-rsids" )) {
 				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-rsids" ) ;
 				BOOST_FOREACH( std::string const& filename, files ) {
@@ -1533,36 +1540,40 @@ private:
 				}
 			}
 
-			if( m_options.check_if_option_was_supplied( "-incl-snpids" )) {
-				snp_filter->exclude_snps_not_in_file(
-					m_options.get_value< std::string >( "-incl-snpids" ),
-					genfile::CommonSNPFilter::SNPIDs
-				) ;
-			}
-
 			if( m_options.check_if_option_was_supplied( "-incl-rsids" )) {
-				snp_filter->exclude_snps_not_in_file(
-					m_options.get_value< std::string >( "-incl-rsids" ),
-					genfile::CommonSNPFilter::RSIDs
-				) ;
+				std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-rsids" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					snp_filter->include_snps_in_file(
+						filename,
+						genfile::CommonSNPFilter::RSIDs
+					) ;
+				}
 			}
 
 			if( m_options.check_if_option_was_supplied( "-excl-snps-matching" )) {
-				snp_filter->exclude_snps_matching(
-					m_options.get_value< std::string >( "-excl-snps-matching" )
-				) ;
+				std::string it = m_options.get< std::string > ( "-excl-snps-matching" ) ;
+				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( it, ",", " " ) ;
+				BOOST_FOREACH( std::string const& spec, specs ) {
+					snp_filter->exclude_snps_matching(
+						spec
+					) ;
+				}
 			}
 
 			if( m_options.check_if_option_was_supplied( "-incl-snps-matching" )) {
-				snp_filter->exclude_snps_not_matching(
-					m_options.get_value< std::string >( "-incl-snps-matching" )
-				) ;
+				std::string it = m_options.get< std::string > ( "-incl-snps-matching" ) ;
+				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( it, ",", " " ) ;
+				BOOST_FOREACH( std::string const& spec, specs ) {
+					snp_filter->exclude_snps_not_matching(
+						spec
+					) ;
+				}
 			}
 			
 			if( m_options.check_if_option_was_supplied( "-range" )) {
 				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-range" ), ",", " \t" ) ;
 				for ( std::size_t i = 0; i < specs.size(); ++i ) {
-					snp_filter->exclude_snps_not_in_range(
+					snp_filter->include_snps_in_range(
 						genfile::GenomePositionRange::parse( specs[i] )
 					) ;
 				}
