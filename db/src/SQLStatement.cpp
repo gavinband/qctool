@@ -36,6 +36,7 @@ namespace db {
 	
 	SQLStatement& SQLStatement::bind( std::size_t i, char const* value ) {
 		bind( i, std::string( value )) ;
+		return *this ;
 	}
 	
 	namespace impl {

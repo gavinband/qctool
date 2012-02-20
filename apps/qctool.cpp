@@ -18,8 +18,6 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/foreach.hpp>
 
-#define foreach BOOST_FOREACH
-
 #include "Timer.hpp"
 #include "GenRow.hpp"
 #include "SampleRow.hpp"
@@ -1515,7 +1513,7 @@ private:
 
 			if( m_options.check_if_option_was_supplied( "-excl-snpids" )) {
 				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-snpids" ) ;
-				foreach( std::string const& filename, files ) {
+				BOOST_FOREACH( std::string const& filename, files ) {
 					snp_filter->exclude_snps_in_file(
 						filename,
 						genfile::CommonSNPFilter::SNPIDs
@@ -1525,7 +1523,7 @@ private:
 
 			if( m_options.check_if_option_was_supplied( "-excl-rsids" )) {
 				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-rsids" ) ;
-				foreach( std::string const& filename, files ) {
+				BOOST_FOREACH( std::string const& filename, files ) {
 					snp_filter->exclude_snps_in_file(
 						filename,
 						genfile::CommonSNPFilter::RSIDs
