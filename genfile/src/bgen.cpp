@@ -28,6 +28,8 @@ namespace genfile {
 	                uint16_t allele2_size = 0;
 	            	impl::read_length_followed_by_data( aStream, &SNPID_size, SNPID ) ;
 	            	impl::read_length_followed_by_data( aStream, &RSID_size, RSID ) ;
+					impl::read_little_endian_integer( aStream, chromosome ) ;
+	                impl::read_little_endian_integer( aStream, SNP_position ) ;
 	            	impl::read_length_followed_by_data( aStream, &allele1_size, first_allele ) ;
 	            	impl::read_length_followed_by_data( aStream, &allele2_size, second_allele ) ;
 				}
@@ -92,6 +94,8 @@ namespace genfile {
 					assert( second_allele.size() <= static_cast< std::size_t >( max_string_length )) ;
 					write_length_followed_by_data( aStream, uint16_t( SNPID.size() ), SNPID.data() ) ;
 					write_length_followed_by_data( aStream, uint16_t( RSID.size() ), RSID.data() ) ;
+					write_little_endian_integer( aStream, chromosome ) ;
+	                write_little_endian_integer( aStream, SNP_position ) ;
 					write_length_followed_by_data( aStream, uint16_t( first_allele.size() ), first_allele.data() ) ;
 					write_length_followed_by_data( aStream, uint16_t( second_allele.size() ), second_allele.data() ) ;
 				}
