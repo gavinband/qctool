@@ -45,6 +45,27 @@ namespace genfile {
 	
 	SNPDataSink& SNPDataSink::write_snp(
 		uint32_t number_of_samples,
+		SNPIdentifyingData const& snp,
+		GenotypeProbabilityGetter const& get_AA_probability,
+		GenotypeProbabilityGetter const& get_AB_probability,
+		GenotypeProbabilityGetter const& get_BB_probability
+	) {
+		return write_snp(
+			number_of_samples,
+			snp.get_SNPID(),
+			snp.get_rsid(),
+			snp.get_position().chromosome(),
+			snp.get_position().position(),
+			snp.get_first_allele(),
+			snp.get_second_allele(),
+			get_AA_probability,
+			get_AB_probability,
+			get_BB_probability
+		) ;
+	}
+
+	SNPDataSink& SNPDataSink::write_snp(
+		uint32_t number_of_samples,
 		std::string SNPID,
 		std::string RSID,
 		Chromosome chromosome,

@@ -50,7 +50,6 @@ namespace {
 		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) {
 			double missingness = genotypes.rows() - genotypes.sum() ;
 			callback( "missing proportion", missingness / double( genotypes.rows() ) ) ;
-			callback( "missingness", missingness ) ;
 			
 			double missing_calls = 0.0 ;
 			for( int i = 0; i < genotypes.rows(); ++i ) {
@@ -58,7 +57,7 @@ namespace {
 					++missing_calls ;
 				}
 			}
-			callback( "missing calls", missing_calls ) ;
+			callback( "missing call proportion", missing_calls / double( genotypes.rows() )) ;
 		}
 	private:
 		double const m_call_threshhold ;

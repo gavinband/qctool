@@ -18,6 +18,7 @@ public:
 	PairwiseCallComparerManager& get_comparer() { return *m_call_comparer ; }
 
 public:
+	void add_callbacks( genfile::SNPDataSourceProcessor& processor ) ;
 	void begin_processing_snps( std::size_t number_of_samples ) ;
 	void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& data_reader ) ;
 	void end_processing_snps() ;
@@ -25,6 +26,7 @@ public:
 private:
 	PairwiseCallComparerManager::UniquePtr m_call_comparer ;
 	std::vector< std::string > m_call_fields ;
+	PairwiseCallComparerManager::MergeClient::UniquePtr m_consensus_caller ;
 } ;
 
 

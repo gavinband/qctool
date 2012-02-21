@@ -27,9 +27,16 @@ public:
 
 	struct Client
 	{
-		typedef boost::shared_ptr< Client > SharedPtr ;
 		virtual ~Client() {} ;
 		virtual void begin_comparisons( genfile::SNPIdentifyingData const& snp ) = 0 ;
+		virtual void end_comparisons() = 0 ;
+	} ;
+
+	struct ComparisonClient: public virtual Client
+	{
+		typedef boost::shared_ptr< ComparisonClient > SharedPtr ;
+		typedef std::auto_ptr< ComparisonClient > UniquePtr ;
+
 		virtual void set_result(
 			std::string const& first_callset,
 			std::string const& second_callset,
@@ -37,12 +44,17 @@ public:
 			std::string const& comparison_value,
 			genfile::VariantEntry const&
 		) = 0 ;
+	} ;
+	
+	struct MergeClient: public virtual Client
+	{
+		typedef boost::shared_ptr< MergeClient > SharedPtr ;
+		typedef std::auto_ptr< MergeClient > UniquePtr ;
 		virtual void set_result(
 			std::string const& comparison,
 			std::string const& comparison_value,
 			genfile::VariantEntry const&
-		) = 0 ;
-		virtual void end_comparisons() = 0 ;
+		) ;
 	} ;
 	
 	struct Merger {
@@ -62,7 +74,8 @@ public:
 		virtual std::string get_result_as_string() const = 0 ;
 	} ;
 
-	void send_results_to( Client::SharedPtr ) ;
+	void send_comparisons_to( ComparisonClient::SharedPtr ) ;
+	void send_merge_to( MergeClient::SharedPtr ) ;
 	void set_merger( Merger::UniquePtr ) ;
 
 	void begin_processing_snp( genfile::SNPIdentifyingData const& snp ) ;
@@ -79,15 +92,16 @@ private:
 	genfile::SNPIdentifyingData m_snp ;
 
 public:
-	std::vector< Client::SharedPtr > m_clients ;
-	void send_results_to_clients(
+	std::vector< ComparisonClient::SharedPtr > m_comparison_clients ;
+	std::vector< MergeClient::SharedPtr > m_merge_clients ;
+	void send_comparisons_to_clients(
 		std::string const& first_callset,
 		std::string const& second_callset,
 		std::string const& comparison,
 		std::string const& comparison_value,
 		genfile::VariantEntry const&
 	) ;
-	void send_results_to_clients(
+	void send_merge_to_clients(
 		std::string const& comparison,
 		std::string const& variable,
 		genfile::VariantEntry const& value
