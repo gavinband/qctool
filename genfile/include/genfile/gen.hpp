@@ -75,13 +75,11 @@ namespace genfile {
 		// of samples represented in the file.  This function consumes the
 		// stream, which must be re-opened afterwards if further processing is required.
 		template<
-			typename NumberOfSNPBlocksSetter,
 			typename NumberOfSamplesSetter,
 			typename FlagsSetter
 		>
 		void read_header_information(
 			std::istream& aStream,
-			NumberOfSNPBlocksSetter set_number_of_snp_blocks,
 			NumberOfSamplesSetter set_number_of_samples,
 			FlagsSetter set_flags
 		) ;
@@ -168,13 +166,11 @@ namespace genfile {
 		}
 
 		template<
-			typename NumberOfSNPBlocksSetter,
 			typename NumberOfSamplesSetter,
 			typename FlagsSetter
 		>
 		void read_header_information(
 			std::istream& aStream,
-			NumberOfSNPBlocksSetter set_number_of_snp_blocks,
 			NumberOfSamplesSetter set_number_of_samples,
 			FlagsSetter set_flags
 		) {

@@ -10,7 +10,6 @@ namespace genfile {
 		m_filename( "(unnamed stream)" ),
 		m_compression_type( "no_compression" ),
 		m_number_of_samples( 0 ),
-		m_total_number_of_snps( 0 ),
 		m_chromosome( chromosome ),
 		m_have_chromosome_column( false )
 	{
@@ -21,7 +20,6 @@ namespace genfile {
 		: m_filename( filename ),
 		  m_compression_type( get_compression_type_indicated_by_filename( filename ) ),
 		  m_number_of_samples( 0 ),
-		  m_total_number_of_snps( 0 ),
 		  m_chromosome( chromosome ),
 		  m_have_chromosome_column( false )
 	{
@@ -37,7 +35,6 @@ namespace genfile {
 		: m_filename( filename ),
 		  m_compression_type( compression_type ),
 		  m_number_of_samples( 0 ),
-		  m_total_number_of_snps( 0 ),
 		  m_chromosome( chromosome ),
 		  m_have_chromosome_column( false )
 	{
@@ -165,7 +162,6 @@ namespace genfile {
 			if( !m_stream_ptr->eof() ) {
 				gen::read_header_information(
 					*m_stream_ptr,
-					set_value( m_total_number_of_snps ),
 					set_value( m_number_of_samples ),
 					set_value( flags )
 				) ;
