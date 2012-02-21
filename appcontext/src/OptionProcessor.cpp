@@ -416,7 +416,11 @@ namespace appcontext {
 	// contained whitespace or if several values were supplied.  Use the std::vector form
 	// below to avoid ambiguity.
 	template<>
-	std::string OptionProcessor::get_value( std::string const& arg ) const {
+	std::string OptionProcessor::get_value< std::string >( std::string const& arg ) const {
+		return get_string_value( arg ) ;
+	}
+
+	std::string OptionProcessor::get_string_value( std::string const& arg ) const {
 		OptionValues::const_iterator arg_i ;
 		arg_i = m_option_values.find( arg ) ;
 	
@@ -431,6 +435,10 @@ namespace appcontext {
 	// get the value(s) of the given option as a vector of strings.
 	template<>
 	std::vector< std::string > OptionProcessor::get_values< std::string >( std::string const& arg ) const {
+		return get_string_values( arg ) ;
+	}
+	
+	std::vector< std::string > OptionProcessor::get_string_values( std::string const& arg ) const {
 		OptionValues::const_iterator arg_i ;
 		arg_i = m_option_values.find( arg ) ;
 	

@@ -121,10 +121,13 @@ namespace appcontext {
 			// check if any option in the given group was supplied.
 			bool check_if_option_was_supplied_in_group( std::string const& group ) const ;
 
+			std::string get_string_value( std::string const& arg ) const ;
+			std::vector< std::string > get_string_values( std::string const& arg ) const ;
+
 			// get the value of the given option as the given type.
 			template< typename T >
 			T get_value( std::string const& arg ) const {
-				std::istringstream s( get_value< std::string >( arg )) ;
+				std::istringstream s( get_string_value( arg )) ;
 				T t ;
 				s >> t ;
 				return t ;
@@ -139,7 +142,7 @@ namespace appcontext {
 			// get the value of the given option as the given type.
 			template< typename T >
 			std::vector< T > get_values( std::string const& arg ) const {
-				std::vector< std::string > values = get_values< std::string >( arg ) ;
+				std::vector< std::string > values = get_string_values( arg ) ;
 				std::vector<T> result ;
 				result.reserve( values.size() ) ;
 				for( std::size_t i = 0; i < values.size(); ++i ) {
