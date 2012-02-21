@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 #include <map>
+#include <boost/shared_ptr.hpp>
 #include "unistd.h"
 #include "genfile/GenomePosition.hpp"
 #include "genfile/Chromosome.hpp"
@@ -19,6 +20,7 @@ namespace genfile {
 	{
 	public:
 		typedef std::auto_ptr< SNPIdentifyingDataTest > UniquePtr ;
+		typedef boost::shared_ptr< SNPIdentifyingDataTest > SharedPtr ;
 	public:
 		virtual ~SNPIdentifyingDataTest() {} ;
 

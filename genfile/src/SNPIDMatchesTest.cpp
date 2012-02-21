@@ -7,7 +7,8 @@
 
 namespace genfile {
 	SNPIDMatchesTest::SNPIDMatchesTest( std::string const& expression ):
-	 	m_wildcard_char( '%' )
+	 	m_wildcard_char( '%' ),
+		m_have_wildcard( false )
 	{
 		setup( expression ) ;
 	}
@@ -38,10 +39,12 @@ namespace genfile {
 		if( pos == std::string::npos ) {
 			m_prefix = m_expression ;
 			m_suffix = "" ;
+			m_have_wildcard = false ;
 		}
 		else {
 			m_prefix = m_expression.substr( 0, pos ) ;
 			m_suffix = m_expression.substr( pos + 1, m_expression.size() ) ;
+			m_have_wildcard = true ;
 		}
 	}
 
@@ -67,18 +70,26 @@ namespace genfile {
 	}
 	
 	bool SNPIDMatchesTest::match( std::string const& s ) const {
-		return s.size() >= (m_prefix.size() + m_suffix.size()) && s.compare( 0, m_prefix.size(), m_prefix ) == 0 && s.compare( s.size() - m_suffix.size(), m_suffix.size(), m_suffix ) == 0 ;
+		if( m_have_wildcard ) {
+			return
+				s.size() >= (m_prefix.size() + m_suffix.size())
+				&& s.compare( 0, m_prefix.size(), m_prefix ) == 0
+				&& s.compare( s.size() - m_suffix.size(), m_suffix.size(), m_suffix ) == 0
+			;
+		} else {
+			return s == m_prefix ;
+		}
 	}
 	
 	std::string SNPIDMatchesTest::display() const {
 		if( m_type == eSNPID ) {
-			return "SNPID~" + m_expression ;
+			return "snpid~" + m_expression ;
 		}
 		else if( m_type == eRSID ) {
-			return "RSID~" + m_expression ;
+			return "rsid~" + m_expression ;
 		}
 		else if( m_type == eEITHER ) {
-			return "(SNPID or RSID)~" + m_expression ;
+			return "(snpid or rsid)~" + m_expression ;
 		}
 		else {
 			assert(0) ;

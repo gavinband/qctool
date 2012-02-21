@@ -941,8 +941,14 @@ struct QCToolCmdLineContext: public QCToolContext
 			m_ui_context.logger() << std::string( 72, '=' ) << "\n\n" ;
 		}
 
-		m_ui_context.logger() << std::setw(36) << "Number of SNPs in input file(s):"
-			<< "  " << m_snp_data_source->total_number_of_snps() << ".\n" ;
+		m_ui_context.logger() << std::setw(36) << "Number of SNPs in input file(s):" ;
+		if( m_snp_data_source->total_number_of_snps() ) {
+			m_ui_context.logger() << "  " << *m_snp_data_source->total_number_of_snps() << ".\n" ;
+		}
+		else {
+			m_ui_context.logger() << "  " << "(not computed).\n" ;
+		}
+
 		if( m_snp_filter->number_of_subconditions() > 0 ) {
 			for( std::size_t i = 0; i < m_snp_filter->number_of_subconditions(); ++i ) {
 				m_ui_context.logger() << std::setw(36) << ("...which failed \"" + string_utils::to_string( m_snp_filter->subcondition( i )) + "\":")
@@ -1564,7 +1570,7 @@ private:
 				std::string it = m_options.get< std::string > ( "-incl-snps-matching" ) ;
 				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( it, ",", " " ) ;
 				BOOST_FOREACH( std::string const& spec, specs ) {
-					snp_filter->exclude_snps_not_matching(
+					snp_filter->include_snps_matching(
 						spec
 					) ;
 				}
@@ -1908,7 +1914,9 @@ private:
 				throw genfile::BadArgumentError( "QCToolContext::condition_on()", "conditioning_spec=\"..." + elts[i] + "...\"" ) ;
 			}
 			parts.resize(2) ;
-			genfile::SNPMatcher::SharedPtr snp_matcher( genfile::SNPMatcher::create( parts[0] ).release() ) ;
+			genfile::SNPIdentifyingDataTest::SharedPtr snp_matcher(
+				genfile::WithSNPDosagesCohortIndividualSource::create_snp_matcher( parts[0] ).release()
+			) ;
 			
 			std::vector< std::string > types = split( parts[1], "," ) ;
 			for( std::size_t j = 0; j < types.size(); ++j ) {
@@ -2015,7 +2023,7 @@ private:
 			m_warnings.push_back( "You are outputting a sample statistic file, but no input sample files have been supplied.\n"
 			"   Statistics will be output but the ID fields will be left blank.") ;
 		}
-		if( m_snp_data_source->total_number_of_snps() == 0 ) {
+		if( m_snp_data_source->total_number_of_snps() && *m_snp_data_source->total_number_of_snps() == 0 ) {
 			m_warnings.push_back( "There are no SNPs in the source files (after exclusions, translation, aligning and matching between cohorts where relevant).\n" ) ;
 		}
 		if( m_sample_rows.size() == 0 ) {

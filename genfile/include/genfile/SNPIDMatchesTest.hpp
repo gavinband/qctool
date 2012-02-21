@@ -28,6 +28,7 @@ namespace genfile {
 		Type m_type ;
 		std::string m_expression, m_prefix, m_suffix ;
 		char m_wildcard_char ;
+		bool m_have_wildcard ;
 	} ;
 }
 

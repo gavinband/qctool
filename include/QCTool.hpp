@@ -66,7 +66,6 @@ private:
 	QCToolContext& m_context ;
 	appcontext::UIContext& m_ui_context ;
 	std::size_t m_number_of_samples ;
-	std::size_t m_number_of_snps ;
 	std::size_t m_number_of_snps_processed ;
 	std::size_t m_number_of_autosomal_snps_processed ;
 	std::vector< GenotypeProportions > m_per_column_amounts ;

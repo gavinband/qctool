@@ -16,67 +16,20 @@
 
 namespace genfile {
 	
-	class SNPMatcher: public genfile::SNPIdentifyingDataTest
-	{
-	public:
-		typedef genfile::GenomePosition GenomePosition ;
-		typedef std::auto_ptr< SNPMatcher > UniquePtr ;
-		typedef boost::shared_ptr< SNPMatcher > SharedPtr ;
-		static UniquePtr create( std::string test_spec ) ;
-
-		// Convenience function as we access these objects by pointer.
-		bool match(
-			std::string snpid,
-			std::string rsid,
-			GenomePosition position,
-			std::string allele1,
-			std::string allele2
-		) const {
-			return this->operator()( snpid, rsid, position, allele1, allele2 ) ;
-		}
-		
-		virtual std::string get_spec() const = 0 ;
-	public:
-		std::string const m_spec ;
-		virtual ~SNPMatcher() {}
-		SNPMatcher() {} ;
-	} ;
 	
-	class RSIDMatchesTest: public SNPMatcher
-	{
-	public:
-		RSIDMatchesTest( std::string const& rsid ) ;
-		bool operator()( std::string, std::string, GenomePosition position, std::string, std::string ) const ;
-		std::string display() const ;
-		std::string get_spec() const ;
-	private:
-		std::string const m_rsid ;
-	} ;
-
-	class SNPIDMatchesTest: public SNPMatcher
-	{
-	public:
-		SNPIDMatchesTest( std::string const& snpid ) ;
-		bool operator()( std::string, std::string, GenomePosition position, std::string, std::string ) const ;
-		std::string display() const ;
-		std::string get_spec() const ;
-	private:
-		std::string const m_snpid ;
-	} ;
-
-	class PositionMatchesTest: public SNPMatcher
+	class PositionMatchesTest: public genfile::SNPIdentifyingDataTest
 	{
 	public:
 		PositionMatchesTest( GenomePosition const& position ) ;
 		bool operator()( std::string, std::string, GenomePosition position, std::string, std::string ) const ;
  		std::string display() const ;
-		std::string get_spec() const ;
  	private:
 		GenomePosition const m_position ;
 	} ;
 
  	class WithSNPDosagesCohortIndividualSource: public genfile::CompositeCohortIndividualSource {
 	public:
+		typedef genfile::SNPIdentifyingDataTest SNPMatcher ;
 		typedef std::auto_ptr< WithSNPDosagesCohortIndividualSource > UniquePtr ;
 		typedef std::map< SNPMatcher::SharedPtr, std::set< std::string > > SNPDosageSpec ;
 		typedef genfile::GenomePosition GenomePosition ;
@@ -86,6 +39,8 @@ namespace genfile {
 			genfile::SNPDataSource& snp_data_source,
 			SNPDosageSpec const& snp_matchers
 		) ;
+		
+		static SNPIdentifyingDataTest::UniquePtr create_snp_matcher( std::string test_spec ) ;
 		
 	public:
 		WithSNPDosagesCohortIndividualSource(

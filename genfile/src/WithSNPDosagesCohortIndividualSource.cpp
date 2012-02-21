@@ -16,15 +16,17 @@
 #include "genfile/get_set.hpp"
 #include "genfile/get_set_eigen.hpp"
 #include "genfile/WithSNPDosagesCohortIndividualSource.hpp"
+#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/SNPIDMatchesTest.hpp"
 
 
 namespace genfile {
-	SNPMatcher::UniquePtr SNPMatcher::create( std::string test_spec ) {
+	SNPIdentifyingDataTest::UniquePtr WithSNPDosagesCohortIndividualSource::create_snp_matcher( std::string test_spec ) {
 		std::vector< std::string >  bits = genfile::string_utils::split_and_strip( test_spec, "~", " " ) ;
 		if( bits.size() == 0 || bits.size() > 2 ) {
 			throw genfile::BadArgumentError( "SNPMatcher::create()", "test_spec = \"" + test_spec + "\"" ) ;
 		}
-		// If no colon, default to rsid matcher.
+		// If no ~, default to rsid matcher.
 		if( bits.size() == 1 ) {
 			bits.insert( bits.begin(), "rsid" ) ;
 		}
@@ -32,62 +34,17 @@ namespace genfile {
 		assert( bits.size() == 2 ) ;
 
 		if( bits[0] == "rsid" ) {
-			return SNPMatcher::UniquePtr( new RSIDMatchesTest( bits[1] )) ;
+			return SNPIdentifyingDataTest::UniquePtr( new SNPIDMatchesTest( "rsid~" + bits[1] )) ;
 		}
 		else if( bits[0] == "snpid" ) {
-			return SNPMatcher::UniquePtr( new SNPIDMatchesTest( bits[1] )) ;
+			return SNPIdentifyingDataTest::UniquePtr( new SNPIDMatchesTest( "snpid~" + bits[1] )) ;
 		}
 		else if( bits[0] == "pos" || bits[0] == "position" ) {
-			return SNPMatcher::UniquePtr( new PositionMatchesTest( bits[1] )) ;
+			return SNPIdentifyingDataTest::UniquePtr( new PositionMatchesTest( bits[1] )) ;
 		}
 		else {
-			throw genfile::BadArgumentError( "SNPMatcher::create()", "test_spec = \"" + test_spec + "\"" ) ;
+			throw genfile::BadArgumentError( "genfile::create_matcher()", "test_spec = \"" + test_spec + "\"" ) ;
 		}
-	}
-	
-	RSIDMatchesTest::RSIDMatchesTest( std::string const& rsid ):
-		m_rsid( rsid )
-	{}
-	
-	bool RSIDMatchesTest::operator()(
-		std::string,
-		std::string RSID,
-		GenomePosition,
-		std::string,
-		std::string
-	) const {
-		return RSID == m_rsid ;
-	}
-	
-	std::string RSIDMatchesTest::display() const {
-		return "rsid = " + m_rsid ;
-	}
-
-	std::string RSIDMatchesTest::get_spec() const {
-		return m_rsid ;
-		
-	}
-	
-	SNPIDMatchesTest::SNPIDMatchesTest( std::string const& snpid ):
-		m_snpid( snpid )
-	{}
-	
-	bool SNPIDMatchesTest::operator()(
-		std::string SNPID,
-		std::string,
-		GenomePosition,
-		std::string,
-		std::string
-	) const {
-		return SNPID == m_snpid ;
-	}
-	
-	std::string SNPIDMatchesTest::display() const {
-		return "snpid = " + m_snpid ;
-	}
-
-	std::string SNPIDMatchesTest::get_spec() const {
-		return m_snpid ;
 	}
 	
 	PositionMatchesTest::PositionMatchesTest( GenomePosition const& position ):
@@ -108,10 +65,6 @@ namespace genfile {
 		return "position=" + genfile::string_utils::to_string( m_position ) ;
 	}
 
-	std::string PositionMatchesTest::get_spec() const {
-		return genfile::string_utils::to_string( m_position ) ;
-	}
-	
 	WithSNPDosagesCohortIndividualSource::UniquePtr WithSNPDosagesCohortIndividualSource::create(
 		genfile::CohortIndividualSource::ConstUniquePtr sample_source,
 		genfile::SNPDataSource& snp_data_source,
@@ -190,7 +143,7 @@ namespace genfile {
 		) {
 			SNPDosageSpec::const_iterator where = snp_matchers.begin() ;
 			for( ; where != snp_matchers.end(); ++where ) {
-				if( where->first->match( snpid, rsid, position, allele1, allele2 )) {
+				if( where->first->operator()( snpid, rsid, position, allele1, allele2 )) {
 					break ;
 				}
 			}
@@ -212,7 +165,7 @@ namespace genfile {
 					}
 				}
 				
-				std::string const key = where->first->get_spec() ;
+				std::string const key = where->first->display() ;
 				
 				if( ( ++( snp_counts[ key ] )) > 1 ) {
 					throw genfile::DuplicateSNPError( snp_data_source.get_source_spec(), key ) ;
@@ -253,8 +206,8 @@ namespace genfile {
 
 		// Check SNP counts are all greater than zero.
 		for( SNPDosageSpec::const_iterator where = snp_matchers.begin() ; where != snp_matchers.end(); ++where ) {
-			if( snp_counts[ where->first->get_spec() ] == 0 ) {
-				throw genfile::KeyNotFoundError( snp_data_source.get_source_spec(), where->first->get_spec() ) ;
+			if( snp_counts[ where->first->display() ] == 0 ) {
+				throw genfile::KeyNotFoundError( snp_data_source.get_source_spec(), where->first->display() ) ;
 			}
 		}
 	}
