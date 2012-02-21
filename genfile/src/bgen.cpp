@@ -90,8 +90,16 @@ namespace genfile {
 					std::size_t const max_string_length = std::numeric_limits< uint16_t >::max() ;
 	                assert( SNPID.size() <= static_cast< std::size_t >( max_string_length )) ;
 	                assert( RSID.size() <= static_cast< std::size_t >( max_string_length )) ;
-	                assert( first_allele.size() <= static_cast< std::size_t >( max_string_length )) ;
-					assert( second_allele.size() <= static_cast< std::size_t >( max_string_length )) ;
+					if( first_allele.size() > static_cast< std::size_t >( max_string_length ) ) {
+						std::cerr << "Warning: at SNP " << SNPID << " " << RSID << " pos=" << SNP_position << ", truncating first allele of size " << first_allele.size() << ".\n" ;
+						first_allele.resize( max_string_length - 3 ) ;
+						first_allele += "..." ;
+					}
+					if( second_allele.size() > static_cast< std::size_t >( max_string_length ) ) {
+						std::cerr << "Warning: at SNP " << SNPID << " " << RSID << " pos=" << SNP_position << ", truncating second allele of size " << second_allele.size() << ".\n" ;
+						second_allele.resize( max_string_length - 3 ) ;
+						second_allele += "..." ;
+					}
 					write_length_followed_by_data( aStream, uint16_t( SNPID.size() ), SNPID.data() ) ;
 					write_length_followed_by_data( aStream, uint16_t( RSID.size() ), RSID.data() ) ;
 					write_little_endian_integer( aStream, chromosome ) ;

@@ -141,7 +141,7 @@ namespace genfile {
 			// We are about to close the file.
 			// To write the correct header info, we seek back to the start and rewrite the header block
 			// The header comes after the offset which is 4 bytes.
-			stream_ptr()->seekp(4, std::ios_base::beg ) ;
+			stream_ptr()->seekp( 4, std::ios_base::beg ) ;
 			if( stream_ptr()->bad() ) {
 				throw OutputError( filename() ) ;
 			}
