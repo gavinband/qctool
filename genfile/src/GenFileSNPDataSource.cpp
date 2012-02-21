@@ -62,16 +62,14 @@ namespace genfile {
 				throw MalformedInputError( "metadata", std::distance( metadata.begin(), range.first )) ;
 			}
 			m_total_number_of_snps = total_number_of_snps ;
-			read_header_data( false ) ;
-		} else {
-			read_header_data( true ) ;
 		}
+		read_header_data() ;
 		reset_to_start() ;
 	}
 
 	void GenFileSNPDataSource::setup( std::auto_ptr< std::istream > stream_ptr ) {
 		m_stream_ptr = stream_ptr ;
-		read_header_data( true ) ;
+		read_header_data() ;
 		reset_to_start() ;
 	}
 
@@ -159,7 +157,7 @@ namespace genfile {
 		std::getline( stream(), line ) ;
 	}
 
-	void GenFileSNPDataSource::read_header_data( bool count_snps ) {
+	void GenFileSNPDataSource::read_header_data() {
 		try {
 			// First let's have a look at the file.  If it is empty, we report 0 samples.
 			m_stream_ptr->peek() ;
@@ -179,11 +177,6 @@ namespace genfile {
 					m_have_chromosome_column = true ;
 				} else {
 					m_have_chromosome_column = false ;
-				}
-
-				if( count_snps ) {
-					reset_to_start() ;
-					m_total_number_of_snps = gen::count_snp_blocks( *m_stream_ptr ) ;
 				}
 			}
 		}

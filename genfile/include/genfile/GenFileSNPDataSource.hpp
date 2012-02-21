@@ -57,14 +57,15 @@ namespace genfile {
 	private:
 		std::string m_filename ;
 		CompressionType m_compression_type ;
-		unsigned int m_number_of_samples, m_total_number_of_snps ;
+		unsigned int m_number_of_samples ;
+		OptionalSnpCount m_total_number_of_snps ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
 		Chromosome m_chromosome ;
 		bool m_have_chromosome_column ;
 
 		void setup( std::string const& filename, CompressionType compression_type, vcf::MetadataParser::Metadata const& = vcf::MetadataParser::Metadata() ) ;
 		void setup( std::auto_ptr< std::istream > stream_ptr ) ;
-		void read_header_data( bool count_snps ) ;
+		void read_header_data() ;
 	} ;
 }
 
