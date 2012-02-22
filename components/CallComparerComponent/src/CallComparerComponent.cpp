@@ -17,6 +17,7 @@
 #include "components/CallComparerComponent/FrequentistTestCallMerger.hpp"
 #include "components/CallComparerComponent/CallComparerDBOutputter.hpp"
 #include "components/CallComparerComponent/CallComparerFileOutputter.hpp"
+#include "components/CallComparerComponent/ConsensusCaller.hpp"
 
 void CallComparerComponent::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "Call comparison options" ) ;
@@ -46,7 +47,7 @@ CallComparerComponent::UniquePtr CallComparerComponent::create( PairwiseCallComp
 	return result ;
 }
 
-CallComparerComponent::UniquePtr CallComparerComponent::create( appcontext::OptionProcessor const& options ) {
+void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor, appcontext::OptionProcessor const& options ) {
 	PairwiseCallComparerManager::UniquePtr comparer( PairwiseCallComparerManager::create().release() ) ;
 
 	std::string filename = options.get< std::string >( "-compare-calls-file" ) ;
@@ -61,11 +62,16 @@ CallComparerComponent::UniquePtr CallComparerComponent::create( appcontext::Opti
 		comparer->send_merge_to( outputter ) ;
 	}
 	
-	{
-		ConsensusCaller::UniquePtr consensus_caller ;
-		comparer->send_merge_to( consensus_caller ) ;
-	}
+	ConsensusCaller::SharedPtr consensus_caller(
+		new ConsensusCaller(
+			genfile::SNPDataSink::create(
+				options.get< std::string >( "-consensus-call-file" )
+			)
+		)
+	) ;
 
+	comparer->send_merge_to( consensus_caller ) ;
+	
 	comparer->add_comparer(
 		"AlleleFrequencyTestCallComparer",
 		PairwiseCallComparer::create( "AlleleFrequencyTestCallComparer" )
@@ -80,7 +86,7 @@ CallComparerComponent::UniquePtr CallComparerComponent::create( appcontext::Opti
 		)
 	) ;
 
-	return CallComparerComponent::create(
+	CallComparerComponent::UniquePtr ccc = CallComparerComponent::create(
 		comparer,
 		genfile::string_utils::split_and_strip_discarding_empty_entries(
 			options.get_value< std::string >( "-compare-calls" ),
@@ -88,6 +94,9 @@ CallComparerComponent::UniquePtr CallComparerComponent::create( appcontext::Opti
 			" \t"
 		)
 	) ;
+	
+	processor.add_callback( genfile::SNPDataSourceProcessor::Callback::UniquePtr( ccc.release() ) ) ;
+	processor.add_callback( *consensus_caller ) ;
 }
 
 CallComparerComponent::CallComparerComponent( PairwiseCallComparerManager::UniquePtr call_comparer, std::vector< std::string > const& call_fields  ):
@@ -95,13 +104,7 @@ CallComparerComponent::CallComparerComponent( PairwiseCallComparerManager::Uniqu
 	m_call_fields( call_fields )
 {}
 
-void CallComparerComponent::add_callbacks( genfile::SNPDataSourceProcessor& processor ) {
-	processor.add_callback( *this ) ;
-	processor.add_callback( *m_consensus_caller ) ;
-}
-
-void CallComparerComponent::begin_processing_snps( std::size_t number_of_samples ) {
-}
+void CallComparerComponent::begin_processing_snps( std::size_t number_of_samples ) {}
 
 void CallComparerComponent::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 	// Add all the calls to the call comparer.
@@ -112,9 +115,7 @@ void CallComparerComponent::processed_snp( genfile::SNPIdentifyingData const& sn
 		m_call_comparer->add_calls( m_call_fields[i], calls ) ;
 	}
 	m_call_comparer->end_processing_snp() ;
-	
 }
 
-void CallComparerComponent::end_processing_snps() {
-}
+void CallComparerComponent::end_processing_snps() {}
 

@@ -37,6 +37,7 @@ public:
 		typedef boost::shared_ptr< ComparisonClient > SharedPtr ;
 		typedef std::auto_ptr< ComparisonClient > UniquePtr ;
 
+		virtual ~ComparisonClient() {}
 		virtual void set_result(
 			std::string const& first_callset,
 			std::string const& second_callset,
@@ -50,26 +51,18 @@ public:
 	{
 		typedef boost::shared_ptr< MergeClient > SharedPtr ;
 		typedef std::auto_ptr< MergeClient > UniquePtr ;
+		virtual ~MergeClient() {}
 		virtual void set_result(
-			std::string const& comparison,
-			std::string const& comparison_value,
-			genfile::VariantEntry const&
-		) ;
-	} ;
-	
-	struct Merger {
-		typedef std::auto_ptr< Merger > UniquePtr ;
-		typedef boost::shared_ptr< Merger > SharedPtr ;
-		virtual ~Merger() {}
-		virtual void begin_comparisons( genfile::SNPIdentifyingData const& snp ) = 0 ;
-		virtual void set_result(
-			std::string const& first_callset,
-			std::string const& second_callset,
 			std::string const& comparison,
 			std::string const& comparison_value,
 			genfile::VariantEntry const&
 		) = 0 ;
-		virtual void end_comparisons() = 0 ;
+	} ;
+	
+	struct Merger: public ComparisonClient {
+		typedef std::auto_ptr< Merger > UniquePtr ;
+		typedef boost::shared_ptr< Merger > SharedPtr ;
+		virtual ~Merger() {}
 		virtual std::string get_spec() const = 0 ;
 		virtual std::string get_result_as_string() const = 0 ;
 	} ;

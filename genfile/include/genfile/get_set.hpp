@@ -73,6 +73,9 @@ namespace genfile {
 	template< typename T > GenotypeSetter< T > set_genotypes( T& t ) {
 		return GenotypeSetter< T >( t ) ;
 	}
+	
+	template <typename T > struct GenotypeGetter { double operator()( std::size_t i ) ; } ;
+	
 }
 
 #endif

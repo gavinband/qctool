@@ -13,6 +13,19 @@ namespace genfile {
 		m_matrix( i, 1 ) = AB ;
 		m_matrix( i, 2 ) = BB ;
 	}
+	
+	GenotypeGetter< Eigen::MatrixXd >::GenotypeGetter( Eigen::MatrixXd& matrix, std::size_t g ):
+		m_matrix( matrix ),
+		m_g( g )
+	{
+		assert( m_matrix.cols() == 3 ) ;
+		assert( g < 3 ) ;
+	}
+	
+	double GenotypeGetter< Eigen::MatrixXd >::operator()( std::size_t i ) const {
+		assert( i < m_matrix.rows() ) ;
+		return m_matrix( i, m_g ) ;
+	}
 }
 
 #endif

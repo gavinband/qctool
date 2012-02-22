@@ -2138,13 +2138,8 @@ private:
 			processor.add_callback( *cluster_fitter ) ;
 		}
 
-		CallComparerComponent::UniquePtr call_comparer_component ;
 		if( options().check_if_option_was_supplied_in_group( "Call comparison options" ))  {
-			call_comparer_component = CallComparerComponent::create( options() ) ;
-			call_comparer_component->add_callbacks( processor ) ;
-			if( cluster_fitter.get() ) {
-				
-			}
+			CallComparerComponent::setup( processor, options() ) ;
 		}
 		
 		ClusterPlotter::UniquePtr cluster_plotter ;

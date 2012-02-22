@@ -15,6 +15,16 @@ namespace genfile {
 		private:
 			Eigen::MatrixXd& m_matrix ;
 	} ;
+
+	template<>
+	struct GenotypeGetter< Eigen::MatrixXd >
+	{
+		GenotypeGetter( Eigen::MatrixXd& matrix, std::size_t g ) ;
+		double operator()( std::size_t i ) const ;
+		private:
+			Eigen::MatrixXd& m_matrix ;
+			std::size_t const m_g ;
+	} ;
 }
 
 #endif
