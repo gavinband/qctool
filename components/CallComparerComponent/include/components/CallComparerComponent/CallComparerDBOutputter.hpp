@@ -10,7 +10,7 @@
 #include <boost/thread/thread.hpp>
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
-#include "components/CallComparerComponent/PairwiseCallComparermanager.hpp"
+#include "components/CallComparerComponent/PairwiseCallComparerManager.hpp"
 
 struct CallComparerDBOutputter: public PairwiseCallComparerManager::ComparisonClient, public PairwiseCallComparerManager::MergeClient {
 	typedef std::auto_ptr< CallComparerDBOutputter > UniquePtr ;

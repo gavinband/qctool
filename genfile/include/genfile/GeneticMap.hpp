@@ -38,6 +38,7 @@ namespace genfile {
 		virtual double get_start_of_map_in_cM( Chromosome const& chromosome ) const = 0 ;
 		virtual double get_end_of_map_in_cM( Chromosome const& chromosome ) const = 0 ;
 		virtual double get_length_of_genome_in_cM() const = 0 ;
+		virtual std::string get_summary() const = 0 ;
 	} ;
 }
 

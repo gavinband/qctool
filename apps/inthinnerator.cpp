@@ -685,6 +685,8 @@ private:
 	
 	void unsafe_process() {
 		genfile::GeneticMap::UniquePtr map = load_genetic_map() ;
+		get_ui_context().logger() << "Loaded: " << map->get_summary() << "\n";
+
 		std::vector< genfile::SNPIdentifyingData > snps = get_list_of_snps( options().get_value< std::string >( "-g" ), *map ) ;
 		std::vector< double > recombination_offsets = get_recombination_offsets( snps, *map ) ;
 		m_proximity_test = get_proximity_test( snps, *map ) ;

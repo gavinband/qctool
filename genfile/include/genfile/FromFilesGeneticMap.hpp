@@ -32,7 +32,7 @@ namespace genfile {
 		double get_end_of_map_in_cM( Chromosome const& chromosome ) const ;
 		double get_start_of_map_in_cM( Chromosome const& chromosome ) const ;
 		double get_length_of_genome_in_cM() const ;
-
+		std::string get_summary() const ;
 	private:
 		void setup( std::vector< genfile::wildcard::FilenameMatch > const& ) ;
 		//typedef std::map< Position, std::pair< double, double > > PerChromosomeMap ;
