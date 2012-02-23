@@ -310,7 +310,7 @@ namespace genfile {
 	}
 
 	std::string FromFilesGeneticMap::get_summary() const {
-		std::string result = "genetic map of total length " + genfile::string_utils::to_string( get_length_of_genome_in_cM() ) ;
+		std::string result = "genetic map of total length " + genfile::string_utils::to_string( get_length_of_genome_in_cM() ) + "cM" ;
 		return result ;	
 	}
 }
