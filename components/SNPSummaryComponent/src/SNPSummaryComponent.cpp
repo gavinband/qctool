@@ -115,7 +115,7 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 	}
 	else {
 		if( filename.empty() ) {
-			filename = m_options.get< std::string >( "-g" ) + ".DBOutputter" ;
+			filename = genfile::strip_gen_file_extension_if_present( m_options.get< std::string >( "-g" ) ) + ".qcdb";
 		}
 		std::string sample_set_spec = "" ;
 		if( m_options.check( "-excl-samples" )) {

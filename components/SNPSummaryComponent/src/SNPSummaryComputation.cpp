@@ -58,6 +58,10 @@ namespace {
 				}
 			}
 			callback( "missing call proportion", missing_calls / double( genotypes.rows() )) ;
+
+			callback( "AA", genotypes.col(0).sum() ) ;
+			callback( "AB", genotypes.col(1).sum() ) ;
+			callback( "BB", genotypes.col(2).sum() ) ;
 		}
 	private:
 		double const m_call_threshhold ;
