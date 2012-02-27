@@ -217,35 +217,40 @@ namespace impl {
 			double allele_sum ;
 			threshhold_genotypes( m_genotypes[ snp_i ], &m_data, &non_missingness_matrix, &allele_sum, m_threshhold ) ;
 			double const allele_frequency = allele_sum / ( 2.0 * non_missingness_matrix.sum() ) ;
-			mean_centre_genotypes( &data, non_missingness_matrix, allele_frequency ) ;
+			
+			if( allele_sum > non_missingness_matrix.sum() * 0.01 ) {
+				mean_centre_genotypes( &data, non_missingness_matrix, allele_frequency ) ;
 
-	#if HAVE_CBLAS
-			// CBLAS is faster for this usage.  Don't know why.
-			cblas_dsyr(
-				CblasColMajor,
-				CblasLower,
-				m_number_of_samples,
-				1.0 / ( 2.0 * allele_frequency * ( 1.0 - allele_frequency )),
-				data.data(),
-				1,
-				m_result->data(),
-				m_number_of_samples
-			) ;
+#if HAVE_CBLAS
+				// CBLAS is faster for this usage.  Don't know why.
+				cblas_dsyr(
+					CblasColMajor,
+					CblasLower,
+					m_number_of_samples,
+					1.0 / ( 2.0 * allele_frequency * ( 1.0 - allele_frequency )),
+					data.data(),
+					1,
+					m_result->data(),
+					m_number_of_samples
+				) ;
 
-			cblas_dsyr(
-				CblasColMajor,
-				CblasLower,
-				m_number_of_samples,
-				1.0,
-				non_missingness_matrix.data(),
-				1,
-				m_non_missing_count->data(),
-				m_number_of_samples
-			) ;
-	#else
-			m_result->selfadjointView< Eigen::Lower >().rankUpdate( data, 1.0 / ( 2.0 * allele_frequency * ( 1.0 - allele_frequency ) ) ) ;
-			m_non_missing_count->selfadjointView< Eigen::Lower >().rankUpdate( non_missingness_matrix, 1.0 ) ;
-	#endif
+				cblas_dsyr(
+					CblasColMajor,
+					CblasLower,
+					m_number_of_samples,
+					1.0,
+					non_missingness_matrix.data(),
+					1,
+					m_non_missing_count->data(),
+					m_number_of_samples
+				) ;
+#else
+				m_result->selfadjointView< Eigen::Lower >().rankUpdate( data, 1.0 / ( 2.0 * allele_frequency * ( 1.0 - allele_frequency ) ) ) ;
+				m_non_missing_count->selfadjointView< Eigen::Lower >().rankUpdate( non_missingness_matrix, 1.0 ) ;
+#endif
+			} else {
+				std::cerr << "KinshipCoefficientComputerTask::operator(): omitted SNP " << m_id_data[ snp_i ] << " with frequency " << allele_frequency << ".\n" ;
+			}
 		}
 	}
 }
