@@ -96,7 +96,18 @@ namespace genfile {
 		std::size_t m_number_of_lines ;
 		
 		// We record the alleles per SNP, so that they can be used on subsequent SNPs.
-		std::vector< std::string > m_variant_alleles ; 
+		std::vector< std::string > m_variant_alleles ;
+		
+		std::string m_CHROM ;
+		std::string m_POS ;
+		std::string m_ID ;
+		std::string m_REF ;
+		std::string m_ALT ;
+		std::string m_QUAL ;
+		std::string m_FILTER ;
+		std::string m_INFO ;
+		bool m_have_id_data ;
+		
 	private:
 		void setup() ;
 		void check_genotype_probability_field( std::string const& field ) const ;
