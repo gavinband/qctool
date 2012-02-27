@@ -17,6 +17,7 @@
 #include "db/Error.hpp"
 #include "components/HaplotypeFrequencyComponent/HaplotypeFrequencyComponent.hpp"
 
+// #define DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT 1
 namespace impl {
 	struct HaplotypeFrequencyFileOutputter ;
 }
@@ -306,8 +307,9 @@ HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
 		std::set< std::size_t >( indices_of_filtered_out_samples.begin(), indices_of_filtered_out_samples.end() )
 	) ;
 	
+#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
 	std::cerr << "LD SNP samples: " << source->number_of_samples() << " (filtered from " << source->get_parent_source().number_of_samples() << ").\n" ;
-	
+#endif	
 	result.reset(
 		new HaplotypeFrequencyComponent(
 			source,
@@ -414,9 +416,11 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		}
 	}
 	
+#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
 	std::cerr << "SNP1: " << source_snp << "\n"
 		<< "SNP2: " << target_snp << "\n"
 		<< "table: " << table << ".\n" ;
+#endif
 	try {
 		HaplotypeFrequencyLogLikelihood ll( table ) ;
 		HaplotypeFrequencyLogLikelihood::Vector pi( 4 ) ;
@@ -457,10 +461,10 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		}
 		
 		means /= table.sum() ;
-	
+#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT	
 		std::cerr << "table: " << table << "\n" ;
 		std::cerr << "means:\n" << std::fixed << std::setprecision( 5 ) <<  means << ".\n" ;
-
+#endif
 		double dosage_cov = 0.0 ;
 		Eigen::Vector2d variances = Eigen::Vector2d::Zero() ;
 		for( int i = 0; i < 3; ++i ) {
@@ -471,8 +475,10 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 			variances(1) += table.col( i ).sum() * ( i - means(1) ) * ( i - means(1) ) ;
 		}
 		
+#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT	
 		std::cerr << "dosage_cov:\n" << dosage_cov << ".\n" ;
 		std::cerr << "variances:\n" << variances << ".\n" ;
+#endif
 		
 		double dosage_r = dosage_cov / std::sqrt( variances(0) * variances( 1 ) ) ;
 		m_result_signal( source_snp, target_snp, "dosage_r", dosage_r ) ;

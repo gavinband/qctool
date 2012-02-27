@@ -4,6 +4,7 @@
 #include "genfile/Error.hpp"
 #include "components/HaplotypeFrequencyComponent/HaplotypeFrequencyComponent.hpp"
 
+// #define DEBUG_HAPLOTYPE_FREQUENCY_LL 1
 HaplotypeFrequencyLogLikelihood::HaplotypeFrequencyLogLikelihood( Matrix const& genotype_table ):
 	m_genotype_table( genotype_table ),
 	m_D_ll( 3 ),
@@ -27,8 +28,9 @@ HaplotypeFrequencyLogLikelihood::Vector HaplotypeFrequencyLogLikelihood::get_MLE
 	Matrix const& G = m_genotype_table ;
 	double AB_ab = G(1,1) / 2 ;
 	Vector pi = estimate_parameters( AB_ab ) ;
-
+#if DEBUG_HAPLOTYPE_FREQUENCY_LL 
 	std::cerr << "Maximising likelihood for:\n" << m_genotype_table << ".\n" ;
+#endif
 	if( G(1,1) != 0.0 ) {
 		Vector old_pi ;
 		std::size_t count = 0 ;
@@ -48,7 +50,9 @@ HaplotypeFrequencyLogLikelihood::Vector HaplotypeFrequencyLogLikelihood::get_MLE
 			else {
 				AB_ab = std::floor( ( G(1,1) + 1 ) * p ) ;
 			}
+#if DEBUG_HAPLOTYPE_FREQUENCY_LL 
 			std::cerr << "AB_ab = " << AB_ab << ", pi = " << pi00 << " " << pi(0) << " " << pi(1) << " " << pi(2) << ".\n" ;
+#endif
 			pi = estimate_parameters( AB_ab ) ;
 		}
 		while( ( pi - old_pi ).array().abs().maxCoeff() > tolerance && ++count < max_count ) ;
@@ -59,7 +63,9 @@ HaplotypeFrequencyLogLikelihood::Vector HaplotypeFrequencyLogLikelihood::get_MLE
 				"convergence"
 			) ;
 		}
+#if DEBUG_HAPLOTYPE_FREQUENCY_LL 
 		std::cerr << "Finally: AB_ab = " << AB_ab << ", pi = " << ( 1 - pi.sum() ) << " " << pi(0) << " " << pi(1) << " " << pi(2) << ".\n" ;
+#endif
 	}
 	return pi ;
 }
