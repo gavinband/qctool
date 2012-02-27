@@ -32,21 +32,20 @@ namespace genfile {
 		rate( other.rate )
 	{}
 	
-	FromFilesGeneticMap::FromFilesGeneticMap( std::vector< genfile::wildcard::FilenameMatch > const& filenames, ProgressCallback progress_callback )
-	: m_progress_callback( progress_callback )
+	FromFilesGeneticMap::FromFilesGeneticMap( std::vector< genfile::wildcard::FilenameMatch > const& filenames, ProgressCallback progress_callback ):
+		m_filenames( filenames )
 	{
-		assert( filenames.size() > 0 ) ;
-		setup( filenames ) ;
+		assert( m_filenames.size() > 0 ) ;
+		setup( m_filenames, progress_callback ) ;
 	}
 
 	FromFilesGeneticMap::FromFilesGeneticMap( std::string const& filename, ProgressCallback progress_callback )
-		: m_progress_callback( progress_callback )
+	: m_filenames( genfile::wildcard::find_files_by_chromosome( filename ) )
 	{
-		std::vector< genfile::wildcard::FilenameMatch > matches( genfile::wildcard::find_files_by_chromosome( filename )) ;
-		setup( matches ) ;
+		setup( m_filenames, progress_callback ) ;
 	}
 
-	void FromFilesGeneticMap::setup( std::vector< genfile::wildcard::FilenameMatch > const& matches ) {
+	void FromFilesGeneticMap::setup( std::vector< genfile::wildcard::FilenameMatch > const& matches, ProgressCallback progress_callback ) {
 		boost::ptr_vector< std::istream > sources ;
 		std::size_t total_rows = 0 ;
 		for( std::size_t i = 0; i < matches.size(); ++i ) {
@@ -81,12 +80,12 @@ namespace genfile {
 				}
 				add_entries( sources[i], chromosome ) ;
 			}
-			if( m_progress_callback ) {
-				m_progress_callback( i, matches.size() ) ;
+			if( progress_callback ) {
+				progress_callback( i, matches.size() ) ;
 			}
 		}
-		if( m_progress_callback ) {
-			m_progress_callback( matches.size(), matches.size() ) ;
+		if( progress_callback ) {
+			progress_callback( matches.size(), matches.size() ) ;
 		}
 	}
 
@@ -310,7 +309,13 @@ namespace genfile {
 	}
 
 	std::string FromFilesGeneticMap::get_summary() const {
-		std::string result = "genetic map of total length " + genfile::string_utils::to_string( get_length_of_genome_in_cM() ) + "cM" ;
+		using string_utils::to_string ;
+		std::string result = "genetic map of total length " + genfile::string_utils::to_string( get_length_of_genome_in_cM() ) + "cM,\n" ;
+		std::set< Chromosome > const chromosomes = get_chromosomes() ;
+		std::set< Chromosome >::const_iterator i = chromosomes.begin(), end_i = chromosomes.end() ;
+		for( ; i != end_i; ++i ) {
+			result += "  " + to_string( *i ) + " (" + to_string( get_end_of_map_in_cM( *i ) - get_start_of_map_in_cM( *i ) ) + ")\n" ;
+		}
 		return result ;	
 	}
 }
