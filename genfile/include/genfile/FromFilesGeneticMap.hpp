@@ -33,8 +33,8 @@ namespace genfile {
 		double get_start_of_map_in_cM( Chromosome const& chromosome ) const ;
 		double get_length_of_genome_in_cM() const ;
 		std::string get_summary() const ;
+
 	private:
-		void setup( std::vector< genfile::wildcard::FilenameMatch > const& ) ;
 		//typedef std::map< Position, std::pair< double, double > > PerChromosomeMap ;
 		struct MapPoint {
 			MapPoint() ;
@@ -76,14 +76,19 @@ namespace genfile {
 		typedef PerChromosomeMap::nth_index<0>::type const& PhysicalToRecombinationDistanceMap ;
 		typedef PerChromosomeMap::nth_index<1>::type const& RecombinationToPhysicalDistanceMap ;
 		typedef std::map< Chromosome, PerChromosomeMap > Map ;
+		
+		Map m_map ;
+		std::vector< genfile::wildcard::FilenameMatch > m_filenames ;
+
+	private:
+		void setup( std::vector< genfile::wildcard::FilenameMatch > const&, ProgressCallback progress_callback ) ;
+
 
 		double find_cM_from_beginning_of_chromosome_at_position( PerChromosomeMap const&, Position position ) const ;
 		void add_entries( std::istream& source ) ;
 		void add_entries( std::istream& source, Chromosome const& chromosome ) ;
 		double interpolate( double x1, double y1, double x2, double y2, double x ) const ;
 
-	 	Map m_map ;
-		ProgressCallback const m_progress_callback ;
 	} ;	
 }
 
