@@ -132,9 +132,15 @@ namespace genfile {
 		std::ostringstream ostr ;
 		for( std::size_t i = 0; i < m_sources.size(); ++i ) {
 			ostr
-				<< prefix << std::setw( width ) << "" << " ("
-				<< std::setw(6) << number_of_snps_in_source( i )
-				<< " snps)  "
+				<< prefix << std::setw( width ) << "" << " (" ;
+			if( number_of_snps_in_source( i ) ) {
+				ostr << std::setw(7) << *number_of_snps_in_source( i ) << " snps" ;
+			}
+			else {
+				ostr << "not computed" ;
+			}
+			ostr
+				<< ")  "
 				<< "\"" << m_sources[i]->get_source_spec()
 				<< "\"\n" ;
 		}
