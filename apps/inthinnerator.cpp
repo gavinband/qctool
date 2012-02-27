@@ -782,6 +782,26 @@ private:
 		if( options().has_value( "-incl-snpids" )) {
 			filter.exclude_snps_not_in_file( options().get< std::string >( "-incl-snpids" ), genfile::CommonSNPFilter::SNPIDs ) ;
 		}
+
+		if( options().check_if_option_was_supplied( "-range" )) {
+			std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( options().get< std::string >( "-range" ), ",", " \t" ) ;
+			for ( std::size_t i = 0; i < specs.size(); ++i ) {
+				filter.include_snps_in_range(
+					genfile::GenomePositionRange::parse( specs[i] )
+				) ;
+			}
+		}
+		
+		if( options().check_if_option_was_supplied( "-exclude-range" )) {
+			std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( options().get< std::string >( "-exclude-range" ), ",", " \t" ) ;
+			for ( std::size_t i = 0; i < specs.size(); ++i ) {
+				filter.exclude_snps_in_range(
+					genfile::GenomePositionRange::parse( specs[i] )
+				) ;
+			}
+		}
+		
+
 		filter.exclude_chromosomes_not_in_set( map.get_chromosomes() ) ;
 		
 		std::vector< std::size_t > indices_of_included_snps = filter.get_indices_of_filtered_in_snps( filtered_snps ) ;
