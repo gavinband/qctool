@@ -1,4 +1,5 @@
 #include "genfile/vcf/get_set.hpp"
+#include "genfile/get_set_eigen.hpp"
 #include "genfile/vcf/get_set_eigen.hpp"
 #include "components/CallComparerComponent/ConsensusCaller.hpp"
 
@@ -42,15 +43,14 @@ void ConsensusCaller::processed_snp( genfile::SNPIdentifyingData const& snp, gen
 		missingness[i] = missing_calls ;
 	}
 	
-/*
 	std::size_t which = ( std::min_element( missingness.begin(), missingness.end() ) - missingness.begin() ) ;
-	genfile::GenotypeGetter< Eigen::MatrixXd > getterAA( m_genotypes[ which ], 0 );
+
 	m_sink->write_snp(
+		m_genotypes[ which ].rows(),
 		snp,
 		genfile::GenotypeGetter< Eigen::MatrixXd >( m_genotypes[ which ], 0 ),
 		genfile::GenotypeGetter< Eigen::MatrixXd >( m_genotypes[ which ], 1 ),
 		genfile::GenotypeGetter< Eigen::MatrixXd >( m_genotypes[ which ], 2 )
 	) ;
-	*/
 }
 

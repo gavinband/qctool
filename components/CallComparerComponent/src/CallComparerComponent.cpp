@@ -33,7 +33,9 @@ void CallComparerComponent::declare_options( appcontext::OptionProcessor& option
 		.set_description( "Combine calls from several different genotypers into a single consensus callset. "
 			"The calls to use are specified using the -compare-calls option. "
 			"A consensus call at each SNP is made when no significant difference is found "
-			"between N-1 of the N callsets." ) ;
+			"between N-1 of the N callsets." )
+		.set_takes_single_value()
+		.set_default_value( "call-comparisons.vcf" ) ;
 	options[ "-consensus-strategy" ]
 		.set_description( "Strategy to use to combine calls in the consensus set of calls. "
 		 	"Currently this must be \"least-missing\"." )
@@ -65,7 +67,7 @@ void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor, a
 	ConsensusCaller::SharedPtr consensus_caller(
 		new ConsensusCaller(
 			genfile::SNPDataSink::create(
-				options.get< std::string >( "-consensus-call-file" )
+				options.get< std::string >( "-consensus-call" )
 			)
 		)
 	) ;

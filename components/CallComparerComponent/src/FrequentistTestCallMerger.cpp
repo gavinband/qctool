@@ -10,7 +10,7 @@
 #include "components/CallComparerComponent/PairwiseCallComparerManager.hpp"
 #include "components/CallComparerComponent/FrequentistTestCallMerger.hpp"
 
-#define CONSENSUS_CALLER_DEBUG 1
+//#define CONSENSUS_CALLER_DEBUG 1
 
 FrequentistTestCallMerger::SharedPtr FrequentistTestCallMerger::create_shared( std::string const& comparison_method, double threshhold ) {
 	return SharedPtr( new FrequentistTestCallMerger( comparison_method, threshhold )) ;
