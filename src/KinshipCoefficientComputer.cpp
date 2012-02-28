@@ -263,7 +263,7 @@ void KinshipCoefficientManager::declare_options( appcontext::OptionProcessor& op
 	options[ "-load-kinship" ]
 		.set_description( "Load a previously-computed kinship matrix from the specified file." )
 		.set_takes_single_value() ;
-	options[ "-PCA" ]
+	options[ "-PCAs" ]
 		.set_description( "Compute PCA components of kinship matrix. "
 		 	"The argument should be the number of PCA components to compute.")
 		.set_takes_single_value()
@@ -284,9 +284,9 @@ void KinshipCoefficientManager::declare_options( appcontext::OptionProcessor& op
 
 	options.option_implies_option( "-kinship", "-s" ) ;
 	options.option_implies_option( "-load-kinship", "-s" ) ;
-	options.option_implies_option( "-PCA", "-load-kinship" ) ;
-	options.option_implies_option( "-PCA-prefix", "-PCA" ) ;
-	options.option_implies_option( "-loadings", "-PCA" ) ;
+	options.option_implies_option( "-PCAs", "-load-kinship" ) ;
+	options.option_implies_option( "-PCA-prefix", "-PCAs" ) ;
+	options.option_implies_option( "-loadings", "-PCAs" ) ;
 	options.option_excludes_option( "-load-kinship", "-kinship" ) ;
 }
 
@@ -549,7 +549,7 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples ) {
 	m_number_of_samples = number_of_samples ;
 	m_number_of_snps_processed = 0 ;
 
-	if( m_options.check_if_option_was_supplied( "-PCA" )) {
+	if( m_options.check_if_option_was_supplied( "-PCAs" )) {
 		m_kinship_eigendecomposition.resize( m_number_of_samples, m_number_of_samples + 1 ) ;
 #if HAVE_LAPACK
 		if( m_options.check( "-no-lapack" ))
