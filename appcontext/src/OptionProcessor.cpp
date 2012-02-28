@@ -415,15 +415,17 @@ namespace appcontext {
 	// Note: from this function, it may not possible to determine if an option value
 	// contained whitespace or if several values were supplied.  Use the std::vector form
 	// below to avoid ambiguity.
-	template<>
-	std::string OptionProcessor::get_value< std::string >( std::string const& arg ) const {
+	std::string OptionProcessor::get_value( std::string const& arg ) const {
+		return get_string_value( arg ) ;
+	}
+	std::string OptionProcessor::get( std::string const& arg ) const {
 		return get_string_value( arg ) ;
 	}
 
 	std::string OptionProcessor::get_string_value( std::string const& arg ) const {
 		OptionValues::const_iterator arg_i ;
 		arg_i = m_option_values.find( arg ) ;
-	
+
 		if( arg_i == m_option_values.end() ) {
 			return get_default_value( arg ) ;
 		}

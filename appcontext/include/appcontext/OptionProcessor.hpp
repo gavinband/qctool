@@ -125,13 +125,22 @@ namespace appcontext {
 			std::vector< std::string > get_string_values( std::string const& arg ) const ;
 
 			// get the value of the given option as the given type.
+			std::string get_value( std::string const& arg ) const ;
+			std::string get( std::string const& arg ) const ;
+
 			template< typename T >
 			T get_value( std::string const& arg ) const {
 				std::istringstream s( get_string_value( arg )) ;
 				T t ;
 				s >> t ;
+				s.peek() ;
+				if( !s.eof() ) {
+					throw OptionValueInvalidException( arg, get_string_values( arg ), "Only part of the object could be parsed." ) ;
+				}
 				return t ;
 			}
+
+
 
 			// synonym for the above
 			template< typename T >
