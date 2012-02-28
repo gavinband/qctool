@@ -264,16 +264,15 @@ void KinshipCoefficientManager::declare_options( appcontext::OptionProcessor& op
 		.set_description( "Load a previously-computed kinship matrix from the specified file." )
 		.set_takes_single_value() ;
 	options[ "-PCA" ]
-		.set_description( "Compute PCA of kinship matrix." ) ;
+		.set_description( "Compute PCA components of kinship matrix. "
+		 	"The argument should be the number of PCA components to compute.")
+		.set_takes_single_value()
+		.set_default_value( 10 ) ;
 	options[ "-PCA-prefix" ]
 		.set_description( "Set the prefix for filenames used to store eigendecomposition and PCA-related files. "
 		 	"By default, this is formed by removing the extension from the argument to -load-kinship." )
 		.set_takes_single_value() ;
 		
-	options[ "-number-of-PCAs" ]
-		.set_description( "Specify the number of PCA components to compute when using -PCA." )
-		.set_takes_single_value()
-		.set_default_value( 10 ) ;
 	options[ "-PCA-exclusions" ]
 		.set_description( "Output a list of exclusions based on outliers in the first N PCA components." )
 		.set_takes_single_value() ;
@@ -287,7 +286,6 @@ void KinshipCoefficientManager::declare_options( appcontext::OptionProcessor& op
 	options.option_implies_option( "-load-kinship", "-s" ) ;
 	options.option_implies_option( "-PCA", "-load-kinship" ) ;
 	options.option_implies_option( "-PCA-prefix", "-PCA" ) ;
-	options.option_implies_option( "-number-of-PCAs", "-PCA" ) ;
 	options.option_implies_option( "-loadings", "-PCA" ) ;
 	options.option_excludes_option( "-load-kinship", "-kinship" ) ;
 }
