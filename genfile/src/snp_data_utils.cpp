@@ -105,7 +105,7 @@ namespace genfile {
 		else {
 			result = filename.substr( 0, pos ) ;
 		}
-		if( new_extension.size() == 0 || new_extension[0] != '.' ) {
+		if( new_extension.size() > 0 && new_extension[0] != '.' ) {
 			result += "." ;
 		}
 		result += new_extension ;

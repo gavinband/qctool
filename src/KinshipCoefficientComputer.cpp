@@ -264,9 +264,13 @@ void KinshipCoefficientManager::declare_options( appcontext::OptionProcessor& op
 		.set_description( "Load a previously-computed kinship matrix from the specified file." )
 		.set_takes_single_value() ;
 	options[ "-PCA" ]
-		.set_description( "Compute PCA of kinship matrix, storing it in the specified file." )
+		.set_description( "Compute PCA of kinship matrix." ) ;
+	options[ "-PCA-prefix" ]
+		.set_description( "Set the prefix for filenames used to store eigendecomposition and PCA-related files. "
+		 	"By default, this is formed by removing the extension from the argument to -load-kinship." )
 		.set_takes_single_value() ;
-	options[ "-number_of_PCAs" ]
+		
+	options[ "-number-of-PCAs" ]
 		.set_description( "Specify the number of PCA components to compute when using -PCA." )
 		.set_takes_single_value()
 		.set_default_value( 10 ) ;
@@ -274,16 +278,16 @@ void KinshipCoefficientManager::declare_options( appcontext::OptionProcessor& op
 		.set_description( "Output a list of exclusions based on outliers in the first N PCA components." )
 		.set_takes_single_value() ;
 	options[ "-loadings" ]
-		.set_description( "Compute loadings in addition to PCA." )
-		.set_takes_single_value()
-		.set_default_value( 10 ) ;
+		.set_description( "Compute SNP loadings for each PCA." ) ;
 	options[ "-no-lapack" ]
-		.set_description( "Don't use lapack to perform computations." ) ;
+		.set_description( "Don't use lapack to perform computations. "
+			"Usually this means to use the Eigen library (http://eigen.tuxfamily.org) instead." ) ;
 
 	options.option_implies_option( "-kinship", "-s" ) ;
 	options.option_implies_option( "-load-kinship", "-s" ) ;
 	options.option_implies_option( "-PCA", "-load-kinship" ) ;
-	options.option_implies_option( "-number_of_PCAs", "-PCA" ) ;
+	options.option_implies_option( "-PCA-prefix", "-PCA" ) ;
+	options.option_implies_option( "-number-of-PCAs", "-PCA" ) ;
 	options.option_implies_option( "-loadings", "-PCA" ) ;
 	options.option_excludes_option( "-load-kinship", "-kinship" ) ;
 }
@@ -299,14 +303,14 @@ KinshipCoefficientManager::UniquePtr KinshipCoefficientManager::create(
 		result.reset( new KinshipCoefficientComputer( options, samples, worker, ui_context ) ) ;
 	}
 	else if( options.check( "-load-kinship" ) ) {
-		result.reset( new PCAComputer( options, samples, worker, ui_context ) ) ;
+		PCAComputer::UniquePtr computer( new PCAComputer( options, samples, worker, ui_context ) ) ;
 		if( options.check( "-loadings" )) {
 			// Need to set up an output location.
 			// This should be set up elsewhere, but we do it here for now.
  			boost::shared_ptr< statfile::BuiltInTypeStatSink > loadings_file(
-				statfile::BuiltInTypeStatSink::open( options.get< std::string >( "-PCA" ) + ".loadings.csv" ).release()
+				statfile::BuiltInTypeStatSink::open( computer->get_PCA_prefix() + ".loadings.csv" ).release()
 			) ;
-			result->send_per_variant_results_to(
+			computer->send_per_variant_results_to(
 				boost::bind(
 					&impl::write_snp_and_vector< Eigen::VectorXd >,
 					loadings_file,
@@ -314,6 +318,7 @@ KinshipCoefficientManager::UniquePtr KinshipCoefficientManager::create(
 				)
 			) ;
 		}
+		result.reset( computer.release() ) ;
 	} else {
 		assert(0) ;
 	}
@@ -629,9 +634,8 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples ) {
 			+ "\n# Note: the first column contains the diagonal of D (the eigenvalues)."
 			+ "\n# Note: column (i+1) contains the ith column of U (the eigenvector corresponding to the ith eigenvalue)." ;
 
-		std::string filename = m_options.get< std::string >( "-PCA" ) ;
 		send_results(
-			filename + ".UDUT.csv",
+			get_PCA_prefix() + ".UDUT.csv",
 			m_kinship_eigendecomposition,
 			"PCAComputer",
 			description,
@@ -663,7 +667,7 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples ) {
 			+ genfile::string_utils::to_string( m_number_of_samples ) ;
 
 		send_results(
-			m_options.get< std::string >( "-PCA" ) + ".PCAs.csv",
+			get_PCA_prefix() + ".PCAs.csv",
 			PCAs.transpose(),
 			"PCAComputer",
 			description,
@@ -680,6 +684,14 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples ) {
 		) ;
 		
 		m_eigenvectors.resize( 2 * m_number_of_PCAs_to_compute ) ;
+	}
+}
+
+std::string PCAComputer::get_PCA_prefix() const {
+	if( m_options.check( "-PCA-prefix" ) ) {
+		return m_options.get< std::string >( "-PCA-prefix" ) ;
+	} else {
+		return genfile::replace_or_add_extension( m_options.get< std::string >( "-kinship" ), "" ) ;
 	}
 }
 

@@ -9,6 +9,7 @@
 
 struct PCAComputer: public KinshipCoefficientManager
 {
+	typedef std::auto_ptr< PCAComputer > UniquePtr ;
 	~PCAComputer() throw() {}
 	PCAComputer(
 		appcontext::OptionProcessor const& options,
@@ -20,6 +21,9 @@ struct PCAComputer: public KinshipCoefficientManager
 	void begin_processing_snps( std::size_t number_of_samples ) ;
 	void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& ) ;
 	void end_processing_snps() ;
+	
+	std::string get_PCA_prefix() const ;
+	
 private:
 	appcontext::OptionProcessor const& m_options ;
 	appcontext::UIContext& m_ui_context ;

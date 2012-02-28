@@ -46,7 +46,7 @@ PCAComputer::PCAComputer(
 	load_matrix( m_filename + ".csv", &m_kinship_matrix ) ;
 	
 	if( m_options.check( "-loadings" ) ) {
-		m_number_of_PCAs_to_compute = m_options.get< std::size_t >( "-loadings" ) ;
+		m_number_of_PCAs_to_compute = m_options.get< std::size_t >( "-number-of-PCAs" ) ;
 	}
 }
 
