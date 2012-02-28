@@ -421,6 +421,10 @@ namespace appcontext {
 	std::string OptionProcessor::get( std::string const& arg ) const {
 		return get_string_value( arg ) ;
 	}
+	template<>
+	std::string OptionProcessor::get_value< std::string >( std::string const& arg ) const {
+		return get_string_value( arg ) ;
+	}
 
 	std::string OptionProcessor::get_string_value( std::string const& arg ) const {
 		OptionValues::const_iterator arg_i ;

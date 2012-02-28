@@ -22,6 +22,7 @@
 #include "GenRow.hpp"
 #include "SampleRow.hpp"
 #include "appcontext/CmdLineOptionProcessor.hpp"
+#include "appcontext/OptionProcessor.hpp"
 #include "RowCondition.hpp"
 #include "SNPInListCondition.hpp"
 #include "SNPIDMatchesCondition.hpp"
@@ -1743,7 +1744,7 @@ private:
 	}
 
 	void construct_sample_statistics() {
-		std::vector< std::string > sample_statistics_specs = string_utils::split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-sample-stats-columns" ), "," ) ;
+		std::vector< std::string > sample_statistics_specs = string_utils::split_and_strip_discarding_empty_entries( m_options.get_value( "-sample-stats-columns" ), "," ) ;
 		SampleRowStatisticFactory::add_statistics( sample_statistics_specs, m_sample_statistics ) ;
 	}
 

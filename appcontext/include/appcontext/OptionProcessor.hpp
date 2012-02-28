@@ -207,6 +207,8 @@ namespace appcontext {
 			std::map< std::string, std::set< std::string > > m_option_implications ;
 			std::vector< Check > m_checks ;
 	} ;
+	template<> std::string OptionProcessor::get_value< std::string >( std::string const& arg ) const ;
+	template<> std::vector< std::string > OptionProcessor::get_values< std::string >( std::string const& arg ) const ;
 }
 
 #endif
