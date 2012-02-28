@@ -249,7 +249,8 @@ namespace impl {
 				m_non_missing_count->selfadjointView< Eigen::Lower >().rankUpdate( non_missingness_matrix, 1.0 ) ;
 #endif
 			} else {
-				std::cerr << "KinshipCoefficientComputerTask::operator(): omitted SNP " << m_id_data[ snp_i ] << " with frequency " << allele_frequency << ".\n" ;
+				std::cerr << "KinshipCoefficientComputerTask::operator(): omitted SNP " << m_id_data[ snp_i ]
+					<< " with frequency " << std::resetiosflags( std::ios::floatfield ) << allele_frequency << ".\n" ;
 			}
 		}
 	}
@@ -575,6 +576,7 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples ) {
 			Eigen::MatrixXd eigenvectors( m_number_of_samples, m_number_of_samples ) ;
 			m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using lapack...\n" ;
 			lapack::compute_eigendecomposition( m_kinship_matrix, &eigenvalues, &eigenvectors ) ;
+			//lapack::compute_partial_eigendecomposition( m_kinship_matrix, &eigenvalues, &eigenvectors, m_number_of_PCAs_to_compute ) ;
 			m_kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 )  = eigenvalues.reverse() ;
 			m_kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( eigenvectors ) ;
 		}
@@ -689,7 +691,8 @@ std::string PCAComputer::get_PCA_prefix() const {
 	if( m_options.check( "-PCA-prefix" ) ) {
 		return m_options.get< std::string >( "-PCA-prefix" ) ;
 	} else {
-		return genfile::replace_or_add_extension( m_options.get< std::string >( "-kinship" ), "" ) ;
+		assert( m_options.check( "-load-kinship" )) ;
+		return genfile::replace_or_add_extension( m_options.get< std::string >( "-load-kinship" ), "" ) ;
 	}
 }
 

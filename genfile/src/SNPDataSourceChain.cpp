@@ -93,7 +93,7 @@ namespace genfile {
 			if( !m_sources[i]->total_number_of_snps() ) {
 				return OptionalSnpCount() ;
 			}
-			total_number_of_snps += *m_sources[i]->total_number_of_snps() ;
+			total_number_of_snps += *( m_sources[i]->total_number_of_snps() ) ;
 		}
 		return total_number_of_snps ;
 	}
@@ -145,7 +145,7 @@ namespace genfile {
 				<< "\"\n" ;
 		}
 		if( total_number_of_snps() ) {
-			ostr << prefix << std::setw( width ) << "" << " (total " << total_number_of_snps() << " snps in " << m_sources.size() << " sources).\n" ;
+			ostr << prefix << std::setw( width ) << "" << " (total " << *total_number_of_snps() << " snps in " << m_sources.size() << " sources).\n" ;
 		} else {
 			ostr << prefix << std::setw( width ) << "" << " (total " << m_sources.size() << " sources, number of snps not computed).\n" ;
 		}
