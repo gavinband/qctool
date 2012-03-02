@@ -362,7 +362,6 @@ namespace lapack {
 		char RANGE = 'I' ;
 		char JOBZ = 'V' ;
 		char UPLO = 'L' ;
-		double maximum_eigenvalue = std::numeric_limits< double >::max() ;
 		double ABSTOL = dlamch_( const_cast< char* >( "Safe minimum" ) ) ;
 		int IL = 1;
 		int IU = number_of_eigenvalues + 1 ;
