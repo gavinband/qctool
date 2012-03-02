@@ -360,15 +360,13 @@ public:
 
 */		options.declare_group( "Statistic calculation options" ) ;
 	    options[ "-sample-stats" ]
-			.set_description( "Calculate and output sample-wise statistics." ) ;
+			.set_description( "Calculate and output sample-wise statistics." )
+			.set_takes_single_value() ;
 		options[ "-sample-stats-columns" ]
 	        .set_description( "Comma-seperated list of statistics to output in the sample-wise statistics file."
 	 						 "  By default, the columns are: ID1, ID2, missing, and heterozygosity.")
 			.set_takes_single_value()
 			.set_default_value( std::string("ID1, ID2, missing, heterozygosity") ) ;
-	    options[ "-sample-stats-file" ]
-	        .set_description( 	"Override the auto-generated path of the file in which sample-wise statistics will be output." )
-	        .set_takes_single_value() ;
 
 		// SNP filtering options
 		options.declare_group( "SNP filtering options" ) ;
@@ -535,56 +533,17 @@ private:
 
 		// We need to write a sample stats file if -sample-stats was given.
 		if( m_options.check_if_option_was_supplied( "-sample-stats" ) ) {
-			if( m_options.check_if_option_was_supplied( "-sample-stats-file" )) {
-				m_sample_statistic_filename = m_options.get_value< std::string >( "-sample-stats-file" ) ;
-			}
-			else {
-				std::string stub ;
-				if( m_input_sample_filenames.size() > 0 ) {
-					stub = strip_sample_file_extension_if_present( m_input_sample_filenames[0] ) ;
-				}
-				else {
-					stub = "qctool" ;
-				}
-
-				m_sample_statistic_filename = stub + ".sample-stats";
-			}
+			m_sample_statistic_filename = m_options.get_value< std::string >( "-sample-stats" ) ;
 		}
 		// Otherwise, we need to write a sample exclusion list file if -write-sample-excl-list was given.
 		else if( m_options.check_if_option_was_supplied( "-write-sample-excl-list" )) {
 			m_output_sample_excl_list_filename = m_options.get_value< std::string > ( "-write-sample-excl-list" ) ;
 		}
 
-		// We need to write a sample file if:
+		// We need to write a sample file if -os is given:
 		// -os is given
-		// OR
-		// -write-sample-excl-list is NOT given
-		// AND EITHER
-		//	 * -sample-stats is given,
-		//   * OR some sample filters are given
 		if( m_options.check_if_option_was_supplied( "-os" )) {
 			m_output_sample_filename = m_options.get_value< std::string >( "-os" ) ;
-		}
-		else if( !m_options.check_if_option_was_supplied( "-write-sample-excl-list" )
-			&& (
-				m_options.check_if_option_was_supplied( "-sample-stats" ) ||
-				m_options.check_if_option_was_supplied_in_group( "Sample filtering options" )
-			)
-		) {
-			std::string stub ;
-			if( m_input_sample_filenames.size() > 0 ) {
-				stub = strip_sample_file_extension_if_present( m_input_sample_filenames[0] ) ;
-			}
-			else {
-				stub = "qctool" ;
-			}
-
-			if( m_options.check_if_option_was_supplied_in_group( "Sample filtering options" ) ) {
-				m_output_sample_filename = stub + ".fltrd.sample";
-			}
-			else {
-				m_output_sample_filename = stub + ".qctool.sample" ;
-			}
 		}
 	}
 
