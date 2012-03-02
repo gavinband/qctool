@@ -1842,6 +1842,9 @@ private:
 	void load_sample_rows( genfile::CohortIndividualSource::UniquePtr const& sample_source, std::size_t const expected_number_of_samples ) {
 		SampleRow sample_row ;
 		if( sample_source.get() ) {
+			if( sample_source->get_number_of_individuals() != expected_number_of_samples ) {
+				throw genfile::BadArgumentWithMessageError( "number of samples in sample and genotype sources do not match", "QCToolContext::load_sample_rows()", "sample_source, expected_number_of_samples" ) ;
+			}
 			for( std::size_t i = 0; i < sample_source->get_number_of_individuals(); ++i ) {
 				sample_row.read_ith_sample_from_source( i, *sample_source ) ;
 				m_sample_rows.push_back( sample_row ) ;
