@@ -58,11 +58,11 @@ namespace integration {
 		return point ;
 	}
 
-	template< typename FunctionAndDerivativeEvaluator >
+	template< typename FunctionAndDerivativeEvaluator, typename StoppingCondition >
 	typename FunctionAndDerivativeEvaluator::Vector find_root_by_newton_raphson(
 		FunctionAndDerivativeEvaluator& evaluator,
 		typename FunctionAndDerivativeEvaluator::Vector point,
-		double tolerance = 0.0000000001
+		StoppingCondition& stopping_condition
 	)
 	// The version of Newton-Raphson taking a seperate function and derivative argument
 	// has the disadvantage that any calculations that are common between function
@@ -74,32 +74,69 @@ namespace integration {
 		typedef typename FunctionAndDerivativeEvaluator::Vector Vector ;
 		typedef typename FunctionAndDerivativeEvaluator::Matrix Matrix ;
 		
-		assert( tolerance > 0.0 ) ;
 		evaluator.evaluate_at( point ) ;
-		Vector function_value = evaluator.get_value_of_function() ;
+
 		Matrix derivative_value ;
-		double max = std::max( std::abs( function_value.minCoeff() ), std::abs( function_value.maxCoeff() ) ) ;
-		if( max >= tolerance ) {
+		Eigen::ColPivHouseholderQR< Matrix > solver ;
+
+		Vector function_value = evaluator.get_value_of_function() ;
+		while( !stopping_condition( function_value ) ) {
 			// The Newton-Raphson rule comes from the observation that if
 			// f( x + h ) = f( x ) + (D_x f) (h) + higher order terms
 			// and if f( x + h ) = 0
 			// then h must satisfy (D_x f) (h) = -f( x ) + higher order terms.
 			// At each step we solve this and move to the point x + h.
 			// If the function is linear, this will actually get us to the root.
-			Eigen::ColPivHouseholderQR< Matrix > solver ;
-			do {
-				derivative_value = evaluator.get_value_of_first_derivative() ;
-				solver.compute( derivative_value ) ;
-				point += solver.solve( -function_value ) ;
-				evaluator.evaluate_at( point ) ;
-				function_value = evaluator.get_value_of_function() ;
-				max = std::max( std::abs( function_value.minCoeff() ), std::abs( function_value.maxCoeff() ) ) ;
+			derivative_value = evaluator.get_value_of_first_derivative() ;
+			solver.compute( derivative_value ) ;
+			point += solver.solve( -function_value ) ;
+			evaluator.evaluate_at( point ) ;
 				// std::cerr << "NR: point = " << point << ".\n" ;
 				// std::cerr << "NR: tolerance = " << tolerance << ", value = " << function_value << ", max coeff = " << max << ".\n" ;
-			}
-            while( max > tolerance ) ;
+			function_value = evaluator.get_value_of_function() ;
 		}
 		return point ;
+	}
+
+	namespace impl {
+		template< typename FunctionAndDerivativeEvaluator >
+		struct FunctionNearZeroStoppingCondition
+		{
+			typedef typename FunctionAndDerivativeEvaluator::Vector Vector ;
+			typedef typename FunctionAndDerivativeEvaluator::Matrix Matrix ;
+			FunctionNearZeroStoppingCondition( double tolerance, std::size_t max_iterations ): m_tolerance( tolerance ), m_max_iterations( 10000 ), m_iteration( 0 ) {}
+			bool operator()(
+				Vector const& value_of_function
+			) {
+				std::cerr << "iteration " << m_iteration << ": value is " << std::resetiosflags( std::ios::floatfield ) << value_of_function << ".\n" ;
+				return
+					( ++m_iteration > m_max_iterations )
+					||
+					( std::max( std::abs( value_of_function.minCoeff() ), std::abs( value_of_function.maxCoeff() ) ) < m_tolerance )
+				;
+			}
+
+		private:
+			double const m_tolerance ;
+			std::size_t const m_max_iterations ;
+			std::size_t m_iteration ;
+		} ;
+	}
+
+	template< typename FunctionAndDerivativeEvaluator >
+	typename FunctionAndDerivativeEvaluator::Vector find_root_by_newton_raphson(
+		FunctionAndDerivativeEvaluator& evaluator,
+		typename FunctionAndDerivativeEvaluator::Vector point,
+		double tolerance = 0.0000000001,
+		std::size_t max_iterations = 10000
+	) {
+		assert( tolerance > 0.0 ) ;
+		impl::FunctionNearZeroStoppingCondition< FunctionAndDerivativeEvaluator > stopping_condition( tolerance, max_iterations ) ;
+		return find_root_by_newton_raphson(
+			evaluator,
+			point,
+			stopping_condition
+		) ;
 	}
 
     // Specialise for 1d, where Vector == double
