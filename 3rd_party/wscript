@@ -14,8 +14,7 @@ def build( bld ):
 		includes = 'sqlite3/',
 		defines = 'SQLITE_ENABLE_COLUMN_METADATA',
 		uselib = 'DL',
-		export_incdirs = 'sqlite3',
-		install_path = os.path.join( bld.env[ 'PREFIX' ], 'lib' )
+		export_incdirs = 'sqlite3'
 	)
 
 #	bld(
@@ -34,8 +33,7 @@ def build( bld ):
 		includes = 'sqlite3/',
 		defines = 'SQLITE_ENABLE_COLUMN_METADATA',
 		uselib = 'DL',
-		export_incdirs = 'sqlite3',
-		install_path = os.path.join( bld.env[ 'PREFIX' ], 'lib' )
+		export_incdirs = 'sqlite3'
 	)
 
 	bld(
@@ -44,6 +42,5 @@ def build( bld ):
 		source = [ 'sqlite3/sqlite3/zlib_uncompress.c' ],
 		defines = 'SQLITE_ENABLE_COLUMN_METADATA',
 		uselib_local = 'sqlite3',
-		uselib = 'ZLIB',
-		install_path = os.path.join( bld.env[ 'PREFIX' ], 'lib' )
+		uselib = 'ZLIB'
 	)
