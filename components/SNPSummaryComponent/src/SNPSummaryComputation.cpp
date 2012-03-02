@@ -48,7 +48,7 @@ namespace {
 	struct MissingnessComputation: public SNPSummaryComputation {
 		MissingnessComputation( double call_threshhold = 0.9 ): m_call_threshhold( call_threshhold ) {}
 		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) {
-			double missingness = genotypes.rows() - genotypes.sum() ;
+			double missingness = double( genotypes.rows() ) - genotypes.array().sum() ;
 			callback( "missing proportion", missingness / double( genotypes.rows() ) ) ;
 			
 			double missing_calls = 0.0 ;

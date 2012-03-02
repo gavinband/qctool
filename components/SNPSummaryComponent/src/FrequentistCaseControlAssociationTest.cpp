@@ -26,9 +26,9 @@ FrequentistCaseControlAssociationTest::FrequentistCaseControlAssociationTest(
 namespace impl {
 	template< typename LL >
 	struct AssociationTestStoppingCondition {
-		AssociationTestStoppingCondition( LL const& ll, double starting_ll_value, double tolerance ):
+		AssociationTestStoppingCondition( LL const& ll, double tolerance ):
 			m_ll( ll ),
-			m_current_ll_value( starting_ll_value ),
+			m_current_ll_value( -std::numeric_limits< double >::infinity() ),
 			m_tolerance( tolerance ),
 			m_iteration( 0 )
 		{}
@@ -39,7 +39,7 @@ namespace impl {
 			double const previous_value = m_current_ll_value ;
 			m_current_ll_value = m_ll.get_value_of_function() ;
 			//std::cerr << "Iteration: " << m_iteration++ << ", previous value: " << previous_value << ", current_value: " << m_current_ll_value << ", magnitude of difference: " << std::abs( m_current_ll_value - previous_value ) << ".\n" ;
-			return diverged() || std::abs( m_current_ll_value - previous_value ) < m_tolerance ;
+			return diverged() || ( std::abs( m_current_ll_value - previous_value ) < m_tolerance ) ;
 		}
 
 		bool diverged() const { return m_current_ll_value != m_current_ll_value ; }
@@ -64,7 +64,7 @@ void FrequentistCaseControlAssociationTest::operator()( SNPIdentifyingData const
 
 	Vector null_parameters = Vector::Zero( m_covariates.cols() + 1 ) ;
 	{
-		impl::AssociationTestStoppingCondition< snptest::case_control::NullModelLogLikelihood > stopping_condition( m_null_ll, -std::numeric_limits< double >::infinity(), 0.01 ) ;
+		impl::AssociationTestStoppingCondition< snptest::case_control::NullModelLogLikelihood > stopping_condition( m_null_ll, 0.01 ) ;
 		null_parameters = integration::maximise_by_newton_raphson(
 			m_null_ll,
 			null_parameters,
@@ -75,7 +75,7 @@ void FrequentistCaseControlAssociationTest::operator()( SNPIdentifyingData const
 	alternative_parameters( 0 ) = null_parameters(0) ;
 	alternative_parameters.tail( m_covariates.cols() ) = null_parameters.tail( m_covariates.cols() ) ;
 	{
-		impl::AssociationTestStoppingCondition< snptest::case_control::LogLikelihood > stopping_condition( m_alternative_ll, m_null_ll.get_value_of_function(), 0.01 ) ;
+		impl::AssociationTestStoppingCondition< snptest::case_control::LogLikelihood > stopping_condition( m_alternative_ll, 0.01 ) ;
 		alternative_parameters = integration::maximise_by_newton_raphson(
 			m_alternative_ll,
 			alternative_parameters,
