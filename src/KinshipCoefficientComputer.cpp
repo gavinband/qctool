@@ -730,7 +730,7 @@ namespace impl {
 }
 
 void PCAComputer::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
-	if( m_number_of_PCAs_to_compute > 0 ) {
+	if( m_options.check( "-loadings" ) && m_number_of_PCAs_to_compute > 0 ) {
 		m_genotype_probabilities.resize( m_number_of_samples ) ;
 		data_reader.get( "genotypes", m_genotype_probabilities ) ;
 		double allele_sum ;

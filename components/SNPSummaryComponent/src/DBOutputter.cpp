@@ -207,11 +207,11 @@ namespace impl {
 			catch( db::StatementStepError const& e ) {
 				// wait a tenth of a second
 				std::cerr << "SNPSummaryComponent::DBOutputter::write_data(): failed to open transaction, trying again in 0.1s...\n" ;
-				boost::this_thread::sleep( boost::posix_time::milliseconds( 10 ) ) ;
+				boost::this_thread::sleep( boost::posix_time::milliseconds( 100 ) ) ;
 			}
 			catch( ... ) {
 				std::cerr << "SNPSummaryComponent::write_data(): OMG, a strange exception was caught.\n" ;
-				boost::this_thread::sleep( boost::posix_time::milliseconds( 10 ) ) ;
+				boost::this_thread::sleep( boost::posix_time::milliseconds( 100 ) ) ;
 			}
 		}
 		if( !transaction.get() ) {
