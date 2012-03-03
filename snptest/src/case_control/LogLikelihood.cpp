@@ -38,7 +38,7 @@ namespace snptest {
 			for( int i = 0; i < v.size(); ++i ) {
 				if( v(i) != v(i) ) {
 					std::vector< int >::iterator where = std::lower_bound( m_exclusions.begin(), m_exclusions.end(), i ) ;
-					if( where != m_exclusions.end() && *where != i ) {
+					if( where == m_exclusions.end() || *where != i ) {
 						m_exclusions.insert( where, i ) ;
 					}
 				}
@@ -54,7 +54,7 @@ namespace snptest {
 				double const rowSum = matrix.row( i ).sum() ;
 				if( rowSum != rowSum ) {
 					std::vector< int >::iterator where = std::lower_bound( m_exclusions.begin(), m_exclusions.end(), i ) ;
-					if( where != m_exclusions.end() && *where != i ) {
+					if( where == m_exclusions.end() || *where != i ) {
 						m_exclusions.insert( where, i ) ;
 					}
 				}
