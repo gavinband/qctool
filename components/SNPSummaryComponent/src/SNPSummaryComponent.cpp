@@ -79,9 +79,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_takes_single_value()
 		.set_default_value( "" ) ;
 	
-	options.option_implies_option( "-snp-stats", "-analysis-name" ) ;
 	options.option_implies_option( "-snp-stats", "-s" ) ;
-	options.option_implies_option( "-test", "-analysis-name" ) ;
 }
 
 SNPSummaryComponent::SNPSummaryComponent(

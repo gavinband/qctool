@@ -23,6 +23,7 @@
 #include "SampleRow.hpp"
 #include "appcontext/CmdLineOptionProcessor.hpp"
 #include "appcontext/OptionProcessor.hpp"
+#include "appcontext/get_current_time_as_string.hpp"
 #include "RowCondition.hpp"
 #include "SNPInListCondition.hpp"
 #include "SNPIDMatchesCondition.hpp"
@@ -436,7 +437,7 @@ public:
 		options[ "-analysis-name" ]
 			.set_description( "Specify a human-readable name to label results from this analysis with (for some modules)" )
 			.set_takes_single_value()
-			.set_default_value( "(unknown)" ) ;
+			.set_default_value( "qctool analysis, started " + appcontext::get_current_time_as_string() ) ;
 		options[ "-nodb" ]
 			.set_description( "By default, qctool outputs summary data in an sqlite database format.  This allows for more "
 				"flexibility and better memory usage compared to working with flat files. "

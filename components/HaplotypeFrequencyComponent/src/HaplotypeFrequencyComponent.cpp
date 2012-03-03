@@ -34,7 +34,6 @@ void HaplotypeFrequencyComponent::declare_options( appcontext::OptionProcessor& 
 		.set_takes_single_value()
 		.set_default_value( "ld.db" ) ;
 	options.option_implies_option( "-compute-ld-file", "-compute-ld-with" ) ;
-	options.option_implies_option( "-compute-ld-with", "-analysis-name" ) ;
 }
 
 namespace impl {
