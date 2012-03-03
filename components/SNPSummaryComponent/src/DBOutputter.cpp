@@ -50,8 +50,7 @@ namespace impl {
 			"variant_id INT, analysis_id INT, variable_id INT, value FLOAT, "
 			"FOREIGN KEY( variant_id ) REFERENCES Variant( id ), "
 			"FOREIGN KEY( analysis_id ) REFERENCES Entity( id ), "
-			"FOREIGN KEY( variable_id ) REFERENCES Entity( id ), "
-			"UNIQUE( analysis_id, variant_id, variable_id ) "
+			"FOREIGN KEY( variable_id ) REFERENCES Entity( id ) 	"
 			")"
 		) ;
 		m_connection->run_statement(
@@ -72,7 +71,7 @@ namespace impl {
 		) ;
 		m_connection->run_statement(
 			"CREATE VIEW IF NOT EXISTS SNPFilterView AS "
-			"SELECT          Analysis.name, V.chromosome, V.position, V.rsid, "
+			"SELECT          Analysis.id AS Analysis_id, Analysis.name AS analysis, V.id AS variant_id, V.chromosome, V.position, V.rsid, "
 			"AA.value AS 'AA', "
 			"AB.value AS 'AB', "
 			"BB.value AS 'BB', "
@@ -115,7 +114,7 @@ namespace impl {
 		
 		m_connection->run_statement(
 			"CREATE VIEW IF NOT EXISTS SNPTestView AS "
-			"SELECT        Analysis.name, V.chromosome, V.position, V.rsid, "
+			"SELECT        Analysis.id AS analysis_id, Analysis.name AS analysis, V.id AS variant_id, V.chromosome, V.position, V.rsid, "
 			"Beta.value AS beta, "
 			"Se.value AS se, "
 			"Pvalue.value AS pvalue "
@@ -170,10 +169,10 @@ namespace impl {
 
 	void DBOutputter::construct_statements() {
 		m_find_variant_statement = m_connection->get_statement(
-			"SELECT id FROM Variant WHERE rsid == ?1 AND chromosome == ?2 AND position == ?3"
+			"SELECT id FROM Variant WHERE chromosome == ?2 AND position == ?3 AND rsid == ?1 AND alleleA = ?4 AND alleleB = ?5"
 		) ;
 		m_insert_variant_statement = m_connection->get_statement(
-			"INSERT INTO Variant ( snpid, rsid, chromosome, position, alleleA, alleleB) "
+			"INSERT INTO Variant ( snpid, rsid, chromosome, position, alleleA, alleleB ) "
 			"VALUES( ?1, ?2, ?3, ?4, ?5, ?6 )"
 		) ;
 		m_find_entity_statement = m_connection->get_statement( "SELECT * FROM Entity E WHERE name == ?1" ) ;
@@ -181,7 +180,7 @@ namespace impl {
 		m_find_entity_data_statement = m_connection->get_statement( "SELECT * FROM EntityData WHERE entity_id == ?1 AND variable_id == ?2" ) ;
 		m_insert_entity_data_statement = m_connection->get_statement( "INSERT OR REPLACE INTO EntityData ( entity_id, variable_id, value ) VALUES ( ?1, ?2, ?3 )" ) ;
 		m_insert_summarydata_statement = m_connection->get_statement(
-			"INSERT OR REPLACE INTO SummaryData ( variant_id, analysis_id, variable_id, value ) "
+			"INSERT INTO SummaryData ( variant_id, analysis_id, variable_id, value ) "
 			"VALUES( ?1, ?2, ?3, ?4 )"
 		) ;
 	}
@@ -233,6 +232,8 @@ namespace impl {
 			.bind( 1, snp.get_rsid() )
 			.bind( 2, std::string( snp.get_position().chromosome() ))
 			.bind( 3, snp.get_position().position() )
+			.bind( 4, snp.get_first_allele() )
+			.bind( 5, snp.get_second_allele() )
 			.step()
 		;
 		if( m_find_variant_statement->empty() ) {
