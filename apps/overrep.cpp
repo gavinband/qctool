@@ -458,7 +458,7 @@ private:
 			//get_ui_context().logger()
 			std::cout
 				<< pathway.first << tab
-				<< m_pathway_names[ pathway.first ] << tab
+				<< "\"" << m_pathway_names[ pathway.first ] << "\"" << tab
 				<< table( 0, 0 ) << tab
 				<< table( 0, 1 ) << tab
 				<< table( 1, 0 ) << tab
