@@ -110,7 +110,7 @@ AUTO_TEST_CASE( test_genrow_binary_io ) {
 	while( inStream >> row ) {
 		++count ;
 		{
-			genfile::BGenFileSNPDataSink sink( filename, "", genfile::bgen::e_NoFlags ) ;
+			genfile::BGenFileSNPDataSink sink( filename, genfile::SNPDataSink::Metadata(), genfile::bgen::e_NoFlags ) ;
 			row.write_to_sink( sink ) ;
 		}
 		{

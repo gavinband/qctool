@@ -26,9 +26,10 @@ namespace genfile {
 		virtual ~SNPDataSink() ;
 
 		// Factory functions
-		static UniquePtr create( std::string const& filename, std::string const& free_data = "" ) ;
+		typedef std::multimap< std::string, std::map< std::string, std::string > > Metadata ;
+		static UniquePtr create( std::string const& filename, Metadata const& metadata = Metadata() ) ;
 	private:
-		static UniquePtr create_impl( std::string const& filename, CompressionType compression_type, std::string const& free_data = "" ) ;
+		static UniquePtr create_impl( std::string const& filename, CompressionType compression_type, Metadata const& metadata = Metadata() ) ;
 
 	public:		
 

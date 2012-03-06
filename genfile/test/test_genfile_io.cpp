@@ -173,16 +173,17 @@ void create_files( std::string original, std::string gen, std::string bgen, std:
 	}
 
 	// Construct bgen file, not zipped
+	genfile::SNPDataSink::Metadata metadata ;
 	{
 		std::cerr << "Creating bgen...\n" ;
-		genfile::BGenFileSNPDataSink bgen_file_snp_data_sink( bgen, "Free Data", genfile::bgen::e_NoFlags ) ;
+		genfile::BGenFileSNPDataSink bgen_file_snp_data_sink( bgen, metadata, genfile::bgen::e_NoFlags ) ;
 		copy_gen_file( original, bgen_file_snp_data_sink ) ;
 	}
 
 	// Construct bgen compressed file
 	{
 		std::cerr << "Creating bzgen...\n" ;
-		genfile::BGenFileSNPDataSink bzgen_file_snp_data_sink( bzgen, "Free Data", genfile::bgen::e_CompressedSNPBlocks ) ;
+		genfile::BGenFileSNPDataSink bzgen_file_snp_data_sink( bzgen, metadata, genfile::bgen::e_CompressedSNPBlocks ) ;
 		copy_gen_file( original, bzgen_file_snp_data_sink ) ;
 	}
 

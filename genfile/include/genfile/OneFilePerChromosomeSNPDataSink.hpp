@@ -15,13 +15,13 @@ namespace genfile {
 		typedef std::auto_ptr< OneFilePerChromosomeSNPDataSink > UniquePtr ;
 		static UniquePtr create(
 			std::string const& filename,
-			std::string const& free_data = "",
+			Metadata const& metadata = Metadata(),
 			std::string const& wildcard = "#"
 		) ;
 		
 		OneFilePerChromosomeSNPDataSink(
 			std::string const& filename,
-			std::string const& free_data = "",
+			Metadata const& metadata = Metadata(),
 			std::string const& wildcard = "#"
 		) ;
 
@@ -44,7 +44,7 @@ namespace genfile {
 
 	private:
 		boost::tuple< std::string, std::string, std::string > m_filename_template ;
-		std::string const m_free_data ;
+		Metadata const m_metadata ;
 		std::map< Chromosome, SNPDataSink* > m_sinks ;
 		boost::ptr_vector< SNPDataSink > m_sink_storage ;
 		std::map< Chromosome, std::string > m_filenames ;

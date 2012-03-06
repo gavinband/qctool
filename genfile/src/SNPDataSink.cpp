@@ -14,19 +14,19 @@ namespace genfile {
 
 	SNPDataSink::UniquePtr SNPDataSink::create(
 		std::string const& filename,
-		std::string const& free_data
+		Metadata const& metadata
 	) {
-		return SNPDataSink::create_impl( filename, get_compression_type_indicated_by_filename( filename ), free_data ) ;
+		return SNPDataSink::create_impl( filename, get_compression_type_indicated_by_filename( filename ), metadata ) ;
 	}
 
 	SNPDataSink::UniquePtr SNPDataSink::create_impl(
 		std::string const& filename,
 		CompressionType compression_type,
-		std::string const& free_data
+		Metadata const& metadata
 	) {
 		std::pair< std::string, std::string > d = uniformise( filename ) ;
 		if( d.first == "bgen" ) {
-			return SNPDataSink::UniquePtr( new BGenFileSNPDataSink( filename, free_data )) ;
+			return SNPDataSink::UniquePtr( new BGenFileSNPDataSink( filename, metadata )) ;
 		}
 		else if( d.first == "vcf" ) {
 			return SNPDataSink::UniquePtr( new VCFFormatSNPDataSink( filename )) ;

@@ -28,13 +28,13 @@ namespace genfile {
 	
 	OneFilePerChromosomeSNPDataSink::UniquePtr OneFilePerChromosomeSNPDataSink::create(
 		std::string const& filename_template,
-		std::string const& free_data,
+		Metadata const& metadata,
 		std::string const& wildcard
 	) {
 		return UniquePtr(
 			new OneFilePerChromosomeSNPDataSink(
 				filename_template,
-				free_data,
+				metadata,
 				wildcard
 			)
 		) ;
@@ -42,11 +42,11 @@ namespace genfile {
 	
 	OneFilePerChromosomeSNPDataSink::OneFilePerChromosomeSNPDataSink(
 		std::string const& filename_template,
-		std::string const& free_data,
+		Metadata const& metadata,
 		std::string const& wildcard
 	):
 		m_filename_template( impl::split_filename_template( filename_template, wildcard ) ),
-		m_free_data( free_data )
+		m_metadata( metadata )
 	{
 	}
 	
@@ -103,14 +103,14 @@ namespace genfile {
 				// no wildcard, everything goes to the same sink.
 				assert( m_sink_storage.size() < 2 ) ;
 				if( m_sink_storage.empty() ) {
-					m_sink_storage.push_back( SNPDataSink::create( m_filename_template.get<0>(), m_free_data ).release() ) ;
+					m_sink_storage.push_back( SNPDataSink::create( m_filename_template.get<0>(), m_metadata ).release() ) ;
 				}
 				m_sinks[ chromosome ] = &m_sink_storage[0] ;
 				return m_sink_storage[0] ;
 			}
 			else {
 				std::string const filename = m_filename_template.get<0>() + string_utils::to_string( chromosome ) + m_filename_template.get<2>() ;
-				m_sink_storage.push_back( SNPDataSink::create( filename, m_free_data ).release() ) ;
+				m_sink_storage.push_back( SNPDataSink::create( filename, m_metadata ).release() ) ;
 				m_sinks[ chromosome ] = &m_sink_storage.back() ;
 			}
 			return m_sink_storage.back() ;
