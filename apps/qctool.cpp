@@ -2087,13 +2087,13 @@ private:
 
 		KinshipCoefficientManager::UniquePtr kinship ;
 		if( options().check_if_option_was_supplied_in_group( "Kinship options" )) {
-			kinship = KinshipCoefficientManager::create(
+			KinshipCoefficientManager::setup(
 				options(),
 				context.get_cohort_individual_source(),
 				worker.get(),
-				get_ui_context()
+				get_ui_context(),
+				processor
 			) ;
-			processor.add_callback( *kinship )  ;
 		}
 
 		ClusterFitter::UniquePtr cluster_fitter ;
@@ -2118,10 +2118,12 @@ private:
 			processor.add_callback( *haplotype_frequency_component ) ;
 		}
 
-		// Process it!
-		{
+		// Process it (but only if there was something to do) !
+		if( processor.get_callbacks().size() > 0 ) {
 			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Processing SNPs" ) ;
 			processor.process( context.snp_data_source(), progress_context ) ;
+		} else {
+			get_ui_context().logger() << "SNPs do not need to be visited -- skipping.\n" ;
 		}
 		
 		if( relatotron.get() ) {

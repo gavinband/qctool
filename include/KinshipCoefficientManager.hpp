@@ -15,11 +15,12 @@ struct KinshipCoefficientManager: public genfile::SNPDataSourceProcessor::Callba
 public:
 	static void declare_options( appcontext::OptionProcessor& options ) ;
 	typedef std::auto_ptr< KinshipCoefficientManager > UniquePtr ;
-	static UniquePtr create(
+	static void setup(
 		appcontext::OptionProcessor const& options,
 		genfile::CohortIndividualSource const& samples,
 		worker::Worker* worker,
-		appcontext::UIContext& ui_context
+		appcontext::UIContext& ui_context,
+		genfile::SNPDataSourceProcessor& processor
 	) ;
 
 public:

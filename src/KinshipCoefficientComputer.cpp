@@ -291,21 +291,28 @@ void KinshipCoefficientManager::declare_options( appcontext::OptionProcessor& op
 	options.option_excludes_option( "-load-kinship", "-kinship" ) ;
 }
 
-KinshipCoefficientManager::UniquePtr KinshipCoefficientManager::create(
+void KinshipCoefficientManager::setup(
 	appcontext::OptionProcessor const& options,
 	genfile::CohortIndividualSource const& samples,
 	worker::Worker* worker,
-	appcontext::UIContext& ui_context
+	appcontext::UIContext& ui_context,
+	genfile::SNPDataSourceProcessor& processor
 ) {
-	KinshipCoefficientManager::UniquePtr result ;
 	if( options.check( "-kinship" )) {
-		result.reset( new KinshipCoefficientComputer( options, samples, worker, ui_context ) ) ;
+		KinshipCoefficientManager::UniquePtr result( new KinshipCoefficientComputer( options, samples, worker, ui_context ) ) ;
+		result->send_results_to( &impl::write_matrix_as_csv< Eigen::MatrixXd > ) ;
+		processor.add_callback(
+			genfile::SNPDataSourceProcessor::Callback::UniquePtr( result.release() )
+		) ;
 	}
 	else if( options.check( "-load-kinship" ) ) {
 		PCAComputer::UniquePtr computer( new PCAComputer( options, samples, worker, ui_context ) ) ;
+		computer->send_results_to( &impl::write_matrix_as_csv< Eigen::MatrixXd > ) ;
+		computer->compute_PCA() ;
+
 		if( options.check( "-loadings" )) {
-			// Need to set up an output location.
-			// This should be set up elsewhere, but we do it here for now.
+			// Need to set up an output location for the loadings.  Probably this should be done elsewhere,
+			// but do it here for now.
  			boost::shared_ptr< statfile::BuiltInTypeStatSink > loadings_file(
 				statfile::BuiltInTypeStatSink::open( computer->get_PCA_prefix() + ".loadings.csv" ).release()
 			) ;
@@ -316,14 +323,14 @@ KinshipCoefficientManager::UniquePtr KinshipCoefficientManager::create(
 					_1, _2, _3, _4
 				)
 			) ;
+			// Also we'll need to process the SNPs.
+			processor.add_callback(
+				genfile::SNPDataSourceProcessor::Callback::UniquePtr( computer.release() )
+			) ;
 		}
-		result.reset( computer.release() ) ;
 	} else {
 		assert(0) ;
 	}
-
-	result->send_results_to( &impl::write_matrix_as_csv< Eigen::MatrixXd > ) ;
-	return result ;
 }
 
 void KinshipCoefficientManager::send_results_to( ResultsCallback callback ) {
@@ -546,8 +553,7 @@ void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* mat
 }
 
 
-void PCAComputer::begin_processing_snps( std::size_t number_of_samples ) {
-	m_number_of_samples = number_of_samples ;
+void PCAComputer::compute_PCA() {
 	m_number_of_snps_processed = 0 ;
 
 	if( m_options.check_if_option_was_supplied( "-PCAs" )) {
@@ -685,6 +691,10 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples ) {
 		
 		m_eigenvectors.resize( 2 * m_number_of_PCAs_to_compute ) ;
 	}
+}
+
+void PCAComputer::begin_processing_snps( std::size_t number_of_samples ) {
+	assert( number_of_samples = m_number_of_samples ) ;
 }
 
 std::string PCAComputer::get_PCA_prefix() const {

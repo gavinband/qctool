@@ -46,7 +46,7 @@ namespace genfile {
 	void SimpleSNPDataSourceProcessor::process( genfile::SNPDataSource& source, ProgressCallback progress_callback ) {
 		SNPIdentifyingData id_data ;
 		SingleSNPGenotypeProbabilities genotypes( source.number_of_samples() ) ;
-		
+
 		call_begin_processing_snps( source.number_of_samples() ) ;
 
 		while( source.get_snp_identifying_data(

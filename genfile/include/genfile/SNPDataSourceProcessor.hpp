@@ -31,6 +31,8 @@ namespace genfile {
 		virtual void add_callback( Callback& callback ) ;
 		virtual void process( genfile::SNPDataSource& source, ProgressCallback = ProgressCallback() ) = 0 ;
 
+		std::vector< Callback* > const& get_callbacks() const { return m_callbacks ; }
+
 	protected:
 		virtual void call_begin_processing_snps( std::size_t const& number_of_samples ) const ;
 		virtual void call_processed_snp(  SNPIdentifyingData const& id_data, VariantDataReader& data_reader ) const ;

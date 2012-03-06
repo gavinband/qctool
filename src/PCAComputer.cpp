@@ -25,6 +25,7 @@ PCAComputer::PCAComputer(
 	m_options( options ),
 	m_ui_context( ui_context ),
 	m_samples( samples ),
+	m_number_of_samples( samples.get_number_of_individuals() ),
 	m_number_of_snps_processed( 0 ),
 	m_number_of_PCAs_to_compute( 0 ),
 	m_threshhold( 0.9 )
