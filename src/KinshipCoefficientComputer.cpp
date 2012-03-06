@@ -647,6 +647,11 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples ) {
 			)
 		) ;
 	}
+	else {
+		assert(0) ;
+		//load_eigendecomposition( get_PCA_prefix() + ".UDUT.csv", &m_kinship_eigendecomposition ) ;
+	}
+
 	if( m_number_of_PCAs_to_compute > 0 ) {
 		m_number_of_PCAs_to_compute = std::min( m_number_of_PCAs_to_compute, m_number_of_samples ) ;
 		m_number_of_PCAs_to_compute = std::min( m_number_of_PCAs_to_compute, m_number_of_snps ) ;
@@ -654,7 +659,7 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples ) {
 		m_PCA_eigenvalues = m_kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) ;
 		m_PCA_components = m_kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_PCAs_to_compute ) ;
 
-		Eigen::VectorXd v = m_kinship_eigendecomposition.block( 0, 0, m_number_of_PCAs_to_compute, 1 ) ;
+		Eigen::VectorXd v = m_PCA_eigenvalues.head( m_number_of_PCAs_to_compute ) ;
 		v = v.array().sqrt() ;
 		Eigen::MatrixXd PCAs =
 			v.asDiagonal() *
@@ -683,7 +688,7 @@ void PCAComputer::begin_processing_snps( std::size_t number_of_samples ) {
 			)
 		) ;
 		
-		m_eigenvectors.resize( 2 * m_number_of_PCAs_to_compute ) ;
+		m_loading_vectors.resize( 2 * m_number_of_PCAs_to_compute ) ;
 	}
 }
 
@@ -753,18 +758,15 @@ void PCAComputer::processed_snp( genfile::SNPIdentifyingData const& snp, genfile
 		// Thus the current row of S is equal to
 		//   m_genotype_calls.transpose() * ( m_PCA_components^t ) / D
 		//
-		assert( m_eigenvectors.size() == 2 * m_PCA_components.cols() ) ;
+		assert( m_loading_vectors.size() == 2 * m_PCA_components.cols() ) ;
 		
-		m_eigenvectors.setConstant( std::numeric_limits< double >::quiet_NaN() ) ;
-		
-		m_eigenvectors.segment( 0, m_PCA_components.cols() )
+		m_loading_vectors.setConstant( std::numeric_limits< double >::quiet_NaN() ) ;
+		m_loading_vectors.segment( 0, m_PCA_components.cols() )
 			= (
 				m_genotype_calls.transpose() *
 				m_PCA_components
 			).array() /
-			m_kinship_eigendecomposition
-				.block( 0, 0, m_number_of_PCAs_to_compute, 1 )
-				.array()
+			m_PCA_eigenvalues.head( m_number_of_PCAs_to_compute ).array()
 		;
 		
 		// We also wish to compute the correlation between the SNP and the PCA component.
@@ -772,14 +774,14 @@ void PCAComputer::processed_snp( genfile::SNPIdentifyingData const& snp, genfile
 		// standard deviations.  Note genotype calls are alread mean-centred and missing ones set to 0.
 		if( m_non_missingness.sum() > 10 ) {
 			for( int i = 0; i < m_PCA_components.cols(); ++i ) {
-				m_eigenvectors( m_PCA_components.cols() + i ) = impl::compute_correlation( m_genotype_calls, m_PCA_components.col( i ), m_non_missingness ) ;
+				m_loading_vectors( m_PCA_components.cols() + i ) = impl::compute_correlation( m_genotype_calls, m_PCA_components.col( i ), m_non_missingness ) ;
 			}
 		}
 		
 		send_per_variant_results(
 			"PCA eigenvectors",
 			snp,
-			m_eigenvectors,
+			m_loading_vectors,
 			boost::bind(
 				&impl::eigenvector_column_names,
 				m_PCA_components.cols(),
