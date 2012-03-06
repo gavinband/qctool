@@ -1,5 +1,5 @@
-#ifndef KinshipCoefficientComputation2_HPP
-#define KinshipCoefficientComputation2_HPP
+#ifndef COMPONENTS_RELATEDNESS_COMPONENT_KINSHIPCOEFFICIENTCOMPUTATION2_HPP
+#define COMPONENTS_RELATEDNESS_COMPONENT_KINSHIPCOEFFICIENTCOMPUTATION2_HPP
 
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/signals2.hpp>
@@ -14,7 +14,7 @@
 #include "appcontext/UIContext.hpp"
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/FileUtil.hpp"
-#include "KinshipCoefficientManager.hpp"
+#include "components/RelatednessComponent/KinshipCoefficientManager.hpp"
 
 namespace impl {
 	struct KinshipCoefficientComputerTask ;
@@ -53,8 +53,10 @@ namespace impl {
 }
 
 
-struct KinshipCoefficientComputer: public KinshipCoefficientManager
+struct KinshipCoefficientComputer: public KinshipCoefficientManager, public genfile::SNPDataSourceProcessor::Callback
 {
+public:
+	typedef std::auto_ptr< KinshipCoefficientComputer > UniquePtr ;
 public:
 	~KinshipCoefficientComputer() throw() {}
 

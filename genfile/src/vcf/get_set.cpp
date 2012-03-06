@@ -98,19 +98,19 @@ namespace genfile {
 			m_result[ sample_i * 3 + 2 ] = BB ;
 		}
 		
-		GenotypeSetter< std::vector< VariantEntry > >::
-			GenotypeSetter( std::vector< VariantEntry >& result, double threshhold ):
+		ThreshholdingGenotypeSetter< std::vector< VariantEntry > >::
+			ThreshholdingGenotypeSetter( std::vector< VariantEntry >& result, double threshhold ):
 			m_result( result ),
 			m_threshhold( threshhold )
 		{}
 
-		void GenotypeSetter< std::vector< VariantEntry > >::set_number_of_samples( std::size_t n ) {
+		void ThreshholdingGenotypeSetter< std::vector< VariantEntry > >::set_number_of_samples( std::size_t n ) {
 			m_result.clear() ;
 			m_result.resize( n, MissingValue() ) ;
 			GenotypeSetterBase::set_number_of_samples( n ) ;
 		}
 
-		void GenotypeSetter< std::vector< VariantEntry > >::set( std::size_t sample_i, double AA, double AB, double BB ) {
+		void ThreshholdingGenotypeSetter< std::vector< VariantEntry > >::set( std::size_t sample_i, double AA, double AB, double BB ) {
 			if( AA > m_threshhold ) {
 				m_result[ sample_i ] = 0 ;
 			}
@@ -125,23 +125,23 @@ namespace genfile {
 			}
 		}
 
-		GenotypeSetter< std::vector< int > >::
-			GenotypeSetter( std::vector< int >& result, double threshhold, int missing_value, int AA_value, int AB_value, int BB_value ):
+		ThreshholdingGenotypeSetter< std::vector< int > >::
+			ThreshholdingGenotypeSetter( std::vector< int >& result, double threshhold, int missing_value, int AA_value, int AB_value, int BB_value ):
 			m_result( result ),
-			m_threshhold( threshhold ),
 			m_missing_value( missing_value ),
 			m_AA_value( AA_value ),
 			m_AB_value( AB_value ),
-			m_BB_value( BB_value )
+			m_BB_value( BB_value ),
+			m_threshhold( threshhold )
 		{}
 
-		void GenotypeSetter< std::vector< int > >::set_number_of_samples( std::size_t n ) {
+		void ThreshholdingGenotypeSetter< std::vector< int > >::set_number_of_samples( std::size_t n ) {
 			m_result.clear() ;
 			m_result.resize( n, -1 ) ;
 			GenotypeSetterBase::set_number_of_samples( n ) ;
 		}
 
-		void GenotypeSetter< std::vector< int > >::set( std::size_t sample_i, double AA, double AB, double BB ) {
+		void ThreshholdingGenotypeSetter< std::vector< int > >::set( std::size_t sample_i, double AA, double AB, double BB ) {
 			if( AA > m_threshhold ) {
 				m_result[ sample_i ] = m_AA_value ;
 			}

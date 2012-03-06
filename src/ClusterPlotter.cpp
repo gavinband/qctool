@@ -71,11 +71,11 @@ namespace impl {
 			genfile::VariantDataReader& data_reader,
 			std::string const& filename
 		):
-			m_cohort_name( cohort_name ),
 			m_intensity_field( intensity_field ),
+			m_call_threshhold( 0.9 ),
 			m_snp( snp ),
-			m_filename( filename ),
-			m_call_threshhold( 0.9 )
+			m_cohort_name( cohort_name ),
+			m_filename( filename )
 		{
 			for( std::size_t i = 0; i < call_fields.size(); ++i ) {
 				m_calls[ call_fields[i] ] = Genotypes() ;
@@ -84,9 +84,9 @@ namespace impl {
 
 			data_reader.get( m_intensity_field, intensity_setter ) ;
 			for( Calls::iterator i = m_calls.begin(), end_i = m_calls.end(); i != end_i; ++i ) {
-				genfile::vcf::GenotypeSetter< Genotypes > genotype_setter( i->second, m_call_threshhold, 3, 0, 1, 2 ) ;
+				genfile::vcf::ThreshholdingGenotypeSetter< Genotypes > genotype_setter( i->second, m_call_threshhold, 3, 0, 1, 2 ) ;
 				data_reader.get( i->first, genotype_setter ) ;
-				assert( i->second.size() == m_intensities.cols() ) ;
+				assert( i->second.size() == std::size_t( m_intensities.cols() ) ) ;
 			}
 		}
 		
@@ -164,7 +164,6 @@ void ClusterPlotter::processed_snp( genfile::SNPIdentifyingData const& snp, genf
 		m_worker->tell_to_perform_task( m_tasks.back() ) ;
 	} else {
 		// wait until a task is free...
-		bool free = false ;
 		std::size_t i = m_tasks.size() ;
 		while( i == m_tasks.size() ) {
 			for( i = 0; i < m_tasks.size(); ++i ) {

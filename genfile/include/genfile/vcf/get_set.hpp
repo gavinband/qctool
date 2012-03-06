@@ -112,6 +112,7 @@ namespace genfile {
 			Setter const& m_setter ;
 		} ;
 
+		// Genotype setter which stores genotype probabilities in a SingleSNPGenotypeProbabilities object.
 		template<>
 		struct GenotypeSetter< SingleSNPGenotypeProbabilities >: public GenotypeSetterBase
 		{
@@ -135,10 +136,14 @@ namespace genfile {
 			std::vector< double >& m_result ;
 		} ;
 
+		template< typename T > struct ThreshholdingGenotypeSetter {} ;
+
+		// Genotype setter which stores hard genotype calls as VariantEntries.
+		// They are either integers 0, 1, or 2, or MissingValue.
 		template<>
-		struct GenotypeSetter< std::vector< VariantEntry > >: public GenotypeSetterBase
+		struct ThreshholdingGenotypeSetter< std::vector< VariantEntry > >: public GenotypeSetterBase
 		{
-			GenotypeSetter( std::vector< VariantEntry >& result, double threshhold ) ;
+			ThreshholdingGenotypeSetter( std::vector< VariantEntry >& result, double threshhold ) ;
 			void set_number_of_samples( std::size_t n ) ;
 			void set( std::size_t sample_i, double AA, double AB, double BB ) ;
 		private:
@@ -146,12 +151,11 @@ namespace genfile {
 			double const m_threshhold ;
 		} ;
 
-		// Genotype setter which stores genotypes as integers.
-		// A value of -1 denotes the missing value.
+		// Genotype setter which stores hard genotype calls as integers with specified values for each genotype.
 		template<>
-		struct GenotypeSetter< std::vector< int > >: public GenotypeSetterBase
+		struct ThreshholdingGenotypeSetter< std::vector< int > >: public GenotypeSetterBase
 		{
-			GenotypeSetter( std::vector< int >& result, double threshhold, int missing_value = -1, int AA_value = 0, int AB_value = 1, int BB_value = 2 ) ;
+			ThreshholdingGenotypeSetter( std::vector< int >& result, double threshhold, int missing_value = -1, int AA_value = 0, int AB_value = 1, int BB_value = 2 ) ;
 			void set_number_of_samples( std::size_t n ) ;
 			void set( std::size_t sample_i, double AA, double AB, double BB ) ;
 		private:

@@ -382,8 +382,8 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 	genfile::VariantDataReader& target_data_reader
 ) {
 	std::vector< std::vector< int > > genotypes( 2 ) ;
-	genfile::vcf::GenotypeSetter< std::vector< int > > source_getter( genotypes[0], m_threshhold ) ;
-	genfile::vcf::GenotypeSetter< std::vector< int > > target_getter( genotypes[1], m_threshhold ) ;
+	genfile::vcf::ThreshholdingGenotypeSetter< std::vector< int > > source_getter( genotypes[0], m_threshhold ) ;
+	genfile::vcf::ThreshholdingGenotypeSetter< std::vector< int > > target_getter( genotypes[1], m_threshhold ) ;
 	source_data_reader.get( "genotypes", source_getter ) ;
 	target_data_reader.get( "genotypes", target_getter ) ;
 	assert( genotypes[0].size() == m_source->number_of_samples() ) ;

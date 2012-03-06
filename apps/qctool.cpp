@@ -92,7 +92,7 @@
 #include "VCDBWriter.hpp"
 #include "DataReadTest.hpp"
 #include "ClusterFitter.hpp"
-#include "KinshipCoefficientComputer.hpp"
+#include "components/RelatednessComponent/RelatednessComponent.hpp"
 #include "components/CallComparerComponent/CallComparerComponent.hpp"
 #include "components/HaplotypeFrequencyComponent/HaplotypeFrequencyComponent.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComponent.hpp"
@@ -444,7 +444,7 @@ public:
 				" This option forces qctool to use a flat file instead." ) ;
 
 		Relatotron::declare_options( options ) ;
-		KinshipCoefficientManager::declare_options( options ) ;
+		RelatednessComponent::declare_options( options ) ;
 		DataReadTest::declare_options( options ) ;
 		ClusterFitter::declare_options( options ) ;
 		VCDBWriter::declare_options( options ) ;
@@ -2085,15 +2085,14 @@ private:
 			processor.add_callback( *db_writer ) ;
 		}
 
-		KinshipCoefficientManager::UniquePtr kinship ;
 		if( options().check_if_option_was_supplied_in_group( "Kinship options" )) {
-			KinshipCoefficientManager::setup(
+			RelatednessComponent::UniquePtr relatedness_component = RelatednessComponent::create(
 				options(),
 				context.get_cohort_individual_source(),
 				worker.get(),
-				get_ui_context(),
-				processor
+				get_ui_context()
 			) ;
+			relatedness_component->setup( processor ) ;
 		}
 
 		ClusterFitter::UniquePtr cluster_fitter ;

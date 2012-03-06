@@ -1,11 +1,12 @@
-#ifndef PCA_COMPUTER_HPP
-#define PCA_COMPUTER_HPP
+#ifndef COMPONENTS_RELATEDNESS_COMPONENT_PCA_COMPUTER_HPP
+#define COMPONENTS_RELATEDNESS_COMPONENT_PCA_COMPUTER_HPP
 
 #include <Eigen/Core>
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
+#include "genfile/CohortIndividualSource.hpp"
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
-#include "KinshipCoefficientManager.hpp"
+#include "components/RelatednessComponent/KinshipCoefficientManager.hpp"
 
 struct PCAComputer: public KinshipCoefficientManager
 {

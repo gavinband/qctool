@@ -1,5 +1,5 @@
 #include <Eigen/Core>
-#include "LapackEigenDecomposition.hpp"
+#include "components/RelatednessComponent/LapackEigenDecomposition.hpp"
 #include <iostream>
 #include "../config.hpp"
 #if HAVE_CLAPACK
