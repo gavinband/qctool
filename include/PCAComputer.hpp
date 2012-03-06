@@ -44,8 +44,7 @@ private:
 	genfile::SingleSNPGenotypeProbabilities m_genotype_probabilities ;
 	Eigen::VectorXd m_genotype_calls ;
 	Eigen::VectorXd m_non_missingness ;
-	Eigen::VectorXd m_eigenvectors ;
-	Eigen::MatrixXd m_correlations ;
+	Eigen::VectorXd m_loading_vectors ;
 	
 	void load_matrix( std::string const& filename, Eigen::MatrixXd* matrix ) const ;
 } ;
