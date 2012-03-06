@@ -198,7 +198,7 @@ namespace impl {
 	void DBOutputter::write_data( Data const& data ) {
 		db::Connection::ScopedTransactionPtr transaction ;
 
-		for( std::size_t i = 0; i < 1000; ++i ) {
+		for( std::size_t i = 0; i < 10000; ++i ) {
 			try {
 				transaction = m_connection->open_transaction() ;
 				break ;
@@ -206,11 +206,11 @@ namespace impl {
 			catch( db::StatementStepError const& e ) {
 				// wait a tenth of a second
 				std::cerr << "SNPSummaryComponent::DBOutputter::write_data(): failed to open transaction, trying again in 0.1s...\n" ;
-				boost::this_thread::sleep( boost::posix_time::milliseconds( 100 ) ) ;
+				boost::this_thread::sleep( boost::posix_time::milliseconds( 10 ) ) ;
 			}
 			catch( ... ) {
 				std::cerr << "SNPSummaryComponent::write_data(): OMG, a strange exception was caught.\n" ;
-				boost::this_thread::sleep( boost::posix_time::milliseconds( 100 ) ) ;
+				boost::this_thread::sleep( boost::posix_time::milliseconds( 10 ) ) ;
 			}
 		}
 		if( !transaction.get() ) {
