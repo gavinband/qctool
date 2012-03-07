@@ -32,6 +32,7 @@ namespace genfile {
 		typedef boost::function< void ( std::size_t, std::size_t ) > NotifyProgress ;
 		
 		// The following methods are factory functions
+		static std::vector< std::string > get_file_types() ;
 		static UniquePtr create( std::string const& filename, Chromosome = UnidentifiedChromosome ) ;
 		static UniquePtr create( std::string const& filename, Chromosome, vcf::MetadataParser::Metadata const&, std::string const& filetype_hint = "" ) ;
 		static UniquePtr create_chain(

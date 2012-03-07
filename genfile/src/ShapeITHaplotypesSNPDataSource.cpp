@@ -123,6 +123,7 @@ namespace genfile {
 				if( m_elts.size() != 2*N ) {
 					m_elts = slice( m_line ).split( " " ) ;
 				}
+				assert( m_elts[0].size() > 0 ) ;
 				if( m_elts.size() != 2*N ) {
 					throw MalformedInputError( m_source.get_source_spec(), m_snp_index ) ;
 				}
@@ -131,15 +132,20 @@ namespace genfile {
 				setter.set_order_type( vcf::EntriesSetter::eOrderedList ) ;
 
 				for( std::size_t i = 0; i < N; ++i ) {
-					setter.set_sample( i ) ;
-					setter.set_number_of_entries( 2 ) ;
-					for( std::size_t j = 0; j < 2; ++j ) {
-						if( m_elts[ 2*i+j ] == "." || m_elts[ 2*i+j ] == "NA" ) {
-							setter( MissingValue() ) ;
-						} else {
-							setter( string_utils::to_repr< Integer >( m_elts[ 2*i+j ] )) ;
+						setter.set_sample( i ) ;
+						setter.set_number_of_entries( 2 ) ;
+						for( std::size_t j = 0; j < 2; ++j ) {
+							try {
+								if( m_elts[ 2*i+j ] == "." || m_elts[ 2*i+j ] == "NA" ) {
+									setter( MissingValue() ) ;
+								} else {
+									setter( string_utils::to_repr< Integer >( m_elts[ 2*i+j ] )) ;
+								}
+							}
+							catch( string_utils::StringConversionError const& e ) {
+								throw MalformedInputError( m_source.get_source_spec(), m_snp_index, m_source.get_number_of_id_columns() + 2*i + j ) ;
+							}
 						}
-					}
 				}
 				return *this ;
 			}
@@ -159,12 +165,20 @@ namespace genfile {
 				std::vector< slice > m_elts ;
 		} ;
 	}
+	
+	std::size_t ShapeITHaplotypesSNPDataSource::get_number_of_id_columns() const {
+		return m_have_chromosome_column ? 6 : 5 ;
+	}
 
 	VariantDataReader::UniquePtr ShapeITHaplotypesSNPDataSource::read_variant_data_impl() {
 		assert( m_good ) ;
 		std::size_t snp_index = number_of_snps_read() ;
 
 		std::string line ;
+		if( m_stream_ptr->peek() == ' ' ) {
+			m_stream_ptr->get() ;
+		}
+		
 		std::getline( *m_stream_ptr, line ) ;
 
 		if( !*this ) {

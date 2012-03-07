@@ -121,7 +121,7 @@ namespace genfile {
 			".vcf.gz"
 		} ;
 		
-		for( std::size_t i = 0; i < 6u; ++i ) {
+		for( std::size_t i = 0; i < 5u; ++i ) {
 			if( filename.size() > recognised_extensions[i].size() && filename.substr( filename.size() - recognised_extensions[i].size(), recognised_extensions[i].size() ) == recognised_extensions[i] ) {
 				return recognised_extensions[i] ;
 			}

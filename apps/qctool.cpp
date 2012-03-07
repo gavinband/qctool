@@ -138,6 +138,13 @@ public:
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 100 ) ;
 
+	    options[ "-filetype" ]
+			.set_description(
+				"Specify the filetype of the genotype files specified by -g. "
+				"By default, qctool will guess the file type.  Use this option to override that guess. "
+				"Possible types are: \"" + genfile::string_utils::join( genfile::SNPDataSource::get_file_types(), "\",\"" ) + "\"." )
+			.set_takes_single_value() ;
+
 		options[ "-merge-in" ]
 			.set_description( "Specify an additional set of genotypes that should be merged in (in position order) to the dataset. "
 				"This must have the same number of samples as the data set for -g. "
@@ -148,7 +155,7 @@ public:
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-merge-strategy" ]
 			.set_description( "Specify a strategy to use when encountering SNPs with the same position in a merge. "
-				"Options are \"keep-all\" and \"drop-duplicates\"." )
+				"Options are \"" + genfile::string_utils::join( genfile::MergingSNPDataSource::get_merge_strategies(), "\",\"" ) + "\"." )
 			.set_takes_single_value()
 			.set_default_value( "keep-all" ) ;
 		options[ "-merge-prefix" ]
@@ -1817,6 +1824,14 @@ private:
 			m_ui_context.logger() << ".  Quitting.\n" ;
 			throw ;
 		}
+		catch( genfile::MismatchError const& e ) {
+			m_ui_context.logger() << "\n\n!! ERROR (" << e.what() << "): in source \""
+				<< e.source() << ": incorrect number of samples in the sample source ( "
+				<< e.key1()  << ", " << e.key2()
+				<< ").\n" ;
+			m_ui_context.logger() << ".  Quitting.\n" ;
+			throw ;
+		}
 	}
 	
 	genfile::CohortIndividualSource::UniquePtr unsafe_open_samples( std::size_t const expected_number_of_samples ) {
@@ -1834,6 +1849,15 @@ private:
 				) ;
 			}
 			sample_source.reset( source_chain.release() ) ;
+			
+			if( sample_source->get_number_of_individuals() != expected_number_of_samples ) {
+				throw genfile::MismatchError(
+					"QCToolCmdLineContext::unsafe_open_samples()",
+					sample_source->get_source_spec(),
+					"number of samples = " + genfile::string_utils::to_string( sample_source->get_number_of_individuals() ),
+					"expected number of samples = " + genfile::string_utils::to_string( expected_number_of_samples )
+				);
+			}
 			
 			if( m_options.check_if_option_was_supplied( "-quantile-normalise" )) {
 				sample_source = quantile_normalise_columns(

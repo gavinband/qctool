@@ -25,6 +25,7 @@ namespace genfile {
 		Chromosome chromosome() const { return m_chromosome ; }
 		std::string get_source_spec() const { return m_haplotypes_filename ; }
 
+		std::size_t get_number_of_id_columns() const ;
 	private:
 		void reset_to_start_impl() ;
 		

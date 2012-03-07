@@ -17,6 +17,17 @@
 #include "genfile/vcf/MetadataParser.hpp"
 
 namespace genfile {
+	std::vector< std::string > SNPDataSource::get_file_types() {
+		std::vector< std::string > result ;
+		result.push_back( "gen" ) ;
+		result.push_back( "bgen" ) ;
+		result.push_back( "vcf" ) ;
+		result.push_back( "hapmap_haplotypes" ) ;
+		result.push_back( "impute_haplotypes" ) ;
+		result.push_back( "shapeit_haplotypes" ) ;
+		return result ;
+	}
+	
 	std::auto_ptr< SNPDataSource > SNPDataSource::create(
 		std::string const& filename,
 		Chromosome chromosome_hint
@@ -55,13 +66,13 @@ namespace genfile {
 		else if( uf.first == "gen" ) {
 			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type, metadata )) ;
 		}
-		else if( uf.first == "hapmap" ) {
+		else if( uf.first == "hapmap_haplotypes" ) {
 			return std::auto_ptr< SNPDataSource >( new HapmapHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
 		}
 		else if( uf.first == "impute_haplotypes" ) {
 			return std::auto_ptr< SNPDataSource >( new ImputeHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
 		}
-		else if( uf.first == "shapeit" ) {
+		else if( uf.first == "shapeit_haplotypes" ) {
 			return std::auto_ptr< SNPDataSource >( new ShapeITHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
 		}
 		else {

@@ -9,6 +9,7 @@ namespace genfile {
 	struct MergingSNPDataSource: public SNPDataSource {
 
 		typedef std::auto_ptr< MergingSNPDataSource > UniquePtr ;
+		static std::vector< std::string > get_merge_strategies() ;
 		static UniquePtr create( std::string const& merge_strategy ) ;
 		MergingSNPDataSource() ;
 		virtual ~MergingSNPDataSource() ;

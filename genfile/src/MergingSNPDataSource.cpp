@@ -7,6 +7,13 @@
 
 namespace genfile {
 	
+	std::vector< std::string > MergingSNPDataSource::get_merge_strategies() {
+		std::vector< std::string > result ;
+		result.push_back( "keep-all" ) ;
+		result.push_back( "drop-duplicates" ) ;
+		return result ;
+	}
+	
 	MergingSNPDataSource::UniquePtr MergingSNPDataSource::create( std::string const& merge_strategy ) {
 		MergingSNPDataSource::UniquePtr result ;
 		if( merge_strategy == "keep-all" ) {
