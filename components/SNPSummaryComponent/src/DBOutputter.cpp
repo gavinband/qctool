@@ -26,7 +26,7 @@ namespace impl {
 		m_source_spec( data_source_spec ),
 		m_exclusions_name( exclusions_name )
 	{
-		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 30 ) ;
+		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 30 ) ; // wait 30s.
 		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS Variant ( id INTEGER PRIMARY KEY, snpid TEXT, rsid TEXT, chromosome TEXT, position INTEGER, alleleA TEXT, alleleB TEXT )"
 		) ;
@@ -53,24 +53,6 @@ namespace impl {
 			"FOREIGN KEY( variable_id ) REFERENCES Entity( id ) 	"
 			")"
 		) ;
-		m_connection->run_statement(
-			"CREATE TABLE IF NOT EXISTS Sample ( "
-				"id INTEGER PRIMARY KEY, "
-				"identifier TEXT NOT NULL, "
-				"UNIQUE( identifier ) "
-			")"
-		) ;
-
-		m_connection->run_statement(
-			"CREATE TABLE IF NOT EXISTS SampleData ( "
-				"sample_id INTEGER NOT NULL, "
-				"variable_id INTEGER NOT NULL, "
-				"value TEXT, "
-				"FOREIGN KEY( sample_id ) REFERENCES Sample( id ), "
-				"FOREIGN KEY( variable_id ) REFERENCES Entity( id )"
-			")"
-		) ;
-			
 		m_connection->run_statement(
 			"CREATE INDEX IF NOT EXISTS SummaryDataIndex ON SummaryData( analysis_id, variant_id, variable_id )"
 		) ;
@@ -257,18 +239,20 @@ namespace impl {
 		}
 	}
 
-	db::Connection::RowId DBOutputter::get_or_create_variable( std::string const& name ) const {
+	db::Connection::RowId DBOutputter::get_or_create_variable( std::string const& name, std::string const& description ) const {
 		db::Connection::RowId result ;
 
-		m_find_entity_statement
+		m_find_entity_with_description_statement
 			->reset()
 			.bind( 1, name )
+			.bind( 2, description )
 			.step() ;
 
-		if( m_find_entity_statement->empty() ) {
+		if( m_find_entity_with_description_statement->empty() ) {
 			m_insert_entity_statement
 				->reset()
 				.bind( 1, name )
+				.bind( 2, description )
 				.step() ;
 				
 			result = m_connection->get_last_insert_row_id() ;
@@ -356,7 +340,7 @@ namespace impl {
 	) {
 
 		db::Connection::RowId snp_id = get_or_create_snp( snp ) ;
-		db::Connection::RowId variable_id = get_or_create_variable( variable );
+		db::Connection::RowId variable_id = get_or_create_variable( variable, "per-SNP " + variable + " values" ) ;
 
 		assert( m_insert_summarydata_statement.get() ) ;
 		m_insert_summarydata_statement
