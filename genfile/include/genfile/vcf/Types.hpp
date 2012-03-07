@@ -28,6 +28,8 @@ namespace genfile {
 		struct EntriesSetter: public EntrySetter {
 			virtual ~EntriesSetter() throw() {}
 			virtual void set_number_of_entries( std::size_t n ) = 0 ;
+			enum OrderType { eUnorderedList = 0, eOrderedList = 1 } ;
+			virtual void set_order_type( OrderType const type ) {} ;
 		} ;
 		
 		struct SimpleType: public boost::noncopyable {
@@ -87,6 +89,8 @@ namespace genfile {
 			virtual void parse( string_utils::slice const&, std::size_t number_of_alleles, EntriesSetter& setter ) const ;
 
 			// Convenience functions for legacy interface.
+			// This interface is deprecated because it involves lots of small memory allocations, which
+			// slows things down too much.
 			std::vector< Entry > parse( string_utils::slice const&, std::size_t number_of_alleles, std::size_t ploidy ) const ;
 			std::vector< Entry > parse( string_utils::slice const&, std::size_t number_of_alleles ) const ;
 

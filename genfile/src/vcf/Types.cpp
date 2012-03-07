@@ -389,6 +389,8 @@ namespace genfile {
 				b = value[2] - '0' ;
 				if((( value[0] == m_missing_value[0] ) || ( a >= 0 && a <= max ) ) && ( ( value[2] == m_missing_value[0] ) || ( b >= 0 && b <= max ) ) ) {
 					setter.set_number_of_entries( 2 ) ;
+					setter.set_order_type( ( value[1] == '|' ) ? EntriesSetter::eOrderedList : EntriesSetter::eUnorderedList ) ;
+
 					if( value[0] == m_missing_value[0] ) {
 						setter( MissingValue() ) ;
 					} else {
@@ -424,6 +426,7 @@ namespace genfile {
 				}
 				if( simple_parse_success ) {
 					setter.set_number_of_entries( simple_values.size() ) ;
+					setter.set_order_type( ( value[1] == '|' ) ? EntriesSetter::eOrderedList : EntriesSetter::eUnorderedList ) ;
 					for( std::size_t i = 0; i < simple_values.size(); ++i ) {
 						if( simple_values[i] == -1 ) {
 							setter( MissingValue() ) ;
@@ -439,6 +442,14 @@ namespace genfile {
 
 			if( !simple_parse_success ) {
 				impl::CheckedGenotypeSetter genotype_setter( setter, number_of_alleles - 1 ) ;
+				std::vector< string_utils::slice > elts ;
+				if( value.find( '/' ) == std::string::npos ) {
+					// If there is a |, or no separator at all (ploidy = 1) the genotypes are phased.
+					setter.set_order_type( EntriesSetter::eOrderedList ) ;
+				} else {
+					// / found, so genotypes are unphased.
+					setter.set_order_type( EntriesSetter::eUnorderedList ) ;
+				}
 				parse_elts( lex( value, number_of_alleles ), genotype_setter ) ;
 			}
 		}

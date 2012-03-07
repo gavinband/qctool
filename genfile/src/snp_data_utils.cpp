@@ -208,8 +208,6 @@ namespace genfile {
 		types[ ".bgen" ]							= "bgen" ;
 		types[ ".gen" ] = types[ ".gen.gz" ] 		= "gen" ;
 		types[ ".vcf" ] = types[ ".vcf.gz" ] 		= "vcf" ;
-		types[ ".haps" ] = types[ ".haps.gz" ] 		= "impute_haplotypes" ;
-		types[ ".phased" ] 							= "hapmap_haplotypes" ;
 
 		for(
 			std::map< std::string, std::string >::const_iterator i = types.begin();

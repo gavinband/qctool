@@ -1364,11 +1364,20 @@ private:
 					m_options.get_value< std::string >( "-metadata" )
 				).get_metadata() ;
 			}
-			source = genfile::SNPDataSource::create(
-				filename,
-				chromosome_indicator,
-				metadata
-			) ;
+			if( m_options.check( "-filetype" )) {
+				source = genfile::SNPDataSource::create(
+					filename,
+					chromosome_indicator,
+					metadata,
+					m_options.get< std::string >( "-filetype" )
+				) ;
+			} else {
+				source = genfile::SNPDataSource::create(
+					filename,
+					chromosome_indicator,
+					metadata
+				) ;
+			}
 		}
 
 		genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter() ;
