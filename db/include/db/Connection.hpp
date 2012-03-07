@@ -28,7 +28,7 @@ namespace db {
 		typedef int64_t RowId ;
 		virtual RowId get_last_insert_row_id() const = 0 ;
 		typedef Transaction::UniquePtr ScopedTransactionPtr ;
-		virtual ScopedTransactionPtr open_transaction() = 0 ;
+		virtual ScopedTransactionPtr open_transaction( double max_seconds_to_wait = 0.1 ) = 0 ;
 	} ;	
 }
 

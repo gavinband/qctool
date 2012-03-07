@@ -26,7 +26,7 @@ namespace impl {
 		m_source_spec( data_source_spec ),
 		m_exclusions_name( exclusions_name )
 	{
-		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction() ;
+		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 30 ) ;
 		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS Variant ( id INTEGER PRIMARY KEY, snpid TEXT, rsid TEXT, chromosome TEXT, position INTEGER, alleleA TEXT, alleleB TEXT )"
 		) ;
@@ -53,6 +53,24 @@ namespace impl {
 			"FOREIGN KEY( variable_id ) REFERENCES Entity( id ) 	"
 			")"
 		) ;
+		m_connection->run_statement(
+			"CREATE TABLE IF NOT EXISTS Sample ( "
+				"id INTEGER PRIMARY KEY, "
+				"identifier TEXT NOT NULL, "
+				"UNIQUE( identifier ) "
+			")"
+		) ;
+
+		m_connection->run_statement(
+			"CREATE TABLE IF NOT EXISTS SampleData ( "
+				"sample_id INTEGER NOT NULL, "
+				"variable_id INTEGER NOT NULL, "
+				"value TEXT, "
+				"FOREIGN KEY( sample_id ) REFERENCES Sample( id ), "
+				"FOREIGN KEY( variable_id ) REFERENCES Entity( id )"
+			")"
+		) ;
+			
 		m_connection->run_statement(
 			"CREATE INDEX IF NOT EXISTS SummaryDataIndex ON SummaryData( analysis_id, variant_id, variable_id )"
 		) ;
@@ -196,23 +214,8 @@ namespace impl {
 	}
 	
 	void DBOutputter::write_data( Data const& data ) {
-		db::Connection::ScopedTransactionPtr transaction ;
+		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 100 ) ; // wait 100 seconds.
 
-		for( std::size_t i = 0; i < 10000; ++i ) {
-			try {
-				transaction = m_connection->open_transaction() ;
-				break ;
-			}
-			catch( db::StatementStepError const& e ) {
-				// wait a tenth of a second
-				std::cerr << "SNPSummaryComponent::DBOutputter::write_data(): failed to open transaction, trying again in 0.1s...\n" ;
-				boost::this_thread::sleep( boost::posix_time::milliseconds( 10 ) ) ;
-			}
-			catch( ... ) {
-				std::cerr << "SNPSummaryComponent::write_data(): OMG, a strange exception was caught.\n" ;
-				boost::this_thread::sleep( boost::posix_time::milliseconds( 10 ) ) ;
-			}
-		}
 		if( !transaction.get() ) {
 			throw genfile::OperationFailedError( "SNPSummaryComponent::write_data()", m_connection->get_spec(), "Opening transaction." ) ;
 		}

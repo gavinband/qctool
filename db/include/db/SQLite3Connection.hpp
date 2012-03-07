@@ -46,7 +46,7 @@ namespace db {
 			SQLite3Connection& m_connection ;
 		} ;
 	public:
-		ScopedTransactionPtr open_transaction() ;
+		ScopedTransactionPtr open_transaction( double max_seconds_to_wait = 0.1 ) ;
 	private:
 		std::string m_filename ;
 		sqlite3* m_db_connection ;

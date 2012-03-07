@@ -110,8 +110,18 @@ namespace db {
 #endif
 	}
 	
-	SQLite3Connection::ScopedTransactionPtr SQLite3Connection::open_transaction() {
-		return SQLite3Connection::Transaction::UniquePtr( new SQLite3Connection::Transaction( *this )) ;
+	SQLite3Connection::ScopedTransactionPtr SQLite3Connection::open_transaction( double max_seconds_to_wait ) {		
+		ScopedTransactionPtr transaction ;
+		for( std::size_t i = 0; i < max_seconds_to_wait * 100; ++i ) {
+			try {
+				transaction.reset( new SQLite3Connection::Transaction( *this ) ) ;
+				break ;
+			}
+			catch( db::StatementStepError const& e ) {
+				boost::this_thread::sleep( boost::posix_time::milliseconds( 10 ) ) ;
+			}
+		}
+		return transaction ;
 	}
 	
 	SQLite3Connection::Transaction::Transaction( SQLite3Connection& connection ):
