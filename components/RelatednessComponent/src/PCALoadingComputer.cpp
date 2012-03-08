@@ -72,9 +72,11 @@ namespace {
 	}
 }
 
-void PCALoadingComputer::set_PCA_components( Eigen::MatrixXd const& pca_components ) {
+void PCALoadingComputer::set_PCA_components( Vector const& pca_eigenvalues, Matrix const& pca_components ) {
+	assert( pca_eigenvalues.size() == pca_components.cols() ) ;
+	m_PCA_eigenvalues = pca_eigenvalues ;
 	m_PCA_components = pca_components ;
-	m_loading_vectors.resize( m_PCA_components.cols() ) ;
+	m_loading_vectors.resize( 2 * m_PCA_components.cols() ) ;
 }
 
 void PCALoadingComputer::begin_processing_snps( std::size_t number_of_samples ) {
@@ -94,26 +96,26 @@ void PCALoadingComputer::processed_snp( genfile::SNPIdentifyingData const& snp, 
 	mean_centre_genotypes( &m_genotype_calls, m_non_missingness, allele_frequency ) ;
 
 	//
-	// If X is the L\times n matrix (L SNPs, n samples) of (mean-centred, scaled) genotypes, we have
-	// computed the eigenvalue decomposition X^t X = U D U^t in m_solver.
-	// We want to compute the eigenvectors of X X^t instead.
-	// These are given by the columns of S, where
-	//   S = X U D^{-1/2}
-	// At this point we have :
-	// 	m_PCA_components - equal to S^t X or D^{1/2} U^t
-	//  m_genotype_calls - equal to a row of X.
-	// Thus the current row of S is equal to
-	//   m_genotype_calls.transpose() * ( m_PCA_components^t ) / D
-	//
-	assert( m_loading_vectors.size() == m_PCA_components.cols() ) ;
+	// Let X  be the L\times n matrix (L SNPs, n samples) of (mean-centred, scaled) genotypes.  We want
+	// to compute the row of the matrix S of unit eigenvectors of X X^t that corresponds to the current SNP.
+	// The matrix S is given by
+	//       S = X U D^{-1/2}
+	// where
+	//       X^t X = U D U^t
+	// is an eigenvalue decomposition of X^t X.
+	// We assume that the PCA components we are given are the first n columns of U D^{1/2}.
+	// Therefore the first n columns of S can be computed as X x (U D^{1/2}) x D^{-1}
+	assert( m_loading_vectors.size() == 2 * m_PCA_components.cols() ) ;
 	
 	m_loading_vectors.setConstant( std::numeric_limits< double >::quiet_NaN() ) ;
+	m_loading_vectors.head( m_PCA_components.cols() ) = ( m_genotype_calls.transpose() * m_PCA_components ).array() / m_PCA_eigenvalues.array().inverse() ;
+
 	// We also wish to compute the correlation between the SNP and the PCA component.
 	// This is almost the same computation, but we use only non-missing observations in computing the
 	// standard deviations.  Note genotype calls are alread mean-centred and missing ones set to 0.
 	if( m_non_missingness.sum() > 10 ) {
 		for( int i = 0; i < m_PCA_components.cols(); ++i ) {
-			m_loading_vectors( i ) = compute_correlation( m_genotype_calls, m_PCA_components.col( i ), m_non_missingness ) ;
+			m_loading_vectors( m_PCA_components.cols() + i ) = compute_correlation( m_genotype_calls, m_PCA_components.col( i ), m_non_missingness ) ;
 		}
 	}
 	

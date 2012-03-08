@@ -180,7 +180,7 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 
 		if( m_options.check( "-loadings" )) {
 			PCALoadingComputer::UniquePtr loading_computer( new PCALoadingComputer ) ;
-			computer->send_PCAs_to( boost::bind( &PCALoadingComputer::set_PCA_components, loading_computer.get(), _3 ) ) ;
+			computer->send_PCAs_to( boost::bind( &PCALoadingComputer::set_PCA_components, loading_computer.get(), _2, _3 ) ) ;
 
 			// Need to set up an output location for the loadings.  Probably this should be done elsewhere,
 			// but do it here for now.

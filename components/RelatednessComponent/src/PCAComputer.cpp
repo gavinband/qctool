@@ -209,7 +209,7 @@ void PCAComputer::compute_PCA() {
 	}
 
 	send_UDUT(
-		"Number of samples: " + genfile::string_utils::to_string( m_number_of_samples ),
+		"# Number of samples: " + genfile::string_utils::to_string( m_number_of_samples ),
 		kinship_eigendecomposition,
 		boost::function< genfile::VariantEntry ( int ) >(),
 		boost::bind(
@@ -232,14 +232,8 @@ void PCAComputer::compute_PCA() {
 			v.asDiagonal() *
 			PCA_components.transpose() ;
 
-		std::string description = "# First " + genfile::string_utils::to_string( m_number_of_PCAs_to_compute ) + " PCA components\n"
-			+ "# Number of SNPs: "
-			+ genfile::string_utils::to_string( m_number_of_snps )
-			+ "\n# Number of samples: "
-			+ genfile::string_utils::to_string( m_number_of_samples ) ;
-
 		send_PCAs(
-			"Number of samples: " + genfile::string_utils::to_string( m_number_of_samples ),
+			"# Number of samples: " + genfile::string_utils::to_string( m_number_of_samples ),
 			PCA_eigenvalues,
 			PCAs.transpose(),
 			boost::bind(
