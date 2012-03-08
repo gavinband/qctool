@@ -7,7 +7,11 @@ srcdir="."
 APPNAME = "qctool"
 VERSION = "dev"
 
-subdirs = [ 'genfile', 'statfile', 'string_utils', 'appcontext', 'fputils', 'worker', 'snptest', 'integration', '3rd_party', 'db', 'components' ]
+subdirs = [
+	'genfile', 'statfile', 'string_utils', 'appcontext',
+	'fputils', 'worker', 'snptest', 'integration',
+	'3rd_party', 'db', 'components', 'qcdb'
+]
 
 def set_options( opt ):
 	opt.tool_options( 'compiler_cxx' )

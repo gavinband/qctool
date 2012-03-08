@@ -11,7 +11,7 @@
 #include "genfile/CohortIndividualSource.hpp"
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
-#include "SNPSummaryComputation.hpp"
+#include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 
 struct SNPSummaryComputationManager: public genfile::SNPDataSourceProcessor::Callback, public boost::noncopyable {
 	typedef std::auto_ptr< SNPSummaryComputationManager > UniquePtr ;
