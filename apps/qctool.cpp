@@ -2091,11 +2091,12 @@ private:
 			processor.add_callback( qctool_basic ) ;
 		}
 		
-		if( options().check( "-snp-stats" ) || options().check( "-test" )) {
+		if( options().check( "-snp-stats" ) || options().check( "-test" ) || options().check( "-annotate" )) {
 			processor.add_callback(
 				SNPSummaryComponent(
 					context.get_cohort_individual_source(),
-					options()
+					options(),
+					get_ui_context()
 				).create()
 			) ;
 		}
