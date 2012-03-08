@@ -12,6 +12,7 @@
 #include "components/SNPSummaryComponent/DBOutputter.hpp"
 #include "components/SNPSummaryComponent/FileOutputter.hpp"
 #include "components/SNPSummaryComponent/AssociationTest.hpp"
+#include "components/SNPSummaryComponent/AncestralAlleleAnnotation.hpp"
 
 void SNPSummaryComputationManager::add_computation( std::string const& name, SNPSummaryComputation::UniquePtr computation ) {
 	m_computations.insert( name, computation ) ;
@@ -35,6 +36,7 @@ void SNPSummaryComputationManager::processed_snp( genfile::SNPIdentifyingData co
 		i->second->operator()(
 			snp,
 			m_genotypes,
+			data_reader,
 			boost::bind(
 				boost::ref( m_result_signal ),
 				m_snp_index,
@@ -79,15 +81,23 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_takes_single_value()
 		.set_default_value( "" ) ;
 	
+	options[ "-annotate" ]
+		.set_description( "Specify a FASTA-formatted file containing ancestral alleles to annotate variants with." )
+		.set_takes_single_value() ;
+	
 	options.option_implies_option( "-snp-stats", "-s" ) ;
+	options.option_implies_option( "-annotate", "-s" ) ;
+	options.option_implies_option( "-test", "-s" ) ;
 }
 
 SNPSummaryComponent::SNPSummaryComponent(
 	genfile::CohortIndividualSource const& samples,
-	appcontext::OptionProcessor const& options
+	appcontext::OptionProcessor const& options,
+	appcontext::UIContext& ui_context
 ):
 	m_samples( samples ),
-	m_options( options )
+	m_options( options ),
+	m_ui_context( ui_context )
 {}
 
 genfile::SNPDataSourceProcessor::Callback::UniquePtr SNPSummaryComponent::create() const {
@@ -168,6 +178,15 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 				)
 			) ;
 		}
+	}
+	if( m_options.check( "-annotate" )) {
+		appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading FASTA annotation" ) ;
+		manager.add_computation(
+			"ancestral_alleles",
+			SNPSummaryComputation::UniquePtr(
+				new AncestralAlleleAnnotation( m_options.get< std::string >( "-annotate" ), progress )
+			)
+		) ;
 	}
 }
 

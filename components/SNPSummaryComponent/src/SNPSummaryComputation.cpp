@@ -9,7 +9,7 @@
 namespace {
 	struct AlleleProportionComputation: public SNPSummaryComputation
 	{
-		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) {
+		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, genfile::VariantDataReader&, ResultCallback callback ) {
 			double const a_allele_freq = ( ( 2.0 * genotypes.col(0).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
 			double const b_allele_freq = ( ( 2.0 * genotypes.col(2).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
 
@@ -29,7 +29,7 @@ namespace {
 	
 	struct HWEComputation: public SNPSummaryComputation
 	{
-		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) {
+		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, genfile::VariantDataReader&, ResultCallback callback ) {
 			double const
 				AA = std::floor( genotypes.col(0).sum() + 0.5 ),
 				AB = std::floor( genotypes.col(1).sum() + 0.5 ),
@@ -47,7 +47,7 @@ namespace {
 	
 	struct MissingnessComputation: public SNPSummaryComputation {
 		MissingnessComputation( double call_threshhold = 0.9 ): m_call_threshhold( call_threshhold ) {}
-		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) {
+		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, genfile::VariantDataReader&, ResultCallback callback ) {
 			double missingness = double( genotypes.rows() ) - genotypes.array().sum() ;
 			callback( "missing proportion", missingness / double( genotypes.rows() ) ) ;
 			
@@ -68,7 +68,7 @@ namespace {
 	} ;
 
 	struct InformationComputation: public SNPSummaryComputation {
-		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) {
+		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, genfile::VariantDataReader&, ResultCallback callback ) {
 			Eigen::VectorXd const e = genotypes.col(1) + (2.0 * genotypes.col(2) ) ;
 			Eigen::VectorXd const f = genotypes.col(1) + (4.0 * genotypes.col(2) ) ;
 			double const non_missingness = genotypes.sum() ;

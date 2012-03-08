@@ -10,6 +10,7 @@
 #include "genfile/VariantEntry.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "appcontext/OptionProcessor.hpp"
+#include "appcontext/UIContext.hpp"
 #include "SNPSummaryComputation.hpp"
 
 struct SNPSummaryComputationManager: public genfile::SNPDataSourceProcessor::Callback, public boost::noncopyable {
@@ -40,7 +41,8 @@ public:
 	static void declare_options( appcontext::OptionProcessor& options ) ;
 	SNPSummaryComponent(
 		genfile::CohortIndividualSource const& samples,
-		appcontext::OptionProcessor const& options
+		appcontext::OptionProcessor const& options,
+		appcontext::UIContext& ui_context
 	) ;
 
 	genfile::SNPDataSourceProcessor::Callback::UniquePtr create() const ;
@@ -52,6 +54,7 @@ private:
 private:
 	genfile::CohortIndividualSource const& m_samples ;
 	appcontext::OptionProcessor const& m_options ;
+	appcontext::UIContext& m_ui_context ;
 } ;
 
 #endif

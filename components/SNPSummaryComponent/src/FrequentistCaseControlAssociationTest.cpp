@@ -54,7 +54,7 @@ namespace impl {
 	} ;
 }
 
-void FrequentistCaseControlAssociationTest::operator()( SNPIdentifyingData const& snp, Matrix const& genotypes, ResultCallback callback ) {
+void FrequentistCaseControlAssociationTest::operator()( SNPIdentifyingData const& snp, Matrix const& genotypes, genfile::VariantDataReader&, ResultCallback callback ) {
 	using integration::derivative ;
 	
 	Vector genotype_levels = get_genotype_levels( genotypes ) ;

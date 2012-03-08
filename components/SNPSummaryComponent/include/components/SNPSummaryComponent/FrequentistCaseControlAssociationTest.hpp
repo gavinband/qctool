@@ -14,7 +14,7 @@ struct FrequentistCaseControlAssociationTest: public AssociationTest {
 		Matrix const& covariates
 		) ;
 
-	void operator()( SNPIdentifyingData const& snp, Matrix const& genotypes, ResultCallback callback ) ;
+	void operator()( SNPIdentifyingData const& snp, Matrix const& genotypes, genfile::VariantDataReader& data_reader, ResultCallback callback ) ;
 
 private:
 	snptest::case_control::LogLikelihood m_alternative_ll ;

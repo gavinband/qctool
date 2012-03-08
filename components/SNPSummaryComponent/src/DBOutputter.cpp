@@ -178,6 +178,7 @@ namespace impl {
 		m_find_entity_statement = m_connection->get_statement( "SELECT * FROM Entity E WHERE name == ?1" ) ;
 		m_insert_entity_statement = m_connection->get_statement( "INSERT INTO Entity ( name, description ) VALUES ( ?1, ?2 )" ) ;
 		m_find_entity_data_statement = m_connection->get_statement( "SELECT * FROM EntityData WHERE entity_id == ?1 AND variable_id == ?2" ) ;
+		m_find_entity_with_description_statement = m_connection->get_statement( "SELECT * FROM Entity E WHERE name == ?1 AND description == ?2" ) ;
 		m_insert_entity_data_statement = m_connection->get_statement( "INSERT OR REPLACE INTO EntityData ( entity_id, variable_id, value ) VALUES ( ?1, ?2, ?3 )" ) ;
 		m_insert_summarydata_statement = m_connection->get_statement(
 			"INSERT INTO SummaryData ( variant_id, analysis_id, variable_id, value ) "
@@ -189,6 +190,7 @@ namespace impl {
 		m_find_variant_statement->reset() ;
 		m_insert_variant_statement->reset() ;
 		m_find_entity_statement->reset() ;
+		m_find_entity_with_description_statement->reset() ;
 		m_insert_entity_statement->reset() ;
 		m_find_entity_data_statement->reset() ;
 		m_insert_entity_data_statement->reset() ;
