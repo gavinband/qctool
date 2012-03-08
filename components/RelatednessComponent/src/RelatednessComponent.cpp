@@ -163,16 +163,29 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 	}
 	else if( m_options.check( "-load-kinship" ) ) {
 		PCAComputer::UniquePtr computer( new PCAComputer( m_options, m_samples, m_worker, m_ui_context ) ) ;
-		computer->send_results_to( &impl::write_matrix_as_csv< Eigen::MatrixXd > ) ;
+		computer->send_UDUT_to(
+			boost::bind(
+				&impl::write_matrix_as_csv< Eigen::MatrixXd >,
+				get_PCA_filename_prefix() + ".UDUT.csv",
+				_2, "qctool:PCAComputer" ,_1, _3, _4
+			)
+		) ;
+		computer->send_PCAs_to(
+			boost::bind(
+				&impl::write_matrix_as_csv< Eigen::MatrixXd >,
+				get_PCA_filename_prefix() + ".PCAs.csv",
+				_3, "qctool:PCAComputer", _1, _4, _5
+			)
+		) ;
 
 		if( m_options.check( "-loadings" )) {
 			PCALoadingComputer::UniquePtr loading_computer( new PCALoadingComputer ) ;
-			computer->send_results_to( boost::bind( &PCALoadingComputer::set_PCA_components, loading_computer.get(), _2 ) ) ;
+			computer->send_PCAs_to( boost::bind( &PCALoadingComputer::set_PCA_components, loading_computer.get(), _3 ) ) ;
 
 			// Need to set up an output location for the loadings.  Probably this should be done elsewhere,
 			// but do it here for now.
  			boost::shared_ptr< statfile::BuiltInTypeStatSink > loadings_file(
-				statfile::BuiltInTypeStatSink::open( computer->get_PCA_prefix() + ".loadings.csv" ).release()
+				statfile::BuiltInTypeStatSink::open( get_PCA_filename_prefix() + ".loadings.csv" ).release()
 			) ;
 
 			loading_computer->send_results_to(
@@ -193,4 +206,15 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 		assert(0) ;
 	}
 }
+
+std::string RelatednessComponent::get_PCA_filename_prefix() const {
+	if( m_options.check( "-PCA-prefix" ) ) {
+		return m_options.get< std::string >( "-PCA-prefix" ) ;
+	} else {
+		assert( m_options.check( "-load-kinship" )) ;
+		return genfile::replace_or_add_extension( m_options.get< std::string >( "-load-kinship" ), "" ) ;
+	}
+}
+
+
 

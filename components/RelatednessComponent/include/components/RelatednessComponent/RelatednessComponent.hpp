@@ -33,6 +33,8 @@ private:
 		worker::Worker* worker,
 		appcontext::UIContext& ui_context
 	) ;
+	
+	std::string get_PCA_filename_prefix() const ;
 } ;
 
 #endif

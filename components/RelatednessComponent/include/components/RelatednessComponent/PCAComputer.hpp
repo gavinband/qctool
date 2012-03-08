@@ -1,17 +1,18 @@
 #ifndef COMPONENTS_RELATEDNESS_COMPONENT_PCA_COMPUTER_HPP
 #define COMPONENTS_RELATEDNESS_COMPONENT_PCA_COMPUTER_HPP
 
+#include <string>
+#include <boost/signals2/signal.hpp>
 #include <Eigen/Core>
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
-#include "components/RelatednessComponent/KinshipCoefficientManager.hpp"
 
-struct PCAComputer: public KinshipCoefficientManager
+struct PCAComputer
 {
 	typedef std::auto_ptr< PCAComputer > UniquePtr ;
-	~PCAComputer() throw() {}
+	virtual ~PCAComputer() throw() {}
 	PCAComputer(
 		appcontext::OptionProcessor const& options,
 		genfile::CohortIndividualSource const& samples,
@@ -25,8 +26,15 @@ struct PCAComputer: public KinshipCoefficientManager
 	void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& ) ;
 	void end_processing_snps() ;
 	
-	std::string get_PCA_prefix() const ;
-	
+	typedef boost::function< genfile::VariantEntry ( std::size_t ) > GetNames ;
+	typedef boost::function< void( std::string, Eigen::MatrixXd const&, GetNames, GetNames ) > UDUTCallback ;
+	void send_UDUT_to( UDUTCallback ) ;
+	typedef boost::function< void( std::string, Eigen::VectorXd const&, Eigen::MatrixXd const&, GetNames, GetNames ) > PCACallback ;
+	void send_PCAs_to( PCACallback ) ;
+
+	void send_UDUT( std::string description, Eigen::MatrixXd const& UDUT, GetNames row_names, GetNames column_names ) ;
+	void send_PCAs( std::string description, Eigen::VectorXd const& eigenvalues, Eigen::MatrixXd const& PCAs, GetNames pca_row_names, GetNames pca_column_names ) ;
+
 private:
 	appcontext::OptionProcessor const& m_options ;
 	appcontext::UIContext& m_ui_context ;
@@ -40,6 +48,11 @@ private:
 	Eigen::VectorXd m_PCA_eigenvalues ;
 	Eigen::MatrixXd m_PCA_components ;
 
+	typedef boost::signals2::signal< void( std::string, Eigen::MatrixXd const&, GetNames, GetNames ) > UDUTSignal ;
+	UDUTSignal m_UDUT_signal ;
+	typedef boost::signals2::signal< void( std::string, Eigen::VectorXd const&, Eigen::MatrixXd const&, GetNames, GetNames ) > PCASignal ;
+	PCASignal m_PCA_signal ;
+
 	std::size_t m_number_of_PCAs_to_compute ;
 	double m_threshhold ;
 	genfile::SingleSNPGenotypeProbabilities m_genotype_probabilities ;
@@ -48,6 +61,8 @@ private:
 	Eigen::VectorXd m_loading_vectors ;
 	
 	void load_matrix( std::string const& filename, Eigen::MatrixXd* matrix ) const ;
+
+
 } ;
 
 #endif

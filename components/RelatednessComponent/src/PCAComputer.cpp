@@ -208,19 +208,9 @@ void PCAComputer::compute_PCA() {
 		
 	}
 
-	std::string description = "# Number of SNPs: "
-		+ genfile::string_utils::to_string( m_number_of_snps )
-		+ "\n# Number of samples: "
-		+ genfile::string_utils::to_string( m_number_of_samples )
-		+ "\n# Note: This file contains a U D U^t decomposition of the matrix in \"" + m_filename + "\"."
-		+ "\n# Note: the first column contains the diagonal of D (the eigenvalues)."
-		+ "\n# Note: column (i+1) contains the ith column of U (the eigenvector corresponding to the ith eigenvalue)." ;
-
-	send_results(
-		get_PCA_prefix() + ".UDUT.csv",
+	send_UDUT(
+		"Number of samples: " + genfile::string_utils::to_string( m_number_of_samples ),
 		kinship_eigendecomposition,
-		"PCAComputer",
-		description,
 		boost::function< genfile::VariantEntry ( int ) >(),
 		boost::bind(
 			&get_eigendecomposition_header,
@@ -248,11 +238,10 @@ void PCAComputer::compute_PCA() {
 			+ "\n# Number of samples: "
 			+ genfile::string_utils::to_string( m_number_of_samples ) ;
 
-		send_results(
-			get_PCA_prefix() + ".PCAs.csv",
+		send_PCAs(
+			"Number of samples: " + genfile::string_utils::to_string( m_number_of_samples ),
+			PCA_eigenvalues,
 			PCAs.transpose(),
-			"PCAComputer",
-			description,
 			boost::bind(
 				&get_concatenated_ids,
 				&m_samples,
@@ -269,12 +258,19 @@ void PCAComputer::compute_PCA() {
 	m_ui_context.logger() << "========================================================================\n" ;
 }
 
-std::string PCAComputer::get_PCA_prefix() const {
-	if( m_options.check( "-PCA-prefix" ) ) {
-		return m_options.get< std::string >( "-PCA-prefix" ) ;
-	} else {
-		assert( m_options.check( "-load-kinship" )) ;
-		return genfile::replace_or_add_extension( m_options.get< std::string >( "-load-kinship" ), "" ) ;
-	}
+void PCAComputer::send_UDUT_to( UDUTCallback callback ) {
+	m_UDUT_signal.connect( callback ) ;
+}
+
+void PCAComputer::send_PCAs_to( PCACallback callback ) {
+	m_PCA_signal.connect( callback ) ;
+}
+
+void PCAComputer::send_UDUT( std::string description, Eigen::MatrixXd const& UDUT, GetNames row_names, GetNames column_names ) {
+	m_UDUT_signal( description, UDUT, row_names, column_names ) ;
+}
+
+void PCAComputer::send_PCAs( std::string description, Eigen::VectorXd const& eigenvalues, Eigen::MatrixXd const& PCAs, GetNames pca_row_names, GetNames pca_column_names ) {
+	m_PCA_signal( description, eigenvalues, PCAs, pca_row_names, pca_column_names ) ;
 }
 
