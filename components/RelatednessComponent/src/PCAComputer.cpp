@@ -220,22 +220,40 @@ void PCAComputer::compute_PCA() {
 	) ;
 
 	if( m_number_of_PCAs_to_compute > 0 ) {
+		//
+		// Let X  be the L\times n matrix (L SNPs, n samples) of (mean-centred, scaled) genotypes.  
+		// We want the projection of columns of X onto the matrix S whose columns are unit eigenvectors of (1/L) X X^t
+		// where L is the number of SNPs.
+		// to compute the row of the matrix S of unit eigenvectors of X X^t that corresponds to the current SNP.
+		// The matrix S is given by
+		//               1 
+		//       S = ------- X U D^{-1/2}
+		//           \sqrt(L)
+		// where
+		//       (1/L) X^t X = U D U^t
+		// is the eigenvalue decomposition of (1/L) X^t X that we are passed in via set_UDUT (and L is the number of SNPs).
+		//
+		// We also wish to compute the correlation between the SNP and the PCA component.
+		// With S as above, the PCA components are the projections of columns of X onto columns of S.
+		// If we want samples to correspond to columns, this is
+		//   S^t X 
+		// which can be re-written
+		//   sqrt(L) U D^{1/2}
+		// i.e. we may as well compute the correlation with columns of U.
+		
 		m_number_of_PCAs_to_compute = std::min( m_number_of_PCAs_to_compute, m_number_of_samples ) ;
 		m_number_of_PCAs_to_compute = std::min( m_number_of_PCAs_to_compute, m_number_of_snps ) ;
 
-		Eigen::VectorXd PCA_eigenvalues = kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) ;
 		Eigen::MatrixXd PCA_components = kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_PCAs_to_compute ) ;
-
-		Eigen::VectorXd v = PCA_eigenvalues.head( m_number_of_PCAs_to_compute ) ;
-		v = v.array().sqrt() ;
-		Eigen::MatrixXd PCAs =
-			v.asDiagonal() *
-			PCA_components.transpose() ;
+		Eigen::VectorXd PCA_eigenvalues = kinship_eigendecomposition.block( 0, 0, m_number_of_PCAs_to_compute, 1 ) ;
+		// PCAs are given by U D^{1/2}.
+		Eigen::VectorXd v = PCA_eigenvalues.array().sqrt() ;
+		Eigen::MatrixXd PCAs = PCA_components * v.asDiagonal() ;	
 
 		send_PCAs(
 			"# Number of samples: " + genfile::string_utils::to_string( m_number_of_samples ),
 			PCA_eigenvalues,
-			PCAs.transpose(),
+			PCAs,
 			boost::bind(
 				&get_concatenated_ids,
 				&m_samples,

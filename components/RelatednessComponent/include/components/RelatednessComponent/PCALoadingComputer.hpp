@@ -12,9 +12,9 @@ public:
 	typedef Eigen::VectorXd Vector ;
 	typedef std::auto_ptr< PCALoadingComputer > UniquePtr ;
 public:
-	// set the PCA components.  This should be a Nxl matrix
-	// where N is the number of samples and l the number of PCA components.
-	void set_PCA_components( Vector const& eigenvalues, Matrix const& pca_components ) ;
+	PCALoadingComputer( int number_of_loadings ) ;
+	void set_UDUT( Matrix const& udut_decomposition ) ;
+	void set_number_of_loadings( std::size_t n ) ;
 
 	void begin_processing_snps( std::size_t number_of_samples ) ;
 	void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& ) ;
@@ -25,9 +25,11 @@ public:
 	void send_results_to( ResultCallback callback ) ;
 	void send_results( genfile::SNPIdentifyingData const& snp, Eigen::VectorXd const& data, GetNames ) ;
 	
-private:	
-	Eigen::VectorXd m_PCA_eigenvalues ;
-	Eigen::MatrixXd m_PCA_components ;
+private:
+	Eigen::MatrixXd m_D ;
+	Eigen::MatrixXd m_U ;
+	int const m_number_of_loadings ;
+	int m_number_of_snps ;
 	Eigen::VectorXd m_loading_vectors ;
 	Eigen::VectorXd m_genotype_calls ;
 	Eigen::VectorXd m_non_missingness ;

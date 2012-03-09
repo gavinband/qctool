@@ -36,7 +36,8 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 		.set_description( "Output a list of exclusions based on outliers in the first N PCA components." )
 		.set_takes_single_value() ;
 	options[ "-loadings" ]
-		.set_description( "Compute SNP loadings for each PCA." ) ;
+		.set_description( "Compute SNP loadings for each PCA." )
+		.set_takes_single_value() ;
 	options[ "-no-lapack" ]
 		.set_description( "Don't use lapack to perform computations. "
 			"Usually this means to use the Eigen library (http://eigen.tuxfamily.org) instead." ) ;
@@ -179,8 +180,8 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 		) ;
 
 		if( m_options.check( "-loadings" )) {
-			PCALoadingComputer::UniquePtr loading_computer( new PCALoadingComputer ) ;
-			computer->send_PCAs_to( boost::bind( &PCALoadingComputer::set_PCA_components, loading_computer.get(), _2, _3 ) ) ;
+			PCALoadingComputer::UniquePtr loading_computer( new PCALoadingComputer( m_options.get< int >( "-loadings" ) ) ) ;
+			computer->send_UDUT_to( boost::bind( &PCALoadingComputer::set_UDUT, loading_computer.get(), _2 ) ) ;
 
 			// Need to set up an output location for the loadings.  Probably this should be done elsewhere,
 			// but do it here for now.
