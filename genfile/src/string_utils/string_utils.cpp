@@ -22,6 +22,15 @@ namespace genfile {
 			return aString ;
 		}
 
+		std::string to_upper( std::string aString ) {
+			for( std::string::iterator i = aString.begin(); i != aString.end(); ++i ) {
+				if( *i >= 'a' && *i <= 'z' ) {
+					*i -= 32 ;
+				}
+			}
+			return aString ;
+		}
+
 		bool case_insensitive_equality( std::string const& left, std::string const& right ) {
 			return to_lower( left ) == to_lower( right ) ;
 		}

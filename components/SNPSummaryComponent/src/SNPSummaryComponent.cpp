@@ -198,7 +198,7 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		) ;
 	}
 	
-	m_ui_context.logger() << "SNPSummaryComponent: running the following computations:\n" << manager.get_summary( "  " ) << "\n" ;
+	m_ui_context.logger() << "SNPSummaryComponent: the following components are in place:\n" << manager.get_summary( "  " ) << "\n" ;
 }
 
 SNPSummaryComputation::UniquePtr SNPSummaryComponent::create_computation( std::string const& name ) const {
