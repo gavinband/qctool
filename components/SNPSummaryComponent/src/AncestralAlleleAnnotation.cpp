@@ -114,26 +114,39 @@ std::string AncestralAlleleAnnotation::get_summary( std::string const& prefix, s
 		if( m_sequence.size() > 5 && count == 1 ) {
 			std::advance( i, m_sequence.size() - count - 2 ) ;
 			count = m_sequence.size() - 2 ;
-			result += prefix + " - .\n" ;
-			result += prefix + " - .\n" ;
+			result += "\n" + prefix + " - ." ;
+			result += "\n" + prefix + " - ." ;
 		}
-		result += prefix + " - chromosome " + to_string( i->first ) + ", length "
-			+ to_string( i->second.first.second - i->second.first.first ) + " ("
+		result += "\n" + prefix + " - chromosome " + to_string( i->first ) + ", length "
+			+ to_string( 1 + i->second.first.second - i->second.first.first ) + " ("
 			+ to_string( i->second.first.first ) + "-" + to_string( i->second.first.second )
-			+ ")\n" ;
+			+ ")" ;
 	}
 	return result ;
 }
 
-void AncestralAlleleAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes const&, genfile::VariantDataReader&, ResultCallback callback ) {
+void AncestralAlleleAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, genfile::VariantDataReader&, ResultCallback callback ) {
+	using namespace genfile::string_utils ;
 	Sequence::const_iterator where = m_sequence.find( snp.get_position().chromosome() ) ;
 	if( where != m_sequence.end() ) {
 		genfile::Position pos = snp.get_position().position() ;
 		if( pos >= where->second.first.first && pos <= where->second.first.second ) {
-			char allele = where->second.second[ pos - where->second.first.first ] ;
-			if( allele != '.' ) {
+			std::string allele( 1, where->second.second[ pos - where->second.first.first ] ) ;
+			if( allele != "." ) {
 				//std::cerr << snp << ": ancestral allele is " << std::string( 1, allele ) << ".\n";
-				callback( "ancestral allele", std::string( 1, allele ) ) ;
+				callback( "ancestral_allele", allele ) ;
+				
+				if( to_upper( allele ) == snp.get_first_allele() ) {
+					double const ancestral_allele_freq = ( ( 2.0 * genotypes.col(0).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
+					double const derived_allele_freq = ( ( 2.0 * genotypes.col(2).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
+					callback( "ancestral_allele_frequency", ancestral_allele_freq ) ;
+					callback( "derived_allele_frequency", derived_allele_freq ) ;
+				} else if( to_upper( allele ) == snp.get_second_allele() ) {
+					double const derived_allele_freq = ( ( 2.0 * genotypes.col(0).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
+					double const ancestral_allele_freq = ( ( 2.0 * genotypes.col(2).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
+					callback( "derived_allele_frequency", derived_allele_freq ) ;
+					callback( "ancestral_allele_frequency", ancestral_allele_freq ) ;
+				}
 			}
 		}
 	}
