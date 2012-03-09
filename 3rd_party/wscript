@@ -7,15 +7,15 @@ def build( bld ):
 		uselib = ''
 	)
 	
-	bld(
-		features = 'cc cshlib',
-		target = 'sqlite3',
-		source = [ 'sqlite3/sqlite3/sqlite3.c' ],
-		includes = 'sqlite3/',
-		defines = 'SQLITE_ENABLE_COLUMN_METADATA',
-		uselib = 'DL',
-		export_incdirs = 'sqlite3'
-	)
+#	bld(
+#		features = 'cc cshlib',
+#		target = 'sqlite3',
+#		source = [ 'sqlite3/sqlite3/sqlite3.c' ],
+#		includes = 'sqlite3/',
+#		defines = 'SQLITE_ENABLE_COLUMN_METADATA',
+#		uselib = 'DL',
+#		export_incdirs = 'sqlite3'
+#	)
 
 #	bld(
 #		features = 'cc cshlib',
@@ -36,11 +36,11 @@ def build( bld ):
 		export_incdirs = 'sqlite3'
 	)
 
-	bld(
-		features = 'cc cshlib',
-		target = 'zlib_uncompress',
-		source = [ 'sqlite3/sqlite3/zlib_uncompress.c' ],
-		defines = 'SQLITE_ENABLE_COLUMN_METADATA',
-		uselib_local = 'sqlite3',
-		uselib = 'ZLIB'
-	)
+#	bld(
+#		features = 'cc cshlib',
+#		target = 'zlib_uncompress',
+#		source = [ 'sqlite3/sqlite3/zlib_uncompress.c' ],
+#		defines = 'SQLITE_ENABLE_COLUMN_METADATA',
+#		uselib_local = 'sqlite3',
+#		uselib = 'ZLIB'
+#	)

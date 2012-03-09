@@ -68,6 +68,7 @@ def check_for_boost_components( conf ):
 		check_for_boost_lib( conf, 'filesystem', min_version='1.36', uselib="BOOST_FILESYSTEM" )
 		check_for_boost_lib( conf, 'system', min_version='1.36', uselib="BOOST_SYSTEM" )
 		check_for_boost_lib( conf, 'thread', min_version='1.36', uselib="BOOST_THREAD" )
+		check_for_boost_lib( conf, 'date_time', min_version='1.36', uselib="BOOST_DATE_TIME" )
 		check_for_boost_lib( conf, 'unit_test_framework', min_version='1.36', uselib = "BOOST_UNIT_TEST_FRAMEWORK" )
 		check_for_boost_lib( conf, 'regex', min_version='1.36', uselib = "BOOST_REGEX" )
 
@@ -76,7 +77,8 @@ def check_for_boost_headers( conf, min_version ):
 		conf.define( 'HAVE_BOOST_TIMER', 1 )
 		conf.define( 'HAVE_BOOST_MATH', 1 )
 		conf.define( 'HAVE_BOOST_FUNCTION', 1 )
-		conf.define( 'BOOST_TEST_DYN_LINK', 1 )
+		if not Options.options.static:
+			conf.define( 'BOOST_TEST_DYN_LINK', 1 )
 		conf.define( 'BOOST_FILESYSTEM_VERSION', 2 )
 		return True
 	return False
