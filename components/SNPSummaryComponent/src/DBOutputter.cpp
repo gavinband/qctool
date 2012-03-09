@@ -60,7 +60,7 @@ namespace impl {
 	}
 
 	void DBOutputter::write_data( Data const& data ) {
-		db::Connection::ScopedTransactionPtr transaction = connection().open_transaction( 100 ) ; // wait 100 seconds.
+		db::Connection::ScopedTransactionPtr transaction = connection().open_transaction( 240 ) ; // wait 4 minutes if we have to.
 
 		if( !transaction.get() ) {
 			throw genfile::OperationFailedError( "SNPSummaryComponent::write_data()", connection().get_spec(), "Opening transaction." ) ;

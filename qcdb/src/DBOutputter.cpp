@@ -26,7 +26,7 @@ namespace qcdb {
 		m_source_spec( data_source_spec ),
 		m_exclusions_name( exclusions_name )
 	{
-		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 30 ) ; // wait 30s.
+		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 60 ) ; // wait 60s if we have to.
 		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS Variant ( id INTEGER PRIMARY KEY, snpid TEXT, rsid TEXT, chromosome TEXT, position INTEGER, alleleA TEXT, alleleB TEXT )"
 		) ;
