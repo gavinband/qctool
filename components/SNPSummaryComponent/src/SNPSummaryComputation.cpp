@@ -19,12 +19,18 @@ namespace {
 			if( a_allele_freq < b_allele_freq ) {
 				callback( "minor_allele_frequency", a_allele_freq ) ;
 				callback( "minor_allele", snp.get_first_allele() ) ;
+				callback( "major_allele", snp.get_second_allele() ) ;
 			}
 			else if( a_allele_freq > b_allele_freq ) {
 				callback( "minor_allele_frequency", b_allele_freq ) ;
 				callback( "minor_allele", snp.get_second_allele() ) ;
+				callback( "major_allele", snp.get_first_allele() ) ;
+			} else {
+				callback( "minor_allele_frequency", a_allele_freq ) ;
 			}
 		}
+		
+		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "AlleleProportionComputation" ; }
 	} ;
 	
 	struct HWEComputation: public SNPSummaryComputation
@@ -43,6 +49,7 @@ namespace {
 				callback( "minus_log10_exact_HW_p_value", genfile::MissingValue() ) ;
 			}
 		}
+		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "HWEComputation" ; }
 	} ;
 	
 	struct MissingnessComputation: public SNPSummaryComputation {
@@ -63,6 +70,7 @@ namespace {
 			callback( "AB", genotypes.col(1).sum() ) ;
 			callback( "BB", genotypes.col(2).sum() ) ;
 		}
+		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "MissingnessComputation" ; }
 	private:
 		double const m_call_threshhold ;
 	} ;
@@ -100,6 +108,7 @@ namespace {
 				}
 			}
 		}
+		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "InformationComputation" ; }
 	} ;
 
 }

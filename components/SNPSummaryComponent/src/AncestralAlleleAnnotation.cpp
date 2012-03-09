@@ -10,11 +10,6 @@ AncestralAlleleAnnotation::AncestralAlleleAnnotation( std::string const& fasta_f
 	m_filenames( genfile::wildcard::find_files_by_chromosome( fasta_filename ) )
 {
 	load_sequence( m_filenames, &m_sequence, callback ) ;
-	std::cerr << "My chromosomes are:\n" ;
-	for( Sequence::const_iterator i = m_sequence.begin(); i != m_sequence.end(); ++i ) {
-		std::cerr << i->first << " " ;
-	}
-	std::cerr << "\n" ;
 }
 
 void AncestralAlleleAnnotation::load_sequence( std::vector< genfile::wildcard::FilenameMatch > const& files, Sequence* sequence, ProgressCallback callback ) {
@@ -106,10 +101,21 @@ void AncestralAlleleAnnotation::load_sequence( genfile::wildcard::FilenameMatch 
 		}
 	} while( *stream ) ;
 	
-	std::cerr << "Read fasta file for chromosome " << (*chromosome) << ":" << limits->first << "-" << limits->second << ".  Length is " << sequence->size() << ".\n" ;
 	if( sequence->size() != ( 1 + limits->second - limits->first ) ) {
 		throw genfile::MalformedInputError( file.filename(), line_count ) ;
 	}
+}
+
+std::string AncestralAlleleAnnotation::get_summary( std::string const& prefix, std::size_t column_width ) const {
+	std::string result = prefix + "AncestralAlleleAnnotation: using the following files:\n" ;
+	using genfile::string_utils::to_string ;
+	for( Sequence::const_iterator i = m_sequence.begin(); i != m_sequence.end(); ++i ) {
+		result += prefix + " - chromosome " + to_string( i->first ) + ", length "
+			+ to_string( i->second.first.second - i->second.first.first ) + " ("
+			+ to_string( i->second.first.first ) + "-" + to_string( i->second.first.second )
+			+ ")\n" ;
+	}
+	return result ;
 }
 
 void AncestralAlleleAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes const&, genfile::VariantDataReader&, ResultCallback callback ) {
@@ -119,7 +125,7 @@ void AncestralAlleleAnnotation::operator()( SNPIdentifyingData const& snp, Genot
 		if( pos >= where->second.first.first && pos <= where->second.first.second ) {
 			char allele = where->second.second[ pos - where->second.first.first ] ;
 			if( allele != '.' ) {
-				std::cerr << snp << ": ancestral allele is " << std::string( 1, allele ) << ".\n";
+				//std::cerr << snp << ": ancestral allele is " << std::string( 1, allele ) << ".\n";
 				callback( "ancestral allele", std::string( 1, allele ) ) ;
 			}
 		}

@@ -52,6 +52,15 @@ void SNPSummaryComputationManager::processed_snp( genfile::SNPIdentifyingData co
 
 void SNPSummaryComputationManager::end_processing_snps() {}
 
+std::string SNPSummaryComputationManager::get_summary( std::string const& prefix, std::size_t column_width ) {
+	std::string result ;
+	Computations::const_iterator i = m_computations.begin(), end_i = m_computations.end() ;
+	for( ; i != end_i; ++i ) {
+		result += i->second->get_summary( prefix, column_width ) + "\n";
+	}
+	return result ;
+}
+
 void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "SNP computation options" ) ;
 	options[ "-snp-stats" ]
@@ -188,6 +197,8 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 			)
 		) ;
 	}
+	
+	m_ui_context.logger() << "SNPSummaryComponent: running the following computations:\n" << manager.get_summary( "  " ) << "\n" ;
 }
 
 SNPSummaryComputation::UniquePtr SNPSummaryComponent::create_computation( std::string const& name ) const {

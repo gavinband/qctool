@@ -26,6 +26,7 @@ struct SNPSummaryComputationManager: public genfile::SNPDataSourceProcessor::Cal
 	typedef boost::function< void ( std::size_t index, genfile::SNPIdentifyingData const& snp, std::string const& computation_name, std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
 	void add_result_callback( ResultCallback ) ;
 
+	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) ;
 	private:
 		typedef boost::ptr_map< std::string, SNPSummaryComputation > Computations ;
 		Computations m_computations ;

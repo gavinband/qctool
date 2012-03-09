@@ -16,6 +16,8 @@ struct FrequentistCaseControlAssociationTest: public AssociationTest {
 
 	void operator()( SNPIdentifyingData const& snp, Matrix const& genotypes, genfile::VariantDataReader& data_reader, ResultCallback callback ) ;
 
+	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "FrequentistCaseControlAssociationTest" ; }
+
 private:
 	snptest::case_control::LogLikelihood m_alternative_ll ;
 	snptest::case_control::NullModelLogLikelihood m_null_ll ;

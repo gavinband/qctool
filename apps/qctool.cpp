@@ -909,13 +909,17 @@ struct QCToolCmdLineContext: public QCToolContext
 			m_ui_context.logger() << std::string( 72, '=' ) << "\n\n" ;
 		}
 
-		m_ui_context.logger() << std::setw(36) << "Number of SNPs in input file(s):" ;
+		m_ui_context.logger() << std::setw(36) << "Number of SNPs:\n"
+			<< std::setw(36) << " -- in input file(s):" ;
 		if( m_snp_data_source->total_number_of_snps() ) {
 			m_ui_context.logger() << "  " << *m_snp_data_source->total_number_of_snps() << ".\n" ;
 		}
 		else {
 			m_ui_context.logger() << "  " << "(not computed).\n" ;
 		}
+		
+		m_ui_context.logger() << std::setw(36) << " -- in output file(s):"
+			<< "  " << m_fltrd_in_snp_data_sink->number_of_snps_written() << "\n" ;
 
 		if( m_snp_filter->number_of_subconditions() > 0 ) {
 			for( std::size_t i = 0; i < m_snp_filter->number_of_subconditions(); ++i ) {

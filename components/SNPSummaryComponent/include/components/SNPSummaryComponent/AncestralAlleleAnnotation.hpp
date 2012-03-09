@@ -13,6 +13,9 @@ struct AncestralAlleleAnnotation: public SNPSummaryComputation
 	typedef boost::function< void ( std::size_t, boost::optional< std::size_t > ) > ProgressCallback ;
 	AncestralAlleleAnnotation( std::string const& fasta_filename, ProgressCallback ) ;
 	void operator()( SNPIdentifyingData const&, Genotypes const&, genfile::VariantDataReader&, ResultCallback ) ;
+
+	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
+	
 private:
 	std::string const m_fasta_filename ;
 	std::vector< genfile::wildcard::FilenameMatch > const m_filenames ;
