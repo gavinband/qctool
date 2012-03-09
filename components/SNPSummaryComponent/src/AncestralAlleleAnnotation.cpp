@@ -107,9 +107,16 @@ void AncestralAlleleAnnotation::load_sequence( genfile::wildcard::FilenameMatch 
 }
 
 std::string AncestralAlleleAnnotation::get_summary( std::string const& prefix, std::size_t column_width ) const {
-	std::string result = prefix + "AncestralAlleleAnnotation: using the following files:\n" ;
+	std::string result = prefix + "AncestralAlleleAnnotation: loaded ancestral sequence for the following regions:\n" ;
 	using genfile::string_utils::to_string ;
-	for( Sequence::const_iterator i = m_sequence.begin(); i != m_sequence.end(); ++i ) {
+	std::size_t count = 0 ;
+	for( Sequence::const_iterator i = m_sequence.begin(); i != m_sequence.end(); ++i, ++count ) {
+		if( m_sequence.size() > 5 && count == 1 ) {
+			std::advance( i, m_sequence.size() - count - 2 ) ;
+			count = m_sequence.size() - 2 ;
+			result += prefix + " - .\n" ;
+			result += prefix + " - .\n" ;
+		}
 		result += prefix + " - chromosome " + to_string( i->first ) + ", length "
 			+ to_string( i->second.first.second - i->second.first.first ) + " ("
 			+ to_string( i->second.first.first ) + "-" + to_string( i->second.first.second )
