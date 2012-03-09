@@ -73,7 +73,8 @@ namespace {
 }
 
 PCALoadingComputer::PCALoadingComputer( int number_of_loadings ):
-	m_number_of_loadings( number_of_loadings )
+	m_number_of_loadings( number_of_loadings ),
+	m_number_of_snps( 1 )
 {}
 
 void PCALoadingComputer::set_UDUT( Matrix const& udut ) {
@@ -81,6 +82,8 @@ void PCALoadingComputer::set_UDUT( Matrix const& udut ) {
 	int n = std::min( int( m_number_of_loadings ), int( udut.rows() ) ) ;
 	m_D = udut.block( 0, 0, n, 1 ) ;
 	m_U = udut.block( 0, 1, udut.rows(), n ) ;
+	std::cerr << "D: " << m_D << ".\n" ;
+	std::cerr << "U: " << m_U.block(0,0,10,10) << ".\n" ;
 }
 
 void PCALoadingComputer::begin_processing_snps( std::size_t number_of_samples ) {
@@ -99,6 +102,10 @@ void PCALoadingComputer::processed_snp( genfile::SNPIdentifyingData const& snp, 
 	double const allele_frequency = m_genotype_calls.sum() / ( 2.0 * m_non_missingness.sum() ) ;
 	mean_centre_genotypes( &m_genotype_calls, m_non_missingness, allele_frequency ) ;
 
+	//std::cerr << "SNP: " << snp << ", allele frequency = " << allele_frequency << ".\n" ;
+	//std::cerr << "     genotypes are: " << m_genotype_calls.head( 20 ).transpose() << "...\n" ;
+	//std::cerr << "non-missingness is: " << m_non_missingness.head( 20 ).transpose() << "...\n" ;
+
 	//
 	// Let X  be the L\times n matrix (L SNPs, n samples) of (mean-centred, scaled) genotypes.  We want
 	// to compute the row of the matrix S of unit eigenvectors of X X^t that corresponds to the current SNP.
@@ -114,7 +121,7 @@ void PCALoadingComputer::processed_snp( genfile::SNPIdentifyingData const& snp, 
 	m_loading_vectors.resize( 2 * m_D.rows() ) ;
 
 	m_loading_vectors.setConstant( std::numeric_limits< double >::quiet_NaN() ) ;
-	m_loading_vectors.head( m_U.cols() ) = (( m_genotype_calls.transpose() * m_U ).array() / m_D.array().sqrt() ) ;
+	m_loading_vectors.segment( 0, m_U.cols() ) = ( m_genotype_calls.transpose() * m_U ).array() / ( ( m_D.transpose().array() / m_number_of_snps ).sqrt() ) ;
 	// We also wish to compute the correlation between the SNP and the PCA component.
 	// With S as above, the PCA components are the projections of columns of X onto columns of S.
 	// If we want samples to correspond to columns, this is

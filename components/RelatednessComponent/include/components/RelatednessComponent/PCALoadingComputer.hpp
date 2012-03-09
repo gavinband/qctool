@@ -30,7 +30,7 @@ private:
 	Eigen::MatrixXd m_U ;
 	int const m_number_of_loadings ;
 	int m_number_of_snps ;
-	Eigen::VectorXd m_loading_vectors ;
+	Eigen::RowVectorXd m_loading_vectors ;
 	Eigen::VectorXd m_genotype_calls ;
 	Eigen::VectorXd m_non_missingness ;
 	
