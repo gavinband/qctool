@@ -1,3 +1,5 @@
+#include <iostream>
+#include <iomanip>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/function.hpp>
 #include "../config.hpp"
@@ -82,8 +84,6 @@ void PCALoadingComputer::set_UDUT( Matrix const& udut ) {
 	int n = std::min( int( m_number_of_loadings ), int( udut.rows() ) ) ;
 	m_D = udut.block( 0, 0, n, 1 ) ;
 	m_U = udut.block( 0, 1, udut.rows(), n ) ;
-	std::cerr << "D: " << m_D << ".\n" ;
-	std::cerr << "U: " << m_U.block(0,0,10,10) << ".\n" ;
 }
 
 void PCALoadingComputer::begin_processing_snps( std::size_t number_of_samples ) {
@@ -93,18 +93,22 @@ void PCALoadingComputer::begin_processing_snps( std::size_t number_of_samples ) 
 }
 
 void PCALoadingComputer::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
-	{
-		genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( m_genotype_calls, m_non_missingness, 0.9, 0, 0, 1, 2 ) ;
-		data_reader.get( "genotypes", setter ) ;
-	}
+	genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( m_genotype_calls, m_non_missingness, 0.9, 0, 0, 1, 2 ) ;
+	data_reader.get( "genotypes", setter ) ;
 	assert( m_genotype_calls.size() == m_U.rows() ) ;
 	assert( m_non_missingness.size() == m_U.rows() ) ;
 	double const allele_frequency = m_genotype_calls.sum() / ( 2.0 * m_non_missingness.sum() ) ;
+	//std::cerr << "pre-mean genotypes are: " << m_genotype_calls.head( 20 ).transpose() << "...\n" ;
 	mean_centre_genotypes( &m_genotype_calls, m_non_missingness, allele_frequency ) ;
 
-	//std::cerr << "SNP: " << snp << ", allele frequency = " << allele_frequency << ".\n" ;
-	//std::cerr << "     genotypes are: " << m_genotype_calls.head( 20 ).transpose() << "...\n" ;
-	//std::cerr << "non-missingness is: " << m_non_missingness.head( 20 ).transpose() << "...\n" ;
+	//std::cerr << "                    SNP: " << snp << ", allele frequency = " << allele_frequency << ".\n" ;
+	//std::cerr << std::resetiosflags( std::ios::floatfield ) << std::setprecision( 5 ) ;
+	//std::cerr << "pre-scale genotypes are: " << m_genotype_calls.head( 20 ).transpose() << "...\n" ;
+	m_genotype_calls /= std::sqrt( 2.0 * allele_frequency * ( 1.0 - allele_frequency ) ) ;
+	//std::cerr << "          genotypes are: " << m_genotype_calls.head( 20 ).transpose() << "...\n" ;
+	//std::cerr << "     non-missingness is: " << m_non_missingness.head( 20 ).transpose() << "...\n" ;
+	//std::cerr << "                   U is: " << m_U.block(0,0,10,10) << "...\n" ;
+	//std::cerr << "                   D is: " << m_D << "...\n" ;
 
 	//
 	// Let X  be the L\times n matrix (L SNPs, n samples) of (mean-centred, scaled) genotypes.  We want
@@ -121,7 +125,7 @@ void PCALoadingComputer::processed_snp( genfile::SNPIdentifyingData const& snp, 
 	m_loading_vectors.resize( 2 * m_D.rows() ) ;
 
 	m_loading_vectors.setConstant( std::numeric_limits< double >::quiet_NaN() ) ;
-	m_loading_vectors.segment( 0, m_U.cols() ) = ( m_genotype_calls.transpose() * m_U ).array() / ( ( m_D.transpose().array() / m_number_of_snps ).sqrt() ) ;
+	m_loading_vectors.segment( 0, m_U.cols() ) = ( m_genotype_calls.transpose() * m_U ).array() / ( ( m_D.transpose().array() * m_number_of_snps ).sqrt() ) ;
 	// We also wish to compute the correlation between the SNP and the PCA component.
 	// With S as above, the PCA components are the projections of columns of X onto columns of S.
 	// If we want samples to correspond to columns, this is

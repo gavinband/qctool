@@ -127,8 +127,11 @@ namespace impl {
 			double const allele_frequency = allele_sum / ( 2.0 * non_missingness_matrix.sum() ) ;
 			
 			if( allele_sum > non_missingness_matrix.sum() * 0.01 ) {
+				std::cerr << "SNP: " << m_id_data[ snp_i ] << ": freq = " << allele_frequency << ", uncentred genotypes are: " << data.transpose().head( 20 ) << "...\n" ;
 				mean_centre_genotypes( &data, non_missingness_matrix, allele_frequency ) ;
 
+				std::cerr << std::setprecision( 5 ) ;
+				std::cerr << "mean-centred genotypes are: " << data.transpose().head( 20 ) << "...\n" ;
 #if HAVE_CBLAS
 				// CBLAS is faster for this usage.  Don't know why.
 				cblas_dsyr(
