@@ -1,4 +1,6 @@
 #include <iostream>
+#include <string>
+#include "genfile/Chromosome.hpp"
 #include "genfile/endianness_utils.hpp"
 #include "genfile/bgen.hpp"
 
@@ -26,12 +28,15 @@ namespace genfile {
 	                uint16_t RSID_size = 0;
 	                uint32_t allele1_size = 0;
 	                uint32_t allele2_size = 0;
+					uint16_t chromosome_size = 0 ;
+					std::string chromosome_string ;
 	            	impl::read_length_followed_by_data( aStream, &SNPID_size, SNPID ) ;
 	            	impl::read_length_followed_by_data( aStream, &RSID_size, RSID ) ;
-					impl::read_little_endian_integer( aStream, chromosome ) ;
+					impl::read_length_followed_by_data( aStream, &chromosome_size, &chromosome_string ) ;
 	                impl::read_little_endian_integer( aStream, SNP_position ) ;
 	            	impl::read_length_followed_by_data( aStream, &allele1_size, first_allele ) ;
 	            	impl::read_length_followed_by_data( aStream, &allele2_size, second_allele ) ;
+					*chromosome = ChromosomeEnum( Chromosome( chromosome_string ) ) ;
 				}
 				else {
 					unsigned char max_id_size = 0;
@@ -103,7 +108,8 @@ namespace genfile {
 					}
 					write_length_followed_by_data( aStream, uint16_t( SNPID.size() ), SNPID.data() ) ;
 					write_length_followed_by_data( aStream, uint16_t( RSID.size() ), RSID.data() ) ;
-					write_little_endian_integer( aStream, chromosome ) ;
+					std::string const chromosome_string = Chromosome( chromosome ) ;
+					write_length_followed_by_data( aStream, uint16_t( chromosome_string.size() ), chromosome_string ) ;
 	                write_little_endian_integer( aStream, SNP_position ) ;
 					write_length_followed_by_data( aStream, uint32_t( first_allele.size() ), first_allele.data() ) ;
 					write_length_followed_by_data( aStream, uint32_t( second_allele.size() ), second_allele.data() ) ;

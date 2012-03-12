@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <cassert>
+#include <cmath>
 #include <stdint.h>
 #include "../../config.hpp"
 #ifdef HAVE_ZLIB
@@ -232,6 +233,27 @@ namespace genfile {
                 return static_cast< uint16_t > ( number + 0.5 ) ;
             }
 
+            template< typename FloatType >
+            uint16_t convert_to_integer_representation( FloatType number, FloatType factor ) {
+				number *= factor ;
+				if( number < 0 ) {
+					std::cerr << "!! genfile::bgen::convert_to_integer_representation: probability " << number << " is -ve, clamping.\n" ;
+					number = 0 ;
+				}
+				else if( number >= 65535.5 ) {
+					std::cerr << "!! genfile::bgen::convert_to_integer_representation: probability " << number << " is too large, clamping.\n" ;
+					number = 65535.0 ;
+				}
+                return static_cast< uint16_t > ( std::floor( number + 0.5 ) ) ;
+            }
+
+            template< typename FloatType >
+            FloatType convert_from_integer_representation( uint16_t number, FloatType factor ) {
+				FloatType result = number ;
+				result /= factor ;
+				return result ;
+            }
+
             void read_snp_identifying_data(
                 std::istream& aStream,
 				uint32_t const flags,
@@ -259,12 +281,12 @@ namespace genfile {
                     read_little_endian_integer( aStream, &AB ) ;
                     read_little_endian_integer( aStream, &BB ) ;
 
-					double const factor = ( bool( flags & e_LongIds ) ) ? 65535.0 : PROBABILITY_CONVERSION_FACTOR ;
+					double const factor = ( bool( flags & e_LongIds ) ) ? 32768.0 : PROBABILITY_CONVERSION_FACTOR ;
                     set_genotype_probabilities(
                         i,
-                        static_cast< float >( AA ) / factor,
-                        static_cast< float >( AB ) / factor,
-                        static_cast< float >( BB ) / factor
+						convert_from_integer_representation( AA, factor ),
+						convert_from_integer_representation( AB, factor ),
+						convert_from_integer_representation( BB, factor )
                     ) ;
                 }
             }
@@ -339,12 +361,12 @@ namespace genfile {
                 GenotypeProbabilityGetter get_AB_probability,
                 GenotypeProbabilityGetter get_BB_probability
             ) {
-				double const factor = ( bool( flags & e_LongIds ) ? 65535.0 : impl::PROBABILITY_CONVERSION_FACTOR ) ;
+				double const factor = ( bool( flags & e_LongIds ) ? 32768.0 : impl::PROBABILITY_CONVERSION_FACTOR ) ;
                 for ( impl::uint32_t i = 0 ; i < number_of_samples ; ++i ) {
                     impl::uint16_t
-                    AA = round_to_nearest_integer( get_AA_probability( i ) * factor ),
-                         AB = round_to_nearest_integer( get_AB_probability( i ) * factor ),
-                              BB = round_to_nearest_integer( get_BB_probability( i ) * factor ) ;
+	                    AA = convert_to_integer_representation( get_AA_probability( i ), factor ),
+                        AB = convert_to_integer_representation( get_AB_probability( i ), factor ),
+                        BB = convert_to_integer_representation( get_BB_probability( i ), factor ) ;
 
                     write_little_endian_integer( aStream, AA ) ;
                     write_little_endian_integer( aStream, AB ) ;

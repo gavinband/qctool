@@ -107,7 +107,7 @@
 					<tr><td>0</td><td><em>CompressedSNPBlocks</em></td><td>0</td><td>Indicates SNP block probability data is not compressed.</td></tr>
 					<tr><td></td><td></td><td>1</td><td>Indicates SNP block probability data is compressed using zlib's compress() function.</td></tr>
 					<tr><td>3</td><td><em>LongIds</em></td><td>0</td><td>Indicates alleles are stored as single characters.</td></tr>
-					<tr><td></td><td></td><td>1</td><td>Indicates alleles are stored allowing for multiple characters.  This is supported in SNPTEST from 
+					<tr><td></td><td></td><td>1</td><td>Indicates version 1.1 of the SNP block layout is used.  This allows for multiple characters in alleles and is supported in SNPTEST from 
 					     <a href="https://mathgen.stats.ox.ac.uk/genetics_software/snptest/snptest.html">version 2.3.0</a>,
 					    and in the <a href="http://www.bitbucket.org/gavinband/qctool">development version of QCTOOL</a>.</td></tr>
 				</table>
@@ -126,22 +126,12 @@
 					</thead>
 					<tbody>
 					<tr><td>4</td><td>The number of individuals the row represents, hereafter denoted <em>N</em>.</td></tr>
-					<tr><td>2</td><td>The length, <em>LS</em> of the SNP id.</td></tr>
+					<tr><td>2</td><td>The length <em>LS</em> of the SNP id.</td></tr>
 					<tr><td><em>LS</em></td><td>The SNP id.</td></tr>
-					<tr><td>2</td><td>The length, <em>LR</em> of the rsid.</td></tr>
+					<tr><td>2</td><td>The length <em>LR</em> of the rsid.</td></tr>
 					<td><em>LR</em></td><td>The rsid.</td></tr>
-					<tr><td>1</td><td>
-						The chromosome on which the SNP is found, encoded as an unsigned 8-bit integer.
-						The encoding is:
-						<table class="field_encoding_scheme" >
-							<tr><td>1-22:</td><td>SNP lies in the chromosome with the given number.</td></tr>
-							<tr><td>23</td><td>SNP lies in the non pseudo-autosomal part of the X chromosome.</td></tr>
-							<tr><td>24:</td><td>SNP lies in the non pseudo-autosomal part of the Y chromosome.</td></tr>
-							<tr><td>253:</td><td>SNP lies in the pseudo-autosomal region of the X/Y chromosomes.</td></tr>
-							<tr><td>254:</td><td>SNP lies in the mitochondrial DNA</td></tr>
-							<tr><td>255:</td><td>Indicates the chromosome is unknown.  We advise that this only be used for test data.</td></tr>
-						</table>
-					</td>
+					<tr><td>2</td><td>The length <em>LC</em> of the chromosome</td></tr>
+					<tr><td><em>LC</em></td><td>The chromosome</td></tr>
 					<tr><td>4</td><td>The SNP position, encoded as an unsigned 32-bit integer.</td></tr>
 					<tr><td>4</td><td>The length <em>LA</em> of the A allele.</td></tr>
 					<tr><td><em>LA</em></td><td>The A allele.</td></tr>
@@ -170,18 +160,18 @@
 				</p>
 				<ol>
 					<li>Convert the number into a floating-point format (e.g. float or double).</li>
-					<li>Divide by 65,535.</li>
+					<li>Divide by 32,768.</li>
 				</ol>
 				<p>
-					Note that the range of a two-byte unsigned integer is 0 - 65535 inclusive. Thus the resulting probabilities
-                    can take on values between 0 and 1.0 inclusive and they are accurate to four decimal places.
+					Note that the range of a two-byte unsigned integer is 0 - 65,535 inclusive. Thus the resulting probabilities
+                    can take on values between 0 and 65,535/32768 ~ 1.9999 inclusive and they are accurate to four decimal places.
 				</p>
 				<p>
-					<b>Note</b>: to convert a floating point probability, do the following:
+					<b>Note</b>: to convert a floating point probability to its integer representation, do the following:
 				</p>
 				<ol>
-					<li>Clamp the number to the closed interval [ 0, 1.0 ].</li>
-					<li>Multiply by 65535 and round to the nearest integer.</li>
+					<li>Multiply by 32,768.</li>
+					<li>Check that the number is in the half-open interval [0,65535.5) and round to the nearest integer.</li>
 				</ol>
 				<p>
 					All numbers are stored in little-endian (least significant byte first) order.
