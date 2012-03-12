@@ -259,11 +259,12 @@ namespace genfile {
                     read_little_endian_integer( aStream, &AB ) ;
                     read_little_endian_integer( aStream, &BB ) ;
 
+					double const factor = ( bool( flags & e_LongIds ) ) ? 65535.0 : PROBABILITY_CONVERSION_FACTOR ;
                     set_genotype_probabilities(
                         i,
-                        static_cast< float >( AA ) / PROBABILITY_CONVERSION_FACTOR,
-                        static_cast< float >( AB ) / PROBABILITY_CONVERSION_FACTOR,
-                        static_cast< float >( BB ) / PROBABILITY_CONVERSION_FACTOR
+                        static_cast< float >( AA ) / factor,
+                        static_cast< float >( AB ) / factor,
+                        static_cast< float >( BB ) / factor
                     ) ;
                 }
             }
@@ -338,11 +339,12 @@ namespace genfile {
                 GenotypeProbabilityGetter get_AB_probability,
                 GenotypeProbabilityGetter get_BB_probability
             ) {
+				double const factor = ( bool( flags & e_LongIds ) ? 65535.0 : impl::PROBABILITY_CONVERSION_FACTOR ) ;
                 for ( impl::uint32_t i = 0 ; i < number_of_samples ; ++i ) {
                     impl::uint16_t
-                    AA = round_to_nearest_integer( get_AA_probability( i ) * impl::PROBABILITY_CONVERSION_FACTOR ),
-                         AB = round_to_nearest_integer( get_AB_probability( i ) * impl::PROBABILITY_CONVERSION_FACTOR ),
-                              BB = round_to_nearest_integer( get_BB_probability( i ) * impl::PROBABILITY_CONVERSION_FACTOR ) ;
+                    AA = round_to_nearest_integer( get_AA_probability( i ) * factor ),
+                         AB = round_to_nearest_integer( get_AB_probability( i ) * factor ),
+                              BB = round_to_nearest_integer( get_BB_probability( i ) * factor ) ;
 
                     write_little_endian_integer( aStream, AA ) ;
                     write_little_endian_integer( aStream, AB ) ;
