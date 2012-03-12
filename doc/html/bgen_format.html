@@ -43,7 +43,12 @@
                  which manipulate this data must spend a long time parsing the numbers to produce in-memory float or double
                  quantities. For simple programs this time can dominate the program execution time.  </p> <p>
                  This page describes a binary GEN file format (the "BGEN" format) which overcomes this problem. Tests show
-                 that using this binary format can acheive a file input speed increase of 5-10x.
+                 that using this binary format can achieve a file input speed increase of 5-10x.  Genotype data is stored compressed
+                 so that BGEN files typically take up no more space (and usually less space) than a corresponding gzipped GEN file.
+                 </p>
+                 <p>
+                 The current specification has been updated to handle long alleles such as those
+                 present in the latest 1000 genomes release.
 				</p>
 				<p>A C++ implementation of this file format is available as the "genfile" sublibrary of QCTOOL, available <a href="http://bitbucket.org/gavinband/qctool/">here</a>.
 				<h2>Overview</h2>
@@ -102,16 +107,16 @@
 					<tr><td>0</td><td><em>CompressedSNPBlocks</em></td><td>0</td><td>Indicates SNP block probability data is not compressed.</td></tr>
 					<tr><td></td><td></td><td>1</td><td>Indicates SNP block probability data is compressed using zlib's compress() function.</td></tr>
 					<tr><td>3</td><td><em>LongIds</em></td><td>0</td><td>Indicates alleles are stored as single characters.</td></tr>
-					<tr><td></td><td></td><td>1</td><td>Indicates alleles are stored allowing for multiple characters.
-					    Currently, this is supported in <a href="https://mathgen.stats.ox.ac.uk/genetics_software/snptest/snptest.html">SNPTESTv2.3.0</a>
-					    and above, and the <a href="http://www.bitbucket.org/gavinband/qctool">development version</a> of <a href="http://www.well.ox.ac.uk/~gav/qctool.html#overview">QCTOOL</a>.</td></tr>
+					<tr><td></td><td></td><td>1</td><td>Indicates alleles are stored allowing for multiple characters.  This is supported in SNPTEST from 
+					     <a href="https://mathgen.stats.ox.ac.uk/genetics_software/snptest/snptest.html">version 2.3.0</a>,
+					    and in the <a href="http://www.bitbucket.org/gavinband/qctool">development version of QCTOOL</a>.</td></tr>
 				</table>
             </center>
 
-				<h3>The snp blocks (<em>LongIds=1</em>)</h3>
+				<h3>SNP blocks</h3>
 				<p>
-					Following the header comes a sequence of 0 or more snp blocks.
-	 				Each snp block consists of the following data in order.
+					Following the header comes a sequence of 0 or more SNP blocks.
+	 				Each SNP block consists of the following data in order.
 	 				(Note: the following description is valid when <em>LongIds</em>=1. When <em>LongIds</em>=0, SNP blocks are layout out as per the v1.0 spec, described <a href="bgen_format_v1.0.html">here</a>.)
 				</p>
 				<center>
@@ -156,9 +161,9 @@
             <p>
 					The probability data is listed as a sequence of 2-byte unsigned integers.  These should be interpreted in triples,
 					the first member being the probability of AA, the second the probability of AB, the third the probability of BB.
-					Altogether these occupy 6*<em>N</em> bytes where <em>N</em> is the number of samples.  These 6 * <em>N</em> bytes are written directly.
-            <b>Alternatively</b>, if the <em>CompressedSNPBlocks</em> flag is set in the header, these 6 * <em>N</em> bytes are first compressed using <a href="http://www.zlib.net/">zlib</a>.
-            The SNP block then contains a 4-byte integer representing the length of the compressed data followed by the compressed data itself.
+					Altogether these occupy 6*<em>N</em> bytes where <em>N</em> is the number of samples.  When <em>CompressedSNPBlocks</em> is not set, these 6 * <em>N</em> bytes are
+					stored directly.  When <em>CompressedSNPBlocks</em> is set, these 6 * <em>N</em> bytes are first compressed using <a href="http://www.zlib.net/">zlib</a>, and
+					the length of the compressed data is stored as a 4-byte integer, followed by the compressed data itself.
             </p>
             <p>
 					To convert the stored 2-byte integers into probabilities, the following calculation should be performed:
@@ -175,7 +180,7 @@
 					<b>Note</b>: to convert a floating point probability, do the following:
 				</p>
 				<ol>
-					<li>Clamp to the closed interval [ 0, 1.0 ].</li>
+					<li>Clamp the number to the closed interval [ 0, 1.0 ].</li>
 					<li>Multiply by 65535 and round to the nearest integer.</li>
 				</ol>
 				<p>
