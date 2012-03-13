@@ -37,7 +37,7 @@ def build( bld ):
 		target = 'appcontext',
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include',
-		uselib_local = 'string_utils',
+		uselib_local = 'genfile',
 		uselib = 'BOOST',
 		export_incdirs = './include'	
 	)

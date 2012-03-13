@@ -33,7 +33,7 @@ struct OverrepOptions: public appcontext::CmdLineOptionProcessor {
 			.set_description( "Specify the path of a file containing pathway definitions to load."
 			 	" This file must have at least three columns; the first should be an identifier for the pathway (no whitespace),"
 				" the second should be the pathway name, and the third should contain gene identifiers." )
-			.set_takes_values_per_use( 1 )
+			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 100 )
 		;

@@ -69,7 +69,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
         .set_description( 	"Override the auto-generated path(s) of the snp-stats file to use when outputting snp-wise statistics.  "
 							"(By default, the paths are formed by adding \".qctool-db\" to the input gen filename(s).)  "
 							"The '#' character can also be used here to specify one output file per chromosome." )
-        .set_takes_values_per_use(1)
+        .set_takes_values(1)
 		.set_maximum_multiplicity(1)
 		.set_default_value( "" ) ;
 

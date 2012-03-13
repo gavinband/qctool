@@ -31,7 +31,7 @@ struct IDDataPrinterOptionProcessor: public CmdLineOptionProcessor
 		options.declare_group( "SNP Selection options" ) ;
 		options[ "-snp-interval" ]
 			.set_description( "Only output SNPs in the given interval" )
-			.set_takes_values_per_use( 2 )
+			.set_takes_values( 2 )
 			.set_maximum_multiplicity( 1 ) ;
 			
 		options[ "-snp-id-file" ]

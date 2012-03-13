@@ -69,7 +69,7 @@ void Relatotron::declare_options( appcontext::OptionProcessor& options ) {
 	options[ "-relatedness-null" ]
 		.set_description( "Set the probability of IBD0, IBD1, and IBD2 in the null model for the Bayes factor."
 		 	" These must lie between 0 and 1 and sum to 1." )
-		.set_takes_values_per_use( 3 )
+		.set_takes_values( 3 )
 		.set_maximum_multiplicity( 1 )
 		.set_default_value( 1.0 )
 		.set_default_value( 0.0 )
@@ -77,7 +77,7 @@ void Relatotron::declare_options( appcontext::OptionProcessor& options ) {
 	options[ "-relatedness-alternative" ]
 		.set_description( "Set the probability of IBD0, IBD1, and IBD2 in the alternative model for the Bayes factor."
 		" These must lie between 0 and 1 and sum to 1." )
-		.set_takes_values_per_use( 3 )
+		.set_takes_values( 3 )
 		.set_maximum_multiplicity( 1 )
 		.set_default_value( 0.0 )
 		.set_default_value( 0.0 )	

@@ -55,14 +55,14 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 		options[ "-g" ]
 			.set_description( "Specify a file containing the SNPs to operate on." )
 			.set_is_required()
-			.set_takes_values_per_use( 1 )
+			.set_takes_values( 1 )
 			.set_maximum_multiplicity( 100 ) ;
 
 		options.declare_group( "SNP selection options" ) ;
 		options[ "-excl-rsids" ]
 			.set_description( "Specify a file containing a whitespace-separated list of SNP rsids."
 				" SNPs with ids in this file will be excluded from the analysis." )
-			.set_takes_values_per_use( 1 )
+			.set_takes_values( 1 )
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-incl-rsids" ]
 			.set_description( "Specify a file containing a whitespace-separated list of SNP rsids."
@@ -71,7 +71,7 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 		options[ "-excl-snpids" ]
 			.set_description( "Specify a file containing a whitespace-separated list of SNP SNPIDs."
 			" SNPs with ids in this file will be excluded from the analysis." )
-			.set_takes_values_per_use( 1 )
+			.set_takes_values( 1 )
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-incl-snpids" ]
 			.set_description( "Specify a file containing a whitespace-separated list of SNP SNPIDs."

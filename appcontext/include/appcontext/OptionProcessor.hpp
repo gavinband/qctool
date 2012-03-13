@@ -86,6 +86,7 @@ namespace appcontext {
 	} ;
 
 	class OptionProcessor {
+		public:
 			typedef std::auto_ptr< OptionProcessor > UniquePtr ;
 			typedef std::map< std::string, OptionDefinition > OptionDefinitions ;
 			typedef std::map< std::string, std::vector< std::string > > OptionValues ; 
@@ -95,7 +96,7 @@ namespace appcontext {
 			OptionProcessor( OptionProcessor const& other ) ;
 			virtual ~OptionProcessor() ;
 		
-			OptionDefinitions const& option_definitions() const ;
+			OptionDefinitions const& get_option_definitions() const ;
 			OptionDefinition& operator[]( std::string const& arg ) ;
 			OptionDefinition const& operator[] ( std::string const& arg ) const ;
 
@@ -121,26 +122,17 @@ namespace appcontext {
 			// check if any option in the given group was supplied.
 			bool check_if_option_was_supplied_in_group( std::string const& group ) const ;
 
-			std::string get_string_value( std::string const& arg ) const ;
-			std::vector< std::string > get_string_values( std::string const& arg ) const ;
+			std::string get_value( std::string const& arg ) const ;
+			std::vector< std::string > get_values( std::string const& arg ) const ;
 
 			// get the value of the given option as the given type.
-			std::string get_value( std::string const& arg ) const ;
-			std::string get( std::string const& arg ) const ;
-
 			template< typename T >
 			T get_value( std::string const& arg ) const {
-				std::istringstream s( get_string_value( arg )) ;
+				std::istringstream s( get_value( arg )) ;
 				T t ;
 				s >> t ;
-				s.peek() ;
-				if( !s.eof() ) {
-					throw OptionValueInvalidException( arg, get_string_values( arg ), "Only part of the object could be parsed." ) ;
-				}
 				return t ;
 			}
-
-
 
 			// synonym for the above
 			template< typename T >
@@ -151,7 +143,7 @@ namespace appcontext {
 			// get the value of the given option as the given type.
 			template< typename T >
 			std::vector< T > get_values( std::string const& arg ) const {
-				std::vector< std::string > values = get_string_values( arg ) ;
+				std::vector< std::string > values = get_values( arg ) ;
 				std::vector<T> result ;
 				result.reserve( values.size() ) ;
 				for( std::size_t i = 0; i < values.size(); ++i ) {
@@ -207,8 +199,12 @@ namespace appcontext {
 			std::map< std::string, std::set< std::string > > m_option_implications ;
 			std::vector< Check > m_checks ;
 	} ;
-	template<> std::string OptionProcessor::get_value< std::string >( std::string const& arg ) const ;
-	template<> std::vector< std::string > OptionProcessor::get_values< std::string >( std::string const& arg ) const ;
+	
+	template<>
+	std::string OptionProcessor::get_value( std::string const& arg ) const ;
+	template<>
+	std::vector< std::string > OptionProcessor::get_values( std::string const& arg ) const ;
+	
 }
 
 #endif

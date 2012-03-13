@@ -1,8 +1,8 @@
-#ifndef __GTOOL__OPTION_DEFINITION_HPP__
-#define __GTOOL__OPTION_DEFINITION_HPP__
-
+#ifndef QCTOOL_APPCONTEXT_OPTION_DEFINITION_HPP
+#define QCTOOL_APPCONTEXT_OPTION_DEFINITION_HPP
 
 #include <vector>
+#include <limits>
 #include <set>
 #include <string>
 #include <sstream>
@@ -10,7 +10,7 @@
 
 namespace appcontext {
 	struct OptionDefinition {
-
+		enum { eUntilNextOption = 2147483647 } ;
 		public:
 			OptionDefinition() ;
 			OptionDefinition( OptionDefinition const& other ) ;
@@ -31,6 +31,7 @@ namespace appcontext {
 			std::vector< std::string > default_values() const { assert( m_default_values.size() > 0 ) ; return m_default_values ; }
 			bool takes_value_by_position() const { return m_position > 0 ; }
 			int position() const { return m_position ; }
+			bool hidden() const { return m_hidden ; }
 		
 			OptionDefinition& set_group( std::string const& group ) { m_group = group ; return *this ; }
 			OptionDefinition& set_description( char const* desc ) { m_description = desc ; return *this ; }
@@ -50,7 +51,7 @@ namespace appcontext {
 				m_maximum_multiplicity = multiplicity ;
 				return *this ;
 			}
-			OptionDefinition& set_takes_values_per_use( unsigned int n ) {
+			OptionDefinition& set_takes_values( unsigned int n ) {
 				m_number_of_values_per_use = n ;
 				return *this ;
 			}
@@ -58,6 +59,10 @@ namespace appcontext {
 				m_number_of_values_per_use = 1u ;	
 				m_minimum_multiplicity = 0u ;
 				m_maximum_multiplicity = 1u ;
+				return *this ;
+			}
+			OptionDefinition& set_takes_values_until_next_option() {
+				m_number_of_values_per_use = eUntilNextOption ;	
 				return *this ;
 			}
 			OptionDefinition& add_value_checker( value_checker_t value_checker ) {
@@ -75,6 +80,10 @@ namespace appcontext {
 				m_position = position ;
 				return *this ;
 			}
+			OptionDefinition& set_hidden() {
+				m_hidden = true ;
+				return *this ;
+			}
 
 			void check_option_values( std::string const& option_name, std::vector< std::string > const& option_values ) const ;
 
@@ -88,6 +97,7 @@ namespace appcontext {
 			std::vector< value_checker_t > m_value_checkers ;
 			std::vector< std::string > m_default_values ;
 			int m_position ;
+			bool m_hidden ;
 	} ;
 }
 

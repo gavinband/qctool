@@ -8,7 +8,7 @@
 #include <cassert>
 #include "appcontext/OptionDefinition.hpp"
 #include "appcontext/OptionProcessor.hpp"
-#include "string_utils/string_utils.hpp"
+#include "genfile/string_utils.hpp"
 
 namespace appcontext {
 	OptionProcessingException::OptionProcessingException( std::string option, std::vector< std::string > values, std::string msg )
@@ -46,7 +46,7 @@ namespace appcontext {
 
 	OptionProcessor::~OptionProcessor() {}
 
-	OptionProcessor::OptionDefinitions const& OptionProcessor::option_definitions() const { return m_option_definitions ; }
+	OptionProcessor::OptionDefinitions const& OptionProcessor::get_option_definitions() const { return m_option_definitions ; }
 
 	OptionDefinition& OptionProcessor::operator[]( std::string const& arg ) {
 		// Prevent modification of an option that's already defined.
@@ -144,20 +144,34 @@ namespace appcontext {
 		std::string arg = argv[i] ;
 		std::map< std::string, OptionDefinition >::const_iterator arg_i = m_option_definitions.find( arg ) ;
 		if( arg_i != m_option_definitions.end() ) {
-			if( arg_i->second.number_of_values_per_use() > 0 ) {
-				for( unsigned int value_i = 0; value_i < arg_i->second.number_of_values_per_use(); ++value_i ) {
-					if( ++i == argc ) {
-						std::ostringstream ostr ;
-						ostr << "Option\"" << arg << "\" takes " << arg_i->second.number_of_values_per_use() << " values per use." ;
-						throw OptionParseException( arg, m_option_values[ arg ], ostr.str() ) ;
-					}
-					else {
-						m_option_values[ arg ].push_back( argv[i] ) ;
-					}
-				}
+			if( arg_i->second.number_of_values_per_use() == 0 ) {
+				m_option_values[ arg ] = std::vector< std::string >() ; // empty arguments.
 			}
 			else {
-				m_option_values[ arg ] = std::vector< std::string >() ; // empty arguments.
+				int number_of_options ;
+				if( arg_i->second.number_of_values_per_use() == OptionDefinition::eUntilNextOption ) {
+					// find next option.
+					int next_option_i = i + 1 ;
+					for( ;
+						next_option_i < argc &&
+						m_option_definitions.find( argv[ next_option_i ] ) == m_option_definitions.end() ;
+						++next_option_i
+					) {}
+					number_of_options = next_option_i - i - 1 ;
+				}
+				else {
+					number_of_options = arg_i->second.number_of_values_per_use() ;
+					if( i + number_of_options >= argc ) {
+						std::ostringstream ostr ;
+						ostr << "Option\"" << arg << "\" takes " << arg_i->second.number_of_values_per_use() << " values per use.\n" ;
+						throw OptionParseException( arg, m_option_values[ arg ], ostr.str() ) ;
+					}
+				}
+				for( int value_i = 0; value_i < number_of_options; ++value_i ) {
+					++i ;
+					assert( i < argc ) ;
+					m_option_values[ arg ].push_back( argv[i] ) ;
+				}
 			}
 			return true ;
 		}
@@ -337,7 +351,7 @@ namespace appcontext {
 	}
 
 	void OptionProcessor::format_option_group( std::ostream& aStream, std::string const& group_name ) const {
-		aStream << group_name << ":\n" ;
+		bool printed_group_name = false ;
 
 		std::map< std::string, std::set< std::string > >::const_iterator
 			group_i = m_option_groups.find( group_name ) ;
@@ -350,8 +364,14 @@ namespace appcontext {
 
 		for( ; option_i != end_option_i; ++option_i ) {
 			std::string const& option_name = *option_i ;
-			aStream << " " ;
-			format_option_and_description( aStream, option_name, max_option_length ) ;
+			if( !(*this)[ option_name ].hidden() ) {
+				if( !printed_group_name ) {
+					aStream << group_name << ":\n" ;
+					printed_group_name = true ;
+				}
+				aStream << " " ;
+				format_option_and_description( aStream, option_name, max_option_length ) ;
+			}
 		}
 
 	   	aStream << "\n";
@@ -362,8 +382,13 @@ namespace appcontext {
 		oStream
 			<< option_name ;
 		char arg_name = 'a' ;
-		for( std::size_t i = 1 ; i <= (*this)[option_name].number_of_values_per_use(); ++i ) {
-			oStream << " <" << arg_name++ << ">" ;
+		if( (*this)[option_name].number_of_values_per_use() == OptionDefinition::eUntilNextOption ) {
+			oStream << " <a> <b>..." ;
+		}
+		else {
+			for( std::size_t i = 1 ; i <= (*this)[option_name].number_of_values_per_use(); ++i ) {
+				oStream << " <" << arg_name++ << ">" ;
+			}
 		}
 		return oStream.str() ;
 	}
@@ -379,9 +404,9 @@ namespace appcontext {
 
 		std::string description = (*this)[option_name].description() ;
 		if( (*this)[option_name].has_default_value() ) {
-			description += "  Defaults to \"" + string_utils::join( (*this)[option_name].default_values(), ", " ) + "\"." ;
+			description += "  Defaults to \"" + genfile::string_utils::join( (*this)[option_name].default_values(), ", " ) + "\"." ;
 		}
-		aStream << string_utils::wrap( description, 120, current_column, current_column )
+		aStream << genfile::string_utils::wrap( description, 100, current_column, current_column )
 			<< "\n" ;
 	}
 
@@ -391,7 +416,9 @@ namespace appcontext {
 			end_option_i = m_option_definitions.end() ;
 		std::size_t max_option_length = 0 ;
 		for( ; option_i != end_option_i ; ++option_i ) {
-			max_option_length = std::max( max_option_length, format_option_and_arguments( option_i->first ).size() ) ;
+			if( !(*this)[ option_i->first ].hidden() ) {
+				max_option_length = std::max( max_option_length, format_option_and_arguments( option_i->first ).size() ) ;
+			}
 		}
 		return max_option_length ;
 	}
@@ -405,7 +432,9 @@ namespace appcontext {
 			end_option_i = group_i->second.end() ;
 		std::size_t max_option_length = 0 ;
 	    for( ; option_i != end_option_i; ++option_i ) {
-	        max_option_length = std::max( max_option_length, format_option_and_arguments( *option_i ).size() ) ;
+			if( !(*this)[ *option_i ].hidden() ) {
+	        	max_option_length = std::max( max_option_length, format_option_and_arguments( *option_i ).size() ) ;
+			}
 	    }
 		return max_option_length ;
 	}
@@ -416,20 +445,9 @@ namespace appcontext {
 	// contained whitespace or if several values were supplied.  Use the std::vector form
 	// below to avoid ambiguity.
 	std::string OptionProcessor::get_value( std::string const& arg ) const {
-		return get_string_value( arg ) ;
-	}
-	std::string OptionProcessor::get( std::string const& arg ) const {
-		return get_string_value( arg ) ;
-	}
-	template<>
-	std::string OptionProcessor::get_value< std::string >( std::string const& arg ) const {
-		return get_string_value( arg ) ;
-	}
-
-	std::string OptionProcessor::get_string_value( std::string const& arg ) const {
 		OptionValues::const_iterator arg_i ;
 		arg_i = m_option_values.find( arg ) ;
-
+	
 		if( arg_i == m_option_values.end() ) {
 			return get_default_value( arg ) ;
 		}
@@ -438,13 +456,13 @@ namespace appcontext {
 		return arg_i->second[0] ;
 	}
 
-	// get the value(s) of the given option as a vector of strings.
 	template<>
-	std::vector< std::string > OptionProcessor::get_values< std::string >( std::string const& arg ) const {
-		return get_string_values( arg ) ;
+	std::string OptionProcessor::get_value( std::string const& arg ) const {
+		return get_value( arg ) ;
 	}
-	
-	std::vector< std::string > OptionProcessor::get_string_values( std::string const& arg ) const {
+
+	// get the value(s) of the given option as a vector of strings.
+	std::vector< std::string > OptionProcessor::get_values( std::string const& arg ) const {
 		OptionValues::const_iterator arg_i ;
 		arg_i = m_option_values.find( arg ) ;
 	
@@ -453,6 +471,11 @@ namespace appcontext {
 		}
 
 		return arg_i->second ;
+	}
+
+	template<>
+	std::vector< std::string > OptionProcessor::get_values< std::string >( std::string const& arg ) const {
+		return get_values( arg ) ;
 	}
 }
 

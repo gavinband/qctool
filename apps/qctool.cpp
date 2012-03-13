@@ -134,7 +134,7 @@ public:
 								"the form \"myfile_01.gen\", \"myfile_02.gen\", etc.)  Only Human autosomes are matched this way.\n"
 								"This option may be repeated, in which case each invocation is treated as a seperate cohort and cohorts"
 								"are joined together to create one big dataset." )
-			.set_takes_values_per_use( 1 )
+			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 100 ) ;
 
@@ -150,7 +150,7 @@ public:
 				"This must have the same number of samples as the data set for -g. "
 				"Note that filtering, strand alignment, allele matching, or other transformations are not applied to the data "
 				"specified by -merge-in.")
-			.set_takes_values_per_use( 1 )
+			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-merge-strategy" ]
@@ -166,7 +166,7 @@ public:
 	    options[ "-s" ]
 	        .set_description( "Path of sample file to input.  If specified, this option must occur as often as the -g option"
 							" to specify one sample file per cohort." )
-			.set_takes_values_per_use( 1 )
+			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
 
@@ -175,19 +175,19 @@ public:
 								"If specified, this option must occur the same number of times as the -g option, to specify"
 								" one intensity file per cohort."
 								"As with -g the '#' wildcard character may be used to match chromosomes." )
-			.set_takes_values_per_use( 1 )
+			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 100 ) ;
 */
 		options.declare_group( "Sample exclusion options" ) ;
 		options[ "-incl-samples"]
 			.set_description( "Filter out samples whose sample ID does not lie in the given file.")
-			.set_takes_values_per_use( 1 )
+			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-excl-samples"]
 			.set_description( "Filter out samples whose sample ID lies in the given file.")
-			.set_takes_values_per_use( 1 )
+			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
 
@@ -221,19 +221,19 @@ public:
 		options.declare_group( "SNP exclusion options" ) ;
 		options[ "-excl-snpids" ]
 			.set_description( "Exclude all SNPs whose SNPID is in the given file(s) from the analysis.")
-			.set_takes_values_per_use( 1 )
+			.set_takes_values( 1 )
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-excl-rsids" ]
 			.set_description( "Exclude all SNPs whose RSID is in the given file(s) from the analysis.")
-			.set_takes_values_per_use( 1 )
+			.set_takes_values( 1 )
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-incl-snpids" ]
 			.set_description( "Exclude all SNPs whose SNPID is not in the given file(s) from the analysis.")
-			.set_takes_values_per_use( 1 )
+			.set_takes_values( 1 )
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-incl-rsids" ]
 			.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.")
-			.set_takes_values_per_use( 1 )
+			.set_takes_values( 1 )
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-excl-snps-matching" ]
 			.set_description( "Filter out snps whose rsid or SNPID matches the given value. "
@@ -263,7 +263,7 @@ public:
 	        .set_description( 	"Path of strand file(s) to input.  "
 								"If specified, this option must occur the same number of times as the -g option, to specify"
 								" one intensity file per cohort." )
-			.set_takes_values_per_use( 1 )
+			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-translate-snp-positions" ]
@@ -296,7 +296,7 @@ public:
 								"If this option is supplied, it must appear the same number of times as the -g option. "
 	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
 								"also be used here to specify numbered output files corresponding to the input files." )
-	        .set_takes_values_per_use( 1 )
+	        .set_takes_values( 1 )
 			.set_maximum_multiplicity( 1 ) ;
 		options[ "-sort" ]
 			.set_description( "Sort the genotypes in the output file.  This is only supported if bgen format is output." ) ;
@@ -315,7 +315,7 @@ public:
 		options[ "-op" ]
 			.set_description( "Output a pedigree file instead of a GEN-type file."
 			 	" You must also input a pedigree using -ip for this to work." )
-			.set_takes_values_per_use( 1 )
+			.set_takes_values( 1 )
 			.set_maximum_multiplicity( 1 ) ;
 		options[ "-ip" ]
 			.set_description( "Input a pedigree from the specified file."
@@ -323,7 +323,7 @@ public:
 				" according to the spec on the PLINK website.  (Other columns are ignored.)"
 				" Ids are treated as non-whitespace strings and sex can be either"
 				" \"1\" or \"M\" (male) or \"2\" or \"F\" (female) or \"other\"." )
-			.set_takes_values_per_use( 1 )
+			.set_takes_values( 1 )
 			.set_maximum_multiplicity( 1 ) ;
 
 		options.option_implies_option( "-op", "-ip" ) ;
@@ -355,7 +355,7 @@ public:
 	        .set_description( 	"Override the auto-generated path(s) of the snp-stats file to use when outputting snp-wise statistics.  "
 								"(By default, the paths are formed by adding \".snp-stats\" to the input gen filename(s).)  "
 								"The '#' character can also be used here to specify one output file per chromosome." )
-	        .set_takes_values_per_use(1)
+	        .set_takes_values(1)
 			.set_maximum_multiplicity(1) ;
 
 		options[ "-snp-stats-columns" ]
@@ -383,7 +383,7 @@ public:
 			.set_takes_single_value() ;
 		options[ "-info" ]
 			.set_description( "Filter out SNPs with Fisher information lying outside the given range.")
-			.set_takes_values_per_use( 2 ) ;
+			.set_takes_values( 2 ) ;
 		options[ "-snp-missing-rate" ]
 			.set_description( "Filter out SNPs with missing data rate greater than or equal to the value specified.")
 			.set_takes_single_value() ;
@@ -392,10 +392,10 @@ public:
 			.set_takes_single_value() ;
 		options[ "-snp-interval" ]
 			.set_description( "Filter out SNPs with position outside the interval [a,b]." )
-			.set_takes_values_per_use( 2 ) ;
+			.set_takes_values( 2 ) ;
 		options[ "-maf" ]
 			.set_description( "Filter out SNPs whose minor allele frequency lies outside the interval [a,b]." )
-			.set_takes_values_per_use( 2 ) ;
+			.set_takes_values( 2 ) ;
 			
 		// Sample filtering options
 		options.declare_group( "Sample filtering options" ) ;
@@ -404,7 +404,7 @@ public:
 			.set_takes_single_value() ;
 		options[ "-heterozygosity" ]
 			.set_description( "Filter out samples with heterozygosity outside the inteval [a,b]." )
-			.set_takes_values_per_use( 2 ) ;
+			.set_takes_values( 2 ) ;
 
 		// Inclusion / exclusion list options
 		options.declare_group( "Inclusion / exclusion list options" ) ;
