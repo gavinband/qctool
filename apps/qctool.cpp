@@ -276,7 +276,7 @@ public:
 				" and the second six columns the same data with possibly different chromosome and position.)"
 				" Positions of SNPs will be mapped through this dictionary before processing." )
 			.set_takes_single_value()
-			.hide() ;
+			.set_hidden() ;
 		options[ "-match-alleles-to-cohort1" ]
 			.set_description( "Specify that alleles (and corresponding genotypes) in all cohorts should be switched, if necessary,"
 				" so as to match the alleles of the first cohort.  This does not perform allele complementation,"
