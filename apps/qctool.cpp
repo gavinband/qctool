@@ -152,16 +152,20 @@ public:
 				"specified by -merge-in.")
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
-			.set_maximum_multiplicity( 100 ) ;
+			.set_maximum_multiplicity( 100 )
+			.set_hidden() ;
+
 		options[ "-merge-strategy" ]
 			.set_description( "Specify a strategy to use when encountering SNPs with the same position in a merge. "
 				"Options are \"" + genfile::string_utils::join( genfile::MergingSNPDataSource::get_merge_strategies(), "\",\"" ) + "\"." )
 			.set_takes_single_value()
-			.set_default_value( "keep-all" ) ;
+			.set_default_value( "keep-all" )
+			.set_hidden() ;
 		options[ "-merge-prefix" ]
 			.set_description( "Specify a string to add as a prefix to ID fields of merged-in variants" )
 			.set_takes_single_value()
-			.set_default_value( "" ) ;
+			.set_default_value( "" )
+			.set_hidden() ;
 		
 	    options[ "-s" ]
 	        .set_description( "Path of sample file to input.  If specified, this option must occur as often as the -g option"
@@ -238,7 +242,6 @@ public:
 		options[ "-excl-snps-matching" ]
 			.set_description( "Filter out snps whose rsid or SNPID matches the given value. "
 				"The value should be a string which can contain a % wildcard character (which matches any substring). "
-				"If you use *, you should place the argument in quotes."
 				"Optionally, prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields." )
 			.set_takes_single_value() ;
 		options[ "-incl-snps-matching" ]
@@ -265,7 +268,8 @@ public:
 								" one intensity file per cohort." )
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
-			.set_maximum_multiplicity( 100 ) ;
+			.set_maximum_multiplicity( 100 )
+			.set_hidden() ;
 		options[ "-translate-snp-positions" ]
 			.set_description( "Specify a \"dictionary\" of chromosome / position to chromosome / position mappings."
 				" (This should come as a 12-column file with the first six columns the original SNPID rsid chromosome position allele1 allele2"
@@ -303,11 +307,11 @@ public:
 		options.option_implies_option( "-sort", "-og" ) ;
 
 		options[ "-os" ]
-	        .set_description( "Override the auto-generated path of the output sample file.  " )
+	        .set_description( "Output sample information to the file specified.  " )
 	        .set_takes_single_value() ;
 
 		options[ "-omit-chromosome" ]
-			.set_description( "Do not output a chromosome column when outputting a file in GEN format." ) ;
+			.set_description( "(This option is specific to output files in the GEN format.) Do not output a chromosome column." ) ;
 
 		options.option_implies_option( "-omit-chromosome", "-og" ) ;
 
@@ -316,7 +320,8 @@ public:
 			.set_description( "Output a pedigree file instead of a GEN-type file."
 			 	" You must also input a pedigree using -ip for this to work." )
 			.set_takes_values( 1 )
-			.set_maximum_multiplicity( 1 ) ;
+			.set_maximum_multiplicity( 1 )
+			.set_hidden() ;
 		options[ "-ip" ]
 			.set_description( "Input a pedigree from the specified file."
 			 	" The first six columns of this file should represent a PED format pedigree,"
@@ -324,7 +329,8 @@ public:
 				" Ids are treated as non-whitespace strings and sex can be either"
 				" \"1\" or \"M\" (male) or \"2\" or \"F\" (female) or \"other\"." )
 			.set_takes_values( 1 )
-			.set_maximum_multiplicity( 1 ) ;
+			.set_maximum_multiplicity( 1 )
+			.set_hidden() ;
 
 		options.option_implies_option( "-op", "-ip" ) ;
 		options.option_implies_option( "-op", "-s" ) ;
@@ -348,7 +354,6 @@ public:
 			.set_takes_single_value() ;
 
 		// Statistic file options
-		/*
 	    options[ "-snp-stats" ]
 			.set_description( "Calculate and output per-SNP statistics.  This implies that no SNP filtering options are used." ) ;
 	    options[ "-snp-stats-file" ]
@@ -366,7 +371,7 @@ public:
 			.set_takes_single_value()
 			.set_default_value( "" ) ;
 
-*/		options.declare_group( "Statistic calculation options" ) ;
+		options.declare_group( "Statistic calculation options" ) ;
 	    options[ "-sample-stats" ]
 			.set_description( "Calculate and output sample-wise statistics." )
 			.set_takes_single_value() ;
@@ -390,9 +395,6 @@ public:
 		options[ "-missing-call-rate" ]
 			.set_description( "Filter out SNPs with missing call rate greater than or equal to the value specified.")
 			.set_takes_single_value() ;
-		options[ "-snp-interval" ]
-			.set_description( "Filter out SNPs with position outside the interval [a,b]." )
-			.set_takes_values( 2 ) ;
 		options[ "-maf" ]
 			.set_description( "Filter out SNPs whose minor allele frequency lies outside the interval [a,b]." )
 			.set_takes_values( 2 ) ;
@@ -440,25 +442,28 @@ public:
 		options [ "-threads" ]
 			.set_description( "Specify the number of worker threads to use in computationally intensive tasks." )
 			.set_takes_single_value()
-			.set_default_value( 0 ) ;
+			.set_default_value( 0 )
+			.set_hidden() ;
 		options[ "-analysis-name" ]
 			.set_description( "Specify a human-readable name to label results from this analysis with (for some modules)" )
 			.set_takes_single_value()
-			.set_default_value( "qctool analysis, started " + appcontext::get_current_time_as_string() ) ;
+			.set_default_value( "qctool analysis, started " + appcontext::get_current_time_as_string() )
+			.set_hidden() ;
 		options[ "-nodb" ]
 			.set_description( "By default, qctool outputs summary data in an sqlite database format.  This allows for more "
 				"flexibility and better memory usage compared to working with flat files. "
-				" This option forces qctool to use a flat file instead." ) ;
+				" This option forces qctool to use a flat file instead." )
+			.set_hidden() ;
 
-		Relatotron::declare_options( options ) ;
-		RelatednessComponent::declare_options( options ) ;
+		//Relatotron::declare_options( options ) ;
+		//RelatednessComponent::declare_options( options ) ;
 		DataReadTest::declare_options( options ) ;
-		ClusterFitter::declare_options( options ) ;
-		VCDBWriter::declare_options( options ) ;
-		CallComparerComponent::declare_options( options ) ;
-		ClusterPlotter::declare_options( options ) ;
-		SNPSummaryComponent::declare_options( options ) ;
-		HaplotypeFrequencyComponent::declare_options( options ) ;
+		//ClusterFitter::declare_options( options ) ;
+		//VCDBWriter::declare_options( options ) ;
+		//CallComparerComponent::declare_options( options ) ;
+		//ClusterPlotter::declare_options( options ) ;
+		//SNPSummaryComponent::declare_options( options ) ;
+		//HaplotypeFrequencyComponent::declare_options( options ) ;
 
 		options.option_excludes_group( "-snp-stats", "SNP filtering options" ) ;
 		options.option_excludes_group( "-sample-stats", "Sample filtering options" ) ;
@@ -1108,6 +1113,7 @@ private:
 			
 			open_sample_row_sink() ;
 			open_snp_data_sinks() ;
+			open_snp_stats_sink( 0, m_snp_statistics ) ;
 			open_sample_stats_sink() ;
 	}
 	
@@ -1597,6 +1603,12 @@ private:
 						m_fltrd_out_snp_data_sink->move_to_next_sink() ;
 					}
 				}
+				
+				if( m_mangled_options.snp_stats_filename_mapper().output_filenames().size() > 0 ) {
+					if( m_mangled_options.snp_stats_filename_mapper().filename_corresponding_to( index ) != m_current_snp_stats_filename_index ) {
+						open_snp_stats_sink( ++m_current_snp_stats_filename_index, m_snp_statistics ) ;
+					}
+				}
 			}
 		}
 	}
@@ -1701,6 +1713,21 @@ private:
 		m_snp_stats_sink.reset() ;
 	}
 
+	void open_snp_stats_sink( std::size_t index, GenRowStatistics const& snp_statistics ) {
+		if( m_mangled_options.snp_stats_filename_mapper().output_filenames().size() == 0 ) {
+			m_snp_stats_sink.reset( new statfile::TrivialBuiltInTypeStatSink() ) ;
+		}
+		else {
+			assert( index < m_mangled_options.snp_stats_filename_mapper().output_filenames().size()) ;
+			m_current_snp_stats_filename_index = index ;
+			statfile::RFormatStatSink::UniquePtr sink( new statfile::RFormatStatSink( m_mangled_options.snp_stats_filename_mapper().output_filenames()[ index ] )) ;
+			m_snp_stats_sink.reset( sink.release() ) ;
+		}
+		for( std::size_t i = 0; i < snp_statistics.size(); ++i ) {
+			m_snp_stats_sink->add_column( snp_statistics.get_statistic_name( i )) ;
+		}
+	}
+	
 	void open_sample_stats_sink() {
 		if( m_mangled_options.output_sample_stats_filename() == "" ) {
 			m_sample_stats_sink.reset( new statfile::TrivialBuiltInTypeStatSink() ) ;
@@ -1720,7 +1747,7 @@ private:
 	}
 
 	void construct_snp_statistics() {
-		//GenRowStatisticFactory::add_statistics( m_mangled_options.row_statistics_specs(), m_snp_statistics ) ;
+		GenRowStatisticFactory::add_statistics( m_mangled_options.row_statistics_specs(), m_snp_statistics ) ;
 	}
 
 	void construct_sample_statistics() {
@@ -1745,10 +1772,6 @@ private:
 
 		if( m_options.check_if_option_was_supplied( "-snp-missing-call-rate" ) ) {
 			add_one_arg_condition_to_filter< StatisticLessThan >( *snp_filter, "missing_calls", m_options.get_value< double >( "-snp-missing-call-rate" )) ;
-		}
-
-		if( m_options.check_if_option_was_supplied( "-snp-interval" ) ) {
-			add_two_arg_condition_to_filter< StatisticInInclusiveRange >( *snp_filter, "snp-position", m_options.get_values< double >( "-snp-interval" )) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "-maf" ) ) {
@@ -2065,13 +2088,6 @@ private:
 	
 	void unsafe_process() {
 		std::size_t const number_of_threads = options().get_value< std::size_t >( "-threads" ) ;
-		worker::Worker::UniquePtr worker ;
-		if( number_of_threads > 0 ) {
-			worker.reset( new worker::QueuedMultiThreadedWorker( number_of_threads )) ;
-		} else {
-			worker.reset( new worker::SynchronousWorker() ) ;
-		}
-
 		QCToolCmdLineContext context(
 			options(),
 			get_ui_context()
@@ -2086,6 +2102,7 @@ private:
 
 		if(
 			options().check_if_option_was_supplied( "-sample-stats" )
+			|| options().check_if_option_was_supplied( "-snp-stats" )
 			|| options().check_if_option_was_supplied( "-og" )
 			|| options().check_if_option_was_supplied( "-op" )
 			|| options().check_if_option_was_supplied( "-os" )
@@ -2095,6 +2112,7 @@ private:
 			processor.add_callback( qctool_basic ) ;
 		}
 		
+#if 0
 		if( options().check( "-snp-stats" ) || options().check( "-test" ) || options().check( "-annotate" )) {
 			processor.add_callback(
 				SNPSummaryComponent(
@@ -2104,13 +2122,14 @@ private:
 				).create()
 			) ;
 		}
-		
+#endif
 		std::auto_ptr< DataReadTest > data_read_test ;
 		if( options().check_if_option_was_supplied( "-read-test" )) {
 			data_read_test.reset( new DataReadTest() ) ;
 			processor.add_callback( *data_read_test ) ;
 		}
 		
+#if 0
 		std::auto_ptr< Relatotron > relatotron ;
 		if( options().check_if_option_was_supplied_in_group( "Relatedness options" )) {
 			relatotron.reset( new Relatotron( options(), context.get_cohort_individual_source(), get_ui_context() )) ;
@@ -2122,7 +2141,6 @@ private:
 			db_writer = VCDBWriter::create( options() ) ;
 			processor.add_callback( *db_writer ) ;
 		}
-
 		if( options().check_if_option_was_supplied_in_group( "Kinship options" )) {
 			RelatednessComponent::UniquePtr relatedness_component = RelatednessComponent::create(
 				options(),
@@ -2154,6 +2172,7 @@ private:
 			haplotype_frequency_component = HaplotypeFrequencyComponent::create( options(), get_ui_context(), context.indices_of_filtered_out_samples() ) ;
 			processor.add_callback( *haplotype_frequency_component ) ;
 		}
+#endif
 
 		// Process it (but only if there was something to do) !
 		if( processor.get_callbacks().size() > 0 ) {
@@ -2162,10 +2181,11 @@ private:
 		} else {
 			get_ui_context().logger() << "SNPs do not need to be visited -- skipping.\n" ;
 		}
-		
+#if 0
 		if( relatotron.get() ) {
 			relatotron->process( worker.get() ) ;
 		}
+#endif
 	}
 } ;
 
