@@ -275,7 +275,8 @@ public:
 				" (This should come as a 12-column file with the first six columns the original SNPID rsid chromosome position allele1 allele2"
 				" and the second six columns the same data with possibly different chromosome and position.)"
 				" Positions of SNPs will be mapped through this dictionary before processing." )
-			.set_takes_single_value() ;
+			.set_takes_single_value()
+			.hide() ;
 		options[ "-match-alleles-to-cohort1" ]
 			.set_description( "Specify that alleles (and corresponding genotypes) in all cohorts should be switched, if necessary,"
 				" so as to match the alleles of the first cohort.  This does not perform allele complementation,"
