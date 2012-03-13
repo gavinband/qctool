@@ -108,7 +108,7 @@
 					<tr><th>Bit</th><th>Name</th><th>Value</th><th>Description</th></tr>
 					<tr><td>0</td><td><em>CompressedSNPBlocks</em></td><td>0</td><td>Indicates SNP block probability data is not compressed.</td></tr>
 					<tr><td></td><td></td><td>1</td><td>Indicates SNP block probability data is compressed using zlib's compress() function.</td></tr>
-					<tr><td>3</td><td><em>LongIds</em></td><td>0</td><td>Indicates alleles are stored as single characters.</td></tr>
+					<tr><td>3</td><td><em>LongIds</em></td><td>0</td><td>Indicates alleles are stored as single characters.  SNP blocks are layed out according to the <a href="bgen_format_v1.0.html">v1.0 spec</a>.</td></tr>
 					<tr><td></td><td></td><td>1</td><td>Indicates version 1.1 of the SNP block layout is used.  This allows for multiple characters in alleles and is supported in SNPTEST from 
 					     <a href="https://mathgen.stats.ox.ac.uk/genetics_software/snptest/snptest.html">version 2.3.0</a>,
 					    and in the <a href="http://www.bitbucket.org/gavinband/qctool">development version of QCTOOL</a>.</td></tr>
