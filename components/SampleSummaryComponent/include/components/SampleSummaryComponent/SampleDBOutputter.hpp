@@ -10,9 +10,10 @@
 #include "genfile/CohortIndividualSource.hpp"
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
+#include "qcdb/DBOutputter.hpp"
 
 namespace impl {
-	struct SampleDBOutputter {
+	struct SampleDBOutputter: public qcdb::DBOutputter {
 		typedef std::auto_ptr< SampleDBOutputter > UniquePtr ;
 		typedef boost::shared_ptr< SampleDBOutputter > SharedPtr ;
 
