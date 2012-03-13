@@ -72,3 +72,15 @@ table.field_encoding_scheme td {
 	padding-right: 10px ;
 	text-align: left ;
 }
+
+table.changes {
+	width: 90% ;
+	font-size: 8pt ;
+}
+
+.changes th {
+	border-bottom: 1px solid black ;
+	margin:0px ;
+}
+
+
