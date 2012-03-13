@@ -137,6 +137,35 @@ namespace qcdb {
 			"AND      Pvalue.variant_id = V.id "
 			"WHERE       EXISTS( SELECT * FROM SummaryData WHERE analysis_id == Analysis.id ) "
 		) ;
+		
+		m_connection->run_statement(
+			"CREATE VIEW AlleleView AS "
+			"SELECT          A.id AS analysis_id, A.name AS analysis, "
+			"                V.id AS variant_id, V.chromosome, V.position, V.rsid, V.alleleA, V.alleleB, "
+			"                BF.value AS alleleB_frequency, "
+			"                AA.value AS ancestral_allele, "
+			"                DA.value AS derived_allele, "
+			"                DAF.value AS derived_allele_frequency "
+			"FROM            Variant V "
+			"INNER JOIN      Entity A "
+			"INNER JOIN SummaryData BF "
+			"    ON          BF.analysis_id = A.id "
+			"    AND         BF.variant_id = V.id "
+			"    AND         BF.variable_id IN ( SELECT id FROM Entity WHERE name == 'alleleB_frequency' ) "
+			"LEFT OUTER JOIN SummaryData AA "
+			"    ON          AA.analysis_id = A.id "
+			"    AND         AA.variant_id = V.id "
+			"    AND         AA.variable_id IN ( SELECT id FROM Entity WHERE name == 'ancestral_allele' ) "
+			"LEFT OUTER JOIN SummaryData DA "
+			"    ON          DA.analysis_id = A.id "
+			"    AND         DA.variant_id = V.id "
+			"    AND         DA.variable_id IN ( SELECT id FROM Entity WHERE name == 'derived_allele' ) "
+			"LEFT OUTER JOIN SummaryData DAF "
+			"    ON          DAF.analysis_id = A.id "
+			"    AND         DAF.variant_id = V.id "
+			"    AND         DAF.variable_id IN ( SELECT id FROM Entity WHERE name == 'derived_allele_frequency' ) "
+		) ;
+		
 		construct_statements() ;
 		
 		m_analysis_id = get_or_create_entity( m_analysis_name, "qctool analysis, started " + appcontext::get_current_time_as_string() ) ;

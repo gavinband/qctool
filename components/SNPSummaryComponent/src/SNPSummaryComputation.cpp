@@ -13,8 +13,6 @@ namespace {
 			double const a_allele_freq = ( ( 2.0 * genotypes.col(0).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
 			double const b_allele_freq = ( ( 2.0 * genotypes.col(2).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
 
-			callback( "alleleA", snp.get_first_allele() ) ;
-			callback( "alleleB", snp.get_second_allele() ) ;
 			callback( "alleleA_frequency", a_allele_freq ) ;
 			callback( "alleleB_frequency", b_allele_freq ) ;
 
