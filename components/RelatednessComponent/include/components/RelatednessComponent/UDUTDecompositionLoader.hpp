@@ -6,18 +6,22 @@
 #include <boost/function.hpp>
 #include <boost/signals2/signal.hpp>
 #include <Eigen/Core>
+#include "genfile/CohortIndividualSource.hpp"
 
 namespace relatedness {
 	struct UDUTDecompositionLoader: public boost::noncopyable {
-		UDUTDecompositionLoader() ;
+		UDUTDecompositionLoader( genfile::CohortIndividualSource const& samples ) ;
 		
-		typedef boost::function< void ( Eigen::MatrixXd const& ) > ResultCallback ;
-		void send_results_to( ResultCallback ) ;
+		typedef boost::function< void ( Eigen::MatrixXd const&, std::size_t number_of_samples, std::size_t number_of_snps ) > ResultCallback ;
+		void send_UDUT_to( ResultCallback ) ;
+		
 		void load_matrix( std::string const& filename ) const ;
-
 	private:
-		typedef boost::signals2::signal< void ( Eigen::MatrixXd const& ) > ResultSignal ;
+		genfile::CohortIndividualSource const& m_samples ;
+		typedef boost::signals2::signal< void ( Eigen::MatrixXd const&, std::size_t number_of_samples, std::size_t number_of_snps ) > ResultSignal ;
 		ResultSignal m_result_signal ;
+
+		void load_matrix_impl( std::string const& filename, Eigen::MatrixXd* matrix, std::size_t* number_of_snps ) const ;
 	} ;
 }
 

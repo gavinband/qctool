@@ -13,6 +13,7 @@
 #include "components/RelatednessComponent/PCAComputer.hpp"
 #include "components/RelatednessComponent/KinshipCoefficientComputer.hpp"
 #include "components/RelatednessComponent/PCALoadingComputer.hpp"
+#include "components/RelatednessComponent/UDUTDecompositionLoader.hpp"
 
 void RelatednessComponent::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "Kinship options" ) ;
@@ -21,6 +22,9 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 		.set_takes_single_value() ;
 	options[ "-load-kinship" ]
 		.set_description( "Load a previously-computed kinship matrix from the specified file." )
+		.set_takes_single_value() ;
+	options[ "-load-UDUT" ]
+		.set_description( "Load a previously-computed eigenvalue decomposition of a relatedness matrix." )
 		.set_takes_single_value() ;
 	options[ "-PCAs" ]
 		.set_description( "Compute PCA components of kinship matrix. "
@@ -46,7 +50,6 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 	options.option_implies_option( "-load-kinship", "-s" ) ;
 	options.option_implies_option( "-PCAs", "-load-kinship" ) ;
 	options.option_implies_option( "-PCA-prefix", "-PCAs" ) ;
-	options.option_implies_option( "-loadings", "-PCAs" ) ;
 	options.option_excludes_option( "-load-kinship", "-kinship" ) ;
 }
 
@@ -84,9 +87,20 @@ namespace impl {
 		boost::function< genfile::VariantEntry ( std::size_t ) > get_row_names = 0,
 		boost::function< genfile::VariantEntry ( std::size_t ) > get_column_names = 0
 	) {
+		std::cerr << "write_matrix_as_csv: description is \"" << description << "\".\n" ;
 		appcontext::OUTPUT_FILE_PTR file = appcontext::open_file_for_output( filename ) ;
 		(*file) << "# Created by " << source << ", " << appcontext::get_current_time_as_string() << "\n" ;
-		(*file) << description << "\n" ;
+		if( description.size() > 0 ) {
+			bool newLine = true ;
+			for( std::size_t i = 0; i < description.size(); ++i ) {
+				if( newLine ) {
+					(*file) << "# " ;
+				}
+				(*file) << description[i] ;
+				newLine = ( description[i] == '\n' ) ;
+			}
+		}
+		(*file) << "\n" ;
 		if( get_column_names ) {
 			if( get_row_names ) {
 				(*file) << "id" ;
@@ -155,6 +169,7 @@ namespace impl {
 }
 
 void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) const {
+	PCAComputer::UniquePtr pca_computer ;
 	if( m_options.check( "-kinship" )) {
 		KinshipCoefficientComputer::UniquePtr result( new KinshipCoefficientComputer( m_options, m_samples, m_worker, m_ui_context ) ) ;
 		result->send_results_to( &impl::write_matrix_as_csv< Eigen::MatrixXd > ) ;
@@ -162,59 +177,75 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 			genfile::SNPDataSourceProcessor::Callback::UniquePtr( result.release() )
 		) ;
 	}
-	else if( m_options.check( "-load-kinship" ) ) {
-		PCAComputer::UniquePtr computer( new PCAComputer( m_options, m_samples, m_worker, m_ui_context ) ) ;
-		computer->send_UDUT_to(
+	else if( m_options.check( "-PCAs" ) ) {
+		pca_computer.reset( new PCAComputer( m_options, m_samples, m_worker, m_ui_context ) ) ;
+		pca_computer->send_UDUT_to(
 			boost::bind(
 				&impl::write_matrix_as_csv< Eigen::MatrixXd >,
 				get_PCA_filename_prefix() + ".UDUT.csv",
-				_2, "qctool:PCAComputer" ,_1, _3, _4
+				_3, "qctool:PCAComputer" ,_1, _4, _5
 			)
 		) ;
-		computer->send_PCAs_to(
+		pca_computer->send_PCAs_to(
 			boost::bind(
 				&impl::write_matrix_as_csv< Eigen::MatrixXd >,
 				get_PCA_filename_prefix() + ".PCAs.csv",
 				_3, "qctool:PCAComputer", _1, _4, _5
 			)
 		) ;
-
-		if( m_options.check( "-loadings" )) {
-			PCALoadingComputer::UniquePtr loading_computer( new PCALoadingComputer( m_options.get< int >( "-loadings" ) ) ) ;
-			computer->send_UDUT_to( boost::bind( &PCALoadingComputer::set_UDUT, loading_computer.get(), _2 ) ) ;
-
-			// Need to set up an output location for the loadings.  Probably this should be done elsewhere,
-			// but do it here for now.
- 			boost::shared_ptr< statfile::BuiltInTypeStatSink > loadings_file(
-				statfile::BuiltInTypeStatSink::open( get_PCA_filename_prefix() + ".loadings.csv" ).release()
-			) ;
-
-			loading_computer->send_results_to(
-				boost::bind(
-					&impl::write_snp_and_vector< Eigen::VectorXd >,
-					loadings_file,
-					_1, _2, _3
-				)
-			) ;
-
-			processor.add_callback(
-				genfile::SNPDataSourceProcessor::Callback::UniquePtr( loading_computer.release() )
-			) ;
+	}
+	if( m_options.check( "-loadings" )) {
+		PCALoadingComputer::UniquePtr loading_computer( new PCALoadingComputer( m_options.get< int >( "-loadings" ) ) ) ;
+		if( pca_computer.get() ) {
+			pca_computer->send_UDUT_to( boost::bind( &PCALoadingComputer::set_UDUT, loading_computer.get(), _2, _3 ) ) ;
+		} else if( m_options.check( "-load-UDUT" )) {
+			relatedness::UDUTDecompositionLoader udut( m_samples ) ;
+			udut.send_UDUT_to( boost::bind( &PCALoadingComputer::set_UDUT, loading_computer.get(), _3, _1 )) ;
+			udut.load_matrix( m_options.get< std::string >( "-load-UDUT" )) ;
+		} else {
+			throw appcontext::OptionProcessorImpliedOptionNotSuppliedException( "-loadings", "-PCAs or -load-UDUT" ) ;
 		}
 
-		computer->compute_PCA() ;
-	} else {
-		assert(0) ;
+		// Set up an output location for the loadings.
+		boost::shared_ptr< statfile::BuiltInTypeStatSink > loadings_file(
+			statfile::BuiltInTypeStatSink::open( get_PCA_filename_prefix() + ".loadings.csv" ).release()
+		) ;
+		
+		loadings_file->set_descriptive_text( 
+			"# Created by qctool::PCALoadingComputer, " + appcontext::get_current_time_as_string() + "\n"
+			+ loading_computer->get_metadata()
+		) ;
+
+		loading_computer->send_results_to(
+			boost::bind(
+				&impl::write_snp_and_vector< Eigen::VectorXd >,
+				loadings_file,
+				_1, _2, _3
+			)
+		) ;
+
+		processor.add_callback(
+			genfile::SNPDataSourceProcessor::Callback::UniquePtr( loading_computer.release() )
+		) ;
+	}
+	if( pca_computer.get() ) {
+		pca_computer->compute_PCA() ;
 	}
 }
 
 std::string RelatednessComponent::get_PCA_filename_prefix() const {
+	std::string result ;
 	if( m_options.check( "-PCA-prefix" ) ) {
-		return m_options.get< std::string >( "-PCA-prefix" ) ;
-	} else {
-		assert( m_options.check( "-load-kinship" )) ;
-		return genfile::replace_or_add_extension( m_options.get< std::string >( "-load-kinship" ), "" ) ;
+		result = m_options.get< std::string >( "-PCA-prefix" ) ;
+	} else if( m_options.check( "-load-kinship" )) {
+		result = genfile::replace_or_add_extension( m_options.get< std::string >( "-load-kinship" ), "" ) ;
+	} else if( m_options.check( "-load-UDUT" )) {
+		result = genfile::replace_or_add_extension( m_options.get< std::string >( "-load-UDUT" ), "" ) ;
+		if( result.size() > 5 && result.substr( result.size() - 5, result.size() ) == ".UDUT" ) {
+			result = result.substr( 0, result.size() - 5 ) ;
+		}
 	}
+	return result ;
 }
 
 

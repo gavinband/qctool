@@ -13,7 +13,7 @@ public:
 	typedef std::auto_ptr< PCALoadingComputer > UniquePtr ;
 public:
 	PCALoadingComputer( int number_of_loadings ) ;
-	void set_UDUT( Matrix const& udut_decomposition ) ;
+	void set_UDUT( std::size_t number_of_snps, Matrix const& udut_decomposition ) ;
 	void set_number_of_loadings( std::size_t n ) ;
 
 	void begin_processing_snps( std::size_t number_of_samples ) ;
@@ -25,6 +25,7 @@ public:
 	void send_results_to( ResultCallback callback ) ;
 	void send_results( genfile::SNPIdentifyingData const& snp, Eigen::VectorXd const& data, GetNames ) ;
 	
+	std::string get_metadata() const ;
 private:
 	Eigen::MatrixXd m_D ;
 	Eigen::MatrixXd m_U ;

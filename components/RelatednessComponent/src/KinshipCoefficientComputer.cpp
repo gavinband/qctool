@@ -279,9 +279,9 @@ void KinshipCoefficientComputer::end_processing_snps() {
 	}
 	m_result[0].array() /= m_non_missing_count[0].array() ;
 	
-	std::string description = "# Number of SNPs: "
+	std::string description = "Number of SNPs: "
 		+ genfile::string_utils::to_string( m_number_of_snps_processed )
-		+ "\n# Number of samples: "
+		+ "\nNumber of samples: "
 		+ genfile::string_utils::to_string( m_number_of_samples ) ;
 
 	send_results(

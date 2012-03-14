@@ -79,11 +79,12 @@ PCALoadingComputer::PCALoadingComputer( int number_of_loadings ):
 	m_number_of_snps( 1 )
 {}
 
-void PCALoadingComputer::set_UDUT( Matrix const& udut ) {
+void PCALoadingComputer::set_UDUT( std::size_t number_of_snps, Matrix const& udut ) {
 	assert( udut.cols() == udut.rows() + 1 ) ;
 	int n = std::min( int( m_number_of_loadings ), int( udut.rows() ) ) ;
 	m_D = udut.block( 0, 0, n, 1 ) ;
 	m_U = udut.block( 0, 1, udut.rows(), n ) ;
+	m_number_of_snps = number_of_snps ;
 }
 
 void PCALoadingComputer::begin_processing_snps( std::size_t number_of_samples ) {
@@ -158,6 +159,12 @@ void PCALoadingComputer::send_results_to( ResultCallback callback ) {
 
 void PCALoadingComputer::send_results( genfile::SNPIdentifyingData const& snp, Eigen::VectorXd const& data, GetNames get_names ) {
 	m_result_signal( snp, data, get_names ) ;
+}
+
+std::string PCALoadingComputer::get_metadata() const {
+	using namespace genfile::string_utils ;
+	return "Number of SNPs: " + to_string( m_number_of_snps ) + "\n"
+		+ "Number of samples: " + to_string( m_genotype_calls.size() ) ;
 }
 
 void PCALoadingComputer::end_processing_snps() {}

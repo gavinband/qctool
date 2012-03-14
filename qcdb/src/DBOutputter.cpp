@@ -50,7 +50,7 @@ namespace qcdb {
 		) ;
 		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS SummaryData ( "
-			"variant_id INT, analysis_id INT, variable_id INT, value FLOAT, "
+			"variant_id INT, analysis_id INT, variable_id INT, value NONE, "
 			"FOREIGN KEY( variant_id ) REFERENCES Variant( id ), "
 			"FOREIGN KEY( analysis_id ) REFERENCES Entity( id ), "
 			"FOREIGN KEY( variable_id ) REFERENCES Entity( id ) 	"

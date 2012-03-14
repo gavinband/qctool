@@ -27,7 +27,6 @@ PCAComputer::PCAComputer(
 	m_ui_context( ui_context ),
 	m_samples( samples ),
 	m_number_of_samples( samples.get_number_of_individuals() ),
-	m_number_of_snps_processed( 0 ),
 	m_number_of_PCAs_to_compute( 0 ),
 	m_threshhold( 0.9 )
 {
@@ -45,7 +44,7 @@ PCAComputer::PCAComputer(
 	) {
 		m_filename.resize( m_filename.size() - extension.size() ) ;
 	}
-	load_matrix( m_filename + ".csv", &m_kinship_matrix ) ;
+	load_matrix( m_filename + ".csv", &m_kinship_matrix, &m_number_of_snps ) ;
 
 	if( m_options.check( "-PCAs" ) ) {	
 		m_number_of_PCAs_to_compute = std::min( m_options.get< std::size_t >( "-PCAs" ), samples.get_number_of_individuals() ) ;
@@ -89,8 +88,32 @@ namespace {
 	}
 }
 
-void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* matrix ) const {
+void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* matrix, std::size_t* number_of_snps ) const {
 	statfile::BuiltInTypeStatSource::UniquePtr source = statfile::BuiltInTypeStatSource::open( filename ) ;
+
+	using namespace genfile::string_utils ;
+	// Read the metadata
+	std::size_t number_of_samples = 0 ;
+	std::vector< std::string > metadata = split( source->get_descriptive_text(), "\n" ) ;
+	for( std::size_t i = 0; i < metadata.size(); ++i ) {
+		std::vector< std::string > elts = split_and_strip( metadata[i], ":", " " ) ;
+		if( elts.size() == 2 && elts[0] == "Number of SNPs" ) {
+			*number_of_snps = to_repr< std::size_t >( elts[1] ) ;
+		}
+		else if( elts.size() == 2 && elts[0] == "Number of samples" ) {
+			number_of_samples = to_repr< std::size_t >( elts[1] ) ;
+		}
+	}
+	if( number_of_samples != m_samples.get_number_of_individuals() ) {
+		throw genfile::MismatchError(
+			"PCAComputer::load_matrix()",
+			filename,
+			"number of samples: " + to_string( number_of_samples ),
+			"expected number: " + to_string( m_samples.get_number_of_individuals() )
+		) ;
+	}
+
+	// Read the matrix, making sure the samples come in the same order as in the sample file.
 	matrix->resize( m_samples.get_number_of_individuals(), m_samples.get_number_of_individuals() ) ;
 	std::vector< std::size_t > sample_column_indices( m_samples.get_number_of_individuals() ) ;
 	for( std::size_t sample_i = 0; sample_i < m_samples.get_number_of_individuals(); ++sample_i ) {
@@ -103,6 +126,7 @@ void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* mat
 		}
 	}
 
+	// Now apply sample exclusions.
 	for( std::size_t sample_i = 0; sample_i < m_samples.get_number_of_individuals(); ++sample_i ) {
 		std::string id ;
 		// find row corresponding to next sample.
@@ -207,9 +231,13 @@ void PCAComputer::compute_PCA() {
 		
 		
 	}
+	
+	using genfile::string_utils::to_string ;
 
 	send_UDUT(
-		"# Number of samples: " + genfile::string_utils::to_string( m_number_of_samples ),
+		"Number of SNPs: " + to_string( m_number_of_snps ) + "\n" +
+			"Number of samples: " + to_string( m_number_of_samples ),
+		m_number_of_snps,
 		kinship_eigendecomposition,
 		boost::function< genfile::VariantEntry ( int ) >(),
 		boost::bind(
@@ -233,6 +261,7 @@ void PCAComputer::compute_PCA() {
 		//       (1/L) X^t X = U D U^t
 		// is the eigenvalue decomposition of (1/L) X^t X that we are passed in via set_UDUT (and L is the number of SNPs).
 		//
+		// The projections are then given by S^t X = \sqrt(L) U D^{1/2}
 		// We also wish to compute the correlation between the SNP and the PCA component.
 		// With S as above, the PCA components are the projections of columns of X onto columns of S.
 		// If we want samples to correspond to columns, this is
@@ -244,14 +273,15 @@ void PCAComputer::compute_PCA() {
 		m_number_of_PCAs_to_compute = std::min( m_number_of_PCAs_to_compute, m_number_of_samples ) ;
 		m_number_of_PCAs_to_compute = std::min( m_number_of_PCAs_to_compute, m_number_of_snps ) ;
 
-		Eigen::MatrixXd PCA_components = kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_PCAs_to_compute ) ;
-		Eigen::VectorXd PCA_eigenvalues = kinship_eigendecomposition.block( 0, 0, m_number_of_PCAs_to_compute, 1 ) ;
 		// PCAs are given by U D^{1/2}.
+		Eigen::VectorXd PCA_eigenvalues = kinship_eigendecomposition.block( 0, 0, m_number_of_PCAs_to_compute, 1 ) ;
 		Eigen::VectorXd v = PCA_eigenvalues.array().sqrt() ;
-		Eigen::MatrixXd PCAs = PCA_components * v.asDiagonal() ;	
+		Eigen::MatrixXd PCAs
+			= kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_PCAs_to_compute ) * v.asDiagonal() ;	
 
 		send_PCAs(
-			"# Number of samples: " + genfile::string_utils::to_string( m_number_of_samples ),
+			"Number of SNPs: " + to_string( m_number_of_snps ) + "\n" +
+				"Number of samples: " + to_string( m_number_of_samples ),
 			PCA_eigenvalues,
 			PCAs,
 			boost::bind(
@@ -278,8 +308,8 @@ void PCAComputer::send_PCAs_to( PCACallback callback ) {
 	m_PCA_signal.connect( callback ) ;
 }
 
-void PCAComputer::send_UDUT( std::string description, Eigen::MatrixXd const& UDUT, GetNames row_names, GetNames column_names ) {
-	m_UDUT_signal( description, UDUT, row_names, column_names ) ;
+void PCAComputer::send_UDUT( std::string description, std::size_t number_of_snps, Eigen::MatrixXd const& UDUT, GetNames row_names, GetNames column_names ) {
+	m_UDUT_signal( description, number_of_snps, UDUT, row_names, column_names ) ;
 }
 
 void PCAComputer::send_PCAs( std::string description, Eigen::VectorXd const& eigenvalues, Eigen::MatrixXd const& PCAs, GetNames pca_row_names, GetNames pca_column_names ) {
