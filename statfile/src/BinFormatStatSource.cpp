@@ -53,7 +53,7 @@ namespace statfile {
 	}
 
 	std::size_t BinFormatStatSource::number_of_rows() const { return m_number_of_rows ; }
-	std::string const& BinFormatStatSource::get_descriptive_text() const { return m_descriptive_text ; }
+	std::string BinFormatStatSource::get_descriptive_text() const { return m_descriptive_text ; }
 
 	void BinFormatStatSource::reset_to_start() {
 		reset_stream_to( m_header_block_length ) ;

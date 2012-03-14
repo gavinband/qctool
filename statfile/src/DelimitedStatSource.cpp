@@ -169,7 +169,10 @@ namespace statfile {
 		while( stream().peek() == m_comment_character || stream().peek() == '\n' ) {
 			std::getline( stream(), line ) ;
 			if( line.size() > 0 ) {
-				line = line.substr( 1, line.size() ) ; // miss off comment char.
+				line = line.substr( 1, line.size() ) ; // skip comment char
+			}
+			if( line.size() > 0 && line[0] == ' ' ) {
+				line = line.substr( 1, line.size() ) ; // skip space.
 			}
 			if( result.size() > 0 ) {
 				result += '\n' ;
@@ -216,9 +219,6 @@ namespace statfile {
 	// represented in the file as "inf".
 	template<>
 	void DelimitedStatSource::do_read_value< double >( double& value ) {
-		if( current_column() == 0 ) {
-			read_one_line() ;
-		}
 		std::string str_field ;
 		do_read_value< std::string >( str_field ) ;
 		if( str_field == "inf" ) {

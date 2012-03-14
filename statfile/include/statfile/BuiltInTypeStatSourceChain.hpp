@@ -38,7 +38,8 @@ namespace statfile {
 		std::size_t number_of_sources() const ;
 		unsigned int number_of_rows_in_source( std::size_t source_index ) const ;
 		std::vector< unsigned int > get_source_row_counts() const ;
-
+		std::string get_descriptive_text() const { return "" ; }
+		
 	protected:
 		void read_value( int32_t& value ) ;
 		void read_value( uint32_t& value ) ;
