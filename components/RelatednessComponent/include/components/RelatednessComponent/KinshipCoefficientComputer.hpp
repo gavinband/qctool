@@ -47,8 +47,6 @@ namespace impl {
 		std::vector< Eigen::VectorXd > m_genotype_calls ;
 		std::vector< Eigen::VectorXd > m_non_missing_calls ;
 		
-		Eigen::VectorXd m_data ;
-		Eigen::VectorXd m_non_missingness_matrix ;
 		bool m_finalised ;
 	} ;
 }

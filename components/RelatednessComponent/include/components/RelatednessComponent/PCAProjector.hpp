@@ -2,6 +2,7 @@
 #define RELATEDNESS_COMPONENT_PCA_PROJECTOR_HPP
 
 #include <map>
+#include <memory>
 #include <boost/signals2/signal.hpp>
 #include <Eigen/Core>
 #include "genfile/CohortIndividualSource.hpp"
@@ -15,7 +16,9 @@ namespace pca {
 		typedef Eigen::MatrixXd Matrix ;
 		typedef Eigen::VectorXd Vector ;
 		typedef std::auto_ptr< PCAProjector > UniquePtr ;
+
 	public:
+		static UniquePtr create( genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ) ;
 		PCAProjector( genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ) ;
 		
 		void set_loadings( std::vector< genfile::SNPIdentifyingData > const& snps, Matrix const& loadings, std::vector< std::string > const& names ) ;
@@ -25,10 +28,10 @@ namespace pca {
 		void end_processing_snps() ;
 
 		typedef boost::function< genfile::VariantEntry ( std::size_t ) > GetNames ;
-		typedef boost::signals2::signal< void( std::string, Eigen::VectorXd const&, Eigen::MatrixXd const&, GetNames, GetNames ) > ResultSignal ;
+		typedef boost::signals2::signal< void( std::string, Eigen::MatrixXd const&, GetNames, GetNames ) > ResultSignal ;
 		void send_results_to( ResultSignal::slot_type callback ) ;
-		void send_results( std::string description, Eigen::MatrixXd const& projections, GetNames pca_row_names, GetNames pca_column_names ) ;
 
+		std::string get_metadata() const ;
 	private:
 		genfile::CohortIndividualSource const& m_samples ;
 		appcontext::UIContext& m_ui_context ;

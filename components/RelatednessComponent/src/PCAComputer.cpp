@@ -17,6 +17,7 @@
 #include "components/RelatednessComponent/PCAComputer.hpp"
 #include "components/RelatednessComponent/LapackEigenDecomposition.hpp"
 #include "components/RelatednessComponent/names.hpp"
+#include "components/RelatednessComponent/write_matrix_to_stream.hpp"
 
 PCAComputer::PCAComputer(
 	appcontext::OptionProcessor const& options,
@@ -60,25 +61,6 @@ namespace {
 		else {
 			return genfile::VariantEntry( prefix + genfile::string_utils::to_string( value ) ) ;
 		}
-	}
-	
-	
-	template< typename Stream, typename Matrix >
-	void write_matrix_to_stream( Stream& stream, Matrix const& matrix ) {
-		for( int i = 0; i < matrix.rows(); ++i ) {
-			for( int j = 0; j < matrix.rows(); ++j ) {
-				if( matrix( i,j ) != matrix( i,j )) {
-					stream << std::setw( 10 ) << "NA" ;
-				} else if( std::abs( matrix( i, j ) ) < 0.00001 ) {
-					stream << std::setw( 10 ) << "0" ;
-				}
-				else {
-					stream << std::setw( 10 ) << matrix(i,j) ;
-				}
-			}
-			stream << "\n" ;
-		}
-		stream << "\n" ;
 	}
 }
 
@@ -190,10 +172,10 @@ void PCAComputer::compute_PCA() {
 			
 			Eigen::MatrixXd UUT = kinship_eigendecomposition.block( 0, 1, size, m_number_of_samples ) ;
 			UUT *= kinship_eigendecomposition.block( 0, 1, m_number_of_samples, size ).transpose() ;
-			write_matrix_to_stream( m_ui_context.logger(), UUT ) ;
+			pca::write_matrix_to_stream( m_ui_context.logger(), UUT ) ;
 		}
 		m_ui_context.logger() << "Top-left of original kinship matrix is:\n" ;
-		write_matrix_to_stream( m_ui_context.logger(), m_kinship_matrix.block( 0, 0, size, size )) ;
+		pca::write_matrix_to_stream( m_ui_context.logger(), m_kinship_matrix.block( 0, 0, size, size )) ;
 		
 		Eigen::VectorXd v = kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) ;
 		Eigen::MatrixXd reconstructed_kinship_matrix = kinship_eigendecomposition.block( 0, 1, size, m_number_of_samples ) ;
@@ -207,7 +189,7 @@ void PCAComputer::compute_PCA() {
 		}
 
 		m_ui_context.logger() << "Top-left of reconstructed kinship matrix is:\n" ;
-		write_matrix_to_stream( m_ui_context.logger(), reconstructed_kinship_matrix.block( 0, 0, size, size )) ;
+		pca::write_matrix_to_stream( m_ui_context.logger(), reconstructed_kinship_matrix.block( 0, 0, size, size )) ;
 
 		m_ui_context.logger() << "Verifying the decomposition...\n" ;
 		double diff = 0.0 ;
@@ -230,7 +212,9 @@ void PCAComputer::compute_PCA() {
 
 	send_UDUT(
 		"Number of SNPs: " + to_string( m_number_of_snps ) + "\n" +
-			"Number of samples: " + to_string( m_number_of_samples ),
+			"Number of samples: " + to_string( m_number_of_samples ) + "\n"
+			"Note: this file contains an eigenvalue decomposition of the matrix in the file \"" + m_filename + "\"\n" +
+			"The first column contains the eigenvalues of the decomposition, and subsequent columns contain the eigenvectors.",
 		m_number_of_snps,
 		kinship_eigendecomposition,
 		boost::function< genfile::VariantEntry ( int ) >(),

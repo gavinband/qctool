@@ -63,7 +63,7 @@ namespace pca {
 			for( std::size_t j = 0; j < number_of_loadings; ++j ) {
 				(*source) >> (*loadings)(i,j) ;
 			}
-			(*source) >> statfile::end_row() ;
+			(*source) >> statfile::ignore_all() ;
 		}
 		
 		assert( column_names ) ;

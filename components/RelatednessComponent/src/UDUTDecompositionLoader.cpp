@@ -18,7 +18,7 @@ namespace relatedness {
 
 	void UDUTDecompositionLoader::load_matrix( std::string const& filename ) const {
 		Eigen::MatrixXd matrix ;
-		std::size_t number_of_snps ;
+		std::size_t number_of_snps = 0;
 		load_matrix_impl( filename, &matrix, &number_of_snps ) ;
 		m_result_signal( matrix, m_samples.get_number_of_individuals(), number_of_snps ) ;
 	}

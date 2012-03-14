@@ -1,3 +1,5 @@
+#include <iostream>
+#include <iomanip>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/function.hpp>
 #include "../config.hpp"
@@ -19,44 +21,11 @@
 #include "components/RelatednessComponent/KinshipCoefficientComputer.hpp"
 #include "components/RelatednessComponent/PCAComputer.hpp"
 #include "components/RelatednessComponent/mean_centre_genotypes.hpp"
+#include "components/RelatednessComponent/mean_centre_genotypes.hpp"
+
+#define DEBUG_KINSHIP_COEFFICIENT_COMPUTER 1
 
 namespace impl {
-	void write_matrix(
-		std::string const& filename,
-		Eigen::MatrixXd const& matrix,
-		std::string const& source,
-		std::string const& description,
-		boost::function< genfile::VariantEntry ( std::size_t ) > get_row_names,
-		boost::function< genfile::VariantEntry ( std::size_t ) > get_column_names
-	) {
-		statfile::BuiltInTypeStatSink::UniquePtr sink = statfile::BuiltInTypeStatSink::open( filename ) ;
-		sink->write_metadata( "Created by " + source + ", " + appcontext::get_current_time_as_string() ) ;
-		sink->write_metadata( "# Description: " + description ) ;
-
-		if( get_row_names ) {
-			(*sink) | "id" ;
-		}
-		for( int j = 0; j < matrix.cols(); ++j ) {
-			(*sink) | genfile::string_utils::to_string( get_column_names( j ) ) ;
-		}
-
-		for( int i = 0; i < matrix.rows(); ++i ) {
-			if( get_row_names ) {
-				(*sink) << genfile::string_utils::to_string( get_row_names(i) ) ;
-			}
-			for( int j = 0; j < matrix.cols(); ++j ) {
-				double const& value = matrix( i, j ) ;
-				if( value == value ) {
-					(*sink) << value ;
-				}
-				else {
-					(*sink) << "NA" ;
-				}
-			}
-			(*sink) << statfile::end_row() ;
-		}
-	}
-
 	KinshipCoefficientComputerTask::KinshipCoefficientComputerTask(
 		std::size_t number_of_samples,
 		Eigen::MatrixXd* result,
@@ -66,8 +35,6 @@ namespace impl {
 		m_result( result ),
 		m_non_missing_count( missing_count ),
 		m_threshhold( 0.9 ),
-		m_data( Eigen::VectorXd::Constant( m_number_of_samples, std::numeric_limits< double >::quiet_NaN() ) ),
-		m_non_missingness_matrix( Eigen::VectorXd::Zero( m_number_of_samples ) ),
 		m_finalised( false )
 	{}
 
@@ -86,15 +53,20 @@ namespace impl {
 
 	void KinshipCoefficientComputerTask::operator()() {
 		for( std::size_t snp_i = 0; snp_i < m_id_data.size(); ++snp_i ) {
-			Eigen::VectorXd& data = m_genotype_calls[ snp_i ] ;
-			Eigen::VectorXd& non_missingness_matrix = m_non_missingness_matrix ;
-			double allele_frequency = data.sum() / ( 2.0 * m_non_missing_calls[ snp_i ].sum() ) ;
+			Eigen::VectorXd& genotype_calls = m_genotype_calls[ snp_i ] ;
+			Eigen::VectorXd& non_missingness_matrix = m_non_missing_calls[ snp_i ] ;
+			double allele_frequency = genotype_calls.sum() / ( 2.0 * m_non_missing_calls[ snp_i ].sum() ) ;
 			if( allele_frequency > 0.01 ) {
-				//std::cerr << "SNP: " << m_id_data[ snp_i ] << ": freq = " << allele_frequency << ", uncentred genotypes are: " << data.transpose().head( 20 ) << "...\n" ;
-				pca::mean_centre_genotypes( &data, m_non_missing_calls[snp_i], allele_frequency ) ;
-
-				//std::cerr << std::setprecision( 5 ) ;
-				//std::cerr << "mean-centred genotypes are: " << data.transpose().head( 20 ) << "...\n" ;
+#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+				std::cerr << std::resetiosflags( std::ios::floatfield ) << std::setprecision( 5 ) ;
+				std::cerr << "SNP: " << m_id_data[ snp_i ] << ": freq = " << allele_frequency << ", uncentred genotypes are: " << genotype_calls.transpose().head( 20 ) << "...\n" ;
+#endif
+				pca::mean_centre_genotypes( &genotype_calls, non_missingness_matrix, allele_frequency ) ;
+				
+#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+				std::cerr << "mean-centred genotypes are: " << genotype_calls.transpose().head( 20 ) << "...\n" ;
+				std::cerr << "non-missingness is: " << non_missingness_matrix.transpose().head( 20 ) << "...\n" ;
+#endif
 #if HAVE_CBLAS
 				// CBLAS is faster for this usage.  Don't know why.
 				cblas_dsyr(
@@ -102,7 +74,7 @@ namespace impl {
 					CblasLower,
 					m_number_of_samples,
 					1.0 / ( 2.0 * allele_frequency * ( 1.0 - allele_frequency )),
-					data.data(),
+					genotype_calls.data(),
 					1,
 					m_result->data(),
 					m_number_of_samples
@@ -119,7 +91,7 @@ namespace impl {
 					m_number_of_samples
 				) ;
 #else
-				m_result->selfadjointView< Eigen::Lower >().rankUpdate( data, 1.0 / ( 2.0 * allele_frequency * ( 1.0 - allele_frequency ) ) ) ;
+				m_result->selfadjointView< Eigen::Lower >().rankUpdate( genotype_calls, 1.0 / ( 2.0 * allele_frequency * ( 1.0 - allele_frequency ) ) ) ;
 				m_non_missing_count->selfadjointView< Eigen::Lower >().rankUpdate( non_missingness_matrix, 1.0 ) ;
 #endif
 			} else {
