@@ -16,6 +16,7 @@
 #include "appcontext/UIContext.hpp"
 #include "components/RelatednessComponent/PCAComputer.hpp"
 #include "components/RelatednessComponent/LapackEigenDecomposition.hpp"
+#include "components/RelatednessComponent/names.hpp"
 
 PCAComputer::PCAComputer(
 	appcontext::OptionProcessor const& options,
@@ -52,10 +53,6 @@ PCAComputer::PCAComputer(
 }
 
 namespace {
-	std::string get_concatenated_ids( genfile::CohortIndividualSource const* samples, std::size_t i ) {
-		return samples->get_entry( i, "id_1" ).as< std::string >() + ":" + samples->get_entry( i, "id_2" ).as< std::string >() ;
-	}
-	
 	genfile::VariantEntry get_eigendecomposition_header( std::string const& prefix, int value ) {
 		if( value == 0 ) {
 			return genfile::VariantEntry( "eigenvalue" ) ;
@@ -65,9 +62,6 @@ namespace {
 		}
 	}
 	
-	std::string string_and_number( std::string const& s, std::size_t i ) {
-		return s + genfile::string_utils::to_string( i ) ;
-	}
 	
 	template< typename Stream, typename Matrix >
 	void write_matrix_to_stream( Stream& stream, Matrix const& matrix ) {
@@ -117,7 +111,7 @@ void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* mat
 	matrix->resize( m_samples.get_number_of_individuals(), m_samples.get_number_of_individuals() ) ;
 	std::vector< std::size_t > sample_column_indices( m_samples.get_number_of_individuals() ) ;
 	for( std::size_t sample_i = 0; sample_i < m_samples.get_number_of_individuals(); ++sample_i ) {
-		sample_column_indices[sample_i] = source->index_of_column( get_concatenated_ids( &m_samples, sample_i )) ;
+		sample_column_indices[sample_i] = source->index_of_column( pca::get_concatenated_sample_ids( &m_samples, sample_i )) ;
 		if( sample_i > 0 ) {
 			if( sample_column_indices[sample_i] <= sample_column_indices[sample_i-1] ) {
 				m_ui_context.logger() << "!! Error in PCAComputer::load_matrix(): column order does not match samples.\n" ;
@@ -130,7 +124,7 @@ void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* mat
 	for( std::size_t sample_i = 0; sample_i < m_samples.get_number_of_individuals(); ++sample_i ) {
 		std::string id ;
 		// find row corresponding to next sample.
-		for( (*source) >> id; (*source) && id != get_concatenated_ids( &m_samples, sample_i ); (*source) >> statfile::ignore_all() >> id ) ;
+		for( (*source) >> id; (*source) && id != pca::get_concatenated_sample_ids( &m_samples, sample_i ); (*source) >> statfile::ignore_all() >> id ) ;
 		if( !(*source) || source->number_of_rows_read() == source->number_of_rows() ) {
 			throw genfile::MalformedInputError( source->get_source_spec(), source->number_of_rows_read(), 0 ) ;
 		}
@@ -277,20 +271,24 @@ void PCAComputer::compute_PCA() {
 		Eigen::VectorXd PCA_eigenvalues = kinship_eigendecomposition.block( 0, 0, m_number_of_PCAs_to_compute, 1 ) ;
 		Eigen::VectorXd v = PCA_eigenvalues.array().sqrt() ;
 		Eigen::MatrixXd PCAs
-			= kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_PCAs_to_compute ) * v.asDiagonal() ;	
+			= kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_PCAs_to_compute ) * v.asDiagonal() ;
 
 		send_PCAs(
 			"Number of SNPs: " + to_string( m_number_of_snps ) + "\n" +
-				"Number of samples: " + to_string( m_number_of_samples ),
+			"Number of samples: " + to_string( m_number_of_samples ) + "\n" +
+			"Note: these PCAs are 1/sqrt(L) times the projection of samples onto unit eigenvectors of the variance-covariance matrix\n"
+			"    1/(L-1) X X^t,\n"
+			"where X is the L x N matrix of genotypes, L is the number of SNPs, and N the number of samples.\n"
+			"The constant 1/sqrt(L) ensures that the PCAs do not grow with the number of SNPs.",
 			PCA_eigenvalues,
 			PCAs,
 			boost::bind(
-				&get_concatenated_ids,
+				&pca::get_concatenated_sample_ids,
 				&m_samples,
 				_1
 			),
 			boost::bind(
-				&string_and_number,
+				&pca::string_and_number,
 				"PCA_",
 				_1
 			)

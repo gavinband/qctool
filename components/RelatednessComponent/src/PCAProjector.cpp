@@ -1,0 +1,114 @@
+#include <vector>
+#include <Eigen/Core>
+#include "genfile/SNPDataSourceProcessor.hpp"
+#include "genfile/string_utils.hpp"
+#include "genfile/Error.hpp"
+#include "genfile/vcf/get_set_eigen.hpp"
+#include "components/RelatednessComponent/PCAProjector.hpp"
+#include "components/RelatednessComponent/mean_centre_genotypes.hpp"
+#include "components/RelatednessComponent/names.hpp"
+
+namespace pca {
+	PCAProjector::PCAProjector( genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ):
+		m_samples( samples ),
+	 	m_ui_context( ui_context )
+	{}
+
+	void PCAProjector::set_loadings( std::vector< genfile::SNPIdentifyingData > const& snps, Matrix const& loadings, std::vector< std::string > const& names ) {
+		using genfile::string_utils::to_string ;
+		if( snps.size() != std::size_t( loadings.rows() ) ) {
+			throw genfile::MismatchError(
+				"relatedness::PCAProjector::set_loadings()",
+				"(function arguments)",
+				"snp.size()=" + to_string( snps.size() ),
+				"loadings.rows()=" + to_string( loadings.rows() )
+			) ;
+		}
+		if( names.size() != std::size_t( loadings.cols() ) ) {
+			throw genfile::MismatchError(
+				"relatedness::PCAProjector::set_loadings()",
+				"(function arguments)",
+				"names.size()=" + to_string( names.size() ),
+				"loadings.cols()=" + to_string( loadings.cols() )
+			) ;
+		}
+		for( std::size_t i = 0; i < snps.size(); ++i ) {
+			std::pair< SnpMap::const_iterator, bool > where = m_snps.insert( std::make_pair( snps[i], int( i ) ) ) ;
+			if( !where.second ) {
+				throw genfile::DuplicateKeyError( "snps argument to pca::PCAProjector::set_loadings()", to_string( snps[i] )) ;
+			}
+		}
+		m_loadings = loadings ;
+		m_names = names ;
+	}
+
+	void PCAProjector::begin_processing_snps( std::size_t number_of_samples ) {
+		m_projections.setZero( number_of_samples, m_loadings.cols() ) ;
+	}
+
+	void PCAProjector::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
+		SnpMap::const_iterator where = m_snps.find( snp ) ;
+		if( where != m_snps.end() ) {
+			genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( m_genotype_calls, m_non_missingness, 0.9, 0, 0, 1, 2 ) ;
+			data_reader.get( "genotypes", setter ) ;
+			assert( m_genotype_calls.size() == m_projections.size() ) ;
+			assert( m_non_missingness.size() == m_genotype_calls.size() ) ;
+			double const allele_frequency = m_genotype_calls.sum() / ( 2.0 * m_non_missingness.sum() ) ;
+			mean_centre_genotypes( &m_genotype_calls, m_non_missingness, allele_frequency ) ;
+
+			//
+			// We have loadings for C components as columns of m_loadings.
+			// We have calls for N samples as entries of m_genotype_calls
+			// We wish to get a matrix with samples as rows and projections as columns.
+			// We therefore compute a Kronecker product of the column vectors of genotype calls
+			// with the row vector of loadings for that SNP.
+			//
+
+			m_projections += m_genotype_calls * m_loadings.row( where->second ) ;
+			m_visited[ snp ] = true ;
+		}
+	}
+
+	void PCAProjector::end_processing_snps() {
+		diagnose_projection() ;
+		using genfile::string_utils::to_string ;
+		send_results(
+			"Number of SNPs: " + to_string( m_snps.size() ) + "\n" +
+			"Number of samples: " + to_string( m_projections.size() ) + "\n" +
+			"Note: these PCAs are 1/sqrt(L) times the projection of samples onto unit eigenvectors of the variance-covariance matrix\n"
+			"    1/(L-1) X X^t,\n"
+			"where X is the L x N matrix of genotypes, L is the number of SNPs, and N the number of samples.\n"
+			"The constant 1/sqrt(L) ensures that the PCAs do not grow with the number of SNPs.",
+			m_projections,
+			boost::bind(
+				&pca::get_concatenated_sample_ids,
+				&m_samples,
+				_1
+			),
+			boost::bind(
+				&pca::get_entry,
+				m_names,
+				_1
+			)
+		) ;
+	}
+
+	void PCAProjector::diagnose_projection() const {
+		{
+			std::size_t missing_count = 0 ;
+			for( SnpMap::const_iterator i = m_snps.begin(); i != m_snps.end(); ++i ) {
+				VisitedSnpMap::const_iterator where = m_visited.find( i->first ) ;
+				if( where == m_visited.end() ) {
+					if( missing_count == 0 ) {
+						m_ui_context.logger() << "!! ( pca::PCAProjector::diagnose_projection() ): "
+							<< "The following SNPs with loadings were not used in the projection computation:\n" ;
+					}
+					m_ui_context.logger() << "    " << i->first << "\n" ;
+					++missing_count ;
+				}
+			}
+			m_ui_context.logger() << "++ ( pca::PCAProjector::diagnose_projection() ): a total of " << m_snps.size() - missing_count
+				<< " of " << m_snps.size() << " loading SNPs were used in the projection computation.\n" ;
+		}
+	}
+}

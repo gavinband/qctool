@@ -14,25 +14,9 @@
 #include "appcontext/get_current_time_as_string.hpp"
 #include "components/RelatednessComponent/PCALoadingComputer.hpp"
 #include "components/RelatednessComponent/LapackEigenDecomposition.hpp"
+#include "components/RelatednessComponent/mean_centre_genotypes.hpp"
 
 namespace {
-	void mean_centre_genotypes( 
-		Eigen::VectorXd* threshholded_genotypes,
-		Eigen::VectorXd const& non_missingness_matrix,
-		double allele_frequency
-	) {
-		std::size_t const number_of_samples = threshholded_genotypes->size() ;
-		assert( std::size_t( non_missingness_matrix.size() ) == number_of_samples ) ;
-		for( std::size_t sample_i = 0; sample_i < number_of_samples; ++sample_i ) {
-			if( non_missingness_matrix( sample_i ) ) {
-				(*threshholded_genotypes)( sample_i ) -= 2.0 * allele_frequency ;
-			}
-			else {
-				(*threshholded_genotypes)( sample_i ) = 0.0 ; // this sample does not contribute for this SNP.
-			}
-		}
-	}
-	
 	template< typename Vector1, typename Vector2, typename NonMissingVector >
 	double compute_correlation( Vector1 const& v1, Vector2 const& v2, NonMissingVector const& non_missingness_indicator ) {
 		assert( v1.size() == v2.size() ) ;
@@ -100,7 +84,7 @@ void PCALoadingComputer::processed_snp( genfile::SNPIdentifyingData const& snp, 
 	assert( m_non_missingness.size() == m_U.rows() ) ;
 	double const allele_frequency = m_genotype_calls.sum() / ( 2.0 * m_non_missingness.sum() ) ;
 	//std::cerr << "pre-mean genotypes are: " << m_genotype_calls.head( 20 ).transpose() << "...\n" ;
-	mean_centre_genotypes( &m_genotype_calls, m_non_missingness, allele_frequency ) ;
+	pca::mean_centre_genotypes( &m_genotype_calls, m_non_missingness, allele_frequency ) ;
 
 	//std::cerr << "                    SNP: " << snp << ", allele frequency = " << allele_frequency << ".\n" ;
 	//std::cerr << std::resetiosflags( std::ios::floatfield ) << std::setprecision( 5 ) ;
@@ -110,6 +94,10 @@ void PCALoadingComputer::processed_snp( genfile::SNPIdentifyingData const& snp, 
 	//std::cerr << "     non-missingness is: " << m_non_missingness.head( 20 ).transpose() << "...\n" ;
 	//std::cerr << "                   U is: " << m_U.block(0,0,10,10) << "...\n" ;
 	//std::cerr << "                   D is: " << m_D << "...\n" ;
+
+	// setup the storage
+	m_loading_vectors.resize( 2 * m_D.rows() ) ;
+	m_loading_vectors.setConstant( std::numeric_limits< double >::quiet_NaN() ) ;
 
 	//
 	// Let X  be the L\times n matrix (L SNPs, n samples) of (mean-centred, scaled) genotypes.  We want
@@ -123,10 +111,8 @@ void PCALoadingComputer::processed_snp( genfile::SNPIdentifyingData const& snp, 
 	// is the eigenvalue decomposition of (1/L) X^t X that we are passed in via set_UDUT (and L is the number of SNPs).
 	//
 	// Here we must compute a single row of S.
-	m_loading_vectors.resize( 2 * m_D.rows() ) ;
-
-	m_loading_vectors.setConstant( std::numeric_limits< double >::quiet_NaN() ) ;
 	m_loading_vectors.segment( 0, m_U.cols() ) = ( m_genotype_calls.transpose() * m_U ).array() / ( ( m_D.transpose().array() * m_number_of_snps ).sqrt() ) ;
+
 	// We also wish to compute the correlation between the SNP and the PCA component.
 	// With S as above, the PCA components are the projections of columns of X onto columns of S.
 	// If we want samples to correspond to columns, this is
@@ -164,7 +150,7 @@ void PCALoadingComputer::send_results( genfile::SNPIdentifyingData const& snp, E
 std::string PCALoadingComputer::get_metadata() const {
 	using namespace genfile::string_utils ;
 	return "Number of SNPs: " + to_string( m_number_of_snps ) + "\n"
-		+ "Number of samples: " + to_string( m_genotype_calls.size() ) ;
+		+ "Number of samples: " + to_string( m_U.rows() ) ;
 }
 
 void PCALoadingComputer::end_processing_snps() {}

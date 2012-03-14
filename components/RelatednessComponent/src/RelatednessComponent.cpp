@@ -14,6 +14,7 @@
 #include "components/RelatednessComponent/KinshipCoefficientComputer.hpp"
 #include "components/RelatednessComponent/PCALoadingComputer.hpp"
 #include "components/RelatednessComponent/UDUTDecompositionLoader.hpp"
+#include "components/RelatednessComponent/PCALoadingLoader.hpp"
 
 void RelatednessComponent::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "Kinship options" ) ;
@@ -211,8 +212,8 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 			statfile::BuiltInTypeStatSink::open( get_PCA_filename_prefix() + ".loadings.csv" ).release()
 		) ;
 		
-		loadings_file->set_descriptive_text( 
-			"# Created by qctool::PCALoadingComputer, " + appcontext::get_current_time_as_string() + "\n"
+		loadings_file->write_metadata( 
+			"Created by qctool::PCALoadingComputer, " + appcontext::get_current_time_as_string() + "\n"
 			+ loading_computer->get_metadata()
 		) ;
 
@@ -228,6 +229,12 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 			genfile::SNPDataSourceProcessor::Callback::UniquePtr( loading_computer.release() )
 		) ;
 	}
+	
+	if( m_options.check( "-project-onto" )) {
+		pca::PCALoadingLoader loader( m_samples ) ;
+	}
+	
+	
 	if( pca_computer.get() ) {
 		pca_computer->compute_PCA() ;
 	}

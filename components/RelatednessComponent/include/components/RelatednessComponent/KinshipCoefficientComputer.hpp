@@ -44,7 +44,8 @@ namespace impl {
 		Eigen::MatrixXd* m_non_missing_count ;
 		double const m_threshhold ;
 		std::vector< genfile::SNPIdentifyingData > m_id_data ;
-		std::vector< genfile::SingleSNPGenotypeProbabilities > m_genotypes ;
+		std::vector< Eigen::VectorXd > m_genotype_calls ;
+		std::vector< Eigen::VectorXd > m_non_missing_calls ;
 		
 		Eigen::VectorXd m_data ;
 		Eigen::VectorXd m_non_missingness_matrix ;
