@@ -20,7 +20,8 @@ namespace pca {
 
 	PCAProjector::PCAProjector( genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ):
 		m_samples( samples ),
-	 	m_ui_context( ui_context )
+	 	m_ui_context( ui_context ),
+		m_snps( genfile::SNPIdentifyingData::CompareFields( "position" ))
 	{}
 
 	void PCAProjector::set_loadings( std::vector< genfile::SNPIdentifyingData > const& snps, Matrix const& loadings, std::vector< std::string > const& names ) {

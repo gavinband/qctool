@@ -35,7 +35,7 @@ namespace pca {
 	private:
 		genfile::CohortIndividualSource const& m_samples ;
 		appcontext::UIContext& m_ui_context ;
-		typedef std::map< genfile::SNPIdentifyingData, int > SnpMap ;
+		typedef std::map< genfile::SNPIdentifyingData, int, genfile::SNPIdentifyingData::CompareFields > SnpMap ;
 		SnpMap m_snps ;
 		Eigen::MatrixXd m_loadings ;
 		std::vector< std::string > m_names ;
