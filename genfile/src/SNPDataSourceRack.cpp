@@ -198,34 +198,35 @@ namespace genfile {
 		m_sources[0]->get_snp_identifying_data( this_snp ) ;
 		if( *this ) {
 			// We will report ?'s in any field that differs between cohorts.
-			SNPIdentifyingData consensus_snp = this_snp ;
 			for( std::size_t i = 1; i < m_sources.size(); ++i ) {
 				SNPIdentifyingData this_source_snp = move_source_to_snp_matching(
 					i,
 					this_snp
 				) ;
-				if( this_source_snp.get_SNPID() != consensus_snp.get_SNPID() ) {
-					consensus_snp.SNPID() += "/" + this_source_snp.get_SNPID() ;
-				}
-				if( this_source_snp.get_rsid() != consensus_snp.get_rsid() ) {
-					consensus_snp.rsid() += "/" + this_source_snp.get_SNPID() ;
-				}
-				if( this_source_snp.get_first_allele() != consensus_snp.get_first_allele() ) {
-					consensus_snp.first_allele() = '?' ;
-				}
-				if( this_source_snp.get_second_allele() != consensus_snp.get_second_allele() ) {
-					consensus_snp.second_allele() = '?' ;
+				if( *this ) {
+					if( this_source_snp.get_SNPID() != this_snp.get_SNPID() ) {
+						this_snp.SNPID() += "/" + this_source_snp.get_SNPID() ;
+					}
+					if( this_source_snp.get_rsid() != this_snp.get_rsid() ) {
+						this_snp.rsid() += "/" + this_source_snp.get_SNPID() ;
+					}
+					if( this_source_snp.get_first_allele() != this_snp.get_first_allele() ) {
+						this_snp.first_allele() = '?' ;
+					}
+					if( this_source_snp.get_second_allele() != this_snp.get_second_allele() ) {
+						this_snp.second_allele() = '?' ;
+					}
 				}
 			}
 		
 			if( *this ) {
 				set_number_of_samples( m_number_of_samples ) ;
-				set_SNPID( consensus_snp.get_SNPID() ) ;
-				set_RSID( consensus_snp.get_rsid() ) ;
-				set_chromosome( consensus_snp.get_position().chromosome() ) ;
-				set_SNP_position( consensus_snp.get_position().position() ) ;
-				set_allele1( consensus_snp.get_first_allele() ) ;
-				set_allele2( consensus_snp.get_second_allele() ) ;
+				set_SNPID( this_snp.get_SNPID() ) ;
+				set_RSID( this_snp.get_rsid() ) ;
+				set_chromosome( this_snp.get_position().chromosome() ) ;
+				set_SNP_position( this_snp.get_position().position() ) ;
+				set_allele1( this_snp.get_first_allele() ) ;
+				set_allele2( this_snp.get_second_allele() ) ;
 			}
 		}
 	}
@@ -257,10 +258,6 @@ namespace genfile {
 
 			m_sources[source_i]->ignore_snp_probability_data() ;
 		}
-        std::cerr << "|| Error in source " << source_i << ":\n"
-                << reference_snp << ",\n"
-                << this_snp << ".\n" ;
-		throw MissingSNPError( source_i, reference_snp ) ;
 	}
 		
 
