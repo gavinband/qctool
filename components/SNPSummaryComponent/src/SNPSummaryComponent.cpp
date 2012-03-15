@@ -24,6 +24,7 @@ void SNPSummaryComputationManager::add_result_callback( ResultCallback callback 
 
 void SNPSummaryComputationManager::begin_processing_snps( std::size_t number_of_samples ) {
 	m_snp_index = 0 ;
+	m_genotypes.resize( number_of_samples, 3 ) ;
 }
 
 void SNPSummaryComputationManager::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {

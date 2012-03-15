@@ -24,9 +24,8 @@ namespace impl {
 		~SampleDBOutputter() ;
 
 		void operator()(
-			std::size_t index,
-			genfile::SNPIdentifyingData const& snp,
 			std::string const& computation_name,
+			std::string const& snp_set,
 			std::string const& variable,
 			genfile::VariantEntry const& value
 		) ;
@@ -42,14 +41,10 @@ namespace impl {
 
 		db::Connection::StatementPtr m_find_sample_statement ;
 		db::Connection::StatementPtr m_insert_sample_statement ;
-		db::Connection::StatementPtr m_find_entity_statement ;
-		db::Connection::StatementPtr m_find_entity_with_description_statement ;
-		db::Connection::StatementPtr m_find_entity_data_statement ;
-		db::Connection::StatementPtr m_insert_entity_statement ;
-		db::Connection::StatementPtr m_insert_entity_data_statement ;
 		db::Connection::StatementPtr m_insert_sampledata_statement ;
+
 		db::Connection::RowId m_analysis_id ;
-		typedef std::vector< boost::tuple< genfile::SNPIdentifyingData, std::string, genfile::VariantEntry > > Data ;
+		typedef std::vector< boost::tuple< std::string, std::string, std::string, genfile::VariantEntry > > Data ;
 		Data m_data ;
 
 	private:
