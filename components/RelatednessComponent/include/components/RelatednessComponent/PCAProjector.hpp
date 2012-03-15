@@ -35,7 +35,7 @@ namespace pca {
 	private:
 		genfile::CohortIndividualSource const& m_samples ;
 		appcontext::UIContext& m_ui_context ;
-		typedef std::map< genfile::SNPIdentifyingData, int, genfile::SNPIdentifyingData::CompareFields > SnpMap ;
+		typedef std::map< genfile::GenomePosition, int > SnpMap ;
 		SnpMap m_snps ;
 		Eigen::MatrixXd m_loadings ;
 		std::vector< std::string > m_names ;
@@ -44,7 +44,7 @@ namespace pca {
 		Eigen::MatrixXd m_projections ;
 	
 		// m_visited keeps track of which SNPs have been used in the projection.
-		typedef std::map< genfile::SNPIdentifyingData, bool > VisitedSnpMap ;
+		typedef std::map< genfile::GenomePosition, bool > VisitedSnpMap ;
 		VisitedSnpMap m_visited ;
 	
 		ResultSignal m_result_signal ;

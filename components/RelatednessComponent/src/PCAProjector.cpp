@@ -20,8 +20,7 @@ namespace pca {
 
 	PCAProjector::PCAProjector( genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ):
 		m_samples( samples ),
-	 	m_ui_context( ui_context ),
-		m_snps( genfile::SNPIdentifyingData::CompareFields( "position" ))
+	 	m_ui_context( ui_context )
 	{}
 
 	void PCAProjector::set_loadings( std::vector< genfile::SNPIdentifyingData > const& snps, Matrix const& loadings, std::vector< std::string > const& names ) {
@@ -43,7 +42,7 @@ namespace pca {
 			) ;
 		}
 		for( std::size_t i = 0; i < snps.size(); ++i ) {
-			std::pair< SnpMap::const_iterator, bool > where = m_snps.insert( std::make_pair( snps[i], int( i ) ) ) ;
+			std::pair< SnpMap::const_iterator, bool > where = m_snps.insert( std::make_pair( snps[i].get_position(), int( i ) ) ) ;
 			if( !where.second ) {
 				throw genfile::DuplicateKeyError( "snps argument to pca::PCAProjector::set_loadings()", to_string( snps[i] )) ;
 			}
@@ -66,7 +65,7 @@ namespace pca {
 	}
 
 	void PCAProjector::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
-		SnpMap::const_iterator where = m_snps.find( snp ) ;
+		SnpMap::const_iterator where = m_snps.find( snp.get_position() ) ;
 		if( where != m_snps.end() ) {
 			genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( m_genotype_calls, m_non_missingness, 0.9, 0, 0, 1, 2 ) ;
 			data_reader.get( "genotypes", setter ) ;
@@ -94,7 +93,7 @@ namespace pca {
 				//
 				m_projections += m_genotype_calls * m_loadings.row( where->second ) ;
 			}
-			m_visited[ snp ] = true ;
+			m_visited[ snp.get_position() ] = true ;
 		}
 	}
 
