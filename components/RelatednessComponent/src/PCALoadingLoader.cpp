@@ -46,9 +46,6 @@ namespace pca {
 		if( source->number_of_columns() < 7 ) {
 			throw genfile::MalformedInputError( source->get_source_spec(), 0, source->number_of_columns() ) ;
 		}
-		if( source->number_of_rows() != number_of_snps ) {
-			throw genfile::MalformedInputError( source->get_source_spec(), 0, std::min( source->number_of_rows(), number_of_samples )) ;
-		}
 		if( ( source->number_of_columns() - 6 ) % 2 != 0 ) {
 			throw genfile::MalformedInputError( source->get_source_spec(), 0, source->number_of_columns() ) ;
 		}
