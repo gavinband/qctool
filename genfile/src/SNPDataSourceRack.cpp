@@ -196,7 +196,7 @@ namespace genfile {
 		
 		SNPIdentifyingData this_snp ;
 		std::size_t last_matching_source = 0 ;
-		while( m_sources[0]->get_snp_identifying_data( this_snp ) && last_matching_source < m_sources.size() ) {
+		while( (*this) && m_sources[0]->get_snp_identifying_data( this_snp ) && last_matching_source < m_sources.size() ) {
 			// We will report ?'s in any field that differs between cohorts.
 			SNPIdentifyingData this_source_snp ;
 			last_matching_source = 1 ;
@@ -216,6 +216,9 @@ namespace genfile {
 				if( this_source_snp.get_second_allele() != this_snp.get_second_allele() ) {
 					this_snp.second_allele() = '?' ;
 				}
+			}
+			if( (*this) && last_matching_source < m_sources.size() ) {
+				m_sources[0]->ignore_snp_probability_data() ;
 			}
 		}
 		if( *this ) {
