@@ -195,39 +195,37 @@ namespace genfile {
 		}
 		
 		SNPIdentifyingData this_snp ;
-		m_sources[0]->get_snp_identifying_data( this_snp ) ;
-		if( *this ) {
+		std::size_t last_matching_source = 0 ;
+		while( m_sources[0]->get_snp_identifying_data( this_snp ) && last_matching_source < m_sources.size() ) {
 			// We will report ?'s in any field that differs between cohorts.
-			for( std::size_t i = 1; i < m_sources.size(); ++i ) {
-				SNPIdentifyingData this_source_snp = move_source_to_snp_matching(
-					i,
-					this_snp
-				) ;
-				if( *this ) {
-					if( this_source_snp.get_SNPID() != this_snp.get_SNPID() ) {
-						this_snp.SNPID() += "/" + this_source_snp.get_SNPID() ;
-					}
-					if( this_source_snp.get_rsid() != this_snp.get_rsid() ) {
-						this_snp.rsid() += "/" + this_source_snp.get_SNPID() ;
-					}
-					if( this_source_snp.get_first_allele() != this_snp.get_first_allele() ) {
-						this_snp.first_allele() = '?' ;
-					}
-					if( this_source_snp.get_second_allele() != this_snp.get_second_allele() ) {
-						this_snp.second_allele() = '?' ;
-					}
+			SNPIdentifyingData this_source_snp ;
+			last_matching_source = 1 ;
+			for( ;
+				last_matching_source < m_sources.size() && move_source_to_snp_matching( last_matching_source, this_snp, &this_source_snp );
+				++last_matching_source
+			) {
+				if( this_source_snp.get_SNPID() != this_snp.get_SNPID() ) {
+					this_snp.SNPID() += "/" + this_source_snp.get_SNPID() ;
+				}
+				if( this_source_snp.get_rsid() != this_snp.get_rsid() ) {
+					this_snp.rsid() += "/" + this_source_snp.get_SNPID() ;
+				}
+				if( this_source_snp.get_first_allele() != this_snp.get_first_allele() ) {
+					this_snp.first_allele() = '?' ;
+				}
+				if( this_source_snp.get_second_allele() != this_snp.get_second_allele() ) {
+					this_snp.second_allele() = '?' ;
 				}
 			}
-		
-			if( *this ) {
-				set_number_of_samples( m_number_of_samples ) ;
-				set_SNPID( this_snp.get_SNPID() ) ;
-				set_RSID( this_snp.get_rsid() ) ;
-				set_chromosome( this_snp.get_position().chromosome() ) ;
-				set_SNP_position( this_snp.get_position().position() ) ;
-				set_allele1( this_snp.get_first_allele() ) ;
-				set_allele2( this_snp.get_second_allele() ) ;
-			}
+		}
+		if( *this ) {
+			set_number_of_samples( m_number_of_samples ) ;
+			set_SNPID( this_snp.get_SNPID() ) ;
+			set_RSID( this_snp.get_rsid() ) ;
+			set_chromosome( this_snp.get_position().chromosome() ) ;
+			set_SNP_position( this_snp.get_position().position() ) ;
+			set_allele1( this_snp.get_first_allele() ) ;
+			set_allele2( this_snp.get_second_allele() ) ;
 		}
 	}
 
@@ -235,9 +233,10 @@ namespace genfile {
 	// which has the given chromosome and SNP position.
 	// If no such SNP is found, throw MissingSNPError.
 	// If such a SNP is found but it has different SNPID, RSID, or alleles, throw SNPMismatchError.
-	SNPIdentifyingData SNPDataSourceRack::move_source_to_snp_matching(
+	bool SNPDataSourceRack::move_source_to_snp_matching(
 		std::size_t source_i,
-		SNPIdentifyingData const& reference_snp
+		SNPIdentifyingData const& reference_snp,
+		SNPIdentifyingData* result
 	) {
 		SNPIdentifyingData this_snp ;
 		
@@ -253,11 +252,13 @@ namespace genfile {
 			reference_snp.get_position().position()
 		) ) {
 			if( m_comparator.are_equal( this_snp, reference_snp )) {
-				return this_snp ;
+				*result = this_snp ;
+				return true ;
 			}
 
 			m_sources[source_i]->ignore_snp_probability_data() ;
 		}
+		return false ;
 	}
 		
 

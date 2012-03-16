@@ -98,9 +98,10 @@ namespace genfile {
 	
 	private:
 		
-		SNPIdentifyingData move_source_to_snp_matching(
+		bool move_source_to_snp_matching(
 			std::size_t source_i,
-			SNPIdentifyingData const& reference_snp
+			SNPIdentifyingData const& reference_snp,
+			SNPIdentifyingData* result
 		) ;
 		
 		std::vector< SNPIdentifyingData > get_intersected_snps(
