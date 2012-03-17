@@ -135,19 +135,11 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 		if( filename.empty() ) {
 			filename = genfile::strip_gen_file_extension_if_present( m_options.get< std::string >( "-g" ) ) + ".qcdb";
 		}
-		std::string sample_set_spec = "" ;
-		if( m_options.check( "-excl-samples" )) {
-			sample_set_spec += "excluded:" + genfile::string_utils::join( m_options.get_values< std::string >( "-excl-samples"  ), "," ) ;
-		}
-		if( m_options.check( "-incl-samples" )) {
-			sample_set_spec += "included:" + genfile::string_utils::join( m_options.get_values< std::string >( "-incl-samples"  ), "," ) ;
-		}
-	
+
 		impl::DBOutputter::SharedPtr outputter = impl::DBOutputter::create_shared(
 			filename,
 			m_options.get< std::string >( "-analysis-name" ),
-			m_options.get< std::string >( "-g" ),
-			sample_set_spec
+			m_options.get_values_as_map()
 		) ;
 	
 		manager->add_result_callback(

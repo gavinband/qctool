@@ -7,6 +7,7 @@
 namespace sample_stats {
 	struct IntensityDistributionComputation: public SampleSummaryComputation
 	{
+		IntensityDistributionComputation() ;
 		void accumulate( genfile::SNPIdentifyingData const&, Genotypes const&, genfile::VariantDataReader& ) ;
 		void compute( ResultCallback ) ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
@@ -14,7 +15,7 @@ namespace sample_stats {
 		typedef Eigen::MatrixXd IntensityMatrix ;
 		IntensityMatrix m_intensities ;
 
-		std::size_t snp_index ;
+		std::size_t m_snp_index ;
 		IntensityMatrix m_means ;
 		IntensityMatrix m_difference ;
 		IntensityMatrix m_sum_of_squares_of_differences ;

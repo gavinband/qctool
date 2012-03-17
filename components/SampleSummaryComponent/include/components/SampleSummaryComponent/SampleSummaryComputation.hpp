@@ -13,7 +13,7 @@
 struct SampleSummaryComputation: public boost::noncopyable {
 	typedef std::auto_ptr< SampleSummaryComputation > UniquePtr ;
 	typedef Eigen::MatrixXd Genotypes ;
-	typedef boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
+	typedef boost::function< void ( std::size_t sample_i, std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
 	virtual ~SampleSummaryComputation() {}
 	virtual void accumulate( genfile::SNPIdentifyingData const&, Genotypes const&, genfile::VariantDataReader& ) = 0 ;
 	virtual void compute( ResultCallback ) = 0 ;

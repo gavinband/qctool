@@ -15,11 +15,12 @@ namespace qcdb {
 	struct DBOutputter {
 		typedef std::auto_ptr< DBOutputter > UniquePtr ;
 		typedef boost::shared_ptr< DBOutputter > SharedPtr ;
+		typedef std::map< std::string, std::pair< std::vector< std::string >, std::string > > Metadata ;
 
-		static UniquePtr create( std::string const& filename, std::string const& cohort_name, std::string const& data_source_spec, std::string const& exclusions_name ) ;
-		static SharedPtr create_shared( std::string const& filename, std::string const& cohort_name, std::string const& data_source_spec, std::string const& exclusions_name ) ;
+		static UniquePtr create( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
+		static SharedPtr create_shared( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
 
-		DBOutputter( std::string const& filename, std::string const& cohort_name, std::string const& data_source_spec, std::string const& exclusions_name ) ;
+		DBOutputter( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
 		~DBOutputter() ;
 
 		db::Connection::RowId get_or_create_entity( std::string const& name, std::string const& description ) const ;
@@ -29,8 +30,7 @@ namespace qcdb {
 	private:
 		db::Connection::UniquePtr m_connection ;
 		std::string const m_analysis_name ;
-		std::string const m_source_spec ;
-		std::string const m_exclusions_name ;
+		Metadata const m_metadata ;
 
 		db::Connection::StatementPtr m_find_entity_statement ;
 		db::Connection::StatementPtr m_find_entity_data_statement ;
@@ -41,10 +41,10 @@ namespace qcdb {
 
 	protected:
 		db::Connection& connection() const { return *m_connection ; }
-
+		db::Connection::RowId analysis_id() const { return m_analysis_id ; }
 	private:
 		void construct_statements() ;
-
+		void store_metadata() ;
 	} ;
 }
 

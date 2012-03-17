@@ -90,6 +90,7 @@ namespace appcontext {
 			typedef std::auto_ptr< OptionProcessor > UniquePtr ;
 			typedef std::map< std::string, OptionDefinition > OptionDefinitions ;
 			typedef std::map< std::string, std::vector< std::string > > OptionValues ; 
+			typedef std::map< std::string, std::pair< std::vector< std::string >, std::string > > OptionValueMap ;
 
 		public:
 			OptionProcessor() ;
@@ -160,6 +161,7 @@ namespace appcontext {
 
 			std::string const& get_help_option_name() const { return m_help_option_name ; }
 
+			OptionValueMap get_values_as_map() const ;
 		public:
 			// checks
 			typedef boost::function< void ( OptionProcessor& ) > Check ;

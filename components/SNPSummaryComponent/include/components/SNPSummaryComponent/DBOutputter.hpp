@@ -16,11 +16,15 @@ namespace impl {
 	struct DBOutputter: public qcdb::DBOutputter {
 		typedef std::auto_ptr< DBOutputter > UniquePtr ;
 		typedef boost::shared_ptr< DBOutputter > SharedPtr ;
+		
+		static UniquePtr create( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
+		static SharedPtr create_shared( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
 
-		static UniquePtr create( std::string const& filename, std::string const& cohort_name, std::string const& data_source_spec, std::string const& exclusions_name ) ;
-		static SharedPtr create_shared( std::string const& filename, std::string const& cohort_name, std::string const& data_source_spec, std::string const& exclusions_name ) ;
-
-		DBOutputter( std::string const& filename, std::string const& cohort_name, std::string const& data_source_spec, std::string const& exclusions_name ) ;
+		DBOutputter(
+			std::string const& filename,
+			std::string const& cohort_name,
+			Metadata const& metadata
+		) ;
 		~DBOutputter() ;
 
 		void operator()(

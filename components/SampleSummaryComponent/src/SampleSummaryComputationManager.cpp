@@ -10,6 +10,10 @@
 #include "components/SampleSummaryComponent/SampleSummaryComputation.hpp"
 #include "components/SampleSummaryComponent/SampleSummaryComputationManager.hpp"
 
+SampleSummaryComputationManager::UniquePtr SampleSummaryComputationManager::create() {
+	return SampleSummaryComputationManager::UniquePtr( new SampleSummaryComputationManager() ) ;
+}
+
 void SampleSummaryComputationManager::add( std::string const& name, std::string const& chromosome_spec, SampleSummaryComputation::UniquePtr computation ) {
 	genfile::Chromosome chr( chromosome_spec ) ;
 	if( chr == genfile::Chromosome() ) {
@@ -56,9 +60,10 @@ void SampleSummaryComputationManager::end_processing_snps() {
 			boost::bind(
 				boost::ref( m_result_signal ),
 				i->first.first,
-				i->first.second,
 				_1,
-				_2
+				_2,
+				i->first.first + " for " + i->first.second,
+				_3
 			)
 		) ;
 	}

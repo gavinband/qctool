@@ -15,8 +15,9 @@
 
 struct SampleSummaryComputationManager: public genfile::SNPDataSourceProcessor::Callback, public boost::noncopyable {
 	typedef std::auto_ptr< SampleSummaryComputationManager > UniquePtr ;
+	static UniquePtr create() ;
 
-	void add( std::string const& name, std::string const&, SampleSummaryComputation::UniquePtr ) ;
+	void add( std::string const& name, std::string const& snp_set, SampleSummaryComputation::UniquePtr ) ;
 
 	void begin_processing_snps( std::size_t number_of_samples ) ;
 	void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& data_reader ) ;
@@ -24,7 +25,13 @@ struct SampleSummaryComputationManager: public genfile::SNPDataSourceProcessor::
 
 	void add_computation( std::string const& name, SampleSummaryComputation::UniquePtr computation ) ;
 
-	typedef boost::signals2::signal< void ( std::string const& computation_name, std::string const& snp_set, std::string const& value_name, genfile::VariantEntry const& value ) > ResultSignal ;
+	typedef boost::signals2::signal< void (
+		std::string const& computation_name,
+		std::size_t sample,
+		std::string const& variable,
+		std::string const& description,
+		genfile::VariantEntry const& value
+	) > ResultSignal ;
 	void add_result_callback( ResultSignal::slot_type ) ;
 
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) ;

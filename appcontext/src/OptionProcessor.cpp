@@ -48,6 +48,21 @@ namespace appcontext {
 
 	OptionProcessor::OptionDefinitions const& OptionProcessor::get_option_definitions() const { return m_option_definitions ; }
 
+	OptionProcessor::OptionValueMap OptionProcessor::get_values_as_map() const {
+		OptionValueMap result ;
+		for( OptionDefinitions::const_iterator defn = m_option_definitions.begin(); defn != m_option_definitions.end(); ++defn ) {
+			if( check_if_option_was_supplied( defn->first )) {
+				result[ defn->first ] = std::make_pair( get_values( defn->first ), std::string( "user-supplied" ) ) ;
+			}
+			else if( check_if_option_has_value( defn->first )) {
+				result[ defn->first ] = std::make_pair( get_values( defn->first ), "default" ) ;
+			} else {
+				result[ defn->first ] = std::make_pair( std::vector< std::string >(), "not set" ) ;
+			}
+		}
+		return result ;
+	}
+
 	OptionDefinition& OptionProcessor::operator[]( std::string const& arg ) {
 		// Prevent modification of an option that's already defined.
 		assert( m_option_definitions.find( arg ) == m_option_definitions.end() ) ;
