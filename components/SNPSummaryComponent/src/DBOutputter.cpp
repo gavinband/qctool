@@ -23,9 +23,7 @@ namespace impl {
 	DBOutputter::DBOutputter( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ):
 		qcdb::DBOutputter( filename, cohort_name, metadata ),
 		m_max_transaction_count( 10000 )
-	{
-		construct_statements() ;
-	}
+	{}
 
 	DBOutputter::~DBOutputter() {
 		write_data( m_data ) ;
@@ -49,16 +47,6 @@ namespace impl {
 		}
 	}
 
-	void DBOutputter::construct_statements() {
-		m_find_variant_statement = connection().get_statement(
-			"SELECT id FROM Variant WHERE chromosome == ?2 AND position == ?3 AND rsid == ?1 AND alleleA = ?4 AND alleleB = ?5"
-		) ;
-		m_insert_variant_statement = connection().get_statement(
-			"INSERT INTO Variant ( snpid, rsid, chromosome, position, alleleA, alleleB ) "
-			"VALUES( ?1, ?2, ?3, ?4, ?5, ?6 )"
-		) ;
-	}
-
 	void DBOutputter::write_data( Data const& data ) {
 		db::Connection::ScopedTransactionPtr transaction = connection().open_transaction( 240 ) ; // wait 4 minutes if we have to.
 
@@ -74,42 +62,12 @@ namespace impl {
 		}
 	}
 
-	db::Connection::RowId DBOutputter::get_or_create_snp( genfile::SNPIdentifyingData const& snp ) const {
-		db::Connection::RowId result ;
-		m_find_variant_statement
-			->bind( 1, snp.get_rsid() )
-			.bind( 2, std::string( snp.get_position().chromosome() ))
-			.bind( 3, snp.get_position().position() )
-			.bind( 4, snp.get_first_allele() )
-			.bind( 5, snp.get_second_allele() )
-			.step()
-		;
-		if( m_find_variant_statement->empty() ) {
-			m_insert_variant_statement
-				->bind( 1, snp.get_SNPID() )
-				.bind( 2, snp.get_rsid() )
-				.bind( 3, std::string( snp.get_position().chromosome() ) )
-				.bind( 4, snp.get_position().position() )
-				.bind( 5, snp.get_first_allele())
-				.bind( 6, snp.get_second_allele())
-				.step()
-			;
-
-			result = connection().get_last_insert_row_id() ;
-			m_insert_variant_statement->reset() ;
-		} else {
-			result = m_find_variant_statement->get< db::Connection::RowId >( 0 ) ;
-		}
-		m_find_variant_statement->reset() ;
-		return result ;
-	}
-
 	void DBOutputter::store_data(
 		genfile::SNPIdentifyingData const& snp,
 		std::string const& variable,
 		genfile::VariantEntry const& value
 	) {
-		db::Connection::RowId snp_id = get_or_create_snp( snp ) ;
+		db::Connection::RowId snp_id = get_or_create_variant( snp ) ;
 		db::Connection::RowId variable_id = get_or_create_entity( variable, "per-SNP " + variable + " values" ) ;
 		insert_summary_data( snp_id, variable_id, value ) ;
 	}

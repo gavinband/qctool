@@ -25,6 +25,7 @@ namespace qcdb {
 
 		db::Connection::RowId get_or_create_entity( std::string const& name, std::string const& description ) const ;
 		db::Connection::RowId get_or_create_entity_data( db::Connection::RowId const entity_id, db::Connection::RowId const variable_id, genfile::VariantEntry const& value ) const ;
+		db::Connection::RowId get_or_create_variant( genfile::SNPIdentifyingData const& snp ) const ;
 		void insert_summary_data( db::Connection::RowId snp_id, db::Connection::RowId variable_id, genfile::VariantEntry const& value ) const ;
 
 	private:
@@ -36,6 +37,8 @@ namespace qcdb {
 		db::Connection::StatementPtr m_find_entity_data_statement ;
 		db::Connection::StatementPtr m_insert_entity_statement ;
 		db::Connection::StatementPtr m_insert_entity_data_statement ;
+		db::Connection::StatementPtr m_find_variant_statement ;
+		db::Connection::StatementPtr m_insert_variant_statement ;
 		db::Connection::StatementPtr m_insert_summarydata_statement ;
 		db::Connection::RowId m_analysis_id ;
 

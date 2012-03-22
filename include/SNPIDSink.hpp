@@ -27,7 +27,8 @@ struct SNPIDSink: public genfile::SNPDataSink
 		std::string,
 		GenotypeProbabilityGetter const&,
 		GenotypeProbabilityGetter const&,
-		GenotypeProbabilityGetter const&
+		GenotypeProbabilityGetter const&,
+		Info const& info
 	) {
 		stream() << SNPID << " " << RSID << " " << chromosome << " " << SNP_position << "\n" ;
 	} ;

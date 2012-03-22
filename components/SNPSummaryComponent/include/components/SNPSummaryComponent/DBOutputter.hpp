@@ -38,16 +38,11 @@ namespace impl {
 	private:
 		db::Connection::UniquePtr m_connection ;
 		std::size_t const m_max_transaction_count ;
-		db::Connection::StatementPtr m_find_variant_statement ;
-		db::Connection::StatementPtr m_insert_variant_statement ;
 		typedef std::vector< boost::tuple< genfile::SNPIdentifyingData, std::string, genfile::VariantEntry > > Data ;
 		Data m_data ;
 
 	private:
-		void construct_statements() ;
 		void write_data( Data const& data ) ;
-
-		db::Connection::RowId get_or_create_snp( genfile::SNPIdentifyingData const& snp ) const ;
 
 		void store_data(
 			genfile::SNPIdentifyingData const& snp,

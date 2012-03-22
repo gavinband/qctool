@@ -176,6 +176,13 @@ namespace qcdb {
 		m_find_entity_data_statement = m_connection->get_statement( "SELECT * FROM EntityData WHERE entity_id == ?1 AND variable_id == ?2" ) ;
 		m_find_entity_statement = m_connection->get_statement( "SELECT id FROM Entity E WHERE name == ?1 AND description == ?2" ) ;
 		m_insert_entity_data_statement = m_connection->get_statement( "INSERT OR REPLACE INTO EntityData ( entity_id, variable_id, value ) VALUES ( ?1, ?2, ?3 )" ) ;
+		m_find_variant_statement = connection().get_statement(
+			"SELECT id FROM Variant WHERE chromosome == ?2 AND position == ?3 AND rsid == ?1 AND alleleA = ?4 AND alleleB = ?5"
+		) ;
+		m_insert_variant_statement = connection().get_statement(
+			"INSERT INTO Variant ( snpid, rsid, chromosome, position, alleleA, alleleB ) "
+			"VALUES( ?1, ?2, ?3, ?4, ?5, ?6 )"
+		) ;
 		m_insert_summarydata_statement = m_connection->get_statement(
 			"INSERT INTO SummaryData ( variant_id, analysis_id, variable_id, value ) "
 			"VALUES( ?1, ?2, ?3, ?4 )"
@@ -246,6 +253,36 @@ namespace qcdb {
 		return result ;
 	}
 
+	db::Connection::RowId DBOutputter::get_or_create_variant( genfile::SNPIdentifyingData const& snp ) const {
+		db::Connection::RowId result ;
+		m_find_variant_statement
+			->bind( 1, snp.get_rsid() )
+			.bind( 2, std::string( snp.get_position().chromosome() ))
+			.bind( 3, snp.get_position().position() )
+			.bind( 4, snp.get_first_allele() )
+			.bind( 5, snp.get_second_allele() )
+			.step()
+		;
+		if( m_find_variant_statement->empty() ) {
+			m_insert_variant_statement
+				->bind( 1, snp.get_SNPID() )
+				.bind( 2, snp.get_rsid() )
+				.bind( 3, std::string( snp.get_position().chromosome() ) )
+				.bind( 4, snp.get_position().position() )
+				.bind( 5, snp.get_first_allele())
+				.bind( 6, snp.get_second_allele())
+				.step()
+			;
+
+			result = connection().get_last_insert_row_id() ;
+			m_insert_variant_statement->reset() ;
+		} else {
+			result = m_find_variant_statement->get< db::Connection::RowId >( 0 ) ;
+		}
+		m_find_variant_statement->reset() ;
+		return result ;
+	}
+	
 	void DBOutputter::insert_summary_data(
 		db::Connection::RowId snp_id,
 		db::Connection::RowId variable_id,
