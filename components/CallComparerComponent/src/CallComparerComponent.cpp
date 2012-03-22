@@ -52,14 +52,18 @@ CallComparerComponent::UniquePtr CallComparerComponent::create( PairwiseCallComp
 void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor, appcontext::OptionProcessor const& options ) {
 	PairwiseCallComparerManager::UniquePtr comparer( PairwiseCallComparerManager::create().release() ) ;
 
-	std::string filename = options.get< std::string >( "-compare-calls-file" ) ;
-	std::string const sqlite_suffix = ".sqlite3" ;
+	std::string filename ;
+	if( options.check( "-compare-calls-file" )) {
+		filename = options.get< std::string >( "-compare-calls-file" ) ;
+	} else {
+		filename = genfile::strip_gen_file_extension_if_present( options.get< std::string >( "-g" ) ) + ".qcdb";
+	}
 	if( options.check( "-nodb" ) ) {
-		CallComparerFileOutputter::SharedPtr outputter = CallComparerFileOutputter::create_shared( filename ) ;
+		CallComparerFileOutputter::SharedPtr outputter = CallComparerFileOutputter::create_shared( filename, options.get< std::string >( "-analysis-name" ) ) ;
 		comparer->send_comparisons_to( outputter ) ;
 		comparer->send_merge_to( outputter ) ;
 	} else {
-		CallComparerDBOutputter::SharedPtr outputter = CallComparerDBOutputter::create_shared( filename ) ;
+		CallComparerDBOutputter::SharedPtr outputter = CallComparerDBOutputter::create_shared( filename, options.get< std::string >( "-analysis-name" ) ) ;
 		comparer->send_comparisons_to( outputter ) ;
 		comparer->send_merge_to( outputter ) ;
 	}

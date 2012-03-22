@@ -1,10 +1,10 @@
 #include "components/CallComparerComponent/CallComparerFileOutputter.hpp"
 
-CallComparerFileOutputter::UniquePtr CallComparerFileOutputter::create( std::string const& filename ) {
+CallComparerFileOutputter::UniquePtr CallComparerFileOutputter::create( std::string const& filename, std::string const& ) {
 	return UniquePtr( new CallComparerFileOutputter( filename ) ) ;
 }
 
-CallComparerFileOutputter::SharedPtr CallComparerFileOutputter::create_shared( std::string const& filename ) {
+CallComparerFileOutputter::SharedPtr CallComparerFileOutputter::create_shared( std::string const& filename, std::string const& ) {
 	return SharedPtr( new CallComparerFileOutputter( filename ) ) ;
 }
 

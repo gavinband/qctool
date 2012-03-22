@@ -12,8 +12,8 @@ struct CallComparerFileOutputter: public PairwiseCallComparerManager::Comparison
 	typedef std::auto_ptr< CallComparerFileOutputter > UniquePtr ;
 	typedef boost::shared_ptr< CallComparerFileOutputter > SharedPtr ;
 	
-	static UniquePtr create( std::string const& filename ) ;
-	static SharedPtr create_shared( std::string const& filename ) ;
+	static UniquePtr create( std::string const& filename, std::string const& analysis ) ;
+	static SharedPtr create_shared( std::string const& filename, std::string const& analysis ) ;
 
 	CallComparerFileOutputter( std::string const& filename ) ;
 

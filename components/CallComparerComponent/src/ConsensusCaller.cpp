@@ -26,31 +26,43 @@ void ConsensusCaller::set_result(
 
 void ConsensusCaller::end_comparisons() {}
 
+namespace impl {
+	
+}
+
 void ConsensusCaller::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 	m_genotypes.resize( m_call_names.size() ) ;
-	std::vector< double > missingness( m_call_names.size() ) ;
+
+	std::map< std::string, std::vector< genfile::VariantEntry > > info ;
+	std::size_t chosen_call = 0 ;
+	double chosen_call_missingness = std::numeric_limits< double >::max() ;
 	for( std::size_t i = 0; i < m_call_names.size(); ++i ) {
 		{
 			genfile::vcf::GenotypeSetter< Eigen::MatrixBase< Eigen::MatrixXd > > setter( m_genotypes[i] ) ;
 			data_reader.get( m_call_names[i], setter ) ;
 		}
 		double missing_calls = 0 ;
-		for( int j = 0; j < m_genotypes[i].rows(); ++i ) {
+		for( int j = 0; j < m_genotypes[i].rows(); ++j ) {
 			if( m_genotypes[i].row( j ).maxCoeff() < m_call_threshhold ) {
 				++missing_calls ;
 			}
 		}
-		missingness[i] = missing_calls ;
+		info[ m_call_names[i] ].push_back( missing_calls / m_genotypes[i].rows() ) ;
+		if( missing_calls < chosen_call_missingness ) {
+			chosen_call = i ;
+			chosen_call_missingness = missing_calls ;
+		}
 	}
 	
-	std::size_t which = ( std::min_element( missingness.begin(), missingness.end() ) - missingness.begin() ) ;
-
+	info[ "call" ].push_back( m_call_names[ chosen_call ] ) ;
+	
 	m_sink->write_snp(
-		m_genotypes[ which ].rows(),
+		m_genotypes[ chosen_call ].rows(),
 		snp,
-		genfile::GenotypeGetter< Eigen::MatrixXd >( m_genotypes[ which ], 0 ),
-		genfile::GenotypeGetter< Eigen::MatrixXd >( m_genotypes[ which ], 1 ),
-		genfile::GenotypeGetter< Eigen::MatrixXd >( m_genotypes[ which ], 2 )
+		genfile::GenotypeGetter< Eigen::MatrixXd >( m_genotypes[ chosen_call ], 0 ),
+		genfile::GenotypeGetter< Eigen::MatrixXd >( m_genotypes[ chosen_call ], 1 ),
+		genfile::GenotypeGetter< Eigen::MatrixXd >( m_genotypes[ chosen_call ], 2 ),
+		info
 	) ;
 }
 
