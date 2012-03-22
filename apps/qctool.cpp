@@ -2146,8 +2146,14 @@ private:
 			processor.add_callback( *cluster_fitter ) ;
 		}
 
-		if( options().check_if_option_was_supplied_in_group( "Call comparison options" ))  {
-			CallComparerComponent::setup( processor, options() ) ;
+		if( options().check_if_option_was_supplied_in_group( "Call comparison options" )) {
+			CallComparerComponent::UniquePtr component = CallComparerComponent::create(
+				context.get_cohort_individual_source(),
+				options(),
+				get_ui_context()
+			) ;
+
+			component->setup( processor ) ;
 		}
 		
 		ClusterPlotter::UniquePtr cluster_plotter ;

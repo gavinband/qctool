@@ -85,7 +85,12 @@ namespace genfile {
 					if( i > 0 ) {
 						(*m_stream_ptr) << "," ;
 					}
-					(*m_stream_ptr) << info_i->second[i] ;
+					if( info_i->second[i].is_missing() ) {
+						(*m_stream_ptr) << "." ;
+					}
+					else {
+						(*m_stream_ptr) << info_i->second[i] ;
+					}
 				}
 			}
 		}
