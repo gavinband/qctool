@@ -59,7 +59,8 @@ namespace genfile {
 			std::string second_allele,
 			GenotypeProbabilityGetter const& get_AA_probability,
 			GenotypeProbabilityGetter const& get_AB_probability,
-			GenotypeProbabilityGetter const& get_BB_probability
+			GenotypeProbabilityGetter const& get_BB_probability,
+			Info const&
 		) {
 			if( m_write_chromosome_column ) {
 				gen::write_snp_block( *m_stream_ptr, number_of_samples, chromosome, SNPID, RSID, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;

@@ -214,6 +214,8 @@ namespace genfile {
 				) ;
 				return *this ;
 			}
+			
+			std::size_t get_number_of_samples() const { return m_data_reader->get_number_of_samples() - m_indices_of_samples_to_filter_out.size() ; }
 
 			bool supports( std::string const& spec ) const {
 				return m_data_reader->supports( spec ) ;

@@ -27,6 +27,7 @@ namespace genfile {
 
 		// Factory functions
 		typedef std::multimap< std::string, std::map< std::string, std::string > > Metadata ;
+		typedef std::map< std::string, std::vector< VariantEntry > > Info ;
 		static UniquePtr create( std::string const& filename, Metadata const& metadata = Metadata() ) ;
 	private:
 		static UniquePtr create_impl( std::string const& filename, CompressionType compression_type, Metadata const& metadata = Metadata() ) ;
@@ -40,7 +41,8 @@ namespace genfile {
 			SNPIdentifyingData const& snp,
 			GenotypeProbabilityGetter const& get_AA_probability,
 			GenotypeProbabilityGetter const& get_AB_probability,
-			GenotypeProbabilityGetter const& get_BB_probability
+			GenotypeProbabilityGetter const& get_BB_probability,
+			Info const& info = Info()
 		) ;
 
 		SNPDataSink& write_snp(
@@ -53,12 +55,14 @@ namespace genfile {
 			std::string second_allele,
 			GenotypeProbabilityGetter const& get_AA_probability,
 			GenotypeProbabilityGetter const& get_AB_probability,
-			GenotypeProbabilityGetter const& get_BB_probability
+			GenotypeProbabilityGetter const& get_BB_probability,
+			Info const& info = Info()
 		) ;
 
 		SNPDataSink& write_variant_data(
 			SNPIdentifyingData const& id_data,
-			VariantDataReader& data_reader
+			VariantDataReader& data_reader,
+			Info const& info = Info()
 		) ;
 
 	public:
@@ -94,16 +98,18 @@ namespace genfile {
 			std::string second_allele,
 			GenotypeProbabilityGetter const& get_AA_probability,
 			GenotypeProbabilityGetter const& get_AB_probability,
-			GenotypeProbabilityGetter const& get_BB_probability
+			GenotypeProbabilityGetter const& get_BB_probability,
+			Info const& info
 		) = 0 ;
 
 		virtual void write_variant_data_impl(
 			SNPIdentifyingData const& id_data,
-			VariantDataReader& data_reader
+			VariantDataReader& data_reader,
+			Info const& info
 		) ;
 
 	private:
-	
+
 		uint32_t m_number_of_samples ;
 		std::size_t m_number_of_snps_written ;
 

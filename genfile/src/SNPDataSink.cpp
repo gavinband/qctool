@@ -48,7 +48,8 @@ namespace genfile {
 		SNPIdentifyingData const& snp,
 		GenotypeProbabilityGetter const& get_AA_probability,
 		GenotypeProbabilityGetter const& get_AB_probability,
-		GenotypeProbabilityGetter const& get_BB_probability
+		GenotypeProbabilityGetter const& get_BB_probability,
+		Info const& info
 	) {
 		return write_snp(
 			number_of_samples,
@@ -60,7 +61,8 @@ namespace genfile {
 			snp.get_second_allele(),
 			get_AA_probability,
 			get_AB_probability,
-			get_BB_probability
+			get_BB_probability,
+			info
 		) ;
 	}
 
@@ -74,7 +76,8 @@ namespace genfile {
 		std::string second_allele,
 		GenotypeProbabilityGetter const& get_AA_probability,
 		GenotypeProbabilityGetter const& get_AB_probability,
-		GenotypeProbabilityGetter const& get_BB_probability
+		GenotypeProbabilityGetter const& get_BB_probability,
+		Info const& info
 	) {
 		if( m_number_of_samples == 0 ) {
 			m_number_of_samples = number_of_samples ;
@@ -82,7 +85,7 @@ namespace genfile {
 		else {
 			assert( number_of_samples == m_number_of_samples ) ;
 		}
-		write_snp_impl( number_of_samples, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
+		write_snp_impl( number_of_samples, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability, info ) ;
 		if( *this ) {
 			++m_number_of_snps_written ;
 		}
@@ -91,29 +94,27 @@ namespace genfile {
 
 	SNPDataSink& SNPDataSink::write_variant_data(
 		SNPIdentifyingData const& id_data,
-		VariantDataReader& data_reader
+		VariantDataReader& data_reader,
+		Info const& info
 	) {
-		throw OperationUnsupportedError( "genfile::SNPDataSink::write_variant_data()", "call", get_spec() ) ;
-		assert(0) ;
-		/*
 		if( m_number_of_samples == 0 ) {
-			m_number_of_samples = id_data.get_number_of_samples() ;
+			m_number_of_samples = data_reader.get_number_of_samples() ;
 		}
 		else {
-			assert( id_data.get_number_of_samples() == m_number_of_samples ) ;
+			assert( data_reader.get_number_of_samples() == m_number_of_samples ) ;
 		}
-		write_variant_data( id_data, data_reader ) ;
+		write_variant_data_impl( id_data, data_reader, info ) ;
 		if( *this ) {
 			++m_number_of_snps_written ;
 		}
-		*/
 		return *this ;
 	}
 	
 	void SNPDataSink::write_variant_data_impl(
 		SNPIdentifyingData const& id_data,
-		VariantDataReader& data_reader
+		VariantDataReader& data_reader,
+		Info const& info
 	) {
-		assert(0) ;
+		throw OperationUnsupportedError( "genfile::SNPDataSink::write_variant_data_impl()", "call", get_spec() ) ;
 	}
 }

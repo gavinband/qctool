@@ -332,6 +332,10 @@ namespace genfile {
 				return *this ;
 			}
 
+			std::size_t get_number_of_samples() const {
+				return m_rack.number_of_samples() ;
+			}
+
 			// True if all the constituent sources support the spec.
 			bool supports( std::string const& spec ) const {
 				for( std::size_t i = 0; i < m_data_readers.size(); ++i ) {
