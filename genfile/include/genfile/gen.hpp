@@ -188,7 +188,7 @@ namespace genfile {
 					// no chromosome column.
 					number_of_samples = ( count - 5 ) / 3 ;
 				}
-				else if( count >=6 && ( count - 6 ) % 3 == 0 ) {
+				else if( count >= 6 && ( count - 6 ) % 3 == 0 ) {
 					// chromosome column present.
 					number_of_samples = ( count - 6 ) / 3 ;
 					flags |= 0x1 ;
