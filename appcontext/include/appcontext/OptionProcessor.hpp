@@ -132,6 +132,10 @@ namespace appcontext {
 				std::istringstream s( get_value( arg )) ;
 				T t ;
 				s >> t ;
+				s.peek() ;
+				if( !s.eof() ) {
+					throw OptionValueInvalidException( arg, get_values( arg ), "Type error." ) ;
+				}
 				return t ;
 			}
 
