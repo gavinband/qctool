@@ -60,6 +60,7 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 	options.option_implies_option( "-load-kinship", "-s" ) ;
 	options.option_implies_option( "-UDUT", "-load-kinship" ) ;
 	options.option_implies_option( "-nPCAs", "-PCAs" ) ;
+	options.option_implies_option( "-UDUT", "-PCAs" ) ;
 	options.option_implies_option( "-PCAs", "-UDUT" ) ;
 	options.option_implies_option( "-PCAs", "-load-kinship" ) ;
 	options.option_excludes_option( "-load-kinship", "-kinship" ) ;
@@ -126,7 +127,7 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 		) ;
 	}
 	if( m_options.check( "-loadings" )) {
-		PCALoadingComputer::UniquePtr loading_computer( new PCALoadingComputer( m_options.get< int >( "-loadings" ) ) ) ;
+		PCALoadingComputer::UniquePtr loading_computer( new PCALoadingComputer( m_options.get< int >( "-nPCAs" ) ) ) ;
 		if( pca_computer.get() ) {
 			pca_computer->send_UDUT_to( boost::bind( &PCALoadingComputer::set_UDUT, loading_computer.get(), _2, _3 ) ) ;
 			pca_computer->compute_PCA() ;
