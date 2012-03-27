@@ -15,6 +15,7 @@
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/FileUtil.hpp"
 #include "components/RelatednessComponent/KinshipCoefficientManager.hpp"
+//#include "components/RelatednessComponent/KinshipCoefficientBlockTask.hpp"
 
 namespace impl {
 	struct KinshipCoefficientComputerTask ;

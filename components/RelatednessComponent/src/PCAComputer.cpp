@@ -48,8 +48,8 @@ PCAComputer::PCAComputer(
 	}
 	load_matrix( m_filename + ".csv", &m_kinship_matrix, &m_number_of_snps ) ;
 
-	if( m_options.check( "-PCAs" ) ) {	
-		m_number_of_PCAs_to_compute = std::min( m_options.get< std::size_t >( "-PCAs" ), samples.get_number_of_individuals() ) ;
+	if( m_options.check( "-nPCAs" ) ) {	
+		m_number_of_PCAs_to_compute = std::min( m_options.get< std::size_t >( "-nPCAs" ), samples.get_number_of_individuals() ) ;
 	}
 }
 

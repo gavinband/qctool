@@ -31,18 +31,18 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 		.set_description( "Load a previously-computed eigenvalue decomposition of a relatedness matrix." )
 		.set_takes_single_value() ;
 	options[ "-UDUT" ]
-		.set_description( "Compute the UDUT decomposition of the matrix passed to -load-kinship." ) ;
+		.set_description( "Compute the UDUT decomposition of the matrix passed to -load-kinship, and save it in the specified file." )
+		.set_takes_single_value() ;
 	options[ "-PCAs" ]
+		.set_description( "Specify the name of a file to save PCA components in." )
+		.set_takes_single_value() ;
+	options[ "-nPCAs" ]
 		.set_description( "Compute PCA components of kinship matrix. "
 		 	"The argument should be the number of PCA components to compute.")
 		.set_takes_single_value()
 		.set_default_value( 10 ) ;
-	options[ "-PCA-prefix" ]
-		.set_description( "Set the prefix for filenames used to store eigendecomposition and PCA-related files. "
-		 	"By default, this is formed by removing the extension from the argument to -load-kinship." )
-		.set_takes_single_value() ;
 	options[ "-loadings" ]
-		.set_description( "Compute SNP loadings for each PCA." )
+		.set_description( "Compute SNP loadings for each PCA, and store them in the specified file." )
 		.set_takes_single_value() ;
 	options[ "-project-onto" ]
 		.set_description( "Project samples onto a PCA based on the loadings in the file given as the first argument. "
@@ -59,9 +59,9 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 	options.option_implies_option( "-kinship", "-s" ) ;
 	options.option_implies_option( "-load-kinship", "-s" ) ;
 	options.option_implies_option( "-UDUT", "-load-kinship" ) ;
+	options.option_implies_option( "-nPCAs", "-PCAs" ) ;
 	options.option_implies_option( "-PCAs", "-UDUT" ) ;
-	options.option_implies_option( "-UDUT", "-PCAs" ) ;
-	options.option_implies_option( "-PCA-prefix", "-PCAs" ) ;
+	options.option_implies_option( "-PCAs", "-load-kinship" ) ;
 	options.option_excludes_option( "-load-kinship", "-kinship" ) ;
 	options.option_excludes_option( "-project-onto", "-loadings" ) ;
 	options.option_excludes_option( "-load-UDUT", "-UDUT" ) ;
@@ -108,18 +108,19 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 		) ;
 	}
 	else if( m_options.check( "-PCAs" ) ) {
+		assert( m_options.check( "-UDUT" )) ;
 		pca_computer.reset( new PCAComputer( m_options, m_samples, m_worker, m_ui_context ) ) ;
 		pca_computer->send_UDUT_to(
 			boost::bind(
 				&pca::write_matrix,
-				get_PCA_filename_prefix() + ".UDUT.csv",
+				m_options.get< std::string >( "-UDUT" ),
 				_3, "qctool:PCAComputer" ,_1, _4, _5
 			)
 		) ;
 		pca_computer->send_PCAs_to(
 			boost::bind(
 				&pca::write_matrix,
-				get_PCA_filename_prefix() + ".PCAs.csv",
+				m_options.get< std::string >( "-PCAs" ),
 				_3, "qctool:PCAComputer", _1, _4, _5
 			)
 		) ;
@@ -139,7 +140,7 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 
 		// Set up an output location for the loadings.
 		boost::shared_ptr< statfile::BuiltInTypeStatSink > loadings_file(
-			statfile::BuiltInTypeStatSink::open( get_PCA_filename_prefix() + ".loadings.csv" ).release()
+			statfile::BuiltInTypeStatSink::open( m_options.get< std::string >( "-loadings" ) ).release()
 		) ;
 		
 		loadings_file->write_metadata( 
@@ -183,21 +184,3 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 	
 	
 }
-
-std::string RelatednessComponent::get_PCA_filename_prefix() const {
-	std::string result ;
-	if( m_options.check( "-PCA-prefix" ) ) {
-		result = m_options.get< std::string >( "-PCA-prefix" ) ;
-	} else if( m_options.check( "-load-kinship" )) {
-		result = genfile::replace_or_add_extension( m_options.get< std::string >( "-load-kinship" ), "" ) ;
-	} else if( m_options.check( "-load-UDUT" )) {
-		result = genfile::replace_or_add_extension( m_options.get< std::string >( "-load-UDUT" ), "" ) ;
-		if( result.size() > 5 && result.substr( result.size() - 5, result.size() ) == ".UDUT" ) {
-			result = result.substr( 0, result.size() - 5 ) ;
-		}
-	}
-	return result ;
-}
-
-
-

@@ -117,11 +117,17 @@ genfile::SNPDataSourceProcessor::Callback::UniquePtr SNPSummaryComponent::create
 
 SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() const {
 	SNPSummaryComputationManager::UniquePtr manager( new SNPSummaryComputationManager() ) ;
+	using genfile::string_utils::to_string ;
 	std::string filename = m_options.get_value< std::string >( "-snp-stats-file" ) ;
 	
 	if( m_options.check( "-nodb" )) {
 		if( filename.empty() ) {
-			filename = m_options.get< std::string >( "-g" ) + ".qctool.txt" ;
+			std::vector< std::string > filenames = m_options.get_values< std::string >( "-g" ) ;
+			if( filenames.size() == 1 ) {
+				filename = genfile::strip_gen_file_extension_if_present( filenames[0] ) + ".snp-stats.txt" ;
+			} else {
+				filename = "qctool_cohort_1-" + to_string( filenames.size() ) + ".snp-stats.txt" ;
+			}
 		}
 		manager->add_result_callback(
 			boost::bind(
@@ -133,7 +139,12 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 	}
 	else {
 		if( filename.empty() ) {
-			filename = genfile::strip_gen_file_extension_if_present( m_options.get< std::string >( "-g" ) ) + ".qcdb";
+			std::vector< std::string > filenames = m_options.get_values< std::string >( "-g" ) ;
+			if( filenames.size() == 1 ) {
+				filename = genfile::strip_gen_file_extension_if_present( filenames[0] ) + ".qcdb";
+			} else {
+				filename = "qctool_cohort_1-" + to_string( filenames.size() ) + ".qcdb" ;
+			}
 		}
 
 		impl::DBOutputter::SharedPtr outputter = impl::DBOutputter::create_shared(
