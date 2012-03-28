@@ -344,8 +344,8 @@ struct AmetProcessor: public boost::noncopyable
 		unsafe_setup( ui_context ) ;
 	}
 
-	void process() {
-		unsafe_process() ;
+	void process( appcontext::UIContext& ui_context ) {
+		unsafe_process( ui_context ) ;
 	}
 
 	typedef boost::signals2::signal< void ( std::size_t index, genfile::SNPIdentifyingData const& snp, std::string const& computation_name, std::string const& value_name, genfile::VariantEntry const& value ) > ResultSignal ;
@@ -411,12 +411,14 @@ private:
 		m_computations.push_back( AmetComputation::create( "FixedEffectFrequentistMetaAnalysis" )) ;
 	}
 
-	void unsafe_process() {
+	void unsafe_process( appcontext::UIContext& ui_context ) {
 		Eigen::MatrixXd cohort_counts( 4, m_cohorts.size() ) ;
 		Eigen::VectorXd cohort_betas( m_cohorts.size() ) ;
 		Eigen::VectorXd cohort_ses( m_cohorts.size() ) ;
 		Eigen::VectorXd non_missingness( m_cohorts.size() ) ;
 		
+		appcontext::UIContext::ProgressContext progress_context = ui_context.get_progress_context( "Storing meta-analysis results" ) ;
+
 		SnpMap::const_iterator snp_i = m_snps.begin(), end_i = m_snps.end() ;
 		for( std::size_t snp_index = 0; snp_i != end_i; ++snp_i, ++snp_index ) {
 			std::vector< boost::optional< std::size_t > > const& indices = snp_i->second ;
@@ -450,6 +452,8 @@ private:
 					)
 				) ;
 			}
+
+			progress_context( snp_index + 1, m_snps.size() ) ;
 		}
 	}
 } ;
@@ -488,7 +492,7 @@ public:
 			)
 		) ;
 
-		m_processor->process() ;
+		m_processor->process( get_ui_context() ) ;
 	}
 	
 	void load_data() {
