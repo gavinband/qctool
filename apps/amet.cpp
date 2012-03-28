@@ -86,6 +86,7 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 		Eigen::MatrixXd m_sample_counts ;
 		
 		void setup( std::vector< genfile::wildcard::FilenameMatch > const& filenames, ProgressCallback progress_callback = ProgressCallback() ) {
+			progress_callback( 0, filenames.size() ) ;
 			for( std::size_t i = 0; i < filenames.size(); ++i ) {
 				setup( filenames[i] ) ;
 				progress_callback( i+1, filenames.size() ) ;
@@ -309,6 +310,8 @@ struct AmetProcessor: public boost::noncopyable
 	}
 	
 	void summarise( appcontext::UIContext& ui_context ) {
+		using genfile::string_utils::to_string ;
+		
 		ui_context.logger() << "================================================\n" ;
 		ui_context.logger() << "Cohort summary:\n" ;
 		for( std::size_t i = 0; i < m_cohorts.size(); ++i ) {
@@ -317,9 +320,15 @@ struct AmetProcessor: public boost::noncopyable
 		
 		ui_context.logger() << "\n================================================\n" ;
 		ui_context.logger() << "SNP Categories:\n" ;
+		ui_context.logger() << "  " ;
+		for( std::size_t i = 0; i < m_cohorts.size(); ++i ) {
+			ui_context.logger() << std::setw( 12 ) << ( "in scan " + to_string( i+1 )) ;
+		}
+		ui_context.logger() << "\n" ;
 		for( CategoryCounts::const_iterator i = m_category_counts.begin(); i != m_category_counts.end(); ++i ) {
+			ui_context.logger() << "  " ;
 			for( std::size_t j = 0; j < m_cohorts.size(); ++j ) {	
-				ui_context.logger() << " " << i->first[j] ;
+				ui_context.logger() << std::setw(12) << i->first[j] ;
 			}
 			ui_context.logger() << ": " << i->second << "\n" ;
 		}
@@ -483,6 +492,7 @@ public:
 		std::vector< std::string > cohort_files = options().get_values< std::string >( "-snptest" ) ;
 		for( std::size_t i = 0; i < cohort_files.size(); ++i ) {
 			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading SNPTEST results \"" + cohort_files[i] + "\"" ) ;
+			
 			FrequentistGenomeWideAssociationResults::UniquePtr results( new SNPTESTResults( genfile::wildcard::find_files_by_chromosome( cohort_files[i] ), progress_context ) ) ;
 			m_processor->add_cohort( "cohort_" + to_string( i+1 ), results ) ;
 		}
