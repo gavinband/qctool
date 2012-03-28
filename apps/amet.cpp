@@ -4,20 +4,24 @@
 #include <map>
 #include <utility>
 #include <boost/bind.hpp>
+#include <boost/signals2/signal.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/function.hpp>
 #include <boost/foreach.hpp>
 #define foreach BOOST_FOREACH
 #include <boost/regex.hpp>
+#include <boost/math/distributions/normal.hpp>
+#include <Eigen/Core>
 #include "appcontext/CmdLineOptionProcessor.hpp"
 #include "appcontext/ApplicationContext.hpp"
+#include "appcontext/get_current_time_as_string.hpp"
 #include "appcontext/ProgramFlow.hpp"
 #include "genfile/FileUtils.hpp"
 #include "genfile/utility.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "statfile/BuiltInTypeStatSource.hpp"
-#include <Eigen/Core>
+#include "components/SNPSummaryComponent/DBOutputter.hpp"
 
 namespace globals {
 	std::string const program_name = "amet" ;
@@ -31,8 +35,7 @@ struct FrequentistGenomeWideAssociationResults: public boost::noncopyable {
 	virtual void get_SNPs( SNPCallback ) const = 0 ;
 	virtual void get_results(
 		std::size_t snp_i,
-		boost::function< void ( double, double, double, double ) > get_counts ,
-		boost::function< void ( genfile::VariantEntry ) > get_allele_frequency,
+		boost::function< void ( double, double, double, double ) > get_counts,
 		boost::function< void ( genfile::VariantEntry ) > get_beta,
 		boost::function< void ( genfile::VariantEntry ) > get_se
 	) = 0 ;
@@ -56,13 +59,11 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 	virtual void get_results(
 		std::size_t snp_i,
 		boost::function< void ( double, double, double, double ) > get_counts ,
-		boost::function< void ( genfile::VariantEntry ) > get_allele_frequency,
 		boost::function< void ( genfile::VariantEntry ) > get_beta,
 		boost::function< void ( genfile::VariantEntry ) > get_se
 	) {
 		assert( snp_i < m_snps.size() ) ;
 		get_counts( m_sample_counts( snp_i, 0 ), m_sample_counts( snp_i, 1 ), m_sample_counts( snp_i, 2 ), m_sample_counts( snp_i, 3 ) ) ;
-		get_allele_frequency( ( m_sample_counts( snp_i, 1 ) + 2 * m_sample_counts( snp_i, 2 ) ) / ( 2.0 * m_sample_counts.row( snp_i ).head( 3 ).sum() )) ;
 		get_beta( m_betas( snp_i ) ) ;
 		get_se( m_ses( snp_i ) ) ;
 	}
@@ -168,6 +169,62 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 		}
 } ;
 
+struct AmetComputation: public boost::noncopyable {
+	typedef std::auto_ptr< AmetComputation > UniquePtr ;
+	static UniquePtr create( std::string const& name ) ;
+	virtual ~AmetComputation() {}
+	typedef genfile::SNPIdentifyingData SNPIdentifyingData ;
+	typedef boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
+	virtual void operator()( SNPIdentifyingData const&, Eigen::VectorXd betas, Eigen::VectorXd ses, Eigen::VectorXd non_missingness, ResultCallback ) = 0 ;
+	virtual std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const = 0 ;
+	virtual std::string get_spec() const = 0 ;
+} ;
+
+struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
+	void operator()( SNPIdentifyingData const&, Eigen::VectorXd betas, Eigen::VectorXd ses, Eigen::VectorXd non_missingness, ResultCallback callback ) {
+		assert( betas.size() == ses.size() ) ;
+		assert( betas.size() == non_missingness.size() ) ;
+		int const N = betas.size() ;
+		Eigen::VectorXd inverse_variances = ( ses.array() * ses.array() ).inverse() ;
+		for( int i = 0; i < N; ++i ) {
+			if( non_missingness[i] == 0.0 ) {
+				inverse_variances[ i ] = 0 ;
+				betas[ i ] = 0 ;
+				ses[ i ] = 0 ;
+			}
+		}
+		double const meta_beta = ( inverse_variances.array() * betas.array() ).sum() / inverse_variances.sum() ;
+		double const meta_se = 1.0 / inverse_variances.sum() ;
+		typedef boost::math::normal NormalDistribution ;
+		NormalDistribution normal( 0, meta_se ) ;
+		// P-value is the mass under both tails of the normal distribution larger than |meta_beta|
+		double const pvalue = 2.0 * boost::math::cdf( boost::math::complement( normal, std::abs( meta_beta ) ) ) ;
+		
+		callback( "fixed_effect_meta_beta", meta_beta ) ;
+		callback( "fixed_effect_meta_se", meta_se ) ;
+		callback( "fixed_effect_meta_pvalue", pvalue ) ;
+	} ;
+
+	std::string get_spec() const {
+		return "FixedEffectFrequentistMetaAnalysis" ;
+	}
+
+	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const {
+		return prefix + get_spec() ;
+	}
+} ;
+
+AmetComputation::UniquePtr AmetComputation::create( std::string const& name ) {
+	AmetComputation::UniquePtr result ;
+	if( name == "FixedEffectFrequentistMetaAnalysis" ) {
+		result.reset( new FixedEffectFrequentistMetaAnalysis() ) ;
+	}
+	else {
+		throw genfile::BadArgumentError( "AmetComputation::create()", "name=\"" + name + "\"" ) ;
+	}
+	return result ;
+}
+
 struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 	std::string get_program_name() const { return globals::program_name ; }
 
@@ -183,6 +240,16 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 			.set_maximum_multiplicity( 100 )
 		;
 		
+		options[ "-o" ]
+			.set_description( "Specify the path to a file in which results will be placed." )
+			.set_is_required()
+			.set_takes_single_value() ;
+		
+		options[ "-analysis-name" ]
+			.set_description( "Specify a name to label results from this analysis with" )
+			.set_takes_single_value()
+			.set_default_value( "amet analysis, started " + appcontext::get_current_time_as_string() ) ;
+		
 		options[ "-snp-match-fields" ]
 			.set_description( "Set the fields used to describe SNPs as equal." )
 			.set_takes_single_value()
@@ -190,77 +257,121 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 
 		options[ "-log" ]
 			.set_description( "Specify the path of the log file." )
-			.set_takes_single_value()
-			.set_default_value( "overrep.log" ) ;
+			.set_takes_single_value() ;
 	}
 } ;
 
 
-struct AmetApplication: public appcontext::ApplicationContext {
-public:
-	AmetApplication( int argc, char **argv ):
-		appcontext::ApplicationContext(
-			globals::program_name,
-			globals::program_version,
-			std::auto_ptr< appcontext::OptionProcessor >( new AmetOptions ),
-			argc,
-			argv,
-			"-log"
-		),
-		m_snps( genfile::SNPIdentifyingData::CompareFields( options().get< std::string > ( "-snp-match-fields" )) )
-	{}
+namespace impl {
+	void assign_counts( Eigen::MatrixXd* result, Eigen::MatrixXd::Index const col, genfile::VariantEntry const& AA, genfile::VariantEntry const& AB, genfile::VariantEntry const& BB, genfile::VariantEntry const& missing ) {
+		assert( result ) ;
+		assert( result->rows() >= 4 ) ;
+		assert( result->cols() > col ) ;
+		double const NA =  std::numeric_limits< double >::quiet_NaN() ;
+		(*result)( 0, col ) = AA.is_missing() ? NA : AA.as< double >() ;
+		(*result)( 1, col ) = AB.is_missing() ? NA : AB.as< double >() ;
+		(*result)( 2, col ) = BB.is_missing() ? NA : BB.as< double >() ;
+		(*result)( 3, col ) = missing.is_missing() ? NA : missing.as< double >() ;
+	}
 	
+	void assign_vector_elt( Eigen::VectorXd* result, Eigen::VectorXd* non_missingness, Eigen::VectorXd::Index const elt, genfile::VariantEntry const& value ) {
+		assert( result ) ;
+		assert( non_missingness ) ;
+		assert( result->size() == non_missingness->size() ) ;
+		assert( result->size() > elt ) ;
+		double const NA =  std::numeric_limits< double >::quiet_NaN() ;
+		if( value.is_missing() ) {
+			(*non_missingness)( elt ) = 0.0 ;
+			(*result)( elt ) = NA ;
+		}
+		else {
+			(*result)( elt ) = value.as< double >() ;
+		}
+	}
+}
+
+struct AmetProcessor: public boost::noncopyable
+{
+	typedef std::auto_ptr< AmetProcessor > UniquePtr ;
+	static UniquePtr create( genfile::SNPIdentifyingData::CompareFields const& compare_fields ) {
+		return UniquePtr( new AmetProcessor( compare_fields ) ) ;
+	}
+	
+	AmetProcessor( genfile::SNPIdentifyingData::CompareFields const& compare_fields ):
+		m_snps( compare_fields )
+	{
+	}
+	
+	void add_cohort( std::string const& name, FrequentistGenomeWideAssociationResults::UniquePtr results ) {
+		assert( results.get() ) ;
+		m_cohort_names.push_back( name ) ;
+		m_cohorts.push_back( results ) ;
+	}
+	
+	void summarise( appcontext::UIContext& ui_context ) {
+		ui_context.logger() << "================================================\n" ;
+		ui_context.logger() << "Cohort summary:\n" ;
+		for( std::size_t i = 0; i < m_cohorts.size(); ++i ) {
+			ui_context.logger() << m_cohorts[i].get_summary( " - " ) ;
+		}
+		
+		ui_context.logger() << "\n================================================\n" ;
+		ui_context.logger() << "SNP Categories:\n" ;
+		for( CategoryCounts::const_iterator i = m_category_counts.begin(); i != m_category_counts.end(); ++i ) {
+			for( std::size_t j = 0; j < m_cohorts.size(); ++j ) {	
+				ui_context.logger() << " " << i->first[j] ;
+			}
+			ui_context.logger() << ": " << i->second << "\n" ;
+		}
+		ui_context.logger() << " TOTAL: " << m_snps.size() << "\n" ;
+		ui_context.logger() << "================================================\n" ;
+	}
+	
+	void setup( appcontext::UIContext& ui_context ) {
+		unsafe_setup( ui_context ) ;
+	}
+
 	void process() {
 		unsafe_process() ;
 	}
+
+	typedef boost::signals2::signal< void ( std::size_t index, genfile::SNPIdentifyingData const& snp, std::string const& computation_name, std::string const& value_name, genfile::VariantEntry const& value ) > ResultSignal ;
+
+	void send_results_to( ResultSignal::slot_type callback ) {
+		m_result_signal.connect( callback ) ;
+	}
 	
 private:
+	std::vector< std::string > m_cohort_names ;
 	boost::ptr_vector< FrequentistGenomeWideAssociationResults > m_cohorts ;
+	boost::ptr_vector< AmetComputation > m_computations ;
 	typedef std::map< genfile::SNPIdentifyingData, std::vector< boost::optional< std::size_t > >, genfile::SNPIdentifyingData::CompareFields > SnpMap ;
 	SnpMap m_snps ;
 	typedef std::map< std::vector< bool >, std::size_t > CategoryCounts ;
 	CategoryCounts m_category_counts ;
-private:
 	
-	void unsafe_process() {
-		load_data() ;
-		link_data() ;
-		categorise_snps() ;
-		summarise() ;
-	}
-	
-	void summarise() {
-		get_ui_context().logger() << "================================================\n" ;
-		get_ui_context().logger() << "Cohort summary:\n" ;
-		for( std::size_t i = 0; i < m_cohorts.size(); ++i ) {
-			get_ui_context().logger() << m_cohorts[i].get_summary( " - " ) ;
-		}
-		
-		get_ui_context().logger() << "\n================================================\n" ;
-		get_ui_context().logger() << "SNP Categories:\n" ;
-		for( CategoryCounts::const_iterator i = m_category_counts.begin(); i != m_category_counts.end(); ++i ) {
-			for( std::size_t j = 0; j < m_cohorts.size(); ++j ) {	
-				get_ui_context().logger() << " " << i->first[j] ;
-			}
-			get_ui_context().logger() << ": " << i->second << "\n" ;
-		}
-		get_ui_context().logger() << " TOTAL: " << m_snps.size() << "\n" ;
-		get_ui_context().logger() << "================================================\n" ;
-	}
+	ResultSignal m_result_signal ;
 
+private:	
+	void unsafe_setup( appcontext::UIContext& ui_context ) {
+		link_data( ui_context ) ;
+		categorise_snps() ;
+		construct_computations() ;
+	}
+	
 	void add_SNP_callback( std::size_t cohort_i, std::size_t snp_i, genfile::SNPIdentifyingData const& snp ) {
 		std::vector< boost::optional< std::size_t > >& snp_indices = m_snps[ snp ] ;
 		snp_indices.resize( m_cohorts.size() ) ;
 		snp_indices[ cohort_i ] = snp_i ;
 	}
 
-	void link_data() {
-		UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Linking SNPs" ) ;
+	void link_data( appcontext::UIContext& ui_context ) {
+		appcontext::UIContext::ProgressContext progress_context = ui_context.get_progress_context( "Linking SNPs" ) ;
 		progress_context( 0, m_cohorts.size() ) ;
 		for( std::size_t cohort_i = 0; cohort_i < m_cohorts.size(); ++cohort_i ) {
 			m_cohorts[ cohort_i].get_SNPs(
 				boost::bind(
-					&AmetApplication::add_SNP_callback,
+					&AmetProcessor::add_SNP_callback,
 					this,
 					cohort_i,
 					_1,
@@ -283,20 +394,110 @@ private:
 		}
 	}
 
+	void construct_computations() {
+		m_computations.push_back( AmetComputation::create( "FixedEffectFrequentistMetaAnalysis" )) ;
+	}
+
+	void unsafe_process() {
+		Eigen::MatrixXd cohort_counts( 4, m_cohorts.size() ) ;
+		Eigen::VectorXd cohort_betas( m_cohorts.size() ) ;
+		Eigen::VectorXd cohort_ses( m_cohorts.size() ) ;
+		Eigen::VectorXd non_missingness( m_cohorts.size() ) ;
+		
+		SnpMap::const_iterator snp_i = m_snps.begin(), end_i = m_snps.end() ;
+		for( std::size_t snp_index = 0; snp_i != end_i; ++snp_i, ++snp_index ) {
+			std::vector< boost::optional< std::size_t > > const& indices = snp_i->second ;
+			non_missingness.setZero() ;
+			for( std::size_t j = 0; j < indices.size(); ++j ) {
+				if( indices[j] ) {
+					// Assume values are not missing.  If betas and ses are present but missing this will be changed in the calls to assign_vector_elt below.
+					non_missingness( j ) = 1.0 ; 
+					m_cohorts[j].get_results(
+						*indices[j],
+						boost::bind( &impl::assign_counts, &cohort_counts, j, _1, _2, _3, _4 ),
+						boost::bind( &impl::assign_vector_elt, &cohort_betas, &non_missingness, j, _1 ),
+						boost::bind( &impl::assign_vector_elt, &cohort_ses, &non_missingness, j, _1 )
+					) ;
+				}
+			}
+			
+			for( std::size_t i = 0; i < m_computations.size(); ++i ) {
+				m_computations[i](
+					snp_i->first,
+					cohort_betas,
+					cohort_ses,
+					non_missingness,
+					boost::bind(
+						boost::ref( m_result_signal ),
+						snp_index,
+						snp_i->first,
+						m_computations[i].get_spec(),
+						_1,
+						_2
+					)
+				) ;
+			}
+		}
+	}
+} ;
+
+
+struct AmetApplication: public appcontext::ApplicationContext {
+public:
+	AmetApplication( int argc, char **argv ):
+		appcontext::ApplicationContext(
+			globals::program_name,
+			globals::program_version,
+			std::auto_ptr< appcontext::OptionProcessor >( new AmetOptions ),
+			argc,
+			argv,
+			"-log"
+		),
+		m_processor( AmetProcessor::create( genfile::SNPIdentifyingData::CompareFields( options().get< std::string > ( "-snp-match-fields" )) ) )
+	{}
+	
+	void run() {
+		load_data() ;
+		m_processor->setup( get_ui_context() ) ;
+		m_processor->summarise( get_ui_context() ) ;
+		
+		impl::DBOutputter::SharedPtr outputter = impl::DBOutputter::create_shared(
+			options().get< std::string >( "-o" ),
+			options().get< std::string >( "-analysis-name" ),
+			options().get_values_as_map()
+		) ;
+		
+		m_processor->send_results_to(
+			boost::bind(
+				&impl::DBOutputter::operator(),
+				outputter,
+				_1, _2, _3, _4, _5
+			)
+		) ;
+
+		m_processor->process() ;
+	}
+	
 	void load_data() {
+		using genfile::string_utils::to_string ;
 		std::vector< std::string > cohort_files = options().get_values< std::string >( "-snptest" ) ;
 		for( std::size_t i = 0; i < cohort_files.size(); ++i ) {
 			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading SNPTEST results \"" + cohort_files[i] + "\"" ) ;
 			FrequentistGenomeWideAssociationResults::UniquePtr results( new SNPTESTResults( genfile::wildcard::find_files_by_chromosome( cohort_files[i] ), progress_context ) ) ;
-			m_cohorts.push_back( results ) ;
+			m_processor->add_cohort( "cohort_" + to_string( i+1 ), results ) ;
 		}
 	}
+	
+	
+	
+private:
+	AmetProcessor::UniquePtr m_processor ;
 } ;
 
 int main( int argc, char **argv ) {
 	try {
 		AmetApplication app( argc, argv ) ;	
-		app.process() ;
+		app.run() ;
 	}
 	catch( appcontext::HaltProgramWithReturnCode const& e ) {
 		return e.return_code() ;

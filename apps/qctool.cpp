@@ -443,7 +443,7 @@ public:
 			.set_takes_single_value()
 			.set_default_value( 0 ) ;
 		options[ "-analysis-name" ]
-			.set_description( "Specify a human-readable name to label results from this analysis with (for some modules)" )
+			.set_description( "Specify a name to label results from this analysis with.  (This applies to modules which store their results in a qcdb file.)" )
 			.set_takes_single_value()
 			.set_default_value( "qctool analysis, started " + appcontext::get_current_time_as_string() ) ;
 		options[ "-nodb" ]
