@@ -196,15 +196,19 @@ struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
 		}
 		double const meta_beta = ( inverse_variances.array() * betas.array() ).sum() / inverse_variances.sum() ;
 		double const meta_se = 1.0 / inverse_variances.sum() ;
-		typedef boost::math::normal NormalDistribution ;
-		NormalDistribution normal( 0, meta_se ) ;
-		// P-value is the mass under both tails of the normal distribution larger than |meta_beta|
-		double const pvalue = 2.0 * boost::math::cdf( boost::math::complement( normal, std::abs( meta_beta ) ) ) ;
-		
+
 		callback( "fixed_effect_meta_beta", meta_beta ) ;
 		callback( "fixed_effect_meta_se", meta_se ) ;
-		callback( "fixed_effect_meta_pvalue", pvalue ) ;
-	} ;
+
+		if( meta_se == meta_se ) {
+			typedef boost::math::normal NormalDistribution ;
+			NormalDistribution normal( 0, meta_se ) ;
+			// P-value is the mass under both tails of the normal distribution larger than |meta_beta|
+			double const pvalue = 2.0 * boost::math::cdf( boost::math::complement( normal, std::abs( meta_beta ) ) ) ;
+		
+			callback( "fixed_effect_meta_pvalue", pvalue ) ;
+		}
+	}
 
 	std::string get_spec() const {
 		return "FixedEffectFrequentistMetaAnalysis" ;
