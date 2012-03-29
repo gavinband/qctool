@@ -3,6 +3,7 @@
 #include <set>
 #include <map>
 #include <utility>
+#include <boost/bimap.hpp>
 #include <boost/bind.hpp>
 #include <boost/signals2/signal.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
@@ -43,9 +44,13 @@ struct FrequentistGenomeWideAssociationResults: public boost::noncopyable {
 
 struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 	typedef boost::function< void ( std::size_t, boost::optional< std::size_t > ) > ProgressCallback ;
-	SNPTESTResults( std::vector< genfile::wildcard::FilenameMatch > const& filenames, ProgressCallback progress_callback = ProgressCallback() )
+	typedef
+		boost::function< void ( std::size_t, genfile::SNPIdentifyingData const&, std::string const&, std::string const&, genfile::VariantEntry const& ) > 
+		SNPResultCallback ;
+	
+	SNPTESTResults( std::vector< genfile::wildcard::FilenameMatch > const& filenames, SNPResultCallback callback = SNPResultCallback(), ProgressCallback progress_callback = ProgressCallback() )
 	{
-		setup( filenames, progress_callback ) ;
+		setup( filenames, callback, progress_callback ) ;
 	}
 
 	void get_SNPs( SNPCallback callback ) const {
@@ -76,115 +81,158 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 		return result ;
 	}
 
-	private:
-		std::vector< genfile::SNPIdentifyingData > m_snps ;
-		Eigen::MatrixXd m_betas ;
-		Eigen::MatrixXd m_ses ;
-		Eigen::VectorXd m_pvalues ;
-		Eigen::VectorXd m_info ;
-		Eigen::MatrixXd m_sample_counts ;
-		
-		void setup( std::vector< genfile::wildcard::FilenameMatch > const& filenames, ProgressCallback progress_callback = ProgressCallback() ) {
-			progress_callback( 0, filenames.size() ) ;
-			for( std::size_t i = 0; i < filenames.size(); ++i ) {
-				setup( filenames[i] ) ;
-				progress_callback( i+1, filenames.size() ) ;
-			}
+private:
+	std::vector< genfile::SNPIdentifyingData > m_snps ;
+	Eigen::MatrixXd m_betas ;
+	Eigen::MatrixXd m_ses ;
+	Eigen::VectorXd m_pvalues ;
+	Eigen::VectorXd m_info ;
+	Eigen::MatrixXd m_sample_counts ;
+	typedef boost::bimap< std::string, std::size_t > ColumnMap ;
+	
+	void setup(
+		std::vector< genfile::wildcard::FilenameMatch > const& filenames,
+		SNPResultCallback callback,
+		ProgressCallback progress_callback
+	) {
+		progress_callback( 0, filenames.size() ) ;
+		for( std::size_t i = 0; i < filenames.size(); ++i ) {
+			setup( filenames[i], callback ) ;
+			progress_callback( i+1, filenames.size() ) ;
 		}
-		
-		void setup( genfile::wildcard::FilenameMatch const& filename ) {
-			statfile::BuiltInTypeStatSource::UniquePtr source( statfile::BuiltInTypeStatSource::open( filename.filename() )) ;
-			std::map< std::string, std::size_t > columns_by_name ;
-			std::map< std::size_t, std::string > columns_by_index ;
-			columns_by_name[ "_beta_1" ] = 0 ;
-			columns_by_name[ "_se_1" ] = 0 ;
-			columns_by_name[ "_beta_2" ] = 0 ;
-			columns_by_name[ "_se_2" ] = 0 ;
-			columns_by_name[ "_pvalue" ] = 0 ;
-			columns_by_name[ "info" ] = 0 ;
-			columns_by_name[ "all_AA" ] = 0 ;
-			columns_by_name[ "all_AB" ] = 0 ;
-			columns_by_name[ "all_BB" ] = 0 ;
-			columns_by_name[ "all_NULL" ] = 0 ;
-			for( std::size_t i = 0; i < source->number_of_columns(); ++i ) {
-				std::string name = source->name_of_column( i ) ;
-				for( std::map< std::string, std::size_t >::iterator j = columns_by_name.begin(); j != columns_by_name.end(); ++j ) {
-					if( name.size() >= j->first.size() && name.compare( name.size() - j->first.size(), j->first.size(), j->first ) == 0 ) {
-						j->second = i ;
-						columns_by_index[i] = j->first ;
-						
-						//std::cerr << "Column \"" << j->first << "\" found at position " << i << ".\n" ;
-					}
-				}
-			}
-		
-			// Figure out if this is a general test.
-			int degrees_of_freedom ;
-			if( columns_by_name[ "_beta_2" ] > 0 ) {
-				degrees_of_freedom = 2 ;
-			} else {
-				columns_by_name.erase( "_beta_2" ) ;
-				columns_by_name.erase( "_se_2" ) ;
-				degrees_of_freedom = 1; 
-			}
-		
-			m_snps.resize( source->number_of_rows() ) ;
-			m_betas.resize( source->number_of_rows(), degrees_of_freedom ) ;
-			m_ses.resize( source->number_of_rows(), degrees_of_freedom ) ;
-			m_pvalues.resize( source->number_of_rows() ) ;
-			m_info.resize( source->number_of_rows() ) ;
-			m_sample_counts.resize( source->number_of_rows(), 4 ) ;
+	}
+	
+	void setup( genfile::wildcard::FilenameMatch const& filename, SNPResultCallback callback ) {
+		statfile::BuiltInTypeStatSource::UniquePtr source( statfile::BuiltInTypeStatSource::open( filename.filename() )) ;
 
-			using genfile::string_utils::to_repr ;
-			
-			genfile::SNPIdentifyingData snp ;
-			for(
-				std::size_t index = 0 ;
-				(*source) >> snp.SNPID() >> snp.rsid() >> snp.position().chromosome() >> snp.position().position() >> snp.first_allele() >> snp.second_allele();
-				++index, (*source) >> statfile::ignore_all()
-			) {
-				m_snps[ index ] = snp ;
+		ColumnMap column_map = get_columns_to_store( *source ) ;
 		
-				std::map< std::size_t, std::string >::const_iterator
-					i = columns_by_index.begin(),
-					end_i = columns_by_index.end() ;
-				for( ; i != end_i; ++i ) {
-					std::string value ;
-					(*source) >> statfile::ignore( i->first - source->current_column() ) >> value ;
-					
-					if( i->second == "_beta_1" ) {
-						m_betas( index, 0 ) = to_repr< double >( value ) ;
+		int degrees_of_freedom = ( column_map.left.find( "_beta_2" ) == column_map.left.end() ) ? 1 : 2 ;
+		
+		m_snps.resize( source->number_of_rows() ) ;
+		m_betas.resize( source->number_of_rows(), degrees_of_freedom ) ;
+		m_ses.resize( source->number_of_rows(), degrees_of_freedom ) ;
+		m_pvalues.resize( source->number_of_rows() ) ;
+		m_info.resize( source->number_of_rows() ) ;
+		m_sample_counts.resize( source->number_of_rows(), 4 ) ;
+
+		genfile::SNPIdentifyingData snp ;
+		for(
+			std::size_t snp_index = 0 ;
+			(*source) >> snp.SNPID() >> snp.rsid() >> snp.position().chromosome() >> snp.position().position() >> snp.first_allele() >> snp.second_allele();
+			++snp_index, (*source) >> statfile::ignore_all()
+		) {
+			m_snps[ snp_index ] = snp ;
+	
+			// Just read the values we need
+			ColumnMap::right_const_iterator i = column_map.right.begin(), end_i = column_map.right.end() ;
+			double value ;
+			
+			for( ; i != end_i; ++i ) {
+				if( callback ) {
+					// We have to read all the columns, even though we'll ignore them.
+					while( source->current_column() < source->number_of_columns() && ( i == end_i || source->current_column() < i->first ) ) {
+						(*source) >> value ;
+						callback( snp_index, snp, "SNPTESTResults", source->name_of_column( source->current_column() - 1 ), value ) ;
 					}
-					else if( i->second == "_se_1" ) {
-						m_ses( index, 0 ) = to_repr< double >( value ) ;
-					}
-					if( i->second == "_beta_2" ) {
-						m_betas( index, 1 ) = to_repr< double >( value ) ;
-					}
-					else if( i->second == "_se_2" ) {
-						m_ses( index, 1 ) = to_repr< double >( value ) ;
-					}
-					else if( i->second == "_pvalue" ) {
-						m_pvalues( index ) = to_repr< double >( value ) ;
-					}
-					else if( i->second == "info" ) {
-						m_info( index ) = to_repr< double >( value ) ;
-					}
-					else if( i->second == "all_AA" ) {
-						m_sample_counts( index, 0 ) = to_repr< double >( value ) ;
-					}
-					else if( i->second == "all_AB" ) {
-						m_sample_counts( index, 1 ) = to_repr< double >( value ) ;
-					}
-					else if( i->second == "all_BB" ) {
-						m_sample_counts( index, 2 ) = to_repr< double >( value ) ;
-					}
-					else if( i->second == "all_NULL" ) {
-						m_sample_counts( index, 3 ) = to_repr< double >( value ) ;
-					}
+				}
+				else {
+					(*source) >> statfile::ignore( i->first - source->current_column() ) ;
+				}
+				(*source) >> value ;
+				if( callback ) {
+					callback( snp_index, snp, "SNPTESTResults", source->name_of_column( source->current_column() - 1 ), value ) ;
+				}
+				store_value( snp_index, i->second, value ) ;
+			}
+			
+			// read any remaining columns if necessary.
+			if( callback ) {
+				while( source->current_column() < source->number_of_columns() && ( i == end_i || source->current_column() < i->first ) ) {
+					(*source) >> value ;
+					callback( snp_index, snp, "SNPTESTResults", source->name_of_column( source->current_column() - 1 ), value ) ;
 				}
 			}
 		}
+	}
+	
+	ColumnMap get_columns_to_store(
+		statfile::BuiltInTypeStatSource const& source
+	) {
+		std::set< std::string > desired_columns ;
+		desired_columns.insert( "_beta_1" ) ;
+		desired_columns.insert( "_beta_2" ) ;
+		desired_columns.insert( "_se_1" ) ;
+		desired_columns.insert( "_se_2" ) ;
+		desired_columns.insert( "_pvalue" ) ;
+		desired_columns.insert( "info" ) ;
+		desired_columns.insert( "all_AA" ) ;
+		desired_columns.insert( "all_AB" ) ;
+		desired_columns.insert( "all_BB" ) ;
+		desired_columns.insert( "all_NULL" ) ;
+
+		ColumnMap result ;
+		for( std::size_t i = 0; i < source.number_of_columns(); ++i ) {
+			std::string name = source.name_of_column( i ) ;
+			for( std::set< std::string >::iterator j = desired_columns.begin(); j != desired_columns.end(); ++j ) {
+				if( name.size() >= j->size() && name.compare( name.size() - j->size(), j->size(), *j ) == 0 ) {
+					result.insert( ColumnMap::value_type( *j, i )) ;
+					//std::cerr << "Column \"" << j->first << "\" found at position " << i << ".\n" ;
+				}
+			}
+		}
+		
+		std::set< std::string > required_columns = desired_columns ;
+		required_columns.erase( "_beta_2" ) ;
+		required_columns.erase( "_se_2" ) ;
+		
+		for( std::set< std::string >::const_iterator i = required_columns.begin(); i != required_columns.end(); ++i ) {
+			if( result.left.find( *i ) == result.left.end() ) {
+				throw genfile::MalformedInputError( source.get_source_spec(), 0 ) ;
+			}
+		}
+
+		return result ;
+	}
+	
+	void store_value(
+		int snp_index,
+		std::string const& variable,
+		double const value
+	) {
+		using genfile::string_utils::to_repr ;
+		
+		if( variable == "_beta_1" ) {
+			m_betas( snp_index, 0 ) = value ;
+		}
+		else if( variable == "_se_1" ) {
+			m_ses( snp_index, 0 ) = value ;
+		}
+		if( variable == "_beta_2" ) {
+			m_betas( snp_index, 1 ) = value ;
+		}
+		else if( variable == "_se_2" ) {
+			m_ses( snp_index, 1 ) = value ;
+		}
+		else if( variable == "_pvalue" ) {
+			m_pvalues( snp_index ) = value ;
+		}
+		else if( variable == "info" ) {
+			m_info( snp_index ) = value ;
+		}
+		else if( variable == "all_AA" ) {
+			m_sample_counts( snp_index, 0 ) = value ;
+		}
+		else if( variable == "all_AB" ) {
+			m_sample_counts( snp_index, 1 ) = value ;
+		}
+		else if( variable == "all_BB" ) {
+			m_sample_counts( snp_index, 2 ) = value ;
+		}
+		else if( variable == "all_NULL" ) {
+			m_sample_counts( snp_index, 3 ) = value ;
+		}
+	}
 } ;
 
 struct AmetComputation: public boost::noncopyable {
@@ -276,7 +324,7 @@ struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
 		get_data( data_getter, betas, ses, non_missingness ) ;
 		
 		Eigen::VectorXd inverse_variances = ( ses.array() * ses.array() ).inverse() ;
-		for( int i = 0; i < N; ++i ) {
+		for( int i = 0; i < int(N); ++i ) {
 			if( non_missingness( i ) == 0.0 ) {
 				inverse_variances( i ) = 0 ;
 				betas( i ) = 0 ;
@@ -357,6 +405,12 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 			.set_maximum_multiplicity( 100 )
 		;
 		
+		options[ "-omit-raw-results" ]
+			.set_description( "Indicate that " + globals::program_name + " should not store raw results from the input files in the database." ) ;
+		
+		options[ "-meta-analyse" ]
+			.set_description( "Compute and store meta-analysis p-values for all SNPs." ) ;
+
 		options[ "-o" ]
 			.set_description( "Specify the path to a file in which results will be placed." )
 			.set_is_required()
@@ -452,6 +506,10 @@ struct AmetProcessor: public boost::noncopyable
 		ui_context.logger() << "================================================\n" ;
 	}
 	
+	void add_computation( std::string const& name, AmetComputation::UniquePtr computation ) {
+		m_computations.push_back( computation ) ;
+	}
+
 	void setup( appcontext::UIContext& ui_context ) {
 		unsafe_setup( ui_context ) ;
 	}
@@ -520,7 +578,6 @@ private:
 	void unsafe_setup( appcontext::UIContext& ui_context ) {
 		link_data( ui_context ) ;
 		categorise_snps() ;
-		construct_computations() ;
 	}
 	
 	void add_SNP_callback( std::size_t cohort_i, std::size_t snp_i, genfile::SNPIdentifyingData const& snp ) {
@@ -556,11 +613,6 @@ private:
 			}
 			++m_category_counts[ indicator ] ;
 		}
-	}
-
-	void construct_computations() {
-		m_computations.push_back( AmetComputation::create( "FixedEffectFrequentistMetaAnalysis" )) ;
-		m_computations.push_back( AmetComputation::create( "PerCohortValueReporter" )) ;
 	}
 
 	void unsafe_process( appcontext::UIContext& ui_context ) {
@@ -611,38 +663,73 @@ public:
 	
 	void run() {
 		load_data() ;
+
 		m_processor->setup( get_ui_context() ) ;
 		m_processor->summarise( get_ui_context() ) ;
 		
-		impl::DBOutputter::SharedPtr outputter = impl::DBOutputter::create_shared(
+		snp_summary_component::DBOutputter::SharedPtr outputter = snp_summary_component::DBOutputter::create_shared(
 			options().get< std::string >( "-o" ),
 			options().get< std::string >( "-analysis-name" ),
 			options().get_values_as_map()
 		) ;
-		
+
 		m_processor->send_results_to(
 			boost::bind(
-				&impl::DBOutputter::operator(),
+				&snp_summary_component::DBOutputter::operator(),
 				outputter,
 				_1, _2, _3, _4, _5
 			)
 		) ;
 
+		if( options().check( "-meta-analyse" )) {
+			m_processor->add_computation( "FixedEffectFrequentistMetaAnalysis", AmetComputation::create( "FixedEffectFrequentistMetaAnalysis" ) ) ;
+		}
 		m_processor->process( get_ui_context() ) ;
 	}
 	
+	typedef
+		boost::function< void ( std::size_t, genfile::SNPIdentifyingData const&, std::string const&, std::string const&, genfile::VariantEntry const& ) > 
+		ResultCallback ;
+
 	void load_data() {
+		
 		using genfile::string_utils::to_string ;
 		std::vector< std::string > cohort_files = options().get_values< std::string >( "-snptest" ) ;
 		for( std::size_t i = 0; i < cohort_files.size(); ++i ) {
 			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading SNPTEST results \"" + cohort_files[i] + "\"" ) ;
+			FrequentistGenomeWideAssociationResults::UniquePtr results ;
+
+			if( !options().check( "-omit-raw-results" ))  {
+				snp_summary_component::DBOutputter::SharedPtr raw_outputter = snp_summary_component::DBOutputter::create_shared(
+					options().get< std::string >( "-o" ),
+					globals::program_name + " cohort " + to_string( i+1 ) + ": SNPTEST analysis: \"" + cohort_files[i] + "\"",
+					snp_summary_component::DBOutputter::Metadata()
+				) ;
+
+				results.reset(
+					new SNPTESTResults(
+						genfile::wildcard::find_files_by_chromosome( cohort_files[i] ),
+						boost::bind(
+							&snp_summary_component::DBOutputter::operator(),
+							raw_outputter,
+							_1, _2, _3, _4, _5
+						),
+						progress_context
+					)
+				) ;
+			} else {
+				results.reset(
+					new SNPTESTResults(
+						genfile::wildcard::find_files_by_chromosome( cohort_files[i] ),
+						SNPTESTResults::SNPResultCallback(),
+						progress_context
+					)
+				) ;
+			}
 			
-			FrequentistGenomeWideAssociationResults::UniquePtr results( new SNPTESTResults( genfile::wildcard::find_files_by_chromosome( cohort_files[i] ), progress_context ) ) ;
 			m_processor->add_cohort( "cohort_" + to_string( i+1 ), results ) ;
 		}
 	}
-	
-	
 	
 private:
 	AmetProcessor::UniquePtr m_processor ;
