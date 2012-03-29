@@ -40,7 +40,7 @@ struct CallComparerDBOutputter: public qcdb::DBOutputter, public PairwiseCallCom
 
 private:
 	std::size_t const m_max_transaction_count ;
-
+	db::Connection::RowId const m_callset_id ;
 	db::Connection::StatementPtr m_insert_comparison_statement ;
 	
 	typedef std::vector< boost::tuple< genfile::SNPIdentifyingData, std::string, std::string, std::string, std::string, genfile::VariantEntry > > Data ;

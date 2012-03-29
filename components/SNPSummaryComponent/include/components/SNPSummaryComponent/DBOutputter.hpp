@@ -12,7 +12,7 @@
 #include "db/SQLStatement.hpp"
 #include "qcdb/DBOutputter.hpp"
 
-namespace impl {
+namespace snp_summary_component {
 	struct DBOutputter: public qcdb::DBOutputter {
 		typedef std::auto_ptr< DBOutputter > UniquePtr ;
 		typedef boost::shared_ptr< DBOutputter > SharedPtr ;
@@ -38,6 +38,7 @@ namespace impl {
 	private:
 		db::Connection::UniquePtr m_connection ;
 		std::size_t const m_max_transaction_count ;
+		db::Connection::RowId m_variable_id ;
 		typedef std::vector< boost::tuple< genfile::SNPIdentifyingData, std::string, genfile::VariantEntry > > Data ;
 		Data m_data ;
 

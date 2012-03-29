@@ -1,5 +1,6 @@
 #include <string>
 #include <memory>
+#include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/thread/thread.hpp>
@@ -49,6 +50,19 @@ namespace qcdb {
 			"FOREIGN KEY (variable_id) REFERENCES Entity( id ) "
 			")"
 		) ;
+
+		m_connection->run_statement(
+			"CREATE TABLE IF NOT EXISTS EntityRelationship ( "
+				"entity1_id INTEGER NOT NULL, "
+				"relationship_id INTEGER NOT NULL, "
+				"entity2_id INTEGER NOT NULL, "
+				"FOREIGN KEY( entity1_id ) REFERENCES Entity( id ), "
+				"FOREIGN KEY( relationship_id ) REFERENCES Entity( id ), "
+				"FOREIGN KEY( entity2_id ) REFERENCES Entity( id ), "
+				"UNIQUE( entity1_id, relationship_id, entity2_id ) "
+			")"
+		) ;
+
 		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS SummaryData ( "
 			"variant_id INT, analysis_id INT, variable_id INT, value NONE, "
@@ -63,6 +77,19 @@ namespace qcdb {
 		m_connection->run_statement(
 			"CREATE INDEX IF NOT EXISTS EntityDataIndex ON EntityData( entity_id, variable_id )"
 		) ;
+
+		m_connection->run_statement(
+			"CREATE VIEW IF NOT EXISTS EntityRelationshipView AS "
+			"SELECT ER.entity1_id AS entity1_id, E1.name AS entity1, ER.relationship_id, R.name AS relationship, ER.entity2_id AS entity2_id, E2.name AS entity2 "
+			"FROM EntityRelationship ER "
+			"INNER JOIN Entity E1 "
+			"  ON E1.id = ER.entity1_id " 
+			"INNER JOIN Entity R "
+			"  ON R.id = ER.relationship_id " 
+			"INNER JOIN Entity E2 "
+			"  ON E2.id = ER.entity2_id" 
+		) ;
+	
 		m_connection->run_statement(
 			"CREATE VIEW IF NOT EXISTS SummaryDataView AS "
 			"SELECT          V.id AS variant_id, V.chromosome, V.position, V.rsid, "
@@ -176,6 +203,7 @@ namespace qcdb {
 		m_find_entity_data_statement = m_connection->get_statement( "SELECT * FROM EntityData WHERE entity_id == ?1 AND variable_id == ?2" ) ;
 		m_find_entity_statement = m_connection->get_statement( "SELECT id FROM Entity E WHERE name == ?1 AND description == ?2" ) ;
 		m_insert_entity_data_statement = m_connection->get_statement( "INSERT OR REPLACE INTO EntityData ( entity_id, variable_id, value ) VALUES ( ?1, ?2, ?3 )" ) ;
+		m_insert_entity_relationship_statement = m_connection->get_statement( "INSERT OR REPLACE INTO EntityRelationship( entity1_id, relationship_id, entity2_id ) VALUES( ?1, ?2, ?3 )") ;
 		m_find_variant_statement = connection().get_statement(
 			"SELECT id FROM Variant WHERE chromosome == ?2 AND position == ?3 AND rsid == ?1 AND alleleA = ?4 AND alleleB = ?5"
 		) ;
@@ -190,26 +218,33 @@ namespace qcdb {
 	}
 
 	void DBOutputter::store_metadata() {
-		m_analysis_id = get_or_create_entity( m_analysis_name, "qctool analysis, started " + appcontext::get_current_time_as_string() ) ;
+		m_is_a = get_or_create_entity( "is_a", "is_a relationship" ) ;
+		m_analysis = get_or_create_entity( "analysis", "class of analyses" ) ;
+		db::Connection::RowId const cmd_line_arg_id = get_or_create_entity( "command-line argument", "Value supplied to a script or executable" ) ;
+
+		m_analysis_id = get_or_create_entity(
+			m_analysis_name,
+			"qctool analysis, started " + appcontext::get_current_time_as_string(),
+			m_analysis
+		) ;
+
 		get_or_create_entity_data(
 			m_analysis_id,
 			get_or_create_entity( "tool", "Executable, pipeline, or script used to generate these results." ),
 			"qctool revision " + std::string( globals::qctool_revision )
 		) ;
+		
 		for( Metadata::const_iterator i = m_metadata.begin(); i != m_metadata.end(); ++i ) {
+			db::Connection::RowId key_id = get_or_create_entity( i->first, "command-line argument", cmd_line_arg_id ) ;
 			get_or_create_entity_data(
 				m_analysis_id,
-				get_or_create_entity(
-					i->first,
-					"\"" + i->first + "\" command-line argument"
-				),
+				key_id,
 				genfile::string_utils::join( i->second.first, "," ) + " (" + i->second.second + ")"
 			) ;
 		}
 	}
 
-
-	db::Connection::RowId DBOutputter::get_or_create_entity( std::string const& name, std::string const& description ) const {
+	db::Connection::RowId DBOutputter::get_or_create_entity( std::string const& name, std::string const& description, boost::optional< db::Connection::RowId > class_id ) const {
 		db::Connection::RowId result ;
 		m_find_entity_statement
 			->bind( 1, name )
@@ -224,11 +259,25 @@ namespace qcdb {
 				
 			result = m_connection->get_last_insert_row_id() ;
 			m_insert_entity_statement->reset() ;
+
+			if( class_id ) {
+				create_entity_relationship( result, m_is_a, *class_id ) ;
+			}
 		} else {
 			result = m_find_entity_statement->get< db::Connection::RowId >( 0 ) ;
 		}
 		m_find_entity_statement->reset() ;
 		return result ;
+	}
+
+	void DBOutputter::create_entity_relationship( db::Connection::RowId entity1_id, db::Connection::RowId relationship_id, db::Connection::RowId entity2_id ) const {
+		m_insert_entity_relationship_statement
+			->bind( 1, entity1_id )
+			.bind( 2, relationship_id )
+			.bind( 3, entity2_id )
+			.step() ;
+			
+		m_insert_entity_relationship_statement->reset() ;
 	}
 
 	db::Connection::RowId DBOutputter::get_or_create_entity_data( db::Connection::RowId const entity_id, db::Connection::RowId const variable_id, genfile::VariantEntry const& value ) const {

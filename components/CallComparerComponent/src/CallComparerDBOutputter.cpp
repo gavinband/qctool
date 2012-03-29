@@ -12,7 +12,8 @@ CallComparerDBOutputter::SharedPtr CallComparerDBOutputter::create_shared( std::
 
 CallComparerDBOutputter::CallComparerDBOutputter( std::string const& filename, std::string const& analysis, Metadata const& metadata ):
 	qcdb::DBOutputter( filename, analysis, metadata ),
-	m_max_transaction_count( 10000 )
+	m_max_transaction_count( 10000 ),
+	m_callset_id( get_or_create_entity( "callset", "entity representing call sets" ))
 {
 	db::Connection::ScopedTransactionPtr transaction = connection().open_transaction( 30 ) ;
 	connection().run_statement(
@@ -115,8 +116,8 @@ void CallComparerDBOutputter::store_comparison(
 	db::Connection::RowId const snp_id = get_or_create_variant( snp ) ;
 
 	db::Connection::RowId method_id = get_or_create_entity( comparison_method, "Method for performing pairwise genotype call comparison" ) ;
-	db::Connection::RowId callset1_id = get_or_create_entity( callset1, "A callset" ) ;
-	db::Connection::RowId callset2_id = get_or_create_entity( callset2, "A callset" ) ;
+	db::Connection::RowId callset1_id = get_or_create_entity( callset1, "A callset", m_callset_id ) ;
+	db::Connection::RowId callset2_id = get_or_create_entity( callset2, "A callset", m_callset_id ) ;
 	db::Connection::RowId variable_id = get_or_create_entity( comparison_variable, "\"" + comparison_variable + "\" value for pairwise genotype call comparison" ) ;
 
 	if( callset1 != "" ) {

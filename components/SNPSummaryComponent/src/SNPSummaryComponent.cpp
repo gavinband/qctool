@@ -147,7 +147,7 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 			}
 		}
 
-		impl::DBOutputter::SharedPtr outputter = impl::DBOutputter::create_shared(
+		snp_summary_component::DBOutputter::SharedPtr outputter = snp_summary_component::DBOutputter::create_shared(
 			filename,
 			m_options.get< std::string >( "-analysis-name" ),
 			m_options.get_values_as_map()
@@ -155,7 +155,7 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 	
 		manager->add_result_callback(
 			boost::bind(
-				&impl::DBOutputter::operator(),
+				&snp_summary_component::DBOutputter::operator(),
 				outputter,
 				_1, _2, _3, _4, _5
 			)
