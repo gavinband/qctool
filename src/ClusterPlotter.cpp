@@ -123,7 +123,7 @@ namespace impl {
 				graph.CAxis( 0.0, 3.0 ) ;
 
 				graph.Tens( x, y, colour, "RGBk ." ) ;
-				graph.Puts( mglPoint( 2.5, 3.0 ), ( i->first + "/" + m_intensity_field ).c_str() ) ;
+				graph.Puts( mglPoint( x_range_max / 2, y_range_max * 3 / 5 ), ( i->first + "/" + m_intensity_field ).c_str() ) ;
 			}
 			graph.WritePNG( m_filename.c_str() ) ;
 		}
