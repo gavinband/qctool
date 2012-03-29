@@ -199,7 +199,7 @@ namespace genfile {
 			}
 		}
 		else {
-			result = count_lines( vcf_file_stream, 100000 ) ;
+			result = count_lines( vcf_file_stream, 10000 ) ;
 		}
 		return result ;
 	}
