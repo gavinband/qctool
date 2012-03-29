@@ -98,16 +98,7 @@ namespace genfile {
 		reset_stream() ;
 	}
 	
-	void VCFFormatSNPDataSource::setup() {
-		std::string index_filename = m_spec ;
-		if( index_filename.size() > 3 && index_filename.substr( index_filename.size() - 3, 3 ) == ".gz" ) {
-			index_filename = index_filename.substr( 0, index_filename.size() - 3 ) ;
-		}
-		index_filename += ".index" ;
-		if( boost::filesystem::exists( index_filename ) ) {
-			m_index_stream_ptr = open_text_file_for_input( index_filename ) ;
-		} 
-	}
+	void VCFFormatSNPDataSource::setup() {}
 
 	void VCFFormatSNPDataSource::check_genotype_probability_field( std::string const& field ) const {
 		EntryTypeMap::const_iterator where = m_format_types.find( field ) ;
@@ -188,13 +179,13 @@ namespace genfile {
 		return elts ;
 	}
 
-	std::size_t VCFFormatSNPDataSource::determine_number_of_lines(
+	SNPDataSource::OptionalSnpCount VCFFormatSNPDataSource::determine_number_of_lines(
 		std::istream& vcf_file_stream,
 		vcf::MetadataParser::Metadata const& metadata
 	) const {
 		typedef vcf::MetadataParser::Metadata::const_iterator MetadataIterator ;
 		std::pair< MetadataIterator, MetadataIterator > range = metadata.equal_range( "number-of-variants" ) ;
-		std::size_t result ;
+		OptionalSnpCount result ;
 		if( range.first != range.second ) {
 			std::map< std::string, std::string >::const_iterator where = range.first->second.find( "" ) ;
 			if( where == range.first->second.end() ) {
@@ -208,31 +199,12 @@ namespace genfile {
 			}
 		}
 		else {
-			if( m_index_stream_ptr.get() ) {
-				try {
-					m_index_stream_ptr->clear() ;
-					m_index_stream_ptr->seekg(0) ;
-					std::string line ;
-					std::getline( *m_index_stream_ptr, line ) ;
-					if( line == "SNPID RSID chromosome position allele1 allele2" ) {
-						result = count_lines( *m_index_stream_ptr ) ; // ignore header line.
-					}
-					else {
-						result = count_lines( vcf_file_stream ) ;
-					}
-				}
-				catch( MalformedInputError const& e ) {
-					result = count_lines( vcf_file_stream ) ;
-				}
-			}
-			else {
-				result = count_lines( vcf_file_stream ) ;
-			}
+			result = count_lines( vcf_file_stream, 100000 ) ;
 		}
 		return result ;
 	}
 
-	std::size_t VCFFormatSNPDataSource::count_lines( std::istream& str ) const {
+	SNPDataSource::OptionalSnpCount VCFFormatSNPDataSource::count_lines( std::istream& str, std::size_t max_number_of_lines ) const {
 		std::size_t count = 0 ;
 		std::vector< char > buffer( 10000000 ) ;
 		std::size_t last_read_size = 0 ;
@@ -251,7 +223,12 @@ namespace genfile {
 				throw FileHasTwoTrailingNewlinesError( get_source_spec(), count ) ;
 			}
 		}
-		while( str ) ;
+		while( str && count < max_number_of_lines ) ;
+		
+		if( str ) {
+			return OptionalSnpCount() ;
+		}
+		
 		assert( last_read_size < buffer.size() ) ;
 		if( last_read_size == 0 ) {
 			throw MalformedInputError( get_source_spec(), 0 ) ;
@@ -313,50 +290,6 @@ namespace genfile {
 				throw MalformedInputError( "(unnamed stream)", 0, column ) ;
 			}
 			return after_format ;
-		}
-	}
-	
-	void VCFFormatSNPDataSource::list_snps( SNPSetter setter, ProgressCallback progress_callback ) {
-		std::istream* source = m_index_stream_ptr.get() ;
-		if( !source ) {
-			SNPDataSource::list_snps( setter, progress_callback ) ;
-			return ;
-		}
-		else {
-			using string_utils::slice ;
-
-			std::cerr << "Reading from index file.\n" ;
-
-			source->clear() ;
-			source->seekg(0) ;
-			std::string line ;
-
-			std::getline( *source, line ) ;
-			if( line != "SNPID RSID chromosome position allele1 allele2" ) {
-				throw MalformedInputError( m_spec + ".index", 0 ) ;
-			}
-
-			for( std::size_t count = 1; std::getline( *source, line ); ++count ) {
-				std::vector< slice > elts = slice( line ).split( " " ) ;
-				if( elts.size() != 6 ) {
-					throw MalformedInputError( m_spec + ".index", count, 6 ) ;
-				}
-				setter(
-					SNPIdentifyingData(
-						elts[0],
-						elts[1],
-						GenomePosition(
-							Chromosome( elts[2] ),
-							string_utils::to_repr< Position >( elts[3] )
-						),
-						elts[4],
-						elts[5]
-					)
-			 	) ;
-				if( progress_callback ) {
-					progress_callback( number_of_snps_read() + 1, total_number_of_snps() ) ;
-				}
-			}
 		}
 	}
 	

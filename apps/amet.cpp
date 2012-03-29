@@ -33,12 +33,10 @@ struct FrequentistGenomeWideAssociationResults: public boost::noncopyable {
 	virtual ~FrequentistGenomeWideAssociationResults() {}
 	typedef boost::function< void ( std::size_t i, genfile::SNPIdentifyingData const& snp ) > SNPCallback ;
 	virtual void get_SNPs( SNPCallback ) const = 0 ;
-	virtual void get_results(
-		std::size_t snp_i,
-		boost::function< void ( double, double, double, double ) > get_counts,
-		boost::function< void ( genfile::VariantEntry ) > get_beta,
-		boost::function< void ( genfile::VariantEntry ) > get_se
-	) = 0 ;
+	virtual void get_betas( std::size_t snp_i, Eigen::VectorXd* result ) const = 0 ;
+	virtual void get_ses( std::size_t snp_i, Eigen::VectorXd* result ) const = 0 ; 
+	virtual void get_pvalue( std::size_t snp_i, double* result ) const = 0 ;
+	virtual void get_counts( std::size_t snp_i, Eigen::VectorXd* result ) const = 0 ;
 	virtual std::string get_summary( std::string const& prefix = "", std::size_t target_column = 80 ) const = 0;
 } ;
 
@@ -56,31 +54,32 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 		}
 	}
 
-	virtual void get_results(
-		std::size_t snp_i,
-		boost::function< void ( double, double, double, double ) > get_counts ,
-		boost::function< void ( genfile::VariantEntry ) > get_beta,
-		boost::function< void ( genfile::VariantEntry ) > get_se
-	) {
-		assert( snp_i < m_snps.size() ) ;
-		get_counts( m_sample_counts( snp_i, 0 ), m_sample_counts( snp_i, 1 ), m_sample_counts( snp_i, 2 ), m_sample_counts( snp_i, 3 ) ) ;
-		get_beta( m_betas( snp_i ) ) ;
-		get_se( m_ses( snp_i ) ) ;
+	void get_betas( std::size_t snp_i, Eigen::VectorXd* result ) const {
+		*result = m_betas.row( snp_i ) ;
+	}
+	void get_ses( std::size_t snp_i, Eigen::VectorXd* result ) const {
+		*result = m_ses.row( snp_i ) ;
+	}
+	void get_pvalue( std::size_t snp_i, double* result ) const {
+		*result = m_pvalues( snp_i ) ;
+	}
+	void get_counts( std::size_t snp_i, Eigen::VectorXd* result ) const {
+		*result = m_sample_counts.row( snp_i ) ;
 	}
 
 	std::string get_summary( std::string const& prefix, std::size_t target_column ) const {
 		using genfile::string_utils::to_string ;
 		std::string result = prefix + "SNPTESTResults object holding results for " + to_string( m_snps.size() ) + " SNPs.  The first few are:\n" ;
 		for( std::size_t i = 0; i < std::min( std::size_t( 5 ), m_snps.size() ); ++i ) {
-			result += to_string( m_snps[i] ) + ": beta=" + to_string( m_betas[i] ) + ", se=" + to_string( m_ses[i] ) + ", pvalue=" + to_string( m_pvalues[i] ) + "\n" ;
+			result += to_string( m_snps[i] ) + ": beta=" + to_string( m_betas.row(i) ) + ", se=" + to_string( m_ses.row(i) ) + ", pvalue=" + to_string( m_pvalues(i) ) + "\n" ;
 		}
 		return result ;
 	}
 
 	private:
 		std::vector< genfile::SNPIdentifyingData > m_snps ;
-		Eigen::VectorXd m_betas ;
-		Eigen::VectorXd m_ses ;
+		Eigen::MatrixXd m_betas ;
+		Eigen::MatrixXd m_ses ;
 		Eigen::VectorXd m_pvalues ;
 		Eigen::VectorXd m_info ;
 		Eigen::MatrixXd m_sample_counts ;
@@ -99,6 +98,8 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 			std::map< std::size_t, std::string > columns_by_index ;
 			columns_by_name[ "_beta_1" ] = 0 ;
 			columns_by_name[ "_se_1" ] = 0 ;
+			columns_by_name[ "_beta_2" ] = 0 ;
+			columns_by_name[ "_se_2" ] = 0 ;
 			columns_by_name[ "_pvalue" ] = 0 ;
 			columns_by_name[ "info" ] = 0 ;
 			columns_by_name[ "all_AA" ] = 0 ;
@@ -112,15 +113,25 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 						j->second = i ;
 						columns_by_index[i] = j->first ;
 						
-						std::cerr << "Column \"" << j->first << "\" found at position " << i << ".\n" ;
+						//std::cerr << "Column \"" << j->first << "\" found at position " << i << ".\n" ;
 					}
 				}
 			}
 		
+			// Figure out if this is a general test.
+			int degrees_of_freedom ;
+			if( columns_by_name[ "_beta_2" ] > 0 ) {
+				degrees_of_freedom = 2 ;
+			} else {
+				columns_by_name.erase( "_beta_2" ) ;
+				columns_by_name.erase( "_se_2" ) ;
+				degrees_of_freedom = 1; 
+			}
+		
 			m_snps.resize( source->number_of_rows() ) ;
-			m_betas.resize( source->number_of_rows() ) ;
+			m_betas.resize( source->number_of_rows(), degrees_of_freedom ) ;
+			m_ses.resize( source->number_of_rows(), degrees_of_freedom ) ;
 			m_pvalues.resize( source->number_of_rows() ) ;
-			m_ses.resize( source->number_of_rows() ) ;
 			m_info.resize( source->number_of_rows() ) ;
 			m_sample_counts.resize( source->number_of_rows(), 4 ) ;
 
@@ -142,10 +153,16 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 					(*source) >> statfile::ignore( i->first - source->current_column() ) >> value ;
 					
 					if( i->second == "_beta_1" ) {
-						m_betas( index ) = to_repr< double >( value ) ;
+						m_betas( index, 0 ) = to_repr< double >( value ) ;
 					}
 					else if( i->second == "_se_1" ) {
-						m_ses( index ) = to_repr< double >( value ) ;
+						m_ses( index, 0 ) = to_repr< double >( value ) ;
+					}
+					if( i->second == "_beta_2" ) {
+						m_betas( index, 1 ) = to_repr< double >( value ) ;
+					}
+					else if( i->second == "_se_2" ) {
+						m_ses( index, 1 ) = to_repr< double >( value ) ;
 					}
 					else if( i->second == "_pvalue" ) {
 						m_pvalues( index ) = to_repr< double >( value ) ;
@@ -176,22 +193,94 @@ struct AmetComputation: public boost::noncopyable {
 	virtual ~AmetComputation() {}
 	typedef genfile::SNPIdentifyingData SNPIdentifyingData ;
 	typedef boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
-	virtual void operator()( SNPIdentifyingData const&, Eigen::VectorXd betas, Eigen::VectorXd ses, Eigen::VectorXd non_missingness, ResultCallback ) = 0 ;
+
+	struct DataGetter: public boost::noncopyable {
+		virtual ~DataGetter() {} ;
+		virtual std::size_t get_number_of_cohorts() const = 0 ;
+		virtual bool is_non_missing( std::size_t i ) const = 0 ;
+		virtual void get_counts( std::size_t, Eigen::VectorXd* result ) const = 0 ;
+		virtual void get_betas( std::size_t i, Eigen::VectorXd* result ) const = 0 ;
+		virtual void get_ses( std::size_t i, Eigen::VectorXd* result  ) const = 0 ;
+		virtual void get_pvalue( std::size_t i, double* result ) const = 0 ;
+	} ;
+
+	virtual void operator()(
+		SNPIdentifyingData const&,
+		DataGetter const& data_getter,
+		ResultCallback callback
+	) = 0 ;
 	virtual std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const = 0 ;
 	virtual std::string get_spec() const = 0 ;
 } ;
 
+struct PerCohortValueReporter: public AmetComputation {
+	void operator()(
+		SNPIdentifyingData const&,
+		DataGetter const& data_getter,
+		ResultCallback callback
+	) {
+		std::size_t const N = data_getter.get_number_of_cohorts() ;
+		for( std::size_t i = 0; i < N; ++i ) {
+			if( data_getter.is_non_missing( i ) ) {
+				Eigen::VectorXd betas ;
+				Eigen::VectorXd ses ;
+				Eigen::VectorXd counts ;
+				double pvalue ;
+				data_getter.get_betas( i, &betas ) ;
+				data_getter.get_ses( i, &ses ) ;
+				data_getter.get_counts( i, &counts ) ;
+				data_getter.get_pvalue( i, &pvalue ) ;
+		
+				assert( counts.size() == 4 ) ;
+				using genfile::string_utils::to_string ;
+				std::string prefix = "cohort_" + to_string( i + 1 ) + ":";
+				callback( prefix + "AA", counts(0) ) ;
+				callback( prefix + "AB", counts(0) ) ;
+				callback( prefix + "BB", counts(0) ) ;
+				callback( prefix + "NULL", counts(0) ) ;
+				
+				assert( betas.size() == ses.size() ) ;
+				for( int j = 0; j < betas.size(); ++j ) {
+					callback( prefix + "beta_" + to_string( j+1 ), betas(j) ) ;
+					callback( prefix + "se_" + to_string( j+1 ), betas(j) ) ;
+				}
+				callback( prefix + "pvalue", pvalue ) ;
+			}
+		}
+	}
+	
+	std::string get_spec() const {
+		return "PerCohortValueReporter" ;
+	}
+	
+	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const {
+		return prefix + get_spec() ;
+	}
+} ;
+
 struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
-	void operator()( SNPIdentifyingData const&, Eigen::VectorXd betas, Eigen::VectorXd ses, Eigen::VectorXd non_missingness, ResultCallback callback ) {
-		assert( betas.size() == ses.size() ) ;
-		assert( betas.size() == non_missingness.size() ) ;
-		int const N = betas.size() ;
+	void operator()(
+		SNPIdentifyingData const&,
+		DataGetter const& data_getter,
+		ResultCallback callback
+	) {
+		std::size_t const N = data_getter.get_number_of_cohorts() ;
+		if( N == 0 ) {
+			return ;
+		}
+
+		Eigen::VectorXd betas( N ) ;
+		Eigen::VectorXd ses( N ) ;
+		Eigen::VectorXd non_missingness( N ) ;
+		
+		get_data( data_getter, betas, ses, non_missingness ) ;
+		
 		Eigen::VectorXd inverse_variances = ( ses.array() * ses.array() ).inverse() ;
 		for( int i = 0; i < N; ++i ) {
-			if( non_missingness[i] == 0.0 ) {
-				inverse_variances[ i ] = 0 ;
-				betas[ i ] = 0 ;
-				ses[ i ] = 0 ;
+			if( non_missingness( i ) == 0.0 ) {
+				inverse_variances( i ) = 0 ;
+				betas( i ) = 0 ;
+				ses( i ) = 0 ;
 			}
 		}
 		double const meta_beta = ( inverse_variances.array() * betas.array() ).sum() / inverse_variances.sum() ;
@@ -200,12 +289,11 @@ struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
 		callback( "fixed_effect_meta_beta", meta_beta ) ;
 		callback( "fixed_effect_meta_se", meta_se ) ;
 
-		if( meta_se == meta_se ) {
+		if( meta_se > 0 && meta_se != std::numeric_limits< double >::infinity() ) {
 			typedef boost::math::normal NormalDistribution ;
 			NormalDistribution normal( 0, meta_se ) ;
 			// P-value is the mass under both tails of the normal distribution larger than |meta_beta|
 			double const pvalue = 2.0 * boost::math::cdf( boost::math::complement( normal, std::abs( meta_beta ) ) ) ;
-		
 			callback( "fixed_effect_meta_pvalue", pvalue ) ;
 		}
 	}
@@ -217,12 +305,36 @@ struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const {
 		return prefix + get_spec() ;
 	}
+	
+private:
+	
+	void get_data( DataGetter const& data_getter, Eigen::VectorXd& betas, Eigen::VectorXd& ses, Eigen::VectorXd& non_missingness ) {
+		std::size_t N = betas.size() ;
+		for( std::size_t i = 0; i < N; ++i ) {
+			Eigen::VectorXd data ;
+			data_getter.get_betas( i, &data ) ;
+			assert( data.size() == 1 ) ;
+			betas(i) = data(0) ;
+			data_getter.get_ses( i, &data ) ;
+			assert( data.size() == 1 ) ;
+			ses(i) = data(0) ;
+
+			non_missingness( i ) = data_getter.is_non_missing( i ) ? 1.0 : 0.0 ;
+
+			if( betas(i) != betas(i) || ses(i) != ses(i) ) {
+				non_missingness(i) = 0 ;
+			}
+		}
+	}
 } ;
 
 AmetComputation::UniquePtr AmetComputation::create( std::string const& name ) {
 	AmetComputation::UniquePtr result ;
 	if( name == "FixedEffectFrequentistMetaAnalysis" ) {
 		result.reset( new FixedEffectFrequentistMetaAnalysis() ) ;
+	}
+	else if( name == "PerCohortValueReporter" ) {
+		result.reset( new PerCohortValueReporter() ) ;
 	}
 	else {
 		throw genfile::BadArgumentError( "AmetComputation::create()", "name=\"" + name + "\"" ) ;
@@ -365,7 +477,46 @@ private:
 	
 	ResultSignal m_result_signal ;
 
-private:	
+	struct DataGetter: public AmetComputation::DataGetter {
+		DataGetter( boost::ptr_vector< FrequentistGenomeWideAssociationResults > const& cohorts, std::vector< boost::optional< std::size_t > >const& indices ):
+			m_cohorts( cohorts ),
+			m_indices( indices )
+		{}
+		
+		std::size_t get_number_of_cohorts() const { return m_cohorts.size() ; }
+		
+		void get_counts( std::size_t i, Eigen::VectorXd* result ) const {
+			if( is_non_missing( i ) ) {
+				return m_cohorts[i].get_counts( *m_indices[i], result ) ;
+			}
+		}
+		void get_betas( std::size_t i, Eigen::VectorXd* result ) const {
+			if( is_non_missing( i ) ) {
+				m_cohorts[i].get_betas( *m_indices[i], result ) ;
+			}
+		}
+		void get_ses( std::size_t i, Eigen::VectorXd* result ) const {
+			if( is_non_missing( i ) ) {
+				m_cohorts[i].get_ses( *m_indices[i], result ) ;
+			}
+		}
+
+		void get_pvalue( std::size_t i, double* result ) const {
+			if( is_non_missing( i ) ) {
+				m_cohorts[i].get_pvalue( *m_indices[i], result ) ;
+			}
+		}
+
+		bool is_non_missing( std::size_t i ) const {
+			return( m_indices[i] ) ;
+		}
+
+		private:
+			boost::ptr_vector< FrequentistGenomeWideAssociationResults > const& m_cohorts ;
+			std::vector< boost::optional< std::size_t > > const& m_indices ;
+		
+	} ;
+private:
 	void unsafe_setup( appcontext::UIContext& ui_context ) {
 		link_data( ui_context ) ;
 		categorise_snps() ;
@@ -409,46 +560,31 @@ private:
 
 	void construct_computations() {
 		m_computations.push_back( AmetComputation::create( "FixedEffectFrequentistMetaAnalysis" )) ;
+		m_computations.push_back( AmetComputation::create( "PerCohortValueReporter" )) ;
 	}
 
 	void unsafe_process( appcontext::UIContext& ui_context ) {
 		Eigen::MatrixXd cohort_counts( 4, m_cohorts.size() ) ;
-		Eigen::VectorXd cohort_betas( m_cohorts.size() ) ;
-		Eigen::VectorXd cohort_ses( m_cohorts.size() ) ;
+		Eigen::MatrixXd cohort_betas( 2, m_cohorts.size() ) ;
+		Eigen::MatrixXd cohort_ses( 2, m_cohorts.size() ) ;
 		Eigen::VectorXd non_missingness( m_cohorts.size() ) ;
 		
 		appcontext::UIContext::ProgressContext progress_context = ui_context.get_progress_context( "Storing meta-analysis results" ) ;
-
+		
 		SnpMap::const_iterator snp_i = m_snps.begin(), end_i = m_snps.end() ;
 		for( std::size_t snp_index = 0; snp_i != end_i; ++snp_i, ++snp_index ) {
 			std::vector< boost::optional< std::size_t > > const& indices = snp_i->second ;
-			non_missingness.setZero() ;
-			for( std::size_t j = 0; j < indices.size(); ++j ) {
-				if( indices[j] ) {
-					// Assume values are not missing.  If betas and ses are present but missing this will be changed in the calls to assign_vector_elt below.
-					non_missingness( j ) = 1.0 ; 
-					m_cohorts[j].get_results(
-						*indices[j],
-						boost::bind( &impl::assign_counts, &cohort_counts, j, _1, _2, _3, _4 ),
-						boost::bind( &impl::assign_vector_elt, &cohort_betas, &non_missingness, j, _1 ),
-						boost::bind( &impl::assign_vector_elt, &cohort_ses, &non_missingness, j, _1 )
-					) ;
-				}
-			}
-			
+			DataGetter data_getter( m_cohorts, indices ) ;
 			for( std::size_t i = 0; i < m_computations.size(); ++i ) {
 				m_computations[i](
 					snp_i->first,
-					cohort_betas,
-					cohort_ses,
-					non_missingness,
+					data_getter,
 					boost::bind(
 						boost::ref( m_result_signal ),
 						snp_index,
 						snp_i->first,
 						m_computations[i].get_spec(),
-						_1,
-						_2
+						_1, _2
 					)
 				) ;
 			}
