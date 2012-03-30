@@ -355,22 +355,23 @@ struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
 	}
 	
 private:
-	
 	void get_data( DataGetter const& data_getter, Eigen::VectorXd& betas, Eigen::VectorXd& ses, Eigen::VectorXd& non_missingness ) {
 		std::size_t N = betas.size() ;
 		for( std::size_t i = 0; i < N; ++i ) {
-			Eigen::VectorXd data ;
-			data_getter.get_betas( i, &data ) ;
-			assert( data.size() == 1 ) ;
-			betas(i) = data(0) ;
-			data_getter.get_ses( i, &data ) ;
-			assert( data.size() == 1 ) ;
-			ses(i) = data(0) ;
-
 			non_missingness( i ) = data_getter.is_non_missing( i ) ? 1.0 : 0.0 ;
+			if( non_missingness( i )) {
+				Eigen::VectorXd data ;
+				data_getter.get_betas( i, &data ) ;
+				assert( data.size() == 1 ) ;
+				betas(i) = data(0) ;
+				data_getter.get_ses( i, &data ) ;
+				assert( data.size() == 1 ) ;
+				ses(i) = data(0) ;
 
-			if( betas(i) != betas(i) || ses(i) != ses(i) ) {
-				non_missingness(i) = 0 ;
+
+				if( betas(i) != betas(i) || ses(i) != ses(i) ) {
+					non_missingness(i) = 0 ;
+				}
 			}
 		}
 	}
@@ -581,9 +582,34 @@ private:
 	}
 	
 	void add_SNP_callback( std::size_t cohort_i, std::size_t snp_i, genfile::SNPIdentifyingData const& snp ) {
-		std::vector< boost::optional< std::size_t > >& snp_indices = m_snps[ snp ] ;
-		snp_indices.resize( m_cohorts.size() ) ;
-		snp_indices[ cohort_i ] = snp_i ;
+		// Find the SNP that matches the given one (if it exists)
+		std::pair< SnpMap::iterator, SnpMap::iterator > range = m_snps.equal_range( snp ) ;
+		if( range.second == range.first ) {
+			// no match, so add this SNP.
+			std::vector< boost::optional< std::size_t > >& snp_indices = m_snps[ snp ] ;
+			snp_indices.resize( m_cohorts.size() ) ;
+			snp_indices[ cohort_i ] = snp_i ;
+		}
+		else {
+			// There is a match.  Combine the rsid, snpid, and alleles.
+			genfile::SNPIdentifyingData stored_snp = range.first->first ;
+			std::vector< boost::optional< std::size_t > > snp_indices = range.first->second ;
+			m_snps.erase( range.first ) ;
+			if( stored_snp.get_rsid() != snp.get_rsid() ) {
+				stored_snp.rsid() += "," + snp.get_rsid() ;
+			}
+			if( stored_snp.get_SNPID() != snp.get_SNPID() ) {
+				stored_snp.SNPID() += "," + snp.get_SNPID() ;
+			}
+			if( stored_snp.get_first_allele() != snp.get_first_allele() ) {
+				stored_snp.first_allele() += "," + snp.get_first_allele() ;
+			}
+			if( stored_snp.get_second_allele() != snp.get_second_allele() ) {
+				stored_snp.second_allele() += "," + snp.get_second_allele() ;
+			}
+			snp_indices[ cohort_i ] = snp_i ;
+			m_snps[ stored_snp ] = snp_indices ;
+		}
 	}
 
 	void link_data( appcontext::UIContext& ui_context ) {
