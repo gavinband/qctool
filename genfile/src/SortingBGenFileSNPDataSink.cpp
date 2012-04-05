@@ -57,7 +57,8 @@ namespace genfile {
 		std::string second_allele,
 		GenotypeProbabilityGetter const& get_AA_probability,
 		GenotypeProbabilityGetter const& get_AB_probability,
-		GenotypeProbabilityGetter const& get_BB_probability
+		GenotypeProbabilityGetter const& get_BB_probability,
+		Info const& info
 	) {
 		SNPIdentifyingData snp(
 			SNPID,
@@ -86,7 +87,8 @@ namespace genfile {
 			second_allele,
 			get_AA_probability,
 			get_AB_probability,
-			get_BB_probability
+			get_BB_probability,
+			info
 		) ;
 		
 		offset_i->second.second = m_sink->get_stream_pos() ;

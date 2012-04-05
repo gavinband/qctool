@@ -195,38 +195,40 @@ namespace genfile {
 		}
 		
 		SNPIdentifyingData this_snp ;
-		m_sources[0]->get_snp_identifying_data( this_snp ) ;
-		if( *this ) {
+		std::size_t last_matching_source = 0 ;
+		while( (*this) && m_sources[0]->get_snp_identifying_data( this_snp ) && last_matching_source < m_sources.size() ) {
 			// We will report ?'s in any field that differs between cohorts.
-			SNPIdentifyingData consensus_snp = this_snp ;
-			for( std::size_t i = 1; i < m_sources.size(); ++i ) {
-				SNPIdentifyingData this_source_snp = move_source_to_snp_matching(
-					i,
-					this_snp
-				) ;
-				if( this_source_snp.get_SNPID() != consensus_snp.get_SNPID() ) {
-					consensus_snp.SNPID() += "/" + this_source_snp.get_SNPID() ;
+			SNPIdentifyingData this_source_snp ;
+			last_matching_source = 1 ;
+			for( ;
+				last_matching_source < m_sources.size() && move_source_to_snp_matching( last_matching_source, this_snp, &this_source_snp );
+				++last_matching_source
+			) {
+				if( this_source_snp.get_SNPID() != this_snp.get_SNPID() ) {
+					this_snp.SNPID() += "/" + this_source_snp.get_SNPID() ;
 				}
-				if( this_source_snp.get_rsid() != consensus_snp.get_rsid() ) {
-					consensus_snp.rsid() += "/" + this_source_snp.get_SNPID() ;
+				if( this_source_snp.get_rsid() != this_snp.get_rsid() ) {
+					this_snp.rsid() += "/" + this_source_snp.get_SNPID() ;
 				}
-				if( this_source_snp.get_first_allele() != consensus_snp.get_first_allele() ) {
-					consensus_snp.first_allele() = '?' ;
+				if( this_source_snp.get_first_allele() != this_snp.get_first_allele() ) {
+					this_snp.first_allele() = '?' ;
 				}
-				if( this_source_snp.get_second_allele() != consensus_snp.get_second_allele() ) {
-					consensus_snp.second_allele() = '?' ;
+				if( this_source_snp.get_second_allele() != this_snp.get_second_allele() ) {
+					this_snp.second_allele() = '?' ;
 				}
 			}
-		
-			if( *this ) {
-				set_number_of_samples( m_number_of_samples ) ;
-				set_SNPID( consensus_snp.get_SNPID() ) ;
-				set_RSID( consensus_snp.get_rsid() ) ;
-				set_chromosome( consensus_snp.get_position().chromosome() ) ;
-				set_SNP_position( consensus_snp.get_position().position() ) ;
-				set_allele1( consensus_snp.get_first_allele() ) ;
-				set_allele2( consensus_snp.get_second_allele() ) ;
+			if( (*this) && last_matching_source < m_sources.size() ) {
+				m_sources[0]->ignore_snp_probability_data() ;
 			}
+		}
+		if( *this ) {
+			set_number_of_samples( m_number_of_samples ) ;
+			set_SNPID( this_snp.get_SNPID() ) ;
+			set_RSID( this_snp.get_rsid() ) ;
+			set_chromosome( this_snp.get_position().chromosome() ) ;
+			set_SNP_position( this_snp.get_position().position() ) ;
+			set_allele1( this_snp.get_first_allele() ) ;
+			set_allele2( this_snp.get_second_allele() ) ;
 		}
 	}
 
@@ -234,9 +236,10 @@ namespace genfile {
 	// which has the given chromosome and SNP position.
 	// If no such SNP is found, throw MissingSNPError.
 	// If such a SNP is found but it has different SNPID, RSID, or alleles, throw SNPMismatchError.
-	SNPIdentifyingData SNPDataSourceRack::move_source_to_snp_matching(
+	bool SNPDataSourceRack::move_source_to_snp_matching(
 		std::size_t source_i,
-		SNPIdentifyingData const& reference_snp
+		SNPIdentifyingData const& reference_snp,
+		SNPIdentifyingData* result
 	) {
 		SNPIdentifyingData this_snp ;
 		
@@ -252,15 +255,13 @@ namespace genfile {
 			reference_snp.get_position().position()
 		) ) {
 			if( m_comparator.are_equal( this_snp, reference_snp )) {
-				return this_snp ;
+				*result = this_snp ;
+				return true ;
 			}
 
 			m_sources[source_i]->ignore_snp_probability_data() ;
 		}
-        std::cerr << "|| Error in source " << source_i << ":\n"
-                << reference_snp << ",\n"
-                << this_snp << ".\n" ;
-		throw MissingSNPError( source_i, reference_snp ) ;
+		return false ;
 	}
 		
 
@@ -329,6 +330,10 @@ namespace genfile {
 					offset_sample_setter.set_offset( offset_sample_setter.get_offset() + m_rack.m_sources[i]->number_of_samples() ) ;
 				}
 				return *this ;
+			}
+
+			std::size_t get_number_of_samples() const {
+				return m_rack.number_of_samples() ;
 			}
 
 			// True if all the constituent sources support the spec.

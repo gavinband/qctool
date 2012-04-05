@@ -1,6 +1,7 @@
 #ifndef GENFILE_VCF_FORMAT_SNP_DATA_SOURCE_HPP
 #define GENFILE_VCF_FORMAT_SNP_DATA_SOURCE_HPP
 
+#include <boost/optional.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/bimap.hpp>
 #include "genfile/VariantEntry.hpp"
@@ -47,8 +48,6 @@ namespace genfile {
 		std::size_t get_index_of_first_data_line() const { return m_metadata_parser->get_number_of_lines() + 1 ; }
 		std::size_t get_index_of_first_data_column() const { return 9 ; }
 
-		void list_snps( SNPSetter, ProgressCallback ) ;
-
 	protected:
 
 		void get_snp_identifying_data_impl( 
@@ -82,7 +81,6 @@ namespace genfile {
 		std::string const m_spec ;
 		CompressionType m_compression_type ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
-		std::auto_ptr< std::istream > m_index_stream_ptr ;
 		vcf::MetadataParser::UniquePtr m_metadata_parser ;
 		vcf::MetadataParser::Metadata m_metadata  ;
 		typedef boost::ptr_map< std::string, vcf::VCFEntryType > EntryTypeMap ;
@@ -93,7 +91,7 @@ namespace genfile {
 
 		std::vector< std::string > const m_column_names ;
 		std::size_t const m_number_of_samples ;
-		std::size_t m_number_of_lines ;
+		OptionalSnpCount m_number_of_lines ;
 		
 		// We record the alleles per SNP, so that they can be used on subsequent SNPs.
 		std::vector< std::string > m_variant_alleles ;
@@ -113,11 +111,11 @@ namespace genfile {
 		void check_genotype_probability_field( std::string const& field ) const ;
 		std::vector< std::string > read_column_names( std::istream& stream ) const ;
 		std::string read_format() ;
-		std::size_t determine_number_of_lines(
+		OptionalSnpCount determine_number_of_lines(
 			std::istream& vcf_file_stream,
 			vcf::MetadataParser::Metadata const& metadata
 		) const ;
-		std::size_t count_lines( std::istream& ) const ;
+		OptionalSnpCount count_lines( std::istream&, std::size_t max_number_of_lines = std::numeric_limits< std::size_t >::max() ) const ;
 		void reset_stream() ;
 		void read_element( std::string& elt, char delim, std::size_t column ) const ;
 	private:

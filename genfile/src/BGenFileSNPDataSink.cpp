@@ -58,7 +58,8 @@ namespace genfile {
 		std::string second_allele,
 		GenotypeProbabilityGetter const& get_AA_probability,
 		GenotypeProbabilityGetter const& get_AB_probability,
-		GenotypeProbabilityGetter const& get_BB_probability
+		GenotypeProbabilityGetter const& get_BB_probability,
+		Info const&
 	) {
 		std::size_t id_field_size = std::min( std::max( SNPID.size(), RSID.size() ), static_cast< std::size_t >( 255 )) ;
 		if( m_flags & bgen::e_CompressedSNPBlocks ) {

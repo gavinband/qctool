@@ -20,7 +20,9 @@ namespace genfile {
 		m_number_of_samples( 0 ),
 		m_call_threshhold( 0.9 ),
 		m_sample_name_getter( &int_to_number )
-	{}
+	{
+		(*m_stream_ptr) << std::resetiosflags( std::ios::floatfield ) << std::setprecision( 6 ) ;
+	}
 	
 	std::string VCFFormatSNPDataSink::get_spec() const {
 		return m_filename ;
@@ -47,7 +49,8 @@ namespace genfile {
 		std::string second_allele,
 		GenotypeProbabilityGetter const& get_AA_probability,
 		GenotypeProbabilityGetter const& get_AB_probability,
-		GenotypeProbabilityGetter const& get_BB_probability
+		GenotypeProbabilityGetter const& get_BB_probability,
+		Info const& info
 	) {
 		if( !m_have_written_header ) {
 			write_header( number_of_samples ) ;
@@ -65,10 +68,35 @@ namespace genfile {
 			<< first_allele << tab
 			<< second_allele << tab
 			<< "." << tab
-			<< "." << tab
-			<< "." << tab
-			<< "GT:GP" ;
+			<< "." << tab ;
 
+		// write INFO
+		if( info.empty() ) {
+			(*m_stream_ptr) << "." ;
+		}
+		else {
+			Info::const_iterator info_i = info.begin(), end_info_i = info.end() ;
+			for( int info_count = 0; info_i != end_info_i; ++info_i, ++info_count ) {
+				if( info_count > 0 ) {
+					(*m_stream_ptr) << ";" ;
+				}
+				(*m_stream_ptr) << info_i->first << "=" ;
+				for( std::size_t i = 0; i < info_i->second.size(); ++i ) {
+					if( i > 0 ) {
+						(*m_stream_ptr) << "," ;
+					}
+					if( info_i->second[i].is_missing() ) {
+						(*m_stream_ptr) << "." ;
+					}
+					else {
+						(*m_stream_ptr) << info_i->second[i] ;
+					}
+				}
+			}
+		}
+
+		(*m_stream_ptr) << tab << "GT:GP" ;
+		
 		std::vector< double > probs( 3 ) ;
 		for( std::size_t i = 0; i < number_of_samples; ++i ) {
 			probs[0] = get_AA_probability( i ) ;
@@ -90,9 +118,9 @@ namespace genfile {
 			
 			(*m_stream_ptr)
 				<< tab << call << ":"
-				<< std::fixed << std::setprecision( 6 ) << probs[0] << ","
-				<< std::fixed << std::setprecision( 6 ) << probs[1] << ","
-				<< std::fixed << std::setprecision( 6 ) << probs[2] ;
+				<< probs[0] << ","
+				<< probs[1] << ","
+				<< probs[2] ;
 		}
 		(*m_stream_ptr) << std::endl ;
 	}

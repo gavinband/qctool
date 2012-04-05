@@ -148,7 +148,8 @@ namespace genfile {
 		std::string second_allele,
 		GenotypeProbabilityGetter const& get_AA_probability,
 		GenotypeProbabilityGetter const& get_AB_probability,
-		GenotypeProbabilityGetter const& get_BB_probability
+		GenotypeProbabilityGetter const& get_BB_probability,
+		Info const& info
 	) {
 		assert( number_of_samples == m_samples.get_number_of_individuals() ) ;
 		

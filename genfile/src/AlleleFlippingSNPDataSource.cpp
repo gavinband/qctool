@@ -214,6 +214,8 @@ namespace genfile {
 				m_allele_flips( allele_flips )
 			{}
 			
+			std::size_t get_number_of_samples() const { return m_source.number_of_samples() ; }
+			
 			AlleleFlippingSNPDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
 				assert( m_source.number_of_snps_read() > 0 ) ;
 				switch( m_allele_flips[ m_source.number_of_snps_read() - 1 ] ) {
