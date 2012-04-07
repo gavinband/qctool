@@ -827,6 +827,7 @@ struct QCToolCmdLineContext: public QCToolContext
 			m_ui_context.logger() << "  \"" << m_mangled_options.snp_stats_filename_mapper().output_filenames()[i] << "\"\n" ;
 		}
 		m_ui_context.logger() << "\n" ;
+		m_ui_context.logger() << std::resetiosflags( std::ios::floatfield ) << std::setprecision( 10 ) ;
 		m_ui_context.logger() << std::setw(30) << "Sample filter:" 
 			<< "  " << *m_sample_filter << ".\n" ;
 		m_ui_context.logger() << std::setw(30) << "SNP filter:"
@@ -913,6 +914,7 @@ struct QCToolCmdLineContext: public QCToolContext
 			<< "  " << m_fltrd_in_snp_data_sink->number_of_snps_written() << "\n" ;
 
 		if( m_snp_filter->number_of_subconditions() > 0 ) {
+			m_ui_context.logger() << std::resetiosflags( std::ios::floatfield ) ;
 			for( std::size_t i = 0; i < m_snp_filter->number_of_subconditions(); ++i ) {
 				m_ui_context.logger() << std::setw(36) << ("...which failed \"" + string_utils::to_string( m_snp_filter->subcondition( i )) + "\":")
 					<< "  " << m_snp_filter_failure_counts[i] << ".\n" ;

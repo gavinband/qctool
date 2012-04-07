@@ -22,9 +22,12 @@ Option changes:
 * -snp-interval replaced with -incl-range / -excl-range
 * -snpid-filter replaced with -incl-snps-matching / -excl-snps-matching.
 
+Bug fixes:
+* fix bug where values in screen output are rounded to too low precision.
+
 Other changes:
 
-* 
+* -write-snp-excl-list now writes a file that contains SNPID, rsid, chromosome, position, and alleles.
 * qctool no longer writes a log file by default: use -log to specify it.
 * qctool no longer writes a sample file by default.  Use -os to specify that it should.
 * By default, GEN file output contains an extra chromosome column.  Use -omit-chromosome to omit this.
