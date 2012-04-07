@@ -8,6 +8,7 @@
 
 #include "SNPInListCondition.hpp"
 #include "genfile/SNPDataSink.hpp"
+#include "statfile/BuiltInTypeStatSink.hpp"
 
 struct SNPIDSink: public genfile::SNPDataSink
 {
@@ -15,7 +16,7 @@ struct SNPIDSink: public genfile::SNPDataSink
 		setup( filename ) ;
 	}
 	
-	operator bool() const { return *m_stream_ptr ; }
+	operator bool() const { return *m_sink ; }
 	
 	void write_snp_impl(
 		uint32_t,
@@ -23,27 +24,33 @@ struct SNPIDSink: public genfile::SNPDataSink
 		std::string RSID,
 		genfile::Chromosome chromosome,
 		uint32_t SNP_position,
-		std::string,
-		std::string,
+		std::string first_allele,
+		std::string second_allele,
 		GenotypeProbabilityGetter const&,
 		GenotypeProbabilityGetter const&,
 		GenotypeProbabilityGetter const&,
 		Info const& info
 	) {
-		stream() << SNPID << " " << RSID << " " << chromosome << " " << SNP_position << "\n" ;
+		(*m_sink)
+			<< SNPID
+			<< RSID
+			<< chromosome
+			<< SNP_position
+			<< first_allele
+			<< second_allele
+			<< statfile::end_row() ;
 	} ;
 	
 	std::string get_spec() const { return "(SNPIDSink)" ; }
 	
 private:
 	
-	std::ostream& stream() { return *m_stream_ptr ; }
-	
 	void setup( std::string const& filename ) {
-		m_stream_ptr = open_file_for_output( filename ) ;
+		m_sink = statfile::BuiltInTypeStatSink::open( filename ) ;
+		(*m_sink ) | "SNPID" | "rsid" | "chromosome" | "position" | "alleleA" | "alleleB" ;
 	}
 	
-	std::auto_ptr< std::ostream > m_stream_ptr ;
+	statfile::BuiltInTypeStatSink::UniquePtr m_sink ;
 } ;
 
 #endif

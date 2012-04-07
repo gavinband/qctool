@@ -84,7 +84,7 @@
 #include "null_ostream.hpp"
 #include "SNPPositionSink.hpp"
 #include "SNPIDSink.hpp"
-#include "statfile/RFormatStatSink.hpp"
+#include "statfile/BuiltInTypeStatSink.hpp"
 #include "SampleIDSink.hpp"
 #include "QCToolContext.hpp"
 #include "QCTool.hpp"
@@ -125,15 +125,16 @@ public:
 		// Meta-options
 		options.set_help_option( "-help" ) ;
 
-		// File options	
+		// File options
 		options.declare_group( "Input file options" ) ;
 	    options[ "-g" ]
 	        .set_description( 	"Path of gen file(s) to input.  "
 								"The given filename may contain the wildcard character '#', which expands to match a"
-								" two-character chromosome identifier.  (For example, \"qctool -g myfile_#.gen\" will find all files of "
-								"the form \"myfile_01.gen\", \"myfile_02.gen\", etc.)  Only Human autosomes are matched this way.\n"
-								"This option may be repeated, in which case each invocation is treated as a seperate cohort and cohorts"
-								"are joined together to create one big dataset." )
+								"one- or two-character chromosome identifier.  (For example, \"qctool -g myfile_#.gen\" will match "
+								"\"myfile_1.gen\", \"myfile_2.gen\", etc., or \"myfile_01.gen\", \"myfile_02.gen\", etc.)  Only human"
+								" autosomes are matched this way.\n"
+								"This option may also be repeated, in which case each invocation is treated as a seperate cohort and cohorts"
+								" are joined together to create one big dataset." )
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 100 ) ;
@@ -207,7 +208,7 @@ public:
 				"when encountered in the sample file(s)." )
 			.set_takes_single_value()
 			.set_default_value( "NA" ) ;
-		options[ "-condition_on" ]
+		options[ "-condition-on" ]
 			.set_description( "Condition on the dosages of a given SNP or set of SNPs."
 				" The argument should be a comma-separated list of values of the form:\n"
 				"   [field]~[value]:[dose][,dose...]\n"
@@ -219,7 +220,7 @@ public:
 			.set_takes_single_value() ;
 				
 		options.option_implies_option( "-quantile-normalise", "-s" ) ;
-		options.option_implies_option( "-condition_on", "-s" ) ;
+		options.option_implies_option( "-condition-on", "-s" ) ;
 
 		// SNP exclusion options
 		options.declare_group( "SNP exclusion options" ) ;
@@ -249,13 +250,13 @@ public:
 				"The value should be a string which can contain a % wildcard character (which matches any substring). "
 				"Optionally, prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields." )
 			.set_takes_single_value() ;
-		options[ "-range" ]
+		options[ "-incl-range" ]
 			.set_description( "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to operate on. "
 				"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
 				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
 				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
 			.set_takes_single_value() ;
-		options[ "-exclude-range" ]
+		options[ "-excl-range" ]
 			.set_description( "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to exclude from operation. "
 				"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
 				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
@@ -354,15 +355,12 @@ public:
 			)
 			.set_takes_single_value() ;
 
+		options.declare_group( "Statistic calculation options" ) ;
 		// Statistic file options
 	    options[ "-snp-stats" ]
-			.set_description( "Calculate and output per-SNP statistics.  This implies that no SNP filtering options are used." ) ;
-	    options[ "-snp-stats-file" ]
-	        .set_description( 	"Override the auto-generated path(s) of the snp-stats file to use when outputting snp-wise statistics.  "
-								"(By default, the paths are formed by adding \".snp-stats\" to the input gen filename(s).)  "
-								"The '#' character can also be used here to specify one output file per chromosome." )
-	        .set_takes_values(1)
-			.set_maximum_multiplicity(1) ;
+			.set_description( "Calculate per-SNP summary statistics and store them in the specified file. "
+			" (This implies that no SNP filtering options are used.)" )
+			.set_takes_single_value() ;
 
 		options[ "-snp-stats-columns" ]
 	        .set_description( "Comma-seperated list of extra columns to output in the snp-wise statistics file.  "
@@ -372,7 +370,6 @@ public:
 			.set_takes_single_value()
 			.set_default_value( "" ) ;
 
-		options.declare_group( "Statistic calculation options" ) ;
 	    options[ "-sample-stats" ]
 			.set_description( "Calculate and output sample-wise statistics." )
 			.set_takes_single_value() ;
@@ -403,20 +400,21 @@ public:
 		// Sample filtering options
 		options.declare_group( "Sample filtering options" ) ;
 		options[ "-sample-missing-rate" ]
-			.set_description( "Filter out samples with missing data rate greater than the value specified.")
+			.set_description( "Filter out samples with missing data rate (as taken from the \"missing\" column of the sample file)"
+			" greater than the value specified." )
 			.set_takes_single_value() ;
 		options[ "-heterozygosity" ]
-			.set_description( "Filter out samples with heterozygosity outside the inteval [a,b]." )
+			.set_description( "Filter out samples with heterozygosity (as taken from the \"heterozygosity\" column of the sample file, which must be present)"
+				" outside the interval [a,b]." )
 			.set_takes_values( 2 ) ;
 
 		// Inclusion / exclusion list options
 		options.declare_group( "Inclusion / exclusion list options" ) ;
 		options[ "-write-sample-excl-list" ]
-			.set_description( "Do not apply sample filters directly.  Instead, write a file containing a list of the ids"
-			"  of individuals which would be filtered out by the filter." )
+			.set_description( "Write a file containing a list of the ids of individuals which are filtered out by the sample filter." )
 			.set_takes_single_value() ;
 		options [ "-write-snp-excl-list" ]
-			.set_description( "Don't output a new genotypes file; instead, write files containing the SNPs that are filtered out." )
+			.set_description( "Write a file (or files) containing the SNPs that are filtered out." )
 			.set_takes_single_value() ;
 		;
 		/*
@@ -610,20 +608,7 @@ private:
 	std::string construct_snp_stats_filename( std::vector< std::string > const& input_gen_filenames_supplied ) {
 		std::string result ;
 		if( m_options.check_if_option_was_supplied( "-snp-stats" ) ) {
-			if( m_options.check_if_option_was_supplied( "-snp-stats-file" )) {
-				result = m_options.get_value< std::string >( "-snp-stats-file" ) ;
-			}
-			else {
-				assert( input_gen_filenames_supplied.size() > 0 ) ;
-				std::string stub ;
-				if( input_gen_filenames_supplied.size() == 1 ) {
-					stub = input_gen_filenames_supplied[0] ;
-				}
-				else {
-					stub = "qctool_cohorts_1-" + string_utils::to_string( input_gen_filenames_supplied.size() ) ;
-				}
-				result = genfile::strip_gen_file_extension_if_present( stub ) + ".snp-stats" ;
-			}
+			result = m_options.get_value< std::string >( "-snp-stats" ) ;
 		}
 		return result ;
 	}
@@ -1079,8 +1064,8 @@ private:
 
 			{
 				m_cohort_individual_source = open_samples( m_snp_data_source->number_of_samples() ) ;
-				if( m_options.check( "-condition_on" )) {
-					m_cohort_individual_source = condition_on( m_cohort_individual_source, *m_snp_data_source, m_options.get< std::string >( "-condition_on" )) ;
+				if( m_options.check( "-condition-on" )) {
+					m_cohort_individual_source = condition_on( m_cohort_individual_source, *m_snp_data_source, m_options.get< std::string >( "-condition-on" )) ;
 					m_snp_data_source->reset_to_start() ;
 				}
 				load_sample_rows( m_cohort_individual_source, m_snp_data_source->number_of_samples() ) ;
@@ -1564,8 +1549,8 @@ private:
 				}
 			}
 			
-			if( m_options.check_if_option_was_supplied( "-range" )) {
-				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-range" ), ",", " \t" ) ;
+			if( m_options.check_if_option_was_supplied( "-incl-range" )) {
+				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-incl-range" ), ",", " \t" ) ;
 				for ( std::size_t i = 0; i < specs.size(); ++i ) {
 					snp_filter->include_snps_in_range(
 						genfile::GenomePositionRange::parse( specs[i] )
@@ -1573,8 +1558,8 @@ private:
 				}
 			}
 
-			if( m_options.check_if_option_was_supplied( "-exclude-range" )) {
-				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-exclude-range" ), ",", " \t" ) ;
+			if( m_options.check_if_option_was_supplied( "-excl-range" )) {
+				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-excl-range" ), ",", " \t" ) ;
 				for ( std::size_t i = 0; i < specs.size(); ++i ) {
 					snp_filter->exclude_snps_in_range(
 						genfile::GenomePositionRange::parse( specs[i] )
@@ -1721,7 +1706,7 @@ private:
 		else {
 			assert( index < m_mangled_options.snp_stats_filename_mapper().output_filenames().size()) ;
 			m_current_snp_stats_filename_index = index ;
-			statfile::RFormatStatSink::UniquePtr sink( new statfile::RFormatStatSink( m_mangled_options.snp_stats_filename_mapper().output_filenames()[ index ] )) ;
+			statfile::BuiltInTypeStatSink::UniquePtr sink( statfile::BuiltInTypeStatSink::open( m_mangled_options.snp_stats_filename_mapper().output_filenames()[ index ] )) ;
 			m_snp_stats_sink.reset( sink.release() ) ;
 		}
 		for( std::size_t i = 0; i < snp_statistics.size(); ++i ) {
@@ -1734,10 +1719,9 @@ private:
 			m_sample_stats_sink.reset( new statfile::TrivialBuiltInTypeStatSink() ) ;
 		}
 		else {
-			statfile::RFormatStatSink::UniquePtr sink( new statfile::RFormatStatSink( m_mangled_options.output_sample_stats_filename() )) ;
+			statfile::BuiltInTypeStatSink::UniquePtr sink( statfile::BuiltInTypeStatSink::open( m_mangled_options.output_sample_stats_filename() )) ;
 			m_sample_stats_sink.reset( sink.release() ) ;
 		}
-		m_sample_stats_sink->add_column( "" ) ;
 		for( std::size_t i = 0; i < m_sample_statistics.size(); ++i ) {
 			m_sample_stats_sink->add_column( m_sample_statistics.get_statistic_name( i )) ;
 		}
@@ -2088,7 +2072,6 @@ private:
 	}
 	
 	void unsafe_process() {
-		std::size_t const number_of_threads = options().get_value< std::size_t >( "-threads" ) ;
 		QCToolCmdLineContext context(
 			options(),
 			get_ui_context()

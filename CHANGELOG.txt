@@ -1,0 +1,42 @@
+
+Version 1.1
+
+New features:
+
+* QCTOOL now has initial support for VCF files.
+* New options for selection of SNPs: -[in|ex]clude-range, -[in|ex]cl-rsids, -[in|ex]cl-snpids, -[in|ex]cl-snps-matching.
+	These work as follows: the 'incl' options are combined using a logical OR, the 'excl' options are combined with a logical AND.
+	Then the two combined conditions are ANDed.  For example, if you use -excl-rsids <list> -range 01:0-1000000 then 
+* New option -condition-on, similar to SNPTEST's -condition_on, adds genotypic dosages to the output sample file.
+* New -quantile-normalise option: quantile-normalisation of columns in the sample file.
+* New -assume-chromosome option.  If this is used, QCTOOL will fill in missing chromosome values with the given one.
+* New: support for multiple cohorts (by specifying -g and/or -s several times.)  SNPs are matched between cohorts using the fields
+  specified by -snp-match-fields (which must include position).  Note this only makes sense if all cohorts are aligned to the same
+  strand.  If cohorts are aligned to the same strand, but may have differently coded 'A' and 'B' alleles, use -match-alleles-to-cohort1 to
+  flip the alleles in all cohorts appropriately.
+* New option -match-alleles-to-cohort1.  When several cohorts are specified, QCTOOL will flip alleles between 
+* New option -sort, which sorts the output file.  Currently this works with BGEN, unzipped GEN, and unzipped VCF files.
+
+Option changes:
+* -snp-excl-list renamed to -excl-rsids / -excl-snpids, similalry for -snp-incl-list.
+* -snp-interval replaced with -incl-range / -excl-range
+* -snpid-filter replaced with -incl-snps-matching / -excl-snps-matching.
+
+Other changes:
+
+* 
+* qctool no longer writes a log file by default: use -log to specify it.
+* qctool no longer writes a sample file by default.  Use -os to specify that it should.
+* By default, GEN file output contains an extra chromosome column.  Use -omit-chromosome to omit this.
+* Breaking change: filters which filter on SNP id fields (IDs, chromosome, position, alleles)
+  are now applied before the main qctool processing pipeline.  The practical consequence is that SNP exclusion lists written using
+  -write-snp-excl-list do not contain the SNPs in any exclusion lists passed in.
+* Do not count lines in GEN or VCF files first (unless they are small).  This speeds up processing of large files.
+* Add -omit-chromosome option to omit chromosome information from output GEN-format files.
+* File output by -snp-stats has changed format slightly, to remove the first column of numbers.  Load in R with read.table( <filename>, hea=T ).
+* Change to the way -snp-stats and -sample-stats options behave.  Each takes the name of a file to output, which must be specified.
+* Change to the way -write-sample-excl-list and -write-snp-excl-list behave: now each takes the name of a file to output.
+
+Version 1.0
+- First release version.
+

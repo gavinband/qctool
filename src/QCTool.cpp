@@ -204,7 +204,6 @@ void QCTool::process_sample_rows() {
 }
 
 void QCTool::output_sample_stats( std::size_t index, GenotypeAssayStatistics const& stats ) {
-	m_context.sample_stats_sink() << uint32_t( index ) ;
 	for( std::size_t i = 0; i < m_context.sample_statistics().size(); ++i ) {
 		m_context.sample_stats_sink() << stats.get_value< std::string >( stats.get_statistic_name( i )) ;
 	}
