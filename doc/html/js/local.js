@@ -3,8 +3,8 @@ var globals = {
 } ;
 
 var setPage = function( page ) {
-	$( ".nav_button" ).each( function( i ) { $(this).css( "border-bottom", "none" ) ; } ) ;
-	$( '[name=' + page + '].nav_button' ).css( "border-bottom", "2px solid black" ) ;
+	$( ".nav_button" ).each( function( i ) { $(this).removeClass( "nav_button_selected" ) ; } ) ;
+	$( '[name=' + page + '].nav_button' ).addClass( "nav_button_selected" ) ;
 	$( '#' + page ).fadeIn( 30 ) ;
 }
 
@@ -70,6 +70,7 @@ $(document).ready(
 				$( this ).css( "background-color", "#22AD57" ) ;
 			}
 		) ;
+		/*
 		$( ".terminal_display" ).click(
 			function( eventObject ) {
 				switch_value = $(this).attr( "display_size" ) ;
@@ -92,6 +93,6 @@ $(document).ready(
 					) ;
 				}
 			}
-		) ;
+		) ;*/
 	}
 ) ;

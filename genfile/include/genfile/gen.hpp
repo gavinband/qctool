@@ -30,7 +30,6 @@ namespace genfile {
 #ifndef GENFILE_USE_FAST_PARSE_METHODS
 				return aStream >> (*number) ;
 #else
-				
 				std::string float_str ;
 				aStream >> float_str ;
 				try {

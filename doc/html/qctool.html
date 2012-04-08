@@ -17,16 +17,17 @@
 	</head>
 	<body>
 		<div class = "header" id = "header1">
-			<img src = "style/images/qctool.png" class = "header_img" ></img>
+			<!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
+            <div class="header_text">qctool</div>
 			<div class = "header_subtext">
 				A tool for quality control and analysis of gwas datasets.
 			</div>
 		</div>
 		<div class = "button_bar" >
-			<!--<img src="style/images/arrow.tl.br.png" class = "header_arrow"><img>-->
-			<img src="style/images/overview.png" class="nav_button" name = "overview"></img>
-			<img src="style/images/documentation.png" class="nav_button" name = "documentation" ></img>
-			<img src="style/images/download.png" class="nav_button" name = "download"></img>
+		    <div class = "nav_button" name = "overview">overview</div>
+		    <div class = "nav_button" name = "documentation">documentation</div>
+		    <div class = "nav_button" name = "tutorial">tutorial</div>
+		    <div class = "nav_button" name = "download">download</div>
 		</div>
 		<div class = "main_text">
 			<div id = "overview" style = "display:none" >
@@ -53,7 +54,7 @@
 							Populate sample files with missingness and heterozygosity information;
 						</li>
 						<li>
-							Convert files between different GEN file formats.
+							Convert files between different genotype file formats.
 						</li>
 					</ul>
 				</p>
@@ -141,10 +142,13 @@ $ qctool -help
 							The estimated frequency of the less common allele.  The -maf option can be used to retain only SNPs within
 							a given range of minor allele frequencies.
 						</dd>
-						<dt style="font-weight: bold ;">Information</dt>
+						<dt style="font-weight: bold ;">impute_info</dt>
 						<dd>
- 							A measure of how much statistical information the genotypes provide about the allele frequency,
-							ranging from 0 (least information) to 1 (most information).
+						    This is IMPUTE's info measure, and is defined as one minus the average over individuals of the
+						    variance of a genotype (given the individuals' genotype call probability distribution),
+						    divided by the variance if only the allele frequency were known.
+						    It measures how much uncertainty there is in the genotype calls.  It equals zero when the genotype call
+						    probabilities are obtained from the allele frequency, to 1 when the calls are all certain.
 							Use the -info option to filter on this statistic.
 						</dd>
 					</dl>
@@ -157,6 +161,83 @@ $ qctool -help
 				<p>
 					For more information, see the <a href="qctool_tutorial.html#introduction"> tutorial</a>.
 				</p>
+			</div>
+			<div id = "tutorial" style = "display:none" >
+                <div>
+    			    This tutorial shows how to carry out common tasks with QCTOOL.  For the purposes of the tutorial we assume
+    			    that we have a directory containing a sample file <pre>example.sample</pre> and 22 genotype files <pre>example_01.gen ... example_22.gen</pre>
+    			    Click on a task to see more information.
+			    </div>
+			    <div class = "task">
+			        <div class="task_name">View the program usage page</div>
+			        <div class="task_command_line">$ qctool -help | less</div>
+			    </div>
+			    <div class = "task">
+			        <div class="task_name">Convert a single GEN file to BGEN or VCF format:</div>
+			        <div class="task_command_line">$ qctool -g example_01.gen -og example_01.bgen -assume-chromosome 01</div>
+			        <div class="task_command_line">$ qctool -g example_01.gen -og example_01.vcf -assume-chromosome 01</div>
+			        <div class="task_notes">Note: recognised output formats are
+			            <span class="monospace">.gen</span>,
+			            <span class="monospace">.gen.gz</span>,
+			            <span class="monospace">.bgen</span>,
+			            <span class="monospace">.vcf</span>, and
+			            <span class="monospace">.vcf.gz</span>.
+			        By default, GEN files are written with an initial, extra, chromosome column;
+			            use <span class="monospace">-omit-chromosome</span> to omit this.
+			        </div>
+			    </div>
+			    <div class = "task">
+			        <div class="task_name">Convert all GEN files to BGEN or VCF format:</div>
+			        <div class="task_command_line">$ qctool -g example_#.gen -og example_#.bgen</div>
+			        <div class="task_command_line">$ qctool -g example_#.gen -og example.bgen</div>
+			        <div class="task_command_line">$ qctool -g example_#.gen -og example_#.vcf</div>
+			        <div class="task_command_line">$ qctool -g example_#.gen -og example.vcf</div>
+			        <div class="task_notes">Note: variants with # in the output file produce one output file per input file.
+			            Variants without a # produce one big file with all the input variants in.</div>
+			    </div>
+			    <div class = "task">
+			        <div class="task_name">Subset a BGEN file, sending the output to a pipe:</div>
+			        <div class="task_command_line">$ qctool -g example.bgen -range 03:0-3000 -og - | less -S</div>
+			    </div>
+			    <div class = "task">
+			        <div class="task_name">Sort a file for chromosome/position order</div>
+			        <div class="task_command_line">$ qctool -g example_#.gen -og example.bgen -sort</div>
+    			</div>
+			    <div class = "task">
+			        <div class="task_name">Compute sample summary statistics:</div>
+			        <div class="task_command_line">$ qctool -g example_#.gen -sample-stats example.sample-stats -os example.sample</div>
+			        <div class="task_notes">Note: the existing sample file will be backed up to <span class="monospace">example.sample~1</span></div>
+			    </div>
+			    <div class = "task">
+			        <div class="task_name">Filter out samples based on missingness and heterozygosity</div>
+			        <div class="task_command_line">$ qctool -g example_#.gen \<br> -s example.sample \<br>-sample-missing-rate 0.1 \<br>-heterozygosity 0.2 0.3 \<br>
+			            -og example_filtered_#.gen</div>
+			        <div class="task_command_line">$ qctool -g example_#.gen \<br> -s example.sample \<br>-sample-missing-rate 0.1 \<br>-heterozygosity 0.2 0.3 \<br>
+			            -write-sample-excl-list my_exclusion_list.txt</div>
+    			    <div class="task_notes">Note: you must first use <span class="monospace">-sample-stats</span> to populate the
+                        <span class="monospace">missing</span>
+    			        and <span class="monospace">heterozygosity</span> columns in the sample file (or populate them some other way.)</div>
+    			</div>
+			    <div class = "task">
+			        <div class="task_name">Compute per-SNP summary statistics</div>
+			        <div class="task_command_line">$ qctool -g example_#.gen -snp-stats example.snp-stats</div>
+    			</div>
+			    <div class = "task">
+			        <div class="task_name">Filter SNPs based on common QC metrics</div>
+			        <div class="task_command_line">$ qctool -g example_#.gen -snp-missing-rate 0.05 -maf 0.01 1 -info 0.9 1 -hwe 20 -og example_filtered_#.gen</div>
+			        <div class="task_command_line">$ qctool -g example_#.gen -snp-missing-rate 0.05 -maf 0.01 1 -info 0.9 1 -hwe 20 -write-snp-excl-list my_snp_exclusions.txt</div>
+    			</div>
+			    <div class = "task">
+			        <div class="task_name">Add SNP dosages for a given SNP to the sample file</div>
+			        <div class="task_command_line">$ qctool -g example_#.gen -s example.sample -os example.sample -condition-on rs1234</div>
+			        <div class="task_command_line">$ qctool -g example_#.gen -s example.sample -os example.sample -condition-on pos~03:10001</div>
+			        <div class="task_command_line">$ qctool -g example_#.gen \<br>
+			            -s example.sample \<br>
+			            -os example.sample \<br>
+			            -condition-on "pos~03:10001(add dom het rec),rs1234(add)"</div>
+    			</div>
+			</div>
+                
 			</div>
 			<div id = "download" style = "display:none" >
 				<p>

@@ -11,6 +11,8 @@ body {
 	width: 1000px ;
 	margin-left: auto ;
 	margin-right: auto ;
+	overflow-y: scroll ;
+	/* border: 1px solid red; */
 }
 
 img.header_img {
@@ -23,6 +25,14 @@ img.header_arrow {
 	float: left;
 	clear: left ;
 	padding-left: 80px ;
+}
+
+.header_text {
+	float: left ;
+	padding-left: 10px ;
+	padding-right: 10px ;
+	font-family: Arial, Helvetica, Tahoma, sans-serif;
+	font-size: 40px ;
 }
 
 div.header_subtext {
@@ -40,18 +50,35 @@ strong {
 	font-family: sans-serif ;
 }
 
-img.nav_button {
-	margin-left: 10px ;
-	margin-right: 10px ;
+.nav_button {
 	margin-top: 10px ;
-	padding: 10px ;
-}
-
-
-div.button_bar {
-	width:670px ;
+	padding-left: 3% ;
+	padding-right: 3% ;
+	width: 19% ;
+	float: left ;
 	margin-left: auto ;
 	margin-right: auto ;
+	font-family: sans-serif ;
+	font-size: 28px ;
+	text-align: center ;
+	color: #000000;
+	border-bottom: 2px solid white ;
+}
+
+.nav_button:hover {
+	color: #AA0000 ;
+}
+
+.nav_button_selected {
+	border-bottom: 2px solid black ;
+}
+
+div.button_bar {
+	width:900px ;
+	margin-left: 50px ;
+	margin-right: 50px ;
+	overflow: auto ; /* Forces div to contain its floats. */
+	/* border: 1px solid red ; */
 }
 
 dt {
@@ -106,3 +133,36 @@ th {
 h1, h2, h3, h4 {
 	font-family: sans-serif ;
 }
+
+.task {
+	width: 100% ;
+	margin: 2px;
+	margin-top: 10px ;
+	overflow: auto ;
+}
+
+.task_name {
+	font-family: sans-serif ;
+	font-weight: bold ;
+	float: left ;
+}
+
+.task_notes {
+	float: left ;
+	font-family: sans-serif ;
+	font-size: 0.8em ;
+}
+
+.monospace {
+	font-family: monospace ;
+}
+.task_command_line {
+	margin-top: 1px ;
+	margin-bottom: 1px ;
+	padding: 5px ;
+	font-family: monospace ;
+	background-color: #82BD77 ;
+	float: left ;
+	clear: left ;
+}
+

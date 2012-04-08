@@ -217,7 +217,9 @@ public:
 				" If the field is omitted, it is assumed to be rsid;"
 				" if the dose is omitted it is assumed to be add."
 			)
-			.set_takes_single_value() ;
+			.set_takes_values( 1 )
+			.set_minimum_multiplicity( 0 )
+			.set_maximum_multiplicity( 100 ) ;
 				
 		options.option_implies_option( "-quantile-normalise", "-s" ) ;
 		options.option_implies_option( "-condition-on", "-s" ) ;
@@ -1067,7 +1069,11 @@ private:
 			{
 				m_cohort_individual_source = open_samples( m_snp_data_source->number_of_samples() ) ;
 				if( m_options.check( "-condition-on" )) {
-					m_cohort_individual_source = condition_on( m_cohort_individual_source, *m_snp_data_source, m_options.get< std::string >( "-condition-on" )) ;
+					m_cohort_individual_source = condition_on(
+						m_cohort_individual_source,
+						*m_snp_data_source,
+						genfile::string_utils::join( m_options.get_values< std::string >( "-condition-on" ), "," )
+					) ;
 					m_snp_data_source->reset_to_start() ;
 				}
 				load_sample_rows( m_cohort_individual_source, m_snp_data_source->number_of_samples() ) ;
@@ -1917,19 +1923,25 @@ private:
 		using genfile::string_utils::split ;
 		std::vector< std::string > elts = split_and_strip( conditioning_spec, ",", " \t" ) ;
 		for( std::size_t i = 0; i < elts.size(); ++i ) {
-			std::vector< std::string > parts = split( elts[i], ":" ) ;
+			std::vector< std::string > parts = split( elts[i], "(" ) ;
 			if( parts.size() == 1 ) {
 				parts.push_back( "add" ) ;
-			} 
+			}
 			else if( parts.size() != 2 ) {
 				throw genfile::BadArgumentError( "QCToolContext::condition_on()", "conditioning_spec=\"..." + elts[i] + "...\"" ) ;
+			} else if( parts[1][ parts[1].size() - 1 ] != ')' ) {
+				throw genfile::BadArgumentError( "QCToolContext::condition_on()", "conditioning_spec=\"..." + elts[i] + "...\"" ) ;
+			} 
+			
+			if( parts[1][ parts[1].size() - 1 ] == ')' ) {
+				parts[1].resize( parts[1].size() - 1 ) ;
 			}
-			parts.resize(2) ;
+
 			genfile::SNPIdentifyingDataTest::SharedPtr snp_matcher(
 				genfile::WithSNPDosagesCohortIndividualSource::create_snp_matcher( parts[0] ).release()
 			) ;
 			
-			std::vector< std::string > types = split( parts[1], "," ) ;
+			std::vector< std::string > types = split( parts[1], " " ) ;
 			for( std::size_t j = 0; j < types.size(); ++j ) {
 				if( types[j] == "gen" ) {
 					types[j] = "add" ;
