@@ -341,14 +341,13 @@ public:
 
 		// VCF file options
 		options.declare_group( "VCF file options" ) ;
-		options[ "-vcf-field-map" ]
+		options[ "-vcf-genotype-field" ]
 			.set_description(
-				"Specify a mapping of keys (such as \"genotypes\") which qctool will use internally, "
-				"to values (such as \"GT\") which are present in the VCF file.  This allows flexibility in the choice "
-				"of data used in a VCF file."
+				"Specify the name of the field in a VCF file to read genotypes from.  This must match "
+				"the name of a FORMAT field in the VCF file."
 			)
 			.set_takes_single_value()
-			.set_default_value( "genotypes:GT" ) ;
+			.set_default_value( "GT" ) ;
 		options[ "-metadata" ]
 			.set_description(
 				"Specify the name of a file containing VCF metadata to be used to parse "
@@ -1436,21 +1435,8 @@ private:
 			) ;
 		}
 		
-		std::vector< std::string > fields = genfile::string_utils::split_and_strip(
-			m_options.get_value< std::string >( "-vcf-field-map" ),
-			","
-			" \t"
-		) ;
-		
-		for( std::size_t i = 0; i < fields.size(); ++i ) {
-			std::vector< std::string > key_value = genfile::string_utils::split_and_strip( fields[i], ":", " \t" ) ;
-			if( key_value.size() != 2 ) {
-				throw genfile::BadArgumentError(
-					"QCToolCmdLineContext::open_vcf_format_snp_data_source()", "vcf field map \"" + fields[i] + "\"."
-				) ;
-			}
-			source->set_field_mapping( key_value[0], key_value[1] ) ;
-		}
+		std::string genotype_field = m_options.get< std::string >( "-vcf-genotype-field" ) ;
+		source->set_field_mapping( "genotypes", genotype_field ) ;
 		
 		return genfile::SNPDataSource::UniquePtr( source.release() ) ;
 	}
@@ -2106,6 +2092,7 @@ private:
 			|| options().check_if_option_was_supplied( "-os" )
 			|| options().check_if_option_was_supplied( "-op" )
 			|| options().check_if_option_was_supplied_in_group( "SNP filtering options" )
+			|| options().check_if_option_was_supplied_in_group( "Sample filtering options" )
 		) {
 			processor.add_callback( qctool_basic ) ;
 		}

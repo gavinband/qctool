@@ -54,12 +54,12 @@ strong {
 	margin-top: 10px ;
 	padding-left: 3% ;
 	padding-right: 3% ;
-	width: 19% ;
+	width: 14% ;
 	float: left ;
 	margin-left: auto ;
 	margin-right: auto ;
 	font-family: sans-serif ;
-	font-size: 28px ;
+	font-size: 22px ;
 	text-align: center ;
 	color: #000000;
 	border-bottom: 2px solid white ;
@@ -134,6 +134,17 @@ h1, h2, h3, h4 {
 	font-family: sans-serif ;
 }
 
+.tutorial_header {
+	width: 100% ;
+	margin: 2px ;
+	overflow: auto ;
+}
+
+.tutorial_separator {
+	width: 100% ;
+	margin: 10px ;
+	border-bottom: 2px solid black ;
+}
 .task {
 	width: 100% ;
 	margin: 2px;
@@ -148,14 +159,18 @@ h1, h2, h3, h4 {
 }
 
 .task_notes {
+	margin-top: 1px ;
+	margin-bottom: 1px ;
 	float: left ;
 	font-family: sans-serif ;
-	font-size: 0.8em ;
+	font-size: 0.8em;
+	padding: 5px ;
 }
 
 .monospace {
 	font-family: monospace ;
 }
+
 .task_command_line {
 	margin-top: 1px ;
 	margin-bottom: 1px ;
@@ -166,3 +181,8 @@ h1, h2, h3, h4 {
 	clear: left ;
 }
 
+.file_formats {
+	width: 90% ;
+	margin-left: auto ;
+	margin-right: auto ;
+}
