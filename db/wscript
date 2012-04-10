@@ -10,8 +10,8 @@ def create_test( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'test/' + name + '.cpp' ],
-		uselib_local = 'db sqlite3',
-		uselib = 'BOOST_UNIT_TEST_FRAMEWORK',
+		uselib_local = 'db',
+		uselib = 'BOOST_THREAD BOOST_DATE_TIME BOOST_UNIT_TEST_FRAMEWORK',
 		includes='./include',
 		unit_test=1,
 		install_path=None
@@ -22,7 +22,7 @@ def create_benchmark( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'benchmarks/' + name + '.cpp' ],
-		uselib_local = 'db sqlite3 ',
+		uselib_local = 'db',
 		includes='./include',
 		install_path=None
 	)
@@ -39,7 +39,7 @@ def build( bld ):
 		target = 'db',
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include',
-		uselib = 'BOOST_THREAD',
+		uselib = 'BOOST_DATE_TIME PTHREAD',
 		uselib_local = 'genfile sqlite3',
 		export_incdirs = './include'
 	)
