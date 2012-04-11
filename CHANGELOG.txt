@@ -4,9 +4,10 @@ Version 1.1
 New features:
 
 * QCTOOL now has initial support for VCF files.
-* New options for selection of SNPs: -[in|ex]clude-range, -[in|ex]cl-rsids, -[in|ex]cl-snpids, -[in|ex]cl-snps-matching.
-	These work as follows: the 'incl' options are combined using a logical OR, the 'excl' options are combined with a logical AND.
-	Then the two combined conditions are ANDed.  For example, if you use -excl-rsids <list> -range 01:0-1000000 then 
+* New and renamed options for selection of SNPs: -[in|ex]cl-range, -[in|ex]cl-rsids, -[in|ex]cl-snpids, -[in|ex]cl-snps-matching.
+	These are AND'd together to form the SNP filter, except that repeated invocations of -incl-X are first combined.
+	Example: qctool -g example.gen -incl-range 06:25000000-40000000 -incl-range 11:0-10000000 -excl-rsids file.txt
+	This includes all SNPs in either region that are not in the exclusion file.
 * New option -condition-on, similar to SNPTEST's -condition_on, adds genotypic dosages to the output sample file.
 * New -quantile-normalise option: quantile-normalisation of columns in the sample file.
 * New -assume-chromosome option.  If this is used, QCTOOL will fill in missing chromosome values with the given one.
