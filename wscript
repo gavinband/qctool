@@ -62,6 +62,7 @@ def check_for_3rd_party_components( conf ):
 		conf.define( 'HAVE_MGL', 1 )
 	if conf.check_cxx( lib = 'pthread', uselib_store = "PTHREAD" ):
 		conf.define( 'HAVE_PTHREAD', 1 )
+
 def check_for_boost_components( conf ):
 	conf.check_tool( 'boost' )
 	if check_for_boost_headers( conf, '1.36.1' ):
@@ -78,18 +79,12 @@ def check_for_boost_headers( conf, min_version ):
 		conf.define( 'HAVE_BOOST_TIMER', 1 )
 		conf.define( 'HAVE_BOOST_MATH', 1 )
 		conf.define( 'HAVE_BOOST_FUNCTION', 1 )
-		if not Options.options.static:
-			conf.define( 'BOOST_TEST_DYN_LINK', 1 )
 		conf.define( 'BOOST_FILESYSTEM_VERSION', 2 )
 		return True
 	return False
 
 def check_for_boost_lib( conf, lib, min_version, uselib ):
-	if Options.options.static:
-		static_selector = 'onlystatic'
-		print "Looking for static", lib
-	else:
-		static_selector = 'nostatic'
+	static_selector = 'onlystatic'
 	if conf.check_boost( lib = lib, min_version = min_version, static = static_selector, uselib = uselib, linkflags = '-L' + conf.env[ 'PREFIX' ] + '/lib' ):
 		conf.define( 'HAVE_' + uselib, 1 )
 
@@ -140,7 +135,8 @@ def get_cxx_flags( variant_name ):
 	cxxflags = [
 		'-Wall',
 		'-pedantic',
-		'-Wno-long-long' # don't warn about the long long thing, it comes up in Eigen and Boost.
+		'-Wno-long-long', # don't warn about the long long thing, it comes up in Eigen and Boost.
+		'-m64'	
 	]
 	if variant_name == 'default':
 		cxxflags.extend( ['-g', '-p' ])
@@ -264,3 +260,25 @@ def check(context):
 	ut.change_to_testfile_dir = True
 	ut.run()
 	ut.print_results()
+
+def release( bld ):
+        print bld
+        import os, tempfile, shutil, subprocess
+        tempdir = tempfile.mkdtemp()
+        import platform
+        if platform.system() == 'Darwin':
+                release_stub = 'qctool-%s_MacOSX_Intel' % VERSION
+        elif platform.system() == 'Linux':
+                release_stub = 'qctool-%s_x86_64' % VERSION
+        release_dir = os.path.join( tempdir, release_stub )
+        os.mkdir( release_dir )
+        shutil.copyfile( "build/release/qctool-%s" % VERSION, "%s/qctool-%s" % ( release_dir, VERSION ))
+        shutil.copymode(  "build/release/qctool-%s" % VERSION, "%s/qctool-%s" % ( release_dir, VERSION ))
+        shutil.copyfile( "LICENSE_1.0.txt", "%s/LICENSE_1.0.txt" % release_dir )
+        shutil.copyfile( "CHANGELOG", "%s/CHANGELOG" % release_dir )
+        process = subprocess.Popen( [ 'tar', '-czf', '%s/%s.tgz' % ( tempdir, release_stub ), release_stub ], cwd = tempdir )
+        process.wait()
+        print 'Created QCTOOL release tarball in "%s/%s.tgz"' % ( tempdir, release_stub )
+        print "Contents are:"
+        print subprocess.Popen( [ 'tar', '-tzf', '%s/%s.tgz' % ( tempdir, release_stub ) ], stdout = subprocess.PIPE ).communicate()[0]
+
