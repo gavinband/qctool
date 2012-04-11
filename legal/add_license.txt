@@ -1,0 +1,17 @@
+#!/bin/bash
+for dir in appcontext apps benchmarks components db fputils genfile integration include qcdb snptest src statfile test worker;
+do
+	echo "Adding license to cpp files in ${dir}";
+	find ${dir} -name *.cpp > /tmp/x.txt;
+	find ${dir} -name *.hpp >> /tmp/x.txt;
+	for f in `cat /tmp/x.txt`;
+	do
+		if ! grep -q "Copyright Gavin Band 2008 - 2012." ${f}
+		then
+			cat legal/LICENSE_cpp.txt ${f} > ${f}.new;
+			mv ${f}.new ${f}
+		fi
+	done
+done
+
+
