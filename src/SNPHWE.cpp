@@ -1,3 +1,9 @@
+
+//          Copyright Gavin Band 2008 - 2012.
+// Distributed under the Boost Software License, Version 1.0.
+//    (See accompanying file LICENSE_1_0.txt or copy at
+//          http://www.boost.org/LICENSE_1_0.txt)
+
 /*
 // This code implements an exact SNP test of Hardy-Weinberg Equilibrium as described in
 // Wigginton, JE, Cutler, DJ, and Abecasis, GR (2005) A Note on Exact Tests of 
