@@ -1,3 +1,9 @@
+
+//          Copyright Gavin Band 2008 - 2012.
+// Distributed under the Boost Software License, Version 1.0.
+//    (See accompanying file LICENSE_1_0.txt or copy at
+//          http://www.boost.org/LICENSE_1_0.txt)
+
 /*
  * This program, bechmark-statistics, reads some GEN rows from a file an
  *
