@@ -24,7 +24,8 @@ namespace genfile {
 		~ValueMappingCohortIndividualSource() ;
 	
 		void add_mapping(
-			std::string const& column_name,
+			std::string const& source_column_name,
+			std::string const& target_column_name,
 			CrossCohortCovariateValueMapping::UniquePtr mapping
 		) ;
 		
@@ -38,7 +39,7 @@ namespace genfile {
 		std::string get_summary( std::string const& prefix = "" ) const ;
 	private:
 		CohortIndividualSource::UniquePtr m_source ;
-		typedef std::map< std::string, CrossCohortCovariateValueMapping const* > Mappings ;
+		typedef std::map< std::string, std::pair< std::string, CrossCohortCovariateValueMapping const* > > Mappings ;
 		Mappings m_mappings ;
 	} ;
 }

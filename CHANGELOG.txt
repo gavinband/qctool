@@ -4,24 +4,19 @@ Version 1.1
 New features:
 
 * QCTOOL now has initial support for VCF files.
-* New and renamed options for selection of SNPs: -[in|ex]cl-range, -[in|ex]cl-rsids, -[in|ex]cl-snpids, -[in|ex]cl-snps-matching.
-	These are AND'd together to form the SNP filter, except that repeated invocations of -incl-X are first combined.
-	Example: qctool -g example.gen -incl-range 06:25000000-40000000 -incl-range 11:0-10000000 -excl-rsids file.txt
-	This includes all SNPs in either region that are not in the exclusion file.
+* New/renamed options for selection of SNPs: -[in|ex]clude-range, -[in|ex]cl-rsids, -[in|ex]cl-snpids, -[in|ex]cl-snps-matching.
+	These replace -snp-excl-list, -snp-interval, and -snpid-filter.
+	These work as follows: the 'incl' options are combined using a logical OR, the 'excl' options are combined with a logical AND.
+	Then the two combined conditions are ANDed.  For example, if you use -excl-rsids <list> -range 01:0-1000000 then 
 * New option -condition-on, similar to SNPTEST's -condition_on, adds genotypic dosages to the output sample file.
 * New -quantile-normalise option: quantile-normalisation of columns in the sample file.
 * New -assume-chromosome option.  If this is used, QCTOOL will fill in missing chromosome values with the given one.
 * New: support for multiple cohorts (by specifying -g and/or -s several times.)  SNPs are matched between cohorts using the fields
-  specified by -snp-match-fields (which must include position).  Note this only makes sense if all cohorts are aligned to the same
-  strand.  If cohorts are aligned to the same strand, but may have differently coded 'A' and 'B' alleles, use -match-alleles-to-cohort1 to
-  flip the alleles in all cohorts appropriately.
-* New option -match-alleles-to-cohort1.  When several cohorts are specified, QCTOOL will flip alleles between 
+  specified by -snp-match-fields (which must include position).  If cohorts have the same alleles but they may be coded in opposite ways
+	(e.g. cohort1 has "T C" and cohort2 has "C T"), use -match-alleles-to-cohort1 to flip the alleles appropriately.
 * New option -sort, which sorts the output file.  Currently this works with BGEN, unzipped GEN, and unzipped VCF files.
-
-Option changes:
-* -snp-excl-list renamed to -excl-rsids / -excl-snpids, similalry for -snp-incl-list.
-* -snp-interval replaced with -incl-range / -excl-range
-* -snpid-filter replaced with -incl-snps-matching / -excl-snps-matching.
+* QCTOOL now writes a chromosome column in GEN file output by default.  This is understood by recent builds of SNPTEST but possibly not by other
+    tools.  To suppress it, use -omit-chromosome.
 
 Bug fixes:
 * fix bug where values in screen output are rounded to too low precision.
@@ -29,6 +24,7 @@ Bug fixes:
 Other changes:
 
 * -write-snp-excl-list now writes a file that contains SNPID, rsid, chromosome, position, and alleles.
+* -write-sample-excl-list now writes a file that contains both Sample IDs.
 * qctool no longer writes a log file by default: use -log to specify it.
 * qctool no longer writes a sample file by default.  Use -os to specify that it should.
 * By default, GEN file output contains an extra chromosome column.  Use -omit-chromosome to omit this.

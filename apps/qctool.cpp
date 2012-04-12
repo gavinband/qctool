@@ -1691,7 +1691,7 @@ private:
 		
 		m_fltrd_out_sample_sink.reset( new NullObjectSink< SampleRow >() ) ;
 		if( m_mangled_options.output_sample_excl_list_filename() != "" ) {
-			m_fltrd_out_sample_sink.reset( new SampleIDSink( open_file_for_output( m_mangled_options.output_sample_excl_list_filename() ))) ;
+			m_fltrd_out_sample_sink.reset( new SampleIDSink( m_mangled_options.output_sample_excl_list_filename() )) ;
 		}
 	}
 
@@ -1977,7 +1977,7 @@ private:
 			new genfile::QuantileNormalisingCrossCohortCovariateValueMapping( column_name )
 		) ;
 		mapping->add_source( source ) ;
-		source.add_mapping( column_name, mapping ) ;
+		source.add_mapping( column_name, column_name + ":quantile_normalised", mapping ) ;
 	}
 
 	void check_for_errors_and_warnings() {
