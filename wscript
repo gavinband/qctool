@@ -89,12 +89,10 @@ def check_for_boost_lib( conf, lib, min_version, uselib ):
 		conf.define( 'HAVE_' + uselib, 1 )
 
 def check_for_zlib( conf ):
-	if Options.options.static:
-		if conf.check_cxx( staticlib='z', uselib_store='ZLIB' ):
-			conf.define( 'HAVE_ZLIB', 1 )
-	else:
-		if conf.check_cxx( lib='z', uselib_store='ZLIB' ):
-			conf.define( 'HAVE_ZLIB', 1 )
+	if conf.check_cxx( staticlib='z', uselib_store='ZLIB' ):
+		conf.define( 'HAVE_ZLIB', 1 )
+	elif conf.check_cxx( lib='z', uselib_store='ZLIB' ):
+		conf.define( 'HAVE_ZLIB', 1 )
 
 def platform_specific_configure( conf ):
 	import platform
@@ -136,7 +134,6 @@ def get_cxx_flags( variant_name ):
 		'-Wall',
 		'-pedantic',
 		'-Wno-long-long', # don't warn about the long long thing, it comes up in Eigen and Boost.
-		'-m64'	
 	]
 	if variant_name == 'default':
 		cxxflags.extend( ['-g', '-p' ])
