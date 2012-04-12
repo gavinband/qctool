@@ -65,6 +65,18 @@ namespace genfile {
 		return "mapped:" + m_source->get_source_spec() ;
 	}
 	
+	CohortIndividualSource::ColumnSpec ValueMappingCohortIndividualSource::get_column_spec() const {
+		ColumnSpec original = m_source->get_column_spec() ;
+		ColumnSpec added ;
+		Mappings::const_iterator
+			i = m_mappings.begin(),
+			end_i = m_mappings.end() ;
+		for( ; i != end_i; ++i ) {
+			added.add_column( i->first, original[ i->second.first ].type() ) ;
+		}
+		return original + added ;
+	}
+	
 	std::string ValueMappingCohortIndividualSource::get_summary( std::string const& prefix ) const {
 		std::ostringstream ostr ;
 		ostr << "Mapped values:\n" ;

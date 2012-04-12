@@ -118,6 +118,11 @@ namespace genfile {
 		return m_column_names != other.m_column_names || m_column_types != other.m_column_types ;
 	}
 	
+	void CohortIndividualSource::ColumnSpec::add_column( std::string const& name, ColumnType const type ) {
+		m_column_names.push_back( name ) ;
+		m_column_types.push_back( type ) ;
+	}
+	
 	CohortIndividualSource::ColumnSpec CohortIndividualSource::ColumnSpec::operator+( ColumnSpec const& other ) {
 		std::vector< std::string > column_names = m_column_names ;
 		std::vector< ColumnType > column_types = m_column_types ;

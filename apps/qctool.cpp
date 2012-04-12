@@ -202,34 +202,6 @@ public:
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
 
-		options.declare_group( "Options for adjusting sample data" ) ;
-		options[ "-quantile-normalise" ]
-			.set_description( "Quantile normalise each specified continuous phenotype or covariate "
-			 	"by ranking its values and mapping to quantiles of the standard normal distribution N(0,1). "
-				"Ties are handled by sending tied values to the average of the corresponding quantiles."
-				"The argument should be a comma-separated list of column names from the sample file." )
-			.set_takes_single_value() ;
-		options[ "-missing-code" ]
-			.set_description( "Specify a comma-separated list of strings to be treated as missing values "
-				"when encountered in the sample file(s)." )
-			.set_takes_single_value()
-			.set_default_value( "NA" ) ;
-		options[ "-condition-on" ]
-			.set_description( "Condition on the dosages of a given SNP or set of SNPs."
-				" The argument should be a comma-separated list of values of the form:\n"
-				"   [field]~[value]:[dose][,dose...]\n"
-				"where field is \"rsid\", \"snpid\", or \"pos\", value is the value to match, and "
-				"each dose is one of add,dom,het,rec,or gen."
-				" If the field is omitted, it is assumed to be rsid;"
-				" if the dose is omitted it is assumed to be add."
-			)
-			.set_takes_values( 1 )
-			.set_minimum_multiplicity( 0 )
-			.set_maximum_multiplicity( 100 ) ;
-				
-		options.option_implies_option( "-quantile-normalise", "-s" ) ;
-		options.option_implies_option( "-condition-on", "-s" ) ;
-
 		// SNP exclusion options
 		options.declare_group( "SNP exclusion options" ) ;
 		options[ "-excl-snpids" ]
@@ -460,6 +432,36 @@ public:
 				"flexibility and better memory usage compared to working with flat files. "
 				" This option forces qctool to use a flat file instead." )
 			.set_hidden() ;
+
+		options.declare_group( "Options for adjusting sample data" ) ;
+		options[ "-quantile-normalise" ]
+			.set_description( "Quantile normalise each specified continuous phenotype or covariate "
+			 	"by ranking its values and mapping to quantiles of the standard normal distribution N(0,1). "
+				"Ties are handled by sending tied values to the average of the corresponding quantiles."
+				"The argument should be a comma-separated list of column names from the sample file." )
+			.set_takes_single_value() ;
+		options[ "-missing-code" ]
+			.set_description( "Specify a comma-separated list of strings to be treated as missing values "
+				"when encountered in the sample file(s)." )
+			.set_takes_single_value()
+			.set_default_value( "NA" ) ;
+		options[ "-condition-on" ]
+			.set_description( "Condition on the dosages of a given SNP or set of SNPs."
+				" The argument should be a comma-separated list of values of the form:\n"
+				"   [field]~[value]:[dose][,dose...]\n"
+				"where field is \"rsid\", \"snpid\", or \"pos\", value is the value to match, and "
+				"each dose is one of add,dom,het,rec,or gen."
+				" If the field is omitted, it is assumed to be rsid;"
+				" if the dose is omitted it is assumed to be add."
+			)
+			.set_takes_values( 1 )
+			.set_minimum_multiplicity( 0 )
+			.set_maximum_multiplicity( 100 ) ;
+				
+		options.option_implies_option( "-quantile-normalise", "-s" ) ;
+		options.option_implies_option( "-quantile-normalise", "-os" ) ;
+		options.option_implies_option( "-condition-on", "-s" ) ;
+		options.option_implies_option( "-condition-on", "-os" ) ;
 
 		//Relatotron::declare_options( options ) ;
 		//RelatednessComponent::declare_options( options ) ;
