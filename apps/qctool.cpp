@@ -478,6 +478,7 @@ public:
 		options.option_excludes_group( "-snp-stats", "SNP filtering options" ) ;
 		options.option_excludes_group( "-sample-stats", "Sample filtering options" ) ;
 		options.option_excludes_option( "-sample-stats", "-og" ) ;
+		options.option_implies_option( "-sample-stats", "-os" ) ;
 
 		options.option_excludes_option( "-write-sample-excl-list", "-os" ) ;
 		options.option_excludes_option( "-write-sample-excl-list", "-sample-stats" ) ;

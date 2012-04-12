@@ -192,7 +192,13 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                         $ qctool -g example_#.gen -og example.bgen
                     </div>
                     <div class="task_notes">
-                        (This makes one big output file containing all the variants.)
+                        (This makes a BGEN file containing all the variants.)
+                    </div>
+                    <div class="task_command_line">
+                        $ qctool -g example_#.gen -og example.vcf
+                    </div>
+                    <div class="task_notes">
+                        (This makes a VCF file containing all the variants.)
                     </div>
                     <div class="task_command_line">
                         $ qctool -g example_#.gen -og example_#.bgen
@@ -203,11 +209,8 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                     <div class="task_command_line">
                         $ qctool -g example_01.gen -og example_01.bgen -assume-chromosome 01
                     </div>
-                    <div class="task_command_line">
-                        $ qctool -g example_01.gen -og example_01.vcf -assume-chromosome 01
-                    </div>
                     <div class="task_notes">
-                        (these convert just one file, filling in the chromosome information.)
+                        (This converts just one file, filling in the chromosome information.)
                     </div>
                     <div class="task_notes">
                         Note: see <a href="#file_formats">file formats</a> for a description of file formats understood by QCTOOL.
@@ -218,13 +221,13 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                         Convert VCF file(s) to other formats:
                     </div>
                     <div class="task_command_line">
-                        $ qctool -g example_#.vcf -og converted.bgen
+                        $ qctool -g example.vcf -og converted.bgen
                     </div>
                     <div class="task_notes">
                         This reads genotype calls from the <span class="monospace">GT</span> field in the VCF file. Suitable metadata must be supplied.
                     </div>
                     <div class="task_command_line">
-                        $ qctool -g example_#.vcf -vcf-genotype-field my_field -og converted.bgen
+                        $ qctool -g example.vcf -vcf-genotype-field my_field -og converted.bgen
                     </div>
                     <div class="task_notes">
                         This reads genotype probabilities from the <span class="monospace">my_field</span> field in the VCF file. Suitable metadata must be supplied.
@@ -232,13 +235,13 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                 </div>
                 <div class="task">
                     <div class="task_name">
-                        Subset a genotype file, sending the output to a pipe:
+                        Send output to a pipe:
                     </div>
                     <div class="task_command_line">
-                        $ qctool -g example.bgen -incl-range 03:0-3000 -og - | less -S
+                        $ qctool -g example.bgen -og - | less -S
                     </div>
-                    <div class="task_command_line">
-                        $ qctool -g example_01.vcf -incl-range 0-3000 -og - | less -S
+                    <div class="task_notes">
+                        Note: currently this outputs genotypes in GEN format.
                     </div>
                 </div>
                 <div class="task">
@@ -246,10 +249,32 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                         Sort a file for chromosome/position order
                     </div>
                     <div class="task_command_line">
-                        $ qctool -g example_#.gen -sort -og sorted.bgen
+                        $ qctool -g example.bgen -sort -og sorted.bgen
                     </div>
                     <div class="task_notes">
-                        Note: sorting is not supported for gzipped format output files.
+                        Note: currently sorting is supported unzipped GEN, unzipped VCF, and BGEN format output files.
+                    </div>
+                </div>
+                <div class="task">
+                    <div class="task_name">
+                        Subset SNPs
+                    </div>
+                    <div class="task_command_line">
+                        $ qctool -g example.bgen -og subsetted.gen -incl-rsids my_inclusion_list.txt
+                    </div>
+                    <div class="task_command_line">
+                        $ qctool -g example.bgen -og subsetted.gen -excl-range 06:25000000-40000000
+                    </div>
+                    <div class="task_command_line">
+                        $ qctool -g example.bgen -og subsetted.gen -maf 0.01 1 -info 0.9 1 -hwe 20
+                    </div>
+                </div>
+                <div class="task">
+                    <div class="task_name">
+                        Subset SNPs, writing an exclusion list
+                    </div>
+                    <div class="task_command_line">
+                        $ qctool -g example.bgen -write-snp-excl-list snp_exclusions.txt -maf 0.01 1 -info 0.9 1 -hwe 20
                     </div>
                 </div>
                 <div class="task">
@@ -257,7 +282,10 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                         Compute sample summary statistics:
                     </div>
                     <div class="task_command_line">
-                        $ qctool -g example_#.gen -s example.sample -sample-stats example.sample-stats -os example.sample
+                        $ qctool -g example.bgen -s example.sample -sample-stats example.sample-stats -os example.sample
+                    </div>
+                    <div class="task_notes">
+                        Note: combine this with SNP subset options to use only a subset of SNPs in the computation.
                     </div>
                     <div class="task_notes">
                         Note: the existing sample file <span class="monospace">example.sample</span> will be backed up to <span class="monospace">example.sample~1</span>
@@ -268,10 +296,7 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                         Compute sample summary statistics, using a subset of SNPs:
                     </div>
                     <div class="task_command_line">
-                        $ qctool -g example_#.gen -s example.sample -sample-stats example.sample-stats -os example.sample -maf 0.01 -info 0.9 -hwe 20
-                    </div>
-                    <div class="task_command_line">
-                        $ qctool -g example_#.gen -s example.sample -sample-stats example.sample-stats -os example.sample -incl-rsids my_snp_list.txt
+                        $ qctool -g example.bgen -s example.sample -sample-stats example.sample-stats -os example.sample -maf 0.01 1 -info 0.9 1
                     </div>
                 </div>
                 <div class="task">
@@ -279,14 +304,14 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                         Filter out samples
                     </div>
                     <div class="task_command_line">
-                        $ qctool -g example_#.gen 
+                        $ qctool -g example.bgen 
                         -s example.sample 
                         -og example_filtered_#.gen
                         -sample-missing-rate 0.1 
                         -heterozygosity 0.2 0.3 
                     </div>
                     <div class="task_command_line">
-                        $ qctool -g example_#.gen 
+                        $ qctool -g example.bgen 
                         -s example.sample 
                         -sample-missing-rate 0.1 
                         -heterozygosity 0.2 0.3 

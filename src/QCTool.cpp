@@ -110,7 +110,6 @@ void QCTool::unsafe_call_processed_snp(
 	}
 	InternalStorageGenRow row( id_data, genotypes ) ;
 	process_gen_row( row, ++m_number_of_snps_processed ) ;
-	accumulate_per_column_amounts( row, m_per_column_amounts ) ;
 }		
 
 void QCTool::process_gen_row( GenRow const& row, std::size_t row_number ) {
@@ -124,6 +123,7 @@ void QCTool::process_gen_row( GenRow const& row, std::size_t row_number ) {
 		if( m_context.snp_filter().check_if_satisfied( m_context.snp_statistics() )) {
 			row.write_to_sink( m_context.fltrd_in_snp_data_sink() ) ;
 			output_gen_row_stats( m_context.snp_statistics() ) ;
+			accumulate_per_column_amounts( row, m_per_column_amounts ) ;
 		}
 		else {
 			row.write_to_sink( m_context.fltrd_out_snp_data_sink() ) ;
@@ -170,7 +170,7 @@ void QCTool::do_snp_filter_diagnostics( GenRowStatistics const& row_statistics, 
 	log << ".\n" ;
 }
 
-void QCTool::accumulate_per_column_amounts( GenRow& row, std::vector< GenotypeProportions >& per_column_amounts ) {
+void QCTool::accumulate_per_column_amounts( GenRow const& row, std::vector< GenotypeProportions >& per_column_amounts ) {
 	// Keep totals for per-column stats.
 	assert( per_column_amounts.size() == row.number_of_samples() ) ;
 	// We do not deal with sex chromosomes.
