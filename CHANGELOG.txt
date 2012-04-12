@@ -1,13 +1,17 @@
 
-Version 1.1
+** Version 1.1, released April 2012 **
 
 New features:
 
 * QCTOOL now has initial support for VCF files.
 * New/renamed options for selection of SNPs: -[in|ex]clude-range, -[in|ex]cl-rsids, -[in|ex]cl-snpids, -[in|ex]cl-snps-matching.
 	These replace -snp-excl-list, -snp-interval, and -snpid-filter.
-	These work as follows: the 'incl' options are combined using a logical OR, the 'excl' options are combined with a logical AND.
-	Then the two combined conditions are ANDed.  For example, if you use -excl-rsids <list> -range 01:0-1000000 then 
+	These are AND'd together to form the SNP filter, with the exception that repeated invocations of each -incl-X option are first
+	combined.  Thus the command qctool -g example.gen -incl-range 06:25000000-40000000 11:0-10000000 -excl-rsids my_snps.txt
+	will include all SNPs in either region that are not in the exclusion list.
+* SNP filters which filter on SNP id fields (-[in|ex]clude-range, -[in|ex]cl-rsids, -[in|ex]cl-snpids, -[in|ex]cl-snps-matching)
+    are now applied before the main qctool processing pipeline.  The practical consequence is that SNP exclusion lists written using
+    -write-snp-excl-list do not contain the SNPs in any exclusion lists passed in.
 * New option -condition-on, similar to SNPTEST's -condition_on, adds genotypic dosages to the output sample file.
 * New -quantile-normalise option: quantile-normalisation of columns in the sample file.
 * New -assume-chromosome option.  If this is used, QCTOOL will fill in missing chromosome values with the given one.
@@ -17,26 +21,14 @@ New features:
 * New option -sort, which sorts the output file.  Currently this works with BGEN, unzipped GEN, and unzipped VCF files.
 * QCTOOL now writes a chromosome column in GEN file output by default.  This is understood by recent builds of SNPTEST but possibly not by other
     tools.  To suppress it, use -omit-chromosome.
+* Change to the way the -snp-stats, -sample-stats, -write-sample-excl-list and -write-snp-excl-list options behave.
+    Now each takes the name of a file to output, which must be specified.
+* File output by -snp-stats has changed format slightly, removing the first column of numbers.
+* QCTOOL no longer writes a log file by default: use -log to specify it.
+* QCTOOL no longer has a default output sample file name.  You must specify -os whenever an output sample file is needed.
+* QCTOOL now does not count lines in GEN or VCF files first.  This speeds up processing of large files.
+* Fix bug where values in screen output are rounded to too low precision.
 
-Bug fixes:
-* fix bug where values in screen output are rounded to too low precision.
-
-Other changes:
-
-* -write-snp-excl-list now writes a file that contains SNPID, rsid, chromosome, position, and alleles.
-* -write-sample-excl-list now writes a file that contains both Sample IDs.
-* qctool no longer writes a log file by default: use -log to specify it.
-* qctool no longer writes a sample file by default.  Use -os to specify that it should.
-* By default, GEN file output contains an extra chromosome column.  Use -omit-chromosome to omit this.
-* Breaking change: filters which filter on SNP id fields (IDs, chromosome, position, alleles)
-  are now applied before the main qctool processing pipeline.  The practical consequence is that SNP exclusion lists written using
-  -write-snp-excl-list do not contain the SNPs in any exclusion lists passed in.
-* Do not count lines in GEN or VCF files first (unless they are small).  This speeds up processing of large files.
-* Add -omit-chromosome option to omit chromosome information from output GEN-format files.
-* File output by -snp-stats has changed format slightly, to remove the first column of numbers.  Load in R with read.table( <filename>, hea=T ).
-* Change to the way -snp-stats and -sample-stats options behave.  Each takes the name of a file to output, which must be specified.
-* Change to the way -write-sample-excl-list and -write-snp-excl-list behave: now each takes the name of a file to output.
-
-Version 1.0
+** Version 1.0, released 2008 **
 - First release version.
 
