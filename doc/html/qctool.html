@@ -39,7 +39,7 @@ $(document).ready(
                 documentation
             </div>
             <div class="nav_button" name="tutorial">
-                tutorial
+                examples
             </div>
             <div class="nav_button" name="file_formats">
                 file formats
@@ -150,7 +150,7 @@ $ qctool -help
                         The estimated frequency of the less common allele. The -maf option can be used to retain only SNPs within a given range of minor allele frequencies.
                     </dd>
                     <dt style="font-weight: bold ;">
-                        impute_info
+                        Info
                     </dt>
                     <dd>
                         This is IMPUTE's info measure, and is defined as one minus the average over individuals of the variance of a genotype (given the individuals' genotype call probability distribution), divided by the variance if only the allele frequency were known. It measures how much uncertainty there is in the genotype calls. It equals zero when the genotype call probabilities are obtained from the allele frequency, to 1 when the calls are all certain. Use the -info option to filter on this statistic.
@@ -160,19 +160,14 @@ $ qctool -help
                     In general, qctool tries to warn you if it thinks you are doing something wrong. In these cases you can override qctool using the -force option.
                 </p>
                 <p>
-                    For more information, see the <a href="#tutorial">tutorial</a>.
+                    For more information, see the <a href="#tutorial">usage examples</a>.
                 </p>
             </div>
             <div id="tutorial" style="display:none">
                 <div class="tutorial_header">
-                    This tutorial shows how to carry out common tasks with QCTOOL.
-                    We assume QCTOOL is being run from a directory with a sample file and 22 GEN files as follows:
-                    <pre>$ ls
-example.sample	example_04.gen	example_08.gen	example_12.gen	example_16.gen	example_20.gen
-example_01.gen	example_05.gen	example_09.gen	example_13.gen	example_17.gen	example_21.gen
-example_02.gen	example_06.gen	example_10.gen	example_14.gen	example_18.gen	example_22.gen
-example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
-</pre>
+                    This page shows command lines used to carry out common tasks with QCTOOL.
+                    We assume the program is being run from a directory containing a sample file <span class="monospace">example.sample</span> and 22 GEN files named <span class="monospace">example_01.gen, example_02.gen</span>, etc.
+                As one of the first examples, we convert these files to BGEN format and use this in subsequent examples.
                 </div>
                 <div class="tutorial_separator">
                 </div>
@@ -266,7 +261,7 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                         $ qctool -g example.bgen -og subsetted.gen -excl-range 06:25000000-40000000
                     </div>
                     <div class="task_command_line">
-                        $ qctool -g example.bgen -og subsetted.gen -maf 0.01 1 -info 0.9 1 -hwe 20
+                        $ qctool -g example.bgen -og subsetted.gen -snp-missing-rate 0.05 -maf 0.01 1 -info 0.9 1 -hwe 20
                     </div>
                 </div>
                 <div class="task">
@@ -274,7 +269,7 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                         Subset SNPs, writing an exclusion list
                     </div>
                     <div class="task_command_line">
-                        $ qctool -g example.bgen -write-snp-excl-list snp_exclusions.txt -maf 0.01 1 -info 0.9 1 -hwe 20
+                        $ qctool -g example.bgen -write-snp-excl-list snp_exclusions.txt -snp-missing-rate 0.05
                     </div>
                 </div>
                 <div class="task">
@@ -286,17 +281,7 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                     </div>
                     <div class="task_notes">
                         Note: combine this with SNP subset options to use only a subset of SNPs in the computation.
-                    </div>
-                    <div class="task_notes">
-                        Note: the existing sample file <span class="monospace">example.sample</span> will be backed up to <span class="monospace">example.sample~1</span>
-                    </div>
-                </div>
-                <div class="task">
-                    <div class="task_name">
-                        Compute sample summary statistics, using a subset of SNPs:
-                    </div>
-                    <div class="task_command_line">
-                        $ qctool -g example.bgen -s example.sample -sample-stats example.sample-stats -os example.sample -maf 0.01 1 -info 0.9 1
+                        The existing sample file will be backed up to <span class="monospace">example.sample~1</span>.
                     </div>
                 </div>
                 <div class="task">
@@ -306,16 +291,15 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                     <div class="task_command_line">
                         $ qctool -g example.bgen 
                         -s example.sample 
-                        -og example_filtered_#.gen
-                        -sample-missing-rate 0.1 
-                        -heterozygosity 0.2 0.3 
+                        -og filtered.bgen
+                        -excl-samples samples_to_exclude.txt
                     </div>
                     <div class="task_command_line">
                         $ qctool -g example.bgen 
                         -s example.sample 
+                        -og filtered.bgen
                         -sample-missing-rate 0.1 
                         -heterozygosity 0.2 0.3 
-                        -write-sample-excl-list my_exclusion_list.txt
                     </div>
                     <div class="task_notes">
                         Note: you must first use <span class="monospace">-sample-stats</span> to populate the
@@ -323,10 +307,11 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                         columns in the sample file (or populate them in some other way.)
                     </div>
                     <div class="task_command_line">
-                        $ qctool -g example_#.gen 
+                        $ qctool -g example.bgen 
                         -s example.sample 
-                        -og example_filtered_#.gen
-                        -excl-samples samples_to_exclude.txt
+                        -sample-missing-rate 0.1 
+                        -heterozygosity 0.2 0.3 
+                        -write-sample-excl-list my_excluded_samples.txt
                     </div>
                 </div>
                 <div class="task">
@@ -334,13 +319,17 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                         Compute per-SNP summary statistics
                     </div>
                     <div class="task_command_line">
-                        $ qctool -g example_#.gen -snp-stats example.snp-stats
+                        $ qctool -g example.bgen -snp-stats example.snp-stats
+                    </div>
+                    <div class="task_notes">
+                        Note: this computes snp summary statistics using all samples.  To use a subset of samples, use for example:
                     </div>
                     <div class="task_command_line">
-                        $ qctool -g example_#.gen -snp-stats example.snp-stats -excl-samples my_excluded_samples.txt
+                        $ qctool -g example.bgen -s example.sample -snp-stats example.snp-stats -excl-samples samples_to_exclude.txt
                     </div>
                     <div class="task_command_line">
-                        $ qctool -g example_#.gen
+                        $ qctool -g example.bgen
+                        -s example.sample
                         -snp-stats example.snp-stats
                         -sample-missing-rate 0.1 
                         -heterozygosity 0.2 0.3 
@@ -348,34 +337,29 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                 </div>
                 <div class="task">
                     <div class="task_name">
-                        Filter SNPs based on summary statistics
-                    </div>
-                    <div class="task_command_line">
-                        $ qctool -g example_#.gen -snp-missing-rate 0.05 -maf 0.01 1 -info 0.9 1 -hwe 20 -og example_filtered_#.gen
-                    </div>
-                    <div class="task_command_line">
-                        $ qctool -g example_#.gen -snp-missing-rate 0.05 -maf 0.01 1 -info 0.9 1 -hwe 20 -write-snp-excl-list my_snp_exclusions.txt
-                    </div>
-                </div>
-                <div class="task">
-                    <div class="task_name">
-                        Add SNP dosages for given SNP(s) to the sample file
+                        Add genotype dosages for a given SNP or SNPs to the sample file
                     </div>
                     <div class="task_command_line">
                         $ qctool -g example_#.gen -s example.sample -os example.sample -condition-on rs1234
                     </div>
+                    <div class="task_notes">
+                        This adds a column with name <span class="monospace">rs1234:additive_dosage</span>, containing the additive dosage from the SNP, to the sample file.
+                        You can also select SNPs by position:
+                    </div>
                     <div class="task_command_line">
                         $ qctool -g example_#.gen -s example.sample -os example.sample -condition-on pos~03:10001
+                    </div>
+                    <div class="task_notes">
+                        It is also possible to select dominant, recessive, or heterozygote dosages from the SNP:
                     </div>
                     <div class="task_command_line">
                         $ qctool -g example_#.gen 
                         -s example.sample 
                         -os example.sample 
-                        -condition-on "pos~03:10001(add dom het rec)" -condition-on rsid~rs1234
+                        -condition-on "pos~03:10001(add|dom|het|rec)"
                     </div>
                     <div class="task_notes">
-                        Note: the last command adds additive, dominant, heterozygote and recessive dosages for the SNP with position 03:10001,
-                        and additive dosages for the SNP with rsid rs1234 to the sample file.
+                        Note: these options behave in the same way as SNPTEST's -condition_on option.
                     </div>
                 </div>
                 <div class="task">
@@ -383,14 +367,20 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                         Quantile-normalise columns of the sample file
                     </div>
                     <div class="task_command_line">
-                        $ qctool -g example_#.gen -s example.sample -os example.sample -quantile-normalise column1
+                        $ qctool -g example.bgen -s example.sample -os example.sample -quantile-normalise column1
                     </div>
                     <div class="task_notes">
                         This adds a column with name <span class="monospace">column1:quantile-normalised</span> to the sample file.
+                        The specified columns must be continuous, i.e. of type 'P' or 'C'.
+                        Note that even though the SNPs are not used here, currently you must still specify the -g option.
                     </div>
                     <div class="task_command_line">
-                        $ qctool -g example_#.gen -s example.sample -os example.sample -quantile-normalise column1,column2
+                        $ qctool -g example.bgen -s example.sample -os example.sample -quantile-normalise column1,column2
                     </div>
+                    <div class="task_notes">
+                        Note: this option behaves in the same way as SNPTEST's -normalise option.
+                    </div>
+                    
                 </div>
             </div>
             <div id="file_formats" style="display:none">
@@ -444,7 +434,7 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                         </tr>
                         <tr>
                             <td>
-                                <a href="http://mathgen.stats.ox.ac.uk/impute/impute_v2.html">IMPUTE</a> haplotypes
+                                <a href="http://mathgen.stats.ox.ac.uk/impute/impute_v2.html">IMPUTE</a> haplotype format
                             </td>
                             <td>
                                 (none)
@@ -455,13 +445,13 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                         </tr>
                         <tr>
                             <td>
-                                <a href="http://www.shapeit.fr/">SHAPEIT</a> haplotypes
+                                <a href="http://www.shapeit.fr/">SHAPEIT</a> haplotype format
                             </td>
                             <td>
                                 (none)
                             </td>
                             <td>
-                                Input only. Use <span class="monospace">-filetype</span> to specify this file type. It is assumed that the two haplotypes for each individual are consecutive in the haplotypes file.
+                                Input only.  This format is described <a href="http://www.shapeit.fr/pages/hapssample.html">here</a>.  Use <span class="monospace">-filetype</span> to specify this file type. It is assumed that the two haplotypes for each individual are consecutive in the haplotypes file.
                             </td>
                         </tr>
                     </table>

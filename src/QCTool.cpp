@@ -50,6 +50,7 @@ void QCTool::begin_processing_snps(
 	m_per_column_amounts.resize( number_of_samples ) ;
 	m_number_of_snps_processed = 0 ;
 	m_number_of_autosomal_snps_processed = 0 ;
+	m_number_of_filtered_in_snps = 0 ;
 	m_timer.restart() ;
 }
 
@@ -124,6 +125,7 @@ void QCTool::process_gen_row( GenRow const& row, std::size_t row_number ) {
 			row.write_to_sink( m_context.fltrd_in_snp_data_sink() ) ;
 			output_gen_row_stats( m_context.snp_statistics() ) ;
 			accumulate_per_column_amounts( row, m_per_column_amounts ) ;
+			++m_number_of_filtered_in_snps ;
 		}
 		else {
 			row.write_to_sink( m_context.fltrd_out_snp_data_sink() ) ;
@@ -191,7 +193,7 @@ void QCTool::process_sample_rows() {
 
 	for( std::size_t i = 0 ; i < m_per_column_amounts.size(); ++i ) {
 		SampleRow& sample_row = m_context.sample_rows()[i] ;
-		m_context.sample_statistics().process( sample_row, m_per_column_amounts[i], m_number_of_autosomal_snps_processed ) ;
+		m_context.sample_statistics().process( sample_row, m_per_column_amounts[i], m_number_of_filtered_in_snps ) ;
 		output_sample_stats( i + 1, m_context.sample_statistics() ) ;
 		
 		if( m_context.sample_statistics().has_value( "missing" )) {

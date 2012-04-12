@@ -488,6 +488,9 @@ public:
 
 		options.option_implies_option( "-excl-samples", "-s" ) ;
 		options.option_implies_option( "-incl-samples", "-s" ) ;
+
+		options.option_implies_option( "-sample-missing-rate", "-s" ) ;
+		options.option_implies_option( "-heterozygosity", "-s" ) ;
 	}
 } ;
 
@@ -1968,7 +1971,7 @@ private:
 				genfile::WithSNPDosagesCohortIndividualSource::create_snp_matcher( parts[0] ).release()
 			) ;
 			
-			std::vector< std::string > types = split( parts[1], " " ) ;
+			std::vector< std::string > types = split( parts[1], "|" ) ;
 			for( std::size_t j = 0; j < types.size(); ++j ) {
 				if( types[j] == "gen" ) {
 					types[j] = "add" ;
