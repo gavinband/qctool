@@ -189,22 +189,25 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                         Convert GEN file(s) to other formats:
                     </div>
                     <div class="task_command_line">
-                        $ qctool -g example_01.gen -og example_01.bgen -assume-chromosome 01
+                        $ qctool -g example_#.gen -og example.bgen
                     </div>
-                    <div class="task_command_line">
-                        $ qctool -g example_22.gen -og example_22.vcf -assume-chromosome 22
+                    <div class="task_notes">
+                        (This makes one big output file containing all the variants.)
                     </div>
                     <div class="task_command_line">
                         $ qctool -g example_#.gen -og example_#.bgen
                     </div>
                     <div class="task_notes">
-                        (this makes one output file per input file.)
+                        (This makes one output file per input file.)
                     </div>
                     <div class="task_command_line">
-                        $ qctool -g example_#.gen -og example.bgen
+                        $ qctool -g example_01.gen -og example_01.bgen -assume-chromosome 01
+                    </div>
+                    <div class="task_command_line">
+                        $ qctool -g example_01.gen -og example_01.vcf -assume-chromosome 01
                     </div>
                     <div class="task_notes">
-                        (this makes one big output file containing all the variants.)
+                        (these convert just one file, filling in the chromosome information.)
                     </div>
                     <div class="task_notes">
                         Note: see <a href="#file_formats">file formats</a> for a description of file formats understood by QCTOOL.
@@ -478,7 +481,7 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                                 Linux x86-64 static build
                             </td>
                             <td>
-                                <a href="resources/qctool-static-linux-x86-64.bz2">qctool-static-linux-x86-64.bz2</a> (1000kb)
+                                <a href="resources/qctool-static-linux-x86-64.bz2">qctool_v1.0-static-linux-x86-64.bz2</a> (1000kb)
                             </td>
                         </tr>
                         <tr>
@@ -487,7 +490,7 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                                 Mac OS X 10.6.3
                             </td>
                             <td>
-                                <a href="resources/qctool-static-osx-10.6.3.bz2">qctool-static-osx-10.6.3.bz2</a> (432kb)
+                                <a href="resources/qctool-static-osx-10.6.3.bz2">qctool_v1.0-static-osx-10.6.3.bz2</a> (432kb)
                             </td>
                         </tr>
                     </table>

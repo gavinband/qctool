@@ -10,6 +10,7 @@
 #include <vector>
 #include <set>
 #include <memory>
+#include <boost/signals2/signal.hpp>
 #include "genfile/Error.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPIdentifyingDataTest.hpp"
@@ -39,6 +40,9 @@ namespace genfile {
 		SNPDataSource const& get_parent_source() const ;
 		SNPDataSource const& get_base_source() const ;
 		
+		typedef boost::signals2::signal< void ( SNPIdentifyingData const& ) > SNPSignal ;
+		void send_filtered_out_SNPs_to( SNPSignal::slot_type ) ;
+
 	private:
 		void reset_to_start_impl() ;
 
@@ -63,6 +67,7 @@ namespace genfile {
 		
 		SNPDataSource::UniquePtr m_source ;
 		SNPIdentifyingDataTest::UniquePtr m_test ;
+		SNPSignal m_filtered_out_snp_signal ;
 	} ;
 }
 

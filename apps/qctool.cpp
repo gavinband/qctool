@@ -50,6 +50,7 @@
 #include "genfile/SortingBGenFileSNPDataSink.hpp"
 #include "genfile/TrivialSNPDataSink.hpp"
 #include "genfile/CategoricalCohortIndividualSource.hpp"
+#include "genfile/CountingCohortIndividualSource.hpp"
 #include "genfile/SampleFilteringCohortIndividualSource.hpp"
 #include "genfile/CohortIndividualSourceChain.hpp"
 #include "genfile/SampleFilteringSNPDataSource.hpp"
@@ -69,6 +70,7 @@
 #include "genfile/ValueMappingCohortIndividualSource.hpp"
 #include "genfile/vcf/StrictMetadataParser.hpp"
 #include "genfile/WithSNPDosagesCohortIndividualSource.hpp"
+#include "genfile/get_set_eigen.hpp"
 
 #include "statfile/BuiltInTypeStatSource.hpp"
 #include "statfile/from_string.hpp"
@@ -1361,7 +1363,21 @@ private:
 
 		return genfile::SNPDataSource::UniquePtr( merged_source.release() ) ;
 	}
-		
+	
+	void write_excluded_SNP( genfile::SNPIdentifyingData const& snp ) const {
+		if( m_fltrd_out_snp_data_sink.get() ) {
+			Eigen::MatrixXd matrix( m_cohort_individual_source->get_number_of_individuals(), 3 ) ;
+			matrix.setZero() ;
+			m_fltrd_out_snp_data_sink->write_snp(
+				m_cohort_individual_source->get_number_of_individuals(),
+				snp,
+				genfile::GenotypeGetter< Eigen::MatrixXd >( matrix, 0 ),
+				genfile::GenotypeGetter< Eigen::MatrixXd >( matrix, 1 ),
+				genfile::GenotypeGetter< Eigen::MatrixXd >( matrix, 2 )
+			) ;
+		}
+	}
+	
 	genfile::SNPDataSource::UniquePtr
 	open_snp_data_source( std::string const& filename, std::string chromosome_indicator ) const {
 		if( chromosome_indicator == "" && m_options.check_if_option_was_supplied( "-assume-chromosome" )) {
@@ -1401,11 +1417,24 @@ private:
 		genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter() ;
 		// Filter SNPs if necessary
 		if( snp_filter.get() ) {
-			source.reset(
-				genfile::SNPIdentifyingDataFilteringSNPDataSource::create(
+			genfile::SNPIdentifyingDataFilteringSNPDataSource::UniquePtr snp_filtering_source
+				= genfile::SNPIdentifyingDataFilteringSNPDataSource::create(
 					source,
 					genfile::SNPIdentifyingDataTest::UniquePtr( snp_filter.release() )
-				).release()
+				) ;
+
+			if( m_options.check( "-write-snp-excl-list" )) {
+				snp_filtering_source->send_filtered_out_SNPs_to(
+					boost::bind(
+						&QCToolCmdLineContext::write_excluded_SNP,
+						this,
+						_1
+					)
+				) ;
+			}
+		
+			source.reset(
+				snp_filtering_source.release()
 			) ;
 		}
 		
@@ -1585,7 +1614,7 @@ private:
 						m_fltrd_in_snp_data_sink->move_to_next_sink() ;
 					}
 				}
-			
+				
 				if( m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() > 0 ) {
 					if( m_mangled_options.snp_excl_list_filename_mapper().filename_corresponding_to( index ) != m_fltrd_out_snp_data_sink->index_of_current_sink() ) {
 						m_fltrd_out_snp_data_sink->move_to_next_sink() ;
@@ -1850,7 +1879,10 @@ private:
 	
 	genfile::CohortIndividualSource::UniquePtr unsafe_open_samples( std::size_t const expected_number_of_samples ) {
 		genfile::CohortIndividualSource::UniquePtr sample_source ;
-		if( m_mangled_options.input_sample_filenames().size() > 0 ) {
+		if( m_mangled_options.input_sample_filenames().size() == 0 ) {
+			sample_source.reset( new genfile::CountingCohortIndividualSource( expected_number_of_samples, "sample_%d" ) ) ;
+		}
+		else {
 			genfile::CohortIndividualSourceChain::UniquePtr source_chain( new genfile::CohortIndividualSourceChain() ) ;
 			for( std::size_t i = 0; i < m_mangled_options.input_sample_filenames().size(); ++i ) {
 				source_chain->add_source(
@@ -2092,17 +2124,12 @@ private:
 		
 		genfile::SimpleSNPDataSourceProcessor processor ;
 
-		if(
-			options().check_if_option_was_supplied( "-sample-stats" )
-			|| options().check_if_option_was_supplied( "-snp-stats" )
-			|| options().check_if_option_was_supplied( "-og" )
-			|| options().check_if_option_was_supplied( "-op" )
-			|| options().check_if_option_was_supplied( "-os" )
-			|| options().check_if_option_was_supplied( "-op" )
-			|| options().check_if_option_was_supplied_in_group( "SNP filtering options" )
-			|| options().check_if_option_was_supplied_in_group( "Sample filtering options" )
-		) {
-			processor.add_callback( qctool_basic ) ;
+		processor.add_callback( qctool_basic ) ;
+		
+		std::auto_ptr< DataReadTest > data_read_test ;
+		if( options().check_if_option_was_supplied( "-read-test" )) {
+			data_read_test.reset( new DataReadTest() ) ;
+			processor.add_callback( *data_read_test ) ;
 		}
 		
 #if 0
@@ -2115,14 +2142,7 @@ private:
 				).create()
 			) ;
 		}
-#endif
-		std::auto_ptr< DataReadTest > data_read_test ;
-		if( options().check_if_option_was_supplied( "-read-test" )) {
-			data_read_test.reset( new DataReadTest() ) ;
-			processor.add_callback( *data_read_test ) ;
-		}
-		
-#if 0
+
 		std::auto_ptr< Relatotron > relatotron ;
 		if( options().check_if_option_was_supplied_in_group( "Relatedness options" )) {
 			relatotron.reset( new Relatotron( options(), context.get_cohort_individual_source(), get_ui_context() )) ;
