@@ -40,7 +40,7 @@ struct SNPIDSink: public genfile::SNPDataSink
 		(*m_sink)
 			<< SNPID
 			<< RSID
-			<< chromosome
+			<< std::string( chromosome )
 			<< SNP_position
 			<< first_allele
 			<< second_allele
