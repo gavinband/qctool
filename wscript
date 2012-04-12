@@ -269,8 +269,8 @@ def release( bld ):
                 release_stub = 'qctool-%s_x86_64' % VERSION
         release_dir = os.path.join( tempdir, release_stub )
         os.mkdir( release_dir )
-        shutil.copyfile( "build/release/qctool-%s" % VERSION, "%s/qctool-%s" % ( release_dir, VERSION ))
-        shutil.copymode(  "build/release/qctool-%s" % VERSION, "%s/qctool-%s" % ( release_dir, VERSION ))
+        shutil.copyfile( "build/release/qctool-%s" % VERSION, "%s/qctool" % ( release_dir, VERSION ))
+        shutil.copymode(  "build/release/qctool-%s" % VERSION, "%s/qctool" % ( release_dir, VERSION ))
         shutil.copyfile( "LICENSE_1_0.txt", "%s/LICENSE_1_0.txt" % release_dir )
         shutil.copyfile( "CHANGELOG.txt", "%s/CHANGELOG.txt" % release_dir )
         process = subprocess.Popen( [ 'tar', '-czf', '%s/%s.tgz' % ( tempdir, release_stub ), release_stub ], cwd = tempdir )
