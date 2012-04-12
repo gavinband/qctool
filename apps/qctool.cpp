@@ -2074,7 +2074,7 @@ private:
 	void check_for_warnings() {
 		if( m_mangled_options.output_sample_stats_filename() != "" && m_mangled_options.input_sample_filenames().size() == 0 ) {
 			m_warnings.push_back( "You are outputting a sample statistic file, but no input sample files have been supplied.\n"
-			"   Statistics will be output but the ID fields will be left blank.") ;
+			"   Statistics will be output but the ID fields will be templates.") ;
 		}
 		if( m_snp_data_source->total_number_of_snps() && *m_snp_data_source->total_number_of_snps() == 0 ) {
 			m_warnings.push_back( "There are no SNPs in the source files (after exclusions, translation, aligning and matching between cohorts where relevant).\n" ) ;

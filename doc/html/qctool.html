@@ -247,7 +247,7 @@ $ qctool -help
                         $ qctool -g example.bgen -sort -og sorted.bgen
                     </div>
                     <div class="task_notes">
-                        Note: currently sorting is supported unzipped GEN, unzipped VCF, and BGEN format output files.
+                        Note: currently sorting is supported for unzipped GEN, unzipped VCF, and BGEN format output files.
                     </div>
                 </div>
                 <div class="task">
@@ -429,7 +429,9 @@ $ qctool -help
                                 <span class="monospace">.vcf</span>, <span class="monospace">.vcf.gz</span>
                             </td>
                             <td>
-                                QCTOOL is strict about metadata in input files. Currently, only genotypes can be output (not other fields in any input VCF file).
+                                QCTOOL is strict about metadata in input files for the fields it reads;
+                                since this is not always correct a <span class="monospace">-metadata</span> option is provided to override
+                                the input file metadata. Currently, only genotypes are output when outputting VCF files.
                             </td>
                         </tr>
                         <tr>
@@ -440,7 +442,7 @@ $ qctool -help
                                 (none)
                             </td>
                             <td>
-                                Input only. Use <span class="monospace">-filetype</span> to specify this file type. It is assumed that the two haplotypes for each individual are consecutive in the haplotypes file; there must be a seperate legend file.
+                                Input only. Use <span class="monospace">-filetype</span> to specify this file type. It is assumed that the two haplotypes for each individual are consecutive columns in the haplotypes file; there must be a seperate legend file.
                             </td>
                         </tr>
                         <tr>
@@ -451,7 +453,7 @@ $ qctool -help
                                 (none)
                             </td>
                             <td>
-                                Input only.  This format is described <a href="http://www.shapeit.fr/pages/hapssample.html">here</a>.  Use <span class="monospace">-filetype</span> to specify this file type. It is assumed that the two haplotypes for each individual are consecutive in the haplotypes file.
+                                Input only.  Use <span class="monospace">-filetype</span> to specify this file type. This format is described <a href="http://www.shapeit.fr/pages/hapssample.html">here</a>; it is assumed that the two haplotypes for each individual are consecutive columns in the file.
                             </td>
                         </tr>
                     </table>
