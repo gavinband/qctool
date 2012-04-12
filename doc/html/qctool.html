@@ -87,7 +87,10 @@ $(document).ready(
                     <li>
                         <a href="http://www.stats.ox.ac.uk/~marchini/">Jonathan Marchini</a>
                     </li>
-                </ul>In addition, QCTOOL contains the <a href="http://www.sph.umich.edu/csg/abecasis/Exact/index.html">SNP-HWE</a> code by Jan Wigginton et al., described in "A Note on Exact Tests of Hardy-Weinberg Equilibrium", Wigginton et al, <i>Am. J. Hum. Genet</i> (2005) 76:887-93
+                </ul>In addition, QCTOOL contains the <a href="http://www.sph.umich.edu/csg/abecasis/Exact/index.html">SNP-HWE</a>
+                code by Jan Wigginton et al., described in "A Note on Exact Tests of Hardy-Weinberg Equilibrium",
+                Wigginton et al, <i>Am. J. Hum. Genet</i> (2005) 76:887-93.
+                
                 <p>
                     <strong>Contact.</strong> For more information or questions, please contact me at the following email address:
                 </p>
@@ -170,7 +173,6 @@ example_01.gen	example_05.gen	example_09.gen	example_13.gen	example_17.gen	examp
 example_02.gen	example_06.gen	example_10.gen	example_14.gen	example_18.gen	example_22.gen
 example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
 </pre>
-                    </div>
                 </div>
                 <div class="tutorial_separator">
                 </div>
@@ -216,7 +218,7 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                         $ qctool -g example_#.vcf -og converted.bgen
                     </div>
                     <div class="task_notes">
-                        This reads genotype probabilities from the <span class="monospace">GT</span> field in the VCF file. Suitable metadata must be supplied.
+                        This reads genotype calls from the <span class="monospace">GT</span> field in the VCF file. Suitable metadata must be supplied.
                     </div>
                     <div class="task_command_line">
                         $ qctool -g example_#.vcf -vcf-genotype-field my_field -og converted.bgen
@@ -260,14 +262,25 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                 </div>
                 <div class="task">
                     <div class="task_name">
-                        Filter out samples based on missingness and heterozygosity
+                        Compute sample summary statistics, using a subset of SNPs:
+                    </div>
+                    <div class="task_command_line">
+                        $ qctool -g example_#.gen -s example.sample -sample-stats example.sample-stats -os example.sample -maf 0.01 -info 0.9 -hwe 20
+                    </div>
+                    <div class="task_command_line">
+                        $ qctool -g example_#.gen -s example.sample -sample-stats example.sample-stats -os example.sample -incl-rsids my_snp_list.txt
+                    </div>
+                </div>
+                <div class="task">
+                    <div class="task_name">
+                        Filter out samples
                     </div>
                     <div class="task_command_line">
                         $ qctool -g example_#.gen 
                         -s example.sample 
+                        -og example_filtered_#.gen
                         -sample-missing-rate 0.1 
                         -heterozygosity 0.2 0.3 
-                        -og example_filtered_#.gen
                     </div>
                     <div class="task_command_line">
                         $ qctool -g example_#.gen 
@@ -279,7 +292,13 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                     <div class="task_notes">
                         Note: you must first use <span class="monospace">-sample-stats</span> to populate the
                         <span class="monospace">missing</span> and <span class="monospace">heterozygosity</span>
-                        columns in the sample file (or populate them some other way.)
+                        columns in the sample file (or populate them in some other way.)
+                    </div>
+                    <div class="task_command_line">
+                        $ qctool -g example_#.gen 
+                        -s example.sample 
+                        -og example_filtered_#.gen
+                        -excl-samples samples_to_exclude.txt
                     </div>
                 </div>
                 <div class="task">
@@ -288,6 +307,15 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                     </div>
                     <div class="task_command_line">
                         $ qctool -g example_#.gen -snp-stats example.snp-stats
+                    </div>
+                    <div class="task_command_line">
+                        $ qctool -g example_#.gen -snp-stats example.snp-stats -excl-samples my_excluded_samples.txt
+                    </div>
+                    <div class="task_command_line">
+                        $ qctool -g example_#.gen
+                        -snp-stats example.snp-stats
+                        -sample-missing-rate 0.1 
+                        -heterozygosity 0.2 0.3 
                     </div>
                 </div>
                 <div class="task">
@@ -320,6 +348,20 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                     <div class="task_notes">
                         Note: the last command adds additive, dominant, heterozygote and recessive dosages for the SNP with position 03:10001,
                         and additive dosages for the SNP with rsid rs1234 to the sample file.
+                    </div>
+                </div>
+                <div class="task">
+                    <div class="task_name">
+                        Quantile-normalise columns of the sample file
+                    </div>
+                    <div class="task_command_line">
+                        $ qctool -g example_#.gen -s example.sample -os example.sample -quantile-normalise column1
+                    </div>
+                    <div class="task_notes">
+                        This adds a column with name <span class="monospace">column1:quantile-normalised</span> to the sample file.
+                    </div>
+                    <div class="task_command_line">
+                        $ qctool -g example_#.gen -s example.sample -os example.sample -quantile-normalise column1,column2
                     </div>
                 </div>
             </div>
@@ -406,10 +448,14 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                         Binaries
                     </h3>
                     <p>
-                        Pre-compiled binaries are available for the following platforms.
+                        Pre-compiled binaries are available for the following platforms.  (Note: older versions are unmaintained but
+                        preserved here in case they are useful.)
                     </p>
                     <table>
                         <tr>
+                            <th>
+                                Version
+                            </th>
                             <th>
                                 Platform
                             </th>
@@ -418,6 +464,16 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                             </th>
                         </tr>
                         <tr>
+                            <td>v1.1</td>
+                            <td>
+                                Linux x86-64 static build
+                            </td>
+                            <td>
+                                <a href="resources/qctool_v1.1-static-linux-x86-64.bz2">qctool_v1.1-static-linux-x86-64.bz2</a> (1000kb)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>v1.0</td>
                             <td>
                                 Linux x86-64 static build
                             </td>
@@ -426,6 +482,7 @@ example_03.gen	example_07.gen	example_11.gen	example_15.gen	example_19.gen
                             </td>
                         </tr>
                         <tr>
+                            <td>v1.0</td>
                             <td>
                                 Mac OS X 10.6.3
                             </td>
