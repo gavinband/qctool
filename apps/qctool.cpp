@@ -355,10 +355,9 @@ public:
 			.set_description( "Calculate and output sample-wise statistics." )
 			.set_takes_single_value() ;
 		options[ "-sample-stats-columns" ]
-	        .set_description( "Comma-seperated list of statistics to output in the sample-wise statistics file."
-	 						 "  By default, the columns are: ID1, ID2, missing, and heterozygosity.")
+	        .set_description( "Comma-seperated list of statistics to output in the sample-wise statistics file." )
 			.set_takes_single_value()
-			.set_default_value( std::string("ID1, ID2, missing, heterozygosity") ) ;
+			.set_default_value( std::string("ID_1, ID_2, missing, heterozygosity") ) ;
 
 		// SNP filtering options
 		options.declare_group( "SNP filtering options" ) ;

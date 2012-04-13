@@ -214,10 +214,10 @@ std::auto_ptr< GenotypeAssayStatistic > GenRowStatisticFactory::create_statistic
 
 std::auto_ptr< GenotypeAssayStatistic > SampleRowStatisticFactory::create_statistic( std::string statistic_spec ) {
 	statistic_spec = string_utils::strip( statistic_spec ) ;
-	if( statistic_spec == "ID1" ) {
+	if( statistic_spec == "ID_1" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new SampleRowID1 ) ;
 	}
-	else if( statistic_spec == "ID2" ) {
+	else if( statistic_spec == "ID_2" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new SampleRowID2 ) ;
 	}
 	else {
