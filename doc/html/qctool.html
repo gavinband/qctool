@@ -51,32 +51,33 @@ $(document).ready(
         <div class="main_text">
             <div id="overview" style="display:none">
                 <p>
-                    QCTOOL is a command-line utility program for basic quality control of gwas datasets. It supports the same <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format_new.html">file formats</a> used by the <a href="http://www.wtccc.org.uk/">WTCCC studies</a>, as well as the binary file format described <a href="http://www.well.ox.ac.uk/~gav/bgen_format.html">here</a>, and is designed to work seamlessly with <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/gwas.html">SNPTEST and related tools</a>. QCTOOL computes per-sample and per-SNP summary statistics, and uses these to filter out samples and SNPs from the dataset (either by removing them from the files or by writing exclusion lists).
+                    QCTOOL is a command-line utility program for basic quality control of gwas datasets.
+                    It supports the same <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format_new.html">file formats</a>
+                    used by the <a href="http://www.wtccc.org.uk/">WTCCC studies</a>, as well as the
+                    binary file format described <a href="http://www.well.ox.ac.uk/~gav/bgen_format.html">here</a>,
+                    and is designed to work seamlessly with <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/gwas.html">SNPTEST
+                        and related tools</a>.
+                    A typical use of QCTOOL is to compute per-sample and per-SNP summary statistics for a cohort, and use these to filter
+                    out samples and SNPs (either by removing them from the files or by writing exclusion lists).  Another use of QCTOOL
+                    is to manipulate sample files.
                 </p>
                 <p>
-                    QCTOOL can be used to :
+                    QCTOOL is designed to be as easy-to-use as possible and we hope you find it so.
                 </p>
+                <p>
+                    This page documents v1.1 of QCTOOL, which has undergone significant changes since the original release (webpage <a href="http://www.well.ox.ac.uk/~gav/qctool/old/v1.0/qctool.html">here</a>).  A short summary of changes is:                </p>
                 <ul>
-                    <li>Calculate per-sample and per-SNP summary statistics;
-                    </li>
-                    <li>Filter out samples and SNPs, either by creating new data files or by creating exclusion lists.
-                    </li>
-                    <li>Populate sample files with missingness and heterozygosity information;
-                    </li>
-                    <li>Convert files between different genotype file formats.
-                    </li>
+                    <li>Support for <a href="http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41">Variant Call Format</a> has been added - see the <a href='#file_formats'>file formats</a> page.
+                    <li>New options <span class="monospace">-[in|ex]cl-range</span>, <span class="monospace">-[in|ex]cl-rsids</span>, <span class="monospace">-[in|ex]cl-snpids</span>, <span class="monospace">-[in|ex]cl-snps-matching</span> for SNP filtering have been added.
+                        Options <span class="monospace">-interval</span> and <span class="monospace">-snp-[in|ex]cl-list</span> have been removed.</li>
+                    <li>QCTOOL can now work with multiple cohorts, treating them like one big cohort.</li>
+                    <li>BGEN format now supports long alleles such as indels and deletions.  There is an <a href="bgen_format.html">updated spec</a>.</li>
+                    <li>A <span class="monospace">-sort</span> option has been added.  This sorts the output by chromosome and position.</li>
+                    <li>Rationalise option names and usage.</li>
                 </ul>
                 <p>
-                    QCTOOL has a number of features designed to make it easy to use :
+                    See the file CHANGELOG.txt in the downloads for a full list of changes.
                 </p>
-                <ul>
-                    <li>Automatically run across the whole genome (using the chromosomal wildcard character '#' to find matching files)
-                    </li>
-                    <li>Robust file reading and careful error checking - QCTOOL will tell you if it thinks you are doing something wrong.
-                    </li>
-                    <li>Informative output and progress bars giving an estimate of remaining runtime.
-                    </li>
-                </ul>
                 <p>
                     <strong>Acknowledgements.</strong> The following people contributed to the design and implementation of qctool:
                 </p>
@@ -104,58 +105,63 @@ gavin.band (at) well.ox.ac.uk.
                         </object>
                 </div>
                 <p>
-                    QCTOOL works according to the schematic on the right. A detailed list of options is given by the command
+                    QCTOOL was designed for use in a pipeline for QC of genotype data, the typical general structure of which is shown on the right.
+                    A detailed list of options is given by the command
                 </p>
                 <pre>
 $ qctool -help
                 
 </pre>which produces <a href="qctool_help.txt">this output</a>.
                 <p>
-                    Qctool works with the following per-sample summary statistics, calculated using the -sample-stats option:
+                    Qctool works with the following per-sample summary statistics, calculated using the <span class="monospace">-sample-stats</span> option:
                 </p>
                 <dl>
                     <dt style="font-weight: bold ;">
                         Missing data proportion
                     </dt>
                     <dd>
-                        the total proportion of missing genotype data for this sample across all SNPs. This is the sum of the three genotype probabilities for the sample across all SNPs, divided by the total number of SNPs. A large missing data proportion might be due, for example, to a badly-prepared sample. You can filter on missingness using the -sample-missing-rate option.
+                        the total proportion of missing genotype data for this sample across all SNPs.
+                        This is the sum of the three genotype probabilities for the sample across all SNPs,
+                        divided by the total number of SNPs.
+                        A large missing data proportion might be due, for example, to a badly-prepared sample.
+                        You can filter on missingness using the <span class="monospace">-sample-missing-rate</span> option.
                     </dd>
                     <dt style="font-weight: bold ;">
                         Heterozygosity
                     </dt>
                     <dd>
-                        This is the sum of heterozygote call probabilities across all SNPs divided by the total number of SNPs. A high value of heterozygosity might indicate, for example, that the DNA from this sample was been accidentally mixed with another sample during processing; a low value might indicate a higher degree of relatedness than expected among the ancestors of the individual. You can filter on heterozygosity using the -heterozygosity option.
+                        This is the sum of heterozygote call probabilities across all SNPs divided by the total number of SNPs. A high value of heterozygosity might indicate, for example, that the DNA from this sample was been accidentally mixed with another sample during processing; a low value might indicate a higher degree of relatedness than expected among the ancestors of the individual. You can filter on heterozygosity using the <span class="monospace">-heterozygosity</span> option.
                     </dd>
                 </dl>You can filter samples based on these summary statistics, or using lists of sample ids.
                 <p>
-                    Qctool works with the following per-SNP summary statistics:
+                    Qctool works with the following per-SNP summary statistics, computed using the <span class="monospace">-snp-stats</span> option:
                 </p>
                 <dl>
                     <dt style="font-weight: bold ;">
                         Missing data proportion
                     </dt>
                     <dd>
-                        The proportion of missing genotype data (null genotype call probabilities) across all samples for the SNP. A high value indicates that the SNP is not well called. You can filter these SNPs out using the -snp-missing-rate option.
+                        The proportion of missing genotype data (null genotype call probabilities) across all samples for the SNP. A high value indicates that the SNP is not well called. You can filter these SNPs out using the <span class="monospace">-snp-missing-rate</span> option.
                     </dd>
                     <dt style="font-weight: bold ;">
                         Missing call proportion
                     </dt>
                     <dd>
-                        The proportion of individuals for which the maximum genotype probability is less than a threshhold of 0.9. You can filter these SNPs out using the -snp-missing-call-rate option.
+                        The proportion of individuals for which the maximum genotype probability is less than a threshhold of 0.9. You can filter these SNPs out using the <span class="monospace">-snp-missing-call-rate</span> option.
                     </dd>
                     <dt style="font-weight: bold ;">
                         Minor allele frequency
                     </dt>
                     <dd>
-                        The estimated frequency of the less common allele. The -maf option can be used to retain only SNPs within a given range of minor allele frequencies.
+                        The estimated frequency of the less common allele. The <span class="monospace">-maf</span> option can be used to retain only SNPs within a given range of minor allele frequencies.
                     </dd>
                     <dt style="font-weight: bold ;">
                         Info
                     </dt>
                     <dd>
-                        This is IMPUTE's info measure, and is defined as one minus the average over individuals of the variance of a genotype (given the individuals' genotype call probability distribution), divided by the variance if only the allele frequency were known. It measures how much uncertainty there is in the genotype calls. It equals zero when the genotype call probabilities are obtained from the allele frequency, to 1 when the calls are all certain. Use the -info option to filter on this statistic.
+                        This is IMPUTE's info measure, and is defined as one minus the average over individuals of the variance of a genotype (given the individuals' genotype call probability distribution), divided by the variance if only the allele frequency were known. It measures how much uncertainty there is in the genotype calls. It equals zero when the genotype call probabilities are obtained from the allele frequency, to 1 when the calls are all certain. Use the <span class="monospace">-info</span> option to filter on this statistic.
                     </dd>
-                </dl>You can filter out SNPs based on these summary statistics, on position, or based on the SNP ids.
+                </dl>You can filter out SNPs based on these summary statistics, on chromosome and position, or based on the SNP ids.
                 <p>
                     In general, qctool tries to warn you if it thinks you are doing something wrong. In these cases you can override qctool using the -force option.
                 </p>
