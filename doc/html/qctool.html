@@ -495,7 +495,16 @@ $ qctool -help
                                 Linux x86-64 static build
                             </td>
                             <td>
-                                <a href="resources/qctool_v1.1-static-linux-x86-64.bz2">qctool_v1.1-static-linux-x86-64.bz2</a> (1000kb)
+                                <a href="resources/qctool_v1.1-linux-x84-64.tgz">qctool_v1.1-linux-x84-64.tgz</a> (878kb)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>v1.1</td>
+                            <td>
+                                Mac OS X
+                            </td>
+                            <td>
+                                <a href="resources/qctool_v1.1-MacOSX.tgz">qctool_v1.1-MacOSX.tgz</a> (878kb)
                             </td>
                         </tr>
                         <tr>
@@ -518,13 +527,13 @@ $ qctool -help
                         </tr>
                     </table>
                     <p>
-                        To run qctool, download the relevant file and extract it using the following commands
+                        To run qctool, download the relevant file and extract it as follows.
                     </p>
                     <pre>
-$ bunzip2 qctool-static-&lt;machine&gt;.bz2
-    $ chmod u+x qctool-static-&lt;machine&gt;
-    $ ./qctool-static-&lt;machine&gt; -help
-    
+$ tar -xzf qctool_v1.1-[machine].tgz
+$ cd qctool_v1.1-[machine]
+$ chmod u+x qctool_v1.1-[machine]
+$ ./qctool -help
 </pre>
                     <h3>
                         Source
@@ -544,16 +553,17 @@ $ bunzip2 qctool-static-&lt;machine&gt;.bz2
     updating to branch default
     201 files updated, 0 files merged, 0 files removed, 0 files unresolved
     $ cd qctool
-    $ ./waf-1.5.8 configure
-    $ ./waf-1.5.8
+    $ ./waf-1.5.18 configure
+    $ ./waf-1.5.18
                             
 </pre>
                     </div>This produces an executable
                     <pre>
-./build/release/qctool
+./build/release/qctool-1.1
 </pre>
                     <p>
-                        You will need <a href="http://www.boost.org">boost</a> and <a href="http://www.zlib.net">zlib</a> installed. More detailed build instructions can be found on the QCTOOL <a href="http://www.bitbucket.org/gavinband/qctool-dev/wiki/Home">wiki</a>.
+                        You will need <a href="http://www.boost.org">boost</a> and <a href="http://www.zlib.net">zlib</a> installed.
+                        More detailed build instructions can be found on the QCTOOL <a href="http://www.bitbucket.org/gavinband/qctool/wiki/Home">wiki</a>.
                     </p>
                 </div>
             </div>
