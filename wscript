@@ -58,8 +58,6 @@ def check_for_3rd_party_components( conf ):
 		conf.define( 'HAVE_DL', 1 )
 	if conf.check_cxx( lib = 'bz2', uselib_store = 'BZIP2' ):
 		conf.define( 'HAVE_BZIP2', 1 )
-	if conf.check_cxx( lib = 'mgl', uselib_store = 'MGL', cxxflags = '-I' + conf.env['PREFIX'] + '/include', linkflags ='-L' + conf.env['PREFIX'] + '/lib' ):
-		conf.define( 'HAVE_MGL', 1 )
 	if conf.check_cxx( lib = 'pthread', uselib_store = "PTHREAD" ):
 		conf.define( 'HAVE_PTHREAD', 1 )
 
@@ -269,8 +267,8 @@ def release( bld ):
                 release_stub = 'qctool-%s_x86_64' % VERSION
         release_dir = os.path.join( tempdir, release_stub )
         os.mkdir( release_dir )
-        shutil.copyfile( "build/release/qctool-%s" % VERSION, "%s/qctool" % ( release_dir, VERSION ))
-        shutil.copymode(  "build/release/qctool-%s" % VERSION, "%s/qctool" % ( release_dir, VERSION ))
+        shutil.copyfile( "build/release/qctool-%s" % VERSION, "%s/qctool" % release_dir )
+        shutil.copymode(  "build/release/qctool-%s" % VERSION, "%s/qctool" % release_dir )
         shutil.copyfile( "LICENSE_1_0.txt", "%s/LICENSE_1_0.txt" % release_dir )
         shutil.copyfile( "CHANGELOG.txt", "%s/CHANGELOG.txt" % release_dir )
         process = subprocess.Popen( [ 'tar', '-czf', '%s/%s.tgz' % ( tempdir, release_stub ), release_stub ], cwd = tempdir )
