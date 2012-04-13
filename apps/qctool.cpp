@@ -511,7 +511,7 @@ struct QCToolOptionMangler {
 	InputToOutputFilenameMapper const& snp_excl_list_filename_mapper() const { return m_output_snp_excl_file_mapper ; }
 	std::vector< std::string > row_statistics_specs() const {
 		// Add default columns
-		std::string column_spec = "SNPID, RSID, chromosome, position, minor_allele, major_allele, AA, AB, BB, AA_calls, AB_calls, BB_calls, MAF, HWE, missing, missing_calls, information, " ;
+		std::string column_spec = "SNPID, RSID, chromosome, position, A_allele, B_allele, minor_allele, major_allele, AA, AB, BB, AA_calls, AB_calls, BB_calls, MAF, HWE, missing, missing_calls, information, " ;
 		column_spec += m_options.get_value< std::string >( "-snp-stats-columns" ) ;
 		return string_utils::split_and_strip_discarding_empty_entries( column_spec, "," ) ;
 	}

@@ -146,8 +146,8 @@ void QCTool::output_gen_row_stats( GenotypeAssayStatistics const& row_statistics
 
 void QCTool::output_missing_gen_row_stats( GenRow const& row, GenotypeAssayStatistics const& row_statistics, std::size_t row_number ) {
 	if( m_context.snp_statistics().size() > 0 ) {
-		m_context.snp_stats_sink() << row.SNPID() << row.RSID() << row.SNP_position() ;
-		for( std::size_t i = 3 ; i < row_statistics.size(); ++i ) {
+		m_context.snp_stats_sink() << row.SNPID() << row.RSID() << row.chromosome() << row.SNP_position() << row.first_allele() << row.second_allele() ;
+		for( std::size_t i = 6 ; i < row_statistics.size(); ++i ) {
 			m_context.snp_stats_sink() << "NA" ;
 		}
 		m_context.snp_stats_sink() << statfile::end_row() ;

@@ -201,10 +201,10 @@ std::auto_ptr< GenotypeAssayStatistic > GenRowStatisticFactory::create_statistic
 	else if( statistic_spec == "major_allele" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowAllele( GenRowAllele::major_allele ) ) ;
 	}
-	else if( statistic_spec == "first_allele" ) {
+	else if( statistic_spec == "A_allele" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowAllele( GenRowAllele::first_allele ) ) ;
 	}
-	else if( statistic_spec == "second_allele" ) {
+	else if( statistic_spec == "B_allele" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowAllele( GenRowAllele::second_allele ) ) ;
 	}
 	else {
