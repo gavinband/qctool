@@ -268,9 +268,9 @@ def release( bld ):
         tempdir = tempfile.mkdtemp()
         import platform
         if platform.system() == 'Darwin':
-                release_stub = 'qctool_v%s_MacOSX' % VERSION
+                release_stub = 'qctool_v%s-osx' % VERSION
         elif platform.system() == 'Linux':
-                release_stub = 'qctool_v%s_Linux_%s' % ( VERSION, platform.machine() )
+                release_stub = 'qctool_v%s-linux-%s' % ( VERSION, platform.machine() )
         release_dir = os.path.join( tempdir, release_stub )
         os.mkdir( release_dir )
         shutil.copyfile( "build/release/qctool-%s" % VERSION, "%s/qctool" % release_dir )
