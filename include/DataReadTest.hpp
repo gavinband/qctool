@@ -11,7 +11,6 @@
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 #include "appcontext/OptionProcessor.hpp"
-#include "db/SQLite3Connection.hpp"
 
 class DataReadTest: public genfile::SNPDataSourceProcessor::Callback, public boost::noncopyable {
 public:
