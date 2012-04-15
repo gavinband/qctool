@@ -54,17 +54,24 @@ $(document).ready(
                     QCTOOL is a command-line utility program for basic quality control of gwas datasets.
                     It supports the same <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format_new.html">file formats</a>
                     used by the <a href="http://www.wtccc.org.uk/">WTCCC studies</a>, as well as the
-                    binary file format described <a href="http://www.well.ox.ac.uk/~gav/bgen_format.html">here</a>,
-                    and is designed to work seamlessly with <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/gwas.html">SNPTEST
-                        and related tools</a>.
+                    binary file format described <a href="http://www.well.ox.ac.uk/~gav/bgen_format.html">here</a> and
+                    the <a href="href="http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41">Variant Call Format</a>,
+                    and is designed to work seamlessly with
+                    <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/gwas.html">
+                        SNPTEST and related tools
+                    </a>.
                     A typical use of QCTOOL is to compute per-sample and per-SNP summary statistics for a cohort, and use these to filter
-                    out samples and SNPs (either by removing them from the files or by writing exclusion lists).  Another use of QCTOOL
-                    is to manipulate sample files.
+                    out samples and SNPs (either by removing them from the files or by writing exclusion lists).  QCTOOL can also be used
+                    to perform various subsetting and merging operations, and to manipulate sample information in preparation for association testing
+                    - as shown on the
+                    <a href="#tutorial">examples page</a>.
+                    
                 </p>
                 <p>
                     QCTOOL is designed to be as easy-to-use as possible and we hope you find it so.
                 </p>
                 <p>
+                    <strong>Change history.</strong>
                     This page documents v1.1 of QCTOOL, which has undergone significant changes since the original release (webpage <a href="http://www.well.ox.ac.uk/~gav/qctool/old/v1.0/qctool.html">here</a>).  A short summary of changes is:                </p>
                 <ul>
                     <li>Support for <a href="http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41">Variant Call Format</a> has been added - see the <a href='#file_formats'>file formats</a> page.
@@ -76,7 +83,7 @@ $(document).ready(
                     <li>Rationalise option names and usage.</li>
                 </ul>
                 <p>
-                    See the file CHANGELOG.txt in the downloads for a full list of changes.
+                    See the file CHANGELOG.txt for a full list of changes.
                 </p>
                 <p>
                     <strong>Acknowledgements.</strong> The following people contributed to the design and implementation of qctool:
@@ -418,7 +425,7 @@ $ qctool -help
                         </tr>
                         <tr>
                             <td>
-                                <a href="http://www.well.ox.ac.uk/~gav/bgen_format.html">BGEN format</a>
+                                <a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format.html">BGEN format</a>
                             </td>
                             <td>
                                 <span class="monospace">.bgen</span>
@@ -448,7 +455,10 @@ $ qctool -help
                                 (none)
                             </td>
                             <td>
-                                Input only. Use <span class="monospace">-filetype</span> to specify this file type. It is assumed that the two haplotypes for each individual are consecutive columns in the haplotypes file; there must be a seperate legend file.
+                                Input only. To specify this filetype, use <span class="monospace">-g &lt;haplotypes file&gt; -filetype impute_haplotypes</span>.
+                                It is assumed the legend file name is the same as the haplotypes file name, minus extension, with <span class="monospace">.legend</span> appended.
+                                Genotypes are formed from pairs of haplotypes;
+                                it is assumed that the two haplotypes for each individual are consecutive columns in the haplotypes file.
                             </td>
                         </tr>
                         <tr>
@@ -459,7 +469,8 @@ $ qctool -help
                                 (none)
                             </td>
                             <td>
-                                Input only.  Use <span class="monospace">-filetype</span> to specify this file type. This format is described <a href="http://www.shapeit.fr/pages/hapssample.html">here</a>; it is assumed that the two haplotypes for each individual are consecutive columns in the file.
+                                Input only.  Use <span class="monospace">-filetype shapeit_haplotypes</span> to specify this file type.   Genotypes are formed from pairs of haplotypes; it is assumed that the two haplotypes for each individual are consecutive columns in the file.
+                                (This format is described <a href="http://www.shapeit.fr/pages/hapssample.html">here</a>.)
                             </td>
                         </tr>
                     </table>
@@ -539,19 +550,19 @@ $ ./qctool -help
                         Source
                     </h3>
                     <p>
-                        The source code to qctool is available as a mercurial repository <a href="http://www.bitbucket.org/gavinband/qctool">here</a>. Assuming you have mercurial installed, a basic download and compilation sequence (for the currently released version) would be:
+                        The source code to qctool is available as a mercurial repository hosted <a href="http://www.bitbucket.org/gavinband/qctool">on bitbucket</a>. Assuming you have mercurial installed, a basic download and compilation sequence (for the currently released version) would be:
                     </p>
                     <div class="terminal">
                         <pre>
-    $ hg clone --rev release https://gavinband@bitbucket.org/gavinband/qctool
+    $ hg clone --rev qctool-1.1 https://gavinband@bitbucket.org/gavinband/qctool
     destination directory: qctool
     requesting all changes
     adding changesets
     adding manifests
     adding file changes
-    added 232 changesets with 1170 changes to 270 files
-    updating to branch default
-    201 files updated, 0 files merged, 0 files removed, 0 files unresolved
+    added 975 changesets with 5890 changes to 2022 files
+    updating to branch qctool-1.1
+    1821 files updated, 0 files merged, 0 files removed, 0 files unresolved
     $ cd qctool
     $ ./waf-1.5.18 configure
     $ ./waf-1.5.18
