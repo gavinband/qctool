@@ -314,7 +314,7 @@ struct PerCohortValueReporter: public AmetComputation {
 
 struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
 	void operator()(
-		SNPIdentifyingData const&,
+		SNPIdentifyingData const& snp,
 		DataGetter const& data_getter,
 		ResultCallback callback
 	) {
@@ -338,10 +338,12 @@ struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
 			}
 		}
 		double const meta_beta = ( inverse_variances.array() * betas.array() ).sum() / inverse_variances.sum() ;
-		double const meta_se = 1.0 / inverse_variances.sum() ;
+		double const meta_se = std::sqrt( 1.0 / inverse_variances.sum() ) ;
 
 		callback( "fixed_effect_meta_beta", meta_beta ) ;
 		callback( "fixed_effect_meta_se", meta_se ) ;
+
+		//std::cerr << "SNP: " << snp << ": betas = " << betas << ", ses = " << ses << ".\n" ;
 
 		if( meta_se > 0 && meta_se != std::numeric_limits< double >::infinity() ) {
 			typedef boost::math::normal NormalDistribution ;

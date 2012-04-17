@@ -923,7 +923,10 @@ private:
 		SNPPicker::UniquePtr picker ;
 		if( options().check_if_option_was_supplied( "-rank" )) {
 			std::vector< double > values( snps.size() ) ;
-			std::map< genfile::SNPIdentifyingData, double > value_map = load_ranks( options().get_value< std::string >( "-rank" ), options().get_value< std::string >( "-rank-col" )) ;
+			std::map< genfile::SNPIdentifyingData, double > value_map = load_ranks(
+				options().get_value< std::string >( "-rank" ),
+				options().get_value< std::string >( "-rank-col" )
+			) ;
 			for( std::size_t i = 0; i < values.size(); ++i ) {
 				std::map< genfile::SNPIdentifyingData, double >::const_iterator where = value_map.find( snps[i] ) ;
 				if( where == value_map.end() ) {
@@ -957,20 +960,39 @@ private:
 			)
 		) ;
 
-		UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading ranks" ) ;
+		std::size_t rank_column_index ;
+		double sign ;
+		
+		if( chain->has_column( column_name )) {
+			rank_column_index = chain->index_of_column( column_name ) ;
+			sign = 1.0 ;
+		}
+		else if( column_name.size() > 0 && column_name[0] == '-' ) {
+			rank_column_index = chain->index_of_column( column_name.substr( 1, column_name.size() ) ) ;
+			sign = -1.0 ;
+		}
+		else {
+			throw genfile::BadArgumentError( "load_ranks()", "column_name=\"" + column_name + "\"" ) ;
+		}
+		
+		return load_ranks( *chain, rank_column_index, sign ) ;
+	}
 
+	std::map< genfile::SNPIdentifyingData, double > load_ranks( statfile::BuiltInTypeStatSourceChain& chain, std::size_t rank_column_index, double sign ) const {
+		if( rank_column_index < 4 ) {
+			throw genfile::BadArgumentError( "InthinneratorApplication::load_ranks()", "rank_column_index" ) ;
+		}
+
+		UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading ranks" ) ;
+		
 		std::map< genfile::SNPIdentifyingData, double > result ;
 		std::string SNPID ;
 		std::string rsid ;
 		std::string chromosome ;
 		genfile::Position position ;
 		double rank ;
-		std::size_t rank_column_index = chain->index_of_column( column_name ) ;
-		if( rank_column_index < 4 ) {
-			throw genfile::BadArgumentError( "InthinneratorApplication::get_snp_ranks()", "rank_column_index" ) ;
-		}
 		while(
-			(*chain)
+			chain
 				>> SNPID
 				>> rsid
 				>> chromosome
@@ -978,9 +1000,9 @@ private:
 				>> statfile::ignore( rank_column_index - 4 )
 				>> rank
 		) {
-			result[ genfile::SNPIdentifyingData( SNPID, rsid, genfile::GenomePosition( chromosome, position ), '?', '?' ) ] = rank ;
-			(*chain) >> statfile::ignore_all() ;
-			progress_context.notify_progress( chain->number_of_rows_read(), chain->number_of_rows() ) ;
+			result[ genfile::SNPIdentifyingData( SNPID, rsid, genfile::GenomePosition( chromosome, position ), '?', '?' ) ] = sign * rank ;
+			chain >> statfile::ignore_all() ;
+			progress_context.notify_progress( chain.number_of_rows_read(), chain.number_of_rows() ) ;
 		}
 		return result ;
 	}
