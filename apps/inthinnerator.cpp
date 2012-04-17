@@ -118,10 +118,16 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 		options[ "-rank-col" ]
 			.set_description( "Specify the name of the column in the file for -rank containing the ranks." )
 			.set_takes_single_value() ;
+		options[ "-missing-code" ]
+			.set_description( "Specify a comma-separated list of strings to be treated as missing ranks. "
+				"Missing ranks are always picked last." )
+			.set_takes_single_value()
+			.set_default_value( "NA" ) ;
 
 		options.option_excludes_option( "-rank", "-strategy" ) ;
 		options.option_excludes_option( "-strategy", "-rank" ) ;
 		options.option_implies_option( "-rank", "-rank-col" ) ;
+		options.option_implies_option( "-missing-code", "-rank" ) ;
 
 		options[ "-N" ]
 			.set_description( "Specify a number of thinnings to perform.  This must be at least 1."
@@ -271,12 +277,28 @@ private:
 
 class HighestValueSNPPicker: public SNPPicker
 {
+private:
+	struct DoubleComparator {
+		bool operator()( double const a, double const b ) const {
+			// Compare doubles putting NaN's last of all.
+			// From http://stackoverflow.com/questions/4816156/are-ieee-floats-valid-key-types-for-stdmap-and-stdset
+		    if ((a == a) && (b == b)) {
+		        return a < b ;
+		    }
+		    if ((a != a) && (b != b)) return false ;
+		    // We have one NaN and one non-NaN.
+		    // Let's say NaN is less than everything
+			return (a != a) ;
+		}
+	} ;
+
 public:
 	typedef std::auto_ptr< SNPPicker > UniquePtr ;
 	HighestValueSNPPicker(
 		std::vector< double > const& values
 	):
-		m_values( values )
+		m_values( values ),
+		m_value_map( DoubleComparator() )
 	{
 		for( std::size_t i = 0; i < m_values.size(); ++i ) {
 			m_value_map.insert( std::make_pair( m_values[ i ], i ) ) ;
@@ -305,7 +327,7 @@ public:
 		std::deque< std::size_t > const& among_these
 	) const {
 		assert( among_these.size() > 0 ) ;
-		std::multimap< double, std::size_t >::reverse_iterator pick = m_value_map.rbegin() ;
+		ValueMap::reverse_iterator pick = m_value_map.rbegin() ;
 		//std::cerr << "pick is " << pick->second << ", among_these has " << among_these.size() << " elts, \n" ;
 		//for( std::size_t i = 0; i < among_these.size(); ++i ) {
 		//	std::cerr << among_these[i] << "\n" ;//": " << m_positions_in_sorted_list[ among_these[i] ] << ".\n" ;
@@ -356,8 +378,11 @@ public:
 	}
 	
 private:
+	
+	
 	std::vector< double > const m_values ;
-	mutable std::multimap< double, std::size_t > m_value_map ;
+	typedef std::multimap< double, std::size_t, DoubleComparator > ValueMap ;
+	mutable ValueMap m_value_map ;
 	std::vector< std::size_t > m_positions_in_sorted_list ;
 } ;
 
@@ -925,7 +950,8 @@ private:
 			std::vector< double > values( snps.size() ) ;
 			std::map< genfile::SNPIdentifyingData, double > value_map = load_ranks(
 				options().get_value< std::string >( "-rank" ),
-				options().get_value< std::string >( "-rank-col" )
+				options().get_value< std::string >( "-rank-col" ),
+				genfile::string_utils::split_and_strip_discarding_empty_entries( options().get< std::string >( "-missing-code" ), ",", " \t" )
 			) ;
 			for( std::size_t i = 0; i < values.size(); ++i ) {
 				std::map< genfile::SNPIdentifyingData, double >::const_iterator where = value_map.find( snps[i] ) ;
@@ -951,7 +977,7 @@ private:
 		return picker ;
 	}
 
-	std::map< genfile::SNPIdentifyingData, double > load_ranks( std::string const& filename, std::string const& column_name ) const {
+	std::map< genfile::SNPIdentifyingData, double > load_ranks( std::string const& filename, std::string const& column_name, std::vector< std::string > const& missing_values ) const {
 		statfile::BuiltInTypeStatSourceChain::UniquePtr chain(
 			statfile::BuiltInTypeStatSourceChain::open(
 				genfile::wildcard::find_files_by_chromosome(
@@ -975,10 +1001,10 @@ private:
 			throw genfile::BadArgumentError( "load_ranks()", "column_name=\"" + column_name + "\"" ) ;
 		}
 		
-		return load_ranks( *chain, rank_column_index, sign ) ;
+		return load_ranks( *chain, rank_column_index, sign, std::set< std::string >( missing_values.begin(), missing_values.end() ) ) ;
 	}
 
-	std::map< genfile::SNPIdentifyingData, double > load_ranks( statfile::BuiltInTypeStatSourceChain& chain, std::size_t rank_column_index, double sign ) const {
+	std::map< genfile::SNPIdentifyingData, double > load_ranks( statfile::BuiltInTypeStatSourceChain& chain, std::size_t rank_column_index, double sign, std::set< std::string > const& missing_values ) const {
 		if( rank_column_index < 4 ) {
 			throw genfile::BadArgumentError( "InthinneratorApplication::load_ranks()", "rank_column_index" ) ;
 		}
@@ -990,6 +1016,7 @@ private:
 		std::string rsid ;
 		std::string chromosome ;
 		genfile::Position position ;
+		std::string rank_string ;
 		double rank ;
 		while(
 			chain
@@ -998,8 +1025,14 @@ private:
 				>> chromosome
 				>> position
 				>> statfile::ignore( rank_column_index - 4 )
-				>> rank
+				>> rank_string
 		) {
+			if( missing_values.find( rank_string ) != missing_values.end() ) {
+				rank = std::numeric_limits< double >::quiet_NaN() ;
+			}
+			else {
+				rank = genfile::string_utils::to_repr< double >( rank_string ) ;
+			}
 			result[ genfile::SNPIdentifyingData( SNPID, rsid, genfile::GenomePosition( chromosome, position ), '?', '?' ) ] = sign * rank ;
 			chain >> statfile::ignore_all() ;
 			progress_context.notify_progress( chain.number_of_rows_read(), chain.number_of_rows() ) ;
