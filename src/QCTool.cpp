@@ -84,15 +84,7 @@ void QCTool::end_processing_snps() {
 		m_ui_context.logger() << "(" << m_context.fltrd_in_snp_data_sink().number_of_snps_written() << " of " << m_number_of_snps_processed << " SNPs passed the filter.)\n" ;
 	}
 
-	try {
-		process_sample_rows() ;
-		construct_plots() ;
-	}
-	catch( StatisticNotFoundException const& e ) {
-		std::cerr << "!! ERROR: " << e << ".\n" ;
-		std::cerr << "Note: required statistics must be added using -statistics.\n" ;
-		throw appcontext::HaltProgramWithReturnCode( -1 ) ;
-	}
+	construct_plots() ;
 }
 
 void QCTool::unsafe_call_processed_snp(
@@ -187,28 +179,35 @@ void QCTool::accumulate_per_column_amounts( GenRow const& row, std::vector< Geno
 }
 
 void QCTool::process_sample_rows() {
-	Timer timer ;
-	apply_sample_filter() ;
-	assert( m_context.sample_rows().size() == m_per_column_amounts.size() ) ;
+	try {
+		Timer timer ;
+		apply_sample_filter() ;
+		assert( m_context.sample_rows().size() == m_per_column_amounts.size() ) ;
 
-	for( std::size_t i = 0 ; i < m_per_column_amounts.size(); ++i ) {
-		SampleRow& sample_row = m_context.sample_rows()[i] ;
-		m_context.sample_statistics().process( sample_row, m_per_column_amounts[i], m_number_of_filtered_in_snps ) ;
-		output_sample_stats( i + 1, m_context.sample_statistics() ) ;
+		for( std::size_t i = 0 ; i < m_per_column_amounts.size(); ++i ) {
+			SampleRow& sample_row = m_context.sample_rows()[i] ;
+			m_context.sample_statistics().process( sample_row, m_per_column_amounts[i], m_number_of_filtered_in_snps ) ;
+			output_sample_stats( i + 1, m_context.sample_statistics() ) ;
 		
-		if( m_context.sample_statistics().has_value( "missing" )) {
-			m_context.sample_statistics().add_to_sample_row( sample_row, "missing" ) ;
+			if( m_context.sample_statistics().has_value( "missing" )) {
+				m_context.sample_statistics().add_to_sample_row( sample_row, "missing" ) ;
+			}
+			if( m_context.sample_statistics().has_value( "heterozygosity" )) {
+				m_context.sample_statistics().add_to_sample_row( sample_row, "heterozygosity" ) ;
+			}
+			m_context.fltrd_in_sample_sink() << sample_row ;
 		}
-		if( m_context.sample_statistics().has_value( "heterozygosity" )) {
-			m_context.sample_statistics().add_to_sample_row( sample_row, "heterozygosity" ) ;
-		}
-		m_context.fltrd_in_sample_sink() << sample_row ;
-	}
 
-	if( m_context.sample_filter().number_of_subconditions() > 0 ) {
-		m_ui_context.logger() << "(" << m_context.sample_rows().size() << " of " << m_number_of_samples << " samples passed the filter.)\n" ;
+		if( m_context.sample_filter().number_of_subconditions() > 0 ) {
+			m_ui_context.logger() << "(" << m_context.sample_rows().size() << " of " << m_number_of_samples << " samples passed the filter.)\n" ;
+		}
+		m_ui_context.logger() << "\n" ;
 	}
-	m_ui_context.logger() << "\n" ;
+	catch( StatisticNotFoundException const& e ) {
+		std::cerr << "!! ERROR: " << e << ".\n" ;
+		std::cerr << "Note: required statistics must be added using -statistics.\n" ;
+		throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+	}
 }
 
 void QCTool::output_sample_stats( std::size_t index, GenotypeAssayStatistics const& stats ) {

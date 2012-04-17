@@ -931,7 +931,7 @@ struct QCToolCmdLineContext: public QCToolContext
 		m_ui_context.logger() << "\n" ;
 
 		m_ui_context.logger() << std::setw(36) << "Number of samples in input file(s):"
-			<< "  " << m_snp_data_source->number_of_samples() << ".\n" ;
+			<< "  " << m_snp_data_source->get_base_source().number_of_samples() << ".\n" ;
 		if( m_sample_filter->number_of_subconditions() > 0 ) {
 			for( std::size_t i = 0 ; i < m_sample_filter_failure_counts.size(); ++ i ) {
 				m_ui_context.logger() << std::setw(36) << ("...which failed \"" + string_utils::to_string( m_sample_filter->subcondition( i )) + "\":")
@@ -2117,68 +2117,24 @@ private:
 		
 		genfile::SimpleSNPDataSourceProcessor processor ;
 
-		processor.add_callback( qctool_basic ) ;
+		if(
+			options().check_if_option_was_supplied( "-og" )
+			|| options().check_if_option_was_supplied( "-write-snp-excl-list" )
+			|| options().check_if_option_was_supplied( "-snp-stats" )
+			|| options().check_if_option_was_supplied( "-sample-stats" )
+			|| options().check_if_option_was_supplied( "-op" )
+		) {
+			processor.add_callback( qctool_basic ) ;
+		} else {
+			qctool_basic.begin_processing_snps( context.get_cohort_individual_source().get_number_of_individuals() ) ;
+			qctool_basic.end_processing_snps() ;
+		}
 		
 		std::auto_ptr< DataReadTest > data_read_test ;
 		if( options().check_if_option_was_supplied( "-read-test" )) {
 			data_read_test.reset( new DataReadTest() ) ;
 			processor.add_callback( *data_read_test ) ;
 		}
-		
-#if 0
-		if( options().check( "-snp-stats" ) || options().check( "-test" ) || options().check( "-annotate" )) {
-			processor.add_callback(
-				SNPSummaryComponent(
-					context.get_cohort_individual_source(),
-					options(),
-					get_ui_context()
-				).create()
-			) ;
-		}
-
-		std::auto_ptr< Relatotron > relatotron ;
-		if( options().check_if_option_was_supplied_in_group( "Relatedness options" )) {
-			relatotron.reset( new Relatotron( options(), context.get_cohort_individual_source(), get_ui_context() )) ;
-			processor.add_callback( *relatotron ) ;
-		}
-
-		std::auto_ptr< VCDBWriter > db_writer ;
-		if( options().check_if_option_was_supplied( "-write-db" )) {
-			db_writer = VCDBWriter::create( options() ) ;
-			processor.add_callback( *db_writer ) ;
-		}
-		if( options().check_if_option_was_supplied_in_group( "Kinship options" )) {
-			RelatednessComponent::UniquePtr relatedness_component = RelatednessComponent::create(
-				options(),
-				context.get_cohort_individual_source(),
-				worker.get(),
-				get_ui_context()
-			) ;
-			relatedness_component->setup( processor ) ;
-		}
-
-		ClusterFitter::UniquePtr cluster_fitter ;
-		if( options().check_if_option_was_supplied( "-fit-clusters" ) ) {
-			cluster_fitter = ClusterFitter::create( options() ) ;
-			processor.add_callback( *cluster_fitter ) ;
-		}
-
-		if( options().check_if_option_was_supplied_in_group( "Call comparison options" ))  {
-			CallComparerComponent::setup( processor, options() ) ;
-		}
-		
-		ClusterPlotter::UniquePtr cluster_plotter ;
-		if( options().check_if_option_was_supplied_in_group( "Cluster plot options" )) {
-			cluster_plotter = ClusterPlotter::create( options(), worker.get() ) ;
-			processor.add_callback( *cluster_plotter ) ;
-		}
-		
-		HaplotypeFrequencyComponent::UniquePtr haplotype_frequency_component ;
-		if( options().check_if_option_was_supplied_in_group( "LD computation options" )) {
-			haplotype_frequency_component = HaplotypeFrequencyComponent::create( options(), get_ui_context(), context.indices_of_filtered_out_samples() ) ;
-			processor.add_callback( *haplotype_frequency_component ) ;
-		}
-#endif
 
 		// Process it (but only if there was something to do) !
 		if( processor.get_callbacks().size() > 0 ) {
@@ -2187,11 +2143,8 @@ private:
 		} else {
 			get_ui_context().logger() << "SNPs do not need to be visited -- skipping.\n" ;
 		}
-#if 0
-		if( relatotron.get() ) {
-			relatotron->process( worker.get() ) ;
-		}
-#endif
+		
+		qctool_basic.process_sample_rows() ;
 	}
 } ;
 
