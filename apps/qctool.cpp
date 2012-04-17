@@ -194,7 +194,7 @@ public:
 */
 		options.declare_group( "Sample exclusion options" ) ;
 		options[ "-incl-samples"]
-			.set_description( "Filter out samples whose sample ID does not lie in the given file.")
+			.set_description( "Filter out samples whose sample ID does not lie in the given file(s).")
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
@@ -262,8 +262,7 @@ public:
 			.set_hidden() ;
 		options[ "-match-alleles-to-cohort1" ]
 			.set_description( "Specify that alleles (and corresponding genotypes) in all cohorts should be switched, if necessary,"
-				" so as to match the alleles of the first cohort.  This does not perform allele complementation,"
-				" but you can use the -strand option to complement alleles first." ) ;
+				" so as to match the alleles of the first cohort." ) ;
 		options[ "-snp-match-fields" ]
 			.set_description( "By default, matching SNPs between cohorts uses all the available fields"
 				" (position, rsid, SNPID, and alleles.)"
@@ -279,15 +278,17 @@ public:
 
 		options.declare_group( "Output file options" ) ;
 	    options[ "-og" ]
-	        .set_description( 	"Override the auto-generated path(s) of the output gen file(s) to use when filtering.  "
-								"(By default, the paths are formed by adding \".fltrd\" to the input gen filename(s).)  "
-								"If this option is supplied, it must appear the same number of times as the -g option. "
-	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
-								"also be used here to specify numbered output files corresponding to the input files." )
+	        .set_description(
+				"Specify that qctool should write an output genotype file with the specified filename. " 
+				"The type of this file will be determined from the filename extension. "
+				"If the first occurence of -g uses a '#' wildcard character, the '#' character can "
+				"also be used here to specify numbered output files corresponding to the input files."
+				"If \"-\" is specifed here, genotypes are written to standard output in GEN format."
+			)
 	        .set_takes_values( 1 )
 			.set_maximum_multiplicity( 1 ) ;
 		options[ "-sort" ]
-			.set_description( "Sort the genotypes in the output file.  This is only supported if bgen format is output." ) ;
+			.set_description( "Sort the genotypes in the output file.  Currently this is only supported if BGEN, unzipped GEN, unzipped VCF format is output." ) ;
 		options.option_implies_option( "-sort", "-og" ) ;
 
 		options[ "-os" ]
@@ -349,7 +350,8 @@ public:
 							"SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing, information."
 							" Your choices here are old_information, jonathans_information, mach_r2, and entropy." )
 			.set_takes_single_value()
-			.set_default_value( "" ) ;
+			.set_default_value( "" )
+			.set_hidden() ;
 
 	    options[ "-sample-stats" ]
 			.set_description( "Calculate and output sample-wise statistics." )
@@ -357,7 +359,8 @@ public:
 		options[ "-sample-stats-columns" ]
 	        .set_description( "Comma-seperated list of statistics to output in the sample-wise statistics file." )
 			.set_takes_single_value()
-			.set_default_value( std::string("ID_1, ID_2, missing, heterozygosity") ) ;
+			.set_default_value( std::string("ID_1, ID_2, missing, heterozygosity") )
+			.set_hidden() ;
 
 		// SNP filtering options
 		options.declare_group( "SNP filtering options" ) ;
@@ -376,7 +379,7 @@ public:
 		options[ "-maf" ]
 			.set_description( "Filter out SNPs whose minor allele frequency lies outside the interval [a,b]." )
 			.set_takes_values( 2 ) ;
-			
+		
 		// Sample filtering options
 		options.declare_group( "Sample filtering options" ) ;
 		options[ "-sample-missing-rate" ]
@@ -397,26 +400,13 @@ public:
 			.set_description( "Write a file (or files) containing the SNPs that are filtered out." )
 			.set_takes_single_value() ;
 		;
-		/*
-		options [ "-write-snp-incl-list" ]
-			.set_description( "Don't output a new genotypes file; instead, write files containing the positions of SNPs that are filtered in." )
-			.set_takes_single_value() ;
-
-		options [ "-write-snp-incl-list-file" ]
-	        .set_description( 	"Override the auto-generated path(s) of the file to use when outputting the positions of filtered out SNPs.  "
-								"(By default, the paths are formed by adding \".snp-excl-list\" to the input gen filename(s).)  "
-								"If used, this option must appear as many times as the -g option.  "
-	 							"If the corresponding occurence of -g uses a '#' wildcard character, the '#' character can "
-								"also be used here to specify numbered output files corresponding to the input files." )
-			.set_takes_single_value() ;
-		*/
 
 		// Other options
 		options.declare_group( "Other options" ) ;
 		options [ "-force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
 		options [ "-log" ]
-			.set_description( "Override the default path of the log file written by " + globals::program_name + "." )
+			.set_description( "Specify that " + globals::program_name + " should write a log file to the given file." )
 			.set_takes_single_value() ;
 		options [ "-threads" ]
 			.set_description( "Specify the number of worker threads to use in computationally intensive tasks." )

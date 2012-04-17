@@ -65,10 +65,13 @@ $(document).ready(
                     to perform various subsetting and merging operations, and to manipulate sample information in preparation for association testing
                     - as shown on the
                     <a href="#tutorial">examples page</a>.
-                    
                 </p>
                 <p>
                     QCTOOL is designed to be as easy-to-use as possible and we hope you find it so.
+                </p>
+                <p>
+                    The program <a href="http://www.well.ox.ac.uk/~cfreeman/software/gwas/gtool.html">GTOOL</a>, by Colin Freeman, supports a
+                    slightly different set of conversion, merging and subsetting operations.
                 </p>
                 <p>
                     <strong>Change history.</strong>
@@ -88,17 +91,18 @@ $(document).ready(
                 <p>
                     <strong>Acknowledgements.</strong> The following people contributed to the design and implementation of qctool:
                 </p>
-                <ul>
-                    <li>
-                        <a href="http://www.well.ox.ac.uk/~gav/">Gavin Band</a>
-                    </li>
-                    <li>
-                        <a href="http://www.stats.ox.ac.uk/~marchini/">Jonathan Marchini</a>
-                    </li>
-                </ul>In addition, QCTOOL contains the <a href="http://www.sph.umich.edu/csg/abecasis/Exact/index.html">SNP-HWE</a>
-                code by Jan Wigginton et al., described in "A Note on Exact Tests of Hardy-Weinberg Equilibrium",
-                Wigginton et al, <i>Am. J. Hum. Genet</i> (2005) 76:887-93.
-                
+                <p>
+                    <ul>
+                        <li>
+                            <a href="http://www.well.ox.ac.uk/~gav/">Gavin Band</a>
+                        </li>
+                        <li>
+                            <a href="http://www.stats.ox.ac.uk/~marchini/">Jonathan Marchini</a>
+                        </li>
+                    </ul>In addition, QCTOOL contains the <a href="http://www.sph.umich.edu/csg/abecasis/Exact/index.html">SNP-HWE</a>
+                    code by Jan Wigginton et al., described in "A Note on Exact Tests of Hardy-Weinberg Equilibrium",
+                    Wigginton et al, <i>Am. J. Hum. Genet</i> (2005) 76:887-93.
+                </p>
                 <p>
                     <strong>Contact.</strong> For more information or questions, please contact the oxstatgen mailing list at
                     <pre class="monospace">
@@ -181,6 +185,7 @@ $ qctool -help
                     This page shows command lines used to carry out common tasks with QCTOOL.
                     We assume the program is being run from a directory containing a sample file <span class="monospace">example.sample</span> and 22 GEN files named <span class="monospace">example_01.gen, example_02.gen</span>, etc.
                 As one of the first examples, we convert these files to BGEN format and use this in subsequent examples.
+                 See also the <a href="qctool_help.txt">list of options</a>.
                 </div>
                 <div class="tutorial_separator">
                 </div>
@@ -346,6 +351,31 @@ $ qctool -help
                         -snp-stats example.snp-stats
                         -sample-missing-rate 0.1 
                         -heterozygosity 0.2 0.3 
+                    </div>
+                </div>
+                <div class="task">
+                    <div class="task_name">
+                        Join two datasets together into one large one
+                    </div>
+                    <div class="task_command_line">
+                        $ qctool -g example.bgen -s example.sample -g second_cohort_#.gen -s second_cohort.sample -og joined.gen -os joined.sample
+                    </div>
+                    <div class="task_notes">
+                        Note: It is assumed that SNPs are in increasing order of genomic position in each cohort.  This command matches SNPs by genomic position,
+                        SNPID and rsid, and alleles.
+                    </div>
+                    <div class="task_command_line">
+                        $ qctool -g example.bgen -s example.sample -g second_cohort_#.gen -s second_cohort.sample -og joined.gen -os joined.sample -snp-match-fields position,alleles
+                    </div>
+                    <div class="task_notes">
+                        Note: This matches SNPs by position and alleles only.
+                    </div>
+                    <div class="task_command_line">
+                        $ qctool -g example.bgen -s example.sample -g second_cohort_#.gen -s second_cohort.sample -og joined.gen -os joined.sample -snp-match-fields position,alleles -match-alleles-to-cohort1
+                    </div>
+                    <div class="task_notes">
+                        Note: This matches by position and alleles.  However, if the alleles in the second cohort are the same as those in the first cohort,
+                        but coded the other way round (e.g. cohort1 = A G, cohort2 = G A), then the alleles are flipped.
                     </div>
                 </div>
                 <div class="task">
