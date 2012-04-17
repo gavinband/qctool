@@ -3,8 +3,8 @@ var globals = {
 } ;
 
 var setPage = function( page ) {
-	$( ".nav_button" ).each( function( i ) { $(this).removeClass( "nav_button_selected" ) ; } ) ;
-	$( '[name=' + page + '].nav_button' ).addClass( "nav_button_selected" ) ;
+	$( ".nav_button" ).children( "span" ).each( function( i ) { $(this).removeClass( "nav_button_selected" ) ; } ) ;
+	$( '[name=' + page + '].nav_button' ).children( 'span' ).addClass( "nav_button_selected" ) ;
 	$( '#' + page ).fadeIn( 30 ) ;
 }
 
@@ -33,9 +33,6 @@ var setFirstPage = function( default_page ) {
 
 $(document).ready(
 	function() {
-		$( ".nav_button" ).each( function( i ) { $(this).attr( "inactive_src", "style/images/" + $(this).attr( "name" ) + ".png" ) } )
-		$( ".nav_button" ).each( function( i ) { $(this).attr( "active_src", "style/images/" + $(this).attr( "name" ) + "_red.png" ) } )
-		
 		$( ".nav_button" ).hover(
 			function( eventObject ) {
 				name = $(this).attr( "name" ) ;

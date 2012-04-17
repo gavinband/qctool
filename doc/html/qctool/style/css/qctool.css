@@ -52,9 +52,9 @@ strong {
 
 .nav_button {
 	margin-top: 10px ;
-	padding-left: 1% ;
-	padding-right: 1% ;
-	width: 18% ;
+	padding-left: 3% ;
+	padding-right: 3% ;
+	width: 14% ;
 	float: left ;
 	margin-left: auto ;
 	margin-right: auto ;
@@ -62,7 +62,12 @@ strong {
 	font-size: 22px ;
 	text-align: center ;
 	color: #000000;
-	border-bottom: 2px solid white ;
+}
+
+.nav_button_content {
+	padding-left: 5px ;
+	padding-right: 5px ;
+	display: inline-block ;
 }
 
 .nav_button:hover {
