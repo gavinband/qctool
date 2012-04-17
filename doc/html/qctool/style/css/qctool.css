@@ -80,8 +80,8 @@ strong {
 
 div.button_bar {
 	width:900px ;
-	margin-left: 50px ;
-	margin-right: 50px ;
+	margin-left: auto ;
+	margin-right: auto ;
 	overflow: auto ; /* Forces div to contain its floats. */
 	/* border: 1px solid red ; */
 }
