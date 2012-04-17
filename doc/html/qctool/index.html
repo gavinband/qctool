@@ -355,7 +355,7 @@ $ qctool -help
                 </div>
                 <div class="task">
                     <div class="task_name">
-                        Join two datasets together into one large one
+                        Combine two datasets into one large one
                     </div>
                     <div class="task_command_line">
                         $ qctool -g example.bgen -s example.sample -g second_cohort_#.gen -s second_cohort.sample -og joined.gen -os joined.sample
@@ -363,6 +363,12 @@ $ qctool -help
                     <div class="task_notes">
                         Note: It is assumed that SNPs are in increasing order of genomic position in each cohort.  This command matches SNPs by genomic position,
                         SNPID and rsid, and alleles.
+                    </div>
+                    <div class="task_notes">
+                        The output file will have N1+N2 samples, where N1 and N2 are the numbers of samples in the two input cohorts.
+                        QCTOOL attempts to merge the columns of the sample files based on name and type.  Columns are dropped if they
+                        have the same name but different types.  Otherwise, each column in the input sample files appears in the output
+                        sample file, possibly filling in missing values for those cohorts for which that column is not present.
                     </div>
                     <div class="task_command_line">
                         $ qctool -g example.bgen -s example.sample -g second_cohort_#.gen -s second_cohort.sample -og joined.gen -os joined.sample -snp-match-fields position,alleles
@@ -374,8 +380,8 @@ $ qctool -help
                         $ qctool -g example.bgen -s example.sample -g second_cohort_#.gen -s second_cohort.sample -og joined.gen -os joined.sample -snp-match-fields position,alleles -match-alleles-to-cohort1
                     </div>
                     <div class="task_notes">
-                        Note: This matches by position and alleles.  However, if the alleles in the second cohort are the same as those in the first cohort,
-                        but coded the other way round (e.g. cohort1 = A G, cohort2 = G A), then the alleles are flipped.
+                        Note: This again matches by position and alleles.  However, if the alleles in the second cohort are the same as those in the first cohort,
+                        but coded the other way round (e.g. cohort1 = A G, cohort2 = G A), then the alleles are flipped accordingly.
                     </div>
                 </div>
                 <div class="task">
