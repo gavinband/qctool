@@ -9,6 +9,7 @@
 
 #include <vector>
 #include <string>
+#include "statfile/BuiltInTypeStatSink.hpp"
 #include "ObjectSink.hpp"
 #include "SampleRow.hpp"
 #include "GToolException.hpp"
@@ -23,24 +24,25 @@ struct SampleIDSinkException: public std::exception
 // to the given stream.
 struct SampleIDSink: public ObjectSink< SampleRow >
 {
-	SampleIDSink( OUTPUT_FILE_PTR stream_ptr )
-	: 	m_stream_ptr( stream_ptr )
+	SampleIDSink( std::string const& filename )
+	: 	m_sink( statfile::BuiltInTypeStatSink::open( filename ) )
 	{
-		assert( m_stream_ptr.get() != 0 ) ;
+		assert( m_sink.get() ) ;
+		(*m_sink) | "ID_1" | "ID_2" ;
 	}
 
 	SampleIDSink& write( SampleRow const& row ) {
-		(*m_stream_ptr) << row.ID1() << " " << row.ID2() << "\n" ;
+		(*m_sink) << row.ID1() << row.ID2() << statfile::end_row() ;
 		return *this ;
 	}
 
 	operator bool() const {
-		return (*m_stream_ptr) ;
+		return (*m_sink) ;
 	}
 
 private:
 
-	OUTPUT_FILE_PTR m_stream_ptr ;
+	statfile::BuiltInTypeStatSink::UniquePtr m_sink ;
 } ;
 
 #endif

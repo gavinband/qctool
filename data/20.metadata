@@ -1,5 +1,5 @@
 ##fileformat=VCFv4.0
-##number-of-variants=991
+##number-of-variants=11
 ##FORMAT=<ID=GT,Number=.,Type=Genotype,Description="consensus genotype calls">
 ##FORMAT=<ID=GLI,Number=3,Type=Float,Description="Genotype probabilities of Illuminus">
 ##FORMAT=<ID=GLG,Number=3,Type=Float,Description="Genotype probabilities of GenoSNP">

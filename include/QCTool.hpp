@@ -68,12 +68,15 @@ public:
 	void processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader& data_reader ) ;
 	void end_processing_snps() ;
 
+	void process_sample_rows() ;
+
 private:
 	QCToolContext& m_context ;
 	appcontext::UIContext& m_ui_context ;
 	std::size_t m_number_of_samples ;
 	std::size_t m_number_of_snps_processed ;
 	std::size_t m_number_of_autosomal_snps_processed ;
+	std::size_t m_number_of_filtered_in_snps ;
 	std::vector< GenotypeProportions > m_per_column_amounts ;
 	Timer m_timer ;
 
@@ -85,8 +88,7 @@ private:
 	void output_gen_row_stats( GenotypeAssayStatistics const& row_statistics ) ;
 	void output_missing_gen_row_stats( GenRow const& row, GenotypeAssayStatistics const& row_statistics, std::size_t row_number ) ;
 	void do_snp_filter_diagnostics( GenRowStatistics const& row_statistics, std::size_t const row_index ) ;
-	void accumulate_per_column_amounts( GenRow& row, std::vector< GenotypeProportions >& per_column_amounts ) ;
-	void process_sample_rows() ;
+	void accumulate_per_column_amounts( GenRow const& row, std::vector< GenotypeProportions >& per_column_amounts ) ;
 	void output_sample_stats( std::size_t index, GenotypeAssayStatistics const& stats ) ;
 	void apply_sample_filter() ;
 	bool sample_row_is_filtered_out( std::size_t const sample_row_index ) ;

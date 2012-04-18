@@ -23,7 +23,7 @@ def create_tests( bld ):
 		target = 'test_genfile',
 		source = bld.glob( 'test/*.cpp' ),
 		uselib_local = 'genfile',
-		uselib = 'BOOST BOOST_SYSTEM BOOST_UNIT_TEST_FRAMEWORK',
+		uselib = 'BOOST BOOST_IOSTREAMS BOOST_FILESYSTEM BOOST_SYSTEM BOOST_UNIT_TEST_FRAMEWORK ZLIB',
 		includes='./include',
 		unit_test=1,
 		install_path=None
@@ -35,6 +35,7 @@ def create_benchmark( bld, name ):
 		target = name,
 		source = [  'benchmark/' + name + '.cpp' ],
 		uselib_local = 'genfile',
+		uselib = 'BOOST BOOST_IOSTREAMS BOOST_FILESYSTEM BOOST_SYSTEM BOOST_UNIT_TEST_FRAMEWORK ZLIB',
 		includes = './include',\
 		export_incdirs = './include',
 		install_path = None

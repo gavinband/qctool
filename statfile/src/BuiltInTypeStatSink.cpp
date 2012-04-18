@@ -34,8 +34,8 @@ namespace statfile {
 			result.reset( new statfile::DelimitedStatSink( filename, " " ) ) ;
 		}
 		else {
-			// default to R format.
-			result.reset( new statfile::RFormatStatSink( filename ) ) ;
+			// default to tab-separated format.
+			result.reset( new statfile::DelimitedStatSink( filename, "\t" ) ) ;
 		}
 		return result ;
 	}

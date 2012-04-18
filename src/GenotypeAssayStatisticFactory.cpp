@@ -201,10 +201,10 @@ std::auto_ptr< GenotypeAssayStatistic > GenRowStatisticFactory::create_statistic
 	else if( statistic_spec == "major_allele" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowAllele( GenRowAllele::major_allele ) ) ;
 	}
-	else if( statistic_spec == "first_allele" ) {
+	else if( statistic_spec == "A_allele" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowAllele( GenRowAllele::first_allele ) ) ;
 	}
-	else if( statistic_spec == "second_allele" ) {
+	else if( statistic_spec == "B_allele" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new GenRowAllele( GenRowAllele::second_allele ) ) ;
 	}
 	else {
@@ -214,10 +214,10 @@ std::auto_ptr< GenotypeAssayStatistic > GenRowStatisticFactory::create_statistic
 
 std::auto_ptr< GenotypeAssayStatistic > SampleRowStatisticFactory::create_statistic( std::string statistic_spec ) {
 	statistic_spec = string_utils::strip( statistic_spec ) ;
-	if( statistic_spec == "ID1" ) {
+	if( statistic_spec == "ID_1" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new SampleRowID1 ) ;
 	}
-	else if( statistic_spec == "ID2" ) {
+	else if( statistic_spec == "ID_2" ) {
 		return std::auto_ptr< GenotypeAssayStatistic >( new SampleRowID2 ) ;
 	}
 	else {

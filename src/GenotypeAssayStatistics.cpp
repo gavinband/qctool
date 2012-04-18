@@ -31,7 +31,7 @@ std::string GenotypeAssayStatistic::calculate_string_value( GenotypeAssayStatist
 	// default implementation: serialise double value
 	double value = get_value<double>( statistics ) ;
 	std::ostringstream oStream ;
-	oStream << std::fixed << std::setprecision( m_precision ) << value ;
+	oStream << std::setprecision( m_precision ) << value ;
 	return oStream.str() ;
 }
 

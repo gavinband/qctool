@@ -11,7 +11,7 @@ def create_tests( bld, name ):
 		target = name,
 		source = bld.glob( 'test/*.cpp' ),
 		uselib_local = 'statfile',
-		uselib = 'BOOST_UNIT_TEST_FRAMEWORK',
+		uselib = 'BOOST_IOSTREAMS ZLIB BOOST_UNIT_TEST_FRAMEWORK',
 		includes='./include',
 		unit_test=1,
 		install_path=None

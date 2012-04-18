@@ -111,6 +111,8 @@ namespace genfile {
 			bool operator==( ColumnSpec const& other ) ;
 			bool operator!=( ColumnSpec const& other ) ;
 			
+			// Add a column
+			void add_column( std::string const& name, ColumnType const type ) ;
 			// Concatenate two ColumnSpecs.
 			ColumnSpec operator+( ColumnSpec const& other ) ;
 			// Remove an element

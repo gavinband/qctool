@@ -7,8 +7,6 @@
 #include <iostream>
 #include <boost/bind.hpp>
 #include "genfile/FileUtils.hpp"
-#include "db/SQLite3Connection.hpp"
-#include "db/SQLStatement.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/zlib.hpp"
 #include "genfile/endianness_utils.hpp"

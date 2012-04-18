@@ -23,6 +23,9 @@
 #include "genfile/Error.hpp"
 #include "genfile/get_set.hpp"
 
+#ifndef GENFILE_USE_FAST_PARSE_METHODS
+#include "genfile/string_utils/string_utils.hpp"
+#endif
 namespace genfile {
 	namespace gen {
 		namespace impl {
@@ -35,42 +38,14 @@ namespace genfile {
 #else
 				std::string float_str ;
 				aStream >> float_str ;
-				std::string::const_iterator i = float_str.begin() ,
-					end_i = float_str.end() ;
-
-				unsigned long integer_part = 0.0, fractional_part = 0ul;
-				unsigned long* this_part = &integer_part ;
-				int fractional_part_length = 0 ;
-				bool good = true ;
-
-				for( ; good && i != end_i; ++i ) {
-					if( *i == '.' ) {
-						this_part = &fractional_part ;
-						fractional_part_length = std::distance( i, end_i ) - 1 ;
-					}
-					else if(( '0' <= *i ) && ( '9' >= *i ) ) {
-						(*this_part) *= 10 ;
-						(*this_part) += (*i - '0') ;
-					}
-					else {
-						good = false ;
-					}
+				try {
+					*number = string_utils::to_repr< FloatType >( float_str ) ;
 				}
-
-				if( good ) {
-					*number = static_cast< FloatType >( integer_part ) + 
-						+ ( static_cast< FloatType >( fractional_part ) / std::pow( 10.0, fractional_part_length )) ;
+				catch( string_utils::StringConversionError const& e ) {
+					aStream.setstate(  std::ios::failbit ) ;
 				}
-				else {
-					// Failed to parse.  Try to parse using usual method.
-					std::istringstream inStream( float_str ) ;
-					inStream >> (*number) ;
-					if( inStream.fail() ) {
-						aStream.setstate( std::ios::failbit ) ;
-					}
-				}
-#endif
 				return aStream ;
+#endif	
 			}
 		}
 

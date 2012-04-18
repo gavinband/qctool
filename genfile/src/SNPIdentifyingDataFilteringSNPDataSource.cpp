@@ -76,6 +76,7 @@ namespace genfile {
 				break ;
 			}
 			else {
+				m_filtered_out_snp_signal( snp ) ;
 				m_source->ignore_snp_probability_data() ;
 			}
 		}
@@ -96,5 +97,9 @@ namespace genfile {
 
 	void SNPIdentifyingDataFilteringSNPDataSource::ignore_snp_probability_data_impl() {
 		m_source->ignore_snp_probability_data() ;
+	}
+	
+	void SNPIdentifyingDataFilteringSNPDataSource::send_filtered_out_SNPs_to( SNPSignal::slot_type callback ) {
+		m_filtered_out_snp_signal.connect( callback ) ;
 	}
 }

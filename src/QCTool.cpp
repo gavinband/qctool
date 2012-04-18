@@ -50,6 +50,7 @@ void QCTool::begin_processing_snps(
 	m_per_column_amounts.resize( number_of_samples ) ;
 	m_number_of_snps_processed = 0 ;
 	m_number_of_autosomal_snps_processed = 0 ;
+	m_number_of_filtered_in_snps = 0 ;
 	m_timer.restart() ;
 }
 
@@ -83,15 +84,7 @@ void QCTool::end_processing_snps() {
 		m_ui_context.logger() << "(" << m_context.fltrd_in_snp_data_sink().number_of_snps_written() << " of " << m_number_of_snps_processed << " SNPs passed the filter.)\n" ;
 	}
 
-	try {
-		process_sample_rows() ;
-		construct_plots() ;
-	}
-	catch( StatisticNotFoundException const& e ) {
-		std::cerr << "!! ERROR: " << e << ".\n" ;
-		std::cerr << "Note: required statistics must be added using -statistics.\n" ;
-		throw appcontext::HaltProgramWithReturnCode( -1 ) ;
-	}
+	construct_plots() ;
 }
 
 void QCTool::unsafe_call_processed_snp(
@@ -110,7 +103,6 @@ void QCTool::unsafe_call_processed_snp(
 	}
 	InternalStorageGenRow row( id_data, genotypes ) ;
 	process_gen_row( row, ++m_number_of_snps_processed ) ;
-	accumulate_per_column_amounts( row, m_per_column_amounts ) ;
 }		
 
 void QCTool::process_gen_row( GenRow const& row, std::size_t row_number ) {
@@ -124,6 +116,8 @@ void QCTool::process_gen_row( GenRow const& row, std::size_t row_number ) {
 		if( m_context.snp_filter().check_if_satisfied( m_context.snp_statistics() )) {
 			row.write_to_sink( m_context.fltrd_in_snp_data_sink() ) ;
 			output_gen_row_stats( m_context.snp_statistics() ) ;
+			accumulate_per_column_amounts( row, m_per_column_amounts ) ;
+			++m_number_of_filtered_in_snps ;
 		}
 		else {
 			row.write_to_sink( m_context.fltrd_out_snp_data_sink() ) ;
@@ -144,8 +138,8 @@ void QCTool::output_gen_row_stats( GenotypeAssayStatistics const& row_statistics
 
 void QCTool::output_missing_gen_row_stats( GenRow const& row, GenotypeAssayStatistics const& row_statistics, std::size_t row_number ) {
 	if( m_context.snp_statistics().size() > 0 ) {
-		m_context.snp_stats_sink() << row.SNPID() << row.RSID() << row.SNP_position() ;
-		for( std::size_t i = 3 ; i < row_statistics.size(); ++i ) {
+		m_context.snp_stats_sink() << row.SNPID() << row.RSID() << row.chromosome() << row.SNP_position() << row.first_allele() << row.second_allele() ;
+		for( std::size_t i = 6 ; i < row_statistics.size(); ++i ) {
 			m_context.snp_stats_sink() << "NA" ;
 		}
 		m_context.snp_stats_sink() << statfile::end_row() ;
@@ -170,7 +164,7 @@ void QCTool::do_snp_filter_diagnostics( GenRowStatistics const& row_statistics, 
 	log << ".\n" ;
 }
 
-void QCTool::accumulate_per_column_amounts( GenRow& row, std::vector< GenotypeProportions >& per_column_amounts ) {
+void QCTool::accumulate_per_column_amounts( GenRow const& row, std::vector< GenotypeProportions >& per_column_amounts ) {
 	// Keep totals for per-column stats.
 	assert( per_column_amounts.size() == row.number_of_samples() ) ;
 	// We do not deal with sex chromosomes.
@@ -185,32 +179,38 @@ void QCTool::accumulate_per_column_amounts( GenRow& row, std::vector< GenotypePr
 }
 
 void QCTool::process_sample_rows() {
-	Timer timer ;
-	apply_sample_filter() ;
-	assert( m_context.sample_rows().size() == m_per_column_amounts.size() ) ;
+	try {
+		Timer timer ;
+		apply_sample_filter() ;
+		assert( m_context.sample_rows().size() == m_per_column_amounts.size() ) ;
 
-	for( std::size_t i = 0 ; i < m_per_column_amounts.size(); ++i ) {
-		SampleRow& sample_row = m_context.sample_rows()[i] ;
-		m_context.sample_statistics().process( sample_row, m_per_column_amounts[i], m_number_of_autosomal_snps_processed ) ;
-		output_sample_stats( i + 1, m_context.sample_statistics() ) ;
+		for( std::size_t i = 0 ; i < m_per_column_amounts.size(); ++i ) {
+			SampleRow& sample_row = m_context.sample_rows()[i] ;
+			m_context.sample_statistics().process( sample_row, m_per_column_amounts[i], m_number_of_filtered_in_snps ) ;
+			output_sample_stats( i + 1, m_context.sample_statistics() ) ;
 		
-		if( m_context.sample_statistics().has_value( "missing" )) {
-			m_context.sample_statistics().add_to_sample_row( sample_row, "missing" ) ;
+			if( m_context.sample_statistics().has_value( "missing" )) {
+				m_context.sample_statistics().add_to_sample_row( sample_row, "missing" ) ;
+			}
+			if( m_context.sample_statistics().has_value( "heterozygosity" )) {
+				m_context.sample_statistics().add_to_sample_row( sample_row, "heterozygosity" ) ;
+			}
+			m_context.fltrd_in_sample_sink() << sample_row ;
 		}
-		if( m_context.sample_statistics().has_value( "heterozygosity" )) {
-			m_context.sample_statistics().add_to_sample_row( sample_row, "heterozygosity" ) ;
-		}
-		m_context.fltrd_in_sample_sink() << sample_row ;
-	}
 
-	if( m_context.sample_filter().number_of_subconditions() > 0 ) {
-		m_ui_context.logger() << "(" << m_context.sample_rows().size() << " of " << m_number_of_samples << " samples passed the filter.)\n" ;
+		if( m_context.sample_filter().number_of_subconditions() > 0 ) {
+			m_ui_context.logger() << "(" << m_context.sample_rows().size() << " of " << m_number_of_samples << " samples passed the filter.)\n" ;
+		}
+		m_ui_context.logger() << "\n" ;
 	}
-	m_ui_context.logger() << "\n" ;
+	catch( StatisticNotFoundException const& e ) {
+		std::cerr << "!! ERROR: " << e << ".\n" ;
+		std::cerr << "Note: required statistics must be added using -statistics.\n" ;
+		throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+	}
 }
 
 void QCTool::output_sample_stats( std::size_t index, GenotypeAssayStatistics const& stats ) {
-	m_context.sample_stats_sink() << uint32_t( index ) ;
 	for( std::size_t i = 0; i < m_context.sample_statistics().size(); ++i ) {
 		m_context.sample_stats_sink() << stats.get_value< std::string >( stats.get_statistic_name( i )) ;
 	}
