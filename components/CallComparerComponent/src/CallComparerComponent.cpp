@@ -74,8 +74,16 @@ void CallComparerComponent::declare_options( appcontext::OptionProcessor& option
 		.set_description( "Strategy to use to combine calls in the consensus set of calls. "
 		 	"Currently this must be \"least-missing\"." )
 			.set_default_value( "least-missing" ) ;
+	options[ "-compare-call-pvalue-threshhold" ]
+		.set_description( "Treat calls in call comparison treated as distinct if the p-value of an association test between them "
+			"is less than or equal to this value." )
+		.set_takes_single_value()
+		.set_default_value( 0.001 ) ;
+
 	options.option_implies_option( "-consensus-call", "-s" ) ;
 	options.option_implies_option( "-compare-calls", "-s" ) ;
+	options.option_implies_option( "-compare-calls", "-consensus-call" ) ;
+	options.option_implies_option( "-compare-call-pvalue-threshhold", "-compare-calls" ) ;
 }
 
 CallComparerComponent::UniquePtr CallComparerComponent::create(
@@ -137,7 +145,7 @@ void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor ) 
 		PairwiseCallComparerManager::Merger::UniquePtr(
 			new FrequentistTestCallMerger(
 				"AlleleFrequencyTestCallComparer",
-				0.001
+				m_options.get< double >( "-compare-calls-pvalue-threshhold" )
 			)
 		)
 	) ;
