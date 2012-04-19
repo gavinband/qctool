@@ -85,6 +85,11 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_description( "Specify a comma-separated list of covariates to use in the association test." )
 		.set_takes_single_value()
 		.set_default_value( "" ) ;
+	options[ "-no-X-inactivation" ]
+		.set_description( "Specify that X chromosome inactivation in females should not be modelled in the association test. "
+			"If this option is specified, females have twice the maximum exposure that males do." )
+		.set_takes_single_value()
+		.set_default_value( "" ) ;
 	
 	options[ "-annotate" ]
 		.set_description( "Specify a FASTA-formatted file containing ancestral alleles to annotate variants with." )
@@ -174,6 +179,17 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 			manager.add_computation(
 				"association_test",
 				AssociationTest::create(
+					"autosomal",
+					phenotype,
+					covariates,
+					m_samples,
+					m_options
+				)
+			) ;
+			manager.add_computation(
+				"X_chromosome_association_test",
+				AssociationTest::create(
+					"X chromosome",
 					phenotype,
 					covariates,
 					m_samples,

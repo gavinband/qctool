@@ -11,6 +11,8 @@
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 #include "components/SNPSummaryComponent/AssociationTest.hpp"
 #include "components/SNPSummaryComponent/FrequentistCaseControlAssociationTest.hpp"
+#include "components/SNPSummaryComponent/AutosomalFrequentistCaseControlAssociationTest.hpp"
+#include "components/SNPSummaryComponent/XChromosomeFrequentistCaseControlAssociationTest.hpp"
 
 namespace {
 	AssociationTest::Vector get_sample_column(
@@ -29,6 +31,7 @@ namespace {
 }
 
 SNPSummaryComputation::UniquePtr AssociationTest::create(
+	std::string const& type,
 	std::string const& phenotype_name,
 	std::vector< std::string > const& covariate_names,
 	genfile::CohortIndividualSource const& samples,
@@ -40,7 +43,17 @@ SNPSummaryComputation::UniquePtr AssociationTest::create(
 		covariates.col(i) = get_sample_column( samples, covariate_names[i] ) ;
 	}
 	
-	return SNPSummaryComputation::UniquePtr(
-		new FrequentistCaseControlAssociationTest( phenotypes, covariates )
-	) ;
+	SNPSummaryComputation::UniquePtr result ;
+	if( type == "autosomal" ) {
+		result.reset( new AutosomalFrequentistCaseControlAssociationTest( samples, phenotypes, covariates ) ) ;
+	}
+	else if( type == "X chromosome" ) {
+		result.reset(
+			new XChromosomeFrequentistCaseControlAssociationTest( samples, phenotypes, covariates, !options.check( "-no-X-inactivation" ) )
+		) ;
+	} else {
+		throw genfile::BadArgumentError( "AssociationTest::create()", "type=\"" + type + "\"" ) ;
+	}
+
+	return result ;
 }

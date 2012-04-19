@@ -25,7 +25,7 @@ namespace snptest {
 
 			NullModelLogLikelihood& set_phenotypes( Vector const& phenotypes ) ;
 			NullModelLogLikelihood& set_covariates( Matrix const& covariates ) ;
-			NullModelLogLikelihood& set_genotypes( Matrix const& genotypes, Vector const& levels ) ;
+			NullModelLogLikelihood& set_predictor_probs( Matrix const& genotypes, Vector const& levels ) ;
 			NullModelLogLikelihood& add_exclusions( std::vector< int > const& exclusions ) ;
 
 			void evaluate_at( Vector const& parameters ) ;

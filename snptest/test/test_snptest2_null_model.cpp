@@ -25,7 +25,7 @@ AUTO_TEST_CASE( test_null_model_small_datasets )
 		Matrix genotypes = Matrix::Zero(1,3) ;
 		genotypes(0,0) = 1.0 ; 
 		snptest::case_control::NullModelLogLikelihood ll ;
-		ll.set_phenotypes( phenotypes ).set_genotypes( genotypes, levels ) ;
+		ll.set_phenotypes( phenotypes ).set_predictor_probs( genotypes, levels ) ;
 		Vector parameters = Vector::Zero( 1 ) ;
 		ll.evaluate_at( parameters ) ;
 		BOOST_CHECK_EQUAL( ll.get_value_of_function(), std::log( 0.5 ) ) ;
@@ -50,7 +50,7 @@ AUTO_TEST_CASE( test_null_model_small_datasets )
 		genotypes(1,0) = 1.0 ; 
 
 		snptest::case_control::NullModelLogLikelihood ll ;
-		ll.set_phenotypes( phenotypes ).set_genotypes( genotypes, levels ) ;
+		ll.set_phenotypes( phenotypes ).set_predictor_probs( genotypes, levels ) ;
 		Vector parameters = Vector::Zero( 1 ) ;
 		ll.evaluate_at( parameters ) ;
 		BOOST_CHECK_EQUAL( ll.get_value_of_function(), std::log( 0.5 ) + std::log( 0.5 ) ) ;
@@ -76,7 +76,7 @@ AUTO_TEST_CASE( test_null_model_small_datasets )
 		genotypes(1,1) = 0.4 ; 
 
 		snptest::case_control::NullModelLogLikelihood ll ;
-		ll.set_phenotypes( phenotypes ).set_genotypes( genotypes, levels ) ;
+		ll.set_phenotypes( phenotypes ).set_predictor_probs( genotypes, levels ) ;
 		Vector parameters = Vector::Zero( 1 ) ;
 		ll.evaluate_at( parameters ) ;
 		BOOST_CHECK_EQUAL( ll.get_value_of_function(), std::log( 0.5 ) + std::log( 0.5 ) ) ;
@@ -114,7 +114,7 @@ AUTO_TEST_CASE( test_null_model_exclusions )
 		std::vector< int > exclusions( 1, 0 ) ;
 
 		snptest::case_control::NullModelLogLikelihood ll ;
-		ll.set_phenotypes( phenotypes ).set_genotypes( genotypes, levels ).add_exclusions( exclusions ) ;
+		ll.set_phenotypes( phenotypes ).set_predictor_probs( genotypes, levels ).add_exclusions( exclusions ) ;
 		ll.add_exclusions( exclusions ) ;
 		Vector parameters = Vector::Zero( 1 ) ;
 		ll.evaluate_at( parameters ) ;
@@ -141,7 +141,7 @@ AUTO_TEST_CASE( test_null_model_exclusions )
 		std::vector< int > exclusions( 1, 1 ) ;
 
 		snptest::case_control::NullModelLogLikelihood ll ;
-		ll.set_phenotypes( phenotypes ).set_genotypes( genotypes, levels ).add_exclusions( exclusions ) ;
+		ll.set_phenotypes( phenotypes ).set_predictor_probs( genotypes, levels ).add_exclusions( exclusions ) ;
 		
 		Vector parameters = Vector::Zero( 1 ) ;
 		ll.evaluate_at( parameters ) ;
@@ -171,7 +171,7 @@ AUTO_TEST_CASE( test_null_model_exclusions )
         exclusions[0] = 2 ;
 
 		snptest::case_control::NullModelLogLikelihood ll ;
-		ll.set_phenotypes( phenotypes ).set_genotypes( genotypes, levels ).add_exclusions( exclusions ) ;
+		ll.set_phenotypes( phenotypes ).set_predictor_probs( genotypes, levels ).add_exclusions( exclusions ) ;
 		Vector parameters = Vector::Zero( 1 ) ;
 		ll.evaluate_at( parameters ) ;
 		BOOST_CHECK_EQUAL( ll.get_value_of_function(), std::log( 0.5 ) ) ;

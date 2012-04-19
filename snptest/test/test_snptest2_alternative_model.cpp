@@ -49,7 +49,7 @@ void test_alternative_model_certain_genotypes_one_individual( std::size_t g ) {
 
 	snptest::case_control::AlternativeModelLogLikelihood ll ;
 	ll.set_phenotypes( phenotypes ) ;
-	ll.set_genotypes( genotypes, genotype_levels ) ;
+	ll.set_predictor_probs( genotypes, genotype_levels ) ;
 
 	Vector parameters( 2 ) ;
 	// Start at 0,0
@@ -121,7 +121,7 @@ namespace {
 	) {
 		snptest::case_control::AlternativeModelLogLikelihood ll ;
 		ll.set_phenotypes( phenotypes ) ;
-		ll.set_genotypes( genotypes, genotype_levels ) ;
+		ll.set_predictor_probs( genotypes, genotype_levels ) ;
 
 		Matrix design_matrix1( 1, 2 ) ;
 		design_matrix1.col(0).setOnes() ;

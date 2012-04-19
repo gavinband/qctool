@@ -72,16 +72,16 @@ namespace snptest {
 			return *this ;
 		}
 		
-		NullModelLogLikelihood& NullModelLogLikelihood::set_genotypes( Matrix const& genotypes, Vector const& levels ) {
+		NullModelLogLikelihood& NullModelLogLikelihood::set_predictor_probs( Matrix const& genotypes, Vector const& levels ) {
 			if( m_covariates.rows() > 0 || m_covariates.cols() > 0 ) {
 				if( !genotypes.rows() == m_covariates.rows() ) {
-					throw genfile::BadArgumentError( "snptest::case_control::NullModelLogLikelihood::set_genotypes()", "phenotypes" ) ;
+					throw genfile::BadArgumentError( "snptest::case_control::NullModelLogLikelihood::set_predictor_probs()", "phenotypes" ) ;
 				}
 			}
 			
 			if( m_phenotypes.size() > 0 ) {
 				if( !genotypes.rows() == m_phenotypes.size() ) {
-					throw genfile::BadArgumentError( "snptest::case_control::NullModelLogLikelihood::set_genotypes()", "phenotypes" ) ;
+					throw genfile::BadArgumentError( "snptest::case_control::NullModelLogLikelihood::set_predictor_probs()", "phenotypes" ) ;
 				}
 			}
 
