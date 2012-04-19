@@ -18,12 +18,8 @@
 void SampleSummaryComponent::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "Per-sample computation options" ) ;
     options[ "-sample-stats" ]
-		.set_description( "Calculate and output sample-wise statistics." ) ;
-    options[ "-sample-stats-file" ]
-		.set_description( "Override the default filename of the sample-stats file." )
+		.set_description( "Calculate and output sample-wise statistics." )
 		.set_takes_single_value() ;
-	options.option_implies_option( "-sample-stats", "-s" ) ;
-	options.option_implies_option( "-sample-stats-file", "-sample-stats" ) ;
 }
 
 typedef std::auto_ptr< SampleSummaryComponent > UNiquePtr ;
@@ -40,8 +36,8 @@ SampleSummaryComponent::SampleSummaryComponent( appcontext::OptionProcessor cons
 void SampleSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor ) const { 
 	SampleSummaryComputationManager::UniquePtr manager = SampleSummaryComputationManager::create() ;
 	std::string filename ;
-	if( m_options.check( "-sample-stats-file" ) ) {
-		filename = m_options.get_value< std::string >( "-sample-stats-file" ) ;
+	if( m_options.check( "-sample-stats" ) ) {
+		filename = m_options.get_value< std::string >( "-sample-stats" ) ;
 	}
 	else {
 		filename = genfile::strip_gen_file_extension_if_present( m_options.get< std::string >( "-g" ) ) + ".qcdb";

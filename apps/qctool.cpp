@@ -345,7 +345,7 @@ public:
 			" (This implies that no SNP filtering options are used.)" )
 			.set_takes_single_value() ;
 
-		options[ "-snp-stats-columns" ]
+		options[ "-snp-stats-old-columns" ]
 	        .set_description( "Comma-seperated list of extra columns to output in the snp-wise statistics file.  "
 	 						"The standard columns are: "
 							"SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing, information."
@@ -358,7 +358,7 @@ public:
 			.set_description( "Calculate and output sample-wise statisticsm using the code from release 1.1." )
 			.set_takes_single_value() ;
 
-		options[ "-sample-stats-columns" ]
+		options[ "-sample-stats-old-columns" ]
 	        .set_description( "Comma-seperated list of statistics to output in the sample-wise statistics file." )
 			.set_takes_single_value()
 			.set_default_value( std::string("ID_1, ID_2, missing, heterozygosity") )
@@ -504,13 +504,13 @@ struct QCToolOptionMangler {
 	std::vector< std::string > row_statistics_specs() const {
 		// Add default columns
 		std::string column_spec = "SNPID, RSID, chromosome, position, A_allele, B_allele, minor_allele, major_allele, AA, AB, BB, AA_calls, AB_calls, BB_calls, MAF, HWE, missing, missing_calls, information, " ;
-		column_spec += m_options.get_value< std::string >( "-snp-stats-columns" ) ;
+		column_spec += m_options.get_value< std::string >( "-snp-stats-old-columns" ) ;
 		return string_utils::split_and_strip_discarding_empty_entries( column_spec, "," ) ;
 	}
 	std::vector< std::string > sample_statistics_specs() const {
 		std::vector< std::string > result ;
 		if( m_options.check_if_option_was_supplied( "-sample-stats-old" )) {
-			result = string_utils::split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-sample-stats-columns" ), "," ) ;
+			result = string_utils::split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-sample-stats-old-columns" ), "," ) ;
 		}
 		return result ;
 	}
@@ -1763,7 +1763,7 @@ private:
 	}
 
 	void construct_sample_statistics() {
-		std::vector< std::string > sample_statistics_specs = string_utils::split_and_strip_discarding_empty_entries( m_options.get_value( "-sample-stats-columns" ), "," ) ;
+		std::vector< std::string > sample_statistics_specs = string_utils::split_and_strip_discarding_empty_entries( m_options.get_value( "-sample-stats-old-columns" ), "," ) ;
 		SampleRowStatisticFactory::add_statistics( sample_statistics_specs, m_sample_statistics ) ;
 	}
 

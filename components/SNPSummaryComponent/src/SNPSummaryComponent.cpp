@@ -72,19 +72,8 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options.declare_group( "SNP computation options" ) ;
 	options[ "-snp-stats" ]
 		.set_description( "Calculate and output per-SNP statistics.  This implies that no SNP filtering options are used." ) ;
-    options[ "-snp-stats-file" ]
-        .set_description( 	"Override the auto-generated path(s) of the snp-stats file to use when outputting snp-wise statistics.  "
-							"(By default, the paths are formed by adding \".qctool-db\" to the input gen filename(s).)  "
-							"The '#' character can also be used here to specify one output file per chromosome." )
-        .set_takes_values(1)
-		.set_maximum_multiplicity(1)
-		.set_default_value( "" ) ;
-
 	options[ "-snp-stats-columns" ]
-        .set_description( "Comma-seperated list of extra columns to output in the snp-wise statistics file.  "
- 						"The standard columns are: "
-						"SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing, information."
-						" Your choices here are old_information, jonathans_information, mach_r2, and entropy." )
+        .set_description( "Comma-seperated list of extra columns to output in the snp-wise statistics file." )
 		.set_takes_single_value()
 		.set_default_value( "alleles,HWE,missingness,information" ) ;
 
@@ -101,9 +90,9 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_description( "Specify a FASTA-formatted file containing ancestral alleles to annotate variants with." )
 		.set_takes_single_value() ;
 	
-	options.option_implies_option( "-snp-stats", "-s" ) ;
-	options.option_implies_option( "-annotate", "-s" ) ;
-	options.option_implies_option( "-test", "-s" ) ;
+	options.option_implies_option( "-snp-stats", "-g" ) ;
+	options.option_implies_option( "-annotate", "-g" ) ;
+	options.option_implies_option( "-test", "-g" ) ;
 }
 
 SNPSummaryComponent::SNPSummaryComponent(
@@ -124,17 +113,21 @@ genfile::SNPDataSourceProcessor::Callback::UniquePtr SNPSummaryComponent::create
 SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() const {
 	SNPSummaryComputationManager::UniquePtr manager( new SNPSummaryComputationManager() ) ;
 	using genfile::string_utils::to_string ;
-	std::string filename = m_options.get_value< std::string >( "-snp-stats-file" ) ;
 	
-	if( m_options.check( "-nodb" )) {
-		if( filename.empty() ) {
-			std::vector< std::string > filenames = m_options.get_values< std::string >( "-g" ) ;
-			if( filenames.size() == 1 ) {
-				filename = genfile::strip_gen_file_extension_if_present( filenames[0] ) + ".snp-stats.txt" ;
-			} else {
-				filename = "qctool_cohort_1-" + to_string( filenames.size() ) + ".snp-stats.txt" ;
-			}
+	std::string filename ;
+	if( m_options.check( "-snp-stats" )) {
+		filename = m_options.get_value< std::string >( "-snp-stats" ) ;
+	}
+	else {
+		std::vector< std::string > filenames = m_options.get_values< std::string >( "-g" ) ;
+		if( filenames.size() == 1 ) {
+			filename = genfile::strip_gen_file_extension_if_present( filenames[0] ) + ".snp-stats.txt" ;
+		} else {
+			filename = "qctool_cohort_1-" + to_string( filenames.size() ) + ".snp-stats.txt" ;
 		}
+	}
+
+	if( m_options.check( "-nodb" )) {
 		manager->add_result_callback(
 			boost::bind(
 				&FileOutputter::operator(),
@@ -144,15 +137,6 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 		) ;
 	}
 	else {
-		if( filename.empty() ) {
-			std::vector< std::string > filenames = m_options.get_values< std::string >( "-g" ) ;
-			if( filenames.size() == 1 ) {
-				filename = genfile::strip_gen_file_extension_if_present( filenames[0] ) + ".qcdb";
-			} else {
-				filename = "qctool_cohort_1-" + to_string( filenames.size() ) + ".qcdb" ;
-			}
-		}
-
 		snp_summary_component::DBOutputter::SharedPtr outputter = snp_summary_component::DBOutputter::create_shared(
 			filename,
 			m_options.get< std::string >( "-analysis-name" ),
