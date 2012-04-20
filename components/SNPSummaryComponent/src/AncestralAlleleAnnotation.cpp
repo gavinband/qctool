@@ -131,7 +131,7 @@ std::string AncestralAlleleAnnotation::get_summary( std::string const& prefix, s
 	return result ;
 }
 
-void AncestralAlleleAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, genfile::VariantDataReader&, ResultCallback callback ) {
+void AncestralAlleleAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const&, genfile::VariantDataReader&, ResultCallback callback ) {
 	using namespace genfile::string_utils ;
 	Sequence::const_iterator where = m_sequence.find( snp.get_position().chromosome() ) ;
 	if( where != m_sequence.end() ) {

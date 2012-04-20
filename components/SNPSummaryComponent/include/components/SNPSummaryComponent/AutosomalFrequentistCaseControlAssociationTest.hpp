@@ -19,7 +19,7 @@ struct AutosomalFrequentistCaseControlAssociationTest: public FrequentistCaseCon
 		Matrix const& covariates
 	) ;
 
-	void operator()( SNPIdentifyingData const& snp, Matrix const& genotypes, genfile::VariantDataReader& data_reader, ResultCallback callback ) ;
+	void operator()( SNPIdentifyingData const& snp, Matrix const& genotypes, SampleSexes const&, genfile::VariantDataReader& data_reader, ResultCallback callback ) ;
 
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "AutosomalFrequentistCaseControlAssociationTest" ; }
 } ;

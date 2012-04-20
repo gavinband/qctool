@@ -15,7 +15,13 @@ AutosomalFrequentistCaseControlAssociationTest::AutosomalFrequentistCaseControlA
 	FrequentistCaseControlAssociationTest( phenotypes, covariates )
 {}
 
-void AutosomalFrequentistCaseControlAssociationTest::operator()( SNPIdentifyingData const& snp, Matrix const& genotypes, genfile::VariantDataReader&, ResultCallback callback ) {
+void AutosomalFrequentistCaseControlAssociationTest::operator()(
+	SNPIdentifyingData const& snp,
+	Matrix const& genotypes,
+	SampleSexes const&, 
+	genfile::VariantDataReader&,
+	ResultCallback callback
+) {
 	if( snp.get_position().chromosome().is_autosome() ) {
 		return test( snp, genotypes, callback ) ;
 	}

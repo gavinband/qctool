@@ -22,23 +22,20 @@ struct XChromosomeFrequentistCaseControlAssociationTest: public FrequentistCaseC
 		bool with_X_inactivation
 	) ;
 
-	void operator()( SNPIdentifyingData const& snp, Matrix const& genotypes, genfile::VariantDataReader& data_reader, ResultCallback callback ) ;
+	void operator()( SNPIdentifyingData const& snp, Matrix const& genotypes, SampleSexes const&, genfile::VariantDataReader& data_reader, ResultCallback callback ) ;
 
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "XChromosomeFrequentistCaseControlAssociationTest" ; }
 private:
 	genfile::CohortIndividualSource const& m_samples ;
 	std::vector< char > m_sexes ;
-	bool const m_with_X_inactivation ;
 	typedef std::map< char, std::vector< int > > SampleIndices ;
-	SampleIndices m_samples_by_sex ;
+	SampleIndices const m_samples_by_sex ;
+	bool const m_with_X_inactivation ;
 	
 private:
 	std::vector< char > get_sexes( genfile::CohortIndividualSource const& samples ) const ;
+	std::map< char, std::vector< int > > get_samples_by_sex( std::vector< char > const& sexes ) const ;
 	
-	int determine_male_coding_column(
-		SNPIdentifyingData const& snp,
-		Matrix const& genotypes
-	) const ;
 } ;
 
 #endif

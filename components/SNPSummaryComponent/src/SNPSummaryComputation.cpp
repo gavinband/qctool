@@ -13,9 +13,56 @@
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 
 namespace {
-	struct AlleleProportionComputation: public SNPSummaryComputation
+	struct AlleleFrequencyComputation: public SNPSummaryComputation
 	{
-		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, genfile::VariantDataReader&, ResultCallback callback ) {
+		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, genfile::VariantDataReader&, ResultCallback callback ) {
+			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
+			if( chromosome.is_sex_determining() ) {
+				compute_sex_chromosome_frequency( snp, genotypes, sexes, callback ) ;
+			}
+			else {
+				compute_autosomal_frequency( snp, genotypes, callback ) ;
+			}
+		}
+		
+		void compute_sex_chromosome_frequency( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, ResultCallback callback ) {
+			Genotypes male_genotypes = genotypes ;
+			Genotypes female_genotypes = genotypes ;
+			assert( std::size_t( genotypes.rows() ) == sexes.size() ) ;
+
+			for( int i = 0; i < genotypes.rows(); ++i ) {
+				if( sexes[i] != 'm' ) {
+					male_genotypes.row(i).setZero() ;
+				} else if( sexes[i] != 'f' ) {
+					female_genotypes.row(i).setZero() ;
+				}
+			}
+			
+			double const b_allele_count = male_genotypes.col(1).sum()
+				+ ( ( 2.0 * female_genotypes.col(2).sum() ) + female_genotypes.col(1).sum() ) ;
+
+			double const b_allele_freq = b_allele_count / ( male_genotypes.sum() + 2.0 * female_genotypes.sum() ) ;
+
+			double const a_allele_freq = 1 - b_allele_freq ;
+
+			callback( "alleleA_frequency", a_allele_freq ) ;
+			callback( "alleleB_frequency", b_allele_freq ) ;
+
+			if( a_allele_freq < b_allele_freq ) {
+				callback( "minor_allele_frequency", a_allele_freq ) ;
+				callback( "minor_allele", snp.get_first_allele() ) ;
+				callback( "major_allele", snp.get_second_allele() ) ;
+			}
+			else if( a_allele_freq > b_allele_freq ) {
+				callback( "minor_allele_frequency", b_allele_freq ) ;
+				callback( "minor_allele", snp.get_second_allele() ) ;
+				callback( "major_allele", snp.get_first_allele() ) ;
+			} else {
+				callback( "minor_allele_frequency", a_allele_freq ) ;
+			}
+		}
+
+		void compute_autosomal_frequency( SNPIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) {
 			double const a_allele_freq = ( ( 2.0 * genotypes.col(0).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
 			double const b_allele_freq = ( ( 2.0 * genotypes.col(2).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
 
@@ -36,12 +83,17 @@ namespace {
 			}
 		}
 		
-		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "AlleleProportionComputation" ; }
+		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "AlleleFrequencyComputation" ; }
 	} ;
 	
 	struct HWEComputation: public SNPSummaryComputation
 	{
-		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, genfile::VariantDataReader&, ResultCallback callback ) {
+		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const&, genfile::VariantDataReader&, ResultCallback callback ) {
+			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
+			if( !chromosome.is_autosome() ) {
+				return ;
+			}
+
 			double const
 				AA = std::floor( genotypes.col(0).sum() + 0.5 ),
 				AB = std::floor( genotypes.col(1).sum() + 0.5 ),
@@ -60,7 +112,7 @@ namespace {
 	
 	struct MissingnessComputation: public SNPSummaryComputation {
 		MissingnessComputation( double call_threshhold = 0.9 ): m_call_threshhold( call_threshhold ) {}
-		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, genfile::VariantDataReader&, ResultCallback callback ) {
+		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, genfile::VariantDataReader&, ResultCallback callback ) {
 			double missingness = double( genotypes.rows() ) - genotypes.array().sum() ;
 			callback( "missing proportion", missingness / double( genotypes.rows() ) ) ;
 			
@@ -72,17 +124,68 @@ namespace {
 			}
 			callback( "missing call proportion", missing_calls / double( genotypes.rows() )) ;
 
-			callback( "AA", genotypes.col(0).sum() ) ;
-			callback( "AB", genotypes.col(1).sum() ) ;
-			callback( "BB", genotypes.col(2).sum() ) ;
+			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
+
+			if( !chromosome.is_sex_determining() ) {
+				callback( "AA", genotypes.col(0).sum() ) ;
+				callback( "AB", genotypes.col(1).sum() ) ;
+				callback( "BB", genotypes.col(2).sum() ) ;
+			} else {
+				compute_sex_chromosome_counts( snp, genotypes, sexes, callback ) ;
+			}
 		}
+		
+		void compute_sex_chromosome_counts( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, ResultCallback callback ) {
+			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
+			assert( chromosome == genfile::Chromosome( "0X" ) || chromosome == genfile::Chromosome( "0Y" )) ;
+			assert( std::size_t( genotypes.rows() ) == sexes.size() ) ;
+
+			std::map< char, Eigen::VectorXd > counts ;
+			counts[ 'm' ] = Eigen::VectorXd::Zero( 3 ) ;
+			counts[ 'f' ] = Eigen::VectorXd::Zero( 3 ) ;
+			counts[ '.' ] = Eigen::VectorXd::Zero( 3 ) ;
+
+			std::map< char, std::size_t > sample_counts ;
+
+			for( std::size_t i = 0; i < sexes.size(); ++i ) {
+				counts[ sexes[i] ] += genotypes.row( i ) ;
+				++sample_counts[ sexes[i] ] ;
+			}
+			
+			callback( "males_A", counts[ 'm' ]( 0 ) ) ;
+			callback( "males_B", counts[ 'm' ]( 1 ) ) ;
+
+			if( counts[ 'm' ]( 2 ) != 0 ) {
+				callback( "males_BB", counts[ 'm' ]( 2 ) ) ;
+				std::cerr << "!! ( MissingnessComputation::compute_sex_chromosome_counts() ): some males have BB probability!\n" ;
+				throw genfile::BadArgumentError( " MissingnessComputation::compute_sex_chromosome_counts()", "genotypes" ) ;
+			}
+
+			if( chromosome == genfile::Chromosome( "0X" ) ) {
+				callback( "females_AA", counts[ 'f' ]( 0 ) ) ;
+				callback( "females_AB", counts[ 'f' ]( 1 ) ) ;
+				callback( "females_BB", counts[ 'f' ]( 2 ) ) ;
+			}
+			
+			if( sample_counts[ '.' ] > 0 ) {
+				callback( "unknown_sex_AA", counts[ '.' ]( 0 ) ) ;
+				callback( "unknown_sex_AB", counts[ '.' ]( 1 ) ) ;
+				callback( "unknown_sex_BB", counts[ '.' ]( 2 ) ) ;
+			}
+		}
+		
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "MissingnessComputation" ; }
 	private:
 		double const m_call_threshhold ;
 	} ;
 
 	struct InformationComputation: public SNPSummaryComputation {
-		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, genfile::VariantDataReader&, ResultCallback callback ) {
+		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const&, genfile::VariantDataReader&, ResultCallback callback ) {
+			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
+			if( !chromosome.is_autosome() ) {
+				return ;
+			}
+
 			Eigen::VectorXd const e = genotypes.col(1) + (2.0 * genotypes.col(2) ) ;
 			Eigen::VectorXd const f = genotypes.col(1) + (4.0 * genotypes.col(2) ) ;
 			double const non_missingness = genotypes.sum() ;
@@ -123,7 +226,7 @@ SNPSummaryComputation::UniquePtr SNPSummaryComputation::create(
 	std::string const& name
 ) {
 	UniquePtr result ;
-	if( name == "alleles" ) { result.reset( new AlleleProportionComputation()) ; }
+	if( name == "alleles" ) { result.reset( new AlleleFrequencyComputation()) ; }
 	else if( name == "HWE" ) { result.reset( new HWEComputation()) ; }
 	else if( name == "missingness" ) { result.reset( new MissingnessComputation()) ; }
 	else if( name == "information" ) { result.reset( new InformationComputation()) ; }

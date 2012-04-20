@@ -124,8 +124,8 @@ FrequentistCaseControlAssociationTest::Vector FrequentistCaseControlAssociationT
 	genfile::SNPIdentifyingData const& snp,
 	Matrix const& probs
 ) const {
-	Vector result = Vector::LinSpaced( 0, probs.cols(), 1 ) ;
-	result = ( probs.colwise().sum().array() * result.array() ) ;
+	Vector result = Vector::LinSpaced( probs.cols(), 0, 1 ) ;
+	result = ( probs.colwise().sum().array().transpose() * result.array() ) ;
 	double const mean = result.sum() / probs.sum() ;
 	result = result - Vector::Constant( result.size(), mean ) ;
 	return result ;

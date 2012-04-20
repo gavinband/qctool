@@ -25,16 +25,9 @@ XChromosomeFrequentistCaseControlAssociationTest::XChromosomeFrequentistCaseCont
 	FrequentistCaseControlAssociationTest( phenotypes, covariates ),
 	m_samples( samples ),
 	m_sexes( get_sexes( m_samples ) ),
+	m_samples_by_sex( get_samples_by_sex( m_sexes )),
 	m_with_X_inactivation( with_X_inactivation )
-{
-	m_samples_by_sex[ 'm' ] ;
-	m_samples_by_sex[ 'f' ] ;
-	m_samples_by_sex[ '.' ] ;
-
-	for( std::size_t i = 0; i < m_sexes.size(); ++i ) {
-		m_samples_by_sex[ m_sexes[i] ].push_back( i ) ;
-	}
-}
+{}
 
 std::vector< char > XChromosomeFrequentistCaseControlAssociationTest::get_sexes( genfile::CohortIndividualSource const& samples ) const {
 	std::vector< char > result( samples.get_number_of_individuals(), '.' ) ;
@@ -57,100 +50,59 @@ std::vector< char > XChromosomeFrequentistCaseControlAssociationTest::get_sexes(
 			}
 		}
 		else {
-			std::cerr << "!! (XChromosomeFrequentistCaseControlAssociationTest::get_sexes): sex column found but it has the wrong type!\n" ;
+			std::cerr << "!! (SNPSummaryComputationManager::get_sexes): sex column found but it has the wrong type!\n" ;
 			throw genfile::MalformedInputError( samples.get_source_spec(), 1, column_spec.find_column( "sex" )) ;
 		}
 	}
 	return result ;
 }
 
+std::map< char, std::vector< int > > XChromosomeFrequentistCaseControlAssociationTest::get_samples_by_sex( std::vector< char > const& sexes ) const {
+	std::map< char, std::vector< int > > result ;
+	result[ 'm' ] ;
+	result[ 'f' ] ;
+	result[ '.' ] ;
+
+	for( std::size_t i = 0; i < sexes.size(); ++i ) {
+		result[ sexes[i] ].push_back( i ) ;
+	}
+
+	return result ;
+}
+
 void XChromosomeFrequentistCaseControlAssociationTest::operator()(
 	SNPIdentifyingData const& snp,
 	Matrix const& genotypes,
+	SampleSexes const& sexes, 
 	genfile::VariantDataReader&,
 	ResultCallback callback
 ) {
+	assert( sexes.size() == genotypes.rows() ) ;
 	if( snp.get_position().chromosome() != genfile::Chromosome( "0X" ) ) {
 		return ;
 	}
 	
 	Matrix predictor_probs = genotypes ;
 	
-	// 1. figure out if males are coded like heterozygote or homozygote females.
-	// Then make them like heterozygote females.
-	{
-		std::vector< int > const& males = m_samples_by_sex[ 'm' ] ;
+	// 1. We assume males are coded as 0/1 genotypes and samples with missing sex have missing genotypes.
+	// (This is done in SNPSummaryComputationManager for this.)
 
-		if( males.size() > 0 ) {
-			if( determine_male_coding_column( snp, genotypes ) == 2 ) {
-				for( std::size_t i = 0; i < males.size(); ++i ) {
-					predictor_probs( males[i], 1 ) = predictor_probs( males[i], 2 ) ;
-					predictor_probs( males[i], 2 ) = 0 ;
-				}
-			}
-		}
-	}
-	
-	// 2. If we are doing X chromosome inactivation, replace female probs here with
-	// c_0 + 1/2 c_1 and 1/2 c_1 + c_2
+	// 2. If we are doing X chromosome inactivation, replace female call probs c_0, c_1, c_2 here
+	// with c_0 + 1/2 c_1 and 1/2 c_1 + c_2
 	if( m_with_X_inactivation ) {
-		std::vector< int > const& females = m_samples_by_sex['f'] ;
-		for( std::size_t i = 0; i < females.size(); ++i ) {
-			predictor_probs( females[i], 1 ) *= 0.5 ;
-			predictor_probs( females[i], 0 ) += predictor_probs( females[i], 1 ) ;
-			predictor_probs( females[i], 1 ) += predictor_probs( females[i], 2 ) ;
-			predictor_probs( females[i], 2 ) = 0 ;
-		}
-	}
-	
-	// 3. get rid of anyone without sex 
-	{
-		std::vector< int > const& unknowns = m_samples_by_sex['f'] ;
-		for( std::size_t i = 0; i < unknowns.size(); ++i ) {
-			predictor_probs.row( unknowns[i] ).setZero() ;
+		for( int i = 0; i < genotypes.rows(); ++i ) {
+			if( sexes[i] == 'f' ) {
+				predictor_probs( i, 1 ) *= 0.5 ;
+				predictor_probs( i, 0 ) += predictor_probs( i, 1 ) ;
+				predictor_probs( i, 1 ) += predictor_probs( i, 2 ) ;
+				predictor_probs( i, 2 ) = 0 ;
+			} else if( sexes[i] == '.' ) {
+				predictor_probs.row( i ).setZero() ;
+			}
 		}
 	}
 
 	test( snp, predictor_probs, callback ) ;
 }
 
-int XChromosomeFrequentistCaseControlAssociationTest::determine_male_coding_column(
-	SNPIdentifyingData const& snp,
-	Matrix const& genotypes
-) const {
-	int column = -1 ;
-	std::size_t column_determining_sample ;
 
-	std::vector< int > const& males = m_samples_by_sex.find( 'm' )->second ;
-	for( std::size_t i = 0; i < males.size(); ++i ) {
-		if( genotypes( males[i], 1 ) != 0 ) {
-			if( genotypes( males[i], 2 ) != 0 ) {
-				std::cerr << "!! (XChromosomeFrequentistCaseControlAssociationTest::operator()): at X chromosome SNP "
-					<< snp
-					<< ", sample #"
-					<< (males[i]+1)
-					<< " (" << m_samples.get_entry( males[i], "ID_1" ) << ") "
-					<< " has nonzero heterozygote and homozygote call probabilities!\n" ;
-				throw genfile::BadArgumentError( "XChromosomeFrequentistCaseControlAssociationTest::operator()()", "genotypes" ) ;
-			}
-			else {
-				if( column == -1 ) {
-					column = 1 ;
-					column_determining_sample = males[i] ;
-				}
-				else if( column != 1 ) {
-					std::cerr << "!! (XChromosomeFrequentistCaseControlAssociationTest::operator()): at X chromosome SNP "
-						<< snp
-						<< ", samples "
-						<< (column_determining_sample+1)
-						<< " (" << m_samples.get_entry( column_determining_sample, "ID_1" ) << ") and "
-						<< (males[i]+1)
-						<< " (" << m_samples.get_entry( males[i], "ID_1" ) << ") "
-						<< "are coded differently (one heterozygote, one homozygote.)\n" ;
-					throw genfile::BadArgumentError( "XChromosomeFrequentistCaseControlAssociationTest::operator()()", "genotypes" ) ;
-				}
-			}
-		}
-	}
-	return column ;
-}
