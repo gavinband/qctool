@@ -457,7 +457,7 @@ public:
 		options.option_implies_option( "-condition-on", "-os" ) ;
 
 		//Relatotron::declare_options( options ) ;
-		//RelatednessComponent::declare_options( options ) ;
+		RelatednessComponent::declare_options( options ) ;
 		DataReadTest::declare_options( options ) ;
 		ClusterFitter::declare_options( options ) ;
 		VCDBWriter::declare_options( options ) ;
@@ -2163,12 +2163,6 @@ private:
 			processor.add_callback( *data_read_test ) ;
 		}
 		
-		std::auto_ptr< Relatotron > relatotron ;
-		if( options().check_if_option_was_supplied_in_group( "Relatedness options" )) {
-			relatotron.reset( new Relatotron( options(), context.get_cohort_individual_source(), get_ui_context() )) ;
-			processor.add_callback( *relatotron ) ;
-		}
-
 		std::auto_ptr< VCDBWriter > db_writer ;
 		if( options().check_if_option_was_supplied( "-write-db" )) {
 			db_writer = VCDBWriter::create( options() ) ;
