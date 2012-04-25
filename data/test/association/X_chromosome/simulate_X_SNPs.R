@@ -184,8 +184,8 @@ for( i in 1:nrow( SNPs )) {
 			simulate.genotypes(
 				case_control,
 				sex,
-				haploid_control_frequencies = c( SNPs$control_frequency[i], 1 - SNPs$control_frequency[i] ),
-				haploid_case_frequencies = c( SNPs$case_frequency[i], 1 - SNPs$case_frequency[i] ),
+				haploid_control_frequencies = c( 1 - SNPs$control_frequency[i], SNPs$control_frequency[i] ),
+				haploid_case_frequencies = c( 1 - SNPs$case_frequency[i], SNPs$case_frequency[i] ),
 				diploid_control_frequencies = SNPs[i,10:12],
 				diploid_case_frequencies = SNPs[i,13:15],
 				chromosome = "01",
@@ -208,8 +208,8 @@ for( i in 1:nrow( SNPs )) {
 			simulate.genotypes(
 				case_control,
 				sex,
-				haploid_control_frequencies = c( SNPs$control_frequency[i], 1 - SNPs$control_frequency[i] ),
-				haploid_case_frequencies = c( SNPs$case_frequency[i], 1 - SNPs$case_frequency[i] ),
+				haploid_control_frequencies = c( 1 - SNPs$control_frequency[i], SNPs$control_frequency[i] ),
+				haploid_case_frequencies = c( 1 - SNPs$case_frequency[i], SNPs$case_frequency[i] ),
 				diploid_control_frequencies = SNPs[i,10:12],
 				diploid_case_frequencies = SNPs[i,13:15],
 				chromosome = "0X",
@@ -231,8 +231,8 @@ for( i in 1:nrow( SNPs )) {
 			simulate.genotypes(
 				case_control,
 				sex,
-				haploid_control_frequencies = c( SNPs$control_frequency[i], 1 - SNPs$control_frequency[i] ),
-				haploid_case_frequencies = c( SNPs$case_frequency[i], 1 - SNPs$case_frequency[i] ),
+				haploid_control_frequencies = c( 1 - SNPs$control_frequency[i], SNPs$control_frequency[i] ),
+				haploid_case_frequencies = c( 1 - SNPs$case_frequency[i], SNPs$case_frequency[i] ),
 				diploid_control_frequencies = SNPs[i,10:12],
 				diploid_case_frequencies = SNPs[i,13:15],
 				chromosome = "0X",
