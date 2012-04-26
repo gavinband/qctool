@@ -76,9 +76,9 @@ compute.snp_stats <- function(
 }
 
 simulate.genotypes <- function(
-	case_control,
-	sex,
-	haploid_control_frequencies,
+	case_control, 					# a vector of zeroes and ones
+	sex,          					# vector with "male"s and "female"s
+	haploid_control_frequencies, 	# frequency of
 	haploid_case_frequencies,
 	diploid_control_frequencies,
 	diploid_case_frequencies,
@@ -146,7 +146,6 @@ simulate.genotypes <- function(
 			print( female.genotypes[1:10] )
 		}
 	}
-	
 	
 	result = matrix( data = 0, ncol = 3, nrow = N_samples ) ;
 
@@ -222,6 +221,18 @@ for( i in 1:nrow( SNPs )) {
 
 write.table( cbind( SNPs[,1:6], genotypes[, 1:((N_samples/2)*3)] ), file = "cohort1_0X.gen", col.names = F, row.names = F, quote = F )
 write.table( cbind( SNPs[,1:6], genotypes[, (((N_samples/2)*3)+1):ncol( genotypes )] ), file = "cohort2_0X.gen", col.names = F, row.names = F, quote = F )
+
+# Convert females so they can be run like autosomes
+for( i in 1:length( sex )) {
+	if( sex[i] == "female" ) {
+		genotypes[ , (3*i-2) ] = genotypes[ , (3*i-2) ] + 0.5 * genotypes[ , (3*i-1) ]
+		genotypes[ , (3*i-1) ] = 0.5 * genotypes[ , (3*i-1) ] + genotypes[ , (3*i) ]
+		genotypes[ , (3*i) ] = 0
+	}
+}
+
+write.table( cbind( rep( "01", nrow( SNPs ) ), SNPs[,2:6], genotypes[, 1:((N_samples/2)*3)] ), file = "cohort1_0X_autosomalised.gen", col.names = F, row.names = F, quote = F )
+write.table( cbind( rep( "01", nrow( SNPs ) ), SNPs[,2:6], genotypes[, (((N_samples/2)*3)+1):ncol( genotypes )] ), file = "cohort2_0X_autosomalised.gen", col.names = F, row.names = F, quote = F )
 
 genotypes = matrix( data = NA, nrow = nrow( SNPs ), ncol = 3 * N_samples )
 for( i in 1:nrow( SNPs )) {
