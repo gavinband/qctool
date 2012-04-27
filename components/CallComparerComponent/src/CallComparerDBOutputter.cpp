@@ -37,14 +37,14 @@ CallComparerDBOutputter::CallComparerDBOutputter( std::string const& filename, s
 
 	connection().run_statement(
 		"CREATE VIEW IF NOT EXISTS CallComparisonView AS "
-		"SELECT V.variant_id, V.chromosome, V.position, V.rsid, callset1_id, C1.name AS callset1, callset2_id, C2.name AS callset2, variable_id, Variable.name AS variable, value "
+		"SELECT V.id AS variant_id, V.chromosome, V.position, V.rsid, callset1_id, C1.name AS callset1, callset2_id, C2.name AS callset2, variable_id, Variable.name AS variable, value "
 		"FROM CallComparison CC "
 		"INNER JOIN Variant V "
 		"      ON V.id = CC.variant_id "
 		"INNER JOIN Entity C1 "
-		"      ON C1.id = CC.callset1_id"
+		"      ON C1.id = CC.callset1_id "
 		"INNER JOIN Entity C2 "
-		"      ON C2.id = CC.callset2_id"
+		"      ON C2.id = CC.callset2_id "
 		"INNER JOIN Entity Variable "
 		"      ON Variable.id = CC.variable_id "
 		";"
