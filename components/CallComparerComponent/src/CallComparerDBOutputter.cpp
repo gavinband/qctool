@@ -23,14 +23,31 @@ CallComparerDBOutputter::CallComparerDBOutputter( std::string const& filename, s
 {
 	db::Connection::ScopedTransactionPtr transaction = connection().open_transaction( 30 ) ;
 	connection().run_statement(
-		"CREATE TABLE IF NOT EXISTS Comparison ( "
-		"variant_id INT, callset1 INT, callset2 INT, method_id INT, variable_id INT, value FLOAT, "
+		"CREATE TABLE IF NOT EXISTS CallComparison ( "
+		"variant_id INT, callset1_id INT, callset2_id INT, method_id INT, variable_id INT, value FLOAT, "
 		"FOREIGN KEY( variant_id ) REFERENCES Variant( id ), "
+		"FOREIGN KEY( callset1_id ) REFERENCES Entity( id ), "
+		"FOREIGN KEY( callset2_id ) REFERENCES Entity( id ), "
 		"FOREIGN KEY( method_id ) REFERENCES Entity( id ), "
 		"FOREIGN KEY( variable_id ) REFERENCES Entity( id ))"
 	) ;
 	connection().run_statement(
-		"CREATE INDEX IF NOT EXISTS ComparisonIndex ON Comparison( variant_id, method_id, variable_id )"
+		"CREATE INDEX IF NOT EXISTS CallComparisonIndex ON CallComparison( variant_id, method_id, variable_id )"
+	) ;
+
+	connection().run_statement(
+		"CREATE VIEW IF NOT EXISTS CallComparisonView AS "
+		"SELECT V.variant_id, V.chromosome, V.position, V.rsid, callset1_id, C1.name AS callset1, callset2_id, C2.name AS callset2, variable_id, Variable.name AS variable, value "
+		"FROM CallComparison CC "
+		"INNER JOIN Variant V "
+		"      ON V.id = CC.variant_id "
+		"INNER JOIN Entity C1 "
+		"      ON C1.id = CC.callset1_id"
+		"INNER JOIN Entity C2 "
+		"      ON C2.id = CC.callset2_id"
+		"INNER JOIN Entity Variable "
+		"      ON Variable.id = CC.variable_id "
+		";"
 	) ;
 
 	construct_statements() ;
@@ -88,7 +105,7 @@ void CallComparerDBOutputter::set_result(
 
 void CallComparerDBOutputter::construct_statements() {
 	m_insert_comparison_statement = connection().get_statement(
-		"INSERT INTO Comparison ( variant_id, callset1, callset2, method_id, variable_id, value ) "
+		"INSERT INTO CallComparison ( variant_id, callset1_id, callset2_id, method_id, variable_id, value ) "
 		"VALUES( ?1, ?2, ?3, ?4, ?5, ?6 )"
 	) ;
 }
