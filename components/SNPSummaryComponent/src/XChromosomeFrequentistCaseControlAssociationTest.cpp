@@ -26,7 +26,8 @@ XChromosomeFrequentistCaseControlAssociationTest::XChromosomeFrequentistCaseCont
 	m_samples( samples ),
 	m_sexes( get_sexes( m_samples ) ),
 	m_samples_by_sex( get_samples_by_sex( m_sexes )),
-	m_with_X_inactivation( with_X_inactivation )
+	m_with_X_inactivation( with_X_inactivation ),
+	m_single_organ_model( true )
 {}
 
 std::vector< char > XChromosomeFrequentistCaseControlAssociationTest::get_sexes( genfile::CohortIndividualSource const& samples ) const {
@@ -90,15 +91,20 @@ void XChromosomeFrequentistCaseControlAssociationTest::operator()(
 	// 2. If we are doing X chromosome inactivation, replace female call probs c_0, c_1, c_2 here
 	// with c_0 + 1/2 c_1 and 1/2 c_1 + c_2
 	if( m_with_X_inactivation ) {
-		for( int i = 0; i < genotypes.rows(); ++i ) {
-			if( sexes[i] == 'f' ) {
-				predictor_probs( i, 1 ) *= 0.5 ;
-				predictor_probs( i, 0 ) += predictor_probs( i, 1 ) ;
-				predictor_probs( i, 1 ) += predictor_probs( i, 2 ) ;
-				predictor_probs( i, 2 ) = 0 ;
-			} else if( sexes[i] == '.' ) {
-				predictor_probs.row( i ).setZero() ;
+		if( m_single_organ_model ) {
+			for( int i = 0; i < genotypes.rows(); ++i ) {
+				if( sexes[i] == 'f' ) {
+					predictor_probs( i, 1 ) *= 0.5 ;
+					predictor_probs( i, 0 ) += predictor_probs( i, 1 ) ;
+					predictor_probs( i, 1 ) += predictor_probs( i, 2 ) ;
+					predictor_probs( i, 2 ) = 0 ;
+				} else if( sexes[i] == '.' ) {
+					predictor_probs.row( i ).setZero() ;
+				}
 			}
+		}
+		else {
+			assert(0) ; // not implemented
 		}
 	}
 

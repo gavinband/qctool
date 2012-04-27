@@ -31,6 +31,7 @@ private:
 	typedef std::map< char, std::vector< int > > SampleIndices ;
 	SampleIndices const m_samples_by_sex ;
 	bool const m_with_X_inactivation ;
+	bool const m_single_organ_model ;
 	
 private:
 	std::vector< char > get_sexes( genfile::CohortIndividualSource const& samples ) const ;
