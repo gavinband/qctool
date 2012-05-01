@@ -27,7 +27,7 @@ XChromosomeFrequentistCaseControlAssociationTest::XChromosomeFrequentistCaseCont
 	m_sexes( get_sexes( m_samples ) ),
 	m_samples_by_sex( get_samples_by_sex( m_sexes )),
 	m_with_X_inactivation( with_X_inactivation ),
-	m_single_organ_model( true )
+	m_single_organ_model( false )
 {}
 
 std::vector< char > XChromosomeFrequentistCaseControlAssociationTest::get_sexes( genfile::CohortIndividualSource const& samples ) const {
@@ -84,14 +84,19 @@ void XChromosomeFrequentistCaseControlAssociationTest::operator()(
 	}
 	
 	Matrix predictor_probs = genotypes ;
-	
+	Vector predictor_levels ;
+
 	// 1. We assume males are coded as 0/1 genotypes and samples with missing sex have missing genotypes.
 	// (This is done in SNPSummaryComputationManager for this.)
 
-	// 2. If we are doing X chromosome inactivation, replace female call probs c_0, c_1, c_2 here
-	// with c_0 + 1/2 c_1 and 1/2 c_1 + c_2
+	// 2. If we are doing X chromosome inactivation, replace female call appropriately.
 	if( m_with_X_inactivation ) {
 		if( m_single_organ_model ) {
+			// We assume all the cells affecting the trait have the same active allele (but we don't know which one it is.)
+			// Thus, we must integrate out the uncertainty in the active allele.
+			// This boils down to recoding females as 0 or 1 with probability
+			// c_0 + 1/2 c_1  and  1/2 c_1 + c_2
+			// where c_0, c_1, c_2, are the three call probabilities.
 			for( int i = 0; i < genotypes.rows(); ++i ) {
 				if( sexes[i] == 'f' ) {
 					predictor_probs( i, 1 ) *= 0.5 ;
@@ -102,13 +107,36 @@ void XChromosomeFrequentistCaseControlAssociationTest::operator()(
 					predictor_probs.row( i ).setZero() ;
 				}
 			}
+			predictor_probs.resize( predictor_probs.rows(), 2 ) ;
+			predictor_levels = Vector::LinSpaced( 2, 0, 1 ) ;
+		} else {
+			// We model hemizygote males like homozygote females, and heterozygote females half-way in-between.
+			// Replace male genotypes with homozygous ones:
+			for( int i = 0; i < genotypes.rows(); ++i ) {
+				if( sexes[i] == 'm' ) {
+					predictor_probs( i, 2 ) = predictor_probs( i, 1 ) ;
+					predictor_probs( i, 1 ) = 0 ;
+				} else if( sexes[i] == '.' ) {
+					predictor_probs.row( i ).setZero() ;
+				}
+			}
+			predictor_levels = Vector::LinSpaced( 3, 0, 1 ) ;
 		}
-		else {
-			assert(0) ; // not implemented
-		}
+	} else {
+		predictor_levels = Vector::LinSpaced( 3, 0, 2 ) ;
 	}
 
-	test( snp, predictor_probs, callback ) ;
+	test( snp, predictor_probs, predictor_levels, callback ) ;
+}
+
+void XChromosomeFrequentistCaseControlAssociationTest::set_model( std::string const& model ) {
+	if( model == "single-organ" ) {
+		m_single_organ_model = true ;
+	} else if( model == "normal" ) {
+		m_single_organ_model = false ;
+	} else {
+		throw genfile::BadArgumentError( "XChromosomeFrequentistCaseControlAssociationTest::set_model()", "model=\"" + model + "\"" ) ;
+	}
 }
 
 

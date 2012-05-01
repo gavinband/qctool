@@ -62,10 +62,15 @@ namespace impl {
 	} ;
 }
 
-void FrequentistCaseControlAssociationTest::test( SNPIdentifyingData const& snp, Matrix const& predictor_probs, ResultCallback callback ) {
+void FrequentistCaseControlAssociationTest::test(
+	SNPIdentifyingData const& snp,
+	Matrix const& predictor_probs,
+	Vector predictor_levels,
+	ResultCallback callback
+) {
 	using integration::derivative ;
 
-	Vector predictor_levels = get_predictor_levels( snp, predictor_probs ) ;
+	predictor_levels = mean_centre_predictor_levels( snp, predictor_probs, predictor_levels ) ;
 	
 	m_null_ll.set_predictor_probs( predictor_probs, predictor_levels ) ;
 	m_alternative_ll.set_predictor_probs( predictor_probs, predictor_levels ) ;
@@ -120,11 +125,12 @@ void FrequentistCaseControlAssociationTest::test( SNPIdentifyingData const& snp,
 	}
 }
 
-FrequentistCaseControlAssociationTest::Vector FrequentistCaseControlAssociationTest::get_predictor_levels(
+FrequentistCaseControlAssociationTest::Vector FrequentistCaseControlAssociationTest::mean_centre_predictor_levels(
 	genfile::SNPIdentifyingData const& snp,
-	Matrix const& probs
+	Matrix const& probs,
+	Vector const& predictor_levels
 ) const {
-	Vector result = Vector::LinSpaced( probs.cols(), 0, 2 ) ;
+	Vector result = predictor_levels ;
 	Vector colSums = probs.colwise().sum() ;
 	double const mean = ( result.array() * colSums.array() ).sum() / probs.sum() ;
 	result = result - Vector::Constant( result.size(), mean ) ;

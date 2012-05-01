@@ -25,13 +25,16 @@ struct XChromosomeFrequentistCaseControlAssociationTest: public FrequentistCaseC
 	void operator()( SNPIdentifyingData const& snp, Matrix const& genotypes, SampleSexes const&, genfile::VariantDataReader& data_reader, ResultCallback callback ) ;
 
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "XChromosomeFrequentistCaseControlAssociationTest" ; }
+
+	void set_model( std::string const& model ) ;
+	
 private:
 	genfile::CohortIndividualSource const& m_samples ;
 	std::vector< char > m_sexes ;
 	typedef std::map< char, std::vector< int > > SampleIndices ;
 	SampleIndices const m_samples_by_sex ;
 	bool const m_with_X_inactivation ;
-	bool const m_single_organ_model ;
+	bool m_single_organ_model ;
 	
 private:
 	std::vector< char > get_sexes( genfile::CohortIndividualSource const& samples ) const ;

@@ -23,7 +23,7 @@ struct FrequentistCaseControlAssociationTest: public AssociationTest {
 
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "FrequentistCaseControlAssociationTest" ; }
 
-	void test( SNPIdentifyingData const& snp, Matrix const& predictor_probs, ResultCallback callback ) ;
+	void test( SNPIdentifyingData const& snp, Matrix const& predictor_probs, Vector predictor_levels, ResultCallback callback ) ;
 	
 private:
 	snptest::case_control::LogLikelihood m_alternative_ll ;
@@ -34,7 +34,7 @@ private:
 	boost::math::chi_squared_distribution< double > m_chi_squared ;	
 
 private:
-	Vector get_predictor_levels( genfile::SNPIdentifyingData const& snp, Matrix const& probs ) const ;
+	Vector mean_centre_predictor_levels( genfile::SNPIdentifyingData const& snp, Matrix const& probs, Vector const& predictor_levels ) const ;
 } ;
 
 #endif

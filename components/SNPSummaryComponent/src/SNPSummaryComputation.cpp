@@ -101,10 +101,10 @@ namespace {
 
 			if( AA > 0.5 || AB > 0.5 || BB > 0.5 ) {
 				double HWE_pvalue = SNPHWE( AB, AA, BB ) ;
-				callback( "minus_log10_exact_HW_p_value", -log10( HWE_pvalue ) ) ;
+				callback( "HW_exact_p_value", -log10( HWE_pvalue ) ) ;
 			}
 			else {
-				callback( "minus_log10_exact_HW_p_value", genfile::MissingValue() ) ;
+				callback( "HW_exact_p_value", genfile::MissingValue() ) ;
 			}
 		}
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "HWEComputation" ; }

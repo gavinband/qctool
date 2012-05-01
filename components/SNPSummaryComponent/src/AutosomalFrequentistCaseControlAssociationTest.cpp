@@ -23,7 +23,12 @@ void AutosomalFrequentistCaseControlAssociationTest::operator()(
 	ResultCallback callback
 ) {
 	if( snp.get_position().chromosome().is_autosome() ) {
-		return test( snp, genotypes, callback ) ;
+		return test(
+			snp,
+			genotypes,
+			Vector::LinSpaced( genotypes.cols(), 0, 2 ),
+			callback
+		) ;
 	}
 }
 
