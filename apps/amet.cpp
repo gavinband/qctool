@@ -26,6 +26,8 @@
 #include "genfile/FileUtils.hpp"
 #include "genfile/utility.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/CommonSNPFilter.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "statfile/BuiltInTypeStatSource.hpp"
 #include "components/SNPSummaryComponent/DBOutputter.hpp"
@@ -46,7 +48,6 @@ struct FrequentistGenomeWideAssociationResults: public boost::noncopyable {
 	virtual void get_counts( std::size_t snp_i, Eigen::VectorXd* result ) const = 0 ;
 	virtual std::string get_summary( std::string const& prefix = "", std::size_t target_column = 80 ) const = 0;
 } ;
-
 
 struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 	typedef boost::function< void ( std::size_t, boost::optional< std::size_t > ) > ProgressCallback ;
@@ -241,6 +242,88 @@ private:
 	}
 } ;
 
+struct FilteringGenomeWideAssociationResults: public FrequentistGenomeWideAssociationResults {
+	FilteringGenomeWideAssociationResults( FrequentistGenomeWideAssociationResults::UniquePtr source, genfile::SNPIdentifyingDataTest::UniquePtr test ):
+		m_source( source ),
+		m_test( test )
+	{
+		assert( m_test.get() ) ;
+		link_indices() ;
+	}
+
+	// typedef boost::function< void ( std::size_t i, genfile::SNPIdentifyingData const& snp ) > SNPCallback ;
+
+	void get_SNPs( SNPCallback callback ) const {
+		get_filtered_SNPs( callback ) ;
+	}
+	void get_betas( std::size_t snp_i, Eigen::VectorXd* result ) const {
+		assert( snp_i < m_links.size() ) ;
+		return m_source->get_betas( m_links[ snp_i ], result ) ;
+	} ;
+	void get_ses( std::size_t snp_i, Eigen::VectorXd* result ) const {
+		assert( snp_i < m_links.size() ) ;
+		return m_source->get_ses( m_links[ snp_i ], result ) ;
+	}
+	void get_pvalue( std::size_t snp_i, double* result ) const {
+		assert( snp_i < m_links.size() ) ;
+		return m_source->get_pvalue( m_links[ snp_i ], result ) ;
+	}
+	void get_counts( std::size_t snp_i, Eigen::VectorXd* result ) const {
+		assert( snp_i < m_links.size() ) ;
+		return m_source->get_counts( m_links[ snp_i ], result ) ;
+	}
+	std::string get_summary( std::string const& prefix = "", std::size_t target_column = 80 ) const {
+		return prefix + "FilteringGenomeWideAssociationResults object holding " + genfile::string_utils::to_string( m_links.size() ) + " SNPs, from: " + m_source->get_summary( "", target_column ) ;
+	}
+	
+private:
+	FrequentistGenomeWideAssociationResults::UniquePtr m_source ;
+	genfile::SNPIdentifyingDataTest::UniquePtr m_test ;
+	std::vector< std::size_t > m_links ;
+private:
+	
+	struct SNPFilterCallback {
+		SNPFilterCallback( genfile::SNPIdentifyingDataTest const& test, SNPCallback callback = SNPCallback() ):
+			m_test( test ),
+			m_callback( callback ),
+			m_i( 0 )
+		{
+		} ;
+		
+		void operator()( std::size_t i, genfile::SNPIdentifyingData const& snp ) {
+			if( m_test( snp ) ) {
+				m_links.resize( m_i + 1 ) ;
+				m_links[ m_i ] = i ;
+				if( m_callback ) {
+					m_callback( m_i++, snp ) ;
+				}
+			}
+		}
+
+		std::vector< std::size_t > const& get_links() const { return m_links ; }
+
+	private:
+		genfile::SNPIdentifyingDataTest const& m_test ;
+		SNPCallback m_callback ;
+		std::size_t m_i ;
+		std::vector< std::size_t > m_links ;
+	} ;
+	
+	// populate the link between our filtered SNP indices and the indices in the base source.
+	void link_indices() {
+		assert( m_test.get() ) ;
+		SNPFilterCallback filtering_callback( *m_test ) ;
+		m_source->get_SNPs( filtering_callback ) ;
+		m_links = filtering_callback.get_links() ;
+	}
+	
+	void get_filtered_SNPs( SNPCallback callback ) const {
+		assert( m_test.get() ) ;
+		SNPFilterCallback filtering_callback( *m_test, callback ) ;
+		m_source->get_SNPs( filtering_callback ) ;
+	}
+} ;
+
 struct AmetComputation: public boost::noncopyable {
 	typedef std::auto_ptr< AmetComputation > UniquePtr ;
 	static UniquePtr create( std::string const& name ) ;
@@ -411,6 +494,14 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 			.set_is_required()
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 1 )
+			.set_maximum_multiplicity( 100 )
+		;
+		
+		options[ "-excl-rsids" ]
+			.set_description( "Specify a file containing a list of rsids to exclude from the analysis. "
+				"If this option is specified it must occur the same number of times as the -snptest option." )
+			.set_takes_values( 1 )
+			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 )
 		;
 		
@@ -726,38 +817,52 @@ public:
 		ResultCallback ;
 
 	void load_data() {
-		
 		using genfile::string_utils::to_string ;
+
 		std::vector< std::string > cohort_files = options().get_values< std::string >( "-snptest" ) ;
 		for( std::size_t i = 0; i < cohort_files.size(); ++i ) {
 			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading SNPTEST results \"" + cohort_files[i] + "\"" ) ;
 			FrequentistGenomeWideAssociationResults::UniquePtr results ;
 
-			if( !options().check( "-omit-raw-results" ))  {
+			SNPTESTResults::SNPResultCallback snp_callback ;
+			if( cohort_files.size() == 1 ) {
 				snp_summary_component::DBOutputter::SharedPtr raw_outputter = snp_summary_component::DBOutputter::create_shared(
 					options().get< std::string >( "-o" ),
 					globals::program_name + " cohort " + to_string( i+1 ) + ": SNPTEST analysis: \"" + cohort_files[i] + "\"",
 					snp_summary_component::DBOutputter::Metadata()
 				) ;
 
-				results.reset(
-					new SNPTESTResults(
-						genfile::wildcard::find_files_by_chromosome( cohort_files[i] ),
-						boost::bind(
-							&snp_summary_component::DBOutputter::operator(),
-							raw_outputter,
-							_1, _2, _3, _4, _5
-						),
-						progress_context
-					)
+				snp_callback = boost::bind(
+					&snp_summary_component::DBOutputter::operator(),
+					raw_outputter,
+					_1, _2, _3, _4, _5
 				) ;
-			} else {
+			}
+
+			results.reset(
+				new SNPTESTResults(
+					genfile::wildcard::find_files_by_chromosome( cohort_files[i] ),
+					snp_callback,
+					progress_context
+				)
+			) ;
+			
+			if( options().check( "-excl-rsids" ) ) {
+				genfile::CommonSNPFilter::UniquePtr snp_filter ( new genfile::CommonSNPFilter ) ;
+
+				std::vector< std::string > exclusion_files = options().get_values< std::string > ( "-excl-rsids" ) ;
+				assert( exclusion_files.size() == cohort_files.size() ) ;
+				
+				std::vector< std::string > cohort_exclusion_files = genfile::string_utils::split_and_strip_discarding_empty_entries( exclusion_files[i], ",", " \t" ) ;
+				foreach( std::string const& filename, cohort_exclusion_files ) {
+					snp_filter->exclude_snps_in_file(
+						filename,
+						genfile::CommonSNPFilter::RSIDs
+					) ;
+				}
+			
 				results.reset(
-					new SNPTESTResults(
-						genfile::wildcard::find_files_by_chromosome( cohort_files[i] ),
-						SNPTESTResults::SNPResultCallback(),
-						progress_context
-					)
+					new FilteringGenomeWideAssociationResults( results, genfile::SNPIdentifyingDataTest::UniquePtr( snp_filter.release() ) )
 				) ;
 			}
 			
