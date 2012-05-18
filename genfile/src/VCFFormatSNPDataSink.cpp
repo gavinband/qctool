@@ -130,5 +130,10 @@ namespace genfile {
 		}
 		(*m_stream_ptr) << std::endl ;
 	}
+	
+	void VCFFormatSNPDataSink::set_sample_names( SampleNameGetter getter ) {
+		assert( getter ) ;
+		m_sample_name_getter = getter ;
+	}
 }
 

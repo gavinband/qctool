@@ -92,6 +92,9 @@ namespace genfile {
 		// The following functions must be implemented by derived classes.
 		virtual operator bool() const = 0 ;
 
+		typedef boost::function< VariantEntry ( std::size_t ) > SampleNameGetter ;
+		virtual void set_sample_names( SampleNameGetter ) ;
+
 	protected:
 		// This function implements the SNP writing, and must be implemented by derived classes.
 		virtual void write_snp_impl(

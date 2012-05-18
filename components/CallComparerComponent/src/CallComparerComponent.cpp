@@ -107,6 +107,12 @@ CallComparerComponent::CallComparerComponent(
 	m_ui_context( ui_context )
 {}
 
+namespace impl {
+	genfile::VariantEntry get_sample_entry( genfile::CohortIndividualSource const& samples, std::string const& name, std::size_t i ) {
+		return samples.get_entry( i, name ) ;
+	}
+}
+
 void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor ) const {
 	PairwiseCallComparerManager::UniquePtr manager( PairwiseCallComparerManager::create().release() ) ;
 
@@ -126,13 +132,14 @@ void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor ) 
 		manager->send_merge_to( outputter ) ;
 	}
 	
-	ConsensusCaller::SharedPtr consensus_caller(
-		new ConsensusCaller(
-			genfile::SNPDataSink::create(
-				m_options.get< std::string >( "-consensus-call" )
-			)
-		)
-	) ;
+	ConsensusCaller::SharedPtr consensus_caller ;
+	{
+		genfile::SNPDataSink::UniquePtr sink = genfile::SNPDataSink::create(
+			m_options.get< std::string >( "-consensus-call" )
+		) ;
+		sink->set_sample_names( boost::bind( impl::get_sample_entry, boost::ref( m_samples ), "ID_1", _1 ) ) ;
+		consensus_caller.reset( new ConsensusCaller( sink ) ) ;
+	}
 
 	manager->send_merge_to( consensus_caller ) ;
 	
