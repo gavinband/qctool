@@ -53,7 +53,10 @@ namespace statfile {
 			if( str_field == "inf" ) {
 				field = std::numeric_limits< double >::infinity() ;
 			}
-			else if( str_field == "nan" || str_field == "NA" ) {
+			else if( str_field == "-inf" ) {
+				field = -std::numeric_limits< double >::infinity() ;
+			}
+			else if( str_field == "nan" || str_field == "-nan" || str_field == "NA" ) {
 				field = std::numeric_limits< double >::quiet_NaN() ;
 			}
 			else {

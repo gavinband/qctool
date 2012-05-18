@@ -807,6 +807,9 @@ public:
 		) ;
 
 		if( options().check( "-meta-analyse" )) {
+			if( options().get_values< std::string >( "-snptest" ).size() < 2 ) {
+				get_ui_context().logger() << "!! Warning: you have specified -meta-analyse but only one cohort is supplied!  Proceeding anyway though...\n" ;
+			}
 			m_processor->add_computation( "FixedEffectFrequentistMetaAnalysis", AmetComputation::create( "FixedEffectFrequentistMetaAnalysis" ) ) ;
 		}
 		m_processor->process( get_ui_context() ) ;
