@@ -12,6 +12,7 @@
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/unordered_map.hpp>
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/VariantEntry.hpp"
@@ -64,9 +65,12 @@ namespace qcdb {
 		db::Connection::RowId m_is_a ;
 		db::Connection::RowId m_analysis ;
 
+		typedef boost::unordered_map< std::pair< std::string, std::string >, db::Connection::RowId > EntityMap ;
+		mutable EntityMap m_entity_map ;
 	private:
 		void construct_statements() ;
 		void store_metadata() ;
+		void load_entities() ;
 		void create_entity_relationship( db::Connection::RowId entity1_id, db::Connection::RowId relationship_id, db::Connection::RowId entity2_id ) const ;
 	} ;
 }

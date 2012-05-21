@@ -60,9 +60,16 @@ namespace snp_summary_component {
 		if( !transaction.get() ) {
 			throw genfile::OperationFailedError( "SNPSummaryComponent::DBOutputter::write_data()", connection().get_spec(), "Opening transaction." ) ;
 		}
+		
+		db::Connection::RowId snp_id = 0 ;
 		for( std::size_t i = 0; i < data.size(); ++i ) {
+			// Common usage is to record many variables for each SNP, so optimise for that usage.
+			// We only make a new variant if it differs from the previous one.
+			if( i == 0 || data[i].get<0>() != data[i-1].get<0>() ) {
+				snp_id = get_or_create_variant( data[i].get<0>() ) ;
+			}
 			store_data(
-				data[i].get<0>(),
+				snp_id,
 				data[i].get<1>(),
 				data[i].get<2>()
 			) ;
@@ -70,11 +77,10 @@ namespace snp_summary_component {
 	}
 
 	void DBOutputter::store_data(
-		genfile::SNPIdentifyingData const& snp,
+		db::Connection::RowId const snp_id,
 		std::string const& variable,
 		genfile::VariantEntry const& value
 	) {
-		db::Connection::RowId snp_id = get_or_create_variant( snp ) ;
 		db::Connection::RowId variable_id = get_or_create_entity( variable, variable, m_variable_id ) ;
 		insert_summary_data( snp_id, variable_id, value ) ;
 	}

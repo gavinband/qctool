@@ -52,7 +52,7 @@ namespace snp_summary_component {
 		void write_data( Data const& data ) ;
 
 		void store_data(
-			genfile::SNPIdentifyingData const& snp,
+			db::Connection::RowId const snp_id,
 			std::string const& variable,
 			genfile::VariantEntry const& value
 		) ;

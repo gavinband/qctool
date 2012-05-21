@@ -23,8 +23,8 @@ namespace genfile {
 	
 	namespace impl {
 		std::string make_temp_name( boost::filesystem::path const& path ) {
-			std::string const directory = path.stem() ;
-			std::string const filename = path.leaf() ;
+			std::string const directory = path.stem().string() ;
+			std::string const filename = path.leaf().string() ;
 			char* p = tempnam( directory.c_str(), filename.c_str() ) ;
 			std::string const result( p, p + strlen( p )) ;
 			free( p ) ;

@@ -102,14 +102,13 @@ private:
 		SNPResultCallback callback,
 		ProgressCallback progress_callback
 	) {
-		progress_callback( 0, filenames.size() ) ;
+		progress_callback( 0, filenames.size() * 100 ) ;
 		for( std::size_t i = 0; i < filenames.size(); ++i ) {
-			setup( filenames[i], callback ) ;
-			progress_callback( i+1, filenames.size() ) ;
+			setup( i, filenames.size(), filenames[i], callback, progress_callback ) ;
 		}
 	}
 	
-	void setup( genfile::wildcard::FilenameMatch const& filename, SNPResultCallback callback ) {
+	void setup( std::size_t const filename_i, std::size_t const number_of_files, genfile::wildcard::FilenameMatch const& filename, SNPResultCallback callback,ProgressCallback progress_callback ) {
 		statfile::BuiltInTypeStatSource::UniquePtr source( statfile::BuiltInTypeStatSource::open( filename.filename() )) ;
 
 		ColumnMap column_map = get_columns_to_store( *source ) ;
@@ -136,7 +135,7 @@ private:
 			double value ;
 			
 			for( ; i != end_i; ++i ) {
-				if( callback ) {
+				if( 0 ) { //callback ) {
 					// We have to read all the columns, even though we'll ignore them.
 					while( source->current_column() < source->number_of_columns() && ( i == end_i || source->current_column() < i->first ) ) {
 						(*source) >> value ;
@@ -159,6 +158,10 @@ private:
 					(*source) >> value ;
 					callback( snp_index, snp, "SNPTESTResults", source->name_of_column( source->current_column() - 1 ), value ) ;
 				}
+			}
+			
+			if( progress_callback ) {
+				progress_callback( 100* ( filename_i + double( source->number_of_rows_read() ) / source->number_of_rows() ), 100 * number_of_files ) ;
 			}
 		}
 	}

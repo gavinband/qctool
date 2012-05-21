@@ -224,6 +224,7 @@ namespace qcdb {
 	}
 
 	void DBOutputter::store_metadata() {
+		load_entities() ;
 		m_is_a = get_or_create_entity( "is_a", "is_a relationship" ) ;
 		m_analysis = get_or_create_entity( "analysis", "class of analyses" ) ;
 		db::Connection::RowId const cmd_line_arg_id = get_or_create_entity( "command-line argument", "Value supplied to a script or executable" ) ;
@@ -249,30 +250,37 @@ namespace qcdb {
 			) ;
 		}
 	}
+	
+	void DBOutputter::load_entities() {
+		db::Connection::StatementPtr stmnt = m_connection->get_statement( "SELECT id, name, description FROM Entity" ) ;
+		stmnt->step() ;
+		while( !stmnt->empty() ) {
+			m_entity_map.insert( std::make_pair( std::make_pair( stmnt->get< std::string >( 1 ), stmnt->get< std::string >( 2 )), stmnt->get< db::Connection::RowId >( 0 ))) ;
+			stmnt->step() ;
+		}
+		stmnt->reset() ;
+	}
 
 	db::Connection::RowId DBOutputter::get_or_create_entity( std::string const& name, std::string const& description, boost::optional< db::Connection::RowId > class_id ) const {
 		db::Connection::RowId result ;
-		m_find_entity_statement
-			->bind( 1, name )
-			.bind( 2, description )
-			.step() ;
-
-		if( m_find_entity_statement->empty() ) {
+		EntityMap::const_iterator where = m_entity_map.find( std::make_pair( name, description )) ;
+		if( where != m_entity_map.end() ) {
+			result = where->second ;
+		}
+		else {
 			m_insert_entity_statement
 				->bind( 1, name )
 				.bind( 2, description )
 				.step() ;
 				
 			result = m_connection->get_last_insert_row_id() ;
+			m_entity_map.insert( std::make_pair( std::make_pair( name, description ), result ) ) ;
 			m_insert_entity_statement->reset() ;
 
 			if( class_id ) {
 				create_entity_relationship( result, m_is_a, *class_id ) ;
 			}
-		} else {
-			result = m_find_entity_statement->get< db::Connection::RowId >( 0 ) ;
 		}
-		m_find_entity_statement->reset() ;
 		return result ;
 	}
 
