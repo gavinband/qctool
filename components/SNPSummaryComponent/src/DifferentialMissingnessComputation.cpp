@@ -30,7 +30,7 @@ std::vector< int > DifferentialMissingnessComputation::compute_strata_levels( St
 	for( StrataMembers::const_iterator i = strata_members.begin(); i != strata_members.end(); ++i, ++level ) {
 		for( std::size_t j = 0; j < i->second.size(); ++j ) {
 			std::size_t const index = i->second[j] ;
-			result.resize( std::max( result.size(), index+1 ), 0 ) ;
+			result.resize( std::max( result.size(), index+1 ), -1 ) ;
 			result[ index ] = level ;
 		}
 	}
@@ -50,11 +50,13 @@ void DifferentialMissingnessComputation::operator()( SNPIdentifyingData const& s
 	Eigen::MatrixXd table( number_of_strata, 2 ) ;
 	table.setZero() ;
 	for( int i = 0; i < genotypes.rows(); ++i ) {
-		if( genotypes.row( i ).sum() < m_threshhold ) {
-			table( m_strata_levels[i], 0 )++ ;
-		}
-		else {
-			table( m_strata_levels[i], 1 )++ ;
+		if( m_strata_levels[i] >= 0 ) {
+			if( genotypes.row( i ).sum() < m_threshhold ) {
+				table( m_strata_levels[i], 0 )++ ;
+			}
+			else {
+				table( m_strata_levels[i], 1 )++ ;
+			}		
 		}
 	}
 	
@@ -64,6 +66,7 @@ void DifferentialMissingnessComputation::operator()( SNPIdentifyingData const& s
 		for( int level = 0; i != end_i; ++level, ++i ) {
 			callback( "missing_call_proportion [" + m_stratification_name + "=" + genfile::string_utils::to_string( i->first ) + "]", table( level, 0 ) / table.row( level ).sum() )  ;
 		}
+
 	}
 	
 	if( table.row(0).sum() > 0 && table.row(1).sum() > 0 ) {
