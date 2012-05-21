@@ -10,7 +10,7 @@ VERSION = "dev"
 subdirs = [
 	'genfile', 'statfile', 'string_utils', 'appcontext',
 	'fputils', 'worker', 'snptest', 'integration',
-	'3rd_party', 'components', 'db', 'qcdb'
+	'3rd_party', 'components', 'db', 'qcdb', 'metro'
 ]
 
 def set_options( opt ):

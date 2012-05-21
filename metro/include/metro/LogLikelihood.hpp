@@ -4,15 +4,15 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef METRO_LIKELIHOOD_MULTINOMIAL_HPP
-#define METRO_LIKELIHOOD_MULTINOMIAL_HPP
+#ifndef METRO_LIKELIHOOD_LOGLIKELIHOOD_HPP
+#define METRO_LIKELIHOOD_LOGLIKELIHOOD_HPP
 
 #include <memory>
 #include <Eigen/Core>
 
 namespace metro {
 	template< typename Scalar, typename Vector, typename Matrix >
-	struct LogLikelihood: public boost::noncopyable {
+	struct LogLikelihood {
 		typedef std::auto_ptr< LogLikelihood > UniquePtr ;
 		virtual ~LogLikelihood() {}
 		

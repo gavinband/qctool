@@ -14,9 +14,9 @@ namespace metro {
 	namespace likelihood {
 		template< typename Scalar, typename Vector, typename Matrix >
 		struct Multinomial: public metro::LogLikelihood< Scalar, Vector, Matrix > {
-			Multinomial( Vector const& counts ):
-				m_counts( counts ),
-				m_parameters( Vector::Zero( counts.size() ) )
+			Multinomial( Vector const& data ):
+				m_counts( data ),
+				m_parameters( Vector::Zero( data.size() ) )
 			{
 			}
 
@@ -25,6 +25,17 @@ namespace metro {
 				m_parameters( parameters )
 			{
 				assert( parameters.size() == counts.size() ) ;
+			}
+			
+			Multinomial( Multinomial const& other ):
+				m_counts( other.m_counts ),
+				m_parameters( other.m_parameters )
+			{}
+
+			Multinomial& operator=( Multinomial const& other ) {
+				m_counts = other.m_counts ;
+				m_parameters = other.m_parameters ;
+				return *this ;
 			}
 
 			void evaluate_at( Vector const& parameters ) {
@@ -62,8 +73,16 @@ namespace metro {
 				return result ;
 			}
 
+			Vector get_MLE() const {
+				return m_counts / m_counts.sum() ;
+			}
+
+			Vector const& get_parameters() const { return m_parameters ; }
+			Vector const& get_data() const { return m_counts ; }
+			
+			std::string get_spec() const { return "Multinomial" ; }
 		private:
-			Vector const m_counts ;
+			Vector m_counts ;
 			Vector m_parameters ;
 		} ;
 	}

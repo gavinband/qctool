@@ -449,7 +449,7 @@ namespace genfile {
 							throw MalformedInputError( m_source.get_source_spec(), m_source.number_of_snps_read() - 1 + m_source.get_index_of_first_data_line(), e.column() + m_source.get_index_of_first_data_column() ) ;
 						}
 						else {
-							throw MalformedInputError( m_source.get_source_spec(), m_source.number_of_snps_read() -1 + m_source.get_index_of_first_data_line() + m_source.get_index_of_first_data_column() ) ;
+							throw MalformedInputError( m_source.get_source_spec(), m_source.number_of_snps_read() -1 + m_source.get_index_of_first_data_line() ) ;
 						}
 					}
 				}
