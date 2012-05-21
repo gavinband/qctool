@@ -22,20 +22,13 @@
 namespace genfile {
 	
 	namespace impl {
-		std::string make_temp_name( std::string filename ) {
-			if( filename.size() < 12 || filename.substr( filename.size() - 12, 12 ) != "XXXXXXXXXXXX" ) {
-				throw BadArgumentError( "genfile::impl::make_temp_name()", "filename=\"" + filename + "\"" ) ;
-			}
-			std::vector< char > buffer(
-				filename.begin(),
-				filename.end()
-			) ;
-			buffer.push_back( '\0' ) ;
-			buffer[ filename.size() - 6 ] = '\0' ;
-			std::tmpnam( &buffer[0] ) ;
-			buffer[ filename.size() - 6 ] = 'X' ;
-			std::tmpnam( &buffer[0] ) ;
-			return std::string( buffer.begin(), buffer.begin() + buffer.size() - 1 ) ;
+		std::string make_temp_name( boost::filesystem::path const& path ) {
+			std::string const directory = path.stem() ;
+			std::string const filename = path.leaf() ;
+			char* p = tempnam( directory.c_str(), filename.c_str() ) ;
+			std::string const result( p, p + strlen( p )) ;
+			free( p ) ;
+			return result ;
 		}
 	}
 
@@ -115,7 +108,6 @@ namespace genfile {
 			boost::filesystem::path( m_filename ),
 			boost::filesystem::path( temp_filename )
 		) ;
-		
 		// std::cerr << "Copying file back...\n" ;
 		// Copy temporary back to file in the right order.
 		std::ifstream input( temp_filename.c_str(), std::ios::binary ) ;
