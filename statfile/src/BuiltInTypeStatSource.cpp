@@ -32,11 +32,11 @@ namespace statfile {
 			source.reset( new statfile::DelimitedStatSource( filename, "\t" )) ;
 		}
 		else if( format == e_RFormat ) {
-			source.reset( new statfile::RFormatStatSource( filename )) ;
+			source.reset( new statfile::DelimitedStatSource( filename, " " )) ;
 		}
 		else {
 			// default to R format
-			source.reset( new statfile::RFormatStatSource( filename )) ;
+			source.reset( new statfile::DelimitedStatSource( filename, " " )) ;
 		}
 
 		return source ;

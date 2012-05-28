@@ -9,6 +9,7 @@
 #include <string>
 #include <sstream>
 #include <limits>
+#include "genfile/string_utils/string_utils.hpp"
 #include "statfile/RFormatStatSource.hpp"
 
 namespace statfile {
@@ -50,26 +51,7 @@ namespace statfile {
 		std::string str_field ;
 		stream() >> str_field ;
 		if( stream() ) {
-			if( str_field == "inf" ) {
-				field = std::numeric_limits< double >::infinity() ;
-			}
-			else if( str_field == "-inf" ) {
-				field = -std::numeric_limits< double >::infinity() ;
-			}
-			else if( str_field == "nan" || str_field == "-nan" || str_field == "NA" ) {
-				field = std::numeric_limits< double >::quiet_NaN() ;
-			}
-			else {
-				std::istringstream aStream( str_field ) ;
-				aStream >> field ;
-				if( !aStream ) {
-					throw FileStructureInvalidError() ;
-				}
-				aStream.peek() ;
-				if( !aStream.eof()) {
-					throw FileStructureInvalidError() ;
-				}
-			}
+			field = genfile::string_utils::to_repr< double >( str_field ) ;
 		}
 	}
 
