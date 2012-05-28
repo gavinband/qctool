@@ -34,7 +34,7 @@ namespace qcdb {
 		m_analysis_name( cohort_name ),
 		m_metadata( metadata )
 	{
-		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 60 ) ; // wait 60s if we have to.
+		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 120 ) ; // wait 2m if we have to.
 		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS Variant ( id INTEGER PRIMARY KEY, snpid TEXT, rsid TEXT, chromosome TEXT, position INTEGER, alleleA TEXT, alleleB TEXT )"
 		) ;

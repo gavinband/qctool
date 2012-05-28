@@ -201,12 +201,6 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		) ;
 	}
 	
-	if( m_options.check( "-stratify" )) {
-		std::string const variable = m_options.get< std::string >( "-stratify" ) ;
-		impl::StrataMembers strata = impl::compute_strata( m_samples, variable ) ;
-		manager.stratify_by( strata, variable ) ;
-	}
-	
 	if( m_options.check( "-differential" )) {
 		std::string const variable = m_options.get< std::string >( "-differential" ) ;
 		impl::StrataMembers strata = impl::compute_strata( m_samples, variable ) ;
@@ -214,6 +208,12 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 			"differential_missingness",
 			DifferentialMissingnessComputation::create( variable, strata )
 		) ;
+	}
+
+	if( m_options.check( "-stratify" )) {
+		std::string const variable = m_options.get< std::string >( "-stratify" ) ;
+		impl::StrataMembers strata = impl::compute_strata( m_samples, variable ) ;
+		manager.stratify_by( strata, variable ) ;
 	}
 	
 	m_ui_context.logger() << "SNPSummaryComponent: the following components are in place:\n" << manager.get_summary( "  " ) << "\n" ;

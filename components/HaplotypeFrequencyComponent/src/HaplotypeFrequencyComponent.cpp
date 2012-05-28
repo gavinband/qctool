@@ -367,6 +367,7 @@ HaplotypeFrequencyComponent::HaplotypeFrequencyComponent(
 {}
 
 void HaplotypeFrequencyComponent::begin_processing_snps( std::size_t number_of_samples ) {
+	std::cerr << m_source->number_of_samples() << " : " <<  number_of_samples << ".\n" ;
 	assert( m_source->number_of_samples() == number_of_samples ) ;
 }
 

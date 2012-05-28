@@ -137,6 +137,10 @@ namespace genfile {
 			return result ;	
 		}
 
+		slice slice::substr( std::size_t start, std::size_t end ) const {
+			return slice( *this, start, end ) ;
+		}
+
 		void slice::split( std::string const& split_chars, std::vector< slice >* result ) const {
 			assert( std::numeric_limits< unsigned char >::max() + 1 == 256 ) ;
 			char array[ 256 ] ;

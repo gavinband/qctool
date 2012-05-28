@@ -5,6 +5,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include <string>
+#include <sstream>
 #include <memory>
 #include <set>
 #include <map>
@@ -19,12 +20,14 @@
 #include <boost/regex.hpp>
 #include <boost/math/distributions/normal.hpp>
 #include <Eigen/Core>
+#include <Eigen/Cholesky>
 #include "appcontext/CmdLineOptionProcessor.hpp"
 #include "appcontext/ApplicationContext.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
 #include "appcontext/ProgramFlow.hpp"
 #include "genfile/FileUtils.hpp"
 #include "genfile/utility.hpp"
+#include "genfile/string_utils/string_utils.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/SNPIdentifyingDataTest.hpp"
 #include "genfile/CommonSNPFilter.hpp"
@@ -161,7 +164,7 @@ private:
 			}
 			
 			if( progress_callback ) {
-				progress_callback( 100* ( filename_i + double( source->number_of_rows_read() ) / source->number_of_rows() ), 100 * number_of_files ) ;
+				progress_callback( 100 * ( filename_i + double( source->number_of_rows_read() ) / source->number_of_rows() ), 100 * number_of_files ) ;
 			}
 		}
 	}
@@ -298,8 +301,11 @@ private:
 				m_links.resize( m_i + 1 ) ;
 				m_links[ m_i ] = i ;
 				if( m_callback ) {
-					m_callback( m_i++, snp ) ;
+					m_callback( m_i, snp ) ;
 				}
+				m_i++ ;
+			}
+			else {
 			}
 		}
 
@@ -316,7 +322,7 @@ private:
 	void link_indices() {
 		assert( m_test.get() ) ;
 		SNPFilterCallback filtering_callback( *m_test ) ;
-		m_source->get_SNPs( filtering_callback ) ;
+		m_source->get_SNPs( boost::ref( filtering_callback ) ) ;
 		m_links = filtering_callback.get_links() ;
 	}
 	
@@ -329,7 +335,7 @@ private:
 
 struct AmetComputation: public boost::noncopyable {
 	typedef std::auto_ptr< AmetComputation > UniquePtr ;
-	static UniquePtr create( std::string const& name ) ;
+	static UniquePtr create( std::string const& name, appcontext::OptionProcessor const& ) ;
 	virtual ~AmetComputation() {}
 	typedef genfile::SNPIdentifyingData SNPIdentifyingData ;
 	typedef boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
@@ -398,6 +404,50 @@ struct PerCohortValueReporter: public AmetComputation {
 	}
 } ;
 
+namespace impl {
+	bool get_betas_and_ses_one_per_study( AmetComputation::DataGetter const& data_getter, Eigen::VectorXd& betas, Eigen::VectorXd& ses, Eigen::VectorXd& non_missingness ) {
+		std::size_t N = betas.size() ;
+		for( std::size_t i = 0; i < N; ++i ) {
+			non_missingness( i ) = data_getter.is_non_missing( i ) ? 1.0 : 0.0 ;
+			if( non_missingness( i )) {
+				Eigen::VectorXd data ;
+				data_getter.get_betas( i, &data ) ;
+				if( data.size() != 1 ) {
+					return false ;
+				}
+				betas(i) = data(0) ;
+				data_getter.get_ses( i, &data ) ;
+				if( data.size() != 1 ) {
+					return false ;
+				}
+				ses(i) = data(0) ;
+				
+				// check that betas and ses are 
+
+				if( betas(i) != betas(i) || ses(i) != ses(i) ) {
+					non_missingness(i) = 0 ;
+				}
+			}
+		}
+		return true ;
+	}
+	
+	std::string serialise( Eigen::VectorXd const& vector ) {
+		std::ostringstream ostr ;
+		for( int i = 0; i < vector.size(); ++i ) {
+			if( i > 0 ) {
+				ostr << "," ;
+			}
+			if( vector(i) == vector(i) ) {
+				ostr << vector(i) ;
+			} else {
+				ostr << "NA" ;
+			}
+		}
+		return ostr.str() ;
+	}
+}
+
 struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
 	void operator()(
 		SNPIdentifyingData const& snp,
@@ -413,30 +463,41 @@ struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
 		Eigen::VectorXd ses( N ) ;
 		Eigen::VectorXd non_missingness( N ) ;
 		
-		get_data( data_getter, betas, ses, non_missingness ) ;
-		
-		Eigen::VectorXd inverse_variances = ( ses.array() * ses.array() ).inverse() ;
-		for( int i = 0; i < int(N); ++i ) {
-			if( non_missingness( i ) == 0.0 ) {
-				inverse_variances( i ) = 0 ;
-				betas( i ) = 0 ;
-				ses( i ) = 0 ;
-			}
+
+		if( !impl::get_betas_and_ses_one_per_study( data_getter, betas, ses, non_missingness ) ) {
+			callback( "FixedEffectFrequentistMetaAnalysis/meta_beta", genfile::MissingValue() ) ;
+			callback( "FixedEffectFrequentistMetaAnalysis/meta_se", genfile::MissingValue() ) ;
+			callback( "FixedEffectFrequentistMetaAnalysis/meta_pvalue", genfile::MissingValue() ) ;
+			return ;
 		}
-		double const meta_beta = ( inverse_variances.array() * betas.array() ).sum() / inverse_variances.sum() ;
-		double const meta_se = std::sqrt( 1.0 / inverse_variances.sum() ) ;
+		else {
+			callback( "FixedEffectFrequentistMetaAnalysis/study_betas", impl::serialise( betas ) ) ;
+			callback( "FixedEffectFrequentistMetaAnalysis/study_ses", impl::serialise( ses ) ) ;
+			
+			Eigen::VectorXd inverse_variances = ( ses.array() * ses.array() ).inverse() ;
+			for( int i = 0; i < int(N); ++i ) {
+				if( non_missingness( i ) == 0.0 ) {
+					inverse_variances( i ) = 0 ;
+					betas( i ) = 0 ;
+					ses( i ) = 0 ;
+				}
+			}
+			double const meta_beta = ( inverse_variances.array() * betas.array() ).sum() / inverse_variances.sum() ;
+			double const meta_se = std::sqrt( 1.0 / inverse_variances.sum() ) ;
 
-		callback( "fixed_effect_meta_beta", meta_beta ) ;
-		callback( "fixed_effect_meta_se", meta_se ) ;
+			callback( "FixedEffectFrequentistMetaAnalysis/meta_beta", meta_beta ) ;
+			callback( "FixedEffectFrequentistMetaAnalysis/meta_se", meta_se ) ;
 
-		//std::cerr << "SNP: " << snp << ": betas = " << betas << ", ses = " << ses << ".\n" ;
+			//std::cerr << "SNP: " << snp << ": betas = " << betas << ", ses = " << ses << ".\n" ;
 
-		if( meta_se > 0 && meta_se != std::numeric_limits< double >::infinity() ) {
-			typedef boost::math::normal NormalDistribution ;
-			NormalDistribution normal( 0, meta_se ) ;
-			// P-value is the mass under both tails of the normal distribution larger than |meta_beta|
-			double const pvalue = 2.0 * boost::math::cdf( boost::math::complement( normal, std::abs( meta_beta ) ) ) ;
-			callback( "fixed_effect_meta_pvalue", pvalue ) ;
+			if( meta_se > 0 && meta_se != std::numeric_limits< double >::infinity() ) {
+				typedef boost::math::normal NormalDistribution ;
+				NormalDistribution normal( 0, meta_se ) ;
+				// P-value is the mass under both tails of the normal distribution larger than |meta_beta|
+				double const pvalue = 2.0 * boost::math::cdf( boost::math::complement( normal, std::abs( meta_beta ) ) ) ;
+				callback( "FixedEffectFrequentistMetaAnalysis/pvalue", pvalue ) ;
+			}
+			
 		}
 	}
 
@@ -447,37 +508,131 @@ struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const {
 		return prefix + get_spec() ;
 	}
-	
-private:
-	void get_data( DataGetter const& data_getter, Eigen::VectorXd& betas, Eigen::VectorXd& ses, Eigen::VectorXd& non_missingness ) {
-		std::size_t N = betas.size() ;
-		for( std::size_t i = 0; i < N; ++i ) {
-			non_missingness( i ) = data_getter.is_non_missing( i ) ? 1.0 : 0.0 ;
-			if( non_missingness( i )) {
-				Eigen::VectorXd data ;
-				data_getter.get_betas( i, &data ) ;
-				assert( data.size() == 1 ) ;
-				betas(i) = data(0) ;
-				data_getter.get_ses( i, &data ) ;
-				assert( data.size() == 1 ) ;
-				ses(i) = data(0) ;
-
-
-				if( betas(i) != betas(i) || ses(i) != ses(i) ) {
-					non_missingness(i) = 0 ;
-				}
-			}
-		}
-	}
 } ;
 
-AmetComputation::UniquePtr AmetComputation::create( std::string const& name ) {
+//
+// Bayesian meta-analysis treating the prior as normal with mean 0 and variance matrix \Sigma
+// and the likelihood as normal and given by
+// the estimated betas and ses.
+struct ApproximateBayesianMetaAnalysis: public AmetComputation {
+	ApproximateBayesianMetaAnalysis(
+		Eigen::MatrixXd const& sigma
+	):
+		m_sigma( sigma )
+	{
+		assert( m_sigma.rows() == m_sigma.cols() ) ;
+	}
+
+	void operator()(
+		SNPIdentifyingData const& snp,
+		DataGetter const& data_getter,
+		ResultCallback callback
+	) {
+		std::size_t const N = data_getter.get_number_of_cohorts() ;
+		if( N == 0 ) {
+			return ;
+		}
+
+		Eigen::VectorXd betas( N ) ;
+		Eigen::VectorXd ses( N ) ;
+		Eigen::VectorXd non_missingness( N ) ;
+		
+		if(
+			!impl::get_betas_and_ses_one_per_study( data_getter, betas, ses, non_missingness )
+			|| non_missingness.sum() == 0
+		) {
+			callback( "ApproximateBayesianMetaAnalysis/bf", genfile::MissingValue() ) ;
+			return ;
+		}
+		else {
+			callback( "ApproximateBayesianMetaAnalysis/study_betas", impl::serialise( betas ) ) ;
+			callback( "ApproximateBayesianMetaAnalysis/study_ses", impl::serialise( ses ) ) ; 
+			
+			// deal with missingness.
+			// Make a matrix that will select the rows and columns we want.
+			assert( betas.size() == m_sigma.rows() ) ;
+			
+			Eigen::MatrixXd prior_selector = Eigen::MatrixXd::Zero( non_missingness.sum(), betas.size() ) ;
+			Eigen::MatrixXd prior ;
+			{
+				int count = 0 ;
+				for( int i = 0; i < betas.size(); ++i ) {
+					if( non_missingness(i) ) {
+						prior_selector( count++, i ) = 1 ;
+					}
+				}
+				
+				prior = prior_selector * m_sigma * prior_selector.transpose() ;
+				betas = prior_selector * betas ;
+				ses = prior_selector * ses ;
+			}
+			
+			assert( ses.size() == non_missingness.sum() ) ;
+			assert( betas.size() == non_missingness.sum() ) ;
+			assert( prior.rows() == non_missingness.sum() ) ;
+			assert( prior.cols() == non_missingness.sum() ) ;
+			
+			Eigen::MatrixXd V = ses.asDiagonal() ;
+			V = V.array().square() ;
+			
+			// I hope LDLT copes with noninvertible matrices.
+			// Maybe it doesn't...but let's find out.
+			Eigen::LDLT< Eigen::MatrixXd > Vsolver( V ) ;
+			Eigen::LDLT< Eigen::MatrixXd > V_plus_prior_solver( V + prior ) ;
+			
+			Eigen::VectorXd exponent = betas.transpose() * ( Vsolver.solve( betas ) + V_plus_prior_solver.solve( betas ) ) ;
+			
+			assert( exponent.size() == 1 ) ;
+			
+			double const constant = Vsolver.vectorD().prod() / V_plus_prior_solver.vectorD().prod() ;
+			double const result = constant * std::exp( 0.5 * exponent(0) ) ;
+			
+			callback( "ApproximateBayesianMetaAnalysis/bf", result ) ;
+		}
+	}
+
+	std::string get_spec() const {
+		return "ApproximateBayesianMetaAnalysis with prior:\n" + genfile::string_utils::to_string( m_sigma ) ;
+	}
+
+	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const {
+		return prefix + get_spec() ;
+	}
+private:
+	Eigen::MatrixXd const m_sigma ;
+} ;
+
+
+AmetComputation::UniquePtr AmetComputation::create( std::string const& name, appcontext::OptionProcessor const& options ) {
 	AmetComputation::UniquePtr result ;
 	if( name == "FixedEffectFrequentistMetaAnalysis" ) {
 		result.reset( new FixedEffectFrequentistMetaAnalysis() ) ;
 	}
-	else if( name == "PerCohortValueReporter" ) {
-		result.reset( new PerCohortValueReporter() ) ;
+	else if( name == "ApproximateBayesianMetaAnalysis" ) {
+		std::vector< std::string > values = genfile::string_utils::split_and_strip( options.get< std::string >( "-prior-correlation" ), ",", " \t" ) ;
+		
+		double n = std::floor( std::sqrt( values.size() * 2 ) ) ;
+		
+		if( values.size() != (( n * (n+1) ) / 2 ) ) {
+			throw genfile::BadArgumentError( "AmetComputation::create()", "-prior-correlation=\"" + options.get< std::string >( "-prior-correlation" ) + "\"" ) ;
+		}
+		
+		Eigen::MatrixXd prior( n, n ) ;
+		{
+			int index = 0 ;
+			for( int i = 0; i < n; ++i ) {
+				for( int j = 0; j < n; ++j ) {
+					prior( i, j )
+						= ( j >= i ) ?
+							genfile::string_utils::to_repr< double >( values[ index++ ] )
+							:
+							prior( j, i ) ;
+				}
+			}
+		}
+		
+		prior *= options.get< double >( "-prior-variance" ) ;
+		result.reset( new ApproximateBayesianMetaAnalysis( prior )) ;
 	}
 	else {
 		throw genfile::BadArgumentError( "AmetComputation::create()", "name=\"" + name + "\"" ) ;
@@ -508,12 +663,20 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 			.set_maximum_multiplicity( 100 )
 		;
 		
+		options[ "-prior-correlation" ]
+			.set_description( "Specify the upper triangle of the prior correlation matrix for bayesian analysis." )
+			.set_takes_single_value() ;
+
+		options[ "-prior-variance" ]
+			.set_description( "Specify the prior variance for bayesian analysis." )
+			.set_takes_single_value() ;
+		
+		options.option_implies_option( "-prior-variance", "-prior-correlation" ) ;
+		options.option_implies_option( "-prior-correlation", "-prior-variance" ) ;
+
 		options[ "-omit-raw-results" ]
 			.set_description( "Indicate that " + globals::program_name + " should not store raw results from the input files in the database." ) ;
 		
-		options[ "-meta-analyse" ]
-			.set_description( "Compute and store meta-analysis p-values for all SNPs." ) ;
-
 		options[ "-o" ]
 			.set_description( "Specify the path to a file in which results will be placed." )
 			.set_is_required()
@@ -809,11 +972,17 @@ public:
 			)
 		) ;
 
-		if( options().check( "-meta-analyse" )) {
-			if( options().get_values< std::string >( "-snptest" ).size() < 2 ) {
-				get_ui_context().logger() << "!! Warning: you have specified -meta-analyse but only one cohort is supplied!  Proceeding anyway though...\n" ;
+		if( options().check( "-snptest" ) && options().get_values< std::string >( "-snptest" ).size() > 1 ) {
+			m_processor->add_computation(
+				"FixedEffectFrequentistMetaAnalysis",
+				AmetComputation::create( "FixedEffectFrequentistMetaAnalysis", options() )
+			) ;
+			if( options().check( "-prior-correlation" )) {
+				m_processor->add_computation(
+					"ApproximateBayesianMetaAnalysis",
+					AmetComputation::create( "ApproximateBayesianMetaAnalysis", options() )
+				) ;
 			}
-			m_processor->add_computation( "FixedEffectFrequentistMetaAnalysis", AmetComputation::create( "FixedEffectFrequentistMetaAnalysis" ) ) ;
 		}
 		m_processor->process( get_ui_context() ) ;
 	}
