@@ -6,6 +6,7 @@
 
 #include <string>
 #include <sstream>
+#include <iomanip>
 #include <memory>
 #include <set>
 #include <map>
@@ -36,8 +37,8 @@
 #include "components/SNPSummaryComponent/DBOutputter.hpp"
 
 namespace globals {
-	std::string const program_name = "amet" ;
-	std::string const program_version = "0.1" ;
+	std::string const program_name = "bingwa" ;
+	std::string const program_version = "0.2" ;
 }
 
 struct FrequentistGenomeWideAssociationResults: public boost::noncopyable {
@@ -575,16 +576,22 @@ struct ApproximateBayesianMetaAnalysis: public AmetComputation {
 			Eigen::MatrixXd V = ses.asDiagonal() ;
 			V = V.array().square() ;
 			
+			std::cerr << std::resetiosflags( std::ios::floatfield ) ;
+			std::cerr << "V = " << V << ".\n" ;
+			std::cerr << "prior = " << prior << ".\n" ;
+			std::cerr << "betas = " << betas.transpose() << ".\n" ;
+			std::cerr << "ses = " << ses.transpose() << ".\n" ;
+			
 			// I hope LDLT copes with noninvertible matrices.
 			// Maybe it doesn't...but let's find out.
 			Eigen::LDLT< Eigen::MatrixXd > Vsolver( V ) ;
 			Eigen::LDLT< Eigen::MatrixXd > V_plus_prior_solver( V + prior ) ;
 			
-			Eigen::VectorXd exponent = betas.transpose() * ( Vsolver.solve( betas ) + V_plus_prior_solver.solve( betas ) ) ;
+			Eigen::VectorXd exponent = betas.transpose() * ( Vsolver.solve( betas ) - V_plus_prior_solver.solve( betas ) ) ;
 			
 			assert( exponent.size() == 1 ) ;
 			
-			double const constant = Vsolver.vectorD().prod() / V_plus_prior_solver.vectorD().prod() ;
+			double const constant = std::sqrt( Vsolver.vectorD().prod() / V_plus_prior_solver.vectorD().prod() ) ;
 			double const result = constant * std::exp( 0.5 * exponent(0) ) ;
 			
 			callback( "ApproximateBayesianMetaAnalysis/bf", result ) ;
@@ -664,7 +671,11 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 		;
 		
 		options[ "-prior-correlation" ]
-			.set_description( "Specify the upper triangle of the prior correlation matrix for bayesian analysis." )
+			.set_description( "Specify the upper triangle of the prior correlation matrix for bayesian analysis.  For example, "
+				"the value \"1,0.5,1\" specifies the matrix\n"
+				"   [ 1    0.5 ]\n"
+				"   [ 0.5  1   ]."
+			)
 			.set_takes_single_value() ;
 
 		options[ "-prior-variance" ]
@@ -674,9 +685,6 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 		options.option_implies_option( "-prior-variance", "-prior-correlation" ) ;
 		options.option_implies_option( "-prior-correlation", "-prior-variance" ) ;
 
-		options[ "-omit-raw-results" ]
-			.set_description( "Indicate that " + globals::program_name + " should not store raw results from the input files in the database." ) ;
-		
 		options[ "-o" ]
 			.set_description( "Specify the path to a file in which results will be placed." )
 			.set_is_required()
@@ -685,7 +693,7 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 		options[ "-analysis-name" ]
 			.set_description( "Specify a name to label results from this analysis with" )
 			.set_takes_single_value()
-			.set_default_value( "amet analysis, started " + appcontext::get_current_time_as_string() ) ;
+			.set_default_value( "bingwa analysis, started " + appcontext::get_current_time_as_string() ) ;
 		
 		options[ "-snp-match-fields" ]
 			.set_description( "Set the fields used to describe SNPs as equal." )
@@ -1024,7 +1032,7 @@ public:
 			
 			if( options().check( "-excl-rsids" ) ) {
 				genfile::CommonSNPFilter::UniquePtr snp_filter ( new genfile::CommonSNPFilter ) ;
-
+				
 				std::vector< std::string > exclusion_files = options().get_values< std::string > ( "-excl-rsids" ) ;
 				assert( exclusion_files.size() == cohort_files.size() ) ;
 				

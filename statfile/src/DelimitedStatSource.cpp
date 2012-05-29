@@ -226,7 +226,12 @@ namespace statfile {
 		if( current_column() == 0 ) {
 			read_one_line() ;
 		}
-		value = genfile::string_utils::to_repr< double >( m_current_fields[ current_column() ] ) ;
+		genfile::string_utils::slice const& elt = m_current_fields[ current_column() ] ;
+		if( elt.size() == 2 && elt[0] == 'N' && elt[1] == 'A' ) {
+			value = std::numeric_limits< double >::quiet_NaN() ;
+		}
+		else {
+			value = genfile::string_utils::to_repr< double >( elt ) ;
+		}
 	}
-	
 }
