@@ -71,10 +71,13 @@ void DifferentialMissingnessComputation::operator()( SNPIdentifyingData const& s
 	
 	if( table.row(0).sum() > 0 && table.row(1).sum() > 0 ) {
 		std::string const stub = "missingness_by_" + m_stratification_name ;
-		{
+		try {
 			metro::FishersExactTest test( table ) ;
 			callback( stub + "_exact_pvalue", test.get_pvalue() )  ;
 			callback( stub + "_sample_odds_ratio", test.get_OR() )  ;
+		}
+		catch( std::exception const& e ) {
+			//
 		}
 		
 		{
