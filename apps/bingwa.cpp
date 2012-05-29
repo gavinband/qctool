@@ -112,7 +112,7 @@ private:
 		}
 	}
 	
-	void setup( std::size_t const filename_i, std::size_t const number_of_files, genfile::wildcard::FilenameMatch const& filename, SNPResultCallback callback,ProgressCallback progress_callback ) {
+	void setup( std::size_t const filename_i, std::size_t const number_of_files, genfile::wildcard::FilenameMatch const& filename, SNPResultCallback callback, ProgressCallback progress_callback ) {
 		statfile::BuiltInTypeStatSource::UniquePtr source( statfile::BuiltInTypeStatSource::open( filename.filename() )) ;
 
 		ColumnMap column_map = get_columns_to_store( *source ) ;
@@ -165,7 +165,7 @@ private:
 			}
 			
 			if( progress_callback ) {
-				progress_callback( 100 * ( filename_i + double( source->number_of_rows_read() ) / source->number_of_rows() ), 100 * number_of_files ) ;
+				progress_callback( 100 * ( filename_i + double( source->number_of_rows_read() + 1 ) / source->number_of_rows() ), 100 * number_of_files ) ;
 			}
 		}
 	}
@@ -775,7 +775,7 @@ struct AmetProcessor: public boost::noncopyable
 		for( CategoryCounts::const_iterator i = m_category_counts.begin(); i != m_category_counts.end(); ++i ) {
 			ui_context.logger() << "  " ;
 			for( std::size_t j = 0; j < m_cohorts.size(); ++j ) {	
-				ui_context.logger() << std::setw(12) << i->first[j] ;
+				ui_context.logger() << std::setw(12) << ( i->first[j] ? '*' : ' ' ) ;
 			}
 			ui_context.logger() << ": " << i->second << "\n" ;
 		}
@@ -1005,7 +1005,7 @@ public:
 		get_ui_context().logger() << "\n" << globals::program_name << ": Analysis complete.\n" ;
 		get_ui_context().logger() << "\n---- VIEWING RESULTS ----\n" ;
 		get_ui_context().logger() << "View your results from the command-line using this command\n\n"
-			<< "$ sqlite3 -separator $'\t'-header \"" << output_file << "\" \"" << SQL << "\"\n\n"
+			<< "$ sqlite3 -separator $'\\t' -header \"" << output_file << "\" \"" << SQL << "\"\n\n"
 			<< "or from R using this snippet:\n\n"
 			<< "> library( RSQLite ) ;\n"
 			<< "> db = dbConnect( dbDriver( \"SQLite\" ), \"" << output_file << "\" ) ;\n"
