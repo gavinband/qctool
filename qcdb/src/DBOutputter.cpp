@@ -99,7 +99,7 @@ namespace qcdb {
 		m_connection->run_statement(
 			"CREATE VIEW IF NOT EXISTS SummaryDataView AS "
 			"SELECT          V.id AS variant_id, V.chromosome, V.position, V.rsid, "
-			"SD.analysis_id, Analysis.name, Variable.id AS variable_id, Variable.name AS variable, "
+			"SD.analysis_id, Analysis.name AS analysis, Variable.id AS variable_id, Variable.name AS variable, "
 			"SD.value AS value "
 			"FROM SummaryData SD "
 			"INNER JOIN Variant V ON V.id == SD.variant_id "

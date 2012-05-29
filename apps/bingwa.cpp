@@ -576,11 +576,11 @@ struct ApproximateBayesianMetaAnalysis: public AmetComputation {
 			Eigen::MatrixXd V = ses.asDiagonal() ;
 			V = V.array().square() ;
 			
-			std::cerr << std::resetiosflags( std::ios::floatfield ) ;
-			std::cerr << "V = " << V << ".\n" ;
-			std::cerr << "prior = " << prior << ".\n" ;
-			std::cerr << "betas = " << betas.transpose() << ".\n" ;
-			std::cerr << "ses = " << ses.transpose() << ".\n" ;
+			// std::cerr << std::resetiosflags( std::ios::floatfield ) ;
+			// std::cerr << "V = " << V << ".\n" ;
+			// std::cerr << "prior = " << prior << ".\n" ;
+			// std::cerr << "betas = " << betas.transpose() << ".\n" ;
+			// std::cerr << "ses = " << ses.transpose() << ".\n" ;
 			
 			// I hope LDLT copes with noninvertible matrices.
 			// Maybe it doesn't...but let's find out.
@@ -663,8 +663,9 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 		;
 		
 		options[ "-excl-rsids" ]
-			.set_description( "Specify a file containing a list of rsids to exclude from the analysis. "
-				"If this option is specified it must occur the same number of times as the -snptest option." )
+			.set_description( "Specify files containing lists of rsids to exclude from the analysis. "
+				"If this option is specified it must occur the same number of times as the -snptest option (or not at all). "
+				"Each value should be a comma-separated list of files containing rsids to exclude from the corresponding cohort before meta-analysis." )
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 )
@@ -686,7 +687,7 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 		options.option_implies_option( "-prior-correlation", "-prior-variance" ) ;
 
 		options[ "-o" ]
-			.set_description( "Specify the path to a file in which results will be placed." )
+			.set_description( "Specify the path to the output file." )
 			.set_is_required()
 			.set_takes_single_value() ;
 		
@@ -696,12 +697,14 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 			.set_default_value( "bingwa analysis, started " + appcontext::get_current_time_as_string() ) ;
 		
 		options[ "-snp-match-fields" ]
-			.set_description( "Set the fields used to describe SNPs as equal." )
+			.set_description( "Use this option to specify a comma-separated list of SNP-identifying fields that should be used "
+				"to match SNPs between cohorts.  Possible fields "
+				"are \"position\", \"alleles\", \"rsid\", or \"snpid\"; you must always specify \"position\" as the first entry." )
 			.set_takes_single_value()
 			.set_default_value( "position,alleles" ) ;
 
 		options[ "-log" ]
-			.set_description( "Specify the path of the log file." )
+			.set_description( "Specify the path of a log file; all screen output will be copied to the file." )
 			.set_takes_single_value() ;
 	}
 } ;
@@ -995,6 +998,23 @@ public:
 		m_processor->process( get_ui_context() ) ;
 	}
 	
+	void post_summarise() const {
+		std::string const output_file = options().get< std::string >( "-o" ) ;
+		std::string const analysis = options().get< std::string >( "-analysis-name" ) ;
+		std::string const SQL = "SELECT * FROM SummaryDataView WHERE analysis == '" + analysis + "'" ;
+		get_ui_context().logger() << "\n" << globals::program_name << ": Analysis complete.\n" ;
+		get_ui_context().logger() << "\n---- VIEWING RESULTS ----\n" ;
+		get_ui_context().logger() << "View your results from the command-line using this command\n\n"
+			<< "$ sqlite3 -separator $'\t'-header \"" << output_file << "\" \"" << SQL << "\"\n\n"
+			<< "or from R using this snippet:\n\n"
+			<< "> library( RSQLite ) ;\n"
+			<< "> db = dbConnect( dbDriver( \"SQLite\" ), \"" << output_file << "\" ) ;\n"
+			<< "> data = dbGetQuery( db, \"" << SQL << "\")  ;\n\n"
+			<< "...enjoy!\n" ;
+		get_ui_context().logger() << "\n-------------------------\n" ;
+		
+	}
+	
 	typedef
 		boost::function< void ( std::size_t, genfile::SNPIdentifyingData const&, std::string const&, std::string const&, genfile::VariantEntry const& ) > 
 		ResultCallback ;
@@ -1061,6 +1081,7 @@ int main( int argc, char **argv ) {
 	try {
 		AmetApplication app( argc, argv ) ;	
 		app.run() ;
+		app.post_summarise() ;
 	}
 	catch( appcontext::HaltProgramWithReturnCode const& e ) {
 		return e.return_code() ;
