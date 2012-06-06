@@ -10,6 +10,7 @@
 #include <iostream>
 #include <string>
 #include <stdint.h>
+#include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/VariantDataReader.hpp"
@@ -27,6 +28,7 @@ namespace genfile {
 	{
 	public:
 		typedef std::auto_ptr< SNPDataSink > UniquePtr ;
+		typedef boost::shared_ptr< SNPDataSink > SharedPtr ;
 	public:
 		SNPDataSink() ;
 		virtual ~SNPDataSink() ;

@@ -7,6 +7,7 @@
 #ifndef QCTOOL_CALLCOMPARERCOMPONENT_CONSENSUS_CALLER_HPP
 #define QCTOOL_CALLCOMPARERCOMPONENT_CONSENSUS_CALLER_HPP
 
+#include <boost/signals2/signal.hpp>
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
@@ -20,8 +21,27 @@ struct ConsensusCaller: public PairwiseCallComparerManager::MergeClient, public 
 public:
 	typedef std::auto_ptr< ConsensusCaller > UniquePtr ;
 	typedef boost::shared_ptr< ConsensusCaller > SharedPtr ;
-	ConsensusCaller( genfile::SNPDataSink::UniquePtr sink ) ;
+	static UniquePtr create( std::string const& model ) ;
+	static SharedPtr create_shared( std::string const& model ) ;
+
 public:
+	ConsensusCaller() ;
+public:
+	typedef boost::signals2::signal<
+		void (
+			genfile::SNPIdentifyingData const&,
+			Eigen::MatrixXd const&,
+			std::map< std::string, std::vector< genfile::VariantEntry > > const&
+		)
+	> ResultSignal ;
+
+	void send_results_to( ResultSignal::slot_type ) ;
+	void send_results(
+		genfile::SNPIdentifyingData const& snp,
+		Eigen::MatrixXd const& genotypes,
+		std::map< std::string, std::vector< genfile::VariantEntry > > const& info
+	) ;
+
 	void begin_processing_snps( std::size_t number_of_samples ) ;
 	void begin_comparisons( genfile::SNPIdentifyingData const& snp ) ;
 	void set_result(
@@ -30,14 +50,12 @@ public:
 		genfile::VariantEntry const&
 	) ;
 	void end_comparisons() ;
-	void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& data_reader ) ;
 	void end_processing_snps() {}
+	
+	std::vector< std::string > const& get_consensus_call_names() const { return m_call_names ; }
 private:
-	double const m_call_threshhold ;
-	std::size_t m_number_of_samples ;
 	std::vector< std::string > m_call_names ;
-	std::vector< Eigen::MatrixXd > m_genotypes ;
-	genfile::SNPDataSink::UniquePtr m_sink ;
+	ResultSignal m_result_signal ;
 } ;
 
 #endif

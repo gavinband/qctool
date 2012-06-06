@@ -20,7 +20,7 @@ namespace genfile {
 		m_matrix( i, 2 ) = BB ;
 	}
 	
-	GenotypeGetter< Eigen::MatrixXd >::GenotypeGetter( Eigen::MatrixXd& matrix, std::size_t g ):
+	GenotypeGetter< Eigen::MatrixXd >::GenotypeGetter( Eigen::MatrixXd const& matrix, std::size_t g ):
 		m_matrix( matrix ),
 		m_g( g )
 	{

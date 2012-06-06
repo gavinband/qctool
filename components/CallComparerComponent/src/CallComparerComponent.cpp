@@ -14,6 +14,7 @@
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
+#include "genfile/get_set_eigen.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
@@ -23,7 +24,7 @@
 #include "components/CallComparerComponent/FrequentistTestCallMerger.hpp"
 #include "components/CallComparerComponent/CallComparerDBOutputter.hpp"
 #include "components/CallComparerComponent/CallComparerFileOutputter.hpp"
-#include "components/CallComparerComponent/ConsensusCaller.hpp"
+#include "components/CallComparerComponent/LeastMissingConsensusCaller.hpp"
 
 
 CallComparerProcessor::UniquePtr CallComparerProcessor::create( PairwiseCallComparerManager::UniquePtr comparer, std::vector< std::string > const& call_fields ) {
@@ -111,6 +112,22 @@ namespace impl {
 	genfile::VariantEntry get_sample_entry( genfile::CohortIndividualSource const& samples, std::string const& name, std::size_t i ) {
 		return samples.get_entry( i, name ) ;
 	}
+	
+	void send_results_to_sink(
+		genfile::SNPDataSink::SharedPtr sink,
+		genfile::SNPIdentifyingData const& snp,
+		Eigen::MatrixXd const& genotypes,
+		std::map< std::string, std::vector< genfile::VariantEntry > > const& info
+	) {
+		sink->write_snp(
+			genotypes.rows(),
+			snp,
+			genfile::GenotypeGetter< Eigen::MatrixXd >( genotypes, 0ul ),
+			genfile::GenotypeGetter< Eigen::MatrixXd >( genotypes, 1ul ),
+			genfile::GenotypeGetter< Eigen::MatrixXd >( genotypes, 2ul ),
+			info
+		) ;
+	}
 }
 
 void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor ) const {
@@ -134,11 +151,22 @@ void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor ) 
 	
 	ConsensusCaller::SharedPtr consensus_caller ;
 	{
-		genfile::SNPDataSink::UniquePtr sink = genfile::SNPDataSink::create(
-			m_options.get< std::string >( "-consensus-call" )
+		genfile::SNPDataSink::SharedPtr sink(
+			genfile::SNPDataSink::create(
+				m_options.get< std::string >( "-consensus-call" )
+			).release()
 		) ;
 		sink->set_sample_names( boost::bind( impl::get_sample_entry, boost::ref( m_samples ), "ID_1", _1 ) ) ;
-		consensus_caller.reset( new ConsensusCaller( sink ) ) ;
+		consensus_caller = ConsensusCaller::create_shared( m_options.get< std::string >( "-consensus-model" ) ) ;
+		consensus_caller->send_results_to(
+			boost::bind(
+				&impl::send_results_to_sink,
+				sink,
+				_1,
+				_2,
+				_3
+			)
+		) ;
 	}
 
 	manager->send_merge_to( consensus_caller ) ;
