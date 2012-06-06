@@ -9,6 +9,8 @@
 
 #include <string>
 #include <memory>
+#include <map>
+#include <utility>
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
