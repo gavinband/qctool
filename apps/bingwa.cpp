@@ -671,21 +671,6 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 			.set_maximum_multiplicity( 100 )
 		;
 		
-		options[ "-prior-correlation" ]
-			.set_description( "Specify the upper triangle of the prior correlation matrix for bayesian analysis.  For example, "
-				"the value \"1,0.5,1\" specifies the matrix\n"
-				"   [ 1    0.5 ]\n"
-				"   [ 0.5  1   ]."
-			)
-			.set_takes_single_value() ;
-
-		options[ "-prior-variance" ]
-			.set_description( "Specify the prior variance for bayesian analysis." )
-			.set_takes_single_value() ;
-		
-		options.option_implies_option( "-prior-variance", "-prior-correlation" ) ;
-		options.option_implies_option( "-prior-correlation", "-prior-variance" ) ;
-
 		options[ "-o" ]
 			.set_description( "Specify the path to the output file." )
 			.set_is_required()
@@ -706,6 +691,23 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 		options[ "-log" ]
 			.set_description( "Specify the path of a log file; all screen output will be copied to the file." )
 			.set_takes_single_value() ;
+
+		options.declare_group( "Analysis options" ) ;
+		
+		options[ "-prior-correlation" ]
+			.set_description( "Specify the upper triangle of the prior correlation matrix for bayesian analysis.  For example, "
+				"the value \"1,0.5,1\" specifies the matrix\n"
+				"   [ 1    0.5 ]\n"
+				"   [ 0.5  1   ]."
+			)
+			.set_takes_single_value() ;
+
+		options[ "-prior-variance" ]
+			.set_description( "Specify the prior variance for bayesian analysis." )
+			.set_takes_single_value() ;
+		
+		options.option_implies_option( "-prior-variance", "-prior-correlation" ) ;
+		options.option_implies_option( "-prior-correlation", "-prior-variance" ) ;
 	}
 } ;
 
