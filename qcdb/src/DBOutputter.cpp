@@ -39,7 +39,10 @@ namespace qcdb {
 			"CREATE TABLE IF NOT EXISTS Variant ( id INTEGER PRIMARY KEY, snpid TEXT, rsid TEXT, chromosome TEXT, position INTEGER, alleleA TEXT, alleleB TEXT )"
 		) ;
 		m_connection->run_statement(
-			"CREATE INDEX IF NOT EXISTS Variant_index ON Variant( chromosome, position, rsid )"
+			"CREATE INDEX IF NOT EXISTS Variant_index ON Variant( chromosome, position )"
+		) ;
+		m_connection->run_statement(
+			"CREATE INDEX IF NOT EXISTS Variant_rsid_index ON Variant( rsid )"
 		) ;
 		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS Entity ( "
