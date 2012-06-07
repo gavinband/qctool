@@ -13,67 +13,16 @@
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
 #include "integration/NewtonRaphson.hpp"
 #include "components/CallComparerComponent/AlleleFrequencyTestCallComparer.hpp"
+#include "metro/likelihood/Multinomial.hpp"
+#include "metro/likelihood/ProductOfMultinomials.hpp"
 
 #define ALLELE_FREQUENCY_TEST_CALL_COMPARER_DEBUG 0
 
 namespace {
-	struct MultinomialLogLikelihood {
-		typedef Eigen::VectorXd Point ;
-		typedef Eigen::VectorXd Vector ;
-		typedef Eigen::MatrixXd Matrix ;
-	
-		MultinomialLogLikelihood( Vector const& counts ):
-			m_counts( counts ),
-			m_parameters( Vector::Zero( counts.size() ) )
-		{
-		}
-
-		MultinomialLogLikelihood( Vector const& counts, Vector const& parameters ):
-			m_counts( counts ),
-			m_parameters( parameters )
-		{
-			assert( parameters.size() == counts.size() ) ;
-		}
-
-		void evaluate_at( Vector const& parameters ) {
-			assert( parameters.size() == m_counts.size() ) ;
-			m_parameters = parameters ;
-		}
-
-		double get_value_of_function() const {
-			double result = 0.0 ;
-			for( int i = 0; i < m_counts.size(); ++i ) {
-				if( m_counts(i) > 0.0 ) {
-					result += m_counts(i) * std::log( m_parameters( i )) ;
-				}
-			}
-			return result ;
-		}
-	
-		Vector get_value_of_first_derivative() const {
-			Vector result = Vector::Zero( m_counts.size() ) ;
-			for( int i = 0; i < result.size(); ++i ) {
-				if( m_counts(i) > 0.0 ) {
-					result(i) = m_counts(i) / m_parameters(i) ;
-				}
-			}
-			return result ;
-		}
-
-		Matrix get_value_of_second_derivative() const {
-			Matrix result = Matrix::Zero( m_counts.size(), m_counts.size() ) ;
-			for( int i = 0; i < result.size(); ++i ) {
-				if( m_counts(i) != 0.0 ) {
-					result( i, i ) = -m_counts(i) / ( m_parameters(i) * m_parameters(i) ) ;
-				}
-			}
-			return result ;
-		}
-
-	private:
-		Vector const m_counts ;
-		Vector m_parameters ;
-	} ;
+	typedef Eigen::VectorXd Vector ;
+	typedef Eigen::MatrixXd Matrix ;
+	typedef metro::likelihood::Multinomial< double, Vector, Matrix > Multinomial ;
+	typedef metro::likelihood::ProductOfMultinomials< double, Vector, Matrix > ProductOfMultinomials ;
 }
 
 AlleleFrequencyTestCallComparer::AlleleFrequencyTestCallComparer():
@@ -88,8 +37,6 @@ std::map< std::string, genfile::VariantEntry > AlleleFrequencyTestCallComparer::
 	// Make table of counts
 	assert( left.size() == right.size() ) ;
 	std::size_t const N = left.size() ;
-	typedef MultinomialLogLikelihood::Vector Vector ;
-	typedef MultinomialLogLikelihood::Matrix Matrix ;
 	
 	Matrix table = Matrix::Zero( 2, 3 ) ;
 
@@ -109,27 +56,13 @@ std::map< std::string, genfile::VariantEntry > AlleleFrequencyTestCallComparer::
 		}
 	}
 
-	
-	Vector null_ml = Vector::Zero( 3 ) ;
-	Matrix alt_ml = Matrix::Zero( 2, 3 ) ;
-	
-	for( int g = 0; g < 3; ++g ) {
-		null_ml(g) = table.col( g ).sum() / table.sum() ;
-		for( int row = 0; row < 2; ++row ) {
-			alt_ml(row,g) = table( row, g ) / table.row(row).sum() ;
-		}
-	}
+	ProductOfMultinomials alt_model( table ) ;
+	Multinomial null_model( table.row(0) + table.row(1) ) ;
 
-	MultinomialLogLikelihood
-		null_model( table.row(0) + table.row(1) ),
-		alt0( table.row(0) ),
-		alt1( table.row(1) ) ;
+	null_model.evaluate_at( null_model.get_MLE() ) ;
+	alt_model.evaluate_at( alt_model.get_MLE() ) ;
 
-	null_model.evaluate_at( null_ml ) ;
-	alt0.evaluate_at( alt_ml.row(0) ) ;
-	alt1.evaluate_at( alt_ml.row(1) ) ;
-
-	double likelihood_ratio_statistic = 2.0 * ( alt0.get_value_of_function() + alt1.get_value_of_function() - null_model.get_value_of_function() ) ;
+	double likelihood_ratio_statistic = 2.0 * ( alt_model.get_value_of_function() - null_model.get_value_of_function() ) ;
 	double p_value = std::numeric_limits< double >::quiet_NaN() ;
 	if( likelihood_ratio_statistic != likelihood_ratio_statistic || likelihood_ratio_statistic < 0.0 ) {
 		likelihood_ratio_statistic = std::numeric_limits< double >::quiet_NaN() ;

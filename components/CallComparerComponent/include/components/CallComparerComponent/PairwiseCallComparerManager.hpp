@@ -68,7 +68,11 @@ public:
 	struct Merger: public ComparisonClient {
 		typedef std::auto_ptr< Merger > UniquePtr ;
 		typedef boost::shared_ptr< Merger > SharedPtr ;
+		static UniquePtr create( std::string const&, appcontext::OptionProcessor const& ) ;
+
 		virtual ~Merger() {}
+		virtual void add_callset( std::string const& ) = 0 ;
+
 		virtual std::string get_spec() const = 0 ;
 		virtual std::string get_result_as_string() const = 0 ;
 	} ;

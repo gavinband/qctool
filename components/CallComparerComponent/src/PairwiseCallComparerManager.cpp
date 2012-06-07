@@ -10,11 +10,14 @@
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
+#include "genfile/Error.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
 #include "components/CallComparerComponent/PairwiseCallComparer.hpp"
 #include "components/CallComparerComponent/PairwiseCallComparerManager.hpp"
+#include "components/CallComparerComponent/FrequentistTestCallMerger.hpp"
+#include "components/CallComparerComponent/AcceptAllCallMerger.hpp"
 
 PairwiseCallComparerManager::UniquePtr PairwiseCallComparerManager::create() {
 	PairwiseCallComparerManager::UniquePtr result( new PairwiseCallComparerManager() ) ;
@@ -25,7 +28,9 @@ PairwiseCallComparerManager::PairwiseCallComparerManager()
 {}
 
 void PairwiseCallComparerManager::add_comparer( std::string const& name, PairwiseCallComparer::UniquePtr comparer ) {
-	m_comparers.insert( name, comparer ) ;
+	if( comparer.get() ) {
+		m_comparers.insert( name, comparer ) ;
+	}
 }
 
 void PairwiseCallComparerManager::send_comparisons_to( ComparisonClient::SharedPtr client ) {
@@ -58,6 +63,7 @@ void PairwiseCallComparerManager::end_processing_snp() {
 	}
 	
 	for( Calls::const_iterator i = m_calls.begin(); i != m_calls.end(); ++i ) {
+		m_merger->add_callset( i->first ) ;
 		Calls::const_iterator j = i ;
 		for( ++j; j != m_calls.end(); ++j ) {
 			for( Comparers::const_iterator comparer_i = m_comparers.begin(); comparer_i != m_comparers.end(); ++comparer_i ) {
@@ -84,7 +90,7 @@ void PairwiseCallComparerManager::end_processing_snp() {
 		for( std::size_t i = 0; i < m_merge_clients.size(); ++i ) {
 			m_merge_clients[i]->begin_comparisons( m_snp ) ;
 		}
-		send_merge_to_clients( m_merger->get_spec(), "concordant_calls", m_merger->get_result_as_string() ) ;
+		send_merge_to_clients( m_merger->get_spec(), "accepted_calls", m_merger->get_result_as_string() ) ;
 		for( std::size_t i = 0; i < m_merge_clients.size(); ++i ) {
 			m_merge_clients[i]->end_comparisons() ;
 		}
@@ -112,3 +118,25 @@ void PairwiseCallComparerManager::send_merge_to_clients(
 		m_merge_clients[i]->set_result( comparison, variable, value ) ;
 	}
 }
+
+PairwiseCallComparerManager::Merger::UniquePtr PairwiseCallComparerManager::Merger::create( std::string const& model, appcontext::OptionProcessor const& options ) {
+	PairwiseCallComparerManager::Merger::UniquePtr result ;
+	if( model == "AlleleFrequencyTest" ) {
+		result.reset(
+			new FrequentistTestCallMerger(
+				model,
+				options.get_value< double >( "-compare-calls-pvalue-threshhold" )
+			)
+		) ;
+	}
+	else if( model == "AcceptAll" ) {
+		result.reset(
+			new AcceptAllCallMerger()
+		) ;
+	}
+	else {
+		throw genfile::BadArgumentError( "PairwiseCallComparerManager::Merger::create()", "model=\"" + model + "\"" ) ;
+	}
+	return result ;
+}
+

@@ -29,7 +29,6 @@ struct CallComparerDBOutputter: public qcdb::DBOutputter, public PairwiseCallCom
 	CallComparerDBOutputter( std::string const& filename, std::string const& analysis, Metadata const& metadata = Metadata() ) ;
 	~CallComparerDBOutputter() ;
 	void begin_comparisons( genfile::SNPIdentifyingData const& snp ) ;
-	void end_comparisons() ;
 	void set_result(
 		std::string const& callset1,
 		std::string const& callset2,
@@ -37,6 +36,7 @@ struct CallComparerDBOutputter: public qcdb::DBOutputter, public PairwiseCallCom
 		std::string const& comparison_variable,
 		genfile::VariantEntry const& value
 	) ;
+	void end_comparisons() ;
 
 	void set_result(
 		std::string const& comparison_method,

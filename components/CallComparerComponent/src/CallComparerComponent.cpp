@@ -71,10 +71,17 @@ void CallComparerComponent::declare_options( appcontext::OptionProcessor& option
 			"between N-1 of the N callsets." )
 		.set_takes_single_value()
 		.set_default_value( "call-comparisons.vcf" ) ;
-	options[ "-consensus-strategy" ]
-		.set_description( "Strategy to use to combine calls in the consensus set of calls. "
-		 	"Currently this must be \"least-missing\"." )
-			.set_default_value( "least-missing" ) ;
+
+	options[ "-comparison-model" ]
+		.set_description( "Set the model used for call comparison.  Currently this must be \"AlleleFrequencyTest\". or \"AcceptAll\"." )
+		.set_takes_single_value()
+		.set_default_value( "AlleleFrequencyTest" ) ;
+
+	options[ "-consensus-model" ]
+		.set_description( "Model used to combine calls in the consensus set of calls. "
+		 	"Currently this can be \"LeastMissing\" or \"QuangStyle\"." )
+		.set_takes_single_value()
+		.set_default_value( "LeastMissing" ) ;
 	options[ "-compare-calls-pvalue-threshhold" ]
 		.set_description( "Treat calls in call comparison treated as distinct if the p-value of an association test between them "
 			"is less than or equal to this value." )
@@ -149,6 +156,10 @@ void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor ) 
 		manager->send_merge_to( outputter ) ;
 	}
 	
+	std::string const comparison_model = m_options.get< std::string >( "-comparison-model" ) ;
+	manager->add_comparer( comparison_model, PairwiseCallComparer::create( comparison_model ) ) ;
+	manager->set_merger( PairwiseCallComparerManager::Merger::create( comparison_model, m_options ) ) ;
+
 	ConsensusCaller::SharedPtr consensus_caller ;
 	{
 		genfile::SNPDataSink::SharedPtr sink(
@@ -170,20 +181,6 @@ void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor ) 
 	}
 
 	manager->send_merge_to( consensus_caller ) ;
-	
-	manager->add_comparer(
-		"AlleleFrequencyTestCallComparer",
-		PairwiseCallComparer::create( "AlleleFrequencyTestCallComparer" )
-	) ;
-
-	manager->set_merger(
-		PairwiseCallComparerManager::Merger::UniquePtr(
-			new FrequentistTestCallMerger(
-				"AlleleFrequencyTestCallComparer",
-				m_options.get< double >( "-compare-calls-pvalue-threshhold" )
-			)
-		)
-	) ;
 
 	CallComparerProcessor::UniquePtr ccc = CallComparerProcessor::create(
 		manager,

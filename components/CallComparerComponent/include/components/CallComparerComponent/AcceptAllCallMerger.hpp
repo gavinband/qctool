@@ -4,8 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef QCTOOL_CALLCOMPARER_COMPONENT_FREQUENTIST_TEST_CALL_MERGER_HPP
-#define QCTOOL_CALLCOMPARER_COMPONENT_FREQUENTIST_TEST_CALL_MERGER_HPP
+#ifndef QCTOOL_CALLCOMPARER_COMPONENT_ACCEPT_ALL_CALL_MERGER_HPP
+#define QCTOOL_CALLCOMPARER_COMPONENT_ACCEPT_ALL_CALL_MERGER_HPP
 
 #include <map>
 #include <string>
@@ -18,13 +18,13 @@
 #include "genfile/VariantEntry.hpp"
 #include "components/CallComparerComponent/PairwiseCallComparerManager.hpp"
 
-struct FrequentistTestCallMerger: PairwiseCallComparerManager::Merger
+// A call merger that accepts all calls passed to it.
+struct AcceptAllCallMerger: PairwiseCallComparerManager::Merger
 {
-	static SharedPtr create_shared( std::string const& comparison_method, double threshhold ) ;
-	FrequentistTestCallMerger( std::string const& comparison_method, double threshhold ) ;
+	AcceptAllCallMerger() ;
 	
 	void begin_comparisons( genfile::SNPIdentifyingData const& snp ) ;
-	void add_callset( std::string const& ) {}
+	void add_callset( std::string const& ) ;
 	void set_result(
 		std::string const& callset1,
 		std::string const& callset2,
@@ -37,14 +37,7 @@ struct FrequentistTestCallMerger: PairwiseCallComparerManager::Merger
 	std::string get_spec() const ;
 	std::string get_result_as_string() const ;
 private:
-	std::string m_comparison_method ;
-	std::string const m_spec ;
-	genfile::SNPIdentifyingData m_snp ;
-	typedef std::map< std::pair< std::string, std::string >, genfile::VariantEntry > ComparisonValues ;
-	ComparisonValues m_comparison_values ;
-	std::pair< double, double > m_pvalue_range ;
-	
-	std::set< std::string > m_concordant_calls ;
+	std::set< std::string > m_calls ;
 } ;
 
 #endif

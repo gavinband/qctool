@@ -9,10 +9,16 @@
 #include "genfile/vcf/get_set_eigen.hpp"
 #include "components/CallComparerComponent/ConsensusCaller.hpp"
 #include "components/CallComparerComponent/LeastMissingConsensusCaller.hpp"
+#include "components/CallComparerComponent/QuangStyleConsensusCaller.hpp"
 
 ConsensusCaller::UniquePtr ConsensusCaller::create( std::string const& model ) {
-	if( model == "least-missing" ) {
+	if( model == "LeastMissing" ) {
 		return ConsensusCaller::UniquePtr( new LeastMissingConsensusCaller() ) ;
+	}
+	else if( model == "QuangStyle" ) {
+		return ConsensusCaller::UniquePtr( new QuangStyleConsensusCaller() ) ;
+	} else {
+		throw genfile::BadArgumentError( "ConsensusCaller::create()", "model=\"" + model + "\"" ) ;
 	}
 }
 
@@ -47,7 +53,7 @@ void ConsensusCaller::set_result(
 	std::string const& comparison_value,
 	genfile::VariantEntry const& value
 ) {
-	if( comparison_value == "concordant_calls" ) {
+	if( comparison_value == "accepted_calls" ) {
 		m_call_names = genfile::string_utils::split( value.as< std::string >(), "," ) ;
 	}
 }

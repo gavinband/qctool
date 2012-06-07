@@ -24,7 +24,6 @@ struct CallComparerFileOutputter: public PairwiseCallComparerManager::Comparison
 	CallComparerFileOutputter( std::string const& filename ) ;
 
 	void begin_comparisons( genfile::SNPIdentifyingData const& snp ) ;
-	void end_comparisons() ;
 	void set_result(
 		std::string const& callset1,
 		std::string const& callset2,
@@ -32,6 +31,7 @@ struct CallComparerFileOutputter: public PairwiseCallComparerManager::Comparison
 		std::string const& comparison_variable,
 		genfile::VariantEntry const& value
 	) ;
+	void end_comparisons() ;
 
 	void set_result(
 		std::string const& comparison_method,
