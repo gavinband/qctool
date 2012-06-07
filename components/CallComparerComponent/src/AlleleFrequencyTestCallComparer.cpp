@@ -22,7 +22,7 @@ namespace {
 	typedef Eigen::VectorXd Vector ;
 	typedef Eigen::MatrixXd Matrix ;
 	typedef metro::likelihood::Multinomial< double, Vector, Matrix > Multinomial ;
-	typedef metro::likelihood::ProductOfMultinomials< double, Vector, Matrix > ProductOfMultinomials ;
+	typedef metro::likelihood::ProductOfMultinomials< double, Vector, Matrix > ProductOfIndependentMultinomials ;
 }
 
 AlleleFrequencyTestCallComparer::AlleleFrequencyTestCallComparer():
@@ -56,7 +56,7 @@ std::map< std::string, genfile::VariantEntry > AlleleFrequencyTestCallComparer::
 		}
 	}
 
-	ProductOfMultinomials alt_model( table ) ;
+	ProductOfIndependentMultinomials alt_model( table ) ;
 	Multinomial null_model( table.row(0) + table.row(1) ) ;
 
 	null_model.evaluate_at( null_model.get_MLE() ) ;
