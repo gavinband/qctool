@@ -134,8 +134,7 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 	} catch( genfile::OperationFailedError const& e ) {
 		m_ui_context.logger() << "!! HaplotypeFrequencyComponent::compute_ld_measures(): could not compute LD measures between SNPs "
 			<< source_snp << " and " << target_snp << ".\n"
-			<< "!! reason: " << e.get_message() << "\n"
-			<< "!! this comparison will not appear in output.\n" ;
+			<< "!! reason: " << e.get_message() << "\n" ;
 	}
 }
 
@@ -182,10 +181,19 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		m_result_signal( source_snp, target_snp, "r", r ) ;
 		m_result_signal( source_snp, target_snp, "r_squared", r * r ) ;
 	}
-	catch( genfile::BadArgumentError const& ) {
+	catch( genfile::OperationFailedError const& ) {
 		m_ui_context.logger() << "!! Could not compute haplotype frequencies for " << source_snp << ", " << target_snp << ".\n"
-			<< "!! table is " << table << ".\n" ;
-		// bad table.
+			<< "!! table is:\n" << table << ".\n" ;
+			
+		genfile::VariantEntry const missing = genfile::MissingValue() ;
+		m_result_signal( source_snp, target_snp, "pi00", missing ) ;
+		m_result_signal( source_snp, target_snp, "pi01", missing ) ;
+		m_result_signal( source_snp, target_snp, "pi10", missing ) ;
+		m_result_signal( source_snp, target_snp, "pi11", missing ) ;
+		m_result_signal( source_snp, target_snp, "D", missing ) ;
+		m_result_signal( source_snp, target_snp, "Dprime", missing ) ;
+		m_result_signal( source_snp, target_snp, "r", missing ) ;
+		m_result_signal( source_snp, target_snp, "r_squared", missing ) ;
 	}
 	
 	{

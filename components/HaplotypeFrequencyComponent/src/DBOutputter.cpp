@@ -15,8 +15,8 @@ namespace haplotype_frequency_component {
 		qcdb::DBOutputter( filename, analysis_name, metadata ),
 		m_max_transaction_count( 10000 )
 	{
-		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction() ;
-		m_connection->run_statement(
+		db::Connection::ScopedTransactionPtr transaction = connection().open_transaction() ;
+		connection().run_statement(
 			"CREATE TABLE IF NOT EXISTS PairwiseSummaryData ( "
 			"variant1_id INT NOT NULL, "
 			"variant2_id INT NOT NULL, "
@@ -30,21 +30,22 @@ namespace haplotype_frequency_component {
 			"UNIQUE( variant1_id, variant2_id, analysis_id, variable_id ) "
 			")"
 		) ;
-		m_connection->run_statement(
+		connection().run_statement(
 			"CREATE VIEW IF NOT EXISTS PairwiseSummaryDataView AS "
 			"SELECT "
 			"V1.id AS variant1_id, V1.chromosome AS variant1_chromosome, V1.position AS variant1_position, V1.rsid AS variant1_rsid, "
 			"V2.id AS variant2_id, V2.chromosome AS variant2_chromosome, V2.position AS variant2_position, V2.rsid AS variant2_rsid, "
 			"Analysis.id AS analysis_id, Analysis.name AS analysis, "
+			"Variable.id AS variable_id, Variable.name AS variable, "
 			"PSD.value AS value "
 			"FROM PairwiseSummaryData PSD "
 			"INNER JOIN Variant V1 ON V1.id == PSD.variant1_id "
 			"INNER JOIN Variant V2 ON V2.id == PSD.variant2_id "
-			"INNER JOIN Entity Analysis ON C.id == PSD.analysis_id "
+			"INNER JOIN Entity Analysis ON Analysis.id == PSD.analysis_id "
 			"INNER JOIN Entity Variable ON Variable.id == PSD.variable_id "
 		) ;
 		
-		m_connection->run_statement(
+		connection().run_statement(
 			"CREATE INDEX IF NOT EXISTS PairwiseSummaryDataIndex ON PairwiseSummaryData( variant1_id, variant2_id, analysis_id )"
 		) ;
 		
@@ -78,7 +79,7 @@ namespace haplotype_frequency_component {
 	}
 
 	void DBOutputter::construct_statements() {
-		m_insert_summarydata_statement = m_connection->get_statement(
+		m_insert_summarydata_statement = connection().get_statement(
 			"INSERT OR REPLACE INTO PairwiseSummaryData ( variant1_id, variant2_id, analysis_id, variable_id, value ) "
 			"VALUES( ?1, ?2, ?3, ?4, ?5 )"
 		) ;
@@ -131,7 +132,7 @@ namespace haplotype_frequency_component {
 			.bind( 2, variant2_id )
 			.bind( 3, analysis_id )
 			.bind( 4, variable_id )
-			.bind( 5, value.as< double >()  )
+			.bind( 5, value )
 			.step() ;
 		m_insert_summarydata_statement->reset() ;
 	}

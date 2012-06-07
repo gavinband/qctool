@@ -9,6 +9,7 @@
 
 #include <vector>
 #include <Eigen/Core>
+#include <boost/math/distributions/binomial.hpp>
 
 // Loglikelihood of table of genotypes at 2 SNPs, given parameters specifying the haplotype frequencies.
 // The parameters are \pi_01, \pi_10, and \pi_11.  Then \pi_00 is one minus the sum of the others.
@@ -35,7 +36,7 @@ struct HaplotypeFrequencyLogLikelihood {
 		RowVector m_D_ll ;
 		Matrix m_DDt_ll ;
 	private:
-		Vector estimate_parameters( double const AB_ab ) const ;
+		Vector estimate_parameters( double const p ) const ;
 } ;
 
 #endif

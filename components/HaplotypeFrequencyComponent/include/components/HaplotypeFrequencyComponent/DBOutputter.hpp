@@ -29,7 +29,6 @@ namespace haplotype_frequency_component {
 		) ;
 
 	private:
-		db::Connection::UniquePtr m_connection ;
 		std::size_t const m_max_transaction_count ;
 		db::Connection::RowId m_variable_class_id ;
 		db::Connection::StatementPtr m_insert_summarydata_statement ;

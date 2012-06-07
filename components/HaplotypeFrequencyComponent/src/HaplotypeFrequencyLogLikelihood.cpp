@@ -5,6 +5,8 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include <string>
+#include <iomanip>
+#include <boost/math/distributions/binomial.hpp>
 #include <boost/function.hpp>
 #include <Eigen/Core>
 #include "genfile/Error.hpp"
@@ -29,13 +31,20 @@ HaplotypeFrequencyLogLikelihood::HaplotypeFrequencyLogLikelihood( Matrix const& 
 }
 
 HaplotypeFrequencyLogLikelihood::Vector HaplotypeFrequencyLogLikelihood::get_MLE_by_EM() const {
-	// Only missing data is resolution of middle cell
-	// Call the alleles at the first SNP A and a and at the second SNP B and b.
+	//
+	// This method treats the number of individuals X in the G(1,1) cell
+	// that have AB/ab genotypes as binomially distributed with some unknown
+	// parameter p that must be estimated.  We pick a value of p and sum over
+	// possible values of X to get a new estimate of the four parameters
+	// pi00, pi01, pi10, pi11.  Then p is re-computed from the parameter values.
+	//
+	// We stop when the parameter estimate does not change, up to some tolerance.
+	//
 	Matrix const& G = m_genotype_table ;
-	double AB_ab = G(1,1) / 2 ;
-	Vector pi = estimate_parameters( AB_ab ) ;
+	Vector pi = estimate_parameters( 0.5 ) ;
 #if DEBUG_HAPLOTYPE_FREQUENCY_LL 
-	std::cerr << "Maximising likelihood for:\n" << m_genotype_table << ".\n" ;
+	std::cerr << std::resetiosflags( std::ios::floatfield ) << "Maximising likelihood for:\n" << m_genotype_table << ".\n" ;
+	std::cerr << "pi = " << pi(0) << " " << pi(1) << " " << pi(2) << " " << pi(3) << " " << ", p = 0.5.\n" ;
 #endif
 	if( G(1,1) != 0.0 ) {
 		Vector old_pi ;
@@ -44,22 +53,16 @@ HaplotypeFrequencyLogLikelihood::Vector HaplotypeFrequencyLogLikelihood::get_MLE
 		double const tolerance = 0.0000001 ;
 		do {
 			old_pi = pi ;
-			double pi00 = 1.0 - pi(0) - pi(1) - pi(2) ;
-			// Number of AB_ab among G(1,1) is 
-			// ~ binom( G(1,1), p )
-			// where p = ( pi00 * pi11 ) / ( pi00 * pi11 + pi01 * pi10 )
-			// 
-			double const p = ( pi00 * pi( 2 ) ) / ( pi00 * pi(2) + pi( 0 ) * pi( 1 )) ;
-			if( p == 0.0 || p == 1) {
-				AB_ab = p * G(1,1) ;
+
+			double p = ( pi(0) * pi( 3 ) ) ;
+			if( p != 0 ) {
+				p = p / ( p + ( pi( 1 ) * pi( 2 )) ) ;
 			}
-			else {
-				AB_ab = std::floor( ( G(1,1) + 1 ) * p ) ;
-			}
+
+			pi = estimate_parameters( p ) ;
 #if DEBUG_HAPLOTYPE_FREQUENCY_LL 
-			std::cerr << "AB_ab = " << AB_ab << ", pi = " << pi00 << " " << pi(0) << " " << pi(1) << " " << pi(2) << ".\n" ;
+			std::cerr << "pi = " << pi(0) << " " << pi(1) << " " << pi(2) << " " << pi(3) << " " << ", p = " << p << ".\n" ;
 #endif
-			pi = estimate_parameters( AB_ab ) ;
 		}
 		while( ( pi - old_pi ).array().abs().maxCoeff() > tolerance && ++count < max_count ) ;
 		if( count == max_count ) {
@@ -69,26 +72,26 @@ HaplotypeFrequencyLogLikelihood::Vector HaplotypeFrequencyLogLikelihood::get_MLE
 				"convergence"
 			) ;
 		}
-#if DEBUG_HAPLOTYPE_FREQUENCY_LL 
-		std::cerr << "Finally: AB_ab = " << AB_ab << ", pi = " << ( 1 - pi.sum() ) << " " << pi(0) << " " << pi(1) << " " << pi(2) << ".\n" ;
-#endif
 	}
-	return pi ;
+	return pi.tail( 3 ) ;
 }
 
 HaplotypeFrequencyLogLikelihood::Vector HaplotypeFrequencyLogLikelihood::estimate_parameters(
-	double const AB_ab
+	double const p
 ) const {
 	Matrix const& G = m_genotype_table ;
-	double const Ab_aB = G( 1, 1 ) - AB_ab ;
-	Vector result( 3 ) ;
+	
+	double expected_AB_ab = G( 1, 1 ) * p ;
+	double expected_Ab_aB = G( 1, 1 ) - expected_AB_ab;
+	
+	Vector result( 4 ) ;
 	result <<
-	// 2 * G( 0, 0 ) + G( 0, 1 ) + G( 1, 0 ) + AB_ab
-		G( 0, 1 ) + 2 * G( 0, 2 ) + G( 1, 2 ) + Ab_aB,
-		G( 2, 1 ) + 2 * G( 2, 0 ) + G( 1, 0 ) + Ab_aB,
-		G( 1, 2 ) + 2 * G( 2, 2 ) + G( 2, 1 ) + AB_ab
+		G( 0, 1 ) + 2 * G( 0, 0 ) + G( 1, 0 ) + expected_AB_ab,
+		G( 0, 1 ) + 2 * G( 0, 2 ) + G( 1, 2 ) + expected_Ab_aB,
+		G( 2, 1 ) + 2 * G( 2, 0 ) + G( 1, 0 ) + expected_Ab_aB,
+		G( 1, 2 ) + 2 * G( 2, 2 ) + G( 2, 1 ) + expected_AB_ab
 	;
-	result /= 2.0 * G.sum() ;
+	result /= result.sum() ;
 	return result ;
 }
 
