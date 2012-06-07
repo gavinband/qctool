@@ -8,11 +8,14 @@
 #include <vector>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
+#include <boost/math/distributions/chi_squared.hpp>
 #include "genfile/Error.hpp"
+#include "metro/likelihood/Multinomial.hpp"
 #include "components/SNPSummaryComponent/SNPHWE.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
+#include "components/SNPSummaryComponent/HWEComputation.hpp"
 
-namespace {
+namespace snp_summary_component {
 	struct AlleleFrequencyComputation: public SNPSummaryComputation
 	{
 		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, genfile::VariantDataReader&, ResultCallback callback ) {
@@ -86,30 +89,6 @@ namespace {
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "AlleleFrequencyComputation" ; }
 	} ;
 	
-	struct HWEComputation: public SNPSummaryComputation
-	{
-		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const&, genfile::VariantDataReader&, ResultCallback callback ) {
-			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
-			if( !chromosome.is_autosome() ) {
-				return ;
-			}
-
-			double const
-				AA = std::floor( genotypes.col(0).sum() + 0.5 ),
-				AB = std::floor( genotypes.col(1).sum() + 0.5 ),
-				BB = std::floor( genotypes.col(2).sum() + 0.5 ) ;
-
-			if( AA > 0.5 || AB > 0.5 || BB > 0.5 ) {
-				double HWE_pvalue = SNPHWE( AB, AA, BB ) ;
-				callback( "HW_exact_p_value", -log10( HWE_pvalue ) ) ;
-			}
-			else {
-				callback( "HW_exact_p_value", genfile::MissingValue() ) ;
-			}
-		}
-		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "HWEComputation" ; }
-	} ;
-	
 	struct MissingnessComputation: public SNPSummaryComputation {
 		MissingnessComputation( double call_threshhold = 0.9 ): m_call_threshhold( call_threshhold ) {}
 		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, genfile::VariantDataReader&, ResultCallback callback ) {
@@ -180,44 +159,70 @@ namespace {
 	} ;
 
 	struct InformationComputation: public SNPSummaryComputation {
-		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const&, genfile::VariantDataReader&, ResultCallback callback ) {
+		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sample_sexes, genfile::VariantDataReader&, ResultCallback callback ) {
 			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
-			if( !chromosome.is_autosome() ) {
+			if( chromosome.is_sex_determining() ) {
 				return ;
 			}
 
-			Eigen::VectorXd const e = genotypes.col(1) + (2.0 * genotypes.col(2) ) ;
-			Eigen::VectorXd const f = genotypes.col(1) + (4.0 * genotypes.col(2) ) ;
-			double const non_missingness = genotypes.sum() ;
-			Eigen::VectorXd adjustment1 = Eigen::VectorXd::Ones( genotypes.rows() ) - genotypes.rowwise().sum() ;
-			Eigen::VectorXd const adjustment2 = adjustment1.array().square() ;
-			adjustment1.array() *= e.array() ;
-
-			if( non_missingness == 0.0 ) {
-				callback( "info", genfile::MissingValue() ) ;
-				callback( "impute_info", genfile::MissingValue() ) ;
-			}
-			else {
-				double const theta_mle = e.sum() / ( 2.0 * non_missingness ) ;
-
-				if( theta_mle == 0.0 || theta_mle == 1.0 ) {
-					callback( "info", 1.0 ) ;
-					callback( "impute_info", 1.0 ) ;
-				}
-				else {
-					double const variance = ( f.array() - ( e.array().square() ) ).sum() ;
-					double adjustment = 4.0 * theta_mle * adjustment1.sum() + 4.0 * theta_mle * theta_mle * adjustment2.sum() ;
-
-					adjustment += ( genotypes.rows() - non_missingness ) * 2.0 * theta_mle * ( 1.0 + theta_mle ) ;
-
-					double denominator = 2.0 * genotypes.rows() * theta_mle * ( 1.0 - theta_mle ) ;
-
-					callback( "info", 1.0 - ( ( variance + adjustment ) / denominator ) ) ;
-					callback( "impute_info", 1.0 - ( variance / denominator ) ) ;
-				}
-			}
+			compute_info( snp, genotypes, sample_sexes, callback ) ;
 		}
+		
+		void compute_info( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const&, ResultCallback callback ) {
+			double theta_mle = ( genotypes.col( 1 ).sum() + 2.0 * genotypes.col( 2 ).sum() ) / ( 2.0 * genotypes.sum() ) ;
+			
+			Eigen::VectorXd const impute_fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
+			Eigen::VectorXd fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
+			fallback_distribution( 0 ) = ( 1 - theta_mle ) * ( 1 - theta_mle ) ;
+			fallback_distribution( 1 ) = 2.0 * theta_mle * ( 1 - theta_mle ) ;
+			fallback_distribution( 2 ) = theta_mle * theta_mle ;
+			
+			//std::cerr << "theta = " << theta_mle << ", fallback_distribution = " << fallback_distribution.transpose() << ".\n" ;
+			
+			Eigen::VectorXd const levels = Eigen::VectorXd::LinSpaced( 3, 0, 2 ) ;
+
+			callback(
+				"info",
+				1.0 - (
+					compute_expected_variance( levels, genotypes, fallback_distribution )
+					/ ( 2.0 * theta_mle * ( 1 - theta_mle ) )
+				)
+			) ;
+			callback(
+				"impute_info",
+				1.0 - (
+					compute_expected_variance( levels, genotypes, impute_fallback_distribution )
+					/ ( 2.0 * theta_mle * ( 1 - theta_mle ) )
+				)
+			) ;
+		}
+
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "InformationComputation" ; }
+		
+	private:
+		// treat the rows of the probabilities matrix as probabilities.
+		// distribution for individual i is taken as a mixture of the distribution given by row i of probabilities,
+		// and the fallback distribution if the sum of row i < 1, appropriately weighted.
+		double compute_expected_variance( Eigen::VectorXd const& levels, Eigen::MatrixXd const& probabilities, Eigen::VectorXd const& fallback ) const {
+			assert( levels.size() == fallback.size() ) ;
+			assert( levels.size() == probabilities.cols() ) ;
+			Eigen::VectorXd levels_squared = ( levels.array() * levels.array() ) ;
+
+			double result = 0.0 ;
+			for( int i = 0; i < probabilities.rows(); ++i ) {
+				double const c = probabilities.row( i ).sum() ;
+				result += compute_variance( levels, levels_squared, probabilities.row( i ).transpose() + ( 1 - c ) * fallback ) ;
+			}
+			return result / probabilities.rows() ;
+		}
+		
+		double compute_variance( Eigen::VectorXd const& levels, Eigen::VectorXd const& levels_squared, Eigen::VectorXd const& probs ) const {
+			double const mean = ( probs.transpose() * levels )(0) ;
+			double const variance = ( probs.transpose() * levels_squared )(0) - ( mean * mean ) ;
+			// std::cerr << "compute_variance: levels = " << levels.transpose() << ", levels_squared = " << levels_squared.transpose() << ", probs = " << probs.transpose() << ", variance = " << variance << ".\n" ;
+			return variance ;
+		}
+		
 	} ;
 
 }
@@ -226,10 +231,10 @@ SNPSummaryComputation::UniquePtr SNPSummaryComputation::create(
 	std::string const& name
 ) {
 	UniquePtr result ;
-	if( name == "alleles" ) { result.reset( new AlleleFrequencyComputation()) ; }
-	else if( name == "HWE" ) { result.reset( new HWEComputation()) ; }
-	else if( name == "missingness" ) { result.reset( new MissingnessComputation()) ; }
-	else if( name == "information" ) { result.reset( new InformationComputation()) ; }
+	if( name == "alleles" ) { result.reset( new snp_summary_component::AlleleFrequencyComputation()) ; }
+	else if( name == "HWE" ) { result.reset( new snp_summary_component::HWEComputation()) ; }
+	else if( name == "missingness" ) { result.reset( new snp_summary_component::MissingnessComputation()) ; }
+	else if( name == "information" ) { result.reset( new snp_summary_component::InformationComputation()) ; }
 	else {
 		throw genfile::BadArgumentError( "SNPSummaryComputation::create()", "name=\"" + name + "\"" ) ;
 	}
