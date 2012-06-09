@@ -102,7 +102,7 @@ namespace snp_summary_component {
 		// test1: test that males and females have the same allele frequency
 		// test2: test that HW is fine in females.
 
-		Eigen::MatrixXd genotype_counts = Eigen::VectorXd::Zero( 3 ) ; // first row is males, second row is females.  Last column will be zero for males.
+		Eigen::MatrixXd genotype_counts = Eigen::MatrixXd::Zero( 2, 3 ) ; // first row is males, second row is females.  Last column will be zero for males.
 		Eigen::MatrixXd allele_counts = Eigen::MatrixXd::Zero( 2, 2 ) ;
 
 		for( int i = 0; i < genotypes.rows(); ++i ) {
