@@ -162,13 +162,13 @@ namespace snp_summary_component {
 		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sample_sexes, genfile::VariantDataReader&, ResultCallback callback ) {
 			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
 			if( chromosome.is_sex_determining() ) {
-				return ;
+				compute_sex_chromosome_info( snp, genotypes, sample_sexes, callback ) ;
+			} else {
+				compute_autosomal_info( snp, genotypes, callback ) ;
 			}
-
-			compute_info( snp, genotypes, sample_sexes, callback ) ;
 		}
 		
-		void compute_info( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const&, ResultCallback callback ) {
+		void compute_autosomal_info( SNPIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) {
 			double theta_mle = ( genotypes.col( 1 ).sum() + 2.0 * genotypes.col( 2 ).sum() ) / ( 2.0 * genotypes.sum() ) ;
 			
 			Eigen::VectorXd const impute_fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
@@ -181,39 +181,145 @@ namespace snp_summary_component {
 			
 			Eigen::VectorXd const levels = Eigen::VectorXd::LinSpaced( 3, 0, 2 ) ;
 
-			callback(
-				"info",
-				1.0 - (
-					compute_expected_variance( levels, genotypes, fallback_distribution )
-					/ ( 2.0 * theta_mle * ( 1 - theta_mle ) )
-				)
+			double const info = 1.0 - (
+				compute_expected_variance( levels, genotypes, fallback_distribution )
+				/ ( 2.0 * theta_mle * ( 1 - theta_mle ) )
 			) ;
-			callback(
-				"impute_info",
-				1.0 - (
-					compute_expected_variance( levels, genotypes, impute_fallback_distribution )
-					/ ( 2.0 * theta_mle * ( 1 - theta_mle ) )
-				)
+
+			double const impute_info = 1.0 - (
+				compute_expected_variance( levels, genotypes, impute_fallback_distribution )
+				/ ( 2.0 * theta_mle * ( 1 - theta_mle ) )
 			) ;
+		
+			callback( "info", info ) ;
+			callback( "impute_info", impute_info ) ;
+		}
+
+		void compute_sex_chromosome_info( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, ResultCallback callback ) {
+			if( snp.get_position().chromosome() != genfile::Chromosome( "0X" )) {
+				return ;
+			}
+
+			Eigen::MatrixXd hap_or_diploid( genotypes.rows(), 2 ) ;
+			for( std::size_t i = 0; i < sexes.size(); ++i ) {
+				if( sexes[i] == 'm' ) {
+					hap_or_diploid(i,0) = 1 ;
+					hap_or_diploid(i,1) = 0 ;
+				}
+				else if( sexes[ i ] == 'f' ) {
+					hap_or_diploid(i,0) = 0 ;
+					hap_or_diploid(i,1) = 1 ;
+				}
+				else if( sexes[ i ] == '.' ) {
+					// individuals with missing sex contribute 50/50 to both parts of the variance computation.
+					hap_or_diploid(i,0) = 0.5 ;
+					hap_or_diploid(i,1) = 0.5 ;
+				}
+			}
+
+			double const b_allele_count_diploid = (
+					( genotypes.col( 1 ) + 2.0 * genotypes.col( 2 ) ).array() * ( hap_or_diploid.col(1).array() )
+				).sum() ;
+			double const b_allele_count_haploid = 	(
+					genotypes.col( 1 ).array() * hap_or_diploid.col(0).array() 
+				).sum() ;
+			
+			double theta_mle = 0 ;
+			if( b_allele_count_diploid > 0 ) {
+				theta_mle += b_allele_count_diploid / (
+					2.0 * genotypes.rowwise().sum().array() * hap_or_diploid.col(1).array()
+				).sum() ;
+			}
+			if( b_allele_count_haploid > 0 ) {
+				theta_mle += b_allele_count_haploid / (
+					genotypes.block( 0, 0, genotypes.rows(), 2 ).rowwise().sum().array()
+					* hap_or_diploid.col(0).array()
+				).sum() ;
+			}
+			Eigen::VectorXd diploid_fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
+			diploid_fallback_distribution( 0 ) = ( 1 - theta_mle ) * ( 1 - theta_mle ) ;
+			diploid_fallback_distribution( 1 ) = 2.0 * theta_mle * ( 1 - theta_mle ) ;
+			diploid_fallback_distribution( 2 ) = theta_mle * theta_mle ;
+			
+			Eigen::VectorXd haploid_fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
+			haploid_fallback_distribution( 0 ) = 1 - theta_mle ;
+			haploid_fallback_distribution( 1 ) = theta_mle ;
+			
+			Eigen::VectorXd unknown_fallback_distribution
+				= 0.5 * haploid_fallback_distribution + 0.5 * diploid_fallback_distribution ;
+			
+			//std::cerr << "theta = " << theta_mle << ", fallback_distribution = " << fallback_distribution.transpose() << ".\n" ;
+			
+			Eigen::VectorXd const levels = Eigen::VectorXd::LinSpaced( 3, 0, 2 ) ;
+			
+			double info = 1.0 ;
+			{
+				Eigen::VectorXd haploids = ( hap_or_diploid.col( 0 ).array() == 1 ).cast< double >() ;
+				if( haploids.sum() > 0 ) {
+					info -= compute_expected_variance( levels, genotypes, diploid_fallback_distribution, haploids )
+						/ ( theta_mle * ( 1 - theta_mle ) ) ;
+				}
+
+				Eigen::VectorXd diploids = ( hap_or_diploid.col( 1 ).array() == 1 ).cast< double >() ;
+				if( diploids.sum() > 0 ) {
+					info -= compute_expected_variance( levels, genotypes, diploid_fallback_distribution, ( hap_or_diploid.col( 1 ).array() == 1 ).cast< double >() )
+						/ ( 2.0 * theta_mle * ( 1 - theta_mle ) ) ;
+				}
+
+				Eigen::VectorXd unknowns = ( hap_or_diploid.col( 0 ).array() == 0.5 ).cast< double >() ;
+				if( unknowns.sum() > 0 ) {
+					info -= compute_expected_variance( levels, genotypes, diploid_fallback_distribution, ( hap_or_diploid.col( 0 ).array() == 0.5 ).cast< double >() )
+						/ ( (3.0/2.0) * theta_mle - ( 5.0 / 4.0 ) * theta_mle * theta_mle ) ;
+				}
+			}
+			
+			{
+				double const autosomal_theta_mle = ( genotypes.col( 1 ).sum() + 2.0 * genotypes.col( 2 ).sum() ) / ( 2.0 * genotypes.sum() ) ;
+				Eigen::VectorXd autosomal_fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
+				autosomal_fallback_distribution( 0 ) = ( 1 - autosomal_theta_mle ) * ( 1 - autosomal_theta_mle ) ;
+				autosomal_fallback_distribution( 1 ) = 2.0 * autosomal_theta_mle * ( 1 - autosomal_theta_mle ) ;
+				autosomal_fallback_distribution( 2 ) = autosomal_theta_mle * autosomal_theta_mle ;
+			
+				double const autosomal_info = 1.0 - (
+					compute_expected_variance( levels, genotypes, autosomal_fallback_distribution )
+					/ ( 2.0 * autosomal_theta_mle * ( 1 - autosomal_theta_mle ) )
+				) ;
+				double const impute_info = 1.0 - (
+					compute_expected_variance( levels, genotypes, Eigen::VectorXd::Zero( 3 ) )
+					/ ( 2.0 * autosomal_theta_mle * ( 1 - autosomal_theta_mle ) )
+				) ;
+			
+				callback( "info", info ) ;
+				callback( "autosomal_info", autosomal_info ) ;
+				callback( "impute_info", impute_info ) ;
+			}
 		}
 
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "InformationComputation" ; }
 		
 	private:
+		double compute_expected_variance( Eigen::VectorXd const& levels, Eigen::MatrixXd const& probabilities, Eigen::VectorXd const& fallback ) const {
+			return compute_expected_variance( levels, probabilities, fallback, Eigen::VectorXd::Constant( probabilities.rows(), 1 ) ) ;
+		}
+		
 		// treat the rows of the probabilities matrix as probabilities.
 		// distribution for individual i is taken as a mixture of the distribution given by row i of probabilities,
 		// and the fallback distribution if the sum of row i < 1, appropriately weighted.
-		double compute_expected_variance( Eigen::VectorXd const& levels, Eigen::MatrixXd const& probabilities, Eigen::VectorXd const& fallback ) const {
+		// Only individuals with inclusion = 1 are used.
+		double compute_expected_variance( Eigen::VectorXd const& levels, Eigen::MatrixXd const& probabilities, Eigen::VectorXd const& fallback, Eigen::VectorXd const& inclusion ) const {
 			assert( levels.size() == fallback.size() ) ;
 			assert( levels.size() == probabilities.cols() ) ;
+			assert( inclusion.size() == probabilities.rows() ) ;
 			Eigen::VectorXd levels_squared = ( levels.array() * levels.array() ) ;
 
 			double result = 0.0 ;
 			for( int i = 0; i < probabilities.rows(); ++i ) {
-				double const c = probabilities.row( i ).sum() ;
-				result += compute_variance( levels, levels_squared, probabilities.row( i ).transpose() + ( 1 - c ) * fallback ) ;
+				if( inclusion( i ) == 1 ) {
+					double const c = probabilities.row( i ).sum() ;
+					result += compute_variance( levels, levels_squared, probabilities.row( i ).transpose() + ( 1 - c ) * fallback ) ;
+				}
 			}
-			return result / probabilities.rows() ;
+			return result / inclusion.sum() ;
 		}
 		
 		double compute_variance( Eigen::VectorXd const& levels, Eigen::VectorXd const& levels_squared, Eigen::VectorXd const& probs ) const {
