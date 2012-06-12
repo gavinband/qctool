@@ -235,7 +235,7 @@ namespace genfile {
 			return OptionalSnpCount() ;
 		}
 		
-		assert( last_read_size < buffer.size() ) ;
+		assert( last_read_size <= buffer.size() ) ;
 		if( last_read_size == 0 ) {
 			throw MalformedInputError( get_source_spec(), 0 ) ;
 		}
