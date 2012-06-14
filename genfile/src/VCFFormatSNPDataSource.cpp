@@ -334,13 +334,13 @@ namespace genfile {
 			std::size_t entry_count = 0 ;
 			try {
 				impl::read_element( *stream_ptr, m_CHROM, '\t', entry_count++ ) ;
-				if( number_of_snps_read() == m_number_of_lines ) {
+				if( m_number_of_lines && number_of_snps_read() == *m_number_of_lines ) {
 					throw MalformedInputError( m_spec, number_of_snps_read() ) ;
 				}
 			}
 			catch( std::ios_base::failure const& ) {
 				// end of data, this is only an error if number of lines did not match.
-				if( number_of_snps_read() != m_number_of_lines ) {
+				if( m_number_of_lines && number_of_snps_read() != *m_number_of_lines ) {
 					throw MalformedInputError( m_spec, number_of_snps_read() ) ;
 				}
 				return ;
