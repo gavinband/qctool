@@ -58,7 +58,7 @@ private:
 	void construct_statements() ;
 	void write_data( Data const& data ) ;
 	void store_comparison(
-		genfile::SNPIdentifyingData const& snp,
+		db::Connection::RowId const snp_id,
 		std::string const& callset1,
 		std::string const& callset2,
 		std::string const& comparison_method,

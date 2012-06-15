@@ -21,7 +21,7 @@ CallComparerDBOutputter::CallComparerDBOutputter( std::string const& filename, s
 	m_max_transaction_count( 10000 ),
 	m_callset_id( get_or_create_entity( "callset", "entity representing call sets" ))
 {
-	db::Connection::ScopedTransactionPtr transaction = connection().open_transaction( 30 ) ;
+	db::Connection::ScopedTransactionPtr transaction = connection().open_transaction( 240 ) ;
 	connection().run_statement(
 		"CREATE TABLE IF NOT EXISTS CallComparison ( "
 		"variant_id INT, callset1_id INT, callset2_id INT, method_id INT, variable_id INT, value FLOAT, "
@@ -116,9 +116,22 @@ void CallComparerDBOutputter::write_data( Data const& data ) {
 	if( !transaction.get() ) {
 		throw genfile::OperationFailedError( "CallComparerComponent::write_data()", connection().get_spec(), "Opening transaction." ) ;
 	}
+	std::vector< db::Connection::RowId > snp_ids( data.size() ) ;
+	db::Connection::RowId snp_id = 0 ;
+	for( std::size_t i = 0; i < data.size(); ++i ) {
+		// Common usage is to record many variables for each SNP, so optimise for that usage.
+		// i.e. only try to make a new variant if it differs from the previous one.
+		if( i == 0 || data[i].get<0>() != data[i-1].get<0>() ) {
+			snp_ids[i] = get_or_create_variant( data[i].get<0>() ) ;
+		}
+		else {
+			snp_ids[i] = snp_ids[i-1] ;
+		}
+	}
+
 	for( std::size_t i = 0; i < m_data.size(); ++i ) {
 		store_comparison(
-			data[i].get<0>(),
+			snp_ids[i],
 			data[i].get<1>(),
 			data[i].get<2>(),
 			data[i].get<3>(),
@@ -129,15 +142,13 @@ void CallComparerDBOutputter::write_data( Data const& data ) {
 }
 
 void CallComparerDBOutputter::store_comparison(
-	genfile::SNPIdentifyingData const& snp,
+	db::Connection::RowId const snp_id,
 	std::string const& callset1,
 	std::string const& callset2,
 	std::string const& comparison_method,
 	std::string const& comparison_variable,
 	genfile::VariantEntry const& value
 ) {
-	db::Connection::RowId const snp_id = get_or_create_variant( snp ) ;
-
 	db::Connection::RowId method_id = get_or_create_entity( comparison_method, "Method for performing pairwise genotype call comparison" ) ;
 	db::Connection::RowId callset1_id = get_or_create_entity( callset1, "A callset", m_callset_id ) ;
 	db::Connection::RowId callset2_id = get_or_create_entity( callset2, "A callset", m_callset_id ) ;

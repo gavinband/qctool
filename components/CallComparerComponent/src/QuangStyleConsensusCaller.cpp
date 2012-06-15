@@ -42,7 +42,6 @@ void QuangStyleConsensusCaller::processed_snp( genfile::SNPIdentifyingData const
 			}
 			assert( std::size_t( m_genotypes.size() ) == m_number_of_samples ) ;
 
-
 			// record the samples that are missing in this callset.
 			m_consensus_counts.array() -= ( m_genotypes.array() == 0.0 ).cast< double >() ;
 
@@ -75,7 +74,6 @@ void QuangStyleConsensusCaller::processed_snp( genfile::SNPIdentifyingData const
 			std::cerr << "QuangStyleConsensusCaller::processed_snp(): genotypes: " << m_genotypes.head( 10 ).transpose() << ".\n" ;
 			std::cerr << "QuangStyleConsensusCaller::processed_snp(): consensus_counts: " << m_consensus_counts.head( 10 ).transpose() << ".\n" ;
 #endif
-			
 		}
 
 		// set to missing anything with no consensus among algorithms.
@@ -94,6 +92,7 @@ void QuangStyleConsensusCaller::processed_snp( genfile::SNPIdentifyingData const
 
 		send_results( snp, m_result_probs, info ) ;
 	} else {
+		m_result_probs.setZero( m_number_of_samples, 3 ) ;
 		send_results( snp, m_result_probs, info ) ;
 	}
 }
