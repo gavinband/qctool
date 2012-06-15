@@ -17,31 +17,40 @@ QuangStyleConsensusCaller::QuangStyleConsensusCaller():
 	m_call_threshhold( 0.9 )
 {}
 
-void QuangStyleConsensusCaller::begin_processing_snps( std::size_t number_of_samples ) {
-	m_number_of_samples = number_of_samples ;
-}
-
-void QuangStyleConsensusCaller::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
-	std::vector< std::string > const& call_names = get_consensus_call_names() ;
+void QuangStyleConsensusCaller::set_result(
+	std::string const& comparison,
+	std::string const& accepted_calls,
+	PairwiseCallComparerManager::Calls const& calls
+) {
+	std::vector< std::string > call_names = genfile::string_utils::split( accepted_calls, "," ) ;
 	m_genotypes.resize( call_names.size() ) ;
 	std::map< std::string, std::vector< genfile::VariantEntry > > info ;
 	std::size_t chosen_call = 0 ;
 
 	if( call_names.size() > 0 ) {
-		m_consensus_counts.setConstant( m_number_of_samples, call_names.size() ) ;
-		m_result_calls.setZero( m_number_of_samples ) ;
+		m_consensus_counts.setConstant( get_number_of_samples(), call_names.size() ) ;
+		m_result_calls.setZero( get_number_of_samples() ) ;
 
 		for( std::size_t i = 0; i < call_names.size(); ++i ) {
 #if DEBUG_QUANGSTYLECONSENSUSCALLER
 			std::cerr << "QuangStyleConsensusCaller::processed_snp(): looking at call " << call_names[i] << "...\n" ;
 #endif
-			// get hard-called genotypes, 0 = missing, 1, 2, 3 as levels.
+			// turn genotype probs into hard-called genotypes, 0 = missing, 1, 2, 3 as levels.
 			{
-				genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( m_genotypes, m_call_threshhold, 0, 1, 2, 3 ) ;
-				data_reader.get( call_names[i], setter ) ;
-			}
-			assert( std::size_t( m_genotypes.size() ) == m_number_of_samples ) ;
+				Eigen::MatrixXd const& genotype_probs = calls.find( call_names[i] )->second ;
 
+				assert( genotype_probs.rows() == get_number_of_samples() ) ;
+				m_genotypes.resize( genotype_probs.rows() ) ;
+				{
+					genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( m_genotypes, m_call_threshhold, 0, 1, 2, 3 ) ;
+					setter.set_number_of_samples( get_number_of_samples() ) ;
+					for( std::size_t sample = 0; sample < get_number_of_samples(); ++sample ) {
+						setter.set( sample, genotype_probs( sample, 0 ), genotype_probs( sample, 1 ), genotype_probs( sample, 2 )) ;
+					}
+				}
+				assert( std::size_t( m_genotypes.size() ) == get_number_of_samples() ) ;
+			}
+			
 			// record the samples that are missing in this callset.
 			m_consensus_counts.array() -= ( m_genotypes.array() == 0.0 ).cast< double >() ;
 
@@ -83,17 +92,17 @@ void QuangStyleConsensusCaller::processed_snp( genfile::SNPIdentifyingData const
 		info[ "missing_calls" ].push_back( ( m_result_calls.array() == 0.0 ).cast< int >().sum() ) ;
 
 		// Convert to probabilities.
-		m_result_probs.setZero( m_number_of_samples, 3 ) ;
-		for( std::size_t i = 0; i < m_number_of_samples; ++i ) {
+		m_result_probs.setZero( get_number_of_samples(), 3 ) ;
+		for( std::size_t i = 0; i < get_number_of_samples(); ++i ) {
 			if( m_result_calls( i ) > 0.0 ) {
 				m_result_probs( i, m_result_calls( i ) - 1 ) = 1 ;
 			}
 		}
 
-		send_results( snp, m_result_probs, info ) ;
+		send_results( get_snp(), m_result_probs, info ) ;
 	} else {
-		m_result_probs.setZero( m_number_of_samples, 3 ) ;
-		send_results( snp, m_result_probs, info ) ;
+		m_result_probs.setZero( get_number_of_samples(), 3 ) ;
+		send_results( get_snp(), m_result_probs, info ) ;
 	}
 }
 

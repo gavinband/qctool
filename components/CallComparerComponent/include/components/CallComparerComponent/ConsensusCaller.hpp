@@ -16,7 +16,7 @@
 
 // Given a set of calls passed in by processed_snp
 // The consensus caller outputs a 
-struct ConsensusCaller: public PairwiseCallComparerManager::MergeClient, public genfile::SNPDataSourceProcessor::Callback
+struct ConsensusCaller: public PairwiseCallComparerManager::MergeClient
 {
 public:
 	typedef std::auto_ptr< ConsensusCaller > UniquePtr ;
@@ -43,19 +43,23 @@ public:
 	) ;
 
 	void begin_processing_snps( std::size_t number_of_samples ) ;
-	void begin_comparisons( genfile::SNPIdentifyingData const& snp ) ;
-	void set_result(
-		std::string const& comparison,
-		std::string const& comparison_value,
-		genfile::VariantEntry const&
-	) ;
-	void end_comparisons() ;
-	void end_processing_snps() {}
 	
+	void begin_comparisons( genfile::SNPIdentifyingData const& snp ) ;
+	virtual void set_result(
+		std::string const& comparison,
+		std::string const& accepted_calls,
+		PairwiseCallComparerManager::Calls const& calls
+	) = 0 ;
+	void end_comparisons() ;
+
+	std::size_t get_number_of_samples() const { return m_number_of_samples ; }
+	genfile::SNPIdentifyingData const& get_snp() const { return m_snp ; }
 	std::vector< std::string > const& get_consensus_call_names() const { return m_call_names ; }
 private:
 	std::vector< std::string > m_call_names ;
 	ResultSignal m_result_signal ;
+	genfile::SNPIdentifyingData m_snp ;
+	std::size_t m_number_of_samples ;
 } ;
 
 #endif

@@ -15,6 +15,7 @@
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/get_set_eigen.hpp"
+#include "genfile/vcf/get_set_eigen.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
@@ -39,15 +40,17 @@ CallComparerProcessor::CallComparerProcessor( PairwiseCallComparerManager::Uniqu
 	m_call_fields( call_fields )
 {}
 
-void CallComparerProcessor::begin_processing_snps( std::size_t number_of_samples ) {}
+void CallComparerProcessor::begin_processing_snps( std::size_t number_of_samples ) {
+	m_call_comparer->begin_processing_snps( number_of_samples ) ;
+}
 
 void CallComparerProcessor::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 	// Add all the calls to the call comparer.
 	m_call_comparer->begin_processing_snp( snp ) ;
-	genfile::SingleSNPGenotypeProbabilities calls ;
 	for( std::size_t i = 0; i < m_call_fields.size(); ++i ) {
-		data_reader.get( m_call_fields[i], calls ) ;
-		m_call_comparer->add_calls( m_call_fields[i], calls ) ;
+		genfile::vcf::GenotypeSetter< Eigen::MatrixBase< Eigen::MatrixXd > > setter( m_calls ) ;
+		data_reader.get( m_call_fields[i], setter ) ;
+		m_call_comparer->add_calls( m_call_fields[i], m_calls ) ;
 	}
 	m_call_comparer->end_processing_snp() ;
 }
@@ -192,6 +195,5 @@ void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor ) 
 	) ;
 	
 	processor.add_callback( genfile::SNPDataSourceProcessor::Callback::UniquePtr( ccc.release() ) ) ;
-	processor.add_callback( *consensus_caller ) ;
 }
 

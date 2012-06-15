@@ -31,11 +31,14 @@ AlleleFrequencyTestCallComparer::AlleleFrequencyTestCallComparer():
 {}
 
 std::map< std::string, genfile::VariantEntry > AlleleFrequencyTestCallComparer::compare(
-	genfile::SingleSNPGenotypeProbabilities const& left,
-	genfile::SingleSNPGenotypeProbabilities const& right
+	Eigen::MatrixXd const& left,
+	Eigen::MatrixXd const& right
 ) const {
 	// Make table of counts
-	assert( left.size() == right.size() ) ;
+	assert( left.rows() == right.rows() ) ;
+	assert( left.cols() == 3 ) ;
+	assert( right.cols() == 3 ) ;
+
 	std::size_t const N = left.size() ;
 	
 	Matrix table = Matrix::Zero( 2, 3 ) ;

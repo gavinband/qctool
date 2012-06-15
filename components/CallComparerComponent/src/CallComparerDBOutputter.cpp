@@ -86,16 +86,16 @@ void CallComparerDBOutputter::set_result(
 
 void CallComparerDBOutputter::set_result(
 	std::string const& comparison_method,
-	std::string const& comparison_variable,
-	genfile::VariantEntry const& value
+	std::string const& accepted_calls,
+	PairwiseCallComparerManager::Calls const&
 ) {
 	m_data.resize( m_data.size() + 1 ) ;
 	m_data.back().get<0>() = m_snp ;
 	m_data.back().get<1>() = "" ;
 	m_data.back().get<2>() = "" ;
 	m_data.back().get<3>() = comparison_method ;
-	m_data.back().get<4>() = comparison_variable ;
-	m_data.back().get<5>() = value ;
+	m_data.back().get<4>() = "accepted_calls" ;
+	m_data.back().get<5>() = accepted_calls ;
 
 	if( m_data.size() == m_max_transaction_count ) {
 		write_data( m_data ) ;

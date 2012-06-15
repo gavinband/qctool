@@ -53,8 +53,8 @@ void CallComparerFileOutputter::set_result(
 
 void CallComparerFileOutputter::set_result(
 	std::string const& comparison_method,
-	std::string const& comparison_variable,
-	genfile::VariantEntry const& value
+	std::string const& accepted_calls,
+	PairwiseCallComparerManager::Calls const&
 ) {
 	(*m_sink)
 		<< m_snp.get_SNPID()
@@ -66,8 +66,8 @@ void CallComparerFileOutputter::set_result(
 		<< "NA"
 		<< "NA"
 		<< comparison_method
-		<< comparison_variable
-		<< value
+		<< "accepted_calls"
+		<< accepted_calls
 		<< statfile::end_row() ;
 	;
 }

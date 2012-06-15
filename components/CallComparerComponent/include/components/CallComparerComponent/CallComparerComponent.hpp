@@ -39,6 +39,7 @@ public:
 		PairwiseCallComparerManager::UniquePtr m_call_comparer ;
 		std::vector< std::string > m_call_fields ;
 		PairwiseCallComparerManager::MergeClient::UniquePtr m_consensus_caller ;
+		Eigen::MatrixXd m_calls ;
 } ;
 
 struct CallComparerComponent: public boost::noncopyable

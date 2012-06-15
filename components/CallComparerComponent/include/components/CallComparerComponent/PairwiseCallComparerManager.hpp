@@ -27,6 +27,9 @@ public:
 	static UniquePtr create() ;
 
 public:
+	typedef std::map< std::string, Eigen::MatrixXd > Calls ;
+
+public:
 	PairwiseCallComparerManager() ;
 	virtual ~PairwiseCallComparerManager() {}
 	void add_comparer( std::string const& name, PairwiseCallComparer::UniquePtr comparer ) ;
@@ -53,15 +56,16 @@ public:
 		) = 0 ;
 	} ;
 	
-	struct MergeClient: public virtual Client
+	struct MergeClient: public Client
 	{
 		typedef boost::shared_ptr< MergeClient > SharedPtr ;
 		typedef std::auto_ptr< MergeClient > UniquePtr ;
 		virtual ~MergeClient() {}
+		virtual void begin_processing_snps( std::size_t number_of_samples ) = 0 ;
 		virtual void set_result(
-			std::string const& comparison,
-			std::string const& comparison_value,
-			genfile::VariantEntry const&
+			std::string const& comparison_method,
+			std::string const& accepted_calls,
+			PairwiseCallComparerManager::Calls const&
 		) = 0 ;
 	} ;
 	
@@ -77,19 +81,21 @@ public:
 		virtual std::string get_result_as_string() const = 0 ;
 	} ;
 
+
+
 	void send_comparisons_to( ComparisonClient::SharedPtr ) ;
 	void send_merge_to( MergeClient::SharedPtr ) ;
 	void set_merger( Merger::UniquePtr ) ;
 
+	void begin_processing_snps( std::size_t number_of_samples ) ;
 	void begin_processing_snp( genfile::SNPIdentifyingData const& snp ) ;
-	void add_calls( std::string const& name, genfile::SingleSNPGenotypeProbabilities const& calls ) ;
+	void add_calls( std::string const& name, Eigen::MatrixXd const& calls ) ;
 	void end_processing_snp() ;
 	
 private:
 	typedef boost::ptr_map< std::string, PairwiseCallComparer > Comparers ;
 	Comparers m_comparers ;
 	Merger::UniquePtr m_merger ;
-	typedef std::map< std::string, genfile::SingleSNPGenotypeProbabilities > Calls ;
 	Calls m_calls ;
 
 	genfile::SNPIdentifyingData m_snp ;
@@ -106,8 +112,8 @@ public:
 	) ;
 	void send_merge_to_clients(
 		std::string const& comparison,
-		std::string const& variable,
-		genfile::VariantEntry const& value
+		std::string const& accepted_calls,
+		Calls const& calls
 	) ;
 } ;
 

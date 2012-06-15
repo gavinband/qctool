@@ -16,49 +16,44 @@ LeastMissingConsensusCaller::LeastMissingConsensusCaller():
 	m_call_threshhold( 0.9 )
 {}
 
-void LeastMissingConsensusCaller::begin_processing_snps( std::size_t number_of_samples ) {
-	m_number_of_samples = number_of_samples ;
-}
-
-void LeastMissingConsensusCaller::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
-	std::vector< std::string > const& call_names = get_consensus_call_names() ;
+void LeastMissingConsensusCaller::set_result(
+	std::string const& comparison,
+	std::string const& accepted_calls,
+	PairwiseCallComparerManager::Calls const& calls
+) {
+	std::vector< std::string > const& call_names = genfile::string_utils::split( accepted_calls, "," ) ;
 	m_genotypes.resize( call_names.size() ) ;
 	std::map< std::string, std::vector< genfile::VariantEntry > > info ;
-	std::size_t chosen_call = 0 ;
+	std::string chosen_call = "" ;
 	double chosen_call_missingness = std::numeric_limits< double >::max() ;
 	if( call_names.size() > 0 ) {
 		for( std::size_t i = 0; i < call_names.size(); ++i ) {
-			{
-				genfile::vcf::GenotypeSetter< Eigen::MatrixBase< Eigen::MatrixXd > > setter( m_genotypes[i] ) ;
-				data_reader.get( call_names[i], setter ) ;
-			}
+			Eigen::MatrixXd const& genotype_calls = calls.find( call_names[i] )->second ;
 			double missing_calls = 0 ;
-			for( int j = 0; j < m_genotypes[i].rows(); ++j ) {
-				if( m_genotypes[i].row( j ).maxCoeff() < m_call_threshhold ) {
+			for( int j = 0; j < genotype_calls.rows(); ++j ) {
+				if( genotype_calls.row( j ).maxCoeff() < m_call_threshhold ) {
 					++missing_calls ;
 				}
 			}
-			info[ call_names[i] ].push_back( missing_calls / m_genotypes[i].rows() ) ;
+			info[ call_names[i] ].push_back( missing_calls / genotype_calls.rows() ) ;
 			if( missing_calls < chosen_call_missingness ) {
-				chosen_call = i ;
+				chosen_call = call_names[i] ;
 				chosen_call_missingness = missing_calls ;
 			}
 		}
 	
-		info[ "call" ].push_back( call_names[ chosen_call ] ) ;
+		info[ "call" ].push_back( chosen_call ) ;
 
 		send_results(
-			snp,
-			m_genotypes[ chosen_call ],
+			get_snp(),
+			calls.find( chosen_call )->second,
 			info
 		) ;
 	} else {
-		m_genotypes.resize( 1 ) ;
-		m_genotypes[0].setZero( m_number_of_samples, 3 ) ;
 		info[ "call" ].push_back( genfile::MissingValue() ) ;
 		send_results(
-			snp,
-			m_genotypes[ 0 ],
+			get_snp(),
+			Eigen::MatrixXd::Zero( get_number_of_samples(), 3 ),
 			info
 		) ;
 	}

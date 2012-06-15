@@ -41,21 +41,13 @@ void ConsensusCaller::send_results(
 	m_result_signal( boost::cref( snp ), boost::cref( genotypes ), boost::cref( info )) ;
 }
 
-void ConsensusCaller::begin_processing_snps( std::size_t ) {
+void ConsensusCaller::begin_processing_snps( std::size_t number_of_samples ) {
+	m_number_of_samples = number_of_samples ;
 }
 
 void ConsensusCaller::begin_comparisons( genfile::SNPIdentifyingData const& snp ) {
+	m_snp = snp ;
 	m_call_names.clear() ;
-}
-
-void ConsensusCaller::set_result(
-	std::string const& comparison,
-	std::string const& comparison_value,
-	genfile::VariantEntry const& value
-) {
-	if( comparison_value == "accepted_calls" ) {
-		m_call_names = genfile::string_utils::split( value.as< std::string >(), "," ) ;
-	}
 }
 
 void ConsensusCaller::end_comparisons() {}

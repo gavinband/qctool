@@ -18,11 +18,14 @@ struct LeastMissingConsensusCaller: public ConsensusCaller
 public:
 	LeastMissingConsensusCaller() ;
 public:
-	void begin_processing_snps( std::size_t number_of_samples ) ;
-	void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& data_reader ) ;
+	void set_result(
+		std::string const& comparison,
+		std::string const& accepted_calls,
+		PairwiseCallComparerManager::Calls const& calls
+	) ;
+
 private:
 	double const m_call_threshhold ;
-	std::size_t m_number_of_samples ;
 	std::vector< Eigen::MatrixXd > m_genotypes ;
 } ;
 

@@ -45,12 +45,18 @@ void PairwiseCallComparerManager::set_merger( Merger::UniquePtr merger ) {
 	m_merger = merger ;
 }
 
+void PairwiseCallComparerManager::begin_processing_snps( std::size_t number_of_samples ) {
+	for( std::size_t i = 0; i < m_merge_clients.size(); ++i ) {
+		m_merge_clients[i]->begin_processing_snps( number_of_samples ) ;
+	}
+}
+
 void PairwiseCallComparerManager::begin_processing_snp( genfile::SNPIdentifyingData const& snp ) {
 	m_calls.clear() ;
 	m_snp = snp ;
 }
 
-void PairwiseCallComparerManager::add_calls( std::string const& name, genfile::SingleSNPGenotypeProbabilities const& calls ) {
+void PairwiseCallComparerManager::add_calls( std::string const& name, Eigen::MatrixXd const& calls ) {
 	m_calls[ name ] = calls ;
 }
 
@@ -90,7 +96,7 @@ void PairwiseCallComparerManager::end_processing_snp() {
 		for( std::size_t i = 0; i < m_merge_clients.size(); ++i ) {
 			m_merge_clients[i]->begin_comparisons( m_snp ) ;
 		}
-		send_merge_to_clients( m_merger->get_spec(), "accepted_calls", m_merger->get_result_as_string() ) ;
+		send_merge_to_clients( m_merger->get_spec(), m_merger->get_result_as_string(), m_calls ) ;
 		for( std::size_t i = 0; i < m_merge_clients.size(); ++i ) {
 			m_merge_clients[i]->end_comparisons() ;
 		}
@@ -111,11 +117,11 @@ void PairwiseCallComparerManager::send_comparisons_to_clients(
 
 void PairwiseCallComparerManager::send_merge_to_clients(
 	std::string const& comparison,
-	std::string const& variable,
-	genfile::VariantEntry const& value
+	std::string const& accepted_calls,
+	Calls const& m_calls
 ) {
 	for( std::size_t i = 0; i < m_merge_clients.size(); ++i ) {
-		m_merge_clients[i]->set_result( comparison, variable, value ) ;
+		m_merge_clients[i]->set_result( comparison, accepted_calls, m_calls ) ;
 	}
 }
 
