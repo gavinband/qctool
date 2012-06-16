@@ -190,23 +190,8 @@ namespace genfile {
 		vcf::MetadataParser::Metadata const& metadata
 	) const {
 		typedef vcf::MetadataParser::Metadata::const_iterator MetadataIterator ;
-		std::pair< MetadataIterator, MetadataIterator > range = metadata.equal_range( "number-of-variants" ) ;
 		OptionalSnpCount result ;
-		if( range.first != range.second ) {
-			std::map< std::string, std::string >::const_iterator where = range.first->second.find( "" ) ;
-			if( where == range.first->second.end() ) {
-				throw MalformedInputError( m_spec, std::distance( metadata.begin(), range.first )) ;
-			}
-			else {
-				result = string_utils::to_repr< std::size_t >( where->second ) ;
-			}
-			if( (++range.first) != range.second ) {
-				throw MalformedInputError( m_spec, std::distance( metadata.begin(), range.first )) ;
-			}
-		}
-		else {
-			result = count_lines( vcf_file_stream, 10000 ) ;
-		}
+		result = count_lines( vcf_file_stream, 10000 ) ;
 		return result ;
 	}
 
@@ -335,18 +320,18 @@ namespace genfile {
 			try {
 				impl::read_element( *stream_ptr, m_CHROM, '\t', entry_count++ ) ;
 				if( m_number_of_lines && number_of_snps_read() == *m_number_of_lines ) {
-					throw MalformedInputError( m_spec, number_of_snps_read() ) ;
+					throw MalformedInputError( m_spec, number_of_snps_read() + m_metadata_parser->get_number_of_lines() + 1 ) ;
 				}
 			}
 			catch( std::ios_base::failure const& ) {
 				// end of data, this is only an error if number of lines did not match.
 				if( m_number_of_lines && number_of_snps_read() != *m_number_of_lines ) {
-					throw MalformedInputError( m_spec, number_of_snps_read() ) ;
+					throw MalformedInputError( m_spec, number_of_snps_read() + m_metadata_parser->get_number_of_lines() + 1 ) ;
 				}
 				return ;
 			}
 			catch( MalformedInputError const& e ) {
-				throw MalformedInputError( m_spec, number_of_snps_read(), e.column() ) ;
+				throw MalformedInputError( m_spec, number_of_snps_read() + m_metadata_parser->get_number_of_lines() + 1, e.column() ) ;
 			}
 
 			try {
@@ -362,7 +347,7 @@ namespace genfile {
 				throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser->get_number_of_lines() + 1, entry_count ) ;
 			}
 			catch( MalformedInputError const& e ) {
-				throw MalformedInputError( m_spec, number_of_snps_read(), e.column() ) ;
+				throw MalformedInputError( m_spec, number_of_snps_read() + m_metadata_parser->get_number_of_lines() + 1, e.column() ) ;
 			}
 			
 			m_have_id_data = true ;
