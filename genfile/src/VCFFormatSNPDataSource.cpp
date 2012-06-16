@@ -151,7 +151,7 @@ namespace genfile {
 		m_stream_ptr->exceptions( std::ios::eofbit | std::ios::failbit | std::ios::badbit ) ;
 
 		// Find our way back to the start of data.
-		for( std::size_t i = 0; i < ( m_metadata_parser->get_number_of_lines() + 1 ); ++i ) {
+		for( std::size_t i = 0; i < ( get_index_of_first_data_line() ); ++i ) {
 			std::string line ;
 			std::getline( *m_stream_ptr, line ) ;
 		}
@@ -320,18 +320,18 @@ namespace genfile {
 			try {
 				impl::read_element( *stream_ptr, m_CHROM, '\t', entry_count++ ) ;
 				if( m_number_of_lines && number_of_snps_read() == *m_number_of_lines ) {
-					throw MalformedInputError( m_spec, number_of_snps_read() + m_metadata_parser->get_number_of_lines() + 1 ) ;
+					throw MalformedInputError( m_spec, number_of_snps_read() + get_index_of_first_data_line() ) ;
 				}
 			}
 			catch( std::ios_base::failure const& ) {
 				// end of data, this is only an error if number of lines did not match.
 				if( m_number_of_lines && number_of_snps_read() != *m_number_of_lines ) {
-					throw MalformedInputError( m_spec, number_of_snps_read() + m_metadata_parser->get_number_of_lines() + 1 ) ;
+					throw MalformedInputError( m_spec, number_of_snps_read() + get_index_of_first_data_line() ) ;
 				}
 				return ;
 			}
 			catch( MalformedInputError const& e ) {
-				throw MalformedInputError( m_spec, number_of_snps_read() + m_metadata_parser->get_number_of_lines() + 1, e.column() ) ;
+				throw MalformedInputError( m_spec, number_of_snps_read() + get_index_of_first_data_line(), e.column() ) ;
 			}
 
 			try {
@@ -344,10 +344,10 @@ namespace genfile {
 				impl::read_element( *stream_ptr, m_INFO, '\t', entry_count++ ) ;
 			}
 			catch( std::ios_base::failure const& ) {
-				throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser->get_number_of_lines() + 1, entry_count ) ;
+				throw MalformedInputError( get_source_spec(), number_of_snps_read() + get_index_of_first_data_line(), entry_count ) ;
 			}
 			catch( MalformedInputError const& e ) {
-				throw MalformedInputError( m_spec, number_of_snps_read() + m_metadata_parser->get_number_of_lines() + 1, e.column() ) ;
+				throw MalformedInputError( m_spec, number_of_snps_read() + get_index_of_first_data_line(), e.column() ) ;
 			}
 			
 			m_have_id_data = true ;
@@ -493,7 +493,7 @@ namespace genfile {
 			}
 			catch( BadArgumentError const& ) {
 				// problem with FORMAT
-				throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser->get_number_of_lines() + 1, 8 ) ;
+				throw MalformedInputError( get_source_spec(), number_of_snps_read() + get_index_of_first_data_line(), 8 ) ;
 			}
 		}
 		m_have_id_data = false ;
@@ -510,7 +510,7 @@ namespace genfile {
 			++count ;
 		}
 		catch( std::ios_base::failure const& ) {
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser->get_number_of_lines() + 1, count ) ;
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + get_index_of_first_data_line(), count ) ;
 		}
 		// We ignore the data, but parse the FORMAT spec anyway.
 		try {
@@ -518,7 +518,7 @@ namespace genfile {
 		}
 		catch( BadArgumentError const& ) {
 			// problem with FORMAT
-			throw MalformedInputError( get_source_spec(), number_of_snps_read() + m_metadata_parser->get_number_of_lines() + 1, 8 ) ;
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + get_index_of_first_data_line(), 8 ) ;
 		}
 		m_have_id_data = false ;
 	}
