@@ -37,6 +37,8 @@ namespace genfile {
 		) ;
 		
 		std::string get_spec() const ;
+
+		void set_sample_names( SampleNameGetter ) ;
 		
 	private:
 		std::string m_filename ;
@@ -44,7 +46,7 @@ namespace genfile {
 		bool m_have_written_header ;
 		std::size_t m_number_of_samples ;
 		double const m_call_threshhold ;
-		boost::function< std::string ( std::size_t ) > m_sample_name_getter ;
+		SampleNameGetter m_sample_name_getter ;
 	} ;
 }
 

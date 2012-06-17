@@ -10,6 +10,19 @@ namespace genfile {
 	namespace vcf {
 		ThreshholdingGenotypeSetter< Eigen::VectorXd >::ThreshholdingGenotypeSetter(
 			Eigen::VectorXd& result,
+			double threshhold
+		):
+			m_result( result ),
+			m_non_missingness( 0 ),
+			m_missing_value( -1 ),
+			m_AA_value( 0 ),
+			m_AB_value( 1 ),
+			m_BB_value( 2 ),
+			m_threshhold( threshhold )
+		{}
+
+		ThreshholdingGenotypeSetter< Eigen::VectorXd >::ThreshholdingGenotypeSetter(
+			Eigen::VectorXd& result,
 			double threshhold,
 			double missing_value,
 			double AA_value,

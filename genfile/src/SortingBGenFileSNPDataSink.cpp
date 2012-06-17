@@ -20,25 +20,6 @@
 #include "genfile/SortingBGenFileSNPDataSink.hpp"
 
 namespace genfile {
-	
-	namespace impl {
-		std::string make_temp_name( std::string filename ) {
-			if( filename.size() < 12 || filename.substr( filename.size() - 12, 12 ) != "XXXXXXXXXXXX" ) {
-				throw BadArgumentError( "genfile::impl::make_temp_name()", "filename=\"" + filename + "\"" ) ;
-			}
-			std::vector< char > buffer(
-				filename.begin(),
-				filename.end()
-			) ;
-			buffer.push_back( '\0' ) ;
-			buffer[ filename.size() - 6 ] = '\0' ;
-			std::tmpnam( &buffer[0] ) ;
-			buffer[ filename.size() - 6 ] = 'X' ;
-			std::tmpnam( &buffer[0] ) ;
-			return std::string( buffer.begin(), buffer.begin() + buffer.size() - 1 ) ;
-		}
-	}
-
 	SortingBGenFileSNPDataSink::SortingBGenFileSNPDataSink(
 		std::string const& filename, 
 		SNPDataSink::UniquePtr sink
@@ -107,15 +88,13 @@ namespace genfile {
 		boost::system::error_code ec ;
 
 		// Move file to a similarly-named temporary.
-//		boost::filesystem::path temp_filename = boost::filesystem::unique_path( m_filename + ".tmp%%%%-%%%%-%%%%-%%%%", ec ) ;
-		std::string temp_filename = impl::make_temp_name( m_filename + ".tmpXXXXXXXXXXXX" ) ;
+		boost::filesystem::path temp_filename = boost::filesystem::unique_path( m_filename + ".tmp%%%%-%%%%-%%%%-%%%%", ec ) ;
 
 		// std::cerr << "Renaming \"" << m_filename << "\" to \"" << temp_filename << "\"...\n" ;
 		boost::filesystem::rename(
 			boost::filesystem::path( m_filename ),
 			boost::filesystem::path( temp_filename )
 		) ;
-		
 		// std::cerr << "Copying file back...\n" ;
 		// Copy temporary back to file in the right order.
 		std::ifstream input( temp_filename.c_str(), std::ios::binary ) ;
@@ -161,7 +140,7 @@ namespace genfile {
 		input.close() ;
 
 		// remove the temporary file.
-		//boost::filesystem::remove( temp_filename ) ;
+		boost::filesystem::remove( temp_filename ) ;
 		// ignore the error code.
 	}
 }

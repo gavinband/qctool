@@ -10,6 +10,7 @@
 #include <iostream>
 #include <string>
 #include <stdint.h>
+#include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/VariantDataReader.hpp"
@@ -27,6 +28,7 @@ namespace genfile {
 	{
 	public:
 		typedef std::auto_ptr< SNPDataSink > UniquePtr ;
+		typedef boost::shared_ptr< SNPDataSink > SharedPtr ;
 	public:
 		SNPDataSink() ;
 		virtual ~SNPDataSink() ;
@@ -91,6 +93,9 @@ namespace genfile {
 	public:
 		// The following functions must be implemented by derived classes.
 		virtual operator bool() const = 0 ;
+
+		typedef boost::function< VariantEntry ( std::size_t ) > SampleNameGetter ;
+		virtual void set_sample_names( SampleNameGetter ) ;
 
 	protected:
 		// This function implements the SNP writing, and must be implemented by derived classes.

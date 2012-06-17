@@ -39,11 +39,15 @@ namespace genfile {
 		{
 			ThreshholdingGenotypeSetter(
 				Eigen::VectorXd& result,
+				double threshhold
+			) ;
+			ThreshholdingGenotypeSetter(
+				Eigen::VectorXd& result,
 				double threshhold,
-				double missing_value = -1,
-				double AA_value = 0,
-				double AB_value = 1,
-				double BB_value = 2
+				double missing_value,
+				double AA_value,
+				double AB_value,
+				double BB_value
 			) ;
 			ThreshholdingGenotypeSetter(
 				Eigen::VectorXd& result,

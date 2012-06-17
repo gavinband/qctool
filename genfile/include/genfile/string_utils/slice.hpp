@@ -42,6 +42,8 @@ namespace genfile {
 			std::vector< slice > split( std::string const& split_chars ) const ;
 			void split( std::string const& split_chars, std::vector< slice >* result ) const ;
 			
+			slice substr( std::size_t start, std::size_t end ) const ;
+			
 			bool operator==( std::string const& other ) const ;
 			bool operator!=( std::string const& other ) const ;
 			bool operator==( slice const& other ) const ;

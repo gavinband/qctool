@@ -98,4 +98,8 @@ namespace genfile {
 	bool Chromosome::is_autosome() const {
 		return m_chromosome_e <= Chromosome22 ;
 	}
+
+	bool Chromosome::is_missing() const {
+		return m_chromosome_e == UnidentifiedChromosome ;
+	}
 }

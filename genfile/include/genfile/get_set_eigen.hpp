@@ -25,10 +25,10 @@ namespace genfile {
 	template<>
 	struct GenotypeGetter< Eigen::MatrixXd >
 	{
-		GenotypeGetter( Eigen::MatrixXd& matrix, std::size_t g ) ;
+		GenotypeGetter( Eigen::MatrixXd const& matrix, std::size_t g ) ;
 		double operator()( std::size_t i ) const ;
 		private:
-			Eigen::MatrixXd& m_matrix ;
+			Eigen::MatrixXd const& m_matrix ;
 			std::size_t const m_g ;
 	} ;
 }

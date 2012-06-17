@@ -123,4 +123,6 @@ namespace genfile {
 	) {
 		throw OperationUnsupportedError( "genfile::SNPDataSink::write_variant_data_impl()", "call", get_spec() ) ;
 	}
+	
+	void SNPDataSink::set_sample_names( SampleNameGetter ) {}
 }
