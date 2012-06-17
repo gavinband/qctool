@@ -25,7 +25,7 @@ namespace snptest {
 			LogLikelihood() ;
 
 			LogLikelihood& set_phenotypes( Vector const& phenotypes ) ;
-			LogLikelihood& set_genotypes( Matrix const& genotypes, Vector const& levels ) ;
+			LogLikelihood& set_predictor_probs( Matrix const& genotypes, Vector const& levels ) ;
 			LogLikelihood& set_covariates( Matrix const& covariates ) ;
 
 			void evaluate_at( Point const& parameters ) ;

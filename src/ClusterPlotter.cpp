@@ -129,7 +129,7 @@ namespace impl {
 				graph.CAxis( 0.0, 3.0 ) ;
 
 				graph.Tens( x, y, colour, "RGBk ." ) ;
-				graph.Puts( mglPoint( 2.5, 3.0 ), ( i->first + "/" + m_intensity_field ).c_str() ) ;
+				graph.Puts( mglPoint( x_range_max / 2, y_range_max * 3 / 5 ), ( i->first + "/" + m_intensity_field ).c_str() ) ;
 			}
 			graph.WritePNG( m_filename.c_str() ) ;
 		}
@@ -148,12 +148,13 @@ namespace impl {
 
 void ClusterPlotter::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 	using genfile::string_utils::substitute ;
-	std::string filename = substitute(
-		substitute( m_filename_template, "#rsid", snp.get_rsid() ),
-		"#intensity",
-		m_intensity_field
-	) ;
-	
+	using genfile::string_utils::to_string ;
+	std::string filename = m_filename_template ;
+	filename = substitute( filename , "#rsid", snp.get_rsid() ) ;
+	filename = substitute( filename, "#intensity", m_intensity_field ) ;
+	filename = substitute( filename, "#chromosome", to_string( snp.get_position().chromosome() ) ) ;
+	filename = substitute( filename, "#position", to_string( snp.get_position().position() ) ) ;
+
 	std::auto_ptr< impl::PlotTask > plot_task(
 		new impl::PlotTask(
 			"cohort1",

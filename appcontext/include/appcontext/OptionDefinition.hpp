@@ -63,8 +63,8 @@ namespace appcontext {
 			}
 			OptionDefinition& set_takes_single_value() {
 				m_number_of_values_per_use = 1u ;	
-				m_minimum_multiplicity = 0u ;
 				m_maximum_multiplicity = 1u ;
+				m_minimum_multiplicity = std::min( m_minimum_multiplicity, m_maximum_multiplicity ) ;
 				return *this ;
 			}
 			OptionDefinition& set_takes_values_until_next_option() {

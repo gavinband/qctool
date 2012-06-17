@@ -131,7 +131,7 @@ std::string AncestralAlleleAnnotation::get_summary( std::string const& prefix, s
 	return result ;
 }
 
-void AncestralAlleleAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, genfile::VariantDataReader&, ResultCallback callback ) {
+void AncestralAlleleAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const&, genfile::VariantDataReader&, ResultCallback callback ) {
 	using namespace genfile::string_utils ;
 	Sequence::const_iterator where = m_sequence.find( snp.get_position().chromosome() ) ;
 	if( where != m_sequence.end() ) {
@@ -142,12 +142,16 @@ void AncestralAlleleAnnotation::operator()( SNPIdentifyingData const& snp, Genot
 				//std::cerr << snp << ": ancestral allele is " << std::string( 1, allele ) << ".\n";
 				callback( "ancestral_allele", allele ) ;
 				
-				if( to_upper( allele ) == snp.get_first_allele() ) {
+				std::string const upper_case_allele = to_upper( allele ) ;
+				
+				if( upper_case_allele == snp.get_first_allele() ) {
+					callback( "derived_allele", ( upper_case_allele == allele ) ? snp.get_second_allele() : to_lower( snp.get_second_allele() )) ;
 					double const ancestral_allele_freq = ( ( 2.0 * genotypes.col(0).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
 					double const derived_allele_freq = ( ( 2.0 * genotypes.col(2).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
 					callback( "ancestral_allele_frequency", ancestral_allele_freq ) ;
 					callback( "derived_allele_frequency", derived_allele_freq ) ;
-				} else if( to_upper( allele ) == snp.get_second_allele() ) {
+				} else if( upper_case_allele == snp.get_second_allele() ) {
+					callback( "derived_allele", ( upper_case_allele == allele ) ? snp.get_first_allele() : to_lower( snp.get_first_allele() )) ;
 					double const derived_allele_freq = ( ( 2.0 * genotypes.col(0).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
 					double const ancestral_allele_freq = ( ( 2.0 * genotypes.col(2).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
 					callback( "derived_allele_frequency", derived_allele_freq ) ;

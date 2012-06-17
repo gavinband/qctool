@@ -19,6 +19,7 @@ struct AssociationTest: public SNPSummaryComputation {
 	typedef Eigen::MatrixXd Matrix ;
 
 	static UniquePtr create(
+		std::string const& type,
 		std::string const& phenotype_name,
 		std::vector< std::string > const& covariate_names,
 		genfile::CohortIndividualSource const& samples,

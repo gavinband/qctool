@@ -24,7 +24,7 @@ FrequentistTestCallMerger::SharedPtr FrequentistTestCallMerger::create_shared( s
 
 FrequentistTestCallMerger::FrequentistTestCallMerger( std::string const& comparison_method, double threshhold ):
 	m_comparison_method( comparison_method ),
-	m_range( std::make_pair( threshhold, 100.0 ))
+	m_pvalue_range( std::make_pair( threshhold, 100.0 ))
 {}
 
 std::string FrequentistTestCallMerger::get_spec() const {
@@ -82,7 +82,7 @@ void FrequentistTestCallMerger::end_comparisons() {
 	Eigen::MatrixXd mismatches = Eigen::MatrixXd::Zero( call_names.size(), call_names.size() ) ;
 	foreach( ComparisonValues::value_type value, m_comparison_values ) {
 		double pvalue = value.second.as< double >() ;
-		if( pvalue < m_range.first || pvalue > m_range.second ) {
+		if( pvalue < m_pvalue_range.first || pvalue > m_pvalue_range.second ) {
 			std::size_t const i = call_names.left.at( value.first.first ) ;
 			std::size_t const j = call_names.left.at( value.first.second ) ;
 			mismatches( i, j )++ ;
@@ -109,12 +109,12 @@ void FrequentistTestCallMerger::end_comparisons() {
 	std::cerr << "\n" ;
 #endif
 
-	// At a really good SNP there are no mismatches (=> all rows are zero.)
-	// At a quite good SNP we will have a (N-1)x(N-1) sub-table of zeroes.
 	for( CallNames::left_map::const_iterator i = call_names.left.begin(); i != call_names.left.end(); ++i ) {
 		m_concordant_calls.insert( i->first ) ;
 	}
 	
+	// At a really good SNP there are no mismatches (=> all rows are zero.)
+	// At a quite good SNP we will have a (N-1)x(N-1) sub-table of zeroes.
 	if( mismatches.array().maxCoeff() > 0 ) {
 		// try knocking out one call.
 		for( int i = 0; i < mismatches.rows(); ++i ) {

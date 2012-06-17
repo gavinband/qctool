@@ -177,10 +177,60 @@ $ qctool -help
                         The estimated frequency of the less common allele. The <span class="monospace">-maf</span> option can be used to retain only SNPs within a given range of minor allele frequencies.
                     </dd>
                     <dt style="font-weight: bold ;">
-                        Info
+                        info
                     </dt>
                     <dd>
-                        This is IMPUTE's info measure, and is defined as one minus the average over individuals of the variance of a genotype (given the individuals' genotype call probability distribution), divided by the variance if only the allele frequency were known. It measures how much uncertainty there is in the genotype calls. It equals zero when the genotype call probabilities are obtained from the allele frequency, to 1 when the calls are all certain. Use the <span class="monospace">-info</span> option to filter on this statistic.
+                        The info measure is based on IMPUTE's info measure and measures the degree of uncertainty present in the genotype call distribution.  It can be defined as one minus the mean variance of a genotype (given the genotype call probability distribution), divided by the variance if only the allele frequency were known, 
+                        <p>
+                        <!-- begin MathToWeb -->
+                        <!-- (your LaTeX) $1-\frac{\sum(\text{variance of genotype distribution for individual $i$})}{2N\theta(1-\theta)}$ -->
+                        <math xmlns="http://www.w3.org/1998/Math/MathML">
+                        <mrow>
+                            <mtext>info</mtext>
+                            <mo>=</mo>
+                        	<mn>1</mn>
+                        	<mo>-</mo>
+                        	<mfrac linethickness="1">
+                        		<mrow>
+                        			<mstyle displaystyle="true">
+                        				<mo>&sum;</mo>
+                        			</mstyle>
+                        			<mo maxsize="1.00em">(</mo>
+                        			<mtext>variance&nbsp;of&nbsp;genotype&nbsp;distribution&nbsp;for&nbsp;individual&nbsp;
+                        				<math xmlns="http://www.w3.org/1998/Math/MathML">
+                        					<mrow>
+                        						<mi>i</mi>
+                        					</mrow>
+                        				</math>
+                        			</mtext>
+                        			<mo maxsize="1.00em">)</mo>
+                        		</mrow>
+                        		<mrow>
+                        			<mn>2</mn>
+                        			<mi>N</mi>
+                        			<mi>&theta;</mi>
+                        			<mrow>
+                        				<mo maxsize="1.00em">(</mo>
+                        				<mn>1</mn>
+                        				<mo>-</mo>
+                        				<mi>&theta;</mi>
+                        				<mo maxsize="1.00em">)</mo>
+                        			</mrow>
+                        		</mrow>
+                        	</mfrac>
+                        </mrow>
+                        </math>
+                        <!-- end MathToWeb -->
+                    </p>
+                        
+                        A value of 1 indicates that the calls are completely certain (or almost so) while a value near 0 indicates that the calls are no more certain than the distribution given by the allele frequency under Hardy-Weinberg.  (The info measure may also be negative.)  If the three genotype call probabilities do not sum to 1 (e.g. at a typed SNP where there is some nonzero probability of a NULL call) then QCTOOL fills the call probabilities using the allele frequency.  Thus, a completely missing genotype reduces the info measure by one over the number of samples.  Use the <span class="monospace">-info</span> option to filter on this statistic.
+                    </p>
+                    </dd>
+                    <dt style="font-weight: bold ;">
+                        impute_info
+                    </dt>
+                    <dd>
+                        This is IMPUTE's original info measure.  It is defined in the same way as <span class="font-weight: bold">info</span> but does not take account of NULL genotype calls.  Use the <span class="monospace">-impute-info</span> option to filter on this statistic.
                     </dd>
                 </dl>You can filter out SNPs based on these summary statistics, on chromosome and position, or based on the SNP ids.
                 <p>

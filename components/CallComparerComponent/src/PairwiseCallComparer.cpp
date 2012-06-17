@@ -14,12 +14,17 @@
 #include "components/CallComparerComponent/AlleleFrequencyTestCallComparer.hpp"
 #include "components/CallComparerComponent/PairwiseCallComparer.hpp"
 
-PairwiseCallComparer::UniquePtr PairwiseCallComparer::create( std::string const& spec ) {
+PairwiseCallComparer::UniquePtr PairwiseCallComparer::create( std::string const& model ) {
 	PairwiseCallComparer::UniquePtr result ;
-	if( spec != "AlleleFrequencyTestCallComparer" ) {
-		throw genfile::BadArgumentError( "PairwiseCallComparer::create()", "spec=\"" + spec + "\"" ) ;
+	if( model == "AlleleFrequencyTest" ) {
+		result.reset( new AlleleFrequencyTestCallComparer() ) ;
 	}
-	result.reset( new AlleleFrequencyTestCallComparer() ) ;
+	else if( model == "AcceptAll" ) {
+		// empty.
+	}
+	else {
+		throw genfile::BadArgumentError( "PairwiseCallComparer::create()", "model=\"" + model + "\"" ) ;
+	}
 	return result ;
 }
 

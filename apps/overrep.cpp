@@ -100,7 +100,11 @@ struct FishersExactTest {
 		using boost::math::cdf ;
 		using boost::math::complement ;
 
-		return cdf( complement( m_distribution, std::max( m_matrix( 0, 0 ) - 1.0, 0.0 ) )) ;
+		if( m_matrix(0,0) == 0 ) {
+			return 1 ;
+		} else {
+			return cdf( complement( m_distribution, m_matrix( 0, 0 ) - 1.0 )) ;
+		}
 	}
 
 	private:

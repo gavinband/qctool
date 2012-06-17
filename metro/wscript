@@ -1,0 +1,34 @@
+import os.path
+import glob
+#import UnitTest
+
+def configure( conf ):
+	pass
+
+def create_test( bld, name ):
+	bld(
+		features = 'cxx cprogram',
+		target = name,
+		source = [  'test/' + name + '.cpp' ],
+		uselib_local = 'metro',
+		uselib = 'BOOST_UNIT_TEST_FRAMEWORK',
+		includes='./include',
+		unit_test=1,
+		install_path = None
+	)
+
+def build( bld ):
+	import Options
+	
+	#---------------------
+	# libs
+	#---------------------
+	bld(
+		features = 'cxx cstaticlib',
+		target = 'metro',
+		source = bld.glob( 'src/*.cpp' ),
+		includes='./include',
+		uselib_local='eigen',
+		uselib = 'BOOST',
+		export_incdirs = './include'
+	)

@@ -93,6 +93,7 @@ namespace db {
 		}
 		// We add a busy handler.  This makes the database more robust by retrying failed transactions.
 		sqlite3_busy_handler( m_db_connection, &sqlite3_busy_callback, NULL ) ;
+		// Uncomment the next line to trace SQL statements executed.
 		//sqlite3_trace( m_db_connection, &sqlite3_trace_callback, NULL ) ;
 	}
 

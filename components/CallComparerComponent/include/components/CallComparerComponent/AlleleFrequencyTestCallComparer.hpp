@@ -19,8 +19,8 @@ struct AlleleFrequencyTestCallComparer: public PairwiseCallComparer {
 	AlleleFrequencyTestCallComparer() ;
 
 	std::map< std::string, genfile::VariantEntry > compare(
-		genfile::SingleSNPGenotypeProbabilities const& left,
-		genfile::SingleSNPGenotypeProbabilities const& right
+		Eigen::MatrixXd const& left,
+		Eigen::MatrixXd const& right
 	) const ;
 	
 private:

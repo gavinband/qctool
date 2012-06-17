@@ -4,6 +4,7 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#include <vector>
 #include <boost/math/distributions/chi_squared.hpp>
 #include <Eigen/Core>
 #include "genfile/SNPIdentifyingData.hpp"
@@ -27,12 +28,13 @@ FrequentistCaseControlAssociationTest::FrequentistCaseControlAssociationTest(
 	m_alternative_ll.set_covariates( covariates ) ;
 	m_null_ll.set_phenotypes( phenotypes ) ;
 	m_null_ll.set_covariates( covariates ) ;
+	
 }
 
 namespace impl {
-	template< typename LL >
-	struct AssociationTestStoppingCondition {
-		AssociationTestStoppingCondition( LL const& ll, double tolerance ):
+	template< typename LogLikelihood >
+	struct SNPTESTNewtonRaphsonStoppingCondition {
+		SNPTESTNewtonRaphsonStoppingCondition( LogLikelihood const& ll, double tolerance ):
 			m_ll( ll ),
 			m_current_ll_value( -std::numeric_limits< double >::infinity() ),
 			m_tolerance( tolerance ),
@@ -52,7 +54,7 @@ namespace impl {
 		std::size_t number_of_iterations() const { return m_iteration ; }
 
 		private:
-			LL const& m_ll ;
+			LogLikelihood const& m_ll ;
 			double m_current_ll_value ;
 			double const m_tolerance ;
 			std::size_t m_iteration ;
@@ -60,17 +62,22 @@ namespace impl {
 	} ;
 }
 
-void FrequentistCaseControlAssociationTest::operator()( SNPIdentifyingData const& snp, Matrix const& genotypes, genfile::VariantDataReader&, ResultCallback callback ) {
+void FrequentistCaseControlAssociationTest::test(
+	SNPIdentifyingData const& snp,
+	Matrix const& predictor_probs,
+	Vector predictor_levels,
+	ResultCallback callback
+) {
 	using integration::derivative ;
+
+	predictor_levels = mean_centre_predictor_levels( snp, predictor_probs, predictor_levels ) ;
 	
-	Vector genotype_levels = get_genotype_levels( genotypes ) ;
-	
-	m_null_ll.set_genotypes( genotypes, genotype_levels ) ;
-	m_alternative_ll.set_genotypes( genotypes, genotype_levels ) ;
+	m_null_ll.set_predictor_probs( predictor_probs, predictor_levels ) ;
+	m_alternative_ll.set_predictor_probs( predictor_probs, predictor_levels ) ;
 
 	Vector null_parameters = Vector::Zero( m_covariates.cols() + 1 ) ;
 	{
-		impl::AssociationTestStoppingCondition< snptest::case_control::NullModelLogLikelihood > stopping_condition( m_null_ll, 0.01 ) ;
+		impl::SNPTESTNewtonRaphsonStoppingCondition< snptest::case_control::NullModelLogLikelihood > stopping_condition( m_null_ll, 0.01 ) ;
 		null_parameters = integration::maximise_by_newton_raphson(
 			m_null_ll,
 			null_parameters,
@@ -81,7 +88,7 @@ void FrequentistCaseControlAssociationTest::operator()( SNPIdentifyingData const
 	alternative_parameters( 0 ) = null_parameters(0) ;
 	alternative_parameters.tail( m_covariates.cols() ) = null_parameters.tail( m_covariates.cols() ) ;
 	{
-		impl::AssociationTestStoppingCondition< snptest::case_control::LogLikelihood > stopping_condition( m_alternative_ll, 0.01 ) ;
+		impl::SNPTESTNewtonRaphsonStoppingCondition< snptest::case_control::LogLikelihood > stopping_condition( m_alternative_ll, 0.01 ) ;
 		alternative_parameters = integration::maximise_by_newton_raphson(
 			m_alternative_ll,
 			alternative_parameters,
@@ -118,11 +125,14 @@ void FrequentistCaseControlAssociationTest::operator()( SNPIdentifyingData const
 	}
 }
 
-FrequentistCaseControlAssociationTest::Vector FrequentistCaseControlAssociationTest::get_genotype_levels( Matrix const& genotypes ) const {
-	Vector result( Vector::Zero( 3 )) ;
-	// compute average genotype
-	double const mean_genotype = ( genotypes.col(1) + 2.0 * genotypes.col(2) ).sum() / genotypes.sum() ;
-	result <<
-		-mean_genotype, 1.0 - mean_genotype, 2.0 - mean_genotype ;
+FrequentistCaseControlAssociationTest::Vector FrequentistCaseControlAssociationTest::mean_centre_predictor_levels(
+	genfile::SNPIdentifyingData const& snp,
+	Matrix const& probs,
+	Vector const& predictor_levels
+) const {
+	Vector result = predictor_levels ;
+	Vector colSums = probs.colwise().sum() ;
+	double const mean = ( result.array() * colSums.array() ).sum() / probs.sum() ;
+	result = result - Vector::Constant( result.size(), mean ) ;
 	return result ;
 }

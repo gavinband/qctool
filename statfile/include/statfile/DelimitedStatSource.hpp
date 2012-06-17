@@ -10,6 +10,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include "genfile/string_utils/slice.hpp"
 #include "statfile/StatSource.hpp"
 #include "statfile/IstreamAggregator.hpp"
 #include "statfile/BuiltInTypeStatSource.hpp"
@@ -32,7 +33,7 @@ namespace statfile {
 	public:
 		std::size_t number_of_rows() const { return m_number_of_rows ; } ;
 
-		std::string const& get_descriptive_text() const { return m_descriptive_text ; }
+		std::string get_descriptive_text() const { return m_descriptive_text ; }
 
 	protected:
 
@@ -58,9 +59,9 @@ namespace statfile {
 		}
 
 		void read_one_line() ;
-		std::vector< std::string > split_line( std::string const& line, std::string const& delimiter, std::string const& strip_chars ) const ;
+		std::vector< genfile::string_utils::slice > split_line( std::string const& line, std::string const& delimiter, std::string const& strip_chars ) const ;
 		static std::string strip( std::string const& string_to_strip, std::string const& strip_chars ) ;
-		static std::string get_unquoted_substring( std::string const& big_string, std::size_t pos, std::size_t length, std::string const& quotes ) ;
+		static genfile::string_utils::slice get_unquoted_substring( std::string const& big_string, std::size_t pos, std::size_t length, std::string const& quotes ) ;
 
 		void setup( std::auto_ptr< std::istream > stream_ptr ) ;
 		void setup( std::string const& filename ) ;
@@ -71,7 +72,8 @@ namespace statfile {
 		std::string get_source_spec() const ;
 	private:
 		std::string const m_filename ;
-		std::vector< std::string > m_current_fields ;
+		std::string m_current_line ;
+		std::vector< genfile::string_utils::slice > m_current_fields ;
 		char const m_comment_character ;
 		std::string const m_delimiter ;
 		std::string const m_quotes ;

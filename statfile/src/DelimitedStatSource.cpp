@@ -9,8 +9,8 @@
 #include <string>
 #include <sstream>
 #include <limits>
-
 #include "genfile/Error.hpp"
+#include "genfile/string_utils/string_utils.hpp"
 #include "statfile/DelimitedStatSource.hpp"
 
 namespace statfile {
@@ -73,21 +73,19 @@ namespace statfile {
 	}
 
 	void DelimitedStatSource::read_one_line() {
-		std::string line ;
-		std::getline( stream(), line ) ;
-		m_current_fields = split_line( line, m_delimiter, m_quotes ) ;
+		std::getline( stream(), m_current_line ) ;
+		m_current_fields = split_line( m_current_line, m_delimiter, m_quotes ) ;
 		if( m_current_fields.size() != number_of_columns() ) {
 			throw genfile::MalformedInputError( get_source_spec(), number_of_rows_read() ) ;
 		}
-		// std::cerr << "read_one_line: size of line is " << m_current_fields.size() << ".\n" ;
 	}
 
-	std::vector< std::string > DelimitedStatSource::split_line(
+	std::vector< genfile::string_utils::slice > DelimitedStatSource::split_line(
 		std::string const& line,
 		std::string const& delimiter,
 		std::string const& quotes
 	) const {
-		std::vector< std::string > result ;
+		std::vector< genfile::string_utils::slice > result ;
 		int in_quote = 0 ;
 		std::size_t last_i = 0 ;
 		for( std::size_t i = 0; i < line.size(); ) {
@@ -112,17 +110,17 @@ namespace statfile {
 		return result ;
 	}
 	
-	std::string DelimitedStatSource::get_unquoted_substring(
+	genfile::string_utils::slice DelimitedStatSource::get_unquoted_substring(
 		std::string const& big_string,
 		std::size_t pos,
 		std::size_t length,
 		std::string const& quotes
 	) {
 		if( big_string[pos] == quotes[0] && big_string[pos] == quotes[1] ) {
-			return big_string.substr( pos + 1, length - 2 ) ;
+			return genfile::string_utils::slice( big_string ).substr( pos + 1, pos + length - 1 ) ;
 		}
 		else {
-			return big_string.substr( pos, length ) ;
+			return genfile::string_utils::slice( big_string ).substr( pos, pos + length ) ;
 		}
 	}
 /*
@@ -175,7 +173,10 @@ namespace statfile {
 		while( stream().peek() == m_comment_character || stream().peek() == '\n' ) {
 			std::getline( stream(), line ) ;
 			if( line.size() > 0 ) {
-				line = line.substr( 1, line.size() ) ; // miss off comment char.
+				line = line.substr( 1, line.size() ) ; // skip comment char
+			}
+			if( line.size() > 0 && line[0] == ' ' ) {
+				line = line.substr( 1, line.size() ) ; // skip space.
 			}
 			if( result.size() > 0 ) {
 				result += '\n' ;
@@ -189,7 +190,7 @@ namespace statfile {
 	void DelimitedStatSource::read_column_names() {
 		std::string line ;
 		std::getline( stream(), line ) ;
-		std::vector< std::string > column_names = split_line( line, m_delimiter, m_quotes ) ;
+		std::vector< genfile::string_utils::slice > column_names = split_line( line, m_delimiter, m_quotes ) ;
 		for( std::size_t i = 0; i < column_names.size(); ++i ) {
 			add_column( column_names[i] ) ;
 		}
@@ -225,18 +226,12 @@ namespace statfile {
 		if( current_column() == 0 ) {
 			read_one_line() ;
 		}
-		std::string str_field ;
-		do_read_value< std::string >( str_field ) ;
-		if( str_field == "inf" ) {
-			value = std::numeric_limits< double >::infinity() ;
-		} else if( str_field == "NA" ) {
+		genfile::string_utils::slice const& elt = m_current_fields[ current_column() ] ;
+		if( elt.size() == 2 && elt[0] == 'N' && elt[1] == 'A' ) {
 			value = std::numeric_limits< double >::quiet_NaN() ;
-		} else {
-			std::istringstream istr( str_field ) ;
-			istr >> value ;
-			istr.peek() ;
-			assert( istr.eof()) ;	
+		}
+		else {
+			value = genfile::string_utils::to_repr< double >( elt ) ;
 		}
 	}
-	
 }

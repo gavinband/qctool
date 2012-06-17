@@ -21,13 +21,10 @@
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
 #include "db/Error.hpp"
+#include "components/HaplotypeFrequencyComponent/DBOutputter.hpp"
 #include "components/HaplotypeFrequencyComponent/HaplotypeFrequencyComponent.hpp"
 
 // #define DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT 1
-namespace impl {
-	struct HaplotypeFrequencyFileOutputter ;
-}
-
 struct HaplotypeFrequencyLogLikelihood ;
 
 void HaplotypeFrequencyComponent::declare_options( appcontext::OptionProcessor& options ) {
@@ -40,258 +37,6 @@ void HaplotypeFrequencyComponent::declare_options( appcontext::OptionProcessor& 
 		.set_takes_single_value()
 		.set_default_value( "ld.db" ) ;
 	options.option_implies_option( "-compute-ld-file", "-compute-ld-with" ) ;
-}
-
-namespace impl {
-	struct HaplotypeFrequencyFileOutputter {
-	public:
-		typedef std::auto_ptr< HaplotypeFrequencyFileOutputter > UniquePtr ;
-		typedef boost::shared_ptr< HaplotypeFrequencyFileOutputter > SharedPtr ;
-		static UniquePtr create( std::string const& filename ) {
-			return UniquePtr( new HaplotypeFrequencyFileOutputter( filename )) ;
-		}
-		static SharedPtr create_shared( std::string const& filename ) {
-			return SharedPtr( new HaplotypeFrequencyFileOutputter( filename )) ;
-		}
-		HaplotypeFrequencyFileOutputter( std::string filename ): m_filename( filename ) {}
-		
-		void operator()(
-			std::string const& cohort,
-			genfile::SNPIdentifyingData const& source_snp,
-			genfile::SNPIdentifyingData const& target_snp,
-			std::string const& variable,
-			genfile::VariantEntry const& value
-		) {
-			if( !m_sink.get() ) {
-				m_sink = statfile::BuiltInTypeStatSink::open( m_filename ) ;
-				(*m_sink) | "cohort" | "SNPID1" | "rsid1" | "chromosome1" | "position1" | "SNPID2" | "variable" | "value" ;
-			}
-			
-			(*m_sink)
-				<< cohort
-				<< source_snp.get_SNPID() << source_snp.get_rsid() << source_snp.get_position().chromosome() << source_snp.get_position().position()
-				<< target_snp.get_SNPID() << target_snp.get_rsid() << target_snp.get_position().chromosome() << target_snp.get_position().position()
-				<< variable << value.as< double >()
-				<< statfile::end_row() ;
-		}
-		
-	private:
-		std::string const m_filename ;
-		statfile::BuiltInTypeStatSink::UniquePtr m_sink ;
-	} ;
-	
-	struct HaplotypeFrequencyDBOutputter {
-		typedef std::auto_ptr< HaplotypeFrequencyDBOutputter > UniquePtr ;
-		typedef boost::shared_ptr< HaplotypeFrequencyDBOutputter > SharedPtr ;
-
-		static UniquePtr create( std::string const& filename ) { return UniquePtr( new HaplotypeFrequencyDBOutputter( filename ) ) ; }
-		static SharedPtr create_shared( std::string const& filename ) { return SharedPtr( new HaplotypeFrequencyDBOutputter( filename ) ) ; }
-
-		HaplotypeFrequencyDBOutputter( std::string const& filename ):
-			m_connection( db::Connection::create( filename )),
-			m_max_transaction_count( 10000 )
-		{
-			db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction() ;
-			m_connection->run_statement(
-				"CREATE TABLE IF NOT EXISTS Variant ( id INTEGER PRIMARY KEY, snpid TEXT, rsid TEXT, chromosome TEXT, position INTEGER, alleleA TEXT, alleleB TEXT )"
-			) ;
-			m_connection->run_statement(
-				"CREATE INDEX IF NOT EXISTS Variant_index ON Variant( chromosome, position, rsid )"
-			) ;
-			m_connection->run_statement(
-				"CREATE TABLE IF NOT EXISTS Entity ( id INTEGER PRIMARY KEY, name TEXT, description TEXT )"
-			) ;
-			m_connection->run_statement(
-				"CREATE TABLE IF NOT EXISTS PairwiseSummaryData ( "
-				"cohort_id INT, variant1_id INT, variant2_id INT, variable_id INT, value FLOAT, "
-				"FOREIGN KEY( cohort_id ) REFERENCES Entity( id ), "
-				"FOREIGN KEY( variant1_id ) REFERENCES Variant( id ), "
-				"FOREIGN KEY( variant2_id ) REFERENCES Variant( id ), "
-				"FOREIGN KEY( variable_id ) REFERENCES Entity( id ), "
-				"UNIQUE( cohort_id, variant1_id, variant2_id, variable_id ) "
-				")"
-			) ;
-			m_connection->run_statement(
-				"CREATE VIEW IF NOT EXISTS LDView AS "
-				"SELECT C.name AS cohort, "
-				"S1.chromosome AS chromosome1, S1.position AS position1, S1.rsid AS rsid1, "
-				"S2.chromosome AS chromosome2, S2.position AS position2, S2.rsid AS rsid2, "
-				"V.name AS variable, PSD.value AS value "
-				"FROM PairwiseSummaryData PSD "
-				"INNER JOIN Entity C ON C.id == PSD.cohort_id "
-				"INNER JOIN Entity V ON V.id == PSD.variable_id "
-				"INNER JOIN Variant S1 ON S1.id == PSD.variant1_id "
-				"INNER JOIN Variant S2 ON S2.id == PSD.variant2_id "
-			) ;
-				
-			m_connection->run_statement(
-				"CREATE INDEX IF NOT EXISTS PairwiseSummaryDataIndex ON PairwiseSummaryData( cohort_id, variant1_id, variant2_id, variable_id )"
-			) ;
-
-			construct_statements() ;
-		}
-
-		~HaplotypeFrequencyDBOutputter() {
-			write_data( m_data ) ;
-		}
-
-		void operator()(
-			std::string const& cohort,
-			genfile::SNPIdentifyingData const& source_snp,
-			genfile::SNPIdentifyingData const& target_snp,
-			std::string const& variable,
-			genfile::VariantEntry const& value
-		) {
-			m_data.resize( m_data.size() + 1 ) ;
-			m_data.back().get<0>() = cohort ;
-			m_data.back().get<1>() = source_snp ;
-			m_data.back().get<2>() = target_snp ;
-			m_data.back().get<3>() = variable ;
-			m_data.back().get<4>() = value ;
-
-			if( m_data.size() == m_max_transaction_count ) {
-				write_data( m_data ) ;
-				m_data.clear() ;
-			}
-		}
-
-	private:
-		db::Connection::UniquePtr m_connection ;
-		std::size_t const m_max_transaction_count ;
-
-		db::Connection::StatementPtr m_find_variant_statement ;
-		db::Connection::StatementPtr m_insert_variant_statement ;
-		db::Connection::StatementPtr m_find_entity_statement ;
-		db::Connection::StatementPtr m_insert_entity_statement ;
-		db::Connection::StatementPtr m_insert_summarydata_statement ;
-
-		typedef std::vector< boost::tuple< std::string, genfile::SNPIdentifyingData, genfile::SNPIdentifyingData, std::string, genfile::VariantEntry > > Data ;
-		Data m_data ;
-
-	private:
-		void construct_statements() {
-			m_find_variant_statement = m_connection->get_statement(
-				"SELECT id FROM Variant WHERE rsid == ?1 AND chromosome == ?2 AND position == ?3"
-			) ;
-			m_insert_variant_statement = m_connection->get_statement(
-				"INSERT INTO Variant ( snpid, rsid, chromosome, position, alleleA, alleleB) "
-				"VALUES( ?1, ?2, ?3, ?4, ?5, ?6 )"
-			) ;
-			m_find_entity_statement = m_connection->get_statement( "SELECT * FROM Entity WHERE name == ?1" ) ;
-			m_insert_entity_statement = m_connection->get_statement( "INSERT INTO Entity ( name ) VALUES ( ?1 )" ) ;
-			m_insert_summarydata_statement = m_connection->get_statement(
-				"INSERT OR REPLACE INTO PairwiseSummaryData ( cohort_id, variant1_id, variant2_id, variable_id, value ) "
-				"VALUES( ?1, ?2, ?3, ?4, ?5 )"
-			) ;
-		}
-
-		void write_data( Data const& data ) {
-			db::Connection::ScopedTransactionPtr transaction ;
-
-			for( std::size_t i = 0; i < 100; ++i ) {
-				try {
-					transaction = m_connection->open_transaction() ;
-					break ;
-				}
-				catch( db::StatementStepError const& e ) {
-					// wait a tenth of a second
-					std::cerr << "HaplotypeFrequencyDBOutputter::write_data(): failed to open transaction, trying again in 0.1s...\n" ;
-					boost::this_thread::sleep( boost::posix_time::milliseconds( 100 ) ) ;
-				}
-				catch( ... ) {
-					std::cerr << "HaplotypeFrequencyDBOutputter::write_data(): OMG, a strange exception was caught.\n" ;
-					boost::this_thread::sleep( boost::posix_time::milliseconds( 100 ) ) ;
-				}
-			}
-			if( !transaction.get() ) {
-				throw genfile::OperationFailedError( "HaplotypeFrequencyDBOutputter::write_data()", m_connection->get_spec(), "Opening transaction." ) ;
-			}
-			for( std::size_t i = 0; i < m_data.size(); ++i ) {
-				store_comparison(
-					data[i].get<0>(),
-					data[i].get<1>(),
-					data[i].get<2>(),
-					data[i].get<3>(),
-					data[i].get<4>()
-				) ;
-			}
-
-			reset_statements() ;
-		}
-		
-		void reset_statements() {
-			m_find_variant_statement->reset() ;
-			m_insert_variant_statement->reset() ;
-			m_find_entity_statement->reset() ;
-			m_insert_entity_statement->reset() ;
-			m_insert_summarydata_statement->reset() ;
-		}
-
-		db::Connection::RowId get_or_create_snp( genfile::SNPIdentifyingData const& snp ) const {
-			m_find_variant_statement->reset()
-				.bind( 1, snp.get_rsid() )
-				.bind( 2, std::string( snp.get_position().chromosome() ))
-				.bind( 3, snp.get_position().position() )
-				.step()
-			;
-			if( m_find_variant_statement->empty() ) {
-				m_insert_variant_statement
-					->reset()
-					.bind( 1, snp.get_SNPID() )
-					.bind( 2, snp.get_rsid() )
-					.bind( 3, std::string( snp.get_position().chromosome() ) )
-					.bind( 4, snp.get_position().position() )
-					.bind( 5, snp.get_first_allele())
-					.bind( 6, snp.get_second_allele())
-					.step()
-				;
-
-				return m_connection->get_last_insert_row_id() ;
-			} else {
-				return m_find_variant_statement->get< db::Connection::RowId >( 0 ) ;
-			}
-		}
-
-		db::Connection::RowId get_or_create_entity( std::string const& name ) const {
-			m_find_entity_statement
-				->reset()
-				.bind( 1, name ).step() ;
-
-			if( m_find_entity_statement->empty() ) {
-				m_insert_entity_statement
-					->reset()
-					.bind( 1, name )
-					.step() ;
-				return m_connection->get_last_insert_row_id() ;
-			} else {
-				return m_find_entity_statement->get< db::Connection::RowId >( 0 ) ;
-			}
-		}
-
-		void store_comparison(
-			std::string const& cohort,
-			genfile::SNPIdentifyingData const& snp1,
-			genfile::SNPIdentifyingData const& snp2,
-			std::string const& variable,
-			genfile::VariantEntry const& value
-		) {
-
-			db::Connection::RowId snp1_id = get_or_create_snp( snp1 ) ;
-			db::Connection::RowId snp2_id = get_or_create_snp( snp2 ) ;
-			db::Connection::RowId cohort_id = get_or_create_entity( cohort ) ;
-			db::Connection::RowId variable_id = get_or_create_entity( variable );
-
-			m_insert_summarydata_statement
-				->reset()
-				.bind( 1, cohort_id )
-				.bind( 2, snp1_id )
-				.bind( 3, snp2_id )
-				.bind( 4, variable_id )
-				.bind( 5, value.as< double >()  )
-				.step()
-			;
-		}
-	} ;
 }
 
 HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
@@ -321,14 +66,16 @@ HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
 			ui_context
 		)
 	) ;
-	
-	impl::HaplotypeFrequencyDBOutputter::SharedPtr outputter = impl::HaplotypeFrequencyDBOutputter::create_shared(
-		options.get_value< std::string >( "-compute-ld-file" )
+
+	haplotype_frequency_component::DBOutputter::SharedPtr outputter = haplotype_frequency_component::DBOutputter::create_shared(
+		options.get_value< std::string >( "-compute-ld-file" ),
+		options.get_value< std::string >( "-analysis-name" ),
+		options.get_values_as_map()
 	) ;
 
 	result->send_results_to(
 		boost::bind(
-			&impl::HaplotypeFrequencyDBOutputter::operator(),
+			&haplotype_frequency_component::DBOutputter::operator(),
 			outputter,
 			options.get< std::string >( "-analysis-name" ),
 			_1,
@@ -337,23 +84,6 @@ HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
 			_4
 		)
 	) ;
-	/*
-	impl::HaplotypeFrequencyFileOutputter::SharedPtr outputter = impl::HaplotypeFrequencyFileOutputter::create_shared(
-		options.get_value< std::string >( "-compute-ld-file" )
-	) ;
-	
-	result->send_results_to(
-		boost::bind(
-			&impl::HaplotypeFrequencyFileOutputter::operator(),
-			outputter,
-			options.get< std::string >( "-analysis-name" ),
-			_1,
-			_2,
-			_3,
-			_4
-		)
-	) ;
-	*/
 	return result ;
 }
 
@@ -367,6 +97,7 @@ HaplotypeFrequencyComponent::HaplotypeFrequencyComponent(
 {}
 
 void HaplotypeFrequencyComponent::begin_processing_snps( std::size_t number_of_samples ) {
+	std::cerr << m_source->number_of_samples() << " : " <<  number_of_samples << ".\n" ;
 	assert( m_source->number_of_samples() == number_of_samples ) ;
 }
 
@@ -403,8 +134,7 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 	} catch( genfile::OperationFailedError const& e ) {
 		m_ui_context.logger() << "!! HaplotypeFrequencyComponent::compute_ld_measures(): could not compute LD measures between SNPs "
 			<< source_snp << " and " << target_snp << ".\n"
-			<< "!! reason: " << e.get_message() << "\n"
-			<< "!! this comparison will not appear in output.\n" ;
+			<< "!! reason: " << e.get_message() << "\n" ;
 	}
 }
 
@@ -451,10 +181,19 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		m_result_signal( source_snp, target_snp, "r", r ) ;
 		m_result_signal( source_snp, target_snp, "r_squared", r * r ) ;
 	}
-	catch( genfile::BadArgumentError const& ) {
+	catch( genfile::OperationFailedError const& ) {
 		m_ui_context.logger() << "!! Could not compute haplotype frequencies for " << source_snp << ", " << target_snp << ".\n"
-			<< "!! table is " << table << ".\n" ;
-		// bad table.
+			<< "!! table is:\n" << table << ".\n" ;
+			
+		genfile::VariantEntry const missing = genfile::MissingValue() ;
+		m_result_signal( source_snp, target_snp, "pi00", missing ) ;
+		m_result_signal( source_snp, target_snp, "pi01", missing ) ;
+		m_result_signal( source_snp, target_snp, "pi10", missing ) ;
+		m_result_signal( source_snp, target_snp, "pi11", missing ) ;
+		m_result_signal( source_snp, target_snp, "D", missing ) ;
+		m_result_signal( source_snp, target_snp, "Dprime", missing ) ;
+		m_result_signal( source_snp, target_snp, "r", missing ) ;
+		m_result_signal( source_snp, target_snp, "r_squared", missing ) ;
 	}
 	
 	{

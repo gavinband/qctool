@@ -25,7 +25,8 @@ struct SNPSummaryComputation: public boost::noncopyable {
 	typedef genfile::SNPIdentifyingData SNPIdentifyingData ;
 	typedef Eigen::MatrixXd Genotypes ;
 	typedef boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
-	virtual void operator()( SNPIdentifyingData const&, Genotypes const&, genfile::VariantDataReader&, ResultCallback ) = 0 ;
+	typedef std::vector< char > SampleSexes ;
+	virtual void operator()( SNPIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) = 0 ;
 	virtual std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const = 0 ;
 } ;
 

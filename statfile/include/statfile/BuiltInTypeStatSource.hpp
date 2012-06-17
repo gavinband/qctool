@@ -29,6 +29,8 @@ namespace statfile {
 		// These act to expand the number of readable types.
 		void read_value( genfile::Chromosome& chromosome ) ;
 		void read_value( char& c ) ;
+		
+		virtual std::string get_descriptive_text() const = 0 ;
 	} ;
 	
 	struct NullBuiltInTypeStatSource: public BuiltInTypeStatSource

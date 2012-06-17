@@ -18,13 +18,13 @@ struct CallComparerFileOutputter: public PairwiseCallComparerManager::Comparison
 	typedef std::auto_ptr< CallComparerFileOutputter > UniquePtr ;
 	typedef boost::shared_ptr< CallComparerFileOutputter > SharedPtr ;
 	
-	static UniquePtr create( std::string const& filename ) ;
-	static SharedPtr create_shared( std::string const& filename ) ;
+	static UniquePtr create( std::string const& filename, std::string const& analysis ) ;
+	static SharedPtr create_shared( std::string const& filename, std::string const& analysis ) ;
 
 	CallComparerFileOutputter( std::string const& filename ) ;
 
+	void begin_processing_snps( std::size_t ) {} ;
 	void begin_comparisons( genfile::SNPIdentifyingData const& snp ) ;
-	void end_comparisons() ;
 	void set_result(
 		std::string const& callset1,
 		std::string const& callset2,
@@ -32,11 +32,12 @@ struct CallComparerFileOutputter: public PairwiseCallComparerManager::Comparison
 		std::string const& comparison_variable,
 		genfile::VariantEntry const& value
 	) ;
+	void end_comparisons() ;
 
 	void set_result(
 		std::string const& comparison_method,
-		std::string const& comparison_variable,
-		genfile::VariantEntry const& value
+		std::string const& accepted_calls,
+		PairwiseCallComparerManager::Calls const&
 	) ;
 
 private:

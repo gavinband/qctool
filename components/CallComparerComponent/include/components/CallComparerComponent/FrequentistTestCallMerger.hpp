@@ -24,6 +24,7 @@ struct FrequentistTestCallMerger: PairwiseCallComparerManager::Merger
 	FrequentistTestCallMerger( std::string const& comparison_method, double threshhold ) ;
 	
 	void begin_comparisons( genfile::SNPIdentifyingData const& snp ) ;
+	void add_callset( std::string const& ) {}
 	void set_result(
 		std::string const& callset1,
 		std::string const& callset2,
@@ -41,7 +42,7 @@ private:
 	genfile::SNPIdentifyingData m_snp ;
 	typedef std::map< std::pair< std::string, std::string >, genfile::VariantEntry > ComparisonValues ;
 	ComparisonValues m_comparison_values ;
-	std::pair< double, double > m_range ;
+	std::pair< double, double > m_pvalue_range ;
 	
 	std::set< std::string > m_concordant_calls ;
 } ;

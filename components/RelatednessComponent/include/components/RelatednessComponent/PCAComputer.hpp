@@ -33,12 +33,12 @@ struct PCAComputer
 	void end_processing_snps() ;
 	
 	typedef boost::function< genfile::VariantEntry ( std::size_t ) > GetNames ;
-	typedef boost::function< void( std::string, Eigen::MatrixXd const&, GetNames, GetNames ) > UDUTCallback ;
+	typedef boost::function< void( std::string, std::size_t, Eigen::MatrixXd const&, GetNames, GetNames ) > UDUTCallback ;
 	void send_UDUT_to( UDUTCallback ) ;
 	typedef boost::function< void( std::string, Eigen::VectorXd const&, Eigen::MatrixXd const&, GetNames, GetNames ) > PCACallback ;
 	void send_PCAs_to( PCACallback ) ;
 
-	void send_UDUT( std::string description, Eigen::MatrixXd const& UDUT, GetNames row_names, GetNames column_names ) ;
+	void send_UDUT( std::string description, std::size_t, Eigen::MatrixXd const& UDUT, GetNames row_names, GetNames column_names ) ;
 	void send_PCAs( std::string description, Eigen::VectorXd const& eigenvalues, Eigen::MatrixXd const& PCAs, GetNames pca_row_names, GetNames pca_column_names ) ;
 
 private:
@@ -54,7 +54,7 @@ private:
 	Eigen::VectorXd m_PCA_eigenvalues ;
 	Eigen::MatrixXd m_PCA_components ;
 
-	typedef boost::signals2::signal< void( std::string, Eigen::MatrixXd const&, GetNames, GetNames ) > UDUTSignal ;
+	typedef boost::signals2::signal< void( std::string, std::size_t, Eigen::MatrixXd const&, GetNames, GetNames ) > UDUTSignal ;
 	UDUTSignal m_UDUT_signal ;
 	typedef boost::signals2::signal< void( std::string, Eigen::VectorXd const&, Eigen::MatrixXd const&, GetNames, GetNames ) > PCASignal ;
 	PCASignal m_PCA_signal ;
@@ -66,7 +66,7 @@ private:
 	Eigen::VectorXd m_non_missingness ;
 	Eigen::VectorXd m_loading_vectors ;
 	
-	void load_matrix( std::string const& filename, Eigen::MatrixXd* matrix ) const ;
+	void load_matrix( std::string const& filename, Eigen::MatrixXd* matrix, std::size_t* number_of_snps ) const ;
 
 
 } ;

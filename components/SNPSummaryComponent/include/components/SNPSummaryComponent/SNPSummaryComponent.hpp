@@ -18,29 +18,7 @@
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
-
-struct SNPSummaryComputationManager: public genfile::SNPDataSourceProcessor::Callback, public boost::noncopyable {
-	typedef std::auto_ptr< SNPSummaryComputationManager > UniquePtr ;
-	void add( std::string const& name, SNPSummaryComputation const& ) ;
-
-	void begin_processing_snps( std::size_t number_of_samples ) ;
-	void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& data_reader ) ;
-	void end_processing_snps() ;
-
-	void add_computation( std::string const& name, SNPSummaryComputation::UniquePtr computation ) ;
-
-	typedef boost::function< void ( std::size_t index, genfile::SNPIdentifyingData const& snp, std::string const& computation_name, std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
-	void add_result_callback( ResultCallback ) ;
-
-	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) ;
-	private:
-		typedef boost::ptr_map< std::string, SNPSummaryComputation > Computations ;
-		Computations m_computations ;
-		std::size_t m_snp_index ;
-		SNPSummaryComputation::Genotypes m_genotypes ;
-		typedef boost::signals2::signal< void ( std::size_t index, genfile::SNPIdentifyingData const& snp, std::string const& computation_name, std::string const& value_name, genfile::VariantEntry const& value ) > ResultSignal ;
-		ResultSignal m_result_signal ;
-} ;
+#include "components/SNPSummaryComponent/SNPSummaryComputationManager.hpp"
 
 struct SNPSummaryComponent: public boost::noncopyable
 {
