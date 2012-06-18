@@ -14,7 +14,7 @@
 
 // #define DEBUG_QUANGSTYLECONSENSUSCALLER 1
 QuangStyleConsensusCaller::QuangStyleConsensusCaller():
-	m_call_threshhold( 0.9 )
+	m_call_threshhold( 0.95 )
 {}
 
 void QuangStyleConsensusCaller::set_result(
