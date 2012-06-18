@@ -85,7 +85,13 @@ void SNPSummaryComputationManager::processed_snp( genfile::SNPIdentifyingData co
 	}
 
 	if( !snp.get_position().chromosome().is_missing() && snp.get_position().chromosome().is_sex_determining() ) {
-		fix_sex_chromosome_genotypes( snp, m_genotypes ) ;
+		try {
+			fix_sex_chromosome_genotypes( snp, m_genotypes ) ;
+		}
+		catch( genfile::BadArgumentError const& e ) {
+			m_result_signal( m_snp_index, snp, "SNPSummaryComputationManager", "comment", "Unable to determine genotype coding for males/females.  Calling may be wrong so I will treat the genotypes as missing." ) ;
+			m_genotypes.setZero() ;
+		}
 	}
 
 	Computations::iterator i = m_computations.begin(), end_i = m_computations.end() ;
