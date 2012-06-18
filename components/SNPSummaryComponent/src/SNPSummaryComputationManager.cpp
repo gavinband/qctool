@@ -153,8 +153,7 @@ int SNPSummaryComputationManager::determine_male_coding_column(
 	int column = -1 ;
 	std::size_t column_determining_sample ;
 	for( std::size_t i = 0; i < males.size(); ++i ) {
-		if( genotypes( males[i], 1 ) != 0 ) {
-			if( genotypes( males[i], 2 ) != 0 ) {
+		if( genotypes( males[i], 1 ) != 0 && genotypes( males[i], 2 ) != 0 ) {
 				std::cerr << "!! (SNPSummaryComputationManager::determine_male_coding_column()): at X chromosome SNP "
 					<< snp
 					<< ", sample #"
@@ -162,13 +161,15 @@ int SNPSummaryComputationManager::determine_male_coding_column(
 					<< " (" << m_samples.get_entry( males[i], "ID_1" ) << ") "
 					<< " has nonzero heterozygote and homozygote call probabilities!\n" ;
 				throw genfile::BadArgumentError( "SNPSummaryComputationManager::determine_male_coding_column()", "genotypes" ) ;
-			}
-			else {
+		}
+		
+		for( int g = 1; g < 2; ++g ) {
+			if( genotypes( males[i], g ) != 0 ) {
 				if( column == -1 ) {
-					column = 1 ;
+					column = g ;
 					column_determining_sample = males[i] ;
 				}
-				else if( column != 1 ) {
+				else if( column != g ) {
 					std::cerr << "!! (SNPSummaryComputationManager::determine_male_coding_column()): at X chromosome SNP "
 						<< snp
 						<< ", samples "
@@ -179,6 +180,7 @@ int SNPSummaryComputationManager::determine_male_coding_column(
 						<< "are coded differently (one heterozygote, one homozygote.)\n" ;
 					throw genfile::BadArgumentError( "SNPSummaryComputationManager::determine_male_coding_column()", "genotypes" ) ;
 				}
+				break ; // no need to do both genotypes due to the check above.
 			}
 		}
 	}
