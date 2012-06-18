@@ -39,7 +39,7 @@ std::map< std::string, genfile::VariantEntry > AlleleFrequencyTestCallComparer::
 	assert( left.cols() == 3 ) ;
 	assert( right.cols() == 3 ) ;
 
-	std::size_t const N = left.size() ;
+	std::size_t const N = left.rows() ;
 	
 	Matrix table = Matrix::Zero( 2, 3 ) ;
 
