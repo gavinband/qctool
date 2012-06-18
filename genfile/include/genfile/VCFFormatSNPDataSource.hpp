@@ -117,11 +117,6 @@ namespace genfile {
 		void check_genotype_probability_field( std::string const& field ) const ;
 		std::vector< std::string > read_column_names( std::istream& stream ) const ;
 		std::string read_format() ;
-		OptionalSnpCount determine_number_of_lines(
-			std::istream& vcf_file_stream,
-			vcf::MetadataParser::Metadata const& metadata
-		) const ;
-		OptionalSnpCount count_lines( std::istream&, std::size_t max_number_of_lines = std::numeric_limits< std::size_t >::max() ) const ;
 		void reset_stream() ;
 		void read_element( std::string& elt, char delim, std::size_t column ) const ;
 	private:
