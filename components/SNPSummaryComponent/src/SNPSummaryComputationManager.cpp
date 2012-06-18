@@ -163,7 +163,7 @@ int SNPSummaryComputationManager::determine_male_coding_column(
 				throw genfile::BadArgumentError( "SNPSummaryComputationManager::determine_male_coding_column()", "genotypes" ) ;
 		}
 		
-		for( int g = 1; g < 2; ++g ) {
+		for( int g = 1; g < 3; ++g ) {
 			if( genotypes( males[i], g ) != 0 ) {
 				if( column == -1 ) {
 					column = g ;
@@ -172,12 +172,16 @@ int SNPSummaryComputationManager::determine_male_coding_column(
 				else if( column != g ) {
 					std::cerr << "!! (SNPSummaryComputationManager::determine_male_coding_column()): at X chromosome SNP "
 						<< snp
-						<< ", samples "
-						<< (column_determining_sample+1)
-						<< " (" << m_samples.get_entry( column_determining_sample, "ID_1" ) << ") and "
-						<< (males[i]+1)
-						<< " (" << m_samples.get_entry( males[i], "ID_1" ) << ") "
-						<< "are coded differently (one heterozygote, one homozygote.)\n" ;
+						<< ":\n"
+						<< "!! (SNPSummaryComputationManager::determine_male_coding_column()): male sample "
+						<< m_samples.get_entry( column_determining_sample, "ID_1" )
+						<< " (#" << (column_determining_sample+1) << ")"
+						<< " is coded as a " << ( ( g == 1 ) ? "homozygote" : "heterozygote" ) << ",\n"
+						<< "!! (SNPSummaryComputationManager::determine_male_coding_column()): but male sample "
+						<< m_samples.get_entry( males[i], "ID_1" )
+						<< " (#" << (males[i]+1) << ")"
+						<< " is coded as a " << ( ( g == 1 ) ? "heterozygote" : "homozygote" )
+						<< ".\n" ;
 					throw genfile::BadArgumentError( "SNPSummaryComputationManager::determine_male_coding_column()", "genotypes" ) ;
 				}
 				break ; // no need to do both genotypes due to the check above.
