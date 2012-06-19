@@ -85,16 +85,28 @@ $(document).ready(
                 </p>
                 <p>
                     <strong>Change history.</strong>
-                    This page documents v1.1 of QCTOOL, which has undergone significant changes since the original release (webpage <a href="http://www.well.ox.ac.uk/~gav/qctool/old/v1.0/qctool.html">here</a>).  A short summary of changes is:                </p>
-                <ul>
-                    <li>Support for <a href="http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41">Variant Call Format</a> has been added - see the <a href='#file_formats'>file formats</a> page.
-                    <li>New options <span class="monospace">-[in|ex]cl-range</span>, <span class="monospace">-[in|ex]cl-rsids</span>, <span class="monospace">-[in|ex]cl-snpids</span>, <span class="monospace">-[in|ex]cl-snps-matching</span> for SNP filtering have been added.
-                        Options <span class="monospace">-interval</span> and <span class="monospace">-snp-[in|ex]cl-list</span> have been removed.</li>
-                    <li>QCTOOL can now work with multiple cohorts, treating them like one big cohort.</li>
-                    <li>The BGEN format now supports long alleles such as indels and deletions.  There is an <a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format.html">updated spec</a>.</li>
-                    <li>A <span class="monospace">-sort</span> option has been added.  This sorts the output by chromosome and position.</li>
-                    <li>The names and usage of some options have been rationalised.</li>
-                </ul>
+                    QCTOOL has undergone significant changes since the original release (webpage <a href="http://www.well.ox.ac.uk/~gav/qctool/old/v1.0/qctool.html">here</a>).  This page documents version 1.2 of QCTOOL.  A short summary of changes is:
+                    <p>
+                    In <strong>v1.2</strong>:
+                    <ul>
+                        <li>gzip file support has been tweaked to support files with created with the <a href="http://samtools.sourceforge.net/tabix.shtml">bgzip</a> tool from <a href="http://samtools.sourceforge.net/">SAMtools</a>.</li>
+                        <li>Bug fix relating to large VCF files.</li>
+                        <li>The -sort option has been tweaked slightly to behave better on compute clusters.</li>
+                    </ul>
+                    </p>
+                    <p>
+                        In <strong>v1.1</strong>:
+                        <ul>
+                            <li>Support for <a href="http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41">Variant Call Format</a> has been added - see the <a href='#file_formats'>file formats</a> page.
+                            <li>New options <span class="monospace">-[in|ex]cl-range</span>, <span class="monospace">-[in|ex]cl-rsids</span>, <span class="monospace">-[in|ex]cl-snpids</span>, <span class="monospace">-[in|ex]cl-snps-matching</span> for SNP filtering have been added.
+                                Options <span class="monospace">-interval</span> and <span class="monospace">-snp-[in|ex]cl-list</span> have been removed.</li>
+                            <li>QCTOOL can now work with multiple cohorts, treating them like one big cohort.</li>
+                            <li>The BGEN format now supports long alleles such as indels and deletions.  There is an <a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format.html">updated spec</a>.</li>
+                            <li>A <span class="monospace">-sort</span> option has been added.  This sorts the output by chromosome and position.</li>
+                            <li>The names and usage of some options have been rationalised.</li>
+                        </ul>
+                    </p>
+                </p>
                 <p>
                     See the file CHANGELOG.txt for a full list of changes.
                 </p>
@@ -546,7 +558,25 @@ $ qctool -help
                             </th>
                         </tr>
                         <tr>
-                            <td>v1.1</td>
+                            <td>v1.2</td>
+                            <td>
+                                Linux x86-64 static build
+                            </td>
+                            <td>
+                                <a href="resources/qctool_v1.2-linux-x86_64.tgz">qctool_v1.2-linux-x86_64.tgz</a> (878kb)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>v1.2</td>
+                            <td>
+                                Mac OS X
+                            </td>
+                            <td>
+                                <a href="resources/qctool_v1.2-osx.tgz">qctool_v1.2-osx.tgz</a> (878kb)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>v1.1<sup>*</sup></td>
                             <td>
                                 Linux x86-64 static build
                             </td>
@@ -555,7 +585,7 @@ $ qctool -help
                             </td>
                         </tr>
                         <tr>
-                            <td>v1.1</td>
+                            <td>v1.1<sup>*</sup></td>
                             <td>
                                 Mac OS X
                             </td>

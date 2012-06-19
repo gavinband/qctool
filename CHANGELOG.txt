@@ -1,3 +1,10 @@
+** Version 1.2, released June 2012 **
+
+* Fix a bug handling VCF files with more than 10000 variants.
+* Support bgzipped files via a tweak to boost (see boost TRAC ticket #6994 and #5904).
+* Make -sort use temporary files in the same directory as the target (rather than a system directory.)
+* Get line numbers right in errors relating to VCF files.
+* Allow -sort to work with VCF output files.
 
 ** Version 1.1, released April 2012 **
 
