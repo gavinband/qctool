@@ -138,12 +138,7 @@ namespace genfile {
 	}
 	
 	std::ostream::streampos VCFFormatSNPDataSink::get_stream_pos() const {
-		if( m_compression_type == CompressionType( "no_compression" )) {
-			return m_stream_ptr->tellp() ;
-		}
-		else {
-			throw OperationUnsupportedError( "genfile::VCFFormatSNPDataSink::get_stream_pos()", "get stream position", "VCFFormatSNPDataSink( \"" + m_filename + "\" )" ) ;
-		}
+		throw OperationUnsupportedError( "genfile::VCFFormatSNPDataSink::get_stream_pos()", "get stream position", "VCFFormatSNPDataSink( \"" + m_filename + "\" )" ) ;
 	}
 	
 }
