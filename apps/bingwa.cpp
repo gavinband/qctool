@@ -45,12 +45,22 @@ struct FrequentistGenomeWideAssociationResults: public boost::noncopyable {
 	typedef std::auto_ptr< FrequentistGenomeWideAssociationResults > UniquePtr ;
 	virtual ~FrequentistGenomeWideAssociationResults() {}
 	typedef boost::function< void ( std::size_t i, genfile::SNPIdentifyingData const& snp ) > SNPCallback ;
-	virtual void get_SNPs( SNPCallback ) const = 0 ;
+	virtual std::size_t get_number_of_SNPs() const = 0 ;
+	virtual genfile::SNPIdentifyingData const& get_SNP( std::size_t snp_i ) const = 0 ;
 	virtual void get_betas( std::size_t snp_i, Eigen::VectorXd* result ) const = 0 ;
 	virtual void get_ses( std::size_t snp_i, Eigen::VectorXd* result ) const = 0 ; 
 	virtual void get_pvalue( std::size_t snp_i, double* result ) const = 0 ;
 	virtual void get_counts( std::size_t snp_i, Eigen::VectorXd* result ) const = 0 ;
+	virtual void get_info( std::size_t snp_i, double* result ) const = 0 ;
+	virtual void get_maf_in_controls( std::size_t snp_i, double* result ) const = 0 ;
 	virtual std::string get_summary( std::string const& prefix = "", std::size_t target_column = 80 ) const = 0;
+
+	// Legacy function: this should be removed.
+	void get_SNPs( SNPCallback callback ) const {
+		for( std::size_t i = 0; i < get_number_of_SNPs(); ++i ) {
+			callback( i, get_SNP( i ) ) ;
+		}
+	}
 } ;
 
 struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
@@ -59,15 +69,21 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 		boost::function< void ( std::size_t, genfile::SNPIdentifyingData const&, std::string const&, std::string const&, genfile::VariantEntry const& ) > 
 		SNPResultCallback ;
 	
-	SNPTESTResults( std::vector< genfile::wildcard::FilenameMatch > const& filenames, SNPResultCallback callback = SNPResultCallback(), ProgressCallback progress_callback = ProgressCallback() )
-	{
+	SNPTESTResults(
+		std::vector< genfile::wildcard::FilenameMatch > const& filenames,
+		SNPResultCallback callback = SNPResultCallback(),
+		ProgressCallback progress_callback = ProgressCallback()
+	) {
 		setup( filenames, callback, progress_callback ) ;
 	}
 
-	void get_SNPs( SNPCallback callback ) const {
-		for( std::size_t i = 0; i < m_snps.size(); ++i ) {
-			callback( i, m_snps[i] ) ;
-		}
+	std::size_t get_number_of_SNPs() const {
+		return m_snps.size() ;
+	}
+
+	genfile::SNPIdentifyingData const& get_SNP( std::size_t snp_i ) const {
+		assert( snp_i < m_snps.size() ) ;
+		return m_snps[ snp_i ] ;
 	}
 
 	void get_betas( std::size_t snp_i, Eigen::VectorXd* result ) const {
@@ -82,14 +98,16 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 	void get_counts( std::size_t snp_i, Eigen::VectorXd* result ) const {
 		*result = m_sample_counts.row( snp_i ) ;
 	}
+	void get_info( std::size_t snp_i, double* result ) const {
+		*result = m_info( snp_i ) ;
+	}
+	void get_maf_in_controls( std::size_t snp_i, double* result ) const {
+		*result = m_controls_maf( snp_i ) ;
+	}
 
 	std::string get_summary( std::string const& prefix, std::size_t target_column ) const {
 		using genfile::string_utils::to_string ;
-		std::string result = prefix + "SNPTESTResults object holding results for " + to_string( m_snps.size() ) + " SNPs.  The first few are:\n" ;
-		for( std::size_t i = 0; i < std::min( std::size_t( 5 ), m_snps.size() ); ++i ) {
-			result += to_string( m_snps[i] ) + ": beta=" + to_string( m_betas.row(i) ) + ", se=" + to_string( m_ses.row(i) ) + ", pvalue=" + to_string( m_pvalues(i) ) + "\n" ;
-		}
-		return result ;
+		return "SNPTESTResults object (" + to_string( m_snps.size() ) + " SNPs)" ;
 	}
 
 private:
@@ -98,6 +116,7 @@ private:
 	Eigen::MatrixXd m_ses ;
 	Eigen::VectorXd m_pvalues ;
 	Eigen::VectorXd m_info ;
+	Eigen::VectorXd m_controls_maf ;
 	Eigen::MatrixXd m_sample_counts ;
 	typedef boost::bimap< std::string, std::size_t > ColumnMap ;
 	
@@ -112,7 +131,13 @@ private:
 		}
 	}
 	
-	void setup( std::size_t const filename_i, std::size_t const number_of_files, genfile::wildcard::FilenameMatch const& filename, SNPResultCallback callback, ProgressCallback progress_callback ) {
+	void setup(
+		std::size_t const filename_i,
+		std::size_t const number_of_files,
+		genfile::wildcard::FilenameMatch const& filename,
+		SNPResultCallback callback,
+		ProgressCallback progress_callback
+	) {
 		statfile::BuiltInTypeStatSource::UniquePtr source( statfile::BuiltInTypeStatSource::open( filename.filename() )) ;
 
 		ColumnMap column_map = get_columns_to_store( *source ) ;
@@ -124,6 +149,7 @@ private:
 		m_ses.resize( source->number_of_rows(), degrees_of_freedom ) ;
 		m_pvalues.resize( source->number_of_rows() ) ;
 		m_info.resize( source->number_of_rows() ) ;
+		m_controls_maf.resize( source->number_of_rows() ) ;
 		m_sample_counts.resize( source->number_of_rows(), 4 ) ;
 
 		genfile::SNPIdentifyingData snp ;
@@ -180,6 +206,7 @@ private:
 		desired_columns.insert( "_se_2" ) ;
 		desired_columns.insert( "_pvalue" ) ;
 		desired_columns.insert( "info" ) ;
+		desired_columns.insert( "controls_maf" ) ;
 		desired_columns.insert( "all_AA" ) ;
 		desired_columns.insert( "all_AB" ) ;
 		desired_columns.insert( "all_BB" ) ;
@@ -234,6 +261,9 @@ private:
 		else if( variable == "info" ) {
 			m_info( snp_index ) = value ;
 		}
+		else if( variable == "controls_maf" ) {
+			m_controls_maf( snp_index ) = value ;
+		}
 		else if( variable == "all_AA" ) {
 			m_sample_counts( snp_index, 0 ) = value ;
 		}
@@ -249,8 +279,130 @@ private:
 	}
 } ;
 
+namespace {
+	struct SNPExclusionTest: public boost::noncopyable {
+		typedef std::auto_ptr< SNPExclusionTest > UniquePtr ;
+		virtual ~SNPExclusionTest() {} ;
+		virtual bool operator()( FrequentistGenomeWideAssociationResults const& results, std::size_t const snp_i ) const = 0 ;
+		virtual std::string get_summary( std::string const& prefix, std::size_t target_column ) const = 0 ;
+	} ;
+
+	struct SNPIdentifyingDataExclusionTest: public SNPExclusionTest {
+		SNPIdentifyingDataExclusionTest( genfile::SNPIdentifyingDataTest::UniquePtr test ):
+			m_test( test )
+		{
+			assert( m_test.get() ) ;
+		}
+
+		bool operator()( FrequentistGenomeWideAssociationResults const& results, std::size_t const snp_i ) const {
+			return (*m_test)( results.get_SNP( snp_i )) ;
+		}
+		
+		std::string get_summary( std::string const& prefix, std::size_t target_column ) const {
+			return prefix + m_test->display() ;
+		}
+		
+	private:
+		genfile::SNPIdentifyingDataTest::UniquePtr m_test ;
+	} ;
+
+
+	struct SNPExclusionTestConjunction: public SNPExclusionTest {
+		typedef std::auto_ptr< SNPExclusionTestConjunction > UniquePtr ;
+		
+		void add_subtest( SNPExclusionTest::UniquePtr subtest ) {
+			assert( subtest.get() ) ;
+			m_subtests.push_back( subtest ) ;
+		}
+
+		void add_subtest( genfile::SNPIdentifyingDataTest::UniquePtr test ) {
+			assert( test.get() ) ;
+			SNPExclusionTest::UniquePtr subtest( new SNPIdentifyingDataExclusionTest( test ) ) ;
+			m_subtests.push_back( subtest ) ;
+		}
+
+		bool operator()( FrequentistGenomeWideAssociationResults const& results, std::size_t const snp_i ) const {
+			for( std::size_t i = 0; i < m_subtests.size(); ++i ) {
+				if( !m_subtests[i]( results, snp_i )) {
+					return false ;
+				}
+			}
+			return true ;
+		}
+		
+		std::string get_summary( std::string const& prefix, std::size_t target_column ) const {
+			std::string result = prefix + "( ";
+			for( std::size_t i = 0; i < m_subtests.size(); ++i ) {
+				if( i > 0 ) {
+					result += " ) AND ( " ;
+				}
+				result += m_subtests[i].get_summary( "", target_column ) ;
+			}
+			result += " )" ;
+			return result ;
+		}
+		
+	private:
+		boost::ptr_vector< SNPExclusionTest > m_subtests ;
+	} ;
+
+	struct ThreshholdingSummaryStatisticTest: public SNPExclusionTest {
+	public:
+		typedef std::auto_ptr< ThreshholdingSummaryStatisticTest > UniquePtr ;
+	private:
+		typedef std::map< std::string, std::pair< double, double > > VariableBounds ;
+	public:
+		void set_inclusion_bounds( std::string const& variable, double lower_bound, double upper_bound ) {
+			if( variable != "controls_maf" && variable != "info" ) {
+				throw genfile::BadArgumentError( "ThreshholdingSummaryStatisticTest::set_inclusion_bounds()", "variable=\"" + variable + "\"" ) ;
+			}
+			m_bounds[ variable ] = std::make_pair( lower_bound, upper_bound ) ;
+		}
+		
+		bool operator()( FrequentistGenomeWideAssociationResults const& results, std::size_t const snp_i ) const {
+			VariableBounds::const_iterator i = m_bounds.begin(), end_i = m_bounds.end() ;
+			double value ;
+			for( ; i != end_i; ++i ) {
+				if( i->first == "controls_maf" ) {
+					results.get_maf_in_controls( snp_i, &value ) ;
+				}
+				else if( i->first == "info" ) {
+					results.get_info( snp_i, &value ) ;
+				}
+				else {
+					assert(0) ;
+				}
+				if( value < i->second.first || value > i->second.second ) {
+					return false ;
+				}
+			}
+			return true ;
+		}
+
+		std::string get_summary( std::string const& prefix, std::size_t target_column ) const {
+			std::string result = prefix + "( " ;
+			VariableBounds::const_iterator i = m_bounds.begin(), end_i = m_bounds.end() ;
+			using genfile::string_utils::to_string ;
+			for( std::size_t count = 0 ; i != end_i; ++i, ++count ) {
+				if( count > 0 ) {
+					result += " ) AND ( " ;
+				}
+				result += i->first + " in [" + to_string( i->second.first ) + ", " + to_string( i->second.second ) + "]" ;
+			}
+			result += " )" ;
+			return result ;
+		}
+
+	private:
+		VariableBounds m_bounds ;
+	} ;
+}
+
 struct FilteringGenomeWideAssociationResults: public FrequentistGenomeWideAssociationResults {
-	FilteringGenomeWideAssociationResults( FrequentistGenomeWideAssociationResults::UniquePtr source, genfile::SNPIdentifyingDataTest::UniquePtr test ):
+	FilteringGenomeWideAssociationResults(
+		FrequentistGenomeWideAssociationResults::UniquePtr source,
+		SNPExclusionTest::UniquePtr test
+	):
 		m_source( source ),
 		m_test( test )
 	{
@@ -260,9 +412,15 @@ struct FilteringGenomeWideAssociationResults: public FrequentistGenomeWideAssoci
 
 	// typedef boost::function< void ( std::size_t i, genfile::SNPIdentifyingData const& snp ) > SNPCallback ;
 
-	void get_SNPs( SNPCallback callback ) const {
-		get_filtered_SNPs( callback ) ;
+	std::size_t get_number_of_SNPs() const {
+		return m_links.size() ;
 	}
+	
+	genfile::SNPIdentifyingData const& get_SNP( std::size_t snp_i ) const {
+		assert( snp_i < m_links.size() ) ;
+		return m_source->get_SNP( m_links[ snp_i ] ) ;
+	}
+
 	void get_betas( std::size_t snp_i, Eigen::VectorXd* result ) const {
 		assert( snp_i < m_links.size() ) ;
 		return m_source->get_betas( m_links[ snp_i ], result ) ;
@@ -279,58 +437,48 @@ struct FilteringGenomeWideAssociationResults: public FrequentistGenomeWideAssoci
 		assert( snp_i < m_links.size() ) ;
 		return m_source->get_counts( m_links[ snp_i ], result ) ;
 	}
+	void get_info( std::size_t snp_i, double* result ) const {
+		assert( snp_i < m_links.size() ) ;
+		return m_source->get_info( m_links[ snp_i ], result ) ;
+	}
+	void get_maf_in_controls( std::size_t snp_i, double* result ) const {
+		assert( snp_i < m_links.size() ) ;
+		return m_source->get_maf_in_controls( m_links[ snp_i ], result ) ;
+	}
 	std::string get_summary( std::string const& prefix = "", std::size_t target_column = 80 ) const {
-		return prefix + "FilteringGenomeWideAssociationResults object holding " + genfile::string_utils::to_string( m_links.size() ) + " SNPs, from: " + m_source->get_summary( "", target_column ) ;
+		std::string result
+			= prefix
+			+ "FilteringGenomeWideAssociationResults ("
+			+ genfile::string_utils::to_string( m_links.size() )
+			+ " SNPs, filtered from "
+			+ m_source->get_summary( "", target_column )
+			+ ".\n" ;
+		result
+			+= prefix
+			+ "   using SNP filter "
+			+ m_test->get_summary( "", 100 )
+			+ "." ;
+		return result ;
 	}
 	
 private:
 	FrequentistGenomeWideAssociationResults::UniquePtr m_source ;
-	genfile::SNPIdentifyingDataTest::UniquePtr m_test ;
+	SNPExclusionTest::UniquePtr m_test ;
 	std::vector< std::size_t > m_links ;
 private:
 	
-	struct SNPFilterCallback {
-		SNPFilterCallback( genfile::SNPIdentifyingDataTest const& test, SNPCallback callback = SNPCallback() ):
-			m_test( test ),
-			m_callback( callback ),
-			m_i( 0 )
-		{
-		} ;
-		
-		void operator()( std::size_t i, genfile::SNPIdentifyingData const& snp ) {
-			if( m_test( snp ) ) {
-				m_links.resize( m_i + 1 ) ;
-				m_links[ m_i ] = i ;
-				if( m_callback ) {
-					m_callback( m_i, snp ) ;
-				}
-				m_i++ ;
-			}
-			else {
-			}
-		}
-
-		std::vector< std::size_t > const& get_links() const { return m_links ; }
-
-	private:
-		genfile::SNPIdentifyingDataTest const& m_test ;
-		SNPCallback m_callback ;
-		std::size_t m_i ;
-		std::vector< std::size_t > m_links ;
-	} ;
-	
 	// populate the link between our filtered SNP indices and the indices in the base source.
 	void link_indices() {
-		assert( m_test.get() ) ;
-		SNPFilterCallback filtering_callback( *m_test ) ;
-		m_source->get_SNPs( boost::ref( filtering_callback ) ) ;
-		m_links = filtering_callback.get_links() ;
-	}
-	
-	void get_filtered_SNPs( SNPCallback callback ) const {
-		assert( m_test.get() ) ;
-		SNPFilterCallback filtering_callback( *m_test, callback ) ;
-		m_source->get_SNPs( filtering_callback ) ;
+		std::size_t const N = m_source->get_number_of_SNPs() ;
+		m_links.reserve( N ) ;
+		std::size_t m_i = 0 ;
+		for( std::size_t snp_i = 0; snp_i < N; ++snp_i ) {
+			if( (*m_test)( *m_source, snp_i ) ) {
+				m_links.resize( m_i + 1 ) ;
+				m_links[ m_i ] = snp_i ;
+				++m_i ;
+			}
+		}
 	}
 } ;
 
@@ -662,6 +810,7 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 			.set_maximum_multiplicity( 100 )
 		;
 		
+		options.declare_group( "SNP inclusion/exclusions options" ) ;
 		options[ "-excl-rsids" ]
 			.set_description( "Specify files containing lists of rsids to exclude from the analysis. "
 				"If this option is specified it must occur the same number of times as the -snptest option (or not at all). "
@@ -670,6 +819,14 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 )
 		;
+		
+		options[ "-min-info" ]
+			.set_description( "Treat SNPs with info less than the given threshhold as missing." )
+			.set_takes_values( 1 ) ;
+
+		options[ "-min-maf" ]
+			.set_description( "Treat SNPs with maf (in controls) less than the given threshhold as missing." )
+			.set_takes_values( 1 ) ;
 		
 		options[ "-o" ]
 			.set_description( "Specify the path to the output file." )
@@ -764,7 +921,16 @@ struct AmetProcessor: public boost::noncopyable
 		ui_context.logger() << "================================================\n" ;
 		ui_context.logger() << "Cohort summary:\n" ;
 		for( std::size_t i = 0; i < m_cohorts.size(); ++i ) {
-			ui_context.logger() << m_cohorts[i].get_summary( " - " ) ;
+			ui_context.logger() << " - Cohort " << (i+1) << ":\n" ;
+			ui_context.logger() << m_cohorts[i].get_summary( "   - " ) ;
+			ui_context.logger() << "\n   - First few SNPs are:\n" ;
+			for( std::size_t snp_i = 0; snp_i < std::min( std::size_t( 5 ), m_cohorts[i].get_number_of_SNPs() ); ++snp_i ) {
+				double info ;
+				double maf ;
+				m_cohorts[i].get_info( snp_i, &info ) ;
+				m_cohorts[i].get_maf_in_controls( snp_i, &maf ) ;
+				ui_context.logger() << "     " << m_cohorts[i].get_SNP( snp_i ) << " (maf = " << maf << ", info = " << info << ")\n";
+			}
 		}
 		
 		ui_context.logger() << "\n================================================\n" ;
@@ -1052,22 +1218,40 @@ public:
 				)
 			) ;
 			
-			if( options().check( "-excl-rsids" ) ) {
-				genfile::CommonSNPFilter::UniquePtr snp_filter ( new genfile::CommonSNPFilter ) ;
+			if( options().check( "-excl-rsids" ) || options().check( "-min-info" ) || options().check( "-min-maf" )) {
+				SNPExclusionTestConjunction::UniquePtr test( new SNPExclusionTestConjunction() ) ;
 				
-				std::vector< std::string > exclusion_files = options().get_values< std::string > ( "-excl-rsids" ) ;
-				assert( exclusion_files.size() == cohort_files.size() ) ;
+				if( options().check( "-excl-rsids" ) ) {
+					genfile::CommonSNPFilter::UniquePtr snp_filter ( new genfile::CommonSNPFilter ) ;
+					std::vector< std::string > exclusion_files = options().get_values< std::string > ( "-excl-rsids" ) ;
+					assert( exclusion_files.size() == cohort_files.size() ) ;
 				
-				std::vector< std::string > cohort_exclusion_files = genfile::string_utils::split_and_strip_discarding_empty_entries( exclusion_files[i], ",", " \t" ) ;
-				foreach( std::string const& filename, cohort_exclusion_files ) {
-					snp_filter->exclude_snps_in_file(
-						filename,
-						genfile::CommonSNPFilter::RSIDs
+					std::vector< std::string > cohort_exclusion_files = genfile::string_utils::split_and_strip_discarding_empty_entries( exclusion_files[i], ",", " \t" ) ;
+					foreach( std::string const& filename, cohort_exclusion_files ) {
+						snp_filter->exclude_snps_in_file(
+							filename,
+							genfile::CommonSNPFilter::RSIDs
+						) ;
+					}
+
+					test->add_subtest(
+						genfile::SNPIdentifyingDataTest::UniquePtr( snp_filter.release() )
 					) ;
 				}
-			
+
+				if( options().check( "-min-info" ) || options().check( "-min-maf" ) ) {
+					ThreshholdingSummaryStatisticTest::UniquePtr subtest( new ThreshholdingSummaryStatisticTest() ) ;
+					if( options().check( "-min-info" ) ) {
+						subtest->set_inclusion_bounds( "info", options().get< double >( "-min-info" ), 2 ) ; // info should be no larger than 1, but I guess there may be numerical error.
+					}
+					if( options().check( "-min-maf" ) ) {
+						subtest->set_inclusion_bounds( "maf", options().get< double >( "-min-maf" ), 1 ) ;
+					}
+					test->add_subtest( SNPExclusionTest::UniquePtr( subtest.release() ) ) ;
+				}
+
 				results.reset(
-					new FilteringGenomeWideAssociationResults( results, genfile::SNPIdentifyingDataTest::UniquePtr( snp_filter.release() ) )
+					new FilteringGenomeWideAssociationResults( results, SNPExclusionTest::UniquePtr( test.release() ) )
 				) ;
 			}
 			
