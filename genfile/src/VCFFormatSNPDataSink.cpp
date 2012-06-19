@@ -21,6 +21,7 @@ namespace genfile {
 	
 	VCFFormatSNPDataSink::VCFFormatSNPDataSink( std::string const& filename ):
 		m_filename( filename ),
+		m_compression_type( get_compression_type_indicated_by_filename( filename ) ),
 		m_stream_ptr( open_text_file_for_output( filename )),
 		m_have_written_header( false ),
 		m_number_of_samples( 0 ),
@@ -135,5 +136,15 @@ namespace genfile {
 		assert( getter ) ;
 		m_sample_name_getter = getter ;
 	}
+	
+	std::ostream::streampos VCFFormatSNPDataSink::get_stream_pos() const {
+		if( m_compression_type == CompressionType( "no_compression" )) {
+			return m_stream_ptr->tellp() ;
+		}
+		else {
+			throw OperationUnsupportedError( "genfile::VCFFormatSNPDataSink::get_stream_pos()", "get stream position", "VCFFormatSNPDataSink( \"" + m_filename + "\" )" ) ;
+		}
+	}
+	
 }
 
