@@ -25,15 +25,18 @@ namespace sample_stats {
 		}
 		
 		if( m_snp_index == 0 ) {
-			m_means.setZero( 2, m_intensities.cols() ) ;
-			m_variances.setZero( 2, m_intensities.cols() ) ;
-			m_sum_of_squares_of_differences.setZero( 2, m_intensities.cols() ) ;
+			m_means.setZero( 4, m_intensities.cols() ) ;
+			m_means2.setZero( 4, m_intensities.cols() ) ;
+			m_variances.setZero( 4, m_intensities.cols() ) ;
+			m_sum_of_squares_of_differences.setZero( 4, m_intensities.cols() ) ;
 		}
-		
+
 		// We have a row for X and a row for Y.
 		// Convert to X+Y and X-Y rows.
-		Eigen::Matrix< double, 2, 2 > transform ;
+		Eigen::Matrix< double, 4, 2 > transform ;
 		transform <<
+			1,  0,
+			0,  1,
 			1,  1,
 			1, -1
 		;
@@ -52,10 +55,14 @@ namespace sample_stats {
 		if( m_snp_index > 0 ) {
 			m_variances = m_sum_of_squares_of_differences / ( m_snp_index - 1 ) ;
 			for( int sample = 0; sample < m_means.cols(); ++sample ) {
-				callback( sample, "X+Y mean", m_means( 0, sample ) ) ;
-				callback( sample, "X-Y mean", m_means( 1, sample ) ) ;
-				callback( sample, "X+Y variance", m_variances( 0, sample ) / ( m_snp_index - 1 )) ;
-				callback( sample, "X-Y variance", m_variances( 1, sample ) ) ;
+				callback( sample, "X mean", m_means( 0, sample ) ) ;
+				callback( sample, "Y mean", m_means( 1, sample ) ) ;
+				callback( sample, "X+Y mean", m_means( 2, sample ) ) ;
+				callback( sample, "X-Y mean", m_means( 3, sample ) ) ;
+				callback( sample, "X variance", m_variances( 0, sample ) / ( m_snp_index - 1 )) ;
+				callback( sample, "Y variance", m_variances( 1, sample ) / ( m_snp_index - 1 )) ;
+				callback( sample, "X+Y variance", m_variances( 2, sample ) / ( m_snp_index - 1 )) ;
+				callback( sample, "X-Y variance", m_variances( 3, sample ) / ( m_snp_index - 1 )) ;
 			}
 		}
 	}

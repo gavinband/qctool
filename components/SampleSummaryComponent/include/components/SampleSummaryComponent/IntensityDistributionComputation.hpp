@@ -23,6 +23,7 @@ namespace sample_stats {
 
 		std::size_t m_snp_index ;
 		IntensityMatrix m_means ;
+		IntensityMatrix m_means2 ;
 		IntensityMatrix m_difference ;
 		IntensityMatrix m_sum_of_squares_of_differences ;
 		IntensityMatrix m_variances ;

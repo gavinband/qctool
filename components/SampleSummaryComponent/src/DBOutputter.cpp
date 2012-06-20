@@ -218,7 +218,7 @@ namespace sample_stats {
 			.bind( 3, variable_id )
 			.bind( 4, value )
 			.step() ;
-		m_insert_sampledata_statement.reset() ;
+		m_insert_sampledata_statement->reset() ;
 	}
 	
 }
