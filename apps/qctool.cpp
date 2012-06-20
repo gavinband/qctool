@@ -162,20 +162,17 @@ public:
 				"specified by -merge-in.")
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
-			.set_maximum_multiplicity( 100 )
-			.set_hidden() ;
+			.set_maximum_multiplicity( 100 ) ;
 
 		options[ "-merge-strategy" ]
 			.set_description( "Specify a strategy to use when encountering SNPs with the same position in a merge. "
 				"Options are \"" + genfile::string_utils::join( genfile::MergingSNPDataSource::get_merge_strategies(), "\",\"" ) + "\"." )
 			.set_takes_single_value()
-			.set_default_value( "keep-all" )
-			.set_hidden() ;
+			.set_default_value( "keep-all" ) ;
 		options[ "-merge-prefix" ]
 			.set_description( "Specify a string to add as a prefix to ID fields of merged-in variants" )
 			.set_takes_single_value()
-			.set_default_value( "" )
-			.set_hidden() ;
+			.set_default_value( "" ) ;
 		
 	    options[ "-s" ]
 	        .set_description( "Path of sample file to input.  If specified, this option must occur as often as the -g option"
@@ -252,15 +249,13 @@ public:
 								" one intensity file per cohort." )
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
-			.set_maximum_multiplicity( 100 )
-			.set_hidden() ;
+			.set_maximum_multiplicity( 100 ) ;
 		options[ "-translate-snp-positions" ]
 			.set_description( "Specify a \"dictionary\" of chromosome / position to chromosome / position mappings."
 				" (This should come as a 12-column file with the first six columns the original SNPID rsid chromosome position allele1 allele2"
 				" and the second six columns the same data with possibly different chromosome and position.)"
 				" Positions of SNPs will be mapped through this dictionary before processing." )
-			.set_takes_single_value()
-			.set_hidden() ;
+			.set_takes_single_value() ;
 		options[ "-match-alleles-to-cohort1" ]
 			.set_description( "Specify that alleles (and corresponding genotypes) in all cohorts should be switched, if necessary,"
 				" so as to match the alleles of the first cohort." ) ;
@@ -306,8 +301,7 @@ public:
 			.set_description( "Output a pedigree file instead of a GEN-type file."
 			 	" You must also input a pedigree using -ip for this to work." )
 			.set_takes_values( 1 )
-			.set_maximum_multiplicity( 1 )
-			.set_hidden() ;
+			.set_maximum_multiplicity( 1 ) ;
 		options[ "-ip" ]
 			.set_description( "Input a pedigree from the specified file."
 			 	" The first six columns of this file should represent a PED format pedigree,"
@@ -315,8 +309,7 @@ public:
 				" Ids are treated as non-whitespace strings and sex can be either"
 				" \"1\" or \"M\" (male) or \"2\" or \"F\" (female) or \"other\"." )
 			.set_takes_values( 1 )
-			.set_maximum_multiplicity( 1 )
-			.set_hidden() ;
+			.set_maximum_multiplicity( 1 ) ;
 
 		options.option_implies_option( "-op", "-ip" ) ;
 		options.option_implies_option( "-op", "-s" ) ;
@@ -413,13 +406,11 @@ public:
 		options [ "-threads" ]
 			.set_description( "Specify the number of worker threads to use in computationally intensive tasks." )
 			.set_takes_single_value()
-			.set_default_value( 0 )
-			.set_hidden() ;
+			.set_default_value( 0 ) ;
 		options[ "-analysis-name" ]
 			.set_description( "Specify a name to label results from this analysis with.  (This applies to modules which store their results in a qcdb file.)" )
 			.set_takes_single_value()
-			.set_default_value( "qctool analysis, started " + appcontext::get_current_time_as_string() )
-			.set_hidden() ;
+			.set_default_value( "qctool analysis, started " + appcontext::get_current_time_as_string() ) ;
 		options[ "-nodb" ]
 			.set_description( "By default, qctool outputs summary data in an sqlite database format.  This allows for more "
 				"flexibility and better memory usage compared to working with flat files. "
