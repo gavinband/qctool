@@ -857,7 +857,9 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 				"   [ 1    0.5 ]\n"
 				"   [ 0.5  1   ]."
 			)
-			.set_takes_single_value() ;
+			.set_takes_values( 1 )
+			.set_minimum_multiplicity( 1 )
+			.set_maximum_multiplicity( 100 ) ; // run up to 100 models
 
 		options[ "-prior-variance" ]
 			.set_description( "Specify the prior variance for bayesian analysis." )

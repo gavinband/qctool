@@ -24,7 +24,7 @@ namespace sample_stats {
 			data_reader.get( "XY", intensity_setter ) ;
 		}
 		
-		if( m_snp_index++ == 0 ) {
+		if( m_snp_index == 0 ) {
 			m_means.setZero( 2, m_intensities.cols() ) ;
 			m_variances.setZero( 2, m_intensities.cols() ) ;
 			m_sum_of_squares_of_differences.setZero( 2, m_intensities.cols() ) ;
@@ -42,9 +42,10 @@ namespace sample_stats {
 		// This is an "on-line" algorithm for computing the mean and variance.
 		// see http://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#On-line_algorithm
 		//
+		++m_snp_index ;
 		m_difference = m_intensities - m_means ;
-		m_sum_of_squares_of_differences.array() += m_difference.array() * ( m_intensities - m_means ).array() ;
 		m_means += m_difference / m_snp_index ;
+		m_sum_of_squares_of_differences.array() += m_difference.array() * ( m_intensities - m_means ).array() ;
 	}
 
 	void IntensityDistributionComputation::compute( ResultCallback callback ) {
@@ -53,7 +54,7 @@ namespace sample_stats {
 			for( int sample = 0; sample < m_means.cols(); ++sample ) {
 				callback( sample, "X+Y mean", m_means( 0, sample ) ) ;
 				callback( sample, "X-Y mean", m_means( 1, sample ) ) ;
-				callback( sample, "X+Y variance", m_variances( 0, sample ) ) ;
+				callback( sample, "X+Y variance", m_variances( 0, sample ) / ( m_snp_index - 1 )) ;
 				callback( sample, "X-Y variance", m_variances( 1, sample ) ) ;
 			}
 		}
