@@ -31,7 +31,7 @@ namespace sample_stats {
 		m_samples( samples ),
 		m_max_transaction_count( 10000 )
 	{
-		db::Connection::ScopedTransactionPtr transaction = connection().open_transaction( 30 ) ;
+		db::Connection::ScopedTransactionPtr transaction = connection().open_transaction( 240 ) ;
 		connection().run_statement(
 			"CREATE TABLE IF NOT EXISTS Sample ( "
 				"id INTEGER PRIMARY KEY, "
@@ -42,6 +42,7 @@ namespace sample_stats {
 
 		connection().run_statement(
 			"CREATE TABLE IF NOT EXISTS SampleData ( "
+				"analysis_id INTEGER NOT NULL, "
 				"sample_id INTEGER NOT NULL, "
 				"variable_id INTEGER NOT NULL, "
 				"value TEXT, "
@@ -53,32 +54,41 @@ namespace sample_stats {
 		) ;
 
 		connection().run_statement(
-			"CREATE VIEW IF NOT EXISTS SampleView AS "
-			"  SELECT S.id, S.identifier, V.id AS variable_id, V.name AS variable, SD.value AS value "
-			"  FROM Sample S "
-			"  INNER JOIN SampleData SD "
+			"CREATE VIEW IF NOT EXISTS SampleDataView AS "
+			"  SELECT SD.analysis_id, Analysis.name AS analysis, "
+			"    S.id AS sample_id, S.identifier AS sample, "
+			"    V.id AS variable_id, V.name AS variable, "
+			"    SD.value AS value "
+			"  FROM SampleData SD "
+			"  INNER JOIN Sample S "
 			"    ON SD.sample_id = S.id "
+			"  INNER JOIN Entity Analysis "
+			"    ON Analysis.id = SD.analysis_id"
 			"  INNER JOIN Entity V "
 			"    ON V.id = SD.variable_id"
 		) ;
 
 		construct_statements() ;
+		
+		m_variable_id = get_or_create_entity( "per-sample variable", "per-sample variable values" ) ;
+		
 		store_samples( samples ) ;
 	}
 
 	void DBOutputter::construct_statements() {
 		m_find_sample_statement = connection().get_statement( "SELECT id FROM Sample WHERE identifier == ?1" ) ;
 		m_insert_sample_statement = connection().get_statement( "INSERT INTO Sample (identifier) VALUES( ?1 )" ) ;
-		m_find_sampledata_statement = connection().get_statement( "SELECT value FROM SampleData WHERE sample_id = ? AND variable_id = ?" ) ;
+		m_find_sampledata_statement = connection().get_statement( "SELECT value FROM SampleData WHERE analysis_id = ? AND sample_id = ? AND variable_id = ?" ) ;
 		m_insert_sampledata_statement = connection().get_statement(
-			"INSERT OR REPLACE INTO SampleData ( sample_id, variable_id, value ) "
-			"VALUES( ?2, ?3, ?4 )"
+			"INSERT OR REPLACE INTO SampleData ( analysis_id, sample_id, variable_id, value ) "
+			"VALUES( ?1, ?2, ?3, ?4 )"
 		) ;
 	}
 
 	DBOutputter::~DBOutputter() {}
 
 	void DBOutputter::store_samples( genfile::CohortIndividualSource const& samples ) {
+		
 		for( std::size_t i = 0; i < samples.get_number_of_individuals(); ++i ) {
 			store_sample( samples, i ) ;
 		}
@@ -87,35 +97,52 @@ namespace sample_stats {
 	void DBOutputter::store_sample( genfile::CohortIndividualSource const& samples, std::size_t sample ) {
 		db::Connection::RowId sample_id = get_or_create_sample( samples.get_entry( sample, "ID_1" ) ) ;
 		genfile::CohortIndividualSource::ColumnSpec spec = samples.get_column_spec() ;
-		for( std::size_t i = 0; i < spec.size(); ++i ) {
-			db::Connection::RowId variable_id = get_or_create_entity( spec[i].name(), "Per-sample " + spec[i].name() + " values" ) ;
-			genfile::VariantEntry const& value = samples.get_entry( sample, spec[i].name() ) ;
 
-			// Look for identical sample data already there; if we don't find it, insert it.
-			m_find_sampledata_statement
-				->bind( 1, sample_id ).bind( 2, variable_id ).step() ;
-			if( m_find_sampledata_statement->empty() ) {
-				try {
-					m_insert_sampledata_statement
-						->bind( 1, sample_id )
-						.bind( 2, variable_id )
-						.bind( 3, value )
-						.step() ;
-	
-					m_insert_sampledata_statement->reset() ;
-				} catch( db::StatementStepError const& e ) {
-					throw genfile::OperationFailedError(
-						"sample_stats::DBOutputter::store_sample()",
-						connection().get_spec(),
-						"Insertion of " + spec[i].name() + " value "
-						" (" + genfile::string_utils::to_string( samples.get_entry( sample, spec[i].name() ) ) + " )"
-						" for sample \"" + samples.get_entry( sample, "ID_1" ).as< std::string >() + "\""
-					) ;
-				}
+		store_sample_data(
+			sample_id,
+			get_or_create_entity( "index", "index in genotyping file", m_variable_id ),
+			genfile::VariantEntry::Integer( sample )
+		) ;
+
+		for( std::size_t i = 0; i < spec.size(); ++i ) {
+			db::Connection::RowId variable_id = get_or_create_entity( spec[i].name(), "Per-sample " + spec[i].name() + " values", m_variable_id ) ;
+			genfile::VariantEntry const& value = samples.get_entry( sample, spec[i].name() ) ;
+			try {
+				store_sample_data( sample_id, variable_id, value ) ;
 			}
-			m_find_sampledata_statement->reset() ;
+			catch( db::StatementStepError const& e ) {
+				throw genfile::OperationFailedError(
+					"sample_stats::DBOutputter::store_sample()",
+					connection().get_spec(),
+					"Insertion of " + spec[i].name() + " value "
+					" (" + genfile::string_utils::to_string( samples.get_entry( sample, spec[i].name() ) ) + " )"
+					" for sample \"" + samples.get_entry( sample, "ID_1" ).as< std::string >() + "\""
+				) ;
+			}
 		}
 	}
+	
+	void DBOutputter::store_sample_data( db::Connection::RowId const sample_id, db::Connection::RowId const variable_id, genfile::VariantEntry const value ) {
+		// Look for identical sample data already there; if we don't find it, insert it.
+		m_find_sampledata_statement
+			->bind( 1, analysis_id() )
+			.bind( 2, sample_id )
+			.bind( 3, variable_id )
+			.step() ;
+		
+		if( m_find_sampledata_statement->empty() ) {
+			m_insert_sampledata_statement
+				->bind( 1, analysis_id() )
+				.bind( 2, sample_id )
+				.bind( 3, variable_id )
+				.bind( 4, value )
+				.step() ;
+
+			m_insert_sampledata_statement->reset() ;
+		}
+		m_find_sampledata_statement->reset() ;
+	}
+	
 
 	db::Connection::RowId DBOutputter::get_or_create_sample( genfile::VariantEntry const& identifier ) const {
 		db::Connection::RowId result ;

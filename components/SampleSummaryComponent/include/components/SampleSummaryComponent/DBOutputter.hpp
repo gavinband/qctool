@@ -40,6 +40,7 @@ namespace sample_stats {
 	private:
 		genfile::CohortIndividualSource const& m_samples ;
 		std::size_t const m_max_transaction_count ;
+		db::Connection::RowId m_variable_id ;
 		db::Connection::StatementPtr m_find_sample_statement ;
 		db::Connection::StatementPtr m_insert_sample_statement ;
 		db::Connection::StatementPtr m_find_sampledata_statement ;
@@ -52,6 +53,7 @@ namespace sample_stats {
 		void construct_statements() ;
 		void store_samples( genfile::CohortIndividualSource const& samples ) ;
 		void store_sample( genfile::CohortIndividualSource const& samples, std::size_t sample ) ;
+		void store_sample_data( db::Connection::RowId const sample_id, db::Connection::RowId const variable_id, genfile::VariantEntry const value ) ;
 		db::Connection::RowId get_or_create_sample( genfile::VariantEntry const& identifier ) const ;
 		void write_data( Data const& data ) ;
 		void write_data(
