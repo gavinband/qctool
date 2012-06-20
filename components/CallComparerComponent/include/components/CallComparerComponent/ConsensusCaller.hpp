@@ -26,6 +26,8 @@ public:
 
 public:
 	ConsensusCaller() ;
+	virtual ~ConsensusCaller() ;
+	
 public:
 	typedef boost::signals2::signal<
 		void (

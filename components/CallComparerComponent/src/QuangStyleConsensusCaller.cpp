@@ -13,8 +13,9 @@
 #include "components/CallComparerComponent/QuangStyleConsensusCaller.hpp"
 
 // #define DEBUG_QUANGSTYLECONSENSUSCALLER 1
-QuangStyleConsensusCaller::QuangStyleConsensusCaller():
-	m_call_threshhold( 0.95 )
+QuangStyleConsensusCaller::QuangStyleConsensusCaller( double threshhold, unsigned int minimum_consensus ):
+	m_call_threshhold( threshhold ),
+	m_minimum_consensus( minimum_consensus )
 {}
 
 void QuangStyleConsensusCaller::set_result(
@@ -86,7 +87,7 @@ void QuangStyleConsensusCaller::set_result(
 		}
 
 		// set to missing anything with no consensus among algorithms.
-		m_result_calls.array() *= ( m_consensus_counts.array() > 1.0 ).cast< double >() ;
+		m_result_calls.array() *= ( m_consensus_counts.array() > m_minimum_consensus ).cast< double >() ;
 
 		info[ "conflicting_calls" ].push_back( ( m_result_calls.array() < 0 ).cast< int >().sum() ) ;
 		info[ "missing_calls" ].push_back( ( m_result_calls.array() == 0.0 ).cast< int >().sum() ) ;

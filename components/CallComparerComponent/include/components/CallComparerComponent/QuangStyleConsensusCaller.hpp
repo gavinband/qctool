@@ -16,15 +16,16 @@
 struct QuangStyleConsensusCaller: public ConsensusCaller
 {
 public:
-	QuangStyleConsensusCaller() ;
+	QuangStyleConsensusCaller( double threshhold, unsigned int minimum_consensus ) ;
 public:
 	void set_result(
 		std::string const& comparison,
 		std::string const& accepted_calls,
 		PairwiseCallComparerManager::Calls const& calls
-	) ;
+	) ; 
 private:
 	double const m_call_threshhold ;
+	double const m_minimum_consensus ;
 	Eigen::VectorXd m_genotypes ;
 	Eigen::VectorXd m_result_calls ;
 	Eigen::VectorXd m_consensus_counts ;

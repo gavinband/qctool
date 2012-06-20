@@ -8,15 +8,17 @@
 #include "genfile/get_set_eigen.hpp"
 #include "genfile/vcf/get_set_eigen.hpp"
 #include "components/CallComparerComponent/ConsensusCaller.hpp"
-#include "components/CallComparerComponent/LeastMissingConsensusCaller.hpp"
 #include "components/CallComparerComponent/QuangStyleConsensusCaller.hpp"
+#include "components/CallComparerComponent/LeastMissingConsensusCaller.hpp"
 
 ConsensusCaller::UniquePtr ConsensusCaller::create( std::string const& model ) {
 	if( model == "LeastMissing" ) {
 		return ConsensusCaller::UniquePtr( new LeastMissingConsensusCaller() ) ;
 	}
 	else if( model == "QuangStyle" ) {
-		return ConsensusCaller::UniquePtr( new QuangStyleConsensusCaller() ) ;
+		return ConsensusCaller::UniquePtr( new QuangStyleConsensusCaller( 0.95, 1.0 ) ) ;
+	} else if( model == "NoConflict" ) {
+		return ConsensusCaller::UniquePtr( new QuangStyleConsensusCaller( 0.95, 0.0 ) ) ;
 	} else {
 		throw genfile::BadArgumentError( "ConsensusCaller::create()", "model=\"" + model + "\"" ) ;
 	}
@@ -27,6 +29,9 @@ ConsensusCaller::SharedPtr ConsensusCaller::create_shared( std::string const& mo
 }
 
 ConsensusCaller::ConsensusCaller()
+{}
+
+ConsensusCaller::~ConsensusCaller()
 {}
 
 void ConsensusCaller::send_results_to( ResultSignal::slot_type callback ) {

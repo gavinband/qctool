@@ -41,7 +41,7 @@ public:
 		virtual void end_comparisons() = 0 ;
 	} ;
 
-	struct ComparisonClient: public virtual Client
+	struct ComparisonClient: public Client
 	{
 		typedef boost::shared_ptr< ComparisonClient > SharedPtr ;
 		typedef std::auto_ptr< ComparisonClient > UniquePtr ;
