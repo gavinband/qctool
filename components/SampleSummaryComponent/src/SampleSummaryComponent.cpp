@@ -14,6 +14,7 @@
 #include "components/SampleSummaryComponent/SampleSummaryComputation.hpp"
 #include "components/SampleSummaryComponent/DBOutputter.hpp"
 #include "components/SampleSummaryComponent/IntensityDistributionComputation.hpp"
+#include "components/SampleSummaryComponent/MissingnessHeterozygosityComputation.hpp"
 
 void SampleSummaryComponent::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "Per-sample computation options" ) ;
@@ -59,6 +60,12 @@ void SampleSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor )
 		"average intensities",
 		"autosomal chromosomes",
 		SampleSummaryComputation::UniquePtr( new sample_stats::IntensityDistributionComputation() )
+	) ;
+
+	manager->add(
+		"missingness/heterozyosity",
+		"autosomal chromosomes",
+		SampleSummaryComputation::UniquePtr( new sample_stats::MissingnessHeterozygosityComputation() )
 	) ;
 
 	processor.add_callback( genfile::SNPDataSourceProcessor::Callback::UniquePtr( manager.release() ) ) ;

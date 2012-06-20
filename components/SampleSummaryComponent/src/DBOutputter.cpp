@@ -194,7 +194,7 @@ namespace sample_stats {
 		genfile::VariantEntry const& value
 	) {
 		db::Connection::RowId const sample_id = get_or_create_sample( m_samples.get_entry( sample, "ID_1" ) ) ;
-		db::Connection::RowId const variable_id = get_or_create_entity( variable, description ) ;
+		db::Connection::RowId const variable_id = get_or_create_entity( variable, description, m_variable_id ) ;
 		m_insert_sampledata_statement
 			->bind( 1, analysis_id() )
 			.bind( 2, sample_id )
