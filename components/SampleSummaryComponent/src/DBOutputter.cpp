@@ -103,23 +103,6 @@ namespace sample_stats {
 			get_or_create_entity( "index", "index in genotyping file", m_variable_id ),
 			genfile::VariantEntry::Integer( sample )
 		) ;
-
-		for( std::size_t i = 0; i < spec.size(); ++i ) {
-			db::Connection::RowId variable_id = get_or_create_entity( spec[i].name(), "Per-sample " + spec[i].name() + " values", m_variable_id ) ;
-			genfile::VariantEntry const& value = samples.get_entry( sample, spec[i].name() ) ;
-			try {
-				store_sample_data( sample_id, variable_id, value ) ;
-			}
-			catch( db::StatementStepError const& e ) {
-				throw genfile::OperationFailedError(
-					"sample_stats::DBOutputter::store_sample()",
-					connection().get_spec(),
-					"Insertion of " + spec[i].name() + " value "
-					" (" + genfile::string_utils::to_string( samples.get_entry( sample, spec[i].name() ) ) + " )"
-					" for sample \"" + samples.get_entry( sample, "ID_1" ).as< std::string >() + "\""
-				) ;
-			}
-		}
 	}
 	
 	void DBOutputter::store_sample_data( db::Connection::RowId const sample_id, db::Connection::RowId const variable_id, genfile::VariantEntry const value ) {
