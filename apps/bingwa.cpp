@@ -120,7 +120,8 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 					+ m_controls_maf.size()
 					+ m_sample_counts.size()
 				) * sizeof( double ) / 1000000
-			) + "Mb in use.)"
+			) + "Mb in use.)" ;
+		return result ;
 	}
 
 private:
