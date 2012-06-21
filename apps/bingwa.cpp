@@ -107,7 +107,20 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 
 	std::string get_summary( std::string const& prefix, std::size_t target_column ) const {
 		using genfile::string_utils::to_string ;
-		return "SNPTESTResults object (" + to_string( m_snps.size() ) + " SNPs)" ;
+		std::string result = "SNPTESTResults object ("
+			+ to_string( m_snps.size() )
+			+ " SNPs"
+			+ ", ~"
+			+ to_string(
+				(
+					m_betas.size()
+					+ m_ses.size()
+					+ m_pvalues.size()
+					+ m_info.size()
+					+ m_controls_maf.size()
+					+ m_sample_counts.size()
+				) * sizeof( double ) / 1000000
+			) + "Mb in use.)"
 	}
 
 private:
