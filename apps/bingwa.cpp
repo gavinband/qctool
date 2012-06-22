@@ -304,9 +304,6 @@ private:
 		m_sample_counts.resize( source->number_of_rows(), 4 ) ;
 
 		genfile::SNPIdentifyingData snp ;
-		double controls_maf ;
-		double info ;
-		double pvalue ;
 		Eigen::VectorXd betas ;
 		Eigen::VectorXd ses ;
 		
@@ -328,8 +325,7 @@ private:
 			}
 
 			if( !m_exclusion_test.get() || m_exclusion_test->operator()( snp, m_controls_maf( snp_index ), m_info( snp_index ))) {
-				++snp_index ;
-				m_snps[ snp_index ] = snp ;
+				m_snps[ snp_index++ ] = snp ;
 			}
 
 			if( progress_callback ) {
@@ -847,7 +843,6 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 			.set_maximum_multiplicity( 100 )
 		;
 		
-		options.declare_group( "SNP inclusion/exclusions options" ) ;
 		options.declare_group( "SNP exclusion options" ) ;
 		options[ "-excl-snpids" ]
 			.set_description( "Exclude all SNPs whose SNPID is in the given file(s) from the analysis.")
@@ -1420,11 +1415,7 @@ public:
 
 			SNPExclusionTestConjunction::UniquePtr test( new SNPExclusionTestConjunction() ) ;
 
-			if( options().check_if_option_was_supplied_in_group( "SNP inclusion/exclusions options" )
-				|| options().check( "-min-info" )
-				|| options().check( "-min-maf" )
-			) {
-				
+			if( options().check_if_option_was_supplied_in_group( "SNP exclusion options" ) ) {
 				genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter() ;
 				if( snp_filter.get() ) {
 					test->add_subtest( genfile::SNPIdentifyingDataTest::UniquePtr( snp_filter.release() ) ) ;
