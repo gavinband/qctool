@@ -1426,7 +1426,7 @@ public:
 						subtest->set_inclusion_bounds( "info", options().get< double >( "-min-info" ), 2 ) ; // info should be no larger than 1, but I guess there may be numerical error.
 					}
 					if( options().check( "-min-maf" ) ) {
-						subtest->set_inclusion_bounds( "maf", options().get< double >( "-min-maf" ), 1 ) ;
+						subtest->set_inclusion_bounds( "controls_maf", options().get< double >( "-min-maf" ), 1 ) ;
 					}
 					test->add_subtest( SNPExclusionTest::UniquePtr( subtest.release() ) ) ;
 				}
