@@ -87,16 +87,16 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 	}
 
 	void get_betas( std::size_t snp_i, Eigen::VectorXd* result ) const {
-		*result = m_betas.row( snp_i ) ;
+		*result = m_betas.row( snp_i ).cast< double >() ;
 	}
 	void get_ses( std::size_t snp_i, Eigen::VectorXd* result ) const {
-		*result = m_ses.row( snp_i ) ;
+		*result = m_ses.row( snp_i ).cast< double >() ;
 	}
 	void get_pvalue( std::size_t snp_i, double* result ) const {
 		*result = m_pvalues( snp_i ) ;
 	}
 	void get_counts( std::size_t snp_i, Eigen::VectorXd* result ) const {
-		*result = m_sample_counts.row( snp_i ) ;
+		*result = m_sample_counts.row( snp_i ).cast< double >() ;
 	}
 	void get_info( std::size_t snp_i, double* result ) const {
 		*result = m_info( snp_i ) ;
@@ -107,6 +107,17 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 
 	std::string get_summary( std::string const& prefix, std::size_t target_column ) const {
 		using genfile::string_utils::to_string ;
+		
+		// estimate memory used in SNPs.
+		unsigned long mem_used = 0 ;
+		for( std::size_t i = 0; i < m_snps.size(); ++i ) {
+			mem_used += sizeof( genfile::SNPIdentifyingData )
+				+ m_snps[i].get_SNPID().size()
+				+ m_snps[i].get_rsid().size()
+				+ m_snps[i].get_first_allele().size()
+				+ m_snps[i].get_second_allele().size() ;
+		}
+		
 		std::string result = "SNPTESTResults object ("
 			+ to_string( m_snps.size() )
 			+ " SNPs"
@@ -119,7 +130,8 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 					+ m_info.size()
 					+ m_controls_maf.size()
 					+ m_sample_counts.size()
-				) * sizeof( double ) / 1000000
+					+ mem_used
+				) * sizeof( double ) / 1000000.0
 			) + "Mb in use.)" ;
 		return result ;
 	}
@@ -1302,6 +1314,9 @@ public:
 					new FilteringGenomeWideAssociationResults( results, SNPExclusionTest::UniquePtr( test.release() ) )
 				) ;
 			}
+			
+			// summarise right now so as to see memory used.
+			get_ui_context().logger() << "Cohort " << (i+1) << " summary: " << results->get_summary() << ".\n" ;
 			
 			m_processor->add_cohort( "cohort_" + to_string( i+1 ), results ) ;
 		}
