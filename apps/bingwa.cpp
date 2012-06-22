@@ -113,11 +113,7 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 		// estimate memory used in SNPs.
 		unsigned long mem_used = 0 ;
 		for( std::size_t i = 0; i < m_snps.size(); ++i ) {
-			mem_used += sizeof( genfile::SNPIdentifyingData2 )
-				+ m_snps[i].get_SNPID().size()
-				+ m_snps[i].get_rsid().size()
-				+ m_snps[i].get_first_allele().size()
-				+ m_snps[i].get_second_allele().size() ;
+			mem_used += m_snps[i].get_estimated_bytes_used() ;
 		}
 		
 		std::string result = "SNPTESTResults object ("
@@ -169,8 +165,6 @@ private:
 		SNPResultCallback callback,
 		ProgressCallback progress_callback
 	) {
-		double string_mem_used = 0 ;
-		
 		statfile::BuiltInTypeStatSource::UniquePtr source( statfile::BuiltInTypeStatSource::open( filename.filename() )) ;
 
 		ColumnMap column_map = get_columns_to_store( *source ) ;
@@ -191,8 +185,6 @@ private:
 			(*source) >> snp.SNPID() >> snp.rsid() >> snp.position().chromosome() >> snp.position().position() >> snp.first_allele() >> snp.second_allele();
 			++snp_index, (*source) >> statfile::ignore_all()
 		) {
-			string_mem_used += snp.get_SNPID().size() + snp.get_rsid().size() + snp.get_first_allele().size() + snp.get_second_allele().size() ;
-			
 			if( snp.get_first_allele().size() > 20 ) {
 				std::cerr
 					<< "At SNP " << snp.get_position() << " " << snp.get_rsid()
@@ -251,7 +243,6 @@ private:
 				progress_callback( 100 * ( filename_i + double( source->number_of_rows_read() + 1 ) / source->number_of_rows() ), 100 * number_of_files ) ;
 			}
 		}
-		std::cerr << "SNPTESTResults::setup(): used " << string_mem_used << "bytes in string memory.\n" ;
 	}
 	
 	ColumnMap get_columns_to_store(

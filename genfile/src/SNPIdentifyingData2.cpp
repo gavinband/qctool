@@ -151,6 +151,13 @@ namespace genfile {
 		m_data.swap( new_data ) ;
 	}
 
+	std::size_t SNPIdentifyingData2::get_estimated_bytes_used() const {
+		return sizeof( SNPIdentifyingData2 )
+			+ m_data.size()
+			+ ( 3 * sizeof( std::size_t ) ) // there is about this much overhead on the stack per string.
+		;
+	}
+
 	std::ostream& operator<<( std::ostream& out, SNPIdentifyingData2 const& data ) {
 		return out << data.get_SNPID()
 			<< " " << data.get_rsid()

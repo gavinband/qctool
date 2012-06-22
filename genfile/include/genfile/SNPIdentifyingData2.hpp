@@ -56,6 +56,7 @@ namespace genfile {
 		slice get_first_allele() const { return slice( m_data, m_first_allele_start, m_second_allele_start ) ; }
 		slice get_second_allele() const { return slice( m_data, m_second_allele_start, m_data.size() ) ; }
 
+		std::size_t get_estimated_bytes_used() const ;
 	public:
 		struct CompareFields {
 			CompareFields( std::string const& fields_to_compare ) ;
