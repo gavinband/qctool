@@ -216,7 +216,8 @@ namespace statfile {
 		if( current_column() == 0 ) {
 			read_one_line() ;
 		}
-	 	value = m_current_fields[ current_column() ] ;
+		std::string baked = m_current_fields[ current_column() ] ;
+	 	value.swap( baked );
 	}
 
 	// Specialisation of do_read_value for doubles, to deal with infinities

@@ -106,18 +106,6 @@ namespace genfile {
 			return !( *this == other ) ;
 		}
 
-		bool slice::operator==( slice const& other ) const {
-			if( size() != other.size() ) {
-				return false ;
-			}
-			for( std::size_t i = m_start; i < m_end; ++i ) {
-				if( (*m_string)[i] != other[ i - m_start ] ) {
-					return false ;
-				}
-			}
-			return true ;
-		}
-
 		std::vector< slice > slice::split( std::string const& split_chars ) const {
 			std::vector< slice > result ;
 			result.reserve( 1000 ) ;
@@ -157,8 +145,43 @@ namespace genfile {
 			while( pos != size() ) ;
 		}
 
+		std::string::const_iterator slice::begin() const {
+			return m_string->begin() + m_start ;
+		}
+
+		std::string::const_iterator slice::end() const {
+			return m_string->begin() + m_end ;
+		}
 		
+		bool operator==( slice const& left, slice const& right ) {
+			return left.m_string->compare( left.m_start, left.m_end - left.m_start, (*right.m_string), right.m_start, right.m_end - right.m_start ) == 0 ;
+		}
+
+		bool operator!=( slice const& left, slice const& right ) {
+			return left.m_string->compare( left.m_start, left.m_end - left.m_start, (*right.m_string), right.m_start, right.m_end - right.m_start ) != 0 ;
+		}
+
+		bool operator<( slice const& left, slice const& right ) {
+			return left.m_string->compare( left.m_start, left.m_end - left.m_start, (*right.m_string), right.m_start, right.m_end - right.m_start ) < 0 ;
+		}
+
+		bool operator>( slice const& left, slice const& right ) {
+			return left.m_string->compare( left.m_start, left.m_end - left.m_start, (*right.m_string), right.m_start, right.m_end - right.m_start ) > 0 ;
+		}
+
+		bool operator<=( slice const& left, slice const& right ) {
+			return left.m_string->compare( left.m_start, left.m_end - left.m_start, (*right.m_string), right.m_start, right.m_end - right.m_start ) <= 0 ;
+		}
+
+		bool operator>=( slice const& left, slice const& right ) {
+			return left.m_string->compare( left.m_start, left.m_end - left.m_start, (*right.m_string), right.m_start, right.m_end - right.m_start ) >= 0 ;
+		}
 		
-		
+		std::ostream& operator<<( std::ostream& o, slice const& s ) {
+			for( std::size_t i = s.m_start; i < s.m_end; ++i ) {
+				o << (*s.m_string)[i] ;
+			}
+			return o ;
+		}
 	}
 }

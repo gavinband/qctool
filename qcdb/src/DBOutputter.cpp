@@ -34,6 +34,7 @@ namespace qcdb {
 		m_analysis_name( cohort_name ),
 		m_metadata( metadata )
 	{
+		// Increase cache size to be about 104Mb=102,400kb for performance reasons.
 		m_connection->run_statement( "PRAGMA cache_size=-102400" ) ;
 		m_connection->run_statement( "PRAGMA journal_mode=OFF" ) ;
 		m_connection->run_statement( "PRAGMA synchronous=OFF" ) ;

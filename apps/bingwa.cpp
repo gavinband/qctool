@@ -29,7 +29,9 @@
 #include "genfile/FileUtils.hpp"
 #include "genfile/utility.hpp"
 #include "genfile/string_utils/string_utils.hpp"
+#include "genfile/string_utils/slice.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/SNPIdentifyingData2.hpp"
 #include "genfile/SNPIdentifyingDataTest.hpp"
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/VariantEntry.hpp"
@@ -44,9 +46,9 @@ namespace globals {
 struct FrequentistGenomeWideAssociationResults: public boost::noncopyable {
 	typedef std::auto_ptr< FrequentistGenomeWideAssociationResults > UniquePtr ;
 	virtual ~FrequentistGenomeWideAssociationResults() {}
-	typedef boost::function< void ( std::size_t i, genfile::SNPIdentifyingData const& snp ) > SNPCallback ;
+	typedef boost::function< void ( std::size_t i, genfile::SNPIdentifyingData2 const& snp ) > SNPCallback ;
 	virtual std::size_t get_number_of_SNPs() const = 0 ;
-	virtual genfile::SNPIdentifyingData const& get_SNP( std::size_t snp_i ) const = 0 ;
+	virtual genfile::SNPIdentifyingData2 const& get_SNP( std::size_t snp_i ) const = 0 ;
 	virtual void get_betas( std::size_t snp_i, Eigen::VectorXd* result ) const = 0 ;
 	virtual void get_ses( std::size_t snp_i, Eigen::VectorXd* result ) const = 0 ; 
 	virtual void get_pvalue( std::size_t snp_i, double* result ) const = 0 ;
@@ -66,7 +68,7 @@ struct FrequentistGenomeWideAssociationResults: public boost::noncopyable {
 struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 	typedef boost::function< void ( std::size_t, boost::optional< std::size_t > ) > ProgressCallback ;
 	typedef
-		boost::function< void ( std::size_t, genfile::SNPIdentifyingData const&, std::string const&, std::string const&, genfile::VariantEntry const& ) > 
+		boost::function< void ( std::size_t, genfile::SNPIdentifyingData2 const&, std::string const&, std::string const&, genfile::VariantEntry const& ) > 
 		SNPResultCallback ;
 	
 	SNPTESTResults(
@@ -81,7 +83,7 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 		return m_snps.size() ;
 	}
 
-	genfile::SNPIdentifyingData const& get_SNP( std::size_t snp_i ) const {
+	genfile::SNPIdentifyingData2 const& get_SNP( std::size_t snp_i ) const {
 		assert( snp_i < m_snps.size() ) ;
 		return m_snps[ snp_i ] ;
 	}
@@ -111,7 +113,7 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 		// estimate memory used in SNPs.
 		unsigned long mem_used = 0 ;
 		for( std::size_t i = 0; i < m_snps.size(); ++i ) {
-			mem_used += sizeof( genfile::SNPIdentifyingData )
+			mem_used += sizeof( genfile::SNPIdentifyingData2 )
 				+ m_snps[i].get_SNPID().size()
 				+ m_snps[i].get_rsid().size()
 				+ m_snps[i].get_first_allele().size()
@@ -140,7 +142,7 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 	}
 
 private:
-	std::vector< genfile::SNPIdentifyingData > m_snps ;
+	std::vector< genfile::SNPIdentifyingData2 > m_snps ;
 	Eigen::MatrixXf m_betas ;
 	Eigen::MatrixXf m_ses ;
 	Eigen::VectorXf m_pvalues ;
@@ -167,6 +169,8 @@ private:
 		SNPResultCallback callback,
 		ProgressCallback progress_callback
 	) {
+		double string_mem_used = 0 ;
+		
 		statfile::BuiltInTypeStatSource::UniquePtr source( statfile::BuiltInTypeStatSource::open( filename.filename() )) ;
 
 		ColumnMap column_map = get_columns_to_store( *source ) ;
@@ -187,6 +191,8 @@ private:
 			(*source) >> snp.SNPID() >> snp.rsid() >> snp.position().chromosome() >> snp.position().position() >> snp.first_allele() >> snp.second_allele();
 			++snp_index, (*source) >> statfile::ignore_all()
 		) {
+			string_mem_used += snp.get_SNPID().size() + snp.get_rsid().size() + snp.get_first_allele().size() + snp.get_second_allele().size() ;
+			
 			if( snp.get_first_allele().size() > 20 ) {
 				std::cerr
 					<< "At SNP " << snp.get_position() << " " << snp.get_rsid()
@@ -245,6 +251,7 @@ private:
 				progress_callback( 100 * ( filename_i + double( source->number_of_rows_read() + 1 ) / source->number_of_rows() ), 100 * number_of_files ) ;
 			}
 		}
+		std::cerr << "SNPTESTResults::setup(): used " << string_mem_used << "bytes in string memory.\n" ;
 	}
 	
 	ColumnMap get_columns_to_store(
@@ -461,13 +468,13 @@ struct FilteringGenomeWideAssociationResults: public FrequentistGenomeWideAssoci
 		link_indices() ;
 	}
 
-	// typedef boost::function< void ( std::size_t i, genfile::SNPIdentifyingData const& snp ) > SNPCallback ;
+	// typedef boost::function< void ( std::size_t i, genfile::SNPIdentifyingData2 const& snp ) > SNPCallback ;
 
 	std::size_t get_number_of_SNPs() const {
 		return m_links.size() ;
 	}
 	
-	genfile::SNPIdentifyingData const& get_SNP( std::size_t snp_i ) const {
+	genfile::SNPIdentifyingData2 const& get_SNP( std::size_t snp_i ) const {
 		assert( snp_i < m_links.size() ) ;
 		return m_source->get_SNP( m_links[ snp_i ] ) ;
 	}
@@ -537,7 +544,7 @@ struct AmetComputation: public boost::noncopyable {
 	typedef std::auto_ptr< AmetComputation > UniquePtr ;
 	static UniquePtr create( std::string const& name, appcontext::OptionProcessor const& ) ;
 	virtual ~AmetComputation() {}
-	typedef genfile::SNPIdentifyingData SNPIdentifyingData ;
+	typedef genfile::SNPIdentifyingData2 SNPIdentifyingData2 ;
 	typedef boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
 
 	struct DataGetter: public boost::noncopyable {
@@ -552,7 +559,7 @@ struct AmetComputation: public boost::noncopyable {
 	} ;
 
 	virtual void operator()(
-		SNPIdentifyingData const&,
+		SNPIdentifyingData2 const&,
 		DataGetter const& data_getter,
 		ResultCallback callback
 	) = 0 ;
@@ -562,7 +569,7 @@ struct AmetComputation: public boost::noncopyable {
 
 struct PerCohortValueReporter: public AmetComputation {
 	void operator()(
-		SNPIdentifyingData const&,
+		SNPIdentifyingData2 const&,
 		DataGetter const& data_getter,
 		ResultCallback callback
 	) {
@@ -654,7 +661,7 @@ namespace impl {
 
 struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
 	void operator()(
-		SNPIdentifyingData const& snp,
+		SNPIdentifyingData2 const& snp,
 		DataGetter const& data_getter,
 		ResultCallback callback
 	) {
@@ -716,15 +723,18 @@ struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
 // the estimated betas and ses.
 struct ApproximateBayesianMetaAnalysis: public AmetComputation {
 	ApproximateBayesianMetaAnalysis(
+		std::string const& name,
 		Eigen::MatrixXd const& sigma
 	):
+		m_name( name ),
+		m_prefix( "ApproximateBayesianMetaAnalysis/" + name ),
 		m_sigma( sigma )
 	{
 		assert( m_sigma.rows() == m_sigma.cols() ) ;
 	}
 
 	void operator()(
-		SNPIdentifyingData const& snp,
+		SNPIdentifyingData2 const& snp,
 		DataGetter const& data_getter,
 		ResultCallback callback
 	) {
@@ -741,7 +751,7 @@ struct ApproximateBayesianMetaAnalysis: public AmetComputation {
 			!impl::get_betas_and_ses_one_per_study( data_getter, betas, ses, non_missingness )
 			|| non_missingness.sum() == 0
 		) {
-			callback( "ApproximateBayesianMetaAnalysis/bf", genfile::MissingValue() ) ;
+			callback( m_prefix + "bf", genfile::MissingValue() ) ;
 			return ;
 		}
 		else {
@@ -790,18 +800,20 @@ struct ApproximateBayesianMetaAnalysis: public AmetComputation {
 			double const constant = std::sqrt( Vsolver.vectorD().prod() / V_plus_prior_solver.vectorD().prod() ) ;
 			double const result = constant * std::exp( 0.5 * exponent(0) ) ;
 			
-			callback( "ApproximateBayesianMetaAnalysis/bf", result ) ;
+			callback( m_prefix + "/bf", result ) ;
 		}
 	}
 
 	std::string get_spec() const {
-		return "ApproximateBayesianMetaAnalysis with prior:\n" + genfile::string_utils::to_string( m_sigma ) ;
+		return "ApproximateBayesianMetaAnalysis( " + m_name + " ) with prior:\n" + genfile::string_utils::to_string( m_sigma ) ;
 	}
 
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const {
 		return prefix + get_spec() ;
 	}
 private:
+	std::string const m_name ;
+	std::string const m_prefix ;
 	Eigen::MatrixXd const m_sigma ;
 } ;
 
@@ -810,45 +822,6 @@ AmetComputation::UniquePtr AmetComputation::create( std::string const& name, app
 	AmetComputation::UniquePtr result ;
 	if( name == "FixedEffectFrequentistMetaAnalysis" ) {
 		result.reset( new FixedEffectFrequentistMetaAnalysis() ) ;
-	}
-	else if( name == "ApproximateBayesianMetaAnalysis" ) {
-		std::size_t const n = options.get_values< std::string >( "-snptest" ).size() ;
-		Eigen::MatrixXd prior = Eigen::MatrixXd::Zero( n, n ) ;
-		if( options.check( "-prior-correlation" )) {
-			double rho = options.get< double >( "-prior-correlation" ) ;
-			for( int i = 0; i < n; ++i ) {
-				for( int j = 0; j < n; ++j ) {
-					if( i == j ) {
-						prior( i, j ) = 1 ;
-					}
-					else {
-						prior( i, j ) = rho ;
-					}
-				}
-			}
-		}
-		else if( options.check( "-prior-correlation-matrix" )) {
-			std::vector< std::string > values = genfile::string_utils::split_and_strip( options.get< std::string >( "-prior-correlation" ), ",", " \t" ) ;
-			if( values.size() != (( n * (n+1) ) / 2 ) ) {
-				throw genfile::BadArgumentError( "AmetComputation::create()", "-prior-correlation=\"" + options.get< std::string >( "-prior-correlation" ) + "\"" ) ;
-			}
-		
-			{
-				int index = 0 ;
-				for( int i = 0; i < n; ++i ) {
-					for( int j = 0; j < n; ++j ) {
-						prior( i, j )
-							= ( j >= i ) ?
-								genfile::string_utils::to_repr< double >( values[ index++ ] )
-								:
-								prior( j, i ) ;
-					}
-				}
-			}
-		}
-		
-		prior *= options.get< double >( "-prior-variance" ) ;
-		result.reset( new ApproximateBayesianMetaAnalysis( prior )) ;
 	}
 	else if( name == "PerCohortValueReporter" ) {
 		result.reset( new PerCohortValueReporter() ) ;
@@ -938,12 +911,12 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 1 ) ; // run up to 100 models
 
-		options[ "-prior-variance" ]
-			.set_description( "Specify the prior variance for bayesian analysis." )
+		options[ "-prior-sd" ]
+			.set_description( "Specify the prior standard deviation for bayesian analysis." )
 			.set_takes_single_value() ;
 		
-		options.option_implies_option( "-prior-correlation", "-prior-variance" ) ;
-		options.option_implies_option( "-prior-correlation-matrix", "-prior-variance" ) ;
+		options.option_implies_option( "-prior-correlation", "-prior-sd" ) ;
+		options.option_implies_option( "-prior-correlation-matrix", "-prior-sd" ) ;
 		options.option_excludes_option( "-prior-correlation", "-prior-correlation-matrix" ) ;
 	}
 } ;
@@ -980,11 +953,11 @@ namespace impl {
 struct AmetProcessor: public boost::noncopyable
 {
 	typedef std::auto_ptr< AmetProcessor > UniquePtr ;
-	static UniquePtr create( genfile::SNPIdentifyingData::CompareFields const& compare_fields ) {
+	static UniquePtr create( genfile::SNPIdentifyingData2::CompareFields const& compare_fields ) {
 		return UniquePtr( new AmetProcessor( compare_fields ) ) ;
 	}
 	
-	AmetProcessor( genfile::SNPIdentifyingData::CompareFields const& compare_fields ):
+	AmetProcessor( genfile::SNPIdentifyingData2::CompareFields const& compare_fields ):
 		m_snps( compare_fields )
 	{
 	}
@@ -1046,7 +1019,7 @@ struct AmetProcessor: public boost::noncopyable
 	typedef boost::signals2::signal<
 		void (
 			std::size_t index,
-			genfile::SNPIdentifyingData const& snp,
+			genfile::SNPIdentifyingData2 const& snp,
 			std::string const& computation_name,
 			std::string const& value_name,
 			genfile::VariantEntry const& value
@@ -1061,7 +1034,7 @@ private:
 	std::vector< std::string > m_cohort_names ;
 	boost::ptr_vector< FrequentistGenomeWideAssociationResults > m_cohorts ;
 	boost::ptr_vector< AmetComputation > m_computations ;
-	typedef std::map< genfile::SNPIdentifyingData, std::vector< boost::optional< std::size_t > >, genfile::SNPIdentifyingData::CompareFields > SnpMap ;
+	typedef std::map< genfile::SNPIdentifyingData2, std::vector< boost::optional< std::size_t > >, genfile::SNPIdentifyingData2::CompareFields > SnpMap ;
 	SnpMap m_snps ;
 	typedef std::map< std::vector< bool >, std::size_t > CategoryCounts ;
 	CategoryCounts m_category_counts ;
@@ -1119,7 +1092,7 @@ private:
 		categorise_snps() ;
 	}
 	
-	void add_SNP_callback( std::size_t cohort_i, std::size_t snp_i, genfile::SNPIdentifyingData const& snp ) {
+	void add_SNP_callback( std::size_t cohort_i, std::size_t snp_i, genfile::SNPIdentifyingData2 const& snp ) {
 		// Find the SNP that matches the given one (if it exists)
 		std::pair< SnpMap::iterator, SnpMap::iterator > range = m_snps.equal_range( snp ) ;
 		if( range.second == range.first ) {
@@ -1130,20 +1103,20 @@ private:
 		}
 		else {
 			// There is a match.  Combine the rsid, snpid, and alleles.
-			genfile::SNPIdentifyingData stored_snp = range.first->first ;
+			genfile::SNPIdentifyingData2 stored_snp = range.first->first ;
 			std::vector< boost::optional< std::size_t > > snp_indices = range.first->second ;
 			m_snps.erase( range.first ) ;
 			if( stored_snp.get_rsid() != snp.get_rsid() ) {
-				stored_snp.rsid() += "," + snp.get_rsid() ;
+				stored_snp.set_rsid( std::string( stored_snp.get_rsid() ) + "," + std::string( snp.get_rsid() ) ) ;
 			}
 			if( stored_snp.get_SNPID() != snp.get_SNPID() ) {
-				stored_snp.SNPID() += "," + snp.get_SNPID() ;
+				stored_snp.set_SNPID( std::string( stored_snp.get_SNPID() ) + "," + std::string( snp.get_SNPID() ) ) ;
 			}
 			if( stored_snp.get_first_allele() != snp.get_first_allele() ) {
-				stored_snp.first_allele() += "," + snp.get_first_allele() ;
+				stored_snp.set_first_allele( std::string( stored_snp.get_first_allele() ) + "," + std::string( snp.get_first_allele() ) ) ;
 			}
 			if( stored_snp.get_second_allele() != snp.get_second_allele() ) {
-				stored_snp.second_allele() += "," + snp.get_second_allele() ;
+				stored_snp.set_second_allele( std::string( stored_snp.get_second_allele() ) + "," + std::string( snp.get_second_allele() ) ) ;
 			}
 			snp_indices[ cohort_i ] = snp_i ;
 			m_snps[ stored_snp ] = snp_indices ;
@@ -1234,7 +1207,7 @@ public:
 			argv,
 			"-log"
 		),
-		m_processor( AmetProcessor::create( genfile::SNPIdentifyingData::CompareFields( options().get< std::string > ( "-snp-match-fields" )) ) )
+		m_processor( AmetProcessor::create( genfile::SNPIdentifyingData2::CompareFields( options().get< std::string > ( "-snp-match-fields" )) ) )
 	{}
 	
 	void run() {
@@ -1266,16 +1239,110 @@ public:
 				"FixedEffectFrequentistMetaAnalysis",
 				AmetComputation::create( "FixedEffectFrequentistMetaAnalysis", options() )
 			) ;
-			if( options().check( "-prior-correlation" )) {
-				m_processor->add_computation(
-					"ApproximateBayesianMetaAnalysis",
-					AmetComputation::create( "ApproximateBayesianMetaAnalysis", options() )
-				) ;
+			if( options().check( "-prior-correlation" ) || options().check( "-prior-correlation-matrix" )) {
+				std::map< std::string, Eigen::MatrixXd > const priors = get_priors( options() ) ;
+				assert( priors.size() > 0 ) ;
+				std::map< std::string, Eigen::MatrixXd >::const_iterator i = priors.begin() ;
+				std::map< std::string, Eigen::MatrixXd >::const_iterator const end_i = priors.end() ;
+				for( ; i != end_i; ++i ) {
+					AmetComputation::UniquePtr computation(
+						new ApproximateBayesianMetaAnalysis(
+							i->first,
+							i->second
+						)
+					) ;
+					m_processor->add_computation(
+						"ApproximateBayesianMetaAnalysis",
+						computation
+					) ;
+				}
 			}
 		}
 		m_processor->process( get_ui_context() ) ;
 	}
 	
+	std::map< std::string, Eigen::MatrixXd > get_priors( appcontext::OptionProcessor const& options ) {
+		std::map< std::string, Eigen::MatrixXd > result ;
+		using genfile::string_utils::to_string ;
+		using genfile::string_utils::to_repr ;
+		using genfile::string_utils::split_and_strip_discarding_empty_entries ;
+		int const N = options.get_values< std::string >( "-snptest" ).size() ;
+		std::vector< std::string > sds = split_and_strip_discarding_empty_entries( options.get< std::string >( "-prior-sd" ), ",", " \t" ) ;
+		
+		if( options.check( "-prior-correlation" ) ) {
+			std::vector< std::string > const rhos = split_and_strip_discarding_empty_entries( options.get< std::string >( "-prior-correlation" ), ",", " \t" ) ;
+			if( sds.size() != rhos.size() ) {
+				throw genfile::BadArgumentError(
+					"AmetProcessor::get_priors()",
+					"-prior-correlation \"" + options.get< std::string >( "-prior-correlation" ) + "\""
+				) ;
+			}
+			for( std::size_t i = 0; i < sds.size(); ++i ) {
+				double const rho = to_repr< double >( rhos[i] ) ;
+				double const sd = to_repr< double >( sds[i] ) ;
+				result[ "rho=" + rhos[i] + "/sd=" + sds[i] ] = get_prior_matrix( N, rho, sd ) ;
+			}
+		} else if( options.check( "-prior-correlation-matrix" )) {
+			std::vector< std::string > const matrix_specs = options.get_values< std::string >( "-prior-correlation-matrix" ) ;
+			if( sds.size() != matrix_specs.size() ) {
+				throw genfile::BadArgumentError(
+					"AmetProcessor::get_priors()",
+					"-prior-correlation-matrix \"" + options.get< std::string >( "-matrix-specs" ) + "\""
+				) ;
+			}
+			for( std::size_t i = 0; i < sds.size(); ++i ) {
+				double const sd = to_repr< double >( sds[i] ) ;
+				result[ "model_" + to_string( i+1 ) + "/sd=" + sds[i] ] = get_prior_matrix( 
+					N,
+					matrix_specs[i],
+					sd
+				) ;
+			}
+		}
+
+		return result ;
+	}
+
+	Eigen::MatrixXd get_prior_matrix( int const n, double const rho, double const sd ) const {
+		return get_correlation_matrix( n, rho ) * sd * sd ;
+	}
+
+	Eigen::MatrixXd get_prior_matrix( int const n, std::string const& matrix_spec, double const sd ) const {
+		return parse_correlation_matrix( n, matrix_spec ) * sd * sd ;
+	}
+
+	Eigen::MatrixXd get_correlation_matrix( int const n, double rho ) const {
+		Eigen::MatrixXd result = Eigen::MatrixXd::Identity( n, n ) ;
+		for( int i = 0; i < (n-1); ++i ) {
+			for( int j = (i+1); j < n; ++j ) {
+				result( i, j ) = result( j, i ) = rho ;
+			}
+		}
+		return result ;
+	}
+
+	Eigen::MatrixXd parse_correlation_matrix( int const n, std::string const& matrix_spec ) const {
+		Eigen::MatrixXd result = Eigen::MatrixXd::Zero( n, n ) ;
+		std::vector< std::string > values = genfile::string_utils::split_and_strip( matrix_spec, " " ) ;
+		if( values.size() != (( n * (n+1) ) / 2 ) ) {
+			throw genfile::BadArgumentError( "AmetProcessor::parse_correlation_matrix()", "matrix_spec=\"" + matrix_spec + "\"" ) ;
+		}
+
+		{
+			int index = 0 ;
+			for( int i = 0; i < n; ++i ) {
+				for( int j = 0; j < n; ++j ) {
+					result( i, j )
+						= ( j >= i ) ?
+							genfile::string_utils::to_repr< double >( values[ index++ ] )
+							:
+							result( j, i ) ;
+				}
+			}
+		}
+		return result ;
+	}
+
 	void post_summarise() const {
 		std::string const output_file = options().get< std::string >( "-o" ) ;
 		std::string const analysis = options().get< std::string >( "-analysis-name" ) ;
@@ -1294,7 +1361,7 @@ public:
 	}
 	
 	typedef
-		boost::function< void ( std::size_t, genfile::SNPIdentifyingData const&, std::string const&, std::string const&, genfile::VariantEntry const& ) > 
+		boost::function< void ( std::size_t, genfile::SNPIdentifyingData2 const&, std::string const&, std::string const&, genfile::VariantEntry const& ) > 
 		ResultCallback ;
 
 	void load_data() {
@@ -1378,6 +1445,11 @@ private:
 
 int main( int argc, char **argv ) {
 	try {
+		std::cerr << "sizeof( std::size_t ) = " << sizeof( std::size_t ) << ".\n" ;
+		std::cerr << "sizeof( std::string ) = " << sizeof( std::string ) << ".\n" ;
+		std::cerr << "sizeof( genfile:string_utils::slice ) = " << sizeof( genfile::string_utils::slice ) << ".\n" ;
+		std::cerr << "sizeof( genfile::SNPIdentifyingData ) = " << sizeof( genfile::SNPIdentifyingData ) << ".\n" ;
+		std::cerr << "sizeof( genfile::SNPIdentifyingData2 ) = " << sizeof( genfile::SNPIdentifyingData2 ) << ".\n" ;
 		AmetApplication app( argc, argv ) ;	
 		app.run() ;
 		app.post_summarise() ;

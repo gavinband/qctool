@@ -16,6 +16,7 @@
 #include "genfile/GenomePosition.hpp"
 #include "genfile/Chromosome.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/SNPIdentifyingData2.hpp"
 
 namespace genfile {
 	
@@ -42,6 +43,10 @@ namespace genfile {
 		virtual std::string display() const = 0 ;
 	
 		virtual bool operator()( SNPIdentifyingData const& data ) const {
+			return operator()( data.get_SNPID(), data.get_rsid(), data.get_position(), data.get_first_allele(), data.get_second_allele() ) ;
+		}
+
+		virtual bool operator()( SNPIdentifyingData2 const& data ) const {
 			return operator()( data.get_SNPID(), data.get_rsid(), data.get_position(), data.get_first_allele(), data.get_second_allele() ) ;
 		}
 		

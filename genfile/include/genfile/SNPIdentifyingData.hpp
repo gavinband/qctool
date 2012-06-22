@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include "genfile/GenomePosition.hpp"
+#include "genfile/string_utils/slice.hpp"
 
 namespace genfile {
 	struct SNPIdentifyingData
@@ -38,6 +39,12 @@ namespace genfile {
 		GenomePosition& position() { return m_position ;}
 		std::string& first_allele() { return m_first_allele ;}
 		std::string& second_allele() { return m_second_allele ;}
+
+		void set_SNPID( std::string const& SNPID ) { m_SNPID = SNPID ; }
+		void set_rsid( std::string const& rsid ) { m_RSID = rsid ;}
+		void set_position( GenomePosition const& position ) { m_position = position ;}
+		void set_first_allele( std::string const& allele ) { m_first_allele = allele ;}
+		void set_second_allele( std::string const& allele ) { m_second_allele = allele ;}
 
 		std::string const& get_SNPID() const { return m_SNPID ;}
 		std::string const& get_rsid() const { return m_RSID ;}
