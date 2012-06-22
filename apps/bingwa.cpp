@@ -124,14 +124,17 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 			+ ", ~"
 			+ to_string(
 				(
-					m_betas.size()
-					+ m_ses.size()
-					+ m_pvalues.size()
-					+ m_info.size()
-					+ m_controls_maf.size()
-					+ m_sample_counts.size()
+					(
+						m_betas.size()
+						+ m_ses.size()
+						+ m_pvalues.size()
+						+ m_info.size()
+						+ m_controls_maf.size()
+						+ m_sample_counts.size()
+					) * sizeof( float )
 					+ mem_used
-				) * sizeof( double ) / 1000000.0
+				)
+				/ 1000000.0
 			) + "Mb in use.)" ;
 		return result ;
 	}
@@ -809,24 +812,37 @@ AmetComputation::UniquePtr AmetComputation::create( std::string const& name, app
 		result.reset( new FixedEffectFrequentistMetaAnalysis() ) ;
 	}
 	else if( name == "ApproximateBayesianMetaAnalysis" ) {
-		std::vector< std::string > values = genfile::string_utils::split_and_strip( options.get< std::string >( "-prior-correlation" ), ",", " \t" ) ;
-		
-		double n = std::floor( std::sqrt( values.size() * 2 ) ) ;
-		
-		if( values.size() != (( n * (n+1) ) / 2 ) ) {
-			throw genfile::BadArgumentError( "AmetComputation::create()", "-prior-correlation=\"" + options.get< std::string >( "-prior-correlation" ) + "\"" ) ;
-		}
-		
-		Eigen::MatrixXd prior( n, n ) ;
-		{
-			int index = 0 ;
+		std::size_t const n = options.get_values< std::string >( "-snptest" ).size() ;
+		Eigen::MatrixXd prior = Eigen::MatrixXd::Zero( n, n ) ;
+		if( options.check( "-prior-correlation" )) {
+			double rho = options.get< double >( "-prior-correlation" ) ;
 			for( int i = 0; i < n; ++i ) {
 				for( int j = 0; j < n; ++j ) {
-					prior( i, j )
-						= ( j >= i ) ?
-							genfile::string_utils::to_repr< double >( values[ index++ ] )
-							:
-							prior( j, i ) ;
+					if( i == j ) {
+						prior( i, j ) = 1 ;
+					}
+					else {
+						prior( i, j ) = rho ;
+					}
+				}
+			}
+		}
+		else if( options.check( "-prior-correlation-matrix" )) {
+			std::vector< std::string > values = genfile::string_utils::split_and_strip( options.get< std::string >( "-prior-correlation" ), ",", " \t" ) ;
+			if( values.size() != (( n * (n+1) ) / 2 ) ) {
+				throw genfile::BadArgumentError( "AmetComputation::create()", "-prior-correlation=\"" + options.get< std::string >( "-prior-correlation" ) + "\"" ) ;
+			}
+		
+			{
+				int index = 0 ;
+				for( int i = 0; i < n; ++i ) {
+					for( int j = 0; j < n; ++j ) {
+						prior( i, j )
+							= ( j >= i ) ?
+								genfile::string_utils::to_repr< double >( values[ index++ ] )
+								:
+								prior( j, i ) ;
+					}
 				}
 			}
 		}
@@ -900,21 +916,35 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 		options.declare_group( "Analysis options" ) ;
 		
 		options[ "-prior-correlation" ]
+			.set_description( "Specify a correlation matrix of the form\n"
+				"   [ 1 r r  .. ]\n"
+				"   [ r 1 r  .. ]\n"
+				"   [ r r 1  .. ]\n"
+				"   [       .   ]\n"
+				"   [         . ]\n"
+				" where r denotes the between-cohort correlation."
+			)
+			.set_takes_values( 1 )
+			.set_minimum_multiplicity( 0 )
+			.set_maximum_multiplicity( 1 ) ; // run up to 100 models
+
+		options[ "-prior-correlation-matrix" ]
 			.set_description( "Specify the upper triangle of the prior correlation matrix for bayesian analysis.  For example, "
 				"the value \"1,0.5,1\" specifies the matrix\n"
 				"   [ 1    0.5 ]\n"
 				"   [ 0.5  1   ]."
 			)
 			.set_takes_values( 1 )
-			.set_minimum_multiplicity( 1 )
-			.set_maximum_multiplicity( 100 ) ; // run up to 100 models
+			.set_minimum_multiplicity( 0 )
+			.set_maximum_multiplicity( 1 ) ; // run up to 100 models
 
 		options[ "-prior-variance" ]
 			.set_description( "Specify the prior variance for bayesian analysis." )
 			.set_takes_single_value() ;
 		
-		options.option_implies_option( "-prior-variance", "-prior-correlation" ) ;
 		options.option_implies_option( "-prior-correlation", "-prior-variance" ) ;
+		options.option_implies_option( "-prior-correlation-matrix", "-prior-variance" ) ;
+		options.option_excludes_option( "-prior-correlation", "-prior-correlation-matrix" ) ;
 	}
 } ;
 
@@ -1013,7 +1043,15 @@ struct AmetProcessor: public boost::noncopyable
 		unsafe_process( ui_context ) ;
 	}
 
-	typedef boost::signals2::signal< void ( std::size_t index, genfile::SNPIdentifyingData const& snp, std::string const& computation_name, std::string const& value_name, genfile::VariantEntry const& value ) > ResultSignal ;
+	typedef boost::signals2::signal<
+		void (
+			std::size_t index,
+			genfile::SNPIdentifyingData const& snp,
+			std::string const& computation_name,
+			std::string const& value_name,
+			genfile::VariantEntry const& value
+		)
+	> ResultSignal ;
 
 	void send_results_to( ResultSignal::slot_type callback ) {
 		m_result_signal.connect( callback ) ;
@@ -1146,28 +1184,40 @@ private:
 		Eigen::MatrixXd cohort_betas( 2, m_cohorts.size() ) ;
 		Eigen::MatrixXd cohort_ses( 2, m_cohorts.size() ) ;
 		Eigen::VectorXd non_missingness( m_cohorts.size() ) ;
-		
-		appcontext::UIContext::ProgressContext progress_context = ui_context.get_progress_context( "Storing meta-analysis results" ) ;
-		
-		SnpMap::const_iterator snp_i = m_snps.begin(), end_i = m_snps.end() ;
-		for( std::size_t snp_index = 0; snp_i != end_i; ++snp_i, ++snp_index ) {
-			std::vector< boost::optional< std::size_t > > const& indices = snp_i->second ;
-			DataGetter data_getter( m_cohorts, indices ) ;
-			for( std::size_t i = 0; i < m_computations.size(); ++i ) {
-				m_computations[i](
-					snp_i->first,
-					data_getter,
-					boost::bind(
-						boost::ref( m_result_signal ),
-						snp_index,
-						snp_i->first,
-						m_computations[i].get_spec(),
-						_1, _2
-					)
-				) ;
-			}
 
-			progress_context( snp_index + 1, m_snps.size() ) ;
+		{
+			appcontext::UIContext::ProgressContext progress_context = ui_context.get_progress_context( "Storing variants" ) ;
+		
+			SnpMap::const_iterator snp_i = m_snps.begin() ;
+			SnpMap::const_iterator const end_i = m_snps.end() ;
+			for( std::size_t snp_index = 0; snp_i != end_i; ++snp_i, ++snp_index ) {
+				m_result_signal( snp_index, snp_i->first, "AmetProcessor", "index", genfile::VariantEntry::Integer( snp_index ) ) ;
+				progress_context( snp_index + 1, m_snps.size() ) ;
+			}
+		}
+		{
+			appcontext::UIContext::ProgressContext progress_context = ui_context.get_progress_context( "Storing meta-analysis results" ) ;
+			SnpMap::const_iterator snp_i = m_snps.begin() ;
+			SnpMap::const_iterator const end_i = m_snps.end() ;
+			for( std::size_t snp_index = 0; snp_i != end_i; ++snp_i, ++snp_index ) {
+				std::vector< boost::optional< std::size_t > > const& indices = snp_i->second ;
+				DataGetter data_getter( m_cohorts, indices ) ;
+				for( std::size_t i = 0; i < m_computations.size(); ++i ) {
+					m_computations[i](
+						snp_i->first,
+						data_getter,
+						boost::bind(
+							boost::ref( m_result_signal ),
+							snp_index,
+							snp_i->first,
+							m_computations[i].get_spec(),
+							_1, _2
+						)
+					) ;
+				}
+
+				progress_context( snp_index + 1, m_snps.size() ) ;
+			}
 		}
 	}
 } ;
