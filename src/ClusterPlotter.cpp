@@ -100,6 +100,7 @@ namespace impl {
 			int M = std::ceil( std::sqrt( m_calls.size() ) ) ;
 			int N = std::ceil( m_calls.size() / M ) ;
 			mglGraphZB graph( 400 * N, 400 * M ) ;
+			graph.Light( true ) ;
 			graph.Clf( mglColor( 1.0, 1.0, 1.0 ) ) ;
 			mglData x( m_intensities.cols() ), y( m_intensities.cols() ), colour( m_intensities.cols() ) ;
 			

@@ -89,7 +89,6 @@ namespace genfile {
 
 		// Move file to a similarly-named temporary.
 		boost::filesystem::path temp_filename = boost::filesystem::unique_path( m_filename + ".tmp%%%%-%%%%-%%%%-%%%%", ec ) ;
-
 		// std::cerr << "Renaming \"" << m_filename << "\" to \"" << temp_filename << "\"...\n" ;
 		boost::filesystem::rename(
 			boost::filesystem::path( m_filename ),
