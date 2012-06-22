@@ -60,7 +60,7 @@ namespace genfile {
 	}
 
 	CompressionType get_compression_type_indicated_by_filename( std::string const& filename ) {
-		if( filename.find( ".gz") != std::string::npos ) {
+		if( filename.size() > 3 && filename.substr( filename.size() - 3, 3 ) == ".gz" ) {
 			return "gzip_compression" ;
 		}
 		else {
