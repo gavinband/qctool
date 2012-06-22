@@ -848,15 +848,33 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 		;
 		
 		options.declare_group( "SNP inclusion/exclusions options" ) ;
-		options[ "-excl-rsids" ]
-			.set_description( "Specify files containing lists of rsids to exclude from the analysis. "
-				"If this option is specified it must occur the same number of times as the -snptest option (or not at all). "
-				"Each value should be a comma-separated list of files containing rsids to exclude from the corresponding cohort before meta-analysis." )
+		options.declare_group( "SNP exclusion options" ) ;
+		options[ "-excl-snpids" ]
+			.set_description( "Exclude all SNPs whose SNPID is in the given file(s) from the analysis.")
 			.set_takes_values( 1 )
-			.set_minimum_multiplicity( 0 )
-			.set_maximum_multiplicity( 100 )
-		;
-
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-excl-rsids" ]
+			.set_description( "Exclude all SNPs whose RSID is in the given file(s) from the analysis.")
+			.set_takes_values( 1 )
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-incl-snpids" ]
+			.set_description( "Exclude all SNPs whose SNPID is not in the given file(s) from the analysis.")
+			.set_takes_values( 1 )
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-incl-rsids" ]
+			.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.")
+			.set_takes_values( 1 )
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-excl-snps-matching" ]
+			.set_description( "Filter out snps whose rsid or SNPID matches the given value. "
+				"The value should be a string which can contain a % wildcard character (which matches any substring). "
+				"Optionally, prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields." )
+			.set_takes_single_value() ;
+		options[ "-incl-snps-matching" ]
+			.set_description( "Filter out snps whose rsid or SNPID does not match the given value. "
+				"The value should be a string which can contain a % wildcard character (which matches any substring). "
+				"Optionally, prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields." )
+			.set_takes_single_value() ;
 		options[ "-incl-range" ]
 			.set_description( "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to operate on. "
 				"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
@@ -869,7 +887,7 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
 				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
 			.set_takes_single_value() ;
-		
+
 		options[ "-min-info" ]
 			.set_description( "Treat SNPs with info less than the given threshhold as missing." )
 			.set_takes_values( 1 ) ;
