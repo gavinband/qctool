@@ -564,6 +564,9 @@ struct AmetComputation: public boost::noncopyable {
 } ;
 
 struct PerCohortValueReporter: public AmetComputation {
+	PerCohortValueReporter( std::vector< std::string > const& cohort_names ):
+		m_cohort_names( cohort_names )
+	{}
 	void operator()(
 		SNPIdentifyingData2 const&,
 		DataGetter const& data_getter,
@@ -585,7 +588,7 @@ struct PerCohortValueReporter: public AmetComputation {
 
 				assert( counts.size() == 4 ) ;
 				using genfile::string_utils::to_string ;
-				std::string prefix = "cohort_" + to_string( i + 1 ) + "/";
+				std::string prefix = "cohort " + to_string( i + 1 ) + " (\"" + m_cohort_names[ i+1 ] + "\"/" ;
 				callback( prefix + "AA", counts(0) ) ;
 				callback( prefix + "AB", counts(1) ) ;
 				callback( prefix + "BB", counts(2) ) ;
@@ -609,6 +612,9 @@ struct PerCohortValueReporter: public AmetComputation {
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const {
 		return prefix + get_spec() ;
 	}
+
+	private:
+		std::vector< std::string > const m_cohort_names ;
 } ;
 
 namespace impl {
@@ -820,7 +826,7 @@ AmetComputation::UniquePtr AmetComputation::create( std::string const& name, app
 		result.reset( new FixedEffectFrequentistMetaAnalysis() ) ;
 	}
 	else if( name == "PerCohortValueReporter" ) {
-		result.reset( new PerCohortValueReporter() ) ;
+		result.reset( new PerCohortValueReporter( options.get_values< std::string >( "-snptest" )) ) ;
 	}
 	else {
 		throw genfile::BadArgumentError( "AmetComputation::create()", "name=\"" + name + "\"" ) ;
@@ -944,6 +950,20 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 		options.option_implies_option( "-prior-correlation", "-prior-sd" ) ;
 		options.option_implies_option( "-prior-correlation-matrix", "-prior-sd" ) ;
 		options.option_excludes_option( "-prior-correlation", "-prior-correlation-matrix" ) ;
+		
+		options.declare_group( "Output options" ) ;
+		options[ "-bf-threshhold" ]
+			.set_description( "Set the Bayes factor threshhold.  SNPs with Bayes factor greater than or equal to this value will be included in the output." )
+			.set_takes_single_value()
+			.set_default_value( -std::numeric_limits< double >::infinity() )
+		;
+		options[ "-pvalue-threshhold" ]
+			.set_description( "Set the p-value threshhold.  SNPs with P-value lower than this value will be included in the output." )
+			.set_takes_single_value()
+			.set_default_value( 1 ) 
+		;
+			
+		
 	}
 } ;
 
@@ -1394,15 +1414,15 @@ public:
 		using genfile::string_utils::to_string ;
 
 		std::vector< std::string > cohort_files = options().get_values< std::string >( "-snptest" ) ;
-		for( std::size_t i = 0; i < cohort_files.size(); ++i ) {
-			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading SNPTEST results \"" + cohort_files[i] + "\"" ) ;
+		for( std::size_t cohort_i = 0; cohort_i < cohort_files.size(); ++cohort_i ) {
+			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading SNPTEST results \"" + cohort_files[cohort_i] + "\"" ) ;
 			FrequentistGenomeWideAssociationResults::UniquePtr results ;
 
 			SNPTESTResults::SNPResultCallback snp_callback ;
 			if( cohort_files.size() == 1 ) {
 				snp_summary_component::DBOutputter::SharedPtr raw_outputter = snp_summary_component::DBOutputter::create_shared(
 					options().get< std::string >( "-o" ),
-					globals::program_name + " cohort " + to_string( i+1 ) + ": SNPTEST analysis: \"" + cohort_files[i] + "\"",
+					globals::program_name + " cohort " + to_string( cohort_i+1 ) + ": SNPTEST analysis: \"" + cohort_files[cohort_i] + "\"",
 					snp_summary_component::DBOutputter::Metadata()
 				) ;
 
@@ -1416,7 +1436,7 @@ public:
 			SNPExclusionTestConjunction::UniquePtr test( new SNPExclusionTestConjunction() ) ;
 
 			if( options().check_if_option_was_supplied_in_group( "SNP exclusion options" ) ) {
-				genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter() ;
+				genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter( cohort_i ) ;
 				if( snp_filter.get() ) {
 					test->add_subtest( genfile::SNPIdentifyingDataTest::UniquePtr( snp_filter.release() ) ) ;
 				}
@@ -1434,7 +1454,7 @@ public:
 
 			results.reset(
 				new SNPTESTResults(
-					genfile::wildcard::find_files_by_chromosome( cohort_files[i] ),
+					genfile::wildcard::find_files_by_chromosome( cohort_files[cohort_i] ),
 					SNPExclusionTest::UniquePtr( test.release() ),
 					snp_callback,
 					progress_context
@@ -1442,21 +1462,27 @@ public:
 			) ;
 			
 			// summarise right now so as to see memory used.
-			get_ui_context().logger() << "Cohort " << (i+1) << " summary: " << results->get_summary() << ".\n" ;
+			get_ui_context().logger() << "Cohort " << (cohort_i+1) << " summary: " << results->get_summary() << ".\n" ;
 			
-			m_processor->add_cohort( "cohort_" + to_string( i+1 ), results ) ;
+			m_processor->add_cohort( "cohort_" + to_string( cohort_i+1 ), results ) ;
 		}
 	}
 	
-	genfile::CommonSNPFilter::UniquePtr get_snp_exclusion_filter() const {
+	genfile::CommonSNPFilter::UniquePtr get_snp_exclusion_filter( std::size_t cohort_i ) const {
 		genfile::CommonSNPFilter::UniquePtr snp_filter ;
+		using genfile::string_utils::join ;
+		using genfile::string_utils::split_and_strip_discarding_empty_entries ;
 
 		if( options().check_if_option_was_supplied_in_group( "SNP exclusion options" )) {
 			snp_filter.reset( new genfile::CommonSNPFilter ) ;
 
 			if( options().check_if_option_was_supplied( "-excl-snpids" )) {
 				std::vector< std::string > files = options().get_values< std::string > ( "-excl-snpids" ) ;
-				BOOST_FOREACH( std::string const& filename, files ) {
+				if( files.size() != options().get_values< std::string >( "-snptest" ).size() ) {
+					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-excl-snpids=\"" + join( files, " " ) + "\"" ) ;
+				}
+				std::vector< std::string > this_cohort_files = split_and_strip_discarding_empty_entries( files[ cohort_i ], ",", " \t" ) ;
+				BOOST_FOREACH( std::string const& filename, this_cohort_files ) {
 					snp_filter->exclude_snps_in_file(
 						filename,
 						genfile::CommonSNPFilter::SNPIDs
@@ -1465,8 +1491,12 @@ public:
 			}
 
 			if( options().check_if_option_was_supplied( "-incl-snpids" )) {
-				std::vector< std::string > files = options().get_values< std::string > ( "-excl-snpids" ) ;
-				BOOST_FOREACH( std::string const& filename, files ) {
+				std::vector< std::string > files = options().get_values< std::string > ( "-incl-snpids" ) ;
+				if( files.size() != options().get_values< std::string >( "-snptest" ).size() ) {
+					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-excl-snpids=\"" + join( files, " " ) + "\"" ) ;
+				}
+				std::vector< std::string > this_cohort_files = split_and_strip_discarding_empty_entries( files[ cohort_i ], ",", " \t" ) ;
+				BOOST_FOREACH( std::string const& filename, this_cohort_files ) {
 					snp_filter->include_snps_in_file(
 						filename,
 						genfile::CommonSNPFilter::SNPIDs
@@ -1477,7 +1507,11 @@ public:
 
 			if( options().check_if_option_was_supplied( "-excl-rsids" )) {
 				std::vector< std::string > files = options().get_values< std::string > ( "-excl-rsids" ) ;
-				BOOST_FOREACH( std::string const& filename, files ) {
+				if( files.size() != options().get_values< std::string >( "-snptest" ).size() ) {
+					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-excl-rsids=\"" + join( files, " " ) + "\"" ) ;
+				}
+				std::vector< std::string > this_cohort_files = split_and_strip_discarding_empty_entries( files[ cohort_i ], ",", " \t" ) ;
+				BOOST_FOREACH( std::string const& filename, this_cohort_files ) {
 					snp_filter->exclude_snps_in_file(
 						filename,
 						genfile::CommonSNPFilter::RSIDs
@@ -1487,7 +1521,11 @@ public:
 
 			if( options().check_if_option_was_supplied( "-incl-rsids" )) {
 				std::vector< std::string > files = options().get_values< std::string > ( "-incl-rsids" ) ;
-				BOOST_FOREACH( std::string const& filename, files ) {
+				if( files.size() != options().get_values< std::string >( "-snptest" ).size() ) {
+					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-incl-rsids=\"" + join( files, " " ) + "\"" ) ;
+				}
+				std::vector< std::string > this_cohort_files = split_and_strip_discarding_empty_entries( files[ cohort_i ], ",", " \t" ) ;
+				BOOST_FOREACH( std::string const& filename, this_cohort_files ) {
 					snp_filter->include_snps_in_file(
 						filename,
 						genfile::CommonSNPFilter::RSIDs
@@ -1496,8 +1534,11 @@ public:
 			}
 
 			if( options().check_if_option_was_supplied( "-excl-snps-matching" )) {
-				std::string it = options().get< std::string > ( "-excl-snps-matching" ) ;
-				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( it, ",", " " ) ;
+				std::vector< std::string > const it = options().get_values< std::string > ( "-excl-snps-matching" ) ;
+				if( it.size() != options().get_values< std::string >( "-snptest" ).size() ) {
+					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-excl-snps-matching=\"" + join( it, " " ) + "\"" ) ;
+				}
+				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( it[ cohort_i ], ",", " \t" ) ;
 				BOOST_FOREACH( std::string const& spec, specs ) {
 					snp_filter->exclude_snps_matching(
 						spec
@@ -1506,8 +1547,11 @@ public:
 			}
 
 			if( options().check_if_option_was_supplied( "-incl-snps-matching" )) {
-				std::string it = options().get< std::string > ( "-incl-snps-matching" ) ;
-				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( it, ",", " " ) ;
+				std::vector< std::string > const it = options().get_values< std::string > ( "-incl-snps-matching" ) ;
+				if( it.size() != options().get_values< std::string >( "-snptest" ).size() ) {
+					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-incl-snps-matching=\"" + join( it, " " ) + "\"" ) ;
+				}
+				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( it[ cohort_i ], ",", " \t" ) ;
 				BOOST_FOREACH( std::string const& spec, specs ) {
 					snp_filter->include_snps_matching(
 						spec
@@ -1516,8 +1560,12 @@ public:
 			}
 			
 			if( options().check_if_option_was_supplied( "-incl-range" )) {
-				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( options().get_value< std::string >( "-incl-range" ), ",", " \t" ) ;
-				for ( std::size_t i = 0; i < specs.size(); ++i ) {
+				std::vector< std::string > const specs = options().get_values< std::string >( "-incl-range" ) ;
+				if( specs.size() != options().get_values< std::string >( "-snptest" ).size() ) {
+					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-incl-range=\"" + join( specs, " " ) + "\"" ) ;
+				}
+				std::vector< std::string > this_cohort_specs = split_and_strip_discarding_empty_entries( specs[ cohort_i ], ",", " \t" ) ;
+				for ( std::size_t i = 0; i < this_cohort_specs.size(); ++i ) {
 					snp_filter->include_snps_in_range(
 						genfile::GenomePositionRange::parse( specs[i] )
 					) ;
@@ -1525,8 +1573,12 @@ public:
 			}
 
 			if( options().check_if_option_was_supplied( "-excl-range" )) {
-				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( options().get_value< std::string >( "-excl-range" ), ",", " \t" ) ;
-				for ( std::size_t i = 0; i < specs.size(); ++i ) {
+				std::vector< std::string > specs = options().get_values< std::string >( "-excl-range" ) ;
+				if( specs.size() != options().get_values< std::string >( "-snptest" ).size() ) {
+					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-excl-range=\"" + join( specs, " " ) + "\"" ) ;
+				}
+				std::vector< std::string > this_cohort_specs = split_and_strip_discarding_empty_entries( specs[ cohort_i ], ",", " \t" ) ;
+				for ( std::size_t i = 0; i < this_cohort_specs.size(); ++i ) {
 					snp_filter->exclude_snps_in_range(
 						genfile::GenomePositionRange::parse( specs[i] )
 					) ;
