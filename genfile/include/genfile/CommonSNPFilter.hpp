@@ -65,7 +65,7 @@ namespace genfile {
 		SNPIdentifyingDataTestConjunction m_filter ;
 		std::map< std::string, CompoundSNPIdentifyingDataTest* > m_inclusion_filters ;
 	private:
-		SNPIdentifyingDataTest::UniquePtr construct_snp_exclusion_test( std::set< std::string > const& set, int fields ) ;
+		SNPIdentifyingDataTest::UniquePtr construct_snp_inclusion_test( std::set< std::string > const& set, int fields ) ;
 		void add_inclusion_filter_if_necessary( std::string const& name ) ;
 		std::set< std::string > read_strings_from_file( std::string const& filename ) ;
 	} ;
