@@ -588,7 +588,7 @@ struct PerCohortValueReporter: public AmetComputation {
 
 				assert( counts.size() == 4 ) ;
 				using genfile::string_utils::to_string ;
-				std::string prefix = "cohort " + to_string(i+1) + "(file://\"" + m_cohort_names[ i ] + "\"):" ;
+				std::string prefix = "cohort " + to_string(i+1) + " (file://\"" + m_cohort_names[ i ] + "\"):" ;
 				callback( prefix + "AA", counts(0) ) ;
 				callback( prefix + "AB", counts(1) ) ;
 				callback( prefix + "BB", counts(2) ) ;
@@ -826,7 +826,20 @@ AmetComputation::UniquePtr AmetComputation::create( std::string const& name, app
 		result.reset( new FixedEffectFrequentistMetaAnalysis() ) ;
 	}
 	else if( name == "PerCohortValueReporter" ) {
-		result.reset( new PerCohortValueReporter( options.get_values< std::string >( "-snptest" )) ) ;
+		std::vector< std::string > names ;
+		if( options.check( "-cohort-names" )) {
+			names = options.get_values< std::string >( "-cohort-names" ) ;
+			if( names.size() != options.get_values< std::string >( "-snptest" ).size() ) {
+				throw genfile::BadArgumentError( "AmetComputation::create()", "-cohort-names=\"" + genfile::string_utils::join( names, " " ) + "\"" ) ;
+			}
+		}
+		else {
+			names = options.get_values< std::string >( "-snptest" ) ;
+			for( std::size_t i = 0; i < names.size(); ++i ) {
+				names[i] = "file://\"" + names[i] + "\"" ;
+			}
+		}
+		result.reset( new PerCohortValueReporter( names ) ) ;
 	}
 	else {
 		throw genfile::BadArgumentError( "AmetComputation::create()", "name=\"" + name + "\"" ) ;
@@ -927,6 +940,10 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 			.set_description( "Specify a name to label results from this analysis with" )
 			.set_takes_single_value()
 			.set_default_value( "bingwa analysis, started " + appcontext::get_current_time_as_string() ) ;
+
+		options[ "-cohort-names" ]
+			.set_description( "Specify a name to label results from this analysis with" )
+			.set_takes_values_until_next_option() ;
 		
 		options[ "-snp-match-fields" ]
 			.set_description( "Use this option to specify a comma-separated list of SNP-identifying fields that should be used "
@@ -1642,11 +1659,6 @@ private:
 
 int main( int argc, char **argv ) {
 	try {
-		std::cerr << "sizeof( std::size_t ) = " << sizeof( std::size_t ) << ".\n" ;
-		std::cerr << "sizeof( std::string ) = " << sizeof( std::string ) << ".\n" ;
-		std::cerr << "sizeof( genfile:string_utils::slice ) = " << sizeof( genfile::string_utils::slice ) << ".\n" ;
-		std::cerr << "sizeof( genfile::SNPIdentifyingData ) = " << sizeof( genfile::SNPIdentifyingData ) << ".\n" ;
-		std::cerr << "sizeof( genfile::SNPIdentifyingData2 ) = " << sizeof( genfile::SNPIdentifyingData2 ) << ".\n" ;
 		AmetApplication app( argc, argv ) ;	
 		app.run() ;
 		app.post_summarise() ;

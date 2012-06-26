@@ -63,7 +63,6 @@ namespace qcdb {
 			"FOREIGN KEY (variable_id) REFERENCES Entity( id ) "
 			")"
 		) ;
-
 		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS EntityRelationship ( "
 				"entity1_id INTEGER NOT NULL, "
@@ -89,6 +88,16 @@ namespace qcdb {
 		) ;
 		m_connection->run_statement(
 			"CREATE INDEX IF NOT EXISTS EntityDataIndex ON EntityData( entity_id, variable_id )"
+		) ;
+
+		m_connection->run_statement(
+			"CREATE VIEW IF NOT EXISTS EntityDataView AS "
+			"SELECT ED.entity_id, E.name, ED.variable_id, V.name, ED.value "
+			"FROM EntityData ED "
+			"INNER JOIN Entity E "
+			"ON E.id = ED.entity_id "
+			"INNER JOIN Entity V "
+			"ON V.id = ED.variable_id"
 		) ;
 
 		m_connection->run_statement(
