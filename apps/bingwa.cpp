@@ -588,7 +588,7 @@ struct PerCohortValueReporter: public AmetComputation {
 
 				assert( counts.size() == 4 ) ;
 				using genfile::string_utils::to_string ;
-				std::string prefix = "cohort " + to_string(i+1) + " (file://\"" + m_cohort_names[ i ] + "\"):" ;
+				std::string prefix = "cohort " + to_string(i+1) + " (\"" + m_cohort_names[ i ] + "\"):" ;
 				callback( prefix + "AA", counts(0) ) ;
 				callback( prefix + "AB", counts(1) ) ;
 				callback( prefix + "BB", counts(2) ) ;
@@ -836,7 +836,7 @@ AmetComputation::UniquePtr AmetComputation::create( std::string const& name, app
 		else {
 			names = options.get_values< std::string >( "-snptest" ) ;
 			for( std::size_t i = 0; i < names.size(); ++i ) {
-				names[i] = "file://\"" + names[i] + "\"" ;
+				names[i] = "file://" + names[i] ;
 			}
 		}
 		result.reset( new PerCohortValueReporter( names ) ) ;
