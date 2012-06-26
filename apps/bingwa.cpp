@@ -588,7 +588,7 @@ struct PerCohortValueReporter: public AmetComputation {
 
 				assert( counts.size() == 4 ) ;
 				using genfile::string_utils::to_string ;
-				std::string prefix = "cohort " + to_string( i + 1 ) + " (\"" + m_cohort_names[ i+1 ] + "\"/" ;
+				std::string prefix = "cohort " + (i+1) + "(file://\"" + m_cohort_names[ i ] + "\"):" ;
 				callback( prefix + "AA", counts(0) ) ;
 				callback( prefix + "AB", counts(1) ) ;
 				callback( prefix + "BB", counts(2) ) ;
@@ -844,7 +844,7 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 		options[ "-snptest" ]
 			.set_description( "Specify the path of a file containing SNPTEST results to load." )
 			.set_is_required()
-			.set_takes_values( 1 )
+			.set_takes_values_until_next_option()
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 100 )
 		;
@@ -852,19 +852,19 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 		options.declare_group( "SNP exclusion options" ) ;
 		options[ "-excl-snpids" ]
 			.set_description( "Exclude all SNPs whose SNPID is in the given file(s) from the analysis.")
-			.set_takes_values( 1 )
+			.set_takes_values_until_next_option() 
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-excl-rsids" ]
 			.set_description( "Exclude all SNPs whose RSID is in the given file(s) from the analysis.")
-			.set_takes_values( 1 )
+			.set_takes_values_until_next_option() 
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-incl-snpids" ]
 			.set_description( "Exclude all SNPs whose SNPID is not in the given file(s) from the analysis.")
-			.set_takes_values( 1 )
+			.set_takes_values_until_next_option() 
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-incl-rsids" ]
 			.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.")
-			.set_takes_values( 1 )
+			.set_takes_values_until_next_option() 
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-excl-snps-matching" ]
 			.set_description( "Filter out snps whose rsid or SNPID matches the given value. "
@@ -889,6 +889,27 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
 			.set_takes_single_value() ;
 
+		options[ "-excl-snpids-per-cohort" ]
+			.set_description( "Exclude all SNPs whose SNPID is in the given file(s) from the corresponding cohort. "
+				"The i-th value should be a comma-separated list of files containing rsids to exclude from the i-th cohort." )
+			.set_takes_values_until_next_option() 
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-excl-rsids-per-cohort" ]
+			.set_description( "Exclude all SNPs whose RSID is in the given file(s) from the corresponding cohort. "
+				"The i-th value should be a comma-separated list of files containing rsids to exclude from the i-th cohort." )
+			.set_takes_values_until_next_option() 
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-incl-snpids-per-cohort" ]
+			.set_description( "Exclude all SNPs whose SNPID is not in the given file(s) from the corresponding cohort."
+				"The i-th value should be a comma-separated list of files containing rsids to exclude from the i-th cohort." )
+			.set_takes_values_until_next_option() 
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-incl-rsids-per-cohort" ]
+			.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the corresponding cohort."
+				"The i-th value should be a comma-separated list of files containing rsids to exclude from the i-th cohort." )
+			.set_takes_values_until_next_option() 
+			.set_maximum_multiplicity( 100 ) ;
+		
 		options[ "-min-info" ]
 			.set_description( "Treat SNPs with info less than the given threshhold as missing." )
 			.set_takes_values( 1 ) ;
@@ -1478,8 +1499,49 @@ public:
 
 			if( options().check_if_option_was_supplied( "-excl-snpids" )) {
 				std::vector< std::string > files = options().get_values< std::string > ( "-excl-snpids" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					snp_filter->exclude_snps_in_file(
+						filename,
+						genfile::CommonSNPFilter::SNPIDs
+					) ;
+				}
+			}
+
+			if( options().check_if_option_was_supplied( "-incl-snpids" )) {
+				std::vector< std::string > files = options().get_values< std::string > ( "-incl-snpids" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					snp_filter->include_snps_in_file(
+						filename,
+						genfile::CommonSNPFilter::SNPIDs
+					) ;
+				}
+			}
+
+
+			if( options().check_if_option_was_supplied( "-excl-rsids" )) {
+				std::vector< std::string > files = options().get_values< std::string > ( "-excl-rsids" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					snp_filter->exclude_snps_in_file(
+						filename,
+						genfile::CommonSNPFilter::RSIDs
+					) ;
+				}
+			}
+
+			if( options().check_if_option_was_supplied( "-incl-rsids" )) {
+				std::vector< std::string > files = options().get_values< std::string > ( "-incl-rsids" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					snp_filter->include_snps_in_file(
+						filename,
+						genfile::CommonSNPFilter::RSIDs
+					) ;
+				}
+			}
+
+			if( options().check_if_option_was_supplied( "-excl-snpids-per-cohort" )) {
+				std::vector< std::string > files = options().get_values< std::string > ( "-excl-snpids-per-cohort" ) ;
 				if( files.size() != options().get_values< std::string >( "-snptest" ).size() ) {
-					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-excl-snpids=\"" + join( files, " " ) + "\"" ) ;
+					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-excl-snpids-per-cohort=\"" + join( files, " " ) + "\"" ) ;
 				}
 				std::vector< std::string > this_cohort_files = split_and_strip_discarding_empty_entries( files[ cohort_i ], ",", " \t" ) ;
 				BOOST_FOREACH( std::string const& filename, this_cohort_files ) {
@@ -1490,10 +1552,10 @@ public:
 				}
 			}
 
-			if( options().check_if_option_was_supplied( "-incl-snpids" )) {
-				std::vector< std::string > files = options().get_values< std::string > ( "-incl-snpids" ) ;
+			if( options().check_if_option_was_supplied( "-incl-snpids-per-cohort" )) {
+				std::vector< std::string > files = options().get_values< std::string > ( "-incl-snpids-per-cohort" ) ;
 				if( files.size() != options().get_values< std::string >( "-snptest" ).size() ) {
-					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-excl-snpids=\"" + join( files, " " ) + "\"" ) ;
+					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-incl-snpids-per-cohort=\"" + join( files, " " ) + "\"" ) ;
 				}
 				std::vector< std::string > this_cohort_files = split_and_strip_discarding_empty_entries( files[ cohort_i ], ",", " \t" ) ;
 				BOOST_FOREACH( std::string const& filename, this_cohort_files ) {
@@ -1505,10 +1567,10 @@ public:
 			}
 
 
-			if( options().check_if_option_was_supplied( "-excl-rsids" )) {
-				std::vector< std::string > files = options().get_values< std::string > ( "-excl-rsids" ) ;
+			if( options().check_if_option_was_supplied( "-excl-rsids-per-cohort" )) {
+				std::vector< std::string > files = options().get_values< std::string > ( "-excl-rsids-per-cohort" ) ;
 				if( files.size() != options().get_values< std::string >( "-snptest" ).size() ) {
-					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-excl-rsids=\"" + join( files, " " ) + "\"" ) ;
+					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-excl-rsids-per-cohort=\"" + join( files, " " ) + "\"" ) ;
 				}
 				std::vector< std::string > this_cohort_files = split_and_strip_discarding_empty_entries( files[ cohort_i ], ",", " \t" ) ;
 				BOOST_FOREACH( std::string const& filename, this_cohort_files ) {
@@ -1520,9 +1582,9 @@ public:
 			}
 
 			if( options().check_if_option_was_supplied( "-incl-rsids" )) {
-				std::vector< std::string > files = options().get_values< std::string > ( "-incl-rsids" ) ;
+				std::vector< std::string > files = options().get_values< std::string > ( "-incl-rsids-per-cohort" ) ;
 				if( files.size() != options().get_values< std::string >( "-snptest" ).size() ) {
-					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-incl-rsids=\"" + join( files, " " ) + "\"" ) ;
+					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-incl-rsids-per-cohort=\"" + join( files, " " ) + "\"" ) ;
 				}
 				std::vector< std::string > this_cohort_files = split_and_strip_discarding_empty_entries( files[ cohort_i ], ",", " \t" ) ;
 				BOOST_FOREACH( std::string const& filename, this_cohort_files ) {
@@ -1534,11 +1596,8 @@ public:
 			}
 
 			if( options().check_if_option_was_supplied( "-excl-snps-matching" )) {
-				std::vector< std::string > const it = options().get_values< std::string > ( "-excl-snps-matching" ) ;
-				if( it.size() != options().get_values< std::string >( "-snptest" ).size() ) {
-					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-excl-snps-matching=\"" + join( it, " " ) + "\"" ) ;
-				}
-				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( it[ cohort_i ], ",", " \t" ) ;
+				std::string const it = options().get< std::string > ( "-excl-snps-matching" ) ;
+				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( it, ",", " \t" ) ;
 				BOOST_FOREACH( std::string const& spec, specs ) {
 					snp_filter->exclude_snps_matching(
 						spec
@@ -1547,11 +1606,8 @@ public:
 			}
 
 			if( options().check_if_option_was_supplied( "-incl-snps-matching" )) {
-				std::vector< std::string > const it = options().get_values< std::string > ( "-incl-snps-matching" ) ;
-				if( it.size() != options().get_values< std::string >( "-snptest" ).size() ) {
-					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-incl-snps-matching=\"" + join( it, " " ) + "\"" ) ;
-				}
-				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( it[ cohort_i ], ",", " \t" ) ;
+				std::string const it = options().get< std::string > ( "-incl-snps-matching" ) ;
+				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( it, ",", " \t" ) ;
 				BOOST_FOREACH( std::string const& spec, specs ) {
 					snp_filter->include_snps_matching(
 						spec
@@ -1561,11 +1617,7 @@ public:
 			
 			if( options().check_if_option_was_supplied( "-incl-range" )) {
 				std::vector< std::string > const specs = options().get_values< std::string >( "-incl-range" ) ;
-				if( specs.size() != options().get_values< std::string >( "-snptest" ).size() ) {
-					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-incl-range=\"" + join( specs, " " ) + "\"" ) ;
-				}
-				std::vector< std::string > this_cohort_specs = split_and_strip_discarding_empty_entries( specs[ cohort_i ], ",", " \t" ) ;
-				for ( std::size_t i = 0; i < this_cohort_specs.size(); ++i ) {
+				for ( std::size_t i = 0; i < specs.size(); ++i ) {
 					snp_filter->include_snps_in_range(
 						genfile::GenomePositionRange::parse( specs[i] )
 					) ;
@@ -1574,11 +1626,7 @@ public:
 
 			if( options().check_if_option_was_supplied( "-excl-range" )) {
 				std::vector< std::string > specs = options().get_values< std::string >( "-excl-range" ) ;
-				if( specs.size() != options().get_values< std::string >( "-snptest" ).size() ) {
-					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-excl-range=\"" + join( specs, " " ) + "\"" ) ;
-				}
-				std::vector< std::string > this_cohort_specs = split_and_strip_discarding_empty_entries( specs[ cohort_i ], ",", " \t" ) ;
-				for ( std::size_t i = 0; i < this_cohort_specs.size(); ++i ) {
+				for ( std::size_t i = 0; i < specs.size(); ++i ) {
 					snp_filter->exclude_snps_in_range(
 						genfile::GenomePositionRange::parse( specs[i] )
 					) ;
