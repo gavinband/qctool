@@ -129,6 +129,9 @@ namespace snp_summary_component {
 			for( std::size_t i = 0; i < sexes.size(); ++i ) {
 				counts[ sexes[i] ] += genotypes.row( i ) ;
 				++sample_counts[ sexes[i] ] ;
+				if( sexes[i] == 'm' && genotypes(i,2) != 0 ) {
+					std::cerr << "! ( MissingnessComputation::compute_sex_chromosome_counts() ): individual " << (i+1) << "is male but has genotype " << genotypes.row(i) << "!!\n" ;
+				}
 			}
 			
 			callback( "males_A", counts[ 'm' ]( 0 ) ) ;

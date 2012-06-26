@@ -6,6 +6,8 @@
 
 #include <string>
 #include <vector>
+#include <algorithm>
+#include <limits>
 #include "genfile/GenomePosition.hpp"
 #include "genfile/string_utils/slice.hpp"
 #include "genfile/string_utils/string_utils.hpp"
@@ -14,7 +16,7 @@
 
 namespace genfile {
 	namespace {
-		std::size_t const MAX_SIZE = std::numeric_limits< SNPIdentifyingData2::Size >::max() ;
+		std::size_t const MAX_SIZE = std::numeric_limits< uint32_t >::max() ;
 	}
 
 	SNPIdentifyingData2::SNPIdentifyingData2():

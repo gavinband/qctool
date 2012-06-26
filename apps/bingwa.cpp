@@ -588,7 +588,7 @@ struct PerCohortValueReporter: public AmetComputation {
 
 				assert( counts.size() == 4 ) ;
 				using genfile::string_utils::to_string ;
-				std::string prefix = "cohort " + (i+1) + "(file://\"" + m_cohort_names[ i ] + "\"):" ;
+				std::string prefix = "cohort " + to_string(i+1) + "(file://\"" + m_cohort_names[ i ] + "\"):" ;
 				callback( prefix + "AA", counts(0) ) ;
 				callback( prefix + "AB", counts(1) ) ;
 				callback( prefix + "BB", counts(2) ) ;

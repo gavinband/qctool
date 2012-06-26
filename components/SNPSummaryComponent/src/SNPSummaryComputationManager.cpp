@@ -124,8 +124,11 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes( genfile::SNPIde
 
 	{
 		std::vector< int > const& males = m_samples_by_sex.find( 'm' )->second ;
+		std::cerr << "SNPSummaryComputationManager::fix_sex_chromosome_genotypes(): examining genotypes for " << males.size() << " males...\n" ;
 		if( males.size() > 0 ) {
+			std::cerr << "SNPSummaryComputationManager::fix_sex_chromosome_genotypes(): male coding column is " << determine_male_coding_column( snp, genotypes, males ) << "!\n" ;
 			if( determine_male_coding_column( snp, genotypes, males ) == 2 ) {
+				std::cerr << "SNPSummaryComputationManager::fix_sex_chromosome_genotypes(): male coding is 2...\n" ;
 				for( std::size_t i = 0; i < males.size(); ++i ) {
 					genotypes( males[i], 1 ) = genotypes( males[i], 2 ) ;
 					genotypes( males[i], 2 ) = 0 ;
