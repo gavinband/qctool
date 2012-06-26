@@ -1581,7 +1581,7 @@ public:
 				}
 			}
 
-			if( options().check_if_option_was_supplied( "-incl-rsids" )) {
+			if( options().check_if_option_was_supplied( "-incl-rsids-per-cohort" )) {
 				std::vector< std::string > files = options().get_values< std::string > ( "-incl-rsids-per-cohort" ) ;
 				if( files.size() != options().get_values< std::string >( "-snptest" ).size() ) {
 					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-incl-rsids-per-cohort=\"" + join( files, " " ) + "\"" ) ;
