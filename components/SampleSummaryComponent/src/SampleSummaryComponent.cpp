@@ -19,8 +19,7 @@
 void SampleSummaryComponent::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "Per-sample computation options" ) ;
     options[ "-sample-stats" ]
-		.set_description( "Calculate and output sample-wise statistics." )
-		.set_takes_single_value() ;
+		.set_description( "Calculate and output sample-wise statistics." ) ;
 }
 
 typedef std::auto_ptr< SampleSummaryComponent > UNiquePtr ;
@@ -37,8 +36,8 @@ SampleSummaryComponent::SampleSummaryComponent( appcontext::OptionProcessor cons
 void SampleSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor ) const { 
 	SampleSummaryComputationManager::UniquePtr manager = SampleSummaryComputationManager::create() ;
 	std::string filename ;
-	if( m_options.check( "-sample-stats" ) ) {
-		filename = m_options.get_value< std::string >( "-sample-stats" ) ;
+	if( m_options.check( "-odb" ) ) {
+		filename = m_options.get_value< std::string >( "-odb" ) ;
 	}
 	else {
 		filename = genfile::strip_gen_file_extension_if_present( m_options.get< std::string >( "-g" ) ) + ".qcdb";

@@ -27,8 +27,7 @@
 void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "SNP computation options" ) ;
 	options[ "-snp-stats" ]
-		.set_description( "Calculate and output per-SNP statistics.  This implies that no SNP filtering options are used." )
-		.set_takes_single_value() ;
+		.set_description( "Calculate and output per-SNP statistics.  This implies that no SNP filtering options are used." ) ;
 
 	options[ "-snp-stats-columns" ]
         .set_description( "Comma-seperated list of extra columns to output in the snp-wise statistics file." )
@@ -88,15 +87,15 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 	using genfile::string_utils::to_string ;
 	
 	std::string filename ;
-	if( m_options.check( "-snp-stats" )) {
-		filename = m_options.get_value< std::string >( "-snp-stats" ) ;
+	if( m_options.check( "-odb" )) {
+		filename = m_options.get_value< std::string >( "-odb" ) ;
 	}
 	else {
 		std::vector< std::string > filenames = m_options.get_values< std::string >( "-g" ) ;
 		if( filenames.size() == 1 ) {
-			filename = genfile::strip_gen_file_extension_if_present( filenames[0] ) + ( m_options.check( "-nodb" ) ? ".snp-stats" : ".qcdb" ) ;
+			filename = genfile::strip_gen_file_extension_if_present( filenames[0] ) + ( m_options.check( "-nodb" ) ? ".snp-stats.tsv" : ".qcdb" ) ;
 		} else {
-			filename = "qctool_cohort_1-" + to_string( filenames.size() ) + ( m_options.check( "-nodb" ) ? ".snp-stats" : ".qcdb" ) ;
+			filename = "qctool_cohort_1-" + to_string( filenames.size() ) + ( m_options.check( "-nodb" ) ? ".snp-stats.tsv" : ".qcdb" ) ;
 		}
 	}
 

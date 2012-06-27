@@ -32,16 +32,12 @@ void HaplotypeFrequencyComponent::declare_options( appcontext::OptionProcessor& 
 	options[ "-compute-ld-with" ]
 		.set_description( "Compute LD pairwise metrics between the main dataset and SNPs." )
 		.set_takes_single_value() ;
-	options[ "-compute-ld-file" ]
-		.set_description( "File in which to place computation of pairwise SNP LD measures." )
-		.set_takes_single_value() ;
 	options[ "-max-ld-distance" ]
 		.set_description( "Maximum physical distance between SNPs, above which LD will not be computed. "
 			"A value of zero indicates LD between all SNPs will be computed." )
 		.set_takes_single_value()
 		.set_default_value( 0 ) ;
-	options.option_implies_option( "-compute-ld-with", "-compute-ld-file" ) ;
-	options.option_implies_option( "-compute-ld-file", "-compute-ld-with" ) ;
+	options.option_implies_option( "-compute-ld-with", "-odb" ) ;
 }
 
 HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
@@ -64,7 +60,7 @@ HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
 	result->set_max_distance( options.get< uint64_t >( "-max-ld-distance" )) ;
 
 	haplotype_frequency_component::DBOutputter::SharedPtr outputter = haplotype_frequency_component::DBOutputter::create_shared(
-		options.get_value< std::string >( "-compute-ld-file" ),
+		options.get_value< std::string >( "-odb" ),
 		options.get_value< std::string >( "-analysis-name" ),
 		options.get_values_as_map()
 	) ;

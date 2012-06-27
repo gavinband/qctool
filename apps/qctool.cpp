@@ -291,6 +291,10 @@ public:
 	        .set_description( "Output sample information to the file specified.  " )
 	        .set_takes_single_value() ;
 
+		options[ "-odb" ]
+			.set_description( "Set the name of the database file used for output of per-SNP, per-sample and other computations." )
+			.set_takes_single_value() ;
+			
 		options[ "-omit-chromosome" ]
 			.set_description( "(This option is specific to output files in the GEN format.) Do not output a chromosome column." ) ;
 
