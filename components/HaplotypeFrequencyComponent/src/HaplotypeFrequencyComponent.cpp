@@ -34,13 +34,13 @@ void HaplotypeFrequencyComponent::declare_options( appcontext::OptionProcessor& 
 		.set_takes_single_value() ;
 	options[ "-compute-ld-file" ]
 		.set_description( "File in which to place computation of pairwise SNP LD measures." )
-		.set_takes_single_value()
-		.set_default_value( "ld.db" ) ;
+		.set_takes_single_value() ;
 	options[ "-max-ld-distance" ]
 		.set_description( "Maximum physical distance between SNPs, above which LD will not be computed. "
 			"A value of zero indicates LD between all SNPs will be computed." )
 		.set_takes_single_value()
 		.set_default_value( 0 ) ;
+	options.option_implies_option( "-compute-ld-with", "-compute-ld-file" ) ;
 	options.option_implies_option( "-compute-ld-file", "-compute-ld-with" ) ;
 }
 
@@ -114,11 +114,14 @@ void HaplotypeFrequencyComponent::processed_snp( genfile::SNPIdentifyingData con
 			(
 				( source_snp.get_position().chromosome() == target_snp.get_position().chromosome() )
 				&&
-				( std::abs( int64_t( source_snp.get_position().position() ) - int64_t( target_snp.get_position().position() ) ) < m_max_distance )
+				( std::abs( int64_t( source_snp.get_position().position() ) - int64_t( target_snp.get_position().position() ) ) <= m_max_distance )
 			)
 		) {
 			genfile::VariantDataReader::UniquePtr source_data_reader = m_source->read_variant_data() ;
 			compute_ld_measures( source_snp, *source_data_reader, target_snp, target_data_reader ) ;
+		}
+		else {
+			m_source->ignore_snp_probability_data() ;
 		}
 	}
 }

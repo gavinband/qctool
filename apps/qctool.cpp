@@ -1080,11 +1080,9 @@ private:
 						m_snp_data_source->reset_to_start() ;
 					}
 				}
-				load_sample_rows( m_cohort_individual_source, m_snp_data_source->number_of_samples() ) ;
+				load_sample_rows( m_cohort_individual_source ) ;
 			}
 			
-			check_for_errors_and_warnings() ;
-				
 			m_snp_data_source = open_snp_data_sources(
 				m_mangled_options.gen_filenames(),
 				m_options.check( "-match-alleles-to-cohort1" )
@@ -1111,6 +1109,8 @@ private:
 			if( m_options.check( "-merge-in" )) {
 				m_snp_data_source = open_merged_data_sources() ;
 			}
+
+			check_for_errors_and_warnings() ;
 
 			write_preamble() ;
 			
@@ -1942,22 +1942,15 @@ private:
 		return sample_source ;
 	}
 			
-	void load_sample_rows( genfile::CohortIndividualSource::UniquePtr const& sample_source, std::size_t const expected_number_of_samples ) {
+	void load_sample_rows( genfile::CohortIndividualSource::UniquePtr const& sample_source ) {
 		SampleRow sample_row ;
-		if( sample_source.get() ) {
-			if( sample_source->get_number_of_individuals() != expected_number_of_samples ) {
-				throw genfile::BadArgumentWithMessageError( "number of samples in sample and genotype sources do not match", "QCToolContext::load_sample_rows()", "sample_source, expected_number_of_samples" ) ;
+		assert( sample_source.get() ) ;
+		for( std::size_t i = 0; i < sample_source->get_number_of_individuals(); ++i ) {
+			sample_row.read_ith_sample_from_source( i, *sample_source ) ;
+			m_sample_rows.push_back( sample_row ) ;
+			if( !m_sample_filter->check_if_satisfied( sample_row )) {
+				m_indices_of_filtered_out_samples.push_back( m_sample_rows.size() - 1 ) ;
 			}
-			for( std::size_t i = 0; i < sample_source->get_number_of_individuals(); ++i ) {
-				sample_row.read_ith_sample_from_source( i, *sample_source ) ;
-				m_sample_rows.push_back( sample_row ) ;
-				if( !m_sample_filter->check_if_satisfied( sample_row )) {
-					m_indices_of_filtered_out_samples.push_back( m_sample_rows.size() - 1 ) ;
-				}
-			}
-		}
-		else {
-			m_sample_rows.resize( expected_number_of_samples ) ;
 		}
 	}
 	
