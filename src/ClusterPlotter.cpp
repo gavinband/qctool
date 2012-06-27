@@ -157,7 +157,7 @@ void ClusterPlotter::processed_snp( genfile::SNPIdentifyingData const& snp, genf
 	std::string filename = m_filename_template ;
 	filename = substitute( filename , "#rsid", snp.get_rsid() ) ;
 	filename = substitute( filename, "#intensity", m_intensity_field ) ;
-	filename = substitute( filename, "#position", to_string( snp.get_position().chromosome() ) ) ;
+	filename = substitute( filename, "#position", to_string( snp.get_position() ) ) ;
 
 	std::auto_ptr< impl::PlotTask > plot_task(
 		new impl::PlotTask(
