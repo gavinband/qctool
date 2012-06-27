@@ -85,7 +85,12 @@ namespace sample_stats {
 		) ;
 	}
 
-	DBOutputter::~DBOutputter() {}
+	DBOutputter::~DBOutputter() {
+		if( !m_data.empty() ) {
+			write_data( m_data ) ;
+			m_data.clear() ;
+		}
+	}
 
 	void DBOutputter::store_samples( genfile::CohortIndividualSource const& samples ) {
 		
