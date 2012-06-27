@@ -29,9 +29,13 @@ void ClusterPlotter::declare_options( appcontext::OptionProcessor& options ) {
 		.set_takes_single_value() ;
 	options[ "-cluster-plot-filename" ]
 		.set_description( "Template for filename of cluster plots to create.  The following symbols will be replaced with appropriate strings, one per SNP:"
-		 	" #rsid (rsid of SNP), #intensity (name of intensity field)." )
+		 	" #analysis (analysis name, set using the -analysis-name option),"
+			" #rsid (rsid of SNP),"
+			" #position (chromosome and position of SNP),"
+			" #intensity (name of intensity field)."
+		)
 		.set_takes_single_value()
-		.set_default_value( "#rsid_#intensity.png" ) ;
+		.set_default_value( "#analysis_#rsid_#position_#intensity.png" ) ;
 #endif
 }
 
@@ -153,8 +157,7 @@ void ClusterPlotter::processed_snp( genfile::SNPIdentifyingData const& snp, genf
 	std::string filename = m_filename_template ;
 	filename = substitute( filename , "#rsid", snp.get_rsid() ) ;
 	filename = substitute( filename, "#intensity", m_intensity_field ) ;
-	filename = substitute( filename, "#chromosome", to_string( snp.get_position().chromosome() ) ) ;
-	filename = substitute( filename, "#position", to_string( snp.get_position().position() ) ) ;
+	filename = substitute( filename, "#position", to_string( snp.get_position().chromosome() ) ) ;
 
 	std::auto_ptr< impl::PlotTask > plot_task(
 		new impl::PlotTask(
