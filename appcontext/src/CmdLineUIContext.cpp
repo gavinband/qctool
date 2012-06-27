@@ -53,10 +53,11 @@ namespace appcontext {
 		m_progress_contexts.erase( where ) ;
 	}
 
-	ProgressBarProgressContext::ProgressBarProgressContext( CmdLineUIContext const& ui_context, std::string const& name )
-		: m_ui_context( ui_context ),
-		  m_name( name ),
-		  m_last_time( m_timer.elapsed() )
+	ProgressBarProgressContext::ProgressBarProgressContext( CmdLineUIContext const& ui_context, std::string const& name ):
+		m_ui_context( ui_context ),
+		m_name( name ),
+		m_last_time( m_timer.elapsed() ),
+		m_last_count( 0 )
 	{}
 
 	void ProgressBarProgressContext::notify_progress(
@@ -68,6 +69,12 @@ namespace appcontext {
 			print_progress( count, total_count, m_name, 45 ) ;
 			m_last_time = time_now ;
 		}
+		m_last_count = count ;
+		m_last_total_count = total_count ;
+	}
+
+	void ProgressBarProgressContext::notify_progress() const {
+		notify_progress( m_last_count + 1, m_last_total_count ) ;
 	}
 
 	void ProgressBarProgressContext::finish() const {

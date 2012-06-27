@@ -36,36 +36,32 @@ void HaplotypeFrequencyComponent::declare_options( appcontext::OptionProcessor& 
 		.set_description( "File in which to place computation of pairwise SNP LD measures." )
 		.set_takes_single_value()
 		.set_default_value( "ld.db" ) ;
+	options[ "-max-ld-distance" ]
+		.set_description( "Maximum physical distance between SNPs, above which LD will not be computed. "
+			"A value of zero indicates LD between all SNPs will be computed." )
+		.set_takes_single_value()
+		.set_default_value( 0 ) ;
 	options.option_implies_option( "-compute-ld-file", "-compute-ld-with" ) ;
 }
 
 HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
+	genfile::SNPDataSource::UniquePtr source,
 	appcontext::OptionProcessor const& options,
-	appcontext::UIContext& ui_context,
-	std::vector< std::size_t > const& indices_of_filtered_out_samples
+	appcontext::UIContext& ui_context
 ) {
 	HaplotypeFrequencyComponent::UniquePtr result ;
 
-	genfile::SNPDataSource::UniquePtr source = genfile::SNPDataSource::create_chain(
-		genfile::wildcard::find_files_by_chromosome(
-			options.get< std::string >( "-compute-ld-with" ),
-			genfile::wildcard::eALL_CHROMOSOMES
-		)
-	) ;
-	source = genfile::SampleFilteringSNPDataSource::create(
-		source,
-		std::set< std::size_t >( indices_of_filtered_out_samples.begin(), indices_of_filtered_out_samples.end() )
-	) ;
-	
 #if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
 	std::cerr << "LD SNP samples: " << source->number_of_samples() << " (filtered from " << source->get_parent_source().number_of_samples() << ").\n" ;
-#endif	
+#endif
 	result.reset(
 		new HaplotypeFrequencyComponent(
 			source,
 			ui_context
 		)
 	) ;
+	
+	result->set_max_distance( options.get< uint64_t >( "-max-ld-distance" )) ;
 
 	haplotype_frequency_component::DBOutputter::SharedPtr outputter = haplotype_frequency_component::DBOutputter::create_shared(
 		options.get_value< std::string >( "-compute-ld-file" ),
@@ -93,8 +89,13 @@ HaplotypeFrequencyComponent::HaplotypeFrequencyComponent(
 ):
 	m_source( source ),
 	m_ui_context( ui_context ),
-	m_threshhold( 0.9 )
+	m_threshhold( 0.9 ),
+	m_max_distance( 200000 )
 {}
+
+void HaplotypeFrequencyComponent::set_max_distance( uint64_t distance ) {
+	m_max_distance = distance ;
+}
 
 void HaplotypeFrequencyComponent::begin_processing_snps( std::size_t number_of_samples ) {
 	std::cerr << m_source->number_of_samples() << " : " <<  number_of_samples << ".\n" ;
@@ -107,8 +108,18 @@ void HaplotypeFrequencyComponent::processed_snp( genfile::SNPIdentifyingData con
 	target_data_reader.get( "genotypes", target_probs ) ;
 	m_source->reset_to_start() ;
 	while( m_source->get_snp_identifying_data( source_snp )) {
-		genfile::VariantDataReader::UniquePtr source_data_reader = m_source->read_variant_data() ;
-		compute_ld_measures( source_snp, *source_data_reader, target_snp, target_data_reader ) ;
+		if(
+			( m_max_distance == 0 )
+			||
+			(
+				( source_snp.get_position().chromosome() == target_snp.get_position().chromosome() )
+				&&
+				( std::abs( int64_t( source_snp.get_position().position() ) - int64_t( target_snp.get_position().position() ) ) < m_max_distance )
+			)
+		) {
+			genfile::VariantDataReader::UniquePtr source_data_reader = m_source->read_variant_data() ;
+			compute_ld_measures( source_snp, *source_data_reader, target_snp, target_data_reader ) ;
+		}
 	}
 }
 

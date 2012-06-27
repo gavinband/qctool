@@ -18,6 +18,7 @@ namespace appcontext {
 			std::size_t const count,
 			boost::optional< std::size_t > const total_count
 		) const = 0 ;
+		virtual void notify_progress() const = 0 ;
 		virtual void finish() const = 0 ;
 		virtual std::string name() const = 0 ;
 		virtual ~ProgressContextImpl() {} ;
@@ -43,7 +44,10 @@ namespace appcontext {
 
 		void notify_progress(
 			std::size_t const count,
-			boost::optional< std::size_t > const total_count
+			boost::optional< std::size_t > const total_count = boost::optional< std::size_t >()
+		) const ;
+
+		void notify_progress(
 		) const ;
 
 		void finish() const ;

@@ -41,6 +41,8 @@ namespace appcontext {
 			boost::optional< std::size_t > const total_count
 		) const ;
 
+		void notify_progress() const ;
+
 		void finish() const ;
 
 		std::string name() const { return m_name ; }
@@ -57,6 +59,9 @@ namespace appcontext {
 		std::string const m_name ;
 		Timer m_timer ;
 		mutable double m_last_time ;
+		
+		mutable std::size_t m_last_count ;
+		mutable boost::optional< std::size_t > m_last_total_count ;
 	} ;
 }
 

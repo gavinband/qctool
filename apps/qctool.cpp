@@ -1060,23 +1060,36 @@ private:
 				m_strand_specs = get_strand_specs( m_options.get_values< std::string >( "-strand" )) ;
 			}
 			
-			m_snp_data_source = open_main_snp_data_sources() ;
-
 			{
-				m_cohort_individual_source = open_samples( m_snp_data_source->number_of_samples() ) ;
-				if( m_options.check( "-condition-on" )) {
-					m_cohort_individual_source = condition_on(
-						m_cohort_individual_source,
-						*m_snp_data_source,
-						genfile::string_utils::join( m_options.get_values< std::string >( "-condition-on" ), "," )
+				if( m_mangled_options.input_sample_filenames().size() == 0 ) {
+					// uh-oh, no sample files specified.
+					// Find out the number of samples from the first GEN file.
+					genfile::SNPDataSource::UniquePtr source = genfile::SNPDataSource::create( m_mangled_options.gen_filenames()[0][0].filename() ) ;
+					m_cohort_individual_source.reset( new genfile::CountingCohortIndividualSource( source->number_of_samples(), "sample_%d" ) ) ;
+				}
+				else {
+					m_cohort_individual_source = open_samples(
+						m_mangled_options.input_sample_filenames()
 					) ;
-					m_snp_data_source->reset_to_start() ;
+					if( m_options.check( "-condition-on" )) {
+						m_cohort_individual_source = condition_on(
+							m_cohort_individual_source,
+							*m_snp_data_source,
+							genfile::string_utils::join( m_options.get_values< std::string >( "-condition-on" ), "," )
+						) ;
+						m_snp_data_source->reset_to_start() ;
+					}
 				}
 				load_sample_rows( m_cohort_individual_source, m_snp_data_source->number_of_samples() ) ;
 			}
 			
 			check_for_errors_and_warnings() ;
 				
+			m_snp_data_source = open_snp_data_sources(
+				m_mangled_options.gen_filenames(),
+				m_options.check( "-match-alleles-to-cohort1" )
+			) ;
+
 			if( m_indices_of_filtered_out_samples.size() > 0 ) {
 				m_snp_data_source.reset(
 					new genfile::SampleFilteringSNPDataSource(
@@ -1207,18 +1220,46 @@ private:
 		return result ;
 	}
 	
-	genfile::SNPDataSource::UniquePtr open_main_snp_data_sources()
-	// Open the main gen files, taking care of filtering, strand alignment, translation, etc.
-	{
+public:
+	genfile::SNPDataSource::UniquePtr open_snp_data_sources(
+		std::vector< std::vector< genfile::wildcard::FilenameMatch > > const& filenames,
+		bool match_alleles_between_cohorts
+	) const {
+		return open_snp_data_sources(
+			filenames,
+			*m_cohort_individual_source,
+			m_indices_of_filtered_out_samples,
+			match_alleles_between_cohorts
+		) ;
+	}
+
+	genfile::SNPDataSource::UniquePtr open_snp_data_sources(
+		std::vector< genfile::wildcard::FilenameMatch > const& filenames
+	) const {
+		return open_snp_data_sources(
+			std::vector< std::vector< genfile::wildcard::FilenameMatch > >( 1, filenames ),
+			*m_cohort_individual_source,
+			m_indices_of_filtered_out_samples,
+			false
+		) ;
+	}
+
+private:
+	genfile::SNPDataSource::UniquePtr open_snp_data_sources(
+		std::vector< std::vector< genfile::wildcard::FilenameMatch > > const& filenames,
+		genfile::CohortIndividualSource& samples,
+		std::vector< std::size_t > const& indices_of_filtered_out_samples,
+		bool match_alleles_between_cohorts
+	) const {
 		genfile::SNPDataSourceRack::UniquePtr rack ;
-		if( m_mangled_options.gen_filenames().size() > 1 ) {
+		if( filenames.size() > 1 ) {
 			rack.reset( new genfile::SNPDataSourceRack( m_options.get_value< std::string >( "-snp-match-fields" ) ) ) ;
 		}
 
 		// count files.
 		std::size_t file_count = 0 ;
-		for( std::size_t i = 0; i < m_mangled_options.gen_filenames().size(); ++i ) {
-			file_count += m_mangled_options.gen_filenames()[i].size() ;
+		for( std::size_t i = 0; i < filenames.size(); ++i ) {
+			file_count += filenames[i].size() ;
 		}
 
 		appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Opening genotype files" ) ;
@@ -1230,14 +1271,23 @@ private:
 
 		std::vector< genfile::SNPIdentifyingData > cohort1_snps ;
 		
-		for( std::size_t i = 0; i < m_mangled_options.gen_filenames().size(); ++i ) {
+		for( std::size_t i = 0; i < filenames.size(); ++i ) {
 			genfile::SNPDataSourceChain::UniquePtr chain( new genfile::SNPDataSourceChain() ) ;
 
-			for( std::size_t j = 0; j < m_mangled_options.gen_filenames()[i].size(); ++j ) {
+			for( std::size_t j = 0; j < filenames[i].size(); ++j ) {
 				source = open_snp_data_source(
-					m_mangled_options.gen_filenames()[i][j].filename(),
-					m_mangled_options.gen_filenames()[i][j].match()
+					filenames[i][j].filename(),
+					filenames[i][j].match()
 				) ;
+
+				if( source->number_of_samples() != samples.get_number_of_individuals() ) {
+					throw genfile::MismatchError(
+						"QCToolCmdLineContext::open_snp_data_sources()",
+						source->get_source_spec(),
+						"number of samples in source = " + genfile::string_utils::to_string( source->number_of_samples() ),
+						"expected number of samples = " + genfile::string_utils::to_string( samples.get_number_of_individuals() )
+					);
+				}
 
 				// Add the source to the chain.
 				chain->add_source( genfile::SNPDataSource::UniquePtr( source ) ) ;
@@ -1251,16 +1301,11 @@ private:
 				snps = genfile::get_list_of_snps_in_source( *chain ) ;
 			}
 
-			if( i == 0 ) {
-				// set up the trigger by which we move through output files.
-				chain->set_moved_to_next_source_callback( boost::bind( &QCToolCmdLineContext::move_to_next_output_file, this, _1 )) ;
-			}
-			
 			source.reset( chain.release() ) ;
 			
 			// If we have strand alignment information, implement it now
 			if( m_strand_specs.get() ) {
-				assert( m_strand_specs->size() == m_mangled_options.gen_filenames().size() ) ;
+				assert( m_strand_specs->size() == filenames.size() ) ;
 				genfile::StrandAligningSNPDataSource::StrandAlignments strand_alignments ;
 				boost::tie( snps, strand_alignments ) = genfile::StrandAligningSNPDataSource::create_strand_alignments(
 					snps,
@@ -1275,7 +1320,7 @@ private:
 				) ;
 			}
 
-			if( m_options.check_if_option_was_supplied( "-match-alleles-to-cohort1" ) ) {
+			if( match_alleles_between_cohorts ) {
 				if( i == 0 ) {
 					cohort1_snps = snps ;
 				}
@@ -1836,9 +1881,11 @@ private:
 		m_ignore_warnings = m_options.check_if_option_was_supplied( "-force" ) ;
 	}
 	
-	genfile::CohortIndividualSource::UniquePtr open_samples( std::size_t const expected_number_of_samples ) {
+	genfile::CohortIndividualSource::UniquePtr open_samples(
+		std::vector< std::string > const& filenames
+	) {
 		try {
-			return unsafe_open_samples( expected_number_of_samples ) ;
+			return unsafe_open_samples( filenames ) ;
 		}
 		catch( ConditionValueNotFoundException const& ) {
 			m_ui_context.logger() << "\n\n!! ERROR: The input sample file must contain entries for all values used to filter on.\n"
@@ -1864,43 +1911,32 @@ private:
 		}
 	}
 	
-	genfile::CohortIndividualSource::UniquePtr unsafe_open_samples( std::size_t const expected_number_of_samples ) {
+	genfile::CohortIndividualSource::UniquePtr unsafe_open_samples(
+		std::vector< std::string > const& filenames
+	) {
 		genfile::CohortIndividualSource::UniquePtr sample_source ;
-		if( m_mangled_options.input_sample_filenames().size() == 0 ) {
-			sample_source.reset( new genfile::CountingCohortIndividualSource( expected_number_of_samples, "sample_%d" ) ) ;
+		assert( filenames.size() > 0 ) ;
+		genfile::CohortIndividualSourceChain::UniquePtr source_chain( new genfile::CohortIndividualSourceChain() ) ;
+		for( std::size_t i = 0; i < filenames.size(); ++i ) {
+			source_chain->add_source(
+				genfile::CohortIndividualSource::UniquePtr(
+					new genfile::CategoricalCohortIndividualSource(
+						filenames[i],
+						m_options.get_value< std::string >( "-missing-code" )
+					)
+				)
+			) ;
 		}
-		else {
-			genfile::CohortIndividualSourceChain::UniquePtr source_chain( new genfile::CohortIndividualSourceChain() ) ;
-			for( std::size_t i = 0; i < m_mangled_options.input_sample_filenames().size(); ++i ) {
-				source_chain->add_source(
-					genfile::CohortIndividualSource::UniquePtr(
-						new genfile::CategoricalCohortIndividualSource(
-							m_mangled_options.input_sample_filenames()[i],
-							m_options.get_value< std::string >( "-missing-code" )
-						)
-					)
-				) ;
-			}
-			sample_source.reset( source_chain.release() ) ;
-			
-			if( sample_source->get_number_of_individuals() != expected_number_of_samples ) {
-				throw genfile::MismatchError(
-					"QCToolCmdLineContext::unsafe_open_samples()",
-					sample_source->get_source_spec(),
-					"number of samples = " + genfile::string_utils::to_string( sample_source->get_number_of_individuals() ),
-					"expected number of samples = " + genfile::string_utils::to_string( expected_number_of_samples )
-				);
-			}
-			
-			if( m_options.check_if_option_was_supplied( "-quantile-normalise" )) {
-				sample_source = quantile_normalise_columns(
-					sample_source,
-					genfile::string_utils::split_and_strip(
-						m_options.get_value< std::string >( "-quantile-normalise" ),
-						","
-					)
-				) ;
-			}
+		sample_source.reset( source_chain.release() ) ;
+		
+		if( m_options.check_if_option_was_supplied( "-quantile-normalise" )) {
+			sample_source = quantile_normalise_columns(
+				sample_source,
+				genfile::string_utils::split_and_strip(
+					m_options.get_value< std::string >( "-quantile-normalise" ),
+					","
+				)
+			) ;
 		}
 		
 		return sample_source ;
@@ -2194,7 +2230,16 @@ private:
 		
 		HaplotypeFrequencyComponent::UniquePtr haplotype_frequency_component ;
 		if( options().check_if_option_was_supplied_in_group( "LD computation options" )) {
-			haplotype_frequency_component = HaplotypeFrequencyComponent::create( options(), get_ui_context(), context.indices_of_filtered_out_samples() ) ;
+			haplotype_frequency_component = HaplotypeFrequencyComponent::create(
+				context.open_snp_data_sources(
+					genfile::wildcard::find_files_by_chromosome(
+						options().get< std::string >( "-compute-ld-with" ),
+						genfile::wildcard::eALL_CHROMOSOMES
+					)
+				),
+				options(),
+				get_ui_context()
+			) ;
 			processor.add_callback( *haplotype_frequency_component ) ;
 		}
 
@@ -2209,7 +2254,6 @@ private:
 		qctool_basic.process_sample_rows() ;
 	}
 } ;
-
 
 int main( int argc, char** argv ) {
     try {
