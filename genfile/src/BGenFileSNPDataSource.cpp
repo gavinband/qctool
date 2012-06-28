@@ -52,6 +52,7 @@ namespace genfile {
 		struct BGenFileSNPDataReader: public VariantDataReader {
 			BGenFileSNPDataReader( BGenFileSNPDataSource& source )
 			{
+				
 				if( source.m_flags & bgen::e_CompressedSNPBlocks ) {
 					bgen::impl::read_compressed_snp_probability_data(
 						source.stream(),
