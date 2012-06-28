@@ -597,7 +597,7 @@ struct PerCohortValueReporter: public AmetComputation {
 				assert( betas.size() == ses.size() ) ;
 				for( int j = 0; j < betas.size(); ++j ) {
 					callback( prefix + "beta_" + to_string( j+1 ), betas(j) ) ;
-					callback( prefix + "se_" + to_string( j+1 ), betas(j) ) ;
+					callback( prefix + "se_" + to_string( j+1 ), ses(j) ) ;
 				}
 				callback( prefix + "pvalue", pvalue ) ;
 				callback( prefix + "info", info ) ;
