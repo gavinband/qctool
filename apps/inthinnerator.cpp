@@ -83,13 +83,13 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 			.set_description( "Specify a file containing a whitespace-separated list of SNP SNPIDs."
 			" SNPs with ids not in this file will be excluded from the analysis." )
 			.set_takes_single_value() ;
-		options[ "-range" ]
+		options[ "-incl-range" ]
 			.set_description( "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to operate on. "
 				"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
 				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
 				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
 			.set_takes_single_value() ;
-		options[ "-exclude-range" ]
+		options[ "-excl-range" ]
 			.set_description( "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to exclude from operation. "
 				"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
 				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
@@ -826,8 +826,8 @@ private:
 			filter.exclude_snps_not_in_file( options().get< std::string >( "-incl-snpids" ), genfile::CommonSNPFilter::SNPIDs ) ;
 		}
 
-		if( options().check_if_option_was_supplied( "-range" )) {
-			std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( options().get< std::string >( "-range" ), ",", " \t" ) ;
+		if( options().check_if_option_was_supplied( "-incl-range" )) {
+			std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( options().get< std::string >( "-incl-range" ), ",", " \t" ) ;
 			for ( std::size_t i = 0; i < specs.size(); ++i ) {
 				filter.include_snps_in_range(
 					genfile::GenomePositionRange::parse( specs[i] )
@@ -835,8 +835,8 @@ private:
 			}
 		}
 		
-		if( options().check_if_option_was_supplied( "-exclude-range" )) {
-			std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( options().get< std::string >( "-exclude-range" ), ",", " \t" ) ;
+		if( options().check_if_option_was_supplied( "-excl-range" )) {
+			std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( options().get< std::string >( "-excl-range" ), ",", " \t" ) ;
 			for ( std::size_t i = 0; i < specs.size(); ++i ) {
 				filter.exclude_snps_in_range(
 					genfile::GenomePositionRange::parse( specs[i] )
