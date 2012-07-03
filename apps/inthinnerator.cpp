@@ -24,6 +24,7 @@
 #include "appcontext/ProgramFlow.hpp"
 #include "appcontext/CmdLineOptionProcessor.hpp"
 #include "appcontext/ApplicationContext.hpp"
+#include "appcontext/get_current_time_as_string.hpp"
 
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPFilteringSNPDataSource.hpp"
@@ -38,6 +39,7 @@
 #include "db/SQLite3Connection.hpp"
 #include "genfile/FromFilesGeneticMap.hpp"
 #include "FileUtil.hpp"
+#include "components/SNPSummaryComponent/DBOutputter.hpp"
 
 namespace globals {
 	std::string const program_name = "inthinnerator" ;
@@ -144,8 +146,10 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 		options.declare_group( "Output file options" ) ;
 		options[ "-o" ]
 			.set_description( "Specify the output filename stub." )
-			.set_takes_single_value()
-			.set_is_required() ;
+			.set_takes_single_value() ;
+		options[ "-odb" ]
+			.set_description( "Specify the name of a database file to output." )
+			.set_takes_single_value() ;
 		options[ "-output-cols" ]
 			.set_description( "Specify a comma-separated list of columns that should appear in the output files."
 				" Possible columns are \"SNPID\", \"rsid\", \"chromosome\", \"position\", \"allele1\", \"allele2\", and \"cM_from_start_of_chromosome\"."
@@ -156,7 +160,12 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 			.set_description( "Specify this to force output of column headersomit column headers in the output files." ) ;
 		options[ "-no-headers" ]
 			.set_description( "Specify this to suppress output of column headers in the output files." ) ;
+
+		options.option_excludes_option( "-o", "-odb" ) ;
+		options.option_excludes_option( "-odb", "-o" ) ;
 		options.option_excludes_option( "-headers", "-no-headers" ) ;
+		options.option_implies_option( "-headers", "-o" ) ;
+		options.option_implies_option( "-no-headers", "-o" ) ;
 		
 		options[ "-write-excl-list" ]
 			.set_description( "Specify that inthinnerator should write out inclusion lists.  On by default." ) ;
@@ -168,6 +177,10 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 			.set_description( "Set the path of the log file to output." )
 			.set_takes_single_value()
 			.set_default_value( globals::program_name + ".log" ) ;
+		options[ "-analysis-name" ]
+			.set_description( "Specify a name to label results from this analysis with.  (This applies to modules which store their results in a qcdb file.)" )
+			.set_takes_single_value()
+			.set_default_value( globals::program_name + " analysis, started " + appcontext::get_current_time_as_string() ) ;
 	}
 } ;
 
@@ -727,6 +740,10 @@ private:
 	}
 	
 	void unsafe_process() {
+		if( !options().check( "-o" ) && ! options().check( "-odb" ) ) {
+			get_ui_context().logger() << "You must supply either -o or -odb.\n" ;
+			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+		}
 		genfile::GeneticMap::UniquePtr map = load_genetic_map() ;
 		get_ui_context().logger() << "Loaded: " << map->get_summary() << "\n";
 
@@ -1087,14 +1104,28 @@ private:
 		std::size_t const max_num_picks = options().get_value< std::size_t >( "-max-picks" ) ;
 		assert( N > 0 ) ;
 		std::size_t const number_of_digits = std::max( std::size_t( std::log10( N ) ), std::size_t( 3u )) ;
-		std::string filename_stub = options().get_value< std::string >( "-o" ) ;
+
+		std::string filename_stub ;
+		bool db = false ;
+		if( options().check( "-o" ) ) {
+			filename_stub = options().get< std::string >( "-o" ) ;
+		} else if( options().check( "-odb" )) {
+			filename_stub = options().get< std::string >( "-odb" ) ;
+			db = true ;
+		}
+
 		for( std::size_t i = 0; i < N; ++i ) {
 			get_ui_context().logger() << "Picking " << (i+1) << " of " << N << "..." ;
 			std::set< std::size_t > picked_snps = pick_snps( snps, max_num_picks ) ;
 			get_ui_context().logger() << picked_snps.size() << " SNPs picked.\n" ;
-			std::ostringstream filenamestr ;
-			filenamestr << filename_stub << "." << std::setw( number_of_digits ) << std::setfill( '0' ) << i ;
-			write_output_files( snps, recombination_offsets, picked_snps, filenamestr.str() ) ;
+			if( db ) {
+				write_db( i, snps, recombination_offsets, picked_snps, filename_stub ) ;
+			}
+			else {
+				std::ostringstream filenamestr ;
+				filenamestr << filename_stub << "." << std::setw( number_of_digits ) << std::setfill( '0' ) << i ;
+				write_output_files( snps, recombination_offsets, picked_snps, filenamestr.str() ) ;
+			}
 		}
 	}
 
@@ -1123,6 +1154,57 @@ private:
 		return picked_snps ;
 	}
 	
+	void write_db(
+		std::size_t N,
+		std::vector< genfile::SNPIdentifyingData > const& snps,
+		std::vector< double > const& recombination_offsets,
+		std::set< std::size_t > const& indices_of_snps_to_output,
+		std::string const& filename
+	) const {
+		using genfile::string_utils::to_string ;
+		std::vector< std::string > const output_columns = get_output_columns() ;
+		snp_summary_component::DBOutputter::UniquePtr
+			outputter = snp_summary_component::DBOutputter::create( filename, options().get< std::string >( "-analysis-name" ), options().get_values_as_map() ) ;
+
+		UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Writing \"" + filename + "\"" ) ;
+		std::size_t snp_index = 0 ;
+		for(
+			std::set< std::size_t >::const_iterator i = indices_of_snps_to_output.begin() ;
+			i != indices_of_snps_to_output.end() ; 
+			++i, ++snp_index
+		) {
+			for( std::size_t j = 0; j < output_columns.size(); ++j ) {
+				std::string const column_name = genfile::string_utils::to_lower( output_columns[j] ) ;
+				genfile::VariantEntry value ;
+				if( column_name == "cm_from_start_of_chromosome" ) {
+					value = recombination_offsets[*i] ;
+				}
+				else {
+					std::map< std::string, genfile::VariantEntry > attributes = m_proximity_test->get_attributes( *i ) ;
+					std::map< std::string, genfile::VariantEntry >::const_iterator where = attributes.find( column_name ) ;
+					if( where == attributes.end() ) {
+						attributes = m_snp_picker->get_attributes( *i ) ;
+						where = attributes.find( column_name ) ;
+					}
+					if( where == attributes.end() ) {
+						value = genfile::MissingValue() ;
+					}
+					else {
+						value = where->second ;
+					}
+				}
+				
+				outputter->operator()(
+					snp_index,
+					snps[ snp_index ],
+					"inthinnerator",
+					"inthinneration " + to_string(N) + "/column_name",
+					value
+				) ;
+			}
+			progress_context.notify_progress( snp_index+1, snps.size() ) ;
+		}
+	}
 
 	void write_output_files(
 		std::vector< genfile::SNPIdentifyingData > const& snps,
