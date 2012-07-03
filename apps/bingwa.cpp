@@ -739,72 +739,7 @@ struct ApproximateBayesianMetaAnalysis: public AmetComputation {
 		SNPIdentifyingData2 const& snp,
 		DataGetter const& data_getter,
 		ResultCallback callback
-	) {
-		std::size_t const N = data_getter.get_number_of_cohorts() ;
-		if( N == 0 ) {
-			return ;
-		}
-
-		Eigen::VectorXd betas( N ) ;
-		Eigen::VectorXd ses( N ) ;
-		Eigen::VectorXd non_missingness( N ) ;
-		
-		if(
-			!impl::get_betas_and_ses_one_per_study( data_getter, betas, ses, non_missingness )
-			|| non_missingness.sum() == 0
-		) {
-			callback( m_prefix + "bf", genfile::MissingValue() ) ;
-			return ;
-		}
-		else {
-			// deal with missingness.
-			// Make a matrix that will select the rows and columns we want.
-			assert( betas.size() == m_sigma.rows() ) ;
-			
-			Eigen::MatrixXd prior_selector = Eigen::MatrixXd::Zero( non_missingness.sum(), betas.size() ) ;
-			Eigen::MatrixXd prior ;
-			{
-				int count = 0 ;
-				for( int i = 0; i < betas.size(); ++i ) {
-					if( non_missingness(i) ) {
-						prior_selector( count++, i ) = 1 ;
-					}
-				}
-				
-				prior = prior_selector * m_sigma * prior_selector.transpose() ;
-				betas = prior_selector * betas ;
-				ses = prior_selector * ses ;
-			}
-			
-			assert( ses.size() == non_missingness.sum() ) ;
-			assert( betas.size() == non_missingness.sum() ) ;
-			assert( prior.rows() == non_missingness.sum() ) ;
-			assert( prior.cols() == non_missingness.sum() ) ;
-			
-			Eigen::MatrixXd V = ses.asDiagonal() ;
-			V = V.array().square() ;
-			
-			// std::cerr << std::resetiosflags( std::ios::floatfield ) ;
-			// std::cerr << "V = " << V << ".\n" ;
-			// std::cerr << "prior = " << prior << ".\n" ;
-			// std::cerr << "betas = " << betas.transpose() << ".\n" ;
-			// std::cerr << "ses = " << ses.transpose() << ".\n" ;
-			
-			// I hope LDLT copes with noninvertible matrices.
-			// Maybe it doesn't...but let's find out.
-			Eigen::LDLT< Eigen::MatrixXd > Vsolver( V ) ;
-			Eigen::LDLT< Eigen::MatrixXd > V_plus_prior_solver( V + prior ) ;
-			
-			Eigen::VectorXd exponent = betas.transpose() * ( Vsolver.solve( betas ) - V_plus_prior_solver.solve( betas ) ) ;
-			
-			assert( exponent.size() == 1 ) ;
-			
-			double const constant = std::sqrt( Vsolver.vectorD().prod() / V_plus_prior_solver.vectorD().prod() ) ;
-			double const result = constant * std::exp( 0.5 * exponent(0) ) ;
-			
-			callback( m_prefix + "/bf", result ) ;
-		}
-	}
+	) ;
 
 	std::string get_spec() const {
 		return "ApproximateBayesianMetaAnalysis( " + m_name + " ) with prior:\n" + genfile::string_utils::to_string( m_sigma ) ;
@@ -817,8 +752,117 @@ private:
 	std::string const m_name ;
 	std::string const m_prefix ;
 	Eigen::MatrixXd const m_sigma ;
+	
+	void compute_bayes_factor( Eigen::MatrixXd const& prior, Eigen::MatrixXd const& V, Eigen::VectorXd const& betas, ResultCallback callback ) const ;
+
+/*
+	bayesian_meta_analysis <- function( betas, ses, prior ) {
+		V = diag( ses^2 ) ;
+		print(V)
+		betas = matrix( betas, ncol = 1, nrow = length( betas )) ;
+		constant = sqrt( det( V ) / det( V + prior ) ) ;
+		exponent = 0.5 * t( betas ) %*% ( solve( V ) - solve( V + prior ) ) %*% betas
+		return( constant * exp( exponent ))
+	}
+*/
 } ;
 
+void ApproximateBayesianMetaAnalysis::operator()(
+	SNPIdentifyingData2 const& snp,
+	DataGetter const& data_getter,
+	ResultCallback callback
+) {
+	std::size_t const N = data_getter.get_number_of_cohorts() ;
+	if( N == 0 ) {
+		return ;
+	}
+
+	Eigen::VectorXd betas( N ) ;
+	Eigen::VectorXd ses( N ) ;
+	Eigen::VectorXd non_missingness( N ) ;
+	
+	if(
+		!impl::get_betas_and_ses_one_per_study( data_getter, betas, ses, non_missingness )
+		|| non_missingness.sum() == 0
+	) {
+		callback( m_prefix + "bf", genfile::MissingValue() ) ;
+		return ;
+	}
+	else {
+		// deal with missingness.
+		// Make a matrix that will select the rows and columns we want.
+		assert( betas.size() == m_sigma.rows() ) ;
+		
+		Eigen::MatrixXd prior_selector = Eigen::MatrixXd::Zero( non_missingness.sum(), betas.size() ) ;
+		Eigen::MatrixXd prior ;
+		{
+			int count = 0 ;
+			for( int i = 0; i < betas.size(); ++i ) {
+				if( non_missingness(i) ) {
+					prior_selector( count++, i ) = 1 ;
+				}
+			}
+			
+			prior = prior_selector * m_sigma * prior_selector.transpose() ;
+			betas = prior_selector * betas ;
+			ses = prior_selector * ses ;
+		}
+		
+		assert( ses.size() == non_missingness.sum() ) ;
+		assert( betas.size() == non_missingness.sum() ) ;
+		assert( prior.rows() == non_missingness.sum() ) ;
+		assert( prior.cols() == non_missingness.sum() ) ;
+		
+		Eigen::MatrixXd V = ses.asDiagonal() ;
+		V = V.array().square() ;
+
+		compute_bayes_factor( prior, V, betas, callback ) ;
+	}
+}
+
+namespace impl {
+	template< typename M >
+	std::string format_matrix( M const& m ) {
+		std::ostringstream s ;
+		s << "matrix( nrow=" << m.rows() << ", ncol=" << m.cols() << ", data = c(" ;
+		for( int i = 0; i < m.rows(); ++i ) {
+			if( i > 0 ) {
+				s << "," ;
+			}
+			for( int j = 0; j < m.cols(); ++j ) {
+				if( j > 0 ) {
+					s << "," ;
+				}
+				s << m(i,j) ;
+			}
+		}
+		s << "))" ;
+		return s.str() ;
+	}
+}
+
+void ApproximateBayesianMetaAnalysis::compute_bayes_factor( Eigen::MatrixXd const& prior, Eigen::MatrixXd const& V, Eigen::VectorXd const& betas, ResultCallback callback ) const {
+	// std::cerr << std::resetiosflags( std::ios::floatfield ) ;
+	// std::cerr << "V = " << V << ".\n" ;
+	// std::cerr << "prior = " << prior << ".\n" ;
+	// std::cerr << "betas = " << betas.transpose() << ".\n" ;
+	// std::cerr << "ses = " << ses.transpose() << ".\n" ;
+	
+	// I hope LDLT copes with noninvertible matrices.
+	// Maybe it doesn't...but let's find out.
+	Eigen::LDLT< Eigen::MatrixXd > Vsolver( V ) ;
+	Eigen::LDLT< Eigen::MatrixXd > V_plus_prior_solver( V + prior ) ;
+	Eigen::VectorXd exponent = betas.transpose() * ( Vsolver.solve( betas ) - V_plus_prior_solver.solve( betas ) ) ;
+	
+	assert( exponent.size() == 1 ) ;
+	
+	double const constant = std::sqrt( Vsolver.vectorD().prod() / V_plus_prior_solver.vectorD().prod() ) ;
+	double const result = constant * std::exp( 0.5 * exponent(0) ) ;
+	
+	callback( m_prefix + "/bf", result ) ;
+	callback( m_prefix + "/posterior_mode", impl::format_matrix( betas - ( V * V_plus_prior_solver.solve( betas ) ) ) ) ;
+	callback( m_prefix + "/posterior_variance", impl::format_matrix( V - V * V_plus_prior_solver.solve( Eigen::MatrixXd::Identity( betas.size(), betas.size() ) ) * V ) ) ;
+}
 
 AmetComputation::UniquePtr AmetComputation::create( std::string const& name, appcontext::OptionProcessor const& options ) {
 	AmetComputation::UniquePtr result ;
