@@ -34,6 +34,16 @@ namespace statfile {
 		setup( filename ) ;
 	}
 
+	void DelimitedStatSource::reset_stream_to_start() {
+		try {
+			IstreamAggregator::reset_stream_to_start() ;
+		}
+		catch( std::ios_base::failure const& ) {
+			set_stream( open_text_file_for_input( m_filename ) ) ;
+			assert( stream() ) ;
+		}
+	}
+
 	void DelimitedStatSource::reset_to_start() {
 		reset_stream_to_start() ;
 		// Skip comment and column header lines.
@@ -123,25 +133,7 @@ namespace statfile {
 			return genfile::string_utils::slice( big_string ).substr( pos, pos + length ) ;
 		}
 	}
-/*
-	std::vector< std::string > DelimitedStatSource::split_line(
-		std::string const& line,
-		std::string const& delimiter,
-		std::string const& strip_chars
-	) {
-		std::vector< std::string > result ;
-		std::size_t begin_pos = 0, delim_pos ;
-		do {
-			delim_pos = line.find( delimiter, begin_pos ) ;
-			if( delim_pos == std::string::npos )
-				delim_pos = line.size() ;
-			result.push_back( genfile::string_utils::strip( line.substr( begin_pos, delim_pos - begin_pos ), strip_chars )) ;
-			begin_pos = delim_pos + delimiter.size() ;
-		}
-		while( delim_pos != line.size() ) ;
-		return result ;
-	}
-	*/
+
 	std::string DelimitedStatSource::strip( std::string const& string_to_strip, std::string const& strip_chars ) {
 		std::size_t lpos = string_to_strip.find_first_not_of( strip_chars ) ;
 		return ( lpos == std::string::npos )

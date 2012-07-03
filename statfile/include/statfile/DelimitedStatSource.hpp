@@ -80,6 +80,8 @@ namespace statfile {
 		std::size_t m_number_of_rows ;
 		std::string m_descriptive_text ;
 		std::size_t m_number_of_comment_lines ;
+		
+		void reset_stream_to_start() ;
 	} ;
 	
 	// Specialisation of do_read_value for strings, since we don't need the istringstream here.
