@@ -1198,7 +1198,7 @@ private:
 					snp_index,
 					snps[ snp_index ],
 					"inthinnerator",
-					"inthinneration " + to_string(N) + "/column_name",
+					"inthinneration " + to_string(N) + "/" + column_name,
 					value
 				) ;
 			}
