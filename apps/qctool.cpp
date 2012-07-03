@@ -104,6 +104,7 @@
 #include "components/CallComparerComponent/CallComparerComponent.hpp"
 #include "components/HaplotypeFrequencyComponent/HaplotypeFrequencyComponent.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComponent.hpp"
+#include "components/SNPOutputComponent/SNPOutputComponent.hpp"
 #include "components/SampleSummaryComponent/SampleSummaryComponent.hpp"
 #include "ClusterPlotter.hpp"
 
@@ -1050,78 +1051,78 @@ private:
 private:
 	
 	void setup() {
-			construct_snp_statistics() ;
-			construct_sample_statistics() ;
-			construct_snp_filter() ;
-			construct_sample_filter() ;
-			process_other_options() ;
-			
-			if( m_options.check_if_option_has_value( "-translate-snp-positions" )) {
-				m_snp_dictionary = load_snp_dictionary( m_options.get_value< std::string >( "-translate-snp-positions" ) ) ;
-			}
+		construct_snp_statistics() ;
+		construct_sample_statistics() ;
+		construct_snp_filter() ;
+		construct_sample_filter() ;
+		process_other_options() ;
+		
+		if( m_options.check_if_option_has_value( "-translate-snp-positions" )) {
+			m_snp_dictionary = load_snp_dictionary( m_options.get_value< std::string >( "-translate-snp-positions" ) ) ;
+		}
 
-			if( m_options.check_if_option_has_value( "-strand" )) {
-				m_strand_specs = get_strand_specs( m_options.get_values< std::string >( "-strand" )) ;
+		if( m_options.check_if_option_has_value( "-strand" )) {
+			m_strand_specs = get_strand_specs( m_options.get_values< std::string >( "-strand" )) ;
+		}
+		
+		{
+			if( m_mangled_options.input_sample_filenames().size() == 0 ) {
+				// uh-oh, no sample files specified.
+				// Find out the number of samples from the first GEN file.
+				genfile::SNPDataSource::UniquePtr source = genfile::SNPDataSource::create( m_mangled_options.gen_filenames()[0][0].filename() ) ;
+				m_cohort_individual_source.reset( new genfile::CountingCohortIndividualSource( source->number_of_samples(), "sample_%d" ) ) ;
 			}
-			
-			{
-				if( m_mangled_options.input_sample_filenames().size() == 0 ) {
-					// uh-oh, no sample files specified.
-					// Find out the number of samples from the first GEN file.
-					genfile::SNPDataSource::UniquePtr source = genfile::SNPDataSource::create( m_mangled_options.gen_filenames()[0][0].filename() ) ;
-					m_cohort_individual_source.reset( new genfile::CountingCohortIndividualSource( source->number_of_samples(), "sample_%d" ) ) ;
-				}
-				else {
-					m_cohort_individual_source = open_samples(
-						m_mangled_options.input_sample_filenames()
-					) ;
-					if( m_options.check( "-condition-on" )) {
-						m_cohort_individual_source = condition_on(
-							m_cohort_individual_source,
-							*m_snp_data_source,
-							genfile::string_utils::join( m_options.get_values< std::string >( "-condition-on" ), "," )
-						) ;
-						m_snp_data_source->reset_to_start() ;
-					}
-				}
-				load_sample_rows( m_cohort_individual_source ) ;
-			}
-			
-			m_snp_data_source = open_snp_data_sources(
-				m_mangled_options.gen_filenames(),
-				m_options.check( "-match-alleles-to-cohort1" )
-			) ;
-
-			if( m_indices_of_filtered_out_samples.size() > 0 ) {
-				m_snp_data_source.reset(
-					new genfile::SampleFilteringSNPDataSource(
-						m_snp_data_source,
-						std::set< std::size_t >( m_indices_of_filtered_out_samples.begin(), m_indices_of_filtered_out_samples.end() )
-					)
+			else {
+				m_cohort_individual_source = open_samples(
+					m_mangled_options.input_sample_filenames()
 				) ;
-				
-				if( m_cohort_individual_source.get() ) {
-					m_cohort_individual_source.reset(
-						genfile::SampleFilteringCohortIndividualSource::create(
-							m_cohort_individual_source,
-							std::set< std::size_t >( m_indices_of_filtered_out_samples.begin(), m_indices_of_filtered_out_samples.end() )
-						).release()
+				if( m_options.check( "-condition-on" )) {
+					m_cohort_individual_source = condition_on(
+						m_cohort_individual_source,
+						*m_snp_data_source,
+						genfile::string_utils::join( m_options.get_values< std::string >( "-condition-on" ), "," )
 					) ;
+					m_snp_data_source->reset_to_start() ;
 				}
 			}
+			load_sample_rows( m_cohort_individual_source ) ;
+		}
+		
+		m_snp_data_source = open_snp_data_sources(
+			m_mangled_options.gen_filenames(),
+			m_options.check( "-match-alleles-to-cohort1" )
+		) ;
+
+		if( m_indices_of_filtered_out_samples.size() > 0 ) {
+			m_snp_data_source.reset(
+				new genfile::SampleFilteringSNPDataSource(
+					m_snp_data_source,
+					std::set< std::size_t >( m_indices_of_filtered_out_samples.begin(), m_indices_of_filtered_out_samples.end() )
+				)
+			) ;
 			
-			if( m_options.check( "-merge-in" )) {
-				m_snp_data_source = open_merged_data_sources() ;
+			if( m_cohort_individual_source.get() ) {
+				m_cohort_individual_source.reset(
+					genfile::SampleFilteringCohortIndividualSource::create(
+						m_cohort_individual_source,
+						std::set< std::size_t >( m_indices_of_filtered_out_samples.begin(), m_indices_of_filtered_out_samples.end() )
+					).release()
+				) ;
 			}
+		}
+		
+		if( m_options.check( "-merge-in" )) {
+			m_snp_data_source = open_merged_data_sources() ;
+		}
 
-			check_for_errors_and_warnings() ;
+		check_for_errors_and_warnings() ;
 
-			write_preamble() ;
-			
-			open_sample_row_sink() ;
-			open_snp_data_sinks() ;
-			open_snp_stats_sink( 0, m_snp_statistics ) ;
-			open_sample_stats_sink() ;
+		write_preamble() ;
+		
+		open_sample_row_sink() ;
+		open_snp_data_sinks() ;
+		open_snp_stats_sink( 0, m_snp_statistics ) ;
+		open_sample_stats_sink() ;
 	}
 	
 	std::auto_ptr< StrandSpecs > get_strand_specs( std::vector< std::string > const& filenames ) const {
@@ -2153,8 +2154,7 @@ private:
 		genfile::SimpleSNPDataSourceProcessor processor ;
 
 		if(
-			options().check_if_option_was_supplied( "-og" )
-			|| options().check_if_option_was_supplied( "-write-snp-excl-list" )
+			options().check_if_option_was_supplied( "-write-snp-excl-list" )
 			|| options().check_if_option_was_supplied( "-snp-stats-old" )
 			|| options().check_if_option_was_supplied( "-sample-stats-old" )
 			|| options().check_if_option_was_supplied( "-op" )
@@ -2240,6 +2240,13 @@ private:
 			processor.add_callback( *haplotype_frequency_component ) ;
 		}
 
+		if( options().check_if_option_was_supplied( "-og" ) ) {
+			SNPOutputComponent::setup(
+				context.get_cohort_individual_source(),
+				context.fltrd_in_snp_data_sink(),
+				processor
+			) ;
+		}
 		// Process it (but only if there was something to do) !
 		if( processor.get_callbacks().size() > 0 ) {
 			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Processing SNPs" ) ;

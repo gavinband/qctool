@@ -66,6 +66,12 @@ namespace genfile {
 		}
 
 	private:
+		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter name_getter ) {
+			for( std::size_t i = 0; i < m_sinks.size(); ++i ) {
+				m_sinks[i]->set_sample_names( number_of_samples, name_getter ) ;
+			}
+		}
+		
 		void write_snp_impl(
 			uint32_t number_of_samples,
 			std::string SNPID,

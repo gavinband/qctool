@@ -11,6 +11,7 @@
 
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSink.hpp"
+#include "genfile/CohortIndividualSource.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
 
 #include "ObjectSource.hpp"

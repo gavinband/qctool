@@ -118,7 +118,7 @@ CallComparerComponent::CallComparerComponent(
 	m_ui_context( ui_context )
 {}
 
-namespace impl {
+namespace {
 	genfile::VariantEntry get_sample_entry( genfile::CohortIndividualSource const& samples, std::string const& name, std::size_t i ) {
 		return samples.get_entry( i, name ) ;
 	}
@@ -170,11 +170,14 @@ void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor ) 
 				m_options.get< std::string >( "-consensus-call" )
 			).release()
 		) ;
-		sink->set_sample_names( boost::bind( impl::get_sample_entry, boost::ref( m_samples ), "ID_1", _1 ) ) ;
+		sink->set_sample_names(
+			m_samples.get_number_of_individuals(),
+			boost::bind( get_sample_entry, boost::ref( m_samples ), "ID_1", _1 )
+		) ;
 		consensus_caller = ConsensusCaller::create_shared( m_options.get< std::string >( "-consensus-model" ) ) ;
 		consensus_caller->send_results_to(
 			boost::bind(
-				&impl::send_results_to_sink,
+				&send_results_to_sink,
 				sink,
 				_1,
 				_2,

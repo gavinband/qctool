@@ -33,6 +33,7 @@ namespace genfile {
 
 	public:
 		operator bool() const ;
+		
 		void write_snp_impl(
 			uint32_t number_of_samples,
 			std::string SNPID,

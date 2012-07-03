@@ -43,6 +43,12 @@ QCTool::QCTool(
 {
 }
 
+namespace impl {
+	genfile::VariantEntry get_sample_entry( genfile::CohortIndividualSource const& samples, std::string const& name, std::size_t i ) {
+		return samples.get_entry( i, name ) ;
+	}
+}
+
 void QCTool::begin_processing_snps(
 	std::size_t number_of_samples
 ) {
