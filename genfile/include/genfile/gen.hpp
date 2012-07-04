@@ -162,9 +162,18 @@ namespace genfile {
 				std::getline( aStream, line ) ;
 				// count spaces.
 				std::string elt ;
+				double float_elt ;
 				std::istringstream instr( line ) ;
 				std::size_t count = 0 ;
-				for( ; instr >> elt; ++count ) ;
+				for( ; instr >> elt && count < 6; ++count ) ;
+				for( ; instr >> float_elt; ++count ) ;
+
+				if( !instr ) {
+					instr.peek() ;
+					if( !instr.eof() ) {
+						throw MalformedInputError( "(unknown)", 0 ) ;
+					}
+				}
 				if( count >= 5 && ( count - 5 ) % 3 == 0 ) {
 					// no chromosome column.
 					number_of_samples = ( count - 5 ) / 3 ;

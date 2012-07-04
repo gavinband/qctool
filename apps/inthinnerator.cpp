@@ -809,6 +809,7 @@ private:
 					>> chromosome
 					>> position
 			) {
+				// std::cerr << "Read SNP: " << SNPID << " " << rsid << " " << chromosome << " " << position << ".\n" ;
 				filtered_snps.push_back(
 					genfile::SNPIdentifyingData(
 						SNPID,
@@ -1162,7 +1163,16 @@ private:
 		std::string const& filename
 	) const {
 		using genfile::string_utils::to_string ;
-		std::vector< std::string > const output_columns = get_output_columns() ;
+		std::vector< std::string > output_columns = get_output_columns() ;
+
+		// remove crud we don't want in the output.
+		output_columns.erase( std::remove( output_columns.begin(), output_columns.end(), "rsid" ), output_columns.end() ) ;
+		output_columns.erase( std::remove( output_columns.begin(), output_columns.end(), "SNPID" ), output_columns.end() ) ;
+		output_columns.erase( std::remove( output_columns.begin(), output_columns.end(), "chromosome" ), output_columns.end() ) ;
+		output_columns.erase( std::remove( output_columns.begin(), output_columns.end(), "position" ), output_columns.end() ) ;
+		output_columns.erase( std::remove( output_columns.begin(), output_columns.end(), "allele1" ), output_columns.end() ) ;
+		output_columns.erase( std::remove( output_columns.begin(), output_columns.end(), "allele2" ), output_columns.end() ) ;
+
 		snp_summary_component::DBOutputter::UniquePtr
 			outputter = snp_summary_component::DBOutputter::create( filename, options().get< std::string >( "-analysis-name" ), options().get_values_as_map() ) ;
 
@@ -1198,7 +1208,7 @@ private:
 					snp_index,
 					snps[ snp_index ],
 					"inthinnerator",
-					"inthinneration " + to_string(N) + "/" + column_name,
+					"inthinnerator/" + to_string(N) + "/" + output_columns[j],
 					value
 				) ;
 			}
