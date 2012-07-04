@@ -1206,7 +1206,7 @@ private:
 				
 				outputter->operator()(
 					snp_index,
-					snps[ snp_index ],
+					snps[ *i],
 					"inthinnerator",
 					"inthinnerator/" + to_string(N) + "/" + output_columns[j],
 					value
