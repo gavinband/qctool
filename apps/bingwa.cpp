@@ -316,17 +316,15 @@ private:
 			// Just read the values we need
 			ColumnMap::right_const_iterator i = column_map.right.begin(), end_i = column_map.right.end() ;
 			double value ;
-			
-			if( !m_exclusion_test.get() || m_exclusion_test->operator()( snp, m_controls_maf( snp_index ), m_info( snp_index ))) {
-				m_snps[ snp_index ] = snp ;
+			for( ; i != end_i; ++i ) {
+				(*source)
+					>> statfile::ignore( i->first - source->current_column() )
+					>> value ;
+				store_value( snp_index, i->second, value ) ;
+			}
 
-				for( ; i != end_i; ++i ) {
-					(*source)
-						>> statfile::ignore( i->first - source->current_column() )
-						>> value ;
-					store_value( snp_index, i->second, value ) ;
-				}
-				++snp_index ;
+			if( !m_exclusion_test.get() || m_exclusion_test->operator()( snp, m_controls_maf( snp_index ), m_info( snp_index ))) {
+				m_snps[ snp_index++ ] = snp ;
 			}
 
 			if( progress_callback ) {
