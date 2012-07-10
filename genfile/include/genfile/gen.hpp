@@ -165,7 +165,7 @@ namespace genfile {
 				double float_elt ;
 				std::istringstream instr( line ) ;
 				std::size_t count = 0 ;
-				for( ; instr >> elt && count < 6; ++count ) ;
+				for( ; count < 6 && instr >> elt; ++count ) ;
 				for( ; instr >> float_elt; ++count ) ;
 
 				if( !instr ) {
