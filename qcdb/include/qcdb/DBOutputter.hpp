@@ -65,6 +65,7 @@ namespace qcdb {
 		db::Connection::StatementPtr m_insert_summarydata_statement ;
 		db::Connection::RowId m_analysis_id ;
 		db::Connection::RowId m_is_a ;
+		db::Connection::RowId m_used_by ;
 		db::Connection::RowId m_analysis ;
 
 		typedef boost::unordered_map< std::pair< std::string, std::string >, db::Connection::RowId > EntityMap ;
@@ -74,6 +75,12 @@ namespace qcdb {
 		void store_metadata() ;
 		void load_entities() ;
 		void create_entity_relationship( db::Connection::RowId entity1_id, db::Connection::RowId relationship_id, db::Connection::RowId entity2_id ) const ;
+		db::Connection::RowId get_or_create_entity_internal(
+			std::string const& name,
+			std::string const& description,
+			boost::optional< db::Connection::RowId > class_id = boost::optional< db::Connection::RowId >()
+		) const ;
+		
 	} ;
 }
 

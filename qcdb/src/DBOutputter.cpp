@@ -111,6 +111,13 @@ namespace qcdb {
 			"INNER JOIN Entity E2 "
 			"  ON E2.id = ER.entity2_id" 
 		) ;
+
+		m_connection->run_statement(
+			"CREATE VIEW IF NOT EXISTS AnalysisListView AS "
+			"SELECT ERV.* "
+			"FROM EntityRelationshipView ERV "
+			"WHERE ERV.relationship == 'is_a' AND ERV.entity2 == 'analysis'"
+		) ;
 	
 		m_connection->run_statement(
 			"CREATE VIEW IF NOT EXISTS SummaryDataView AS "
@@ -241,11 +248,12 @@ namespace qcdb {
 
 	void DBOutputter::store_metadata() {
 		load_entities() ;
-		m_is_a = get_or_create_entity( "is_a", "is_a relationship" ) ;
-		m_analysis = get_or_create_entity( "analysis", "class of analyses" ) ;
-		db::Connection::RowId const cmd_line_arg_id = get_or_create_entity( "command-line argument", "Value supplied to a script or executable" ) ;
+		m_is_a = get_or_create_entity_internal( "is_a", "is_a relationship" ) ;
+		m_used_by = get_or_create_entity_internal( "used_by", "used_by relationship" ) ;
+		m_analysis = get_or_create_entity_internal( "analysis", "class of analyses" ) ;
+		db::Connection::RowId const cmd_line_arg_id = get_or_create_entity_internal( "command-line argument", "Value supplied to a script or executable" ) ;
 
-		m_analysis_id = get_or_create_entity(
+		m_analysis_id = get_or_create_entity_internal(
 			m_analysis_name,
 			"qctool analysis, started " + appcontext::get_current_time_as_string(),
 			m_analysis
@@ -277,6 +285,29 @@ namespace qcdb {
 		stmnt->reset() ;
 	}
 
+	db::Connection::RowId DBOutputter::get_or_create_entity_internal( std::string const& name, std::string const& description, boost::optional< db::Connection::RowId > class_id ) const {
+		db::Connection::RowId result ;
+		EntityMap::const_iterator where = m_entity_map.find( std::make_pair( name, description )) ;
+		if( where != m_entity_map.end() ) {
+			result = where->second ;
+		}
+		else {
+			m_insert_entity_statement
+				->bind( 1, name )
+				.bind( 2, description )
+				.step() ;
+				
+			result = m_connection->get_last_insert_row_id() ;
+			m_entity_map.insert( std::make_pair( std::make_pair( name, description ), result ) ) ;
+			m_insert_entity_statement->reset() ;
+
+			if( class_id ) {
+				create_entity_relationship( result, m_is_a, *class_id ) ;
+			}
+		}
+		return result ;
+	}
+
 	db::Connection::RowId DBOutputter::get_or_create_entity( std::string const& name, std::string const& description, boost::optional< db::Connection::RowId > class_id ) const {
 		db::Connection::RowId result ;
 		EntityMap::const_iterator where = m_entity_map.find( std::make_pair( name, description )) ;
@@ -296,6 +327,7 @@ namespace qcdb {
 			if( class_id ) {
 				create_entity_relationship( result, m_is_a, *class_id ) ;
 			}
+			create_entity_relationship( result, m_used_by, m_analysis_id ) ;
 		}
 		return result ;
 	}
