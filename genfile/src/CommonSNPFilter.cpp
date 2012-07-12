@@ -15,6 +15,7 @@
 #include "genfile/ChromosomeInSetTest.hpp"
 #include "genfile/SNPIDMatchesTest.hpp"
 #include "genfile/SNPPositionInRangeTest.hpp"
+#include "genfile/PositionInListTest.hpp"
 #include "genfile/snp_data_utils.hpp"
 
 namespace genfile {
@@ -82,6 +83,10 @@ namespace genfile {
 	
 	SNPIdentifyingDataTest::UniquePtr CommonSNPFilter::construct_snp_inclusion_test( std::set< std::string > const& set, int fields ) {
 		SNPIdentifyingDataTest::UniquePtr test ;
+		std::set< GenomePosition > position_set ;
+		std::set< std::string >::const_iterator i = set.begin() ;
+		std::set< std::string >::const_iterator const end_i = set.end() ;
+		
 		switch( fields ) {
 			case RSIDs:
 				test.reset( new RSIDInListTest( set ) ) ;
@@ -91,6 +96,12 @@ namespace genfile {
 				break ;
 			case RSIDs | SNPIDs:
 				test.reset( new SNPIDFieldsInListTest( set ) ) ;
+				break ;
+			case Positions:
+				for( ; i != end_i; ++i ) {
+					position_set.insert( GenomePosition( *i ) ) ;
+				}
+				test.reset( new PositionInListTest( position_set )) ;
 				break ;
 			default:
 				assert(0) ;

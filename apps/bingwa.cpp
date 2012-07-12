@@ -579,6 +579,7 @@ struct PerCohortValueReporter: public AmetComputation {
 				Eigen::VectorXd counts ;
 				double pvalue ;
 				double info ;
+				double maf ;
 				data_getter.get_betas( i, &betas ) ;
 				data_getter.get_ses( i, &ses ) ;
 				data_getter.get_counts( i, &counts ) ;
@@ -587,11 +588,12 @@ struct PerCohortValueReporter: public AmetComputation {
 
 				assert( counts.size() == 4 ) ;
 				using genfile::string_utils::to_string ;
-				std::string prefix = "cohort " + to_string(i+1) + " (\"" + m_cohort_names[ i ] + "\"):" ;
+				std::string prefix = m_cohort_names[ i ] + ":" ;
 				callback( prefix + "AA", counts(0) ) ;
 				callback( prefix + "AB", counts(1) ) ;
 				callback( prefix + "BB", counts(2) ) ;
 				callback( prefix + "NULL", counts(3) ) ;
+				callback( prefix + "B_allele_frequency", ( 2.0 * counts(2) + counts(1) ) / ( 2.0 * counts.head(3).sum() ) ) ;
 				
 				assert( betas.size() == ses.size() ) ;
 				for( int j = 0; j < betas.size(); ++j ) {
@@ -879,7 +881,7 @@ AmetComputation::UniquePtr AmetComputation::create( std::string const& name, app
 		else {
 			names = options.get_values< std::string >( "-snptest" ) ;
 			for( std::size_t i = 0; i < names.size(); ++i ) {
-				names[i] = "file://" + names[i] ;
+				names[i] = "cohort " + genfile::string_utils::to_string( i + 1 ) + " (file://" + names[i] + ")" ;
 			}
 		}
 		result.reset( new PerCohortValueReporter( names ) ) ;
@@ -920,6 +922,16 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-incl-rsids" ]
 			.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.")
+			.set_takes_values_until_next_option() 
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-excl-positions" ]
+			.set_description( "Exclude all SNPs whose position is in the given file(s) from the analysis. "
+				"Positions should be in the form [chromosome]:[position] and separated by whitespace." )
+			.set_takes_values_until_next_option() 
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-incl-positions" ]
+			.set_description( "Exclude all SNPs whose position is not in the given file(s) from the analysis. "
+				"Positions should be in the form [chromosome]:[position] and separated by whitespace." )
 			.set_takes_values_until_next_option() 
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-excl-snps-matching" ]
@@ -1607,6 +1619,26 @@ public:
 					snp_filter->include_snps_in_file(
 						filename,
 						genfile::CommonSNPFilter::RSIDs
+					) ;
+				}
+			}
+
+			if( options().check_if_option_was_supplied( "-excl-positions" )) {
+				std::vector< std::string > files = options().get_values< std::string > ( "-excl-rsids" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					snp_filter->exclude_snps_in_file(
+						filename,
+						genfile::CommonSNPFilter::Positions
+					) ;
+				}
+			}
+
+			if( options().check_if_option_was_supplied( "-incl-positions" )) {
+				std::vector< std::string > files = options().get_values< std::string > ( "-incl-rsids" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					snp_filter->include_snps_in_file(
+						filename,
+						genfile::CommonSNPFilter::Positions
 					) ;
 				}
 			}
