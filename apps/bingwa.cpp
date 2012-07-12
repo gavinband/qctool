@@ -1624,7 +1624,7 @@ public:
 			}
 
 			if( options().check_if_option_was_supplied( "-excl-positions" )) {
-				std::vector< std::string > files = options().get_values< std::string > ( "-excl-rsids" ) ;
+				std::vector< std::string > files = options().get_values< std::string > ( "-excl-positions" ) ;
 				BOOST_FOREACH( std::string const& filename, files ) {
 					snp_filter->exclude_snps_in_file(
 						filename,
@@ -1634,7 +1634,7 @@ public:
 			}
 
 			if( options().check_if_option_was_supplied( "-incl-positions" )) {
-				std::vector< std::string > files = options().get_values< std::string > ( "-incl-rsids" ) ;
+				std::vector< std::string > files = options().get_values< std::string > ( "-incl-positions" ) ;
 				BOOST_FOREACH( std::string const& filename, files ) {
 					snp_filter->include_snps_in_file(
 						filename,
