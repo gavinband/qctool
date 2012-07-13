@@ -2845,6 +2845,9 @@ static void main_init(struct callback_data *data) {
   sqlite3_config(SQLITE_CONFIG_SINGLETHREAD);
 }
 
+// GB
+void* extension_functions_init( void ) ;
+
 int main(int argc, char **argv){
   char *zErrMsg = 0;
   struct callback_data data;
@@ -2852,6 +2855,9 @@ int main(int argc, char **argv){
   char *zFirstCmd = 0;
   int i;
   int rc = 0;
+
+  // GB: auto-load the extension functions.
+  sqlite3_auto_extension( (void(*)(void))extension_functions_init ); 
 
   if( strcmp(sqlite3_sourceid(),SQLITE_SOURCE_ID)!=0 ){
     fprintf(stderr, "SQLite header and source version mismatch\n%s\n%s\n",

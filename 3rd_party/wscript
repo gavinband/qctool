@@ -12,11 +12,20 @@ def build( bld ):
 		target = 'sqlite3',
 		source = [ 'sqlite3/sqlite3/sqlite3.c' ],
 		includes = 'sqlite3/',
-		defines = 'SQLITE_ENABLE_COLUMN_METADATA',
+		defines = 'SQLITE_ENABLE_COLUMN_METADATA SQLITE_ENABLE_STAT3',
 		uselib = 'DL',
 		export_incdirs = 'sqlite3'
 	)
 
+	bld(
+		features = 'cc cprogram',
+		target = 'qcdbtool',
+		source = [ 'sqlite3/sqlite3/shell.c', 'sqlite3/sqlite3/sqlite3.c', 'sqlite3/extensions/extension-functions.c' ],
+		includes = 'sqlite3/',
+		defines = 'SQLITE_ENABLE_COLUMN_METADATA SQLITE_ENABLE_STAT3 HAVE_READLINE',
+		uselib = 'DL READLINE',
+		export_incdirs = 'sqlite3'
+	)
 #	bld(
 #		features = 'cc cshlib',
 #		target = 'sqlite3-extensions',

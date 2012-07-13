@@ -68,6 +68,9 @@ def check_for_3rd_party_components( conf ):
 		conf.define( 'HAVE_PTHREAD', 1 )
 	elif conf.check_cxx( lib = 'pthread', uselib_store = "PTHREAD" ):
 		conf.define( 'HAVE_PTHREAD', 1 )
+	if conf.check_cc( lib = 'readline', uselib_store = 'READLINE' ):
+		conf.define( "HAVE_READLINE", 1 )
+
 
 def check_for_boost_components( conf ):
 	conf.check_tool( 'boost' )
