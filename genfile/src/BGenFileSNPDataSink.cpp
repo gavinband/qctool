@@ -77,11 +77,11 @@ namespace genfile {
 	std::auto_ptr< std::ostream >& BasicBGenFileSNPDataSink::stream_ptr() { return m_stream_ptr ; }
 	std::string const& BasicBGenFileSNPDataSink::filename() const { return m_filename ; }
 	
-	void BasicBGenFileSNPDataSink::write_header_data( std::ostream& stream ) {
+	void BasicBGenFileSNPDataSink::write_header_data( std::ostream& stream, std::size_t const number_of_samples ) {
 		bgen::write_header_block(
 			stream,
 			number_of_snps_written(),
-			number_of_samples(),
+			number_of_samples,
 			m_free_data,
 			m_flags
 		) ;
@@ -95,7 +95,7 @@ namespace genfile {
 	void BasicBGenFileSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) {
 		assert( sample_name_getter ) ;
 		assert( !m_have_written_header ) ;
-		write_header_data( *m_stream_ptr ) ;
+		write_header_data( *m_stream_ptr, number_of_samples ) ;
 		m_have_written_header = true ;
 	}
 
@@ -139,7 +139,7 @@ namespace genfile {
 			throw OutputError( filename() ) ;
 		}
 
-		write_header_data( *stream_ptr() ) ;
+		write_header_data( *stream_ptr(), number_of_samples() ) ;
 	}
 }
 

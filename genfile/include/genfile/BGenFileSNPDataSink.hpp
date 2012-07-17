@@ -64,7 +64,7 @@ namespace genfile {
 		std::auto_ptr< std::ostream >& stream_ptr() ;
 		std::string const& filename() const ;
 		
-		void write_header_data( std::ostream& stream ) ;
+		void write_header_data( std::ostream& stream, std::size_t const number_of_samples ) ;
 		
 	private:
 

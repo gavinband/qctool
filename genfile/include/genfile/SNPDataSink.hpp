@@ -79,7 +79,7 @@ namespace genfile {
 	public:
 		// return the number of samples represented in SNPs in the file.
 		// The value returned is undefined until after the first snp has been written.
-		uint32_t number_of_samples() const { assert( m_began_writing ) ; return m_number_of_samples ; }
+		uint32_t number_of_samples() const { assert( m_samples_have_been_set ) ; return m_number_of_samples ; }
 		// return the number of SNPs that have been written to the file so far.
 		std::size_t number_of_snps_written() const { return m_number_of_snps_written ; }
 
@@ -124,7 +124,7 @@ namespace genfile {
 	private:
 
 		uint32_t m_number_of_samples ;
-		bool m_began_writing ;
+		bool m_samples_have_been_set ;
 		std::size_t m_number_of_snps_written ;
 
 		SNPDataSink( SNPDataSink const& other ) ;
