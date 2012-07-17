@@ -57,6 +57,8 @@ namespace genfile {
 			Info const&
 		) ;
 
+		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) ;
+
 	protected:
 		// Other methods.
 		std::auto_ptr< std::ostream >& stream_ptr() ;
