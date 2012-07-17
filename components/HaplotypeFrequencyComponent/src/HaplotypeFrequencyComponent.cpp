@@ -34,10 +34,50 @@ void HaplotypeFrequencyComponent::declare_options( appcontext::OptionProcessor& 
 		.set_takes_single_value() ;
 	options[ "-max-ld-distance" ]
 		.set_description( "Maximum physical distance between SNPs, above which LD will not be computed. "
-			"A value of zero indicates LD between all SNPs will be computed." )
+			"A value of zero indicates LD between all SNPs will be computed. "
+			"A plain number indicates distance in base pairs, or you add a Mb or kb suffix to specify the "
+			"distance in megabases or kilobases if desired." )
 		.set_takes_single_value()
-		.set_default_value( 0 ) ;
+		.set_default_value( "0" ) ;
 	options.option_implies_option( "-compute-ld-with", "-odb" ) ;
+}
+
+namespace {
+	uint64_t parse_physical_distance( std::string distance ) {
+		std::size_t number_part_length = std::string::npos ;
+		uint64_t multiplier = 1 ;
+		// allowable suffixes are mb, kb, bp.
+		
+		if( distance.size() == 0 ) {
+			throw genfile::BadArgumentError( "parse_physical_distance()", "distance=\"" + distance + "\"" ) ;
+		}
+		
+		if( distance[ distance.size() - 1 ] != 'b' && distance[ distance.size() - 1 ] != 'b' ) {
+			// no suffix.
+			number_part_length = distance.size() ;
+			multiplier = 1 ;
+		}
+		else {
+			if( distance.size() < 3 ) {
+				throw genfile::BadArgumentError( "parse_physical_distance()", "distance=\"" + distance + "\"" ) ;
+			}
+			number_part_length = distance.size() - 2 ;
+			std::string suffix = genfile::string_utils::to_lower( distance.substr( distance.size() - 2, 2 ) ) ;
+			if( suffix == "bp" ) {
+				multiplier = 1 ;
+			} else if( suffix == "kb" ) {
+				multiplier = 1000 ;
+			} else if( suffix == "mb" ) {
+				multiplier = 1000000 ;
+			} else {
+				throw genfile::BadArgumentError( "parse_physical_distance()", "distance=\"" + distance + "\"" ) ;
+			}
+		}
+		
+		uint64_t const result = genfile::string_utils::to_repr< double >( distance.substr( 0, number_part_length ) ) * multiplier ;
+		std::cerr << "Parsed distance \"" + distance + "\" as " + genfile::string_utils::to_string( result ) + " base pairs.\n" ;
+		return result ;
+	}
 }
 
 HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
@@ -57,7 +97,7 @@ HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
 		)
 	) ;
 	
-	result->set_max_distance( options.get< uint64_t >( "-max-ld-distance" )) ;
+	result->set_max_distance( parse_physical_distance( options.get< std::string >( "-max-ld-distance" ))) ;
 
 	haplotype_frequency_component::DBOutputter::SharedPtr outputter = haplotype_frequency_component::DBOutputter::create_shared(
 		options.get_value< std::string >( "-odb" ),
