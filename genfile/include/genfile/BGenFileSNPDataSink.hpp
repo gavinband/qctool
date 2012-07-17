@@ -73,6 +73,7 @@ namespace genfile {
 		Metadata m_metadata ;
 		std::string const m_free_data ;
 		std::auto_ptr< std::ostream > m_stream_ptr ;
+		bool m_have_written_header ;
 		bgen::uint32_t m_flags ;
 	} ;
 

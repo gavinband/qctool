@@ -24,6 +24,7 @@ namespace genfile {
 		m_metadata( metadata ),
 		m_free_data( serialise( m_metadata )),
 		m_stream_ptr( open_binary_file_for_output( m_filename, compression_type ) ),
+		m_have_written_header( false ),
 		m_flags( flags )
 		
 	{
@@ -41,6 +42,7 @@ namespace genfile {
 		m_metadata( metadata ),
 		m_free_data( serialise( m_metadata )),
 		m_stream_ptr( stream_ptr ),
+		m_have_written_header( false ),
 		m_flags( flags )
 	{
 		setup() ;
@@ -67,6 +69,7 @@ namespace genfile {
 		GenotypeProbabilityGetter const& get_BB_probability,
 		Info const&
 	) {
+		assert( m_have_written_header ) ;
 		std::size_t id_field_size = std::min( std::max( SNPID.size(), RSID.size() ), static_cast< std::size_t >( 255 )) ;
 		bgen::write_snp_block( *stream_ptr(), m_flags, number_of_samples, id_field_size, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
 	}
@@ -87,7 +90,13 @@ namespace genfile {
 	void BasicBGenFileSNPDataSink::setup() {
 		bgen::uint32_t offset = bgen::get_header_block_size( m_free_data ) ;
 		bgen::write_offset( (*m_stream_ptr), offset ) ;
+	}
+
+	void BasicBGenFileSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) {
+		assert( sample_name_getter ) ;
+		assert( !m_have_written_header ) ;
 		write_header_data( *m_stream_ptr ) ;
+		m_have_written_header = true ;
 	}
 
 	std::string BasicBGenFileSNPDataSink::serialise( Metadata const& metadata ) const {
