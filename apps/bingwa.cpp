@@ -54,10 +54,11 @@ struct FrequentistGenomeWideAssociationResults: public boost::noncopyable {
 	virtual void get_pvalue( std::size_t snp_i, double* result ) const = 0 ;
 	virtual void get_counts( std::size_t snp_i, Eigen::VectorXd* result ) const = 0 ;
 	virtual void get_info( std::size_t snp_i, double* result ) const = 0 ;
-	virtual void get_maf_in_controls( std::size_t snp_i, double* result ) const = 0 ;
+	virtual void get_frequency( std::size_t snp_i, double* result ) const = 0 ;
+	virtual void get_type( std::size_t snp_i, genfile::VariantEntry* result ) const = 0 ;
 	virtual std::string get_summary( std::string const& prefix = "", std::size_t target_column = 80 ) const = 0;
 
-	// Legacy function: this should be removed.
+	// Legacy function: this should probably be removed.
 	void get_SNPs( SNPCallback callback ) const {
 		for( std::size_t i = 0; i < get_number_of_SNPs(); ++i ) {
 			callback( i, get_SNP( i ) ) ;
@@ -225,8 +226,12 @@ struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 	void get_info( std::size_t snp_i, double* result ) const {
 		*result = m_info( snp_i ) ;
 	}
-	void get_maf_in_controls( std::size_t snp_i, double* result ) const {
-		*result = m_controls_maf( snp_i ) ;
+	void get_frequency( std::size_t snp_i, double* result ) const {
+		*result = ( 2.0 * m_sample_counts( snp_i, 2 ) + m_sample_counts( snp_i, 1 ) ) / ( 2.0 * m_sample_counts.row( snp_i ).sum() ) ;
+	}
+	void get_type( std::size_t snp_i, genfile::VariantEntry* result ) const {
+		assert( result ) ;
+		*result = genfile::MissingValue() ;
 	}
 
 	std::string get_summary( std::string const& prefix, std::size_t target_column ) const {
@@ -448,92 +453,6 @@ private:
 		}
 	}
 } ;
-
-#if 0
-struct FilteringGenomeWideAssociationResults: public FrequentistGenomeWideAssociationResults {
-	FilteringGenomeWideAssociationResults(
-		FrequentistGenomeWideAssociationResults::UniquePtr source,
-		SNPExclusionTest::UniquePtr test
-	):
-		m_source( source ),
-		m_test( test )
-	{
-		assert( m_test.get() ) ;
-		link_indices() ;
-	}
-
-	// typedef boost::function< void ( std::size_t i, genfile::SNPIdentifyingData2 const& snp ) > SNPCallback ;
-
-	std::size_t get_number_of_SNPs() const {
-		return m_links.size() ;
-	}
-	
-	genfile::SNPIdentifyingData2 const& get_SNP( std::size_t snp_i ) const {
-		assert( snp_i < m_links.size() ) ;
-		return m_source->get_SNP( m_links[ snp_i ] ) ;
-	}
-
-	void get_betas( std::size_t snp_i, Eigen::VectorXd* result ) const {
-		assert( snp_i < m_links.size() ) ;
-		return m_source->get_betas( m_links[ snp_i ], result ) ;
-	} ;
-	void get_ses( std::size_t snp_i, Eigen::VectorXd* result ) const {
-		assert( snp_i < m_links.size() ) ;
-		return m_source->get_ses( m_links[ snp_i ], result ) ;
-	}
-	void get_pvalue( std::size_t snp_i, double* result ) const {
-		assert( snp_i < m_links.size() ) ;
-		return m_source->get_pvalue( m_links[ snp_i ], result ) ;
-	}
-	void get_counts( std::size_t snp_i, Eigen::VectorXd* result ) const {
-		assert( snp_i < m_links.size() ) ;
-		return m_source->get_counts( m_links[ snp_i ], result ) ;
-	}
-	void get_info( std::size_t snp_i, double* result ) const {
-		assert( snp_i < m_links.size() ) ;
-		return m_source->get_info( m_links[ snp_i ], result ) ;
-	}
-	void get_maf_in_controls( std::size_t snp_i, double* result ) const {
-		assert( snp_i < m_links.size() ) ;
-		return m_source->get_maf_in_controls( m_links[ snp_i ], result ) ;
-	}
-	std::string get_summary( std::string const& prefix = "", std::size_t target_column = 80 ) const {
-		std::string result
-			= prefix
-			+ "FilteringGenomeWideAssociationResults ("
-			+ genfile::string_utils::to_string( m_links.size() )
-			+ " SNPs, filtered from "
-			+ m_source->get_summary( "", target_column )
-			+ ".\n" ;
-		result
-			+= prefix
-			+ "   using SNP filter "
-			+ m_test->get_summary( "", 100 )
-			+ "." ;
-		return result ;
-	}
-	
-private:
-	FrequentistGenomeWideAssociationResults::UniquePtr m_source ;
-	SNPExclusionTest::UniquePtr m_test ;
-	std::vector< std::size_t > m_links ;
-private:
-	
-	// populate the link between our filtered SNP indices and the indices in the base source.
-	void link_indices() {
-		std::size_t const N = m_source->get_number_of_SNPs() ;
-		m_links.reserve( N ) ;
-		std::size_t m_i = 0 ;
-		for( std::size_t snp_i = 0; snp_i < N; ++snp_i ) {
-			if( (*m_test)( *m_source, snp_i ) ) {
-				m_links.resize( m_i + 1 ) ;
-				m_links[ m_i ] = snp_i ;
-				++m_i ;
-			}
-		}
-	}
-} ;
-#endif
 
 struct AmetComputation: public boost::noncopyable {
 	typedef std::auto_ptr< AmetComputation > UniquePtr ;
@@ -1014,13 +933,12 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 		options.declare_group( "Analysis options" ) ;
 		
 		options[ "-prior-correlation" ]
-			.set_description( "Specify a correlation matrix of the form\n"
+			.set_description( "Specify the between-cohort prior correlation, denoted r, giving a correlation matrix of the form\n"
 				"   [ 1 r r  .. ]\n"
 				"   [ r 1 r  .. ]\n"
 				"   [ r r 1  .. ]\n"
 				"   [       .   ]\n"
 				"   [         . ]\n"
-				" where r denotes the between-cohort correlation."
 			)
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
@@ -1118,10 +1036,10 @@ struct AmetProcessor: public boost::noncopyable
 			ui_context.logger() << "\n   - First few SNPs are:\n" ;
 			for( std::size_t snp_i = 0; snp_i < std::min( std::size_t( 5 ), m_cohorts[i].get_number_of_SNPs() ); ++snp_i ) {
 				double info ;
-				double maf ;
+				double frequency ;
 				m_cohorts[i].get_info( snp_i, &info ) ;
-				m_cohorts[i].get_maf_in_controls( snp_i, &maf ) ;
-				ui_context.logger() << "     " << m_cohorts[i].get_SNP( snp_i ) << " (maf = " << maf << ", info = " << info << ")\n";
+				m_cohorts[i].get_frequency( snp_i, &frequency ) ;
+				ui_context.logger() << "     " << m_cohorts[i].get_SNP( snp_i ) << " (frequency = " << frequency << ", info = " << info << ")\n";
 			}
 		}
 		
