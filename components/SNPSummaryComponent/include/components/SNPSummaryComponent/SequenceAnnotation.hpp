@@ -20,12 +20,11 @@ struct SequenceAnnotation: public SNPSummaryComputation
 	typedef std::auto_ptr< SequenceAnnotation > UniquePtr ;
 	
 	typedef boost::function< void ( std::size_t, boost::optional< std::size_t > ) > ProgressCallback ;
-	SequenceAnnotation( std::string const& fasta_filename, ProgressCallback ) ;
+	SequenceAnnotation( std::string const& annotation_name, std::string const& fasta_filename, ProgressCallback ) ;
 	void operator()( SNPIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
 
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 	
-<<<<<<< local
 	void set_flanking( std::size_t left, std::size_t right ) ;
 private:
 	std::string const m_annotation_name ;

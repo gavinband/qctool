@@ -48,17 +48,6 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_takes_single_value()
 		.set_default_value( "" ) ;
 	
-<<<<<<< local
-=======
-	options[ "-annotate" ]
-		.set_description( "Specify a FASTA-formatted file containing a genome sequence to annotate variants with." )
-		.set_takes_single_value() ;
-
-	options[ "-flanking" ]
-		.set_description( "Specify the length of left- and right- flanking sequences to annotate variants with." )
-		.set_takes_values_per_use( 2 ) ;
-
->>>>>>> other
 	options[ "-stratify" ]
 		.set_description( "Compute all SNP summary statistics seperately for each level of the given variable in the sample file." )
 		.set_takes_single_value() ;
@@ -77,7 +66,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options[ "-flanking" ]
 		.set_description( "Specify that flanking sequence annotations [ pos - a, pos + b ] should be output when using "
 			"-annotate-reference and -annotate-ancestral" )
-		.set_takes_values_per_use( 2 )
+		.set_takes_values( 2 )
 		.set_minimum_multiplicity( 0 )
 		.set_maximum_multiplicity( 1 ) ;
 
@@ -219,8 +208,8 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 			new SequenceAnnotation( "ancestral", m_options.get< std::string >( "-annotate-ancestral" ), progress )
 		) ;
 		
-		if( options.check( "-flanking" )) {
-			std::vector< std::size_t > data = options.get_values< std::size_t >( "-flanking" ) ;
+		if( m_options.check( "-flanking" )) {
+			std::vector< std::size_t > data = m_options.get_values< std::size_t >( "-flanking" ) ;
 			assert( data.size() == 2 ) ;
 			computation->set_flanking( data[0], data[1] ) ;
 		}
@@ -239,8 +228,8 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 			new SequenceAnnotation( "reference", m_options.get< std::string >( "-annotate-reference" ), progress )
 		) ;
 		
-		if( options.check( "-flanking" )) {
-			std::vector< std::size_t > data = options.get_values< std::size_t >( "-flanking" ) ;
+		if( m_options.check( "-flanking" )) {
+			std::vector< std::size_t > data = m_options.get_values< std::size_t >( "-flanking" ) ;
 			assert( data.size() == 2 ) ;
 			computation->set_flanking( data[0], data[1] ) ;
 		}
