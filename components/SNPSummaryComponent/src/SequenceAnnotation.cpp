@@ -169,10 +169,10 @@ void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes co
 					std::ostream_iterator< char >( flank )
 				) ;
 				flank << "[" << allele ;
-				if( snp.get_first_allele() == allele ) {
+				if( to_upper( snp.get_first_allele() ) == to_upper( allele ) ) {
 					flank << "/" << snp.get_second_allele() ;
 				}
-				else if( snp.get_second_allele() == allele ) {
+				else if( to_upper( snp.get_second_allele() ) == to_upper( allele ) ) {
 					flank << "/" << snp.get_first_allele() ;
 				}
 				else {
