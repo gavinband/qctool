@@ -155,7 +155,7 @@ void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes co
 				//std::cerr << snp << ": ancestral allele is " << std::string( 1, allele ) << ".\n";
 				callback( m_annotation_name + "_allele", allele ) ;
 				if( to_upper( allele ) != snp.get_first_allele() && to_upper( allele ) != snp.get_second_allele() ) {
-					callback( m_annotation_name + "_warning", m_annotation_name + " allele / does not match the current variant" ) ;
+					callback( m_annotation_name + "_allele_warning", m_annotation_name + " allele does not match the variant alleles; is strand alignment required?" ) ;
 				}
 			}
 		
