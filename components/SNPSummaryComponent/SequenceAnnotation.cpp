@@ -5,20 +5,23 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include <fstream>
+#include <utility>
 #include <boost/optional.hpp>
 #include "genfile/FileUtils.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/string_utils/slice.hpp"
-#include "components/SNPSummaryComponent/AncestralAlleleAnnotation.hpp"
+#include "components/SNPSummaryComponent/SequenceAnnotation.hpp"
 
-AncestralAlleleAnnotation::AncestralAlleleAnnotation( std::string const& fasta_filename, ProgressCallback callback ):
+SequenceAnnotation::SequenceAnnotation( std::string const& annotation_name, std::string const& fasta_filename, ProgressCallback callback ):
+	m_annotation_name( annotation_name ),
 	m_fasta_filename( fasta_filename ),
-	m_filenames( genfile::wildcard::find_files_by_chromosome( fasta_filename ) )
+	m_filenames( genfile::wildcard::find_files_by_chromosome( fasta_filename ) ),
+	m_flanking( std::make_pair( 0, 0 ))
 {
 	load_sequence( m_filenames, &m_sequence, callback ) ;
 }
 
-void AncestralAlleleAnnotation::load_sequence( std::vector< genfile::wildcard::FilenameMatch > const& files, Sequence* sequence, ProgressCallback callback ) {
+void SequenceAnnotation::load_sequence( std::vector< genfile::wildcard::FilenameMatch > const& files, Sequence* sequence, ProgressCallback callback ) {
 	assert( sequence ) ;
 	for( std::size_t i = 0; i < files.size(); ++i ) {
 		ChromosomeRangeAndSequence data ;
@@ -36,7 +39,7 @@ void AncestralAlleleAnnotation::load_sequence( std::vector< genfile::wildcard::F
 	}
 }
 
-void AncestralAlleleAnnotation::load_sequence( genfile::wildcard::FilenameMatch const& file, Chromosome* chromosome, ChromosomeSequence* sequence, std::pair< std::size_t, std::size_t >* limits ) {
+void SequenceAnnotation::load_sequence( genfile::wildcard::FilenameMatch const& file, Chromosome* chromosome, ChromosomeSequence* sequence, std::pair< std::size_t, std::size_t >* limits ) {
 	assert( sequence ) ;
 	assert( sequence->empty() ) ;
 	// read header
@@ -78,10 +81,10 @@ void AncestralAlleleAnnotation::load_sequence( genfile::wildcard::FilenameMatch 
 		m_build = build ;
 	}
 	else if( m_organism != organism ) {
-		throw genfile::MismatchError( "AncestralAlleleAnnotation::load_sequence()", m_fasta_filename, "organism=\"" + m_organism + "\"", "organism=\"" + organism + "\"" ) ;
+		throw genfile::MismatchError( "SequenceAnnotation::load_sequence()", m_fasta_filename, "organism=\"" + m_organism + "\"", "organism=\"" + organism + "\"" ) ;
 	}
 	else if( m_build != build ) {
-		throw genfile::MismatchError( "AncestralAlleleAnnotation::load_sequence()", m_fasta_filename, "build=\"" + m_build + "\"", "build=\"" + build + "\"" ) ;
+		throw genfile::MismatchError( "SequenceAnnotation::load_sequence()", m_fasta_filename, "build=\"" + m_build + "\"", "build=\"" + build + "\"" ) ;
 	}
 
 	(*limits) = read_limits ;
@@ -112,8 +115,8 @@ void AncestralAlleleAnnotation::load_sequence( genfile::wildcard::FilenameMatch 
 	}
 }
 
-std::string AncestralAlleleAnnotation::get_summary( std::string const& prefix, std::size_t column_width ) const {
-	std::string result = prefix + "AncestralAlleleAnnotation: loaded ancestral sequence for the following regions:\n" ;
+std::string SequenceAnnotation::get_summary( std::string const& prefix, std::size_t column_width ) const {
+	std::string result = prefix + "SequenceAnnotation: loaded ancestral sequence for the following regions:\n" ;
 	using genfile::string_utils::to_string ;
 	std::size_t count = 0 ;
 	for( Sequence::const_iterator i = m_sequence.begin(); i != m_sequence.end(); ++i, ++count ) {
@@ -131,32 +134,59 @@ std::string AncestralAlleleAnnotation::get_summary( std::string const& prefix, s
 	return result ;
 }
 
-void AncestralAlleleAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const&, genfile::VariantDataReader&, ResultCallback callback ) {
+void SequenceAnnotation::set_flanking( std::size_t left, std::size_t right ) {
+	m_flanking.first = left ;
+	m_flanking.second = right ;
+}
+
+void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const&, genfile::VariantDataReader&, ResultCallback callback ) {
 	using namespace genfile::string_utils ;
 	Sequence::const_iterator where = m_sequence.find( snp.get_position().chromosome() ) ;
 	if( where != m_sequence.end() ) {
 		genfile::Position pos = snp.get_position().position() ;
-		if( pos >= where->second.first.first && pos <= where->second.first.second ) {
-			std::string allele( 1, where->second.second[ pos - where->second.first.first ] ) ;
+		std::size_t const start = where->second.first.first ;
+		std::size_t const end = where->second.first.second ;
+		if( pos >= start && pos <= end ) {
+			std::string allele( 1, where->second.second[ pos - start ] ) ;
 			if( allele != "." ) {
 				//std::cerr << snp << ": ancestral allele is " << std::string( 1, allele ) << ".\n";
-				callback( "ancestral_allele", allele ) ;
-				
-				std::string const upper_case_allele = to_upper( allele ) ;
-				
-				if( upper_case_allele == snp.get_first_allele() ) {
-					callback( "derived_allele", ( upper_case_allele == allele ) ? snp.get_second_allele() : to_lower( snp.get_second_allele() )) ;
-					double const ancestral_allele_freq = ( ( 2.0 * genotypes.col(0).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
-					double const derived_allele_freq = ( ( 2.0 * genotypes.col(2).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
-					callback( "ancestral_allele_frequency", ancestral_allele_freq ) ;
-					callback( "derived_allele_frequency", derived_allele_freq ) ;
-				} else if( upper_case_allele == snp.get_second_allele() ) {
-					callback( "derived_allele", ( upper_case_allele == allele ) ? snp.get_first_allele() : to_lower( snp.get_first_allele() )) ;
-					double const derived_allele_freq = ( ( 2.0 * genotypes.col(0).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
-					double const ancestral_allele_freq = ( ( 2.0 * genotypes.col(2).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
-					callback( "derived_allele_frequency", derived_allele_freq ) ;
-					callback( "ancestral_allele_frequency", ancestral_allele_freq ) ;
+				callback( m_annotation_name + "_allele", allele ) ;
+			}
+		
+			if( m_flanking.first > 0 || m_flanking.second > 0 ) {
+				std::size_t const left_flanking_start = pos - std::min( pos, m_flanking.first ) ;
+				std::size_t const left_flanking_end = pos ;
+				std::size_t const right_flanking_start = pos + std::min( end - pos, 1 ) ;
+				std::size_t const flanking_end = pos + std::min( end - pos, m_flanking.second ) ;
+				// Figure out which of our alleles is the reference
+				std::ostringstream flank ;
+				std::copy(
+					where->second.second.begin() + left_flanking_start - start ),
+					where->second.second.begin() + left_flanking_end - start ),
+					boost::ostream_iterator<>( flank )
+				) ;
+				flank << "[" << allele ;
+				if( snp.get_first_allele() == allele ) {
+					flank << "/" << snp.get_second_allele() ;
 				}
+				else if( snp.get_second_allele() == allele ) {
+					flank << "/" << snp.get_first_allele() ;
+				}
+				else {
+					flank << "/" << snp.get_first_allele() << "/" << snp.get_second_allele() ;
+				}
+				flank << "]" ;
+				std::copy(
+					where->second.second.begin() + right_flanking_start - start ),
+					where->second.second.begin() + right_flanking_end - start ),
+					boost::ostream_iterator<>( flank )
+				) ;
+					
+				
+				callback(
+					m_annotation_name + "_flanking_sequence",
+					flank.str()
+				) ;
 			}
 		}
 	}

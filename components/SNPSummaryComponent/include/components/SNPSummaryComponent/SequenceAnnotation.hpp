@@ -4,9 +4,10 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef QCTOOL_SNP_SUMMARY_COMPONENT_ANCESTRAL_ALLELE_ANNOTATION_HPP
-#define QCTOOL_SNP_SUMMARY_COMPONENT_ANCESTRAL_ALLELE_ANNOTATION_HPP
+#ifndef QCTOOL_SNP_SUMMARY_COMPONENT_SEQUENCE_ANNOTATION_HPP
+#define QCTOOL_SNP_SUMMARY_COMPONENT_SEQUENCE_ANNOTATION_HPP
 
+#include <utility>
 #include <map>
 #include <deque>
 #include <boost/function.hpp>
@@ -14,16 +15,20 @@
 #include "genfile/Chromosome.hpp"
 #include "genfile/wildcard.hpp"
 
-struct AncestralAlleleAnnotation: public SNPSummaryComputation
+struct SequenceAnnotation: public SNPSummaryComputation
 {
+	typedef std::auto_ptr< SequenceAnnotation > UniquePtr ;
+	
 	typedef boost::function< void ( std::size_t, boost::optional< std::size_t > ) > ProgressCallback ;
-	AncestralAlleleAnnotation( std::string const& fasta_filename, ProgressCallback ) ;
+	SequenceAnnotation( std::string const& fasta_filename, ProgressCallback ) ;
 	void operator()( SNPIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
 
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 	
-	void set_flanking_length( std::size_t left_flanking, std::size_t right_flanking ) ;
+<<<<<<< local
+	void set_flanking( std::size_t left, std::size_t right ) ;
 private:
+	std::string const m_annotation_name ;
 	std::string const m_fasta_filename ;
 	std::vector< genfile::wildcard::FilenameMatch > const m_filenames ;
 	typedef std::deque< char > ChromosomeSequence ;
@@ -31,6 +36,7 @@ private:
 	typedef std::pair< std::pair< std::size_t, std::size_t >, ChromosomeSequence > ChromosomeRangeAndSequence ;
 	typedef std::map< Chromosome, ChromosomeRangeAndSequence > Sequence ;
 	Sequence m_sequence ;
+	std::pair< std::size_t, std::size_t > m_flanking ;
 
 	std::string m_organism ;
 	std::string m_build ;

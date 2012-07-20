@@ -20,7 +20,7 @@
 #include "components/SNPSummaryComponent/DBOutputter.hpp"
 #include "components/SNPSummaryComponent/FileOutputter.hpp"
 #include "components/SNPSummaryComponent/AssociationTest.hpp"
-#include "components/SNPSummaryComponent/AncestralAlleleAnnotation.hpp"
+#include "components/SNPSummaryComponent/SequenceAnnotation.hpp"
 #include "components/SNPSummaryComponent/DifferentialMissingnessComputation.hpp"
 #include "components/SNPSummaryComponent/StratifyingSNPSummaryComputation.hpp"
 
@@ -48,6 +48,8 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_takes_single_value()
 		.set_default_value( "" ) ;
 	
+<<<<<<< local
+=======
 	options[ "-annotate" ]
 		.set_description( "Specify a FASTA-formatted file containing a genome sequence to annotate variants with." )
 		.set_takes_single_value() ;
@@ -56,6 +58,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_description( "Specify the length of left- and right- flanking sequences to annotate variants with." )
 		.set_takes_values_per_use( 2 ) ;
 
+>>>>>>> other
 	options[ "-stratify" ]
 		.set_description( "Compute all SNP summary statistics seperately for each level of the given variable in the sample file." )
 		.set_takes_single_value() ;
@@ -63,6 +66,21 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options[ "-differential" ]
 		.set_description( "Test for differences in SNP summary statistics between the categories of the given variable.  Currently a test for differential missingness is performed." )
 		.set_takes_single_value() ;
+	
+	options.declare_group( "Sequence annotation options" ) ;
+	options[ "-annotate-ancestral" ]
+		.set_description( "Specify a FASTA-formatted file containing ancestral alleles to annotate variants with." )
+		.set_takes_single_value() ;
+	options[ "-annotate-reference" ]
+		.set_description( "Specify a FASTA-formatted file containing ancestral alleles to annotate variants with." )
+		.set_takes_single_value() ;
+	options[ "-flanking" ]
+		.set_description( "Specify that flanking sequence annotations [ pos - a, pos + b ] should be output when using "
+			"-annotate-reference and -annotate-ancestral" )
+		.set_takes_values_per_use( 2 )
+		.set_minimum_multiplicity( 0 )
+		.set_maximum_multiplicity( 1 ) ;
+
 	
 	options.option_implies_option( "-snp-stats", "-g" ) ;
 	options.option_implies_option( "-annotate", "-g" ) ;
@@ -195,19 +213,42 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		}
 	}
 
-	if( m_options.check( "-annotate" )) {
-		appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading genome sequence" ) ;
-		AncestralAlleleAnnotation::UniquePtr computation(
-			new AncestralAlleleAnnotation( m_options.get< std::string >( "-annotate" ), progress )
+	if( m_options.check( "-annotate-ancestral" )) {
+		appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading ancestral sequence" ) ;
+		SequenceAnnotation::UniquePtr computation(
+			new SequenceAnnotation( "ancestral", m_options.get< std::string >( "-annotate-ancestral" ), progress )
 		) ;
-		if( m_options.check( "-flanking" )) {
-			std::vector< std::size_t > flank = m_options.get_values< std::size_t >( "-flanking" ) ; 
-			computation->set_flanking_length( flank[0], flank[1] ) ;
+		
+		if( options.check( "-flanking" )) {
+			std::vector< std::size_t > data = options.get_values< std::size_t >( "-flanking" ) ;
+			assert( data.size() == 2 ) ;
+			computation->set_flanking( data[0], data[1] ) ;
 		}
+
 		manager.add_computation(
-			"sequence_annotation",
+			"ancestral_sequence",
 			SNPSummaryComputation::UniquePtr(
-				computation->release()
+				computation.release()
+			)
+		) ;
+	}
+
+	if( m_options.check( "-annotate-reference" )) {
+		appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading reference sequence" ) ;
+		SequenceAnnotation::UniquePtr computation(
+			new SequenceAnnotation( "reference", m_options.get< std::string >( "-annotate-reference" ), progress )
+		) ;
+		
+		if( options.check( "-flanking" )) {
+			std::vector< std::size_t > data = options.get_values< std::size_t >( "-flanking" ) ;
+			assert( data.size() == 2 ) ;
+			computation->set_flanking( data[0], data[1] ) ;
+		}
+		
+		manager.add_computation(
+			"reference_sequence",
+			SNPSummaryComputation::UniquePtr(
+				computation.release()
 			)
 		) ;
 	}
