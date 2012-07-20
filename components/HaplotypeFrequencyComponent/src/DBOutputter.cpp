@@ -18,17 +18,21 @@ namespace haplotype_frequency_component {
 		db::Connection::ScopedTransactionPtr transaction = connection().open_transaction() ;
 		connection().run_statement(
 			"CREATE TABLE IF NOT EXISTS PairwiseSummaryData ( "
+			"analysis_id INT NOT NULL, "
 			"variant1_id INT NOT NULL, "
 			"variant2_id INT NOT NULL, "
-			"analysis_id INT NOT NULL, "
 			"variable_id INT NOT NULL, "
 			"value NULL, "
+			"FOREIGN KEY( analysis_id ) REFERENCES Entity( id ), "
 			"FOREIGN KEY( variant1_id ) REFERENCES Variant( id ), "
 			"FOREIGN KEY( variant2_id ) REFERENCES Variant( id ), "
-			"FOREIGN KEY( analysis_id ) REFERENCES Entity( id ), "
 			"FOREIGN KEY( variable_id ) REFERENCES Entity( id ), "
 			"UNIQUE( variant1_id, variant2_id, analysis_id, variable_id ) "
 			")"
+		) ;
+		// Typical use is to look for all SNPs in r^2 with a given one, so add an index for this.
+		connection().run_statement(
+			"CREATE INDEX PairwiseSummaryDataIndex ON PairwiseSummaryData( analysis_id, variant1_id, variable_id )"
 		) ;
 		connection().run_statement(
 			"CREATE VIEW IF NOT EXISTS PairwiseSummaryDataView AS "
@@ -43,10 +47,6 @@ namespace haplotype_frequency_component {
 			"INNER JOIN Variant V2 ON V2.id == PSD.variant2_id "
 			"INNER JOIN Entity Analysis ON Analysis.id == PSD.analysis_id "
 			"INNER JOIN Entity Variable ON Variable.id == PSD.variable_id "
-		) ;
-		
-		connection().run_statement(
-			"CREATE INDEX IF NOT EXISTS PairwiseSummaryDataIndex ON PairwiseSummaryData( variant1_id, variant2_id, analysis_id )"
 		) ;
 		
 		m_variable_class_id = get_or_create_entity( "per-variant pair variable", "per-variant pair variable values" ) ; 
@@ -80,7 +80,7 @@ namespace haplotype_frequency_component {
 
 	void DBOutputter::construct_statements() {
 		m_insert_summarydata_statement = connection().get_statement(
-			"INSERT OR REPLACE INTO PairwiseSummaryData ( variant1_id, variant2_id, analysis_id, variable_id, value ) "
+			"INSERT OR REPLACE INTO PairwiseSummaryData (  analysis_id, variant1_id, variant2_id, variable_id, value ) "
 			"VALUES( ?1, ?2, ?3, ?4, ?5 )"
 		) ;
 	}
@@ -128,9 +128,9 @@ namespace haplotype_frequency_component {
 		genfile::VariantEntry const& value
 	) {
 		m_insert_summarydata_statement
-			->bind( 1, variant1_id )
-			.bind( 2, variant2_id )
-			.bind( 3, analysis_id )
+			->bind( 1, analysis_id )
+			.bind( 2, variant1_id )
+			.bind( 3, variant2_id )
 			.bind( 4, variable_id )
 			.bind( 5, value )
 			.step() ;

@@ -43,7 +43,7 @@ namespace genfile {
 	}
 	
 	SNPDataSink::SNPDataSink():
-		m_number_of_samples(0u), m_number_of_snps_written(0u), m_began_writing( false )
+		m_number_of_samples(0u), m_samples_have_been_set( false ), m_number_of_snps_written(0u)
 	{}
 
 	SNPDataSink::~SNPDataSink()
@@ -52,7 +52,7 @@ namespace genfile {
 	SNPDataSink& SNPDataSink::set_sample_names( std::size_t number_of_samples, SampleNameGetter name_getter ) {
 		set_sample_names_impl( number_of_samples, name_getter ) ;
 		if( *this ) {
-			m_began_writing = (*this) ;
+			m_samples_have_been_set = (*this) ;
 			m_number_of_samples = number_of_samples ;
 		}
 		return (*this) ;
@@ -94,7 +94,7 @@ namespace genfile {
 		GenotypeProbabilityGetter const& get_BB_probability,
 		Info const& info
 	) {
-		assert( m_began_writing ) ;
+		assert( m_samples_have_been_set ) ;
 		assert( number_of_samples == m_number_of_samples ) ;
 		write_snp_impl( number_of_samples, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability, info ) ;
 		if( *this ) {

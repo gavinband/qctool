@@ -49,8 +49,12 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_default_value( "" ) ;
 	
 	options[ "-annotate" ]
-		.set_description( "Specify a FASTA-formatted file containing ancestral alleles to annotate variants with." )
+		.set_description( "Specify a FASTA-formatted file containing a genome sequence to annotate variants with." )
 		.set_takes_single_value() ;
+
+	options[ "-flanking" ]
+		.set_description( "Specify the length of left- and right- flanking sequences to annotate variants with." )
+		.set_takes_values_per_use( 2 ) ;
 
 	options[ "-stratify" ]
 		.set_description( "Compute all SNP summary statistics seperately for each level of the given variable in the sample file." )
@@ -62,6 +66,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	
 	options.option_implies_option( "-snp-stats", "-g" ) ;
 	options.option_implies_option( "-annotate", "-g" ) ;
+	options.option_implies_option( "-flanking", "-annotate" ) ;
 	options.option_implies_option( "-test", "-g" ) ;
 	options.option_implies_option( "-test", "-s" ) ;
 	options.option_implies_option( "-stratify", "-s" ) ;
@@ -191,15 +196,22 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 	}
 
 	if( m_options.check( "-annotate" )) {
-		appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading FASTA annotation" ) ;
+		appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading genome sequence" ) ;
+		AncestralAlleleAnnotation::UniquePtr computation(
+			new AncestralAlleleAnnotation( m_options.get< std::string >( "-annotate" ), progress )
+		) ;
+		if( m_options.check( "-flanking" )) {
+			std::vector< std::size_t > flank = m_options.get_values< std::size_t >( "-flanking" ) ; 
+			computation->set_flanking_length( flank[0], flank[1] ) ;
+		}
 		manager.add_computation(
-			"ancestral_alleles",
+			"sequence_annotation",
 			SNPSummaryComputation::UniquePtr(
-				new AncestralAlleleAnnotation( m_options.get< std::string >( "-annotate" ), progress )
+				computation->release()
 			)
 		) ;
 	}
-	
+
 	if( m_options.check( "-differential" )) {
 		std::string const variable = m_options.get< std::string >( "-differential" ) ;
 		impl::StrataMembers strata = impl::compute_strata( m_samples, variable ) ;

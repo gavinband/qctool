@@ -22,6 +22,7 @@ struct AncestralAlleleAnnotation: public SNPSummaryComputation
 
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 	
+	void set_flanking_length( std::size_t left_flanking, std::size_t right_flanking ) ;
 private:
 	std::string const m_fasta_filename ;
 	std::vector< genfile::wildcard::FilenameMatch > const m_filenames ;
@@ -33,6 +34,10 @@ private:
 
 	std::string m_organism ;
 	std::string m_build ;
+
+	std::size_t m_left_flanking ;
+	std::size_t m_right_flanking ;
+private:
 	
 	void load_sequence( std::vector< genfile::wildcard::FilenameMatch > const& files, Sequence* sequence, ProgressCallback callback ) ;
 	void load_sequence( genfile::wildcard::FilenameMatch const& file, Chromosome* chromosome, ChromosomeSequence* sequence, std::pair< std::size_t, std::size_t >* range ) ;

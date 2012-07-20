@@ -35,10 +35,9 @@ namespace qcdb {
 		m_metadata( metadata )
 	{
 		// Increase cache size to be about 104Mb=102,400kb for performance reasons.
-		m_connection->run_statement( "PRAGMA cache_size=-102400" ) ;
-		m_connection->run_statement( "PRAGMA journal_mode=OFF" ) ;
-		m_connection->run_statement( "PRAGMA synchronous=OFF" ) ;
 		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 120 ) ; // wait 2m if we have to.
+		m_connection->run_statement( "PRAGMA cache_size=-102400" ) ;
+		m_connection->run_statement( "PRAGMA synchronous=OFF" ) ;
 		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS Variant ( id INTEGER PRIMARY KEY, snpid TEXT, rsid TEXT, chromosome TEXT, position INTEGER, alleleA TEXT, alleleB TEXT )"
 		) ;
