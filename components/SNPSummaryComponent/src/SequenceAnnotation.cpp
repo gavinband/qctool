@@ -6,6 +6,9 @@
 
 #include <fstream>
 #include <utility>
+#include <algorithm>
+#include <sstream>
+#include <iterator>
 #include <boost/optional.hpp>
 #include "genfile/FileUtils.hpp"
 #include "genfile/Error.hpp"
@@ -39,7 +42,7 @@ void SequenceAnnotation::load_sequence( std::vector< genfile::wildcard::Filename
 	}
 }
 
-void SequenceAnnotation::load_sequence( genfile::wildcard::FilenameMatch const& file, Chromosome* chromosome, ChromosomeSequence* sequence, std::pair< std::size_t, std::size_t >* limits ) {
+void SequenceAnnotation::load_sequence( genfile::wildcard::FilenameMatch const& file, Chromosome* chromosome, ChromosomeSequence* sequence, std::pair< genfile::Position, genfile::Position >* limits ) {
 	assert( sequence ) ;
 	assert( sequence->empty() ) ;
 	// read header
@@ -154,16 +157,16 @@ void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes co
 			}
 		
 			if( m_flanking.first > 0 || m_flanking.second > 0 ) {
-				std::size_t const left_flanking_start = pos - std::min( pos, m_flanking.first ) ;
+				std::size_t const left_flanking_start = pos - std::min< genfile::Position >( pos, m_flanking.first ) ;
 				std::size_t const left_flanking_end = pos ;
-				std::size_t const right_flanking_start = pos + std::min( end - pos, 1 ) ;
-				std::size_t const flanking_end = pos + std::min( end - pos, m_flanking.second ) ;
+				std::size_t const right_flanking_start = pos + std::min< genfile::Position >( end - pos, 1ul ) ;
+				std::size_t const right_flanking_end = pos + std::min< genfile::Position >( end - pos, m_flanking.second ) ;
 				// Figure out which of our alleles is the reference
 				std::ostringstream flank ;
 				std::copy(
-					where->second.second.begin() + left_flanking_start - start ),
-					where->second.second.begin() + left_flanking_end - start ),
-					boost::ostream_iterator<>( flank )
+					where->second.second.begin() + left_flanking_start - start,
+					where->second.second.begin() + left_flanking_end - start,
+					std::ostream_iterator< char >( flank )
 				) ;
 				flank << "[" << allele ;
 				if( snp.get_first_allele() == allele ) {
@@ -177,9 +180,9 @@ void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes co
 				}
 				flank << "]" ;
 				std::copy(
-					where->second.second.begin() + right_flanking_start - start ),
-					where->second.second.begin() + right_flanking_end - start ),
-					boost::ostream_iterator<>( flank )
+					where->second.second.begin() + right_flanking_start - start,
+					where->second.second.begin() + right_flanking_end - start,
+					std::ostream_iterator< char >( flank )
 				) ;
 					
 				
