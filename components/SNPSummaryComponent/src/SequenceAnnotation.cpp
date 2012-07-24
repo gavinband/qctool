@@ -159,53 +159,72 @@ void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes co
 	using namespace genfile::string_utils ;
 	Sequence::const_iterator where = m_sequence.find( snp.get_position().chromosome() ) ;
 	if( where != m_sequence.end() ) {
+		
+		// We assume the first allele equals the reference and we will warn if not.
+		// Let's find out.
+		
 		genfile::Position pos = snp.get_position().position() ;
-		std::size_t const start = where->second.first.first ;
-		std::size_t const end = where->second.first.second ;
-		if( pos >= start && pos <= end ) {
-			std::string allele( 1, where->second.second[ pos - start ] ) ;
-			if( allele != "." ) {
-				//std::cerr << snp << ": ancestral allele is " << std::string( 1, allele ) << ".\n";
-				callback( m_annotation_name + "_allele", allele ) ;
-				if( to_upper( allele ) != snp.get_first_allele() && to_upper( allele ) != snp.get_second_allele() ) {
-					callback( m_annotation_name + "_allele_warning", m_annotation_name + " allele does not match the variant alleles; is strand alignment required?" ) ;
-				}
+		std::size_t const sequence_start = where->second.first.first ;
+		std::size_t const sequence_end = where->second.first.second ;
+		if( pos >= sequence_start && pos <= sequence_end ) {
+			// Oh good, our variant is in the sequence.
+			bool first_allele_is_reference_allele = true ;
+			std::size_t ref_allele_size = snp.get_first_allele().size() ;
+			std::ostringstream allele ;
+			std::copy(
+				where->second.second.begin() + pos - sequence_start,
+				where->second.second.begin() + pos + ref_allele_size - sequence_start,
+				std::ostream_iterator< char >( allele )
+			) ;
+			
+			if( to_upper( allele.str() ) != snp.get_first_allele() ) {
+				// try the second allele instead.
+				first_allele_is_reference_allele = false ;
+				ref_allele_size = snp.get_second_allele().size() ;
+				allele.str( "" ) ;
+				std::copy(
+					where->second.second.begin() + pos - sequence_start,
+					where->second.second.begin() + pos + ref_allele_size - sequence_start,
+					std::ostream_iterator< char >( allele )
+				) ;
 			}
 		
-			if( m_flanking.first > 0 || m_flanking.second > 0 ) {
-				std::size_t const left_flanking_start = pos - std::min< genfile::Position >( pos, m_flanking.first ) ;
-				std::size_t const left_flanking_end = pos ;
-				std::size_t const right_flanking_start = pos + std::min< genfile::Position >( end - pos, 1ul ) ;
-				std::size_t const right_flanking_end = pos + std::min< genfile::Position >( end - pos, m_flanking.second ) ;
-				// Figure out which of our alleles is the reference
-				std::ostringstream flank ;
-				std::copy(
-					where->second.second.begin() + left_flanking_start - start,
-					where->second.second.begin() + left_flanking_end - start,
-					std::ostream_iterator< char >( flank )
-				) ;
-				flank << "[" << allele ;
-				if( to_upper( snp.get_first_allele() ) == to_upper( allele ) ) {
-					flank << "/" << snp.get_second_allele() ;
-				}
-				else if( to_upper( snp.get_second_allele() ) == to_upper( allele ) ) {
-					flank << "/" << snp.get_first_allele() ;
-				}
-				else {
-					flank << "/" << snp.get_first_allele() << "/" << snp.get_second_allele() ;
-				}
-				flank << "]" ;
-				std::copy(
-					where->second.second.begin() + right_flanking_start - start,
-					where->second.second.begin() + right_flanking_end - start,
-					std::ostream_iterator< char >( flank )
-				) ;
-					
+			if( to_upper( allele.str() ) != snp.get_first_allele() ) {
+				callback( m_annotation_name + "_allele_warning", m_annotation_name + " sequence does not match either allele of the variant.  You should align alleles to the referenbce before using -annotate-reference." ) ;
+			}
+			else {
+				callback( m_annotation_name + "_allele", allele.str() ) ;
 				
-				callback(
-					m_annotation_name + "_flanking_sequence",
-					flank.str()
-				) ;
+				if( m_flanking.first > 0 || m_flanking.second > 0 ) {
+					std::size_t const left_flanking_start = pos - std::min< genfile::Position >( pos, m_flanking.first ) ;
+					std::size_t const left_flanking_end = pos ;
+					std::size_t const right_flanking_start = pos + std::min< genfile::Position >( sequence_end - pos, 1ul ) ;
+					std::size_t const right_flanking_end = pos + std::min< genfile::Position >( sequence_end - pos, m_flanking.second ) ;
+
+					std::ostringstream flank ;
+					std::copy(
+						where->second.second.begin() + left_flanking_start - sequence_start,
+						where->second.second.begin() + left_flanking_end - sequence_start,
+						std::ostream_iterator< char >( flank )
+					) ;
+
+					callback(
+						m_annotation_name + "_left_flanking",
+						flank.str()
+					) ;
+
+					flank.str( "" ) ;
+					std::copy(
+						where->second.second.begin() + right_flanking_start - sequence_start,
+						where->second.second.begin() + right_flanking_end - sequence_start,
+						std::ostream_iterator< char >( flank )
+					) ;
+					
+					callback(
+						m_annotation_name + "_right_flanking",
+						flank.str()
+					) ;
+				}
 			}
 		}
 	}
