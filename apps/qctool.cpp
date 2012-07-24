@@ -2195,7 +2195,7 @@ private:
 			qctool_basic.end_processing_snps() ;
 		}
 		
-		if( options().check( "-snp-stats" ) || options().check( "-test" ) || options().check( "-annotate" )) {
+		if( options().check( "-snp-stats" ) || options().check( "-test" ) || options().check( "-annotate-reference" ) || options().check( "-annotate-ancestral" )) {
 			SNPSummaryComponent component(
 				context.get_cohort_individual_source(),
 				options(),
