@@ -38,7 +38,7 @@ void SequenceAnnotation::load_sequence( std::vector< genfile::wildcard::Filename
 		m_sequence[ chromosome ].second.swap( data.second ) ;
 
 		if( callback ) {
-			callback( i, boost::optional< std::size_t >() ) ;
+			callback( i + 1, files.size() ) ;
 		}
 	}
 }
