@@ -193,12 +193,13 @@ void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes co
 					where->second.second.begin() + pos + ref_allele_size - sequence_start,
 					std::ostream_iterator< char >( allele )
 				) ;
+
+				if( to_upper( allele.str() ) != snp.get_second_allele() ) {
+					callback( m_annotation_name + "_allele_warning", m_annotation_name + " sequence does not match either allele of the variant.  You should align alleles to the reference." ) ;
+					return ;
+				}
 			}
 		
-			if( to_upper( allele.str() ) != snp.get_first_allele() ) {
-				callback( m_annotation_name + "_allele_warning", m_annotation_name + " sequence does not match either allele of the variant.  You should align alleles to the reference." ) ;
-				return ;
-			}
 			callback( m_annotation_name + "_allele", allele.str() ) ;
 			
 			if( m_flanking.first > 0 || m_flanking.second > 0 ) {
