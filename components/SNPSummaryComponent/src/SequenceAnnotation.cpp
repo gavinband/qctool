@@ -168,18 +168,24 @@ void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes co
 		std::size_t const sequence_end = where->second.first.second ;
 		if( pos >= sequence_start && pos <= sequence_end ) {
 			// Oh good, our variant is in the sequence.
-			bool first_allele_is_reference_allele = true ;
 			std::size_t ref_allele_size = snp.get_first_allele().size() ;
 			std::ostringstream allele ;
+			if( ( pos + ref_allele_size ) > sequence_end ) {
+				callback( m_annotation_name + "_allele_warning", m_annotation_name + " sequence is not long enough to contain the first variant allele." ) ;
+				return ;
+			}
 			std::copy(
 				where->second.second.begin() + pos - sequence_start,
 				where->second.second.begin() + pos + ref_allele_size - sequence_start,
 				std::ostream_iterator< char >( allele )
 			) ;
-			
+
 			if( to_upper( allele.str() ) != snp.get_first_allele() ) {
 				// try the second allele instead.
-				first_allele_is_reference_allele = false ;
+				if( ( pos + ref_allele_size ) > sequence_end ) {
+					callback( m_annotation_name + "_allele_warning", m_annotation_name + " sequence is not long enough to contain the second variant allele." ) ;
+					return ;
+				}
 				ref_allele_size = snp.get_second_allele().size() ;
 				allele.str( "" ) ;
 				std::copy(
@@ -190,41 +196,40 @@ void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes co
 			}
 		
 			if( to_upper( allele.str() ) != snp.get_first_allele() ) {
-				callback( m_annotation_name + "_allele_warning", m_annotation_name + " sequence does not match either allele of the variant.  You should align alleles to the referenbce before using -annotate-reference." ) ;
+				callback( m_annotation_name + "_allele_warning", m_annotation_name + " sequence does not match either allele of the variant.  You should align alleles to the reference." ) ;
+				return ;
 			}
-			else {
-				callback( m_annotation_name + "_allele", allele.str() ) ;
+			callback( m_annotation_name + "_allele", allele.str() ) ;
+			
+			if( m_flanking.first > 0 || m_flanking.second > 0 ) {
+				std::size_t const left_flanking_start = pos - std::min< genfile::Position >( pos, m_flanking.first ) ;
+				std::size_t const left_flanking_end = pos ;
+				std::size_t const right_flanking_start = pos + std::min< genfile::Position >( sequence_end - pos, 1ul ) ;
+				std::size_t const right_flanking_end = pos + std::min< genfile::Position >( sequence_end - pos, m_flanking.second ) ;
+
+				std::ostringstream flank ;
+				std::copy(
+					where->second.second.begin() + left_flanking_start - sequence_start,
+					where->second.second.begin() + left_flanking_end - sequence_start,
+					std::ostream_iterator< char >( flank )
+				) ;
+
+				callback(
+					m_annotation_name + "_left_flanking",
+					flank.str()
+				) ;
+
+				flank.str( "" ) ;
+				std::copy(
+					where->second.second.begin() + right_flanking_start - sequence_start,
+					where->second.second.begin() + right_flanking_end - sequence_start,
+					std::ostream_iterator< char >( flank )
+				) ;
 				
-				if( m_flanking.first > 0 || m_flanking.second > 0 ) {
-					std::size_t const left_flanking_start = pos - std::min< genfile::Position >( pos, m_flanking.first ) ;
-					std::size_t const left_flanking_end = pos ;
-					std::size_t const right_flanking_start = pos + std::min< genfile::Position >( sequence_end - pos, 1ul ) ;
-					std::size_t const right_flanking_end = pos + std::min< genfile::Position >( sequence_end - pos, m_flanking.second ) ;
-
-					std::ostringstream flank ;
-					std::copy(
-						where->second.second.begin() + left_flanking_start - sequence_start,
-						where->second.second.begin() + left_flanking_end - sequence_start,
-						std::ostream_iterator< char >( flank )
-					) ;
-
-					callback(
-						m_annotation_name + "_left_flanking",
-						flank.str()
-					) ;
-
-					flank.str( "" ) ;
-					std::copy(
-						where->second.second.begin() + right_flanking_start - sequence_start,
-						where->second.second.begin() + right_flanking_end - sequence_start,
-						std::ostream_iterator< char >( flank )
-					) ;
-					
-					callback(
-						m_annotation_name + "_right_flanking",
-						flank.str()
-					) ;
-				}
+				callback(
+					m_annotation_name + "_right_flanking",
+					flank.str()
+				) ;
 			}
 		}
 	}
