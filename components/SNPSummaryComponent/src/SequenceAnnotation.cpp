@@ -13,6 +13,7 @@
 #include "genfile/FileUtils.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/string_utils/slice.hpp"
+#include "genfile/VariantEntry.hpp"
 #include "components/SNPSummaryComponent/SequenceAnnotation.hpp"
 
 SequenceAnnotation::SequenceAnnotation( std::string const& annotation_name, std::string const& fasta_filename, ProgressCallback callback ):
@@ -45,6 +46,8 @@ void SequenceAnnotation::load_sequence( std::vector< genfile::wildcard::Filename
 void SequenceAnnotation::load_sequence( genfile::wildcard::FilenameMatch const& file, Chromosome* chromosome, ChromosomeSequence* sequence, std::pair< genfile::Position, genfile::Position >* limits ) {
 	assert( sequence ) ;
 	assert( sequence->empty() ) ;
+	using genfile::string_utils::to_string ;
+
 	// read header
 	std::auto_ptr< std::istream > stream( genfile::open_text_file_for_input( file.filename() )) ;
 	std::string line ;
@@ -53,14 +56,23 @@ void SequenceAnnotation::load_sequence( genfile::wildcard::FilenameMatch const& 
 		throw genfile::MalformedInputError( file.filename(), 0 ) ;
 	}
 	using genfile::string_utils::slice ;
+	std::vector< slice > elts = slice( line ).split( ":|" ) ;
+	if( elts.size() != 6 ) {
+		// There seem to be many different header lines around in FASTA format files.
+		// We insist on having six fields in the header which are interpreted as:
+		// 1: the organism
+		// 2: a build identifier
+		// 3: the chromosome
+		// 4,5: the range of positions represented.
+		// 6: arbitrary text.
+		// This is as in ancestral sequence files downloaded from ftp.1000g.ensembl.ac.uk
+		// For other files users will need to insert the headers as appropriate.
+
+		throw genfile::MalformedInputError( file.filename(), 0, elts.size() ) ;
+	}
 	// delimiter seems to be ":" in data downloaded from ftp.1000g.ensembl.ac.uk.  However,
 	// This: http://blast.ncbi.nlm.nih.gov/blastcgihelp.shtml
 	// says the delimiter is |
-	std::vector< slice > elts = slice( line ).split( ":|" ) ;
-	if( elts.size() != 6 ) {
-		throw genfile::MalformedInputError( file.filename(), 0, elts.size() ) ;
-	}
-
 	std::string organism = elts[0] ;
 	std::string build = elts[1] ;
 	Chromosome read_chromosome( elts[2] ) ;
@@ -79,15 +91,15 @@ void SequenceAnnotation::load_sequence( genfile::wildcard::FilenameMatch const& 
 		throw genfile::MalformedInputError( file.filename(), 0, 4 ) ;
 	}
 
-	if( m_organism == "" ) {
+	if( m_organism.is_missing() ) {
 		m_organism = organism ;
 		m_build = build ;
 	}
-	else if( m_organism != organism ) {
-		throw genfile::MismatchError( "SequenceAnnotation::load_sequence()", m_fasta_filename, "organism=\"" + m_organism + "\"", "organism=\"" + organism + "\"" ) ;
+	else if( m_organism != genfile::VariantEntry( organism ) ) {
+		throw genfile::MismatchError( "SequenceAnnotation::load_sequence()", m_fasta_filename, "organism=\"" + to_string( m_organism ) + "\"", "organism=\"" + to_string( organism ) + "\"" ) ;
 	}
 	else if( m_build != build ) {
-		throw genfile::MismatchError( "SequenceAnnotation::load_sequence()", m_fasta_filename, "build=\"" + m_build + "\"", "build=\"" + build + "\"" ) ;
+		throw genfile::MismatchError( "SequenceAnnotation::load_sequence()", m_fasta_filename, "build=\"" + to_string( m_build ) + "\"", "build=\"" + to_string( build ) + "\"" ) ;
 	}
 
 	(*limits) = read_limits ;
@@ -119,7 +131,8 @@ void SequenceAnnotation::load_sequence( genfile::wildcard::FilenameMatch const& 
 }
 
 std::string SequenceAnnotation::get_summary( std::string const& prefix, std::size_t column_width ) const {
-	std::string result = prefix + "SequenceAnnotation: loaded ancestral sequence for the following regions:\n" ;
+	using genfile::string_utils::to_string ;
+	std::string result = prefix + "SequenceAnnotation: loaded " + m_annotation_name + " sequence (" + to_string( m_organism ) + ", build " + to_string( m_build ) + ") for the following regions:\n" ;
 	using genfile::string_utils::to_string ;
 	std::size_t count = 0 ;
 	for( Sequence::const_iterator i = m_sequence.begin(); i != m_sequence.end(); ++i, ++count ) {

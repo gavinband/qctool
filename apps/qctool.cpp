@@ -2196,13 +2196,13 @@ private:
 		}
 		
 		if( options().check( "-snp-stats" ) || options().check( "-test" ) || options().check( "-annotate" )) {
-			processor.add_callback(
-				SNPSummaryComponent(
-					context.get_cohort_individual_source(),
-					options(),
-					get_ui_context()
-				).create()
+			SNPSummaryComponent component(
+				context.get_cohort_individual_source(),
+				options(),
+				get_ui_context()
 			) ;
+			
+			component.setup( processor ) ;
 		}
 
 		if( options().check( "-sample-stats" ) ) {

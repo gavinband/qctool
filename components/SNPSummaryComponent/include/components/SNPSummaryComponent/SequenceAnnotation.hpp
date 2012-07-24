@@ -13,6 +13,7 @@
 #include <boost/function.hpp>
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 #include "genfile/Chromosome.hpp"
+#include "genfile/VariantEntry.hpp"
 #include "genfile/wildcard.hpp"
 
 struct SequenceAnnotation: public SNPSummaryComputation
@@ -36,8 +37,8 @@ private:
 	typedef std::map< Chromosome, ChromosomeRangeAndSequence > Sequence ;
 	Sequence m_sequence ;
 	std::pair< genfile::Position, genfile::Position > m_flanking ;
-	std::string m_organism ;
-	std::string m_build ;
+	genfile::VariantEntry m_organism ;
+	genfile::VariantEntry m_build ;
 private:
 	
 	void load_sequence( std::vector< genfile::wildcard::FilenameMatch > const& files, Sequence* sequence, ProgressCallback callback ) ;

@@ -43,6 +43,7 @@ namespace genfile {
 		friend void apply_visitor( Visitor visitor, VariantEntry& ) ;
 	public:
 		bool operator==( VariantEntry const& rhs ) const ;
+		bool operator!=( VariantEntry const& rhs ) const ;
 		bool operator<( VariantEntry const& rhs ) const ;
 		friend std::ostream& operator<<( std::ostream&, VariantEntry const& ) ;
 		typedef int64_t Integer ;

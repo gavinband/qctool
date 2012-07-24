@@ -30,7 +30,7 @@ public:
 		appcontext::UIContext& ui_context
 	) ;
 
-	genfile::SNPDataSourceProcessor::Callback::UniquePtr create() const ;
+	void setup( genfile::SNPDataSourceProcessor& processor ) const ;
 
 private:
 	SNPSummaryComputationManager::UniquePtr create_manager() const ;

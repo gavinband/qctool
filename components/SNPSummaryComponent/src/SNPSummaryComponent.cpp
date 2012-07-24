@@ -89,9 +89,8 @@ SNPSummaryComponent::SNPSummaryComponent(
 	m_ui_context( ui_context )
 {}
 
-genfile::SNPDataSourceProcessor::Callback::UniquePtr SNPSummaryComponent::create() const {
-	genfile::SNPDataSourceProcessor::Callback::UniquePtr result( create_manager().release() ) ;
-	return result ;
+void SNPSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor ) const {
+	processor.add_callback( genfile::SNPDataSourceProcessor::Callback::UniquePtr( create_manager().release() ) ) ;
 }
 
 SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() const {
