@@ -255,12 +255,24 @@ def create_benchmark( bld, name, uselib = '' ):
 # CHECK
 #-----------------------------------
 
-def check(context):
-	# Unit tests are run when "check" target is used
-	ut = UnitTest.unit_test()
-	ut.change_to_testfile_dir = True
-	ut.run()
-	ut.print_results()
+def test(context):
+	print "Performing functional tests..."
+	import json
+	working_dir = "release/test_data"
+	qctool_executable = "build/release/qctool-%s" % VERSION
+	json = json.loads( open( os.path.join( working_dir, "catalogue.json" ) ).read() )
+	import sys
+	sys.path.append( "release" )
+	import Release.TestHarness
+	harness = Release.TestHarness.TestHarness( qctool_executable, working_dir, json )
+	harness.run()
+
+	# UnitTest module no longer works in waf 1.5.18.  Need to update this.
+	#import UnitTest
+	#ut = UnitTest.unit_test()
+	#ut.change_to_testfile_dir = True
+	#ut.run()
+	#ut.print_results()
 
 def release( bld ):
 	import sys
@@ -271,8 +283,8 @@ def release( bld ):
 	builder = Release.ReleaseBuilder.ReleaseBuilder( APPNAME, VERSION, qctool_executable )
 	release = builder.build()
 
-	print "Loading test catalogue..."
-	import json, pprint
+	print "Performing functional tests..."
+	import json
 	working_dir = "release/test_data"
 	json = json.loads( open( os.path.join( working_dir, "catalogue.json" ) ).read() )
 	harness = Release.TestHarness.TestHarness( release[ "release_executable" ], working_dir, json )

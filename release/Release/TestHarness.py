@@ -43,7 +43,7 @@ class TestHarness:
 			except Exception, e:
 				print "!! Testing of command \"" + self.tests[i][ "name" ] + "\" failed!"
 				print e
-				test_results[ "failed" ].append( { "name": self.tests[i][ "name" ], "comparison": test.get_comparison() } )
+				test_results[ "failed" ].append( { "name": self.tests[i][ "name" ], "comparison": test.get_comparison(), "command": command } )
 		
 		print "---- test summary ----"
 		print "succeeded:     ", len( test_results[ "succeeded" ] )

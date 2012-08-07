@@ -43,6 +43,12 @@ QCTool::QCTool(
 {
 }
 
+namespace {
+	genfile::VariantEntry get_sample_entry( genfile::CohortIndividualSource const& samples, std::string const& name, std::size_t i ) {
+		return samples.get_entry( i, name ) ;
+	}
+}
+
 void QCTool::begin_processing_snps(
 	std::size_t number_of_samples
 ) {
@@ -52,6 +58,16 @@ void QCTool::begin_processing_snps(
 	m_number_of_autosomal_snps_processed = 0 ;
 	m_number_of_filtered_in_snps = 0 ;
 	m_timer.restart() ;
+	
+	m_context.fltrd_in_snp_data_sink().set_sample_names(
+		number_of_samples,
+		boost::bind( get_sample_entry, boost::ref( m_context.samples() ), "ID_1", _1 )
+	) ;
+
+	m_context.fltrd_out_snp_data_sink().set_sample_names(
+		number_of_samples,
+		boost::bind( get_sample_entry, boost::ref( m_context.samples() ), "ID_1", _1 )
+	) ;
 }
 
 void QCTool::processed_snp(

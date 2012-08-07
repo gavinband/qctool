@@ -42,6 +42,10 @@
             "result_tarball": "fdae6ae2cca6af6fe9055e87b7b617bb.tgz"
         }, 
         {
+            "command": "-g %INPUT_DIR%/example.bgen -sort -og %OUTPUT_DIR%/sorted.vcf", 
+            "result_tarball": "4e58b1968cd59121e5e188f5ce3a1122.tgz"
+        }, 
+        {
             "command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -incl-rsids %INPUT_DIR%/rsids_to_include.txt", 
             "result_tarball": "02b4e7b9d19134bff475e4ab47774f02.tgz"
         }, 

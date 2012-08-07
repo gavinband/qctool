@@ -46,6 +46,7 @@ struct QCToolContext
 	virtual SampleRowStatistics& sample_statistics() = 0 ;
 	virtual std::vector< SampleRow >& sample_rows() = 0 ;
 	virtual std::vector< std::size_t > const& indices_of_filtered_out_samples() const = 0 ;
+	virtual genfile::CohortIndividualSource const& samples() const = 0 ;
 } ;
 
 #endif

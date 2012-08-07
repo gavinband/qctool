@@ -754,6 +754,8 @@ struct QCToolCmdLineContext: public QCToolContext
 	}
 	
 	std::vector< std::size_t > const& indices_of_filtered_out_samples() const { return m_indices_of_filtered_out_samples ; }
+
+	genfile::CohortIndividualSource const& samples() const { return *m_cohort_individual_source ; }
 	
 	bool ignore_warnings() const {
 		return m_ignore_warnings ;
