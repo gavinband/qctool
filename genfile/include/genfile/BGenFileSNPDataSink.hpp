@@ -57,12 +57,14 @@ namespace genfile {
 			Info const&
 		) ;
 
+		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) ;
+
 	protected:
 		// Other methods.
 		std::auto_ptr< std::ostream >& stream_ptr() ;
 		std::string const& filename() const ;
 		
-		void write_header_data( std::ostream& stream ) ;
+		void write_header_data( std::ostream& stream, std::size_t const number_of_samples ) ;
 		
 	private:
 
@@ -73,6 +75,7 @@ namespace genfile {
 		Metadata m_metadata ;
 		std::string const m_free_data ;
 		std::auto_ptr< std::ostream > m_stream_ptr ;
+		bool m_have_written_header ;
 		bgen::uint32_t m_flags ;
 	} ;
 

@@ -59,7 +59,6 @@ namespace genfile {
 		m_have_id_data( false )
 	{
 		setup() ;
-		m_number_of_lines = determine_number_of_lines( *m_stream_ptr, m_metadata ) ;
 		reset_stream() ;
 	}
 
@@ -79,7 +78,6 @@ namespace genfile {
 		m_have_id_data( false )
 	{
 		setup() ;
-		m_number_of_lines = determine_number_of_lines( *m_stream_ptr, m_metadata ) ;
 		reset_stream() ;
 	}
 
@@ -100,7 +98,6 @@ namespace genfile {
 		m_have_id_data( false )
 	{
 		setup() ;
-		m_number_of_lines = determine_number_of_lines( *m_stream_ptr, m_metadata ) ;
 		reset_stream() ;
 	}
 	
@@ -185,51 +182,6 @@ namespace genfile {
 		return elts ;
 	}
 
-	SNPDataSource::OptionalSnpCount VCFFormatSNPDataSource::determine_number_of_lines(
-		std::istream& vcf_file_stream,
-		vcf::MetadataParser::Metadata const& metadata
-	) const {
-		typedef vcf::MetadataParser::Metadata::const_iterator MetadataIterator ;
-		OptionalSnpCount result ;
-		result = count_lines( vcf_file_stream, 10000 ) ;
-		return result ;
-	}
-
-	SNPDataSource::OptionalSnpCount VCFFormatSNPDataSource::count_lines( std::istream& str, std::size_t max_number_of_lines ) const {
-		std::size_t count = 0 ;
-		std::vector< char > buffer( 10000000 ) ;
-		std::size_t last_read_size = 0 ;
-		do {
-			str.read( &(buffer[0]), 10000000 ) ;
-			if( str.gcount() > 0 ) {
-				last_read_size = str.gcount() ;
-			}
-			count += std::count( buffer.begin(), buffer.begin() + str.gcount(), '\n' ) ;
-			// A vcf file can't contain a blank line.
-			// Because popular editors (vim, nano, ..., but not emacs) typically add a trailing newline,
-			// we might get in the situation where the file has two trailing newlines thus messing
-			// with our count.
-			// Therefore we check here for the special case where what we've read ends in two newlines.
-			if( (str.gcount() > 1) && (buffer[ str.gcount() - 1] == '\n') && (buffer[ str.gcount() - 2] == '\n') ) {
-				throw FileHasTwoTrailingNewlinesError( get_source_spec(), count ) ;
-			}
-		}
-		while( str && count < max_number_of_lines ) ;
-		
-		if( str ) {
-			return OptionalSnpCount() ;
-		}
-		
-		assert( last_read_size <= buffer.size() ) ;
-		if( last_read_size == 0 ) {
-			throw MalformedInputError( get_source_spec(), 0 ) ;
-		}
-		else if( buffer[ last_read_size - 1 ] != '\n' ) {
-			throw MissingTrailingNewlineError( get_source_spec(), count ) ;
-		}
-		return count ;
-	}
-	
 	VCFFormatSNPDataSource::operator bool() const {
 		return *m_stream_ptr ;
 	}

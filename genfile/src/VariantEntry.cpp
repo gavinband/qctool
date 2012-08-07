@@ -66,6 +66,10 @@ namespace genfile {
 	bool VariantEntry::operator==( VariantEntry const& rhs ) const {
 		return m_entrydata == rhs.m_entrydata ;
 	}
+
+	bool VariantEntry::operator!=( VariantEntry const& rhs ) const {
+		return !( m_entrydata == rhs.m_entrydata ) ;
+	}
 	
 	bool VariantEntry::operator<( VariantEntry const& rhs ) const {
 		return m_entrydata < rhs.m_entrydata ;

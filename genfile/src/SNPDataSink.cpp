@@ -43,11 +43,20 @@ namespace genfile {
 	}
 	
 	SNPDataSink::SNPDataSink():
-		m_number_of_samples(0u), m_number_of_snps_written(0u)
+		m_number_of_samples(0u), m_samples_have_been_set( false ), m_number_of_snps_written(0u)
 	{}
 
 	SNPDataSink::~SNPDataSink()
 	{}
+	
+	SNPDataSink& SNPDataSink::set_sample_names( std::size_t number_of_samples, SampleNameGetter name_getter ) {
+		set_sample_names_impl( number_of_samples, name_getter ) ;
+		if( *this ) {
+			m_samples_have_been_set = (*this) ;
+			m_number_of_samples = number_of_samples ;
+		}
+		return (*this) ;
+	}
 	
 	SNPDataSink& SNPDataSink::write_snp(
 		uint32_t number_of_samples,
@@ -85,12 +94,8 @@ namespace genfile {
 		GenotypeProbabilityGetter const& get_BB_probability,
 		Info const& info
 	) {
-		if( m_number_of_samples == 0 ) {
-			m_number_of_samples = number_of_samples ;
-		}
-		else {
-			assert( number_of_samples == m_number_of_samples ) ;
-		}
+		assert( m_samples_have_been_set ) ;
+		assert( number_of_samples == m_number_of_samples ) ;
 		write_snp_impl( number_of_samples, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability, info ) ;
 		if( *this ) {
 			++m_number_of_snps_written ;
@@ -123,6 +128,4 @@ namespace genfile {
 	) {
 		throw OperationUnsupportedError( "genfile::SNPDataSink::write_variant_data_impl()", "call", get_spec() ) ;
 	}
-	
-	void SNPDataSink::set_sample_names( SampleNameGetter ) {}
 }

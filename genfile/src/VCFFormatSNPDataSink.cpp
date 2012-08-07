@@ -22,11 +22,10 @@ namespace genfile {
 	VCFFormatSNPDataSink::VCFFormatSNPDataSink( std::string const& filename ):
 		m_filename( filename ),
 		m_compression_type( get_compression_type_indicated_by_filename( filename ) ),
-		m_stream_ptr( open_text_file_for_output( filename )),
+		m_stream_ptr( open_text_file_for_output( filename, m_compression_type )),
 		m_have_written_header( false ),
 		m_number_of_samples( 0 ),
-		m_call_threshhold( 0.9 ),
-		m_sample_name_getter( &int_to_number )
+		m_call_threshhold( 0.9 )
 	{
 		(*m_stream_ptr) << std::resetiosflags( std::ios::floatfield ) << std::setprecision( 6 ) ;
 	}
@@ -35,13 +34,13 @@ namespace genfile {
 		return m_filename ;
 	}
 	
-	void VCFFormatSNPDataSink::write_header( std::size_t number_of_samples ) const {
+	void VCFFormatSNPDataSink::write_header( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) const {
 		(*m_stream_ptr) << "##fileformat=VCFv4.1\n"
 			"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype calls\">\n"
 			"##FORMAT=<ID=GP,Number=3,Type=Float,Description=\"Genotype call probabilities\">\n"
 			"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT" ;
 		for( std::size_t i = 0; i < number_of_samples; ++i ) {
-			(*m_stream_ptr) << "\t" << m_sample_name_getter( i ) ;
+			(*m_stream_ptr) << "\t" << sample_name_getter( i ) ;
 		}
 		(*m_stream_ptr) << "\n" ;
 	}
@@ -59,14 +58,9 @@ namespace genfile {
 		GenotypeProbabilityGetter const& get_BB_probability,
 		Info const& info
 	) {
-		if( !m_have_written_header ) {
-			write_header( number_of_samples ) ;
-			m_have_written_header = true ;
-			m_number_of_samples = number_of_samples ;
-		} else if( number_of_samples != m_number_of_samples ) {
+		if( number_of_samples != m_number_of_samples ) {
 			throw genfile::BadArgumentError( "VCFFormatSNPDataSink::write_snp_impl()", "number_of_samples=" + string_utils::to_string( number_of_samples )) ;
 		}
-		
 		char tab = '\t' ;
 		(*m_stream_ptr)
 			<< chromosome << tab
@@ -132,14 +126,20 @@ namespace genfile {
 		(*m_stream_ptr) << std::endl ;
 	}
 	
-	void VCFFormatSNPDataSink::set_sample_names( SampleNameGetter getter ) {
-		assert( getter ) ;
-		m_sample_name_getter = getter ;
+	void VCFFormatSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) {
+		assert( sample_name_getter ) ;
+		assert( !m_have_written_header ) ;
+		write_header( number_of_samples, sample_name_getter ) ;
+		m_have_written_header = true ;
+		m_number_of_samples = number_of_samples ;
 	}
 	
 	std::ostream::streampos VCFFormatSNPDataSink::get_stream_pos() const {
-		throw OperationUnsupportedError( "genfile::VCFFormatSNPDataSink::get_stream_pos()", "get stream position", "VCFFormatSNPDataSink( \"" + m_filename + "\" )" ) ;
+		if( m_compression_type == CompressionType( "no_compression" )) {
+			return m_stream_ptr->tellp() ;
+		}
+		else {
+			throw OperationUnsupportedError( "genfile::VCFFormatSNPDataSink::get_stream_pos()", "get stream position", "VCFFormatSNPDataSink( \"" + m_filename + "\" )" ) ;
+		}
 	}
-	
 }
-

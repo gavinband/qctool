@@ -44,6 +44,9 @@ namespace genfile {
 
 		typedef boost::function< double ( std::size_t ) > GenotypeProbabilityGetter ;
 
+		typedef boost::function< VariantEntry ( std::size_t ) > SampleNameGetter ;
+		SNPDataSink& set_sample_names( std::size_t number_of_samples, SampleNameGetter ) ;
+
 		SNPDataSink& write_snp(
 			uint32_t number_of_samples,
 			SNPIdentifyingData const& snp,
@@ -76,7 +79,7 @@ namespace genfile {
 	public:
 		// return the number of samples represented in SNPs in the file.
 		// The value returned is undefined until after the first snp has been written.
-		uint32_t number_of_samples() const { return m_number_of_samples ; }
+		uint32_t number_of_samples() const { assert( m_samples_have_been_set ) ; return m_number_of_samples ; }
 		// return the number of SNPs that have been written to the file so far.
 		std::size_t number_of_snps_written() const { return m_number_of_snps_written ; }
 
@@ -94,10 +97,9 @@ namespace genfile {
 		// The following functions must be implemented by derived classes.
 		virtual operator bool() const = 0 ;
 
-		typedef boost::function< VariantEntry ( std::size_t ) > SampleNameGetter ;
-		virtual void set_sample_names( SampleNameGetter ) ;
-
 	protected:
+		virtual void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) {} ;
+		
 		// This function implements the SNP writing, and must be implemented by derived classes.
 		virtual void write_snp_impl(
 			uint32_t number_of_samples,
@@ -122,6 +124,7 @@ namespace genfile {
 	private:
 
 		uint32_t m_number_of_samples ;
+		bool m_samples_have_been_set ;
 		std::size_t m_number_of_snps_written ;
 
 		SNPDataSink( SNPDataSink const& other ) ;

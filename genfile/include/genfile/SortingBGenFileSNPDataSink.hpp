@@ -46,6 +46,9 @@ namespace genfile {
 		~SortingBGenFileSNPDataSink() ;
 		
 		std::string get_spec() const ;
+		
+		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) ;
+		
 	public:
 		// return the number of samples represented in SNPs in the file.
 		// The value returned is undefined until after the first snp has been written.
@@ -62,6 +65,7 @@ namespace genfile {
 		SNPDataSink::UniquePtr m_sink ;
 		typedef std::multimap< SNPIdentifyingData, std::pair< std::ostream::streampos, std::ostream::streampos > > OffsetMap ;
 		OffsetMap m_file_offsets ;
+		std::ostream::streampos m_offset_of_first_snp ;
 	} ;
 }
 

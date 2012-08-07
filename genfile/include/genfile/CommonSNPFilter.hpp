@@ -39,7 +39,7 @@ namespace genfile {
 	public:
 		CommonSNPFilter() ;
 		
-		enum Field { RSIDs = 1, SNPIDs = 2 } ;
+		enum Field { RSIDs = 1, SNPIDs = 2, Positions = 4 } ;
 		
 		CommonSNPFilter& exclude_snps_in_file( std::string const& filename, int fields ) ;
 		CommonSNPFilter& exclude_snps_not_in_file( std::string const& filename, int fields ) ;
