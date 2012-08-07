@@ -130,7 +130,12 @@ std::ostream& operator<<( std::ostream& aStream, SampleRow const& row ) {
 	for( std::size_t i = 0 ; i < row.column_headings().size(); ++i ) {
 		if( i > 0 )
 			aStream << " " ;
-		aStream << row.further_data( row.column_headings()[i] );
+		// catch the case of NaNs.
+		genfile::VariantEntry entry = row.further_data( row.column_headings()[i] ) ;
+		if( entry.is_double() && entry.as< double >() != entry.as< double >() ) {
+			entry = genfile::MissingValue() ;
+		}
+		aStream << entry ;
 	}
 	return aStream << "\n" ;
 }
