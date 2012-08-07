@@ -263,23 +263,17 @@ def check(context):
 	ut.print_results()
 
 def release( bld ):
-        print bld
-        import os, tempfile, shutil, subprocess
-        tempdir = tempfile.mkdtemp()
-        import platform
-        if platform.system() == 'Darwin':
-                release_stub = 'qctool_v%s-osx' % VERSION
-        elif platform.system() == 'Linux':
-                release_stub = 'qctool_v%s-linux-%s' % ( VERSION, platform.machine() )
-        release_dir = os.path.join( tempdir, release_stub )
-        os.mkdir( release_dir )
-        shutil.copyfile( "build/release/qctool-%s" % VERSION, "%s/qctool" % release_dir )
-        shutil.copymode(  "build/release/qctool-%s" % VERSION, "%s/qctool" % release_dir )
-        shutil.copyfile( "LICENSE_1_0.txt", "%s/LICENSE_1_0.txt" % release_dir )
-        shutil.copyfile( "CHANGELOG.txt", "%s/CHANGELOG.txt" % release_dir )
-        process = subprocess.Popen( [ 'tar', '-czf', '%s/%s.tgz' % ( tempdir, release_stub ), release_stub ], cwd = tempdir )
-        process.wait()
-        print 'Created QCTOOL release tarball in "%s/%s.tgz"' % ( tempdir, release_stub )
-        print "Contents are:"
-        print subprocess.Popen( [ 'tar', '-tzf', '%s/%s.tgz' % ( tempdir, release_stub ) ], stdout = subprocess.PIPE ).communicate()[0]
+	import sys
+	sys.path.append( "release" )
+	import Release.TestHarness
+	import Release.ReleaseBuilder
+	qctool_executable = "build/release/qctool-%s" % VERSION
+	builder = Release.ReleaseBuilder.ReleaseBuilder( APPNAME, VERSION, qctool_executable )
+	release = builder.build()
 
+	print "Loading test catalogue..."
+	import json, pprint
+	working_dir = "release/test_data"
+	json = json.loads( open( os.path.join( working_dir, "catalogue.json" ) ).read() )
+	harness = Release.TestHarness.TestHarness( release[ "release_executable" ], working_dir, json )
+	harness.run()
