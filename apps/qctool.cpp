@@ -222,6 +222,16 @@ public:
 			.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.")
 			.set_takes_values( 1 )
 			.set_maximum_multiplicity( 100 ) ;
+		options[ "-excl-positions" ]
+			.set_description( "Exclude all SNPs whose position is in the given file(s) from the analysis. "
+				"Positions should be in the form [chromosome]:[position] and separated by whitespace." )
+			.set_takes_values( 1 )
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-incl-positions" ]
+			.set_description( "Exclude all SNPs whose position is not in the given file(s) from the analysis. "
+				"Positions should be in the form [chromosome]:[position] and separated by whitespace." )
+			.set_takes_values( 1 )
+			.set_maximum_multiplicity( 100 ) ;
 		options[ "-excl-snps-matching" ]
 			.set_description( "Filter out snps whose rsid or SNPID matches the given value. "
 				"The value should be a string which can contain a % wildcard character (which matches any substring). "
@@ -1555,6 +1565,25 @@ private:
 				}
 			}
 
+			if( m_options.check_if_option_was_supplied( "-excl-positions" )) {
+				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-positions" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					snp_filter->exclude_snps_in_file(
+						filename,
+						genfile::CommonSNPFilter::Positions
+					) ;
+				}
+			}
+
+			if( m_options.check_if_option_was_supplied( "-incl-positions" )) {
+				std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-positions" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					snp_filter->include_snps_in_file(
+						filename,
+						genfile::CommonSNPFilter::Positions
+					) ;
+				}
+			}
 			if( m_options.check_if_option_was_supplied( "-excl-snps-matching" )) {
 				std::string it = m_options.get< std::string > ( "-excl-snps-matching" ) ;
 				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( it, ",", " " ) ;

@@ -23,7 +23,8 @@ class TestHarness:
 			raise Exception( "The qctool executable \"" + qctool_exe + "\" must exist and be an executable." )
 		if not os.path.exists( working_dir ) and os.path.isdir( working_dir ):
 			raise Exception( "The working dir \"" + working_dir + "\" must exist and be a directory." )
-
+		self.m_success = None
+		
 	def run( self ):
 		working_dir = self.setup()
 		
@@ -54,9 +55,15 @@ class TestHarness:
 			for i in range( 0, len( test_results[ "failed" ] )):
 				pprint.pprint( test_results[ "failed" ][i] )
 				print "   ( expected", self.tests[i][ "result_tarball" ], ")"
-		
+			self.m_success = False
+		else:
+			self.m_success = True
+			
 	def setup( self ):
 		working_dir = tempfile.mkdtemp( prefix="qctool-test-" )
 		print "Extracting", self.setup_tarball, "to", working_dir
 		subprocess.check_call( [ "tar", "-C", working_dir, "-xzf", self.setup_tarball ] )
 		return working_dir
+
+	def success( self ):
+		return self.m_success

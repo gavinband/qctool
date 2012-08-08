@@ -289,3 +289,9 @@ def release( bld ):
 	json = json.loads( open( os.path.join( working_dir, "catalogue.json" ) ).read() )
 	harness = Release.TestHarness.TestHarness( release[ "release_executable" ], working_dir, json )
 	harness.run()
+
+	print "++ Release tarball created in", release[ "release_tarball" ]
+	if harness.success():
+		print "++ all tests passed."
+	else:
+		print "!! some tests failed."

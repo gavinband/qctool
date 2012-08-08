@@ -50,6 +50,18 @@
             "result_tarball": "02b4e7b9d19134bff475e4ab47774f02.tgz"
         }, 
         {
+            "command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -excl-rsids %INPUT_DIR%/rsids_to_exclude.txt", 
+            "result_tarball": "beb81eda3016d5a7e295fc48a0547cd4.tgz"
+        }, 
+        {
+            "command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -incl-positions %INPUT_DIR%/positions_to_include.txt", 
+            "result_tarball": "dcb06ebaa6cefbf3a9d418fae3569938.tgz"
+        }, 
+        {
+            "command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -excl-positions %INPUT_DIR%/positions_to_exclude.txt", 
+            "result_tarball": "f96426b1f201c0a8a157b933b019d86f.tgz"
+        }, 
+        {
             "command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -excl-range 06:15000-18000", 
             "result_tarball": "2ec7633648c7d0cfba37c3022fe7944c.tgz"
         }, 
