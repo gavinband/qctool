@@ -39,9 +39,11 @@ namespace genfile {
 		std::string get_spec() const ;
 
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) ;
+		std::ostream::streampos get_stream_pos() const ;
 		
 	private:
-		std::string m_filename ;
+		std::string const m_filename ;
+		CompressionType const m_compression_type ;
 		std::auto_ptr< std::ostream > m_stream_ptr ;
 		bool m_have_written_header ;
 		std::size_t m_number_of_samples ;

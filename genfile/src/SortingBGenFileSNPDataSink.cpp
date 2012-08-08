@@ -25,7 +25,8 @@ namespace genfile {
 		SNPDataSink::UniquePtr sink
 	):
 		m_filename( filename ),
-		m_sink( sink )
+		m_sink( sink ),
+		m_offset_of_first_snp( 0 )
 	{
 	}
 
@@ -116,7 +117,7 @@ namespace genfile {
 			{
 				std::pair< std::ostream::streampos, std::ostream::streampos > chunk ;
 				chunk.first = 0 ;
-				chunk.second = i->second.first ;
+				chunk.second = m_offset_of_first_snp ;
 				// std::cerr << "copying 0th chunk " << chunk.first << " - " << chunk.second << " of " << m_file_offsets.size() << "...\n" ;
 				for( std::ostream::streampos i = 0; i < chunk.second; i += buffer.size() ) {
 					std::size_t n = std::min( std::size_t( chunk.second - i ), buffer.size() ) ;
@@ -141,5 +142,10 @@ namespace genfile {
 		// remove the temporary file.
 		boost::filesystem::remove( temp_filename ) ;
 		// ignore the error code.
+	}
+	
+	void SortingBGenFileSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter name_getter ) {
+		m_sink->set_sample_names( number_of_samples, name_getter ) ;
+		m_offset_of_first_snp = m_sink->get_stream_pos() ;
 	}
 }

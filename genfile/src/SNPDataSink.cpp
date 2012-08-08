@@ -43,7 +43,7 @@ namespace genfile {
 	}
 	
 	SNPDataSink::SNPDataSink():
-		m_number_of_samples(0u), m_number_of_snps_written(0u), m_samples_have_been_set( false )
+		m_number_of_samples(0u), m_samples_have_been_set( false ), m_number_of_snps_written(0u)
 	{}
 
 	SNPDataSink::~SNPDataSink()
