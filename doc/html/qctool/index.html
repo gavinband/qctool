@@ -180,7 +180,7 @@ $ qctool -help
                     </dd>
                 </dl>You can filter samples based on these summary statistics, or using lists of sample ids.
                 <p>
-                    Qctool works with the following per-SNP summary statistics, computed using the <span class="monospace">-snp-stats</span> option:
+                    QCTOOL works with the following per-SNP summary statistics, computed using the <span class="monospace">-snp-stats</span> option:
                 </p>
                 <dl>
                     <dt style="font-weight: bold ;">
@@ -200,6 +200,13 @@ $ qctool -help
                     </dt>
                     <dd>
                         The estimated frequency of the less common allele. The <span class="monospace">-maf</span> option can be used to retain only SNPs within a given range of minor allele frequencies.
+                    </dd>
+                    <dt style="font-weight: bold ;">
+                        HWE
+                    </dt>
+                    <dd>
+                        This is a -log10 P-value for Hardy-Weinberg equilibrium, computed using the <a href="http://www.sph.umich.edu/csg/abecasis/Exact/">SNP-HWE</a> code by Wigginton et al.
+                        The <span class="monospace">-hwe</span> option can be used to filter out SNPs that are out of equilibrium.
                     </dd>
                     <dt style="font-weight: bold ;">
                         Info
