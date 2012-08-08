@@ -206,7 +206,7 @@ void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes co
 				std::size_t const left_flanking_start = pos - std::min< genfile::Position >( pos, m_flanking.first ) ;
 				std::size_t const left_flanking_end = pos ;
 				std::size_t const right_flanking_start = pos + std::min< genfile::Position >( sequence_end - pos, 1ul ) ;
-				std::size_t const right_flanking_end = pos + std::min< genfile::Position >( sequence_end - pos, m_flanking.second ) ;
+				std::size_t const right_flanking_end = pos + 1 + std::min< genfile::Position >( sequence_end - pos + 1, m_flanking.second ) ;
 
 				std::ostringstream flank ;
 				std::copy(
