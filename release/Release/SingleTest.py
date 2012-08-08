@@ -23,11 +23,12 @@ class SingleTest:
 	def extract_expected_result( self ):
 		# Extract the expected result tarball
 		tmpdir = tempfile.mkdtemp( prefix="qctool-expected" )
-		print "Extracting", self.result_tarball, "to", tmpdir
 		subprocess.check_call( [ "tar", "-C", tmpdir, "-xzf", self.result_tarball ] )
 		return tmpdir
 
 	def compare( self, expected_dir, output_dir ):
+		print "...and comparing to", expected_dir
+
 		# Perform a comparison
 		F = filecmp.dircmp( expected_dir, output_dir )
 		self.directory_comparison = F

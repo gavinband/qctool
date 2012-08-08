@@ -35,7 +35,8 @@ class TestHarness:
 			output_dir = tempfile.mkdtemp( prefix="qctool-test-" )
 			command = command.replace( '%INPUT_DIR%', working_dir )
 			command = command.replace( '%OUTPUT_DIR%', output_dir )
-			print "Running command: \"%s\"" % ( os.path.basename( self.qctool_exe ) + " " + command )
+			print "Running command: \"%s\"" % ( os.path.basename( self.qctool_exe ) + " " + command ),
+			print "and comparing to", 
 			
 			test = SingleTest.SingleTest( self.qctool_exe + " " + command, output_dir, os.path.join( self.working_dir, self.tests[i][ "result_tarball" ] ))
 			try:
@@ -61,7 +62,7 @@ class TestHarness:
 			
 	def setup( self ):
 		working_dir = tempfile.mkdtemp( prefix="qctool-test-" )
-		print "Extracting", self.setup_tarball, "to", working_dir
+		#print "Extracting", self.setup_tarball, "to", working_dir
 		subprocess.check_call( [ "tar", "-C", working_dir, "-xzf", self.setup_tarball ] )
 		return working_dir
 

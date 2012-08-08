@@ -5,6 +5,7 @@
 * Support bgzipped files via a tweak to boost (see boost TRAC ticket #6994 and #5904).
 * Make -sort use temporary files in the same directory as the target (rather than a system directory.) This should improve its use on compute clusters.
 * Support use of -sort with output .vcf files.
+* New options -incl-positions and -excl-positions have been added.  Each takes a file containing a whitespace-separated list of genomic positions in the form chromosome:position.
 
 ** Version 1.1, released April 2012 **
 

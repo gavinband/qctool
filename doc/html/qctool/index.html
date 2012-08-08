@@ -89,9 +89,12 @@ $(document).ready(
                     <p>
                     In <strong>v1.2</strong>:
                     <ul>
+                        <li>A new option pair <span class="monospace">-[in|ex]cl-positions</span> has been added.
+                            Each takes a file which should contain a list of genomic positions in the form <span class="monospace">&lt;chromosome&gt;:&lt;position&gt;</span>,
+                            separated by whitespace.</li>
                         <li>Support for bgzipped files (created using the <a href="http://samtools.sourceforge.net/tabix.shtml">bgzip</a> tool from <a href="http://samtools.sourceforge.net/">SAMtools</a>) has been added.
-                            As with gzipped files, these are detected based on the <span class="monospace">.gz</span> filename extension.</li>
-                        <li>The -sort option now works with unzipped VCF output as described on the <a href="#tutorial">examples page</a>.</li>
+                            As for gzipped files these are automatically detected based on the <span class="monospace">.gz</span> filename extension.</li>
+                        <li>The -sort option now works with unzipped VCF format output as described on the <a href="#tutorial">examples page</a>.</li>
                         <li>A bug relating to VCF files with more than 10,000 lines has been fixed.</li>
                         <li>The behaviour of the -sort option has been tweaked to make it behave better on compute clusters.</li>
                     </ul>
@@ -297,7 +300,13 @@ $ qctool -help
                         Subset SNPs
                     </div>
                     <div class="task_command_line">
-                        $ qctool -g example.bgen -og subsetted.gen -incl-rsids my_inclusion_list.txt
+                        $ qctool -g example.bgen -og subsetted.gen -incl-rsids rsids_to_include.txt
+                    </div>
+                    <div class="task_command_line">
+                        $ qctool -g example.bgen -og subsetted.gen -excl-positions positions_to_exclude.txt
+                    </div>
+                    <div class="task_notes">
+                        The file passed to <span class="monospace">-excl-positions</span> should contain a whitespace-separated list of positions in the form <span class="monospace">&lt;chromosome&gt;:&lt;position&gt;</span>.
                     </div>
                     <div class="task_command_line">
                         $ qctool -g example.bgen -og subsetted.gen -excl-range 06:25000000-40000000
