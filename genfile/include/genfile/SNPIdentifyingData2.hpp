@@ -22,12 +22,6 @@ namespace genfile {
 		SNPIdentifyingData2(
 			std::string const& RSID,
 			GenomePosition const& position,
-			char first_allele,
-			char second_allele
-		) ;
-		SNPIdentifyingData2(
-			std::string const& RSID,
-			GenomePosition const& position,
 			std::string const& first_allele,
 			std::string const& second_allele
 		) ;
@@ -52,7 +46,7 @@ namespace genfile {
 		slice get_rsid() const { return slice( m_data, m_rsid_start, m_first_allele_start ) ; }
 		GenomePosition const& get_position() const { return m_position ; }
 		slice get_first_allele() const { return slice( m_data, m_first_allele_start, m_second_allele_start ) ; }
-		slice get_second_allele() const { return slice( m_data, m_second_allele_start, m_data.size() ) ; }
+		slice get_second_allele() const { return slice( m_data, m_second_allele_start, m_identifiers_start ) ; }
 		std::vector< slice > get_identifiers() const ;
 		void get_identifiers( boost::function< void( slice ) > ) const ;
 

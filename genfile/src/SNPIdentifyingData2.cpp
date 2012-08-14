@@ -8,6 +8,7 @@
 #include <vector>
 #include <algorithm>
 #include <limits>
+#include <cassert>
 #include "genfile/GenomePosition.hpp"
 #include "genfile/string_utils/slice.hpp"
 #include "genfile/string_utils/string_utils.hpp"
@@ -25,25 +26,9 @@ namespace genfile {
 		m_first_allele_start( 0 ),
 		m_second_allele_start( 0 ),
 		m_identifiers_start( 0 ),
-		m_number_of_identifiers( 0 ),
 		m_position( 0 )
 	{}
 
-	SNPIdentifyingData2::SNPIdentifyingData2(
-		std::string const& rsid,
-		GenomePosition const& position,
-		char first_allele,
-		char second_allele
-	):
-		m_data( rsid + std::string( 1, first_allele ) + std::string( 1, second_allele ) ),
-		m_rsid_start( 0 ),
-		m_first_allele_start( m_rsid_start + rsid.size() ),
-		m_second_allele_start( m_first_allele_start + 1 ),
-		m_identifiers_start( m_second_allele_start + 1 ),
-		m_number_of_identifiers( 0 ),
-		m_position( position )
-	{}
-		
 	SNPIdentifyingData2::SNPIdentifyingData2(
 		std::string const& rsid,
 		GenomePosition const& position,
@@ -55,7 +40,6 @@ namespace genfile {
 		m_first_allele_start( m_rsid_start + rsid.size() ),
 		m_second_allele_start( m_first_allele_start + first_allele.size() ),
 		m_identifiers_start( m_second_allele_start + second_allele.size() ),
-		m_number_of_identifiers( 0 ),
 		m_position( position )
 	{
 		assert( rsid.size() < MAX_SIZE ) ; 
@@ -70,7 +54,6 @@ namespace genfile {
 		m_first_allele_start( m_rsid_start + snp.get_rsid().size() ),
 		m_second_allele_start( m_first_allele_start + snp.get_first_allele().size() ),
 		m_identifiers_start( m_second_allele_start + snp.get_second_allele().size() ),
-		m_number_of_identifiers( 1 ),
 		m_position( snp.get_position() )
 	{}
 	
@@ -80,7 +63,6 @@ namespace genfile {
 		m_first_allele_start( other.m_first_allele_start ),
 		m_second_allele_start( other.m_second_allele_start ),
 		m_identifiers_start( other.m_identifiers_start ),
-		m_number_of_identifiers( other.m_number_of_identifiers ),
 		m_position( other.m_position )
 	{}
 	
@@ -103,7 +85,6 @@ namespace genfile {
 		m_first_allele_start = m_rsid_start + snp.get_rsid().size() ;
 		m_second_allele_start = m_first_allele_start + snp.get_first_allele().size() ;
 		m_identifiers_start = m_second_allele_start + snp.get_second_allele().size() ;
-		m_number_of_identifiers = use_SNPID ? 1 : 0 ;
 		m_position = snp.get_position() ;
 		return *this ;
 	}
@@ -114,7 +95,6 @@ namespace genfile {
 		m_first_allele_start = other.m_first_allele_start ;
 		m_second_allele_start = other.m_second_allele_start ;
 		m_identifiers_start = other.m_identifiers_start ;
-		m_number_of_identifiers = other.m_number_of_identifiers ;
 		m_position = other.m_position ;
 		return *this ;
 	}
@@ -158,15 +138,24 @@ namespace genfile {
 	}
 
 	void SNPIdentifyingData2::add_identifier( slice const& id ) {
-		std::vector< slice > ids = get_identifiers() ;
-		if( std::find( ids.begin(), ids.end(), id ) == ids.end() ) {
-			m_data += "\t" + std::string( id ) ;
-			++m_number_of_identifiers ;
+		assert( id.size() > 0 ) ;
+		if( id != get_rsid() ) {
+			std::vector< slice > ids = get_identifiers() ;
+			if( ids.size() > 0 && std::find( ids.begin(), ids.end(), id ) == ids.end() ) {
+				m_data += "\t" + std::string( id ) ;
+			} else {
+				m_data += std::string( id ) ;
+			}
 		}
 	}
 
 	std::vector< genfile::string_utils::slice > SNPIdentifyingData2::get_identifiers() const {
-		return slice( m_data, m_identifiers_start, m_data.size() ).split( "\t" ) ;
+		if( m_identifiers_start == m_data.size() ) {
+			return std::vector< slice >() ;
+		}
+		else {
+			return slice( m_data, m_identifiers_start, m_data.size() ).split( "\t" ) ;
+		}
 	}
 
 	void SNPIdentifyingData2::get_identifiers( boost::function< void( slice ) > callback ) const {
@@ -186,11 +175,12 @@ namespace genfile {
 		if( ids.size() > 0 ) {
 			out << " [" ;
 			for( std::size_t i = 0; i < ids.size(); ++i ) {
-				out << "," << ids[i] ;
+				out << ( i > 0 ? "," : "" ) << ids[i] ;
 			}
 			out << "]" ;
 		}
-		out << " " << data.get_position()
+		out << " " << data.get_position().chromosome()
+			<< " " << data.get_position().position()
 			<< " " << data.get_first_allele()
 			<< " " << data.get_second_allele() ;
 		return out ;
@@ -204,12 +194,13 @@ namespace genfile {
 	}
 	
 	bool operator==( SNPIdentifyingData2 const& left, SNPIdentifyingData2 const& right ) {
+		using genfile::string_utils::slice ;
 		return left.m_data == right.m_data
 			&& left.m_rsid_start == right.m_rsid_start
 			&& left.m_first_allele_start == right.m_first_allele_start
 			&& left.m_second_allele_start == right.m_second_allele_start
 			&& left.m_identifiers_start == right.m_identifiers_start
-			&& left.m_number_of_identifiers == right.m_number_of_identifiers
+			&& slice( left.m_data, left.m_identifiers_start, left.m_data.size() ) == slice( right.m_data, right.m_identifiers_start, right.m_data.size() )
 			&& left.m_position == right.m_position ;
 	}
 
@@ -219,6 +210,7 @@ namespace genfile {
 	
 	
     bool operator<( SNPIdentifyingData2 const& left, SNPIdentifyingData2 const& right ) {
+		using genfile::string_utils::slice ;
 		return (
 			( left.get_position() < right.get_position() )
 			||
@@ -243,7 +235,7 @@ namespace genfile {
 									(
 										(left.get_second_allele() == right.get_second_allele())
 										&&
-										( left.get_identifiers() < right.get_identifiers() )
+										( slice( left.m_data, left.m_identifiers_start, left.m_data.size() ) < slice( right.m_data, right.m_identifiers_start, right.m_data.size() ) )
 									)
 								)
 							)

@@ -498,7 +498,6 @@ struct PerCohortValueReporter: public AmetComputation {
 				Eigen::VectorXd counts ;
 				double pvalue ;
 				double info ;
-				double maf ;
 				data_getter.get_betas( i, &betas ) ;
 				data_getter.get_ses( i, &ses ) ;
 				data_getter.get_counts( i, &counts ) ;

@@ -16,7 +16,7 @@ AUTO_TEST_CASE( test_output_streaming ) {
 		genfile::SNPIdentifyingData2 snp( rsid, genfile::GenomePosition( genfile::Chromosome(), 0 ), "A", "G" ) ;
 		std::ostringstream ostr ;
 		ostr << snp ;
-		TEST_ASSERT( ostr.str() == rsid + " NA 0 A G" ) ;
+		BOOST_CHECK_EQUAL( ostr.str(), rsid + " NA 0 A G" ) ;
 	}
 
 	for( char c1 = 33; c1 <= 126; ++c1 ) {
@@ -28,10 +28,10 @@ AUTO_TEST_CASE( test_output_streaming ) {
 			std::ostringstream ostr ;
 			ostr << snp ;
 			if( c1 == c2 ) {
-				TEST_ASSERT( ostr.str() == rsid + " NA 0 A G" ) ;
+				BOOST_CHECK_EQUAL( ostr.str(), rsid + " NA 0 A G" ) ;
 			}
 			else {
-				TEST_ASSERT( ostr.str() == rsid + " [" + alternate_id + "] NA 0 A G" ) ;
+				BOOST_CHECK_EQUAL( ostr.str(), rsid + " [" + alternate_id + "] NA 0 A G" ) ;
 			}
 		}
 	}
@@ -46,11 +46,11 @@ AUTO_TEST_CASE( test_alternate_ids ) {
 				snp.add_identifier( std::string( i + 2, c1 ) ) ;
 			}
 			std::vector< genfile::string_utils::slice > ids = snp.get_identifiers() ;
-			TEST_ASSERT( ids.size() == n ) ;
+			BOOST_CHECK_EQUAL( ids.size(), n ) ;
 			for( std::size_t i = 0; i < n; ++i ) {
-				TEST_ASSERT( ids[i] == std::string( i + 2, c1 ) ) ;
+				BOOST_CHECK_EQUAL( ids[i], std::string( i + 2, c1 ) ) ;
 			}
 		}
 	}
 }
-
+	
