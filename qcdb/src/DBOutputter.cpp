@@ -118,7 +118,7 @@ namespace qcdb {
 			"FROM EntityRelationshipView ERV "
 			"WHERE ERV.relationship == 'is_a' AND ERV.entity2 == 'analysis'"
 		) ;
-	
+		
 		m_connection->run_statement(
 			"CREATE VIEW IF NOT EXISTS SummaryDataView AS "
 			"SELECT          V.id AS variant_id, V.chromosome, V.position, V.rsid, "

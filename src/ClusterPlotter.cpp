@@ -42,6 +42,7 @@ void ClusterPlotter::declare_options( appcontext::OptionProcessor& options ) {
 ClusterPlotter::UniquePtr ClusterPlotter::create( appcontext::OptionProcessor const& options, worker::Worker* worker ) {
 	UniquePtr result(
 		new ClusterPlotter(
+			options.get< std::string >( "-analysis-name" ),
 			options.get< std::string >( "-cluster-plot-filename" ),
 			genfile::string_utils::split_and_strip_discarding_empty_entries( options.get< std::string >( "-cluster-plot" ), ",", " \t" ),
 			worker
@@ -51,10 +52,12 @@ ClusterPlotter::UniquePtr ClusterPlotter::create( appcontext::OptionProcessor co
 }
 
 ClusterPlotter::ClusterPlotter(
+	std::string const& analysis_name,
 	std::string const& filename_template,
 	std::vector< std::string > const& call_fields,
 	worker::Worker* worker
 ):
+	m_analysis_name( analysis_name ),
 	m_filename_template( filename_template ),
 	m_call_fields( call_fields ),
 	m_intensity_field( "XY" ),
@@ -74,7 +77,7 @@ namespace impl {
 		typedef std::vector< int > Genotypes ;
 		typedef std::map< std::string, Genotypes > Calls ;
 		PlotTask(
-			std::string const& cohort_name,
+			std::string const& analysis_name,
 			std::string const& intensity_field,
 			std::vector< std::string > const& call_fields,
 			genfile::SNPIdentifyingData const& snp,
@@ -84,7 +87,7 @@ namespace impl {
 			m_intensity_field( intensity_field ),
 			m_call_threshhold( 0.9 ),
 			m_snp( snp ),
-			m_cohort_name( cohort_name ),
+			m_analysis_name( analysis_name ),
 			m_filename( filename )
 		{
 			for( std::size_t i = 0; i < call_fields.size(); ++i ) {
@@ -113,7 +116,7 @@ namespace impl {
 				x.Set( m_intensities.row(0).data(), m_intensities.cols() ) ;
 				y.Set( m_intensities.row(1).data(), m_intensities.cols() ) ;
 				colour.Set( i->second ) ;
-				graph.Title( m_snp.get_rsid().c_str(), 0, 4 ) ;
+				graph.Title( ( m_analysis_name + ":" + m_snp.get_rsid() ).c_str(), 0, 4 ) ;
 				graph.SubPlot( N, M, count ) ;
 				graph.SetTickLen( 0.04 ) ;
 				double x_range_max = std::min(
@@ -145,7 +148,7 @@ namespace impl {
 		double const m_call_threshhold ;
 		genfile::SNPIdentifyingData const m_snp ;
 		
-		std::string const m_cohort_name ;
+		std::string const m_analysis_name ;
 		std::string const m_call_field ;
 		std::string const m_filename ;
 	} ;
@@ -155,13 +158,14 @@ void ClusterPlotter::processed_snp( genfile::SNPIdentifyingData const& snp, genf
 	using genfile::string_utils::substitute ;
 	using genfile::string_utils::to_string ;
 	std::string filename = m_filename_template ;
+	filename = substitute( filename , "#analysis", m_analysis_name ) ;
 	filename = substitute( filename , "#rsid", snp.get_rsid() ) ;
 	filename = substitute( filename, "#intensity", m_intensity_field ) ;
 	filename = substitute( filename, "#position", to_string( snp.get_position() ) ) ;
 
 	std::auto_ptr< impl::PlotTask > plot_task(
 		new impl::PlotTask(
-			"cohort1",
+			m_analysis_name,
 			m_intensity_field,
 			m_call_fields,
 			snp,

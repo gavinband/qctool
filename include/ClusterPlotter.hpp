@@ -25,6 +25,7 @@ public:
 
 public:
 	ClusterPlotter(
+		std::string const& analysis_name,
 		std::string const& filename_template,
 		std::vector< std::string > const& call_fields,
 		worker::Worker* worker
@@ -34,6 +35,7 @@ public:
 	void end_processing_snps() ;
 
 private:
+	std::string const m_analysis_name ;
 	std::string const m_filename_template ;
 	std::vector< std::string > const m_call_fields ;
 	std::string const m_intensity_field ;

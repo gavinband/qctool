@@ -3,3 +3,4 @@ build
 .waf-*
 doc/doxygen
 data/
+.pyc
