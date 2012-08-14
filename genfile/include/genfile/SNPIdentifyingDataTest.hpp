@@ -12,6 +12,7 @@
 #include <vector>
 #include <map>
 #include <boost/shared_ptr.hpp>
+#include <boost/bind.hpp>
 #include "unistd.h"
 #include "genfile/GenomePosition.hpp"
 #include "genfile/Chromosome.hpp"
@@ -46,9 +47,7 @@ namespace genfile {
 			return operator()( data.get_SNPID(), data.get_rsid(), data.get_position(), data.get_first_allele(), data.get_second_allele() ) ;
 		}
 
-		virtual bool operator()( SNPIdentifyingData2 const& data ) const {
-			return operator()( data.get_SNPID(), data.get_rsid(), data.get_position(), data.get_first_allele(), data.get_second_allele() ) ;
-		}
+		virtual bool operator()( SNPIdentifyingData2 const& data ) const ;
 		
 		// Return a vector of indices of SNPs which pass the test.
 		std::vector< std::size_t > get_indices_of_filtered_in_snps( std::vector< SNPIdentifyingData> const& snps ) const ;

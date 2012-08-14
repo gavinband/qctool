@@ -11,6 +11,7 @@
 #include <vector>
 #include <string>
 #include <cassert>
+#include <boost/function.hpp>
 
 namespace genfile {
 	namespace string_utils {
@@ -42,6 +43,7 @@ namespace genfile {
 
 			std::vector< slice > split( std::string const& split_chars ) const ;
 			void split( std::string const& split_chars, std::vector< slice >* result ) const ;
+			void split( std::string const& split_chars, boost::function< void( slice ) > ) const ;
 			
 			slice substr( std::size_t start, std::size_t end ) const ;
 			

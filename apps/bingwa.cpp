@@ -973,8 +973,6 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 			.set_takes_single_value()
 			.set_default_value( 1 ) 
 		;
-			
-		
 	}
 } ;
 
@@ -1159,22 +1157,14 @@ private:
 			snp_indices[ cohort_i ] = snp_i ;
 		}
 		else {
-			// There is a match.  Combine the rsid, snpid, and alleles.
+			// There is a match.  Combine the identifiers.
 			genfile::SNPIdentifyingData2 stored_snp = range.first->first ;
 			std::vector< boost::optional< std::size_t > > snp_indices = range.first->second ;
 			m_snps.erase( range.first ) ;
-			if( stored_snp.get_rsid() != snp.get_rsid() ) {
-				stored_snp.set_rsid( std::string( stored_snp.get_rsid() ) + "," + std::string( snp.get_rsid() ) ) ;
-			}
-			if( stored_snp.get_SNPID() != snp.get_SNPID() ) {
-				stored_snp.set_SNPID( std::string( stored_snp.get_SNPID() ) + "," + std::string( snp.get_SNPID() ) ) ;
-			}
-			if( stored_snp.get_first_allele() != snp.get_first_allele() ) {
-				stored_snp.set_first_allele( std::string( stored_snp.get_first_allele() ) + "," + std::string( snp.get_first_allele() ) ) ;
-			}
-			if( stored_snp.get_second_allele() != snp.get_second_allele() ) {
-				stored_snp.set_second_allele( std::string( stored_snp.get_second_allele() ) + "," + std::string( snp.get_second_allele() ) ) ;
-			}
+			
+			stored_snp.add_identifier( snp.get_rsid() ) ;
+			snp.get_identifiers( boost::bind( &genfile::SNPIdentifyingData2::add_identifier, &stored_snp, _1 ) ) ;
+
 			snp_indices[ cohort_i ] = snp_i ;
 			m_snps[ stored_snp ] = snp_indices ;
 		}
