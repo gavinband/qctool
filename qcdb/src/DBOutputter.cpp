@@ -132,7 +132,7 @@ namespace qcdb {
 		m_connection->run_statement(
 			"CREATE VIEW IF NOT EXISTS VariantView AS "
 			"SELECT          V.id AS id, V.chromosome AS chromosome, V.position AS position, V.alleleA AS alleleA, V.alleleB AS alleleB, "
-			"GROUP_CONCAT( VI.identifier ) AS identifiers "
+			"GROUP_CONCAT( VI.identifier ) AS identifier "
 			"FROM Variant V "
 			"INNER JOIN VariantIdentifier VI "
 			"  ON VI.variant_id = V.id "
@@ -141,7 +141,7 @@ namespace qcdb {
 		
 		m_connection->run_statement(
 			"CREATE VIEW IF NOT EXISTS SummaryDataView AS "
-			"SELECT          V.id AS variant_id, V.chromosome, V.position, V.identifiers, "
+			"SELECT          V.id AS variant_id, V.chromosome, V.position, V.identifier, "
 			"CASE WHEN length( V.alleleA < 10 ) THEN V.alleleA ELSE substr( V.alleleA, 1, 10 ) || '...' END AS alleleA, "
 			"CASE WHEN length( V.alleleB < 10 ) THEN V.alleleB ELSE substr( V.alleleB, 1, 10 ) || '...' END AS alleleB, "
 			"SD.analysis_id, Analysis.name AS analysis, Variable.id AS variable_id, Variable.name AS variable, "
