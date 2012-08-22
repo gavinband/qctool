@@ -6,6 +6,8 @@
 
 #include <string>
 #include <sstream>
+#include <vector>
+#include <boost/bind.hpp>
 #include "test_case.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/SNPIdentifyingData2.hpp"
@@ -105,5 +107,53 @@ AUTO_TEST_CASE( test_alternate_ids ) {
 		BOOST_CHECK_EQUAL( snp.get_identifiers().size(), 2 ) ;
 		BOOST_CHECK_EQUAL( snp.get_identifiers()[0], "SNPID_1" ) ;
 		BOOST_CHECK_EQUAL( snp.get_identifiers()[1], "AnotherID" ) ;
+	}
+}
+
+AUTO_TEST_CASE( test_alternate_ids_2 ) {
+	std::string rsid ;
+	std::vector< std::string > ids ;
+	{
+		genfile::SNPIdentifyingData2 snp( "RSID_1", genfile::GenomePosition( genfile::Chromosome(), 0 ), "A", "G" ) ;
+		ids.clear() ;
+		snp.get_identifiers( boost::bind( &std::vector< std::string >::push_back, &ids, _1 ) ) ;
+		BOOST_CHECK_EQUAL( ids.size(), 0 ) ;
+		snp.add_identifier( std::string( "RSID_1" ) ) ;
+		ids.clear() ;
+		snp.get_identifiers( boost::bind( &std::vector< std::string >::push_back, &ids, _1 ) ) ;
+		BOOST_CHECK_EQUAL( ids.size(), 0 ) ;
+		snp.add_identifier( std::string( "SNPID_1" ) ) ;
+		ids.clear() ;
+		snp.get_identifiers( boost::bind( &std::vector< std::string >::push_back, &ids, _1 ) ) ;
+		BOOST_CHECK_EQUAL( ids.size(), 1 ) ;
+		BOOST_CHECK_EQUAL( ids[0], "SNPID_1" ) ;
+		snp.add_identifier( std::string( "SNPID_1" ) ) ;
+		ids.clear() ;
+		snp.get_identifiers( boost::bind( &std::vector< std::string >::push_back, &ids, _1 ) ) ;
+		BOOST_CHECK_EQUAL( ids.size(), 1 ) ;
+		BOOST_CHECK_EQUAL( ids[0], "SNPID_1" ) ;
+		snp.add_identifier( std::string( "RSID_1" ) ) ;
+		ids.clear() ;
+		snp.get_identifiers( boost::bind( &std::vector< std::string >::push_back, &ids, _1 ) ) ;
+		BOOST_CHECK_EQUAL( ids.size(), 1 ) ;
+		BOOST_CHECK_EQUAL( ids[0], "SNPID_1" ) ;
+		snp.add_identifier( std::string( "AnotherID" ) ) ;
+		ids.clear() ;
+		snp.get_identifiers( boost::bind( &std::vector< std::string >::push_back, &ids, _1 ) ) ;
+		BOOST_CHECK_EQUAL( ids.size(), 2 ) ;
+		BOOST_CHECK_EQUAL( ids[0], "SNPID_1" ) ;
+		BOOST_CHECK_EQUAL( ids[1], "AnotherID" ) ;
+		snp.add_identifier( std::string( "RSID_1" ) ) ;
+		ids.clear() ;
+		snp.get_identifiers( boost::bind( &std::vector< std::string >::push_back, &ids, _1 ) ) ;
+		BOOST_CHECK_EQUAL( ids.size(), 2 ) ;
+		BOOST_CHECK_EQUAL( ids[0], "SNPID_1" ) ;
+		BOOST_CHECK_EQUAL( ids[1], "AnotherID" ) ;
+		snp.add_identifier( std::string( "SNPID_1" ) ) ;
+		ids.clear() ;
+		snp.get_identifiers( boost::bind( &std::vector< std::string >::push_back, &ids, _1 ) ) ;
+		BOOST_CHECK_EQUAL( ids.size(), 2 ) ;
+		BOOST_CHECK_EQUAL( ids[0], "SNPID_1" ) ;
+		BOOST_CHECK_EQUAL( ids[1], "AnotherID" ) ;
 	}
 }
