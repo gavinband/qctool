@@ -17,8 +17,9 @@
 #include "components/SNPSummaryComponent/SNPSummaryComponent.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputationManager.hpp"
+#include "components/SNPSummaryComponent/Storage.hpp"
 #include "components/SNPSummaryComponent/DBOutputter.hpp"
-#include "components/SNPSummaryComponent/FileOutputter.hpp"
+#include "components/SNPSummaryComponent/FlatFileOutputter.hpp"
 #include "components/SNPSummaryComponent/AssociationTest.hpp"
 #include "components/SNPSummaryComponent/SequenceAnnotation.hpp"
 #include "components/SNPSummaryComponent/DifferentialMissingnessComputation.hpp"
@@ -113,14 +114,14 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 	if( m_options.check( "-nodb" )) {
 		manager->add_result_callback(
 			boost::bind(
-				&FileOutputter::operator(),
-				FileOutputter::create_shared( filename ),
-				_1, _2, _3, _4, _5
+				&snp_summary_component::Storage::store_per_variant_data,
+				snp_summary_component::FlatFileOutputter::create_shared( filename ),
+				_1, _2, _3
 			)
 		) ;
 	}
 	else {
-		snp_summary_component::DBOutputter::SharedPtr outputter = snp_summary_component::DBOutputter::create_shared(
+		snp_summary_component::Storage::SharedPtr storage = snp_summary_component::DBOutputter::create_shared(
 			filename,
 			m_options.get< std::string >( "-analysis-name" ),
 			m_options.get_values_as_map()
@@ -128,9 +129,9 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 	
 		manager->add_result_callback(
 			boost::bind(
-				&snp_summary_component::DBOutputter::operator(),
-				outputter,
-				_1, _2, _3, _4, _5
+				&snp_summary_component::Storage::store_per_variant_data,
+				storage,
+				_1, _2, _3
 			)
 		) ;
 	}
