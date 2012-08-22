@@ -24,7 +24,7 @@ namespace statfile {
 
 	DelimitedStatSink::DelimitedStatSink( std::string const& filename, std::string const& delimiter )
 	: 	m_comment_character( '#' ),
-	m_delimiter( delimiter ),
+		m_delimiter( delimiter ),
 		have_written_header( false ),
 		m_precision(15)
 	{

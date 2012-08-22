@@ -17,11 +17,13 @@
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
 #include "qcdb/DBOutputter.hpp"
+#include "genfile/SNPIdentifyingData2.hpp"
 #include "components/CallComparerComponent/PairwiseCallComparerManager.hpp"
 
-struct CallComparerDBOutputter: public qcdb::DBOutputter, public PairwiseCallComparerManager::ComparisonClient, public PairwiseCallComparerManager::MergeClient {
+struct CallComparerDBOutputter: public PairwiseCallComparerManager::ComparisonClient, public PairwiseCallComparerManager::MergeClient {
 	typedef std::auto_ptr< CallComparerDBOutputter > UniquePtr ;
 	typedef boost::shared_ptr< CallComparerDBOutputter > SharedPtr ;
+	typedef qcdb::DBOutputter::Metadata Metadata ;
 	
 	static UniquePtr create( std::string const& filename, std::string const& analysis, Metadata const& metadata = Metadata() ) ;
 	static SharedPtr create_shared( std::string const& filename, std::string const& analysis, Metadata const& metadata = Metadata() ) ;
@@ -47,14 +49,15 @@ struct CallComparerDBOutputter: public qcdb::DBOutputter, public PairwiseCallCom
 	) ;
 
 private:
+	qcdb::DBOutputter m_outputter ;
 	std::size_t const m_max_transaction_count ;
 	db::Connection::RowId const m_callset_id ;
 	db::Connection::StatementPtr m_insert_comparison_statement ;
 	
-	typedef std::vector< boost::tuple< genfile::SNPIdentifyingData, std::string, std::string, std::string, std::string, genfile::VariantEntry > > Data ;
+	typedef std::vector< boost::tuple< genfile::SNPIdentifyingData2, std::string, std::string, std::string, std::string, genfile::VariantEntry > > Data ;
 	Data m_data ;
 
-	genfile::SNPIdentifyingData m_snp ;
+	genfile::SNPIdentifyingData2 m_snp ;
 
 private:
 	void construct_statements() ;

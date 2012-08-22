@@ -15,7 +15,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/unordered_map.hpp>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/SNPIdentifyingData2.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "db/Connection.hpp"
@@ -43,7 +43,7 @@ namespace qcdb {
 		// Associate some data with an entity.
 		db::Connection::RowId get_or_create_entity_data( db::Connection::RowId const entity_id, db::Connection::RowId const variable_id, genfile::VariantEntry const& value ) const ;
 		// Create a variant
-		db::Connection::RowId get_or_create_variant( genfile::SNPIdentifyingData const& snp ) const ;
+		db::Connection::RowId get_or_create_variant( genfile::SNPIdentifyingData2 const& snp ) const ;
 		// Store some data for a variant.
 		void insert_summary_data( db::Connection::RowId snp_id, db::Connection::RowId variable_id, genfile::VariantEntry const& value ) const ;
 
@@ -62,6 +62,8 @@ namespace qcdb {
 		db::Connection::StatementPtr m_insert_entity_relationship_statement ;
 		db::Connection::StatementPtr m_find_variant_statement ;
 		db::Connection::StatementPtr m_insert_variant_statement ;
+		db::Connection::StatementPtr m_find_variant_identifier_statement ;
+		db::Connection::StatementPtr m_insert_variant_identifier_statement ;
 		db::Connection::StatementPtr m_insert_summarydata_statement ;
 		db::Connection::RowId m_analysis_id ;
 		db::Connection::RowId m_is_a ;
@@ -80,7 +82,7 @@ namespace qcdb {
 			std::string const& description,
 			boost::optional< db::Connection::RowId > class_id = boost::optional< db::Connection::RowId >()
 		) const ;
-		
+		void add_variant_identifier( db::Connection::RowId const variant_id, std::string const& identifier ) const ;
 	} ;
 }
 

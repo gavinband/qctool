@@ -9,7 +9,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/thread/thread.hpp>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/SNPIdentifyingData2.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
 #include "db/Connection.hpp"
@@ -27,19 +27,17 @@ namespace snp_summary_component {
 	}
 
 	DBOutputter::DBOutputter( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ):
-		qcdb::DBOutputter( filename, cohort_name, metadata ),
+		m_outputter( filename, cohort_name, metadata ),
 		m_max_transaction_count( 10000 ),
-		m_variable_id( get_or_create_entity( "per-variant variable", "per-variant variable values" ) )
+		m_variable_id( m_outputter.get_or_create_entity( "per-variant variable", "per-variant variable values" ) )
 	{}
 
 	DBOutputter::~DBOutputter() {
 		write_data( m_data ) ;
 	}
 
-	void DBOutputter::operator()(
-		std::size_t index,
-		genfile::SNPIdentifyingData const& snp,
-		std::string const& computation_name,
+	void DBOutputter::store_per_variant_data(
+		genfile::SNPIdentifyingData2 const& snp,
 		std::string const& variable,
 		genfile::VariantEntry const& value
 	) {
@@ -55,10 +53,10 @@ namespace snp_summary_component {
 	}
 
 	void DBOutputter::write_data( Data const& data ) {
-		db::Connection::ScopedTransactionPtr transaction = connection().open_transaction( 240 ) ; // wait 4 minutes if we have to.
+		db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 240 ) ; // wait 4 minutes if we have to.
 
 		if( !transaction.get() ) {
-			throw genfile::OperationFailedError( "SNPSummaryComponent::DBOutputter::write_data()", connection().get_spec(), "Opening transaction." ) ;
+			throw genfile::OperationFailedError( "SNPSummaryComponent::DBOutputter::write_data()", m_outputter.connection().get_spec(), "Opening transaction." ) ;
 		}
 		
 		std::vector< db::Connection::RowId > snp_ids( data.size() ) ;
@@ -67,7 +65,7 @@ namespace snp_summary_component {
 			// Common usage is to record many variables for each SNP, so optimise for that usage.
 			// i.e. only try to make a new variant if it differs from the previous one.
 			if( i == 0 || data[i].get<0>() != data[i-1].get<0>() ) {
-				snp_ids[i] = get_or_create_variant( data[i].get<0>() ) ;
+				snp_ids[i] = m_outputter.get_or_create_variant( data[i].get<0>() ) ;
 			}
 			else {
 				snp_ids[i] = snp_ids[i-1] ;
@@ -87,7 +85,7 @@ namespace snp_summary_component {
 		std::string const& variable,
 		genfile::VariantEntry const& value
 	) {
-		db::Connection::RowId variable_id = get_or_create_entity( variable, variable, m_variable_id ) ;
-		insert_summary_data( snp_id, variable_id, value ) ;
+		db::Connection::RowId variable_id = m_outputter.get_or_create_entity( variable, variable, m_variable_id ) ;
+		m_outputter.insert_summary_data( snp_id, variable_id, value ) ;
 	}
 }

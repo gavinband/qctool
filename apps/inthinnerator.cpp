@@ -1174,7 +1174,7 @@ private:
 		output_columns.erase( std::remove( output_columns.begin(), output_columns.end(), "allele2" ), output_columns.end() ) ;
 
 		snp_summary_component::DBOutputter::UniquePtr
-			outputter = snp_summary_component::DBOutputter::create( filename, options().get< std::string >( "-analysis-name" ), options().get_values_as_map() ) ;
+			storage = snp_summary_component::DBOutputter::create( filename, options().get< std::string >( "-analysis-name" ), options().get_values_as_map() ) ;
 
 		UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Writing \"" + filename + "\"" ) ;
 		std::size_t snp_index = 0 ;
@@ -1204,10 +1204,8 @@ private:
 					}
 				}
 				
-				outputter->operator()(
-					snp_index,
+				storage->store_per_variant_data(
 					snps[ *i],
-					"inthinnerator",
 					"inthinnerator/" + to_string(N) + "/" + output_columns[j],
 					value
 				) ;

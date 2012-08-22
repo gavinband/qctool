@@ -34,19 +34,29 @@ namespace qcdb {
 		m_analysis_name( cohort_name ),
 		m_metadata( metadata )
 	{
-		// Increase cache size to be about 104Mb=102,400kb for performance reasons.
+		try {
+			m_connection->run_statement( "PRAGMA journal_mode = WAL" ) ;
+			m_connection->run_statement( "PRAGMA synchronous = OFF" ) ;
+		}
+		catch( db::StatementStepError const& ) {
+			std::cerr << "qcdb::DBOutputter::DBOutputter(): unable to set PRAGMA synchronous=OFF, is another connection using this database?" ;
+		}
+
 		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 120 ) ; // wait 2m if we have to.
-		// m_connection->run_statement( "PRAGMA cache_size=-102400" ) ;
-		// m_connection->run_statement( "PRAGMA journal_mode=OFF" ) ;
-		// m_connection->run_statement( "PRAGMA synchronous=OFF" ) ;
 		m_connection->run_statement(
-			"CREATE TABLE IF NOT EXISTS Variant ( id INTEGER PRIMARY KEY, snpid TEXT, rsid TEXT, chromosome TEXT, position INTEGER, alleleA TEXT, alleleB TEXT )"
+			"CREATE TABLE IF NOT EXISTS Variant ( id INTEGER PRIMARY KEY, chromosome TEXT, position INTEGER, alleleA TEXT, alleleB TEXT )"
+		) ;
+		m_connection->run_statement(
+			"CREATE TABLE IF NOT EXISTS VariantIdentifier ( variant_id INTEGER NOT NULL, identifier TEXT, FOREIGN KEY( variant_id ) REFERENCES Variant( id ) ) "
 		) ;
 		m_connection->run_statement(
 			"CREATE INDEX IF NOT EXISTS Variant_index ON Variant( chromosome, position )"
 		) ;
 		m_connection->run_statement(
-			"CREATE INDEX IF NOT EXISTS Variant_rsid_index ON Variant( rsid )"
+			"CREATE INDEX IF NOT EXISTS VariantIdentifierIdentifierIndex ON VariantIdentifier( identifier )"
+		) ;
+		m_connection->run_statement(
+			"CREATE INDEX IF NOT EXISTS VariantIdentifierVariantIndex ON VariantIdentifier( variant_id )"
 		) ;
 		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS Entity ( "
@@ -120,111 +130,28 @@ namespace qcdb {
 		) ;
 		
 		m_connection->run_statement(
+			"CREATE VIEW IF NOT EXISTS VariantView AS "
+			"SELECT          V.id AS id, V.chromosome AS chromosome, V.position AS position, V.alleleA AS alleleA, V.alleleB AS alleleB, "
+			"GROUP_CONCAT( VI.identifier ) AS identifiers "
+			"FROM Variant V "
+			"INNER JOIN VariantIdentifier VI "
+			"  ON VI.variant_id = V.id "
+			"GROUP BY V.id"
+		) ;
+		
+		m_connection->run_statement(
 			"CREATE VIEW IF NOT EXISTS SummaryDataView AS "
-			"SELECT          V.id AS variant_id, V.chromosome, V.position, V.rsid, "
+			"SELECT          V.id AS variant_id, V.chromosome, V.position, V.identifiers, "
 			"CASE WHEN length( V.alleleA < 10 ) THEN V.alleleA ELSE substr( V.alleleA, 1, 10 ) || '...' END AS alleleA, "
 			"CASE WHEN length( V.alleleB < 10 ) THEN V.alleleB ELSE substr( V.alleleB, 1, 10 ) || '...' END AS alleleB, "
 			"SD.analysis_id, Analysis.name AS analysis, Variable.id AS variable_id, Variable.name AS variable, "
 			"SD.value AS value "
 			"FROM SummaryData SD "
-			"INNER JOIN Variant V ON V.id == SD.variant_id "
+			"INNER JOIN VariantView V ON V.id == SD.variant_id "
 			"INNER JOIN Entity Analysis ON Analysis.id = SD.analysis_id "
-			"INNER JOIN Entity Variable ON Variable.id = SD.variable_id"
+			"INNER JOIN Entity Variable ON Variable.id = SD.variable_id "
 		) ;
-		m_connection->run_statement(
-			"CREATE VIEW IF NOT EXISTS SNPFilterView AS "
-			"SELECT          Analysis.id AS Analysis_id, Analysis.name AS analysis, V.id AS variant_id, V.chromosome, V.position, V.rsid, "
-			"AA.value AS 'AA', "
-			"AB.value AS 'AB', "
-			"BB.value AS 'BB', "
-			"MAF.value AS 'MAF', "
-			"HWE.value AS 'minus_log10_exact_HW_p_value', "
-			"Missing.value AS 'missing_proportion', "
-			"Info.value AS 'impute_info' "
-			"FROM            Variant V "
-			"INNER JOIN      Entity Analysis "
-			"LEFT OUTER JOIN      SummaryData AA "
-			"ON          AA.variable_id IN ( SELECT id FROM Entity WHERE name = 'AA' ) "
-			"AND         AA.analysis_id = Analysis.id "
-			"AND         AA.variant_id == V.id "
-			"LEFT OUTER JOIN      SummaryData AB "
-			"ON          AB.variable_id IN ( SELECT id FROM Entity WHERE name = 'AB' ) "
-			"AND         AB.analysis_id = Analysis.id "
-			"AND         AB.variant_id == V.id "
-			"LEFT OUTER JOIN      SummaryData BB "
-			"ON          BB.variable_id IN ( SELECT id FROM Entity WHERE name = 'BB' ) "
-			"AND         BB.analysis_id = Analysis.id "
-			"AND         BB.variant_id == V.id "
-			"LEFT OUTER JOIN      SummaryData Missing "
-			"ON          Missing.variable_id IN ( SELECT id FROM Entity WHERE name = 'missing proportion' ) "
-			"AND         Missing.analysis_id = Analysis.id "
-			"AND         Missing.variant_id == V.id "
-			"LEFT OUTER JOIN      SummaryData MAF "
-			"ON          MAF.variable_id = ( SELECT id FROM Entity WHERE name = 'minor_allele_frequency' ) "
-			"AND         MAF.analysis_id = Analysis.id "
-			"AND         MAF.variant_id == V.id "
-			"LEFT OUTER JOIN      SummaryData HWE "
-			"ON          HWE.variant_id == V.id "
-			"AND         HWE.analysis_id = Analysis.id "
-			"AND         HWE.variable_id == ( SELECT id FROM Entity WHERE name == 'minus_log10_exact_HW_p_value' ) "
-			"LEFT OUTER JOIN      SummaryData Info "
-			"ON          Info.variant_id == V.id "
-			"AND         Info.analysis_id = Analysis.id "
-			"AND         Info.variable_id == ( SELECT id FROM Entity WHERE name == 'impute_info' ) "
-			"WHERE       EXISTS( SELECT * FROM SummaryData WHERE analysis_id == Analysis.id ) "
-		) ;
-		
-		m_connection->run_statement(
-			"CREATE VIEW IF NOT EXISTS SNPTestView AS "
-			"SELECT        Analysis.id AS analysis_id, Analysis.name AS analysis, V.id AS variant_id, V.chromosome, V.position, V.rsid, "
-			"Beta.value AS beta, "
-			"Se.value AS se, "
-			"Pvalue.value AS pvalue "
-			"FROM          Variant V "
-			"INNER JOIN    Entity Analysis "
-			"LEFT OUTER JOIN SummaryData Beta "
-			"ON       Beta.variable_id IN ( SELECT id FROM Entity WHERE name == 'beta_1' ) "
-			"AND      Beta.analysis_id = Analysis.id "
-			"AND      Beta.variant_id = V.id "
-			"LEFT OUTER JOIN SummaryData SE "
-			"ON       SE.variable_id IN ( SELECT id FROM Entity WHERE name == 'se_1' ) "
-			"AND      SE.analysis_id = Analysis.id "
-			"AND      SE.variant_id = V.id "
-			"LEFT OUTER JOIN SummaryData Pvalue "
-			"ON       Pvalue.variable_id IN ( SELECT id FROM Entity WHERE name == 'p_value' ) "
-			"AND      Pvalue.analysis_id = Analysis.id "
-			"AND      Pvalue.variant_id = V.id "
-			"WHERE       EXISTS( SELECT * FROM SummaryData WHERE analysis_id == Analysis.id ) "
-		) ;
-		
-		m_connection->run_statement(
-			"CREATE VIEW IF NOT EXISTS AlleleView AS "
-			"SELECT          A.id AS analysis_id, A.name AS analysis, "
-			"                V.id AS variant_id, V.chromosome, V.position, V.rsid, V.alleleA, V.alleleB, "
-			"                BF.value AS alleleB_frequency, "
-			"                AA.value AS ancestral_allele, "
-			"                DA.value AS derived_allele, "
-			"                DAF.value AS derived_allele_frequency "
-			"FROM            Variant V "
-			"INNER JOIN      Entity A "
-			"INNER JOIN SummaryData BF "
-			"    ON          BF.analysis_id = A.id "
-			"    AND         BF.variant_id = V.id "
-			"    AND         BF.variable_id IN ( SELECT id FROM Entity WHERE name == 'alleleB_frequency' ) "
-			"LEFT OUTER JOIN SummaryData AA "
-			"    ON          AA.analysis_id = A.id "
-			"    AND         AA.variant_id = V.id "
-			"    AND         AA.variable_id IN ( SELECT id FROM Entity WHERE name == 'ancestral_allele' ) "
-			"LEFT OUTER JOIN SummaryData DA "
-			"    ON          DA.analysis_id = A.id "
-			"    AND         DA.variant_id = V.id "
-			"    AND         DA.variable_id IN ( SELECT id FROM Entity WHERE name == 'derived_allele' ) "
-			"LEFT OUTER JOIN SummaryData DAF "
-			"    ON          DAF.analysis_id = A.id "
-			"    AND         DAF.variant_id = V.id "
-			"    AND         DAF.variable_id IN ( SELECT id FROM Entity WHERE name == 'derived_allele_frequency' ) "
-		) ;
-		
+
 		construct_statements() ;
 		store_metadata() ;
 	}
@@ -236,12 +163,14 @@ namespace qcdb {
 		m_insert_entity_data_statement = m_connection->get_statement( "INSERT OR REPLACE INTO EntityData ( entity_id, variable_id, value ) VALUES ( ?1, ?2, ?3 )" ) ;
 		m_insert_entity_relationship_statement = m_connection->get_statement( "INSERT OR REPLACE INTO EntityRelationship( entity1_id, relationship_id, entity2_id ) VALUES( ?1, ?2, ?3 )") ;
 		m_find_variant_statement = connection().get_statement(
-			"SELECT id FROM Variant WHERE chromosome == ?2 AND position == ?3 AND rsid == ?1 AND alleleA = ?4 AND alleleB = ?5"
+			"SELECT id FROM Variant WHERE chromosome == ?1 AND position == ?2 AND alleleA = ?3 AND alleleB = ?4"
 		) ;
 		m_insert_variant_statement = connection().get_statement(
-			"INSERT INTO Variant ( snpid, rsid, chromosome, position, alleleA, alleleB ) "
-			"VALUES( ?1, ?2, ?3, ?4, ?5, ?6 )"
+			"INSERT INTO Variant ( chromosome, position, alleleA, alleleB ) "
+			"VALUES( ?1, ?2, ?3, ?4 )"
 		) ;
+		m_find_variant_identifier_statement = m_connection->get_statement( "SELECT * FROM VariantIdentifier WHERE variant_id == ?1 AND identifier == ?2" ) ;
+		m_insert_variant_identifier_statement = m_connection->get_statement( "INSERT INTO VariantIdentifier( variant_id, identifier ) VALUES ( ?1, ?2 )" ) ;
 		m_insert_summarydata_statement = m_connection->get_statement(
 			"INSERT INTO SummaryData ( variant_id, analysis_id, variable_id, value ) "
 			"VALUES( ?1, ?2, ?3, ?4 )"
@@ -366,24 +295,36 @@ namespace qcdb {
 		return result ;
 	}
 
-	db::Connection::RowId DBOutputter::get_or_create_variant( genfile::SNPIdentifyingData const& snp ) const {
+	void DBOutputter::add_variant_identifier( db::Connection::RowId const variant_id, std::string const& identifier ) const {
+		m_find_variant_identifier_statement
+			->bind( 1, variant_id )
+			.bind( 2, identifier )
+			.step() ;
+		if( m_find_variant_identifier_statement->empty() ) {
+			m_insert_variant_identifier_statement
+				->bind( 1, variant_id )
+				.bind( 2, identifier )
+				.step() ;
+			m_insert_variant_identifier_statement->reset() ;
+		}
+		m_find_variant_identifier_statement->reset() ;
+	}
+
+	db::Connection::RowId DBOutputter::get_or_create_variant( genfile::SNPIdentifyingData2 const& snp ) const {
 		db::Connection::RowId result ;
 		m_find_variant_statement
-			->bind( 1, snp.get_rsid() )
-			.bind( 2, std::string( snp.get_position().chromosome() ))
-			.bind( 3, snp.get_position().position() )
-			.bind( 4, snp.get_first_allele() )
-			.bind( 5, snp.get_second_allele() )
+			->bind( 1, std::string( snp.get_position().chromosome() ) )
+			.bind( 2, snp.get_position().position() )
+			.bind( 3, snp.get_first_allele() )
+			.bind( 4, snp.get_second_allele() )
 			.step()
 		;
 		if( m_find_variant_statement->empty() ) {
 			m_insert_variant_statement
-				->bind( 1, snp.get_SNPID() )
-				.bind( 2, snp.get_rsid() )
-				.bind( 3, std::string( snp.get_position().chromosome() ) )
-				.bind( 4, snp.get_position().position() )
-				.bind( 5, snp.get_first_allele())
-				.bind( 6, snp.get_second_allele())
+				->bind( 1, std::string( snp.get_position().chromosome() ) )
+				.bind( 2, snp.get_position().position() )
+				.bind( 3, snp.get_first_allele())
+				.bind( 4, snp.get_second_allele())
 				.step()
 			;
 
@@ -393,6 +334,11 @@ namespace qcdb {
 			result = m_find_variant_statement->get< db::Connection::RowId >( 0 ) ;
 		}
 		m_find_variant_statement->reset() ;
+
+		// Now add identifiers
+		add_variant_identifier( result, snp.get_rsid() ) ;
+		snp.get_identifiers( boost::bind( &DBOutputter::add_variant_identifier, this, result, _1 )) ;
+
 		return result ;
 	}
 	

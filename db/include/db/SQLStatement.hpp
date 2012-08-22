@@ -14,6 +14,7 @@
 #include "sqlite3/sqlite3.h"
 #include "db/SQLite3Connection.hpp"
 #include "genfile/VariantEntry.hpp"
+#include "genfile/string_utils/slice.hpp"
 
 namespace db {
 	
@@ -60,6 +61,7 @@ namespace db {
 		// The string will be copied so the caller need not preserve it beyond the call site.
 		virtual SQLStatement& bind( std::size_t i, std::string const& value ) = 0 ;
 		SQLStatement& bind( std::size_t i, char const* value ) ;
+		SQLStatement& bind( std::size_t i, genfile::string_utils::slice const& value ) ;
 		// For parameterised queries, bind a BLOB value (array of chars) to the ith placeholder.
 		// Placeholders are indexed starting from 1 on the left.
 		// Named placeholders with the same name have the same index.

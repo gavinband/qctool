@@ -36,6 +36,7 @@
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "statfile/BuiltInTypeStatSource.hpp"
+#include "components/SNPSummaryComponent/Storage.hpp"
 #include "components/SNPSummaryComponent/DBOutputter.hpp"
 
 namespace globals {
@@ -187,7 +188,7 @@ namespace {
 struct SNPTESTResults: public FrequentistGenomeWideAssociationResults {
 	typedef boost::function< void ( std::size_t, boost::optional< std::size_t > ) > ProgressCallback ;
 	typedef
-		boost::function< void ( std::size_t, genfile::SNPIdentifyingData2 const&, std::string const&, std::string const&, genfile::VariantEntry const& ) > 
+		boost::function< void ( genfile::SNPIdentifyingData2 const&, std::string const&, genfile::VariantEntry const& ) > 
 		SNPResultCallback ;
 	
 	SNPTESTResults(
@@ -649,7 +650,8 @@ struct ApproximateBayesianMetaAnalysis: public AmetComputation {
 	):
 		m_name( name ),
 		m_prefix( "ApproximateBayesianMetaAnalysis/" + name ),
-		m_sigma( sigma )
+		m_sigma( sigma ),
+		m_detailed_output_threshhold( 1000 )
 	{
 		assert( m_sigma.rows() == m_sigma.cols() ) ;
 	}
@@ -671,7 +673,8 @@ private:
 	std::string const m_name ;
 	std::string const m_prefix ;
 	Eigen::MatrixXd const m_sigma ;
-	
+	double const m_detailed_output_threshhold ;
+
 	void compute_bayes_factor( Eigen::MatrixXd const& prior, Eigen::MatrixXd const& V, Eigen::VectorXd const& betas, ResultCallback callback ) const ;
 
 /*
@@ -779,8 +782,11 @@ void ApproximateBayesianMetaAnalysis::compute_bayes_factor( Eigen::MatrixXd cons
 	double const result = constant * std::exp( 0.5 * exponent(0) ) ;
 	
 	callback( m_prefix + "/bf", result ) ;
-	callback( m_prefix + "/posterior_mode", impl::format_matrix( betas - ( V * V_plus_prior_solver.solve( betas ) ) ) ) ;
-	callback( m_prefix + "/posterior_variance", impl::format_matrix( V - V * V_plus_prior_solver.solve( Eigen::MatrixXd::Identity( betas.size(), betas.size() ) ) * V ) ) ;
+
+	if( result > m_detailed_output_threshhold ) {
+		callback( m_prefix + "/posterior_mean", impl::format_matrix( betas - ( V * V_plus_prior_solver.solve( betas ) ) ) ) ;
+		callback( m_prefix + "/posterior_variance", impl::format_matrix( V - V * V_plus_prior_solver.solve( Eigen::MatrixXd::Identity( betas.size(), betas.size() ) ) * V ) ) ;
+	}
 }
 
 AmetComputation::UniquePtr AmetComputation::create( std::string const& name, appcontext::OptionProcessor const& options ) {
@@ -1072,9 +1078,7 @@ struct AmetProcessor: public boost::noncopyable
 
 	typedef boost::signals2::signal<
 		void (
-			std::size_t index,
 			genfile::SNPIdentifyingData2 const& snp,
-			std::string const& computation_name,
 			std::string const& value_name,
 			genfile::VariantEntry const& value
 		)
@@ -1205,16 +1209,6 @@ private:
 		Eigen::VectorXd non_missingness( m_cohorts.size() ) ;
 
 		{
-			appcontext::UIContext::ProgressContext progress_context = ui_context.get_progress_context( "Storing variants" ) ;
-		
-			SnpMap::const_iterator snp_i = m_snps.begin() ;
-			SnpMap::const_iterator const end_i = m_snps.end() ;
-			for( std::size_t snp_index = 0; snp_i != end_i; ++snp_i, ++snp_index ) {
-				m_result_signal( snp_index, snp_i->first, "AmetProcessor", "index", genfile::VariantEntry::Integer( snp_index ) ) ;
-				progress_context( snp_index + 1, m_snps.size() ) ;
-			}
-		}
-		{
 			appcontext::UIContext::ProgressContext progress_context = ui_context.get_progress_context( "Storing meta-analysis results" ) ;
 			SnpMap::const_iterator snp_i = m_snps.begin() ;
 			SnpMap::const_iterator const end_i = m_snps.end() ;
@@ -1227,9 +1221,7 @@ private:
 						data_getter,
 						boost::bind(
 							boost::ref( m_result_signal ),
-							snp_index,
 							snp_i->first,
-							m_computations[i].get_spec(),
 							_1, _2
 						)
 					) ;
@@ -1275,7 +1267,7 @@ public:
 		m_processor->setup( get_ui_context() ) ;
 		m_processor->summarise( get_ui_context() ) ;
 		
-		snp_summary_component::DBOutputter::SharedPtr outputter = snp_summary_component::DBOutputter::create_shared(
+		snp_summary_component::Storage::SharedPtr storage = snp_summary_component::DBOutputter::create_shared(
 			options().get< std::string >( "-o" ),
 			options().get< std::string >( "-analysis-name" ),
 			options().get_values_as_map()
@@ -1283,9 +1275,9 @@ public:
 
 		m_processor->send_results_to(
 			boost::bind(
-				&snp_summary_component::DBOutputter::operator(),
-				outputter,
-				_1, _2, _3, _4, _5
+				&snp_summary_component::Storage::store_per_variant_data,
+				storage,
+				_1, _2, _3
 			)
 		) ;
 
@@ -1420,7 +1412,7 @@ public:
 	}
 	
 	typedef
-		boost::function< void ( std::size_t, genfile::SNPIdentifyingData2 const&, std::string const&, std::string const&, genfile::VariantEntry const& ) > 
+		boost::function< void ( genfile::SNPIdentifyingData2 const&, std::string const&, genfile::VariantEntry const& ) > 
 		ResultCallback ;
 
 	void load_data() {
@@ -1433,16 +1425,16 @@ public:
 
 			SNPTESTResults::SNPResultCallback snp_callback ;
 			if( cohort_files.size() == 1 ) {
-				snp_summary_component::DBOutputter::SharedPtr raw_outputter = snp_summary_component::DBOutputter::create_shared(
+				snp_summary_component::Storage::SharedPtr raw_storage = snp_summary_component::DBOutputter::create_shared(
 					options().get< std::string >( "-o" ),
 					globals::program_name + " cohort " + to_string( cohort_i+1 ) + ": SNPTEST analysis: \"" + cohort_files[cohort_i] + "\"",
 					snp_summary_component::DBOutputter::Metadata()
 				) ;
 
 				snp_callback = boost::bind(
-					&snp_summary_component::DBOutputter::operator(),
-					raw_outputter,
-					_1, _2, _3, _4, _5
+					&snp_summary_component::Storage::store_per_variant_data,
+					raw_storage,
+					_1, _2, _3
 				) ;
 			}
 

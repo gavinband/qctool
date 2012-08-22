@@ -34,7 +34,8 @@ public:
 
 	void add_computation( std::string const& name, SNPSummaryComputation::UniquePtr computation ) ;
 
-	typedef boost::function< void ( std::size_t index, genfile::SNPIdentifyingData const& snp, std::string const& computation_name, std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
+	typedef boost::signals2::signal< void ( genfile::SNPIdentifyingData const& snp, std::string const& value_name, genfile::VariantEntry const& value ) > ResultSignal ;
+	typedef ResultSignal::slot_type ResultCallback ;
 	void add_result_callback( ResultCallback ) ;
 
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) ;
@@ -50,7 +51,6 @@ public:
 		typedef boost::ptr_map< std::string, SNPSummaryComputation > Computations ;
 		Computations m_computations ;
 
-		typedef boost::signals2::signal< void ( std::size_t index, genfile::SNPIdentifyingData const& snp, std::string const& computation_name, std::string const& value_name, genfile::VariantEntry const& value ) > ResultSignal ;
 		ResultSignal m_result_signal ;
 
 		std::size_t m_snp_index ;

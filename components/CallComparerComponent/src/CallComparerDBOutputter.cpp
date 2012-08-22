@@ -17,12 +17,12 @@ CallComparerDBOutputter::SharedPtr CallComparerDBOutputter::create_shared( std::
 }
 
 CallComparerDBOutputter::CallComparerDBOutputter( std::string const& filename, std::string const& analysis, Metadata const& metadata ):
-	qcdb::DBOutputter( filename, analysis, metadata ),
+	m_outputter( filename, analysis, metadata ),
 	m_max_transaction_count( 10000 ),
-	m_callset_id( get_or_create_entity( "callset", "entity representing call sets" ))
+	m_callset_id( m_outputter.get_or_create_entity( "callset", "entity representing call sets" ))
 {
-	db::Connection::ScopedTransactionPtr transaction = connection().open_transaction( 240 ) ;
-	connection().run_statement(
+	db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 240 ) ;
+	m_outputter.connection().run_statement(
 		"CREATE TABLE IF NOT EXISTS CallComparison ( "
 		"variant_id INT, callset1_id INT, callset2_id INT, method_id INT, variable_id INT, value FLOAT, "
 		"FOREIGN KEY( variant_id ) REFERENCES Variant( id ), "
@@ -31,11 +31,11 @@ CallComparerDBOutputter::CallComparerDBOutputter( std::string const& filename, s
 		"FOREIGN KEY( method_id ) REFERENCES Entity( id ), "
 		"FOREIGN KEY( variable_id ) REFERENCES Entity( id ))"
 	) ;
-	connection().run_statement(
+	m_outputter.connection().run_statement(
 		"CREATE INDEX IF NOT EXISTS CallComparisonIndex ON CallComparison( variant_id, method_id, variable_id )"
 	) ;
 
-	connection().run_statement(
+	m_outputter.connection().run_statement(
 		"CREATE VIEW IF NOT EXISTS CallComparisonView AS "
 		"SELECT V.id AS variant_id, V.chromosome, V.position, V.rsid, callset1_id, C1.name AS callset1, callset2_id, C2.name AS callset2, variable_id, Variable.name AS variable, value "
 		"FROM CallComparison CC "
@@ -104,17 +104,17 @@ void CallComparerDBOutputter::set_result(
 }
 
 void CallComparerDBOutputter::construct_statements() {
-	m_insert_comparison_statement = connection().get_statement(
+	m_insert_comparison_statement = m_outputter.connection().get_statement(
 		"INSERT INTO CallComparison ( variant_id, callset1_id, callset2_id, method_id, variable_id, value ) "
 		"VALUES( ?1, ?2, ?3, ?4, ?5, ?6 )"
 	) ;
 }
 
 void CallComparerDBOutputter::write_data( Data const& data ) {
-	db::Connection::ScopedTransactionPtr transaction = connection().open_transaction( 240 ) ; // wait up to 4 minutes.
+	db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 240 ) ; // wait up to 4 minutes.
 
 	if( !transaction.get() ) {
-		throw genfile::OperationFailedError( "CallComparerComponent::write_data()", connection().get_spec(), "Opening transaction." ) ;
+		throw genfile::OperationFailedError( "CallComparerComponent::write_data()", m_outputter.connection().get_spec(), "Opening transaction." ) ;
 	}
 	std::vector< db::Connection::RowId > snp_ids( data.size() ) ;
 	db::Connection::RowId snp_id = 0 ;
@@ -122,7 +122,7 @@ void CallComparerDBOutputter::write_data( Data const& data ) {
 		// Common usage is to record many variables for each SNP, so optimise for that usage.
 		// i.e. only try to make a new variant if it differs from the previous one.
 		if( i == 0 || data[i].get<0>() != data[i-1].get<0>() ) {
-			snp_ids[i] = get_or_create_variant( data[i].get<0>() ) ;
+			snp_ids[i] = m_outputter.get_or_create_variant( data[i].get<0>() ) ;
 		}
 		else {
 			snp_ids[i] = snp_ids[i-1] ;
@@ -149,10 +149,10 @@ void CallComparerDBOutputter::store_comparison(
 	std::string const& comparison_variable,
 	genfile::VariantEntry const& value
 ) {
-	db::Connection::RowId method_id = get_or_create_entity( comparison_method, "Method for performing pairwise genotype call comparison" ) ;
-	db::Connection::RowId callset1_id = get_or_create_entity( callset1, "A callset", m_callset_id ) ;
-	db::Connection::RowId callset2_id = get_or_create_entity( callset2, "A callset", m_callset_id ) ;
-	db::Connection::RowId variable_id = get_or_create_entity( comparison_variable, "\"" + comparison_variable + "\" value for pairwise genotype call comparison" ) ;
+	db::Connection::RowId method_id = m_outputter.get_or_create_entity( comparison_method, "Method for performing pairwise genotype call comparison" ) ;
+	db::Connection::RowId callset1_id = m_outputter.get_or_create_entity( callset1, "A callset", m_callset_id ) ;
+	db::Connection::RowId callset2_id = m_outputter.get_or_create_entity( callset2, "A callset", m_callset_id ) ;
+	db::Connection::RowId variable_id = m_outputter.get_or_create_entity( comparison_variable, "\"" + comparison_variable + "\" value for pairwise genotype call comparison" ) ;
 
 	if( callset1 != "" ) {
 		m_insert_comparison_statement
@@ -166,7 +166,7 @@ void CallComparerDBOutputter::store_comparison(
 		;
 		m_insert_comparison_statement->reset() ;
 	} else {
-		insert_summary_data( snp_id, variable_id, value ) ;
+		m_outputter.insert_summary_data( snp_id, variable_id, value ) ;
 	}
 	
 }

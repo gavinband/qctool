@@ -11,41 +11,39 @@
 #include <memory>
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/SNPIdentifyingData2.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
 #include "qcdb/DBOutputter.hpp"
+#include "components/SNPSummaryComponent/Storage.hpp"
 
 namespace snp_summary_component {
-	struct DBOutputter: public qcdb::DBOutputter {
-		typedef std::auto_ptr< DBOutputter > UniquePtr ;
-		typedef boost::shared_ptr< DBOutputter > SharedPtr ;
-		
-		static UniquePtr create( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
-		static SharedPtr create_shared( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
+	struct DBOutputter: public Storage {
+		typedef qcdb::DBOutputter::Metadata Metadata ;
+		static Storage::UniquePtr create( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
+		static Storage::SharedPtr create_shared( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
 
 		DBOutputter(
 			std::string const& filename,
 			std::string const& cohort_name,
 			Metadata const& metadata
 		) ;
+
 		~DBOutputter() ;
 
-		void operator()(
-			std::size_t index,
-			genfile::SNPIdentifyingData const& snp,
-			std::string const& computation_name,
+		void store_per_variant_data(
+			genfile::SNPIdentifyingData2 const& snp,
 			std::string const& variable,
 			genfile::VariantEntry const& value
 		) ;
 
 	private:
-		db::Connection::UniquePtr m_connection ;
+		qcdb::DBOutputter m_outputter ;
 		std::size_t const m_max_transaction_count ;
 		db::Connection::RowId m_variable_id ;
-		typedef std::vector< boost::tuple< genfile::SNPIdentifyingData, std::string, genfile::VariantEntry > > Data ;
+		typedef std::vector< boost::tuple< genfile::SNPIdentifyingData2, std::string, genfile::VariantEntry > > Data ;
 		Data m_data ;
 
 	private:

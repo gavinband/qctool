@@ -21,12 +21,11 @@ namespace genfile {
 	}
 
 	SNPIdentifyingData2::SNPIdentifyingData2():
-		m_data(),
 		m_rsid_start( 0 ),
 		m_first_allele_start( 0 ),
 		m_second_allele_start( 0 ),
 		m_identifiers_start( 0 ),
-		m_position( 0 )
+		m_position( Chromosome(), 0 )
 	{}
 
 	SNPIdentifyingData2::SNPIdentifyingData2(
@@ -50,7 +49,7 @@ namespace genfile {
 		SNPIdentifyingData const& snp
 	):
 		m_data( snp.get_rsid() + snp.get_first_allele() + snp.get_second_allele() + snp.get_SNPID() ),
-		m_rsid_start( snp.get_SNPID().size() ),
+		m_rsid_start( 0 ),
 		m_first_allele_start( m_rsid_start + snp.get_rsid().size() ),
 		m_second_allele_start( m_first_allele_start + snp.get_first_allele().size() ),
 		m_identifiers_start( m_second_allele_start + snp.get_second_allele().size() ),
@@ -141,8 +140,10 @@ namespace genfile {
 		assert( id.size() > 0 ) ;
 		if( id != get_rsid() ) {
 			std::vector< slice > ids = get_identifiers() ;
-			if( ids.size() > 0 && std::find( ids.begin(), ids.end(), id ) == ids.end() ) {
-				m_data += "\t" + std::string( id ) ;
+			if( ids.size() > 0 ) {
+				if( std::find( ids.begin(), ids.end(), id ) == ids.end() ) {
+					m_data += "\t" + std::string( id ) ;
+				}
 			} else {
 				m_data += std::string( id ) ;
 			}

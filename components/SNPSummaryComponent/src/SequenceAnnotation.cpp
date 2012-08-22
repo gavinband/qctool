@@ -159,7 +159,6 @@ void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes co
 	using namespace genfile::string_utils ;
 	Sequence::const_iterator where = m_sequence.find( snp.get_position().chromosome() ) ;
 	if( where != m_sequence.end() ) {
-		
 		// We assume the first allele equals the reference and we will warn if not.
 		// Let's find out.
 		

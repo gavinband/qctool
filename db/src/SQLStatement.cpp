@@ -44,6 +44,11 @@ namespace db {
 		bind( i, std::string( value )) ;
 		return *this ;
 	}
+
+	SQLStatement& SQLStatement::bind( std::size_t i, genfile::string_utils::slice const& value ) {
+		bind( i, std::string( value )) ;
+		return *this ;
+	}
 	
 	namespace impl {
 		struct variant_binder: public boost::static_visitor<>
