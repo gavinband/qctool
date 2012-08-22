@@ -202,7 +202,7 @@ void SNPSummaryComputationManager::end_processing_snps() {}
 
 void SNPSummaryComputationManager::stratify_by( StrataMembers const& strata, std::string const& stratification_name ) {
 	Computations::iterator computation_i = m_computations.begin(), end_computations = m_computations.end() ;
-	for( ; computation_i != end_computations; computation_i ) {
+	for( ; computation_i != end_computations; ) {
 		Computations::iterator this_computation_i = computation_i++ ;
 		std::string const this_name = this_computation_i->first ;
 		SNPSummaryComputation::UniquePtr computation( m_computations.release( this_computation_i ).release() ) ;

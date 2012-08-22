@@ -6,7 +6,6 @@
 
 #include <vector>
 #include <boost/foreach.hpp>
-#define foreach BOOST_FOREACH
 #include <boost/function.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/thread.hpp>
@@ -171,7 +170,7 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 
 	if( m_options.check( "-snp-stats" )) {
 		std::vector< std::string > elts = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-snp-stats-columns" ), ",", " \t" ) ;
-		foreach( std::string const& elt, elts ) {
+		BOOST_FOREACH( std::string const& elt, elts ) {
 			manager.add_computation( elt, SNPSummaryComputation::create( elt )) ;
 		}
 	}
@@ -182,7 +181,7 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		if( m_options.check( "-covariates" ))  {
 			covariates = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-covariates" ), ",", " \t" ) ;
 		}
-		foreach( std::string const& phenotype, phenotypes ) {
+		BOOST_FOREACH( std::string const& phenotype, phenotypes ) {
 			manager.add_computation(
 				"association_test",
 				AssociationTest::create(
