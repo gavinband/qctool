@@ -11,7 +11,9 @@
 #include "genfile/VariantEntry.hpp"
 #include "genfile/SNPIdentifyingData2.hpp"
 #include "genfile/Error.hpp"
+#include "genfile/string_utils.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
+#include "appcontext/get_current_time_as_string.hpp"
 #include "components/SNPSummaryComponent/Storage.hpp"
 #include "components/SNPSummaryComponent/FlatFileOutputter.hpp"
 
@@ -22,15 +24,17 @@ namespace snp_summary_component {
 		}
 	}
 
-	FlatFileOutputter::UniquePtr FlatFileOutputter::create( std::string const& filename ) {
-		return UniquePtr( new FlatFileOutputter( filename ) ) ;
+	FlatFileOutputter::UniquePtr FlatFileOutputter::create( std::string const& filename, std::string const& analysis_name, Metadata const& metadata ) {
+		return UniquePtr( new FlatFileOutputter( filename, analysis_name, metadata ) ) ;
 	}
-	FlatFileOutputter::SharedPtr FlatFileOutputter::create_shared( std::string const& filename ) {
-		return SharedPtr( new FlatFileOutputter( filename ) ) ;
+	FlatFileOutputter::SharedPtr FlatFileOutputter::create_shared( std::string const& filename, std::string const& analysis_name, Metadata const& metadata ) {
+		return SharedPtr( new FlatFileOutputter( filename, analysis_name, metadata ) ) ;
 	}
 
-	FlatFileOutputter::FlatFileOutputter( std::string const& filename ):
+	FlatFileOutputter::FlatFileOutputter( std::string const& filename, std::string const& analysis_name, Metadata const& metadata ):
 		m_filename( filename ),
+		m_analysis_name( analysis_name ),
+		m_metadata( metadata ),
 		m_max_snps_per_block( 1000 )
 	{
 		m_snps.reserve( 1000 ) ;
@@ -77,6 +81,8 @@ namespace snp_summary_component {
 	void FlatFileOutputter::store_block() {
 		if( !m_sink.get() ) {
 			m_sink = statfile::BuiltInTypeStatSink::open( m_filename ) ;
+			m_sink->write_metadata( format_metadata() ) ;
+
 			(*m_sink) | "alternate_ids" | "rsid" | "chromosome" | "position" | "alleleA" | "alleleB" ;
 			VariableMap::right_const_iterator i = m_variables.right.begin(),
 				end_i = m_variables.right.end() ;
@@ -104,5 +110,19 @@ namespace snp_summary_component {
 			(*m_sink) << statfile::end_row() ;
 		}
 	}
-
+	
+	std::string FlatFileOutputter::format_metadata() const {
+		std::ostringstream str ;
+		str << "Analysis: \"" << m_analysis_name << "\"\n"
+			<< " started: " << appcontext::get_current_time_as_string() << "\n" ;
+		str << "\nAnalysis properties:\n" ;
+		for( Metadata::const_iterator i = m_metadata.begin(); i != m_metadata.end(); ++i ) {
+			str << "  "
+				<< i->first
+				<< " "
+				<< genfile::string_utils::join( i->second.first, " " )
+				<< " (" + i->second.second + ")\n" ;
+		}
+		return str.str() ;
+	}
 }

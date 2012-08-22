@@ -115,7 +115,11 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 		manager->add_result_callback(
 			boost::bind(
 				&snp_summary_component::Storage::store_per_variant_data,
-				snp_summary_component::FlatFileOutputter::create_shared( filename ),
+				snp_summary_component::FlatFileOutputter::create_shared(
+					filename,
+					m_options.get< std::string >( "-analysis-name" ),
+					m_options.get_values_as_map()
+				),
 				_1, _2, _3
 			)
 		) ;

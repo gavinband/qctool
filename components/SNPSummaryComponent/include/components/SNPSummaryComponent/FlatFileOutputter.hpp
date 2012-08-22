@@ -10,6 +10,8 @@
 #include <string>
 #include <memory>
 #include <map>
+#include <vector>
+#include <utility>
 #include <boost/bimap.hpp>
 #include "genfile/VariantEntry.hpp"
 #include "genfile/SNPIdentifyingData2.hpp"
@@ -18,10 +20,11 @@
 
 namespace snp_summary_component {
 	struct FlatFileOutputter: public Storage {
-		static UniquePtr create( std::string const& filename ) ;
-		static SharedPtr create_shared( std::string const& filename ) ;
+		typedef std::map< std::string, std::pair< std::vector< std::string >, std::string > > Metadata ;
+		static UniquePtr create( std::string const& filename, std::string const& analysis_name, Metadata const& metadata ) ;
+		static SharedPtr create_shared( std::string const& filename, std::string const& analysis_name, Metadata const& metadata ) ;
 
-		FlatFileOutputter( std::string const& filename ) ;
+		FlatFileOutputter( std::string const& filename, std::string const& analysis_name, Metadata const& metadata ) ;
 		~FlatFileOutputter() ;
 
 		void store_per_variant_data(
@@ -32,6 +35,8 @@ namespace snp_summary_component {
 
 	private:
 		std::string const m_filename ;
+		std::string const m_analysis_name ;
+		Metadata const m_metadata ;
 		std::size_t const m_max_snps_per_block ;
 		statfile::BuiltInTypeStatSink::UniquePtr m_sink ;
 		std::vector< genfile::SNPIdentifyingData2 > m_snps ;
@@ -42,6 +47,7 @@ namespace snp_summary_component {
 	
 	private:
 		void store_block() ;
+		std::string format_metadata() const ;
 	} ;
 }
 

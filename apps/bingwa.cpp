@@ -38,6 +38,7 @@
 #include "statfile/BuiltInTypeStatSource.hpp"
 #include "components/SNPSummaryComponent/Storage.hpp"
 #include "components/SNPSummaryComponent/DBOutputter.hpp"
+#include "components/SNPSummaryComponent/FlatFileOutputter.hpp"
 
 namespace globals {
 	std::string const program_name = "bingwa" ;
@@ -914,6 +915,9 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 			.set_description( "Specify the path to the output file." )
 			.set_is_required()
 			.set_takes_single_value() ;
+
+		options[ "-flat-file" ]
+			.set_description( "Specify the output file should be a flat file, not a db." ) ;
 		
 		options[ "-analysis-name" ]
 			.set_description( "Specify a name to label results from this analysis with" )
@@ -1276,11 +1280,21 @@ public:
 		m_processor->setup( get_ui_context() ) ;
 		m_processor->summarise( get_ui_context() ) ;
 		
-		snp_summary_component::Storage::SharedPtr storage = snp_summary_component::DBOutputter::create_shared(
-			options().get< std::string >( "-o" ),
-			options().get< std::string >( "-analysis-name" ),
-			options().get_values_as_map()
-		) ;
+		snp_summary_component::Storage::SharedPtr storage ;
+		if( options().check( "-flat-file" )) {
+			storage = snp_summary_component::FlatFileOutputter::create_shared(
+				options().get< std::string >( "-o" ),
+				options().get< std::string >( "-analysis-name" ),
+				options().get_values_as_map()
+			) ;
+		}
+		else {
+			storage = snp_summary_component::DBOutputter::create_shared(
+				options().get< std::string >( "-o" ),
+				options().get< std::string >( "-analysis-name" ),
+				options().get_values_as_map()
+			) ;
+		}
 
 		m_processor->send_results_to(
 			boost::bind(
