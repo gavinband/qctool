@@ -160,6 +160,9 @@ namespace genfile {
 	}
 
 	void SNPIdentifyingData2::get_identifiers( boost::function< void( slice ) > callback ) const {
+		if( m_identifiers_start == m_data.size() ) {
+			return ;
+		}
 		slice( m_data, m_identifiers_start, m_data.size() ).split( "\t", callback ) ;
 	}
 
