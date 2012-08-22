@@ -320,6 +320,14 @@ private:
 			(*source) >> snp.SNPID() >> snp.rsid() >> snp.position().chromosome() >> snp.position().position() >> snp.first_allele() >> snp.second_allele();
 			(*source) >> statfile::ignore_all()
 		) {
+			// Deal with strange non-ids.  This isn't a general solution but 
+			if(
+				snp.get_SNPID() == "---" // IMPUTE2
+				|| snp.get_SNPID() == "?" // QCTOOL under some usages
+				|| snp.get_SNPID() == "NA" // dunno.
+			) {
+				snp.set_SNPID( "" ) ;
+			}
 			// Just read the values we need
 			ColumnMap::right_const_iterator i = column_map.right.begin(), end_i = column_map.right.end() ;
 			double value ;

@@ -137,6 +137,7 @@ namespace genfile {
 	}
 
 	void SNPIdentifyingData2::add_identifier( slice const& id ) {
+		// Deal with strange non-IDs
 		assert( id.size() > 0 ) ;
 		if( id != get_rsid() ) {
 			std::vector< slice > ids = get_identifiers() ;
