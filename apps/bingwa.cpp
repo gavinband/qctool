@@ -937,7 +937,7 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 
 		options.declare_group( "Analysis options" ) ;
 		
-		options[ "-prior-correlation" ]
+		options[ "-simple-prior" ]
 			.set_description( "Specify the between-cohort prior correlation, denoted r, giving a correlation matrix of the form\n"
 				"   [ 1 r r  .. ]\n"
 				"   [ r 1 r  .. ]\n"
@@ -945,27 +945,36 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 				"   [       .   ]\n"
 				"   [         . ]\n"
 			)
-			.set_takes_values( 1 )
+			.set_takes_values_until_next_option()
 			.set_minimum_multiplicity( 0 )
-			.set_maximum_multiplicity( 1 ) ; // run up to 100 models
+			.set_maximum_multiplicity( 1 ) ;
 
-		options[ "-prior-correlation-matrix" ]
+		options[ "-complex-prior" ]
 			.set_description( "Specify the upper triangle of the prior correlation matrix for bayesian analysis.  For example, "
 				"the value \"1,0.5,1\" specifies the matrix\n"
 				"   [ 1    0.5 ]\n"
 				"   [ 0.5  1   ]."
 			)
-			.set_takes_values( 1 )
+			.set_takes_values_until_next_option()
 			.set_minimum_multiplicity( 0 )
-			.set_maximum_multiplicity( 1 ) ; // run up to 100 models
+			.set_maximum_multiplicity( 1 ) ;
+
+		options[ "-complex-prior-name" ]
+			.set_description( "Specify the name of the complex models.  This option takes the same number of values as "
+				"are given to -complex-prior option."
+			)
+			.set_takes_values_until_next_option()
+			.set_minimum_multiplicity( 0 )
+			.set_maximum_multiplicity( 1 )
+		;
 
 		options[ "-prior-sd" ]
 			.set_description( "Specify the prior standard deviation for bayesian analysis." )
-			.set_takes_single_value() ;
+			.set_takes_values_until_next_option() ;
 		
-		options.option_implies_option( "-prior-correlation", "-prior-sd" ) ;
-		options.option_implies_option( "-prior-correlation-matrix", "-prior-sd" ) ;
-		options.option_excludes_option( "-prior-correlation", "-prior-correlation-matrix" ) ;
+		options.option_implies_option( "-simple-prior", "-prior-sd" ) ;
+		options.option_implies_option( "-complex-prior", "-prior-sd" ) ;
+		options.option_implies_option( "-complex-prior", "-complex-prior-name" ) ;
 		
 		options.declare_group( "Output options" ) ;
 		options[ "-bf-threshhold" ]
@@ -1290,7 +1299,7 @@ public:
 				"FixedEffectFrequentistMetaAnalysis",
 				AmetComputation::create( "FixedEffectFrequentistMetaAnalysis", options() )
 			) ;
-			if( options().check( "-prior-correlation" ) || options().check( "-prior-correlation-matrix" )) {
+			if( options().check( "-simple-prior" ) || options().check( "-complex-prior" )) {
 				std::map< std::string, Eigen::MatrixXd > const priors = get_priors( options() ) ;
 				assert( priors.size() > 0 ) ;
 				std::map< std::string, Eigen::MatrixXd >::const_iterator i = priors.begin() ;
@@ -1318,37 +1327,58 @@ public:
 		using genfile::string_utils::to_repr ;
 		using genfile::string_utils::split_and_strip_discarding_empty_entries ;
 		int const N = options.get_values< std::string >( "-snptest" ).size() ;
-		std::vector< std::string > sds = split_and_strip_discarding_empty_entries( options.get< std::string >( "-prior-sd" ), ",", " \t" ) ;
+		std::vector< std::string > sds = options.get_values< std::string >( "-prior-sd" ) ;
 		
-		if( options.check( "-prior-correlation" ) ) {
-			std::vector< std::string > const rhos = split_and_strip_discarding_empty_entries( options.get< std::string >( "-prior-correlation" ), ",", " \t" ) ;
-			if( sds.size() != rhos.size() ) {
+		std::size_t number_of_sds_used = 0 ;
+		
+		if( options.check( "-simple-prior" ) ) {
+			std::vector< std::string > const rhos = options.get_values< std::string >( "-simple-prior" ) ;
+			if( sds.size() < rhos.size() ) {
 				throw genfile::BadArgumentError(
 					"AmetProcessor::get_priors()",
-					"-prior-correlation \"" + options.get< std::string >( "-prior-correlation" ) + "\""
+					"-simple-prior \"" + options.get< std::string >( "-simple-prior" ) + "\""
 				) ;
 			}
-			for( std::size_t i = 0; i < sds.size(); ++i ) {
+			for( std::size_t i = 0; i < rhos.size(); ++i ) {
 				double const rho = to_repr< double >( rhos[i] ) ;
 				double const sd = to_repr< double >( sds[i] ) ;
 				result[ "rho=" + rhos[i] + "/sd=" + sds[i] ] = get_prior_matrix( N, rho, sd ) ;
 			}
-		} else if( options.check( "-prior-correlation-matrix" )) {
-			std::vector< std::string > const matrix_specs = options.get_values< std::string >( "-prior-correlation-matrix" ) ;
-			if( sds.size() != matrix_specs.size() ) {
+			
+			number_of_sds_used += rhos.size() ;
+		}
+
+		if( options.check( "-complex-prior" ) ) {
+			std::vector< std::string > const matrix_specs = options.get_values< std::string >( "-complex-prior" ) ;
+			std::vector< std::string > const model_names = options.get_values< std::string >( "-complex-prior-name" ) ;
+			if( ( sds.size() - number_of_sds_used ) < matrix_specs.size() ) {
 				throw genfile::BadArgumentError(
 					"AmetProcessor::get_priors()",
-					"-prior-correlation-matrix \"" + options.get< std::string >( "-matrix-specs" ) + "\""
+					"-complex-prior \"" + options.get< std::string >( "-matrix-specs" ) + "\""
 				) ;
 			}
-			for( std::size_t i = 0; i < sds.size(); ++i ) {
-				double const sd = to_repr< double >( sds[i] ) ;
-				result[ "model_" + to_string( i+1 ) + "/sd=" + sds[i] ] = get_prior_matrix( 
+			if( model_names.size() != matrix_specs.size() ) {
+				throw genfile::BadArgumentError(
+					"AmetProcessor::get_priors()",
+					"-complex-prior-name \"" + options.get< std::string >( "-complex-prior-name" ) + "\""
+				) ;
+			}
+			for( std::size_t i = 0; i < matrix_specs.size(); ++i ) {
+				double const sd = to_repr< double >( sds[i + number_of_sds_used] ) ;
+				result[ model_names[i] + "/sd=" + sds[i + number_of_sds_used] ] = get_prior_matrix( 
 					N,
 					matrix_specs[i],
 					sd
 				) ;
 			}
+			number_of_sds_used += matrix_specs.size() ;
+		}
+		
+		if( sds.size() != number_of_sds_used ) {
+			throw genfile::BadArgumentError(
+				"AmetProcessor::get_priors()",
+				"-prior-sd \"" + options.get< std::string >( "-prior-sd" ) + "\""
+			) ;
 		}
 
 		return result ;
@@ -1374,7 +1404,7 @@ public:
 
 	Eigen::MatrixXd parse_correlation_matrix( int const n, std::string const& matrix_spec ) const {
 		Eigen::MatrixXd result = Eigen::MatrixXd::Zero( n, n ) ;
-		std::vector< std::string > values = genfile::string_utils::split_and_strip( matrix_spec, " " ) ;
+		std::vector< std::string > values = genfile::string_utils::split_and_strip( matrix_spec, "," ) ;
 		if( values.size() != (( n * (n+1) ) / 2 ) ) {
 			throw genfile::BadArgumentError( "AmetProcessor::parse_correlation_matrix()", "matrix_spec=\"" + matrix_spec + "\"" ) ;
 		}
