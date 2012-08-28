@@ -70,7 +70,7 @@
             "result_tarball": "016b47e1e61b919262b78a19077d491e.tgz"
         }, 
         {
-            "command": "-g %INPUT_DIR%/example.bgen -write-snp-excl-list %OUTPUT_DIR%/snp_exclusions.txt -snp-missing-rate 0.05", 
+            "command": "-g %INPUT_DIR%/example.bgen -write-snp-excl-list %OUTPUT_DIR%/snp_exclusions.txt -snp-missing-rate 0.05 -maf 0.01 1 -info 0.9 1 -hwe 20", 
             "result_tarball": "7afeb9f641787813e71b33c68a1a43c7.tgz"
         }, 
         {
