@@ -1539,9 +1539,14 @@ private:
 
 			if( m_options.check_if_option_was_supplied( "-excl-snps" )) {
 				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-snps" ) ;
+				
 				BOOST_FOREACH( std::string const& filename, files ) {
-					snp_filter->exclude_snps_in_source(
-						genfile::SNPDataSource::create( filename )->list_snps()
+					snp_filter->exclude_snps(
+						statfile::SNPDataSourceAdapter(
+							statfile::BuiltInTypeStatSource::open(
+								genfile::wildcard::find_files_by_chromosome( filename )
+							)
+						).list_snps()
 					) ;
 				}
 			}
@@ -1549,8 +1554,12 @@ private:
 			if( m_options.check_if_option_was_supplied( "-incl-snps" )) {
 				std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-snps" ) ;
 				BOOST_FOREACH( std::string const& filename, files ) {
-					snp_filter->include_snps_in_source(
-						genfile::SNPDataSource::create( filename )->list_snps()
+					snp_filter->include_snps(
+						statfile::SNPDataSourceAdapter(
+							statfile::BuiltInTypeStatSource::open(
+								genfile::wildcard::find_files_by_chromosome( filename )
+							)
+						).list_snps()
 					) ;
 				}
 			}

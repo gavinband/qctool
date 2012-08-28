@@ -54,6 +54,14 @@
             "result_tarball": "beb81eda3016d5a7e295fc48a0547cd4.tgz"
         }, 
         {
+            "command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -excl-snps %INPUT_DIR%/snps_to_exclude.txt", 
+            "result_tarball": "225373cfe0f2dc801d0976d4db5307ed.tgz"
+        }, 
+        {
+            "command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -incl-snps %INPUT_DIR%/snps_to_exclude.txt", 
+            "result_tarball": "71edb80176c9e69eeda96052f9a0c4c7.tgz"
+        }, 
+        {
             "command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -incl-positions %INPUT_DIR%/positions_to_include.txt", 
             "result_tarball": "dcb06ebaa6cefbf3a9d418fae3569938.tgz"
         }, 

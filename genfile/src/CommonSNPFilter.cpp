@@ -63,14 +63,18 @@ namespace genfile {
 		return *this ;
 	}
 
-	CommonSNPFilter& exclude_snps( std::vector< SNPIdentifyingData > const& snps ) {
-		SNPIdentifyingDataTest::UniquePtr test = new SNPInSetTest( std::set< SNPIdentifyingData >( snps.begin(), snps.end() ) ) ;
+	CommonSNPFilter& CommonSNPFilter::exclude_snps( std::vector< SNPIdentifyingData > const& snps ) {
+		SNPIdentifyingDataTest::UniquePtr test( new SNPInSetTest( std::set< SNPIdentifyingData >( snps.begin(), snps.end() ) ) ) ;
 		test.reset( new SNPIdentifyingDataTestNegation( test )) ;
 		m_filter.add_subtest( test ) ;
+		return *this ;
 	}
-	CommonSNPFilter& include_snps( std::vector< SNPIdentifyingData > const& snps ) {
-		SNPIdentifyingDataTest::UniquePtr test = new SNPInSetTest( std::set< SNPIdentifyingData >( snps.begin(), snps.end() ) ) ;
-		m_filter.add_subtest( test ) ;
+
+	CommonSNPFilter& CommonSNPFilter::include_snps( std::vector< SNPIdentifyingData > const& snps ) {
+		SNPIdentifyingDataTest::UniquePtr test( new SNPInSetTest( std::set< SNPIdentifyingData >( snps.begin(), snps.end() ) ) ) ;
+		add_inclusion_filter_if_necessary( "snps" ) ;
+		m_inclusion_filters[ "snps" ]->add_subtest( test ) ;
+		return *this ;
 	}
 
 	void CommonSNPFilter::add_inclusion_filter_if_necessary( std::string const& name ) {
