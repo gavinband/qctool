@@ -14,6 +14,7 @@
 #include "genfile/SNPIDFieldsInListTest.hpp"
 #include "genfile/ChromosomeInSetTest.hpp"
 #include "genfile/SNPIDMatchesTest.hpp"
+#include "genfile/SNPInSetTest.hpp"
 #include "genfile/SNPPositionInRangeTest.hpp"
 #include "genfile/PositionInListTest.hpp"
 #include "genfile/snp_data_utils.hpp"
@@ -35,11 +36,13 @@ namespace genfile {
 	std::string CommonSNPFilter::display() const { return m_filter.display() ; }
 	
 	CommonSNPFilter& CommonSNPFilter::exclude_snps_in_file( std::string const& filename, int fields ) {
-		return exclude_snps_in_set( read_strings_from_file( filename ), fields ) ;
+		exclude_snps_in_set( read_strings_from_file( filename ), fields ) ;
+		return *this ;
 	}
 
 	CommonSNPFilter& CommonSNPFilter::include_snps_in_file( std::string const& filename, int fields ) {
-		return include_snps_in_set( read_strings_from_file( filename ), fields ) ;
+		include_snps_in_set( read_strings_from_file( filename ), fields ) ;
+		return *this ;
 	}
 
 	CommonSNPFilter& CommonSNPFilter::exclude_snps_not_in_file( std::string const& filename, int fields ) {
@@ -58,6 +61,16 @@ namespace genfile {
 		add_inclusion_filter_if_necessary( "id" ) ;
 		m_inclusion_filters[ "id" ]->add_subtest( test ) ;
 		return *this ;
+	}
+
+	CommonSNPFilter& exclude_snps( std::vector< SNPIdentifyingData > const& snps ) {
+		SNPIdentifyingDataTest::UniquePtr test = new SNPInSetTest( std::set< SNPIdentifyingData >( snps.begin(), snps.end() ) ) ;
+		test.reset( new SNPIdentifyingDataTestNegation( test )) ;
+		m_filter.add_subtest( test ) ;
+	}
+	CommonSNPFilter& include_snps( std::vector< SNPIdentifyingData > const& snps ) {
+		SNPIdentifyingDataTest::UniquePtr test = new SNPInSetTest( std::set< SNPIdentifyingData >( snps.begin(), snps.end() ) ) ;
+		m_filter.add_subtest( test ) ;
 	}
 
 	void CommonSNPFilter::add_inclusion_filter_if_necessary( std::string const& name ) {
