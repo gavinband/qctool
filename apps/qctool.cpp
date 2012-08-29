@@ -1584,7 +1584,6 @@ private:
 				}
 			}
 
-
 			if( m_options.check_if_option_was_supplied( "-excl-rsids" )) {
 				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-rsids" ) ;
 				BOOST_FOREACH( std::string const& filename, files ) {

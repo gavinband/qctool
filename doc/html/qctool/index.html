@@ -93,7 +93,18 @@
                 </p>
                 <p>
                     <strong>Change history.</strong>
-                    QCTOOL has undergone significant changes since the original release (webpage <a href="http://www.well.ox.ac.uk/~gav/qctool/old/v1.0/qctool.html">here</a>).  This page documents version 1.2 of QCTOOL.  A short summary of changes is:
+                    QCTOOL has undergone significant changes since the original release (webpage <a href="http://www.well.ox.ac.uk/~gav/qctool/old/v1.0/qctool.html">here</a>).
+                    This page documents version 1.3 of QCTOOL.  A short summary of changes is:
+                    <p>
+                    In <strong>v1.3</strong>:
+                    <ul>
+                        <li>A new option pair <span class="monospace">-[in|ex]cl-snps</span> has been added.  This reads a list of SNPs in the format output
+                            by the <span class="monospace">-write-snp-excl-list</span> option.  This is a file with 6 named columns,
+                            <span class="monospace">SNPID, rsid, chromosome, position, alleleA, alleleB</span>.
+                        </li>
+                        <li>A bug preventing the <span class="monospace">-incl-snpids</span> from working correctly was fixed.</li>
+                    </ul>
+                </p>
                     <p>
                     In <strong>v1.2</strong>:
                     <ul>
@@ -590,7 +601,25 @@ $ qctool -help
                             </th>
                         </tr>
                         <tr>
-                            <td>v1.2</td>
+                            <td>v1.3</td>
+                            <td>
+                                Linux x86-64 static build
+                            </td>
+                            <td>
+                                <a href="resources/qctool_v1.3-linux-x86_64.tgz" onClick="_gaq.push(['_trackEvent', 'resource', 'download', 'qctool_v1.3-linux-x86_64.tgz' ])">qctool_v1.3-linux-x86_64.tgz</a> (1.7Mb)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>v1.3</td>
+                            <td>
+                                Mac OS X
+                            </td>
+                            <td>
+                                <a href="resources/qctool_v1.3-osx.tgz" onClick="_gaq.push(['_trackEvent', 'resource', 'download', 'qctool_v1.3-osx.tgz' ])">qctool_v1.3-osx.tgz</a> (1021Kb)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>v1.2<sup>*</sup></td>
                             <td>
                                 Linux x86-64 static build
                             </td>
@@ -599,7 +628,7 @@ $ qctool -help
                             </td>
                         </tr>
                         <tr>
-                            <td>v1.2</td>
+                            <td>v1.2<sup>*</sup></td>
                             <td>
                                 Mac OS X
                             </td>
