@@ -680,8 +680,8 @@ $ qctool -help
                         To run qctool, download the relevant file and extract it as follows.
                     </p>
                     <pre>
-$ tar -xzf qctool_v1.1-[machine].tgz
-$ cd qctool_v1.1-[machine]
+$ tar -xzf qctool_v1.x-[machine].tgz
+$ cd qctool_v1.x-[machine]
 $ ./qctool -help
 </pre>
                     <h3>
@@ -692,14 +692,14 @@ $ ./qctool -help
                     </p>
                     <div class="terminal">
                         <pre>
-    $ hg clone --rev qctool-1.1 https://gavinband@bitbucket.org/gavinband/qctool
+    $ hg clone --rev qctool-release https://gavinband@bitbucket.org/gavinband/qctool
     destination directory: qctool
     requesting all changes
     adding changesets
     adding manifests
     adding file changes
     added 975 changesets with 5890 changes to 2022 files
-    updating to branch qctool-1.1
+    updating to branch qctool-release
     1821 files updated, 0 files merged, 0 files removed, 0 files unresolved
     $ cd qctool
     $ ./waf-1.5.18 configure
@@ -708,7 +708,7 @@ $ ./qctool -help
 </pre>
                     </div>This produces an executable
                     <pre>
-./build/release/qctool-1.1
+./build/release/qctool-release
 </pre>
                     <p>
                         You will need <a href="http://www.boost.org">boost</a> and <a href="http://www.zlib.net">zlib</a> installed.
