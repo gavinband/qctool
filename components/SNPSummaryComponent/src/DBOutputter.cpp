@@ -33,7 +33,14 @@ namespace snp_summary_component {
 	{}
 
 	DBOutputter::~DBOutputter() {
+		// Re-finalise.
 		write_data( m_data ) ;
+		m_outputter.finalise() ;
+	}
+	
+	void DBOutputter::finalise() {
+		write_data( m_data ) ;
+		m_outputter.finalise() ;
 	}
 
 	void DBOutputter::store_per_variant_data(

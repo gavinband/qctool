@@ -1181,10 +1181,20 @@ private:
 			snp_indices[ cohort_i ] = snp_i ;
 		}
 		else {
-			// There is a match.  Combine the identifiers.
+			// There is a match.  Combine the rsids using commas.
 			genfile::SNPIdentifyingData2 stored_snp = range.first->first ;
 			std::vector< boost::optional< std::size_t > > snp_indices = range.first->second ;
 			m_snps.erase( range.first ) ;
+			
+			using genfile::string_utils::slice ;
+			std::string const rsid_string = stored_snp.get_rsid() ;
+			std::vector< slice > split_rsids = slice( rsid_string ).split( "," ) ;
+			std::sort( split_rsids.begin(), split_rsids.end() ) ;
+			if( !std::binary_search( split_rsids.begin(), split_rsids.end(), snp.get_rsid() ) ) {
+				split_rsids.push_back( snp.get_rsid() ) ;
+				std::sort( split_rsids.begin(), split_rsids.end() ) ;
+				stored_snp.set_rsid( genfile::string_utils::join( split_rsids, "," ) ) ;
+			}
 			
 			stored_snp.add_identifier( snp.get_rsid() ) ;
 			snp.get_identifiers( boost::bind( &genfile::SNPIdentifyingData2::add_identifier, &stored_snp, _1 ) ) ;
@@ -1341,6 +1351,9 @@ public:
 			}
 		}
 		m_processor->process( get_ui_context() ) ;
+		
+		get_ui_context().logger() << "Finalising storage...\n" ;
+		storage->finalise() ;
 	}
 	
 	std::map< std::string, Eigen::MatrixXd > get_priors( appcontext::OptionProcessor const& options ) {

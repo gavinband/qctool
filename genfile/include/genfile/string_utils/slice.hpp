@@ -70,6 +70,7 @@ namespace genfile {
 			std::size_t find_first_of( char* membership_array, std::size_t pos = 0 ) const ;
 		} ;
 	
+		std::string join( std::vector< slice > const& slices, std::string const& joiner ) ;
 	}
 }
 

@@ -40,7 +40,8 @@ namespace genfile {
 		void set_rsid( slice const& rsid ) ;
 		void set_position( GenomePosition const& position ) { m_position = position ;}
 		void set_first_allele( slice const& allele ) ;
-		void set_second_allele( slice const& allele ) ; 
+		void set_second_allele( slice const& allele ) ;
+		void clear_identifiers() ;
 		void add_identifier( slice const& id ) ;
 
 		slice get_rsid() const { return slice( m_data, m_rsid_start, m_first_allele_start ) ; }
@@ -78,7 +79,6 @@ namespace genfile {
 		Size m_first_allele_start ;
 		Size m_second_allele_start ;
 		Size m_identifiers_start ;
-		std::size_t m_number_of_identifiers ;
 		GenomePosition m_position ;
 		
 		CompareFields& operator=( CompareFields const& other ) ;

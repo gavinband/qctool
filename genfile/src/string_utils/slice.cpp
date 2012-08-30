@@ -199,5 +199,21 @@ namespace genfile {
 			}
 			return o ;
 		}
+		
+		std::string join( std::vector< slice > const& slices, std::string const& joiner ) {
+			std::size_t size = 0 ;
+			for( std::size_t i = 0; i < slices.size(); ++i ) {
+				size += (( i > 0 ) ? joiner.size() : 0 ) + slices[i].size() ;
+			}
+			std::string result( size, 0 ) ;
+			size = 0 ;
+			for( std::size_t i = 0; i < slices.size(); ++i ) {
+				std::copy( slices[i].begin(), slices[i].end(), result.begin() + size ) ;
+				size += slices[i].size() ;
+				std::copy( joiner.begin(), joiner.end(), result.begin() + size ) ;
+				size += joiner.size() ;
+			}
+			return result ;
+		}
 	}
 }

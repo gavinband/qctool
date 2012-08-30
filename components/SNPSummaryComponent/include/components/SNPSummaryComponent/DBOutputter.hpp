@@ -38,6 +38,8 @@ namespace snp_summary_component {
 			std::string const& variable,
 			genfile::VariantEntry const& value
 		) ;
+		
+		void finalise() ;
 
 	private:
 		qcdb::DBOutputter m_outputter ;

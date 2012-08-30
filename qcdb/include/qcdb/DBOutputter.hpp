@@ -50,6 +50,8 @@ namespace qcdb {
 		db::Connection& connection() const { return *m_connection ; }
 		db::Connection::RowId analysis_id() const { return m_analysis_id ; }
 
+		void finalise() ;
+		
 	private:
 		db::Connection::UniquePtr m_connection ;
 		std::string const m_analysis_name ;

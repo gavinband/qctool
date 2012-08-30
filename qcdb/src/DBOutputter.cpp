@@ -27,14 +27,17 @@ namespace qcdb {
 		return SharedPtr( new DBOutputter( filename, cohort_name, metadata ) ) ;
 	}
 
+	DBOutputter::~DBOutputter() {}
+
 	DBOutputter::DBOutputter( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ):
 		m_connection( db::Connection::create( filename )),
 		m_analysis_name( cohort_name ),
 		m_metadata( metadata )
 	{
 		try {
-			m_connection->run_statement( "PRAGMA journal_mode = WAL" ) ;
+			m_connection->run_statement( "PRAGMA journal_mode = OFF" ) ;
 			m_connection->run_statement( "PRAGMA synchronous = OFF" ) ;
+			m_connection->run_statement( "PRAGMA cache_size = 20000" ) ;
 		}
 		catch( db::StatementStepError const& ) {
 			std::cerr << "qcdb::DBOutputter::DBOutputter(): unable to set PRAGMA synchronous=OFF, is another connection using this database?" ;
@@ -42,10 +45,16 @@ namespace qcdb {
 
 		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 120 ) ; // wait 2m if we have to.
 		m_connection->run_statement(
-			"CREATE TABLE IF NOT EXISTS Variant ( id INTEGER PRIMARY KEY, chromosome TEXT, position INTEGER, alleleA TEXT, alleleB TEXT )"
+			"CREATE TABLE IF NOT EXISTS Variant ( id INTEGER PRIMARY KEY, rsid TEXT, chromosome TEXT, position INTEGER, alleleA TEXT, alleleB TEXT )"
+		) ;
+		m_connection->run_statement(
+			"CREATE INDEX IF NOT EXISTS Variant_position_index ON Variant( chromosome, position )"
 		) ;
 		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS VariantIdentifier ( variant_id INTEGER NOT NULL, identifier TEXT, FOREIGN KEY( variant_id ) REFERENCES Variant( id ) ) "
+		) ;
+		m_connection->run_statement(
+			"CREATE INDEX IF NOT EXISTS VariantIdentifierIdentifierIndex ON VariantIdentifier( identifier )"
 		) ;
 		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS Entity ( "
@@ -142,13 +151,9 @@ namespace qcdb {
 		store_metadata() ;
 	}
 
-	DBOutputter::~DBOutputter() {
-		std::cerr << "qcdb::DBOutputter::~DBOutputter(): creating indices...\n" ;
+	void DBOutputter::finalise() {
 		m_connection->run_statement(
-			"CREATE INDEX IF NOT EXISTS Variant_index ON Variant( chromosome, position )"
-		) ;
-		m_connection->run_statement(
-			"CREATE INDEX IF NOT EXISTS VariantIdentifierIdentifierIndex ON VariantIdentifier( identifier )"
+			"CREATE INDEX IF NOT EXISTS Variant_rsid_index ON Variant( rsid )"
 		) ;
 		m_connection->run_statement(
 			"CREATE INDEX IF NOT EXISTS VariantIdentifierVariantIndex ON VariantIdentifier( variant_id )"
@@ -158,7 +163,6 @@ namespace qcdb {
 		) ;
 	}
 
-
 	void DBOutputter::construct_statements() {
 		m_insert_entity_statement = m_connection->get_statement( "INSERT INTO Entity ( name, description ) VALUES ( ?1, ?2 )" ) ;
 		m_find_entity_data_statement = m_connection->get_statement( "SELECT * FROM EntityData WHERE entity_id == ?1 AND variable_id == ?2" ) ;
@@ -166,11 +170,11 @@ namespace qcdb {
 		m_insert_entity_data_statement = m_connection->get_statement( "INSERT OR REPLACE INTO EntityData ( entity_id, variable_id, value ) VALUES ( ?1, ?2, ?3 )" ) ;
 		m_insert_entity_relationship_statement = m_connection->get_statement( "INSERT OR REPLACE INTO EntityRelationship( entity1_id, relationship_id, entity2_id ) VALUES( ?1, ?2, ?3 )") ;
 		m_find_variant_statement = connection().get_statement(
-			"SELECT id FROM Variant WHERE chromosome == ?1 AND position == ?2 AND alleleA = ?3 AND alleleB = ?4"
+			"SELECT id, rsid FROM Variant WHERE chromosome == ?1 AND position == ?2 AND alleleA = ?3 AND alleleB = ?4"
 		) ;
 		m_insert_variant_statement = connection().get_statement(
-			"INSERT INTO Variant ( chromosome, position, alleleA, alleleB ) "
-			"VALUES( ?1, ?2, ?3, ?4 )"
+			"INSERT INTO Variant ( rsid, chromosome, position, alleleA, alleleB ) "
+			"VALUES( ?1, ?2, ?3, ?4, ?5 )"
 		) ;
 		m_find_variant_identifier_statement = m_connection->get_statement( "SELECT * FROM VariantIdentifier WHERE variant_id == ?1 AND identifier == ?2" ) ;
 		m_insert_variant_identifier_statement = m_connection->get_statement( "INSERT INTO VariantIdentifier( variant_id, identifier ) VALUES ( ?1, ?2 )" ) ;
@@ -324,7 +328,8 @@ namespace qcdb {
 		;
 		if( m_find_variant_statement->empty() ) {
 			m_insert_variant_statement
-				->bind( 1, std::string( snp.get_position().chromosome() ) )
+				->bind( 1, snp.get_rsid() )
+				.bind( 2, std::string( snp.get_position().chromosome() ) )
 				.bind( 2, snp.get_position().position() )
 				.bind( 3, snp.get_first_allele())
 				.bind( 4, snp.get_second_allele())
@@ -335,13 +340,12 @@ namespace qcdb {
 			m_insert_variant_statement->reset() ;
 		} else {
 			result = m_find_variant_statement->get< db::Connection::RowId >( 0 ) ;
+			std::string const rsid = m_find_variant_statement->get< std::string >( 1 ) ;
+			if( rsid != snp.get_rsid() ) {
+				add_variant_identifier( result, snp.get_rsid() ) ;
+			}
 		}
 		m_find_variant_statement->reset() ;
-
-		// Now add identifiers
-		add_variant_identifier( result, snp.get_rsid() ) ;
-		snp.get_identifiers( boost::bind( &DBOutputter::add_variant_identifier, this, result, _1 )) ;
-
 		return result ;
 	}
 	

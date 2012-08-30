@@ -17,6 +17,8 @@ namespace snp_summary_component {
 			std::string const& variable,
 			genfile::VariantEntry const& value
 		) = 0 ;
+		
+		virtual void finalise() {} ;
 	} ;
 }
 

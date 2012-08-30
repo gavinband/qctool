@@ -103,37 +103,42 @@ namespace genfile {
 	}
 
 	void SNPIdentifyingData2::set_rsid( string_utils::slice const& rsid ) {
-		assert( rsid.size() + std::size_t( m_rsid_start ) < MAX_SIZE ) ;
 		std::string new_data ;
-		new_data.reserve( m_rsid_start + m_data.size() - m_first_allele_start ) ;
-		new_data.append( m_data.begin(), m_data.begin() + m_rsid_start ) ;
-		new_data.append( rsid.begin(), rsid.end() ) ;
+		std::size_t const difference = rsid.size() - m_first_allele_start ;
+		new_data.reserve( m_data.size() + difference ) ;
+		new_data.append( rsid ) ;
 		new_data.append( m_data.begin() + m_first_allele_start, m_data.end() ) ;
 		m_data.swap( new_data ) ;
-
-		std::size_t difference = rsid.size() - m_first_allele_start + m_rsid_start ;
 		m_first_allele_start += difference ;
 		m_second_allele_start += difference ;
+		m_identifiers_start += difference ;
 	}
 
 	void SNPIdentifyingData2::set_first_allele( string_utils::slice const& allele ) {
-		assert( allele.size() + std::size_t( m_rsid_start ) + std::size_t( m_first_allele_start ) <  MAX_SIZE ) ;
 		std::string new_data ;
-		new_data.reserve( m_first_allele_start + m_data.size() - m_second_allele_start ) ;
+		std::size_t const difference = allele.size() - ( m_second_allele_start - m_first_allele_start ) ;
+		new_data.reserve( m_data.size() + difference ) ;
 		new_data.append( m_data.begin(), m_data.begin() + m_first_allele_start ) ;
 		new_data.append( allele.begin(), allele.end() ) ;
 		new_data.append( m_data.begin() + m_second_allele_start, m_data.end() ) ;
 		m_data.swap( new_data ) ;
-		std::size_t difference = allele.size() - m_second_allele_start + m_first_allele_start ;
 		m_second_allele_start += difference ;
+		m_identifiers_start += difference ;
 	}
 
 	void SNPIdentifyingData2::set_second_allele( string_utils::slice const& allele ) {
 		std::string new_data ;
-		new_data.reserve( m_second_allele_start + allele.size() ) ;
+		std::size_t const difference = allele.size() - ( m_identifiers_start - m_second_allele_start ) ;
+		new_data.reserve( m_data.size() + difference ) ;
 		new_data.append( m_data.begin(), m_data.begin() + m_second_allele_start ) ;
 		new_data.append( allele.begin(), allele.end() ) ;
+		new_data.append( m_data.begin() + m_identifiers_start, m_data.end() ) ;
 		m_data.swap( new_data ) ;
+		m_identifiers_start += difference ;
+	}
+
+	void SNPIdentifyingData2::clear_identifiers() {
+		m_data.resize( m_identifiers_start ) ;
 	}
 
 	void SNPIdentifyingData2::add_identifier( slice const& id ) {
