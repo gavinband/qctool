@@ -27,8 +27,6 @@ namespace qcdb {
 		return SharedPtr( new DBOutputter( filename, cohort_name, metadata ) ) ;
 	}
 
-	DBOutputter::~DBOutputter() {}
-
 	DBOutputter::DBOutputter( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ):
 		m_connection( db::Connection::create( filename )),
 		m_analysis_name( cohort_name ),
@@ -48,15 +46,6 @@ namespace qcdb {
 		) ;
 		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS VariantIdentifier ( variant_id INTEGER NOT NULL, identifier TEXT, FOREIGN KEY( variant_id ) REFERENCES Variant( id ) ) "
-		) ;
-		m_connection->run_statement(
-			"CREATE INDEX IF NOT EXISTS Variant_index ON Variant( chromosome, position )"
-		) ;
-		m_connection->run_statement(
-			"CREATE INDEX IF NOT EXISTS VariantIdentifierIdentifierIndex ON VariantIdentifier( identifier )"
-		) ;
-		m_connection->run_statement(
-			"CREATE INDEX IF NOT EXISTS VariantIdentifierVariantIndex ON VariantIdentifier( variant_id )"
 		) ;
 		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS Entity ( "
@@ -92,9 +81,6 @@ namespace qcdb {
 			"FOREIGN KEY( analysis_id ) REFERENCES Entity( id ), "
 			"FOREIGN KEY( variable_id ) REFERENCES Entity( id ) 	"
 			")"
-		) ;
-		m_connection->run_statement(
-			"CREATE INDEX IF NOT EXISTS SummaryDataIndex ON SummaryData( analysis_id, variant_id, variable_id )"
 		) ;
 		m_connection->run_statement(
 			"CREATE INDEX IF NOT EXISTS EntityDataIndex ON EntityData( entity_id, variable_id )"
@@ -155,6 +141,23 @@ namespace qcdb {
 		construct_statements() ;
 		store_metadata() ;
 	}
+
+	DBOutputter::~DBOutputter() {
+		std::cerr << "qcdb::DBOutputter::~DBOutputter(): creating indices...\n" ;
+		m_connection->run_statement(
+			"CREATE INDEX IF NOT EXISTS Variant_index ON Variant( chromosome, position )"
+		) ;
+		m_connection->run_statement(
+			"CREATE INDEX IF NOT EXISTS VariantIdentifierIdentifierIndex ON VariantIdentifier( identifier )"
+		) ;
+		m_connection->run_statement(
+			"CREATE INDEX IF NOT EXISTS VariantIdentifierVariantIndex ON VariantIdentifier( variant_id )"
+		) ;
+		m_connection->run_statement(
+			"CREATE INDEX IF NOT EXISTS SummaryDataIndex ON SummaryData( analysis_id, variant_id, variable_id )"
+		) ;
+	}
+
 
 	void DBOutputter::construct_statements() {
 		m_insert_entity_statement = m_connection->get_statement( "INSERT INTO Entity ( name, description ) VALUES ( ?1, ?2 )" ) ;

@@ -1335,7 +1335,7 @@ public:
 					) ;
 					m_processor->add_computation(
 						"ApproximateBayesianMetaAnalysis",
-						AmetComputation::UniquePtr( computation.release9) )
+						AmetComputation::UniquePtr( computation.release() )
 					) ;
 				}
 			}
