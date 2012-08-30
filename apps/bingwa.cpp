@@ -716,7 +716,7 @@ void ApproximateBayesianMetaAnalysis::operator()(
 		!impl::get_betas_and_ses_one_per_study( data_getter, betas, ses, non_missingness )
 		|| non_missingness.sum() == 0
 	) {
-		callback( m_prefix + "bf", genfile::MissingValue() ) ;
+		callback( m_prefix + "/bf", genfile::MissingValue() ) ;
 		return ;
 	}
 	else {
