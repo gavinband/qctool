@@ -136,13 +136,13 @@ namespace qcdb {
 		
 		m_connection->run_statement(
 			"CREATE VIEW IF NOT EXISTS SummaryDataView AS "
-			"SELECT          V.id AS variant_id, V.chromosome, V.position, V.identifier, "
+			"SELECT          V.id AS variant_id, V.chromosome, V.position, V.rsid, "
 			"CASE WHEN length( V.alleleA < 10 ) THEN V.alleleA ELSE substr( V.alleleA, 1, 10 ) || '...' END AS alleleA, "
 			"CASE WHEN length( V.alleleB < 10 ) THEN V.alleleB ELSE substr( V.alleleB, 1, 10 ) || '...' END AS alleleB, "
 			"SD.analysis_id, Analysis.name AS analysis, Variable.id AS variable_id, Variable.name AS variable, "
 			"SD.value AS value "
 			"FROM SummaryData SD "
-			"INNER JOIN VariantView V ON V.id == SD.variant_id "
+			"INNER JOIN Variant V ON V.id == SD.variant_id "
 			"INNER JOIN Entity Analysis ON Analysis.id = SD.analysis_id "
 			"INNER JOIN Entity Variable ON Variable.id = SD.variable_id "
 		) ;
@@ -330,9 +330,9 @@ namespace qcdb {
 			m_insert_variant_statement
 				->bind( 1, snp.get_rsid() )
 				.bind( 2, std::string( snp.get_position().chromosome() ) )
-				.bind( 2, snp.get_position().position() )
-				.bind( 3, snp.get_first_allele())
-				.bind( 4, snp.get_second_allele())
+				.bind( 3, snp.get_position().position() )
+				.bind( 4, snp.get_first_allele())
+				.bind( 5, snp.get_second_allele())
 				.step()
 			;
 
