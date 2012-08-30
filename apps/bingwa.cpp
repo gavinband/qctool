@@ -660,7 +660,7 @@ struct ApproximateBayesianMetaAnalysis: public AmetComputation {
 		m_name( name ),
 		m_prefix( "ApproximateBayesianMetaAnalysis/" + name ),
 		m_sigma( sigma ),
-		m_detailed_output_threshhold( 1000 )
+		m_compute_posterior_mean_and_variance( false )
 	{
 		assert( m_sigma.rows() == m_sigma.cols() ) ;
 	}
@@ -682,7 +682,7 @@ private:
 	std::string const m_name ;
 	std::string const m_prefix ;
 	Eigen::MatrixXd const m_sigma ;
-	double const m_detailed_output_threshhold ;
+	bool const m_compute_posterior_mean_and_variance ;
 
 	void compute_bayes_factor( Eigen::MatrixXd const& prior, Eigen::MatrixXd const& V, Eigen::VectorXd const& betas, ResultCallback callback ) const ;
 
@@ -792,7 +792,7 @@ void ApproximateBayesianMetaAnalysis::compute_bayes_factor( Eigen::MatrixXd cons
 	
 	callback( m_prefix + "/bf", result ) ;
 
-	if( result > m_detailed_output_threshhold ) {
+	if( m_compute_posterior_mean_and_variance ) {
 		callback( m_prefix + "/posterior_mean", impl::format_matrix( betas - ( V * V_plus_prior_solver.solve( betas ) ) ) ) ;
 		callback( m_prefix + "/posterior_variance", impl::format_matrix( V - V * V_plus_prior_solver.solve( Eigen::MatrixXd::Identity( betas.size(), betas.size() ) ) * V ) ) ;
 	}
@@ -1327,7 +1327,7 @@ public:
 				std::map< std::string, Eigen::MatrixXd >::const_iterator i = priors.begin() ;
 				std::map< std::string, Eigen::MatrixXd >::const_iterator const end_i = priors.end() ;
 				for( ; i != end_i; ++i ) {
-					AmetComputation::UniquePtr computation(
+					ApproximateBayesianMetaAnalysis::UniquePtr computation(
 						new ApproximateBayesianMetaAnalysis(
 							i->first,
 							i->second
@@ -1335,7 +1335,7 @@ public:
 					) ;
 					m_processor->add_computation(
 						"ApproximateBayesianMetaAnalysis",
-						computation
+						AmetComputation::UniquePtr( computation.release9) )
 					) ;
 				}
 			}
