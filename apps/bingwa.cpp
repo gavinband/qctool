@@ -666,10 +666,10 @@ FrequentistGenomeWideAssociationResults::UniquePtr FrequentistGenomeWideAssociat
 		std::auto_ptr< std::istream > file = genfile::open_text_file_for_input( filenames[0].filename() ) ;
 		std::string line ;
 		std::getline( *file, line ) ;
-		if( line.substr( 0, 33 ) == "chr snp_id1 snp_id2 pos allele_0" ) {
+		if( line.substr( 0, 32 ) == "chr snp_id1 snp_id2 pos allele_0" ) {
 			type = "mmm" ; // Matti's mixed model, http://www.well.ox.ac.uk/~mpirinen/
 		}
-		else if( line.substr( 0, 41 ) == "id rsid chromosome pos allele_A allele_B" ) {
+		else if( line.substr( 0, 40 ) == "id rsid chromosome pos allele_A allele_B" ) {
 				type = "snptest" ;
 		}
 	}
@@ -696,6 +696,7 @@ FrequentistGenomeWideAssociationResults::UniquePtr FrequentistGenomeWideAssociat
 			)
 		) ;
 	}
+	return result ;
 }
 
 struct AmetComputation: public boost::noncopyable {
@@ -1067,7 +1068,7 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 
 		options.declare_group( "File handling options" ) ;
 		options[ "-data" ]
-			.set_description( "Specify the path of a file containing SNPTEST results to load." )
+			.set_description( "Specify the path of a file containing SNPTEST or MMM results to load." )
 			.set_is_required()
 			.set_takes_values_until_next_option()
 			.set_minimum_multiplicity( 1 )
@@ -1719,7 +1720,7 @@ public:
 
 		std::vector< std::string > cohort_files = options().get_values< std::string >( "-data" ) ;
 		for( std::size_t cohort_i = 0; cohort_i < cohort_files.size(); ++cohort_i ) {
-			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading SNPTEST results \"" + cohort_files[cohort_i] + "\"" ) ;
+			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading scan results \"" + cohort_files[cohort_i] + "\"" ) ;
 
 			SNPTESTResults::SNPResultCallback snp_callback ;
 			if( cohort_files.size() == 1 ) {
