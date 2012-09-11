@@ -7,6 +7,7 @@
 #ifndef STATFILE_TYPEWRITERBASE_HPP
 #define STATFILE_TYPEWRITERBASE_HPP
 
+#include <cassert>
 #include "statfile/types.hpp"
 
 namespace statfile {
@@ -26,7 +27,7 @@ namespace statfile {
 	struct TypeWriterBase: public TypeWriterBase< T2, T3, T4, T5, T6, T7, T8, T9, T10 >
 	{
 		using TypeWriterBase< T2, T3, T4, T5, T6, T7, T8, T9, T10 >::write_value ;
-		virtual void write_value( T1 const& ) {} ;
+		virtual void write_value( T1 const& ) { assert(0) ; }
 	} ;
 
 	template<>

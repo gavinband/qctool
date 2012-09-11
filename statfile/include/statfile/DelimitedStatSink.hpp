@@ -11,6 +11,8 @@
 #include <string>
 #include <memory>
 #include "genfile/Chromosome.hpp"
+#include "genfile/GenomePosition.hpp"
+#include "genfile/MissingValue.hpp"
 #include "statfile/StatSink.hpp"
 #include "statfile/OstreamAggregator.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
@@ -41,6 +43,15 @@ namespace statfile {
 		}
 		void write_value( std::string const& value ) {
 			write_value_impl< std::string >( value ) ;
+		}
+		void write_value( genfile::GenomePosition const& value ) {
+			write_value_impl< genfile::GenomePosition >( value ) ;
+		}
+		void write_value( genfile::Chromosome const& value ) {
+			write_value_impl< genfile::Chromosome >( value ) ;
+		}
+		void write_value( genfile::MissingValue const& value ) {
+			write_value_impl< genfile::MissingValue >( value ) ;
 		}
 		void write_value( double const& ) ;
 
