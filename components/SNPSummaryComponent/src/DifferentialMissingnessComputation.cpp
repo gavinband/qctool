@@ -64,9 +64,10 @@ void DifferentialMissingnessComputation::operator()( SNPIdentifyingData const& s
 		StrataMembers::const_iterator i = m_strata_members.begin() ;
 		StrataMembers::const_iterator const end_i = m_strata_members.end() ;
 		for( int level = 0; i != end_i; ++level, ++i ) {
-			callback( "missing_call_proportion [" + m_stratification_name + "=" + genfile::string_utils::to_string( i->first ) + "]", table( level, 0 ) / table.row( level ).sum() )  ;
+			std::string tag = "[" + m_stratification_name + "=" + genfile::string_utils::to_string( i->first ) + "]" ;
+			callback( "missing samples " + tag, table( level, 0 ) ) ;
+			callback( "non-missing samples " + tag, table( level, 1 ) ) ;
 		}
-
 	}
 	
 	if( table.row(0).sum() > 0 && table.row(1).sum() > 0 ) {

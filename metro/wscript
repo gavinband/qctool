@@ -5,11 +5,11 @@ import glob
 def configure( conf ):
 	pass
 
-def create_test( bld, name ):
+def create_tests( bld, name ):
 	bld(
 		features = 'cxx cprogram',
 		target = name,
-		source = [  'test/' + name + '.cpp' ],
+		source = bld.glob( 'test/*.cpp' ),
 		uselib_local = 'metro',
 		uselib = 'BOOST_UNIT_TEST_FRAMEWORK',
 		includes='./include',
@@ -32,3 +32,5 @@ def build( bld ):
 		uselib = 'BOOST',
 		export_incdirs = './include'
 	)
+
+	create_tests( bld, 'test_metro' )
