@@ -33,6 +33,15 @@ namespace statfile {
 	
 	struct TrivialBuiltInTypeStatSink: public ColumnNamingStatSink< BuiltInTypeStatSink >
 	{
+		void write_value( genfile::MissingValue const& ) {}
+		void write_value( int32_t const& ) {}
+		void write_value( uint32_t const& ) {}
+		void write_value( int64_t const& ) {}
+		void write_value( uint64_t const& ) {}
+		void write_value( std::string const& ) {}
+		void write_value( double const& ) {}
+		void write_value( genfile::Chromosome const& ) {}
+		void write_value( genfile::GenomePosition const& ) {}
 		operator void*() const { return reinterpret_cast< void* >( const_cast< TrivialBuiltInTypeStatSink* >( this )) ; } ;
 	} ;
 }
