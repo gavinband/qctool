@@ -36,6 +36,10 @@ void ClusterPlotter::declare_options( appcontext::OptionProcessor& options ) {
 		)
 		.set_takes_single_value()
 		.set_default_value( "#analysis_#rsid_#position_#intensity.png" ) ;
+	options[ "-cluster-plot-intensity-threshhold" ]
+		.set_description( "Set the threshhold for intensities in the cluster plots." )
+		.set_takes_single_value()
+		.set_default_value( 5.0 ) ;
 #endif
 }
 
@@ -48,6 +52,7 @@ ClusterPlotter::UniquePtr ClusterPlotter::create( appcontext::OptionProcessor co
 			worker
 		)
 	) ;
+	result->set_intensity_threshhold( options.get< double >( "-cluster-plot-intensity-threshhold" ) ) ;
 	return result ;
 }
 
@@ -61,9 +66,14 @@ ClusterPlotter::ClusterPlotter(
 	m_filename_template( filename_template ),
 	m_call_fields( call_fields ),
 	m_intensity_field( "XY" ),
+	m_intensity_threshhold( 5.0 ),
 	m_worker( worker ),
 	m_max_tasks( 10 )
 {}
+
+void ClusterPlotter::set_intensity_threshhold( double value ) {
+	m_intensity_threshhold = value ;
+}
 
 void ClusterPlotter::begin_processing_snps( std::size_t number_of_samples ) {
 	m_number_of_samples = number_of_samples ;
@@ -88,7 +98,8 @@ namespace impl {
 			m_call_threshhold( 0.9 ),
 			m_snp( snp ),
 			m_analysis_name( analysis_name ),
-			m_filename( filename )
+			m_filename( filename ),
+			m_intensity_threshhold( 5.0 )
 		{
 			for( std::size_t i = 0; i < call_fields.size(); ++i ) {
 				m_calls[ call_fields[i] ] = Genotypes() ;
@@ -101,6 +112,11 @@ namespace impl {
 				data_reader.get( i->first, genotype_setter ) ;
 				assert( i->second.size() == std::size_t( m_intensities.cols() ) ) ;
 			}
+		}
+
+		void set_intensity_threshhold( double const value ) {
+			assert( value > 0 ) ;
+			m_intensity_threshhold = value ;
 		}
 		
 		void operator()() {
@@ -121,11 +137,11 @@ namespace impl {
 				graph.SetTickLen( 0.04 ) ;
 				double x_range_max = std::min(
 					m_intensities.row(0).maxCoeff(),
-					5.0
+					m_intensity_threshhold
 				) ;
 				double y_range_max = std::min(
 					m_intensities.row(1).maxCoeff(),
-					5.0
+					m_intensity_threshhold
 				) ;
 				graph.SetRanges(
 					0.0, x_range_max,
@@ -151,6 +167,7 @@ namespace impl {
 		std::string const m_analysis_name ;
 		std::string const m_call_field ;
 		std::string const m_filename ;
+		double m_intensity_threshhold ;
 	} ;
 }
 
@@ -173,6 +190,8 @@ void ClusterPlotter::processed_snp( genfile::SNPIdentifyingData const& snp, genf
 			filename
 		)
 	) ;
+
+	plot_task->set_intensity_threshhold( m_intensity_threshhold ) ;
 	
 	if( m_tasks.size() < m_max_tasks ) {
 		m_tasks.push_back( plot_task ) ;

@@ -30,6 +30,7 @@ public:
 		std::vector< std::string > const& call_fields,
 		worker::Worker* worker
 	) ;
+	void set_intensity_threshhold( double const ) ;
 	void begin_processing_snps( std::size_t number_of_samples ) ;
 	void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& data_reader ) ;
 	void end_processing_snps() ;
@@ -40,7 +41,7 @@ private:
 	std::vector< std::string > const m_call_fields ;
 	std::string const m_intensity_field ;
 	std::size_t m_number_of_samples ;
-	double m_call_threshhold ;
+	double m_intensity_threshhold ;
 	worker::Worker* m_worker ;
 	boost::ptr_vector< worker::Task > m_tasks ;
 	std::size_t const m_max_tasks ;
