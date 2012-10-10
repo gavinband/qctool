@@ -88,12 +88,10 @@ namespace genfile {
 	}
 
 	void ImputeHaplotypesSNPDataSource::read_header_data() {
-		std::size_t total_number_of_snps = 0 ;
 		std::string line ;
 		std::getline( *m_stream_ptr, line ) ;
 		if( *m_stream_ptr ) {
-			++total_number_of_snps ;
-			// deal with trailing space.
+			// deal with trailing space which is sometimes found in IMPUTE haplotype files
 			if( line.size() > 0 && line[ line.size() - 1 ] == ' ' ) {
 				line.resize( line.size() - 1 ) ;
 			}
@@ -104,13 +102,9 @@ namespace genfile {
 			}
 		
 			m_number_of_samples = elts.size() / 2 ;
-			total_number_of_snps += count_lines_left_in_stream( *m_stream_ptr ) + 1 ;
 		}
 		else {
 			m_number_of_samples = 0 ;
-		}
-		if( !total_number_of_snps == m_snps.size() ) {
-			throw MalformedInputError( m_haplotypes_filename, m_snps.size() ) ;
 		}
 	}
 
