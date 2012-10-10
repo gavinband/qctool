@@ -1077,33 +1077,24 @@ private:
 			m_strand_specs = get_strand_specs( m_options.get_values< std::string >( "-strand" )) ;
 		}
 		
-		{
-			if( m_mangled_options.input_sample_filenames().size() == 0 ) {
-				// uh-oh, no sample files specified.
-				// Find out the number of samples from the first GEN file.
-				genfile::SNPDataSource::UniquePtr source = genfile::SNPDataSource::create( m_mangled_options.gen_filenames()[0][0].filename() ) ;
-				m_cohort_individual_source.reset( new genfile::CountingCohortIndividualSource( source->number_of_samples(), "sample_%d" ) ) ;
-			}
-			else {
-				m_cohort_individual_source = open_samples(
-					m_mangled_options.input_sample_filenames()
-				) ;
-				if( m_options.check( "-condition-on" )) {
-					m_cohort_individual_source = condition_on(
-						m_cohort_individual_source,
-						*m_snp_data_source,
-						genfile::string_utils::join( m_options.get_values< std::string >( "-condition-on" ), "," )
-					) ;
-					m_snp_data_source->reset_to_start() ;
-				}
-			}
-			load_sample_rows( m_cohort_individual_source ) ;
-		}
-		
 		m_snp_data_source = open_snp_data_sources(
 			m_mangled_options.gen_filenames(),
 			m_options.check( "-match-alleles-to-cohort1" )
 		) ;
+		
+		{
+			m_cohort_individual_source = open_samples( m_snp_data_source->number_of_samples() ) ;
+		
+			if( m_options.check( "-condition-on" )) {
+				m_cohort_individual_source = condition_on(
+					m_cohort_individual_source,
+					*m_snp_data_source,
+					genfile::string_utils::join( m_options.get_values< std::string >( "-condition-on" ), "," )
+				) ;
+				m_snp_data_source->reset_to_start() ;
+			}
+			load_sample_rows( m_cohort_individual_source ) ;
+		}
 
 		if( m_indices_of_filtered_out_samples.size() > 0 ) {
 			m_snp_data_source.reset(
@@ -1917,11 +1908,9 @@ private:
 		m_ignore_warnings = m_options.check_if_option_was_supplied( "-force" ) ;
 	}
 	
-	genfile::CohortIndividualSource::UniquePtr open_samples(
-		std::vector< std::string > const& filenames
-	) {
+	genfile::CohortIndividualSource::UniquePtr open_samples( std::size_t const expected_number_of_samples ) {
 		try {
-			return unsafe_open_samples( filenames ) ;
+			return unsafe_open_samples( expected_number_of_samples ) ;
 		}
 		catch( ConditionValueNotFoundException const& ) {
 			m_ui_context.logger() << "\n\n!! ERROR: The input sample file must contain entries for all values used to filter on.\n"
@@ -1947,32 +1936,43 @@ private:
 		}
 	}
 	
-	genfile::CohortIndividualSource::UniquePtr unsafe_open_samples(
-		std::vector< std::string > const& filenames
-	) {
+	genfile::CohortIndividualSource::UniquePtr unsafe_open_samples( std::size_t const expected_number_of_samples ) {
 		genfile::CohortIndividualSource::UniquePtr sample_source ;
-		assert( filenames.size() > 0 ) ;
-		genfile::CohortIndividualSourceChain::UniquePtr source_chain( new genfile::CohortIndividualSourceChain() ) ;
-		for( std::size_t i = 0; i < filenames.size(); ++i ) {
-			source_chain->add_source(
-				genfile::CohortIndividualSource::UniquePtr(
-					new genfile::CategoricalCohortIndividualSource(
-						filenames[i],
-						m_options.get_value< std::string >( "-missing-code" )
-					)
-				)
-			) ;
+		if( m_mangled_options.input_sample_filenames().size() == 0 ) {
+			sample_source.reset( new genfile::CountingCohortIndividualSource( expected_number_of_samples, "sample_%d" ) ) ;
 		}
-		sample_source.reset( source_chain.release() ) ;
-		
-		if( m_options.check_if_option_was_supplied( "-quantile-normalise" )) {
-			sample_source = quantile_normalise_columns(
-				sample_source,
-				genfile::string_utils::split_and_strip(
-					m_options.get_value< std::string >( "-quantile-normalise" ),
-					","
-				)
-			) ;
+		else {
+			genfile::CohortIndividualSourceChain::UniquePtr source_chain( new genfile::CohortIndividualSourceChain() ) ;
+			for( std::size_t i = 0; i < m_mangled_options.input_sample_filenames().size(); ++i ) {
+				source_chain->add_source(
+					genfile::CohortIndividualSource::UniquePtr(
+						new genfile::CategoricalCohortIndividualSource(
+							m_mangled_options.input_sample_filenames()[i],
+							m_options.get_value< std::string >( "-missing-code" )
+						)
+					)
+				) ;
+			}
+			sample_source.reset( source_chain.release() ) ;
+			
+			if( sample_source->get_number_of_individuals() != expected_number_of_samples ) {
+				throw genfile::MismatchError(
+					"QCToolCmdLineContext::unsafe_open_samples()",
+					sample_source->get_source_spec(),
+					"number of samples = " + genfile::string_utils::to_string( sample_source->get_number_of_individuals() ),
+					"expected number of samples = " + genfile::string_utils::to_string( expected_number_of_samples )
+				);
+			}
+			
+			if( m_options.check_if_option_was_supplied( "-quantile-normalise" )) {
+				sample_source = quantile_normalise_columns(
+					sample_source,
+					genfile::string_utils::split_and_strip(
+						m_options.get_value< std::string >( "-quantile-normalise" ),
+						","
+					)
+				) ;
+			}
 		}
 		
 		return sample_source ;
