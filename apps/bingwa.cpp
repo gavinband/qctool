@@ -1557,7 +1557,7 @@ public:
 			)
 		) ;
 
-		if( options().check( "-data" ) && options().get_values< std::string >( "-data" ).size() > 1 ) {
+		if( options().check( "-data" ) && options().get_values< std::string >( "-data" ).size() > 0 ) {
 			m_processor->add_computation(
 				"PerCohortValueReporter",
 				AmetComputation::create( "PerCohortValueReporter", options() )
