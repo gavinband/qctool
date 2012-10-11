@@ -532,19 +532,19 @@ private:
 		if( value == -1 ) {
 			value = NA ;
 		}
-		if( variable == "_beta_1" ) {
+		if( variable == "*_beta_1" ) {
 			m_betas( snp_index, 0 ) = value ;
 		}
-		else if( variable == "_se_1" ) {
+		else if( variable == "*_se_1" ) {
 			m_ses( snp_index, 0 ) = value ;
 		}
-		if( variable == "_beta_2" ) {
+		if( variable == "*_beta_2" ) {
 			m_betas( snp_index, 1 ) = value ;
 		}
-		else if( variable == "_se_2" ) {
+		else if( variable == "*_se_2" ) {
 			m_ses( snp_index, 1 ) = value ;
 		}
-		else if( variable == "_pvalue" ) {
+		else if( variable == "*_pvalue" ) {
 			m_pvalues( snp_index ) = value ;
 		}
 		else if( variable == "info" ) {
