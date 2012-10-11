@@ -25,7 +25,9 @@ namespace metro {
 		FishersExactTest( Eigen::Matrix2d const& matrix ) ;
 		double get_OR() const ;
 		std::pair< double, double > get_confidence_interval() const ;
-		double get_pvalue() const ;
+
+		enum Alternative { eLess = 0, eGreater = 1, eTwoSided = 2 } ;
+		double get_pvalue( Alternative const = eGreater ) const ;
 
 		private:
 			Eigen::Matrix2d const m_matrix ;

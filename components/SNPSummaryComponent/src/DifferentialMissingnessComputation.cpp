@@ -74,7 +74,7 @@ void DifferentialMissingnessComputation::operator()( SNPIdentifyingData const& s
 		std::string const stub = "missingness_by_" + m_stratification_name ;
 		try {
 			metro::FishersExactTest test( table ) ;
-			callback( stub + "_exact_pvalue", test.get_pvalue() )  ;
+			callback( stub + "_exact_pvalue", test.get_pvalue( metro::FishersExactTest::eTwoSided ) )  ;
 			callback( stub + "_sample_odds_ratio", test.get_OR() )  ;
 		}
 		catch( std::exception const& e ) {
