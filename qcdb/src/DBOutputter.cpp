@@ -88,7 +88,7 @@ namespace qcdb {
 			"variant_id INT, analysis_id INT, variable_id INT, value NONE, "
 			"FOREIGN KEY( variant_id ) REFERENCES Variant( id ), "
 			"FOREIGN KEY( analysis_id ) REFERENCES Entity( id ), "
-			"FOREIGN KEY( variable_id ) REFERENCES Entity( id ) 	"
+			"FOREIGN KEY( variable_id ) REFERENCES Entity( id ) "
 			")"
 		) ;
 		m_connection->run_statement(
@@ -160,7 +160,7 @@ namespace qcdb {
 			"CREATE INDEX IF NOT EXISTS VariantIdentifierVariantIndex ON VariantIdentifier( variant_id )"
 		) ;
 		m_connection->run_statement(
-			"CREATE INDEX IF NOT EXISTS SummaryDataIndex ON SummaryData( analysis_id, variant_id, variable_id )"
+			"CREATE INDEX IF NOT EXISTS SummaryDataIndex ON SummaryData( variant_id, variable_id )"
 		) ;
 	}
 
