@@ -53,7 +53,8 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_takes_single_value() ;
 
 	options[ "-differential" ]
-		.set_description( "Test for differences in SNP summary statistics between the categories of the given variable.  Currently a test for differential missingness is performed." )
+		.set_description( "Test for differences in SNP summary statistics between the categories of the given variable."
+			" Currently a test for differential missingness is performed." )
 		.set_takes_single_value() ;
 	
 	options.declare_group( "Sequence annotation options" ) ;
