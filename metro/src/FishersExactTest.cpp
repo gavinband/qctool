@@ -26,7 +26,7 @@ namespace metro {
 		using boost::math::cdf ;
 		using boost::math::complement ;
 
-		double result ;
+		double result = 0 ;
 		switch( alternative ) {
 			case eGreater:
 				if( m_matrix(0,0) == 0 || m_matrix(1,1) == 0 ) {
