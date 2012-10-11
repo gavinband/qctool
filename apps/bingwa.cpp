@@ -166,7 +166,7 @@ namespace {
 struct FrequentistGenomeWideAssociationResults: public boost::noncopyable {
 public:
 	typedef std::auto_ptr< FrequentistGenomeWideAssociationResults > UniquePtr ;
-	typedef boost::function< void ( std::size_t i, genfile::SNPIdentifyingData2 const& snp ) > SNPCallback ;
+	typedef boost::function< void ( std::size_t i, genfile::SNPIdentifyingData2 const& snp ) > GetSNPCallback ;
 	typedef
 		boost::function< void ( genfile::SNPIdentifyingData2 const&, std::string const&, genfile::VariantEntry const& ) > 
 		SNPResultCallback ;
@@ -174,12 +174,16 @@ public:
 
 	static UniquePtr create(
 		std::vector< genfile::wildcard::FilenameMatch > const& filenames,
+		std::vector< std::string > const& columns,
 		SNPExclusionTest::UniquePtr test,
 		SNPResultCallback callback = SNPResultCallback(),
 		ProgressCallback progress_callback = ProgressCallback()
 	) ;
 public:
 	virtual ~FrequentistGenomeWideAssociationResults() {}
+	
+	virtual void add_variable( std::string const& variable ) = 0 ;
+	
 	virtual std::size_t get_number_of_SNPs() const = 0 ;
 	virtual genfile::SNPIdentifyingData2 const& get_SNP( std::size_t snp_i ) const = 0 ;
 	virtual void get_betas( std::size_t snp_i, Eigen::VectorXd* result ) const = 0 ;
@@ -188,19 +192,39 @@ public:
 	virtual void get_counts( std::size_t snp_i, Eigen::VectorXd* result ) const = 0 ;
 	virtual void get_info( std::size_t snp_i, double* result ) const = 0 ;
 	virtual void get_frequency( std::size_t snp_i, double* result ) const = 0 ;
-	virtual void get_type( std::size_t snp_i, genfile::VariantEntry* result ) const = 0 ;
-	virtual std::string get_summary( std::string const& prefix = "", std::size_t target_column = 80 ) const = 0;
+	virtual void get_variable( std::size_t snp_i, std::string const& variable, double* result ) const = 0 ;
+	
+	virtual std::string get_summary( std::string const& prefix = "", std::size_t target_column = 80 ) const = 0 ;
 
 	// Legacy function: this should probably be removed.
-	void get_SNPs( SNPCallback callback ) const {
+	void get_SNPs( GetSNPCallback callback ) const {
 		for( std::size_t i = 0; i < get_number_of_SNPs(); ++i ) {
 			callback( i, get_SNP( i ) ) ;
 		}
 	}
 } ;
 
+/*
+* Class FlatFileScanResults.
+* This is a utility base class for classes reading scan results flat files.
+* It provides:
+* - storage for values read.
+* - 
+*
+* - and implements the FrequentistGenomeWideAssociationResults interface for retrieving tresults..
+*/
 struct FlatFileScanResults:  public FrequentistGenomeWideAssociationResults {
 public:
+	typedef std::auto_ptr< FlatFileScanResults > UniquePtr ;
+public:
+	void add_data(
+		std::vector< genfile::wildcard::FilenameMatch > const& filenames,
+		SNPResultCallback callback,
+		ProgressCallback progress_callback
+	) {
+		setup( filenames, callback, progress_callback ) ;
+	}
+
 	std::size_t get_number_of_SNPs() const {
 		return m_snps.size() ;
 	}
@@ -227,9 +251,10 @@ public:
 	void get_frequency( std::size_t snp_i, double* result ) const {
 		*result = ( 2.0 * m_sample_counts( snp_i, 2 ) + m_sample_counts( snp_i, 1 ) ) / ( 2.0 * m_sample_counts.row( snp_i ).sum() ) ;
 	}
-	void get_type( std::size_t snp_i, genfile::VariantEntry* result ) const {
-		assert( result ) ;
-		*result = genfile::MissingValue() ;
+	void get_variable( std::size_t snp_i, std::string const& variable, double* value ) const {
+		std::map< std::string, std::vector< double > >::const_iterator where = m_extra_variables.find( variable ) ;
+		assert( where != m_extra_variables.end() ) ;
+		*value = where->second[ snp_i ] ;
 	}
 
 	std::string get_summary( std::string const& prefix, std::size_t target_column ) const {
@@ -263,6 +288,9 @@ public:
 	}
 
 protected:
+	SNPExclusionTest::UniquePtr m_exclusion_test ;
+	typedef boost::bimap< std::string, std::size_t > ColumnMap ;
+	
 	std::vector< genfile::SNPIdentifyingData2 > m_snps ;
 	Eigen::MatrixXf m_betas ;
 	Eigen::MatrixXf m_ses ;
@@ -270,6 +298,137 @@ protected:
 	Eigen::VectorXf m_info ;
 	Eigen::VectorXf m_maf ;
 	Eigen::MatrixXf m_sample_counts ;
+	typedef std::map< std::string, std::vector< double > > ExtraVariables ;
+	ExtraVariables m_extra_variables ;
+	
+	virtual std::set< std::string > get_desired_columns() const = 0 ;
+	virtual bool read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const = 0 ;
+	virtual bool check_if_snp_accepted( std::size_t snp_index ) const = 0 ;
+	virtual void store_value( int snp_index, std::string const& variable, double value ) = 0 ;
+	
+private:
+
+	void setup(
+		std::vector< genfile::wildcard::FilenameMatch > const& filenames,
+		SNPResultCallback callback,
+		ProgressCallback progress_callback
+	) {
+		progress_callback( 0, filenames.size() * 100 ) ;
+		for( std::size_t i = 0; i < filenames.size(); ++i ) {
+			setup( i, filenames.size(), filenames[i], callback, progress_callback ) ;
+		}
+	}
+
+	void setup(
+		std::size_t const filename_i,
+		std::size_t const number_of_files,
+		genfile::wildcard::FilenameMatch const& filename,
+		SNPResultCallback callback,
+		ProgressCallback progress_callback
+	) {
+		statfile::BuiltInTypeStatSource::UniquePtr source( statfile::BuiltInTypeStatSource::open( filename.filename() )) ;
+
+		ColumnMap column_map = get_columns_to_store( *source ) ;
+		
+		int degrees_of_freedom = ( column_map.left.find( "_beta_2" ) == column_map.left.end() ) ? 1 : 2 ;
+		
+		std::size_t snp_index = m_snps.size() ;
+		
+		m_snps.resize( snp_index + source->number_of_rows() ) ;
+		m_betas.resize( snp_index + source->number_of_rows(), degrees_of_freedom ) ;
+		m_ses.resize( snp_index + source->number_of_rows(), degrees_of_freedom ) ;
+		m_pvalues.resize( snp_index + source->number_of_rows() ) ;
+		m_info.resize( snp_index + source->number_of_rows() ) ;
+		m_maf.resize( snp_index + source->number_of_rows() ) ;
+		m_sample_counts.resize( snp_index + source->number_of_rows(), 4 ) ;
+		for( ExtraVariables::iterator i = m_extra_variables.begin(); i != m_extra_variables.end(); ++i ) {
+			i->second.resize( snp_index + source->number_of_rows() ) ;
+		}
+
+		genfile::SNPIdentifyingData snp ;
+		Eigen::VectorXd betas ;
+		Eigen::VectorXd ses ;
+		
+		for( ; read_snp( *source, snp ); (*source) >> statfile::ignore_all() ) {
+			// Deal with strange non-ids.  This isn't a general solution but 
+			if(
+				snp.get_SNPID() == "---" // IMPUTE2
+				|| snp.get_SNPID() == "?" // QCTOOL under some usages
+				|| snp.get_SNPID() == "NA" // dunno.
+			) {
+				snp.set_SNPID( "" ) ;
+			}
+
+			// read data columns
+
+			ColumnMap::right_const_iterator i = column_map.right.begin(), end_i = column_map.right.end() ;
+			double value ;
+			for( ; i != end_i; ++i ) {
+				(*source)
+					>> statfile::ignore( i->first - source->current_column() )
+					>> value ;
+				store_value( snp_index, i->second, value ) ;
+			}
+
+			if( check_if_snp_accepted( snp_index ) ) {
+				m_snps[ snp_index++ ] = snp ;
+			}
+
+			if( progress_callback ) {
+				progress_callback( 100 * ( filename_i + double( source->number_of_rows_read() + 1 ) / source->number_of_rows() ), 100 * number_of_files ) ;
+			}
+		}
+		
+		// Now deallocate any unused memory.
+		m_snps.resize( snp_index ) ;
+		free_unused_memory() ;
+	}
+	
+	ColumnMap get_columns_to_store(
+		statfile::BuiltInTypeStatSource const& source
+	) {
+		using genfile::string_utils::to_string ;
+		std::set< std::string > desired_columns = get_desired_columns() ;
+
+		ColumnMap result ;
+		for( std::size_t i = 0; i < source.number_of_columns(); ++i ) {
+			std::string name = source.name_of_column( i ) ;
+			for( std::set< std::string >::iterator j = desired_columns.begin(); j != desired_columns.end(); ++j ) {
+				assert( j->size() > 0 ) ;
+				if(
+					(
+						j->at(0) == '*'
+						&& name.size() >= ( j->size() - 1 )
+						&& name.compare( name.size() - j->size() + 1, j->size() - 1, j->substr( 1, j->size() ) ) == 0
+					) || (
+						j->at(0) != '*'
+						&& name == *j
+					)
+				) {
+					std::pair< ColumnMap::iterator, bool > insertion = result.insert( ColumnMap::value_type( *j, i )) ;
+					if( !insertion.second ) {
+						throw genfile::OperationFailedError(
+							"SNPTESTResults::get_columns_to_store()",
+							"m_column_map",
+							"Insertion of value for column \"" + name + "\" (matching \"" + to_string( *j ) + "\")."
+						) ;
+					}
+				}
+			}
+		}
+		
+		std::set< std::string > required_columns = desired_columns ;
+		required_columns.erase( "*_beta_2" ) ;
+		required_columns.erase( "*_se_2" ) ;
+		
+		for( std::set< std::string >::const_iterator i = required_columns.begin(); i != required_columns.end(); ++i ) {
+			if( result.left.find( *i ) == result.left.end() ) {
+				throw genfile::MalformedInputError( source.get_source_spec(), 0 ) ;
+			}
+		}
+
+		return result ;
+	}
 	
 	void free_unused_memory() {
 		std::size_t const N_snps = m_snps.size() ;
@@ -301,154 +460,78 @@ protected:
 			Eigen::MatrixXf sample_counts = m_sample_counts.block( 0, 0, N_snps, m_sample_counts.cols() ) ;
 			m_sample_counts.swap( sample_counts ) ;
 		}
+		{
+			for( ExtraVariables::iterator i = m_extra_variables.begin(); i != m_extra_variables.end(); ++i ) {
+				i->second.resize( N_snps ) ;
+				std::vector< double > v = i->second ;
+				i->second.swap( v ) ;
+			}
+		}
 	}
-	
 } ;
-	
 
 struct SNPTESTResults: public FlatFileScanResults {
 	SNPTESTResults(
-		std::vector< genfile::wildcard::FilenameMatch > const& filenames,
-		SNPExclusionTest::UniquePtr test,
-		SNPResultCallback callback = SNPResultCallback(),
-		ProgressCallback progress_callback = ProgressCallback()
+		SNPExclusionTest::UniquePtr test
 	):
-		m_filenames( filenames ),
 	 	m_exclusion_test( test )
-	{
-		setup( filenames, callback, progress_callback ) ;
+	{}
+
+	void add_variable( std::string const& variable ) {
+		m_variables.insert( variable ) ;
+		/* Make sure we prepare storage. */
+		m_extra_variables[ variable ] ;
 	}
 
+	
 	std::string get_summary( std::string const& prefix, std::size_t target_column ) const {
 		return prefix + "SNPTEST " + FlatFileScanResults::get_summary( "", target_column ) ;
 	}
 
 private:
-	std::vector< genfile::wildcard::FilenameMatch > const m_filenames ;
 	SNPExclusionTest::UniquePtr m_exclusion_test ;
-	typedef boost::bimap< std::string, std::size_t > ColumnMap ;
+	std::set< std::string > m_variables ;
 	
-	void setup(
-		std::vector< genfile::wildcard::FilenameMatch > const& filenames,
-		SNPResultCallback callback,
-		ProgressCallback progress_callback
-	) {
-		progress_callback( 0, filenames.size() * 100 ) ;
-		for( std::size_t i = 0; i < filenames.size(); ++i ) {
-			setup( i, filenames.size(), filenames[i], callback, progress_callback ) ;
-		}
-	}
-	
-	void setup(
-		std::size_t const filename_i,
-		std::size_t const number_of_files,
-		genfile::wildcard::FilenameMatch const& filename,
-		SNPResultCallback callback,
-		ProgressCallback progress_callback
-	) {
-		statfile::BuiltInTypeStatSource::UniquePtr source( statfile::BuiltInTypeStatSource::open( filename.filename() )) ;
-
-		ColumnMap column_map = get_columns_to_store( *source ) ;
-		
-		int degrees_of_freedom = ( column_map.left.find( "_beta_2" ) == column_map.left.end() ) ? 1 : 2 ;
-		
-		m_snps.resize( source->number_of_rows() ) ;
-		m_betas.resize( source->number_of_rows(), degrees_of_freedom ) ;
-		m_ses.resize( source->number_of_rows(), degrees_of_freedom ) ;
-		m_pvalues.resize( source->number_of_rows() ) ;
-		m_info.resize( source->number_of_rows() ) ;
-		m_maf.resize( source->number_of_rows() ) ;
-		m_sample_counts.resize( source->number_of_rows(), 4 ) ;
-
-		genfile::SNPIdentifyingData snp ;
-		Eigen::VectorXd betas ;
-		Eigen::VectorXd ses ;
-		
-		std::size_t snp_index = 0 ;
-		for(
-			;
-			(*source) >> snp.SNPID() >> snp.rsid() >> snp.position().chromosome() >> snp.position().position() >> snp.first_allele() >> snp.second_allele();
-			(*source) >> statfile::ignore_all()
-		) {
-			// Deal with strange non-ids.  This isn't a general solution but 
-			if(
-				snp.get_SNPID() == "---" // IMPUTE2
-				|| snp.get_SNPID() == "?" // QCTOOL under some usages
-				|| snp.get_SNPID() == "NA" // dunno.
-			) {
-				snp.set_SNPID( "" ) ;
-			}
-			// Just read the values we need
-			ColumnMap::right_const_iterator i = column_map.right.begin(), end_i = column_map.right.end() ;
-			double value ;
-			for( ; i != end_i; ++i ) {
-				(*source)
-					>> statfile::ignore( i->first - source->current_column() )
-					>> value ;
-				store_value( snp_index, i->second, value ) ;
-			}
-
-			if( !m_exclusion_test.get() || m_exclusion_test->operator()( snp, m_maf( snp_index ), m_info( snp_index ))) {
-				m_snps[ snp_index++ ] = snp ;
-			}
-
-			if( progress_callback ) {
-				progress_callback( 100 * ( filename_i + double( source->number_of_rows_read() + 1 ) / source->number_of_rows() ), 100 * number_of_files ) ;
-			}
-		}
-		
-		// Now deallocate any unused memory.
-		m_snps.resize( snp_index ) ;
-		free_unused_memory() ;
-	}
-	
-	ColumnMap get_columns_to_store(
-		statfile::BuiltInTypeStatSource const& source
-	) {
+	std::set< std::string > get_desired_columns() const {
 		std::set< std::string > desired_columns ;
-		desired_columns.insert( "_beta_1" ) ;
-		desired_columns.insert( "_beta_2" ) ;
-		desired_columns.insert( "_se_1" ) ;
-		desired_columns.insert( "_se_2" ) ;
-		desired_columns.insert( "_pvalue" ) ;
+		desired_columns.insert( "*_beta_1" ) ;
+		desired_columns.insert( "*_beta_2" ) ;
+		desired_columns.insert( "*_se_1" ) ;
+		desired_columns.insert( "*_se_2" ) ;
+		desired_columns.insert( "*_pvalue" ) ;
 		desired_columns.insert( "info" ) ;
-		desired_columns.insert( "maf" ) ;
+		desired_columns.insert( "all_maf" ) ;
 		desired_columns.insert( "all_AA" ) ;
 		desired_columns.insert( "all_AB" ) ;
 		desired_columns.insert( "all_BB" ) ;
 		desired_columns.insert( "all_NULL" ) ;
+		desired_columns.insert( m_variables.begin(), m_variables.end() ) ;
 
-		ColumnMap result ;
-		for( std::size_t i = 0; i < source.number_of_columns(); ++i ) {
-			std::string name = source.name_of_column( i ) ;
-			for( std::set< std::string >::iterator j = desired_columns.begin(); j != desired_columns.end(); ++j ) {
-				if( name.size() >= j->size() && name.compare( name.size() - j->size(), j->size(), *j ) == 0 ) {
-					result.insert( ColumnMap::value_type( *j, i )) ;
-					//std::cerr << "Column \"" << j->first << "\" found at position " << i << ".\n" ;
-				}
-			}
-		}
-		
-		std::set< std::string > required_columns = desired_columns ;
-		required_columns.erase( "_beta_2" ) ;
-		required_columns.erase( "_se_2" ) ;
-		
-		for( std::set< std::string >::const_iterator i = required_columns.begin(); i != required_columns.end(); ++i ) {
-			if( result.left.find( *i ) == result.left.end() ) {
-				throw genfile::MalformedInputError( source.get_source_spec(), 0 ) ;
-			}
-		}
+		return desired_columns ;
+	}
 
-		return result ;
+	bool read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const {
+		return( source >> snp.SNPID() >> snp.rsid() >> snp.position().chromosome() >> snp.position().position() >> snp.first_allele() >> snp.second_allele() ) ;
+	}
+	
+	bool check_if_snp_accepted( std::size_t snp_i ) const {
+		return
+			! m_exclusion_test.get()
+			|| m_exclusion_test->operator()( m_snps[ snp_i ], m_maf( snp_i ), m_info( snp_i ) )
+		;
 	}
 	
 	void store_value(
 		int snp_index,
 		std::string const& variable,
-		double const value
+		double value
 	) {
 		using genfile::string_utils::to_repr ;
+		double const NA =  std::numeric_limits< double >::quiet_NaN() ;
 		
+		if( value == -1 ) {
+			value = NA ;
+		}
 		if( variable == "_beta_1" ) {
 			m_betas( snp_index, 0 ) = value ;
 		}
@@ -467,7 +550,7 @@ private:
 		else if( variable == "info" ) {
 			m_info( snp_index ) = value ;
 		}
-		else if( variable == "maf" ) {
+		else if( variable == "all_maf" ) {
 			m_maf( snp_index ) = value ;
 		}
 		else if( variable == "all_AA" ) {
@@ -482,108 +565,43 @@ private:
 		else if( variable == "all_NULL" ) {
 			m_sample_counts( snp_index, 3 ) = value ;
 		}
+		else if( m_variables.find( variable ) != m_variables.end() ) {
+			m_extra_variables[ variable ][ snp_index ] = value ;
+		}
 	}
 } ;
 
 struct MMMResults: public FlatFileScanResults {
 	MMMResults(
-		std::vector< genfile::wildcard::FilenameMatch > const& filenames,
-		SNPExclusionTest::UniquePtr test,
-		SNPResultCallback callback = SNPResultCallback(),
-		ProgressCallback progress_callback = ProgressCallback()
+		SNPExclusionTest::UniquePtr test
 	):
-		m_filenames( filenames ),
 	 	m_exclusion_test( test )
-	{
-		setup( filenames, callback, progress_callback ) ;
-	}
+	{}
+
+	void add_variable( std::string const& variable ) {
+		m_variables.insert( variable ) ;
+	};
 
 	std::string get_summary( std::string const& prefix, std::size_t target_column ) const {
 		return prefix + "mmm " + FlatFileScanResults::get_summary( "", target_column ) ;
 	}
 
 private:
-	std::vector< genfile::wildcard::FilenameMatch > const m_filenames ;
 	SNPExclusionTest::UniquePtr m_exclusion_test ;
-	typedef boost::bimap< std::string, std::size_t > ColumnMap ;
+	std::set< std::string > m_variables ;
 	
-	void setup(
-		std::vector< genfile::wildcard::FilenameMatch > const& filenames,
-		SNPResultCallback callback,
-		ProgressCallback progress_callback
-	) {
-		progress_callback( 0, filenames.size() * 100 ) ;
-		for( std::size_t i = 0; i < filenames.size(); ++i ) {
-			setup( i, filenames.size(), filenames[i], callback, progress_callback ) ;
-		}
+	bool read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const {
+		return( source >> snp.position().chromosome() >> snp.SNPID() >> snp.rsid() >> snp.position().position() >> snp.first_allele() >> snp.second_allele() ) ;
+	}
+
+	bool check_if_snp_accepted( std::size_t snp_i ) const {
+		return
+			!m_exclusion_test.get()
+			|| m_exclusion_test->operator()( m_snps[ snp_i ], m_maf( snp_i ), m_info( snp_i ) )
+		;
 	}
 	
-	void setup(
-		std::size_t const filename_i,
-		std::size_t const number_of_files,
-		genfile::wildcard::FilenameMatch const& filename,
-		SNPResultCallback callback,
-		ProgressCallback progress_callback
-	) {
-		statfile::BuiltInTypeStatSource::UniquePtr source( statfile::BuiltInTypeStatSource::open( filename.filename() )) ;
-
-		ColumnMap column_map = get_columns_to_store( *source ) ;
-		
-		int degrees_of_freedom = ( column_map.left.find( "_beta_2" ) == column_map.left.end() ) ? 1 : 2 ;
-		
-		m_snps.resize( source->number_of_rows() ) ;
-		m_betas.resize( source->number_of_rows(), degrees_of_freedom ) ;
-		m_ses.resize( source->number_of_rows(), degrees_of_freedom ) ;
-		m_pvalues.resize( source->number_of_rows() ) ;
-		m_info.resize( source->number_of_rows() ) ;
-		m_maf.resize( source->number_of_rows() ) ;
-		m_sample_counts.resize( source->number_of_rows(), 4 ) ;
-
-		genfile::SNPIdentifyingData snp ;
-		Eigen::VectorXd betas ;
-		Eigen::VectorXd ses ;
-		
-		std::size_t snp_index = 0 ;
-		for(
-			;
-			(*source) >> snp.position().chromosome() >> snp.SNPID() >> snp.rsid() >> snp.position().position() >> snp.first_allele() >> snp.second_allele();
-			(*source) >> statfile::ignore_all()
-		) {
-			// Deal with strange non-ids.  This isn't a general solution but 
-			if(
-				snp.get_SNPID() == "---" // IMPUTE2
-				|| snp.get_SNPID() == "?" // QCTOOL under some usages
-				|| snp.get_SNPID() == "NA" // dunno.
-			) {
-				snp.set_SNPID( "" ) ;
-			}
-			// Just read the values we need
-			ColumnMap::right_const_iterator i = column_map.right.begin(), end_i = column_map.right.end() ;
-			double value ;
-			for( ; i != end_i; ++i ) {
-				(*source)
-					>> statfile::ignore( i->first - source->current_column() )
-					>> value ;
-				store_value( snp_index, i->second, value ) ;
-			}
-
-			if( !m_exclusion_test.get() || m_exclusion_test->operator()( snp, m_maf( snp_index ), m_info( snp_index ))) {
-				m_snps[ snp_index++ ] = snp ;
-			}
-
-			if( progress_callback ) {
-				progress_callback( 100 * ( filename_i + double( source->number_of_rows_read() + 1 ) / source->number_of_rows() ), 100 * number_of_files ) ;
-			}
-		}
-		
-		// Now deallocate any unused memory.
-		m_snps.resize( snp_index ) ;
-		free_unused_memory() ;
-	}
-	
-	ColumnMap get_columns_to_store(
-		statfile::BuiltInTypeStatSource const& source
-	) {
+	std::set< std::string > get_desired_columns() const {
 		std::set< std::string > required_columns ;
 		required_columns.insert( "z_est" ) ;
 		required_columns.insert( "z_se" ) ;
@@ -594,25 +612,8 @@ private:
 		required_columns.insert( "gen_01" ) ;
 		required_columns.insert( "gen_11" ) ;
 		required_columns.insert( "gen_NULL" ) ;
-
-		ColumnMap result ;
-		for( std::size_t i = 0; i < source.number_of_columns(); ++i ) {
-			std::string name = source.name_of_column( i ) ;
-			for( std::set< std::string >::iterator j = required_columns.begin(); j != required_columns.end(); ++j ) {
-				if( name.size() >= j->size() && name.compare( name.size() - j->size(), j->size(), *j ) == 0 ) {
-					result.insert( ColumnMap::value_type( *j, i )) ;
-					//std::cerr << "Column \"" << j->first << "\" found at position " << i << ".\n" ;
-				}
-			}
-		}
-		
-		for( std::set< std::string >::const_iterator i = required_columns.begin(); i != required_columns.end(); ++i ) {
-			if( result.left.find( *i ) == result.left.end() ) {
-				throw genfile::MalformedInputError( source.get_source_spec(), 0 ) ;
-			}
-		}
-
-		return result ;
+		required_columns.insert( m_variables.begin(), m_variables.end() ) ;
+		return required_columns ;
 	}
 	
 	void store_value(
@@ -654,6 +655,7 @@ private:
 
 FrequentistGenomeWideAssociationResults::UniquePtr FrequentistGenomeWideAssociationResults::create(
 	std::vector< genfile::wildcard::FilenameMatch > const& filenames,
+	std::vector< std::string > const& columns,
 	SNPExclusionTest::UniquePtr test,
 	SNPResultCallback result_callback,
 	ProgressCallback progress_callback
@@ -674,29 +676,25 @@ FrequentistGenomeWideAssociationResults::UniquePtr FrequentistGenomeWideAssociat
 		}
 	}
 
-	FrequentistGenomeWideAssociationResults::UniquePtr result ;
+	FlatFileScanResults::UniquePtr result ;
 	if( type == "snptest" || type == "unknown" ) {
-		result.reset(
-			new SNPTESTResults(
-				filenames,
-				test,
-				result_callback,
-				progress_callback
-			)
-		) ;
+		result.reset( new SNPTESTResults( test ) ) ;
 	}
 	else if( type == "mmm" ) {
-		// not implemented yet.
-		result.reset(
-			new MMMResults(
-				filenames,
-				test,
-				result_callback,
-				progress_callback
-			)
-		) ;
+		result.reset( new MMMResults( test ) ) ;
 	}
-	return result ;
+
+	BOOST_FOREACH( std::string const& column, columns ) {
+		result->add_variable( column ) ;
+	}
+
+	result->add_data(
+		filenames,
+		result_callback,
+		progress_callback
+	) ;
+
+	return FrequentistGenomeWideAssociationResults::UniquePtr( result.release() ) ;
 }
 
 struct AmetComputation: public boost::noncopyable {
@@ -715,6 +713,7 @@ struct AmetComputation: public boost::noncopyable {
 		virtual void get_ses( std::size_t i, Eigen::VectorXd* result  ) const = 0 ;
 		virtual void get_pvalue( std::size_t i, double* result ) const = 0 ;
 		virtual void get_info( std::size_t i, double* result ) const = 0 ;
+		virtual void get_variable( std::string const& variable, std::size_t i, double* result ) const = 0 ;
 	} ;
 
 	virtual void operator()(
@@ -727,9 +726,18 @@ struct AmetComputation: public boost::noncopyable {
 } ;
 
 struct PerCohortValueReporter: public AmetComputation {
+public:
+	typedef std::auto_ptr< PerCohortValueReporter > UniquePtr ;
+	
+public:
 	PerCohortValueReporter( std::vector< std::string > const& cohort_names ):
 		m_cohort_names( cohort_names )
 	{}
+	
+	void add_variable( std::string const& variable ) {
+		m_extra_variables.insert( variable ) ;
+	}
+	
 	void operator()(
 		SNPIdentifyingData2 const&,
 		DataGetter const& data_getter,
@@ -765,6 +773,13 @@ struct PerCohortValueReporter: public AmetComputation {
 				}
 				callback( prefix + "pvalue", pvalue ) ;
 				callback( prefix + "info", info ) ;
+				{
+					double value ;
+					BOOST_FOREACH( std::string const& variable, m_extra_variables ) {
+						data_getter.get_variable( variable, i, &value ) ;
+						callback( prefix + variable, value ) ;
+					}
+				}
 			}
 		}
 	}
@@ -779,6 +794,7 @@ struct PerCohortValueReporter: public AmetComputation {
 
 	private:
 		std::vector< std::string > const m_cohort_names ;
+		std::set< std::string > m_extra_variables ;
 } ;
 
 namespace impl {
@@ -793,14 +809,13 @@ namespace impl {
 					return false ;
 				}
 				betas(i) = data(0) ;
+
 				data_getter.get_ses( i, &data ) ;
 				if( data.size() != 1 ) {
 					return false ;
 				}
 				ses(i) = data(0) ;
 				
-				// check that betas and ses are 
-
 				if( betas(i) != betas(i) || ses(i) != ses(i) ) {
 					non_missingness(i) = 0 ;
 				}
@@ -1052,7 +1067,13 @@ AmetComputation::UniquePtr AmetComputation::create( std::string const& name, app
 				names[i] = "cohort " + genfile::string_utils::to_string( i + 1 ) + " (file://" + names[i] + ")" ;
 			}
 		}
-		result.reset( new PerCohortValueReporter( names ) ) ;
+		PerCohortValueReporter::UniquePtr pcv( new PerCohortValueReporter( names ) ) ;
+		if( options.check( "-info-columns" )) {
+			BOOST_FOREACH( std::string const& variable, options.get_values( "-info-columns" )) {
+				pcv->add_variable( variable ) ;
+			}
+		}
+		result.reset( pcv.release() ) ;
 	}
 	else {
 		throw genfile::BadArgumentError( "AmetComputation::create()", "name=\"" + name + "\"" ) ;
@@ -1066,174 +1087,182 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 	void declare_options( appcontext::OptionProcessor& options ) {
 		options.set_help_option( "-help" ) ;
 
-		options.declare_group( "File handling options" ) ;
-		options[ "-data" ]
-			.set_description( "Specify the path of a file containing SNPTEST or MMM results to load." )
-			.set_is_required()
-			.set_takes_values_until_next_option()
-			.set_minimum_multiplicity( 1 )
-			.set_maximum_multiplicity( 100 )
-		;
+		{
+			options.declare_group( "File handling options" ) ;
+			options[ "-data" ]
+				.set_description( "Specify the path of a file containing SNPTEST or MMM results to load." )
+				.set_is_required()
+				.set_takes_values_until_next_option()
+				.set_minimum_multiplicity( 1 )
+				.set_maximum_multiplicity( 100 )
+			;
+			
+			options[ "-info-columns" ]
+				.set_description( "Specify extra columns in input files whose values will be considered as variables to be reported in the output."
+				 	" Currently these must be columns of numerical data.  (A wildcard character * at the start of the column name may"
+					" be used to match any initial sequence of characters; but take care to escape this from the shell.)" )
+					.set_takes_values_until_next_option()
+					.set_minimum_multiplicity( 0 )
+					.set_maximum_multiplicity( 100 )
+				;
+		}
+		{
+			options.declare_group( "SNP exclusion options" ) ;
+			options[ "-excl-snpids" ]
+				.set_description( "Exclude all SNPs whose SNPID is in the given file(s) from the analysis.")
+				.set_takes_values_until_next_option() 
+				.set_maximum_multiplicity( 100 ) ;
+			options[ "-excl-rsids" ]
+				.set_description( "Exclude all SNPs whose RSID is in the given file(s) from the analysis.")
+				.set_takes_values_until_next_option() 
+				.set_maximum_multiplicity( 100 ) ;
+			options[ "-incl-snpids" ]
+				.set_description( "Exclude all SNPs whose SNPID is not in the given file(s) from the analysis.")
+				.set_takes_values_until_next_option() 
+				.set_maximum_multiplicity( 100 ) ;
+			options[ "-incl-rsids" ]
+				.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.")
+				.set_takes_values_until_next_option() 
+				.set_maximum_multiplicity( 100 ) ;
+			options[ "-excl-positions" ]
+				.set_description( "Exclude all SNPs whose position is in the given file(s) from the analysis. "
+					"Positions should be in the form [chromosome]:[position] and separated by whitespace." )
+				.set_takes_values_until_next_option() 
+				.set_maximum_multiplicity( 100 ) ;
+			options[ "-incl-positions" ]
+				.set_description( "Exclude all SNPs whose position is not in the given file(s) from the analysis. "
+					"Positions should be in the form [chromosome]:[position] and separated by whitespace." )
+				.set_takes_values_until_next_option() 
+				.set_maximum_multiplicity( 100 ) ;
+			options[ "-excl-snps-matching" ]
+				.set_description( "Filter out snps whose rsid or SNPID matches the given value. "
+					"The value should be a string which can contain a % wildcard character (which matches any substring). "
+					"Optionally, prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields." )
+				.set_takes_single_value() ;
+			options[ "-incl-snps-matching" ]
+				.set_description( "Filter out snps whose rsid or SNPID does not match the given value. "
+					"The value should be a string which can contain a % wildcard character (which matches any substring). "
+					"Optionally, prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields." )
+				.set_takes_single_value() ;
+			options[ "-incl-range" ]
+				.set_description( "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to operate on. "
+					"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
+					"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
+					"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
+				.set_takes_single_value() ;
+			options[ "-excl-range" ]
+				.set_description( "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to exclude from operation. "
+					"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
+					"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
+					"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
+				.set_takes_single_value() ;
+
+			options[ "-excl-snpids-per-cohort" ]
+				.set_description( "Exclude all SNPs whose SNPID is in the given file(s) from the corresponding cohort. "
+					"The i-th value should be a comma-separated list of files containing rsids to exclude from the i-th cohort." )
+				.set_takes_values_until_next_option() 
+				.set_maximum_multiplicity( 100 ) ;
+			options[ "-excl-rsids-per-cohort" ]
+				.set_description( "Exclude all SNPs whose RSID is in the given file(s) from the corresponding cohort. "
+					"The i-th value should be a comma-separated list of files containing rsids to exclude from the i-th cohort." )
+				.set_takes_values_until_next_option() 
+				.set_maximum_multiplicity( 100 ) ;
+			options[ "-incl-snpids-per-cohort" ]
+				.set_description( "Exclude all SNPs whose SNPID is not in the given file(s) from the corresponding cohort."
+					"The i-th value should be a comma-separated list of files containing rsids to exclude from the i-th cohort." )
+				.set_takes_values_until_next_option() 
+				.set_maximum_multiplicity( 100 ) ;
+			options[ "-incl-rsids-per-cohort" ]
+				.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the corresponding cohort."
+					"The i-th value should be a comma-separated list of files containing rsids to exclude from the i-th cohort." )
+				.set_takes_values_until_next_option() 
+				.set_maximum_multiplicity( 100 ) ;
 		
-		options.declare_group( "SNP exclusion options" ) ;
-		options[ "-excl-snpids" ]
-			.set_description( "Exclude all SNPs whose SNPID is in the given file(s) from the analysis.")
-			.set_takes_values_until_next_option() 
-			.set_maximum_multiplicity( 100 ) ;
-		options[ "-excl-rsids" ]
-			.set_description( "Exclude all SNPs whose RSID is in the given file(s) from the analysis.")
-			.set_takes_values_until_next_option() 
-			.set_maximum_multiplicity( 100 ) ;
-		options[ "-incl-snpids" ]
-			.set_description( "Exclude all SNPs whose SNPID is not in the given file(s) from the analysis.")
-			.set_takes_values_until_next_option() 
-			.set_maximum_multiplicity( 100 ) ;
-		options[ "-incl-rsids" ]
-			.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.")
-			.set_takes_values_until_next_option() 
-			.set_maximum_multiplicity( 100 ) ;
-		options[ "-excl-positions" ]
-			.set_description( "Exclude all SNPs whose position is in the given file(s) from the analysis. "
-				"Positions should be in the form [chromosome]:[position] and separated by whitespace." )
-			.set_takes_values_until_next_option() 
-			.set_maximum_multiplicity( 100 ) ;
-		options[ "-incl-positions" ]
-			.set_description( "Exclude all SNPs whose position is not in the given file(s) from the analysis. "
-				"Positions should be in the form [chromosome]:[position] and separated by whitespace." )
-			.set_takes_values_until_next_option() 
-			.set_maximum_multiplicity( 100 ) ;
-		options[ "-excl-snps-matching" ]
-			.set_description( "Filter out snps whose rsid or SNPID matches the given value. "
-				"The value should be a string which can contain a % wildcard character (which matches any substring). "
-				"Optionally, prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields." )
-			.set_takes_single_value() ;
-		options[ "-incl-snps-matching" ]
-			.set_description( "Filter out snps whose rsid or SNPID does not match the given value. "
-				"The value should be a string which can contain a % wildcard character (which matches any substring). "
-				"Optionally, prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields." )
-			.set_takes_single_value() ;
-		options[ "-incl-range" ]
-			.set_description( "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to operate on. "
-				"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
-				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
-				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
-			.set_takes_single_value() ;
-		options[ "-excl-range" ]
-			.set_description( "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to exclude from operation. "
-				"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
-				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
-				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
-			.set_takes_single_value() ;
+			options[ "-min-info" ]
+				.set_description( "Treat SNPs with info less than the given threshhold as missing." )
+				.set_takes_values( 1 ) ;
 
-		options[ "-excl-snpids-per-cohort" ]
-			.set_description( "Exclude all SNPs whose SNPID is in the given file(s) from the corresponding cohort. "
-				"The i-th value should be a comma-separated list of files containing rsids to exclude from the i-th cohort." )
-			.set_takes_values_until_next_option() 
-			.set_maximum_multiplicity( 100 ) ;
-		options[ "-excl-rsids-per-cohort" ]
-			.set_description( "Exclude all SNPs whose RSID is in the given file(s) from the corresponding cohort. "
-				"The i-th value should be a comma-separated list of files containing rsids to exclude from the i-th cohort." )
-			.set_takes_values_until_next_option() 
-			.set_maximum_multiplicity( 100 ) ;
-		options[ "-incl-snpids-per-cohort" ]
-			.set_description( "Exclude all SNPs whose SNPID is not in the given file(s) from the corresponding cohort."
-				"The i-th value should be a comma-separated list of files containing rsids to exclude from the i-th cohort." )
-			.set_takes_values_until_next_option() 
-			.set_maximum_multiplicity( 100 ) ;
-		options[ "-incl-rsids-per-cohort" ]
-			.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the corresponding cohort."
-				"The i-th value should be a comma-separated list of files containing rsids to exclude from the i-th cohort." )
-			.set_takes_values_until_next_option() 
-			.set_maximum_multiplicity( 100 ) ;
+			options[ "-min-maf" ]
+				.set_description( "Treat SNPs with maf (in controls) less than the given threshhold as missing." )
+				.set_takes_values( 1 ) ;
+		}
+
+		{
+			options.declare_group( "Options affecting output" ) ;
+
+			options[ "-o" ]
+				.set_description( "Specify the path to the output file." )
+				.set_is_required()
+				.set_takes_single_value() ;
+
+			options[ "-flat-file" ]
+				.set_description( "Specify the output file should be a flat file, not a db." ) ;
 		
-		options[ "-min-info" ]
-			.set_description( "Treat SNPs with info less than the given threshhold as missing." )
-			.set_takes_values( 1 ) ;
+			options[ "-analysis-name" ]
+				.set_description( "Specify a name to label results from this analysis with" )
+				.set_takes_single_value()
+				.set_default_value( "bingwa analysis, started " + appcontext::get_current_time_as_string() ) ;
 
-		options[ "-min-maf" ]
-			.set_description( "Treat SNPs with maf (in controls) less than the given threshhold as missing." )
-			.set_takes_values( 1 ) ;
+			options[ "-cohort-names" ]
+				.set_description( "Specify a name to label results from this analysis with" )
+				.set_takes_values_until_next_option() ;
+
+			options[ "-log" ]
+				.set_description( "Specify the path of a log file; all screen output will be copied to the file." )
+				.set_takes_single_value() ;
+		}
 		
-		options[ "-o" ]
-			.set_description( "Specify the path to the output file." )
-			.set_is_required()
-			.set_takes_single_value() ;
 
-		options[ "-flat-file" ]
-			.set_description( "Specify the output file should be a flat file, not a db." ) ;
+		{
+			options.declare_group( "Analysis options" ) ;
 		
-		options[ "-analysis-name" ]
-			.set_description( "Specify a name to label results from this analysis with" )
-			.set_takes_single_value()
-			.set_default_value( "bingwa analysis, started " + appcontext::get_current_time_as_string() ) ;
-
-		options[ "-cohort-names" ]
-			.set_description( "Specify a name to label results from this analysis with" )
-			.set_takes_values_until_next_option() ;
+			options[ "-snp-match-fields" ]
+				.set_description( "Use this option to specify a comma-separated list of SNP-identifying fields that should be used "
+					"to match SNPs between cohorts.  Possible fields "
+					"are \"position\", \"alleles\", \"rsid\", or \"snpid\"; you must always specify \"position\" as the first entry." )
+				.set_takes_single_value()
+				.set_default_value( "position,alleles" ) ;
 		
-		options[ "-snp-match-fields" ]
-			.set_description( "Use this option to specify a comma-separated list of SNP-identifying fields that should be used "
-				"to match SNPs between cohorts.  Possible fields "
-				"are \"position\", \"alleles\", \"rsid\", or \"snpid\"; you must always specify \"position\" as the first entry." )
-			.set_takes_single_value()
-			.set_default_value( "position,alleles" ) ;
+			options[ "-simple-prior" ]
+				.set_description( "Specify the between-cohort prior correlation, denoted r, giving a correlation matrix of the form\n"
+					"   [ 1 r r  .. ]\n"
+					"   [ r 1 r  .. ]\n"
+					"   [ r r 1  .. ]\n"
+					"   [       .   ]\n"
+					"   [         . ]\n"
+				)
+				.set_takes_values_until_next_option()
+				.set_minimum_multiplicity( 0 )
+				.set_maximum_multiplicity( 1 ) ;
 
-		options[ "-log" ]
-			.set_description( "Specify the path of a log file; all screen output will be copied to the file." )
-			.set_takes_single_value() ;
+			options[ "-complex-prior" ]
+				.set_description( "Specify the upper triangle of the prior correlation matrix for bayesian analysis.  For example, "
+					"the value \"1,0.5,1\" specifies the matrix\n"
+					"   [ 1    0.5 ]\n"
+					"   [ 0.5  1   ]."
+				)
+				.set_takes_values_until_next_option()
+				.set_minimum_multiplicity( 0 )
+				.set_maximum_multiplicity( 1 ) ;
 
-		options.declare_group( "Analysis options" ) ;
-		
-		options[ "-simple-prior" ]
-			.set_description( "Specify the between-cohort prior correlation, denoted r, giving a correlation matrix of the form\n"
-				"   [ 1 r r  .. ]\n"
-				"   [ r 1 r  .. ]\n"
-				"   [ r r 1  .. ]\n"
-				"   [       .   ]\n"
-				"   [         . ]\n"
-			)
-			.set_takes_values_until_next_option()
-			.set_minimum_multiplicity( 0 )
-			.set_maximum_multiplicity( 1 ) ;
+			options[ "-complex-prior-name" ]
+				.set_description( "Specify the name of the complex models.  This option takes the same number of values as "
+					"are given to -complex-prior option."
+				)
+				.set_takes_values_until_next_option()
+				.set_minimum_multiplicity( 0 )
+				.set_maximum_multiplicity( 1 )
+			;
 
-		options[ "-complex-prior" ]
-			.set_description( "Specify the upper triangle of the prior correlation matrix for bayesian analysis.  For example, "
-				"the value \"1,0.5,1\" specifies the matrix\n"
-				"   [ 1    0.5 ]\n"
-				"   [ 0.5  1   ]."
-			)
-			.set_takes_values_until_next_option()
-			.set_minimum_multiplicity( 0 )
-			.set_maximum_multiplicity( 1 ) ;
+			options[ "-prior-sd" ]
+				.set_description( "Specify the prior standard deviation for bayesian analysis." )
+				.set_takes_values_until_next_option() ;
 
-		options[ "-complex-prior-name" ]
-			.set_description( "Specify the name of the complex models.  This option takes the same number of values as "
-				"are given to -complex-prior option."
-			)
-			.set_takes_values_until_next_option()
-			.set_minimum_multiplicity( 0 )
-			.set_maximum_multiplicity( 1 )
-		;
+			options.option_implies_option( "-simple-prior", "-prior-sd" ) ;
+			options.option_implies_option( "-complex-prior", "-prior-sd" ) ;
+			options.option_implies_option( "-complex-prior", "-complex-prior-name" ) ;
 
-		options[ "-prior-sd" ]
-			.set_description( "Specify the prior standard deviation for bayesian analysis." )
-			.set_takes_values_until_next_option() ;
-		
-		options.option_implies_option( "-simple-prior", "-prior-sd" ) ;
-		options.option_implies_option( "-complex-prior", "-prior-sd" ) ;
-		options.option_implies_option( "-complex-prior", "-complex-prior-name" ) ;
-		
-		options.declare_group( "Output options" ) ;
-		options[ "-bf-threshhold" ]
-			.set_description( "Set the Bayes factor threshhold.  SNPs with Bayes factor greater than or equal to this value will be included in the output." )
-			.set_takes_single_value()
-			.set_default_value( -std::numeric_limits< double >::infinity() )
-		;
-		options[ "-pvalue-threshhold" ]
-			.set_description( "Set the p-value threshhold.  SNPs with P-value lower than this value will be included in the output." )
-			.set_takes_single_value()
-			.set_default_value( 1 ) 
-		;
+		}
 	}
 } ;
 
@@ -1394,6 +1423,9 @@ private:
 		bool is_non_missing( std::size_t i ) const {
 			return( m_indices[i] ) ;
 		}
+		void get_variable( std::string const& variable, std::size_t i, double* result ) const {
+			m_cohorts[i].get_variable( *m_indices[i], variable, result ) ;
+		}
 
 		private:
 			boost::ptr_vector< FrequentistGenomeWideAssociationResults > const& m_cohorts ;
@@ -1403,7 +1435,7 @@ private:
 private:
 	void unsafe_setup( appcontext::UIContext& ui_context ) {
 		link_data( ui_context ) ;
-		categorise_snps() ;
+		categorise_by_missingness() ;
 	}
 	
 	void add_SNP_callback( std::size_t cohort_i, std::size_t snp_i, genfile::SNPIdentifyingData2 const& snp ) {
@@ -1456,7 +1488,7 @@ private:
 		}
 	}
 	
-	void categorise_snps() {
+	void categorise_by_missingness() {
 		SnpMap::const_iterator snp_i = m_snps.begin(), end_i = m_snps.end() ;
 		for( ; snp_i != end_i; ++snp_i ) {
 			std::vector< boost::optional< std::size_t > > const& indices = snp_i->second ;
@@ -1759,6 +1791,7 @@ public:
 			FrequentistGenomeWideAssociationResults::UniquePtr results
 				= FrequentistGenomeWideAssociationResults::create(
 					genfile::wildcard::find_files_by_chromosome( cohort_files[cohort_i] ),
+					options().check( "-info-columns" ) ? options().get_values< std::string >( "-info-columns" ) : std::vector< std::string >(),
 					SNPExclusionTest::UniquePtr( test.release() ),
 					snp_callback,
 					progress_context
