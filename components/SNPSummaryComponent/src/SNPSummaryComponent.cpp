@@ -105,13 +105,13 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 	else {
 		std::vector< std::string > filenames = m_options.get_values< std::string >( "-g" ) ;
 		if( filenames.size() == 1 ) {
-			filename = genfile::strip_gen_file_extension_if_present( filenames[0] ) + ( m_options.check( "-nodb" ) ? ".snp-stats.tsv" : ".qcdb" ) ;
+			filename = genfile::strip_gen_file_extension_if_present( filenames[0] ) + ( m_options.check( "-flat-file" ) ? ".snp-stats.tsv" : ".qcdb" ) ;
 		} else {
-			filename = "qctool_cohort_1-" + to_string( filenames.size() ) + ( m_options.check( "-nodb" ) ? ".snp-stats.tsv" : ".qcdb" ) ;
+			filename = "qctool_cohort_1-" + to_string( filenames.size() ) + ( m_options.check( "-flat-file" ) ? ".snp-stats.tsv" : ".qcdb" ) ;
 		}
 	}
 
-	if( m_options.check( "-nodb" )) {
+	if( m_options.check( "-flat-file" )) {
 		manager->add_result_callback(
 			boost::bind(
 				&snp_summary_component::Storage::store_per_variant_data,

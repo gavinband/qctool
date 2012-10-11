@@ -149,7 +149,7 @@ void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor ) 
 	} else {
 		filename = genfile::strip_gen_file_extension_if_present( m_options.get< std::string >( "-g" ) ) + ".qcdb";
 	}
-	if( m_options.check( "-nodb" ) ) {
+	if( m_options.check( "-flat-file" ) ) {
 		CallComparerFileOutputter::SharedPtr outputter = CallComparerFileOutputter::create_shared( filename, m_options.get< std::string >( "-analysis-name" ) ) ;
 		manager->send_comparisons_to( outputter ) ;
 		manager->send_merge_to( outputter ) ;
