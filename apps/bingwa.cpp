@@ -1105,6 +1105,13 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 					.set_minimum_multiplicity( 0 )
 					.set_maximum_multiplicity( 100 )
 				;
+				
+			options[ "-snp-match-fields" ]
+				.set_description( "Use this option to specify a comma-separated list of SNP-identifying fields that should be used "
+					"to match SNPs between cohorts.  Possible fields "
+					"are \"position\", \"alleles\", \"rsid\", or \"snpid\"; you must always specify \"position\" as the first entry." )
+				.set_takes_single_value()
+				.set_default_value( "position,alleles" ) ;
 		}
 		{
 			options.declare_group( "SNP exclusion options" ) ;
@@ -1211,18 +1218,13 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 				.set_description( "Specify the path of a log file; all screen output will be copied to the file." )
 				.set_takes_single_value() ;
 		}
-		
 
 		{
 			options.declare_group( "Analysis options" ) ;
 		
-			options[ "-snp-match-fields" ]
-				.set_description( "Use this option to specify a comma-separated list of SNP-identifying fields that should be used "
-					"to match SNPs between cohorts.  Possible fields "
-					"are \"position\", \"alleles\", \"rsid\", or \"snpid\"; you must always specify \"position\" as the first entry." )
-				.set_takes_single_value()
-				.set_default_value( "position,alleles" ) ;
-		
+			options[ "-no-meta-analysis" ]
+				.set_description( "Don't do a fixed effect meta-analysis.  Instead, just match up SNPs and store per-cohort values." ) ;
+				
 			options[ "-simple-prior" ]
 				.set_description( "Specify the between-cohort prior correlation, denoted r, giving a correlation matrix of the form\n"
 					"   [ 1 r r  .. ]\n"
@@ -1258,10 +1260,11 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 				.set_description( "Specify the prior standard deviation for bayesian analysis." )
 				.set_takes_values_until_next_option() ;
 
+			options.option_excludes_option( "-no-meta-analysis", "-simple-prior" ) ;
+			options.option_excludes_option( "-no-meta-analysis", "-complex-prior" ) ;
 			options.option_implies_option( "-simple-prior", "-prior-sd" ) ;
 			options.option_implies_option( "-complex-prior", "-prior-sd" ) ;
 			options.option_implies_option( "-complex-prior", "-complex-prior-name" ) ;
-
 		}
 	}
 } ;
@@ -1594,26 +1597,28 @@ public:
 				"PerCohortValueReporter",
 				AmetComputation::create( "PerCohortValueReporter", options() )
 			) ;
-			m_processor->add_computation(
-				"FixedEffectFrequentistMetaAnalysis",
-				AmetComputation::create( "FixedEffectFrequentistMetaAnalysis", options() )
-			) ;
-			if( options().check( "-simple-prior" ) || options().check( "-complex-prior" )) {
-				std::map< std::string, Eigen::MatrixXd > const priors = get_priors( options() ) ;
-				assert( priors.size() > 0 ) ;
-				std::map< std::string, Eigen::MatrixXd >::const_iterator i = priors.begin() ;
-				std::map< std::string, Eigen::MatrixXd >::const_iterator const end_i = priors.end() ;
-				for( ; i != end_i; ++i ) {
-					ApproximateBayesianMetaAnalysis::UniquePtr computation(
-						new ApproximateBayesianMetaAnalysis(
-							i->first,
-							i->second
-						)
-					) ;
-					m_processor->add_computation(
-						"ApproximateBayesianMetaAnalysis",
-						AmetComputation::UniquePtr( computation.release() )
-					) ;
+			if( !options().check( "-no-meta-analysis" )) {
+				m_processor->add_computation(
+					"FixedEffectFrequentistMetaAnalysis",
+					AmetComputation::create( "FixedEffectFrequentistMetaAnalysis", options() )
+				) ;
+				if( options().check( "-simple-prior" ) || options().check( "-complex-prior" )) {
+					std::map< std::string, Eigen::MatrixXd > const priors = get_priors( options() ) ;
+					assert( priors.size() > 0 ) ;
+					std::map< std::string, Eigen::MatrixXd >::const_iterator i = priors.begin() ;
+					std::map< std::string, Eigen::MatrixXd >::const_iterator const end_i = priors.end() ;
+					for( ; i != end_i; ++i ) {
+						ApproximateBayesianMetaAnalysis::UniquePtr computation(
+							new ApproximateBayesianMetaAnalysis(
+								i->first,
+								i->second
+							)
+						) ;
+						m_processor->add_computation(
+							"ApproximateBayesianMetaAnalysis",
+							AmetComputation::UniquePtr( computation.release() )
+						) ;
+					}
 				}
 			}
 		}
