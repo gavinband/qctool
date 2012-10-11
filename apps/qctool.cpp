@@ -1230,24 +1230,10 @@ private:
 	
 public:
 	genfile::SNPDataSource::UniquePtr open_snp_data_sources(
-		std::vector< std::vector< genfile::wildcard::FilenameMatch > > const& filenames,
-		bool match_alleles_between_cohorts
-	) const {
-		return open_snp_data_sources(
-			filenames,
-			*m_cohort_individual_source,
-			m_indices_of_filtered_out_samples,
-			match_alleles_between_cohorts
-		) ;
-	}
-
-	genfile::SNPDataSource::UniquePtr open_snp_data_sources(
 		std::vector< genfile::wildcard::FilenameMatch > const& filenames
 	) const {
 		return open_snp_data_sources(
 			std::vector< std::vector< genfile::wildcard::FilenameMatch > >( 1, filenames ),
-			*m_cohort_individual_source,
-			m_indices_of_filtered_out_samples,
 			false
 		) ;
 	}
@@ -1255,8 +1241,6 @@ public:
 private:
 	genfile::SNPDataSource::UniquePtr open_snp_data_sources(
 		std::vector< std::vector< genfile::wildcard::FilenameMatch > > const& filenames,
-		genfile::CohortIndividualSource& samples,
-		std::vector< std::size_t > const& indices_of_filtered_out_samples,
 		bool match_alleles_between_cohorts
 	) const {
 		genfile::SNPDataSourceRack::UniquePtr rack ;
@@ -1287,15 +1271,6 @@ private:
 					filenames[i][j].filename(),
 					filenames[i][j].match()
 				) ;
-
-				if( source->number_of_samples() != samples.get_number_of_individuals() ) {
-					throw genfile::MismatchError(
-						"QCToolCmdLineContext::open_snp_data_sources()",
-						source->get_source_spec(),
-						"number of samples in source = " + genfile::string_utils::to_string( source->number_of_samples() ),
-						"expected number of samples = " + genfile::string_utils::to_string( samples.get_number_of_individuals() )
-					);
-				}
 
 				// Add the source to the chain.
 				chain->add_source( genfile::SNPDataSource::UniquePtr( source ) ) ;
