@@ -62,8 +62,6 @@ namespace appcontext {
 			}
 			else if( check_if_option_has_value( defn->first )) {
 				result[ defn->first ] = std::make_pair( get_values( defn->first ), "default" ) ;
-			} else {
-				result[ defn->first ] = std::make_pair( std::vector< std::string >(), "not set" ) ;
 			}
 		}
 		return result ;

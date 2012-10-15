@@ -56,7 +56,7 @@ void DifferentialMissingnessComputation::operator()( SNPIdentifyingData const& s
 			}
 			else {
 				table( m_strata_levels[i], 1 )++ ;
-			}		
+			}
 		}
 	}
 	
@@ -69,18 +69,20 @@ void DifferentialMissingnessComputation::operator()( SNPIdentifyingData const& s
 			callback( "non-missing samples " + tag, table( level, 1 ) ) ;
 		}
 	}
+
+	std::string const stub = "missingness_by_" + m_stratification_name ;
+	callback( stub + "_sample_odds_ratio", table(0,0) * table(1,1) / ( table(0,1) * table(1,0) ) ) ;
 	
 	if( table.row(0).sum() > 0 && table.row(1).sum() > 0 ) {
-		std::string const stub = "missingness_by_" + m_stratification_name ;
-		try {
-			metro::FishersExactTest test( table ) ;
-			callback( stub + "_exact_pvalue", test.get_pvalue( metro::FishersExactTest::eTwoSided ) )  ;
-			callback( stub + "_sample_odds_ratio", test.get_OR() )  ;
+		if( table.minCoeff() < 20 ) {
+			// perform the exact test.  For speed reasons this is only done if the chi-square approximation may be inaccurate.
+			try {
+				metro::FishersExactTest test( table ) ;
+				callback( stub + "_exact_pvalue", test.get_pvalue( metro::FishersExactTest::eTwoSided ) )  ;
+			}
+			catch( std::exception const& e ) {
+			}
 		}
-		catch( std::exception const& e ) {
-			//
-		}
-		
 		{
 			metro::likelihood::Multinomial< double, Eigen::VectorXd, Eigen::MatrixXd > null_model( table.colwise().sum() ) ;
 			null_model.evaluate_at( null_model.get_MLE() ) ;
