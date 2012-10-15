@@ -109,12 +109,12 @@ simulate.SNPs <- function( NSNPs, N_samples, case_control, sex, chromosome, mode
 simulate.SNP.genotypes <- function(
 	case_control, 					# a vector of zeroes and ones
 	sex,          					# vector with "male"s and "female"s
-	haploid_control_frequencies, 	# frequency of
-	haploid_case_frequencies,
-	diploid_control_frequencies,
-	diploid_case_frequencies,
+	haploid_control_frequencies, 	# frequency of 2 alleles in haploid controls
+	haploid_case_frequencies,		# frequency of 2 alleles in haploid cases
+	diploid_control_frequencies,	# frequency of 3 genotypes in diploid controls
+	diploid_case_frequencies,		# frequency of 3 genotypes in diploid cases
 	chromosome,
-	model = "normal", # or "single-active-copy" for single active copy model on X chromosome
+	model = "normal", 				# or "single-active-copy" for single active copy model on X chromosome
 	debug = FALSE
 ) {
 	stopifnot( length( case_control ) == length( sex )) ;
@@ -132,9 +132,6 @@ simulate.SNP.genotypes <- function(
 	}
 
 	sample.haploid.control.genotypes <- function( i ) {
-		if( is.na( case_control[i] ) ) {
-			return( NA ) ;
-		}
 		return( which( rmultinom( n = 1, size = 1, prob = haploid_control_frequencies ) != 0 ) - 1 ) ;
 	}
 
@@ -160,6 +157,7 @@ simulate.SNP.genotypes <- function(
 		return( result - 1 ) ;
 	}
 
+	haploid.genotypes = rep( NA, N_samples )
 	haploid.genotypes = sapply( 1:N_samples, sample.haploid.genotypes ) ;
 
 	if( chromosome == "0X" && model == "single-active-copy" ) {
@@ -183,7 +181,6 @@ simulate.SNP.genotypes <- function(
 	return( result )
 }
 
-
 # Now perform the simulation
 save.sample.file( cohort[1:nrow(cohort1), ], filename = "cohort1.sample", column.types = c( "0", "0", "0", "D", "D", "C", "C", "P", "P", "B", "B", "D" ) )
 save.sample.file( cohort[(nrow(cohort1)+1):nrow(cohort), ], filename = "cohort2.sample", column.types = c( "0", "0", "0", "D", "D", "C", "C", "P", "P", "B", "B", "D" ) )
@@ -203,6 +200,7 @@ write.table( cbind( snps$id_data[, 1:6], snps$genotypes[, 1:((N_samples/2)*3)] )
 write.table( cbind( snps$id_data[, 1:6], snps$genotypes[, (((N_samples/2)*3)+1):ncol( snps$genotypes )] ), file = "cohort2_0X.gen", col.names = F, row.names = F, quote = F )
 write.table( snps$id_data, file = "chromosome_0X_snps.txt", col.names = T, row.names = F, quote = F )
 
+# Fix males to be coded like diploid homozygotes
 for( i in 1:N_samples ) {
 	if( sex[i] == 'male' ) {
 		snps$genotypes[, (3*i) ] = snps$genotypes[, (3*i)-1 ]

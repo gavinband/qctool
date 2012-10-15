@@ -59,7 +59,7 @@ namespace snp_summary_component {
 	void HWEComputation::autosomal_multinomial_test( SNPIdentifyingData const& snp, Eigen::VectorXd const& genotype_counts, ResultCallback callback ) {
 		metro::likelihood::Multinomial< double, Eigen::VectorXd, Eigen::MatrixXd > hw_model( genotype_counts ) ;
 		{
-			// compute MLE under assumption of hardy-weinberg assumption.
+			// compute MLE under assumption of hardy-weinberg.
 			double p = 2.0 * genotype_counts( 2 ) + genotype_counts( 1 ) ;
 			p /= 2.0 * genotype_counts.sum() ;
 			Eigen::VectorXd a = Eigen::VectorXd::Zero( 3 ) ;
@@ -103,13 +103,18 @@ namespace snp_summary_component {
 		// test2: test that HW is fine in females.
 
 		Eigen::MatrixXd genotype_counts = Eigen::MatrixXd::Zero( 2, 3 ) ; // first row is males, second row is females.  Last column will be zero for males.
-		Eigen::MatrixXd allele_counts = Eigen::MatrixXd::Zero( 2, 2 ) ;
+		Eigen::MatrixXd allele_counts = Eigen::MatrixXd::Zero( 2, 2 ) ; // first row is males, second row is females.
+
+		typedef Eigen::VectorXd Vector ;
+
+		int const MALES = 0 ;
+		int const FEMALES = 1 ;
 
 		for( int i = 0; i < genotypes.rows(); ++i ) {
 			if( sexes[ i ] == 'm' || sexes[ i ] == 'f' ) {
-				int const index = ( sexes[ i ] == 'm' ) ? 0 : 1 ;
+				int const index = ( sexes[ i ] == 'm' ) ? MALES : FEMALES ;
 				for( int g = 0; g < 3; ++g ) {
-					if( genotypes( index, g ) > m_threshhold ) {
+					if( genotypes( i, g ) > m_threshhold ) {
 						++genotype_counts( index, g ) ;
 						break ;
 					}
@@ -124,38 +129,69 @@ namespace snp_summary_component {
 		if( genotype_counts.maxCoeff() > 0 ) {
 			typedef metro::likelihood::Multinomial< double, Eigen::VectorXd, Eigen::MatrixXd > Multinomial ;
 			typedef metro::likelihood::ProductOfMultinomials< double, Eigen::VectorXd, Eigen::MatrixXd > ProductOfIndependentMultinomials ;
-			// In model 1 each genotype is allowed its own parameter.
-			// Morever males and females have seperate parameters
+			// In model 1 each genotype is allowed to have its own frequency.
+			// Morever males and females may have different frequencies
 			ProductOfIndependentMultinomials model1( genotype_counts ) ;
 			model1.evaluate_at( model1.get_MLE() ) ;
-			// In model2 each genotype is allowed its own parameter, but
-			// males and females are taken together.
-			ProductOfIndependentMultinomials model2( genotype_counts.row(0) + genotype_counts.row(1) ) ;
-			model2.evaluate_at( model2.get_MLE() ) ;
-			// In model3 each allele is allowed its own parameter.
-			ProductOfIndependentMultinomials model3( allele_counts.row(0) + allele_counts.row(1) ) ;
-			model3.evaluate_at( model3.get_MLE() ) ;
+			// In model2 alleles are independent (HWE) but males and females may differ.
+			ProductOfIndependentMultinomials model2( genotype_counts ) ;
+			{
+				double const p = ( 2 * genotype_counts( FEMALES, 0 ) + genotype_counts( FEMALES, 1 ) ) / (2 * genotype_counts.row( FEMALES ).sum() ) ;
+				double const q = 1 - p ;
+				
+				Vector params( 6 ) ;
+				params( 0 ) = genotype_counts( MALES, 0 ) / genotype_counts.row( MALES ).sum() ;
+				params( 1 ) = genotype_counts( MALES, 1 ) / genotype_counts.row( MALES ).sum() ;
+				params( 2 ) = 0 ;
+				params( 3 ) = p * p ;
+				params( 4 ) = 2 * p * q ;
+				params( 5 ) = q * q ;
+				model2.evaluate_at( params ) ;
+			}
+			// Im model3 alleles are independent (HWE) and males and females must agree.
+			ProductOfIndependentMultinomials model3( genotype_counts ) ;
+			{
+				double const p = ( 2 * genotype_counts( FEMALES, 0 ) + genotype_counts( MALES, 0 ) + genotype_counts( FEMALES, 1 ) )
+					/ ( 2 * genotype_counts.row( FEMALES ).sum() + genotype_counts.row( MALES ).sum() ) ;
+				double const q = 1 - p ;
+				
+				Vector params( 6 ) ;
+				params( 0 ) = p ;
+				params( 1 ) = q ;
+				params( 2 ) = 0 ;
+				params( 3 ) = p * p ;
+				params( 4 ) = 2 * p * q ;
+				params( 5 ) = q * q ;
+				model3.evaluate_at( params ) ;
+			}
 
+			std::cerr << "Genotype counts:\n" << genotype_counts << "\n" ;
+			std::cerr << "Allele counts:\n" << allele_counts << "\n" ;
+			std::cerr << "Model 1 params: " << model1.get_parameters().transpose() << ".\n" ;
+			std::cerr << "Model 2 params: " << model2.get_parameters().transpose() << ".\n" ;
+			std::cerr << "Model 3 params: " << model3.get_parameters().transpose() << ".\n" ;
 			double const NaN = std::numeric_limits< double >::quiet_NaN() ;
 			double const lr_stat_12 = 2.0 * ( model1.get_value_of_function() - model2.get_value_of_function() ) ;
 			double p_value_12 = NaN ;
-			if( lr_stat_12 == lr_stat_12 ) {
+			if( lr_stat_12 == lr_stat_12 && lr_stat_12 > 0 && lr_stat_12 != std::numeric_limits< double >::infinity() ) {
 				p_value_12 = boost::math::cdf(
 					boost::math::complement(
 						m_chi_squared_2df,
 						lr_stat_12
 					)
 				) ;
+				callback( "sex_differentiation_multinomial_p_value", p_value_12 ) ;
 			}
 			double const lr_stat_23 = 2.0 * ( model2.get_value_of_function() - model3.get_value_of_function() ) ;
 			double p_value_23 = NaN ;
-			if( lr_stat_23 == lr_stat_23 ) {
+			if( lr_stat_23 == lr_stat_23 && lr_stat_23 > 0 && lr_stat_23 != std::numeric_limits< double >::infinity() ) {
 				p_value_23 = boost::math::cdf(
 					boost::math::complement(
 						m_chi_squared_1df,
 						lr_stat_23
 					)
 				) ;
+				callback( "HW_multinomial_p_value", p_value_12 ) ;
 			}
 		}
 	}

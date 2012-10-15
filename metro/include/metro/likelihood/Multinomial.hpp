@@ -50,6 +50,7 @@ namespace metro {
 						result += m_counts(i) * std::log( m_parameters( i )) ;
 					}
 				}
+				
 				return result ;
 			}
 
