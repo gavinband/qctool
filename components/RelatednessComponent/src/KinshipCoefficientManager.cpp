@@ -13,12 +13,9 @@ void KinshipCoefficientManager::send_results_to( ResultsCallback callback ) {
 }
 
 void KinshipCoefficientManager::send_results(
-	std::string const& name,
 	Eigen::MatrixXd const& matrix,
 	std::string const& source,
-	std::string const& description,
-	GetNames get_row_names,
-	GetNames get_column_names
+	std::string const& description
 ) {
-	m_result_signal( name, matrix, source, description, get_row_names, get_column_names ) ;
+	m_result_signal( matrix, source, description ) ;
 }

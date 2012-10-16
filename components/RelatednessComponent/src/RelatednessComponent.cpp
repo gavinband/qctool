@@ -18,6 +18,7 @@
 #include "components/RelatednessComponent/RelatednessComponent.hpp"
 #include "components/RelatednessComponent/PCAComputer.hpp"
 #include "components/RelatednessComponent/KinshipCoefficientComputer.hpp"
+#include "components/RelatednessComponent/KinshipCoefficientComputer2.hpp"
 #include "components/RelatednessComponent/PCALoadingComputer.hpp"
 #include "components/RelatednessComponent/UDUTDecompositionLoader.hpp"
 #include "components/RelatednessComponent/PCALoadingLoader.hpp"
@@ -28,6 +29,9 @@
 void RelatednessComponent::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "Kinship options" ) ;
 	options[ "-kinship" ]
+		.set_description( "Perform kinship computation using threshholded genotype calls and cblas or Eigen libraries." )
+		.set_takes_single_value() ;
+	options[ "-kinship2" ]
 		.set_description( "Perform kinship computation using threshholded genotype calls and cblas or Eigen libraries." )
 		.set_takes_single_value() ;
 	options[ "-load-kinship" ]
@@ -99,15 +103,43 @@ RelatednessComponent::RelatednessComponent(
 {}
 
 
+namespace impl {
+	std::string get_concatenated_ids( genfile::CohortIndividualSource const* samples, std::size_t i ) {
+		return samples->get_entry( i, "id_1" ).as< std::string >() + ":" + samples->get_entry( i, "id_2" ).as< std::string >() ;
+	}
+}
+
 void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) const {
 	PCAComputer::UniquePtr pca_computer ;
+	KinshipCoefficientManager::GetNames get_ids = boost::bind(
+		&impl::get_concatenated_ids,
+		&m_samples,
+		_1
+	) ;
 	if( m_options.check( "-kinship" )) {
 		KinshipCoefficientComputer::UniquePtr result( new KinshipCoefficientComputer( m_options, m_samples, m_worker, m_ui_context ) ) ;
 		result->send_results_to(
 			boost::bind(
 				&pca::write_matrix,
 				m_options.get< std::string >( "-kinship" ),
-				_2, _3, _4, _5, _6
+				_1, _2, _3,
+				get_ids, get_ids
+			)
+		) ;
+		processor.add_callback(
+			genfile::SNPDataSourceProcessor::Callback::UniquePtr( result.release() )
+		) ;
+	}
+	else if( m_options.check( "-kinship2" )) {
+		KinshipCoefficientComputer2::UniquePtr result(
+			new KinshipCoefficientComputer2( m_options, m_samples, m_worker, m_ui_context )
+		) ;
+		result->send_results_to(
+			boost::bind(
+				&pca::write_matrix,
+				m_options.get< std::string >( "-kinship2" ),
+				_1, _2, _3,
+				get_ids, get_ids
 			)
 		) ;
 		processor.add_callback(

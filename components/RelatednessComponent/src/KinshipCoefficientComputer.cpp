@@ -29,7 +29,7 @@
 #include "components/RelatednessComponent/mean_centre_genotypes.hpp"
 #include "components/RelatednessComponent/mean_centre_genotypes.hpp"
 
-#define DEBUG_KINSHIP_COEFFICIENT_COMPUTER 1
+// #define DEBUG_KINSHIP_COEFFICIENT_COMPUTER 1
 
 namespace impl {
 	KinshipCoefficientComputerTask::KinshipCoefficientComputerTask(
@@ -68,7 +68,7 @@ namespace impl {
 				std::cerr << "SNP: " << m_id_data[ snp_i ] << ": freq = " << allele_frequency << ", uncentred genotypes are: " << genotype_calls.transpose().head( 20 ) << "...\n" ;
 #endif
 				pca::mean_centre_genotypes( &genotype_calls, non_missingness_matrix, allele_frequency ) ;
-				
+
 #if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
 				std::cerr << "mean-centred genotypes are: " << genotype_calls.transpose().head( 20 ) << "...\n" ;
 				std::cerr << "non-missingness is: " << non_missingness_matrix.transpose().head( 20 ) << "...\n" ;
@@ -118,22 +118,7 @@ KinshipCoefficientComputer::KinshipCoefficientComputer(
 	m_ui_context( ui_context ),
 	m_samples( samples ),
 	m_worker( worker )
-{
-	assert( m_options.check( "-kinship" )) ;
-	m_filename = m_options.get< std::string >( "-kinship" ) ;
-	// remove .csv extension if present.
-	std::string const extension = ".csv" ;
-	if(
-		m_filename.size() >= extension.size()
-		&& ( m_filename.compare(
-			m_filename.size() - extension.size(),
-			extension.size(),
-			extension
-		) == 0 )
-	) {
-		m_filename.resize( m_filename.size() - extension.size() ) ;
-	}
-}
+{}
 
 void KinshipCoefficientComputer::begin_processing_snps( std::size_t number_of_samples ) {
 	assert( m_samples.get_number_of_individuals() == number_of_samples ) ;
@@ -195,13 +180,6 @@ void KinshipCoefficientComputer::processed_snp( genfile::SNPIdentifyingData cons
 	++m_number_of_snps_processed ;
 }
 
-namespace impl {
-	
-	std::string get_concatenated_ids( genfile::CohortIndividualSource const* samples, std::size_t i ) {
-		return samples->get_entry( i, "id_1" ).as< std::string >() + ":" + samples->get_entry( i, "id_2" ).as< std::string >() ;
-	}
-}
-
 void KinshipCoefficientComputer::end_processing_snps() {
 	if( !m_tasks[ m_current_task ].is_finalised() ) {
 		m_tasks[ m_current_task ].finalise() ;
@@ -226,20 +204,9 @@ void KinshipCoefficientComputer::end_processing_snps() {
 		+ genfile::string_utils::to_string( m_number_of_samples ) ;
 
 	send_results(
-		m_filename + ".csv",
 		m_result[0],
 		"KinshipCoefficientComputer",
-		description,
-		boost::bind(
-			&impl::get_concatenated_ids,
-			&m_samples,
-			_1
-		),
-		boost::bind(
-			&impl::get_concatenated_ids,
-			&m_samples,
-			_1
-		)
+		description
 	) ;
 }
 

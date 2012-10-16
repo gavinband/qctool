@@ -4,8 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef COMPONENTS_RELATEDNESS_COMPONENT_KINSHIPCOEFFICIENTCOMPUTATION2_HPP
-#define COMPONENTS_RELATEDNESS_COMPONENT_KINSHIPCOEFFICIENTCOMPUTATION2_HPP
+#ifndef COMPONENTS_RELATEDNESS_COMPONENT_KINSHIPCOEFFICIENTCOMPUTATION_HPP
+#define COMPONENTS_RELATEDNESS_COMPONENT_KINSHIPCOEFFICIENTCOMPUTATION_HPP
 
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/signals2.hpp>
@@ -80,7 +80,6 @@ public:
 private:
 	appcontext::OptionProcessor const& m_options ;
 	appcontext::UIContext& m_ui_context ;
-	std::string m_filename ;
 	std::size_t m_number_of_samples ;
 	std::size_t m_number_of_snps ;
 	std::size_t m_number_of_snps_processed ;
@@ -93,6 +92,5 @@ private:
 	std::size_t m_number_of_snps_per_task ;
 	std::size_t m_current_task ;
 } ;
-
 
 #endif
