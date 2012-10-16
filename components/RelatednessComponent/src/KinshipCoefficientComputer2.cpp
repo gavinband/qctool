@@ -84,8 +84,8 @@ void KinshipCoefficientComputer2::begin_processing_snps( std::size_t number_of_s
 	m_result.setZero() ;
 	m_non_missing_count.setZero() ;
 
-	// Choose a number of blocks about four times as large as the number of threads to keep things busy.
-	int number_of_blocks = m_worker->get_number_of_worker_threads() * 100 ;
+	// Make each job do about a 20x20 block.
+	int number_of_blocks = number_of_samples / 50 ;
 
 	m_subdivision = impl::subdivide_matrix_lower_triangle_into_squares(
 		m_result,
