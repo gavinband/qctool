@@ -68,8 +68,8 @@ namespace impl {
 		int const k = n / 2;
 		result.push_back( KinshipCoefficientComputer2::BlockExtent( 0, 0, k, k ) ) ;
 		result.push_back( KinshipCoefficientComputer2::BlockExtent( k, k, n, n ) ) ;
-		
-		int const a = k / off_diagonal_size ;
+
+		int const a = 2 ;
 		double square_size = double( k ) / a ;
 		
 		for( int i = 0; i < a; ++i ) {
@@ -109,13 +109,16 @@ KinshipCoefficientComputer2::KinshipCoefficientComputer2(
 }
 
 void KinshipCoefficientComputer2::begin_processing_snps( std::size_t number_of_samples ) {
-	m_result.resize( number_of_samples, number_of_samples ) ;
-	m_non_missing_count.resize( number_of_samples, number_of_samples ) ;
-	m_result.setZero() ;
-	m_non_missing_count.setZero() ;
+	m_result.resize( m_worker->get_number_of_worker_threads() + 1 ) ;
+	m_non_missing_count.resize( m_result.size() ) ;
+	for( std::size_t i = 0; i < m_result.size(); ++i ) {
+		m_result[i].resize( number_of_samples, number_of_samples ) ;
+		m_non_missing_count[i].resize( number_of_samples, number_of_samples ) ;
+		m_result[i].setZero() ;
+		m_non_missing_count[i].setZero() ;
+	}
 
-
-	if( m_worker->get_number_of_worker_threads() == 1 ) {
+	if( 0 ) { //m_worker->get_number_of_worker_threads() == 1 ) {
 		// Just do the whole matrix in one go, as this is faster.
 		m_subdivision.push_back(
 			BlockExtent( 0, 0, number_of_samples, number_of_samples )
@@ -125,7 +128,7 @@ void KinshipCoefficientComputer2::begin_processing_snps( std::size_t number_of_s
 		// Subdivide into two diagonal blocks (which run quickly) and a number of smaller off-diagonals.
 		m_subdivision = impl::subdivide_matrix_lower_triangle_into_blocks(
 			number_of_samples,
-			100
+			std::sqrt( number_of_samples ) * 5
 		) ;
 	}
 	
@@ -137,15 +140,17 @@ void KinshipCoefficientComputer2::begin_processing_snps( std::size_t number_of_s
 #endif
 	m_number_of_snps_processed = 0 ;
 	
-	m_genotypes.resize( 2 ) ;
-	m_genotype_non_missingness.resize( 2 ) ;
+	m_genotypes.resize( m_result.size() ) ;
+	m_genotype_non_missingness.resize( m_result.size() ) ;
 	m_data_index = 0 ;
 }
 
 void KinshipCoefficientComputer2::processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader& data_reader ) {
 	Eigen::VectorXd& genotypes = m_genotypes[ m_data_index ] ;
 	Eigen::VectorXd& genotype_non_missingness = m_genotype_non_missingness[ m_data_index ] ;
-	
+	Eigen::MatrixXd& result = m_result[ m_data_index ] ;
+	Eigen::MatrixXd& non_missing_count = m_non_missing_count[ m_data_index ] ;
+
 	genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( genotypes, genotype_non_missingness, 0.9, 0, 0, 1, 2 ) ;
 	data_reader.get( "genotypes", setter ) ;
 	double const allele_frequency = genotypes.sum() / ( 2.0 * genotype_non_missingness.sum() ) ;
@@ -163,14 +168,14 @@ void KinshipCoefficientComputer2::processed_snp( genfile::SNPIdentifyingData con
 		#endif
 
 		for( std::size_t i = 0; i < m_subdivision.size(); ++i ) {
-			Eigen::Block< Eigen::MatrixXd > result_block = m_result.block(
+			Eigen::Block< Eigen::MatrixXd > result_block = result.block(
 				m_subdivision[i].x(),
 				m_subdivision[i].y(),
 				m_subdivision[i].x_size(),
 				m_subdivision[i].y_size()
 			) ;
 
-			Eigen::Block< Eigen::MatrixXd > non_missing_block = m_non_missing_count.block(
+			Eigen::Block< Eigen::MatrixXd > non_missing_block = non_missing_count.block(
 				m_subdivision[i].x(),
 				m_subdivision[i].y(),
 				m_subdivision[i].x_size(),
@@ -179,7 +184,7 @@ void KinshipCoefficientComputer2::processed_snp( genfile::SNPIdentifyingData con
 
 			//std::cerr << "Submitting task for block " << i+1 << ".\n" ;
 			std::auto_ptr< worker::Task > task ;
-		
+
 			if( m_subdivision[i].is_symmetric() ) {
 				task.reset(
 					new pca::ComputeXXtSymmetricBlockUsingCblasTask(
@@ -205,16 +210,17 @@ void KinshipCoefficientComputer2::processed_snp( genfile::SNPIdentifyingData con
 				) ;
 			}
 		
-			if( m_tasks.size() < m_subdivision.size() ) {
+			int const task_index = m_data_index * m_subdivision.size() + i ;
+			if( m_tasks.size() < ( m_subdivision.size() * m_result.size() ) ) {
 				m_tasks.push_back( task ) ;
 			}
 			else {
-				m_tasks[i].wait_until_complete() ;
-				m_tasks.replace( i, task ) ;
+				m_tasks[ task_index ].wait_until_complete() ;
+				m_tasks.replace( task_index, task ) ;
 			}
-			m_worker->tell_to_perform_task( m_tasks[i] ) ;
+			m_worker->tell_to_perform_task( m_tasks[ task_index ] ) ;
 		}
-		m_data_index = ( m_data_index + 1 ) % 2 ;
+		m_data_index = ( m_data_index + 1 ) % m_result.size() ;
 	}
 	++m_number_of_snps_processed ;
 }
@@ -230,15 +236,20 @@ void KinshipCoefficientComputer2::end_processing_snps() {
 	std::cerr << "non-missingness is:\n" << m_non_missing_count.block( 0, 0, 10, 10 ) << ".\n" ;
 #endif
 	
-	m_result.array() /= m_non_missing_count.array() ;
+	for( std::size_t i = 1; i < m_result.size(); ++i ) {
+		m_result[0] += m_result[i] ;
+		m_non_missing_count[0] += m_non_missing_count[i] ;
+	}
+	
+	m_result[0].array() /= m_non_missing_count[0].array() ;
 	
 	std::string description = "Number of SNPs: "
 		+ genfile::string_utils::to_string( m_number_of_snps_processed )
 		+ "\nNumber of samples: "
-		+ genfile::string_utils::to_string( m_result.cols() ) ;
+		+ genfile::string_utils::to_string( m_result[0].cols() ) ;
 	
 	send_results(
-		m_result,
+		m_result[0],
 		"KinshipCoefficientComputer2",
 		description
 	) ;

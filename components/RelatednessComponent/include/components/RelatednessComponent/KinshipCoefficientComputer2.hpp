@@ -46,8 +46,8 @@ private:
 	appcontext::OptionProcessor const& m_options ;
 	appcontext::UIContext& m_ui_context ;
 	worker::Worker* m_worker ;
-	Eigen::MatrixXd m_result ;
-	Eigen::MatrixXd m_non_missing_count ;
+	std::vector< Eigen::MatrixXd > m_result ;
+	std::vector< Eigen::MatrixXd > m_non_missing_count ;
 	std::vector< BlockExtent > m_subdivision ;
 	std::vector< Eigen::VectorXd > m_genotypes ;
 	std::vector< Eigen::VectorXd > m_genotype_non_missingness ;
