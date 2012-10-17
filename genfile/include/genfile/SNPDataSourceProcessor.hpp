@@ -23,12 +23,11 @@ namespace genfile {
 		
 		typedef boost::function< void ( std::size_t, boost::optional< std::size_t > ) > ProgressCallback ;
 		
-		
 		struct Callback {
 			typedef std::auto_ptr< Callback > UniquePtr ;
 			virtual ~Callback() ;
 			virtual void begin_processing_snps( std::size_t number_of_samples ) = 0 ;
-			virtual void processed_snp( SNPIdentifyingData const& , VariantDataReader& data_reader ) = 0 ;
+			virtual void processed_snp( SNPIdentifyingData const&, VariantDataReader& data_reader ) = 0 ;
 			virtual void end_processing_snps() = 0 ;
 		} ;
 		

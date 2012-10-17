@@ -10,16 +10,17 @@
 //#define DEBUG_COMPUTE_XXT_BLOCK_TASK 1
 
 namespace pca {
-	struct ComputeXXtTask: public worker::Task {
+	struct ComputeXXtSymmetricBlockTask: public worker::Task {
 		typedef Eigen::MatrixXd Matrix ;
+		typedef Eigen::Block< Matrix > MatrixBlock ;
 		typedef Eigen::VectorXd Vector ;
-		typedef Matrix::Index Index ;
+		typedef Eigen::VectorBlock< Vector > VectorBlock ;
 
-		ComputeXXtTask(
-			Matrix result,
-			Matrix non_missingness,
-			Vector const& data,
-			Vector const& non_missing_data,
+		ComputeXXtSymmetricBlockTask(
+			MatrixBlock result,
+			MatrixBlock non_missingness,
+			VectorBlock const& data,
+			VectorBlock const& non_missing_data,
 			double scale
 		):
 			m_result( result ),
@@ -30,28 +31,27 @@ namespace pca {
 		{}
 
 	protected:
-		Matrix m_result ;
-		Matrix m_non_missingness ;
-		Vector const& m_data ;
-		Vector const& m_non_missing_data ;
+		MatrixBlock m_result ;
+		MatrixBlock m_non_missingness ;
+		VectorBlock const m_data ;
+		VectorBlock const m_non_missing_data ;
 		double const m_scale ;
 	} ;
 
 #if HAVE_CBLAS
-	struct ComputeXXtUsingCblasTask: public ComputeXXtTask {
-		ComputeXXtUsingCblasTask(
-			Matrix result,
-			Matrix non_missingness,
-			Vector const& data,
-			Vector const& non_missing_data,
+	struct ComputeXXtSymmetricBlockUsingCblasTask: public ComputeXXtSymmetricBlockTask {
+		ComputeXXtSymmetricBlockUsingCblasTask(
+			MatrixBlock result,
+			MatrixBlock non_missingness,
+			VectorBlock const& data,
+			VectorBlock const& non_missing_data,
 			double scale
 		):
-			ComputeXXtTask( result, non_missingness, data, non_missing_data, scale )
+			ComputeXXtSymmetricBlockTask( result, non_missingness, data, non_missing_data, scale )
 		{}
 		
 		void operator()() {
 			int const N = m_data.size() ;
-			// CBLAS is faster than Eigen for this usage.  Don't know why.
 			cblas_dsyr(
 				CblasColMajor,
 				CblasLower,
@@ -77,15 +77,15 @@ namespace pca {
 	} ;
 #endif	
 	
-	struct ComputeXXtUsingEigenTask: public ComputeXXtTask {
-		ComputeXXtUsingEigenTask(
-			Matrix result,
-			Matrix non_missingness,
-			Vector const& data,
-			Vector const& non_missing_data,
+	struct ComputeXXtSymmetricBlockUsingEigenTask: public ComputeXXtSymmetricBlockTask {
+		ComputeXXtSymmetricBlockUsingEigenTask(
+			MatrixBlock result,
+			MatrixBlock non_missingness,
+			VectorBlock const& data,
+			VectorBlock const& non_missing_data,
 			double scale
 		):
-			ComputeXXtTask( result, non_missingness, data, non_missing_data, scale )
+			ComputeXXtSymmetricBlockTask( result, non_missingness, data, non_missing_data, scale )
 		{}
 		
 		void operator()() {
@@ -103,7 +103,6 @@ namespace pca {
 		typedef Eigen::Block< Matrix > MatrixBlock ;
 		typedef Eigen::VectorXd Vector ;
 		typedef Eigen::VectorBlock< Vector > VectorBlock ;
-		typedef Matrix::Index Index ;
 
 		ComputeXXtBlockTask(
 			MatrixBlock result,
@@ -126,10 +125,10 @@ namespace pca {
 	protected:
 		MatrixBlock m_result ;
 		MatrixBlock m_non_missingness ;
-		Vector const m_data1 ;
-		Vector const m_non_missing_data1 ;
-		Vector const m_data2 ;
-		Vector const m_non_missing_data2 ;
+		VectorBlock const m_data1 ;
+		VectorBlock const m_non_missing_data1 ;
+		VectorBlock const m_data2 ;
+		VectorBlock const m_non_missing_data2 ;
 		double const m_scale ;
 	} ;
 	
@@ -162,10 +161,25 @@ namespace pca {
 				
 				int const M = m_data1.size() ;
 				int const N = m_data2.size() ;
-				int const lda = m_data1.outerStride() ;
-				int const ldb = m_data2.outerStride() ;
+/*
+				int const lda = m_non_missing_data1.outerStride() ;
+				int const ldb = m_non_missing_data2.outerStride() ;
+*/				
+				int const data1_stride = m_data1.innerStride() ;
+				int const data2_stride = m_data2.innerStride() ;
 				int const ldc = m_result.outerStride() ;
 			
+				cblas_dger(
+					CblasColMajor,
+					M, N,
+					m_scale,
+					m_data1.data(), data1_stride,
+					m_data2.data(), data2_stride,
+					m_result.data(),
+					ldc
+				) ;
+
+/*
 				cblas_dgemm(
 					CblasColMajor,
 					CblasNoTrans,
@@ -178,14 +192,29 @@ namespace pca {
 					m_result.data(),
 					ldc
 				) ;
+*/
 			}
 			{
 				int const M = m_non_missing_data1.size() ;
 				int const N = m_non_missing_data2.size() ;
+				int const data1_stride = m_non_missing_data1.innerStride() ;
+				int const data2_stride = m_non_missing_data2.innerStride() ;
+/*				
 				int const lda = m_non_missing_data1.outerStride() ;
 				int const ldb = m_non_missing_data2.outerStride() ;
+*/
 				int const ldc = m_non_missingness.outerStride() ;
 				
+				cblas_dger(
+					CblasColMajor,
+					M, N,
+					m_scale,
+					m_non_missing_data1.data(), data1_stride,
+					m_non_missing_data2.data(), data2_stride,
+					m_non_missingness.data(),
+					ldc
+				) ;
+/*
 				cblas_dgemm(
 					CblasColMajor,
 					CblasNoTrans,
@@ -198,6 +227,7 @@ namespace pca {
 					m_non_missingness.data(),
 					ldc
 				) ;
+*/
 			}
 		}
 	} ;

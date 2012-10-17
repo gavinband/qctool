@@ -87,10 +87,14 @@ public:
 		int y_end() const { return m_y_end ; }
 		int x_size() const { return m_x_end - m_x ; }
 		int y_size() const { return m_y_end - m_y ; }
-		
+		bool is_symmetric() const { return m_x == m_y && m_x_end == m_y_end ; }
+
+		friend std::ostream& operator<<( std::ostream& out, BlockExtent const& block ) ;
 	private:
 		int m_x, m_y, m_x_end, m_y_end ;
 	} ;
 } ;
+
+
 
 #endif

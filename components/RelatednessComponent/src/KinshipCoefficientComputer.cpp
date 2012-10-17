@@ -101,8 +101,10 @@ namespace impl {
 				m_non_missing_count->selfadjointView< Eigen::Lower >().rankUpdate( non_missingness_matrix, 1.0 ) ;
 #endif
 			} else {
+#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
 				std::cerr << "KinshipCoefficientComputerTask::operator(): omitted SNP " << m_id_data[ snp_i ]
 					<< " with frequency " << std::resetiosflags( std::ios::floatfield ) << allele_frequency << ".\n" ;
+#endif
 			}
 		}
 	}
@@ -144,10 +146,12 @@ void KinshipCoefficientComputer::begin_processing_snps( std::size_t number_of_sa
 		) ;
 	}
 	m_current_task = 0 ;
+#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
 #if HAVE_CBLAS
 std::cerr << "KinshipComputer: starting processing, using cblas.\n" ;
 #else
 std::cerr << "KinshipComputer: starting processing, using Eigen.\n" ;
+#endif
 #endif
 }
 

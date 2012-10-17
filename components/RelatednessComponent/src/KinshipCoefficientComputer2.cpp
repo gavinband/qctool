@@ -26,13 +26,11 @@
 // #define DEBUG_KINSHIP_COEFFICIENT_COMPUTER2 1
 
 namespace impl {
-	// subdivide the lower triangle of the given matrix into square pieces to get around the given number.
+	// subdivide the lower triangle of the given matrix into square pieces of about the given size.
 	std::vector< KinshipCoefficientComputer2::BlockExtent > subdivide_matrix_lower_triangle_into_squares(
-		Eigen::MatrixXd const& matrix,
-		std::size_t number_of_squares
+		int const n,
+		double square_size_requested
 	) {
-		assert( matrix.rows() == matrix.cols() ) ;
-		
 		std::vector< KinshipCoefficientComputer2::BlockExtent > result ;
 		//
 		// We wish to find the number a such that a (a-1) / 2 is close to the number of squares, n
@@ -41,9 +39,8 @@ namespace impl {
 		// a^2 - a - 2n = 0
 		// a = ( 1 + sqrt( 1 + 8n )) / 2
 		//
-		int const a = std::floor(( 1 + std::sqrt( 1 + 8 * number_of_squares ) ) / 2 ) ;
-		
-		double square_size = matrix.cols() / a ;
+		int const a = n / square_size_requested ;
+		double square_size = double( n ) / a ;
 
 		for( int i = 0; i < a; ++i ) {
 			int const x = i * square_size ;
@@ -52,8 +49,8 @@ namespace impl {
 				result.push_back(
 					KinshipCoefficientComputer2::BlockExtent(
 						x, y,
-						((i+1) == a) ? matrix.cols() : x + square_size,
-						((j+1) == a) ? matrix.rows() : y + square_size 
+						((i+1) == a) ? n : x + square_size,
+						((j+1) == a) ? n : y + square_size 
 					)
 				) ;
 			}
@@ -61,7 +58,41 @@ namespace impl {
 
 		return result ;
 	}
+	
+	std::vector< KinshipCoefficientComputer2::BlockExtent > subdivide_matrix_lower_triangle_into_blocks(
+		int const n,
+		int const off_diagonal_size
+	) {
+		// Make two diagonal blocks and a number of smaller blocks
+		std::vector< KinshipCoefficientComputer2::BlockExtent > result ;
+		int const k = n / 2;
+		result.push_back( KinshipCoefficientComputer2::BlockExtent( 0, 0, k, k ) ) ;
+		result.push_back( KinshipCoefficientComputer2::BlockExtent( k, k, n, n ) ) ;
+		
+		int const a = k / off_diagonal_size ;
+		double square_size = double( k ) / a ;
+		
+		for( int i = 0; i < a; ++i ) {
+			int const x = k + ( i * square_size ) ;
+			for( int j = 0; j < a; ++j ) {
+				int const y = j * square_size ;
+				result.push_back(
+					KinshipCoefficientComputer2::BlockExtent(
+						x, y,
+						((i+1) == a) ? n : x + square_size,
+						((j+1) == a) ? k : y + square_size 
+					)
+				) ;
+			}
+		}
+		return result ;
+	}
 }
+
+std::ostream& operator<<( std::ostream& out, KinshipCoefficientComputer2::BlockExtent const& block ) {
+	return out << "[ " << block.x() << "-" << block.x_end() << " ), [ " << block.y() << "-" << block.y_end() << " )" ;
+}
+
 
 KinshipCoefficientComputer2::~KinshipCoefficientComputer2() throw() {}
 
@@ -74,8 +105,7 @@ KinshipCoefficientComputer2::KinshipCoefficientComputer2(
 	m_options( options ),
 	m_ui_context( ui_context ),
 	m_worker( worker )
-{
-	
+{	
 }
 
 void KinshipCoefficientComputer2::begin_processing_snps( std::size_t number_of_samples ) {
@@ -84,16 +114,26 @@ void KinshipCoefficientComputer2::begin_processing_snps( std::size_t number_of_s
 	m_result.setZero() ;
 	m_non_missing_count.setZero() ;
 
-	// Make each job do about a 20x20 block.
-	int number_of_blocks = number_of_samples / 50 ;
 
-	m_subdivision = impl::subdivide_matrix_lower_triangle_into_squares(
-		m_result,
-		number_of_blocks
-	) ;
+	if( m_worker->get_number_of_worker_threads() == 1 ) {
+		// Just do the whole matrix in one go, as this is faster.
+		m_subdivision.push_back(
+			BlockExtent( 0, 0, number_of_samples, number_of_samples )
+		) ;
+	}
+	else {
+		// Subdivide into two diagonal blocks (which run quickly) and a number of smaller off-diagonals.
+		m_subdivision = impl::subdivide_matrix_lower_triangle_into_blocks(
+			number_of_samples,
+			100
+		) ;
+	}
 	
 #if DEBUG_KINSHIP_COEFFICIENT_COMPUTER2 
 	std::cerr << "Subdivided matrix into " << m_subdivision.size() << "pieces.\n" ;
+	for( std::size_t i = 0; i < m_subdivision.size(); ++i ) {
+		std::cerr << m_subdivision[i] << "\n" ;
+	}
 #endif
 	m_number_of_snps_processed = 0 ;
 	
@@ -138,18 +178,33 @@ void KinshipCoefficientComputer2::processed_snp( genfile::SNPIdentifyingData con
 			) ;
 
 			//std::cerr << "Submitting task for block " << i+1 << ".\n" ;
-			std::auto_ptr< worker::Task > task(
-				new pca::ComputeXXtBlockUsingCblasTask(
-					result_block,
-					non_missing_block,
-					genotypes.segment( m_subdivision[i].x(), m_subdivision[i].x_size() ),
-					genotype_non_missingness.segment( m_subdivision[i].x(), m_subdivision[i].x_size() ),
-					genotypes.segment( m_subdivision[i].y(), m_subdivision[i].y_size() ),
-					genotype_non_missingness.segment( m_subdivision[i].y(), m_subdivision[i].y_size() ),
-					1 / ( 2.0 * allele_frequency * ( 1.0 - allele_frequency ) )
-				)
-			) ;
-
+			std::auto_ptr< worker::Task > task ;
+		
+			if( m_subdivision[i].is_symmetric() ) {
+				task.reset(
+					new pca::ComputeXXtSymmetricBlockUsingCblasTask(
+						result_block,
+						non_missing_block,
+						genotypes.segment( m_subdivision[i].x(), m_subdivision[i].x_size() ),
+						genotype_non_missingness.segment( m_subdivision[i].x(), m_subdivision[i].x_size() ),
+						1 / ( 2.0 * allele_frequency * ( 1.0 - allele_frequency ) )
+					)
+				) ;
+			}
+			else {
+				task.reset(
+					new pca::ComputeXXtBlockUsingCblasTask(
+						result_block,
+						non_missing_block,
+						genotypes.segment( m_subdivision[i].x(), m_subdivision[i].x_size() ),
+						genotype_non_missingness.segment( m_subdivision[i].x(), m_subdivision[i].x_size() ),
+						genotypes.segment( m_subdivision[i].y(), m_subdivision[i].y_size() ),
+						genotype_non_missingness.segment( m_subdivision[i].y(), m_subdivision[i].y_size() ),
+						1 / ( 2.0 * allele_frequency * ( 1.0 - allele_frequency ) )
+					)
+				) ;
+			}
+		
 			if( m_tasks.size() < m_subdivision.size() ) {
 				m_tasks.push_back( task ) ;
 			}
