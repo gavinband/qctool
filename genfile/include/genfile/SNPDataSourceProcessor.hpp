@@ -27,7 +27,8 @@ namespace genfile {
 			typedef std::auto_ptr< Callback > UniquePtr ;
 			virtual ~Callback() ;
 			virtual void begin_processing_snps( std::size_t number_of_samples ) = 0 ;
-			virtual void processed_snp( SNPIdentifyingData const&, VariantDataReader& data_reader ) = 0 ;
+			virtual void processed_snp( SNPIdentifyingData const&, VariantDataReader::SharedPtr data_reader ) ;
+			virtual void processed_snp( SNPIdentifyingData const&, VariantDataReader& data_reader ) ;
 			virtual void end_processing_snps() = 0 ;
 		} ;
 		
@@ -40,7 +41,7 @@ namespace genfile {
 
 	protected:
 		virtual void call_begin_processing_snps( std::size_t const& number_of_samples ) const ;
-		virtual void call_processed_snp(  SNPIdentifyingData const& id_data, VariantDataReader& data_reader ) const ;
+		virtual void call_processed_snp(  SNPIdentifyingData const& id_data, VariantDataReader::SharedPtr data_reader ) const ;
 		virtual void call_end_processing_snps() const ;
 
 	private:

@@ -87,6 +87,111 @@ namespace impl {
 		}
 		return result ;
 	}
+	
+	struct NormaliseAndComputeXXtSymmetricBlockUsingCblasTask: public worker::Task {
+		typedef Eigen::VectorXd Vector ;
+		typedef Eigen::MatrixXd Matrix ;
+		typedef Eigen::Block< Matrix > MatrixBlock ;
+
+		NormaliseAndComputeXXtSymmetricBlockUsingCblasTask(
+			MatrixBlock result,
+			MatrixBlock non_missingness,
+			Vector& genotypes,
+			Vector& genotype_non_missingness,
+			genfile::VariantDataReader::SharedPtr data_reader
+		):
+			m_result( result ),
+			m_non_missingness( non_missingness ),
+			m_genotypes( genotypes ),
+			m_genotype_non_missingness( genotype_non_missingness ),
+			m_data_reader( data_reader ),
+			m_frequency_threshhold( 0.01 )
+		{}
+		
+		void operator()() {
+			genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( m_genotypes, m_genotype_non_missingness, 0.9, 0, 0, 1, 2 ) ;
+			m_data_reader->get( "genotypes", setter ) ;
+			double const allele_frequency = m_genotypes.sum() / ( 2.0 * m_genotype_non_missingness.sum() ) ;
+			if( allele_frequency > m_frequency_threshhold ) {
+				pca::mean_centre_genotypes( &m_genotypes, m_genotype_non_missingness, allele_frequency ) ;
+				int const N = m_genotypes.size() ;
+				cblas_dsyr(
+					CblasColMajor,
+					CblasLower,
+					N,
+					1.0 / ( 2.0 * allele_frequency * ( 1.0 - allele_frequency ) ),
+					m_genotypes.data(),
+					m_genotypes.innerStride(),
+					m_result.data(),
+					m_result.outerStride()
+				) ;
+
+				cblas_dsyr(
+					CblasColMajor,
+					CblasLower,
+					N,
+					1.0,
+					m_genotype_non_missingness.data(),
+					m_genotype_non_missingness.innerStride(),
+					m_non_missingness.data(),
+					m_non_missingness.outerStride()
+				) ;
+			}
+		}
+
+	private:
+		MatrixBlock m_result ;
+		MatrixBlock m_non_missingness ;
+		Vector& m_genotypes ;
+		Vector& m_genotype_non_missingness ;
+		genfile::VariantDataReader::SharedPtr m_data_reader ;
+		double const m_frequency_threshhold ;
+	} ;
+
+	struct NormaliseAndComputeXXtSymmetricBlockUsingEigenTask: public worker::Task {
+		typedef Eigen::VectorXd Vector ;
+		typedef Eigen::VectorBlock< Vector > VectorBlock ;
+		typedef Eigen::MatrixXd Matrix ;
+		typedef Eigen::Block< Matrix > MatrixBlock ;
+
+		NormaliseAndComputeXXtSymmetricBlockUsingEigenTask(
+			MatrixBlock result,
+			MatrixBlock non_missingness,
+			Vector& genotypes,
+			Vector& genotype_non_missingness,
+			genfile::VariantDataReader::SharedPtr data_reader
+		):
+			m_result( result ),
+			m_non_missingness( non_missingness ),
+			m_genotypes( genotypes ),
+			m_genotype_non_missingness( genotype_non_missingness ),
+			m_data_reader( data_reader ),
+			m_frequency_threshhold( 0.01 )
+		{}
+		
+		void operator()() {
+			genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( m_genotypes, m_genotype_non_missingness, 0.9, 0, 0, 1, 2 ) ;
+			m_data_reader->get( "genotypes", setter ) ;
+			double const allele_frequency = m_genotypes.sum() / ( 2.0 * m_genotype_non_missingness.sum() ) ;
+			if( allele_frequency > m_frequency_threshhold ) {
+				pca::mean_centre_genotypes( &m_genotypes, m_genotype_non_missingness, allele_frequency ) ;
+				m_result
+					.selfadjointView< Eigen::Lower >()
+					.rankUpdate( m_genotypes, 1.0 / ( 2.0 * allele_frequency * ( 1.0 - allele_frequency ) ) ) ;
+				m_non_missingness
+					.selfadjointView< Eigen::Lower >()
+					.rankUpdate( m_genotype_non_missingness, 1.0 ) ;
+			}
+		}
+
+	private:
+		MatrixBlock m_result ;
+		MatrixBlock m_non_missingness ;
+		Vector& m_genotypes ;
+		Vector& m_genotype_non_missingness ;
+		genfile::VariantDataReader::SharedPtr m_data_reader ;
+		double const m_frequency_threshhold ;
+	} ;
 }
 
 std::ostream& operator<<( std::ostream& out, KinshipCoefficientComputer2::BlockExtent const& block ) {
@@ -146,14 +251,14 @@ void KinshipCoefficientComputer2::begin_processing_snps( std::size_t number_of_s
 	m_data_index = 0 ;
 }
 
-void KinshipCoefficientComputer2::processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader& data_reader ) {
+void KinshipCoefficientComputer2::processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) {
 	Eigen::VectorXd& genotypes = m_genotypes[ m_data_index ] ;
 	Eigen::VectorXd& genotype_non_missingness = m_genotype_non_missingness[ m_data_index ] ;
 	Eigen::MatrixXd& result = m_result[ m_data_index ] ;
 	Eigen::MatrixXd& non_missing_count = m_non_missing_count[ m_data_index ] ;
 
 	genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( genotypes, genotype_non_missingness, 0.9, 0, 0, 1, 2 ) ;
-	data_reader.get( "genotypes", setter ) ;
+	data_reader->get( "genotypes", setter ) ;
 	double const allele_frequency = genotypes.sum() / ( 2.0 * genotype_non_missingness.sum() ) ;
 	#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER2
 		std::cerr << "number of SNPs processed = " << m_number_of_snps_processed << ", index = " << m_data_index << ".\n" ;

@@ -13,6 +13,7 @@
 #include <set>
 #include <boost/noncopyable.hpp>
 #include <boost/function.hpp>
+#include <boost/shared_ptr.hpp>
 #include <Eigen/Core>
 #include "genfile/VariantEntry.hpp"
 #include "genfile/get_set.hpp"
@@ -25,6 +26,7 @@ namespace genfile {
 	{
 	public:
 		typedef std::auto_ptr< VariantDataReader > UniquePtr ;
+		typedef boost::shared_ptr< VariantDataReader > SharedPtr ;
 		typedef genfile::VariantEntry Entry ;
 	public:
 		struct PerVariantSetter: public vcf::EntriesSetter, public boost::noncopyable {
