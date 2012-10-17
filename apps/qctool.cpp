@@ -57,6 +57,7 @@
 #include "genfile/SNPTranslatingSNPDataSource.hpp"
 #include "genfile/StrandAligningSNPDataSource.hpp"
 #include "genfile/AlleleFlippingSNPDataSource.hpp"
+#include "genfile/AsynchronousSNPDataSource.hpp"
 #include "genfile/VCFFormatSNPDataSource.hpp"
 #include "genfile/Pedigree.hpp"
 #include "genfile/PedFileSNPDataSink.hpp"
@@ -1118,6 +1119,12 @@ private:
 			m_snp_data_source = open_merged_data_sources() ;
 		}
 
+		if( m_options.check( "-threads" ) ) {
+			m_snp_data_source.reset(
+				new genfile::AsynchronousSNPDataSource( m_snp_data_source )
+			) ;
+		}
+	
 		check_for_errors_and_warnings() ;
 
 		write_preamble() ;
