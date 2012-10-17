@@ -109,7 +109,7 @@ KinshipCoefficientComputer2::KinshipCoefficientComputer2(
 }
 
 void KinshipCoefficientComputer2::begin_processing_snps( std::size_t number_of_samples ) {
-	m_result.resize( m_worker->get_number_of_worker_threads() + 1 ) ;
+	m_result.resize( 2 ) ; //m_worker->get_number_of_worker_threads() + 1 ) ;
 	m_non_missing_count.resize( m_result.size() ) ;
 	for( std::size_t i = 0; i < m_result.size(); ++i ) {
 		m_result[i].resize( number_of_samples, number_of_samples ) ;
@@ -118,7 +118,8 @@ void KinshipCoefficientComputer2::begin_processing_snps( std::size_t number_of_s
 		m_non_missing_count[i].setZero() ;
 	}
 
-	if( 0 ) { //m_worker->get_number_of_worker_threads() == 1 ) {
+	m_subdivision.clear() ;
+	if( 1 ) { //m_worker->get_number_of_worker_threads() == 1 ) {
 		// Just do the whole matrix in one go, as this is faster.
 		m_subdivision.push_back(
 			BlockExtent( 0, 0, number_of_samples, number_of_samples )
@@ -210,7 +211,7 @@ void KinshipCoefficientComputer2::processed_snp( genfile::SNPIdentifyingData con
 				) ;
 			}
 		
-			int const task_index = m_data_index * m_subdivision.size() + i ;
+			int const task_index = ( m_data_index * m_subdivision.size() ) + i ;
 			if( m_tasks.size() < ( m_subdivision.size() * m_result.size() ) ) {
 				m_tasks.push_back( task ) ;
 			}
@@ -231,17 +232,17 @@ void KinshipCoefficientComputer2::end_processing_snps() {
 		m_tasks.pop_front() ;
 	}
 
-#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER2
-	std::cerr << "result is:\n" << m_result.block( 0, 0, 10, 10 ) << ".\n" ;
-	std::cerr << "non-missingness is:\n" << m_non_missing_count.block( 0, 0, 10, 10 ) << ".\n" ;
-#endif
-	
 	for( std::size_t i = 1; i < m_result.size(); ++i ) {
 		m_result[0] += m_result[i] ;
 		m_non_missing_count[0] += m_non_missing_count[i] ;
 	}
-	
+
 	m_result[0].array() /= m_non_missing_count[0].array() ;
+
+#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER2
+	std::cerr << "result is:\n" << m_result[0].block( 0, 0, 10, 10 ) << ".\n" ;
+	std::cerr << "non-missingness is:\n" << m_non_missing_count[0].block( 0, 0, 10, 10 ) << ".\n" ;
+#endif
 	
 	std::string description = "Number of SNPs: "
 		+ genfile::string_utils::to_string( m_number_of_snps_processed )

@@ -423,6 +423,10 @@ public:
 			.set_description( "Specify the number of worker threads to use in computationally intensive tasks." )
 			.set_takes_single_value()
 			.set_default_value( 0 ) ;
+		options [ "-buffer-snps" ]
+			.set_description( "Specify that QCTOOL should buffer SNP data asynchronously in a background thread. "
+				"This can improve runtimes when computations are io-bound."
+			) ;
 		options[ "-analysis-name" ]
 			.set_description( "Specify a name to label results from this analysis with.  (This applies to modules which store their results in a qcdb file.)" )
 			.set_takes_single_value()
@@ -1119,7 +1123,7 @@ private:
 			m_snp_data_source = open_merged_data_sources() ;
 		}
 
-		if( m_options.check( "-threads" ) ) {
+		if( m_options.check( "-buffer-snps" ) ) {
 			m_snp_data_source.reset(
 				new genfile::AsynchronousSNPDataSource( m_snp_data_source )
 			) ;

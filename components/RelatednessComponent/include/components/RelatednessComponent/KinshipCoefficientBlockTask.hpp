@@ -33,8 +33,8 @@ namespace pca {
 	protected:
 		MatrixBlock m_result ;
 		MatrixBlock m_non_missingness ;
-		VectorBlock const m_data ;
-		VectorBlock const m_non_missing_data ;
+		Vector const m_data ;
+		Vector const m_non_missing_data ;
 		double const m_scale ;
 	} ;
 
@@ -125,10 +125,10 @@ namespace pca {
 	protected:
 		MatrixBlock m_result ;
 		MatrixBlock m_non_missingness ;
-		VectorBlock const m_data1 ;
-		VectorBlock const m_non_missing_data1 ;
-		VectorBlock const m_data2 ;
-		VectorBlock const m_non_missing_data2 ;
+		Vector const m_data1 ;
+		Vector const m_non_missing_data1 ;
+		Vector const m_data2 ;
+		Vector const m_non_missing_data2 ;
 		double const m_scale ;
 	} ;
 	
