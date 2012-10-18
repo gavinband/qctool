@@ -36,8 +36,8 @@ SampleSummaryComponent::SampleSummaryComponent( appcontext::OptionProcessor cons
 void SampleSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor ) const { 
 	SampleSummaryComputationManager::UniquePtr manager = SampleSummaryComputationManager::create() ;
 	std::string filename ;
-	if( m_options.check( "-odb" ) ) {
-		filename = m_options.get_value< std::string >( "-odb" ) ;
+	if( m_options.check( "-o" ) ) {
+		filename = m_options.get_value< std::string >( "-o" ) ;
 	}
 	else {
 		filename = genfile::strip_gen_file_extension_if_present( m_options.get< std::string >( "-g" ) ) + ".qcdb";

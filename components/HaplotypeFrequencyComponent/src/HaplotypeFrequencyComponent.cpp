@@ -39,7 +39,7 @@ void HaplotypeFrequencyComponent::declare_options( appcontext::OptionProcessor& 
 			"distance in megabases or kilobases if desired." )
 		.set_takes_single_value()
 		.set_default_value( "0" ) ;
-	options.option_implies_option( "-compute-ld-with", "-odb" ) ;
+	options.option_implies_option( "-compute-ld-with", "-o" ) ;
 }
 
 namespace {
@@ -100,7 +100,7 @@ HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
 	result->set_max_distance( parse_physical_distance( options.get< std::string >( "-max-ld-distance" ))) ;
 
 	haplotype_frequency_component::DBOutputter::SharedPtr outputter = haplotype_frequency_component::DBOutputter::create_shared(
-		options.get_value< std::string >( "-odb" ),
+		options.get_value< std::string >( "-o" ),
 		options.get_value< std::string >( "-analysis-name" ),
 		options.get_values_as_map()
 	) ;
