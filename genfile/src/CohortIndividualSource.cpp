@@ -193,6 +193,11 @@ namespace genfile {
 		return result ;
 	}
 	
+	void CohortIndividualSource::get_column_values( std::string const& column_name, boost::function< void ( std::size_t, VariantEntry ) > callback ) const {
+		for( std::size_t i = 0; i < get_number_of_individuals(); ++i ) {
+			callback( i, get_entry( i, column_name )) ;
+		}
+	}
 	
 	std::size_t CohortIndividualSource::ColumnSpec::get_number_of_covariates() const {
 		return std::count( m_column_types.begin(), m_column_types.end(), e_DISCRETE_COVARIATE )

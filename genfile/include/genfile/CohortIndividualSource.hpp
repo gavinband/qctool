@@ -13,6 +13,8 @@
 
 #include <boost/variant/variant.hpp>
 #include <boost/variant/get.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/function.hpp>
 
 #include "genfile/Error.hpp"
 #include "genfile/string_utils.hpp"
@@ -27,6 +29,7 @@ namespace genfile {
 	public:
 		typedef std::auto_ptr< CohortIndividualSource > UniquePtr ;
 		typedef std::auto_ptr< CohortIndividualSource const > ConstUniquePtr ;
+		typedef boost::shared_ptr< CohortIndividualSource > SharedPtr ;
 		static UniquePtr create(
 			std::string source_spec,
 			std::string const& missing_value = "NA",
@@ -48,6 +51,8 @@ namespace genfile {
 		// as< type >(): return the value.  type must either be int, double, or string, according to the type of the column.
 		typedef VariantEntry Entry ;
 		virtual Entry get_entry( std::size_t sample_i, std::string const& column_name ) const = 0 ;
+
+		virtual void get_column_values( std::string const& column_name, boost::function< void ( std::size_t, VariantEntry ) > callback ) const ;
 
 		// Source objects may live in hierarchies.
 		// This method return the eventual parent of the hierarchy.
