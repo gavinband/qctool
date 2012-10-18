@@ -55,7 +55,7 @@ namespace statfile {
 		if( value == std::numeric_limits< double >::infinity() ) {
 			stream() << "inf" ;
 		} else if( value == value ) {
-			stream() << std::fixed << std::setprecision( m_precision ) << value ;
+			stream() << std::setprecision( m_precision ) << value ;
 		} else {
 			stream() << "NA" ;
 		}
