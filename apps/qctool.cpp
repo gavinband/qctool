@@ -303,8 +303,8 @@ public:
 	        .set_description( "Output sample information to the file specified.  " )
 	        .set_takes_single_value() ;
 
-		options[ "-odb" ]
-			.set_description( "Set the name of the database file used for output of per-SNP, per-sample and other computations." )
+		options[ "-o" ]
+			.set_description( "Set the name of the file used to output of per-SNP, per-sample and other computations." )
 			.set_takes_single_value() ;
 			
 		options[ "-omit-chromosome" ]
@@ -346,32 +346,6 @@ public:
 				"identical values."
 			)
 			.set_takes_single_value() ;
-
-		options.declare_group( "Statistic calculation options" ) ;
-		// Statistic file options
-	    options[ "-snp-stats-old" ]
-			.set_description( "Calculate per-SNP summary statistics as in the release 1.1 and store them in the specified file. "
-			" (This implies that no SNP filtering options are used.)" )
-			.set_takes_single_value() ;
-
-		options[ "-snp-stats-old-columns" ]
-	        .set_description( "Comma-seperated list of extra columns to output in the snp-wise statistics file.  "
-	 						"The standard columns are: "
-							"SNPID, RSID, position, minor_allele, major_allele, MAF, HWE, missing, information."
-							" Your choices here are old_information, jonathans_information, mach_r2, and entropy." )
-			.set_takes_single_value()
-			.set_default_value( "" )
-			.set_hidden() ;
-
-	    options[ "-sample-stats-old" ]
-			.set_description( "Calculate and output sample-wise statisticsm using the code from release 1.1." )
-			.set_takes_single_value() ;
-
-		options[ "-sample-stats-old-columns" ]
-	        .set_description( "Comma-seperated list of statistics to output in the sample-wise statistics file." )
-			.set_takes_single_value()
-			.set_default_value( std::string("ID_1, ID_2, missing, heterozygosity") )
-			.set_hidden() ;
 
 		// SNP filtering options
 		options.declare_group( "SNP filtering options" ) ;
@@ -478,16 +452,9 @@ public:
 		SampleSummaryComponent::declare_options( options ) ;
 		HaplotypeFrequencyComponent::declare_options( options ) ;
 
-		options.option_excludes_group( "-snp-stats-old", "SNP filtering options" ) ;
-		options.option_excludes_group( "-sample-stats-old", "Sample filtering options" ) ;
-		options.option_excludes_option( "-sample-stats-old", "-og" ) ;
-		options.option_implies_option( "-sample-stats-old", "-os" ) ;
-
 		options.option_excludes_option( "-write-sample-excl-list", "-os" ) ;
-		options.option_excludes_option( "-write-sample-excl-list", "-sample-stats-old" ) ;
 
 		options.option_excludes_option( "-write-snp-excl-list", "-og" ) ;
-		options.option_excludes_option( "-write-snp-excl-list", "-snp-stats-old" ) ;
 
 		options.option_implies_option( "-excl-samples", "-s" ) ;
 		options.option_implies_option( "-incl-samples", "-s" ) ;
@@ -510,7 +477,6 @@ struct QCToolOptionMangler {
 	std::string const log_filename() const { return m_options.get_value< std::string > ( "-log" ) ; }
 	InputToOutputFilenameMapper const& gen_filename_mapper() const { return m_gen_file_mapper ; }
 	std::vector< std::vector< genfile::wildcard::FilenameMatch > > const& gen_filenames() const { return m_gen_filenames ; } 
-	InputToOutputFilenameMapper const& snp_stats_filename_mapper() const { return m_snp_stats_sink_mapper ; }
 	InputToOutputFilenameMapper const& snp_excl_list_filename_mapper() const { return m_output_snp_excl_file_mapper ; }
 	std::vector< std::string > row_statistics_specs() const {
 		// Add default columns
@@ -539,11 +505,9 @@ private:
 		assert( input_gen_filenames_supplied.size() >= 1 ) ;
 		std::string
 			output_gen_filename = construct_output_gen_filename( input_gen_filenames_supplied ),
-			output_snp_stats_filename = construct_snp_stats_filename( input_gen_filenames_supplied ),
 			output_snp_excl_filename = construct_output_snp_excl_list_filename( input_gen_filenames_supplied ) ;
 
 		m_gen_file_mapper.add_filename_pair( input_gen_filenames_supplied[0], output_gen_filename ) ;
-		m_snp_stats_sink_mapper.add_filename_pair( input_gen_filenames_supplied[0], output_snp_stats_filename ) ;
 		m_output_snp_excl_file_mapper.add_filename_pair( input_gen_filenames_supplied[0], output_snp_excl_filename ) ;
 
 		m_gen_filenames.resize( input_gen_filenames_supplied.size() ) ;
@@ -623,14 +587,6 @@ private:
 		return result ;
 	}
 
-	std::string construct_snp_stats_filename( std::vector< std::string > const& input_gen_filenames_supplied ) {
-		std::string result ;
-		if( m_options.check_if_option_was_supplied( "-snp-stats-old" ) ) {
-			result = m_options.get_value< std::string >( "-snp-stats-old" ) ;
-		}
-		return result ;
-	}
-
 	std::string construct_output_snp_excl_list_filename( std::vector< std::string > const& input_gen_filenames_supplied ) {
 		std::string result ;
 		if( m_options.check_if_option_was_supplied( "-write-snp-excl-list" ) ) {
@@ -647,14 +603,16 @@ private:
 	std::string m_sample_statistic_filename ;
 	std::string m_log_filename ;
 	InputToOutputFilenameMapper m_gen_file_mapper ;
-	InputToOutputFilenameMapper m_snp_stats_sink_mapper ;
 	InputToOutputFilenameMapper m_output_snp_excl_file_mapper ;
 	std::vector< std::vector< genfile::wildcard::FilenameMatch > > m_gen_filenames ;
 } ;
 
 
-struct QCToolCmdLineContext: public QCToolContext
+struct QCToolCmdLineContext
 {
+	typedef genfile::SNPDataSource SNPDataSource ;
+	typedef genfile::SNPDataSink SNPDataSink ;
+
 	QCToolCmdLineContext( appcontext::OptionProcessor const& options, appcontext::UIContext& ui_context ):
 		m_options( options ),
 		m_mangled_options( options ),
@@ -741,16 +699,6 @@ struct QCToolCmdLineContext: public QCToolContext
 		return *m_fltrd_out_sample_sink ;
 	}
 
-	statfile::BuiltInTypeStatSink& snp_stats_sink() const {
-		assert( m_snp_stats_sink.get() ) ;
-		return *m_snp_stats_sink ;
-	}
-
-	statfile::BuiltInTypeStatSink& sample_stats_sink() const {
-		assert( m_sample_stats_sink.get() ) ;
-		return *m_sample_stats_sink ;
-	}
-	
 	AndRowCondition& snp_filter() const {
 		return *m_snp_filter ;
 	}
@@ -839,14 +787,6 @@ struct QCToolCmdLineContext: public QCToolContext
 			m_ui_context.logger() << "\n" ;
 		}
 
-		m_ui_context.logger() << std::setw(30) << "SNP statistic output file(s):" ;
-		for( std::size_t i = 0; i < m_mangled_options.snp_stats_filename_mapper().output_filenames().size(); ++i ) {
-			if( i > 0 ) {
-				m_ui_context.logger() << std::string( 30, ' ' ) ;
-			}
-			m_ui_context.logger() << "  \"" << m_mangled_options.snp_stats_filename_mapper().output_filenames()[i] << "\"\n" ;
-		}
-		m_ui_context.logger() << "\n" ;
 		m_ui_context.logger() << std::resetiosflags( std::ios::floatfield ) << std::setprecision( 10 ) ;
 		m_ui_context.logger() << std::setw(30) << "Sample filter:" 
 			<< "  " << *m_sample_filter << ".\n" ;
@@ -997,15 +937,6 @@ struct QCToolCmdLineContext: public QCToolContext
 				<< "  \"" << m_mangled_options.output_sample_filename() << "\""
 				<< "  (" << m_sample_rows.size() << " samples)\n" ;
 		}
-		if( m_mangled_options.snp_stats_filename_mapper().output_filenames().size() > 0 ) {
-			m_ui_context.logger() << std::setw(36) << "SNP statistic output file(s):" ;
-			for( std::size_t i = 0; i < m_mangled_options.snp_stats_filename_mapper().output_filenames().size(); ++i ) {
-				if( i > 0 ) {
-					m_ui_context.logger() << std::string( 36, ' ' ) ;
-				}
-				m_ui_context.logger() << "  \"" << m_mangled_options.snp_stats_filename_mapper().output_filenames()[i] << "\"\n" ;
-			}
-		}
 		if( m_mangled_options.output_sample_stats_filename() != "" ) {
 			m_ui_context.logger() << std::setw(36) << "Sample statistic output file:"
 				<< "  \"" << m_mangled_options.output_sample_stats_filename() << "\".\n" ;
@@ -1068,8 +999,6 @@ private:
 private:
 	
 	void setup() {
-		construct_snp_statistics() ;
-		construct_sample_statistics() ;
 		construct_snp_filter() ;
 		construct_sample_filter() ;
 		process_other_options() ;
@@ -1135,8 +1064,6 @@ private:
 		
 		open_sample_row_sink() ;
 		open_snp_data_sinks() ;
-		open_snp_stats_sink( 0, m_snp_statistics ) ;
-		open_sample_stats_sink() ;
 	}
 	
 	std::auto_ptr< StrandSpecs > get_strand_specs( std::vector< std::string > const& filenames ) const {
@@ -1665,12 +1592,6 @@ private:
 						m_fltrd_out_snp_data_sink->move_to_next_sink() ;
 					}
 				}
-				
-				if( m_mangled_options.snp_stats_filename_mapper().output_filenames().size() > 0 ) {
-					if( m_mangled_options.snp_stats_filename_mapper().filename_corresponding_to( index ) != m_current_snp_stats_filename_index ) {
-						open_snp_stats_sink( ++m_current_snp_stats_filename_index, m_snp_statistics ) ;
-					}
-				}
 			}
 		}
 	}
@@ -1769,51 +1690,6 @@ private:
 		if( m_mangled_options.output_sample_excl_list_filename() != "" ) {
 			m_fltrd_out_sample_sink.reset( new SampleIDSink( m_mangled_options.output_sample_excl_list_filename() )) ;
 		}
-	}
-
-	void reset_snp_stats_sink() {
-		m_snp_stats_sink.reset() ;
-	}
-
-	void open_snp_stats_sink( std::size_t index, GenRowStatistics const& snp_statistics ) {
-		if( m_mangled_options.snp_stats_filename_mapper().output_filenames().size() == 0 ) {
-			m_snp_stats_sink.reset( new statfile::TrivialBuiltInTypeStatSink() ) ;
-		}
-		else {
-			assert( index < m_mangled_options.snp_stats_filename_mapper().output_filenames().size()) ;
-			m_current_snp_stats_filename_index = index ;
-			statfile::BuiltInTypeStatSink::UniquePtr sink( statfile::BuiltInTypeStatSink::open( m_mangled_options.snp_stats_filename_mapper().output_filenames()[ index ] )) ;
-			m_snp_stats_sink.reset( sink.release() ) ;
-		}
-		for( std::size_t i = 0; i < snp_statistics.size(); ++i ) {
-			m_snp_stats_sink->add_column( snp_statistics.get_statistic_name( i )) ;
-		}
-	}
-	
-	void open_sample_stats_sink() {
-		if( m_mangled_options.output_sample_stats_filename() == "" ) {
-			m_sample_stats_sink.reset( new statfile::TrivialBuiltInTypeStatSink() ) ;
-		}
-		else {
-			statfile::BuiltInTypeStatSink::UniquePtr sink( statfile::BuiltInTypeStatSink::open( m_mangled_options.output_sample_stats_filename() )) ;
-			m_sample_stats_sink.reset( sink.release() ) ;
-		}
-		for( std::size_t i = 0; i < m_sample_statistics.size(); ++i ) {
-			m_sample_stats_sink->add_column( m_sample_statistics.get_statistic_name( i )) ;
-		}
-	}
-	
-	void reset_sample_stats_sink() {
-		m_sample_stats_sink.reset() ;
-	}
-
-	void construct_snp_statistics() {
-		GenRowStatisticFactory::add_statistics( m_mangled_options.row_statistics_specs(), m_snp_statistics ) ;
-	}
-
-	void construct_sample_statistics() {
-		std::vector< std::string > sample_statistics_specs = string_utils::split_and_strip_discarding_empty_entries( m_options.get_value( "-sample-stats-old-columns" ), "," ) ;
-		SampleRowStatisticFactory::add_statistics( sample_statistics_specs, m_sample_statistics ) ;
 	}
 
 	void construct_snp_filter() {
@@ -2073,32 +1949,14 @@ private:
 				m_errors.push_back( "Output SAMPLE file \"" + m_mangled_options.output_sample_filename() +"\" also specified as input GEN file." ) ;
 				break ;
 			}
-			for( std::size_t j = 0; j < m_mangled_options.snp_stats_filename_mapper().output_filenames().size(); ++j ) {
-				if( strings_are_nonempty_and_equal( m_mangled_options.snp_stats_filename_mapper().output_filenames()[j], m_mangled_options.gen_filename_mapper().input_file( i ).filename() )) {
-					m_errors.push_back( "Output GEN statistic file \"" + m_mangled_options.snp_stats_filename_mapper().output_filenames()[j] +"\" also specified as input GEN file." ) ;
-					break ;
-				}
-			}
-			if( strings_are_nonempty_and_equal( m_mangled_options.output_sample_stats_filename(), m_mangled_options.gen_filename_mapper().input_file( i ).filename() )) {
-				m_errors.push_back( "Output SAMPLE statistic file \"" + m_mangled_options.output_sample_stats_filename() +"\" also specified as input GEN file." ) ;
-				break ;
-			}
 		}
 		for( std::size_t j = 0; j < m_mangled_options.gen_filename_mapper().output_filenames().size(); ++j ) {
 			if( strings_are_nonempty_and_equal( m_mangled_options.output_sample_filename(), m_mangled_options.gen_filename_mapper().output_filenames()[j] )) {
 				m_errors.push_back( "The GEN and SAMPLE output filenames must differ." ) ;
 			}
 		}
-		for( std::size_t j = 0; j < m_mangled_options.snp_stats_filename_mapper().output_filenames().size(); ++j ) {
-			if( strings_are_nonempty_and_equal( m_mangled_options.snp_stats_filename_mapper().output_filenames()[j], m_mangled_options.output_sample_stats_filename() )) {
-				m_errors.push_back( "The gen statistic and sample statistic filenames must differ." ) ;
-			}
-		}
 		if( m_mangled_options.input_sample_filenames().size() == 0 && m_sample_filter->number_of_subconditions() != 0 ) {
 			m_errors.push_back( "To filter on samples, please supply input sample files." ) ;
-		}
-		if( m_options.check_if_option_was_supplied_in_group( "Sample filtering options") && m_mangled_options.output_sample_excl_list_filename() == "" && m_mangled_options.gen_filename_mapper().output_filenames().size() == 0 && m_mangled_options.snp_stats_filename_mapper().output_filenames().size() == 0 && m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() == 0 ) {
-			m_errors.push_back( "You have specified sample filters, but not an output sample or SNP exclusion list, nor any output GEN files, nor any output SNP statistic files." ) ;
 		}
 		if( m_snp_filter->number_of_subconditions() > 0 && m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() == 0 && m_mangled_options.gen_filename_mapper().output_filenames().size() == 0 ) {
 			m_errors.push_back( "You have specified SNP filters, but no output SNP exclusion list or output GEN files.\n" ) ;
@@ -2163,27 +2021,9 @@ private:
 			get_ui_context()
 		) ;
 
-		QCTool qctool_basic(
-			context,
-			get_ui_context()
-		) ;
-		
 		genfile::SimpleSNPDataSourceProcessor processor ;
 
-		if(
-			options().check_if_option_was_supplied( "-write-snp-excl-list" )
-			|| options().check_if_option_was_supplied( "-snp-stats-old" )
-			|| options().check_if_option_was_supplied( "-sample-stats-old" )
-			|| options().check_if_option_was_supplied( "-op" )
-		) {
-			processor.add_callback( qctool_basic ) ;
-		} else {
-			// SNPs will not be processed, pretend they are here.
-			qctool_basic.begin_processing_snps( context.get_cohort_individual_source().get_number_of_individuals() ) ;
-			qctool_basic.end_processing_snps() ;
-		}
-		
-		if( options().check( "-snp-stats" ) || options().check( "-test" ) || options().check( "-annotate-reference" ) || options().check( "-annotate-ancestral" )) {
+		if( options().check( "-o" ) ) {
 			SNPSummaryComponent component(
 				context.get_cohort_individual_source(),
 				options(),
@@ -2271,8 +2111,6 @@ private:
 		} else {
 			get_ui_context().logger() << "SNPs do not need to be visited -- skipping.\n" ;
 		}
-		
-		qctool_basic.process_sample_rows() ;
 	}
 } ;
 
