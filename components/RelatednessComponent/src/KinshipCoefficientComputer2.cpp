@@ -88,12 +88,13 @@ namespace impl {
 		return result ;
 	}
 	
-	struct NormaliseAndComputeXXtSymmetricBlockUsingCblasTask: public worker::Task {
+#if HAVE_CBLAS
+	struct NormaliseGenotypesAndComputeXXtSymmetricBlockUsingCblasTask: public worker::Task {
 		typedef Eigen::VectorXd Vector ;
 		typedef Eigen::MatrixXd Matrix ;
 		typedef Eigen::Block< Matrix > MatrixBlock ;
 
-		NormaliseAndComputeXXtSymmetricBlockUsingCblasTask(
+		NormaliseGenotypesAndComputeXXtSymmetricBlockUsingCblasTask(
 			MatrixBlock result,
 			MatrixBlock non_missingness,
 			Vector& genotypes,
@@ -147,14 +148,15 @@ namespace impl {
 		genfile::VariantDataReader::SharedPtr m_data_reader ;
 		double const m_frequency_threshhold ;
 	} ;
+#endif
 
-	struct NormaliseAndComputeXXtSymmetricBlockUsingEigenTask: public worker::Task {
+	struct NormaliseGenotypesAndComputeXXtSymmetricBlockUsingEigenTask: public worker::Task {
 		typedef Eigen::VectorXd Vector ;
 		typedef Eigen::VectorBlock< Vector > VectorBlock ;
 		typedef Eigen::MatrixXd Matrix ;
 		typedef Eigen::Block< Matrix > MatrixBlock ;
 
-		NormaliseAndComputeXXtSymmetricBlockUsingEigenTask(
+		NormaliseGenotypesAndComputeXXtSymmetricBlockUsingEigenTask(
 			MatrixBlock result,
 			MatrixBlock non_missingness,
 			Vector& genotypes,
@@ -214,7 +216,7 @@ KinshipCoefficientComputer2::KinshipCoefficientComputer2(
 }
 
 void KinshipCoefficientComputer2::begin_processing_snps( std::size_t number_of_samples ) {
-	m_result.resize( 2 ) ; //m_worker->get_number_of_worker_threads() + 1 ) ;
+	m_result.resize( 7 ) ; //m_worker->get_number_of_worker_threads() + 1 ) ;
 	m_non_missing_count.resize( m_result.size() ) ;
 	for( std::size_t i = 0; i < m_result.size(); ++i ) {
 		m_result[i].resize( number_of_samples, number_of_samples ) ;
@@ -223,7 +225,7 @@ void KinshipCoefficientComputer2::begin_processing_snps( std::size_t number_of_s
 		m_non_missing_count[i].setZero() ;
 	}
 
-	m_subdivision.clear() ;
+/*	m_subdivision.clear() ;
 	if( 1 ) { //m_worker->get_number_of_worker_threads() == 1 ) {
 		// Just do the whole matrix in one go, as this is faster.
 		m_subdivision.push_back(
@@ -237,13 +239,13 @@ void KinshipCoefficientComputer2::begin_processing_snps( std::size_t number_of_s
 			std::sqrt( number_of_samples ) * 5
 		) ;
 	}
-	
 #if DEBUG_KINSHIP_COEFFICIENT_COMPUTER2 
 	std::cerr << "Subdivided matrix into " << m_subdivision.size() << "pieces.\n" ;
 	for( std::size_t i = 0; i < m_subdivision.size(); ++i ) {
 		std::cerr << m_subdivision[i] << "\n" ;
 	}
 #endif
+*/
 	m_number_of_snps_processed = 0 ;
 	
 	m_genotypes.resize( m_result.size() ) ;
@@ -256,78 +258,26 @@ void KinshipCoefficientComputer2::processed_snp( genfile::SNPIdentifyingData con
 	Eigen::VectorXd& genotype_non_missingness = m_genotype_non_missingness[ m_data_index ] ;
 	Eigen::MatrixXd& result = m_result[ m_data_index ] ;
 	Eigen::MatrixXd& non_missing_count = m_non_missing_count[ m_data_index ] ;
-
-	genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( genotypes, genotype_non_missingness, 0.9, 0, 0, 1, 2 ) ;
-	data_reader->get( "genotypes", setter ) ;
-	double const allele_frequency = genotypes.sum() / ( 2.0 * genotype_non_missingness.sum() ) ;
-	#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER2
-		std::cerr << "number of SNPs processed = " << m_number_of_snps_processed << ", index = " << m_data_index << ".\n" ;
-		std::cerr << std::resetiosflags( std::ios::floatfield ) << std::setprecision( 5 ) ;
-		std::cerr << "SNP: " << id_data << ": freq = " << allele_frequency << ", uncentred genotypes are: " << genotypes.transpose().head( 20 ) << "...\n" ;
-	#endif
-	if( allele_frequency > 0.01 ) {
-		pca::mean_centre_genotypes( &genotypes, genotype_non_missingness, allele_frequency ) ;
-
-		#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER2
-			std::cerr << "mean-centred genotypes are: " << genotypes.transpose().head( 20 ) << "...\n" ;
-			std::cerr << "non-missingness is: " << genotype_non_missingness.transpose().head( 20 ) << "...\n" ;
-		#endif
-
-		for( std::size_t i = 0; i < m_subdivision.size(); ++i ) {
-			Eigen::Block< Eigen::MatrixXd > result_block = result.block(
-				m_subdivision[i].x(),
-				m_subdivision[i].y(),
-				m_subdivision[i].x_size(),
-				m_subdivision[i].y_size()
-			) ;
-
-			Eigen::Block< Eigen::MatrixXd > non_missing_block = non_missing_count.block(
-				m_subdivision[i].x(),
-				m_subdivision[i].y(),
-				m_subdivision[i].x_size(),
-				m_subdivision[i].y_size()
-			) ;
-
-			//std::cerr << "Submitting task for block " << i+1 << ".\n" ;
-			std::auto_ptr< worker::Task > task ;
-
-			if( m_subdivision[i].is_symmetric() ) {
-				task.reset(
-					new pca::ComputeXXtSymmetricBlockUsingCblasTask(
-						result_block,
-						non_missing_block,
-						genotypes.segment( m_subdivision[i].x(), m_subdivision[i].x_size() ),
-						genotype_non_missingness.segment( m_subdivision[i].x(), m_subdivision[i].x_size() ),
-						1 / ( 2.0 * allele_frequency * ( 1.0 - allele_frequency ) )
-					)
-				) ;
-			}
-			else {
-				task.reset(
-					new pca::ComputeXXtBlockUsingCblasTask(
-						result_block,
-						non_missing_block,
-						genotypes.segment( m_subdivision[i].x(), m_subdivision[i].x_size() ),
-						genotype_non_missingness.segment( m_subdivision[i].x(), m_subdivision[i].x_size() ),
-						genotypes.segment( m_subdivision[i].y(), m_subdivision[i].y_size() ),
-						genotype_non_missingness.segment( m_subdivision[i].y(), m_subdivision[i].y_size() ),
-						1 / ( 2.0 * allele_frequency * ( 1.0 - allele_frequency ) )
-					)
-				) ;
-			}
-		
-			int const task_index = ( m_data_index * m_subdivision.size() ) + i ;
-			if( m_tasks.size() < ( m_subdivision.size() * m_result.size() ) ) {
-				m_tasks.push_back( task ) ;
-			}
-			else {
-				m_tasks[ task_index ].wait_until_complete() ;
-				m_tasks.replace( task_index, task ) ;
-			}
-			m_worker->tell_to_perform_task( m_tasks[ task_index ] ) ;
-		}
-		m_data_index = ( m_data_index + 1 ) % m_result.size() ;
+	std::size_t const task_index = m_data_index ;
+	
+	std::auto_ptr< worker::Task > task(
+		new impl::NormaliseGenotypesAndComputeXXtSymmetricBlockUsingCblasTask(
+			result.block( 0, 0, result.rows(), result.cols() ),
+			non_missing_count.block( 0, 0, non_missing_count.rows(), non_missing_count.cols() ),
+			genotypes, genotype_non_missingness,
+			data_reader
+		)
+	) ;
+	;
+	if( task_index < m_tasks.size() ) {
+		// we must not clobber the running task.
+		m_tasks[ task_index ].wait_until_complete() ;
+		m_tasks.replace( task_index, task ) ;
+	} else {
+		m_tasks.push_back( task ) ;
 	}
+	m_worker->tell_to_perform_task( m_tasks[ task_index ] ) ;
+	m_data_index = ( m_data_index + 1 ) % m_result.size() ;
 	++m_number_of_snps_processed ;
 }
 

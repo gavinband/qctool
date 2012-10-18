@@ -24,37 +24,17 @@
 //#include "components/RelatednessComponent/KinshipCoefficientBlockTask.hpp"
 
 namespace impl {
-	struct KinshipCoefficientComputerTask ;
-
 	struct KinshipCoefficientComputerTask: public worker::Task {
-		KinshipCoefficientComputerTask(
-			std::size_t number_of_samples,
-			Eigen::MatrixXd* result,
-			Eigen::MatrixXd* missing_count
-		) ;
-
-		void add_snp(
-			genfile::SNPIdentifyingData const& id_data,
-			genfile::VariantDataReader& data_reader
-		) ;
+		typedef std::auto_ptr< KinshipCoefficientComputerTask > UniquePtr ;
+		virtual void add_snp(
+			genfile::VariantDataReader::SharedPtr data_reader,
+			Eigen::VectorXd& genotypes,
+			Eigen::VectorXd& genotype_non_missingness
+		) = 0 ;
 		
-		void finalise() { m_finalised = true ;}		
-		bool is_finalised() const { return m_finalised ;}
-
-		std::size_t number_of_snps() const { return m_id_data.size() ; }
-
-		void operator()() ;
-		
-	private:
-		std::size_t const m_number_of_samples ;
-		Eigen::MatrixXd* m_result ;
-		Eigen::MatrixXd* m_non_missing_count ;
-		double const m_threshhold ;
-		std::vector< genfile::SNPIdentifyingData > m_id_data ;
-		std::vector< Eigen::VectorXd > m_genotype_calls ;
-		std::vector< Eigen::VectorXd > m_non_missing_calls ;
-		
-		bool m_finalised ;
+		virtual void finalise() = 0 ;
+		virtual bool is_finalised() const = 0 ;
+		virtual std::size_t number_of_snps() const = 0 ;
 	} ;
 }
 
@@ -74,7 +54,7 @@ public:
 	) ;
 
 	void begin_processing_snps( std::size_t number_of_samples ) ;
-	void processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader& data_reader ) ;
+	void processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) ;
 	void end_processing_snps() ;
 
 private:
@@ -88,6 +68,8 @@ private:
 	boost::ptr_vector< impl::KinshipCoefficientComputerTask > m_tasks ;
 	std::vector< Eigen::MatrixXd > m_result ;
 	std::vector< Eigen::MatrixXd > m_non_missing_count ;
+	std::vector< Eigen::VectorXd > m_genotypes ;
+	std::vector< Eigen::VectorXd > m_genotype_non_missingness ;
 	std::size_t m_number_of_tasks ;
 	std::size_t m_number_of_snps_per_task ;
 	std::size_t m_current_task ;
