@@ -36,6 +36,18 @@ namespace pca {
 		boost::function< genfile::VariantEntry ( std::size_t ) > get_column_names = 0
 	) ;
 
+	// Write lower diagonal of matrix with 4 columns:
+	// 
+	void write_matrix_lower_diagonals_in_long_form(
+		std::string const& filename,
+		Eigen::MatrixXd const& matrix1,
+		Eigen::MatrixXd const& matrix2,
+		std::string const& source,
+		std::string const& description,
+		boost::function< genfile::VariantEntry ( std::size_t ) > get_row_names = 0,
+		boost::function< genfile::VariantEntry ( std::size_t ) > get_column_names = 0
+	) ;
+
 	void write_snp_and_vector_to_sink(
 		boost::shared_ptr< statfile::BuiltInTypeStatSink> sink,
 		genfile::SNPIdentifyingData snp,

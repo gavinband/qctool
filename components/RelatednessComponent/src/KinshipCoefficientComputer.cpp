@@ -33,22 +33,16 @@
 
 namespace impl {
 	#if HAVE_EIGEN
-		void accumulate_xxt_using_eigen( Eigen::VectorXd* data, Eigen::VectorXd* non_missing_data, Eigen::MatrixXd* result, Eigen::MatrixXd* result_non_missingness, double const scale ) {
+		void accumulate_xxt_using_eigen( Eigen::VectorXd* data, Eigen::MatrixXd* result, double const scale ) {
 			result
 				->selfadjointView< Eigen::Lower >()
 				.rankUpdate( *data, scale ) ;
-			result_non_missingness
-				->selfadjointView< Eigen::Lower >()
-				.rankUpdate( *non_missing_data, 1.0 ) ;
-
 		}
 	#endif
 	#if HAVE_CBLAS
-		void accumulate_xxt_using_cblas( Eigen::VectorXd* data, Eigen::VectorXd* non_missing_data, Eigen::MatrixXd* result, Eigen::MatrixXd* result_non_missingness, double const scale ) {
+		void accumulate_xxt_using_cblas( Eigen::VectorXd* data, Eigen::MatrixXd* result, double const scale ) {
 			assert( result ) ;
 			assert( data ) ;
-			assert( result_non_missingness ) ;
-			assert( non_missing_data ) ;
 			int const N = data->size() ;
 			assert( N == result->cols() ) ;
 			cblas_dsyr(
@@ -61,22 +55,10 @@ namespace impl {
 				result->data(),
 				N
 			) ;
-
-			cblas_dsyr(
-				CblasColMajor,
-				CblasLower,
-				N,
-				1.0,
-				non_missing_data->data(),
-				1,
-				result_non_missingness->data(),
-				N
-			) ;
 		}
 	#endif
 
 	struct ComputeXXtTask: public KinshipCoefficientComputerTask {
-		typedef boost::function< void ( Eigen::VectorXd* genotype_calls, Eigen::VectorXd* non_missing_genotypes, Eigen::MatrixXd* result, Eigen::MatrixXd* result_non_missingness, double const scale ) > AccumulateXXt ;
 		ComputeXXtTask(
 			Eigen::MatrixXd* result,
 			Eigen::MatrixXd* missing_count,
@@ -105,7 +87,7 @@ namespace impl {
 		double const m_call_threshhold ;
 		double const m_allele_frequency_threshhold ;
 		std::vector< Eigen::VectorXd* > m_genotype_calls ;
-		std::vector< Eigen::VectorXd* > m_non_missing_calls ;
+		std::vector< Eigen::VectorXd* > m_working_space ;
 		AccumulateXXt m_accumulate_xxt ;
 	private:
 		std::size_t const m_number_of_samples ;
@@ -130,13 +112,13 @@ namespace impl {
 			genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( genotypes, non_missing_calls, m_call_threshhold, 0, 0, 1, 2 ) ;
 			data_reader->get( "genotypes", setter ) ;
 			m_genotype_calls.push_back( &genotypes ) ;
-			m_non_missing_calls.push_back( &non_missing_calls ) ;
+			m_working_space.push_back( &non_missing_calls ) ;
 		}
 		
 		void operator()() {
 			for( std::size_t snp_i = 0; snp_i < m_genotype_calls.size(); ++snp_i ) {
 				Eigen::VectorXd& genotype_calls = *m_genotype_calls[ snp_i ] ;
-				Eigen::VectorXd& non_missing_genotypes = *m_non_missing_calls[ snp_i ] ;
+				Eigen::VectorXd& non_missing_genotypes = *m_working_space[ snp_i ] ;
 				double allele_frequency = genotype_calls.sum() / ( 2.0 * non_missing_genotypes.sum() ) ;
 				if( allele_frequency > m_allele_frequency_threshhold ) {
 	#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
@@ -146,33 +128,107 @@ namespace impl {
 					pca::mean_centre_genotypes( &genotype_calls, non_missing_genotypes, allele_frequency ) ;
 					m_accumulate_xxt(
 						&genotype_calls,
-						&non_missing_genotypes,
 						m_result,
-						m_non_missing_count,
 						1.0 / ( 2.0 * allele_frequency * ( 1.0 - allele_frequency ))
+					) ;
+					m_accumulate_xxt(
+						&non_missing_genotypes,
+						m_non_missing_count,
+						1.0
 					) ;
 				}
 			}
 		}
 	} ;
+
+	struct ComputeConcordanceTask: public ComputeXXtTask {
+		ComputeConcordanceTask(
+			Eigen::MatrixXd* result,
+			Eigen::MatrixXd* missing_count,
+			AccumulateXXt accumulate_xxt = &accumulate_xxt_using_cblas
+		):
+			ComputeXXtTask( result, missing_count, accumulate_xxt )
+		{
+		}
+
+		void add_snp(
+			genfile::VariantDataReader::SharedPtr data_reader,
+			Eigen::VectorXd& genotypes,
+			Eigen::VectorXd& working_space
+		) {
+			genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( genotypes, m_call_threshhold, -1, 0, 1, 2 ) ;
+			data_reader->get( "genotypes", setter ) ;
+			m_genotype_calls.push_back( &genotypes ) ;
+			m_working_space.push_back( &working_space ) ;
+		}
+		
+		void operator()() {
+			for( std::size_t snp_i = 0; snp_i < m_genotype_calls.size(); ++snp_i ) {
+				Eigen::VectorXd& genotype_calls = *m_genotype_calls[ snp_i ] ;
+				Eigen::VectorXd& genotype_indicator = *m_working_space[ snp_i ] ;
+
+				genotype_indicator.resize( genotype_calls.size() ) ;
+				for( double g = 0; g < 3; ++g ) {
+					genotype_indicator.array() = ( genotype_calls.array() == g ).cast< double >() ;
+					m_accumulate_xxt( &genotype_indicator, m_result, 1.0 ) ;
+				}
+				// deal with missingness.
+				genotype_indicator.array() = ( genotype_calls.array() != -1 ).cast< double >() ;
+				m_accumulate_xxt( &genotype_indicator, m_non_missing_count, 1.0 ) ;
+			}
+		}
+	} ;
+}
+
+impl::KinshipCoefficientComputerTask::UniquePtr KinshipCoefficientComputer::compute_kinship(
+	Eigen::MatrixXd* result,
+	Eigen::MatrixXd* non_missingness,
+	impl::KinshipCoefficientComputerTask::AccumulateXXt accumulate_xxt
+) {
+	return impl::KinshipCoefficientComputerTask::UniquePtr(
+		new impl::NormaliseGenotypesAndComputeXXtTask(
+			result,
+			non_missingness,
+			accumulate_xxt
+		)
+	) ;
+}
+
+impl::KinshipCoefficientComputerTask::UniquePtr KinshipCoefficientComputer::compute_concordance(
+	Eigen::MatrixXd* result,
+	Eigen::MatrixXd* non_missingness,
+	impl::KinshipCoefficientComputerTask::AccumulateXXt accumulate_xxt
+) {
+	return impl::KinshipCoefficientComputerTask::UniquePtr(
+		new impl::ComputeConcordanceTask(
+			result,
+			non_missingness,
+			accumulate_xxt
+		)
+	) ;
 }
 
 KinshipCoefficientComputer::KinshipCoefficientComputer(
 	appcontext::OptionProcessor const& options,
 	genfile::CohortIndividualSource const& samples,
 	worker::Worker* worker,
-	appcontext::UIContext& ui_context
+	appcontext::UIContext& ui_context,
+	ComputationFactory computation_factory
 ):
 	m_options( options ),
 	m_ui_context( ui_context ),
 	m_samples( samples ),
 	m_worker( worker ),
+	m_computation_factory( computation_factory ),
 #if HAVE_CBLAS
 	m_accumulate_xxt( options.check( "-use-eigen" ) ? &impl::accumulate_xxt_using_eigen : &impl::accumulate_xxt_using_cblas )
 #else
 	m_accumulate_xxt( &impl::accumulate_xxt_using_eigen )
 #endif
-{}
+{
+	assert( m_worker ) ;
+	assert( m_computation_factory ) ;
+}
 
 void KinshipCoefficientComputer::begin_processing_snps( std::size_t number_of_samples ) {
 	assert( m_samples.get_number_of_individuals() == number_of_samples ) ;
@@ -195,7 +251,7 @@ void KinshipCoefficientComputer::begin_processing_snps( std::size_t number_of_sa
 
 	for( std::size_t i = 0; i < m_number_of_tasks; ++i ) {
 		m_tasks.push_back(
-			new impl::NormaliseGenotypesAndComputeXXtTask(
+			m_computation_factory(
 				&m_result[ i ],
 				&m_non_missing_count[ i ],
 				m_accumulate_xxt
@@ -210,7 +266,7 @@ void KinshipCoefficientComputer::processed_snp( genfile::SNPIdentifyingData cons
 		m_tasks[ m_current_task ].wait_until_complete() ;
 		m_tasks.replace(
 			m_current_task,
-			new impl::NormaliseGenotypesAndComputeXXtTask(
+			m_computation_factory(
 				&m_result[ m_current_task ],
 				&m_non_missing_count[ m_current_task ],
 				m_accumulate_xxt
@@ -258,6 +314,7 @@ void KinshipCoefficientComputer::end_processing_snps() {
 		+ genfile::string_utils::to_string( m_number_of_samples ) ;
 
 	send_results(
+		m_non_missing_count[0],
 		m_result[0],
 		"KinshipCoefficientComputer",
 		description

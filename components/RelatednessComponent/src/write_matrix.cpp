@@ -81,6 +81,38 @@ namespace pca {
 		) ;
 	}
 
+	void write_matrix_lower_diagonals_in_long_form(
+		std::string const& filename,
+		Eigen::MatrixXd const& matrix1,
+		Eigen::MatrixXd const& matrix2,
+		std::string const& source,
+		std::string const& description,
+		boost::function< genfile::VariantEntry ( std::size_t ) > get_row_names,
+		boost::function< genfile::VariantEntry ( std::size_t ) > get_column_names
+	) {
+		assert(
+			matrix1.cols() == matrix1.rows()
+			&& matrix1.rows() == matrix2.rows()
+			&& matrix1.cols() == matrix2.cols()
+		) ;
+		using genfile::string_utils::to_string ;
+		statfile::BuiltInTypeStatSink::UniquePtr sink = statfile::BuiltInTypeStatSink::open( filename ) ;
+		sink->write_metadata( get_metadata( source, description ) ) ;
+		(*sink) | "sample_1" | "sample_2" | "pairwise.complete.obs" | "value" ;
+		for( int i = 0; i < matrix1.rows(); ++i ) {
+			genfile::VariantEntry row_name = get_row_names ? get_row_names( i ) : ( "row_" + to_string( i ) ) ;
+			for( int j = 0; j <= i; ++j ) {
+				(*sink)
+					<< row_name
+					<< ( get_column_names ? get_column_names( j ) : ( "column_" + to_string( j ) ) )
+					<< matrix1( i, j )
+					<< matrix2( i, j )
+				;
+				(*sink) << statfile::end_row() ;
+			}
+		}
+	}
+
 	void write_snp_and_vector_to_sink(
 		boost::shared_ptr< statfile::BuiltInTypeStatSink > sink,
 		genfile::SNPIdentifyingData snp,

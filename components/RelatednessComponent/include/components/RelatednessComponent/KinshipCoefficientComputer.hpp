@@ -26,6 +26,8 @@
 namespace impl {
 	struct KinshipCoefficientComputerTask: public worker::Task {
 		typedef std::auto_ptr< KinshipCoefficientComputerTask > UniquePtr ;
+		typedef boost::function< void ( Eigen::VectorXd* data, Eigen::MatrixXd* result, double const scale ) > AccumulateXXt ;
+		
 		virtual void add_snp(
 			genfile::VariantDataReader::SharedPtr data_reader,
 			Eigen::VectorXd& genotypes,
@@ -43,6 +45,13 @@ struct KinshipCoefficientComputer: public KinshipCoefficientManager, public genf
 {
 public:
 	typedef std::auto_ptr< KinshipCoefficientComputer > UniquePtr ;
+	typedef boost::function<
+		impl::KinshipCoefficientComputerTask::UniquePtr ( Eigen::MatrixXd*, Eigen::MatrixXd*, impl::KinshipCoefficientComputerTask::AccumulateXXt )
+	> ComputationFactory ;
+	
+	static impl::KinshipCoefficientComputerTask::UniquePtr compute_kinship( Eigen::MatrixXd*, Eigen::MatrixXd*, impl::KinshipCoefficientComputerTask::AccumulateXXt ) ;
+	static impl::KinshipCoefficientComputerTask::UniquePtr compute_concordance( Eigen::MatrixXd*, Eigen::MatrixXd*, impl::KinshipCoefficientComputerTask::AccumulateXXt ) ;
+
 public:
 	~KinshipCoefficientComputer() throw() {}
 
@@ -50,7 +59,8 @@ public:
 		appcontext::OptionProcessor const& options,
 		genfile::CohortIndividualSource const& samples,
 		worker::Worker* worker,
-		appcontext::UIContext& ui_context
+		appcontext::UIContext& ui_context,
+		ComputationFactory computation_factory
 	) ;
 
 	void begin_processing_snps( std::size_t number_of_samples ) ;
@@ -73,8 +83,8 @@ private:
 	std::size_t m_number_of_tasks ;
 	std::size_t m_number_of_snps_per_task ;
 	std::size_t m_current_task ;
-	
-	void (*m_accumulate_xxt)( Eigen::VectorXd*, Eigen::VectorXd*, Eigen::MatrixXd*, Eigen::MatrixXd*, double const ) ;
+	ComputationFactory m_computation_factory ;
+	void (*m_accumulate_xxt)( Eigen::VectorXd*, Eigen::MatrixXd*, double const ) ;
 } ;
 
 #endif

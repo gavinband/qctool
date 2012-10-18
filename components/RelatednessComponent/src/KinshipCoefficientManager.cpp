@@ -13,9 +13,10 @@ void KinshipCoefficientManager::send_results_to( ResultsCallback callback ) {
 }
 
 void KinshipCoefficientManager::send_results(
-	Eigen::MatrixXd const& matrix,
+	Eigen::MatrixXd const& matrix1,
+	Eigen::MatrixXd const& matrix2,
 	std::string const& source,
 	std::string const& description
 ) {
-	m_result_signal( matrix, source, description ) ;
+	m_result_signal( matrix1, matrix2, source, description ) ;
 }

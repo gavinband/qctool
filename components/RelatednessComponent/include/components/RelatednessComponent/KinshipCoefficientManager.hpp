@@ -22,12 +22,12 @@ public:
 	virtual ~KinshipCoefficientManager() throw() {}
 
 	typedef boost::function< genfile::VariantEntry ( std::size_t ) > GetNames ;
-	typedef boost::signals2::signal< void( Eigen::MatrixXd const&, std::string const&, std::string const& ) > ResultSignal ;
+	typedef boost::signals2::signal< void( Eigen::MatrixXd const&, Eigen::MatrixXd const&, std::string const&, std::string const& ) > ResultSignal ;
 	typedef ResultSignal::slot_type ResultsCallback ;
 	typedef boost::function< void( std::string const& name, genfile::SNPIdentifyingData const& snp, Eigen::VectorXd const&, GetNames ) > PerVariantResultsCallback ;
 
 	void send_results_to( ResultsCallback callback ) ;
-	void send_results( Eigen::MatrixXd const&, std::string const& source, std::string const& description ) ;
+	void send_results( Eigen::MatrixXd const&, Eigen::MatrixXd const&, std::string const& source, std::string const& description ) ;
 private:
 	ResultSignal m_result_signal ;
 } ;

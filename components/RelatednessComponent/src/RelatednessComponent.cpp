@@ -30,6 +30,9 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 	options[ "-kinship" ]
 		.set_description( "Perform kinship computation using threshholded genotype calls and cblas or Eigen libraries." )
 		.set_takes_single_value() ;
+	options[ "-sample-concordance" ]
+		.set_description( "Compute concordance between all pairs of samples, using threshholded genotype calls." )
+		.set_takes_single_value() ;
 	options[ "-load-kinship" ]
 		.set_description( "Load a previously-computed kinship matrix from the specified file." )
 		.set_takes_single_value() ;
@@ -72,6 +75,7 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 	options.option_excludes_option( "-load-kinship", "-kinship" ) ;
 	options.option_excludes_option( "-project-onto", "-loadings" ) ;
 	options.option_excludes_option( "-load-UDUT", "-UDUT" ) ;
+	options.option_excludes_option( "-PCAs", "-kinship" ) ;
 }
 
 RelatednessComponent::UniquePtr RelatednessComponent::create(
@@ -113,12 +117,14 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 		_1
 	) ;
 	if( m_options.check( "-kinship" )) {
-		KinshipCoefficientComputer::UniquePtr result( new KinshipCoefficientComputer( m_options, m_samples, m_worker, m_ui_context ) ) ;
+		KinshipCoefficientComputer::UniquePtr result(
+			new KinshipCoefficientComputer( m_options, m_samples, m_worker, m_ui_context, KinshipCoefficientComputer::compute_kinship )
+		) ;
 		result->send_results_to(
 			boost::bind(
-				&pca::write_matrix,
+				&pca::write_matrix_lower_diagonals_in_long_form,
 				m_options.get< std::string >( "-kinship" ),
-				_1, _2, _3,
+				_1, _2, _3, _4,
 				get_ids, get_ids
 			)
 		) ;
@@ -126,7 +132,23 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 			genfile::SNPDataSourceProcessor::Callback::UniquePtr( result.release() )
 		) ;
 	}
-	else if( m_options.check( "-PCAs" ) ) {
+	if( m_options.check( "-sample-concordance" )) {
+		KinshipCoefficientComputer::UniquePtr result(
+			new KinshipCoefficientComputer( m_options, m_samples, m_worker, m_ui_context, KinshipCoefficientComputer::compute_concordance )
+		) ;
+		result->send_results_to(
+			boost::bind(
+				&pca::write_matrix_lower_diagonals_in_long_form,
+				m_options.get< std::string >( "-sample-concordance" ),
+				_1, _2, _3, _4,
+				get_ids, get_ids
+			)
+		) ;
+		processor.add_callback(
+			genfile::SNPDataSourceProcessor::Callback::UniquePtr( result.release() )
+		) ;
+	}
+	if( m_options.check( "-PCAs" ) ) {
 		assert( m_options.check( "-UDUT" )) ;
 		pca_computer.reset( new PCAComputer( m_options, m_samples, m_worker, m_ui_context ) ) ;
 		pca_computer->send_UDUT_to(
