@@ -18,7 +18,6 @@
 #include "components/RelatednessComponent/RelatednessComponent.hpp"
 #include "components/RelatednessComponent/PCAComputer.hpp"
 #include "components/RelatednessComponent/KinshipCoefficientComputer.hpp"
-#include "components/RelatednessComponent/KinshipCoefficientComputer2.hpp"
 #include "components/RelatednessComponent/PCALoadingComputer.hpp"
 #include "components/RelatednessComponent/UDUTDecompositionLoader.hpp"
 #include "components/RelatednessComponent/PCALoadingLoader.hpp"
@@ -29,9 +28,6 @@
 void RelatednessComponent::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "Kinship options" ) ;
 	options[ "-kinship" ]
-		.set_description( "Perform kinship computation using threshholded genotype calls and cblas or Eigen libraries." )
-		.set_takes_single_value() ;
-	options[ "-kinship2" ]
 		.set_description( "Perform kinship computation using threshholded genotype calls and cblas or Eigen libraries." )
 		.set_takes_single_value() ;
 	options[ "-load-kinship" ]
@@ -122,22 +118,6 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 			boost::bind(
 				&pca::write_matrix,
 				m_options.get< std::string >( "-kinship" ),
-				_1, _2, _3,
-				get_ids, get_ids
-			)
-		) ;
-		processor.add_callback(
-			genfile::SNPDataSourceProcessor::Callback::UniquePtr( result.release() )
-		) ;
-	}
-	else if( m_options.check( "-kinship2" )) {
-		KinshipCoefficientComputer2::UniquePtr result(
-			new KinshipCoefficientComputer2( m_options, m_samples, m_worker, m_ui_context )
-		) ;
-		result->send_results_to(
-			boost::bind(
-				&pca::write_matrix,
-				m_options.get< std::string >( "-kinship2" ),
 				_1, _2, _3,
 				get_ids, get_ids
 			)
