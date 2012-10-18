@@ -62,7 +62,7 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 	options[ "-PCA-exclusions" ]
 		.set_description( "Output a list of exclusions based on outliers in the first N PCA components." )
 		.set_takes_single_value() ;
-	options[ "-no-lapack" ]
+	options[ "-use-eigen" ]
 		.set_description( "Don't use lapack to perform computations. "
 			"Usually this means to use the Eigen library (http://eigen.tuxfamily.org) instead." ) ;
 

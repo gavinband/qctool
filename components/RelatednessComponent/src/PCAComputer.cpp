@@ -138,7 +138,7 @@ void PCAComputer::compute_PCA() {
 	assert( m_options.check_if_option_was_supplied( "-PCAs" ) ) ;
 	Eigen::MatrixXd kinship_eigendecomposition( m_number_of_samples, m_number_of_samples + 1 ) ;
 #if HAVE_LAPACK
-	if( m_options.check( "-no-lapack" ))
+	if( m_options.check( "-use-eigen" ))
 #endif
 	{
 		m_ui_context.logger() << "========================================================================\n" ;
@@ -157,7 +157,7 @@ void PCAComputer::compute_PCA() {
 		kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( solver.eigenvectors() ) ;
 	}
 #if HAVE_LAPACK
-	else { // -no-lapack not specified.
+	else { // -use-eigen not specified.
 		Eigen::VectorXd eigenvalues( m_number_of_samples ) ;
 		Eigen::MatrixXd eigenvectors( m_number_of_samples, m_number_of_samples ) ;
 		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using lapack...\n" ;

@@ -73,6 +73,8 @@ private:
 	std::size_t m_number_of_tasks ;
 	std::size_t m_number_of_snps_per_task ;
 	std::size_t m_current_task ;
+	
+	void (*m_accumulate_xxt)( Eigen::VectorXd*, Eigen::VectorXd*, Eigen::MatrixXd*, Eigen::MatrixXd*, double const ) ;
 } ;
 
 #endif
