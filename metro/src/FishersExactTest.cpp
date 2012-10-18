@@ -53,46 +53,61 @@ namespace metro {
 					int( ( m_matrix.col( 0 ).sum() + 1 ) * ( m_matrix.row( 0 ).sum() + 1 ) / ( m_matrix.sum() + 2 ) ),
 					min_value
 				) ;
+				
 				if( m_matrix( 0, 0 ) == lower_mode ) {
 					result = 1 ;
 				}
-				else if( m_matrix( 0, 0 ) > lower_mode ) {
-					double const min_a = std::max( 0.0, m_matrix(0,0) - m_matrix(1,1)) ;
-					double const max_a = lower_mode ;
-					result = cdf( complement( m_distribution, m_matrix( 0, 0 ) - 1.0 )) ;
-
-					for(
-						double a = min_a ;
-						a <= max_a;
-						++a
-					) {
-						double q = pdf( m_distribution, a ) ;
-						if( q > p ) {
-							// we are only summing lower tail, so shortcut if possible
-							break ;
-						}
-						result += q ;
-					}
-				}
 				else {
-					double const min_a = lower_mode ;
-					double const max_a = std::min( m_matrix.row(0).sum(), m_matrix.col(0).sum() ) ;
-					result = cdf( m_distribution, m_matrix( 0, 0 ) ) ;
-
+					// compute one tail using boost::cdf() and the other using
+					// a recursion trick.
+					double begin_a = 0 ;
+					double end_a = 0 ;
+					double direction = 0 ;
+					if( m_matrix( 0, 0 ) > lower_mode ) {
+						// compute upper tail
+						result = cdf( complement( m_distribution, m_matrix( 0, 0 ) - 1.0 )) ;
+						// compute lower tail, walking out from mode towards tail.
+						begin_a = lower_mode ;
+						end_a = std::max( 0.0, m_matrix(0,0) - m_matrix(1,1)) - 1 ;
+						direction = -1 ;
+					}
+					else {
+						// compute lower tail
+						result = cdf( m_distribution, m_matrix( 0, 0 ) ) ;
+						// compute upper tail, walking out from mode towards tail.
+						begin_a = lower_mode ;
+						end_a = std::min( m_matrix.row(0).sum(), m_matrix.col(0).sum() ) + 1 ;
+						direction = 1 ;
+					}
+				
+					double const R0 = m_matrix.row(0).sum() ;
+					double const C0 = m_matrix.col(0).sum() ;
+					double const C1 = m_matrix.col(1).sum() ;
 					for(
-						double a = max_a ;
-						a >= min_a;
-						--a
+						double a = begin_a, q = pdf( m_distribution, begin_a ) ;
+						(direction * a ) < (direction * end_a) ;
+						a += direction
 					) {
-						double q = pdf( m_distribution, a ) ;
-						if( q > p ) {
-							// we are only summing upper tail, so shortcut if possible
+						if( q == 0 ) {
 							break ;
 						}
-						result += q ;
+						else if( ( q / p ) < 10 && ( q / p ) > 0.1 ) {
+							// Within an order of magnitude of p.  Recompute q to avoid accuracy loss.
+							q = pdf( m_distribution, a ) ;
+						}
+						if( q <= p ) {
+							result += q ;
+						}
+						double const b = R0 - a ;
+						double const c = C0 - a ;
+						double const d = C1 - b ;
+						if( direction == 1 ) {
+							q *= ( b / ( a + 1 ) ) * ( c / ( d + 1 )) ;
+						} else {
+							q /= ( ( b + 1 ) / a ) * ( ( c + 1 ) / d ) ;
+						}
 					}
 				}
-				
 			break ;
 		}
 		return result ;
