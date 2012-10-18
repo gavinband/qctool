@@ -23,6 +23,7 @@
 #include "components/SNPSummaryComponent/SequenceAnnotation.hpp"
 #include "components/SNPSummaryComponent/DifferentialMissingnessComputation.hpp"
 #include "components/SNPSummaryComponent/StratifyingSNPSummaryComputation.hpp"
+#include "components/SNPSummaryComponent/CrossDataSetConcordanceComputation.hpp"
 
 void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "SNP computation options" ) ;
@@ -71,6 +72,13 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_minimum_multiplicity( 0 )
 		.set_maximum_multiplicity( 1 ) ;
 
+	options.declare_group( "Callset comparison options" ) ;
+	options[ "-compare-to" ]
+		.set_description( "Compute a matrix of values indicating concordance of samples between the main dataset and the dataset given as argument to this option. "
+		 	"Values must be the genotype and sample files.  Samples are matched using the first ID column; SNPs are matched based on all the identifying information fields." )
+		.set_takes_values( 2 )
+		.set_minimum_multiplicity( 0 )
+		.set_minimum_multiplicity( 1 ) ;
 	
 	options.option_implies_option( "-snp-stats", "-g" ) ;
 	options.option_implies_option( "-annotate-ancestral", "-g" ) ;
@@ -99,8 +107,8 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 	using genfile::string_utils::to_string ;
 	
 	std::string filename ;
-	if( m_options.check( "-odb" )) {
-		filename = m_options.get_value< std::string >( "-odb" ) ;
+	if( m_options.check( "-o" )) {
+		filename = m_options.get_value< std::string >( "-o" ) ;
 	}
 	else {
 		std::vector< std::string > filenames = m_options.get_values< std::string >( "-g" ) ;
@@ -220,6 +228,29 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 
 		manager.add_computation(
 			"ancestral_sequence",
+			SNPSummaryComputation::UniquePtr(
+				computation.release()
+			)
+		) ;
+	}
+
+	if( m_options.check( "-compare-to" )) {
+		std::vector< std::string > filenames = m_options.get_values< std::string >( "-compare-to" ) ;
+		snp_stats::CrossDataSetConcordanceComputation::UniquePtr computation(
+			new snp_stats::CrossDataSetConcordanceComputation( m_samples )
+		) ;
+		
+		computation->set_alternate_dataset(
+			genfile::CohortIndividualSource::create( filenames[0] ),
+			genfile::SNPDataSource::create_chain(
+				genfile::wildcard::find_files_by_chromosome(
+					filenames[1]
+				)
+			)
+		) ;
+		
+		manager.add_computation(
+			"dataset_comparison",
 			SNPSummaryComputation::UniquePtr(
 				computation.release()
 			)
