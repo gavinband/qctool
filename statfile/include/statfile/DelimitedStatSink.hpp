@@ -35,11 +35,20 @@ namespace statfile {
 
 	protected:
 
+		void write_value( long unsigned int const& value ) {
+			write_value_impl< long unsigned int >( value ) ;
+		}
 		void write_value( int32_t const& value ) {
 			write_value_impl< int32_t >( value ) ;
 		}
 		void write_value( uint32_t const& value ) {
 			write_value_impl< uint32_t >( value ) ;
+		}
+		void write_value( int64_t const& value ) {
+			write_value_impl< int64_t >( value ) ;
+		}
+		void write_value( uint64_t const& value ) {
+			write_value_impl< uint64_t >( value ) ;
 		}
 		void write_value( std::string const& value ) {
 			write_value_impl< std::string >( value ) ;
