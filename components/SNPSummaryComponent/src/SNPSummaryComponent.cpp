@@ -78,7 +78,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		 	"Values must be the genotype and sample files.  Samples are matched using the first ID column; SNPs are matched based on all the identifying information fields." )
 		.set_takes_values( 2 )
 		.set_minimum_multiplicity( 0 )
-		.set_minimum_multiplicity( 1 ) ;
+		.set_maximum_multiplicity( 1 ) ;
 	options[ "-match-sample-ids" ]
 		.set_description( "Specify the columns in the main and comparison dataset sample files that will be used to match samples. "
 				"The value should be of the form <main dataset column>~<comparison dataset column>." )
