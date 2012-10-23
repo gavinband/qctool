@@ -25,7 +25,6 @@ namespace snp_stats {
 				CrossDataSetConcordanceComputation::SampleIdList::const_iterator where = std::find( set2.begin(), set2.end(), set1[i] ) ;
 				for( ; where != set2.end(); where = std::find( where, set2.end(), set1[i] ) ) {
 					result.insert( std::make_pair( i, std::size_t( where - set2.begin() ) ) ) ;
-					std::cerr << "Inserted pair " << i << ", " << std::size_t( where - set2.begin() ) << ".\n" ;
 					++where ;
 				}
 			}
@@ -34,12 +33,13 @@ namespace snp_stats {
 	}
 
 	CrossDataSetConcordanceComputation::CrossDataSetConcordanceComputation(
-		genfile::CohortIndividualSource const& samples
+		genfile::CohortIndividualSource const& samples,
+		std::string const& sample_id_column
 	):
 		m_samples( samples ),
 		m_call_threshhold( 0.9 )
 	{
-		m_samples.get_column_values( "ID_1", boost::bind( &SampleIdList::push_back, &m_sample_ids, _2 ) ) ;
+		m_samples.get_column_values( sample_id_column, boost::bind( &SampleIdList::push_back, &m_sample_ids, _2 ) ) ;
 	}
 
 	void CrossDataSetConcordanceComputation::set_alternate_dataset( genfile::CohortIndividualSource::UniquePtr samples, genfile::SNPDataSource::UniquePtr snps ) {

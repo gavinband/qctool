@@ -24,9 +24,9 @@ namespace snp_stats {
 		
 	public:
 		CrossDataSetConcordanceComputation(
-			genfile::CohortIndividualSource const& m_samples
+			genfile::CohortIndividualSource const& m_samples,
+			std::string const& sample_id_column
 		) ;
-
 		void set_alternate_dataset( genfile::CohortIndividualSource::UniquePtr samples, genfile::SNPDataSource::UniquePtr snps ) ;
 		void operator()( SNPIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;

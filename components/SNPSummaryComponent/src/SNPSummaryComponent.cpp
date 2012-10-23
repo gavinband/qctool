@@ -79,6 +79,11 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_takes_values( 2 )
 		.set_minimum_multiplicity( 0 )
 		.set_minimum_multiplicity( 1 ) ;
+	options[ "-compare-to-sample-id" ]
+		.set_description( "Specify the column in the main dataset sample file which will be matched to the ID_1 column of the dataset specified by -compare-to" )
+		.set_takes_single_value()
+		.set_default_value( "ID_1" )
+	;
 	
 	options.option_implies_option( "-snp-stats", "-g" ) ;
 	options.option_implies_option( "-annotate-ancestral", "-g" ) ;
@@ -86,6 +91,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options.option_implies_option( "-test", "-g" ) ;
 	options.option_implies_option( "-test", "-s" ) ;
 	options.option_implies_option( "-stratify", "-s" ) ;
+	options.option_implies_option( "-compare-to-sample-id", "-compare-to" ) ;
 }
 
 SNPSummaryComponent::SNPSummaryComponent(
@@ -237,7 +243,10 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 	if( m_options.check( "-compare-to" )) {
 		std::vector< std::string > filenames = m_options.get_values< std::string >( "-compare-to" ) ;
 		snp_stats::CrossDataSetConcordanceComputation::UniquePtr computation(
-			new snp_stats::CrossDataSetConcordanceComputation( m_samples )
+			new snp_stats::CrossDataSetConcordanceComputation(
+				m_samples,
+				m_options.get< std::string >( "-compare-to-sample-id" )
+			)
 		) ;
 		
 		computation->set_alternate_dataset(
