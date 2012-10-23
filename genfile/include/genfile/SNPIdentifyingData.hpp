@@ -55,6 +55,7 @@ namespace genfile {
 		struct CompareFields {
 			CompareFields( std::string const& fields_to_compare ) ;
 			CompareFields( CompareFields const& other ) ;
+			CompareFields& operator=( CompareFields const& other ) ;
 
 			enum { eSNPID = 0x1, eRSID = 0x2, ePosition = 0x4, eAlleles = 0x8, eMask = 0xF } ;
 			bool operator()( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) const ;
@@ -63,8 +64,7 @@ namespace genfile {
 
 		private:
 			static std::vector< int > parse_fields_to_compare( std::string const& field_spec ) ;
-			
-			std::vector< int > const m_fields_to_compare ;
+			std::vector< int > m_fields_to_compare ;
 		} ;
 	private:
 		std::string m_SNPID ;

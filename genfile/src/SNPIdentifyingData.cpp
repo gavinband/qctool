@@ -145,6 +145,10 @@ namespace genfile {
 		m_fields_to_compare( other.m_fields_to_compare )
 	{}
 
+	SNPIdentifyingData::CompareFields& SNPIdentifyingData::CompareFields::operator=( SNPIdentifyingData::CompareFields const& other ) {
+		m_fields_to_compare = other.m_fields_to_compare ;
+	}
+
 	std::vector< int > SNPIdentifyingData::CompareFields::parse_fields_to_compare( std::string const& field_spec ) {
 		std::vector< std::string > elts = string_utils::split_and_strip( field_spec, ",", " \t\n\r" ) ;
 		assert( elts.size() > 0 ) ;

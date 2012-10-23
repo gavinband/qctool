@@ -25,9 +25,14 @@ namespace snp_stats {
 	public:
 		CrossDataSetConcordanceComputation(
 			genfile::CohortIndividualSource const& m_samples,
-			std::string const& sample_id_column
+			std::string const& main_dataset_sample_id_column
 		) ;
-		void set_alternate_dataset( genfile::CohortIndividualSource::UniquePtr samples, genfile::SNPDataSource::UniquePtr snps ) ;
+		void set_comparer( genfile::SNPIdentifyingData::CompareFields const& comparer ) ;
+		void set_alternate_dataset(
+			genfile::CohortIndividualSource::UniquePtr samples,
+			genfile::SNPDataSource::UniquePtr snps,
+			std::string const& comparison_dataset_sample_id_column
+		) ;
 		void operator()( SNPIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 
@@ -35,11 +40,13 @@ namespace snp_stats {
 		genfile::CohortIndividualSource const& m_samples ;
 		SampleIdList m_sample_ids ;
 		double const m_call_threshhold ;
+		genfile::SNPIdentifyingData::CompareFields m_comparer ;
 		genfile::CohortIndividualSource::UniquePtr m_alt_dataset_samples ;
 		genfile::SNPDataSource::UniquePtr m_alt_dataset_snps ;
 		SampleIdList m_alt_dataset_sample_ids ;
 		SampleMapping m_sample_mapping ;
 
+		
 		Eigen::VectorXd m_alt_dataset_genotypes ;
 		Eigen::VectorXd m_concordance ;
 	} ;

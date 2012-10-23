@@ -34,18 +34,27 @@ namespace snp_stats {
 
 	CrossDataSetConcordanceComputation::CrossDataSetConcordanceComputation(
 		genfile::CohortIndividualSource const& samples,
-		std::string const& sample_id_column
+		std::string const& main_dataset_sample_id_column
 	):
 		m_samples( samples ),
-		m_call_threshhold( 0.9 )
+		m_call_threshhold( 0.9 ),
+		m_comparer( "position,rsid,SNPID,alleles" )
 	{
-		m_samples.get_column_values( sample_id_column, boost::bind( &SampleIdList::push_back, &m_sample_ids, _2 ) ) ;
+		m_samples.get_column_values( main_dataset_sample_id_column, boost::bind( &SampleIdList::push_back, &m_sample_ids, _2 ) ) ;
 	}
 
-	void CrossDataSetConcordanceComputation::set_alternate_dataset( genfile::CohortIndividualSource::UniquePtr samples, genfile::SNPDataSource::UniquePtr snps ) {
+	void CrossDataSetConcordanceComputation::set_comparer( genfile::SNPIdentifyingData::CompareFields const& comparer ) {
+		m_comparer = comparer ;
+	}
+
+	void CrossDataSetConcordanceComputation::set_alternate_dataset(
+		genfile::CohortIndividualSource::UniquePtr samples,
+		genfile::SNPDataSource::UniquePtr snps,
+		std::string const& comparison_dataset_sample_id_column
+	) {
 		m_alt_dataset_samples = samples ;
 		m_alt_dataset_snps = snps ;
-		m_alt_dataset_samples->get_column_values( "ID_1", boost::bind( &SampleIdList::push_back, &m_alt_dataset_sample_ids, _2 ) ) ;
+		m_alt_dataset_samples->get_column_values( comparison_dataset_sample_id_column, boost::bind( &SampleIdList::push_back, &m_alt_dataset_sample_ids, _2 ) ) ;
 		m_sample_mapping = impl::create_sample_mapping( m_sample_ids, m_alt_dataset_sample_ids ) ;
 	}
 
@@ -68,7 +77,7 @@ namespace snp_stats {
 				snp.get_position()
 			)
 		) {
-			if( alt_snp == snp ) {
+			if( m_comparer.are_equal( alt_snp, snp )) {
 				found = true ;
 				break ;
 			}

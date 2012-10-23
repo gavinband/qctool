@@ -79,10 +79,11 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_takes_values( 2 )
 		.set_minimum_multiplicity( 0 )
 		.set_minimum_multiplicity( 1 ) ;
-	options[ "-compare-to-sample-id" ]
-		.set_description( "Specify the column in the main dataset sample file which will be matched to the ID_1 column of the dataset specified by -compare-to" )
+	options[ "-match-sample-ids" ]
+		.set_description( "Specify the columns in the main and comparison dataset sample files that will be used to match samples. "
+				"The value should be of the form <main dataset column>~<comparison dataset column>." )
 		.set_takes_single_value()
-		.set_default_value( "ID_1" )
+		.set_default_value( "ID_1~ID_1" )
 	;
 	
 	options.option_implies_option( "-snp-stats", "-g" ) ;
@@ -91,7 +92,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options.option_implies_option( "-test", "-g" ) ;
 	options.option_implies_option( "-test", "-s" ) ;
 	options.option_implies_option( "-stratify", "-s" ) ;
-	options.option_implies_option( "-compare-to-sample-id", "-compare-to" ) ;
+	options.option_implies_option( "-match-sample-ids", "-compare-to" ) ;
 }
 
 SNPSummaryComponent::SNPSummaryComponent(
@@ -242,12 +243,24 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 
 	if( m_options.check( "-compare-to" )) {
 		std::vector< std::string > filenames = m_options.get_values< std::string >( "-compare-to" ) ;
+
+		std::vector< std::string > sample_id_columns = genfile::string_utils::split(
+			m_options.get< std::string >( "-match-sample-ids" ),
+			"~"
+		) ;
+		assert( sample_id_columns.size() == 2 ) ;
 		snp_stats::CrossDataSetConcordanceComputation::UniquePtr computation(
 			new snp_stats::CrossDataSetConcordanceComputation(
 				m_samples,
-				m_options.get< std::string >( "-compare-to-sample-id" )
+				sample_id_columns[0]
 			)
 		) ;
+
+		computation->set_comparer(
+			genfile::SNPIdentifyingData::CompareFields(
+				m_options.get_value< std::string >( "-snp-match-fields" )
+			)
+		) ; 
 		
 		computation->set_alternate_dataset(
 			genfile::CohortIndividualSource::create( filenames[0] ),
@@ -255,7 +268,8 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 				genfile::wildcard::find_files_by_chromosome(
 					filenames[1]
 				)
-			)
+			),
+			sample_id_columns[1]
 		) ;
 		
 		manager.add_computation(
