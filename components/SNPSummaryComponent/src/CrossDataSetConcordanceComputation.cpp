@@ -80,21 +80,28 @@ namespace snp_stats {
 			if( m_comparer.are_equal( alt_snp, snp )) {
 				found = true ;
 				break ;
+			} else {
+				m_alt_dataset_snps->ignore_snp_probability_data() ;
 			}
 		}
 		if( found ) {
+			callback( "compared_variant_rsid", alt_snp.get_rsid() ) ;
 			genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( m_alt_dataset_genotypes, m_call_threshhold, -1, 0, 1, 2 ) ;
 			m_alt_dataset_snps->read_variant_data()->get( "genotypes", setter ) ;
 
 			SampleMapping::const_iterator i = m_sample_mapping.begin() ;
 			SampleMapping::const_iterator const end_i = m_sample_mapping.end() ;
 
+			int call_count = 0 ;
+			int concordant_call_count = 0 ;
 			for( std::size_t count = 0; i != end_i; ++i, ++count ) {
 				double const alt_genotype = m_alt_dataset_genotypes( i->second ) ;
-				std::string const stub = to_string( i->first + 1 ) + "~" + to_string( i->second + 1 ) + "(" + m_sample_ids[ i->first ].as< std::string >() + ")" ;
+				std::string const stub = m_sample_ids[ i->first ].as< std::string >() + "(" + to_string( i->first + 1 ) + "~" + to_string( i->second + 1 ) + ")"  ;
 				if( alt_genotype != -1 ) {
+					++call_count ;
 					if( genotypes( i->first, alt_genotype ) > m_call_threshhold ) {
 						callback( stub + ":concordance", 1 ) ;
+						++concordant_call_count ;
 					} else {
 						callback( stub + ":concordance", 0 ) ;
 					}
@@ -102,6 +109,9 @@ namespace snp_stats {
 					callback( stub + ":concordance", genfile::MissingValue() ) ;
 				}
 			}
+
+			callback( "total calls", call_count ) ;
+			callback( "total concordant calls", concordant_call_count ) ;
 		}
 	}
 
