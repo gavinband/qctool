@@ -35,9 +35,6 @@ namespace statfile {
 
 	protected:
 
-		void write_value( long unsigned int const& value ) {
-			write_value_impl< long unsigned int >( value ) ;
-		}
 		void write_value( int32_t const& value ) {
 			write_value_impl< int32_t >( value ) ;
 		}
