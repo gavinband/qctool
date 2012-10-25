@@ -64,13 +64,13 @@ namespace impl {
 			Eigen::MatrixXd* missing_count,
 			AccumulateXXt accumulate_xxt
 		):
-			m_number_of_samples( result->cols() ),
 			m_result( result ),
 			m_non_missing_count( missing_count ),
 			m_call_threshhold( 0.9 ),
 			m_allele_frequency_threshhold( 0.01 ),
-			m_finalised( false ),
-			m_accumulate_xxt( accumulate_xxt )
+			m_accumulate_xxt( accumulate_xxt ),
+			m_number_of_samples( result->cols() ),
+			m_finalised( false )
 		{
 			assert( result ) ;
 			assert( m_accumulate_xxt ) ;
@@ -79,14 +79,14 @@ namespace impl {
 		void finalise() { m_finalised = true ;}		
 		bool is_finalised() const { return m_finalised ;}
 
-		std::size_t number_of_snps() const { return m_genotype_calls.size() ; }
+		std::size_t number_of_snps() const { return m_data.size() ; }
 
 	protected:
 		Eigen::MatrixXd* m_result ;
 		Eigen::MatrixXd* m_non_missing_count ;
 		double const m_call_threshhold ;
 		double const m_allele_frequency_threshhold ;
-		std::vector< Eigen::VectorXd* > m_genotype_calls ;
+		std::vector< Eigen::VectorXd* > m_data ;
 		std::vector< Eigen::VectorXd* > m_working_space ;
 		AccumulateXXt m_accumulate_xxt ;
 	private:
@@ -111,13 +111,13 @@ namespace impl {
 		) {
 			genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( genotypes, non_missing_calls, m_call_threshhold, 0, 0, 1, 2 ) ;
 			data_reader->get( "genotypes", setter ) ;
-			m_genotype_calls.push_back( &genotypes ) ;
+			m_data.push_back( &genotypes ) ;
 			m_working_space.push_back( &non_missing_calls ) ;
 		}
 		
 		void operator()() {
-			for( std::size_t snp_i = 0; snp_i < m_genotype_calls.size(); ++snp_i ) {
-				Eigen::VectorXd& genotype_calls = *m_genotype_calls[ snp_i ] ;
+			for( std::size_t snp_i = 0; snp_i < m_data.size(); ++snp_i ) {
+				Eigen::VectorXd& genotype_calls = *m_data[ snp_i ] ;
 				Eigen::VectorXd& non_missing_genotypes = *m_working_space[ snp_i ] ;
 				double allele_frequency = genotype_calls.sum() / ( 2.0 * non_missing_genotypes.sum() ) ;
 				if( allele_frequency > m_allele_frequency_threshhold ) {
@@ -141,6 +141,51 @@ namespace impl {
 		}
 	} ;
 
+	struct ComputeUnnormalisedXXtTask: public ComputeXXtTask {
+		ComputeUnnormalisedXXtTask(
+			Eigen::MatrixXd* result,
+			Eigen::MatrixXd* missing_count,
+			AccumulateXXt accumulate_xxt = &accumulate_xxt_using_cblas,
+			std::string const& data_field = "XY"
+		):
+			ComputeXXtTask( result, missing_count, accumulate_xxt ),
+			m_data_field( data_field )
+		{
+		}
+
+		void add_snp(
+			genfile::VariantDataReader::SharedPtr data_reader,
+			Eigen::VectorXd& data,
+			Eigen::VectorXd& non_missing_data
+		) {
+//			genfile::vcf::NumericalSetter< Eigen::VectorXd > setter( data, non_missing_data ) ;
+			//data_reader->get( m_data_field, setter ) ;
+			m_data.push_back( &data ) ;
+			m_working_space.push_back( &non_missing_data ) ;
+		}
+		
+		void operator()() {
+			for( std::size_t snp_i = 0; snp_i < m_data.size(); ++snp_i ) {
+				Eigen::VectorXd& data = *m_data[ snp_i ] ;
+				Eigen::VectorXd& non_missing_data = *m_working_space[ snp_i ] ;
+				m_accumulate_xxt(
+					&data,
+					m_result,
+					1.0
+				) ;
+				m_accumulate_xxt(
+					&non_missing_data,
+					m_non_missing_count,
+					1.0
+				) ;
+			}
+		}
+		
+	private:
+		std::string const m_data_field ;
+		Eigen::MatrixXd m_intensities ;
+	} ;
+
 	struct ComputeConcordanceTask: public ComputeXXtTask {
 		ComputeConcordanceTask(
 			Eigen::MatrixXd* result,
@@ -158,13 +203,13 @@ namespace impl {
 		) {
 			genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( genotypes, m_call_threshhold, -1, 0, 1, 2 ) ;
 			data_reader->get( "genotypes", setter ) ;
-			m_genotype_calls.push_back( &genotypes ) ;
+			m_data.push_back( &genotypes ) ;
 			m_working_space.push_back( &working_space ) ;
 		}
 		
 		void operator()() {
-			for( std::size_t snp_i = 0; snp_i < m_genotype_calls.size(); ++snp_i ) {
-				Eigen::VectorXd& genotype_calls = *m_genotype_calls[ snp_i ] ;
+			for( std::size_t snp_i = 0; snp_i < m_data.size(); ++snp_i ) {
+				Eigen::VectorXd& genotype_calls = *m_data[ snp_i ] ;
 				Eigen::VectorXd& genotype_indicator = *m_working_space[ snp_i ] ;
 
 				genotype_indicator.resize( genotype_calls.size() ) ;
