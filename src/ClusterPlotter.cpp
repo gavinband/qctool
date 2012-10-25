@@ -135,12 +135,20 @@ namespace impl {
 				graph.Title( ( m_analysis_name + ":" + m_snp.get_rsid() ).c_str(), 0, 4 ) ;
 				graph.SubPlot( N, M, count ) ;
 				graph.SetTickLen( 0.04 ) ;
+				double m_max_value = -1 ;
+				for( int i = 0; i < m_intensities.cols(); ++i ) {
+					for( int row = 0; row < 2; ++row ) {	
+						if( m_intensities(row,i) == m_intensities(row,i) ) {
+							m_max_value = std::max( m_max_value, m_intensities(row,i) ) ;
+						}
+					}
+				}
 				double x_range_max = std::min(
-					m_intensities.row(0).maxCoeff(),
+					m_max_value,
 					m_intensity_threshhold
 				) ;
 				double y_range_max = std::min(
-					m_intensities.row(1).maxCoeff(),
+					m_max_value,
 					m_intensity_threshhold
 				) ;
 				graph.SetRanges(
