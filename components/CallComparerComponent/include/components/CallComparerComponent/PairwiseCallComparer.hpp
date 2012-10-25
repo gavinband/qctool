@@ -16,13 +16,17 @@
 #include "genfile/VariantEntry.hpp"
 
 struct PairwiseCallComparer {
+public:
 	typedef std::auto_ptr< PairwiseCallComparer > UniquePtr ;
+	typedef boost::function< void ( std::string const&, genfile::VariantEntry const& ) > Callback ;
+public:
 	static UniquePtr create( std::string const& spec ) ;
 
 	virtual ~PairwiseCallComparer() {}
-	virtual std::map< std::string, genfile::VariantEntry > compare(
+	virtual void compare(
 		Eigen::MatrixXd const& left,
-		Eigen::MatrixXd const& right
+		Eigen::MatrixXd const& right,
+		Callback callback
 	) const = 0 ;
 } ;
 

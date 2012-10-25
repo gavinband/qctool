@@ -12,6 +12,7 @@
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
 #include "components/CallComparerComponent/AlleleFrequencyTestCallComparer.hpp"
+#include "components/CallComparerComponent/GenotypeTabulatingCallComparer.hpp"
 #include "components/CallComparerComponent/PairwiseCallComparer.hpp"
 
 PairwiseCallComparer::UniquePtr PairwiseCallComparer::create( std::string const& model ) {
@@ -21,6 +22,9 @@ PairwiseCallComparer::UniquePtr PairwiseCallComparer::create( std::string const&
 	}
 	else if( model == "AcceptAll" ) {
 		// empty.
+	}
+	else if( model == "GenotypeTabulatingCallComparer" ) {
+		result.reset( new GenotypeTabulatingCallComparer() ) ;
 	}
 	else {
 		throw genfile::BadArgumentError( "PairwiseCallComparer::create()", "model=\"" + model + "\"" ) ;

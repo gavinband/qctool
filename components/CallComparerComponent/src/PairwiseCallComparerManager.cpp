@@ -73,16 +73,19 @@ void PairwiseCallComparerManager::end_processing_snp() {
 		Calls::const_iterator j = i ;
 		for( ++j; j != m_calls.end(); ++j ) {
 			for( Comparers::const_iterator comparer_i = m_comparers.begin(); comparer_i != m_comparers.end(); ++comparer_i ) {
-				std::map< std::string, genfile::VariantEntry > const& result = comparer_i->second->compare( i->second, j->second ) ;
-				std::map< std::string, genfile::VariantEntry >::const_iterator
-					result_i = result.begin(),
-					result_end = result.end() ;
-				for( ; result_i != result_end; ++result_i ) {
-					send_comparisons_to_clients( i->first, j->first, comparer_i->first, result_i->first, result_i->second ) ;
-					if( m_merger.get() ) {
-						m_merger->set_result( i->first, j->first, comparer_i->first, result_i->first, result_i->second ) ;
-					}
-				}
+				comparer_i->second->compare(
+					i->second,
+					j->second,
+					boost::bind(
+						&PairwiseCallComparerManager::send_comparisons_to_clients,
+						this,
+						i->first,
+						j->first,
+						comparer_i->first,
+						_1,
+						_2
+					)
+				) ;
 			}
 		}
 	}
@@ -113,6 +116,9 @@ void PairwiseCallComparerManager::send_comparisons_to_clients(
 	for( std::size_t i = 0; i < m_comparison_clients.size(); ++i ) {
 		m_comparison_clients[i]->set_result( first_callset, second_callset, comparison, variable, value ) ;
 	}
+	if( m_merger.get() ) {
+		m_merger->set_result( first_callset, second_callset, comparison, variable, value ) ;
+	}
 }
 
 void PairwiseCallComparerManager::send_merge_to_clients(
@@ -131,7 +137,7 @@ PairwiseCallComparerManager::Merger::UniquePtr PairwiseCallComparerManager::Merg
 		result.reset(
 			new FrequentistTestCallMerger(
 				model,
-				options.get_value< double >( "-compare-calls-pvalue-threshhold" )
+				options.get_value< double >( "-consensus-call-pvalue-threshhold" )
 			)
 		) ;
 	}

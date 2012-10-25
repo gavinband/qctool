@@ -62,7 +62,7 @@ void CallComparerComponent::declare_options( appcontext::OptionProcessor& option
 	options[ "-compare-calls" ]
 		.set_description( "Compare genotype calls from the given fields of a VCF or other file. "
 		 	"The value should be a comma-separated list of genotype call fields in the data.")
-		.set_takes_single_value() ;
+		.set_takes_values_until_next_option() ;
 	options[ "-compare-calls-file" ]
 		.set_description( "Name of output file to put call comparisons in." )
 		.set_takes_single_value()
@@ -85,7 +85,7 @@ void CallComparerComponent::declare_options( appcontext::OptionProcessor& option
 		 	"Currently this can be \"LeastMissing\" or \"QuangStyle\"." )
 		.set_takes_single_value()
 		.set_default_value( "LeastMissing" ) ;
-	options[ "-compare-calls-pvalue-threshhold" ]
+	options[ "-consensus-call-pvalue-threshhold" ]
 		.set_description( "Treat calls in call comparison treated as distinct if the p-value of an association test between them "
 			"is less than or equal to this value." )
 		.set_takes_single_value()
@@ -93,8 +93,8 @@ void CallComparerComponent::declare_options( appcontext::OptionProcessor& option
 
 	options.option_implies_option( "-consensus-call", "-s" ) ;
 	options.option_implies_option( "-compare-calls", "-s" ) ;
-	options.option_implies_option( "-compare-calls", "-consensus-call" ) ;
-	options.option_implies_option( "-compare-calls-pvalue-threshhold", "-compare-calls" ) ;
+	options.option_implies_option( "-consensus-call", "-compare-calls" ) ;
+	options.option_implies_option( "-consensus-call-pvalue-threshhold", "-compare-calls" ) ;
 }
 
 CallComparerComponent::UniquePtr CallComparerComponent::create(
@@ -144,10 +144,10 @@ void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor ) 
 	PairwiseCallComparerManager::UniquePtr manager( PairwiseCallComparerManager::create().release() ) ;
 
 	std::string filename ;
-	if( m_options.check( "-compare-calls-file" )) {
-		filename = m_options.get< std::string >( "-compare-calls-file" ) ;
+	if( m_options.check( "-o" )) {
+		filename = m_options.get< std::string >( "-o" ) ;
 	} else {
-		filename = genfile::strip_gen_file_extension_if_present( m_options.get< std::string >( "-g" ) ) + ".qcdb";
+		filename = genfile::strip_gen_file_extension_if_present( m_options.get< std::string >( "-g" ) ) + ( m_options.check( "-flat-file" ) ? ".tsv" : ".qcdb" ) ;
 	}
 	if( m_options.check( "-flat-file" ) ) {
 		CallComparerFileOutputter::SharedPtr outputter = CallComparerFileOutputter::create_shared( filename, m_options.get< std::string >( "-analysis-name" ) ) ;
@@ -160,41 +160,43 @@ void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor ) 
 	}
 	
 	std::string const comparison_model = m_options.get< std::string >( "-comparison-model" ) ;
-	manager->add_comparer( comparison_model, PairwiseCallComparer::create( comparison_model ) ) ;
+	if( comparison_model != "AcceptAll" ) {
+		manager->add_comparer( comparison_model, PairwiseCallComparer::create( comparison_model ) ) ;
+	}
+	manager->add_comparer( "GenotypeTabulatingCallComparer", PairwiseCallComparer::create( "GenotypeTabulatingCallComparer" ) ) ;
+
 	manager->set_merger( PairwiseCallComparerManager::Merger::create( comparison_model, m_options ) ) ;
 
-	ConsensusCaller::SharedPtr consensus_caller ;
-	{
-		genfile::SNPDataSink::SharedPtr sink(
-			genfile::SNPDataSink::create(
-				m_options.get< std::string >( "-consensus-call" )
-			).release()
-		) ;
-		sink->set_sample_names(
-			m_samples.get_number_of_individuals(),
-			boost::bind( get_sample_entry, boost::ref( m_samples ), "ID_1", _1 )
-		) ;
-		consensus_caller = ConsensusCaller::create_shared( m_options.get< std::string >( "-consensus-model" ) ) ;
-		consensus_caller->send_results_to(
-			boost::bind(
-				&send_results_to_sink,
-				sink,
-				_1,
-				_2,
-				_3
-			)
-		) ;
+	if( m_options.check( "-consensus-call" )) {
+		ConsensusCaller::SharedPtr consensus_caller ;
+		{
+			genfile::SNPDataSink::SharedPtr sink(
+				genfile::SNPDataSink::create(
+					m_options.get< std::string >( "-consensus-call" )
+				).release()
+			) ;
+			sink->set_sample_names(
+				m_samples.get_number_of_individuals(),
+				boost::bind( get_sample_entry, boost::ref( m_samples ), "ID_1", _1 )
+			) ;
+			consensus_caller = ConsensusCaller::create_shared( m_options.get< std::string >( "-consensus-model" ) ) ;
+			consensus_caller->send_results_to(
+				boost::bind(
+					&send_results_to_sink,
+					sink,
+					_1,
+					_2,
+					_3
+				)
+			) ;
+		}
+		manager->send_merge_to( consensus_caller ) ;
 	}
-
-	manager->send_merge_to( consensus_caller ) ;
+	
 
 	CallComparerProcessor::UniquePtr ccc = CallComparerProcessor::create(
 		manager,
-		genfile::string_utils::split_and_strip_discarding_empty_entries(
-			m_options.get_value< std::string >( "-compare-calls" ),
-			",",
-			" \t"
-		)
+		m_options.get_values< std::string >( "-compare-calls" )
 	) ;
 	
 	processor.add_callback( genfile::SNPDataSourceProcessor::Callback::UniquePtr( ccc.release() ) ) ;

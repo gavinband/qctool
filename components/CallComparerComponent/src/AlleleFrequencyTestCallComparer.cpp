@@ -30,9 +30,10 @@ AlleleFrequencyTestCallComparer::AlleleFrequencyTestCallComparer():
  	m_chi_squared( 2.0 )
 {}
 
-std::map< std::string, genfile::VariantEntry > AlleleFrequencyTestCallComparer::compare(
+void AlleleFrequencyTestCallComparer::compare(
 	Eigen::MatrixXd const& left,
-	Eigen::MatrixXd const& right
+	Eigen::MatrixXd const& right,
+	Callback callback
 ) const {
 	// Make table of counts
 	assert( left.rows() == right.rows() ) ;
@@ -90,8 +91,6 @@ std::map< std::string, genfile::VariantEntry > AlleleFrequencyTestCallComparer::
 #endif
 
 	
-	std::map< std::string, genfile::VariantEntry > result ;
-	result[ "likelihood_ratio_test_statistic" ] = likelihood_ratio_statistic ;
-	result[ "pvalue" ] = p_value ;
-	return result ;
+	callback( "likelihood_ratio_test_statistic", likelihood_ratio_statistic ) ;
+	callback( "pvalue", p_value ) ;
 }

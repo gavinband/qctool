@@ -4,19 +4,19 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef QCTOOL_ALLELE_FREQUENCY_TEST_CALL_COMPARER_HPP
-#define QCTOOL_ALLELE_FREQUENCY_TEST_CALL_COMPARER_HPP
+#ifndef QCTOOL_GENOTYPE_TABULATING_CALL_COMPARER_HPP
+#define QCTOOL_GENOTYPE_TABULATING_CALL_COMPARER_HPP
 
 #include <string>
 #include <map>
-#include <boost/math/distributions/chi_squared.hpp>
+#include <Eigen/Core>
 #include <boost/function.hpp>
-#include "genfile/SingleSNPGenotypeProbabilities.hpp"
+#include "genfile/VariantEntry.hpp"
 #include "PairwiseCallComparer.hpp"
 
-struct AlleleFrequencyTestCallComparer: public PairwiseCallComparer {
+struct GenotypeTabulatingCallComparer: public PairwiseCallComparer {
 
-	AlleleFrequencyTestCallComparer() ;
+	GenotypeTabulatingCallComparer() ;
 
 	void compare(
 		Eigen::MatrixXd const& left,
@@ -25,8 +25,7 @@ struct AlleleFrequencyTestCallComparer: public PairwiseCallComparer {
 	) const ;
 	
 private:
-	double m_threshhold ;
-	boost::math::chi_squared_distribution< double > m_chi_squared ;	
+	double const m_threshhold ;
 } ;
 
 #endif
