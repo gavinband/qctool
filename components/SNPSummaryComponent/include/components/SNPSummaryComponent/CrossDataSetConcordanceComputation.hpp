@@ -46,7 +46,7 @@ namespace snp_stats {
 		SampleIdList m_alt_dataset_sample_ids ;
 		SampleMapping m_sample_mapping ;
 
-		Eigen::VectorXd m_main_dataset_genotypes ;
+		Eigen::VectorXd m_main_dataset_genotype_subset ;
 		Eigen::VectorXd m_alt_dataset_genotypes ;
 		Eigen::VectorXd m_pairwise_nonmissingness ;
 	} ;

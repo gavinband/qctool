@@ -96,19 +96,20 @@ namespace snp_stats {
 			int call_count = 0 ;
 			int concordant_call_count = 0 ;
 			
-			m_main_dataset_genotypes.resize( m_sample_mapping.size() ) ;
-			m_pairwise_nonmissingness.resize( m_sample_mapping.size() ) ;
+			m_main_dataset_genotype_subset.resize( m_alt_dataset_genotypes.size() ) ;
+			m_pairwise_nonmissingness.resize( m_alt_dataset_genotypes.size() ) ;
 			m_pairwise_nonmissingness.setZero() ;
 
 			for( std::size_t count = 0; i != end_i; ++i, ++count ) {
-				double const alt_genotype = m_alt_dataset_genotypes( i->second ) ;
+				std::size_t const alt_dataset_sample_index = i->second ;
+				double const alt_genotype = m_alt_dataset_genotypes( alt_dataset_sample_index ) ;
 				std::string const stub = m_sample_ids[ i->first ].as< std::string >() + "(" + to_string( i->first + 1 ) + "~" + to_string( i->second + 1 ) + ")"  ;
 				if( alt_genotype != -1 ) {
 					++call_count ;
 					for( int g = 0; g < 3; ++g ) {
 						if( genotypes( i->first, g ) > m_call_threshhold ) {
-							m_main_dataset_genotypes( count ) = g ;
-							m_pairwise_nonmissingness( count ) = 1 ;
+							m_main_dataset_genotype_subset( alt_dataset_sample_index ) = g ;
+							m_pairwise_nonmissingness( alt_dataset_sample_index ) = 1 ;
 
 							if( g == alt_genotype ) {
 								callback( stub + ":concordance", 1 ) ;
@@ -127,7 +128,7 @@ namespace snp_stats {
 			callback( "pairwise non-missing calls", call_count ) ;
 			callback( "pairwise concordant calls", concordant_call_count ) ;
 			callback( "concordance", double( concordant_call_count ) / double( call_count ) ) ;
-			callback( "correlation", metro::compute_correlation( m_main_dataset_genotypes, m_alt_dataset_genotypes, m_pairwise_nonmissingness )) ;
+			callback( "correlation", metro::compute_correlation( m_main_dataset_genotype_subset, m_alt_dataset_genotypes, m_pairwise_nonmissingness )) ;
 		}
 	}
 
