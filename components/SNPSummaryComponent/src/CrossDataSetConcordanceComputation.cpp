@@ -13,6 +13,7 @@
 #include "genfile/SNPDataSource.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 #include "components/SNPSummaryComponent/CrossDataSetConcordanceComputation.hpp"
+#include "metro/correlation.hpp"
 
 namespace snp_stats {
 	namespace impl {
@@ -94,24 +95,39 @@ namespace snp_stats {
 
 			int call_count = 0 ;
 			int concordant_call_count = 0 ;
+			
+			m_main_dataset_genotypes.resize( m_sample_mapping.size() ) ;
+			m_pairwise_nonmissingness.resize( m_sample_mapping.size() ) ;
+			m_pairwise_nonmissingness.setZero() ;
+
 			for( std::size_t count = 0; i != end_i; ++i, ++count ) {
 				double const alt_genotype = m_alt_dataset_genotypes( i->second ) ;
 				std::string const stub = m_sample_ids[ i->first ].as< std::string >() + "(" + to_string( i->first + 1 ) + "~" + to_string( i->second + 1 ) + ")"  ;
 				if( alt_genotype != -1 ) {
 					++call_count ;
-					if( genotypes( i->first, alt_genotype ) > m_call_threshhold ) {
-						callback( stub + ":concordance", 1 ) ;
-						++concordant_call_count ;
-					} else {
-						callback( stub + ":concordance", 0 ) ;
+					for( int g = 0; g < 3; ++g ) {
+						if( genotypes( i->first, g ) > m_call_threshhold ) {
+							m_main_dataset_genotypes( count ) = g ;
+							m_pairwise_nonmissingness( count ) = 1 ;
+
+							if( g == alt_genotype ) {
+								callback( stub + ":concordance", 1 ) ;
+								++concordant_call_count ;
+							}
+							else {
+								callback( stub + ":concordance", 0 ) ;
+							}
+						}
 					}
 				} else {
 					callback( stub + ":concordance", genfile::MissingValue() ) ;
 				}
 			}
 
-			callback( "total calls", call_count ) ;
-			callback( "total concordant calls", concordant_call_count ) ;
+			callback( "pairwise non-missing calls", call_count ) ;
+			callback( "pairwise concordant calls", concordant_call_count ) ;
+			callback( "concordance", double( concordant_call_count ) / double( call_count ) ) ;
+			callback( "correlation", metro::compute_correlation( m_main_dataset_genotypes, m_alt_dataset_genotypes, m_pairwise_nonmissingness )) ;
 		}
 	}
 
