@@ -9,6 +9,7 @@
 
 #include <boost/function.hpp>
 #include <boost/optional.hpp>
+#include <boost/shared_ptr.hpp>
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
@@ -25,6 +26,7 @@ namespace genfile {
 		
 		struct Callback {
 			typedef std::auto_ptr< Callback > UniquePtr ;
+			typedef boost::shared_ptr< Callback > SharedPtr ;
 			virtual ~Callback() ;
 			virtual void begin_processing_snps( std::size_t number_of_samples ) = 0 ;
 			virtual void processed_snp( SNPIdentifyingData const&, VariantDataReader::SharedPtr data_reader ) ;

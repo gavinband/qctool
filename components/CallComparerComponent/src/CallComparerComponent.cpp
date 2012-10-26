@@ -26,6 +26,8 @@
 #include "components/CallComparerComponent/CallComparerDBOutputter.hpp"
 #include "components/CallComparerComponent/CallComparerFileOutputter.hpp"
 #include "components/CallComparerComponent/LeastMissingConsensusCaller.hpp"
+#include "components/SNPSummaryComponent/DBOutputter.hpp"
+#include "components/SNPSummaryComponent/FlatFileOutputter.hpp"
 
 
 CallComparerProcessor::UniquePtr CallComparerProcessor::create( PairwiseCallComparerManager::UniquePtr comparer, std::vector< std::string > const& call_fields ) {
@@ -140,6 +142,50 @@ namespace {
 	}
 }
 
+namespace {
+	// Adapter to adapt SNPSummaryComponent outputters to be used here.
+	struct SNPSummaryOutputter: public PairwiseCallComparerManager::ComparisonClient {
+	public:
+		static UniquePtr create( snp_summary_component::Storage::UniquePtr outputter ) {
+			return UniquePtr( new SNPSummaryOutputter( outputter ) ) ;
+		}
+
+		static SharedPtr create_shared( snp_summary_component::Storage::UniquePtr outputter ) {
+			return SharedPtr( new SNPSummaryOutputter( outputter ) ) ;
+		}
+
+	public:
+		SNPSummaryOutputter( snp_summary_component::Storage::UniquePtr outputter ):
+			m_outputter( outputter )
+		{}
+
+		void begin_comparisons( genfile::SNPIdentifyingData const& snp ) {
+			m_snp = snp ;
+		} ;
+
+		void end_comparisons() {} 
+		
+		void set_result(
+			std::string const& first_callset,
+			std::string const& second_callset,
+			std::string const& comparison,
+			std::string const& variable,
+			genfile::VariantEntry const& value
+		) {
+			m_outputter->store_per_variant_data(
+				m_snp,
+				comparison + ":" + first_callset + "/" + second_callset + ":" + variable,
+				value
+			) ;
+		}
+
+	private:
+		snp_summary_component::Storage::UniquePtr m_outputter ;
+		genfile::SNPIdentifyingData m_snp ;
+	} ;
+	
+}
+
 void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor ) const {
 	PairwiseCallComparerManager::UniquePtr manager( PairwiseCallComparerManager::create().release() ) ;
 
@@ -149,15 +195,45 @@ void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor ) 
 	} else {
 		filename = genfile::strip_gen_file_extension_if_present( m_options.get< std::string >( "-g" ) ) + ( m_options.check( "-flat-file" ) ? ".tsv" : ".qcdb" ) ;
 	}
+
+	SNPSummaryOutputter::SharedPtr snp_outputter ;
+	
 	if( m_options.check( "-flat-file" ) ) {
-		CallComparerFileOutputter::SharedPtr outputter = CallComparerFileOutputter::create_shared( filename, m_options.get< std::string >( "-analysis-name" ) ) ;
-		manager->send_comparisons_to( outputter ) ;
-		manager->send_merge_to( outputter ) ;
+		snp_outputter = SNPSummaryOutputter::create_shared(
+			snp_summary_component::FlatFileOutputter::create(
+				filename,
+				m_options.get< std::string >( "-analysis-name" ),
+				m_options.get_values_as_map()
+			)
+		) ;
+		/*
+		manager->send_merge_to(
+			CallComparerFileOutputter::create_shared(
+				filename,
+				m_options.get< std::string >( "-analysis-name" )
+			)
+		) ;
+		*/
 	} else {
-		CallComparerDBOutputter::SharedPtr outputter = CallComparerDBOutputter::create_shared( filename, m_options.get< std::string >( "-analysis-name" ) ) ;
-		manager->send_comparisons_to( outputter ) ;
-		manager->send_merge_to( outputter ) ;
+		snp_outputter = SNPSummaryOutputter::create_shared(
+			snp_summary_component::DBOutputter::create(
+				filename,
+				m_options.get< std::string >( "-analysis-name" ),
+				m_options.get_values_as_map()
+			)
+		) ;
+	/*
+		manager->send_merge_to(
+			CallComparerDBOutputter::create_shared(
+				filename,
+				m_options.get< std::string >( "-analysis-name" ),
+				m_options.get_values_as_map()
+			)
+		) ;
+		*/
 	}
+
+	manager->send_comparisons_to( snp_outputter ) ;
 	
 	std::string const comparison_model = m_options.get< std::string >( "-comparison-model" ) ;
 	if( comparison_model != "AcceptAll" ) {

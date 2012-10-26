@@ -45,9 +45,9 @@ void GenotypeTabulatingCallComparer::compare(
 	}
 
 	for( int g1 = 0; g1 < 4; ++g1 ) {
-		std::string const variable_name1 = ( g1 == 4 ) ? "NA" : genfile::string_utils::to_string( g1 ) ;
+		std::string const variable_name1 = ( g1 == 3 ) ? "missing" : genfile::string_utils::to_string( g1 ) ;
 		for( int g2 = 0; g2 < 4; ++g2 ) {
-			std::string const variable_name2 = ( g2 == 4 ) ? "NA" : genfile::string_utils::to_string( g2 ) ;
+			std::string const variable_name2 = ( g2 == 3 ) ? "missing" : genfile::string_utils::to_string( g2 ) ;
 			callback( variable_name1 + "/" + variable_name2, table( g1, g2 ) ) ;
 		}
 	}

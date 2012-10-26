@@ -254,6 +254,7 @@ public:
 				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
 				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
 			.set_takes_single_value() ;
+
 		options.declare_group( "Options for adjusting SNPs" ) ;
 	    options[ "-strand" ]
 	        .set_description( 	"Path of strand file(s) to input.  "
