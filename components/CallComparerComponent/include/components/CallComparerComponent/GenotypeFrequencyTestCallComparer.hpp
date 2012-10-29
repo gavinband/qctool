@@ -4,8 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef QCTOOL_ALLELE_FREQUENCY_TEST_CALL_COMPARER_HPP
-#define QCTOOL_ALLELE_FREQUENCY_TEST_CALL_COMPARER_HPP
+#ifndef QCTOOL_Genotype_FREQUENCY_TEST_CALL_COMPARER_HPP
+#define QCTOOL_Genotype_FREQUENCY_TEST_CALL_COMPARER_HPP
 
 #include <string>
 #include <map>
@@ -14,9 +14,9 @@
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
 #include "PairwiseCallComparer.hpp"
 
-struct AlleleFrequencyTestCallComparer: public PairwiseCallComparer {
+struct GenotypeFrequencyTestCallComparer: public PairwiseCallComparer {
 
-	AlleleFrequencyTestCallComparer() ;
+	GenotypeFrequencyTestCallComparer() ;
 
 	void compare(
 		Eigen::MatrixXd const& left,

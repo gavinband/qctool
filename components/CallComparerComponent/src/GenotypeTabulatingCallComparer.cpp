@@ -22,7 +22,7 @@ void GenotypeTabulatingCallComparer::compare(
 	Callback callback
 ) const {
 	// Make table of counts
-	std::size_t const N = left.rows() ;
+	int const N = left.rows() ;
 	assert( right.rows() == N ) ;
 	assert( left.cols() == 3 ) ;
 	assert( right.cols() == 3 ) ;

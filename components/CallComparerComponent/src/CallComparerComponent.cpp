@@ -78,9 +78,9 @@ void CallComparerComponent::declare_options( appcontext::OptionProcessor& option
 		.set_default_value( "call-comparisons.vcf" ) ;
 
 	options[ "-comparison-model" ]
-		.set_description( "Set the model used for call comparison.  Currently this must be \"AlleleFrequencyTest\". or \"AcceptAll\"." )
+		.set_description( "Set the model used for call comparison.  Currently this must be \"GenotypeFrequencyTest\". or \"AcceptAll\"." )
 		.set_takes_single_value()
-		.set_default_value( "AlleleFrequencyTest" ) ;
+		.set_default_value( "GenotypeFrequencyTest" ) ;
 
 	options[ "-consensus-model" ]
 		.set_description( "Model used to combine calls in the consensus set of calls. "

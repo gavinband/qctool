@@ -12,11 +12,12 @@
 #include <Eigen/Core>
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
 #include "integration/NewtonRaphson.hpp"
-#include "components/CallComparerComponent/AlleleFrequencyTestCallComparer.hpp"
+#include "components/CallComparerComponent/GenotypeFrequencyTestCallComparer.hpp"
 #include "metro/likelihood/Multinomial.hpp"
 #include "metro/likelihood/ProductOfMultinomials.hpp"
+#include "metro/rBF.hpp"
 
-#define ALLELE_FREQUENCY_TEST_CALL_COMPARER_DEBUG 0
+#define Genotype_FREQUENCY_TEST_CALL_COMPARER_DEBUG 0
 
 namespace {
 	typedef Eigen::VectorXd Vector ;
@@ -25,12 +26,12 @@ namespace {
 	typedef metro::likelihood::ProductOfMultinomials< double, Vector, Matrix > ProductOfIndependentMultinomials ;
 }
 
-AlleleFrequencyTestCallComparer::AlleleFrequencyTestCallComparer():
+GenotypeFrequencyTestCallComparer::GenotypeFrequencyTestCallComparer():
 	m_threshhold( 0.9 ),
  	m_chi_squared( 2.0 )
 {}
 
-void AlleleFrequencyTestCallComparer::compare(
+void GenotypeFrequencyTestCallComparer::compare(
 	Eigen::MatrixXd const& left,
 	Eigen::MatrixXd const& right,
 	Callback callback
@@ -80,7 +81,7 @@ void AlleleFrequencyTestCallComparer::compare(
 		) ;
 	}
 	
-#if ALLELE_FREQUENCY_TEST_CALL_COMPARER_DEBUG
+#if Genotype_FREQUENCY_TEST_CALL_COMPARER_DEBUG
 		std::cerr << "Table is:\n" << table << ".\n" ;
 		std::cerr << "null_ml is:\n" << null_ml << ".\n" ;
 		std::cerr << "alt_ml is:\n" << null_ml << ".\n" ;
@@ -93,4 +94,5 @@ void AlleleFrequencyTestCallComparer::compare(
 	
 	callback( "likelihood_ratio_test_statistic", likelihood_ratio_statistic ) ;
 	callback( "pvalue", p_value ) ;
+	callback( "lambda=60/rBF", metro::compute_rBF( table, 60 )) ;
 }

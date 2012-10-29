@@ -11,14 +11,14 @@
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
-#include "components/CallComparerComponent/AlleleFrequencyTestCallComparer.hpp"
+#include "components/CallComparerComponent/GenotypeFrequencyTestCallComparer.hpp"
 #include "components/CallComparerComponent/GenotypeTabulatingCallComparer.hpp"
 #include "components/CallComparerComponent/PairwiseCallComparer.hpp"
 
 PairwiseCallComparer::UniquePtr PairwiseCallComparer::create( std::string const& model ) {
 	PairwiseCallComparer::UniquePtr result ;
-	if( model == "AlleleFrequencyTest" ) {
-		result.reset( new AlleleFrequencyTestCallComparer() ) ;
+	if( model == "GenotypeFrequencyTest" ) {
+		result.reset( new GenotypeFrequencyTestCallComparer() ) ;
 	}
 	else if( model == "AcceptAll" ) {
 		// empty.
