@@ -133,7 +133,7 @@ void PairwiseCallComparerManager::send_merge_to_clients(
 
 PairwiseCallComparerManager::Merger::UniquePtr PairwiseCallComparerManager::Merger::create( std::string const& model, appcontext::OptionProcessor const& options ) {
 	PairwiseCallComparerManager::Merger::UniquePtr result ;
-	if( model == "AlleleFrequencyTest" ) {
+	if( model == "GenotypeFrequencyTest" ) {
 		result.reset(
 			new FrequentistTestCallMerger(
 				model,

@@ -65,10 +65,8 @@ void CallComparerComponent::declare_options( appcontext::OptionProcessor& option
 		.set_description( "Compare genotype calls from the given fields of a VCF or other file. "
 		 	"The value should be a comma-separated list of genotype call fields in the data.")
 		.set_takes_values_until_next_option() ;
-	options[ "-compare-calls-file" ]
-		.set_description( "Name of output file to put call comparisons in." )
-		.set_takes_single_value()
-		.set_default_value( "call-comparisons.qcdb" ) ;
+	options[ "-tabulate-call-comparison" ]
+		.set_description( "Specify that a table of counts should be output for each pair of callsets at each SNP" ) ;
 	options[ "-consensus-call" ]
 		.set_description( "Combine calls from several different genotypers into a single consensus callset. "
 			"The calls to use are specified using the -compare-calls option. "
@@ -95,6 +93,7 @@ void CallComparerComponent::declare_options( appcontext::OptionProcessor& option
 
 	options.option_implies_option( "-consensus-call", "-s" ) ;
 	options.option_implies_option( "-compare-calls", "-s" ) ;
+	options.option_implies_option( "-tabulate-call-comparison", "-compare-calls" ) ;
 	options.option_implies_option( "-consensus-call", "-compare-calls" ) ;
 	options.option_implies_option( "-consensus-call-pvalue-threshhold", "-compare-calls" ) ;
 }
@@ -239,7 +238,9 @@ void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor ) 
 	if( comparison_model != "AcceptAll" ) {
 		manager->add_comparer( comparison_model, PairwiseCallComparer::create( comparison_model ) ) ;
 	}
-	manager->add_comparer( "GenotypeTabulatingCallComparer", PairwiseCallComparer::create( "GenotypeTabulatingCallComparer" ) ) ;
+	if( m_options.check( "-tabulate-call-comparison" )) {
+		manager->add_comparer( "GenotypeTabulatingCallComparer", PairwiseCallComparer::create( "GenotypeTabulatingCallComparer" ) ) ;
+	}
 
 	manager->set_merger( PairwiseCallComparerManager::Merger::create( comparison_model, m_options ) ) ;
 

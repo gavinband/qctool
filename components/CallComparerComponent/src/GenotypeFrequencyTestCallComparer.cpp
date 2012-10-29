@@ -17,7 +17,7 @@
 #include "metro/likelihood/ProductOfMultinomials.hpp"
 #include "metro/rBF.hpp"
 
-#define Genotype_FREQUENCY_TEST_CALL_COMPARER_DEBUG 0
+#define GENOTYPE_FREQUENCY_TEST_CALL_COMPARER_DEBUG 0
 
 namespace {
 	typedef Eigen::VectorXd Vector ;
@@ -81,17 +81,10 @@ void GenotypeFrequencyTestCallComparer::compare(
 		) ;
 	}
 	
-#if Genotype_FREQUENCY_TEST_CALL_COMPARER_DEBUG
-		std::cerr << "Table is:\n" << table << ".\n" ;
-		std::cerr << "null_ml is:\n" << null_ml << ".\n" ;
-		std::cerr << "alt_ml is:\n" << null_ml << ".\n" ;
-		std::cerr << "alt likelihood is " << alt0.get_value_of_function() << " x " << alt1.get_value_of_function() << ".\n" ;
-		std::cerr << "null likelihood is " << null_model.get_value_of_function() << ".\n" ;
-		std::cerr << "likelihood_ratio_statistic = " << likelihood_ratio_statistic << ".\n" ;
-		std::cerr << "p_value = " << p_value << ".\n" ;
+#if GENOTYPE_FREQUENCY_TEST_CALL_COMPARER_DEBUG
+	std::cerr << "Table is:\n" << table << ".\n" ;
 #endif
 
-	
 	callback( "likelihood_ratio_test_statistic", likelihood_ratio_statistic ) ;
 	callback( "pvalue", p_value ) ;
 	callback( "lambda=60/rBF", metro::compute_rBF( table, 60 )) ;

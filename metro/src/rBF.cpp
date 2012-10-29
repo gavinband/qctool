@@ -14,14 +14,18 @@ namespace metro {
 		template< typename Row1, typename Row2 >
 		double log_dirichlet_multinomial( Row1 const& counts, Row2 const& lambdas ) {
 			using boost::math::lgamma ;
-
-			double result
-				= lgamma( lambdas.sum() )
-				- lgamma( ( lambdas + counts ).sum() )
-			;
+			double result = 0.0 ;
+			if( lambdas.maxCoeff() > 0 ) {
+				result
+					+= lgamma( lambdas.sum() )
+					- lgamma( ( lambdas + counts ).sum() )
+				;
+			}
 
 			for( int i = 0; i < counts.size(); ++i ) {
-				result += lgamma( lambdas(i) + counts(i) ) - lgamma( lambdas(i) ) ;
+				if( lambdas(i) > 0 ) {
+					result += lgamma( lambdas(i) + counts(i) ) - lgamma( lambdas(i) ) ;
+				}
 			}
 			return result ;
 		}
