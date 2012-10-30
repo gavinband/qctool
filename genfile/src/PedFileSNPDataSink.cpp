@@ -230,27 +230,18 @@ namespace genfile {
 				AB = get_AB_probability( i ),
 				BB = get_BB_probability( i ) ;
 			std::pair< char, char > alleles = std::make_pair( '?', '?' );
-			// use the following
 			if( AA > m_call_threshhold ) {
-				if( snp.get_first_allele().size() == 1 ) {
-					alleles.first = alleles.second = get_representation_of_allele( snp.get_first_allele()[0] ) ;
-				}
+				alleles.first = alleles.second = '1' ;
 			}
 			else if( AB > m_call_threshhold ) {
-				if( snp.get_first_allele().size() == 1 ) {
-					alleles.first = get_representation_of_allele( snp.get_first_allele()[0] ) ;
-				}
-				if( snp.get_second_allele().size() == 1 ) {
-					alleles.second = get_representation_of_allele( snp.get_second_allele()[0] ) ;
-				}
+				alleles.first = '1' ;
+				alleles.second = '2' ;
 			}
 			else if( BB > m_call_threshhold ) {
-				if( snp.get_second_allele().size() == 1 ) {
-					alleles.first = alleles.second = get_representation_of_allele( snp.get_second_allele()[0] ) ;
-				}
+				alleles.first = alleles.second = '2' ;
 			}
 			else {
-				alleles.first = alleles.second = '?' ;
+				alleles.first = alleles.second = 'x' ;
 			}
 			m_written_alleles.back().push_back( alleles ) ;
 		}
