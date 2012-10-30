@@ -24,6 +24,7 @@
 #include "components/SNPSummaryComponent/DifferentialMissingnessComputation.hpp"
 #include "components/SNPSummaryComponent/StratifyingSNPSummaryComputation.hpp"
 #include "components/SNPSummaryComponent/CrossDataSetConcordanceComputation.hpp"
+#include "components/SNPSummaryComponent/GeneticMapAnnotation.hpp"
 
 void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "SNP computation options" ) ;
@@ -64,6 +65,10 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_takes_single_value() ;
 	options[ "-annotate-reference" ]
 		.set_description( "Specify a FASTA-formatted file containing ancestral alleles to annotate variants with." )
+		.set_takes_single_value() ;
+	options[ "-annotate-genetic-map" ]
+		.set_description( "Specify a genetic map file or files.  QCTOOL will interpolate the map "
+			"to produce approximate positions in centiMorgans for each SNP in the data." )
 		.set_takes_single_value() ;
 	options[ "-flanking" ]
 		.set_description( "Specify that flanking sequence annotations [ pos - a, pos + b ] should be output when using "
@@ -221,6 +226,26 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		}
 	}
 
+	if( m_options.check( "-annotate-reference" )) {
+		appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading reference sequence" ) ;
+		SequenceAnnotation::UniquePtr computation(
+			new SequenceAnnotation( "reference", m_options.get< std::string >( "-annotate-reference" ), progress )
+		) ;
+		
+		if( m_options.check( "-flanking" )) {
+			std::vector< std::size_t > data = m_options.get_values< std::size_t >( "-flanking" ) ;
+			assert( data.size() == 2 ) ;
+			computation->set_flanking( data[0], data[1] ) ;
+		}
+		
+		manager.add_computation(
+			"reference_sequence",
+			SNPSummaryComputation::UniquePtr(
+				computation.release()
+			)
+		) ;
+	}
+
 	if( m_options.check( "-annotate-ancestral" )) {
 		appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading ancestral sequence" ) ;
 		SequenceAnnotation::UniquePtr computation(
@@ -235,6 +260,23 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 
 		manager.add_computation(
 			"ancestral_sequence",
+			SNPSummaryComputation::UniquePtr(
+				computation.release()
+			)
+		) ;
+	}
+
+	if( m_options.check( "-annotate-genetic-map" )) {
+		appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading genetic map" ) ;
+		GeneticMapAnnotation::UniquePtr computation = GeneticMapAnnotation::create(
+			genfile::wildcard::find_files_by_chromosome(
+				m_options.get< std::string >( "-annotate-genetic-map" )
+			),
+			progress
+		) ;
+		
+		manager.add_computation(
+			"genetic_map",
 			SNPSummaryComputation::UniquePtr(
 				computation.release()
 			)
@@ -280,25 +322,6 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		) ;
 	}
 
-	if( m_options.check( "-annotate-reference" )) {
-		appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading reference sequence" ) ;
-		SequenceAnnotation::UniquePtr computation(
-			new SequenceAnnotation( "reference", m_options.get< std::string >( "-annotate-reference" ), progress )
-		) ;
-		
-		if( m_options.check( "-flanking" )) {
-			std::vector< std::size_t > data = m_options.get_values< std::size_t >( "-flanking" ) ;
-			assert( data.size() == 2 ) ;
-			computation->set_flanking( data[0], data[1] ) ;
-		}
-		
-		manager.add_computation(
-			"reference_sequence",
-			SNPSummaryComputation::UniquePtr(
-				computation.release()
-			)
-		) ;
-	}
 
 	if( m_options.check( "-differential" )) {
 		std::string const variable = m_options.get< std::string >( "-differential" ) ;
