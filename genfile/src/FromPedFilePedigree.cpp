@@ -36,6 +36,7 @@ namespace genfile {
 	void FromPedFilePedigree::load_data_from_stream( std::istream& stream ) {
 		std::string line ;
 		std::vector< std::string > individuals ;	
+		std::set< std::string > individuals_set ;	
 		std::map< std::string, std::string > families ;
 		std::map< std::string, std::vector< std::string > > parents ;
 		std::map< std::string, std::vector< std::string > > children ;
@@ -48,23 +49,35 @@ namespace genfile {
 			// family_id individual_id father_id mother_id sex phenotype.
 			// See http://pngu.mgh.harvard.edu/~purcell/plink/data.shtml
 			// We ignore the phenotype column here as we are only interested in family structure.
+			if( elts.size() < 6 ) {
+				throw MalformedInputError( m_filename, line_count ) ;
+			}
 			std::string const& id = elts[1] ;
+
+			if( individuals_set.find( id ) != individuals_set.end() ) {
+				throw DuplicateIndividualError( m_filename, id, id, line_count ) ;
+			}
 			individuals.push_back( id ) ;
+			individuals_set.insert( id ) ;
+
 			families[ id ] = elts[0] ;
 
-			if( elts[2] == "NA" || elts[2] == "?" || elts[2] == "0" ) {
-				assert( elts[3] == elts[2] ) ;
-				parents[ id ].push_back( "0" ) ;
-				parents[ id ].push_back( "0" ) ;
+			if( elts[2] == "NA" || elts[2] == "?" ) {
+				elts[2] = "0" ;
 			}
-			else {
-				if( elts[3] == "NA" || elts[3] == "?" || elts[3] == "0" ) {
-					throw MalformedInputError( m_filename, line_count, 3 ) ;
-				}
-				parents[ id ].push_back( elts[2] ) ;
-				parents[ id ].push_back( elts[3] ) ;
+			if( elts[3] == "NA" || elts[3] == "?" ) {
+				elts[3] = "0" ;
+			}
+			if( elts[2] == elts[3] && elts[2] != "0" ) {
+				throw MalformedInputError( m_filename, line_count, 3 ) ;
+			}
+			parents[ id ].push_back( elts[2] ) ;
+			parents[ id ].push_back( elts[3] ) ;
 
+			if( elts[2] != "0" ) {
 				children[ elts[2] ].push_back( id ) ;
+			}
+			if( elts[3] != "0" ) {
 				children[ elts[3] ].push_back( id ) ;
 			}
 
@@ -86,7 +99,7 @@ namespace genfile {
 			std::sort( individuals.begin(), individuals.end() ) ;
 			// check for uniqueness
 			if( std::unique( individuals.begin(), individuals.end() ) != individuals.end() ) {
-				throw MalformedInputError( m_filename, line_count ) ;
+				throw DuplicateIndividualError( m_filename, *std::unique( individuals.begin(), individuals.end() ), *std::unique( individuals.begin(), individuals.end() ), line_count ) ;
 			}
 		}
 		

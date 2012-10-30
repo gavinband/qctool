@@ -2098,7 +2098,7 @@ private:
 			processor.add_callback( *haplotype_frequency_component ) ;
 		}
 
-		if( options().check_if_option_was_supplied( "-og" ) ) {
+		if( options().check( "-og" ) || options().check( "-op" ) ) {
 			SNPOutputComponent::setup(
 				context.get_cohort_individual_source(),
 				context.fltrd_in_snp_data_sink(),
