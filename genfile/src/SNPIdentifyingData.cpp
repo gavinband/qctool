@@ -135,10 +135,40 @@ namespace genfile {
 		) ;
 	}
 	
+	SNPIdentifyingData::CompareFields::CompareFields():
+		m_fields_to_compare( parse_fields_to_compare( "position,rsid,SNPID,alleles" ) )
+	{
+		assert( !m_fields_to_compare.empty() ) ;
+	}
+
 	SNPIdentifyingData::CompareFields::CompareFields( std::string const& fields_to_compare ):
 		m_fields_to_compare( parse_fields_to_compare( fields_to_compare ) )
 	{
 		assert( !m_fields_to_compare.empty() ) ;
+	}
+	
+	std::string SNPIdentifyingData::CompareFields::get_summary() const {
+		std::string result = "comparing " ;
+		for( std::size_t i = 0; i < m_fields_to_compare.size(); ++i ) {
+			if( i > 0 ) {
+				result += "," ;
+			}
+			switch( m_fields_to_compare[i] ) {
+				case eSNPID:
+				result += "SNPID" ;
+				break ;
+				case eRSID:
+				result += "rsid" ;
+				break ;
+				case ePosition:
+				result += "position" ;
+				break ;
+				case eAlleles:
+				result += "alleles" ;
+				break ;
+			}
+		}
+		return result ;
 	}
 	
 	SNPIdentifyingData::CompareFields::CompareFields( CompareFields const& other ):

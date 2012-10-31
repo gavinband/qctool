@@ -50,8 +50,8 @@ namespace genfile {
 		CommonSNPFilter& exclude_snps_not_in_set( std::set< std::string > const& set, int fields ) ;
 		CommonSNPFilter& include_snps_in_set( std::set< std::string > const& set, int fields ) ;
 
-		CommonSNPFilter& exclude_snps( std::vector< SNPIdentifyingData > const& snps ) ;
-		CommonSNPFilter& include_snps( std::vector< SNPIdentifyingData > const& snps ) ;
+		CommonSNPFilter& exclude_snps( std::vector< SNPIdentifyingData > const& snps, SNPIdentifyingData::CompareFields const& comparer = SNPIdentifyingData::CompareFields() ) ;
+		CommonSNPFilter& include_snps( std::vector< SNPIdentifyingData > const& snps, SNPIdentifyingData::CompareFields const& comparer = SNPIdentifyingData::CompareFields() ) ;
 		
 		CommonSNPFilter& exclude_chromosomes_in_set( std::set< genfile::Chromosome > const& set ) ;
 		CommonSNPFilter& exclude_chromosomes_not_in_set( std::set< genfile::Chromosome > const& set ) ;

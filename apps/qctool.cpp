@@ -1504,7 +1504,10 @@ private:
 						) ;
 					}
 						
-					snp_filter->exclude_snps( source->list_snps() ) ;
+					snp_filter->exclude_snps(
+						source->list_snps(),
+						genfile::SNPIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
+					) ;
 				}
 			}
 
@@ -1524,7 +1527,10 @@ private:
 							)
 						) ;
 					}
-					snp_filter->include_snps( source->list_snps() ) ;
+					snp_filter->include_snps(
+						source->list_snps(),
+						genfile::SNPIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
+					) ;
 				}
 			}
 

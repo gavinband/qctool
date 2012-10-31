@@ -53,6 +53,7 @@ namespace genfile {
 		std::string const& get_second_allele() const { return m_second_allele ;}
 	public:
 		struct CompareFields {
+			CompareFields() ;
 			CompareFields( std::string const& fields_to_compare ) ;
 			CompareFields( CompareFields const& other ) ;
 			CompareFields& operator=( CompareFields const& other ) ;
@@ -61,6 +62,8 @@ namespace genfile {
 			bool operator()( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) const ;
 			bool are_equal( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) const ;
 			bool check_if_comparable_fields_are_known( SNPIdentifyingData const& value ) const ;
+
+			std::string get_summary() const ;
 
 		private:
 			static std::vector< int > parse_fields_to_compare( std::string const& field_spec ) ;
