@@ -164,6 +164,12 @@ namespace genfile {
 		
 	}
 
+	std::vector< SNPIdentifyingData > SNPDataSource::list_snps( ProgressCallback callback ) {
+		std::vector< SNPIdentifyingData > result ;
+		list_snps( boost::bind( &std::vector< SNPIdentifyingData >::push_back, &result, _1 ), callback ) ;
+		return result ;
+	}
+
 	SNPDataSource& SNPDataSource::read_snp(
 		IntegerSetter set_number_of_samples,
 		StringSetter set_SNPID,

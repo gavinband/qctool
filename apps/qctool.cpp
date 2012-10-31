@@ -76,6 +76,7 @@
 #include "statfile/BuiltInTypeStatSource.hpp"
 #include "statfile/from_string.hpp"
 #include "statfile/read_values.hpp"
+#include "statfile/SNPDataSourceAdapter.hpp"
 
 #include "appcontext/appcontext.hpp"
 
@@ -206,6 +207,18 @@ public:
 
 		// SNP exclusion options
 		options.declare_group( "SNP exclusion options" ) ;
+		options[ "-excl-snps" ]
+			.set_description( "Exclude all SNPs in the given file(s) from the analysis."
+				" The format of this file is the same as that output by the -write-snp-excl-list option. "
+				" It must have six columns interpreted as SNPID, rsid, chromosome, position, first and second alleles." )
+			.set_takes_values( 1 )
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-incl-snps" ]
+			.set_description( "Exclude all SNPs not in the given file(s) from the analysis."
+				" The format of this file is the same as that output by the -write-snp-excl-list option. "
+				" It must have six columns interpreted as SNPID, rsid, chromosome, position, first and second alleles." )
+			.set_takes_values( 1 )
+			.set_maximum_multiplicity( 100 ) ;
 		options[ "-excl-snpids" ]
 			.set_description( "Exclude all SNPs whose SNPID is in the given file(s) from the analysis.")
 			.set_takes_values_until_next_option()
@@ -1472,6 +1485,48 @@ private:
 
 		if( m_options.check_if_option_was_supplied_in_group( "SNP exclusion options" )) {
 			snp_filter.reset( new genfile::CommonSNPFilter ) ;
+
+			if( m_options.check_if_option_was_supplied( "-excl-snps" )) {
+				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-snps" ) ;
+				
+				BOOST_FOREACH( std::string const& filename, files ) {
+					genfile::SNPDataSource::UniquePtr source ;
+					try {
+						source = genfile::SNPDataSource::create_chain( genfile::wildcard::find_files_by_chromosome( filename ) ) ;
+					}
+					catch( genfile::MalformedInputError const& e ) {
+						source.reset(
+							new statfile::SNPDataSourceAdapter(
+								statfile::BuiltInTypeStatSource::open(
+									genfile::wildcard::find_files_by_chromosome( filename )
+								)
+							)
+						) ;
+					}
+						
+					snp_filter->exclude_snps( source->list_snps() ) ;
+				}
+			}
+
+			if( m_options.check_if_option_was_supplied( "-incl-snps" )) {
+				std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-snps" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					genfile::SNPDataSource::UniquePtr source ;
+					try {
+						source = genfile::SNPDataSource::create_chain( genfile::wildcard::find_files_by_chromosome( filename ) ) ;
+					}
+					catch( genfile::MalformedInputError const& e ) {
+						source.reset(
+							new statfile::SNPDataSourceAdapter(
+								statfile::BuiltInTypeStatSource::open(
+									genfile::wildcard::find_files_by_chromosome( filename )
+								)
+							)
+						) ;
+					}
+					snp_filter->include_snps( source->list_snps() ) ;
+				}
+			}
 
 			if( m_options.check_if_option_was_supplied( "-excl-snpids" )) {
 				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-snpids" ) ;

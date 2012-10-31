@@ -81,6 +81,7 @@ namespace genfile {
 		// Function: list_snps
 		// Return (via the setter object) a list of all SNPs in the source.
 		virtual void list_snps( SNPSetter, ProgressCallback = ProgressCallback() ) ;
+		virtual std::vector< SNPIdentifyingData > list_snps( ProgressCallback = ProgressCallback() ) ;
 
 		// Function: read_snp()
 		// Read the data for the next snp from the source (and remove it from the source)
