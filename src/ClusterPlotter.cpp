@@ -110,7 +110,7 @@ namespace impl {
 			for( Calls::iterator i = m_calls.begin(), end_i = m_calls.end(); i != end_i; ++i ) {
 				genfile::vcf::ThreshholdingGenotypeSetter< Genotypes > genotype_setter( i->second, m_call_threshhold, 3, 0, 1, 2 ) ;
 				data_reader.get( i->first, genotype_setter ) ;
-				assert( i->second.size() == std::size_t( m_intensities.cols() ) ) ;
+				assert( i->second.size() == std::size_t( m_intensities.rows() ) ) ;
 			}
 		}
 
@@ -125,21 +125,21 @@ namespace impl {
 			mglGraphZB graph( 400 * N, 400 * M ) ;
 			graph.Light( true ) ;
 			graph.Clf( mglColor( 1.0, 1.0, 1.0 ) ) ;
-			mglData x( m_intensities.cols() ), y( m_intensities.cols() ), colour( m_intensities.cols() ) ;
+			mglData x( m_intensities.rows() ), y( m_intensities.rows() ), colour( m_intensities.rows() ) ;
 			
 			std::size_t count = 0 ;
 			for( Calls::iterator i = m_calls.begin(), end_i = m_calls.end(); i != end_i; ++i, ++count ) {
-				x.Set( m_intensities.row(0).data(), m_intensities.cols() ) ;
-				y.Set( m_intensities.row(1).data(), m_intensities.cols() ) ;
+				x.Set( m_intensities.col(0).data(), m_intensities.rows() ) ;
+				y.Set( m_intensities.col(1).data(), m_intensities.rows() ) ;
 				colour.Set( i->second ) ;
 				graph.Title( ( m_analysis_name + ":" + m_snp.get_rsid() ).c_str(), 0, 4 ) ;
 				graph.SubPlot( N, M, count ) ;
 				graph.SetTickLen( 0.04 ) ;
 				double m_max_value = -1 ;
-				for( int i = 0; i < m_intensities.cols(); ++i ) {
-					for( int row = 0; row < 2; ++row ) {	
-						if( m_intensities(row,i) == m_intensities(row,i) ) {
-							m_max_value = std::max( m_max_value, m_intensities(row,i) ) ;
+				for( int i = 0; i < m_intensities.rows(); ++i ) {
+					for( int col = 0; col < 2; ++col ) {	
+						if( m_intensities(i,col) == m_intensities(i,col) ) {
+							m_max_value = std::max( m_max_value, m_intensities(i,col) ) ;
 						}
 					}
 				}

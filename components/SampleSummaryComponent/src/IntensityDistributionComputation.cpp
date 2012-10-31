@@ -14,7 +14,7 @@ namespace sample_stats {
 		m_snp_index( 0 )
 	{}
 
-	void IntensityDistributionComputation::accumulate( genfile::SNPIdentifyingData const&, Genotypes const&, genfile::VariantDataReader& data_reader ) {
+	void IntensityDistributionComputation::accumulate( genfile::SNPIdentifyingData const&, Genotypes const& genotypes, genfile::VariantDataReader& data_reader ) {
 		if( !data_reader.supports( "XY" )) {
 			return ;
 		}

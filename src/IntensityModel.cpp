@@ -12,35 +12,35 @@
 #include "NormalClusterIntensityModel.hpp"
 
 IntensityModel::UniquePtr IntensityModel::estimate( Eigen::MatrixXd const& intensities, genfile::SingleSNPGenotypeProbabilities const& genotypes, double threshhold ) {
-	std::size_t number_of_samples = intensities.cols() ;
+	std::size_t number_of_samples = intensities.rows() ;
 	assert( genotypes.size() == number_of_samples ) ;
-	assert( std::size_t( intensities.cols() ) == number_of_samples ) ;
-	assert( intensities.rows() == 2 ) ;
+	assert( std::size_t( intensities.rows() ) == number_of_samples ) ;
+	assert( intensities.cols() == 2 ) ;
 
-	std::vector< Eigen::Vector2d > means( 3, Eigen::Vector2d::Zero() ) ;
+	std::vector< Eigen::RowVector2d > means( 3, Eigen::RowVector2d::Zero() ) ;
 	std::vector< Eigen::Matrix2d > variances( 3, Eigen::Matrix2d::Zero() ) ;
 	std::vector< double > non_missing_counts( 3, 0.0 ) ;
 
-	Eigen::Vector2d outlier_mean ;
+	Eigen::RowVector2d outlier_mean ;
 	double outlier_count = 0.0; 
 
 	for( std::size_t i = 0; i < number_of_samples; ++i ) {
-		if( intensities( 0, i ) != intensities( 0, i ) || intensities( 1, i ) != intensities( 1, i ) ) {
+		if( intensities( i, 0 ) != intensities( i, 0 ) || intensities( i, 1 ) != intensities( i, 1 ) ) {
 			// intensity is missing.  Ignore this point.
 		}
 		else {
 			bool called = false ;
 			for( std::size_t g = 0; g < 3; ++g ) {
 				if( genotypes( i, g ) >= threshhold ) {
-					means[g] += intensities.col( i ) ;
-					variances[g] += intensities.col( i ) * intensities.col( i ).transpose() ;
+					means[g] += intensities.row( i ) ;
+					variances[g] += intensities.row( i ).transpose() * intensities.row( i ) ;
 					++non_missing_counts[g] ;
 					called = true ;
 					break ;
 				}
 			}
 			if( !called ) {
-				outlier_mean += intensities.col( i ) ;
+				outlier_mean += intensities.row( i ) ;
 				++outlier_count ;
 			}
 		}
@@ -49,7 +49,7 @@ IntensityModel::UniquePtr IntensityModel::estimate( Eigen::MatrixXd const& inten
 	// complete mean and variance computation.
 	for( std::size_t g = 0; g < 3; ++g ) {
 		means[g] /= non_missing_counts[g] ;
-		variances[g] -= means[g] * means[g].transpose() ;
+		variances[g] -= means[g].transpose() * means[g] ;
 		variances[g] /= ( non_missing_counts[g] - 1.0 ) ;
 	}
 	
