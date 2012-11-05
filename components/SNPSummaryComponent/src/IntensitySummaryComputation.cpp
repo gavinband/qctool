@@ -47,25 +47,35 @@ void IntensitySummaryComputation::operator()(
 		data_reader.get( "XY", intensity_setter ) ;
 		assert( m_intensities.rows() == N ) ;
 		assert( m_intensities.cols() == 2 ) ;
+		m_nonmissingness.resize( m_intensities.rows(), m_intensities.cols() ) ;
+		m_nonmissingness = ( m_intensities.array() == m_intensities.array() ).cast< double >() ;
 	}
 	
-	m_intensities_by_genotype.resize( 6, N ) ;
-	m_intensities_by_genotype.setConstant( std::numeric_limits< double >::quiet_NaN() ) ;
-	m_nonmissingness.resize( 6, N ) ;
-	m_nonmissingness.setConstant( 1 ) ;
+	Eigen::RowVectorXd mean ;
+	Eigen::MatrixXd covariance ;
 
-	for( int i = 0; i < genotypes.rows(); ++i ) {
-		Genotypes::Index where = genotypes.cols() ;
-		double const max_call = genotypes.row( i ).maxCoeff( &where ) ;
-		if( max_call >= m_call_threshhold ) {
-			m_intensities_by_genotype.block( 2 * where, i, 2, 1 ) = m_intensities.col( i ) ;
-		}
-		m_nonmissingness.col( i ).array() = ( m_intensities_by_genotype.col( i ).array() == m_intensities_by_genotype.col( i ).array() ).cast< double >() ;
-	}
-
+	metro::compute_mean_and_covariance(
+		m_intensities,
+		m_nonmissingness,
+		mean,
+		covariance
+	) ;
+	
+	callback( "mean_X", mean(0) ) ;
+	callback( "mean_Y", mean(1) ) ;
+	callback( "var_X", covariance(0,0) ) ;
+	callback( "var_Y", covariance(1,1) ) ;
+	callback( "cov_XY",covariance(0,1) ) ;
+	
 	for( int g = 0; g < 3; ++g ) {
-		Eigen::RowVectorXd mean ;
-		Eigen::MatrixXd covariance ;
+		m_intensities_by_genotype = m_intensities.array() ;
+		for( int i = 0; i < N; ++i ) {
+			
+		}
+		m_intensities_by_genotype.setConstant( std::numeric_limits< double >::quiet_NaN() ) ;
+		m_nonmissingness_by_genotype.resize( N, 6 ) ;
+		m_nonmissingness_by_genotype.setConstant( 0 ) ;
+		
 		metro::compute_mean_and_covariance(
 			m_intensities_by_genotype.block( 2*g, 0, 2, N ).transpose(),
 			m_nonmissingness.block( 2*g, 0, 2, N  ).transpose(),

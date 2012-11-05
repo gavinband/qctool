@@ -33,6 +33,8 @@ namespace snp_summary_component {
 			genfile::VariantEntry const& value
 		) ;
 
+		void finalise() ;
+
 	private:
 		std::string const m_filename ;
 		std::string const m_analysis_name ;

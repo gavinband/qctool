@@ -424,6 +424,10 @@ public:
 				"flexibility and better memory usage compared to working with flat files. "
 				" This option forces qctool to use a flat file instead." )
 			.set_hidden() ;
+		options[ "-flat-table" ]
+			.set_description( "Output all results for this analysis to one table with variables in columns and variants in rows. "
+				"This overrides the default db output style, which is in a normalised form with different variables on different rows." )
+			.set_hidden() ;
 
 		options.declare_group( "Options for adjusting sample data" ) ;
 		options[ "-quantile-normalise" ]

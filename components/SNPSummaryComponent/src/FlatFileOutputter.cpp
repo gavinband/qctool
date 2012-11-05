@@ -41,9 +41,12 @@ namespace snp_summary_component {
 	}
 	
 	FlatFileOutputter::~FlatFileOutputter() {
-		if( m_snps.size() > 0 ) {
+		if( m_sink.get() && m_snps.size() > 0 ) {
 			store_block() ;
 		}
+	}
+	
+	void FlatFileOutputter::finalise() {
 	}
 
 	void FlatFileOutputter::store_per_variant_data(

@@ -19,6 +19,7 @@
 #include "components/SNPSummaryComponent/Storage.hpp"
 #include "components/SNPSummaryComponent/DBOutputter.hpp"
 #include "components/SNPSummaryComponent/FlatFileOutputter.hpp"
+#include "components/SNPSummaryComponent/FlatTableDBOutputter.hpp"
 #include "components/SNPSummaryComponent/AssociationTest.hpp"
 #include "components/SNPSummaryComponent/SequenceAnnotation.hpp"
 #include "components/SNPSummaryComponent/DifferentialMissingnessComputation.hpp"
@@ -131,25 +132,30 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 		}
 	}
 
-	if( m_options.check( "-flat-file" )) {
-		manager->add_result_callback(
-			boost::bind(
-				&snp_summary_component::Storage::store_per_variant_data,
-				snp_summary_component::FlatFileOutputter::create_shared(
-					filename,
-					m_options.get< std::string >( "-analysis-name" ),
-					m_options.get_values_as_map()
-				),
-				_1, _2, _3
-			)
-		) ;
-	}
-	else {
-		snp_summary_component::Storage::SharedPtr storage = snp_summary_component::DBOutputter::create_shared(
-			filename,
-			m_options.get< std::string >( "-analysis-name" ),
-			m_options.get_values_as_map()
-		) ;
+	{
+		snp_summary_component::Storage::SharedPtr storage ;
+
+		if( m_options.check( "-flat-file" )) {
+			storage = snp_summary_component::FlatFileOutputter::create_shared(
+				filename,
+				m_options.get< std::string >( "-analysis-name" ),
+				m_options.get_values_as_map()
+			) ;
+		}
+		else if( m_options.check( "-flat-table" )) {
+			storage = snp_summary_component::FlatTableDBOutputter::create_shared(
+				filename,
+				m_options.get< std::string >( "-analysis-name" ),
+				m_options.get_values_as_map()
+			) ;
+		}
+		else {
+			storage = snp_summary_component::DBOutputter::create_shared(
+				filename,
+				m_options.get< std::string >( "-analysis-name" ),
+				m_options.get_values_as_map()
+			) ;
+		}
 	
 		manager->add_result_callback(
 			boost::bind(
@@ -159,7 +165,7 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 			)
 		) ;
 	}
-	
+
 	add_computations( *manager ) ;
 	return manager ;
 }

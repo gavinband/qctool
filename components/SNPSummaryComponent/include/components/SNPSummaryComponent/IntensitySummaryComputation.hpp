@@ -29,6 +29,7 @@ private:
 	IntensityMatrix m_intensities ;
 	IntensityMatrix m_intensities_by_genotype ;
 	IntensityMatrix m_nonmissingness ;
+	IntensityMatrix m_nonmissingness_by_genotype ;
 	
 } ;
 
