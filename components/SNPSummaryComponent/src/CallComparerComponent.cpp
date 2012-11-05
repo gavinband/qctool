@@ -19,16 +19,13 @@
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
-#include "components/CallComparerComponent/PairwiseCallComparer.hpp"
-#include "components/CallComparerComponent/PairwiseCallComparerManager.hpp"
-#include "components/CallComparerComponent/CallComparerComponent.hpp"
-#include "components/CallComparerComponent/FrequentistTestCallMerger.hpp"
-#include "components/CallComparerComponent/CallComparerDBOutputter.hpp"
-#include "components/CallComparerComponent/CallComparerFileOutputter.hpp"
-#include "components/CallComparerComponent/LeastMissingConsensusCaller.hpp"
+#include "components/SNPSummaryComponent/PairwiseCallComparer.hpp"
+#include "components/SNPSummaryComponent/PairwiseCallComparerManager.hpp"
+#include "components/SNPSummaryComponent/CallComparerComponent.hpp"
+#include "components/SNPSummaryComponent/FrequentistTestCallMerger.hpp"
+#include "components/SNPSummaryComponent/LeastMissingConsensusCaller.hpp"
 #include "components/SNPSummaryComponent/DBOutputter.hpp"
 #include "components/SNPSummaryComponent/FlatFileOutputter.hpp"
-
 
 CallComparerProcessor::UniquePtr CallComparerProcessor::create( PairwiseCallComparerManager::UniquePtr comparer, std::vector< std::string > const& call_fields ) {
 	UniquePtr result(
@@ -39,14 +36,22 @@ CallComparerProcessor::UniquePtr CallComparerProcessor::create( PairwiseCallComp
 
 CallComparerProcessor::CallComparerProcessor( PairwiseCallComparerManager::UniquePtr call_comparer, std::vector< std::string > const& call_fields  ):
 	m_call_comparer( call_comparer ),
-	m_call_fields( call_fields )
+	m_call_fields( call_fields ),
+	m_begun( false )
 {}
 
-void CallComparerProcessor::begin_processing_snps( std::size_t number_of_samples ) {
-	m_call_comparer->begin_processing_snps( number_of_samples ) ;
-}
-
-void CallComparerProcessor::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
+void CallComparerProcessor::operator()(
+	SNPIdentifyingData const& snp,
+	Genotypes const& genotypes,
+	SampleSexes const&,
+	genfile::VariantDataReader& data_reader,
+	ResultCallback callback
+) {
+	if( !m_begun ) {
+		m_call_comparer->begin_processing_snps( genotypes.rows() ) ;
+		m_begun = true ;
+	}
+	
 	// Add all the calls to the call comparer.
 	m_call_comparer->begin_processing_snp( snp ) ;
 	for( std::size_t i = 0; i < m_call_fields.size(); ++i ) {
@@ -57,7 +62,9 @@ void CallComparerProcessor::processed_snp( genfile::SNPIdentifyingData const& sn
 	m_call_comparer->end_processing_snp() ;
 }
 
-void CallComparerProcessor::end_processing_snps() {}
+std::string CallComparerProcessor::get_summary( std::string const& prefix, std::size_t column_width ) const {
+	return prefix + "CallComparerProcessor" ;
+}
 
 void CallComparerComponent::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "Call comparison options" ) ;
@@ -145,16 +152,16 @@ namespace {
 	// Adapter to adapt SNPSummaryComponent outputters to be used here.
 	struct SNPSummaryOutputter: public PairwiseCallComparerManager::ComparisonClient {
 	public:
-		static UniquePtr create( snp_summary_component::Storage::UniquePtr outputter ) {
+		static UniquePtr create( snp_summary_component::Storage::SharedPtr outputter ) {
 			return UniquePtr( new SNPSummaryOutputter( outputter ) ) ;
 		}
 
-		static SharedPtr create_shared( snp_summary_component::Storage::UniquePtr outputter ) {
+		static SharedPtr create_shared( snp_summary_component::Storage::SharedPtr outputter ) {
 			return SharedPtr( new SNPSummaryOutputter( outputter ) ) ;
 		}
 
 	public:
-		SNPSummaryOutputter( snp_summary_component::Storage::UniquePtr outputter ):
+		SNPSummaryOutputter( snp_summary_component::Storage::SharedPtr outputter ):
 			m_outputter( outputter )
 		{}
 
@@ -179,59 +186,18 @@ namespace {
 		}
 
 	private:
-		snp_summary_component::Storage::UniquePtr m_outputter ;
+		snp_summary_component::Storage::SharedPtr m_outputter ;
 		genfile::SNPIdentifyingData m_snp ;
-	} ;
-	
+	} ;	
 }
 
-void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor ) const {
+void CallComparerComponent::setup( SNPSummaryComputationManager& snp_summary_component_manager, snp_summary_component::Storage::SharedPtr storage ) const {
 	PairwiseCallComparerManager::UniquePtr manager( PairwiseCallComparerManager::create().release() ) ;
 
-	std::string filename ;
-	if( m_options.check( "-o" )) {
-		filename = m_options.get< std::string >( "-o" ) ;
-	} else {
-		filename = genfile::strip_gen_file_extension_if_present( m_options.get< std::string >( "-g" ) ) + ( m_options.check( "-flat-file" ) ? ".tsv" : ".qcdb" ) ;
-	}
-
-	SNPSummaryOutputter::SharedPtr snp_outputter ;
+	SNPSummaryOutputter::SharedPtr snp_outputter = SNPSummaryOutputter::create_shared(
+		storage 
+	) ;
 	
-	if( m_options.check( "-flat-file" ) ) {
-		snp_outputter = SNPSummaryOutputter::create_shared(
-			snp_summary_component::FlatFileOutputter::create(
-				filename,
-				m_options.get< std::string >( "-analysis-name" ),
-				m_options.get_values_as_map()
-			)
-		) ;
-		/*
-		manager->send_merge_to(
-			CallComparerFileOutputter::create_shared(
-				filename,
-				m_options.get< std::string >( "-analysis-name" )
-			)
-		) ;
-		*/
-	} else {
-		snp_outputter = SNPSummaryOutputter::create_shared(
-			snp_summary_component::DBOutputter::create(
-				filename,
-				m_options.get< std::string >( "-analysis-name" ),
-				m_options.get_values_as_map()
-			)
-		) ;
-	/*
-		manager->send_merge_to(
-			CallComparerDBOutputter::create_shared(
-				filename,
-				m_options.get< std::string >( "-analysis-name" ),
-				m_options.get_values_as_map()
-			)
-		) ;
-		*/
-	}
-
 	manager->send_comparisons_to( snp_outputter ) ;
 	
 	std::string const comparison_model = m_options.get< std::string >( "-comparison-model" ) ;
@@ -276,6 +242,9 @@ void CallComparerComponent::setup( genfile::SNPDataSourceProcessor& processor ) 
 		m_options.get_values< std::string >( "-compare-calls" )
 	) ;
 	
-	processor.add_callback( genfile::SNPDataSourceProcessor::Callback::UniquePtr( ccc.release() ) ) ;
+	snp_summary_component_manager.add_computation(
+		"call_comparison",
+		SNPSummaryComputation::UniquePtr( ccc.release() )
+	) ;
 }
 

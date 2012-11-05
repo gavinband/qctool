@@ -10,7 +10,7 @@
 #include <cassert>
 #include <boost/function.hpp>
 #include <Eigen/Core>
-#include "components/CallComparerComponent/GenotypeTabulatingCallComparer.hpp"
+#include "components/SNPSummaryComponent/GenotypeTabulatingCallComparer.hpp"
 
 GenotypeTabulatingCallComparer::GenotypeTabulatingCallComparer():
 	m_threshhold( 0.9 )

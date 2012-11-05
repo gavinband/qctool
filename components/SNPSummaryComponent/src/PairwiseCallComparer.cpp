@@ -11,9 +11,9 @@
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
-#include "components/CallComparerComponent/GenotypeFrequencyTestCallComparer.hpp"
-#include "components/CallComparerComponent/GenotypeTabulatingCallComparer.hpp"
-#include "components/CallComparerComponent/PairwiseCallComparer.hpp"
+#include "components/SNPSummaryComponent/GenotypeFrequencyTestCallComparer.hpp"
+#include "components/SNPSummaryComponent/GenotypeTabulatingCallComparer.hpp"
+#include "components/SNPSummaryComponent/PairwiseCallComparer.hpp"
 
 PairwiseCallComparer::UniquePtr PairwiseCallComparer::create( std::string const& model ) {
 	PairwiseCallComparer::UniquePtr result ;

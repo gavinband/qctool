@@ -7,9 +7,9 @@
 #include "genfile/vcf/get_set.hpp"
 #include "genfile/get_set_eigen.hpp"
 #include "genfile/vcf/get_set_eigen.hpp"
-#include "components/CallComparerComponent/ConsensusCaller.hpp"
-#include "components/CallComparerComponent/QuangStyleConsensusCaller.hpp"
-#include "components/CallComparerComponent/LeastMissingConsensusCaller.hpp"
+#include "components/SNPSummaryComponent/ConsensusCaller.hpp"
+#include "components/SNPSummaryComponent/QuangStyleConsensusCaller.hpp"
+#include "components/SNPSummaryComponent/LeastMissingConsensusCaller.hpp"
 
 ConsensusCaller::UniquePtr ConsensusCaller::create( std::string const& model ) {
 	if( model == "LeastMissing" ) {

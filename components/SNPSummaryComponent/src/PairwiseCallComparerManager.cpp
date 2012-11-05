@@ -14,10 +14,10 @@
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
-#include "components/CallComparerComponent/PairwiseCallComparer.hpp"
-#include "components/CallComparerComponent/PairwiseCallComparerManager.hpp"
-#include "components/CallComparerComponent/FrequentistTestCallMerger.hpp"
-#include "components/CallComparerComponent/AcceptAllCallMerger.hpp"
+#include "components/SNPSummaryComponent/PairwiseCallComparer.hpp"
+#include "components/SNPSummaryComponent/PairwiseCallComparerManager.hpp"
+#include "components/SNPSummaryComponent/FrequentistTestCallMerger.hpp"
+#include "components/SNPSummaryComponent/AcceptAllCallMerger.hpp"
 
 PairwiseCallComparerManager::UniquePtr PairwiseCallComparerManager::create() {
 	PairwiseCallComparerManager::UniquePtr result( new PairwiseCallComparerManager() ) ;

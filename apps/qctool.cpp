@@ -103,7 +103,6 @@
 #include "DataReadTest.hpp"
 #include "ClusterFitter.hpp"
 #include "components/RelatednessComponent/RelatednessComponent.hpp"
-#include "components/CallComparerComponent/CallComparerComponent.hpp"
 #include "components/HaplotypeFrequencyComponent/HaplotypeFrequencyComponent.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComponent.hpp"
 #include "components/SNPOutputComponent/SNPOutputComponent.hpp"
@@ -464,7 +463,6 @@ public:
 		DataReadTest::declare_options( options ) ;
 		ClusterFitter::declare_options( options ) ;
 		VCDBWriter::declare_options( options ) ;
-		CallComparerComponent::declare_options( options ) ;
 		ClusterPlotter::declare_options( options ) ;
 		SNPSummaryComponent::declare_options( options ) ;
 		SampleSummaryComponent::declare_options( options ) ;
@@ -2132,16 +2130,6 @@ private:
 			processor.add_callback( *cluster_fitter ) ;
 		}
 
-		if( options().check_if_option_was_supplied_in_group( "Call comparison options" )) {
-			CallComparerComponent::UniquePtr component = CallComparerComponent::create(
-				context.get_cohort_individual_source(),
-				options(),
-				get_ui_context()
-			) ;
-
-			component->setup( processor ) ;
-		}
-		
 		ClusterPlotter::UniquePtr cluster_plotter ;
 		if( options().check_if_option_was_supplied_in_group( "Cluster plot options" )) {
 			cluster_plotter = ClusterPlotter::create( options(), worker.get() ) ;

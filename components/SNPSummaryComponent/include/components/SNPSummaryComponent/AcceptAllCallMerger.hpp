@@ -16,7 +16,7 @@
 
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
-#include "components/CallComparerComponent/PairwiseCallComparerManager.hpp"
+#include "components/SNPSummaryComponent/PairwiseCallComparerManager.hpp"
 
 // A call merger that accepts all calls passed to it.
 struct AcceptAllCallMerger: PairwiseCallComparerManager::Merger

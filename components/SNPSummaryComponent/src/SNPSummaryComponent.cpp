@@ -26,6 +26,7 @@
 #include "components/SNPSummaryComponent/StratifyingSNPSummaryComputation.hpp"
 #include "components/SNPSummaryComponent/CrossDataSetConcordanceComputation.hpp"
 #include "components/SNPSummaryComponent/GeneticMapAnnotation.hpp"
+#include "components/SNPSummaryComponent/CallComparerComponent.hpp"
 
 void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "SNP computation options" ) ;
@@ -99,6 +100,8 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options.option_implies_option( "-test", "-s" ) ;
 	options.option_implies_option( "-stratify", "-s" ) ;
 	options.option_implies_option( "-match-sample-ids", "-compare-to" ) ;
+	
+	CallComparerComponent::declare_options( options ) ;
 }
 
 SNPSummaryComponent::SNPSummaryComponent(
@@ -132,41 +135,41 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 		}
 	}
 
-	{
-		snp_summary_component::Storage::SharedPtr storage ;
+	snp_summary_component::Storage::SharedPtr storage ;
 
-		if( m_options.check( "-flat-file" )) {
-			storage = snp_summary_component::FlatFileOutputter::create_shared(
-				filename,
-				m_options.get< std::string >( "-analysis-name" ),
-				m_options.get_values_as_map()
-			) ;
-		}
-		else if( m_options.check( "-flat-table" )) {
-			storage = snp_summary_component::FlatTableDBOutputter::create_shared(
-				filename,
-				m_options.get< std::string >( "-analysis-name" ),
-				m_options.get_values_as_map()
-			) ;
-		}
-		else {
-			storage = snp_summary_component::DBOutputter::create_shared(
-				filename,
-				m_options.get< std::string >( "-analysis-name" ),
-				m_options.get_values_as_map()
-			) ;
-		}
-	
-		manager->add_result_callback(
-			boost::bind(
-				&snp_summary_component::Storage::store_per_variant_data,
-				storage,
-				_1, _2, _3
-			)
+	if( m_options.check( "-flat-file" )) {
+		storage = snp_summary_component::FlatFileOutputter::create_shared(
+			filename,
+			m_options.get< std::string >( "-analysis-name" ),
+			m_options.get_values_as_map()
+		) ;
+	}
+	else if( m_options.check( "-flat-table" )) {
+		storage = snp_summary_component::FlatTableDBOutputter::create_shared(
+			filename,
+			m_options.get< std::string >( "-analysis-name" ),
+			m_options.get_values_as_map()
+		) ;
+	}
+	else {
+		storage = snp_summary_component::DBOutputter::create_shared(
+			filename,
+			m_options.get< std::string >( "-analysis-name" ),
+			m_options.get_values_as_map()
 		) ;
 	}
 
-	add_computations( *manager ) ;
+	manager->add_result_callback(
+		boost::bind(
+			&snp_summary_component::Storage::store_per_variant_data,
+			storage,
+			_1, _2, _3
+		)
+	) ;
+	
+	add_computations( *manager, storage ) ;
+	m_ui_context.logger() << "SNPSummaryComponent: the following components are in place:\n" << manager->get_summary( "  " ) << "\n" ;
+	
 	return manager ;
 }
 
@@ -192,7 +195,7 @@ namespace impl {
 	}
 }
 
-void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manager ) const {
+void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manager, snp_summary_component::Storage::SharedPtr storage ) const {
 	using genfile::string_utils::split_and_strip_discarding_empty_entries ;
 
 	if( m_options.check( "-snp-stats" )) {
@@ -344,7 +347,15 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		manager.stratify_by( strata, variable ) ;
 	}
 	
-	m_ui_context.logger() << "SNPSummaryComponent: the following components are in place:\n" << manager.get_summary( "  " ) << "\n" ;
+	if( m_options.check_if_option_was_supplied_in_group( "Call comparison options" ) ) {
+		CallComparerComponent::UniquePtr cc = CallComparerComponent::create(
+			m_samples,
+			m_options,
+			m_ui_context
+		) ;
+
+		cc->setup( manager, storage ) ;
+	}
 }
 
 SNPSummaryComputation::UniquePtr SNPSummaryComponent::create_computation( std::string const& name ) const {

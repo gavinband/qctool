@@ -10,7 +10,7 @@
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/vcf/get_set_eigen.hpp"
-#include "components/CallComparerComponent/LeastMissingConsensusCaller.hpp"
+#include "components/SNPSummaryComponent/LeastMissingConsensusCaller.hpp"
 
 LeastMissingConsensusCaller::LeastMissingConsensusCaller():
 	m_call_threshhold( 0.9 )

@@ -10,7 +10,7 @@
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/vcf/get_set_eigen.hpp"
-#include "components/CallComparerComponent/QuangStyleConsensusCaller.hpp"
+#include "components/SNPSummaryComponent/QuangStyleConsensusCaller.hpp"
 
 // #define DEBUG_QUANGSTYLECONSENSUSCALLER 1
 QuangStyleConsensusCaller::QuangStyleConsensusCaller( double threshhold, unsigned int minimum_consensus ):

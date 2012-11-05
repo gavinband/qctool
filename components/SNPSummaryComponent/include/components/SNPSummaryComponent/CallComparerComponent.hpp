@@ -12,8 +12,11 @@
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
 #include "PairwiseCallComparerManager.hpp"
+#include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
+#include "components/SNPSummaryComponent/SNPSummaryComputationManager.hpp"
+#include "components/SNPSummaryComponent/Storage.hpp"
 
-struct CallComparerProcessor: public genfile::SNPDataSourceProcessor::Callback, public virtual boost::noncopyable
+struct CallComparerProcessor: public SNPSummaryComputation
 {
 public:
 	typedef std::auto_ptr< CallComparerProcessor > UniquePtr ;
@@ -29,13 +32,12 @@ public:
 	) ;
 
 	public:
-		void begin_processing_snps( std::size_t number_of_samples ) ;
-		void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& data_reader ) ;
-		void end_processing_snps() ;
 
-		PairwiseCallComparerManager& get_comparer() { return *m_call_comparer ; }
-		
+		void operator()( SNPIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
+		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
+
 	private:
+		bool m_begun ;
 		PairwiseCallComparerManager::UniquePtr m_call_comparer ;
 		std::vector< std::string > m_call_fields ;
 		PairwiseCallComparerManager::MergeClient::UniquePtr m_consensus_caller ;
@@ -60,7 +62,7 @@ public:
 		appcontext::UIContext& ui_context
 	) ;
 	
-	void setup( genfile::SNPDataSourceProcessor& processor ) const ;
+	void setup( SNPSummaryComputationManager&, snp_summary_component::Storage::SharedPtr ) const ;
 
 private:
 	genfile::CohortIndividualSource const& m_samples ;

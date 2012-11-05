@@ -1,5 +1,5 @@
 def build( bld ):
-	subdirs = [ 'CallComparerComponent', 'HaplotypeFrequencyComponent', 'SNPSummaryComponent', 'RelatednessComponent', 'SampleSummaryComponent', 'SNPOutputComponent' ]
+	subdirs = [ 'HaplotypeFrequencyComponent', 'SNPSummaryComponent', 'RelatednessComponent', 'SampleSummaryComponent', 'SNPOutputComponent' ]
 	for subdir in subdirs:
 		bld.add_subdirs( subdir )
 

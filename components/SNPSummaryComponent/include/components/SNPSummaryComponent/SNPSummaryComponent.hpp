@@ -19,6 +19,7 @@
 #include "appcontext/UIContext.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputationManager.hpp"
+#include "components/SNPSummaryComponent/Storage.hpp"
 
 struct SNPSummaryComponent: public boost::noncopyable
 {
@@ -34,7 +35,7 @@ public:
 
 private:
 	SNPSummaryComputationManager::UniquePtr create_manager() const ;
-	void add_computations( SNPSummaryComputationManager& manager ) const ;
+	void add_computations( SNPSummaryComputationManager& manager, snp_summary_component::Storage::SharedPtr ) const ;
 	SNPSummaryComputation::UniquePtr create_computation( std::string const& name ) const ;
 private:
 	genfile::CohortIndividualSource const& m_samples ;

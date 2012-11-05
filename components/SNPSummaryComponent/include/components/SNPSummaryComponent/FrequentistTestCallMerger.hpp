@@ -16,7 +16,7 @@
 
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
-#include "components/CallComparerComponent/PairwiseCallComparerManager.hpp"
+#include "components/SNPSummaryComponent/PairwiseCallComparerManager.hpp"
 
 struct FrequentistTestCallMerger: PairwiseCallComparerManager::Merger
 {

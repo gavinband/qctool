@@ -9,7 +9,7 @@
 
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
-#include "components/CallComparerComponent/ConsensusCaller.hpp"
+#include "components/SNPSummaryComponent/ConsensusCaller.hpp"
 
 // Given a set of calls passed in by processed_snp
 // The consensus caller outputs a 

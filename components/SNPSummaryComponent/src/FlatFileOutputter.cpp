@@ -41,7 +41,7 @@ namespace snp_summary_component {
 	}
 	
 	FlatFileOutputter::~FlatFileOutputter() {
-		if( m_sink.get() && m_snps.size() > 0 ) {
+		if( m_snps.size() > 0 ) {
 			store_block() ;
 		}
 	}
@@ -87,7 +87,8 @@ namespace snp_summary_component {
 			m_sink->write_metadata( format_metadata() ) ;
 
 			(*m_sink) | "alternate_ids" | "rsid" | "chromosome" | "position" | "alleleA" | "alleleB" ;
-			VariableMap::right_const_iterator i = m_variables.right.begin(),
+			VariableMap::right_const_iterator
+				i = m_variables.right.begin(),
 				end_i = m_variables.right.end() ;
 			for( ; i != end_i; ++i ) {
 				(*m_sink).add_column( i->second ) ;

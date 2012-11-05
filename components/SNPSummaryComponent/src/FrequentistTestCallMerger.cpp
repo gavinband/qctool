@@ -13,8 +13,8 @@
 
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
-#include "components/CallComparerComponent/PairwiseCallComparerManager.hpp"
-#include "components/CallComparerComponent/FrequentistTestCallMerger.hpp"
+#include "components/SNPSummaryComponent/PairwiseCallComparerManager.hpp"
+#include "components/SNPSummaryComponent/FrequentistTestCallMerger.hpp"
 
 //#define CONSENSUS_CALLER_DEBUG 1
 
