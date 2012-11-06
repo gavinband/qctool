@@ -133,6 +133,13 @@ namespace snp_summary_component {
 		
 		m_outputter.connection().run_statement( schema_sql.str() ) ;
 		
+		m_outputter.connection().run_statement(
+			"CREATE VIEW \"" + table_name + "View\" AS "
+			"SELECT V.chromosome, V.position, V.rsid, V.alleleA, V.alleleB, A.name AS analysis_id, T.* FROM \"" + table_name + "\" T"
+			"INNER JOIN Variant V ON V.id = T.variant_id "
+			"INNER JOIN Entity A ON A.id = T.analysis_id"
+		) ;
+
 		std::cerr << "Inserts will use this SQL:\n"
 			<< insert_data_sql.str()
 			<< "\n" ;
