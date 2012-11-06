@@ -28,7 +28,7 @@ namespace snp_summary_component {
 
 	FlatTableDBOutputter::FlatTableDBOutputter( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ):
 		m_outputter( filename, cohort_name, metadata ),
-		m_max_snps_per_block( 1000 )
+		m_max_snps_per_block( 5 )
 	{}
 
 	FlatTableDBOutputter::~FlatTableDBOutputter() {
@@ -93,6 +93,7 @@ namespace snp_summary_component {
 	void FlatTableDBOutputter::create_schema() {
 		using genfile::string_utils::to_string ;
 		std::ostringstream schema_sql ;
+		std::ostringstream index_sql ;
 		std::ostringstream insert_data_sql ;
 		std::string const table_name = "Analysis" + to_string( m_outputter.analysis_id() )  ;
 		schema_sql << "CREATE TABLE "
@@ -122,8 +123,7 @@ namespace snp_summary_component {
 			insert_data_sql << "?" << to_string( bind_i ) ;
 		}
 
-		schema_sql << ", PRIMARY KEY( analysis_id, variant_id )"
-			<< " ) ;" ;
+		schema_sql << " ) ; " ;
 
 		insert_data_sql << ") ; " ;
 
@@ -132,13 +132,19 @@ namespace snp_summary_component {
 			<< "\n" ;
 		
 		m_outputter.connection().run_statement( schema_sql.str() ) ;
-		
-		m_outputter.connection().run_statement(
-			"CREATE VIEW \"" + table_name + "View\" AS "
-			"SELECT V.chromosome, V.position, V.rsid, V.alleleA, V.alleleB, A.name AS analysis_id, T.* FROM \"" + table_name + "\" T"
-			"INNER JOIN Variant V ON V.id = T.variant_id "
-			"INNER JOIN Entity A ON A.id = T.analysis_id"
-		) ;
+		m_outputter.connection().run_statement( "CREATE INDEX " + table_name + "_index ON " + table_name + "( variant_id )" ) ;
+
+		std::ostringstream view_sql ;	
+		view_sql
+			<< "CREATE VIEW \"" << table_name << "View\" AS "
+			<< "SELECT V.chromosome, V.position, V.rsid, V.alleleA, V.alleleB, A.name AS analysis_id, T.* FROM \""
+			<< table_name << "\" T "
+			<< "INNER JOIN Variant V ON V.id = T.variant_id "
+			<< "INNER JOIN Entity A ON A.id = T.analysis_id"
+		;
+
+		std::cerr << "Creating view using SQL:\n" << view_sql.str() << "\n" ;
+		m_outputter.connection().run_statement( view_sql.str() ) ;
 
 		std::cerr << "Inserts will use this SQL:\n"
 			<< insert_data_sql.str()
