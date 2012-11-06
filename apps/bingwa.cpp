@@ -39,6 +39,7 @@
 #include "components/SNPSummaryComponent/Storage.hpp"
 #include "components/SNPSummaryComponent/DBOutputter.hpp"
 #include "components/SNPSummaryComponent/FlatFileOutputter.hpp"
+#include "components/SNPSummaryComponent/FlatTableDBOutputter.hpp"
 
 namespace globals {
 	std::string const program_name = "bingwa" ;
@@ -1204,7 +1205,10 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 
 			options[ "-flat-file" ]
 				.set_description( "Specify the output file should be a flat file, not a db." ) ;
-		
+			options[ "-flat-table" ]
+				.set_description( "Output all results for this analysis to one table with variables in columns and variants in rows. "
+					"This overrides the default db output style, which is in a normalised form with different variables on different rows." )
+			;
 			options[ "-analysis-name" ]
 				.set_description( "Specify a name to label results from this analysis with" )
 				.set_takes_single_value()
@@ -1571,6 +1575,13 @@ public:
 		snp_summary_component::Storage::SharedPtr storage ;
 		if( options().check( "-flat-file" )) {
 			storage = snp_summary_component::FlatFileOutputter::create_shared(
+				options().get< std::string >( "-o" ),
+				options().get< std::string >( "-analysis-name" ),
+				options().get_values_as_map()
+			) ;
+		}
+		else if( options().check( "-flat-table" )) {
+			storage = snp_summary_component::FlatTableDBOutputter::create_shared(
 				options().get< std::string >( "-o" ),
 				options().get< std::string >( "-analysis-name" ),
 				options().get_values_as_map()
