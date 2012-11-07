@@ -66,16 +66,18 @@ namespace genfile {
 		SNPIdentifyingData snp ;
 		{
 			ScopedLock lock( m_mutex ) ;
-			while( m_snp_queue.empty() ) {
-				if( m_source_empty ) {
-					m_good = false ;
-					return ;
-				}
+			while( m_snp_queue.empty() && !m_source_empty ) {
 #if DEBUG_ASYNCHRONOUS_SNP_DATA_SOURCE
 				std::cerr << "r" ;
 #endif
 				m_queue_not_empty.wait( lock ) ;
 			}
+
+			if( m_source_empty ) {
+				m_good = false ;
+				return ;
+			}
+
 			snp = m_snp_queue.front() ;
 		}
 		set_number_of_samples( number_of_samples() ) ;
@@ -168,5 +170,6 @@ namespace genfile {
 
 		ScopedLock lock( m_mutex ) ;
 		m_source_empty = true ;
+		m_queue_not_empty.notify_one() ;
 	}
 }

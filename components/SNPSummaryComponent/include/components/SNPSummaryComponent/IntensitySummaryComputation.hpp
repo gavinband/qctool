@@ -19,18 +19,19 @@
 #include "genfile/VariantDataReader.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 
-struct IntensitySummaryComputation: public SNPSummaryComputation {
-	IntensitySummaryComputation( double call_threshhold = 0.9 ) ;
-	void operator()( SNPIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
-	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
-private:
-	double const m_call_threshhold ;
-	typedef Eigen::MatrixXd IntensityMatrix ;
-	IntensityMatrix m_intensities ;
-	IntensityMatrix m_intensities_by_genotype ;
-	IntensityMatrix m_nonmissingness ;
-	IntensityMatrix m_nonmissingness_by_genotype ;
-	
-} ;
+namespace snp_summary_component {
+	struct IntensitySummaryComputation: public SNPSummaryComputation {
+		IntensitySummaryComputation( double call_threshhold = 0.9 ) ;
+		void operator()( SNPIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
+		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
+	private:
+		double const m_call_threshhold ;
+		typedef Eigen::MatrixXd IntensityMatrix ;
+		IntensityMatrix m_intensities ;
+		IntensityMatrix m_intensities_by_genotype ;
+		IntensityMatrix m_nonmissingness ;
+		IntensityMatrix m_nonmissingness_by_genotype ;
+	} ;
+}
 
 #endif

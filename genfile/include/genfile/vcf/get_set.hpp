@@ -176,7 +176,8 @@ namespace genfile {
 		template< typename Matrix >
 		struct MatrixSetter: public VariantDataReader::PerSampleSetter
 		{
-			MatrixSetter( Matrix& result ): m_result( result ) {}
+			MatrixSetter( Matrix& result ): m_result( result ), m_nonmissingness( 0 ) {}
+			MatrixSetter( Matrix& result, Matrix& nonmissingness ): m_result( result ), m_nonmissingness( &nonmissingness ) {}
 			void set_number_of_samples( std::size_t n ) { m_number_of_samples = n ; }
 			void set_sample( std::size_t n ) {
 				assert( n < m_number_of_samples ) ; 
@@ -185,21 +186,29 @@ namespace genfile {
 			}
 			void set_number_of_entries( std::size_t n ) {
 				if( m_sample == 0 ) {
-					m_result.resize( n, m_number_of_samples ) ;
+					m_result.resize( m_number_of_samples, n ) ;
+					if( m_nonmissingness ) {
+						m_nonmissingness->resize( m_number_of_samples, n ) ;
+						m_nonmissingness->setZero() ;
+					}
 				}
 				else if( !n == m_result.rows() ) {
 					throw BadArgumentError( "genfile::vcf::MatrixSetter::set_number_of_entries()", "n" ) ;
 				}
 			}
 			void operator()( MissingValue const value ) {
-				m_result( m_entry_i++, m_sample ) = std::numeric_limits< double >::quiet_NaN() ;
+				m_result( m_sample, m_entry_i++ ) = std::numeric_limits< double >::quiet_NaN() ;
 			}
 			void operator()( double const value ) {
-				m_result( m_entry_i++, m_sample ) = value ;
+				if( m_nonmissingness ) {
+					(*m_nonmissingness )( m_sample, m_entry_i ) = 1 ;
+				}
+				m_result( m_sample, m_entry_i++ ) = value ;
 			}
 
 		private:
 			Matrix& m_result ;
+			Matrix* m_nonmissingness ;
 			std::size_t m_number_of_samples ;
 			std::size_t m_sample ;
 			std::size_t m_number_of_entries ;

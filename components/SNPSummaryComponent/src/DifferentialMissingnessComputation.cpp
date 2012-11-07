@@ -74,14 +74,12 @@ void DifferentialMissingnessComputation::operator()( SNPIdentifyingData const& s
 	callback( stub + "_sample_odds_ratio", table(0,0) * table(1,1) / ( table(0,1) * table(1,0) ) ) ;
 	
 	if( table.row(0).sum() > 0 && table.row(1).sum() > 0 ) {
-		if( table.minCoeff() < 20 ) {
-			// perform the exact test.  For speed reasons this is only done if the chi-square approximation may be inaccurate.
-			try {
-				metro::FishersExactTest test( table ) ;
-				callback( stub + "_exact_pvalue", test.get_pvalue( metro::FishersExactTest::eTwoSided ) )  ;
-			}
-			catch( std::exception const& e ) {
-			}
+		// perform the exact test.  For speed reasons this is only done if the chi-square approximation may be inaccurate.
+		try {
+			metro::FishersExactTest test( table ) ;
+			callback( stub + "_exact_pvalue", test.get_pvalue( metro::FishersExactTest::eTwoSided ) )  ;
+		}
+		catch( std::exception const& e ) {
 		}
 		{
 			metro::likelihood::Multinomial< double, Eigen::VectorXd, Eigen::MatrixXd > null_model( table.colwise().sum() ) ;
