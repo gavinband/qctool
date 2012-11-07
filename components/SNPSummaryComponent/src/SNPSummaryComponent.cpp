@@ -32,12 +32,15 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options.declare_group( "SNP computation options" ) ;
 	options[ "-snp-stats" ]
 		.set_description( "Calculate and output per-SNP statistics.  This implies that no SNP filtering options are used." ) ;
-
 	options[ "-snp-stats-columns" ]
         .set_description( "Comma-seperated list of extra columns to output in the snp-wise statistics file." )
 		.set_takes_single_value()
-		.set_default_value( "alleles,HWE,missingness,information,intensities" ) ;
+		.set_default_value( "alleles,HWE,missingness,information" ) ;
 
+	options.declare_group( "Intensity computation options" ) ;
+	options[ "-intensity-stats" ]
+		.set_description( "Compute intensity means and (co)variances for each genotype class at each SNP." ) ;
+		
 	options.declare_group( "Association test options" ) ;
 	options[ "-test" ]
 		.set_description( "Perform an association test on the given phenotype." )
@@ -94,6 +97,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	;
 	
 	options.option_implies_option( "-snp-stats", "-g" ) ;
+	options.option_implies_option( "-intensity-stats", "-g" ) ;
 	options.option_implies_option( "-annotate-ancestral", "-g" ) ;
 	options.option_implies_option( "-annotate-reference", "-g" ) ;
 	options.option_implies_option( "-test", "-g" ) ;
@@ -203,6 +207,10 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		BOOST_FOREACH( std::string const& elt, elts ) {
 			manager.add_computation( elt, SNPSummaryComputation::create( elt )) ;
 		}
+	}
+
+	if( m_options.check( "-intensity-stats" )) {
+		manager.add_computation( "intensities", SNPSummaryComputation::create( "intensities" )) ;
 	}
 
 	if( m_options.check( "-test" )) {
