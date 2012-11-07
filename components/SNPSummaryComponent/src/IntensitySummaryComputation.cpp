@@ -68,13 +68,20 @@ namespace snp_summary_component {
 		callback( "var_Y", covariance(1,1) ) ;
 		callback( "cov_XY",covariance(0,1) ) ;
 	
-		for( int g = 0; g < 3; ++g ) {
+		for( int g = 0; g < 4; ++g ) {
 			m_intensities_by_genotype = m_intensities ;
 			m_nonmissingness_by_genotype = m_nonmissingness ;
 			m_nonmissingness_by_genotype.setConstant( 1 ) ;
 			for( int i = 0; i < N; ++i ) {
-				if( genotypes( i, g ) < m_call_threshhold ) {
-					m_nonmissingness_by_genotype.row( i ).setZero() ;
+				if( g == 3 ) { // representing missing genotype
+					if( genotypes.row( i ).maxCoeff() >= m_call_threshhold ) {
+						m_nonmissingness_by_genotype.row( i ).setZero() ;
+					}
+				}
+				else {
+					if( genotypes( i, g ) < m_call_threshhold ) {
+						m_nonmissingness_by_genotype.row( i ).setZero() ;
+					}
 				}
 			}
 			metro::compute_mean_and_covariance(
@@ -83,7 +90,7 @@ namespace snp_summary_component {
 				mean,
 				covariance
 			) ;
-			std::string const stub = "g=" + genfile::string_utils::to_string( g ) ;
+			std::string const stub = "g=" + ( g == 3 ? std::string( "NA" ) : genfile::string_utils::to_string( g ) ) ;
 			callback( stub + ":mean_X", mean(0) ) ;
 			callback( stub + ":mean_Y", mean(1) ) ;
 			callback( stub + ":var_X", covariance(0,0) ) ;

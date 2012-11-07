@@ -110,6 +110,7 @@ namespace snp_summary_component {
 				callback( "AA", genotypes.col(0).sum() ) ;
 				callback( "AB", genotypes.col(1).sum() ) ;
 				callback( "BB", genotypes.col(2).sum() ) ;
+				callback( "NULL", genotypes.rows() - genotypes.sum() ) ;
 			} else {
 				compute_sex_chromosome_counts( snp, genotypes, sexes, callback ) ;
 			}
