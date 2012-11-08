@@ -28,7 +28,7 @@ namespace snp_summary_component {
 
 	FlatTableDBOutputter::FlatTableDBOutputter( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ):
 		m_outputter( filename, cohort_name, metadata ),
-		m_max_snps_per_block( 5 )
+		m_max_snps_per_block( 10000 )
 	{}
 
 	FlatTableDBOutputter::~FlatTableDBOutputter() {
