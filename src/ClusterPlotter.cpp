@@ -83,7 +83,7 @@ void ClusterPlotter::begin_processing_snps( std::size_t number_of_samples ) {
 
 namespace impl {
 	struct PlotTask: public worker::Task {
-		typedef Eigen::Matrix< double, 2, Eigen::Dynamic, Eigen::RowMajor > IntensityMatrix ;
+		typedef Eigen::MatrixXd IntensityMatrix ;
 		typedef std::vector< int > Genotypes ;
 		typedef std::map< std::string, Genotypes > Calls ;
 		PlotTask(
@@ -105,8 +105,8 @@ namespace impl {
 				m_calls[ call_fields[i] ] = Genotypes() ;
 			}
 			genfile::vcf::MatrixSetter< IntensityMatrix > intensity_setter( m_intensities ) ;
-
 			data_reader.get( m_intensity_field, intensity_setter ) ;
+
 			for( Calls::iterator i = m_calls.begin(), end_i = m_calls.end(); i != end_i; ++i ) {
 				genfile::vcf::ThreshholdingGenotypeSetter< Genotypes > genotype_setter( i->second, m_call_threshhold, 3, 0, 1, 2 ) ;
 				data_reader.get( i->first, genotype_setter ) ;

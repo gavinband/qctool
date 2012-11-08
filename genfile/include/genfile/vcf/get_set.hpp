@@ -7,6 +7,7 @@
 #ifndef GENFILE_VCF_GET_SET_HPP
 #define GENFILE_VCF_GET_SET_HPP
 
+#include <limits>
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
@@ -176,8 +177,24 @@ namespace genfile {
 		template< typename Matrix >
 		struct MatrixSetter: public VariantDataReader::PerSampleSetter
 		{
-			MatrixSetter( Matrix& result ): m_result( result ), m_nonmissingness( 0 ) {}
-			MatrixSetter( Matrix& result, Matrix& nonmissingness ): m_result( result ), m_nonmissingness( &nonmissingness ) {}
+			MatrixSetter(
+				Matrix& result,
+				double const missing_value = std::numeric_limits< double >::quiet_NaN()
+			):
+				m_result( result ),
+				m_nonmissingness( 0 ),
+				m_missing_value( missing_value )
+			{}
+			MatrixSetter(
+				Matrix& result,
+				Matrix& nonmissingness,
+				double const missing_value = 0
+			):
+				m_result( result ),
+				m_nonmissingness( &nonmissingness ),
+				m_missing_value( missing_value )
+			{}
+
 			void set_number_of_samples( std::size_t n ) { m_number_of_samples = n ; }
 			void set_sample( std::size_t n ) {
 				assert( n < m_number_of_samples ) ; 
@@ -197,7 +214,7 @@ namespace genfile {
 				}
 			}
 			void operator()( MissingValue const value ) {
-				m_result( m_sample, m_entry_i++ ) = std::numeric_limits< double >::quiet_NaN() ;
+				m_result( m_sample, m_entry_i++ ) = m_missing_value ;
 			}
 			void operator()( double const value ) {
 				if( m_nonmissingness ) {
@@ -209,6 +226,7 @@ namespace genfile {
 		private:
 			Matrix& m_result ;
 			Matrix* m_nonmissingness ;
+			double const m_missing_value ;
 			std::size_t m_number_of_samples ;
 			std::size_t m_sample ;
 			std::size_t m_number_of_entries ;
