@@ -136,10 +136,10 @@ namespace impl {
 				graph.SubPlot( N, M, count ) ;
 				graph.SetTickLen( 0.04 ) ;
 				double m_max_value = -1 ;
-				for( int i = 0; i < m_intensities.rows(); ++i ) {
+				for( int sample_i = 0; sample_i < m_intensities.rows(); ++sample_i ) {
 					for( int col = 0; col < 2; ++col ) {	
-						if( m_intensities(i,col) == m_intensities(i,col) ) {
-							m_max_value = std::max( m_max_value, m_intensities(i,col) ) ;
+						if( m_intensities(sample_i,col) == m_intensities(sample_i,col) ) {
+							m_max_value = std::max( m_max_value, m_intensities(sample_i,col) ) ;
 						}
 					}
 				}
