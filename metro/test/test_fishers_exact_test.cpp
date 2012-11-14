@@ -86,11 +86,11 @@ AUTO_TEST_CASE( test_fishers_exact_test_onesided ) {
 
 	M <<	28, 2132,
 			54, 1346 ;
-	BOOST_CHECK_CLOSE( metro::FishersExactTest( M ).get_pvalue( greater ), 1, tolerance ) ;
+	BOOST_CHECK_CLOSE( metro::FishersExactTest( M ).get_pvalue( greater ), 0.999999743839926, tolerance ) ;
 	BOOST_CHECK_CLOSE( metro::FishersExactTest( M ).get_pvalue( less ), 8.16627397356615e-07, tolerance ) ;
 	swap_rows( M ) ;
 	BOOST_CHECK_CLOSE( metro::FishersExactTest( M ).get_pvalue( greater ), 8.16627397356615e-07, tolerance ) ;
-	BOOST_CHECK_CLOSE( metro::FishersExactTest( M ).get_pvalue( less ), 1, tolerance ) ;
+	BOOST_CHECK_CLOSE( metro::FishersExactTest( M ).get_pvalue( less ), 0.999999743839926, tolerance ) ;
 }
 
 AUTO_TEST_CASE( test_fishers_exact_test_twosided ) {
