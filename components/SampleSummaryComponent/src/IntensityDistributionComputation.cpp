@@ -10,7 +10,7 @@
 #include "components/SampleSummaryComponent/IntensityDistributionComputation.hpp"
 #include "metro/mean_and_variance.hpp"
 
-#define DEBUG_INTENSITY_DISTRIBUTION_COMPUTATION 0
+// #define DEBUG_INTENSITY_DISTRIBUTION_COMPUTATION 1
 
 namespace sample_stats {
 	IntensityDistributionComputation::IntensityDistributionComputation():
@@ -126,10 +126,10 @@ namespace sample_stats {
 
 				for( int sample = 0; sample < m_number_of_samples; ++sample ) {
 					std::string const stub = "g=" + ( g == 3 ? std::string( "NA" ) : genfile::string_utils::to_string( g ) ) ;
-					callback( sample, stub + ":mean_X", mean(0) ) ;
-					callback( sample, stub + ":mean_Y", mean(1) ) ;
-					callback( sample, stub + ":variance_X", variance(0) ) ;
-					callback( sample, stub + ":variance_Y", variance(1) ) ;
+					callback( sample, stub + ":mean_X", mean( sample, 0 ) ) ;
+					callback( sample, stub + ":mean_Y", mean( sample, 1 ) ) ;
+					callback( sample, stub + ":variance_X", variance( sample, 0 ) ) ;
+					callback( sample, stub + ":variance_Y", variance( sample, 1 ) ) ;
 				}
 			}
 		}
