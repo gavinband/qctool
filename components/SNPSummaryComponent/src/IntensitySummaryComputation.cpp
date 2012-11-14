@@ -40,9 +40,9 @@ namespace snp_summary_component {
 		if( !data_reader.supports( "XY" )) {
 			return ;
 		}
-
+		
 		int const N = genotypes.rows() ;
-	
+		
 		{
 			genfile::vcf::MatrixSetter< IntensityMatrix > intensity_setter( m_intensities, m_nonmissingness ) ;
 			data_reader.get( "XY", intensity_setter ) ;
@@ -71,7 +71,6 @@ namespace snp_summary_component {
 		for( int g = 0; g < 4; ++g ) {
 			m_intensities_by_genotype = m_intensities ;
 			m_nonmissingness_by_genotype = m_nonmissingness ;
-			m_nonmissingness_by_genotype.setConstant( 1 ) ;
 			for( int i = 0; i < N; ++i ) {
 				if( g == 3 ) { // representing missing genotype
 					if( genotypes.row( i ).maxCoeff() >= m_call_threshhold ) {

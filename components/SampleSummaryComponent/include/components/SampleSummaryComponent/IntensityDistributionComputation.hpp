@@ -8,6 +8,7 @@
 #define QCTOOL_INTENSITY_DISTRIBUTION_COMPUTATION_HPP
 
 #include <Eigen/Core>
+#include "metro/mean_and_variance.hpp"
 #include "components/SampleSummaryComponent/SampleSummaryComputation.hpp"
 
 namespace sample_stats {
@@ -18,15 +19,17 @@ namespace sample_stats {
 		void compute( ResultCallback ) ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 	private:
+		double const m_call_threshhold ;
 		typedef Eigen::MatrixXd IntensityMatrix ;
 		IntensityMatrix m_intensities ;
+		IntensityMatrix m_nonmissingness ;
+		IntensityMatrix m_intensities_by_genotype ;
+		IntensityMatrix m_nonmissingness_by_genotype ;
 
+		std::size_t m_number_of_samples ;
 		std::size_t m_snp_index ;
-		IntensityMatrix m_means ;
-		IntensityMatrix m_means2 ;
-		IntensityMatrix m_difference ;
-		IntensityMatrix m_sum_of_squares_of_differences ;
-		IntensityMatrix m_variances ;
+		metro::OnlineElementwiseMeanAndVariance m_accumulator ;
+		std::vector< metro::OnlineElementwiseMeanAndVariance > m_accumulator_by_genotype ;
 	} ;
 }
 

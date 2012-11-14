@@ -8,9 +8,13 @@
 #include "genfile/vcf/get_set_eigen.hpp"
 #include "components/SampleSummaryComponent/SampleSummaryComputation.hpp"
 #include "components/SampleSummaryComponent/IntensityDistributionComputation.hpp"
+#include "metro/mean_and_variance.hpp"
+
+#define DEBUG_INTENSITY_DISTRIBUTION_COMPUTATION 0
 
 namespace sample_stats {
 	IntensityDistributionComputation::IntensityDistributionComputation():
+		m_call_threshhold( 0.9 ),
 		m_snp_index( 0 )
 	{}
 
@@ -19,50 +23,114 @@ namespace sample_stats {
 			return ;
 		}
 
+		int const N = genotypes.rows() ;
+
 		{
-			genfile::vcf::MatrixSetter< IntensityMatrix > intensity_setter( m_intensities ) ;
+			genfile::vcf::MatrixSetter< IntensityMatrix > intensity_setter( m_intensities, m_nonmissingness ) ;
 			data_reader.get( "XY", intensity_setter ) ;
+			assert( m_intensities.rows() == N ) ;
+			assert( m_intensities.cols() == 2 ) ;
+			assert( m_nonmissingness.rows() == N ) ;
+			assert( m_nonmissingness.cols() == 2 ) ;
 		}
 		
 		if( m_snp_index == 0 ) {
-			m_means.setZero( 4, m_intensities.cols() ) ;
-			m_means2.setZero( 4, m_intensities.cols() ) ;
-			m_variances.setZero( 4, m_intensities.cols() ) ;
-			m_sum_of_squares_of_differences.setZero( 4, m_intensities.cols() ) ;
+			m_number_of_samples = N ;
+			m_accumulator_by_genotype.resize( 4 ) ;
 		}
 
-		// We have a row for X and a row for Y.
-		// Convert to X+Y and X-Y rows.
-		Eigen::Matrix< double, 4, 2 > transform ;
+		// We have a column for X and a column for Y.
+		// We use a linear transformation to compute means of X, Y, X+Y and X-Y.
+		Eigen::Matrix< double, 2, 4 > transform ;
 		transform <<
-			1,  0,
-			0,  1,
-			1,  1,
-			1, -1
+			1,  0,  1,  1,
+			0,  1,  1, -1
 		;
-		m_intensities = transform * m_intensities ;
+		m_intensities = m_intensities * transform ;
+		m_nonmissingness = m_nonmissingness * transform ;
+
+#if DEBUG_INTENSITY_DISTRIBUTION_COMPUTATION
+		std::cerr << "Intensities are:\n"
+			<< m_intensities.block( 0, 0, 10, 4 )
+			<< "\n"
+			<< m_nonmissingness.block( 0, 0, 10, 4 )
+			<< "\n" ;
+#endif
+		// In third column, nonmissingness now equals #of non-missing values (zero, one or two).
+		// Replace 3rd and fourth columns with an indicator.
+		m_nonmissingness.col(2).array() = ( m_nonmissingness.col(3).array() == 2 ).cast< double >() ;
+		m_nonmissingness.col(3) = m_nonmissingness.col(2) ;
 		
 		// This is an "on-line" algorithm for computing the mean and variance.
 		// see http://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#On-line_algorithm
 		//
+		
+		m_accumulator.accumulate( m_intensities, m_nonmissingness ) ;
+
+		for( int g = 0; g < 4; ++g ) {
+			m_intensities_by_genotype = m_intensities.block( 0, 0, N, 2 ) ;
+			m_nonmissingness_by_genotype = m_nonmissingness.block( 0, 0, N, 2 ) ;
+			
+			for( int i = 0; i < N; ++i ) {
+				if( g == 3 ) { // representing missing genotype
+					if( genotypes.row( i ).maxCoeff() >= m_call_threshhold ) {
+						m_nonmissingness_by_genotype.row( i ).setZero() ;
+					}
+				}
+				else {
+					if( genotypes( i, g ) < m_call_threshhold ) {
+						m_nonmissingness_by_genotype.row( i ).setZero() ;
+					}
+				}
+			}
+
+#if DEBUG_INTENSITY_DISTRIBUTION_COMPUTATION
+			std::cerr << "Accumulating genotypes for g=" << g << ":\n"
+				<< m_intensities_by_genotype.block( 0, 0, 10, 2 )
+				<< "\n nonmissingness = "
+				<< m_nonmissingness_by_genotype.block( 0, 0, 10, 2 )
+				<< "\n" ;
+#endif
+			m_accumulator_by_genotype[ g ].accumulate( m_intensities_by_genotype, m_nonmissingness_by_genotype ) ;
+#if DEBUG_INTENSITY_DISTRIBUTION_COMPUTATION
+			std::cerr << "mean is " << m_accumulator_by_genotype[ g ].get_mean().block( 0, 0, 10, 2 ) << "\n" ;
+#endif
+		}
+
 		++m_snp_index ;
-		m_difference = m_intensities - m_means ;
-		m_means += m_difference / m_snp_index ;
-		m_sum_of_squares_of_differences.array() += m_difference.array() * ( m_intensities - m_means ).array() ;
 	}
 
 	void IntensityDistributionComputation::compute( ResultCallback callback ) {
+
 		if( m_snp_index > 0 ) {
-			m_variances = m_sum_of_squares_of_differences / ( m_snp_index - 1 ) ;
-			for( int sample = 0; sample < m_means.cols(); ++sample ) {
-				callback( sample, "X mean", m_means( 0, sample ) ) ;
-				callback( sample, "Y mean", m_means( 1, sample ) ) ;
-				callback( sample, "X+Y mean", m_means( 2, sample ) ) ;
-				callback( sample, "X-Y mean", m_means( 3, sample ) ) ;
-				callback( sample, "X variance", m_variances( 0, sample ) / ( m_snp_index - 1 )) ;
-				callback( sample, "Y variance", m_variances( 1, sample ) / ( m_snp_index - 1 )) ;
-				callback( sample, "X+Y variance", m_variances( 2, sample ) / ( m_snp_index - 1 )) ;
-				callback( sample, "X-Y variance", m_variances( 3, sample ) / ( m_snp_index - 1 )) ;
+			{
+				Eigen::MatrixXd const& mean = m_accumulator.get_mean() ;
+				Eigen::MatrixXd const& variance = m_accumulator.get_variance() ;
+				assert( mean.rows() == m_number_of_samples ) ;
+				assert( mean.cols() == 4 ) ;
+			
+				for( int sample = 0; sample < m_number_of_samples; ++sample ) {
+					callback( sample, "mean_X", mean( sample, 0 ) ) ;
+					callback( sample, "mean_Y", mean( sample, 1 ) ) ;
+					callback( sample, "mean_X+Y ", mean( sample, 2 ) ) ;
+					callback( sample, "mean_X-Y ", mean( sample, 3 ) ) ;
+					callback( sample, "variance_X", variance( sample, 0 ) ) ;
+					callback( sample, "variance_Y", variance( sample, 1 ) ) ;
+					callback( sample, "variance_X+Y", variance( sample, 2 ) ) ;
+					callback( sample, "variance_X-Y", variance( sample, 3 ) ) ;
+				}
+			}
+			for( int g = 0; g < 4; ++g ) {
+				Eigen::MatrixXd const& mean = m_accumulator_by_genotype[g].get_mean() ;
+				Eigen::MatrixXd const& variance = m_accumulator_by_genotype[g].get_variance() ;
+
+				for( int sample = 0; sample < m_number_of_samples; ++sample ) {
+					std::string const stub = "g=" + ( g == 3 ? std::string( "NA" ) : genfile::string_utils::to_string( g ) ) ;
+					callback( sample, stub + ":mean_X", mean(0) ) ;
+					callback( sample, stub + ":mean_Y", mean(1) ) ;
+					callback( sample, stub + ":variance_X", variance(0) ) ;
+					callback( sample, stub + ":variance_Y", variance(1) ) ;
+				}
 			}
 		}
 	}
