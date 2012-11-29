@@ -314,43 +314,40 @@ private:
 		SNPResultCallback callback,
 		ProgressCallback progress_callback
 	) {
-		progress_callback( 0, filenames.size() * 100 ) ;
-		for( std::size_t i = 0; i < filenames.size(); ++i ) {
-			setup( i, filenames.size(), filenames[i], callback, progress_callback ) ;
-		}
+		progress_callback( 0, 100 ) ;
+		setup( statfile::BuiltInTypeStatSource::open( filenames ), callback, progress_callback ) ;
 	}
 
 	void setup(
-		std::size_t const filename_i,
-		std::size_t const number_of_files,
-		genfile::wildcard::FilenameMatch const& filename,
+		statfile::BuiltInTypeStatSource::UniquePtr source,
 		SNPResultCallback callback,
 		ProgressCallback progress_callback
 	) {
-		statfile::BuiltInTypeStatSource::UniquePtr source( statfile::BuiltInTypeStatSource::open( filename.filename() )) ;
-
 		ColumnMap column_map = get_columns_to_store( *source ) ;
 		
 		int degrees_of_freedom = ( column_map.left.find( "_beta_2" ) == column_map.left.end() ) ? 1 : 2 ;
 		
 		std::size_t snp_index = m_snps.size() ;
-		
-		m_snps.resize( snp_index + source->number_of_rows() ) ;
-		m_betas.resize( snp_index + source->number_of_rows(), degrees_of_freedom ) ;
-		m_ses.resize( snp_index + source->number_of_rows(), degrees_of_freedom ) ;
-		m_pvalues.resize( snp_index + source->number_of_rows() ) ;
-		m_info.resize( snp_index + source->number_of_rows() ) ;
-		m_maf.resize( snp_index + source->number_of_rows() ) ;
-		m_sample_counts.resize( snp_index + source->number_of_rows(), 4 ) ;
-		for( ExtraVariables::iterator i = m_extra_variables.begin(); i != m_extra_variables.end(); ++i ) {
-			i->second.resize( snp_index + source->number_of_rows() ) ;
-		}
 
 		genfile::SNPIdentifyingData snp ;
 		Eigen::VectorXd betas ;
 		Eigen::VectorXd ses ;
 		
 		for( ; read_snp( *source, snp ); (*source) >> statfile::ignore_all() ) {
+			
+			if( snp_index >= m_snps.size() ) {
+				m_snps.resize( snp_index + 100000 ) ;
+				m_betas.resize( snp_index + 100000, degrees_of_freedom ) ;
+				m_ses.resize( snp_index + 100000, degrees_of_freedom ) ;
+				m_pvalues.resize( snp_index + 100000 ) ;
+				m_info.resize( snp_index + 100000 ) ;
+				m_maf.resize( snp_index + 100000 ) ;
+				m_sample_counts.resize( snp_index + 100000, 4 ) ;
+				for( ExtraVariables::iterator i = m_extra_variables.begin(); i != m_extra_variables.end(); ++i ) {
+					i->second.resize( snp_index + 100000 ) ;
+				}
+			}
+			
 			// Deal with strange non-ids.  This isn't a general solution but 
 			if(
 				snp.get_SNPID() == "---" // IMPUTE2
@@ -376,7 +373,7 @@ private:
 			}
 
 			if( progress_callback ) {
-				progress_callback( 100 * ( filename_i + double( source->number_of_rows_read() + 1 ) / source->number_of_rows() ), 100 * number_of_files ) ;
+				progress_callback( double( source->number_of_rows_read() + 1 ), source->number_of_rows() ) ;
 			}
 		}
 		
@@ -1193,6 +1190,15 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 			options[ "-min-maf" ]
 				.set_description( "Treat SNPs with maf (in controls) less than the given threshhold as missing." )
 				.set_takes_values( 1 ) ;
+				
+				
+		}
+
+		{
+			options.declare_group( "Options for adjusting variants" ) ;
+			options[ "-flip-alleles" ]
+				.set_description( "Specify that, where alleles do not match between cohorts, bingwa will try to match them by flipping." )
+			;
 		}
 
 		{
@@ -1310,8 +1316,13 @@ struct AmetProcessor: public boost::noncopyable
 	}
 	
 	AmetProcessor( genfile::SNPIdentifyingData2::CompareFields const& compare_fields ):
-		m_snps( compare_fields )
+		m_snps( compare_fields ),
+		m_flip_alleles_if_necessary( false )
 	{
+	}
+	
+	void set_flip_alleles( void ) {
+		m_flip_alleles_if_necessary = true ;
 	}
 	
 	void add_cohort( std::string const& name, FrequentistGenomeWideAssociationResults::UniquePtr results ) {
@@ -1384,17 +1395,33 @@ private:
 	std::vector< std::string > m_cohort_names ;
 	boost::ptr_vector< FrequentistGenomeWideAssociationResults > m_cohorts ;
 	boost::ptr_vector< AmetComputation > m_computations ;
-	typedef std::map< genfile::SNPIdentifyingData2, std::vector< boost::optional< std::size_t > >, genfile::SNPIdentifyingData2::CompareFields > SnpMap ;
+	struct SnpMatch {
+	public:
+		SnpMatch( std::size_t index_, bool flip_ ): index( index_ ), flip( flip_ ) {}
+		SnpMatch(): index(0), flip( false ) {}
+		SnpMatch( SnpMatch const& other ): index( other.index ), flip( other.flip ) {}
+		SnpMatch& operator=( SnpMatch const& other ) { index = other.index ; flip = other.flip ; return *this ; }
+	public:
+		std::size_t index ;
+		bool flip ;
+	} ;
+	typedef boost::optional< SnpMatch > OptionalSnpMatch ;
+	typedef std::map<
+		genfile::SNPIdentifyingData2,
+		std::vector< OptionalSnpMatch >,
+		genfile::SNPIdentifyingData2::CompareFields
+	> SnpMap ;
 	SnpMap m_snps ;
 	typedef std::map< std::vector< bool >, std::size_t > CategoryCounts ;
 	CategoryCounts m_category_counts ;
+	bool m_flip_alleles_if_necessary ;
 	
 	ResultSignal m_result_signal ;
 
 	struct DataGetter: public AmetComputation::DataGetter {
 		DataGetter(
 			boost::ptr_vector< FrequentistGenomeWideAssociationResults > const& cohorts,
-			std::vector< boost::optional< std::size_t > >const& indices
+			std::vector< OptionalSnpMatch >const& indices
 		):
 			m_cohorts( cohorts ),
 			m_indices( indices )
@@ -1404,40 +1431,45 @@ private:
 		
 		void get_counts( std::size_t i, Eigen::VectorXd* result ) const {
 			if( is_non_missing( i ) ) {
-				return m_cohorts[i].get_counts( *m_indices[i], result ) ;
+				m_cohorts[i].get_counts( m_indices[i]->index, result ) ;
+				if( m_indices[i]->flip ) {
+					result->reverseInPlace() ;
+				}
 			}
 		}
 		void get_betas( std::size_t i, Eigen::VectorXd* result ) const {
 			if( is_non_missing( i ) ) {
-				m_cohorts[i].get_betas( *m_indices[i], result ) ;
+				m_cohorts[i].get_betas( m_indices[i]->index, result ) ;
+				if( m_indices[i]->flip ) {
+					(*result) *= -1 ;
+				}
 			}
 		}
 		void get_ses( std::size_t i, Eigen::VectorXd* result ) const {
 			if( is_non_missing( i ) ) {
-				m_cohorts[i].get_ses( *m_indices[i], result ) ;
+				m_cohorts[i].get_ses( m_indices[i]->index, result ) ;
 			}
 		}
 		void get_pvalue( std::size_t i, double* result ) const {
 			if( is_non_missing( i ) ) {
-				m_cohorts[i].get_pvalue( *m_indices[i], result ) ;
+				m_cohorts[i].get_pvalue( m_indices[i]->index, result ) ;
 			}
 		}
 		void get_info( std::size_t i, double* result ) const {
 			if( is_non_missing( i ) ) {
-				m_cohorts[i].get_info( *m_indices[i], result ) ;
+				m_cohorts[i].get_info( m_indices[i]->index, result ) ;
 			}
 		}
 		bool is_non_missing( std::size_t i ) const {
 			return( m_indices[i] ) ;
 		}
 		void get_variable( std::string const& variable, std::size_t i, double* result ) const {
-			m_cohorts[i].get_variable( *m_indices[i], variable, result ) ;
+			m_cohorts[i].get_variable( m_indices[i]->index, variable, result ) ;
 		}
 
 		private:
 			boost::ptr_vector< FrequentistGenomeWideAssociationResults > const& m_cohorts ;
-			std::vector< boost::optional< std::size_t > > const& m_indices ;
-		
+			std::vector< OptionalSnpMatch > const& m_indices ;
 	} ;
 private:
 	void unsafe_setup( appcontext::UIContext& ui_context ) {
@@ -1448,16 +1480,28 @@ private:
 	void add_SNP_callback( std::size_t cohort_i, std::size_t snp_i, genfile::SNPIdentifyingData2 const& snp ) {
 		// Find the SNP that matches the given one (if it exists)
 		std::pair< SnpMap::iterator, SnpMap::iterator > range = m_snps.equal_range( snp ) ;
+		SnpMatch snp_match( snp_i, false ) ;
+
+		if( range.second == range.first && m_flip_alleles_if_necessary ) {
+			genfile::SNPIdentifyingData2 swapped_snp = snp ;
+			swapped_snp.swap_alleles() ;
+			range = m_snps.equal_range( swapped_snp ) ;
+			snp_match.flip = ( range.second != range.first ) ;
+		}
+		
 		if( range.second == range.first ) {
 			// no match, so add this SNP.
-			std::vector< boost::optional< std::size_t > >& snp_indices = m_snps[ snp ] ;
-			snp_indices.resize( m_cohorts.size() ) ;
-			snp_indices[ cohort_i ] = snp_i ;
+			std::vector< OptionalSnpMatch >& snp_matches = m_snps[ snp ] ;
+			snp_matches.resize( m_cohorts.size() ) ;
+			snp_matches[ cohort_i ] = snp_match ;
+			std::cerr << "Added SNP " << snp << " with match " << snp_match.index << ":" << ( snp_match.flip ? "flip" : "noflip" ) << ".\n" ;
 		}
 		else {
-			// There is a match.  Combine the rsids using commas.
+			// There is a match.  In case rsids differ, we combine them separated by commas.
+			// First save the currently-stored data.
 			genfile::SNPIdentifyingData2 stored_snp = range.first->first ;
-			std::vector< boost::optional< std::size_t > > snp_indices = range.first->second ;
+			std::vector< OptionalSnpMatch > snp_matches = range.first->second ;
+
 			m_snps.erase( range.first ) ;
 			
 			using genfile::string_utils::slice ;
@@ -1473,8 +1517,10 @@ private:
 			stored_snp.add_identifier( snp.get_rsid() ) ;
 			snp.get_identifiers( boost::bind( &genfile::SNPIdentifyingData2::add_identifier, &stored_snp, _1 ) ) ;
 
-			snp_indices[ cohort_i ] = snp_i ;
-			m_snps[ stored_snp ] = snp_indices ;
+			snp_matches[ cohort_i ] = snp_match ;
+			m_snps[ stored_snp ] = snp_matches ;
+
+			std::cerr << "Updated SNP " << stored_snp << " with match " << snp_match.index << ":" << ( snp_match.flip ? "flip" : "noflip" ) << ".\n" ;
 		}
 	}
 
@@ -1498,7 +1544,7 @@ private:
 	void categorise_by_missingness() {
 		SnpMap::const_iterator snp_i = m_snps.begin(), end_i = m_snps.end() ;
 		for( ; snp_i != end_i; ++snp_i ) {
-			std::vector< boost::optional< std::size_t > > const& indices = snp_i->second ;
+			std::vector< OptionalSnpMatch > const& indices = snp_i->second ;
 			std::vector< bool > indicator( indices.size(), false ) ;
 			for( std::size_t i = 0; i < indices.size(); ++i ) {
 				indicator[i] = bool( indices[i] ) ;
@@ -1518,7 +1564,7 @@ private:
 			SnpMap::const_iterator snp_i = m_snps.begin() ;
 			SnpMap::const_iterator const end_i = m_snps.end() ;
 			for( std::size_t snp_index = 0; snp_i != end_i; ++snp_i, ++snp_index ) {
-				std::vector< boost::optional< std::size_t > > const& indices = snp_i->second ;
+				std::vector< OptionalSnpMatch > const& indices = snp_i->second ;
 				DataGetter data_getter( m_cohorts, indices ) ;
 				for( std::size_t i = 0; i < m_computations.size(); ++i ) {
 					m_computations[i](
@@ -1551,7 +1597,11 @@ public:
 			"-log"
 		),
 		m_processor( AmetProcessor::create( genfile::SNPIdentifyingData2::CompareFields( options().get< std::string > ( "-snp-match-fields" )) ) )
-	{}
+	{
+		if( options().check( "-flip-alleles" )) {
+			m_processor->set_flip_alleles() ;
+		}
+	}
 	
 	void run() {
 		try {
@@ -1566,6 +1616,7 @@ public:
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 	}
+
 	void unsafe_run() {
 		load_data() ;
 
