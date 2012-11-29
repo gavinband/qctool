@@ -60,7 +60,7 @@ namespace snp_summary_component {
 			db::Connection::RowId const,
 			db::Connection::RowId const
 		) ;
-		
+		void create_variables() ;
 	} ;
 }
 

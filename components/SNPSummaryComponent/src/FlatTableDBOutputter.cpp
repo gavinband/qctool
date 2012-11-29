@@ -83,6 +83,7 @@ namespace snp_summary_component {
 		
 		if( !m_insert_data_sql.get() ) {
 			create_schema() ;
+			create_variables() ;
 		}
 		for( std::size_t i = 0; i < m_snps.size(); ++i ) {
 			db::Connection::RowId const variant_id = m_outputter.get_or_create_variant( m_snps[i] ) ;
@@ -161,6 +162,16 @@ namespace snp_summary_component {
  		) ;
 	}
 
+	void FlatTableDBOutputter::create_variables() {
+		db::Connection::RowId const variable_class_id = m_outputter.get_or_create_entity( "per-variant variable", "per-variant variable values" ) ;
+		VariableMap::right_const_iterator
+			var_i = m_variables.right.begin(),
+			end_var_i = m_variables.right.end() ;
+		for( ; var_i != end_var_i; ++var_i ) {
+			m_outputter.get_or_create_entity( var_i->second, var_i->second, variable_class_id ) ;
+		}
+	}
+	
 	void FlatTableDBOutputter::store_data_for_variant(
 		std::size_t const snp_i,
 		db::Connection::RowId const analysis_id,
