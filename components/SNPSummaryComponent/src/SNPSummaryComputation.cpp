@@ -16,6 +16,8 @@
 #include "components/SNPSummaryComponent/HWEComputation.hpp"
 #include "components/SNPSummaryComponent/IntensitySummaryComputation.hpp"
 
+// #define DEBUG_SNP_SUMMARY_COMPUTATION 1
+
 namespace snp_summary_component {
 	struct AlleleFrequencyComputation: public SNPSummaryComputation
 	{
@@ -131,9 +133,11 @@ namespace snp_summary_component {
 			for( std::size_t i = 0; i < sexes.size(); ++i ) {
 				counts[ sexes[i] ] += genotypes.row( i ) ;
 				++sample_counts[ sexes[i] ] ;
+#if DEBUG_SNP_SUMMARY_COMPUTATION
 				if( sexes[i] == 'm' && genotypes(i,2) != 0 ) {
 					std::cerr << "! ( MissingnessComputation::compute_sex_chromosome_counts() ): individual " << (i+1) << "is male but has genotype " << genotypes.row(i) << "!!\n" ;
 				}
+#endif
 			}
 			
 			callback( "males_A", counts[ 'm' ]( 0 ) ) ;
@@ -141,7 +145,9 @@ namespace snp_summary_component {
 
 			if( counts[ 'm' ]( 2 ) != 0 ) {
 				callback( "males_BB", counts[ 'm' ]( 2 ) ) ;
+#if DEBUG_SNP_SUMMARY_COMPUTATION
 				std::cerr << "!! ( MissingnessComputation::compute_sex_chromosome_counts() ): some males have BB probability!\n" ;
+#endif
 				throw genfile::BadArgumentError( " MissingnessComputation::compute_sex_chromosome_counts()", "genotypes" ) ;
 			}
 

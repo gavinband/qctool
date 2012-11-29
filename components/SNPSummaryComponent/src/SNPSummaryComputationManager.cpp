@@ -18,6 +18,8 @@
 #include "components/SNPSummaryComponent/SNPSummaryComputationManager.hpp"
 #include "components/SNPSummaryComponent/StratifyingSNPSummaryComputation.hpp"
 
+// #define DEBUG_SNP_SUMMARY_COMPUTATION_MANAGER 1
+
 SNPSummaryComputationManager::SNPSummaryComputationManager( genfile::CohortIndividualSource const& samples ):
 	m_samples( samples ),
 	m_sexes( get_sexes( samples )),
@@ -124,9 +126,10 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes( genfile::SNPIde
 		std::vector< int > const& males = m_samples_by_sex.find( 'm' )->second ;
 		std::cerr << "SNPSummaryComputationManager::fix_sex_chromosome_genotypes(): examining genotypes for " << males.size() << " males...\n" ;
 		if( males.size() > 0 ) {
-			std::cerr << "SNPSummaryComputationManager::fix_sex_chromosome_genotypes(): male coding column is " << determine_male_coding_column( snp, genotypes, males ) << "!\n" ;
 			if( determine_male_coding_column( snp, genotypes, males ) == 2 ) {
+#if DEBUG_SNP_SUMMARY_COMPUTATION_MANAGER
 				std::cerr << "SNPSummaryComputationManager::fix_sex_chromosome_genotypes(): male coding is 2...\n" ;
+#endif
 				for( std::size_t i = 0; i < males.size(); ++i ) {
 					genotypes( males[i], 1 ) = genotypes( males[i], 2 ) ;
 					genotypes( males[i], 2 ) = 0 ;
@@ -139,12 +142,14 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes( genfile::SNPIde
 		std::vector< int > const& females = m_samples_by_sex.find( 'f' )->second ;
 		for( std::size_t i = 0; i < females.size(); ++i ) {
 			if( genotypes.row( females[i] ).array().abs().maxCoeff() != 0 ) {
+#if DEBUG_SNP_SUMMARY_COMPUTATION_MANAGER
 				std::cerr << "!! (SNPSummaryComputationManager::fix_sex_chromosome_genotypes()): at Y chromosome SNP "
 					<< snp
 					<< ", sample #"
 					<< (females[i]+1)
 					<< " (" << m_samples.get_entry( females[i], "ID_1" ) << ") "
 					<< " has nonzero genotype call!\n" ;
+#endif
 				throw genfile::BadArgumentError( "SNPSummaryComputationManager::fix_sex_chromosome_genotypes()", "genotypes" ) ;
 			}
 		}
@@ -177,6 +182,7 @@ int SNPSummaryComputationManager::determine_male_coding_column(
 					column_determining_sample = males[i] ;
 				}
 				else if( column != g ) {
+#if DEBUG_SNP_SUMMARY_COMPUTATION_MANAGER
 					std::cerr << "!! (SNPSummaryComputationManager::determine_male_coding_column()): at X chromosome SNP "
 						<< snp
 						<< ":\n"
@@ -189,6 +195,7 @@ int SNPSummaryComputationManager::determine_male_coding_column(
 						<< " (#" << (males[i]+1) << ")"
 						<< " is coded as a " << ( ( g == 1 ) ? "heterozygote" : "homozygote" )
 						<< ".\n" ;
+#endif
 					throw genfile::BadArgumentError( "SNPSummaryComputationManager::determine_male_coding_column()", "genotypes" ) ;
 				}
 				break ; // no need to do both genotypes due to the check above.
