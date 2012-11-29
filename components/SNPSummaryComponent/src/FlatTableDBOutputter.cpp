@@ -153,6 +153,12 @@ namespace snp_summary_component {
 		m_insert_data_sql = m_outputter.connection().get_statement(
 			insert_data_sql.str()
 		) ;
+
+		m_outputter.get_or_create_entity_data(
+                       m_outputter.analysis_id(),
+                        m_outputter.get_or_create_entity( "table", "Table holding results of an analysis" ),
+                        table_name + "View"
+ 		) ;
 	}
 
 	void FlatTableDBOutputter::store_data_for_variant(
