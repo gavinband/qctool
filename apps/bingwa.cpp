@@ -1495,7 +1495,6 @@ private:
 			std::vector< OptionalSnpMatch >& snp_matches = m_snps[ snp ] ;
 			snp_matches.resize( m_cohorts.size() ) ;
 			snp_matches[ cohort_i ] = snp_match ;
-			std::cerr << "Added SNP " << snp << " with match " << snp_match.index << ":" << ( snp_match.flip ? "flip" : "noflip" ) << ".\n" ;
 		}
 		else {
 			// There is a match.  In case rsids differ, we combine them separated by commas.
@@ -1520,8 +1519,6 @@ private:
 
 			snp_matches[ cohort_i ] = snp_match ;
 			m_snps[ stored_snp ] = snp_matches ;
-
-			std::cerr << "Updated SNP " << stored_snp << " with match " << snp_match.index << ":" << ( snp_match.flip ? "flip" : "noflip" ) << ".\n" ;
 		}
 	}
 
