@@ -368,8 +368,9 @@ private:
 				store_value( snp_index, i->second, value ) ;
 			}
 
+			m_snps[ snp_index ] = snp ;
 			if( check_if_snp_accepted( snp_index ) ) {
-				m_snps[ snp_index++ ] = snp ;
+				++snp_index ;
 			}
 
 			if( progress_callback ) {
