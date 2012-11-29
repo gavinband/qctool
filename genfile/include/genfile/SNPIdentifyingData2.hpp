@@ -43,7 +43,8 @@ namespace genfile {
 		void set_second_allele( slice const& allele ) ;
 		void clear_identifiers() ;
 		void add_identifier( slice const& id ) ;
-
+		void swap_alleles() ;
+		
 		slice get_rsid() const { return slice( m_data, m_rsid_start, m_first_allele_start ) ; }
 		GenomePosition const& get_position() const { return m_position ; }
 		slice get_first_allele() const { return slice( m_data, m_first_allele_start, m_second_allele_start ) ; }

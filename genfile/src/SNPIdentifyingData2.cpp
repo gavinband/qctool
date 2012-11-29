@@ -137,6 +137,14 @@ namespace genfile {
 		m_identifiers_start += difference ;
 	}
 
+	void SNPIdentifyingData2::swap_alleles() {
+		std::string const first_allele = get_first_allele() ;
+		genfile::string_utils::slice const second_allele = get_second_allele() ;
+		std::copy( second_allele.begin(), second_allele.end(), m_data.begin() + m_first_allele_start ) ;
+		m_second_allele_start = m_first_allele_start + second_allele.size() ;
+		std::copy( first_allele.begin(), first_allele.end(), m_data.begin() + m_second_allele_start ) ;
+	}
+
 	void SNPIdentifyingData2::clear_identifiers() {
 		m_data.resize( m_identifiers_start ) ;
 	}
