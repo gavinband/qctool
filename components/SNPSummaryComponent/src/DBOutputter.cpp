@@ -30,16 +30,19 @@ namespace snp_summary_component {
 		m_outputter( filename, cohort_name, metadata ),
 		m_max_transaction_count( 10000 ),
 		m_variable_id( m_outputter.get_or_create_entity( "per-variant variable", "per-variant variable values" ) )
-	{}
+	{
+	}
 
 	DBOutputter::~DBOutputter() {
 		// Re-finalise.
 		write_data( m_data ) ;
+		m_data.clear() ;
 		m_outputter.finalise() ;
 	}
 	
 	void DBOutputter::finalise() {
 		write_data( m_data ) ;
+		m_data.clear() ;
 		m_outputter.finalise() ;
 	}
 
@@ -67,7 +70,6 @@ namespace snp_summary_component {
 		}
 		
 		std::vector< db::Connection::RowId > snp_ids( data.size() ) ;
-		db::Connection::RowId snp_id = 0 ;
 		for( std::size_t i = 0; i < data.size(); ++i ) {
 			// Common usage is to record many variables for each SNP, so optimise for that usage.
 			// i.e. only try to make a new variant if it differs from the previous one.
