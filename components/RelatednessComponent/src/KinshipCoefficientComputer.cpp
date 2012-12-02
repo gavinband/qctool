@@ -98,7 +98,11 @@ namespace impl {
 		NormaliseGenotypesAndComputeXXtTask(
 			Eigen::MatrixXd* result,
 			Eigen::MatrixXd* missing_count,
+#if HAVE_CBLAS
 			AccumulateXXt accumulate_xxt = &accumulate_xxt_using_cblas
+#else
+			AccumulateXXt accumulate_xxt = &accumulate_xxt_using_eigen
+#endif
 		):
 			ComputeXXtTask( result, missing_count, accumulate_xxt )
 		{
@@ -145,7 +149,11 @@ namespace impl {
 		ComputeUnnormalisedXXtTask(
 			Eigen::MatrixXd* result,
 			Eigen::MatrixXd* missing_count,
+#if HAVE_CBLAS
 			AccumulateXXt accumulate_xxt = &accumulate_xxt_using_cblas,
+#else
+			AccumulateXXt accumulate_xxt = &accumulate_xxt_using_eigen,
+#endif
 			std::string const& data_field = "XY"
 		):
 			ComputeXXtTask( result, missing_count, accumulate_xxt ),
@@ -190,7 +198,11 @@ namespace impl {
 		ComputeConcordanceTask(
 			Eigen::MatrixXd* result,
 			Eigen::MatrixXd* missing_count,
+#if HAVE_CBLAS
 			AccumulateXXt accumulate_xxt = &accumulate_xxt_using_cblas
+#else
+			AccumulateXXt accumulate_xxt = &accumulate_xxt_using_eigen
+#endif
 		):
 			ComputeXXtTask( result, missing_count, accumulate_xxt )
 		{
