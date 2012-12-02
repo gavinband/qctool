@@ -323,12 +323,12 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		
 		computation->set_alternate_dataset(
 			genfile::CohortIndividualSource::create( filenames[0] ),
+			sample_id_columns[1],
 			genfile::SNPDataSource::create_chain(
 				genfile::wildcard::find_files_by_chromosome(
 					filenames[1]
 				)
-			),
-			sample_id_columns[1]
+			)
 		) ;
 		
 		manager.add_computation(

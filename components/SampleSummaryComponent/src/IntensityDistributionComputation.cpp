@@ -106,8 +106,8 @@ namespace sample_stats {
 			{
 				Eigen::MatrixXd const& mean = m_accumulator.get_mean() ;
 				Eigen::MatrixXd const& variance = m_accumulator.get_variance() ;
-				assert( mean.rows() == m_number_of_samples ) ;
-				assert( mean.cols() == 4 ) ;
+				assert( std::size_t( mean.rows() ) == m_number_of_samples ) ;
+				assert( std::size_t( mean.cols() ) == 4 ) ;
 			
 				for( int sample = 0; sample < m_number_of_samples; ++sample ) {
 					callback( sample, "mean_X", mean( sample, 0 ) ) ;

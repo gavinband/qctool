@@ -190,7 +190,7 @@ namespace genfile {
 		}
 		return *this ;
 	}
-	
+
 	bool SNPDataSource::get_next_snp_with_specified_position(
 		IntegerSetter const& set_number_of_samples,
 		StringSetter const& set_SNPID,
@@ -290,6 +290,39 @@ namespace genfile {
 		}
 
 		return false ;	
+	}
+
+	bool SNPDataSource::get_next_snp_matching(
+		SNPIdentifyingData* result,
+		SNPIdentifyingData const& snp_to_match,
+		SNPIdentifyingData::CompareFields const& comparer
+	) {
+		assert( result ) ;
+		bool found = false ;
+		SNPIdentifyingData snp ;
+		while(
+			get_next_snp_with_specified_position(
+				ignore(),
+				set_value( snp.SNPID() ),
+				set_value( snp.rsid() ),
+				set_value( snp.position().chromosome() ),
+				set_value( snp.position().position() ),
+				set_value( snp.first_allele() ),
+				set_value( snp.second_allele() ),
+				snp_to_match.get_position()
+			)
+		) {
+			if( comparer.are_equal( snp, snp_to_match )) {
+				found = true ;
+				break ;
+			} else {
+				ignore_snp_probability_data() ;
+			}
+		}
+		if( found ) {
+			*result = snp ;
+		}
+		return found ;
 	}
 
 	SNPDataSource& SNPDataSource::get_snp_identifying_data(

@@ -71,9 +71,19 @@ namespace genfile {
 		} ;
 		
 		// Genotype setter which stores hard genotype calls as values in an Eigen::Vector with specified values for each genotype.
-		template< typename HaplotypeAlleles, typename NonMissingness >
+		template< typename HaplotypeAlleles >
 		struct PhasedGenotypeSetter: public VariantDataReader::PerSampleSetter
 		{
+			typedef HaplotypeAlleles NonMissingness ;
+			PhasedGenotypeSetter(
+				HaplotypeAlleles& result,
+				double missing_value = std::numeric_limits< double >::quiet_NaN()
+			):
+				m_result( result ),
+				m_non_missingness( 0 ),
+				m_missing_value( missing_value )
+			{}
+
 			PhasedGenotypeSetter(
 				HaplotypeAlleles& result,
 				NonMissingness& non_missingness,
@@ -85,7 +95,7 @@ namespace genfile {
 			{}
 
 			void set_number_of_samples( std::size_t n ) {
-				m_result.resize( n * 2  ) ;
+				m_result.resize( n, 2  ) ;
 				if( m_non_missingness ) {
 					m_non_missingness->resize( n * 2 ) ;
 				}
@@ -111,16 +121,14 @@ namespace genfile {
 			}
 
 			void operator()( MissingValue const value ) {
-				int const index = 2 * m_sample_i + m_entry_i++ ;
-				m_result( index ) = m_missing_value ;
+				m_result( m_sample_i, m_entry_i ) = m_missing_value ;
 				if( m_non_missingness ) {
 					(*m_non_missingness)( index ) = 0 ;
 				}
 			}
 
 			void operator()( Integer const value ) {
-				int const index = 2 * m_sample_i + m_entry_i++ ;
-				m_result( index ) = value ;
+				m_result( m_sample_i, m_entry_i++ ) = value ;
 				if( m_non_missingness ) {
 					(*m_non_missingness)( index ) = 1 ;
 				}
