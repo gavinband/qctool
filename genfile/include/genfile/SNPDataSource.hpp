@@ -148,6 +148,12 @@ namespace genfile {
 			GenomePosition specified_position
 		) ;
 		
+		bool get_next_snp_matching(
+			SNPIdentifyingData* matching_snp,
+			SNPIdentifyingData const& snp,
+			SNPIdentifyingData::CompareFields const& comparer = SNPIdentifyingData::CompareFields()
+		) ;
+
 		// Function: get_snp_identifying_data()
 		// Get the SNP ID, RS ID, position, and alleles of the next snp in the source.
 		// Repeated calls to this function return the data for the same snp, until a call to
