@@ -72,7 +72,13 @@ namespace snp_stats {
 		m_alt_dataset_snps = snps ;
 	}
 
-	void CrossDataSetConcordanceComputation::operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const&, genfile::VariantDataReader&, ResultCallback callback ) {
+	void CrossDataSetConcordanceComputation::operator()(
+		SNPIdentifyingData const& snp,
+		Genotypes const& genotypes,
+		SampleSexes const&,
+		genfile::VariantDataReader&,
+		ResultCallback callback
+	) {
 		using genfile::string_utils::to_string ;
 		SNPIdentifyingData alt_snp ;
 		if( m_alt_dataset_snps->get_next_snp_matching( &alt_snp, snp, m_comparer )) {
@@ -145,8 +151,9 @@ namespace snp_stats {
 	) {
 		m_sample_mapper.set_alternate_dataset( samples, comparison_dataset_sample_id_column ) ;
 		m_alt_dataset_snps = snps ;
+		m_relative_phase.setZero( m_sample_mapper.sample_mapping().size() ) ;
 	}
-
+	
 	void CrossDataSetHaplotypeComparisonComputation::operator()(
 		SNPIdentifyingData const& snp,
 		Genotypes const&,
@@ -173,51 +180,53 @@ namespace snp_stats {
 			m_haplotypes1.array() *= ( m_haplotypes1.array() >= m_call_threshhold ).cast< double >() ; 
 			m_haplotypes2.array() *= ( m_haplotypes2.array() >= m_call_threshhold ).cast< double >() ; 
 
-			/*
-			m_nonmissingness1.col(0) *= ( 1 - m_haplotypes1.rowwise().sum() ) ;
-			m_nonmissingness1.col(1) *= ( 1 - m_haplotypes1.rowwise().sum() ) ;
-			m_nonmissingness2.col(0) *= ( 1 - m_haplotypes2.rowwise().sum() ) ;
-			m_nonmissingness2.col(1) *= ( 1 - m_haplotypes2.rowwise().sum() ) ;
+			// FIX MISSINGNESS HERE
 
 			CrossDataSetSampleMapper::SampleMapping::const_iterator i = m_sample_mapper.sample_mapping().begin() ;
 			CrossDataSetSampleMapper::SampleMapping::const_iterator const end_i = m_sample_mapper.sample_mapping().end() ;
 			int call_count = 0 ;
 			int concordant_call_count = 0 ;
-			
-			m_main_dataset_genotype_subset.resize( m_alt_dataset_genotypes.size() ) ;
-			m_pairwise_nonmissingness.resize( m_alt_dataset_genotypes.size() ) ;
-			m_pairwise_nonmissingness.setZero() ;
-
+			int het_call_count = 0 ;
+			int switch_error_count = 0 ;
 			for( std::size_t count = 0; i != end_i; ++i, ++count ) {
-				std::size_t const alt_dataset_sample_index = i->second ;
-				double const alt_genotype = m_alt_dataset_genotypes( alt_dataset_sample_index ) ;
-				std::string const stub = m_sample_mapper.dataset1_sample_ids()[ i->first ].as< std::string >() + "(" + to_string( i->first + 1 ) + "~" + to_string( i->second + 1 ) + ")"  ;
-				if( alt_genotype != -1 ) {
-					++call_count ;
-					for( int g = 0; g < 3; ++g ) {
-						if( genotypes( i->first, g ) > m_call_threshhold ) {
-							m_main_dataset_genotype_subset( alt_dataset_sample_index ) = g ;
-							m_pairwise_nonmissingness( alt_dataset_sample_index ) = 1 ;
+				std::string const stub = (
+					m_sample_mapper.dataset1_sample_ids()[ i->first ].as< std::string >()
+					+ "("
+					+ to_string( i->first + 1 )
+					+ "~"
+					+ to_string( i->second + 1 )
+					+ ")"
+				) ;
 
-							if( g == alt_genotype ) {
-								callback( stub + ":concordance", 1 ) ;
-								++concordant_call_count ;
-							}
-							else {
-								callback( stub + ":concordanceCrossDataSetHaplotypeComparisonComputation0 ) ;
-							}
-						}
+				if( m_nonmissingness1.row( i->first ).sum() == 0 && m_nonmissingness2.row( i->second ).sum() == 0 ) {
+					++call_count ;
+
+					Eigen::MatrixXd::RowXpr const& h1 = m_haplotypes1.row( i->first ) ;
+					Eigen::MatrixXd::RowXpr const& h2 = m_haplotypes2.row( i->second ) ;
+					int const concordant = ( h1.sum() == h2.sum() ) ;
+					callback( stub + ":concordance", concordant ) ;
+					concordant_call_count += concordant ;
+					
+					int const heterozygote = ( h1.sum() == 1 ) ;
+					het_call_count += heterozygote ;
+					if( concordant && heterozygote ) {
+						
+						int const relative_phase = ( h1 == h2 ) ? 1 : -1 ;
+						int const switch_error = ( m_relative_phase( count ) != 0 ) && ( m_relative_phase( count ) != relative_phase ) ;
+						callback( stub + "switch_error", switch_error ) ;
+						// take account of the switch for the next SNP.
+						m_relative_phase( count ) = relative_phase ;
+						switch_error_count += switch_error ;
 					}
 				} else {
 					callback( stub + ":concordance", genfile::MissingValue() ) ;
+					callback( stub + ":switch_error", genfile::MissingValue() ) ;
 				}
 			}
-
-			callback( "pairwise non-missing calls", call_count ) ;
-			callback( "pairwise concordant calls", concordant_call_count ) ;
-			callback( "concordance", double( concordant_call_count ) / double( call_count ) ) ;
-			callback( "correlation", metro::compute_correlation( m_main_dataset_genotype_subset, m_alt_dataset_genotypes, m_pairwise_nonmissingness )) ;
-			*/
+			callback( "pairwise non-missing haplotypes", call_count ) ;
+			callback( "pairwise concordant haplotypes", concordant_call_count ) ;
+			callback( "concordant heterozygous haplotypes", het_call_count ) ;
+			callback( "concordant heterozygoes haplotypes with switch error", het_call_count ) ;
 		}
 	}
 

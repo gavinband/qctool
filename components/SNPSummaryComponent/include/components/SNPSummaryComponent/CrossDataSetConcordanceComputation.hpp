@@ -110,6 +110,8 @@ namespace snp_stats {
 		Eigen::MatrixXd m_haplotypes2 ;
 		Eigen::MatrixXd m_nonmissingness1 ;
 		Eigen::MatrixXd m_nonmissingness2 ;
+		
+		Eigen::VectorXd m_relative_phase ;
 	} ;
 }
 
