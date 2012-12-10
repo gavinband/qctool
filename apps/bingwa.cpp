@@ -336,16 +336,7 @@ private:
 		for( ; read_snp( *source, snp ); (*source) >> statfile::ignore_all() ) {
 			
 			if( snp_index >= m_snps.size() ) {
-				m_snps.resize( snp_index + 100000 ) ;
-				m_betas.resize( snp_index + 100000, degrees_of_freedom ) ;
-				m_ses.resize( snp_index + 100000, degrees_of_freedom ) ;
-				m_pvalues.resize( snp_index + 100000 ) ;
-				m_info.resize( snp_index + 100000 ) ;
-				m_maf.resize( snp_index + 100000 ) ;
-				m_sample_counts.resize( snp_index + 100000, 4 ) ;
-				for( ExtraVariables::iterator i = m_extra_variables.begin(); i != m_extra_variables.end(); ++i ) {
-					i->second.resize( snp_index + 100000 ) ;
-				}
+				resize_storage( snp_index + 100000, degrees_of_freedom ) ;
 			}
 			
 			// Deal with strange non-ids.  This isn't a general solution but 
@@ -380,7 +371,7 @@ private:
 		
 		// Now deallocate any unused memory.
 		m_snps.resize( snp_index ) ;
-		free_unused_memory() ;
+		resize_storage( snp_index, degrees_of_freedom ) ;
 	}
 	
 	ColumnMap get_columns_to_store(
@@ -427,6 +418,60 @@ private:
 		}
 
 		return result ;
+	}
+
+	void resize_storage( Eigen::MatrixXf::Index const N_snps, Eigen::MatrixXf::Index const degrees_of_freedom ) {
+		using std::min ;
+		int const current_N = min( N_snps, Eigen::MatrixXf::Index( m_snps.size() ) ) ;
+		{
+			// free any unused memory for SNPs.
+			std::vector< genfile::SNPIdentifyingData2 > snps( N_snps ) ;
+			std::copy( m_snps.begin(), m_snps.end(), snps.begin() ) ;
+			m_snps.swap( snps ) ;
+		}
+		{
+			Eigen::MatrixXf betas = Eigen::MatrixXf::Zero( N_snps, degrees_of_freedom ) ;
+			if( m_betas.rows() > 0 ) {
+				betas.block( 0, 0, current_N, degrees_of_freedom ) = m_betas.block( 0, 0, current_N, degrees_of_freedom ) ;
+			}
+			m_betas.swap( betas ) ;
+		}
+		{
+			Eigen::MatrixXf ses = Eigen::MatrixXf::Zero( N_snps, degrees_of_freedom )  ;
+			if( m_ses.rows() > 0 ) {
+				ses.block( 0, 0, current_N, degrees_of_freedom ) = m_ses.block( 0, 0, current_N, degrees_of_freedom ) ;
+			}
+			m_ses.swap( ses ) ;
+		}
+		{
+			Eigen::VectorXf pvalues = Eigen::VectorXf::Zero( N_snps ) ;
+			pvalues.head( current_N ) = m_pvalues.head( current_N ) ;
+			m_pvalues.swap( pvalues ) ;
+		}
+		{
+			Eigen::VectorXf info = Eigen::VectorXf::Zero( N_snps ) ;
+			info.head( current_N ) = m_info.head( current_N ) ;
+			m_info.swap( info ) ;
+		}
+		{
+			Eigen::VectorXf maf = Eigen::VectorXf::Zero( N_snps ) ;
+			maf.head( current_N ) = m_maf.head( current_N ) ;
+			m_maf.swap( maf ) ;
+		}
+		{
+			Eigen::MatrixXf sample_counts = Eigen::MatrixXf::Zero( N_snps, 4 ) ;
+			if( m_sample_counts.rows() > 0 ) {
+				sample_counts.block( 0, 0, current_N, 4 ) = m_sample_counts.block( 0, 0, current_N, 4 ) ;
+			}
+			m_sample_counts.swap( sample_counts ) ;
+		}
+		{
+			for( ExtraVariables::iterator i = m_extra_variables.begin(); i != m_extra_variables.end(); ++i ) {
+				i->second.resize( N_snps ) ; // std::vector resize does not lose data.
+				std::vector< double > v = i->second ;
+				i->second.swap( v ) ;
+			}
+		}
 	}
 	
 	void free_unused_memory() {
