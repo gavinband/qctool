@@ -59,7 +59,7 @@ namespace genfile {
 	) {
 		std::pair< std::string, std::string > uf = uniformise( filename ) ;
 		
-		if( filetype_hint != "" ) {
+		if( filetype_hint != "guess" ) {
 			uf.first = filetype_hint ;
 		}
 		
@@ -116,9 +116,11 @@ namespace genfile {
 
 	std::auto_ptr< SNPDataSource > SNPDataSource::create_chain(
 		std::vector< wildcard::FilenameMatch > const& matches,
+		vcf::MetadataParser::Metadata const& metadata,
+		std::string const& filetype_hint,
 		NotifyProgress notify_progress
 	) {
-		std::auto_ptr< SNPDataSourceChain > ptr = SNPDataSourceChain::create( matches, notify_progress ) ;
+		std::auto_ptr< SNPDataSourceChain > ptr = SNPDataSourceChain::create( matches, metadata, filetype_hint, notify_progress ) ;
 		return std::auto_ptr< SNPDataSource >( ptr.release() ) ;
 	}
 

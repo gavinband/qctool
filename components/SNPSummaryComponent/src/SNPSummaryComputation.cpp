@@ -15,6 +15,7 @@
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 #include "components/SNPSummaryComponent/HWEComputation.hpp"
 #include "components/SNPSummaryComponent/IntensitySummaryComputation.hpp"
+#include "components/SNPSummaryComponent/IntensityReporter.hpp"
 
 // #define DEBUG_SNP_SUMMARY_COMPUTATION 1
 
@@ -352,7 +353,7 @@ SNPSummaryComputation::UniquePtr SNPSummaryComputation::create(
 	else if( name == "HWE" ) { result.reset( new snp_summary_component::HWEComputation()) ; }
 	else if( name == "missingness" ) { result.reset( new snp_summary_component::MissingnessComputation()) ; }
 	else if( name == "information" ) { result.reset( new snp_summary_component::InformationComputation()) ; }
-	else if( name == "intensities" ) { result.reset( new snp_summary_component::IntensitySummaryComputation() ) ; }
+	else if( name == "intensity-stats" ) { result.reset( new snp_summary_component::IntensitySummaryComputation() ) ; }
 	else {
 		throw genfile::BadArgumentError( "SNPSummaryComputation::create()", "name=\"" + name + "\"" ) ;
 	}

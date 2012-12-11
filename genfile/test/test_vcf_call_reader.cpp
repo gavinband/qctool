@@ -694,7 +694,7 @@ AUTO_TEST_CASE( test_gt_delimiter ) {
 				TEST_ASSERT( number_of_individuals != 0 ) ;
 			}
 			catch( genfile::BadArgumentError const& ) {
-				BOOST_CHECK_EQUAL( number_of_individuals, 0 ) ;
+				BOOST_CHECK_EQUAL( number_of_individuals, 0ul ) ;
 			}
 		}
 	}

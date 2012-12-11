@@ -43,11 +43,23 @@ namespace snp_stats {
 		SampleMapping m_sample_mapping ;
 	} ;
 
-	struct CrossDataSetConcordanceComputation: public SNPSummaryComputation
+	struct CrossDataSetComparison: public SNPSummaryComputation
 	{
-	public:
-		typedef std::auto_ptr< CrossDataSetConcordanceComputation > UniquePtr ;
+		public:
+			typedef std::auto_ptr< CrossDataSetComparison > UniquePtr ;
+		
+		virtual ~CrossDataSetComparison() {}
+		virtual void set_alternate_dataset(
+			genfile::CohortIndividualSource::UniquePtr samples,
+			std::string const& comparison_dataset_sample_id_column,
+			genfile::SNPDataSource::UniquePtr snps
+		) = 0 ;
+		
+		virtual void set_comparer( genfile::SNPIdentifyingData::CompareFields const& comparer ) = 0 ;
+	} ;
 
+	struct CrossDataSetConcordanceComputation: public CrossDataSetComparison
+	{
 	public:
 		CrossDataSetConcordanceComputation(
 			genfile::CohortIndividualSource const& m_samples,
@@ -77,42 +89,6 @@ namespace snp_stats {
 		Eigen::VectorXd m_pairwise_nonmissingness ;
 	} ;
 
-	struct CrossDataSetHaplotypeComparisonComputation: public SNPSummaryComputation
-	{
-	public:
-		typedef std::auto_ptr< CrossDataSetHaplotypeComparisonComputation > UniquePtr ;
-
-	public:
-		CrossDataSetHaplotypeComparisonComputation(
-			genfile::CohortIndividualSource const& m_samples,
-			std::string const& main_dataset_sample_id_column
-		) ;
-
-		void set_alternate_dataset(
-			genfile::CohortIndividualSource::UniquePtr samples,
-			std::string const& comparison_dataset_sample_id_column,
-			genfile::SNPDataSource::UniquePtr snps
-		) ;
-		
-		void set_comparer( genfile::SNPIdentifyingData::CompareFields const& comparer ) ;
-		
-		void operator()( SNPIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
-		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
-
-	private:
-		CrossDataSetSampleMapper m_sample_mapper ;
-
-		genfile::SNPIdentifyingData::CompareFields m_comparer ;
-		genfile::SNPDataSource::UniquePtr m_alt_dataset_snps ;
-
-		double const m_call_threshhold ;
-		Eigen::MatrixXd m_haplotypes1 ;
-		Eigen::MatrixXd m_haplotypes2 ;
-		Eigen::MatrixXd m_nonmissingness1 ;
-		Eigen::MatrixXd m_nonmissingness2 ;
-		
-		Eigen::VectorXd m_relative_phase ;
-	} ;
 }
 
 #endif

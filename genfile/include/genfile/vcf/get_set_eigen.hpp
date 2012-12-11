@@ -97,7 +97,7 @@ namespace genfile {
 			void set_number_of_samples( std::size_t n ) {
 				m_result.resize( n, 2  ) ;
 				if( m_non_missingness ) {
-					m_non_missingness->resize( n * 2 ) ;
+					m_non_missingness->resize( n, 2 ) ;
 				}
 				m_sample_i = 0 ;
 				m_entry_i = 0 ;
@@ -123,15 +123,17 @@ namespace genfile {
 			void operator()( MissingValue const value ) {
 				m_result( m_sample_i, m_entry_i ) = m_missing_value ;
 				if( m_non_missingness ) {
-					(*m_non_missingness)( index ) = 0 ;
+					(*m_non_missingness)( m_sample_i, m_entry_i ) = 0 ;
 				}
+				++m_entry_i ;
 			}
 
 			void operator()( Integer const value ) {
-				m_result( m_sample_i, m_entry_i++ ) = value ;
+				m_result( m_sample_i, m_entry_i ) = value ;
 				if( m_non_missingness ) {
-					(*m_non_missingness)( index ) = 1 ;
+					(*m_non_missingness)( m_sample_i, m_entry_i ) = 1 ;
 				}
+				++m_entry_i ;
 			}
 
 		private:
