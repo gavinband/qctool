@@ -54,13 +54,15 @@ namespace appcontext {
 
 	OptionProcessor::OptionDefinitions const& OptionProcessor::get_option_definitions() const { return m_option_definitions ; }
 
-	OptionProcessor::OptionValueMap OptionProcessor::get_values_as_map() const {
+	OptionProcessor::OptionValueMap OptionProcessor::get_values_as_map(
+		int const value_types
+	) const {
 		OptionValueMap result ;
 		for( OptionDefinitions::const_iterator defn = m_option_definitions.begin(); defn != m_option_definitions.end(); ++defn ) {
-			if( check_if_option_was_supplied( defn->first )) {
+			if( check_if_option_was_supplied( defn->first ) && ( value_types & eUserSupplied ) ) {
 				result[ defn->first ] = std::make_pair( get_values( defn->first ), std::string( "user-supplied" ) ) ;
 			}
-			else if( check_if_option_has_value( defn->first )) {
+			else if( check_if_option_has_value( defn->first ) && ( value_types & eDefaulted )) {
 				result[ defn->first ] = std::make_pair( get_values( defn->first ), "default" ) ;
 			}
 		}
