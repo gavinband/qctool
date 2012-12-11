@@ -46,11 +46,12 @@ struct KinshipCoefficientComputer: public KinshipCoefficientManager, public genf
 public:
 	typedef std::auto_ptr< KinshipCoefficientComputer > UniquePtr ;
 	typedef boost::function<
-		impl::KinshipCoefficientComputerTask::UniquePtr ( Eigen::MatrixXd*, Eigen::MatrixXd*, impl::KinshipCoefficientComputerTask::AccumulateXXt )
+		impl::KinshipCoefficientComputerTask::UniquePtr ( std::size_t, Eigen::MatrixXd*, Eigen::MatrixXd*, impl::KinshipCoefficientComputerTask::AccumulateXXt, bool )
 	> ComputationFactory ;
 	
-	static impl::KinshipCoefficientComputerTask::UniquePtr compute_kinship( Eigen::MatrixXd*, Eigen::MatrixXd*, impl::KinshipCoefficientComputerTask::AccumulateXXt ) ;
-	static impl::KinshipCoefficientComputerTask::UniquePtr compute_concordance( Eigen::MatrixXd*, Eigen::MatrixXd*, impl::KinshipCoefficientComputerTask::AccumulateXXt ) ;
+	static impl::KinshipCoefficientComputerTask::UniquePtr compute_kinship( std::size_t const, Eigen::MatrixXd*, Eigen::MatrixXd*, impl::KinshipCoefficientComputerTask::AccumulateXXt, bool const ) ;
+	static impl::KinshipCoefficientComputerTask::UniquePtr compute_concordance( std::size_t const, Eigen::MatrixXd*, Eigen::MatrixXd*, impl::KinshipCoefficientComputerTask::AccumulateXXt, bool const ) ;
+	static impl::KinshipCoefficientComputerTask::UniquePtr compute_intensity_covariance( std::size_t const, Eigen::MatrixXd*, Eigen::MatrixXd*, impl::KinshipCoefficientComputerTask::AccumulateXXt, bool const ) ;
 
 public:
 	~KinshipCoefficientComputer() throw() {}

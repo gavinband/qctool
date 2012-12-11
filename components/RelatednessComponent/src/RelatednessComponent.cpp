@@ -33,6 +33,9 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 	options[ "-sample-concordance" ]
 		.set_description( "Compute concordance between all pairs of samples, using threshholded genotype calls." )
 		.set_takes_single_value() ;
+	options[ "-intensity-covariance" ]
+		.set_description( "Compute covariance matrix of intensity values" )
+		.set_takes_single_value() ;
 	options[ "-load-kinship" ]
 		.set_description( "Load a previously-computed kinship matrix from the specified file." )
 		.set_takes_single_value() ;
@@ -104,15 +107,24 @@ RelatednessComponent::RelatednessComponent(
 
 
 namespace impl {
-	std::string get_concatenated_ids( genfile::CohortIndividualSource const* samples, std::size_t i ) {
-		return samples->get_entry( i, "id_1" ).as< std::string >() + ":" + samples->get_entry( i, "id_2" ).as< std::string >() ;
+	std::string get_ids( genfile::CohortIndividualSource const* samples, std::size_t i ) {
+		return samples->get_entry( i, "id_1" ).as< std::string >() ;
+	}
+
+	std::string get_tagged_ids( genfile::CohortIndividualSource const* samples, std::size_t i, std::vector< std::string > const& tags ) {
+		std::size_t const sample_i = i / tags.size() ;
+		std::size_t const tag_i = i % tags.size() ;
+		return samples->get_entry( sample_i, "id_1" ).as< std::string >()
+			+ ":"
+			+ tags[tag_i]
+		;
 	}
 }
 
 void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) const {
 	PCAComputer::UniquePtr pca_computer ;
 	KinshipCoefficientManager::GetNames get_ids = boost::bind(
-		&impl::get_concatenated_ids,
+		&impl::get_ids,
 		&m_samples,
 		_1
 	) ;
@@ -142,6 +154,32 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 				m_options.get< std::string >( "-sample-concordance" ),
 				_1, _2, _3, _4,
 				get_ids, get_ids
+			)
+		) ;
+		processor.add_callback(
+			genfile::SNPDataSourceProcessor::Callback::UniquePtr( result.release() )
+		) ;
+	}
+	if( m_options.check( "-intensity-covariance" )) {
+		KinshipCoefficientComputer::UniquePtr result(
+			new KinshipCoefficientComputer( m_options, m_samples, m_worker, m_ui_context, KinshipCoefficientComputer::compute_intensity_covariance )
+		)  ;
+		std::vector< std::string > tags ;
+		tags.push_back( "X_intensity" ) ;
+		tags.push_back( "Y_intensity" ) ;
+		KinshipCoefficientManager::GetNames get_intensity_ids = boost::bind(
+			&impl::get_tagged_ids,
+			&m_samples,
+			_1,
+			tags
+		) ;
+		
+		result->send_results_to(
+			boost::bind(
+				&pca::write_matrix_lower_diagonals_in_long_form,
+				m_options.get< std::string >( "-intensity-covariance" ),
+				_1, _2, _3, _4,
+				get_intensity_ids, get_intensity_ids
 			)
 		) ;
 		processor.add_callback(
