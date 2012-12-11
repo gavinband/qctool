@@ -171,7 +171,11 @@ namespace appcontext {
 
 			std::string const& get_help_option_name() const { return m_help_option_name ; }
 
-			OptionValueMap get_values_as_map() const ;
+			enum { eUserSupplied = 0x1, eDefaulted = 0x2, eNotSet = 0x4 } ;
+			OptionValueMap get_values_as_map(
+				int const value_types = eUserSupplied
+			) const ;
+
 		public:
 			// checks
 			typedef boost::function< void ( OptionProcessor& ) > Check ;

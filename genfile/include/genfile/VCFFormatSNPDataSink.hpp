@@ -48,6 +48,9 @@ namespace genfile {
 		bool m_have_written_header ;
 		std::size_t m_number_of_samples ;
 		double const m_call_threshhold ;
+		std::vector< std::string > m_output_fields ;
+	private:
+		void write_info( Info const& info ) ;
 	} ;
 }
 

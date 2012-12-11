@@ -61,7 +61,7 @@ namespace genfile {
 		if( number_of_samples != m_number_of_samples ) {
 			throw genfile::BadArgumentError( "VCFFormatSNPDataSink::write_snp_impl()", "number_of_samples=" + string_utils::to_string( number_of_samples )) ;
 		}
-		char tab = '\t' ;
+		char const tab = '\t' ;
 		(*m_stream_ptr)
 			<< chromosome << tab
 			<< SNP_position << tab
@@ -71,30 +71,7 @@ namespace genfile {
 			<< "." << tab
 			<< "." << tab ;
 
-		// write INFO
-		if( info.empty() ) {
-			(*m_stream_ptr) << "." ;
-		}
-		else {
-			Info::const_iterator info_i = info.begin(), end_info_i = info.end() ;
-			for( int info_count = 0; info_i != end_info_i; ++info_i, ++info_count ) {
-				if( info_count > 0 ) {
-					(*m_stream_ptr) << ";" ;
-				}
-				(*m_stream_ptr) << info_i->first << "=" ;
-				for( std::size_t i = 0; i < info_i->second.size(); ++i ) {
-					if( i > 0 ) {
-						(*m_stream_ptr) << "," ;
-					}
-					if( info_i->second[i].is_missing() ) {
-						(*m_stream_ptr) << "." ;
-					}
-					else {
-						(*m_stream_ptr) << info_i->second[i] ;
-					}
-				}
-			}
-		}
+		write_info( info ) ;
 
 		(*m_stream_ptr) << tab << "GT:GP" ;
 		
@@ -126,6 +103,32 @@ namespace genfile {
 		(*m_stream_ptr) << std::endl ;
 	}
 	
+	void VCFFormatSNPDataSink::write_info( Info const& info ) {
+		if( info.empty() ) {
+			(*m_stream_ptr) << "." ;
+		}
+		else {
+			Info::const_iterator info_i = info.begin(), end_info_i = info.end() ;
+			for( int info_count = 0; info_i != end_info_i; ++info_i, ++info_count ) {
+				if( info_count > 0 ) {
+					(*m_stream_ptr) << ";" ;
+				}
+				(*m_stream_ptr) << info_i->first << "=" ;
+				for( std::size_t i = 0; i < info_i->second.size(); ++i ) {
+					if( i > 0 ) {
+						(*m_stream_ptr) << "," ;
+					}
+					if( info_i->second[i].is_missing() ) {
+						(*m_stream_ptr) << "." ;
+					}
+					else {
+						(*m_stream_ptr) << info_i->second[i] ;
+					}
+				}
+			}
+		}
+	}
+
 	void VCFFormatSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) {
 		assert( sample_name_getter ) ;
 		assert( !m_have_written_header ) ;

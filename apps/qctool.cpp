@@ -155,7 +155,8 @@ public:
 				"Specify the filetype of the genotype files specified by -g. "
 				"By default, qctool will guess the file type.  Use this option to override that guess. "
 				"Possible types are: \"" + genfile::string_utils::join( genfile::SNPDataSource::get_file_types(), "\",\"" ) + "\"." )
-			.set_takes_single_value() ;
+			.set_takes_single_value()
+			.set_default_value( "guess" ) ;
 
 		options[ "-merge-in" ]
 			.set_description( "Specify an additional set of genotypes that should be merged in (in position order) to the dataset. "

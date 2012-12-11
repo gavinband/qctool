@@ -781,6 +781,8 @@ private:
 				UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Opening genotype files" ) ;
 				source = genfile::SNPDataSource::create_chain(
 					genfile::wildcard::find_files_by_chromosome( filename ),
+					genfile::vcf::MetadataParser::Metadata(),
+					"guess",
 					boost::ref( progress_context )
 				) ;
 			}

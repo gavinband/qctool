@@ -21,6 +21,8 @@
 namespace genfile {
 	SNPDataSourceChain::UniquePtr SNPDataSourceChain::create(
 		std::vector< wildcard::FilenameMatch > const& filenames,
+		vcf::MetadataParser::Metadata const& metadata,
+		std::string const& filetype_hint,
 		NotifyProgress notify_progress
 	) {
 		std::auto_ptr< SNPDataSourceChain > chain( new SNPDataSourceChain() ) ;
@@ -28,7 +30,7 @@ namespace genfile {
 			if( notify_progress ) {
 				notify_progress( i, filenames.size() ) ;
 			}
-			chain->add_source( SNPDataSource::create( filenames[i].filename(), filenames[i].match() )) ;
+			chain->add_source( SNPDataSource::create( filenames[i].filename(), filenames[i].match(), vcf::MetadataParser::Metadata(), filetype_hint )) ;
 			if( notify_progress ) {
 				notify_progress( i + 1, filenames.size() ) ;
 			}

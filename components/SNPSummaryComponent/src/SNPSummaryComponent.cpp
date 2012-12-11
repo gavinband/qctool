@@ -25,7 +25,9 @@
 #include "components/SNPSummaryComponent/DifferentialMissingnessComputation.hpp"
 #include "components/SNPSummaryComponent/StratifyingSNPSummaryComputation.hpp"
 #include "components/SNPSummaryComponent/CrossDataSetConcordanceComputation.hpp"
+#include "components/SNPSummaryComponent/CrossDataSetHaplotypeComparisonComputation.hpp"
 #include "components/SNPSummaryComponent/GeneticMapAnnotation.hpp"
+#include "components/SNPSummaryComponent/IntensityReporter.hpp"
 #include "components/SNPSummaryComponent/CallComparerComponent.hpp"
 
 void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options ) {
@@ -40,7 +42,9 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options.declare_group( "Intensity computation options" ) ;
 	options[ "-intensity-stats" ]
 		.set_description( "Compute intensity means and (co)variances for each genotype class at each SNP." ) ;
-		
+	options[ "-intensities" ]
+		.set_description( "Report per-sample intensities for each sample at each SNP." ) ;
+	
 	options.declare_group( "Association test options" ) ;
 	options[ "-test" ]
 		.set_description( "Perform an association test on the given phenotype." )
@@ -85,10 +89,14 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options.declare_group( "Callset comparison options" ) ;
 	options[ "-compare-to" ]
 		.set_description( "Compute a matrix of values indicating concordance of samples between the main dataset and the dataset given as argument to this option. "
-		 	"Values must be the genotype and sample files.  Samples are matched using the first ID column; SNPs are matched based on all the identifying information fields." )
+		 	"Values must be the genotype and sample files (in that order).  Samples are matched using the first ID column; "
+			"SNPs are matched based on all the identifying information fields." )
 		.set_takes_values( 2 )
 		.set_minimum_multiplicity( 0 )
 		.set_maximum_multiplicity( 1 ) ;
+	options[ "-haplotypic" ]
+		.set_description( "Instruct QCTOOL to perform haplotypic computations.  Currently this affects the -compare-to option only "
+			"and turns on computation of switch error for two sets of haplotypes." ) ;
 	options[ "-match-sample-ids" ]
 		.set_description( "Specify the columns in the main and comparison dataset sample files that will be used to match samples. "
 				"The value should be of the form <main dataset column>~<comparison dataset column>." )
@@ -210,7 +218,14 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 	}
 
 	if( m_options.check( "-intensity-stats" )) {
-		manager.add_computation( "intensities", SNPSummaryComputation::create( "intensities" )) ;
+		manager.add_computation( "intensity-stats", SNPSummaryComputation::create( "intensity-stats" )) ;
+	}
+
+	if( m_options.check( "-intensities" )) {
+		SNPSummaryComputation::UniquePtr computation(
+			new snp_summary_component::IntensityReporter( m_samples )
+		) ;
+		manager.add_computation( "intensities", computation ) ;
 	}
 
 	if( m_options.check( "-test" )) {
@@ -308,29 +323,44 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 			"~"
 		) ;
 		assert( sample_id_columns.size() == 2 ) ;
-		snp_stats::CrossDataSetConcordanceComputation::UniquePtr computation(
-			new snp_stats::CrossDataSetConcordanceComputation(
-				m_samples,
-				sample_id_columns[0]
-			)
-		) ;
+		
+		snp_stats::CrossDataSetComparison::UniquePtr computation ;
+
+		if( m_options.check( "-haplotypic" )) {
+			computation.reset(
+				new snp_stats::CrossDataSetHaplotypeComparisonComputation(
+					m_samples,
+					sample_id_columns[0]
+				)
+			) ;
+		}
+		else {
+			computation.reset(
+				new snp_stats::CrossDataSetConcordanceComputation(
+					m_samples,
+					sample_id_columns[0]
+				)
+			) ;
+		}
 
 		computation->set_comparer(
 			genfile::SNPIdentifyingData::CompareFields(
 				m_options.get_value< std::string >( "-snp-match-fields" )
 			)
 		) ; 
-		
+	
 		computation->set_alternate_dataset(
-			genfile::CohortIndividualSource::create( filenames[0] ),
+			genfile::CohortIndividualSource::create( filenames[1] ),
 			sample_id_columns[1],
 			genfile::SNPDataSource::create_chain(
 				genfile::wildcard::find_files_by_chromosome(
-					filenames[1]
-				)
+					filenames[0]
+				),
+				genfile::vcf::MetadataParser::Metadata(),
+				m_options.get< std::string >( "-filetype" )
 			)
 		) ;
-		
+	
 		manager.add_computation(
 			"dataset_comparison",
 			SNPSummaryComputation::UniquePtr(
