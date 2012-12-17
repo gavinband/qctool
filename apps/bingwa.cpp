@@ -1265,14 +1265,18 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 				.set_description( "Specify a name to label results from this analysis with" )
 				.set_takes_single_value()
 				.set_default_value( "bingwa analysis, started " + appcontext::get_current_time_as_string() ) ;
-
 			options[ "-cohort-names" ]
 				.set_description( "Specify a name to label results from this analysis with" )
 				.set_takes_values_until_next_option() ;
+			options[ "-table-name" ]
+				.set_description( "Specify a name for the table to use when using -flat-table." )
+				.set_takes_single_value() ;
 
 			options[ "-log" ]
 				.set_description( "Specify the path of a log file; all screen output will be copied to the file." )
 				.set_takes_single_value() ;
+				
+			options.option_implies_option( "-table-name", "-flat-table" ) ;
 		}
 
 		{
@@ -1675,11 +1679,16 @@ public:
 			) ;
 		}
 		else if( options().check( "-flat-table" )) {
-			storage = snp_summary_component::FlatTableDBOutputter::create_shared(
+			snp_summary_component::FlatTableDBOutputter::SharedPtr table_storage = snp_summary_component::FlatTableDBOutputter::create_shared(
 				options().get< std::string >( "-o" ),
 				options().get< std::string >( "-analysis-name" ),
 				options().get_values_as_map()
 			) ;
+
+			if( options().check( "-table-name" ) ) {
+				table_storage->set_table_name( options().get< std::string >( "-table-name" )) ;
+			}
+			storage = table_storage ;
 		}
 		else {
 			storage = snp_summary_component::DBOutputter::create_shared(

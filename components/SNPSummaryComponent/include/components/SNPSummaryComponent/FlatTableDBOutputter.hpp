@@ -22,9 +22,11 @@
 
 namespace snp_summary_component {
 	struct FlatTableDBOutputter: public Storage {
+		typedef std::auto_ptr< FlatTableDBOutputter > UniquePtr ;
+		typedef boost::shared_ptr< FlatTableDBOutputter > SharedPtr ;
 		typedef qcdb::DBOutputter::Metadata Metadata ;
-		static Storage::UniquePtr create( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
-		static Storage::SharedPtr create_shared( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
+		static UniquePtr create( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
+		static SharedPtr create_shared( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
 
 		FlatTableDBOutputter(
 			std::string const& filename,
@@ -34,6 +36,8 @@ namespace snp_summary_component {
 
 		~FlatTableDBOutputter() ;
 
+		void set_table_name( std::string const& table_name ) ;
+		
 		void store_per_variant_data(
 			genfile::SNPIdentifyingData2 const& snp,
 			std::string const& variable,
@@ -44,6 +48,7 @@ namespace snp_summary_component {
 
 	private:
 		qcdb::DBOutputter m_outputter ;
+		std::string m_table_name ;
 		std::size_t const m_max_snps_per_block ;
 		db::Connection::StatementPtr m_insert_data_sql ;
 		std::vector< genfile::SNPIdentifyingData2 > m_snps ;
@@ -53,6 +58,7 @@ namespace snp_summary_component {
 		ValueMap m_values ;
 
 	private:
+		std::string get_table_name() const ;
 		void store_block() ;
 		void create_schema() ;
 		void store_data_for_variant(

@@ -28,6 +28,7 @@ namespace snp_summary_component {
 
 	FlatTableDBOutputter::FlatTableDBOutputter( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ):
 		m_outputter( filename, cohort_name, metadata ),
+		m_table_name( "Analysis" + genfile::string_utils::to_string( m_outputter.analysis_id() ) ),
 		m_max_snps_per_block( 10000 )
 	{}
 
@@ -36,6 +37,13 @@ namespace snp_summary_component {
 		m_outputter.finalise() ;
 	}
 	
+	void FlatTableDBOutputter::set_table_name( std::string const& table_name ) {
+		if( table_name.find_first_not_of( "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_" ) != std::string::npos ) {
+			throw genfile::BadArgumentError( "snp_summary_component::FlatTableDBOutputter::set_table_name()", "table_name=\"" + table_name + "\"" ) ;
+		}
+		m_table_name = table_name ;
+	}
+
 	void FlatTableDBOutputter::finalise() {
 		store_block() ;
 		m_outputter.finalise() ;
@@ -91,13 +99,19 @@ namespace snp_summary_component {
 		}
 	}
 
+	std::string FlatTableDBOutputter::get_table_name() const {
+		return m_table_name ;
+	}
+
 	void FlatTableDBOutputter::create_schema() {
 		using genfile::string_utils::to_string ;
 		std::ostringstream schema_sql ;
 		std::ostringstream index_sql ;
 		std::ostringstream insert_data_sql ;
-		std::string const table_name = "Analysis" + to_string( m_outputter.analysis_id() )  ;
-		schema_sql << "CREATE TABLE "
+		std::ostringstream insert_data_sql_columns ;
+		std::ostringstream insert_data_sql_values ;
+		std::string const& table_name = m_table_name ;
+		schema_sql << "CREATE TABLE IF NOT EXISTS "
 			<< table_name
 			<< " ( "
 			"analysis_id INT NOT NULL REFERENCES Entity( id ), "
@@ -105,8 +119,9 @@ namespace snp_summary_component {
 		;
 		
 		insert_data_sql << "INSERT INTO "
-			<< table_name
-			<< " VALUES( ?1, ?2" ;
+			<< table_name ;
+		insert_data_sql_columns << "( analysis_id, variant_id" ;
+		insert_data_sql_values << "VALUES( ?1, ?2" ;
 		
 		VariableMap::right_const_iterator
 			var_i = m_variables.right.begin(),
@@ -114,30 +129,33 @@ namespace snp_summary_component {
 
 		for( std::size_t bind_i = 3; var_i != end_var_i; ++var_i, ++bind_i ) {
 			schema_sql << ", " ;
-			insert_data_sql << ", " ;
+			insert_data_sql_columns << ", " ;
+			insert_data_sql_values << ", " ;
 			schema_sql
 				<< '"'
 				<< var_i->second
 				<< '"'
 				<< " NULL" ;
 				
-			insert_data_sql << "?" << to_string( bind_i ) ;
+			insert_data_sql_columns << '"' << var_i->second << '"' ;
+			insert_data_sql_values << "?" << to_string( bind_i ) ;
 		}
 
 		schema_sql << " ) ; " ;
 
-		insert_data_sql << ") ; " ;
+		insert_data_sql_columns << ") " ;
+		insert_data_sql_values << ") ; " ;
 
 		std::cerr << "Creating table " << table_name << " using this SQL:\n"
 			<< schema_sql.str()
 			<< "\n" ;
 		
 		m_outputter.connection().run_statement( schema_sql.str() ) ;
-		m_outputter.connection().run_statement( "CREATE INDEX " + table_name + "_index ON " + table_name + "( variant_id )" ) ;
+		m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS " + table_name + "_index ON " + table_name + "( variant_id )" ) ;
 
 		std::ostringstream view_sql ;	
 		view_sql
-			<< "CREATE VIEW \"" << table_name << "View\" AS "
+			<< "CREATE VIEW IF NOT EXISTS \"" << table_name << "View\" AS "
 			<< "SELECT V.chromosome, V.position, V.rsid, V.alleleA, V.alleleB, A.name AS analysis_id, T.* FROM \""
 			<< table_name << "\" T "
 			<< "INNER JOIN Variant V ON V.id = T.variant_id "
@@ -147,6 +165,7 @@ namespace snp_summary_component {
 		std::cerr << "Creating view using SQL:\n" << view_sql.str() << "\n" ;
 		m_outputter.connection().run_statement( view_sql.str() ) ;
 
+		insert_data_sql << " " << insert_data_sql_columns.str() << " " << insert_data_sql_values.str() ;
 		std::cerr << "Inserts will use this SQL:\n"
 			<< insert_data_sql.str()
 			<< "\n" ;
