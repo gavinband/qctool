@@ -34,6 +34,8 @@ namespace snp_summary_component {
 
 	FlatTableDBOutputter::~FlatTableDBOutputter() {
 		store_block() ;
+		m_snps.clear() ;
+		m_values.clear() ;
 		m_outputter.finalise() ;
 	}
 	
@@ -46,6 +48,8 @@ namespace snp_summary_component {
 
 	void FlatTableDBOutputter::finalise() {
 		store_block() ;
+		m_snps.clear() ;
+		m_values.clear() ;
 		m_outputter.finalise() ;
 	}
 
@@ -151,12 +155,12 @@ namespace snp_summary_component {
 			<< "\n" ;
 		
 		m_outputter.connection().run_statement( schema_sql.str() ) ;
-		m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS " + table_name + "_index ON " + table_name + "( variant_id )" ) ;
+		//m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS " + table_name + "_index ON " + table_name + "( variant_id )" ) ;
 
 		std::ostringstream view_sql ;	
 		view_sql
 			<< "CREATE VIEW IF NOT EXISTS \"" << table_name << "View\" AS "
-			<< "SELECT V.chromosome, V.position, V.rsid, V.alleleA, V.alleleB, A.name AS analysis_id, T.* FROM \""
+			<< "SELECT V.chromosome, V.position, V.rsid, V.alleleA, V.alleleB, A.name AS analysis, T.* FROM \""
 			<< table_name << "\" T "
 			<< "INNER JOIN Variant V ON V.id = T.variant_id "
 			<< "INNER JOIN Entity A ON A.id = T.analysis_id"
