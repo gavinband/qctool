@@ -46,7 +46,7 @@ namespace snp_summary_component {
 
 	void IntensityReporter::operator()(
 		SNPIdentifyingData const&,
-		Genotypes const&,
+		Genotypes const& genotypes,
 		SampleSexes const&,
 		genfile::VariantDataReader& data_reader,
 		ResultCallback callback
@@ -68,10 +68,17 @@ namespace snp_summary_component {
 		
 		for( int i = 0; i < N; ++i ) {
 			for( int h = 0; h < 2; ++h ) {
-				if( m_nonmissingness( i, h ) ) {
-					callback( m_sample_ids[i].as< std::string >() + ":" + (( h == 0 ) ? "x" : "y" ) + "_intensity", m_intensities( i, h ) ) ;
+				std::string const variable_stub =  m_sample_ids[i].as< std::string >() + ":" ;
+				Genotypes::Index g ;
+				if( genotypes.row( i ).maxCoeff( &g ) >= m_call_threshhold ) {
+					callback( variable_stub + "threshholded_genotype", int( g ) ) ;
 				} else {
-					callback( m_sample_ids[i].as< std::string >() + ":" + (( h == 0 ) ? "x" : "y" ) + "_intensity", genfile::MissingValue() ) ;
+					callback( variable_stub + "threshholded_genotype", genfile::MissingValue() ) ;
+				}
+				if( m_nonmissingness( i, h ) ) {
+					callback( variable_stub + (( h == 0 ) ? "x" : "y" ) + "_intensity", m_intensities( i, h ) ) ;
+				} else {
+					callback( variable_stub + (( h == 0 ) ? "x" : "y" ) + "_intensity", genfile::MissingValue() ) ;
 				}
 			}
 		}
