@@ -155,7 +155,7 @@ namespace snp_summary_component {
 			<< "\n" ;
 		
 		m_outputter.connection().run_statement( schema_sql.str() ) ;
-		//m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS " + table_name + "_index ON " + table_name + "( variant_id )" ) ;
+		m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS " + table_name + "_index ON " + table_name + "( variant_id )" ) ;
 
 		std::ostringstream view_sql ;	
 		view_sql
