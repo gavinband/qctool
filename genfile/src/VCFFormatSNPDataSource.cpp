@@ -208,10 +208,6 @@ namespace genfile {
 			throw BadArgumentError( "genfile::VCFFormatSNPDataSource::set_field_mapping()", "value = \"" + value + "\"" ) ;
 		}
 		m_field_mapping.right.replace_data( where, key ) ;
-		std::cerr << "Afterwards:\n" ;
-		for( FieldMapping::left_iterator where = m_field_mapping.left.begin(); where != m_field_mapping.left.end(); ++where ) {
-			std::cerr << "  " << where->first << ":" << where->second << "\n" ;
-		}
 	}
 	
 	
