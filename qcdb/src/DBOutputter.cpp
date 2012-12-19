@@ -119,7 +119,7 @@ namespace qcdb {
 
 		m_connection->run_statement(
 			"CREATE VIEW IF NOT EXISTS AnalysisView AS "
-			"SELECT entity1_id AS analysis_id, A.name AS analysis, Tbl.value AS \"table\", Tool.value AS tool, A.description AS description "
+			"SELECT entity1_id AS id, A.name AS name, Tbl.value AS \"table\", Tool.value AS tool, A.description AS description "
 			"FROM EntityRelationshipView ER "
 			"INNER JOIN Entity A ON A.id = ER.entity1_id "
 			"LEFT OUTER JOIN EntityDataView Tool ON Tool.entity_id = A.id AND Tool.variable == 'tool' "
