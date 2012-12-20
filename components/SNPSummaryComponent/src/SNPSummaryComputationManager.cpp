@@ -127,7 +127,9 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes( genfile::SNPIde
 
 	{
 		std::vector< int > const& males = m_samples_by_sex.find( 'm' )->second ;
+#if DEBUG_SNP_SUMMARY_COMPUTATION_MANAGER
 		std::cerr << "SNPSummaryComputationManager::fix_sex_chromosome_genotypes(): examining genotypes for " << males.size() << " males...\n" ;
+#endif
 		if( males.size() > 0 ) {
 			if( determine_male_coding_column( snp, genotypes, males ) == 2 ) {
 #if DEBUG_SNP_SUMMARY_COMPUTATION_MANAGER

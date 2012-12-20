@@ -46,7 +46,7 @@ namespace genfile {
 			SNPDosageSpec const& snp_matchers
 		) ;
 		
-		static SNPIdentifyingDataTest::UniquePtr create_snp_matcher( std::string test_spec ) ;
+		static SNPIdentifyingDataTest::UniquePtr create_snp_matcher( std::string test_spec, std::string const& splitter = "~" ) ;
 		
 	public:
 		WithSNPDosagesCohortIndividualSource(
