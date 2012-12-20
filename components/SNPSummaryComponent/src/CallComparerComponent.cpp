@@ -25,7 +25,7 @@
 #include "components/SNPSummaryComponent/FrequentistTestCallMerger.hpp"
 #include "components/SNPSummaryComponent/LeastMissingConsensusCaller.hpp"
 #include "components/SNPSummaryComponent/DBOutputter.hpp"
-#include "components/SNPSummaryComponent/FlatFileOutputter.hpp"
+#include "qcdb/FlatFileOutputter.hpp"
 
 CallComparerProcessor::UniquePtr CallComparerProcessor::create( PairwiseCallComparerManager::UniquePtr comparer, std::vector< std::string > const& call_fields ) {
 	UniquePtr result(
@@ -152,16 +152,16 @@ namespace {
 	// Adapter to adapt SNPSummaryComponent outputters to be used here.
 	struct SNPSummaryOutputter: public PairwiseCallComparerManager::ComparisonClient {
 	public:
-		static UniquePtr create( snp_summary_component::Storage::SharedPtr outputter ) {
+		static UniquePtr create( qcdb::Storage::SharedPtr outputter ) {
 			return UniquePtr( new SNPSummaryOutputter( outputter ) ) ;
 		}
 
-		static SharedPtr create_shared( snp_summary_component::Storage::SharedPtr outputter ) {
+		static SharedPtr create_shared( qcdb::Storage::SharedPtr outputter ) {
 			return SharedPtr( new SNPSummaryOutputter( outputter ) ) ;
 		}
 
 	public:
-		SNPSummaryOutputter( snp_summary_component::Storage::SharedPtr outputter ):
+		SNPSummaryOutputter( qcdb::Storage::SharedPtr outputter ):
 			m_outputter( outputter )
 		{}
 
@@ -186,12 +186,12 @@ namespace {
 		}
 
 	private:
-		snp_summary_component::Storage::SharedPtr m_outputter ;
+		qcdb::Storage::SharedPtr m_outputter ;
 		genfile::SNPIdentifyingData m_snp ;
 	} ;	
 }
 
-void CallComparerComponent::setup( SNPSummaryComputationManager& snp_summary_component_manager, snp_summary_component::Storage::SharedPtr storage ) const {
+void CallComparerComponent::setup( SNPSummaryComputationManager& snp_summary_component_manager, qcdb::Storage::SharedPtr storage ) const {
 	PairwiseCallComparerManager::UniquePtr manager( PairwiseCallComparerManager::create().release() ) ;
 
 	SNPSummaryOutputter::SharedPtr snp_outputter = SNPSummaryOutputter::create_shared(

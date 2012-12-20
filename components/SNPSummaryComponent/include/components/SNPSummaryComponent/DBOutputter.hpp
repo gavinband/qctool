@@ -17,11 +17,12 @@
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
 #include "qcdb/DBOutputter.hpp"
-#include "components/SNPSummaryComponent/Storage.hpp"
+#include "qcdb/Storage.hpp"
 
 namespace snp_summary_component {
-	struct DBOutputter: public Storage {
+	struct DBOutputter: public qcdb::Storage {
 		typedef qcdb::DBOutputter::Metadata Metadata ;
+		typedef qcdb::Storage Storage ;
 		static Storage::UniquePtr create( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
 		static Storage::SharedPtr create_shared( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
 

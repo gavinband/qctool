@@ -36,10 +36,10 @@
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "statfile/BuiltInTypeStatSource.hpp"
-#include "components/SNPSummaryComponent/Storage.hpp"
+#include "qcdb/Storage.hpp"
 #include "components/SNPSummaryComponent/DBOutputter.hpp"
-#include "components/SNPSummaryComponent/FlatFileOutputter.hpp"
-#include "components/SNPSummaryComponent/FlatTableDBOutputter.hpp"
+#include "qcdb/FlatFileOutputter.hpp"
+#include "qcdb/FlatTableDBOutputter.hpp"
 
 namespace globals {
 	std::string const program_name = "bingwa" ;
@@ -1670,16 +1670,16 @@ public:
 		m_processor->setup( get_ui_context() ) ;
 		m_processor->summarise( get_ui_context() ) ;
 		
-		snp_summary_component::Storage::SharedPtr storage ;
+		qcdb::Storage::SharedPtr storage ;
 		if( options().check( "-flat-file" )) {
-			storage = snp_summary_component::FlatFileOutputter::create_shared(
+			storage = qcdb::FlatFileOutputter::create_shared(
 				options().get< std::string >( "-o" ),
 				options().get< std::string >( "-analysis-name" ),
 				options().get_values_as_map()
 			) ;
 		}
 		else if( options().check( "-flat-table" )) {
-			snp_summary_component::FlatTableDBOutputter::SharedPtr table_storage = snp_summary_component::FlatTableDBOutputter::create_shared(
+			qcdb::FlatTableDBOutputter::SharedPtr table_storage = qcdb::FlatTableDBOutputter::create_shared(
 				options().get< std::string >( "-o" ),
 				options().get< std::string >( "-analysis-name" ),
 				options().get_values_as_map()
@@ -1700,7 +1700,7 @@ public:
 
 		m_processor->send_results_to(
 			boost::bind(
-				&snp_summary_component::Storage::store_per_variant_data,
+				&qcdb::Storage::store_per_variant_data,
 				storage,
 				_1, _2, _3
 			)
@@ -1875,14 +1875,14 @@ public:
 
 			SNPTESTResults::SNPResultCallback snp_callback ;
 			if( cohort_files.size() == 1 ) {
-				snp_summary_component::Storage::SharedPtr raw_storage = snp_summary_component::DBOutputter::create_shared(
+				qcdb::Storage::SharedPtr raw_storage = snp_summary_component::DBOutputter::create_shared(
 					options().get< std::string >( "-o" ),
 					globals::program_name + " cohort " + to_string( cohort_i+1 ) + ": SNPTEST analysis: \"" + cohort_files[cohort_i] + "\"",
 					snp_summary_component::DBOutputter::Metadata()
 				) ;
 
 				snp_callback = boost::bind(
-					&snp_summary_component::Storage::store_per_variant_data,
+					&qcdb::Storage::store_per_variant_data,
 					raw_storage,
 					_1, _2, _3
 				) ;

@@ -14,10 +14,10 @@
 #include "genfile/string_utils.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
-#include "components/SNPSummaryComponent/Storage.hpp"
-#include "components/SNPSummaryComponent/FlatFileOutputter.hpp"
+#include "qcdb/Storage.hpp"
+#include "qcdb/FlatFileOutputter.hpp"
 
-namespace snp_summary_component {
+namespace qcdb {
 	namespace {
 		void append_to_string( std::string* target, std::string const& value ) {
 			(*target) += ( target->size() > 0 ? "," : "" ) + value ;
@@ -69,7 +69,7 @@ namespace snp_summary_component {
 		if( where == m_variables.left.end() ) {
 			if( m_sink.get() ) {
 				// Uh-oh, have already written a header.
-				throw genfile::BadArgumentError( "snp_summary_component::FlatFileOutputter::store_per_variant_data()", "variable=\"" + variable + "\"" ) ;
+				throw genfile::BadArgumentError( "qcdb::FlatFileOutputter::store_per_variant_data()", "variable=\"" + variable + "\"" ) ;
 			}
 			else {
 				// Still have time to add the variable to our list of variables, retaining the order of addition.

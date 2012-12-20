@@ -4,8 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef QCTOOL_SNP_SUMMARY_COMPONENT_FLAT_FILE_OUTPUTTER_HPP
-#define QCTOOL_SNP_SUMMARY_COMPONENT_FLAT_FILE_OUTPUTTER_HPP
+#ifndef QCTOOL_QCDB_FLAT_FILE_OUTPUTTER_HPP
+#define QCTOOL_QCDB_FLAT_FILE_OUTPUTTER_HPP
 
 #include <string>
 #include <memory>
@@ -16,9 +16,9 @@
 #include "genfile/VariantEntry.hpp"
 #include "genfile/SNPIdentifyingData2.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
-#include "components/SNPSummaryComponent/Storage.hpp"
+#include "qcdb/Storage.hpp"
 
-namespace snp_summary_component {
+namespace qcdb {
 	struct FlatFileOutputter: public Storage {
 		typedef std::map< std::string, std::pair< std::vector< std::string >, std::string > > Metadata ;
 		static UniquePtr create( std::string const& filename, std::string const& analysis_name, Metadata const& metadata ) ;

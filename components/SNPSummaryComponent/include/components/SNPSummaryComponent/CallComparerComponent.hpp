@@ -14,7 +14,7 @@
 #include "PairwiseCallComparerManager.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputationManager.hpp"
-#include "components/SNPSummaryComponent/Storage.hpp"
+#include "qcdb/Storage.hpp"
 
 struct CallComparerProcessor: public SNPSummaryComputation
 {
@@ -62,7 +62,7 @@ public:
 		appcontext::UIContext& ui_context
 	) ;
 	
-	void setup( SNPSummaryComputationManager&, snp_summary_component::Storage::SharedPtr ) const ;
+	void setup( SNPSummaryComputationManager&, qcdb::Storage::SharedPtr ) const ;
 
 private:
 	genfile::CohortIndividualSource const& m_samples ;

@@ -4,8 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef QCTOOL_SNP_SUMMARY_COMPONENT_FLAT_TABLE_DB_OUTPUTTER_HPP
-#define QCTOOL_SNP_SUMMARY_COMPONENT_FLAT_TABLE_DB_OUTPUTTER_HPP
+#ifndef QCTOOL_QCDB_FLAT_TABLE_DB_OUTPUTTER_HPP
+#define QCTOOL_QCDB_FLAT_TABLE_DB_OUTPUTTER_HPP
 
 #include <string>
 #include <memory>
@@ -18,13 +18,13 @@
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
 #include "qcdb/DBOutputter.hpp"
-#include "components/SNPSummaryComponent/Storage.hpp"
+#include "qcdb/Storage.hpp"
 
-namespace snp_summary_component {
+namespace qcdb {
 	struct FlatTableDBOutputter: public Storage {
 		typedef std::auto_ptr< FlatTableDBOutputter > UniquePtr ;
 		typedef boost::shared_ptr< FlatTableDBOutputter > SharedPtr ;
-		typedef qcdb::DBOutputter::Metadata Metadata ;
+		typedef DBOutputter::Metadata Metadata ;
 		static UniquePtr create( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
 		static SharedPtr create_shared( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
 
@@ -47,7 +47,7 @@ namespace snp_summary_component {
 		void finalise() ;
 
 	private:
-		qcdb::DBOutputter m_outputter ;
+		DBOutputter m_outputter ;
 		std::string m_table_name ;
 		std::size_t const m_max_snps_per_block ;
 		db::Connection::StatementPtr m_insert_data_sql ;

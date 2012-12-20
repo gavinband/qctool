@@ -81,35 +81,38 @@ void SNPSummaryComputationManager::begin_processing_snps( std::size_t number_of_
 }
 
 void SNPSummaryComputationManager::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
-	{
+	try {
 		genfile::vcf::GenotypeSetter< Eigen::MatrixBase< SNPSummaryComputation::Genotypes > > setter( m_genotypes ) ;
 		data_reader.get( "genotypes", setter ) ;
-	}
 
-	if( !snp.get_position().chromosome().is_missing() && snp.get_position().chromosome().is_sex_determining() ) {
-		try {
-			fix_sex_chromosome_genotypes( snp, m_genotypes ) ;
+		if( !snp.get_position().chromosome().is_missing() && snp.get_position().chromosome().is_sex_determining() ) {
+			try {
+				fix_sex_chromosome_genotypes( snp, m_genotypes ) ;
+			}
+			catch( genfile::BadArgumentError const& e ) {
+				m_result_signal( snp, "comment", "Unable to determine genotype coding for males/females.  Calling may be wrong so I will treat the genotypes as missing." ) ;
+				m_genotypes.setZero() ;
+			}
 		}
-		catch( genfile::BadArgumentError const& e ) {
-			m_result_signal( snp, "comment", "Unable to determine genotype coding for males/females.  Calling may be wrong so I will treat the genotypes as missing." ) ;
-			m_genotypes.setZero() ;
-		}
-	}
 
-	Computations::iterator i = m_computations.begin(), end_i = m_computations.end() ;
-	for( ; i != end_i; ++i ) {
-		i->second->operator()(
-			snp,
-			m_genotypes,
-			m_sexes,
-			data_reader,
-			boost::bind(
-				boost::ref( m_result_signal ),
+		Computations::iterator i = m_computations.begin(), end_i = m_computations.end() ;
+		for( ; i != end_i; ++i ) {
+			i->second->operator()(
 				snp,
-				_1,
-				_2
-			)
-		) ;
+				m_genotypes,
+				m_sexes,
+				data_reader,
+				boost::bind(
+					boost::ref( m_result_signal ),
+					snp,
+					_1,
+					_2
+				)
+			) ;
+		}
+	}
+	catch( genfile::MalformedInputError const& e ) {
+		m_result_signal( snp, "comment", "Error reading data for variant " + genfile::string_utils::to_string( snp ) + ": " + e.format_message() ) ;
 	}
 	++m_snp_index ;
 }

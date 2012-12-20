@@ -16,10 +16,10 @@
 #include "components/SNPSummaryComponent/SNPSummaryComponent.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputationManager.hpp"
-#include "components/SNPSummaryComponent/Storage.hpp"
+#include "qcdb/Storage.hpp"
+#include "qcdb/FlatFileOutputter.hpp"
+#include "qcdb/FlatTableDBOutputter.hpp"
 #include "components/SNPSummaryComponent/DBOutputter.hpp"
-#include "components/SNPSummaryComponent/FlatFileOutputter.hpp"
-#include "components/SNPSummaryComponent/FlatTableDBOutputter.hpp"
 #include "components/SNPSummaryComponent/AssociationTest.hpp"
 #include "components/SNPSummaryComponent/SequenceAnnotation.hpp"
 #include "components/SNPSummaryComponent/DifferentialMissingnessComputation.hpp"
@@ -147,17 +147,17 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 		}
 	}
 
-	snp_summary_component::Storage::SharedPtr storage ;
+	qcdb::Storage::SharedPtr storage ;
 
 	if( m_options.check( "-flat-file" )) {
-		storage = snp_summary_component::FlatFileOutputter::create_shared(
+		storage = qcdb::FlatFileOutputter::create_shared(
 			filename,
 			m_options.get< std::string >( "-analysis-name" ),
 			m_options.get_values_as_map()
 		) ;
 	}
 	else if( m_options.check( "-flat-table" )) {
-		storage = snp_summary_component::FlatTableDBOutputter::create_shared(
+		storage = qcdb::FlatTableDBOutputter::create_shared(
 			filename,
 			m_options.get< std::string >( "-analysis-name" ),
 			m_options.get_values_as_map()
@@ -173,7 +173,7 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 
 	manager->add_result_callback(
 		boost::bind(
-			&snp_summary_component::Storage::store_per_variant_data,
+			&qcdb::Storage::store_per_variant_data,
 			storage,
 			_1, _2, _3
 		)
@@ -207,7 +207,7 @@ namespace impl {
 	}
 }
 
-void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manager, snp_summary_component::Storage::SharedPtr storage ) const {
+void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manager, qcdb::Storage::SharedPtr storage ) const {
 	using genfile::string_utils::split_and_strip_discarding_empty_entries ;
 
 	if( m_options.check( "-snp-stats" )) {
