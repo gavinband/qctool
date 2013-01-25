@@ -21,9 +21,10 @@ namespace sample_stats {
 		std::size_t m_snp_index ;
 		double m_threshhold ;
 		Eigen::VectorXd m_ones ;
-		Eigen::VectorXd m_missing_snps ;
-		Eigen::VectorXd m_missing_call_snps ;
+		Eigen::VectorXd m_total_probabilities ;
+		Eigen::VectorXd m_total_calls ;
 		Eigen::VectorXd m_het_snps ;
+		Eigen::VectorXd m_het_snp_calls ;
 	} ;
 }
 

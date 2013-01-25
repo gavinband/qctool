@@ -23,25 +23,28 @@ namespace sample_stats {
 		}
 
 		if( m_snp_index == 0 ) {
-			m_missing_snps.setZero( genotypes.rows() ) ;
-			m_missing_call_snps.setZero( genotypes.rows() ) ;
+			m_total_probabilities.setZero( genotypes.rows() ) ;
+			m_total_calls.setZero( genotypes.rows() ) ;
 			m_het_snps.setZero( genotypes.rows() ) ;
+			m_het_snp_calls.setZero( genotypes.rows() ) ;
 			m_ones.setOnes( genotypes.rows() ) ;
 		}
 
-		m_missing_snps += m_ones - genotypes.rowwise().sum() ;
-		m_het_snps.array() += ( genotypes.col( 1 ).array() > m_threshhold ).cast< double >() ;
-		m_missing_call_snps.array() += ( genotypes.rowwise().maxCoeff().array() < m_threshhold ).cast< double >() ;
+		m_total_probabilities += genotypes.rowwise().sum() ;
+		m_total_calls.array() += ( genotypes.rowwise().maxCoeff().array() >= m_threshhold ).cast< double >() ;
+
+		m_het_snps += genotypes.col( 1 ) ;
+		m_het_snp_calls.array() += ( genotypes.col( 1 ).array() >= m_threshhold ).cast< double >() ;
+
 		m_snp_index++ ;
 	}
 
 	void MissingnessHeterozygosityComputation::compute( ResultCallback callback ) {
-		if( m_snp_index > 0 ) {
-			for( int sample = 0; sample < m_missing_snps.size(); ++sample ) {
-				callback( sample, "missing proportion", m_missing_snps( sample ) / m_snp_index ) ;
-				callback( sample, "missing call proportion", m_missing_call_snps( sample ) / m_snp_index ) ;
-				callback( sample, "heterozygous proportion", m_het_snps( sample ) / m_snp_index ) ;
-			}
+		for( int sample = 0; sample < m_total_probabilities.size(); ++sample ) {
+			callback( sample, "missing proportion", ( m_snp_index - m_total_probabilities( sample ) ) / m_snp_index ) ;
+			callback( sample, "missing call proportion", ( m_snp_index - m_total_calls( sample ) ) / m_snp_index ) ;
+			callback( sample, "heterozygous proportion", m_het_snps( sample ) / m_total_probabilities( sample ) ) ;
+			callback( sample, "heterozygous call proportion", m_het_snp_calls( sample ) / m_total_calls( sample ) ) ;
 		}
 	}
 
