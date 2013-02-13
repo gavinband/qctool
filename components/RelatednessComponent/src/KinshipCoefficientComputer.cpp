@@ -124,7 +124,7 @@ namespace impl {
 				Eigen::VectorXd& genotype_calls = *m_data[ snp_i ] ;
 				Eigen::VectorXd& non_missing_genotypes = *m_working_space[ snp_i ] ;
 				double allele_frequency = genotype_calls.sum() / ( 2.0 * non_missing_genotypes.sum() ) ;
-				if( allele_frequency > m_allele_frequency_threshhold ) {
+				if( std::min( allele_frequency, 1.0 - allele_frequency ) > m_allele_frequency_threshhold ) {
 	#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
 					std::cerr << std::resetiosflags( std::ios::floatfield ) << std::setprecision( 5 ) ;
 					std::cerr << "SNP: freq = " << allele_frequency << ", uncentred genotypes are: " << genotype_calls.transpose().head( 20 ) << "...\n" ;
@@ -140,6 +140,13 @@ namespace impl {
 						m_non_missing_count,
 						1.0
 					) ;
+
+	#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+					std::cerr << (*m_result).row(0).head(10) << "...\n" ;
+					if( (*m_result)(0,0) != (*m_result)(0,0) ) {
+						std::cerr << "AAAAAGH!\n" ;
+					}
+	#endif
 				}
 			}
 		}
@@ -409,6 +416,10 @@ void KinshipCoefficientComputer::begin_processing_snps( std::size_t number_of_sa
 }
 
 void KinshipCoefficientComputer::processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) {
+#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+	std::cerr << "KinshipCoefficientComputer::processed_snp(): submitting work for " << id_data << ".\n" ;
+#endif
+
  	if( m_tasks[ m_current_task ].is_finalised() ) {
 		m_tasks[ m_current_task ].wait_until_complete() ;
 		m_tasks.replace(
