@@ -163,7 +163,7 @@ namespace impl {
 				graph.Tens( x, y, colour, "RGBk ." ) ;
 				graph.Puts( mglPoint( x_range_max / 2, y_range_max * 3 / 5 ), ( i->first + "/" + m_intensity_field ).c_str() ) ;
 			}
-			graph.WritePNG( m_filename.c_str() ) ;
+			graph.WritePNG( m_filename.c_str(), "", false ) ;
 		}
 	private:
 		Calls m_calls ;
