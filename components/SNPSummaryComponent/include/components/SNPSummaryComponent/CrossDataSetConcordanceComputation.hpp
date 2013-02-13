@@ -31,6 +31,7 @@ namespace snp_stats {
 			std::string const& comparison_dataset_sample_id_column
 		) ;
 		
+		SampleIdList const& dataset1_main_ids() const { return m_dataset1_main_ids ; }
 		SampleIdList const& dataset1_sample_ids() const { return m_dataset1_sample_ids ; }
 		SampleIdList const& dataset2_sample_ids() const { return m_dataset2_sample_ids ; }
 		SampleMapping const& sample_mapping() const { return m_sample_mapping ; }
@@ -39,6 +40,7 @@ namespace snp_stats {
 		genfile::CohortIndividualSource const& m_dataset1_samples ;
 		genfile::CohortIndividualSource::UniquePtr m_dataset2_samples ;
 		SampleIdList m_dataset1_sample_ids ;
+		SampleIdList m_dataset1_main_ids ;
 		SampleIdList m_dataset2_sample_ids ;
 		SampleMapping m_sample_mapping ;
 	} ;
