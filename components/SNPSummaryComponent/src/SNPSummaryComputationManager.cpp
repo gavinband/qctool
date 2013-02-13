@@ -112,7 +112,7 @@ void SNPSummaryComputationManager::processed_snp( genfile::SNPIdentifyingData co
 		}
 	}
 	catch( genfile::MalformedInputError const& e ) {
-		m_result_signal( snp, "comment", "Error reading data for variant " + genfile::string_utils::to_string( snp ) + ": " + e.format_message() ) ;
+		m_result_signal( snp, "comment", "!! Error reading data for variant " + genfile::string_utils::to_string( snp ) + ": " + e.format_message() ) ;
 	}
 	++m_snp_index ;
 }
@@ -127,9 +127,7 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes( genfile::SNPIde
 
 	{
 		std::vector< int > const& males = m_samples_by_sex.find( 'm' )->second ;
-#if DEBUG_SNP_SUMMARY_COMPUTATION_MANAGER
 		std::cerr << "SNPSummaryComputationManager::fix_sex_chromosome_genotypes(): examining genotypes for " << males.size() << " males...\n" ;
-#endif
 		if( males.size() > 0 ) {
 			if( determine_male_coding_column( snp, genotypes, males ) == 2 ) {
 #if DEBUG_SNP_SUMMARY_COMPUTATION_MANAGER
