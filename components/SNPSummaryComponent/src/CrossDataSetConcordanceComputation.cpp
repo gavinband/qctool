@@ -39,6 +39,7 @@ namespace snp_stats {
 	):
 		m_dataset1_samples( dataset1_samples )
 	{
+		m_dataset1_samples.get_column_values( "ID_1", boost::bind( &SampleIdList::push_back, &m_dataset1_main_ids, _2 ) ) ;
 		m_dataset1_samples.get_column_values( sample_id_column, boost::bind( &SampleIdList::push_back, &m_dataset1_sample_ids, _2 ) ) ;
 	}
 
@@ -72,6 +73,17 @@ namespace snp_stats {
 		m_alt_dataset_snps = snps ;
 	}
 
+	namespace {
+		std::string format_genotype( int genotype ) {
+			if( genotype == -1 ) {
+				return "NA" ;
+			} else {
+				return genfile::string_utils::to_string( genotype ) ;
+			}
+		}
+
+	}
+
 	void CrossDataSetConcordanceComputation::operator()(
 		SNPIdentifyingData const& snp,
 		Genotypes const& genotypes,
@@ -83,6 +95,8 @@ namespace snp_stats {
 		SNPIdentifyingData alt_snp ;
 		if( m_alt_dataset_snps->get_next_snp_matching( &alt_snp, snp, m_comparer )) {
 			callback( "compared_variant_rsid", alt_snp.get_rsid() ) ;
+			callback( "compared_variant_alleleA", alt_snp.get_first_allele() ) ;
+			callback( "compared_variant_alleleB", alt_snp.get_second_allele() ) ;
 			genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( m_alt_dataset_genotypes, m_call_threshhold, -1, 0, 1, 2 ) ;
 			m_alt_dataset_snps->read_variant_data()->get( "genotypes", setter ) ;
 
@@ -99,26 +113,20 @@ namespace snp_stats {
 			for( std::size_t count = 0; i != end_i; ++i, ++count ) {
 				std::size_t const alt_dataset_sample_index = i->second ;
 				double const alt_genotype = m_alt_dataset_genotypes( alt_dataset_sample_index ) ;
-				std::string const stub = m_sample_mapper.dataset1_sample_ids()[ i->first ].as< std::string >() + "(" + to_string( i->first + 1 ) + "~" + to_string( i->second + 1 ) + ")"  ;
-				if( alt_genotype != -1 ) {
-					++call_count ;
-					for( int g = 0; g < 3; ++g ) {
-						if( genotypes( i->first, g ) > m_call_threshhold ) {
-							m_main_dataset_genotype_subset( alt_dataset_sample_index ) = g ;
-							m_pairwise_nonmissingness( alt_dataset_sample_index ) = 1 ;
-
-							if( g == alt_genotype ) {
-								callback( stub + ":concordance", 1 ) ;
-								++concordant_call_count ;
-							}
-							else {
-								callback( stub + ":concordance", 0 ) ;
-							}
-						}
-					}
+				double main_genotype = std::numeric_limits< double >::quiet_NaN() ;
+				if( genotypes.row( i->first ).maxCoeff( &main_genotype ) < m_call_threshhold ) {
+					main_genotype = -1 ;
+					m_pairwise_nonmissingness( alt_dataset_sample_index ) = 0 ;
 				} else {
-					callback( stub + ":concordance", genfile::MissingValue() ) ;
+					m_main_dataset_genotype_subset( alt_dataset_sample_index ) = main_genotype ;
+					m_pairwise_nonmissingness( alt_dataset_sample_index ) = 1 ;
 				}
+				std::string const stub = m_sample_mapper.dataset1_main_ids()[ i->first ].as< std::string >() + "(" + to_string( i->first + 1 ) + "~" + to_string( i->second + 1 ) + ")"  ;
+				if( main_genotype != -1 && alt_genotype != -1 ) {
+					++call_count ;
+					concordant_call_count += ( main_genotype == alt_genotype ) ? 1 : 0 ;
+				}
+				callback( stub + ":genotype", format_genotype( main_genotype ) + "," + format_genotype( alt_genotype ) ) ;
 			}
 
 			callback( "pairwise non-missing calls", call_count ) ;
