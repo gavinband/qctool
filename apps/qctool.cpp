@@ -724,14 +724,6 @@ struct QCToolCmdLineContext
 		return *m_sample_filter ;
 	}
 	
-	GenRowStatistics& snp_statistics() {
-		return m_snp_statistics ;
-	}
-
-	SampleRowStatistics& sample_statistics() {
-		return m_sample_statistics ;
-	}
-	
 	std::vector< std::size_t > const& indices_of_filtered_out_samples() const { return m_indices_of_filtered_out_samples ; }
 
 	genfile::CohortIndividualSource const& samples() const { return *m_cohort_individual_source ; }
@@ -1003,9 +995,6 @@ private:
 	std::auto_ptr< AndRowCondition > m_snp_filter ;
 	std::auto_ptr< AndRowCondition > m_sample_filter ;
 
-	GenRowStatistics m_snp_statistics ;
-	SampleRowStatistics m_sample_statistics ;
-	
 	std::vector< std::size_t > m_indices_of_filtered_out_samples ;
 	
 	ToNumberedFileBackupCreator m_backup_creator ;
