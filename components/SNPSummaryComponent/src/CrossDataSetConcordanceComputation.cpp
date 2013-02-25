@@ -64,8 +64,8 @@ namespace snp_stats {
 		m_comparer = comparer ;
 	}
 
-	void CrossDataSetConcordanceComputation::set_flip_alleles_if_necessary() {
-		m_flip_alleles_if_necessary = true ;
+	void CrossDataSetConcordanceComputation::set_match_alleles() {
+		m_match_alleles = true ;
 	}
 
 	void CrossDataSetConcordanceComputation::set_alternate_dataset(
@@ -102,10 +102,25 @@ namespace snp_stats {
 			{
 				double AA = 0, AB = 1, BB = 2 ;
 				// If necessary, match alleles to the main dataset.
-				if( m_flip_alleles_if_necessary && alt_snp.get_first_allele() == snp.get_second_allele() && alt_snp.get_second_allele() == snp.get_first_allele() ) {
-					AA = 2 ;
-					BB = 0 ;
-					alt_snp.swap_alleles() ;
+				if( m_match_alleles ) {
+					if( alt_snp.get_first_allele() == snp.get_first_allele() && alt_snp.get_second_allele() == snp.get_second_allele() ) {
+						AA = 0 ;
+						AB = 1 ;
+						BB = 2 ;
+						// ok, coding is fine.
+					}
+					else if( alt_snp.get_first_allele() == snp.get_second_allele() && alt_snp.get_second_allele() == snp.get_first_allele() ) {
+						AA = 2 ;
+						AB = 1 ;
+						BB = 0 ;
+						alt_snp.swap_alleles() ;
+					} else {
+						// Don't know which way round alleles are.
+						// Set all data to missing.
+						AA = -1 ;
+						AB = -1 ;
+						BB = -1 ;
+					}
 				}
 				genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( m_alt_dataset_genotypes, m_call_threshhold, -1, AA, AB, BB ) ;
 				m_alt_dataset_snps->read_variant_data()->get( "genotypes", setter ) ;

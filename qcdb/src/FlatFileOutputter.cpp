@@ -77,7 +77,7 @@ namespace qcdb {
 			}
 		}
 
-		// Store the value of this variable
+		// Store the value of this variable.
 		m_values[ std::make_pair( m_snps.size() - 1, where->second ) ] = value ;
 	}
 

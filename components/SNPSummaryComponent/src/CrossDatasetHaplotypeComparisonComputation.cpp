@@ -27,8 +27,8 @@ namespace snp_stats {
 		m_comparer = comparer ;
 	}
 
-	void CrossDataSetHaplotypeComparisonComputation::set_flip_alleles_if_necessary() {
-		m_flip_alleles_if_necessary = true ;
+	void CrossDataSetHaplotypeComparisonComputation::set_match_alleles() {
+		m_match_alleles = true ;
 	}
 
 	void CrossDataSetHaplotypeComparisonComputation::set_alternate_dataset(
@@ -58,12 +58,27 @@ namespace snp_stats {
 			{
 				double A_coding = 0 ;
 				double B_coding = 1 ;
-				if( m_flip_alleles_if_necessary && alt_snp.get_first_allele() == snp.get_second_allele() && alt_snp.get_second_allele() == snp.get_first_allele() ) {
-					A_coding = 1 ;
-					B_coding = 0 ;
+				bool matching_alleles = true ;
+				if( m_match_alleles ) {
+					if( alt_snp.get_first_allele() == snp.get_first_allele() && alt_snp.get_second_allele() == snp.get_second_allele() ) {
+						A_coding = 0 ;
+						B_coding = 1 ;
+					}
+					else if( alt_snp.get_first_allele() == snp.get_second_allele() && alt_snp.get_second_allele() == snp.get_first_allele() ) {
+						A_coding = 1 ;
+						B_coding = 0 ;
+					} else {
+						matching_alleles = false ;
+					}
 				}
 				genfile::vcf::PhasedGenotypeSetter< Eigen::MatrixXd > setter( m_haplotypes2, m_nonmissingness2, 0, A_coding, B_coding ) ;
 				m_alt_dataset_snps->read_variant_data()->get( "genotypes", setter ) ;
+
+				if( !matching_alleles ) {
+					callback( "comment", "Alleles in main and comparison datasets do not match." ) ;
+					// alleles don't match, don't  bother doing any computation.
+					return ;
+				}
 			}
 			
 			callback( "CrossDataSetHaplotypeComparisonComputation:compared_variant_rsid", alt_snp.get_rsid() ) ;

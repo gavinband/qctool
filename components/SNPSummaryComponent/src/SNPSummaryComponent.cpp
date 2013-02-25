@@ -345,12 +345,13 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 
 		computation->set_comparer(
 			genfile::SNPIdentifyingData::CompareFields(
-				m_options.get_value< std::string >( "-snp-match-fields" )
+				m_options.get_value< std::string >( "-snp-match-fields" ),
+				m_options.check( "-match-alleles-to-cohort1" )
 			)
 		) ; 
 	
 		if( m_options.check( "-match-alleles-to-cohort1") ) {
-			computation->set_flip_alleles_if_necessary() ;
+			computation->set_match_alleles() ;
 		}
 	
 		genfile::SNPDataSource::UniquePtr alternate_dataset = genfile::SNPDataSource::create_chain(
