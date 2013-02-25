@@ -98,23 +98,23 @@ namespace snp_stats {
 		using genfile::string_utils::to_string ;
 		SNPIdentifyingData alt_snp ;
 		if( m_alt_dataset_snps->get_next_snp_matching( &alt_snp, snp, m_comparer )) {
+			// Get comparison dataset genotype data.
+			{
+				double AA = 0, AB = 1, BB = 2 ;
+				// If necessary, match alleles to the main dataset.
+				if( m_flip_alleles_if_necessary && alt_snp.get_first_allele() == snp.get_second_allele() && alt_snp.get_second_allele() == snp.get_first_allele() ) {
+					AA = 2 ;
+					BB = 0 ;
+					alt_snp.swap_alleles() ;
+				}
+				genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( m_alt_dataset_genotypes, m_call_threshhold, -1, AA, AB, BB ) ;
+				m_alt_dataset_snps->read_variant_data()->get( "genotypes", setter ) ;
+			}
+			
 			callback( "compared_variant_rsid", alt_snp.get_rsid() ) ;
 			callback( "compared_variant_alleleA", alt_snp.get_first_allele() ) ;
 			callback( "compared_variant_alleleB", alt_snp.get_second_allele() ) ;
 			
-			genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( m_alt_dataset_genotypes, m_call_threshhold, -1, 0, 1, 2 ) ;
-			m_alt_dataset_snps->read_variant_data()->get( "genotypes", setter ) ;
-
-			// Deal with allele flipping if needed.
-			if( m_flip_alleles_if_necessary && alt_snp.get_first_allele() == snp.get_second_allele() && alt_snp.get_second_allele() == snp.get_first_allele() ) {
-				Eigen::Matrix3d M ;
-				M << 0, 0, 1,
-					 0, 1, 0,
-					 1, 0, 0 ;
-				m_alt_dataset_genotypes = M * m_alt_dataset_genotypes ;
-				alt_snp.swap_alleles() ;
-			}
-
 			CrossDataSetSampleMapper::SampleMapping::const_iterator i = m_sample_mapper.sample_mapping().begin() ;
 			CrossDataSetSampleMapper::SampleMapping::const_iterator const end_i = m_sample_mapper.sample_mapping().end() ;
 

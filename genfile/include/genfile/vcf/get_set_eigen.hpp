@@ -75,24 +75,35 @@ namespace genfile {
 		struct PhasedGenotypeSetter: public VariantDataReader::PerSampleSetter
 		{
 			typedef HaplotypeAlleles NonMissingness ;
+			~PhasedGenotypeSetter() throw() {}
 			PhasedGenotypeSetter(
 				HaplotypeAlleles& result,
 				double missing_value = std::numeric_limits< double >::quiet_NaN()
 			):
 				m_result( result ),
 				m_non_missingness( 0 ),
-				m_missing_value( missing_value )
-			{}
+				m_missing_value( missing_value ),
+				m_allele_coding( 2, 0 )
+			{
+				m_allele_coding[0] = 0 ;
+				m_allele_coding[1] = 1 ;
+			}
 
 			PhasedGenotypeSetter(
 				HaplotypeAlleles& result,
 				NonMissingness& non_missingness,
-				double missing_value = 0
+				double missing_value = 0,
+				double const A_coding = 0,
+				double const B_coding = 1
 			):
 				m_result( result ),
 				m_non_missingness( &non_missingness ),
-				m_missing_value( missing_value )
-			{}
+				m_missing_value( missing_value ),
+				m_allele_coding( 2, 0 )
+			{
+				m_allele_coding[0] = A_coding ;
+				m_allele_coding[1] = B_coding ;
+			}
 
 			void set_number_of_samples( std::size_t n ) {
 				m_result.resize( n, 2  ) ;
@@ -129,7 +140,8 @@ namespace genfile {
 			}
 
 			void operator()( Integer const value ) {
-				m_result( m_sample_i, m_entry_i ) = value ;
+				assert( value >= 0 & value < 2 ) ;
+				m_result( m_sample_i, m_entry_i ) = m_allele_coding[ std::size_t( value ) ] ;
 				if( m_non_missingness ) {
 					(*m_non_missingness)( m_sample_i, m_entry_i ) = 1 ;
 				}
@@ -139,7 +151,8 @@ namespace genfile {
 		private:
 			HaplotypeAlleles& m_result ;
 			NonMissingness* m_non_missingness ;
-			int const m_missing_value ;
+			double const m_missing_value ;
+			std::vector< double > m_allele_coding ;
 			int m_sample_i ;
 			int m_entry_i ;
 		} ;

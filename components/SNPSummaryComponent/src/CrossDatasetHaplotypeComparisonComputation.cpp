@@ -27,6 +27,10 @@ namespace snp_stats {
 		m_comparer = comparer ;
 	}
 
+	void CrossDataSetHaplotypeComparisonComputation::set_flip_alleles_if_necessary() {
+		m_flip_alleles_if_necessary = true ;
+	}
+
 	void CrossDataSetHaplotypeComparisonComputation::set_alternate_dataset(
 		genfile::CohortIndividualSource::UniquePtr samples,
 		std::string const& comparison_dataset_sample_id_column,
@@ -47,16 +51,25 @@ namespace snp_stats {
 		using genfile::string_utils::to_string ;
 		SNPIdentifyingData alt_snp ;
 		if( m_alt_dataset_snps->get_next_snp_matching( &alt_snp, snp, m_comparer )) {
-			callback( "CrossDataSetHaplotypeComparisonComputation:compared_variant_rsid", alt_snp.get_rsid() ) ;
-
 			{
 				genfile::vcf::PhasedGenotypeSetter< Eigen::MatrixXd > setter( m_haplotypes1, m_nonmissingness1 ) ;
 				data_reader.get( "genotypes", setter ) ;
 			}
 			{
-				genfile::vcf::PhasedGenotypeSetter< Eigen::MatrixXd > setter( m_haplotypes2, m_nonmissingness2 ) ;
+				double A_coding = 0 ;
+				double B_coding = 1 ;
+				if( m_flip_alleles_if_necessary && alt_snp.get_first_allele() == snp.get_second_allele() && alt_snp.get_second_allele() == snp.get_first_allele() ) {
+					A_coding = 1 ;
+					B_coding = 0 ;
+				}
+				genfile::vcf::PhasedGenotypeSetter< Eigen::MatrixXd > setter( m_haplotypes2, m_nonmissingness2, 0, A_coding, B_coding ) ;
 				m_alt_dataset_snps->read_variant_data()->get( "genotypes", setter ) ;
 			}
+			
+			callback( "CrossDataSetHaplotypeComparisonComputation:compared_variant_rsid", alt_snp.get_rsid() ) ;
+			callback( "compared_variant_alleleA", alt_snp.get_first_allele() ) ;
+			callback( "compared_variant_alleleB", alt_snp.get_second_allele() ) ;
+
 			// Threshhold the calls and set to missing any rows not meeting the
 			// threshhold.
 			m_haplotypes1.array() *= ( m_haplotypes1.array() >= m_call_threshhold ).cast< double >() ; 
