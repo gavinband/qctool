@@ -39,6 +39,7 @@ namespace genfile {
 		GenomePosition& position() { return m_position ;}
 		std::string& first_allele() { return m_first_allele ;}
 		std::string& second_allele() { return m_second_allele ;}
+		void swap_alleles() ;
 
 		void set_SNPID( std::string const& SNPID ) { m_SNPID = SNPID ; }
 		void set_rsid( std::string const& rsid ) { m_RSID = rsid ;}
@@ -54,7 +55,7 @@ namespace genfile {
 	public:
 		struct CompareFields {
 			CompareFields() ;
-			CompareFields( std::string const& fields_to_compare ) ;
+			CompareFields( std::string const& fields_to_compare, bool flip_alleleles_if_necessary = false ) ;
 			CompareFields( CompareFields const& other ) ;
 			CompareFields& operator=( CompareFields const& other ) ;
 
@@ -68,6 +69,7 @@ namespace genfile {
 		private:
 			static std::vector< int > parse_fields_to_compare( std::string const& field_spec ) ;
 			std::vector< int > m_fields_to_compare ;
+			bool m_flip_alleles_if_necessary ;
 		} ;
 	private:
 		std::string m_SNPID ;
