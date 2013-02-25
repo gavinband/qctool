@@ -349,18 +349,24 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 			)
 		) ; 
 	
+		if( m_options.check( "-match-alleles-to-cohort1") ) {
+			computation->set_flip_alleles_if_necessary() ;
+		}
+	
+		genfile::SNPDataSource::UniquePtr alternate_dataset = genfile::SNPDataSource::create_chain(
+			genfile::wildcard::find_files_by_chromosome(
+				filenames[0]
+			),
+			genfile::vcf::MetadataParser::Metadata(),
+			m_options.get< std::string >( "-filetype" )
+		) ;
+		
 		computation->set_alternate_dataset(
 			genfile::CohortIndividualSource::create( filenames[1] ),
 			sample_id_columns[1],
-			genfile::SNPDataSource::create_chain(
-				genfile::wildcard::find_files_by_chromosome(
-					filenames[0]
-				),
-				genfile::vcf::MetadataParser::Metadata(),
-				m_options.get< std::string >( "-filetype" )
-			)
+			alternate_dataset
 		) ;
-	
+
 		manager.add_computation(
 			"dataset_comparison",
 			SNPSummaryComputation::UniquePtr(

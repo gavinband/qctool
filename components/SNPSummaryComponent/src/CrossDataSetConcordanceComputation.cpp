@@ -64,6 +64,10 @@ namespace snp_stats {
 		m_comparer = comparer ;
 	}
 
+	void CrossDataSetConcordanceComputation::set_flip_alleles_if_necessary() {
+		m_flip_alleles_if_necessary = true ;
+	}
+
 	void CrossDataSetConcordanceComputation::set_alternate_dataset(
 		genfile::CohortIndividualSource::UniquePtr samples,
 		std::string const& comparison_dataset_sample_id_column,
@@ -97,8 +101,19 @@ namespace snp_stats {
 			callback( "compared_variant_rsid", alt_snp.get_rsid() ) ;
 			callback( "compared_variant_alleleA", alt_snp.get_first_allele() ) ;
 			callback( "compared_variant_alleleB", alt_snp.get_second_allele() ) ;
+			
 			genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( m_alt_dataset_genotypes, m_call_threshhold, -1, 0, 1, 2 ) ;
 			m_alt_dataset_snps->read_variant_data()->get( "genotypes", setter ) ;
+
+			// Deal with allele flipping if needed.
+			if( m_flip_alleles_if_necessary && alt_snp.get_first_allele() == snp.get_second_allele() && alt_snp.get_second_allele() == snp.get_first_allele() ) {
+				Eigen::Matrix3d M ;
+				M << 0, 0, 1,
+					 0, 1, 0,
+					 1, 0, 0 ;
+				m_alt_dataset_genotypes = M * m_alt_dataset_genotypes ;
+				alt_snp.swap_alleles() ;
+			}
 
 			CrossDataSetSampleMapper::SampleMapping::const_iterator i = m_sample_mapper.sample_mapping().begin() ;
 			CrossDataSetSampleMapper::SampleMapping::const_iterator const end_i = m_sample_mapper.sample_mapping().end() ;
