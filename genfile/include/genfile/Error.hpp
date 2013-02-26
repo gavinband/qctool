@@ -185,16 +185,18 @@ namespace genfile {
 	
 	struct BadArgumentError: public InputError
 	{
-		BadArgumentError( std::string const& function, std::string const& arguments ):
+		BadArgumentError( std::string const& function, std::string const& arguments, std::string const& message = "" ):
 			InputError( "arguments to " + function ),
 			m_function( function ),
-			m_arguments( arguments )
+			m_arguments( arguments ),
+			m_message( message )
 		{}
 
 		BadArgumentError( BadArgumentError const& other ):
 			InputError( other ),
 			m_function( other.m_function ),
-			m_arguments( other.m_arguments )
+			m_arguments( other.m_arguments ),
+			m_message( other.m_message )
 		{}
 		
 		~BadArgumentError() throw() {}
@@ -202,12 +204,14 @@ namespace genfile {
 		char const* what() const throw() { return "genfile::BadArgumentError" ; }
 		std::string const& function() const { return m_function ; }
 		std::string const& arguments() const { return m_arguments ; }
+		std::string const& message() const { return m_message ; }
 		
 		std::string format_message() const ;
 		
 		private:
 			std::string const m_function ;
 			std::string const m_arguments ;
+			std::string const m_message ;
 	} ;
 
 	struct BadArgumentWithMessageError: public BadArgumentError

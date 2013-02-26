@@ -8,7 +8,7 @@
 
 namespace genfile {
 	std::string BadArgumentError::format_message() const {
-		return "In argument(s) " + arguments() + " to function " + function() ;
+		return "In argument(s) " + arguments() + " to function " + function() + ( m_message.size() > 0 ? ( ": " + m_message ) : "" ) ;
 	}
 
 	std::string BadArgumentWithMessageError::format_message() const {

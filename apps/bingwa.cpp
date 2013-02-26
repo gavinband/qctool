@@ -413,7 +413,11 @@ private:
 		
 		for( std::set< std::string >::const_iterator i = required_columns.begin(); i != required_columns.end(); ++i ) {
 			if( result.left.find( *i ) == result.left.end() ) {
-				throw genfile::MalformedInputError( source.get_source_spec(), 0 ) ;
+				throw genfile::BadArgumentError(
+					"FlatFileScanResults::get_columns_to_store()",
+					"required column=\"" + *i + "\"",
+					"Could not find matching column in source \"" + source.get_source_spec() + "\""
+				) ;
 			}
 		}
 
