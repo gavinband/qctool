@@ -37,9 +37,9 @@ namespace genfile {
 			setup( filename, m_compression_type ) ;
 		}
 
-		std::ostream::streampos get_stream_pos() const {
+		SinkPos get_stream_pos() const {
 			if( m_compression_type == CompressionType( "no_compression" )) {
-				return m_stream_ptr->tellp() ;
+				return SinkPos( this, m_stream_ptr->tellp() ) ;
 			}
 			else {
 				throw OperationUnsupportedError( "genfile::GenFileSNPDataSink::get_stream_pos()", "get stream position", "GenFileSnpDataSink( \"" + m_filename + "\" )" ) ;

@@ -83,7 +83,8 @@ namespace genfile {
 		// return the number of SNPs that have been written to the file so far.
 		std::size_t number_of_snps_written() const { return m_number_of_snps_written ; }
 
-		virtual std::ostream::streampos get_stream_pos() const {
+		typedef std::pair< SNPDataSink const*, std::ostream::streampos > SinkPos ;
+		virtual SinkPos get_stream_pos() const {
 			throw OperationUnsupportedError(
 				"genfile::SNPDataSink::get_stream_pos()",
 				"Get write position",

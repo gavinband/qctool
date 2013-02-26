@@ -311,19 +311,21 @@ public:
 			.set_maximum_multiplicity( 1 ) ;
 		options[ "-sort" ]
 			.set_description( "Sort the genotypes in the output file.  Currently this is only supported if BGEN, unzipped GEN, unzipped VCF format is output." ) ;
-		options.option_implies_option( "-sort", "-og" ) ;
-
+		options[ "-write-index" ]
+			.set_description( "Attempt to write an index file that records the position of each variant in the file(s) specified by -og." )
+			.set_takes_single_value() ;
 		options[ "-os" ]
 	        .set_description( "Output sample information to the file specified.  " )
 	        .set_takes_single_value() ;
-
 		options[ "-o" ]
 			.set_description( "Set the name of the file used to output of per-SNP, per-sample and other computations." )
 			.set_takes_single_value() ;
-			
 		options[ "-omit-chromosome" ]
 			.set_description( "(This option is specific to output files in the GEN format.) Do not output a chromosome column." ) ;
 
+		options.option_implies_option( "-sort", "-og" ) ;
+		options.option_implies_option( "-write-index", "-og" ) ;
+		options.option_excludes_option( "-write-index", "-sort" ) ;
 		options.option_implies_option( "-omit-chromosome", "-og" ) ;
 
 		options.declare_group( "Pedigree file options" ) ;
@@ -2142,8 +2144,12 @@ private:
 		}
 
 		if( options().check( "-og" ) || options().check( "-op" ) ) {
-			SNPOutputComponent::setup(
+			SNPOutputComponent component( 
 				context.get_cohort_individual_source(),
+				options(),
+				get_ui_context()
+			) ;
+			component.setup(
 				context.fltrd_in_snp_data_sink(),
 				processor
 			) ;

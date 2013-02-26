@@ -65,6 +65,10 @@ namespace genfile {
 			return result ;
 		}
 
+		SinkPos get_stream_pos() const {
+			return sink( m_current_sink ).get_stream_pos() ;
+		}
+
 	private:
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter name_getter ) {
 			for( std::size_t i = 0; i < m_sinks.size(); ++i ) {

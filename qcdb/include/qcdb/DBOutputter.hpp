@@ -27,10 +27,10 @@ namespace qcdb {
 		typedef boost::shared_ptr< DBOutputter > SharedPtr ;
 		typedef std::map< std::string, std::pair< std::vector< std::string >, std::string > > Metadata ;
 
-		static UniquePtr create( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
-		static SharedPtr create_shared( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
+		static UniquePtr create( std::string const& filename, std::string const& analysis_name, Metadata const& metadata ) ;
+		static SharedPtr create_shared( std::string const& filename, std::string const& analysis_name, Metadata const& metadata ) ;
 
-		DBOutputter( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
+		DBOutputter( std::string const& filename, std::string const& analysis_name, Metadata const& metadata ) ;
 		~DBOutputter() ;
 
 		// Create an entity.  Optionally suppy a class (which must be the id of another entity.)

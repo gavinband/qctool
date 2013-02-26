@@ -39,7 +39,7 @@ namespace genfile {
 		std::string get_spec() const ;
 
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) ;
-		std::ostream::streampos get_stream_pos() const ;
+		SinkPos get_stream_pos() const ;
 		
 	private:
 		std::string const m_filename ;

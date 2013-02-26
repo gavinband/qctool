@@ -59,8 +59,8 @@ namespace genfile {
 			std::make_pair(
 				snp,
 				std::make_pair(
-					m_sink->get_stream_pos(),
-					m_sink->get_stream_pos()
+					m_sink->get_stream_pos().second,
+					m_sink->get_stream_pos().second
 				)
 			)
 		) ;
@@ -79,7 +79,7 @@ namespace genfile {
 			info
 		) ;
 		
-		offset_i->second.second = m_sink->get_stream_pos() ;
+		offset_i->second.second = m_sink->get_stream_pos().second ;
 	}
 
 	SortingBGenFileSNPDataSink::~SortingBGenFileSNPDataSink() {
@@ -146,6 +146,6 @@ namespace genfile {
 	
 	void SortingBGenFileSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter name_getter ) {
 		m_sink->set_sample_names( number_of_samples, name_getter ) ;
-		m_offset_of_first_snp = m_sink->get_stream_pos() ;
+		m_offset_of_first_snp = m_sink->get_stream_pos().second ;
 	}
 }

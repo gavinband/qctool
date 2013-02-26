@@ -36,7 +36,7 @@ namespace genfile {
 			bgen::uint32_t flags
 		) ;
 
-		std::ostream::streampos get_stream_pos() const ;
+		SinkPos get_stream_pos() const ;
 		std::string get_spec() const ;
 
 	public:

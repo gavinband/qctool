@@ -48,8 +48,8 @@ namespace genfile {
 		setup() ;
 	}
 
-	std::ostream::streampos BasicBGenFileSNPDataSink::get_stream_pos() const {
-		return m_stream_ptr->tellp() ;
+	SNPDataSink::SinkPos BasicBGenFileSNPDataSink::get_stream_pos() const {
+		return SinkPos( this, m_stream_ptr->tellp() ) ;
 	}
 	
 	std::string BasicBGenFileSNPDataSink::get_spec() const { return m_filename ; }
