@@ -391,8 +391,11 @@ private:
 						&& name.size() >= ( j->size() - 1 )
 						&& name.compare( name.size() - j->size() + 1, j->size() - 1, j->substr( 1, j->size() ) ) == 0
 					) || (
-						j->at(0) != '*'
-						&& name == *j
+						j->at( j->size() - 1 ) == '*'
+						&& name.size() >= ( j->size() - 1 )
+						&& name.compare( 0, j->size() - 1, j->substr( 0, j->size() - 1 ) ) == 0
+					) || (
+						j->at(0) != '*' && j->at( j->size() - 1 ) != '*' && name == *j
 					)
 				) {
 					std::pair< ColumnMap::iterator, bool > insertion = result.insert( ColumnMap::value_type( *j, i )) ;
@@ -1147,8 +1150,8 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 			
 			options[ "-info-columns" ]
 				.set_description( "Specify extra columns in input files whose values will be considered as variables to be reported in the output."
-				 	" Currently these must be columns of numerical data.  (A wildcard character * at the start of the column name may"
-					" be used to match any initial sequence of characters; but take care to escape this from the shell.)" )
+				 	" Currently these must be columns of numerical data.  (A single wildcard character * at the start or end of the column name may"
+					" be used to match any initial or terminal sequence of characters; but take care to escape this from the shell.)" )
 					.set_takes_values_until_next_option()
 					.set_minimum_multiplicity( 0 )
 					.set_maximum_multiplicity( 100 )
