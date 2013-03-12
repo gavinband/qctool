@@ -40,19 +40,7 @@ PCAComputer::PCAComputer(
 {
 	assert( m_options.check( "-load-kinship" )) ;
 	m_filename = m_options.get< std::string >( "-load-kinship" ) ;
-	// remove .csv extension if present.
-	std::string const extension = ".csv" ;
-	if(
-		m_filename.size() >= extension.size()
-		&& ( m_filename.compare(
-			m_filename.size() - extension.size(),
-			extension.size(),
-			extension
-		) == 0 )
-	) {
-		m_filename.resize( m_filename.size() - extension.size() ) ;
-	}
-	load_matrix( m_filename + ".csv", &m_kinship_matrix, &m_number_of_snps ) ;
+	load_long_form_matrix( m_filename + ".csv", &m_kinship_matrix, &m_number_of_snps ) ;
 
 	m_number_of_PCAs_to_compute = std::min( m_options.get< std::size_t >( "-nPCAs" ), samples.get_number_of_individuals() ) ;
 }
@@ -70,28 +58,8 @@ namespace {
 
 void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* matrix, std::size_t* number_of_snps ) const {
 	statfile::BuiltInTypeStatSource::UniquePtr source = statfile::BuiltInTypeStatSource::open( filename ) ;
-
-	using namespace genfile::string_utils ;
-	// Read the metadata
 	std::size_t number_of_samples = 0 ;
-	std::vector< std::string > metadata = split( source->get_descriptive_text(), "\n" ) ;
-	for( std::size_t i = 0; i < metadata.size(); ++i ) {
-		std::vector< std::string > elts = split_and_strip( metadata[i], ":", " " ) ;
-		if( elts.size() == 2 && elts[0] == "Number of SNPs" ) {
-			*number_of_snps = to_repr< std::size_t >( elts[1] ) ;
-		}
-		else if( elts.size() == 2 && elts[0] == "Number of samples" ) {
-			number_of_samples = to_repr< std::size_t >( elts[1] ) ;
-		}
-	}
-	if( number_of_samples != m_samples.get_number_of_individuals() ) {
-		throw genfile::MismatchError(
-			"PCAComputer::load_matrix()",
-			filename,
-			"number of samples: " + to_string( number_of_samples ),
-			"expected number: " + to_string( m_samples.get_number_of_individuals() )
-		) ;
-	}
+	load_matrix_metadata( *source, &number_of_samples, number_of_snps ) ;
 
 	// Read the matrix, making sure the samples come in the same order as in the sample file.
 	matrix->resize( m_samples.get_number_of_individuals(), m_samples.get_number_of_individuals() ) ;
@@ -132,6 +100,102 @@ void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* mat
 		}
 		(*source) >> statfile::ignore_all() ;
 	}
+}
+
+void PCAComputer::load_long_form_matrix( std::string const& filename, Eigen::MatrixXd* matrix, std::size_t* number_of_snps ) const {
+	statfile::BuiltInTypeStatSource::UniquePtr source = statfile::BuiltInTypeStatSource::open( filename ) ;
+	std::size_t number_of_samples = 0 ;
+	load_matrix_metadata( *source, &number_of_samples, number_of_snps ) ;
+
+	matrix->resize( m_samples.get_number_of_individuals(), m_samples.get_number_of_individuals() ) ;
+	Eigen::MatrixXd non_missingness( matrix->rows(), matrix->cols() ) ;
+	non_missingness.setZero() ;
+	
+	std::map< std::string, int > samples_to_indices ;
+	std::map< std::string, int > samples_filled ;
+	for( std::size_t sample_i = 0; sample_i < m_samples.get_number_of_individuals(); ++sample_i ) {
+		std::string const sample = m_samples.get_entry( sample_i, "ID_1" ).as< std::string >() ;
+		samples_to_indices[ sample ] = sample_i ;
+		samples_filled[ sample ] = 0 ;
+	}
+
+	{
+		std::string sample1, sample2 ;
+		int pairwise_complete_obs = 0 ;
+		double value = 0 ;
+		// Read lower diagonal
+		while( (*source) >> sample1 >> sample2 >> pairwise_complete_obs >> value ) {
+			int const i = samples_to_indices[ sample1 ] ;
+			int const j = samples_to_indices[ sample2 ] ;
+			if( non_missingness( i, j ) == 1 ) {
+				throw genfile::MalformedInputError( source->get_source_spec(), source->number_of_rows_read() ) ;
+			} else {
+				(*matrix)( i, j ) = value ;
+				non_missingness( i, j ) = 1 ;
+			}
+			(*source) >> statfile::ignore_all() ;
+		}
+		
+		// Fill in upper diagonal
+		for( int i = 0; i < matrix->rows(); ++i ) {
+			for( int j = i+1; j < matrix->cols(); ++j ) {
+				(*matrix)( i, j ) = (*matrix)( j, i ) ;
+				non_missingness( i, j ) = non_missingness( j, i ) ;
+			}
+		}
+		
+		m_ui_context.logger() << "Matrix is:\n"
+			<< (*matrix).block( 0, 0, 10, 10 )
+			<< "\n" ;
+
+		m_ui_context.logger() << "Non-missingness is:\n"
+			<< non_missingness.block( 0, 0, 10, 10 )
+			<< "\n" ;
+		if( non_missingness.array().minCoeff() == 0 ) {
+			int count = 0 ;
+			for( int i = 0; i < matrix->rows() && count < 20; ++i ) {
+				for( int j = 0; j < matrix->cols() && count < 20; ++j ) {
+					if( non_missingness( i, j ) != 1 ) {
+						m_ui_context.logger() << "PCAComputer::load_long_form_matrix(): sample pair "
+							<< m_samples.get_entry( i, "ID_1" )
+							<< " : "
+							<< m_samples.get_entry( j, "ID_1" )
+							<< " seems unrepresented in \""
+							<< filename
+							<< "\".\n" ;
+						++count ;
+					}
+				}
+			}
+			throw genfile::BadArgumentError( "PCAComputer::load_long_form_matrix()", "filename=\"" + filename + "\"", "not every sample was represented in the matrix." ) ;
+		}
+	}
+}
+
+void PCAComputer::load_matrix_metadata( statfile::BuiltInTypeStatSource& source, std::size_t* number_of_samples, std::size_t* number_of_snps ) const {
+	using namespace genfile::string_utils ;
+	// Read the metadata
+	std::size_t number_of_samples_ = 0, number_of_snps_ = 0 ;
+	std::vector< std::string > metadata = split( source.get_descriptive_text(), "\n" ) ;
+	for( std::size_t i = 0; i < metadata.size(); ++i ) {
+		std::vector< std::string > elts = split_and_strip( metadata[i], ":", " " ) ;
+		if( elts.size() == 2 && elts[0] == "Number of SNPs" ) {
+			number_of_snps_ = to_repr< std::size_t >( elts[1] ) ;
+		}
+		else if( elts.size() == 2 && elts[0] == "Number of samples" ) {
+			number_of_samples_ = to_repr< std::size_t >( elts[1] ) ;
+		}
+	}
+	if( number_of_samples_ != m_samples.get_number_of_individuals() ) {
+		throw genfile::MismatchError(
+			"PCAComputer::load_matrix_metadata()",
+			source.get_source_spec(),
+			"number of samples: " + to_string( number_of_samples_ ),
+			"expected number: " + to_string( m_samples.get_number_of_individuals() )
+		) ;
+	}
+	*number_of_samples = number_of_samples_ ;
+	*number_of_snps = number_of_snps_ ;
 }
 
 void PCAComputer::compute_PCA() {

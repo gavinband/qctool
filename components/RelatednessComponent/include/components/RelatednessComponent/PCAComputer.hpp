@@ -67,8 +67,8 @@ private:
 	Eigen::VectorXd m_loading_vectors ;
 	
 	void load_matrix( std::string const& filename, Eigen::MatrixXd* matrix, std::size_t* number_of_snps ) const ;
-
-
+	void load_long_form_matrix( std::string const& filename, Eigen::MatrixXd* matrix, std::size_t* number_of_snps ) const ;
+	void load_matrix_metadata( statfile::BuiltInTypeStatSource& source, std::size_t* number_of_samples, std::size_t* number_of_snps ) const ;
 } ;
 
 #endif
