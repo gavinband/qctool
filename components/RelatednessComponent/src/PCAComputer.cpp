@@ -329,9 +329,11 @@ void PCAComputer::compute_PCA() {
 			"Number of SNPs: " + to_string( m_number_of_snps ) + "\n" +
 			"Number of samples: " + to_string( m_number_of_samples ) + "\n" +
 			"Note: these PCAs are 1/sqrt(L) times the projection of samples onto unit eigenvectors of the variance-covariance matrix\n"
-			"    1/(L-1) X X^t,\n"
+			"    1/(L-1) X Xᵗ,\n"
 			"where X is the L x N matrix of genotypes, L is the number of SNPs, and N the number of samples.\n"
-			"The constant 1/sqrt(L) ensures that the PCAs do not grow with the number of SNPs.",
+			"The constant 1/sqrt(L) ensures that the PCAs do not grow with the number of SNPs.\n"
+			"The PCAs are here computed as U D^{1/2} where U and D are the matrices in the UDUᵗ decomposition of the kinship matrix\n"
+			"in \"" + m_options.get< std::string >( "-UDUT" ) + "\".\n",
 			PCA_eigenvalues,
 			PCAs,
 			boost::bind(
