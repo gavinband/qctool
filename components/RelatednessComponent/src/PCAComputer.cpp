@@ -40,7 +40,7 @@ PCAComputer::PCAComputer(
 {
 	assert( m_options.check( "-load-kinship" )) ;
 	m_filename = m_options.get< std::string >( "-load-kinship" ) ;
-	load_long_form_matrix( m_filename + ".csv", &m_kinship_matrix, &m_number_of_snps ) ;
+	load_long_form_matrix( m_filename, &m_kinship_matrix, &m_number_of_snps ) ;
 
 	m_number_of_PCAs_to_compute = std::min( m_options.get< std::size_t >( "-nPCAs" ), samples.get_number_of_individuals() ) ;
 }
