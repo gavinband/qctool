@@ -174,13 +174,13 @@ namespace impl {
 		std::string const& analysis_name,
 		Metadata const& metadata
 	):
+		m_table_name( "DatafileIndex" ),
 		m_outputter(
 			filename,
 			analysis_name,
 			metadata
 		),
-		m_samples( samples ),
-		m_table_name( "DatafileIndex" )
+		m_samples( samples )
 	{
 		setup() ;
 	}
