@@ -23,6 +23,7 @@ namespace impl {
 		typedef std::auto_ptr< SNPDataSourceIndex > UniquePtr ;
 		virtual ~SNPDataSourceIndex() {}
 		virtual void add_index_entry( genfile::SNPIdentifyingData2 const& snp, genfile::SNPDataSink& sink ) = 0 ;
+		virtual void finalise() = 0 ;
 	} ;
 
 	struct SNPOutputter: public genfile::SNPDataSourceProcessor::Callback {
@@ -38,14 +39,13 @@ namespace impl {
 		void end_processing_snps() ;
 		
 		typedef boost::function< void ( genfile::SNPIdentifyingData const& snp, genfile::SNPDataSink& sink ) > IndexCallback ;
-		void send_index_to( IndexCallback callback ) ;
+		void send_index_to( impl::SNPDataSourceIndex::UniquePtr index ) ;
 
 	private:
 		genfile::CohortIndividualSource const& m_samples ;
 		bool m_manage ;
 		genfile::SNPDataSink* m_sink ;
-		IndexCallback m_index_callback ;
-		std::string m_index_table_name ;
+		impl::SNPDataSourceIndex::UniquePtr m_index ;
 		Eigen::MatrixXd m_genotypes ;
 	} ;
 }
@@ -65,7 +65,6 @@ struct SNPOutputComponent: public boost::noncopyable {
 		genfile::CohortIndividualSource const& m_samples ;
 		appcontext::OptionProcessor const& m_options ;
 		appcontext::UIContext& m_ui_context ;
-		
 } ;
 
 #endif
