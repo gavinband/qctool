@@ -5,6 +5,13 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include <vector>
+#include <map>
+#include <memory>
+#include <string>
+#include <boost/bimap/bimap.hpp>
+#include <boost/bimap/vector_of.hpp>
+#include <boost/bimap/unordered_set_of.hpp>
+#include <boost/bimap.hpp>
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/CohortIndividualSource.hpp"
@@ -14,6 +21,9 @@ namespace genfile {
 	namespace impl {
 		struct SampleMapping {
 			typedef std::auto_ptr< SampleMapping > UniquePtr ;
+			typedef boost::bimaps::bimap< std::size_t, std::size_t > Map ;
+
+		public:
 			static UniquePtr create(
 				CohortIndividualSource const& source_samples,
 				std::string const& source_sample_column,
@@ -22,21 +32,70 @@ namespace genfile {
 			) ;
 			
 			SampleMapping(
-				CohortIndividualSource const& reference_samples,
-				std::string const& reference_sample_column,
-				CohortIndividualSource const& samples,
-				std::string const& mapped_sample_column
-			) ;
+				CohortIndividualSource const& source_samples,
+				std::string const& source_sample_column,
+				CohortIndividualSource const& target_samples,
+				std::string const& target_sample_column
+			) {
+				setup( source_samples, source_sample_column, target_samples, target_sample_column ) ;
+			}
 			
 			std::size_t number_of_source_samples() const ;
 			std::size_t number_of_target_samples() const ;
-			boost::optional< std::size_t > find_source_sample_for( std::size_t n ) const ;
-			boost::optional< std::size_t > find_target_sample_for( std::size_t n ) const ;
+
+			boost::optional< std::size_t > find_source_sample_for( std::size_t n ) const {
+				typedef Map::right_map::const_iterator right_const_iterator ;
+				boost::optional< std::size_t > result ;
+				right_const_iterator where = m_map.right.find( n ) ;
+				if( where != m_map.right.end() ) {
+					result = where->second ;
+				}
+				return result ;
+			}
+
+			boost::optional< std::size_t > find_target_sample_for( std::size_t n ) const {
+				typedef Map::left_map::const_iterator left_const_iterator ;
+				boost::optional< std::size_t > result ;
+				return result ;
+			}
 
 		private:
-			
+			typedef std::vector< VariantEntry > SampleIdList ;
+			SampleIdList m_source_ids ;
+			SampleIdList m_target_ids ;
+			Map m_map ;
+		private:
+			void setup(
+				CohortIndividualSource const& source_samples,
+				std::string const& source_sample_column,
+				CohortIndividualSource const& target_samples,
+				std::string const& target_sample_column
+			) {
+				source_samples.get_column_values( source_sample_column, boost::bind( &SampleIdList::push_back, &m_source_ids, _2 ) ) ;
+				target_samples.get_column_values( target_sample_column, boost::bind( &SampleIdList::push_back, &m_target_ids, _2 ) ) ;
+				for( std::size_t i = 0; i < m_source_ids.size(); ++i ) {
+					std::vector< VariantEntry >::const_iterator where = std::find( m_target_ids.begin(), m_target_ids.end(), m_source_ids[i] ) ;
+					if( where != m_target_ids.end() ) {
+						m_map.insert( Map::value_type( i, std::size_t( where - m_target_ids.begin() ) ) ) ;
+					}
+				}
+			}
 		} ;
 		
+		SampleMapping::UniquePtr SampleMapping::create(
+			CohortIndividualSource const& source_samples,
+			std::string const& source_sample_column,
+			CohortIndividualSource const& target_samples,
+			std::string const& target_sample_column
+		) {
+			return SampleMapping::UniquePtr(
+				new SampleMapping(
+					source_samples, source_sample_column,
+					target_samples, target_sample_column
+				)
+			) ;
+		}
+
 		struct SampleMappingPerSampleSetter: public VariantDataReader::PerSampleSetter {
 			SampleMappingPerSampleSetter(
 				VariantDataReader::PerSampleSetter& setter,

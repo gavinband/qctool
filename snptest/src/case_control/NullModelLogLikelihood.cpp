@@ -166,7 +166,7 @@ namespace snptest {
 				int start_row = 0 ;
 				for( std::size_t i = 0; i < m_exclusions.size(); ++i ) {
 					int const end_row = m_exclusions[i] ;
-					m_value_of_function += V.segment( start_row, end_row - start_row ).rowwise().sum().array().log().sum() ;
+					m_value_of_function += V.segment( start_row, end_row - start_row ).array().log().sum() ;
 					start_row = end_row + 1 ;
 				}
 			}

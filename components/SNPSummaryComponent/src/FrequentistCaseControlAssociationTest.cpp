@@ -95,6 +95,7 @@ void FrequentistCaseControlAssociationTest::test(
 			stopping_condition
 		) ;
 	}
+	std::cerr << "After iteration: parameters: " << alternative_parameters.transpose() << "\n" ;
 	callback( "null_ll", m_null_ll.get_value_of_function() ) ;
 	callback( "alternative_ll", m_alternative_ll.get_value_of_function() ) ;
 	double const test_statistic = -2.0 * ( m_null_ll.get_value_of_function() - m_alternative_ll.get_value_of_function() ) ;

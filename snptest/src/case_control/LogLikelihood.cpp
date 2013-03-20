@@ -13,7 +13,7 @@
 #include "snptest/case_control/LogLikelihood.hpp"
 #include "genfile/Error.hpp"
 
-#define DEBUG_LOGLIKELIHOOD 0
+#define DEBUG_LOGLIKELIHOOD 1
 namespace snptest {
 	namespace case_control {
 		LogLikelihood::LogLikelihood() {}
@@ -110,7 +110,7 @@ namespace snptest {
 			
 			// treat all-zero genotype calls as really missing...
 			for( int i = 0; i < m_genotype_call_probabilities.rows(); ++i ) {
-				if( m_genotype_call_probabilities.row( i ).maxCoeff() <= 0.0 ) {
+				if( m_genotype_call_probabilities.row( i ).maxCoeff() <= 0.1 ) {
 					m_genotype_call_probabilities.row( i ).setConstant( std::numeric_limits< double >::quiet_NaN() ) ;
 				}
 			}
@@ -173,7 +173,13 @@ namespace snptest {
 			std::cerr << std::fixed << std::setprecision(4) ;
 			int const N = m_phenotypes.size() ;
 			std::cerr << "==== LogLikelihood::evaluate_at() ====\n" ;
+			std::cerr << "Params: " << parameters.transpose() << "\n" ;
 			std::cerr << "Number of samples: " << N << ".\n" ;
+			std::cerr << "Excluded samples:" ;
+			for( std::size_t i = 0; i < m_exclusions.size(); ++i ) {
+				std::cerr << " " << m_exclusions[i] ;
+			}
+			std::cerr << "\n" ;
 			std::cerr << "Parameters: " << parameters << "\n" ;
 			std::cerr << "Phenotypes:\n" << m_phenotypes.head( std::min( N, 5 ) ) << "...\n";
 			std::cerr << "Outcome probabilities:\n"
@@ -243,7 +249,6 @@ namespace snptest {
 		}
 
 		void LogLikelihood::compute_value_of_second_derivative( Matrix const& V ) {
-			int const N = m_phenotypes.size() ;
 			int const D = m_design_matrix.cols() ;
 			double const L = m_genotype_levels.size() ;
 
