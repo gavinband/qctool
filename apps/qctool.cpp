@@ -1095,13 +1095,13 @@ private:
 			else if( source->has_column( "IlmnID" )) {
 				platform_column_names = "Chromosome|position|IlmnID|rsid|alleleA|alleleB|strand" ;
 			}
-			else if( source->has_column( "SNPID" ) ) {
-				if( source->index_of_column( "SNPID" ) == 2 && source->has_column( "rsid" ) && source->index_of_column( "rsid" ) == 3 ) {
-					platform_column_names = "chromosome|position|SNPID|rsid|alleleA|alleleB|strand" ;
-				}
-				else {
-					throw genfile::MalformedInputError( source->get_source_spec(), 0 ) ;
-				}
+			else if(
+				source->has_column( "chromosome" ) && source->index_of_column( "chromosome" ) == 0
+				&& source->has_column( "position" ) && source->index_of_column( "position" ) == 1
+				&& source->has_column( "SNPID" ) && source->index_of_column( "SNPID" ) == 2
+				&& source->has_column( "rsid" ) && source->index_of_column( "rsid" ) == 3
+			) {
+				platform_column_names = "chromosome|position|SNPID|rsid|alleleA|alleleB|strand" ;
 			}
 			else {
 				throw genfile::MalformedInputError( source->get_source_spec(), 0 ) ;
