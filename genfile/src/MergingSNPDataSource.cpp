@@ -20,13 +20,16 @@ namespace genfile {
 		return result ;
 	}
 	
-	MergingSNPDataSource::UniquePtr MergingSNPDataSource::create( std::string const& merge_strategy ) {
+	MergingSNPDataSource::UniquePtr MergingSNPDataSource::create(
+		std::string const& merge_strategy,
+		SNPIdentifyingData::CompareFields const& compare_fields
+	) {
 		MergingSNPDataSource::UniquePtr result ;
 		if( merge_strategy == "keep-all" ) {
-			result.reset( new KeepAllStrategyMergingSNPDataSource ) ;
+			result.reset( new KeepAllStrategyMergingSNPDataSource( compare_fields ) ) ;
 		}
 		else if( merge_strategy == "drop-duplicates" ) {
-			result.reset( new DropDuplicatesStrategyMergingSNPDataSource ) ;
+			result.reset( new DropDuplicatesStrategyMergingSNPDataSource( compare_fields ) ) ;
 		}
 		else {
 			throw genfile::BadArgumentError( "genfile::MergingSNPDataSource::create()", "merge_strategy=\"" + merge_strategy + "\"" ) ;
@@ -34,7 +37,8 @@ namespace genfile {
 		return result ;
 	}
 	
-	MergingSNPDataSource::MergingSNPDataSource()
+	MergingSNPDataSource::MergingSNPDataSource( SNPIdentifyingData::CompareFields const& compare_fields ):
+		m_current_snps( compare_fields )
 	{}
 
 	MergingSNPDataSource::~MergingSNPDataSource() {
@@ -84,6 +88,10 @@ namespace genfile {
 		get_top_snp_in_source( source_i ) ;
 	}
 
+	KeepAllStrategyMergingSNPDataSource::KeepAllStrategyMergingSNPDataSource( SNPIdentifyingData::CompareFields const& compare_fields ):
+		MergingSNPDataSource( compare_fields )
+	{}
+
 	void KeepAllStrategyMergingSNPDataSource::discard_top_snp_and_get_next() {
 		discard_top_snp_and_get_next_candidate() ;
 	}
@@ -103,6 +111,10 @@ namespace genfile {
 		}
 	}
 
+	DropDuplicatesStrategyMergingSNPDataSource::DropDuplicatesStrategyMergingSNPDataSource( SNPIdentifyingData::CompareFields const& compare_fields ):
+		MergingSNPDataSource( compare_fields )
+	{}
+		
 	MergingSNPDataSource::operator bool() const {
 		return !m_current_snps.empty() ;
 	}

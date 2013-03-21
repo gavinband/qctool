@@ -19,7 +19,9 @@ namespace genfile {
 			m_AB_value( 1 ),
 			m_BB_value( 2 ),
 			m_threshhold( threshhold )
-		{}
+		{
+			m_result.setConstant( -1 ) ;
+		}
 
 		ThreshholdingGenotypeSetter< Eigen::VectorXd >::ThreshholdingGenotypeSetter(
 			Eigen::VectorXd& result,
@@ -36,7 +38,9 @@ namespace genfile {
 			m_AB_value( AB_value ),
 			m_BB_value( BB_value ),
 			m_threshhold( threshhold )
-		{}
+		{
+			m_result.setConstant( m_missing_value ) ;
+		}
 
 		ThreshholdingGenotypeSetter< Eigen::VectorXd >::ThreshholdingGenotypeSetter(
 			Eigen::VectorXd& result,
@@ -54,7 +58,9 @@ namespace genfile {
 			m_AB_value( AB_value ),
 			m_BB_value( BB_value ),
 			m_threshhold( threshhold )
-		{}
+		{
+			m_result.setConstant( m_missing_value ) ;
+		}
 
 		void ThreshholdingGenotypeSetter< Eigen::VectorXd >::set_number_of_samples( std::size_t n ) {
 			m_result.setConstant( n, m_missing_value ) ;

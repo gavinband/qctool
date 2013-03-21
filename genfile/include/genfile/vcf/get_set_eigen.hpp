@@ -19,7 +19,9 @@ namespace genfile {
 		template< typename Derived >
 		struct GenotypeSetter< Eigen::MatrixBase< Derived > >: public GenotypeSetterBase
 		{
-			GenotypeSetter( Eigen::MatrixBase< Derived >& result ): m_result( result ) {} ;
+			GenotypeSetter( Eigen::MatrixBase< Derived >& result ): m_result( result ) {
+				result.setZero() ;
+			} ;
 			void set_number_of_samples( std::size_t n ) {
 				m_result.derived().resize( n, 3 ) ;
 				GenotypeSetterBase::set_number_of_samples( n ) ;
@@ -85,6 +87,7 @@ namespace genfile {
 				m_missing_value( missing_value ),
 				m_allele_coding( 2, 0 )
 			{
+				m_result.setConstant( m_missing_value ) ;
 				m_allele_coding[0] = 0 ;
 				m_allele_coding[1] = 1 ;
 			}
@@ -101,6 +104,7 @@ namespace genfile {
 				m_missing_value( missing_value ),
 				m_allele_coding( 2, 0 )
 			{
+				m_result.setConstant( m_missing_value ) ;
 				m_allele_coding[0] = A_coding ;
 				m_allele_coding[1] = B_coding ;
 			}

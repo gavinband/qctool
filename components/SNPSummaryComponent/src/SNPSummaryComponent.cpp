@@ -97,13 +97,6 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options[ "-haplotypic" ]
 		.set_description( "Instruct QCTOOL to perform haplotypic computations.  Currently this affects the -compare-to option only "
 			"and turns on computation of switch error for two sets of haplotypes." ) ;
-	options[ "-match-sample-ids" ]
-		.set_description( "Specify the columns in the main and comparison dataset sample files that will be used to match samples. "
-				"The value should be of the form <main dataset column>~<comparison dataset column>." )
-		.set_takes_single_value()
-		.set_default_value( "ID_1~ID_1" )
-	;
-	
 	options.option_implies_option( "-snp-stats", "-g" ) ;
 	options.option_implies_option( "-intensity-stats", "-g" ) ;
 	options.option_implies_option( "-annotate-ancestral", "-g" ) ;
@@ -111,7 +104,6 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options.option_implies_option( "-test", "-g" ) ;
 	options.option_implies_option( "-test", "-s" ) ;
 	options.option_implies_option( "-stratify", "-s" ) ;
-	options.option_implies_option( "-match-sample-ids", "-compare-to" ) ;
 	
 	CallComparerComponent::declare_options( options ) ;
 }

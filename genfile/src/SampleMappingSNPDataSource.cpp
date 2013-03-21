@@ -12,6 +12,7 @@
 #include <boost/bimap/vector_of.hpp>
 #include <boost/bimap/unordered_set_of.hpp>
 #include <boost/bimap.hpp>
+#include "genfile/Error.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/CohortIndividualSource.hpp"
@@ -40,8 +41,13 @@ namespace genfile {
 				setup( source_samples, source_sample_column, target_samples, target_sample_column ) ;
 			}
 			
-			std::size_t number_of_source_samples() const ;
-			std::size_t number_of_target_samples() const ;
+			std::size_t number_of_source_samples() const {
+				return m_source_ids.size() ;
+			}
+
+			std::size_t number_of_target_samples() const {
+				m_target_ids.size() ;
+			}
 
 			boost::optional< std::size_t > find_source_sample_for( std::size_t n ) const {
 				typedef Map::right_map::const_iterator right_const_iterator ;
@@ -56,6 +62,10 @@ namespace genfile {
 			boost::optional< std::size_t > find_target_sample_for( std::size_t n ) const {
 				typedef Map::left_map::const_iterator left_const_iterator ;
 				boost::optional< std::size_t > result ;
+				left_const_iterator where = m_map.left.find( n ) ;
+				if( where != m_map.left.end() ) {
+					result = where->second ;
+				}
 				return result ;
 			}
 
@@ -77,6 +87,14 @@ namespace genfile {
 					std::vector< VariantEntry >::const_iterator where = std::find( m_target_ids.begin(), m_target_ids.end(), m_source_ids[i] ) ;
 					if( where != m_target_ids.end() ) {
 						m_map.insert( Map::value_type( i, std::size_t( where - m_target_ids.begin() ) ) ) ;
+						where = std::find( ++where, std::vector< VariantEntry >::const_iterator( m_target_ids.end() ), m_source_ids[i] ) ;
+						if( where != m_target_ids.end() ) {
+							throw BadArgumentError(
+								"genfile::impl::SampleMapping::setup()",
+								"target_sample_column=\"" + target_sample_column + "\"",
+								"Source sample " + source_sample_column + "=\"" + m_source_ids[i].as< std::string >() + "\" matches multiple target samples in column " + target_sample_column + "."
+							) ;
+						}
 					}
 				}
 			}

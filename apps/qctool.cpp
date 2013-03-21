@@ -45,6 +45,7 @@
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/SNPDataSourceRack.hpp"
 #include "genfile/MergingSNPDataSource.hpp"
+#include "genfile/SampleMappingSNPDataSource.hpp"
 #include "genfile/SNPDataSinkChain.hpp"
 #include "genfile/GenFileSNPDataSink.hpp"
 #include "genfile/SortingBGenFileSNPDataSink.hpp"
@@ -163,9 +164,9 @@ public:
 				"This must have the same number of samples as the data set for -g. "
 				"Note that filtering, strand alignment, allele matching, or other transformations are not applied to the data "
 				"specified by -merge-in.")
-			.set_takes_values( 1 )
+			.set_takes_values( 2 )
 			.set_minimum_multiplicity( 0 )
-			.set_maximum_multiplicity( 100 ) ;
+			.set_maximum_multiplicity( 1 ) ;
 
 		options[ "-merge-strategy" ]
 			.set_description( "Specify a strategy to use when encountering SNPs with the same position in a merge. "
@@ -176,6 +177,12 @@ public:
 			.set_description( "Specify a string to add as a prefix to ID fields of merged-in variants" )
 			.set_takes_single_value()
 			.set_default_value( "" ) ;
+		options[ "-match-sample-ids" ]
+			.set_description( "Specify the columns in the main and comparison dataset sample files that will be used to match samples. "
+					"The value should be of the form <main dataset column>~<comparison dataset column>." )
+			.set_takes_single_value()
+			.set_default_value( "ID_1~ID_1" )
+		;
 		
 	    options[ "-s" ]
 	        .set_description( "Path of sample file to input.  If specified, this option must occur as often as the -g option"
@@ -690,7 +697,7 @@ struct QCToolCmdLineContext
 		// the SNP Data Sinks.
 		m_fltrd_out_snp_data_sink.reset() ;
 		m_fltrd_in_snp_data_sink.reset() ;
-		m_cohort_individual_source.reset() ;
+		m_samples.reset() ;
 		m_pedigree.reset() ;
 	}
 	
@@ -728,7 +735,7 @@ struct QCToolCmdLineContext
 	
 	std::vector< std::size_t > const& indices_of_filtered_out_samples() const { return m_indices_of_filtered_out_samples ; }
 
-	genfile::CohortIndividualSource const& samples() const { return *m_cohort_individual_source ; }
+	genfile::CohortIndividualSource const& samples() const { return *m_samples ; }
 	
 	bool ignore_warnings() const {
 		return m_ignore_warnings ;
@@ -750,7 +757,7 @@ struct QCToolCmdLineContext
 		
 		if(
 			genfile::ValueMappingCohortIndividualSource const* source
-				= dynamic_cast< genfile::ValueMappingCohortIndividualSource const* >( m_cohort_individual_source.get() )
+				= dynamic_cast< genfile::ValueMappingCohortIndividualSource const* >( m_samples.get() )
 		) {
 			m_ui_context.logger() << std::setw(30) << "Sample file summary:" << "  " ;
 			m_ui_context.logger() << source->get_summary( std::string( 32, ' ' )) << "\n" ;
@@ -960,7 +967,7 @@ struct QCToolCmdLineContext
 		m_ui_context.logger() << std::string( 72, '=' ) << "\n\n" ;
 	}
 
-	genfile::CohortIndividualSource const& get_cohort_individual_source() const { assert( m_cohort_individual_source.get() ) ; return *m_cohort_individual_source ; }
+	genfile::CohortIndividualSource const& get_cohort_individual_source() const { assert( m_samples.get() ) ; return *m_samples ; }
 
 private:
 	appcontext::OptionProcessor const& m_options ;
@@ -974,7 +981,7 @@ private:
 	typedef std::vector< StrandSpec > StrandSpecs ;
 	std::auto_ptr< StrandSpecs > m_strand_specs ;
 	genfile::Pedigree::UniquePtr m_pedigree ;	// this must go before snp_data_sinks.
-	genfile::CohortIndividualSource::UniquePtr m_cohort_individual_source ; // this must go before the snp_data_sinks.
+	genfile::CohortIndividualSource::UniquePtr m_samples ; // this must go before the snp_data_sinks.
 	std::auto_ptr< genfile::SNPDataSource > m_snp_data_source ;
 	std::auto_ptr< genfile::SNPDataSinkChain > m_fltrd_in_snp_data_sink ;
 	std::auto_ptr< genfile::SNPDataSinkChain > m_fltrd_out_snp_data_sink ;
@@ -1025,17 +1032,17 @@ private:
 		) ;
 		
 		{
-			m_cohort_individual_source = open_samples( m_snp_data_source->number_of_samples() ) ;
+			m_samples = open_samples( m_snp_data_source->number_of_samples() ) ;
 		
 			if( m_options.check( "-condition-on" )) {
-				m_cohort_individual_source = condition_on(
-					m_cohort_individual_source,
+				m_samples = condition_on(
+					m_samples,
 					*m_snp_data_source,
 					genfile::string_utils::join( m_options.get_values< std::string >( "-condition-on" ), "," )
 				) ;
 				m_snp_data_source->reset_to_start() ;
 			}
-			load_sample_rows( m_cohort_individual_source ) ;
+			load_sample_rows( m_samples ) ;
 		}
 
 		if( m_indices_of_filtered_out_samples.size() > 0 ) {
@@ -1046,10 +1053,10 @@ private:
 				)
 			) ;
 			
-			if( m_cohort_individual_source.get() ) {
-				m_cohort_individual_source.reset(
+			if( m_samples.get() ) {
+				m_samples.reset(
 					genfile::SampleFilteringCohortIndividualSource::create(
-						m_cohort_individual_source,
+						m_samples,
 						std::set< std::size_t >( m_indices_of_filtered_out_samples.begin(), m_indices_of_filtered_out_samples.end() )
 					).release()
 				) ;
@@ -1289,36 +1296,62 @@ private:
 	}
 	
 	genfile::SNPDataSource::UniquePtr open_merged_data_sources() {
-		genfile::MergingSNPDataSource::UniquePtr merged_source = genfile::MergingSNPDataSource::create( m_options.get< std::string >( "-merge-strategy" )) ;
+		genfile::MergingSNPDataSource::UniquePtr merged_source = genfile::MergingSNPDataSource::create(
+			m_options.get< std::string >( "-merge-strategy" ),
+			genfile::SNPIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
+		) ;
+
 		merged_source->add_source( m_snp_data_source ) ;
 		std::vector< std::string > merge_in_files = m_options.get_values< std::string >( "-merge-in" ) ;
+		assert( merge_in_files.size() == 2 ) ;
 		std::string id_prefix = "" ;
 		if( m_options.check( "-merge-prefix" )) {
 			id_prefix = m_options.get< std::string >( "-merge-prefix" ) ;
 		}
 
-		for( std::size_t i = 0; i < merge_in_files.size(); ++i ) {
-			genfile::SNPDataSource::UniquePtr source = genfile::SNPDataSource::create_chain(
-				genfile::wildcard::find_files_by_chromosome( merge_in_files[i] )
+		{
+			genfile::SNPDataSource::UniquePtr merge_in_source = genfile::SNPDataSource::create_chain(
+				genfile::wildcard::find_files_by_chromosome( merge_in_files[0] )
+			) ;
+			
+			genfile::CohortIndividualSource::UniquePtr merge_in_samples(
+				new genfile::CategoricalCohortIndividualSource(
+					merge_in_files[1],
+					m_options.get_value< std::string >( "-missing-code" )
+				)
+			) ;
+
+			std::vector< std::string > id_columns = genfile::string_utils::split_and_strip( m_options.get_value< std::string >( "-match-sample-ids" ), "~" ) ;
+			if( id_columns.size() != 2 ) {
+				throw genfile::BadArgumentError(
+					"QCToolCmdLineContext::open_merged_data_sources()",
+					"-match-sample-ids=\"" + m_options.get_value< std::string >( "-match-sample-ids" ) + "\"",
+					"Value should be two strings separated by ~."
+				) ;
+			}
+			
+			merge_in_source.reset(
+				new genfile::SampleMappingSNPDataSource(
+					*m_samples,
+					id_columns[0],
+					*merge_in_samples,
+					id_columns[1],
+					merge_in_source
+				)
 			) ;
 			
 			// Make the merged-in source respect the filter.
 			genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter() ;
 			if( snp_filter.get() ) {
-				std::vector< genfile::SNPIdentifyingData > snps = genfile::get_list_of_snps_in_source( *source ) ;
-				
-				std::vector< std::size_t > indices_of_filtered_in_snps = snp_filter->get_indices_of_filtered_in_snps( snps ) ;
-				source.reset(
-					genfile::SNPFilteringSNPDataSource::create(
-						source,
-						indices_of_filtered_in_snps
-					).release()
+				merge_in_source = genfile::SNPIdentifyingDataFilteringSNPDataSource::create(
+					merge_in_source,
+					genfile::SNPIdentifyingDataTest::UniquePtr( snp_filter.release() )
 				) ;
 			}
 			
 			merged_source->add_source(
-				source,
-				id_prefix + ":"
+				merge_in_source,
+				id_prefix
 			) ;
 		}
 
@@ -1327,10 +1360,10 @@ private:
 	
 	void write_excluded_SNP( genfile::SNPIdentifyingData const& snp ) const {
 		if( m_fltrd_out_snp_data_sink.get() ) {
-			Eigen::MatrixXd matrix( m_cohort_individual_source->get_number_of_individuals(), 3 ) ;
+			Eigen::MatrixXd matrix( m_samples->get_number_of_individuals(), 3 ) ;
 			matrix.setZero() ;
 			m_fltrd_out_snp_data_sink->write_snp(
-				m_cohort_individual_source->get_number_of_individuals(),
+				m_samples->get_number_of_individuals(),
 				snp,
 				genfile::GenotypeGetter< Eigen::MatrixXd >( matrix, 0 ),
 				genfile::GenotypeGetter< Eigen::MatrixXd >( matrix, 1 ),
@@ -1676,7 +1709,7 @@ private:
 				m_fltrd_in_snp_data_sink->add_sink(
 					genfile::SNPDataSink::UniquePtr(
 						new genfile::BedFileSNPDataSink(
-							*m_cohort_individual_source,
+							*m_samples,
 							*m_pedigree,
 							filename
 						)
@@ -1687,7 +1720,7 @@ private:
 				m_fltrd_in_snp_data_sink->add_sink(
 					genfile::SNPDataSink::UniquePtr(
 						new genfile::PedFileSNPDataSink(
-							*m_cohort_individual_source,
+							*m_samples,
 							*m_pedigree,
 							filename
 						)
