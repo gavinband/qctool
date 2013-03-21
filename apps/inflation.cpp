@@ -28,8 +28,8 @@ int main() {
 			numbers.push_back( genfile::string_utils::to_repr< float >( line ) ) ;
 		}
 		
-		if( numbers.size() % 1000000 == 0 ) {
-			std::cerr << ( numbers.size() / 1000000 ) << ".." ;
+		if( ( numbers.size() + missing_count ) % 1000000 == 0 ) {
+			std::cerr << ( numbers.size() + missing_count ) << ".." ;
 		}
 	}
 	
