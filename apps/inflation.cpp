@@ -71,9 +71,7 @@ private:
 		using namespace boost::math ;
 		chi_squared_distribution< float > chi_square( 1 ) ;
 		for( std::size_t i = 0; i < numbers.size(); ++i ) {
-			get_ui_context().logger() << numbers[i] << " -> " ;
 			numbers[i] = quantile( complement( chi_square, numbers[i] )) ;
-			get_ui_context().logger() << numbers[i] << "\n" ;
 		}
 
 		get_ui_context().logger() << "inflation.cpp: finding median...\n" ;
