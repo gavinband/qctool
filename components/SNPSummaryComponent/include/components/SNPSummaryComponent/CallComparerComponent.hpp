@@ -38,8 +38,8 @@ public:
 
 	private:
 		bool m_begun ;
-		PairwiseCallComparerManager::UniquePtr m_call_comparer ;
 		std::vector< std::string > m_call_fields ;
+		PairwiseCallComparerManager::UniquePtr m_call_comparer ;
 		PairwiseCallComparerManager::MergeClient::UniquePtr m_consensus_caller ;
 		Eigen::MatrixXd m_calls ;
 } ;

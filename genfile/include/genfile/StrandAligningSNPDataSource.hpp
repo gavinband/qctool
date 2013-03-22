@@ -23,7 +23,7 @@ namespace genfile {
 
 		static std::pair< std::vector< SNPIdentifyingData >, StrandAlignments > create_strand_alignments(
 			std::vector< SNPIdentifyingData > snps,
-			std::map< SNPIdentifyingData, char > known_strand_alignments
+			std::map< SNPIdentifyingData, char, SNPIdentifyingData::CompareFields > known_strand_alignments
 		) ;
 		
 	public:

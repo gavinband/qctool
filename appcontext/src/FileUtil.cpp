@@ -196,7 +196,7 @@ namespace appcontext {
 		while( path.extension() != "" ) {
 			path = path.parent_path() / path.stem() ;
 		}
-		return path.filename() ;
+		return path.filename().string() ;
 	#else
 		assert(0) ;
 	#endif

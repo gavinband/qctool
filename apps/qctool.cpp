@@ -977,7 +977,7 @@ private:
 	typedef std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData > SNPDictionary ;
 	std::auto_ptr< SNPDictionary > m_snp_dictionary ;
 
-	typedef std::map< genfile::SNPIdentifyingData, char > StrandSpec ;
+	typedef std::map< genfile::SNPIdentifyingData, char, genfile::SNPIdentifyingData::CompareFields > StrandSpec ;
 	typedef std::vector< StrandSpec > StrandSpecs ;
 	std::auto_ptr< StrandSpecs > m_strand_specs ;
 	genfile::Pedigree::UniquePtr m_pedigree ;	// this must go before snp_data_sinks.

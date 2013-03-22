@@ -183,7 +183,7 @@ AUTO_TEST_CASE( test_create_strand_alignments ) {
 	snps.push_back( SNPIdentifyingData( "S25", "RS25", GenomePosition( Chromosome("02"), 20000 ), 'T', 'C' ) ) ;
 	snps.push_back( SNPIdentifyingData( "S26", "RS26", GenomePosition( Chromosome("02"), 20000 ), 'T', 'G' ) ) ;
 
-	std::map< SNPIdentifyingData, char > alignments ;
+	std::map< SNPIdentifyingData, char, SNPIdentifyingData::CompareFields > alignments ;
 	SNPIdentifyingData dummy_snp( "DUMMY", "DUMMY", GenomePosition( Chromosome("05"), 0 ), 'A', 'G' ) ;
 	for( std::size_t i = 0; i < 100; ++i ) {
 		std::cerr << i << " " ;

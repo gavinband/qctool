@@ -39,7 +39,7 @@ namespace genfile {
 
 	std::pair< std::vector< SNPIdentifyingData >, StrandAligningSNPDataSource::StrandAlignments > StrandAligningSNPDataSource::create_strand_alignments(
 		std::vector< SNPIdentifyingData > snps,
-		std::map< SNPIdentifyingData, char > known_strand_alignments
+		std::map< SNPIdentifyingData, char, SNPIdentifyingData::CompareFields > known_strand_alignments
 	) {
 		StrandAlignments result( snps.size() ) ;
 		for( std::size_t snp_i = 0; snp_i < snps.size(); ++snp_i) {

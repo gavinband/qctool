@@ -89,7 +89,11 @@ namespace genfile {
 		boost::system::error_code ec ;
 
 		// Move file to a similarly-named temporary.
+#if BOOST_FILESYSTEM_VERSION < 3
 		boost::filesystem::path temp_filename = boost::filesystem::unique_path( m_filename + ".tmp%%%%-%%%%-%%%%-%%%%", ec ) ;
+#else
+		boost::filesystem::path temp_filename = boost::filesystem::unique_path( m_filename + ".tmp%%%%-%%%%-%%%%-%%%%", ec ) ;
+#endif
 		// std::cerr << "Renaming \"" << m_filename << "\" to \"" << temp_filename << "\"...\n" ;
 		boost::filesystem::rename(
 			boost::filesystem::path( m_filename ),
