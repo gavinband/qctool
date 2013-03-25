@@ -74,6 +74,7 @@ namespace genfile {
 	public:
 		SNPDataSourceRack() ;
 		SNPDataSourceRack( std::string const& snp_match_fields ) ;
+		SNPDataSourceRack( SNPIdentifyingData::CompareFields const& comparator ) ;
 		~SNPDataSourceRack() ;
 		void add_source( std::auto_ptr< SNPDataSource > source ) ;
 		SNPDataSource& get_source( std::size_t ) const ;

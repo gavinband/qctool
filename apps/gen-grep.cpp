@@ -171,7 +171,7 @@ struct IDDataPrinter
 	{}
 
 	void process() {
-		std::cout << "SNPID RSID chromosome position allele1 allele2\n" ;
+		std::cout << "SNPID rsid chromosome position alleleA alleleB\n" ;
 		
 		std::string SNPID, RSID ;
 		genfile::Chromosome chromosome ;

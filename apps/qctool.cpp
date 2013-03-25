@@ -1110,6 +1110,14 @@ private:
 			) {
 				platform_column_names = "chromosome|position|SNPID|rsid|alleleA|alleleB|strand" ;
 			}
+			else if(
+				source->has_column( "chromosome" ) && source->index_of_column( "chromosome" ) == 2
+				&& source->has_column( "position" ) && source->index_of_column( "position" ) == 3
+				&& source->has_column( "SNPID" ) && source->index_of_column( "SNPID" ) == 0
+				&& source->has_column( "rsid" ) && source->index_of_column( "rsid" ) == 1
+			) {
+				platform_column_names = "chromosome|position|SNPID|rsid|alleleA|alleleB|strand" ;
+			}
 			else {
 				throw genfile::MalformedInputError( source->get_source_spec(), 0 ) ;
 			}
@@ -1198,7 +1206,14 @@ private:
 	) const {
 		genfile::SNPDataSourceRack::UniquePtr rack ;
 		if( filenames.size() > 1 ) {
-			rack.reset( new genfile::SNPDataSourceRack( m_options.get_value< std::string >( "-snp-match-fields" ) ) ) ;
+			rack.reset(
+				new genfile::SNPDataSourceRack(
+					genfile::SNPIdentifyingData::CompareFields(
+						m_options.get_value< std::string >( "-snp-match-fields" ),
+						match_alleles_between_cohorts
+					)
+				) 
+			) ;
 		}
 
 		// count files.
@@ -1233,7 +1248,7 @@ private:
 
 			std::vector< genfile::SNPIdentifyingData > snps ;
 			// Do we need a list of SNPs?
-			if( m_strand_specs.get() ||  m_options.check_if_option_was_supplied( "-match-alleles-to-cohort1" )) {
+			if( m_options.check_if_option_was_supplied( "-match-alleles-to-cohort1" )) {
 				snps = genfile::get_list_of_snps_in_source( *chain ) ;
 			}
 
@@ -1242,44 +1257,15 @@ private:
 			// If we have strand alignment information, implement it now
 			if( m_strand_specs.get() ) {
 				assert( m_strand_specs->size() == filenames.size() ) ;
-				genfile::StrandAligningSNPDataSource::StrandAlignments strand_alignments ;
-				boost::tie( snps, strand_alignments ) = genfile::StrandAligningSNPDataSource::create_strand_alignments(
-					snps,
-					m_strand_specs->at(i)
-				) ;
 				source.reset(
 					genfile::StrandAligningSNPDataSource::create(
 						source,
-						strand_alignments
+						m_strand_specs->at(i)
 					)
 					.release()
 				) ;
 			}
 
-			if( match_alleles_between_cohorts ) {
-				if( i == 0 ) {
-					cohort1_snps = snps ;
-				}
-				else {
-					genfile::AlleleFlippingSNPDataSource::AlleleFlipSpec allele_flip_spec ;
-					boost::tie( snps, allele_flip_spec ) = genfile::AlleleFlippingSNPDataSource::get_allele_flip_spec(
-						cohort1_snps,
-						snps,
-						genfile::SNPIdentifyingData::CompareFields(
-							m_options.get_value< std::string >( "-snp-match-fields" ) + ",alleles"
-						)
-					) ;
-				
-					source.reset(
-						genfile::AlleleFlippingSNPDataSource::create(
-							source,
-							allele_flip_spec
-						)
-						.release()
-					) ;
-				}
-			}
-			
 			if( rack.get() ) {
 				rack->add_source( source ) ;
 			} else {

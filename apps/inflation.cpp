@@ -151,7 +151,7 @@ private:
 		graph.Axis( "y", true ) ;
 		graph.CAxis( 0.0, 3.0 ) ;
 
-		graph.Tens( expected, observed, "RGBk ." ) ;
+		graph.Tens( expected, observed ) ;
 		graph.WritePNG( filename.c_str(), "", false ) ;
 	}
 #endif

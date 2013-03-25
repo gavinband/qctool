@@ -16,18 +16,13 @@ namespace genfile {
 	struct StrandAligningSNPDataSource: public SNPDataSource
 	{
 	public:
-		typedef std::vector< char > StrandAlignments ;
 		static char const eUnknownStrand = '?' ;
 		static char const eForwardStrand = '+' ;
 		static char const eReverseStrand  = '-' ;
 
-		static std::pair< std::vector< SNPIdentifyingData >, StrandAlignments > create_strand_alignments(
-			std::vector< SNPIdentifyingData > snps,
-			std::map< SNPIdentifyingData, char, SNPIdentifyingData::CompareFields > known_strand_alignments
-		) ;
-		
 	public:
 		typedef std::auto_ptr< StrandAligningSNPDataSource > UniquePtr ;
+		typedef std::map< genfile::SNPIdentifyingData, char, genfile::SNPIdentifyingData::CompareFields > StrandAlignments ; 
 		static UniquePtr create( SNPDataSource::UniquePtr source, StrandAlignments const& strand_alignments ) ;
 
 		StrandAligningSNPDataSource( SNPDataSource::UniquePtr source, StrandAlignments const& strand_alignments ) ;
@@ -36,7 +31,7 @@ namespace genfile {
 	private:
 		
 		SNPDataSource::UniquePtr m_source ;
-		StrandAlignments const m_strand_alignments ;
+		StrandAlignments const& m_strand_alignments ;
 		std::vector< SNPIdentifyingData > const m_aligned_snps ;
 		
 	public:
@@ -64,9 +59,8 @@ namespace genfile {
 			AlleleSetter const& set_allele1,
 			AlleleSetter const& set_allele2
 		) ;
-
+		char get_strand_alignment( SNPIdentifyingData const& snp ) const ;
 		VariantDataReader::UniquePtr read_variant_data_impl() ;
-
 		void ignore_snp_probability_data_impl() ;
 		void reset_to_start_impl() ;
 	} ;

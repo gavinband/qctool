@@ -37,42 +37,6 @@ namespace genfile {
 		
 	}
 
-	std::pair< std::vector< SNPIdentifyingData >, StrandAligningSNPDataSource::StrandAlignments > StrandAligningSNPDataSource::create_strand_alignments(
-		std::vector< SNPIdentifyingData > snps,
-		std::map< SNPIdentifyingData, char, SNPIdentifyingData::CompareFields > known_strand_alignments
-	) {
-		StrandAlignments result( snps.size() ) ;
-		for( std::size_t snp_i = 0; snp_i < snps.size(); ++snp_i) {
-			std::map< SNPIdentifyingData, char >::const_iterator where = known_strand_alignments.find( snps[ snp_i ] ) ;
-			if( where == known_strand_alignments.end() ) {
-				result[ snp_i ] = eUnknownStrand ;
-				snps[ snp_i ].first_allele() = ( snps[ snp_i ].get_first_allele() == impl::complement( snps[ snp_i ].get_first_allele() ) ) ? snps[ snp_i ].get_first_allele() : "?" ;
-				snps[ snp_i ].second_allele() = ( snps[ snp_i ].get_second_allele() == impl::complement( snps[ snp_i ].get_second_allele() ) ) ? snps[ snp_i ].get_second_allele() : "?" ;
-			}
-			else {
-				switch( where->second ) {
-					case eForwardStrand:
-						result[ snp_i ] = eForwardStrand ;
-						break ;
-					case eReverseStrand:
-						result[ snp_i ] = eReverseStrand ;
-						snps[ snp_i ].first_allele() = impl::complement( snps[ snp_i ].get_first_allele() ) ;
-						snps[ snp_i ].second_allele() = impl::complement( snps[ snp_i ].get_second_allele() ) ;
-						break ;
-					case eUnknownStrand:
-						result[ snp_i ] = eUnknownStrand ;
-						snps[ snp_i ].first_allele() = ( snps[ snp_i ].get_first_allele() == impl::complement( snps[ snp_i ].get_first_allele() ) ) ? snps[ snp_i ].get_first_allele() : "?" ;
-						snps[ snp_i ].second_allele() = ( snps[ snp_i ].get_second_allele() == impl::complement( snps[ snp_i ].get_second_allele() ) ) ? snps[ snp_i ].get_second_allele() : "?" ;
-						break ;
-					default:
-						assert(0);
-						break ;
-				}
-			}
-		}
-		return std::make_pair( snps, result ) ;
-	}
-	
 	StrandAligningSNPDataSource::UniquePtr StrandAligningSNPDataSource::create(
 		SNPDataSource::UniquePtr source,
 		StrandAlignments const& strand_alignments
@@ -86,9 +50,7 @@ namespace genfile {
 	):
 		m_source( source ),
 		m_strand_alignments( strand_alignments )
-	{
-		assert( m_strand_alignments.size() == m_source->total_number_of_snps() ) ;
-	}
+	{}
 	
 	std::string StrandAligningSNPDataSource::get_summary( std::string const& prefix, std::size_t column_width ) const {
 		return m_source->get_summary( prefix + "  " ) ;
@@ -103,66 +65,80 @@ namespace genfile {
 		AlleleSetter const& set_allele1,
 		AlleleSetter const& set_allele2
 	) {
-		char strand_alignment = eUnknownStrand ;
-		if( number_of_snps_read() < m_strand_alignments.size() ) {
-			strand_alignment = m_strand_alignments[ number_of_snps_read() ] ;
-		}
-		std::string allele1, allele2 ;
-		
-		switch( strand_alignment ) {
-			case eForwardStrand:
-				m_source->get_snp_identifying_data(
-					set_number_of_samples,
-					set_SNPID,
-					set_RSID,
-					set_chromosome,
-					set_SNP_position,
-					set_allele1,
-					set_allele2
-				) ;
-				break ;
-			case eReverseStrand:
-				m_source->get_snp_identifying_data(
-					set_number_of_samples,
-					set_SNPID,
-					set_RSID,
-					set_chromosome,
-					set_SNP_position,
-					set_value( allele1 ),
-					set_value( allele2 )
-				) ;
-				set_allele1( impl::complement( allele1 )) ;
-				set_allele2( impl::complement( allele2 )) ;
-				break ;
-			case eUnknownStrand:
-				m_source->get_snp_identifying_data(
-					set_number_of_samples,
-					set_SNPID,
-					set_RSID,
-					set_chromosome,
-					set_SNP_position,
-					set_value( allele1 ),
-					set_value( allele2 )
-				) ;
-				if( allele1 == impl::complement( allele1 ) ) {
-					set_allele1( allele1 ) ;
-				}
-				else {
-					set_allele1( "?" ) ;
-				}
+		SNPIdentifyingData source_snp ;
+		if( m_source->get_snp_identifying_data( source_snp ) ) {
+			char strand_alignment = get_strand_alignment( source_snp ) ;
+			std::string allele1, allele2 ;
+			switch( strand_alignment ) {
+				case eForwardStrand:
+					m_source->get_snp_identifying_data(
+						set_number_of_samples,
+						set_SNPID,
+						set_RSID,
+						set_chromosome,
+						set_SNP_position,
+						set_allele1,
+						set_allele2
+					) ;
+					break ;
+				case eReverseStrand:
+					m_source->get_snp_identifying_data(
+						set_number_of_samples,
+						set_SNPID,
+						set_RSID,
+						set_chromosome,
+						set_SNP_position,
+						set_value( allele1 ),
+						set_value( allele2 )
+					) ;
+					set_allele1( impl::complement( allele1 )) ;
+					set_allele2( impl::complement( allele2 )) ;
+					break ;
+				case eUnknownStrand:
+					m_source->get_snp_identifying_data(
+						set_number_of_samples,
+						set_SNPID,
+						set_RSID,
+						set_chromosome,
+						set_SNP_position,
+						set_value( allele1 ),
+						set_value( allele2 )
+					) ;
+					if( allele1 == impl::complement( allele1 ) ) {
+						set_allele1( allele1 ) ;
+					}
+					else {
+						set_allele1( allele1 + "/" + impl::complement( allele1 ) ) ;
+					}
 
-				if( allele2 == impl::complement( allele2 ) ) {
-					set_allele2( allele2 ) ;
-				}
-				else {
-					set_allele2( "?" ) ;
-				}
-				break ;
-			default:
-				assert(0) ;
+					if( allele2 == impl::complement( allele2 ) ) {
+						set_allele2( allele2 ) ;
+					}
+					else {
+						set_allele2( allele2 + "/" + impl::complement( allele2 ) ) ;
+					}
+					break ;
+				default:
+					assert(0) ;
+			}
 		}
 	}
 
+	char StrandAligningSNPDataSource::get_strand_alignment( SNPIdentifyingData const& snp ) const {
+		char result = eUnknownStrand ;
+		StrandAlignments::const_iterator where = m_strand_alignments.find( snp ) ;
+		if( where != m_strand_alignments.end() ) {
+			result = where->second ;
+			if( result != eForwardStrand && result != eReverseStrand && result != eUnknownStrand ) {
+				throw BadArgumentError(
+					"StrandAligningSNPDataSource::get_snp_identifying_data_impl()",
+					"strand alignment for " + string_utils::to_string( snp ) + " = \"" + std::string( 1, result ) + "\""
+				) ;
+			}
+		}
+		return result ;
+	}
+	
  	VariantDataReader::UniquePtr StrandAligningSNPDataSource::read_variant_data_impl() {
 		return m_source->read_variant_data() ;
 	}

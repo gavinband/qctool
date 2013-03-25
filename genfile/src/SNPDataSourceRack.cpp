@@ -48,10 +48,17 @@ namespace genfile {
 	SNPDataSourceRack::SNPDataSourceRack( std::string const& snp_match_fields )
 		: m_number_of_samples(0),
 		  m_read_past_end( false ),
-		  m_comparator( snp_match_fields )
+		  m_comparator( "position,rsid,SNPID,alleles" )
 	{
-		// First match must be on position, since this is implicitly assumed below.
-		assert( snp_match_fields.find( "position" ) == 0 ) ;
+		
+	}
+
+	SNPDataSourceRack::SNPDataSourceRack( genfile::SNPIdentifyingData::CompareFields const& comparator )
+		: m_number_of_samples(0),
+		  m_read_past_end( false ),
+		  m_comparator( comparator )
+	{
+		assert( m_comparator.get_compared_fields().size() > 0 && m_comparator.get_compared_fields()[0] == SNPIdentifyingData::CompareFields::ePosition ) ;
 	}
 
 	SNPDataSourceRack::~SNPDataSourceRack() {
@@ -67,7 +74,7 @@ namespace genfile {
 		m_number_of_samples += m_sources.back()->number_of_samples() ;
 		m_sources.back()->reset_to_start() ;
 	}
-
+	
 	void SNPDataSourceRack::check_snps_are_sorted_by_position(
 		std::vector< SNPIdentifyingData > const& snps,
 		std::size_t cohort_index
@@ -85,44 +92,6 @@ namespace genfile {
 				) ;
 			}
 		}
-	}
-
-	std::vector< SNPIdentifyingData > SNPDataSourceRack::get_intersected_snps(
-		std::vector< SNPIdentifyingData > const& snps1,
-		std::vector< SNPIdentifyingData > const& snps2
-	) const {
-		//
-		// The algorithm here must match that for get_snp_identifying_data_impl.
-		// This has the following feature: each list can only be traversed once,
-		// forwards.
-		// For each snp in the first list we find the first SNP not already considered in
-		// the second list which (has the same position and) matches according to our comparator.
-		// 
-		std::vector< SNPIdentifyingData >::const_iterator
-			i1 = snps1.begin(),
-			i1_end = snps1.end(),
-			i2 = snps2.begin(),
-			i2_end = snps2.end() ;
-
-		SNPIdentifyingData::CompareFields position_comparator( "position" ) ;
-
-		std::vector< SNPIdentifyingData > intersected_snps ;
-
-		for( ; i1 != i1_end && i2 != i2_end ; ++i1 ) {
-			// Find next SNP with matching position.
-			std::vector< SNPIdentifyingData >::const_iterator
-				i2_pos = std::lower_bound( i2, i2_end, *i1, position_comparator ) ;
-			// Find next SNP with all fields matching, including position.
-			for( ; i2_pos != i2_end && !m_comparator.are_equal( *i2_pos, *i1 ) && i2_pos->get_position() == i1->get_position(); ++i2_pos ) ;
-
-			if( i2_pos != i2_end && i2_pos->get_position() == i1->get_position() ) {
-				intersected_snps.push_back( *i1 ) ;
-				++i2_pos ;
-			}
-			i2 = i2_pos ;
-		}
-
-		return intersected_snps ;
 	}
 
 	// Implicit conversion to bool.  Return true if there have been no errors so far.
@@ -203,7 +172,6 @@ namespace genfile {
 		SNPIdentifyingData this_snp ;
 		std::size_t last_matching_source = 0 ;
 		while( (*this) && m_sources[0]->get_snp_identifying_data( this_snp ) && last_matching_source < m_sources.size() ) {
-			// We will report ?'s in any field that differs between cohorts.
 			SNPIdentifyingData this_source_snp ;
 			last_matching_source = 1 ;
 			for( ;

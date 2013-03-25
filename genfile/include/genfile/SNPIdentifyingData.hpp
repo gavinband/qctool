@@ -57,8 +57,12 @@ namespace genfile {
 			CompareFields() ;
 			CompareFields( std::string const& fields_to_compare, bool flip_alleleles_if_necessary = false ) ;
 			CompareFields( CompareFields const& other ) ;
+
 			CompareFields& operator=( CompareFields const& other ) ;
 
+			bool get_flip_alleles_if_necessary() const { return m_flip_alleles_if_necessary ; }
+			std::vector< int > const& get_compared_fields() const { return m_fields_to_compare ;}
+			
 			enum { eSNPID = 0x1, eRSID = 0x2, ePosition = 0x4, eAlleles = 0x8, eMask = 0xF } ;
 			bool operator()( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) const ;
 			bool are_equal( SNPIdentifyingData const& left, SNPIdentifyingData const& right ) const ;
