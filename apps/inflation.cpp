@@ -99,6 +99,7 @@ private:
 
 		if( options().check( "-qq-plot" )) {
 #if HAVE_MGL
+			get_ui_context().logger() << "inflation.cpp: making qq-plot...\n" ;	
 			plot( numbers, options().get< std::string >( "-qq-plot" ), options().get< std::string >( "-analysis-name" ) ) ;
 #else
 			get_ui_context().logger() << "!! InflationApplication::unsafe_process(): you must build with MathGL support for -qq-plot to be supported.  Skipping plots...\n" ;
@@ -134,8 +135,8 @@ private:
 		{
 			chi_squared_distribution< float > chi_squared( 1 ) ;
 			for( std::size_t i = 0; i < numbers.size(); ++i ) {
-				expected.a[i] = quantile( chi_squared, float( i + 1 ) / ( numbers.size() + 1 ) ) ;
 				observed.a[i] = numbers[i] ;
+				expected.a[i] = quantile( complement( chi_squared, float( numbers.size() - i ) / ( numbers.size() + 1 ) ) ) ;
 			}
 		}
 		mglGraphZB graph( 800, 800 ) ;
@@ -151,7 +152,7 @@ private:
 		graph.Axis( "y", true ) ;
 		graph.CAxis( 0.0, 3.0 ) ;
 
-		graph.Tens( expected, observed ) ;
+		graph.Plot( expected, observed ) ; //, observed ) ;
 		graph.WritePNG( filename.c_str(), "", false ) ;
 	}
 #endif
