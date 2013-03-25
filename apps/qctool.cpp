@@ -1245,13 +1245,6 @@ private:
 
 				progress_context.notify_progress( ++progress_count, file_count ) ;
 			}
-
-			std::vector< genfile::SNPIdentifyingData > snps ;
-			// Do we need a list of SNPs?
-			if( m_options.check_if_option_was_supplied( "-match-alleles-to-cohort1" )) {
-				snps = genfile::get_list_of_snps_in_source( *chain ) ;
-			}
-
 			source.reset( chain.release() ) ;
 			
 			// If we have strand alignment information, implement it now
