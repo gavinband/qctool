@@ -62,8 +62,8 @@ def check_for_3rd_party_components( conf ):
 		conf.define( 'HAVE_DL', 1 )
 	if conf.check_cxx( lib = 'bz2', uselib_store = 'BZIP2' ):
 		conf.define( 'HAVE_BZIP2', 1 )
-	#if conf.check_cxx( lib = 'mgl', uselib_store = 'MGL', cxxflags = '-I' + conf.env['PREFIX'] + '/include', linkflags ='-L' + conf.env['PREFIX'] + '/lib' ):
-	#	conf.define( 'HAVE_MGL', 1 )
+	if conf.check_cxx( lib = 'mgl', uselib_store = 'MGL', cxxflags = '-I' + conf.env['PREFIX'] + '/include', linkflags ='-L' + conf.env['PREFIX'] + '/lib' ):
+		conf.define( 'HAVE_MGL', 1 )
 	if Options.options.static and conf.check_cxx( staticlib = 'pthread', uselib_store = "PTHREAD" ):
 		conf.define( 'HAVE_PTHREAD', 1 )
 	elif conf.check_cxx( lib = 'pthread', uselib_store = "PTHREAD" ):
