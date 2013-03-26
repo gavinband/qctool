@@ -1056,6 +1056,18 @@ private:
 			}
 		}
 		
+			
+		if( m_options.check_if_option_was_supplied( "-quantile-normalise" )) {
+			assert( m_samples.get() ) ;
+			m_samples = quantile_normalise_columns(
+				m_samples,
+				genfile::string_utils::split_and_strip(
+					m_options.get_value< std::string >( "-quantile-normalise" ),
+					","
+				)
+			) ;
+		}
+		
 		if( m_options.check( "-merge-in" )) {
 			m_snp_data_source = open_merged_data_sources() ;
 		}
@@ -1869,16 +1881,6 @@ private:
 					sample_source->get_source_spec(),
 					"number of samples = " + genfile::string_utils::to_string( sample_source->get_number_of_individuals() ),
 					"expected number of samples = " + genfile::string_utils::to_string( expected_number_of_samples )
-				) ;
-			}
-			
-			if( m_options.check_if_option_was_supplied( "-quantile-normalise" )) {
-				sample_source = quantile_normalise_columns(
-					sample_source,
-					genfile::string_utils::split_and_strip(
-						m_options.get_value< std::string >( "-quantile-normalise" ),
-						","
-					)
 				) ;
 			}
 		}
