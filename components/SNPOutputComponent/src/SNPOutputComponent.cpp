@@ -4,6 +4,7 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#include <fstream>
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
@@ -80,6 +81,10 @@ void SNPOutputComponent::setup( genfile::SNPDataSink& sink, genfile::SNPDataSour
 			)
 		) ;
 	}
+	
+	if( m_options.check( "-os" )) {
+		outputter->write_samples_to( m_options.get< std::string >( "-os" )) ;
+	}
 
 	processor.add_callback( genfile::SNPDataSourceProcessor::Callback::UniquePtr( outputter.release() ) ) ;
 }
@@ -124,6 +129,10 @@ namespace impl {
 		m_index = index ;
 	}
 	
+	void SNPOutputter::write_samples_to( std::string const& filename ) {
+		m_sample_filename = filename ;
+	}
+	
 	SNPOutputter::~SNPOutputter() {
 		if( m_manage ) {
 			delete m_sink ;
@@ -145,10 +154,35 @@ namespace impl {
 		send_results_to_sink( *m_sink, snp, m_genotypes ) ;
 	}
 
+	namespace {
+		void write_samples( genfile::CohortIndividualSource const& samples, std::string const& filename ) {
+			genfile::CohortIndividualSource::ColumnSpec const spec = samples.get_column_spec() ;
+			std::ofstream str( filename.c_str() ) ;
+			for( std::size_t j = 0; j < spec.size(); ++j ) {
+				str << ( j > 0 ? " " : "" ) << spec[j].name() ;
+			}
+			str << "\n" ;
+			for( std::size_t j = 0; j < spec.size(); ++j ) {
+				str << ( j > 0 ? " " : "" ) << spec[j].type() ;
+			}
+			str << "\n" ;
+			
+			for( std::size_t i = 0; i < samples.get_number_of_individuals(); ++i ) {
+				for( std::size_t j = 0; j < spec.size(); ++j ) {
+					str << ( j > 0 ? " " : "" ) << samples.get_entry( i, spec[j].name() ) ;
+				}
+				str << "\n" ;
+			}
+		}
+	}
 
 	void SNPOutputter::end_processing_snps() {
 		if( m_index.get() ) {
 			m_index->finalise() ;
+		}
+		
+		if( m_sample_filename != "" ) {
+			write_samples( m_samples, m_sample_filename ) ;
 		}
 	}
 	

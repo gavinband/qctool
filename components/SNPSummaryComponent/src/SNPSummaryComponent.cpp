@@ -368,7 +368,6 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		) ;
 	}
 
-
 	if( m_options.check( "-differential" )) {
 		std::string const variable = m_options.get< std::string >( "-differential" ) ;
 		impl::StrataMembers strata = impl::compute_strata( m_samples, variable ) ;

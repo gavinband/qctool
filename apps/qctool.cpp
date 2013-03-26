@@ -548,7 +548,13 @@ private:
 	void get_sample_related_filenames() {
 		if( m_options.check_if_option_was_supplied( "-s" ) ) {
 			m_input_sample_filenames = m_options.get_values< std::string >( "-s" ) ;
-			assert( m_input_sample_filenames.size() == m_gen_filenames.size() ) ;
+			if( m_input_sample_filenames.size() != m_gen_filenames.size() ) {
+				throw genfile::BadArgumentError(
+					"QCToolOptionMangler::get_sample_related_filenames()",
+					"-s \"" + genfile::string_utils::join( m_input_sample_filenames, " " ) + "\"",
+					"Number of sample files must match number of genotype files (" + genfile::string_utils::to_string( m_options.get_values< std::string >( "-s" ) .size() ) + ") specified using -g."
+				) ;
+			}
 		}
 
 		// We need to write a sample stats file if -sample-stats was given.
@@ -715,14 +721,6 @@ struct QCToolCmdLineContext
 	
 	std::vector< SampleRow >& sample_rows() {
 		return m_sample_rows ;
-	}
-
-	ObjectSink< SampleRow >& fltrd_in_sample_sink() const {
-		return *m_fltrd_in_sample_sink ;
-	}
-
-	ObjectSink< SampleRow >& fltrd_out_sample_sink() const {
-		return *m_fltrd_out_sample_sink ;
 	}
 
 	AndRowCondition& snp_filter() const {
@@ -989,11 +987,6 @@ private:
 
 	std::vector< SampleRow > m_sample_rows ;
 
-	std::auto_ptr< ObjectSink< SampleRow > > m_fltrd_in_sample_sink ;
-	std::auto_ptr< ObjectSink< SampleRow > > m_fltrd_out_sample_sink ;
-	std::auto_ptr< statfile::BuiltInTypeStatSink > m_snp_stats_sink ;
-	std::auto_ptr< statfile::BuiltInTypeStatSink > m_sample_stats_sink ;
-
 	std::vector< std::size_t > m_snp_filter_failure_counts ;
 	std::vector< std::size_t > m_sample_filter_failure_counts ;
 	
@@ -1076,8 +1069,6 @@ private:
 		check_for_errors_and_warnings() ;
 
 		write_preamble() ;
-		
-		open_sample_row_sink() ;
 		open_snp_data_sinks() ;
 	}
 	
@@ -1747,19 +1738,6 @@ private:
 		m_fltrd_out_snp_data_sink.reset( new genfile::SNPDataSinkChain() ) ;
 	}
 
-	void open_sample_row_sink() {
-		m_fltrd_in_sample_sink.reset( new NullObjectSink< SampleRow >() ) ;
-		if( m_mangled_options.output_sample_filename() != "" ) {
-			m_backup_creator.backup_file_if_necessary( m_mangled_options.output_sample_filename() ) ;
-			m_fltrd_in_sample_sink.reset( new SampleOutputFile< SimpleFileObjectSink< SampleRow > >( open_file_for_output( m_mangled_options.output_sample_filename() ))) ;
-		}
-		
-		m_fltrd_out_sample_sink.reset( new NullObjectSink< SampleRow >() ) ;
-		if( m_mangled_options.output_sample_excl_list_filename() != "" ) {
-			m_fltrd_out_sample_sink.reset( new SampleIDSink( m_mangled_options.output_sample_excl_list_filename() )) ;
-		}
-	}
-
 	void construct_snp_filter() {
 		std::auto_ptr< AndRowCondition > snp_filter( new AndRowCondition() ) ;
 
@@ -1891,7 +1869,7 @@ private:
 					sample_source->get_source_spec(),
 					"number of samples = " + genfile::string_utils::to_string( sample_source->get_number_of_individuals() ),
 					"expected number of samples = " + genfile::string_utils::to_string( expected_number_of_samples )
-				);
+				) ;
 			}
 			
 			if( m_options.check_if_option_was_supplied( "-quantile-normalise" )) {
