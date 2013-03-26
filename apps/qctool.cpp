@@ -1016,7 +1016,7 @@ private:
 		}
 
 		if( m_options.check_if_option_has_value( "-strand" )) {
-			m_strand_specs = get_strand_specs( m_options.get_values< std::string >( "-strand" )) ;
+			m_strand_specs = get_strand_specs( m_options.get_values< std::string >( "-strand" ), m_options.get< std::string >( "-snp-match-fields" )) ;
 		}
 		
 		m_snp_data_source = open_snp_data_sources(
@@ -1084,8 +1084,8 @@ private:
 		open_snp_data_sinks() ;
 	}
 	
-	std::auto_ptr< StrandSpecs > get_strand_specs( std::vector< std::string > const& filenames ) const {
-		std::auto_ptr< StrandSpecs > result( new StrandSpecs( filenames.size() ) ) ;
+	std::auto_ptr< StrandSpecs > get_strand_specs( std::vector< std::string > const& filenames, genfile::SNPIdentifyingData::CompareFields const& comparator ) const {
+		std::auto_ptr< StrandSpecs > result( new StrandSpecs( filenames.size(), StrandSpec( comparator )) ) ;
 		
 		appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Loading strand files" ) ;
 		progress_context.notify_progress( 0, filenames.size() ) ;
@@ -1252,7 +1252,13 @@ private:
 			
 			// If we have strand alignment information, implement it now
 			if( m_strand_specs.get() ) {
-				assert( m_strand_specs->size() == filenames.size() ) ;
+				if( m_strand_specs->size() != filenames.size() ) {
+					throw genfile::BadArgumentError(
+						"QCToolCmdLineContext::open_snp_data_sources()",
+						"-strand",
+						"Number of strand files (" + genfile::string_utils::to_string( m_strand_specs->size() ) + ") should match number of genotype files (" + genfile::string_utils::to_string( filenames.size() ) + ")."
+					) ;
+				}
 				source.reset(
 					genfile::StrandAligningSNPDataSource::create(
 						source,
