@@ -86,7 +86,13 @@ namespace genfile {
 				for( std::size_t i = 0; i < m_source_ids.size(); ++i ) {
 					std::vector< VariantEntry >::const_iterator where = std::find( m_target_ids.begin(), m_target_ids.end(), m_source_ids[i] ) ;
 					if( where != m_target_ids.end() ) {
-						m_map.insert( Map::value_type( i, std::size_t( where - m_target_ids.begin() ) ) ) ;
+						if( !m_map.insert( Map::value_type( i, std::size_t( where - m_target_ids.begin() ) ) ).second ) {
+							throw BadArgumentError(
+								"genfile::impl::SampleMapping::setup()",
+								"target_sample_column=\"" + target_sample_column + "\"",
+								"Target sample \"" + where->as< std::string >() + "\" matches multiple source samples."
+							) ;
+						}
 						where = std::find( ++where, std::vector< VariantEntry >::const_iterator( m_target_ids.end() ), m_source_ids[i] ) ;
 						if( where != m_target_ids.end() ) {
 							throw BadArgumentError(
