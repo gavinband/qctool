@@ -49,8 +49,8 @@ namespace genfile {
 		GenomePosition const& get_position() const { return m_position ; }
 		slice get_first_allele() const { return slice( m_data, m_first_allele_start, m_second_allele_start ) ; }
 		slice get_second_allele() const { return slice( m_data, m_second_allele_start, m_identifiers_start ) ; }
-		std::vector< slice > get_identifiers() const ;
-		void get_identifiers( boost::function< void( slice ) > ) const ;
+		std::vector< slice > get_alternative_identifiers() const ;
+		void get_alternative_identifiers( boost::function< void( slice ) > ) const ;
 
 		std::size_t get_estimated_bytes_used() const ;
 	public:
