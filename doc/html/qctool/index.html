@@ -93,7 +93,18 @@
                 </p>
                 <p>
                     <strong>Change history.</strong>
-                    QCTOOL has undergone significant changes since the original release (webpage <a href="http://www.well.ox.ac.uk/~gav/qctool/old/v1.0/qctool.html">here</a>).  This page documents version 1.2 of QCTOOL.  A short summary of changes is:
+                    QCTOOL has undergone significant changes since the original release (webpage <a href="http://www.well.ox.ac.uk/~gav/qctool/old/v1.0/qctool.html">here</a>).
+                    This page documents version 1.3 of QCTOOL.  A short summary of changes is:
+                    <p>
+                    In <strong>v1.3</strong>:
+                    <ul>
+                        <li>A new option pair <span class="monospace">-[in|ex]cl-snps</span> has been added.  This reads a list of SNPs in the format output
+                            by the <span class="monospace">-write-snp-excl-list</span> option.  This is a file with 6 named columns,
+                            <span class="monospace">SNPID, rsid, chromosome, position, alleleA, alleleB</span>.
+                        </li>
+                        <li>A bug preventing the <span class="monospace">-incl-snpids</span> from working correctly was fixed.</li>
+                    </ul>
+                </p>
                     <p>
                     In <strong>v1.2</strong>:
                     <ul>
@@ -212,57 +223,7 @@ $ qctool -help
                         Info
                     </dt>
                     <dd>
-                        The info measure is based on IMPUTE's info measure and measures the degree of uncertainty present in the genotype call distribution.  It can be defined as one minus the mean variance of a genotype (given the genotype call probability distribution), divided by the variance if only the allele frequency were known, 
-                        <p>
-                        <!-- begin MathToWeb -->
-                        <!-- (your LaTeX) $1-\frac{\sum(\text{variance of genotype distribution for individual $i$})}{2N\theta(1-\theta)}$ -->
-                        <math xmlns="http://www.w3.org/1998/Math/MathML">
-                        <mrow>
-                            <mtext>info</mtext>
-                            <mo>=</mo>
-                        	<mn>1</mn>
-                        	<mo>-</mo>
-                        	<mfrac linethickness="1">
-                        		<mrow>
-                        			<mstyle displaystyle="true">
-                        				<mo>&sum;</mo>
-                        			</mstyle>
-                        			<mo maxsize="1.00em">(</mo>
-                        			<mtext>variance&nbsp;of&nbsp;genotype&nbsp;distribution&nbsp;for&nbsp;individual&nbsp;
-                        				<math xmlns="http://www.w3.org/1998/Math/MathML">
-                        					<mrow>
-                        						<mi>i</mi>
-                        					</mrow>
-                        				</math>
-                        			</mtext>
-                        			<mo maxsize="1.00em">)</mo>
-                        		</mrow>
-                        		<mrow>
-                        			<mn>2</mn>
-                        			<mi>N</mi>
-                        			<mi>&theta;</mi>
-                        			<mrow>
-                        				<mo maxsize="1.00em">(</mo>
-                        				<mn>1</mn>
-                        				<mo>-</mo>
-                        				<mi>&theta;</mi>
-                        				<mo maxsize="1.00em">)</mo>
-                        			</mrow>
-                        		</mrow>
-                        	</mfrac>
-                        </mrow>
-                        </math>
-                        <!-- end MathToWeb -->
-                    </p>
-                        
-                        A value of 1 indicates that the calls are completely certain (or almost so) while a value near 0 indicates that the calls are no more certain than the distribution given by the allele frequency under Hardy-Weinberg.  (The info measure may also be negative.)  If the three genotype call probabilities do not sum to 1 (e.g. at a typed SNP where there is some nonzero probability of a NULL call) then QCTOOL fills the call probabilities using the allele frequency.  Thus, a completely missing genotype reduces the info measure by one over the number of samples.  Use the <span class="monospace">-info</span> option to filter on this statistic.
-                    </p>
-                    </dd>
-                    <dt style="font-weight: bold ;">
-                        impute_info
-                    </dt>
-                    <dd>
-                        This is IMPUTE's original info measure.  It is defined in the same way as <span class="font-weight: bold">info</span> but does not take account of NULL genotype calls.  Use the <span class="monospace">-impute-info</span> option to filter on this statistic.
+                        This is IMPUTE's info measure, and is defined as one minus the average over individuals of the variance of a genotype (given the individuals' genotype call probability distribution), divided by the variance if only the allele frequency were known. It measures how much uncertainty there is in the genotype calls. It equals zero when the genotype call probabilities are obtained from the allele frequency, to 1 when the calls are all certain. Use the <span class="monospace">-info</span> option to filter on this statistic.
                     </dd>
                 </dl>You can filter out SNPs based on these summary statistics, on chromosome and position, or based on the SNP ids.
                 <p>
@@ -316,6 +277,12 @@ $ qctool -help
                     </div>
                     <div class="task_notes">
                         (This converts just one file, filling in the chromosome information.)
+                    </div>
+                    <div class="task_command_line">
+                        $ qctool -g example_01.bgen -og example_01.gen -omit-chromosome
+                    </div>
+                    <div class="task_notes">
+                        (This writes GEN-format files without a chromosome column.  These are suitable for use with other programs such as GTOOL and IMPUTE.)
                     </div>
                     <div class="task_notes">
                         Note: see <a href="#file_formats">file formats</a> for a description of file formats understood by QCTOOL.
@@ -634,7 +601,25 @@ $ qctool -help
                             </th>
                         </tr>
                         <tr>
-                            <td>v1.2</td>
+                            <td>v1.3</td>
+                            <td>
+                                Linux x86-64 static build
+                            </td>
+                            <td>
+                                <a href="resources/qctool_v1.3-linux-x86_64.tgz" onClick="_gaq.push(['_trackEvent', 'resource', 'download', 'qctool_v1.3-linux-x86_64.tgz' ])">qctool_v1.3-linux-x86_64.tgz</a> (1.7Mb)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>v1.3</td>
+                            <td>
+                                Mac OS X
+                            </td>
+                            <td>
+                                <a href="resources/qctool_v1.3-osx.tgz" onClick="_gaq.push(['_trackEvent', 'resource', 'download', 'qctool_v1.3-osx.tgz' ])">qctool_v1.3-osx.tgz</a> (1021Kb)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>v1.2<sup>*</sup></td>
                             <td>
                                 Linux x86-64 static build
                             </td>
@@ -643,7 +628,7 @@ $ qctool -help
                             </td>
                         </tr>
                         <tr>
-                            <td>v1.2</td>
+                            <td>v1.2<sup>*</sup></td>
                             <td>
                                 Mac OS X
                             </td>
@@ -695,8 +680,8 @@ $ qctool -help
                         To run qctool, download the relevant file and extract it as follows.
                     </p>
                     <pre>
-$ tar -xzf qctool_v1.1-[machine].tgz
-$ cd qctool_v1.1-[machine]
+$ tar -xzf qctool_v1.x-[machine].tgz
+$ cd qctool_v1.x-[machine]
 $ ./qctool -help
 </pre>
                     <h3>
@@ -707,14 +692,14 @@ $ ./qctool -help
                     </p>
                     <div class="terminal">
                         <pre>
-    $ hg clone --rev qctool-1.1 https://gavinband@bitbucket.org/gavinband/qctool
+    $ hg clone --rev qctool-release https://gavinband@bitbucket.org/gavinband/qctool
     destination directory: qctool
     requesting all changes
     adding changesets
     adding manifests
     adding file changes
     added 975 changesets with 5890 changes to 2022 files
-    updating to branch qctool-1.1
+    updating to branch qctool-release
     1821 files updated, 0 files merged, 0 files removed, 0 files unresolved
     $ cd qctool
     $ ./waf-1.5.18 configure
@@ -723,7 +708,7 @@ $ ./qctool -help
 </pre>
                     </div>This produces an executable
                     <pre>
-./build/release/qctool-1.1
+./build/release/qctool-release
 </pre>
                     <p>
                         You will need <a href="http://www.boost.org">boost</a> and <a href="http://www.zlib.net">zlib</a> installed.
