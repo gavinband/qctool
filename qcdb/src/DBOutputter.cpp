@@ -306,6 +306,12 @@ namespace qcdb {
 		return result ;
 	}
 
+	void DBOutputter::add_alternative_variant_identifier( db::Connection::RowId const variant_id, std::string const& identifier, std::string const& rsid ) const {
+		if( identifier != rsid ) {
+			add_variant_identifier( variant_id, identifier ) ;
+		}
+	}
+
 	void DBOutputter::add_variant_identifier( db::Connection::RowId const variant_id, std::string const& identifier ) const {
 		m_find_variant_identifier_statement
 			->bind( 1, variant_id )
@@ -345,9 +351,16 @@ namespace qcdb {
 		} else {
 			result = m_find_variant_statement->get< db::Connection::RowId >( 0 ) ;
 			std::string const rsid = m_find_variant_statement->get< std::string >( 1 ) ;
-			if( rsid != snp.get_rsid() ) {
-				add_variant_identifier( result, snp.get_rsid() ) ;
-			}
+			add_alternative_variant_identifier( result, snp.get_rsid(), rsid ) ;
+			snp.get_alternative_identifiers(
+				boost::bind(
+					&DBOutputter::add_alternative_variant_identifier,
+					this,
+					result,
+					_1,
+					rsid
+				)
+			) ;
 		}
 		m_find_variant_statement->reset() ;
 		return result ;

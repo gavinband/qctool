@@ -66,7 +66,6 @@
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/SNPFilteringSNPDataSource.hpp"
 #include "genfile/SNPIdentifyingDataFilteringSNPDataSource.hpp"
-#include "genfile/get_list_of_snps_in_source.hpp"
 #include "genfile/utility.hpp"
 #include "genfile/QuantileNormalisingCrossCohortCovariateValueMapping.hpp"
 #include "genfile/ValueMappingCohortIndividualSource.hpp"
@@ -1056,7 +1055,7 @@ private:
 			}
 		}
 		
-			
+		
 		if( m_options.check_if_option_was_supplied( "-quantile-normalise" )) {
 			assert( m_samples.get() ) ;
 			m_samples = quantile_normalise_columns(
@@ -1506,18 +1505,13 @@ private:
 				
 				BOOST_FOREACH( std::string const& filename, files ) {
 					genfile::SNPDataSource::UniquePtr source ;
-					try {
-						source = genfile::SNPDataSource::create_chain( genfile::wildcard::find_files_by_chromosome( filename ) ) ;
-					}
-					catch( genfile::MalformedInputError const& e ) {
-						source.reset(
-							new statfile::SNPDataSourceAdapter(
-								statfile::BuiltInTypeStatSource::open(
-									genfile::wildcard::find_files_by_chromosome( filename )
-								)
+					source.reset(
+						new statfile::SNPDataSourceAdapter(
+							statfile::BuiltInTypeStatSource::open(
+								genfile::wildcard::find_files_by_chromosome( filename )
 							)
-						) ;
-					}
+						)
+					) ;
 						
 					snp_filter->exclude_snps(
 						source->list_snps(),
@@ -1530,18 +1524,13 @@ private:
 				std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-snps" ) ;
 				BOOST_FOREACH( std::string const& filename, files ) {
 					genfile::SNPDataSource::UniquePtr source ;
-					try {
-						source = genfile::SNPDataSource::create_chain( genfile::wildcard::find_files_by_chromosome( filename ) ) ;
-					}
-					catch( genfile::MalformedInputError const& e ) {
-						source.reset(
-							new statfile::SNPDataSourceAdapter(
-								statfile::BuiltInTypeStatSource::open(
-									genfile::wildcard::find_files_by_chromosome( filename )
-								)
+					source.reset(
+						new statfile::SNPDataSourceAdapter(
+							statfile::BuiltInTypeStatSource::open(
+								genfile::wildcard::find_files_by_chromosome( filename )
 							)
-						) ;
-					}
+						)
+					) ;
 					snp_filter->include_snps(
 						source->list_snps(),
 						genfile::SNPIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )

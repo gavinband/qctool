@@ -153,7 +153,7 @@ namespace genfile {
 		// Deal with strange non-IDs
 		assert( id.size() > 0 ) ;
 		if( id != get_rsid() ) {
-			std::vector< slice > ids = get_identifiers() ;
+			std::vector< slice > ids = get_alternative_identifiers() ;
 			if( ids.size() > 0 ) {
 				if( std::find( ids.begin(), ids.end(), id ) == ids.end() ) {
 					m_data += "\t" + std::string( id ) ;
@@ -164,7 +164,7 @@ namespace genfile {
 		}
 	}
 
-	std::vector< genfile::string_utils::slice > SNPIdentifyingData2::get_identifiers() const {
+	std::vector< genfile::string_utils::slice > SNPIdentifyingData2::get_alternative_identifiers() const {
 		if( m_identifiers_start == m_data.size() ) {
 			return std::vector< slice >() ;
 		}
@@ -173,7 +173,7 @@ namespace genfile {
 		}
 	}
 
-	void SNPIdentifyingData2::get_identifiers( boost::function< void( slice ) > callback ) const {
+	void SNPIdentifyingData2::get_alternative_identifiers( boost::function< void( slice ) > callback ) const {
 		if( m_identifiers_start == m_data.size() ) {
 			return ;
 		}
@@ -189,7 +189,7 @@ namespace genfile {
 
 	std::ostream& operator<<( std::ostream& out, SNPIdentifyingData2 const& data ) {
 		out << data.get_rsid() ;
-		std::vector< genfile::string_utils::slice > const ids = data.get_identifiers() ;
+		std::vector< genfile::string_utils::slice > const ids = data.get_alternative_identifiers() ;
 		if( ids.size() > 0 ) {
 			out << " [" ;
 			for( std::size_t i = 0; i < ids.size(); ++i ) {
@@ -320,10 +320,10 @@ namespace genfile {
 					}
 					break ;
 				case eIDs:
-					if( left.get_identifiers() > right.get_identifiers() ) {
+					if( left.get_alternative_identifiers() > right.get_alternative_identifiers() ) {
 						return false ;
 					}
-					else if( left.get_identifiers() < right.get_identifiers() ) {
+					else if( left.get_alternative_identifiers() < right.get_alternative_identifiers() ) {
 						return true ;
 					}
 					break ;
@@ -363,7 +363,7 @@ namespace genfile {
 					}
 					break ;
 				case eIDs:
-					if( left.get_identifiers() != right.get_identifiers() ) {
+					if( left.get_alternative_identifiers() != right.get_alternative_identifiers() ) {
 						return false ;
 					}
 					break ;
