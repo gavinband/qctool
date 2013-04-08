@@ -289,6 +289,7 @@ public:
 	}
 
 protected:
+	std::string const m_missing_value ;
 	SNPExclusionTest::UniquePtr m_exclusion_test ;
 	typedef boost::bimap< std::string, std::size_t > ColumnMap ;
 	
@@ -301,6 +302,10 @@ protected:
 	Eigen::MatrixXf m_sample_counts ;
 	typedef std::map< std::string, std::vector< double > > ExtraVariables ;
 	ExtraVariables m_extra_variables ;
+	
+	FlatFileScanResults():
+		m_missing_value( "NA" )
+	{}
 	
 	virtual std::set< std::string > get_desired_columns() const = 0 ;
 	virtual bool read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const = 0 ;
@@ -327,6 +332,8 @@ private:
 		
 		int degrees_of_freedom = ( column_map.left.find( "_beta_2" ) == column_map.left.end() ) ? 1 : 2 ;
 		
+		double const NA = std::numeric_limits< double >::quiet_NaN() ;
+		
 		std::size_t snp_index = m_snps.size() ;
 
 		genfile::SNPIdentifyingData snp ;
@@ -351,12 +358,17 @@ private:
 			// read data columns
 
 			ColumnMap::right_const_iterator i = column_map.right.begin(), end_i = column_map.right.end() ;
-			double value ;
+			std::string value ;
 			for( ; i != end_i; ++i ) {
 				(*source)
 					>> statfile::ignore( i->first - source->current_column() )
 					>> value ;
-				store_value( snp_index, i->second, value ) ;
+
+				store_value(
+					snp_index,
+					i->second,
+					( value == m_missing_value ) ? NA : genfile::string_utils::to_repr< double >( value )
+				) ;
 			}
 
 			m_snps[ snp_index ] = snp ;
@@ -578,11 +590,7 @@ private:
 		double value
 	) {
 		using genfile::string_utils::to_repr ;
-		double const NA =  std::numeric_limits< double >::quiet_NaN() ;
 		
-		if( value == -1 ) {
-			value = NA ;
-		}
 		if( variable == "*_beta_1" ) {
 			m_betas( snp_index, 0 ) = value ;
 		}
