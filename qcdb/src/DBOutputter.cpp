@@ -158,6 +158,7 @@ namespace qcdb {
 	}
 
 	void DBOutputter::finalise() {
+		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 120 ) ;
 		m_connection->run_statement(
 			"CREATE INDEX IF NOT EXISTS Variant_rsid_index ON Variant( rsid )"
 		) ;
@@ -366,6 +367,15 @@ namespace qcdb {
 
 			result = connection().get_last_insert_row_id() ;
 			m_insert_variant_statement->reset() ;
+			snp.get_alternative_identifiers(
+				boost::bind(
+					&DBOutputter::add_alternative_variant_identifier,
+					this,
+					result,
+					_1,
+					snp.get_rsid()
+				)
+			) ;
 		} else {
 			result = m_find_variant_statement->get< db::Connection::RowId >( 0 ) ;
 			std::string const rsid = m_find_variant_statement->get< std::string >( 1 ) ;

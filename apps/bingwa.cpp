@@ -1891,10 +1891,16 @@ public:
 			)
 		) ;
 			
-		m_processor->process( get_ui_context() ) ;
-		
-		get_ui_context().logger() << "Finalising storage...\n" ;
-		storage->finalise() ;
+		try {
+			m_processor->process( get_ui_context() ) ;
+			
+			get_ui_context().logger() << "Finalising storage...\n" ;
+			storage->finalise() ;
+		} catch( db::Error const& e ) {
+			std::cerr << "!! Database error (" << e.what() << "): " << e.description() << ".\n" ;
+			std::cerr << "!! Error code is " << e.error_code() << ".\n" ;
+			throw ;
+		}
 	}
 	
 	std::map< std::string, Eigen::MatrixXd > get_priors( appcontext::OptionProcessor const& options ) {
