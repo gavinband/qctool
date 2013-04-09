@@ -19,10 +19,10 @@ extern "C" {
 	}
 	
 	int sqlite3_busy_callback( void*, int number_of_tries ) {
-		if( number_of_tries > 100 ) {
+		if( number_of_tries > 10 ) {
 			return 0 ;
 		}
-		boost::this_thread::sleep( boost::posix_time::milliseconds( number_of_tries + 1 ) ) ;
+		boost::this_thread::sleep( boost::posix_time::milliseconds( 10 ) ) ;
 		return 1 ;
 	}
 }
@@ -119,13 +119,21 @@ namespace db {
 	
 	SQLite3Connection::ScopedTransactionPtr SQLite3Connection::open_transaction( double max_seconds_to_wait ) {		
 		ScopedTransactionPtr transaction ;
-		for( std::size_t i = 0; i < max_seconds_to_wait * 100; ++i ) {
+		// we wait 10 milliseconds between attempts.
+		
+		for( std::size_t count = 0 ; true; ++count ) {
 			try {
 				transaction.reset( new SQLite3Connection::Transaction( *this ) ) ;
 				break ;
 			}
 			catch( db::StatementStepError const& e ) {
-				boost::this_thread::sleep( boost::posix_time::milliseconds( 10 ) ) ;
+				// Because of the busy handler (see top of this file)
+				// each attempt takes ~0.1s anyway
+				// We wait an additional 0.1s so that each attempt takes 0.2s in total.
+				if( ( count * 0.2 ) > max_seconds_to_wait ) {
+					boost::this_thread::sleep( boost::posix_time::milliseconds( 100 ) ) ;
+					throw TransactionError( "SQLite3Connection::open_transaction()", get_spec(), e.error_code() ) ;
+				}
 			}
 		}
 		return transaction ;

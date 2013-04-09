@@ -35,6 +35,7 @@ namespace qcdb {
 		m_analysis_description( analysis_description ),
 		m_metadata( metadata )
 	{
+
 		try {
 			m_connection->run_statement( "PRAGMA journal_mode = OFF" ) ;
 			m_connection->run_statement( "PRAGMA synchronous = OFF" ) ;
