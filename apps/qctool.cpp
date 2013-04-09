@@ -427,6 +427,10 @@ public:
 			.set_description( "Specify a name to label results from this analysis with.  (This applies to modules which store their results in a qcdb file.)" )
 			.set_takes_single_value()
 			.set_default_value( "qctool analysis, started " + appcontext::get_current_time_as_string() ) ;
+		options[ "-analysis-description" ]
+			.set_description( "Specify a textual description of the current analysis." )
+			.set_takes_single_value()
+			.set_default_value( "qctool analysis, started " + appcontext::get_current_time_as_string() ) ;
 		options[ "-flat-file" ]
 			.set_description( "By default, qctool outputs summary data in an sqlite database format.  This allows for more "
 				"flexibility and better memory usage compared to working with flat files. "

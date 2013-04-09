@@ -1335,7 +1335,11 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 					"This overrides the default db output style, which is in a normalised form with different variables on different rows." )
 			;
 			options[ "-analysis-name" ]
-				.set_description( "Specify a name to label results from this analysis with" )
+				.set_description( "Specify a name for the current analysis." )
+				.set_takes_single_value()
+				.set_default_value( "bingwa analysis, started " + appcontext::get_current_time_as_string() ) ;
+			options[ "-analysis-description" ]
+				.set_description( "Specify a textual description of the current analysis." )
 				.set_takes_single_value()
 				.set_default_value( "bingwa analysis, started " + appcontext::get_current_time_as_string() ) ;
 			options[ "-cohort-names" ]
@@ -1758,6 +1762,7 @@ public:
 			qcdb::FlatTableDBOutputter::SharedPtr table_storage = qcdb::FlatTableDBOutputter::create_shared(
 				options().get< std::string >( "-o" ),
 				options().get< std::string >( "-analysis-name" ),
+				options().get< std::string >( "-analysis-description" ),
 				options().get_values_as_map()
 			) ;
 
@@ -1770,6 +1775,7 @@ public:
 			storage = snp_summary_component::DBOutputter::create_shared(
 				options().get< std::string >( "-o" ),
 				options().get< std::string >( "-analysis-name" ),
+				options().get< std::string >( "-analysis-description" ),
 				options().get_values_as_map()
 			) ;
 		}
@@ -1977,21 +1983,6 @@ public:
 		for( std::size_t cohort_i = 0; cohort_i < cohort_files.size(); ++cohort_i ) {
 			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading scan results \"" + cohort_files[cohort_i] + "\"" ) ;
 
-			SNPTESTResults::SNPResultCallback snp_callback ;
-			if( cohort_files.size() == 1 ) {
-				qcdb::Storage::SharedPtr raw_storage = snp_summary_component::DBOutputter::create_shared(
-					options().get< std::string >( "-o" ),
-					globals::program_name + " cohort " + to_string( cohort_i+1 ) + ": SNPTEST analysis: \"" + cohort_files[cohort_i] + "\"",
-					snp_summary_component::DBOutputter::Metadata()
-				) ;
-
-				snp_callback = boost::bind(
-					&qcdb::Storage::store_per_variant_data,
-					raw_storage,
-					_1, _2, _3
-				) ;
-			}
-
 			SNPExclusionTestConjunction::UniquePtr test( new SNPExclusionTestConjunction() ) ;
 
 			if( options().check_if_option_was_supplied_in_group( "SNP exclusion options" ) ) {
@@ -2006,7 +1997,7 @@ public:
 					genfile::wildcard::find_files_by_chromosome( cohort_files[cohort_i] ),
 					options().check( "-info-columns" ) ? options().get_values< std::string >( "-info-columns" ) : std::vector< std::string >(),
 					SNPExclusionTest::UniquePtr( test.release() ),
-					snp_callback,
+					SNPTESTResults::SNPResultCallback(),
 					progress_context
 			) ;
 			

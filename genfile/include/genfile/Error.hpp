@@ -214,26 +214,6 @@ namespace genfile {
 			std::string const m_message ;
 	} ;
 
-	struct BadArgumentWithMessageError: public BadArgumentError
-	{
-		BadArgumentWithMessageError( std::string const& message, std::string const& function, std::string const& arguments ):
-			BadArgumentError( function, arguments ),
-			m_message( message )
-		{}
-
-		BadArgumentWithMessageError( BadArgumentWithMessageError const& other ):
-			BadArgumentError( other ),
-			m_message( other.m_message )
-		{}
-		
-		~BadArgumentWithMessageError() throw() {}
-		
-		std::string format_message() const ;
-		
-	private:
-		std::string const m_message ;
-	} ;
-
 	struct KeyNotFoundError: public InputError
 	{
 		KeyNotFoundError( std::string const& source, std::string const& key ):

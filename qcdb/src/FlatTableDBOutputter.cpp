@@ -20,16 +20,16 @@
 // #define DEBUG_FLATTABLEDBOUTPUTTER 1
 
 namespace qcdb {
-	FlatTableDBOutputter::UniquePtr FlatTableDBOutputter::create( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) {
-		return UniquePtr( new FlatTableDBOutputter( filename, cohort_name, metadata ) ) ;
+	FlatTableDBOutputter::UniquePtr FlatTableDBOutputter::create( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) {
+		return UniquePtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata ) ) ;
 	}
 
-	FlatTableDBOutputter::SharedPtr FlatTableDBOutputter::create_shared( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) {
-		return SharedPtr( new FlatTableDBOutputter( filename, cohort_name, metadata ) ) ;
+	FlatTableDBOutputter::SharedPtr FlatTableDBOutputter::create_shared( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) {
+		return SharedPtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata ) ) ;
 	}
 
-	FlatTableDBOutputter::FlatTableDBOutputter( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ):
-		m_outputter( filename, cohort_name, metadata ),
+	FlatTableDBOutputter::FlatTableDBOutputter( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ):
+		m_outputter( filename, analysis_name, analysis_description, metadata ),
 		m_table_name( "Analysis" + genfile::string_utils::to_string( m_outputter.analysis_id() ) ),
 		m_max_snps_per_block( 10000 )
 	{}

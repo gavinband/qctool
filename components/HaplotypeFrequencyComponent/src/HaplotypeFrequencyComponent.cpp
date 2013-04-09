@@ -102,6 +102,7 @@ HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
 	haplotype_frequency_component::DBOutputter::SharedPtr outputter = haplotype_frequency_component::DBOutputter::create_shared(
 		options.get_value< std::string >( "-o" ),
 		options.get_value< std::string >( "-analysis-name" ),
+		options.get_value< std::string >( "-analysis-description" ),
 		options.get_values_as_map()
 	) ;
 

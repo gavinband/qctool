@@ -25,12 +25,13 @@ namespace qcdb {
 		typedef std::auto_ptr< FlatTableDBOutputter > UniquePtr ;
 		typedef boost::shared_ptr< FlatTableDBOutputter > SharedPtr ;
 		typedef DBOutputter::Metadata Metadata ;
-		static UniquePtr create( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
-		static SharedPtr create_shared( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
+		static UniquePtr create( std::string const& filename, std::string const& cohort_name, std::string const& analysis_description, Metadata const& metadata ) ;
+		static SharedPtr create_shared( std::string const& filename, std::string const& cohort_name, std::string const& analysis_description, Metadata const& metadata ) ;
 
 		FlatTableDBOutputter(
 			std::string const& filename,
-			std::string const& cohort_name,
+			std::string const& analysis_name,
+			std::string const& analysis_description,
 			Metadata const& metadata
 		) ;
 

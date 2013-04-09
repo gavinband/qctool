@@ -23,12 +23,13 @@ namespace snp_summary_component {
 	struct DBOutputter: public qcdb::Storage {
 		typedef qcdb::DBOutputter::Metadata Metadata ;
 		typedef qcdb::Storage Storage ;
-		static Storage::UniquePtr create( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
-		static Storage::SharedPtr create_shared( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
+		static Storage::UniquePtr create( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) ;
+		static Storage::SharedPtr create_shared( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) ;
 
 		DBOutputter(
 			std::string const& filename,
-			std::string const& cohort_name,
+			std::string const& analysis_name,
+			std::string const& analysis_description,
 			Metadata const& metadata
 		) ;
 

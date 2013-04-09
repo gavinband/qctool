@@ -23,6 +23,7 @@ namespace impl {
 			std::string const& filename,
 			genfile::CohortIndividualSource const& samples,
 			std::string const& analysis_name,
+			std::string const& analysis_description,
 			Metadata const& metadata
 		) ;
 
@@ -31,6 +32,7 @@ namespace impl {
 			std::string const& filename,
 			genfile::CohortIndividualSource const& samples,
 			std::string const& analysis_name,
+			std::string const& analysis_description,
 			Metadata const& metadata
 		) ;
 		
@@ -77,6 +79,7 @@ void SNPOutputComponent::setup( genfile::SNPDataSink& sink, genfile::SNPDataSour
 				filename,
 				m_samples,
 				m_options.get< std::string >( "-analysis-name" ),
+				m_options.get< std::string >( "-analysis-description" ),
 				m_options.get_values_as_map()
 			)
 		) ;
@@ -190,6 +193,7 @@ namespace impl {
 		std::string const& filename,
 		genfile::CohortIndividualSource const& samples,
 		std::string const& analysis_name,
+		std::string const& analysis_description,
 		Metadata const& metadata
 	) {
 		return QCDBSNPDataSourceIndex::UniquePtr(
@@ -197,6 +201,7 @@ namespace impl {
 				filename,
 				samples,
 				analysis_name,
+				analysis_description,
 				metadata
 			)
 		) ;
@@ -206,12 +211,14 @@ namespace impl {
 		std::string const& filename,
 		genfile::CohortIndividualSource const& samples,
 		std::string const& analysis_name,
+		std::string const& analysis_description,
 		Metadata const& metadata
 	):
 		m_table_name( "DatafileIndex" ),
 		m_outputter(
 			filename,
 			analysis_name,
+			analysis_description,
 			metadata
 		),
 		m_samples( samples )

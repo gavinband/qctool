@@ -181,6 +181,10 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 			.set_description( "Specify a name to label results from this analysis with.  (This applies to modules which store their results in a qcdb file.)" )
 			.set_takes_single_value()
 			.set_default_value( globals::program_name + " analysis, started " + appcontext::get_current_time_as_string() ) ;
+		options[ "-analysis-description" ]
+			.set_description( "Specify a textual description of the current analysis." )
+			.set_takes_single_value()
+			.set_default_value( globals::program_name + " analysis, started " + appcontext::get_current_time_as_string() ) ;
 	}
 } ;
 
@@ -1176,7 +1180,12 @@ private:
 		output_columns.erase( std::remove( output_columns.begin(), output_columns.end(), "allele2" ), output_columns.end() ) ;
 
 		snp_summary_component::DBOutputter::UniquePtr
-			storage = snp_summary_component::DBOutputter::create( filename, options().get< std::string >( "-analysis-name" ), options().get_values_as_map() ) ;
+			storage = snp_summary_component::DBOutputter::create(
+				filename,
+				options().get< std::string >( "-analysis-name" ),
+				options().get< std::string >( "-analysis-description" ),
+				options().get_values_as_map()
+			) ;
 
 		UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Writing \"" + filename + "\"" ) ;
 		std::size_t snp_index = 0 ;

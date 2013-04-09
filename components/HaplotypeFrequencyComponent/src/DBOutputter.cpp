@@ -3,16 +3,16 @@
 #include "components/HaplotypeFrequencyComponent/DBOutputter.hpp"
 
 namespace haplotype_frequency_component {
-	DBOutputter::UniquePtr DBOutputter::create( std::string const& filename, std::string const& analysis_name, DBOutputter::Metadata const& metadata ) {
-		return UniquePtr( new DBOutputter( filename, analysis_name, metadata ) ) ;
+	DBOutputter::UniquePtr DBOutputter::create( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, DBOutputter::Metadata const& metadata ) {
+		return UniquePtr( new DBOutputter( filename, analysis_name, analysis_description, metadata ) ) ;
 	}
 
-	DBOutputter::SharedPtr DBOutputter::create_shared( std::string const& filename, std::string const& analysis_name, DBOutputter::Metadata const& metadata ) {
-		return DBOutputter::SharedPtr( new DBOutputter( filename, analysis_name, metadata ) ) ;
+	DBOutputter::SharedPtr DBOutputter::create_shared( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, DBOutputter::Metadata const& metadata ) {
+		return DBOutputter::SharedPtr( new DBOutputter( filename, analysis_name, analysis_description, metadata ) ) ;
 	}
 
-	DBOutputter::DBOutputter( std::string const& filename, std::string const& analysis_name, DBOutputter::Metadata const& metadata ):
-		qcdb::DBOutputter( filename, analysis_name, metadata ),
+	DBOutputter::DBOutputter( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, DBOutputter::Metadata const& metadata ):
+		qcdb::DBOutputter( filename, analysis_name, analysis_description, metadata ),
 		m_max_transaction_count( 10000 )
 	{
 		db::Connection::ScopedTransactionPtr transaction = connection().open_transaction() ;

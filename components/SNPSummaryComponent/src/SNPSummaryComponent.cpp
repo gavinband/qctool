@@ -152,6 +152,7 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 		storage = qcdb::FlatTableDBOutputter::create_shared(
 			filename,
 			m_options.get< std::string >( "-analysis-name" ),
+			m_options.get< std::string >( "-analysis-description" ),
 			m_options.get_values_as_map()
 		) ;
 	}
@@ -159,6 +160,7 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 		storage = snp_summary_component::DBOutputter::create_shared(
 			filename,
 			m_options.get< std::string >( "-analysis-name" ),
+			m_options.get< std::string >( "-analysis-description" ),
 			m_options.get_values_as_map()
 		) ;
 	}

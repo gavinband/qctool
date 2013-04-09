@@ -114,10 +114,10 @@ namespace genfile {
 
 			if( ID->second == "GT" || type->second == "Genotype" ) {
 				if( number->second != "." && number->second != "1" ) {
-					throw BadArgumentWithMessageError(
-						"\"Number\" of GT field must be encoded as . or 1 in metadata.",
+					throw genfile::BadArgumentError(
 						"genfile::vcf::VCFEntryType::create()",
-						"spec"
+						"Number=" + number->second,
+						"\"Number\" of GT field must be encoded as . or 1 in metadata."
 					) ;
 				}
 				if( type->second != "String" && type->second != "Genotype" ) {

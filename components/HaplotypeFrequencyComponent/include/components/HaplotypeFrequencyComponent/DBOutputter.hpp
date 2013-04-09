@@ -13,10 +13,10 @@ namespace haplotype_frequency_component {
 		typedef std::auto_ptr< DBOutputter > UniquePtr ;
 		typedef boost::shared_ptr< DBOutputter > SharedPtr ;
 
-		static UniquePtr create( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
-		static SharedPtr create_shared( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
+		static UniquePtr create( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) ;
+		static SharedPtr create_shared( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) ;
 
-		DBOutputter( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) ;
+		DBOutputter( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) ;
 
 		~DBOutputter() ;
 

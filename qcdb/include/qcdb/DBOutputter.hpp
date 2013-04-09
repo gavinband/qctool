@@ -27,10 +27,10 @@ namespace qcdb {
 		typedef boost::shared_ptr< DBOutputter > SharedPtr ;
 		typedef std::map< std::string, std::pair< std::vector< std::string >, std::string > > Metadata ;
 
-		static UniquePtr create( std::string const& filename, std::string const& analysis_name, Metadata const& metadata ) ;
-		static SharedPtr create_shared( std::string const& filename, std::string const& analysis_name, Metadata const& metadata ) ;
+		static UniquePtr create( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) ;
+		static SharedPtr create_shared( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) ;
 
-		DBOutputter( std::string const& filename, std::string const& analysis_name, Metadata const& metadata ) ;
+		DBOutputter( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) ;
 		~DBOutputter() ;
 
 		// Create an entity.  Optionally suppy a class (which must be the id of another entity.)
@@ -55,6 +55,7 @@ namespace qcdb {
 	private:
 		db::Connection::UniquePtr m_connection ;
 		std::string const m_analysis_name ;
+		std::string const m_analysis_description ;
 		Metadata const m_metadata ;
 
 		db::Connection::StatementPtr m_find_entity_statement ;
@@ -70,7 +71,6 @@ namespace qcdb {
 		db::Connection::RowId m_analysis_id ;
 		db::Connection::RowId m_is_a ;
 		db::Connection::RowId m_used_by ;
-		db::Connection::RowId m_analysis ;
 
 		typedef boost::unordered_map< std::pair< std::string, std::string >, db::Connection::RowId > EntityMap ;
 		mutable EntityMap m_entity_map ;
@@ -80,6 +80,11 @@ namespace qcdb {
 		void load_entities() ;
 		void create_entity_relationship( db::Connection::RowId entity1_id, db::Connection::RowId relationship_id, db::Connection::RowId entity2_id ) const ;
 		db::Connection::RowId get_or_create_entity_internal(
+			std::string const& name,
+			std::string const& description,
+			boost::optional< db::Connection::RowId > class_id = boost::optional< db::Connection::RowId >()
+		) const ;
+		db::Connection::RowId create_entity_internal(
 			std::string const& name,
 			std::string const& description,
 			boost::optional< db::Connection::RowId > class_id = boost::optional< db::Connection::RowId >()
