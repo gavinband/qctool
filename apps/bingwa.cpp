@@ -1040,6 +1040,10 @@ void ApproximateBayesianMetaAnalysis::operator()(
 			for( int i = 0; i < betas.size(); ++i ) {
 				if( non_missingness(i) ) {
 					prior_selector( count++, i ) = 1 ;
+				} else {
+					// Ensure NaNs do affect things below.
+					betas(i) = 0 ;
+					ses(i) = 0 ;
 				}
 			}
 			
