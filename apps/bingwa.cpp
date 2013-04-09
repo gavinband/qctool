@@ -47,6 +47,8 @@ namespace globals {
 }
 
 namespace {
+	double const NA = std::numeric_limits< double >::quiet_NaN() ;
+	
 	struct SNPExclusionTest: public boost::noncopyable {
 		typedef std::auto_ptr< SNPExclusionTest > UniquePtr ;
 		virtual ~SNPExclusionTest() {} ;
@@ -192,6 +194,7 @@ public:
 	virtual void get_pvalue( std::size_t snp_i, double* result ) const = 0 ;
 	virtual void get_counts( std::size_t snp_i, Eigen::VectorXd* result ) const = 0 ;
 	virtual void get_info( std::size_t snp_i, double* result ) const = 0 ;
+	virtual void get_maf( std::size_t snp_i, double* result ) const = 0 ;
 	virtual void get_frequency( std::size_t snp_i, double* result ) const = 0 ;
 	virtual void get_variable( std::size_t snp_i, std::string const& variable, double* result ) const = 0 ;
 	
@@ -248,6 +251,9 @@ public:
 	}
 	void get_info( std::size_t snp_i, double* result ) const {
 		*result = m_info( snp_i ) ;
+	}
+	void get_maf( std::size_t snp_i, double* result ) const {
+		*result = m_maf( snp_i ) ;
 	}
 	void get_frequency( std::size_t snp_i, double* result ) const {
 		*result = ( 2.0 * m_sample_counts( snp_i, 2 ) + m_sample_counts( snp_i, 1 ) ) / ( 2.0 * m_sample_counts.row( snp_i ).sum() ) ;
@@ -331,8 +337,6 @@ private:
 		ColumnMap column_map = get_columns_to_store( *source ) ;
 		
 		int degrees_of_freedom = ( column_map.left.find( "_beta_2" ) == column_map.left.end() ) ? 1 : 2 ;
-		
-		double const NA = std::numeric_limits< double >::quiet_NaN() ;
 		
 		std::size_t snp_index = m_snps.size() ;
 
@@ -546,7 +550,6 @@ struct SNPTESTResults: public FlatFileScanResults {
 		m_extra_variables[ variable ] ;
 	}
 
-	
 	std::string get_summary( std::string const& prefix, std::size_t target_column ) const {
 		return prefix + "SNPTEST " + FlatFileScanResults::get_summary( "", target_column ) ;
 	}
@@ -762,7 +765,7 @@ struct AmetComputation: public boost::noncopyable {
 	virtual ~AmetComputation() {}
 	typedef genfile::SNPIdentifyingData2 SNPIdentifyingData2 ;
 	typedef boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
-
+	
 	struct DataGetter: public boost::noncopyable {
 		virtual ~DataGetter() {} ;
 		virtual std::size_t get_number_of_cohorts() const = 0 ;
@@ -772,8 +775,11 @@ struct AmetComputation: public boost::noncopyable {
 		virtual void get_ses( std::size_t i, Eigen::VectorXd* result  ) const = 0 ;
 		virtual void get_pvalue( std::size_t i, double* result ) const = 0 ;
 		virtual void get_info( std::size_t i, double* result ) const = 0 ;
+		virtual void get_maf( std::size_t i, double* result ) const = 0 ;
 		virtual void get_variable( std::string const& variable, std::size_t i, double* result ) const = 0 ;
 	} ;
+
+	typedef boost::function< bool ( DataGetter const&, int i ) > Filter ;
 
 	virtual void operator()(
 		SNPIdentifyingData2 const&,
@@ -810,11 +816,13 @@ public:
 				Eigen::VectorXd counts ;
 				double pvalue ;
 				double info ;
+				double maf ;
 				data_getter.get_betas( i, &betas ) ;
 				data_getter.get_ses( i, &ses ) ;
 				data_getter.get_counts( i, &counts ) ;
 				data_getter.get_pvalue( i, &pvalue ) ;
 				data_getter.get_info( i, &info ) ;
+				data_getter.get_maf( i, &maf ) ;
 
 				assert( counts.size() == 4 ) ;
 				using genfile::string_utils::to_string ;
@@ -824,6 +832,7 @@ public:
 				callback( prefix + "BB", counts(2) ) ;
 				callback( prefix + "NULL", counts(3) ) ;
 				callback( prefix + "B_allele_frequency", ( 2.0 * counts(2) + counts(1) ) / ( 2.0 * counts.head(3).sum() ) ) ;
+				callback( prefix + "maf", maf ) ;
 				
 				assert( betas.size() == ses.size() ) ;
 				for( int j = 0; j < betas.size(); ++j ) {
@@ -857,10 +866,33 @@ public:
 } ;
 
 namespace impl {
-	bool get_betas_and_ses_one_per_study( AmetComputation::DataGetter const& data_getter, Eigen::VectorXd& betas, Eigen::VectorXd& ses, Eigen::VectorXd& non_missingness ) {
+	bool basic_missingness_filter( AmetComputation::DataGetter const& data_getter, int i ) {
+		return data_getter.is_non_missing( i ) ;
+	}
+	
+	bool info_maf_filter( AmetComputation::DataGetter const& data_getter, int i, double const lower_info_threshhold, double const lower_maf_threshhold ) {
+		bool result = data_getter.is_non_missing( i ) ;
+		if( result ) {
+			double info ;
+			double maf ;
+			data_getter.get_info( i, &info ) ;
+			data_getter.get_maf( i, &maf ) ;
+			if( (
+				lower_info_threshhold == lower_info_threshhold && ( info != info || info < lower_info_threshhold )
+			) || (
+				lower_maf_threshhold == lower_maf_threshhold && ( maf != maf || maf < lower_maf_threshhold )
+			) ) {
+				result = false ;
+			}
+		}
+		return result ;
+	}
+	
+	bool get_betas_and_ses_one_per_study( AmetComputation::DataGetter const& data_getter, AmetComputation::Filter filter, Eigen::VectorXd& betas, Eigen::VectorXd& ses, Eigen::VectorXd& non_missingness ) {
 		std::size_t N = betas.size() ;
 		for( std::size_t i = 0; i < N; ++i ) {
-			non_missingness( i ) = data_getter.is_non_missing( i ) ? 1.0 : 0.0 ;
+			non_missingness( i ) = filter( data_getter, i ) ? 1.0 : 0.0 ;
+
 			if( non_missingness( i )) {
 				Eigen::VectorXd data ;
 				data_getter.get_betas( i, &data ) ;
@@ -899,7 +931,23 @@ namespace impl {
 	}
 }
 
+/*
+	frequentist_meta_analysis = function( betas, ses ) {
+		// fill details here.
+	}
+*/
 struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
+	typedef std::auto_ptr< FixedEffectFrequentistMetaAnalysis > UniquePtr ;
+	
+	FixedEffectFrequentistMetaAnalysis():
+		m_filter( &impl::basic_missingness_filter )
+	{}
+	
+	void set_filter( Filter filter ) {
+		assert( filter ) ;
+		m_filter = filter ;
+	}
+
 	void operator()(
 		SNPIdentifyingData2 const& snp,
 		DataGetter const& data_getter,
@@ -909,12 +957,10 @@ struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
 		if( N == 0 ) {
 			return ;
 		}
-
-		Eigen::VectorXd betas( N ) ;
-		Eigen::VectorXd ses( N ) ;
-		Eigen::VectorXd non_missingness( N ) ;
-		
-		if( !impl::get_betas_and_ses_one_per_study( data_getter, betas, ses, non_missingness ) ) {
+		Eigen::VectorXd betas = Eigen::VectorXd::Constant( N, NA ) ;
+		Eigen::VectorXd ses = Eigen::VectorXd::Constant( N, NA ) ;
+		Eigen::VectorXd non_missingness = Eigen::VectorXd::Constant( N, NA ) ;
+		if( !impl::get_betas_and_ses_one_per_study( data_getter, m_filter, betas, ses, non_missingness ) ) {
 			callback( "FixedEffectFrequentistMetaAnalysis/meta_beta", genfile::MissingValue() ) ;
 			callback( "FixedEffectFrequentistMetaAnalysis/meta_se", genfile::MissingValue() ) ;
 			callback( "FixedEffectFrequentistMetaAnalysis/meta_pvalue", genfile::MissingValue() ) ;
@@ -929,15 +975,15 @@ struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
 					ses( i ) = 0 ;
 				}
 			}
-			double const meta_beta = ( inverse_variances.array() * betas.array() ).sum() / inverse_variances.sum() ;
-			double const meta_se = std::sqrt( 1.0 / inverse_variances.sum() ) ;
+			double const meta_beta = ( non_missingness.sum() == 0 ) ? NA : ( inverse_variances.array() * betas.array() ).sum() / inverse_variances.sum() ;
+			double const meta_se = ( non_missingness.sum() == 0 ) ? NA : std::sqrt( 1.0 / inverse_variances.sum() ) ;
 
 			callback( "FixedEffectFrequentistMetaAnalysis/meta_beta", meta_beta ) ;
 			callback( "FixedEffectFrequentistMetaAnalysis/meta_se", meta_se ) ;
 
 			//std::cerr << "SNP: " << snp << ": betas = " << betas << ", ses = " << ses << ".\n" ;
 
-			if( meta_se > 0 && meta_se != std::numeric_limits< double >::infinity() ) {
+			if( meta_beta == meta_beta && meta_se == meta_se && meta_se > 0 && meta_se < std::numeric_limits< double >::infinity() ) {
 				typedef boost::math::normal NormalDistribution ;
 				NormalDistribution normal( 0, meta_se ) ;
 				// P-value is the mass under both tails of the normal distribution larger than |meta_beta|
@@ -955,6 +1001,8 @@ struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const {
 		return prefix + get_spec() ;
 	}
+private:
+	Filter m_filter ;
 } ;
 
 //
@@ -962,6 +1010,8 @@ struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
 // and the likelihood as normal and given by
 // the estimated betas and ses.
 struct ApproximateBayesianMetaAnalysis: public AmetComputation {
+	typedef std::auto_ptr< ApproximateBayesianMetaAnalysis > UniquePtr ;
+	
 	ApproximateBayesianMetaAnalysis(
 		std::string const& name,
 		Eigen::MatrixXd const& sigma
@@ -969,9 +1019,14 @@ struct ApproximateBayesianMetaAnalysis: public AmetComputation {
 		m_name( name ),
 		m_prefix( "ApproximateBayesianMetaAnalysis/" + name ),
 		m_sigma( sigma ),
-		m_compute_posterior_mean_and_variance( false )
+		m_compute_posterior_mean_and_variance( false ),
+		m_filter( &impl::basic_missingness_filter )
 	{
 		assert( m_sigma.rows() == m_sigma.cols() ) ;
+	}
+
+	void set_filter( Filter filter ) {
+		m_filter = filter ;
 	}
 
 	void operator()(
@@ -992,7 +1047,8 @@ private:
 	std::string const m_prefix ;
 	Eigen::MatrixXd const m_sigma ;
 	bool const m_compute_posterior_mean_and_variance ;
-
+	Filter m_filter ;
+	
 	void compute_bayes_factor( Eigen::MatrixXd const& prior, Eigen::MatrixXd const& V, Eigen::VectorXd const& betas, ResultCallback callback ) const ;
 
 /*
@@ -1017,12 +1073,12 @@ void ApproximateBayesianMetaAnalysis::operator()(
 		return ;
 	}
 
-	Eigen::VectorXd betas( N ) ;
-	Eigen::VectorXd ses( N ) ;
-	Eigen::VectorXd non_missingness( N ) ;
+	Eigen::VectorXd betas = Eigen::VectorXd::Constant( N, NA ) ;
+	Eigen::VectorXd ses = Eigen::VectorXd::Constant( N, NA ) ;
+	Eigen::VectorXd non_missingness = Eigen::VectorXd::Constant( N, NA ) ;
 	
 	if(
-		!impl::get_betas_and_ses_one_per_study( data_getter, betas, ses, non_missingness )
+		!impl::get_betas_and_ses_one_per_study( data_getter, m_filter, betas, ses, non_missingness )
 		|| non_missingness.sum() == 0
 	) {
 		callback( m_prefix + "/bf", genfile::MissingValue() ) ;
@@ -1255,8 +1311,6 @@ struct AmetOptions: public appcontext::CmdLineOptionProcessor {
 			options[ "-min-maf" ]
 				.set_description( "Treat SNPs with maf (in controls) less than the given threshhold as missing." )
 				.set_takes_values( 1 ) ;
-				
-				
 		}
 
 		{
@@ -1354,7 +1408,6 @@ namespace impl {
 		assert( result ) ;
 		assert( result->rows() >= 4 ) ;
 		assert( result->cols() > col ) ;
-		double const NA =  std::numeric_limits< double >::quiet_NaN() ;
 		(*result)( 0, col ) = AA.is_missing() ? NA : AA.as< double >() ;
 		(*result)( 1, col ) = AB.is_missing() ? NA : AB.as< double >() ;
 		(*result)( 2, col ) = BB.is_missing() ? NA : BB.as< double >() ;
@@ -1366,7 +1419,6 @@ namespace impl {
 		assert( non_missingness ) ;
 		assert( result->size() == non_missingness->size() ) ;
 		assert( result->size() > elt ) ;
-		double const NA =  std::numeric_limits< double >::quiet_NaN() ;
 		if( value.is_missing() ) {
 			(*non_missingness)( elt ) = 0.0 ;
 			(*result)( elt ) = NA ;
@@ -1527,6 +1579,11 @@ private:
 		void get_info( std::size_t i, double* result ) const {
 			if( is_non_missing( i ) ) {
 				m_cohorts[i].get_info( m_indices[i]->index, result ) ;
+			}
+		}
+		void get_maf( std::size_t i, double* result ) const {
+			if( is_non_missing( i ) ) {
+				m_cohorts[i].get_maf( m_indices[i]->index, result ) ;
 			}
 		}
 		bool is_non_missing( std::size_t i ) const {
@@ -1726,15 +1783,40 @@ public:
 		) ;
 
 		if( options().check( "-data" ) && options().get_values< std::string >( "-data" ).size() > 0 ) {
+
 			m_processor->add_computation(
 				"PerCohortValueReporter",
 				AmetComputation::create( "PerCohortValueReporter", options() )
 			) ;
+
 			if( !options().check( "-no-meta-analysis" )) {
-				m_processor->add_computation(
-					"FixedEffectFrequentistMetaAnalysis",
-					AmetComputation::create( "FixedEffectFrequentistMetaAnalysis", options() )
-				) ;
+				
+				AmetComputation::Filter filter( &impl::basic_missingness_filter ) ;
+				if( options().check( "-min-info" ) || options().check( "-min-maf" )) {
+					double lower_info_threshhold = NA ;
+					double lower_maf_threshhold = NA ;
+					if( options().check( "-min-info" ) ) {
+						lower_info_threshhold = options().get< double > ( "-min-info" ) ;
+					}
+					if( options().check( "-min-maf" ) ) {
+						lower_maf_threshhold = options().get< double > ( "-min-maf" ) ;
+					}
+					filter = boost::bind(
+						&impl::info_maf_filter, _1, _2,
+						lower_info_threshhold, lower_maf_threshhold
+					) ;
+				}
+				
+				{
+					FixedEffectFrequentistMetaAnalysis::UniquePtr computation(
+						new FixedEffectFrequentistMetaAnalysis()
+					) ;
+					computation->set_filter( filter ) ;
+					m_processor->add_computation(
+						"FixedEffectFrequentistMetaAnalysis",
+						AmetComputation::UniquePtr( computation.release() )
+					) ;
+				}
 				if( options().check( "-simple-prior" ) || options().check( "-complex-prior" )) {
 					std::map< std::string, Eigen::MatrixXd > const priors = get_priors( options() ) ;
 					assert( priors.size() > 0 ) ;
@@ -1747,6 +1829,9 @@ public:
 								i->second
 							)
 						) ;
+						
+						computation->set_filter( filter ) ;
+
 						m_processor->add_computation(
 							"ApproximateBayesianMetaAnalysis",
 							AmetComputation::UniquePtr( computation.release() )
@@ -1913,16 +1998,6 @@ public:
 				genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter( cohort_i ) ;
 				if( snp_filter.get() ) {
 					test->add_subtest( genfile::SNPIdentifyingDataTest::UniquePtr( snp_filter.release() ) ) ;
-				}
-				if( options().check( "-min-info" ) || options().check( "-min-maf" ) ) {
-					ThreshholdingSummaryStatisticTest::UniquePtr subtest( new ThreshholdingSummaryStatisticTest() ) ;
-					if( options().check( "-min-info" ) ) {
-						subtest->set_inclusion_bounds( "info", options().get< double >( "-min-info" ), 2 ) ; // info should be no larger than 1, but I guess there may be numerical error.
-					}
-					if( options().check( "-min-maf" ) ) {
-						subtest->set_inclusion_bounds( "maf", options().get< double >( "-min-maf" ), 1 ) ;
-					}
-					test->add_subtest( SNPExclusionTest::UniquePtr( subtest.release() ) ) ;
 				}
 			}
 
