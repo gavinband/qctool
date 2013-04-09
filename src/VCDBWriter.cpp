@@ -126,7 +126,7 @@ void VCDBWriter::processed_snp( genfile::SNPIdentifyingData const& snp, genfile:
 		m_transaction.reset() ;
 	}
 	catch( db::StatementPreparationError const& e ) {
-		std::cerr << "(" << e.what() << "): " << e.description() << ": preparing statement \"" + e.SQL() + "\".\n" ;
+		std::cerr << "(" << e.what() << "): " << e.description() << ": preparing statement \"" + e.sql() + "\".\n" ;
 		throw genfile::OperationFailedError( "VCDBWriter::processed_snp()", m_store->get_spec(), "SQL insert" ) ;
 	}
 	catch( db::Error const& e ) {

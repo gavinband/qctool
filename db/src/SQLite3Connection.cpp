@@ -77,7 +77,7 @@ namespace db {
 	int SQLite3Connection::step_statement( sqlite3_stmt* statement ) {
 		int code = sqlite3_step( statement ) ;
 		if( code != SQLITE_ROW && code != SQLITE_DONE ) {
-			throw StatementStepError( "SQLite3Connection::step_statement()", get_spec(), code ) ;
+			throw StatementStepError( "SQLite3Connection::step_statement()", get_spec(), code, std::string( sqlite3_sql( statement ) ) ) ;
 		}
 		return (code == SQLITE_ROW);
 	}

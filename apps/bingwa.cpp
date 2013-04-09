@@ -1776,7 +1776,12 @@ public:
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 		catch( genfile::FileNotFoundError const& e ) {
-			get_ui_context().logger() << "\nError: No file matching \"" << e.filespec() << "\" could be found.\n" ;
+			get_ui_context().logger() << "!!Error: No file matching \"" << e.filespec() << "\" could be found.\n" ;
+			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+		}
+		catch( db::Error const& e ) {
+			get_ui_context().logger() << "!! Database error (" << e.what() << "): " << e.description() << ".\n" ;
+			get_ui_context().logger() << "!! Error code is " << e.error_code() << ".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 	}
@@ -1891,16 +1896,10 @@ public:
 			)
 		) ;
 			
-		try {
-			m_processor->process( get_ui_context() ) ;
-			
-			get_ui_context().logger() << "Finalising storage...\n" ;
-			storage->finalise() ;
-		} catch( db::Error const& e ) {
-			std::cerr << "!! Database error (" << e.what() << "): " << e.description() << ".\n" ;
-			std::cerr << "!! Error code is " << e.error_code() << ".\n" ;
-			throw ;
-		}
+		m_processor->process( get_ui_context() ) ;
+		
+		get_ui_context().logger() << "Finalising storage...\n" ;
+		storage->finalise() ;
 	}
 	
 	std::map< std::string, Eigen::MatrixXd > get_priors( appcontext::OptionProcessor const& options ) {

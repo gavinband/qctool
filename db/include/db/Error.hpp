@@ -10,18 +10,19 @@
 namespace db {
 	struct Error: public std::exception
 	{
-		Error( std::string const& caller, std::string const& db_spec, int error ) ;
+		Error( std::string const& caller, std::string const& db_spec, int error, std::string const& sql = "(unknown)" ) ;
 		~Error() throw() ;
 		char const* what() const throw() { return "db::Error" ; }
 
 		int const& error_code() const { return m_error ; }
 		std::string const& spec() const { return m_spec ; }
 		std::string description() const ;
-		
+		std::string sql() const { return m_sql ; }
 	private:
 		std::string const m_caller ;
 		std::string const m_spec ;
-		int m_error ;
+		int const m_error ;
+		std::string const m_sql ;
 	} ;
 	
 	struct ConnectionError: public Error
@@ -38,17 +39,14 @@ namespace db {
 
 	struct StatementPreparationError: public Error
 	{
-		StatementPreparationError( std::string const& caller, std::string const& db_spec, int error_code, std::string SQL ): Error( caller, db_spec, error_code ), m_SQL( SQL ) {}
+		StatementPreparationError( std::string const& caller, std::string const& db_spec, int error_code, std::string const& sql = "(unknown)" ): Error( caller, db_spec, error_code, sql ) {}
 		~StatementPreparationError() throw() {}
 		char const* what() const throw() { return "db::StatementPreparationError" ; }
-		std::string const& SQL() const { return m_SQL ; }
-	private:
-		std::string const m_SQL ;
 	} ;
 
 	struct StatementStepError: public Error
 	{
-		StatementStepError( std::string const& caller, std::string const& db_spec, int error_code ): Error( caller, db_spec, error_code ) {}
+		StatementStepError( std::string const& caller, std::string const& db_spec, int error_code, std::string const& sql = "(unknown)" ): Error( caller, db_spec, error_code, sql ) {}
 		char const* what() const throw() { return "db::StatementStepError" ; }
 	} ;
 
