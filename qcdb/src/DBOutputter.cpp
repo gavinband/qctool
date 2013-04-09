@@ -131,7 +131,7 @@ namespace qcdb {
 		m_connection->run_statement(
 			"CREATE VIEW IF NOT EXISTS VariantView AS "
 			"SELECT          V.id AS id, V.rsid AS rsid, V.chromosome AS chromosome, V.position AS position, V.alleleA AS alleleA, V.alleleB AS alleleB, "
-			"GROUP_CONCAT( VI.identifier ) AS identifier "
+			"GROUP_CONCAT( VI.identifier ) AS alternate_identifier "
 			"FROM Variant V "
 			"LEFT OUTER JOIN VariantIdentifier VI "
 			"  ON VI.variant_id = V.id "
