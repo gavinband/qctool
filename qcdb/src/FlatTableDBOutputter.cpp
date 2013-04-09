@@ -1,8 +1,8 @@
 
-//          Copyright Gavin Band 2008 - 2012.
+//			Copyright Gavin Band 2008 - 2012.
 // Distributed under the Boost Software License, Version 1.0.
-//    (See accompanying file LICENSE_1_0.txt or copy at
-//          http://www.boost.org/LICENSE_1_0.txt)
+//	  (See accompanying file LICENSE_1_0.txt or copy at
+//			http://www.boost.org/LICENSE_1_0.txt)
 
 #include <string>
 #include <memory>
@@ -107,10 +107,6 @@ namespace qcdb {
 	void FlatTableDBOutputter::store_block() {
 		db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 240 ) ; // wait 4 minutes if we have to.
 
-		if( !transaction.get() ) {
-			throw genfile::OperationFailedError( "SNPSummaryComponent::FlatTableDBOutputter::write_data()", m_outputter.connection().get_spec(), "Opening transaction." ) ;
-		}
-		
 		if( !m_insert_data_sql.get() ) {
 			create_schema() ;
 			create_variables() ;
@@ -201,11 +197,17 @@ namespace qcdb {
 			insert_data_sql.str()
 		) ;
 
+#if DEBUG_FLATTABLEDBOUTPUTTER
+		std::cerr << "Getting \"table\" entry...\n"  ;
+		db::Connection::RowId table_id = m_outputter.get_or_create_entity( "table", "Table holding results of an analysis" ) ;
+		std::cerr << "ok.\n" ;
+#endif
+
 		m_outputter.get_or_create_entity_data(
-                       m_outputter.analysis_id(),
-                        m_outputter.get_or_create_entity( "table", "Table holding results of an analysis" ),
-                        table_name + "View"
- 		) ;
+			m_outputter.analysis_id(),
+			m_outputter.get_or_create_entity( "table", "Table holding results of an analysis" ),
+			table_name + "View"
+		) ;
 	}
 
 	void FlatTableDBOutputter::create_variables() {

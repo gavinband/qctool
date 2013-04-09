@@ -239,7 +239,16 @@ namespace qcdb {
 			result = where->second ;
 		}
 		else {
-			result = create_entity_internal( name, description, class_id ) ;
+			m_find_entity_statement
+				->bind( 1, name )
+				.bind( 2, description )
+				.step() ;
+			if( m_find_entity_statement->empty() ) {
+				result = create_entity_internal( name, description, class_id ) ;
+			} else {
+				result = m_find_entity_statement->get< db::Connection::RowId >( 0 ) ;
+			}
+			m_find_entity_statement->reset() ;
 		}
 		return result ;
 	}
@@ -268,19 +277,17 @@ namespace qcdb {
 			result = where->second ;
 		}
 		else {
-			m_insert_entity_statement
+			m_find_entity_statement
 				->bind( 1, name )
 				.bind( 2, description )
 				.step() ;
-				
-			result = m_connection->get_last_insert_row_id() ;
-			m_entity_map.insert( std::make_pair( std::make_pair( name, description ), result ) ) ;
-			m_insert_entity_statement->reset() ;
-
-			if( class_id ) {
-				create_entity_relationship( result, m_is_a, *class_id ) ;
+			if( m_find_entity_statement->empty() ) {
+				result = create_entity_internal( name, description, class_id ) ;
+				create_entity_relationship( result, m_used_by, m_analysis_id ) ;
+			} else {
+				result = m_find_entity_statement->get< db::Connection::RowId >( 0 ) ;
 			}
-			create_entity_relationship( result, m_used_by, m_analysis_id ) ;
+			m_find_entity_statement->reset() ;
 		}
 		return result ;
 	}
