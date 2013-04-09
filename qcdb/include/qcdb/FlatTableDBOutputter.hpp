@@ -39,6 +39,10 @@ namespace qcdb {
 
 		void set_table_name( std::string const& table_name ) ;
 		
+		void add_variable(
+			std::string const& 
+		) ;
+		
 		void store_per_variant_data(
 			genfile::SNPIdentifyingData2 const& snp,
 			std::string const& variable,

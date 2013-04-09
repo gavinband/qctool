@@ -35,6 +35,10 @@ namespace snp_summary_component {
 
 		~DBOutputter() ;
 
+		void add_variable(
+			std::string const& 
+		) ;
+
 		void store_per_variant_data(
 			genfile::SNPIdentifyingData2 const& snp,
 			std::string const& variable,

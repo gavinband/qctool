@@ -27,6 +27,7 @@ namespace qcdb {
 	FlatFileOutputter::UniquePtr FlatFileOutputter::create( std::string const& filename, std::string const& analysis_name, Metadata const& metadata ) {
 		return UniquePtr( new FlatFileOutputter( filename, analysis_name, metadata ) ) ;
 	}
+
 	FlatFileOutputter::SharedPtr FlatFileOutputter::create_shared( std::string const& filename, std::string const& analysis_name, Metadata const& metadata ) {
 		return SharedPtr( new FlatFileOutputter( filename, analysis_name, metadata ) ) ;
 	}
@@ -47,6 +48,22 @@ namespace qcdb {
 	}
 	
 	void FlatFileOutputter::finalise() {
+	}
+
+	void FlatFileOutputter::add_variable(
+		std::string const& variable
+	) {
+		VariableMap::left_const_iterator where = m_variables.left.find( variable ) ;
+		if( where == m_variables.left.end() ) {
+			if( m_sink.get() ) {
+				// Uh-oh, have already written a header.
+				throw genfile::BadArgumentError( "qcdb::FlatFileOutputter::add_variable()", "variable=\"" + variable + "\"" ) ;
+			}
+			else {
+				// Still have time to add the variable to our list of variables, retaining the order of addition.
+				where = m_variables.left.insert( VariableMap::left_value_type( variable, m_variables.size() ) ).first ;
+			}
+		}
 	}
 
 	void FlatFileOutputter::store_per_variant_data(

@@ -55,6 +55,22 @@ namespace qcdb {
 		m_outputter.finalise() ;
 	}
 
+	void FlatTableDBOutputter::add_variable( std::string const& variable ) {
+		VariableMap::left_const_iterator where = m_variables.left.find( variable ) ;
+		if( where == m_variables.left.end() ) {
+			if( m_insert_data_sql.get() ) {
+				// Uh-oh, table columns are already fixed.
+				// TODO: alter to put this data in SummaryData table?
+				throw genfile::BadArgumentError( "qcdb::FlatTableDBOutputter::add_variable()", "variable=\"" + variable + "\"" ) ;
+			}
+			else {
+				// Still have time to add the variable to our list of variables, retaining the order of addition.
+				m_variables.left.insert( VariableMap::left_value_type( variable, m_variables.size() ) ).first ;
+			}
+		}
+	}
+
+
 	void FlatTableDBOutputter::store_per_variant_data(
 		genfile::SNPIdentifyingData2 const& snp,
 		std::string const& variable,

@@ -761,10 +761,10 @@ FrequentistGenomeWideAssociationResults::UniquePtr FrequentistGenomeWideAssociat
 	return FrequentistGenomeWideAssociationResults::UniquePtr( result.release() ) ;
 }
 
-struct AmetComputation: public boost::noncopyable {
-	typedef std::auto_ptr< AmetComputation > UniquePtr ;
+struct BingwaComputation: public boost::noncopyable {
+	typedef std::auto_ptr< BingwaComputation > UniquePtr ;
 	static UniquePtr create( std::string const& name, appcontext::OptionProcessor const& ) ;
-	virtual ~AmetComputation() {}
+	virtual ~BingwaComputation() {}
 	typedef genfile::SNPIdentifyingData2 SNPIdentifyingData2 ;
 	typedef boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
 	
@@ -782,7 +782,7 @@ struct AmetComputation: public boost::noncopyable {
 	} ;
 
 	typedef boost::function< bool ( DataGetter const&, int i ) > Filter ;
-
+	virtual void get_variables( boost::function< void ( std::string ) > ) const = 0 ;
 	virtual void operator()(
 		SNPIdentifyingData2 const&,
 		DataGetter const& data_getter,
@@ -792,7 +792,7 @@ struct AmetComputation: public boost::noncopyable {
 	virtual std::string get_spec() const = 0 ;
 } ;
 
-struct PerCohortValueReporter: public AmetComputation {
+struct PerCohortValueReporter: public BingwaComputation {
 public:
 	typedef std::auto_ptr< PerCohortValueReporter > UniquePtr ;
 	
@@ -805,12 +805,34 @@ public:
 		m_extra_variables.insert( variable ) ;
 	}
 	
+	void get_variables( boost::function< void ( std::string ) > callback ) const {
+		std::size_t const N = m_cohort_names.size() ;
+		for( std::size_t i = 0; i < N; ++i ) {
+			std::string prefix = m_cohort_names[ i ] + ":" ;
+			callback( prefix + "AA" ) ;
+			callback( prefix + "AB" ) ;
+			callback( prefix + "BB" ) ;
+			callback( prefix + "NULL" ) ;
+			callback( prefix + "B_allele_frequency" ) ;
+			callback( prefix + "maf" ) ;
+
+			callback( prefix + "beta_1" ) ;
+			callback( prefix + "se_1" ) ;
+			callback( prefix + "pvalue" ) ;
+			callback( prefix + "info" ) ;
+
+			BOOST_FOREACH( std::string const& variable, m_extra_variables ) {
+				callback( prefix + variable ) ;
+			}
+		}
+	}
+	
 	void operator()(
 		SNPIdentifyingData2 const&,
 		DataGetter const& data_getter,
 		ResultCallback callback
 	) {
-		std::size_t const N = data_getter.get_number_of_cohorts() ;
+		std::size_t const N = m_cohort_names.size() ;
 		for( std::size_t i = 0; i < N; ++i ) {
 			if( data_getter.is_non_missing( i ) ) {
 				Eigen::VectorXd betas ;
@@ -868,11 +890,11 @@ public:
 } ;
 
 namespace impl {
-	bool basic_missingness_filter( AmetComputation::DataGetter const& data_getter, int i ) {
+	bool basic_missingness_filter( BingwaComputation::DataGetter const& data_getter, int i ) {
 		return data_getter.is_non_missing( i ) ;
 	}
 	
-	bool info_maf_filter( AmetComputation::DataGetter const& data_getter, int i, double const lower_info_threshhold, double const lower_maf_threshhold ) {
+	bool info_maf_filter( BingwaComputation::DataGetter const& data_getter, int i, double const lower_info_threshhold, double const lower_maf_threshhold ) {
 		bool result = data_getter.is_non_missing( i ) ;
 		if( result ) {
 			double info ;
@@ -890,7 +912,7 @@ namespace impl {
 		return result ;
 	}
 	
-	bool get_betas_and_ses_one_per_study( AmetComputation::DataGetter const& data_getter, AmetComputation::Filter filter, Eigen::VectorXd& betas, Eigen::VectorXd& ses, Eigen::VectorXd& non_missingness ) {
+	bool get_betas_and_ses_one_per_study( BingwaComputation::DataGetter const& data_getter, BingwaComputation::Filter filter, Eigen::VectorXd& betas, Eigen::VectorXd& ses, Eigen::VectorXd& non_missingness ) {
 		std::size_t N = betas.size() ;
 		for( std::size_t i = 0; i < N; ++i ) {
 			non_missingness( i ) = filter( data_getter, i ) ? 1.0 : 0.0 ;
@@ -938,7 +960,7 @@ namespace impl {
 		// fill details here.
 	}
 */
-struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
+struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {
 	typedef std::auto_ptr< FixedEffectFrequentistMetaAnalysis > UniquePtr ;
 	
 	FixedEffectFrequentistMetaAnalysis():
@@ -948,6 +970,12 @@ struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
 	void set_filter( Filter filter ) {
 		assert( filter ) ;
 		m_filter = filter ;
+	}
+
+	void get_variables( boost::function< void ( std::string ) > callback ) const {
+		callback( "FixedEffectFrequentistMetaAnalysis/meta_beta" ) ;
+		callback( "FixedEffectFrequentistMetaAnalysis/meta_se" ) ;
+		callback( "FixedEffectFrequentistMetaAnalysis/pvalue" ) ;
 	}
 
 	void operator()(
@@ -965,7 +993,7 @@ struct FixedEffectFrequentistMetaAnalysis: public AmetComputation {
 		if( !impl::get_betas_and_ses_one_per_study( data_getter, m_filter, betas, ses, non_missingness ) ) {
 			callback( "FixedEffectFrequentistMetaAnalysis/meta_beta", genfile::MissingValue() ) ;
 			callback( "FixedEffectFrequentistMetaAnalysis/meta_se", genfile::MissingValue() ) ;
-			callback( "FixedEffectFrequentistMetaAnalysis/meta_pvalue", genfile::MissingValue() ) ;
+			callback( "FixedEffectFrequentistMetaAnalysis/pvalue", genfile::MissingValue() ) ;
 			return ;
 		}
 		else {
@@ -1011,7 +1039,7 @@ private:
 // Bayesian meta-analysis treating the prior as normal with mean 0 and variance matrix \Sigma
 // and the likelihood as normal and given by
 // the estimated betas and ses.
-struct ApproximateBayesianMetaAnalysis: public AmetComputation {
+struct ApproximateBayesianMetaAnalysis: public BingwaComputation {
 	typedef std::auto_ptr< ApproximateBayesianMetaAnalysis > UniquePtr ;
 	
 	ApproximateBayesianMetaAnalysis(
@@ -1029,6 +1057,14 @@ struct ApproximateBayesianMetaAnalysis: public AmetComputation {
 
 	void set_filter( Filter filter ) {
 		m_filter = filter ;
+	}
+
+	void get_variables( boost::function< void ( std::string ) > callback ) const {
+		callback( m_prefix + "/bf" ) ;
+		if( m_compute_posterior_mean_and_variance ) {
+			callback( m_prefix + "/posterior_mean" ) ;
+			callback( m_prefix + "/posterior_variance" ) ;
+		}
 	}
 
 	void operator()(
@@ -1169,8 +1205,8 @@ void ApproximateBayesianMetaAnalysis::compute_bayes_factor( Eigen::MatrixXd cons
 	}
 }
 
-AmetComputation::UniquePtr AmetComputation::create( std::string const& name, appcontext::OptionProcessor const& options ) {
-	AmetComputation::UniquePtr result ;
+BingwaComputation::UniquePtr BingwaComputation::create( std::string const& name, appcontext::OptionProcessor const& options ) {
+	BingwaComputation::UniquePtr result ;
 	if( name == "FixedEffectFrequentistMetaAnalysis" ) {
 		result.reset( new FixedEffectFrequentistMetaAnalysis() ) ;
 	}
@@ -1179,7 +1215,7 @@ AmetComputation::UniquePtr AmetComputation::create( std::string const& name, app
 		if( options.check( "-cohort-names" )) {
 			names = options.get_values< std::string >( "-cohort-names" ) ;
 			if( names.size() != options.get_values< std::string >( "-data" ).size() ) {
-				throw genfile::BadArgumentError( "AmetComputation::create()", "-cohort-names=\"" + genfile::string_utils::join( names, " " ) + "\"" ) ;
+				throw genfile::BadArgumentError( "BingwaComputation::create()", "-cohort-names=\"" + genfile::string_utils::join( names, " " ) + "\"" ) ;
 			}
 		}
 		else {
@@ -1197,12 +1233,12 @@ AmetComputation::UniquePtr AmetComputation::create( std::string const& name, app
 		result.reset( pcv.release() ) ;
 	}
 	else {
-		throw genfile::BadArgumentError( "AmetComputation::create()", "name=\"" + name + "\"" ) ;
+		throw genfile::BadArgumentError( "BingwaComputation::create()", "name=\"" + name + "\"" ) ;
 	}
 	return result ;
 }
 
-struct AmetOptions: public appcontext::CmdLineOptionProcessor {
+struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 	std::string get_program_name() const { return globals::program_name ; }
 
 	void declare_options( appcontext::OptionProcessor& options ) {
@@ -1435,14 +1471,14 @@ namespace impl {
 	}
 }
 
-struct AmetProcessor: public boost::noncopyable
+struct BingwaProcessor: public boost::noncopyable
 {
-	typedef std::auto_ptr< AmetProcessor > UniquePtr ;
+	typedef std::auto_ptr< BingwaProcessor > UniquePtr ;
 	static UniquePtr create( genfile::SNPIdentifyingData2::CompareFields const& compare_fields ) {
-		return UniquePtr( new AmetProcessor( compare_fields ) ) ;
+		return UniquePtr( new BingwaProcessor( compare_fields ) ) ;
 	}
 	
-	AmetProcessor( genfile::SNPIdentifyingData2::CompareFields const& compare_fields ):
+	BingwaProcessor( genfile::SNPIdentifyingData2::CompareFields const& compare_fields ):
 		m_snps( compare_fields ),
 		m_flip_alleles_if_necessary( false )
 	{
@@ -1496,8 +1532,14 @@ struct AmetProcessor: public boost::noncopyable
 		ui_context.logger() << "================================================\n" ;
 	}
 	
-	void add_computation( std::string const& name, AmetComputation::UniquePtr computation ) {
+	void add_computation( std::string const& name, BingwaComputation::UniquePtr computation ) {
 		m_computations.push_back( computation ) ;
+	}
+
+	void get_variables( boost::function< void ( std::string const& ) > callback ) const {
+		for( std::size_t i = 0; i < m_computations.size(); ++i ) {
+			m_computations[i].get_variables( callback ) ;
+		}
 	}
 
 	void setup( appcontext::UIContext& ui_context ) {
@@ -1523,7 +1565,7 @@ struct AmetProcessor: public boost::noncopyable
 private:
 	std::vector< std::string > m_cohort_names ;
 	boost::ptr_vector< FrequentistGenomeWideAssociationResults > m_cohorts ;
-	boost::ptr_vector< AmetComputation > m_computations ;
+	boost::ptr_vector< BingwaComputation > m_computations ;
 	struct SnpMatch {
 	public:
 		SnpMatch( std::size_t index_, bool flip_ ): index( index_ ), flip( flip_ ) {}
@@ -1547,7 +1589,7 @@ private:
 	
 	ResultSignal m_result_signal ;
 
-	struct DataGetter: public AmetComputation::DataGetter {
+	struct DataGetter: public BingwaComputation::DataGetter {
 		DataGetter(
 			boost::ptr_vector< FrequentistGenomeWideAssociationResults > const& cohorts,
 			std::vector< OptionalSnpMatch >const& indices
@@ -1652,7 +1694,7 @@ private:
 		for( std::size_t cohort_i = 0; cohort_i < m_cohorts.size(); ++cohort_i ) {
 			m_cohorts[ cohort_i].get_SNPs(
 				boost::bind(
-					&AmetProcessor::add_SNP_callback,
+					&BingwaProcessor::add_SNP_callback,
 					this,
 					cohort_i,
 					_1,
@@ -1707,18 +1749,18 @@ private:
 } ;
 
 
-struct AmetApplication: public appcontext::ApplicationContext {
+struct BingwaApplication: public appcontext::ApplicationContext {
 public:
-	AmetApplication( int argc, char **argv ):
+	BingwaApplication( int argc, char **argv ):
 		appcontext::ApplicationContext(
 			globals::program_name,
 			globals::program_version,
-			std::auto_ptr< appcontext::OptionProcessor >( new AmetOptions ),
+			std::auto_ptr< appcontext::OptionProcessor >( new BingwaOptions ),
 			argc,
 			argv,
 			"-log"
 		),
-		m_processor( AmetProcessor::create( genfile::SNPIdentifyingData2::CompareFields( options().get< std::string > ( "-snp-match-fields" )) ) )
+		m_processor( BingwaProcessor::create( genfile::SNPIdentifyingData2::CompareFields( options().get< std::string > ( "-snp-match-fields" )) ) )
 	{
 		if( options().check( "-flip-alleles" )) {
 			m_processor->set_flip_alleles() ;
@@ -1787,12 +1829,12 @@ public:
 
 			m_processor->add_computation(
 				"PerCohortValueReporter",
-				AmetComputation::create( "PerCohortValueReporter", options() )
+				BingwaComputation::create( "PerCohortValueReporter", options() )
 			) ;
 
 			if( !options().check( "-no-meta-analysis" )) {
 				
-				AmetComputation::Filter filter( &impl::basic_missingness_filter ) ;
+				BingwaComputation::Filter filter( &impl::basic_missingness_filter ) ;
 				if( options().check( "-min-info" ) || options().check( "-min-maf" )) {
 					double lower_info_threshhold = NA ;
 					double lower_maf_threshhold = NA ;
@@ -1815,7 +1857,7 @@ public:
 					computation->set_filter( filter ) ;
 					m_processor->add_computation(
 						"FixedEffectFrequentistMetaAnalysis",
-						AmetComputation::UniquePtr( computation.release() )
+						BingwaComputation::UniquePtr( computation.release() )
 					) ;
 				}
 				if( options().check( "-simple-prior" ) || options().check( "-complex-prior" )) {
@@ -1835,12 +1877,20 @@ public:
 
 						m_processor->add_computation(
 							"ApproximateBayesianMetaAnalysis",
-							AmetComputation::UniquePtr( computation.release() )
+							BingwaComputation::UniquePtr( computation.release() )
 						) ;
 					}
 				}
 			}
 		}
+		m_processor->get_variables(
+			boost::bind(
+				&qcdb::Storage::add_variable,
+				storage,
+				_1
+			)
+		) ;
+			
 		m_processor->process( get_ui_context() ) ;
 		
 		get_ui_context().logger() << "Finalising storage...\n" ;
@@ -1861,7 +1911,7 @@ public:
 			std::vector< std::string > const rhos = options.get_values< std::string >( "-simple-prior" ) ;
 			if( sds.size() < rhos.size() ) {
 				throw genfile::BadArgumentError(
-					"AmetProcessor::get_priors()",
+					"BingwaProcessor::get_priors()",
 					"-simple-prior \"" + options.get< std::string >( "-simple-prior" ) + "\""
 				) ;
 			}
@@ -1879,13 +1929,13 @@ public:
 			std::vector< std::string > const model_names = options.get_values< std::string >( "-complex-prior-name" ) ;
 			if( ( sds.size() - number_of_sds_used ) < matrix_specs.size() ) {
 				throw genfile::BadArgumentError(
-					"AmetProcessor::get_priors()",
+					"BingwaProcessor::get_priors()",
 					"-complex-prior \"" + options.get< std::string >( "-matrix-specs" ) + "\""
 				) ;
 			}
 			if( model_names.size() != matrix_specs.size() ) {
 				throw genfile::BadArgumentError(
-					"AmetProcessor::get_priors()",
+					"BingwaProcessor::get_priors()",
 					"-complex-prior-name \"" + options.get< std::string >( "-complex-prior-name" ) + "\""
 				) ;
 			}
@@ -1902,7 +1952,7 @@ public:
 		
 		if( sds.size() != number_of_sds_used ) {
 			throw genfile::BadArgumentError(
-				"AmetProcessor::get_priors()",
+				"BingwaProcessor::get_priors()",
 				"-prior-sd \"" + options.get< std::string >( "-prior-sd" ) + "\""
 			) ;
 		}
@@ -1932,7 +1982,7 @@ public:
 		Eigen::MatrixXd result = Eigen::MatrixXd::Zero( n, n ) ;
 		std::vector< std::string > values = genfile::string_utils::split_and_strip( matrix_spec, "," ) ;
 		if( values.size() != (( n * (n+1) ) / 2 ) ) {
-			throw genfile::BadArgumentError( "AmetProcessor::parse_correlation_matrix()", "matrix_spec=\"" + matrix_spec + "\"" ) ;
+			throw genfile::BadArgumentError( "BingwaProcessor::parse_correlation_matrix()", "matrix_spec=\"" + matrix_spec + "\"" ) ;
 		}
 
 		{
@@ -2075,7 +2125,7 @@ public:
 			if( options().check_if_option_was_supplied( "-excl-snpids-per-cohort" )) {
 				std::vector< std::string > files = options().get_values< std::string > ( "-excl-snpids-per-cohort" ) ;
 				if( files.size() != options().get_values< std::string >( "-data" ).size() ) {
-					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-excl-snpids-per-cohort=\"" + join( files, " " ) + "\"" ) ;
+					throw genfile::BadArgumentError( "BingwaApplication::get_snp_exclusion_filter()", "-excl-snpids-per-cohort=\"" + join( files, " " ) + "\"" ) ;
 				}
 				std::vector< std::string > this_cohort_files = split_and_strip_discarding_empty_entries( files[ cohort_i ], ",", " \t" ) ;
 				BOOST_FOREACH( std::string const& filename, this_cohort_files ) {
@@ -2089,7 +2139,7 @@ public:
 			if( options().check_if_option_was_supplied( "-incl-snpids-per-cohort" )) {
 				std::vector< std::string > files = options().get_values< std::string > ( "-incl-snpids-per-cohort" ) ;
 				if( files.size() != options().get_values< std::string >( "-data" ).size() ) {
-					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-incl-snpids-per-cohort=\"" + join( files, " " ) + "\"" ) ;
+					throw genfile::BadArgumentError( "BingwaApplication::get_snp_exclusion_filter()", "-incl-snpids-per-cohort=\"" + join( files, " " ) + "\"" ) ;
 				}
 				std::vector< std::string > this_cohort_files = split_and_strip_discarding_empty_entries( files[ cohort_i ], ",", " \t" ) ;
 				BOOST_FOREACH( std::string const& filename, this_cohort_files ) {
@@ -2104,7 +2154,7 @@ public:
 			if( options().check_if_option_was_supplied( "-excl-rsids-per-cohort" )) {
 				std::vector< std::string > files = options().get_values< std::string > ( "-excl-rsids-per-cohort" ) ;
 				if( files.size() != options().get_values< std::string >( "-data" ).size() ) {
-					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-excl-rsids-per-cohort=\"" + join( files, " " ) + "\"" ) ;
+					throw genfile::BadArgumentError( "BingwaApplication::get_snp_exclusion_filter()", "-excl-rsids-per-cohort=\"" + join( files, " " ) + "\"" ) ;
 				}
 				std::vector< std::string > this_cohort_files = split_and_strip_discarding_empty_entries( files[ cohort_i ], ",", " \t" ) ;
 				BOOST_FOREACH( std::string const& filename, this_cohort_files ) {
@@ -2118,7 +2168,7 @@ public:
 			if( options().check_if_option_was_supplied( "-incl-rsids-per-cohort" )) {
 				std::vector< std::string > files = options().get_values< std::string > ( "-incl-rsids-per-cohort" ) ;
 				if( files.size() != options().get_values< std::string >( "-data" ).size() ) {
-					throw genfile::BadArgumentError( "AmetApplication::get_snp_exclusion_filter()", "-incl-rsids-per-cohort=\"" + join( files, " " ) + "\"" ) ;
+					throw genfile::BadArgumentError( "BingwaApplication::get_snp_exclusion_filter()", "-incl-rsids-per-cohort=\"" + join( files, " " ) + "\"" ) ;
 				}
 				std::vector< std::string > this_cohort_files = split_and_strip_discarding_empty_entries( files[ cohort_i ], ",", " \t" ) ;
 				BOOST_FOREACH( std::string const& filename, this_cohort_files ) {
@@ -2171,12 +2221,12 @@ public:
 	}
 	
 private:
-	AmetProcessor::UniquePtr m_processor ;
+	BingwaProcessor::UniquePtr m_processor ;
 } ;
 
 int main( int argc, char **argv ) {
 	try {
-		AmetApplication app( argc, argv ) ;	
+		BingwaApplication app( argc, argv ) ;	
 		app.run() ;
 		app.post_summarise() ;
 	}

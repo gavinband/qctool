@@ -27,6 +27,7 @@ namespace qcdb {
 		FlatFileOutputter( std::string const& filename, std::string const& analysis_name, Metadata const& metadata ) ;
 		~FlatFileOutputter() ;
 
+		void add_variable( std::string const& ) ;
 		void store_per_variant_data(
 			genfile::SNPIdentifyingData2 const& snp,
 			std::string const& value_name,
