@@ -41,6 +41,8 @@
 #include "qcdb/FlatFileOutputter.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
 
+// #define DEBUG_BINGWA 1
+
 namespace globals {
 	std::string const program_name = "bingwa" ;
 	std::string const program_version = "0.2" ;
@@ -1458,7 +1460,8 @@ struct AmetProcessor: public boost::noncopyable
 	
 	void summarise( appcontext::UIContext& ui_context ) {
 		using genfile::string_utils::to_string ;
-		
+
+#if DEBUG_BINGWA
 		ui_context.logger() << "================================================\n" ;
 		ui_context.logger() << "Cohort summary:\n" ;
 		for( std::size_t i = 0; i < m_cohorts.size(); ++i ) {
@@ -1473,6 +1476,7 @@ struct AmetProcessor: public boost::noncopyable
 				ui_context.logger() << "     " << m_cohorts[i].get_SNP( snp_i ) << " (frequency = " << frequency << ", info = " << info << ")\n";
 			}
 		}
+#endif
 		
 		ui_context.logger() << "\n================================================\n" ;
 		ui_context.logger() << "SNP Categories:\n" ;
