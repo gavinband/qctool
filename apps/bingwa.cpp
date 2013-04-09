@@ -1626,22 +1626,13 @@ private:
 			snp_matches[ cohort_i ] = snp_match ;
 		}
 		else {
-			// There is a match.  In case rsids differ, we combine them separated by commas.
-			// First save the currently-stored data.
+			// There is a match.  We make sure to record all the IDs
+			// presented for this variant, but take the first rsid seen
+			// as the rsid.
+			// First save the currently-stored data and erase the current record.
 			genfile::SNPIdentifyingData2 stored_snp = range.first->first ;
 			std::vector< OptionalSnpMatch > snp_matches = range.first->second ;
-
 			m_snps.erase( range.first ) ;
-			
-			using genfile::string_utils::slice ;
-			std::string const rsid_string = stored_snp.get_rsid() ;
-			std::vector< slice > split_rsids = slice( rsid_string ).split( "," ) ;
-			std::sort( split_rsids.begin(), split_rsids.end() ) ;
-			if( !std::binary_search( split_rsids.begin(), split_rsids.end(), snp.get_rsid() ) ) {
-				split_rsids.push_back( snp.get_rsid() ) ;
-				std::sort( split_rsids.begin(), split_rsids.end() ) ;
-				stored_snp.set_rsid( genfile::string_utils::join( split_rsids, "," ) ) ;
-			}
 			
 			stored_snp.add_identifier( snp.get_rsid() ) ;
 			snp.get_alternative_identifiers( boost::bind( &genfile::SNPIdentifyingData2::add_identifier, &stored_snp, _1 ) ) ;
