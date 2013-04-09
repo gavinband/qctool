@@ -35,16 +35,6 @@ namespace qcdb {
 		m_analysis_description( analysis_description ),
 		m_metadata( metadata )
 	{
-
-		try {
-			m_connection->run_statement( "PRAGMA journal_mode = OFF" ) ;
-			m_connection->run_statement( "PRAGMA synchronous = OFF" ) ;
-			m_connection->run_statement( "PRAGMA cache_size = 20000" ) ;
-		}
-		catch( db::StatementStepError const& ) {
-			std::cerr << "qcdb::DBOutputter::DBOutputter(): unable to set PRAGMA synchronous=OFF, is another connection using this database?" ;
-		}
-
 		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 120 ) ; // wait 2m if we have to.
 		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS Variant ( id INTEGER PRIMARY KEY, rsid TEXT, chromosome TEXT, position INTEGER, alleleA TEXT, alleleB TEXT )"
