@@ -17,6 +17,8 @@
 #include "appcontext/get_current_time_as_string.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
 
+// #define DEBUG_FLATTABLEDBOUTPUTTER 1
+
 namespace qcdb {
 	FlatTableDBOutputter::UniquePtr FlatTableDBOutputter::create( std::string const& filename, std::string const& cohort_name, Metadata const& metadata ) {
 		return UniquePtr( new FlatTableDBOutputter( filename, cohort_name, metadata ) ) ;
@@ -150,10 +152,11 @@ namespace qcdb {
 		insert_data_sql_columns << ") " ;
 		insert_data_sql_values << ") ; " ;
 
+#if DEBUG_FLATTABLEDBOUTPUTTER
 		std::cerr << "Creating table " << table_name << " using this SQL:\n"
 			<< schema_sql.str()
 			<< "\n" ;
-		
+#endif		
 		m_outputter.connection().run_statement( schema_sql.str() ) ;
 		m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS " + table_name + "_index ON " + table_name + "( variant_id )" ) ;
 
@@ -166,13 +169,17 @@ namespace qcdb {
 			<< "INNER JOIN Entity A ON A.id = T.analysis_id"
 		;
 
+#if DEBUG_FLATTABLEDBOUTPUTTER
 		std::cerr << "Creating view using SQL:\n" << view_sql.str() << "\n" ;
+#endif
 		m_outputter.connection().run_statement( view_sql.str() ) ;
 
 		insert_data_sql << " " << insert_data_sql_columns.str() << " " << insert_data_sql_values.str() ;
+#if DEBUG_FLATTABLEDBOUTPUTTER
 		std::cerr << "Inserts will use this SQL:\n"
 			<< insert_data_sql.str()
 			<< "\n" ;
+#endif
 		
 		m_insert_data_sql = m_outputter.connection().get_statement(
 			insert_data_sql.str()
