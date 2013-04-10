@@ -31,7 +31,7 @@ namespace qcdb {
 	FlatTableDBOutputter::FlatTableDBOutputter( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ):
 		m_outputter( filename, analysis_name, analysis_description, metadata ),
 		m_table_name( "Analysis" + genfile::string_utils::to_string( m_outputter.analysis_id() ) ),
-		m_max_snps_per_block( 10000 )
+		m_max_snps_per_block( 1000 )
 	{}
 
 	FlatTableDBOutputter::~FlatTableDBOutputter() {
@@ -105,7 +105,7 @@ namespace qcdb {
 	}
 
 	void FlatTableDBOutputter::store_block() {
-		db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 240 ) ; // wait 4 minutes if we have to.
+		db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 600 ) ; // wait 4 minutes if we have to.
 
 		if( !m_insert_data_sql.get() ) {
 			create_schema() ;
