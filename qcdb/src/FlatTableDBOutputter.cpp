@@ -105,7 +105,7 @@ namespace qcdb {
 	}
 
 	void FlatTableDBOutputter::store_block() {
-		db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 600 ) ; // wait 4 minutes if we have to.
+		db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 1200 ) ;
 
 		if( !m_insert_data_sql.get() ) {
 			create_schema() ;

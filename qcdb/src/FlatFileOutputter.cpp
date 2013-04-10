@@ -44,10 +44,18 @@ namespace qcdb {
 	FlatFileOutputter::~FlatFileOutputter() {
 		if( m_snps.size() > 0 ) {
 			store_block() ;
+			m_snps.clear() ;
+			m_values.clear() ;
 		}
+	
 	}
 	
 	void FlatFileOutputter::finalise() {
+		if( m_snps.size() > 0 ) {
+			store_block() ;
+			m_snps.clear() ;
+			m_values.clear() ;
+		}
 	}
 
 	void FlatFileOutputter::add_variable(
