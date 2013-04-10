@@ -17,6 +17,7 @@
 #include "genfile/SNPIdentifyingData2.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "qcdb/Storage.hpp"
+#include "qcdb/StorageOptions.hpp"
 
 namespace qcdb {
 	struct FlatFileOutputter: public Storage {
@@ -34,7 +35,7 @@ namespace qcdb {
 			genfile::VariantEntry const& value
 		) ;
 
-		void finalise() ;
+		void finalise( long options = eCreateIndices ) ;
 
 	private:
 		std::string const m_filename ;

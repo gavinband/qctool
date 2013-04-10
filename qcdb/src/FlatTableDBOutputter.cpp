@@ -48,11 +48,17 @@ namespace qcdb {
 		m_table_name = table_name ;
 	}
 
-	void FlatTableDBOutputter::finalise() {
+	void FlatTableDBOutputter::finalise( long options ) {
 		store_block() ;
 		m_snps.clear() ;
 		m_values.clear() ;
-		m_outputter.finalise() ;
+
+		if( options & eCreateIndices ) {
+			db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 600 ) ;
+			m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS " + m_table_name + "_index ON " + m_table_name + "( variant_id )" ) ;
+		}
+
+		m_outputter.finalise( options ) ;
 	}
 
 	void FlatTableDBOutputter::add_variable( std::string const& variable ) {
@@ -170,7 +176,6 @@ namespace qcdb {
 			<< "\n" ;
 #endif		
 		m_outputter.connection().run_statement( schema_sql.str() ) ;
-		m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS " + table_name + "_index ON " + table_name + "( variant_id )" ) ;
 
 		std::ostringstream view_sql ;	
 		view_sql

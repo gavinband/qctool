@@ -33,7 +33,8 @@ namespace qcdb {
 		m_connection( db::Connection::create( filename )),
 		m_analysis_name( analysis_name ),
 		m_analysis_description( analysis_description ),
-		m_metadata( metadata )
+		m_metadata( metadata ),
+		m_create_indices( true )
 	{
 		try {
 			m_connection->run_statement( "PRAGMA journal_mode = OFF" ) ;
@@ -44,6 +45,7 @@ namespace qcdb {
 		}
 
 		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 1200 ) ;
+
 		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS Variant ( id INTEGER PRIMARY KEY, rsid TEXT, chromosome TEXT, position INTEGER, alleleA TEXT, alleleB TEXT )"
 		) ;
@@ -155,17 +157,19 @@ namespace qcdb {
 		store_metadata() ;
 	}
 
-	void DBOutputter::finalise() {
-		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 1200 ) ;
-		m_connection->run_statement(
-			"CREATE INDEX IF NOT EXISTS Variant_rsid_index ON Variant( rsid )"
-		) ;
-		m_connection->run_statement(
-			"CREATE INDEX IF NOT EXISTS VariantIdentifierVariantIndex ON VariantIdentifier( variant_id )"
-		) ;
-		m_connection->run_statement(
-			"CREATE INDEX IF NOT EXISTS SummaryDataIndex ON SummaryData( variant_id, variable_id )"
-		) ;
+	void DBOutputter::finalise( long options ) {
+		if( options & eCreateIndices ) {
+			db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 600 ) ;
+			m_connection->run_statement(
+				"CREATE INDEX IF NOT EXISTS Variant_rsid_index ON Variant( rsid )"
+			) ;
+			m_connection->run_statement(
+				"CREATE INDEX IF NOT EXISTS VariantIdentifierVariantIndex ON VariantIdentifier( variant_id )"
+			) ;
+			m_connection->run_statement(
+				"CREATE INDEX IF NOT EXISTS SummaryDataIndex ON SummaryData( variant_id, variable_id )"
+			) ;
+		}
 	}
 
 	void DBOutputter::construct_statements() {

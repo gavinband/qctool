@@ -115,57 +115,6 @@ namespace {
 	private:
 		boost::ptr_vector< SNPExclusionTest > m_subtests ;
 	} ;
-
-	struct ThreshholdingSummaryStatisticTest: public SNPExclusionTest {
-	public:
-		typedef std::auto_ptr< ThreshholdingSummaryStatisticTest > UniquePtr ;
-	private:
-		typedef std::map< std::string, std::pair< double, double > > VariableBounds ;
-	public:
-		void set_inclusion_bounds( std::string const& variable, double lower_bound, double upper_bound ) {
-			if( variable != "maf" && variable != "info" ) {
-				throw genfile::BadArgumentError( "ThreshholdingSummaryStatisticTest::set_inclusion_bounds()", "variable=\"" + variable + "\"" ) ;
-			}
-			m_bounds[ variable ] = std::make_pair( lower_bound, upper_bound ) ;
-		}
-		
-		bool operator()( genfile::SNPIdentifyingData const& snp, double const maf, double const info ) const {
-			VariableBounds::const_iterator i = m_bounds.begin(), end_i = m_bounds.end() ;
-			double value ;
-			for( ; i != end_i; ++i ) {
-				if( i->first == "maf" ) {
-					value = maf ;
-				}
-				else if( i->first == "info" ) {
-					value = info ;
-				}
-				else {
-					assert(0) ;
-				}
-				if( value < i->second.first || value > i->second.second ) {
-					return false ;
-				}
-			}
-			return true ;
-		}
-
-		std::string get_summary( std::string const& prefix, std::size_t target_column ) const {
-			std::string result = prefix + "( " ;
-			VariableBounds::const_iterator i = m_bounds.begin(), end_i = m_bounds.end() ;
-			using genfile::string_utils::to_string ;
-			for( std::size_t count = 0 ; i != end_i; ++i, ++count ) {
-				if( count > 0 ) {
-					result += " ) AND ( " ;
-				}
-				result += i->first + " in [" + to_string( i->second.first ) + ", " + to_string( i->second.second ) + "]" ;
-			}
-			result += " )" ;
-			return result ;
-		}
-
-	private:
-		VariableBounds m_bounds ;
-	} ;
 }
 
 struct FrequentistGenomeWideAssociationResults: public boost::noncopyable {
@@ -1245,7 +1194,7 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 		options.set_help_option( "-help" ) ;
 
 		{
-			options.declare_group( "File handling options" ) ;
+			options.declare_group( "Input data options" ) ;
 			options[ "-data" ]
 				.set_description( "Specify the path of a file containing SNPTEST or MMM results to load." )
 				.set_is_required()
@@ -1253,7 +1202,6 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_minimum_multiplicity( 1 )
 				.set_maximum_multiplicity( 100 )
 			;
-			
 			options[ "-info-columns" ]
 				.set_description( "Specify extra columns in input files whose values will be considered as variables to be reported in the output."
 				 	" Currently these must be columns of numerical data.  (A single wildcard character * at the start or end of the column name may"
@@ -1262,7 +1210,6 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 					.set_minimum_multiplicity( 0 )
 					.set_maximum_multiplicity( 100 )
 				;
-				
 			options[ "-snp-match-fields" ]
 				.set_description( "Use this option to specify a comma-separated list of SNP-identifying fields that should be used "
 					"to match SNPs between cohorts.  Possible fields "
@@ -1271,7 +1218,7 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_default_value( "position,alleles" ) ;
 		}
 		{
-			options.declare_group( "SNP exclusion options" ) ;
+			options.declare_group( "SNP inclusion / exclusion options" ) ;
 			options[ "-excl-snpids" ]
 				.set_description( "Exclude all SNPs whose SNPID is in the given file(s) from the analysis.")
 				.set_takes_values_until_next_option() 
@@ -1320,7 +1267,7 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 					"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
 					"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
 				.set_takes_single_value() ;
-
+				
 			options[ "-excl-snpids-per-cohort" ]
 				.set_description( "Exclude all SNPs whose SNPID is in the given file(s) from the corresponding cohort. "
 					"The i-th value should be a comma-separated list of files containing rsids to exclude from the i-th cohort." )
@@ -1370,8 +1317,11 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_description( "Specify the output file should be a flat file, not a db." ) ;
 			options[ "-flat-table" ]
 				.set_description( "Output all results for this analysis to one table with variables in columns and variants in rows. "
-					"This overrides the default db output style, which is in a normalised form with different variables on different rows." )
-			;
+					"This overrides the default db output style, which is in a normalised form with different variables on different rows." ) ;
+			options[ "-noindex" ]
+				.set_description( "Specify that " + globals::program_name + " should not create large indices on database tables when finalising storage."
+					" Indices are usually desired.  However, when running very large jobs parallelised across subsets, it is generally faster to"
+					" use -noindex and create indices manually when all jobs have completed." ) ;
 			options[ "-analysis-name" ]
 				.set_description( "Specify a name for the current analysis." )
 				.set_takes_single_value()
@@ -1895,11 +1845,13 @@ public:
 				_1
 			)
 		) ;
-			
+		
 		m_processor->process( get_ui_context() ) ;
 		
 		get_ui_context().logger() << "Finalising storage...\n" ;
-		storage->finalise() ;
+
+		long finalise_options = ( options().check( "-noindex" ) ? 0 : qcdb::eCreateIndices ) ;
+		storage->finalise( finalise_options ) ;
 	}
 	
 	std::map< std::string, Eigen::MatrixXd > get_priors( appcontext::OptionProcessor const& options ) {
@@ -2035,7 +1987,7 @@ public:
 
 			SNPExclusionTestConjunction::UniquePtr test( new SNPExclusionTestConjunction() ) ;
 
-			if( options().check_if_option_was_supplied_in_group( "SNP exclusion options" ) ) {
+			if( options().check_if_option_was_supplied_in_group( "SNP inclusion / exclusion options" ) ) {
 				genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter( cohort_i ) ;
 				if( snp_filter.get() ) {
 					test->add_subtest( genfile::SNPIdentifyingDataTest::UniquePtr( snp_filter.release() ) ) ;

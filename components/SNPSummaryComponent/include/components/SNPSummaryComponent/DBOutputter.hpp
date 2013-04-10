@@ -45,7 +45,7 @@ namespace snp_summary_component {
 			genfile::VariantEntry const& value
 		) ;
 		
-		void finalise() ;
+		void finalise( long options ) ;
 
 	private:
 		qcdb::DBOutputter m_outputter ;

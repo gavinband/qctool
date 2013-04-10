@@ -37,13 +37,12 @@ namespace snp_summary_component {
 		// Re-finalise.
 		write_data( m_data ) ;
 		m_data.clear() ;
-		m_outputter.finalise() ;
 	}
 	
-	void DBOutputter::finalise() {
+	void DBOutputter::finalise( long options ) {
 		write_data( m_data ) ;
 		m_data.clear() ;
-		m_outputter.finalise() ;
+		m_outputter.finalise( options ) ;
 	}
 
 	void DBOutputter::add_variable(

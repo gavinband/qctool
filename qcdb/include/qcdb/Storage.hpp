@@ -10,6 +10,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include "genfile/SNPIdentifyingData2.hpp"
+#include "qcdb/StorageOptions.hpp"
 
 namespace qcdb {
 	struct Storage {
@@ -28,7 +29,7 @@ namespace qcdb {
 			genfile::VariantEntry const& value
 		) = 0 ;
 		
-		virtual void finalise() {} ;
+		virtual void finalise( long options = eCreateIndices ) {} ;
 	} ;
 }
 

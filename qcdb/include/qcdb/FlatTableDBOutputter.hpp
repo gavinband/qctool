@@ -49,7 +49,7 @@ namespace qcdb {
 			genfile::VariantEntry const& value
 		) ;
 		
-		void finalise() ;
+		void finalise( long options = eCreateIndices ) ;
 
 	private:
 		DBOutputter m_outputter ;

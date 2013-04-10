@@ -133,7 +133,7 @@ namespace db {
 				if( ( count * 0.2 ) > max_seconds_to_wait ) {
 					std::cerr << "Open transaction: failure count=" << count << " (~" << count*0.2 << "s).  Bailing out.\n" ;
 					boost::this_thread::sleep( boost::posix_time::milliseconds( 100 ) ) ;
-					throw TransactionError( "SQLite3Connection::open_transaction()", get_spec(), e.error_code() ) ;
+					throw TransactionError( "SQLite3Connection::open_transaction()", get_spec(), e.error_code(), e.sql() ) ;
 				}
 			}
 		}

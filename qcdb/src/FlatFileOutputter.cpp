@@ -50,7 +50,7 @@ namespace qcdb {
 	
 	}
 	
-	void FlatFileOutputter::finalise() {
+	void FlatFileOutputter::finalise( long ) {
 		if( m_snps.size() > 0 ) {
 			store_block() ;
 			m_snps.clear() ;

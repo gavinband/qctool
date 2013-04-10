@@ -20,6 +20,7 @@
 #include "genfile/VariantEntry.hpp"
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
+#include "qcdb/StorageOptions.hpp"
 
 namespace qcdb {
 	struct DBOutputter {
@@ -50,13 +51,14 @@ namespace qcdb {
 		db::Connection& connection() const { return *m_connection ; }
 		db::Connection::RowId analysis_id() const { return m_analysis_id ; }
 
-		void finalise() ;
+		void finalise( long options = eCreateIndices ) ;
 		
 	private:
 		db::Connection::UniquePtr m_connection ;
 		std::string const m_analysis_name ;
 		std::string const m_analysis_description ;
 		Metadata const m_metadata ;
+		bool m_create_indices ;
 
 		db::Connection::StatementPtr m_find_entity_statement ;
 		db::Connection::StatementPtr m_find_entity_data_statement ;
