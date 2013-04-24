@@ -28,8 +28,9 @@ static void uncompressFunc( sqlite3_context *context, int argc, sqlite3_value **
 	}
 }
 
+int RegisterZlib
 
-int sqlite3_extension_init(
+int zlib_uncompress_init(
 	sqlite3 *db,
 	char **pzErrMsg,
 	const sqlite3_api_routines *pApi

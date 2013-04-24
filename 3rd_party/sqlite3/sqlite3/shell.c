@@ -2845,7 +2845,8 @@ static void main_init(struct callback_data *data) {
   sqlite3_config(SQLITE_CONFIG_SINGLETHREAD);
 }
 
-// GB
+// 2013-04-24
+// For qcdbtool we load two extensions.
 void* extension_functions_init( void ) ;
 
 int main(int argc, char **argv){
