@@ -29,6 +29,8 @@ namespace qcdb {
 		~FlatFileOutputter() ;
 
 		void add_variable( std::string const& ) ;
+
+		void create_new_variant( genfile::SNPIdentifyingData2 const& ) ;
 		void store_per_variant_data(
 			genfile::SNPIdentifyingData2 const& snp,
 			std::string const& value_name,

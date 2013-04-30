@@ -51,6 +51,10 @@ namespace snp_summary_component {
 		// nothing to do.  We do not report values for unused variables.
 	}
 
+	void DBOutputter::create_new_variant( genfile::SNPIdentifyingData2 const& snp ) {
+		// nothing to do.
+	}
+
 	void DBOutputter::store_per_variant_data(
 		genfile::SNPIdentifyingData2 const& snp,
 		std::string const& variable,

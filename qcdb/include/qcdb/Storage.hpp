@@ -23,6 +23,7 @@ namespace qcdb {
 			std::string const& 
 		) = 0 ;
 
+		virtual void create_new_variant( genfile::SNPIdentifyingData2 const& ) = 0 ;
 		virtual void store_per_variant_data(
 			genfile::SNPIdentifyingData2 const& snp,
 			std::string const& variable,

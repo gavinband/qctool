@@ -76,6 +76,14 @@ namespace qcdb {
 		}
 	}
 
+	void FlatTableDBOutputter::create_new_variant( genfile::SNPIdentifyingData2 const& snp ) {
+		if( m_snps.size() == m_max_snps_per_block ) {
+			store_block() ;
+			m_snps.clear() ;
+			m_values.clear() ;
+		}
+		m_snps.push_back( snp ) ;
+	}
 
 	void FlatTableDBOutputter::store_per_variant_data(
 		genfile::SNPIdentifyingData2 const& snp,
