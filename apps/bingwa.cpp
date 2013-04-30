@@ -221,12 +221,12 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_description( "Don't do a fixed effect meta-analysis.  Instead, just match up SNPs and store per-cohort values." ) ;
 			
 			options[ "-simple-prior" ]
-				.set_description( "Specify the between-cohort prior correlation, denoted r, giving a correlation matrix of the form\n"
-					"   [ 1 r r  .. ]\n"
-					"   [ r 1 r  .. ]\n"
-					"   [ r r 1  .. ]\n"
-					"   [       .   ]\n"
-					"   [         . ]\n"
+				.set_description( "Specify a model of the form \"rho=[r]/sd=[sigma]\" giving a correlation matrix of the form\n"
+					"          [ 1 r r  .. ]\n"
+					"          [ r 1 r  .. ]\n"
+					"sigma^2 * [ r r 1  .. ]\n"
+					"          [       .   ]\n"
+					"          [         . ]\n"
 				)
 				.set_takes_values_until_next_option()
 				.set_minimum_multiplicity( 0 )
@@ -238,12 +238,6 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_minimum_multiplicity( 0 )
 				.set_maximum_multiplicity( 1 ) ;
 				
-			options[ "-simple-prior-sd" ]
-				.set_description( "Specify the prior standard deviation for bayesian analysis." )
-				.set_takes_values_until_next_option()
-				.set_minimum_multiplicity( 0 )
-				.set_maximum_multiplicity( 1 ) ;
-
 			options[ "-complex-prior" ]
 				.set_description( "Specify the upper triangle (including diagonal) of the prior correlation matrix for bayesian analysis. "
 					"For example, the value \"1,0.5,1\" specifies the matrix\n"
@@ -281,13 +275,10 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 			options.option_excludes_option( "-no-meta-analysis", "-complex-prior" ) ;
 			options.option_excludes_option( "-no-meta-analysis", "-group-prior" ) ;
 
-			options.option_implies_option( "-simple-prior", "-simple-prior-sd" ) ;
-			options.option_implies_option( "-simple-prior-sd", "-simple-prior" ) ;
 			options.option_implies_option( "-simple-prior-name", "-simple-prior" ) ;
 
 			options.option_implies_option( "-complex-prior", "-complex-prior-name" ) ;
 			options.option_implies_option( "-complex-prior-name", "-complex-prior" ) ;
-			options.option_implies_option( "-group-prior", "-group-prior-name" ) ;
 			options.option_implies_option( "-group-prior-name", "-group-prior" ) ;
 		}
 	}
@@ -713,34 +704,43 @@ void ApproximateBayesianMetaAnalysis::operator()(
 		// Make a matrix that will select the rows and columns we want.
 		assert( betas.size() == m_sigma.rows() ) ;
 		
-		Eigen::MatrixXd prior_selector = Eigen::MatrixXd::Zero( non_missingness.sum(), betas.size() ) ;
-		Eigen::MatrixXd prior ;
-		{
-			int count = 0 ;
-			for( int i = 0; i < betas.size(); ++i ) {
-				if( non_missingness(i) ) {
-					prior_selector( count++, i ) = 1 ;
-				} else {
-					// Ensure NaNs do affect things below.
-					betas(i) = 0 ;
-					ses(i) = 0 ;
+		int const number_of_included_cohorts = (( m_sigma.diagonal().array() > 0 ).cast< double >() * ( non_missingness.array() > 0 ).cast< double >() ).sum() ;
+		
+		if( number_of_included_cohorts > 0 ) {
+			Eigen::MatrixXd prior_selector = Eigen::MatrixXd::Zero( number_of_included_cohorts, betas.size() ) ;
+			Eigen::MatrixXd prior ;
+			{
+				int count = 0 ;
+				for( int i = 0; i < betas.size(); ++i ) {
+					std::cerr << "i=" << i << ", non_missingness(i) = " << non_missingness(i) << ", m_sigma( i, i ) = " << m_sigma(i,i) << ".\n" ;
+					if( non_missingness(i) && ( m_sigma( i, i ) > 0.0 ) ) {
+						prior_selector( count++, i ) = 1 ;
+					} else {
+						// Remove cohorts with missing data or 0 effect size.
+						betas(i) = 0 ;
+						ses(i) = 0 ;
+					}
 				}
-			}
 			
-			prior = prior_selector * m_sigma * prior_selector.transpose() ;
-			betas = prior_selector * betas ;
-			ses = prior_selector * ses ;
-		}
+				prior = prior_selector * m_sigma * prior_selector.transpose() ;
+				betas = prior_selector * betas ;
+				ses = prior_selector * ses ;
+			
+				std::cerr << m_name << ": prior selector is:\n" << prior_selector << "\n" ;
+				std::cerr << m_name << ": prior before selection is:\n" << m_sigma << "\n" ;
+				std::cerr << m_name << ": prior after selection is:\n" << prior << "\n" ;
+			}
 		
-		assert( ses.size() == non_missingness.sum() ) ;
-		assert( betas.size() == non_missingness.sum() ) ;
-		assert( prior.rows() == non_missingness.sum() ) ;
-		assert( prior.cols() == non_missingness.sum() ) ;
+			assert( ses.size() == number_of_included_cohorts ) ;
+			assert( betas.size() == number_of_included_cohorts ) ;
+			assert( prior.rows() == number_of_included_cohorts ) ;
+			assert( prior.cols() == number_of_included_cohorts ) ;
 		
-		Eigen::MatrixXd V = ses.asDiagonal() ;
-		V = V.array().square() ;
+			Eigen::MatrixXd V = ses.asDiagonal() ;
+			V = V.array().square() ;
 
-		compute_bayes_factor( prior, V, betas, callback ) ;
+			compute_bayes_factor( prior, V, betas, callback ) ;
+		}
 	}
 }
 
@@ -883,23 +883,6 @@ struct BingwaProcessor: public boost::noncopyable
 		
 		ui_context.logger() << "\n================================================\n" ;
 		ui_context.logger() << "SNP Categories:\n" ;
-		ui_context.logger() << "  " ;
-		for( std::size_t i = 0; i < m_cohorts.size(); ++i ) {
-			ui_context.logger() << std::setw( 12 ) << ( "in scan " + to_string( i+1 )) ;
-		}
-		ui_context.logger() << "\n" ;
-		for( CategoryCounts::const_iterator i = m_category_counts.begin(); i != m_category_counts.end(); ++i ) {
-			ui_context.logger() << "  " ;
-			for( std::size_t j = 0; j < m_cohorts.size(); ++j ) {	
-				ui_context.logger() << std::setw(12) << ( i->first[j] ? '*' : ' ' ) ;
-			}
-			ui_context.logger() << ": " << i->second << "\n" ;
-		}
-		ui_context.logger() << " TOTAL: " << m_snps.size() << "\n" ;
-		ui_context.logger() << "================================================\n" ;
-
-		ui_context.logger() << "\n================================================\n" ;
-		ui_context.logger() << "Models:\n" ;
 		ui_context.logger() << "  " ;
 		for( std::size_t i = 0; i < m_cohorts.size(); ++i ) {
 			ui_context.logger() << std::setw( 12 ) << ( "in scan " + to_string( i+1 )) ;
@@ -1267,7 +1250,7 @@ public:
 					) ;
 				}
 				if( options().check( "-simple-prior" ) || options().check( "-complex-prior" ) || options().check( "-group-prior" )) {
-					std::map< std::string, Eigen::MatrixXd > const priors = get_priors( options() ) ;
+					std::map< std::string, Eigen::MatrixXd > const priors = get_priors( options(), cohort_names ) ;
 					assert( priors.size() > 0 ) ;
 					std::map< std::string, Eigen::MatrixXd >::const_iterator i = priors.begin() ;
 					std::map< std::string, Eigen::MatrixXd >::const_iterator const end_i = priors.end() ;
@@ -1309,38 +1292,30 @@ public:
 	
 	void get_simple_priors(
 		int const number_of_cohorts,
-		std::vector< std::string > const& rhos,
-		std::vector< std::string > const& sds,
+		std::vector< std::string > const& specs,
 		boost::optional< std::vector< std::string > > model_names,
 		std::map< std::string, Eigen::MatrixXd >* result
 	) {
 		using namespace genfile::string_utils ;
-		if( sds.size() != rhos.size() ) {
+		if( model_names && model_names.get().size() != specs.size() ) {
 			throw genfile::BadArgumentError(
-				"BingwaProcessor::get_simple_priors()",
-				"sds=\"" + join( sds, " " ) + "\"",
-				"Wrong number of simple prior sds specified (" + to_string( sds.size() ) + ", should be " + to_string( rhos.size() ) + ")"
+				"BingwaProcessor::get_complex_priors()",
+				"model_names=\"" + join( model_names.get(), " " ) + "\"",
+				"Wrong number of simple prior names specified (" + to_string( model_names.get().size() ) + ", should be " + to_string( specs.size() ) + ")"
 			) ;
 		}
-		if( model_names ) {
-			if( model_names.get().size() != rhos.size() ) {
-				throw genfile::BadArgumentError(
-					"BingwaProcessor::get_complex_priors()",
-					"model_names=\"" + join( model_names.get(), " " ) + "\"",
-					"Wrong number of simple prior names specified (" + to_string( model_names.get().size() ) + ", should be " + to_string( rhos.size() ) + ")"
-				) ;
-			}
-		} else {
-			model_names = std::vector< std::string >( rhos.size() ) ;
-			for( std::size_t i = 0; i < rhos.size(); ++i ) {
-				(*model_names)[i] = "rho=" + rhos[i] ;
-			}
-		}
 		
-		for( std::size_t i = 0; i < rhos.size(); ++i ) {
-			double const rho = to_repr< double >( rhos[i] ) ;
-			double const sd = to_repr< double >( sds[i] ) ;
-			(*result)[ model_names.get()[i] + "/sd=" + sds[i] ] = get_prior_matrix( number_of_cohorts, rho, sd ) ;
+		for( std::size_t i = 0; i < specs.size(); ++i ) {
+			std::pair< std::string, std::string > rho_and_sd = parse_rho_and_sd( specs[i] ) ;
+			double const rho = to_repr< double >( rho_and_sd.first ) ;
+			double const sd = to_repr< double >( rho_and_sd.second ) ;
+			std::string model_name ;
+			if( model_names ) {
+				model_name = model_names.get()[i] ;
+			} else {
+				model_name = "rho=" + rho_and_sd.first ;
+			}
+			(*result)[ model_name + "/sd=" + rho_and_sd.second ] = get_prior_matrix( number_of_cohorts, rho, sd ) ;
 		}
 	}
 
@@ -1382,18 +1357,100 @@ public:
 		}
 	}
 	
-	void get_group_priors( int const number_of_cohorts, std::vector< std::string > const& model_specs, std::vector< std::string > const& model_names, std::map< std::string, Eigen::MatrixXd >* result ) {
+	void get_group_priors(
+		int const number_of_cohorts,
+		std::vector< std::string > const& model_specs,
+		boost::optional< std::vector< std::string > > model_names,
+		std::vector< std::string > const& cohort_names,
+		std::map< std::string, Eigen::MatrixXd >* result
+	) {
 		using namespace genfile::string_utils ;
-		if( model_specs.size() != model_names.size() ) {
+
+		if( model_names && model_specs.size() != model_names.get().size() ) {
 			throw genfile::BadArgumentError(
 				"BingwaProcessor::get_group_priors()",
-				"model_names=\"" + join( model_names, " " ) + "\"",
-				"Wrong number of group prior names specified (" + to_string( model_names.size() ) + ", should be " + to_string( model_specs.size() ) + ")"
+				"model_names=\"" + join( model_names.get(), " " ) + "\"",
+				"Wrong number of group prior names specified (" + to_string( model_names.get().size() ) + ", should be " + to_string( model_specs.size() ) + ")"
 			) ;
+		}
+		
+		
+		using namespace genfile::string_utils ;
+		for( std::size_t i = 0; i < model_specs.size(); ++i ) {
+			std::vector< std::string > bits = split_and_strip( model_specs[i], ":" ) ;
+			if( bits.size() != 2 ) {
+				throw genfile::BadArgumentError(
+					"BingwaProcessor::get_group_priors()",
+					"model_spec=\"" + model_specs[i] + "\"",
+					"Model spec is malformed."
+				) ;
+			}
+			std::vector< std::string > const cohorts = split_and_strip( bits[0], "," ) ;
+			if( cohorts.size() == 0 ) {
+				throw genfile::BadArgumentError(
+					"BingwaProcessor::get_group_priors()",
+					"model_spec=\"" + model_specs[i] + "\"",
+					"Model spec is malformed."
+				) ;
+			}
+			std::pair< std::string, std::string > rho_and_sd = parse_rho_and_sd( bits[1] ) ;
+			double const rho = to_repr< double >( rho_and_sd.first ) ;
+			double const sd = to_repr< double >( rho_and_sd.second ) ;
+			
+			Eigen::MatrixXd prior( number_of_cohorts, number_of_cohorts ) ;
+			prior.setZero() ;
+			std::vector< int > cohort_indices( cohorts.size() ) ;
+			for( std::size_t i = 0; i < cohorts.size(); ++i ) {
+				std::vector< std::string >::const_iterator const cohort_i = std::find( cohort_names.begin(), cohort_names.end(), cohorts[i] ) ;
+				if( cohort_i == cohort_names.end() ) {
+					throw genfile::BadArgumentError(
+						"BingwaProcessor::get_group_priors()",
+						"model_spec=\"" + model_specs[i] + "\"",
+						"Unrecognised cohort name, possible names are \"" + join( cohort_names, "\", \"" ) + "\""
+					) ;
+				}
+				cohort_indices[i] = int( cohort_i - cohort_names.begin() ) ;
+			}
+			
+			for( std::size_t j1 = 0; j1 < cohorts.size(); ++j1 ) {
+				int const cohort1_j = cohort_indices[j1] ;
+				prior( cohort1_j, cohort1_j ) = 1 ;
+				for( std::size_t j2 = (j1+1); j2 < cohorts.size(); ++j2 ) {
+					int const cohort2_j = cohort_indices[j2] ;
+					prior( cohort1_j, cohort2_j ) = prior( cohort2_j, cohort1_j ) = rho ;
+				}
+			}
+			
+			prior *= sd * sd ;
+			
+			std::string model_name ;
+			if( model_names ) {
+				model_name = model_names.get()[i] ;
+			} else {
+				model_name = bits[0] + "-specific" ;
+			}
+			
+			(*result)[ model_name + "/rho=" + rho_and_sd.first + "/sd=" + rho_and_sd.second ] = prior ;
 		}
 	}
 
-	std::map< std::string, Eigen::MatrixXd > get_priors( appcontext::OptionProcessor const& options ) {
+	std::pair< std::string, std::string > parse_rho_and_sd( std::string const& spec ) {
+		using namespace genfile::string_utils ;
+		std::vector< std::string > const parameters = split_and_strip( spec, "/" ) ;
+		if( parameters.size() != 2 || parameters[0].substr( 0, 4 ) != "rho=" || parameters[1].substr( 0, 3 ) != "sd=" ) {
+			throw genfile::BadArgumentError(
+				"BingwaProcessor::parse_rho_and_sd()",
+				"spec=\"" + spec + "\"",
+				"Parameter spec is malformed."
+			) ;
+		}
+
+		std::string const rho = parameters[0].substr( 4, parameters[0].size() ) ;
+		std::string const sd = parameters[1].substr( 3, parameters[1].size() ) ;
+		return std::make_pair( rho, sd ) ;
+	}
+
+	std::map< std::string, Eigen::MatrixXd > get_priors( appcontext::OptionProcessor const& options, std::vector< std::string > const& cohort_names ) {
 		std::map< std::string, Eigen::MatrixXd > result ;
 		using genfile::string_utils::to_string ;
 		using genfile::string_utils::to_repr ;
@@ -1410,7 +1467,6 @@ public:
 			get_simple_priors(
 				N,
 				options.get_values< std::string >( "-simple-prior" ),
-				options.get_values< std::string >( "-simple-prior-sd" ),
 				model_names,
 				&result
 			) ;
@@ -1421,7 +1477,11 @@ public:
 		}
 
 		if( options.check( "-group-prior" ) ) {
-			get_group_priors( N, options.get_values< std::string >( "-group-prior" ), options.get_values< std::string >( "-group-prior-name" ), &result ) ;
+			boost::optional< std::vector< std::string > > model_names ;
+			if( options.check( "-simple-prior-name" )) {
+				model_names = options.get_values< std::string >( "-group-prior-name" ) ;
+			}			
+			get_group_priors( N, options.get_values< std::string >( "-group-prior" ), model_names, cohort_names, &result ) ;
 		}
 		
 		return result ;
