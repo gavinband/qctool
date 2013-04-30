@@ -712,7 +712,7 @@ void ApproximateBayesianMetaAnalysis::operator()(
 			{
 				int count = 0 ;
 				for( int i = 0; i < betas.size(); ++i ) {
-					std::cerr << "i=" << i << ", non_missingness(i) = " << non_missingness(i) << ", m_sigma( i, i ) = " << m_sigma(i,i) << ".\n" ;
+					// std::cerr << "i=" << i << ", non_missingness(i) = " << non_missingness(i) << ", m_sigma( i, i ) = " << m_sigma(i,i) << ".\n" ;
 					if( non_missingness(i) && ( m_sigma( i, i ) > 0.0 ) ) {
 						prior_selector( count++, i ) = 1 ;
 					} else {
@@ -726,9 +726,9 @@ void ApproximateBayesianMetaAnalysis::operator()(
 				betas = prior_selector * betas ;
 				ses = prior_selector * ses ;
 			
-				std::cerr << m_name << ": prior selector is:\n" << prior_selector << "\n" ;
-				std::cerr << m_name << ": prior before selection is:\n" << m_sigma << "\n" ;
-				std::cerr << m_name << ": prior after selection is:\n" << prior << "\n" ;
+				//std::cerr << m_name << ": prior selector is:\n" << prior_selector << "\n" ;
+				//std::cerr << m_name << ": prior before selection is:\n" << m_sigma << "\n" ;
+				//std::cerr << m_name << ": prior after selection is:\n" << prior << "\n" ;
 			}
 		
 			assert( ses.size() == number_of_included_cohorts ) ;
@@ -811,6 +811,72 @@ BingwaComputation::UniquePtr BingwaComputation::create( std::string const& name,
 	return result ;
 }
 
+struct ValueAccumulator: public BingwaComputation {
+public:
+	typedef boost::shared_ptr< ValueAccumulator > SharedPtr ;
+	typedef std::auto_ptr< ValueAccumulator > UniquePtr ;
+
+public:
+	ValueAccumulator( std::string const& name ):
+		m_name( name ),
+		m_accumulation( 0 ),
+		m_accumulation_count( 0 )
+	{}
+
+	void set_weight( std::string const& model, double weight ) {
+		std::cerr << "Setting weight for model " << model << " to " << weight << ".\n" ;
+		m_weights[ model ] = weight ;
+	}
+	
+	void get_variables( boost::function< void ( std::string ) > callback ) const {
+		callback( m_name ) ;
+	}
+
+	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const {
+		return prefix + get_spec()  ;
+	}
+	
+	std::string get_spec() const {
+		using genfile::string_utils::to_string ;
+		std::string result =  "ValueAccumulator(" + m_name + ") with weights: " ;
+		std::map< std::string, double >::const_iterator i = m_weights.begin() ;
+		std::map< std::string, double >::const_iterator const end_i = m_weights.end() ;
+		for( ; i != end_i; ++i ) {
+			result += i->first + "=" + to_string( i->second ) + "; " ;
+		}
+		return result ;
+	}
+	
+	void accumulate( std::string const& variable, genfile::VariantEntry const& value ) {
+		std::cerr << "ValueAccumulator: looking at variable " << variable << " with value " << value << ".\n"  ;
+		if( !value.is_missing() ) {
+			std::map< std::string, double >::const_iterator where = m_weights.find( variable ) ;
+			if( where != m_weights.end() ) {
+				std::cerr << "ValueAccumulator: found!\n" ;
+				m_accumulation += value.as< double >() * where->second ;
+				++m_accumulation_count ;
+			}
+		}
+	}
+
+	void operator()(
+		SNPIdentifyingData2 const& snp,
+		DataGetter const&,
+		ResultCallback callback
+	) {
+		callback( m_name, m_accumulation / m_accumulation_count ) ;
+		m_accumulation = 0 ;
+		m_accumulation_count = 0 ;
+	}
+	
+	
+	
+private:
+	std::string const m_name ;
+	std::map< std::string, double > m_weights ;
+	double m_accumulation ;
+	double m_accumulation_count ;
+} ;
 
 namespace impl {
 	void assign_counts( Eigen::MatrixXd* result, Eigen::MatrixXd::Index const col, genfile::VariantEntry const& AA, genfile::VariantEntry const& AB, genfile::VariantEntry const& BB, genfile::VariantEntry const& missing ) {
@@ -1215,30 +1281,17 @@ public:
 		}
 	
 		if( options().check( "-data" ) && options().get_values< std::string >( "-data" ).size() > 0 ) {
-
 			m_processor->add_computation(
 				"PerCohortValueReporter",
 				BingwaComputation::create( "PerCohortValueReporter", cohort_names, options() )
 			) ;
 
-			if( !options().check( "-no-meta-analysis" )) {
-				
-				BingwaComputation::Filter filter( &impl::basic_missingness_filter ) ;
-				if( options().check( "-min-info" ) || options().check( "-min-maf" )) {
-					double lower_info_threshhold = NA ;
-					double lower_maf_threshhold = NA ;
-					if( options().check( "-min-info" ) ) {
-						lower_info_threshhold = options().get< double > ( "-min-info" ) ;
-					}
-					if( options().check( "-min-maf" ) ) {
-						lower_maf_threshhold = options().get< double > ( "-min-maf" ) ;
-					}
-					filter = boost::bind(
-						&impl::info_maf_filter, _1, _2,
-						lower_info_threshhold, lower_maf_threshhold
-					) ;
-				}
-				
+			if( options().check( "-no-meta-analysis" )) {
+				// No more computations.
+			}
+			else {
+				BingwaComputation::Filter filter = get_filter( options() ) ;
+
 				{
 					FixedEffectFrequentistMetaAnalysis::UniquePtr computation(
 						new FixedEffectFrequentistMetaAnalysis()
@@ -1252,24 +1305,55 @@ public:
 				if( options().check( "-simple-prior" ) || options().check( "-complex-prior" ) || options().check( "-group-prior" )) {
 					std::map< std::string, Eigen::MatrixXd > const priors = get_priors( options(), cohort_names ) ;
 					assert( priors.size() > 0 ) ;
-					std::map< std::string, Eigen::MatrixXd >::const_iterator i = priors.begin() ;
-					std::map< std::string, Eigen::MatrixXd >::const_iterator const end_i = priors.end() ;
-					for( ; i != end_i; ++i ) {
-						ApproximateBayesianMetaAnalysis::UniquePtr computation(
-							new ApproximateBayesianMetaAnalysis(
-								i->first,
-								i->second
+					{
+						std::map< std::string, Eigen::MatrixXd >::const_iterator i = priors.begin() ;
+						std::map< std::string, Eigen::MatrixXd >::const_iterator const end_i = priors.end() ;
+						for( ; i != end_i; ++i ) {
+							ApproximateBayesianMetaAnalysis::UniquePtr computation(
+								new ApproximateBayesianMetaAnalysis(
+									i->first,
+									i->second
+								)
+							) ;
+						
+							computation->set_filter( filter ) ;
+
+							m_processor->add_computation(
+								"ApproximateBayesianMetaAnalysis",
+								BingwaComputation::UniquePtr( computation.release() )
+							) ;
+						}
+					}
+					
+					// Now set up an average bayes factor
+					// Currently this must be added after the computations above in order
+					// to be fed data before the mean is computed.
+					{
+						ValueAccumulator::UniquePtr mean_bf(
+							new ValueAccumulator( "mean_bf" )
+						) ;
+
+						std::map< std::string, Eigen::MatrixXd >::const_iterator i = priors.begin() ;
+						std::map< std::string, Eigen::MatrixXd >::const_iterator const end_i = priors.end() ;
+						for( ; i != end_i; ++i ) {
+							mean_bf->set_weight( "ApproximateBayesianMetaAnalysis/" + i->first + "/bf", 1.0 ) ;
+						}
+
+						m_processor->send_results_to(
+							boost::bind(
+								&ValueAccumulator::accumulate,
+								mean_bf.get(),
+								_2,
+								_3
 							)
 						) ;
 						
-						computation->set_filter( filter ) ;
-
 						m_processor->add_computation(
 							"ApproximateBayesianMetaAnalysis",
-							BingwaComputation::UniquePtr( computation.release() )
+							BingwaComputation::UniquePtr( mean_bf.release() )
 						) ;
 					}
-					
+				
 					summarise_priors( priors, cohort_names ) ;
 				}
 			}
@@ -1290,6 +1374,25 @@ public:
 		storage->finalise( finalise_options ) ;
 	}
 	
+	BingwaComputation::Filter get_filter( appcontext::OptionProcessor const& options ) const {
+		BingwaComputation::Filter filter( &impl::basic_missingness_filter ) ;
+		if( options.check( "-min-info" ) || options.check( "-min-maf" )) {
+			double lower_info_threshhold = NA ;
+			double lower_maf_threshhold = NA ;
+			if( options.check( "-min-info" ) ) {
+				lower_info_threshhold = options.get< double > ( "-min-info" ) ;
+			}
+			if( options.check( "-min-maf" ) ) {
+				lower_maf_threshhold = options.get< double > ( "-min-maf" ) ;
+			}
+			filter = boost::bind(
+				&impl::info_maf_filter, _1, _2,
+				lower_info_threshhold, lower_maf_threshhold
+			) ;
+		}
+		return filter ;
+	}
+
 	void get_simple_priors(
 		int const number_of_cohorts,
 		std::vector< std::string > const& specs,
@@ -1648,7 +1751,7 @@ public:
 		using genfile::string_utils::join ;
 		using genfile::string_utils::split_and_strip_discarding_empty_entries ;
 
-		if( options().check_if_option_was_supplied_in_group( "SNP exclusion options" )) {
+		if( options().check_if_option_was_supplied_in_group( "SNP inclusion / exclusion options" )) {
 			snp_filter.reset( new genfile::CommonSNPFilter ) ;
 
 			if( options().check_if_option_was_supplied( "-excl-snpids" )) {
