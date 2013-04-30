@@ -60,6 +60,8 @@ def check_for_3rd_party_components( conf ):
 	conf.define( 'HAVE_EIGEN', 1 )
 	if conf.check_cxx( lib = 'dl', uselib_store = 'DL' ):
 		conf.define( 'HAVE_DL', 1 )
+	if conf.check_cxx( lib = 'm', uselib_store = 'M' ):
+		conf.define( 'HAVE_M', 1 )
 	if conf.check_cxx( lib = 'bz2', uselib_store = 'BZIP2' ):
 		conf.define( 'HAVE_BZIP2', 1 )
 	if conf.check_cxx( lib = 'mgl', uselib_store = 'MGL', cxxflags = '-I' + conf.env['PREFIX'] + '/include', linkflags ='-L' + conf.env['PREFIX'] + '/lib' ):
