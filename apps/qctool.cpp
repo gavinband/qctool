@@ -1167,7 +1167,9 @@ private:
 				
 						StrandSpec::iterator where = result->at(i).find( snp ) ;
 						if( where != result->at(i).end() ) {
-							throw genfile::DuplicateKeyError( source->get_source_spec(), genfile::string_utils::to_string( snp ) ) ;
+							if( where->second != strand[0] ) {
+								throw genfile::DuplicateKeyError( source->get_source_spec(), genfile::string_utils::to_string( snp ) ) ;
+							}
 						}
 						result->at(i)[ snp ] = strand[0] ;
 						(*source) >> statfile::ignore_all() ;
