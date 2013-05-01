@@ -848,11 +848,11 @@ public:
 	}
 	
 	void accumulate( std::string const& variable, genfile::VariantEntry const& value ) {
-		std::cerr << "ValueAccumulator: looking at variable " << variable << " with value " << value << ".\n"  ;
+	//	std::cerr << "ValueAccumulator: looking at variable " << variable << " with value " << value << ".\n"  ;
 		if( !value.is_missing() ) {
 			std::map< std::string, double >::const_iterator where = m_weights.find( variable ) ;
 			if( where != m_weights.end() ) {
-				std::cerr << "ValueAccumulator: found!\n" ;
+	//			std::cerr << "ValueAccumulator: found!\n" ;
 				m_accumulation += value.as< double >() * where->second ;
 				++m_accumulation_count ;
 			}
@@ -864,7 +864,9 @@ public:
 		DataGetter const&,
 		ResultCallback callback
 	) {
-		callback( m_name, m_accumulation / m_accumulation_count ) ;
+		if( m_accumulation_count > 0 ) {
+			callback( m_name, m_accumulation / m_accumulation_count ) ;
+		}
 		m_accumulation = 0 ;
 		m_accumulation_count = 0 ;
 	}
@@ -1581,7 +1583,7 @@ public:
 
 		if( options.check( "-group-prior" ) ) {
 			boost::optional< std::vector< std::string > > model_names ;
-			if( options.check( "-simple-prior-name" )) {
+			if( options.check( "-group-prior-name" )) {
 				model_names = options.get_values< std::string >( "-group-prior-name" ) ;
 			}			
 			get_group_priors( N, options.get_values< std::string >( "-group-prior" ), model_names, cohort_names, &result ) ;
