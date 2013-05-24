@@ -10,11 +10,16 @@
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/device/file.hpp>
 
+#include <Eigen/Core>
+
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/GenFileSNPDataSink.hpp"
 #include "genfile/BGenFileSNPDataSink.hpp"
 #include "genfile/VCFFormatSNPDataSink.hpp"
+#include "genfile/vcf/get_set_eigen.hpp"
+#include "genfile/get_set_eigen.hpp"
+#include "genfile/get_set.hpp"
 
 namespace genfile {
 
@@ -126,6 +131,24 @@ namespace genfile {
 		VariantDataReader& data_reader,
 		Info const& info
 	) {
-		throw OperationUnsupportedError( "genfile::SNPDataSink::write_variant_data_impl()", "call", get_spec() ) ;
+		m_genotypes.setZero() ;
+		{
+			vcf::GenotypeSetter< Eigen::MatrixBase< Eigen::MatrixXd > > setter( m_genotypes ) ;
+			data_reader.get( "genotypes", setter ) ;
+		}
+
+		write_snp_impl(
+			m_genotypes.rows(),
+			id_data.get_SNPID(),
+			id_data.get_rsid(),
+			id_data.get_position().chromosome(),
+			id_data.get_position().position(),
+			id_data.get_first_allele(),
+			id_data.get_second_allele(),
+			genfile::GenotypeGetter< Eigen::MatrixXd >( m_genotypes, 0ul ),
+			genfile::GenotypeGetter< Eigen::MatrixXd >( m_genotypes, 1ul ),
+			genfile::GenotypeGetter< Eigen::MatrixXd >( m_genotypes, 2ul ),
+			info
+		) ;
 	}
 }
