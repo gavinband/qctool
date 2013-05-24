@@ -24,7 +24,5 @@ struct SampleInListCondition: public RowCondition
 		std::string m_filename ;
 } ;
 
-
-
 #endif
 

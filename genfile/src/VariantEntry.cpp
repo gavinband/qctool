@@ -74,6 +74,18 @@ namespace genfile {
 	bool VariantEntry::operator<( VariantEntry const& rhs ) const {
 		return m_entrydata < rhs.m_entrydata ;
 	}
+
+	bool VariantEntry::operator<=( VariantEntry const& rhs ) const {
+		return m_entrydata < rhs.m_entrydata || m_entrydata == rhs.m_entrydata ;
+	}
+
+	bool VariantEntry::operator>( VariantEntry const& rhs ) const {
+		return !( m_entrydata < rhs.m_entrydata ) && !( m_entrydata == rhs.m_entrydata ) ;
+	}
+
+	bool VariantEntry::operator>=( VariantEntry const& rhs ) const {
+		return !( m_entrydata < rhs.m_entrydata ) ;
+	}
 	
 	std::ostream& operator<<( std::ostream& ostr, VariantEntry const& entry ) {
 		return ostr << entry.m_entrydata ;

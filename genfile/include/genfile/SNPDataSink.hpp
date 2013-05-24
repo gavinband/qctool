@@ -12,9 +12,12 @@
 #include <stdint.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
+#include <Eigen/Core>
+
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/Error.hpp"
 
 namespace genfile {
@@ -75,6 +78,8 @@ namespace genfile {
 			VariantDataReader& data_reader,
 			Info const& info = Info()
 		) ;
+		
+		
 
 	public:
 		// return the number of samples represented in SNPs in the file.
@@ -127,6 +132,8 @@ namespace genfile {
 		uint32_t m_number_of_samples ;
 		bool m_samples_have_been_set ;
 		std::size_t m_number_of_snps_written ;
+
+		Eigen::MatrixXd m_genotypes ;
 
 		SNPDataSink( SNPDataSink const& other ) ;
 		SNPDataSink& operator=( SNPDataSink const& other ) ;

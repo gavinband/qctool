@@ -25,6 +25,7 @@ namespace genfile {
 		VariantEntry& operator=( int const value ) ;
 		VariantEntry() ; // Initialise with MissingValue.
 	public:
+		int type() const ;
 		bool is_missing() const ;
 		bool is_string() const ;
 		bool is_int() const ;
@@ -45,6 +46,9 @@ namespace genfile {
 		bool operator==( VariantEntry const& rhs ) const ;
 		bool operator!=( VariantEntry const& rhs ) const ;
 		bool operator<( VariantEntry const& rhs ) const ;
+		bool operator<=( VariantEntry const& rhs ) const ;
+		bool operator>( VariantEntry const& rhs ) const ;
+		bool operator>=( VariantEntry const& rhs ) const ;
 		friend std::ostream& operator<<( std::ostream&, VariantEntry const& ) ;
 		typedef int64_t Integer ;
 
