@@ -30,7 +30,7 @@ namespace genfile {
 		genfile::VariantEntry m_lower_bound ;
 		genfile::VariantEntry m_upper_bound ;
 	
-		bool test( genfile::CohortIndividualSource const& source, std::size_t i ) const ;
+		bool test( genfile::CohortIndividualSource const& source, std::size_t i, DetailBlock* detail ) const ;
 		virtual bool compare_impl( genfile::VariantEntry const& value, genfile::VariantEntry const& lower, genfile::VariantEntry const& upper ) const = 0 ;
 	} ;
 

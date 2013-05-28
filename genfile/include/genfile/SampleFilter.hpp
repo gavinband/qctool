@@ -12,6 +12,7 @@
 #include <vector>
 #include <boost/noncopyable.hpp>
 #include <boost/function.hpp>
+#include <Eigen/Core>
 #include "genfile/CohortIndividualSource.hpp"
 
 namespace genfile {
@@ -20,14 +21,25 @@ namespace genfile {
 	public:
 		typedef std::auto_ptr< SampleFilter > UniquePtr ;
 		static UniquePtr create( std::string const& spec ) ;
+		
+		typedef Eigen::MatrixXd DetailMatrix ;
+		typedef Eigen::Block< DetailMatrix > DetailBlock ;
 	public:
 		SampleFilter() ;
 		virtual ~SampleFilter() ;
 
 		virtual void summarise( std::ostream& ) const = 0 ;
-
-		void compute_failed_samples( genfile::CohortIndividualSource const&, boost::function< void( std::size_t ) > callback ) const ;
-		virtual bool test( genfile::CohortIndividualSource const&, std::size_t i ) const = 0 ;
+		virtual std::size_t number_of_clauses() const { return 1 ; }
+		virtual bool test(
+			genfile::CohortIndividualSource const&,
+			std::size_t i,
+			DetailBlock* detail = 0
+		) const = 0 ;
+		void test(
+			genfile::CohortIndividualSource const&,
+			boost::function< void( std::size_t ) > callback,
+			DetailMatrix* detail = 0
+		) const ;
 	} ;
 
 	std::ostream& operator<< ( std::ostream& oStream, SampleFilter const& filter ) ;

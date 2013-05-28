@@ -44,7 +44,11 @@ namespace genfile {
 		m_levels.push_back( value ) ;
 	}
 
-	bool VariableInSetSampleFilter::test( genfile::CohortIndividualSource const& source, std::size_t i ) const {
+	bool VariableInSetSampleFilter::test(
+		genfile::CohortIndividualSource const& source,
+		std::size_t i,
+		DetailBlock* detail
+	) const {
 		genfile::VariantEntry value = source.get_entry( i, m_variable ) ;
 		bool in_set = false ;
 		if( !value.is_missing() ) {
@@ -54,6 +58,9 @@ namespace genfile {
 				impl::cast_types_for_comparison( v, level ) ;
 				in_set = ( v == level ) ;
 			}
+		}
+		if( detail ) {
+			(*detail)( 0, 0 ) = in_set ;
 		}
 		return in_set ;
 	}

@@ -23,6 +23,7 @@
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/foreach.hpp>
+#include <boost/iterator/counting_iterator.hpp>
 
 #include "Timer.hpp"
 #include "GenRow.hpp"
@@ -72,8 +73,12 @@
 #include "genfile/vcf/StrictMetadataParser.hpp"
 #include "genfile/WithSNPDosagesCohortIndividualSource.hpp"
 #include "genfile/get_set_eigen.hpp"
+
 #include "genfile/SampleFilter.hpp"
 #include "genfile/CompoundSampleFilter.hpp"
+#include "genfile/SampleFilterNegation.hpp"
+#include "genfile/VariableInSetSampleFilter.hpp"
+#include "genfile/VariableInRangeSampleFilter.hpp"
 
 #include "statfile/BuiltInTypeStatSource.hpp"
 #include "statfile/from_string.hpp"
@@ -734,14 +739,6 @@ struct QCToolCmdLineContext
 		return *m_fltrd_out_snp_data_sink ;
 	}
 	
-	AndRowCondition& snp_filter() const {
-		return *m_snp_filter ;
-	}
-	
-	AndRowCondition& sample_filter() const {
-		return *m_sample_filter ;
-	}
-	
 	std::vector< std::size_t > const& indices_of_filtered_out_samples() const { return m_indices_of_filtered_out_samples ; }
 
 	genfile::CohortIndividualSource const& samples() const { return *m_samples ; }
@@ -749,9 +746,6 @@ struct QCToolCmdLineContext
 	bool ignore_warnings() const {
 		return m_ignore_warnings ;
 	}
-
-	std::vector< std::size_t >& snp_filter_failure_counts() { return m_snp_filter_failure_counts ; }
-	std::vector< std::size_t >& sample_filter_failure_counts() { return m_sample_filter_failure_counts ; }
 
 	void write_preamble() {
 		m_ui_context.logger() << std::string( 72, '=' ) << "\n\n" ;
@@ -815,11 +809,20 @@ struct QCToolCmdLineContext
 		}
 
 		m_ui_context.logger() << std::resetiosflags( std::ios::floatfield ) << std::setprecision( 10 ) ;
-		m_ui_context.logger() << std::setw(30) << "Sample filter:" 
-			<< "  " << *m_sample_filter << ".\n" ;
-		m_ui_context.logger() << std::setw(30) << "SNP filter:"
-			<< "  " << *m_snp_filter << ".\n" ;
-		m_ui_context.logger() << "\n" ;
+		{
+			if( m_sample_filter.get() ) {
+				m_ui_context.logger() << std::setw(30) << "Sample filter:" 
+					<< "  " << *m_sample_filter << ".\n" ;
+			}
+		}
+		{
+			genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter() ;
+			if( snp_filter.get() ) {
+				m_ui_context.logger() << std::setw(30) << "SNP filter:"
+					<< "  " << *snp_filter << ".\n" ;
+				m_ui_context.logger() << "\n" ;
+			}
+		}
 
 		m_ui_context.logger() << std::setw(30) << "# of samples in input files:"
 			<< "  " << m_snp_data_source->get_base_source().number_of_samples() << ".\n" ;
@@ -900,25 +903,14 @@ struct QCToolCmdLineContext
 		m_ui_context.logger() << std::setw(36) << " -- in output file(s):"
 			<< "  " << m_fltrd_in_snp_data_sink->number_of_snps_written() << "\n" ;
 
-		if( m_snp_filter->number_of_subconditions() > 0 ) {
-			m_ui_context.logger() << std::resetiosflags( std::ios::floatfield ) ;
-			for( std::size_t i = 0; i < m_snp_filter->number_of_subconditions(); ++i ) {
-				m_ui_context.logger() << std::setw(36) << ("...which failed \"" + string_utils::to_string( m_snp_filter->subcondition( i )) + "\":")
-					<< "  " << m_snp_filter_failure_counts[i] << ".\n" ;
-			}
-
-			m_ui_context.logger() << std::setw(36) << "(total failures:"
-				<< "  " << m_fltrd_out_snp_data_sink->number_of_snps_written() << ").\n" ;
-		}
-		
 		m_ui_context.logger() << "\n" ;
 
 		m_ui_context.logger() << std::setw(36) << "Number of samples in input file(s):"
 			<< "  " << m_snp_data_source->get_base_source().number_of_samples() << ".\n" ;
-		if( m_sample_filter->number_of_subconditions() > 0 ) {
-			for( std::size_t i = 0 ; i < m_sample_filter_failure_counts.size(); ++ i ) {
-				m_ui_context.logger() << std::setw(36) << ("...which failed \"" + string_utils::to_string( m_sample_filter->subcondition( i )) + "\":")
-					<< "  " << m_sample_filter_failure_counts[i] << ".\n" ;
+		if( m_sample_filter->number_of_clauses() > 0 ) {
+			for( std::size_t i = 0 ; i < m_sample_filter->number_of_clauses(); ++ i ) {
+				m_ui_context.logger() << std::setw(36) << ("...which failed \"" + string_utils::to_string( m_sample_filter->clause( i )) + "\":")
+					<< "  " << m_sample_filter_diagnostic_matrix.col(i).sum() << ".\n" ;
 			}
 			m_ui_context.logger() << std::setw(36) << "(total failures:" << "  " << m_indices_of_filtered_out_samples.size() << ").\n" ;
 		}
@@ -996,15 +988,12 @@ private:
 	std::auto_ptr< genfile::SNPDataSinkChain > m_fltrd_out_snp_data_sink ;
 	std::auto_ptr< ObjectSource< SampleRow > > m_sample_source ;
 
-	std::vector< std::size_t > m_snp_filter_failure_counts ;
-	std::vector< std::size_t > m_sample_filter_failure_counts ;
-	
 	bool m_ignore_warnings ; 
 	
 	std::size_t m_current_snp_stats_filename_index ;
 
-	std::auto_ptr< AndRowCondition > m_snp_filter ;
-	std::auto_ptr< AndRowCondition > m_sample_filter ;
+	genfile::SampleFilterConjunction::UniquePtr m_sample_filter ;
+	Eigen::MatrixXd m_sample_filter_diagnostic_matrix ;
 
 	std::vector< std::size_t > m_indices_of_filtered_out_samples ;
 	
@@ -1016,8 +1005,7 @@ private:
 private:
 	
 	void setup() {
-		construct_snp_filter() ;
-		construct_sample_filter() ;
+		m_sample_filter = get_sample_filter() ;
 		process_other_options() ;
 		
 		if( m_options.check_if_option_has_value( "-translate-snp-positions" )) {
@@ -1755,41 +1743,11 @@ private:
 		m_fltrd_out_snp_data_sink.reset( new genfile::SNPDataSinkChain() ) ;
 	}
 
-	void construct_snp_filter() {
-		std::auto_ptr< AndRowCondition > snp_filter( new AndRowCondition() ) ;
-
-		if( m_options.check_if_option_was_supplied( "-hwe" ) ) {
-			add_one_arg_condition_to_filter< StatisticLessThan >( *snp_filter, "HWE", m_options.get_value< double >( "-hwe" )) ;
-		}
-
-		if( m_options.check_if_option_was_supplied( "-info" ) ) {
-			add_two_arg_condition_to_filter< StatisticInInclusiveRange >( *snp_filter, "information", m_options.get_values< double >( "-info" )) ;
-		}
-
-		if( m_options.check_if_option_was_supplied( "-snp-missing-rate" ) ) {
-			add_one_arg_condition_to_filter< StatisticLessThan >( *snp_filter, "missing", m_options.get_value< double >( "-snp-missing-rate" )) ;
-		}
-
-		if( m_options.check_if_option_was_supplied( "-snp-missing-call-rate" ) ) {
-			add_one_arg_condition_to_filter< StatisticLessThan >( *snp_filter, "missing_calls", m_options.get_value< double >( "-snp-missing-call-rate" )) ;
-		}
-
-		if( m_options.check_if_option_was_supplied( "-maf" ) ) {
-			add_two_arg_condition_to_filter< StatisticInInclusiveRange >( *snp_filter, "MAF", m_options.get_values< double >( "-maf" )) ;
-		}
-
-		m_snp_filter = snp_filter ;
-		m_snp_filter_failure_counts.resize( m_snp_filter->number_of_subconditions(), 0 ) ;
-	}
-
-	void construct_sample_filter() {
-		genfile::SampleFilterConjunction and( new genfile::SampleFilterConjunction() ) ;
-		genfile::SampleFilterDisjunction or( new genfile::SampleFilterDisjunction() ) ;
-		
-		std::auto_ptr< AndRowCondition > sample_filter( new AndRowCondition() ) ;
+	genfile::SampleFilterConjunction::UniquePtr get_sample_filter() const {
+		genfile::SampleFilterConjunction::UniquePtr filter( new genfile::SampleFilterConjunction() ) ;
 		
 		if( m_options.check_if_option_was_supplied( "-sample-missing-rate" ) ) {
-			and.add_clause(
+			filter->add_clause(
 				genfile::SampleFilter::UniquePtr(
 					new genfile::VariableInInclusiveRangeSampleFilter( "missing", -1, m_options.get_value< double >( "-sample-missing-rate" ) )
 				)
@@ -1797,70 +1755,74 @@ private:
 		}
 
 		if( m_options.check_if_option_was_supplied( "-heterozygosity" ) ) {
-			and.add_clause(
+			filter->add_clause(
 				genfile::SampleFilter::UniquePtr(
-					new genfile::VariableInInclusiveRangeSampleFilter( "heterozygosity", -1, m_options.get_values< double >( "-heterozygosity" )[0], m_options.get_values< double >( "-heterozygosity" )[1] )
+					new genfile::VariableInInclusiveRangeSampleFilter( "heterozygosity", m_options.get_values< double >( "-heterozygosity" )[0], m_options.get_values< double >( "-heterozygosity" )[1] )
 				)
 			) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "-incl-samples" ) ) {
-			std::vector< std::string > filenames = m_options.get_values< std::string >( "-incl-samples" ) ;
-			genfile::VariableInSetSampleFilter::UniquePtr filter( new genfile::VariableInSetSampleFilter( "ID_1" )) ;
-			
-			std::auto_ptr< OrRowCondition > inclusion_condition( new OrRowCondition() ) ;
-			for( std::size_t i = 0; i < filenames.size(); ++i ) {
-				std::auto_ptr< RowCondition > sample_incl_condition( new SampleInListCondition( filenames[i] )) ;
-				inclusion_condition->add_subcondition( sample_incl_condition ) ;
-			}
-			sample_filter->add_subcondition( std::auto_ptr< RowCondition >( inclusion_condition.release() ) ) ;
+			genfile::SampleFilter::UniquePtr id1_filter = get_sample_id_filter(
+				m_options.get_values< std::string >( "-incl-samples" )
+			) ;
+			filter->add_clause( genfile::SampleFilter::UniquePtr( id1_filter.release() ) ) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "-excl-samples" ) ) {
-			std::vector< std::string > filenames = m_options.get_values< std::string >( "-excl-samples" ) ;
-			for( std::size_t i = 0; i < filenames.size(); ++i ) {
-				std::auto_ptr< RowCondition > sample_incl_condition( new SampleInListCondition( filenames[i] )) ;
-				std::auto_ptr< RowCondition > sample_excl_condition( new NotRowCondition( sample_incl_condition )) ;
-				sample_filter->add_subcondition( sample_excl_condition ) ;
-			}
+			genfile::SampleFilter::UniquePtr id1_filter = get_sample_id_filter(
+				m_options.get_values< std::string >( "-excl-samples" )
+			) ;
+			filter->add_clause(
+				genfile::SampleFilter::UniquePtr(
+					new genfile::SampleFilterNegation(
+						id1_filter
+					)
+				)
+			) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "-incl-samples-where" ) ) {
 			std::vector< std::string > conditions = m_options.get_values< std::string >( "-incl-samples-where" ) ;
-			std::auto_ptr< OrRowCondition > inclusion_condition( new OrRowCondition() ) ;
+			// we OR together different WHERE clauses.
+			genfile::SampleFilterDisjunction::UniquePtr where( new genfile::SampleFilterDisjunction() ) ;
 			for( std::size_t i = 0; i < conditions.size(); ++i ) {
-				std::auto_ptr< RowCondition > sample_incl_condition( new SampleDataCondition( conditions[i] ) )
-				inclusion_condition->add_subcondition( sample_incl_condition ) ;
+				where->add_clause( genfile::SampleFilter::create( conditions[i] )) ;
 			}
-			sample_filter->add_subcondition( std::auto_ptr< RowCondition >( inclusion_condition.release() ) ) ;
+			filter->add_clause( genfile::SampleFilter::UniquePtr( where.release() ) ) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "-excl-samples-where" ) ) {
 			std::vector< std::string > conditions = m_options.get_values< std::string >( "-excl-samples-where" ) ;
+			// we OR together different WHERE clauses.
+			genfile::SampleFilterDisjunction::UniquePtr where( new genfile::SampleFilterDisjunction() ) ;
 			for( std::size_t i = 0; i < conditions.size(); ++i ) {
-				std::auto_ptr< RowCondition > sample_incl_condition( new SampleDataCondition( conditions[i] ) )
-				std::auto_ptr< RowCondition > sample_excl_condition( new NotRowCondition( sample_incl_condition )) ;
-				sample_filter->add_subcondition( sample_excl_condition ) ;
+				where->add_clause( genfile::SampleFilter::create( conditions[i] )) ;
 			}
+			filter->add_clause(
+				genfile::SampleFilter::UniquePtr(
+					new genfile::SampleFilterNegation(
+						genfile::SampleFilter::UniquePtr( where.release() )
+					)
+				)
+			) ;
 		}
 
-		m_sample_filter = sample_filter ;
-		m_sample_filter_failure_counts.resize( m_sample_filter->number_of_subconditions(), 0 ) ;
+		return filter ;
 	}
 
-	template< typename ConditionType >
-	void add_one_arg_condition_to_filter( AndRowCondition& filter, std::string const& statistic_name, double value ) {
-		std::auto_ptr< RowCondition > condition( new ConditionType( statistic_name, value )) ;
-		filter.add_subcondition( condition ) ;
+	genfile::SampleFilter::UniquePtr get_sample_id_filter( std::vector< std::string > const& filenames ) const {
+		genfile::VariableInSetSampleFilter::UniquePtr result( new genfile::VariableInSetSampleFilter( "ID_1" )) ;
+		for( std::size_t i = 0; i < filenames.size(); ++i ) {
+			std::string elt ;
+			std::ifstream is( filenames[i].c_str() ) ;
+			while( std::getline( is, elt )) {
+				result->add_level( elt ) ;
+			}
+		}
+		return genfile::SampleFilter::UniquePtr( result.release() ) ;
 	}
-
-	template< typename ConditionType >
-	void add_two_arg_condition_to_filter( AndRowCondition& filter, std::string const& statistic_name, std::vector< double > values ) {
-		assert( values.size() == 2 ) ;
-		std::auto_ptr< RowCondition > condition( new ConditionType( statistic_name, values[0], values[1] )) ;
-		filter.add_subcondition( condition ) ;
-	}
-
+	
 	void process_other_options() {
 		m_ignore_warnings = m_options.check_if_option_was_supplied( "-force" ) ;
 	}
@@ -1926,18 +1888,24 @@ private:
 	}
 	
 	std::vector< std::size_t > compute_excluded_samples( genfile::CohortIndividualSource::UniquePtr const& sample_source ) {
-		//return m_sample_filter->compute_excluded_samples( sample_source ) ;
-		std::vector< std::size_t > exclusions ;
-		SampleRow sample_row ;
-		assert( sample_source.get() ) ;
-		std::size_t count = 0 ;
-		for( std::size_t i = 0; i < sample_source->get_number_of_individuals(); ++i ) {
-			sample_row.read_ith_sample_from_source( i, *sample_source ) ;
-			if( !m_sample_filter->check_if_satisfied( sample_row )) {
-				exclusions.push_back( i ) ;
-			}
+		std::vector< std::size_t > included_samples ;
+		m_sample_filter->test(
+			*sample_source,
+			boost::bind(
+				&std::vector< std::size_t >::push_back,
+				&included_samples,
+				_1
+			),
+			&m_sample_filter_diagnostic_matrix
+		) ;
+		std::vector< std::size_t > result(
+			boost::counting_iterator< std::size_t >(0),
+			boost::counting_iterator< std::size_t >( sample_source->get_number_of_individuals() )
+		) ;
+		for( std::size_t i = 0; i < included_samples.size(); ++i ) {
+			result.erase( result.begin() + included_samples[i] - i ) ;
 		}
-		return exclusions ;
+		return result ;
 	}
 	
 	genfile::CohortIndividualSource::UniquePtr condition_on(
@@ -2043,11 +2011,8 @@ private:
 				m_errors.push_back( "The GEN and SAMPLE output filenames must differ." ) ;
 			}
 		}
-		if( m_mangled_options.input_sample_filenames().size() == 0 && m_sample_filter->number_of_subconditions() != 0 ) {
+		if( m_mangled_options.input_sample_filenames().size() == 0 && m_sample_filter->number_of_clauses() != 0 ) {
 			m_errors.push_back( "To filter on samples, please supply input sample files." ) ;
-		}
-		if( m_snp_filter->number_of_subconditions() > 0 && m_mangled_options.snp_excl_list_filename_mapper().output_filenames().size() == 0 && m_mangled_options.gen_filename_mapper().output_filenames().size() == 0 ) {
-			m_errors.push_back( "You have specified SNP filters, but no output SNP exclusion list or output GEN files.\n" ) ;
 		}
 	}
 	

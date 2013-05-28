@@ -11,16 +11,33 @@
 #include "genfile/SampleFilter.hpp"
 #include "genfile/VariableInRangeSampleFilter.hpp"
 #include "genfile/VariableInSetSampleFilter.hpp"
+#include "genfile/impl/filter_grammar.hpp"
 
 namespace genfile {
 	SampleFilter::SampleFilter() {}
 	SampleFilter::~SampleFilter() {}
 
-	void SampleFilter::compute_failed_samples( genfile::CohortIndividualSource const& source, boost::function< void( std::size_t ) > callback ) const {
-		std::vector< std::size_t > result ;
+	void SampleFilter::test(
+		genfile::CohortIndividualSource const& source,
+		boost::function< void ( std::size_t ) > callback,
+		DetailMatrix* detail
+	) const {
+		if( detail ) {
+			detail->resize( source.get_number_of_individuals(), number_of_clauses() ) ;
+			detail->setConstant( std::numeric_limits< double >::quiet_NaN() ) ;
+		}
 		for( std::size_t i = 0; i < source.get_number_of_individuals(); ++i ) {
-			if( !test( source, i )) {
-				callback( i ) ;
+			if( detail ) {
+				DetailBlock block = detail->block( i, 0, 1, detail->cols() ) ;
+				bool a = test( source, i, &block ) ;
+				if( a ) {
+					callback( i ) ;
+				}
+			} else {
+				bool a = test( source, i ) ;
+				if( a ) {
+					callback( i ) ;
+				}
 			}
 		}
 	}
@@ -30,6 +47,7 @@ namespace genfile {
 		return oStream ;
 	}
 
+	
 
 	// Factory function for conditions.
 	SampleFilter::UniquePtr SampleFilter::create( std::string const& spec ) {
