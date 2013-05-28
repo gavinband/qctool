@@ -9,23 +9,38 @@
 
 #include <string>
 #include <boost/spirit/include/qi.hpp>
+#include <boost/spirit/include/qi_list.hpp>
+#include <boost/spirit/include/qi_optional.hpp>
 #include <boost/fusion/container.hpp>
 #include "genfile/VariantEntry.hpp"
 #include "genfile/SampleFilter.hpp"
 
-namespace bf = boost::fusion ;
+namespace fusion = boost::fusion ;
 
 namespace genfile {
 	namespace impl {
-		SampleFilter::UniquePtr construct_filter( bf::vector< std::string, std::string, genfile::VariantEntry > const& value ) {
+		SampleFilter::UniquePtr construct_filter( fusion::vector< std::string, std::string, genfile::VariantEntry > const& data ) {
 			assert(0) ;
 		}
 
+		SampleFilter::UniquePtr construct_in_filter( fusion::vector< std::string, std::vector< genfile::VariantEntry > > const& data ) {
+			VariableInSetSampleFilter::UniquePtr result(
+				new VariableInSetSampleFilter( fusion::at_c<0>( data ))
+			) ;
+
+			std::vector< genfile::VariantEntry > const& values = fusion::at_c<1>( data ) ;
+			for( std::size_t i = 0; i < values.size(); ++i ) {
+				result->add_level( values[i] ) ;
+			}
+
+			return SampleFilter::UniquePtr( result.release() ) ;
+		}
+
 		SampleFilter::UniquePtr construct_between_filter(
-			bf::vector< std::string, genfile::VariantEntry, genfile::VariantEntry > const& data
+			fusion::vector< std::string, genfile::VariantEntry, genfile::VariantEntry > const& data
 		) {
 			SampleFilter::UniquePtr result(
-				new VariableInInclusiveRangeSampleFilter( bf::at_c<0>( data ), bf::at_c<1>( data ), bf::at_c<2>( data ))
+				new VariableInInclusiveRangeSampleFilter( fusion::at_c<0>( data ), fusion::at_c<1>( data ), fusion::at_c<2>( data ))
 			) ;
 			return result ;
 		}
@@ -40,6 +55,7 @@ namespace genfile {
 			typedef std::string OP ;
 
 			rule< Iterator, SampleFilter::UniquePtr > start ;
+			rule< Iterator, genfile::VariantEntry > identifier ;
 			rule< Iterator, SampleFilter::UniquePtr > op_clause ;
 			rule< Iterator, SampleFilter::UniquePtr > between_clause ;
 			rule< Iterator, SampleFilter::UniquePtr > in_clause ;
@@ -52,58 +68,41 @@ namespace genfile {
 
     		filter_parser() : filter_parser::base_type( start, "filter_grammar" )
     		{
-				char_		STAR('*');
-				char_		COMMA(',');
-				char_		LPAREN('(');
-				char_		RPAREN(')'); 
-				char_		SEMI(';');
-				char_		LT('<');
-				char_		GT('>');
-				string		LE("<=");
-				string		GE(">=");
-				char_		EQUAL('=');
-				string		NEQUAL("!=");
+				literal_char< char, true >		STAR('*') ;
+				literal_char< char, true >		COMMA(',') ;
+				literal_char< char, true >		LPAREN('(') ;
+				literal_char< char, true >		RPAREN(')') ; 
+				literal_char< char, true >		SEMI(';') ;
+				literal_char< char, true >		LT('<') ;
+				literal_char< char, true >		GT('>') ;
+				literal_string< char, true >	LE("<=") ;
+				literal_string< char, true >	GE(">=") ;
+				literal_char< char, true >		EQUAL('=') ;
+				literal_string< char, true >	NEQUAL("!=") ;
+
+				literal_string< char, true >	IN_("IN") ;
+				literal_string< char, true >	AND_("AND") ;
+				literal_string< char, true >	OR_("OR") ;
+				literal_string< char, true >	IS_("IS") ;
+				literal_string< char, true >	NOT_("NOT") ;
+				literal_string< char, true >	NA_("NA") ;
 				
-				typedef inhibit_case<strlit<> > token_t;
-
-				token_t IN_			= as_lower["in"];
-				token_t AND			= as_lower["and"];
-				token_t OR			= as_lower["or"];
-				token_t AS			= as_lower["as"];
-				token_t IS			= as_lower["is"];
-				token_t NOT			= as_lower["not"]; 
-				token_t NA			= as_lower["NA"];  
-
-				identifier =
-					nocase
-					[
-						lexeme
-						[
-							+graph_p
-						]
-					]
-				;
-
-		        
-				main_clause
-					= longest[ var_op_clause | var_in_clause | var_between_clause | var_null_clause ] ;
+				start = op_clause | in_clause | between_clause | NA_clause ;
 
 				// Result of op_clause is
 				// fusion_vector< a, b, c >
 				// where a is std::vector< char >
 				// b is op
 				// c is genfile::VariantEntry.
-			    op_clause
-					=  varname >> op >> value[ _val = construct_filter( _1 ) ] ; 
-				in_clause
-					= varname >> !(NOT) >> IN_ >> value_list ; 
-				between_clause
-					= varname >> !(NOT) >> BETWEEN >> value >> AND >> value ; 
-				NA_clause
-					= varname >> IS >> !(NOT) >> NA ; 
-				value_list %= LPAREN >> list_p( value, COMMA ) >> RPAREN ; 
-				value %= string_literal | number ;
-				string_literal %=
+				op.add( "<", "<" )( "<=", "<=" )( ">", ">" )( ">=", ">=" )( "=", "=" )( "!=", "!=" ) ;
+				identifier = +graph ;
+			    op_clause			= ( identifier >> op >> value )[ _val = construct_filter( _1 ) ] ; 
+				in_clause			= ( identifier >> IN_ >> value_list )[ _val = construct_in_filter( _1 ) ] ; 
+				between_clause		= ( identifier >> IN_ >> '[' >> value >> ',' >> value >> ']' )[ _val = construct_between_filter( _1 ) ] ;
+				NA_clause 			= identifier >> IS_ >> NA_ ;
+				value_list			%= LPAREN >> ( value % ',' ) >> RPAREN ; 
+				value				= string_literal | number ;
+				string_literal		=
 					lexeme
 					[
 					'\'' >> +( char_ - '\'' ) >> '\''
@@ -114,8 +113,7 @@ namespace genfile {
 					  '\"' >> +( char_ - '\"' ) >> '\"'
 					]
 				;
-				number %= real_p ;
-				op.add( "<", "<" )( "<=", "<=" )( ">", ">" )( ">=", ">=" )( "=", "=" )( "!=", "!=" ) ;
+				number				= double_ ;
 			} ;
 		} ;
 	}
