@@ -4,8 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef GENFILESNPDATASINK_HPP
-#define GENFILESNPDATASINK_HPP
+#ifndef SHAPEITHAPLOTYPESSNPDATASINK_HPP
+#define SHAPEITHAPLOTYPESSNPDATASINK_HPP
 
 #include <iostream>
 #include <string>
@@ -18,12 +18,12 @@ namespace genfile {
 	
 	// This class represents a SNPDataSink which writes its data
 	// to a plain GEN file.
-	class GenFileSNPDataSink: public GenLikeSNPDataSink
+	class ShapeITHaplotypesSNPDataSink: public GenLikeSNPDataSink
 	{
 	public:
-		GenFileSNPDataSink( std::string const& filename, Chromosome chromosome ) ;
-		GenFileSNPDataSink( std::string const& filename, Chromosome chromosome, CompressionType compression_type ) ;
-
+		ShapeITHaplotypesSNPDataSink( std::string const& filename, Chromosome chromosome ) ;
+		ShapeITHaplotypesSNPDataSink( std::string const& filename, Chromosome chromosome, CompressionType compression_type ) ;
+		
 	private:
 		void write_variant_data_impl(
 			SNPIdentifyingData const& id_data,

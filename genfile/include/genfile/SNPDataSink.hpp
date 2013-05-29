@@ -32,6 +32,9 @@ namespace genfile {
 	public:
 		typedef std::auto_ptr< SNPDataSink > UniquePtr ;
 		typedef boost::shared_ptr< SNPDataSink > SharedPtr ;
+		
+		static std::vector< std::string> get_file_types() ;
+		
 	public:
 		SNPDataSink() ;
 		virtual ~SNPDataSink() ;
@@ -39,9 +42,18 @@ namespace genfile {
 		// Factory functions
 		typedef std::multimap< std::string, std::map< std::string, std::string > > Metadata ;
 		typedef std::map< std::string, std::vector< VariantEntry > > Info ;
-		static UniquePtr create( std::string const& filename, Metadata const& metadata = Metadata() ) ;
+		static UniquePtr create(
+			std::string const& filename,
+			Metadata const& metadata = Metadata(),
+			std::string const& filetype_hint = "guess"
+		) ;
 	private:
-		static UniquePtr create_impl( std::string const& filename, CompressionType compression_type, Metadata const& metadata = Metadata() ) ;
+		static UniquePtr create_impl(
+			std::string const& filename,
+			CompressionType compression_type,
+			Metadata const& metadata = Metadata(),
+			std::string const& filetype_hint = "guess"
+		) ;
 
 	public:		
 
@@ -119,7 +131,7 @@ namespace genfile {
 			GenotypeProbabilityGetter const& get_AB_probability,
 			GenotypeProbabilityGetter const& get_BB_probability,
 			Info const& info
-		) = 0 ;
+		) ;
 
 		virtual void write_variant_data_impl(
 			SNPIdentifyingData const& id_data,
@@ -132,7 +144,7 @@ namespace genfile {
 		uint32_t m_number_of_samples ;
 		bool m_samples_have_been_set ;
 		std::size_t m_number_of_snps_written ;
-
+		
 		Eigen::MatrixXd m_genotypes ;
 
 		SNPDataSink( SNPDataSink const& other ) ;

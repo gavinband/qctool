@@ -14,18 +14,23 @@
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
+#include "genfile/SNPDataSink.hpp"
 #include "genfile/get_set_eigen.hpp"
 #include "genfile/vcf/get_set_eigen.hpp"
+
 #include "statfile/BuiltInTypeStatSink.hpp"
+
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
+#include "qcdb/FlatFileOutputter.hpp"
+
 #include "components/SNPSummaryComponent/PairwiseCallComparer.hpp"
 #include "components/SNPSummaryComponent/PairwiseCallComparerManager.hpp"
 #include "components/SNPSummaryComponent/CallComparerComponent.hpp"
 #include "components/SNPSummaryComponent/FrequentistTestCallMerger.hpp"
 #include "components/SNPSummaryComponent/LeastMissingConsensusCaller.hpp"
 #include "components/SNPSummaryComponent/DBOutputter.hpp"
-#include "qcdb/FlatFileOutputter.hpp"
+
 
 CallComparerProcessor::UniquePtr CallComparerProcessor::create( PairwiseCallComparerManager::UniquePtr comparer, std::vector< std::string > const& call_fields ) {
 	UniquePtr result(

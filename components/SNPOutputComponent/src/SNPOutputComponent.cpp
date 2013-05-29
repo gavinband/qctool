@@ -96,23 +96,6 @@ namespace {
 	genfile::VariantEntry get_sample_entry( genfile::CohortIndividualSource const& samples, std::string const& name, std::size_t i ) {
 		return samples.get_entry( i, name ) ;
 	}
-
-	typedef std::map< std::string, std::vector< genfile::VariantEntry > > Info ;
-	void send_results_to_sink(
-		genfile::SNPDataSink& sink,
-		genfile::SNPIdentifyingData const& snp,
-		Eigen::MatrixXd const& genotypes,
-		Info const& info = Info()
-	) {
-		sink.write_snp(
-			genotypes.rows(),
-			snp,
-			genfile::GenotypeGetter< Eigen::MatrixXd >( genotypes, 0ul ),
-			genfile::GenotypeGetter< Eigen::MatrixXd >( genotypes, 1ul ),
-			genfile::GenotypeGetter< Eigen::MatrixXd >( genotypes, 2ul ),
-			info
-		) ;
-	}
 }
 
 namespace impl {
@@ -150,11 +133,8 @@ namespace impl {
 		if( m_index.get() ) {
 			m_index->add_index_entry( snp, *m_sink ) ;
 		}
-		{
-			genfile::vcf::GenotypeSetter< Eigen::MatrixBase< Eigen::MatrixXd > > setter( m_genotypes ) ;
-			data_reader.get( "genotypes", setter ) ;
-		}
-		send_results_to_sink( *m_sink, snp, m_genotypes ) ;
+		typedef std::map< std::string, std::vector< genfile::VariantEntry > > Info ;
+		m_sink->write_variant_data( snp, data_reader, Info() ) ;
 	}
 
 	namespace {

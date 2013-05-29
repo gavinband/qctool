@@ -165,6 +165,14 @@ public:
 			.set_takes_single_value()
 			.set_default_value( "guess" ) ;
 
+	    options[ "-ofiletype" ]
+			.set_description(
+				"Specify the filetype of the output genotype files specified by -og. "
+				"By default, qctool will guess the file type.  Use this option to override that guess. "
+				"Possible types are: \"" + genfile::string_utils::join( genfile::SNPDataSink::get_file_types(), "\",\"" ) + "\"." )
+			.set_takes_single_value()
+			.set_default_value( "guess" ) ;
+
 		options[ "-merge-in" ]
 			.set_description( "Specify an additional set of genotypes that should be merged in (in position order) to the dataset. "
 				"This must have the same number of samples as the data set for -g. "
@@ -1709,9 +1717,13 @@ private:
 		else {
 			for( std::size_t i = 0; i < m_mangled_options.gen_filename_mapper().output_filenames().size(); ++i ) {
 				std::string const& filename = m_mangled_options.gen_filename_mapper().output_filenames()[i] ;
-				genfile::SNPDataSink::UniquePtr sink = genfile::SNPDataSink::create( filename ) ;
+				genfile::SNPDataSink::UniquePtr sink = genfile::SNPDataSink::create(
+					filename,
+					genfile::SNPDataSink::Metadata(),
+					m_options.get< std::string >( "-ofiletype" )
+				) ;
 				if( m_options.check_if_option_was_supplied( "-omit-chromosome" )) {
-					genfile::GenFileSNPDataSink* gen_sink = dynamic_cast< genfile::GenFileSNPDataSink* >( sink.get() ) ;
+					genfile::GenLikeSNPDataSink* gen_sink = dynamic_cast< genfile::GenLikeSNPDataSink* >( sink.get() ) ;
 					if( gen_sink ) {
 						gen_sink->omit_chromosome() ;
 					}

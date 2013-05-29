@@ -31,6 +31,7 @@ namespace genfile {
 		result.push_back( "hapmap_haplotypes" ) ;
 		result.push_back( "impute_haplotypes" ) ;
 		result.push_back( "shapeit_haplotypes" ) ;
+		result.push_back( "shapeit" ) ;
 		return result ;
 	}
 	
@@ -78,7 +79,7 @@ namespace genfile {
 		else if( uf.first == "impute_haplotypes" ) {
 			return std::auto_ptr< SNPDataSource >( new ImputeHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
 		}
-		else if( uf.first == "shapeit_haplotypes" ) {
+		else if( uf.first == "shapeit_haplotypes" || uf.first == "shapeit" ) {
 			return std::auto_ptr< SNPDataSource >( new ShapeITHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
 		}
 		else {
