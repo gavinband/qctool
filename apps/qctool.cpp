@@ -918,7 +918,7 @@ struct QCToolCmdLineContext
 		if( m_sample_filter->number_of_clauses() > 0 ) {
 			for( std::size_t i = 0 ; i < m_sample_filter->number_of_clauses(); ++ i ) {
 				m_ui_context.logger() << std::setw(36) << ("...which failed \"" + string_utils::to_string( m_sample_filter->clause( i )) + "\":")
-					<< "  " << m_sample_filter_diagnostic_matrix.col(i).sum() << ".\n" ;
+					<< "  " << ( m_sample_filter_diagnostic_matrix.rows() - m_sample_filter_diagnostic_matrix.col(i).sum() ) << ".\n" ;
 			}
 			m_ui_context.logger() << std::setw(36) << "(total failures:" << "  " << m_indices_of_filtered_out_samples.size() << ").\n" ;
 		}
