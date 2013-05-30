@@ -824,8 +824,8 @@ struct QCToolCmdLineContext
 			}
 		}
 		{
-			genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter() ;
-			if( snp_filter.get() ) {
+			genfile::CommonSNPFilter* snp_filter = get_snp_filter() ;
+			if( snp_filter ) {
 				m_ui_context.logger() << std::setw(30) << "SNP filter:"
 					<< "  " << *snp_filter << ".\n" ;
 				m_ui_context.logger() << "\n" ;
@@ -1001,6 +1001,7 @@ private:
 	std::size_t m_current_snp_stats_filename_index ;
 
 	genfile::SampleFilterConjunction::UniquePtr m_sample_filter ;
+	mutable genfile::CommonSNPFilter::UniquePtr m_snp_filter ;
 	Eigen::MatrixXd m_sample_filter_diagnostic_matrix ;
 
 	std::vector< std::size_t > m_indices_of_filtered_out_samples ;
@@ -1334,11 +1335,11 @@ private:
 			) ;
 			
 			// Make the merged-in source respect the filter.
-			genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter() ;
-			if( snp_filter.get() ) {
+			genfile::CommonSNPFilter* snp_filter = get_snp_filter() ;
+			if( snp_filter ) {
 				merge_in_source = genfile::SNPIdentifyingDataFilteringSNPDataSource::create(
 					merge_in_source,
-					genfile::SNPIdentifyingDataTest::UniquePtr( snp_filter.release() )
+					*snp_filter
 				) ;
 			}
 			
@@ -1401,13 +1402,13 @@ private:
 			}
 		}
 
-		genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter() ;
+		genfile::CommonSNPFilter* snp_filter = get_snp_filter() ;
 		// Filter SNPs if necessary
-		if( snp_filter.get() ) {
+		if( snp_filter ) {
 			genfile::SNPIdentifyingDataFilteringSNPDataSource::UniquePtr snp_filtering_source
 				= genfile::SNPIdentifyingDataFilteringSNPDataSource::create(
 					source,
-					genfile::SNPIdentifyingDataTest::UniquePtr( snp_filter.release() )
+					*snp_filter
 				) ;
 
 			if( m_options.check( "-write-snp-excl-list" )) {
@@ -1500,149 +1501,152 @@ private:
 		return result ;
 	}
 		
-	genfile::CommonSNPFilter::UniquePtr get_snp_exclusion_filter() const {
-		genfile::CommonSNPFilter::UniquePtr snp_filter ;
+	genfile::CommonSNPFilter* get_snp_filter() const {
+		if( !m_snp_filter.get() ) {
+			genfile::CommonSNPFilter::UniquePtr snp_filter ;
 
-		if( m_options.check_if_option_was_supplied_in_group( "SNP exclusion options" )) {
-			snp_filter.reset( new genfile::CommonSNPFilter ) ;
+			if( m_options.check_if_option_was_supplied_in_group( "SNP exclusion options" )) {
+				snp_filter.reset( new genfile::CommonSNPFilter ) ;
 
-			if( m_options.check_if_option_was_supplied( "-excl-snps" )) {
-				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-snps" ) ;
+				if( m_options.check_if_option_was_supplied( "-excl-snps" )) {
+					std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-snps" ) ;
 				
-				BOOST_FOREACH( std::string const& filename, files ) {
-					genfile::SNPDataSource::UniquePtr source ;
-					source.reset(
-						new statfile::SNPDataSourceAdapter(
-							statfile::BuiltInTypeStatSource::open(
-								genfile::wildcard::find_files_by_chromosome( filename )
+					BOOST_FOREACH( std::string const& filename, files ) {
+						genfile::SNPDataSource::UniquePtr source ;
+						source.reset(
+							new statfile::SNPDataSourceAdapter(
+								statfile::BuiltInTypeStatSource::open(
+									genfile::wildcard::find_files_by_chromosome( filename )
+								)
 							)
-						)
-					) ;
+						) ;
 						
-					snp_filter->exclude_snps(
-						source->list_snps(),
-						genfile::SNPIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
-					) ;
+						snp_filter->exclude_snps(
+							source->list_snps(),
+							genfile::SNPIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
+						) ;
+					}
 				}
-			}
 
-			if( m_options.check_if_option_was_supplied( "-incl-snps" )) {
-				std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-snps" ) ;
-				BOOST_FOREACH( std::string const& filename, files ) {
-					genfile::SNPDataSource::UniquePtr source ;
-					source.reset(
-						new statfile::SNPDataSourceAdapter(
-							statfile::BuiltInTypeStatSource::open(
-								genfile::wildcard::find_files_by_chromosome( filename )
+				if( m_options.check_if_option_was_supplied( "-incl-snps" )) {
+					std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-snps" ) ;
+					BOOST_FOREACH( std::string const& filename, files ) {
+						genfile::SNPDataSource::UniquePtr source ;
+						source.reset(
+							new statfile::SNPDataSourceAdapter(
+								statfile::BuiltInTypeStatSource::open(
+									genfile::wildcard::find_files_by_chromosome( filename )
+								)
 							)
-						)
-					) ;
-					snp_filter->include_snps(
-						source->list_snps(),
-						genfile::SNPIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
-					) ;
+						) ;
+						snp_filter->include_snps(
+							source->list_snps(),
+							genfile::SNPIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
+						) ;
+					}
 				}
-			}
 
-			if( m_options.check_if_option_was_supplied( "-excl-snpids" )) {
-				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-snpids" ) ;
-				BOOST_FOREACH( std::string const& filename, files ) {
-					snp_filter->exclude_snps_in_file(
-						filename,
-						genfile::CommonSNPFilter::SNPIDs
-					) ;
+				if( m_options.check_if_option_was_supplied( "-excl-snpids" )) {
+					std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-snpids" ) ;
+					BOOST_FOREACH( std::string const& filename, files ) {
+						snp_filter->exclude_snps_in_file(
+							filename,
+							genfile::CommonSNPFilter::SNPIDs
+						) ;
+					}
 				}
-			}
 
-			if( m_options.check_if_option_was_supplied( "-incl-snpids" )) {
-				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-snpids" ) ;
-				BOOST_FOREACH( std::string const& filename, files ) {
-					snp_filter->include_snps_in_file(
-						filename,
-						genfile::CommonSNPFilter::SNPIDs
-					) ;
+				if( m_options.check_if_option_was_supplied( "-incl-snpids" )) {
+					std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-snpids" ) ;
+					BOOST_FOREACH( std::string const& filename, files ) {
+						snp_filter->include_snps_in_file(
+							filename,
+							genfile::CommonSNPFilter::SNPIDs
+						) ;
+					}
 				}
-			}
 
 
-			if( m_options.check_if_option_was_supplied( "-excl-rsids" )) {
-				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-rsids" ) ;
-				BOOST_FOREACH( std::string const& filename, files ) {
-					snp_filter->exclude_snps_in_file(
-						filename,
-						genfile::CommonSNPFilter::RSIDs
-					) ;
+				if( m_options.check_if_option_was_supplied( "-excl-rsids" )) {
+					std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-rsids" ) ;
+					BOOST_FOREACH( std::string const& filename, files ) {
+						snp_filter->exclude_snps_in_file(
+							filename,
+							genfile::CommonSNPFilter::RSIDs
+						) ;
+					}
 				}
-			}
 
-			if( m_options.check_if_option_was_supplied( "-incl-rsids" )) {
-				std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-rsids" ) ;
-				BOOST_FOREACH( std::string const& filename, files ) {
-					snp_filter->include_snps_in_file(
-						filename,
-						genfile::CommonSNPFilter::RSIDs
-					) ;
+				if( m_options.check_if_option_was_supplied( "-incl-rsids" )) {
+					std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-rsids" ) ;
+					BOOST_FOREACH( std::string const& filename, files ) {
+						snp_filter->include_snps_in_file(
+							filename,
+							genfile::CommonSNPFilter::RSIDs
+						) ;
+					}
 				}
-			}
 
-			if( m_options.check_if_option_was_supplied( "-excl-positions" )) {
-				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-positions" ) ;
-				BOOST_FOREACH( std::string const& filename, files ) {
-					snp_filter->exclude_snps_in_file(
-						filename,
-						genfile::CommonSNPFilter::Positions
-					) ;
+				if( m_options.check_if_option_was_supplied( "-excl-positions" )) {
+					std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-positions" ) ;
+					BOOST_FOREACH( std::string const& filename, files ) {
+						snp_filter->exclude_snps_in_file(
+							filename,
+							genfile::CommonSNPFilter::Positions
+						) ;
+					}
 				}
-			}
 
-			if( m_options.check_if_option_was_supplied( "-incl-positions" )) {
-				std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-positions" ) ;
-				BOOST_FOREACH( std::string const& filename, files ) {
-					snp_filter->include_snps_in_file(
-						filename,
-						genfile::CommonSNPFilter::Positions
-					) ;
+				if( m_options.check_if_option_was_supplied( "-incl-positions" )) {
+					std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-positions" ) ;
+					BOOST_FOREACH( std::string const& filename, files ) {
+						snp_filter->include_snps_in_file(
+							filename,
+							genfile::CommonSNPFilter::Positions
+						) ;
+					}
 				}
-			}
-			if( m_options.check_if_option_was_supplied( "-excl-snps-matching" )) {
-				std::string it = m_options.get< std::string > ( "-excl-snps-matching" ) ;
-				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( it, ",", " " ) ;
-				BOOST_FOREACH( std::string const& spec, specs ) {
-					snp_filter->exclude_snps_matching(
-						spec
-					) ;
+				if( m_options.check_if_option_was_supplied( "-excl-snps-matching" )) {
+					std::string it = m_options.get< std::string > ( "-excl-snps-matching" ) ;
+					std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( it, ",", " " ) ;
+					BOOST_FOREACH( std::string const& spec, specs ) {
+						snp_filter->exclude_snps_matching(
+							spec
+						) ;
+					}
 				}
-			}
 
-			if( m_options.check_if_option_was_supplied( "-incl-snps-matching" )) {
-				std::string it = m_options.get< std::string > ( "-incl-snps-matching" ) ;
-				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( it, ",", " " ) ;
-				BOOST_FOREACH( std::string const& spec, specs ) {
-					snp_filter->include_snps_matching(
-						spec
-					) ;
+				if( m_options.check_if_option_was_supplied( "-incl-snps-matching" )) {
+					std::string it = m_options.get< std::string > ( "-incl-snps-matching" ) ;
+					std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( it, ",", " " ) ;
+					BOOST_FOREACH( std::string const& spec, specs ) {
+						snp_filter->include_snps_matching(
+							spec
+						) ;
+					}
 				}
-			}
 			
-			if( m_options.check_if_option_was_supplied( "-incl-range" )) {
-				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-incl-range" ), ",", " \t" ) ;
-				for ( std::size_t i = 0; i < specs.size(); ++i ) {
-					snp_filter->include_snps_in_range(
-						genfile::GenomePositionRange::parse( specs[i] )
-					) ;
+				if( m_options.check_if_option_was_supplied( "-incl-range" )) {
+					std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-incl-range" ), ",", " \t" ) ;
+					for ( std::size_t i = 0; i < specs.size(); ++i ) {
+						snp_filter->include_snps_in_range(
+							genfile::GenomePositionRange::parse( specs[i] )
+						) ;
+					}
 				}
-			}
 
-			if( m_options.check_if_option_was_supplied( "-excl-range" )) {
-				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-excl-range" ), ",", " \t" ) ;
-				for ( std::size_t i = 0; i < specs.size(); ++i ) {
-					snp_filter->exclude_snps_in_range(
-						genfile::GenomePositionRange::parse( specs[i] )
-					) ;
+				if( m_options.check_if_option_was_supplied( "-excl-range" )) {
+					std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-excl-range" ), ",", " \t" ) ;
+					for ( std::size_t i = 0; i < specs.size(); ++i ) {
+						snp_filter->exclude_snps_in_range(
+							genfile::GenomePositionRange::parse( specs[i] )
+						) ;
+					}
 				}
 			}
+			m_snp_filter = snp_filter ;
 		}
-		return snp_filter ;
+		return m_snp_filter.get() ;
 	}
 	
 	void move_to_next_output_file( std::size_t index ) {

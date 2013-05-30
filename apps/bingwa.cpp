@@ -1562,8 +1562,6 @@ public:
 		using genfile::string_utils::split_and_strip_discarding_empty_entries ;
 		int const N = options.get_values< std::string >( "-data" ).size() ;
 		
-		std::size_t number_of_sds_used = 0 ;
-		
 		if( options.check( "-simple-prior" ) ) {
 			boost::optional< std::vector< std::string > > model_names ;
 			if( options.check( "-simple-prior-name" )) {

@@ -21,15 +21,43 @@ namespace genfile {
 		) ;
 	}
 
+	std::auto_ptr< SNPIdentifyingDataFilteringSNPDataSource > SNPIdentifyingDataFilteringSNPDataSource::create(
+		SNPDataSource::UniquePtr source,
+		SNPIdentifyingDataTest const& test
+	) {
+		return SNPIdentifyingDataFilteringSNPDataSource::UniquePtr(
+			new SNPIdentifyingDataFilteringSNPDataSource( source, test )
+		) ;
+	}
+
 	SNPIdentifyingDataFilteringSNPDataSource::SNPIdentifyingDataFilteringSNPDataSource(
 		SNPDataSource::UniquePtr source,
 		SNPIdentifyingDataTest::UniquePtr test
 	):
 	 	m_source( source ),
-		m_test( test )
+		m_manage_test( true ),
+		m_test( test.release() )
 	{
 		m_source->reset_to_start() ;
 	}
+
+	SNPIdentifyingDataFilteringSNPDataSource::SNPIdentifyingDataFilteringSNPDataSource(
+		SNPDataSource::UniquePtr source,
+		SNPIdentifyingDataTest const& test
+	):
+	 	m_source( source ),
+		m_manage_test( false ),
+		m_test( &test )
+	{
+		m_source->reset_to_start() ;
+	}
+	
+	SNPIdentifyingDataFilteringSNPDataSource::~SNPIdentifyingDataFilteringSNPDataSource() {
+		if( m_manage_test ) {
+			delete m_test ;
+		}
+	}
+	
 
 	SNPIdentifyingDataFilteringSNPDataSource::operator bool() const {
 		return (*m_source) ;
