@@ -463,8 +463,10 @@ public:
 			.set_hidden() ;
 		options[ "-flat-table" ]
 			.set_description( "Output all results for this analysis to one table with variables in columns and variants in rows. "
-				"This overrides the default db output style, which is in a normalised form with different variables on different rows." )
-			.set_hidden() ;
+				"This overrides the default db output style, which is in a normalised form with different variables on different rows." ) ;
+		options[ "-table-name" ]
+			.set_description( "Specify a name for the table to use when using -flat-table." )
+			.set_takes_single_value() ;
 
 		options.declare_group( "Options for adjusting sample data" ) ;
 		options[ "-quantile-normalise" ]
