@@ -135,8 +135,8 @@ namespace genfile {
 				continue ;
 			}
 			
-			std::string spec = genfile::string_utils::strip( comments[i].substr(5, comments[i].size() ), " \t" ) ;
-			if( spec.size() < 2 || spec[0] != '[' || spec[1] != ']' ) {
+			std::string const spec = genfile::string_utils::strip( comments[i].substr(6, comments[i].size() ), " \t" ) ;
+			if( spec.size() < 2 || spec[0] != '[' || spec[spec.size() - 1] != ']' ) {
 				MalformedInputError( m_filename, i ) ;
 			}
 
@@ -146,7 +146,7 @@ namespace genfile {
 				if( elts[i].size() != 3 || elts[i][0] != '"'  || elts[i][2] != '"' ) {
 					throw MalformedInputError( m_filename, i ) ;
 				}
-				boost::optional< CohortIndividualSource::ColumnType > type = get_column_type( elts[i] ) ;
+				boost::optional< CohortIndividualSource::ColumnType > type = get_column_type( elts[i].substr( 1, 1 ) ) ;
 				if( !type ) {
 					throw MalformedInputError( m_filename, i ) ;
 				}
