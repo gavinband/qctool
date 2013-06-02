@@ -87,8 +87,6 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options.option_implies_option( "-intensity-stats", "-g" ) ;
 	options.option_implies_option( "-annotate-ancestral", "-g" ) ;
 	options.option_implies_option( "-annotate-reference", "-g" ) ;
-	options.option_implies_option( "-test", "-g" ) ;
-	options.option_implies_option( "-test", "-s" ) ;
 	options.option_implies_option( "-stratify", "-s" ) ;
 	
 	CallComparerComponent::declare_options( options ) ;

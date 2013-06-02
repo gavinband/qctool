@@ -56,6 +56,9 @@ void SequenceAnnotation::load_sequence( genfile::wildcard::FilenameMatch const& 
 		throw genfile::MalformedInputError( file.filename(), 0 ) ;
 	}
 	using genfile::string_utils::slice ;
+	// delimiter seems to be ":" in data downloaded from ftp.1000g.ensembl.ac.uk.  However,
+	// This: http://blast.ncbi.nlm.nih.gov/blastcgihelp.shtml
+	// says the delimiter is |
 	std::vector< slice > elts = slice( line ).split( ":|" ) ;
 	if( elts.size() != 6 ) {
 		// There seem to be many different header lines around in FASTA format files.
@@ -70,9 +73,6 @@ void SequenceAnnotation::load_sequence( genfile::wildcard::FilenameMatch const& 
 
 		throw genfile::MalformedInputError( file.filename(), 0, elts.size() ) ;
 	}
-	// delimiter seems to be ":" in data downloaded from ftp.1000g.ensembl.ac.uk.  However,
-	// This: http://blast.ncbi.nlm.nih.gov/blastcgihelp.shtml
-	// says the delimiter is |
 	std::string organism = elts[0] ;
 	std::string build = elts[1] ;
 	Chromosome read_chromosome( elts[2] ) ;
@@ -158,6 +158,7 @@ void SequenceAnnotation::set_flanking( std::size_t left, std::size_t right ) {
 void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const&, genfile::VariantDataReader&, ResultCallback callback ) {
 	using namespace genfile::string_utils ;
 	Sequence::const_iterator where = m_sequence.find( snp.get_position().chromosome() ) ;
+	callback( m_annotation_name + "_allele_warning", genfile::MissingValue() ) ;
 	if( where != m_sequence.end() ) {
 		// We assume the first allele equals the reference and we will warn if not.
 		// Let's find out.
@@ -167,6 +168,7 @@ void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes co
 		std::size_t const sequence_end = where->second.first.second ;
 		if( pos >= sequence_start && pos <= sequence_end ) {
 			// Oh good, our variant is in the sequence.
+			std::size_t allele_size = 1 ;
 			std::size_t ref_allele_size = snp.get_first_allele().size() ;
 			std::ostringstream allele ;
 			if( ( pos + ref_allele_size ) > sequence_end ) {
@@ -179,27 +181,16 @@ void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes co
 				std::ostream_iterator< char >( allele )
 			) ;
 
-			if( to_upper( allele.str() ) != snp.get_first_allele() ) {
-				// try the second allele instead.
-				if( ( pos + ref_allele_size ) > sequence_end ) {
-					callback( m_annotation_name + "_allele_warning", m_annotation_name + " sequence is not long enough to contain the second variant allele." ) ;
-					return ;
-				}
-				ref_allele_size = snp.get_second_allele().size() ;
-				allele.str( "" ) ;
-				std::copy(
-					where->second.second.begin() + pos - sequence_start,
-					where->second.second.begin() + pos + ref_allele_size - sequence_start,
-					std::ostream_iterator< char >( allele )
-				) ;
 
-				if( to_upper( allele.str() ) != snp.get_second_allele() ) {
-					callback( m_annotation_name + "_allele_warning", m_annotation_name + " sequence does not match either allele of the variant.  You should align alleles to the reference." ) ;
-					return ;
+			std::string const& a = allele.str() ;
+			if( snp.get_first_allele().size() != snp.get_second_allele().size() ) {
+				callback( m_annotation_name + "_allele_warning", "This is an indel, I am giving " + m_annotation_name + " allele of the same length as allele 1" ) ;
+			} else {
+				if( to_upper( a ) != to_upper( snp.get_first_allele() ) && to_upper( a ) != to_upper( snp.get_second_allele() ) ) {
+					callback( m_annotation_name + "_allele_warning", m_annotation_name + " sequence does not match either allele of the variant." ) ;
 				}
 			}
-		
-			callback( m_annotation_name + "_allele", allele.str() ) ;
+			callback( m_annotation_name + "_allele", a ) ;
 			
 			if( m_flanking.first > 0 || m_flanking.second > 0 ) {
 				std::size_t const left_flanking_start = pos - std::min< genfile::Position >( pos, m_flanking.first ) ;
