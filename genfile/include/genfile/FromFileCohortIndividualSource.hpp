@@ -9,6 +9,7 @@
 
 #include <boost/variant.hpp>
 #include <boost/function.hpp>
+#include <boost/optional.hpp>
 #include "genfile/CohortIndividualSource.hpp"
 
 namespace genfile {
@@ -59,6 +60,7 @@ namespace genfile {
 		std::string const m_filename ;
 		std::vector< std::string > const m_missing_values ;
 		GetEntryFromString m_get_entry_from_string ;
+		std::vector< std::string > m_comments ;
 		std::vector< std::string > m_column_names ;
 		std::vector< ColumnType > m_column_types ;
 		// Entries stored by sample and then by column
@@ -71,8 +73,11 @@ namespace genfile {
 		std::vector< std::string >::const_iterator find_column_name_impl( std::string const& column_name ) const ;
 		void setup( std::istream& str ) ;
 		void unsafe_setup( std::istream& stream ) ;
+		std::vector< std::string > read_comments( std::istream& stream ) const ;
 		std::vector< std::string > read_column_names( std::istream& stream ) const ;
-		std::vector< ColumnType > read_column_types( std::istream& stream, std::vector< std::string > const& column_names ) const ;
+		boost::optional< std::vector< CohortIndividualSource::ColumnType > > read_column_types_from_comments( std::vector< std::string > const& comments ) const ;
+		std::vector< ColumnType > read_column_type_line( std::istream& stream, std::vector< std::string > const& column_names ) const ;
+		boost::optional< CohortIndividualSource::ColumnType > get_column_type( std::string const& type_string ) const ;
 		std::vector< std::vector< Entry > > read_entries( std::istream& stream, std::vector< ColumnType > const& column_types ) const ;
 		std::vector< Entry > get_checked_entries(
 			std::vector< std::string > const& string_entries,
