@@ -101,11 +101,17 @@ namespace pca {
 		}
 		{
 			std::stringstream str ;
-			str << "types: [" ;
+			str << "metadata: { " ;
 			for( std::size_t j = 0; j < spec.size(); ++j ) {
-				str << (( j > 0 ) ? ", " : "" ) << "\"" << spec[j].type() << "\"" ;
+				str << ( ( j > 0 ) ? ", " : "" ) ;
+				str << "\"" << spec[j].name() << "\": "
+					<< "{ \"type\": \"" << spec[j].type() << "\" }" ;
 			}
-			str << " ]" ;
+			for( int j = 0; j < matrix.cols(); ++j ) {
+				str << ", \"" << get_column_names( j ) << "\": "
+					<< "{ \"type\": \"C\" }" ;
+			}
+			str << " }" ;
 			sink->write_metadata( get_metadata( source, description + "\n" + str.str() ) ) ;
 		}
 		{

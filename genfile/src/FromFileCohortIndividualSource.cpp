@@ -9,6 +9,9 @@
 #include <fstream>
 #include <boost/variant/variant.hpp>
 #include <boost/bind.hpp>
+#include <boost/spirit/include/qi.hpp>
+#include <boost/spirit/include/phoenix.hpp>
+#include <boost/fusion/include/std_pair.hpp>
 #include "genfile/FileUtils.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/FromFileCohortIndividualSource.hpp"
@@ -101,11 +104,19 @@ namespace genfile {
 	void FromFileCohortIndividualSource::unsafe_setup( std::istream& stream ) {
 		// read any header comments
 		m_comments = read_comments( stream ) ;
-		boost::optional< std::vector< CohortIndividualSource::ColumnType > > column_types = read_column_types_from_comments( m_comments ) ;
+		typedef std::map< std::string, CohortIndividualSource::ColumnType > ColumnTypeMap ;
+		boost::optional< ColumnTypeMap > column_types = read_column_types_from_comments( m_comments ) ;
 		
 		if( column_types ) {
-			m_column_types = *column_types ;
 			m_column_names = read_column_names( stream ) ;
+			m_column_types.resize( m_column_names.size() ) ;
+			for( std::size_t i = 0; i < m_column_names.size(); ++i ) {
+				ColumnTypeMap::const_iterator where = (*column_types).find( m_column_names[i] ) ;
+				if( where == (*column_types).end() ) {
+					throw MalformedInputError( m_filename, m_comments.size() + 1 ) ;
+				}
+				m_column_types[i] = where->second ;
+			}
 		} else {
 			m_column_names = read_column_names( stream ) ;
 			m_column_types = read_column_type_line( stream, m_column_names ) ;
@@ -126,47 +137,107 @@ namespace genfile {
 		return result ;
 	}
 	
-	boost::optional< std::vector< CohortIndividualSource::ColumnType > > FromFileCohortIndividualSource::read_column_types_from_comments(
+	namespace {
+		boost::optional< CohortIndividualSource::ColumnType > get_column_type( std::string const& type_string ) {
+			boost::optional< CohortIndividualSource::ColumnType > result ;
+			if( type_string.size() == 1 ) {
+				switch( type_string[0] ) {
+					case '0':
+						result = CohortIndividualSource::e_ID_COLUMN ;
+						break ;
+					case 'D':
+						result = CohortIndividualSource::e_DISCRETE_COVARIATE ;
+						break ;
+					case 'C':
+						result = CohortIndividualSource::e_CONTINUOUS_COVARIATE ;
+						break ;
+					case 'B':
+						result = CohortIndividualSource::e_BINARY_PHENOTYPE ;
+						break ;
+					case 'P':
+						result = CohortIndividualSource::e_CONTINUOUS_PHENOTYPE ;
+						break ;
+					default:
+						break ;
+				}
+			}
+			return result ;
+		}
+
+		void insert_name_and_type(
+			std::map< std::string, CohortIndividualSource::ColumnType >* result,
+			std::vector< char > const& the_name,
+			std::vector< char > const& the_type
+		) {
+			assert( result ) ;
+			std::string name( the_name.begin(), the_name.end() ) ;
+			std::string type_string( the_type.begin(), the_type.end() ) ;
+			std::cerr << "name:" << name << ", type:" << type_string << ".\n" ;
+			
+			boost::optional< CohortIndividualSource::ColumnType > type = get_column_type( type_string ) ;
+			if( !type ) {
+				throw MalformedInputError( "(unknown)", 0 ) ;
+			}
+			(*result)[ name ] = (*type) ;
+		}
+	}
+
+	boost::optional< std::map< std::string, CohortIndividualSource::ColumnType > > FromFileCohortIndividualSource::read_column_types_from_comments(
 		std::vector< std::string > const& comments
 	) const {
-		boost::optional< std::vector< CohortIndividualSource::ColumnType > > result ;
-		for( std::size_t line_i = 0; line_i < comments.size(); ++line_i ) {
-			if( comments[line_i].substr( 0, 6 ) != "types:" )  {
-				continue ;
-			}
-			
-			std::string const spec = genfile::string_utils::strip( comments[line_i].substr(6, comments[line_i].size() ), " \t" ) ;
-			if( spec.size() < 2 || spec[0] != '[' || spec[spec.size() - 1] != ']' ) {
-				MalformedInputError( m_filename, line_i ) ;
-			}
+		boost::optional< std::map< std::string, CohortIndividualSource::ColumnType > > result ;
 
-			std::vector< std::string > const elts = genfile::string_utils::split_and_strip( spec.substr( 1, spec.size() - 2 ), ",", " \t" ) ;
-			result = std::vector< CohortIndividualSource::ColumnType >( elts.size() ) ;
-			for( std::size_t i = 0; i < elts.size(); ++i ) {
-				if( elts[i].size() != 3 || elts[i][0] != '"'  || elts[i][2] != '"' ) {
-					throw MalformedInputError( m_filename, line_i ) ;
-				}
-				boost::optional< CohortIndividualSource::ColumnType > type = get_column_type( elts[i].substr( 1, 1 ) ) ;
-				if( !type ) {
-					throw MalformedInputError( m_filename, line_i ) ;
-				}
-				(*result)[i] = *type ;
+		for( std::size_t line_i = 0; line_i < comments.size(); ++line_i ) {
+			std::cerr << "line:\""  << comments[line_i] << "\".\n" ;
+			typedef std::map< std::string, CohortIndividualSource::ColumnType > Intermediate ;
+			Intermediate intermediate ;
+			using namespace boost::spirit::qi ;
+			using namespace boost::phoenix ;
+			using boost::spirit::ascii::char_ ;
+			using boost::spirit::ascii::graph ;
+			using boost::spirit::ascii::blank ;
+			std::string::const_iterator begin = comments[line_i].begin() ;
+			bool parsed = false ;
+			try {
+				parsed = boost::spirit::qi::phrase_parse(
+					begin, comments[line_i].end(),
+					lit( "metadata:" )
+						>> '{'
+						>> (
+							lit( "\"" )
+							>> ( +(graph - '\"') ) >> '\"'
+							>> ':'
+							>> '{'
+							>> "\"type\""
+							>> ':'
+							>> '\"'
+							>> ( +(graph - '\"'))
+							>> '\"'
+							>> '}'
+						)
+						[
+							boost::phoenix::bind(
+								&insert_name_and_type,
+								&intermediate,
+								boost::spirit::_1,
+								boost::spirit::_2
+							) 
+						]
+						% ','
+						>> '}',
+					space
+				) ;
 			}
-			
-			// check that only the first three columns have type '0'
-			for( std::size_t i = 0; i < (*result).size(); ++i ) {
-				if( i < 3 ) {
-					if( (*result)[i] != e_ID_COLUMN ) {
-						throw MalformedInputError( m_filename, line_i ) ;
-					}
-				}
-				else if( (*result)[i] == e_ID_COLUMN ) {
-					throw MalformedInputError( m_filename, line_i ) ;
-				}
+			catch( MalformedInputError const& e ) {
+				throw MalformedInputError( m_filename, line_i ) ;
 			}
-			(*result)[2] = e_MISSINGNESS_COLUMN ;
-		}
 		
+			if( parsed ) {
+				result = intermediate ;
+				break ;
+			}
+		}
+
 		return result ;
 	}
 	
@@ -191,32 +262,6 @@ namespace genfile {
 		for( std::size_t i = 0; i < result.size(); ++i ) {
 			if( ( std::find( result.begin(), result.end(), result[i] ) - result.begin() ) < i ) {
 				throw DuplicateKeyError( m_filename, result[i] ) ;
-			}
-		}
-		return result ;
-	}
-
-	boost::optional< CohortIndividualSource::ColumnType > FromFileCohortIndividualSource::get_column_type( std::string const& type_string ) const {
-		boost::optional< CohortIndividualSource::ColumnType > result ;
-		if( type_string.size() == 1 ) {
-			switch( type_string[0] ) {
-				case '0':
-					result = e_ID_COLUMN ;
-					break ;
-				case 'D':
-					result = e_DISCRETE_COVARIATE ;
-					break ;
-				case 'C':
-					result = e_CONTINUOUS_COVARIATE ;
-					break ;
-				case 'B':
-					result = e_BINARY_PHENOTYPE ;
-					break ;
-				case 'P':
-					result = e_CONTINUOUS_PHENOTYPE ;
-					break ;
-				default:
-					break ;
 			}
 		}
 		return result ;
