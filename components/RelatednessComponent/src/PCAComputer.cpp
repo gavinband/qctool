@@ -198,6 +198,12 @@ void PCAComputer::load_matrix_metadata( statfile::BuiltInTypeStatSource& source,
 	*number_of_snps = number_of_snps_ ;
 }
 
+namespace {
+	genfile::VariantEntry get_pca_name( std::size_t i ) {
+		return std::string( "PCA_" ) + genfile::string_utils::to_string( i + 1 ) ;
+	}
+}
+
 void PCAComputer::compute_PCA() {
 	assert( m_options.check_if_option_was_supplied( "-PCAs" ) ) ;
 	Eigen::MatrixXd kinship_eigendecomposition( m_number_of_samples, m_number_of_samples + 1 ) ;
@@ -341,11 +347,7 @@ void PCAComputer::compute_PCA() {
 				&m_samples,
 				_1
 			),
-			boost::bind(
-				&pca::string_and_number,
-				"PCA_",
-				_1
-			)
+			&get_pca_name
 		) ;
 	}
 	

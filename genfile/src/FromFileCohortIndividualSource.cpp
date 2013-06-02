@@ -130,29 +130,43 @@ namespace genfile {
 		std::vector< std::string > const& comments
 	) const {
 		boost::optional< std::vector< CohortIndividualSource::ColumnType > > result ;
-		for( std::size_t i = 0; i < comments.size(); ++i ) {
-			if( comments[i].substr( 0, 6 ) != "types:" )  {
+		for( std::size_t line_i = 0; line_i < comments.size(); ++line_i ) {
+			if( comments[line_i].substr( 0, 6 ) != "types:" )  {
 				continue ;
 			}
 			
-			std::string const spec = genfile::string_utils::strip( comments[i].substr(6, comments[i].size() ), " \t" ) ;
+			std::string const spec = genfile::string_utils::strip( comments[line_i].substr(6, comments[line_i].size() ), " \t" ) ;
 			if( spec.size() < 2 || spec[0] != '[' || spec[spec.size() - 1] != ']' ) {
-				MalformedInputError( m_filename, i ) ;
+				MalformedInputError( m_filename, line_i ) ;
 			}
 
 			std::vector< std::string > const elts = genfile::string_utils::split_and_strip( spec.substr( 1, spec.size() - 2 ), ",", " \t" ) ;
 			result = std::vector< CohortIndividualSource::ColumnType >( elts.size() ) ;
 			for( std::size_t i = 0; i < elts.size(); ++i ) {
 				if( elts[i].size() != 3 || elts[i][0] != '"'  || elts[i][2] != '"' ) {
-					throw MalformedInputError( m_filename, i ) ;
+					throw MalformedInputError( m_filename, line_i ) ;
 				}
 				boost::optional< CohortIndividualSource::ColumnType > type = get_column_type( elts[i].substr( 1, 1 ) ) ;
 				if( !type ) {
-					throw MalformedInputError( m_filename, i ) ;
+					throw MalformedInputError( m_filename, line_i ) ;
 				}
 				(*result)[i] = *type ;
 			}
+			
+			// check that only the first three columns have type '0'
+			for( std::size_t i = 0; i < (*result).size(); ++i ) {
+				if( i < 3 ) {
+					if( (*result)[i] != e_ID_COLUMN ) {
+						throw MalformedInputError( m_filename, line_i ) ;
+					}
+				}
+				else if( (*result)[i] == e_ID_COLUMN ) {
+					throw MalformedInputError( m_filename, line_i ) ;
+				}
+			}
+			(*result)[2] = e_MISSINGNESS_COLUMN ;
 		}
+		
 		return result ;
 	}
 	

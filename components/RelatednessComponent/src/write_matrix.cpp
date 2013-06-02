@@ -16,6 +16,7 @@
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/string_utils.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
+#include "statfile/DelimitedStatSink.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
 #include "components/RelatednessComponent/write_matrix.hpp"
 #include "components/RelatednessComponent/names.hpp"
@@ -91,13 +92,16 @@ namespace pca {
 		boost::function< genfile::VariantEntry ( std::size_t ) > get_column_names = 0
 	) {
 		assert( samples.get_number_of_individuals() == matrix.rows() ) ;
-		statfile::BuiltInTypeStatSink::UniquePtr sink = statfile::BuiltInTypeStatSink::open( filename ) ;
+		statfile::BuiltInTypeStatSink::UniquePtr sink(
+			new statfile::DelimitedStatSink( filename, " " )
+		) ;
 		genfile::CohortIndividualSource::ColumnSpec const spec = samples.get_column_spec() ;
 		if( !get_column_names ) {
 			get_column_names = boost::bind( &pca::string_and_number, "sample_", _1 ) ;
 		}
 		{
-			std::stringstream str( "spec: [" ) ;
+			std::stringstream str ;
+			str << "types: [" ;
 			for( std::size_t j = 0; j < spec.size(); ++j ) {
 				str << (( j > 0 ) ? ", " : "" ) << "\"" << spec[j].type() << "\"" ;
 			}
@@ -125,6 +129,7 @@ namespace pca {
 					(*sink) << "NA" ;
 				}
 			}
+			(*sink) << statfile::end_row() ;
 		}
 	}
 
