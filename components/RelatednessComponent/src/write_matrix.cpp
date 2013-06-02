@@ -81,6 +81,53 @@ namespace pca {
 		) ;
 	}
 
+	void write_sample_file(
+		std::string const& filename,
+		genfile::CohortIndividualSource const& samples,
+		Eigen::MatrixXd const& matrix,
+		std::string const& source,
+		std::string const& description,
+		boost::function< genfile::VariantEntry ( std::size_t ) > get_row_names = 0,
+		boost::function< genfile::VariantEntry ( std::size_t ) > get_column_names = 0
+	) {
+		assert( samples.get_number_of_individuals() == matrix.rows() ) ;
+		statfile::BuiltInTypeStatSink::UniquePtr sink = statfile::BuiltInTypeStatSink::open( filename ) ;
+		genfile::CohortIndividualSource::ColumnSpec const spec = samples.get_column_spec() ;
+		if( !get_column_names ) {
+			get_column_names = boost::bind( &pca::string_and_number, "sample_", _1 ) ;
+		}
+		{
+			std::stringstream str( "spec: [" ) ;
+			for( std::size_t j = 0; j < spec.size(); ++j ) {
+				str << (( j > 0 ) ? ", " : "" ) << "\"" << spec[j].type() << "\"" ;
+			}
+			str << " ]" ;
+			sink->write_metadata( get_metadata( source, description + "\n" + str.str() ) ) ;
+		}
+		{
+			for( std::size_t j = 0; j < spec.size(); ++j ) {
+				(*sink) | spec[j].name() ;
+			}
+			for( int j = 0; j < matrix.cols(); ++j ) {
+				(*sink) | get_column_names( j ).as< std::string >() ;
+			}
+		}
+		for( std::size_t i = 0; i < samples.get_number_of_individuals(); ++i ) {
+			for( std::size_t j = 0; j < spec.size(); ++j ) {
+				(*sink) << samples.get_entry( i, spec[j].name() ) ;
+			}
+			for( int j = 0; j < matrix.cols(); ++j ) {
+				double const& value = matrix( i, j ) ;
+				if( value == value ) {
+					(*sink) << value ;
+				}
+				else {
+					(*sink) << "NA" ;
+				}
+			}
+		}
+	}
+
 	void write_matrix_lower_diagonals_in_long_form(
 		std::string const& filename,
 		Eigen::MatrixXd const& matrix1,
