@@ -10,6 +10,7 @@
 #include <string>
 #include <iostream>
 #include <boost/function.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
 #include "genfile/SNPDataSink.hpp"
 
 namespace genfile {
@@ -22,17 +23,9 @@ namespace genfile {
 		// Methods required by SNPDataSink
 		operator bool() const { return *m_stream_ptr ; }
 		
-		void write_snp_impl(
-			uint32_t number_of_samples,
-			std::string SNPID,
-			std::string RSID,
-			Chromosome chromosome,
-			uint32_t SNP_position,
-			std::string first_allele,
-			std::string second_allele,
-			GenotypeProbabilityGetter const& get_AA_probability,
-			GenotypeProbabilityGetter const& get_AB_probability,
-			GenotypeProbabilityGetter const& get_BB_probability,
+		void write_variant_data_impl(
+			SNPIdentifyingData const& id_data,
+			VariantDataReader& data_reader,
 			Info const& info
 		) ;
 		
@@ -43,12 +36,15 @@ namespace genfile {
 		
 	private:
 		std::string const m_filename ;
+		std::vector< std::string > m_fields ;
 		CompressionType const m_compression_type ;
 		std::auto_ptr< std::ostream > m_stream_ptr ;
 		bool m_have_written_header ;
 		std::size_t m_number_of_samples ;
 		double const m_call_threshhold ;
 		std::vector< std::string > m_output_fields ;
+		boost::ptr_vector< std::ostringstream > m_streams ;
+
 	private:
 		void write_info( Info const& info ) ;
 	} ;

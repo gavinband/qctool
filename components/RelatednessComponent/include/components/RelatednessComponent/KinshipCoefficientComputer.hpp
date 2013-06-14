@@ -23,35 +23,18 @@
 #include "components/RelatednessComponent/KinshipCoefficientManager.hpp"
 //#include "components/RelatednessComponent/KinshipCoefficientBlockTask.hpp"
 
-namespace impl {
-	struct KinshipCoefficientComputerTask: public worker::Task {
-		typedef std::auto_ptr< KinshipCoefficientComputerTask > UniquePtr ;
-		typedef boost::function< void ( Eigen::VectorXd* data, Eigen::MatrixXd* result, double const scale ) > AccumulateXXt ;
-		
-		virtual void add_snp(
-			genfile::VariantDataReader::SharedPtr data_reader,
-			Eigen::VectorXd& genotypes,
-			Eigen::VectorXd& genotype_non_missingness
-		) = 0 ;
-		
-		virtual void finalise() = 0 ;
-		virtual bool is_finalised() const = 0 ;
-		virtual std::size_t number_of_snps() const = 0 ;
-	} ;
-}
-
-
 struct KinshipCoefficientComputer: public KinshipCoefficientManager, public genfile::SNPDataSourceProcessor::Callback
 {
 public:
 	typedef std::auto_ptr< KinshipCoefficientComputer > UniquePtr ;
-	typedef boost::function<
-		impl::KinshipCoefficientComputerTask::UniquePtr ( std::size_t, Eigen::MatrixXd*, Eigen::MatrixXd*, impl::KinshipCoefficientComputerTask::AccumulateXXt, bool )
-	> ComputationFactory ;
 	
-	static impl::KinshipCoefficientComputerTask::UniquePtr compute_kinship( std::size_t const, Eigen::MatrixXd*, Eigen::MatrixXd*, impl::KinshipCoefficientComputerTask::AccumulateXXt, bool const ) ;
-	static impl::KinshipCoefficientComputerTask::UniquePtr compute_concordance( std::size_t const, Eigen::MatrixXd*, Eigen::MatrixXd*, impl::KinshipCoefficientComputerTask::AccumulateXXt, bool const ) ;
-	static impl::KinshipCoefficientComputerTask::UniquePtr compute_intensity_covariance( std::size_t const, Eigen::MatrixXd*, Eigen::MatrixXd*, impl::KinshipCoefficientComputerTask::AccumulateXXt, bool const ) ;
+	struct Computation: public genfile::SNPDataSourceProcessor::Callback {
+		typedef std::auto_ptr< Computation > UniquePtr ;
+		virtual std::size_t number_of_snps_included() const = 0 ;
+		virtual Eigen::MatrixXd const& result() const = 0 ;
+		virtual Eigen::MatrixXd const& nonmissingness() const = 0 ;
+	} ;
+	static genfile::SNPDataSourceProcessor::Callback::UniquePtr create_computation( std::string const& spec ) ;
 
 public:
 	~KinshipCoefficientComputer() throw() {}
@@ -59,9 +42,8 @@ public:
 	KinshipCoefficientComputer(
 		appcontext::OptionProcessor const& options,
 		genfile::CohortIndividualSource const& samples,
-		worker::Worker* worker,
 		appcontext::UIContext& ui_context,
-		ComputationFactory computation_factory
+		Computation::UniquePtr computation
 	) ;
 
 	void begin_processing_snps( std::size_t number_of_samples ) ;
@@ -75,17 +57,35 @@ private:
 	std::size_t m_number_of_snps ;
 	std::size_t m_number_of_snps_processed ;
 	genfile::CohortIndividualSource const& m_samples ;
-	worker::Worker* m_worker ;
-	boost::ptr_vector< impl::KinshipCoefficientComputerTask > m_tasks ;
 	std::vector< Eigen::MatrixXd > m_result ;
 	std::vector< Eigen::MatrixXd > m_non_missing_count ;
 	std::vector< Eigen::VectorXd > m_genotypes ;
-	std::vector< Eigen::VectorXd > m_genotype_non_missingness ;
-	std::size_t m_number_of_tasks ;
-	std::size_t m_number_of_snps_per_task ;
-	std::size_t m_current_task ;
-	ComputationFactory m_computation_factory ;
-	void (*m_accumulate_xxt)( Eigen::VectorXd*, Eigen::MatrixXd*, double const ) ;
+	std::vector< Eigen::VectorXd > m_non_missingness ;
+	Computation::UniquePtr m_computation ;
+	void (*m_accumulate_xxt)( Eigen::VectorXd*, Eigen::MatrixXd*, int const begin_sample_i, int const end_sample_i, int const begin_sample_j, int const end_sample_j, double const ) ;
 } ;
+
+namespace impl {
+	struct Dispatcher ;
+
+	struct NormaliseGenotypesAndComputeXXt: public KinshipCoefficientComputer::Computation {
+		static UniquePtr create( worker::Worker* ) ;
+		NormaliseGenotypesAndComputeXXt( worker::Worker* ) ;
+
+		Eigen::MatrixXd const& result() const ;
+		Eigen::MatrixXd const& nonmissingness() const ;
+		void begin_processing_snps( std::size_t number_of_samples ) ;
+		void processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) ;
+		void end_processing_snps() ;
+		std::size_t number_of_snps_included() const ;
+	private:
+		double const m_call_threshhold ;
+		double const m_allele_frequency_threshhold ;
+		std::size_t m_number_of_snps_included ;
+		Eigen::MatrixXd m_result ;
+		Eigen::MatrixXd m_nonmissingness ;
+		std::auto_ptr< Dispatcher > m_dispatcher ;
+	} ;
+}
 
 #endif

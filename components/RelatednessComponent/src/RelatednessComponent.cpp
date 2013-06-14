@@ -130,7 +130,12 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 	) ;
 	if( m_options.check( "-kinship" )) {
 		KinshipCoefficientComputer::UniquePtr result(
-			new KinshipCoefficientComputer( m_options, m_samples, m_worker, m_ui_context, KinshipCoefficientComputer::compute_kinship )
+			new KinshipCoefficientComputer(
+				m_options,
+				m_samples,
+				m_ui_context,
+				impl::NormaliseGenotypesAndComputeXXt::create( m_worker )
+			)
 		) ;
 		result->send_results_to(
 			boost::bind(
@@ -144,6 +149,7 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 			genfile::SNPDataSourceProcessor::Callback::UniquePtr( result.release() )
 		) ;
 	}
+		#if 0
 	if( m_options.check( "-sample-concordance" )) {
 		KinshipCoefficientComputer::UniquePtr result(
 			new KinshipCoefficientComputer( m_options, m_samples, m_worker, m_ui_context, KinshipCoefficientComputer::compute_concordance )
@@ -186,6 +192,7 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 			genfile::SNPDataSourceProcessor::Callback::UniquePtr( result.release() )
 		) ;
 	}
+	#endif
 	if( m_options.check( "-PCAs" ) ) {
 		assert( m_options.check( "-UDUT" )) ;
 		pca_computer.reset( new PCAComputer( m_options, m_samples, m_worker, m_ui_context ) ) ;

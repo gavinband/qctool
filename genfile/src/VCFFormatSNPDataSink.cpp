@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 #include <boost/bind.hpp>
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/VCFFormatSNPDataSink.hpp"
@@ -37,7 +38,7 @@ namespace genfile {
 	void VCFFormatSNPDataSink::write_header( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) const {
 		(*m_stream_ptr) << "##fileformat=VCFv4.1\n"
 			"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype calls\">\n"
-			"##FORMAT=<ID=GP,Number=3,Type=Float,Description=\"Genotype call probabilities\">\n"
+			//"##FORMAT=<ID=GP,Number=3,Type=Float,Description=\"Genotype call probabilities\">\n"
 			"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT" ;
 		for( std::size_t i = 0; i < number_of_samples; ++i ) {
 			(*m_stream_ptr) << "\t" << sample_name_getter( i ) ;
@@ -45,6 +46,79 @@ namespace genfile {
 		(*m_stream_ptr) << "\n" ;
 	}
 
+	namespace {
+		struct DataWriter: public VariantDataReader::PerSampleSetter {
+			DataWriter( boost::ptr_vector< std::ostringstream >& streams ):
+				m_streams( streams )
+			{}
+			
+			~DataWriter() throw() {}
+
+			void set_number_of_samples( std::size_t n ) {
+				assert( m_streams.size() == n ) ;
+			}
+
+			void set_sample( std::size_t i ) {
+				m_sample_i = i ;
+				m_streams[i].str( std::string() ) ;
+			}
+
+			void set_number_of_entries( std::size_t n ) {
+				m_number_of_entries = n ;
+			}
+
+			void set_order_type( OrderType const type ) {
+				m_order_type == type ;
+			}
+
+			void operator()( MissingValue const value ) {
+				m_streams[ m_sample_i ] << (( m_entry_i > 0 ) ? "," : "" ) << value ;
+			}
+
+			void operator()( std::string& value ) {
+				m_streams[ m_sample_i ] << (( m_entry_i > 0 ) ? "," : "" ) << value ;
+			}
+
+			void operator()( Integer const value ) {
+				m_streams[ m_sample_i ] << (( m_entry_i > 0 ) ? "," : "" ) << value ;
+			}
+
+			void operator()( double const value ) {
+				m_streams[ m_sample_i ] << (( m_entry_i > 0 ) ? "," : "" ) << value ;
+			}
+
+		private:
+			boost::ptr_vector< std::ostringstream >& m_streams ;
+			std::size_t m_sample_i ;
+			std::size_t m_number_of_entries ;
+			std::size_t m_entry_i ;
+			OrderType m_order_type ;
+		} ;
+	}
+
+	void VCFFormatSNPDataSink::write_variant_data_impl(
+		SNPIdentifyingData const& id_data,
+		VariantDataReader& data_reader,
+		Info const& info
+	) {
+		char const tab = '\t' ;
+		(*m_stream_ptr)
+			<< id_data.get_position().chromosome() << tab
+			<< id_data.get_position().position() << tab
+			<< id_data.get_rsid() << tab
+			<< id_data.get_first_allele() << tab
+			<< id_data.get_second_allele() << tab
+			<< "." << tab
+			<< "." << tab ;
+
+		write_info( info ) ;
+
+		(*m_stream_ptr) << tab << "GT" ;//:GP" ;
+
+		DataWriter writer( m_streams) ;
+	}
+
+/*
 	void VCFFormatSNPDataSink::write_snp_impl(
 		uint32_t number_of_samples,
 		std::string SNPID,
@@ -73,7 +147,7 @@ namespace genfile {
 
 		write_info( info ) ;
 
-		(*m_stream_ptr) << tab << "GT:GP" ;
+		(*m_stream_ptr) << tab << "GT" ;//:GP" ;
 		
 		std::vector< double > probs( 3 ) ;
 		for( std::size_t i = 0; i < number_of_samples; ++i ) {
@@ -95,14 +169,16 @@ namespace genfile {
 			}
 			
 			(*m_stream_ptr)
-				<< tab << call << ":"
-				<< probs[0] << ","
-				<< probs[1] << ","
-				<< probs[2] ;
+				<< tab << call ;
+				//<< ":"
+				//<< probs[0] << ","
+				//<< probs[1] << ","
+				//<< probs[2] ;
+				
 		}
 		(*m_stream_ptr) << std::endl ;
 	}
-	
+	*/
 	void VCFFormatSNPDataSink::write_info( Info const& info ) {
 		if( info.empty() ) {
 			(*m_stream_ptr) << "." ;
@@ -135,6 +211,7 @@ namespace genfile {
 		write_header( number_of_samples, sample_name_getter ) ;
 		m_have_written_header = true ;
 		m_number_of_samples = number_of_samples ;
+		m_streams.resize( m_number_of_samples ) ;
 	}
 	
 	SNPDataSink::SinkPos VCFFormatSNPDataSink::get_stream_pos() const {
