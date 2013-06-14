@@ -70,7 +70,7 @@ void StratifyingSNPSummaryComputation::operator()(
 			strata_genotypes,
 			strata_sexes,
 			data_reader,
-			impl::NameMungingSNPComputationCallback( callback, "", " [" + m_stratification_name + "=" + genfile::string_utils::to_string( strata_i->first ) + "] " )
+			impl::NameMungingSNPComputationCallback( callback, "", " [" + m_stratification_name + "=" + genfile::string_utils::to_string( strata_i->first ) + "]" )
 		) ;
 	}
 }

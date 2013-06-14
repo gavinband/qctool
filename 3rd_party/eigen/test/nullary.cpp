@@ -3,24 +3,9 @@
 //
 // Copyright (C) 2010-2011 Jitse Niesen <jitse@maths.leeds.ac.uk>
 //
-// Eigen is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 3 of the License, or (at your option) any later version.
-//
-// Alternatively, you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 2 of
-// the License, or (at your option) any later version.
-//
-// Eigen is distributed in the hope that it will be useful, but WITHOUT ANY
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License or the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public
-// License and a copy of the GNU General Public License along with
-// Eigen. If not, see <http://www.gnu.org/licenses/>.
+// This Source Code Form is subject to the terms of the Mozilla
+// Public License v. 2.0. If a copy of the MPL was not distributed
+// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include "main.h"
 
@@ -38,7 +23,7 @@ bool equalsIdentity(const MatrixType& A)
     }
   }
   for (Index i = 0; i < A.rows(); ++i) {
-    for (Index j = 0; j < std::min(i, A.cols()); ++j) {
+    for (Index j = 0; j < (std::min)(i, A.cols()); ++j) {
       offDiagOK = offDiagOK && (A(i,j) == zero);
     }
   }
@@ -52,11 +37,14 @@ void testVectorType(const VectorType& base)
 {
   typedef typename internal::traits<VectorType>::Index Index;
   typedef typename internal::traits<VectorType>::Scalar Scalar;
-  Scalar low = internal::random<Scalar>(-500,500);
-  Scalar high = internal::random<Scalar>(-500,500);
-  if (low>high) std::swap(low,high);
+
   const Index size = base.size();
-  const Scalar step = (high-low)/(size-1);
+  
+  Scalar high = internal::random<Scalar>(-500,500);
+  Scalar low = (size == 1 ? high : internal::random<Scalar>(-500,500));
+  if (low>high) std::swap(low,high);
+
+  const Scalar step = ((size == 1) ? 1 : (high-low)/(size-1));
 
   // check whether the result yields what we expect it to do
   VectorType m(base);
@@ -76,8 +64,8 @@ void testVectorType(const VectorType& base)
   VERIFY( (MatrixXd(RowVectorXd::LinSpaced(3, 0, 1)) - RowVector3d(0, 0.5, 1)).norm() < std::numeric_limits<Scalar>::epsilon() );
 
   // These guys sometimes fail! This is not good. Any ideas how to fix them!?
-//   VERIFY( m(m.size()-1) == high );
-//   VERIFY( m(0) == low );
+  //VERIFY( m(m.size()-1) == high );
+  //VERIFY( m(0) == low );
 
   // sequential access version
   m = VectorType::LinSpaced(Sequential,size,low,high);
@@ -97,6 +85,18 @@ void testVectorType(const VectorType& base)
   Matrix<Scalar,Dynamic,1> size_changer(size+50);
   size_changer.setLinSpaced(size,low,high);
   VERIFY( size_changer.size() == size );
+
+  typedef Matrix<Scalar,1,1> ScalarMatrix;
+  ScalarMatrix scalar;
+  scalar.setLinSpaced(1,low,high);
+  VERIFY_IS_APPROX( scalar, ScalarMatrix::Constant(high) );
+  VERIFY_IS_APPROX( ScalarMatrix::LinSpaced(1,low,high), ScalarMatrix::Constant(high) );
+
+  // regression test for bug 526 (linear vectorized transversal)
+  if (size > 1) {
+    m.tail(size-1).setLinSpaced(low, high);
+    VERIFY_IS_APPROX(m(size-1), high);
+  }
 }
 
 template<typename MatrixType>
@@ -124,5 +124,6 @@ void test_nullary()
     CALL_SUBTEST_6( testVectorType(Vector3d()) );
     CALL_SUBTEST_7( testVectorType(VectorXf(internal::random<int>(1,300))) );
     CALL_SUBTEST_8( testVectorType(Vector3f()) );
+    CALL_SUBTEST_8( testVectorType(Matrix<float,1,1>()) );
   }
 }

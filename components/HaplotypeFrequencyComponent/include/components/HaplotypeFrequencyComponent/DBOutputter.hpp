@@ -32,7 +32,7 @@ namespace haplotype_frequency_component {
 		std::size_t const m_max_transaction_count ;
 		db::Connection::RowId m_variable_class_id ;
 		db::Connection::StatementPtr m_insert_summarydata_statement ;
-
+		bool m_create_indices ;
 		typedef std::vector< boost::tuple< std::string, genfile::SNPIdentifyingData, genfile::SNPIdentifyingData, std::string, genfile::VariantEntry > > Data ;
 		Data m_data ;
 

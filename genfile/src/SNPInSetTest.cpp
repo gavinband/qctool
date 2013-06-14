@@ -18,7 +18,7 @@ namespace genfile {
 	{}
 
  	bool SNPInSetTest::operator()( SNPIdentifyingData const& data ) const {
-		return( m_snps.find( data ) != m_snps.end() ) ;
+		return ( m_snps.find( data ) != m_snps.end() ) ;
 	}
 
 	bool SNPInSetTest::operator()(
@@ -38,16 +38,15 @@ namespace genfile {
 	std::string SNPInSetTest::display() const {
 		std::ostringstream ostr ;
 		ostr << "SNP (" + m_snps.key_comp().get_summary() + ") in { " ;
-		if( m_snps.size() <= 3 ) {
-			for( std::set< SNPIdentifyingData >::const_iterator i = m_snps.begin(); i != m_snps.end(); ++i ) {
-				if( i != m_snps.begin() ) {
-					ostr << ", " ;
-				}
-				ostr << (*i) ;
+		int count = 0;
+		for( std::set< SNPIdentifyingData >::const_iterator i = m_snps.begin(); i != m_snps.end() && count < 3; ++i, ++count ) {
+			if( i != m_snps.begin() ) {
+				ostr << ", " ;
 			}
+				ostr << (*i) ;
 		}
-		else {
-			ostr << "set of " + m_snps.size() ;
+		if( m_snps.size() > 3 ) {
+			ostr << "...(+" << m_snps.size() << " others)" ;
 		}
 		ostr << " }" ;
 		return ostr.str() ;

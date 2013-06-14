@@ -221,8 +221,6 @@ namespace genfile {
 			)
 		) ;
 
-		SNPIdentifyingData const& snp = m_written_snps.back() ;
-
 		m_written_alleles.push_back( std::vector< std::pair< char, char > >() ) ;
 		// Convert probabilities to calls.
 		for( std::size_t i = 0; i < number_of_samples; ++i ) {

@@ -29,7 +29,8 @@ def build( bld ):
 
 	bld(
 		features = 'cc cstaticlib',
-		target = 'sqlite3',
+		name = 'sqlite3',
+		target = 'sqlite3-qctool',
 		source = [ 'sqlite3/sqlite3/sqlite3.c' ],
 		includes = 'sqlite3/',
 		defines = 'SQLITE_ENABLE_COLUMN_METADATA SQLITE_ENABLE_STAT3',

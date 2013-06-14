@@ -27,10 +27,10 @@ namespace genfile {
 
 		void summarise( std::ostream& o ) const ;
 		void add_level( genfile::VariantEntry value ) ;
-		bool test( genfile::CohortIndividualSource const& source, std::size_t i ) const ;
+		bool test( genfile::CohortIndividualSource const& source, std::size_t i, DetailBlock* ) const ;
 
 	private:
-		std::string const& m_variable ;
+		std::string const m_variable ;
 		std::vector< genfile::VariantEntry > m_levels ;
 	} ;
 }

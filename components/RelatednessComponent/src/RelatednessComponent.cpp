@@ -198,8 +198,9 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 		) ;
 		pca_computer->send_PCAs_to(
 			boost::bind(
-				&pca::write_matrix,
+				&pca::write_sample_file,
 				m_options.get< std::string >( "-PCAs" ),
+				boost::cref( m_samples ),
 				_3, "qctool:PCAComputer", _1, _4, _5
 			)
 		) ;

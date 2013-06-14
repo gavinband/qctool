@@ -1,42 +1,27 @@
 // This file is part of Eigen, a lightweight C++ template library
 // for linear algebra.
 //
-// Copyright (C) 2008 Daniel Gomez Ferro <dgomezferro@gmail.com>
+// Copyright (C) 2008-2011 Gael Guennebaud <gael.guennebaud@inria.fr>
 //
-// Eigen is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 3 of the License, or (at your option) any later version.
-//
-// Alternatively, you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 2 of
-// the License, or (at your option) any later version.
-//
-// Eigen is distributed in the hope that it will be useful, but WITHOUT ANY
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License or the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public
-// License and a copy of the GNU General Public License along with
-// Eigen. If not, see <http://www.gnu.org/licenses/>.
+// This Source Code Form is subject to the terms of the Mozilla
+// Public License v. 2.0. If a copy of the MPL was not distributed
+// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include "sparse.h"
 
 template<typename Scalar> void sparse_vector(int rows, int cols)
 {
-  double densityMat = std::max(8./(rows*cols), 0.01);
-  double densityVec = std::max(8./float(rows), 0.1);
+  double densityMat = (std::max)(8./(rows*cols), 0.01);
+  double densityVec = (std::max)(8./float(rows), 0.1);
   typedef Matrix<Scalar,Dynamic,Dynamic> DenseMatrix;
   typedef Matrix<Scalar,Dynamic,1> DenseVector;
   typedef SparseVector<Scalar> SparseVectorType;
   typedef SparseMatrix<Scalar> SparseMatrixType;
   Scalar eps = 1e-6;
 
-  SparseMatrixType m1(rows,cols);
+  SparseMatrixType m1(rows,rows);
   SparseVectorType v1(rows), v2(rows), v3(rows);
-  DenseMatrix refM1 = DenseMatrix::Zero(rows, cols);
+  DenseMatrix refM1 = DenseMatrix::Zero(rows, rows);
   DenseVector refV1 = DenseVector::Random(rows),
     refV2 = DenseVector::Random(rows),
     refV3 = DenseVector::Random(rows);
@@ -86,7 +71,23 @@ template<typename Scalar> void sparse_vector(int rows, int cols)
   VERIFY_IS_APPROX(v1.dot(v2), refV1.dot(refV2));
   VERIFY_IS_APPROX(v1.dot(refV2), refV1.dot(refV2));
 
+  VERIFY_IS_APPROX(v1.dot(m1*v2), refV1.dot(refM1*refV2));
+  int i = internal::random<int>(0,rows-1);
+  VERIFY_IS_APPROX(v1.dot(m1.col(i)), refV1.dot(refM1.col(i)));
+
+
   VERIFY_IS_APPROX(v1.squaredNorm(), refV1.squaredNorm());
+
+  // test aliasing
+  VERIFY_IS_APPROX((v1 = -v1), (refV1 = -refV1));
+  VERIFY_IS_APPROX((v1 = v1.transpose()), (refV1 = refV1.transpose().eval()));
+  VERIFY_IS_APPROX((v1 += -v1), (refV1 += -refV1));
+  
+  // sparse matrix to sparse vector
+  SparseMatrixType mv1;
+  VERIFY_IS_APPROX((mv1=v1),v1);
+  VERIFY_IS_APPROX(mv1,(v1=mv1));
+  VERIFY_IS_APPROX(mv1,(v1=mv1.transpose()));
 
 }
 

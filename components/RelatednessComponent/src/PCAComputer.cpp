@@ -198,6 +198,12 @@ void PCAComputer::load_matrix_metadata( statfile::BuiltInTypeStatSource& source,
 	*number_of_snps = number_of_snps_ ;
 }
 
+namespace {
+	genfile::VariantEntry get_pca_name( std::size_t i ) {
+		return std::string( "PC_" ) + genfile::string_utils::to_string( i + 1 ) ;
+	}
+}
+
 void PCAComputer::compute_PCA() {
 	assert( m_options.check_if_option_was_supplied( "-PCAs" ) ) ;
 	Eigen::MatrixXd kinship_eigendecomposition( m_number_of_samples, m_number_of_samples + 1 ) ;
@@ -328,7 +334,7 @@ void PCAComputer::compute_PCA() {
 		send_PCAs(
 			"Number of SNPs: " + to_string( m_number_of_snps ) + "\n" +
 			"Number of samples: " + to_string( m_number_of_samples ) + "\n" +
-			"Note: these PCAs are 1/sqrt(L) times the projection of samples onto unit eigenvectors of the variance-covariance matrix\n"
+			"Note: the PCAs computed here are 1/sqrt(L) times the projection of samples onto unit eigenvectors of the variance-covariance matrix\n"
 			"    1/(L-1) X Xᵗ,\n"
 			"where X is the L x N matrix of genotypes, L is the number of SNPs, and N the number of samples.\n"
 			"The constant 1/sqrt(L) ensures that the PCAs do not grow with the number of SNPs.\n"
@@ -341,11 +347,7 @@ void PCAComputer::compute_PCA() {
 				&m_samples,
 				_1
 			),
-			boost::bind(
-				&pca::string_and_number,
-				"PCA_",
-				_1
-			)
+			&get_pca_name
 		) ;
 	}
 	

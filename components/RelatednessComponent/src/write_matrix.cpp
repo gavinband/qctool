@@ -16,6 +16,7 @@
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/string_utils.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
+#include "statfile/DelimitedStatSink.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
 #include "components/RelatednessComponent/write_matrix.hpp"
 #include "components/RelatednessComponent/names.hpp"
@@ -79,6 +80,63 @@ namespace pca {
 			statfile::BuiltInTypeStatSink::open( filename ),
 			matrix, source, description, get_row_names, get_column_names
 		) ;
+	}
+
+	void write_sample_file(
+		std::string const& filename,
+		genfile::CohortIndividualSource const& samples,
+		Eigen::MatrixXd const& matrix,
+		std::string const& source,
+		std::string const& description,
+		boost::function< genfile::VariantEntry ( std::size_t ) > get_row_names = 0,
+		boost::function< genfile::VariantEntry ( std::size_t ) > get_column_names = 0
+	) {
+		assert( samples.get_number_of_individuals() == matrix.rows() ) ;
+		statfile::BuiltInTypeStatSink::UniquePtr sink(
+			new statfile::DelimitedStatSink( filename, " " )
+		) ;
+		genfile::CohortIndividualSource::ColumnSpec const spec = samples.get_column_spec() ;
+		if( !get_column_names ) {
+			get_column_names = boost::bind( &pca::string_and_number, "sample_", _1 ) ;
+		}
+		{
+			std::stringstream str ;
+			str << "metadata: { " ;
+			for( std::size_t j = 0; j < spec.size(); ++j ) {
+				str << ( ( j > 0 ) ? ", " : "" ) ;
+				str << "\"" << spec[j].name() << "\": "
+					<< "{ \"type\": \"" << spec[j].type() << "\" }" ;
+			}
+			for( int j = 0; j < matrix.cols(); ++j ) {
+				str << ", \"" << get_column_names( j ) << "\": "
+					<< "{ \"type\": \"C\" }" ;
+			}
+			str << " }" ;
+			sink->write_metadata( get_metadata( source, description + "\n" + str.str() ) ) ;
+		}
+		{
+			for( std::size_t j = 0; j < spec.size(); ++j ) {
+				(*sink) | spec[j].name() ;
+			}
+			for( int j = 0; j < matrix.cols(); ++j ) {
+				(*sink) | get_column_names( j ).as< std::string >() ;
+			}
+		}
+		for( std::size_t i = 0; i < samples.get_number_of_individuals(); ++i ) {
+			for( std::size_t j = 0; j < spec.size(); ++j ) {
+				(*sink) << samples.get_entry( i, spec[j].name() ) ;
+			}
+			for( int j = 0; j < matrix.cols(); ++j ) {
+				double const& value = matrix( i, j ) ;
+				if( value == value ) {
+					(*sink) << value ;
+				}
+				else {
+					(*sink) << "NA" ;
+				}
+			}
+			(*sink) << statfile::end_row() ;
+		}
 	}
 
 	void write_matrix_lower_diagonals_in_long_form(

@@ -42,11 +42,14 @@ namespace genfile {
 		}	
 	}
 
-	bool VariableInRangeSampleFilter::test( genfile::CohortIndividualSource const& source, std::size_t i ) const {
+	bool VariableInRangeSampleFilter::test( genfile::CohortIndividualSource const& source, std::size_t i, DetailBlock* detail ) const {
 		genfile::VariantEntry value = source.get_entry( i, variable() ) ;
 		bool in_range = false ;
 		if( !value.is_missing() ) {
 			in_range = compare_impl( value, m_lower_bound, m_upper_bound ) ;
+		}
+		if( detail ) {
+			(*detail)( 0, 0 ) = in_range ;
 		}
 		return in_range ;
 	}

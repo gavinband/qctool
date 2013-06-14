@@ -3,24 +3,9 @@
 //
 // Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>
 //
-// Eigen is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 3 of the License, or (at your option) any later version.
-//
-// Alternatively, you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 2 of
-// the License, or (at your option) any later version.
-//
-// Eigen is distributed in the hope that it will be useful, but WITHOUT ANY
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License or the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public
-// License and a copy of the GNU General Public License along with
-// Eigen. If not, see <http://www.gnu.org/licenses/>.
+// This Source Code Form is subject to the terms of the Mozilla
+// Public License v. 2.0. If a copy of the MPL was not distributed
+// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include "main.h"
 #include <Eigen/QR>
@@ -114,8 +99,8 @@ template<typename MatrixType> void qr_verify_assert()
 void test_qr()
 {
   for(int i = 0; i < g_repeat; i++) {
-   CALL_SUBTEST_1( qr(MatrixXf(internal::random<int>(1,200),internal::random<int>(1,200))) );
-   CALL_SUBTEST_2( qr(MatrixXcd(internal::random<int>(1,200),internal::random<int>(1,200))) );
+   CALL_SUBTEST_1( qr(MatrixXf(internal::random<int>(1,EIGEN_TEST_MAX_SIZE),internal::random<int>(1,EIGEN_TEST_MAX_SIZE))) );
+   CALL_SUBTEST_2( qr(MatrixXcd(internal::random<int>(1,EIGEN_TEST_MAX_SIZE/2),internal::random<int>(1,EIGEN_TEST_MAX_SIZE/2))) );
    CALL_SUBTEST_3(( qr_fixedsize<Matrix<float,3,4>, 2 >() ));
    CALL_SUBTEST_4(( qr_fixedsize<Matrix<double,6,2>, 4 >() ));
    CALL_SUBTEST_5(( qr_fixedsize<Matrix<double,2,5>, 7 >() ));

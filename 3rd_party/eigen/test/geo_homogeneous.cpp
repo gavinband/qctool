@@ -3,24 +3,9 @@
 //
 // Copyright (C) 2009 Gael Guennebaud <gael.guennebaud@inria.fr>
 //
-// Eigen is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 3 of the License, or (at your option) any later version.
-//
-// Alternatively, you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 2 of
-// the License, or (at your option) any later version.
-//
-// Eigen is distributed in the hope that it will be useful, but WITHOUT ANY
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License or the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public
-// License and a copy of the GNU General Public License along with
-// Eigen. If not, see <http://www.gnu.org/licenses/>.
+// This Source Code Form is subject to the terms of the Mozilla
+// Public License v. 2.0. If a copy of the MPL was not distributed
+// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include "main.h"
 #include <Eigen/Geometry>
@@ -42,17 +27,13 @@ template<typename Scalar,int Size> void homogeneous(void)
   typedef Matrix<Scalar,Size+1,Size> T3MatrixType;
 
   VectorType v0 = VectorType::Random(),
-             v1 = VectorType::Random(),
              ones = VectorType::Ones();
 
-  HVectorType hv0 = HVectorType::Random(),
-              hv1 = HVectorType::Random();
+  HVectorType hv0 = HVectorType::Random();
 
-  MatrixType m0 = MatrixType::Random(),
-             m1 = MatrixType::Random();
+  MatrixType m0 = MatrixType::Random();
 
-  HMatrixType hm0 = HMatrixType::Random(),
-              hm1 = HMatrixType::Random();
+  HMatrixType hm0 = HMatrixType::Random();
 
   hv0 << v0, 1;
   VERIFY_IS_APPROX(v0.homogeneous(), hv0);

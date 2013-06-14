@@ -1332,7 +1332,7 @@ public:
 					// to be fed data before the mean is computed.
 					{
 						ValueAccumulator::UniquePtr mean_bf(
-							new ValueAccumulator( "mean_bf" )
+							new ValueAccumulator( "ApproximateBayesianMetaAnalysis/mean_bf" )
 						) ;
 
 						std::map< std::string, Eigen::MatrixXd >::const_iterator i = priors.begin() ;
@@ -1505,8 +1505,8 @@ public:
 			Eigen::MatrixXd prior( number_of_cohorts, number_of_cohorts ) ;
 			prior.setZero() ;
 			std::vector< int > cohort_indices( cohorts.size() ) ;
-			for( std::size_t i = 0; i < cohorts.size(); ++i ) {
-				std::vector< std::string >::const_iterator const cohort_i = std::find( cohort_names.begin(), cohort_names.end(), cohorts[i] ) ;
+			for( std::size_t k = 0; k < cohorts.size(); ++k ) {
+				std::vector< std::string >::const_iterator const cohort_i = std::find( cohort_names.begin(), cohort_names.end(), cohorts[k] ) ;
 				if( cohort_i == cohort_names.end() ) {
 					throw genfile::BadArgumentError(
 						"BingwaProcessor::get_group_priors()",
@@ -1514,7 +1514,7 @@ public:
 						"Unrecognised cohort name, possible names are \"" + join( cohort_names, "\", \"" ) + "\""
 					) ;
 				}
-				cohort_indices[i] = int( cohort_i - cohort_names.begin() ) ;
+				cohort_indices[k] = int( cohort_i - cohort_names.begin() ) ;
 			}
 			
 			for( std::size_t j1 = 0; j1 < cohorts.size(); ++j1 ) {
@@ -1561,8 +1561,6 @@ public:
 		using genfile::string_utils::to_repr ;
 		using genfile::string_utils::split_and_strip_discarding_empty_entries ;
 		int const N = options.get_values< std::string >( "-data" ).size() ;
-		
-		std::size_t number_of_sds_used = 0 ;
 		
 		if( options.check( "-simple-prior" ) ) {
 			boost::optional< std::vector< std::string > > model_names ;

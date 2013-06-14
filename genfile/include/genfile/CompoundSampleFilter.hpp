@@ -13,39 +13,29 @@
 #include <set>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include "genfile/VariantEntry.hpp"
-#include "SampleFilter.hpp"
+#include "genfile/SampleFilter.hpp"
 
 namespace genfile {
 	struct CompoundSampleFilter: public SampleFilter
 	{
-		void add_clause( SampleFilter::UniquePtr clause ) {
-			m_clauses.push_back( clause ) ;
-		}
-		std::size_t number_of_clauses() const { return m_clauses.size() ; }
-		SampleFilter const& clause( std::size_t i ) const { assert( i < m_clauses.size() ) ; return m_clauses[i] ; }
+		typedef std::auto_ptr< CompoundSampleFilter > UniquePtr ;
+		
+		void add_clause( SampleFilter::UniquePtr clause ) ;
+		std::size_t number_of_clauses() const ;
+		SampleFilter const& clause( std::size_t i ) const ;
+		
 	private:
 		boost::ptr_vector< SampleFilter > m_clauses ;
 	} ;
 
 	struct SampleFilterDisjunction: public CompoundSampleFilter {
-		bool test( genfile::CohortIndividualSource const&, std::size_t sample ) const {
-			bool result = true ;
-			for( std::size_t i = 0; i < number_of_clauses(); ++i ) {
-				result = result | clause( i ).test( sample ) ;
-			}
-			return result ;
-		}
+		bool test( genfile::CohortIndividualSource const& source, std::size_t sample, DetailBlock* detail ) const ;
+		void summarise( std::ostream& ) const ;
 	} ;
 
 	struct SampleFilterConjunction: public CompoundSampleFilter {
-		bool test( genfile::CohortIndividualSource const&, std::size_t sample ) const {
-			for( std::size_t i = 0; i < number_of_clauses(); ++i ) {
-				if( !clause( i ).test( sample ) ) {
-					return false ;
-				}
-			}
-			return true ;
-		}
+		bool test( genfile::CohortIndividualSource const& source, std::size_t sample, DetailBlock* detail ) const ;
+		void summarise( std::ostream& ) const ;
 	} ;
 }
 

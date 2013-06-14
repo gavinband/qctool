@@ -4,24 +4,9 @@
 // Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>
 // Copyright (C) 2006-2008 Benoit Jacob <jacob.benoit.1@gmail.com>
 //
-// Eigen is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 3 of the License, or (at your option) any later version.
-//
-// Alternatively, you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 2 of
-// the License, or (at your option) any later version.
-//
-// Eigen is distributed in the hope that it will be useful, but WITHOUT ANY
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License or the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public
-// License and a copy of the GNU General Public License along with
-// Eigen. If not, see <http://www.gnu.org/licenses/>.
+// This Source Code Form is subject to the terms of the Mozilla
+// Public License v. 2.0. If a copy of the MPL was not distributed
+// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #define EIGEN2_SUPPORT
 #define EIGEN_NO_STATIC_ASSERT
@@ -60,11 +45,8 @@ template<typename MatrixType> void cwiseops(const MatrixType& m)
              mzero = MatrixType::Zero(rows, cols),
              mones = MatrixType::Ones(rows, cols),
              identity = Matrix<Scalar, MatrixType::RowsAtCompileTime, MatrixType::RowsAtCompileTime>
-                              ::Identity(rows, rows),
-             square = Matrix<Scalar, MatrixType::RowsAtCompileTime, MatrixType::RowsAtCompileTime>::Random(rows, rows);
-  VectorType v1 = VectorType::Random(rows),
-             v2 = VectorType::Random(rows),
-             vzero = VectorType::Zero(rows),
+                              ::Identity(rows, rows);
+  VectorType vzero = VectorType::Zero(rows),
              vones = VectorType::Ones(rows),
              v3(rows);
 
@@ -175,9 +157,9 @@ void test_cwiseop()
   for(int i = 0; i < g_repeat ; i++) {
     CALL_SUBTEST_1( cwiseops(Matrix<float, 1, 1>()) );
     CALL_SUBTEST_2( cwiseops(Matrix4d()) );
-    CALL_SUBTEST_3( cwiseops(MatrixXf(3, 3)) );
-    CALL_SUBTEST_4( cwiseops(MatrixXf(22, 22)) );
-    CALL_SUBTEST_5( cwiseops(MatrixXi(8, 12)) );
-    CALL_SUBTEST_6( cwiseops(MatrixXd(20, 20)) );
+    CALL_SUBTEST_3( cwiseops(MatrixXf(internal::random<int>(1,EIGEN_TEST_MAX_SIZE), internal::random<int>(1,EIGEN_TEST_MAX_SIZE))) );
+    CALL_SUBTEST_4( cwiseops(MatrixXf(internal::random<int>(1,EIGEN_TEST_MAX_SIZE), internal::random<int>(1,EIGEN_TEST_MAX_SIZE))) );
+    CALL_SUBTEST_5( cwiseops(MatrixXi(internal::random<int>(1,EIGEN_TEST_MAX_SIZE), internal::random<int>(1,EIGEN_TEST_MAX_SIZE))) );
+    CALL_SUBTEST_6( cwiseops(MatrixXd(internal::random<int>(1,EIGEN_TEST_MAX_SIZE), internal::random<int>(1,EIGEN_TEST_MAX_SIZE))) );
   }
 }

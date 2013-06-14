@@ -3,24 +3,9 @@
 //
 // Copyright (C) 2008-2009 Gael Guennebaud <gael.guennebaud@inria.fr>
 //
-// Eigen is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 3 of the License, or (at your option) any later version.
-//
-// Alternatively, you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 2 of
-// the License, or (at your option) any later version.
-//
-// Eigen is distributed in the hope that it will be useful, but WITHOUT ANY
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License or the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public
-// License and a copy of the GNU General Public License along with
-// Eigen. If not, see <http://www.gnu.org/licenses/>.
+// This Source Code Form is subject to the terms of the Mozilla
+// Public License v. 2.0. If a copy of the MPL was not distributed
+// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include "main.h"
 #include <Eigen/Geometry>
@@ -122,9 +107,7 @@ template<typename Scalar, int Mode, int Options> void transformations()
   typedef Translation<Scalar,3> Translation3;
 
   Vector3 v0 = Vector3::Random(),
-    v1 = Vector3::Random(),
-    v2 = Vector3::Random();
-  Vector2 u0 = Vector2::Random();
+          v1 = Vector3::Random();
   Matrix3 matrot1, m;
 
   Scalar a = internal::random<Scalar>(-Scalar(M_PI), Scalar(M_PI));
@@ -284,9 +267,9 @@ template<typename Scalar, int Mode, int Options> void transformations()
   // mat * aligned scaling and mat * translation
   t1 = (Matrix3(q1) * AlignedScaling3(v0)) * Translation3(v0);
   VERIFY_IS_APPROX(t0.matrix(), t1.matrix());
-  t1 = (Matrix3(q1) * Scaling(v0)) * Translation3(v0);
+  t1 = (Matrix3(q1) * Eigen::Scaling(v0)) * Translation3(v0);
   VERIFY_IS_APPROX(t0.matrix(), t1.matrix());
-  t1 = (q1 * Scaling(v0)) * Translation3(v0);
+  t1 = (q1 * Eigen::Scaling(v0)) * Translation3(v0);
   VERIFY_IS_APPROX(t0.matrix(), t1.matrix());
   // mat * transformation and aligned scaling * translation
   t1 = Matrix3(q1) * (AlignedScaling3(v0) * Translation3(v0));
@@ -295,18 +278,18 @@ template<typename Scalar, int Mode, int Options> void transformations()
 
   t0.setIdentity();
   t0.scale(s0).translate(v0);
-  t1 = Scaling(s0) * Translation3(v0);
+  t1 = Eigen::Scaling(s0) * Translation3(v0);
   VERIFY_IS_APPROX(t0.matrix(), t1.matrix());
   t0.prescale(s0);
-  t1 = Scaling(s0) * t1;
+  t1 = Eigen::Scaling(s0) * t1;
   VERIFY_IS_APPROX(t0.matrix(), t1.matrix());
   
   t0 = t3;
   t0.scale(s0);
-  t1 = t3 * Scaling(s0,s0,s0);
+  t1 = t3 * Eigen::Scaling(s0,s0,s0);
   VERIFY_IS_APPROX(t0.matrix(), t1.matrix());
   t0.prescale(s0);
-  t1 = Scaling(s0,s0,s0) * t1;
+  t1 = Eigen::Scaling(s0,s0,s0) * t1;
   VERIFY_IS_APPROX(t0.matrix(), t1.matrix());
 
 
@@ -417,6 +400,9 @@ template<typename Scalar, int Mode, int Options> void transformations()
   Rotation2D<double> r2d1d = r2d1.template cast<double>();
   VERIFY_IS_APPROX(r2d1d.template cast<Scalar>(),r2d1);
 
+  t20 = Translation2(v20) * (Rotation2D<Scalar>(s0) * Scaling(s0));
+  t21 = Translation2(v20) * Rotation2D<Scalar>(s0) * Scaling(s0);
+  VERIFY_IS_APPROX(t20,t21);
 }
 
 template<typename Scalar> void transform_alignment()
@@ -448,6 +434,29 @@ template<typename Scalar> void transform_alignment()
   #endif
 }
 
+template<typename Scalar, int Dim, int Options> void transform_products()
+{
+  typedef Matrix<Scalar,Dim+1,Dim+1> Mat;
+  typedef Transform<Scalar,Dim,Projective,Options> Proj;
+  typedef Transform<Scalar,Dim,Affine,Options> Aff;
+  typedef Transform<Scalar,Dim,AffineCompact,Options> AffC;
+
+  Proj p; p.matrix().setRandom();
+  Aff a; a.linear().setRandom(); a.translation().setRandom();
+  AffC ac = a;
+
+  Mat p_m(p.matrix()), a_m(a.matrix());
+
+  VERIFY_IS_APPROX((p*p).matrix(), p_m*p_m);
+  VERIFY_IS_APPROX((a*a).matrix(), a_m*a_m);
+  VERIFY_IS_APPROX((p*a).matrix(), p_m*a_m);
+  VERIFY_IS_APPROX((a*p).matrix(), a_m*p_m);
+  VERIFY_IS_APPROX((ac*a).matrix(), a_m*a_m);
+  VERIFY_IS_APPROX((a*ac).matrix(), a_m*a_m);
+  VERIFY_IS_APPROX((p*ac).matrix(), p_m*a_m);
+  VERIFY_IS_APPROX((ac*p).matrix(), a_m*p_m);
+}
+
 void test_geo_transformations()
 {
   for(int i = 0; i < g_repeat; i++) {
@@ -470,5 +479,9 @@ void test_geo_transformations()
 
     CALL_SUBTEST_6(( transformations<double,Projective,RowMajor|AutoAlign>() ));
     CALL_SUBTEST_6(( transformations<double,Projective,RowMajor|DontAlign>() ));
+
+
+    CALL_SUBTEST_7(( transform_products<double,3,RowMajor|AutoAlign>() ));
+    CALL_SUBTEST_7(( transform_products<float,2,AutoAlign>() ));
   }
 }

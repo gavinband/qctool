@@ -45,20 +45,6 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options[ "-intensities" ]
 		.set_description( "Report per-sample intensities for each sample at each SNP." ) ;
 	
-	options.declare_group( "Association test options" ) ;
-	options[ "-test" ]
-		.set_description( "Perform an association test on the given phenotype." )
-		.set_takes_single_value() ;
-	options[ "-covariates" ]
-		.set_description( "Specify a comma-separated list of covariates to use in the association test." )
-		.set_takes_single_value()
-		.set_default_value( "" ) ;
-	options[ "-no-X-inactivation" ]
-		.set_description( "Specify that X chromosome inactivation in females should not be modelled in the association test. "
-			"If this option is specified, females have twice the maximum exposure that males do." )
-		.set_takes_single_value()
-		.set_default_value( "" ) ;
-	
 	options[ "-stratify" ]
 		.set_description( "Compute all SNP summary statistics seperately for each level of the given variable in the sample file." )
 		.set_takes_single_value() ;
@@ -101,8 +87,6 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options.option_implies_option( "-intensity-stats", "-g" ) ;
 	options.option_implies_option( "-annotate-ancestral", "-g" ) ;
 	options.option_implies_option( "-annotate-reference", "-g" ) ;
-	options.option_implies_option( "-test", "-g" ) ;
-	options.option_implies_option( "-test", "-s" ) ;
 	options.option_implies_option( "-stratify", "-s" ) ;
 	
 	CallComparerComponent::declare_options( options ) ;
@@ -149,12 +133,17 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 		) ;
 	}
 	else if( m_options.check( "-flat-table" )) {
-		storage = qcdb::FlatTableDBOutputter::create_shared(
+		qcdb::FlatTableDBOutputter::SharedPtr table_storage = qcdb::FlatTableDBOutputter::create_shared(
 			filename,
 			m_options.get< std::string >( "-analysis-name" ),
 			m_options.get< std::string >( "-analysis-description" ),
 			m_options.get_values_as_map()
 		) ;
+
+		if( m_options.check( "-table-name" ) ) {
+			table_storage->set_table_name( m_options.get< std::string >( "-table-name" )) ;
+		}
+		storage = table_storage ;
 	}
 	else {
 		storage = snp_summary_component::DBOutputter::create_shared(
@@ -220,93 +209,6 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 			new snp_summary_component::IntensityReporter( m_samples )
 		) ;
 		manager.add_computation( "intensities", computation ) ;
-	}
-
-	if( m_options.check( "-test" )) {
-		std::vector< std::string > phenotypes = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-test" ), ",", " \t" ) ;
-		std::vector< std::string > covariates ;
-		if( m_options.check( "-covariates" ))  {
-			covariates = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-covariates" ), ",", " \t" ) ;
-		}
-		BOOST_FOREACH( std::string const& phenotype, phenotypes ) {
-			manager.add_computation(
-				"association_test",
-				AssociationTest::create(
-					"autosomal",
-					phenotype,
-					covariates,
-					m_samples,
-					m_options
-				)
-			) ;
-			manager.add_computation(
-				"X_chromosome_association_test",
-				AssociationTest::create(
-					"X chromosome",
-					phenotype,
-					covariates,
-					m_samples,
-					m_options
-				)
-			) ;
-		}
-	}
-
-	if( m_options.check( "-annotate-reference" )) {
-		appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading reference sequence" ) ;
-		SequenceAnnotation::UniquePtr computation(
-			new SequenceAnnotation( "reference", m_options.get< std::string >( "-annotate-reference" ), progress )
-		) ;
-		
-		if( m_options.check( "-flanking" )) {
-			std::vector< std::size_t > data = m_options.get_values< std::size_t >( "-flanking" ) ;
-			assert( data.size() == 2 ) ;
-			computation->set_flanking( data[0], data[1] ) ;
-		}
-		
-		manager.add_computation(
-			"reference_sequence",
-			SNPSummaryComputation::UniquePtr(
-				computation.release()
-			)
-		) ;
-	}
-
-	if( m_options.check( "-annotate-ancestral" )) {
-		appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading ancestral sequence" ) ;
-		SequenceAnnotation::UniquePtr computation(
-			new SequenceAnnotation( "ancestral", m_options.get< std::string >( "-annotate-ancestral" ), progress )
-		) ;
-		
-		if( m_options.check( "-flanking" )) {
-			std::vector< std::size_t > data = m_options.get_values< std::size_t >( "-flanking" ) ;
-			assert( data.size() == 2 ) ;
-			computation->set_flanking( data[0], data[1] ) ;
-		}
-
-		manager.add_computation(
-			"ancestral_sequence",
-			SNPSummaryComputation::UniquePtr(
-				computation.release()
-			)
-		) ;
-	}
-
-	if( m_options.check( "-annotate-genetic-map" )) {
-		appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading genetic map" ) ;
-		GeneticMapAnnotation::UniquePtr computation = GeneticMapAnnotation::create(
-			genfile::wildcard::find_files_by_chromosome(
-				m_options.get< std::string >( "-annotate-genetic-map" )
-			),
-			progress
-		) ;
-		
-		manager.add_computation(
-			"genetic_map",
-			SNPSummaryComputation::UniquePtr(
-				computation.release()
-			)
-		) ;
 	}
 
 	if( m_options.check( "-compare-to" )) {
@@ -385,6 +287,63 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		manager.stratify_by( strata, variable ) ;
 	}
 	
+	if( m_options.check( "-annotate-reference" )) {
+		appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading reference sequence" ) ;
+		SequenceAnnotation::UniquePtr computation(
+			new SequenceAnnotation( "reference", m_options.get< std::string >( "-annotate-reference" ), progress )
+		) ;
+		
+		if( m_options.check( "-flanking" )) {
+			std::vector< std::size_t > data = m_options.get_values< std::size_t >( "-flanking" ) ;
+			assert( data.size() == 2 ) ;
+			computation->set_flanking( data[0], data[1] ) ;
+		}
+		
+		manager.add_computation(
+			"reference_sequence",
+			SNPSummaryComputation::UniquePtr(
+				computation.release()
+			)
+		) ;
+	}
+
+	if( m_options.check( "-annotate-ancestral" )) {
+		appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading ancestral sequence" ) ;
+		SequenceAnnotation::UniquePtr computation(
+			new SequenceAnnotation( "ancestral", m_options.get< std::string >( "-annotate-ancestral" ), progress )
+		) ;
+		
+		if( m_options.check( "-flanking" )) {
+			std::vector< std::size_t > data = m_options.get_values< std::size_t >( "-flanking" ) ;
+			assert( data.size() == 2 ) ;
+			computation->set_flanking( data[0], data[1] ) ;
+		}
+
+		manager.add_computation(
+			"ancestral_sequence",
+			SNPSummaryComputation::UniquePtr(
+				computation.release()
+			)
+		) ;
+	}
+
+	if( m_options.check( "-annotate-genetic-map" )) {
+		appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading genetic map" ) ;
+		GeneticMapAnnotation::UniquePtr computation = GeneticMapAnnotation::create(
+			genfile::wildcard::find_files_by_chromosome(
+				m_options.get< std::string >( "-annotate-genetic-map" )
+			),
+			progress
+		) ;
+		
+		manager.add_computation(
+			"genetic_map",
+			SNPSummaryComputation::UniquePtr(
+				computation.release()
+			)
+		) ;
+	}
+
 	if( m_options.check_if_option_was_supplied_in_group( "Call comparison options" ) ) {
 		CallComparerComponent::UniquePtr cc = CallComparerComponent::create(
 			m_samples,
