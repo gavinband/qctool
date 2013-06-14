@@ -62,7 +62,8 @@ namespace genfile {
 		std::string const m_filename ;
 		std::vector< std::string > const m_missing_values ;
 		GetEntryFromString m_get_entry_from_string ;
-		std::vector< std::string > m_comments ;
+		std::string m_comments ;
+		std::size_t m_number_of_metadata_lines ;
 		std::vector< std::string > m_column_names ;
 		std::vector< ColumnType > m_column_types ;
 		// Entries stored by sample and then by column
@@ -75,9 +76,9 @@ namespace genfile {
 		std::vector< std::string >::const_iterator find_column_name_impl( std::string const& column_name ) const ;
 		void setup( std::istream& str ) ;
 		void unsafe_setup( std::istream& stream ) ;
-		std::vector< std::string > read_comments( std::istream& stream ) const ;
+		std::string read_comments( std::istream& stream ) const ;
 		std::vector< std::string > read_column_names( std::istream& stream ) const ;
-		boost::optional< std::map< std::string, CohortIndividualSource::ColumnType > > read_column_types_from_comments( std::vector< std::string > const& comments ) const ;
+		boost::optional< std::map< std::string, CohortIndividualSource::ColumnType > > read_column_types_from_comments( std::string const& comments ) const ;
 		std::vector< ColumnType > read_column_type_line( std::istream& stream, std::vector< std::string > const& column_names ) const ;
 		std::vector< std::vector< Entry > > read_entries( std::istream& stream, std::vector< ColumnType > const& column_types ) const ;
 		std::vector< Entry > get_checked_entries(
