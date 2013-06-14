@@ -1780,11 +1780,13 @@ private:
 			) ;
 		}
 
+		genfile::SampleFilterDisjunction::UniquePtr sample_inclusion_filter( new genfile::SampleFilterDisjunction() ) ;
+
 		if( m_options.check_if_option_was_supplied( "-incl-samples" ) ) {
 			genfile::SampleFilter::UniquePtr id1_filter = get_sample_id_filter(
 				m_options.get_values< std::string >( "-incl-samples" )
 			) ;
-			filter->add_clause( genfile::SampleFilter::UniquePtr( id1_filter.release() ) ) ;
+			sample_inclusion_filter->add_clause( genfile::SampleFilter::UniquePtr( id1_filter.release() ) ) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "-excl-samples" ) ) {
@@ -1803,16 +1805,14 @@ private:
 		if( m_options.check_if_option_was_supplied( "-incl-samples-where" ) ) {
 			std::vector< std::string > conditions = m_options.get_values< std::string >( "-incl-samples-where" ) ;
 			// we OR together different WHERE clauses.
-			genfile::SampleFilterDisjunction::UniquePtr where( new genfile::SampleFilterDisjunction() ) ;
 			for( std::size_t i = 0; i < conditions.size(); ++i ) {
-				where->add_clause( genfile::SampleFilter::create( conditions[i] )) ;
+				sample_inclusion_filter->add_clause( genfile::SampleFilter::create( conditions[i] )) ;
 			}
-			filter->add_clause( genfile::SampleFilter::UniquePtr( where.release() ) ) ;
 		}
 
 		if( m_options.check_if_option_was_supplied( "-excl-samples-where" ) ) {
 			std::vector< std::string > conditions = m_options.get_values< std::string >( "-excl-samples-where" ) ;
-			// we OR together different WHERE clauses.
+			// we AND together different WHERE clauses.
 			genfile::SampleFilterDisjunction::UniquePtr where( new genfile::SampleFilterDisjunction() ) ;
 			for( std::size_t i = 0; i < conditions.size(); ++i ) {
 				where->add_clause( genfile::SampleFilter::create( conditions[i] )) ;
@@ -1824,6 +1824,9 @@ private:
 					)
 				)
 			) ;
+		}
+		if( sample_inclusion_filter->number_of_clauses() > 0 ) {
+			filter->add_clause( genfile::SampleFilter::UniquePtr( sample_inclusion_filter.release() ) ) ;
 		}
 
 		return filter ;
