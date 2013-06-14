@@ -104,6 +104,8 @@ namespace genfile {
 	void FromFileCohortIndividualSource::unsafe_setup( std::istream& stream ) {
 		// read any header comments
 		m_comments = read_comments( stream ) ;
+		m_number_of_metadata_lines = std::count( m_comments.begin(), m_comments.end(), '\n' ) ;
+		
 		typedef std::map< std::string, CohortIndividualSource::ColumnType > ColumnTypeMap ;
 		boost::optional< ColumnTypeMap > column_types = read_column_types_from_comments( m_comments ) ;
 		
@@ -113,7 +115,7 @@ namespace genfile {
 			for( std::size_t i = 0; i < m_column_names.size(); ++i ) {
 				ColumnTypeMap::const_iterator where = (*column_types).find( m_column_names[i] ) ;
 				if( where == (*column_types).end() ) {
-					throw MalformedInputError( m_filename, m_comments.size() + 1 ) ;
+					throw MalformedInputError( m_filename, m_number_of_metadata_lines + 1 ) ;
 				}
 				m_column_types[i] = where->second ;
 			}
@@ -126,13 +128,13 @@ namespace genfile {
 		assert( stream.eof() ) ;
 	}
 	
-	std::vector< std::string > FromFileCohortIndividualSource::read_comments( std::istream& stream ) const {
-		std::vector< std::string > result ;
+	std::string FromFileCohortIndividualSource::read_comments( std::istream& stream ) const {
+		std::string result ;
 		while( stream.peek() == '#' ) {
 			std::string line ;
 			std::getline( stream, line ) ;
 			assert( line.size() > 0 ) ;
-			result.push_back( genfile::string_utils::strip( line.substr( 1, line.size() ), " \t\n" ) ) ;
+			result.append( line.substr( 1, line.size() ) + "\n" ) ;
 		}
 		return result ;
 	}
@@ -183,25 +185,29 @@ namespace genfile {
 	}
 
 	boost::optional< std::map< std::string, CohortIndividualSource::ColumnType > > FromFileCohortIndividualSource::read_column_types_from_comments(
-		std::vector< std::string > const& comments
+		std::string const& comments
 	) const {
-		boost::optional< std::map< std::string, CohortIndividualSource::ColumnType > > result ;
+		using namespace boost::spirit::qi ;
+		using namespace boost::phoenix ;
+		using boost::spirit::ascii::char_ ;
+		using boost::spirit::ascii::graph ;
+		using boost::spirit::ascii::blank ;
 
-		for( std::size_t line_i = 0; line_i < comments.size(); ++line_i ) {
-			std::cerr << "line:\""  << comments[line_i] << "\".\n" ;
-			typedef std::map< std::string, CohortIndividualSource::ColumnType > Intermediate ;
+		boost::optional< std::map< std::string, CohortIndividualSource::ColumnType > > result ;
+		typedef std::map< std::string, CohortIndividualSource::ColumnType > Intermediate ;
+
+		for(
+			std::size_t pos = 0 ;
+			( pos = comments.find( "metadata", pos ) ) != std::string::npos ;
+			++pos
+		) {
 			Intermediate intermediate ;
-			using namespace boost::spirit::qi ;
-			using namespace boost::phoenix ;
-			using boost::spirit::ascii::char_ ;
-			using boost::spirit::ascii::graph ;
-			using boost::spirit::ascii::blank ;
-			std::string::const_iterator begin = comments[line_i].begin() ;
+			std::string::const_iterator begin = comments.begin() + pos ;
 			bool parsed = false ;
 			try {
 				parsed = boost::spirit::qi::phrase_parse(
-					begin, comments[line_i].end(),
-					lit( "metadata:" )
+					comments.begin(), comments.end(),
+						lit( "metadata:" )
 						>> '{'
 						>> (
 							lit( "\"" )
@@ -229,15 +235,14 @@ namespace genfile {
 				) ;
 			}
 			catch( MalformedInputError const& e ) {
-				throw MalformedInputError( m_filename, line_i ) ;
+				throw MalformedInputError( m_filename, 0 ) ;
 			}
-		
+	
 			if( parsed ) {
 				result = intermediate ;
 				break ;
 			}
 		}
-
 		return result ;
 	}
 	
@@ -247,16 +252,16 @@ namespace genfile {
 		std::getline( stream, line ) ;
 		result = string_utils::split_and_strip_discarding_empty_entries( line ) ;
 		if( result.size() < 3 ) {
-			throw MalformedInputError( m_filename, 0 + m_comments.size() ) ;
+			throw MalformedInputError( m_filename, 0 + m_number_of_metadata_lines ) ;
 		}
 		if( string_utils::to_lower( result[0] ) != "id_1" ) {
-			throw MalformedInputError( m_filename, 0 + m_comments.size(), 0 ) ;
+			throw MalformedInputError( m_filename, 0 + m_number_of_metadata_lines, 0 ) ;
 		}
 		if( string_utils::to_lower( result[1] ) != "id_2" ) {
-			throw MalformedInputError( m_filename, 0 + m_comments.size(), 1 ) ;
+			throw MalformedInputError( m_filename, 0 + m_number_of_metadata_lines, 1 ) ;
 		}
 		if( string_utils::to_lower( result[2] ) != "missing" ) {
-			throw MalformedInputError( m_filename, 0 + m_comments.size(), 2 ) ;
+			throw MalformedInputError( m_filename, 0 + m_number_of_metadata_lines, 2 ) ;
 		}
 		// check for uniqueness
 		for( std::size_t i = 0; i < result.size(); ++i ) {
@@ -273,12 +278,12 @@ namespace genfile {
 		std::getline( stream, line ) ;
 		std::vector< std::string > type_strings = string_utils::split_and_strip_discarding_empty_entries( line ) ;
 		if( type_strings.size() != column_names.size() ) {
-			throw MalformedInputError( m_filename, 1 + m_comments.size() ) ;
+			throw MalformedInputError( m_filename, 1 + m_number_of_metadata_lines ) ;
 		}
 		for( std::size_t i = 0; i < type_strings.size(); ++i ) {
 			boost::optional< CohortIndividualSource::ColumnType > type = get_column_type( type_strings[i] ) ;
 			if( !type ) {
-				throw MalformedInputError( m_filename, 1 + m_comments.size(), i ) ;
+				throw MalformedInputError( m_filename, 1 + m_number_of_metadata_lines, i ) ;
 			} else {
 				result.push_back( *type ) ;
 			}
@@ -289,11 +294,11 @@ namespace genfile {
 		for( std::size_t i = 0; i < result.size(); ++i ) {
 			if( i < 3 ) {
 				if( result[i] != e_ID_COLUMN ) {
-					throw MalformedInputError( m_filename, 1 + m_comments.size() ) ;
+					throw MalformedInputError( m_filename, 1 + m_number_of_metadata_lines ) ;
 				}
 			}
 			else if( result[i] == e_ID_COLUMN ) {
-				throw MalformedInputError( m_filename, 1 + m_comments.size() ) ;
+				throw MalformedInputError( m_filename, 1 + m_number_of_metadata_lines ) ;
 			}
 		}
 		result[2] = e_MISSINGNESS_COLUMN ;
@@ -307,7 +312,7 @@ namespace genfile {
 		while( std::getline( stream, line ) ) {
 			std::vector< std::string > string_entries = string_utils::split_and_strip_discarding_empty_entries( line ) ;
 			if( string_entries.size() != column_types.size() ) {
-				throw MalformedInputError( m_filename, 2 + m_comments.size() + result.size() ) ;
+				throw MalformedInputError( m_filename, 2 + m_number_of_metadata_lines + result.size() ) ;
 			}
 			result.push_back( get_checked_entries( string_entries, column_types, 2 + result.size() )) ;
 		}
@@ -326,10 +331,10 @@ namespace genfile {
 				result.push_back( get_possibly_missing_entry_from_string( string_entries[i], column_types[i] )) ;
 			}
 			catch( string_utils::StringConversionError const& e ) {
-				throw MalformedInputError( m_filename, line_number + m_comments.size(), i ) ;
+				throw MalformedInputError( m_filename, line_number + m_number_of_metadata_lines, i ) ;
 			}
 			catch( UnexpectedMissingValueError const& e ) {
-				throw UnexpectedMissingValueError( m_filename, line_number + m_comments.size(), i ) ;
+				throw UnexpectedMissingValueError( m_filename, line_number + m_number_of_metadata_lines, i ) ;
 			}
 		}
 		return result ;
