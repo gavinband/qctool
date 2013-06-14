@@ -32,7 +32,11 @@ namespace genfile {
 			~GenotypeWriter() throw() {}
 			
 			void set( std::size_t i, double AA, double AB, double BB ) {
-				m_stream << " " << ( ( 2 * BB ) + AB ) ;
+				if( AA == 0 && AB == 0 && BB == 0 ) {
+					m_stream << " " << NA ;
+				} else {
+					m_stream << " " << ( ( 2 * BB ) + AB ) ;
+				}
 			}
 
 		private:
