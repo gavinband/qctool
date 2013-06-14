@@ -33,7 +33,7 @@ namespace genfile {
 			
 			void set( std::size_t i, double AA, double AB, double BB ) {
 				if( AA == 0 && AB == 0 && BB == 0 ) {
-					m_stream << " " << NA ;
+					m_stream << " " << "NA" ;
 				} else {
 					m_stream << " " << ( ( 2 * BB ) + AB ) ;
 				}
@@ -50,8 +50,9 @@ namespace genfile {
 		}
 		stream() << "SNPID rsid position alleleA alleleB" ;
 		for( std::size_t i = 0; i < number_of_samples; ++i ) {
-			stream() << getter(i) ;
+			stream() << " " << getter(i) ;
 		}
+		stream() << "\n" ;
 	}
 
 	void GenDosageFileSNPDataSink::write_variant_data_impl(
