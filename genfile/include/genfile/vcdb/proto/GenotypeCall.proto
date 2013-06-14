@@ -1,0 +1,38 @@
+message GenotypeCall {
+	required bool ordered = 1 ;
+	repeated int32 data = 3 [packed=true] ;
+}
+
+message GenotypeCalls {
+	repeated GenotypeCall data = 1 ;
+}
+
+message DoubleList {
+	repeated double data = 2 [ packed=true] ;
+}
+
+message DoubleLists {
+	repeated DoubleList data ;
+}
+
+message FloatList {
+	repeated float data = 1 [ packed=true] ;
+}
+
+message FloatLists {
+	repeated floatLists data = 1 ;
+}
+
+message StringList {
+	repeated string data = 1 ;
+}
+
+message StringLists {
+	repeated StringList data = 1 ;
+}
+
+message PerSampleData {
+	required string ID = 1 ;
+	required int32 storage_detail = 2 ;
+	required bytes data = 3 ;
+}

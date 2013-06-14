@@ -1,0 +1,30 @@
+message SampleGroup {
+	required int32 ID = 1 ;
+	repeated string sampleID = 2 ;
+}
+
+message GenomePosition {
+	optional string genome = 1 ;
+	optional string chromosome = 2 ;
+	optional int32 position = 3 ;
+}
+
+message Variant {
+	required string ID = 1;
+	repeated GenomePosition position = 3 ;
+	repeated string alleles = 4 ;
+}
+
+message VariantGroup {
+	required int32 ID = 1 ;
+	repeated int32 variantIdentifier = 2 ;
+}
+
+message DataBlock {
+	required int32 variantGroupID = 1 ;
+	required int32 sampleGroupID = 2 ;
+	required string ID = 3;
+	required string storage_detail = 4 ;
+	required int32 raw_size = 5 ;
+	required bytes data = 6 ;
+}
