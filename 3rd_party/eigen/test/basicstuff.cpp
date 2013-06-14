@@ -3,24 +3,9 @@
 //
 // Copyright (C) 2006-2008 Benoit Jacob <jacob.benoit.1@gmail.com>
 //
-// Eigen is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 3 of the License, or (at your option) any later version.
-//
-// Alternatively, you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 2 of
-// the License, or (at your option) any later version.
-//
-// Eigen is distributed in the hope that it will be useful, but WITHOUT ANY
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License or the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public
-// License and a copy of the GNU General Public License along with
-// Eigen. If not, see <http://www.gnu.org/licenses/>.
+// This Source Code Form is subject to the terms of the Mozilla
+// Public License v. 2.0. If a copy of the MPL was not distributed
+// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #define EIGEN_NO_STATIC_ASSERT
 
@@ -42,11 +27,8 @@ template<typename MatrixType> void basicStuff(const MatrixType& m)
              m2 = MatrixType::Random(rows, cols),
              m3(rows, cols),
              mzero = MatrixType::Zero(rows, cols),
-             identity = Matrix<Scalar, MatrixType::RowsAtCompileTime, MatrixType::RowsAtCompileTime>
-                              ::Identity(rows, rows),
              square = Matrix<Scalar, MatrixType::RowsAtCompileTime, MatrixType::RowsAtCompileTime>::Random(rows, rows);
   VectorType v1 = VectorType::Random(rows),
-             v2 = VectorType::Random(rows),
              vzero = VectorType::Zero(rows);
   SquareMatrixType sm1 = SquareMatrixType::Random(rows,rows), sm2(rows,rows);
 
@@ -215,14 +197,14 @@ void test_basicstuff()
   for(int i = 0; i < g_repeat; i++) {
     CALL_SUBTEST_1( basicStuff(Matrix<float, 1, 1>()) );
     CALL_SUBTEST_2( basicStuff(Matrix4d()) );
-    CALL_SUBTEST_3( basicStuff(MatrixXcf(internal::random<int>(1,100), internal::random<int>(1,100))) );
-    CALL_SUBTEST_4( basicStuff(MatrixXi(internal::random<int>(1,100), internal::random<int>(1,100))) );
-    CALL_SUBTEST_5( basicStuff(MatrixXcd(internal::random<int>(1,100), internal::random<int>(1,100))) );
+    CALL_SUBTEST_3( basicStuff(MatrixXcf(internal::random<int>(1,EIGEN_TEST_MAX_SIZE), internal::random<int>(1,EIGEN_TEST_MAX_SIZE))) );
+    CALL_SUBTEST_4( basicStuff(MatrixXi(internal::random<int>(1,EIGEN_TEST_MAX_SIZE), internal::random<int>(1,EIGEN_TEST_MAX_SIZE))) );
+    CALL_SUBTEST_5( basicStuff(MatrixXcd(internal::random<int>(1,EIGEN_TEST_MAX_SIZE), internal::random<int>(1,EIGEN_TEST_MAX_SIZE))) );
     CALL_SUBTEST_6( basicStuff(Matrix<float, 100, 100>()) );
-    CALL_SUBTEST_7( basicStuff(Matrix<long double,Dynamic,Dynamic>(internal::random<int>(1,100),internal::random<int>(1,100))) );
+    CALL_SUBTEST_7( basicStuff(Matrix<long double,Dynamic,Dynamic>(internal::random<int>(1,EIGEN_TEST_MAX_SIZE),internal::random<int>(1,EIGEN_TEST_MAX_SIZE))) );
 
-    CALL_SUBTEST_3( basicStuffComplex(MatrixXcf(internal::random<int>(1,100), internal::random<int>(1,100))) );
-    CALL_SUBTEST_5( basicStuffComplex(MatrixXcd(internal::random<int>(1,100), internal::random<int>(1,100))) );
+    CALL_SUBTEST_3( basicStuffComplex(MatrixXcf(internal::random<int>(1,EIGEN_TEST_MAX_SIZE), internal::random<int>(1,EIGEN_TEST_MAX_SIZE))) );
+    CALL_SUBTEST_5( basicStuffComplex(MatrixXcd(internal::random<int>(1,EIGEN_TEST_MAX_SIZE), internal::random<int>(1,EIGEN_TEST_MAX_SIZE))) );
   }
 
   CALL_SUBTEST_1(fixedSizeMatrixConstruction<unsigned char>());

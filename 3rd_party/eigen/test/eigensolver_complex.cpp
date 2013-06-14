@@ -1,27 +1,12 @@
 // This file is part of Eigen, a lightweight C++ template library
-// for linear algebra. Eigen itself is part of the KDE project.
+// for linear algebra.
 //
 // Copyright (C) 2008-2009 Gael Guennebaud <gael.guennebaud@inria.fr>
 // Copyright (C) 2010 Jitse Niesen <jitse@maths.leeds.ac.uk>
 //
-// Eigen is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 3 of the License, or (at your option) any later version.
-//
-// Alternatively, you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 2 of
-// the License, or (at your option) any later version.
-//
-// Eigen is distributed in the hope that it will be useful, but WITHOUT ANY
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License or the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public
-// License and a copy of the GNU General Public License along with
-// Eigen. If not, see <http://www.gnu.org/licenses/>.
+// This Source Code Form is subject to the terms of the Mozilla
+// Public License v. 2.0. If a copy of the MPL was not distributed
+// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include "main.h"
 #include <limits>
@@ -108,18 +93,23 @@ template<typename MatrixType> void eigensolver_verify_assert(const MatrixType& m
 
 void test_eigensolver_complex()
 {
+  int s;
   for(int i = 0; i < g_repeat; i++) {
     CALL_SUBTEST_1( eigensolver(Matrix4cf()) );
-    CALL_SUBTEST_2( eigensolver(MatrixXcd(14,14)) );
+    s = internal::random<int>(1,EIGEN_TEST_MAX_SIZE/4);
+    CALL_SUBTEST_2( eigensolver(MatrixXcd(s,s)) );
     CALL_SUBTEST_3( eigensolver(Matrix<std::complex<float>, 1, 1>()) );
     CALL_SUBTEST_4( eigensolver(Matrix3f()) );
   }
 
   CALL_SUBTEST_1( eigensolver_verify_assert(Matrix4cf()) );
-  CALL_SUBTEST_2( eigensolver_verify_assert(MatrixXcd(14,14)) );
+  s = internal::random<int>(1,EIGEN_TEST_MAX_SIZE/4);
+  CALL_SUBTEST_2( eigensolver_verify_assert(MatrixXcd(s,s)) );
   CALL_SUBTEST_3( eigensolver_verify_assert(Matrix<std::complex<float>, 1, 1>()) );
   CALL_SUBTEST_4( eigensolver_verify_assert(Matrix3f()) );
 
   // Test problem size constructors
-  CALL_SUBTEST_5(ComplexEigenSolver<MatrixXf>(10));
+  CALL_SUBTEST_5(ComplexEigenSolver<MatrixXf>(s));
+  
+  EIGEN_UNUSED_VARIABLE(s)
 }

@@ -4,29 +4,43 @@
 // Copyright (C) 2008-2009 Gael Guennebaud <gael.guennebaud@inria.fr>
 // Copyright (C) 2009 Mathieu Gautier <mathieu.gautier@cea.fr>
 //
-// Eigen is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 3 of the License, or (at your option) any later version.
-//
-// Alternatively, you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 2 of
-// the License, or (at your option) any later version.
-//
-// Eigen is distributed in the hope that it will be useful, but WITHOUT ANY
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License or the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public
-// License and a copy of the GNU General Public License along with
-// Eigen. If not, see <http://www.gnu.org/licenses/>.
+// This Source Code Form is subject to the terms of the Mozilla
+// Public License v. 2.0. If a copy of the MPL was not distributed
+// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include "main.h"
 #include <Eigen/Geometry>
 #include <Eigen/LU>
 #include <Eigen/SVD>
+
+template<typename T> T bounded_acos(T v)
+{
+  using std::acos;
+  using std::min;
+  using std::max;
+  return acos((max)(T(-1),(min)(v,T(1))));
+}
+
+template<typename QuatType> void check_slerp(const QuatType& q0, const QuatType& q1)
+{
+  typedef typename QuatType::Scalar Scalar;
+  typedef Matrix<Scalar,3,1> VectorType;
+  typedef AngleAxis<Scalar> AA;
+
+  Scalar largeEps = test_precision<Scalar>();
+
+  Scalar theta_tot = AA(q1*q0.inverse()).angle();
+  if(theta_tot>M_PI)
+    theta_tot = 2.*M_PI-theta_tot;
+  for(Scalar t=0; t<=1.001; t+=0.1)
+  {
+    QuatType q = q0.slerp(t,q1);
+    Scalar theta = AA(q*q0.inverse()).angle();
+    VERIFY(internal::abs(q.norm() - 1) < largeEps);
+    if(theta_tot==0)  VERIFY(theta_tot==0);
+    else              VERIFY(internal::abs(theta/theta_tot - t) < largeEps);
+  }
+}
 
 template<typename Scalar, int Options> void quaternion(void)
 {
@@ -36,6 +50,7 @@ template<typename Scalar, int Options> void quaternion(void)
 
   typedef Matrix<Scalar,3,3> Matrix3;
   typedef Matrix<Scalar,3,1> Vector3;
+  typedef Matrix<Scalar,4,1> Vector4;
   typedef Quaternion<Scalar,Options> Quaternionx;
   typedef AngleAxis<Scalar> AngleAxisx;
 
@@ -50,7 +65,8 @@ template<typename Scalar, int Options> void quaternion(void)
           v2 = Vector3::Random(),
           v3 = Vector3::Random();
 
-  Scalar a = internal::random<Scalar>(-Scalar(M_PI), Scalar(M_PI));
+  Scalar  a = internal::random<Scalar>(-Scalar(M_PI), Scalar(M_PI)),
+          b = internal::random<Scalar>(-Scalar(M_PI), Scalar(M_PI));
 
   // Quaternion: Identity(), setIdentity();
   Quaternionx q1, q2;
@@ -111,6 +127,17 @@ template<typename Scalar, int Options> void quaternion(void)
     VERIFY_IS_APPROX(-v3.normalized(),(q2.setFromTwoVectors(v1,-v3)*v1).normalized());
   }
 
+  // from two vector creation static function
+  VERIFY_IS_APPROX( v2.normalized(),(Quaternionx::FromTwoVectors(v1, v2)*v1).normalized());
+  VERIFY_IS_APPROX( v1.normalized(),(Quaternionx::FromTwoVectors(v1, v1)*v1).normalized());
+  VERIFY_IS_APPROX(-v1.normalized(),(Quaternionx::FromTwoVectors(v1,-v1)*v1).normalized());
+  if (internal::is_same<Scalar,double>::value)
+  {
+    v3 = (v1.array()+eps).matrix();
+    VERIFY_IS_APPROX( v3.normalized(),(Quaternionx::FromTwoVectors(v1, v3)*v1).normalized());
+    VERIFY_IS_APPROX(-v3.normalized(),(Quaternionx::FromTwoVectors(v1,-v3)*v1).normalized());
+  }
+
   // inverse and conjugate
   VERIFY_IS_APPROX(q1 * (q1.inverse() * v1), v1);
   VERIFY_IS_APPROX(q1 * (q1.conjugate() * v1), v1);
@@ -120,27 +147,60 @@ template<typename Scalar, int Options> void quaternion(void)
   VERIFY_IS_APPROX(q1f.template cast<Scalar>(),q1);
   Quaternion<double> q1d = q1.template cast<double>();
   VERIFY_IS_APPROX(q1d.template cast<Scalar>(),q1);
+
+  // test bug 369 - improper alignment.
+  Quaternionx *q = new Quaternionx;
+  delete q;
+
+  q1 = AngleAxisx(a, v0.normalized());
+  q2 = AngleAxisx(b, v1.normalized());
+  check_slerp(q1,q2);
+
+  q1 = AngleAxisx(b, v1.normalized());
+  q2 = AngleAxisx(b+M_PI, v1.normalized());
+  check_slerp(q1,q2);
+
+  q1 = AngleAxisx(b,  v1.normalized());
+  q2 = AngleAxisx(-b, -v1.normalized());
+  check_slerp(q1,q2);
+
+  q1.coeffs() = Vector4::Random().normalized();
+  q2.coeffs() = -q1.coeffs();
+  check_slerp(q1,q2);
 }
 
 template<typename Scalar> void mapQuaternion(void){
   typedef Map<Quaternion<Scalar>, Aligned> MQuaternionA;
+  typedef Map<const Quaternion<Scalar>, Aligned> MCQuaternionA;
   typedef Map<Quaternion<Scalar> > MQuaternionUA;
   typedef Map<const Quaternion<Scalar> > MCQuaternionUA;
   typedef Quaternion<Scalar> Quaternionx;
+  typedef Matrix<Scalar,3,1> Vector3;
+  typedef AngleAxis<Scalar> AngleAxisx;
+  
+  Vector3 v0 = Vector3::Random(),
+          v1 = Vector3::Random();
+  Scalar  a = internal::random<Scalar>(-Scalar(M_PI), Scalar(M_PI));
 
   EIGEN_ALIGN16 Scalar array1[4];
   EIGEN_ALIGN16 Scalar array2[4];
   EIGEN_ALIGN16 Scalar array3[4+1];
   Scalar* array3unaligned = array3+1;
+  
+  MQuaternionA    mq1(array1);
+  MCQuaternionA   mcq1(array1);
+  MQuaternionA    mq2(array2);
+  MQuaternionUA   mq3(array3unaligned);
+  MCQuaternionUA  mcq3(array3unaligned);
 
 //  std::cerr << array1 << " " << array2 << " " << array3 << "\n";
-  MQuaternionA(array1).coeffs().setRandom();
-  (MQuaternionA(array2)) = MQuaternionA(array1);
-  (MQuaternionUA(array3unaligned)) = MQuaternionA(array1);
+  mq1 = AngleAxisx(a, v0.normalized());
+  mq2 = mq1;
+  mq3 = mq1;
 
-  Quaternionx q1 = MQuaternionA(array1);
-  Quaternionx q2 = MQuaternionA(array2);
-  Quaternionx q3 = MQuaternionUA(array3unaligned);
+  Quaternionx q1 = mq1;
+  Quaternionx q2 = mq2;
+  Quaternionx q3 = mq3;
   Quaternionx q4 = MCQuaternionUA(array3unaligned);
 
   VERIFY_IS_APPROX(q1.coeffs(), q2.coeffs());
@@ -150,6 +210,23 @@ template<typename Scalar> void mapQuaternion(void){
   if(internal::packet_traits<Scalar>::Vectorizable)
     VERIFY_RAISES_ASSERT((MQuaternionA(array3unaligned)));
   #endif
+    
+  VERIFY_IS_APPROX(mq1 * (mq1.inverse() * v1), v1);
+  VERIFY_IS_APPROX(mq1 * (mq1.conjugate() * v1), v1);
+  
+  VERIFY_IS_APPROX(mcq1 * (mcq1.inverse() * v1), v1);
+  VERIFY_IS_APPROX(mcq1 * (mcq1.conjugate() * v1), v1);
+  
+  VERIFY_IS_APPROX(mq3 * (mq3.inverse() * v1), v1);
+  VERIFY_IS_APPROX(mq3 * (mq3.conjugate() * v1), v1);
+  
+  VERIFY_IS_APPROX(mcq3 * (mcq3.inverse() * v1), v1);
+  VERIFY_IS_APPROX(mcq3 * (mcq3.conjugate() * v1), v1);
+  
+  VERIFY_IS_APPROX(mq1*mq2, q1*q2);
+  VERIFY_IS_APPROX(mq3*mq2, q3*q2);
+  VERIFY_IS_APPROX(mcq1*mq2, q1*q2);
+  VERIFY_IS_APPROX(mcq3*mq2, q3*q2);
 }
 
 template<typename Scalar> void quaternionAlignment(void){
@@ -190,7 +267,6 @@ template<typename PlainObjectType> void check_const_correctness(const PlainObjec
   VERIFY( !(Map<ConstPlainObjectType>::Flags & LvalueBit) );
   VERIFY( !(Map<ConstPlainObjectType, Aligned>::Flags & LvalueBit) );
 }
-
 
 void test_geo_quaternion()
 {

@@ -3,24 +3,9 @@
 //
 // Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>
 //
-// Eigen is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 3 of the License, or (at your option) any later version.
-//
-// Alternatively, you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 2 of
-// the License, or (at your option) any later version.
-//
-// Eigen is distributed in the hope that it will be useful, but WITHOUT ANY
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License or the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public
-// License and a copy of the GNU General Public License along with
-// Eigen. If not, see <http://www.gnu.org/licenses/>.
+// This Source Code Form is subject to the terms of the Mozilla
+// Public License v. 2.0. If a copy of the MPL was not distributed
+// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #ifndef EIGEN_NO_ASSERTION_CHECKING
 #define EIGEN_NO_ASSERTION_CHECKING
@@ -41,9 +26,37 @@ static int nb_temporaries;
     VERIFY( (#XPR) && nb_temporaries==N ); \
   }
 
-#ifdef HAS_GSL
-#include "gsl_helper.h"
-#endif
+template<typename MatrixType,template <typename,int> class CholType> void test_chol_update(const MatrixType& symm)
+{
+  typedef typename MatrixType::Scalar Scalar;
+  typedef typename MatrixType::RealScalar RealScalar;
+  typedef Matrix<Scalar, MatrixType::RowsAtCompileTime, 1> VectorType;
+
+  MatrixType symmLo = symm.template triangularView<Lower>();
+  MatrixType symmUp = symm.template triangularView<Upper>();
+  MatrixType symmCpy = symm;
+
+  CholType<MatrixType,Lower> chollo(symmLo);
+  CholType<MatrixType,Upper> cholup(symmUp);
+
+  for (int k=0; k<10; ++k)
+  {
+    VectorType vec = VectorType::Random(symm.rows());
+    RealScalar sigma = internal::random<RealScalar>();
+    symmCpy += sigma * vec * vec.adjoint();
+
+    // we are doing some downdates, so it might be the case that the matrix is not SPD anymore
+    CholType<MatrixType,Lower> chol(symmCpy);
+    if(chol.info()!=Success)
+      break;
+
+    chollo.rankUpdate(vec, sigma);
+    VERIFY_IS_APPROX(symmCpy, chollo.reconstructedMatrix());
+
+    cholup.rankUpdate(vec, sigma);
+    VERIFY_IS_APPROX(symmCpy, cholup.reconstructedMatrix());
+  }
+}
 
 template<typename MatrixType> void cholesky(const MatrixType& m)
 {
@@ -77,34 +90,6 @@ template<typename MatrixType> void cholesky(const MatrixType& m)
   // FIXME: currently that fails !!
   //symm.template part<StrictlyLower>().setZero();
 
-  #ifdef HAS_GSL
-//   if (internal::is_same<RealScalar,double>::value)
-//   {
-//     typedef GslTraits<Scalar> Gsl;
-//     typename Gsl::Matrix gMatA=0, gSymm=0;
-//     typename Gsl::Vector gVecB=0, gVecX=0;
-//     convert<MatrixType>(symm, gSymm);
-//     convert<MatrixType>(symm, gMatA);
-//     convert<VectorType>(vecB, gVecB);
-//     convert<VectorType>(vecB, gVecX);
-//     Gsl::cholesky(gMatA);
-//     Gsl::cholesky_solve(gMatA, gVecB, gVecX);
-//     VectorType vecX(rows), _vecX, _vecB;
-//     convert(gVecX, _vecX);
-//     symm.llt().solve(vecB, &vecX);
-//     Gsl::prod(gSymm, gVecX, gVecB);
-//     convert(gVecB, _vecB);
-//     // test gsl itself !
-//     VERIFY_IS_APPROX(vecB, _vecB);
-//     VERIFY_IS_APPROX(vecX, _vecX);
-//
-//     Gsl::free(gMatA);
-//     Gsl::free(gSymm);
-//     Gsl::free(gVecB);
-//     Gsl::free(gVecX);
-//   }
-  #endif
-
   {
     LLT<SquareMatrixType,Lower> chollo(symmLo);
     VERIFY_IS_APPROX(symm, chollo.reconstructedMatrix());
@@ -124,6 +109,11 @@ template<typename MatrixType> void cholesky(const MatrixType& m)
     MatrixType neg = -symmLo;
     chollo.compute(neg);
     VERIFY(chollo.info()==NumericalIssue);
+
+    VERIFY_IS_APPROX(MatrixType(chollo.matrixL().transpose().conjugate()), MatrixType(chollo.matrixU()));
+    VERIFY_IS_APPROX(MatrixType(chollo.matrixU().transpose().conjugate()), MatrixType(chollo.matrixL()));
+    VERIFY_IS_APPROX(MatrixType(cholup.matrixL().transpose().conjugate()), MatrixType(cholup.matrixU()));
+    VERIFY_IS_APPROX(MatrixType(cholup.matrixU().transpose().conjugate()), MatrixType(cholup.matrixL()));
   }
 
   // LDLT
@@ -152,6 +142,11 @@ template<typename MatrixType> void cholesky(const MatrixType& m)
     matX = ldltup.solve(matB);
     VERIFY_IS_APPROX(symm * matX, matB);
 
+    VERIFY_IS_APPROX(MatrixType(ldltlo.matrixL().transpose().conjugate()), MatrixType(ldltlo.matrixU()));
+    VERIFY_IS_APPROX(MatrixType(ldltlo.matrixU().transpose().conjugate()), MatrixType(ldltlo.matrixL()));
+    VERIFY_IS_APPROX(MatrixType(ldltup.matrixL().transpose().conjugate()), MatrixType(ldltup.matrixU()));
+    VERIFY_IS_APPROX(MatrixType(ldltup.matrixU().transpose().conjugate()), MatrixType(ldltup.matrixL()));
+
     if(MatrixType::RowsAtCompileTime==Dynamic)
     {
       // note : each inplace permutation requires a small temporary vector (mask)
@@ -166,6 +161,10 @@ template<typename MatrixType> void cholesky(const MatrixType& m)
       VERIFY_EVALUATION_COUNT(matX = ldltup.solve(matX), 0);
       VERIFY_IS_APPROX(matX, ldltup.solve(matB).eval());
     }
+
+    // restore
+    if(sign == -1)
+      symm = -symm;
   }
 
   // test some special use cases of SelfCwiseBinaryOp:
@@ -182,7 +181,10 @@ template<typename MatrixType> void cholesky(const MatrixType& m)
   m2 = m1;
   m2.noalias() -= symmLo.template selfadjointView<Lower>().llt().solve(matB);
   VERIFY_IS_APPROX(m2, m1 - symmLo.template selfadjointView<Lower>().llt().solve(matB));
-  
+
+  // update/downdate
+  CALL_SUBTEST(( test_chol_update<SquareMatrixType,LLT>(symm)  ));
+  CALL_SUBTEST(( test_chol_update<SquareMatrixType,LDLT>(symm) ));
 }
 
 template<typename MatrixType> void cholesky_cplx(const MatrixType& m)
@@ -242,7 +244,22 @@ template<typename MatrixType> void cholesky_cplx(const MatrixType& m)
 //     matX = ldltlo.solve(matB);
 //     VERIFY_IS_APPROX(symm * matX, matB);
   }
+}
 
+// regression test for bug 241
+template<typename MatrixType> void cholesky_bug241(const MatrixType& m)
+{
+  eigen_assert(m.rows() == 2 && m.cols() == 2);
+
+  typedef typename MatrixType::Scalar Scalar;
+  typedef Matrix<Scalar, MatrixType::RowsAtCompileTime, 1> VectorType;
+
+  MatrixType matA;
+  matA << 1, 1, 1, 1;
+  VectorType vecB;
+  vecB << 1, 1;
+  VectorType vecX = matA.ldlt().solve(vecB);
+  VERIFY_IS_APPROX(matA * vecX, vecB);
 }
 
 template<typename MatrixType> void cholesky_verify_assert()
@@ -271,11 +288,12 @@ void test_cholesky()
   for(int i = 0; i < g_repeat; i++) {
     CALL_SUBTEST_1( cholesky(Matrix<double,1,1>()) );
     CALL_SUBTEST_3( cholesky(Matrix2d()) );
+    CALL_SUBTEST_3( cholesky_bug241(Matrix2d()) );
     CALL_SUBTEST_4( cholesky(Matrix3f()) );
     CALL_SUBTEST_5( cholesky(Matrix4d()) );
-    s = internal::random<int>(1,200);
+    s = internal::random<int>(1,EIGEN_TEST_MAX_SIZE);
     CALL_SUBTEST_2( cholesky(MatrixXd(s,s)) );
-    s = internal::random<int>(1,100);
+    s = internal::random<int>(1,EIGEN_TEST_MAX_SIZE/2);
     CALL_SUBTEST_6( cholesky_cplx(MatrixXcd(s,s)) );
   }
 
@@ -287,4 +305,6 @@ void test_cholesky()
   // Test problem size constructors
   CALL_SUBTEST_9( LLT<MatrixXf>(10) );
   CALL_SUBTEST_9( LDLT<MatrixXf>(10) );
+  
+  EIGEN_UNUSED_VARIABLE(s)
 }

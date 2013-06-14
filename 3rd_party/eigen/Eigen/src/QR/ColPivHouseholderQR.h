@@ -4,27 +4,14 @@
 // Copyright (C) 2008-2009 Gael Guennebaud <gael.guennebaud@inria.fr>
 // Copyright (C) 2009 Benoit Jacob <jacob.benoit.1@gmail.com>
 //
-// Eigen is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 3 of the License, or (at your option) any later version.
-//
-// Alternatively, you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 2 of
-// the License, or (at your option) any later version.
-//
-// Eigen is distributed in the hope that it will be useful, but WITHOUT ANY
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License or the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public
-// License and a copy of the GNU General Public License along with
-// Eigen. If not, see <http://www.gnu.org/licenses/>.
+// This Source Code Form is subject to the terms of the Mozilla
+// Public License v. 2.0. If a copy of the MPL was not distributed
+// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #ifndef EIGEN_COLPIVOTINGHOUSEHOLDERQR_H
 #define EIGEN_COLPIVOTINGHOUSEHOLDERQR_H
+
+namespace Eigen { 
 
 /** \ingroup QR_Module
   *
@@ -69,6 +56,12 @@ template<typename _MatrixType> class ColPivHouseholderQR
     typedef typename internal::plain_row_type<MatrixType>::type RowVectorType;
     typedef typename internal::plain_row_type<MatrixType, RealScalar>::type RealRowVectorType;
     typedef typename HouseholderSequence<MatrixType,HCoeffsType>::ConjugateReturnType HouseholderSequenceType;
+    
+  private:
+    
+    typedef typename PermutationType::Index PermIndexType;
+    
+  public:
 
     /**
     * \brief Default Constructor.
@@ -94,7 +87,7 @@ template<typename _MatrixType> class ColPivHouseholderQR
     ColPivHouseholderQR(Index rows, Index cols)
       : m_qr(rows, cols),
         m_hCoeffs((std::min)(rows,cols)),
-        m_colsPermutation(cols),
+        m_colsPermutation(PermIndexType(cols)),
         m_colsTranspositions(cols),
         m_temp(cols),
         m_colSqNorms(cols),
@@ -104,7 +97,7 @@ template<typename _MatrixType> class ColPivHouseholderQR
     ColPivHouseholderQR(const MatrixType& matrix)
       : m_qr(matrix.rows(), matrix.cols()),
         m_hCoeffs((std::min)(matrix.rows(),matrix.cols())),
-        m_colsPermutation(matrix.cols()),
+        m_colsPermutation(PermIndexType(matrix.cols())),
         m_colsTranspositions(matrix.cols()),
         m_temp(matrix.cols()),
         m_colSqNorms(matrix.cols()),
@@ -449,9 +442,9 @@ ColPivHouseholderQR<MatrixType>& ColPivHouseholderQR<MatrixType>::compute(const 
     m_colSqNorms.tail(cols-k-1) -= m_qr.row(k).tail(cols-k-1).cwiseAbs2();
   }
 
-  m_colsPermutation.setIdentity(cols);
-  for(Index k = 0; k < m_nonzero_pivots; ++k)
-    m_colsPermutation.applyTranspositionOnTheRight(k, m_colsTranspositions.coeff(k));
+  m_colsPermutation.setIdentity(PermIndexType(cols));
+  for(PermIndexType k = 0; k < m_nonzero_pivots; ++k)
+    m_colsPermutation.applyTranspositionOnTheRight(PermIndexType(k), PermIndexType(m_colsTranspositions.coeff(k)));
 
   m_det_pq = (number_of_transpositions%2) ? -1 : 1;
   m_isInitialized = true;
@@ -528,5 +521,6 @@ MatrixBase<Derived>::colPivHouseholderQr() const
   return ColPivHouseholderQR<PlainObject>(eval());
 }
 
+} // end namespace Eigen
 
 #endif // EIGEN_COLPIVOTINGHOUSEHOLDERQR_H

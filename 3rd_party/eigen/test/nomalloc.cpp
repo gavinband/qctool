@@ -4,24 +4,9 @@
 // Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>
 // Copyright (C) 2006-2008 Benoit Jacob <jacob.benoit.1@gmail.com>
 //
-// Eigen is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 3 of the License, or (at your option) any later version.
-//
-// Alternatively, you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 2 of
-// the License, or (at your option) any later version.
-//
-// Eigen is distributed in the hope that it will be useful, but WITHOUT ANY
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License or the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public
-// License and a copy of the GNU General Public License along with
-// Eigen. If not, see <http://www.gnu.org/licenses/>.
+// This Source Code Form is subject to the terms of the Mozilla
+// Public License v. 2.0. If a copy of the MPL was not distributed
+// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 // this hack is needed to make this file compiles with -pedantic (gcc)
 #ifdef __GNUC__
@@ -52,15 +37,7 @@ template<typename MatrixType> void nomalloc(const MatrixType& m)
 
   MatrixType m1 = MatrixType::Random(rows, cols),
              m2 = MatrixType::Random(rows, cols),
-             m3(rows, cols),
-             mzero = MatrixType::Zero(rows, cols),
-             identity = Matrix<Scalar, MatrixType::RowsAtCompileTime, MatrixType::RowsAtCompileTime>
-                              ::Identity(rows, rows),
-             square = Matrix<Scalar, MatrixType::RowsAtCompileTime, MatrixType::RowsAtCompileTime>
-                              ::Random(rows, rows);
-  VectorType v1 = VectorType::Random(rows),
-             v2 = VectorType::Random(rows),
-             vzero = VectorType::Zero(rows);
+             m3(rows, cols);
 
   Scalar s1 = internal::random<Scalar>();
 
@@ -137,13 +114,20 @@ void ctms_decompositions()
                         0,
                         maxSize, maxSize> ComplexMatrix;
 
-  const Matrix A(Matrix::Random(size, size));
+  const Matrix A(Matrix::Random(size, size)), B(Matrix::Random(size, size));
+  Matrix X(size,size);
   const ComplexMatrix complexA(ComplexMatrix::Random(size, size));
   const Matrix saA = A.adjoint() * A;
+  const Vector b(Vector::Random(size));
+  Vector x(size);
 
   // Cholesky module
   Eigen::LLT<Matrix>  LLT;  LLT.compute(A);
+  X = LLT.solve(B);
+  x = LLT.solve(b);
   Eigen::LDLT<Matrix> LDLT; LDLT.compute(A);
+  X = LDLT.solve(B);
+  x = LDLT.solve(b);
 
   // Eigenvalues module
   Eigen::HessenbergDecomposition<ComplexMatrix> hessDecomp;        hessDecomp.compute(complexA);
@@ -155,12 +139,22 @@ void ctms_decompositions()
 
   // LU module
   Eigen::PartialPivLU<Matrix> ppLU; ppLU.compute(A);
+  X = ppLU.solve(B);
+  x = ppLU.solve(b);
   Eigen::FullPivLU<Matrix>    fpLU; fpLU.compute(A);
+  X = fpLU.solve(B);
+  x = fpLU.solve(b);
 
   // QR module
   Eigen::HouseholderQR<Matrix>        hQR;  hQR.compute(A);
+  X = hQR.solve(B);
+  x = hQR.solve(b);
   Eigen::ColPivHouseholderQR<Matrix>  cpQR; cpQR.compute(A);
+  X = cpQR.solve(B);
+  x = cpQR.solve(b);
   Eigen::FullPivHouseholderQR<Matrix> fpQR; fpQR.compute(A);
+  // FIXME X = fpQR.solve(B);
+  x = fpQR.solve(b);
 
   // SVD module
   Eigen::JacobiSVD<Matrix> jSVD; jSVD.compute(A, ComputeFullU | ComputeFullV);

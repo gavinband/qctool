@@ -4,24 +4,9 @@
 // Copyright (C) 2008-2009 Gael Guennebaud <gael.guennebaud@inria.fr>
 // Copyright (C) 2006-2008 Benoit Jacob <jacob.benoit.1@gmail.com>
 //
-// Eigen is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 3 of the License, or (at your option) any later version.
-//
-// Alternatively, you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 2 of
-// the License, or (at your option) any later version.
-//
-// Eigen is distributed in the hope that it will be useful, but WITHOUT ANY
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License or the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public
-// License and a copy of the GNU General Public License along with
-// Eigen. If not, see <http://www.gnu.org/licenses/>.
+// This Source Code Form is subject to the terms of the Mozilla
+// Public License v. 2.0. If a copy of the MPL was not distributed
+// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include "main.h"
 
@@ -55,7 +40,7 @@ template<typename Scalar> bool areApprox(const Scalar* a, const Scalar* b, int s
 {
   for (int i=0; i<size; ++i)
   {
-    if (!internal::isApprox(a[i],b[i]))
+    if (a[i]!=b[i] && !internal::isApprox(a[i],b[i]))
     {
       std::cout << "[" << Map<const Matrix<Scalar,1,Dynamic> >(a,size) << "]" << " != " << Map<const Matrix<Scalar,1,Dynamic> >(b,size) << "\n";
       return false;
@@ -128,7 +113,7 @@ template<typename Scalar> void packetmath()
   {
     data1[i] = internal::random<Scalar>()/RealScalar(PacketSize);
     data2[i] = internal::random<Scalar>()/RealScalar(PacketSize);
-    refvalue = std::max(refvalue,internal::abs(data1[i]));
+    refvalue = (std::max)(refvalue,internal::abs(data1[i]));
   }
 
   internal::pstore(data2, internal::pload<Packet>(data1));
@@ -264,16 +249,16 @@ template<typename Scalar> void packetmath_real()
 
   ref[0] = data1[0];
   for (int i=0; i<PacketSize; ++i)
-    ref[0] = std::min(ref[0],data1[i]);
+    ref[0] = (std::min)(ref[0],data1[i]);
   VERIFY(internal::isApprox(ref[0], internal::predux_min(internal::pload<Packet>(data1))) && "internal::predux_min");
 
-  CHECK_CWISE2(std::min, internal::pmin);
-  CHECK_CWISE2(std::max, internal::pmax);
+  CHECK_CWISE2((std::min), internal::pmin);
+  CHECK_CWISE2((std::max), internal::pmax);
   CHECK_CWISE1(internal::abs, internal::pabs);
 
   ref[0] = data1[0];
   for (int i=0; i<PacketSize; ++i)
-    ref[0] = std::max(ref[0],data1[i]);
+    ref[0] = (std::max)(ref[0],data1[i]);
   VERIFY(internal::isApprox(ref[0], internal::predux_max(internal::pload<Packet>(data1))) && "internal::predux_max");
   
   for (int i=0; i<PacketSize; ++i)

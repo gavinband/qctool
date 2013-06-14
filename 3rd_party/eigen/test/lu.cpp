@@ -3,24 +3,9 @@
 //
 // Copyright (C) 2008-2009 Benoit Jacob <jacob.benoit.1@gmail.com>
 //
-// Eigen is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 3 of the License, or (at your option) any later version.
-//
-// Alternatively, you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 2 of
-// the License, or (at your option) any later version.
-//
-// Eigen is distributed in the hope that it will be useful, but WITHOUT ANY
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License or the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public
-// License and a copy of the GNU General Public License along with
-// Eigen. If not, see <http://www.gnu.org/licenses/>.
+// This Source Code Form is subject to the terms of the Mozilla
+// Public License v. 2.0. If a copy of the MPL was not distributed
+// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include "main.h"
 #include <Eigen/LU>
@@ -37,7 +22,7 @@ template<typename MatrixType> void lu_non_invertible()
   Index rows, cols, cols2;
   if(MatrixType::RowsAtCompileTime==Dynamic)
   {
-    rows = internal::random<Index>(2,200);
+    rows = internal::random<Index>(2,EIGEN_TEST_MAX_SIZE);
   }
   else
   {
@@ -45,8 +30,8 @@ template<typename MatrixType> void lu_non_invertible()
   }
   if(MatrixType::ColsAtCompileTime==Dynamic)
   {
-    cols = internal::random<Index>(2,200);
-    cols2 = internal::random<int>(2,200);
+    cols = internal::random<Index>(2,EIGEN_TEST_MAX_SIZE);
+    cols2 = internal::random<int>(2,EIGEN_TEST_MAX_SIZE);
   }
   else
   {
@@ -64,7 +49,7 @@ template<typename MatrixType> void lu_non_invertible()
   typedef Matrix<typename MatrixType::Scalar, RowsAtCompileTime, RowsAtCompileTime>
           RMatrixType;
 
-  Index rank = internal::random<Index>(1, std::min(rows, cols)-1);
+  Index rank = internal::random<Index>(1, (std::min)(rows, cols)-1);
 
   // The image of the zero matrix should consist of a single (zero) column vector
   VERIFY((MatrixType::Zero(rows,cols).fullPivLu().image(MatrixType::Zero(rows,cols)).cols() == 1));
@@ -84,8 +69,8 @@ template<typename MatrixType> void lu_non_invertible()
   MatrixType u(rows,cols);
   u = lu.matrixLU().template triangularView<Upper>();
   RMatrixType l = RMatrixType::Identity(rows,rows);
-  l.block(0,0,rows,std::min(rows,cols)).template triangularView<StrictlyLower>()
-    = lu.matrixLU().block(0,0,rows,std::min(rows,cols));
+  l.block(0,0,rows,(std::min)(rows,cols)).template triangularView<StrictlyLower>()
+    = lu.matrixLU().block(0,0,rows,(std::min)(rows,cols));
 
   VERIFY_IS_APPROX(lu.permutationP() * m1 * lu.permutationQ(), l*u);
 
@@ -117,7 +102,7 @@ template<typename MatrixType> void lu_invertible()
   */
   typedef typename MatrixType::Scalar Scalar;
   typedef typename NumTraits<typename MatrixType::Scalar>::Real RealScalar;
-  int size = internal::random<int>(1,200);
+  int size = internal::random<int>(1,EIGEN_TEST_MAX_SIZE);
 
   MatrixType m1(size, size), m2(size, size), m3(size, size);
   FullPivLU<MatrixType> lu;

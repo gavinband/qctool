@@ -4,24 +4,9 @@
 // Copyright (C) 2008 Gael Guennebaud <gael.guennebaud@inria.fr>
 // Copyright (C) 2009 Benoit Jacob <jacob.benoit.1@gmail.com>
 //
-// Eigen is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 3 of the License, or (at your option) any later version.
-//
-// Alternatively, you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 2 of
-// the License, or (at your option) any later version.
-//
-// Eigen is distributed in the hope that it will be useful, but WITHOUT ANY
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License or the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public
-// License and a copy of the GNU General Public License along with
-// Eigen. If not, see <http://www.gnu.org/licenses/>.
+// This Source Code Form is subject to the terms of the Mozilla
+// Public License v. 2.0. If a copy of the MPL was not distributed
+// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 // discard stack allocation as that too bypasses malloc
 #define EIGEN_STACK_ALLOCATION_LIMIT 0
@@ -66,7 +51,7 @@ void jacobisvd_compare_to_full(const MatrixType& m,
   typedef typename MatrixType::Index Index;
   Index rows = m.rows();
   Index cols = m.cols();
-  Index diagSize = std::min(rows, cols);
+  Index diagSize = (std::min)(rows, cols);
 
   JacobiSVD<MatrixType, QRPreconditioner> svd(m, computationOptions);
 
@@ -131,6 +116,12 @@ void jacobisvd_test_all_computation_options(const MatrixType& m)
     jacobisvd_solve<MatrixType, QRPreconditioner>(m, ComputeFullU | ComputeThinV);
     jacobisvd_solve<MatrixType, QRPreconditioner>(m, ComputeThinU | ComputeFullV);
     jacobisvd_solve<MatrixType, QRPreconditioner>(m, ComputeThinU | ComputeThinV);
+
+    // test reconstruction
+    typedef typename MatrixType::Index Index;
+    Index diagSize = (std::min)(m.rows(), m.cols());
+    JacobiSVD<MatrixType, QRPreconditioner> svd(m, ComputeThinU | ComputeThinV);
+    VERIFY_IS_APPROX(m, svd.matrixU().leftCols(diagSize) * svd.singularValues().asDiagonal() * svd.matrixV().leftCols(diagSize).adjoint());
   }
 }
 
@@ -244,6 +235,25 @@ void jacobisvd_inf_nan()
   svd.compute(m, ComputeFullU | ComputeFullV);
 }
 
+// Regression test for bug 286: JacobiSVD loops indefinitely with some
+// matrices containing denormal numbers.
+void jacobisvd_bug286()
+{
+#if defined __INTEL_COMPILER
+// shut up warning #239: floating point underflow
+#pragma warning push
+#pragma warning disable 239
+#endif
+  Matrix2d M;
+  M << -7.90884e-313, -4.94e-324,
+                 0, 5.60844e-313;
+#if defined __INTEL_COMPILER
+#pragma warning pop
+#endif
+  JacobiSVD<Matrix2d> svd;
+  svd.compute(M); // just check we don't loop indefinitely
+}
+
 void jacobisvd_preallocate()
 {
   Vector3f v(3.f, 2.f, 1.f);
@@ -280,8 +290,6 @@ void jacobisvd_preallocate()
   internal::set_is_malloc_allowed(false);
   svd2.compute(m, ComputeFullU|ComputeFullV);
   internal::set_is_malloc_allowed(true);
-
-  
 }
 
 void test_jacobisvd()
@@ -324,8 +332,8 @@ void test_jacobisvd()
     CALL_SUBTEST_7( jacobisvd_inf_nan<MatrixXf>() );
   }
 
-  CALL_SUBTEST_7(( jacobisvd<MatrixXf>(MatrixXf(internal::random<int>(100, 150), internal::random<int>(100, 150))) ));
-  CALL_SUBTEST_8(( jacobisvd<MatrixXcd>(MatrixXcd(internal::random<int>(80, 100), internal::random<int>(80, 100))) ));
+  CALL_SUBTEST_7(( jacobisvd<MatrixXf>(MatrixXf(internal::random<int>(EIGEN_TEST_MAX_SIZE/4, EIGEN_TEST_MAX_SIZE/2), internal::random<int>(EIGEN_TEST_MAX_SIZE/4, EIGEN_TEST_MAX_SIZE/2))) ));
+  CALL_SUBTEST_8(( jacobisvd<MatrixXcd>(MatrixXcd(internal::random<int>(EIGEN_TEST_MAX_SIZE/4, EIGEN_TEST_MAX_SIZE/3), internal::random<int>(EIGEN_TEST_MAX_SIZE/4, EIGEN_TEST_MAX_SIZE/3))) ));
 
   // test matrixbase method
   CALL_SUBTEST_1(( jacobisvd_method<Matrix2cd>() ));
@@ -336,4 +344,7 @@ void test_jacobisvd()
 
   // Check that preallocation avoids subsequent mallocs
   CALL_SUBTEST_9( jacobisvd_preallocate() );
+
+  // Regression check for bug 286
+  CALL_SUBTEST_2( jacobisvd_bug286() );
 }

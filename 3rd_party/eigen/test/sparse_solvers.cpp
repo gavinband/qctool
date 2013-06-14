@@ -3,24 +3,9 @@
 //
 // Copyright (C) 2008-2010 Gael Guennebaud <gael.guennebaud@inria.fr>
 //
-// Eigen is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 3 of the License, or (at your option) any later version.
-//
-// Alternatively, you can redistribute it and/or
-// modify it under the terms of the GNU General Public License as
-// published by the Free Software Foundation; either version 2 of
-// the License, or (at your option) any later version.
-//
-// Eigen is distributed in the hope that it will be useful, but WITHOUT ANY
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License or the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public
-// License and a copy of the GNU General Public License along with
-// Eigen. If not, see <http://www.gnu.org/licenses/>.
+// This Source Code Form is subject to the terms of the Mozilla
+// Public License v. 2.0. If a copy of the MPL was not distributed
+// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include "sparse.h"
 
@@ -47,7 +32,7 @@ initSPD(double density,
 
 template<typename Scalar> void sparse_solvers(int rows, int cols)
 {
-  double density = std::max(8./(rows*cols), 0.01);
+  double density = (std::max)(8./(rows*cols), 0.01);
   typedef Matrix<Scalar,Dynamic,Dynamic> DenseMatrix;
   typedef Matrix<Scalar,Dynamic,1> DenseVector;
   // Scalar eps = 1e-6;
@@ -72,6 +57,15 @@ template<typename Scalar> void sparse_solvers(int rows, int cols)
     initSparse<Scalar>(density, refMat2, m2, ForceNonZeroDiag|MakeUpperTriangular, &zeroCoords, &nonzeroCoords);
     VERIFY_IS_APPROX(refMat2.template triangularView<Upper>().solve(vec2),
                      m2.template triangularView<Upper>().solve(vec3));
+    VERIFY_IS_APPROX(refMat2.conjugate().template triangularView<Upper>().solve(vec2),
+                     m2.conjugate().template triangularView<Upper>().solve(vec3));
+    {
+      SparseMatrix<Scalar> cm2(m2);
+      //Index rows, Index cols, Index nnz, Index* outerIndexPtr, Index* innerIndexPtr, Scalar* valuePtr
+      MappedSparseMatrix<Scalar> mm2(rows, cols, cm2.nonZeros(), cm2.outerIndexPtr(), cm2.innerIndexPtr(), cm2.valuePtr());
+      VERIFY_IS_APPROX(refMat2.conjugate().template triangularView<Upper>().solve(vec2),
+                       mm2.conjugate().template triangularView<Upper>().solve(vec3));
+    }
 
     // lower - transpose
     initSparse<Scalar>(density, refMat2, m2, ForceNonZeroDiag|MakeLowerTriangular, &zeroCoords, &nonzeroCoords);
