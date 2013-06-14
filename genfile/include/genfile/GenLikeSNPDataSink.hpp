@@ -26,13 +26,14 @@ namespace genfile {
 		SinkPos get_stream_pos() const ;
 		void omit_chromosome() ;
 		std::string get_spec() const ;
-
+		
 	protected:
 		
 		operator bool() const ;
 		std::ostream& stream() { return *m_stream_ptr ; }
 		std::string const& filename() const { return m_filename ; }
 		void write_variant( std::ostream& out, genfile::SNPIdentifyingData const& variant ) ;
+		bool write_chromosome_column() const { return m_write_chromosome_column ; }
 
 	private:
 		void setup( std::string const& filename, CompressionType compression_type ) ;
