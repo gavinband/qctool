@@ -46,7 +46,7 @@ namespace genfile {
 			}
 
 			std::size_t number_of_target_samples() const {
-				m_target_ids.size() ;
+				return m_target_ids.size() ;
 			}
 
 			boost::optional< std::size_t > find_source_sample_for( std::size_t n ) const {
