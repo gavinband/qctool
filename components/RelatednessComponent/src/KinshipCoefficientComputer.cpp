@@ -8,6 +8,9 @@
 #include <iomanip>
 #include <boost/ptr_container/ptr_deque.hpp>
 #include <boost/function.hpp>
+#include <boost/timer/timer.hpp>
+#include <boost/thread/thread.hpp>
+#include "unistd.h"
 #include "../config.hpp"
 #if HAVE_CBLAS
 	#include "cblas.h"
@@ -29,7 +32,7 @@
 #include "components/RelatednessComponent/mean_centre_genotypes.hpp"
 #include "components/RelatednessComponent/mean_centre_genotypes.hpp"
 
-//#define DEBUG_KINSHIP_COEFFICIENT_COMPUTER 1
+#define DEBUG_KINSHIP_COEFFICIENT_COMPUTER 1
 
 #define BLOCKWISE_PARALLELISM 1
 // #define SNPWISE_PARALLELISM 1
@@ -43,6 +46,9 @@ namespace impl {
 			int const begin_sample_j, int const end_sample_j,
 			double const scale
 		) {
+#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+			boost::timer::auto_cpu_timer timer( std::cerr ) ;
+#endif
 			if( begin_sample_i == begin_sample_j && end_sample_i == end_sample_j ) {
 				result
 					->block( begin_sample_i, begin_sample_j, end_sample_i - begin_sample_i, end_sample_j - begin_sample_j )
@@ -57,6 +63,9 @@ namespace impl {
 						data->segment( begin_sample_j, end_sample_j - begin_sample_j ).transpose()
 					) ;
 			}
+#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+			std::cerr << boost::this_thread::get_id() << "Block: [" << begin_sample_i << "-" << end_sample_i << ", " << begin_sample_j << "-" << end_sample_j << "]..." ;
+#endif
 		}
 	#endif
 	#if HAVE_CBLAS
