@@ -196,9 +196,11 @@ namespace impl {
 		{}
 		
 		void setup( std::size_t number_of_samples ) {
-			std::size_t B = m_worker->get_number_of_worker_threads() ;
-			std::size_t N = std::floor( ( 1.0 + std::sqrt( 1 + 8 * B ) ) / 2 ) ;
-			if( m_worker->get_number_of_worker_threads() == 1 ) {
+			// There are two jobs per block.
+			// With two threads, it's best to do one block.
+			std::size_t B = m_worker->get_number_of_worker_threads() / 2 ;
+			std::size_t N = std::floor( ( -1.0 + std::sqrt( 1 + 8 * B ) ) / 2 ) ;
+			if( m_worker->get_number_of_worker_threads() <= 2 ) {
 				N = 1 ;
 			}
 			std::size_t K = std::ceil( double( number_of_samples ) / N ) ;
