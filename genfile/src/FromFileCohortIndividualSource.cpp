@@ -206,7 +206,7 @@ namespace genfile {
 			bool parsed = false ;
 			try {
 				parsed = boost::spirit::qi::phrase_parse(
-					comments.begin(), comments.end(),
+					begin, comments.end(),
 						lit( "metadata:" )
 						>> '{'
 						>> (
