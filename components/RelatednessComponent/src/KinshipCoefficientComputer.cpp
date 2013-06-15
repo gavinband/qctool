@@ -221,8 +221,11 @@ namespace impl {
 //#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
 					std::cerr << "MultiThreadedDispatcher::setup(): added block " << m_bounds.back() << ".\n" ;
 //#endif
+					m_tasks.push_back( 0 ) ;
+					m_tasks.push_back( 0 ) ;
 				}
 			}
+			assert( m_tasks.size() == 2 * m_bounds.size() ) ;
 		}
 
 		void get_storage( Eigen::VectorXd* data, Eigen::VectorXd* nonmissingness ) {
@@ -233,9 +236,10 @@ namespace impl {
 
 		void wait_for_storage( std::size_t storage_index ) {
 			// Want to know if there are any tasks still using storage that overlaps with the storage we need.
-			while( !m_tasks.empty() && ( m_tasks.front().storage_index() + m_storage.size() <= storage_index ) ) {
-				m_tasks.front().wait_until_complete() ;
-				m_tasks.pop_front() ;
+			for( std::size_t i = 0; i < m_tasks.size(); ++i ) {
+				if( !m_tasks.is_null( i ) && m_tasks[i].storage_index() + m_storage.size() <= storage_index ) {
+					m_tasks[i].wait_until_complete() ;
+				}
 			}
 		}
 
@@ -253,7 +257,10 @@ namespace impl {
 			m_storage_index += 2 ;
 			
 			for( std::size_t i = 0; i < m_bounds.size(); ++i ) {
-				m_tasks.push_back(
+#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+				std::cerr << "MultiThreadedDispatcher:add_data(): creating task for block " << i << ".\n" ;
+#endif
+				ComputeXXtTask::UniquePtr new_task(
 					new ComputeXXtTask(
 						&m_result,
 						m_bounds[i],
@@ -261,13 +268,21 @@ namespace impl {
 						m_storage_index - 2
 					)
 				) ;
-				m_tasks.back().add_data( m_storage[ (m_storage_index-2) % m_storage.size() ] ) ;
-#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
-				std::cerr << "MultiThreadedDispatcher:add_data(): dispatching block " << i << " of result to thread pool.\n" ;
-#endif
 
-				m_worker->tell_to_perform_task( m_tasks.back() ) ;
-				m_tasks.push_back(
+				new_task->add_data( m_storage[ (m_storage_index-2) % m_storage.size() ] ) ;
+
+				if( !m_tasks.is_null( i ) ) {
+					m_tasks[i].wait_until_complete() ;
+				}
+
+				m_tasks.replace( i, new_task ) ;
+				m_worker->tell_to_perform_task( m_tasks[ i ] ) ;
+			}
+			for( std::size_t i = 0; i < m_bounds.size(); ++i ) {
+#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+				std::cerr << "MultiThreadedDispatcher:add_data(): creating task for block " << i << ".\n" ;
+#endif
+				ComputeXXtTask::UniquePtr new_task(
 					new ComputeXXtTask(
 						&m_nonmissingness,
 						m_bounds[i],
@@ -275,11 +290,16 @@ namespace impl {
 						m_storage_index - 1
 					)
 				) ;
-				m_tasks.back().add_data( m_storage[ (m_storage_index-1) % m_storage.size() ] ) ;
-				#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
-								std::cerr << "MultiThreadedDispatcher:add_data(): dispatching block " << i << " of nonmissingness to thread pool.\n" ;
-				#endif
-				m_worker->tell_to_perform_task( m_tasks.back() ) ;
+				
+				new_task->add_data( m_storage[ (m_storage_index-2) % m_storage.size() ] ) ;
+				
+				std::size_t const task_index = i + m_bounds.size() ;
+				if( !m_tasks.is_null( task_index ) ) {
+					m_tasks[ task_index ].wait_until_complete() ;
+				}
+
+				m_tasks.replace( task_index, new_task ) ;
+				m_worker->tell_to_perform_task( m_tasks[ task_index ] ) ;
 			}
 		}
 	
@@ -288,7 +308,7 @@ namespace impl {
 		Eigen::MatrixXd& m_nonmissingness ;
 		worker::Worker* m_worker ;
 		std::vector< SampleBounds > m_bounds ;
-		boost::ptr_deque< ComputeXXtTask > m_tasks ;
+		boost::ptr_deque< boost::nullable< ComputeXXtTask > > m_tasks ;
 		std::vector< Eigen::VectorXd > m_storage ;
 		std::size_t m_storage_index ;
 		accumulate_xxt_t m_accumulate_xxt ;
