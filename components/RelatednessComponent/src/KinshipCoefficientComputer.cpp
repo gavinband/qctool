@@ -46,9 +46,6 @@ namespace impl {
 			int const begin_sample_j, int const end_sample_j,
 			double const scale
 		) {
-#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
-			boost::timer::auto_cpu_timer timer( std::cerr ) ;
-#endif
 			if( begin_sample_i == begin_sample_j && end_sample_i == end_sample_j ) {
 				result
 					->block( begin_sample_i, begin_sample_j, end_sample_i - begin_sample_i, end_sample_j - begin_sample_j )
@@ -63,9 +60,6 @@ namespace impl {
 						data->segment( begin_sample_j, end_sample_j - begin_sample_j ).transpose()
 					) ;
 			}
-#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
-			std::cerr << boost::this_thread::get_id() << "Block: [" << begin_sample_i << "-" << end_sample_i << ", " << begin_sample_j << "-" << end_sample_j << "]..." ;
-#endif
 		}
 	#endif
 	#if HAVE_CBLAS
@@ -84,7 +78,7 @@ namespace impl {
 				cblas_dsyr(
 					CblasColMajor,
 					CblasLower,
-					N,
+					end_sample_i - begin_sample_i,
 					scale,
 					data->segment( begin_sample_i, end_sample_i - begin_sample_i ).data(),
 					1,
@@ -140,7 +134,8 @@ namespace impl {
 			m_result( result ),
 			m_bounds( bounds ),
 			m_accumulate_xxt( accumulate_xxt ),
-			m_storage_index( storage_index )
+			m_storage_index( storage_index ),
+			m_elapsed_time( 0 )
 		{
 			assert( result ) ;
 			assert( m_accumulate_xxt ) ;
@@ -154,12 +149,11 @@ namespace impl {
 
 		std::size_t number_of_snps() const { return m_data.size() ; }
 		std::size_t storage_index() const { return m_storage_index ; }
+		double elapsed_cpu_time() const { return m_elapsed_time ; }
 
 		void operator()() {
+			boost::timer::cpu_timer timer ;
 			for( std::size_t snp_i = 0; snp_i < m_data.size(); ++snp_i ) {
-#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
-				std::cerr << "ComputeXXtTask::operator(): bounds are: " << m_bounds << ".\n" ;
-#endif 				
 				m_accumulate_xxt(
 					m_data[ snp_i ],
 					m_result,
@@ -168,6 +162,7 @@ namespace impl {
 					1.0
 				) ;
 			}
+			m_elapsed_time = timer.elapsed().user + timer.elapsed().system ;
 		}
 		
 	protected:
@@ -176,6 +171,7 @@ namespace impl {
 		std::vector< Eigen::VectorXd* > m_data ;
 		AccumulateXXt m_accumulate_xxt ;
 		std::size_t const m_storage_index ;
+		double m_elapsed_time ;
 	} ;
 
 	struct Dispatcher {
@@ -194,7 +190,7 @@ namespace impl {
 			Eigen::MatrixXd& result,
 			Eigen::MatrixXd& nonmissingness,
 			worker::Worker* worker,
-			accumulate_xxt_t accumulate_xxt = &accumulate_xxt_using_eigen
+			accumulate_xxt_t accumulate_xxt = &accumulate_xxt_using_cblas
 		):
 			m_result( result ),
 			m_nonmissingness( nonmissingness ),
@@ -203,6 +199,18 @@ namespace impl {
 			m_storage_index( 0 ),
 			m_accumulate_xxt( accumulate_xxt )
 		{}
+
+		~MultiThreadedDispatcher() {
+#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+			std::cerr << "MultiThreadedDispatcher: average times:\n" ;
+			for( std::size_t i = 0; i < m_bounds.size(); ++i ) {
+				std::cerr << "            (data) " << m_bounds[i] << ": " << std::setprecision(5) << m_task_times[i] / m_task_counts[i] << " over " << m_task_counts[i] << ".\n" ;
+			}
+			for( std::size_t i = 0; i < m_bounds.size(); ++i ) {
+				std::cerr << "  (nonmissingness) " << m_bounds[i] << ": " << std::setprecision(5) << m_task_times[ i + m_bounds.size() ] / m_task_counts[ i + m_bounds.size() ] << " over " << m_task_counts[ i + m_bounds.size() ] << ".\n" ;
+			}
+#endif
+		}
 		
 		void setup( std::size_t number_of_samples ) {
 			// There are two jobs per block.
@@ -212,6 +220,7 @@ namespace impl {
 			if( m_worker->get_number_of_worker_threads() <= 2 ) {
 				N = 1 ;
 			}
+			N = 2 ;
 			std::size_t K = std::ceil( double( number_of_samples ) / N ) ;
 //#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
 			std::cerr << "MultiThreadedDispatcher:setup(): " << number_of_samples << "x" << number_of_samples << " matrix, "
@@ -235,6 +244,8 @@ namespace impl {
 				}
 			}
 			assert( m_tasks.size() == 2 * m_bounds.size() ) ;
+			m_task_times.resize( m_tasks.size(), 0 ) ;
+			m_task_counts.resize( m_tasks.size(), 0 ) ;	
 		}
 
 		void get_storage( Eigen::VectorXd* data, Eigen::VectorXd* nonmissingness ) {
@@ -253,9 +264,10 @@ namespace impl {
 		}
 
 		void wait_until_complete() {
-			while( !m_tasks.empty() ) {
-				m_tasks.front().wait_until_complete() ;
-				m_tasks.pop_front() ;
+			for( std::size_t i = 0; i < m_tasks.size(); ++i ) {
+				m_tasks[i].wait_until_complete() ;
+				m_task_times[i] += m_tasks[i].elapsed_cpu_time() / 1E9 ;
+				++m_task_counts[i] ;
 			}
 		}
 
@@ -266,9 +278,6 @@ namespace impl {
 			m_storage_index += 2 ;
 			
 			for( std::size_t i = 0; i < m_bounds.size(); ++i ) {
-#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
-				std::cerr << "MultiThreadedDispatcher:add_data(): creating task for block " << i << ".\n" ;
-#endif
 				ComputeXXtTask::UniquePtr new_task(
 					new ComputeXXtTask(
 						&m_result,
@@ -282,15 +291,17 @@ namespace impl {
 
 				if( !m_tasks.is_null( i ) ) {
 					m_tasks[i].wait_until_complete() ;
+					m_task_times[i] += m_tasks[i].elapsed_cpu_time() / 1E9 ;
+					++m_task_counts[i] ;
 				}
 
 				m_tasks.replace( i, new_task ) ;
 				m_worker->tell_to_perform_task( m_tasks[ i ] ) ;
 			}
+
 			for( std::size_t i = 0; i < m_bounds.size(); ++i ) {
-#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
-				std::cerr << "MultiThreadedDispatcher:add_data(): creating task for block " << i << ".\n" ;
-#endif
+				std::size_t const task_index = i + m_bounds.size() ;
+
 				ComputeXXtTask::UniquePtr new_task(
 					new ComputeXXtTask(
 						&m_nonmissingness,
@@ -302,9 +313,10 @@ namespace impl {
 				
 				new_task->add_data( m_storage[ (m_storage_index-2) % m_storage.size() ] ) ;
 				
-				std::size_t const task_index = i + m_bounds.size() ;
 				if( !m_tasks.is_null( task_index ) ) {
 					m_tasks[ task_index ].wait_until_complete() ;
+					m_task_times[ task_index ] += m_tasks[i].elapsed_cpu_time() / 1E9 ;
+					++m_task_counts[ task_index ] ;
 				}
 
 				m_tasks.replace( task_index, new_task ) ;
@@ -321,19 +333,33 @@ namespace impl {
 		std::vector< Eigen::VectorXd > m_storage ;
 		std::size_t m_storage_index ;
 		accumulate_xxt_t m_accumulate_xxt ;
+		std::vector< double > m_task_times ;
+		std::vector< double > m_task_counts ;
 	} ;
 
-	NormaliseGenotypesAndComputeXXt::UniquePtr NormaliseGenotypesAndComputeXXt::create( worker::Worker* worker ) {
-		return NormaliseGenotypesAndComputeXXt::UniquePtr( new NormaliseGenotypesAndComputeXXt( worker ) ) ;
+	NormaliseGenotypesAndComputeXXt::UniquePtr NormaliseGenotypesAndComputeXXt::create( worker::Worker* worker, std::string const& method ) {
+		return NormaliseGenotypesAndComputeXXt::UniquePtr( new NormaliseGenotypesAndComputeXXt( worker, method) ) ;
 	}
 
 	NormaliseGenotypesAndComputeXXt::NormaliseGenotypesAndComputeXXt(
-		worker::Worker* worker
+		worker::Worker* worker,
+		std::string const& method
 	):
 		m_call_threshhold( 0.9 ),
 		m_allele_frequency_threshhold( 0.001 ),
 		m_number_of_snps_included( 0 ),
-		m_dispatcher( new impl::MultiThreadedDispatcher( m_result, m_nonmissingness, worker ) )
+		m_dispatcher(
+			new impl::MultiThreadedDispatcher(
+				m_result,
+				m_nonmissingness,
+				worker,
+#if HAVE_CBLAS
+				( method == "eigen" ) ? impl::accumulate_xxt_using_eigen : impl::accumulate_xxt_using_cblas
+#else
+				accumulate_xxt_using_eigen
+#endif
+			)
+		)
 	{}
 
 	Eigen::MatrixXd const& NormaliseGenotypesAndComputeXXt::result() const { return m_result ; }

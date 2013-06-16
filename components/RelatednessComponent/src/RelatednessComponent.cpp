@@ -134,7 +134,14 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 				m_options,
 				m_samples,
 				m_ui_context,
-				impl::NormaliseGenotypesAndComputeXXt::create( m_worker )
+				impl::NormaliseGenotypesAndComputeXXt::create(
+					m_worker,
+#if HAVE_CBLAS
+					m_options.check( "-use-eigen" ) ? "eigen" : "cblas"
+#else
+					"eigen"
+#endif
+				)
 			)
 		) ;
 		result->send_results_to(

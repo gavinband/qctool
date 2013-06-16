@@ -69,8 +69,8 @@ namespace impl {
 	struct Dispatcher ;
 
 	struct NormaliseGenotypesAndComputeXXt: public KinshipCoefficientComputer::Computation {
-		static UniquePtr create( worker::Worker* ) ;
-		NormaliseGenotypesAndComputeXXt( worker::Worker* ) ;
+		static UniquePtr create( worker::Worker*, std::string const& method ) ;
+		NormaliseGenotypesAndComputeXXt( worker::Worker*, std::string const& method ) ;
 
 		Eigen::MatrixXd const& result() const ;
 		Eigen::MatrixXd const& nonmissingness() const ;
