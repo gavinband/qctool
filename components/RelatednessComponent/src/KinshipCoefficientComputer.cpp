@@ -228,6 +228,7 @@ namespace impl {
 				<< N*(N+1)/2 << " blocks on lower diagonal.\n" ;
 //#endif
 			// Set up some initial tasks.
+#if 1
 			for( std::size_t i = 0; i < N; ++i ) {
 				for( std::size_t j = 0; j <= i; ++j ) {
 					SampleBounds bounds ;
@@ -243,6 +244,18 @@ namespace impl {
 					m_tasks.push_back( 0 ) ;
 				}
 			}
+#else
+			for( std::size_t i = 0; i < number_of_samples; ++i ) {
+					SampleBounds bounds ;
+					bounds.begin_sample_i = i ;
+					bounds.end_sample_i = number_of_samples ;
+					bounds.begin_sample_j = i ;
+					bounds.end_sample_j = i+1 ;
+					m_bounds.push_back( bounds ) ;
+					m_tasks.push_back( 0 ) ;
+					m_tasks.push_back( 0 ) ;
+			}	
+#endif
 			assert( m_tasks.size() == 2 * m_bounds.size() ) ;
 			m_task_times.resize( m_tasks.size(), 0 ) ;
 			m_task_counts.resize( m_tasks.size(), 0 ) ;	
@@ -435,11 +448,13 @@ void KinshipCoefficientComputer::end_processing_snps() {
 		+ genfile::string_utils::to_string( m_samples.get_number_of_individuals() )
 	;
 
+#if 0
 	send_results(
 		m_computation->nonmissingness(),
 		m_computation->result(),
 		"KinshipCoefficientComputer",
 		description
 	) ;
+#endif
 }
 
