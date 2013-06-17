@@ -32,8 +32,10 @@
 #include "components/RelatednessComponent/mean_centre_genotypes.hpp"
 #include "components/RelatednessComponent/mean_centre_genotypes.hpp"
 
-#define DEBUG_KINSHIP_COEFFICIENT_COMPUTER 1
+#include "boost/threadpool.hpp"
 
+#define DEBUG_KINSHIP_COEFFICIENT_COMPUTER 1
+#define USING_BOOST_THREADPOOL 1
 #define BLOCKWISE_PARALLELISM 1
 // #define SNPWISE_PARALLELISM 1
 
@@ -46,7 +48,8 @@ namespace impl {
 			int const begin_sample_j, int const end_sample_j,
 			double const scale
 		) {
-			if( begin_sample_i == begin_sample_j && end_sample_i == end_sample_j ) {
+			//if( begin_sample_i == begin_sample_j && end_sample_i == end_sample_j ) {
+			if( 0 ) {
 				result
 					->block( begin_sample_i, begin_sample_j, end_sample_i - begin_sample_i, end_sample_j - begin_sample_j )
 					.selfadjointView< Eigen::Lower >()
@@ -74,7 +77,8 @@ namespace impl {
 			assert( data ) ;
 			int const N = data->size() ;
 			assert( N == result->cols() ) ;
-			if( begin_sample_i == begin_sample_j && end_sample_i == end_sample_j ) {
+			//if( begin_sample_i == begin_sample_j && end_sample_i == end_sample_j ) {
+			if( 0 ) {
 				cblas_dsyr(
 					CblasColMajor,
 					CblasLower,
@@ -112,8 +116,11 @@ namespace impl {
 		return out ;
 	}
 	
-
-	struct ComputeXXtTask: public worker::Task {
+#if USING_BOOST_THREADPOOL
+	struct ComputeXXtTask { //}: public worker::Task {
+#else
+struct ComputeXXtTask: public worker::Task {
+#endif
 		typedef std::auto_ptr< ComputeXXtTask > UniquePtr ;
 		
 		typedef boost::function< void (
@@ -220,7 +227,7 @@ namespace impl {
 			if( m_worker->get_number_of_worker_threads() <= 2 ) {
 				N = 1 ;
 			}
-			N = 2 ;
+			N = 10 ;
 			std::size_t K = std::ceil( double( number_of_samples ) / N ) ;
 //#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
 			std::cerr << "MultiThreadedDispatcher:setup(): " << number_of_samples << "x" << number_of_samples << " matrix, "
@@ -228,20 +235,24 @@ namespace impl {
 				<< N*(N+1)/2 << " blocks on lower diagonal.\n" ;
 //#endif
 			// Set up some initial tasks.
+			// Do j (the column) as the outer loop
+			// so that tasks go in column-major direction.
 #if 1
-			for( std::size_t i = 0; i < N; ++i ) {
-				for( std::size_t j = 0; j <= i; ++j ) {
-					SampleBounds bounds ;
-					bounds.begin_sample_i = (i*K) ;
-					bounds.end_sample_i = std::min( (i+1)*K, number_of_samples ) ;
-					bounds.begin_sample_j = (j*K) ;
-					bounds.end_sample_j = std::min( (j+1)*K, number_of_samples ) ;
-					m_bounds.push_back( bounds ) ;
+			for( std::size_t j = 0; j < N; ++j ) {
+				for( std::size_t i = 0; i < N; ++i ) {
+					if( i >= j ) {
+						SampleBounds bounds ;
+						bounds.begin_sample_i = (i*K) ;
+						bounds.end_sample_i = std::min( (i+1)*K, number_of_samples ) ;
+						bounds.begin_sample_j = (j*K) ;
+						bounds.end_sample_j = std::min( (j+1)*K, number_of_samples ) ;
+						m_bounds.push_back( bounds ) ;
 //#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
-					std::cerr << "MultiThreadedDispatcher::setup(): added block " << m_bounds.back() << ".\n" ;
+						std::cerr << "MultiThreadedDispatcher::setup(): added block " << m_bounds.back() << ".\n" ;
 //#endif
-					m_tasks.push_back( 0 ) ;
-					m_tasks.push_back( 0 ) ;
+						m_tasks.push_back( 0 ) ;
+						m_tasks.push_back( 0 ) ;
+					}
 				}
 			}
 #else
@@ -269,22 +280,32 @@ namespace impl {
 
 		void wait_for_storage( std::size_t storage_index ) {
 			// Want to know if there are any tasks still using storage that overlaps with the storage we need.
+#if USING_BOOST_THREADPOOL
+#else
 			for( std::size_t i = 0; i < m_tasks.size(); ++i ) {
 				if( !m_tasks.is_null( i ) && m_tasks[i].storage_index() + m_storage.size() <= storage_index ) {
 					m_tasks[i].wait_until_complete() ;
 				}
 			}
+#endif
 		}
 
 		void wait_until_complete() {
+#if USING_BOOST_THREADPOOL
+#else
 			for( std::size_t i = 0; i < m_tasks.size(); ++i ) {
 				m_tasks[i].wait_until_complete() ;
 				m_task_times[i] += m_tasks[i].elapsed_cpu_time() / 1E9 ;
 				++m_task_counts[i] ;
 			}
+#endif			
 		}
 
 		void add_data( Eigen::VectorXd* data, Eigen::VectorXd* nonmissingness ) {
+#if USING_BOOST_THREADPOOL
+			boost::threadpool::pool pool( 1 ) ;
+#endif
+			
 			// Take the data (without copying it).
 			data->swap( m_storage[ (m_storage_index) % m_storage.size() ] ) ;
 			nonmissingness->swap( m_storage[ (m_storage_index+1) % m_storage.size() ] ) ;
@@ -301,15 +322,17 @@ namespace impl {
 				) ;
 
 				new_task->add_data( m_storage[ (m_storage_index-2) % m_storage.size() ] ) ;
-
+#if USING_BOOST_THREADPOOL
+#else
 				if( !m_tasks.is_null( i ) ) {
 					m_tasks[i].wait_until_complete() ;
 					m_task_times[i] += m_tasks[i].elapsed_cpu_time() / 1E9 ;
 					++m_task_counts[i] ;
 				}
-
+#endif
 				m_tasks.replace( i, new_task ) ;
-				m_worker->tell_to_perform_task( m_tasks[ i ] ) ;
+				pool.schedule( boost::bind( &ComputeXXtTask::operator(), &m_tasks[i] )) ;
+				//m_worker->tell_to_perform_task( m_tasks[ i ] ) ;
 			}
 
 			for( std::size_t i = 0; i < m_bounds.size(); ++i ) {
@@ -325,15 +348,17 @@ namespace impl {
 				) ;
 				
 				new_task->add_data( m_storage[ (m_storage_index-2) % m_storage.size() ] ) ;
-				
+#if USING_BOOST_THREADPOOL
+#else
 				if( !m_tasks.is_null( task_index ) ) {
 					m_tasks[ task_index ].wait_until_complete() ;
 					m_task_times[ task_index ] += m_tasks[i].elapsed_cpu_time() / 1E9 ;
 					++m_task_counts[ task_index ] ;
 				}
-
+#endif
 				m_tasks.replace( task_index, new_task ) ;
-				m_worker->tell_to_perform_task( m_tasks[ task_index ] ) ;
+				pool.schedule( boost::bind( &ComputeXXtTask::operator(), &m_tasks[ task_index ] )) ;
+				//m_worker->tell_to_perform_task( m_tasks[ task_index ] ) ;
 			}
 		}
 	

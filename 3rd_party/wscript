@@ -7,6 +7,12 @@ def build( bld ):
 		uselib = ''
 	)
 	
+	bld(
+		name = 'threadpool',
+		export_incdirs = 'threadpool',
+		uselib = ''
+	)
+
 #	bld(
 #		features = 'cc cshlib',
 #		target = 'sqlite3',
