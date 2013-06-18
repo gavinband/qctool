@@ -75,7 +75,7 @@ namespace impl {
 			assert( data ) ;
 			int const N = data->size() ;
 			assert( N == result->cols() ) ;
-			if( 0 ) { //begin_sample_i == begin_sample_j && end_sample_i == end_sample_j ) {
+			if( begin_sample_i == begin_sample_j && end_sample_i == end_sample_j ) {
 				cblas_dsyr(
 					CblasColMajor,
 					CblasLower,
@@ -87,30 +87,6 @@ namespace impl {
 					result->outerStride()
 				) ;
 			} else {
-#if 1
-				double x = 0 ;
-				for( int i = begin_sample_i; i < end_sample_i; ++i ) {
-					for( int j = begin_sample_j; j < end_sample_j; ++j ) {
-						//x += i * j ;
-						x += ( i << 3 ) * ( j << 3 ) ; 
-						// x += (*data)(i) * (*data)(j) ;
-						//(*result)(i,j) = x ;
-					}
-				}
-				(*result)(0,0) = x ;
-/*				
-				cblas_dger(
-					CblasColMajor,
-					600,
-					600,
-					scale,
-					data->segment( 0, 600 ).data(), 1,
-					data->segment( 0, 600 ).data(), 1,
-					result->block( 0, 0, 600, 600 ).data(),
-					result->outerStride()
-				) ;
-*/
-#else
 				cblas_dger(
 					CblasColMajor,
 					end_sample_i - begin_sample_i,
@@ -121,7 +97,6 @@ namespace impl {
 					result->block( begin_sample_i, begin_sample_j, end_sample_i - begin_sample_i, end_sample_j - begin_sample_j ).data(),
 					result->outerStride()
 				) ;
-#endif
 			}
 		}
 	#endif
@@ -254,16 +229,17 @@ struct ComputeXXtTask: public worker::Task {
 			// If there are (N ( N+1)/2 ) square blocks this makes
 			// (N (N+1) ) - N = N^2 blocks in total.
 			// So we want to choose N so that N^2 is about twice the number of threads.
-			std::size_t N = 4 * std::sqrt( m_worker->get_number_of_worker_threads() ) ;
+			std::size_t N = 2 * std::sqrt( m_worker->get_number_of_worker_threads() ) ;
 			/*
 			if( m_worker->get_number_of_worker_threads() <= 1 ) {
 				N = 1 ;
 			}
-			N = 10 ;
 			*/
+			//N = 5 ;
+			//N = 1 ;
 			N = 5 ;
-			std::size_t K = std::ceil( double( number_of_samples ) / N ) ;
-			std::size_t Kj = std::ceil( double( number_of_samples ) / ( 2 * N ) ) ;
+			double K = double( number_of_samples ) / N ;
+			double Kj = std::ceil( double( number_of_samples ) / ( 2 * N ) ) ;
 //#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
 			std::cerr << "MultiThreadedDispatcher: sizeof(int) = " << sizeof(int) << ".\n" ;
 			std::cerr << "MultiThreadedDispatcher:setup(): " << number_of_samples << "x" << number_of_samples << " matrix, "
@@ -273,21 +249,21 @@ struct ComputeXXtTask: public worker::Task {
 			// Set up some initial tasks.
 			// Do j (the column) as the outer loop
 			// so that tasks go in column-major direction.
-#if 0
+#if 1
 			for( std::size_t j = 0; j < (2*N); ++j ) {
 				for( std::size_t i = 0; i < N; ++i ) {
 					if( (i*2) >= j ) {
 						SampleBounds bounds ;
-						bounds.begin_sample_i = (i*K) ;
-						bounds.end_sample_i = std::min( (i+1)*K, number_of_samples ) ;
+						bounds.begin_sample_i = std::ceil(i*K) ;
+						bounds.end_sample_i = std::min( std::size_t( std::ceil( (i+1)*K ) ), number_of_samples ) ;
 						
 						if( i*2 == j ) {
 							bounds.begin_sample_j = bounds.begin_sample_i ;
 							bounds.end_sample_j = bounds.end_sample_i ;
 						}
 						else if( (i*2) > j ) {
-							bounds.begin_sample_j = (j*Kj) ;
-							bounds.end_sample_j = std::min( ( i == 0 && j == 0 ) ? K : (j+1)*Kj, number_of_samples ) ;
+							bounds.begin_sample_j = std::ceil( j*Kj ) ;
+							bounds.end_sample_j = std::min( ( i == 0 && j == 0 ) ? std::size_t( std::ceil( K ) ) : std::size_t( std::ceil( (j+1)*Kj ) ), number_of_samples ) ;
 						}
 						m_bounds.push_back( bounds ) ;
 						m_tasks.push_back( 0 ) ;
@@ -469,7 +445,9 @@ struct ComputeXXtTask: public worker::Task {
 		double allele_frequency = genotypes.sum() / ( 2.0 * nonmissingness.sum() ) ;
 		if( std::min( allele_frequency, 1.0 - allele_frequency ) > m_allele_frequency_threshhold ) {
 			pca::mean_centre_genotypes( &genotypes, nonmissingness, allele_frequency ) ;
-			genotypes /= std::sqrt( ( 2.0 * allele_frequency * ( 1.0 - allele_frequency )) ) ;
+			double const sd = std::sqrt( ( genotypes.array().square().sum() - ( genotypes.sum() * genotypes.sum() ) ) / ( nonmissingness.sum() - 1 ) ) ;
+			//double const sd = std::sqrt( ( 2.0 * allele_frequency * ( 1.0 - allele_frequency )) ) ;
+			genotypes /= sd ;
 			m_dispatcher->add_data( &genotypes, &nonmissingness ) ;
 			++m_number_of_snps_included ;
 		}
