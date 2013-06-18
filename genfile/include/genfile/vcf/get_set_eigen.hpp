@@ -71,6 +71,42 @@ namespace genfile {
 			int const m_BB_value ;
 			double const m_threshhold ;
 		} ;
+
+        template<>
+        struct ThreshholdingGenotypeSetter< Eigen::VectorXf >: public GenotypeSetterBase
+        {
+            ThreshholdingGenotypeSetter(
+                Eigen::VectorXf& result,
+                double threshhold
+            ) ;
+            ThreshholdingGenotypeSetter(
+                Eigen::VectorXf& result,
+                double threshhold,
+                double missing_value,
+                double AA_value,
+                double AB_value,
+                double BB_value
+            ) ;
+            ThreshholdingGenotypeSetter(
+                Eigen::VectorXf& result,
+                Eigen::VectorXf& non_missingness,
+                double threshhold,
+                double missing_value = -1,
+                double AA_value = 0,
+                double AB_value = 1,
+                double BB_value = 2
+            ) ;
+            void set_number_of_samples( std::size_t n ) ;
+            void set( std::size_t sample_i, double AA, double AB, double BB ) ;
+        private:
+            Eigen::VectorXf& m_result ;
+            Eigen::VectorXf* m_non_missingness ;
+            int const m_missing_value ;
+            int const m_AA_value ;
+            int const m_AB_value ;
+            int const m_BB_value ;
+            double const m_threshhold ;
+        } ;
 		
 		// Genotype setter which stores hard genotype calls as values in an Eigen::Vector with specified values for each genotype.
 		template< typename HaplotypeAlleles >

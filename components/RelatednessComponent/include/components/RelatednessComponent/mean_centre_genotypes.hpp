@@ -15,6 +15,12 @@ namespace pca {
 		Eigen::VectorXd const& non_missingness_matrix,
 		double allele_frequency
 	) ;
+
+	void mean_centre_genotypes( 
+		Eigen::VectorXf* threshholded_genotypes,
+		Eigen::VectorXf const& non_missingness_matrix,
+		double allele_frequency
+	) ;
 }
 
 #endif

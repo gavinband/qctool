@@ -41,7 +41,6 @@ def create_benchmark( bld, name ):
 		install_path = None
 	)
 
-
 def build( bld ):
 	import Options
 	
@@ -54,10 +53,9 @@ def build( bld ):
 		source = bld.glob( 'src/*.cpp' ) + bld.glob( 'src/vcf/*.cpp' ) + bld.glob( 'src/string_utils/*.cpp' ),
 		includes='./include',
 		uselib = 'ZLIB BOOST BOOST_IOSTREAMS BOOST_SYSTEM BOOST_FILESYSTEM',
-		uselib_local = 'eigen',
+		uselib_local = 'eigen threadpool',
 		export_incdirs = './include'
 	)
 
 	create_tests( bld )
-
 	create_benchmark( bld, 'benchmark-io' )

@@ -29,10 +29,12 @@ public:
 	typedef std::auto_ptr< KinshipCoefficientComputer > UniquePtr ;
 	
 	struct Computation: public genfile::SNPDataSourceProcessor::Callback {
+		typedef Eigen::MatrixXd Matrix ;
+		typedef Eigen::VectorXd Vector ;
 		typedef std::auto_ptr< Computation > UniquePtr ;
 		virtual std::size_t number_of_snps_included() const = 0 ;
-		virtual Eigen::MatrixXd const& result() const = 0 ;
-		virtual Eigen::MatrixXd const& nonmissingness() const = 0 ;
+		virtual Matrix const& result() const = 0 ;
+		virtual Matrix const& nonmissingness() const = 0 ;
 	} ;
 	static genfile::SNPDataSourceProcessor::Callback::UniquePtr create_computation( std::string const& spec ) ;
 
@@ -57,12 +59,12 @@ private:
 	std::size_t m_number_of_snps ;
 	std::size_t m_number_of_snps_processed ;
 	genfile::CohortIndividualSource const& m_samples ;
-	std::vector< Eigen::MatrixXd > m_result ;
-	std::vector< Eigen::MatrixXd > m_non_missing_count ;
-	std::vector< Eigen::VectorXd > m_genotypes ;
-	std::vector< Eigen::VectorXd > m_non_missingness ;
+	std::vector< Computation::Matrix > m_result ;
+	std::vector< Computation::Matrix > m_non_missing_count ;
+	std::vector< Computation::Vector > m_genotypes ;
+	std::vector< Computation::Vector > m_non_missingness ;
 	Computation::UniquePtr m_computation ;
-	void (*m_accumulate_xxt)( Eigen::VectorXd*, Eigen::MatrixXd*, int const begin_sample_i, int const end_sample_i, int const begin_sample_j, int const end_sample_j, double const ) ;
+	void (*m_accumulate_xxt)( Computation::Vector*, Computation::Matrix*, int const begin_sample_i, int const end_sample_i, int const begin_sample_j, int const end_sample_j, double const ) ;
 } ;
 
 namespace impl {
@@ -72,8 +74,8 @@ namespace impl {
 		static UniquePtr create( worker::Worker*, std::string const& method ) ;
 		NormaliseGenotypesAndComputeXXt( worker::Worker*, std::string const& method ) ;
 
-		Eigen::MatrixXd const& result() const ;
-		Eigen::MatrixXd const& nonmissingness() const ;
+		Computation::Matrix const& result() const ;
+		Computation::Matrix const& nonmissingness() const ;
 		void begin_processing_snps( std::size_t number_of_samples ) ;
 		void processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) ;
 		void end_processing_snps() ;
@@ -82,8 +84,8 @@ namespace impl {
 		double const m_call_threshhold ;
 		double const m_allele_frequency_threshhold ;
 		std::size_t m_number_of_snps_included ;
-		Eigen::MatrixXd m_result ;
-		Eigen::MatrixXd m_nonmissingness ;
+		Computation::Matrix m_result ;
+		Computation::Matrix m_nonmissingness ;
 		std::auto_ptr< Dispatcher > m_dispatcher ;
 	} ;
 }
