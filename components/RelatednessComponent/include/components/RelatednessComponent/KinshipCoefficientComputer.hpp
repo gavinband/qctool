@@ -31,6 +31,8 @@ public:
 	struct Computation: public genfile::SNPDataSourceProcessor::Callback {
 		typedef Eigen::MatrixXd Matrix ;
 		typedef Eigen::VectorXd Vector ;
+		typedef Eigen::MatrixXf IntegerMatrix ;
+		typedef Eigen::VectorXf IntegerVector ;
 		typedef std::auto_ptr< Computation > UniquePtr ;
 		virtual std::size_t number_of_snps_included() const = 0 ;
 		virtual Matrix const& result() const = 0 ;
@@ -65,6 +67,7 @@ private:
 	std::vector< Computation::Vector > m_non_missingness ;
 	Computation::UniquePtr m_computation ;
 	void (*m_accumulate_xxt)( Computation::Vector*, Computation::Matrix*, int const begin_sample_i, int const end_sample_i, int const begin_sample_j, int const end_sample_j, double const ) ;
+	void (*m_accumulate_xxt_integer)( Computation::IntegerVector*, Computation::IntegerMatrix*, int const begin_sample_i, int const end_sample_i, int const begin_sample_j, int const end_sample_j, double const ) ;
 } ;
 
 namespace impl {

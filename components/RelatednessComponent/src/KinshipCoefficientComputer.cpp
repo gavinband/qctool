@@ -35,23 +35,24 @@
 
 #define DEBUG_KINSHIP_COEFFICIENT_COMPUTER 1
 #define USING_BOOST_THREADPOOL 1
-#define BLOCKWISE_PARALLELISM 1
-// #define SNPWISE_PARALLELISM 1
 
 namespace impl {
 	#if HAVE_EIGEN
+		template< typename Vector, typename Matrix >
 		void accumulate_xxt_using_eigen(
-			KinshipCoefficientComputer::Computation::Vector* data,
-			KinshipCoefficientComputer::Computation::Matrix* result,
+			Vector* data,
+			Matrix* result,
 			int const begin_sample_i, int const end_sample_i,
 			int const begin_sample_j, int const end_sample_j,
 			double const scale
 		) {
 			if( begin_sample_i == begin_sample_j && end_sample_i == end_sample_j ) {
+				/*
 				result
 					->block( begin_sample_i, begin_sample_j, end_sample_i - begin_sample_i, end_sample_j - begin_sample_j )
 					.selfadjointView< Eigen::Lower >()
 					.rankUpdate( data->segment( begin_sample_i, end_sample_i - begin_sample_i ), scale ) ;
+				*/
 			} else {
 				result
 					->block(  begin_sample_i, begin_sample_j, end_sample_i - begin_sample_i, end_sample_j - begin_sample_j ).noalias()
@@ -112,51 +113,58 @@ namespace impl {
 		out << "[" << b.begin_sample_i << "-" << b.end_sample_i << ", " << b.begin_sample_j << "-" << b.end_sample_j << "]" ;
 		return out ;
 	}
-	
-#if USING_BOOST_THREADPOOL
-	struct ComputeXXtTask { //}: public worker::Task {
-#else
-struct ComputeXXtTask: public worker::Task {
-#endif
+
+	struct ComputeXXtTask
+	{
 		typedef std::auto_ptr< ComputeXXtTask > UniquePtr ;
 		
+		virtual ~ComputeXXtTask() {}
+
+		virtual void add_data(
+			KinshipCoefficientComputer::Computation::Vector&
+		) { assert(0) ;}
+
+		void add_data(
+			KinshipCoefficientComputer::Computation::IntegerVector&
+		) { assert(0) ;}
+
+		virtual void operator()() = 0 ;
+	} ;
+
+	template< typename Vector, typename Matrix >
+	struct ComputeXXtTaskImpl: public ComputeXXtTask {
+		
 		typedef boost::function< void (
-			KinshipCoefficientComputer::Computation::Vector* data,
-			KinshipCoefficientComputer::Computation::Matrix* result,
+			Vector* data,
+			Matrix* result,
 			int const begin_sample_i, int const end_sample_i,
 			int const begin_sample_j, int const end_sample_j,
 			double const scale
 		) >
 		AccumulateXXt ;
 		
-		ComputeXXtTask(
-			KinshipCoefficientComputer::Computation::Matrix* result,
+		ComputeXXtTaskImpl(
+			Matrix* result,
 			SampleBounds const bounds,
-			AccumulateXXt accumulate_xxt,
-			std::size_t storage_index
+			AccumulateXXt accumulate_xxt
 		):
 			m_result( result ),
 			m_bounds( bounds ),
-			m_accumulate_xxt( accumulate_xxt ),
-			m_storage_index( storage_index ),
-			m_elapsed_time( 0 )
+			m_accumulate_xxt( accumulate_xxt )
 		{
 			assert( result ) ;
 			assert( m_accumulate_xxt ) ;
 		}
 
 		void add_data(
-			KinshipCoefficientComputer::Computation::Vector& data
+			Vector& data
 		) {
 			m_data.push_back( &data ) ;
 		}
 
 		std::size_t number_of_snps() const { return m_data.size() ; }
-		std::size_t storage_index() const { return m_storage_index ; }
-		double elapsed_cpu_time() const { return m_elapsed_time ; }
 
 		void operator()() {
-			boost::timer::cpu_timer timer ;
 			for( std::size_t snp_i = 0; snp_i < m_data.size(); ++snp_i ) {
 				m_accumulate_xxt(
 					m_data[ snp_i ],
@@ -166,58 +174,53 @@ struct ComputeXXtTask: public worker::Task {
 					1.0
 				) ;
 			}
-			m_elapsed_time = timer.elapsed().user + timer.elapsed().system ;
 		}
 		
 	protected:
-		KinshipCoefficientComputer::Computation::Matrix* m_result ;
+		Matrix* m_result ;
 		SampleBounds const m_bounds ;
-		std::vector< KinshipCoefficientComputer::Computation::Vector* > m_data ;
+		std::vector< Vector* > m_data ;
 		AccumulateXXt m_accumulate_xxt ;
-		std::size_t const m_storage_index ;
-		double m_elapsed_time ;
 	} ;
 
 	struct Dispatcher {
 		typedef std::auto_ptr< Dispatcher > UniquePtr ;
 		virtual ~Dispatcher() {}
 		virtual void setup( std::size_t number_of_samples ) = 0 ;
-		virtual void get_storage( KinshipCoefficientComputer::Computation::Vector* data, KinshipCoefficientComputer::Computation::Vector* nonmissingness ) = 0 ;
-		virtual void add_data( KinshipCoefficientComputer::Computation::Vector* data, KinshipCoefficientComputer::Computation::Vector* nonmissingness ) = 0 ;
+		virtual void get_storage( KinshipCoefficientComputer::Computation::Vector* data, KinshipCoefficientComputer::Computation::IntegerVector* nonmissingness ) = 0 ;
+		virtual void add_data( KinshipCoefficientComputer::Computation::Vector* data, KinshipCoefficientComputer::Computation::IntegerVector* nonmissingness ) = 0 ;
 		virtual void wait_until_complete() = 0 ;
 	} ;
 
 	struct MultiThreadedDispatcher: public Dispatcher {
-		typedef void (*accumulate_xxt_t)( KinshipCoefficientComputer::Computation::Vector*, KinshipCoefficientComputer::Computation::Matrix*, int const begin_sample_i, int const end_sample_i, int const begin_sample_j, int const end_sample_j, double const ) ;
-		
+		typedef KinshipCoefficientComputer::Computation::Vector Vector ;
+		typedef KinshipCoefficientComputer::Computation::Matrix Matrix ;
+		typedef KinshipCoefficientComputer::Computation::IntegerVector IntegerVector ;
+		typedef KinshipCoefficientComputer::Computation::IntegerMatrix IntegerMatrix ;
+		typedef void (*accumulate_xxt_t)( Vector*, Matrix*, int const begin_sample_i, int const end_sample_i, int const begin_sample_j, int const end_sample_j, double const ) ;
+		typedef void (*accumulate_xxt_integer_t)( IntegerVector*, IntegerMatrix*, int const begin_sample_i, int const end_sample_i, int const begin_sample_j, int const end_sample_j, double const ) ;
+
 		MultiThreadedDispatcher(
-			KinshipCoefficientComputer::Computation::Matrix& result,
-			KinshipCoefficientComputer::Computation::Matrix& nonmissingness,
+			Matrix& result,
+			IntegerMatrix& nonmissingness,
 			worker::Worker* worker,
-			accumulate_xxt_t accumulate_xxt = &accumulate_xxt_using_cblas
+			accumulate_xxt_t accumulate_xxt,
+			accumulate_xxt_integer_t accumulate_xxt_integer
 		):
 			m_result( result ),
 			m_nonmissingness( nonmissingness ),
 			m_worker( worker ),
-			m_storage( 100, KinshipCoefficientComputer::Computation::Vector() ),
+			m_storage( 100, std::make_pair( Vector(), IntegerVector() ) ),
 			m_storage_index( 0 ),
 			m_data_index( 0 ),
-			m_accumulate_xxt( accumulate_xxt )
+			m_accumulate_xxt( accumulate_xxt ),
+			m_accumulate_xxt_integer( accumulate_xxt_integer )
 #if USING_BOOST_THREADPOOL
 			,m_pool( m_worker->get_number_of_worker_threads() )
 #endif
 		{}
 
 		~MultiThreadedDispatcher() {
-#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
-			std::cerr << "MultiThreadedDispatcher: average times:\n" ;
-			for( std::size_t i = 0; i < m_bounds.size(); ++i ) {
-				std::cerr << "            (data) " << m_bounds[i] << ": " << std::setprecision(5) << m_task_times[i] / m_task_counts[i] << " over " << m_task_counts[i] << ".\n" ;
-			}
-			for( std::size_t i = 0; i < m_bounds.size(); ++i ) {
-				std::cerr << "  (nonmissingness) " << m_bounds[i] << ": " << std::setprecision(5) << m_task_times[ i + m_bounds.size() ] / m_task_counts[ i + m_bounds.size() ] << " over " << m_task_counts[ i + m_bounds.size() ] << ".\n" ;
-			}
-#endif
 		}
 		
 		void setup( std::size_t number_of_samples ) {
@@ -249,7 +252,6 @@ struct ComputeXXtTask: public worker::Task {
 			// Set up some initial tasks.
 			// Do j (the column) as the outer loop
 			// so that tasks go in column-major direction.
-#if 1
 			for( std::size_t j = 0; j < (2*N); ++j ) {
 				for( std::size_t i = 0; i < N; ++i ) {
 					if( (i*2) >= j ) {
@@ -277,97 +279,59 @@ struct ComputeXXtTask: public worker::Task {
 					++j ;
 				}
 			}
-#else
-			for( std::size_t j = 0; j < N; ++j ) {
-				for( std::size_t i = 0; i < N; ++i ) {
-					if( i >= j ) {
-						SampleBounds bounds ;
-						bounds.begin_sample_i = (i*K) ;
-						bounds.end_sample_i = std::min( (i+1)*K, number_of_samples ) ;
-
-						if( i == j ) {
-							bounds.begin_sample_j = bounds.begin_sample_i ;
-							bounds.end_sample_j = bounds.end_sample_i ;
-						}
-						else {
-							bounds.begin_sample_j = (j*K) ;
-							bounds.end_sample_j = std::min( ( i == 0 && j == 0 ) ? K : (j+1)*K, number_of_samples ) ;
-						}
-						m_bounds.push_back( bounds ) ;
-						m_tasks.push_back( 0 ) ;
-						m_tasks.push_back( 0 ) ;
-//#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
-						std::cerr << "MultiThreadedDispatcher::setup(): added block " << m_bounds.back() << ".\n" ;
-//#endif
-					}
-				}
-			}
-#endif
 			assert( m_tasks.size() == 2 * m_bounds.size() ) ;
-			m_task_times.resize( m_tasks.size(), 0 ) ;
-			m_task_counts.resize( m_tasks.size(), 0 ) ;	
 		}
 
-		void get_storage( KinshipCoefficientComputer::Computation::Vector* data, KinshipCoefficientComputer::Computation::Vector* nonmissingness ) {
-			wait_for_storage( m_storage_index+1 ) ;
-			data->swap( m_storage[ m_storage_index % m_storage.size() ] ) ;
-			nonmissingness->swap( m_storage[ (m_storage_index+1) % m_storage.size() ] ) ;
+		void get_storage( Vector* data, IntegerVector* nonmissingness ) {
+			data->swap( m_storage[ m_storage_index % m_storage.size() ].first ) ;
+			nonmissingness->swap( m_storage[ m_storage_index % m_storage.size() ].second ) ;
 		}
 
-		void wait_for_storage( std::size_t storage_index ) {
-			// Want to know if there are any tasks still using storage that overlaps with the storage we need.
-#if USING_BOOST_THREADPOOL
-#else
-			for( std::size_t i = 0; i < m_tasks.size(); ++i ) {
-				if( !m_tasks.is_null( i ) && m_tasks[i].storage_index() + m_storage.size() <= storage_index ) {
-					m_tasks[i].wait_until_complete() ;
-				}
-			}
-#endif
-		}
-
-		void wait_until_complete() {
-#if USING_BOOST_THREADPOOL
-#else
-			for( std::size_t i = 0; i < m_tasks.size(); ++i ) {
-				m_tasks[i].wait_until_complete() ;
-				m_task_times[i] += m_tasks[i].elapsed_cpu_time() / 1E9 ;
-				++m_task_counts[i] ;
-			}
-#endif			
-		}
-
-		void add_data( KinshipCoefficientComputer::Computation::Vector* data, KinshipCoefficientComputer::Computation::Vector* nonmissingness ) {
+		void add_data( Vector* data, IntegerVector* nonmissingness ) {
 			// Take the data (without copying it).
-			data->swap( m_storage[ (m_storage_index) % m_storage.size() ] ) ;
-			nonmissingness->swap( m_storage[ (m_storage_index+1) % m_storage.size() ] ) ;
-			m_storage_index += 2 ;
+			data->swap( m_storage[ m_storage_index % m_storage.size() ].first ) ;
+			nonmissingness->swap( m_storage[ m_storage_index % m_storage.size() ].second ) ;
 	
 			bool const schedule = ( m_data_index % 20 ) == 0 ;
 			++m_data_index ;
 
-			for( std::size_t task_index = 0; task_index < ( 2 * m_bounds.size() ); ++task_index ) {
-				std::size_t const bound_index = task_index % m_bounds.size() ;
-				std::size_t const storage_index = ( task_index < m_bounds.size() ) ? m_storage_index - 2 : m_storage_index - 1 ;
+			for( std::size_t task_index = 0; task_index < m_bounds.size(); ++task_index ) {
+				std::size_t const bound_index = task_index ;
 				
 				if( m_tasks.is_null( task_index ) ) {
 					ComputeXXtTask::UniquePtr new_task(
-						new ComputeXXtTask(
-							( task_index < m_bounds.size() ) ? &m_result: &m_nonmissingness,
+						new ComputeXXtTaskImpl< Vector, Matrix >(
+							&m_result,
 							m_bounds[ bound_index ],
-							m_accumulate_xxt,
-							storage_index
+							m_accumulate_xxt
 						)
 					) ;
 					m_tasks.replace( task_index, new_task ) ;
 				}
-				m_tasks[ task_index ].add_data( m_storage[ storage_index % m_storage.size() ] ) ;
+				m_tasks[ task_index ].add_data( m_storage[ m_storage_index % m_storage.size() ].first ) ;
 
-#if USING_BOOST_THREADPOOL
 				if( schedule ) {
 					m_pool.schedule( boost::bind( &ComputeXXtTask::operator(), &m_tasks[ task_index ] )) ;
 				}
-#endif
+			}
+			for( std::size_t task_index = m_bounds.size(); task_index < ( 2 * m_bounds.size() ); ++task_index ) {
+				std::size_t const bound_index = task_index % m_bounds.size() ;
+				
+				if( m_tasks.is_null( task_index ) ) {
+					ComputeXXtTask::UniquePtr new_task(
+						new ComputeXXtTaskImpl< IntegerVector, IntegerMatrix >(
+							&m_nonmissingness,
+							m_bounds[ bound_index ],
+							m_accumulate_xxt
+						)
+					) ;
+					m_tasks.replace( task_index, new_task ) ;
+				}
+				m_tasks[ task_index ].add_data( m_storage[ m_storage_index % m_storage.size() ].second ) ;
+
+				if( schedule ) {
+					m_pool.schedule( boost::bind( &ComputeXXtTask::operator(), &m_tasks[ task_index ] )) ;
+				}
 			}
 			if( schedule ) {
 				m_pool.wait() ;
@@ -375,23 +339,32 @@ struct ComputeXXtTask: public worker::Task {
 					m_tasks.replace( i, 0 ) ;
 				}
 			}
+
+			++m_storage_index ;
 		}
 	
+		void wait_until_complete() {
+		}
+
 	private:
-		KinshipCoefficientComputer::Computation::Matrix& m_result ;
-		KinshipCoefficientComputer::Computation::Matrix& m_nonmissingness ;
+		Matrix& m_result ;
+		IntegerMatrix& m_nonmissingness ;
 		worker::Worker* m_worker ;
 		std::vector< SampleBounds > m_bounds ;
 		boost::ptr_deque< boost::nullable< ComputeXXtTask > > m_tasks ;
-		std::vector< KinshipCoefficientComputer::Computation::Vector > m_storage ;
+		std::vector<
+			std::pair<
+				KinshipCoefficientComputer::Computation::Vector,
+				KinshipCoefficientComputer::Computation::IntegerVector
+			>
+		> m_storage ;
 		std::size_t m_storage_index ;
 		std::size_t m_data_index ;
 		accumulate_xxt_t m_accumulate_xxt ;
-		std::vector< double > m_task_times ;
-		std::vector< double > m_task_counts ;
-		#if USING_BOOST_THREADPOOL
+		accumulate_xxt_integer_t m_accumulate_xxt_integer ;
+#if USING_BOOST_THREADPOOL
 		boost::threadpool::pool m_pool ;
-		#endif
+#endif
 	} ;
 
 	NormaliseGenotypesAndComputeXXt::UniquePtr NormaliseGenotypesAndComputeXXt::create( worker::Worker* worker, std::string const& method ) {
@@ -411,10 +384,23 @@ struct ComputeXXtTask: public worker::Task {
 				m_nonmissingness,
 				worker,
 #if HAVE_CBLAS
-				( method == "eigen" ) ? impl::accumulate_xxt_using_eigen : impl::accumulate_xxt_using_cblas
+				( method == "eigen" )
+					?
+					impl::accumulate_xxt_using_eigen<
+						KinshipCoefficientComputer::Computation::Vector,
+						KinshipCoefficientComputer::Computation::Matrix
+					>
+					: impl::accumulate_xxt_using_cblas,
 #else
-				accumulate_xxt_using_eigen
+				accumulate_xxt_using_eigen<
+					KinshipCoefficientComputer::Computation::Vector,
+					KinshipCoefficientComputer::Computation::Matrix
+				>,
 #endif
+				accumulate_xxt_using_eigen<
+					KinshipCoefficientComputer::Computation::IntegerVector,
+					KinshipCoefficientComputer::Computation::IntegerMatrix
+				>
 			)
 		)
 	{}
@@ -430,7 +416,7 @@ struct ComputeXXtTask: public worker::Task {
 		
 	void NormaliseGenotypesAndComputeXXt::processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) {
 		KinshipCoefficientComputer::Computation::Vector genotypes ;
-		KinshipCoefficientComputer::Computation::Vector nonmissingness ;
+		KinshipCoefficientComputer::Computation::IntegerVector nonmissingness ;
 
 		m_dispatcher->get_storage( &genotypes, &nonmissingness ) ;
 
