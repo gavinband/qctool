@@ -122,11 +122,15 @@ namespace impl {
 
 		virtual void add_data(
 			KinshipCoefficientComputer::Computation::Vector&
-		) { assert(0) ;}
+		) {
+			assert(0) ;
+		}
 
-		void add_data(
+		virtual void add_data(
 			KinshipCoefficientComputer::Computation::IntegerVector&
-		) { assert(0) ;}
+		) {
+			assert(0) ;
+		}
 
 		virtual void operator()() = 0 ;
 	} ;
@@ -185,18 +189,19 @@ namespace impl {
 
 	struct Dispatcher {
 		typedef std::auto_ptr< Dispatcher > UniquePtr ;
-		virtual ~Dispatcher() {}
-		virtual void setup( std::size_t number_of_samples ) = 0 ;
-		virtual void get_storage( KinshipCoefficientComputer::Computation::Vector* data, KinshipCoefficientComputer::Computation::IntegerVector* nonmissingness ) = 0 ;
-		virtual void add_data( KinshipCoefficientComputer::Computation::Vector* data, KinshipCoefficientComputer::Computation::IntegerVector* nonmissingness ) = 0 ;
-		virtual void wait_until_complete() = 0 ;
-	} ;
-
-	struct MultiThreadedDispatcher: public Dispatcher {
 		typedef KinshipCoefficientComputer::Computation::Vector Vector ;
 		typedef KinshipCoefficientComputer::Computation::Matrix Matrix ;
 		typedef KinshipCoefficientComputer::Computation::IntegerVector IntegerVector ;
 		typedef KinshipCoefficientComputer::Computation::IntegerMatrix IntegerMatrix ;
+
+		virtual ~Dispatcher() {}
+		virtual void setup( std::size_t number_of_samples ) = 0 ;
+		virtual void get_storage( Vector* data, IntegerVector* nonmissingness ) = 0 ;
+		virtual void add_data( Vector* data, IntegerVector* nonmissingness ) = 0 ;
+		virtual void wait_until_complete() = 0 ;
+	} ;
+
+	struct MultiThreadedDispatcher: public Dispatcher {
 		typedef void (*accumulate_xxt_t)( Vector*, Matrix*, int const begin_sample_i, int const end_sample_i, int const begin_sample_j, int const end_sample_j, double const ) ;
 		typedef void (*accumulate_xxt_integer_t)( IntegerVector*, IntegerMatrix*, int const begin_sample_i, int const end_sample_i, int const begin_sample_j, int const end_sample_j, double const ) ;
 
@@ -204,21 +209,32 @@ namespace impl {
 			Matrix& result,
 			IntegerMatrix& nonmissingness,
 			worker::Worker* worker,
-			accumulate_xxt_t accumulate_xxt,
-			accumulate_xxt_integer_t accumulate_xxt_integer
+			std::string const& method
 		):
 			m_result( result ),
 			m_nonmissingness( nonmissingness ),
 			m_worker( worker ),
 			m_storage( 100, std::make_pair( Vector(), IntegerVector() ) ),
 			m_storage_index( 0 ),
-			m_data_index( 0 ),
-			m_accumulate_xxt( accumulate_xxt ),
-			m_accumulate_xxt_integer( accumulate_xxt_integer )
+			m_data_index( 0 )
 #if USING_BOOST_THREADPOOL
 			,m_pool( m_worker->get_number_of_worker_threads() )
 #endif
-		{}
+		{
+			if( method == "eigen" ) {
+				m_accumulate_xxt = &impl::accumulate_xxt_using_eigen< Vector, Matrix > ;
+				m_accumulate_xxt_integer = &impl::accumulate_xxt_using_eigen< IntegerVector, IntegerMatrix > ;
+			} else if( method == "cblas" ) {
+#if HAVE_CBLAS
+				m_accumulate_xxt = &impl::accumulate_xxt_using_cblas ;
+				m_accumulate_xxt_integer = &impl::accumulate_xxt_using_eigen< IntegerVector, IntegerMatrix > ;
+#else
+				throw genfile::BadArgumentError( "impl::MultiThreadedDispatcher::MultiThreadedDispatcher()", "method=\"" + method + "\"", "Support for cblas is not compiled in." ) ;
+#endif
+			} else {
+				throw genfile::BadArgumentError( "impl::MultiThreadedDispatcher::MultiThreadedDispatcher()", "method=\"" + method + "\"", "Only methods \"eigen\" and \"cblas\" are supported." ) ;
+			}
+		}
 
 		~MultiThreadedDispatcher() {
 		}
@@ -322,7 +338,7 @@ namespace impl {
 						new ComputeXXtTaskImpl< IntegerVector, IntegerMatrix >(
 							&m_nonmissingness,
 							m_bounds[ bound_index ],
-							m_accumulate_xxt
+							m_accumulate_xxt_integer
 						)
 					) ;
 					m_tasks.replace( task_index, new_task ) ;
@@ -383,30 +399,13 @@ namespace impl {
 				m_result,
 				m_nonmissingness,
 				worker,
-#if HAVE_CBLAS
-				( method == "eigen" )
-					?
-					impl::accumulate_xxt_using_eigen<
-						KinshipCoefficientComputer::Computation::Vector,
-						KinshipCoefficientComputer::Computation::Matrix
-					>
-					: impl::accumulate_xxt_using_cblas,
-#else
-				accumulate_xxt_using_eigen<
-					KinshipCoefficientComputer::Computation::Vector,
-					KinshipCoefficientComputer::Computation::Matrix
-				>,
-#endif
-				accumulate_xxt_using_eigen<
-					KinshipCoefficientComputer::Computation::IntegerVector,
-					KinshipCoefficientComputer::Computation::IntegerMatrix
-				>
+				method
 			)
 		)
 	{}
 
 	KinshipCoefficientComputer::Computation::Matrix const& NormaliseGenotypesAndComputeXXt::result() const { return m_result ; }
-	KinshipCoefficientComputer::Computation::Matrix const& NormaliseGenotypesAndComputeXXt::nonmissingness() const { return m_nonmissingness ; }
+	KinshipCoefficientComputer::Computation::IntegerMatrix const& NormaliseGenotypesAndComputeXXt::nonmissingness() const { return m_nonmissingness ; }
 
 	void NormaliseGenotypesAndComputeXXt::begin_processing_snps( std::size_t number_of_samples ) {
 		m_result.setZero( number_of_samples, number_of_samples ) ;
@@ -423,10 +422,10 @@ namespace impl {
 		genotypes.setZero( m_result.rows() ) ;
 		nonmissingness.setZero( m_result.rows() ) ;
 
-		{
-			genfile::vcf::ThreshholdingGenotypeSetter< KinshipCoefficientComputer::Computation::Vector > setter( genotypes, nonmissingness, m_call_threshhold, 0, 0, 1, 2 ) ;
-			data_reader->get( "genotypes", setter ) ;
-		}
+		data_reader->get(
+			"genotypes",
+			genfile::vcf::get_threshholded_calls( genotypes, nonmissingness, m_call_threshhold, 0, 0, 1, 2 )
+		) ;
 
 		double allele_frequency = genotypes.sum() / ( 2.0 * nonmissingness.sum() ) ;
 		if( std::min( allele_frequency, 1.0 - allele_frequency ) > m_allele_frequency_threshhold ) {
@@ -441,7 +440,7 @@ namespace impl {
 	
 	void NormaliseGenotypesAndComputeXXt::end_processing_snps() {
 		m_dispatcher->wait_until_complete() ;
-		m_result.array() /= m_nonmissingness.array() ;
+		m_result.array() /= m_nonmissingness.array().cast< double >() ;
 	}
 	
 	std::size_t NormaliseGenotypesAndComputeXXt::number_of_snps_included() const {

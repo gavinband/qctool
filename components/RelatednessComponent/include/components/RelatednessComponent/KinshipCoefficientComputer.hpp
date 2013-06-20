@@ -31,12 +31,12 @@ public:
 	struct Computation: public genfile::SNPDataSourceProcessor::Callback {
 		typedef Eigen::MatrixXd Matrix ;
 		typedef Eigen::VectorXd Vector ;
-		typedef Eigen::MatrixXf IntegerMatrix ;
-		typedef Eigen::VectorXf IntegerVector ;
+		typedef Eigen::Matrix< int, Eigen::Dynamic, Eigen::Dynamic > IntegerMatrix ;
+		typedef Eigen::Matrix< int, Eigen::Dynamic, 1 > IntegerVector ;
 		typedef std::auto_ptr< Computation > UniquePtr ;
 		virtual std::size_t number_of_snps_included() const = 0 ;
 		virtual Matrix const& result() const = 0 ;
-		virtual Matrix const& nonmissingness() const = 0 ;
+		virtual IntegerMatrix const& nonmissingness() const = 0 ;
 	} ;
 	static genfile::SNPDataSourceProcessor::Callback::UniquePtr create_computation( std::string const& spec ) ;
 
@@ -62,9 +62,9 @@ private:
 	std::size_t m_number_of_snps_processed ;
 	genfile::CohortIndividualSource const& m_samples ;
 	std::vector< Computation::Matrix > m_result ;
-	std::vector< Computation::Matrix > m_non_missing_count ;
+	std::vector< Computation::IntegerMatrix > m_non_missing_count ;
 	std::vector< Computation::Vector > m_genotypes ;
-	std::vector< Computation::Vector > m_non_missingness ;
+	std::vector< Computation::IntegerVector > m_non_missingness ;
 	Computation::UniquePtr m_computation ;
 	void (*m_accumulate_xxt)( Computation::Vector*, Computation::Matrix*, int const begin_sample_i, int const end_sample_i, int const begin_sample_j, int const end_sample_j, double const ) ;
 	void (*m_accumulate_xxt_integer)( Computation::IntegerVector*, Computation::IntegerMatrix*, int const begin_sample_i, int const end_sample_i, int const begin_sample_j, int const end_sample_j, double const ) ;
@@ -78,7 +78,7 @@ namespace impl {
 		NormaliseGenotypesAndComputeXXt( worker::Worker*, std::string const& method ) ;
 
 		Computation::Matrix const& result() const ;
-		Computation::Matrix const& nonmissingness() const ;
+		Computation::IntegerMatrix const& nonmissingness() const ;
 		void begin_processing_snps( std::size_t number_of_samples ) ;
 		void processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) ;
 		void end_processing_snps() ;
@@ -88,7 +88,7 @@ namespace impl {
 		double const m_allele_frequency_threshhold ;
 		std::size_t m_number_of_snps_included ;
 		Computation::Matrix m_result ;
-		Computation::Matrix m_nonmissingness ;
+		Computation::IntegerMatrix m_nonmissingness ;
 		std::auto_ptr< Dispatcher > m_dispatcher ;
 	} ;
 }

@@ -48,8 +48,10 @@ namespace genfile {
 
 	namespace {
 		struct DataWriter: public VariantDataReader::PerSampleSetter {
-			DataWriter( boost::ptr_vector< std::ostringstream >& streams ):
-				m_streams( streams )
+			DataWriter( boost::ptr_vector< std::ostringstream >& streams, bool field_is_genotype ):
+				m_streams( streams ),
+				m_field_is_genotype( field_is_genotype ),
+				m_sep( ',' )
 			{}
 			
 			~DataWriter() throw() {}
@@ -65,34 +67,52 @@ namespace genfile {
 
 			void set_number_of_entries( std::size_t n ) {
 				m_number_of_entries = n ;
+				m_entry_i = 0 ;
 			}
 
 			void set_order_type( OrderType const type ) {
 				m_order_type == type ;
+				//if( m_field_is_genotype ) {
+				//	m_sep = ( type == eOrderedList ) ? '|' : '/' ;
+				//}
 			}
 
 			void operator()( MissingValue const value ) {
-				m_streams[ m_sample_i ] << (( m_entry_i > 0 ) ? "," : "" ) << value ;
+				if( m_entry_i++ > 0 ) {
+					m_streams[ m_sample_i ] << m_sep ;
+				}
+				m_streams[ m_sample_i ] << value ;
 			}
 
 			void operator()( std::string& value ) {
-				m_streams[ m_sample_i ] << (( m_entry_i > 0 ) ? "," : "" ) << value ;
+				if( m_entry_i++ > 0 ) {
+					m_streams[ m_sample_i ] << m_sep ;
+				}
+				m_streams[ m_sample_i ] << value ;
 			}
 
 			void operator()( Integer const value ) {
-				m_streams[ m_sample_i ] << (( m_entry_i > 0 ) ? "," : "" ) << value ;
+				if( m_entry_i++ > 0 ) {
+					m_streams[ m_sample_i ] << m_sep ;
+				}
+				m_streams[ m_sample_i ] << value ;
 			}
 
 			void operator()( double const value ) {
-				m_streams[ m_sample_i ] << (( m_entry_i > 0 ) ? "," : "" ) << value ;
+				if( m_entry_i++ > 0 ) {
+					m_streams[ m_sample_i ] << m_sep ;
+				}
+				m_streams[ m_sample_i ] << value ;
 			}
 
 		private:
 			boost::ptr_vector< std::ostringstream >& m_streams ;
+			bool m_field_is_genotype ;
 			std::size_t m_sample_i ;
 			std::size_t m_number_of_entries ;
 			std::size_t m_entry_i ;
 			OrderType m_order_type ;
+			char m_sep ;
 		} ;
 	}
 
@@ -115,7 +135,15 @@ namespace genfile {
 
 		(*m_stream_ptr) << tab << "GT" ;//:GP" ;
 
-		DataWriter writer( m_streams) ;
+		{
+			DataWriter writer( m_streams, true ) ;
+			data_reader.get( "genotypes", writer ) ;
+		}
+		for( std::size_t i = 0; i < m_streams.size(); ++i ) {
+			(*m_stream_ptr) << tab << m_streams[i].str() ;
+			m_streams[i].str( "" ) ;
+		}
+		(*m_stream_ptr) << "\n" ;
 	}
 
 /*

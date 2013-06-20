@@ -43,7 +43,7 @@ void QuangStyleConsensusCaller::set_result(
 				assert( genotype_probs.rows() == get_number_of_samples() ) ;
 				m_genotypes.resize( genotype_probs.rows() ) ;
 				{
-					genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( m_genotypes, m_call_threshhold, 0, 1, 2, 3 ) ;
+					genfile::vcf::impl::ThreshholdedCallGetter1< Eigen::VectorXd > setter = genfile::vcf::get_threshholded_calls( m_genotypes, m_call_threshhold, 0, 1, 2, 3 ) ;
 					setter.set_number_of_samples( get_number_of_samples() ) ;
 					for( std::size_t sample = 0; sample < get_number_of_samples(); ++sample ) {
 						setter.set( sample, genotype_probs( sample, 0 ), genotype_probs( sample, 1 ), genotype_probs( sample, 2 )) ;

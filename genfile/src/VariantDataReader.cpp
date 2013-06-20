@@ -23,6 +23,12 @@ namespace genfile {
 		return *this ;
 	}
 
+	VariantDataReader& VariantDataReader::get( std::string const& spec, PerSampleSetter const& setter ) {
+		// Casting away const: this is bad.  But we want this usage for temporary setters.
+		PerSampleSetter& nonconst_setter = const_cast< PerSampleSetter& >( setter ) ;
+		return get( spec, nonconst_setter ) ;
+	}
+
 	VariantDataReader& VariantDataReader::get( std::string const& spec, PerVariantSetter& data ) {
 		assert( 0 ) ; // This function should not be called.
 	}

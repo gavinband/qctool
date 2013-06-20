@@ -73,8 +73,10 @@ namespace pca {
 	void PCAProjector::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 		SnpMap::const_iterator where = m_snps.find( snp.get_position() ) ;
 		if( where != m_snps.end() ) {
-			genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( m_genotype_calls, m_non_missingness, 0.9, 0, 0, 1, 2 ) ;
-			data_reader.get( "genotypes", setter ) ;
+			data_reader.get(
+				"genotypes",
+				genfile::vcf::get_threshholded_calls( m_genotype_calls, m_non_missingness, 0.9, 0, 0, 1, 2 )
+			) ;
 			assert( m_genotype_calls.size() == m_projections.rows() ) ;
 			assert( m_non_missingness.size() == m_genotype_calls.size() ) ;
 			double const allele_frequency = m_genotype_calls.sum() / ( 2.0 * m_non_missingness.sum() ) ;

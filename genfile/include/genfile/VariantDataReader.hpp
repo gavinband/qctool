@@ -35,7 +35,7 @@ namespace genfile {
 			typedef Eigen::MatrixXd Matrix ;
 			virtual void operator()( std::auto_ptr< Matrix > value ) ;
 		} ;
-		struct PerSampleSetter: public vcf::EntriesSetter, public boost::noncopyable {
+		struct PerSampleSetter: public vcf::EntriesSetter {
 			typedef std::auto_ptr< PerSampleSetter > UniquePtr ;
 			virtual ~PerSampleSetter() throw() {}
 			virtual void set_number_of_samples( std::size_t n ) = 0 ;
@@ -45,6 +45,9 @@ namespace genfile {
 	public:
 		virtual ~VariantDataReader() {} ;
 		virtual VariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) = 0 ;
+		// The sole purpose of the next method is to support temporary setters.
+		// Do NOT use this with truly const objects!
+		VariantDataReader& get( std::string const& spec, PerSampleSetter const& setter ) ;
 		virtual VariantDataReader& get( std::string const& spec, PerVariantSetter& setter ) ;
 		virtual bool supports( std::string const& spec ) const = 0 ;
 		virtual void get_supported_specs( SpecSetter ) const = 0 ;
