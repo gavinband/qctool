@@ -256,7 +256,7 @@ namespace impl {
 			*/
 			//N = 5 ;
 			//N = 1 ;
-			N = 5 ;
+			N = 10 ;
 			double K = double( number_of_samples ) / N ;
 			double Kj = std::ceil( double( number_of_samples ) / ( 2 * N ) ) ;
 //#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER

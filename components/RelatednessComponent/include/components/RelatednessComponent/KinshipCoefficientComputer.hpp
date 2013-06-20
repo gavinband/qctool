@@ -31,8 +31,10 @@ public:
 	struct Computation: public genfile::SNPDataSourceProcessor::Callback {
 		typedef Eigen::MatrixXd Matrix ;
 		typedef Eigen::VectorXd Vector ;
-		typedef Eigen::Matrix< int, Eigen::Dynamic, Eigen::Dynamic > IntegerMatrix ;
-		typedef Eigen::Matrix< int, Eigen::Dynamic, 1 > IntegerVector ;
+		//typedef Eigen::Matrix< int, Eigen::Dynamic, Eigen::Dynamic > IntegerMatrix ;
+		//typedef Eigen:VMatrix< int, Eigen::Dynamic, 1 > IntegerVector ;
+		typedef Eigen::MatrixXf IntegerMatrix ;
+		typedef Eigen::VectorXf IntegerVector ;
 		typedef std::auto_ptr< Computation > UniquePtr ;
 		virtual std::size_t number_of_snps_included() const = 0 ;
 		virtual Matrix const& result() const = 0 ;
