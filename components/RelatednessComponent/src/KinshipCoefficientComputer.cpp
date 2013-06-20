@@ -478,12 +478,13 @@ void KinshipCoefficientComputer::end_processing_snps() {
 		+ "\nNumber of samples: "
 		+ genfile::string_utils::to_string( m_samples.get_number_of_individuals() )
 	;
-
+/*
 	send_results(
 		m_computation->nonmissingness().cast< double >(),
 		m_computation->result().cast< double >(),
 		"KinshipCoefficientComputer",
 		description
 	) ;
+*/
 }
 

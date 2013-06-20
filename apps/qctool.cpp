@@ -2082,23 +2082,30 @@ private:
 	}
 	
 	struct ProgressWrapper: public genfile::SNPDataSourceProcessor::Callback, boost::noncopyable {
-		static UniquePtr create( appcontext::UIContext::ProgressContext* progress_context ) {
-			return UniquePtr( new ProgressWrapper( progress_context )) ;
+		static UniquePtr create( appcontext::UIContext& ui_context, std::string const& name ) {
+			return UniquePtr( new ProgressWrapper( ui_context, name )) ;
 		}
 
-		ProgressWrapper( appcontext::UIContext::ProgressContext* progress_context ):
-			m_progress_context( progress_context )
-		{
-			assert( m_progress_context ) ;
-		}
+		ProgressWrapper( appcontext::UIContext& ui_context, std::string const& name ):
+			m_progress_context( ui_context.get_progress_context( name ) ),
+			m_number_of_snps( 0 )
+		{}
+
 		void begin_processing_snps( std::size_t ) {
-			m_progress_context->restart_timer() ;
+			m_progress_context.restart_timer() ;
+			m_progress_context.notify_progress( 0 ) ;
 		}
-		void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader::SharedPtr data_reader ) {}
-		void end_processing_snps() {}
+
+		void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader::SharedPtr data_reader ) {
+			m_progress_context.notify_progress( ++m_number_of_snps ) ;
+		}
+		void end_processing_snps() {
+			std::cerr << "Total: " << m_number_of_snps << "SNPs.\n" ;
+		}
 
 	private:
-		appcontext::UIContext::ProgressContext* m_progress_context ;
+		appcontext::UIContext::ProgressContext m_progress_context ;
+		std::size_t m_number_of_snps ;
 	} ;
 	
 	void unsafe_process() {
@@ -2194,9 +2201,8 @@ private:
 		}
 		// Process it (but only if there was something to do) !
 		if( processor.get_callbacks().size() > 0 ) {
-			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Processing SNPs" ) ;
-			processor.add_callback( ProgressWrapper::create( &progress_context )) ;
-			processor.process( context.snp_data_source(), progress_context ) ;
+			processor.add_callback( ProgressWrapper::create( get_ui_context(), "Processing SNPs" ) ) ;
+			processor.process( context.snp_data_source() ) ;
 		} else {
 			get_ui_context().logger() << "SNPs do not need to be visited -- skipping.\n" ;
 		}
