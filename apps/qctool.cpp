@@ -2081,6 +2081,26 @@ private:
 		}
 	}
 	
+	struct ProgressWrapper: public genfile::SNPDataSourceProcessor::Callback, boost::noncopyable {
+		static UniquePtr create( appcontext::UIContext::ProgressContext* progress_context ) {
+			return UniquePtr( new ProgressWrapper( progress_context )) ;
+		}
+
+		ProgressWrapper( appcontext::UIContext::ProgressContext* progress_context ):
+			m_progress_context( progress_context )
+		{
+			assert( m_progress_context ) ;
+		}
+		void begin_processing_snps( std::size_t ) {
+			m_progress_context->restart_timer() ;
+		}
+		void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader::SharedPtr data_reader ) {}
+		void end_processing_snps() {}
+
+	private:
+		appcontext::UIContext::ProgressContext* m_progress_context ;
+	} ;
+	
 	void unsafe_process() {
 		std::size_t const number_of_threads = options().get_value< std::size_t >( "-threads" ) ;
 		worker::Worker::UniquePtr worker ;
@@ -2175,6 +2195,7 @@ private:
 		// Process it (but only if there was something to do) !
 		if( processor.get_callbacks().size() > 0 ) {
 			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Processing SNPs" ) ;
+			processor.add_callback( ProgressWrapper::create( &progress_context )) ;
 			processor.process( context.snp_data_source(), progress_context ) ;
 		} else {
 			get_ui_context().logger() << "SNPs do not need to be visited -- skipping.\n" ;
