@@ -33,6 +33,7 @@ namespace genfile {
 		result.push_back( "vcf" ) ;
 		result.push_back( "shapeit_haplotypes" ) ;
 		result.push_back( "shapeit" ) ;
+		result.push_back( "dosage" ) ;
 		return result ;
 	}
 
