@@ -40,14 +40,12 @@ namespace impl {
 		
 		typedef boost::function< void ( genfile::SNPIdentifyingData const& snp, genfile::SNPDataSink& sink ) > IndexCallback ;
 		void send_index_to( impl::SNPDataSourceIndex::UniquePtr index ) ;
-		void write_samples_to( std::string const& filename ) ;
 
 	private:
 		genfile::CohortIndividualSource const& m_samples ;
 		bool m_manage ;
 		genfile::SNPDataSink* m_sink ;
 		impl::SNPDataSourceIndex::UniquePtr m_index ;
-		std::string m_sample_filename ;
 		Eigen::MatrixXd m_genotypes ;
 		
 	} ;

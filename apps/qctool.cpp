@@ -59,6 +59,7 @@
 #include "genfile/SNPTranslatingSNPDataSource.hpp"
 #include "genfile/StrandAligningSNPDataSource.hpp"
 #include "genfile/AlleleFlippingSNPDataSource.hpp"
+#include "genfile/ThreshholdingSNPDataSource.hpp"
 #include "genfile/AsynchronousSNPDataSource.hpp"
 #include "genfile/VCFFormatSNPDataSource.hpp"
 #include "genfile/Pedigree.hpp"
@@ -435,6 +436,10 @@ public:
 
 		// Other options
 		options.declare_group( "Other options" ) ;
+		options [ "-threshhold" ] 
+			.set_description( "Threshhold genotype call probabilities.  This means replace call probabilities "
+			">= threshold with 1 and those < threshhold with 0." )
+			.set_takes_single_value() ;
 		options [ "-force" ] 
 			.set_description( "Ignore warnings and proceed with requested action." ) ;
 		options [ "-log" ]
@@ -1032,6 +1037,14 @@ private:
 			m_options.check( "-match-alleles-to-cohort1" )
 		) ;
 		
+		if( m_options.check( "-merge-in" )) {
+			m_snp_data_source = open_merged_data_sources() ;
+		}
+
+		if( m_options.check( "-threshhold" )) {
+			m_snp_data_source.reset( new genfile::ThreshholdingSNPDataSource( m_snp_data_source, m_options.get< double >( "-threshhold" )) ) ;
+		}
+		
 		{
 			m_samples = open_samples( m_snp_data_source->number_of_samples() ) ;
 		
@@ -1076,10 +1089,6 @@ private:
 			) ;
 		}
 		
-		if( m_options.check( "-merge-in" )) {
-			m_snp_data_source = open_merged_data_sources() ;
-		}
-
 		if( m_options.check( "-buffer-snps" ) ) {
 			m_snp_data_source.reset(
 				new genfile::AsynchronousSNPDataSource( m_snp_data_source )
@@ -2108,6 +2117,26 @@ private:
 		std::size_t m_number_of_snps ;
 	} ;
 	
+	void write_samples( genfile::CohortIndividualSource const& samples, std::string const& filename ) {
+		genfile::CohortIndividualSource::ColumnSpec const spec = samples.get_column_spec() ;
+		std::ofstream str( filename.c_str() ) ;
+		for( std::size_t j = 0; j < spec.size(); ++j ) {
+			str << ( j > 0 ? " " : "" ) << spec[j].name() ;
+		}
+		str << "\n" ;
+		for( std::size_t j = 0; j < spec.size(); ++j ) {
+			str << ( j > 0 ? " " : "" ) << spec[j].type() ;
+		}
+		str << "\n" ;
+
+		for( std::size_t i = 0; i < samples.get_number_of_individuals(); ++i ) {
+			for( std::size_t j = 0; j < spec.size(); ++j ) {
+				str << ( j > 0 ? " " : "" ) << samples.get_entry( i, spec[j].name() ) ;
+			}
+			str << "\n" ;
+		}
+	}
+	
 	void unsafe_process() {
 		std::size_t const number_of_threads = options().get_value< std::size_t >( "-threads" ) ;
 		worker::Worker::UniquePtr worker ;
@@ -2188,7 +2217,7 @@ private:
 			processor.add_callback( *haplotype_frequency_component ) ;
 		}
 
-		if( options().check( "-og" ) || options().check( "-op" ) ) {
+		if( options().check( "-og" ) || options().check( "-op" ) || options().check( "-os" ) ) {
 			SNPOutputComponent component( 
 				context.get_cohort_individual_source(),
 				options(),
@@ -2198,6 +2227,10 @@ private:
 				context.fltrd_in_snp_data_sink(),
 				processor
 			) ;
+		}
+		
+		if( options().check( "-os" )) {
+			write_samples( context.get_cohort_individual_source(), options().get< std::string >( "-os" )) ;
 		}
 		// Process it (but only if there was something to do) !
 		if( processor.get_callbacks().size() > 0 ) {
