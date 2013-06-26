@@ -109,6 +109,7 @@ namespace genfile {
 					Threshholder threshholder( setter, m_threshhold ) ;
 					m_source->get( spec, threshholder ) ;
 				}
+				return *this ;
 			}
 
 			bool supports( std::string const& spec ) const {
