@@ -46,13 +46,12 @@ namespace impl {
 			int const begin_sample_j, int const end_sample_j,
 			double const scale
 		) {
+			
 			if( begin_sample_i == begin_sample_j && end_sample_i == end_sample_j ) {
-				/*
 				result
 					->block( begin_sample_i, begin_sample_j, end_sample_i - begin_sample_i, end_sample_j - begin_sample_j )
-					.selfadjointView< Eigen::Lower >()
+					.template selfadjointView< Eigen::Lower >()
 					.rankUpdate( data->segment( begin_sample_i, end_sample_i - begin_sample_i ), scale ) ;
-				*/
 			} else {
 				result
 					->block(  begin_sample_i, begin_sample_j, end_sample_i - begin_sample_i, end_sample_j - begin_sample_j ).noalias()
@@ -430,8 +429,10 @@ namespace impl {
 		double allele_frequency = genotypes.sum() / ( 2.0 * nonmissingness.sum() ) ;
 		if( std::min( allele_frequency, 1.0 - allele_frequency ) > m_allele_frequency_threshhold ) {
 			pca::mean_centre_genotypes( &genotypes, nonmissingness, allele_frequency ) ;
-			double const sd = std::sqrt( ( genotypes.array().square().sum() - ( genotypes.sum() * genotypes.sum() ) ) / ( nonmissingness.sum() - 1 ) ) ;
-			//double const sd = std::sqrt( ( 2.0 * allele_frequency * ( 1.0 - allele_frequency )) ) ;
+			// Could compute actual SNP sd:
+			//double const sd = std::sqrt( ( genotypes.array().square().sum() - ( genotypes.sum() * genotypes.sum() ) ) / ( nonmissingness.sum() - 1 ) ) ;
+			// Or sd based on allele frequency:
+			double const sd = std::sqrt( ( 2.0 * allele_frequency * ( 1.0 - allele_frequency )) ) ;
 			genotypes /= sd ;
 			m_dispatcher->add_data( &genotypes, &nonmissingness ) ;
 			++m_number_of_snps_included ;
@@ -478,13 +479,11 @@ void KinshipCoefficientComputer::end_processing_snps() {
 		+ "\nNumber of samples: "
 		+ genfile::string_utils::to_string( m_samples.get_number_of_individuals() )
 	;
-/*
 	send_results(
 		m_computation->nonmissingness().cast< double >(),
 		m_computation->result().cast< double >(),
 		"KinshipCoefficientComputer",
 		description
 	) ;
-*/
 }
 
