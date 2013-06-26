@@ -257,7 +257,6 @@ namespace impl {
 			//N = 1 ;
 			N = 10 ;
 			double K = double( number_of_samples ) / N ;
-			double Kj = std::ceil( double( number_of_samples ) / ( 2 * N ) ) ;
 //#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
 			std::cerr << "MultiThreadedDispatcher: sizeof(int) = " << sizeof(int) << ".\n" ;
 			std::cerr << "MultiThreadedDispatcher:setup(): " << number_of_samples << "x" << number_of_samples << " matrix, "
@@ -267,31 +266,47 @@ namespace impl {
 			// Set up some initial tasks.
 			// Do j (the column) as the outer loop
 			// so that tasks go in column-major direction.
-			for( std::size_t j = 0; j < (2*N); ++j ) {
+			for( std::size_t j = 0; j < N; ++j ) {
 				for( std::size_t i = 0; i < N; ++i ) {
-					if( (i*2) >= j ) {
+					if( i == j ) {
 						SampleBounds bounds ;
 						bounds.begin_sample_i = std::ceil(i*K) ;
 						bounds.end_sample_i = std::min( std::size_t( std::ceil( (i+1)*K ) ), number_of_samples ) ;
-						
-						if( i*2 == j ) {
-							bounds.begin_sample_j = bounds.begin_sample_i ;
-							bounds.end_sample_j = bounds.end_sample_i ;
-						}
-						else if( (i*2) > j ) {
-							bounds.begin_sample_j = std::ceil( j*Kj ) ;
-							bounds.end_sample_j = std::min( ( i == 0 && j == 0 ) ? std::size_t( std::ceil( K ) ) : std::size_t( std::ceil( (j+1)*Kj ) ), number_of_samples ) ;
-						}
+						bounds.begin_sample_j = bounds.begin_sample_i ;
+						bounds.end_sample_j = bounds.end_sample_i ;
 						m_bounds.push_back( bounds ) ;
 						m_tasks.push_back( 0 ) ;
 						m_tasks.push_back( 0 ) ;
+
 //#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
-						std::cerr << "MultiThreadedDispatcher::setup(): added block " << m_bounds.back() << ".\n" ;
+					std::cerr << "MultiThreadedDispatcher::setup(): added block " << m_bounds.back() << ".\n" ;
 //#endif
 					}
-				}
-				if( j == 0 ) {
-					++j ;
+					else {
+						// Do two vertical stripes
+						SampleBounds bounds ;
+						bounds.begin_sample_i = std::ceil(i*K) ;
+						bounds.end_sample_i = std::min( std::size_t( std::ceil( (i+1)*K ) ), number_of_samples ) ;
+						bounds.begin_sample_j = std::ceil(j*K) ;
+						bounds.end_sample_j = std::ceil((j+0.5)*K) ;
+						m_bounds.push_back( bounds ) ;
+						m_tasks.push_back( 0 ) ;
+						m_tasks.push_back( 0 ) ;
+
+//#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+					std::cerr << "MultiThreadedDispatcher::setup(): added block " << m_bounds.back() << ".\n" ;
+//#endif
+
+						bounds.begin_sample_j = bounds.end_sample_j ;
+						bounds.end_sample_j = std::min( std::size_t( std::ceil( (j+1)*K ) ), number_of_samples ) ;
+						m_bounds.push_back( bounds ) ;
+						m_tasks.push_back( 0 ) ;
+						m_tasks.push_back( 0 ) ;
+
+//#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+					std::cerr << "MultiThreadedDispatcher::setup(): added block " << m_bounds.back() << ".\n" ;
+//#endif
+					}
 				}
 			}
 			assert( m_tasks.size() == 2 * m_bounds.size() ) ;

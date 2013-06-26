@@ -55,6 +55,7 @@
 #include "genfile/CountingCohortIndividualSource.hpp"
 #include "genfile/SampleFilteringCohortIndividualSource.hpp"
 #include "genfile/CohortIndividualSourceChain.hpp"
+#include "genfile/DataLinkingCohortIndividualSource.hpp"
 #include "genfile/SampleFilteringSNPDataSource.hpp"
 #include "genfile/SNPTranslatingSNPDataSource.hpp"
 #include "genfile/StrandAligningSNPDataSource.hpp"
@@ -203,6 +204,12 @@ public:
 	        .set_description( "Path of sample file to input.  If specified, this option must occur as often as the -g option"
 							" to specify one sample file per cohort." )
 			.set_takes_values( 1 )
+			.set_minimum_multiplicity( 0 )
+			.set_maximum_multiplicity( 100 ) ;
+
+	    options[ "-sample-data" ]
+	        .set_description( "Path of additional sample file(s) (in the same format as accepted by -s) to read." )
+			.set_takes_values_until_next_option()
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
 
@@ -1047,7 +1054,9 @@ private:
 		
 		{
 			m_samples = open_samples( m_snp_data_source->number_of_samples() ) ;
-		
+			if( m_options.check( "-sample-data" )) {
+				m_samples = open_sample_data( m_samples, m_options.get_values< std::string > ( "-sample-data" )) ;
+			}
 			if( m_options.check( "-condition-on" )) {
 				m_samples = condition_on(
 					m_samples,
@@ -1915,6 +1924,32 @@ private:
 		}
 		
 		return sample_source ;
+	}
+	
+	genfile::CohortIndividualSource::UniquePtr open_sample_data( genfile::CohortIndividualSource::UniquePtr samples, std::vector< std::string > sample_files ) const {
+		try {
+			return unsafe_open_sample_data( samples, sample_files ) ;
+		}
+		catch( genfile::InputError const& e ) {
+			m_ui_context.logger() << "\n\n!! ERROR (" << e.what() << "): " << e.format_message() << ".\n" ;
+			m_ui_context.logger() << "Quitting.\n" ;
+			throw ;
+		}
+	}
+	
+	genfile::CohortIndividualSource::UniquePtr unsafe_open_sample_data( genfile::CohortIndividualSource::UniquePtr samples, std::vector< std::string > sample_files ) const {
+		genfile::DataLinkingCohortIndividualSource::UniquePtr result( new genfile::DataLinkingCohortIndividualSource( samples )) ;
+		for( std::size_t i = 0; i < sample_files.size(); ++i ) {
+			result->add_source(
+				genfile::CohortIndividualSource::UniquePtr(
+					new genfile::CategoricalCohortIndividualSource(
+						sample_files[i],
+						m_options.get_value< std::string >( "-missing-code" )
+					)
+				)
+			) ;
+		}
+		return genfile::CohortIndividualSource::UniquePtr( result.release() )	 ;
 	}
 	
 	std::vector< std::size_t > compute_excluded_samples( genfile::CohortIndividualSource::UniquePtr const& sample_source ) {

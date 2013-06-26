@@ -109,8 +109,12 @@ namespace genfile {
 		typedef std::map< std::string, CohortIndividualSource::ColumnType > ColumnTypeMap ;
 		boost::optional< ColumnTypeMap > column_types = read_column_types_from_comments( m_comments ) ;
 		
+		m_column_names = read_column_names( stream ) ;
+		if( !column_types ) {
+			column_types = read_column_type_line( stream, m_column_names ) ;
+		}
+
 		if( column_types ) {
-			m_column_names = read_column_names( stream ) ;
 			m_column_types.resize( m_column_names.size() ) ;
 			for( std::size_t i = 0; i < m_column_names.size(); ++i ) {
 				ColumnTypeMap::const_iterator where = (*column_types).find( m_column_names[i] ) ;
@@ -118,10 +122,22 @@ namespace genfile {
 					throw MalformedInputError( m_filename, m_number_of_metadata_lines + 1 ) ;
 				}
 				m_column_types[i] = where->second ;
+				
+				if( m_column_names[i] == "missing" || m_column_names[i] == "ID_1" || m_column_names[i] == "ID_2" ) {
+					if( m_column_types[i] != e_ID_COLUMN ) {
+						throw MalformedInputError( m_filename, "column \"" + m_column_names[i] + "\" should have type \"0\"", 0 ) ;
+					}
+				} else {
+					if( m_column_types[i] == e_ID_COLUMN ) {
+						throw MalformedInputError( m_filename, "Only columns ID_1, ID_2, and missing can have type \"0\"", 0 ) ;
+					}
+				}
+				if( m_column_names[i] == "missing" ) {
+					m_column_types[i] = e_MISSINGNESS_COLUMN ;
+				}
 			}
 		} else {
-			m_column_names = read_column_names( stream ) ;
-			m_column_types = read_column_type_line( stream, m_column_names ) ;
+			throw MalformedInputError( m_filename, "Expected column type line after column names.", m_number_of_metadata_lines + 1 ) ;
 		}
 		assert( m_column_names.size() == m_column_types.size() ) ;
 		m_entries = read_entries( stream, m_column_types) ;
@@ -272,8 +288,8 @@ namespace genfile {
 		return result ;
 	}
 
-	std::vector< CohortIndividualSource::ColumnType > FromFileCohortIndividualSource::read_column_type_line( std::istream& stream, std::vector< std::string > const& column_names ) const {
-		std::vector< ColumnType > result ;
+	std::map< std::string, CohortIndividualSource::ColumnType > FromFileCohortIndividualSource::read_column_type_line( std::istream& stream, std::vector< std::string > const& column_names ) const {
+		std::map< std::string, CohortIndividualSource::ColumnType > result ;
 		std::string line ;
 		std::getline( stream, line ) ;
 		std::vector< std::string > type_strings = string_utils::split_and_strip_discarding_empty_entries( line ) ;
@@ -285,24 +301,11 @@ namespace genfile {
 			if( !type ) {
 				throw MalformedInputError( m_filename, 1 + m_number_of_metadata_lines, i ) ;
 			} else {
-				result.push_back( *type ) ;
+				result[ m_column_names[i] ] = *type ;
 			}
 		}
 		assert( result.size() == column_names.size() ) ;
 
-		// check that only the first three columns have type '0'
-		for( std::size_t i = 0; i < result.size(); ++i ) {
-			if( i < 3 ) {
-				if( result[i] != e_ID_COLUMN ) {
-					throw MalformedInputError( m_filename, 1 + m_number_of_metadata_lines ) ;
-				}
-			}
-			else if( result[i] == e_ID_COLUMN ) {
-				throw MalformedInputError( m_filename, 1 + m_number_of_metadata_lines ) ;
-			}
-		}
-		result[2] = e_MISSINGNESS_COLUMN ;
-		
 		return result ;
 	}
 

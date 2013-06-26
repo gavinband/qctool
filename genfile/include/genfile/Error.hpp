@@ -89,21 +89,34 @@ namespace genfile {
 	
 	struct InputError: public std::exception 
 	{
-		InputError( std::string const& source ):
-			m_source( source )
+		InputError( std::string const& source, std::string const& message = "" ):
+			m_source( source ),
+			m_message( message )
 		{}
 		
 		InputError( InputError const& other ):
-			m_source( other.m_source )
+			m_source( other.m_source ),
+			m_message( other.m_message )
 		{}
 
-		virtual std::string format_message() const { return "An unknown input error occurred in source \"" + source() + "\"." ; }
+		const char* what() const throw() { return "genfile:InputError" ; }
+
+		virtual std::string format_message() const {
+			std::ostringstream ostr ;
+			ostr << "An input error occured in source \"" << source() << "\"" ;
+			if( m_message.size() > 0 ) {
+				ostr << ": " << m_message ;
+			}
+			ostr << "." ;
+			return ostr.str() ;
+		}
 
 		virtual ~InputError() throw() {}
 		std::string const& source() const { return m_source ; }
-		const char* what() const throw() { return "genfile:InputError" ; }
+		std::string const& message() const { return m_message ; }
 	private:
 		std::string const m_source ;
+		std::string const m_message ;
 	} ;
 
 	struct OutputError: public std::exception 
@@ -249,6 +262,11 @@ namespace genfile {
 
 	struct MalformedInputError: public InputError
 	{
+		MalformedInputError( std::string const& source, std::string const& message, int line, int column = -1 ):
+			InputError( source, message ),
+			m_line( line ),
+			m_column( column )
+		{}
 		MalformedInputError( std::string const& source, int line, int column = -1 ):
 			InputError( source ),
 			m_line( line ),
@@ -270,6 +288,9 @@ namespace genfile {
 			ostr << "Source \"" << source() << "\" is malformed on line " << ( line() + 1 ) ;
 			if( has_column() ) {
 				ostr << ", column " << ( column() + 1 ) ;
+			}
+			if( message().size() > 0 ) {
+				ostr << ": " << message() ;
 			}
 			ostr << "." ;
 			return ostr.str() ;
@@ -320,6 +341,41 @@ namespace genfile {
 		char const* what() const throw() { return "genfile::UnexpectedMissingValueError" ; }
 	} ;
 	
+
+	struct DuplicateEntryError: public InputError
+	{
+		~DuplicateEntryError() throw() {}
+
+		DuplicateEntryError(
+			 std::string const& caller, std::string const& source, std::string const& key, std::string const& variable, std::string const& message
+		):
+			InputError( source, message ),
+			m_caller( caller ),
+			m_key( key ),
+			m_variable( variable )
+		{}
+		
+		std::string const& key() const { return m_key ; }
+		std::string const& variable() const { return m_variable ; }
+		std::string const& caller() const { return m_caller ; }
+		
+		char const* what() const throw() { return "genfile::DuplicateEntryError" ; }
+
+		virtual std::string format_message() const {
+			std::ostringstream ostr ;
+			ostr << "Source \"" << source() << "\" has a duplicate entry for key \"" << m_key << "\", variable \"" << m_variable << "\"" ;
+			if( message().size() > 0 ) {
+				ostr << ": " << message() ;
+			}
+			ostr << "." ;
+			return ostr.str() ;
+		}
+		
+	private:
+		std::string const& m_caller ;
+		std::string const m_key ;
+		std::string const m_variable ;
+	} ;
 	
 	struct DuplicateIndividualError: public MalformedInputError
 	{

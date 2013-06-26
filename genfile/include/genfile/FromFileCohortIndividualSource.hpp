@@ -79,7 +79,7 @@ namespace genfile {
 		std::string read_comments( std::istream& stream ) const ;
 		std::vector< std::string > read_column_names( std::istream& stream ) const ;
 		boost::optional< std::map< std::string, CohortIndividualSource::ColumnType > > read_column_types_from_comments( std::string const& comments ) const ;
-		std::vector< ColumnType > read_column_type_line( std::istream& stream, std::vector< std::string > const& column_names ) const ;
+		std::map< std::string, ColumnType > read_column_type_line( std::istream& stream, std::vector< std::string > const& column_names ) const ;
 		std::vector< std::vector< Entry > > read_entries( std::istream& stream, std::vector< ColumnType > const& column_types ) const ;
 		std::vector< Entry > get_checked_entries(
 			std::vector< std::string > const& string_entries,
