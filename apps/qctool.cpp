@@ -2217,7 +2217,7 @@ private:
 			processor.add_callback( *haplotype_frequency_component ) ;
 		}
 
-		if( options().check( "-og" ) || options().check( "-op" ) || options().check( "-os" ) ) {
+		if( options().check( "-og" ) || options().check( "-op" ) ) {
 			SNPOutputComponent component( 
 				context.get_cohort_individual_source(),
 				options(),
