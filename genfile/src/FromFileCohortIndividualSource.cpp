@@ -270,14 +270,9 @@ namespace genfile {
 		if( result.size() < 3 ) {
 			throw MalformedInputError( m_filename, 0 + m_number_of_metadata_lines ) ;
 		}
+		// Check first column is "ID_1"...
 		if( string_utils::to_lower( result[0] ) != "id_1" ) {
 			throw MalformedInputError( m_filename, 0 + m_number_of_metadata_lines, 0 ) ;
-		}
-		if( string_utils::to_lower( result[1] ) != "id_2" ) {
-			throw MalformedInputError( m_filename, 0 + m_number_of_metadata_lines, 1 ) ;
-		}
-		if( string_utils::to_lower( result[2] ) != "missing" ) {
-			throw MalformedInputError( m_filename, 0 + m_number_of_metadata_lines, 2 ) ;
 		}
 		// check for uniqueness
 		for( std::size_t i = 0; i < result.size(); ++i ) {

@@ -72,13 +72,13 @@ namespace genfile {
 	}
 	
 	void CategoricalCohortIndividualSource::check_sample_ids() const {
-		// combination of id_1 and id_2 fields should be unique.
+		// ID_1 should be unique
 		{
 			std::set< std::string > sample_ids ;
 			for( std::size_t i = 0; i < get_number_of_individuals(); ++i ) {
-				std::string id = get_entry( i, "id_1" ).as< std::string >() + " " + get_entry( i, "id_2" ).as< std::string >();
+				std::string id = get_entry( i, "id_1" ).as< std::string >() ;
 				if( sample_ids.find( id ) != sample_ids.end() ) {
-					throw DuplicateIndividualError( get_filename(), get_entry( i, "id_1" ).as< std::string >(), get_entry( i, "id_2" ).as< std::string >(), i + 2) ;
+					throw DuplicateIndividualError( get_filename(), get_entry( i, "id_1" ).as< std::string >(), "Samples must have unique IDs.", i + 2 ) ;
 				}
 				sample_ids.insert( id ) ;
 			}
