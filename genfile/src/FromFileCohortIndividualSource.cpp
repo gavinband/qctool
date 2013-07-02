@@ -85,7 +85,19 @@ namespace genfile {
 			)
 		) ;
 	}
-	
+
+	std::vector< std::size_t > FromFileCohortIndividualSource::find_entries( Entry const& entry, std::string const& column_name ) const {
+		if( column_name == "ID_1" ) {
+			std::map< Entry, std::size_t >::const_iterator where = m_sample_indices.find( entry ) ;
+			if( where == m_sample_indices.end() ) {
+				throw BadArgumentError( "FromFileCohortIndividualSource::find_entries()", "entry=\"" + string_utils::to_string( entry ) + "\"", "The entry was not found in column \"" + column_name + "\"" ) ;
+			}
+			return std::vector< std::size_t >( 1, where->second ) ;
+		} else {
+			return CohortIndividualSource::find_entries( entry, column_name ) ;
+		}
+	}
+
 	std::size_t FromFileCohortIndividualSource::find_column_name( std::string const& column_name ) const {
 		std::vector< std::string >::const_iterator where = find_column_name_impl( column_name ) ;
 		assert( where != m_column_names.end() ) ;
@@ -141,6 +153,9 @@ namespace genfile {
 		}
 		assert( m_column_names.size() == m_column_types.size() ) ;
 		m_entries = read_entries( stream, m_column_types) ;
+		for( std::size_t i = 0; i < m_entries.size(); ++i ) {
+			m_sample_indices[ m_entries[i].front() ] = i ;
+		}
 		assert( stream.eof() ) ;
 	}
 	
@@ -212,51 +227,43 @@ namespace genfile {
 		boost::optional< std::map< std::string, CohortIndividualSource::ColumnType > > result ;
 		typedef std::map< std::string, CohortIndividualSource::ColumnType > Intermediate ;
 
-		for(
-			std::size_t pos = 0 ;
-			( pos = comments.find( "metadata", pos ) ) != std::string::npos ;
-			++pos
-		) {
+		std::size_t pos = comments.find( "metadata" ) ;
+		if( pos != std::string::npos ) {
 			Intermediate intermediate ;
 			std::string::const_iterator begin = comments.begin() + pos ;
-			bool parsed = false ;
-			try {
-				parsed = boost::spirit::qi::phrase_parse(
-					begin, comments.end(),
-						lit( "metadata:" )
+			bool parsed = boost::spirit::qi::phrase_parse(
+				begin, comments.end(),
+					lit( "metadata:" )
+					>> '{'
+					>> (
+						lit( "\"" )
+						>> ( +(graph - '\"') ) >> '\"'
+						>> ':'
 						>> '{'
-						>> (
-							lit( "\"" )
-							>> ( +(graph - '\"') ) >> '\"'
-							>> ':'
-							>> '{'
-							>> "\"type\""
-							>> ':'
-							>> '\"'
-							>> ( +(graph - '\"'))
-							>> '\"'
-							>> '}'
-						)
-						[
-							boost::phoenix::bind(
-								&insert_name_and_type,
-								&intermediate,
-								boost::spirit::_1,
-								boost::spirit::_2
-							) 
-						]
-						% ','
-						>> '}',
-					space
-				) ;
-			}
-			catch( MalformedInputError const& e ) {
-				throw MalformedInputError( m_filename, 0 ) ;
-			}
+						>> "\"type\""
+						>> ':'
+						>> '\"'
+						>> ( +(graph - '\"'))
+						>> '\"'
+						>> '}'
+					)
+					[
+						boost::phoenix::bind(
+							&insert_name_and_type,
+							&intermediate,
+							boost::spirit::_1,
+							boost::spirit::_2
+						) 
+					]
+					% ','
+				>> '}',
+				space
+			) ;
 	
 			if( parsed ) {
 				result = intermediate ;
-				break ;
+			} else {
+				throw MalformedInputError( m_filename, "\"metadata\" line found in header, but column specification was malformed", 0 ) ;
 			}
 		}
 		return result ;

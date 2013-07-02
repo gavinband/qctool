@@ -53,6 +53,7 @@ namespace genfile {
 
 		bool check_for_column( std::string const& column_name ) const ;
 
+		std::vector< std::size_t > find_entries( Entry const& entry, std::string const& column_name ) const ;
 		// Return the filename from which we read our information, or "(none)" if a stream was supplied. 
 		std::string const& get_filename() const ;
 		// Return the filename from which we read our information, or "(unknown)" if a stream was supplied. 
@@ -68,6 +69,7 @@ namespace genfile {
 		std::vector< ColumnType > m_column_types ;
 		// Entries stored by sample and then by column
 		std::vector< std::vector< Entry > > m_entries ;
+		std::map< Entry, std::size_t > m_sample_indices ;
 
 	protected:
 		// Case-insensitive search for a column in the sample file.
