@@ -27,7 +27,6 @@ namespace haplotype_frequency_component {
 			"FOREIGN KEY( variant1_id ) REFERENCES Variant( id ), "
 			"FOREIGN KEY( variant2_id ) REFERENCES Variant( id ), "
 			"FOREIGN KEY( variable_id ) REFERENCES Entity( id ), "
-			"UNIQUE( variant1_id, variant2_id, analysis_id, variable_id ) "
 			")"
 		) ;
 		// Typical use is to look for all SNPs in r^2 with a given one, so add an index for this.
@@ -80,7 +79,7 @@ namespace haplotype_frequency_component {
 
 	void DBOutputter::construct_statements() {
 		m_insert_summarydata_statement = connection().get_statement(
-			"INSERT OR REPLACE INTO PairwiseSummaryData (  analysis_id, variant1_id, variant2_id, variable_id, value ) "
+			"INSERT INTO PairwiseSummaryData (  analysis_id, variant1_id, variant2_id, variable_id, value ) "
 			"VALUES( ?1, ?2, ?3, ?4, ?5 )"
 		) ;
 	}
