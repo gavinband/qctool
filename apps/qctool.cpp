@@ -2173,7 +2173,6 @@ private:
 		}
 		
 		for( std::size_t i = 0; i < samples.get_number_of_individuals(); ++i ) {
-			std::cerr << "Writing sample " << i << ".\n" ;
 			for( std::size_t j = 0; j < spec.size(); ++j ) {
 				str << ( j > 0 ? " " : "" ) << samples.get_entry( i, spec[j].name() ) ;
 			}

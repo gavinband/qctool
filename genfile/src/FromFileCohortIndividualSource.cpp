@@ -70,7 +70,7 @@ namespace genfile {
 	}
 
 	bool FromFileCohortIndividualSource::check_for_column( std::string const& column_name ) const {
-		std::map< std::string, std::size_t >::const_iterator where = m_column_indices.find( column_name ) ;
+		std::map< std::string, std::size_t >::const_iterator where = m_column_indices.find( string_utils::to_lower( column_name ) ) ;
 		return ( where != m_column_indices.end() ) ;
 	}
 
@@ -100,9 +100,9 @@ namespace genfile {
 	}
 
 	std::size_t FromFileCohortIndividualSource::find_column_name( std::string const& column_name ) const {
-		std::map< std::string, std::size_t >::const_iterator where = m_column_indices.find( column_name ) ;
+		std::map< std::string, std::size_t >::const_iterator where = m_column_indices.find( string_utils::to_lower( column_name ) ) ;
 		if( where == m_column_indices.end() ) {
-			throw BadArgumentError( "FromFileCohortIndividualSource::find_column_name()", "column_name=\"" + column_name + "\"", "Column not found" ) ;
+			throw BadArgumentError( "FromFileCohortIndividualSource::find_column_name()", "column_name=\"" + column_name + "\"", "Column \"" + column_name + "\" not found" ) ;
 		}
 		return where->second ;
 	}
@@ -126,7 +126,9 @@ namespace genfile {
 		
 		m_column_names = read_column_names( stream ) ;
 		for( std::size_t i = 0; i < m_column_names.size(); ++i ) {
-			m_column_indices[ m_column_names[i] ] = i ;
+			if( !m_column_indices.insert( std::make_pair( string_utils::to_lower( m_column_names[i] ), i ) ).second ) {
+				throw MalformedInputError( m_filename, "Column \"" + string_utils::to_lower( m_column_names[i] ) + "\" appears more than once", m_number_of_metadata_lines + 0 ) ;
+			}
 		}
 
 		if( !column_types ) {
@@ -287,12 +289,6 @@ namespace genfile {
 		// Check first column is "ID_1"...
 		if( string_utils::to_lower( result[0] ) != "id_1" ) {
 			throw MalformedInputError( m_filename, 0 + m_number_of_metadata_lines, 0 ) ;
-		}
-		// check for uniqueness
-		for( std::size_t i = 0; i < result.size(); ++i ) {
-			if( ( std::find( result.begin(), result.end(), result[i] ) - result.begin() ) < i ) {
-				throw MalformedInputError( m_filename, "Column \"" + result[i] + "\" appears more than once", 0 + m_number_of_metadata_lines ) ;
-			}
 		}
 		return result ;
 	}
