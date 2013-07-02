@@ -70,11 +70,12 @@ namespace genfile {
 	}
 
 	bool FromFileCohortIndividualSource::check_for_column( std::string const& column_name ) const {
-		std::vector< std::string >::const_iterator where = find_column_name_impl( column_name ) ;
-		return ( where != m_column_names.end() ) ;
+		std::map< std::string, std::size_t >::const_iterator where = m_column_indices.find( column_name ) ;
+		return ( where != m_column_indices.end() ) ;
 	}
 
 	std::vector< std::string >::const_iterator FromFileCohortIndividualSource::find_column_name_impl( std::string const& column_name ) const {
+		
 		return std::find_if(
 			m_column_names.begin(),
 			m_column_names.end(),
@@ -99,9 +100,11 @@ namespace genfile {
 	}
 
 	std::size_t FromFileCohortIndividualSource::find_column_name( std::string const& column_name ) const {
-		std::vector< std::string >::const_iterator where = find_column_name_impl( column_name ) ;
-		assert( where != m_column_names.end() ) ;
-		return std::size_t( where - m_column_names.begin() ) ;
+		std::map< std::string, std::size_t >::const_iterator where = m_column_indices.find( column_name ) ;
+		if( where == m_column_indices.end() ) {
+			throw BadArgumentError( "FromFileCohortIndividualSource::find_column_name()", "column_name=\"" + column_name + "\"", "Column not found" ) ;
+		}
+		return where->second ;
 	}
 
 	void FromFileCohortIndividualSource::setup( std::istream& str ) {
@@ -122,6 +125,10 @@ namespace genfile {
 		boost::optional< ColumnTypeMap > column_types = read_column_types_from_comments( m_comments ) ;
 		
 		m_column_names = read_column_names( stream ) ;
+		for( std::size_t i = 0; i < m_column_names.size(); ++i ) {
+			m_column_indices[ m_column_names[i] ] = i ;
+		}
+
 		if( !column_types ) {
 			column_types = read_column_type_line( stream, m_column_names ) ;
 		}
@@ -284,7 +291,7 @@ namespace genfile {
 		// check for uniqueness
 		for( std::size_t i = 0; i < result.size(); ++i ) {
 			if( ( std::find( result.begin(), result.end(), result[i] ) - result.begin() ) < i ) {
-				throw DuplicateKeyError( m_filename, result[i] ) ;
+				throw MalformedInputError( m_filename, "Column \"" + result[i] + "\" appears more than once", 0 + m_number_of_metadata_lines ) ;
 			}
 		}
 		return result ;

@@ -70,7 +70,8 @@ namespace genfile {
 		// Entries stored by sample and then by column
 		std::vector< std::vector< Entry > > m_entries ;
 		std::map< Entry, std::size_t > m_sample_indices ;
-
+		std::map< std::string, std::size_t > m_column_indices ;
+		
 	protected:
 		// Case-insensitive search for a column in the sample file.
 		std::size_t find_column_name( std::string const& column_name ) const ;
