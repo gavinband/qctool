@@ -5,6 +5,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include <limits>
+#include <boost/regex.hpp>
 #include "FlatFileFrequentistGenomeWideAssociationResults.hpp"
 
 namespace {
@@ -178,19 +179,8 @@ FlatFileFrequentistGenomeWideAssociationResults::ColumnMap FlatFileFrequentistGe
 		std::string name = source.name_of_column( i ) ;
 		for( std::set< std::string >::iterator j = desired_columns.begin(); j != desired_columns.end(); ++j ) {
 			assert( j->size() > 0 ) ;
-			if(
-				(
-					j->at(0) == '*'
-					&& name.size() >= ( j->size() - 1 )
-					&& name.compare( name.size() - j->size() + 1, j->size() - 1, j->substr( 1, j->size() ) ) == 0
-				) || (
-					j->at( j->size() - 1 ) == '*'
-					&& name.size() >= ( j->size() - 1 )
-					&& name.compare( 0, j->size() - 1, j->substr( 0, j->size() - 1 ) ) == 0
-				) || (
-					j->at(0) != '*' && j->at( j->size() - 1 ) != '*' && name == *j
-				)
-			) {
+			boost::regex regex( *j ) ;
+			if( boost::regex_match( name, regex ) ) {
 				std::pair< ColumnMap::iterator, bool > insertion = result.insert( ColumnMap::value_type( *j, i )) ;
 				if( !insertion.second ) {
 					throw genfile::OperationFailedError(
