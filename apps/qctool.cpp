@@ -26,18 +26,10 @@
 #include <boost/iterator/counting_iterator.hpp>
 
 #include "Timer.hpp"
-#include "GenRow.hpp"
-#include "SampleRow.hpp"
 #include "appcontext/CmdLineOptionProcessor.hpp"
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
-#include "RowCondition.hpp"
-#include "SNPInListCondition.hpp"
-#include "SNPIDMatchesCondition.hpp"
-#include "SampleInListCondition.hpp"
 #include "FileUtil.hpp"
-#include "GenRowStatistics.hpp"
-#include "SampleRowStatistics.hpp"
 #include "ObjectSource.hpp"
 #include "SimpleFileObjectSource.hpp"
 #include "SimpleFileObjectSink.hpp"
@@ -92,22 +84,13 @@
 #include "worker/QueuedMultiThreadedWorker.hpp"
 #include "worker/SynchronousWorker.hpp"
 
-#include "SampleOutputFile.hpp"
-#include "GenotypeAssayStatisticFactory.hpp"
-#include "string_utils/string_utils.hpp"
-#include "string_utils/parse_utils.hpp"
 #include "progress_bar.hpp"
 #include "FileBackupCreator.hpp"
 #include "InputToOutputFilenameMapper.hpp"
 #include "OstreamTee.hpp"
 #include "null_ostream.hpp"
-#include "SNPPositionSink.hpp"
 #include "SNPIDSink.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
-#include "SampleIDSink.hpp"
-#include "QCToolContext.hpp"
-#include "QCTool.hpp"
-#include "Relatotron.hpp"
 #include "VCDBWriter.hpp"
 #include "DataReadTest.hpp"
 #include "ClusterFitter.hpp"
@@ -124,17 +107,6 @@ namespace globals {
 	std::string const program_name = "qctool" ;
 	std::string const program_version = qctool_revision ;
 }
-
-struct NumberOfSamplesMismatchException: public QCToolException
-{
-	char const* what() const throw() {return "NumberOfSamplesMismatchException" ; }
-} ;
-
-// Thrown to indicate that the numbers of input and output files specified on the command line differ.
-struct QCToolFileCountMismatchError: public QCToolException
-{
-	char const* what() const throw() {return "QCToolFileCountMismatchError" ; }
-} ;
 
 struct QCToolOptionProcessor: public appcontext::CmdLineOptionProcessor
 {
@@ -558,12 +530,12 @@ struct QCToolOptionMangler {
 		// Add default columns
 		std::string column_spec = "SNPID, RSID, chromosome, position, A_allele, B_allele, minor_allele, major_allele, AA, AB, BB, AA_calls, AB_calls, BB_calls, MAF, HWE, missing, missing_calls, information, " ;
 		column_spec += m_options.get_value< std::string >( "-snp-stats-old-columns" ) ;
-		return string_utils::split_and_strip_discarding_empty_entries( column_spec, "," ) ;
+		return genfile::string_utils::split_and_strip_discarding_empty_entries( column_spec, "," ) ;
 	}
 	std::vector< std::string > sample_statistics_specs() const {
 		std::vector< std::string > result ;
 		if( m_options.check_if_option_was_supplied( "-sample-stats-old" )) {
-			result = string_utils::split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-sample-stats-old-columns" ), "," ) ;
+			result = genfile::string_utils::split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-sample-stats-old-columns" ), "," ) ;
 		}
 		return result ;
 	}
@@ -658,7 +630,7 @@ private:
 					stub = input_gen_filenames_supplied[0] ;
 				}
 				else {
-					stub = "qctool_cohorts_1-" + string_utils::to_string( input_gen_filenames_supplied.size() ) ;
+					stub = "qctool_cohorts_1-" + genfile::string_utils::to_string( input_gen_filenames_supplied.size() ) ;
 				}
 				result
 					= genfile::strip_gen_file_extension_if_present( stub )
@@ -939,7 +911,7 @@ struct QCToolCmdLineContext
 			<< "  " << m_snp_data_source->get_base_source().number_of_samples() << ".\n" ;
 		if( m_sample_filter->number_of_clauses() > 0 ) {
 			for( std::size_t i = 0 ; i < m_sample_filter->number_of_clauses(); ++ i ) {
-				m_ui_context.logger() << std::setw(36) << ("...which failed \"" + string_utils::to_string( m_sample_filter->clause( i )) + "\":")
+				m_ui_context.logger() << std::setw(36) << ("...which failed \"" + genfile::string_utils::to_string( m_sample_filter->clause( i )) + "\":")
 					<< "  " << ( m_sample_filter_diagnostic_matrix.rows() - m_sample_filter_diagnostic_matrix.col(i).sum() ) << ".\n" ;
 			}
 			m_ui_context.logger() << std::setw(36) << "(total failures:" << "  " << m_indices_of_filtered_out_samples.size() << ").\n" ;
@@ -1016,7 +988,6 @@ private:
 	std::auto_ptr< genfile::SNPDataSource > m_snp_data_source ;
 	std::auto_ptr< genfile::SNPDataSinkChain > m_fltrd_in_snp_data_sink ;
 	std::auto_ptr< genfile::SNPDataSinkChain > m_fltrd_out_snp_data_sink ;
-	std::auto_ptr< ObjectSource< SampleRow > > m_sample_source ;
 
 	bool m_ignore_warnings ; 
 	
