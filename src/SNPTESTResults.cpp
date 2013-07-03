@@ -24,11 +24,11 @@ std::string SNPTESTResults::get_summary( std::string const& prefix, std::size_t 
 
 std::set< std::string > SNPTESTResults::get_desired_columns() const {
 	std::set< std::string > desired_columns ;
-	desired_columns.insert( "*_beta_1" ) ;
-	desired_columns.insert( "*_beta_2" ) ;
-	desired_columns.insert( "*_se_1" ) ;
-	desired_columns.insert( "*_se_2" ) ;
-	desired_columns.insert( "*_pvalue" ) ;
+	desired_columns.insert( ".*_beta_1.*" ) ;
+	desired_columns.insert( ".*_beta_2.*" ) ;
+	desired_columns.insert( ".*_se_1.*" ) ;
+	desired_columns.insert( ".*_se_2.*" ) ;
+	desired_columns.insert( ".*_pvalue" ) ;
 	desired_columns.insert( "info" ) ;
 	desired_columns.insert( "all_maf" ) ;
 	desired_columns.insert( "all_AA" ) ;
