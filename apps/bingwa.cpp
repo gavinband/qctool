@@ -231,12 +231,12 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_description( "Don't do a fixed effect meta-analysis.  Instead, just match up SNPs and store per-cohort values." ) ;
 			
 			options[ "-simple-prior" ]
-				.set_description( "Specify a model of the form \"rho=[r]/sd=[sigma]\" giving a correlation matrix of the form\n"
-					"          [ 1 r r  .. ]\n"
-					"          [ r 1 r  .. ]\n"
-					"sigma^2 * [ r r 1  .. ]\n"
-					"          [       .   ]\n"
-					"          [         . ]\n"
+				.set_description( "Specify a model of the form \"rho=[r]/sd=[s]\" giving a correlation matrix of the form\n"
+					"      [ 1 r r  .. ]\n"
+					"      [ r 1 r  .. ]\n"
+					"s^2 * [ r r 1  .. ]\n"
+					"      [       .   ]\n"
+					"      [         . ]\n"
 				)
 				.set_takes_values_until_next_option()
 				.set_minimum_multiplicity( 0 )
@@ -1497,7 +1497,7 @@ public:
 				throw genfile::BadArgumentError(
 					"BingwaProcessor::get_group_priors()",
 					"model_spec=\"" + model_specs[i] + "\"",
-					"Model spec is malformed."
+					"Model spec (\"" + model_specs[i] + "\" is malformed."
 				) ;
 			}
 			std::vector< std::string > const cohorts = split_and_strip( bits[0], "," ) ;
@@ -1556,7 +1556,7 @@ public:
 			throw genfile::BadArgumentError(
 				"BingwaProcessor::parse_rho_and_sd()",
 				"spec=\"" + spec + "\"",
-				"Parameter spec is malformed."
+				"Parameter spec \"" + spec + "\" is malformed, should be of the form rho=[r]/sd=[s]."
 			) ;
 		}
 

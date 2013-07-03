@@ -26,7 +26,7 @@ namespace haplotype_frequency_component {
 			"FOREIGN KEY( analysis_id ) REFERENCES Entity( id ), "
 			"FOREIGN KEY( variant1_id ) REFERENCES Variant( id ), "
 			"FOREIGN KEY( variant2_id ) REFERENCES Variant( id ), "
-			"FOREIGN KEY( variable_id ) REFERENCES Entity( id ), "
+			"FOREIGN KEY( variable_id ) REFERENCES Entity( id ) "
 			")"
 		) ;
 		// Typical use is to look for all SNPs in r^2 with a given one, so add an index for this.
