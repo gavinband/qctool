@@ -14,11 +14,14 @@ struct MMMResults: public FlatFileFrequentistGenomeWideAssociationResults {
 		genfile::SNPIdentifyingDataTest::UniquePtr test
 	) ;
 
+	void set_effect_size_column_regex( std::string const& beta_column_regex ) ;
 	void add_variable( std::string const& variable ) ;
 	std::string get_summary( std::string const& prefix, std::size_t target_column ) const ;
 
 private:
 	genfile::SNPIdentifyingDataTest::UniquePtr m_exclusion_test ;
+	std::string m_effect_column_regex ;
+	std::string m_se_column_regex ;
 	std::set< std::string > m_variables ;
 
 private:

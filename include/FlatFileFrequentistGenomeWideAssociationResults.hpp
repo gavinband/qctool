@@ -24,6 +24,8 @@ struct FlatFileFrequentistGenomeWideAssociationResults:  public FrequentistGenom
 public:
 	typedef std::auto_ptr< FlatFileFrequentistGenomeWideAssociationResults > UniquePtr ;
 public:
+	virtual void set_effect_size_column_regex( std::string const& beta_column_regex ) = 0 ;
+
 	void add_data(
 		std::vector< genfile::wildcard::FilenameMatch > const& filenames,
 		SNPResultCallback callback,

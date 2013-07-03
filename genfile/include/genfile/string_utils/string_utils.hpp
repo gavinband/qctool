@@ -36,7 +36,9 @@ namespace genfile {
 		
 		std::string join( std::vector< std::string > const& strings, std::string const& joiner ) ;
 		std::string wrap( std::string const& string_to_wrap, unsigned int wrap_column, unsigned int starting_column, std::size_t indent_amount ) ;
-		
+
+		std::string replace_all( std::string in, std::string const& pattern, std::string const& replacement ) ;
+
 		template< typename T >
 		std::string to_string( T const& t ) {
 			std::ostringstream os ;

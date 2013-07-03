@@ -80,6 +80,16 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 					.set_minimum_multiplicity( 0 )
 					.set_maximum_multiplicity( 100 )
 				;
+			options[ "-effect-column-regex" ]
+				.set_description( "Specify a regular expression identifying the effect size column in each cohort."
+					" (Standard error columns will then be found using a regular expression obtained by replacing \"beta\" with \"se\".)"
+					" If this option is specified, there must be one value specified per cohort."
+					" The default behaviour is to use a regular expression of the form \".*beta_1.*\", which is suitable for most files produced by SNPTEST." )
+				.set_takes_values_until_next_option()
+				.set_minimum_multiplicity( 0 )
+				.set_maximum_multiplicity( 100 )
+			;
+			
 			options[ "-snp-match-fields" ]
 				.set_description( "Use this option to specify a comma-separated list of SNP-identifying fields that should be used "
 					"to match SNPs between cohorts.  Possible fields "
@@ -237,7 +247,7 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_takes_values_until_next_option()
 				.set_minimum_multiplicity( 0 )
 				.set_maximum_multiplicity( 1 ) ;
-				
+			
 			options[ "-complex-prior" ]
 				.set_description( "Specify the upper triangle (including diagonal) of the prior correlation matrix for bayesian analysis. "
 					"For example, the value \"1,0.5,1\" specifies the matrix\n"
@@ -247,7 +257,7 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_takes_values_until_next_option()
 				.set_minimum_multiplicity( 0 )
 				.set_maximum_multiplicity( 1 ) ;
-
+			
 			options[ "-complex-prior-name" ]
 				.set_description( "Specify the name of the complex models.  This option takes the same number of values as "
 					"are given to -complex-prior option."
@@ -263,14 +273,14 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_minimum_multiplicity( 0 )
 				.set_maximum_multiplicity( 1 )
 			;
-
+			
 			options[ "-group-prior-name" ]
 				.set_description( "Specify a group prior in the format [cohorts]:sd=[value]/rho=[value]" )
 				.set_takes_values_until_next_option()
 				.set_minimum_multiplicity( 0 )
 				.set_maximum_multiplicity( 1 )
 			;
-
+			
 			options.option_excludes_option( "-no-meta-analysis", "-simple-prior" ) ;
 			options.option_excludes_option( "-no-meta-analysis", "-complex-prior" ) ;
 			options.option_excludes_option( "-no-meta-analysis", "-group-prior" ) ;

@@ -220,6 +220,13 @@ namespace genfile {
 				}
 		}
 		
+		std::string replace_all( std::string in, std::string const& pattern, std::string const& replacement ) {
+			for( std::size_t pos = in.find( pattern ) ; pos != std::string::npos; pos = in.find( pattern ) ) {
+				in.replace( pos, pattern.size(), replacement ) ;
+			}
+			return in ;
+		}
+		
 		std::string wrap( std::string const& string_to_wrap, unsigned int wrap_column, unsigned int starting_column, std::size_t indent_amount ) { 
 			assert( wrap_column > starting_column ) ; 
 			assert( wrap_column > indent_amount ) ; 

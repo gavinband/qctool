@@ -9,11 +9,18 @@
 MMMResults::MMMResults(
 	genfile::SNPIdentifyingDataTest::UniquePtr test
 ):
- 	m_exclusion_test( test )
+ 	m_exclusion_test( test ),
+	m_effect_column_regex( "z_est" ),
+	m_se_column_regex( "z_se" )
 {}
 
 void MMMResults::add_variable( std::string const& variable ) {
 	m_variables.insert( variable ) ;
+}
+
+void MMMResults::set_effect_size_column_regex( std::string const& effect_column_regex ) {
+	m_effect_column_regex = effect_column_regex ;
+	m_se_column_regex = genfile::string_utils::replace_all( effect_column_regex, "_est", "_se" ) ;
 }
 
 std::string MMMResults::get_summary( std::string const& prefix, std::size_t target_column ) const {
@@ -31,18 +38,25 @@ bool MMMResults::check_if_snp_accepted( std::size_t snp_i ) const {
 	;
 }
 
-std::set< std::string > MMMResults::get_desired_columns() const {
+std::set< std::pair< std::string, bool > > MMMResults::get_desired_columns() const {
 	std::set< std::string > required_columns ;
-	required_columns.insert( "z_est" ) ;
-	required_columns.insert( "z_se" ) ;
-	required_columns.insert( "pval" ) ;
-	required_columns.insert( "var_info_all" ) ;
-	required_columns.insert( "freq_1" ) ;
-	required_columns.insert( "gen_00" ) ;
-	required_columns.insert( "gen_01" ) ;
-	required_columns.insert( "gen_11" ) ;
-	required_columns.insert( "gen_NULL" ) ;
-	required_columns.insert( m_variables.begin(), m_variables.end() ) ;
+	required_columns.insert( std::make_pair( effect_column_regex, true ) ) ;
+	required_columns.insert( std::make_pair( m_se_column_regex, true ) ) ;
+	required_columns.insert( std::make_pair( "pval", true ) ) ;
+	required_columns.insert( std::make_pair( "var_info_all", true ) ) ;
+	required_columns.insert( std::make_pair( "freq_1", true ) ) ;
+	required_columns.insert( std::make_pair( "gen_00", true ) ) ;
+	required_columns.insert( std::make_pair( "gen_01", true ) ) ;
+	required_columns.insert( std::make_pair( "gen_11", true ) ) ;
+	required_columns.insert( std::make_pair( "gen_NULL", true ) ) ;
+	{
+		std::set< std::string >::const_iterator
+			i = m_variables.begin(),
+			end_i = m_variables.end() ;
+		for( ; i != end_i; ++i ) {
+			desired_columns.insert( std::make_pair( *i, true ) ) ;
+		}
+	}
 	return required_columns ;
 }
 
@@ -53,10 +67,10 @@ void MMMResults::store_value(
 ) {
 	using genfile::string_utils::to_repr ;
 	
-	if( variable == "z_est" ) {
+	if( variable == m_effect_column_regex ) {
 		m_betas( snp_index, 0 ) = value ;
 	}
-	else if( variable == "z_se" ) {
+	else if( variable == m_se_column_regex ) {
 		m_ses( snp_index, 0 ) = value ;
 	}
 	else if( variable == "pval" ) {

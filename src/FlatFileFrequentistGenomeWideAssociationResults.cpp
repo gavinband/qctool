@@ -193,11 +193,7 @@ FlatFileFrequentistGenomeWideAssociationResults::ColumnMap FlatFileFrequentistGe
 		}
 	}
 	
-	std::set< std::string > required_columns = desired_columns ;
-	required_columns.erase( ".*_beta_2.*" ) ;
-	required_columns.erase( ".*_se_2.*" ) ;
-	
-	for( std::set< std::string >::const_iterator i = required_columns.begin(); i != required_columns.end(); ++i ) {
+	for( std::set< std::string >::const_iterator i = desired_columns.begin(); i != desired_columns.end(); ++i ) {
 		if( result.left.find( *i ) == result.left.end() ) {
 			throw genfile::BadArgumentError(
 				"FlatFileFrequentistGenomeWideAssociationResults::get_columns_to_store()",

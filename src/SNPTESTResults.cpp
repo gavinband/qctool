@@ -9,7 +9,9 @@
 SNPTESTResults::SNPTESTResults(
 	genfile::SNPIdentifyingDataTest::UniquePtr test
 ):
- 	m_exclusion_test( test )
+ 	m_exclusion_test( test ),
+	m_beta_column_regex( ".*beta_1.*" ),
+	m_se_column_regex( ".*se_1.*" )
 {}
 
 void SNPTESTResults::add_variable( std::string const& variable ) {
@@ -22,21 +24,32 @@ std::string SNPTESTResults::get_summary( std::string const& prefix, std::size_t 
 	return prefix + "SNPTEST " + FlatFileFrequentistGenomeWideAssociationResults::get_summary( "", target_column ) ;
 }
 
-std::set< std::string > SNPTESTResults::get_desired_columns() const {
-	std::set< std::string > desired_columns ;
-	desired_columns.insert( ".*_beta_1.*" ) ;
-	desired_columns.insert( ".*_beta_2.*" ) ;
-	desired_columns.insert( ".*_se_1.*" ) ;
-	desired_columns.insert( ".*_se_2.*" ) ;
-	desired_columns.insert( ".*_pvalue" ) ;
-	desired_columns.insert( "info" ) ;
-	desired_columns.insert( "all_maf" ) ;
-	desired_columns.insert( "all_AA" ) ;
-	desired_columns.insert( "all_AB" ) ;
-	desired_columns.insert( "all_BB" ) ;
-	desired_columns.insert( "all_NULL" ) ;
-	desired_columns.insert( m_variables.begin(), m_variables.end() ) ;
+void SNPTESTResults::set_effect_size_column_regex( std::string const& beta_column_regex ) {
+	m_beta_column_regex = beta_column_regex ;
+	m_se_column_regex = genfile::string_utils::replace_all( beta_column_regex, "beta", "se" ) ;
+}
 
+std::set< std::pair< std::string, bool > > SNPTESTResults::get_desired_columns() const {
+	std::set< std::string > desired_columns ;
+	desired_columns.insert( std::make_pair( m_beta_column_regex, true ) ) ;
+	desired_columns.insert( std::make_pair( m_se_column_regex, true ) ) ;
+	desired_columns.insert( std::make_pair( ".*_pvalue", true ) ) ;
+	desired_columns.insert( std::make_pair( "(all_)?info", true ) ) ;
+	desired_columns.insert( std::make_pair( "all_maf", true ) ) ;
+	desired_columns.insert( std::make_pair( "all_AA", true ) ) ;
+	desired_columns.insert( std::make_pair( "all_AB", true ) ) ;
+	desired_columns.insert( std::make_pair( "all_BB", true ) ) ;
+	desired_columns.insert( std::make_pair( "all_A", false ) ;
+	desired_columns.insert( std::make_pair( "all_B", false ) ;
+	desired_columns.insert( std::make_pair( "all_NULL", true ) ) ;
+	{
+		std::set< std::string >::const_iterator
+			i = m_variables.begin(),
+			end_i = m_variables.end() ;
+		for( ; i != end_i; ++i ) {
+			desired_columns.insert( std::make_pair( *i, true ) ) ;
+		}
+	}
 	return desired_columns ;
 }
 
@@ -58,17 +71,11 @@ void SNPTESTResults::store_value(
 ) {
 	using genfile::string_utils::to_repr ;
 	
-	if( variable == "*_beta_1" ) {
+	if( variable == m_beta_column_regex ) {
 		m_betas( snp_index, 0 ) = value ;
 	}
-	else if( variable == "*_se_1" ) {
+	else if( variable == m_se_column_regex ) {
 		m_ses( snp_index, 0 ) = value ;
-	}
-	if( variable == "*_beta_2" ) {
-		m_betas( snp_index, 1 ) = value ;
-	}
-	else if( variable == "*_se_2" ) {
-		m_ses( snp_index, 1 ) = value ;
 	}
 	else if( variable == "*_pvalue" ) {
 		m_pvalues( snp_index ) = value ;
