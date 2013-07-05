@@ -27,7 +27,7 @@ namespace genfile {
 		{}
 
 		const char* what() const throw() { return "genfile:InputError" ; }
-		std::string format_message() const ;
+		virtual std::string format_message() const ;
 		std::string const& source() const { return m_source ; }
 		std::string const& message() const { return m_message ; }
 	private:

@@ -275,6 +275,21 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 					.set_maximum_multiplicity( 1 )
 				;
 			
+			options[ "-group-prior" ]
+				.set_description( "Specify a prior made up of blocks per groups, in the format"
+					" [group1]:rho=[r1]/sd=[s1],[group2]:rho=[r2]/sd=[s2]...;rho=[r]" )
+				.set_takes_values_until_next_option()
+				.set_minimum_multiplicity( 0 )
+				.set_maximum_multiplicity( 1 )
+			;
+
+			options[ "-group-prior-name" ]
+				.set_description( "Specify the name of the group priors." )
+				.set_takes_values_until_next_option()
+				.set_minimum_multiplicity( 0 )
+				.set_maximum_multiplicity( 1 )
+			;
+
 			options[ "-group-specific-prior" ]
 				.set_description( "Specify a group-specific prior in the format [cohorts]:sd=[value]/rho=[value]" )
 				.set_takes_values_until_next_option()
@@ -283,7 +298,7 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 			;
 			
 			options[ "-group-specific-prior-name" ]
-				.set_description( "Specify a group-specific prior in the format [cohorts]:sd=[value]/rho=[value]" )
+				.set_description( "Specify the name of the group-specific priors." )
 				.set_takes_values_until_next_option()
 				.set_minimum_multiplicity( 0 )
 				.set_maximum_multiplicity( 1 )
@@ -297,6 +312,7 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 
 			options.option_implies_option( "-complex-prior", "-complex-prior-name" ) ;
 			options.option_implies_option( "-complex-prior-name", "-complex-prior" ) ;
+			options.option_implies_option( "-group-prior", "-group" ) ;
 			options.option_implies_option( "-group-specific-prior", "-group" ) ;
 			options.option_implies_option( "-group-specific-prior-name", "-group-specific-prior" ) ;
 		}
@@ -1547,15 +1563,15 @@ public:
 				throw genfile::BadArgumentError(
 					"BingwaProcessor::get_group_priors()",
 					"model_spec=\"" + model_specs[i] + "\"",
-					"Model spec (\"" + model_specs[i] + "\" is malformed."
+					"Model spec \"" + model_specs[i] + "\" is malformed."
 				) ;
 			}
 			
 			std::string const between_cohort_rho_string = parse_rho( bits[1] ) ;
 			double between_cohort_rho = to_repr< double >( between_cohort_rho_string ) ;
 			
-			std::vector< std::string > const group_names = split_and_strip( bits[0], "," ) ;
-			if( group_names.size() == 0 ) {
+			std::vector< std::string > const group_specs = split_and_strip( bits[0], "," ) ;
+			if( group_specs.size() == 0 ) {
 				throw genfile::BadArgumentError(
 					"BingwaProcessor::get_group_priors()",
 					"model_spec=\"" + model_specs[i] + "\"",
@@ -1567,21 +1583,23 @@ public:
 			prior.setZero() ;
 			
 			std::vector< int > used_cohorts( cohort_names.size(), 0 ) ;
-			std::vector< double > group_sds( group_names.size(), std::numeric_limits< double >::quiet_NaN() ) ;
+			std::vector< double > group_sds( group_specs.size(), std::numeric_limits< double >::quiet_NaN() ) ;
+			std::vector< std::string > group_names( group_specs.size(), "" ) ;
 			std::vector< std::size_t > cohort_group_map( cohort_names.size(), 0 ) ;
 			// Fill in the diagonal blocks, one for each group.
-			for( std::size_t block_i = 0; block_i < group_names.size() ; ++block_i ) {
-				std::vector< std::string > const elts = split_and_strip( group_names[block_i], ":" ) ;
+			for( std::size_t block_i = 0; block_i < group_specs.size() ; ++block_i ) {
+				std::vector< std::string > const elts = split_and_strip( group_specs[block_i], ":" ) ;
 				if( elts.size() != 2 ) {
 					throw genfile::BadArgumentError(
 						"BingwaProcessor::get_group_priors()",
-						"model_spec=\"" + group_names[block_i] + "\"",
-						"Group prior spec \"" + group_names[block_i] + "\" is malformed."
+						"model_spec=\"" + group_specs[block_i] + "\"",
+						"Group prior spec \"" + group_specs[block_i] + "\" is malformed."
 					) ;
 				}
 				
 				// Get the group name...
 				std::string const& group_name = elts[0] ;
+				group_names[ block_i ] = group_name ;
 				// Get the per-group correlation and sd.
 				std::pair< std::string, std::string > rho_and_sd = parse_rho_and_sd( elts[1] ) ;
 				double const rho = to_repr< double >( rho_and_sd.first ) ;
@@ -1597,7 +1615,7 @@ public:
 					if( used_cohorts[ cohort_indices[k] ] > 0 ) {
 						throw genfile::BadArgumentError(
 							"BingwaProcessor::get_group_priors()",
-							"model_spec=\"" + group_names[block_i] + "\"",
+							"model_spec=\"" + group_specs[block_i] + "\"",
 							"Cohort \"" + group_cohorts[k] + "\" occurs in more than one group."
 						) ;
 					}
@@ -1614,9 +1632,9 @@ public:
 			}
 			
 			// now fill in between-block elements.
-			for( std::size_t group1_i = 0; group1_i < group_names.size() ; ++group1_i ) {
+			for( std::size_t group1_i = 0; group1_i < group_specs.size() ; ++group1_i ) {
 				std::vector< int > const& group1_member_indices = get_cohort_indices( get_group_members( group_names[ group1_i ], groups ), cohort_names ) ;
-				for( std::size_t group2_i = group1_i; group2_i < group_names.size() ; ++group2_i ) {
+				for( std::size_t group2_i = group1_i; group2_i < group_specs.size() ; ++group2_i ) {
 					std::vector< int > const& group2_member_indices = get_cohort_indices( get_group_members( group_names[ group2_i ], groups ), cohort_names ) ;
 					for( std::size_t group1_cohort_i = 0; group1_cohort_i < group1_member_indices.size(); ++group1_cohort_i ) {
 						for( std::size_t group2_cohort_i = 0; group2_cohort_i < group2_member_indices.size(); ++group2_cohort_i ) {
