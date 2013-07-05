@@ -266,16 +266,24 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_minimum_multiplicity( 0 )
 				.set_maximum_multiplicity( 1 )
 			;
+
+			options[ "-group" ]
+				.set_description( "Specify a group of cohorts for use with -group-prior and -group-specific prior."
+					" The format for each group is [group name]=[cohort name 1],[cohort name 2],..." )
+					.set_takes_values_until_next_option()
+					.set_minimum_multiplicity( 0 )
+					.set_maximum_multiplicity( 1 )
+				;
 			
-			options[ "-group-prior" ]
-				.set_description( "Specify a group prior in the format [cohorts]:sd=[value]/rho=[value]" )
+			options[ "-group-specific-prior" ]
+				.set_description( "Specify a group-specific prior in the format [cohorts]:sd=[value]/rho=[value]" )
 				.set_takes_values_until_next_option()
 				.set_minimum_multiplicity( 0 )
 				.set_maximum_multiplicity( 1 )
 			;
 			
-			options[ "-group-prior-name" ]
-				.set_description( "Specify a group prior in the format [cohorts]:sd=[value]/rho=[value]" )
+			options[ "-group-specific-prior-name" ]
+				.set_description( "Specify a group-specific prior in the format [cohorts]:sd=[value]/rho=[value]" )
 				.set_takes_values_until_next_option()
 				.set_minimum_multiplicity( 0 )
 				.set_maximum_multiplicity( 1 )
@@ -283,13 +291,14 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 			
 			options.option_excludes_option( "-no-meta-analysis", "-simple-prior" ) ;
 			options.option_excludes_option( "-no-meta-analysis", "-complex-prior" ) ;
-			options.option_excludes_option( "-no-meta-analysis", "-group-prior" ) ;
+			options.option_excludes_option( "-no-meta-analysis", "-group-specific-prior" ) ;
 
 			options.option_implies_option( "-simple-prior-name", "-simple-prior" ) ;
 
 			options.option_implies_option( "-complex-prior", "-complex-prior-name" ) ;
 			options.option_implies_option( "-complex-prior-name", "-complex-prior" ) ;
-			options.option_implies_option( "-group-prior-name", "-group-prior" ) ;
+			options.option_implies_option( "-group-specific-prior", "-group" ) ;
+			options.option_implies_option( "-group-specific-prior-name", "-group-specific-prior" ) ;
 		}
 	}
 } ;
@@ -1196,6 +1205,9 @@ private:
 
 struct BingwaApplication: public appcontext::ApplicationContext {
 public:
+	typedef std::map< std::string, std::vector< std::string > > GroupDefinition ;
+	
+public:
 	BingwaApplication( int argc, char **argv ):
 		appcontext::ApplicationContext(
 			globals::program_name,
@@ -1314,7 +1326,7 @@ public:
 						BingwaComputation::UniquePtr( computation.release() )
 					) ;
 				}
-				if( options().check( "-simple-prior" ) || options().check( "-complex-prior" ) || options().check( "-group-prior" )) {
+				if( options().check( "-simple-prior" ) || options().check( "-complex-prior" ) || options().check( "-group-specific-prior" )) {
 					std::map< std::string, Eigen::MatrixXd > const priors = get_priors( options(), cohort_names ) ;
 					assert( priors.size() > 0 ) ;
 					{
@@ -1479,9 +1491,38 @@ public:
 			}
 		}
 	}
+
+	std::vector< std::string > get_group_members( std::string const& group_name, GroupDefinition const& groups ) const {
+		GroupDefinition::const_iterator where = groups.find( group_name ) ;
+		if( where == groups.end() ) {
+			throw genfile::BadArgumentError(
+				"BingwaProcessor::get_group_members()",
+				"group_name=\"" + group_name + "\"",
+				"Group name \"" + group_name + "\" is not recognised, please define cohort groups using -groups."
+			) ;
+		}
+		return where->second ;
+	}
+	
+	std::vector< int > get_cohort_indices( std::vector< std::string > cohorts, std::vector< std::string > const& all_cohorts ) const {
+		std::vector< int > result( cohorts.size() ) ;
+		for( std::size_t k = 0; k < cohorts.size(); ++k ) {
+			std::vector< std::string >::const_iterator const cohort_i = std::find( all_cohorts.begin(), all_cohorts.end(), cohorts[k] ) ;
+			if( cohort_i == all_cohorts.end() ) {
+				throw genfile::BadArgumentError(
+					"BingwaProcessor::get_cohort_indices()",
+					"cohort=\"" + cohorts[k] + "\"",
+					"\"" + cohorts[k] + "\" is not a cohort name."
+				) ;
+			}
+			result[k] = int( cohort_i - all_cohorts.begin() ) ;
+		}
+		return result ;
+	}
 	
 	void get_group_priors(
 		int const number_of_cohorts,
+		GroupDefinition const& groups,
 		std::vector< std::string > const& model_specs,
 		boost::optional< std::vector< std::string > > model_names,
 		std::vector< std::string > const& cohort_names,
@@ -1497,10 +1538,11 @@ public:
 			) ;
 		}
 		
-		
-		using namespace genfile::string_utils ;
+		//
+		// format is group1:rho=r1/sd=s1,group2:rho=r2/sd=s2,...;rho=0.2
+		//
 		for( std::size_t i = 0; i < model_specs.size(); ++i ) {
-			std::vector< std::string > bits = split_and_strip( model_specs[i], ":" ) ;
+			std::vector< std::string > bits = split_and_strip( model_specs[i], ";" ) ;
 			if( bits.size() != 2 ) {
 				throw genfile::BadArgumentError(
 					"BingwaProcessor::get_group_priors()",
@@ -1508,32 +1550,130 @@ public:
 					"Model spec (\"" + model_specs[i] + "\" is malformed."
 				) ;
 			}
-			std::vector< std::string > const cohorts = split_and_strip( bits[0], "," ) ;
-			if( cohorts.size() == 0 ) {
+			
+			std::string const between_cohort_rho_string = parse_rho( bits[1] ) ;
+			double between_cohort_rho = to_repr< double >( between_cohort_rho_string ) ;
+			
+			std::vector< std::string > const group_names = split_and_strip( bits[0], "," ) ;
+			if( group_names.size() == 0 ) {
 				throw genfile::BadArgumentError(
 					"BingwaProcessor::get_group_priors()",
 					"model_spec=\"" + model_specs[i] + "\"",
-					"Model spec is malformed."
+					"In model spec \"" + model_specs[i] + "\", no groups are specified."
 				) ;
 			}
+			
+			Eigen::MatrixXd prior( number_of_cohorts, number_of_cohorts ) ;
+			prior.setZero() ;
+			
+			std::vector< int > used_cohorts( cohort_names.size(), 0 ) ;
+			std::vector< double > group_sds( group_names.size(), std::numeric_limits< double >::quiet_NaN() ) ;
+			std::vector< std::size_t > cohort_group_map( cohort_names.size(), 0 ) ;
+			// Fill in the diagonal blocks, one for each group.
+			for( std::size_t block_i = 0; block_i < group_names.size() ; ++block_i ) {
+				std::vector< std::string > const elts = split_and_strip( group_names[block_i], ":" ) ;
+				if( elts.size() != 2 ) {
+					throw genfile::BadArgumentError(
+						"BingwaProcessor::get_group_priors()",
+						"model_spec=\"" + group_names[block_i] + "\"",
+						"Group prior spec \"" + group_names[block_i] + "\" is malformed."
+					) ;
+				}
+				
+				// Get the group name...
+				std::string const& group_name = elts[0] ;
+				// Get the per-group correlation and sd.
+				std::pair< std::string, std::string > rho_and_sd = parse_rho_and_sd( elts[1] ) ;
+				double const rho = to_repr< double >( rho_and_sd.first ) ;
+				double const sd = to_repr< double >( rho_and_sd.second ) ;
+				group_sds[ block_i ] = sd ;
+				
+				// Get the group members
+				std::vector< std::string > const& group_cohorts = get_group_members( group_name, groups ) ;
+				std::vector< int > const& cohort_indices = get_cohort_indices( group_cohorts, cohort_names ) ;
+
+				// 
+				for( std::size_t k = 0; k < group_cohorts.size(); ++k ) {
+					if( used_cohorts[ cohort_indices[k] ] > 0 ) {
+						throw genfile::BadArgumentError(
+							"BingwaProcessor::get_group_priors()",
+							"model_spec=\"" + group_names[block_i] + "\"",
+							"Cohort \"" + group_cohorts[k] + "\" occurs in more than one group."
+						) ;
+					}
+					++used_cohorts[ cohort_indices[k] ] ;
+					cohort_group_map[ cohort_indices[k] ] = block_i ;
+				}
+				
+				for( std::size_t cohort_i = 0; cohort_i < group_cohorts.size(); ++cohort_i ) {
+					prior( cohort_indices[ cohort_i ], cohort_indices[ cohort_i ] ) = sd*sd ;
+					for( std::size_t cohort_j = cohort_i + 1; cohort_j < group_cohorts.size(); ++cohort_j ) {
+						prior( cohort_indices[ cohort_i ], cohort_indices[ cohort_j ] ) = sd*sd*rho ;
+					}
+				}
+			}
+			
+			// now fill in between-block elements.
+			for( std::size_t group1_i = 0; group1_i < group_names.size() ; ++group1_i ) {
+				std::vector< int > const& group1_member_indices = get_cohort_indices( get_group_members( group_names[ group1_i ], groups ), cohort_names ) ;
+				for( std::size_t group2_i = group1_i; group2_i < group_names.size() ; ++group2_i ) {
+					std::vector< int > const& group2_member_indices = get_cohort_indices( get_group_members( group_names[ group2_i ], groups ), cohort_names ) ;
+					for( std::size_t group1_cohort_i = 0; group1_cohort_i < group1_member_indices.size(); ++group1_cohort_i ) {
+						for( std::size_t group2_cohort_i = 0; group2_cohort_i < group2_member_indices.size(); ++group2_cohort_i ) {
+							prior( group1_member_indices[ group1_cohort_i ], group2_member_indices[ group2_cohort_i ] ) = between_cohort_rho * group_sds[ group1_i ] * group_sds[ group2_i ] ;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	void get_group_specific_priors(
+		int const number_of_cohorts,
+		GroupDefinition const& groups,
+		std::vector< std::string > const& model_specs,
+		boost::optional< std::vector< std::string > > model_names,
+		std::vector< std::string > const& cohort_names,
+		std::map< std::string, Eigen::MatrixXd >* result
+	) {
+		using namespace genfile::string_utils ;
+
+		if( model_names && model_specs.size() != model_names.get().size() ) {
+			throw genfile::BadArgumentError(
+				"BingwaProcessor::get_group_specific_priors()",
+				"model_names=\"" + join( model_names.get(), " " ) + "\"",
+				"Wrong number of group-specific prior names specified (" + to_string( model_names.get().size() ) + ", should be " + to_string( model_specs.size() ) + ")"
+			) ;
+		}
+		
+		for( std::size_t i = 0; i < model_specs.size(); ++i ) {
+			std::vector< std::string > bits = split_and_strip( model_specs[i], ":" ) ;
+			if( bits.size() != 2 ) {
+				throw genfile::BadArgumentError(
+					"BingwaProcessor::get_group_specific_priors()",
+					"model_spec=\"" + model_specs[i] + "\"",
+					"Model spec (\"" + model_specs[i] + "\" is malformed."
+				) ;
+			}
+			
+			GroupDefinition::const_iterator where = groups.find( bits[0] ) ;
+			if( where == groups.end() ) {
+				throw genfile::BadArgumentError(
+					"BingwaProcessor::get_group_specific_priors()",
+					"model_spec=\"" + model_specs[i] + "\"",
+					"Group \"" + bits[0] + "\" is not recognised, please define it using the -group option."
+				) ;
+			}
+			std::vector< std::string > const& cohorts = where->second ;
+
 			std::pair< std::string, std::string > rho_and_sd = parse_rho_and_sd( bits[1] ) ;
 			double const rho = to_repr< double >( rho_and_sd.first ) ;
 			double const sd = to_repr< double >( rho_and_sd.second ) ;
 			
 			Eigen::MatrixXd prior( number_of_cohorts, number_of_cohorts ) ;
 			prior.setZero() ;
-			std::vector< int > cohort_indices( cohorts.size() ) ;
-			for( std::size_t k = 0; k < cohorts.size(); ++k ) {
-				std::vector< std::string >::const_iterator const cohort_i = std::find( cohort_names.begin(), cohort_names.end(), cohorts[k] ) ;
-				if( cohort_i == cohort_names.end() ) {
-					throw genfile::BadArgumentError(
-						"BingwaProcessor::get_group_priors()",
-						"model_spec=\"" + model_specs[i] + "\"",
-						"Unrecognised cohort name, possible names are \"" + join( cohort_names, "\", \"" ) + "\""
-					) ;
-				}
-				cohort_indices[k] = int( cohort_i - cohort_names.begin() ) ;
-			}
+
+			std::vector< int > const& cohort_indices = get_cohort_indices( cohorts, cohort_names ) ;
 			
 			for( std::size_t j1 = 0; j1 < cohorts.size(); ++j1 ) {
 				int const cohort1_j = cohort_indices[j1] ;
@@ -1557,6 +1697,17 @@ public:
 		}
 	}
 
+	std::string parse_rho( std::string const& spec ) {
+		if( spec.substr( 0, 4 ) != "rho=" ) {
+			throw genfile::BadArgumentError(
+				"BingwaProcessor::parse_rho()",
+				"spec=\"" + spec + "\"",
+				"Parameter spec \"" + spec + "\" is malformed, should be of the form rho=[rho]/sd=[sd]."
+			) ;
+		}
+		return spec.substr( 4, spec.size() ) ;
+	}
+
 	std::pair< std::string, std::string > parse_rho_and_sd( std::string const& spec ) {
 		using namespace genfile::string_utils ;
 		std::vector< std::string > const parameters = split_and_strip( spec, "/" ) ;
@@ -1564,7 +1715,7 @@ public:
 			throw genfile::BadArgumentError(
 				"BingwaProcessor::parse_rho_and_sd()",
 				"spec=\"" + spec + "\"",
-				"Parameter spec \"" + spec + "\" is malformed, should be of the form rho=[r]/sd=[s]."
+				"Parameter spec \"" + spec + "\" is malformed, should be of the form rho=[rho]/sd=[sd]."
 			) ;
 		}
 
@@ -1597,17 +1748,76 @@ public:
 			get_complex_priors( N, options.get_values< std::string >( "-complex-prior" ), options.get_values< std::string >( "-complex-prior-name" ), &result ) ;
 		}
 
-		if( options.check( "-group-prior" ) ) {
-			boost::optional< std::vector< std::string > > model_names ;
-			if( options.check( "-group-prior-name" )) {
-				model_names = options.get_values< std::string >( "-group-prior-name" ) ;
-			}			
-			get_group_priors( N, options.get_values< std::string >( "-group-prior" ), model_names, cohort_names, &result ) ;
+		if( options.check( "-group-specific-prior" ) || options.check( "-group-prior" ) ) {
+			GroupDefinition groups = get_groups(
+				options.get_values< std::string >( "-group"  ),
+				cohort_names
+			) ;
+
+			if( options.check( "-group-prior" )) {
+				boost::optional< std::vector< std::string > > model_names ;
+
+				if( options.check( "-group-prior-name" )) {
+					model_names = options.get_values< std::string >( "-group-prior-name" ) ;
+				}
+				get_group_priors( N, groups, options.get_values< std::string >( "-group-prior" ), model_names, cohort_names, &result ) ;
+			}
+
+			if( options.check( "-group-specific-prior" )) {
+				boost::optional< std::vector< std::string > > model_names ;
+				if( options.check( "-group-specific-prior-name" )) {
+					model_names = options.get_values< std::string >( "-group-specific-prior-name" ) ;
+				}			
+				get_group_specific_priors( N, groups, options.get_values< std::string >( "-group-specific-prior" ), model_names, cohort_names, &result ) ;
+			}
 		}
 		
 		return result ;
 	}
 
+	GroupDefinition get_groups(
+		std::vector< std::string > const& spec,
+		std::vector< std::string > const& cohort_names
+	) const {
+		GroupDefinition result ;
+		using namespace genfile::string_utils ;
+		for( std::size_t i = 0; i < spec.size(); ++i ) {
+			std::vector< std::string > const bits = split_and_strip( spec[i], "=" ) ;
+			if( bits.size() != 2 ) {
+				throw genfile::BadArgumentError(
+					"BingwaProcessor::get_groups()",
+					"spec=\"" + spec[i] + "\"",
+					"Group specification \"" + spec[i] + "\" is malformed, should be in the format [name]=group1,group2,..."
+				) ;
+			}
+			if( result.find( bits[0] ) != result.end() ) {
+				throw genfile::BadArgumentError(
+					"BingwaProcessor::get_groups()",
+					"spec=\"" + spec[i] + "\"",
+					"Group \"" + spec[i] + "\" is defined more than once"
+				) ;
+			}
+			std::vector< std::string > cohorts = split_and_strip( bits[1], "," ) ;
+			if( cohorts.size() == 0 ) {
+				throw genfile::BadArgumentError(
+					"BingwaProcessor::get_groups()",
+					"spec=\"" + spec[i] + "\"",
+					"Group specification \"" + spec[i] + "\" contains no cohorts"
+				) ;
+			}
+			for( std::size_t i = 0; i < cohorts.size(); ++i ) {
+				if( std::find( cohort_names.begin(), cohort_names.end(), cohorts[i] ) == cohort_names.end() ) {
+					throw genfile::BadArgumentError(
+						"BingwaProcessor::get_groups()",
+						"spec=\"" + spec[i] + "\"",
+						"Cohort name \"" + cohorts[i] + "\" is not recognised"
+					) ;
+				}
+			}
+			result[ bits[0] ] = cohorts ;
+		}
+		return result ;
+	}
 
 	Eigen::MatrixXd get_prior_matrix( int const n, double const rho, double const sd ) const {
 		return get_correlation_matrix( n, rho ) * sd * sd ;
