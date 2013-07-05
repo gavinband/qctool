@@ -1452,23 +1452,31 @@ public:
 				throw genfile::BadArgumentError(
 					"BingwaProcessor::get_complex_priors()",
 					"model_spec #" + to_string( i + 1 ) + ": \"" + model_specs[i] + "\"",
-					"Malformatted model spec, should be of the form [rho]^2 * [matrix]."
+					"Malformatted model spec, should be of the form [sd]^2 * [matrix]."
 				) ;
 			} else if( bits.size() == 2 ) {
 				if( bits[0].size() < 3 || bits[0].substr( bits[0].size() - 2, 2 ) != "^2" ) {
 					throw genfile::BadArgumentError(
 						"BingwaProcessor::get_complex_priors()",
 						"model_spec #" + to_string( i + 1 ) + ": \"" + model_specs[i] + "\"",
-						"Malformatted model spec, should be of the form [rho]^2 * [matrix]."
+						"Malformatted model spec, should be of the form [sd]^2 * [matrix]."
 					) ;
 				}
 				sd = bits[0].substr( 0, bits[0].size() - 2 ) ;
 			}
-			(*result)[ model_names[i] + "/sd=" + sd ] = get_prior_matrix( 
-				number_of_cohorts,
-				bits.back(),
-				to_repr< double >( sd )
-			) ;
+			try {
+				(*result)[ model_names[i] + "/sd=" + sd ] = get_prior_matrix( 
+					number_of_cohorts,
+					bits.back(),
+					to_repr< double >( sd )
+				) ;
+			} catch( genfile::string_utils::StringConversionError const& e ) {
+				throw genfile::BadArgumentError(
+					"BingwaProcessor::get_complex_priors()",
+					"model_spec #" + to_string( i + 1 ) + ": \"" + model_specs[i] + "\"",
+					"Malformatted model spec, should be of the form [rho]^2 * [matrix]."
+				) ;
+			}
 		}
 	}
 	
