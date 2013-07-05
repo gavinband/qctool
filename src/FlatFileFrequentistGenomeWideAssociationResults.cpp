@@ -172,34 +172,36 @@ FlatFileFrequentistGenomeWideAssociationResults::ColumnMap FlatFileFrequentistGe
 	statfile::BuiltInTypeStatSource const& source
 ) {
 	using genfile::string_utils::to_string ;
-	std::set< std::string > desired_columns = get_desired_columns() ;
+	typedef std::set< std::pair< std::string, bool > > DesiredColumns ;
+	DesiredColumns desired_columns = get_desired_columns() ;
 
 	ColumnMap result ;
 	for( std::size_t i = 0; i < source.number_of_columns(); ++i ) {
 		std::string name = source.name_of_column( i ) ;
-		for( std::set< std::string >::iterator j = desired_columns.begin(); j != desired_columns.end(); ++j ) {
-			assert( j->size() > 0 ) ;
-			boost::regex regex( *j ) ;
+		for( DesiredColumns::iterator j = desired_columns.begin(); j != desired_columns.end(); ++j ) {
+			boost::regex regex( j->first ) ;
 			if( boost::regex_match( name, regex ) ) {
-				std::pair< ColumnMap::iterator, bool > insertion = result.insert( ColumnMap::value_type( *j, i )) ;
+				std::pair< ColumnMap::iterator, bool > insertion = result.insert( ColumnMap::value_type( j->first, i )) ;
 				if( !insertion.second ) {
 					throw genfile::OperationFailedError(
 						"SNPTESTResults::get_columns_to_store()",
 						"m_column_map",
-						"Insertion of value for column \"" + name + "\" (matching \"" + to_string( *j ) + "\")."
+						"Insertion of value for column \"" + name + "\" (matching \"" + j->first + "\")."
 					) ;
 				}
 			}
 		}
 	}
 	
-	for( std::set< std::string >::const_iterator i = desired_columns.begin(); i != desired_columns.end(); ++i ) {
-		if( result.left.find( *i ) == result.left.end() ) {
-			throw genfile::BadArgumentError(
-				"FlatFileFrequentistGenomeWideAssociationResults::get_columns_to_store()",
-				"required column=\"" + *i + "\"",
-				"Could not find column matching \"" + *i + "\" in source \"" + source.get_source_spec() + "\""
-			) ;
+	for( DesiredColumns::const_iterator j = desired_columns.begin(); j != desired_columns.end(); ++j ) {
+		if( j->second == true ) {
+			if( result.left.find( j->first ) == result.left.end() ) {
+				throw genfile::BadArgumentError(
+					"FlatFileFrequentistGenomeWideAssociationResults::get_columns_to_store()",
+					"required column=\"" + j->first + "\"",
+					"Could not find column matching \"" + j->first + "\" in source \"" + source.get_source_spec() + "\""
+				) ;
+			}
 		}
 	}
 

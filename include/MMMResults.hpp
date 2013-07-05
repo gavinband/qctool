@@ -27,7 +27,7 @@ private:
 private:
 	bool read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const ;
 	bool check_if_snp_accepted( std::size_t snp_i ) const ;
-	std::set< std::string > get_desired_columns() const ;
+	std::set< std::pair< std::string, bool > > get_desired_columns() const ;
 	void store_value(
 		int snp_index,
 		std::string const& variable,

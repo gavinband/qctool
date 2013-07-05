@@ -30,7 +30,7 @@ void SNPTESTResults::set_effect_size_column_regex( std::string const& beta_colum
 }
 
 std::set< std::pair< std::string, bool > > SNPTESTResults::get_desired_columns() const {
-	std::set< std::string > desired_columns ;
+	std::set< std::pair< std::string, bool > > desired_columns ;
 	desired_columns.insert( std::make_pair( m_beta_column_regex, true ) ) ;
 	desired_columns.insert( std::make_pair( m_se_column_regex, true ) ) ;
 	desired_columns.insert( std::make_pair( ".*_pvalue", true ) ) ;
@@ -39,8 +39,8 @@ std::set< std::pair< std::string, bool > > SNPTESTResults::get_desired_columns()
 	desired_columns.insert( std::make_pair( "all_AA", true ) ) ;
 	desired_columns.insert( std::make_pair( "all_AB", true ) ) ;
 	desired_columns.insert( std::make_pair( "all_BB", true ) ) ;
-	desired_columns.insert( std::make_pair( "all_A", false ) ;
-	desired_columns.insert( std::make_pair( "all_B", false ) ;
+	desired_columns.insert( std::make_pair( "all_A", false ) ) ;
+	desired_columns.insert( std::make_pair( "all_B", false ) ) ;
 	desired_columns.insert( std::make_pair( "all_NULL", true ) ) ;
 	{
 		std::set< std::string >::const_iterator
