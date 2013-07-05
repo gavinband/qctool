@@ -62,7 +62,7 @@ protected:
 	
 	FlatFileFrequentistGenomeWideAssociationResults() ;
 	
-	virtual std::set< std::string > get_desired_columns() const = 0 ;
+	virtual std::set< std::pair< std::string, bool > > get_desired_columns() const = 0 ;
 	virtual bool read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const = 0 ;
 	virtual bool check_if_snp_accepted( std::size_t snp_index ) const = 0 ;
 	virtual void store_value( int snp_index, std::string const& variable, double value ) = 0 ;
