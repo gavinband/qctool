@@ -27,6 +27,10 @@ void NormalClusterFitComparerManager::processed_snp( genfile::SNPIdentifyingData
 	process_snp( snp, intensities ) ;
 }
 
+void NormalClusterFitComparerManager::send_results( genfile::SNPIdentifyingData const& snp, std::string const& s1, std::string const& s2, std::string const& s3, Eigen::MatrixXd const& m ) const {
+	m_results_signal( snp, s1, s2, s3, m ) ;
+}
+
 void NormalClusterFitComparerManager::process_snp( genfile::SNPIdentifyingData snp, Eigen::MatrixXd const& intensities ) const {
 	for( Fits::const_iterator fit1 = m_fits.begin(); fit1 != m_fits.end(); ++fit1 ) {
 		Fits::const_iterator fit2 = fit1 ;

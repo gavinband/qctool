@@ -1634,7 +1634,7 @@ public:
 			// now fill in between-block elements.
 			for( std::size_t group1_i = 0; group1_i < group_specs.size() ; ++group1_i ) {
 				std::vector< int > const& group1_member_indices = get_cohort_indices( get_group_members( group_names[ group1_i ], groups ), cohort_names ) ;
-				for( std::size_t group2_i = group1_i; group2_i < group_specs.size() ; ++group2_i ) {
+				for( std::size_t group2_i = group1_i + 1; group2_i < group_specs.size() ; ++group2_i ) {
 					std::vector< int > const& group2_member_indices = get_cohort_indices( get_group_members( group_names[ group2_i ], groups ), cohort_names ) ;
 					for( std::size_t group1_cohort_i = 0; group1_cohort_i < group1_member_indices.size(); ++group1_cohort_i ) {
 						for( std::size_t group2_cohort_i = 0; group2_cohort_i < group2_member_indices.size(); ++group2_cohort_i ) {
@@ -1643,6 +1643,15 @@ public:
 					}
 				}
 			}
+			
+			std::string model_name ;
+			if( model_names ) {
+				model_name = model_names.get()[i] ;
+			} else {
+				model_name = model_specs[i] ;
+			}
+
+			(*result)[ model_name ] = prior ;
 		}
 	}
 
