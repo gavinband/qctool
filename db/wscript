@@ -11,7 +11,7 @@ def create_test( bld, name ):
 		target = name,
 		source = [  'test/' + name + '.cpp' ],
 		uselib_local = 'db',
-		uselib = 'BOOST_THREAD PTHREAD BOOST_DATE_TIME BOOST_UNIT_TEST_FRAMEWORK DL',
+		uselib = 'BOOST_THREAD PTHREAD BOOST_DATE_TIME BOOST_IOSTREAMS BOOST_UNIT_TEST_FRAMEWORK DL ZLIB',
 		includes='./include',
 		unit_test=1,
 		install_path=None
@@ -39,7 +39,7 @@ def build( bld ):
 		target = 'db',
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include',
-		uselib = 'BOOST_DATE_TIME',
+		uselib = 'BOOST_DATE_TIME ZLIB BOOST_IOSTREAMS ZLIB',
 		uselib_local = 'genfile sqlite3',
 		export_incdirs = './include'
 	)

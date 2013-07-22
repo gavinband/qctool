@@ -47,6 +47,10 @@ std::set< std::pair< std::string, bool > > SNPTESTResults::get_desired_columns()
 			i = m_variables.begin(),
 			end_i = m_variables.end() ;
 		for( ; i != end_i; ++i ) {
+			std::set< std::pair< std::string, bool > >::iterator where = desired_columns.find( std::make_pair( *i, false ) ) ;
+			if( where != desired_columns.end() ) {
+				desired_columns.erase( where ) ;
+			}
 			desired_columns.insert( std::make_pair( *i, true ) ) ;
 		}
 	}
