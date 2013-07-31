@@ -15,7 +15,6 @@
 #include "genfile/vcf/get_set_eigen.hpp"
 
 namespace genfile {
-	
 	GenDosageFileSNPDataSink::GenDosageFileSNPDataSink( std::string const& filename, Chromosome chromosome ):
 		GenLikeSNPDataSink( filename, chromosome, get_compression_type_indicated_by_filename( filename ) )
 	{}

@@ -17,6 +17,7 @@
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/GenFileSNPDataSink.hpp"
 #include "genfile/GenDosageFileSNPDataSink.hpp"
+#include "genfile/GenIntensityFileSNPDataSink.hpp"
 #include "genfile/BGenFileSNPDataSink.hpp"
 #include "genfile/ShapeITHaplotypesSNPDataSink.hpp"
 #include "genfile/VCFFormatSNPDataSink.hpp"
@@ -34,6 +35,7 @@ namespace genfile {
 		result.push_back( "shapeit_haplotypes" ) ;
 		result.push_back( "shapeit" ) ;
 		result.push_back( "dosage" ) ;
+		result.push_back( "intensity" ) ;
 		return result ;
 	}
 
@@ -66,6 +68,9 @@ namespace genfile {
 		}
 		else if( d.first == "dosage" ) {
 			return SNPDataSink::UniquePtr( new GenDosageFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
+		}
+		else if( d.first == "intensity" ) {
+			return SNPDataSink::UniquePtr( new GenIntensityFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
 		}
 		else {
 			return SNPDataSink::UniquePtr( new GenFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
