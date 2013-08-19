@@ -46,6 +46,8 @@ public:
 
 	void stratify_by( StrataMembers const&, std::string const& ) ;
 	
+	void set_haploid_genotype_coding( int coding ) ;
+	
 private:
 	genfile::CohortIndividualSource const& m_samples ;
 	std::vector< char > m_sexes ;
@@ -56,13 +58,15 @@ private:
 
 	ResultSignal m_result_signal ;
 
+	int m_haploid_coding_column ;
+
 	std::size_t m_snp_index ;
 	SNPSummaryComputation::Genotypes m_genotypes ;
 
 private:
 	std::vector< char > get_sexes( genfile::CohortIndividualSource const& samples, std::string const& sex_column_name ) const ;
 	std::map< char, std::vector< int > > get_samples_by_sex( std::vector< char > const& sexes ) const ;
-	void fix_sex_chromosome_genotypes( genfile::SNPIdentifyingData const& snp, SNPSummaryComputation::Genotypes& genotypes ) const ;
+	void fix_sex_chromosome_genotypes( genfile::SNPIdentifyingData const& snp, SNPSummaryComputation::Genotypes* genotypes ) ;
 	int determine_male_coding_column(
 		genfile::SNPIdentifyingData const& snp,
 		SNPSummaryComputation::Genotypes const& genotypes,

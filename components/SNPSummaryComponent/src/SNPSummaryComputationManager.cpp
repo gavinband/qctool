@@ -23,7 +23,8 @@
 SNPSummaryComputationManager::SNPSummaryComputationManager( genfile::CohortIndividualSource const& samples, std::string const& sex_column_name ):
 	m_samples( samples ),
 	m_sexes( get_sexes( samples, sex_column_name )),
-	m_samples_by_sex( get_samples_by_sex( m_sexes ) )
+	m_samples_by_sex( get_samples_by_sex( m_sexes ) ),
+	m_haploid_coding_column( -1 )
 {}
 
 std::vector< char > SNPSummaryComputationManager::get_sexes( genfile::CohortIndividualSource const& samples, std::string const& sex_column_name ) const {
@@ -87,7 +88,7 @@ void SNPSummaryComputationManager::processed_snp( genfile::SNPIdentifyingData co
 
 		if( !snp.get_position().chromosome().is_missing() && snp.get_position().chromosome().is_sex_determining() ) {
 			try {
-				fix_sex_chromosome_genotypes( snp, m_genotypes ) ;
+				fix_sex_chromosome_genotypes( snp, &m_genotypes ) ;
 			}
 			catch( genfile::BadArgumentError const& e ) {
 				m_result_signal( snp, "comment", "Unable to determine genotype coding for males/females.  Calling may be wrong so I will treat the genotypes as missing." ) ;
@@ -119,7 +120,95 @@ void SNPSummaryComputationManager::processed_snp( genfile::SNPIdentifyingData co
 
 // On X and Y chromosome, recode males if necessary so the genotypes are 0/1.
 // On Y chromosome check all female calls are 0.
-void SNPSummaryComputationManager::fix_sex_chromosome_genotypes( genfile::SNPIdentifyingData const& snp, SNPSummaryComputation::Genotypes& genotypes ) const {
+void SNPSummaryComputationManager::fix_sex_chromosome_genotypes( genfile::SNPIdentifyingData const& snp, SNPSummaryComputation::Genotypes* genotypes ) {
+		genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
+		if( chromosome != genfile::Chromosome( "0X" ) && chromosome != genfile::Chromosome( "0Y" ) ) {
+			return ;
+		}
+	
+		std::vector< int > const& males = m_samples_by_sex.find( 'm' )->second ;
+		std::vector< int > const& females = m_samples_by_sex.find( 'f' )->second ;
+	
+		if( m_haploid_coding_column == -1 ) {
+			m_haploid_coding_column = determine_male_coding_column( snp, *genotypes, males ) ;
+		}
+
+		if( m_haploid_coding_column != -1 ) {
+			
+			std::vector< size_t > bad_males ;
+			
+			for( std::size_t i = 0; i < males.size(); ++i ) {
+				int const wrong_coding_column = 3 - m_haploid_coding_column ;
+				if( (*genotypes)( males[i], wrong_coding_column ) > 0.0 ) {
+	#if DEBUG_PER_VARIANT_COMPUTATION_MANAGER
+					std::cerr
+						<< "!! (PerVariantComputationManager::fix_sex_chromosome_genotypes()): at X chromosome SNP "
+						<< snp
+						<< ":\n"
+						<< "!! (PerVariantComputationManager::fix_sex_chromosome_genotypes()): male sample "
+	//					<< m_samples.get_entry( column_determining_sample, "ID_1" )
+						<< " (#" << (males[i]+1) << ")"
+						<< " is coded as a " << ( ( wrong_coding_column == 1 ) ? "homozygote" : "heterozygote" ) << ",\n"
+						<< "!! (PerVariantComputationManager::fix_sex_chromosome_genotypes()): but I expected it to be coded as a "
+						<< ( ( m_haploid_coding_column == 1 ) ? "homozygote" : "heterozygote" ) << ".\n"
+						<< "!! (PerVariantComputationManager::fix_sex_chromosome_genotypes()): I will not test this SNP.\n" ;
+	#endif
+	
+					genotypes->row( males[i] ).setZero() ;
+					bad_males.push_back( males[i] ) ;
+					// throw genfile::BadArgumentError( "PerVariantComputationManager::fix_sex_chromosome_genotypes()", "genotypes" ) ;
+				}
+
+				if( m_haploid_coding_column == 2 ) {
+					(*genotypes)( males[i], 1 ) = (*genotypes)( males[i], 2 ) ;
+					(*genotypes)( males[i], 2 ) = 0 ;
+				}
+			}
+			if( bad_males.size() > 0 ) {
+				std::cerr << "At SNP " << snp
+					<< ": genotypes for "
+					<< bad_males.size()
+					<< " of " << males.size()
+					<< " male samples, starting with sample #"
+					<< ( bad_males.front() + 1 )
+					<< ", appear incorrectly coded and will be treated as missing.\n"
+				;
+			}
+		}
+	
+		if( chromosome == genfile::Chromosome( "0Y" )) {
+
+			std::vector< size_t > bad_females ;
+			
+			for( std::size_t i = 0; i < females.size(); ++i ) {
+				if( genotypes->row( females[i] ).array().abs().maxCoeff() != 0 ) {
+	#if DEBUG_PER_VARIANT_COMPUTATION_MANAGER
+					std::cerr << "!! (PerVariantComputationManager::fix_sex_chromosome_genotypes()): at Y chromosome SNP "
+						<< snp
+						<< ", sample #"
+						<< (females[i]+1)
+	//					<< " (" << m_samples.get_entry( females[i], "ID_1" ) << ") "
+						<< " has nonzero genotype call!\n" ;
+	#endif
+					//throw genfile::BadArgumentError( "PerVariantComputationManager::fix_sex_chromosome_genotypes()", "genotypes" ) ;
+					genotypes->row( females[i] ).setZero() ;
+					bad_females.push_back( females[i] ) ;
+				}
+			}
+			
+			if( bad_females.size() > 0 ) {
+				std::cerr << "At SNP " << snp
+					<< ": genotypes for "
+					<< bad_females.size()
+					<< " of " << females.size()
+					<< " female samples, starting with sample #"
+					<< ( bad_females.front() + 1 )
+					<< ", have nonzero genotype probabilities.  They will be treated as missing.\n"
+				;
+			}
+		}
+#if 0		
+		
 	genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
 	if( chromosome != genfile::Chromosome( "0X" ) && chromosome != genfile::Chromosome( "0Y" ) ) {
 		throw genfile::BadArgumentError( "SNPSummaryComputationManager::fix_sex_chromosome_genotypes()", "snp=\"" + genfile::string_utils::to_string( snp ) = "\"" ) ;
@@ -157,6 +246,7 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes( genfile::SNPIde
 			}
 		}
 	}
+#endif
 }
 
 // Figure out if males are coded like heterozygote or homozygote females.
