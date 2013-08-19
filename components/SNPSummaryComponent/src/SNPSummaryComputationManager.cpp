@@ -20,19 +20,19 @@
 
 // #define DEBUG_SNP_SUMMARY_COMPUTATION_MANAGER 1
 
-SNPSummaryComputationManager::SNPSummaryComputationManager( genfile::CohortIndividualSource const& samples ):
+SNPSummaryComputationManager::SNPSummaryComputationManager( genfile::CohortIndividualSource const& samples, std::string const& sex_column_name ):
 	m_samples( samples ),
-	m_sexes( get_sexes( samples )),
+	m_sexes( get_sexes( samples, sex_column_name )),
 	m_samples_by_sex( get_samples_by_sex( m_sexes ) )
 {}
 
-std::vector< char > SNPSummaryComputationManager::get_sexes( genfile::CohortIndividualSource const& samples ) const {
+std::vector< char > SNPSummaryComputationManager::get_sexes( genfile::CohortIndividualSource const& samples, std::string const& sex_column_name ) const {
 	std::vector< char > result( samples.get_number_of_individuals(), '.' ) ;
 	genfile::CohortIndividualSource::ColumnSpec column_spec = samples.get_column_spec() ;
 	if( column_spec.check_for_column( "sex" ) ) {
 		if( column_spec[ "sex" ].is_discrete() ) {
 			for( std::size_t i = 0; i < samples.get_number_of_individuals(); ++i ) {
-				genfile::CohortIndividualSource::Entry const entry = samples.get_entry( i, "sex" ) ;
+				genfile::CohortIndividualSource::Entry const entry = samples.get_entry( i, sex_column_name ) ;
 				if( !entry.is_missing() ) {
 					std::string const sex = genfile::string_utils::to_lower( entry.as< std::string >() ) ;
 					if( sex == "m" || sex == "male" ) {

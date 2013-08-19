@@ -184,6 +184,12 @@ public:
 			.set_takes_values_until_next_option()
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
+			
+		options[ "-sex-column" ]
+			.set_description( "Specify the name of a column (of type D) in the sample files(s) containing information on sex." )
+			.set_takes_values( 1 )
+			.set_default_value( "sex" )
+		;
 
 /*	    options[ "-i" ]
 	        .set_description( 	"Path of intensity file(s) to input.  "

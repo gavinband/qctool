@@ -107,7 +107,7 @@ void SNPSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor ) co
 }
 
 SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() const {
-	SNPSummaryComputationManager::UniquePtr manager( new SNPSummaryComputationManager( m_samples ) ) ;
+	SNPSummaryComputationManager::UniquePtr manager( new SNPSummaryComputationManager( m_samples, m_options.get_value< std::string >( "-sex-column" ) ) ) ;
 	using genfile::string_utils::to_string ;
 	
 	std::string filename ;
