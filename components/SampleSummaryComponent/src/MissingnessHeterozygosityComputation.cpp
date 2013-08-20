@@ -16,9 +16,14 @@ namespace sample_stats {
 		m_threshhold( 0.9 )
 	{}
 
+	MissingnessHeterozygosityComputation::MissingnessHeterozygosityComputation( genfile::Chromosome chromosome ):
+		m_chromosome( chromosome ),
+	 	m_snp_index( 0 ),
+		m_threshhold( 0.9 )
+	{}
+
 	void MissingnessHeterozygosityComputation::accumulate( genfile::SNPIdentifyingData const& snp, Genotypes const& genotypes, genfile::VariantDataReader& ) {
-		// ignore the X chromosome for now.
-		if( snp.get_position().chromosome().is_sex_determining() ) {
+		if( m_chromosome && m_chromosome.get() != snp.get_position().chromosome() ) {
 			return ;
 		}
 

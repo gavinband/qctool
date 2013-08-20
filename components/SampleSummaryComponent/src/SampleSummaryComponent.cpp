@@ -64,7 +64,7 @@ void SampleSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor )
 
 	manager->add(
 		"missingness/heterozyosity",
-		"autosomal chromosomes",
+		"all chromosomes",
 		SampleSummaryComputation::UniquePtr( new sample_stats::MissingnessHeterozygosityComputation() )
 	) ;
 
