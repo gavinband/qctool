@@ -112,8 +112,8 @@ namespace sample_stats {
 				for( int sample = 0; sample < m_number_of_samples; ++sample ) {
 					callback( sample, "mean_X", mean( sample, 0 ) ) ;
 					callback( sample, "mean_Y", mean( sample, 1 ) ) ;
-					callback( sample, "mean_X+Y ", mean( sample, 2 ) ) ;
-					callback( sample, "mean_X-Y ", mean( sample, 3 ) ) ;
+					callback( sample, "mean_X+Y", mean( sample, 2 ) ) ;
+					callback( sample, "mean_X-Y", mean( sample, 3 ) ) ;
 					callback( sample, "variance_X", variance( sample, 0 ) ) ;
 					callback( sample, "variance_Y", variance( sample, 1 ) ) ;
 					callback( sample, "variance_X+Y", variance( sample, 2 ) ) ;

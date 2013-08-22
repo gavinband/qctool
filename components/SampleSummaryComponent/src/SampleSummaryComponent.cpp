@@ -22,7 +22,6 @@ void SampleSummaryComponent::declare_options( appcontext::OptionProcessor& optio
 		.set_description( "Calculate and output sample-wise statistics." ) ;
 }
 
-typedef std::auto_ptr< SampleSummaryComponent > UNiquePtr ;
 SampleSummaryComponent::UniquePtr SampleSummaryComponent::create( appcontext::OptionProcessor const& options, genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ) {
 	return SampleSummaryComponent::UniquePtr( new SampleSummaryComponent( options, samples, ui_context )) ;
 }
@@ -45,7 +44,7 @@ void SampleSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor )
 	sample_stats::DBOutputter::SharedPtr outputter = sample_stats::DBOutputter::create_shared(
 			filename,
 			m_options.get< std::string >( "-analysis-name" ),
-			m_options.get< std::string >( "-analysis-description" ),
+			m_options.get< std::string >( "-analysis-description" ) + " (sample stats)",
 			m_options.get_values_as_map(),
 			m_samples
 	) ;
@@ -58,7 +57,7 @@ void SampleSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor )
 	) ;
 	manager->add(
 		"average intensities",
-		"autosomal chromosomes",
+		"all chromosomes",
 		SampleSummaryComputation::UniquePtr( new sample_stats::IntensityDistributionComputation() )
 	) ;
 

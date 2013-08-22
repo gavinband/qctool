@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 #include <Eigen/Core>
+#include <boost/bind.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/gen.hpp"
 #include "genfile/GenLikeSNPDataSink.hpp"
@@ -66,6 +67,9 @@ namespace genfile {
 			std::ostream& m_stream ;
 			std::size_t const m_number_of_samples ;
 		} ;
+		void print( std::string const& s ) {
+			std::cerr << " " << s ;
+		}
 	}
 	
 	void GenIntensityFileSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter getter ) {
@@ -88,7 +92,7 @@ namespace genfile {
 	) {
 		write_variant( stream(), id_data ) ;
 		IntensityWriter writer( stream(), m_number_of_samples ) ;
-		data_reader.get( "intensities", writer ) ;
+		data_reader.get( "XY", writer ) ;
 		stream() << "\n" ;
 	}
 }
