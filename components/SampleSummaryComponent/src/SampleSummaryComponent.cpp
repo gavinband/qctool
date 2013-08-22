@@ -20,6 +20,12 @@ void SampleSummaryComponent::declare_options( appcontext::OptionProcessor& optio
 	options.declare_group( "Per-sample computation options" ) ;
     options[ "-sample-stats" ]
 		.set_description( "Calculate and output sample-wise statistics." ) ;
+    options[ "-sample-stats-table-name" ]
+		.set_description( "Set the table name for output of sample statistics when using database output."
+		 	" An additional view named <tablename>View will also be created." )
+		.set_takes_single_value()
+		.set_default_value( "SampleData" )
+	;
 }
 
 SampleSummaryComponent::UniquePtr SampleSummaryComponent::create( appcontext::OptionProcessor const& options, genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ) {
@@ -42,12 +48,14 @@ void SampleSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor )
 		filename = genfile::strip_gen_file_extension_if_present( m_options.get< std::string >( "-g" ) ) + ".qcdb";
 	}
 	sample_stats::DBOutputter::SharedPtr outputter = sample_stats::DBOutputter::create_shared(
-			filename,
-			m_options.get< std::string >( "-analysis-name" ),
-			m_options.get< std::string >( "-analysis-description" ) + " (sample stats)",
-			m_options.get_values_as_map(),
-			m_samples
+		filename,
+		m_options.get< std::string >( "-analysis-name" ),
+		m_options.get< std::string >( "-analysis-description" ) + " (sample stats)",
+		m_options.get_values_as_map(),
+		m_samples,
+		m_options.get< std::string >( "-sample-stats-table-name" )
 	) ;
+	
 	manager->add_result_callback(
 		boost::bind(
 			&sample_stats::DBOutputter::operator(),

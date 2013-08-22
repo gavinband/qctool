@@ -23,10 +23,10 @@ namespace sample_stats {
 		typedef std::auto_ptr< DBOutputter > UniquePtr ;
 		typedef boost::shared_ptr< DBOutputter > SharedPtr ;
 
-		static UniquePtr create( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata, genfile::CohortIndividualSource const& samples ) ;
-		static SharedPtr create_shared( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata, genfile::CohortIndividualSource const& samples ) ;
+		static UniquePtr create( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata, genfile::CohortIndividualSource const& samples, std::string const& table_name ) ;
+		static SharedPtr create_shared( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata, genfile::CohortIndividualSource const& samples, std::string const& table_name ) ;
 
-		DBOutputter( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata, genfile::CohortIndividualSource const& samples ) ;
+		DBOutputter( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata, genfile::CohortIndividualSource const& samples, std::string const& table_name ) ;
 		~DBOutputter() ;
 
 		void operator()(
@@ -38,6 +38,7 @@ namespace sample_stats {
 		) ;
 
 	private:
+		std::string const m_table_name ;
 		genfile::CohortIndividualSource const& m_samples ;
 		std::size_t const m_max_transaction_count ;
 		db::Connection::RowId m_variable_id ;
