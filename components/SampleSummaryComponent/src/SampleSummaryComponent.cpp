@@ -32,7 +32,7 @@ SampleSummaryComponent::SampleSummaryComponent( appcontext::OptionProcessor cons
 	m_ui_context( ui_context )
 {}
 
-void SampleSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor ) const { 
+void SampleSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor ) const {
 	SampleSummaryComputationManager::UniquePtr manager = SampleSummaryComputationManager::create() ;
 	std::string filename ;
 	if( m_options.check( "-o" ) ) {
