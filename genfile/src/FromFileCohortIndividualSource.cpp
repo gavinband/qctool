@@ -283,7 +283,7 @@ namespace genfile {
 		std::string line ;
 		std::getline( stream, line ) ;
 		result = string_utils::split_and_strip_discarding_empty_entries( line ) ;
-		if( result.size() < 3 ) {
+		if( result.size() < 1 ) {
 			throw MalformedInputError( m_filename, 0 + m_number_of_metadata_lines ) ;
 		}
 		// Check first column is "ID_1"...
