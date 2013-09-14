@@ -98,8 +98,12 @@ namespace genfile {
 			<< prefix
 			<< std::setw(8) << std::setfill( ' ' ) << std::left << std::fixed << std::setprecision( 5 )
 			<< get_number_of_missing_values() ;
-		for( Entries::const_iterator i = entries().begin(); i != entries().end(); ++i ) {
+		std::size_t count = 0 ;
+		for( Entries::const_iterator i = entries().begin(); i != entries().end() && count < 10; ++i, ++count ) {
 			ostr << " " << i->first << "(" << i->second << ")";
+		}
+		if( count < entries().size() ) {
+			ostr << "... (+ " << ( entries().size() - count ) << " other levels)" ;
 		}
 		return ostr.str() ;
 	}
