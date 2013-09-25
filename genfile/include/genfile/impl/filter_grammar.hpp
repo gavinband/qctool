@@ -8,6 +8,8 @@
 #define GENFILE_IMPL_FILTER_GRAMMAR_HPP
 
 #include <string>
+#include "../../config.hpp"
+#if HAVE_BOOST_SPIRIT
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/qi_list.hpp>
 #include <boost/spirit/include/qi_optional.hpp>
@@ -118,5 +120,5 @@ namespace genfile {
 		} ;
 	}
 }
-
+#endif
 #endif

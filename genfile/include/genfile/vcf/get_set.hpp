@@ -46,7 +46,7 @@ namespace genfile {
 		
 		struct GenotypeSetterBase: public VariantDataReader::PerSampleSetter
 		{
-			GenotypeSetterBase() ;
+			GenotypeSetterBase( std::string const& scale = "identity" ) ;
 			virtual ~GenotypeSetterBase() throw() ;
 
 			virtual void set_number_of_samples( std::size_t n ) ;
@@ -60,6 +60,8 @@ namespace genfile {
 			virtual void set( std::size_t, double, double, double ) = 0 ;
 
 		private:
+			enum ProbabilityScale { eIdentityScale = 0, ePhredScale = 1 } ;
+			ProbabilityScale m_probability_scale ;
 			std::size_t m_number_of_samples ;
 			std::size_t m_sample ;
 			std::size_t m_number_of_entries ;
@@ -81,7 +83,14 @@ namespace genfile {
 				else if( m_number_of_entries == 3 || m_number_of_entries == 4 ) {
 					// treat as probabilities.  Ignore the fourth probability, which we interpret as NULL call.
 					if( m_entry_i < 3 ) {
-						m_store[ m_entry_i ] = value ;
+						switch( m_probability_scale ) {
+							case ePhredScale:
+								m_store[ m_entry_i ] = std::pow( -value / 10.0, 10 ) ;
+								break ;
+							case eIdentityScale:
+								m_store[ m_entry_i ] = value ;
+								break ;
+						}
 					}
 				}
 				else {
@@ -111,7 +120,7 @@ namespace genfile {
 		struct GenotypeSetter< boost::function< void ( std::size_t, double, double, double ) > >: public GenotypeSetterBase
 		{
 			typedef boost::function< void ( std::size_t, double, double, double ) > Setter ;
-			GenotypeSetter( Setter const& setter ): m_setter( setter ) {}
+			GenotypeSetter( Setter const& setter ): GenotypeSetterBase( "identity" ), m_setter( setter ) {}
 			void set( std::size_t sample_i, double AA, double AB, double BB ) {
 				m_setter( sample_i, AA, AB, BB ) ;
 			}

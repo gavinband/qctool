@@ -35,8 +35,7 @@ namespace genfile {
 	GenFileSNPDataSource::GenFileSNPDataSource(
 		std::string const& filename,
 		Chromosome chromosome,
-		CompressionType compression_type,
-		vcf::MetadataParser::Metadata const& metadata
+		CompressionType compression_type
 	)
 		: m_filename( filename ),
 		  m_compression_type( compression_type ),
@@ -44,28 +43,11 @@ namespace genfile {
 		  m_chromosome( chromosome ),
 		  m_have_chromosome_column( false )
 	{
-		setup( filename, compression_type, metadata ) ;
+		setup( filename, compression_type ) ;
 	}
 
-	void GenFileSNPDataSource::setup( std::string const& filename, CompressionType compression_type, vcf::MetadataParser::Metadata const& metadata ) {
+	void GenFileSNPDataSource::setup( std::string const& filename, CompressionType compression_type ) {
 		m_stream_ptr = open_text_file_for_input( filename, compression_type ) ;
-
-		typedef vcf::MetadataParser::Metadata::const_iterator MetadataIterator ;
-		std::pair< MetadataIterator, MetadataIterator > range = metadata.equal_range( "number-of-variants" ) ;
-		if( range.first != range.second ) {
-			std::size_t total_number_of_snps = 0 ;
-			std::map< std::string, std::string >::const_iterator where = range.first->second.find( "" ) ;
-			if( where == range.first->second.end() ) {
-				throw MalformedInputError( "metadata", std::distance( metadata.begin(), range.first )) ;
-			}
-			else {
-				total_number_of_snps = string_utils::to_repr< std::size_t >( where->second ) ;
-			}
-			if( (++range.first) != range.second ) {
-				throw MalformedInputError( "metadata", std::distance( metadata.begin(), range.first )) ;
-			}
-			m_total_number_of_snps = total_number_of_snps ;
-		}
 		read_header_data() ;
 		reset_to_start() ;
 	}
@@ -121,7 +103,9 @@ namespace genfile {
 					set_value( this_data_number_of_samples ),
 					set_genotypes( m_genotypes )
 				) ;
-				assert( source ) ;
+				if( !source ) {
+					throw genfile::MalformedInputError( source.m_filename, source.number_of_snps_read() ) ;
+				}
 				assert(( m_genotypes.size() % 3 ) == 0 ) ;
 			}
 			

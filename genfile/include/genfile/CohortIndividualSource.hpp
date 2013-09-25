@@ -64,9 +64,9 @@ namespace genfile {
 		// get_source_spec() returns a human-readable specification for this source.
 		virtual std::string get_source_spec() const ;
 
-		// method find_entries()
-		// find_entry returns the set of rows for which the given column equals the given entry.
-		virtual std::vector< std::size_t > find_entries( Entry const& entry, std::string const& column_name ) const ;
+		// method find_samples_by_value()
+		// find_sample_by_value returns the set of rows for which the given column equals the given entry.
+		std::vector< std::size_t > find_samples_by_value( std::string const& column_name, Entry const& entry ) const ;
 
 	public:
 		enum ColumnType { e_ID_COLUMN = 0, e_MISSINGNESS_COLUMN, e_DISCRETE_COVARIATE, e_CONTINUOUS_COVARIATE, e_BINARY_PHENOTYPE, e_CONTINUOUS_PHENOTYPE } ;

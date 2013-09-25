@@ -40,7 +40,7 @@ namespace genfile {
 		// link samples
 		for( std::size_t i = 0; i < m_sources[0].get_number_of_individuals(); ++i ) {
 			std::string const ID = m_sources[0].get_entry( i, "ID_1" ).as< std::string >() ;
-			std::vector< std::size_t > samples = m_sources.back().find_entries( ID, "ID_1" ) ;
+			std::vector< std::size_t > samples = m_sources.back().find_samples_by_value( "ID_1", ID ) ;
 			assert( samples.size() <= 1 ) ;
 			boost::optional< std::size_t > index ;
 			if( samples.size() == 1 ) {

@@ -23,9 +23,6 @@ namespace genfile {
 		void check_type() const ;
 	} ;
 
-	bool filename_indicates_gen_format( std::string const& filename ) ;
-	bool filename_indicates_bgen_format( std::string const& filename ) ;
-	bool filename_indicates_gen_or_bgen_format( std::string const& filename ) ;
 	CompressionType get_compression_type_indicated_by_filename( std::string const& filename ) ;
 	Chromosome get_chromosome_indicated_by_filename( std::string const& filename ) ;
 

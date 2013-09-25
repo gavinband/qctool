@@ -35,7 +35,7 @@ namespace genfile {
 			typedef Eigen::MatrixXd Matrix ;
 			virtual void operator()( std::auto_ptr< Matrix > value ) ;
 		} ;
-		struct PerSampleSetter: public vcf::EntriesSetter {
+		struct PerSampleSetter: public vcf::EntriesSetter, public boost::noncopyable {
 			typedef std::auto_ptr< PerSampleSetter > UniquePtr ;
 			virtual ~PerSampleSetter() throw() {}
 			virtual void set_number_of_samples( std::size_t n ) = 0 ;

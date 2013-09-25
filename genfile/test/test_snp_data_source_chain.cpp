@@ -197,7 +197,9 @@ namespace {
 	}
 
 	std::vector< SnpData > read_gen_files( std::vector< genfile::wildcard::FilenameMatch > const& filenames ) {
-		std::auto_ptr< genfile::SNPDataSource > snp_data_source = genfile::SNPDataSource::create_chain( filenames ) ;
+		genfile::SNPDataSource::UniquePtr snp_data_source(
+			genfile::SNPDataSourceChain::create( filenames ).release()
+		) ;
 		return read_snp_data( *snp_data_source ) ;
 	}
 }

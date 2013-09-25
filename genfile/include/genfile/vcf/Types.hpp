@@ -43,7 +43,7 @@ namespace genfile {
 			virtual ~SimpleType() {}
 			typedef std::auto_ptr< SimpleType > UniquePtr ;
 			typedef boost::shared_ptr< SimpleType > SharedPtr ;
-			static UniquePtr create( std::string const& spec ) ;
+			static UniquePtr create( std::string const& spec, std::string const& scale = "identity" ) ;
 			virtual void parse( string_utils::slice const& value, EntrySetter& setter ) const = 0 ;
 			Entry parse( string_utils::slice const& value ) const ;
 			virtual std::string to_string() const = 0 ;
@@ -65,6 +65,12 @@ namespace genfile {
 			using SimpleType::parse ;
 			void parse( string_utils::slice const& value, EntrySetter& setter ) const ;
 			std::string to_string() const { return "Float" ; }
+		} ;
+
+		struct PhredScaleFloatType: public SimpleType {
+			using SimpleType::parse ;
+			void parse( string_utils::slice const& value, EntrySetter& setter ) const ;
+			std::string to_string() const { return "PhredScaleFloat" ; }
 		} ;
 
 		struct CharacterType: public SimpleType {

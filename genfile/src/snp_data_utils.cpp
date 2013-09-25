@@ -48,16 +48,6 @@ namespace genfile {
 	bool CompressionType::operator==( CompressionType const& other ) const {
 		return m_type == other.m_type ;
 	}
-	
-	bool filename_indicates_gen_format( std::string const& filename ) {
-		return ( filename.find( ".gen") != std::string::npos ) ;
-	}
-	bool filename_indicates_bgen_format( std::string const& filename ) {
-		return ( filename.find( ".bgen") != std::string::npos ) ;
-	}
-	bool filename_indicates_gen_or_bgen_format( std::string const& filename ) {
-		return filename_indicates_gen_format( filename ) || filename_indicates_bgen_format( filename ) ;
-	}
 
 	CompressionType get_compression_type_indicated_by_filename( std::string const& filename ) {
 		if( filename.size() > 3 && filename.substr( filename.size() - 3, 3 ) == ".gz" ) {
