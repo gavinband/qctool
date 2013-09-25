@@ -81,10 +81,10 @@ void SNPTESTResults::store_value(
 	else if( variable == m_se_column_regex ) {
 		m_ses( snp_index, 0 ) = value ;
 	}
-	else if( variable == "*_pvalue" ) {
+	else if( variable == ".*_pvalue" ) {
 		m_pvalues( snp_index ) = value ;
 	}
-	else if( variable == "info" ) {
+	else if( variable == "(all_)?info" ) {
 		m_info( snp_index ) = value ;
 	}
 	else if( variable == "all_maf" ) {
