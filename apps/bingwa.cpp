@@ -72,7 +72,7 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_minimum_multiplicity( 1 )
 				.set_maximum_multiplicity( 100 )
 			;
-			options[ "-info-columns" ]
+			options[ "-extra-columns" ]
 				.set_description( "Specify extra columns in input files whose values will be considered as variables to be reported in the output."
 				 	" Currently these must be columns of numerical data.  (A single wildcard character * at the start or end of the column name may"
 					" be used to match any initial or terminal sequence of characters; but take care to escape this from the shell.)" )
@@ -267,7 +267,7 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_maximum_multiplicity( 1 )
 			;
 
-			options[ "-group" ]
+			options[ "-define-group" ]
 				.set_description( "Specify a group of cohorts for use with -group-prior and -group-specific prior."
 					" The format for each group is [group name]=[cohort name 1],[cohort name 2],..." )
 					.set_takes_values_until_next_option()
@@ -277,7 +277,7 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 			
 			options[ "-group-prior" ]
 				.set_description( "Specify a prior made up of blocks per groups, in the format"
-					" [group1]:rho=[r1]/sd=[s1],[group2]:rho=[r2]/sd=[s2]...;rho=[r]" )
+					" [group1]:rho=[r1]/sd=[s1],[group2]:rho=[r2]/sd=[s2]...:rho=[r]" )
 				.set_takes_values_until_next_option()
 				.set_minimum_multiplicity( 0 )
 				.set_maximum_multiplicity( 1 )
@@ -312,8 +312,8 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 
 			options.option_implies_option( "-complex-prior", "-complex-prior-name" ) ;
 			options.option_implies_option( "-complex-prior-name", "-complex-prior" ) ;
-			options.option_implies_option( "-group-prior", "-group" ) ;
-			options.option_implies_option( "-group-specific-prior", "-group" ) ;
+			options.option_implies_option( "-group-prior", "-define-group" ) ;
+			options.option_implies_option( "-group-specific-prior", "-define-group" ) ;
 			options.option_implies_option( "-group-specific-prior-name", "-group-specific-prior" ) ;
 		}
 	}
@@ -833,8 +833,8 @@ BingwaComputation::UniquePtr BingwaComputation::create( std::string const& name,
 	}
 	else if( name == "PerCohortValueReporter" ) {
 		PerCohortValueReporter::UniquePtr pcv( new PerCohortValueReporter( cohort_names ) ) ;
-		if( options.check( "-info-columns" )) {
-			BOOST_FOREACH( std::string const& variable, options.get_values( "-info-columns" )) {
+		if( options.check( "-extra-columns" )) {
+			BOOST_FOREACH( std::string const& variable, options.get_values( "-extra-columns" )) {
 				pcv->add_variable( variable ) ;
 			}
 		}
@@ -1555,18 +1555,23 @@ public:
 		}
 		
 		//
-		// format is group1:rho=r1/sd=s1,group2:rho=r2/sd=s2,...;rho=0.2
+		// format is group1:rho=r1/sd=s1,group2:rho=r2/sd=s2,...:rho=0.2
 		//
 		for( std::size_t i = 0; i < model_specs.size(); ++i ) {
-			std::vector< std::string > bits = split_and_strip( model_specs[i], ";" ) ;
-			if( bits.size() != 2 ) {
-				throw genfile::BadArgumentError(
-					"BingwaProcessor::get_group_priors()",
-					"model_spec=\"" + model_specs[i] + "\"",
-					"Model spec \"" + model_specs[i] + "\" is malformed."
-				) ;
+			std::vector< std::string > bits ;
+			{
+				std::size_t pos = model_specs[i].rfind( ":" ) ;
+				if( pos == std::string::npos ) {
+					throw genfile::BadArgumentError(
+						"BingwaProcessor::get_group_priors()",
+						"model_spec=\"" + model_specs[i] + "\"",
+						"Model spec \"" + model_specs[i] + "\" is malformed."
+					) ;
+				}
+				bits.push_back( model_specs[i].substr( 0, pos ) ) ;
+				bits.push_back( model_specs[i].substr( pos+1, model_specs[i].size() ) ) ;
 			}
-			
+	
 			std::string const between_cohort_rho_string = parse_rho( bits[1] ) ;
 			double between_cohort_rho = to_repr< double >( between_cohort_rho_string ) ;
 			
@@ -1638,7 +1643,9 @@ public:
 					std::vector< int > const& group2_member_indices = get_cohort_indices( get_group_members( group_names[ group2_i ], groups ), cohort_names ) ;
 					for( std::size_t group1_cohort_i = 0; group1_cohort_i < group1_member_indices.size(); ++group1_cohort_i ) {
 						for( std::size_t group2_cohort_i = 0; group2_cohort_i < group2_member_indices.size(); ++group2_cohort_i ) {
-							prior( group1_member_indices[ group1_cohort_i ], group2_member_indices[ group2_cohort_i ] ) = between_cohort_rho * group_sds[ group1_i ] * group_sds[ group2_i ] ;
+							int const i = std::min( group1_member_indices[ group1_cohort_i ], group2_member_indices[ group2_cohort_i ] ) ;
+							int const j = std::max( group1_member_indices[ group1_cohort_i ], group2_member_indices[ group2_cohort_i ] ) ;
+							prior( i, j ) = between_cohort_rho * group_sds[ group1_i ] * group_sds[ group2_i ] ;
 						}
 					}
 				}
@@ -1777,7 +1784,7 @@ public:
 
 		if( options.check( "-group-specific-prior" ) || options.check( "-group-prior" ) ) {
 			GroupDefinition groups = get_groups(
-				options.get_values< std::string >( "-group"  ),
+				options.get_values< std::string >( "-define-group"  ),
 				cohort_names
 			) ;
 
@@ -1896,7 +1903,7 @@ public:
 		get_ui_context().logger() << "\n================================================\n" ;
 		get_ui_context().logger() << "I will output the following bayesian models:\n\n" ;
 
-		get_ui_context().logger() << std::setprecision( 2 ) ;
+		get_ui_context().logger() << std::setprecision( 3 ) ;
 		
 		std::size_t max_model_name_width = 0 ;
 		{
@@ -1908,9 +1915,9 @@ public:
 			}
 		}
 
-		std::vector< std::size_t > column_widths( cohort_names.size(), 5 ) ;
+		std::vector< std::size_t > column_widths( cohort_names.size(), 6 ) ;
 		for( std::size_t i = 0; i < cohort_names.size(); ++i ) {
-			column_widths[i] = std::max( cohort_names[i].size() + 2, 5ul ) ;
+			column_widths[i] = std::max( cohort_names[i].size() + 2, 6ul ) ;
 		}
 
 		std::map< std::string, Eigen::MatrixXd >::const_iterator
@@ -1988,7 +1995,7 @@ public:
 			FrequentistGenomeWideAssociationResults::UniquePtr results
 				= FrequentistGenomeWideAssociationResults::create(
 					genfile::wildcard::find_files_by_chromosome( cohort_files[cohort_i] ),
-					options().check( "-info-columns" ) ? options().get_values< std::string >( "-info-columns" ) : std::vector< std::string >(),
+					options().check( "-extra-columns" ) ? options().get_values< std::string >( "-extra-columns" ) : std::vector< std::string >(),
 					genfile::SNPIdentifyingDataTest::UniquePtr( test.release() ),
 					SNPTESTResults::SNPResultCallback(),
 					progress_context
