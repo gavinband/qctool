@@ -83,7 +83,7 @@ def check_for_boost_headers( conf, min_version ):
 		conf.define( 'HAVE_BOOST_TIMER', 1 )
 		conf.define( 'HAVE_BOOST_MATH', 1 )
 		conf.define( 'HAVE_BOOST_FUNCTION', 1 )
-		conf.define( 'BOOST_FILESYSTEM_VERSION', 2 )
+		conf.define( 'BOOST_FILESYSTEM_VERSION', 3 )
 		return True
 	return False
 

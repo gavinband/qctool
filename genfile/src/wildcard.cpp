@@ -42,7 +42,7 @@ namespace genfile {
 #if BOOST_FILESYSTEM_VERSION < 3
 					std::string filename = dir_i->filename() ;
 #else
-					std::string filename = dir_i->path().filename() ;
+					std::string filename = dir_i->path().filename().string() ;
 #endif
 					if( string_has_prefix_and_suffix( filename, prefix, suffix )) {
 						std::string matching_part = filename.substr( prefix.size(), filename.size() - suffix.size() - prefix.size() ) ;
@@ -68,7 +68,11 @@ namespace genfile {
 			std::vector< FilenameMatch > find_files_matching_path_with_chromosomal_wildcard( std::string path, char const wildcard_char ) {
 				std::vector< FilenameMatch > result ;
 				BFS::path dir = impl::get_dir_part( path ) ;
-			  	std::string filename_template = BFS::path( path ).filename() ;
+#if BOOST_FILESYSTEM_VERSION < 3
+				std::string filename_template = BFS::path( path ).filename() ;
+#else
+				std::string filename_template = BFS::path( path ).filename().string() ;
+#endif
 				std::size_t wildcard_pos = filename_template.find( wildcard_char ) ;
 				std::string prefix = filename_template.substr( 0, wildcard_pos ) ;
 				std::string suffix = filename_template.substr( wildcard_pos + 1, filename_template.size() ) ;
