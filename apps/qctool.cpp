@@ -396,7 +396,7 @@ public:
 		options[ "-snp-missing-rate" ]
 			.set_description( "Filter out SNPs with missing data rate greater than or equal to the value specified.")
 			.set_takes_single_value() ;
-		options[ "-missing-call-rate" ]
+		options[ "-snp-missing-call-rate" ]
 			.set_description( "Filter out SNPs with missing call rate greater than or equal to the value specified.")
 			.set_takes_single_value() ;
 		options[ "-maf" ]
