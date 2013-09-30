@@ -14,7 +14,7 @@
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/SampleFilteringSNPDataSource.hpp"
 #include "genfile/wildcard.hpp"
-#include "genfile/vcf/get_set.hpp"
+#include "genfile/vcf/get_set_eigen.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "integration/NewtonRaphson.hpp"
 #include "integration/Derivative.hpp"
@@ -169,11 +169,9 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 	genfile::SNPIdentifyingData const& target_snp,
 	genfile::VariantDataReader& target_data_reader
 ) {
-	std::vector< std::vector< int > > genotypes( 2 ) ;
-	genfile::vcf::ThreshholdingGenotypeSetter< std::vector< int > > source_getter( genotypes[0], m_threshhold ) ;
-	genfile::vcf::ThreshholdingGenotypeSetter< std::vector< int > > target_getter( genotypes[1], m_threshhold ) ;
-	source_data_reader.get( "genotypes", source_getter ) ;
-	target_data_reader.get( "genotypes", target_getter ) ;
+	std::vector< Eigen::VectorXd > genotypes( 2 ) ;
+	source_data_reader.get( "genotypes", genfile::vcf::get_threshholded_calls< Eigen::VectorXd >( genotypes[0], m_threshhold ) ) ;
+	target_data_reader.get( "genotypes", genfile::vcf::get_threshholded_calls< Eigen::VectorXd >( genotypes[1], m_threshhold ) ) ;
 	assert( genotypes[0].size() == m_source->number_of_samples() ) ;
 	assert( genotypes[0].size() == genotypes[1].size() ) ;
 	try {
@@ -192,13 +190,13 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 void HaplotypeFrequencyComponent::compute_ld_measures(
 	genfile::SNPIdentifyingData const& source_snp,
 	genfile::SNPIdentifyingData const& target_snp,
-	std::vector< std::vector< int > > const& genotypes
+	std::vector< Eigen::VectorXd > const& genotypes
 ) {
 	// Construct table of genotypes at each SNP.
 	Eigen::Matrix3d table = Eigen::Matrix3d::Zero() ;
 	for( std::size_t i = 0; i < m_source->number_of_samples(); ++i ) {
-		if( genotypes[0][i] != -1 && genotypes[1][i] != -1 ) {
-			++table( genotypes[0][i], genotypes[1][i] ) ;
+		if( genotypes[0](i) != -1 && genotypes[1](i) != -1 ) {
+			++table( genotypes[0](i), genotypes[1](i) ) ;
 		}
 	}
 	
