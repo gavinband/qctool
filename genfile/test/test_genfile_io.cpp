@@ -233,7 +233,7 @@ std::vector< SnpData > read_gen_file( genfile::SNPDataSource& snp_data_source ) 
 }
 
 std::vector< SnpData > read_gen_file( std::string filename ) {
-	std::auto_ptr< genfile::SNPDataSource > snp_data_source_ptr( genfile::SNPDataSource::create( filename )) ;
+	std::auto_ptr< genfile::SNPDataSource > snp_data_source_ptr( genfile::SNPDataSource::create( filename, genfile::Chromosome( "NA" ) )) ;
 	return read_gen_file( *snp_data_source_ptr ) ;
 }
 

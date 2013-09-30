@@ -263,6 +263,7 @@ namespace genfile {
 		std::string const& source() const { return m_source ; }
 		std::string const& key() const { return m_key ; }
 		
+		std::string format_message() const ;
 	private:
 		std::string const m_source, m_key ;
 	} ;

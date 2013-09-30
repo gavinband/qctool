@@ -45,6 +45,25 @@ namespace genfile {
 		assert( first_allele.size() < MAX_SIZE ); 
 	}
 
+ 	SNPIdentifyingData2::SNPIdentifyingData2(
+		std::string const& SNPID,
+		std::string const& rsid,
+		GenomePosition const& position,
+		std::string const& first_allele,
+		std::string const& second_allele
+	):
+		m_data( rsid + first_allele + second_allele + SNPID ),
+		m_rsid_start( 0 ),
+		m_first_allele_start( m_rsid_start + rsid.size() ),
+		m_second_allele_start( m_first_allele_start + first_allele.size() ),
+		m_identifiers_start( m_second_allele_start + second_allele.size() ),
+		m_position( position )
+	{
+		assert( rsid.size() < MAX_SIZE ) ;
+		assert( SNPID.size() < MAX_SIZE ) ;
+		assert( first_allele.size() < MAX_SIZE );
+	}
+
 	SNPIdentifyingData2::SNPIdentifyingData2(
 		SNPIdentifyingData const& snp
 	):

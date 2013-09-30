@@ -25,6 +25,13 @@ namespace genfile {
 			std::string const& first_allele,
 			std::string const& second_allele
 		) ;
+	 	SNPIdentifyingData2(
+			std::string const& SNPID,
+			std::string const& rsid,
+			GenomePosition const& position,
+			std::string const& first_allele,
+			std::string const& second_allele
+		) ;
 		SNPIdentifyingData2(
 			SNPIdentifyingData const& snp
 		) ;

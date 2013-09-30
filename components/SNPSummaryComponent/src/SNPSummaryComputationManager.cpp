@@ -36,9 +36,9 @@ std::vector< char > SNPSummaryComputationManager::get_sexes( genfile::CohortIndi
 				genfile::CohortIndividualSource::Entry const entry = samples.get_entry( i, sex_column_name ) ;
 				if( !entry.is_missing() ) {
 					std::string const sex = genfile::string_utils::to_lower( entry.as< std::string >() ) ;
-					if( sex == "m" || sex == "male" ) {
+					if( sex == "m" || sex == "male" || sex == "1" ) {
 						result[i] = 'm' ;
-					} else if( sex == "f" || sex == "female" ) {
+					} else if( sex == "f" || sex == "female" || sex == "2" ) {
 						result[i] = 'f' ;
 					}
 					else {
@@ -49,7 +49,7 @@ std::vector< char > SNPSummaryComputationManager::get_sexes( genfile::CohortIndi
 		}
 		else {
 			std::cerr << "!! (SNPSummaryComputationManager::get_sexes): sex column found but it has the wrong type!\n" ;
-			throw genfile::MalformedInputError( samples.get_source_spec(), 1, column_spec.find_column( "sex" )) ;
+			throw genfile::MalformedInputError( samples.get_source_spec(), 1, column_spec.find_column( sex_column_name )) ;
 		}
 	}
 	return result ;

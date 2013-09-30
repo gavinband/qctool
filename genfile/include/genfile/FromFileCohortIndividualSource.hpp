@@ -9,6 +9,7 @@
 
 #include <map>
 #include <string>
+#include "../config.hpp"
 #include <boost/variant.hpp>
 #include <boost/function.hpp>
 #include <boost/optional.hpp>
@@ -53,7 +54,7 @@ namespace genfile {
 
 		bool check_for_column( std::string const& column_name ) const ;
 
-		std::vector< std::size_t > find_entries( Entry const& entry, std::string const& column_name ) const ;
+		std::vector< std::size_t > find_samples_by_value( std::string const& column_name, Entry const& entry ) const ;
 		// Return the filename from which we read our information, or "(none)" if a stream was supplied. 
 		std::string const& get_filename() const ;
 		// Return the filename from which we read our information, or "(unknown)" if a stream was supplied. 

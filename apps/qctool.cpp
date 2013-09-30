@@ -1314,8 +1314,10 @@ private:
 		}
 
 		{
-			genfile::SNPDataSource::UniquePtr merge_in_source = genfile::SNPDataSource::create_chain(
-				genfile::wildcard::find_files_by_chromosome( merge_in_files[0] )
+			genfile::SNPDataSource::UniquePtr merge_in_source(
+				genfile::SNPDataSourceChain::create(
+					genfile::wildcard::find_files_by_chromosome( merge_in_files[0] )
+				).release()
 			) ;
 			
 			genfile::CohortIndividualSource::UniquePtr merge_in_samples(

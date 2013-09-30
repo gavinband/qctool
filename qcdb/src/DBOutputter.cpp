@@ -152,7 +152,14 @@ namespace qcdb {
 			"INNER JOIN Entity Variable ON Variable.id = SD.variable_id "
 			"WHERE analysis_id IN ( SELECT id FROM Entity )"
 		) ;
-
+		m_connection->run_statement(
+			"CREATE TABLE IF NOT EXISTS AnalysisStatus ( "
+				"analysis_id INTEGER NOT NULL REFERENCES Entity( id ), "
+				"started TEXT NOT NULL, "
+				"completed TEXT, "
+				"status TEXT NOT NULL "
+			")"
+		) ;
 		construct_statements() ;
 		store_metadata() ;
 	}
@@ -170,6 +177,7 @@ namespace qcdb {
 				"CREATE INDEX IF NOT EXISTS SummaryDataIndex ON SummaryData( variant_id, variable_id )"
 			) ;
 		}
+		end_analysis( m_analysis_id ) ;
 	}
 
 	void DBOutputter::construct_statements() {
@@ -208,6 +216,8 @@ namespace qcdb {
 			throw genfile::BadArgumentError( "qcdb::DBOutputter::store_metadata()", "analysis_name=\"" + m_analysis_name + "\"", "An analysis with name \"" + m_analysis_name + "\" and description \"" + m_analysis_description + "\" already exists" ) ;
 		} 
 
+		start_analysis( m_analysis_id ) ;
+
 		get_or_create_entity_data(
 			m_analysis_id,
 			get_or_create_entity( "tool", "Executable, pipeline, or script used to generate these results." ),
@@ -223,6 +233,22 @@ namespace qcdb {
 				genfile::string_utils::join( i->second.first, "," ) + " (" + i->second.second + ")"
 			) ;
 		}
+	}
+	
+	db::Connection::RowId DBOutputter::start_analysis( db::Connection::RowId const analysis_id ) const {
+		db::Connection::StatementPtr stmnt = m_connection->get_statement( "INSERT INTO AnalysisStatus( analysis_id, started, status ) VALUES( ?, ?, ? )" ) ;
+		stmnt->bind( 1, analysis_id ) ;
+		stmnt->bind( 2, appcontext::get_current_time_as_string() ) ;
+		stmnt->bind( 3, "started" ) ;
+		stmnt->step() ;
+	}
+
+	db::Connection::RowId DBOutputter::end_analysis( db::Connection::RowId const analysis_id ) const {
+		db::Connection::StatementPtr stmnt = m_connection->get_statement( "UDPATE AnalysisStatus SET completed = ?, status = ? WHERE analysis_id == ?" ) ;
+		stmnt->bind( 1, appcontext::get_current_time_as_string() ) ;
+		stmnt->bind( 2, "success" ) ;
+		stmnt->bind( 3, analysis_id ) ;
+		stmnt->step() ;
 	}
 	
 	void DBOutputter::load_entities() {

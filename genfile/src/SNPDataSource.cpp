@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <string>
 #include <sstream>
+#include <boost/optional.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/GenFileSNPDataSource.hpp"
@@ -31,21 +32,13 @@ namespace genfile {
 		result.push_back( "hapmap_haplotypes" ) ;
 		result.push_back( "impute_haplotypes" ) ;
 		result.push_back( "shapeit_haplotypes" ) ;
-		result.push_back( "shapeit" ) ;
 		return result ;
 	}
 	
 	std::auto_ptr< SNPDataSource > SNPDataSource::create(
 		std::string const& filename,
-		Chromosome chromosome_hint
-	) {
-		return SNPDataSource::create( filename, chromosome_hint, get_compression_type_indicated_by_filename( filename ) ) ;
-	}
-
-	std::auto_ptr< SNPDataSource > SNPDataSource::create(
-		std::string const& filename,
 		Chromosome chromosome_hint,
-		vcf::MetadataParser::Metadata const& metadata,
+		boost::optional< vcf::MetadataParser::Metadata > const& metadata,
 		std::string const& filetype_hint
 	) {
 		return SNPDataSource::create( filename, chromosome_hint, get_compression_type_indicated_by_filename( filename ), metadata, filetype_hint ) ;
@@ -55,7 +48,7 @@ namespace genfile {
 		std::string const& filename,
 		Chromosome chromosome_hint,
 		CompressionType compression_type,
-		vcf::MetadataParser::Metadata const& metadata,
+		boost::optional< vcf::MetadataParser::Metadata > const& metadata,
 		std::string const& filetype_hint
 	) {
 		std::pair< std::string, std::string > uf = uniformise( filename ) ;
@@ -71,7 +64,7 @@ namespace genfile {
 			return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second, metadata )) ;
 		}
 		else if( uf.first == "gen" ) {
-			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type, metadata )) ;
+			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
 		}
 		else if( uf.first == "hapmap_haplotypes" ) {
 			return std::auto_ptr< SNPDataSource >( new HapmapHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
@@ -79,50 +72,13 @@ namespace genfile {
 		else if( uf.first == "impute_haplotypes" ) {
 			return std::auto_ptr< SNPDataSource >( new ImputeHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
 		}
-		else if( uf.first == "shapeit_haplotypes" || uf.first == "shapeit" ) {
+		else if( uf.first == "shapeit_haplotypes" ) {
 			return std::auto_ptr< SNPDataSource >( new ShapeITHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
 		}
 		else {
 			// assume GEN format.
-			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type, metadata )) ;
-		}
-	}
-
-	std::auto_ptr< SNPDataSource > SNPDataSource::create(
-		std::string const& filename,
-		Chromosome chromosome_hint,
-		CompressionType compression_type
-	) {
-		std::pair< std::string, std::string > uf = uniformise( filename ) ;
-		if( uf.first == "bgen" ) {
-			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second, compression_type )) ;
-		}
-		else if( uf.first == "vcf" ) {
-			return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second )) ;
-		}
-		else if( uf.first == "gen" ) {
 			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
 		}
-		else if( uf.first == "hapmap_haplotypes" ) {
-			return std::auto_ptr< SNPDataSource >( new HapmapHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
-		}
-		else if( uf.first == "impute_haplotypes" ) {
-			return std::auto_ptr< SNPDataSource >( new ImputeHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
-		}
-		else {
-			// assume GEN format.
-			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
-		}
-	}
-
-	std::auto_ptr< SNPDataSource > SNPDataSource::create_chain(
-		std::vector< wildcard::FilenameMatch > const& matches,
-		vcf::MetadataParser::Metadata const& metadata,
-		std::string const& filetype_hint,
-		NotifyProgress notify_progress
-	) {
-		std::auto_ptr< SNPDataSourceChain > ptr = SNPDataSourceChain::create( matches, metadata, filetype_hint, notify_progress ) ;
-		return std::auto_ptr< SNPDataSource >( ptr.release() ) ;
 	}
 
 	SNPDataSource::SNPDataSource()

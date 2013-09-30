@@ -39,20 +39,18 @@ namespace genfile {
 		
 		// The following methods are factory functions
 		static std::vector< std::string > get_file_types() ;
-		static UniquePtr create( std::string const& filename, Chromosome = UnidentifiedChromosome ) ;
-		static UniquePtr create( std::string const& filename, Chromosome, vcf::MetadataParser::Metadata const&, std::string const& filetype_hint = "guess" ) ;
-		static UniquePtr create_chain(
-			std::vector< wildcard::FilenameMatch > const& matches,
-			vcf::MetadataParser::Metadata const& metadata = vcf::MetadataParser::Metadata(),
-			std::string const& filetype_hint = "guess",
-			NotifyProgress notify_progress = NotifyProgress()
+		static UniquePtr create(
+			std::string const& filename,
+			Chromosome chromosome_hint = genfile::Chromosome(),
+			boost::optional< vcf::MetadataParser::Metadata > const& = boost::optional< vcf::MetadataParser::Metadata >(),
+			std::string const& filetype_hint = "guess"
 		) ;
 	private:
 		static UniquePtr create(
 			std::string const& filename,
 			Chromosome,
 			CompressionType compression_type,
-			vcf::MetadataParser::Metadata const&,
+			boost::optional< vcf::MetadataParser::Metadata > const&,
 			std::string const& filetype_hint
 		) ;
 

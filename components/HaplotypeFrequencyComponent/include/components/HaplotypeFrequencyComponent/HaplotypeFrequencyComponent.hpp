@@ -47,7 +47,7 @@ public:
 	void compute_ld_measures(
 		genfile::SNPIdentifyingData const& source_snp,
 		genfile::SNPIdentifyingData const& target_snp,
-		std::vector< std::vector< int > > const& genotypes
+		std::vector< Eigen::VectorXd > const& genotypes
 	) ;
 
 	void end_processing_snps() ;

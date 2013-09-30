@@ -25,6 +25,7 @@
 	} ;
 #endif
 #include "genfile/SNPDataSource.hpp"
+#include "genfile/SNPDataSourceChain.hpp"
 
 
 // The following section defines the needed objects for use with the bgen.hpp implementation.
@@ -142,8 +143,9 @@ int main( int argc, char** argv ) {
 
 	try	{
 		std::string genFileName = argv[1] ;
-		std::auto_ptr< genfile::SNPDataSource > source
-			= genfile::SNPDataSource::create_chain( genfile::wildcard::find_files_by_chromosome( genFileName )) ;
+		genfile::SNPDataSource::UniquePtr source(
+			genfile::SNPDataSourceChain::create( genfile::wildcard::find_files_by_chromosome( genFileName )).release()
+		) ;
 
 		int number_of_snps_to_read = 10000 ;
 		if( argc == 3 ) {
