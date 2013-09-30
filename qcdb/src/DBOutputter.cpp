@@ -239,14 +239,14 @@ namespace qcdb {
 		db::Connection::StatementPtr stmnt = m_connection->get_statement( "INSERT INTO AnalysisStatus( analysis_id, started, status ) VALUES( ?, ?, ? )" ) ;
 		stmnt->bind( 1, analysis_id ) ;
 		stmnt->bind( 2, appcontext::get_current_time_as_string() ) ;
-		stmnt->bind( 3, "started" ) ;
+		stmnt->bind( 3, "incomplete" ) ;
 		stmnt->step() ;
 	}
 
 	db::Connection::RowId DBOutputter::end_analysis( db::Connection::RowId const analysis_id ) const {
 		db::Connection::StatementPtr stmnt = m_connection->get_statement( "UDPATE AnalysisStatus SET completed = ?, status = ? WHERE analysis_id == ?" ) ;
 		stmnt->bind( 1, appcontext::get_current_time_as_string() ) ;
-		stmnt->bind( 2, "success" ) ;
+		stmnt->bind( 2, "successfully completed" ) ;
 		stmnt->bind( 3, analysis_id ) ;
 		stmnt->step() ;
 	}
