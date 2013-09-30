@@ -108,6 +108,17 @@ void SNPSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor ) co
 
 SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() const {
 	SNPSummaryComputationManager::UniquePtr manager( new SNPSummaryComputationManager( m_samples, m_options.get_value< std::string >( "-sex-column" ) ) ) ;
+	if( m_options.check( "-haploid-genotype-coding" ) ) {
+		std::string const coding_string = m_options.get< std::string >( "-haploid-genotype-coding" ) ;
+		if( coding_string == "hom" ) {
+			manager->set_haploid_genotype_coding( 2 ) ; 
+		} else if( coding_string == "het" ) {
+			manager->set_haploid_genotype_coding( 1 ) ; 
+		} else {
+			throw genfile::BadArgumentError( "SNPSummaryComponent::create_manager()", "-haploid-genotype-coding=\"" + coding_string + "\"", "Value should be \"hom\" or \"het\"." ) ;
+		}
+	}
+
 	using genfile::string_utils::to_string ;
 	
 	std::string filename ;

@@ -30,8 +30,8 @@ SNPSummaryComputationManager::SNPSummaryComputationManager( genfile::CohortIndiv
 std::vector< char > SNPSummaryComputationManager::get_sexes( genfile::CohortIndividualSource const& samples, std::string const& sex_column_name ) const {
 	std::vector< char > result( samples.get_number_of_individuals(), '.' ) ;
 	genfile::CohortIndividualSource::ColumnSpec column_spec = samples.get_column_spec() ;
-	if( column_spec.check_for_column( "sex" ) ) {
-		if( column_spec[ "sex" ].is_discrete() ) {
+	if( column_spec.check_for_column( sex_column_name ) ) {
+		if( column_spec[ sex_column_name ].is_discrete() ) {
 			for( std::size_t i = 0; i < samples.get_number_of_individuals(); ++i ) {
 				genfile::CohortIndividualSource::Entry const entry = samples.get_entry( i, sex_column_name ) ;
 				if( !entry.is_missing() ) {
@@ -42,7 +42,7 @@ std::vector< char > SNPSummaryComputationManager::get_sexes( genfile::CohortIndi
 						result[i] = 'f' ;
 					}
 					else {
-						throw genfile::MalformedInputError( samples.get_source_spec(), i+2, column_spec.find_column( "sex" )) ;
+						throw genfile::MalformedInputError( samples.get_source_spec(), i+2, column_spec.find_column( sex_column_name )) ;
 					}
 				}
 			}
@@ -78,6 +78,11 @@ void SNPSummaryComputationManager::add_result_callback( ResultCallback callback 
 
 void SNPSummaryComputationManager::add_per_sample_result_callback( PerSampleResultCallback callback ) {
 	m_per_sample_result_signal.connect( callback ) ;
+}
+
+void SNPSummaryComputationManager::set_haploid_genotype_coding( int coding ) {
+	assert( coding == 1 || coding == 2 ) ;
+	m_haploid_coding_column = coding ;	
 }
 
 void SNPSummaryComputationManager::begin_processing_snps( std::size_t number_of_samples ) {

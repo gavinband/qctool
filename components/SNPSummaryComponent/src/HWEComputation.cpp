@@ -96,11 +96,15 @@ namespace snp_summary_component {
 		
 		callback( "HW_multinomial_p_value", p_value ) ;
 	}
-	
+
 	void HWEComputation::X_chromosome_test( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, ResultCallback callback ) {
-		// We perform two tests.
+		// We look at three models and perform two LR tests.
+		// model1: full model, males and females may have different frequencies and no assumption of HW in females.  (3 parameters)
+		// model2: HWE holds in females, but males and females may have different frequencies. (2 parameters)
+		// model3: HWE holds in females and males and females have the same frequency. (1 parameter)
+		//
 		// test1: test that males and females have the same allele frequency
-		// test2: test that HW is fine in females.
+		// test2: test HWE in females.
 
 		Eigen::MatrixXd genotype_counts = Eigen::MatrixXd::Zero( 2, 3 ) ; // first row is males, second row is females.  Last column will be zero for males.
 		Eigen::MatrixXd allele_counts = Eigen::MatrixXd::Zero( 2, 2 ) ; // first row is males, second row is females.
@@ -131,67 +135,72 @@ namespace snp_summary_component {
 			typedef metro::likelihood::ProductOfMultinomials< double, Eigen::VectorXd, Eigen::MatrixXd > ProductOfIndependentMultinomials ;
 			// In model 1 each genotype is allowed to have its own frequency.
 			// Morever males and females may have different frequencies
-			ProductOfIndependentMultinomials model1( genotype_counts ) ;
-			model1.evaluate_at( model1.get_MLE() ) ;
-			// In model2 alleles are independent (HWE) but males and females may differ.
+			ProductOfIndependentMultinomials full_model( genotype_counts ) ;
+			full_model.evaluate_at( full_model.get_MLE() ) ;
+
+			// In model2 alleles are independent (HWE) in females, but males and females may differ.
 			ProductOfIndependentMultinomials model2( genotype_counts ) ;
 			{
-				double const p = ( 2 * genotype_counts( FEMALES, 0 ) + genotype_counts( FEMALES, 1 ) ) / (2 * genotype_counts.row( FEMALES ).sum() ) ;
-				double const q = 1 - p ;
-				
+				double const p_females = ( 2 * genotype_counts( FEMALES, 0 ) + genotype_counts( FEMALES, 1 ) ) / (2 * genotype_counts.row( FEMALES ).sum() ) ;
+				double const p_males = genotype_counts( MALES, 0 ) / genotype_counts.row( MALES ).sum() ;
 				Vector params( 6 ) ;
-				params( 0 ) = genotype_counts( MALES, 0 ) / genotype_counts.row( MALES ).sum() ;
-				params( 1 ) = genotype_counts( MALES, 1 ) / genotype_counts.row( MALES ).sum() ;
+				params( 0 ) = p_males ;
+				params( 1 ) = 1-p_males ;
 				params( 2 ) = 0 ;
-				params( 3 ) = p * p ;
-				params( 4 ) = 2 * p * q ;
-				params( 5 ) = q * q ;
+				params( 3 ) = p_females * p_females ;
+				params( 4 ) = 2 * p_females * (1-p_females) ;
+				params( 5 ) = (1-p_females) * (1-p_females) ;
 				model2.evaluate_at( params ) ;
 			}
-			// Im model3 alleles are independent (HWE) and males and females must agree.
+
+			// In model3, the NULL model, alleles are independent (HWE) and males and females must agree.
 			ProductOfIndependentMultinomials model3( genotype_counts ) ;
 			{
 				double const p = ( 2 * genotype_counts( FEMALES, 0 ) + genotype_counts( MALES, 0 ) + genotype_counts( FEMALES, 1 ) )
 					/ ( 2 * genotype_counts.row( FEMALES ).sum() + genotype_counts.row( MALES ).sum() ) ;
-				double const q = 1 - p ;
 				
 				Vector params( 6 ) ;
 				params( 0 ) = p ;
-				params( 1 ) = q ;
+				params( 1 ) = (1-p) ;
 				params( 2 ) = 0 ;
 				params( 3 ) = p * p ;
-				params( 4 ) = 2 * p * q ;
-				params( 5 ) = q * q ;
+				params( 4 ) = 2 * p * (1-p) ;
+				params( 5 ) = (1-p) * (1-p) ;
 				model3.evaluate_at( params ) ;
 			}
 
 			std::cerr << "Genotype counts:\n" << genotype_counts << "\n" ;
 			std::cerr << "Allele counts:\n" << allele_counts << "\n" ;
-			std::cerr << "Model 1 params: " << model1.get_parameters().transpose() << ".\n" ;
+			std::cerr << "Model 1 params: " << full_model.get_parameters().transpose() << ".\n" ;
 			std::cerr << "Model 2 params: " << model2.get_parameters().transpose() << ".\n" ;
 			std::cerr << "Model 3 params: " << model3.get_parameters().transpose() << ".\n" ;
 			double const NaN = std::numeric_limits< double >::quiet_NaN() ;
-			double const lr_stat_12 = 2.0 * ( model1.get_value_of_function() - model2.get_value_of_function() ) ;
+
+			using boost::math::cdf ;
+			using boost::math::complement ;
+
+			double exact_HWE_pvalue = SNPHWE( genotype_counts( FEMALES, 1 ), genotype_counts( FEMALES, 0 ), genotype_counts( FEMALES, 2 ) ) ;
+			callback( "HW_females_exact_pvalue", exact_HWE_pvalue ) ;
+
+			double const lr_stat_12 = 2.0 * ( full_model.get_value_of_function() - model2.get_value_of_function() ) ;
 			double p_value_12 = NaN ;
 			if( lr_stat_12 == lr_stat_12 && lr_stat_12 > 0 && lr_stat_12 != std::numeric_limits< double >::infinity() ) {
-				p_value_12 = boost::math::cdf(
-					boost::math::complement(
-						m_chi_squared_2df,
-						lr_stat_12
-					)
-				) ;
-				callback( "sex_differentiation_multinomial_p_value", p_value_12 ) ;
+				p_value_12 = cdf( complement( m_chi_squared_1df, lr_stat_12 ) ) ;
+				callback( "HWE_females_lr_pvalue", p_value_12 ) ;
 			}
+
 			double const lr_stat_23 = 2.0 * ( model2.get_value_of_function() - model3.get_value_of_function() ) ;
 			double p_value_23 = NaN ;
 			if( lr_stat_23 == lr_stat_23 && lr_stat_23 > 0 && lr_stat_23 != std::numeric_limits< double >::infinity() ) {
-				p_value_23 = boost::math::cdf(
-					boost::math::complement(
-						m_chi_squared_1df,
-						lr_stat_23
-					)
-				) ;
-				callback( "HW_multinomial_p_value", p_value_12 ) ;
+				p_value_23 = cdf( complement( m_chi_squared_1df, lr_stat_23 ) ) ;
+				callback( "male_female_lr_pvalue", p_value_23 ) ;
+			}
+
+			double const lr_stat_13 = 2.0 * ( full_model.get_value_of_function() - model3.get_value_of_function() ) ;
+			double p_value_13 = NaN ;
+			if( lr_stat_13 == lr_stat_13 && lr_stat_13 > 0 && lr_stat_13 != std::numeric_limits< double >::infinity() ) {
+				p_value_13 = cdf( complement( m_chi_squared_2df, lr_stat_13 ) ) ;
+				callback( "HWE_all_lr_2df_pvalue", p_value_13 ) ;
 			}
 		}
 	}
