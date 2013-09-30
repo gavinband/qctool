@@ -169,11 +169,13 @@ namespace snp_summary_component {
 				model3.evaluate_at( params ) ;
 			}
 
+#if DEBUG_HWE_COMPUTATION
 			std::cerr << "Genotype counts:\n" << genotype_counts << "\n" ;
 			std::cerr << "Allele counts:\n" << allele_counts << "\n" ;
 			std::cerr << "Model 1 params: " << full_model.get_parameters().transpose() << ".\n" ;
 			std::cerr << "Model 2 params: " << model2.get_parameters().transpose() << ".\n" ;
 			std::cerr << "Model 3 params: " << model3.get_parameters().transpose() << ".\n" ;
+#endif
 			double const NaN = std::numeric_limits< double >::quiet_NaN() ;
 
 			using boost::math::cdf ;
