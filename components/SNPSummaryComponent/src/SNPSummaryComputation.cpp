@@ -125,6 +125,7 @@ namespace snp_summary_component {
 			assert( std::size_t( genotypes.rows() ) == sexes.size() ) ;
 
 			std::map< char, Eigen::VectorXd > counts ;
+			std::map< char, double > null_counts ;
 			counts[ 'm' ] = Eigen::VectorXd::Zero( 3 ) ;
 			counts[ 'f' ] = Eigen::VectorXd::Zero( 3 ) ;
 			counts[ '.' ] = Eigen::VectorXd::Zero( 3 ) ;
@@ -133,6 +134,7 @@ namespace snp_summary_component {
 
 			for( std::size_t i = 0; i < sexes.size(); ++i ) {
 				counts[ sexes[i] ] += genotypes.row( i ) ;
+				null_counts[ sexes[i] ] += ( 1 - genotypes.row(i).sum() ) ;
 				++sample_counts[ sexes[i] ] ;
 #if DEBUG_SNP_SUMMARY_COMPUTATION
 				if( sexes[i] == 'm' && genotypes(i,2) != 0 ) {
@@ -145,23 +147,27 @@ namespace snp_summary_component {
 			callback( "males_B", counts[ 'm' ]( 1 ) ) ;
 
 			if( counts[ 'm' ]( 2 ) != 0 ) {
-				callback( "males_BB", counts[ 'm' ]( 2 ) ) ;
+				callback( "males_incorrect", counts[ 'm' ]( 2 ) ) ;
 #if DEBUG_SNP_SUMMARY_COMPUTATION
 				std::cerr << "!! ( MissingnessComputation::compute_sex_chromosome_counts() ): some males have BB probability!\n" ;
 #endif
 				throw genfile::BadArgumentError( " MissingnessComputation::compute_sex_chromosome_counts()", "genotypes" ) ;
 			}
 
+			callback( "males_NULL", null_counts[ 'm' ] ) ;
+
 			if( chromosome == genfile::Chromosome( "0X" ) ) {
 				callback( "females_AA", counts[ 'f' ]( 0 ) ) ;
 				callback( "females_AB", counts[ 'f' ]( 1 ) ) ;
 				callback( "females_BB", counts[ 'f' ]( 2 ) ) ;
+				callback( "females_NULL", null_counts[ 'f' ] ) ;
 			}
 			
 			if( sample_counts[ '.' ] > 0 ) {
 				callback( "unknown_sex_AA", counts[ '.' ]( 0 ) ) ;
 				callback( "unknown_sex_AB", counts[ '.' ]( 1 ) ) ;
 				callback( "unknown_sex_BB", counts[ '.' ]( 2 ) ) ;
+				callback( "unknown_ploidy_NULL", null_counts[ ',' ] ) ;
 			}
 		}
 		
