@@ -178,6 +178,7 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes(
 				(*genotypes)( males[i], 2 ) = 0 ;
 			}
 		}
+#if DEBUG_PER_VARIANT_COMPUTATION_MANAGER
 		if( bad_males.size() > 0 ) {
 			std::cerr << "At SNP " << snp
 				<< ": genotypes for "
@@ -189,6 +190,7 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes(
 			;
 			
 		}
+#endif
 		callback( "incorrectly_coded_males", int( bad_males.size() ) ) ;
 	}
 	
@@ -212,6 +214,7 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes(
 			}
 		}
 		
+#if DEBUG_PER_VARIANT_COMPUTATION_MANAGER
 		if( bad_females.size() > 0 ) {
 			std::cerr << "At SNP " << snp
 				<< ": genotypes for "
@@ -222,6 +225,7 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes(
 				<< ", have nonzero genotype probabilities.  They will be treated as missing.\n"
 			;
 		}
+#endif
 		
 		callback( "incorrectly_coded_females", int( bad_females.size() ) ) ;
 	}

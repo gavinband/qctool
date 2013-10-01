@@ -184,6 +184,8 @@ namespace snp_summary_component {
 			if( genotype_counts.row( FEMALES ).array().maxCoeff() > 0.5 ) {
 				double exact_HWE_pvalue = SNPHWE( genotype_counts( FEMALES, 1 ), genotype_counts( FEMALES, 0 ), genotype_counts( FEMALES, 2 ) ) ;
 				callback( "HW_females_exact_pvalue", exact_HWE_pvalue ) ;
+			} else {
+				callback( "HW_females_exact_pvalue", genfile::MissingValue() ) ;
 			}
 			
 			double const lr_stat_12 = 2.0 * ( full_model.get_value_of_function() - model2.get_value_of_function() ) ;
