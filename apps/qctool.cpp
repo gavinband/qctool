@@ -34,6 +34,8 @@
 #include "SimpleFileObjectSource.hpp"
 #include "SimpleFileObjectSink.hpp"
 
+#include "db/Error.hpp"
+
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/SNPDataSourceRack.hpp"
@@ -2113,6 +2115,12 @@ private:
 		}
 		catch( genfile::FileNotFoundError const& e ) {
 			get_ui_context().logger() << "\nError: No file matching \"" << e.filespec() << "\" could be found.\n" ;
+			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+		}
+		catch( db::StatementPreparationError const& e ) {
+			get_ui_context().logger() << "!! Error preparing the following db statement:\n  \""
+				<< e.sql()
+				<< "\".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 	}
