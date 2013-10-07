@@ -160,6 +160,13 @@ namespace qcdb {
 				"status TEXT NOT NULL "
 			")"
 		) ;
+		m_connection->run_statement(
+			"CREATE VIEW IF NOT EXISTS AnalysisStatusView AS "
+			"SELECT analysis_id, E.name AS analysis, started, completed, status "
+			"FROM AnalysisStatus A "
+			"INNER JOIN Entity E "
+			"ON E.id == A.analysis_id"
+		) ;
 		construct_statements() ;
 		store_metadata() ;
 	}
@@ -244,7 +251,7 @@ namespace qcdb {
 	}
 
 	db::Connection::RowId DBOutputter::end_analysis( db::Connection::RowId const analysis_id ) const {
-		db::Connection::StatementPtr stmnt = m_connection->get_statement( "UDPATE AnalysisStatus SET completed = ?, status = ? WHERE analysis_id == ?" ) ;
+		db::Connection::StatementPtr stmnt = m_connection->get_statement( "UPDATE AnalysisStatus SET completed = ?, status = ? WHERE analysis_id == ?" ) ;
 		stmnt->bind( 1, appcontext::get_current_time_as_string() ) ;
 		stmnt->bind( 2, "successfully completed" ) ;
 		stmnt->bind( 3, analysis_id ) ;
