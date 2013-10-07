@@ -161,12 +161,10 @@ namespace snp_summary_component {
 				callback( "females_AB", counts[ 'f' ]( 1 ) ) ;
 				callback( "females_BB", counts[ 'f' ]( 2 ) ) ;
 				callback( "females_NULL", null_counts[ 'f' ] ) ;
-			}
 			
-			if( sample_counts[ '.' ] > 0 ) {
-				callback( "unknown_sex_AA", counts[ '.' ]( 0 ) ) ;
-				callback( "unknown_sex_AB", counts[ '.' ]( 1 ) ) ;
-				callback( "unknown_sex_BB", counts[ '.' ]( 2 ) ) ;
+				callback( "unknown_ploidy_AA", counts[ '.' ]( 0 ) ) ;
+				callback( "unknown_ploidy_AB", counts[ '.' ]( 1 ) ) ;
+				callback( "unknown_ploidy_BB", counts[ '.' ]( 2 ) ) ;
 				callback( "unknown_ploidy_NULL", null_counts[ ',' ] ) ;
 			}
 		}
