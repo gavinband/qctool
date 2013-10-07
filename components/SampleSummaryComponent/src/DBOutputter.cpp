@@ -91,6 +91,7 @@ namespace sample_stats {
 			write_data( m_data ) ;
 			m_data.clear() ;
 		}
+		finalise() ;
 	}
 
 	void DBOutputter::store_samples( genfile::CohortIndividualSource const& samples ) {
