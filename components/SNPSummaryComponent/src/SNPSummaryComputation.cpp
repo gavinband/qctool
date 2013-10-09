@@ -97,7 +97,7 @@ namespace snp_summary_component {
 		MissingnessComputation( double call_threshhold = 0.9 ): m_call_threshhold( call_threshhold ) {}
 		void operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, genfile::VariantDataReader&, ResultCallback callback ) {
 			double missingness = double( genotypes.rows() ) - genotypes.array().sum() ;
-			callback( "missing proportion", missingness / double( genotypes.rows() ) ) ;
+			callback( "missing_proportion", missingness / double( genotypes.rows() ) ) ;
 			
 			double missing_calls = 0.0 ;
 			for( int i = 0; i < genotypes.rows(); ++i ) {
@@ -105,7 +105,7 @@ namespace snp_summary_component {
 					++missing_calls ;
 				}
 			}
-			callback( "missing call proportion", missing_calls / double( genotypes.rows() )) ;
+			callback( "missing_call_proportion", missing_calls / double( genotypes.rows() )) ;
 
 			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
 
