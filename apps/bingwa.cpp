@@ -321,6 +321,7 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 
 FrequentistGenomeWideAssociationResults::UniquePtr FrequentistGenomeWideAssociationResults::create(
 	std::vector< genfile::wildcard::FilenameMatch > const& filenames,
+	boost::optional< std::string > const& effect_size_column_regex,
 	std::vector< std::string > const& columns,
 	genfile::SNPIdentifyingDataTest::UniquePtr test,
 	SNPResultCallback result_callback,
@@ -344,10 +345,14 @@ FrequentistGenomeWideAssociationResults::UniquePtr FrequentistGenomeWideAssociat
 
 	FlatFileFrequentistGenomeWideAssociationResults::UniquePtr result ;
 	if( type == "snptest" || type == "unknown" ) {
-		result.reset( new SNPTESTResults( test ) ) ;
+		result.reset( new SNPTESTResults( test ) ) ; 
 	}
 	else if( type == "mmm" ) {
 		result.reset( new MMMResults( test ) ) ;
+	}
+	
+	if( effect_size_column_regex ) {
+		result->set_effect_size_column_regex( effect_size_column_regex.get() ) ;
 	}
 
 	BOOST_FOREACH( std::string const& column, columns ) {
@@ -1992,9 +1997,23 @@ public:
 				}
 			}
 
+			boost::optional< std::string > effect_size_column_regex ;
+			if( options().check( "-effect-size-column-regex" ) ) {
+				std::vector< std::string > values = options().get_values< std::string >( "-effect-size-column-regex" ) ;
+				if( values.size() != cohort_files.size() ) {
+					throw genfile::BadArgumentError(
+						"BingwaApplication::load_data()",
+						"-effect-size-column-regex=\"" + to_string( genfile::string_utils::join( values, " " ) ) + "\"",
+						"Expected " + to_string( cohort_files.size() ) + " values but found " + to_string( values.size() ) + "."
+					) ;
+				}
+				effect_size_column_regex = values[ cohort_i ] ;
+			}
+
 			FrequentistGenomeWideAssociationResults::UniquePtr results
 				= FrequentistGenomeWideAssociationResults::create(
 					genfile::wildcard::find_files_by_chromosome( cohort_files[cohort_i] ),
+					effect_size_column_regex,
 					options().check( "-extra-columns" ) ? options().get_values< std::string >( "-extra-columns" ) : std::vector< std::string >(),
 					genfile::SNPIdentifyingDataTest::UniquePtr( test.release() ),
 					SNPTESTResults::SNPResultCallback(),

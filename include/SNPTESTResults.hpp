@@ -24,7 +24,6 @@ private:
 	std::string m_beta_column_regex ;
 	std::string m_se_column_regex ;
 	std::set< std::string > m_variables ;
-
 	
 	std::set< std::pair< std::string, bool > > get_desired_columns() const ;
 	bool read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const ;
