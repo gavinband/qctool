@@ -51,7 +51,7 @@ std::set< std::pair< std::string, bool > > SNPTESTResults::get_desired_columns()
 			if( where != desired_columns.end() ) {
 				desired_columns.erase( where ) ;
 			}
-			desired_columns.insert( std::make_pair( *i, true ) ) ;
+			desired_columns.insert( std::make_pair( *i, false ) ) ;
 		}
 	}
 	return desired_columns ;
