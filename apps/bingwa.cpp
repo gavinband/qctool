@@ -46,7 +46,7 @@
 #include "SNPTESTResults.hpp"
 #include "MMMResults.hpp"
 
-// #define DEBUG_BINGWA 1
+#define DEBUG_BINGWA 1
 
 namespace globals {
 	std::string const program_name = "bingwa" ;
@@ -589,27 +589,45 @@ namespace impl {
 		return true ;
 	}
 	
-	bool get_betas_and_ses_l_per_study( BingwaComputation::DataGetter const& data_getter, BingwaComputation::Filter filter, Eigen::VectorXd& betas, Eigen::VectorXd& ses, Eigen::VectorXd& non_missingness, int const l ) {
+	bool get_betas_and_covariance_per_study(
+		BingwaComputation::DataGetter const& data_getter,
+		BingwaComputation::Filter filter,
+		Eigen::VectorXd& betas,
+		Eigen::MatrixXd& covariance,
+		Eigen::VectorXd& non_missingness,
+		int const l
+	) {
 		std::size_t N = data_getter.get_number_of_cohorts() ;
-		betas.resize( l*N ) ;
-		ses.resize( l*N ) ;
+
+		betas.setConstant( l*N, l*N, NA ) ;
 		non_missingness.resize( l*N ) ;
+		
+		// Set all covariances to zero unless they are specified below.
+		covariance.setZero( l*N, l*N ) ;
+
 		for( std::size_t i = 0; i < N; ++i ) {
 			non_missingness( i ) = filter( data_getter, i ) ? 1.0 : 0.0 ;
 
 			if( non_missingness( i )) {
-				Eigen::VectorXd this_betas, this_ses ;
+				Eigen::VectorXd this_betas, this_ses, this_covariance ;
 				data_getter.get_betas( i, &this_betas ) ;
 				data_getter.get_ses( i, &this_ses ) ;
-				if( this_betas.size() != l || this_ses.size() != l ) {
+				data_getter.get_covariance_upper_triangle( i, &this_covariance ) ;
+				if( this_betas.size() != l || this_ses.size() != l || this_covariance.size() != ((l-1) * l / 2 ) ) {
 					return false ;
 				}
+				int cov_i = 0 ;
 				for( int j = 0; j < l; ++j ) {
-					int const index = (l*i)+j ;
+					// layout a segment of beta_1's, then a segment of beta_2's, etc.
+					int const index = (j*N)+i; //(l*i)+j ;
 					betas( index ) = this_betas(j) ;
-					ses( index ) = this_ses(j) ;
-					if( betas( index ) != betas( index ) | ses( index ) != ses( index )) {
+					covariance( index, index ) = this_ses(j) * this_ses(j) ;
+					if( this_betas(j) != this_betas(j) || this_ses(j) != this_ses(j) ) {
 						non_missingness( index ) = 0 ;
+					}
+					for( int k = (j+1); k < l; ++k, ++cov_i ) {
+						int const index2 = (k*N)+i; //(l*i)+j ;
+						covariance( index, index2 ) = covariance( index2, index ) = this_covariance( cov_i ) ;
 					}
 				}
 			}
@@ -812,11 +830,11 @@ void ApproximateBayesianMetaAnalysis::operator()(
 	}
 
 	Eigen::VectorXd betas ;
-	Eigen::VectorXd ses ;
+	Eigen::MatrixXd covariance ;
 	Eigen::VectorXd non_missingness ;
 	
 	if(
-		!impl::get_betas_and_ses_l_per_study( data_getter, m_filter, betas, ses, non_missingness, m_degrees_of_freedom )
+		!impl::get_betas_and_covariance_per_study( data_getter, m_filter, betas, covariance, non_missingness, m_degrees_of_freedom )
 		|| non_missingness.sum() == 0
 	) {
 		callback( m_prefix + "/bf", genfile::MissingValue() ) ;
@@ -827,10 +845,10 @@ void ApproximateBayesianMetaAnalysis::operator()(
 		// Make a matrix that will select the rows and columns we want.
 		assert( betas.size() == m_sigma.rows() ) ;
 		
-		int const number_of_included_cohorts = (( m_sigma.diagonal().array() > 0 ).cast< double >() * ( non_missingness.array() > 0 ).cast< double >() ).sum() ;
+		int const number_of_included_effects = (( m_sigma.diagonal().array() > 0 ).cast< double >() * ( non_missingness.array() > 0 ).cast< double >() ).sum() ;
 		
-		if( number_of_included_cohorts > 0 ) {
-			Eigen::MatrixXd prior_selector = Eigen::MatrixXd::Zero( number_of_included_cohorts, betas.size() ) ;
+		if( number_of_included_effects > 0 ) {
+			Eigen::MatrixXd prior_selector = Eigen::MatrixXd::Zero( number_of_included_effects, betas.size() ) ;
 			Eigen::MatrixXd prior ;
 			{
 				int count = 0 ;
@@ -841,13 +859,14 @@ void ApproximateBayesianMetaAnalysis::operator()(
 					} else {
 						// Remove cohorts with missing data or 0 effect size.
 						betas(i) = 0 ;
-						ses(i) = 0 ;
+						covariance.col(i).setZero() ;
+						covariance.row(i).setZero() ;
 					}
 				}
 				
 				prior = prior_selector * m_sigma * prior_selector.transpose() ;
 				betas = prior_selector * betas ;
-				ses = prior_selector * ses ;
+				covariance = prior_selector * covariance * prior_selector.transpose() ;
 				
 #if DEBUG_BINGWA	
 				std::cerr << m_name << ": SNP: " << snp << ".\n" ;
@@ -855,19 +874,17 @@ void ApproximateBayesianMetaAnalysis::operator()(
 				std::cerr << m_name << ": prior before selection is:\n" << m_sigma << "\n" ;
 				std::cerr << m_name << ": prior after selection is:\n" << prior << "\n" ;
 				std::cerr << m_name << ": betas after selection is:\n" << betas.transpose() << "\n" ;
-				std::cerr << m_name << ": ses after selection is:\n" << ses.transpose() << "\n" ;
+				std::cerr << m_name << ": covariance after selection is:\n" << covariance << "\n" ;
 #endif
 			}
 		
-			assert( ses.size() == number_of_included_cohorts ) ;
-			assert( betas.size() == number_of_included_cohorts ) ;
-			assert( prior.rows() == number_of_included_cohorts ) ;
-			assert( prior.cols() == number_of_included_cohorts ) ;
+			assert( covariance.rows() == number_of_included_effects ) ;
+			assert( covariance.cols() == number_of_included_effects ) ;
+			assert( betas.size() == number_of_included_effects ) ;
+			assert( prior.rows() == number_of_included_effects ) ;
+			assert( prior.cols() == number_of_included_effects ) ;
 		
-			Eigen::MatrixXd V = ses.asDiagonal() ;
-			V = V.array().square() ;
-
-			compute_bayes_factor( prior, V, betas, callback ) ;
+			compute_bayes_factor( prior, covariance, betas, callback ) ;
 		}
 	}
 }
@@ -1765,7 +1782,7 @@ public:
 			prior.setZero() ;
 			
 			std::vector< int > used_cohorts( cohort_names.size(), 0 ) ;
-			std::vector< double > group_sds( group_specs.size(), std::numeric_limits< double >::quiet_NaN() ) ;
+			std::vector< double > group_sds( group_specs.size(), NA ) ;
 			std::vector< std::string > group_names( group_specs.size(), "" ) ;
 			std::vector< std::size_t > cohort_group_map( cohort_names.size(), 0 ) ;
 			// Fill in the diagonal blocks, one for each group.
