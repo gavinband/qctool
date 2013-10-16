@@ -36,11 +36,11 @@
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "statfile/BuiltInTypeStatSource.hpp"
+#include "statfile/SNPDataSourceAdapter.hpp"
 #include "qcdb/Storage.hpp"
-#include "components/SNPSummaryComponent/DBOutputter.hpp"
 #include "qcdb/FlatFileOutputter.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
-
+#include "components/SNPSummaryComponent/DBOutputter.hpp"
 #include "FrequentistGenomeWideAssociationResults.hpp"
 #include "SNPTESTResults.hpp"
 #include "MMMResults.hpp"
@@ -166,6 +166,16 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 			options[ "-incl-rsids-per-cohort" ]
 				.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the corresponding cohort."
 					"The i-th value should be a comma-separated list of files containing rsids to exclude from the i-th cohort." )
+				.set_takes_values_until_next_option() 
+				.set_maximum_multiplicity( 100 ) ;
+			options[ "-excl-snps-per-cohort" ]
+				.set_description( "Exclude all SNPs in the given file(s) from the corresponding cohort. "
+					"The i-th value should be a comma-separated list of files containing snps to exclude from the i-th cohort, in the format output by gen-grep." )
+				.set_takes_values_until_next_option() 
+				.set_maximum_multiplicity( 100 ) ;
+			options[ "-incl-snps-per-cohort" ]
+				.set_description( "Exclude all SNPs not in the given file(s) from the corresponding cohort."
+					"The i-th value should be a comma-separated list of files containing rsids to exclude from the i-th cohort, in the format output by gen-grep." )
 				.set_takes_values_until_next_option() 
 				.set_maximum_multiplicity( 100 ) ;
 		
@@ -765,10 +775,15 @@ void ApproximateBayesianMetaAnalysis::operator()(
 				prior = prior_selector * m_sigma * prior_selector.transpose() ;
 				betas = prior_selector * betas ;
 				ses = prior_selector * ses ;
-			
-				//std::cerr << m_name << ": prior selector is:\n" << prior_selector << "\n" ;
-				//std::cerr << m_name << ": prior before selection is:\n" << m_sigma << "\n" ;
-				//std::cerr << m_name << ": prior after selection is:\n" << prior << "\n" ;
+		
+#if DEBUG_BINGWA	
+				std::cerr << m_name << ": SNP: " << snp << ".\n" ;
+				std::cerr << m_name << ": prior selector is:\n" << prior_selector << "\n" ;
+				std::cerr << m_name << ": prior before selection is:\n" << m_sigma << "\n" ;
+				std::cerr << m_name << ": prior after selection is:\n" << prior << "\n" ;
+				std::cerr << m_name << ": betas after selection is:\n" << betas.transpose() << "\n" ;
+				std::cerr << m_name << ": ses after selection is:\n" << ses.transpose() << "\n" ;
+#endif
 			}
 		
 			assert( ses.size() == number_of_included_cohorts ) ;
@@ -806,12 +821,12 @@ namespace impl {
 }
 
 void ApproximateBayesianMetaAnalysis::compute_bayes_factor( Eigen::MatrixXd const& prior, Eigen::MatrixXd const& V, Eigen::VectorXd const& betas, ResultCallback callback ) const {
-	// std::cerr << std::resetiosflags( std::ios::floatfield ) ;
-	// std::cerr << "V = " << V << ".\n" ;
-	// std::cerr << "prior = " << prior << ".\n" ;
-	// std::cerr << "betas = " << betas.transpose() << ".\n" ;
-	// std::cerr << "ses = " << ses.transpose() << ".\n" ;
-	
+#if DEBUG_BINGWA
+	 std::cerr << std::resetiosflags( std::ios::floatfield ) ;
+	 std::cerr << "prior = " << prior << ".\n" ;
+	 std::cerr << "betas = " << betas.transpose() << ".\n" ;
+	 std::cerr << "V = " << V << ".\n" ;
+#endif
 	// I hope LDLT copes with noninvertible matrices.
 	// Maybe it doesn't...but let's find out.
 	Eigen::LDLT< Eigen::MatrixXd > Vsolver( V ) ;
@@ -824,6 +839,12 @@ void ApproximateBayesianMetaAnalysis::compute_bayes_factor( Eigen::MatrixXd cons
 	double const result = constant * std::exp( 0.5 * exponent(0) ) ;
 	
 	callback( m_prefix + "/bf", result ) ;
+
+#if DEBUG_BINGWA
+	std::cerr << "constant = " << constant << ".\n" ;
+	std::cerr << "exponent= " << exponent.transpose() << ".\n" ;
+	std::cerr << "BF = " << result << ".\n" ;
+#endif
 
 	if( m_compute_posterior_mean_and_variance ) {
 		callback( m_prefix + "/posterior_mean", impl::format_matrix( betas - ( V * V_plus_prior_solver.solve( betas ) ) ) ) ;
@@ -1655,6 +1676,13 @@ public:
 					}
 				}
 			}
+		
+			// Finally fill in the lower diagonal
+			for( int row = 1; row < prior.rows(); ++row ) {
+				for( int col = 0; col < row; ++col ) {
+					prior( row, col ) = prior( col, row ) ;
+				}
+			}
 			
 			std::string model_name ;
 			if( model_names ) {
@@ -2149,6 +2177,52 @@ public:
 					snp_filter->include_snps_in_file(
 						filename,
 						genfile::CommonSNPFilter::RSIDs
+					) ;
+				}
+			}
+
+			if( options().check_if_option_was_supplied( "-excl-snps-per-cohort" )) {
+				std::vector< std::string > files = options().get_values< std::string > ( "-excl-snps-per-cohort" ) ;
+				if( files.size() != options().get_values< std::string >( "-data" ).size() ) {
+					throw genfile::BadArgumentError( "BingwaApplication::get_snp_exclusion_filter()", "-excl-snps-per-cohort=\"" + join( files, " " ) + "\"" ) ;
+				}
+				std::vector< std::string > this_cohort_files = split_and_strip_discarding_empty_entries( files[ cohort_i ], ",", " \t" ) ;
+				BOOST_FOREACH( std::string const& filename, this_cohort_files ) {
+					genfile::SNPDataSource::UniquePtr source ;
+					source.reset(
+						new statfile::SNPDataSourceAdapter(
+							statfile::BuiltInTypeStatSource::open(
+								genfile::wildcard::find_files_by_chromosome( filename )
+							)
+						)
+					) ;
+
+					snp_filter->exclude_snps(
+						source->list_snps(),
+						genfile::SNPIdentifyingData::CompareFields( options().get_value< std::string >( "-snp-match-fields" ) )
+					) ;
+				}
+			}
+
+			if( options().check_if_option_was_supplied( "-incl-snps-per-cohort" )) {
+				std::vector< std::string > files = options().get_values< std::string > ( "-incl-snps-per-cohort" ) ;
+				if( files.size() != options().get_values< std::string >( "-data" ).size() ) {
+					throw genfile::BadArgumentError( "BingwaApplication::get_snp_exclusion_filter()", "-incl-snps-per-cohort=\"" + join( files, " " ) + "\"" ) ;
+				}
+				std::vector< std::string > this_cohort_files = split_and_strip_discarding_empty_entries( files[ cohort_i ], ",", " \t" ) ;
+				BOOST_FOREACH( std::string const& filename, this_cohort_files ) {
+					genfile::SNPDataSource::UniquePtr source ;
+					source.reset(
+						new statfile::SNPDataSourceAdapter(
+							statfile::BuiltInTypeStatSource::open(
+								genfile::wildcard::find_files_by_chromosome( filename )
+							)
+						)
+					) ;
+
+					snp_filter->include_snps(
+						source->list_snps(),
+						genfile::SNPIdentifyingData::CompareFields( options().get_value< std::string >( "-snp-match-fields" ) )
 					) ;
 				}
 			}
