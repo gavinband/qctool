@@ -599,10 +599,8 @@ namespace impl {
 	) {
 		std::size_t N = data_getter.get_number_of_cohorts() ;
 
-		betas.setConstant( l*N, l*N, NA ) ;
-		non_missingness.resize( l*N ) ;
-		
-		// Set all covariances to zero unless they are specified below.
+		betas.setConstant( l*N, NA ) ;
+		non_missingness.setConstant( l*N, 1 ) ;
 		covariance.setZero( l*N, l*N ) ;
 
 		for( std::size_t i = 0; i < N; ++i ) {
@@ -616,9 +614,10 @@ namespace impl {
 				if( this_betas.size() != l || this_ses.size() != l || this_covariance.size() != ((l-1) * l / 2 ) ) {
 					return false ;
 				}
+				// beta_1's for all pops go in one block (to match priors).
+				// then beta_2's for all pops, etc.
 				int cov_i = 0 ;
 				for( int j = 0; j < l; ++j ) {
-					// layout a segment of beta_1's, then a segment of beta_2's, etc.
 					int const index = (j*N)+i; //(l*i)+j ;
 					betas( index ) = this_betas(j) ;
 					covariance( index, index ) = this_ses(j) * this_ses(j) ;
@@ -847,6 +846,12 @@ void ApproximateBayesianMetaAnalysis::operator()(
 		
 		int const number_of_included_effects = (( m_sigma.diagonal().array() > 0 ).cast< double >() * ( non_missingness.array() > 0 ).cast< double >() ).sum() ;
 		
+#if DEBUG_BINGWA	
+			std::cerr << m_name << ": SNP: " << snp << ".\n" ;
+			std::cerr << m_name << ": prior before selection is:\n" << m_sigma << "\n" ;
+			std::cerr << m_name << ": betas before selection is:\n" << betas.transpose() << "\n" ;
+			std::cerr << m_name << ": covariance before selection is:\n" << covariance << "\n" ;
+#endif
 		if( number_of_included_effects > 0 ) {
 			Eigen::MatrixXd prior_selector = Eigen::MatrixXd::Zero( number_of_included_effects, betas.size() ) ;
 			Eigen::MatrixXd prior ;
@@ -869,9 +874,7 @@ void ApproximateBayesianMetaAnalysis::operator()(
 				covariance = prior_selector * covariance * prior_selector.transpose() ;
 				
 #if DEBUG_BINGWA	
-				std::cerr << m_name << ": SNP: " << snp << ".\n" ;
 				std::cerr << m_name << ": prior selector is:\n" << prior_selector << "\n" ;
-				std::cerr << m_name << ": prior before selection is:\n" << m_sigma << "\n" ;
 				std::cerr << m_name << ": prior after selection is:\n" << prior << "\n" ;
 				std::cerr << m_name << ": betas after selection is:\n" << betas.transpose() << "\n" ;
 				std::cerr << m_name << ": covariance after selection is:\n" << covariance << "\n" ;
