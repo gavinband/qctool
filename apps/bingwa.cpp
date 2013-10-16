@@ -80,15 +80,6 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 					.set_minimum_multiplicity( 0 )
 					.set_maximum_multiplicity( 100 )
 				;
-			options[ "-effect-column-regex" ]
-				.set_description( "Specify a regular expression identifying the effect size column in each cohort."
-					" (Standard error columns will then be found using a regular expression obtained by replacing \"beta\" with \"se\".)"
-					" If this option is specified, there must be one value specified per cohort."
-					" The default behaviour is to use a regular expression of the form \".*beta_1.*\", which is suitable for most files produced by SNPTEST." )
-				.set_takes_values_until_next_option()
-				.set_minimum_multiplicity( 0 )
-				.set_maximum_multiplicity( 100 )
-			;
 			
 			options[ "-snp-match-fields" ]
 				.set_description( "Use this option to specify a comma-separated list of SNP-identifying fields that should be used "
@@ -392,6 +383,7 @@ struct BingwaComputation: public boost::noncopyable {
 		virtual void get_counts( std::size_t, Eigen::VectorXd* result ) const = 0 ;
 		virtual void get_betas( std::size_t i, Eigen::VectorXd* result ) const = 0 ;
 		virtual void get_ses( std::size_t i, Eigen::VectorXd* result  ) const = 0 ;
+		virtual void get_covariance_upper_triangle( std::size_t i, Eigen::VectorXd* result  ) const = 0 ;
 		virtual void get_pvalue( std::size_t i, double* result ) const = 0 ;
 		virtual void get_info( std::size_t i, double* result ) const = 0 ;
 		virtual void get_maf( std::size_t i, double* result ) const = 0 ;
@@ -399,6 +391,8 @@ struct BingwaComputation: public boost::noncopyable {
 	} ;
 
 	typedef boost::function< bool ( DataGetter const&, int i ) > Filter ;
+	
+	virtual void set_number_of_effect_parameters( int const d ) = 0 ;
 	virtual void get_variables( boost::function< void ( std::string ) > ) const = 0 ;
 	virtual void operator()(
 		SNPIdentifyingData2 const&,
@@ -415,17 +409,26 @@ public:
 	
 public:
 	PerCohortValueReporter( std::vector< std::string > const& cohort_names ):
-		m_cohort_names( cohort_names )
+		m_cohort_names( cohort_names ),
+		m_degrees_of_freedom( -1 )
 	{}
 	
 	void add_variable( std::string const& variable ) {
 		m_extra_variables.insert( variable ) ;
 	}
 	
+	void set_number_of_effect_parameters( int const d ) {
+		m_degrees_of_freedom = d ;
+	}
+	
 	void get_variables( boost::function< void ( std::string ) > callback ) const {
+		using genfile::string_utils::to_string ;
+		
 		std::size_t const N = m_cohort_names.size() ;
 		for( std::size_t i = 0; i < N; ++i ) {
 			std::string prefix = m_cohort_names[ i ] + ":" ;
+			callback( prefix + "A" ) ;
+			callback( prefix + "B" ) ;
 			callback( prefix + "AA" ) ;
 			callback( prefix + "AB" ) ;
 			callback( prefix + "BB" ) ;
@@ -433,8 +436,16 @@ public:
 			callback( prefix + "B_allele_frequency" ) ;
 			callback( prefix + "maf" ) ;
 
-			callback( prefix + "beta_1" ) ;
-			callback( prefix + "se_1" ) ;
+			for( int i = 0; i < m_degrees_of_freedom; ++i ) {
+				callback( prefix + "beta_" + to_string( i+1 ) ) ;
+				callback( prefix + "se_" + to_string( i+1 ) ) ;
+			}
+			for( int i = 0; i < m_degrees_of_freedom; ++i ) {
+				for( int j = i+1; j < m_degrees_of_freedom; ++j ) {
+					callback( prefix + "cov_" + to_string( i+1 ) + "," + to_string( j+1) ) ;
+				}
+			}
+			
 			callback( prefix + "pvalue" ) ;
 			callback( prefix + "info" ) ;
 
@@ -454,31 +465,48 @@ public:
 			if( data_getter.is_non_missing( i ) ) {
 				Eigen::VectorXd betas ;
 				Eigen::VectorXd ses ;
+				Eigen::VectorXd covariance ;
 				Eigen::VectorXd counts ;
 				double pvalue ;
 				double info ;
 				double maf ;
 				data_getter.get_betas( i, &betas ) ;
 				data_getter.get_ses( i, &ses ) ;
+				data_getter.get_covariance_upper_triangle( i, &covariance ) ;
+				
 				data_getter.get_counts( i, &counts ) ;
 				data_getter.get_pvalue( i, &pvalue ) ;
 				data_getter.get_info( i, &info ) ;
 				data_getter.get_maf( i, &maf ) ;
 
-				assert( counts.size() == 4 ) ;
+				assert( counts.size() == 6 ) ;
 				using genfile::string_utils::to_string ;
 				std::string prefix = m_cohort_names[ i ] + ":" ;
-				callback( prefix + "AA", counts(0) ) ;
-				callback( prefix + "AB", counts(1) ) ;
-				callback( prefix + "BB", counts(2) ) ;
-				callback( prefix + "NULL", counts(3) ) ;
-				callback( prefix + "B_allele_frequency", ( 2.0 * counts(2) + counts(1) ) / ( 2.0 * counts.head(3).sum() ) ) ;
+				callback( prefix + "A", counts(0) ) ;
+				callback( prefix + "B", counts(1) ) ;
+				callback( prefix + "AA", counts(2) ) ;
+				callback( prefix + "AB", counts(3) ) ;
+				callback( prefix + "BB", counts(4) ) ;
+				callback( prefix + "NULL", counts(5) ) ;
+				callback( prefix + "B_allele_frequency",  ( counts(1) + counts(3) + 2 * counts(4)) / ( counts(0) + counts(1) + 2 * ( counts.segment(2,3).sum() ) ) ) ;
 				callback( prefix + "maf", maf ) ;
 				
 				assert( betas.size() == ses.size() ) ;
+				assert( covariance.size() == ( betas.size() - 1 ) * betas.size() / 2 ) ;
 				for( int j = 0; j < betas.size(); ++j ) {
 					callback( prefix + "beta_" + to_string( j+1 ), betas(j) ) ;
+				}
+				for( int j = 0; j < betas.size(); ++j ) {
 					callback( prefix + "se_" + to_string( j+1 ), ses(j) ) ;
+				}
+				{
+					int index = 0 ;
+					for( int j = 0; j < betas.size(); ++j ) {
+						for( int k = j+1; k < betas.size(); ++k, ++index ) {
+							callback( prefix + "cov_" + to_string(j+1) + "," + to_string(k+1), covariance( index ) ) ;
+						}
+					}
+					assert( index == covariance.size() ) ;
 				}
 				callback( prefix + "pvalue", pvalue ) ;
 				callback( prefix + "info", info ) ;
@@ -504,6 +532,7 @@ public:
 	private:
 		std::vector< std::string > const m_cohort_names ;
 		std::set< std::string > m_extra_variables ;
+		int m_degrees_of_freedom ;
 } ;
 
 namespace impl {
@@ -530,7 +559,10 @@ namespace impl {
 	}
 	
 	bool get_betas_and_ses_one_per_study( BingwaComputation::DataGetter const& data_getter, BingwaComputation::Filter filter, Eigen::VectorXd& betas, Eigen::VectorXd& ses, Eigen::VectorXd& non_missingness ) {
-		std::size_t N = betas.size() ;
+		std::size_t N = data_getter.get_number_of_cohorts() ;
+		betas.resize( N ) ;
+		ses.resize( N ) ;
+		non_missingness.resize( 2 * N ) ;
 		for( std::size_t i = 0; i < N; ++i ) {
 			non_missingness( i ) = filter( data_getter, i ) ? 1.0 : 0.0 ;
 
@@ -556,6 +588,34 @@ namespace impl {
 		return true ;
 	}
 	
+	bool get_betas_and_ses_l_per_study( BingwaComputation::DataGetter const& data_getter, BingwaComputation::Filter filter, Eigen::VectorXd& betas, Eigen::VectorXd& ses, Eigen::VectorXd& non_missingness, int const l ) {
+		std::size_t N = data_getter.get_number_of_cohorts() ;
+		betas.resize( l*N ) ;
+		ses.resize( l*N ) ;
+		non_missingness.resize( l*N ) ;
+		for( std::size_t i = 0; i < N; ++i ) {
+			non_missingness( i ) = filter( data_getter, i ) ? 1.0 : 0.0 ;
+
+			if( non_missingness( i )) {
+				Eigen::VectorXd this_betas, this_ses ;
+				data_getter.get_betas( i, &this_betas ) ;
+				data_getter.get_ses( i, &this_ses ) ;
+				if( this_betas.size() != l || this_ses.size() != l ) {
+					return false ;
+				}
+				for( int j = 0; j < l; ++j ) {
+					int const index = (2*i)+j ;
+					betas( index ) = this_betas(j) ;
+					ses( index ) = this_ses(j) ;
+					if( betas( index ) != betas( index ) | ses( index ) != ses( index )) {
+						non_missingness( index ) = 0 ;
+					}
+				}
+			}
+		}
+		return true ;
+	}
+
 	std::string serialise( Eigen::VectorXd const& vector ) {
 		std::ostringstream ostr ;
 		for( int i = 0; i < vector.size(); ++i ) {
@@ -581,12 +641,17 @@ struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {
 	typedef std::auto_ptr< FixedEffectFrequentistMetaAnalysis > UniquePtr ;
 	
 	FixedEffectFrequentistMetaAnalysis():
-		m_filter( &impl::basic_missingness_filter )
+		m_filter( &impl::basic_missingness_filter ),
+		m_degrees_of_freedom( -1 )
 	{}
 	
 	void set_filter( Filter filter ) {
 		assert( filter ) ;
 		m_filter = filter ;
+	}
+	
+	void set_number_of_effect_parameters( int const d ) {
+		m_degrees_of_freedom = d ;
 	}
 
 	void get_variables( boost::function< void ( std::string ) > callback ) const {
@@ -650,6 +715,7 @@ struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {
 	}
 private:
 	Filter m_filter ;
+	int m_degrees_of_freedom ;
 } ;
 
 //
@@ -687,13 +753,18 @@ struct ApproximateBayesianMetaAnalysis: public BingwaComputation {
 		m_prefix( "ApproximateBayesianMetaAnalysis/" + name ),
 		m_sigma( sigma ),
 		m_compute_posterior_mean_and_variance( false ),
-		m_filter( &impl::basic_missingness_filter )
+		m_filter( &impl::basic_missingness_filter ),
+		m_degrees_of_freedom( -1 )
 	{
 		assert( m_sigma.rows() == m_sigma.cols() ) ;
 	}
 
 	void set_filter( Filter filter ) {
 		m_filter = filter ;
+	}
+
+	void set_number_of_effect_parameters( int const d ) {
+		m_degrees_of_freedom = d ;
 	}
 
 	void get_variables( boost::function< void ( std::string ) > callback ) const {
@@ -723,6 +794,7 @@ private:
 	Eigen::MatrixXd const m_sigma ;
 	bool const m_compute_posterior_mean_and_variance ;
 	Filter m_filter ;
+	int m_degrees_of_freedom ;
 	
 	void compute_bayes_factor( Eigen::MatrixXd const& prior, Eigen::MatrixXd const& V, Eigen::VectorXd const& betas, ResultCallback callback ) const ;
 
@@ -738,9 +810,9 @@ void ApproximateBayesianMetaAnalysis::operator()(
 		return ;
 	}
 
-	Eigen::VectorXd betas = Eigen::VectorXd::Constant( N, NA ) ;
-	Eigen::VectorXd ses = Eigen::VectorXd::Constant( N, NA ) ;
-	Eigen::VectorXd non_missingness = Eigen::VectorXd::Constant( N, NA ) ;
+	Eigen::VectorXd betas ;
+	Eigen::VectorXd ses ;
+	Eigen::VectorXd non_missingness ;
 	
 	if(
 		!impl::get_betas_and_ses_one_per_study( data_getter, m_filter, betas, ses, non_missingness )
@@ -771,11 +843,11 @@ void ApproximateBayesianMetaAnalysis::operator()(
 						ses(i) = 0 ;
 					}
 				}
-			
+				
 				prior = prior_selector * m_sigma * prior_selector.transpose() ;
 				betas = prior_selector * betas ;
 				ses = prior_selector * ses ;
-		
+				
 #if DEBUG_BINGWA	
 				std::cerr << m_name << ": SNP: " << snp << ".\n" ;
 				std::cerr << m_name << ": prior selector is:\n" << prior_selector << "\n" ;
@@ -889,6 +961,8 @@ public:
 		m_weights[ model ] = weight ;
 	}
 	
+	void set_number_of_effect_parameters( int const d ) {}
+
 	void get_variables( boost::function< void ( std::string ) > callback ) const {
 		callback( m_name ) ;
 	}
@@ -990,6 +1064,14 @@ struct BingwaProcessor: public boost::noncopyable
 		m_cohorts.push_back( results ) ;
 	}
 	
+	std::size_t number_of_cohorts() const {
+		return m_cohorts.size() ;
+	}
+
+	FrequentistGenomeWideAssociationResults const& get_cohort( std::size_t i ) const {
+		return m_cohorts[i] ;
+	}
+	
 	void summarise( appcontext::UIContext& ui_context ) {
 		using genfile::string_utils::to_string ;
 
@@ -1004,7 +1086,6 @@ struct BingwaProcessor: public boost::noncopyable
 				double info ;
 				double frequency ;
 				m_cohorts[i].get_info( snp_i, &info ) ;
-				m_cohorts[i].get_frequency( snp_i, &frequency ) ;
 				ui_context.logger() << "     " << m_cohorts[i].get_SNP( snp_i ) << " (frequency = " << frequency << ", info = " << info << ")\n";
 			}
 		}
@@ -1030,6 +1111,12 @@ struct BingwaProcessor: public boost::noncopyable
 	
 	void add_computation( std::string const& name, BingwaComputation::UniquePtr computation ) {
 		m_computations.push_back( computation ) ;
+	}
+
+	void set_number_of_effect_parameters( int const d ) {
+		for( std::size_t i = 0; i < m_computations.size(); ++i ) {
+			m_computations[i].set_number_of_effect_parameters( d ) ;
+		}
 	}
 
 	void get_variables( boost::function< void ( std::string const& ) > callback ) const {
@@ -1100,7 +1187,10 @@ private:
 			if( is_non_missing( i ) ) {
 				m_cohorts[i].get_counts( m_indices[i]->index, result ) ;
 				if( m_indices[i]->flip ) {
-					result->reverseInPlace() ;
+					// Swap genotype counts for haploid:
+					result->segment( 0, 2 ).reverseInPlace() ;
+					// ...and diploid samples:
+					result->segment( 2, 3 ).reverseInPlace() ;
 				}
 			}
 		}
@@ -1115,6 +1205,11 @@ private:
 		void get_ses( std::size_t i, Eigen::VectorXd* result ) const {
 			if( is_non_missing( i ) ) {
 				m_cohorts[i].get_ses( m_indices[i]->index, result ) ;
+			}
+		}
+		void get_covariance_upper_triangle( std::size_t i, Eigen::VectorXd* result ) const {
+			if( is_non_missing( i ) ) {
+				m_cohorts[i].get_covariance_upper_triangle( m_indices[i]->index, result ) ;
 			}
 		}
 		void get_pvalue( std::size_t i, double* result ) const {
@@ -1351,7 +1446,7 @@ public:
 				"PerCohortValueReporter",
 				BingwaComputation::create( "PerCohortValueReporter", cohort_names, options() )
 			) ;
-
+		
 			if( options().check( "-no-meta-analysis" )) {
 				// No more computations.
 			}
@@ -1393,7 +1488,8 @@ public:
 					
 					// Now set up an average bayes factor
 					// Currently this must be added after the computations above in order
-					// to be fed data before the mean is computed.
+					// that it is fed data (via the accumulate() callback) before the mean is
+					// computed.
 					{
 						ValueAccumulator::UniquePtr mean_bf(
 							new ValueAccumulator( "ApproximateBayesianMetaAnalysis/mean_bf" )
@@ -1424,6 +1520,11 @@ public:
 				}
 			}
 		}
+		
+		m_processor->set_number_of_effect_parameters(
+			m_processor->get_cohort(0).get_number_of_effect_parameters()
+		) ;
+		
 		m_processor->get_variables(
 			boost::bind(
 				&qcdb::Storage::add_variable,

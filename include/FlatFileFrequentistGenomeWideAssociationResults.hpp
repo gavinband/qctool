@@ -35,8 +35,10 @@ public:
 	std::size_t get_number_of_SNPs() const ;
 
 	genfile::SNPIdentifyingData2 const& get_SNP( std::size_t snp_i ) const ;
+	int const get_number_of_effect_parameters() const ;
 	void get_betas( std::size_t snp_i, Eigen::VectorXd* result ) const ;
 	void get_ses( std::size_t snp_i, Eigen::VectorXd* result ) const ;
+	void get_covariance_upper_triangle( std::size_t snp_i, Eigen::VectorXd* result ) const ; 
 	void get_pvalue( std::size_t snp_i, double* result ) const ;
 	void get_counts( std::size_t snp_i, Eigen::VectorXd* result ) const ;
 	void get_info( std::size_t snp_i, double* result ) const ;
@@ -51,8 +53,10 @@ protected:
 	typedef boost::bimap< std::string, std::size_t > ColumnMap ;
 	
 	std::vector< genfile::SNPIdentifyingData2 > m_snps ;
+	int m_degrees_of_freedom ;
 	Eigen::MatrixXf m_betas ;
 	Eigen::MatrixXf m_ses ;
+	Eigen::MatrixXf m_covariance ;
 	Eigen::VectorXf m_pvalues ;
 	Eigen::VectorXf m_info ;
 	Eigen::VectorXf m_maf ;
