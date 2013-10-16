@@ -604,7 +604,7 @@ namespace impl {
 					return false ;
 				}
 				for( int j = 0; j < l; ++j ) {
-					int const index = (2*i)+j ;
+					int const index = (l*i)+j ;
 					betas( index ) = this_betas(j) ;
 					ses( index ) = this_ses(j) ;
 					if( betas( index ) != betas( index ) | ses( index ) != ses( index )) {
@@ -815,7 +815,7 @@ void ApproximateBayesianMetaAnalysis::operator()(
 	Eigen::VectorXd non_missingness ;
 	
 	if(
-		!impl::get_betas_and_ses_one_per_study( data_getter, m_filter, betas, ses, non_missingness )
+		!impl::get_betas_and_ses_l_per_study( data_getter, m_filter, betas, ses, non_missingness, m_degrees_of_freedom )
 		|| non_missingness.sum() == 0
 	) {
 		callback( m_prefix + "/bf", genfile::MissingValue() ) ;
@@ -1050,7 +1050,8 @@ struct BingwaProcessor: public boost::noncopyable
 	
 	BingwaProcessor( genfile::SNPIdentifyingData2::CompareFields const& compare_fields ):
 		m_snps( compare_fields ),
-		m_flip_alleles_if_necessary( false )
+		m_flip_alleles_if_necessary( false ),
+		m_number_of_effect_parameters( -1 )
 	{
 	}
 	
@@ -1111,12 +1112,15 @@ struct BingwaProcessor: public boost::noncopyable
 	
 	void add_computation( std::string const& name, BingwaComputation::UniquePtr computation ) {
 		m_computations.push_back( computation ) ;
+		m_computations.back().set_number_of_effect_parameters( m_number_of_effect_parameters ) ;
 	}
 
 	void set_number_of_effect_parameters( int const d ) {
-		for( std::size_t i = 0; i < m_computations.size(); ++i ) {
-			m_computations[i].set_number_of_effect_parameters( d ) ;
-		}
+		m_number_of_effect_parameters = d ;
+	}
+
+	int const get_number_of_effect_parameters() const {
+		return m_number_of_effect_parameters ;
 	}
 
 	void get_variables( boost::function< void ( std::string const& ) > callback ) const {
@@ -1148,6 +1152,7 @@ struct BingwaProcessor: public boost::noncopyable
 private:
 	std::vector< std::string > m_cohort_names ;
 	boost::ptr_vector< FrequentistGenomeWideAssociationResults > m_cohorts ;
+	int m_number_of_effect_parameters ;
 	boost::ptr_vector< BingwaComputation > m_computations ;
 	struct SnpMatch {
 	public:
@@ -1172,6 +1177,7 @@ private:
 	
 	ResultSignal m_result_signal ;
 
+private:
 	struct DataGetter: public BingwaComputation::DataGetter {
 		DataGetter(
 			boost::ptr_vector< FrequentistGenomeWideAssociationResults > const& cohorts,
@@ -1238,6 +1244,7 @@ private:
 			boost::ptr_vector< FrequentistGenomeWideAssociationResults > const& m_cohorts ;
 			std::vector< OptionalSnpMatch > const& m_indices ;
 	} ;
+
 private:
 	void unsafe_setup( appcontext::UIContext& ui_context ) {
 		link_data( ui_context ) ;
@@ -1520,10 +1527,6 @@ public:
 				}
 			}
 		}
-		
-		m_processor->set_number_of_effect_parameters(
-			m_processor->get_cohort(0).get_number_of_effect_parameters()
-		) ;
 		
 		m_processor->get_variables(
 			boost::bind(
@@ -2152,6 +2155,21 @@ public:
 			// summarise right now so as to see memory used.
 			get_ui_context().logger() << "Cohort " << (cohort_i+1) << " summary: " << results->get_summary() << ".\n" ;
 			
+			if( cohort_i == 0 ) {
+				m_processor->set_number_of_effect_parameters( results->get_number_of_effect_parameters() ) ;
+			}
+			else if( results->get_number_of_effect_parameters() != m_processor->get_number_of_effect_parameters() ) {
+				throw genfile::MalformedInputError(
+					cohort_files[ cohort_i ],
+					"Number of effect parameters in cohort " + to_string( cohort_i+1 )
+						+ " ("
+						+ to_string( results->get_number_of_effect_parameters() )
+						+ ") does not match that in cohort 1 ("
+						+ to_string( m_processor->get_number_of_effect_parameters() )
+						+ ")",
+					0
+				) ;
+			}
 			m_processor->add_cohort( "cohort_" + to_string( cohort_i+1 ), results ) ;
 		}
 	}
