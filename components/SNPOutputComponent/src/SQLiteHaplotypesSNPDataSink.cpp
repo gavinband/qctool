@@ -115,6 +115,7 @@ namespace {
 				m_buf_end_p[ eUBJSON ] = &(m_buffers[ eUBJSON ][0]) + m_buffers[ eUBJSON ].size() ;
 				std::string const encoding_name = "ubjson" ;
 				m_buffers[ eUBJSON ][0] = 's' ;
+				++m_buf_p[ eUBJSON ] ;
 				m_buf_p[ eUBJSON ] = genfile::write_big_endian_integer( m_buf_p[ eUBJSON ], m_buf_end_p[ eUBJSON ], static_cast< int16_t >( encoding_name.size() )) ;
 				m_buf_p[ eUBJSON ] = std::copy( encoding_name.begin(), encoding_name.end(), m_buf_p[ eUBJSON ] ) ;
 				// Write the UBJSON array marker
@@ -128,6 +129,7 @@ namespace {
 				m_buf_end_p[ eBITPACK ] = &(m_buffers[ eBITPACK ][0]) + m_buffers[ eBITPACK ].size() ;
 				std::string const encoding_name = "bitpack" ;
 				m_buffers[ eBITPACK ][0] = 's' ;
+				++m_buf_p[ eBITPACK ] ;
 				m_buf_p[ eBITPACK ] = genfile::write_big_endian_integer( m_buf_p[ eBITPACK ], m_buf_end_p[ eBITPACK ], static_cast< int16_t >( encoding_name.size() )) ;
 				m_buf_p[ eBITPACK ] = std::copy( encoding_name.begin(), encoding_name.end(), m_buf_p[ eBITPACK ] ) ;
 				m_bitpack_index = 0 ;
