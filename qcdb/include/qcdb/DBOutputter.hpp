@@ -69,7 +69,6 @@ namespace qcdb {
 		db::Connection::StatementPtr m_insert_variant_statement ;
 		db::Connection::StatementPtr m_find_variant_identifier_statement ;
 		db::Connection::StatementPtr m_insert_variant_identifier_statement ;
-		db::Connection::StatementPtr m_insert_summarydata_statement ;
 		db::Connection::RowId m_analysis_id ;
 		db::Connection::RowId m_is_a ;
 		db::Connection::RowId m_used_by ;

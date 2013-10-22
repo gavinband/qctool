@@ -54,6 +54,8 @@ namespace snp_summary_component {
 		db::Connection::RowId m_variable_id ;
 		typedef std::vector< boost::tuple< genfile::SNPIdentifyingData2, std::string, genfile::VariantEntry > > Data ;
 		Data m_data ;
+		
+		db::Connection::StatementPtr m_insert_summarydata_statement ;
 
 	private:
 		void write_data( Data const& data ) ;
@@ -63,6 +65,12 @@ namespace snp_summary_component {
 			std::string const& variable,
 			genfile::VariantEntry const& value
 		) ;
+		
+		void insert_summary_data(
+			db::Connection::RowId snp_id,
+			db::Connection::RowId variable_id,
+			genfile::VariantEntry const& value
+		) const ;
 	} ;
 }
 

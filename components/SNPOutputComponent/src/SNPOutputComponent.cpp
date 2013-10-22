@@ -130,6 +130,7 @@ namespace impl {
 	}
 
 	void SNPOutputter::end_processing_snps() {
+		m_sink->finalise() ;
 		if( m_index.get() ) {
 			m_index->finalise() ;
 		}

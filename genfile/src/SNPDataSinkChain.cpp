@@ -109,4 +109,11 @@ namespace genfile {
 			info
 		) ;
 	}
+	
+	void SNPDataSinkChain::finalise_impl() {
+		for( std::size_t i = 0; i < m_sinks.size(); ++i ) {
+			m_sinks[i]->finalise() ;
+		}
+	}
+	
 }

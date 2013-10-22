@@ -91,6 +91,7 @@ namespace genfile {
 			Info const& info = Info()
 		) ;
 		
+		SNPDataSink& finalise() ;
 		
 
 	public:
@@ -139,6 +140,8 @@ namespace genfile {
 			Info const& info
 		) ;
 
+		virtual void finalise_impl() {}
+		
 	private:
 
 		uint32_t m_number_of_samples ;
