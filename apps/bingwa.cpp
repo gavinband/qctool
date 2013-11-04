@@ -46,7 +46,7 @@
 #include "SNPTESTResults.hpp"
 #include "MMMResults.hpp"
 
-#define DEBUG_BINGWA 1
+// #define DEBUG_BINGWA 1
 
 namespace globals {
 	std::string const program_name = "bingwa" ;
@@ -231,6 +231,22 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 		
 			options[ "-no-meta-analysis" ]
 				.set_description( "Don't do a fixed effect meta-analysis.  Instead, just match up SNPs and store per-cohort values." ) ;
+
+			options[ "-define-sd-set" ]
+				.set_description( "Define set(s) of standard deviations to use in prior specifications. "
+					"The value should be a whitespace-separated list of elements of the form "
+					"\"[name of set]=[sd1],[sd2],[sd3]...\"." )
+				.set_takes_values_until_next_option()
+				.set_minimum_multiplicity( 0 )
+				.set_maximum_multiplicity( 1 ) ;
+
+			options[ "-define-rho-set" ]
+				.set_description( "Define set(s) of correlations to use in prior specifications. "
+					"The value should be a whitespace-separated list of elements of the form "
+					"\"[name of set]=[value],[value],[value]...\"." )
+				.set_takes_values_until_next_option()
+				.set_minimum_multiplicity( 0 )
+				.set_maximum_multiplicity( 1 ) ;
 			
 			options[ "-simple-prior" ]
 				.set_description( "Specify a model of the form \"rho=[r]/sd=[s]\" giving a correlation matrix of the form\n"
@@ -314,8 +330,8 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 
 			options.option_implies_option( "-complex-prior", "-complex-prior-name" ) ;
 			options.option_implies_option( "-complex-prior-name", "-complex-prior" ) ;
-			options.option_implies_option( "-group-prior", "-define-group" ) ;
-			options.option_implies_option( "-group-specific-prior", "-define-group" ) ;
+//			options.option_implies_option( "-group-prior", "-define-group" ) ;
+//			options.option_implies_option( "-group-specific-prior", "-define-group" ) ;
 			options.option_implies_option( "-group-specific-prior-name", "-group-specific-prior" ) ;
 		}
 	}
@@ -1371,7 +1387,8 @@ private:
 struct BingwaApplication: public appcontext::ApplicationContext {
 public:
 	typedef std::map< std::string, std::vector< std::string > > GroupDefinition ;
-	
+	typedef std::map< std::string, std::vector< std::string > > ValueListSet ;
+
 public:
 	BingwaApplication( int argc, char **argv ):
 		appcontext::ApplicationContext(
@@ -1600,46 +1617,76 @@ public:
 		}
 		
 		for( std::size_t i = 0; i < model_specs.size(); ++i ) {
-			boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > rho_and_sd = parse_rho_and_sd( model_specs[i] ) ;
-			if( int( rho_and_sd.get<0>().size() ) != m_processor->get_number_of_effect_parameters() ) {
-				throw genfile::BadArgumentError(
-					"BingwaProcessor::get_simple_priors()",
-					"model_spec=\"" + model_specs[i] + "\"",
-					"In model spec \"" + model_specs[i] + "\", number of correlations specified ("
-					+ to_string( rho_and_sd.get<0>().size() )
-					+ ") does not match number of effect size parameters (" + to_string( m_processor->get_number_of_effect_parameters() ) + ")"
-				) ;
-			}
-
-			std::string model_name ;
-			if( model_names ) {
-				model_name = model_names.get()[i] ;
-			} else {
-				model_name = "rho=" + join( rho_and_sd.get<0>(), " " ) ;
-			}
-			
-			{
-				int const N = m_processor->get_number_of_cohorts() ;
-				int const D = m_processor->get_number_of_effect_parameters() ;
-				Eigen::MatrixXd prior = Eigen::MatrixXd::Zero( N * D, N * D ) ;
-
-				for( int block_i = 0; block_i < D; ++block_i ) {
-					prior.block( block_i * N, block_i * N, N, N ) = get_prior_matrix( number_of_cohorts, to_repr< double >( rho_and_sd.get<0>()[i] ), to_repr< double >( rho_and_sd.get<1>()[i] ) ) ;
+			std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > const rho_and_sds = parse_rho_and_sd( model_specs[i] ) ;
+#if DEBUG_BINGWA
+			std::cerr << "BingwaApplication::get_simple_priors(): rho_and_sds:\n" ;
+			for( std::size_t i = 0; i < rho_and_sds.size(); ++i ) {
+				std::cerr << "rho = " ;
+				for( std::size_t j = 0; j < rho_and_sds[i].get<0>().size(); ++j ) {
+					std::cerr << "\"" + rho_and_sds[i].get<0>()[j] << "\" " ;
 				}
-				int c = 0 ;
-				for( int block_i = 0; block_i < D; ++block_i ) {
-					for( int block_j = block_i + 1; block_j < D; ++block_j, ++c ) {
-						std::cerr << rho_and_sd.get<2>()[c] << "!\n" ;
-						prior.block( block_i * N, block_j * N, N, N ).array()
-							= prior.block( block_i * N, block_i * N, N, N ).array()
-							* prior.block( block_j * N, block_j * N, N, N ).array()
-							* to_repr< double >( rho_and_sd.get<2>()[c] )
-						;
-						prior.block( block_j * N, block_i * N, N, N ) = prior.block( block_i * N, block_j * N, N, N ) ;
+				std::cerr << "sd = " ;
+				for( std::size_t j = 0; j < rho_and_sds[i].get<1>().size(); ++j ) {
+					std::cerr << "\"" + rho_and_sds[i].get<1>()[j] << "\" " ;
+				}
+				std::cerr << "cor = " ;
+				for( std::size_t j = 0; j < rho_and_sds[i].get<2>().size(); ++j ) {
+					std::cerr << "\"" + rho_and_sds[i].get<2>()[j] << "\" " ;
+				}
+				std::cerr << std::endl ;
+			}
+#endif
+			for( std::size_t j = 0; j < rho_and_sds.size(); ++j ) {
+				boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > const& rho_and_sd = rho_and_sds[j] ;
+				try {
+					if( int( rho_and_sd.get<0>().size() ) != m_processor->get_number_of_effect_parameters() ) {
+						throw genfile::BadArgumentError(
+							"BingwaProcessor::get_simple_priors()",
+							"model_spec=\"" + model_specs[i] + "\"",
+							"In model spec \"" + model_specs[i] + "\", number of correlations specified ("
+							+ to_string( rho_and_sd.get<0>().size() )
+							+ ") does not match number of effect size parameters (" + to_string( m_processor->get_number_of_effect_parameters() ) + ")"
+						) ;
+					}
+
+					std::string model_name ;
+					if( model_names ) {
+						model_name = model_names.get()[i] ;
+					} else {
+						model_name = "rho=" + join( rho_and_sd.get<0>(), " " ) ;
+					}
+		
+					{
+						int const N = m_processor->get_number_of_cohorts() ;
+						int const D = m_processor->get_number_of_effect_parameters() ;
+						Eigen::MatrixXd prior = Eigen::MatrixXd::Zero( N * D, N * D ) ;
+
+						for( int block_i = 0; block_i < D; ++block_i ) {
+							prior.block( block_i * N, block_i * N, N, N ) = get_prior_matrix( number_of_cohorts, to_repr< double >( rho_and_sd.get<0>()[i] ), to_repr< double >( rho_and_sd.get<1>()[i] ) ) ;
+						}
+						int c = 0 ;
+						for( int block_i = 0; block_i < D; ++block_i ) {
+							for( int block_j = block_i + 1; block_j < D; ++block_j, ++c ) {
+								std::cerr << rho_and_sd.get<2>()[c] << "!\n" ;
+								prior.block( block_i * N, block_j * N, N, N ).array()
+									= prior.block( block_i * N, block_i * N, N, N ).array()
+									* prior.block( block_j * N, block_j * N, N, N ).array()
+									* to_repr< double >( rho_and_sd.get<2>()[c] )
+								;
+								prior.block( block_j * N, block_i * N, N, N ) = prior.block( block_i * N, block_j * N, N, N ) ;
+							}
+						}
+		
+						(*result)[ model_name + "/sd=" + join( rho_and_sd.get<1>(), " " ) ] = prior ;
 					}
 				}
-			
-				(*result)[ model_name + "/sd=" + join( rho_and_sd.get<1>(), " " ) ] = prior ;
+				catch( StringConversionError const& e ) {
+					throw genfile::BadArgumentError(
+						"BingwaProcessor::get_simple_priors()",
+						"model_spec=\"" + model_specs[i] + "\"",
+						"Expected a numerical value."
+					) ;
+				}
 			}
 		}
 	}
@@ -1803,76 +1850,79 @@ public:
 				std::string const& group_name = elts[0] ;
 				group_names[ block_i ] = group_name ;
 				// Get the per-group correlation and sd.
-				boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > rho_and_sd = parse_rho_and_sd( elts[1] ) ;
-				if( int( rho_and_sd.get<0>().size() ) != m_processor->get_number_of_effect_parameters() ) {
-					throw genfile::BadArgumentError(
-						"BingwaProcessor::get_group_priors()",
-						"model_spec=\"" + model_specs[i] + "\"",
-						"In model spec \"" + model_specs[i] + "\", number of correlations and standard deviations specified ("
-						+ to_string( between_cohort_rho_string.size() )
-						+ ") does not match number of effect size parameters (" + to_string( m_processor->get_number_of_effect_parameters() ) + ")"
-					) ;
-				}
-
-				double const rho = to_repr< double >( rho_and_sd.get<0>()[0] ) ;
-				double const sd = to_repr< double >( rho_and_sd.get<1>()[0] ) ;
-				group_sds[ block_i ] = sd ;
-				
-				// Get the group members
-				std::vector< std::string > const& group_cohorts = get_group_members( group_name, groups ) ;
-				std::vector< int > const& cohort_indices = get_cohort_indices( group_cohorts, cohort_names ) ;
-
-				// 
-				for( std::size_t k = 0; k < group_cohorts.size(); ++k ) {
-					if( used_cohorts[ cohort_indices[k] ] > 0 ) {
+				std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > const rho_and_sds = parse_rho_and_sd( elts[1] ) ;
+				for( std::size_t j = 0; j < rho_and_sds.size(); ++j ) {
+					boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > const& rho_and_sd = rho_and_sds[j] ;
+					if( int( rho_and_sd.get<0>().size() ) != m_processor->get_number_of_effect_parameters() ) {
 						throw genfile::BadArgumentError(
 							"BingwaProcessor::get_group_priors()",
-							"model_spec=\"" + group_specs[block_i] + "\"",
-							"Cohort \"" + group_cohorts[k] + "\" occurs in more than one group."
+							"model_spec=\"" + model_specs[i] + "\"",
+							"In model spec \"" + model_specs[i] + "\", number of correlations and standard deviations specified ("
+							+ to_string( between_cohort_rho_string.size() )
+							+ ") does not match number of effect size parameters (" + to_string( m_processor->get_number_of_effect_parameters() ) + ")"
 						) ;
 					}
-					++used_cohorts[ cohort_indices[k] ] ;
-					cohort_group_map[ cohort_indices[k] ] = block_i ;
-				}
+
+					double const rho = to_repr< double >( rho_and_sd.get<0>()[0] ) ;
+					double const sd = to_repr< double >( rho_and_sd.get<1>()[0] ) ;
+					group_sds[ block_i ] = sd ;
 				
-				for( std::size_t cohort_i = 0; cohort_i < group_cohorts.size(); ++cohort_i ) {
-					prior( cohort_indices[ cohort_i ], cohort_indices[ cohort_i ] ) = sd*sd ;
-					for( std::size_t cohort_j = cohort_i + 1; cohort_j < group_cohorts.size(); ++cohort_j ) {
-						prior( cohort_indices[ cohort_i ], cohort_indices[ cohort_j ] ) = sd*sd*rho ;
+					// Get the group members
+					std::vector< std::string > const& group_cohorts = get_group_members( group_name, groups ) ;
+					std::vector< int > const& cohort_indices = get_cohort_indices( group_cohorts, cohort_names ) ;
+
+					// 
+					for( std::size_t k = 0; k < group_cohorts.size(); ++k ) {
+						if( used_cohorts[ cohort_indices[k] ] > 0 ) {
+							throw genfile::BadArgumentError(
+								"BingwaProcessor::get_group_priors()",
+								"model_spec=\"" + group_specs[block_i] + "\"",
+								"Cohort \"" + group_cohorts[k] + "\" occurs in more than one group."
+							) ;
+						}
+						++used_cohorts[ cohort_indices[k] ] ;
+						cohort_group_map[ cohort_indices[k] ] = block_i ;
 					}
-				}
-			}
-			
-			// now fill in between-block elements.
-			for( std::size_t group1_i = 0; group1_i < group_specs.size() ; ++group1_i ) {
-				std::vector< int > const& group1_member_indices = get_cohort_indices( get_group_members( group_names[ group1_i ], groups ), cohort_names ) ;
-				for( std::size_t group2_i = group1_i + 1; group2_i < group_specs.size() ; ++group2_i ) {
-					std::vector< int > const& group2_member_indices = get_cohort_indices( get_group_members( group_names[ group2_i ], groups ), cohort_names ) ;
-					for( std::size_t group1_cohort_i = 0; group1_cohort_i < group1_member_indices.size(); ++group1_cohort_i ) {
-						for( std::size_t group2_cohort_i = 0; group2_cohort_i < group2_member_indices.size(); ++group2_cohort_i ) {
-							int const i = std::min( group1_member_indices[ group1_cohort_i ], group2_member_indices[ group2_cohort_i ] ) ;
-							int const j = std::max( group1_member_indices[ group1_cohort_i ], group2_member_indices[ group2_cohort_i ] ) ;
-							prior( i, j ) = between_cohort_rho * group_sds[ group1_i ] * group_sds[ group2_i ] ;
+				
+					for( std::size_t cohort_i = 0; cohort_i < group_cohorts.size(); ++cohort_i ) {
+						prior( cohort_indices[ cohort_i ], cohort_indices[ cohort_i ] ) = sd*sd ;
+						for( std::size_t cohort_j = cohort_i + 1; cohort_j < group_cohorts.size(); ++cohort_j ) {
+							prior( cohort_indices[ cohort_i ], cohort_indices[ cohort_j ] ) = sd*sd*rho ;
 						}
 					}
 				}
-			}
-		
-			// Finally fill in the lower diagonal
-			for( int row = 1; row < prior.rows(); ++row ) {
-				for( int col = 0; col < row; ++col ) {
-					prior( row, col ) = prior( col, row ) ;
-				}
-			}
 			
-			std::string model_name ;
-			if( model_names ) {
-				model_name = model_names.get()[i] ;
-			} else {
-				model_name = model_specs[i] ;
-			}
+				// now fill in between-block elements.
+				for( std::size_t group1_i = 0; group1_i < group_specs.size() ; ++group1_i ) {
+					std::vector< int > const& group1_member_indices = get_cohort_indices( get_group_members( group_names[ group1_i ], groups ), cohort_names ) ;
+					for( std::size_t group2_i = group1_i + 1; group2_i < group_specs.size() ; ++group2_i ) {
+						std::vector< int > const& group2_member_indices = get_cohort_indices( get_group_members( group_names[ group2_i ], groups ), cohort_names ) ;
+						for( std::size_t group1_cohort_i = 0; group1_cohort_i < group1_member_indices.size(); ++group1_cohort_i ) {
+							for( std::size_t group2_cohort_i = 0; group2_cohort_i < group2_member_indices.size(); ++group2_cohort_i ) {
+								int const i = std::min( group1_member_indices[ group1_cohort_i ], group2_member_indices[ group2_cohort_i ] ) ;
+								int const j = std::max( group1_member_indices[ group1_cohort_i ], group2_member_indices[ group2_cohort_i ] ) ;
+								prior( i, j ) = between_cohort_rho * group_sds[ group1_i ] * group_sds[ group2_i ] ;
+							}
+						}
+					}
+				}
+		
+				// Finally fill in the lower diagonal
+				for( int row = 1; row < prior.rows(); ++row ) {
+					for( int col = 0; col < row; ++col ) {
+						prior( row, col ) = prior( col, row ) ;
+					}
+				}
+			
+				std::string model_name ;
+				if( model_names ) {
+					model_name = model_names.get()[i] ;
+				} else {
+					model_name = model_specs[i] ;
+				}
 
-			(*result)[ model_name ] = prior ;
+				(*result)[ model_name ] = prior ;
+			}
 		}
 	}
 
@@ -1914,44 +1964,47 @@ public:
 			}
 			std::vector< std::string > const& cohorts = where->second ;
 
-			boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > rho_and_sd = parse_rho_and_sd( bits[1] ) ;
-			if( int( rho_and_sd.get<0>().size() ) != m_processor->get_number_of_effect_parameters() ) {
-				throw genfile::BadArgumentError(
-					"BingwaProcessor::get_group_specific_priors()",
-					"model_spec=\"" + model_specs[i] + "\"",
-					"In model spec \"" + model_specs[i] + "\", number of correlations and standard deviations specified ("
-					+ to_string( rho_and_sd.get<0>().size() )
-					+ ") does not match number of effect size parameters (" + to_string( m_processor->get_number_of_effect_parameters() ) + ")"
-				) ;
-			}
-
-			double const rho = to_repr< double >( rho_and_sd.get<0>()[0] ) ;
-			double const sd = to_repr< double >( rho_and_sd.get<1>()[0] ) ;
-			
-			Eigen::MatrixXd prior( number_of_cohorts, number_of_cohorts ) ;
-			prior.setZero() ;
-
-			std::vector< int > const& cohort_indices = get_cohort_indices( cohorts, cohort_names ) ;
-			
-			for( std::size_t j1 = 0; j1 < cohorts.size(); ++j1 ) {
-				int const cohort1_j = cohort_indices[j1] ;
-				prior( cohort1_j, cohort1_j ) = 1 ;
-				for( std::size_t j2 = (j1+1); j2 < cohorts.size(); ++j2 ) {
-					int const cohort2_j = cohort_indices[j2] ;
-					prior( cohort1_j, cohort2_j ) = prior( cohort2_j, cohort1_j ) = rho ;
+			std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > const rho_and_sds = parse_rho_and_sd( bits[1] ) ;
+			for( std::size_t j = 0; j < rho_and_sds.size(); ++j ) {
+				boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > const& rho_and_sd = rho_and_sds[j] ;
+				if( int( rho_and_sd.get<0>().size() ) != m_processor->get_number_of_effect_parameters() ) {
+					throw genfile::BadArgumentError(
+						"BingwaProcessor::get_group_specific_priors()",
+						"model_spec=\"" + model_specs[i] + "\"",
+						"In model spec \"" + model_specs[i] + "\", number of correlations and standard deviations specified ("
+						+ to_string( rho_and_sd.get<0>().size() )
+						+ ") does not match number of effect size parameters (" + to_string( m_processor->get_number_of_effect_parameters() ) + ")"
+					) ;
 				}
+
+				double const rho = to_repr< double >( rho_and_sd.get<0>()[0] ) ;
+				double const sd = to_repr< double >( rho_and_sd.get<1>()[0] ) ;
+			
+				Eigen::MatrixXd prior( number_of_cohorts, number_of_cohorts ) ;
+				prior.setZero() ;
+
+				std::vector< int > const& cohort_indices = get_cohort_indices( cohorts, cohort_names ) ;
+			
+				for( std::size_t j1 = 0; j1 < cohorts.size(); ++j1 ) {
+					int const cohort1_j = cohort_indices[j1] ;
+					prior( cohort1_j, cohort1_j ) = 1 ;
+					for( std::size_t j2 = (j1+1); j2 < cohorts.size(); ++j2 ) {
+						int const cohort2_j = cohort_indices[j2] ;
+						prior( cohort1_j, cohort2_j ) = prior( cohort2_j, cohort1_j ) = rho ;
+					}
+				}
+			
+				prior *= sd * sd ;
+			
+				std::string model_name ;
+				if( model_names ) {
+					model_name = model_names.get()[i] ;
+				} else {
+					model_name = bits[0] + "-specific" ;
+				}
+			
+				(*result)[ model_name + "/rho=" + join( rho_and_sd.get<0>(), " " ) + "/sd=" + join( rho_and_sd.get<1>(), " " ) ] = prior ;
 			}
-			
-			prior *= sd * sd ;
-			
-			std::string model_name ;
-			if( model_names ) {
-				model_name = model_names.get()[i] ;
-			} else {
-				model_name = bits[0] + "-specific" ;
-			}
-			
-			(*result)[ model_name + "/rho=" + join( rho_and_sd.get<0>(), " " ) + "/sd=" + join( rho_and_sd.get<1>(), " " ) ] = prior ;
 		}
 	}
 
@@ -1967,7 +2020,7 @@ public:
 		return split_and_strip_discarding_empty_entries( spec.substr( 4, spec.size() ), " " ) ;
 	}
 
-	boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > parse_rho_and_sd( std::string const& spec ) {
+	std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > parse_rho_and_sd( std::string const& spec ) {
 		using namespace genfile::string_utils ;
 		std::vector< std::string > const parameters = split_and_strip( spec, "/" ) ;
 		if(
@@ -1984,6 +2037,7 @@ public:
 
 		std::vector< std::string > const rhos = split_and_strip_discarding_empty_entries( parameters[0].substr( 4, parameters[0].size() ), " " ) ;
 		std::vector< std::string > const sds = split_and_strip_discarding_empty_entries( parameters[1].substr( 3, parameters[1].size() ), " " ) ;
+
 		std::vector< std::string > cor ;
 		if( parameters.size() == 3 ) {
 			cor = split_and_strip_discarding_empty_entries( parameters[2].substr( 8, parameters[2].size() ), " " ) ;
@@ -1998,9 +2052,82 @@ public:
 			) ;
 		}
 		
-		return boost::make_tuple( rhos, sds, cor ) ;
+		return expand_rhos_and_sds( rhos, sds, cor, m_value_sets[ "sd" ], m_value_sets[ "rho" ] ) ;
 	}
 
+	std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > expand_rhos_and_sds(
+		std::vector< std::string > rhos,
+		std::vector< std::string > sds,
+		std::vector< std::string > cor,
+		std::map< std::string, std::vector< std::string > > const& sd_sets,
+		std::map< std::string, std::vector< std::string > > const& rho_sets
+	) const {
+		std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > result ;
+		// currently we just expand sds according to the sets in sd_sets.
+		std::vector< std::string > working_sds = sds ;
+		std::vector< std::string > working_rhos = rhos ;
+		std::vector< std::size_t > working_sd_indices( sds.size(), 0 ) ;
+		std::vector< std::size_t > working_rho_indices( rhos.size(), 0 ) ;
+
+		bool complete = false ;
+		while( !complete ) {
+			// construct this configuration
+			for( std::size_t j = 0; j < sds.size(); ++j ) {
+				if( sds[j].size() > 0 && sds[j][0] == '[' && sds[j][sds[j].size() - 1] == ']' ) {
+					std::map< std::string, std::vector< std::string > >::const_iterator where = sd_sets.find( sds[j].substr( 1, sds[j].size() - 2 ) ) ;
+					if( where != sd_sets.end() ) {
+						working_sds[ j ] = where->second.at( working_sd_indices[j] ) ;
+					}
+				}
+
+				if( rhos[j].size() > 0 && rhos[j][0] == '[' && rhos[j][rhos[j].size() - 1] == ']' ) {
+					std::map< std::string, std::vector< std::string > >::const_iterator where = rho_sets.find( rhos[j].substr( 1, rhos[j].size() - 2 ) ) ;
+					if( where != rho_sets.end() ) {
+						working_rhos[ j ] = where->second.at( working_rho_indices[j] ) ;
+					}
+				}
+			}
+			result.push_back( boost::make_tuple( working_rhos, working_sds, cor ) ) ;
+			
+			// move to next configuration of sds and rhos.
+			// The rather ungainly code below steps through substitutable values of sds and then of rhos in right-to-left order.
+			std::size_t k = 0 ;
+			for( ; k < sds.size(); ++k ) {
+				std::size_t j = sds.size() - k - 1 ;
+				if( sds[j].size() > 1 && sds[j][0] == '[' && sds[j][sds[j].size() - 1] == ']' ) {
+					std::map< std::string, std::vector< std::string > >::const_iterator where = sd_sets.find( sds[j].substr( 1, sds[j].size() - 2 ) ) ;
+					if( where != sd_sets.end() ) {
+						working_sd_indices[ j ] = ( working_sd_indices[ j ] + 1 ) % where->second.size() ;
+						if( working_sd_indices[ j ] > 0 ) {
+							break ;
+						}
+					}
+				}
+			}
+			if( k == sds.size() ) {
+				// No more sds to substitute, so move on to rhos...
+				std::size_t k_rho = 0 ;
+				for( ; k_rho < rhos.size(); ++k_rho ) {
+					std::size_t j = rhos.size() - k_rho - 1 ;
+					if( rhos[j].size() > 1 && rhos[j][0] == '[' && rhos[j][rhos[j].size() - 1] == ']' ) {
+						std::map< std::string, std::vector< std::string > >::const_iterator where = rho_sets.find( rhos[j].substr( 1, rhos[j].size() - 2 ) ) ;
+						if( where != rho_sets.end() ) {
+							working_rho_indices[ j ] = ( working_rho_indices[ j ] + 1 ) % where->second.size() ;
+							if( working_rho_indices[ j ] > 0 ) {
+								break ;
+							}
+						}
+					}
+				}
+				if( k_rho == rhos.size() ) {
+					complete = true ;
+				}
+			}
+		}
+
+		return result ;
+	}
+	
 	std::map< std::string, Eigen::MatrixXd > get_priors( appcontext::OptionProcessor const& options, std::vector< std::string > const& cohort_names ) {
 		std::map< std::string, Eigen::MatrixXd > result ;
 		using genfile::string_utils::to_string ;
@@ -2008,6 +2135,20 @@ public:
 		using genfile::string_utils::split_and_strip_discarding_empty_entries ;
 		int const N = options.get_values< std::string >( "-data" ).size() ;
 		
+		
+		
+		if( options.check( "-define-sd-set" )) {
+			m_value_sets[ "sd" ] = parse_value_list( options.get_values< std::string >( "-define-sd-set" )) ;
+		} else {
+			m_value_sets[ "sd" ] ; // empty map
+		}
+
+		if( options.check( "-define-rho-set" )) {
+			m_value_sets[ "rho" ] = parse_value_list( options.get_values< std::string >( "-define-rho-set" )) ;
+		} else {
+			m_value_sets[ "rho" ] ; // empty map
+		}
+
 		if( options.check( "-simple-prior" ) ) {
 			boost::optional< std::vector< std::string > > model_names ;
 			if( options.check( "-simple-prior-name" )) {
@@ -2026,11 +2167,18 @@ public:
 		}
 
 		if( options.check( "-group-specific-prior" ) || options.check( "-group-prior" ) ) {
-			GroupDefinition groups = get_groups(
-				options.get_values< std::string >( "-define-group"  ),
-				cohort_names
-			) ;
-
+			GroupDefinition groups ;
+			for( std::size_t i = 0; i < cohort_names.size(); ++i ) {
+				groups[ cohort_names[i] ] = std::vector< std::string >( 1, cohort_names[i] ) ;
+			}
+			if( options.check( "-define-group" )) {
+				get_groups(
+					options.get_values< std::string >( "-define-group"  ),
+					cohort_names,
+					&groups
+				) ;
+			}
+		
 			if( options.check( "-group-prior" )) {
 				boost::optional< std::vector< std::string > > model_names ;
 
@@ -2052,12 +2200,64 @@ public:
 		return result ;
 	}
 
-	GroupDefinition get_groups(
-		std::vector< std::string > const& spec,
-		std::vector< std::string > const& cohort_names
-	) const {
-		GroupDefinition result ;
+	ValueListSet parse_value_list( std::vector< std::string > const& spec ) const {
 		using namespace genfile::string_utils ;
+		std::map< std::string, std::vector< std::string > > result ;
+		for( std::size_t i = 0; i < spec.size(); ++i ) {
+			std::vector< std::string > elts = split_and_strip_discarding_empty_entries( spec[i], "=", " \t" ) ;
+			if( elts.size() != 2 ) {
+				throw genfile::BadArgumentError(
+					"BingwaApplication::parse_value_list()",
+					"spec=\"" + spec[i] + "\"",
+					"expected specification of the form \"[set name]=[value],[value],[value],...\"."
+				) ;
+			}
+			std::vector< std::string > sds = split_and_strip_discarding_empty_entries( elts[1], ",", " \t" ) ;
+			
+			// These must be numbers!  Check we can parse them
+			for( std::size_t j = 0; j < sds.size(); ++j ) {
+				try {
+					double const x = to_repr< double >( sds[j] ) ;
+				}
+				catch( StringConversionError const& e ) {
+					throw genfile::BadArgumentError(
+						"BingwaApplication::parse_value_list()",
+						"spec=\"" + spec[i] + "\"",
+						"found non-numerical values in value list."
+					) ;
+				}
+			}
+			
+			result[ elts[0] ] = sds ;
+		}
+		
+#if DEBUG_BINGWA
+			std::map< std::string, std::vector< std::string > >::const_iterator
+				i = result.begin(),
+				end_i = result.end() ;
+			std::cerr << "BingwaApplication::parse_value_list(): parsed value lists:\n" ;
+			for( ; i != end_i; ++i ) {
+				std::cerr << i->first << ": " ;
+				for( std::size_t j = 0; j < i->second.size(); ++j ) {
+					std::cerr << "\"" << i->second[j] << "\" " ;
+				}
+				std::cerr << "\n" ;
+			}
+#endif
+		
+		return result ;
+	}
+
+	void get_groups(
+		std::vector< std::string > const& spec,
+		std::vector< std::string > const& cohort_names,
+		GroupDefinition* result
+	) const {
+		using namespace genfile::string_utils ;
+		assert( result != 0 ) ;
+		
+		// add default groups
+		
 		for( std::size_t i = 0; i < spec.size(); ++i ) {
 			std::vector< std::string > const bits = split_and_strip( spec[i], "=" ) ;
 			if( bits.size() != 2 ) {
@@ -2067,11 +2267,11 @@ public:
 					"Group specification \"" + spec[i] + "\" is malformed, should be in the format [name]=group1,group2,..."
 				) ;
 			}
-			if( result.find( bits[0] ) != result.end() ) {
+			if( result->find( bits[0] ) != result->end() ) {
 				throw genfile::BadArgumentError(
 					"BingwaProcessor::get_groups()",
 					"spec=\"" + spec[i] + "\"",
-					"Group \"" + spec[i] + "\" is defined more than once"
+					"Group \"" + bits[0] + "\" is defined more than once (or is the name of a cohort)."
 				) ;
 			}
 			std::vector< std::string > cohorts = split_and_strip( bits[1], "," ) ;
@@ -2091,9 +2291,9 @@ public:
 					) ;
 				}
 			}
-			result[ bits[0] ] = cohorts ;
+			
+			(*result)[ bits[0] ] = cohorts ;
 		}
-		return result ;
 	}
 
 	Eigen::MatrixXd get_prior_matrix( int const n, double const rho, double const sd ) const {
@@ -2510,6 +2710,7 @@ public:
 	}
 	
 private:
+	std::map< std::string, ValueListSet > m_value_sets ;
 	BingwaProcessor::UniquePtr m_processor ;
 } ;
 
