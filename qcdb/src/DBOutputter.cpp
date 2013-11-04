@@ -152,7 +152,7 @@ namespace qcdb {
 
 	void DBOutputter::finalise( long options ) {
 		if( options & eCreateIndices ) {
-			db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 600 ) ;
+			db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 1200 ) ;
 			m_connection->run_statement(
 				"CREATE INDEX IF NOT EXISTS Variant_rsid_index ON Variant( rsid )"
 			) ;
@@ -160,6 +160,7 @@ namespace qcdb {
 				"CREATE INDEX IF NOT EXISTS VariantIdentifierVariantIndex ON VariantIdentifier( variant_id )"
 			) ;
 		}
+		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 1200 ) ;
 		end_analysis( m_analysis_id ) ;
 	}
 
@@ -214,7 +215,7 @@ namespace qcdb {
 		}
 	}
 	
-	db::Connection::RowId DBOutputter::start_analysis( db::Connection::RowId const analysis_id ) const {
+	void DBOutputter::start_analysis( db::Connection::RowId const analysis_id ) const {
 		db::Connection::StatementPtr stmnt = m_connection->get_statement( "INSERT INTO AnalysisStatus( analysis_id, started, status ) VALUES( ?, ?, ? )" ) ;
 		stmnt->bind( 1, analysis_id ) ;
 		stmnt->bind( 2, appcontext::get_current_time_as_string() ) ;
@@ -222,7 +223,7 @@ namespace qcdb {
 		stmnt->step() ;
 	}
 
-	db::Connection::RowId DBOutputter::end_analysis( db::Connection::RowId const analysis_id ) const {
+	void DBOutputter::end_analysis( db::Connection::RowId const analysis_id ) const {
 		db::Connection::StatementPtr stmnt = m_connection->get_statement( "UPDATE AnalysisStatus SET completed = ?, status = ? WHERE analysis_id == ?" ) ;
 		stmnt->bind( 1, appcontext::get_current_time_as_string() ) ;
 		stmnt->bind( 2, "successfully completed" ) ;

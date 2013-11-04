@@ -90,8 +90,8 @@ namespace qcdb {
 			std::string const& description,
 			boost::optional< db::Connection::RowId > class_id = boost::optional< db::Connection::RowId >()
 		) const ;
-		db::Connection::RowId start_analysis( db::Connection::RowId const ) const ;
-		db::Connection::RowId end_analysis( db::Connection::RowId const ) const ;
+		void start_analysis( db::Connection::RowId const ) const ;
+		void end_analysis( db::Connection::RowId const ) const ;
 		void add_alternative_variant_identifier( db::Connection::RowId const variant_id, std::string const& identifier, std::string const& rsid ) const ;
 		void add_variant_identifier( db::Connection::RowId const variant_id, std::string const& identifier ) const ;
 	} ;
