@@ -1851,6 +1851,7 @@ public:
 				group_names[ block_i ] = group_name ;
 				// Get the per-group correlation and sd.
 				std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > const rho_and_sds = parse_rho_and_sd( elts[1] ) ;
+				assert( rho_and_sds.size() == 1 ) ; // TODO: handle a set of rhos or sds.
 				for( std::size_t j = 0; j < rho_and_sds.size(); ++j ) {
 					boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > const& rho_and_sd = rho_and_sds[j] ;
 					if( int( rho_and_sd.get<0>().size() ) != m_processor->get_number_of_effect_parameters() ) {
@@ -1891,38 +1892,37 @@ public:
 						}
 					}
 				}
-			
-				// now fill in between-block elements.
-				for( std::size_t group1_i = 0; group1_i < group_specs.size() ; ++group1_i ) {
-					std::vector< int > const& group1_member_indices = get_cohort_indices( get_group_members( group_names[ group1_i ], groups ), cohort_names ) ;
-					for( std::size_t group2_i = group1_i + 1; group2_i < group_specs.size() ; ++group2_i ) {
-						std::vector< int > const& group2_member_indices = get_cohort_indices( get_group_members( group_names[ group2_i ], groups ), cohort_names ) ;
-						for( std::size_t group1_cohort_i = 0; group1_cohort_i < group1_member_indices.size(); ++group1_cohort_i ) {
-							for( std::size_t group2_cohort_i = 0; group2_cohort_i < group2_member_indices.size(); ++group2_cohort_i ) {
-								int const i = std::min( group1_member_indices[ group1_cohort_i ], group2_member_indices[ group2_cohort_i ] ) ;
-								int const j = std::max( group1_member_indices[ group1_cohort_i ], group2_member_indices[ group2_cohort_i ] ) ;
-								prior( i, j ) = between_cohort_rho * group_sds[ group1_i ] * group_sds[ group2_i ] ;
-							}
+			}
+			// now fill in between-block elements.
+			for( std::size_t group1_i = 0; group1_i < group_specs.size() ; ++group1_i ) {
+				std::vector< int > const& group1_member_indices = get_cohort_indices( get_group_members( group_names[ group1_i ], groups ), cohort_names ) ;
+				for( std::size_t group2_i = group1_i + 1; group2_i < group_specs.size() ; ++group2_i ) {
+					std::vector< int > const& group2_member_indices = get_cohort_indices( get_group_members( group_names[ group2_i ], groups ), cohort_names ) ;
+					for( std::size_t group1_cohort_i = 0; group1_cohort_i < group1_member_indices.size(); ++group1_cohort_i ) {
+						for( std::size_t group2_cohort_i = 0; group2_cohort_i < group2_member_indices.size(); ++group2_cohort_i ) {
+							int const i = std::min( group1_member_indices[ group1_cohort_i ], group2_member_indices[ group2_cohort_i ] ) ;
+							int const j = std::max( group1_member_indices[ group1_cohort_i ], group2_member_indices[ group2_cohort_i ] ) ;
+							prior( i, j ) = between_cohort_rho * group_sds[ group1_i ] * group_sds[ group2_i ] ;
 						}
 					}
 				}
-		
-				// Finally fill in the lower diagonal
-				for( int row = 1; row < prior.rows(); ++row ) {
-					for( int col = 0; col < row; ++col ) {
-						prior( row, col ) = prior( col, row ) ;
-					}
-				}
-			
-				std::string model_name ;
-				if( model_names ) {
-					model_name = model_names.get()[i] ;
-				} else {
-					model_name = model_specs[i] ;
-				}
-
-				(*result)[ model_name ] = prior ;
 			}
+	
+			// Finally fill in the lower diagonal
+			for( int row = 1; row < prior.rows(); ++row ) {
+				for( int col = 0; col < row; ++col ) {
+					prior( row, col ) = prior( col, row ) ;
+				}
+			}
+		
+			std::string model_name ;
+			if( model_names ) {
+				model_name = model_names.get()[i] ;
+			} else {
+				model_name = model_specs[i] ;
+			}
+
+			(*result)[ model_name ] = prior ;
 		}
 	}
 
@@ -2178,6 +2178,20 @@ public:
 					&groups
 				) ;
 			}
+			
+#if DEBUG_BINGWA
+			std::cerr << "BingwaApplication:get_priors(): groups are:\n" ;
+			GroupDefinition::const_iterator
+				i = groups.begin(),
+				end_i = groups.end() ;
+			for( ; i != end_i; ++i ) {
+				std::cerr << "  " << i->first << ":" ;
+				for( std::size_t j = 0; j < i->second.size(); ++j ) {
+					std::cerr << i->second.at( j ) << " " ;
+				}
+				std::cerr << "\n" ;
+			}
+#endif
 		
 			if( options.check( "-group-prior" )) {
 				boost::optional< std::vector< std::string > > model_names ;
