@@ -1,0 +1,3 @@
+import( RSQLite, Rcompression )
+export( open.hapdb )
+export( load.haplotype.range )
