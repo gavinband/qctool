@@ -230,10 +230,10 @@ namespace {
 			
 			if( m_buffer_validity[ eBITPACK ] ) {
 				genfile::zlib_compress( &( m_buffers[ eBITPACK ][0] ), m_buf_p[eBITPACK], m_compression_buffer ) ;
-				std::cerr << "BITPACK: buffer size: " << m_buffers[ eBITPACK ].size() << " before compression, " << m_compression_buffer->size() << " after compression.\n" ;
+				//std::cerr << "BITPACK: buffer size: " << m_buffers[ eBITPACK ].size() << " before compression, " << m_compression_buffer->size() << " after compression.\n" ;
 			} else {
 				genfile::zlib_compress( &( m_buffers[ eUBJSON ][0] ), m_buf_p[eUBJSON], m_compression_buffer ) ;
-				std::cerr << "UBJSON: buffer size: " << m_buffers[ eUBJSON ].size() << " before compression, " << m_compression_buffer->size() << " after compression.\n" ;
+				//std::cerr << "UBJSON: buffer size: " << m_buffers[ eUBJSON ].size() << " before compression, " << m_compression_buffer->size() << " after compression.\n" ;
 			}
 		}
 		

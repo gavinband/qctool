@@ -1,6 +1,6 @@
-\name{hapdb2-package}
-\alias{hapdb2-package}
-\alias{hapdb2}
+\name{hapdb-package}
+\alias{hapdb-package}
+\alias{hapdb}
 \docType{package}
 \title{
 Package for manipulating hapdb haplotype sqlite files.
@@ -12,7 +12,7 @@ More about what it does (maybe more than one line)
 }
 \details{
 \tabular{ll}{
-Package: \tab hapdb2\cr
+Package: \tab hapdb\cr
 Type: \tab Package\cr
 Version: \tab 1.0\cr
 Date: \tab 2013-11-12\cr

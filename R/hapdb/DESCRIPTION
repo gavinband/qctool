@@ -1,4 +1,4 @@
-Package: hapdb2
+Package: hapdb
 Type: Package
 Title: Manipulates hapdb files.
 Version: 1.0
