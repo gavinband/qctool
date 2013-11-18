@@ -44,11 +44,12 @@ def build( bld ):
 		export_incdirs = 'sqlite3'
 	)
 
-#	bld(
-#		features = 'cc cshlib',
-#		target = 'zlib_uncompress',
-#		source = [ 'sqlite3/sqlite3/zlib_uncompress.c' ],
-#		defines = 'SQLITE_ENABLE_COLUMN_METADATA',
-#		uselib_local = 'sqlite3',
-#		uselib = 'ZLIB'
-#	)
+	bld(
+		features = 'cc cstaticlib',
+		name = 'json-spirit',
+		target = 'json-spirit',
+		source = bld.glob( 'json-spirit/json_spirit/*.cpp' ),
+		uselib = 'BOOST BOOST_IOSTREAMS BOOST_SYSTEM BOOST_FILESYSTEM',
+		includes = 'json-spirit/json_spirit/',
+		export_incdirs = 'json-spirit/json_spirit/'
+	)

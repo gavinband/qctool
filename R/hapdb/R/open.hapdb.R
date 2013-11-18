@@ -2,7 +2,6 @@ open.hapdb <-
 function( filename, get.variants = FALSE ) {
     require( RSQLite )
     db = dbConnect( dbDriver( "SQLite" ), filename ) ;
-    cat( "open.hapdb(): loading samples and variants..." ) ;
     samples = dbGetQuery(
         db,
         paste(
@@ -19,6 +18,9 @@ function( filename, get.variants = FALSE ) {
 	) ;
 	if( get.variants ) {
 		result$variants = get.variants( result ) ;
+    	cat( sprintf( "open.hapdb(): opened hapdb with %d samples and %d variants.\n", nrow( result$samples ), nrow( result$variants ) )
+	} else {
+    	cat( sprintf( "open.hapdb(): opened hapdb with %d samples.\n", nrow( result$samples ) )
 	}
     return( result ) ;
 }
