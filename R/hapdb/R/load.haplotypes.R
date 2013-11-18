@@ -14,7 +14,7 @@ function( hapdb, chromosome, rsid = NULL, range = NULL, samples = NULL, analysis
         analysis = as.character( unique( hapdb$samples$analysis ) )
         if( length( analysis ) > 1 ) {
             stop( "This hapdb file has more than one analysis, please specify one." ) ;
-        } else {
+        } else if( length( analysis ) == 0 ) {
             stop( "This hapdb file seems to have no analyses!" ) ;
         }
     }
@@ -49,27 +49,39 @@ function( hapdb, chromosome, rsid = NULL, range = NULL, samples = NULL, analysis
         )
     }
 
-    D = dbGetQuery( db, sql )
+    cat( "load.haplotypes(): running query :\"", sql, "\"...\n", sep = "" ) ;
+    D = dbGetQuery( hapdb$db, sql )
 
-    result = list(
-        variant = D[,-which( colnames(D) == "data")],
-        data = matrix( NA, nrow = nrow(D), ncol = 2 * D$N[1] )
-    )
+    if( nrow(D) > 0 ) {
+        cat( "load.haplotypes(): done, uncompressing...\n" ) ;
+        result = list(
+            variant = D[,-which( colnames(D) == "data")],
+            data = matrix( NA, nrow = nrow(D), ncol = 2 * D$N[1] )
+        )
 
-    for( i in 1:nrow(D) ) {
-        compressed_data = unlist( D$data[i] )
-        uncompressed_data = uncompress( compressed_data, asText = FALSE )
-        result$data[i,] = parse_haplotypes( uncompressed_data, D$N[i] )
+        for( i in 1:nrow(D) ) {
+            compressed_data = unlist( D$data[i] )
+            uncompressed_data = uncompress( compressed_data, asText = FALSE )
+            result$data[i,] = parse_haplotypes( uncompressed_data, D$N[i] )
+        }
+    } else {
+        result = list(
+            variant = D[,-which( colnames(D) == "data")],
+            data = matrix( NA, nrow = 0, ncol = 2 * length( which( hapdb$samples$analysis == analysis ) ) )
+        ) ;
     }
-    
-    
+    result$samples = hapdb$samples[ which( hapdb$analysis == analysis ), ]
+
     if( !is.null( samples ) ) {
         if( mode( samples ) == "character" ) {
             samples = which( hapdb$samples$analysis == analysis & hapdb$samples$identifier %in% samples ) ;
         }
         result$data = result$data[, samples ]
-        result$variant$N = length( samples )
+        result$samples = result$samples[ samples, ]
+        if( nrow( result$variant ) > 0 ) {
+            result$variant$N = length( samples )
+        }
     }
-    
+    cat( "load.haplotypes(): done.\n" ) ;
     return( result )
 }
