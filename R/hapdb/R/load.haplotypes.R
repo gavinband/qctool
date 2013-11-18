@@ -70,12 +70,13 @@ function( hapdb, chromosome, rsid = NULL, range = NULL, samples = NULL, analysis
             data = matrix( NA, nrow = 0, ncol = 2 * length( which( hapdb$samples$analysis == analysis ) ) )
         ) ;
     }
-    result$samples = hapdb$samples[ which( hapdb$analysis == analysis ), ]
-
+    result$samples = hapdb$samples[ which( hapdb$samples$analysis == analysis ), ]
+    str(result)
     if( !is.null( samples ) ) {
         if( mode( samples ) == "character" ) {
             samples = which( hapdb$samples$analysis == analysis & hapdb$samples$identifier %in% samples ) ;
         }
+        
         result$data = result$data[, samples ]
         result$samples = result$samples[ samples, ]
         if( nrow( result$variant ) > 0 ) {
