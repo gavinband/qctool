@@ -1,3 +1,6 @@
+importFrom( "DBI", dbDriver )
+importFrom( "RSQLite", dbConnect, dbGetQuery ) ; 
 import( RSQLite, Rcompression )
 export( open.hapdb )
-export( load.haplotype.range )
+export( load.haplotypes )
+export( load.sample.file )

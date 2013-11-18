@@ -18,9 +18,9 @@ function( filename, get.variants = FALSE ) {
 	) ;
 	if( get.variants ) {
 		result$variants = get.variants( result ) ;
-    	cat( sprintf( "open.hapdb(): opened hapdb with %d samples and %d variants.\n", nrow( result$samples ), nrow( result$variants ) )
+    	cat( sprintf( "open.hapdb(): opened hapdb with %d samples and %d variants.\n", nrow( result$samples ), nrow( result$variants ) ) )
 	} else {
-    	cat( sprintf( "open.hapdb(): opened hapdb with %d samples.\n", nrow( result$samples ) )
+    	cat( sprintf( "open.hapdb(): opened hapdb with %d samples.\n", nrow( result$samples ) ) )
 	}
     return( result ) ;
 }

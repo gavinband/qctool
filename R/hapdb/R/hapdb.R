@@ -1,0 +1,2 @@
+require( RSQLite )
+require( Rcompression )
