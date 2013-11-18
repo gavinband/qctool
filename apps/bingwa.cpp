@@ -1934,17 +1934,6 @@ public:
 			(*result)[ model_name ] = prior ;
 		}
 	}
-	
-	void get_experimental_priors(
-		int const number_of_cohorts,
-		GroupDefinition const& groups,
-		std::vector< std::string > const& model_specs,
-		boost::optional< std::vector< std::string > > model_names,
-		std::vector< std::string > const& cohort_names,
-		std::map< std::string, Eigen::MatrixXd >* result
-	) {
-	}
-	
 
 	void get_group_specific_priors(
 		int const number_of_cohorts,
@@ -2228,15 +2217,6 @@ public:
 					model_names = options.get_values< std::string >( "-group-specific-prior-name" ) ;
 				}			
 				get_group_specific_priors( N, groups, options.get_values< std::string >( "-group-specific-prior" ), model_names, cohort_names, &result ) ;
-			}
-
-			if( options.check( "-experimental-prior" )) {
-				boost::optional< std::vector< std::string > > model_names ;
-
-				if( options.check( "-experimental-prior-name" )) {
-					model_names = options.get_values< std::string >( "-experimental-prior-name" ) ;
-				}
-				get_experimental_priors( N, groups, options.get_values< std::string >( "-experimental-prior" ), model_names, cohort_names, &result ) ;
 			}
 		}
 		
