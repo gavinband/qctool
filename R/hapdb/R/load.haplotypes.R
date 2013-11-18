@@ -71,7 +71,6 @@ function( hapdb, chromosome, rsid = NULL, range = NULL, samples = NULL, analysis
         ) ;
     }
     result$samples = hapdb$samples[ which( hapdb$samples$analysis == analysis ), ]
-    str(result)
     if( !is.null( samples ) ) {
         if( mode( samples ) == "character" ) {
             samples = which( hapdb$samples$analysis == analysis & hapdb$samples$identifier %in% samples ) ;
