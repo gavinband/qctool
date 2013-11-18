@@ -65,10 +65,10 @@ function( hapdb, chromosome, rsid = NULL, range = NULL, samples = NULL, analysis
     
     if( !is.null( samples ) ) {
         if( mode( samples ) == "character" ) {
-            samples = which( hapdb$samples$analysis == analysis & hapdb$samples$sample %in% samples ) ;
+            samples = which( hapdb$samples$analysis == analysis & hapdb$samples$identifier %in% samples ) ;
         }
         result$data = result$data[, samples ]
-        result$N = length( samples )
+        result$variant$N = length( samples )
     }
     
     return( result )

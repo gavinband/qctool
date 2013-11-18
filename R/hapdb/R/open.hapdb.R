@@ -5,7 +5,7 @@ function( filename, get.variants = FALSE ) {
     samples = dbGetQuery(
         db,
         paste(
-            'SELECT S.analysis_id AS analysis_id, E.name AS analysis, sample, index_in_data AS "index"',
+            'SELECT S.analysis_id AS analysis_id, E.name AS analysis, identifier, index_in_data AS "index"',
             'FROM Sample S',
             'INNER JOIN Entity E ON E.id == S.analysis_id',
             'ORDER BY analysis_id, index_in_data',
