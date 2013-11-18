@@ -1,5 +1,5 @@
 load.haplotypes <-
-function( hapdb, chromosome, rsid = NULL, range = NULL, analysis = NULL ) {
+function( hapdb, chromosome, rsid = NULL, range = NULL, samples = NULL, analysis = NULL ) {
     require( RSQLite )
     require( Rcompression )
     sql = paste(
@@ -7,25 +7,24 @@ function( hapdb, chromosome, rsid = NULL, range = NULL, analysis = NULL ) {
         "FROM Haplotype H",
         "INNER JOIN Entity E ON E.id == H.analysis_id",
         "INNER JOIN Variant V ON V.id == H.variant_id",
-        "WHERE 1 == 1",
         sep = " "
     )
     
-    if( length( unique( hapdb$samples$analysis_id ) ) > 0 ) {
-        if( is.null( analysis )) {
+    if( is.null( analysis ) ) {
+        analysis = as.character( unique( hapdb$samples$analysis ) )
+        if( length( analysis ) > 1 ) {
             stop( "This hapdb file has more than one analysis, please specify one." ) ;
         } else {
-            analysis_id = hapdb$samples$analysis_id[ match( analysis, hapdb$samples$analysis ) ]
-            if( is.na( analysis_id )) {
-                stop( paste( "Analysis \"", analysis, "\" was not found in the hapdb file.", sep = "" ) ) ;
-            }
-            sql = paste(
-                sql,
-                sprintf( "AND analysis_id == %d", analysis_id ),
-                sep = " "
-            ) ;
+            stop( "This hapdb file seems to have no analyses!" ) ;
         }
     }
+    
+    analysis_id = hapdb$samples$analysis_id[ match( analysis, hapdb$samples$analysis ) ]
+    sql = paste(
+        sql,
+        sprintf( "WHERE analysis_id == %d", analysis_id ),
+        sep = " "
+    ) ;
     
     if( !is.null( chromosome ) ) {
         sql = paste(
@@ -62,5 +61,15 @@ function( hapdb, chromosome, rsid = NULL, range = NULL, analysis = NULL ) {
         uncompressed_data = uncompress( compressed_data, asText = FALSE )
         result$data[i,] = parse_haplotypes( uncompressed_data, D$N[i] )
     }
+    
+    
+    if( !is.null( samples ) ) {
+        if( mode( samples ) == "character" ) {
+            samples = which( hapdb$samples$analysis == analysis & hapdb$samples$sample %in% samples ) ;
+        }
+        result$data = result$data[, samples ]
+        result$N = length( samples )
+    }
+    
     return( result )
 }
