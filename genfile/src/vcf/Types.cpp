@@ -7,6 +7,7 @@
 #include <map>
 #include <string>
 #include <iostream>
+#include <cmath>
 #include <boost/ptr_container/ptr_map.hpp>
 #include "genfile/MissingValue.hpp"
 #include "genfile/VariantEntry.hpp"
@@ -18,21 +19,29 @@
 
 namespace genfile {
 	namespace vcf {
-		SimpleType::UniquePtr SimpleType::create( std::string const& spec ) {
+		SimpleType::UniquePtr SimpleType::create( std::string const& spec, std::string const& scale ) {
 			SimpleType::UniquePtr result ;
 			if( spec == "String" ) {
+				assert( scale == "identity" ) ;
 				result.reset( new StringType() ) ;
 			}
 			else if( spec == "Integer" ) {
+				assert( scale == "identity" ) ;
 				result.reset( new IntegerType() ) ;
 			}
 			else if( spec == "Float" ) {
-				result.reset( new FloatType() ) ;
+				if( scale == "identity" ) {
+					result.reset( new FloatType() ) ;
+				} else {
+					result.reset( new PhredScaleFloatType() ) ;
+				}
 			}
 			else if( spec == "Character" ) {
+				assert( scale == "identity" ) ;
 				result.reset( new CharacterType() ) ;
 			}
 			else if( spec == "Flag" ) {
+				assert( scale == "identity" ) ;
 				result.reset( new FlagType() ) ;
 			}
 			else {
@@ -82,10 +91,18 @@ namespace genfile {
 		void FloatType::parse( string_utils::slice const& value, EntrySetter& setter ) const {
 			try {
 				setter( string_utils::strtod( value )) ;
-				// return Entry( string_utils::to_repr< double >( value )) ;
 			}
 			catch( string_utils::StringConversionError const& ) {
 				throw BadArgumentError( "genfile::vcf::FloatType::parse()", "value = \"" + std::string( value ) + "\"" ) ;
+			}
+		}
+
+		void PhredScaleFloatType::parse( string_utils::slice const& value, EntrySetter& setter ) const {
+			try {
+				setter( std::pow( 10, -string_utils::strtod( value ) / 10 ) ) ;
+			}
+			catch( string_utils::StringConversionError const& ) {
+				throw BadArgumentError( "genfile::vcf::PhredScaleFloatType::parse()", "value = \"" + std::string( value ) + "\"" ) ;
 			}
 		}
 
@@ -106,46 +123,59 @@ namespace genfile {
 		VCFEntryType::UniquePtr VCFEntryType::create( Spec const& spec ) {
 			Spec::const_iterator ID = spec.find( "ID" ) ;
 			Spec::const_iterator number = spec.find( "Number" ) ;
-			Spec::const_iterator type = spec.find( "Type" ) ;
-			if( ID == spec.end() || number == spec.end() || type == spec.end() ) {
+			Spec::const_iterator type_i = spec.find( "Type" ) ;
+			if( ID == spec.end() || number == spec.end() || type_i == spec.end() ) {
 				throw BadArgumentError( "genfile::vcf::VCFEntryType::create()", "spec" ) ;
 			}
+
 			VCFEntryType::UniquePtr result ;
 
-			if( ID->second == "GT" || type->second == "Genotype" ) {
+			if( ID->second == "GT" || type_i->second == "Genotype" ) {
 				if( number->second != "." && number->second != "1" ) {
-					throw genfile::BadArgumentError(
+					throw BadArgumentError(
 						"genfile::vcf::VCFEntryType::create()",
 						"Number=" + number->second,
 						"\"Number\" of GT field must be encoded as . or 1 in metadata."
 					) ;
 				}
-				if( type->second != "String" && type->second != "Genotype" ) {
+				if( type_i->second != "String" && type_i->second != "Genotype" ) {
 					throw BadArgumentError( "genfile::vcf::VCFEntryType::create()", "spec" ) ;
 				}
 				result.reset( new GenotypeCallVCFEntryType()) ;
 			}
-			else if( number->second == "A" ) {
-				result.reset( new OnePerAlternateAlleleVCFEntryType( SimpleType::create( type->second ))) ;
-			}
-			else if( number->second == "G" ) {
-				result.reset( new OnePerGenotypeVCFEntryType( SimpleType::create( type->second ))) ;
-			}
-			else if( number->second == "." ) {
-				result.reset(
-					new DynamicNumberVCFEntryType(
-						SimpleType::create( type->second )
-					)
-				) ;
-			}
 			else {
-				result.reset(
-					new FixedNumberVCFEntryType(
-						string_utils::to_repr< std::size_t >( number->second ),
-						SimpleType::create( type->second )
-					)
-				) ;
+				SimpleType::UniquePtr element_type ;
+				{
+					// deal with scale specifiable by "Scale" attribute.
+					std::string scale = "identity" ;
+					Spec::const_iterator scale_i = spec.find( "Scale" ) ;
+					if( scale_i != spec.end() ) {
+						scale = scale_i->second ;
+					}
+					element_type = SimpleType::create( type_i->second, scale ) ;
+				}
+
+				if( number->second == "A" ) {
+					result.reset( new OnePerAlternateAlleleVCFEntryType( element_type )) ;
+				}
+				else if( number->second == "G" ) {
+					result.reset( new OnePerGenotypeVCFEntryType( element_type )) ;
+				}
+				else if( number->second == "." ) {
+					result.reset(
+						new DynamicNumberVCFEntryType( element_type )
+					) ;
+				}
+				else {
+					result.reset(
+						new FixedNumberVCFEntryType(
+							string_utils::to_repr< std::size_t >( number->second ),
+							element_type
+						)
+					) ;
+				}
 			}
+
 			return result ;
 		}
 		

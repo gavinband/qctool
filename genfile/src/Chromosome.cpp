@@ -77,6 +77,10 @@ namespace genfile {
 		}
 	}
 	
+	bool Chromosome::operator==( std::string const& other ) const {
+		return *this == Chromosome( other ) ;
+	}
+	
 	Chromosome& Chromosome::operator++() {
 		if( m_chromosome_e == UnidentifiedChromosome ) {
 			m_chromosome_e = Chromosome1 ;

@@ -38,6 +38,10 @@ namespace genfile {
 		return "Source \"" + source() + "\" is in format \"" + format() + "\", which is unsupported." ;
 	}
 	
+	std::string DuplicateKeyError::format_message() const {
+		return std::string( "Key \"" ) + key() + "\" is duplicated in source \"" + source() + "\"." ;
+	}
+	
 	std::string DuplicateEntryError::format_message() const {
 		std::ostringstream ostr ;
 		ostr << "Source \"" << source() << "\" has a duplicate entry for key \"" << m_key << "\", variable \"" << m_variable << "\"" ;

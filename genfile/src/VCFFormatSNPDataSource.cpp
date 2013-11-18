@@ -44,32 +44,14 @@ namespace genfile {
 	}
 
 	VCFFormatSNPDataSource::VCFFormatSNPDataSource(
-		std::auto_ptr< std::istream > stream_ptr
+		std::auto_ptr< std::istream > stream_ptr,
+		boost::optional< Metadata > metadata
 	):
 		m_spec( "(unnamed stream)" ),
 		m_compression_type( "no_compression" ),
 		m_stream_ptr( stream_ptr ),
 		m_metadata_parser( new vcf::StrictMetadataParser( m_spec, *m_stream_ptr ) ),
-		m_metadata( m_metadata_parser->get_metadata() ),
-		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
-		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
-		m_field_mapping( get_field_mapping( m_format_types )),
-		m_column_names( read_column_names( *m_stream_ptr )),
-		m_number_of_samples( m_column_names.size() - 9 ),
-		m_have_id_data( false )
-	{
-		setup() ;
-		reset_stream() ;
-	}
-
-	VCFFormatSNPDataSource::VCFFormatSNPDataSource(
-		std::string const& filename
-	):
-		m_spec( filename ),
-		m_compression_type( get_compression_type_indicated_by_filename( filename )),
-		m_stream_ptr( open_text_file_for_input( filename, m_compression_type ) ),
-		m_metadata_parser( new vcf::StrictMetadataParser( m_spec, *m_stream_ptr ) ),
-		m_metadata( m_metadata_parser->get_metadata() ),
+		m_metadata( ( metadata ? *metadata : m_metadata_parser->get_metadata() ) ),
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_field_mapping( get_field_mapping( m_format_types )),
@@ -83,13 +65,13 @@ namespace genfile {
 
 	VCFFormatSNPDataSource::VCFFormatSNPDataSource(
 		std::string const& filename,
-		Metadata const& metadata
+		boost::optional< Metadata > metadata
 	):
 		m_spec( filename ),
 		m_compression_type( get_compression_type_indicated_by_filename( filename )),
 		m_stream_ptr( open_text_file_for_input( filename, m_compression_type ) ),
-		m_metadata_parser( new vcf::TrivialMetadataParser( m_spec, *m_stream_ptr ) ),
-		m_metadata( metadata ),
+		m_metadata_parser( new vcf::StrictMetadataParser( m_spec, *m_stream_ptr ) ),
+		m_metadata( ( metadata ? *metadata : m_metadata_parser->get_metadata() ) ),
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_field_mapping( get_field_mapping( m_format_types )),
@@ -100,7 +82,7 @@ namespace genfile {
 		setup() ;
 		reset_stream() ;
 	}
-	
+
 	void VCFFormatSNPDataSource::setup() {}
 
 	void VCFFormatSNPDataSource::check_genotype_probability_field( std::string const& field ) const {

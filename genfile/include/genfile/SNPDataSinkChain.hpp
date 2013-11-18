@@ -53,6 +53,8 @@ namespace genfile {
 			Info const& info
 		) ;
 
+		void finalise_impl() ;
+
 	private:
 
 		std::vector< SNPDataSink* > m_sinks ;

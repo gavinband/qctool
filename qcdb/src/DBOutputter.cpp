@@ -86,14 +86,6 @@ namespace qcdb {
 		) ;
 
 		m_connection->run_statement(
-			"CREATE TABLE IF NOT EXISTS SummaryData ( "
-			"variant_id INT, analysis_id INT, variable_id INT, value NONE, "
-			"FOREIGN KEY( variant_id ) REFERENCES Variant( id ), "
-			"FOREIGN KEY( analysis_id ) REFERENCES Entity( id ), "
-			"FOREIGN KEY( variable_id ) REFERENCES Entity( id ) "
-			")"
-		) ;
-		m_connection->run_statement(
 			"CREATE INDEX IF NOT EXISTS EntityDataIndex ON EntityData( entity_id, variable_id )"
 		) ;
 
@@ -140,36 +132,36 @@ namespace qcdb {
 		) ;
 		
 		m_connection->run_statement(
-			"CREATE VIEW IF NOT EXISTS SummaryDataView AS "
-			"SELECT          V.id AS variant_id, V.chromosome, V.position, V.rsid, "
-			"CASE WHEN length( V.alleleA < 10 ) THEN V.alleleA ELSE substr( V.alleleA, 1, 10 ) || '...' END AS alleleA, "
-			"CASE WHEN length( V.alleleB < 10 ) THEN V.alleleB ELSE substr( V.alleleB, 1, 10 ) || '...' END AS alleleB, "
-			"SD.analysis_id, Analysis.name AS analysis, Variable.id AS variable_id, Variable.name AS variable, "
-			"SD.value AS value "
-			"FROM SummaryData SD "
-			"INNER JOIN Variant V ON V.id == SD.variant_id "
-			"INNER JOIN Entity Analysis ON Analysis.id = SD.analysis_id "
-			"INNER JOIN Entity Variable ON Variable.id = SD.variable_id "
-			"WHERE analysis_id IN ( SELECT id FROM Entity )"
+			"CREATE TABLE IF NOT EXISTS AnalysisStatus ( "
+				"analysis_id INTEGER NOT NULL REFERENCES Entity( id ), "
+				"started TEXT NOT NULL, "
+				"completed TEXT, "
+				"status TEXT NOT NULL "
+			")"
 		) ;
-
+		m_connection->run_statement(
+			"CREATE VIEW IF NOT EXISTS AnalysisStatusView AS "
+			"SELECT analysis_id, E.name AS analysis, started, completed, status "
+			"FROM AnalysisStatus A "
+			"INNER JOIN Entity E "
+			"ON E.id == A.analysis_id"
+		) ;
 		construct_statements() ;
 		store_metadata() ;
 	}
 
 	void DBOutputter::finalise( long options ) {
 		if( options & eCreateIndices ) {
-			db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 600 ) ;
+			db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 1200 ) ;
 			m_connection->run_statement(
 				"CREATE INDEX IF NOT EXISTS Variant_rsid_index ON Variant( rsid )"
 			) ;
 			m_connection->run_statement(
 				"CREATE INDEX IF NOT EXISTS VariantIdentifierVariantIndex ON VariantIdentifier( variant_id )"
 			) ;
-			m_connection->run_statement(
-				"CREATE INDEX IF NOT EXISTS SummaryDataIndex ON SummaryData( variant_id, variable_id )"
-			) ;
 		}
+		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 1200 ) ;
+		end_analysis( m_analysis_id ) ;
 	}
 
 	void DBOutputter::construct_statements() {
@@ -187,10 +179,6 @@ namespace qcdb {
 		) ;
 		m_find_variant_identifier_statement = m_connection->get_statement( "SELECT * FROM VariantIdentifier WHERE variant_id == ?1 AND identifier == ?2" ) ;
 		m_insert_variant_identifier_statement = m_connection->get_statement( "INSERT INTO VariantIdentifier( variant_id, identifier ) VALUES ( ?1, ?2 )" ) ;
-		m_insert_summarydata_statement = m_connection->get_statement(
-			"INSERT INTO SummaryData ( variant_id, analysis_id, variable_id, value ) "
-			"VALUES( ?1, ?2, ?3, ?4 )"
-		) ;
 	}
 
 	void DBOutputter::store_metadata() {
@@ -208,6 +196,8 @@ namespace qcdb {
 			throw genfile::BadArgumentError( "qcdb::DBOutputter::store_metadata()", "analysis_name=\"" + m_analysis_name + "\"", "An analysis with name \"" + m_analysis_name + "\" and description \"" + m_analysis_description + "\" already exists" ) ;
 		} 
 
+		start_analysis( m_analysis_id ) ;
+
 		get_or_create_entity_data(
 			m_analysis_id,
 			get_or_create_entity( "tool", "Executable, pipeline, or script used to generate these results." ),
@@ -223,6 +213,22 @@ namespace qcdb {
 				genfile::string_utils::join( i->second.first, "," ) + " (" + i->second.second + ")"
 			) ;
 		}
+	}
+	
+	void DBOutputter::start_analysis( db::Connection::RowId const analysis_id ) const {
+		db::Connection::StatementPtr stmnt = m_connection->get_statement( "INSERT INTO AnalysisStatus( analysis_id, started, status ) VALUES( ?, ?, ? )" ) ;
+		stmnt->bind( 1, analysis_id ) ;
+		stmnt->bind( 2, appcontext::get_current_time_as_string() ) ;
+		stmnt->bind( 3, "incomplete" ) ;
+		stmnt->step() ;
+	}
+
+	void DBOutputter::end_analysis( db::Connection::RowId const analysis_id ) const {
+		db::Connection::StatementPtr stmnt = m_connection->get_statement( "UPDATE AnalysisStatus SET completed = ?, status = ? WHERE analysis_id == ?" ) ;
+		stmnt->bind( 1, appcontext::get_current_time_as_string() ) ;
+		stmnt->bind( 2, "successfully completed" ) ;
+		stmnt->bind( 3, analysis_id ) ;
+		stmnt->step() ;
 	}
 	
 	void DBOutputter::load_entities() {
@@ -396,17 +402,4 @@ namespace qcdb {
 		return result ;
 	}
 	
-	void DBOutputter::insert_summary_data(
-		db::Connection::RowId snp_id,
-		db::Connection::RowId variable_id,
-		genfile::VariantEntry const& value
-	) const {
-		m_insert_summarydata_statement
-			->bind( 1, snp_id )
-			.bind( 2, m_analysis_id )
-			.bind( 3, variable_id )
-			.bind( 4, value )
-			.step() ;
-		m_insert_summarydata_statement->reset() ;
-	}
 }

@@ -16,6 +16,7 @@
 #include <boost/signals2/signal.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/function.hpp>
+#include <boost/tuple/tuple.hpp>
 #include <boost/foreach.hpp>
 #define foreach BOOST_FOREACH
 #include <boost/regex.hpp>
@@ -36,11 +37,11 @@
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "statfile/BuiltInTypeStatSource.hpp"
+#include "statfile/SNPDataSourceAdapter.hpp"
 #include "qcdb/Storage.hpp"
-#include "components/SNPSummaryComponent/DBOutputter.hpp"
 #include "qcdb/FlatFileOutputter.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
-
+#include "components/SNPSummaryComponent/DBOutputter.hpp"
 #include "FrequentistGenomeWideAssociationResults.hpp"
 #include "SNPTESTResults.hpp"
 #include "MMMResults.hpp"
@@ -72,7 +73,7 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_minimum_multiplicity( 1 )
 				.set_maximum_multiplicity( 100 )
 			;
-			options[ "-info-columns" ]
+			options[ "-extra-columns" ]
 				.set_description( "Specify extra columns in input files whose values will be considered as variables to be reported in the output."
 				 	" Currently these must be columns of numerical data.  (A single wildcard character * at the start or end of the column name may"
 					" be used to match any initial or terminal sequence of characters; but take care to escape this from the shell.)" )
@@ -80,15 +81,6 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 					.set_minimum_multiplicity( 0 )
 					.set_maximum_multiplicity( 100 )
 				;
-			options[ "-effect-column-regex" ]
-				.set_description( "Specify a regular expression identifying the effect size column in each cohort."
-					" (Standard error columns will then be found using a regular expression obtained by replacing \"beta\" with \"se\".)"
-					" If this option is specified, there must be one value specified per cohort."
-					" The default behaviour is to use a regular expression of the form \".*beta_1.*\", which is suitable for most files produced by SNPTEST." )
-				.set_takes_values_until_next_option()
-				.set_minimum_multiplicity( 0 )
-				.set_maximum_multiplicity( 100 )
-			;
 			
 			options[ "-snp-match-fields" ]
 				.set_description( "Use this option to specify a comma-separated list of SNP-identifying fields that should be used "
@@ -168,6 +160,16 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 					"The i-th value should be a comma-separated list of files containing rsids to exclude from the i-th cohort." )
 				.set_takes_values_until_next_option() 
 				.set_maximum_multiplicity( 100 ) ;
+			options[ "-excl-snps-per-cohort" ]
+				.set_description( "Exclude all SNPs in the given file(s) from the corresponding cohort. "
+					"The i-th value should be a comma-separated list of files containing snps to exclude from the i-th cohort, in the format output by gen-grep." )
+				.set_takes_values_until_next_option() 
+				.set_maximum_multiplicity( 100 ) ;
+			options[ "-incl-snps-per-cohort" ]
+				.set_description( "Exclude all SNPs not in the given file(s) from the corresponding cohort."
+					"The i-th value should be a comma-separated list of files containing rsids to exclude from the i-th cohort, in the format output by gen-grep." )
+				.set_takes_values_until_next_option() 
+				.set_maximum_multiplicity( 100 ) ;
 		
 			options[ "-min-info" ]
 				.set_description( "Treat SNPs with info less than the given threshhold as missing." )
@@ -229,6 +231,22 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 		
 			options[ "-no-meta-analysis" ]
 				.set_description( "Don't do a fixed effect meta-analysis.  Instead, just match up SNPs and store per-cohort values." ) ;
+
+			options[ "-define-sd-set" ]
+				.set_description( "Define set(s) of standard deviations to use in prior specifications. "
+					"The value should be a whitespace-separated list of elements of the form "
+					"\"[name of set]=[sd1],[sd2],[sd3]...\"." )
+				.set_takes_values_until_next_option()
+				.set_minimum_multiplicity( 0 )
+				.set_maximum_multiplicity( 1 ) ;
+
+			options[ "-define-rho-set" ]
+				.set_description( "Define set(s) of correlations to use in prior specifications. "
+					"The value should be a whitespace-separated list of elements of the form "
+					"\"[name of set]=[value],[value],[value]...\"." )
+				.set_takes_values_until_next_option()
+				.set_minimum_multiplicity( 0 )
+				.set_maximum_multiplicity( 1 ) ;
 			
 			options[ "-simple-prior" ]
 				.set_description( "Specify a model of the form \"rho=[r]/sd=[s]\" giving a correlation matrix of the form\n"
@@ -267,7 +285,7 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_maximum_multiplicity( 1 )
 			;
 
-			options[ "-group" ]
+			options[ "-define-group" ]
 				.set_description( "Specify a group of cohorts for use with -group-prior and -group-specific prior."
 					" The format for each group is [group name]=[cohort name 1],[cohort name 2],..." )
 					.set_takes_values_until_next_option()
@@ -277,7 +295,7 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 			
 			options[ "-group-prior" ]
 				.set_description( "Specify a prior made up of blocks per groups, in the format"
-					" [group1]:rho=[r1]/sd=[s1],[group2]:rho=[r2]/sd=[s2]...;rho=[r]" )
+					" [group1]:rho=[r1]/sd=[s1],[group2]:rho=[r2]/sd=[s2]...:rho=[r]" )
 				.set_takes_values_until_next_option()
 				.set_minimum_multiplicity( 0 )
 				.set_maximum_multiplicity( 1 )
@@ -312,8 +330,8 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 
 			options.option_implies_option( "-complex-prior", "-complex-prior-name" ) ;
 			options.option_implies_option( "-complex-prior-name", "-complex-prior" ) ;
-			options.option_implies_option( "-group-prior", "-group" ) ;
-			options.option_implies_option( "-group-specific-prior", "-group" ) ;
+//			options.option_implies_option( "-group-prior", "-define-group" ) ;
+//			options.option_implies_option( "-group-specific-prior", "-define-group" ) ;
 			options.option_implies_option( "-group-specific-prior-name", "-group-specific-prior" ) ;
 		}
 	}
@@ -321,6 +339,7 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 
 FrequentistGenomeWideAssociationResults::UniquePtr FrequentistGenomeWideAssociationResults::create(
 	std::vector< genfile::wildcard::FilenameMatch > const& filenames,
+	boost::optional< std::string > const& effect_size_column_regex,
 	std::vector< std::string > const& columns,
 	genfile::SNPIdentifyingDataTest::UniquePtr test,
 	SNPResultCallback result_callback,
@@ -344,10 +363,14 @@ FrequentistGenomeWideAssociationResults::UniquePtr FrequentistGenomeWideAssociat
 
 	FlatFileFrequentistGenomeWideAssociationResults::UniquePtr result ;
 	if( type == "snptest" || type == "unknown" ) {
-		result.reset( new SNPTESTResults( test ) ) ;
+		result.reset( new SNPTESTResults( test ) ) ; 
 	}
 	else if( type == "mmm" ) {
 		result.reset( new MMMResults( test ) ) ;
+	}
+	
+	if( effect_size_column_regex ) {
+		result->set_effect_size_column_regex( effect_size_column_regex.get() ) ;
 	}
 
 	BOOST_FOREACH( std::string const& column, columns ) {
@@ -377,6 +400,7 @@ struct BingwaComputation: public boost::noncopyable {
 		virtual void get_counts( std::size_t, Eigen::VectorXd* result ) const = 0 ;
 		virtual void get_betas( std::size_t i, Eigen::VectorXd* result ) const = 0 ;
 		virtual void get_ses( std::size_t i, Eigen::VectorXd* result  ) const = 0 ;
+		virtual void get_covariance_upper_triangle( std::size_t i, Eigen::VectorXd* result  ) const = 0 ;
 		virtual void get_pvalue( std::size_t i, double* result ) const = 0 ;
 		virtual void get_info( std::size_t i, double* result ) const = 0 ;
 		virtual void get_maf( std::size_t i, double* result ) const = 0 ;
@@ -384,6 +408,8 @@ struct BingwaComputation: public boost::noncopyable {
 	} ;
 
 	typedef boost::function< bool ( DataGetter const&, int i ) > Filter ;
+	
+	virtual void set_number_of_effect_parameters( int const d ) = 0 ;
 	virtual void get_variables( boost::function< void ( std::string ) > ) const = 0 ;
 	virtual void operator()(
 		SNPIdentifyingData2 const&,
@@ -400,17 +426,26 @@ public:
 	
 public:
 	PerCohortValueReporter( std::vector< std::string > const& cohort_names ):
-		m_cohort_names( cohort_names )
+		m_cohort_names( cohort_names ),
+		m_degrees_of_freedom( -1 )
 	{}
 	
 	void add_variable( std::string const& variable ) {
 		m_extra_variables.insert( variable ) ;
 	}
 	
+	void set_number_of_effect_parameters( int const d ) {
+		m_degrees_of_freedom = d ;
+	}
+	
 	void get_variables( boost::function< void ( std::string ) > callback ) const {
+		using genfile::string_utils::to_string ;
+		
 		std::size_t const N = m_cohort_names.size() ;
 		for( std::size_t i = 0; i < N; ++i ) {
 			std::string prefix = m_cohort_names[ i ] + ":" ;
+			callback( prefix + "A" ) ;
+			callback( prefix + "B" ) ;
 			callback( prefix + "AA" ) ;
 			callback( prefix + "AB" ) ;
 			callback( prefix + "BB" ) ;
@@ -418,8 +453,16 @@ public:
 			callback( prefix + "B_allele_frequency" ) ;
 			callback( prefix + "maf" ) ;
 
-			callback( prefix + "beta_1" ) ;
-			callback( prefix + "se_1" ) ;
+			for( int i = 0; i < m_degrees_of_freedom; ++i ) {
+				callback( prefix + "beta_" + to_string( i+1 ) ) ;
+				callback( prefix + "se_" + to_string( i+1 ) ) ;
+			}
+			for( int i = 0; i < m_degrees_of_freedom; ++i ) {
+				for( int j = i+1; j < m_degrees_of_freedom; ++j ) {
+					callback( prefix + "cov_" + to_string( i+1 ) + "," + to_string( j+1) ) ;
+				}
+			}
+			
 			callback( prefix + "pvalue" ) ;
 			callback( prefix + "info" ) ;
 
@@ -439,31 +482,48 @@ public:
 			if( data_getter.is_non_missing( i ) ) {
 				Eigen::VectorXd betas ;
 				Eigen::VectorXd ses ;
+				Eigen::VectorXd covariance ;
 				Eigen::VectorXd counts ;
 				double pvalue ;
 				double info ;
 				double maf ;
 				data_getter.get_betas( i, &betas ) ;
 				data_getter.get_ses( i, &ses ) ;
+				data_getter.get_covariance_upper_triangle( i, &covariance ) ;
+				
 				data_getter.get_counts( i, &counts ) ;
 				data_getter.get_pvalue( i, &pvalue ) ;
 				data_getter.get_info( i, &info ) ;
 				data_getter.get_maf( i, &maf ) ;
 
-				assert( counts.size() == 4 ) ;
+				assert( counts.size() == 6 ) ;
 				using genfile::string_utils::to_string ;
 				std::string prefix = m_cohort_names[ i ] + ":" ;
-				callback( prefix + "AA", counts(0) ) ;
-				callback( prefix + "AB", counts(1) ) ;
-				callback( prefix + "BB", counts(2) ) ;
-				callback( prefix + "NULL", counts(3) ) ;
-				callback( prefix + "B_allele_frequency", ( 2.0 * counts(2) + counts(1) ) / ( 2.0 * counts.head(3).sum() ) ) ;
+				callback( prefix + "A", counts(0) ) ;
+				callback( prefix + "B", counts(1) ) ;
+				callback( prefix + "AA", counts(2) ) ;
+				callback( prefix + "AB", counts(3) ) ;
+				callback( prefix + "BB", counts(4) ) ;
+				callback( prefix + "NULL", counts(5) ) ;
+				callback( prefix + "B_allele_frequency",  ( counts(1) + counts(3) + 2 * counts(4)) / ( counts(0) + counts(1) + 2 * ( counts.segment(2,3).sum() ) ) ) ;
 				callback( prefix + "maf", maf ) ;
 				
 				assert( betas.size() == ses.size() ) ;
+				assert( covariance.size() == ( betas.size() - 1 ) * betas.size() / 2 ) ;
 				for( int j = 0; j < betas.size(); ++j ) {
 					callback( prefix + "beta_" + to_string( j+1 ), betas(j) ) ;
+				}
+				for( int j = 0; j < betas.size(); ++j ) {
 					callback( prefix + "se_" + to_string( j+1 ), ses(j) ) ;
+				}
+				{
+					int index = 0 ;
+					for( int j = 0; j < betas.size(); ++j ) {
+						for( int k = j+1; k < betas.size(); ++k, ++index ) {
+							callback( prefix + "cov_" + to_string(j+1) + "," + to_string(k+1), covariance( index ) ) ;
+						}
+					}
+					assert( index == covariance.size() ) ;
 				}
 				callback( prefix + "pvalue", pvalue ) ;
 				callback( prefix + "info", info ) ;
@@ -489,6 +549,7 @@ public:
 	private:
 		std::vector< std::string > const m_cohort_names ;
 		std::set< std::string > m_extra_variables ;
+		int m_degrees_of_freedom ;
 } ;
 
 namespace impl {
@@ -515,7 +576,10 @@ namespace impl {
 	}
 	
 	bool get_betas_and_ses_one_per_study( BingwaComputation::DataGetter const& data_getter, BingwaComputation::Filter filter, Eigen::VectorXd& betas, Eigen::VectorXd& ses, Eigen::VectorXd& non_missingness ) {
-		std::size_t N = betas.size() ;
+		std::size_t N = data_getter.get_number_of_cohorts() ;
+		betas.resize( N ) ;
+		ses.resize( N ) ;
+		non_missingness.resize( 2 * N ) ;
 		for( std::size_t i = 0; i < N; ++i ) {
 			non_missingness( i ) = filter( data_getter, i ) ? 1.0 : 0.0 ;
 
@@ -541,6 +605,51 @@ namespace impl {
 		return true ;
 	}
 	
+	bool get_betas_and_covariance_per_study(
+		BingwaComputation::DataGetter const& data_getter,
+		BingwaComputation::Filter filter,
+		Eigen::VectorXd& betas,
+		Eigen::MatrixXd& covariance,
+		Eigen::VectorXd& non_missingness,
+		int const l
+	) {
+		std::size_t N = data_getter.get_number_of_cohorts() ;
+
+		betas.setConstant( l*N, NA ) ;
+		non_missingness.setConstant( l*N, 1 ) ;
+		covariance.setZero( l*N, l*N ) ;
+
+		for( std::size_t i = 0; i < N; ++i ) {
+			non_missingness( i ) = filter( data_getter, i ) ? 1.0 : 0.0 ;
+
+			if( non_missingness( i )) {
+				Eigen::VectorXd this_betas, this_ses, this_covariance ;
+				data_getter.get_betas( i, &this_betas ) ;
+				data_getter.get_ses( i, &this_ses ) ;
+				data_getter.get_covariance_upper_triangle( i, &this_covariance ) ;
+				if( this_betas.size() != l || this_ses.size() != l || this_covariance.size() != ((l-1) * l / 2 ) ) {
+					return false ;
+				}
+				// beta_1's for all pops go in one block (to match priors).
+				// then beta_2's for all pops, etc.
+				int cov_i = 0 ;
+				for( int j = 0; j < l; ++j ) {
+					int const index = (j*N)+i; //(l*i)+j ;
+					betas( index ) = this_betas(j) ;
+					covariance( index, index ) = this_ses(j) * this_ses(j) ;
+					if( this_betas(j) != this_betas(j) || this_ses(j) != this_ses(j) ) {
+						non_missingness( index ) = 0 ;
+					}
+					for( int k = (j+1); k < l; ++k, ++cov_i ) {
+						int const index2 = (k*N)+i; //(l*i)+j ;
+						covariance( index, index2 ) = covariance( index2, index ) = this_covariance( cov_i ) ;
+					}
+				}
+			}
+		}
+		return true ;
+	}
+
 	std::string serialise( Eigen::VectorXd const& vector ) {
 		std::ostringstream ostr ;
 		for( int i = 0; i < vector.size(); ++i ) {
@@ -566,12 +675,17 @@ struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {
 	typedef std::auto_ptr< FixedEffectFrequentistMetaAnalysis > UniquePtr ;
 	
 	FixedEffectFrequentistMetaAnalysis():
-		m_filter( &impl::basic_missingness_filter )
+		m_filter( &impl::basic_missingness_filter ),
+		m_degrees_of_freedom( -1 )
 	{}
 	
 	void set_filter( Filter filter ) {
 		assert( filter ) ;
 		m_filter = filter ;
+	}
+	
+	void set_number_of_effect_parameters( int const d ) {
+		m_degrees_of_freedom = d ;
 	}
 
 	void get_variables( boost::function< void ( std::string ) > callback ) const {
@@ -635,6 +749,7 @@ struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {
 	}
 private:
 	Filter m_filter ;
+	int m_degrees_of_freedom ;
 } ;
 
 //
@@ -672,13 +787,18 @@ struct ApproximateBayesianMetaAnalysis: public BingwaComputation {
 		m_prefix( "ApproximateBayesianMetaAnalysis/" + name ),
 		m_sigma( sigma ),
 		m_compute_posterior_mean_and_variance( false ),
-		m_filter( &impl::basic_missingness_filter )
+		m_filter( &impl::basic_missingness_filter ),
+		m_degrees_of_freedom( -1 )
 	{
 		assert( m_sigma.rows() == m_sigma.cols() ) ;
 	}
 
 	void set_filter( Filter filter ) {
 		m_filter = filter ;
+	}
+
+	void set_number_of_effect_parameters( int const d ) {
+		m_degrees_of_freedom = d ;
 	}
 
 	void get_variables( boost::function< void ( std::string ) > callback ) const {
@@ -708,6 +828,7 @@ private:
 	Eigen::MatrixXd const m_sigma ;
 	bool const m_compute_posterior_mean_and_variance ;
 	Filter m_filter ;
+	int m_degrees_of_freedom ;
 	
 	void compute_bayes_factor( Eigen::MatrixXd const& prior, Eigen::MatrixXd const& V, Eigen::VectorXd const& betas, ResultCallback callback ) const ;
 
@@ -723,12 +844,12 @@ void ApproximateBayesianMetaAnalysis::operator()(
 		return ;
 	}
 
-	Eigen::VectorXd betas = Eigen::VectorXd::Constant( N, NA ) ;
-	Eigen::VectorXd ses = Eigen::VectorXd::Constant( N, NA ) ;
-	Eigen::VectorXd non_missingness = Eigen::VectorXd::Constant( N, NA ) ;
+	Eigen::VectorXd betas ;
+	Eigen::MatrixXd covariance ;
+	Eigen::VectorXd non_missingness ;
 	
 	if(
-		!impl::get_betas_and_ses_one_per_study( data_getter, m_filter, betas, ses, non_missingness )
+		!impl::get_betas_and_covariance_per_study( data_getter, m_filter, betas, covariance, non_missingness, m_degrees_of_freedom )
 		|| non_missingness.sum() == 0
 	) {
 		callback( m_prefix + "/bf", genfile::MissingValue() ) ;
@@ -739,10 +860,25 @@ void ApproximateBayesianMetaAnalysis::operator()(
 		// Make a matrix that will select the rows and columns we want.
 		assert( betas.size() == m_sigma.rows() ) ;
 		
-		int const number_of_included_cohorts = (( m_sigma.diagonal().array() > 0 ).cast< double >() * ( non_missingness.array() > 0 ).cast< double >() ).sum() ;
+		int const number_of_included_effects = (( m_sigma.diagonal().array() > 0 ).cast< double >() * ( non_missingness.array() > 0 ).cast< double >() ).sum() ;
 		
-		if( number_of_included_cohorts > 0 ) {
-			Eigen::MatrixXd prior_selector = Eigen::MatrixXd::Zero( number_of_included_cohorts, betas.size() ) ;
+<<<<<<< local
+		#if DEBUG_BINGWA	
+=======
+#if DEBUG_BINGWA	
+>>>>>>> other
+			std::cerr << m_name << ": SNP: " << snp << ".\n" ;
+			std::cerr << m_name << ": prior before selection is:\n" << m_sigma << "\n" ;
+			std::cerr << m_name << ": betas before selection is:\n" << betas.transpose() << "\n" ;
+			std::cerr << m_name << ": covariance before selection is:\n" << covariance << "\n" ;
+<<<<<<< local
+		#endif
+
+=======
+#endif
+>>>>>>> other
+		if( number_of_included_effects > 0 ) {
+			Eigen::MatrixXd prior_selector = Eigen::MatrixXd::Zero( number_of_included_effects, betas.size() ) ;
 			Eigen::MatrixXd prior ;
 			{
 				int count = 0 ;
@@ -753,28 +889,30 @@ void ApproximateBayesianMetaAnalysis::operator()(
 					} else {
 						// Remove cohorts with missing data or 0 effect size.
 						betas(i) = 0 ;
-						ses(i) = 0 ;
+						covariance.col(i).setZero() ;
+						covariance.row(i).setZero() ;
 					}
 				}
-			
+				
 				prior = prior_selector * m_sigma * prior_selector.transpose() ;
 				betas = prior_selector * betas ;
-				ses = prior_selector * ses ;
-			
-				//std::cerr << m_name << ": prior selector is:\n" << prior_selector << "\n" ;
-				//std::cerr << m_name << ": prior before selection is:\n" << m_sigma << "\n" ;
-				//std::cerr << m_name << ": prior after selection is:\n" << prior << "\n" ;
+				covariance = prior_selector * covariance * prior_selector.transpose() ;
+				
+#if DEBUG_BINGWA	
+				std::cerr << m_name << ": prior selector is:\n" << prior_selector << "\n" ;
+				std::cerr << m_name << ": prior after selection is:\n" << prior << "\n" ;
+				std::cerr << m_name << ": betas after selection is:\n" << betas.transpose() << "\n" ;
+				std::cerr << m_name << ": covariance after selection is:\n" << covariance << "\n" ;
+#endif
 			}
 		
-			assert( ses.size() == number_of_included_cohorts ) ;
-			assert( betas.size() == number_of_included_cohorts ) ;
-			assert( prior.rows() == number_of_included_cohorts ) ;
-			assert( prior.cols() == number_of_included_cohorts ) ;
+			assert( covariance.rows() == number_of_included_effects ) ;
+			assert( covariance.cols() == number_of_included_effects ) ;
+			assert( betas.size() == number_of_included_effects ) ;
+			assert( prior.rows() == number_of_included_effects ) ;
+			assert( prior.cols() == number_of_included_effects ) ;
 		
-			Eigen::MatrixXd V = ses.asDiagonal() ;
-			V = V.array().square() ;
-
-			compute_bayes_factor( prior, V, betas, callback ) ;
+			compute_bayes_factor( prior, covariance, betas, callback ) ;
 		}
 	}
 }
@@ -801,12 +939,12 @@ namespace impl {
 }
 
 void ApproximateBayesianMetaAnalysis::compute_bayes_factor( Eigen::MatrixXd const& prior, Eigen::MatrixXd const& V, Eigen::VectorXd const& betas, ResultCallback callback ) const {
-	// std::cerr << std::resetiosflags( std::ios::floatfield ) ;
-	// std::cerr << "V = " << V << ".\n" ;
-	// std::cerr << "prior = " << prior << ".\n" ;
-	// std::cerr << "betas = " << betas.transpose() << ".\n" ;
-	// std::cerr << "ses = " << ses.transpose() << ".\n" ;
-	
+#if DEBUG_BINGWA
+	 std::cerr << std::resetiosflags( std::ios::floatfield ) ;
+	 std::cerr << "prior = " << prior << ".\n" ;
+	 std::cerr << "betas = " << betas.transpose() << ".\n" ;
+	 std::cerr << "V = " << V << ".\n" ;
+#endif
 	// I hope LDLT copes with noninvertible matrices.
 	// Maybe it doesn't...but let's find out.
 	Eigen::LDLT< Eigen::MatrixXd > Vsolver( V ) ;
@@ -819,6 +957,12 @@ void ApproximateBayesianMetaAnalysis::compute_bayes_factor( Eigen::MatrixXd cons
 	double const result = constant * std::exp( 0.5 * exponent(0) ) ;
 	
 	callback( m_prefix + "/bf", result ) ;
+
+#if DEBUG_BINGWA
+	std::cerr << "constant = " << constant << ".\n" ;
+	std::cerr << "exponent= " << exponent.transpose() << ".\n" ;
+	std::cerr << "BF = " << result << ".\n" ;
+#endif
 
 	if( m_compute_posterior_mean_and_variance ) {
 		callback( m_prefix + "/posterior_mean", impl::format_matrix( betas - ( V * V_plus_prior_solver.solve( betas ) ) ) ) ;
@@ -833,8 +977,8 @@ BingwaComputation::UniquePtr BingwaComputation::create( std::string const& name,
 	}
 	else if( name == "PerCohortValueReporter" ) {
 		PerCohortValueReporter::UniquePtr pcv( new PerCohortValueReporter( cohort_names ) ) ;
-		if( options.check( "-info-columns" )) {
-			BOOST_FOREACH( std::string const& variable, options.get_values( "-info-columns" )) {
+		if( options.check( "-extra-columns" )) {
+			BOOST_FOREACH( std::string const& variable, options.get_values( "-extra-columns" )) {
 				pcv->add_variable( variable ) ;
 			}
 		}
@@ -863,6 +1007,8 @@ public:
 		m_weights[ model ] = weight ;
 	}
 	
+	void set_number_of_effect_parameters( int const d ) {}
+
 	void get_variables( boost::function< void ( std::string ) > callback ) const {
 		callback( m_name ) ;
 	}
@@ -950,7 +1096,8 @@ struct BingwaProcessor: public boost::noncopyable
 	
 	BingwaProcessor( genfile::SNPIdentifyingData2::CompareFields const& compare_fields ):
 		m_snps( compare_fields ),
-		m_flip_alleles_if_necessary( false )
+		m_flip_alleles_if_necessary( false ),
+		m_number_of_effect_parameters( -1 )
 	{
 	}
 	
@@ -962,6 +1109,14 @@ struct BingwaProcessor: public boost::noncopyable
 		assert( results.get() ) ;
 		m_cohort_names.push_back( name ) ;
 		m_cohorts.push_back( results ) ;
+	}
+	
+	std::size_t get_number_of_cohorts() const {
+		return m_cohorts.size() ;
+	}
+
+	FrequentistGenomeWideAssociationResults const& get_cohort( std::size_t i ) const {
+		return m_cohorts[i] ;
 	}
 	
 	void summarise( appcontext::UIContext& ui_context ) {
@@ -978,7 +1133,6 @@ struct BingwaProcessor: public boost::noncopyable
 				double info ;
 				double frequency ;
 				m_cohorts[i].get_info( snp_i, &info ) ;
-				m_cohorts[i].get_frequency( snp_i, &frequency ) ;
 				ui_context.logger() << "     " << m_cohorts[i].get_SNP( snp_i ) << " (frequency = " << frequency << ", info = " << info << ")\n";
 			}
 		}
@@ -1004,6 +1158,15 @@ struct BingwaProcessor: public boost::noncopyable
 	
 	void add_computation( std::string const& name, BingwaComputation::UniquePtr computation ) {
 		m_computations.push_back( computation ) ;
+		m_computations.back().set_number_of_effect_parameters( m_number_of_effect_parameters ) ;
+	}
+
+	void set_number_of_effect_parameters( int const d ) {
+		m_number_of_effect_parameters = d ;
+	}
+
+	int const get_number_of_effect_parameters() const {
+		return m_number_of_effect_parameters ;
 	}
 
 	void get_variables( boost::function< void ( std::string const& ) > callback ) const {
@@ -1035,6 +1198,7 @@ struct BingwaProcessor: public boost::noncopyable
 private:
 	std::vector< std::string > m_cohort_names ;
 	boost::ptr_vector< FrequentistGenomeWideAssociationResults > m_cohorts ;
+	int m_number_of_effect_parameters ;
 	boost::ptr_vector< BingwaComputation > m_computations ;
 	struct SnpMatch {
 	public:
@@ -1059,6 +1223,7 @@ private:
 	
 	ResultSignal m_result_signal ;
 
+private:
 	struct DataGetter: public BingwaComputation::DataGetter {
 		DataGetter(
 			boost::ptr_vector< FrequentistGenomeWideAssociationResults > const& cohorts,
@@ -1074,7 +1239,10 @@ private:
 			if( is_non_missing( i ) ) {
 				m_cohorts[i].get_counts( m_indices[i]->index, result ) ;
 				if( m_indices[i]->flip ) {
-					result->reverseInPlace() ;
+					// Swap genotype counts for haploid:
+					result->segment( 0, 2 ).reverseInPlace() ;
+					// ...and diploid samples:
+					result->segment( 2, 3 ).reverseInPlace() ;
 				}
 			}
 		}
@@ -1089,6 +1257,11 @@ private:
 		void get_ses( std::size_t i, Eigen::VectorXd* result ) const {
 			if( is_non_missing( i ) ) {
 				m_cohorts[i].get_ses( m_indices[i]->index, result ) ;
+			}
+		}
+		void get_covariance_upper_triangle( std::size_t i, Eigen::VectorXd* result ) const {
+			if( is_non_missing( i ) ) {
+				m_cohorts[i].get_covariance_upper_triangle( m_indices[i]->index, result ) ;
 			}
 		}
 		void get_pvalue( std::size_t i, double* result ) const {
@@ -1117,6 +1290,7 @@ private:
 			boost::ptr_vector< FrequentistGenomeWideAssociationResults > const& m_cohorts ;
 			std::vector< OptionalSnpMatch > const& m_indices ;
 	} ;
+
 private:
 	void unsafe_setup( appcontext::UIContext& ui_context ) {
 		link_data( ui_context ) ;
@@ -1222,7 +1396,8 @@ private:
 struct BingwaApplication: public appcontext::ApplicationContext {
 public:
 	typedef std::map< std::string, std::vector< std::string > > GroupDefinition ;
-	
+	typedef std::map< std::string, std::vector< std::string > > ValueListSet ;
+
 public:
 	BingwaApplication( int argc, char **argv ):
 		appcontext::ApplicationContext(
@@ -1325,7 +1500,7 @@ public:
 				"PerCohortValueReporter",
 				BingwaComputation::create( "PerCohortValueReporter", cohort_names, options() )
 			) ;
-
+		
 			if( options().check( "-no-meta-analysis" )) {
 				// No more computations.
 			}
@@ -1367,7 +1542,8 @@ public:
 					
 					// Now set up an average bayes factor
 					// Currently this must be added after the computations above in order
-					// to be fed data before the mean is computed.
+					// that it is fed data (via the accumulate() callback) before the mean is
+					// computed.
 					{
 						ValueAccumulator::UniquePtr mean_bf(
 							new ValueAccumulator( "ApproximateBayesianMetaAnalysis/mean_bf" )
@@ -1398,6 +1574,7 @@ public:
 				}
 			}
 		}
+		
 		m_processor->get_variables(
 			boost::bind(
 				&qcdb::Storage::add_variable,
@@ -1435,34 +1612,100 @@ public:
 
 	void get_simple_priors(
 		int const number_of_cohorts,
-		std::vector< std::string > const& specs,
+		std::vector< std::string > const& model_specs,
 		boost::optional< std::vector< std::string > > model_names,
 		std::map< std::string, Eigen::MatrixXd >* result
 	) {
 		using namespace genfile::string_utils ;
-		if( model_names && model_names.get().size() != specs.size() ) {
+		if( model_names && model_names.get().size() != model_specs.size() ) {
 			throw genfile::BadArgumentError(
 				"BingwaProcessor::get_complex_priors()",
 				"model_names=\"" + join( model_names.get(), " " ) + "\"",
-				"Wrong number of simple prior names specified (" + to_string( model_names.get().size() ) + ", should be " + to_string( specs.size() ) + ")"
+				"Wrong number of simple prior names specified (" + to_string( model_names.get().size() ) + ", should be " + to_string( model_specs.size() ) + ")"
 			) ;
 		}
 		
-		for( std::size_t i = 0; i < specs.size(); ++i ) {
-			std::pair< std::string, std::string > rho_and_sd = parse_rho_and_sd( specs[i] ) ;
-			double const rho = to_repr< double >( rho_and_sd.first ) ;
-			double const sd = to_repr< double >( rho_and_sd.second ) ;
-			std::string model_name ;
-			if( model_names ) {
-				model_name = model_names.get()[i] ;
-			} else {
-				model_name = "rho=" + rho_and_sd.first ;
+		for( std::size_t i = 0; i < model_specs.size(); ++i ) {
+			std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > const rho_and_sds = parse_rho_and_sd( model_specs[i] ) ;
+#if DEBUG_BINGWA
+			std::cerr << "BingwaApplication::get_simple_priors(): rho_and_sds:\n" ;
+			for( std::size_t i = 0; i < rho_and_sds.size(); ++i ) {
+				std::cerr << "rho = " ;
+				for( std::size_t j = 0; j < rho_and_sds[i].get<0>().size(); ++j ) {
+					std::cerr << "\"" + rho_and_sds[i].get<0>()[j] << "\" " ;
+				}
+				std::cerr << "sd = " ;
+				for( std::size_t j = 0; j < rho_and_sds[i].get<1>().size(); ++j ) {
+					std::cerr << "\"" + rho_and_sds[i].get<1>()[j] << "\" " ;
+				}
+				std::cerr << "cor = " ;
+				for( std::size_t j = 0; j < rho_and_sds[i].get<2>().size(); ++j ) {
+					std::cerr << "\"" + rho_and_sds[i].get<2>()[j] << "\" " ;
+				}
+				std::cerr << std::endl ;
 			}
-			(*result)[ model_name + "/sd=" + rho_and_sd.second ] = get_prior_matrix( number_of_cohorts, rho, sd ) ;
+#endif
+			for( std::size_t j = 0; j < rho_and_sds.size(); ++j ) {
+				boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > const& rho_and_sd = rho_and_sds[j] ;
+				try {
+					if( int( rho_and_sd.get<0>().size() ) != m_processor->get_number_of_effect_parameters() ) {
+						throw genfile::BadArgumentError(
+							"BingwaProcessor::get_simple_priors()",
+							"model_spec=\"" + model_specs[i] + "\"",
+							"In model spec \"" + model_specs[i] + "\", number of correlations specified ("
+							+ to_string( rho_and_sd.get<0>().size() )
+							+ ") does not match number of effect size parameters (" + to_string( m_processor->get_number_of_effect_parameters() ) + ")"
+						) ;
+					}
+
+					std::string model_name ;
+					if( model_names ) {
+						model_name = model_names.get()[i] ;
+					} else {
+						model_name = "rho=" + join( rho_and_sd.get<0>(), " " ) ;
+					}
+		
+					{
+						int const N = m_processor->get_number_of_cohorts() ;
+						int const D = m_processor->get_number_of_effect_parameters() ;
+						Eigen::MatrixXd prior = Eigen::MatrixXd::Zero( N * D, N * D ) ;
+
+						for( int block_i = 0; block_i < D; ++block_i ) {
+							prior.block( block_i * N, block_i * N, N, N ) = get_prior_matrix( number_of_cohorts, to_repr< double >( rho_and_sd.get<0>()[i] ), to_repr< double >( rho_and_sd.get<1>()[i] ) ) ;
+						}
+						int c = 0 ;
+						for( int block_i = 0; block_i < D; ++block_i ) {
+							for( int block_j = block_i + 1; block_j < D; ++block_j, ++c ) {
+								std::cerr << rho_and_sd.get<2>()[c] << "!\n" ;
+								prior.block( block_i * N, block_j * N, N, N ).array()
+									= prior.block( block_i * N, block_i * N, N, N ).array()
+									* prior.block( block_j * N, block_j * N, N, N ).array()
+									* to_repr< double >( rho_and_sd.get<2>()[c] )
+								;
+								prior.block( block_j * N, block_i * N, N, N ) = prior.block( block_i * N, block_j * N, N, N ) ;
+							}
+						}
+		
+						(*result)[ model_name + "/sd=" + join( rho_and_sd.get<1>(), " " ) ] = prior ;
+					}
+				}
+				catch( StringConversionError const& e ) {
+					throw genfile::BadArgumentError(
+						"BingwaProcessor::get_simple_priors()",
+						"model_spec=\"" + model_specs[i] + "\"",
+						"Expected a numerical value."
+					) ;
+				}
+			}
 		}
 	}
 
-	void get_complex_priors( int const number_of_cohorts, std::vector< std::string > const& model_specs, std::vector< std::string > const& model_names, std::map< std::string, Eigen::MatrixXd >* result ) {
+	void get_complex_priors(
+		int const number_of_cohorts,
+		std::vector< std::string > const& model_specs,
+		std::vector< std::string > const& model_names,
+		std::map< std::string, Eigen::MatrixXd >* result
+	) {
 		using namespace genfile::string_utils ;
 		
 		if( model_specs.size() != model_names.size() ) {
@@ -1555,20 +1798,35 @@ public:
 		}
 		
 		//
-		// format is group1:rho=r1/sd=s1,group2:rho=r2/sd=s2,...;rho=0.2
+		// format is group1:rho=r1/sd=s1,group2:rho=r2/sd=s2,...:rho=0.2
 		//
 		for( std::size_t i = 0; i < model_specs.size(); ++i ) {
-			std::vector< std::string > bits = split_and_strip( model_specs[i], ";" ) ;
-			if( bits.size() != 2 ) {
+			std::vector< std::string > bits ;
+			{
+				std::size_t pos = model_specs[i].rfind( ":" ) ;
+				if( pos == std::string::npos ) {
+					throw genfile::BadArgumentError(
+						"BingwaProcessor::get_group_priors()",
+						"model_spec=\"" + model_specs[i] + "\"",
+						"Model spec \"" + model_specs[i] + "\" is malformed."
+					) ;
+				}
+				bits.push_back( model_specs[i].substr( 0, pos ) ) ;
+				bits.push_back( model_specs[i].substr( pos+1, model_specs[i].size() ) ) ;
+			}
+	
+			std::vector< std::string > const between_cohort_rho_string = parse_rho( bits[1] ) ;
+			if( between_cohort_rho_string.size() != m_processor->get_number_of_effect_parameters() ) {
 				throw genfile::BadArgumentError(
 					"BingwaProcessor::get_group_priors()",
 					"model_spec=\"" + model_specs[i] + "\"",
-					"Model spec \"" + model_specs[i] + "\" is malformed."
+					"In model spec \"" + model_specs[i] + "\", number of correlations specified ("
+					+ to_string( between_cohort_rho_string.size() )
+					+ ") does not match number of effect size parameters (" + to_string( m_processor->get_number_of_effect_parameters() ) + ")"
 				) ;
 			}
-			
-			std::string const between_cohort_rho_string = parse_rho( bits[1] ) ;
-			double between_cohort_rho = to_repr< double >( between_cohort_rho_string ) ;
+			assert( between_cohort_rho_string.size() == 1 ) ;
+			double between_cohort_rho = to_repr< double >( between_cohort_rho_string[0] ) ;
 			
 			std::vector< std::string > const group_specs = split_and_strip( bits[0], "," ) ;
 			if( group_specs.size() == 0 ) {
@@ -1583,7 +1841,7 @@ public:
 			prior.setZero() ;
 			
 			std::vector< int > used_cohorts( cohort_names.size(), 0 ) ;
-			std::vector< double > group_sds( group_specs.size(), std::numeric_limits< double >::quiet_NaN() ) ;
+			std::vector< double > group_sds( group_specs.size(), NA ) ;
 			std::vector< std::string > group_names( group_specs.size(), "" ) ;
 			std::vector< std::size_t > cohort_group_map( cohort_names.size(), 0 ) ;
 			// Fill in the diagonal blocks, one for each group.
@@ -1601,36 +1859,49 @@ public:
 				std::string const& group_name = elts[0] ;
 				group_names[ block_i ] = group_name ;
 				// Get the per-group correlation and sd.
-				std::pair< std::string, std::string > rho_and_sd = parse_rho_and_sd( elts[1] ) ;
-				double const rho = to_repr< double >( rho_and_sd.first ) ;
-				double const sd = to_repr< double >( rho_and_sd.second ) ;
-				group_sds[ block_i ] = sd ;
-				
-				// Get the group members
-				std::vector< std::string > const& group_cohorts = get_group_members( group_name, groups ) ;
-				std::vector< int > const& cohort_indices = get_cohort_indices( group_cohorts, cohort_names ) ;
-
-				// 
-				for( std::size_t k = 0; k < group_cohorts.size(); ++k ) {
-					if( used_cohorts[ cohort_indices[k] ] > 0 ) {
+				std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > const rho_and_sds = parse_rho_and_sd( elts[1] ) ;
+				assert( rho_and_sds.size() == 1 ) ; // TODO: handle a set of rhos or sds.
+				for( std::size_t j = 0; j < rho_and_sds.size(); ++j ) {
+					boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > const& rho_and_sd = rho_and_sds[j] ;
+					if( int( rho_and_sd.get<0>().size() ) != m_processor->get_number_of_effect_parameters() ) {
 						throw genfile::BadArgumentError(
 							"BingwaProcessor::get_group_priors()",
-							"model_spec=\"" + group_specs[block_i] + "\"",
-							"Cohort \"" + group_cohorts[k] + "\" occurs in more than one group."
+							"model_spec=\"" + model_specs[i] + "\"",
+							"In model spec \"" + model_specs[i] + "\", number of correlations and standard deviations specified ("
+							+ to_string( between_cohort_rho_string.size() )
+							+ ") does not match number of effect size parameters (" + to_string( m_processor->get_number_of_effect_parameters() ) + ")"
 						) ;
 					}
-					++used_cohorts[ cohort_indices[k] ] ;
-					cohort_group_map[ cohort_indices[k] ] = block_i ;
-				}
+
+					double const rho = to_repr< double >( rho_and_sd.get<0>()[0] ) ;
+					double const sd = to_repr< double >( rho_and_sd.get<1>()[0] ) ;
+					group_sds[ block_i ] = sd ;
 				
-				for( std::size_t cohort_i = 0; cohort_i < group_cohorts.size(); ++cohort_i ) {
-					prior( cohort_indices[ cohort_i ], cohort_indices[ cohort_i ] ) = sd*sd ;
-					for( std::size_t cohort_j = cohort_i + 1; cohort_j < group_cohorts.size(); ++cohort_j ) {
-						prior( cohort_indices[ cohort_i ], cohort_indices[ cohort_j ] ) = sd*sd*rho ;
+					// Get the group members
+					std::vector< std::string > const& group_cohorts = get_group_members( group_name, groups ) ;
+					std::vector< int > const& cohort_indices = get_cohort_indices( group_cohorts, cohort_names ) ;
+
+					// 
+					for( std::size_t k = 0; k < group_cohorts.size(); ++k ) {
+						if( used_cohorts[ cohort_indices[k] ] > 0 ) {
+							throw genfile::BadArgumentError(
+								"BingwaProcessor::get_group_priors()",
+								"model_spec=\"" + group_specs[block_i] + "\"",
+								"Cohort \"" + group_cohorts[k] + "\" occurs in more than one group."
+							) ;
+						}
+						++used_cohorts[ cohort_indices[k] ] ;
+						cohort_group_map[ cohort_indices[k] ] = block_i ;
+					}
+				
+					for( std::size_t cohort_i = 0; cohort_i < group_cohorts.size(); ++cohort_i ) {
+						prior( cohort_indices[ cohort_i ], cohort_indices[ cohort_i ] ) = sd*sd ;
+						for( std::size_t cohort_j = cohort_i + 1; cohort_j < group_cohorts.size(); ++cohort_j ) {
+							prior( cohort_indices[ cohort_i ], cohort_indices[ cohort_j ] ) = sd*sd*rho ;
+						}
 					}
 				}
 			}
-			
 			// now fill in between-block elements.
 			for( std::size_t group1_i = 0; group1_i < group_specs.size() ; ++group1_i ) {
 				std::vector< int > const& group1_member_indices = get_cohort_indices( get_group_members( group_names[ group1_i ], groups ), cohort_names ) ;
@@ -1638,12 +1909,21 @@ public:
 					std::vector< int > const& group2_member_indices = get_cohort_indices( get_group_members( group_names[ group2_i ], groups ), cohort_names ) ;
 					for( std::size_t group1_cohort_i = 0; group1_cohort_i < group1_member_indices.size(); ++group1_cohort_i ) {
 						for( std::size_t group2_cohort_i = 0; group2_cohort_i < group2_member_indices.size(); ++group2_cohort_i ) {
-							prior( group1_member_indices[ group1_cohort_i ], group2_member_indices[ group2_cohort_i ] ) = between_cohort_rho * group_sds[ group1_i ] * group_sds[ group2_i ] ;
+							int const i = std::min( group1_member_indices[ group1_cohort_i ], group2_member_indices[ group2_cohort_i ] ) ;
+							int const j = std::max( group1_member_indices[ group1_cohort_i ], group2_member_indices[ group2_cohort_i ] ) ;
+							prior( i, j ) = between_cohort_rho * group_sds[ group1_i ] * group_sds[ group2_i ] ;
 						}
 					}
 				}
 			}
-			
+	
+			// Finally fill in the lower diagonal
+			for( int row = 1; row < prior.rows(); ++row ) {
+				for( int col = 0; col < row; ++col ) {
+					prior( row, col ) = prior( col, row ) ;
+				}
+			}
+		
 			std::string model_name ;
 			if( model_names ) {
 				model_name = model_names.get()[i] ;
@@ -1693,38 +1973,52 @@ public:
 			}
 			std::vector< std::string > const& cohorts = where->second ;
 
-			std::pair< std::string, std::string > rho_and_sd = parse_rho_and_sd( bits[1] ) ;
-			double const rho = to_repr< double >( rho_and_sd.first ) ;
-			double const sd = to_repr< double >( rho_and_sd.second ) ;
-			
-			Eigen::MatrixXd prior( number_of_cohorts, number_of_cohorts ) ;
-			prior.setZero() ;
-
-			std::vector< int > const& cohort_indices = get_cohort_indices( cohorts, cohort_names ) ;
-			
-			for( std::size_t j1 = 0; j1 < cohorts.size(); ++j1 ) {
-				int const cohort1_j = cohort_indices[j1] ;
-				prior( cohort1_j, cohort1_j ) = 1 ;
-				for( std::size_t j2 = (j1+1); j2 < cohorts.size(); ++j2 ) {
-					int const cohort2_j = cohort_indices[j2] ;
-					prior( cohort1_j, cohort2_j ) = prior( cohort2_j, cohort1_j ) = rho ;
+			std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > const rho_and_sds = parse_rho_and_sd( bits[1] ) ;
+			for( std::size_t j = 0; j < rho_and_sds.size(); ++j ) {
+				boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > const& rho_and_sd = rho_and_sds[j] ;
+				if( int( rho_and_sd.get<0>().size() ) != m_processor->get_number_of_effect_parameters() ) {
+					throw genfile::BadArgumentError(
+						"BingwaProcessor::get_group_specific_priors()",
+						"model_spec=\"" + model_specs[i] + "\"",
+						"In model spec \"" + model_specs[i] + "\", number of correlations and standard deviations specified ("
+						+ to_string( rho_and_sd.get<0>().size() )
+						+ ") does not match number of effect size parameters (" + to_string( m_processor->get_number_of_effect_parameters() ) + ")"
+					) ;
 				}
+
+				double const rho = to_repr< double >( rho_and_sd.get<0>()[0] ) ;
+				double const sd = to_repr< double >( rho_and_sd.get<1>()[0] ) ;
+			
+				Eigen::MatrixXd prior( number_of_cohorts, number_of_cohorts ) ;
+				prior.setZero() ;
+
+				std::vector< int > const& cohort_indices = get_cohort_indices( cohorts, cohort_names ) ;
+			
+				for( std::size_t j1 = 0; j1 < cohorts.size(); ++j1 ) {
+					int const cohort1_j = cohort_indices[j1] ;
+					prior( cohort1_j, cohort1_j ) = 1 ;
+					for( std::size_t j2 = (j1+1); j2 < cohorts.size(); ++j2 ) {
+						int const cohort2_j = cohort_indices[j2] ;
+						prior( cohort1_j, cohort2_j ) = prior( cohort2_j, cohort1_j ) = rho ;
+					}
+				}
+			
+				prior *= sd * sd ;
+			
+				std::string model_name ;
+				if( model_names ) {
+					model_name = model_names.get()[i] ;
+				} else {
+					model_name = bits[0] + "-specific" ;
+				}
+			
+				(*result)[ model_name + "/rho=" + join( rho_and_sd.get<0>(), " " ) + "/sd=" + join( rho_and_sd.get<1>(), " " ) ] = prior ;
 			}
-			
-			prior *= sd * sd ;
-			
-			std::string model_name ;
-			if( model_names ) {
-				model_name = model_names.get()[i] ;
-			} else {
-				model_name = bits[0] + "-specific" ;
-			}
-			
-			(*result)[ model_name + "/rho=" + rho_and_sd.first + "/sd=" + rho_and_sd.second ] = prior ;
 		}
 	}
 
-	std::string parse_rho( std::string const& spec ) {
+	std::vector< std::string > parse_rho( std::string const& spec ) {
+		using namespace genfile::string_utils ;
 		if( spec.substr( 0, 4 ) != "rho=" ) {
 			throw genfile::BadArgumentError(
 				"BingwaProcessor::parse_rho()",
@@ -1732,25 +2026,117 @@ public:
 				"Parameter spec \"" + spec + "\" is malformed, should be of the form rho=[rho]/sd=[sd]."
 			) ;
 		}
-		return spec.substr( 4, spec.size() ) ;
+		return split_and_strip_discarding_empty_entries( spec.substr( 4, spec.size() ), " " ) ;
 	}
 
-	std::pair< std::string, std::string > parse_rho_and_sd( std::string const& spec ) {
+	std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > parse_rho_and_sd( std::string const& spec ) {
 		using namespace genfile::string_utils ;
 		std::vector< std::string > const parameters = split_and_strip( spec, "/" ) ;
-		if( parameters.size() != 2 || parameters[0].substr( 0, 4 ) != "rho=" || parameters[1].substr( 0, 3 ) != "sd=" ) {
+		if(
+			( parameters.size() < 2 || parameters[0].substr( 0, 4 ) != "rho=" || parameters[1].substr( 0, 3 ) != "sd=" )
+			|| ( parameters.size() > 3 )
+			|| ( parameters.size() == 3 && parameters[2].substr( 0, 8 ) != "cor_1,2=" )
+		) {
 			throw genfile::BadArgumentError(
 				"BingwaProcessor::parse_rho_and_sd()",
 				"spec=\"" + spec + "\"",
-				"Parameter spec \"" + spec + "\" is malformed, should be of the form rho=[rho]/sd=[sd]."
+				"Parameter spec \"" + spec + "\" is malformed, should be of the form rho=[rho]/sd=[sd] or rho=[rho1 rho2]/sd=[sd1 sd2]/cor_1,2=[cor]"
 			) ;
 		}
 
-		std::string const rho = parameters[0].substr( 4, parameters[0].size() ) ;
-		std::string const sd = parameters[1].substr( 3, parameters[1].size() ) ;
-		return std::make_pair( rho, sd ) ;
+		std::vector< std::string > const rhos = split_and_strip_discarding_empty_entries( parameters[0].substr( 4, parameters[0].size() ), " " ) ;
+		std::vector< std::string > const sds = split_and_strip_discarding_empty_entries( parameters[1].substr( 3, parameters[1].size() ), " " ) ;
+
+		std::vector< std::string > cor ;
+		if( parameters.size() == 3 ) {
+			cor = split_and_strip_discarding_empty_entries( parameters[2].substr( 8, parameters[2].size() ), " " ) ;
+		}
+		
+		if( rhos.size() != sds.size() || cor.size() != (( rhos.size() - 1 ) * rhos.size() / 2 ) ) {
+			throw genfile::BadArgumentError(
+				"BingwaProcessor::parse_rho_and_sd()",
+				"spec=\"" + spec + "\"",
+				"Parameter spec \"" + spec + "\" is malformed, should be of the form rho=[rho]/sd=[sd] "
+				"or rho=[rho1 rho2]/sd=[sd1 sd2]/cor_1,2=[cor] if there is more than one effect parameter."
+			) ;
+		}
+		
+		return expand_rhos_and_sds( rhos, sds, cor, m_value_sets[ "sd" ], m_value_sets[ "rho" ] ) ;
 	}
 
+	std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > expand_rhos_and_sds(
+		std::vector< std::string > rhos,
+		std::vector< std::string > sds,
+		std::vector< std::string > cor,
+		std::map< std::string, std::vector< std::string > > const& sd_sets,
+		std::map< std::string, std::vector< std::string > > const& rho_sets
+	) const {
+		std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > result ;
+		// currently we just expand sds according to the sets in sd_sets.
+		std::vector< std::string > working_sds = sds ;
+		std::vector< std::string > working_rhos = rhos ;
+		std::vector< std::size_t > working_sd_indices( sds.size(), 0 ) ;
+		std::vector< std::size_t > working_rho_indices( rhos.size(), 0 ) ;
+
+		bool complete = false ;
+		while( !complete ) {
+			// construct this configuration
+			for( std::size_t j = 0; j < sds.size(); ++j ) {
+				if( sds[j].size() > 0 && sds[j][0] == '[' && sds[j][sds[j].size() - 1] == ']' ) {
+					std::map< std::string, std::vector< std::string > >::const_iterator where = sd_sets.find( sds[j].substr( 1, sds[j].size() - 2 ) ) ;
+					if( where != sd_sets.end() ) {
+						working_sds[ j ] = where->second.at( working_sd_indices[j] ) ;
+					}
+				}
+
+				if( rhos[j].size() > 0 && rhos[j][0] == '[' && rhos[j][rhos[j].size() - 1] == ']' ) {
+					std::map< std::string, std::vector< std::string > >::const_iterator where = rho_sets.find( rhos[j].substr( 1, rhos[j].size() - 2 ) ) ;
+					if( where != rho_sets.end() ) {
+						working_rhos[ j ] = where->second.at( working_rho_indices[j] ) ;
+					}
+				}
+			}
+			result.push_back( boost::make_tuple( working_rhos, working_sds, cor ) ) ;
+			
+			// move to next configuration of sds and rhos.
+			// The rather ungainly code below steps through substitutable values of sds and then of rhos in right-to-left order.
+			std::size_t k = 0 ;
+			for( ; k < sds.size(); ++k ) {
+				std::size_t j = sds.size() - k - 1 ;
+				if( sds[j].size() > 1 && sds[j][0] == '[' && sds[j][sds[j].size() - 1] == ']' ) {
+					std::map< std::string, std::vector< std::string > >::const_iterator where = sd_sets.find( sds[j].substr( 1, sds[j].size() - 2 ) ) ;
+					if( where != sd_sets.end() ) {
+						working_sd_indices[ j ] = ( working_sd_indices[ j ] + 1 ) % where->second.size() ;
+						if( working_sd_indices[ j ] > 0 ) {
+							break ;
+						}
+					}
+				}
+			}
+			if( k == sds.size() ) {
+				// No more sds to substitute, so move on to rhos...
+				std::size_t k_rho = 0 ;
+				for( ; k_rho < rhos.size(); ++k_rho ) {
+					std::size_t j = rhos.size() - k_rho - 1 ;
+					if( rhos[j].size() > 1 && rhos[j][0] == '[' && rhos[j][rhos[j].size() - 1] == ']' ) {
+						std::map< std::string, std::vector< std::string > >::const_iterator where = rho_sets.find( rhos[j].substr( 1, rhos[j].size() - 2 ) ) ;
+						if( where != rho_sets.end() ) {
+							working_rho_indices[ j ] = ( working_rho_indices[ j ] + 1 ) % where->second.size() ;
+							if( working_rho_indices[ j ] > 0 ) {
+								break ;
+							}
+						}
+					}
+				}
+				if( k_rho == rhos.size() ) {
+					complete = true ;
+				}
+			}
+		}
+
+		return result ;
+	}
+	
 	std::map< std::string, Eigen::MatrixXd > get_priors( appcontext::OptionProcessor const& options, std::vector< std::string > const& cohort_names ) {
 		std::map< std::string, Eigen::MatrixXd > result ;
 		using genfile::string_utils::to_string ;
@@ -1758,6 +2144,20 @@ public:
 		using genfile::string_utils::split_and_strip_discarding_empty_entries ;
 		int const N = options.get_values< std::string >( "-data" ).size() ;
 		
+		
+		
+		if( options.check( "-define-sd-set" )) {
+			m_value_sets[ "sd" ] = parse_value_list( options.get_values< std::string >( "-define-sd-set" )) ;
+		} else {
+			m_value_sets[ "sd" ] ; // empty map
+		}
+
+		if( options.check( "-define-rho-set" )) {
+			m_value_sets[ "rho" ] = parse_value_list( options.get_values< std::string >( "-define-rho-set" )) ;
+		} else {
+			m_value_sets[ "rho" ] ; // empty map
+		}
+
 		if( options.check( "-simple-prior" ) ) {
 			boost::optional< std::vector< std::string > > model_names ;
 			if( options.check( "-simple-prior-name" )) {
@@ -1776,11 +2176,32 @@ public:
 		}
 
 		if( options.check( "-group-specific-prior" ) || options.check( "-group-prior" ) ) {
-			GroupDefinition groups = get_groups(
-				options.get_values< std::string >( "-group"  ),
-				cohort_names
-			) ;
-
+			GroupDefinition groups ;
+			for( std::size_t i = 0; i < cohort_names.size(); ++i ) {
+				groups[ cohort_names[i] ] = std::vector< std::string >( 1, cohort_names[i] ) ;
+			}
+			if( options.check( "-define-group" )) {
+				get_groups(
+					options.get_values< std::string >( "-define-group"  ),
+					cohort_names,
+					&groups
+				) ;
+			}
+			
+#if DEBUG_BINGWA
+			std::cerr << "BingwaApplication:get_priors(): groups are:\n" ;
+			GroupDefinition::const_iterator
+				i = groups.begin(),
+				end_i = groups.end() ;
+			for( ; i != end_i; ++i ) {
+				std::cerr << "  " << i->first << ":" ;
+				for( std::size_t j = 0; j < i->second.size(); ++j ) {
+					std::cerr << i->second.at( j ) << " " ;
+				}
+				std::cerr << "\n" ;
+			}
+#endif
+		
 			if( options.check( "-group-prior" )) {
 				boost::optional< std::vector< std::string > > model_names ;
 
@@ -1802,12 +2223,64 @@ public:
 		return result ;
 	}
 
-	GroupDefinition get_groups(
-		std::vector< std::string > const& spec,
-		std::vector< std::string > const& cohort_names
-	) const {
-		GroupDefinition result ;
+	ValueListSet parse_value_list( std::vector< std::string > const& spec ) const {
 		using namespace genfile::string_utils ;
+		std::map< std::string, std::vector< std::string > > result ;
+		for( std::size_t i = 0; i < spec.size(); ++i ) {
+			std::vector< std::string > elts = split_and_strip_discarding_empty_entries( spec[i], "=", " \t" ) ;
+			if( elts.size() != 2 ) {
+				throw genfile::BadArgumentError(
+					"BingwaApplication::parse_value_list()",
+					"spec=\"" + spec[i] + "\"",
+					"expected specification of the form \"[set name]=[value],[value],[value],...\"."
+				) ;
+			}
+			std::vector< std::string > sds = split_and_strip_discarding_empty_entries( elts[1], ",", " \t" ) ;
+			
+			// These must be numbers!  Check we can parse them
+			for( std::size_t j = 0; j < sds.size(); ++j ) {
+				try {
+					double const x = to_repr< double >( sds[j] ) ;
+				}
+				catch( StringConversionError const& e ) {
+					throw genfile::BadArgumentError(
+						"BingwaApplication::parse_value_list()",
+						"spec=\"" + spec[i] + "\"",
+						"found non-numerical values in value list."
+					) ;
+				}
+			}
+			
+			result[ elts[0] ] = sds ;
+		}
+		
+#if DEBUG_BINGWA
+			std::map< std::string, std::vector< std::string > >::const_iterator
+				i = result.begin(),
+				end_i = result.end() ;
+			std::cerr << "BingwaApplication::parse_value_list(): parsed value lists:\n" ;
+			for( ; i != end_i; ++i ) {
+				std::cerr << i->first << ": " ;
+				for( std::size_t j = 0; j < i->second.size(); ++j ) {
+					std::cerr << "\"" << i->second[j] << "\" " ;
+				}
+				std::cerr << "\n" ;
+			}
+#endif
+		
+		return result ;
+	}
+
+	void get_groups(
+		std::vector< std::string > const& spec,
+		std::vector< std::string > const& cohort_names,
+		GroupDefinition* result
+	) const {
+		using namespace genfile::string_utils ;
+		assert( result != 0 ) ;
+		
+		// add default groups
+		
 		for( std::size_t i = 0; i < spec.size(); ++i ) {
 			std::vector< std::string > const bits = split_and_strip( spec[i], "=" ) ;
 			if( bits.size() != 2 ) {
@@ -1817,11 +2290,11 @@ public:
 					"Group specification \"" + spec[i] + "\" is malformed, should be in the format [name]=group1,group2,..."
 				) ;
 			}
-			if( result.find( bits[0] ) != result.end() ) {
+			if( result->find( bits[0] ) != result->end() ) {
 				throw genfile::BadArgumentError(
 					"BingwaProcessor::get_groups()",
 					"spec=\"" + spec[i] + "\"",
-					"Group \"" + spec[i] + "\" is defined more than once"
+					"Group \"" + bits[0] + "\" is defined more than once (or is the name of a cohort)."
 				) ;
 			}
 			std::vector< std::string > cohorts = split_and_strip( bits[1], "," ) ;
@@ -1841,9 +2314,9 @@ public:
 					) ;
 				}
 			}
-			result[ bits[0] ] = cohorts ;
+			
+			(*result)[ bits[0] ] = cohorts ;
 		}
-		return result ;
 	}
 
 	Eigen::MatrixXd get_prior_matrix( int const n, double const rho, double const sd ) const {
@@ -1896,7 +2369,7 @@ public:
 		get_ui_context().logger() << "\n================================================\n" ;
 		get_ui_context().logger() << "I will output the following bayesian models:\n\n" ;
 
-		get_ui_context().logger() << std::setprecision( 2 ) ;
+		get_ui_context().logger() << std::setprecision( 3 ) ;
 		
 		std::size_t max_model_name_width = 0 ;
 		{
@@ -1908,10 +2381,14 @@ public:
 			}
 		}
 
-		std::vector< std::size_t > column_widths( cohort_names.size(), 5 ) ;
-		for( std::size_t i = 0; i < cohort_names.size(); ++i ) {
-			column_widths[i] = std::max( cohort_names[i].size() + 2, 5ul ) ;
+		int const D = m_processor->get_number_of_effect_parameters() ;
+		int const N = cohort_names.size() ;
+
+		std::vector< std::size_t > column_widths( (D*N), 6 ) ;
+		for( std::size_t i = 0; i < (D*N); ++i ) {
+			column_widths[i] = std::max( cohort_names[i % N].size() + 4, 6ul ) ;
 		}
+
 
 		std::map< std::string, Eigen::MatrixXd >::const_iterator
 			prior_i = priors.begin(),
@@ -1921,12 +2398,24 @@ public:
 			get_ui_context().logger() << "  " << std::setw( max_model_name_width ) << prior_i->first << ":  " ;
 			std::string const padding = "  " + std::string( max_model_name_width, ' ' ) + "   " ;
 			Eigen::MatrixXd const& prior = prior_i->second ;
-			assert( prior.rows() == cohort_names.size() ) ;
+			assert( prior.rows() == D*N ) ;
 
-			for( std::size_t i = 0; i < cohort_names.size(); ++i ) {
-				get_ui_context().logger() << (( i > 0 ) ? " " : "" ) ;
-				get_ui_context().logger() << std::setw( column_widths[i] ) << cohort_names[i] ;
+			if( D > 0 ) {
+				for( std::size_t i = 0; i < N; ++i ) {
+					get_ui_context().logger() << (( i > 0 ) ? " " : "" ) ;
+					get_ui_context().logger() << std::setw( column_widths[i] + 3 ) << ( cohort_names[i] + ":β₁" ) ; // width + 2 accounts for 2-byte UTF8 encodings 
+				}
 			}
+			if( D > 1 ) {
+				for( std::size_t i = N; i < (2*N); ++i ) {
+					get_ui_context().logger() << (( i > 0 ) ? " " : "" ) ;
+					get_ui_context().logger() << std::setw( column_widths[i] + 3 ) << ( cohort_names[i % N] + ":β₂" ) ; // width + 2 accounts for 2-byte UTF8 encodings
+				}
+			}
+			if( D > 2 ) {
+				assert(0) ; // more than 2 betas not supported.
+			}
+			
 			get_ui_context().logger() << "\n" ;
 
 			for( int i = 0; i < prior.rows(); ++i ) {
@@ -1985,10 +2474,24 @@ public:
 				}
 			}
 
+			boost::optional< std::string > effect_size_column_regex ;
+			if( options().check( "-effect-size-column-regex" ) ) {
+				std::vector< std::string > values = options().get_values< std::string >( "-effect-size-column-regex" ) ;
+				if( values.size() != cohort_files.size() ) {
+					throw genfile::BadArgumentError(
+						"BingwaApplication::load_data()",
+						"-effect-size-column-regex=\"" + to_string( genfile::string_utils::join( values, " " ) ) + "\"",
+						"Expected " + to_string( cohort_files.size() ) + " values but found " + to_string( values.size() ) + "."
+					) ;
+				}
+				effect_size_column_regex = values[ cohort_i ] ;
+			}
+
 			FrequentistGenomeWideAssociationResults::UniquePtr results
 				= FrequentistGenomeWideAssociationResults::create(
 					genfile::wildcard::find_files_by_chromosome( cohort_files[cohort_i] ),
-					options().check( "-info-columns" ) ? options().get_values< std::string >( "-info-columns" ) : std::vector< std::string >(),
+					effect_size_column_regex,
+					options().check( "-extra-columns" ) ? options().get_values< std::string >( "-extra-columns" ) : std::vector< std::string >(),
 					genfile::SNPIdentifyingDataTest::UniquePtr( test.release() ),
 					SNPTESTResults::SNPResultCallback(),
 					progress_context
@@ -1997,6 +2500,21 @@ public:
 			// summarise right now so as to see memory used.
 			get_ui_context().logger() << "Cohort " << (cohort_i+1) << " summary: " << results->get_summary() << ".\n" ;
 			
+			if( cohort_i == 0 ) {
+				m_processor->set_number_of_effect_parameters( results->get_number_of_effect_parameters() ) ;
+			}
+			else if( results->get_number_of_effect_parameters() != m_processor->get_number_of_effect_parameters() ) {
+				throw genfile::MalformedInputError(
+					cohort_files[ cohort_i ],
+					"Number of effect parameters in cohort " + to_string( cohort_i+1 )
+						+ " ("
+						+ to_string( results->get_number_of_effect_parameters() )
+						+ ") does not match that in cohort 1 ("
+						+ to_string( m_processor->get_number_of_effect_parameters() )
+						+ ")",
+					0
+				) ;
+			}
 			m_processor->add_cohort( "cohort_" + to_string( cohort_i+1 ), results ) ;
 		}
 	}
@@ -2127,6 +2645,52 @@ public:
 				}
 			}
 
+			if( options().check_if_option_was_supplied( "-excl-snps-per-cohort" )) {
+				std::vector< std::string > files = options().get_values< std::string > ( "-excl-snps-per-cohort" ) ;
+				if( files.size() != options().get_values< std::string >( "-data" ).size() ) {
+					throw genfile::BadArgumentError( "BingwaApplication::get_snp_exclusion_filter()", "-excl-snps-per-cohort=\"" + join( files, " " ) + "\"" ) ;
+				}
+				std::vector< std::string > this_cohort_files = split_and_strip_discarding_empty_entries( files[ cohort_i ], ",", " \t" ) ;
+				BOOST_FOREACH( std::string const& filename, this_cohort_files ) {
+					genfile::SNPDataSource::UniquePtr source ;
+					source.reset(
+						new statfile::SNPDataSourceAdapter(
+							statfile::BuiltInTypeStatSource::open(
+								genfile::wildcard::find_files_by_chromosome( filename )
+							)
+						)
+					) ;
+
+					snp_filter->exclude_snps(
+						source->list_snps(),
+						genfile::SNPIdentifyingData::CompareFields( options().get_value< std::string >( "-snp-match-fields" ) )
+					) ;
+				}
+			}
+
+			if( options().check_if_option_was_supplied( "-incl-snps-per-cohort" )) {
+				std::vector< std::string > files = options().get_values< std::string > ( "-incl-snps-per-cohort" ) ;
+				if( files.size() != options().get_values< std::string >( "-data" ).size() ) {
+					throw genfile::BadArgumentError( "BingwaApplication::get_snp_exclusion_filter()", "-incl-snps-per-cohort=\"" + join( files, " " ) + "\"" ) ;
+				}
+				std::vector< std::string > this_cohort_files = split_and_strip_discarding_empty_entries( files[ cohort_i ], ",", " \t" ) ;
+				BOOST_FOREACH( std::string const& filename, this_cohort_files ) {
+					genfile::SNPDataSource::UniquePtr source ;
+					source.reset(
+						new statfile::SNPDataSourceAdapter(
+							statfile::BuiltInTypeStatSource::open(
+								genfile::wildcard::find_files_by_chromosome( filename )
+							)
+						)
+					) ;
+
+					snp_filter->include_snps(
+						source->list_snps(),
+						genfile::SNPIdentifyingData::CompareFields( options().get_value< std::string >( "-snp-match-fields" ) )
+					) ;
+				}
+			}
+
 			if( options().check_if_option_was_supplied( "-excl-snps-matching" )) {
 				std::string const it = options().get< std::string > ( "-excl-snps-matching" ) ;
 				std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( it, ",", " \t" ) ;
@@ -2169,6 +2733,7 @@ public:
 	}
 	
 private:
+	std::map< std::string, ValueListSet > m_value_sets ;
 	BingwaProcessor::UniquePtr m_processor ;
 } ;
 

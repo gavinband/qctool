@@ -69,7 +69,6 @@ namespace qcdb {
 		db::Connection::StatementPtr m_insert_variant_statement ;
 		db::Connection::StatementPtr m_find_variant_identifier_statement ;
 		db::Connection::StatementPtr m_insert_variant_identifier_statement ;
-		db::Connection::StatementPtr m_insert_summarydata_statement ;
 		db::Connection::RowId m_analysis_id ;
 		db::Connection::RowId m_is_a ;
 		db::Connection::RowId m_used_by ;
@@ -91,6 +90,8 @@ namespace qcdb {
 			std::string const& description,
 			boost::optional< db::Connection::RowId > class_id = boost::optional< db::Connection::RowId >()
 		) const ;
+		void start_analysis( db::Connection::RowId const ) const ;
+		void end_analysis( db::Connection::RowId const ) const ;
 		void add_alternative_variant_identifier( db::Connection::RowId const variant_id, std::string const& identifier, std::string const& rsid ) const ;
 		void add_variant_identifier( db::Connection::RowId const variant_id, std::string const& identifier ) const ;
 	} ;

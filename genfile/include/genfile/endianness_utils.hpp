@@ -7,10 +7,6 @@
 #ifndef GENFILE_ENDIANNESS_UTILS_HPP
 #define GENFILE_ENDIANNESS_UTILS_HPP
 
-/*
-* LICENSE: you are free to use this for personal and/or academic purposes only.
-*/
-
 #include <iostream>
 #include <algorithm>
 #include <limits>
@@ -18,8 +14,7 @@
 #include "stdint.h"
 
 namespace genfile {
-	// Read an integer stored in little-endian format into an integer stored
-	// in memory.
+	// Read an integer stored in little-endian format into an integer stored in memory.
 	template< typename IntegerType >
 	char const* read_little_endian_integer( char const* buffer, char const* const end, IntegerType* integer_ptr ) {
 		assert( end >= buffer + sizeof( IntegerType )) ;
@@ -30,8 +25,7 @@ namespace genfile {
 		return buffer ;
 	}
 
-	// Read an integer stored in little-endian format into an integer stored
-	// in memory.
+	// Read an integer stored in little-endian format into an integer stored in memory.
 	// The stream is assumed to have sizeof( Integertype ) readable bytes.
 	template< typename IntegerType >
 	void read_little_endian_integer( std::istream& in_stream, IntegerType* integer_ptr ) {
@@ -39,6 +33,28 @@ namespace genfile {
 		in_stream.read( buffer, sizeof( IntegerType )) ;
 		if( in_stream ) {
 			read_little_endian_integer( buffer, buffer + sizeof( IntegerType ), integer_ptr ) ;
+		}
+	}
+
+	// Read an integer stored in big-endian format into an integer stored in memory.
+	template< typename IntegerType >
+	char const* read_big_endian_integer( char const* buffer, char const* const end, IntegerType* integer_ptr ) {
+		assert( end >= buffer + sizeof( IntegerType )) ;
+		*integer_ptr = 0 ;
+		for( std::size_t byte_i = 0; byte_i < sizeof( IntegerType ); ++byte_i ) {
+			(*integer_ptr) |= IntegerType( *reinterpret_cast< unsigned char const* >( buffer++ )) << ( 8 * ( sizeof( IntegerType ) - byte_i - 1 ) ) ;
+		}
+		return buffer ;
+	}
+
+	// Read an integer stored in big-endian format into an integer stored in memory.
+	// The stream is assumed to have sizeof( Integertype ) readable bytes.
+	template< typename IntegerType >
+	void read_big_endian_integer( std::istream& in_stream, IntegerType* integer_ptr ) {
+		char buffer[ sizeof( IntegerType ) ] ;
+		in_stream.read( buffer, sizeof( IntegerType )) ;
+		if( in_stream ) {
+			read_big_endian_integer( buffer, buffer + sizeof( IntegerType ), integer_ptr ) ;
 		}
 	}
 
@@ -61,6 +77,24 @@ namespace genfile {
 		out_stream.write( buffer, sizeof( IntegerType )) ;
 	}
 
+	// Write an integer to the buffer in big-endian format.
+	template< typename IntegerType >
+	char* write_big_endian_integer( char* buffer, char* const end, IntegerType const integer ) {
+		assert( end >= buffer + sizeof( IntegerType )) ;
+		for( std::size_t byte_i = 0; byte_i < sizeof( IntegerType ); ++byte_i ) {
+			*buffer++ = ( integer >> ( 8 * ( sizeof( IntegerType ) - byte_i - 1 ) ) ) & 0xff ;
+		}
+		return buffer ;
+	}
+
+	// Write an integer to the stream in big-endian format.
+	// The stream is assumed to have sizeof( Integertype ) bytes writeable.
+	template< typename IntegerType >
+	void write_big_endian_integer( std::ostream& out_stream, IntegerType const integer ) {
+		char buffer[ sizeof( IntegerType ) ] ;
+		write_big_endian_integer( buffer, buffer + sizeof( IntegerType ), integer ) ;
+		out_stream.write( buffer, sizeof( IntegerType )) ;
+	}
 
 	namespace impl {
 		template< typename IntegerType, bool is_signed >

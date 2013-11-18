@@ -12,21 +12,21 @@
 #endif
 #include "genfile/zlib.hpp"
 namespace genfile {
-	void zlib_compress( char const* buffer, char const* const end, std::vector< char >* dest ) {
+	void zlib_compress( char const* buffer, char const* const end, std::vector< char >* dest, std::size_t const offset ) {
 		assert( dest != 0 ) ;
 		#if HAVE_ZLIB
 			uLongf const source_size = ( end - buffer ) ;
-			dest->resize( compressBound( source_size ) ) ;
-			uLongf compressed_size = dest->size() ;
+			uLongf compressed_size = compressBound( source_size ) ;
+			dest->resize( compressed_size + offset ) ;
 			int result = compress2(
-				reinterpret_cast< Bytef* >( const_cast< char* >( &( dest->operator[](0) ) ) ),
+				reinterpret_cast< Bytef* >( const_cast< char* >( &( dest->operator[](0) ) + offset ) ),
 				&compressed_size,
 				reinterpret_cast< Bytef const* >( buffer ),
 				source_size,
-				Z_DEFAULT_COMPRESSION
+				Z_BEST_COMPRESSION
 			) ;
 			assert( result == Z_OK ) ;
-			dest->resize( compressed_size ) ;
+			dest->resize( compressed_size + offset ) ;
 		#else
 			assert( 0 ) ; // no zlib support.
 		#endif

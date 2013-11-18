@@ -63,23 +63,25 @@ namespace genfile {
 			return *this ;
 		}
 		
-		bool operator==( Chromosome other ) {
+		bool operator==( std::string const& other ) const ;
+
+		bool operator==( Chromosome other ) const {
 			return m_chromosome_e == other.m_chromosome_e ;
 		}
 		
-		bool operator<=( Chromosome other ) {
+		bool operator<=( Chromosome other ) const {
 			return m_chromosome_e <= other.m_chromosome_e ;
 		}
 
-		bool operator>=( Chromosome other ) {
+		bool operator>=( Chromosome other ) const {
 			return m_chromosome_e >= other.m_chromosome_e ;
 		}
 
-		bool operator<( Chromosome other ) {
+		bool operator<( Chromosome other ) const {
 			return m_chromosome_e < other.m_chromosome_e ;
 		}
 
-		bool operator>( Chromosome other ) {
+		bool operator>( Chromosome other ) const {
 			return m_chromosome_e > other.m_chromosome_e ;
 		}
 		

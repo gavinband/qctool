@@ -12,6 +12,7 @@
 #if HAVE_BOOST_FUNCTION
 #include <boost/function.hpp>
 #endif
+#include <boost/optional.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
@@ -21,7 +22,7 @@
 namespace genfile {
 	SNPDataSourceChain::UniquePtr SNPDataSourceChain::create(
 		std::vector< wildcard::FilenameMatch > const& filenames,
-		vcf::MetadataParser::Metadata const& metadata,
+		boost::optional< vcf::MetadataParser::Metadata > const& metadata,
 		std::string const& filetype_hint,
 		NotifyProgress notify_progress
 	) {
@@ -30,7 +31,7 @@ namespace genfile {
 			if( notify_progress ) {
 				notify_progress( i, filenames.size() ) ;
 			}
-			chain->add_source( SNPDataSource::create( filenames[i].filename(), filenames[i].match(), vcf::MetadataParser::Metadata(), filetype_hint )) ;
+			chain->add_source( SNPDataSource::create( filenames[i].filename(), filenames[i].match(), metadata, filetype_hint )) ;
 			if( notify_progress ) {
 				notify_progress( i + 1, filenames.size() ) ;
 			}

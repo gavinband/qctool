@@ -12,12 +12,21 @@
 
 namespace genfile {
 	namespace vcf {
-		GenotypeSetterBase::GenotypeSetterBase():
+		GenotypeSetterBase::GenotypeSetterBase( std::string const& scale ):
+			m_probability_scale( scale == "identity" ? eIdentityScale : ePhredScale ),
 			m_number_of_samples(0),
 			m_sample(0),
 			m_number_of_entries(0),
 			m_entry_i(0)
-		{}
+		{
+			if( scale != "identity" && scale != "phred" ) {
+				throw BadArgumentError(
+					"genfile::vcf::GenotypeSetterBase()",
+					"scale=\"" + scale + "\"",
+					"scale must be \"identity\" or \"phred\""
+				) ;
+			}
+		}
 		
 		GenotypeSetterBase::~GenotypeSetterBase() throw() {}
 
@@ -76,6 +85,7 @@ namespace genfile {
 		}
 
 		GenotypeSetter< SingleSNPGenotypeProbabilities >::GenotypeSetter( SingleSNPGenotypeProbabilities& result ):
+			GenotypeSetterBase( "identity" ),
 			m_result( result )
 		{}
 
@@ -90,6 +100,7 @@ namespace genfile {
 		}
 
 		GenotypeSetter< std::vector< double > >::GenotypeSetter( std::vector< double >& result ):
+			GenotypeSetterBase( "identity" ),
 			m_result( result )
 		{}
 
@@ -106,6 +117,7 @@ namespace genfile {
 		
 		ThreshholdingGenotypeSetter< std::vector< VariantEntry > >::
 			ThreshholdingGenotypeSetter( std::vector< VariantEntry >& result, double threshhold ):
+			GenotypeSetterBase( "identity" ),
 			m_result( result ),
 			m_threshhold( threshhold )
 		{}
@@ -133,6 +145,7 @@ namespace genfile {
 
 		ThreshholdingGenotypeSetter< std::vector< int > >::
 			ThreshholdingGenotypeSetter( std::vector< int >& result, double threshhold, int missing_value, int AA_value, int AB_value, int BB_value ):
+			GenotypeSetterBase( "identity" ),
 			m_result( result ),
 			m_missing_value( missing_value ),
 			m_AA_value( AA_value ),

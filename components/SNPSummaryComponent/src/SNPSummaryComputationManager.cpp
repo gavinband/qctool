@@ -30,26 +30,26 @@ SNPSummaryComputationManager::SNPSummaryComputationManager( genfile::CohortIndiv
 std::vector< char > SNPSummaryComputationManager::get_sexes( genfile::CohortIndividualSource const& samples, std::string const& sex_column_name ) const {
 	std::vector< char > result( samples.get_number_of_individuals(), '.' ) ;
 	genfile::CohortIndividualSource::ColumnSpec column_spec = samples.get_column_spec() ;
-	if( column_spec.check_for_column( "sex" ) ) {
-		if( column_spec[ "sex" ].is_discrete() ) {
+	if( column_spec.check_for_column( sex_column_name ) ) {
+		if( column_spec[ sex_column_name ].is_discrete() ) {
 			for( std::size_t i = 0; i < samples.get_number_of_individuals(); ++i ) {
 				genfile::CohortIndividualSource::Entry const entry = samples.get_entry( i, sex_column_name ) ;
 				if( !entry.is_missing() ) {
 					std::string const sex = genfile::string_utils::to_lower( entry.as< std::string >() ) ;
-					if( sex == "m" || sex == "male" ) {
+					if( sex == "m" || sex == "male" || sex == "1" ) {
 						result[i] = 'm' ;
-					} else if( sex == "f" || sex == "female" ) {
+					} else if( sex == "f" || sex == "female" || sex == "2" ) {
 						result[i] = 'f' ;
 					}
 					else {
-						throw genfile::MalformedInputError( samples.get_source_spec(), i+2, column_spec.find_column( "sex" )) ;
+						throw genfile::MalformedInputError( samples.get_source_spec(), i+2, column_spec.find_column( sex_column_name )) ;
 					}
 				}
 			}
 		}
 		else {
 			std::cerr << "!! (SNPSummaryComputationManager::get_sexes): sex column found but it has the wrong type!\n" ;
-			throw genfile::MalformedInputError( samples.get_source_spec(), 1, column_spec.find_column( "sex" )) ;
+			throw genfile::MalformedInputError( samples.get_source_spec(), 1, column_spec.find_column( sex_column_name )) ;
 		}
 	}
 	return result ;
@@ -78,6 +78,11 @@ void SNPSummaryComputationManager::add_result_callback( ResultCallback callback 
 
 void SNPSummaryComputationManager::add_per_sample_result_callback( PerSampleResultCallback callback ) {
 	m_per_sample_result_signal.connect( callback ) ;
+}
+
+void SNPSummaryComputationManager::set_haploid_genotype_coding( int coding ) {
+	assert( coding == 1 || coding == 2 ) ;
+	m_haploid_coding_column = coding ;	
 }
 
 void SNPSummaryComputationManager::begin_processing_snps( std::size_t number_of_samples ) {
@@ -173,6 +178,7 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes(
 				(*genotypes)( males[i], 2 ) = 0 ;
 			}
 		}
+#if DEBUG_PER_VARIANT_COMPUTATION_MANAGER
 		if( bad_males.size() > 0 ) {
 			std::cerr << "At SNP " << snp
 				<< ": genotypes for "
@@ -184,6 +190,7 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes(
 			;
 			
 		}
+#endif
 		callback( "incorrectly_coded_males", int( bad_males.size() ) ) ;
 	}
 	
@@ -207,6 +214,7 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes(
 			}
 		}
 		
+#if DEBUG_PER_VARIANT_COMPUTATION_MANAGER
 		if( bad_females.size() > 0 ) {
 			std::cerr << "At SNP " << snp
 				<< ": genotypes for "
@@ -217,6 +225,7 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes(
 				<< ", have nonzero genotype probabilities.  They will be treated as missing.\n"
 			;
 		}
+#endif
 		
 		callback( "incorrectly_coded_females", int( bad_females.size() ) ) ;
 	}

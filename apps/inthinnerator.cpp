@@ -27,6 +27,7 @@
 #include "appcontext/get_current_time_as_string.hpp"
 
 #include "genfile/SNPDataSource.hpp"
+#include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/SNPFilteringSNPDataSource.hpp"
 #include "genfile/get_list_of_snps_in_source.hpp"
 #include "genfile/utility.hpp"
@@ -783,11 +784,13 @@ private:
 			genfile::SNPDataSource::UniquePtr source ;
 			{
 				UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Opening genotype files" ) ;
-				source = genfile::SNPDataSource::create_chain(
-					genfile::wildcard::find_files_by_chromosome( filename ),
-					genfile::vcf::MetadataParser::Metadata(),
-					"guess",
-					boost::ref( progress_context )
+				source.reset(
+					genfile::SNPDataSourceChain::create(
+						genfile::wildcard::find_files_by_chromosome( filename ),
+						genfile::vcf::MetadataParser::Metadata(),
+						"guess",
+						boost::ref( progress_context )
+					).release()
 				) ;
 			}
 			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading SNP list" ) ;

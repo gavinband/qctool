@@ -19,7 +19,7 @@ namespace genfile {
 		template< typename Derived >
 		struct GenotypeSetter< Eigen::MatrixBase< Derived > >: public GenotypeSetterBase
 		{
-			GenotypeSetter( Eigen::MatrixBase< Derived >& result ): m_result( result ) {
+			GenotypeSetter( Eigen::MatrixBase< Derived >& result, std::string const& scale = "identity" ): GenotypeSetterBase( scale ), m_result( result ) {
 				result.setZero() ;
 			} ;
 			void set_number_of_samples( std::size_t n ) {

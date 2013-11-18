@@ -21,10 +21,13 @@ struct SNPTESTResults: public FlatFileFrequentistGenomeWideAssociationResults {
 
 private:
 	genfile::SNPIdentifyingDataTest::UniquePtr m_exclusion_test ;
-	std::string m_beta_column_regex ;
-	std::string m_se_column_regex ;
+	std::string
+		m_beta1_column_regex,
+		m_beta2_column_regex,
+		m_se1_column_regex,
+		m_se2_column_regex ;
+	std::string m_cov_column_regex ;
 	std::set< std::string > m_variables ;
-
 	
 	std::set< std::pair< std::string, bool > > get_desired_columns() const ;
 	bool read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const ;

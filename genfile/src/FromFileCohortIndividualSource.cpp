@@ -9,9 +9,11 @@
 #include <fstream>
 #include <boost/variant/variant.hpp>
 #include <boost/bind.hpp>
+#if HAVE_BOOST_SPIRIT
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix.hpp>
 #include <boost/fusion/include/std_pair.hpp>
+#endif
 #include "genfile/FileUtils.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/FromFileCohortIndividualSource.hpp"
@@ -87,7 +89,7 @@ namespace genfile {
 		) ;
 	}
 
-	std::vector< std::size_t > FromFileCohortIndividualSource::find_entries( Entry const& entry, std::string const& column_name ) const {
+	std::vector< std::size_t > FromFileCohortIndividualSource::find_samples_by_value( std::string const& column_name, Entry const& entry ) const {
 		if( column_name == "ID_1" ) {
 			std::map< Entry, std::size_t >::const_iterator where = m_sample_indices.find( entry ) ;
 			if( where == m_sample_indices.end() ) {
@@ -95,7 +97,7 @@ namespace genfile {
 			}
 			return std::vector< std::size_t >( 1, where->second ) ;
 		} else {
-			return CohortIndividualSource::find_entries( entry, column_name ) ;
+			return CohortIndividualSource::find_samples_by_value( column_name, entry ) ;
 		}
 	}
 
@@ -227,13 +229,16 @@ namespace genfile {
 	boost::optional< std::map< std::string, CohortIndividualSource::ColumnType > > FromFileCohortIndividualSource::read_column_types_from_comments(
 		std::string const& comments
 	) const {
+		boost::optional< std::map< std::string, CohortIndividualSource::ColumnType > > result ;
+#if !HAVE_BOOST_SPIRIT
+		return result ;
+#else
 		using namespace boost::spirit::qi ;
 		using namespace boost::phoenix ;
 		using boost::spirit::ascii::char_ ;
 		using boost::spirit::ascii::graph ;
 		using boost::spirit::ascii::blank ;
 
-		boost::optional< std::map< std::string, CohortIndividualSource::ColumnType > > result ;
 		typedef std::map< std::string, CohortIndividualSource::ColumnType > Intermediate ;
 
 		std::size_t pos = comments.find( "metadata" ) ;
@@ -276,6 +281,7 @@ namespace genfile {
 			}
 		}
 		return result ;
+#endif
 	}
 	
 	std::vector< std::string > FromFileCohortIndividualSource::read_column_names( std::istream& stream ) const {
@@ -283,7 +289,7 @@ namespace genfile {
 		std::string line ;
 		std::getline( stream, line ) ;
 		result = string_utils::split_and_strip_discarding_empty_entries( line ) ;
-		if( result.size() < 3 ) {
+		if( result.size() < 1 ) {
 			throw MalformedInputError( m_filename, 0 + m_number_of_metadata_lines ) ;
 		}
 		// Check first column is "ID_1"...

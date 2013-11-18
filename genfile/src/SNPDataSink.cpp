@@ -197,4 +197,9 @@ namespace genfile {
 			info
 		) ;
 	}
+	
+	SNPDataSink& SNPDataSink::finalise() {
+		finalise_impl() ;
+		return *this ;
+	}
 }

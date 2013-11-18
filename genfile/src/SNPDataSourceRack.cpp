@@ -48,9 +48,10 @@ namespace genfile {
 	SNPDataSourceRack::SNPDataSourceRack( std::string const& snp_match_fields )
 		: m_number_of_samples(0),
 		  m_read_past_end( false ),
-		  m_comparator( "position,rsid,SNPID,alleles" )
+		  m_comparator( snp_match_fields )
 	{
-		
+		// First match must be on position, since this is implicitly assumed below.
+		assert( snp_match_fields.find( "position" ) == 0 ) ;
 	}
 
 	SNPDataSourceRack::SNPDataSourceRack( genfile::SNPIdentifyingData::CompareFields const& comparator )

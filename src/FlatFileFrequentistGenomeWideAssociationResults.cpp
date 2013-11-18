@@ -37,11 +37,17 @@ genfile::SNPIdentifyingData2 const& FlatFileFrequentistGenomeWideAssociationResu
 	assert( snp_i < m_snps.size() ) ;
 	return m_snps[ snp_i ] ;
 }
+int const FlatFileFrequentistGenomeWideAssociationResults::get_number_of_effect_parameters() const {
+	return m_degrees_of_freedom ;
+}
 void FlatFileFrequentistGenomeWideAssociationResults::get_betas( std::size_t snp_i, Eigen::VectorXd* result ) const {
 	*result = m_betas.row( snp_i ).cast< double >() ;
 }
 void FlatFileFrequentistGenomeWideAssociationResults::get_ses( std::size_t snp_i, Eigen::VectorXd* result ) const {
 	*result = m_ses.row( snp_i ).cast< double >() ;
+}
+void FlatFileFrequentistGenomeWideAssociationResults::get_covariance_upper_triangle( std::size_t snp_i, Eigen::VectorXd* result ) const {
+	*result = m_covariance.row( snp_i ).cast< double >() ;
 }
 void FlatFileFrequentistGenomeWideAssociationResults::get_pvalue( std::size_t snp_i, double* result ) const {
 	*result = m_pvalues( snp_i ) ;
@@ -95,7 +101,8 @@ std::string FlatFileFrequentistGenomeWideAssociationResults::get_summary( std::s
 }
 
 FlatFileFrequentistGenomeWideAssociationResults::FlatFileFrequentistGenomeWideAssociationResults():
-	m_missing_value( "NA" )
+	m_missing_value( "NA" ),
+	m_degrees_of_freedom( 0 )
 {}
 
 void FlatFileFrequentistGenomeWideAssociationResults::setup(
@@ -114,7 +121,7 @@ void FlatFileFrequentistGenomeWideAssociationResults::setup(
 ) {
 	ColumnMap column_map = get_columns_to_store( *source ) ;
 	
-	int degrees_of_freedom = ( column_map.left.find( "_beta_2" ) == column_map.left.end() ) ? 1 : 2 ;
+	m_degrees_of_freedom = ( column_map.left.find( ".*beta_2.*" ) == column_map.left.end() ) ? 1 : 2 ;
 	
 	std::size_t snp_index = m_snps.size() ;
 
@@ -125,7 +132,7 @@ void FlatFileFrequentistGenomeWideAssociationResults::setup(
 	for( ; read_snp( *source, snp ); (*source) >> statfile::ignore_all() ) {
 		
 		if( snp_index >= m_snps.size() ) {
-			resize_storage( snp_index + 100000, degrees_of_freedom ) ;
+			resize_storage( snp_index + 100000, m_degrees_of_freedom ) ;
 		}
 		
 		// Deal with strange non-ids.  This isn't a general solution but 
@@ -165,7 +172,7 @@ void FlatFileFrequentistGenomeWideAssociationResults::setup(
 	
 	// Now deallocate any unused memory.
 	m_snps.resize( snp_index ) ;
-	resize_storage( snp_index, degrees_of_freedom ) ;
+	resize_storage( snp_index, m_degrees_of_freedom ) ;
 }
 
 FlatFileFrequentistGenomeWideAssociationResults::ColumnMap FlatFileFrequentistGenomeWideAssociationResults::get_columns_to_store(
@@ -232,6 +239,13 @@ void FlatFileFrequentistGenomeWideAssociationResults::resize_storage( Eigen::Mat
 		m_ses.swap( ses ) ;
 	}
 	{
+		Eigen::MatrixXf covariance = Eigen::MatrixXf::Zero( N_snps, ( degrees_of_freedom - 1 ) * degrees_of_freedom / 2 )  ;
+		if( m_covariance.rows() > 0 ) {
+			covariance.block( 0, 0, current_N, covariance.cols() ) = m_covariance.block( 0, 0, current_N, covariance.cols() ) ;
+		}
+		m_covariance.swap( covariance ) ;
+	}
+	{
 		Eigen::VectorXf pvalues = Eigen::VectorXf::Zero( N_snps ) ;
 		pvalues.head( current_N ) = m_pvalues.head( current_N ) ;
 		m_pvalues.swap( pvalues ) ;
@@ -247,9 +261,9 @@ void FlatFileFrequentistGenomeWideAssociationResults::resize_storage( Eigen::Mat
 		m_maf.swap( maf ) ;
 	}
 	{
-		Eigen::MatrixXf sample_counts = Eigen::MatrixXf::Zero( N_snps, 4 ) ;
+		Eigen::MatrixXf sample_counts = Eigen::MatrixXf::Zero( N_snps, 6 ) ;
 		if( m_sample_counts.rows() > 0 ) {
-			sample_counts.block( 0, 0, current_N, 4 ) = m_sample_counts.block( 0, 0, current_N, 4 ) ;
+			sample_counts.block( 0, 0, current_N, 6 ) = m_sample_counts.block( 0, 0, current_N, 6 ) ;
 		}
 		m_sample_counts.swap( sample_counts ) ;
 	}
@@ -275,6 +289,10 @@ void FlatFileFrequentistGenomeWideAssociationResults::free_unused_memory() {
 	{
 		Eigen::MatrixXf ses = m_ses.block( 0, 0, N_snps, m_betas.cols() ) ; ;
 		m_ses.swap( ses ) ;
+	}
+	{
+		Eigen::MatrixXf covariance = m_covariance.block( 0, 0, N_snps, m_covariance.cols() ) ; ;
+		m_covariance.swap( covariance ) ;
 	}
 	{
 		Eigen::VectorXf pvalues = m_pvalues.head( N_snps ) ;

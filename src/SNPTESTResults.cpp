@@ -10,8 +10,11 @@ SNPTESTResults::SNPTESTResults(
 	genfile::SNPIdentifyingDataTest::UniquePtr test
 ):
  	m_exclusion_test( test ),
-	m_beta_column_regex( ".*beta_1.*" ),
-	m_se_column_regex( ".*se_1.*" )
+	m_beta1_column_regex( ".*beta_1.*" ),
+	m_beta2_column_regex( ".*beta_2.*" ),
+	m_se1_column_regex( ".*se_1.*" ),
+	m_se2_column_regex( ".*se_2.*" ),
+	m_cov_column_regex( ".*cov_1,2.*" )
 {}
 
 void SNPTESTResults::add_variable( std::string const& variable ) {
@@ -25,14 +28,26 @@ std::string SNPTESTResults::get_summary( std::string const& prefix, std::size_t 
 }
 
 void SNPTESTResults::set_effect_size_column_regex( std::string const& beta_column_regex ) {
-	m_beta_column_regex = beta_column_regex ;
-	m_se_column_regex = genfile::string_utils::replace_all( beta_column_regex, "beta", "se" ) ;
+	using genfile::string_utils::replace_all ;
+	m_beta1_column_regex = replace_all( beta_column_regex, "<i>", "1" ) ; ;
+	m_beta2_column_regex = replace_all( beta_column_regex, "<i>", "2" ) ; ;
+	m_se1_column_regex = replace_all( m_beta1_column_regex, "beta", "se" ) ;
+	m_se2_column_regex = replace_all( m_beta1_column_regex, "beta", "se" ) ;
+	m_cov_column_regex = replace_all( replace_all( beta_column_regex, "beta", "cov" ), "<i>", "1,2" ) ;
 }
 
 std::set< std::pair< std::string, bool > > SNPTESTResults::get_desired_columns() const {
+	using namespace genfile::string_utils ;
+	
 	std::set< std::pair< std::string, bool > > desired_columns ;
-	desired_columns.insert( std::make_pair( m_beta_column_regex, true ) ) ;
-	desired_columns.insert( std::make_pair( m_se_column_regex, true ) ) ;
+	desired_columns.insert( std::make_pair( m_beta1_column_regex, true ) ) ;
+	desired_columns.insert( std::make_pair( m_se1_column_regex, true ) ) ;
+
+	desired_columns.insert( std::make_pair( m_beta2_column_regex, false ) ) ;
+	desired_columns.insert( std::make_pair( m_se2_column_regex, false ) ) ;
+
+	desired_columns.insert( std::make_pair( m_cov_column_regex, false ) ) ;
+
 	desired_columns.insert( std::make_pair( ".*_pvalue", true ) ) ;
 	desired_columns.insert( std::make_pair( "(all_)?info", true ) ) ;
 	desired_columns.insert( std::make_pair( "all_maf", true ) ) ;
@@ -51,7 +66,7 @@ std::set< std::pair< std::string, bool > > SNPTESTResults::get_desired_columns()
 			if( where != desired_columns.end() ) {
 				desired_columns.erase( where ) ;
 			}
-			desired_columns.insert( std::make_pair( *i, true ) ) ;
+			desired_columns.insert( std::make_pair( *i, false ) ) ;
 		}
 	}
 	return desired_columns ;
@@ -75,32 +90,47 @@ void SNPTESTResults::store_value(
 ) {
 	using genfile::string_utils::to_repr ;
 	
-	if( variable == m_beta_column_regex ) {
+	if( variable == m_beta1_column_regex ) {
 		m_betas( snp_index, 0 ) = value ;
 	}
-	else if( variable == m_se_column_regex ) {
+	else if( variable == m_se1_column_regex ) {
 		m_ses( snp_index, 0 ) = value ;
 	}
-	else if( variable == "*_pvalue" ) {
+	else if( variable == m_beta2_column_regex )  {
+		m_betas( snp_index, 1 ) = value ;
+	}
+	else if( variable == m_se2_column_regex ) {
+		m_ses( snp_index, 1 ) = value ;
+	}
+	else if( variable == m_cov_column_regex ) {
+		m_covariance( snp_index, 0 ) = value ;
+	}
+	else if( variable == ".*_pvalue" ) {
 		m_pvalues( snp_index ) = value ;
 	}
-	else if( variable == "info" ) {
+	else if( variable == "(all_)?info" ) {
 		m_info( snp_index ) = value ;
 	}
 	else if( variable == "all_maf" ) {
 		m_maf( snp_index ) = value ;
 	}
-	else if( variable == "all_AA" ) {
+	else if( variable == "all_A" ) {
 		m_sample_counts( snp_index, 0 ) = value ;
 	}
-	else if( variable == "all_AB" ) {
+	else if( variable == "all_B" ) {
 		m_sample_counts( snp_index, 1 ) = value ;
 	}
-	else if( variable == "all_BB" ) {
+	else if( variable == "all_AA" ) {
 		m_sample_counts( snp_index, 2 ) = value ;
 	}
-	else if( variable == "all_NULL" ) {
+	else if( variable == "all_AB" ) {
 		m_sample_counts( snp_index, 3 ) = value ;
+	}
+	else if( variable == "all_BB" ) {
+		m_sample_counts( snp_index, 4 ) = value ;
+	}
+	else if( variable == "all_NULL" ) {
+		m_sample_counts( snp_index, 5 ) = value ;
 	}
 	else if( m_variables.find( variable ) != m_variables.end() ) {
 		m_extra_variables[ variable ][ snp_index ] = value ;

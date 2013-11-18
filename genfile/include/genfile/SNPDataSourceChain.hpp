@@ -28,7 +28,7 @@ namespace genfile {
 		// Create a chain of SNPDataSources taking data from the specified files.
 		static UniquePtr create(
 			std::vector< wildcard::FilenameMatch > const& filenames,
-			vcf::MetadataParser::Metadata const& metadata = vcf::MetadataParser::Metadata(),
+			boost::optional< vcf::MetadataParser::Metadata > const& metadata = boost::optional< vcf::MetadataParser::Metadata >(),
 			std::string const& filetype_hint = "guess",
 			NotifyProgress notify_progress = NotifyProgress()
 		) ;

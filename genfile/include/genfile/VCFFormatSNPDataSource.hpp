@@ -10,6 +10,7 @@
 #include <boost/optional.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/bimap.hpp>
+#include <boost/optional.hpp>
 #include "genfile/VariantEntry.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/vcf/MetadataParser.hpp"
@@ -34,14 +35,12 @@ namespace genfile {
 		typedef vcf::MetadataParser::Metadata Metadata ;
 		
 		VCFFormatSNPDataSource(
-			std::auto_ptr< std::istream > stream_ptr
-		) ;
-		VCFFormatSNPDataSource(
-			std::string const& filename
+			std::auto_ptr< std::istream > stream_ptr,
+			boost::optional< Metadata > metadata = boost::optional< Metadata >()
 		) ;
 		VCFFormatSNPDataSource(
 			std::string const& filename,
-			Metadata const& metadata
+			boost::optional< Metadata > metadata = boost::optional< Metadata >()
 		) ;
 	public:
 		operator bool() const ;

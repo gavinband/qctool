@@ -34,6 +34,8 @@
 #include "SimpleFileObjectSource.hpp"
 #include "SimpleFileObjectSink.hpp"
 
+#include "db/Error.hpp"
+
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/SNPDataSourceRack.hpp"
@@ -98,6 +100,7 @@
 #include "components/HaplotypeFrequencyComponent/HaplotypeFrequencyComponent.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComponent.hpp"
 #include "components/SNPOutputComponent/SNPOutputComponent.hpp"
+#include "components/SNPOutputComponent/SQLiteHaplotypesSNPDataSink.hpp"
 #include "components/SampleSummaryComponent/SampleSummaryComponent.hpp"
 #include "ClusterPlotter.hpp"
 
@@ -1314,8 +1317,10 @@ private:
 		}
 
 		{
-			genfile::SNPDataSource::UniquePtr merge_in_source = genfile::SNPDataSource::create_chain(
-				genfile::wildcard::find_files_by_chromosome( merge_in_files[0] )
+			genfile::SNPDataSource::UniquePtr merge_in_source(
+				genfile::SNPDataSourceChain::create(
+					genfile::wildcard::find_files_by_chromosome( merge_in_files[0] )
+				).release()
 			) ;
 			
 			genfile::CohortIndividualSource::UniquePtr merge_in_samples(
@@ -1731,21 +1736,36 @@ private:
 		else {
 			for( std::size_t i = 0; i < m_mangled_options.gen_filename_mapper().output_filenames().size(); ++i ) {
 				std::string const& filename = m_mangled_options.gen_filename_mapper().output_filenames()[i] ;
-				genfile::SNPDataSink::UniquePtr sink = genfile::SNPDataSink::create(
-					filename,
-					genfile::SNPDataSink::Metadata(),
-					m_options.get< std::string >( "-ofiletype" )
-				) ;
-				if( m_options.check_if_option_was_supplied( "-omit-chromosome" )) {
-					genfile::GenLikeSNPDataSink* gen_sink = dynamic_cast< genfile::GenLikeSNPDataSink* >( sink.get() ) ;
-					if( gen_sink ) {
-						gen_sink->omit_chromosome() ;
-					}
-				}
-				if( m_options.check( "-sort" )) {
+				genfile::SNPDataSink::UniquePtr sink ;
+				if( m_options.get< std::string >( "-ofiletype" ) == "sqlite_haplotypes" ) {
+					
 					sink.reset(
-						new genfile::SortingBGenFileSNPDataSink( filename, sink )
+						new SQLiteHaplotypesSNPDataSink(
+							qcdb::DBOutputter::create(
+								filename,
+								m_options.get< std::string >( "-analysis-name" ),
+								m_options.get< std::string >( "-analysis-description" ),
+								m_options.get_values_as_map()
+							)
+						)
 					) ;
+			 	} else {
+					sink = genfile::SNPDataSink::create(
+						filename,
+						genfile::SNPDataSink::Metadata(),
+						m_options.get< std::string >( "-ofiletype" )
+					) ;
+					if( m_options.check_if_option_was_supplied( "-omit-chromosome" )) {
+						genfile::GenLikeSNPDataSink* gen_sink = dynamic_cast< genfile::GenLikeSNPDataSink* >( sink.get() ) ;
+						if( gen_sink ) {
+							gen_sink->omit_chromosome() ;
+						}
+					}
+					if( m_options.check( "-sort" )) {
+						sink.reset(
+							new genfile::SortingBGenFileSNPDataSink( filename, sink )
+						) ;
+					}
 				}
 				m_fltrd_in_snp_data_sink->add_sink( sink ) ;
 			}
@@ -2111,6 +2131,12 @@ private:
 		}
 		catch( genfile::FileNotFoundError const& e ) {
 			get_ui_context().logger() << "\nError: No file matching \"" << e.filespec() << "\" could be found.\n" ;
+			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+		}
+		catch( db::StatementPreparationError const& e ) {
+			get_ui_context().logger() << "!! Error preparing the following db statement:\n  \""
+				<< e.sql()
+				<< "\".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 	}
