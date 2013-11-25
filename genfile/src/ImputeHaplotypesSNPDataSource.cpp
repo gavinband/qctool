@@ -222,39 +222,18 @@ namespace genfile {
 						throw MalformedInputError( m_source.get_source_spec(), m_snp_index, 2*i ) ;
 					}
 					setter.set_sample( i ) ;
-					setter.set_number_of_entries( 3 ) ;
-					char allele1 = m_elts[2*i][0] ;
-					char allele2 = m_elts[(2*i)+1][0] ;
-					std::size_t A_allele_count = std::size_t( allele1 == '0' ) + std::size_t( allele2 == '0' ) ;
-					std::size_t B_allele_count = std::size_t( allele1 == '1' ) + std::size_t( allele2 == '1' ) ;
-					if( A_allele_count == 2 ) {
-						setter( 1.0 ) ;
-						setter( 0.0 ) ;
-						setter( 0.0 ) ;
-					}
-					else if( A_allele_count == 1 && B_allele_count == 1 ) {
-						setter( 0.0 ) ;
-						setter( 1.0 ) ;
-						setter( 0.0 ) ;
-					}
-					else if( B_allele_count == 2 ) {
-						setter( 0.0 ) ;
-						setter( 0.0 ) ;
-						setter( 1.0 ) ;
-					}
-					else {
-						// In any other case, did not recognise the allele, throw an error.
-						// Actually
-						if( m_elts[ 2*i ][0] != '0' && m_elts[ 2*i ][0] != '1' ) {
-							throw MalformedInputError( m_source.get_source_spec(), m_snp_index, (2*i) ) ;
+					setter.set_number_of_entries( 2 ) ;
+					for( std::size_t j = 0; j < 2; ++j ) {
+						try {
+							if( m_elts[2*i+j][0] == '.' || m_elts[2*i+j] == "NA" ) {
+								setter( MissingValue() ) ;
+							} else {
+								setter( string_utils::to_repr< Integer >( m_elts[ 2*i+j ] )) ;
+							}
 						}
-						else {
-							throw MalformedInputError( m_source.get_source_spec(), m_snp_index, (2*i)+1 ) ;
+						catch( string_utils::StringConversionError const& e ) {
+							throw MalformedInputError( m_source.get_source_spec(), m_snp_index, 2*i + j ) ;
 						}
-						// This is what we would do if we didn't throw, which we do, so we don't do this.
-						// setter( 0.0 ) ;
-						// setter( 0.0 ) ;
-						// setter( 0.0 ) ;
 					}
 				}
 				return *this ;
