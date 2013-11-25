@@ -43,13 +43,3 @@ def build( bld ):
 		uselib = 'DL',
 		export_incdirs = 'sqlite3'
 	)
-
-	bld(
-		features = 'cc cstaticlib',
-		name = 'json-spirit',
-		target = 'json-spirit',
-		source = bld.glob( 'json-spirit/json_spirit/*.cpp' ),
-		uselib = 'BOOST BOOST_IOSTREAMS BOOST_SYSTEM BOOST_FILESYSTEM',
-		includes = 'json-spirit/json_spirit/',
-		export_incdirs = 'json-spirit/json_spirit/'
-	)
