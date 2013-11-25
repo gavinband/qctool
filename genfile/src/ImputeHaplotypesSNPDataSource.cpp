@@ -6,6 +6,11 @@
 
 #include <iostream>
 #include <string>
+#include "../config.hpp"
+#if HAVE_BOOST_FILESYSTEM
+	#include <boost/filesystem.hpp>
+	namespace BFS = boost::filesystem ;
+#endif
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/gen.hpp"
 #include "genfile/SNPDataSource.hpp"
@@ -16,7 +21,7 @@
 
 namespace genfile {
 	ImputeHaplotypesSNPDataSource::ImputeHaplotypesSNPDataSource( std::string const& filename, Chromosome chromosome )
-		: m_legend_filename( replace_or_add_extension( filename, ".legend" ) ),
+		: m_legend_filename( find_legend_file( filename ) ),
 		  m_haplotypes_filename( filename ),
 		  m_compression_type( get_compression_type_indicated_by_filename( m_haplotypes_filename ) ),
 		  m_number_of_samples( 0 ),
@@ -27,7 +32,7 @@ namespace genfile {
 	}
 
 	ImputeHaplotypesSNPDataSource::ImputeHaplotypesSNPDataSource( std::string const& filename, Chromosome chromosome, CompressionType compression_type )
-		: m_legend_filename( replace_or_add_extension( filename, ".legend" ) ),
+		: m_legend_filename( find_legend_file( filename ) ),
 		  m_haplotypes_filename( filename ),
 		  m_compression_type( compression_type ),
 		  m_number_of_samples( 0 ),
@@ -38,6 +43,16 @@ namespace genfile {
 	}
 
 	namespace impl {
+		// borrowed this code from http://stackoverflow.com/questions/874134/find-if-string-endswith-another-string-in-c.
+		bool has_ending( std::string const& a_string, std::string const& ending )
+		{
+			bool result = false ;
+		    if( a_string.length() >= ending.length() ) {
+		        result = ( 0 == a_string.compare( a_string.length() - ending.length(), ending.length(), ending ) ) ;
+		    } 
+			return result ;
+		}
+		
 		std::vector< SNPIdentifyingData > read_legend( std::string const& filename, Chromosome const& chromosome, std::istream& stream ) {
 			using string_utils::slice ;
 			std::string line ;
@@ -72,6 +87,35 @@ namespace genfile {
 			return result ;
 		}
 	}
+
+	std::string ImputeHaplotypesSNPDataSource::find_legend_file( std::string const& haps_filename ) const {
+		std::string result ;
+#if HAVE_BOOST_FILESYSTEM
+		// look for a similar-named file 
+		if( impl::has_ending( haps_filename, ".haps" ) ) {
+			result = haps_filename.substr( 0, haps_filename.size() - 5 ) ;
+		} else if( impl::has_ending( haps_filename, ".haps.gz" ) ) {
+			result = haps_filename.substr( 0, haps_filename.size() - 8 ) ;
+		} else if( impl::has_ending( haps_filename, ".hap" ) ) {
+			result = haps_filename.substr( 0, haps_filename.size() - 4 ) ;
+		} else if( impl::has_ending( haps_filename, ".hap.gz" ) ) {
+			result = haps_filename.substr( 0, haps_filename.size() - 7 ) ;
+		}
+		
+		if( BFS::exists( result + ".legend" ) ) {
+			result += ".legend" ;
+		} else if( BFS::exists( result + ".legend.gz" )) {
+			result += ".legend.gz" ;
+		}
+		else {
+			throw genfile::InputError( result + ".legend[.gz]", "I could not find a legend file matching \"" + haps_filename + "\"." ) ;
+		}
+#else
+		result = replace_or_add_extension( filename, ".legend" ) ;
+#endif
+		return result ;
+	}
+
 
 	void ImputeHaplotypesSNPDataSource::setup( std::string const& filename, CompressionType compression_type ) {
 		std::auto_ptr< std::istream > legend_file = open_text_file_for_input( m_legend_filename ) ;

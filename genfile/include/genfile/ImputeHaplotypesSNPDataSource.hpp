@@ -61,6 +61,7 @@ namespace genfile {
 		void setup( std::string const& filename, CompressionType compression_type ) ;
 		void setup( std::auto_ptr< std::istream > stream_ptr ) ;
 		void read_header_data() ;
+		std::string find_legend_file( std::string const& haps_filename ) const ;
 	} ;
 }
 
