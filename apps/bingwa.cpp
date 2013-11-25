@@ -862,21 +862,13 @@ void ApproximateBayesianMetaAnalysis::operator()(
 		
 		int const number_of_included_effects = (( m_sigma.diagonal().array() > 0 ).cast< double >() * ( non_missingness.array() > 0 ).cast< double >() ).sum() ;
 		
-<<<<<<< local
 		#if DEBUG_BINGWA	
-=======
-#if DEBUG_BINGWA	
->>>>>>> other
 			std::cerr << m_name << ": SNP: " << snp << ".\n" ;
 			std::cerr << m_name << ": prior before selection is:\n" << m_sigma << "\n" ;
 			std::cerr << m_name << ": betas before selection is:\n" << betas.transpose() << "\n" ;
 			std::cerr << m_name << ": covariance before selection is:\n" << covariance << "\n" ;
-<<<<<<< local
 		#endif
 
-=======
-#endif
->>>>>>> other
 		if( number_of_included_effects > 0 ) {
 			Eigen::MatrixXd prior_selector = Eigen::MatrixXd::Zero( number_of_included_effects, betas.size() ) ;
 			Eigen::MatrixXd prior ;
