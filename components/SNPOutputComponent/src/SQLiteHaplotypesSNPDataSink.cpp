@@ -18,6 +18,8 @@
 #include "qcdb/DBOutputter.hpp"
 #include "components/SNPOutputComponent/SQLiteHaplotypesSNPDataSink.hpp"
 
+// #define DEBUG_SQLITEHAPLOTYPESSNPDATASINK 1
+
 SQLiteHaplotypesSNPDataSink::SQLiteHaplotypesSNPDataSink( qcdb::DBOutputter::UniquePtr outputter ):
 	m_outputter( outputter ),
 	m_number_of_samples( 0 ),
@@ -56,8 +58,8 @@ SQLiteHaplotypesSNPDataSink::SQLiteHaplotypesSNPDataSink( qcdb::DBOutputter::Uni
 		"INSERT INTO Sample ( analysis_id, identifier, index_in_data ) VALUES( ?, ?, ? ) ;"
 	) ;
 	
-	m_snps.resize( 1000 ) ;
-	m_data.resize( 1000 ) ;
+	m_snps.resize( 10000 ) ;
+	m_data.resize( 10000 ) ;
 }
 
 std::string SQLiteHaplotypesSNPDataSink::get_spec() const {
@@ -305,20 +307,35 @@ void SQLiteHaplotypesSNPDataSink::finalise_impl() {
 void SQLiteHaplotypesSNPDataSink::flush_data( std::size_t const data_count ) {
 	db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 600 ) ;
 
+#if DEBUG_SQLITEHAPLOTYPESSNPDATASINK
+	std::cerr << "Flushing " << data_count << " elements..." ;
+	std::size_t max_data_size = 0 ;
+#endif
+	std::vector< db::Connection::RowId > variant_ids( data_count ) ;
 	for( std::size_t i = 0; i < data_count; ++i ) {
-		db::Connection::RowId const variant_id = m_outputter->get_or_create_variant( m_snps[i] ) ;
-
+		variant_ids[i] = m_outputter->get_or_create_variant( m_snps[i] ) ;
+	}
+#if DEBUG_SQLITEHAPLOTYPESSNPDATASINK
+	std::cerr << "stored variants..." ;
+#endif
+	for( std::size_t i = 0; i < data_count; ++i ) {
 		char const* buffer = &(m_data[i][0]) ;
 		char const* end_buffer = &(m_data[i][0]) + m_data[i].size() ;
 
 		m_insert_data_stmnt
 			->bind( 1, m_outputter->analysis_id() )
-			.bind( 2, variant_id )
+			.bind( 2, variant_ids[i] )
 			.bind( 3, int64_t( m_number_of_samples ) )
 			.bind( 4, buffer, end_buffer )
 			.step() ;
 		m_insert_data_stmnt->reset() ;
+#if DEBUG_SQLITEHAPLOTYPESSNPDATASINK
+		max_data_size = std::max( max_data_size, m_data[i].size() ) ;
+#endif
 	}
+#if DEBUG_SQLITEHAPLOTYPESSNPDATASINK
+	std::cerr << "Done, max data size was " << max_data_size << ".\n" ;
+#endif
 }
 
 
