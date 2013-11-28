@@ -34,6 +34,7 @@
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/string_utils.hpp"
+#include "genfile/vcf/StrictMetadataParser.hpp"
 
 #include "statfile/BuiltInTypeStatSourceChain.hpp"
 
@@ -66,6 +67,13 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 			.set_is_required()
 			.set_takes_values( 1 )
 			.set_maximum_multiplicity( 100 ) ;
+		options[ "-metadata" ]
+			.set_description(
+				"Specify the name of a file containing VCF metadata to be used to parse "
+				"a VCF file.  Keys in this file must either not be present in the VCF file, or must have "
+				"identical values."
+			)
+			.set_takes_single_value() ;
 
 		options.declare_group( "SNP selection options" ) ;
 		options[ "-excl-rsids" ]
@@ -784,10 +792,16 @@ private:
 			genfile::SNPDataSource::UniquePtr source ;
 			{
 				UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Opening genotype files" ) ;
+				genfile::vcf::MetadataParser::Metadata metadata ;
+				if( options().check( "-metadata" ) ) {
+					metadata = genfile::vcf::StrictMetadataParser(
+						options().get_value< std::string >( "-metadata" )
+					).get_metadata() ;
+				}
 				source.reset(
 					genfile::SNPDataSourceChain::create(
 						genfile::wildcard::find_files_by_chromosome( filename ),
-						genfile::vcf::MetadataParser::Metadata(),
+						metadata,
 						"guess",
 						boost::ref( progress_context )
 					).release()
