@@ -132,11 +132,11 @@ namespace {
 AUTO_TEST_CASE( test_sample_filtering_snp_data_source ) {
 	std::vector< std::string > data = construct_data() ;
 	std::string const filename = tmpnam(0) + std::string( ".gen" ) ;
-	for( std::size_t i = 1; i < data.size(); ++i ) {
-		std::cerr << "====== Looking at data " << i << " ======\n" ;
-		create_file( data[i], filename ) ;
+	for( std::size_t data_i = 1; data_i < data.size(); ++data_i ) {
+		std::cerr << "====== Looking at data " << data_i << " ======\n" ;
+		create_file( data[data_i], filename ) ;
 		
-		std::size_t number_of_samples = i ;
+		std::size_t number_of_samples = data_i ;
 		std::set< std::set< std::size_t > > subsets ;
 		// insert empty set
 		subsets.insert( std::set< std::size_t >() ) ;

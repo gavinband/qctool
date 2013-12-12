@@ -22,7 +22,7 @@ namespace genfile {
 	// from a plain GEN file.
 	class GenFileSNPDataSource: public IdentifyingDataCachingSNPDataSource
 	{
-		friend class impl::GenFileSNPDataReader ;
+		friend struct impl::GenFileSNPDataReader ;
 	public:
 		GenFileSNPDataSource( std::auto_ptr< std::istream > stream, Chromosome chromosome ) ;
 		GenFileSNPDataSource( std::string const& filename, Chromosome chromosome ) ;

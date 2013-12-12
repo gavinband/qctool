@@ -22,6 +22,7 @@ namespace appcontext {
 		void add_stream( std::string const& name, std::ostream& stream ) ; 
 		void add_stream( std::string const& name, std::auto_ptr< std::ostream > stream ) ; 
 		std::ostream& operator[]( std::string const& name ) ;
+		std::ostream& operator[]( char const* name ) ;
 
 		typedef std::ostream& (*Manipulator)( std::ostream& ) ;
 

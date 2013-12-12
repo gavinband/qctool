@@ -15,7 +15,7 @@ namespace statfile {
 	{
 	public:
 	
-		operator void*() const { return *m_stream_ptr ; }
+		operator bool() const { return (*m_stream_ptr) ; }
 
 	protected:
 	

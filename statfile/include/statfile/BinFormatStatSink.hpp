@@ -27,7 +27,7 @@ namespace statfile {
 		// Finalise written file
 		~BinFormatStatSink() ;
 
-		operator void*() const { return OstreamAggregator::operator void*() ; }
+		operator bool() const { return OstreamAggregator::operator bool() ; }
 
 		void set_descriptive_text( std::string const& ) ;
 

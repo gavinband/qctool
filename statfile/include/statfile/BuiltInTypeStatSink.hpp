@@ -28,7 +28,7 @@ namespace statfile {
 	{
 		static std::auto_ptr< BuiltInTypeStatSink > open() ;
 		
-		operator void*() const { return 0 ; }
+		operator bool() const { return 0 ; }
 	} ;
 	
 	struct TrivialBuiltInTypeStatSink: public ColumnNamingStatSink< BuiltInTypeStatSink >
@@ -42,7 +42,7 @@ namespace statfile {
 		void write_value( double const& ) {}
 		void write_value( genfile::Chromosome const& ) {}
 		void write_value( genfile::GenomePosition const& ) {}
-		operator void*() const { return reinterpret_cast< void* >( const_cast< TrivialBuiltInTypeStatSink* >( this )) ; } ;
+		operator bool() const { return reinterpret_cast< void* >( const_cast< TrivialBuiltInTypeStatSink* >( this )) ; } ;
 	} ;
 }
 
