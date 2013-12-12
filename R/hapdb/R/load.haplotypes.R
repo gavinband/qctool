@@ -77,11 +77,14 @@ function( hapdb, chromosome = NULL, rsid = NULL, range = NULL, samples = NULL, a
 	result$samples = hapdb$samples[ which( hapdb$samples$analysis == analysis ), ]
 	if( !is.null( samples ) ) {
 		if( mode( samples ) == "character" ) {
-			samples = which( hapdb$samples$analysis == analysis & hapdb$samples$identifier %in% samples ) ;
+			samples.choice = sort( which( hapdb$samples$analysis == analysis & hapdb$samples$identifier %in% samples ) ) ;
+		} else {
+			samples.choice = samples
 		}
-		
-		result$data = result$data[, samples ]
-		result$samples = result$samples[ samples, ]
+		hap.choice = sort( union( (samples.choice * 2) - 1, samples.choice * 2 ) )
+	
+		result$data = result$data[, hap.choice ]
+		result$samples = result$samples[ samples.choice, ]
 		if( nrow( result$variant ) > 0 ) {
 			result$variant$N = length( samples )
 		}
