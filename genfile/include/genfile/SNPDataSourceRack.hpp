@@ -118,6 +118,8 @@ namespace genfile {
 
 		void check_snps_are_sorted_by_position( std::vector< SNPIdentifyingData > const& snps, std::size_t cohort_index ) ;
 
+		std::vector< char > const& flips() const { return m_flips; }
+
 		struct RackGenotypeProbabilitySetter
 		{
 			RackGenotypeProbabilitySetter( GenotypeProbabilitySetter const& base_setter, uint32_t index_of_first_sample ) ;
@@ -132,9 +134,14 @@ namespace genfile {
 		friend class impl::RackVariantDataReader ;
 
 		std::vector< SNPDataSource* > m_sources ;
+		std::vector< char > m_flips ;
 		uint32_t m_number_of_samples ;
 		bool m_read_past_end ;
 		SNPIdentifyingData::CompareFields m_comparator ;
+		
+		static char const eUnknownFlip = '?' ;
+		static char const eNoFlip = '+' ;
+		static char const eFlip  = '-' ;
 	} ;
 }
 
