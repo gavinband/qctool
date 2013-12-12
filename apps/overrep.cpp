@@ -433,7 +433,8 @@ private:
 			<< "fishers exact test p value" << tab
 			<< "ids.of.hits.in.pathway"
 			<< "\n" ;
-		
+
+		double const pvalue_threshhold = options().get< double >( "-P-value" ) ;
 		foreach( StringStringSetMap::value_type const& pathway, m_pathway_members ) {
 			table = Eigen::Matrix2d::Zero() ;
 
@@ -480,7 +481,7 @@ private:
 				//get_ui_context().logger()
 				std::cout
 					<< test.get_OR() << tab << test.get_pvalue() ;
-				if( test.get_pvalue() <= options().get< double >( "-P-value" ) && table( 0, 0 ) > 4  ) {
+				if( test.get_pvalue() <= pvalue_threshhold ) {
 					std::cout << tab << hit_genes_in_pathway ;
 				} else {
 					std::cout << tab << "NA" ;
