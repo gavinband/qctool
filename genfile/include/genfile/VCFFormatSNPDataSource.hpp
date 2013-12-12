@@ -29,7 +29,7 @@ namespace genfile {
 	// http://www.1000genomes.org/wiki/Analysis/Variant Call Format/vcf-variant-call-format-version-41
 	// to implement this.
 	{
-		friend class impl::VCFFormatDataReader ;
+		friend struct impl::VCFFormatDataReader ;
 	public:
 		typedef std::auto_ptr< VCFFormatSNPDataSource > UniquePtr ;
 		typedef vcf::MetadataParser::Metadata Metadata ;

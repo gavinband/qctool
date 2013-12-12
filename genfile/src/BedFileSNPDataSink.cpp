@@ -125,7 +125,6 @@ namespace genfile {
 		for( std::size_t i = 0; i < pedigree.get_number_of_individuals(); ++i ) {
 			std::string const& id = pedigree.get_id_of( i ) ;
 			//std::cerr << "Matching up individual " << i << ": " << id << ".\n" ;
-			std::vector< std::string > const* which_id = &ID_1 ;
 			std::vector< std::string >::const_iterator where = std::find( ID_1.begin(), ID_1.end(), id ) ;
 			if( where != ID_1.end() ) {
 				// check match is unique.

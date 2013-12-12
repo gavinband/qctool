@@ -65,7 +65,7 @@ namespace statfile {
 		template< typename T >
 		StatSink& operator<<( T const& value ) {
 			assert( m_current_column < number_of_columns() ) ;
-			write_value( value ) ;
+			TypeWriterBase< T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 >::write_value( value ) ;
 			m_state = e_HaveWrittenSomeData ;
 			if( *this ) {
 				move_to_next_column() ;
@@ -106,8 +106,8 @@ namespace statfile {
 		// each T != empty in the template parameter list, the following functions
 		// must be supplied by each derived class.
 
-		// Return a nonzero pointer iff there have been no errors so far.
-		virtual operator void*() const = 0 ;
+		// Return true iff there have been no errors so far.
+		virtual operator bool() const = 0 ;
 		// Column-related functions which must be supplied by derived classes.
 		void add_column( std::string const& name ) {
 			assert( m_number_of_rows_written == 0 && m_current_column == 0 ) ;

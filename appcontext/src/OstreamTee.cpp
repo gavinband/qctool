@@ -31,6 +31,11 @@ namespace appcontext {
 		assert( where != m_streams.end() ) ;
 		return *(where->second) ;
 	}
+    
+	std::ostream& OstreamTee::operator[]( char const* name ) {
+        return operator[]( std::string( name )) ;
+    }
+    
 
 	OstreamTee& operator<<( OstreamTee& ostream_tee, OstreamTee::Manipulator t ) {
 		for(

@@ -28,7 +28,7 @@ namespace statfile {
 		DelimitedStatSink( std::string const& filename, std::string const& delimiter ) ;
 		DelimitedStatSink( std::auto_ptr< std::ostream > stream_ptr, std::string const& delimiter ) ;
 
-		operator void*() const { return OstreamAggregator::operator void*() ; }
+		operator bool() const { return OstreamAggregator::operator bool() ; }
 
 		void set_descriptive_text( std::string const& ) ;
 		void write_metadata( std::string const& metadata ) { set_descriptive_text( metadata ) ; }

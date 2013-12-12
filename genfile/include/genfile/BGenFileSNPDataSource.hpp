@@ -15,7 +15,7 @@
 
 namespace genfile {
 	namespace impl {
-		struct BGenFileSNPDataReader ;
+		class BGenFileSNPDataReader ;
 	}
 
 	// This class represents a SNPDataSource which reads its data

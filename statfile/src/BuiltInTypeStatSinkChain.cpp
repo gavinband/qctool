@@ -45,9 +45,9 @@ namespace statfile {
 		}
 	}
 
-	BuiltInTypeStatSinkChain::operator void*() const {
+	BuiltInTypeStatSinkChain::operator bool() const {
 		if( m_current_sink < m_sinks.size() ) {
-			return m_sinks[ m_current_sink ]->operator void*() ;
+			return m_sinks[ m_current_sink ]->operator bool() ;
 		}
 		else {
 			return 0 ;

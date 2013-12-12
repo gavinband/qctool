@@ -26,7 +26,7 @@ namespace statfile {
 		RFormatStatSink( std::string const& filename ) ;
 		RFormatStatSink( std::auto_ptr< std::ostream > stream_ptr ) ;
 
-		operator void*() const { return OstreamAggregator::operator void*() ; }
+		operator bool() const { return OstreamAggregator::operator bool() ; }
 
 		void set_descriptive_text( std::string const& ) ;
 		void write_metadata( std::string const& metadata ) { set_descriptive_text( metadata ) ; }

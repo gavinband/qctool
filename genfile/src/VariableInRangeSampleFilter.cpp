@@ -29,8 +29,8 @@ namespace genfile {
 		}
 	
 		if(
-			m_lower_bound.is_string() && m_upper_bound.is_string() 
-			|| m_lower_bound.is_double() && m_upper_bound.is_double()
+			( m_lower_bound.is_string() && m_upper_bound.is_string() )
+			|| ( m_lower_bound.is_double() && m_upper_bound.is_double() )
 		) {
 			// ok
 		} else {

@@ -30,7 +30,7 @@ namespace statfile {
 		void add_sink( std::auto_ptr< BuiltInTypeStatSink > sink ) ;
 		std::size_t index_of_current_sink() const ;
 		void add_column_impl( std::string const& name ) ;
-		operator void*() const ;
+		operator bool() const ;
 		void write_value( int32_t const& value ) ;
 		void write_value( int64_t const& value ) ;
 		void write_value( uint32_t const& value ) ;

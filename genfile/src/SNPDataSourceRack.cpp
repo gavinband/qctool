@@ -18,7 +18,12 @@
 #include "genfile/get_list_of_snps_in_source.hpp"
 
 namespace genfile {
-	
+	namespace {
+		static char const eUnknownFlip = '?' ;
+		static char const eNoFlip = '+' ;
+		static char const eFlip  = '-' ;
+    }
+
 	std::auto_ptr< SNPDataSourceRack > SNPDataSourceRack::create( std::vector< wildcard::FilenameMatch > const& filenames ) {
 		std::auto_ptr< SNPDataSourceRack > rack( new SNPDataSourceRack() ) ;
 		for( std::size_t i = 0; i < filenames.size(); ++i ) {
@@ -72,6 +77,7 @@ namespace genfile {
 		std::auto_ptr< SNPDataSource > source
 	) {
 		m_sources.push_back( source.release() ) ;
+		m_flips.push_back( eNoFlip ) ;
 		m_number_of_samples += m_sources.back()->number_of_samples() ;
 		m_sources.back()->reset_to_start() ;
 	}
@@ -171,30 +177,48 @@ namespace genfile {
 		}
 		
 		SNPIdentifyingData this_snp ;
-		std::size_t last_matching_source = 0 ;
-		while( (*this) && m_sources[0]->get_snp_identifying_data( this_snp ) && last_matching_source < m_sources.size() ) {
-			SNPIdentifyingData this_source_snp ;
-			last_matching_source = 1 ;
-			for( ;
-				last_matching_source < m_sources.size() && move_source_to_snp_matching( last_matching_source, this_snp, &this_source_snp );
-				++last_matching_source
-			) {
-				if( this_source_snp.get_SNPID() != this_snp.get_SNPID() ) {
-					this_snp.SNPID() += "/" + this_source_snp.get_SNPID() ;
+		std::vector< char > flips( m_sources.size(), eNoFlip ) ;
+		std::size_t source_i = 0 ;
+		if( m_sources[0]->get_snp_identifying_data( this_snp ) ) {
+			while( (*this) && source_i < m_sources.size() ) {
+				SNPIdentifyingData this_source_snp ;
+				source_i = 1 ;
+				for( ;
+					source_i < m_sources.size() && move_source_to_snp_matching( source_i, this_snp, &this_source_snp );
+					++source_i
+				) {
+					if( this_source_snp.get_SNPID() != this_snp.get_SNPID() ) {
+						this_snp.SNPID() += "/" + this_source_snp.get_SNPID() ;
+					}
+					if( this_source_snp.get_rsid() != this_snp.get_rsid() ) {
+						this_snp.rsid() += "/" + this_source_snp.get_SNPID() ;
+					}
+					if( m_comparator.get_flip_alleles_if_necessary() ) {
+						if( this_source_snp.get_first_allele() == this_snp.get_second_allele() && this_source_snp.get_second_allele() == this_snp.get_first_allele() ) {
+							flips[ source_i ] = eFlip ;
+						} else if( this_source_snp.get_first_allele() == this_snp.get_first_allele() && this_source_snp.get_second_allele() == this_snp.get_second_allele() ) {
+							// do nothing
+						} else {
+							this_snp.first_allele() = this_snp.get_first_allele() + "/" + this_source_snp.get_first_allele() ;
+							this_snp.second_allele() = this_snp.get_second_allele() + "/" + this_source_snp.get_second_allele() ;
+							// Don't know how to flip.
+							flips[ source_i ] = eUnknownFlip ;
+						}
+					} else {
+						if( this_source_snp.get_first_allele() != this_snp.get_first_allele() || this_source_snp.get_second_allele() != this_snp.get_second_allele() ) {
+							this_snp.first_allele() = this_snp.get_first_allele() + "/" + this_source_snp.get_first_allele() ;
+							this_snp.second_allele() = this_snp.get_second_allele() + "/" + this_source_snp.get_second_allele() ;
+							// Set genotypes to missing for this cohort.
+							flips[ source_i ] = eUnknownFlip ;
+						}
+					}
 				}
-				if( this_source_snp.get_rsid() != this_snp.get_rsid() ) {
-					this_snp.rsid() += "/" + this_source_snp.get_SNPID() ;
-				}
-				if( this_source_snp.get_first_allele() != this_snp.get_first_allele() ) {
-					this_snp.first_allele() = '?' ;
-				}
-				if( this_source_snp.get_second_allele() != this_snp.get_second_allele() ) {
-					this_snp.second_allele() = '?' ;
+				if( (*this) && source_i < m_sources.size() ) {
+					m_sources[0]->ignore_snp_probability_data() ;
 				}
 			}
-			if( (*this) && last_matching_source < m_sources.size() ) {
-				m_sources[0]->ignore_snp_probability_data() ;
-			}
+			// Remember the flips.
+			m_flips = flips ;
 		}
 		if( *this ) {
 			set_number_of_samples( m_number_of_samples ) ;
@@ -241,14 +265,16 @@ namespace genfile {
 		
 
 	namespace impl {
-		struct OffsetSampleSetter: public VariantDataReader::PerSampleSetter {
-			OffsetSampleSetter(
+		struct OffsetFlipSampleSetter: public VariantDataReader::PerSampleSetter {
+            ~OffsetFlipSampleSetter() throw() {} 
+            OffsetFlipSampleSetter(
 				VariantDataReader::PerSampleSetter& setter,
 				std::size_t offset,
 				std::size_t number_of_samples
 			):
 				m_setter( setter ),
 				m_offset( offset ),
+				m_flip( eNoFlip ),
 				m_number_of_samples( number_of_samples )
 			{
 				m_setter.set_number_of_samples( m_number_of_samples ) ;
@@ -261,21 +287,63 @@ namespace genfile {
 			}
 
 			void set_number_of_entries( std::size_t n ) {
+				m_number_of_entries = n ;
+				m_entry_i = 0 ;
 				m_setter.set_number_of_entries( n ) ;
 			}
-
-			void operator()( MissingValue const value ) { m_setter( value ) ; }
-			void operator()( std::string& value ) { m_setter( value ) ; }
-			void operator()( Integer const value ) { m_setter( value ) ; }
-			void operator()( double const value ) { m_setter( value ) ; }
 
 			void set_offset( std::size_t offset ) { m_offset = offset ; }
 			std::size_t get_offset() const { return m_offset ; }
 
+			void set_flip( char flip ) {
+                assert( flip == eNoFlip || flip == eUnknownFlip || flip == eFlip ) ;
+                m_flip = flip ;
+            }
+			std::size_t get_flip() const { return m_flip ; }
+
+			void operator()( MissingValue const value ) { store( value ) ; }
+			void operator()( std::string& value ) { store( value ) ; }
+			void operator()( Integer const value ) { store( value ) ; }
+			void operator()( double const value ) { store( value ) ; }
+
 		private:
 			VariantDataReader::PerSampleSetter& m_setter ;
 			std::size_t m_offset ;
+			char m_flip ;
 			std::size_t m_number_of_samples ;
+			std::vector< VariantEntry > m_values ;
+			std::size_t m_number_of_entries ;
+			std::size_t m_entry_i ;
+            
+			template< typename T >
+			void store( T value ) {
+				if( m_values.size() < ( m_entry_i + 1 ) ) {
+					m_values.resize( m_entry_i + 1 ) ;
+				}
+				m_values[ m_entry_i++ ] = value ;
+				if( m_entry_i == m_number_of_entries ) {
+					set_values() ;
+				}
+			}
+
+			void set_values() {
+				for( std::size_t i = 0; i < m_number_of_entries; ++i ) {
+					VariantEntry const& entry = ( m_flip == eFlip )? m_values[ m_number_of_entries - 1 - i ] : m_values[ i ] ;
+					if( entry.is_missing() ) {
+						m_setter( MissingValue() ) ;
+					} else if( entry.is_string() ) {
+						std::string value = entry.as< std::string >() ;
+						m_setter( value ) ;
+					} else if( entry.is_int() ) {
+						m_setter( entry.as< VariantEntry::Integer >() ) ;
+					} else if( entry.is_double() ) {
+						m_setter( entry.as< double >() ) ;
+					} else {
+						assert(0) ;
+					}
+				}
+			}
+            
 		} ;
 		
 		void add_spec_to_map( std::map< std::string, std::string >* map, std::string const& name, std::string const& type ) {
@@ -284,9 +352,10 @@ namespace genfile {
 
 		struct RackVariantDataReader: public VariantDataReader
 		{
-			RackVariantDataReader( SNPDataSourceRack& rack )
-				: m_rack( rack )
+			RackVariantDataReader( SNPDataSourceRack& rack ):
+				m_rack( rack )
 			{
+				asserty( m_flips.size() == m_rack.m_sources.size() ) ;
 				for( std::size_t i = 0; i < m_rack.m_sources.size(); ++i ) {
 					m_data_readers.push_back( m_rack.m_sources[i]->read_variant_data().release() ) ;
 				}
@@ -299,10 +368,13 @@ namespace genfile {
 			}
 
 			RackVariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
-				OffsetSampleSetter offset_sample_setter( setter, 0 , m_rack.number_of_samples() ) ;
+				OffsetFlipSampleSetter offset_flip_sample_setter( setter, 0, m_rack.number_of_samples() ) ;
+				std::size_t sample_offset = 0 ;
 				for( std::size_t i = 0; i < m_rack.m_sources.size(); ++i ) {
-					m_data_readers[i]->get( spec, offset_sample_setter ) ;
-					offset_sample_setter.set_offset( offset_sample_setter.get_offset() + m_rack.m_sources[i]->number_of_samples() ) ;
+					offset_flip_sample_setter.set_offset( sample_offset ) ;
+					offset_flip_sample_setter.set_flip( m_rack.get_flip( i ) ) ;
+					m_data_readers[i]->get( spec, offset_flip_sample_setter ) ;
+					sample_offset += m_rack.m_sources[i]->number_of_samples() ;
 				}
 				return *this ;
 			}
@@ -367,7 +439,7 @@ namespace genfile {
 	}
 
 	VariantDataReader::UniquePtr SNPDataSourceRack::read_variant_data_impl() {
-		VariantDataReader::UniquePtr result( new impl::RackVariantDataReader( *this ) ) ;
+		VariantDataReader::UniquePtr result( new impl::RackVariantDataReader( *this, m_flips ) ) ;
 		return result ;
 	}
 

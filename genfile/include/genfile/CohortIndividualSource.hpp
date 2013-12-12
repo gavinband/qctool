@@ -92,7 +92,7 @@ namespace genfile {
 			bool operator!=( SingleColumnSpec const& right ) const ;
 		} ;
 		
-		class ColumnSpec
+		struct ColumnSpec
 		{
 		public:
 			ColumnSpec() ;
