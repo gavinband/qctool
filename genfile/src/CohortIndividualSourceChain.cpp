@@ -24,9 +24,6 @@ namespace genfile {
 		}
 		else {
 			ColumnSpec new_column_spec = m_sources.back().get_column_spec() ;
-            if( !new_column_spec.find( "qctool:cohort_name" )) {
-                new_column_spec.add_column( "qctool:cohort_name", e_DISCRETE_COVARIATE ) ;
-            }
 			std::vector< std::string > column_names = new_column_spec.get_names() ;
 			for( std::size_t i = 0; i < column_names.size(); ++i ) {
 				// we remove any columns which match name but mismatch type, and any columns which match completely.
@@ -70,9 +67,6 @@ namespace genfile {
 				sample_i -= m_sources[i].get_number_of_individuals() ;
 			}
 			else {
-                if( column_name == "qctool:cohort_name" ) {
-                    return m_source_names[i] ;
-                }
 				else if( m_sources[i].check_for_column( column_name )) {
 					result = m_sources[i].get_entry( sample_i, column_name ) ;
 				}
