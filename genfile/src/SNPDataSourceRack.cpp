@@ -355,6 +355,7 @@ namespace genfile {
 			RackVariantDataReader( SNPDataSourceRack& rack ):
 				m_rack( rack )
 			{
+				asserty( m_flips.size() == m_rack.m_sources.size() ) ;
 				for( std::size_t i = 0; i < m_rack.m_sources.size(); ++i ) {
 					m_data_readers.push_back( m_rack.m_sources[i]->read_variant_data().release() ) ;
 				}
@@ -438,7 +439,7 @@ namespace genfile {
 	}
 
 	VariantDataReader::UniquePtr SNPDataSourceRack::read_variant_data_impl() {
-		VariantDataReader::UniquePtr result( new impl::RackVariantDataReader( *this ) ) ;
+		VariantDataReader::UniquePtr result( new impl::RackVariantDataReader( *this, m_flips ) ) ;
 		return result ;
 	}
 
