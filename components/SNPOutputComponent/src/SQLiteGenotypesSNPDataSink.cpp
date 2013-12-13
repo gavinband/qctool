@@ -16,17 +16,17 @@
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/zlib.hpp"
 #include "qcdb/DBOutputter.hpp"
-#include "components/SNPOutputComponent/SQLiteHaplotypesSNPDataSink.hpp"
+#include "components/SNPOutputComponent/SQLiteGenotypesSNPDataSink.hpp"
 
-// #define DEBUG_SQLITEHAPLOTYPESSNPDATASINK 1
+// #define DEBUG_SQLITEGENOTYPESNPDATASINK 1
 
-SQLiteHaplotypesSNPDataSink::SQLiteHaplotypesSNPDataSink( qcdb::DBOutputter::UniquePtr outputter ):
+SQLiteGenotypesSNPDataSink::SQLiteGenotypesSNPDataSink( qcdb::DBOutputter::UniquePtr outputter ):
 	m_outputter( outputter ),
 	m_number_of_samples( 0 ),
 	m_data_i( 0 )
 {
 	m_outputter->connection().run_statement(
-		"CREATE TABLE IF NOT EXISTS Haplotype ( "
+		"CREATE TABLE IF NOT EXISTS Genotype ( "
 		"  analysis_id INT NOT NULL REFERENCES Entity( id ), "
 		"  variant_id INT NOT NULL REFERENCES Variant( id ), "
 		"  N INT NOT NULL,"
@@ -34,16 +34,16 @@ SQLiteHaplotypesSNPDataSink::SQLiteHaplotypesSNPDataSink( qcdb::DBOutputter::Uni
 		")"
 	) ;
 	m_outputter->connection().run_statement(
-		"CREATE View IF NOT EXISTS HaplotypeView AS "
+		"CREATE View IF NOT EXISTS GenotypeView AS "
 		"SELECT analysis_id, E.name AS analysis, variant_id, chromosome, position, rsid, alleleA, alleleB, quote( data ) "
-		"FROM Haplotype H "
+		"FROM Genotype H "
 		"INNER JOIN Entity E "
 		"ON E.id == H.analysis_id "
 		"INNER JOIN Variant V "
 		"ON V.id == H.variant_id"
 	) ;
 	m_insert_data_stmnt = m_outputter->connection().get_statement(
-		"INSERT INTO Haplotype ( analysis_id, variant_id, N, data ) VALUES( ?, ?, ?, ? ) ;"
+		"INSERT INTO Genotype ( analysis_id, variant_id, N, data ) VALUES( ?, ?, ?, ? ) ;"
 	) ;
 	m_outputter->connection().run_statement(
 		"CREATE TABLE IF NOT EXISTS Sample ( "
@@ -62,8 +62,8 @@ SQLiteHaplotypesSNPDataSink::SQLiteHaplotypesSNPDataSink( qcdb::DBOutputter::Uni
 	m_data.resize( 10000 ) ;
 }
 
-std::string SQLiteHaplotypesSNPDataSink::get_spec() const {
-	return "SQLiteHaplotypesSNPDataSink" ;
+std::string SQLiteGenotypesSNPDataSink::get_spec() const {
+	return "SQLiteGenotypesSNPDataSink" ;
 }
 
 namespace {
@@ -93,143 +93,101 @@ namespace {
 		return result ;
 	}
 
-	struct HaplotypeWriter: public genfile::VariantDataReader::PerSampleSetter {
-		enum Encoding { eUBJSON = 0, eBITPACK = 1 } ; // must take contiguous values starting at zero.
+	struct GenotypeProbabilityWriter: public genfile::VariantDataReader::PerSampleSetter {
+		enum Encoding { eBITPACK = 0 } ; // must take contiguous values starting at zero.
 		
-		HaplotypeWriter( std::vector< char >* compression_buffer ):
+		GenotypeProbabilityWriter( std::vector< char >* compression_buffer ):
 			m_compression_buffer( compression_buffer ),
-			m_buffer_validity( 2, true )
+			m_buffer_validity( 1, true )
 		{
 			assert( compression_buffer != 0 ) ;
 		}
 
-		~HaplotypeWriter() throw() {}
+		~GenotypeProbabilityWriter() throw() {}
 		
 		void set_number_of_samples( std::size_t n ) {
-			m_buffers.resize(2) ;
-			m_buf_p.resize(2) ;
-			m_buf_end_p.resize(2) ;
-
-			{
-				m_buffers[ eUBJSON ].clear() ;
-				m_buffers[ eUBJSON ].resize( 9 + ( n * 2 * 10 ) + 2 ) ; // name, plus two brackets per sample, two values up to 9 bytes per sample, two outside brackets.
-				m_buf_p[ eUBJSON ] = &(m_buffers[ eUBJSON ][0]) ;
-				m_buf_end_p[ eUBJSON ] = &(m_buffers[ eUBJSON ][0]) + m_buffers[ eUBJSON ].size() ;
-				std::string const encoding_name = "ubjson" ;
-				m_buffers[ eUBJSON ][0] = 's' ;
-				++m_buf_p[ eUBJSON ] ;
-				m_buf_p[ eUBJSON ] = genfile::write_big_endian_integer( m_buf_p[ eUBJSON ], m_buf_end_p[ eUBJSON ], static_cast< int16_t >( encoding_name.size() )) ;
-				m_buf_p[ eUBJSON ] = std::copy( encoding_name.begin(), encoding_name.end(), m_buf_p[ eUBJSON ] ) ;
-				// Write the UBJSON array marker
-				*(m_buf_p[ eUBJSON ]++) = '[' ;
-			}
+			m_buffers.resize(1) ;
+			m_buf_p.resize(1) ;
+			m_buf_end_p.resize(1) ;
 
 			{
 				m_buffers[ eBITPACK ].clear() ;
-				m_buffers[ eBITPACK ].resize( 10 + ( n * 2 ) ) ; // name, plus 2 haplotypes per sample.
+				std::string const encoding_name = "3float" ;
+				m_buffers[ eBITPACK ].resize( 3 + encoding_name.size() + 5 + 3 + ( n * 4 * 3 ) ) ; // name, plus 3 genotype probabilities per sample.
 				m_buf_p[ eBITPACK ] = &(m_buffers[ eBITPACK ][0]) ;
 				m_buf_end_p[ eBITPACK ] = &(m_buffers[ eBITPACK ][0]) + m_buffers[ eBITPACK ].size() ;
-				std::string const encoding_name = "bitpack" ;
-				m_buffers[ eBITPACK ][0] = 's' ;
+				m_buffers[ eBITPACK ][0] = 's' ; // marker that a string follows, UBJSON style.
 				++m_buf_p[ eBITPACK ] ;
 				m_buf_p[ eBITPACK ] = genfile::write_big_endian_integer( m_buf_p[ eBITPACK ], m_buf_end_p[ eBITPACK ], static_cast< int16_t >( encoding_name.size() )) ;
 				m_buf_p[ eBITPACK ] = std::copy( encoding_name.begin(), encoding_name.end(), m_buf_p[ eBITPACK ] ) ;
+
+				*(m_buf_p[ eBITPACK ]++) = 'I' ; // marker that an int32 follows, UBJSON style.
+				m_buf_p[ eBITPACK ] = genfile::write_big_endian_integer( m_buf_p[ eBITPACK ], m_buf_end_p[ eBITPACK ], static_cast< int32_t >( n )) ; // number of samples
+
+				*(m_buf_p[ eBITPACK ]++) = 'i' ; // marker that an int16 follows, UBJSON style.
+				m_buf_p[ eBITPACK ] = genfile::write_big_endian_integer( m_buf_p[ eBITPACK ], m_buf_end_p[ eBITPACK ], static_cast< int16_t >( 3 )) ; // 3 probs per samples
+
 				m_bitpack_index = 0 ;
 			}
 		}
 		void set_sample( std::size_t i ) {
-			if( i > 0 ) {
-				*(m_buf_p[ eUBJSON ]++) = ']' ;
-			}
-			*(m_buf_p[ eUBJSON ]++) = '[' ;
+			// nothing to do.
 		}
 		void set_number_of_entries( std::size_t n ) {
-			if( n != 2 ) {
+			if( n != 3 ) {
 				m_buffer_validity[ eBITPACK ] = false ;
 				throw genfile::BadArgumentError(
-					"genfile::HaplotypeWriter::set_number_of_entries()",
-					"n != 2"
+					"genfile::GenotypeProbabilityWriter::set_number_of_entries()",
+					"n != 3"
 				) ;
 			}
 		}
 		void set_order_type( OrderType order_type ) {
-			if( order_type != eOrderedList ) {
+			if( order_type != eUnorderedList ) {
 				throw genfile::BadArgumentError(
-					"genfile::HaplotypeWriter::set_order_type()",
-					"order_type=eUnorderedList"
+					"genfile::GenotypeProbabilityWriter::set_order_type()",
+					"order_type != eUnorderedList"
 				) ;
 			}
 		}
 		void operator()( genfile::MissingValue const value ) {
-			assert( ( m_buf_p[ eUBJSON ] + 1 ) <= m_buf_end_p[ eUBJSON ] ) ;
-			m_buffer_validity[ eBITPACK ] = false ;
-			*(m_buf_p[ eUBJSON ]++) = 'Z' ;
+			double float_value = -1 ; // encode missingness as -1.
+			operator()( float_value ) ;
 		}
+
 		void operator()( std::string& value ) {
-			assert( ( m_buf_p[ eUBJSON ] + 1 + value.size() ) <= m_buf_end_p[ eUBJSON ] ) ;
-			m_buffer_validity[ eBITPACK ] = false ;
-			*(m_buf_p[ eUBJSON ]++) = 'S' ;
-			std::copy( value.begin(), value.end(), m_buf_p[ eUBJSON ] ) ;
-			m_buf_p[ eUBJSON ] += value.size() ;
+			assert(0) ; // not allowed in this encoding.
 		}
 		void operator()( Integer const value ) {
-			if( fits_in< Integer, char >( value ) ) {
-				assert( ( m_buf_p[ eUBJSON ] + 2 ) <= m_buf_end_p[ eUBJSON ] ) ;
-				*(m_buf_p[ eUBJSON ]++) = 'i' ;
-				m_buf_p[ eUBJSON ] = genfile::write_big_endian_integer( m_buf_p[ eUBJSON ], m_buf_end_p[ eUBJSON ], static_cast< char >( value )) ;
-
-				if( m_buffer_validity[ eBITPACK ] ) {
-					*(m_buf_p[ eBITPACK ]++) = static_cast< char >( value ) ;
-				}
-			} else {
-				m_buffer_validity[ eBITPACK ] = false ;
-				if( fits_in< Integer, int16_t >( value ) ) {
-					assert( ( m_buf_p[ eUBJSON ] + 3 ) <= m_buf_end_p[ eUBJSON ] ) ;
-					*(m_buf_p[ eUBJSON ]++) = 'I' ;
-					m_buf_p[ eUBJSON ] = genfile::write_big_endian_integer( m_buf_p[ eUBJSON ], m_buf_end_p[ eUBJSON ], static_cast< int16_t >( value )) ;
-				} else if( fits_in< Integer, int32_t >( value ) ) {
-					assert( ( m_buf_p[ eUBJSON ] + 5 ) <= m_buf_end_p[ eUBJSON ] ) ;
-					*(m_buf_p[ eUBJSON ]++) = 'l' ;
-					m_buf_p[ eUBJSON ] = genfile::write_big_endian_integer( m_buf_p[ eUBJSON ], m_buf_end_p[ eUBJSON ], static_cast< int32_t >( value )) ;
-				}
-				else {
-					assert( ( m_buf_p[ eUBJSON ] + 9 ) <= m_buf_end_p[ eUBJSON ] ) ;
-					*(m_buf_p[ eUBJSON ]++) = 'L' ;
-					m_buf_p[ eUBJSON ] = genfile::write_big_endian_integer( m_buf_p[ eUBJSON ], m_buf_end_p[ eUBJSON ], static_cast< int64_t >( value )) ;
-				}
-			}
+			assert(0) ; // not allowed in this encoding.
 		}
 
 		void operator()( double const value ) {
-			assert( ( m_buf_p[ eUBJSON ] + 5 ) <= m_buf_end_p[ eUBJSON ] ) ;
-			m_buffer_validity[ eBITPACK ] = false ;
-			float const float_value = value ;
-			*(m_buf_p[ eUBJSON ]++) = 'd' ;
-			m_buf_p[ eUBJSON ] = write_float( m_buf_p[ eUBJSON ], m_buf_end_p[ eUBJSON ], float_value ) ;
+			assert( ( m_buf_p[ eBITPACK ] + 4 ) <= m_buf_end_p[ eBITPACK ] ) ;
+			float float_value = value ;
+			if( float_value != float_value ) {
+				float_value = -1 ; // encode missingness as -1.
+			}
+			m_buf_p[ eBITPACK ] = write_float( m_buf_p[ eBITPACK ], m_buf_end_p[ eBITPACK ], float_value ) ;
 		}
 		
 		void finalise() {
-			*(m_buf_p[ eUBJSON ]++) = ']' ;
-			*(m_buf_p[ eUBJSON ]++) = ']' ;
-
-			for( std::size_t i = 0; i < 2; ++i ) {
+			for( std::size_t i = 0; i < m_buffers.size(); ++i ) {
 				m_buffers[ i ].resize( ( m_buf_p[ i ] ) - ( &( m_buffers[ i ][0] ) ) ) ;
 			}
 			
 			if( m_buffer_validity[ eBITPACK ] ) {
 				genfile::zlib_compress( &( m_buffers[ eBITPACK ][0] ), m_buf_p[eBITPACK], m_compression_buffer ) ;
-				//std::cerr << "BITPACK: buffer size: " << m_buffers[ eBITPACK ].size() << " before compression, " << m_compression_buffer->size() << " after compression.\n" ;
 			} else {
-				genfile::zlib_compress( &( m_buffers[ eUBJSON ][0] ), m_buf_p[eUBJSON], m_compression_buffer ) ;
-				//std::cerr << "UBJSON: buffer size: " << m_buffers[ eUBJSON ].size() << " before compression, " << m_compression_buffer->size() << " after compression.\n" ;
+				assert(0) ;
 			}
 		}
 		
 		std::string get_encoding_name() const {
 			if( m_buffer_validity[ eBITPACK ] ) {
-				return "bitpack" ;
+				return "3float" ;
 			} else {
-				return "ubjson" ;
+				assert(0) ;
 			}
 		}
 		
@@ -252,7 +210,7 @@ namespace {
 	} ;
 }
 
-void SQLiteHaplotypesSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter getter ) {
+void SQLiteGenotypesSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter getter ) {
 	db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 600 ) ;
 	for( std::size_t i = 0; i < number_of_samples; ++i ) {
 		m_insert_sample_stmnt
@@ -266,7 +224,7 @@ void SQLiteHaplotypesSNPDataSink::set_sample_names_impl( std::size_t number_of_s
 	m_number_of_samples = number_of_samples ;
 }
 
-void SQLiteHaplotypesSNPDataSink::write_variant_data_impl(
+void SQLiteGenotypesSNPDataSink::write_variant_data_impl(
 	genfile::SNPIdentifyingData const& id_data,
 	genfile::VariantDataReader& data_reader,
 	Info const& info
@@ -276,13 +234,13 @@ void SQLiteHaplotypesSNPDataSink::write_variant_data_impl(
 		m_data_i = 0 ;
 	}
 	m_snps[ m_data_i ] = id_data ;
-	HaplotypeWriter writer( &(m_data[ m_data_i ]) ) ;
+	GenotypeProbabilityWriter writer( &(m_data[ m_data_i ]) ) ;
 	data_reader.get( "genotypes", writer ) ;
 	writer.finalise() ;
 	++m_data_i ;
 }
 
-void SQLiteHaplotypesSNPDataSink::finalise_impl() {
+void SQLiteGenotypesSNPDataSink::finalise_impl() {
 	if( m_data_i > 0 ) {
 		flush_data( m_data_i ) ;
 		m_data_i = 0 ;
@@ -290,10 +248,10 @@ void SQLiteHaplotypesSNPDataSink::finalise_impl() {
 	m_outputter->finalise() ;
 }
 
-void SQLiteHaplotypesSNPDataSink::flush_data( std::size_t const data_count ) {
+void SQLiteGenotypesSNPDataSink::flush_data( std::size_t const data_count ) {
 	db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 600 ) ;
 
-#if DEBUG_SQLITEHAPLOTYPESSNPDATASINK
+#if DEBUG_SQLITEGENOTYPESNPDATASINK
 	std::cerr << "Flushing " << data_count << " elements..." ;
 	std::size_t max_data_size = 0 ;
 #endif
@@ -301,7 +259,7 @@ void SQLiteHaplotypesSNPDataSink::flush_data( std::size_t const data_count ) {
 	for( std::size_t i = 0; i < data_count; ++i ) {
 		variant_ids[i] = m_outputter->get_or_create_variant( m_snps[i] ) ;
 	}
-#if DEBUG_SQLITEHAPLOTYPESSNPDATASINK
+#if DEBUG_SQLITEGENOTYPESNPDATASINK
 	std::cerr << "stored variants..." ;
 #endif
 	for( std::size_t i = 0; i < data_count; ++i ) {
@@ -315,11 +273,11 @@ void SQLiteHaplotypesSNPDataSink::flush_data( std::size_t const data_count ) {
 			.bind( 4, buffer, end_buffer )
 			.step() ;
 		m_insert_data_stmnt->reset() ;
-#if DEBUG_SQLITEHAPLOTYPESSNPDATASINK
+#if DEBUG_SQLITEGENOTYPESNPDATASINK
 		max_data_size = std::max( max_data_size, m_data[i].size() ) ;
 #endif
 	}
-#if DEBUG_SQLITEHAPLOTYPESSNPDATASINK
+#if DEBUG_SQLITEGENOTYPESNPDATASINK
 	std::cerr << "Done, max data size was " << max_data_size << ".\n" ;
 #endif
 }

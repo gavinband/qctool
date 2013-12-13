@@ -101,6 +101,7 @@
 #include "components/SNPSummaryComponent/SNPSummaryComponent.hpp"
 #include "components/SNPOutputComponent/SNPOutputComponent.hpp"
 #include "components/SNPOutputComponent/SQLiteHaplotypesSNPDataSink.hpp"
+#include "components/SNPOutputComponent/SQLiteGenotypesSNPDataSink.hpp"
 #include "components/SampleSummaryComponent/SampleSummaryComponent.hpp"
 #include "ClusterPlotter.hpp"
 
@@ -1741,7 +1742,6 @@ private:
 				std::string const& filename = m_mangled_options.gen_filename_mapper().output_filenames()[i] ;
 				genfile::SNPDataSink::UniquePtr sink ;
 				if( m_options.get< std::string >( "-ofiletype" ) == "sqlite_haplotypes" ) {
-					
 					sink.reset(
 						new SQLiteHaplotypesSNPDataSink(
 							qcdb::DBOutputter::create(
@@ -1752,7 +1752,19 @@ private:
 							)
 						)
 					) ;
-			 	} else {
+			 	} else if( m_options.get< std::string >( "-ofiletype" ) == "sqlite_genotypes" ) {
+					sink.reset(
+						new SQLiteGenotypesSNPDataSink(
+							qcdb::DBOutputter::create(
+								filename,
+								m_options.get< std::string >( "-analysis-name" ),
+								m_options.get< std::string >( "-analysis-description" ),
+								m_options.get_values_as_map()
+							)
+						)
+					) ;
+				}
+				else {
 					sink = genfile::SNPDataSink::create(
 						filename,
 						genfile::SNPDataSink::Metadata(),
@@ -1921,7 +1933,8 @@ private:
 							m_mangled_options.input_sample_filenames()[i],
 							m_options.get_value< std::string >( "-missing-code" )
 						)
-					)
+					),
+					"cohort_" + genfile::string_utils::to_string( i+1 )
 				) ;
 			}
 			sample_source.reset( source_chain.release() ) ;

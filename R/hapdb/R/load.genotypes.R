@@ -1,4 +1,4 @@
-load.haplotypes <-
+load.genotypes <-
 function( hapdb, chromosome = NULL, rsid = NULL, range = NULL, samples = NULL, analysis = NULL, verbose = FALSE ) {
 	require( RSQLite )
 	require( Rcompression )
@@ -6,7 +6,7 @@ function( hapdb, chromosome = NULL, rsid = NULL, range = NULL, samples = NULL, a
 		"SELECT analysis_id, E.name AS analysis, V.id AS variant_id, chromosome, position, rsid, alleleA, alleleB, H.N AS N, H.data",
 		"FROM Entity E",
 		"INNER JOIN Variant V",
-		"CROSS JOIN Haplotype H ON H.analysis_id == E.id AND H.variant_id == V.id",
+		"CROSS JOIN Genotype H ON H.analysis_id == E.id AND H.variant_id == V.id",
 		sep = " "
 	)
 	
@@ -51,29 +51,29 @@ function( hapdb, chromosome = NULL, rsid = NULL, range = NULL, samples = NULL, a
 	}
 
 	if( verbose ) {
-		cat( "load.haplotypes(): running query :\"", sql, "\"...\n", sep = "" ) ;
+		cat( "load.genotypes(): running query :\"", sql, "\"...\n", sep = "" ) ;
 		print( dbGetQuery( hapdb$db, sprintf( "EXPLAIN QUERY PLAN %s", sql ) ) )
 	}
 	D = dbGetQuery( hapdb$db, sql )
 
 	if( nrow(D) > 0 ) {
     	if( verbose ) {
-		    cat( "load.haplotypes(): loaded, uncompressing...\n" ) ;
-		}
+    		cat( "load.genotypes(): loaded, uncompressing...\n" ) ;
+        }
 		result = list(
 			variant = D[,-which( colnames(D) == "data")],
-			data = matrix( NA, nrow = nrow(D), ncol = 2 * D$N[1] )
+			data = matrix( NA, nrow = nrow(D), ncol = 3 * D$N[1] )
 		)
 
 		for( i in 1:nrow(D) ) {
 			compressed_data = unlist( D$data[i] )
 			uncompressed_data = uncompress( compressed_data, asText = FALSE )
-			result$data[i,] = parse_haplotypes( uncompressed_data, D$N[i] )
+			result$data[i,] = parse_genotypes( uncompressed_data, D$N[i] )
 		}
 	} else {
 		result = list(
 			variant = D[,-which( colnames(D) == "data")],
-			data = matrix( NA, nrow = 0, ncol = 2 * length( which( hapdb$samples$analysis == analysis ) ) )
+			data = matrix( NA, nrow = 0, ncol = 3 * length( which( hapdb$samples$analysis == analysis ) ) )
 		) ;
 	}
 	result$samples = hapdb$samples[ which( hapdb$samples$analysis == analysis ), ]
@@ -83,16 +83,16 @@ function( hapdb, chromosome = NULL, rsid = NULL, range = NULL, samples = NULL, a
 		} else {
 			samples.choice = samples
 		}
-		hap.choice = sort( union( (samples.choice * 2) - 1, samples.choice * 2 ) )
+		genotype.choice = sort( union( (samples.choice * 3) - 2, (samples.choice * 3) - 1, samples.choice * 3 ) )
 	
-		result$data = result$data[, hap.choice ]
+		result$data = result$data[, genotype.choice ]
 		result$samples = result$samples[ samples.choice, ]
 		if( nrow( result$variant ) > 0 ) {
 			result$variant$N = length( samples )
 		}
 	}
 	if( verbose ) {
-		cat( "load.haplotypes(): done.\n" ) ;
+		cat( "load.genotypes(): done.\n" ) ;
 	}
 	return( result )
 }

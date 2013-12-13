@@ -17,13 +17,13 @@
 #include "genfile/get_set.hpp"
 #include "genfile/get_list_of_snps_in_source.hpp"
 
-namespace genfile {
-	namespace {
-		static char const eUnknownFlip = '?' ;
-		static char const eNoFlip = '+' ;
-		static char const eFlip  = '-' ;
-    }
+namespace {
+	static char const eUnknownFlip = '?' ;
+	static char const eNoFlip = '+' ;
+	static char const eFlip  = '-' ;
+}
 
+namespace genfile {
 	std::auto_ptr< SNPDataSourceRack > SNPDataSourceRack::create( std::vector< wildcard::FilenameMatch > const& filenames ) {
 		std::auto_ptr< SNPDataSourceRack > rack( new SNPDataSourceRack() ) ;
 		for( std::size_t i = 0; i < filenames.size(); ++i ) {

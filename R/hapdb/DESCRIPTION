@@ -7,4 +7,4 @@ Author: Gavin Band
 Maintainer: Who to complain to <yourfault@somewhere.net>
 Description: Manipulates hapdb files.
 License: boost license
-Imports: RSQLite, Rcompression
+Imports: RSQLite, Rcompression, bitops

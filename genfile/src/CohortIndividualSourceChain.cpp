@@ -67,7 +67,7 @@ namespace genfile {
 				sample_i -= m_sources[i].get_number_of_individuals() ;
 			}
 			else {
-				else if( m_sources[i].check_for_column( column_name )) {
+				if( m_sources[i].check_for_column( column_name )) {
 					result = m_sources[i].get_entry( sample_i, column_name ) ;
 				}
 				break ;

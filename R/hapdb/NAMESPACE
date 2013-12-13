@@ -1,6 +1,8 @@
+import( "bitops" )
 importFrom( "DBI", dbDriver )
 importFrom( "RSQLite", dbConnect, dbGetQuery ) ; 
 import( RSQLite, Rcompression )
 export( open.hapdb )
 export( load.haplotypes )
+export( load.genotypes )
 export( load.sample.file )

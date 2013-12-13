@@ -138,10 +138,6 @@ namespace genfile {
 		uint32_t m_number_of_samples ;
 		bool m_read_past_end ;
 		SNPIdentifyingData::CompareFields m_comparator ;
-		
-		static char const eUnknownFlip = '?' ;
-		static char const eNoFlip = '+' ;
-		static char const eFlip  = '-' ;
 	} ;
 }
 
