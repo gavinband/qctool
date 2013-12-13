@@ -91,6 +91,11 @@ function( hapdb, chromosome = NULL, rsid = NULL, range = NULL, samples = NULL, a
 			result$variant$N = length( samples )
 		}
 	}
+
+	colnames( result$data ) = rep( NA, 2 * nrow( result$sample ) )
+	colnames( result$data )[ seq( from = 1, by = 2, length = nrow( result$samples ) ) ] = paste( result$samples[, 'identifier' ], "X", sep = ":" )
+	colnames( result$data )[ seq( from = 2, by = 2, length = nrow( result$samples ) ) ] = paste( result$samples[, 'identifier' ], "Y", sep = ":" )
+
 	if( verbose ) {
 		cat( "load.intensities(): done.\n" ) ;
 	}

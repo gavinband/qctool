@@ -91,6 +91,11 @@ function( hapdb, chromosome = NULL, rsid = NULL, range = NULL, samples = NULL, a
 			result$variant$N = length( samples )
 		}
 	}
+	colnames( result$data ) = rep( NA, 3 * nrow( result$sample ) )
+	colnames( result$data )[ seq( from = 1, by = 3, length = nrow( result$samples ) ) ] = paste( result$samples[, 'identifier' ], "AA", sep = ":" )
+	colnames( result$data )[ seq( from = 2, by = 3, length = nrow( result$samples ) ) ] = paste( result$samples[, 'identifier' ], "AB", sep = ":" )
+	colnames( result$data )[ seq( from = 3, by = 3, length = nrow( result$samples ) ) ] = paste( result$samples[, 'identifier' ], "BB", sep = ":" )
+	
 	if( verbose ) {
 		cat( "load.genotypes(): done.\n" ) ;
 	}
