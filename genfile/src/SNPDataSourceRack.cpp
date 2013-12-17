@@ -215,6 +215,7 @@ namespace genfile {
 				}
 				if( (*this) && source_i < m_sources.size() ) {
 					m_sources[0]->ignore_snp_probability_data() ;
+					m_sources[0]->get_snp_identifying_data( this_snp ) ;
 				}
 			}
 			// Remember the flips.
