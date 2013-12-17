@@ -82,11 +82,11 @@ SQLiteGenotypesSNPDataSink::SQLiteGenotypesSNPDataSink( qcdb::DBOutputter::Uniqu
 		"INSERT INTO Sample ( analysis_id, identifier, index_in_data ) VALUES( ?, ?, ? ) ;"
 	) ;
 	
-	m_genotype_snps.resize( 10000 ) ;
-	m_genotype_data.resize( 10000 ) ;
+	m_genotype_snps.resize( 1000 ) ;
+	m_genotype_data.resize( 1000 ) ;
 
-	m_intensity_snps.resize( 10000 ) ;
-	m_intensity_data.resize( 10000 ) ;
+	m_intensity_snps.resize( 1000 ) ;
+	m_intensity_data.resize( 1000 ) ;
 }
 
 std::string SQLiteGenotypesSNPDataSink::get_spec() const {
@@ -325,7 +325,7 @@ namespace {
 		
 		void go() {
 			if(
-				( m_genotype_probs[0] == m_genotype_probs[1] == m_genotype_probs[2] == 0.0 ) // gen-style setting of all probs to 0
+				( m_genotype_probs[0] == 0.0 && m_genotype_probs[1] == 0.0 && m_genotype_probs[2] == 0.0 ) // gen-style setting of all probs to 0
 			 	|| ( m_genotype_probs[0] == -1.0 || m_genotype_probs[1] == -1.0 || m_genotype_probs[2] == -1.0 ) // all probs set as -1's.
 			) {
 				for( int g = 0; g < 3; ++g ) {
@@ -382,7 +382,7 @@ void SQLiteGenotypesSNPDataSink::write_variant_data_impl(
 		++m_genotype_data_i ;
 	}
 	
-	if( data_reader.supports( "intensities" )) {
+	if( data_reader.supports( "XY" )) {
 		if( m_intensity_data_i == m_intensity_snps.size() ) {
 			flush_intensity_data( m_intensity_data_i ) ;
 			m_intensity_data_i = 0 ;
@@ -390,7 +390,7 @@ void SQLiteGenotypesSNPDataSink::write_variant_data_impl(
 
 		m_intensity_snps[ m_intensity_data_i ] = id_data ;
 		PositiveFloatWriter writer( &(m_intensity_data[ m_intensity_data_i ]), 2 ) ;
-		data_reader.get( "intensities", writer ) ;
+		data_reader.get( "XY", writer ) ;
 		writer.finalise() ;
 		++m_intensity_data_i ;
 	}
