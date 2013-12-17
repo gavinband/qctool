@@ -1,5 +1,5 @@
 load.haplotypes <-
-function( hapdb, chromosome = NULL, rsid = NULL, range = NULL, samples = NULL, analysis = NULL, verbose = FALSE ) {
+function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, samples = NULL, analysis = NULL, verbose = FALSE ) {
 	require( RSQLite )
 	require( Rcompression )
 	sql = paste(
@@ -40,11 +40,11 @@ function( hapdb, chromosome = NULL, rsid = NULL, range = NULL, samples = NULL, a
 			sep = " "
 		)
 	}
-	if( !is.null( rsid ) ) {
+	if( !is.null( rsids ) ) {
 		sql = paste(
 			sql,
 			"AND rsid IN (",
-			paste( sprintf( "'%s'", rsid ), collapse = ',' ),
+			paste( sprintf( "'%s'", rsids ), collapse = ',' ),
 			')',
 			sep = " "
 		)
