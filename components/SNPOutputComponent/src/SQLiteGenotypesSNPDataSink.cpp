@@ -266,7 +266,12 @@ namespace {
 			m_number_of_entries = n ;
 			m_writer.set_number_of_entries( 3 ) ;
 			m_allele_prob_i = 0 ;
+			m_genotype_prob_i = 0 ;
+			
+			m_genotype_probs[0] = m_genotype_probs[1] = m_genotype_probs[2] = -1.0 ; // encode missingness as -1
+			m_allele_probs[0] = m_allele_probs[1] = -1.0 ;  // encode missingness as -1
 		}
+
 		void set_order_type( OrderType order_type ) {
 			m_writer.set_order_type( eUnorderedList ) ;
 		}
@@ -285,25 +290,51 @@ namespace {
 			switch( m_number_of_entries ) {
 				case 1:
 					// genotype dosage information.  Just write the probabilities (to zeros, one one) directly.
-					for( int g = 0; g < 3; ++g ) {
-						m_writer( ( value == g ) ? 1.0 : 0.0 )  ;
+					// If -1 comes in (via operator()( MissingValue )) then all genotype probs will remain as -1.
+					if( value >= 0.0 ) {
+						for( std::size_t g = 0; g < 3; ++g ) {
+							m_genotype_probs[g] = ( ( value == g ) ? 1.0 : 0.0 )  ;
+						}
 					}
+					go() ;
 					break ;
 				case 2:
 					// GT-style pair of genotypes.  Need to store 'em.
 					m_allele_probs[ m_allele_prob_i++ ] = value ;
 					if( m_allele_prob_i == 2 ) {
-						// store the genotype probs.
-						for( std::size_t g = 0; g < 3; ++g ) {
-							m_writer( (( m_allele_probs[0] + m_allele_probs[1] ) == g ) ? 1.0 : 0.0 ) ;
+						// compute and store the genotype probs.
+						if( m_allele_probs[0] != -1.0 && m_allele_probs[1] != -1.0 ) {
+							for( std::size_t g = 0; g < 3; ++g ) {
+								m_genotype_probs[g] = (( m_allele_probs[0] + m_allele_probs[1] ) == g ) ? 1.0 : 0.0 ;
+							}
 						}
+						go() ;
 					}
 					break ;
 				case 3:
-					m_writer( value ) ;
+					m_genotype_probs[ m_genotype_prob_i++ ] = value ;
+					if( m_genotype_prob_i == 3 ) {
+						// store the genotype probs
+						go() ;
+					}
 					break ;
 				default:
 					assert(0) ;
+			}
+		}
+		
+		void go() {
+			if(
+				( m_genotype_probs[0] == m_genotype_probs[1] == m_genotype_probs[2] == 0.0 ) // gen-style setting of all probs to 0
+			 	|| ( m_genotype_probs[0] == -1.0 || m_genotype_probs[1] == -1.0 || m_genotype_probs[2] == -1.0 ) // all probs set as -1's.
+			) {
+				for( int g = 0; g < 3; ++g ) {
+					m_writer( genfile::MissingValue() ) ;
+				}
+			} else {
+				for( std::size_t g = 0; g < 3; ++g ) {
+					m_writer( m_genotype_probs[g] ) ;
+				}
 			}
 		}
 	private:
@@ -311,6 +342,8 @@ namespace {
 		std::size_t m_number_of_entries ;
 		std::vector< double > m_allele_probs ;
 		std::size_t m_allele_prob_i ;
+		std::vector< double > m_genotype_probs ;
+		std::size_t m_genotype_prob_i ;
 	} ;
 
 	
