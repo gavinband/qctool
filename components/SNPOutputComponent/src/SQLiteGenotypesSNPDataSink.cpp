@@ -125,8 +125,8 @@ namespace {
 		
 		 PositiveFloatWriter( std::vector< char >* compression_buffer, std::size_t number_of_entries ):
 			m_compression_buffer( compression_buffer ),
-			m_buffer_validity( 1, true ),
-			m_expected_number_if_entries( number_of_entries )
+			m_expected_number_if_entries( number_of_entries ),
+			m_buffer_validity( 1, true )
 		{
 			assert( compression_buffer != 0 ) ;
 		}
