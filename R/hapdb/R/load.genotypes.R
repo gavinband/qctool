@@ -1,5 +1,5 @@
 load.genotypes <-
-function( hapdb, chromosome = NULL, rsid = NULL, range = NULL, samples = NULL, analysis = NULL, verbose = FALSE ) {
+function( hapdb, chromosome = NULL, rsid = NULL, range = NULL, samples = NULL, analysis = NULL, verbose = FALSE, dosage.threshhold = NULL ) {
 	require( RSQLite )
 	require( Rcompression )
 	sql = paste(
@@ -95,6 +95,17 @@ function( hapdb, chromosome = NULL, rsid = NULL, range = NULL, samples = NULL, a
 	colnames( result$data )[ seq( from = 1, by = 3, length = nrow( result$samples ) ) ] = paste( result$samples[, 'identifier' ], "AA", sep = ":" )
 	colnames( result$data )[ seq( from = 2, by = 3, length = nrow( result$samples ) ) ] = paste( result$samples[, 'identifier' ], "AB", sep = ":" )
 	colnames( result$data )[ seq( from = 3, by = 3, length = nrow( result$samples ) ) ] = paste( result$samples[, 'identifier' ], "BB", sep = ":" )
+	
+	if( !is.null( dosage.threshhold )) {
+	    N = nrow( result$samples )
+	    dosage = matrix( NA, nrow = nrow( result$data ), ncol = ncol( result$data ) / 3 ) ;
+        A = result$data ;
+        A[ which( A >= dosage.threshhold )] = 1 ;
+        A[ which( A < dosage.threshhold )] = 0 ;
+	    dosage = A[ , seq( from = 2, by = 3, length = N ) ] + 2 * A[ , seq( from = 3, by = 3, length = N ) ] ;
+	    result$dosage = dosage ;
+	    colnames( result$dosage ) = result$samples$identifier
+	}
 	
 	if( verbose ) {
 		cat( "load.genotypes(): done.\n" ) ;
