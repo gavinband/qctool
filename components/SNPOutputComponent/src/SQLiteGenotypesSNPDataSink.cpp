@@ -109,7 +109,6 @@ namespace {
 		const uintmax_t IntegerMax = uintmax_t( std::numeric_limits< Integer >::max() ) ;
 		const intmax_t TargetMin = intmax_t( std::numeric_limits< Target >::min() ) ;
 		const uintmax_t TargetMax = uintmax_t( std::numeric_limits< Target >::max() ) ;
-       
 
 		bool result = !(
 			( ( IntegerMin < TargetMin ) && value < static_cast< Integer >( TargetMin ))
@@ -237,6 +236,84 @@ namespace {
 			return buf_p ;
 		}
 	} ;
+	
+	// This class handles genotypes set as single int (encoding dosage)
+	// as a pair of ints (as in vcf GT field)
+	// or as three probabilities.
+	// In all cases we convert to three probabilities.
+	// Unlike GEN files, we encode missing probabilities as missing data not zeroes.
+	struct GenotypeMunger: public genfile::VariantDataReader::PerSampleSetter {
+		GenotypeMunger( PositiveFloatWriter& writer ):
+			m_writer( writer ),
+			m_allele_probs( 2 )
+		{}
+		
+		~GenotypeMunger() throw() {}
+		
+		void set_number_of_samples( std::size_t n ) {
+			m_writer.set_number_of_samples(n) ;
+		}
+		void set_sample( std::size_t i ) {
+			m_writer.set_sample(i) ;
+		}
+		void set_number_of_entries( std::size_t n ) {
+			if( n != 1 && n != 2 && n != 3 ) {
+				throw genfile::BadArgumentError(
+					"genfile:: GenotypeMunger::set_number_of_entries()",
+					"n must be 1, 2 or 3."
+				) ;
+			}
+			m_number_of_entries = n ;
+			m_writer.set_number_of_entries( 3 ) ;
+			m_allele_prob_i = 0 ;
+		}
+		void set_order_type( OrderType order_type ) {
+			m_writer.set_order_type( eUnorderedList ) ;
+		}
+		void operator()( genfile::MissingValue const value ) {
+			double float_value = -1 ; // encode missingness as -1.
+			operator()( float_value ) ;
+		}
+
+		void operator()( std::string& value ) {
+			assert(0) ; // not allowed in this encoding.
+		}
+		void operator()( Integer const value ) {
+			operator()( double( value )) ;
+		}
+		void operator()( double const value ) {
+			switch( m_number_of_entries ) {
+				case 1:
+					// genotype dosage information.  Just write the probabilities (to zeros, one one) directly.
+					for( int g = 0; g < 3; ++g ) {
+						m_writer( ( value == g ) ? 1.0 : 0.0 )  ;
+					}
+					break ;
+				case 2:
+					// GT-style pair of genotypes.  Need to store 'em.
+					m_allele_probs[ m_allele_prob_i++ ] = value ;
+					if( m_allele_prob_i == 2 ) {
+						// store the genotype probs.
+						for( std::size_t g = 0; g < 3; ++g ) {
+							m_writer( (( m_allele_probs[0] + m_allele_probs[1] ) == g ) ? 1.0 : 0.0 ) ;
+						}
+					}
+					break ;
+				case 3:
+					m_writer( value ) ;
+					break ;
+				default:
+					assert(0) ;
+			}
+		}
+	private:
+		PositiveFloatWriter& m_writer ;
+		std::size_t m_number_of_entries ;
+		std::vector< double > m_allele_probs ;
+		std::size_t m_allele_prob_i ;
+	} ;
+
+	
 }
 
 void SQLiteGenotypesSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter getter ) {
@@ -266,7 +343,8 @@ void SQLiteGenotypesSNPDataSink::write_variant_data_impl(
 
 		m_genotype_snps[ m_genotype_data_i ] = id_data ;
 		PositiveFloatWriter writer( &(m_genotype_data[ m_genotype_data_i ]), 3 ) ;
-		data_reader.get( "genotypes", writer ) ;
+		GenotypeMunger munger( writer ) ;
+		data_reader.get( "genotypes", munger ) ;
 		writer.finalise() ;
 		++m_genotype_data_i ;
 	}
