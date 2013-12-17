@@ -13,7 +13,7 @@ function( data, N ) {
         number_of_entries = readBin( data[20:21], what = "integer", endian = "big", size = 2 )
         stopifnot( number_of_entries == 2 ) ;
         result = parse_floats( data[12:length(data)], N, 2 ) ;
-    )
+    }
     else {
         stop() ;
     }
