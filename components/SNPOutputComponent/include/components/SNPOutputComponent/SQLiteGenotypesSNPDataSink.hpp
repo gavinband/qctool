@@ -29,11 +29,16 @@
 		qcdb::DBOutputter::UniquePtr m_outputter ;
 		std::size_t m_number_of_samples ;
 		db::Connection::StatementPtr m_insert_sample_stmnt ;
-		db::Connection::StatementPtr m_insert_data_stmnt ;
+		db::Connection::StatementPtr m_insert_genotype_stmnt ;
+		db::Connection::StatementPtr m_insert_intensity_stmnt ;
 
-		std::vector< genfile::SNPIdentifyingData2 > m_snps ;
-		std::vector< std::vector< char > > m_data ;
-		std::size_t m_data_i ;
+		std::vector< genfile::SNPIdentifyingData2 > m_genotype_snps ;
+		std::vector< std::vector< char > > m_genotype_data ;
+		std::size_t m_genotype_data_i ;
+
+		std::vector< genfile::SNPIdentifyingData2 > m_intensity_snps ;
+		std::vector< std::vector< char > > m_intensity_data ;
+		std::size_t m_intensity_data_i ;
 
 	private:
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter getter ) ;
@@ -46,7 +51,8 @@
 		
 		void finalise_impl() ;
 		
-		void flush_data( std::size_t const data_count ) ;
+		void flush_genotype_data( std::size_t const data_count ) ;
+		void flush_intensity_data( std::size_t const data_count ) ;
 	} ;
 
 #endif
