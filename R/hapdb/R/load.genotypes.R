@@ -95,6 +95,15 @@ function( hapdb, chromosome = NULL, rsid = NULL, range = NULL, samples = NULL, a
 	colnames( result$data )[ seq( from = 1, by = 3, length = nrow( result$samples ) ) ] = paste( result$samples[, 'identifier' ], "AA", sep = ":" )
 	colnames( result$data )[ seq( from = 2, by = 3, length = nrow( result$samples ) ) ] = paste( result$samples[, 'identifier' ], "AB", sep = ":" )
 	colnames( result$data )[ seq( from = 3, by = 3, length = nrow( result$samples ) ) ] = paste( result$samples[, 'identifier' ], "BB", sep = ":" )
+
+	for( i in 1:nrow( result$samples ) ) {
+		# handle the case of three zeroes.
+		# this shouldn't occur with the latest qctool, but did in earlier versions (as it does in bgen etc.)
+		w = which( rowSums( result$data[, ((3*i)-2):(3*i)] ) == 0 )	
+		if( length(w) > 0 ) {
+			result$data[ w, ((3*i)-2):(3*i)] = NA
+		}
+	}
 	
 	if( !is.null( dosage.threshhold )) {
 	    N = nrow( result$samples )
