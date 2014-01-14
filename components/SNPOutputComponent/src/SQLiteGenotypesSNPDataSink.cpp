@@ -245,7 +245,8 @@ namespace {
 	struct GenotypeMunger: public genfile::VariantDataReader::PerSampleSetter {
 		GenotypeMunger( PositiveFloatWriter& writer ):
 			m_writer( writer ),
-			m_allele_probs( 2 )
+			m_allele_probs( 2 ),
+			m_genotype_probs( 3 )
 		{}
 		
 		~GenotypeMunger() throw() {}

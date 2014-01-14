@@ -334,7 +334,7 @@ namespace qcdb {
 	}
 
 	void DBOutputter::add_alternative_variant_identifier( db::Connection::RowId const variant_id, std::string const& identifier, std::string const& rsid ) const {
-		if( identifier != rsid ) {
+		if( identifier != rsid  && identifier != "---" && identifier != "." ) {
 			add_variant_identifier( variant_id, identifier ) ;
 		}
 	}
