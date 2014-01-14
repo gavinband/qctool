@@ -439,7 +439,7 @@ void SQLiteGenotypesSNPDataSink::flush_genotype_data( std::size_t const data_cou
 }
 
 void SQLiteGenotypesSNPDataSink::flush_intensity_data( std::size_t const data_count ) {
-	db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 600 ) ;
+	db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 1200 ) ;
 
 #if DEBUG_SQLITEGENOTYPESNPDATASINK
 	std::cerr << "Flushing " << data_count << " intensities..." ;
