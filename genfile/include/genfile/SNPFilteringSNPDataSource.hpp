@@ -62,7 +62,6 @@ namespace genfile {
 	private:
 		
 		SNPDataSource::UniquePtr m_source ;
-		std::size_t m_snp_index ;
 		std::set< std::size_t > m_indices_of_excluded_snps ;
 	} ;
 }

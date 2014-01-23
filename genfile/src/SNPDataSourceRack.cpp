@@ -16,6 +16,7 @@
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/get_list_of_snps_in_source.hpp"
+#include "genfile/string_utils/slice.hpp"
 
 namespace {
 	static char const eUnknownFlip = '?' ;
@@ -194,7 +195,7 @@ namespace genfile {
 						this_snp.rsid() += "/" + this_source_snp.get_SNPID() ;
 					}
 					if( m_comparator.get_flip_alleles_if_necessary() ) {
-						if( this_source_snp.get_first_allele() == this_snp.get_second_allele() && this_source_snp.get_second_allele() == this_snp.get_first_allele() ) {
+                        if( this_source_snp.get_first_allele() == this_snp.get_second_allele() && this_source_snp.get_second_allele() == this_snp.get_first_allele() ) {
 							flips[ source_i ] = eFlip ;
 						} else if( this_source_snp.get_first_allele() == this_snp.get_first_allele() && this_source_snp.get_second_allele() == this_snp.get_second_allele() ) {
 							// do nothing
@@ -218,8 +219,6 @@ namespace genfile {
 					m_sources[0]->get_snp_identifying_data( this_snp ) ;
 				}
 			}
-			// Remember the flips.
-			m_flips = flips ;
 		}
 		if( *this ) {
 			set_number_of_samples( m_number_of_samples ) ;
@@ -229,6 +228,8 @@ namespace genfile {
 			set_SNP_position( this_snp.get_position().position() ) ;
 			set_allele1( this_snp.get_first_allele() ) ;
 			set_allele2( this_snp.get_second_allele() ) ;
+			// Remember the flips.
+			m_flips = flips ;
 		}
 	}
 
@@ -329,7 +330,7 @@ namespace genfile {
 
 			void set_values() {
 				for( std::size_t i = 0; i < m_number_of_entries; ++i ) {
-					VariantEntry const& entry = ( m_flip == eFlip )? m_values[ m_number_of_entries - 1 - i ] : m_values[ i ] ;
+					VariantEntry const& entry = ( m_flip == eFlip ) ? m_values[ m_number_of_entries - 1 - i ] : m_values[ i ] ;
 					if( entry.is_missing() ) {
 						m_setter( MissingValue() ) ;
 					} else if( entry.is_string() ) {
@@ -344,7 +345,6 @@ namespace genfile {
 					}
 				}
 			}
-            
 		} ;
 		
 		void add_spec_to_map( std::map< std::string, std::string >* map, std::string const& name, std::string const& type ) {

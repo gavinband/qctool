@@ -39,7 +39,6 @@ namespace genfile {
 
 		private:
 			std::vector< std::vector< Entry > >& m_data ;
-			std::size_t m_number_of_samples ;
 			std::size_t m_sample ;
 			std::size_t m_entry_i ;
 		} ;

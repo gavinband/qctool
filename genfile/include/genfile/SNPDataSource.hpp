@@ -290,7 +290,6 @@ namespace genfile {
 		) ;
 
 	private:
-		bool m_have_cached_identifying_data ;
 		Chromosome m_cached_chromosome ;
 		uint32_t m_cached_number_of_samples, m_cached_SNP_position ;
 		std::string m_cached_SNPID, m_cached_RSID ;

@@ -201,9 +201,10 @@ namespace genfile {
 	
 	std::pair< std::string, std::string > uniformise( std::string filename ) {
 		std::map< std::string, std::string > types  ;
-		types[ ".bgen" ]							= "bgen" ;
-		types[ ".gen" ] = types[ ".gen.gz" ] 		= "gen" ;
-		types[ ".vcf" ] = types[ ".vcf.gz" ] 		= "vcf" ;
+		types[ ".bgen" ]							    = "bgen" ;
+		types[ ".gen" ]     = types[ ".gen.gz" ] 		= "gen" ;
+		types[ ".vcf" ]     = types[ ".vcf.gz" ] 		= "vcf" ;
+		types[ ".dosage" ]  = types[ ".dosage.gz" ] 	= "dosage" ;
 
 		for(
 			std::map< std::string, std::string >::const_iterator i = types.begin();

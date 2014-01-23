@@ -18,6 +18,7 @@
 #include "genfile/HapmapHaplotypesSNPDataSource.hpp"
 #include "genfile/ImputeHaplotypesSNPDataSource.hpp"
 #include "genfile/ShapeITHaplotypesSNPDataSource.hpp"
+#include "genfile/DosageFileSNPDataSource.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/vcf/get_set.hpp"
 #include "genfile/Error.hpp"
@@ -65,6 +66,9 @@ namespace genfile {
 		}
 		else if( uf.first == "gen" ) {
 			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+		}
+		else if( uf.first == "dosage" ) {
+			return std::auto_ptr< SNPDataSource >( new DosageFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
 		}
 		else if( uf.first == "hapmap_haplotypes" ) {
 			return std::auto_ptr< SNPDataSource >( new HapmapHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
