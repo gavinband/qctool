@@ -667,8 +667,33 @@ namespace impl {
 }
 
 /*
-	frequentist_meta_analysis = function( betas, ses ) {
-		// fill details here.
+	Here is R code to do it:
+	frequentist_meta_analysis <- function( betas, ses, side = NULL ) {
+		if( class( betas ) == "numeric" ) {
+			betas = matrix( betas, ncol = length( betas ))
+			ses = matrix( ses, ncol = length( betas ))
+		}
+		v = ses^2 ;
+		betas = betas / v ;
+		denominator_terms = 1 / v;
+		meta_beta = rowSums( betas ) / rowSums( denominator_terms )
+		meta_se = sqrt( 1 / rowSums( denominator_terms ) )
+		if( is.null( side ) ) {
+			pvalue = 2 * pnorm( abs( meta_beta ), mean = 0, sd = meta_se, lower.tail = FALSE  ) ;
+		} else {
+			pvalue = 1 ;
+			if( meta_beta * side > 0 ) {
+				pvalue = pnorm( abs( meta_beta ), mean = 0, sd = meta_se, lower.tail = FALSE )
+			}
+		}
+		return(
+			list(
+				meta_beta = meta_beta,
+				meta_se = meta_se,
+				pvalue = pvalue,
+				side = side
+			)
+		) ;
 	}
 */
 struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {

@@ -1042,10 +1042,6 @@ private:
 			m_options.check( "-match-alleles-to-cohort1" )
 		) ;
 		
-		if( m_options.check( "-merge-in" )) {
-			m_snp_data_source = open_merged_data_sources() ;
-		}
-
 		if( m_options.check( "-threshhold" )) {
 			m_snp_data_source.reset( new genfile::ThreshholdingSNPDataSource( m_snp_data_source, m_options.get< double >( "-threshhold" )) ) ;
 		}
@@ -1055,6 +1051,13 @@ private:
 			if( m_options.check( "-sample-data" )) {
 				m_samples = open_sample_data( m_samples, m_options.get_values< std::string > ( "-sample-data" )) ;
 			}
+		}
+
+		if( m_options.check( "-merge-in" )) {
+			m_snp_data_source = open_merged_data_sources() ;
+		}
+
+		{
 			if( m_options.check( "-condition-on" )) {
 				m_samples = condition_on(
 					m_samples,
