@@ -75,7 +75,6 @@ namespace genfile {
     private:
 		void setup( std::string const& filename, CompressionType compression_type ) ;
 		void setup( std::auto_ptr< std::istream > stream_ptr ) ;
-		void read_header_data() ;
 	} ;
 }
 

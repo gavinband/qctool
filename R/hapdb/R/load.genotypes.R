@@ -1,5 +1,5 @@
 load.genotypes <-
-function( hapdb, chromosome = NULL, positions = NULL, rsid = NULL, range = NULL, samples = NULL, analysis = NULL, verbose = FALSE, dosage.threshhold = NULL ) {
+function( hapdb, chromosome = NULL, positions = NULL, rsids = NULL, range = NULL, samples = NULL, analysis = NULL, verbose = FALSE, dosage.threshhold = NULL ) {
 	require( RSQLite )
 	require( Rcompression )
 	sql = paste(

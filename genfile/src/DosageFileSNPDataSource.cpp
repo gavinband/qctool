@@ -35,7 +35,11 @@ namespace genfile {
 	}
 
 	void DosageFileSNPDataSource::setup( std::string const& filename, CompressionType compression_type ) {
-		m_stream_ptr = open_text_file_for_input( filename, compression_type ) ;
+		setup( open_text_file_for_input( filename, compression_type ) ) ;
+	}
+
+	void DosageFileSNPDataSource::setup( std::auto_ptr< std::istream > stream_ptr ) {
+		m_stream_ptr = stream_ptr ;
         std::getline( stream(), m_line ) ;
         bool bad = false ;
         if( !stream() ) {
@@ -65,12 +69,6 @@ namespace genfile {
         } else {
             m_number_of_samples = m_elts.size() - 6 ;
         }
-	}
-
-	void DosageFileSNPDataSource::setup( std::auto_ptr< std::istream > stream_ptr ) {
-		m_stream_ptr = stream_ptr ;
-		read_header_data() ;
-		reset_to_start() ;
 	}
 
 	void DosageFileSNPDataSource::reset_to_start_impl() {
@@ -127,6 +125,8 @@ namespace genfile {
 			DosageFileSNPDataReader( DosageFileSNPDataSource& source, std::vector< string_utils::slice > const& elts ):
                 m_elts( elts )
             {
+				//std::cerr << "m_elts.size() == " << m_elts.size() << ", source.number_of_samples() == " << source.number_of_samples() << ".\n" ;
+				//std::cerr << "First few elts are: " << m_elts[0] << ", " << m_elts[1] << ", " << m_elts[2] << ",...\n" ;
                 assert( elts.size() == source.number_of_samples() ) ;
             }
 			
@@ -160,7 +160,9 @@ namespace genfile {
 	}
 
 	VariantDataReader::UniquePtr DosageFileSNPDataSource::read_variant_data_impl() {
-        std::getline( *m_stream_ptr, m_line ) ;
+        m_line.clear() ;
+		m_elts.clear() ;
+		std::getline( *m_stream_ptr, m_line ) ;
         slice( m_line ).split( " ", &m_elts ) ;
 		return VariantDataReader::UniquePtr( new impl::DosageFileSNPDataReader( *this, m_elts ) ) ;
 	}
