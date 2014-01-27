@@ -55,7 +55,6 @@ namespace genfile {
 		using namespace genfile::string_utils ;
 
 		// for now just parse variable = value or variable != value.
-		
 		std::vector< std::string > elts = split_and_strip( spec, "=", " \t\n" ) ;
 		std::string type = "=" ;
 
@@ -78,16 +77,17 @@ namespace genfile {
 			elts[1] = elts[1].substr( 1, elts[1].size() - 2 ) ;
 		}
 
-		VariableInSetSampleFilter::UniquePtr filter( new VariableInSetSampleFilter( elts[0] ) ) ;
-		
-		filter->add_level( elts[1] ) ;
-
-		SampleFilter::UniquePtr result( filter.release() ) ;
-
-		if( type == "!=" ) {
-			result.reset( new SampleFilterNegation( result ) ) ;
+		SampleFilter::UniquePtr result ;
+		if( type == "=" ) {
+			VariableInSetSampleFilter::UniquePtr filter( new VariableInSetSampleFilter( elts[0] ) ) ;
+			filter->add_level( elts[1] ) ;
+			result.reset( filter.release() ) ;
+		} else {
+			VariableNotInSetSampleFilter::UniquePtr filter( new VariableNotInSetSampleFilter( elts[0] ) ) ;
+			filter->add_level( elts[1] ) ;
+			result.reset( filter.release() ) ;
 		}
-		
+
 		return result ;
 	}
 }
