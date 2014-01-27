@@ -13,6 +13,7 @@
 #include "genfile/RandomAccessSNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/SampleFilteringSNPDataSource.hpp"
+#include "genfile/SampleMappingSNPDataSource.hpp"
 #include "genfile/wildcard.hpp"
 #include "genfile/vcf/get_set_eigen.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
@@ -81,10 +82,24 @@ namespace {
 }
 
 HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
+	genfile::CohortIndividualSource const& source_samples,
+	std::string const& source_sample_id_column,
+	genfile::CohortIndividualSource::UniquePtr samples,
+	std::string const& ld_sample_id_column,
 	genfile::SNPDataSource::UniquePtr source,
 	appcontext::OptionProcessor const& options,
 	appcontext::UIContext& ui_context
 ) {
+	source.reset(
+		new genfile::SampleMappingSNPDataSource(
+			source_samples,
+			source_sample_id_column,
+			*samples,
+			ld_sample_id_column,
+			source
+		)
+	) ;
+	
 	HaplotypeFrequencyComponent::UniquePtr result ;
 
 #if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT

@@ -2315,7 +2315,36 @@ private:
 		
 		HaplotypeFrequencyComponent::UniquePtr haplotype_frequency_component ;
 		if( options().check_if_option_was_supplied_in_group( "LD computation options" )) {
+			std::vector< std::string > filenames = options().get_values< std::string >( "-compute-ld-with" ) ;
+			if( filenames.size() != 2 ) {
+				throw genfile::BadArgumentError(
+					"QCToolApplication::unsafe_process()",
+					"-compute-ld-with\"" + options().get< std::string >( "-compute-ld-with" ) + "\"",
+					"Value should be two filenames - a genotype file and a sample file."
+				) ;
+			}
+			
+			std::vector< std::string > id_columns = genfile::string_utils::split_and_strip( options().get_value< std::string >( "-match-sample-ids" ), "~" ) ;
+			if( id_columns.size() != 2 ) {
+				throw genfile::BadArgumentError(
+					"QCToolApplication::unsafe_process()",
+					"-match-sample-ids=\"" + options().get_value< std::string >( "-match-sample-ids" ) + "\"",
+					"Value should be two strings separated by ~."
+				) ;
+			}
+
+			genfile::CohortIndividualSource::UniquePtr ld_samples(
+				new genfile::CategoricalCohortIndividualSource(
+					filenames[1],
+					options().get_value< std::string >( "-missing-code" )
+				)
+			) ;
+				
 			haplotype_frequency_component = HaplotypeFrequencyComponent::create(
+				context.get_cohort_individual_source(),
+				id_columns[0],
+				ld_samples,
+				id_columns[1],
 				context.open_snp_data_sources(
 					genfile::wildcard::find_files_by_chromosome(
 						options().get< std::string >( "-compute-ld-with" ),
@@ -2325,6 +2354,7 @@ private:
 				options(),
 				get_ui_context()
 			) ;
+
 			processor.add_callback( *haplotype_frequency_component ) ;
 		}
 

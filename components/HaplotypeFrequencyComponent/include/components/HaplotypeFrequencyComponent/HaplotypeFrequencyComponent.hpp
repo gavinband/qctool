@@ -14,6 +14,7 @@
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/RandomAccessSNPDataSource.hpp"
 #include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/CohortIndividualSource.hpp"
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
 #include "HaplotypeFrequencyLogLikelihood.hpp"
@@ -24,6 +25,10 @@ public:
 
 	static void declare_options( appcontext::OptionProcessor& options ) ;
 	static UniquePtr create(
+		genfile::CohortIndividualSource const& samples,
+		std::string const& source_sample_id_column,
+		genfile::CohortIndividualSource::UniquePtr samples,
+		std::string const& ld_sample_id_column,
 		genfile::SNPDataSource::UniquePtr source,
 		appcontext::OptionProcessor const& options,
 		appcontext::UIContext& ui_context
@@ -56,7 +61,6 @@ public:
 	void send_results_to( ResultCallback callback ) ;
 
 private:
-	
 	genfile::SNPDataSource::UniquePtr m_source ;
 	appcontext::UIContext& m_ui_context ;
 	double const m_threshhold ;
