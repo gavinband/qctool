@@ -38,11 +38,17 @@ namespace genfile {
 	}
 
 	void SampleFilterDisjunction::summarise( std::ostream& o ) const {
+		if( number_of_clauses() > 1 ) {
+			o << "( " ;
+		}
 		for( std::size_t i = 0; i < number_of_clauses(); ++i ) {
 			if( i > 0 ) {
 				o << " OR " ;
 			}
 			o << clause( i ) ;
+		}
+		if( number_of_clauses() > 1 ) {
+			o << " )" ;
 		}
 	}
 
@@ -60,11 +66,17 @@ namespace genfile {
 	}
 	
 	void SampleFilterConjunction::summarise( std::ostream& o ) const {
+		if( number_of_clauses() > 1 ) {
+			o << " (" ;
+		}
 		for( std::size_t i = 0; i < number_of_clauses(); ++i ) {
 			if( i > 0 ) {
 				o << " AND " ;
 			}
 			o << clause( i ) ;
+		}
+		if( number_of_clauses() > 1 ) {
+			o << " )" ;
 		}
 	}
 	
