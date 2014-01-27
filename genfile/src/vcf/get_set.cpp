@@ -59,8 +59,7 @@ namespace genfile {
 		void GenotypeSetterBase::set() {
 			if( m_missing ) {
 				set( m_sample, 0.0, 0.0, 0.0 ) ;
-			}
-			else if( m_number_of_entries == 2 ) {
+			} else if( m_number_of_entries == 1 || m_number_of_entries == 2 ) {
 				if( m_A == 0 && m_B == 2 ) {
 					set( m_sample, 0.0, 0.0, 1.0 ) ;
 				}

@@ -73,7 +73,12 @@ namespace genfile {
 
 			template< typename T >
 			void store( T const value ) {
-				if( m_number_of_entries == 2 ) {
+				if( m_number_of_entries == 1 ) {
+					// Treat as a dosage
+					assert( value == 0 || value == 1 || value == 2 ) ;
+					m_A = 2 - value ;
+					m_B = value ;
+				} else if( m_number_of_entries == 2 ) {
 					// Treat as two calls.
 					assert( value == 0 || value == 1 ) ;
 					m_A += ( value == 0 ) ? 1 : 0 ;

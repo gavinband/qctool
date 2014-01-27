@@ -117,6 +117,10 @@ namespace genfile {
             *SNP_position = position_ ;
             *allele1 = allele1_ ;
             *allele2 = allele2_ ;
+			// Prepare for the data...
+			if( stream().peek() == ' ' ) {
+				stream().get() ;
+			}
 		}
 	}
 
@@ -136,7 +140,11 @@ namespace genfile {
 				for( std::size_t i = 0; i < N; ++i ) {
 					setter.set_sample( i ) ;
 					setter.set_number_of_entries( 1 ) ;
-                    setter( string_utils::to_repr< Integer >( m_elts[i] )) ;
+					if( m_elts[i] == "NA" ) {
+						setter( genfile::MissingValue() ) ;
+					} else {
+						setter( string_utils::to_repr< Integer >( m_elts[i] )) ;
+					}
 				}
 				return *this ;
 			}
