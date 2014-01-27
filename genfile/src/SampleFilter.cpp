@@ -55,18 +55,17 @@ namespace genfile {
 		using namespace genfile::string_utils ;
 
 		// for now just parse variable = value or variable != value.
-		std::vector< std::string > elts ;
-		std::string type = "" ;
-		if( spec.find( "!=" ) != std::string::npos ) {
-			elts = split_and_strip( spec, "!=", " \t\n" ) ;
+		
+		std::vector< std::string > elts = split_and_strip( spec, "=", " \t\n" ) ;
+		std::string type = "=" ;
+
+		if( elts[0].size() > 0 && elts[0][elts[0].size()-1] == '!' ) {
+			elts[0] = elts[0].substr(0, elts[0].size() - 1 ) ;
 			type = "!=" ;
-		} else {
-		 	elts = split_and_strip( spec, "=", " \t\n" ) ;
-			type = "=" ;
 		}
 
 		if( elts.size() !=2  ) {
-			throw genfile::BadArgumentError( "condition_factory()", "spec=\"" + spec + "\"" ) ;
+			throw genfile::BadArgumentError( "genfile::SampleFilter::create()", "spec=\"" + spec + "\"" ) ;
 		}
 
 		// remove quotes
