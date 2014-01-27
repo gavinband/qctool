@@ -220,77 +220,79 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		<< "SNP2: " << target_snp << "\n"
 		<< "table: " << table << ".\n" ;
 #endif
-	try {
-		HaplotypeFrequencyLogLikelihood ll( table ) ;
-		HaplotypeFrequencyLogLikelihood::Vector pi( 4 ) ;
-		pi.tail( 3 ) = ll.get_MLE_by_EM() ;
-		pi(0) = 1.0 - pi.tail( 3 ).sum() ;
-		double D = pi(0) * pi(3) - pi(1) * pi(2) ;
-		double max_D ;
-		if( D < 0 ) {
-			max_D = std::min( (pi(0) + pi(1)) * (pi(0)+pi(2)), (pi(1)+pi(3))*(pi(2)+pi(3)) ) ;
-		}
-		else {
-			max_D = std::min( (pi(0) + pi(1)) * (pi(1)+pi(3)), (pi(0)+pi(2))*(pi(2)+pi(3)) ) ;
-		}
-		double Dprime = D / max_D ;
-		double r = D / std::sqrt( (pi(0)+pi(1)) * (pi(2)+pi(3)) * (pi(0)+pi(2)) * (pi(1)+pi(3))) ;
-
-		m_result_signal( source_snp, target_snp, "pi00", pi(0) ) ;
-		m_result_signal( source_snp, target_snp, "pi01", pi(1) ) ;
-		m_result_signal( source_snp, target_snp, "pi10", pi(2) ) ;
-		m_result_signal( source_snp, target_snp, "pi11", pi(3) ) ;
-		m_result_signal( source_snp, target_snp, "D", D ) ;
-		m_result_signal( source_snp, target_snp, "Dprime", Dprime ) ;
-		m_result_signal( source_snp, target_snp, "r", r ) ;
-		m_result_signal( source_snp, target_snp, "r_squared", r * r ) ;
-	}
-	catch( genfile::OperationFailedError const& ) {
-		m_ui_context.logger() << "!! Could not compute haplotype frequencies for " << source_snp << ", " << target_snp << ".\n"
-			<< "!! table is:\n" << table << ".\n" ;
-			
-		genfile::VariantEntry const missing = genfile::MissingValue() ;
-		m_result_signal( source_snp, target_snp, "pi00", missing ) ;
-		m_result_signal( source_snp, target_snp, "pi01", missing ) ;
-		m_result_signal( source_snp, target_snp, "pi10", missing ) ;
-		m_result_signal( source_snp, target_snp, "pi11", missing ) ;
-		m_result_signal( source_snp, target_snp, "D", missing ) ;
-		m_result_signal( source_snp, target_snp, "Dprime", missing ) ;
-		m_result_signal( source_snp, target_snp, "r", missing ) ;
-		m_result_signal( source_snp, target_snp, "r_squared", missing ) ;
-	}
-	
-	{
-		// compute allele dosage r squared too.
-		Eigen::Vector2d means = Eigen::Vector2d::Zero() ;
-		for( int i = 0; i < 3; ++i ) {
-			means(0) += table.row( i ).sum() * i ;
-			means(1) += table.col( i ).sum() * i ;
-		}
-		
-		means /= table.sum() ;
-#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT	
-		std::cerr << "table: " << table << "\n" ;
-		std::cerr << "means:\n" << std::fixed << std::setprecision( 5 ) <<  means << ".\n" ;
-#endif
-		double dosage_cov = 0.0 ;
-		Eigen::Vector2d variances = Eigen::Vector2d::Zero() ;
-		for( int i = 0; i < 3; ++i ) {
-			for( int j = 0; j < 3; ++j ) {
-				dosage_cov += table(i,j)  * ( i - means(0) ) * ( j - means(1) ) ;
+	if( table.array().minCoeff() > 0 ) {
+		try {
+			HaplotypeFrequencyLogLikelihood ll( table ) ;
+			HaplotypeFrequencyLogLikelihood::Vector pi( 4 ) ;
+			pi.tail( 3 ) = ll.get_MLE_by_EM() ;
+			pi(0) = 1.0 - pi.tail( 3 ).sum() ;
+			double D = pi(0) * pi(3) - pi(1) * pi(2) ;
+			double max_D ;
+			if( D < 0 ) {
+				max_D = std::min( (pi(0) + pi(1)) * (pi(0)+pi(2)), (pi(1)+pi(3))*(pi(2)+pi(3)) ) ;
 			}
-			variances(0) += table.row( i ).sum() * ( i - means(0) ) * ( i - means(0) ) ;
-			variances(1) += table.col( i ).sum() * ( i - means(1) ) * ( i - means(1) ) ;
+			else {
+				max_D = std::min( (pi(0) + pi(1)) * (pi(1)+pi(3)), (pi(0)+pi(2))*(pi(2)+pi(3)) ) ;
+			}
+			double Dprime = D / max_D ;
+			double r = D / std::sqrt( (pi(0)+pi(1)) * (pi(2)+pi(3)) * (pi(0)+pi(2)) * (pi(1)+pi(3))) ;
+
+			m_result_signal( source_snp, target_snp, "pi00", pi(0) ) ;
+			m_result_signal( source_snp, target_snp, "pi01", pi(1) ) ;
+			m_result_signal( source_snp, target_snp, "pi10", pi(2) ) ;
+			m_result_signal( source_snp, target_snp, "pi11", pi(3) ) ;
+			m_result_signal( source_snp, target_snp, "D", D ) ;
+			m_result_signal( source_snp, target_snp, "Dprime", Dprime ) ;
+			m_result_signal( source_snp, target_snp, "r", r ) ;
+			m_result_signal( source_snp, target_snp, "r_squared", r * r ) ;
 		}
+		catch( genfile::OperationFailedError const& ) {
+			m_ui_context.logger() << "!! Could not compute haplotype frequencies for " << source_snp << ", " << target_snp << ".\n"
+				<< "!! table is:\n" << table << ".\n" ;
+			
+			genfile::VariantEntry const missing = genfile::MissingValue() ;
+			m_result_signal( source_snp, target_snp, "pi00", missing ) ;
+			m_result_signal( source_snp, target_snp, "pi01", missing ) ;
+			m_result_signal( source_snp, target_snp, "pi10", missing ) ;
+			m_result_signal( source_snp, target_snp, "pi11", missing ) ;
+			m_result_signal( source_snp, target_snp, "D", missing ) ;
+			m_result_signal( source_snp, target_snp, "Dprime", missing ) ;
+			m_result_signal( source_snp, target_snp, "r", missing ) ;
+			m_result_signal( source_snp, target_snp, "r_squared", missing ) ;
+		}
+	
+		{
+			// compute allele dosage r squared too.
+			Eigen::Vector2d means = Eigen::Vector2d::Zero() ;
+			for( int i = 0; i < 3; ++i ) {
+				means(0) += table.row( i ).sum() * i ;
+				means(1) += table.col( i ).sum() * i ;
+			}
+		
+			means /= table.sum() ;
+	#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT	
+			std::cerr << "table: " << table << "\n" ;
+			std::cerr << "means:\n" << std::fixed << std::setprecision( 5 ) <<  means << ".\n" ;
+	#endif
+			double dosage_cov = 0.0 ;
+			Eigen::Vector2d variances = Eigen::Vector2d::Zero() ;
+			for( int i = 0; i < 3; ++i ) {
+				for( int j = 0; j < 3; ++j ) {
+					dosage_cov += table(i,j)  * ( i - means(0) ) * ( j - means(1) ) ;
+				}
+				variances(0) += table.row( i ).sum() * ( i - means(0) ) * ( i - means(0) ) ;
+				variances(1) += table.col( i ).sum() * ( i - means(1) ) * ( i - means(1) ) ;
+			}
 		
 #if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT	
-		std::cerr << "dosage_cov:\n" << dosage_cov << ".\n" ;
-		std::cerr << "variances:\n" << variances << ".\n" ;
+			std::cerr << "dosage_cov:\n" << dosage_cov << ".\n" ;
+			std::cerr << "variances:\n" << variances << ".\n" ;
 #endif
 		
-		double dosage_r = dosage_cov / std::sqrt( variances(0) * variances( 1 ) ) ;
-		m_result_signal( source_snp, target_snp, "dosage_r", dosage_r ) ;
-		m_result_signal( source_snp, target_snp, "dosage_r_squared", dosage_r * dosage_r ) ;
+			double dosage_r = dosage_cov / std::sqrt( variances(0) * variances( 1 ) ) ;
+			m_result_signal( source_snp, target_snp, "dosage_r", dosage_r ) ;
+			m_result_signal( source_snp, target_snp, "dosage_r_squared", dosage_r * dosage_r ) ;
+		}
 	}
 }
 
