@@ -2319,7 +2319,7 @@ private:
 			if( filenames.size() != 2 ) {
 				throw genfile::BadArgumentError(
 					"QCToolApplication::unsafe_process()",
-					"-compute-ld-with\"" + options().get< std::string >( "-compute-ld-with" ) + "\"",
+					"-compute-ld-with\"" + genfile::string_utils::join( filenames, " " ) + "\"",
 					"Value should be two filenames - a genotype file and a sample file."
 				) ;
 			}
@@ -2347,7 +2347,7 @@ private:
 				id_columns[1],
 				context.open_snp_data_sources(
 					genfile::wildcard::find_files_by_chromosome(
-						options().get< std::string >( "-compute-ld-with" ),
+						filenames[0],
 						genfile::wildcard::eALL_CHROMOSOMES
 					)
 				),

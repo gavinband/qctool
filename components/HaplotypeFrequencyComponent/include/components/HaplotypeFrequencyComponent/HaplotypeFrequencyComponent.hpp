@@ -27,7 +27,7 @@ public:
 	static UniquePtr create(
 		genfile::CohortIndividualSource const& samples,
 		std::string const& source_sample_id_column,
-		genfile::CohortIndividualSource::UniquePtr samples,
+		genfile::CohortIndividualSource::UniquePtr ld_samples,
 		std::string const& ld_sample_id_column,
 		genfile::SNPDataSource::UniquePtr source,
 		appcontext::OptionProcessor const& options,

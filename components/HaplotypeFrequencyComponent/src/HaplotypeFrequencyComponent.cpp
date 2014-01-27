@@ -32,7 +32,7 @@ void HaplotypeFrequencyComponent::declare_options( appcontext::OptionProcessor& 
 	options.declare_group( "LD computation options" ) ;
 	options[ "-compute-ld-with" ]
 		.set_description( "Compute LD pairwise metrics between the main dataset and SNPs." )
-		.set_takes_single_value() ;
+		.set_takes_values(2) ;
 	options[ "-max-ld-distance" ]
 		.set_description( "Maximum physical distance between SNPs, above which LD will not be computed. "
 			"A value of zero indicates LD between all SNPs will be computed. "
