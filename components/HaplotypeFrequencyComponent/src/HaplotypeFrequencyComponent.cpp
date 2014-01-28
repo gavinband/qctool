@@ -103,7 +103,7 @@ HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
 	HaplotypeFrequencyComponent::UniquePtr result ;
 
 #if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
-	std::cerr << "LD SNP samples: " << source->number_of_samples() << " (filtered from " << source->get_parent_source().number_of_samples() << ").\n" ;
+	std::cerr << "LD SNP samples: " << source->number_of_samples() << " (matched from " << source->get_parent_source().number_of_samples() << " in raw data).\n" ;
 #endif
 	result.reset(
 		new HaplotypeFrequencyComponent(
@@ -155,11 +155,17 @@ void HaplotypeFrequencyComponent::begin_processing_snps( std::size_t number_of_s
 }
 
 void HaplotypeFrequencyComponent::processed_snp( genfile::SNPIdentifyingData const& target_snp, genfile::VariantDataReader& target_data_reader ) {
+#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
+	std::cerr << "Processing " << target_snp << "...\n" ;
+#endif
 	genfile::SNPIdentifyingData source_snp ;
 	genfile::SingleSNPGenotypeProbabilities source_probs, target_probs ;
 	target_data_reader.get( "genotypes", target_probs ) ;
 	m_source->reset_to_start() ;
 	while( m_source->get_snp_identifying_data( source_snp )) {
+#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
+		std::cerr << "Comparing to " << source_snp << "...\n" ;
+#endif
 		if(
 			( m_max_distance == 0 )
 			||
@@ -169,6 +175,9 @@ void HaplotypeFrequencyComponent::processed_snp( genfile::SNPIdentifyingData con
 				( std::abs( int64_t( source_snp.get_position().position() ) - int64_t( target_snp.get_position().position() ) ) <= m_max_distance )
 			)
 		) {
+#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
+			std::cerr << "Computing LD measures for " << source_snp << " : " << target_snp << "...\n" ;
+#endif
 			genfile::VariantDataReader::UniquePtr source_data_reader = m_source->read_variant_data() ;
 			compute_ld_measures( source_snp, *source_data_reader, target_snp, target_data_reader ) ;
 		}
@@ -220,7 +229,7 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		<< "SNP2: " << target_snp << "\n"
 		<< "table: " << table << ".\n" ;
 #endif
-	if( table.array().minCoeff() > 0 ) {
+	if( table.array().maxCoeff() > 0 ) {
 		try {
 			HaplotypeFrequencyLogLikelihood ll( table ) ;
 			HaplotypeFrequencyLogLikelihood::Vector pi( 4 ) ;
@@ -245,6 +254,9 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 			m_result_signal( source_snp, target_snp, "Dprime", Dprime ) ;
 			m_result_signal( source_snp, target_snp, "r", r ) ;
 			m_result_signal( source_snp, target_snp, "r_squared", r * r ) ;
+#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
+		std::cerr << "Output compltee.\n" ;
+#endif
 		}
 		catch( genfile::OperationFailedError const& ) {
 			m_ui_context.logger() << "!! Could not compute haplotype frequencies for " << source_snp << ", " << target_snp << ".\n"

@@ -31,11 +31,12 @@ namespace haplotype_frequency_component {
 		) ;
 		// Typical use is to look for all SNPs in r^2 with a given one, so add an index for this.
 		connection().run_statement(
-			"CREATE INDEX PairwiseSummaryDataIndex ON PairwiseSummaryData( analysis_id, variant1_id, variable_id )"
+			"CREATE INDEX IF NOT EXISTS PairwiseSummaryDataIndex ON PairwiseSummaryData( analysis_id, variant1_id, variable_id )"
 		) ;
 		connection().run_statement(
 			"CREATE VIEW IF NOT EXISTS PairwiseSummaryDataView AS "
 			"SELECT "
+			"PSD.analysis_id AS analysis_id, "
 			"V1.id AS variant1_id, V1.chromosome AS variant1_chromosome, V1.position AS variant1_position, V1.rsid AS variant1_rsid, "
 			"V2.id AS variant2_id, V2.chromosome AS variant2_chromosome, V2.position AS variant2_position, V2.rsid AS variant2_rsid, "
 			"Analysis.id AS analysis_id, Analysis.name AS analysis, "
