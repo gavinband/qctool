@@ -229,6 +229,7 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		<< "SNP2: " << target_snp << "\n"
 		<< "table: " << table << ".\n" ;
 #endif
+	genfile::VariantEntry const missing = genfile::MissingValue() ;
 	if( table.array().maxCoeff() > 0 ) {
 		try {
 			HaplotypeFrequencyLogLikelihood ll( table ) ;
@@ -262,7 +263,6 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 			m_ui_context.logger() << "!! Could not compute haplotype frequencies for " << source_snp << ", " << target_snp << ".\n"
 				<< "!! table is:\n" << table << ".\n" ;
 			
-			genfile::VariantEntry const missing = genfile::MissingValue() ;
 			m_result_signal( source_snp, target_snp, "pi00", missing ) ;
 			m_result_signal( source_snp, target_snp, "pi01", missing ) ;
 			m_result_signal( source_snp, target_snp, "pi10", missing ) ;
@@ -305,6 +305,17 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 			m_result_signal( source_snp, target_snp, "dosage_r", dosage_r ) ;
 			m_result_signal( source_snp, target_snp, "dosage_r_squared", dosage_r * dosage_r ) ;
 		}
+	} else {
+		m_result_signal( source_snp, target_snp, "pi00", missing ) ;
+		m_result_signal( source_snp, target_snp, "pi01", missing ) ;
+		m_result_signal( source_snp, target_snp, "pi10", missing ) ;
+		m_result_signal( source_snp, target_snp, "pi11", missing ) ;
+		m_result_signal( source_snp, target_snp, "D", missing ) ;
+		m_result_signal( source_snp, target_snp, "Dprime", missing ) ;
+		m_result_signal( source_snp, target_snp, "r", missing ) ;
+		m_result_signal( source_snp, target_snp, "r_squared", missing ) ;
+		m_result_signal( source_snp, target_snp, "dosage_r", missing ) ;
+		m_result_signal( source_snp, target_snp, "dosage_r_squared", missing ) ;
 	}
 }
 
