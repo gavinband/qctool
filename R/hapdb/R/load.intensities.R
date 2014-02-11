@@ -1,5 +1,5 @@
 load.intensities <-
-function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, samples = NULL, analysis = NULL, verbose = FALSE ) {
+function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL, samples = NULL, analysis = NULL, verbose = FALSE ) {
 	require( RSQLite )
 	require( Rcompression )
 	sql = paste(
@@ -25,7 +25,10 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, samples = NULL, 
 		sprintf( "WHERE analysis_id == %d", analysis_id ),
 		sep = " "
 	) ;
-	
+   
+	if(( !is.null( chromosome ) || !is.null( range ) ) && !is.null( positions ) ) {
+        stop( "You can't specify chromosome and range as well as a list of positions." )
+    }
 	if( !is.null( chromosome ) ) {
 		sql = paste(
 			sql,
@@ -49,7 +52,28 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, samples = NULL, 
 			sep = " "
 		)
 	}
-
+    if( !is.null( positions )) {
+        sql = paste(
+            sql,
+            "AND ( ",
+            sep = " " 
+        )   
+        for( i in 1:nrow( positions ) ) { 
+            if( i > 1 ) { 
+                sql = paste( sql, "OR", sep = " " )
+            }   
+            sql = paste(
+                sql,
+                sprintf( "( chromosome = '%s' AND position == '%d' )", positions[i,1], positions[i,2] ),
+                sep = " " 
+            )   
+        }   
+        sql = paste(
+            sql,
+            ")",
+            sep = " " 
+        )   
+    }   
 	if( verbose ) {
 		cat( "load.intensities(): running query :\"", sql, "\"...\n", sep = "" ) ;
 		print( dbGetQuery( hapdb$db, sprintf( "EXPLAIN QUERY PLAN %s", sql ) ) )
