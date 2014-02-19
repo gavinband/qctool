@@ -1,7 +1,7 @@
 load.genotypes <-
 function( hapdb, chromosome = NULL, positions = NULL, rsids = NULL, range = NULL, samples = NULL, analysis = NULL, verbose = FALSE, dosage.threshhold = NULL ) {
-	require( RSQLite )
-	require( Rcompression )
+	suppressMessages(require( RSQLite ))
+	suppressMessages(require( Rcompression ))
 	sql = paste(
 		"SELECT analysis_id, E.name AS analysis, V.id AS variant_id, chromosome, position, rsid, alleleA, alleleB, H.N AS N, H.data",
 		"FROM Entity E",
@@ -107,10 +107,10 @@ function( hapdb, chromosome = NULL, positions = NULL, rsids = NULL, range = NULL
 		} else {
 			samples.choice = samples
 		}
-		genotype.choice = sort( union( (samples.choice * 3) - 2, (samples.choice * 3) - 1, samples.choice * 3 ) )
+		genotype.choice = sort( union( union( (samples.choice * 3) - 2, (samples.choice * 3) - 1 ), (samples.choice * 3) ) )
 	
-		result$data = result$data[, genotype.choice ]
-		result$samples = result$samples[ samples.choice, ]
+		result$data = result$data[, genotype.choice, drop = FALSE ]
+		result$samples = result$samples[ samples.choice, , drop = FALSE]
 		if( nrow( result$variant ) > 0 ) {
 			result$variant$N = length( samples )
 		}
@@ -123,9 +123,9 @@ function( hapdb, chromosome = NULL, positions = NULL, rsids = NULL, range = NULL
 	for( i in 1:nrow( result$samples ) ) {
 		# handle the case of three zeroes.
 		# this shouldn't occur with the latest qctool, but did in earlier versions (as it does in bgen etc.)
-		w = which( rowSums( result$data[, ((3*i)-2):(3*i)] ) == 0 )	
+		w = which( rowSums( result$data[, ((3*i)-2):(3*i), drop = FALSE] ) == 0 )	
 		if( length(w) > 0 ) {
-			result$data[ w, ((3*i)-2):(3*i)] = NA
+			result$data[ w, ((3*i)-2):(3*i), drop = FALSE] = NA
 		}
 	}
 	
@@ -135,8 +135,7 @@ function( hapdb, chromosome = NULL, positions = NULL, rsids = NULL, range = NULL
         A = result$data ;
         A[ which( A >= dosage.threshhold )] = 1 ;
         A[ which( A < dosage.threshhold )] = 0 ;
-	    dosage = A[ , seq( from = 2, by = 3, length = N ) ] + 2 * A[ , seq( from = 3, by = 3, length = N ) ] ;
-	    result$dosage = dosage ;
+	    result$dosage = A[ , seq( from = 2, by = 3, length = N ) ] + 2 * A[ , seq( from = 3, by = 3, length = N ), drop = FALSE ] ;
 	    colnames( result$dosage ) = result$samples$identifier
 	}
 	

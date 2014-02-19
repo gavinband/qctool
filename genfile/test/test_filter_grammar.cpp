@@ -12,7 +12,7 @@
 #include "genfile/impl/filter_grammar.hpp"
 #include <cassert>
 
-#if 1
+#if 0
 AUTO_TEST_CASE( filter_grammar_test1 ) {
 	
 	using namespace boost::spirit::qi ;
