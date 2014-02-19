@@ -1,5 +1,5 @@
 load.haplotypes <-
-function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL, samples = NULL, analysis = NULL, verbose = FALSE, dosage = FALSE ) {
+function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL, samples = NULL, analysis = NULL, verbose = FALSE, compute.dosage = FALSE ) {
 	require( RSQLite )
 	require( Rcompression )
 	sql = paste(
@@ -110,16 +110,27 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 		}
 		hap.choice = sort( union( (samples.choice * 2) - 1, samples.choice * 2 ) )
 	
-		result$data = result$data[, hap.choice ]
-		result$samples = result$samples[ samples.choice, ]
+		result$data = result$data[, hap.choice, drop = FALSE ]
+		result$samples = result$samples[ samples.choice,, drop = FALSE ]
 		if( nrow( result$variant ) > 0 ) {
 			result$variant$N = length( samples )
 		}
 	}
 
+    N = nrow( result$samples )
 	colnames( result$data ) = rep( NA, 2 * nrow( result$sample ) )
-	colnames( result$data )[ seq( from = 1, by = 2, length = nrow( result$samples ) ) ] = paste( result$samples[, 'identifier' ], "0", sep = ":" )
-	colnames( result$data )[ seq( from = 2, by = 2, length = nrow( result$samples ) ) ] = paste( result$samples[, 'identifier' ], "1", sep = ":" )
+	colnames( result$data )[ seq( from = 1, by = 2, length = N ) ] = paste( result$samples[, 'identifier' ], "0", sep = ":" )
+	colnames( result$data )[ seq( from = 2, by = 2, length = N ) ] = paste( result$samples[, 'identifier' ], "1", sep = ":" )
+
+	if( compute.dosage ) {
+	    dosage = result$data
+        for( i in 1:N ) {
+            dosage[,i] = result$data[, seq( from = 1, by = 2, length = N ), drop = FALSE ] + result$data[, seq( from = 2, by = 2, length = N ), drop = FALSE ]
+        }
+        colnames( dosage ) = result$samples$identifier
+        rownames( dosage ) = result$variant$rsid
+	    result$dosage = dosage
+	}
 
 	if( verbose ) {
 		cat( "load.haplotypes(): done.\n" ) ;
