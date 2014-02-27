@@ -537,7 +537,7 @@ public:
 		}
 		else {
 			upper_bound_bp.chromosome() = upper_bound.first ;
-			upper_bound_bp.position() = std::numeric_limits< genfile::Position >::max() ;
+			upper_bound_bp.position() = std::numeric_limits< int >::max() ;
 		}
 
 		double lower_bound_cM = get_recombination_position( lower_bound_bp ).second ;
@@ -779,7 +779,10 @@ private:
 		UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading genetic map" ) ;
 		genfile::GeneticMap::UniquePtr map(
 			new genfile::FromFilesGeneticMap(
-				options().get_value< std::string >( "-map" ),
+				genfile::wildcard::find_files_by_chromosome(
+					options().get_value< std::string >( "-map" ),
+					genfile::wildcard::eALL_CHROMOSOMES
+				),
 				boost::ref( progress_context )
 			)
 		) ;
@@ -825,6 +828,8 @@ private:
 			std::string rsid ;
 			std::string chromosome ;
 			genfile::Position position ;
+			std::string alleleA = "?" ;
+			std::string alleleB = "?" ;
 			while(
 				(*chain)
 					>> SNPID
@@ -832,14 +837,20 @@ private:
 					>> chromosome
 					>> position
 			) {
+				if( chain->has_column( "alleleA" ) ) {
+					(*chain) >> alleleA ;
+				}
+				if( chain->has_column( "alleleB" ) ) {
+					(*chain) >> alleleB ;
+				}
 				// std::cerr << "Read SNP: " << SNPID << " " << rsid << " " << chromosome << " " << position << ".\n" ;
 				filtered_snps.push_back(
 					genfile::SNPIdentifyingData(
 						SNPID,
 						rsid,
 						genfile::GenomePosition( chromosome, position ),
-						'?',
-						'?'
+						alleleA,
+						alleleB	
 					)
 				) ;
 				(*chain) >> statfile::ignore_all() ;
@@ -1057,6 +1068,7 @@ private:
 		std::string rsid ;
 		std::string chromosome ;
 		genfile::Position position ;
+		std::string alleleA = "?", alleleB = "?" ;
 		std::string rank_string ;
 		double rank ;
 		while(
@@ -1065,16 +1077,21 @@ private:
 				>> rsid
 				>> chromosome
 				>> position
-				>> statfile::ignore( rank_column_index - 4 )
-				>> rank_string
 		) {
+			if( chain.has_column( "alleleA" ) ) {
+				chain >> alleleA ;
+			}
+			if( chain.has_column( "alleleB" ) ) {
+				chain >> alleleB ;
+			}
+			chain >> statfile::ignore( rank_column_index - chain.current_column() ) >> rank_string ;
 			if( missing_values.find( rank_string ) != missing_values.end() ) {
 				rank = std::numeric_limits< double >::quiet_NaN() ;
 			}
 			else {
 				rank = genfile::string_utils::to_repr< double >( rank_string ) ;
 			}
-			result[ genfile::SNPIdentifyingData( SNPID, rsid, genfile::GenomePosition( chromosome, position ), '?', '?' ) ] = sign * rank ;
+			result[ genfile::SNPIdentifyingData( SNPID, rsid, genfile::GenomePosition( chromosome, position ), alleleA, alleleB ) ] = sign * rank ;
 			chain >> statfile::ignore_all() ;
 			progress_context.notify_progress( chain.number_of_rows_read(), chain.number_of_rows() ) ;
 		}
