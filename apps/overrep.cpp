@@ -18,6 +18,7 @@
 #include "appcontext/CmdLineOptionProcessor.hpp"
 #include "appcontext/ApplicationContext.hpp"
 #include "appcontext/ProgramFlow.hpp"
+#include "appcontext/get_current_time_as_string.hpp"
 #include "genfile/FileUtils.hpp"
 #include "genfile/utility.hpp"
 #include "statfile/BuiltInTypeStatSource.hpp"
@@ -39,7 +40,7 @@ struct OverrepOptions: public appcontext::CmdLineOptionProcessor {
 			.set_description( "Specify the path of a file containing pathway definitions to load."
 			 	" This file must have at least three columns; the first should be an identifier for the pathway (no whitespace),"
 				" the second should be the pathway name, and the third should contain gene identifiers." )
-			.set_takes_values( 1 )
+			.set_takes_values_until_next_option()
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 100 )
 		;
@@ -52,6 +53,7 @@ struct OverrepOptions: public appcontext::CmdLineOptionProcessor {
 		options[ "-u" ]
 			.set_description( "Specify the path of a file containing a list of genes to treat as the gene \"universe\"." )
 			.set_takes_single_value()
+			.set_is_required()
 		;
 
 		options[ "-g" ]
@@ -65,6 +67,13 @@ struct OverrepOptions: public appcontext::CmdLineOptionProcessor {
 			.set_takes_single_value()
 			.set_default_value( 0.000001 )
 		;
+		options[ "-analysis-name" ]
+			.set_description( "Specify a name to label results from this analysis with.  (This applies to modules which store their results in a qcdb file.)" )
+			.set_takes_single_value()
+			.set_is_required() ;
+
+		options[ "-intersect" ]
+			.set_description( "Specify that the universe should only include genes that actuall occur in pathways." ) ;
 
 		options[ "-log" ]
 			.set_description( "Specify the path of the log file." )
@@ -228,7 +237,9 @@ private:
 
 	void unsafe_process() {
 		load_data() ;
-		StringStringMap mapped_genes = map_clusters() ;
+		m_cluster_mapping = get_cluster_mapping() ;
+		map_genes_through_clusters( m_cluster_mapping ) ;
+
 		summarise() ;
 		
 		run_tests() ;
@@ -242,7 +253,8 @@ private:
 		StringSet universe ;
 		StringSet test_genes ;
 		
-		
+	
+		assert( options().check( "-u" ) ) ;	
 		if( options().check( "-u" )) {
 			load_list_of_strings(
 				options().get< std::string >( "-u" ),
@@ -297,11 +309,16 @@ private:
 			}
 
 			typedef std::pair< std::string, std::set< std::string > > StringStringSet ;
-			if( !options().check( "-u" )) {
+			if( options().check( "-intersect" )) {
+				StringSet pathway_universe ;
 				foreach( StringStringSet const& entry, pathway_members ) {
-					universe.insert( entry.second.begin(), entry.second.end() ) ;
+					pathway_universe.insert( entry.second.begin(), entry.second.end() ) ;
 				}
-				get_ui_context().logger() << "Created universe of " << universe.size() << " genes based on all genes in pathways.\n" ;
+				get_ui_context().logger() << "Created pathway universe of " << universe.size() << " genes based on all genes in pathways.\n" ;
+				std::size_t const N = universe.size() ;
+				universe = genfile::utility::intersect( universe, pathway_universe ) ;
+				get_ui_context().logger() << "Formed intersection with universe (" << universe.size() << " of " << N << " in original universe.\n" ;
+				
 			}
 
 			std::map< std::string, StringSet > universe_pathway_members ;
@@ -356,13 +373,13 @@ private:
 		m_test_genes = test_genes ;
 	}
 	
-	StringStringMap map_clusters() {
-		get_ui_context().logger() << "Mapping genes through clusters...\n" ;
+	StringStringMap get_cluster_mapping() {
+		get_ui_context().logger() << "Computing gene->cluster mapping...\n" ;
 		StringStringMap result ;
 		foreach( StringStringSetMap::value_type const& cluster, m_clusters ) {
 			foreach( std::string const& regex_string, cluster.second ) {
 				boost::regex regex( regex_string ) ;
-				StringStringMap const& this_map = map_cluster( regex, cluster.first ) ;
+				StringStringMap const& this_map = get_cluster_mapping( regex, cluster.first ) ;
 				result.insert( this_map.begin(), this_map.end() ) ;
 			}
 		}
@@ -376,17 +393,18 @@ private:
 		return result ;
 	}
 	
-	StringStringMap map_cluster( boost::regex const& regex, std::string const& replacement ) {
+	StringStringMap get_cluster_mapping( boost::regex const& regex, std::string const& replacement ) {
 		StringStringMap result ;
-		map_cluster( m_universe, regex, replacement, boost::bind( impl::insert_into< StringStringMap >, _1, &result )) ;
-		map_cluster( m_test_genes, regex, replacement, boost::bind( impl::insert_into< StringStringMap >, _1, &result )) ;
+		get_cluster_mapping( m_universe, regex, replacement, boost::bind( impl::insert_into< StringStringMap >, _1, &result )) ;
+		get_cluster_mapping( m_test_genes, regex, replacement, boost::bind( impl::insert_into< StringStringMap >, _1, &result )) ;
 		foreach( StringStringSetMap::value_type& value, m_pathway_members ) {
-			map_cluster( value.second, regex, replacement, boost::bind( impl::insert_into< StringStringMap >, _1, &result )) ;
+			get_cluster_mapping( value.second, regex, replacement, boost::bind( impl::insert_into< StringStringMap >, _1, &result )) ;
 		}
 		return result ;
 	}
 
-	void map_cluster(
+	
+	void get_cluster_mapping(
 		StringSet& values,
 		boost::regex const& regex,
 		std::string const& replacement,
@@ -395,15 +413,47 @@ private:
 		StringSet::iterator i = values.begin(), end_i = values.end() ;
 		for( ; i != end_i; ++i ) {
 			std::string value = *i ;
-			boost::regex_replace( value, regex, replacement ) ;
+			value = boost::regex_replace( value, regex, replacement ) ;
 			if( value != *i ) {
 				output( std::make_pair( *i, value ) ) ;
 			}
 		}
 	}
 
+	void map_genes_through_clusters( StringStringMap const& mapping ) {
+		get_ui_context().logger() << "Mapping genes through clusters...\n" ;
+		std::size_t n = m_universe.size() ;
+		m_universe = map_genes_through_clusters( mapping, m_universe ) ;
+		get_ui_context().logger() << "Mapped " << n << " genes to " << m_universe.size() << " in universe.\n" ;
+		n = m_test_genes.size() ;
+		m_test_genes = map_genes_through_clusters( mapping, m_test_genes ) ;
+		get_ui_context().logger() << "Mapped " << n << " genes to " << m_test_genes.size() << " in test genes.\n" ;
+		foreach( StringStringSetMap::value_type& value, m_pathway_members ) {
+			value.second = map_genes_through_clusters( mapping, value.second ) ;
+		}
+	}
+
+	StringSet map_genes_through_clusters( StringStringMap const& mapping, StringSet const& genes ) {
+		StringSet result ;
+		foreach( StringSet::value_type const& value, genes ) {
+			StringStringMap::const_iterator where = mapping.find( value ) ;
+			if( where != mapping.end() ) {
+				result.insert( where->second ) ;
+			} else {
+				result.insert( value ) ;
+			}
+        }
+		return result ;
+	}
+
 	void summarise() {
 		get_ui_context().logger() << "\n-------------------------\n\n" ;
+		if( m_clusters.size() > 0 ) {
+			get_ui_context().logger() << std::setw( 12 ) << "Cluster mapping:\n" ;
+			foreach( StringStringMap::value_type const& key_value, m_cluster_mapping ) {
+				get_ui_context().logger() << std::setw( 12 ) << key_value.first << ": "  << key_value.second << "\n" ;
+			}
+		}
 		get_ui_context().logger() << std::setw( 12 ) << "Test genes:" << "  " << m_test_genes.size() << " genes\n" ;
 		get_ui_context().logger() << std::setw( 12 ) << "Pathways:" << "  " << m_pathway_names.size() << " pathways\n" ;
 		get_ui_context().logger() << std::setw( 12 ) << "Universe:" << "  " << m_universe.size() << " genes\n" ;
@@ -421,6 +471,7 @@ private:
 		std::string const tab = "\t" ;
 		std::cout
 		//get_ui_context().logger()
+			<< "analysis" << tab
 			<< "pathway id" << tab
 			<< "pathway name" << tab
 			<< "hits in pathway" << tab
@@ -434,6 +485,7 @@ private:
 			<< "ids.of.hits.in.pathway"
 			<< "\n" ;
 
+		std::string const analysis = options().get< std::string >( "-analysis-name" ) ;
 		double const pvalue_threshhold = options().get< double >( "-P-value" ) ;
 		foreach( StringStringSetMap::value_type const& pathway, m_pathway_members ) {
 			table = Eigen::Matrix2d::Zero() ;
@@ -468,6 +520,7 @@ private:
 
 			//get_ui_context().logger()
 			std::cout
+				<< analysis << tab	
 				<< pathway.first << tab
 				<< "\"" << m_pathway_names[ pathway.first ] << "\"" << tab
 				<< table( 0, 0 ) << tab
@@ -501,6 +554,7 @@ private:
 	StringStringSetMap m_pathway_members ;
 	StringStringSetMap m_clusters ;
 	StringStringMap m_cluster_descriptions ;
+	StringStringMap m_cluster_mapping ;
 	StringSet m_universe ;
 	StringSet m_test_genes ;
 } ;
