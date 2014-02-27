@@ -1,5 +1,5 @@
 load.genotypes <-
-function( hapdb, chromosome = NULL, positions = NULL, rsids = NULL, range = NULL, samples = NULL, analysis = NULL, verbose = FALSE, dosage.threshhold = NULL ) {
+function( hapdb, chromosome = NULL, positions = NULL, rsids = NULL, range = NULL, samples = NULL, analysis = NULL, verbose = FALSE, compute.dosage = FALSE, compute.probabilities = TRUE ) {
 	suppressMessages(require( RSQLite ))
 	suppressMessages(require( Rcompression ))
 	sql = paste(
@@ -80,65 +80,89 @@ function( hapdb, chromosome = NULL, positions = NULL, rsids = NULL, range = NULL
 	}
 	D = dbGetQuery( hapdb$db, sql )
 
-	if( nrow(D) > 0 ) {
-    	if( verbose ) {
-    		cat( "load.genotypes(): loaded, uncompressing...\n" ) ;
-        }
-		result = list(
-			variant = D[,-which( colnames(D) == "data")],
-			data = matrix( NA, nrow = nrow(D), ncol = 3 * D$N[1] )
-		)
-
-		for( i in 1:nrow(D) ) {
-			compressed_data = unlist( D$data[i] )
-			uncompressed_data = uncompress( compressed_data, asText = FALSE )
-			result$data[i,] = parse_genotypes( uncompressed_data, D$N[i] )
-		}
-	} else {
-		result = list(
-			variant = D[,-which( colnames(D) == "data")],
-			data = matrix( NA, nrow = 0, ncol = 3 * length( which( hapdb$samples$analysis == analysis ) ) )
-		) ;
-	}
-	result$samples = hapdb$samples[ which( hapdb$samples$analysis == analysis ), ]
+	# Get all the samples for this analysis
+	all.samples = hapdb$samples[ which( hapdb$samples$analysis == analysis ), ]
+	N = nrow( all.samples )
+	samples.choice = 1:N
 	if( !is.null( samples ) ) {
 		if( mode( samples ) == "character" ) {
 			samples.choice = sort( which( hapdb$samples$analysis == analysis & hapdb$samples$identifier %in% samples ) ) ;
 		} else {
 			samples.choice = samples
-		}
-		genotype.choice = sort( union( union( (samples.choice * 3) - 2, (samples.choice * 3) - 1 ), (samples.choice * 3) ) )
-	
-		result$data = result$data[, genotype.choice, drop = FALSE ]
-		result$samples = result$samples[ samples.choice, , drop = FALSE]
-		if( nrow( result$variant ) > 0 ) {
-			result$variant$N = length( samples )
+			stopifnot( length( which( samples.choice %in% 1:N ) ) == 0 ) ;
 		}
 	}
-	colnames( result$data ) = rep( NA, 3 * nrow( result$sample ) )
-	colnames( result$data )[ seq( from = 1, by = 3, length = nrow( result$samples ) ) ] = paste( result$samples[, 'identifier' ], "AA", sep = ":" )
-	colnames( result$data )[ seq( from = 2, by = 3, length = nrow( result$samples ) ) ] = paste( result$samples[, 'identifier' ], "AB", sep = ":" )
-	colnames( result$data )[ seq( from = 3, by = 3, length = nrow( result$samples ) ) ] = paste( result$samples[, 'identifier' ], "BB", sep = ":" )
+	# Get the samples chosen by the user.  Also compute indices of genotype call probabilities for these samples.
+	chosen.samples = all.samples[ samples.choice, ]
+	genotypes.choice = sort( c( (samples.choice * 3) - 2, (samples.choice * 3) - 1, (samples.choice * 3) ) )
 
-	for( i in 1:nrow( result$samples ) ) {
-		# handle the case of three zeroes.
-		# this shouldn't occur with the latest qctool, but did in earlier versions (as it does in bgen etc.)
-		w = which( rowSums( result$data[, ((3*i)-2):(3*i), drop = FALSE] ) == 0 )	
-		if( length(w) > 0 ) {
-			result$data[ w, ((3*i)-2):(3*i), drop = FALSE] = NA
+	if( nrow(D) > 0 ) {
+    	if( verbose ) {
+    		cat( "load.genotypes(): loaded, uncompressing...\n" ) ;
+        }
+		n = nrow( chosen.samples )
+		result = list(
+			samples = chosen.samples,
+			variant = D[,-which( colnames(D) == "data")]
+		)
+		if( compute.dosage ) {
+			result$dosage = matrix( NA, nrow = nrow( D ), ncol = n ) ;
+			colnames( result$dosage ) = result$samples[, 'identifier' ]
+			rownames( result$dosage ) = result$variant$rsid
+		}
+		if( compute.probabilities ) {
+			result$data = matrix( NA, nrow = nrow(D), ncol = 3*n )
+			colnames( result$data ) = rep( NA, 3*n )
+			colnames( result$data )[ seq( from = 1, by = 3, length = n ) ] = paste( result$samples[, 'identifier' ], "AA", sep = ":" )
+			colnames( result$data )[ seq( from = 2, by = 3, length = n ) ] = paste( result$samples[, 'identifier' ], "AB", sep = ":" )
+			colnames( result$data )[ seq( from = 3, by = 3, length = n ) ] = paste( result$samples[, 'identifier' ], "BB", sep = ":" )
+			rownames( result$data) = result$variant$rsid
+		}
+		for( i in 1:nrow(D) ) {
+			cat( "uncompressing", i, "of", nrow(D), "...\n" ) ;
+			compressed_data = unlist( D$data[i] )
+			uncompressed_data = uncompress( compressed_data, asText = FALSE )
+			v = parse_genotypes( uncompressed_data, D$N[i] )
+			# Get rid of unwanted samples
+			v = v[ genotypes.choice ]
+			# Handle the case of three zero probabilities
+			# This should not happen in newer files, but an early version of this code in qctool produced these.
+			wMissing = which( pmax( v[ seq( from = 1, length = n, by = 3 ) ], v[ seq( from = 2, length = n, by = 3 ) ], v[ seq( from = 3, length = n, by = 3 ) ] ) == 0 )
+			v[wMissing*3 - 2] = NA
+			v[wMissing*3 - 1] = NA
+			v[wMissing*3] = NA
+			if( compute.probabilities ) {
+				result$data[i,] = v
+			}
+			if( compute.dosage ) {
+				result$dosage[i,] = v[ seq( from = 2, length = n, by = 3 ) ] + 2 * v[ seq( from = 3, length = n, by = 3 ) ]
+			}
+			if( i == nrow(D) || i %% 10 == 0 ) {
+				rm( v ) ;
+				rm( compressed_data ) ;
+				rm( uncompressed_data ) ;
+				gc()
+			}
+		}
+	} else {
+		result = list(
+			samples = chosen.samples,
+			variant = D[,-which( colnames(D) == "data")]
+		) ;
+		n = nrow( result$samples )
+		if( compute.probabilities ) {
+			result$data = matrix( NA, nrow = 0, ncol = 3 * n )
+			colnames( result$data ) = rep( NA, 3 * n )
+			colnames( result$data )[ seq( from = 1, by = 3, length = n ) ] = paste( result$samples[, 'identifier' ], "AA", sep = ":" )
+			colnames( result$data )[ seq( from = 2, by = 3, length = n) ] = paste( result$samples[, 'identifier' ], "AB", sep = ":" )
+			colnames( result$data )[ seq( from = 3, by = 3, length = n ) ] = paste( result$samples[, 'identifier' ], "BB", sep = ":" )
+		}
+		if( compute.dosage ) {
+			result$dosage = matrix( NA, nrow = 0, ncol = n )
+			colnames( result$dosage ) = result$samples[, 'identifier' ]
 		}
 	}
-	
-	if( !is.null( dosage.threshhold )) {
-	    N = nrow( result$samples )
-	    dosage = matrix( NA, nrow = nrow( result$data ), ncol = ncol( result$data ) / 3 ) ;
-        A = result$data ;
-        A[ which( A >= dosage.threshhold )] = 1 ;
-        A[ which( A < dosage.threshhold )] = 0 ;
-	    result$dosage = A[ , seq( from = 2, by = 3, length = N ) ] + 2 * A[ , seq( from = 3, by = 3, length = N ), drop = FALSE ] ;
-	    colnames( result$dosage ) = result$samples$identifier
-	}
-	
+
 	if( verbose ) {
 		cat( "load.genotypes(): done.\n" ) ;
 	}

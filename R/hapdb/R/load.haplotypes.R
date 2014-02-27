@@ -86,7 +86,7 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 		    cat( "load.haplotypes(): loaded, uncompressing...\n" ) ;
 		}
 		result = list(
-			variant = D[,-which( colnames(D) == "data")],
+			variant = D[,-which( colnames(D) == "data"), drop = FALSE],
 			data = matrix( NA, nrow = nrow(D), ncol = 2 * D$N[1] )
 		)
 
@@ -97,7 +97,7 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 		}
 	} else {
 		result = list(
-			variant = D[,-which( colnames(D) == "data")],
+			variant = D[,-which( colnames(D) == "data"), drop = FALSE],
 			data = matrix( NA, nrow = 0, ncol = 2 * length( which( hapdb$samples$analysis == analysis ) ) )
 		) ;
 	}
@@ -123,10 +123,7 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 	colnames( result$data )[ seq( from = 2, by = 2, length = N ) ] = paste( result$samples[, 'identifier' ], "1", sep = ":" )
 
 	if( compute.dosage ) {
-	    dosage = result$data
-        for( i in 1:N ) {
-            dosage[,i] = result$data[, seq( from = 1, by = 2, length = N ), drop = FALSE ] + result$data[, seq( from = 2, by = 2, length = N ), drop = FALSE ]
-        }
+		dosage = result$data[, seq( from = 1, by = 2, length = N ), drop = FALSE ] + result$data[, seq( from = 2, by = 2, length = N ), drop = FALSE ]
         colnames( dosage ) = result$samples$identifier
         rownames( dosage ) = result$variant$rsid
 	    result$dosage = dosage
