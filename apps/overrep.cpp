@@ -383,12 +383,6 @@ private:
 				result.insert( this_map.begin(), this_map.end() ) ;
 			}
 		}
-		if( result.size() > 0 ) {
-			get_ui_context().logger() << "I mapped the following genes to clusters:\n" ;
-			foreach( StringStringMap::value_type const& elt, result ) {
-				get_ui_context().logger() << "  " << elt.first << " -> " << elt.second << ".\n" ;
-			}
-		}
 		
 		return result ;
 	}
@@ -450,10 +444,31 @@ private:
 		get_ui_context().logger() << "\n-------------------------\n\n" ;
 		if( m_clusters.size() > 0 ) {
 			get_ui_context().logger() << std::setw( 12 ) << "Cluster mapping:\n" ;
+            StringStringSetMap backMap ;
+			foreach( StringStringMap::value_type const& key_value, m_cluster_mapping ) {
+                backMap[ key_value.second ].insert( key_value.first ) ;
+			}
+            foreach( StringStringSetMap::value_type const& k, backMap ) {
+                get_ui_context().logger() << std::setw( 12 ) << k.first << ":" ;
+				std::size_t count = 0 ;
+				for( StringSet::const_iterator i = k.second.begin(); i != k.second.end(); ++i, ++count ) {
+                    get_ui_context().logger() << " " << *i ;
+					if( count == 10 ) {
+						get_ui_context().logger() << " (+ " << k.second.size() - 10 << " others)..." ;
+						break ;
+					}
+                }
+                get_ui_context().logger() << "\n" ;
+            }
+		}
+#if 0
+		if( m_clusters.size() > 0 ) {
+			get_ui_context().logger() << std::setw( 12 ) << "Cluster mapping:\n" ;
 			foreach( StringStringMap::value_type const& key_value, m_cluster_mapping ) {
 				get_ui_context().logger() << std::setw( 12 ) << key_value.first << ": "  << key_value.second << "\n" ;
 			}
 		}
+#endif
 		get_ui_context().logger() << std::setw( 12 ) << "Test genes:" << "  " << m_test_genes.size() << " genes\n" ;
 		get_ui_context().logger() << std::setw( 12 ) << "Pathways:" << "  " << m_pathway_names.size() << " pathways\n" ;
 		get_ui_context().logger() << std::setw( 12 ) << "Universe:" << "  " << m_universe.size() << " genes\n" ;
