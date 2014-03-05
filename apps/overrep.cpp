@@ -502,10 +502,10 @@ private:
 
 		std::string const analysis = options().get< std::string >( "-analysis-name" ) ;
 		double const pvalue_threshhold = options().get< double >( "-P-value" ) ;
+		std::ostringstream hit_genes_in_pathway ;
 		foreach( StringStringSetMap::value_type const& pathway, m_pathway_members ) {
+			hit_genes_in_pathway.str( "" ) ;
 			table = Eigen::Matrix2d::Zero() ;
-
-			std::string hit_genes_in_pathway ;
 
 			foreach( std::string const& value, m_universe ) {
 				int i = 0, j = 0 ;
@@ -524,11 +524,11 @@ private:
 				++table( i, j ) ;
 
 				if( i == 0 && j == 0 ) {
-					if( hit_genes_in_pathway.size() == 0 ) {
-						hit_genes_in_pathway = value ;
+					if( hit_genes_in_pathway.str().size() == 0 ) {
+						hit_genes_in_pathway << value ;
 					}
 					else {
-						hit_genes_in_pathway += "," + value ;
+						hit_genes_in_pathway << "," << value ;
 					}
 				}
 			}
@@ -550,7 +550,7 @@ private:
 				std::cout
 					<< test.get_OR() << tab << test.get_pvalue() ;
 				if( test.get_pvalue() <= pvalue_threshhold ) {
-					std::cout << tab << hit_genes_in_pathway ;
+					std::cout << tab << hit_genes_in_pathway.str() ;
 				} else {
 					std::cout << tab << "NA" ;
 				}
