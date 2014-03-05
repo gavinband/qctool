@@ -90,10 +90,19 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 			data = matrix( NA, nrow = nrow(D), ncol = 2 * D$N[1] )
 		)
 
+    	if( verbose ) {
+		    cat( "load.haplotypes(): uncompressing...\n" ) ;
+		}
 		for( i in 1:nrow(D) ) {
 			compressed_data = unlist( D$data[i] )
 			uncompressed_data = uncompress( compressed_data, asText = FALSE )
 			result$data[i,] = parse_haplotypes( uncompressed_data, D$N[i] )
+			if( i %% 100 == 0 ) {
+				gc()
+				if( verbose ) {
+					cat( "(done ", i, " of ", nrow(D), ")...\n", sep = "" ) ;
+				}
+			}
 		}
 	} else {
 		result = list(
