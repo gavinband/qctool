@@ -16,6 +16,7 @@ def build( bld ):
 		target = 'worker',
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include',
+		uselib_local = 'boost',
 		uselib = 'BOOST BOOST_THREAD BOOST_DATE_TIME PTHREAD',
 		export_incdirs = './include'	
 	)	
@@ -25,7 +26,7 @@ def build( bld ):
 		target = 'test_worker',
 		source = bld.glob( 'test/*.cpp' ),
 		includes='./include',
-		uselib_local = 'worker',
+		uselib_local = 'worker boost boost-unit_test_framework',
 		uselib = 'BOOST BOOST_THREAD BOOST_DATE_TIME BOOST_UNIT_TEST_FRAMEWORK PTHREAD',
 		unit_test = 1,
 		install_path = None

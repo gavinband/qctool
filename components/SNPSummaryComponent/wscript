@@ -10,7 +10,7 @@ def create_tests( bld ):
 		features = 'cxx cprogram',
 		target = 'test_snp_summary_component',
 		source = bld.glob( 'test/*.cpp' ),
-		uselib_local = 'genfile',
+		uselib_local = 'genfile boost-unit_test_framework',
 		uselib = 'BOOST BOOST_SYSTEM BOOST_UNIT_TEST_FRAMEWORK',
 		includes='./include',
 		unit_test=1,
@@ -30,7 +30,7 @@ def build( bld ):
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include',
 		uselib = 'ZLIB BOOST BOOST_IOSTREAMS BOOST_SYSTEM BOOST_FILESYSTEM',
-		uselib_local = 'eigen genfile db statfile integration appcontext snptest qcdb metro',
+		uselib_local = 'eigen genfile db statfile integration appcontext snptest qcdb metro boost',
 		export_incdirs = './include'
 	)
 

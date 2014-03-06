@@ -43,7 +43,6 @@ namespace impl {
 	private:
 		std::string const m_table_name ;
 		qcdb::DBOutputter m_outputter ;
-		genfile::CohortIndividualSource const& m_samples ;
 		db::Connection::StatementPtr m_insert_stmt ;
 		
 		std::vector< boost::tuple< genfile::SNPIdentifyingData2, std::string, std::ostream::streampos > > m_data ;
@@ -167,8 +166,7 @@ namespace impl {
 			analysis_name,
 			analysis_description,
 			metadata
-		),
-		m_samples( samples )
+		)
 	{
 		setup() ;
 	}

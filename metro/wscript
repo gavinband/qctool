@@ -10,7 +10,7 @@ def create_tests( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = bld.glob( 'test/*.cpp' ),
-		uselib_local = 'metro',
+		uselib_local = 'metro boost boost-unit_test_framework',
 		uselib = 'BOOST_UNIT_TEST_FRAMEWORK',
 		includes='./include',
 		unit_test=1,
@@ -28,7 +28,7 @@ def build( bld ):
 		target = 'metro',
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include',
-		uselib_local='eigen',
+		uselib_local='eigen boost',
 		uselib = 'BOOST',
 		export_incdirs = './include'
 	)

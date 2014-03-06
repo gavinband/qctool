@@ -109,7 +109,7 @@ void PCALoadingComputer::processed_snp( genfile::SNPIdentifyingData const& snp, 
 		std::cerr << "     non-missingness is: " << m_non_missingness.head( 20 ).transpose() << "...\n" ;
 		std::cerr << "                   U is: " << m_U.block(0,0,10,10) << "...\n" ;
 		std::cerr << "                   D is: " << m_D << "...\n" ;
-#endif DEBUG_PCA_LOADING_COMPUTER
+#endif // DEBUG_PCA_LOADING_COMPUTER
 	
 
 		//

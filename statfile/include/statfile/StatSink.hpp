@@ -37,6 +37,9 @@ namespace statfile {
 	class StatSink: public TypeWriterBase< T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 >
 	{
 	public:
+		typedef TypeWriterBase< T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 > Base ;
+		using Base::write_value ;
+	public:
 		StatSink()
 		 : m_state( e_HaveNotWrittenAnyData ),
 		   m_current_column(0u),

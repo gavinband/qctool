@@ -11,35 +11,18 @@ def build( bld ):
 	# libs
 	#---------------------
 	bld(
+		features = 'cxx cstaticlib',
 		name = 'boost',
+		target = 'boost',
+		source = bld.glob( 'libs/iostreams/src/*.cpp' ) +
+			bld.glob( 'libs/system/src/*.cpp' ) +
+			bld.glob( 'libs/regex/src/*.cpp' ) +
+			bld.glob( 'libs/thread/src/*.cpp' ) +
+			bld.glob( 'libs/thread/src/pthread/*.cpp' ) +
+			bld.glob( 'libs/date_time/src/posix_time/*.cpp' ),
 		includes = './',
-		export_incdirs = './',
-		uselib = 'ZLIB'
-	)
-
-	bld(
-		features = 'cxx cstaticlib',
-		target = 'boost-iostreams',
-		source = bld.glob( 'libs/iostreams/src/*.cpp' ),
-		includes='./',
-		uselib = 'ZLIB BZIP2',
-		export_incdirs = './'
-	)
-
-	bld(
-		features = 'cxx cstaticlib',
-		target = 'boost-system',
-		source = bld.glob( 'libs/system/src/*.cpp' ),
-		includes='./',
-		export_incdirs = './'
-	)
-
-	bld(
-		features = 'cxx cstaticlib',
-		target = 'boost-regex',
-		source = bld.glob( 'libs/regex/src/*.cpp' ),
-		includes='./',
-		export_incdirs = './'
+		export_incdirs = './', 
+		uselib = 'ZLIB BZIP2'
 	)
 
 	bld(
@@ -67,23 +50,6 @@ def build( bld ):
 			'libs/test/src/xml_log_formatter.cpp',
 			'libs/test/src/xml_report_formatter.cpp'
 		],
-		includes='./',
-		export_incdirs = './'
-	)
-
-	bld(
-		features = 'cxx cstaticlib',
-		target = 'boost-thread',
-		source = bld.glob( 'libs/thread/src/*.cpp' ) + bld.glob( 'libs/thread/src/pthread/*.cpp' ),
-		uselib = 'PTHREAD',
-		includes='./',
-		export_incdirs = './'
-	)
-
-	bld(
-		features = 'cxx cstaticlib',
-		target = 'boost-date-time',
-		source = bld.glob( 'libs/date_time/src/posix_time/*.cpp' ) + bld.glob( 'libs/thread/src/pthread/*.cpp' ),
 		includes='./',
 		export_incdirs = './'
 	)

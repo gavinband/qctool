@@ -32,7 +32,7 @@ namespace statfile {
 		void set_descriptive_text( std::string const& ) ;
 
 	protected:
-
+		using ColumnNamingStatSink< BuiltInTypeStatSink >::write_value ;
 		void write_value( int32_t const& value ) ;
 		void write_value( uint32_t const& value ) ;
 		void write_value( std::string const& value ) ;
