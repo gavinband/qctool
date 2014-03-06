@@ -1,6 +1,7 @@
 import os
-
+subdirs = [ 'boost_1_55_0' ]
 def build( bld ):
+	bld.add_subdirs( subdirs )
 	bld(
 		name = 'eigen',
 		export_incdirs = 'eigen',
