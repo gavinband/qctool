@@ -150,7 +150,11 @@ void zlib_base::reset(bool compress, bool realloc)
             (compress ? deflateEnd(s) : inflateEnd(s))
                 ;
     //);
-    crc_imp_ = 0;
+    if( compress ) {
+        crc_imp_ = 0;
+    } else {
+        crc_ = crc_imp_ = 0 ;
+    }
 }
 
 void zlib_base::do_init
