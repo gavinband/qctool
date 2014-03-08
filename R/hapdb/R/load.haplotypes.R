@@ -53,24 +53,11 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 		)
 	}
     if( !is.null( positions )) {
+		dbGetQuery( hapdb$db, "CREATE TEMPORARY TABLE tmpLoadHaplotypes ( variant_id INT NOT NULL )" ) ;
+		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpLoadHaplotypes SELECT id FROM Variant WHERE chromosome == ? AND position == ?", positions ) ;
         sql = paste(
             sql,
-            "AND ( ",
-            sep = " "
-        )
-        for( i in 1:nrow( positions ) ) {
-            if( i > 1 ) {
-                sql = paste( sql, "OR", sep = " " )
-            }
-            sql = paste(
-                sql,
-                sprintf( "( chromosome = '%s' AND position == '%d' )", positions[i,1], positions[i,2] ),
-                sep = " "
-            )
-        }
-        sql = paste(
-            sql,
-            ")",
+            "AND V.id IN ( SELECT variant_id FROM tmpLoadHaplotypes )",
             sep = " "
         )
     }
@@ -82,7 +69,7 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 	D = dbGetQuery( hapdb$db, sql )
 
 	if( nrow(D) > 0 ) {
-    	if( verbose ) {
+		if( verbose ) {
 		    cat( "load.haplotypes(): loaded, uncompressing...\n" ) ;
 		}
 		result = list(
@@ -90,7 +77,7 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 			data = matrix( NA, nrow = nrow(D), ncol = 2 * D$N[1] )
 		)
 
-    	if( verbose ) {
+		if( verbose ) {
 		    cat( "load.haplotypes(): uncompressing...\n" ) ;
 		}
 		for( i in 1:nrow(D) ) {
@@ -141,6 +128,11 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 	if( verbose ) {
 		cat( "load.haplotypes(): done.\n" ) ;
 	}
+    if( !is.null( positions )) {
+		dbGetQuery( hapdb$db, "DROP TABLE tmpLoadHaplotypes" ) ;
+	}
+	
 	return( result )
 }
+
 
