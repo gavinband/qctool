@@ -19,6 +19,7 @@ def build( bld ):
 			bld.glob( 'libs/regex/src/*.cpp' ) +
 			bld.glob( 'libs/thread/src/*.cpp' ) +
 			bld.glob( 'libs/thread/src/pthread/*.cpp' ) +
+			bld.glob( 'libs/filesystem/src/*.cpp' ) +
 			bld.glob( 'libs/date_time/src/posix_time/*.cpp' ),
 		includes = './',
 		export_incdirs = './', 
