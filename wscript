@@ -251,7 +251,7 @@ def create_tests( bld, uselib = '', components = '' ):
 		features = 'cxx cprogram',
 		target = 'test_qctool',
 		source = bld.glob( 'test/*.cpp' ),
-		uselib_local = 'gen-tools-lib genfile appcontext string_utils ' + components,
+		uselib_local = 'gen-tools-lib genfile appcontext string_utils ' + components + ' boost-unit_test_framework',
 		includes='./include ./genfile/include',
 		uselib = uselib + ' BOOST_UNIT_TEST_FRAMEWORK',
 		unit_test=1,

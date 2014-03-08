@@ -89,7 +89,6 @@
 #include "progress_bar.hpp"
 #include "FileBackupCreator.hpp"
 #include "InputToOutputFilenameMapper.hpp"
-#include "OstreamTee.hpp"
 #include "null_ostream.hpp"
 #include "SNPIDSink.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
@@ -1499,7 +1498,7 @@ private:
 		
 		appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Opening position translation dictionary" ) ;
 		
-		if( !source->number_of_columns() == 10 ) {
+		if( source->number_of_columns() != 10 ) {
 			throw genfile::MalformedInputError( filename, 1 ) ;
 		}
 		

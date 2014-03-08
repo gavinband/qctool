@@ -15,8 +15,9 @@
 #include <cassert>
 
 namespace appcontext {
-	class OstreamTee: public std::ostream  {
+	class OstreamTee {
 	public:
+		OstreamTee() {} ;
 		~OstreamTee() ;
 
 		void add_stream( std::string const& name, std::ostream& stream ) ; 
@@ -34,6 +35,9 @@ namespace appcontext {
 	private:
 		std::map< std::string, std::ostream* > m_streams ;
 		std::vector< std::ostream* > m_managed_streams ;
+		
+		OstreamTee( OstreamTee const& ) ;
+		OstreamTee& operator=( OstreamTee const& other ) ;
 	} ;
 
 	template< typename T >
@@ -48,6 +52,5 @@ namespace appcontext {
 
 		return ostream_tee ;
 	}
-
 }
 #endif
