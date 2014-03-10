@@ -19,6 +19,7 @@
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/vcf/MetadataParser.hpp"
+#include "genfile/CohortIndividualSource.hpp"
 
 namespace genfile {
 	struct SNPDataSourceError: public SNPDataError { char const* what() const throw() { return "SNPDataSourceError" ; } } ;
@@ -65,6 +66,8 @@ namespace genfile {
 		typedef boost::function< void() > source_reset_callback_t ;
 
 		void set_source_reset_callback( source_reset_callback_t ) ;
+		typedef boost::function< int ( Chromosome const&, std::size_t ) > GetPloidy ;
+		virtual void set_expected_ploidy( GetPloidy ) {} ;
 
 		// The next five functions form the main interface for reading snp data. 
 		// These typedefs reflect the signatures which the various setter objects
