@@ -98,7 +98,8 @@ namespace {
 		
 		HaplotypeWriter( std::vector< char >* compression_buffer ):
 			m_compression_buffer( compression_buffer ),
-			m_buffer_validity( 2, true )
+			m_buffer_validity( 2, true ),
+			m_ploidy( 0 )
 		{
 			assert( compression_buffer != 0 ) ;
 		}
@@ -144,14 +145,16 @@ namespace {
 			*(m_buf_p[ eUBJSON ]++) = '[' ;
 		}
 		void set_number_of_entries( std::size_t n ) {
-			if( n != 2 ) {
+			if( n != 1 && n != 2 ) {
 				m_buffer_validity[ eBITPACK ] = false ;
 				throw genfile::BadArgumentError(
 					"genfile::HaplotypeWriter::set_number_of_entries()",
-					"n != 2"
+					"n != 1 or 2"
 				) ;
 			}
+			m_ploidy = n ;
 		}
+
 		void set_order_type( OrderType order_type ) {
 			if( order_type != eOrderedList ) {
 				throw genfile::BadArgumentError(
@@ -160,11 +163,15 @@ namespace {
 				) ;
 			}
 		}
+
 		void operator()( genfile::MissingValue const value ) {
 			assert( ( m_buf_p[ eUBJSON ] + 1 ) <= m_buf_end_p[ eUBJSON ] ) ;
-			m_buffer_validity[ eBITPACK ] = false ;
 			*(m_buf_p[ eUBJSON ]++) = 'Z' ;
+			if( m_buffer_validity[ eBITPACK ] ) {
+				*(m_buf_p[ eBITPACK ]++) = static_cast< char >( -1 ) ; // missing value encoded by -1.
+			}
 		}
+
 		void operator()( std::string& value ) {
 			assert( ( m_buf_p[ eUBJSON ] + 1 + value.size() ) <= m_buf_end_p[ eUBJSON ] ) ;
 			m_buffer_validity[ eBITPACK ] = false ;
@@ -172,6 +179,7 @@ namespace {
 			std::copy( value.begin(), value.end(), m_buf_p[ eUBJSON ] ) ;
 			m_buf_p[ eUBJSON ] += value.size() ;
 		}
+
 		void operator()( Integer const value ) {
 			if( fits_in< Integer, char >( value ) ) {
 				assert( ( m_buf_p[ eUBJSON ] + 2 ) <= m_buf_end_p[ eUBJSON ] ) ;
@@ -180,6 +188,10 @@ namespace {
 
 				if( m_buffer_validity[ eBITPACK ] ) {
 					*(m_buf_p[ eBITPACK ]++) = static_cast< char >( value ) ;
+					if( m_ploidy == 1 ) {
+						// store two haplotypes for males, the second completely filled with missing values.
+						*(m_buf_p[ eBITPACK ]++) = static_cast< char >( -1 ) ;
+					}
 				}
 			} else {
 				m_buffer_validity[ eBITPACK ] = false ;
@@ -240,6 +252,8 @@ namespace {
 		std::vector< bool > m_buffer_validity ;
 		std::vector< char* > m_buf_p ;
 		std::vector< char* > m_buf_end_p ;
+		std::size_t m_ploidy ;
+
 	private:
 		char* write_float( char* buf_p, char* buf_end_p, float const& value ) const {
 			char const* v_p = reinterpret_cast< char const* >( &value ) ;
