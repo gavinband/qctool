@@ -32,6 +32,9 @@ namespace genfile {
 		std::string get_source_spec() const { return m_haplotypes_filename ; }
 
 		std::size_t get_number_of_id_columns() const ;
+		
+		void set_expected_ploidy( GetPloidy ) ;
+
 	private:
 		void reset_to_start_impl() ;
 		
@@ -56,12 +59,17 @@ namespace genfile {
 		std::auto_ptr< std::istream > m_stream_ptr ;
 		bool m_have_chromosome_column ;
 		Chromosome m_chromosome ;
+		genfile::SNPIdentifyingData m_current_snp ;
 		bool m_good ;
 		std::string m_current_line ;
+		
+		GetPloidy m_get_ploidy ;
+		std::map< genfile::Chromosome, std::vector< int > > m_ploidies ;
 
 		void setup( std::string const& filename, CompressionType compression_type ) ;
 		void setup( std::auto_ptr< std::istream > stream_ptr ) ;
 		void count_samples() ;
+		std::vector< int > const& get_or_compute_ploidies( Chromosome const& chromosome ) ;
 	} ;
 }
 

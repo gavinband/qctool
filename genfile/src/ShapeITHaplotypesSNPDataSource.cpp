@@ -22,6 +22,7 @@ namespace genfile {
 		m_have_chromosome_column( false ),
 		m_chromosome( chromosome ),
 		m_good( true )
+		
 	{
 		setup( filename, m_compression_type ) ; 
 	}
@@ -38,9 +39,7 @@ namespace genfile {
 	}
 
 	void ShapeITHaplotypesSNPDataSource::setup( std::string const& filename, CompressionType compression_type ) {
-		m_stream_ptr = open_text_file_for_input( m_haplotypes_filename, compression_type ) ;
-		count_samples() ;				
-		reset_to_start() ;
+		setup( open_text_file_for_input( filename, compression_type ) ) ;
 	}
 	
 	void ShapeITHaplotypesSNPDataSource::setup( std::auto_ptr< std::istream > stream_ptr ) {
@@ -63,6 +62,10 @@ namespace genfile {
 		} else {
 			throw MalformedInputError( get_source_spec(), 0 ) ;
 		}
+	}
+
+	void ShapeITHaplotypesSNPDataSource::set_expected_ploidy( GetPloidy get_ploidy ) {
+		m_get_ploidy = get_ploidy ;
 	}
 
 	void ShapeITHaplotypesSNPDataSource::reset_to_start_impl() {
@@ -106,12 +109,14 @@ namespace genfile {
 			*SNP_position = snp.get_position().position() ;
 			*allele1 = snp.get_first_allele() ;
 			*allele2 = snp.get_second_allele() ;
+
+			m_current_snp = snp ; 
 		}
 		else {
 			m_good = false ;
 		}
 	}
-
+	
 	namespace impl {
 		struct ShapeITHaplotypesSNPDataSourceReader: public VariantDataReader {
 			typedef string_utils::slice slice ;
@@ -119,11 +124,14 @@ namespace genfile {
 			ShapeITHaplotypesSNPDataSourceReader(
 				ShapeITHaplotypesSNPDataSource const& source,
 				std::size_t snp_index,
-				std::string& line
+				std::string& line,
+				std::vector< int > ploidy
 			):
 				m_source( source ),
-				m_snp_index( snp_index )
+				m_snp_index( snp_index ),
+				m_ploidy( ploidy )
 			{
+				assert( m_ploidy.size() == m_source.number_of_samples() ) ;
 				line.swap( m_line ) ;
 			}
 			
@@ -139,22 +147,44 @@ namespace genfile {
 
 				setter.set_number_of_samples( N ) ;
 				setter.set_order_type( vcf::EntriesSetter::eOrderedList ) ;
-
 				for( std::size_t i = 0; i < N; ++i ) {
-						setter.set_sample( i ) ;
-						setter.set_number_of_entries( 2 ) ;
-						for( std::size_t j = 0; j < 2; ++j ) {
-							try {
-								if( m_elts[ 2*i+j ] == "." || m_elts[ 2*i+j ] == "NA" ) {
-									setter( MissingValue() ) ;
-								} else {
-									setter( string_utils::to_repr< Integer >( m_elts[ 2*i+j ] )) ;
-								}
-							}
-							catch( string_utils::StringConversionError const& e ) {
-								throw MalformedInputError( m_source.get_source_spec(), m_snp_index, m_source.get_number_of_id_columns() + 2*i + j ) ;
+					int ploidy = m_ploidy[i] ;
+					if( ploidy == -1 ) {
+						ploidy = 2 ; // assume diploid sample if ploidy is unknown.
+					}
+					assert( ploidy == 1 || ploidy == 2 ) ;
+					
+					setter.set_sample( i ) ;
+					setter.set_number_of_entries( ploidy ) ;
+					
+					if( ploidy == 1 && m_elts[ 2*i ] != m_elts[ 2*i+1 ] ) {
+						// ShapeIT writes the same haplotype twice for haploid samples.
+						// We report only one haplotype in such cases.
+						throw MalformedInputError(
+							m_source.get_source_spec(),
+							"For sample #" + string_utils::to_string( i+1 ) + ", sample should be haploid but the two haplotypes differ - is sex information correct?",
+							m_snp_index,
+							m_source.get_number_of_id_columns() + 2*i
+						) ;
+					}
+					
+					for( std::size_t j = 0; j < ploidy; ++j ) {
+						try {
+							if( m_elts[ 2*i+j ] == "." || m_elts[ 2*i+j ] == "NA" ) {
+								setter( MissingValue() ) ;
+							} else {
+								setter( string_utils::to_repr< Integer >( m_elts[ 2*i+j ] )) ;
 							}
 						}
+						catch( string_utils::StringConversionError const& e ) {
+							throw MalformedInputError(
+								m_source.get_source_spec(),
+								"Unable to interpret non-missing haplotype entry \"" + std::string( m_elts[ 2*i+j ] ) + "\" as an integer.",
+								m_snp_index,
+								m_source.get_number_of_id_columns() + 2*i + j
+							) ;
+						}
+					}
 				}
 				return *this ;
 			}
@@ -176,6 +206,7 @@ namespace genfile {
 				std::size_t const m_snp_index ;
 				std::string m_line ;
 				std::vector< slice > m_elts ;
+				std::vector< int > m_ploidy ;
 		} ;
 	}
 	
@@ -202,15 +233,31 @@ namespace genfile {
 			new impl::ShapeITHaplotypesSNPDataSourceReader(
 				*this,
 				snp_index,
-				line
+				line,
+				get_or_compute_ploidies( m_current_snp.get_position().chromosome() )
 			)
 		) ;
 	}
+
+	std::vector< int > const& ShapeITHaplotypesSNPDataSource::get_or_compute_ploidies( Chromosome const& chromosome ) {
+		// we memoize the ploidies.
+		std::map< Chromosome, std::vector< int > >::const_iterator where = m_ploidies.find( chromosome ) ;
+		if( where == m_ploidies.end() ) {
+			std::vector< int > ploidies( m_number_of_samples, -1 ) ;
+			if( m_get_ploidy ) {
+				for( std::size_t i = 0; i < ploidies.size(); ++i ) {
+					ploidies[i] = m_get_ploidy( chromosome, i ) ;
+				}
+			}
+			where = m_ploidies.insert( std::make_pair( chromosome, ploidies )).first ;
+		}
+		return where->second ;
+	}
+
 
 	void ShapeITHaplotypesSNPDataSource::ignore_snp_probability_data_impl() {
 		std::string line ;
 		std::getline( *m_stream_ptr, line ) ;
 	}
-
 }
 
