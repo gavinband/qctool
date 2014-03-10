@@ -23,7 +23,7 @@ def build( bld ):
 			bld.glob( 'libs/date_time/src/posix_time/*.cpp' ),
 		includes = './',
 		export_incdirs = './', 
-		uselib = 'ZLIB BZIP2'
+		uselib = 'ZLIB BZIP2 RT'
 	)
 
 	bld(
