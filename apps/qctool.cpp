@@ -75,6 +75,7 @@
 #include "genfile/SampleFilterNegation.hpp"
 #include "genfile/VariableInSetSampleFilter.hpp"
 #include "genfile/VariableInRangeSampleFilter.hpp"
+#include "genfile/get_ploidy_from_sex.hpp"
 
 #include "statfile/BuiltInTypeStatSource.hpp"
 #include "statfile/from_string.hpp"
@@ -1085,7 +1086,15 @@ private:
 				) ;
 			}
 		}
-		
+
+		m_snp_data_source->set_expected_ploidy(
+			boost::bind(
+				&genfile::get_ploidy_from_sex,
+				boost::cref( *m_samples ),
+				m_options.get< std::string >( "-sex-column" ),
+				_1, _2
+			)
+		) ;
 		
 		if( m_options.check_if_option_was_supplied( "-quantile-normalise" )) {
 			assert( m_samples.get() ) ;
@@ -1755,7 +1764,7 @@ private:
 							)
 						)
 					) ;
-			 	} else if( m_options.get< std::string >( "-ofiletype" ) == "sqlite_genotypes" ) {
+				} else if( m_options.get< std::string >( "-ofiletype" ) == "sqlite_genotypes" ) {
 					sink.reset(
 						new SQLiteGenotypesSNPDataSink(
 							qcdb::DBOutputter::create(
