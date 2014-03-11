@@ -1113,8 +1113,8 @@ struct BingwaProcessor: public boost::noncopyable
 	
 	BingwaProcessor( genfile::SNPIdentifyingData2::CompareFields const& compare_fields ):
 		m_snps( compare_fields ),
-		m_flip_alleles_if_necessary( false ),
-		m_number_of_effect_parameters( -1 )
+		m_number_of_effect_parameters( -1 ),
+		m_flip_alleles_if_necessary( false )
 	{
 	}
 	
