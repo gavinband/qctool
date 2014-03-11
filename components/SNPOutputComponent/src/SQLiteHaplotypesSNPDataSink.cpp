@@ -58,8 +58,8 @@ SQLiteHaplotypesSNPDataSink::SQLiteHaplotypesSNPDataSink( qcdb::DBOutputter::Uni
 		"INSERT INTO Sample ( analysis_id, identifier, index_in_data ) VALUES( ?, ?, ? ) ;"
 	) ;
 	
-	m_snps.resize( 1000 ) ;
-	m_data.resize( 1000 ) ;
+	m_snps.resize( 10000 ) ;
+	m_data.resize( 10000 ) ;
 }
 
 std::string SQLiteHaplotypesSNPDataSink::get_spec() const {
