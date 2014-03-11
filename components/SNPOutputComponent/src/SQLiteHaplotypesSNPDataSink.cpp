@@ -181,8 +181,8 @@ namespace {
 		}
 
 		void operator()( Integer const value ) {
-			// We allow a maximum value of 254 here because 254 (-2) and 255 (-1) are reserved values.
-	 		if( fits_in< Integer, char >( value ) && value < 254 ) {
+			// We allow a maximum value of 127 here to allow for reserved values.
+	 		if( fits_in< Integer, char >( value ) && value < 127 ) {
 				assert( ( m_buf_p[ eUBJSON ] + 2 ) <= m_buf_end_p[ eUBJSON ] ) ;
 				*(m_buf_p[ eUBJSON ]++) = 'i' ;
 				m_buf_p[ eUBJSON ] = genfile::write_big_endian_integer( m_buf_p[ eUBJSON ], m_buf_end_p[ eUBJSON ], static_cast< char >( value )) ;
@@ -190,9 +190,8 @@ namespace {
 				if( m_buffer_validity[ eBITPACK ] ) {
 					*(m_buf_p[ eBITPACK ]++) = static_cast< char >( value ) ;
 					if( m_ploidy == 1 ) {
-						// store two haplotypes for males, the second completely filled with -2's.
-						// -2's indicate the value is not there (not just missing, which is encoded as -1.)
-						*(m_buf_p[ eBITPACK ]++) = static_cast< char >( -2 ) ;
+						// store two haplotypes for males, the second filled wth missing values.
+						*(m_buf_p[ eBITPACK ]++) = static_cast< char >( -1 ) ;
 					}
 				}
 			} else {

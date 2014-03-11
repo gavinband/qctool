@@ -157,7 +157,7 @@ namespace genfile {
 					setter.set_sample( i ) ;
 					setter.set_number_of_entries( ploidy ) ;
 					
-					if( ploidy == 1 && m_elts[ 2*i ] != m_elts[ 2*i+1 ] ) {
+					if( ploidy == 1 && m_elts[ 2*i ] != m_elts[ 2*i+1 ] && m_elts[ 2*i+1 ] != "-" ) { // SHAPEIT and IMPUTE behave differently for X chromosome males: SHAPEIT writes same haplotype twice, IMPUTE writes - for nonexistent data.
 						// ShapeIT writes the same haplotype twice for haploid samples.
 						// We report only one haplotype in such cases.
 						throw MalformedInputError(
@@ -168,9 +168,9 @@ namespace genfile {
 						) ;
 					}
 					
-					for( std::size_t j = 0; j < ploidy; ++j ) {
+					for( std::size_t j = 0; j < std::size_t( ploidy ); ++j ) {
 						try {
-							if( m_elts[ 2*i+j ] == "." || m_elts[ 2*i+j ] == "NA" ) {
+							if( m_elts[ 2*i+j ] == "." || m_elts[ 2*i+j ] == "NA" || m_elts[ 2*i+j] == "-" ) { // IMPUTE2 writes - for nonexistent haplotypes in males
 								setter( MissingValue() ) ;
 							} else {
 								setter( string_utils::to_repr< Integer >( m_elts[ 2*i+j ] )) ;
