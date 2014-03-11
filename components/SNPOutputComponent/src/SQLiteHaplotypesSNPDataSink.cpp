@@ -58,8 +58,8 @@ SQLiteHaplotypesSNPDataSink::SQLiteHaplotypesSNPDataSink( qcdb::DBOutputter::Uni
 		"INSERT INTO Sample ( analysis_id, identifier, index_in_data ) VALUES( ?, ?, ? ) ;"
 	) ;
 	
-	m_snps.resize( 10000 ) ;
-	m_data.resize( 10000 ) ;
+	m_snps.resize( 1000 ) ;
+	m_data.resize( 1000 ) ;
 }
 
 std::string SQLiteHaplotypesSNPDataSink::get_spec() const {
@@ -181,7 +181,8 @@ namespace {
 		}
 
 		void operator()( Integer const value ) {
-			if( fits_in< Integer, char >( value ) ) {
+			// We allow a maximum value of 254 here because 254 (-2) and 255 (-1) are reserved values.
+	 		if( fits_in< Integer, char >( value ) && value < 254 ) {
 				assert( ( m_buf_p[ eUBJSON ] + 2 ) <= m_buf_end_p[ eUBJSON ] ) ;
 				*(m_buf_p[ eUBJSON ]++) = 'i' ;
 				m_buf_p[ eUBJSON ] = genfile::write_big_endian_integer( m_buf_p[ eUBJSON ], m_buf_end_p[ eUBJSON ], static_cast< char >( value )) ;
@@ -189,8 +190,9 @@ namespace {
 				if( m_buffer_validity[ eBITPACK ] ) {
 					*(m_buf_p[ eBITPACK ]++) = static_cast< char >( value ) ;
 					if( m_ploidy == 1 ) {
-						// store two haplotypes for males, the second completely filled with missing values.
-						*(m_buf_p[ eBITPACK ]++) = static_cast< char >( -1 ) ;
+						// store two haplotypes for males, the second completely filled with -2's.
+						// -2's indicate the value is not there (not just missing, which is encoded as -1.)
+						*(m_buf_p[ eBITPACK ]++) = static_cast< char >( -2 ) ;
 					}
 				}
 			} else {

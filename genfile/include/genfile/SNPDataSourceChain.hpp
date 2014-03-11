@@ -51,6 +51,7 @@ namespace genfile {
 		OptionalSnpCount number_of_snps_in_source( std::size_t source_index ) const ;
 		SNPDataSource const& get_source( std::size_t source_index ) const ;
 		operator bool() const ;
+		void set_expected_ploidy( GetPloidy ) ;
 		std::string get_source_spec() const ;
 		std::string get_summary( std::string const& prefix, std::size_t fill ) const ;
 

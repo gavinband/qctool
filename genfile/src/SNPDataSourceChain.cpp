@@ -125,7 +125,13 @@ namespace genfile {
 			return false ;
 		}
 	}
-	
+
+	void SNPDataSourceChain::set_expected_ploidy( GetPloidy get_ploidy ) {
+		for( std::size_t i = 0; i < m_sources.size(); ++i ) {
+			m_sources[i]->set_expected_ploidy( get_ploidy ) ;
+		}
+	}
+
 	std::string SNPDataSourceChain::get_source_spec() const {
 		std::string result = "chain:" ;
 		for( std::size_t i = 0; i < m_sources.size(); ++i ) {

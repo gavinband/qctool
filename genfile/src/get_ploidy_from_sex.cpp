@@ -21,7 +21,7 @@ namespace genfile {
 				if( sex == "1" || sex == "m" || sex == "male" ) {
 					result = 1 ;
 				} else if( sex == "2" || sex == "f" || sex == "female" ) {
-					result = ( chromosome == "0X" ) ? 1 : 0 ;
+					result = ( chromosome == "0X" ) ? 2 : 0 ;
 				} else {
 					throw genfile::MalformedInputError( samples.get_source_spec(), "Malformed sex value \"" + sex + "\"", i, samples.get_column_spec().find_column( sex_column ) ) ;
 				}

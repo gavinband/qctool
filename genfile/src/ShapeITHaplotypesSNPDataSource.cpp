@@ -250,6 +250,10 @@ namespace genfile {
 				}
 			}
 			where = m_ploidies.insert( std::make_pair( chromosome, ploidies )).first ;
+#if DEBUG_SHAPEITHAPLOTYPES_SNP_DATA_SOURCE
+			std::cerr << "Inserted ploidies for chromosome" << chromosome << ": "
+				ploidies[0] << " " << ploidies[1] << " " << ploidies[2] << " " << ploidies[3] << " " << ploidies[4] << "...\n" ;
+#endif
 		}
 		return where->second ;
 	}
