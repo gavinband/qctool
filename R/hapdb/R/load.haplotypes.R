@@ -98,6 +98,7 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 		) ;
 	}
 	result$samples = hapdb$samples[ which( hapdb$samples$analysis == analysis ), ]
+	N = nrow( result$samples )
 	if( !is.null( samples ) ) {
 		if( mode( samples ) == "character" ) {
 			samples.choice = sort( which( hapdb$samples$analysis == analysis & hapdb$samples$identifier %in% samples ) ) ;
@@ -119,11 +120,17 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 	colnames( result$data )[ seq( from = 2, by = 2, length = N ) ] = paste( result$samples[, 'identifier' ], "1", sep = ":" )
 
 	if( compute.dosage ) {
-		dosage = result$data[, seq( from = 1, by = 2, length = N ), drop = FALSE ] + result$data[, seq( from = 2, by = 2, length = N ), drop = FALSE ]
+		A = result$data[, seq( from = 1, by = 2, length = N ), drop = FALSE ]
+		B = result$data[, seq( from = 2, by = 2, length = N ), drop = FALSE ]
+		B[ which( is.na( B ) ) ] = 0
+		B[ which( B == 254 ) ] = 0
+		dosage = A + B
         colnames( dosage ) = result$samples$identifier
         rownames( dosage ) = result$variant$rsid
 	    result$dosage = dosage
 	}
+
+	result$data[ which( result$data == 254 ) ] = NA
 
 	if( verbose ) {
 		cat( "load.haplotypes(): done.\n" ) ;
