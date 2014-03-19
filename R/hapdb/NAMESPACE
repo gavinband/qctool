@@ -1,7 +1,10 @@
+useDynLib(hapdb)
+importFrom(Rcpp,evalCpp)
 import( "bitops" )
 importFrom( "DBI", dbDriver )
 importFrom( "RSQLite", dbConnect, dbGetQuery ) ; 
 import( RSQLite, Rcompression )
+export( rcpp_uncompress_bitpack_haplotypes )
 export( open.hapdb )
 export( load.haplotypes )
 export( load.genotypes )

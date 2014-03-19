@@ -1,5 +1,5 @@
 load.haplotypes <-
-function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL, samples = NULL, analysis = NULL, verbose = FALSE, compute.dosage = FALSE ) {
+function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL, samples = NULL, analysis = NULL, verbose = FALSE, compute.dosage = FALSE, method = "R" ) {
 	require( RSQLite )
 	require( Rcompression )
 	sql = paste(
@@ -80,17 +80,21 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 		if( verbose ) {
 		    cat( "load.haplotypes(): uncompressing...\n" ) ;
 		}
-		for( i in 1:nrow(D) ) {
-			compressed_data = unlist( D$data[i] )
-			uncompressed_data = uncompress( compressed_data, asText = FALSE )
-			result$data[i,] = parse_haplotypes( uncompressed_data, D$N[i] )
-			if( i %% 100 == 0 ) {
-				gc()
-				if( verbose ) {
-					cat( "(done ", i, " of ", nrow(D), ")...\n", sep = "" ) ;
-				}
-			}
-		}
+		if( method == "cpp" ) {
+		    result$data = rcpp_uncompress_bitpack_haplotypes( D$data, 2 * D$N[1] ) ;
+    	} else {
+    		for( i in 1:nrow(D) ) {
+    			compressed_data = unlist( D$data[i] )
+    			uncompressed_data = uncompress( compressed_data, asText = FALSE )
+    			result$data[i,] = parse_haplotypes( uncompressed_data, D$N[i] )
+    			if( i %% 100 == 0 ) {
+    				gc()
+    				if( verbose ) {
+    					cat( "(done ", i, " of ", nrow(D), ")...\n", sep = "" ) ;
+    				}
+    			}
+    		}
+    	}
 	} else {
 		result = list(
 			variant = D[,-which( colnames(D) == "data"), drop = FALSE],
@@ -138,5 +142,4 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 	
 	return( result )
 }
-
 
