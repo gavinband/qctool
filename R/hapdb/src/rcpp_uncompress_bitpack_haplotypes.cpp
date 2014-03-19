@@ -35,11 +35,11 @@ namespace {
 
 // [[Rcpp::export]]
 IntegerMatrix rcpp_uncompress_bitpack_haplotypes( List rawData, int N ) {
-	std::cerr << "sizeof( Rbyte ) = " << sizeof( Rbyte ) << ".\n" ;
 	int const L = rawData.size() ;
 	IntegerMatrix result( L, N ) ;
 
 #if DEBUG_rcpp_uncompress_bitpack_haplotypes
+	std::cerr << "sizeof( Rbyte ) = " << sizeof( Rbyte ) << ".\n" ;
 	std::cerr << "result is " << std::dec << L << " x " << N << ".\n" ;
 #endif
 	

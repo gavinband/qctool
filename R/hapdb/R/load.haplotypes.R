@@ -69,20 +69,20 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 	D = dbGetQuery( hapdb$db, sql )
 
 	if( nrow(D) > 0 ) {
-		if( verbose ) {
-		    cat( "load.haplotypes(): loaded, uncompressing...\n" ) ;
-		}
 		result = list(
-			variant = D[,-which( colnames(D) == "data"), drop = FALSE],
-			data = matrix( NA, nrow = nrow(D), ncol = 2 * D$N[1] )
+			variant = D[,-which( colnames(D) == "data"), drop = FALSE]
 		)
 
-		if( verbose ) {
-		    cat( "load.haplotypes(): uncompressing...\n" ) ;
-		}
 		if( method == "cpp" ) {
+			if( verbose ) {
+				cat( "load.haplotypes(): uncompressing using C++...\n" ) ;
+			}
 		    result$data = rcpp_uncompress_bitpack_haplotypes( D$data, 2 * D$N[1] ) ;
     	} else {
+			if( verbose ) {
+				cat( "load.haplotypes(): uncompressing using R...\n" ) ;
+			}
+			result$data = matrix( NA, nrow = nrow(D), ncol = 2 * D$N[1] )
     		for( i in 1:nrow(D) ) {
     			compressed_data = unlist( D$data[i] )
     			uncompressed_data = uncompress( compressed_data, asText = FALSE )

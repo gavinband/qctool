@@ -84,6 +84,12 @@ namespace statfile {
 
 	void DelimitedStatSource::read_one_line() {
 		std::getline( stream(), m_current_line ) ;
+
+		// handle comment lines by ignoring them.
+		while( stream() && m_current_line.size() > 0 && m_current_line[0] == m_comment_character ) {
+			std::getline( stream(), m_current_line ) ;
+		}
+			
 		m_current_fields = split_line( m_current_line, m_delimiter, m_quotes ) ;
 		if( m_current_fields.size() != number_of_columns() ) {
 			throw genfile::MalformedInputError( get_source_spec(), number_of_rows_read() ) ;
@@ -192,7 +198,9 @@ namespace statfile {
 		std::string line ;
 		std::size_t count = 0 ;
 		while( std::getline( stream(), line )) {
-			++count ;
+			if( line.size() == 0 || line[0] != m_comment_character ) {
+				++count ;
+			}
 		}
 		return count ;
 	}
