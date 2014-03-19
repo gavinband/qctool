@@ -5,20 +5,6 @@
 
 using namespace Rcpp;
 
-// rcpp_hello_world
-List rcpp_hello_world();
-RcppExport SEXP hapdb_rcpp_hello_world() {
-BEGIN_RCPP
-    SEXP __sexp_result;
-    {
-        Rcpp::RNGScope __rngScope;
-        List __result = rcpp_hello_world();
-        PROTECT(__sexp_result = Rcpp::wrap(__result));
-    }
-    UNPROTECT(1);
-    return __sexp_result;
-END_RCPP
-}
 // rcpp_uncompress_bitpack_haplotypes
 IntegerMatrix rcpp_uncompress_bitpack_haplotypes(List rawData, int N);
 RcppExport SEXP hapdb_rcpp_uncompress_bitpack_haplotypes(SEXP rawDataSEXP, SEXP NSEXP) {

@@ -3,6 +3,7 @@
 #include "zlib.h"
 #define HAVE_ZLIB 1
 
+// #define DEBUG_rcpp_uncompress_bitpack_haplotypes
 using namespace Rcpp;
 
 namespace {
@@ -20,11 +21,9 @@ namespace {
 				source_size
 			) ;
 			if( result != Z_OK ) {
-				std::cerr << "Not ok!\n" ;
 				throw std::exception() ;
 			}
 			if( dest_size % sizeof( T ) != 0 ) {
-				std::cerr << "Not right size!\n" ;
 				throw std::exception() ;
 			}
 			dest->resize( dest_size / sizeof( T )) ;
@@ -39,7 +38,10 @@ IntegerMatrix rcpp_uncompress_bitpack_haplotypes( List rawData, int N ) {
 	std::cerr << "sizeof( Rbyte ) = " << sizeof( Rbyte ) << ".\n" ;
 	int const L = rawData.size() ;
 	IntegerMatrix result( L, N ) ;
+
+#if DEBUG_rcpp_uncompress_bitpack_haplotypes
 	std::cerr << "result is " << std::dec << L << " x " << N << ".\n" ;
+#endif
 	
 	std::vector< char > buffer ;
 	std::vector< char > compressed_buffer ;
@@ -48,27 +50,14 @@ IntegerMatrix rcpp_uncompress_bitpack_haplotypes( List rawData, int N ) {
 		compressed_buffer.assign( data.begin(), data.end() ) ;
 		buffer.resize( N + 100 ) ;
 		zlib_uncompress( &compressed_buffer[0], compressed_buffer.size(), &buffer ) ;
-		if( i < 10 ) {
-			std::cerr  << std::dec << "done, compressed size was " << data.size() << ", buffer size is " << buffer.size() << ", expected " << ( 10 + N ) << ".\n" ;
-			std::cerr << "i = "  << std::dec << i << ", first few bytes of data are:\ncompressed: " ;
-			for( std::size_t j = 0; j < data.size()
-			; ++j ) { std::cerr << std::hex << int( data[j] ) ; }
-			std::cerr << "...\nuncompressed: " ;
-			for( std::size_t j = 0; j < buffer.size(); ++j ) { std::cerr << std::hex << int( buffer[j] ) << " " ; }
-			std::cerr << "...\n" ;
+		if( buffer.size() != N + 10 ) {
+			throw std::exception() ;
 		}
-		assert( buffer.size() == N + 10 ) ;
 		if( buffer[0] == 's' && buffer[1] == 0 && buffer[2] == 7 && std::string( buffer.begin() + 3, buffer.begin() + 10 ) == "bitpack" ) {
 			for( std::size_t j = 0; j < N; ++j ) {
-				result[i,j] = int( buffer[j+10] ) ;
-				if( i < 10 & j < 20 ) {
-					std::cerr << int( buffer[j+10] ) << " " ;
-				}
+				result(i,j) = int( buffer[j+10] ) ;
 			}
-			if( i < 10 ) { std::cerr << "...\n" ; } 
 		} else {
-			// unsupported format.
-			if( i < 10 ) {			std::cerr << "Unsupported format!\n" ; }
 			throw std::exception() ;
 		}
 	}
