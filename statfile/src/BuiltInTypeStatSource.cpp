@@ -35,7 +35,7 @@ namespace statfile {
 			source.reset( new statfile::DelimitedStatSource( filename, " " )) ;
 		}
 		else {
-			// default to R format
+			// default to space-delimited format
 			source.reset( new statfile::DelimitedStatSource( filename, " " )) ;
 		}
 

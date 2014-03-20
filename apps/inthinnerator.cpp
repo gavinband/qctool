@@ -41,7 +41,7 @@
 #include "db/SQLite3Connection.hpp"
 #include "genfile/FromFilesGeneticMap.hpp"
 #include "FileUtil.hpp"
-#include "components/SNPSummaryComponent/DBOutputter.hpp"
+#include "qcdb/FlatTableDBOutputter.hpp"
 
 namespace globals {
 	std::string const program_name = "inthinnerator" ;
@@ -165,6 +165,9 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 				" The special value \"all\" indicates that all available columns will be output." )
 			.set_takes_single_value()
 			.set_default_value( "all" ) ;
+		options[ "-table-name" ]
+			.set_description( "Specify a name for the table to use when using -odb." )
+			.set_takes_single_value() ;
 		options[ "-headers" ]
 			.set_description( "Specify this to force output of column headersomit column headers in the output files." ) ;
 		options[ "-no-headers" ]
@@ -1213,14 +1216,17 @@ private:
 		output_columns.erase( std::remove( output_columns.begin(), output_columns.end(), "allele1" ), output_columns.end() ) ;
 		output_columns.erase( std::remove( output_columns.begin(), output_columns.end(), "allele2" ), output_columns.end() ) ;
 
-		snp_summary_component::DBOutputter::UniquePtr
-			storage = snp_summary_component::DBOutputter::create(
+		qcdb::FlatTableDBOutputter::UniquePtr storage = qcdb::FlatTableDBOutputter::create(
 				filename,
 				options().get< std::string >( "-analysis-name" ),
 				options().get< std::string >( "-analysis-description" ),
 				options().get_values_as_map()
 			) ;
-
+		
+		if( options().check( "-table-name" )) {
+			storage->set_table_name( options().get< std::string >( "-table-name" )) ;
+		}
+		
 		UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Writing \"" + filename + "\"" ) ;
 		std::size_t snp_index = 0 ;
 		for(
@@ -1251,7 +1257,7 @@ private:
 				
 				storage->store_per_variant_data(
 					snps[ *i],
-					"inthinnerator/" + to_string(N) + "/" + output_columns[j],
+					output_columns[j],
 					value
 				) ;
 			}
