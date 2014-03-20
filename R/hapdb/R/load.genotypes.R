@@ -1,5 +1,13 @@
 load.genotypes <-
-function( hapdb, chromosome = NULL, positions = NULL, variant_ids = NULL, rsids = NULL, range = NULL, samples = NULL, analysis = NULL, verbose = FALSE, compute.dosage = FALSE, compute.probabilities = TRUE ) {
+function(
+	hapdb,
+	chromosome = NULL, range = NULL,
+	positions = NULL, variant_ids = NULL, rsids = NULL,
+	samples = NULL, analysis = NULL,
+	verbose = FALSE,
+	compute.dosage = FALSE, compute.probabilities = TRUE,
+	method = "R"
+) {
 	suppressMessages(require( RSQLite ))
 	suppressMessages(require( Rcompression ))
 	sql = paste(
@@ -55,7 +63,7 @@ function( hapdb, chromosome = NULL, positions = NULL, variant_ids = NULL, rsids 
 		print( dbGetQuery( hapdb$db, sprintf( "EXPLAIN QUERY PLAN %s", sql ) ) )
 	}
 	D = dbGetQuery( hapdb$db, sql )
-    dbGetQuery( db, "DROP TABLE tmpHapdbLoadGenotypes" ) ;
+    dbGetQuery( hapdb$db, "DROP TABLE tmpHapdbLoadGenotypes" ) ;
 
 	# Get all the samples for this analysis
 	all.samples = hapdb$samples[ which( hapdb$samples$analysis == analysis ), ]
@@ -82,44 +90,59 @@ function( hapdb, chromosome = NULL, positions = NULL, variant_ids = NULL, rsids 
 			samples = chosen.samples,
 			variant = D[,-which( colnames(D) == "data")]
 		)
-		if( compute.dosage ) {
-			result$dosage = matrix( NA, nrow = nrow( D ), ncol = n ) ;
-			colnames( result$dosage ) = result$samples[, 'identifier' ]
-			rownames( result$dosage ) = result$variant$rsid
+		
+		if( method == "cpp" ) {
+			X = rcpp_uncompress_floatarray_genotypes( D$data, N, samples.choice, compute.probabilities, compute.dosage ) ;
+			if( compute.probabilities ) {
+				result$data = X$probabilities ;
+			}
+			if( compute.dosage ) {
+				result$dosage = X$dosage ;
+			}
+		} else {
+			if( compute.dosage ) {
+				result$dosage = matrix( NA, nrow = nrow( D ), ncol = n ) ;
+			}
+			if( compute.probabilities ) {
+				result$data = matrix( NA, nrow = nrow(D), ncol = 3*n )
+			}
+			for( i in 1:nrow(D) ) {
+				cat( "uncompressing", i, "of", nrow(D), "...\n" ) ;
+				compressed_data = unlist( D$data[i] )
+				uncompressed_data = uncompress( compressed_data, asText = FALSE )
+				v = parse_genotypes( uncompressed_data, D$N[i] )
+				# Get rid of unwanted samples
+				v = v[ genotypes.choice ]
+				# Handle the case of three zero probabilities
+				# This should not happen in newer files, but an early version of this code in qctool produced these.
+				wMissing = which( pmax( v[ seq( from = 1, length = n, by = 3 ) ], v[ seq( from = 2, length = n, by = 3 ) ], v[ seq( from = 3, length = n, by = 3 ) ] ) == 0 )
+				v[wMissing*3 - 2] = NA
+				v[wMissing*3 - 1] = NA
+				v[wMissing*3] = NA
+				if( compute.probabilities ) {
+					result$data[i,] = v
+				}
+				if( compute.dosage ) {
+					result$dosage[i,] = v[ seq( from = 2, length = n, by = 3 ) ] + 2 * v[ seq( from = 3, length = n, by = 3 ) ]
+				}
+				if( i == nrow(D) || i %% 10 == 0 ) {
+					rm( v ) ;
+					rm( compressed_data ) ;
+					rm( uncompressed_data ) ;
+					gc()
+				}
+			}
 		}
 		if( compute.probabilities ) {
-			result$data = matrix( NA, nrow = nrow(D), ncol = 3*n )
 			colnames( result$data ) = rep( NA, 3*n )
 			colnames( result$data )[ seq( from = 1, by = 3, length = n ) ] = paste( result$samples[, 'identifier' ], "AA", sep = ":" )
 			colnames( result$data )[ seq( from = 2, by = 3, length = n ) ] = paste( result$samples[, 'identifier' ], "AB", sep = ":" )
 			colnames( result$data )[ seq( from = 3, by = 3, length = n ) ] = paste( result$samples[, 'identifier' ], "BB", sep = ":" )
 			rownames( result$data) = result$variant$rsid
 		}
-		for( i in 1:nrow(D) ) {
-			cat( "uncompressing", i, "of", nrow(D), "...\n" ) ;
-			compressed_data = unlist( D$data[i] )
-			uncompressed_data = uncompress( compressed_data, asText = FALSE )
-			v = parse_genotypes( uncompressed_data, D$N[i] )
-			# Get rid of unwanted samples
-			v = v[ genotypes.choice ]
-			# Handle the case of three zero probabilities
-			# This should not happen in newer files, but an early version of this code in qctool produced these.
-			wMissing = which( pmax( v[ seq( from = 1, length = n, by = 3 ) ], v[ seq( from = 2, length = n, by = 3 ) ], v[ seq( from = 3, length = n, by = 3 ) ] ) == 0 )
-			v[wMissing*3 - 2] = NA
-			v[wMissing*3 - 1] = NA
-			v[wMissing*3] = NA
-			if( compute.probabilities ) {
-				result$data[i,] = v
-			}
-			if( compute.dosage ) {
-				result$dosage[i,] = v[ seq( from = 2, length = n, by = 3 ) ] + 2 * v[ seq( from = 3, length = n, by = 3 ) ]
-			}
-			if( i == nrow(D) || i %% 10 == 0 ) {
-				rm( v ) ;
-				rm( compressed_data ) ;
-				rm( uncompressed_data ) ;
-				gc()
-			}
+		if( compute.dosage ) {
+			colnames( result$dosage ) = result$samples[, 'identifier' ]
+			rownames( result$dosage ) = result$variant$rsid
 		}
 	} else {
 		result = list(

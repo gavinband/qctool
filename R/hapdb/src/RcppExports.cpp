@@ -21,16 +21,19 @@ BEGIN_RCPP
     return __sexp_result;
 END_RCPP
 }
-
-NumericMatrix rcpp_uncompress_floatarray_genotypes(List rawData, int N);
-RcppExport SEXP rcpp_uncompress_floatarray_genotypes(SEXP rawDataSEXP, SEXP NSEXP) {
+// rcpp_uncompress_floatarray_genotypes
+List rcpp_uncompress_floatarray_genotypes(List rawData, int N, IntegerVector const& chosen_samples, bool compute_probabilities, bool compute_dosage);
+RcppExport SEXP hapdb_rcpp_uncompress_floatarray_genotypes(SEXP rawDataSEXP, SEXP NSEXP, SEXP chosen_samplesSEXP, SEXP compute_probabilitiesSEXP, SEXP compute_dosageSEXP) {
 BEGIN_RCPP
     SEXP __sexp_result;
     {
         Rcpp::RNGScope __rngScope;
         Rcpp::traits::input_parameter< List >::type rawData(rawDataSEXP );
         Rcpp::traits::input_parameter< int >::type N(NSEXP );
-        NumericMatrix __result = rcpp_uncompress_floatarray_genotypes(rawData, N);
+        Rcpp::traits::input_parameter< IntegerVector const& >::type chosen_samples(chosen_samplesSEXP );
+        Rcpp::traits::input_parameter< bool >::type compute_probabilities(compute_probabilitiesSEXP );
+        Rcpp::traits::input_parameter< bool >::type compute_dosage(compute_dosageSEXP );
+        List __result = rcpp_uncompress_floatarray_genotypes(rawData, N, chosen_samples, compute_probabilities, compute_dosage);
         PROTECT(__sexp_result = Rcpp::wrap(__result));
     }
     UNPROTECT(1);

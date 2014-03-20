@@ -84,7 +84,7 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 		    result$data = rcpp_uncompress_bitpack_haplotypes( D$data, 2 * D$N[1] ) ;
     	} else {
 			if( verbose ) {
-				cat( "load.haplotypes(): uncompressing using R...\n" ) ;
+			    cat( "load.haplotypes(): uncompressing using R...\n" ) ;
 			}
 			result$data = matrix( NA, nrow = nrow(D), ncol = 2 * D$N[1] )
     		for( i in 1:nrow(D) ) {
