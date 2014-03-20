@@ -6,7 +6,7 @@ function(
 	samples = NULL, analysis = NULL,
 	verbose = FALSE,
 	compute.dosage = FALSE, compute.probabilities = TRUE,
-	method = "R"
+	method = "cpp"
 ) {
 	suppressMessages(require( RSQLite ))
 	suppressMessages(require( Rcompression ))
