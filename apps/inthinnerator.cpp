@@ -1230,6 +1230,7 @@ private:
 		
 		UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Writing \"" + filename + "\"" ) ;
 		progress_context.notify_progress( 0, snps.size() ) ;
+
 		std::size_t snp_index = 0 ;
 		for(
 			std::set< std::size_t >::const_iterator i = indices_of_snps_to_output.begin() ;
