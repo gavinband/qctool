@@ -1,5 +1,12 @@
 load.haplotypes <-
-function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL, samples = NULL, analysis = NULL, verbose = FALSE, compute.dosage = FALSE, method = "cpp" ) {
+function(
+	hapdb,
+	chromosome = NULL, range = NULL, rsids = NULL, positions = NULL, variant_ids = NULL,
+	samples = NULL, analysis = NULL,
+	verbose = FALSE,
+	compute.dosage = FALSE,
+	method = "cpp"
+) {
 	require( RSQLite )
 	require( Rcompression )
 	sql = paste(
@@ -26,52 +33,37 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 		sep = " "
 	) ;
 	
-	if(( !is.null( chromosome ) || !is.null( range ) ) && !is.null( positions ) ) {
-		stop( "You can't specify chromosome and range as well as a list of positions." )
-	}
-	if( !is.null( chromosome ) ) {
-		sql = paste(
-			sql,
-			sprintf( "AND chromosome == '%s'", as.character( chromosome ) ),
-			sep = " "
-		)
-	}
-	if( !is.null( range ) ) {
-		sql = paste(
-			sql,
-			sprintf( "AND position BETWEEN %d AND %d", as.integer( range[1] ), as.integer( range[2] ) ),
-			sep = " "
-		)
-	}
+	dbGetQuery( hapdb$db, "CREATE TEMPORARY TABLE tmpHapdbLoadGenotypes ( variant_id INT NOT NULL )" ) ;
+	if( !is.null( chromosome ) && !is.null( range )) {
+		dbGetQuery( hapdb$db, sprintf( "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE chromosome == '%s' AND position BETWEEN %d AND %d", chromosome, range[1], range[2] ) ) ;
+    }
 	if( !is.null( rsids ) ) {
-		sql = paste(
-			sql,
-			"AND rsid IN (",
-			paste( sprintf( "'%s'", rsids ), collapse = ',' ),
-			')',
-			sep = " "
-		)
+		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE rsid == ?", rsids ) ;
 	}
     if( !is.null( positions )) {
-		dbGetQuery( hapdb$db, "CREATE TEMPORARY TABLE tmpHapdbLoadHaplotypes ( variant_id INT NOT NULL )" ) ;
-		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpHapdbLoadHaplotypes SELECT id FROM Variant WHERE chromosome == ? AND position == ?", positions ) ;
-        sql = paste(
-            sql,
-            "AND V.id IN ( SELECT variant_id FROM tmpHapdbLoadHaplotypes )",
-            sep = " "
-        )
+		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE chromosome == ? AND position == ?", positions ) ;
     }
+    if( !is.null( variant_ids )) {
+		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpHapdbLoadGenotypes VALUES(?)", data.frame( variant_id = variant_ids ) ) ;
+    }
+    sql = paste(
+        sql,
+        "AND V.id IN ( SELECT variant_id FROM tmpHapdbLoadGenotypes )",
+        sep = " "
+    )
 
 	if( verbose ) {
 		cat( "load.haplotypes(): running query :\"", sql, "\"...\n", sep = "" ) ;
 		print( dbGetQuery( hapdb$db, sprintf( "EXPLAIN QUERY PLAN %s", sql ) ) )
 	}
+
+	#############
+	# Get the data
 	D = dbGetQuery( hapdb$db, sql )
+	dbGetQuery( hapdb$db, "DROP TABLE tmpHapdbLoadGenotypes" ) ;
 
-    if( !is.null( positions )) {
-		dbGetQuery( hapdb$db, "DROP TABLE tmpHapdbLoadHaplotypes" ) ;
-	}
-
+	#############
+	# Now post-process
 	if( nrow(D) > 0 ) {
 		result = list(
 			variant = D[,-which( colnames(D) == "data"), drop = FALSE]

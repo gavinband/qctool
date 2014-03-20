@@ -62,6 +62,7 @@ function(
 		cat( "load.genotypes(): running query :\"", sql, "\"...\n", sep = "" ) ;
 		print( dbGetQuery( hapdb$db, sprintf( "EXPLAIN QUERY PLAN %s", sql ) ) )
 	}
+
 	D = dbGetQuery( hapdb$db, sql )
     dbGetQuery( hapdb$db, "DROP TABLE tmpHapdbLoadGenotypes" ) ;
 
