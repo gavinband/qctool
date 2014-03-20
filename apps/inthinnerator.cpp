@@ -1216,6 +1216,7 @@ private:
 		output_columns.erase( std::remove( output_columns.begin(), output_columns.end(), "allele1" ), output_columns.end() ) ;
 		output_columns.erase( std::remove( output_columns.begin(), output_columns.end(), "allele2" ), output_columns.end() ) ;
 
+		get_ui_context().logger() << "Opening output database...\n" ;
 		qcdb::FlatTableDBOutputter::UniquePtr storage = qcdb::FlatTableDBOutputter::create(
 				filename,
 				options().get< std::string >( "-analysis-name" ),
@@ -1228,6 +1229,7 @@ private:
 		}
 		
 		UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Writing \"" + filename + "\"" ) ;
+		progress_context.notify_progress( 0, snps.size() ) ;
 		std::size_t snp_index = 0 ;
 		for(
 			std::set< std::size_t >::const_iterator i = indices_of_snps_to_output.begin() ;
