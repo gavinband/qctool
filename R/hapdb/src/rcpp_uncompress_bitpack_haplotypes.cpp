@@ -39,7 +39,6 @@ IntegerMatrix rcpp_uncompress_bitpack_haplotypes( List rawData, int N ) {
 	IntegerMatrix result( L, N ) ;
 
 #if DEBUG_rcpp_uncompress_bitpack_haplotypes
-	std::cerr << "sizeof( Rbyte ) = " << sizeof( Rbyte ) << ".\n" ;
 	std::cerr << "result is " << std::dec << L << " x " << N << ".\n" ;
 #endif
 	
@@ -55,12 +54,75 @@ IntegerMatrix rcpp_uncompress_bitpack_haplotypes( List rawData, int N ) {
 		}
 		if( buffer[0] == 's' && buffer[1] == 0 && buffer[2] == 7 && std::string( buffer.begin() + 3, buffer.begin() + 10 ) == "bitpack" ) {
 			for( std::size_t j = 0; j < N; ++j ) {
-				result(i,j) = int( buffer[j+10] ) ;
+				char const v = buffer[j+10] ;
+				if( v == -1 ) {
+					result(i,j) = NA_INTEGER ;
+				} else {
+					result(i,j) = int( v ) ;
+				}
 			}
 		} else {
 			throw std::exception() ;
 		}
 	}
 	return result ;
+}
+
+NumericMatrix rcpp_uncompress_floatarray_genotypes( List rawData, int N, bool compute_probabilities, bool compute_dosage ) {
+	int const L = rawData.size() ;
+	
+	NumericMatrix probabilities ;
+	NumericMatrix dosage ;
+
+	if( compute_probabilities ) {
+		probabilities.resize( L, 3 * N ) ;
+	}
+	if( compute_dosage ){
+		dosage.resize( L, N ) ;
+	}
+
+#if DEBUG_rcpp_uncompress_bitpack_haplotypes
+	std::cerr << "result is " << std::dec << L << " x " << N << ".\n" ;
+#endif
+	
+	std::vector< char > buffer ;
+	std::vector< char > compressed_buffer ;
+	for( int i = 0; i < L; ++i ) {
+		RawVector const& data = rawData[i] ;
+		compressed_buffer.assign( data.begin(), data.end() ) ;
+		buffer.resize( (3*N) + 100 ) ;
+		zlib_uncompress( &compressed_buffer[0], compressed_buffer.size(), &buffer ) ;
+		if( buffer.size() != (3*N)*4 + 13 ) {
+			throw std::exception() ;
+		}
+		if( buffer[0] == 's' && buffer[1] == 0 && buffer[2] == 10 && std::string( buffer.begin() + 3, buffer.begin() + 13 ) == "floatarray" ) {
+			for( std::size_t j = 0; j < N; ++j ) {
+				if( compute_probabilities ) {
+					for( std::size_t k = 0; k < 3; ++k ) {
+						std::size_t const index = 13 + ((3*j)+k)*4
+						float const* value = reinterpret_cast< float const* >( (&buffer[0]) + index ) ;
+						if( *value < 0 ) {
+							probabilities(i,(3*j)+k) = NA_REAL ;
+						} else {
+							probabilities(i,(3*j)+k) = *value ;
+						}
+					}
+				}
+				
+				if( compute_dosage ) {
+					float const* g1 = reinterpret_cast< float const* >( (&buffer[0]) + 13 + ((3*j)+1)*4 ) ;
+					float const* g2 = reinterpret_cast< float const* >( (&buffer[0]) + 13 + ((3*j)+2)*4 ) ;
+					if( *g0 < 0 | *g1 < 0 | *g2 < 0 ) {
+						dosage(i,j) = NA_REAL ;
+					} else {
+						dosage(i,j) = *g1 + 2.0 * *g2 ;
+					}
+				}
+			}
+		} else {
+			throw std::exception() ;
+		}
+	}
+	return List::create( probabilities, dosage ) ;
 }
 

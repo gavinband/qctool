@@ -53,11 +53,11 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 		)
 	}
     if( !is.null( positions )) {
-		dbGetQuery( hapdb$db, "CREATE TEMPORARY TABLE tmpLoadHaplotypes ( variant_id INT NOT NULL )" ) ;
-		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpLoadHaplotypes SELECT id FROM Variant WHERE chromosome == ? AND position == ?", positions ) ;
+		dbGetQuery( hapdb$db, "CREATE TEMPORARY TABLE tmpHapdbLoadHaplotypes ( variant_id INT NOT NULL )" ) ;
+		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpHapdbLoadHaplotypes SELECT id FROM Variant WHERE chromosome == ? AND position == ?", positions ) ;
         sql = paste(
             sql,
-            "AND V.id IN ( SELECT variant_id FROM tmpLoadHaplotypes )",
+            "AND V.id IN ( SELECT variant_id FROM tmpHapdbLoadHaplotypes )",
             sep = " "
         )
     }
@@ -67,6 +67,10 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 		print( dbGetQuery( hapdb$db, sprintf( "EXPLAIN QUERY PLAN %s", sql ) ) )
 	}
 	D = dbGetQuery( hapdb$db, sql )
+
+    if( !is.null( positions )) {
+		dbGetQuery( hapdb$db, "DROP TABLE tmpHapdbLoadHaplotypes" ) ;
+	}
 
 	if( nrow(D) > 0 ) {
 		result = list(
@@ -136,10 +140,6 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 	if( verbose ) {
 		cat( "load.haplotypes(): done.\n" ) ;
 	}
-    if( !is.null( positions )) {
-		dbGetQuery( hapdb$db, "DROP TABLE tmpLoadHaplotypes" ) ;
-	}
-	
 	return( result )
 }
 
