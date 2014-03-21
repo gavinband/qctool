@@ -54,10 +54,6 @@ function(
         sep = " "
     )
 
-    if( !is.null( positions )) {
-		dbGetQuery( hapdb$db, "DROP TABLE tmpHapdbLoadHaplotypes" ) ;
-	}
-
 	if( verbose ) {
 		cat( "load.genotypes(): running query :\"", sql, "\"...\n", sep = "" ) ;
 		print( dbGetQuery( hapdb$db, sprintf( "EXPLAIN QUERY PLAN %s", sql ) ) )
