@@ -10,14 +10,6 @@ function(
 ) {
 	suppressMessages(require( RSQLite ))
 	suppressMessages(require( Rcompression ))
-	sql = paste(
-		"SELECT analysis_id, E.name AS analysis, V.id AS variant_id, chromosome, position, rsid, alleleA, alleleB, H.N AS N, H.data",
-		"FROM Entity E",
-		"INNER JOIN Variant V",
-		"CROSS JOIN Genotype H ON H.analysis_id == E.id AND H.variant_id == V.id",
-		sep = " "
-	)
-	
 	if( is.null( analysis ) ) {
 		analysis = as.character( unique( hapdb$samples$analysis ) )
 		if( length( analysis ) > 1 ) {
@@ -28,12 +20,7 @@ function(
 	}
 	
 	analysis_id = hapdb$samples$analysis_id[ match( analysis, hapdb$samples$analysis ) ]
-	sql = paste(
-		sql,
-		sprintf( "WHERE analysis_id == %d", analysis_id ),
-		sep = " "
-	) ;
-
+	
 	dbGetQuery( hapdb$db, "CREATE TEMPORARY TABLE tmpHapdbLoadGenotypes ( variant_id INT NOT NULL )" ) ;
 	if( !is.null( chromosome ) && !is.null( range )) {
 		dbGetQuery( hapdb$db, sprintf( "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE chromosome == '%s' AND position BETWEEN %d AND %d", chromosome, range[1], range[2] ) ) ;
@@ -48,11 +35,15 @@ function(
 		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpHapdbLoadGenotypes VALUES(?)", data.frame( variant_id = variant_ids ) ) ;
     }
 
-    sql = paste(
-        sql,
-        "AND V.id IN ( SELECT variant_id FROM tmpHapdbLoadGenotypes )",
-        sep = " "
-    )
+	sql = paste(
+		"SELECT analysis_id, E.name AS analysis, tmp.variant_id AS variant_id, chromosome, position, rsid, alleleA, alleleB, H.N AS N, H.data",
+		"FROM tmpHapdbLoadGenotypes tmp",
+		"INNER JOIN Entity E",
+		sprintf( "  ON E.id == %s", analysis_id ),
+		"INNER JOIN Variant V ON V.id == tmp.variant_id",
+		"INNER JOIN Genotype H ON H.analysis_id == E.id AND H.variant_id == tmp.variant_id",
+		sep = " "
+	)
 
 	if( verbose ) {
 		cat( "load.genotypes(): running query :\"", sql, "\"...\n", sep = "" ) ;
@@ -104,7 +95,9 @@ function(
 				result$data = matrix( NA, nrow = nrow(D), ncol = 3*n )
 			}
 			for( i in 1:nrow(D) ) {
-				cat( "uncompressing", i, "of", nrow(D), "...\n" ) ;
+				if( verbose ) {
+					cat( "uncompressing", i, "of", nrow(D), "...\n" ) ;
+				}
 				compressed_data = unlist( D$data[i] )
 				uncompressed_data = uncompress( compressed_data, asText = FALSE )
 				v = parse_genotypes( uncompressed_data, D$N[i] )

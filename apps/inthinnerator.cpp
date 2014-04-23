@@ -179,10 +179,10 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 		options.option_implies_option( "-headers", "-o" ) ;
 		options.option_implies_option( "-no-headers", "-o" ) ;
 		
-		options[ "-write-excl-list" ]
-			.set_description( "Specify that inthinnerator should write out inclusion lists.  On by default." ) ;
-		options[ "-write-incl-list" ]
-			.set_description( "Specify that inthinnerator should produce out exclusion lists.  On by default." ) ;
+		options[ "-suppress-excl-list" ]
+			.set_description( "Specify that inthinnerator should not produce an exclusion lists.  On by default." ) ;
+		options[ "-suppress-incl-list" ]
+			.set_description( "Specify that inthinnerator should not produce an inclusion lists.  On by default." ) ;
 		
 		options.declare_group( "Miscellaneous options" ) ;
 		options[ "-log" ]
@@ -753,6 +753,11 @@ private:
 			get_ui_context().logger() << "!! Error (" << e.what() << "): The file \"" << e.filename() << "\" could not be opened.\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
+		catch( db::StatementStepError const& e ) {
+			get_ui_context().logger() << "!! Error (" << e.what() << "): error with SQL: " << e.sql() << "\n"
+				<< e.description() << ".\n" ;
+			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+		}
 	}
 	
 	void unsafe_process() {
@@ -769,9 +774,9 @@ private:
 		m_snp_picker = get_snp_picker( snps ) ;
 
 		// Write an inclusion list either if user specified -write-incl-list, or didn't specify any output.
-		m_write_incl_list = options().check_if_option_was_supplied( "-write-incl-list" ) || !options().check_if_option_was_supplied( "-write-excl-list" ) ;
+		m_write_incl_list = !options().check_if_option_was_supplied( "-suppress-incl-list" ) ;
 		// Write an exclusion list either if user specified -write-excl-list, or didn't specify any output.
-		m_write_excl_list = options().check_if_option_was_supplied( "-write-excl-list" ) || !options().check_if_option_was_supplied( "-write-incl-list" ) ;
+		m_write_excl_list = !options().check_if_option_was_supplied( "-suppress-excl-list" ) ;
 		
 		write_summary( *map, snps, *m_proximity_test, *m_snp_picker ) ;
 		
