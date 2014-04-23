@@ -118,6 +118,10 @@ namespace genfile {
 		Position position ;
 		double combined_rate, cM ;
 		PerChromosomeMap& map = m_map[ chromosome ] ;
+		if( map.size() == 0 ) {
+			// Always add the start of the chromosome.
+			map.insert( map.end(), MapPoint( 0, 0.0, 0.0 ) ) ;
+		}
 		while( source >> position >> combined_rate >> cM ) {
 			map.insert( map.end(), MapPoint( position, cM, combined_rate )) ;
 			// discard rest of line.
