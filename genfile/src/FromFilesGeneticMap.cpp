@@ -53,14 +53,12 @@ namespace genfile {
 
 	void FromFilesGeneticMap::setup( std::vector< genfile::wildcard::FilenameMatch > const& matches, ProgressCallback progress_callback ) {
 		boost::ptr_vector< std::istream > sources ;
-		std::size_t total_rows = 0 ;
 		for( std::size_t i = 0; i < matches.size(); ++i ) {
 			std::string const& filename = matches[i].filename() ;
 			sources.push_back( open_text_file_for_input( filename ).release() ) ;
 		}
 		assert( sources.size() == matches.size() ) ;
 
-		std::size_t rows_complete = 0 ;
 		for( std::size_t i = 0; i < sources.size(); ++i ) {
 			std::string line ;
 			std::getline( sources[i], line ) ;
