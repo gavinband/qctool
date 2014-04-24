@@ -103,11 +103,11 @@ SNPSummaryComponent::SNPSummaryComponent(
 	m_ui_context( ui_context )
 {}
 
-void SNPSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor ) const {
+void SNPSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor ) {
 	processor.add_callback( genfile::SNPDataSourceProcessor::Callback::UniquePtr( create_manager().release() ) ) ;
 }
 
-SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() const {
+SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() {
 	SNPSummaryComputationManager::UniquePtr manager( new SNPSummaryComputationManager( m_samples, m_options.get_value< std::string >( "-sex-column" ) ) ) ;
 	if( m_options.check( "-haploid-genotype-coding" ) ) {
 		std::string const coding_string = m_options.get< std::string >( "-haploid-genotype-coding" ) ;
@@ -136,7 +136,7 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 	}
 
 	qcdb::Storage::SharedPtr storage ;
-
+	
 	if( m_options.check( "-flat-file" )) {
 		storage = qcdb::FlatFileOutputter::create_shared(
 			filename,
@@ -174,10 +174,16 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() co
 		)
 	) ;
 	
+	m_storage = storage ;
+	
 	add_computations( *manager, storage ) ;
 	m_ui_context.logger() << "SNPSummaryComponent: the following components are in place:\n" << manager->get_summary( "  " ) << "\n" ;
 	
 	return manager ;
+}
+
+qcdb::Storage::SharedPtr SNPSummaryComponent::get_storage() const {
+	return m_storage ;
 }
 
 namespace impl {

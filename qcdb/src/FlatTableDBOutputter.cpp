@@ -48,6 +48,10 @@ namespace qcdb {
 		m_table_name = table_name ;
 	}
 
+	FlatTableDBOutputter::AnalysisId FlatTableDBOutputter::analysis_id() const {
+		return m_outputter.analysis_id() ;
+	}
+
 	void FlatTableDBOutputter::finalise( long options ) {
 		store_block() ;
 		m_snps.clear() ;
@@ -119,7 +123,7 @@ namespace qcdb {
 	}
 
 	void FlatTableDBOutputter::store_block() {
-		db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 1200 ) ;
+		db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 3600 ) ;
 
 		if( !m_insert_data_sql.get() ) {
 			create_schema() ;

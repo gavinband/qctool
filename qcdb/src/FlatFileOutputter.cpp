@@ -58,6 +58,11 @@ namespace qcdb {
 		}
 	}
 
+	FlatFileOutputter::AnalysisId FlatFileOutputter::analysis_id() const {
+		// A flat file only ever has one analysis.
+		return 0 ;
+	}
+
 	void FlatFileOutputter::add_variable(
 		std::string const& variable
 	) {

@@ -48,6 +48,7 @@ namespace snp_summary_component {
 		
 		void finalise( long options ) ;
 
+		db::Connection::RowId analysis_id() const ;
 	private:
 		qcdb::DBOutputter m_outputter ;
 		std::size_t const m_max_transaction_count ;

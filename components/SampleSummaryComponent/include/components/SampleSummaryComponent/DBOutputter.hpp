@@ -17,9 +17,10 @@
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
 #include "qcdb/DBOutputter.hpp"
+#include "components/SampleSummaryComponent/SampleStorage.hpp"
 
 namespace sample_stats {
-	struct DBOutputter: public qcdb::DBOutputter {
+	struct DBOutputter: public qcdb::DBOutputter, public SampleStorage {
 		typedef std::auto_ptr< DBOutputter > UniquePtr ;
 		typedef boost::shared_ptr< DBOutputter > SharedPtr ;
 
@@ -49,7 +50,6 @@ namespace sample_stats {
 
 		typedef std::vector< boost::tuple< std::string, std::size_t, std::string, std::string, genfile::VariantEntry > > Data ;
 		Data m_data ;
-
 	private:
 		void construct_statements() ;
 		void store_samples( genfile::CohortIndividualSource const& samples ) ;

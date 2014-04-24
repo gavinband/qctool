@@ -2272,6 +2272,7 @@ private:
 
 		genfile::SimpleSNPDataSourceProcessor processor ;
 
+		db::Connection::RowId analysis_id = 0 ;
 		if( options().check( "-o" ) ) {
 			SNPSummaryComponent component(
 				context.get_cohort_individual_source(),
@@ -2280,13 +2281,13 @@ private:
 			) ;
 			
 			component.setup( processor ) ;
+			
+			if( options().check( "-sample-stats" ) || options().check( "-risk-score" ) ) {
+				SampleSummaryComponent::UniquePtr sample_summary_component = SampleSummaryComponent::create( options(), context.get_cohort_individual_source(), get_ui_context(), component.get_storage() ) ;
+				sample_summary_component->setup( processor ) ;
+			}
 		}
 
-		if( options().check( "-sample-stats" ) ) {
-			SampleSummaryComponent::UniquePtr component = SampleSummaryComponent::create( options(), context.get_cohort_individual_source(), get_ui_context() ) ;
-			component->setup( processor ) ;
-		}
-		
 		std::auto_ptr< DataReadTest > data_read_test ;
 		if( options().check_if_option_was_supplied( "-read-test" )) {
 			data_read_test.reset( new DataReadTest() ) ;

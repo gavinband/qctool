@@ -12,12 +12,13 @@
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
+#include "qcdb/Storage.hpp"
 
 struct SampleSummaryComponent {
 	static void declare_options( appcontext::OptionProcessor& options ) ;
 	typedef std::auto_ptr< SampleSummaryComponent > UniquePtr ;
-	static UniquePtr create( appcontext::OptionProcessor const& options, genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ) ;
-	SampleSummaryComponent( appcontext::OptionProcessor const& options, genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ) ;
+	static UniquePtr create( appcontext::OptionProcessor const& options, genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context, qcdb::Storage::SharedPtr storage ) ;
+	SampleSummaryComponent( appcontext::OptionProcessor const& options, genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context, qcdb::Storage::SharedPtr storage ) ;
 	void setup( genfile::SNPDataSourceProcessor& ) const ;
 private:
 	appcontext::OptionProcessor const& m_options ;

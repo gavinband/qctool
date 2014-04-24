@@ -52,6 +52,8 @@ namespace qcdb {
 		
 		void finalise( long options = eCreateIndices ) ;
 
+		AnalysisId analysis_id() const ;
+
 	private:
 		DBOutputter m_outputter ;
 		std::string m_table_name ;

@@ -79,6 +79,10 @@ namespace snp_summary_component {
 		}
 	}
 
+	db::Connection::RowId DBOutputter::analysis_id() const {
+		return m_outputter.analysis_id() ;
+	}
+
 	void DBOutputter::add_variable(
 		std::string const& 
 	) {

@@ -1,0 +1,134 @@
+
+//          Copyright Gavin Band 2008 - 2012.
+// Distributed under the Boost Software License, Version 1.0.
+//    (See accompanying file LICENSE_1_0.txt or copy at
+//          http://www.boost.org/LICENSE_1_0.txt)
+
+#include <Eigen/Core>
+#include "metro/mean_and_variance.hpp"
+#include "components/SampleSummaryComponent/SampleSummaryComputation.hpp"
+#include "components/SampleSummaryComponent/RiskScoreComputation.hpp"
+
+// #define DEBUG_RISK_SCORE_COMPUTATION 1
+
+namespace sample_stats {
+	RiskScoreComputation::RiskScoreComputation( genfile::CohortIndividualSource const& samples, genfile::SNPIdentifyingData::CompareFields comparator ):
+		m_scores( samples.get_number_of_individuals() ),
+		m_counts( samples.get_number_of_individuals() ),
+		m_map( comparator )
+	{
+		m_scores.setZero() ;
+		m_counts.setZero() ;
+	}
+
+	void RiskScoreComputation::accumulate( genfile::SNPIdentifyingData const& snp, Genotypes const& genotypes, genfile::VariantDataReader& ) {
+		// do nothing
+		Map::const_iterator const where = m_map.find( snp ) ;
+		if( where != m_map.end() ) {
+#if	DEBUG_RISK_SCORE_COMPUTATION
+			std::cerr << "Found SNP " << snp << " in my map.\n" ;
+#endif		
+			Betas const& betas = where->second ;
+			accumulate( genotypes, betas ) ;
+		}
+	}
+
+	void RiskScoreComputation::accumulate( Genotypes const& genotypes, Betas const& betas ) {
+		assert( genotypes.cols() == 3 ) ;
+		Eigen::VectorXd non_missingness = ( genotypes.rowwise().sum().array() > 0.0 ).cast< double >() ;
+		Eigen::VectorXd contribution = ( genotypes * betas ).rowwise().sum() ;
+		
+#if DEBUG_RISK_SCORE_COMPUTATION
+		std::cerr << "betas = \n"
+			<< betas << ".\n" ;
+		std::cerr << "non_missingness = " << non_missingness.head(10).transpose() << "...\n" ;
+		std::cerr << "contribution = " << contribution.head(10).transpose() << "...\n" ;
+#endif
+		m_scores += contribution ;
+		m_counts += non_missingness ;
+	}
+
+	void RiskScoreComputation::compute( ResultCallback callback ) {
+		for( int sample = 0; sample < m_scores.size(); ++sample ) {
+			callback( sample, "risk_score", m_scores( sample ) ) ;
+			callback( sample, "risk_score_count", m_counts( sample ) ) ;
+		}
+	}
+
+	std::string RiskScoreComputation::get_summary( std::string const& prefix, std::size_t column_width ) const {
+		return prefix + "RiskScoreComputation( using effect sizes for " + genfile::string_utils::to_string( m_map.size() ) + " SNPs )" ;
+	}
+
+	void RiskScoreComputation::add_effects( statfile::BuiltInTypeStatSource& source, ProgressCallback progress_callback ) {
+		using namespace genfile::string_utils ;
+		if(
+			( source.number_of_columns() < 8)
+			|| ( to_lower( source.name_of_column( 0 ) ) != "snpid" )
+			|| ( to_lower( source.name_of_column( 1 ) ) != "rsid" )
+			|| ( to_lower( source.name_of_column( 2 ) ) != "chromosome" )
+			|| ( to_lower( source.name_of_column( 3 ) ) != "position" )
+			|| ( to_lower( source.name_of_column( 4 ) ) != "allelea" )
+			|| ( to_lower( source.name_of_column( 5 ) ) != "alleleb" )
+		) {
+			throw genfile::MalformedInputError(
+				source.get_source_spec(),
+				"Expected first six column names SNPID rsid chromosome position alleleA alleleB, but found: "
+					+ source.name_of_column( 0 ) + " "
+					+ source.name_of_column( 1 ) + " "
+					+ source.name_of_column( 2 ) + " "
+					+ source.name_of_column( 3 ) + " "
+					+ source.name_of_column( 4 ) + " "
+					+ source.name_of_column( 5 ),
+				1
+			) ;
+		}
+			
+		if( !source.has_column( "additive_beta" ) || !source.has_column( "heterozygote_beta" ) ) {
+			throw genfile::MalformedInputError( source.get_source_spec(), "Expected to find additive_beta and heterozygote_beta columns.", 1 ) ;
+		}
+		
+		std::size_t const additive_beta_column = source.index_of_column( "additive_beta" ) ;
+		std::size_t const heterozygote_beta_column = source.index_of_column( "heterozygote_beta" ) ;
+		std::size_t const min_beta_column = std::min( additive_beta_column, heterozygote_beta_column ) ;
+		std::size_t const max_beta_column = std::max( additive_beta_column, heterozygote_beta_column ) ;
+		bool additive_first = ( additive_beta_column < heterozygote_beta_column ) ;
+		
+		if( progress_callback ) {
+			progress_callback( 0, source.number_of_rows() ) ;
+		}
+		
+		genfile::SNPIdentifyingData snp ;
+		Eigen::MatrixXd betas( 3, 2 ) ;
+		double beta1, beta2 ;
+		while( source >> snp.SNPID() >> snp.rsid() >> snp.position().chromosome() >> snp.position().position() >> snp.first_allele() >> snp.second_allele() ) {
+			source >> statfile::ignore( min_beta_column - 6 ) >> beta1 ;
+			source >> statfile::ignore( max_beta_column - min_beta_column - 1 ) >> beta2 ;
+			
+			betas.setZero() ;
+			if( additive_first ) {
+				betas(1,0) = beta1 ;
+				betas(2,0) = 2 * beta1 ;
+				betas(1,1) = beta2 ;
+			} else {
+				betas(1,0) = beta2 ;
+				betas(2,0) = 2 * beta2 ;
+				betas(1,1) = beta1 ;
+			}
+
+			m_map.insert( std::make_pair( snp, betas )) ;
+
+			source >> statfile::end_row() ;
+			if( progress_callback ) {
+				progress_callback( source.number_of_rows_read(), source.number_of_rows() ) ;
+			}
+		}
+
+#if DEBUG_RISK_SCORE_COMPUTATION
+		std::cerr << "I have these SNPs:\n" ;
+		for( Map::const_iterator i = m_map.begin(); i != m_map.end(); ++i ) {
+			std::cerr << i->first << ".\n" ;
+		}
+#endif
+	}
+}
+
