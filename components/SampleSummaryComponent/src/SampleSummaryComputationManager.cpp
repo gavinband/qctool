@@ -73,6 +73,21 @@ void SampleSummaryComputationManager::end_processing_snps() {
 			)
 		) ;
 	}
+	
+	if( m_outputter.get() ) {
+		m_outputter->finalise() ;
+	}
+}
+
+void SampleSummaryComputationManager::send_output_to( sample_stats::SampleStorage::SharedPtr outputter ) {
+	m_outputter = outputter ;
+	add_result_callback(
+		boost::bind(
+			&sample_stats::SampleStorage::operator(),
+			m_outputter,
+			_1, _2, _3, _4, _5
+		)
+	) ;
 }
 
 void SampleSummaryComputationManager::add_result_callback(  ResultSignal::slot_type callback ) {

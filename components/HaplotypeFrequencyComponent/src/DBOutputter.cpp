@@ -1,4 +1,4 @@
-#include <string>
+	#include <string>
 #include "qcdb/DBOutputter.hpp"
 #include "components/HaplotypeFrequencyComponent/DBOutputter.hpp"
 

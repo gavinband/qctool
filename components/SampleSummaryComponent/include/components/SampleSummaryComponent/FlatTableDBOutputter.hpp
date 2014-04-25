@@ -57,7 +57,7 @@ namespace sample_stats {
 		db::Connection::StatementPtr m_insert_sample_statement ;
 		db::Connection::StatementPtr m_insert_data_sql ;
 
-		std::vector< db::Connection::RowId > m_sample_ids ;
+		std::vector< genfile::VariantEntry > m_sample_ids ;
 		typedef std::vector< boost::tuple< std::string, std::size_t, std::string, std::string, genfile::VariantEntry > > Data ;
 		Data m_data ;
 
@@ -74,7 +74,7 @@ namespace sample_stats {
 		void store_samples( genfile::CohortIndividualSource const& samples ) ;
 		db::Connection::RowId get_or_create_sample( genfile::VariantEntry const& identifier, std::size_t index ) const ;
 		void store_block() ;
-		void store_data_for_sample( db::Connection::RowId analysis_id, std::size_t sample_index, db::Connection::RowId sample_id ) ;
+		void store_data_for_sample( db::Connection::RowId analysis_id, std::size_t sample_index, genfile::VariantEntry const& sample_id ) ;
 	} ;
 }
 

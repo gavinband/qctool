@@ -9,10 +9,15 @@
 
 #include <string>
 #include <memory>
+#include <boost/shared_ptr.hpp>
 #include "genfile/VariantEntry.hpp"
+#include "qcdb/StorageOptions.hpp"
 
 namespace sample_stats {
 	struct SampleStorage {
+		typedef std::auto_ptr< SampleStorage > UniquePtr ;
+		typedef boost::shared_ptr< SampleStorage > SharedPtr ;
+
 		virtual ~SampleStorage() {} ;
 		virtual void operator()(
 			std::string const& computation_name,
@@ -21,6 +26,8 @@ namespace sample_stats {
 			std::string const& description,
 			genfile::VariantEntry const& value
 		) = 0 ;
+		
+		virtual void finalise( long options = qcdb::eCreateIndices ) = 0 ;
 	} ;
 }
 

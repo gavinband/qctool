@@ -54,25 +54,22 @@ void SampleSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor )
 	else {
 		filename = genfile::strip_gen_file_extension_if_present( m_options.get< std::string >( "-g" ) ) + ".qcdb";
 	}
-	sample_stats::FlatTableDBOutputter::SharedPtr outputter = sample_stats::FlatTableDBOutputter::create_shared(
-		filename,
-		m_options.get< std::string >( "-analysis-name" ),
-		m_options.get< std::string >( "-analysis-description" ) + " (sample stats)",
-		m_options.get_values_as_map(),
-		m_samples
-	) ;
-
-	if( m_options.check( "-table-name" ) ) {
-		outputter->set_table_name( m_options.get< std::string >( "-table-name" ) + "SampleData" ) ;
-	}
 	
-	manager->add_result_callback(
-		boost::bind(
-			&sample_stats::FlatTableDBOutputter::operator(),
-			outputter,
-			_1, _2, _3, _4, _5
-		)
-	) ;
+	{
+		sample_stats::FlatTableDBOutputter::SharedPtr outputter = sample_stats::FlatTableDBOutputter::create_shared(
+			filename,
+			m_options.get< std::string >( "-analysis-name" ),
+			m_options.get< std::string >( "-analysis-description" ) + " (sample stats)",
+			m_options.get_values_as_map(),
+			m_samples
+		) ;
+
+		if( m_options.check( "-table-name" ) ) {
+			outputter->set_table_name( m_options.get< std::string >( "-table-name" ) + "SampleData" ) ;
+		}
+	
+		manager->send_output_to( sample_stats::SampleStorage::SharedPtr( outputter )) ;
+	}
 	
 	if( m_options.check( "-sample-stats" )) {
 		manager->add(

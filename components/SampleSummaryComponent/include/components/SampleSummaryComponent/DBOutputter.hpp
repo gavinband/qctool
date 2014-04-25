@@ -17,6 +17,7 @@
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
 #include "qcdb/DBOutputter.hpp"
+#include "qcdb/StorageOptions.hpp"
 #include "components/SampleSummaryComponent/SampleStorage.hpp"
 
 namespace sample_stats {
@@ -37,6 +38,8 @@ namespace sample_stats {
 			std::string const& description,
 			genfile::VariantEntry const& value
 		) ;
+		
+		void finalise( long options = qcdb::eCreateIndices ) ;
 
 	private:
 		std::string const m_table_name ;

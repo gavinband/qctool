@@ -39,9 +39,9 @@ namespace sample_stats {
 		m_outputter.connection().run_statement(
 				"CREATE TABLE IF NOT EXISTS Sample ( "
 				"analysis_id INTEGER NOT NULL REFERENCES Entity( id ), "
-				"id TEXT NOT NULL PRIMARY KEY, "
+				"id TEXT NOT NULL, "
 				"index_in_data INTEGER NOT NULL, "
-				"UNIQUE( analysis_id, id )"
+				"PRIMARY KEY( analysis_id, id )"
 			")"
 		) ;
 
@@ -164,7 +164,7 @@ namespace sample_stats {
 		view_sql
 			<< " FROM \""
 			<< table_name << "\" T "
-			<< "INNER JOIN Sample S ON S.id = T.sample_id "
+			<< "INNER JOIN Sample S ON S.analysis_id == T.analysis_id AND S.id = T.sample_id "
 			<< "INNER JOIN Entity E ON E.id == S.analysis_id "
 		;
 
@@ -213,7 +213,6 @@ namespace sample_stats {
 	}
 
 	FlatTableDBOutputter::~FlatTableDBOutputter() {
-		finalise() ;
 	}
 
 	void FlatTableDBOutputter::finalise( long options ) {
@@ -232,8 +231,10 @@ namespace sample_stats {
 
 	void FlatTableDBOutputter::store_samples( genfile::CohortIndividualSource const& samples ) {
 		m_sample_ids.resize( samples.get_number_of_individuals() ) ;
-		for( std::size_t i = 0; i < samples.get_number_of_individuals(); ++i ) {
-			m_sample_ids[i] =  get_or_create_sample( samples.get_entry( i, "ID_1" ), i ) ;
+		for( std::size_t index = 0; index < samples.get_number_of_individuals(); ++index ) {
+			genfile::VariantEntry const id = samples.get_entry( index, "ID_1" ) ;
+			get_or_create_sample( id, index ) ;
+			m_sample_ids[index] = id ;
 		}
 	}
 
@@ -269,7 +270,7 @@ namespace sample_stats {
 		return result ;
 	}
 	
-	void FlatTableDBOutputter::store_data_for_sample( db::Connection::RowId analysis_id, std::size_t sample_index, db::Connection::RowId sample_id ) {
+	void FlatTableDBOutputter::store_data_for_sample( db::Connection::RowId analysis_id, std::size_t sample_index, genfile::VariantEntry const& sample_id ) {
 		m_insert_data_sql->bind( 1, analysis_id ) ;
 		m_insert_data_sql->bind( 2, sample_id ) ;
 		

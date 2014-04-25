@@ -18,6 +18,7 @@
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
 #include "components/SampleSummaryComponent/SampleSummaryComputation.hpp"
+#include "components/SampleSummaryComponent/SampleStorage.hpp"
 
 struct SampleSummaryComputationManager: public genfile::SNPDataSourceProcessor::Callback, public boost::noncopyable {
 	typedef std::auto_ptr< SampleSummaryComputationManager > UniquePtr ;
@@ -31,22 +32,29 @@ struct SampleSummaryComputationManager: public genfile::SNPDataSourceProcessor::
 
 	void add_computation( std::string const& name, SampleSummaryComputation::UniquePtr computation ) ;
 
-	typedef boost::signals2::signal< void (
-		std::string const& computation_name,
-		std::size_t sample,
-		std::string const& variable,
-		std::string const& description,
-		genfile::VariantEntry const& value
-	) > ResultSignal ;
-	void add_result_callback( ResultSignal::slot_type ) ;
+	void send_output_to( sample_stats::SampleStorage::SharedPtr outputter ) ;
 
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) ;
+
 	private:
 		typedef boost::ptr_map< std::pair< std::string, std::string >, SampleSummaryComputation > Computations ;
 		Computations m_computations ;
 		std::size_t m_snp_index ;
 		SampleSummaryComputation::Genotypes m_genotypes ;
+		sample_stats::SampleStorage::SharedPtr m_outputter ;
+
+		typedef boost::signals2::signal< void (
+			std::string const& computation_name,
+			std::size_t sample,
+			std::string const& variable,
+			std::string const& description,
+			genfile::VariantEntry const& value
+		) > ResultSignal ;
+
 		ResultSignal m_result_signal ;
+
+	private:
+		void add_result_callback( ResultSignal::slot_type ) ;
 } ;
 
 #endif

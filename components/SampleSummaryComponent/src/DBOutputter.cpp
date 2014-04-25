@@ -93,6 +93,10 @@ namespace sample_stats {
 		}
 		finalise() ;
 	}
+	
+	void DBOutputter::finalise( long options ) {
+	}
+	
 
 	void DBOutputter::store_samples( genfile::CohortIndividualSource const& samples ) {
 		
