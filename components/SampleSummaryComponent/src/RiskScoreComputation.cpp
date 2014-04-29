@@ -11,7 +11,7 @@
 #include "components/SampleSummaryComponent/SampleSummaryComputation.hpp"
 #include "components/SampleSummaryComponent/RiskScoreComputation.hpp"
 
-// #define DEBUG_RISK_SCORE_COMPUTATION 1
+//#define DEBUG_RISK_SCORE_COMPUTATION 1
 
 namespace sample_stats {
 	RiskScoreComputation::RiskScoreComputation( genfile::CohortIndividualSource const& samples, genfile::SNPIdentifyingData::CompareFields comparator ):
@@ -23,13 +23,13 @@ namespace sample_stats {
 		// do nothing
 		RiskScoreMap::const_iterator const where = m_map.find( snp ) ;
 		if( where != m_map.end() ) {
-#if	DEBUG_RISK_SCORE_COMPUTATION
-	std::cerr << "Accumulating risk scores for " << snp << "...\n" ;
-#endif		
 			RiskScoreIdBetaMap::const_iterator i = where->second.begin() ;
 			RiskScoreIdBetaMap::const_iterator const end_i = where->second.end() ;
 			for( ; i != end_i; ++i ) {
 				std::string const& risk_score_identifier = i->first ;
+#if	DEBUG_RISK_SCORE_COMPUTATION
+				std::cerr << "Accumulating risk scores for " << snp << ", " << risk_score_identifier << "...\n" ;
+#endif		
 				accumulate( genotypes, i->second, m_scores[ risk_score_identifier ], m_counts[ risk_score_identifier ] ) ;
 			}
 		}
@@ -40,7 +40,7 @@ namespace sample_stats {
 		Eigen::VectorXd non_missingness = ( genotypes.rowwise().sum().array() > 0.0 ).cast< double >() ;
 		Eigen::VectorXd contribution = ( genotypes * betas ).rowwise().sum() ;
 		
-#if DEBUG_RISK_SCORE_COMPUTATION
+#if DEBUG_RISK_SCORE_COMPUTATION > 1
 		std::cerr << "betas = \n"
 			<< betas << ".\n" ;
 		std::cerr << "non_missingness = " << non_missingness.head(10).transpose() << "...\n" ;
@@ -71,18 +71,14 @@ namespace sample_stats {
 	std::string RiskScoreComputation::get_summary( std::string const& prefix, std::size_t column_width ) const {
 		std::ostringstream ostr ;
 		ostr << prefix << "RiskScoreComputation\n"
-			<< prefix << " - computing these risk scores: " ;
+			<< prefix << " - computing these risk scores:" ;
 		std::size_t count = 0 ;
 		for( std::set< std::string >::const_iterator i = m_identifiers.begin(); i != m_identifiers.end(); ++i, ++count ) {
 			if( count > 10 ) {
-				ostr << "..." ;
+				ostr << prefix << "     ..." ;
 				break ;
 			}
-			if( count > 0 ) {
-				ostr << ", " ;
-			}
-			ostr << *i
-				<< "(" << m_snp_counts.at(*i) << " SNPs)" ;
+			ostr << prefix << "     " << *i << "(" << m_snp_counts.at(*i) << " SNPs)\n" ;
 		}
 		return ostr.str() ;
 	}
@@ -152,6 +148,11 @@ namespace sample_stats {
 				betas(1,1) = beta1 ;
 			}
 
+			RiskScoreIdBetaMap::const_iterator where = m_map[ snp ].find( risk_score_identifier ) ;
+			if( where != m_map[ snp ].end() ) {
+				throw genfile::MalformedInputError( source.get_source_spec(), "SNP " + snp.get_rsid() + " has duplicated entries for risk score " + risk_score_identifier, source.number_of_rows_read() ) ;
+			}
+
 			m_map[ snp ][ risk_score_identifier ] = betas ;
 			++m_snp_counts[ risk_score_identifier ] ;
 			identifiers.insert( risk_score_identifier ) ;
@@ -170,7 +171,7 @@ namespace sample_stats {
 
 #if DEBUG_RISK_SCORE_COMPUTATION
 		std::cerr << "I have these SNPs:\n" ;
-		for( Map::const_iterator i = m_map.begin(); i != m_map.end(); ++i ) {
+		for( RiskScoreMap::const_iterator i = m_map.begin(); i != m_map.end(); ++i ) {
 			std::cerr << i->first << ".\n" ;
 		}
 #endif
