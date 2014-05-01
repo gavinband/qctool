@@ -3,7 +3,7 @@
 #include "zlib.h"
 #define HAVE_ZLIB 1
 
-//#define DEBUG_rcpp_uncompress_bitpack_haplotypes 1
+#define DEBUG_rcpp_uncompress_bitpack_haplotypes 1
 using namespace Rcpp;
 
 namespace {
@@ -49,6 +49,9 @@ IntegerMatrix rcpp_uncompress_bitpack_haplotypes( List rawData, int N ) {
 		buffer.resize( NN + 10 ) ;
 		zlib_uncompress( data.begin(), data.size(), &buffer ) ;
 		if( buffer.size() != NN + 10 ) {
+#if DEBUG_rcpp_uncompress_bitpack_haplotypes
+			std::cerr << "Expected buffer size " << (NN+10) << " but got " << buffer.size() << ".\n" ;
+#endif
 			throw std::exception() ;
 		}
 		if( buffer[0] == 's' && buffer[1] == 0 && buffer[2] == 7 && std::string( buffer.begin() + 3, buffer.begin() + 10 ) == "bitpack" ) {
@@ -110,8 +113,8 @@ List rcpp_uncompress_floatarray_genotypes( List rawData, int N, IntegerVector co
 #if DEBUG_rcpp_uncompress_bitpack_haplotypes
 	std::cerr << "data.size() == " << data.size() << ", uncompressed buffer size = " << buffer.size() << ".\n" ;
 	std::cerr << "data: " << std::hex ;
-	for( std::size_t i = 0; i < 21; ++i ) {
-		std::cerr << int( buffer[i] ) << "(" << buffer[i] << ") " ;
+	for( std::size_t index = 0; index < 21; ++index ) {
+		std::cerr << int( buffer[index] ) << "(" << buffer[index] << ") " ;
 	}
 	std::cerr << std::dec << "\n" ;
 #endif
