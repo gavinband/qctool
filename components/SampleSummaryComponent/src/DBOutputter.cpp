@@ -63,7 +63,7 @@ namespace sample_stats {
 			"  FROM " + m_table_name + " SD "
 			"  INNER JOIN Sample S "
 			"    ON SD.sample_id = S.id "
-			"  INNER JOIN Entity Analysis "
+			"  INNER JOIN Analysis "
 			"    ON Analysis.id = SD.analysis_id"
 			"  INNER JOIN Entity V "
 			"    ON V.id = SD.variable_id"

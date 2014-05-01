@@ -45,7 +45,7 @@ namespace haplotype_frequency_component {
 			"FROM PairwiseSummaryData PSD "
 			"INNER JOIN Variant V1 ON V1.id == PSD.variant1_id "
 			"INNER JOIN Variant V2 ON V2.id == PSD.variant2_id "
-			"INNER JOIN Entity Analysis ON Analysis.id == PSD.analysis_id "
+			"INNER JOIN Analysis ON Analysis.id == PSD.analysis_id "
 			"INNER JOIN Entity Variable ON Variable.id == PSD.variable_id "
 		) ;
 		

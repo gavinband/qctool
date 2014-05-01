@@ -165,7 +165,7 @@ namespace sample_stats {
 			<< " FROM \""
 			<< table_name << "\" T "
 			<< "INNER JOIN Sample S ON S.analysis_id == T.analysis_id AND S.id = T.sample_id "
-			<< "INNER JOIN Entity E ON E.id == S.analysis_id "
+			<< "INNER JOIN Analysis E ON E.id == S.analysis_id "
 		;
 
 #if DEBUG_FLATTABLEDBOUTPUTTER

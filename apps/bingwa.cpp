@@ -207,11 +207,11 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 			options[ "-analysis-name" ]
 				.set_description( "Specify a name for the current analysis." )
 				.set_takes_single_value()
-				.set_default_value( "bingwa analysis, started " + appcontext::get_current_time_as_string() ) ;
-			options[ "-analysis-description" ]
-				.set_description( "Specify a textual description of the current analysis." )
+				.set_default_value( "bingwa analysis" ) ;
+			options[ "-analysis-chunk" ]
+				.set_description( "Specify a name denoting the current genomic region or chunk on which this is run.  This is intended for use in parallel environments." )
 				.set_takes_single_value()
-				.set_default_value( "bingwa analysis, started " + appcontext::get_current_time_as_string() ) ;
+				.set_default_value( genfile::MissingValue() ) ;
 			options[ "-cohort-names" ]
 				.set_description( "Specify a name to label results from this analysis with" )
 				.set_takes_values_until_next_option() ;
@@ -1469,7 +1469,7 @@ public:
 			qcdb::FlatTableDBOutputter::SharedPtr table_storage = qcdb::FlatTableDBOutputter::create_shared(
 				options().get< std::string >( "-o" ),
 				options().get< std::string >( "-analysis-name" ),
-				options().get< std::string >( "-analysis-description" ),
+				options().get< std::string >( "-analysis-chunk" ),
 				options().get_values_as_map()
 			) ;
 
@@ -1482,7 +1482,7 @@ public:
 			storage = snp_summary_component::DBOutputter::create_shared(
 				options().get< std::string >( "-o" ),
 				options().get< std::string >( "-analysis-name" ),
-				options().get< std::string >( "-analysis-description" ),
+				options().get< std::string >( "-analysis-chunk" ),
 				options().get_values_as_map()
 			) ;
 		}

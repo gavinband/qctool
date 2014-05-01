@@ -73,7 +73,7 @@ function(
 			if( verbose ) {
 				cat( "load.haplotypes(): uncompressing using C++...\n" ) ;
 			}
-		    result$data = rcpp_uncompress_bitpack_haplotypes( D$data, 2 * D$N[1] ) ;
+		    result$data = rcpp_uncompress_bitpack_haplotypes( D$data, D$N[1] ) ;
     	} else {
 			if( verbose ) {
 			    cat( "load.haplotypes(): uncompressing using R...\n" ) ;

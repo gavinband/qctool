@@ -192,11 +192,11 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 		options[ "-analysis-name" ]
 			.set_description( "Specify a name to label results from this analysis with.  (This applies to modules which store their results in a qcdb file.)" )
 			.set_takes_single_value()
-			.set_default_value( globals::program_name + " analysis, started " + appcontext::get_current_time_as_string() ) ;
-		options[ "-analysis-description" ]
-			.set_description( "Specify a textual description of the current analysis." )
+			.set_default_value( globals::program_name + " analysis" ) ;
+		options[ "-analysis-chunk" ]
+			.set_description( "Specify a name denoting the current genomic region or chunk on which this is run.  This is intended for use in parallel environments." )
 			.set_takes_single_value()
-			.set_default_value( globals::program_name + " analysis, started " + appcontext::get_current_time_as_string() ) ;
+			.set_default_value( genfile::MissingValue() ) ;
 	}
 } ;
 
@@ -1225,7 +1225,7 @@ private:
 		qcdb::FlatTableDBOutputter::UniquePtr storage = qcdb::FlatTableDBOutputter::create(
 				filename,
 				options().get< std::string >( "-analysis-name" ),
-				options().get< std::string >( "-analysis-description" ),
+				options().get< std::string >( "-analysis-chunk" ),
 				options().get_values_as_map()
 			) ;
 		

@@ -50,7 +50,7 @@ namespace snp_summary_component {
 			"SD.value AS value "
 			"FROM SummaryData SD "
 			"INNER JOIN Variant V ON V.id == SD.variant_id "
-			"INNER JOIN Entity Analysis ON Analysis.id = SD.analysis_id "
+			"INNER JOIN Analysis ON Analysis.id = SD.analysis_id "
 			"INNER JOIN Entity Variable ON Variable.id = SD.variable_id "
 			"WHERE analysis_id IN ( SELECT id FROM Entity )"
 		) ;

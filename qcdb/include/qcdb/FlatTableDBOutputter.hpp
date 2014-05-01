@@ -71,6 +71,7 @@ namespace qcdb {
 		void create_schema() ;
 		void store_data_for_variant(
 			std::size_t const,
+			genfile::SNPIdentifyingData2 const& snp,
 			db::Connection::RowId const,
 			db::Connection::RowId const
 		) ;

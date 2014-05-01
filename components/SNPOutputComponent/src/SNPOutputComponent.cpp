@@ -78,7 +78,7 @@ void SNPOutputComponent::setup( genfile::SNPDataSink& sink, genfile::SNPDataSour
 				filename,
 				m_samples,
 				m_options.get< std::string >( "-analysis-name" ),
-				m_options.get< std::string >( "-analysis-description" ),
+				m_options.get< std::string >( "-analysis-chunk" ),
 				m_options.get_values_as_map()
 			)
 		) ;

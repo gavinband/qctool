@@ -59,7 +59,7 @@ void SampleSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor )
 		sample_stats::FlatTableDBOutputter::SharedPtr outputter = sample_stats::FlatTableDBOutputter::create_shared(
 			filename,
 			m_options.get< std::string >( "-analysis-name" ),
-			m_options.get< std::string >( "-analysis-description" ) + " (sample stats)",
+			m_options.get< std::string >( "-analysis-chunk" ) + " (sample stats)",
 			m_options.get_values_as_map(),
 			m_samples
 		) ;

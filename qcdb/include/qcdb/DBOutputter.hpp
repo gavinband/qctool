@@ -56,7 +56,7 @@ namespace qcdb {
 	private:
 		db::Connection::UniquePtr m_connection ;
 		std::string const m_analysis_name ;
-		std::string const m_analysis_description ;
+		std::string const m_analysis_chunk ;
 		Metadata const m_metadata ;
 		bool m_create_indices ;
 
@@ -64,11 +64,18 @@ namespace qcdb {
 		db::Connection::StatementPtr m_find_entity_data_statement ;
 		db::Connection::StatementPtr m_insert_entity_statement ;
 		db::Connection::StatementPtr m_insert_entity_data_statement ;
+
+		db::Connection::StatementPtr m_insert_analysis_statement ;
+		db::Connection::StatementPtr m_find_analysis_statement ;
+		db::Connection::StatementPtr m_insert_analysis_property_statement ;
+
 		db::Connection::StatementPtr m_insert_entity_relationship_statement ;
+
 		db::Connection::StatementPtr m_find_variant_statement ;
 		db::Connection::StatementPtr m_insert_variant_statement ;
 		db::Connection::StatementPtr m_find_variant_identifier_statement ;
 		db::Connection::StatementPtr m_insert_variant_identifier_statement ;
+
 		db::Connection::RowId m_analysis_id ;
 		db::Connection::RowId m_is_a ;
 		db::Connection::RowId m_used_by ;
@@ -80,6 +87,16 @@ namespace qcdb {
 		void store_metadata() ;
 		void load_entities() ;
 		void create_entity_relationship( db::Connection::RowId entity1_id, db::Connection::RowId relationship_id, db::Connection::RowId entity2_id ) const ;
+		db::Connection::RowId create_analysis(
+			std::string const& name,
+			std::string const& description
+		) const ;
+		db::Connection::RowId set_analysis_property(
+			db::Connection::RowId const analysis_id,
+			std::string const& property,
+			genfile::VariantEntry const& value,
+			std::string const& aux
+		) const ;
 		db::Connection::RowId get_or_create_entity_internal(
 			std::string const& name,
 			std::string const& description,

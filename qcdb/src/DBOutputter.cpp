@@ -32,7 +32,7 @@ namespace qcdb {
 	DBOutputter::DBOutputter( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ):
 		m_connection( db::Connection::create( filename )),
 		m_analysis_name( analysis_name ),
-		m_analysis_description( analysis_description ),
+		m_analysis_chunk( analysis_description ),
 		m_metadata( metadata ),
 		m_create_indices( true )
 	{
@@ -112,15 +112,42 @@ namespace qcdb {
 		) ;
 
 		m_connection->run_statement(
-			"CREATE VIEW IF NOT EXISTS AnalysisView AS "
-			"SELECT entity1_id AS id, A.name AS name, Tbl.value AS \"table\", Tool.value AS tool, A.description AS description "
-			"FROM EntityRelationshipView ER "
-			"INNER JOIN Entity A ON A.id = ER.entity1_id "
-			"LEFT OUTER JOIN EntityDataView Tool ON Tool.entity_id = A.id AND Tool.variable == 'tool' "
-			"LEFT OUTER JOIN EntityDataView Tbl ON Tbl.entity_id = ER.entity1_id AND Tbl.variable == 'table' "
-			"WHERE ER.relationship == 'is_a' AND ER.entity2 == 'analysis'"
+			"CREATE TABLE IF NOT EXISTS Analysis ( "
+				"id INTEGER PRIMARY KEY, "
+				"name TEXT, "
+				"chunk TEXT"
+			")"
 		) ;
-		
+		m_connection->run_statement(
+			"CREATE TABLE IF NOT EXISTS AnalysisProperty( "
+			"analysis_id INTEGER NOT NULL REFERENCES Analysis( id ), "
+			"property TEXT NOT NULL, "
+			"value TEXT, "
+			"source TEXT"
+			")"
+		) ;
+		m_connection->run_statement(
+			"CREATE VIEW IF NOT EXISTS AnalysisPropertyView AS "
+			"SELECT analysis_id, name, property, value "
+			"FROM AnalysisProperty AP "
+			"INNER JOIN Analysis A "
+			"ON A.id = AP.analysis_id"
+		) ;
+		m_connection->run_statement(
+			"CREATE TABLE IF NOT EXISTS AnalysisStatus ( "
+				"analysis_id INTEGER NOT NULL REFERENCES Analysis( id ), "
+				"started TEXT NOT NULL, "
+				"completed TEXT, "
+				"status TEXT NOT NULL "
+			")"
+		) ;
+		m_connection->run_statement(
+			"CREATE VIEW IF NOT EXISTS AnalysisStatusView AS "
+			"SELECT analysis_id, name AS analysis, chunk, started, completed, status "
+			"FROM AnalysisStatus AST "
+			"INNER JOIN Analysis A "
+			"ON A.id == AST.analysis_id"
+		) ;
 		m_connection->run_statement(
 			"CREATE VIEW IF NOT EXISTS VariantView AS "
 			"SELECT          V.id AS id, V.rsid AS rsid, V.chromosome AS chromosome, V.position AS position, V.alleleA AS alleleA, V.alleleB AS alleleB, "
@@ -129,22 +156,6 @@ namespace qcdb {
 			"LEFT OUTER JOIN VariantIdentifier VI "
 			"  ON VI.variant_id = V.id "
 			"GROUP BY V.id"
-		) ;
-		
-		m_connection->run_statement(
-			"CREATE TABLE IF NOT EXISTS AnalysisStatus ( "
-				"analysis_id INTEGER NOT NULL REFERENCES Entity( id ), "
-				"started TEXT NOT NULL, "
-				"completed TEXT, "
-				"status TEXT NOT NULL "
-			")"
-		) ;
-		m_connection->run_statement(
-			"CREATE VIEW IF NOT EXISTS AnalysisStatusView AS "
-			"SELECT analysis_id, E.name AS analysis, started, completed, status "
-			"FROM AnalysisStatus A "
-			"INNER JOIN Entity E "
-			"ON E.id == A.analysis_id"
 		) ;
 		construct_statements() ;
 		store_metadata() ;
@@ -169,6 +180,11 @@ namespace qcdb {
 		m_find_entity_data_statement = m_connection->get_statement( "SELECT * FROM EntityData WHERE entity_id == ?1 AND variable_id == ?2" ) ;
 		m_find_entity_statement = m_connection->get_statement( "SELECT id FROM Entity E WHERE name == ?1 AND description == ?2" ) ;
 		m_insert_entity_data_statement = m_connection->get_statement( "INSERT OR REPLACE INTO EntityData ( entity_id, variable_id, value ) VALUES ( ?1, ?2, ?3 )" ) ;
+
+		m_find_analysis_statement = m_connection->get_statement( "SELECT id FROM Analysis WHERE name == ?1 AND chunk == ?2" ) ;
+		m_insert_analysis_statement = m_connection->get_statement( "INSERT INTO Analysis( name, chunk ) VALUES ( ?1, ?2 )" ) ;
+		m_insert_analysis_property_statement = m_connection->get_statement( "INSERT OR REPLACE INTO AnalysisProperty ( analysis_id, property, value, source ) VALUES ( ?1, ?2, ?3, ?4 )" ) ;
+
 		m_insert_entity_relationship_statement = m_connection->get_statement( "INSERT OR REPLACE INTO EntityRelationship( entity1_id, relationship_id, entity2_id ) VALUES( ?1, ?2, ?3 )") ;
 		m_find_variant_statement = connection().get_statement(
 			"SELECT id, rsid FROM Variant WHERE chromosome == ?1 AND position == ?2 AND alleleA = ?3 AND alleleB = ?4"
@@ -187,30 +203,22 @@ namespace qcdb {
 		m_used_by = get_or_create_entity_internal( "used_by", "used_by relationship" ) ;
 
 		try {
-			m_analysis_id = create_entity_internal(
+			m_analysis_id = create_analysis(
 				m_analysis_name,
-				m_analysis_description,
-				get_or_create_entity_internal( "analysis", "class of analyses" )
+				m_analysis_chunk
 			) ;
 		} catch( db::StatementStepError const& e ) {
-			throw genfile::BadArgumentError( "qcdb::DBOutputter::store_metadata()", "analysis_name=\"" + m_analysis_name + "\"", "An analysis with name \"" + m_analysis_name + "\" and description \"" + m_analysis_description + "\" already exists" ) ;
-		} 
+			throw genfile::BadArgumentError( "qcdb::DBOutputter::store_metadata()", "analysis_name=\"" + m_analysis_name + "\"", "An analysis with name \"" + m_analysis_name + "\" and chunk \"" + m_analysis_chunk + "\" already exists" ) ;
+		}
 
 		start_analysis( m_analysis_id ) ;
 
-		get_or_create_entity_data(
-			m_analysis_id,
-			get_or_create_entity( "tool", "Executable, pipeline, or script used to generate these results." ),
-			"qctool revision " + std::string( globals::qctool_revision )
-		) ;
-		
-		db::Connection::RowId const cmd_line_arg_id = get_or_create_entity_internal( "command-line argument", "Value supplied to a script or executable" ) ;
 		for( Metadata::const_iterator i = m_metadata.begin(); i != m_metadata.end(); ++i ) {
-			db::Connection::RowId key_id = get_or_create_entity( i->first, "command-line argument", cmd_line_arg_id ) ;
-			get_or_create_entity_data(
+			set_analysis_property(
 				m_analysis_id,
-				key_id,
-				genfile::string_utils::join( i->second.first, "," ) + " (" + i->second.second + ")"
+				i->first,
+				genfile::string_utils::join( i->second.first, "," ),
+				i->second.second
 			) ;
 		}
 	}
@@ -226,7 +234,7 @@ namespace qcdb {
 	void DBOutputter::end_analysis( db::Connection::RowId const analysis_id ) const {
 		db::Connection::StatementPtr stmnt = m_connection->get_statement( "UPDATE AnalysisStatus SET completed = ?, status = ? WHERE analysis_id == ?" ) ;
 		stmnt->bind( 1, appcontext::get_current_time_as_string() ) ;
-		stmnt->bind( 2, "successfully completed" ) ;
+		stmnt->bind( 2, "success" ) ;
 		stmnt->bind( 3, analysis_id ) ;
 		stmnt->step() ;
 	}
@@ -276,6 +284,19 @@ namespace qcdb {
 		if( class_id ) {
 			create_entity_relationship( result, m_is_a, *class_id ) ;
 		}
+		return result ;
+	}
+
+	db::Connection::RowId DBOutputter::create_analysis( std::string const& name, std::string const& description ) const {
+		db::Connection::RowId result ;
+		m_insert_analysis_statement
+			->bind( 1, name )
+			.bind( 2, description )
+			.step() ;
+			
+		result = m_connection->get_last_insert_row_id() ;
+		m_insert_analysis_statement->reset() ;
+
 		return result ;
 	}
 
@@ -330,6 +351,25 @@ namespace qcdb {
 			result = m_find_entity_data_statement->get< db::Connection::RowId >( 0 ) ;
 		}
 		m_find_entity_data_statement->reset() ;
+		return result ;
+	}
+
+	db::Connection::RowId DBOutputter::set_analysis_property(
+		db::Connection::RowId const analysis_id,
+		std::string const& property,
+		genfile::VariantEntry const& value,
+		std::string const& aux
+	) const {
+		db::Connection::RowId result ;
+
+		m_insert_analysis_property_statement
+			->bind( 1, analysis_id )
+			.bind( 2, property )
+			.bind( 3, value )
+			.bind( 4, aux )
+			.step() ;
+		result = m_connection->get_last_insert_row_id() ;
+		m_insert_analysis_property_statement->reset() ;
 		return result ;
 	}
 

@@ -131,7 +131,7 @@ namespace qcdb {
 		}
 		for( std::size_t i = 0; i < m_snps.size(); ++i ) {
 			db::Connection::RowId const variant_id = m_outputter.get_or_create_variant( m_snps[i] ) ;
-			store_data_for_variant( i, m_outputter.analysis_id(), variant_id ) ;
+			store_data_for_variant( i, m_snps[i], m_outputter.analysis_id(), variant_id ) ;
 		}
 	}
 
@@ -151,19 +151,21 @@ namespace qcdb {
 			<< table_name
 			<< " ( "
 			"analysis_id INT NOT NULL REFERENCES Entity( id ), "
-			"variant_id INT NOT NULL REFERENCES Variant( id )"
+			"variant_id INT NOT NULL REFERENCES Variant( id ), "
+			"chromosome TEXT, "
+			"position INTEGER"
 		;
 		
 		insert_data_sql << "INSERT INTO "
 			<< table_name ;
-		insert_data_sql_columns << "( analysis_id, variant_id" ;
-		insert_data_sql_values << "VALUES( ?1, ?2" ;
+		insert_data_sql_columns << "( analysis_id, variant_id, chromosome, position" ;
+		insert_data_sql_values << "VALUES( ?1, ?2, ?3, ?4" ;
 		
 		VariableMap::right_const_iterator
 			var_i = m_variables.right.begin(),
 			end_var_i = m_variables.right.end() ;
 
-		for( std::size_t bind_i = 3; var_i != end_var_i; ++var_i, ++bind_i ) {
+		for( std::size_t bind_i = 5; var_i != end_var_i; ++var_i, ++bind_i ) {
 			schema_sql << ", " ;
 			insert_data_sql_columns << ", " ;
 			insert_data_sql_values << ", " ;
@@ -192,10 +194,10 @@ namespace qcdb {
 		std::ostringstream view_sql ;	
 		view_sql
 			<< "CREATE VIEW IF NOT EXISTS \"" << table_name << "View\" AS "
-			<< "SELECT V.chromosome, V.position, V.rsid, V.alleleA, V.alleleB, A.name AS analysis, T.* FROM \""
+			<< "SELECT V.rsid, V.alleleA, V.alleleB, A.name AS analysis, T.* FROM \""
 			<< table_name << "\" T "
 			<< "INNER JOIN Variant V ON V.id = T.variant_id "
-			<< "INNER JOIN Entity A ON A.id = T.analysis_id"
+			<< "INNER JOIN Analysis A ON A.id = T.analysis_id"
 		;
 
 #if DEBUG_FLATTABLEDBOUTPUTTER
@@ -239,17 +241,20 @@ namespace qcdb {
 	
 	void FlatTableDBOutputter::store_data_for_variant(
 		std::size_t const snp_i,
+		genfile::SNPIdentifyingData2 const& snp,
 		db::Connection::RowId const analysis_id,
 		db::Connection::RowId const variant_id
 	) {
 		m_insert_data_sql->bind( 1, analysis_id ) ;
 		m_insert_data_sql->bind( 2, variant_id ) ;
+		m_insert_data_sql->bind( 3, std::string( snp.get_position().chromosome() ) ) ;
+		m_insert_data_sql->bind( 4, snp.get_position().position() ) ;
 		
 		VariableMap::right_const_iterator
 			var_i = m_variables.right.begin(),
 			end_var_i = m_variables.right.end() ;
 		
-		for( std::size_t bind_i = 3; var_i != end_var_i; ++var_i, ++bind_i ) {
+		for( std::size_t bind_i = 5; var_i != end_var_i; ++var_i, ++bind_i ) {
 			ValueMap::const_iterator where = m_values.find( std::make_pair( snp_i, var_i->first )) ;
 			if( where == m_values.end() ) {
 				m_insert_data_sql->bind( bind_i, genfile::MissingValue() ) ;
