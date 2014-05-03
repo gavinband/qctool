@@ -35,10 +35,6 @@ namespace qcdb {
 	{}
 
 	FlatTableDBOutputter::~FlatTableDBOutputter() {
-		store_block() ;
-		m_snps.clear() ;
-		m_values.clear() ;
-		m_outputter.finalise() ;
 	}
 	
 	void FlatTableDBOutputter::set_table_name( std::string const& table_name ) {
@@ -58,7 +54,7 @@ namespace qcdb {
 		m_values.clear() ;
 
 		if( options & eCreateIndices ) {
-			db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 600 ) ;
+			db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 7200 ) ;
 			m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS " + m_table_name + "_index ON " + m_table_name + "( variant_id )" ) ;
 		}
 
@@ -123,7 +119,7 @@ namespace qcdb {
 	}
 
 	void FlatTableDBOutputter::store_block() {
-		db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 3600 ) ;
+		db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 7200 ) ;
 
 		if( !m_insert_data_sql.get() ) {
 			create_schema() ;

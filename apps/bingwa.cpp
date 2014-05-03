@@ -505,7 +505,18 @@ public:
 				callback( prefix + "AB", counts(3) ) ;
 				callback( prefix + "BB", counts(4) ) ;
 				callback( prefix + "NULL", counts(5) ) ;
-				callback( prefix + "B_allele_frequency",  ( counts(1) + counts(3) + 2 * counts(4)) / ( counts(0) + counts(1) + 2 * ( counts.segment(2,3).sum() ) ) ) ;
+
+				double B_allele_count = 0 ;
+				double total_allele_count = 0 ;
+				if( counts(0) == counts(0) ) {
+					B_allele_count += counts(1) ;
+					total_allele_count += counts(0) + counts(1) ;
+				}
+				if( counts(2) == counts(2) ) {
+					B_allele_count += counts(3) + 2 * counts(4) ;
+					total_allele_count += 2.0 * ( counts(2) + counts(3) + counts(4) ) ;
+				}
+				callback( prefix + "B_allele_frequency", B_allele_count / total_allele_count ) ;
 				callback( prefix + "maf", maf ) ;
 				
 				assert( betas.size() == ses.size() ) ;

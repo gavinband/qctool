@@ -44,7 +44,7 @@ namespace qcdb {
 			std::cerr << "qcdb::DBOutputter::DBOutputter(): unable to set PRAGMA synchronous=OFF, is another connection using this database?" ;
 		}
 
-		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 1200 ) ;
+		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 7200 ) ;
 
 		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS Variant ( id INTEGER PRIMARY KEY, rsid TEXT, chromosome TEXT, position INTEGER, alleleA TEXT, alleleB TEXT )"
@@ -163,7 +163,7 @@ namespace qcdb {
 
 	void DBOutputter::finalise( long options ) {
 		if( options & eCreateIndices ) {
-			db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 1200 ) ;
+			db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 7200 ) ;
 			m_connection->run_statement(
 				"CREATE INDEX IF NOT EXISTS Variant_rsid_index ON Variant( rsid )"
 			) ;
@@ -171,7 +171,7 @@ namespace qcdb {
 				"CREATE INDEX IF NOT EXISTS VariantIdentifierVariantIndex ON VariantIdentifier( variant_id )"
 			) ;
 		}
-		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 1200 ) ;
+		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 7200 ) ;
 		end_analysis( m_analysis_id ) ;
 	}
 
