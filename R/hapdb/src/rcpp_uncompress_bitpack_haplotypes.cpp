@@ -3,7 +3,7 @@
 #include "zlib.h"
 #define HAVE_ZLIB 1
 
-#define DEBUG_rcpp_uncompress_bitpack_haplotypes 1
+// #define DEBUG_rcpp_uncompress_bitpack_haplotypes 1
 using namespace Rcpp;
 
 namespace {
