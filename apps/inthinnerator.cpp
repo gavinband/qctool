@@ -811,7 +811,7 @@ private:
 				}
 				source.reset(
 					genfile::SNPDataSourceChain::create(
-						genfile::wildcard::find_files_by_chromosome( filename ),
+						genfile::wildcard::find_files_by_chromosome( filename, genfile::wildcard::eALL_CHROMOSOMES ),
 						metadata,
 						"guess",
 						boost::ref( progress_context )
@@ -826,7 +826,7 @@ private:
 			// Not a GEN format file.  Try a different format.
 			statfile::BuiltInTypeStatSourceChain::UniquePtr chain(
 				statfile::BuiltInTypeStatSourceChain::open(
-					genfile::wildcard::find_files_by_chromosome( filename )
+					genfile::wildcard::find_files_by_chromosome( filename, genfile::wildcard::eALL_CHROMOSOMES )
 				)
 			) ;
 
