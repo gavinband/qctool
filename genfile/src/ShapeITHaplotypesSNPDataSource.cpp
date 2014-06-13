@@ -95,7 +95,7 @@ namespace genfile {
 		} else {
 			snp.position().chromosome() = m_chromosome ;
 		}
-		
+
 		(*m_stream_ptr) >> snp.SNPID() >> snp.rsid() >> snp.position().position() >> snp.first_allele() >> snp.second_allele() ;
 
 		if( *m_stream_ptr ) {
