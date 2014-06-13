@@ -80,7 +80,7 @@ class SampleRow: public string_to_value_map
 		typedef std::map< std::string, Entry > FurtherData ;
 		FurtherData m_further_data ;
 		std::vector<std::string> m_column_headings ;
-		std::vector<char> m_column_types ;		
+		std::vector<char> m_column_types ;
 
 } ;
 
