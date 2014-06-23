@@ -72,9 +72,9 @@ namespace genfile {
 
 			void set_order_type( OrderType const type ) {
 				m_order_type == type ;
-				//if( m_field_is_genotype ) {
-				//	m_sep = ( type == eOrderedList ) ? '|' : '/' ;
-				//}
+				if( m_field_is_genotype ) {
+					m_sep = ( type == eOrderedList ) ? '|' : '/' ;
+				}	
 			}
 
 			void operator()( MissingValue const value ) {
