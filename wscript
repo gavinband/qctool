@@ -5,7 +5,7 @@ import Options
 
 srcdir="."
 APPNAME = "qctool"
-VERSION = "dev"
+VERSION = "2.0-dev"
 
 subdirs = [
 	'genfile', 'statfile', 'string_utils', 'appcontext',
@@ -238,7 +238,7 @@ def build( bld ):
 def create_app( bld, name, uselib = '', uselib_local = '' ):
 	bld.new_task_gen(
 		features = 'cxx cprogram',
-		target =  '%s-%s' % ( name, VERSION ),
+		target =  '%s_v%s' % ( name, VERSION ),
 		source = [  'apps/' + name + '.cpp' ],
 		includes='./ ./include ./genfile/include ./statfile/include',
 		uselib_local = uselib_local,
