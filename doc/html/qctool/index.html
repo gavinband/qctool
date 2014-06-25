@@ -33,7 +33,7 @@
         <div class="header" id="header1">
             <!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
             <div class="header_text">
-                qctool
+                qctool2
             </div>
             <div class="header_subtext">
                 A tool for quality control and analysis of gwas datasets.
@@ -68,6 +68,10 @@
         </div>
         <div class="main_text">
             <div id="overview" style="display:none">
+				<p>
+					<b>IMPORTANT</b>: this page documents version 2 of QCTOOL, which is currently <b>experimental</b>.
+					For the stable v1 builds, go <a href="http://www.well.ox.ac.uk/~gav/qctool/">here</a> instead.
+				</p>
                 <p>
                     QCTOOL is a command-line utility program for basic quality control of gwas datasets.
                     It supports the same <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format_new.html">file formats</a>
@@ -93,53 +97,20 @@
                 </p>
                 <p>
                     <strong>Change history.</strong>
-                    QCTOOL has undergone significant changes since the original release (webpage <a href="http://www.well.ox.ac.uk/~gav/qctool/old/v1.0/qctool.html">here</a>).
-                    This page documents version 1.4 of QCTOOL.  A short summary of changes is:
+					This page documents version 2 of QCTOOL which is currently <em>experimental</em>.  This means we expect some features not to work, or
+					not to work well, or to work wrongly, or to destroy your computer.  On the plus side, QCTOOL v2 has several new features
+					not found in the v1 release series:
                     <p>
-                    In <strong>v1.4</strong>:
                     <ul>
-                        <li>Fix bug with gzipped output.</li>
-						<li>Fix crashing issue with Hardy-Weinberg P-value computation for large sample sizes.</li>
+						<li>QCTOOL can read and write phased data, including data in SHAPEIT format and in VCF format.</li>
+						<li>The ability to apply strand alignments</li>
+						<li>New per-SNP and per-sample summary statistics</li>
+						<li>A new output method that writes output to a sqlite database</li>
+						<li>The ability to compute principal components</li>
+						<li>The ability to compute pairwise LD statistics</li>
+						<li>A new feature which computes comparisons between (phased or unphased) callsets</li>
+						<li>Annotation of output with reference or other sequence data.</li>
                     </ul>
-                </p>
-                    <p>
-                    In <strong>v1.3</strong>:
-                    <ul>
-                        <li>A new option pair <span class="monospace">-[in|ex]cl-snps</span> has been added.  This reads a list of SNPs in the format output
-                            by the <span class="monospace">-write-snp-excl-list</span> option.  This is a file with 6 named columns,
-                            <span class="monospace">SNPID, rsid, chromosome, position, alleleA, alleleB</span>.
-                        </li>
-                        <li>A bug preventing the <span class="monospace">-incl-snpids</span> from working correctly was fixed.</li>
-                    </ul>
-                </p>
-                    <p>
-                    In <strong>v1.2</strong>:
-                    <ul>
-                        <li>A new option pair <span class="monospace">-[in|ex]cl-positions</span> has been added.
-                            Each takes a file which should contain a list of genomic positions in the form <span class="monospace">&lt;chromosome&gt;:&lt;position&gt;</span>,
-                            separated by whitespace.</li>
-                        <li>Support for bgzipped files (created using the <a href="http://samtools.sourceforge.net/tabix.shtml">bgzip</a> tool from <a href="http://samtools.sourceforge.net/">SAMtools</a>) has been added.
-                            As for gzipped files these are automatically detected based on the <span class="monospace">.gz</span> filename extension.</li>
-                        <li>The -sort option now works with unzipped VCF format output as described on the <a href="#tutorial">examples page</a>.</li>
-                        <li>A bug relating to VCF files with more than 10,000 lines has been fixed.</li>
-                        <li>The behaviour of the -sort option has been tweaked to make it behave better on compute clusters.</li>
-                    </ul>
-                    </p>
-                    <p>
-                        In <strong>v1.1</strong>:
-                        <ul>
-                            <li>Support for <a href="http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41">Variant Call Format</a> has been added - see the <a href='#file_formats'>file formats</a> page.
-                            <li>New options <span class="monospace">-[in|ex]cl-range</span>, <span class="monospace">-[in|ex]cl-rsids</span>, <span class="monospace">-[in|ex]cl-snpids</span>, <span class="monospace">-[in|ex]cl-snps-matching</span> for SNP filtering have been added.
-                                Options <span class="monospace">-interval</span> and <span class="monospace">-snp-[in|ex]cl-list</span> have been removed.</li>
-                            <li>QCTOOL can now work with multiple cohorts, treating them like one big cohort.</li>
-                            <li>The BGEN format now supports long alleles such as indels and deletions.  There is an <a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format.html">updated spec</a>.</li>
-                            <li>A <span class="monospace">-sort</span> option has been added.  This sorts the output by chromosome and position.</li>
-                            <li>The names and usage of some options have been rationalised.</li>
-                        </ul>
-                    </p>
-                </p>
-                <p>
-                    See the file CHANGELOG.txt for a full list of changes.
                 </p>
                 <p>
                     <strong>Acknowledgements.</strong> The following people contributed to the design and implementation of qctool:
@@ -271,13 +242,14 @@ $ qctool -help
                         $ qctool -g example_#.gen -og example.vcf
                     </div>
                     <div class="task_notes">
-                        (This makes a VCF file containing all the variants.)
+                        (This makes a VCF file containing all the variants. Only GT field is currently output.)
                     </div>
                     <div class="task_command_line">
                         $ qctool -g example_#.gen -og example_#.bgen
                     </div>
                     <div class="task_notes">
                         (This makes one output file per input file.)
+						<b>NOT WORKING</b>
                     </div>
                     <div class="task_command_line">
                         $ qctool -g example_01.gen -og example_01.bgen -assume-chromosome 01
@@ -553,7 +525,7 @@ $ qctool -help
                                 QCTOOL is strict about metadata in input files for the fields it reads;
                                 since this is not always correct a <span class="monospace">-metadata</span> option is provided to override
                                 the input file metadata. Currently, only genotypes are output when outputting VCF files.
-								<b>Note:</b> currently, QCTOOL does not apply PHRED scaling to probabilities in the GP field (this is in violation of the spec).
+								<b>Note:</b>QCTOOL does not apply PHRED scaling to probabilities in the GP field.
                             </td>
                         </tr>
                         <tr>
@@ -566,7 +538,7 @@ $ qctool -help
                             <td>
                                 Input only. To specify this filetype, use <span class="monospace">-g &lt;haplotypes file&gt; -filetype impute_haplotypes</span>.
                                 It is assumed the legend file name is the same as the haplotypes file name, minus extension, with <span class="monospace">.legend</span> appended.
-                                Genotypes are formed from pairs of haplotypes;
+                                For genotypic computations, genotypes are formed from pairs of haplotypes;
                                 it is assumed that the two haplotypes for each individual are consecutive columns in the haplotypes file.
                             </td>
                         </tr>
@@ -578,8 +550,10 @@ $ qctool -help
                                 (none)
                             </td>
                             <td>
-                                Input only.  Use <span class="monospace">-filetype shapeit_haplotypes</span> to specify this file type.   Genotypes are formed from pairs of haplotypes; it is assumed that the two haplotypes for each individual are consecutive columns in the file.
-                                (This format is described <a href="http://www.shapeit.fr/pages/hapssample.html">here</a>.)
+                                Use <span class="monospace">-[o]filetype shapeit_haplotypes</span> to specify reading or writing this file type.
+								For genotypic computations, genotypes are formed from pairs of haplotypes; it is assumed that the two haplotypes for each individual
+								are consecutive columns in the file. (This format is
+								described <a href="http://www.shapeit.fr/pages/hapssample.html">here</a>.)
                             </td>
                         </tr>
                     </table>
@@ -609,119 +583,38 @@ $ qctool -help
                             </th>
                         </tr>
                         <tr>
-                            <td>v1.4</td>
+                            <td>v2-dev<sup>&dagger;</sup></td>
                             <td>
                                 Linux <small>x86-64 static build</small>
                             </td>
                             <td>
-                                <a href="resources/qctool_v1.4-linux-x86_64.tgz" onClick="_gaq.push(['_trackEvent', 'resource', 'download', 'qctool_v1.4-linux-x86_64.tgz' ])">qctool_v1.4-linux-x86_64.tgz</a> (942Kb)
+                                <a href="resources/qctool_v2.0-dev-linux-x86_64.tgz">qctool_v2.0-dev-linux-x86_64.tgz</a>
                             </td>
                         </tr>
                         <tr>
-                            <td>v1.4</td>
+                            <td>v2-dev<sup>&dagger;</sup></td>
                             <td>
                                 Linux <small>alternative build</small>
                             </td>
                             <td>
-                                <a href="resources/qctool_v1.4-scientific-linux-x86_64.tgz" onClick="_gaq.push(['_trackEvent', 'resource', 'download', 'qctool_v1.4-scientific-linux-x86_64.tgz' ])">qctool_v1.4-scientific-linux-x86_64.tgz</a> (972Kb)
+                                <a href="resources/qctool_v2.0-dev-scientific-linux-x86_64.tgz">qctool_v2.0-dev-scientific-linux-x86_64.tgz</a>
                             </td>
                         </tr>
                         <tr>
-                            <td>v1.4</td>
+                            <td>v2-dev<sup>&dagger;</sup></td>
                             <td>
                                 Mac OS X
                             </td>
                             <td>
-                                <a href="resources/qctool_v1.4-osx.tgz" onClick="_gaq.push(['_trackEvent', 'resource', 'download', 'qctool_v1.4-osx.tgz' ])">qctool_v1.4-osx.tgz</a> (1.1Mb)
-                            </td>
-                        </tr>
-                        <tr><td colspan=3 class="table_separator"></td></tr>
-                        <tr>
-                            <td>v1.3</td>
-                            <td>
-                                Linux <small>x86-64 static build</small>
-                            </td>
-                            <td>
-                                <a href="resources/qctool_v1.3-linux-x86_64.tgz" onClick="_gaq.push(['_trackEvent', 'resource', 'download', 'qctool_v1.3-linux-x86_64.tgz' ])">qctool_v1.3-linux-x86_64.tgz</a> (1.7Mb)
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>v1.3</td>
-                            <td>
-                                Linux <small>alternative build</small>
-                            </td>
-                            <td>
-                                <a href="resources/qctool_v1.3-scientific-linux-x86_64.tgz" onClick="_gaq.push(['_trackEvent', 'resource', 'download', 'qctool_v1.3-scientific-linux-x86_64.tgz' ])">qctool_v1.3-scientific-linux-x86_64.tgz</a> (983K)
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>v1.3</td>
-                            <td>
-                                Mac OS X
-                            </td>
-                            <td>
-                                <a href="resources/qctool_v1.3-osx.tgz" onClick="_gaq.push(['_trackEvent', 'resource', 'download', 'qctool_v1.3-osx.tgz' ])">qctool_v1.3-osx.tgz</a> (1021Kb)
-                            </td>
-                        </tr>
-                        <tr><td colspan=3 class="table_separator"></td></tr>
-                        <tr>
-                            <td>v1.2<sup>*</sup></td>
-                            <td>
-                                Linux <small>x86-64 static build</small>
-                            </td>
-                            <td>
-                                <a href="resources/qctool_v1.2-linux-x86_64.tgz" onClick="_gaq.push(['_trackEvent', 'resource', 'download', 'qctool_v1.2-linux-x86_64.tgz' ])">qctool_v1.2-linux-x86_64.tgz</a> (1.7Mb)
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>v1.2<sup>*</sup></td>
-                            <td>
-                                Mac OS X
-                            </td>
-                            <td>
-                                <a href="resources/qctool_v1.2-osx.tgz" onClick="_gaq.push(['_trackEvent', 'resource', 'download', 'qctool_v1.2-osx.tgz' ])">qctool_v1.2-osx.tgz</a> (1021Kb)
-                            </td>
-                        </tr>
-                        <tr><td colspan=3 class="table_separator"></td></tr>
-                        <tr>
-                            <td>v1.1<sup>*</sup></td>
-                            <td>
-                                Linux <small>x86-64 static build</small>
-                            </td>
-                            <td>
-                                <a href="resources/qctool_v1.1-linux-x86_64.tgz" onClick="_gaq.push(['_trackEvent', 'resource', 'download', 'qctool_v1.1-linux-x86_64.tgz' ])">qctool_v1.1-linux-x86_64.tgz</a> (1.6Mb)
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>v1.1<sup>*</sup></td>
-                            <td>
-                                Mac OS X
-                            </td>
-                            <td>
-                                <a href="resources/qctool_v1.1-osx.tgz" onClick="_gaq.push(['_trackEvent', 'resource', 'download', 'qctool_v1.1-osx.tgz' ])">qctool_v1.1-osx.tgz</a> (1014Kb)
-                            </td>
-                        </tr>
-                        <tr><td colspan=3 class="table_separator"></td></tr>
-                        <tr>
-                            <td>v1.0<sup>*</sup></td>
-                            <td>
-                                Linux <small>x86-64 static build</small>
-                            </td>
-                            <td>
-                                <a href="resources/qctool_v1.0-static-linux-x86-64.bz2" onClick="_gaq.push(['_trackEvent', 'resource', 'download', 'qctool_v1.0-static-linux-x86-64.bz2' ])">qctool_v1.0-static-linux-x86-64.bz2</a> (1001Kb)
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>v1.0<sup>*</sup></td>
-                            <td>
-                                Mac OS X 10.6.3
-                            </td>
-                            <td>
-                                <a href="resources/qctool_v1.0-static-osx-10.6.3.bz2" onClick="_gaq.push(['_trackEvent', 'resource', 'download', 'qctool_v1.0-static-osx-10.6.3.bz2' ])">qctool_v1.0-static-osx-10.6.3.bz2</a> (431Kb)
+                                <a href="resources/qctool_v2.0-dev-osx.tgz">qctool_v2.0-dev-osx.tgz</a> (1.1Mb)
                             </td>
                         </tr>
                     </table>
                     <p>
+					<sup>&dagger;</sup><span class="smalltext">Version 2 of QCTOOL is currently considered experimental.
+					For stable versions of this software, see <a href="http://www.well.ox.ac.uk/~gav/qctool">here</a>.</span>
+					</p>
+					<p>
                     <sup>*</sup><span class="smalltext">Older versions are preserved for download here but are unsupported.</span>
                     </p>
                     <p>

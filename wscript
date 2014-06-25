@@ -297,7 +297,7 @@ def release( bld ):
 	sys.path.append( "release" )
 	import Release.TestHarness
 	import Release.ReleaseBuilder
-	qctool_executable = "build/release/qctool-%s" % VERSION
+	qctool_executable = "build/release/qctool_v%s" % VERSION
 	builder = Release.ReleaseBuilder.ReleaseBuilder( APPNAME, VERSION, qctool_executable )
 	release = builder.build()
 
