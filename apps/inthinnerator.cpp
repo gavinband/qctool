@@ -99,6 +99,7 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 				"Specify the name of a file containing genes (in UCSC table format).  If this is supplied, inthinnerator "
 				"will annotate each output row with the nearest gene and the nearest gene in the region."
 			)
+			.set_takes_single_value()
 		;
 			
 		options.declare_group( "SNP selection options" ) ;
@@ -171,6 +172,11 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 				" If this is larger than one, output files will be numbered in the form <filename>.####" )
 			.set_takes_single_value()
 			.set_default_value( 1 ) ;
+		options[ "-start-N" ]
+			.set_description( "Specify the first index to be used when running mutliple thinnings.  This is"
+							" useful for parallel jobs where output files can be arranged to have the same names as if run not in parallel." )
+			.set_takes_single_value()
+			.set_default_value(0) ;
 
 		options[ "-max-picks" ]
 			.set_description( "Specify a number of SNPs to pick in each thinning."
@@ -937,9 +943,10 @@ namespace genes {
 		
 		std::size_t chromColumn = source->index_of_column( "chrom" ) ;
 		std::size_t txStartColumn = source->index_of_column( "txStart" ) ;
-		std::size_t txEndColumn = source->index_of_column( "txStart" ) ;
+		std::size_t txEndColumn = source->index_of_column( "txEnd" ) ;
 		std::size_t name2Column = source->index_of_column( "name2" ) ;
 
+		//std::cerr << "chromColumn = " << chromColumn << ", txStartColumn = " << txStartColumn << ", txEndColumn = " << txEndColumn << ", name2Column = " << name2Column << ", number of columns is " << source->number_of_columns() << ".\n" ;
 		int bin ;
 		genfile::Position txStart ;
 		genfile::Position txEnd ;
@@ -948,6 +955,7 @@ namespace genes {
 		
 		Genes::UniquePtr result( new Genes() ) ;
 		while( (*source) >> bin ) {
+			//std::cerr << "Reading a gene...\n" ;
 			(*source)
 				>> statfile::ignore( chromColumn - 1 )
 				>> chrom
@@ -1430,6 +1438,7 @@ private:
 		std::vector< double > const& recombination_offsets
 	) const {
 		std::size_t const N = options().get_value< std::size_t >( "-N" ) ;
+		std::size_t const start_N = options().get_value< std::size_t >( "-start-N" ) ;
 		std::size_t const max_num_picks = options().get_value< std::size_t >( "-max-picks" ) ;
 		assert( N > 0 ) ;
 		std::size_t const number_of_digits = std::max( std::size_t( std::log10( N ) ), std::size_t( 3u )) ;
@@ -1450,7 +1459,7 @@ private:
 			genes = genes::load_genes_from_refGene( filename, progress_context ) ;
 		}
 
-		for( std::size_t i = 0; i < N; ++i ) {
+		for( std::size_t i = start_N; i < (start_N+N); ++i ) {
 			get_ui_context().logger() << "Picking " << (i+1) << " of " << N << "..." ;
 			std::set< std::size_t > picked_snps = pick_snps( snps, max_num_picks ) ;
 			get_ui_context().logger() << picked_snps.size() << " SNPs picked.\n" ;
@@ -1624,6 +1633,9 @@ private:
 				}
 				sink << output_columns[j] ;
 			}
+			if( genes.get() ) {
+				sink << "nearest_gene_in_region distance_to_nearest_gene_in_region all_genes_in_region" ;
+			}
 			sink << "\n" ;
 		}
 
@@ -1682,24 +1694,29 @@ private:
 				genfile::Position const upper_bp = attributes[ "region_upper_bp" ].as< int >() ;
 				std::vector< genes::Feature const* > const genes_in_region = genes->find_genes_in_region( snps[*i].get_position().chromosome(), lower_bp, upper_bp ) ;
 				if( genes_in_region.size() > 0 ) {
-					std::ostringstream ostr ;
+					std::set< std::string > geneNames ;
 					std::size_t wNearest = genes_in_region.size() ;
 					std::size_t nearestDistance = std::numeric_limits< std::size_t >::max() ;
+					std::cerr << "For SNP " << snps[*i] << ":\n" ;
 					for( std::size_t gene_i = 0; gene_i < genes_in_region.size(); ++gene_i ) {
 						// distance is 0 if SNP is in gene.
 						// Otherwise it's the distance to the nearest end.
 						// Note genes treated as closed.
-						std::size_t distance = std::min(
+						std::size_t distance = std::max(
 							std::max( int( snps[*i].get_position().position() ) - int( genes_in_region[gene_i]->end().position() ), 0 ),
 							std::max( int( genes_in_region[gene_i]->start().position() ) - int( snps[*i].get_position().position() ), 0 )
 						) ;
+						//std::cerr << " - " << genes_in_region[gene_i]->name() << " has distance " << distance << ".\n" ;
 						if( distance < nearestDistance ) {
 							wNearest = gene_i ;
-							distance = nearestDistance ;
+							nearestDistance = distance ;
 						}
-						ostr << ( gene_i > 0 ? ",": "" ) << genes_in_region[gene_i]->name() ;
+						geneNames.insert( genes_in_region[gene_i]->name() ) ;
 					}
-					sink << genes_in_region[ wNearest ]->name() << " " << nearestDistance << " " << ostr.str() ;
+					sink << " " << genes_in_region[ wNearest ]->name() << " " << nearestDistance << " " ;
+					for( std::set< std::string >::const_iterator name_i = geneNames.begin(); name_i != geneNames.end(); ++name_i ) {
+						sink << (name_i == geneNames.begin() ? "" : "," ) << *name_i ;
+					}
 				} else {
 					sink << "NA NA NA" ;
 				}
