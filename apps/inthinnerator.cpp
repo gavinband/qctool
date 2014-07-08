@@ -37,6 +37,7 @@
 #include "genfile/vcf/StrictMetadataParser.hpp"
 
 #include "statfile/BuiltInTypeStatSourceChain.hpp"
+#include "statfile/DelimitedStatSource.hpp"
 
 #include "db/SQLite3Connection.hpp"
 #include "genfile/FromFilesGeneticMap.hpp"
@@ -45,6 +46,26 @@
 
 namespace globals {
 	std::string const program_name = "inthinnerator" ;
+}
+
+namespace {
+	std::size_t get_random_seed() {
+		std::size_t seed ;
+		if( boost::filesystem::exists( "/dev/random" )) {
+			std::ifstream ifs( "/dev/random" ) ;
+			if( !ifs.is_open() ) {
+				throw genfile::ResourceNotOpenedError( "/dev/random" ) ;
+			}
+			char buf[ sizeof( std::size_t ) ] ;
+			ifs.read( buf, sizeof( std::size_t )) ;
+			ifs.close() ;
+			seed = *(reinterpret_cast< std::size_t* >( buf )) ;
+		}
+		else {
+			seed = std::time(0) ;
+		}
+		return seed ;
+	}
 }
 
 struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
@@ -59,8 +80,7 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 		options[ "-map" ]
 			.set_description( "Set the path of the genetic map panel to use." )
 			.set_takes_single_value()
-			.set_default_value( std::string( getenv( "HOME" )) + "/.association-tools/genetic_map_b36.bnv" ) ;
-
+		;
 		options.declare_group( "Genotype file options" ) ;
 		options[ "-g" ]
 			.set_description( "Specify a file containing the SNPs to operate on." )
@@ -74,7 +94,13 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 				"identical values."
 			)
 			.set_takes_single_value() ;
-
+		options[ "-genes" ]
+			.set_description(
+				"Specify the name of a file containing genes (in UCSC table format).  If this is supplied, inthinnerator "
+				"will annotate each output row with the nearest gene and the nearest gene in the region."
+			)
+		;
+			
 		options.declare_group( "SNP selection options" ) ;
 		options[ "-excl-rsids" ]
 			.set_description( "Specify a file containing a whitespace-separated list of SNP rsids."
@@ -200,7 +226,6 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 	}
 } ;
 
-
 // Base class for snp pickers
 class SNPPicker
 {
@@ -210,6 +235,9 @@ public:
 	virtual std::size_t pick(
 		std::deque< std::size_t > const& among_these
 	) const = 0 ;
+	// Tell the picker the order in which SNPs are sorted.
+	// This permits pickers to do binary lookup in the list of SNPs.
+	// TODO: we should rewrite this to take a boost::function which is the sort comparator.
 	virtual void set_sort_order( std::deque< std::size_t > const& ) {}
 	virtual std::string display() const = 0 ;
 	virtual std::set< std::string > get_attribute_names() const = 0 ;
@@ -285,24 +313,117 @@ public:
 private:
 	std::auto_ptr< RNG > m_rng ;
 	
-	std::size_t get_random_seed() const {
-		std::size_t seed ;
-		if( boost::filesystem::exists( "/dev/random" )) {
-			std::ifstream ifs( "/dev/random" ) ;
-			if( !ifs.is_open() ) {
-				throw genfile::ResourceNotOpenedError( "/dev/random" ) ;
-			}
-			char buf[ sizeof( std::size_t ) ] ;
-			ifs.read( buf, sizeof( std::size_t )) ;
-			ifs.close() ;
-			seed = *(reinterpret_cast< std::size_t* >( buf )) ;
-		}
-		else {
-			seed = std::time(0) ;
-		}
-		return seed ;
-	}
+
 } ;
+
+#if 0
+// Pick a random SNP
+class RandomPositionSNPPicker: public SNPPicker
+{
+private:
+	typedef boost::mt19937 RNG ;
+	typedef boost::uniform_real_distribution< double > Distribution ;
+	struct ChromosomeExtent {
+		ChromosomeExtent( chromosome, start, end ):
+			m_chromosome( chromosome ),
+			m_start( start ),
+			m_end( end )
+		{}
+		ChromosomeExtent( ChromosomeExtent const& other ):
+			m_chromosome( other.m_chromosome ),
+			m_start( other.m_start ),
+			m_end( other.m_end )
+		{}
+
+		ChromosomeExtent& operator=( ChromosomeExtent const& other ) {
+			m_chromosome = other.m_chromosome ;
+			m_start = other.m_start ;
+			m_end = other.m_end ;
+		}
+
+		genfile::Position& start() { return m_start ; }
+		genfile::Position& end() { return m_end ; }
+		genfile::Position size() const { return m_end - m_start ; }
+	public:
+		genfile::Chromosome m_chromosome ;
+		genfile::Position m_start ;
+		genfile::Position m_end ;
+	} ;
+	
+public:
+	RandomPositionSNPPicker( std::vector< genfile::SNPIdentifyingData > const& snps ):
+		m_rng( new RNG( get_random_seed() ) )
+	{
+		std::map< genfile::Chromosome, ChromosomeExtent > chromosomeMap ;
+		for( std::size_t i = 0; i < snps.size(); ++i ) {
+			std::map< genfile::Chromosome, ChromosomeExtent >::iterator where = chromosomeMap.find( snps[i].get_position().chromosome() ) ;
+			if( where == chromosomeMap.end() ) {
+				boost::tie( where, boost::ignore ) = chromosomeMap.insert(
+					std::make_pair(
+						snps[i].get_position().chromosome(),
+						ChromosomeExtent( snps[i].get_position().position(),
+						ChromosomeExtent( snps[i].get_position().position()
+					)
+				) ;
+			}
+			where->second.start() = std::min( where->second.start(), snps[i].get_position().position() ) ;
+			where->second.end() = std::max( where->second.end(), snps[i].get_position().position() ) ;
+		}
+		
+		m_genome_length = 0 ;
+		for(
+			std::map< genfile::Chromosome, ChromosomeExtent >::const_iterator i = chromosomeMap.begin() ;
+			i != chromosomeMap.end();
+			++i
+		) {
+			m_genome_length += i->second.size() ;
+		}
+	}
+
+	RandomPositionSNPPicker( std::size_t seed ):
+		m_rng( new RNG( seed ) )
+	{}
+
+	virtual std::size_t pick(
+		std::deque< std::size_t > const& among_these
+	) const {
+		// Pick a random position in the genome.
+		assert( among_these.size() > 0 ) ;
+		Distribution distribution( 0.0, m_genome_length ) ;
+		genfile::Position choice = distribution( *m_rng ) ;
+		
+		std::map< genfile::Chromosome, ChromosomeExtent >::const_iterator i = chromosomeMap.begin() ;
+		for( ; i != chromosomeMap.end(); ++i ) {
+			if( pos < i->second.size() ) {
+				break ;
+			}
+			pos -= i->second.size() ;
+		}
+		genfile::Position genomic_position = pos + i->second.start() ;
+		
+		assert( choice < among_these.size() ) ;
+		std::deque< std::size_t >::const_iterator i = among_these.begin() ;
+		std::advance( i, choice ) ;
+		return *i ;
+	}
+
+	std::string display() const {
+		return "RandomSNPPicker" ;
+	}
+	
+	std::set< std::string > get_attribute_names() const {
+		return std::set< std::string >() ;
+	}
+	std::map< std::string, genfile::VariantEntry > get_attributes( std::size_t chosen_snp ) const {
+		return std::map< std::string, genfile::VariantEntry >() ;
+	} ;
+
+private:
+	std::vector< ChromosomeExtent > m_chromosome_extents ;
+	genfile::Position m_genome_length ;
+	std::auto_ptr< RNG > m_rng ;
+} ;
+#endif
 
 class HighestValueSNPPicker: public SNPPicker
 {
@@ -408,12 +529,12 @@ public:
 	
 private:
 	
-	
 	std::vector< double > const m_values ;
 	typedef std::multimap< double, std::size_t, DoubleComparator > ValueMap ;
 	mutable ValueMap m_value_map ;
 	std::vector< std::size_t > m_positions_in_sorted_list ;
 } ;
+
 
 // Base class for too-close measurements
 class ProximityTest
@@ -616,7 +737,7 @@ public:
 	{}
 	
 	void prepare( std::deque< std::size_t >* among_these ) const {
-		// Sort by chromosome / recombination distance
+		// Sort by chromosome / physical distance
 		std::sort( among_these->begin(), among_these->end(), boost::bind( &PhysicalDistanceProximityTest::compare, this, _1, _2 )) ;
 	}
 
@@ -707,6 +828,159 @@ private:
 	
 } ;
 
+namespace genes {
+	struct Feature {
+		Feature(
+			std::string const& name,
+			genfile::GenomePosition start,
+			genfile::GenomePosition end
+		):
+			m_name( name ),
+			m_start( start ),
+			m_end( end )
+		{
+			assert( m_start.chromosome() == m_end.chromosome() ) ;
+		}
+			
+		Feature( Feature const& other ):
+			m_name( other.m_name ),
+			m_start( other.m_start ),
+			m_end( other.m_end )
+		{}
+		
+		Feature& operator=( Feature const& other ) {
+			m_name = other.m_name ;
+			m_start = other.m_start ;
+			m_end = other.m_end ;
+			return *this ;
+		}
+		
+		std::string const& name() const { return m_name ; }
+		genfile::Chromosome const chromosome() const { return m_start.chromosome() ; }
+		genfile::GenomePosition const start() const { return m_start ; }
+		genfile::GenomePosition const end() const { return m_end ; }
+		
+	private:
+		std::string m_name ;
+		genfile::GenomePosition m_start ;
+		genfile::GenomePosition m_end ;
+	} ;
+
+	// order from left-to-right along chromosomes by start position then by end position.
+	struct CompareFeaturesByStart {
+		bool operator()( Feature const& left, Feature const& right ) const {
+			return( left.start() < right.start() ) ;
+		}
+	} ;
+	
+	bool operator<( Feature const& left, Feature const& right ) {
+		return( left.start() < right.start() ) ;
+	}
+
+	namespace {
+		struct start {} ;
+		struct end {} ;
+	}
+	
+	struct Genes: public boost::noncopyable {
+	private:
+		typedef std::set< Feature > ChromosomeGeneSet ;
+		typedef std::map< genfile::Chromosome, ChromosomeGeneSet > GeneMap ;
+	public:
+		typedef std::auto_ptr< Genes > UniquePtr ;
+
+	public:
+		Genes() {}
+
+		void add_gene( Feature const& feature ) {
+			m_genes[ feature.chromosome() ].insert( feature ) ;
+		}
+
+		std::size_t number_of_genes() const { return m_genes.size() ; }
+		std::vector< Feature const* > find_genes_in_region( genfile::Chromosome const chromosome, genfile::Position const lower, genfile::Position const upper ) {
+			return find_genes_in_region( genfile::GenomePosition( chromosome, lower ), genfile::GenomePosition( chromosome, upper )) ;
+		}
+
+		std::vector< Feature const* > find_genes_in_region( genfile::GenomePosition const& lower, genfile::GenomePosition const& upper ) {
+			assert( lower.chromosome() == upper.chromosome() ) ;
+			// Genes are ordered by start then by end.
+			// We first find the one-past-the end possible gene intersecting the region.
+			// Then we walk leftwards until either
+			// 1. we run out of genes
+			// 2. we run off the end of the chromosome
+			// 3. the end 
+			
+			std::vector< Feature const* > result ;
+			if( m_genes.find( lower.chromosome() ) == m_genes.end() ) {
+				return result ;
+			}
+			ChromosomeGeneSet const& chromosomeGenes = m_genes.at( lower.chromosome() ) ;
+
+			std::vector< int > distances( chromosomeGenes.size() ) ;
+			// make dummy region end feature for comparison.
+			Feature regionEnd( "end", upper, upper ) ;
+			// Find the first gene past-the end (or the end iterator)
+			ChromosomeGeneSet::const_iterator i = std::upper_bound( chromosomeGenes.begin(), chromosomeGenes.end(), regionEnd ) ;
+			for( ; i != chromosomeGenes.begin(); --i ) {
+				if( i->end().position() > lower.position() ) {
+					result.push_back( &(*i) ) ;
+				}
+			}
+			return result ;
+		}
+	private:
+		GeneMap m_genes ;
+	} ;
+	
+	Genes::UniquePtr load_genes_from_refGene( std::string const& filename, appcontext::UIContext::ProgressContext& progress_context ) {
+		statfile::BuiltInTypeStatSource::UniquePtr source( new statfile::DelimitedStatSource( filename, "\t" ) ) ;
+		
+		std::size_t chromColumn = source->index_of_column( "chrom" ) ;
+		std::size_t txStartColumn = source->index_of_column( "txStart" ) ;
+		std::size_t txEndColumn = source->index_of_column( "txStart" ) ;
+		std::size_t name2Column = source->index_of_column( "name2" ) ;
+
+		int bin ;
+		genfile::Position txStart ;
+		genfile::Position txEnd ;
+		std::string chrom ;
+		std::string name2 ;
+		
+		Genes::UniquePtr result( new Genes() ) ;
+		while( (*source) >> bin ) {
+			(*source)
+				>> statfile::ignore( chromColumn - 1 )
+				>> chrom
+				>> statfile::ignore( txStartColumn - chromColumn - 1 )
+				>> txStart
+				>> statfile::ignore( txEndColumn - txStartColumn - 1 )
+				>> txEnd
+				>> statfile::ignore( name2Column - txEndColumn - 1 )
+				>> name2 ;
+			if( !(*source)) {
+				throw genfile::MalformedInputError( source->get_source_spec(), "Malformed refGene-format file", source->number_of_rows_read() ) ;
+			}
+			
+			// UCSC coordinates are 0-based.  Map them here.
+			++txStart ;
+			++txEnd ;
+
+			// reformat the chromosome by getting rid of the 'chr'.
+			if( chrom.size() > 3 && chrom.substr(0, 3 ) == "chr" ) {
+				chrom = chrom.substr( 3, chrom.size() ) ;
+			}
+			chrom = genfile::string_utils::replace_all( chrom, "chr", "" ) ;
+
+			result->add_gene( Feature( name2, genfile::GenomePosition( chrom, txStart ), genfile::GenomePosition( chrom, txEnd ) )) ;
+
+			(*source) >> statfile::ignore_all() ;
+			progress_context.notify_progress( source->number_of_rows_read(), source->number_of_rows() ) ;
+		}
+		
+		return result ;
+	}
+}
+
 class InthinneratorApplication: public appcontext::ApplicationContext
 {
 public:
@@ -771,7 +1045,7 @@ private:
 		std::vector< genfile::SNPIdentifyingData > snps = get_list_of_snps( options().get_value< std::string >( "-g" ), *map ) ;
 		std::vector< double > recombination_offsets = get_recombination_offsets( snps, *map ) ;
 		m_proximity_test = get_proximity_test( snps, *map ) ;
-		m_snp_picker = get_snp_picker( snps ) ;
+		m_snp_picker = get_snp_picker( snps, *map ) ;
 
 		// Write an inclusion list either if user specified -write-incl-list, or didn't specify any output.
 		m_write_incl_list = !options().check_if_option_was_supplied( "-suppress-incl-list" ) ;
@@ -1004,7 +1278,7 @@ private:
 		return result ;
 	}
 
-	SNPPicker::UniquePtr get_snp_picker( std::vector< genfile::SNPIdentifyingData > const& snps ) const {
+	SNPPicker::UniquePtr get_snp_picker( std::vector< genfile::SNPIdentifyingData > const& snps, genfile::GeneticMap const& map ) const {
 		SNPPicker::UniquePtr picker ;
 		if( options().check_if_option_was_supplied( "-rank" )) {
 			std::vector< double > values( snps.size() ) ;
@@ -1027,6 +1301,12 @@ private:
 			if( strategy == "random" ) {
 				picker.reset( new RandomSNPPicker ) ;
 			}
+//			else if( strategy == "random_position" ) {
+//				picker.reset( new RandomPositionSNPPicker( snps )) ;
+//			}
+//			else if( strategy == "random_recombination_position" ) {
+//				picker.reset( new RandomRecombinationPositionSNPPicker( snps, map )) ;
+//			}
 			else if( strategy == "first" ) {
 				picker.reset( new FirstAvailableSNPPicker ) ;
 			}
@@ -1162,18 +1442,25 @@ private:
 			filename_stub = options().get< std::string >( "-odb" ) ;
 			db = true ;
 		}
+		
+		genes::Genes::UniquePtr genes ;
+		if( options().check( "-genes" )) {
+			std::string const filename = options().get< std::string > ( "-genes" ) ;
+			appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading genes from \"" + filename + "\"" ) ;
+			genes = genes::load_genes_from_refGene( filename, progress_context ) ;
+		}
 
 		for( std::size_t i = 0; i < N; ++i ) {
 			get_ui_context().logger() << "Picking " << (i+1) << " of " << N << "..." ;
 			std::set< std::size_t > picked_snps = pick_snps( snps, max_num_picks ) ;
 			get_ui_context().logger() << picked_snps.size() << " SNPs picked.\n" ;
 			if( db ) {
-				write_db( i, snps, recombination_offsets, picked_snps, filename_stub ) ;
+				write_db( i, snps, recombination_offsets, picked_snps, genes, filename_stub ) ;
 			}
 			else {
 				std::ostringstream filenamestr ;
 				filenamestr << filename_stub << "." << std::setw( number_of_digits ) << std::setfill( '0' ) << i ;
-				write_output_files( snps, recombination_offsets, picked_snps, filenamestr.str() ) ;
+				write_output_files( snps, recombination_offsets, picked_snps, genes, filenamestr.str() ) ;
 			}
 		}
 	}
@@ -1208,6 +1495,7 @@ private:
 		std::vector< genfile::SNPIdentifyingData > const& snps,
 		std::vector< double > const& recombination_offsets,
 		std::set< std::size_t > const& indices_of_snps_to_output,
+		genes::Genes::UniquePtr const&,
 		std::string const& filename
 	) const {
 		using genfile::string_utils::to_string ;
@@ -1277,6 +1565,7 @@ private:
 		std::vector< genfile::SNPIdentifyingData > const& snps,
 		std::vector< double > const& recombination_offsets,
 		std::set< std::size_t > const& picked_snps,
+		genes::Genes::UniquePtr const& genes,
 		std::string const& filename
 	) const {
 		if( m_write_incl_list ) {
@@ -1284,6 +1573,7 @@ private:
 				snps,
 				recombination_offsets,
 				picked_snps,
+				genes,
 				filename + ".incl"
 			) ;
 		}
@@ -1301,6 +1591,7 @@ private:
 				snps,
 				recombination_offsets,
 				unpicked_snps,
+				genes,
 				filename + ".excl"
 			) ;
 		}
@@ -1310,6 +1601,7 @@ private:
 		std::vector< genfile::SNPIdentifyingData > const& snps,
 		std::vector< double > const& recombination_offsets,
 		std::set< std::size_t > const& indices_of_snps_to_output,
+		genes::Genes::UniquePtr const& genes,
 		std::string const& filename		
 	) const {
 		std::vector< std::string > const output_columns = get_output_columns() ;
@@ -1342,6 +1634,8 @@ private:
 			i != indices_of_snps_to_output.end() ; 
 			++i
 		) {
+			std::map< std::string, genfile::VariantEntry > attributes = m_proximity_test->get_attributes( *i ) ;
+
 			for( std::size_t j = 0; j < output_columns.size(); ++j ) {
 				std::string const column_name = genfile::string_utils::to_lower( output_columns[j] ) ;
 				if( j > 0 ) {
@@ -1369,7 +1663,6 @@ private:
 					sink << recombination_offsets[*i] ;
 				}
 				else {
-					std::map< std::string, genfile::VariantEntry > attributes = m_proximity_test->get_attributes( *i ) ;
 					std::map< std::string, genfile::VariantEntry >::const_iterator where = attributes.find( column_name ) ;
 					if( where == attributes.end() ) {
 						attributes = m_snp_picker->get_attributes( *i ) ;
@@ -1381,6 +1674,34 @@ private:
 					else {
 						sink << where->second ;
 					}
+				}
+				
+			}
+			if( genes.get() ) {
+				genfile::Position const lower_bp = attributes[ "region_lower_bp" ].as< int >() ;
+				genfile::Position const upper_bp = attributes[ "region_upper_bp" ].as< int >() ;
+				std::vector< genes::Feature const* > const genes_in_region = genes->find_genes_in_region( snps[*i].get_position().chromosome(), lower_bp, upper_bp ) ;
+				if( genes_in_region.size() > 0 ) {
+					std::ostringstream ostr ;
+					std::size_t wNearest = genes_in_region.size() ;
+					std::size_t nearestDistance = std::numeric_limits< std::size_t >::max() ;
+					for( std::size_t gene_i = 0; gene_i < genes_in_region.size(); ++gene_i ) {
+						// distance is 0 if SNP is in gene.
+						// Otherwise it's the distance to the nearest end.
+						// Note genes treated as closed.
+						std::size_t distance = std::min(
+							std::max( int( snps[*i].get_position().position() ) - int( genes_in_region[gene_i]->end().position() ), 0 ),
+							std::max( int( genes_in_region[gene_i]->start().position() ) - int( snps[*i].get_position().position() ), 0 )
+						) ;
+						if( distance < nearestDistance ) {
+							wNearest = gene_i ;
+							distance = nearestDistance ;
+						}
+						ostr << ( gene_i > 0 ? ",": "" ) << genes_in_region[gene_i]->name() ;
+					}
+					sink << genes_in_region[ wNearest ]->name() << " " << nearestDistance << " " << ostr.str() ;
+				} else {
+					sink << "NA NA NA" ;
 				}
 			}
 			sink << "\n" ;
