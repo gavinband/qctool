@@ -1441,7 +1441,7 @@ private:
 		std::size_t const start_N = options().get_value< std::size_t >( "-start-N" ) ;
 		std::size_t const max_num_picks = options().get_value< std::size_t >( "-max-picks" ) ;
 		assert( N > 0 ) ;
-		std::size_t const number_of_digits = std::max( std::size_t( std::log10( N ) ), std::size_t( 3u )) ;
+		std::size_t const number_of_digits = std::max( std::size_t( std::log10( N + start_N ) ) + 1, std::size_t( 3u )) ;
 
 		std::string filename_stub ;
 		bool db = false ;
