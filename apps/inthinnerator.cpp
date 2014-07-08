@@ -1697,7 +1697,7 @@ private:
 					std::set< std::string > geneNames ;
 					std::size_t wNearest = genes_in_region.size() ;
 					std::size_t nearestDistance = std::numeric_limits< std::size_t >::max() ;
-					std::cerr << "For SNP " << snps[*i] << ":\n" ;
+					//std::cerr << "For SNP " << snps[*i] << ":\n" ;
 					for( std::size_t gene_i = 0; gene_i < genes_in_region.size(); ++gene_i ) {
 						// distance is 0 if SNP is in gene.
 						// Otherwise it's the distance to the nearest end.
