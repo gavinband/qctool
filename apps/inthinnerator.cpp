@@ -927,9 +927,14 @@ namespace genes {
 			Feature regionEnd( "end", upper, upper ) ;
 			// Find the first gene past-the end (or the end iterator)
 			ChromosomeGeneSet::const_iterator i = std::upper_bound( chromosomeGenes.begin(), chromosomeGenes.end(), regionEnd ) ;
-			for( ; i != chromosomeGenes.begin(); --i ) {
-				if( i->end().position() > lower.position() ) {
-					result.push_back( &(*i) ) ;
+			if( i != chromosomeGenes.end() && i->start().position() <= upper.position() ) {
+				result.push_back( &(*i) ) ;
+			}
+			if( i != chromosomeGenes.begin() ) {
+				for( --i; i != chromosomeGenes.begin(); --i ) {
+					if( i->end().position() > lower.position() ) {
+						result.push_back( &(*i) ) ;
+					}
 				}
 			}
 			return result ;
@@ -1634,7 +1639,7 @@ private:
 				sink << output_columns[j] ;
 			}
 			if( genes.get() ) {
-				sink << "nearest_gene_in_region distance_to_nearest_gene_in_region all_genes_in_region" ;
+				sink << " nearest_gene_in_region distance_to_nearest_gene_in_region all_genes_in_region" ;
 			}
 			sink << "\n" ;
 		}
@@ -1718,7 +1723,7 @@ private:
 						sink << (name_i == geneNames.begin() ? "" : "," ) << *name_i ;
 					}
 				} else {
-					sink << "NA NA NA" ;
+					sink << " NA NA NA" ;
 				}
 			}
 			sink << "\n" ;
