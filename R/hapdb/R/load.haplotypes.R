@@ -38,7 +38,7 @@ function(
 		dbGetQuery( hapdb$db, sprintf( "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE chromosome == '%s' AND position BETWEEN %d AND %d", chromosome, range[1], range[2] ) ) ;
     }
 	if( !is.null( rsids ) ) {
-		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE rsid == ?", rsids ) ;
+		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE rsid == ?", data.frame( rsid = rsids ) ) ;
 	}
     if( !is.null( positions )) {
 		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE chromosome == ? AND position == ?", positions ) ;
