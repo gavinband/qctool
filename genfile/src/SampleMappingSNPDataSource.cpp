@@ -127,20 +127,26 @@ namespace genfile {
 			):
 					m_setter( setter ),
 					m_sample_mapping( mapped_to_reference_sample_mapping ),
-					m_set_this_sample( false )
+					m_set_this_sample( false ),
+					m_last_source_sample( 0 )
 			{}
 			
 			~SampleMappingPerSampleSetter() throw() {} ;
 			
 			void set_number_of_samples( std::size_t n ) {
 				m_setter.set_number_of_samples( m_sample_mapping.number_of_source_samples() ) ;
+				m_last_source_sample = 0 ;
 			}
 
 			void set_sample( std::size_t n ) {
 				boost::optional< std::size_t > const source_sample = m_sample_mapping.find_source_sample_for( n ) ;
 				if( source_sample ) {
+					for( int s = m_last_source_sample; s < source_sample.get(); ++s ) {
+						m_setter.set_sample( s ) ;
+					}
 					m_setter.set_sample( source_sample.get() ) ;
 					m_set_this_sample = true ;
+					m_last_source_sample = source_sample.get() + 1 ;
 				} else {
 					m_set_this_sample = false ;
 				}
@@ -179,6 +185,7 @@ namespace genfile {
 			VariantDataReader::PerSampleSetter& m_setter ;
 			SampleMapping const& m_sample_mapping ;
 			bool m_set_this_sample ;
+			std::size_t m_last_source_sample ;
 		} ;
 		
 		struct SampleMappingVariantDataReader: public VariantDataReader {
