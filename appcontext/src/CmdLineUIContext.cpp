@@ -66,7 +66,7 @@ namespace appcontext {
 	) const {
 		double time_now = m_timer.elapsed() ;
 		if((count == 0) || (total_count && count == *total_count) || (time_now - m_last_time) > 1 ) {
-			print_progress( count, total_count, m_name, 45 ) ;
+			print_progress( count, total_count, m_name, 60 ) ;
 			m_last_time = time_now ;
 		}
 		m_last_count = count ;
@@ -78,7 +78,7 @@ namespace appcontext {
 	}
 
 	void ProgressBarProgressContext::finish() const {
-		print_progress( m_last_count, m_last_total_count, m_name, 45 ) ;
+		print_progress( m_last_count, m_last_total_count, m_name, 60 ) ;
 		m_ui_context.logger() << "\n" ;
 	}
 
