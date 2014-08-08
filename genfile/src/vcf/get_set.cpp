@@ -17,7 +17,8 @@ namespace genfile {
 			m_number_of_samples(0),
 			m_sample(0),
 			m_number_of_entries(0),
-			m_entry_i(0)
+			m_entry_i(0),
+			m_missing( false )
 		{
 			if( scale != "identity" && scale != "phred" ) {
 				throw BadArgumentError(
@@ -37,15 +38,21 @@ namespace genfile {
 
 		void GenotypeSetterBase::set_sample( std::size_t n ) {
 			assert( n < m_number_of_samples ) ;
+			// First test to see if no data was supplied (i.e. set_number_of_entries was uncalled) for the previous sample.
+			if( m_missing ) {
+				set( n-1, 0.0, 0.0, 0.0 ) ;
+			}
 			m_sample = n ;
-			m_missing = false ;
+			m_missing = true ;
 		}
 
 		void GenotypeSetterBase::set_number_of_entries( std::size_t n ) {
+			assert( n == 1 || n == 2 || n == 3 ) ;
 			m_number_of_entries = n ;
 			m_entry_i = 0 ;
 			m_A = 0 ;
 			m_B = 0 ;
+			m_missing = false ;
 		}
 
 		void GenotypeSetterBase::operator()( MissingValue const value ) {

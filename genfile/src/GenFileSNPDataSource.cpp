@@ -127,11 +127,11 @@ namespace genfile {
 			}
 			
 			bool supports( std::string const& spec ) const {
-				return spec == "genotypes" ;
+				return spec == "GP" ;
 			}
 			
 			void get_supported_specs( SpecSetter setter ) const {
-				setter( "genotypes", "Float" ) ;
+				setter( "GP", "Float" ) ;
 			}
 			
 		private:

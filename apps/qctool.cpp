@@ -1492,7 +1492,7 @@ private:
 		}
 		
 		std::string genotype_field = m_options.get< std::string >( "-vcf-genotype-field" ) ;
-		source->set_field_mapping( "genotypes", genotype_field ) ;
+		//source->set_field_mapping( "genotypes", genotype_field ) ;
 		
 		return genfile::SNPDataSource::UniquePtr( source.release() ) ;
 	}

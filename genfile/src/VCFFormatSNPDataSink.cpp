@@ -4,6 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#include <vector>
+#include <string>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -17,6 +19,10 @@ namespace genfile {
 	namespace {
 		std::string int_to_number( std::size_t i ) {
 			return string_utils::to_string( i ) ;
+		}
+		
+		void get_first( std::vector< std::string >* target, std::string const& first, std::string const& ) {
+			target->push_back( first ) ;
 		}
 	}
 	
@@ -51,18 +57,20 @@ namespace genfile {
 			DataWriter( boost::ptr_vector< std::ostringstream >& streams, bool field_is_genotype ):
 				m_streams( streams ),
 				m_field_is_genotype( field_is_genotype ),
-				m_sep( ',' )
-			{}
+				m_sep( m_field_is_genotype ? '/' : ',' ),
+				m_sample_i( 0 )
+			{
+			}
 			
 			~DataWriter() throw() {}
 
 			void set_number_of_samples( std::size_t n ) {
 				assert( m_streams.size() == n ) ;
+				m_sample_i = 0 ;
 			}
 
 			void set_sample( std::size_t i ) {
 				m_sample_i = i ;
-				m_streams[i].str( std::string() ) ;
 			}
 
 			void set_number_of_entries( std::size_t n ) {
@@ -71,10 +79,12 @@ namespace genfile {
 			}
 
 			void set_order_type( OrderType const type ) {
-				m_order_type == type ;
+				m_order_type = type ;
 				if( m_field_is_genotype ) {
 					m_sep = ( type == eOrderedList ) ? '|' : '/' ;
-				}	
+				} else {
+					m_sep = ',' ;
+				}
 			}
 
 			void operator()( MissingValue const value ) {
@@ -133,14 +143,30 @@ namespace genfile {
 
 		write_info( info ) ;
 
-		(*m_stream_ptr) << tab << "GT" ;//:GP" ;
-
-		{
-			DataWriter writer( m_streams, true ) ;
-			data_reader.get( "genotypes", writer ) ;
+		std::vector< std::string > fields ;
+		data_reader.get_supported_specs( boost::bind( get_first, &fields, _1, _2 ) ) ;
+		bool have_format = false ;
+		(*m_stream_ptr) << tab ;
+		for( std::size_t field_i = 0; field_i < fields.size(); ++field_i ) {
+			if( data_reader.supports( fields[field_i] )) {
+				(*m_stream_ptr) << ( have_format ? ":" : "" ) << fields[field_i] ;
+				DataWriter writer( m_streams, ( fields[field_i] == "GT" ) ) ;
+				if( have_format ) {
+					for( std::size_t i = 0; i < m_streams.size(); ++i ) {
+						m_streams[i] << ":" ;
+					}
+				}
+				data_reader.get( fields[field_i], writer ) ;
+				have_format = true ;
+			}
 		}
+
 		for( std::size_t i = 0; i < m_streams.size(); ++i ) {
-			(*m_stream_ptr) << tab << m_streams[i].str() ;
+			if( m_streams[i].str() == "" ) {
+				(*m_stream_ptr) << tab << "." ;
+			} else {
+				(*m_stream_ptr) << tab << m_streams[i].str() ;
+			}
 			m_streams[i].str( "" ) ;
 		}
 		(*m_stream_ptr) << "\n" ;
