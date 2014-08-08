@@ -66,6 +66,7 @@ namespace genfile {
 			// std::vector< string_utils::slice > m_components ;
 			std::vector< Setter::Integer > m_genotype_calls ;
 			std::vector< std::size_t > m_ploidy ;
+			std::vector< Setter::OrderType > m_order_types ;
 		private:
 			void split_data() ;
 			void load_genotypes() ;

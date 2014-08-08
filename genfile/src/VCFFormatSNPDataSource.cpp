@@ -335,6 +335,7 @@ namespace genfile {
 				VCFFormatSNPDataSource::FieldMapping field_mapping
 			):
 			 	m_source( source ),
+				m_format_elts( genfile::string_utils::split( FORMAT, ":" )),
 				m_format_types( format_types ),
 				m_field_mapping( field_mapping )
 			{
@@ -378,18 +379,15 @@ namespace genfile {
 			}
 
 			void get_supported_specs( SpecSetter setter ) const {
-				// We support everything on the left of the field mapping.
-				FieldMapping::left_map::const_iterator 
-					begin_i = m_field_mapping.left.begin(),
-					end_i = m_field_mapping.left.end() ;
-				for( ; begin_i != end_i; ++begin_i ) {
-					setter( begin_i->first, m_format_types.find( begin_i->second )->second->get_type().to_string() ) ;
+				for( std::size_t i = 0; i < m_format_elts.size(); ++i ) {
+					setter( m_format_elts[i], m_format_types.find( m_format_elts[i] )->second->get_type().to_string() ) ;
 				}
 			}
 
 		private:
 			VCFFormatSNPDataSource const& m_source ;
 			boost::ptr_map< std::string, vcf::VCFEntryType > const& m_format_types ;
+			std::vector< std::string > const m_format_elts ;
 			typedef VCFFormatSNPDataSource::FieldMapping FieldMapping ;
 			FieldMapping m_field_mapping ;
 			vcf::CallReader::UniquePtr m_data_reader ;
