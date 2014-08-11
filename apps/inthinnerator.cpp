@@ -101,6 +101,12 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 			)
 			.set_takes_single_value()
 		;
+		options[ "-take-longest-transcript" ]
+			.set_description(
+				"When using -genes, tell inthinnerator to ignore all but the longest transcript for each gene in the file."
+			) ;
+		;
+		options.option_implies_option( "-take-longest-transcript", "-genes" ) ;
 			
 		options.declare_group( "SNP selection options" ) ;
 		options[ "-excl-rsids" ]
@@ -898,7 +904,10 @@ namespace genes {
 	public:
 		Genes() {}
 
-		void add_gene( Feature const& feature ) {
+		void add_gene(
+			Feature const& feature,
+			bool longest_transcript_only
+		) {
 			m_genes[ feature.chromosome() ].insert( feature ) ;
 		}
 
@@ -943,7 +952,11 @@ namespace genes {
 		GeneMap m_genes ;
 	} ;
 	
-	Genes::UniquePtr load_genes_from_refGene( std::string const& filename, appcontext::UIContext::ProgressContext& progress_context ) {
+	Genes::UniquePtr load_genes_from_refGene(
+		std::string const& filename,
+		appcontext::UIContext::ProgressContext& progress_context
+		bool longest_transcript_only
+	) {
 		statfile::BuiltInTypeStatSource::UniquePtr source( new statfile::DelimitedStatSource( filename, "\t" ) ) ;
 		
 		std::size_t chromColumn = source->index_of_column( "chrom" ) ;
@@ -984,7 +997,10 @@ namespace genes {
 			}
 			chrom = genfile::string_utils::replace_all( chrom, "chr", "" ) ;
 
-			result->add_gene( Feature( name2, genfile::GenomePosition( chrom, txStart ), genfile::GenomePosition( chrom, txEnd ) )) ;
+			result->add_gene(
+				Feature( name2, genfile::GenomePosition( chrom, txStart ), genfile::GenomePosition( chrom, txEnd ) ),
+				longest_transcript_only
+			) ;
 
 			(*source) >> statfile::ignore_all() ;
 			progress_context.notify_progress( source->number_of_rows_read(), source->number_of_rows() ) ;
