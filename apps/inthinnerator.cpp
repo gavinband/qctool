@@ -18,6 +18,7 @@
 #include <boost/bind.hpp>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int.hpp>
+#include <boost/random/uniform_real_distribution.hpp>
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/filesystem.hpp>
 
@@ -66,6 +67,30 @@ namespace {
 		}
 		return seed ;
 	}
+	
+	struct CompareByOrder {
+		typedef bool result_type ;
+		
+		CompareByOrder( std::deque< std::size_t > const& list ) {
+			m_positions_in_sorted_list.resize( list.size(), std::numeric_limits< std::size_t >::max() ) ;
+			for( std::size_t i = 0; i < list.size(); ++i ) {
+				assert( list[i] < m_positions_in_sorted_list.size() ) ;
+				assert( m_positions_in_sorted_list[ list[i] ] == std::numeric_limits< std::size_t >::max() ) ;
+				m_positions_in_sorted_list[ list[i] ] = i ;
+			}
+		}
+
+		bool operator()( std::size_t i, std::size_t j ) const {
+			assert( i < m_positions_in_sorted_list.size() ) ;
+			assert( j < m_positions_in_sorted_list.size() ) ;
+			return m_positions_in_sorted_list[i] < m_positions_in_sorted_list[j] ;
+		}
+		
+		private:
+			std::vector< std::size_t > m_positions_in_sorted_list ;
+	} ;
+
+	// Compare SNP indices using their sorted order.
 }
 
 struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
@@ -144,7 +169,7 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 			.set_default_value( "0.01cM" ) ;
 		options[ "-strategy" ]
 			.set_description( "Specify the SNP thinning strategy if not using -rank."
-				" This can be \"random\" or \"first\"." )
+				" This can be \"random\", \"first\", or \"random_by_position\"." )
 			.set_takes_single_value()
 			.set_default_value( "random" ) ;
 		options[ "-rank" ]
@@ -233,18 +258,24 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 } ;
 
 // Base class for snp pickers
+// These classes assume a particular indexing scheme for the SNPs
+// This indexing scheme is currently passed in in the constructor, so differs betwee
 class SNPPicker
 {
 public:
 	typedef std::auto_ptr< SNPPicker > UniquePtr ;
 	virtual ~SNPPicker() {}
+	
+
+	typedef boost::function< bool ( std::size_t, std::size_t ) > SNPComparator ;
+	virtual void set_snps( std::vector< genfile::SNPIdentifyingData > const& snps, SNPComparator ) = 0 ;
+
 	virtual std::size_t pick(
 		std::deque< std::size_t > const& among_these
 	) const = 0 ;
 	// Tell the picker the order in which SNPs are sorted.
 	// This permits pickers to do binary lookup in the list of SNPs.
 	// TODO: we should rewrite this to take a boost::function which is the sort comparator.
-	virtual void set_sort_order( std::deque< std::size_t > const& ) {}
 	virtual std::string display() const = 0 ;
 	virtual std::set< std::string > get_attribute_names() const = 0 ;
 	virtual std::map< std::string, genfile::VariantEntry > get_attributes( std::size_t chosen_snp ) const = 0 ;
@@ -256,7 +287,12 @@ class FirstAvailableSNPPicker: public SNPPicker
 public:
 	FirstAvailableSNPPicker() {} ;
 
-	virtual std::size_t pick(
+	void set_snps( std::vector< genfile::SNPIdentifyingData > const&, SNPComparator ) {
+		// This picker just picks the first index available each time.
+		// It does not care about what SNP that correspondeth to
+	}
+
+	std::size_t pick(
 		std::deque< std::size_t > const& among_these
 	) const {
 		assert( among_these.size() > 0 ) ;
@@ -293,7 +329,12 @@ public:
 		m_rng( new RNG( seed ) )
 	{}
 
-	virtual std::size_t pick(
+	void set_snps( std::vector< genfile::SNPIdentifyingData > const&, SNPComparator ) {
+		// This picker just picks a random index each time.
+		// It does not care about what SNP that correspondeth to
+	}
+
+	std::size_t pick(
 		std::deque< std::size_t > const& among_these
 	) const {
 		assert( among_these.size() > 0 ) ;
@@ -322,95 +363,64 @@ private:
 
 } ;
 
-#if 0
 // Pick a random SNP
 class RandomPositionSNPPicker: public SNPPicker
 {
 private:
 	typedef boost::mt19937 RNG ;
-	typedef boost::uniform_real_distribution< double > Distribution ;
-	struct ChromosomeExtent {
-		ChromosomeExtent( chromosome, start, end ):
-			m_chromosome( chromosome ),
-			m_start( start ),
-			m_end( end )
-		{}
-		ChromosomeExtent( ChromosomeExtent const& other ):
-			m_chromosome( other.m_chromosome ),
-			m_start( other.m_start ),
-			m_end( other.m_end )
-		{}
-
-		ChromosomeExtent& operator=( ChromosomeExtent const& other ) {
-			m_chromosome = other.m_chromosome ;
-			m_start = other.m_start ;
-			m_end = other.m_end ;
-		}
-
-		genfile::Position& start() { return m_start ; }
-		genfile::Position& end() { return m_end ; }
-		genfile::Position size() const { return m_end - m_start ; }
-	public:
-		genfile::Chromosome m_chromosome ;
-		genfile::Position m_start ;
-		genfile::Position m_end ;
-	} ;
+	typedef boost::random::uniform_real_distribution< double > Distribution ;
+	typedef std::multimap< genfile::GenomePosition, std::size_t > SnpByPositionMap ;
+	typedef std::map< std::pair< double, double >, genfile::GenomePositionRange > RangeMap ;
 	
 public:
-	RandomPositionSNPPicker( std::vector< genfile::SNPIdentifyingData > const& snps ):
-		m_rng( new RNG( get_random_seed() ) )
+	RandomPositionSNPPicker( std::vector< genfile::GenomePositionRange > ranges ):
+		m_rng( new RNG( get_random_seed() ) ),
+		m_uniform_01( 0.0, 1.0 ),
+		m_range_map( compute_range_map( ranges ))
 	{
-		std::map< genfile::Chromosome, ChromosomeExtent > chromosomeMap ;
-		for( std::size_t i = 0; i < snps.size(); ++i ) {
-			std::map< genfile::Chromosome, ChromosomeExtent >::iterator where = chromosomeMap.find( snps[i].get_position().chromosome() ) ;
-			if( where == chromosomeMap.end() ) {
-				boost::tie( where, boost::ignore ) = chromosomeMap.insert(
-					std::make_pair(
-						snps[i].get_position().chromosome(),
-						ChromosomeExtent( snps[i].get_position().position(),
-						ChromosomeExtent( snps[i].get_position().position()
-					)
-				) ;
-			}
-			where->second.start() = std::min( where->second.start(), snps[i].get_position().position() ) ;
-			where->second.end() = std::max( where->second.end(), snps[i].get_position().position() ) ;
-		}
-		
-		m_genome_length = 0 ;
-		for(
-			std::map< genfile::Chromosome, ChromosomeExtent >::const_iterator i = chromosomeMap.begin() ;
-			i != chromosomeMap.end();
-			++i
-		) {
-			m_genome_length += i->second.size() ;
-		}
 	}
-
+	
 	RandomPositionSNPPicker( std::size_t seed ):
 		m_rng( new RNG( seed ) )
 	{}
 
-	virtual std::size_t pick(
+	void set_snps( std::vector< genfile::SNPIdentifyingData > const& snps, SNPComparator comparator ) {
+		for( std::size_t i = 0; i < snps.size(); ++i ) {
+			m_snps_by_position.insert( std::make_pair( snps[i].get_position(), i )) ;
+		}
+		m_snp_comparator = comparator ;
+	}
+
+	std::size_t pick(
 		std::deque< std::size_t > const& among_these
 	) const {
-		// Pick a random position in the genome.
-		assert( among_these.size() > 0 ) ;
-		Distribution distribution( 0.0, m_genome_length ) ;
-		genfile::Position choice = distribution( *m_rng ) ;
-		
-		std::map< genfile::Chromosome, ChromosomeExtent >::const_iterator i = chromosomeMap.begin() ;
-		for( ; i != chromosomeMap.end(); ++i ) {
-			if( pos < i->second.size() ) {
-				break ;
+		bool picked = false ;
+		std::size_t result = 0 ;
+		while( !picked ) {
+			double in_01 = m_uniform_01( *m_rng ) ;
+			genfile::GenomePosition pos = map_uniform_01_to_position_in_ranges( in_01 ) ;
+			SnpByPositionMap::const_iterator where = m_snps_by_position.lower_bound( pos ) ;
+			assert( where != m_snps_by_position.end() ) ;
+			if( where->first.chromosome() == pos.chromosome() ) {
+				genfile::Position distanceLower = pos.position() - where->first.position() ;
+				genfile::Position distanceUpper = std::numeric_limits< genfile::Position >::max() ;
+
+				SnpByPositionMap::const_iterator next = where ;
+				++next ;
+				if( next != m_snps_by_position.end() && next->first.chromosome() == pos.chromosome() ) {
+					distanceUpper = next->first.position() - pos.position() ;
+				}
+
+				if( distanceUpper < distanceLower ) {
+					result = where->second ;
+				} else {
+					result = next->second ;
+				}
+
+				picked = !std::binary_search( among_these.begin(), among_these.end(), result ) ;
 			}
-			pos -= i->second.size() ;
 		}
-		genfile::Position genomic_position = pos + i->second.start() ;
-		
-		assert( choice < among_these.size() ) ;
-		std::deque< std::size_t >::const_iterator i = among_these.begin() ;
-		std::advance( i, choice ) ;
-		return *i ;
+		return result ;
 	}
 
 	std::string display() const {
@@ -425,11 +435,40 @@ public:
 	} ;
 
 private:
-	std::vector< ChromosomeExtent > m_chromosome_extents ;
-	genfile::Position m_genome_length ;
 	std::auto_ptr< RNG > m_rng ;
+	Distribution m_uniform_01 ;
+	RangeMap const m_range_map ;
+	SnpByPositionMap m_snps_by_position ;
+	SNPComparator m_snp_comparator ;
+	
+private:
+	RangeMap compute_range_map( std::vector< genfile::GenomePositionRange > ranges ) const {
+		int totalLength = 0 ;
+		for( std::size_t i = 0; i < ranges.size(); ++i ) {
+			totalLength += ranges[i].end().position() - ranges[i].start().position() ;
+		}
+		
+		RangeMap result ;
+		double start = 0 ;
+		for( std::size_t i = 0; i < ranges.size(); ++i ) {
+			double end = start + ( ranges[i].end().position() - ranges[i].start().position() ) / totalLength ;
+			result.insert( std::make_pair( std::make_pair( start, end ), ranges[i] ) ) ;
+		}
+		return result ;
+	}
+
+	genfile::GenomePosition map_uniform_01_to_position_in_ranges( double in_01 ) const {
+		assert( in_01 >= 0.0 && in_01 < 1 ) ;
+		std::pair< double, double > u( in_01, in_01 ) ;
+		RangeMap::const_iterator where = m_range_map.lower_bound(u) ;
+		assert( where != m_range_map.end() ) ; 
+		double x = ( in_01 - where->first.first ) / ( where->first.second - where->first.first ) ; // interpoland
+		genfile::Position p = where->second.start().position() + ( where->second.end().position() - where->second.start().position() ) * x ;
+		return genfile::GenomePosition( where->second.start().chromosome(), p ) ;
+	}
+		
+	
 } ;
-#endif
 
 class HighestValueSNPPicker: public SNPPicker
 {
@@ -450,69 +489,60 @@ private:
 
 public:
 	typedef std::auto_ptr< SNPPicker > UniquePtr ;
-	HighestValueSNPPicker(
-		std::vector< double > const& values
-	):
-		m_values( values ),
-		m_value_map( DoubleComparator() )
-	{
-		for( std::size_t i = 0; i < m_values.size(); ++i ) {
-			m_value_map.insert( std::make_pair( m_values[ i ], i ) ) ;
-		}
-	}
-
-	// the purpose of set_sort_order is to tell HighestValueSNPPicker
-	// the sorted order of SNPs so that it can treat the list of SNPs as sorted.
-	void set_sort_order( std::deque< std::size_t > const& list ) {
-		m_positions_in_sorted_list.resize( list.size(), std::numeric_limits< std::size_t >::max() ) ;
-		for( std::size_t i = 0; i < list.size(); ++i ) {
-			assert( list[i] < m_positions_in_sorted_list.size() ) ;
-			assert( m_positions_in_sorted_list[ list[i] ] == std::numeric_limits< std::size_t >::max() ) ;
-			m_positions_in_sorted_list[ list[i] ] = i ;
-		}
-	}
-
-	// Compare SNP indices using their sorted order.
-	bool compare_indices( std::size_t i, std::size_t j ) const {
-		assert( i < m_positions_in_sorted_list.size() ) ;
-		assert( j < m_positions_in_sorted_list.size() ) ;
-		return m_positions_in_sorted_list[i] < m_positions_in_sorted_list[j] ;
-	}
 	
+	// TODO: use a boost::bimap here.
+	typedef std::map< genfile::SNPIdentifyingData, double > SnpToValueMap ;
+	typedef std::vector< double > IndexToValueMap ;
+	typedef std::multimap< double, std::size_t, DoubleComparator > ValueToIndexMap ;
+
+	HighestValueSNPPicker(
+		SnpToValueMap const& values
+	):
+		m_values_per_snp( values ),
+		m_value_to_index_map( DoubleComparator() )
+	{
+	}
+
+	void set_snps( std::vector< genfile::SNPIdentifyingData > const& snps, SNPComparator comparator ) {
+		m_value_to_index_map.clear() ;
+		m_index_to_value_map.resize( snps.size() ) ;
+		for( std::size_t i = 0; i < snps.size(); ++i ) {
+			SnpToValueMap::const_iterator where = m_values_per_snp.find( snps[i] ) ;
+			if( where == m_values_per_snp.end() ) {
+				throw genfile::BadArgumentError( "HighestValueSNPPicker::set_snps()", "snps", "SNP " + genfile::string_utils::to_string( snps[i] ) + " is not in the value map." ) ;
+			}
+			m_index_to_value_map[i] = where->second ;
+			m_value_to_index_map.insert( std::make_pair( where->second, i )) ;
+		}
+		m_snp_comparator = comparator ;
+	}
+
 	std::size_t pick(
 		std::deque< std::size_t > const& among_these
 	) const {
 		assert( among_these.size() > 0 ) ;
-		ValueMap::reverse_iterator pick = m_value_map.rbegin() ;
-		//std::cerr << "pick is " << pick->second << ", among_these has " << among_these.size() << " elts, \n" ;
-		//for( std::size_t i = 0; i < among_these.size(); ++i ) {
-		//	std::cerr << among_these[i] << "\n" ;//": " << m_positions_in_sorted_list[ among_these[i] ] << ".\n" ;
-		//}
+		ValueToIndexMap::reverse_iterator pick = m_value_to_index_map.rbegin() ;
 		while(
 			!std::binary_search(
 				among_these.begin(),
 				among_these.end(),
 				pick->second,
-				boost::bind(
-					&HighestValueSNPPicker::compare_indices,
-					this,
-					_1,
-					_2
-				)
+				m_snp_comparator
 			)
 		) {
 			++pick ;
-			assert( pick != m_value_map.rend() ) ;
+			assert( pick != m_value_to_index_map.rend() ) ;
 		}
 
         std::size_t chosen_snp = pick->second ;
 		
 		// The following line is the main optimisation which ensures we don't keep repeating work
-		// we've already done.
-		// Warning! This line assumes that the set of SNPs passed to this function
-		// will always decrease (in the sense of set theory.)  If not, the assert above should
-		// be triggered.
-		m_value_map.erase( pick.base(), m_value_map.end() ) ;
+		// we've already done.  As the algorithm proceeds, m_value_to_index_map gets smaller
+		// and we just look at the top of it (rbegin) each time.
+		// Warning! Use of this line assumes that on each invocation to this function,
+		// the set of indices passed to this function does not contain any indices
+		// that we picked on previous calls.
+		m_value_to_index_map.erase( pick.base(), m_value_to_index_map.end() ) ;
 
         return chosen_snp ;
 	}
@@ -529,16 +559,15 @@ public:
 	
 	std::map< std::string, genfile::VariantEntry > get_attributes( std::size_t chosen_snp ) const {
 		std::map< std::string, genfile::VariantEntry > result ;
-		result[ "rank" ] = m_values[ chosen_snp ] ;
+		result[ "rank" ] = m_index_to_value_map[ chosen_snp ] ;
 		return result ;
 	}
 	
 private:
-	
-	std::vector< double > const m_values ;
-	typedef std::multimap< double, std::size_t, DoubleComparator > ValueMap ;
-	mutable ValueMap m_value_map ;
-	std::vector< std::size_t > m_positions_in_sorted_list ;
+	SnpToValueMap const m_values_per_snp ;
+	IndexToValueMap m_index_to_value_map ;
+	mutable ValueToIndexMap m_value_to_index_map ;
+	SNPComparator m_snp_comparator ;
 } ;
 
 
@@ -1294,29 +1323,33 @@ private:
 	SNPPicker::UniquePtr get_snp_picker( std::vector< genfile::SNPIdentifyingData > const& snps, genfile::GeneticMap const& map ) const {
 		SNPPicker::UniquePtr picker ;
 		if( options().check_if_option_was_supplied( "-rank" )) {
-			std::vector< double > values( snps.size() ) ;
 			std::map< genfile::SNPIdentifyingData, double > value_map = load_ranks(
 				options().get_value< std::string >( "-rank" ),
 				options().get_value< std::string >( "-rank-col" ),
 				genfile::string_utils::split_and_strip_discarding_empty_entries( options().get< std::string >( "-missing-code" ), ",", " \t" )
 			) ;
-			for( std::size_t i = 0; i < values.size(); ++i ) {
-				std::map< genfile::SNPIdentifyingData, double >::const_iterator where = value_map.find( snps[i] ) ;
-				if( where == value_map.end() ) {
-					throw genfile::BadArgumentError( "InthinneratorApplication::get_snp_picker()", "rank file" ) ;
-				}
-				values[i] = value_map[ snps[i] ] ;
-			}
-			picker.reset( new HighestValueSNPPicker( values )) ;
+			picker.reset( new HighestValueSNPPicker( value_map )) ;
 		}
 		else {
 			std::string strategy = options().get< std::string >( "-strategy" ) ;
 			if( strategy == "random" ) {
 				picker.reset( new RandomSNPPicker ) ;
 			}
-//			else if( strategy == "random_position" ) {
-//				picker.reset( new RandomPositionSNPPicker( snps )) ;
-//			}
+			else if( strategy == "random_by_position" ) {
+				if( !options().check( "-incl-range" )) {
+					throw genfile::BadArgumentError(
+						"InthinneratorApplication::get_snp_picker()",
+						"Option -strategy",
+						"You must supply -incl-range as well."
+					) ;
+				}
+				std::vector< std::string > range_specs = options().get_values< std::string >( "-incl-range" ) ;
+				std::vector< genfile::GenomePositionRange > ranges ;
+				for( std::size_t i = 0; i < range_specs.size(); ++i ) {
+					ranges.push_back( genfile::GenomePositionRange::parse( range_specs[i] )) ;
+				}
+				picker.reset( new RandomPositionSNPPicker( ranges )) ;
+			}
 //			else if( strategy == "random_recombination_position" ) {
 //				picker.reset( new RandomRecombinationPositionSNPPicker( snps, map )) ;
 //			}
@@ -1489,7 +1522,8 @@ private:
 		) ;
 		
 		m_proximity_test->prepare( &remaining_snps ) ;
-		m_snp_picker->set_sort_order( remaining_snps ) ;
+		CompareByOrder comparator( remaining_snps ) ;
+		m_snp_picker->set_snps( snps, boost::cref( comparator ) ) ;
 
 		std::set< std::size_t > picked_snps ;
 		{

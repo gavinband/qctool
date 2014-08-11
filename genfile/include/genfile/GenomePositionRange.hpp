@@ -13,17 +13,20 @@ namespace genfile {
 	// Class GenomePositionRange
 	// Represents a closed, nonempty range of physical positions in the genome.
 	struct GenomePositionRange {
+		// parse a range in the form chr:start-end
+		// or just start-end, whence the chromosome is treated as NA
 		static GenomePositionRange parse( std::string const& spec ) ;
 
 		GenomePositionRange( Position start, Position end ) ;
 		GenomePositionRange( GenomePosition start, GenomePosition end ) ;
+		GenomePositionRange( Chromosome chromosome, Position start, Position end ) ;
 		GenomePositionRange( GenomePositionRange const& ) ;
 		GenomePositionRange& operator=( GenomePositionRange const& other ) ;
 		
-		GenomePosition const& get_start() const { return m_start ; }
-		GenomePosition const& get_end() const { return m_end ; }
+		GenomePosition const& start() const { return m_start ; }
+		GenomePosition const& end() const { return m_end ; }
 
-		bool check_if_contains( GenomePosition const& position ) const ;
+		bool contains( GenomePosition const& position ) const ;
 
 		bool operator==( GenomePositionRange const& other ) const ;
 		// Ranges are compared by their start and then their length.
