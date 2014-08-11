@@ -91,7 +91,7 @@ namespace genfile {
 				if( m_entry_i++ > 0 ) {
 					m_streams[ m_sample_i ] << m_sep ;
 				}
-				m_streams[ m_sample_i ] << value ;
+				m_streams[ m_sample_i ] << "." ;
 			}
 
 			void operator()( std::string& value ) {
@@ -172,67 +172,6 @@ namespace genfile {
 		(*m_stream_ptr) << "\n" ;
 	}
 
-/*
-	void VCFFormatSNPDataSink::write_snp_impl(
-		uint32_t number_of_samples,
-		std::string SNPID,
-		std::string RSID,
-		Chromosome chromosome,
-		uint32_t SNP_position,
-		std::string first_allele,
-		std::string second_allele,
-		GenotypeProbabilityGetter const& get_AA_probability,
-		GenotypeProbabilityGetter const& get_AB_probability,
-		GenotypeProbabilityGetter const& get_BB_probability,
-		Info const& info
-	) {
-		if( number_of_samples != m_number_of_samples ) {
-			throw genfile::BadArgumentError( "VCFFormatSNPDataSink::write_snp_impl()", "number_of_samples=" + string_utils::to_string( number_of_samples )) ;
-		}
-		char const tab = '\t' ;
-		(*m_stream_ptr)
-			<< chromosome << tab
-			<< SNP_position << tab
-			<< RSID << tab
-			<< first_allele << tab
-			<< second_allele << tab
-			<< "." << tab
-			<< "." << tab ;
-
-		write_info( info ) ;
-
-		(*m_stream_ptr) << tab << "GT" ;//:GP" ;
-		
-		std::vector< double > probs( 3 ) ;
-		for( std::size_t i = 0; i < number_of_samples; ++i ) {
-			probs[0] = get_AA_probability( i ) ;
-			probs[1] = get_AB_probability( i ) ;
-			probs[2] = get_BB_probability( i ) ;
-			std::string call ;
-			if( probs[0] >= m_call_threshhold ) {
-				call = "0/0" ;
-			}
-			else if( probs[1] >= m_call_threshhold ) {
-				call = "0/1" ;
-			}
-			else if( probs[2] >= m_call_threshhold ) {
-				call = "1/1" ;
-			}
-			else {
-				call = "./." ;
-			}
-			
-			(*m_stream_ptr)
-				<< tab << call ;
-				//<< ":"
-				//<< probs[0] << ","
-				//<< probs[1] << ","
-				//<< probs[2] ;
-				
-		}
-		(*m_stream_ptr) << std::endl ;
-	}
-	*/
 	void VCFFormatSNPDataSink::write_info( Info const& info ) {
 		if( info.empty() ) {
 			(*m_stream_ptr) << "." ;

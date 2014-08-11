@@ -1317,7 +1317,7 @@ private:
 		source->reset_to_start() ;
 		return source ;
 	}
-	
+
 	genfile::SNPDataSource::UniquePtr open_merged_data_sources() {
 		genfile::MergingSNPDataSource::UniquePtr merged_source = genfile::MergingSNPDataSource::create(
 			m_options.get< std::string >( "-merge-strategy" ),
@@ -1332,13 +1332,18 @@ private:
 			id_prefix = m_options.get< std::string >( "-merge-prefix" ) ;
 		}
 
+
 		{
-			genfile::SNPDataSource::UniquePtr merge_in_source(
-				genfile::SNPDataSourceChain::create(
-					genfile::wildcard::find_files_by_chromosome( merge_in_files[0] )
-				).release()
-			) ;
-			
+			genfile::SNPDataSource::UniquePtr merge_in_source ;
+			{
+				genfile::SNPDataSourceChain::UniquePtr source( new genfile::SNPDataSourceChain ) ;
+				std::string chromosome_hint = m_options.check( "-assume-chromosome" ) ? m_options.get< std::string >( "-assume-chromosome" ) : "" ;
+				std::vector< genfile::wildcard::FilenameMatch > filenames = genfile::wildcard::find_files_by_chromosome( merge_in_files[0] ) ;
+				for( std::size_t i = 0; i < filenames.size(); ++i ) {
+					source->add_source( open_snp_data_source( filenames[i].filename(), chromosome_hint )) ;
+				}
+				merge_in_source.reset( source.release() ) ;
+			}
 			genfile::CohortIndividualSource::UniquePtr merge_in_samples(
 				new genfile::CategoricalCohortIndividualSource(
 					merge_in_files[1],

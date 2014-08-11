@@ -83,7 +83,8 @@ namespace genfile {
 					m_entries( entries ),
 					m_ploidies( ploidies ),
 					m_sample_i( 0 ),
-					m_current_i( 0 )
+					m_current_i( 0 ),
+					m_order_type( eUnorderedList )
 				{}
 
 				void set_number_of_samples( std::size_t n ) {
@@ -94,6 +95,10 @@ namespace genfile {
 				void set_sample( std::size_t sample_i ) {
 					assert( sample_i < m_ploidies.size() ) ;
 					m_sample_i = sample_i ;
+				}
+
+				void set_order_type( OrderType const order_type ) {
+					m_order_type = order_type ;
 				}
 
 				void set_number_of_entries( std::size_t n ) {
@@ -110,12 +115,17 @@ namespace genfile {
 					assert( m_current_i < m_entries.size() ) ;
 					m_entries[ m_current_i++ ] = value ;
 				}
+				
+				OrderType get_order_type() const {
+					return m_order_type ;
+				}
 
 			private:
 				std::vector< vcf::EntrySetter::Integer >& m_entries ;
 				std::vector< std::size_t >& m_ploidies ;
 				std::size_t m_sample_i ;
 				std::size_t m_current_i ;
+				OrderType m_order_type ;
 			} ;
 		}
 
@@ -152,6 +162,7 @@ namespace genfile {
 						assert( m_genotype_calls.size() >= ( index + ploidy ) ) ;
 						setter.set_sample( sample_i ) ;
 						setter.set_number_of_entries( ploidy ) ;
+						setter.set_order_type( m_order_types[ sample_i ] ) ;
 						for( std::size_t const current_index = index; index < ( current_index + ploidy ); ++index ) {
 							if( m_genotype_calls[ index ] == -1 ) {
 								setter( MissingValue() ) ;
@@ -214,6 +225,7 @@ namespace genfile {
 			}
 
 			m_ploidy.resize( m_number_of_samples ) ;
+			m_order_types.resize( m_number_of_samples ) ;
 			m_genotype_calls.reserve( m_number_of_samples * 2 ) ;
 			std::size_t total_number_of_calls = 0 ;
 			impl::CallReaderGenotypeSetter genotype_setter( m_genotype_calls, m_ploidy ) ;
@@ -226,6 +238,7 @@ namespace genfile {
 					genotype_setter.set_sample( sample_i ) ;
 					m_genotype_call_entry_type.parse( m_components[ component_index + GT_field_pos ], m_number_of_alleles, genotype_setter ) ;
 					total_number_of_calls += m_ploidy[ sample_i ] ;
+					m_order_types[ sample_i ] = genotype_setter.get_order_type() ;
 				}
 				catch( string_utils::StringConversionError const& ) {
 					throw MalformedInputError( "(data)", 0, sample_i ) ;
