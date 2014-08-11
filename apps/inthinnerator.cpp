@@ -104,7 +104,8 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 		options[ "-take-longest-transcript" ]
 			.set_description(
 				"When using -genes, tell inthinnerator to ignore all but the longest transcript for each gene in the file."
-			) ;
+			)
+			.set_default_value( false ) ;
 		;
 		options.option_implies_option( "-take-longest-transcript", "-genes" ) ;
 			
@@ -954,8 +955,8 @@ namespace genes {
 	
 	Genes::UniquePtr load_genes_from_refGene(
 		std::string const& filename,
-		appcontext::UIContext::ProgressContext& progress_context
-		bool longest_transcript_only
+		appcontext::UIContext::ProgressContext& progress_context,
+		bool longest_transcript_only = false
 	) {
 		statfile::BuiltInTypeStatSource::UniquePtr source( new statfile::DelimitedStatSource( filename, "\t" ) ) ;
 		
@@ -1021,7 +1022,6 @@ public:
 
 private:
 	enum DistanceType { ePhysical = 0, eRecombination = 1 } ;
-	DistanceType m_minimum_distance_type ;
 	double m_minimum_distance ;
 	ProximityTest::UniquePtr m_proximity_test ;
 	SNPPicker::UniquePtr m_snp_picker ;
@@ -1477,7 +1477,7 @@ private:
 		if( options().check( "-genes" )) {
 			std::string const filename = options().get< std::string > ( "-genes" ) ;
 			appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading genes from \"" + filename + "\"" ) ;
-			genes = genes::load_genes_from_refGene( filename, progress_context ) ;
+			genes = genes::load_genes_from_refGene( filename, progress_context, options().get< bool >( "-take-longest-transcript" ) ) ;
 		}
 
 		for( std::size_t i = start_N; i < (start_N+N); ++i ) {
