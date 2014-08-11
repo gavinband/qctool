@@ -14,7 +14,7 @@
 
 namespace genfile {
 	namespace impl {
-		struct AlleleFlippingSNPDataReader ;
+		class AlleleFlippingSNPDataReader ;
 	}
 	struct AlleleFlippingSNPDataSource: public SNPDataSource
 	{
