@@ -18,6 +18,7 @@ struct SNPTESTResults: public FlatFileFrequentistGenomeWideAssociationResults {
 	std::string get_summary( std::string const& prefix, std::size_t target_column ) const ;
 
 	void set_effect_size_column_regex( std::string const& beta_column_regex ) ;
+	int const get_number_of_effect_parameters() const ;
 
 private:
 	genfile::SNPIdentifyingDataTest::UniquePtr m_exclusion_test ;

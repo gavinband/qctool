@@ -10,7 +10,7 @@ SNPTESTResults::SNPTESTResults(
 	genfile::SNPIdentifyingDataTest::UniquePtr test
 ):
  	m_exclusion_test( test ),
-	m_beta1_column_regex( ".*beta_1.*" ),
+	m_beta1_column_regex( ".*beta_[0-9]*" ),
 	m_beta2_column_regex( ".*beta_2.*" ),
 	m_se1_column_regex( ".*se_1.*" ),
 	m_se2_column_regex( ".*se_2.*" ),

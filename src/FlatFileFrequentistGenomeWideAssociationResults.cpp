@@ -37,9 +37,7 @@ genfile::SNPIdentifyingData2 const& FlatFileFrequentistGenomeWideAssociationResu
 	assert( snp_i < m_snps.size() ) ;
 	return m_snps[ snp_i ] ;
 }
-int const FlatFileFrequentistGenomeWideAssociationResults::get_number_of_effect_parameters() const {
-	return m_degrees_of_freedom ;
-}
+
 void FlatFileFrequentistGenomeWideAssociationResults::get_betas( std::size_t snp_i, Eigen::VectorXd* result ) const {
 	*result = m_betas.row( snp_i ).cast< double >() ;
 }
@@ -121,18 +119,16 @@ void FlatFileFrequentistGenomeWideAssociationResults::setup(
 ) {
 	ColumnMap column_map = get_columns_to_store( *source ) ;
 	
-	m_degrees_of_freedom = ( column_map.left.find( ".*beta_2.*" ) == column_map.left.end() ) ? 1 : 2 ;
+	int const degrees_of_freedom = get_number_of_effect_parameters() ;
 	
 	std::size_t snp_index = m_snps.size() ;
 
 	genfile::SNPIdentifyingData snp ;
-	Eigen::VectorXd betas ;
-	Eigen::VectorXd ses ;
 	
 	for( ; read_snp( *source, snp ); (*source) >> statfile::ignore_all() ) {
 		
 		if( snp_index >= m_snps.size() ) {
-			resize_storage( snp_index + 100000, m_degrees_of_freedom ) ;
+			resize_storage( snp_index + 100000, degrees_of_freedom ) ;
 		}
 		
 		// Deal with strange non-ids.  This isn't a general solution but 
@@ -172,7 +168,7 @@ void FlatFileFrequentistGenomeWideAssociationResults::setup(
 	
 	// Now deallocate any unused memory.
 	m_snps.resize( snp_index ) ;
-	resize_storage( snp_index, m_degrees_of_freedom ) ;
+	resize_storage( snp_index, degrees_of_freedom ) ;
 }
 
 FlatFileFrequentistGenomeWideAssociationResults::ColumnMap FlatFileFrequentistGenomeWideAssociationResults::get_columns_to_store(
