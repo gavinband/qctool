@@ -1010,8 +1010,6 @@ private:
 
 	bool m_ignore_warnings ; 
 	
-	std::size_t m_current_snp_stats_filename_index ;
-
 	genfile::SampleFilterConjunction::UniquePtr m_sample_filter ;
 	mutable genfile::CommonSNPFilter::UniquePtr m_snp_filter ;
 	Eigen::MatrixXd m_sample_filter_diagnostic_matrix ;
