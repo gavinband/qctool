@@ -164,7 +164,7 @@ def get_cxx_flags( variant_name ):
 		'-Wredeclared-class-member', # don't warn about class member redeclaration which comes up in Boost
 	]
 	if variant_name == 'default':
-		cxxflags.extend( ['-g', '-framework', 'CoreFoundation' ] )
+		cxxflags.extend( ['-g' ] )
 	elif variant_name == 'release':
 		cxxflags.extend( [ '-O3' ])
 	return cxxflags
@@ -172,7 +172,7 @@ def get_cxx_flags( variant_name ):
 def get_ld_flags( variant_name ):
 	import platform
 	ldflags = []
-	if variant_name == 'default':
+	if variant_name == 'default' and platform.system() == 'Darwin':
 		ldflags.extend( [ '-framework', 'CoreFoundation' ])
 	if Options.options.static and platform.system() != 'Darwin':
 		ldflags.extend( [ '-static', '-static-libgcc' ] )
