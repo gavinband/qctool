@@ -161,9 +161,10 @@ def get_cxx_flags( variant_name ):
 		'-Wall',
 		'-pedantic',
 		'-Wno-long-long', # don't warn about the long long thing, it comes up in Eigen and Boost.
+		'-Wredeclared-class-member', # don't warn about class member redeclaration which comes up in Boost
 	]
 	if variant_name == 'default':
-		cxxflags.extend( ['-g' ])
+		cxxflags.extend( ['-g', '-framework', 'CoreFoundation' ] )
 	elif variant_name == 'release':
 		cxxflags.extend( [ '-O3' ])
 	return cxxflags
@@ -171,8 +172,9 @@ def get_cxx_flags( variant_name ):
 def get_ld_flags( variant_name ):
 	import platform
 	ldflags = []
+	if variant_name == 'default':
+		ldflags.extend( [ '-framework', 'CoreFoundation' ])
 	if Options.options.static and platform.system() != 'Darwin':
-		#ldflags.extend( [ '-static', '-static-libgcc' ] )
 		ldflags.extend( [ '-static', '-static-libgcc' ] )
 	return ldflags
 
