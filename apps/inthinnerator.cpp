@@ -21,6 +21,7 @@
 #include <boost/random/uniform_real_distribution.hpp>
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/format.hpp>
 
 #include "appcontext/ProgramFlow.hpp"
 #include "appcontext/CmdLineOptionProcessor.hpp"
@@ -44,6 +45,8 @@
 #include "genfile/FromFilesGeneticMap.hpp"
 #include "FileUtil.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
+
+// #define DEBUG_INTHINNERATOR 1
 
 namespace globals {
 	std::string const program_name = "inthinnerator" ;
@@ -105,6 +108,7 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 		options[ "-map" ]
 			.set_description( "Set the path of the genetic map panel to use." )
 			.set_takes_single_value()
+			.set_is_required()
 		;
 		options.declare_group( "Genotype file options" ) ;
 		options[ "-g" ]
@@ -158,13 +162,16 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 				"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
 				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
 				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
-			.set_takes_single_value() ;
+			.set_takes_values_until_next_option()
+			.set_maximum_multiplicity( 100 ) ;
+			
 		options[ "-excl-range" ]
 			.set_description( "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to exclude from operation. "
 				"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
 				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
 				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
-			.set_takes_single_value() ;
+			.set_takes_values_until_next_option()
+			.set_maximum_multiplicity( 100 ) ;
 
 		options.declare_group( "SNP thinning options" ) ;
 		options[ "-min-distance" ]
@@ -179,6 +186,10 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 				" This can be \"random\", \"first\", or \"random_by_position\"." )
 			.set_takes_single_value()
 			.set_default_value( "random" ) ;
+		options[ "-bin-size" ]
+			.set_description( "Specify the size of bins when computing occupied genomic intervals." )
+			.set_takes_single_value()
+			.set_default_value( "1kb" ) ;
 		options[ "-rank" ]
 			.set_description( "Specify name of a file containing numerical ranks of SNPs. "
 				"SNPs will be picked in nonincreasing order of rank. "
@@ -380,24 +391,26 @@ private:
 	typedef std::map< std::pair< double, double >, genfile::GenomePositionRange > RangeMap ;
 	
 public:
-	RandomPositionSNPPicker( std::vector< genfile::GenomePositionRange > ranges ):
+	RandomPositionSNPPicker(
+		std::vector< genfile::GenomePositionRange > ranges,
+		std::size_t maximum_distance
+	):
 		m_rng( new RNG( get_random_seed() ) ),
 		m_uniform_01( 0.0, 1.0 ),
-		m_range_map( compute_range_map( ranges ))
+		m_range_map( compute_range_map( ranges )),
+		m_maximum_distance( maximum_distance )
 	{
 	}
 	
-	RandomPositionSNPPicker( std::size_t seed ):
-		m_rng( new RNG( seed ) )
-	{}
-
 	void set_snps( std::vector< genfile::SNPIdentifyingData > const& snps, SNPComparator comparator ) {
+		assert( snps.size() > 0 ) ;
+		m_snps_by_position.clear() ;
 		for( std::size_t i = 0; i < snps.size(); ++i ) {
 			m_snps_by_position.insert( std::make_pair( snps[i].get_position(), i )) ;
 		}
 		m_snp_comparator = comparator ;
 	}
-
+	
 	std::size_t pick(
 		std::deque< std::size_t > const& among_these
 	) const {
@@ -406,32 +419,65 @@ public:
 		while( !picked ) {
 			double in_01 = m_uniform_01( *m_rng ) ;
 			genfile::GenomePosition pos = map_uniform_01_to_position_in_ranges( in_01 ) ;
-			SnpByPositionMap::const_iterator where = m_snps_by_position.lower_bound( pos ) ;
-			assert( where != m_snps_by_position.end() ) ;
-			if( where->first.chromosome() == pos.chromosome() ) {
-				genfile::Position distanceLower = pos.position() - where->first.position() ;
-				genfile::Position distanceUpper = std::numeric_limits< genfile::Position >::max() ;
 
-				SnpByPositionMap::const_iterator next = where ;
-				++next ;
+#if DEBUG_INTHINNERATOR
+			std::cerr << "RandomPositionSNPPicker::pick(): testing " << pos << "..." ;
+			std::cerr << "RandomPositionSNPPicker::pick(): among " << among_these.size() << " SNPs...\n" ;
+#endif
+			// find the two SNPs flanking this position.
+			SnpByPositionMap::const_iterator previous = m_snps_by_position.lower_bound( pos ) ;
+			if( previous != m_snps_by_position.end() && previous->first == pos ) {
+				// Have landed right on a SNP!  pick it.
+				result = previous->second ;
+				picked = std::binary_search( among_these.begin(), among_these.end(), result ) ;
+			} else {
+				SnpByPositionMap::const_iterator next = previous ;
+				--previous ;
+				genfile::Position distanceToPrevious = std::numeric_limits< genfile::Position >::max() ;
+				genfile::Position distanceToNext = std::numeric_limits< genfile::Position >::max() ;
+				if( previous->first.chromosome() == pos.chromosome() ) {
+					distanceToPrevious = pos.position() - previous->first.position() ;
+				}
 				if( next != m_snps_by_position.end() && next->first.chromosome() == pos.chromosome() ) {
-					distanceUpper = next->first.position() - pos.position() ;
+					distanceToNext = next->first.position() - pos.position() ;
 				}
 
-				if( distanceUpper < distanceLower ) {
-					result = where->second ;
+#if DEBUG_INTHINNERATOR
+				std::cerr << "RandomPositionSNPPicker::pick(): previous SNP is at " << previous->first << ", next is at " << next->first << ".\n" ;
+#endif
+
+				if( distanceToPrevious <= m_maximum_distance || distanceToNext <= m_maximum_distance ) {
+					if( distanceToNext < distanceToPrevious ) {
+						result = next->second ;
+					} else {
+						result = previous->second ;
+					}
+
+					picked = std::binary_search( among_these.begin(), among_these.end(), result ) ;
 				} else {
-					result = next->second ;
+					// no pickable SNP within distance of the chosen position.
+					// Go back and try again
+					picked = false ;
 				}
-
-				picked = !std::binary_search( among_these.begin(), among_these.end(), result ) ;
+#if DEBUG_INTHINNERATOR
+				std::cerr << (picked ? "picked!\n" : "not picked.\n") ;
+#endif
 			}
 		}
+#if DEBUG_INTHINNERATOR
+		std::cerr << "Result is " << result << ".\n" ;
+#endif
 		return result ;
 	}
 
 	std::string display() const {
-		return "RandomSNPPicker" ;
+		std::ostringstream ostr ;
+		ostr << "RandomPositionSNPPicker with map:\n" ;
+		RangeMap::const_iterator i = m_range_map.begin(), end_i = m_range_map.end() ;
+		for( ; i != end_i; ++i ) {
+			ostr << "   " << i->first.first << "-" << i->first.second << " --> " << i->second << "\n" ;
+		}
+		return ostr.str() ;
 	}
 	
 	std::set< std::string > get_attribute_names() const {
@@ -447,34 +493,50 @@ private:
 	RangeMap const m_range_map ;
 	SnpByPositionMap m_snps_by_position ;
 	SNPComparator m_snp_comparator ;
+	std::size_t const m_maximum_distance ;
 	
 private:
-	RangeMap compute_range_map( std::vector< genfile::GenomePositionRange > ranges ) const {
-		int totalLength = 0 ;
+	RangeMap compute_range_map( std::vector< genfile::GenomePositionRange > const& ranges ) const {
+		double totalLength = 0 ;
 		for( std::size_t i = 0; i < ranges.size(); ++i ) {
 			totalLength += ranges[i].end().position() - ranges[i].start().position() ;
 		}
+#if DEBUG_INTHINNERATOR
+		std::cerr << "RandomPositionSNPPicker::compute_range_map(): Total length is " << totalLength << ".\n" ;
+#endif
 		
 		RangeMap result ;
 		double start = 0 ;
 		for( std::size_t i = 0; i < ranges.size(); ++i ) {
-			double end = start + ( ranges[i].end().position() - ranges[i].start().position() ) / totalLength ;
+			double end = start + double( ranges[i].end().position() - ranges[i].start().position() ) / totalLength ;
 			result.insert( std::make_pair( std::make_pair( start, end ), ranges[i] ) ) ;
+#if DEBUG_INTHINNERATOR
+		std::cerr << "RandomPositionSNPPicker::compute_range_map(): inserted element " << boost::format( "%.3f-%.3f" ) % start % end << " --> " << ranges[i] << ".\n" ;
+#endif
+		start = end ;
 		}
 		return result ;
 	}
 
 	genfile::GenomePosition map_uniform_01_to_position_in_ranges( double in_01 ) const {
+		using boost::format ;
 		assert( in_01 >= 0.0 && in_01 < 1 ) ;
-		std::pair< double, double > u( in_01, in_01 ) ;
+		std::pair< double, double > u( in_01, 1.0 ) ;
+#if DEBUG_INTHINNERATOR
+		std::cerr << "RandomPositionSNPPicker::map_uniform_01_to_position_in_ranges(): looking for " << format( "%.3f" ) % u.first << "..." ;
+#endif
 		RangeMap::const_iterator where = m_range_map.lower_bound(u) ;
-		assert( where != m_range_map.end() ) ; 
+		if( u.first != where->first.first ) {
+			assert( where != m_range_map.begin() ) ;
+			--where ;
+		}
 		double x = ( in_01 - where->first.first ) / ( where->first.second - where->first.first ) ; // interpoland
 		genfile::Position p = where->second.start().position() + ( where->second.end().position() - where->second.start().position() ) * x ;
+#if DEBUG_INTHINNERATOR
+		std::cerr << "RandomPositionSNPPicker::map_uniform_01_to_position_in_ranges(): chose range " << boost::format( "%.3f-%.3f" ) % where->first.first % where->first.second << ", " << where->second << " " << format( "x = %.4f" ) % x << ", position = " << p << "\n" ;
+#endif
 		return genfile::GenomePosition( where->second.start().chromosome(), p ) ;
 	}
-		
-	
 } ;
 
 class HighestValueSNPPicker: public SNPPicker
@@ -1051,7 +1113,6 @@ public:
 
 private:
 	enum DistanceType { ePhysical = 0, eRecombination = 1 } ;
-	double m_minimum_distance ;
 	ProximityTest::UniquePtr m_proximity_test ;
 	SNPPicker::UniquePtr m_snp_picker ;
 	bool m_write_incl_list, m_write_excl_list ;
@@ -1132,70 +1193,12 @@ private:
 	std::vector< genfile::SNPIdentifyingData > get_list_of_snps( std::string const& filename, genfile::GeneticMap const& map ) const {
 		std::vector< genfile::SNPIdentifyingData > filtered_snps ;
 		try {
-			genfile::SNPDataSource::UniquePtr source ;
-			{
-				UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Opening genotype files" ) ;
-				genfile::vcf::MetadataParser::Metadata metadata ;
-				if( options().check( "-metadata" ) ) {
-					metadata = genfile::vcf::StrictMetadataParser(
-						options().get_value< std::string >( "-metadata" )
-					).get_metadata() ;
-				}
-				source.reset(
-					genfile::SNPDataSourceChain::create(
-						genfile::wildcard::find_files_by_chromosome( filename, genfile::wildcard::eALL_CHROMOSOMES ),
-						metadata,
-						"guess",
-						boost::ref( progress_context )
-					).release()
-				) ;
-			}
-			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading SNP list" ) ;
-			filtered_snps = genfile::get_list_of_snps_in_source( *source, boost::ref( progress_context ) ) ;
+			filtered_snps = get_list_of_snps_from_gen_file( filename, map ) ;
 		}
 		catch( std::exception const& e ) {
 			get_ui_context().logger() << "File \"" << filename << "\" is not a GEN-style file.  Trying text format with columns SNPID rsid chromosome position...\n" ;
 			// Not a GEN format file.  Try a different format.
-			statfile::BuiltInTypeStatSourceChain::UniquePtr chain(
-				statfile::BuiltInTypeStatSourceChain::open(
-					genfile::wildcard::find_files_by_chromosome( filename, genfile::wildcard::eALL_CHROMOSOMES )
-				)
-			) ;
-
-			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading SNP list" ) ;
-
-			std::string SNPID ;
-			std::string rsid ;
-			std::string chromosome ;
-			genfile::Position position ;
-			std::string alleleA = "?" ;
-			std::string alleleB = "?" ;
-			while(
-				(*chain)
-					>> SNPID
-					>> rsid
-					>> chromosome
-					>> position
-			) {
-				if( chain->has_column( "alleleA" ) ) {
-					(*chain) >> alleleA ;
-				}
-				if( chain->has_column( "alleleB" ) ) {
-					(*chain) >> alleleB ;
-				}
-				// std::cerr << "Read SNP: " << SNPID << " " << rsid << " " << chromosome << " " << position << ".\n" ;
-				filtered_snps.push_back(
-					genfile::SNPIdentifyingData(
-						SNPID,
-						rsid,
-						genfile::GenomePosition( chromosome, position ),
-						alleleA,
-						alleleB	
-					)
-				) ;
-				(*chain) >> statfile::ignore_all() ;
-				progress_context.notify_progress( chain->number_of_rows_read(), chain->number_of_rows() ) ;
-			}
+			filtered_snps = get_list_of_snps_from_text_file( filename, map ) ;
 		}
 		
 		genfile::CommonSNPFilter filter ;
@@ -1219,7 +1222,7 @@ private:
 		}
 
 		if( options().check_if_option_was_supplied( "-incl-range" )) {
-			std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( options().get< std::string >( "-incl-range" ), ",", " \t" ) ;
+			std::vector< std::string > specs = options().get_values< std::string >( "-incl-range" ) ;
 			for ( std::size_t i = 0; i < specs.size(); ++i ) {
 				filter.include_snps_in_range(
 					genfile::GenomePositionRange::parse( specs[i] )
@@ -1228,7 +1231,7 @@ private:
 		}
 		
 		if( options().check_if_option_was_supplied( "-excl-range" )) {
-			std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( options().get< std::string >( "-excl-range" ), ",", " \t" ) ;
+			std::vector< std::string > specs = options().get_values< std::string >( "-excl-range" ) ;
 			for ( std::size_t i = 0; i < specs.size(); ++i ) {
 				filter.exclude_snps_in_range(
 					genfile::GenomePositionRange::parse( specs[i] )
@@ -1246,6 +1249,78 @@ private:
 		return filtered_snps ;
 	}
 	
+
+	std::vector< genfile::SNPIdentifyingData > get_list_of_snps_from_gen_file( std::string const& filename, genfile::GeneticMap const& map ) const {
+		std::vector< genfile::SNPIdentifyingData > filtered_snps ;
+		genfile::SNPDataSource::UniquePtr source ;
+		{
+			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Opening genotype files" ) ;
+			genfile::vcf::MetadataParser::Metadata metadata ;
+			if( options().check( "-metadata" ) ) {
+				metadata = genfile::vcf::StrictMetadataParser(
+					options().get_value< std::string >( "-metadata" )
+				).get_metadata() ;
+			}
+			source.reset(
+				genfile::SNPDataSourceChain::create(
+					genfile::wildcard::find_files_by_chromosome( filename, genfile::wildcard::eALL_CHROMOSOMES ),
+					metadata,
+					"guess",
+					boost::ref( progress_context )
+				).release()
+			) ;
+		}
+		UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading SNP list" ) ;
+		filtered_snps = genfile::get_list_of_snps_in_source( *source, boost::ref( progress_context ) ) ;
+		return filtered_snps ;
+	}
+	
+	std::vector< genfile::SNPIdentifyingData > get_list_of_snps_from_text_file( std::string const& filename, genfile::GeneticMap const& map ) const {
+		std::vector< genfile::SNPIdentifyingData > filtered_snps ;
+		UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading SNP list" ) ;
+
+		statfile::BuiltInTypeStatSourceChain::UniquePtr chain(
+			statfile::BuiltInTypeStatSourceChain::open(
+				genfile::wildcard::find_files_by_chromosome( filename, genfile::wildcard::eALL_CHROMOSOMES )
+			)
+		) ;
+
+		std::string SNPID ;
+		std::string rsid ;
+		std::string chromosome ;
+		genfile::Position position ;
+		std::string alleleA = "?" ;
+		std::string alleleB = "?" ;
+		while(
+			(*chain)
+				>> SNPID
+				>> rsid
+				>> chromosome
+				>> position
+		) {
+			if( chain->has_column( "alleleA" ) ) {
+				(*chain) >> alleleA ;
+			}
+			if( chain->has_column( "alleleB" ) ) {
+				(*chain) >> alleleB ;
+			}
+			// std::cerr << "Read SNP: " << SNPID << " " << rsid << " " << chromosome << " " << position << ".\n" ;
+			filtered_snps.push_back(
+				genfile::SNPIdentifyingData(
+					SNPID,
+					rsid,
+					genfile::GenomePosition( chromosome, position ),
+					alleleA,
+					alleleB	
+				)
+			) ;
+			(*chain) >> statfile::ignore_all() ;
+			progress_context.notify_progress( chain->number_of_rows_read(), chain->number_of_rows() ) ;
+		}
+		
+		return filtered_snps ;
+	}
+
 	std::vector< double > get_recombination_offsets( std::vector< genfile::SNPIdentifyingData > const& snps, genfile::GeneticMap const& map ) const {
 		UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Computing recombination positions" ) ;
 		std::vector< double > offsets( snps.size() ) ;
@@ -1288,6 +1363,7 @@ private:
 			) ;
 		}
 		else if( parsed_elts[0].second == "cM" ) {
+			
 			test.reset(
 				new RecombinationDistanceProximityTest(
 					snps,
@@ -1315,10 +1391,6 @@ private:
 		std::pair< double, std::string > result ;
 		if( piece.compare( piece.size() - 2, 2, "cM" ) == 0 ) {
 			result.first = genfile::string_utils::to_repr< double >( piece.substr( 0, piece.size() - 2 )) ;
-			result.second = "cM" ;
-		}
-		else if( piece.compare( piece.size() - 1, 1, "M" ) == 0 ) {
-			result.first = 100.0 * genfile::string_utils::to_repr< double >( piece.substr( 0, piece.size() - 1 )) ;
 			result.second = "cM" ;
 		}
 		else if( piece.compare( piece.size() - 2, 2, "bp" ) == 0 ) {
@@ -1352,19 +1424,21 @@ private:
 				picker.reset( new RandomSNPPicker ) ;
 			}
 			else if( strategy == "random_by_position" ) {
-				if( !options().check( "-incl-range" )) {
+				std::pair< double, std::string > bin_size = parse_distance_piece( options().get< std::string >( "-bin-size" ) ) ;
+				if( bin_size.second != "bp" ) {
 					throw genfile::BadArgumentError(
 						"InthinneratorApplication::get_snp_picker()",
-						"Option -strategy",
-						"You must supply -incl-range as well."
+						"option -bin-size",
+						"Value must be expressed in bp, kb or Mb, not in units of recombination distance."
 					) ;
 				}
-				std::vector< std::string > range_specs = options().get_values< std::string >( "-incl-range" ) ;
-				std::vector< genfile::GenomePositionRange > ranges ;
-				for( std::size_t i = 0; i < range_specs.size(); ++i ) {
-					ranges.push_back( genfile::GenomePositionRange::parse( range_specs[i] )) ;
-				}
-				picker.reset( new RandomPositionSNPPicker( ranges )) ;
+//				std::vector< std::string > range_spec = options().get_values( "-incl-range" ) ;
+//				std::vector< genfile::GenomePositionRange > ranges ;
+//				for( std::size_t i = 0; i < range_spec.size(); ++i ) {
+//					ranges.push_back( genfile::GenomePositionRange::parse( range_spec[i] ) ) ;
+//				}
+				std::vector< genfile::GenomePositionRange > ranges = compute_genomic_coverage( snps, bin_size.first ) ;
+				picker.reset( new RandomPositionSNPPicker( ranges, bin_size.first )) ;
 			}
 //			else if( strategy == "random_recombination_position" ) {
 //				picker.reset( new RandomRecombinationPositionSNPPicker( snps, map )) ;
@@ -1377,6 +1451,99 @@ private:
 			}
 		}
 		return picker ;
+	}
+
+	std::vector< genfile::GenomePositionRange > compute_genomic_coverage( std::vector< genfile::SNPIdentifyingData > snps, std::size_t max_distance ) const {
+		std::sort( snps.begin(), snps.end() ) ;
+
+		std::vector< genfile::GenomePositionRange > result ;
+		genfile::Position currentStart, currentEnd ;
+		genfile::Chromosome currentChromosome ;
+		bool inRange = false ;
+		for( std::size_t i = 0; i < snps.size(); ++i ) {
+			if( inRange ) {
+				if( snps[i].position().chromosome() != currentChromosome || ( snps[i].position().position() - currentEnd ) > max_distance ) {
+					if( currentEnd > currentStart ) { // ignore 1-SNP ranges
+						result.push_back(
+							genfile::GenomePositionRange(
+								currentChromosome,
+								currentStart,
+								currentEnd
+							)
+						) ;
+					}
+					inRange = false ;
+				} else {
+					currentEnd = snps[i].position().position() ;
+				}
+			}
+			if( !inRange ) {
+				currentStart = currentEnd = snps[i].position().position() ;
+				currentChromosome = snps[i].position().chromosome() ;
+				inRange = true ;
+			}
+		}
+		assert( inRange ) ;
+		result.push_back(
+			genfile::GenomePositionRange(
+				currentChromosome,
+				currentStart,
+				currentEnd
+			)
+		) ;
+		return result ;
+	}
+
+	std::vector< genfile::GenomePositionRange > compute_genomic_coverage_in_bins( std::vector< genfile::SNPIdentifyingData > const& snps, std::size_t bin_size_in_bp ) const {
+		typedef std::set< std::pair< genfile::Chromosome, std::size_t > > BinSet ;
+		BinSet occupiedBins ;
+		for( std::size_t i = 0; i < snps.size(); ++i ) {
+			std::size_t const bin = std::floor( ( double( snps[i].get_position().position() ) / double( bin_size_in_bp ) ) + 0.5 ) ; // no std::round so add 1/2 and floor.
+			occupiedBins.insert( std::make_pair( snps[i].get_position().chromosome(), bin )) ;
+		}
+
+		std::vector< genfile::GenomePositionRange > result ;
+		{
+			std::size_t currentStartBin, currentEndBin ;
+			genfile::Chromosome currentChromosome ;
+			bool inRange = false ;
+			for( BinSet::const_iterator i = occupiedBins.begin(); i != occupiedBins.end(); ++i ) {
+				if( inRange ) {
+					if( i->first == currentChromosome && ( i->second - currentEndBin ) == 1 ) {
+						currentEndBin = i->second ;
+					} else {
+						result.push_back(
+							genfile::GenomePositionRange(
+								currentChromosome,
+								currentStartBin * bin_size_in_bp,
+								( currentEndBin + 1 ) * bin_size_in_bp
+							)
+						) ;
+#if DEBUG_INTHINNERATOR
+						std::cerr << "InthinneratorApplication::compute_genomic_coverage_in_bins()" << "Added range " << currentChromosome << ": bin " << currentStartBin << " - bin " << currentEndBin << "...\n" ;
+#endif
+						inRange = false ;
+					}
+				}
+				if( !inRange ) {
+					currentStartBin = currentEndBin = i->second ;
+					currentChromosome = i->first ;
+					inRange = true ;
+				}
+			}
+			assert( inRange ) ;
+			result.push_back(
+				genfile::GenomePositionRange(
+					currentChromosome,
+					currentStartBin * bin_size_in_bp,
+					( currentEndBin + 1 ) * bin_size_in_bp
+				)
+			) ;
+#if DEBUG_INTHINNERATOR
+				std::cerr << "InthinneratorApplication::compute_genomic_coverage_in_bins()" << "Added range " << currentChromosome << ": bin " << currentStartBin << " - bin " << currentEndBin << "...\n" ;
+#endif
+		}
+		return result ;
 	}
 
 	std::map< genfile::SNPIdentifyingData, double > load_ranks( std::string const& filename, std::string const& column_name, std::vector< std::string > const& missing_values ) const {
@@ -1550,6 +1717,7 @@ private:
 				picked_snps.insert( picked_snp ) ;
 				progress_context.notify_progress( snps.size() - remaining_snps.size(), snps.size() ) ;
 			}
+			progress_context.notify_progress( snps.size() - remaining_snps.size(), snps.size() ) ;
 		}
 		return picked_snps ;
 	}
