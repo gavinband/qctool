@@ -385,7 +385,7 @@ namespace genfile {
 			std::size_t get_number_of_samples() const { return m_source.number_of_samples() ; }
 			
 			bool supports( std::string const& spec ) const {
-				return m_field_mapping.left.find( spec ) != m_field_mapping.left.end() ;
+				return ( spec == ":genotypes:" && m_source.m_genotype_field != "" ) || ( spec == ":intensities:" && m_source.m_intensity_field != "" ) || ( m_field_mapping.left.find( spec ) != m_field_mapping.left.end() ) ;
 			}
 
 			void get_supported_specs( SpecSetter setter ) const {
