@@ -89,11 +89,11 @@ namespace genfile {
 			std::size_t get_number_of_samples() const { return m_genotypes.size() / 3 ; }
 			
 			bool supports( std::string const& spec ) const {
-				return spec == "genotypes" ;
+				return spec == "GP" ;
 			}
 
 			void get_supported_specs( SpecSetter setter ) const {
-				setter( "genotypes", "Float" ) ;
+				setter( "GP", "Float" ) ;
 			}
 
 		private:
