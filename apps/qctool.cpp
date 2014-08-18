@@ -393,6 +393,13 @@ public:
 			)
 			.set_takes_single_value()
 			.set_default_value( "GT" ) ;
+		options[ "-vcf-intensity-field" ]
+			.set_description(
+				"Specify the name of the field in a VCF file to read intensities from.  This must match "
+				"the name of a FORMAT field in the VCF file."
+			)
+			.set_takes_single_value()
+			.set_default_value( "XY" ) ;
 		options[ "-metadata" ]
 			.set_description(
 				"Specify the name of a file containing VCF metadata to be used to parse "
@@ -1497,7 +1504,7 @@ private:
 		std::string genotype_field = m_options.get< std::string >( "-vcf-genotype-field" ) ;
 		source->set_field_mapping( ":genotypes:", genotype_field ) ;
 		std::string intensity_field = m_options.get< std::string >( "-vcf-intensity-field" ) ;
-		source->set_field_mapping( ":intensity:", genotype_field ) ;
+		source->set_field_mapping( ":intensities:", genotype_field ) ;
 		
 		return genfile::SNPDataSource::UniquePtr( source.release() ) ;
 	}
