@@ -19,13 +19,21 @@
 	// to a plain GEN file.
 	class SQLiteGenotypesSNPDataSink: public genfile::SNPDataSink
 	{
+    public:
+        typedef std::auto_ptr< SQLiteGenotypesSNPDataSink > UniquePtr ;
+
 	public:
 		SQLiteGenotypesSNPDataSink( qcdb::DBOutputter::UniquePtr outputter ) ;
 		
 		operator bool() const { return true ; }
 		std::string get_spec() const ;
 		
+        void set_genotype_field( std::string field ) ;
+        void set_intensity_field( std::string field ) ;
+
 	private:
+        std::string m_genotype_field ;
+        std::string m_intensity_field ;
 		qcdb::DBOutputter::UniquePtr m_outputter ;
 		std::size_t m_number_of_samples ;
 		db::Connection::StatementPtr m_insert_sample_stmnt ;

@@ -21,6 +21,8 @@
 // #define DEBUG_SQLITEGENOTYPESNPDATASINK 1
 
 SQLiteGenotypesSNPDataSink::SQLiteGenotypesSNPDataSink( qcdb::DBOutputter::UniquePtr outputter ):
+	m_genotype_field( "GP" ),
+	m_intensity_field( "XY" ),
 	m_outputter( outputter ),
 	m_number_of_samples( 0 ),
 	m_genotype_data_i( 0 ),
@@ -91,6 +93,14 @@ SQLiteGenotypesSNPDataSink::SQLiteGenotypesSNPDataSink( qcdb::DBOutputter::Uniqu
 
 std::string SQLiteGenotypesSNPDataSink::get_spec() const {
 	return "SQLiteGenotypesSNPDataSink" ;
+}
+
+void SQLiteGenotypesSNPDataSink::set_genotype_field( std::string field ) {
+	m_genotype_field = field ;
+}
+
+void SQLiteGenotypesSNPDataSink::set_intensity_field( std::string field ) {
+	m_intensity_field = field ;
 }
 
 namespace {
@@ -369,7 +379,7 @@ void SQLiteGenotypesSNPDataSink::write_variant_data_impl(
 	genfile::VariantDataReader& data_reader,
 	Info const& info
 ) {
-	if( data_reader.supports( "genotypes" )) {
+	if( data_reader.supports( m_genotype_field ) ) {
 		if( m_genotype_data_i == m_genotype_snps.size() ) {
 			flush_genotype_data( m_genotype_data_i ) ;
 			m_genotype_data_i = 0 ;
@@ -378,12 +388,12 @@ void SQLiteGenotypesSNPDataSink::write_variant_data_impl(
 		m_genotype_snps[ m_genotype_data_i ] = id_data ;
 		PositiveFloatWriter writer( &(m_genotype_data[ m_genotype_data_i ]), 3 ) ;
 		GenotypeMunger munger( writer ) ;
-		data_reader.get( "genotypes", munger ) ;
+		data_reader.get( m_genotype_field, munger ) ;
 		writer.finalise() ;
 		++m_genotype_data_i ;
 	}
 	
-	if( data_reader.supports( "XY" )) {
+	if( data_reader.supports( m_intensity_field )) {
 		if( m_intensity_data_i == m_intensity_snps.size() ) {
 			flush_intensity_data( m_intensity_data_i ) ;
 			m_intensity_data_i = 0 ;

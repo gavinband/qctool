@@ -393,6 +393,13 @@ public:
 			)
 			.set_takes_single_value()
 			.set_default_value( "GT" ) ;
+		options[ "-vcf-intensity-field" ]
+			.set_description(
+				"Specify the name of the field in a VCF file to read intensities from.  This must match "
+				"the name of a FORMAT field in the VCF file."
+			)
+			.set_takes_single_value()
+			.set_default_value( "XY" ) ;
 		options[ "-metadata" ]
 			.set_description(
 				"Specify the name of a file containing VCF metadata to be used to parse "
@@ -1494,9 +1501,6 @@ private:
 			) ;
 		}
 		
-		std::string genotype_field = m_options.get< std::string >( "-vcf-genotype-field" ) ;
-		//source->set_field_mapping( "genotypes", genotype_field ) ;
-		
 		return genfile::SNPDataSource::UniquePtr( source.release() ) ;
 	}
 	
@@ -1768,7 +1772,7 @@ private:
 						)
 					) ;
 				} else if( m_options.get< std::string >( "-ofiletype" ) == "sqlite_genotypes" ) {
-					sink.reset(
+                    SQLiteGenotypesSNPDataSink::UniquePtr sqlite_sink(
 						new SQLiteGenotypesSNPDataSink(
 							qcdb::DBOutputter::create(
 								filename,
@@ -1777,6 +1781,17 @@ private:
 								m_options.get_values_as_map()
 							)
 						)
+					) ;
+
+                    if( m_options.check( "-vcf-genotype-field" )) {
+						sqlite_sink->set_genotype_field( m_options.get< std::string >( "-vcf-genotype-field" ) ) ;
+                    }
+                    if( m_options.check( "-vcf-intensity-field" )) {
+						sqlite_sink->set_genotype_field( m_options.get< std::string >( "-vcf-intensity-field" ) ) ;
+                    }
+
+					sink.reset(
+                        sqlite_sink.release()
 					) ;
 			 	} else if( m_options.get< std::string >( "-ofiletype" ) == "sqlite_intensities" ) {
 					sink.reset(
