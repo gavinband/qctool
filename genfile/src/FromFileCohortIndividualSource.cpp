@@ -52,7 +52,10 @@ namespace genfile {
 	std::size_t FromFileCohortIndividualSource::get_number_of_individuals() const { return m_entries.size() ; }
 
 	FromFileCohortIndividualSource::Entry FromFileCohortIndividualSource::get_entry( std::size_t sample_i, std::string const& column_name ) const {
-		std::size_t const column_i = find_column_name( column_name ) ;
+        std::size_t column_i = 0 ;
+        if( genfile::string_utils::to_upper( column_name ) != "ID_1" ) {
+            column_i = find_column_name( column_name ) ;
+        }
 		return m_entries[ sample_i ][ column_i ] ;
 	}
 
@@ -77,7 +80,6 @@ namespace genfile {
 	}
 
 	std::vector< std::string >::const_iterator FromFileCohortIndividualSource::find_column_name_impl( std::string const& column_name ) const {
-		
 		return std::find_if(
 			m_column_names.begin(),
 			m_column_names.end(),
@@ -90,7 +92,9 @@ namespace genfile {
 	}
 
 	std::vector< std::size_t > FromFileCohortIndividualSource::find_samples_by_value( std::string const& column_name, Entry const& entry ) const {
-		if( column_name == "ID_1" ) {
+        std::string const upperName = genfile::string_utils::to_upper( column_name ) ;
+		if( upperName == "ID_1" || upperName == m_column_names[0] ) {
+            // optimisation: fast lookup of principal ID field.
 			std::map< Entry, std::size_t >::const_iterator where = m_sample_indices.find( entry ) ;
 			if( where == m_sample_indices.end() ) {
 				throw BadArgumentError( "FromFileCohortIndividualSource::find_entries()", "entry=\"" + string_utils::to_string( entry ) + "\"", "The entry was not found in column \"" + column_name + "\"" ) ;
@@ -137,33 +141,44 @@ namespace genfile {
 			column_types = read_column_type_line( stream, m_column_names ) ;
 		}
 
-		if( column_types ) {
-			m_column_types.resize( m_column_names.size() ) ;
-			for( std::size_t i = 0; i < m_column_names.size(); ++i ) {
-				ColumnTypeMap::const_iterator where = (*column_types).find( m_column_names[i] ) ;
-				if( where == (*column_types).end() ) {
-					throw MalformedInputError( m_filename, m_number_of_metadata_lines + 1 ) ;
+		if( !column_types ) {
+			throw MalformedInputError( m_filename, "Expected column type line after column names.", m_number_of_metadata_lines + 1 ) ;
+        }
+
+		m_column_types.resize( m_column_names.size() ) ;
+		for( std::size_t i = 0; i < m_column_names.size(); ++i ) {
+			ColumnTypeMap::const_iterator where = (*column_types).find( m_column_names[i] ) ;
+			if( where == (*column_types).end() ) {
+				throw MalformedInputError( m_filename, m_number_of_metadata_lines + 1 ) ;
+			}
+			m_column_types[i] = where->second ;
+			
+            if( genfile::string_utils::to_upper( m_column_names[i] ) == "ID_1" && i != 0 ) {
+				throw MalformedInputError( m_filename, "The name 'ID_1', if used, must be the first column in the sample file.", 0 ) ;
+            }
+            if( genfile::string_utils::to_upper( m_column_names[i] ) == "ID_2" && i != 1 ) {
+				throw MalformedInputError( m_filename, "The name 'ID_2', if used, must be the second column in the sample file.", 0 ) ;
+            }
+            if( genfile::string_utils::to_upper( m_column_names[i] ) == "missing" && i != 2 ) {
+				throw MalformedInputError( m_filename, "The name 'missing', if used, must be the third column in the sample file.", 0 ) ;
+            }
+			if( i < 3 ) {
+				if( m_column_types[i] != e_ID_COLUMN ) {
+					throw MalformedInputError( m_filename, "column " + genfile::string_utils::to_string( i+1 ) + "(\"" + m_column_names[i] + "\") should have type \"0\"", 0 ) ;
 				}
-				m_column_types[i] = where->second ;
-				
-				if( m_column_names[i] == "missing" || m_column_names[i] == "ID_1" || m_column_names[i] == "ID_2" ) {
-					if( m_column_types[i] != e_ID_COLUMN ) {
-						throw MalformedInputError( m_filename, "column \"" + m_column_names[i] + "\" should have type \"0\"", 0 ) ;
-					}
-				} else {
-					if( m_column_types[i] == e_ID_COLUMN ) {
-						throw MalformedInputError( m_filename, "Only columns ID_1, ID_2, and missing can have type \"0\"", 0 ) ;
-					}
-				}
-				if( m_column_names[i] == "missing" ) {
-					m_column_types[i] = e_MISSINGNESS_COLUMN ;
+			} else {
+				if( m_column_types[i] == e_ID_COLUMN ) {
+					throw MalformedInputError( m_filename, "Only the first (ID_1), second (ID_2), and third (missing) columns can have type \"0\"", 0 ) ;
 				}
 			}
-		} else {
-			throw MalformedInputError( m_filename, "Expected column type line after column names.", m_number_of_metadata_lines + 1 ) ;
+            // update the missingness column to the right type.
+			if( genfile::string_utils::to_upper( m_column_names[i] ) == "MISSING" ) {
+				m_column_types[i] = e_MISSINGNESS_COLUMN ;
+			}
 		}
+
 		assert( m_column_names.size() == m_column_types.size() ) ;
-		m_entries = read_entries( stream, m_column_types) ;
+		m_entries = read_entries( stream, m_column_types ) ;
 		for( std::size_t i = 0; i < m_entries.size(); ++i ) {
 			m_sample_indices[ m_entries[i].front() ] = i ;
 		}
@@ -291,10 +306,6 @@ namespace genfile {
 		result = string_utils::split_and_strip_discarding_empty_entries( line ) ;
 		if( result.size() < 1 ) {
 			throw MalformedInputError( m_filename, 0 + m_number_of_metadata_lines ) ;
-		}
-		// Check first column is "ID_1"...
-		if( string_utils::to_lower( result[0] ) != "id_1" ) {
-			throw MalformedInputError( m_filename, 0 + m_number_of_metadata_lines, 0 ) ;
 		}
 		return result ;
 	}
