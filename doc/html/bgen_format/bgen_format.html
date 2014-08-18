@@ -68,8 +68,8 @@
 				<h3>The first four bytes</h3>
 				<p>
 				The first four bytes of the file encode an unsigned integer indicating the offset, relative to the 5th byte of the file, of the
-                start of the first snp block (or the end of the file if there are 0 snp blocks). For example, if this offset is 0, the snp
-                blocks start at byte 5.
+                start of the first snp block (or the end of the file if there are 0 snp blocks). 
+				For example, if this offset is 20 (the minimum possible because the header block always has size at least 20) then the snp blocks start at byte 25.
 				</p>
 				<center>
 				<table class="filespec">
@@ -95,7 +95,7 @@
                <tr><td>4</td><td>Reserved.  (Writers should write 0 here, readers should ignore these bytes.)</td></tr>
                <tr><td><em>H</em>-20</td><td>Free data area.  This could be used to store, for example, identifying information about the file</td></tr>
                <tr><td>4</td><td>A set of <em>flags</em>, with bits numbered as for an unsigned integer.  See below for flag definitions.</td></tr>
-					<tr><th>20 + <em>L</em></th><th>TOTAL</th></tr>
+					<tr><th>20 + <em>H</em></th><th>TOTAL</th></tr>
 				</table>
             </center>
 
