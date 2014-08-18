@@ -38,10 +38,10 @@ SQLiteGenotypesSNPDataSink::SQLiteGenotypesSNPDataSink( qcdb::DBOutputter::Uniqu
 	) ;
 	m_outputter->connection().run_statement(
 		"CREATE View IF NOT EXISTS GenotypeView AS "
-		"SELECT analysis_id, E.name AS analysis, variant_id, chromosome, position, rsid, alleleA, alleleB, quote( data ) "
+		"SELECT analysis_id, A.name AS analysis, variant_id, chromosome, position, rsid, alleleA, alleleB, quote( data ) "
 		"FROM Genotype H "
-		"INNER JOIN Entity E "
-		"ON E.id == H.analysis_id "
+		"INNER JOIN Analysis A "
+		"ON A.id == H.analysis_id "
 		"INNER JOIN Variant V "
 		"ON V.id == H.variant_id"
 	) ;
@@ -60,10 +60,10 @@ SQLiteGenotypesSNPDataSink::SQLiteGenotypesSNPDataSink( qcdb::DBOutputter::Uniqu
 
 	m_outputter->connection().run_statement(
 		"CREATE View IF NOT EXISTS IntensityView AS "
-		"SELECT analysis_id, E.name AS analysis, variant_id, chromosome, position, rsid, alleleA, alleleB, quote( data ) "
+		"SELECT analysis_id, A.name AS analysis, variant_id, chromosome, position, rsid, alleleA, alleleB, quote( data ) "
 		"FROM Intensity H "
-		"INNER JOIN Entity E "
-		"ON E.id == H.analysis_id "
+		"INNER JOIN Analysis A "
+		"ON A.id == H.analysis_id "
 		"INNER JOIN Variant V "
 		"ON V.id == H.variant_id"
 	) ;
