@@ -148,16 +148,19 @@ namespace genfile {
 		bool have_format = false ;
 		(*m_stream_ptr) << tab ;
 		for( std::size_t field_i = 0; field_i < fields.size(); ++field_i ) {
-			if( data_reader.supports( fields[field_i] )) {
-				(*m_stream_ptr) << ( have_format ? ":" : "" ) << fields[field_i] ;
-				DataWriter writer( m_streams, ( fields[field_i] == "GT" ) ) ;
-				if( have_format ) {
-					for( std::size_t i = 0; i < m_streams.size(); ++i ) {
-						m_streams[i] << ":" ;
+			std::string const field = fields[ field_i ] ;
+			if( field != ":genotypes:" && field != ":intensities:" ) {
+				if( data_reader.supports( field )) {
+					(*m_stream_ptr) << ( have_format ? ":" : "" ) << field ;
+					DataWriter writer( m_streams, ( field == "GT" ) ) ;
+					if( have_format ) {
+						for( std::size_t i = 0; i < m_streams.size(); ++i ) {
+							m_streams[i] << ":" ;
+						}
 					}
+					data_reader.get( fields[field_i], writer ) ;
+					have_format = true ;
 				}
-				data_reader.get( fields[field_i], writer ) ;
-				have_format = true ;
 			}
 		}
 

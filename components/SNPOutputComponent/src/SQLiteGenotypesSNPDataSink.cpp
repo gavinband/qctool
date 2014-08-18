@@ -21,8 +21,8 @@
 // #define DEBUG_SQLITEGENOTYPESNPDATASINK 1
 
 SQLiteGenotypesSNPDataSink::SQLiteGenotypesSNPDataSink( qcdb::DBOutputter::UniquePtr outputter ):
-	m_genotype_field( "GP" ),
-	m_intensity_field( "XY" ),
+	m_genotype_field( ":genotypes:" ),
+	m_intensity_field( ":intensities:" ),
 	m_outputter( outputter ),
 	m_number_of_samples( 0 ),
 	m_genotype_data_i( 0 ),

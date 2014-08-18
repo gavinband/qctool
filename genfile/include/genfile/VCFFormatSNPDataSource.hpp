@@ -93,6 +93,8 @@ namespace genfile {
 		EntryTypeMap m_format_types ;
 		typedef boost::bimap< std::string, std::string > FieldMapping ;
 		FieldMapping m_field_mapping ;
+		std::string m_genotype_field ;
+		std::string m_intensity_field ;
 
 		std::vector< std::string > const m_column_names ;
 		std::size_t const m_number_of_samples ;

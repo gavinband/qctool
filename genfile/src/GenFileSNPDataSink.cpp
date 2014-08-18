@@ -47,10 +47,8 @@ namespace genfile {
 	) {
 		write_variant( stream(), id_data ) ;
 		GenotypeWriter writer( stream() ) ;
-		if( data_reader.supports( "GT" )) {
-			data_reader.get( "GT", writer ) ;
-		} else if( data_reader.supports( "GP" )) {
-			data_reader.get( "GP", writer ) ;
+		if( data_reader.supports( ":genotypes:" )) {
+			data_reader.get( ":genotypes:", writer ) ;
 		} else {
 			throw genfile::BadArgumentError(
 				"genfile::GenFileSNPDataSink::write_variant_data_impl()",

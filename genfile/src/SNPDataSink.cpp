@@ -180,10 +180,8 @@ namespace genfile {
 		m_genotypes.setZero() ;
 		{
 			vcf::GenotypeSetter< Eigen::MatrixBase< Eigen::MatrixXd > > setter( m_genotypes ) ;
-            if( data_reader.supports( "GP" )) {
-                data_reader.get( "GP", setter ) ;
-            } else {
-                data_reader.get( "GT", setter ) ;
+            if( data_reader.supports( ":genotypes:" )) {
+                data_reader.get( ":genotypes:", setter ) ;
             }
 		}
 
