@@ -24,6 +24,14 @@ namespace genfile {
 		}
 		else {
 			ColumnSpec new_column_spec = m_sources.back().get_column_spec() ;
+			if( new_column_spec[0] != m_column_spec[0] ) {
+				throw  BadArgumentError(
+					"CohortIndividualSourceChain::add_source()",
+					"source = \"" + source->get_source_spec() + "\"",
+					"All sources must share the same ID_1 field (\"" + m_column_spec[0].name() + "\")."
+				) ;
+			}
+
 			std::vector< std::string > column_names = new_column_spec.get_names() ;
 			for( std::size_t i = 0; i < column_names.size(); ++i ) {
 				// we remove any columns which match name but mismatch type, and any columns which match completely.
@@ -60,6 +68,10 @@ namespace genfile {
 	}
 
 	CohortIndividualSource::Entry CohortIndividualSourceChain::get_entry( std::size_t sample_i, std::string const& column_name ) const {
+		std::string actual_name = column_name ;
+		if( genfile::string_utils::to_upper( column_name ) == "ID_1" ) {
+			actual_name = m_column_spec[0].name() ;
+		}
 		Entry result ;
 		std::size_t i = 0 ;
 		for( ; i < m_sources.size(); ++i ) {
@@ -67,8 +79,8 @@ namespace genfile {
 				sample_i -= m_sources[i].get_number_of_individuals() ;
 			}
 			else {
-				if( m_sources[i].check_for_column( column_name )) {
-					result = m_sources[i].get_entry( sample_i, column_name ) ;
+				if( m_sources[i].check_for_column( actual_name )) {
+					result = m_sources[i].get_entry( sample_i, actual_name ) ;
 				}
 				break ;
 			}
