@@ -28,10 +28,28 @@ namespace qcdb {
 		typedef boost::shared_ptr< DBOutputter > SharedPtr ;
 		typedef std::map< std::string, std::pair< std::vector< std::string >, std::string > > Metadata ;
 
-		static UniquePtr create( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) ;
-		static SharedPtr create_shared( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) ;
+		static UniquePtr create(
+			std::string const& filename,
+			std::string const& analysis_name,
+			std::string const& analysis_description,
+			Metadata const& metadata,
+			std::string const& snp_match_fields = "position,alleles"
+		) ;
+		static SharedPtr create_shared(
+			std::string const& filename,
+			std::string const& analysis_name,
+			std::string const& analysis_description,
+			Metadata const& metadata,
+			std::string const& snp_match_fields = "position,alleles"
+		) ;
 
-		DBOutputter( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) ;
+		DBOutputter(
+			std::string const& filename,
+			std::string const& analysis_name,
+			std::string const& analysis_description,
+			Metadata const& metadata,
+			std::string const& snp_match_fields = "position,alleles"
+		) ;
 		~DBOutputter() ;
 
 		// Create an entity.  Optionally suppy a class (which must be the id of another entity.)
@@ -58,7 +76,8 @@ namespace qcdb {
 		std::string const m_analysis_name ;
 		std::string const m_analysis_chunk ;
 		Metadata const m_metadata ;
-		bool m_create_indices ;
+		bool const m_create_indices ;
+		bool const m_match_rsid ;
 
 		db::Connection::StatementPtr m_find_entity_statement ;
 		db::Connection::StatementPtr m_find_entity_data_statement ;

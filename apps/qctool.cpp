@@ -102,7 +102,6 @@
 #include "components/SNPOutputComponent/SNPOutputComponent.hpp"
 #include "components/SNPOutputComponent/SQLiteHaplotypesSNPDataSink.hpp"
 #include "components/SNPOutputComponent/SQLiteGenotypesSNPDataSink.hpp"
-#include "components/SNPOutputComponent/SQLiteIntensitiesSNPDataSink.hpp"
 #include "components/SampleSummaryComponent/SampleSummaryComponent.hpp"
 #include "ClusterPlotter.hpp"
 
@@ -1783,22 +1782,12 @@ private:
 								filename,
 								m_options.get< std::string >( "-analysis-name" ),
 								m_options.get< std::string >( "-analysis-chunk" ),
-								m_options.get_values_as_map()
+								m_options.get_values_as_map(),
+								m_options.get< std::string >( "-snp-match-fields" )
 							)
 						)
 					) ;
-			 	} else if( m_options.get< std::string >( "-ofiletype" ) == "sqlite_intensities" ) {
-					sink.reset(
-						new SQLiteIntensitiesSNPDataSink(
-							qcdb::DBOutputter::create(
-								filename,
-								m_options.get< std::string >( "-analysis-name" ),
-								m_options.get< std::string >( "-analysis-chunk" ),
-								m_options.get_values_as_map()
-							)
-						)
-					) ;
-				}
+			 	}
 				else {
 					sink = genfile::SNPDataSink::create(
 						filename,

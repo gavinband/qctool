@@ -110,7 +110,7 @@ namespace genfile {
 			}
 			
 			GenFileSNPDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
-                assert( spec == "GP" || spec == "genotypes" ) ;
+                assert( spec == "GP" || spec == ":genotypes:" ) ;
 				std::size_t const N = m_genotypes.size() / 3 ;
 				setter.set_number_of_samples( N ) ;
 				for( std::size_t i = 0; i < N; ++i ) {
