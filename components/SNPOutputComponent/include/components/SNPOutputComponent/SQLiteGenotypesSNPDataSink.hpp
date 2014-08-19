@@ -23,7 +23,10 @@
         typedef std::auto_ptr< SQLiteGenotypesSNPDataSink > UniquePtr ;
 
 	public:
-		SQLiteGenotypesSNPDataSink( qcdb::DBOutputter::UniquePtr outputter ) ;
+		SQLiteGenotypesSNPDataSink(
+            qcdb::DBOutputter::UniquePtr outputter,
+            genfile::CohortIndividualSource const& samples
+        ) ;
 		
 		operator bool() const { return true ; }
 		std::string get_spec() const ;
@@ -35,6 +38,7 @@
         std::string m_genotype_field ;
         std::string m_intensity_field ;
 		qcdb::DBOutputter::UniquePtr m_outputter ;
+        genfile::CohortIndividualSource const& m_samples ;
 		std::size_t m_number_of_samples ;
 		db::Connection::StatementPtr m_insert_sample_stmnt ;
 		db::Connection::StatementPtr m_insert_genotype_stmnt ;

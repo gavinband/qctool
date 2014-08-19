@@ -20,17 +20,21 @@
 
 // #define DEBUG_SQLITEGENOTYPESNPDATASINK 1
 
-SQLiteGenotypesSNPDataSink::SQLiteGenotypesSNPDataSink( qcdb::DBOutputter::UniquePtr outputter ):
+SQLiteGenotypesSNPDataSink::SQLiteGenotypesSNPDataSink(
+	qcdb::DBOutputter::UniquePtr outputter,
+	genfile::CohortIndividualSource const& samples
+):
 	m_genotype_field( ":genotypes:" ),
 	m_intensity_field( ":intensities:" ),
 	m_outputter( outputter ),
-	m_number_of_samples( 0 ),
+	m_samples( samples ),
 	m_genotype_data_i( 0 ),
 	m_intensity_data_i( 0 )
 {
+	db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 2400 ) ;
 	m_outputter->connection().run_statement(
 		"CREATE TABLE IF NOT EXISTS Genotype ( "
-		"  analysis_id INT NOT NULL REFERENCES Entity( id ), "
+		"  analysis_id INT NOT NULL REFERENCES Analysis( id ), "
 		"  variant_id INT NOT NULL REFERENCES Variant( id ), "
 		"  N INT NOT NULL,"
 		"  data BLOB NOT NULL"
@@ -51,7 +55,7 @@ SQLiteGenotypesSNPDataSink::SQLiteGenotypesSNPDataSink( qcdb::DBOutputter::Uniqu
 
 	m_outputter->connection().run_statement(
 		"CREATE TABLE IF NOT EXISTS Intensity ( "
-		"  analysis_id INT NOT NULL REFERENCES Entity( id ), "
+		"  analysis_id INT NOT NULL REFERENCES Analysis( id ), "
 		"  variant_id INT NOT NULL REFERENCES Variant( id ), "
 		"  N INT NOT NULL,"
 		"  data BLOB NOT NULL"
@@ -71,19 +75,6 @@ SQLiteGenotypesSNPDataSink::SQLiteGenotypesSNPDataSink( qcdb::DBOutputter::Uniqu
 		"INSERT INTO Intensity ( analysis_id, variant_id, N, data ) VALUES( ?, ?, ?, ? ) ;"
 	) ;
 
-	m_outputter->connection().run_statement(
-		"CREATE TABLE IF NOT EXISTS Sample ( "
-		"  analysis_id INTEGER NOT NULL REFERENCES Entity( id ), "
-		"  identifier TEXT NOT NULL, "
-		"  index_in_data INTEGER NOT NULL, "
-		"  UNIQUE( analysis_id, identifier ), "
-		"  UNIQUE( analysis_id, index_in_data )"
-		")"
-	) ;
-	m_insert_sample_stmnt = m_outputter->connection().get_statement(
-		"INSERT INTO Sample ( analysis_id, identifier, index_in_data ) VALUES( ?, ?, ? ) ;"
-	) ;
-	
 	m_genotype_snps.resize( 1000 ) ;
 	m_genotype_data.resize( 1000 ) ;
 
@@ -361,17 +352,70 @@ namespace {
 }
 
 void SQLiteGenotypesSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter getter ) {
-	db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 600 ) ;
-	for( std::size_t i = 0; i < number_of_samples; ++i ) {
+	if( number_of_samples != m_samples.get_number_of_individuals() ) {
+		throw genfile::BadArgumentError(
+			"SQLiteGenotypesSNPDataSink::set_sample_names_impl()",
+			"number_of_samples",
+			"number of samples ("
+			+ genfile::string_utils::to_string( number_of_samples )
+			+ ") does not match that in sample files ("
+			+ genfile::string_utils::to_string( m_samples.get_number_of_individuals() )
+			+ ")."
+		) ;
+	}
+	genfile::CohortIndividualSource::ColumnSpec const spec = m_samples.get_column_spec() ;
+
+	db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 2400 ) ;
+
+	if( !m_insert_sample_stmnt.get() ) {
+		std::string sample_sql = 
+			"CREATE TABLE IF NOT EXISTS Sample ( "
+			"analysis_id INTEGER NOT NULL REFERENCES Analysis( id ), "
+			"index_in_data INTEGER NOT NULL" ;
+
+		std::string insert_sample_sql = 
+			"INSERT INTO Sample ( analysis_id, index_in_data" ;
+
+		for( std::size_t i = 0; i < spec.size(); ++i ) {
+			sample_sql += ", " + spec[i].name() + " " + ( spec[i].is_continuous() ? "FLOAT" : "TEXT" ) ;
+			insert_sample_sql += ", " + spec[i].name() ;
+		}
+		sample_sql += ", UNIQUE( analysis_id, \"" + spec[0].name() + "\" ), "
+			+ "UNIQUE( analysis_id, index_in_data )"
+			+ ")" ;
+
+		insert_sample_sql += " ) VALUES ( ?, ?" ;
+		for( std::size_t i = 0; i < spec.size(); ++i ) {
+			insert_sample_sql += ", ?" ;
+		}
+		insert_sample_sql += " ) ;" ;
+
+		m_outputter->connection().run_statement( sample_sql ) ;
+		
+		m_insert_sample_stmnt = m_outputter->connection().get_statement(
+			insert_sample_sql
+		) ;
+	}
+
+	for( std::size_t sample_i = 0; sample_i < number_of_samples; ++sample_i ) {
+		if( getter(sample_i) != m_samples.get_entry( sample_i, "ID_1" )) {
+			throw genfile::BadArgumentError(
+				"SQLiteGenotypesSNPDataSink::set_sample_names_impl()",
+				"getter",
+				"getter(" + genfile::string_utils::to_string( sample_i )  + " = \"" + getter(sample_i).as< std::string >() + "\", but expected \""
+				+ m_samples.get_entry( sample_i, "ID_1" ).as< std::string >()
+				+ "\"."
+			) ;
+		}
 		m_insert_sample_stmnt
 			->bind( 1, m_outputter->analysis_id() )
-			.bind( 2, getter(i) )
-			.bind( 3, int64_t( i ) )
-			.step()
-		;
+			.bind( 2, int64_t( sample_i ) ) ;
+		for( std::size_t column_i = 0; column_i < spec.size(); ++column_i ) {
+			m_insert_sample_stmnt->bind( column_i+3, m_samples.get_entry( sample_i, spec[column_i].name() )) ;
+		}
+		m_insert_sample_stmnt->step() ;
 		m_insert_sample_stmnt->reset() ;
 	}
-	m_number_of_samples = number_of_samples ;
 }
 
 void SQLiteGenotypesSNPDataSink::write_variant_data_impl(
@@ -436,7 +480,7 @@ void SQLiteGenotypesSNPDataSink::flush_genotype_data( std::size_t const data_cou
 		m_insert_genotype_stmnt
 			->bind( 1, m_outputter->analysis_id() )
 			.bind( 2, variant_ids[i] )
-			.bind( 3, int64_t( m_number_of_samples ) )
+			.bind( 3, int64_t( m_samples.get_number_of_individuals() ) )
 			.bind( 4, buffer, end_buffer )
 			.step() ;
 		m_insert_genotype_stmnt->reset() ;
@@ -470,7 +514,7 @@ void SQLiteGenotypesSNPDataSink::flush_intensity_data( std::size_t const data_co
 		m_insert_intensity_stmnt
 			->bind( 1, m_outputter->analysis_id() )
 			.bind( 2, variant_ids[i] )
-			.bind( 3, int64_t( m_number_of_samples ) )
+			.bind( 3, int64_t( m_samples.get_number_of_individuals() ) )
 			.bind( 4, buffer, end_buffer )
 			.step() ;
 		m_insert_intensity_stmnt->reset() ;
