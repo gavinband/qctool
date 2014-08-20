@@ -61,7 +61,7 @@ SQLiteGenotypesSNPDataSink::SQLiteGenotypesSNPDataSink(
 		"  data BLOB NOT NULL"
 		")"
 	) ;
-
+	
 	m_outputter->connection().run_statement(
 		"CREATE View IF NOT EXISTS IntensityView AS "
 		"SELECT analysis_id, A.name AS analysis, variant_id, chromosome, position, rsid, alleleA, alleleB, quote( data ) "
@@ -456,11 +456,20 @@ void SQLiteGenotypesSNPDataSink::finalise_impl() {
 		flush_genotype_data( m_genotype_data_i ) ;
 		m_genotype_data_i = 0 ;
 	}
+	
+	{
+		db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 2400 ) ;
+		m_outputter->connection().run_statement( "CREATE INDEX IntensityVariantIndex ON Intensity ( variant_id )" ) ;
+		m_outputter->connection().run_statement( "CREATE INDEX IntensityAnalysisVariantIndex ON Intensity ( analysis_id, variant_id )" ) ;
+		m_outputter->connection().run_statement( "CREATE INDEX GenotypeVariantIndex ON Intensity ( variant_id )" ) ;
+		m_outputter->connection().run_statement( "CREATE INDEX GenotypeAnalysisVariantIndex ON Genotype ( analysis_id, variant_id )" ;
+	}
+
 	m_outputter->finalise() ;
 }
 
 void SQLiteGenotypesSNPDataSink::flush_genotype_data( std::size_t const data_count ) {
-	db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 600 ) ;
+	db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 2400 ) ;
 
 #if DEBUG_SQLITEGENOTYPESNPDATASINK
 	std::cerr << "Flushing " << data_count << " genotypes..." ;
