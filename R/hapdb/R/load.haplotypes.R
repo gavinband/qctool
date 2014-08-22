@@ -5,13 +5,18 @@ function(
 	samples = NULL, analysis = NULL,
 	verbose = FALSE,
 	compute.dosage = FALSE,
-	method = "cpp"
+	method = "cpp",
+	sample.identifier.column = NULL
 ) {
 	require( RSQLite )
 	require( Rcompression )
+	if( is.null( sample.identifier.column )) {
+		sample.identifier.column = colnames( hapdb$samples )[ -which( colnames( hapdb$samples ) %in% c( "analysis", "analysis_id", "index_in_data" ) ) ][1]
+		cat( "Set sample identifier column to", sample.identifier.column, ".\n" )
+	}
 	sql = paste(
-		"SELECT analysis_id, E.name AS analysis, V.id AS variant_id, chromosome, position, rsid, alleleA, alleleB, H.N AS N, H.data",
-		"FROM Entity E",
+		"SELECT analysis_id, E.name AS analysis, V.id AS variant_id, chromosome, position, rsid, alleleA, alleleB, H.N AS N, H.data AS data",
+		"FROM Analysis E",
 		"INNER JOIN Variant V",
 		"CROSS JOIN Haplotype H ON H.analysis_id == E.id AND H.variant_id == V.id",
 		sep = " "
@@ -55,7 +60,9 @@ function(
 	if( verbose ) {
 		cat( "load.haplotypes(): running query :\"", sql, "\"...\n", sep = "" ) ;
 		print( dbGetQuery( hapdb$db, sprintf( "EXPLAIN QUERY PLAN %s", sql ) ) )
-	}
+		cat( "Number of expected SNPs is:\n" )	
+		print( dbGetQuery( hapdb$db, "SELECT COUNT(*) FROM tmpHapdbLoadGenotypes" ) )
+	}	
 
 	#############
 	# Get the data
@@ -101,7 +108,7 @@ function(
 	N = nrow( result$samples )
 	if( !is.null( samples ) ) {
 		if( mode( samples ) == "character" ) {
-			samples.choice = sort( which( hapdb$samples$analysis == analysis & hapdb$samples$identifier %in% samples ) ) ;
+			samples.choice = sort( which( hapdb$samples$analysis == analysis & hapdb$samples[, sample.identifier.column ] %in% samples ) ) ;
 		} else {
 			samples.choice = samples
 		}
@@ -116,15 +123,15 @@ function(
 
     N = nrow( result$samples )
 	colnames( result$data ) = rep( NA, 2 * nrow( result$sample ) )
-	colnames( result$data )[ seq( from = 1, by = 2, length = N ) ] = paste( result$samples[, 'identifier' ], "0", sep = ":" )
-	colnames( result$data )[ seq( from = 2, by = 2, length = N ) ] = paste( result$samples[, 'identifier' ], "1", sep = ":" )
+	colnames( result$data )[ seq( from = 1, by = 2, length = N ) ] = paste( result$samples[, sample.identifier.column ], "0", sep = ":" )
+	colnames( result$data )[ seq( from = 2, by = 2, length = N ) ] = paste( result$samples[, sample.identifier.column ], "1", sep = ":" )
 
 	if( compute.dosage ) {
 		A = result$data[, seq( from = 1, by = 2, length = N ), drop = FALSE ]
 		B = result$data[, seq( from = 2, by = 2, length = N ), drop = FALSE ]
 		B[ which( is.na( B ) ) ] = 0
 		dosage = A + B
-        colnames( dosage ) = result$samples$identifier
+        colnames( dosage ) = result$samples[, sample.identifier.column ]
         rownames( dosage ) = result$variant$rsid
 	    result$dosage = dosage
 	}

@@ -6,10 +6,14 @@ function(
 	samples = NULL, analysis = NULL,
 	verbose = FALSE,
 	compute.dosage = FALSE, compute.probabilities = TRUE,
-	method = "cpp"
+	method = "cpp",
+	sample.identifier.column = NULL
 ) {
 	suppressMessages(require( RSQLite ))
 	suppressMessages(require( Rcompression ))
+	if( is.null( sample.identifier.column )) {
+		sample.identifier.column = colnames( hapdb$samples )[ -which( colnames( hapdb$samples ) %in% c( "analysis", "analysis_id", "index_in_data" ) ) ][1]
+	}
 	if( is.null( analysis ) ) {
 		analysis = as.character( unique( hapdb$samples$analysis ) )
 		if( length( analysis ) > 1 ) {
@@ -36,9 +40,9 @@ function(
     }
 
 	sql = paste(
-		"SELECT analysis_id, E.name AS analysis, tmp.variant_id AS variant_id, chromosome, position, rsid, alleleA, alleleB, H.N AS N, H.data",
+		"SELECT analysis_id, E.name AS analysis, tmp.variant_id AS variant_id, chromosome, position, rsid, alleleA, alleleB, H.N AS N, H.data AS data",
 		"FROM tmpHapdbLoadGenotypes tmp",
-		"INNER JOIN Entity E",
+		"INNER JOIN Analysis E",
 		sprintf( "  ON E.id == %s", analysis_id ),
 		"INNER JOIN Variant V ON V.id == tmp.variant_id",
 		"INNER JOIN Genotype H ON H.analysis_id == E.id AND H.variant_id == tmp.variant_id",
@@ -59,7 +63,7 @@ function(
 	samples.choice = 1:N
 	if( !is.null( samples ) ) {
 		if( mode( samples ) == "character" ) {
-			samples.choice = sort( which( hapdb$samples$analysis == analysis & hapdb$samples$identifier %in% samples ) ) ;
+			samples.choice = sort( which( hapdb$samples$analysis == analysis & hapdb$samples[, sample.identifier.column ] %in% samples ) ) ;
 		} else {
 			samples.choice = samples
 			stopifnot( length( which( samples.choice %in% 1:N ) ) == 0 ) ;
@@ -125,13 +129,13 @@ function(
 		}
 		if( compute.probabilities ) {
 			colnames( result$data ) = rep( NA, 3*n )
-			colnames( result$data )[ seq( from = 1, by = 3, length = n ) ] = paste( result$samples[, 'identifier' ], "AA", sep = ":" )
-			colnames( result$data )[ seq( from = 2, by = 3, length = n ) ] = paste( result$samples[, 'identifier' ], "AB", sep = ":" )
-			colnames( result$data )[ seq( from = 3, by = 3, length = n ) ] = paste( result$samples[, 'identifier' ], "BB", sep = ":" )
+			colnames( result$data )[ seq( from = 1, by = 3, length = n ) ] = paste( result$samples[, sample.identifier.column ], "AA", sep = ":" )
+			colnames( result$data )[ seq( from = 2, by = 3, length = n ) ] = paste( result$samples[, sample.identifier.column ], "AB", sep = ":" )
+			colnames( result$data )[ seq( from = 3, by = 3, length = n ) ] = paste( result$samples[, sample.identifier.column ], "BB", sep = ":" )
 			rownames( result$data) = result$variant$rsid
 		}
 		if( compute.dosage ) {
-			colnames( result$dosage ) = result$samples[, 'identifier' ]
+			colnames( result$dosage ) = result$samples[, sample.identifier.column ]
 			rownames( result$dosage ) = result$variant$rsid
 		}
 	} else {
@@ -143,13 +147,13 @@ function(
 		if( compute.probabilities ) {
 			result$data = matrix( NA, nrow = 0, ncol = 3 * n )
 			colnames( result$data ) = rep( NA, 3 * n )
-			colnames( result$data )[ seq( from = 1, by = 3, length = n ) ] = paste( result$samples[, 'identifier' ], "AA", sep = ":" )
-			colnames( result$data )[ seq( from = 2, by = 3, length = n) ] = paste( result$samples[, 'identifier' ], "AB", sep = ":" )
-			colnames( result$data )[ seq( from = 3, by = 3, length = n ) ] = paste( result$samples[, 'identifier' ], "BB", sep = ":" )
+			colnames( result$data )[ seq( from = 1, by = 3, length = n ) ] = paste( result$samples[, sample.identifier.column ], "AA", sep = ":" )
+			colnames( result$data )[ seq( from = 2, by = 3, length = n) ] = paste( result$samples[, sample.identifier.column ], "AB", sep = ":" )
+			colnames( result$data )[ seq( from = 3, by = 3, length = n ) ] = paste( result$samples[, sample.identifier.column ], "BB", sep = ":" )
 		}
 		if( compute.dosage ) {
 			result$dosage = matrix( NA, nrow = 0, ncol = n )
-			colnames( result$dosage ) = result$samples[, 'identifier' ]
+			colnames( result$dosage ) = result$samples[, sample.identifier.column ]
 		}
 	}
 

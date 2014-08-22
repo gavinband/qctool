@@ -1,10 +1,15 @@
 load.intensities <-
-function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL, samples = NULL, analysis = NULL, verbose = FALSE ) {
+function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL, samples = NULL, analysis = NULL, verbose = FALSE, sample.identifier.column = NULL ) {
 	require( RSQLite )
 	require( Rcompression )
+
+	if( is.null( sample.identifier.column )) {
+		sample.identifier.column = colnames( hapdb$samples )[ -which( colnames( hapdb$samples ) %in% c( "analysis", "analysis_id", "index_in_data" ) ) ][1]
+	}
+
 	sql = paste(
-		"SELECT analysis_id, E.name AS analysis, V.id AS variant_id, chromosome, position, rsid, alleleA, alleleB, H.N AS N, H.data",
-		"FROM Entity E",
+		"SELECT analysis_id, E.name AS analysis, V.id AS variant_id, chromosome, position, rsid, alleleA, alleleB, H.N AS N, H.data AS data",
+		"FROM Analysis E",
 		"INNER JOIN Variant V",
 		"CROSS JOIN Intensity H ON H.analysis_id == E.id AND H.variant_id == V.id",
 		sep = " "
@@ -103,7 +108,7 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 	result$samples = hapdb$samples[ which( hapdb$samples$analysis == analysis ), ]
 	if( !is.null( samples ) ) {
 		if( mode( samples ) == "character" ) {
-			samples.choice = sort( which( hapdb$samples$analysis == analysis & hapdb$samples$identifier %in% samples ) ) ;
+			samples.choice = sort( which( hapdb$samples$analysis == analysis & hapdb$samples[, sample.identifier.column ] %in% samples ) ) ;
 		} else {
 			samples.choice = samples
 		}
@@ -117,8 +122,8 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 	}
 
 	colnames( result$data ) = rep( NA, 2 * nrow( result$sample ) )
-	colnames( result$data )[ seq( from = 1, by = 2, length = nrow( result$samples ) ) ] = paste( result$samples[, 'identifier' ], "X", sep = ":" )
-	colnames( result$data )[ seq( from = 2, by = 2, length = nrow( result$samples ) ) ] = paste( result$samples[, 'identifier' ], "Y", sep = ":" )
+	colnames( result$data )[ seq( from = 1, by = 2, length = nrow( result$samples ) ) ] = paste( result$samples[, sample.identifier.column ], "X", sep = ":" )
+	colnames( result$data )[ seq( from = 2, by = 2, length = nrow( result$samples ) ) ] = paste( result$samples[, sample.identifier.column ], "Y", sep = ":" )
 
 	if( verbose ) {
 		cat( "load.intensities(): done.\n" ) ;
