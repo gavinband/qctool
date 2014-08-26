@@ -36,6 +36,10 @@ void SNPTESTResults::set_effect_size_column_regex( std::string const& beta_colum
 	m_cov_column_regex = replace_all( replace_all( beta_column_regex, "beta", "cov" ), "<i>", "1,2" ) ;
 }
 
+int SNPTESTResults::get_number_of_effect_parameters() const {
+	return 1 ; // not right.
+}
+
 std::set< std::pair< std::string, bool > > SNPTESTResults::get_desired_columns() const {
 	using namespace genfile::string_utils ;
 	

@@ -27,7 +27,7 @@ std::string MMMResults::get_summary( std::string const& prefix, std::size_t targ
 	return prefix + "mmm " + FlatFileFrequentistGenomeWideAssociationResults::get_summary( "", target_column ) ;
 }
 
-int const MMMResults::get_number_of_effect_parameters() const {
+int MMMResults::get_number_of_effect_parameters() const {
 	return 1 ;
 }
 

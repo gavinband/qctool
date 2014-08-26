@@ -35,7 +35,7 @@ public:
 	std::size_t get_number_of_SNPs() const ;
 
 	genfile::SNPIdentifyingData2 const& get_SNP( std::size_t snp_i ) const ;
-	virtual int const get_number_of_effect_parameters() const = 0 ;
+	virtual int get_number_of_effect_parameters() const = 0 ;
 	void get_betas( std::size_t snp_i, Eigen::VectorXd* result ) const ;
 	void get_ses( std::size_t snp_i, Eigen::VectorXd* result ) const ;
 	void get_covariance_upper_triangle( std::size_t snp_i, Eigen::VectorXd* result ) const ; 
