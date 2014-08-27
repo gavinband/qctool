@@ -32,11 +32,10 @@
     <body>
         <div class="header" id="header1">
             <!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
-            <div class="header_text">
-                inthinnerator
-            </div>
+			<img src="style/images/i.png" class="inthinnerator_title_image"></img>
+                <!--inth<span class="red">🔥</span>nnerator-->
             <div class="header_subtext">
-                Burn your SNPs!
+                burn those SNPs!
             </div>
         </div>
         <div class="button_bar">
@@ -104,11 +103,11 @@
                     <strong>Change history.</strong>
 					<br />
 					<em>Important!</em>
-					This page documents version 2 of inthinnerator which is currently <em>experimental</em>.  This means we expect some features not to work, or
+					This page documents version 2 of inthinnerator which is currently <b>experimental</b>.  This means we expect some features not to work, or
 					not to work well, or to work wrongly, or to destroy your computer or sanity.
                 </p>
                 <p>
-                    <strong>References.</strong> In various incarnations, inthinnerator has been used in the guts of several papers.  Here are a few:
+                    <strong>References.</strong> In various incarnations, inthinnerator has been used deep in the guts of several papers.  Here are a few:
 					<ul>
 						<li>Band et al, "<a href="http://www.plosgenetics.org/article/info%3Adoi%2F10.1371%2Fjournal.pgen.1003509">Imputation-Based Meta-Analysis of Severe Malaria in Three African Populations</a>", PLOS Genetics (2013)</li>
 						<li>Su et al, "<a href="http://www.nature.com/ng/journal/v44/n10/full/ng.2408.html">Common variants at the MHC locus and at chromosome 16q24.1 predispose to Barrett's esophagus</a>", Nature Genetics (2012)</li>
@@ -134,8 +133,6 @@
             </div>
             <div id="documentation" style="display:none">
                 <div class="display_diagram_right">
-                    <object data="style/images/schematic.svg" width="328" height="500" type="image/svg+xml" align="center">
-                        </object>
                 </div>
                 <p>
                     The general process followed by inthinnerator is shown on the right.  In brief, inthinnerator picks SNPs by alternating two processes:
@@ -187,10 +184,43 @@ snp9 22-16158548 22 16158548 ACT A</pre>
                         $ inthinnerator -help | less
                     </div>
                 </div>
+                <div class="task">
+                    <div class="task_name">
+                        Thin SNPs based on physical distance
+                    </div>
+                    <div class="task_command_line">
+                        $ inthinnerator -g snps.txt -min-distance 10kb -o thinned.out
+                    </div>
+                </div>
+                <div class="task">
+                    <div class="task_name">
+                        Thin SNPs based on recombination distance
+                    </div>
+                </div>
+                <div class="task">
+                    <div class="task_command_line">
+                        $ inthinnerator -g snps.txt -map genetic_map_chr#.txt -min-distance 0.125cM -o thinned.out
+                    </div>
+                    <div class="task_notes">
+                        Genetic map files often do not contain chromosome information.  Here we've used the # wildcard character to make inthinnerator
+						infer the chromosome from the filename.
+                    </div>
+                </div>
+                <div class="task">
+                    <div class="task_name">
+                        Thin SNPs based on a combination of recombination distance with a physical margin
+                    </div>
+                </div>
+                <div class="task">
+                    <div class="task_command_line">
+                        $ inthinnerator -g snps.txt -map genetic_map_chr#.txt -min-distance 0.1cM+25kb -o thinned.out
+                    </div>
+                </div>
             </div>
             <div id="file_formats" style="display:none">
                 <div>
-                    Inthinnerator supports the following file formats:
+                    Inthinnerator shares a codebase with <a href="http://www.well.ox.ac.uk/~gav/qctool">qctool</a> and supports
+					a similar set of file formats.  File types are detected based on the file extensions according to the following table.
                     <table class="file_formats">
                         <tr>
                             <th>
@@ -205,35 +235,39 @@ snp9 22-16158548 22 16158548 ACT A</pre>
                         </tr>
                         <tr>
                             <td>
-                                <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format.html">GEN format</a>
+                                <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format.html">GEN</a>,
+								<a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format.html">BGEN</a>,
+								<a href="http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41">VCF</a>
+								formats
                             </td>
                             <td>
-                                <span class="monospace">.gen</span>, <span class="monospace">.gen.gz</span>
+                                <span class="monospace">.gen</span>,
+								<span class="monospace">.gen.gz</span>,
+								<span class="monospace">.bgen</span>,
+								<span class="monospace">.vcf</span>,
+								<span class="monospace">.vcf.gz</span>
                             </td>
                             <td>
-								This can be supplied to the <span class="monospace">-g</span> option.
-                                Optionally, an extra initial column containing chromosomes can be included in the input.  QCTOOL auto-detects this by counting the columns in the file.
-                                To suppress this column in output files, use the <span class="monospace">-omit-chromosome</span> option.
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format.html">BGEN format</a>
-                            </td>
-                            <td>
-                                <span class="monospace">.bgen</span>
-                            </td>
-                            <td>
+								These can be supplied to the <span class="monospace">-g</span> option.  See the <a href="http://www.well.ox.ac.uk/~gav/qctool#file_formats">qctool webpage</a>
+								for more detailed information on support for these formats.
                             </td>
                         </tr>
                         <tr>
                             <td>
-                                <a href="http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41">Variant call format</a>
+                                Custom flat-file format
                             </td>
                             <td>
-                                <span class="monospace">.vcf</span>, <span class="monospace">.vcf.gz</span>
+                                <span class="monospace">.txt</span>,
+                                <span class="monospace">.csv</span>,
+								<span class="monospace">.tsv</span>
                             </td>
                             <td>
+								This is the most flexible format to supply to the <span class="monospace">-g</span>.  It consists of six columns,
+								<span class="monospace">SNPID, rsid, chromosome, position, alleleA, alleleB</span>.  Optional additional columns include
+									a <em>rank</em> column (specified by name using the <span class="monospace">-rank-column</span> option) and
+									a <em>tag</em> column (specified using the <span class="monospace">-tag-column</span> option.)  Other columns
+									are ignored.
+									Inthinnerator expects space-, comma- or tab-separated file according to the file extension.
                             </td>
                         </tr>
                     </table>
@@ -242,7 +276,7 @@ snp9 22-16158548 22 16158548 ACT A</pre>
             <div id="download" style="display:none">
                 <div>
                     <p>
-                        QCTOOL is available either as binaries or as source code.
+                        Inthinnerator is available either as binaries or as source code.
                     </p>
                     <h3>
                         Binaries
@@ -268,7 +302,7 @@ snp9 22-16158548 22 16158548 ACT A</pre>
                                 Linux <small>x86-64 static build</small>
                             </td>
                             <td>
-                                <a href="resources/qctool_v2.0-dev-linux-x86_64.tgz">qctool_v2.0-dev-linux-x86_64.tgz</a>
+                                <a href="resources/inthinnerator_v2.0-dev-linux-x86_64.tgz">inthinnerator_v2.0-dev-linux-x86_64.tgz</a>
                             </td>
                         </tr>
                         <tr>
@@ -277,7 +311,7 @@ snp9 22-16158548 22 16158548 ACT A</pre>
                                 Linux <small>alternative build</small>
                             </td>
                             <td>
-                                <a href="resources/qctool_v2.0-dev-scientific-linux-x86_64.tgz">qctool_v2.0-dev-scientific-linux-x86_64.tgz</a>
+                                <a href="resources/inthinnerator_v2.0-dev-scientific-linux-x86_64.tgz">inthinnerator_v2.0-dev-scientific-linux-x86_64.tgz</a>
                             </td>
                         </tr>
                         <tr>
@@ -286,55 +320,28 @@ snp9 22-16158548 22 16158548 ACT A</pre>
                                 Mac OS X
                             </td>
                             <td>
-                                <a href="resources/qctool_v2.0-dev-osx.tgz">qctool_v2.0-dev-osx.tgz</a> (1.1Mb)
+                                <a href="resources/inthinnerator_v2.0-dev-osx.tgz">inthinnerator_v2.0-dev-osx.tgz</a>
                             </td>
                         </tr>
                     </table>
                     <p>
-					<sup>&dagger;</sup><span class="smalltext">Version 2 of QCTOOL is currently considered experimental.
-					For stable versions of this software, see <a href="http://www.well.ox.ac.uk/~gav/qctool">here</a>.</span>
+					<sup>&dagger;</sup><span class="smalltext">This version of inthinnerator is considered experimental.
 					</p>
-					<p>
-                    <sup>*</sup><span class="smalltext">Older versions are preserved for download here but are unsupported.</span>
-                    </p>
                     <p>
-                        To run qctool, download the relevant file and extract it as follows.
+                        To run inthinnerator, download the relevant file and extract it as follows.
                     </p>
                     <pre>
-$ tar -xzf qctool_v1.x-[machine].tgz
-$ cd qctool_v1.x-[machine]
-$ ./qctool -help
+$ tar -xzf inthinnerator_v2.0-dev-[machine].tgz
+$ cd inthinnerator_v2.0-dev-[machine]
+$ ./inthinnerator_v2.0-dev -help
 </pre>
                     <h3>
                         Source
                     </h3>
                     <p>
-                        The source code to qctool is available as a mercurial repository hosted <a href="http://www.bitbucket.org/gavinband/qctool">on bitbucket</a>. Assuming you have mercurial installed, a basic download and compilation sequence (for the currently released version) would be:
-                    </p>
-                    <div class="terminal">
-                        <pre>
-    $ hg clone --rev qctool-release https://gavinband@bitbucket.org/gavinband/qctool
-    destination directory: qctool
-    requesting all changes
-    adding changesets
-    adding manifests
-    adding file changes
-    added 975 changesets with 5890 changes to 2022 files
-    updating to branch qctool-release
-    1821 files updated, 0 files merged, 0 files removed, 0 files unresolved
-    $ cd qctool
-    $ ./waf-1.5.18 configure
-    $ ./waf-1.5.18
-                            
-</pre>
-                    </div>This produces an executable
-                    <pre>
-./build/release/qctool-release
-</pre>
-                    <p>
-                        You will need <a href="http://www.boost.org">boost</a> and <a href="http://www.zlib.net">zlib</a> installed.
-                        More detailed build instructions can be found on the QCTOOL <a href="http://www.bitbucket.org/gavinband/qctool/wiki/Home">wiki</a>.
-                    </p>
+                        The source code to inthinnerator is available as part of the <a href="http://bitbucket.org/gavinband/qctool">qctool package on bitbucket</a>.
+						See <a href="http://www.well.ox.ac.uk/~gav/qctool#download">this page</a> for details.
+					</p>
                 </div>
             </div>
         </div>
