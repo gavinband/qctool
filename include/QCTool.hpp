@@ -31,7 +31,6 @@
 #include "ObjectSource.hpp"
 #include "SimpleFileObjectSource.hpp"
 #include "SimpleFileObjectSink.hpp"
-#include "OstreamTee.hpp"
 #include "QCToolContext.hpp"
 
 struct QCToolException: public std::exception

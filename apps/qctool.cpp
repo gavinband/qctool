@@ -89,7 +89,6 @@
 #include "progress_bar.hpp"
 #include "FileBackupCreator.hpp"
 #include "InputToOutputFilenameMapper.hpp"
-#include "OstreamTee.hpp"
 #include "null_ostream.hpp"
 #include "SNPPositionSink.hpp"
 #include "SNPIDSink.hpp"
@@ -267,6 +266,15 @@ public:
 				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
 				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
 			.set_takes_single_value() ;
+		options[ "-include-sex-chromosomes" ]
+			.set_description(
+				"Specify that QCTOOL should process the sex chromosomes in per-SNP and per-sample summary computations."
+				" This version of QCTOOL does not understand ploidy, and treats sex chromosomes the same as autosomes. "
+				" If this option is not supplied, QCTOOL ignores sex chromosomes when computing summary statistics."
+				" This option does not affect the output of -og."
+			)
+		;
+		
 		options.declare_group( "Options for adjusting SNPs" ) ;
 	    options[ "-strand" ]
 	        .set_description( 	"Path of strand file(s) to input.  "
@@ -724,6 +732,10 @@ struct QCToolCmdLineContext: public QCToolContext
 		m_fltrd_in_snp_data_sink.reset() ;
 		m_cohort_individual_source.reset() ;
 		m_pedigree.reset() ;
+	}
+	
+	appcontext::OptionProcessor const& options() const {
+		return m_options ;
 	}
 	
 	SNPDataSource& snp_data_source() const {
@@ -1506,7 +1518,7 @@ private:
 		
 		appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Opening position translation dictionary" ) ;
 		
-		if( !source->number_of_columns() == 10 ) {
+		if( source->number_of_columns() != 10 ) {
 			throw genfile::MalformedInputError( filename, 1 ) ;
 		}
 		

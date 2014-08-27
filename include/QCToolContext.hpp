@@ -12,6 +12,7 @@
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSink.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
+#include "appcontext/OptionProcessor.hpp"
 
 #include "ObjectSource.hpp"
 #include "Timer.hpp"
@@ -47,6 +48,7 @@ struct QCToolContext
 	virtual std::vector< SampleRow >& sample_rows() = 0 ;
 	virtual std::vector< std::size_t > const& indices_of_filtered_out_samples() const = 0 ;
 	virtual genfile::CohortIndividualSource const& samples() const = 0 ;
+	virtual appcontext::OptionProcessor const& options() const = 0 ;
 } ;
 
 #endif
