@@ -5,7 +5,7 @@ import Options
 
 srcdir="."
 APPNAME = "qctool"
-VERSION = "1.4"
+VERSION = "1.5"
 
 subdirs = [
 	'genfile', 'statfile', 'string_utils', 'appcontext',
@@ -140,7 +140,7 @@ def get_cxx_flags( variant_name ):
 		'-Wno-long-long', # don't warn about the long long thing, it comes up in Eigen and Boost.
 	]
 	if variant_name == 'default':
-		cxxflags.extend( ['-g', '-p' ])
+		cxxflags.extend( ['-g' ])
 	elif variant_name == 'release':
 		cxxflags.extend( [ '-O3' ])
 	return cxxflags
