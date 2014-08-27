@@ -18,10 +18,9 @@ DESCRIPTION:
 This package comprises the QCTOOL program for quality control of a set of SNP marker data,
 together with some other utility programs.  The programs included are:
 
-qctool: 		main quality control tool
-gen-convert: 	convert between different gen file formats.
-gen-compare: 	compare two gen files
-gen-grep:		find entries in a gen file (or files)
+qctool: 		main quality control tool.
+inthinnerator:  thin SNPs.
+gen-grep:		find entries in a gen file (or files).
 
 FILE FORMATS:
 =============
@@ -30,24 +29,26 @@ QCTOOL supports the following file formats.
 * GEN (or IMPUTE) format, possibly gzipped.  See http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format.html.
 * BGEN format. See http://www.well.ox.ac.uk/~gav/bgen_format.html.
 * VCF format v4.0 and above.  See http://vcftools.sourceforge.net/specs.html.
+* SHAPEIT and IMPUTE-style haplotype formats
+* Custom formats
 
 The programs identify file formats by inspecting the extension on the filename:
 .gen
 .gen.gz
 .bgen
 .vcf
+.vcf.gz
 
-If none of the above, plain gen format is assumed.
+If none of the above, plain gen format is assumed.  The options -[i|o]filetype can be used to specify the input/output file types.
 
 PREREQUISITES
 ==============
 
-QCTOOL requires the following external libraries to be installed:
+QCTOOL requires the following external libraries:
 
-- Boost version 1.36.1 or higher. (http://www.boost.org/).  On my Mac, I currently use 1.42.0 built using macports.
 - zlib (http://zlib.net/)
 
-The configuration step (see below) will attempt to find these libraries.
+QCTOOL contains the source code to boost.
 
 COMPILATION
 ===========
