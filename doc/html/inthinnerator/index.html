@@ -70,41 +70,40 @@
             <div id="overview" style="display:none">
                 <p>
 					<strong>Introduction.</strong>
-					inthinnerator is a command-line utility to help with the common task of "thinning" genetic variants, most commonly SNPs.
-					Inthinnerator is useful when
+					inthinnerator is a command-line utility to help with the common task of "thinning" genetic variants, most commonly SNPs, from
+					a dense (usually genome-wide) set of variants such as you would use in a GWAS study.  Inthinnerator might be useful if:
 					<ul>
 						<li>
 							You want an approximately independent set of variants for use in other analyses (like principal components analysis).
 						</li>
 						<li>
-							You want to pick out 'top' loci to treat them as representatives of other variants in the region (this is a common need in GWAS studies).
+							Or you want to pick out 'top' loci (e.g. lead GWAS SNPs) as best representatives of variation in each region.
 						</li>
 						<li>
-							You want to simulate 'null' sets of variants having given properties.
+							Or you want to simulate 'null' sets of variants to use, for example, in empirical enrichment analysis.
 						</li>
 					</ul>
 				</p>
 
 				<p>
 					<strong>Features.</strong>
-					Some useful features of inthinnerator are:
+					Inthinnerator can be used to:
 					<ul>
-						<li>Thin variants using physical distance, recombination distance, or a combination of both.</li>
-						<li>Inthinnerator annotates picked variants with their regions in physical and recombination distances</li>
-						<li>Annotate picked variants with nearby genes</li>
-						<li>Pick SNPs by rank (e.g. association P-value), randomly among SNPs, or uniformly in the genome</li>
+						<li>Pick SNPs by rank (e.g. association P-value), randomly among SNPs, or uniformly in the genome.</li>
+						<li>Thin variants based on physical distance, recombination distance, or a combination of both.</li>
+						<li>Annotate variants with physical and recombination distances, and physical or recombination regions.</li>
+						<li>Annotate variants with nearby genes.</li>
 					</ul>
                     Inthinnerator is designed to be as easy-to-use as possible and we hope you find it so.
                 </p>
                 <p>
                     <em>Note</em>: Inthinnerator does not currently thin variants based on estimates of LD, though we may implement that in future.
-					Other programs, such as <a href="http://pngu.mgh.harvard.edu/~purcell/plink/">plink</a>, can do this.
+					For LD-based thinning, try other programs such as <a href="http://pngu.mgh.harvard.edu/~purcell/plink/">plink</a>.
                 </p>
-				<p>
-					<b>IMPORTANT</b>: <span class="tm">inthinnerator</span> is currently considered <b>experimental</b>.
-				</p>
                 <p>
                     <strong>Change history.</strong>
+					<br />
+					<em>Important!</em>
 					This page documents version 2 of inthinnerator which is currently <em>experimental</em>.  This means we expect some features not to work, or
 					not to work well, or to work wrongly, or to destroy your computer or sanity.
                 </p>
