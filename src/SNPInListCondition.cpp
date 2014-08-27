@@ -51,7 +51,7 @@ bool SNPInListCondition::file_appears_to_be_plain( std::string const& filename )
 	std::ifstream file( filename.c_str() ) ;
 	std::vector< char > buffer( 1000 ) ;
 
-	for( std::size_t count = 0; file.get( &buffer[0], buffer.size(), '\n' ) && count < 10 ; ++count ) {
+	for( std::size_t line_count = 0; file.get( &buffer[0], buffer.size(), '\n' ) && line_count < 10 ; ++line_count ) {
 		std::size_t count = file.gcount() ;
 		if( buffer[ count - 1] == '\n' ) {
 			--count ;

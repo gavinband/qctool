@@ -155,16 +155,16 @@ AUTO_TEST_CASE( test_sample_filtering_snp_data_source ) {
 		}
 
 		std::set< std::set< std::size_t > >::const_iterator
-			i = subsets.begin(),
-			end_i = subsets.end() ;
-		for( ; i != end_i; ++i ) {
+			subset_i = subsets.begin(),
+			end_subset_i = subsets.end() ;
+		for( ; subset_i != end_subset_i; ++subset_i ) {
 			genfile::SNPDataSource::UniquePtr source( new genfile::GenFileSNPDataSource( filename, genfile::Chromosome() )) ;
 			genfile::SampleFilteringSNPDataSource::UniquePtr filtering_source = genfile::SampleFilteringSNPDataSource::create(
 				source,
-				*i
+				*subset_i
 			) ;
 			
-			std::size_t const filtered_number_of_samples = number_of_samples - i->size() ;
+			std::size_t const filtered_number_of_samples = number_of_samples - subset_i->size() ;
 			TEST_ASSERT( filtering_source->number_of_samples() == filtered_number_of_samples ) ;
 
 			std::vector< SnpData > data = read_snp_data( *filtering_source ) ;
@@ -174,7 +174,7 @@ AUTO_TEST_CASE( test_sample_filtering_snp_data_source ) {
 				TEST_ASSERT( data[j].number_of_samples == filtered_number_of_samples ) ;
 
 				for( std::size_t elt = 0, filtered_elt = 0; elt < number_of_samples; ++elt ) {
-					if( i->find( elt ) == i->end() ) {
+					if( subset_i->find( elt ) == subset_i->end() ) {
 						TEST_ASSERT( data[ j ].probabilities[ filtered_elt ].AA == (3*elt) + 1 ) ;
 						TEST_ASSERT( data[ j ].probabilities[ filtered_elt ].AB == (3*elt) + 2 ) ;
 						TEST_ASSERT( data[ j ].probabilities[ filtered_elt ].BB == (3*elt) + 3 ) ;
