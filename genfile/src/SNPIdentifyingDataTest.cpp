@@ -40,6 +40,16 @@ namespace genfile {
 		}
 		return result ;
 	}
+
+	std::vector< std::size_t > SNPIdentifyingDataTest::get_indices_of_filtered_in_snps( std::size_t number_of_snps, SNPGetter snps ) const {
+		std::vector< std::size_t > result ;
+		for( std::size_t i = 0; i < number_of_snps; ++i ) {
+			if( this->operator()( snps(i) )) {
+				result.push_back( i ) ;
+			}
+		}
+		return result ;
+	}
 	
 	SNPIdentifyingDataTestNegation::SNPIdentifyingDataTestNegation( SNPIdentifyingDataTest::UniquePtr subtest ):
 	 	m_subtest( subtest )
