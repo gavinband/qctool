@@ -25,7 +25,7 @@ namespace statfile {
 	public:
 		std::size_t number_of_rows() const { return m_number_of_rows ; } ;
 
-		std::string const& get_descriptive_text() const { return m_descriptive_text ; }
+		std::string get_descriptive_text() const { return m_descriptive_text ; }
 
 		void reset_to_start() ;
 

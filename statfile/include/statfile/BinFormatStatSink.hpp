@@ -27,12 +27,12 @@ namespace statfile {
 		// Finalise written file
 		~BinFormatStatSink() ;
 
-		operator void*() const { return OstreamAggregator::operator void*() ; }
+		operator bool() const { return OstreamAggregator::operator bool() ; }
 
 		void set_descriptive_text( std::string const& ) ;
 
 	protected:
-
+		using ColumnNamingStatSink< BuiltInTypeStatSink >::write_value ;
 		void write_value( int32_t const& value ) ;
 		void write_value( uint32_t const& value ) ;
 		void write_value( std::string const& value ) ;

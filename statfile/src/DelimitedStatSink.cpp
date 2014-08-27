@@ -24,7 +24,7 @@ namespace statfile {
 
 	DelimitedStatSink::DelimitedStatSink( std::string const& filename, std::string const& delimiter )
 	: 	m_comment_character( '#' ),
-	m_delimiter( delimiter ),
+		m_delimiter( delimiter ),
 		have_written_header( false ),
 		m_precision(15)
 	{
@@ -32,11 +32,11 @@ namespace statfile {
 	}
 
 	void DelimitedStatSink::set_descriptive_text( std::string const& text ) {
-		m_descriptive_text = "#" ;
+		m_descriptive_text = "# " ;
 		for( std::string::const_iterator i = text.begin(); i != text.end(); ++i ) {
 			m_descriptive_text += *i ;
 			if( *i == '\n' ) {
-				m_descriptive_text.append( "#" ) ;
+				m_descriptive_text.append( "# " ) ;
 			}
 		}
 	}
@@ -55,12 +55,12 @@ namespace statfile {
 		if( value == std::numeric_limits< double >::infinity() ) {
 			stream() << "inf" ;
 		} else if( value == value ) {
-			stream() << std::fixed << std::setprecision( m_precision ) << value ;
+			stream() << std::setprecision( m_precision ) << value ;
 		} else {
 			stream() << "NA" ;
 		}
 	}
-	
+
 	void DelimitedStatSink::write_descriptive_text() {
 		stream() << m_descriptive_text ;
 		if( m_descriptive_text.size() > 0 && m_descriptive_text[ m_descriptive_text.size() - 1] != '\n' ) {

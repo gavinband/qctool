@@ -28,12 +28,21 @@ namespace statfile {
 	{
 		static std::auto_ptr< BuiltInTypeStatSink > open() ;
 		
-		operator void*() const { return 0 ; }
+		operator bool() const { return 0 ; }
 	} ;
 	
 	struct TrivialBuiltInTypeStatSink: public ColumnNamingStatSink< BuiltInTypeStatSink >
 	{
-		operator void*() const { return reinterpret_cast< void* >( const_cast< TrivialBuiltInTypeStatSink* >( this )) ; } ;
+		void write_value( genfile::MissingValue const& ) {}
+		void write_value( int32_t const& ) {}
+		void write_value( uint32_t const& ) {}
+		void write_value( int64_t const& ) {}
+		void write_value( uint64_t const& ) {}
+		void write_value( std::string const& ) {}
+		void write_value( double const& ) {}
+		void write_value( genfile::Chromosome const& ) {}
+		void write_value( genfile::GenomePosition const& ) {}
+		operator bool() const { return reinterpret_cast< void* >( const_cast< TrivialBuiltInTypeStatSink* >( this )) ; } ;
 	} ;
 }
 
