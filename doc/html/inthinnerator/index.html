@@ -1,0 +1,371 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <script type="text/javascript" src="js/jquery-1.4.2.min.js"></script>
+        <script type="text/javascript" src="js/jquery.ba-hashchange.min.js"></script>
+        <script type="text/javascript" src="js/local.js"></script>
+
+        <!-- Google Analytics tracking code-->
+        <script type="text/javascript">
+            var _gaq = _gaq || [];
+            _gaq.push(['_setAccount', 'UA-16521993-1']);
+            _gaq.push(['_trackPageview']);
+
+            (function() {
+                var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+                ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+                var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+            })();
+        </script>
+
+        <script type="text/javascript">
+            $(document).ready(
+                function() {
+                    setFirstPage( "overview" ) ;
+                }
+            ) ;
+        </script>
+        <link href="style/css/default.css" rel="stylesheet" type="text/css">
+        <title></title>
+    </head>
+    <body>
+        <div class="header" id="header1">
+            <!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
+            <div class="header_text">
+                inthinnerator
+            </div>
+            <div class="header_subtext">
+                Burn your SNPs!
+            </div>
+        </div>
+        <div class="button_bar">
+            <div class="nav_button" name="overview">
+                <span class = "nav_button_content" >
+                    overview
+                </span>
+            </div>
+            <div class="nav_button" name="documentation">
+                <span class = "nav_button_content" >
+                    documentation
+                </span>
+            </div>
+            <div class="nav_button" name="tutorial">
+                <span class = "nav_button_content" >
+                    examples
+                </span>
+            </div>
+            <div class="nav_button" name="file_formats">
+                <span class = "nav_button_content" >
+                    file formats
+                </span>
+            </div>
+            <div class="nav_button" name="download">
+                <span class = "nav_button_content" >
+                    download
+                </span>
+            </div>
+        </div>
+        <div class="main_text">
+            <div id="overview" style="display:none">
+                <p>
+					<strong>Introduction.</strong>
+					inthinnerator is a command-line utility to help with the common task of "thinning" genetic variants, most commonly SNPs.
+					Inthinnerator is useful when
+					<ul>
+						<li>
+							You want an approximately independent set of variants for use in other analyses (like principal components analysis).
+						</li>
+						<li>
+							You want to pick out 'top' loci to treat them as representatives of other variants in the region (this is a common need in GWAS studies).
+						</li>
+						<li>
+							You want to simulate 'null' sets of variants having given properties.
+						</li>
+					</ul>
+				</p>
+
+				<p>
+					<strong>Features.</strong>
+					Some useful features of inthinnerator are:
+					<ul>
+						<li>Thin variants using physical distance, recombination distance, or a combination of both.</li>
+						<li>Inthinnerator annotates picked variants with their regions in physical and recombination distances</li>
+						<li>Annotate picked variants with nearby genes</li>
+						<li>Pick SNPs by rank (e.g. association P-value), randomly among SNPs, or uniformly in the genome</li>
+					</ul>
+                    Inthinnerator is designed to be as easy-to-use as possible and we hope you find it so.
+                </p>
+                <p>
+                    <em>Note</em>: Inthinnerator does not currently thin variants based on estimates of LD, though we may implement that in future.
+					Other programs, such as <a href="http://pngu.mgh.harvard.edu/~purcell/plink/">plink</a>, can do this.
+                </p>
+				<p>
+					<b>IMPORTANT</b>: <span class="tm">inthinnerator</span> is currently considered <b>experimental</b>.
+				</p>
+                <p>
+                    <strong>Change history.</strong>
+					This page documents version 2 of inthinnerator which is currently <em>experimental</em>.  This means we expect some features not to work, or
+					not to work well, or to work wrongly, or to destroy your computer or sanity.
+                </p>
+                <p>
+                    <strong>References.</strong> In various incarnations, inthinnerator has been used in the guts of several papers.  Here are a few:
+					<ul>
+						<li>Band et al, "<a href="http://www.plosgenetics.org/article/info%3Adoi%2F10.1371%2Fjournal.pgen.1003509">Imputation-Based Meta-Analysis of Severe Malaria in Three African Populations</a>", PLOS Genetics (2013)</li>
+						<li>Su et al, "<a href="http://www.nature.com/ng/journal/v44/n10/full/ng.2408.html">Common variants at the MHC locus and at chromosome 16q24.1 predispose to Barrett's esophagus</a>", Nature Genetics (2012)</li>
+					</ul>
+					
+				</p>
+                <p>
+                    <strong>Acknowledgements.</strong> The following people contributed to the design and implementation of qctool:
+                </p>
+                <p>
+                    <ul>
+                        <li>
+                            <a href="http://www.well.ox.ac.uk/~gav/">Gavin Band</a>
+                        </li>
+					</ul>
+                </p>
+                <p>
+                    <strong>Contact.</strong> For more information or questions, please contact the oxstatgen mailing list at
+                    <pre class="monospace">
+                        oxstatgen (at) jiscmail.ac.uk
+                    </pre>
+                </p>
+            </div>
+            <div id="documentation" style="display:none">
+                <div class="display_diagram_right">
+                    <object data="style/images/schematic.svg" width="328" height="500" type="image/svg+xml" align="center">
+                        </object>
+                </div>
+                <p>
+                    The general process followed by inthinnerator is shown on the right.  In brief, inthinnerator picks SNPs by alternating two processes:
+					<ol>
+						<li>Pick a SNP from the set of SNPs remaining, using a <em>picking strategy</em>.
+						<li>Exclude SNPs from the remaining list using an <em>thinning strategy</em>
+							(typically by excluding SNPs in a physical or recombination interval around the picked SNP.)</li>
+						<li>Go back to step 1.</li>
+					</ol>
+					This process repeats until either there are no more SNPs to be picked, or a maximum number of SNPs has been reached.
+                </p>
+            </div>
+            <div id="tutorial" style="display:none">
+                <div class="tutorial_header">
+                    This page shows common command lines to use inthinnerator.
+					We assume the program is being run from a directory containing a file <span class="monospace">snps.txt</span>
+					(containing a list of SNPs to be picked from) and 22 genetic map files named
+					<span class="monospace">genetic_map_chrNN.txt</span>.  The <span class="monospace">snps.txt</span> should be a space-separated file looking something like this:
+                    <div class="terminal_display">
+<pre>$ head snps.txt
+SNPID rsid chromosome position alleleA alleleB
+snp1 kgp14987749 22 16152031 A C
+snp2 rs150880246 22 16152288 A G
+snp3 rs144530981 22 16152415 G A
+snp4 rs142259989 22 16154873 T G
+snp5 rs186282246 22 16155262 C T
+snp6 22-16156144 22 16156144 GC G
+snp7 22-16156442 22 16156442 G GCGT
+snp8 22-16156727 22 16156727 T TG
+snp9 22-16158548 22 16158548 ACT A</pre>
+                    </div>
+				</p>
+				<p>
+					Other formats are also possible (see the file formats page). See also the <a href="inthinnerator_help.txt">list of options</a>.
+				</p>
+                </div>
+                <div class="tutorial_separator">
+                </div>
+                <div class="task">
+                    <div class="task_name">
+                        View the program usage page
+                    </div>
+                    <div class="task_command_line">
+                        $ inthinnerator -help | less
+                    </div>
+                </div>
+            </div>
+            <div id="file_formats" style="display:none">
+                <div>
+                    Inthinnerator supports the following file formats:
+                    <table class="file_formats">
+                        <tr>
+                            <th>
+                                format
+                            </th>
+                            <th>
+                                recognised extension(s)
+                            </th>
+                            <th>
+                                notes
+                            </th>
+                        </tr>
+                        <tr>
+                            <td>
+                                <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format.html">GEN format</a>
+                            </td>
+                            <td>
+                                <span class="monospace">.gen</span>, <span class="monospace">.gen.gz</span>
+                            </td>
+                            <td>
+								This can be supplied to the <span class="monospace">-g</span> option.
+                                Optionally, an extra initial column containing chromosomes can be included in the input.  QCTOOL auto-detects this by counting the columns in the file.
+                                To suppress this column in output files, use the <span class="monospace">-omit-chromosome</span> option.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format.html">BGEN format</a>
+                            </td>
+                            <td>
+                                <span class="monospace">.bgen</span>
+                            </td>
+                            <td>
+                                Output files are in BGEN v1.1. QCTOOL can still read v1.0 of the BGEN spec.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <a href="http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41">Variant call format</a>
+                            </td>
+                            <td>
+                                <span class="monospace">.vcf</span>, <span class="monospace">.vcf.gz</span>
+                            </td>
+                            <td>
+                                QCTOOL is strict about metadata in input files for the fields it reads;
+                                since this is not always correct a <span class="monospace">-metadata</span> option is provided to override
+                                the input file metadata. Currently, only genotypes are output when outputting VCF files.
+								<b>Note:</b>QCTOOL does not apply PHRED scaling to probabilities in the GP field.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <a href="http://mathgen.stats.ox.ac.uk/impute/impute_v2.html">IMPUTE</a> haplotype format
+                            </td>
+                            <td>
+                                (none)
+                            </td>
+                            <td>
+                                Input only. To specify this filetype, use <span class="monospace">-g &lt;haplotypes file&gt; -filetype impute_haplotypes</span>.
+                                It is assumed the legend file name is the same as the haplotypes file name, minus extension, with <span class="monospace">.legend</span> appended.
+                                For genotypic computations, genotypes are formed from pairs of haplotypes;
+                                it is assumed that the two haplotypes for each individual are consecutive columns in the haplotypes file.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <a href="http://www.shapeit.fr/">SHAPEIT</a> haplotype format
+                            </td>
+                            <td>
+                                (none)
+                            </td>
+                            <td>
+                                Use <span class="monospace">-[o]filetype shapeit_haplotypes</span> to specify reading or writing this file type.
+								For genotypic computations, genotypes are formed from pairs of haplotypes; it is assumed that the two haplotypes for each individual
+								are consecutive columns in the file. (This format is
+								described <a href="http://www.shapeit.fr/pages/hapssample.html">here</a>.)
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div id="download" style="display:none">
+                <div>
+                    <p>
+                        QCTOOL is available either as binaries or as source code.
+                    </p>
+                    <h3>
+                        Binaries
+                    </h3>
+                    <p>
+                        Pre-compiled binaries are available for the following platforms.
+                    </p>
+                    <table>
+                        <tr>
+                            <th>
+                                Version
+                            </th>
+                            <th>
+                                Platform
+                            </th>
+                            <th>
+                                File
+                            </th>
+                        </tr>
+                        <tr>
+                            <td>v2-dev<sup>&dagger;</sup></td>
+                            <td>
+                                Linux <small>x86-64 static build</small>
+                            </td>
+                            <td>
+                                <a href="resources/qctool_v2.0-dev-linux-x86_64.tgz">qctool_v2.0-dev-linux-x86_64.tgz</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>v2-dev<sup>&dagger;</sup></td>
+                            <td>
+                                Linux <small>alternative build</small>
+                            </td>
+                            <td>
+                                <a href="resources/qctool_v2.0-dev-scientific-linux-x86_64.tgz">qctool_v2.0-dev-scientific-linux-x86_64.tgz</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>v2-dev<sup>&dagger;</sup></td>
+                            <td>
+                                Mac OS X
+                            </td>
+                            <td>
+                                <a href="resources/qctool_v2.0-dev-osx.tgz">qctool_v2.0-dev-osx.tgz</a> (1.1Mb)
+                            </td>
+                        </tr>
+                    </table>
+                    <p>
+					<sup>&dagger;</sup><span class="smalltext">Version 2 of QCTOOL is currently considered experimental.
+					For stable versions of this software, see <a href="http://www.well.ox.ac.uk/~gav/qctool">here</a>.</span>
+					</p>
+					<p>
+                    <sup>*</sup><span class="smalltext">Older versions are preserved for download here but are unsupported.</span>
+                    </p>
+                    <p>
+                        To run qctool, download the relevant file and extract it as follows.
+                    </p>
+                    <pre>
+$ tar -xzf qctool_v1.x-[machine].tgz
+$ cd qctool_v1.x-[machine]
+$ ./qctool -help
+</pre>
+                    <h3>
+                        Source
+                    </h3>
+                    <p>
+                        The source code to qctool is available as a mercurial repository hosted <a href="http://www.bitbucket.org/gavinband/qctool">on bitbucket</a>. Assuming you have mercurial installed, a basic download and compilation sequence (for the currently released version) would be:
+                    </p>
+                    <div class="terminal">
+                        <pre>
+    $ hg clone --rev qctool-release https://gavinband@bitbucket.org/gavinband/qctool
+    destination directory: qctool
+    requesting all changes
+    adding changesets
+    adding manifests
+    adding file changes
+    added 975 changesets with 5890 changes to 2022 files
+    updating to branch qctool-release
+    1821 files updated, 0 files merged, 0 files removed, 0 files unresolved
+    $ cd qctool
+    $ ./waf-1.5.18 configure
+    $ ./waf-1.5.18
+                            
+</pre>
+                    </div>This produces an executable
+                    <pre>
+./build/release/qctool-release
+</pre>
+                    <p>
+                        You will need <a href="http://www.boost.org">boost</a> and <a href="http://www.zlib.net">zlib</a> installed.
+                        More detailed build instructions can be found on the QCTOOL <a href="http://www.bitbucket.org/gavinband/qctool/wiki/Home">wiki</a>.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

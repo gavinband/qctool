@@ -148,13 +148,12 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 	void declare_options( OptionProcessor& options ) {
 		options.set_help_option( "-help" ) ;
 
-		options.declare_group( "Genetic map options" ) ;
+		options.declare_group( "Input file options" ) ;
 		options[ "-map" ]
 			.set_description( "Set the path of the genetic map panel to use." )
 			.set_takes_single_value()
 			.set_is_required()
 		;
-		options.declare_group( "Genotype file options" ) ;
 		options[ "-g" ]
 			.set_description( "Specify a file containing the SNPs to operate on." )
 			.set_is_required()
@@ -182,7 +181,7 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 		;
 		options.option_implies_option( "-take-longest-transcript", "-genes" ) ;
 			
-		options.declare_group( "SNP selection options" ) ;
+		options.declare_group( "Inclusion / exclusion options" ) ;
 		options[ "-excl-rsids" ]
 			.set_description( "Specify a file containing a whitespace-separated list of SNP rsids."
 				" SNPs with ids in this file will be excluded from the analysis." )
@@ -248,6 +247,12 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 			.set_takes_single_value()
 			.set_default_value( "NA" ) ;
 
+		options[ "-max-picks" ]
+			.set_description( "Specify a number of SNPs to pick in each thinning."
+				" By default we choose as many SNPs as it's possible to choose subject to the minimum distance constraint." )
+			.set_takes_single_value()
+		;
+
 		options.option_excludes_option( "-rank", "-strategy" ) ;
 		options.option_excludes_option( "-strategy", "-rank" ) ;
 		options.option_implies_option( "-rank", "-rank-column" ) ;
@@ -267,23 +272,20 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 		;
 		options.option_implies_option( "-by-tag", "-tag-column" ) ;
 		options.option_implies_option( "-tag-column", "-by-tag" ) ;
+		options.option_excludes_option( "-by-tag", "-max-picks" ) ;
 
+		options.declare_group( "Repetition options" ) ;
 		options[ "-N" ]
 			.set_description( "Specify a number of thinnings to perform.  This must be at least 1."
-				" If this is larger than one, output files will be numbered in the form <filename>.####" )
+				" If this is larger than one, output files will be numbered in the form <filename>.####,"
+				" where <filename> is the filename passed to -o and #### is a number indexing the repetition." )
 			.set_takes_single_value()
 			.set_default_value( 1 ) ;
 		options[ "-start-N" ]
 			.set_description( "Specify the first index to be used when running mutliple thinnings.  This is"
-							" useful for parallel jobs where output files can be arranged to have the same names as if run not in parallel." )
+							" useful when running jobs in parallel but giving output as though run in a single command." )
 			.set_takes_single_value()
 			.set_default_value(0) ;
-
-		options[ "-max-picks" ]
-			.set_description( "Specify a number of SNPs to pick in each thinning."
-				" By default we choose as many SNPs as it's possible to choose subject to the minimum distance constraint." )
-			.set_takes_single_value()
-			.set_default_value( std::numeric_limits< std::size_t >::max() ) ;
 
 		options.declare_group( "Output file options" ) ;
 		options[ "-o" ]
@@ -311,7 +313,6 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 		options.option_excludes_option( "-headers", "-no-headers" ) ;
 		options.option_implies_option( "-headers", "-o" ) ;
 		options.option_implies_option( "-no-headers", "-o" ) ;
-		options.option_excludes_option( "-by-tag", "-max-picks" ) ;
 		
 		options[ "-suppress-excluded" ]
 			.set_description( "Specify that inthinnerator should not produce an exclusion lists." ) ;

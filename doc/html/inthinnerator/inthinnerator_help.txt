@@ -1,0 +1,84 @@
+Usage: inthinnerator <options>
+
+OPTIONS:
+Input file options:
+                    -g <a>: Specify a file containing the SNPs to operate on.
+                -genes <a>: Specify the name of a file containing genes (in UCSC table format).  If this is supplied, in-
+                            thinnerator will annotate each output row with the nearest gene and the nearest gene in the 
+                            region.
+                  -map <a>: Set the path of the genetic map panel to use.
+             -metadata <a>: Specify the name of a file containing VCF metadata to be used to parse a VCF file.  Keys in 
+                            this file must either not be present in the VCF file, or must have identical values.
+  -take-longest-transcript: When using -genes, tell inthinnerator to ignore all but the longest transcript for each gene
+                            in the file.  Defaults to "0".
+
+Inclusion / exclusion options:
+    -excl-range <a> <b>...: Specify a range of SNPs (or comma-separated list of ranges of SNPs) to exclude from operatio-
+                            n. Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and y-
+                            yyy are the start and end coordinates, or just xxxx-yyyy which matches that range from all c-
+                            hromosomes. You can also omit either of xxxx or yyyy to get all SNPs from the start or to th-
+                            e end of a chromosome.
+           -excl-rsids <a>: Specify a file containing a whitespace-separated list of SNP rsids. SNPs with ids in this fi-
+                            le will be excluded from the analysis.
+          -excl-snpids <a>: Specify a file containing a whitespace-separated list of SNP SNPIDs. SNPs with ids in this f-
+                            ile will be excluded from the analysis.
+    -incl-range <a> <b>...: Specify a range of SNPs (or comma-separated list of ranges of SNPs) to operate on. Each rang-
+                            e should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the 
+                            start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. 
+                            You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a c-
+                            hromosome.
+           -incl-rsids <a>: Specify a file containing a whitespace-separated list of SNP rsids. SNPs with ids not in thi-
+                            s file will be excluded from the analysis.
+          -incl-snpids <a>: Specify a file containing a whitespace-separated list of SNP SNPIDs. SNPs with ids not in th-
+                            is file will be excluded from the analysis.
+
+SNP thinning options:
+             -bin-size <a>: Specify the size of bins when computing occupied genomic intervals.  Defaults to "1kb".
+        -by-tag <a> <b>...: Specify a list of tags (corresponding to tags in the column indicated by the -tag-column opt-
+                            ion).When picking SNPs, these will be used in order, so that the ith SNP will be picked to h-
+                            ave the ith tag.This option also implies that no more than the given number of SNPs will be 
+                            picked.
+            -max-picks <a>: Specify a number of SNPs to pick in each thinning. By default we choose as many SNPs as it's
+                            possible to choose subject to the minimum distance constraint.
+         -min-distance <a>: Specify a minimum acceptable distance between SNPs. This must be in one of the forms "<X>cM",
+                            "<X>M", "<X>bp", "<X>kb", or "<X>Mb". The thinned list of SNPs will contain no SNPs within t-
+                            his distance of each other. For recombination-distance offsets, a physical margin can also b-
+                            e specified as in "<X>cM+<Y>kb".  Defaults to "0.01cM".
+         -missing-code <a>: Specify a comma-separated list of strings to be treated as missing ranks. Missing ranks are 
+                            always picked last.  Defaults to "NA".
+                 -rank <a>: Specify name of a file containing numerical ranks of SNPs. SNPs will be picked in nonincreas-
+                            ing order of rank. This file must have first five columns SNPID, rsid, chromosome, position,
+                            allele1, allele2.
+          -rank-column <a>: Specify the name of the column in the file for -rank containing the ranks.
+             -strategy <a>: Specify the SNP thinning strategy if not using -rank. This can be "random", "first", or "ran-
+                            dom_by_position".  Defaults to "random".
+           -tag-column <a>: Specify the name of a column in the file supplied to -g containing a tag for each variant.
+
+Repetition options:
+                    -N <a>: Specify a number of thinnings to perform.  This must be at least 1. If this is larger than o-
+                            ne, output files will be numbered in the form <filename>.####, where <filename> is the filen-
+                            ame passed to -o and #### is a number indexing the repetition.  Defaults to "1".
+              -start-N <a>: Specify the first index to be used when running mutliple thinnings.  This is useful when run-
+                            ning jobs in parallel but giving output as though run in a single command.  Defaults to "0".
+
+Output file options:
+                  -headers: Specify this to force output of column headersomit column headers in the output files.
+               -no-headers: Specify this to suppress output of column headers in the output files.
+                    -o <a>: Specify the output filename stub.
+                  -odb <a>: Specify the name of a database file to output.
+          -output-cols <a>: Specify a comma-separated list of columns that should appear in the output files. Possible c-
+                            olumns are "SNPID", "rsid", "chromosome", "position", "allele1", "allele2", and "cM_from_sta-
+                            rt_of_chromosome". The special value "all" indicates that all available columns will be outp-
+                            ut.  Defaults to "all".
+        -suppress-excluded: Specify that inthinnerator should not produce an exclusion lists.
+        -suppress-included: Specify that inthinnerator should not produce an inclusion lists.
+           -table-name <a>: Specify a name for the table to use when using -odb.
+
+Miscellaneous options:
+       -analysis-chunk <a>: Specify a name denoting the current genomic region or chunk on which this is run.  This is i-
+                            ntended for use in parallel environments.  Defaults to "NA".
+        -analysis-name <a>: Specify a name to label results from this analysis with.  (This applies to modules which sto-
+                            re their results in a qcdb file.)  Defaults to "inthinnerator analysis".
+                  -log <a>: Set the path of the log file to output.  Defaults to "inthinnerator.log".
+
+
