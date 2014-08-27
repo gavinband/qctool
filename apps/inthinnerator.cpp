@@ -99,7 +99,7 @@ namespace {
 		TaggedSnp()
 		{}
 
-		TaggedSnp( genfile::SNPIdentifyingData2 const& snp, std::string const tag ):
+		TaggedSnp( genfile::SNPIdentifyingData2 const& snp, boost::optional< std::string > const tag ):
 			m_snp( snp ),
 			m_tag( tag )
 		{}
@@ -116,11 +116,11 @@ namespace {
 		}
 		
 		genfile::SNPIdentifyingData2 const& snp() const { return m_snp ; }
-		std::string const tag() const { return m_tag ; }
+		boost::optional< std::string > const tag() const { return m_tag ; }
 
 	private:
 		genfile::SNPIdentifyingData2 m_snp ;
-		std::string m_tag ;
+		boost::optional< std::string > m_tag ;
 	} ;
 
 	bool operator<( TaggedSnp const& left, TaggedSnp const& right ) {
@@ -133,7 +133,7 @@ namespace {
 			return list[i].snp() ;
 		}
 	
-		void add_snp( std::vector< TaggedSnp >* result, genfile::SNPIdentifyingData2 const& snp, std::string const& tag ) {
+		void add_snp( std::vector< TaggedSnp >* result, genfile::SNPIdentifyingData2 const& snp, boost::optional< std::string > const& tag ) {
 			assert( result ) ;
 			result->push_back( TaggedSnp( snp, tag )) ;
 		}
@@ -208,7 +208,6 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
 			.set_takes_values_until_next_option()
 			.set_maximum_multiplicity( 100 ) ;
-			
 		options[ "-excl-range" ]
 			.set_description( "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to exclude from operation. "
 				"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
@@ -240,7 +239,7 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 				"This file must have first five columns SNPID, rsid, chromosome, position, allele1, allele2."
 			)
 			.set_takes_single_value() ;
-		options[ "-rank-col" ]
+		options[ "-rank-column" ]
 			.set_description( "Specify the name of the column in the file for -rank containing the ranks." )
 			.set_takes_single_value() ;
 		options[ "-missing-code" ]
@@ -251,8 +250,23 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 
 		options.option_excludes_option( "-rank", "-strategy" ) ;
 		options.option_excludes_option( "-strategy", "-rank" ) ;
-		options.option_implies_option( "-rank", "-rank-col" ) ;
+		options.option_implies_option( "-rank", "-rank-column" ) ;
 		options.option_implies_option( "-missing-code", "-rank" ) ;
+
+		options[ "-by-tag" ]
+			.set_description( "Specify a list of tags (corresponding to tags in the column indicated by the -tag-column option)."
+				"When picking SNPs, these will be used in order, so that the ith SNP will be picked to have the ith tag."
+				"This option also implies that no more than the given number of SNPs will be picked." )
+			.set_takes_values_until_next_option()
+			.set_maximum_multiplicity(1)
+		;
+		options[ "-tag-column" ]
+			.set_description( "Specify the name of a column in the file supplied to -g containing a tag for each variant." )
+			.set_takes_values( 1 )
+			.set_maximum_multiplicity( 1 ) ;
+		;
+		options.option_implies_option( "-by-tag", "-tag-column" ) ;
+		options.option_implies_option( "-tag-column", "-by-tag" ) ;
 
 		options[ "-N" ]
 			.set_description( "Specify a number of thinnings to perform.  This must be at least 1."
@@ -297,11 +311,12 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 		options.option_excludes_option( "-headers", "-no-headers" ) ;
 		options.option_implies_option( "-headers", "-o" ) ;
 		options.option_implies_option( "-no-headers", "-o" ) ;
+		options.option_excludes_option( "-by-tag", "-max-picks" ) ;
 		
 		options[ "-suppress-excluded" ]
-			.set_description( "Specify that inthinnerator should not produce an exclusion lists.  On by default." ) ;
+			.set_description( "Specify that inthinnerator should not produce an exclusion lists." ) ;
 		options[ "-suppress-included" ]
-			.set_description( "Specify that inthinnerator should not produce an inclusion lists.  On by default." ) ;
+			.set_description( "Specify that inthinnerator should not produce an inclusion lists." ) ;
 		
 		options.declare_group( "Miscellaneous options" ) ;
 		options[ "-log" ]
@@ -787,7 +802,7 @@ public:
 				)
 		) ;
 		// We should always have the chosen SNP itself.
-		assert( std::distance( lower_bound_i, upper_bound_i ) >= 1 ) ;
+		// assert( std::distance( lower_bound_i, upper_bound_i ) >= 1 ) ;
 
 		among_these->erase( lower_bound_i, upper_bound_i ) ;
 	}
@@ -1199,7 +1214,9 @@ private:
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 		catch( genfile::BadArgumentError const& e ) {
-			get_ui_context().logger() << "!! Error (" << e.what() << "): Bad argument ("  << e.arguments() << ") to function " << e.function() << ".\n" ;
+			get_ui_context().logger() << "!! Error (" << e.what() << "): Bad argument ("
+				<< e.arguments() << ") to function " << e.function() << ": "
+				<< e.format_message() << "\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 		catch( statfile::FileNotOpenedError const& e ) {
@@ -1354,7 +1371,7 @@ private:
 		}
 		{
 			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading SNP list" ) ;
-			source->list_snps( boost::bind( &impl::add_snp, &filtered_snps, _1, "" ), boost::ref( progress_context ) ) ;
+			source->list_snps( boost::bind( &impl::add_snp, &filtered_snps, _1, boost::optional< std::string >() ), boost::ref( progress_context ) ) ;
 		}
 		return filtered_snps ;
 	}
@@ -1383,7 +1400,7 @@ private:
 		genfile::Position position ;
 		std::string alleleA = "?" ;
 		std::string alleleB = "?" ;
-		std::string tag ;
+		std::string tag_string ;
 		while(
 			(*chain)
 				>> SNPID
@@ -1393,7 +1410,7 @@ private:
 		) {
 			alleleA.clear() ;
 			alleleB.clear() ;
-			tag.clear() ;
+			boost::optional< std::string > tag ;
 
 			if( chain->has_column( "alleleA" ) ) {
 				(*chain) >> alleleA ;
@@ -1406,7 +1423,8 @@ private:
 			if( tag_column_index ) {
 				(*chain)
 					>> statfile::ignore( tag_column_index.get() - chain->current_column() )
-					>> tag ;
+					>> tag_string ;
+				tag = tag_string ;
 			}
 			
 			// std::cerr << "Read SNP: " << SNPID << " " << rsid << " " << chromosome << " " << position << ".\n" ;
@@ -1529,7 +1547,7 @@ private:
 		if( options().check_if_option_was_supplied( "-rank" )) {
 			std::map< genfile::SNPIdentifyingData2, double > value_map = load_ranks(
 				options().get_value< std::string >( "-rank" ),
-				options().get_value< std::string >( "-rank-col" ),
+				options().get_value< std::string >( "-rank-column" ),
 				genfile::string_utils::split_and_strip_discarding_empty_entries( options().get< std::string >( "-missing-code" ), ",", " \t" )
 			) ;
 			picker.reset( new HighestValueSNPPicker( value_map )) ;
@@ -1707,7 +1725,10 @@ private:
 		else {
 			get_ui_context().logger() << "  The first few are:\n" ;
 			for( std::size_t i = 0; i < std::min( snps_in_source.size(), std::size_t(5) ); ++i ) {
-				get_ui_context().logger() << "  " << snps_in_source[i].snp() << " (\"" << snps_in_source[i].tag() << "\")...\n" ;
+				get_ui_context().logger() << "  " << snps_in_source[i].snp() ;
+				if( snps_in_source[i].tag() ) {
+					get_ui_context().logger() << " (tag=\"" << snps_in_source[i].tag().get() << "\")...\n" ;
+				}
 			}
 			get_ui_context().logger() << "  .\n  .\n  .\n" ;
 		}
@@ -1727,10 +1748,24 @@ private:
 		std::vector< double > const& recombination_offsets
 	) const {
 		std::size_t const N = options().get_value< std::size_t >( "-N" ) ;
-		std::size_t const start_N = options().get_value< std::size_t >( "-start-N" ) ;
-		std::size_t const max_num_picks = options().get_value< std::size_t >( "-max-picks" ) ;
 		assert( N > 0 ) ;
+		std::size_t const start_N = options().get_value< std::size_t >( "-start-N" ) ;
+		std::size_t const max_num_picks = options().check( "-max-picks" ) ? options().get_value< std::size_t >( "-max-picks" ) : snps.size() ;
 		std::size_t const number_of_digits = std::max( std::size_t( std::log10( N + start_N ) ) + 1, std::size_t( 3u )) ;
+
+		std::vector< boost::optional< std::string > > pick_tags ;
+		if( options().check( "-by-tag" )) {
+			std::vector< std::string > tags = options().get_values< std::string >( "-by-tag" ) ;
+			pick_tags.resize( tags.size() ) ;
+			std::cerr << "TAGS ARE: " ;
+			for( std::size_t i = 0; i < tags.size(); ++i ) {
+				pick_tags[i] = tags[i] ;
+				std::cerr << (i>0 ? "," : "" ) << pick_tags[i].get() ;
+			}
+			std::cerr << "\n" ;
+		} else {
+			pick_tags.resize( max_num_picks, boost::optional< std::string >() ) ;
+		}
 
 		std::string filename_stub = options().get< std::string >( "-o" ) ;
 		
@@ -1741,50 +1776,87 @@ private:
 			genes = genes::load_genes_from_refGene( filename, progress_context, options().get< bool >( "-take-longest-transcript" ) ) ;
 		}
 
+		std::string const formatstring = ( boost::format( filename_stub + ".%%0%dd" ) % number_of_digits ).str() ;
+		std::cerr << "FORMAT STRING: " << formatstring << ".\n" ;
 		for( std::size_t i = start_N; i < (start_N+N); ++i ) {
 			get_ui_context().logger() << "Picking " << (i+1) << " of " << N << "..." ;
-			std::set< std::size_t > picked_snps = pick_snps( snps, max_num_picks ) ;
+			std::set< std::size_t > picked_snps = pick_snps( snps, pick_tags ) ;
 			get_ui_context().logger() << picked_snps.size() << " SNPs picked.\n" ;
-
-			std::ostringstream iteration ;
-			iteration << std::setw( number_of_digits ) << std::setfill( '0' ) << i ;
-			write_output( iteration.str(), snps, recombination_offsets, picked_snps, genes, filename_stub + "." + iteration.str() ) ;
+			write_output( i, snps, recombination_offsets, picked_snps, genes, ( boost::format( formatstring ) % i ).str() ) ;
 		}
 	}
 
 	std::set< std::size_t > pick_snps(
 		std::vector< TaggedSnp > const& snps,
-		std::size_t const max_picks
+		std::vector< boost::optional< std::string > > const& pick_tags
 	) const {
-		std::deque< std::size_t > remaining_snps(
+		// Create a list of all SNPs and sort it in the way preferred by the proximity test
+		std::deque< std::size_t > all_snp_indices(
 			boost::counting_iterator< std::size_t >( 0 ),
 			boost::counting_iterator< std::size_t >( snps.size() )
 		) ;
-		
-		m_proximity_test->prepare( &remaining_snps ) ;
-		CompareByOrder comparator( remaining_snps ) ;
+		m_proximity_test->prepare( &all_snp_indices ) ;
+		CompareByOrder comparator( all_snp_indices ) ;
+
+		// Tell the SNP picker our full list of SNPs
 		m_snp_picker->set_snps(
 			snps.size(),
 			boost::bind( &impl::get_snp, snps, _1 ),
 			boost::cref( comparator )
 		) ;
 
-		std::set< std::size_t > picked_snps ;
-		{
-			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Picking SNPs" ) ;
-			while( picked_snps.size() < max_picks && remaining_snps.size() > 0 ) {
-				std::size_t picked_snp = m_snp_picker->pick( remaining_snps ) ;
-				m_proximity_test->remove_snps_too_close_to( picked_snp, &remaining_snps ) ;
-				picked_snps.insert( picked_snp ) ;
-				progress_context.notify_progress( snps.size() - remaining_snps.size(), snps.size() ) ;
-			}
-			progress_context.notify_progress( snps.size() - remaining_snps.size(), snps.size() ) ;
+		// Create per-tag subsets of the full list
+		typedef std::map< boost::optional< std::string >, std::deque< std::size_t > > SnpsByTag ;
+		SnpsByTag remaining_snps_by_tag ;
+		for( std::size_t i = 0; i < all_snp_indices.size(); ++i ) {
+			remaining_snps_by_tag[ snps[all_snp_indices[i]].tag() ].push_back( all_snp_indices[i] ) ;
 		}
-		return picked_snps ;
+
+		return pick_snps( snps, pick_tags, &remaining_snps_by_tag ) ;
+	}
+
+	std::set< std::size_t > pick_snps(
+		std::vector< TaggedSnp > const& snps,
+		std::vector< boost::optional< std::string > > const& pick_tags,
+		std::map< boost::optional< std::string >, std::deque< std::size_t > >* remaining_snps_by_tag
+	) const {
+		typedef std::map< boost::optional< std::string >, std::deque< std::size_t > > SnpsByTag ;
+		std::set< std::size_t > result ;
+		if( pick_tags.size() > 0 ) {
+			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Picking SNPs" ) ;
+
+			std::size_t remaining_snp_count = 0 ;
+			SnpsByTag::const_iterator next_tag_i = remaining_snps_by_tag->find( pick_tags[0] ) ;
+			while(
+				result.size() < pick_tags.size()
+				&& ( next_tag_i = remaining_snps_by_tag->find( pick_tags[ result.size() ] ) ) != remaining_snps_by_tag->end()
+				&& next_tag_i->second.size() > 0
+			) {
+				std::size_t picked_snp = m_snp_picker->pick( next_tag_i->second ) ;
+				remaining_snp_count = 0 ;
+				for( SnpsByTag::iterator i = remaining_snps_by_tag->begin(); i != remaining_snps_by_tag->end(); ++i ) {
+					m_proximity_test->remove_snps_too_close_to( picked_snp, &(i->second) ) ;
+					remaining_snp_count += i->second.size() ;
+				}
+				result.insert( picked_snp ) ;
+				progress_context.notify_progress( snps.size() - remaining_snp_count, snps.size() ) ;
+			}
+
+			if( next_tag_i == remaining_snps_by_tag->end() ) {
+				throw genfile::BadArgumentError(
+					"InthinneratorApplication::pick_snps()",
+					"pick_tags",
+					"A tag (\"" + ( pick_tags[ result.size() ] ? pick_tags[ result.size() ].get() : "NA" ) + "\") was supplied for which no SNP was available."
+				) ;
+			}
+
+			progress_context.notify_progress( snps.size() - remaining_snp_count, snps.size() ) ;
+		}
+		return result ;
 	}
 	
 	void write_output(
-		std::string const& iteration,
+		std::size_t const iteration,
 		std::vector< TaggedSnp > const& snps,
 		std::vector< double > const& recombination_offsets,
 		std::set< std::size_t > const& picked_snps,
@@ -1807,7 +1879,9 @@ private:
 		) ;
 
 		// Setup output columns
-		storage->add_variable( "tag" ) ;
+		if( options().check( "-by-tag" )) {
+			storage->add_variable( "tag" ) ;
+		}
 		storage->add_variable( "iteration" ) ;
 		storage->add_variable( "result" ) ;
 		for( std::size_t i = 0; i < output_columns.size(); ++i ) {
@@ -1861,7 +1935,7 @@ private:
 
 	void write_output(
 		std::string const& result,
-		std::string const& iteration,
+		std::size_t const& iteration,
 		std::vector< TaggedSnp > const& snps,
 		std::vector< double > const& recombination_offsets,
 		std::set< std::size_t > const& indices_of_snps_to_output,
@@ -1872,23 +1946,26 @@ private:
 	) const {
 		using genfile::string_utils::to_string ;
 		progress_context.notify_progress( 0, snps.size() ) ;
-
+		bool const by_tag = options().check( "-by-tag" ) ;
+		
 		std::size_t snp_index = 0 ;
 		for(
 			std::set< std::size_t >::const_iterator i = indices_of_snps_to_output.begin() ;
 			i != indices_of_snps_to_output.end() ; 
 			++i, ++snp_index
 		) {
-			storage.store_per_variant_data(
-				snps[*i].snp(),
-				"tag",
-				snps[*i].tag()
-			) ;
+			if( by_tag ) {
+				storage.store_per_variant_data(
+					snps[*i].snp(),
+					"tag",
+					snps[*i].tag() ? genfile::VariantEntry( snps[*i].tag().get() ) : genfile::VariantEntry()
+				) ;
+			}
 
 			storage.store_per_variant_data(
 				snps[*i].snp(),
 				"iteration",
-				iteration
+				genfile::VariantEntry::Integer( iteration )
 			) ;
 
 			storage.store_per_variant_data(
