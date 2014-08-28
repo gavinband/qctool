@@ -107,11 +107,11 @@
 					not to work well, or to work wrongly, or to destroy your computer or sanity.
                 </p>
                 <p>
-                    <strong>References.</strong> In various incarnations, inthinnerator has been used deep in the guts of several papers.  Here are a few:
-					<ul>
+                    <strong>References.</strong> In different incarnations inthinnerator has been used in the guts of several papers.  Here are a few:
+					<ol>
 						<li>Band et al, "<a href="http://www.plosgenetics.org/article/info%3Adoi%2F10.1371%2Fjournal.pgen.1003509">Imputation-Based Meta-Analysis of Severe Malaria in Three African Populations</a>", PLOS Genetics (2013)</li>
 						<li>Su et al, "<a href="http://www.nature.com/ng/journal/v44/n10/full/ng.2408.html">Common variants at the MHC locus and at chromosome 16q24.1 predispose to Barrett's esophagus</a>", Nature Genetics (2012)</li>
-					</ul>
+					</ol>
 					
 				</p>
                 <p>
@@ -140,11 +140,40 @@
 						<li>Pick a SNP from the set of SNPs remaining, using a <em>picking strategy</em>.
 						<li>Exclude SNPs from the remaining list using an <em>thinning strategy</em>
 							(typically by excluding SNPs in a physical or recombination interval around the picked SNP.)</li>
-						<li>Go back to step 1.</li>
+						<li>Either go back to step 1 and repeat, or stop and write the results.</li>
 					</ol>
 					This process repeats until either there are no more SNPs to be picked, or a maximum number of SNPs has been reached.
                 </p>
-            </div>
+				<p><strong>Picking.</strong> Inthinnerator implements the following strategies for picking variants in step 1:
+					<ul>
+						<li>Pick a SNP at random from the SNPs remaining (<span class="option">-strategy random</span>).  This is the default behaviour.</li>
+						<li>Pick a SNP at uniformly at random from regions of the genome covered by SNPs in the input file (<span class="option">-strategy random_by_position</span>).
+							The <span class="option">-bin-size</span> option controls how genomic coverage is computed.</li>
+						<li>Pick the first SNP remaining (<span class="option">-strategy first</span>).</li>
+						<li>Pick SNPs according to a specified rank (<span class="option">-rank</span>).</li>
+					</ul>
+					Additionally, the <span class="option">-by-tag</span> option tells inthinnerator to always pick the Nth SNP
+					from among SNPs having the Nth tag specified. This can be used, for example, to pick SNPs approximately matching in
+					frequency to a previously defined list.
+				</p>
+				<p><strong>Thinning.</strong> Inthinnerator implements the following strategies for thinning variants in step 2:
+					<ul>
+						<li>Thin by physical distance, e.g. <span class="option">-min-distance 100kb</span>, <span class="option">-min-distance 20bp</span>, <span class="option">-min-distance 2.5Mb</span>.</li>
+						<li>Thin by recombination distance, e.g. <span class="option">-min-distance 0.125cM</span>.
+						<li>Thin by recombination distance with a physical margin, e.g. <span class="option">-min-distance 0.125cM+25kb</span>.
+					</ul>
+				</p>
+				<p><strong>Stopping.</strong> Inthinnerator can choose to stop picking in a few ways:
+					<ul>
+						<li>Continue until there are no SNPs left to pick (this is the default behaviour).</li>
+						<li>Continue until a specified number of SNPs have been picked (<span class="option">-max-picks</span>).</li>
+						<li>Continue until one SNP has been picked for each tag specified to <span class="option">-by-tag</span>.</li>
+					</ul>
+				</p>
+				<p>By default inthinnerator will write all variants included and excluded from the thinned list to the output file.
+					The options <span class="option">-suppress-excluded</span> and <span class="option">-suppress-included</span> can be used to adjust this behaviour.
+				</p>
+			</div>
             <div id="tutorial" style="display:none">
                 <div class="tutorial_header">
                     This page shows common command lines to use inthinnerator.
