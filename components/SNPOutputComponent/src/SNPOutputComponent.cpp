@@ -64,8 +64,7 @@ SNPOutputComponent::SNPOutputComponent(
 	appcontext::UIContext& ui_context
 ):
 	m_samples( samples ),
-	m_options( options ),
-	m_ui_context( ui_context )
+	m_options( options )
 {}
 
 void SNPOutputComponent::setup( genfile::SNPDataSink& sink, genfile::SNPDataSourceProcessor& processor ) {

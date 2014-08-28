@@ -65,7 +65,6 @@ struct SNPOutputComponent: public boost::noncopyable {
 	private:
 		genfile::CohortIndividualSource const& m_samples ;
 		appcontext::OptionProcessor const& m_options ;
-		appcontext::UIContext& m_ui_context ;
 } ;
 
 #endif
