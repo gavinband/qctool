@@ -152,8 +152,8 @@
 						<li>Pick the first SNP remaining (<span class="option">-strategy first</span>).</li>
 						<li>Pick SNPs according to a specified rank (<span class="option">-rank</span>).</li>
 					</ul>
-					Additionally, the <span class="option">-by-tag</span> option tells inthinnerator to always pick the Nth SNP
-					from among SNPs having the Nth tag specified. This can be used, for example, to pick SNPs approximately matching in
+					Additionally, the <span class="option">-match-tag</span> option tells inthinnerator to always pick the Nth SNP
+					from among SNPs having the same tag as the Nth tag specified. This can be used, for example, to pick SNPs approximately matching in
 					frequency to a previously defined list.
 				</p>
 				<p><strong>Thinning.</strong> Inthinnerator implements the following strategies for thinning variants in step 2:
@@ -167,7 +167,7 @@
 					<ul>
 						<li>Continue until there are no SNPs left to pick (this is the default behaviour).</li>
 						<li>Continue until a specified number of SNPs have been picked (<span class="option">-max-picks</span>).</li>
-						<li>Continue until one SNP has been picked for each tag specified to <span class="option">-by-tag</span>.</li>
+						<li>Continue until one SNP has been picked for each tag specified to <span class="option"><strong>-match-tag</strong></span>.</li>
 					</ul>
 				</p>
 				<p>By default inthinnerator will write all variants included and excluded from the thinned list to the output file.

@@ -258,11 +258,12 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 		options.option_implies_option( "-rank", "-rank-column" ) ;
 		options.option_implies_option( "-missing-code", "-rank" ) ;
 
-		options[ "-by-tag" ]
-			.set_description( "Specify a list of tags (corresponding to tags in the column indicated by the -tag-column option)."
-				"When picking SNPs, these will be used in order, so that the ith SNP will be picked to have the ith tag."
-				"This option also implies that no more than the given number of SNPs will be picked." )
-			.set_takes_values_until_next_option()
+		options[ "-match-tag" ]
+			.set_description( "Specify a file (in the same format as the files supplied to -g) containing SNPs to match by tag."
+				"When picking SNPs, the ith SNP picked will be from the set having the tag of the ith SNP in this file."
+				"This option also implies that no more than the given number of SNPs will be picked."
+			)
+			.set_takes_single_value()
 			.set_maximum_multiplicity(1)
 		;
 		options[ "-tag-column" ]
@@ -270,9 +271,9 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 			.set_takes_values( 1 )
 			.set_maximum_multiplicity( 1 ) ;
 		;
-		options.option_implies_option( "-by-tag", "-tag-column" ) ;
-		options.option_implies_option( "-tag-column", "-by-tag" ) ;
-		options.option_excludes_option( "-by-tag", "-max-picks" ) ;
+		options.option_implies_option( "-match-tag", "-tag-column" ) ;
+		options.option_implies_option( "-tag-column", "-match-tag" ) ;
+		options.option_excludes_option( "-match-tag", "-max-picks" ) ;
 
 		options.declare_group( "Repetition options" ) ;
 		options[ "-N" ]
@@ -1240,26 +1241,39 @@ private:
 			get_ui_context().logger() << "You must supply either -o or -odb.\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
-		genfile::GeneticMap::UniquePtr map = load_genetic_map() ;
-		get_ui_context().logger() << "Loaded: " << map->get_summary() << "\n";
+		genfile::GeneticMap::UniquePtr map ;
+		if( options().check( "-map" )) {
+			load_genetic_map() ;
+			get_ui_context().logger() << "Loaded: " << map->get_summary() << "\n";
+		}
 
-		std::vector< TaggedSnp > snps = get_list_of_snps( options().get_value< std::string >( "-g" ), *map ) ;
-		std::vector< double > recombination_offsets = get_recombination_offsets(
-			snps.size(),
-			boost::bind( &impl::get_snp, boost::cref( snps ), _1 ),
-			*map
-		) ;
-		m_proximity_test = get_proximity_test( snps, *map ) ;
-		m_snp_picker = get_snp_picker( snps, *map ) ;
+		std::vector< TaggedSnp > snps = get_list_of_snps( options().get_value< std::string >( "-g" ), map ) ;
+		boost::optional< std::vector< double > > recombination_offsets ;
+		if( map.get() ) {
+			recombination_offsets = get_recombination_offsets(
+				snps.size(),
+				boost::bind( &impl::get_snp, boost::cref( snps ), _1 ),
+				*map
+			) ;
+		}
+		m_proximity_test = get_proximity_test( snps, map ) ;
+		m_snp_picker = get_snp_picker( snps ) ;
 
 		// Write an inclusion list either if user specified -write-incl-list, or didn't specify any output.
 		m_write_incl_list = !options().check_if_option_was_supplied( "-suppress-included" ) ;
 		// Write an exclusion list either if user specified -write-excluded, or didn't specify any output.
 		m_write_excl_list = !options().check_if_option_was_supplied( "-suppress-excluded" ) ;
+
+		genes::Genes::UniquePtr genes ;
+		if( options().check( "-genes" )) {
+			std::string const filename = options().get< std::string > ( "-genes" ) ;
+			appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading genes from \"" + filename + "\"" ) ;
+			genes = genes::load_genes_from_refGene( filename, progress_context, options().get< bool >( "-take-longest-transcript" ) ) ;
+		}
 		
-		write_summary( *map, snps, *m_proximity_test, *m_snp_picker ) ;
+		write_summary( map, snps, *m_proximity_test, *m_snp_picker ) ;
 		
-		perform_thinnings( snps, recombination_offsets ) ;
+		perform_thinnings( snps, recombination_offsets, genes ) ;
 	}
 	
 	genfile::GeneticMap::UniquePtr load_genetic_map() {
@@ -1276,9 +1290,7 @@ private:
 		return map ;
 	}
 	
-	genfile::CommonSNPFilter::UniquePtr get_filter(
-		genfile::GeneticMap const& map
-	) const {
+	genfile::CommonSNPFilter::UniquePtr get_filter() const {
 		genfile::CommonSNPFilter::UniquePtr filter(
 			new genfile::CommonSNPFilter
 		) ;
@@ -1319,23 +1331,26 @@ private:
 			}
 		}
 		
-		filter->exclude_chromosomes_not_in_set( map.get_chromosomes() ) ;
 		return filter ;
 	}
 
-	std::vector< TaggedSnp > get_list_of_snps( std::string const& filename, genfile::GeneticMap const& map ) const {
+	std::vector< TaggedSnp > get_list_of_snps( std::string const& filename, genfile::GeneticMap::UniquePtr const& map ) const {
 		std::vector< TaggedSnp > filtered_snps ;
 		try {
-			filtered_snps = get_list_of_snps_from_gen_file( filename, map ) ;
+			filtered_snps = get_list_of_snps_from_gen_file( filename ) ;
 		}
 		catch( std::exception const& e ) {
 			get_ui_context().logger() << "File \"" << filename << "\" is not a GEN-style file.  Trying text format with columns SNPID rsid chromosome position...\n" ;
 			// Not a GEN format file.  Try a different format.
 			boost::optional< std::string > tag_column = ( options().check( "-tag-column" ) ? options().get< std::string >( "-tag-column" ) : boost::optional< std::string >() ) ;
-			filtered_snps = get_list_of_snps_from_text_file( filename, map, tag_column ) ;
+			filtered_snps = get_list_of_snps_from_text_file( filename, tag_column ) ;
 		}
 		
-		genfile::CommonSNPFilter::UniquePtr filter = get_filter( map ) ;
+		genfile::CommonSNPFilter::UniquePtr filter = get_filter() ;
+		if( map.get() ) {
+			filter->exclude_chromosomes_not_in_set( map->get_chromosomes() ) ;
+		}
+
 		std::vector< std::size_t > indices_of_included_snps = filter->get_indices_of_filtered_in_snps(
 			filtered_snps.size(),
 			boost::bind(
@@ -1350,7 +1365,7 @@ private:
 		return filtered_snps ;
 	}
 
-	std::vector< TaggedSnp > get_list_of_snps_from_gen_file( std::string const& filename, genfile::GeneticMap const& map ) const {
+	std::vector< TaggedSnp > get_list_of_snps_from_gen_file( std::string const& filename ) const {
 		std::vector< TaggedSnp > filtered_snps ;
 		genfile::SNPDataSource::UniquePtr source ;
 		{
@@ -1379,7 +1394,6 @@ private:
 	
 	std::vector< TaggedSnp > get_list_of_snps_from_text_file(
 		std::string const& filename,
-		genfile::GeneticMap const& map,
 		boost::optional< std::string > tag_column
 	) const {
 		std::vector< TaggedSnp > filtered_snps ;
@@ -1464,7 +1478,7 @@ private:
 
 	ProximityTest::UniquePtr get_proximity_test(
 		std::vector< TaggedSnp > const& snps,
-		genfile::GeneticMap const& genetic_map
+		genfile::GeneticMap::UniquePtr const& genetic_map
 	) const {
 		ProximityTest::UniquePtr test ;
 		std::string distance_spec = options().get< std::string >( "-min-distance" ) ;
@@ -1482,20 +1496,26 @@ private:
 		if( parsed_elts.size() == 2 ) {
 			// Assume <x>cM+20bp format.
 			if( parsed_elts[0].second != "cM" || parsed_elts[1].second != "bp" ) {
-				genfile::BadArgumentError( "InthinneratorApplication::get_proximity_test", "-min-distance = \"" + distance_spec + "\"" ) ;
+				throw genfile::BadArgumentError( "InthinneratorApplication::get_proximity_test", "-min-distance = \"" + distance_spec + "\"" ) ;
+			}
+			if( !genetic_map.get() ) {
+				throw genfile::BadArgumentError( "InthinneratorApplication::get_proximity_test", "genetic_map", "No genetic map was specified, use -map to specify one." ) ;
 			}
 			test.reset(
 				new RecombinationDistanceProximityTest(
-					genetic_map,
+					*genetic_map,
 					parsed_elts[0].first,
 					parsed_elts[1].first
 				)
 			) ;
 		}
 		else if( parsed_elts[0].second == "cM" ) {
+			if( !genetic_map.get() ) {
+				throw genfile::BadArgumentError( "InthinneratorApplication::get_proximity_test", "genetic_map", "No genetic map was specified, use -map to specify one." ) ;
+			}
 			test.reset(
 				new RecombinationDistanceProximityTest(
-					genetic_map,
+					*genetic_map,
 					parsed_elts[0].first,
 					0
 				)
@@ -1541,8 +1561,7 @@ private:
 	}
 
 	SNPPicker::UniquePtr get_snp_picker(
-		std::vector< TaggedSnp > const& snps,
-		genfile::GeneticMap const& map
+		std::vector< TaggedSnp > const& snps
 	) const {
 		SNPPicker::UniquePtr picker ;
 		if( options().check_if_option_was_supplied( "-rank" )) {
@@ -1703,16 +1722,19 @@ private:
 	}
 
 	void write_summary(
-		genfile::GeneticMap const& map,
+		genfile::GeneticMap::UniquePtr const& map,
 		std::vector< TaggedSnp > const& snps_in_source,
 		ProximityTest const& proximity_test,
 		SNPPicker const& snp_picker
 	) const {
-		get_ui_context().logger() << "Genetic map file(s): " << options().get_value< std::string >( "-map" ) << ".\n" ;
+		get_ui_context().logger() << "Genetic map file(s): "
+			<< ( options().check( "-map" ) ? options().get_value< std::string >( "-map" ) : std::string( "(none specified)" ) )
+			<< ".\n" ;
 		get_ui_context().logger() << "Genotype file(s): " << options().get_value< std::string >( "-g" ) << ".\n" ;
-		get_ui_context().logger() << "Genetic map covers these chromosome(s): " ;
-		{
-			std::set< genfile::Chromosome > chromosomes = map.get_chromosomes() ;
+
+		if( map.get() ) {
+			get_ui_context().logger() << "Genetic map covers these chromosome(s): " ;
+			std::set< genfile::Chromosome > chromosomes = map->get_chromosomes() ;
 			for( std::set< genfile::Chromosome >::const_iterator i = chromosomes.begin(); i != chromosomes.end(); ++i ) {
 				get_ui_context().logger() << *i << " " ;
 			}
@@ -1746,7 +1768,8 @@ private:
 
 	void perform_thinnings(
 		std::vector< TaggedSnp > const& snps,
-		std::vector< double > const& recombination_offsets
+		boost::optional< std::vector< double > > const& recombination_offsets,
+		genes::Genes::UniquePtr const& genes
 	) const {
 		std::size_t const N = options().get_value< std::size_t >( "-N" ) ;
 		assert( N > 0 ) ;
@@ -1755,28 +1778,22 @@ private:
 		std::size_t const number_of_digits = std::max( std::size_t( std::log10( N + start_N ) ) + 1, std::size_t( 3u )) ;
 
 		std::vector< boost::optional< std::string > > pick_tags ;
-		if( options().check( "-by-tag" )) {
-			std::vector< std::string > tags = options().get_values< std::string >( "-by-tag" ) ;
-			pick_tags.resize( tags.size() ) ;
-			std::cerr << "TAGS ARE: " ;
-			for( std::size_t i = 0; i < tags.size(); ++i ) {
-				pick_tags[i] = tags[i] ;
-				std::cerr << (i>0 ? "," : "" ) << pick_tags[i].get() ;
+		if( options().check( "-match-tag" )) {
+			std::vector< TaggedSnp > snps_to_match = get_list_of_snps_from_text_file(
+				options().get< std::string >( "-match-tag" ),
+				options().get< std::string >( "-tag-column" )
+			) ;
+
+			pick_tags.resize( snps_to_match.size() ) ;
+			for( std::size_t i = 0; i < snps_to_match.size(); ++i ) {
+				pick_tags[i] = snps_to_match[i].tag() ;
 			}
-			std::cerr << "\n" ;
 		} else {
 			pick_tags.resize( max_num_picks, boost::optional< std::string >() ) ;
 		}
 
 		std::string filename_stub = options().get< std::string >( "-o" ) ;
 		
-		genes::Genes::UniquePtr genes ;
-		if( options().check( "-genes" )) {
-			std::string const filename = options().get< std::string > ( "-genes" ) ;
-			appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading genes from \"" + filename + "\"" ) ;
-			genes = genes::load_genes_from_refGene( filename, progress_context, options().get< bool >( "-take-longest-transcript" ) ) ;
-		}
-
 		std::string const formatstring = ( boost::format( filename_stub + ".%%0%dd" ) % number_of_digits ).str() ;
 		std::cerr << "FORMAT STRING: " << formatstring << ".\n" ;
 		for( std::size_t i = start_N; i < (start_N+N); ++i ) {
@@ -1859,7 +1876,7 @@ private:
 	void write_output(
 		std::size_t const iteration,
 		std::vector< TaggedSnp > const& snps,
-		std::vector< double > const& recombination_offsets,
+		boost::optional< std::vector< double > > const& recombination_offsets,
 		std::set< std::size_t > const& picked_snps,
 		genes::Genes::UniquePtr const& genes,
 		std::string const& filename
@@ -1880,7 +1897,7 @@ private:
 		) ;
 
 		// Setup output columns
-		if( options().check( "-by-tag" )) {
+		if( options().check( "-match-tag" )) {
 			storage->add_variable( "tag" ) ;
 		}
 		storage->add_variable( "iteration" ) ;
@@ -1938,7 +1955,7 @@ private:
 		std::string const& result,
 		std::size_t const& iteration,
 		std::vector< TaggedSnp > const& snps,
-		std::vector< double > const& recombination_offsets,
+		boost::optional< std::vector< double > > const& recombination_offsets,
 		std::set< std::size_t > const& indices_of_snps_to_output,
 		genes::Genes::UniquePtr const& genes,
 		qcdb::Storage& storage,
@@ -1947,7 +1964,7 @@ private:
 	) const {
 		using genfile::string_utils::to_string ;
 		progress_context.notify_progress( 0, snps.size() ) ;
-		bool const by_tag = options().check( "-by-tag" ) ;
+		bool const by_tag = options().check( "-match-tag" ) ;
 		
 		std::size_t snp_index = 0 ;
 		for(
@@ -1980,8 +1997,8 @@ private:
 			for( std::size_t j = 0; j < output_columns.size(); ++j ) {
 				std::string const column_name = genfile::string_utils::to_lower( output_columns[j] ) ;
 				genfile::VariantEntry value ;
-				if( column_name == "cm_from_start_of_chromosome" ) {
-					value = recombination_offsets[*i] ;
+				if( column_name == "cm_from_start_of_chromosome" && recombination_offsets ) {
+					value = recombination_offsets.get()[*i] ;
 				}
 				else {
 					std::map< std::string, genfile::VariantEntry >::const_iterator where = test_attributes.find( column_name ) ;
