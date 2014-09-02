@@ -97,7 +97,6 @@ namespace appcontext {
 
 			std::string m_group ;
 			std::string m_description ;
-			bool m_is_required ;
 			unsigned int m_number_of_values_per_use ;
 			unsigned int m_minimum_multiplicity, m_maximum_multiplicity ;
 			std::vector< value_checker_t > m_value_checkers ;

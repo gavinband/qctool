@@ -17,10 +17,6 @@
 
 namespace genfile {
 	namespace {
-		std::string int_to_number( std::size_t i ) {
-			return string_utils::to_string( i ) ;
-		}
-		
 		void get_first( std::vector< std::string >* target, std::string const& first, std::string const& ) {
 			target->push_back( first ) ;
 		}
@@ -31,8 +27,7 @@ namespace genfile {
 		m_compression_type( get_compression_type_indicated_by_filename( filename ) ),
 		m_stream_ptr( open_text_file_for_output( filename, m_compression_type )),
 		m_have_written_header( false ),
-		m_number_of_samples( 0 ),
-		m_call_threshhold( 0.9 )
+		m_number_of_samples( 0 )
 	{
 		(*m_stream_ptr) << std::resetiosflags( std::ios::floatfield ) << std::setprecision( 6 ) ;
 	}
@@ -57,8 +52,8 @@ namespace genfile {
 			DataWriter( boost::ptr_vector< std::ostringstream >& streams, bool field_is_genotype ):
 				m_streams( streams ),
 				m_field_is_genotype( field_is_genotype ),
-				m_sep( m_field_is_genotype ? '/' : ',' ),
-				m_sample_i( 0 )
+				m_sample_i( 0 ),
+				m_sep( m_field_is_genotype ? '/' : ',' )
 			{
 			}
 			

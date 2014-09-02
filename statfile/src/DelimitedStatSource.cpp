@@ -51,7 +51,7 @@ namespace statfile {
 		for( std::size_t i = 0; i < m_number_of_comment_lines + 1; ++i ) {
 			std::getline( stream(), line ) ;
 		}
-		base_t::reset_to_start() ;
+		Base::reset_to_start() ;
 	}
 
 	void DelimitedStatSource::read_value( int32_t& field ) {

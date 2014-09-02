@@ -26,7 +26,6 @@ void QuangStyleConsensusCaller::set_result(
 	std::vector< std::string > call_names = genfile::string_utils::split( accepted_calls, "," ) ;
 	m_genotypes.resize( call_names.size() ) ;
 	std::map< std::string, std::vector< genfile::VariantEntry > > info ;
-	std::size_t chosen_call = 0 ;
 
 	if( call_names.size() > 0 ) {
 		m_consensus_counts.setConstant( get_number_of_samples(), call_names.size() ) ;

@@ -10,7 +10,6 @@
 #include <boost/thread.hpp>
 #include <Eigen/Core>
 #include "genfile/SNPDataSourceProcessor.hpp"
-#include "genfile/RandomAccessSNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/SampleFilteringSNPDataSource.hpp"
 #include "genfile/SampleMappingSNPDataSource.hpp"

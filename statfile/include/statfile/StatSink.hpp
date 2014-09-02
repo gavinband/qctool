@@ -54,27 +54,62 @@ namespace statfile {
 		StatSink& operator=( StatSink const& other ) ;
 
 	public:
+
+		// Methods to add columns.
 		void add_columns( std::vector< std::string > const& names ) {
 			add_columns_impl( names ) ;
-		} ;
+		}
 
-		// Use this to add column headers.
 		StatSink& operator|( std::string const& column_name ) {
 			add_column( column_name ) ;
 			return *this ;
 		}
 
-		// Use this to add entries to each row.
+		void add_column( std::string const& name ) {
+			assert( m_number_of_rows_written == 0 && m_current_column == 0 ) ;
+			add_column_impl( name ) ;
+		}
+
+		// Methods to add data to rows.
 		template< typename T >
 		StatSink& operator<<( T const& value ) {
 			assert( m_current_column < number_of_columns() ) ;
 			write_value( value ) ;
-			m_state = e_HaveWrittenSomeData ;
+			m_state = e_ReadyForData ;
 			if( *this ) {
 				move_to_next_column() ;
 			}
 			return *this ;
 		}
+
+		// Optional call to tell StatSink that no more column names etc. will be sent.
+		StatSink& operator<<( BeginData const& ) {
+			assert( m_number_of_rows_written == 0 && m_current_column == 0 ) ;
+			if( *this ) {
+				begin_data_impl() ;
+				m_state = e_ReadyForData ;
+			}
+			return *this ;
+		}
+
+		// Method to tell StatSink we've reached the end of a row.
+		// This class keeps track of column number, so this is used as a
+		// mechanism of synchronisation between the caller and this class.
+		StatSink& operator<<( EndRow const& ) {
+			assert( m_current_column == number_of_columns()) ;
+			if( *this ) {
+				end_row() ;
+				move_to_next_row() ;
+			}
+			return *this ;
+		}
+
+		// Method to deposit some metadata in the output.
+		virtual void write_metadata( std::string const& metadata ) {}
+
+		// Methods to return information about what has been written so far
+		std::size_t number_of_rows_written() const { return m_number_of_rows_written ; }
+		std::size_t current_column() const { return m_current_column ; }
 
 	private:
 		struct variant_outputter: public boost::static_visitor<>
@@ -87,44 +122,19 @@ namespace statfile {
 		private:
 			StatSink& m_sink ;
 		} ;
+
 	public:
 		StatSink& operator<<( genfile::VariantEntry const& value ) {
 			genfile::apply_visitor( variant_outputter( *this ), value ) ;
 			return *this ;
 		}
 
-		StatSink& operator<<( EndRow const& ) {
-			assert( m_current_column == number_of_columns()) ;
-			if( *this ) {
-				end_row() ;
-				move_to_next_row() ;
-			}
-			return *this ;
-		}
-
-		// Optional call to tell StatSink that no more column names etc. will be sent.
-		StatSink& operator<<( BeginData const& ) {
-			assert( m_number_of_rows_written == 0 && m_current_column == 0 ) ;
-			if( *this ) {
-				begin_data_impl() ;
-			}
-			return *this ;
-		}
-
-		virtual void write_metadata( std::string const& metadata ) {}
-
-	public:
 		// In addition to write( T const& ) which derived classes must supply for
 		// each T != empty in the template parameter list, the following functions
 		// must be supplied by each derived class.
 
 		// Return true iff there have been no errors so far.
 		virtual operator bool() const = 0 ;
-		// Column-related functions which must be supplied by derived classes.
-		void add_column( std::string const& name ) {
-			assert( m_number_of_rows_written == 0 && m_current_column == 0 ) ;
-			add_column_impl( name ) ;
-		}
 		virtual void add_column_impl( std::string const& name ) = 0 ;
 		virtual void add_columns_impl( std::vector< std::string > const& names ) {
 			for( std::size_t i = 0; i < names.size(); ++i ) {
@@ -135,15 +145,11 @@ namespace statfile {
 		virtual std::vector< std::string > const& column_names() const = 0 ;
 		virtual void end_row() {} ;
 
-		// The next two functions return the tracked column and row numbers.
-		std::size_t number_of_rows_written() const { return m_number_of_rows_written ; }
-		std::size_t current_column() const { return m_current_column ; }
-
 	protected:
 		
 		enum State {
 			e_HaveNotWrittenAnyData = 0,
-			e_HaveWrittenSomeData = 1
+			e_ReadyForData = 1
 		} ;
 
 		int state() const { return m_state ; }

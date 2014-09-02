@@ -26,6 +26,7 @@ namespace statfile {
 	class BuiltInTypeStatSourceChain: public ColumnNamingStatSource< BuiltInTypeStatSource >
 	{
 	public:
+		typedef ColumnNamingStatSource< BuiltInTypeStatSource > Base ;
 		typedef std::auto_ptr< statfile::BuiltInTypeStatSourceChain > UniquePtr ;
 		static UniquePtr open( std::vector< genfile::wildcard::FilenameMatch > const& matches ) ;
 		static UniquePtr open( std::vector< std::string > const& filenames ) ;
@@ -39,7 +40,7 @@ namespace statfile {
 		void reset_to_start() ;
 		std::size_t number_of_columns() const ;
 		std::vector< std::string > column_names() const ;
-		std::string const& column_name( std::size_t i ) ;
+		std::string const& column_name( std::size_t i ) const ;
 		std::size_t number_of_rows() const ;
 		std::size_t number_of_sources() const ;
 		unsigned int number_of_rows_in_source( std::size_t source_index ) const ;
@@ -47,6 +48,7 @@ namespace statfile {
 		std::string get_descriptive_text() const { return "" ; }
 		
 	protected:
+		using Base::read_value ;
 		void read_value( int32_t& value ) ;
 		void read_value( uint32_t& value ) ;
 		void read_value( std::string& value ) ;

@@ -67,9 +67,6 @@ namespace genfile {
 			std::ostream& m_stream ;
 			std::size_t const m_number_of_samples ;
 		} ;
-		void print( std::string const& s ) {
-			std::cerr << " " << s ;
-		}
 	}
 	
 	void GenIntensityFileSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter getter ) {

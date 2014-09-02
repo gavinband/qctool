@@ -16,16 +16,6 @@
 
 namespace genfile {
 	namespace {
-		char get_representation_of_allele( char allele ) {
-			switch( allele ) {
-				case 'A': return '1'; break ;
-				case 'C': return '2'; break ;
-				case 'G': return '3'; break ;
-				case 'T': return '4'; break ;
-			}
-			return '?' ;
-		}
-		
 		std::string sex_to_string( Pedigree::Sex sex ) {
 			switch( sex ) {
 				case Pedigree::eMale: return "1"; break ;

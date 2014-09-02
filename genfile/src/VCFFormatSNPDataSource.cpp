@@ -55,11 +55,11 @@ namespace genfile {
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_field_mapping( get_field_mapping( m_format_types )),
-		m_column_names( read_column_names( *m_stream_ptr )),
-		m_number_of_samples( m_column_names.size() - 9 ),
-		m_have_id_data( false ),
 		m_genotype_field( "GT" ),
-		m_intensity_field( "XY" )
+		m_intensity_field( "XY" ),
+		m_have_id_data( false ),
+		m_column_names( read_column_names( *m_stream_ptr )),
+		m_number_of_samples( m_column_names.size() - 9 )
 	{
 		setup() ;
 		reset_stream() ;
@@ -77,11 +77,11 @@ namespace genfile {
 		m_info_types( vcf::get_entry_types( m_metadata, "INFO" )),
 		m_format_types( vcf::get_entry_types( m_metadata, "FORMAT" )),
 		m_field_mapping( get_field_mapping( m_format_types )),
-		m_column_names( read_column_names( *m_stream_ptr )),
-		m_number_of_samples( m_column_names.size() - 9 ),
-		m_have_id_data( false ),
 		m_genotype_field( "GT" ),
-		m_intensity_field( "XY" )
+		m_intensity_field( "XY" ),
+		m_have_id_data( false ),
+		m_column_names( read_column_names( *m_stream_ptr )),
+		m_number_of_samples( m_column_names.size() - 9 )
 	{
 		setup() ;
 		reset_stream() ;
@@ -340,8 +340,8 @@ namespace genfile {
 				VCFFormatSNPDataSource::FieldMapping field_mapping
 			):
 			 	m_source( source ),
-				m_format_elts( genfile::string_utils::split( FORMAT, ":" )),
 				m_format_types( format_types ),
+				m_format_elts( genfile::string_utils::split( FORMAT, ":" )),
 				m_field_mapping( field_mapping )
 			{
 				if( m_source.number_of_samples() > 0 ) {

@@ -79,8 +79,6 @@ namespace statfile {
 	template< typename StatSource, typename ValueTuple >
 	bool read_values( StatSource& source, std::string const& column_names, ValueTuple const& values )
 	{
-		std::size_t const N = boost::tuples::length< ValueTuple >::value ;
-
 		typedef std::map< std::size_t, std::size_t > IndexMap ;
 		IndexMap column_indices ;
 		try {

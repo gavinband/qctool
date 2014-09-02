@@ -168,7 +168,6 @@ void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes co
 		std::size_t const sequence_end = where->second.first.second ;
 		if( pos >= sequence_start && pos <= sequence_end ) {
 			// Oh good, our variant is in the sequence.
-			std::size_t allele_size = 1 ;
 			std::size_t ref_allele_size = snp.get_first_allele().size() ;
 			std::ostringstream allele ;
 			if( ( pos + ref_allele_size ) > sequence_end ) {

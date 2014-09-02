@@ -41,7 +41,6 @@ namespace genfile {
 		std::auto_ptr< std::ostream > m_stream_ptr ;
 		bool m_have_written_header ;
 		std::size_t m_number_of_samples ;
-		double const m_call_threshhold ;
 		std::vector< std::string > m_output_fields ;
 		boost::ptr_vector< std::ostringstream > m_streams ;
 
