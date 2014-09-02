@@ -133,6 +133,8 @@
             </div>
             <div id="documentation" style="display:none">
                 <div class="display_diagram_right">
+                    <object data="style/images/inthinnerator-flow.svg"  type="image/svg+xml" align="center">
+					</object>
                 </div>
                 <p>
                     The general process followed by inthinnerator is shown on the right.  In brief, inthinnerator picks SNPs by alternating two processes:
@@ -169,6 +171,10 @@
 						<li>Continue until a specified number of SNPs have been picked (<span class="option">-max-picks</span>).</li>
 						<li>Continue until one SNP has been picked for each tag specified to <span class="option"><strong>-match-tag</strong></span>.</li>
 					</ul>
+				</p>
+				<p>
+					<strong>Repeating.</strong> Specifying <span class="option">-N <em>x</em></span>, where <em>x</em> is a number &gt; 1, will cause
+					inthinnerator to repeat the whole thinning process <em>x</em> times.  Output files will be numbered from 0 to <em>x-1</em>.
 				</p>
 				<p>By default inthinnerator will write all variants included and excluded from the thinned list to the output file.
 					The options <span class="option">-suppress-excluded</span> and <span class="option">-suppress-included</span> can be used to adjust this behaviour.
@@ -252,8 +258,9 @@ snp9 22-16158548 22 16158548 ACT A</pre>
                         $ inthinnerator -g snps.txt -map genetic_map_chr#.txt -min-distance 0.125cM -o thinned.out
                     </div>
                     <div class="task_notes">
-                        Genetic map files often do not contain chromosome information.  Here we've used the # wildcard character to make inthinnerator
-						infer the chromosome from the filename.
+                        <b>Note</b>: Because the genetic map files don't contain chromosome information,
+						you usually need to make inthinnerator infer the chromosome by using the # wildcard
+						character, as shown above.
                     </div>
                 </div>
                 <div class="task">
@@ -304,7 +311,7 @@ snp9 22-16158548 22 16158548 ACT A</pre>
                         </tr>
                         <tr>
                             <td>
-                                Custom flat-file format
+                                Inthinnerator flat-file format
                             </td>
                             <td>
                                 <span class="monospace">.txt</span>,
