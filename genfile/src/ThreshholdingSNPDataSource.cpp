@@ -103,7 +103,7 @@ namespace genfile {
 			} ;
 
 			VariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
-				if( spec != "genotypes" ) {
+				if( spec != ":genotypes:" ) {
 					m_source->get( spec, setter ) ;
 				} else {
 					Threshholder threshholder( setter, m_threshhold ) ;
