@@ -71,7 +71,7 @@ namespace qcdb {
 			}
 			else {
 				// Still have time to add the variable to our list of variables, retaining the order of addition.
-				m_variables.left.insert( VariableMap::left_value_type( variable, m_variables.size() ) ).first ;
+				m_variables.left.insert( VariableMap::left_value_type( variable, m_variables.size() ) ) ;
 			}
 		}
 	}

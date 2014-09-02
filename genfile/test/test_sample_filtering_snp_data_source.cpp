@@ -29,7 +29,6 @@ namespace data {
 	namespace {
 		// this data has 1504 samples per row.
 		unsigned int const number_of_samples = 1504 ;
-		unsigned int const number_of_snps = 16 ;
 	}
 }
 

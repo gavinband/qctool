@@ -95,6 +95,7 @@ namespace genfile {
 		FieldMapping m_field_mapping ;
 		std::string m_genotype_field ;
 		std::string m_intensity_field ;
+		bool m_have_id_data ;
 
 		std::vector< std::string > const m_column_names ;
 		std::size_t const m_number_of_samples ;
@@ -111,7 +112,6 @@ namespace genfile {
 		std::string m_QUAL ;
 		std::string m_FILTER ;
 		std::string m_INFO ;
-		bool m_have_id_data ;
 		
 	private:
 		void setup() ;

@@ -12,7 +12,6 @@
 #include <boost/signals2/signal.hpp>
 #include <Eigen/Core>
 #include "genfile/SNPDataSourceProcessor.hpp"
-#include "genfile/RandomAccessSNPDataSource.hpp"
 #include "genfile/SNPIdentifyingDataTest.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "appcontext/OptionProcessor.hpp"

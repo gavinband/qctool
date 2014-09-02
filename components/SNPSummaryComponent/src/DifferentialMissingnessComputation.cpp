@@ -19,7 +19,7 @@ DifferentialMissingnessComputation::DifferentialMissingnessComputation( std::str
 	m_strata_levels( compute_strata_levels( m_strata_members ) ),
 	m_threshhold( threshhold )
 {
-	if( !strata_members.size() == 2 ) {
+	if( strata_members.size() != 2 ) {
 		throw genfile::BadArgumentError( "DifferentialMissingnessComputation::DifferentialMissingnessComputation()", "strata_members( size " + genfile::string_utils::to_string( strata_members.size() ) + ")" ) ;
 	}
 }

@@ -1123,8 +1123,8 @@ struct BingwaProcessor: public boost::noncopyable
 	}
 	
 	BingwaProcessor( genfile::SNPIdentifyingData2::CompareFields const& compare_fields ):
-		m_snps( compare_fields ),
 		m_number_of_effect_parameters( -1 ),
+		m_snps( compare_fields ),
 		m_flip_alleles_if_necessary( false )
 	{
 	}
@@ -2268,7 +2268,7 @@ public:
 			// These must be numbers!  Check we can parse them
 			for( std::size_t j = 0; j < sds.size(); ++j ) {
 				try {
-					double const x = to_repr< double >( sds[j] ) ;
+					to_repr< double >( sds[j] ) ;
 				}
 				catch( StringConversionError const& e ) {
 					throw genfile::BadArgumentError(

@@ -152,7 +152,6 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 		options[ "-map" ]
 			.set_description( "Set the path of the genetic map panel to use." )
 			.set_takes_single_value()
-			.set_is_required()
 		;
 		options[ "-g" ]
 			.set_description( "Specify a file containing the SNPs to operate on." )

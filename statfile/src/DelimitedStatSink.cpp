@@ -16,7 +16,6 @@ namespace statfile {
 	DelimitedStatSink::DelimitedStatSink( std::auto_ptr< std::ostream > stream_ptr, std::string const& delimiter )
 	: 	m_comment_character( '#' ),
 		m_delimiter( delimiter ),
-		have_written_header( false ),
 		m_precision(15)
 	{
 		setup( stream_ptr ) ;
@@ -25,18 +24,17 @@ namespace statfile {
 	DelimitedStatSink::DelimitedStatSink( std::string const& filename, std::string const& delimiter )
 	: 	m_comment_character( '#' ),
 		m_delimiter( delimiter ),
-		have_written_header( false ),
 		m_precision(15)
 	{
 		setup( filename ) ;
 	}
 
 	void DelimitedStatSink::set_descriptive_text( std::string const& text ) {
-		m_descriptive_text = "# " ;
+		m_descriptive_text = std::string( 1, m_comment_character ) + " " ;
 		for( std::string::const_iterator i = text.begin(); i != text.end(); ++i ) {
 			m_descriptive_text += *i ;
 			if( *i == '\n' ) {
-				m_descriptive_text.append( "# " ) ;
+				m_descriptive_text.append( std::string( 1, m_comment_character ) + " " ) ;
 			}
 		}
 	}
@@ -47,6 +45,10 @@ namespace statfile {
 
 	void DelimitedStatSink::setup( std::auto_ptr< std::ostream > stream_ptr ) {
 		set_stream( stream_ptr ) ;
+	}
+
+	void DelimitedStatSink::begin_data_impl() {
+		write_header_if_necessary() ;
 	}
 	
 	void DelimitedStatSink::write_value( double const& value ) {

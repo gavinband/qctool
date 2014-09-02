@@ -16,6 +16,7 @@ namespace statfile {
 	IgnoreSome ignore( std::size_t n ) { return IgnoreSome( n ) ; }
 	IgnoreAll ignore_all() { return IgnoreAll() ; }
 	EndRow end_row() { return EndRow() ; }
+	BeginData begin_data() { return BeginData() ; }
 
 	ColumnSpec::ColumnSpec( std::string name, std::size_t repeats ) 
 		: m_name( name ), m_number_of_repeats( repeats )
@@ -39,19 +40,13 @@ namespace statfile {
 	
 	FileFormatType get_file_format_type_indicated_by_filename( std::string const& filename ) {
 		if( filename.size() > 4 && ( filename.substr( filename.size() - 4, 4 ) == ".ssv" || filename.substr( filename.size() - 4, 4 ) == ".txt" )) {
-			return e_RFormat ;
+			return e_SpaceDelimited ;
 		}
 		else if( filename.size() > 4 && filename.substr( filename.size() - 4, 4 ) == ".csv" ) {
 			return e_CommaDelimitedFormat ;
 		}
 		else if( filename.size() > 4 && filename.substr( filename.size() - 4, 4 ) == ".tsv" ) {
 			return e_TabDelimitedFormat ;
-		}
-		else if( filename.size() > 4 && filename.substr( filename.size() - 4, 4 ) == ".bnv" ) {
-			return e_BinFormat ;
-		}
-		else if( filename.size() > 4 && filename.substr( filename.size() - 4, 4 ) == ".pbv" ) {
-			return e_PackedBinFormat ;
 		}
 		else {
 			return e_UnknownFormat ;

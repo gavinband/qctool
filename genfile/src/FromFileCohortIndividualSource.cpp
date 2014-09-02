@@ -223,23 +223,6 @@ namespace genfile {
 			}
 			return result ;
 		}
-
-		void insert_name_and_type(
-			std::map< std::string, CohortIndividualSource::ColumnType >* result,
-			std::vector< char > const& the_name,
-			std::vector< char > const& the_type
-		) {
-			assert( result ) ;
-			std::string name( the_name.begin(), the_name.end() ) ;
-			std::string type_string( the_type.begin(), the_type.end() ) ;
-			std::cerr << "name:" << name << ", type:" << type_string << ".\n" ;
-			
-			boost::optional< CohortIndividualSource::ColumnType > type = get_column_type( type_string ) ;
-			if( !type ) {
-				throw MalformedInputError( "(unknown)", 0 ) ;
-			}
-			(*result)[ name ] = (*type) ;
-		}
 	}
 
 	boost::optional< std::map< std::string, CohortIndividualSource::ColumnType > > FromFileCohortIndividualSource::read_column_types_from_comments(

@@ -71,51 +71,119 @@ namespace genfile {
 				Threshholder( PerSampleSetter& target, double const threshhold ):
 					m_target( target ),
 					m_threshhold( threshhold )
-				{}
+				{
+					if( m_threshhold <= 0.5 ) {
+						throw BadArgumentError(
+							"genfile::ThreshholdingDataReader::Threshholder::Threshholder()",
+							"threshhold",
+							"Only threshholds greater than 0.5 are supported."
+						) ;
+					}
+					assert( m_threshhold > 0.5 ) ;
+				}
+				
+				~Threshholder() throw() {}
 					
 				void set_number_of_samples( std::size_t n ) {
 					m_target.set_number_of_samples( n ) ;
 				} ;
 				void set_sample( std::size_t i ) {
 					m_target.set_sample( i ) ;
+					m_missing = false ;
+					m_calls.setZero( 3 ) ;
+					m_entry_i = 0 ;
 				}
 				void set_number_of_entries( std::size_t n ) {
-					m_target.set_number_of_entries( n ) ;
+					assert( n == 3 ) ;
+					m_target.set_number_of_entries( 2 ) ;
 				}
 				void set_order_type( OrderType const type ) {
-					m_target.set_order_type( type ) ;
+					assert( type == eOrderedList ) ;
+					m_target.set_order_type( eUnorderedList ) ;
 				}
 				void operator()( MissingValue const value ) {
-					m_target( value ) ;
+					m_missing = true ;
+					m_entry_i++ ;
+					if( m_entry_i == m_calls.size() ) { 
+						send_results() ;
+					}
 				}
 				void operator()( std::string& value ) {
-					m_target( value ) ;
+					throw BadArgumentError(
+						"genfile::ThreshholdingDataReader::Threshholder::operator()",
+						"value",
+						"Expected a floating-point value (got a string)."
+					) ;
 				}
 				void operator()( Integer const value ) {
-					m_target( value ) ;
+					throw BadArgumentError(
+						"genfile::ThreshholdingDataReader::Threshholder::operator()",
+						"value",
+						"Expected a floating-point value (got an integer)."
+					) ;
 				}
 				void operator()( double const value ) {
-					m_target( ( value >= m_threshhold) ? 1.0 : 0.0 ) ;
+					m_calls( m_entry_i++ ) = value ;
+					if( m_entry_i == m_calls.size() ) { 
+						send_results() ;
+					}
 				}
 			private:
 				PerSampleSetter& m_target ;
 				double const m_threshhold ;
+				int m_entry_i ;
+				Eigen::VectorXd m_calls ;
+				bool m_missing ;
+				
+			private:
+				void send_results() {
+					if( m_missing || m_calls.array().maxCoeff() < m_threshhold ) {
+						m_target( genfile::MissingValue() ) ;
+						m_target( genfile::MissingValue() ) ;
+					} else {
+						if( m_calls(0) >= m_threshhold ) {
+							m_target( Integer( 0 ) ) ;
+							m_target( Integer( 0 ) ) ;
+						}
+						else if( m_calls(1) >= m_threshhold ) {
+							m_target( Integer( 0 ) ) ;
+							m_target( Integer( 1 ) ) ;
+						}
+						else if( m_calls(2) >= m_threshhold ) {
+							m_target( Integer( 1 ) ) ;
+							m_target( Integer( 1 ) ) ;
+						}
+						else {
+							m_target( genfile::MissingValue() ) ;
+							m_target( genfile::MissingValue() ) ;
+						}
+					}
+				}
 			} ;
 
 			VariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
-				if( spec != "genotypes" ) {
-					m_source->get( spec, setter ) ;
-				} else {
+				if( spec == ":genotypes:" || spec == "GT" ) {
+					if( !m_source->supports( "GP" )) {
+						throw genfile::BadArgumentError(
+							"genfile::ThreshholdingDataReader::Threshholder::get()",
+							"setter",
+							"Underlying source must support genotype probabilities (GP) field."
+						) ;
+					}
 					Threshholder threshholder( setter, m_threshhold ) ;
-					m_source->get( spec, threshholder ) ;
+					m_source->get( "GP", threshholder ) ;
+				} else {
+					m_source->get( spec, setter ) ;
 				}
 				return *this ;
 			}
 
 			bool supports( std::string const& spec ) const {
-				return m_source->supports( spec ) ;
+				return spec == ":genotypes:" || spec == "GT" || m_source->supports( spec ) ;
 			}
 			void get_supported_specs( SpecSetter setter ) const {
+				setter( ":genotypes:", "Integer" ) ;
+				setter( "GT", "Integer" ) ;
 				return m_source->get_supported_specs( setter ) ;
 			}
 			std::size_t get_number_of_samples() const {

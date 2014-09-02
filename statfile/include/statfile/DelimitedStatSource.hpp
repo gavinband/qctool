@@ -23,7 +23,7 @@ namespace statfile {
 		// Although it will strip quotes from around fields, this is currently incorrectly implemented in that
 		// the splitting character may not occur within the quoted strings.
 	{
-		typedef ColumnNamingStatSource< BuiltInTypeStatSource > base_t ;
+		typedef ColumnNamingStatSource< BuiltInTypeStatSource > Base ;
 	public:
 		DelimitedStatSource( std::string const& filename, std::string delimiter ) ;
 		DelimitedStatSource( std::auto_ptr< std::istream > stream_ptr, std::string delimiter ) ;
@@ -37,6 +37,7 @@ namespace statfile {
 
 	protected:
 
+		using Base::read_value ;
 		void read_value( int32_t& ) ;
 		void read_value( uint32_t& ) ;
 		void read_value( std::string& ) ;

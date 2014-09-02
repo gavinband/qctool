@@ -8,9 +8,6 @@
 #include <memory>
 #include <string>
 #include "statfile/StatSink.hpp"
-#include "statfile/RFormatStatSink.hpp"
-#include "statfile/BinFormatStatSink.hpp"
-#include "statfile/PackedBinFormatStatSink.hpp"
 #include "statfile/DelimitedStatSink.hpp"
 
 namespace statfile {
@@ -18,19 +15,13 @@ namespace statfile {
 		std::auto_ptr< statfile::BuiltInTypeStatSink > result ;
 		FileFormatType format = get_file_format_type_indicated_by_filename( filename ) ;
 		
-		if( format == statfile::e_BinFormat ) {
-			result.reset( new statfile::BinFormatStatSink( filename ) ) ;
-		}
-		else if( format == statfile::e_PackedBinFormat ) {
-			result.reset( new statfile::PackedBinFormatStatSink( filename ) ) ;
-		}
-		else if( format == statfile::e_CommaDelimitedFormat ) {
+		if( format == statfile::e_CommaDelimitedFormat ) {
 			result.reset( new statfile::DelimitedStatSink( filename, "," ) ) ;
 		}
 		else if( format == statfile::e_TabDelimitedFormat ) {
 			result.reset( new statfile::DelimitedStatSink( filename, "\t" ) ) ;
 		}
-		else if( format == statfile::e_RFormat ) {
+		else if( format == statfile::e_SpaceDelimited ) {
 			result.reset( new statfile::DelimitedStatSink( filename, " " ) ) ;
 		}
 		else {

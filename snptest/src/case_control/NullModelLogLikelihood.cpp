@@ -19,13 +19,13 @@ namespace snptest {
 
 		NullModelLogLikelihood& NullModelLogLikelihood::set_phenotypes( Vector const& phenotypes ) {
 			if( m_genotype_call_probabilities.rows() > 0 || m_genotype_call_probabilities.cols() > 0 ) {
-				if( !phenotypes.rows() == m_genotype_call_probabilities.rows() ) {
+				if( phenotypes.rows() != m_genotype_call_probabilities.rows() ) {
 					throw genfile::BadArgumentError( "snptest::case_control::NullModelLogLikelihood::set_phenotypes()", "phenotypes" ) ;
 				}
 			}
 			
 			if( m_covariates.rows() > 0 || m_covariates.cols() > 0 ) {
-				if( !phenotypes.rows() == m_covariates.rows() ) {
+				if( phenotypes.rows() != m_covariates.rows() ) {
 					throw genfile::BadArgumentError( "snptest::case_control::NullModelLogLikelihood::set_phenotypes()", "phenotypes" ) ;
 				}
 			} else {

@@ -12,12 +12,19 @@ namespace appcontext {
 	// progress through a task, generate a progress bar representing that amount.
 	std::string get_progress_bar( std::size_t width, double progress ) {
 		progress = std::min( std::max( progress, 0.0 ), 1.0 ) ;
-		std::size_t visible_progress = progress * width ;
-		return
-			"["
-			+ std::string( std::size_t( visible_progress ), '*' )
-			+ std::string( std::size_t( width - visible_progress ), ' ' )
-			+ "]" ;
+		if( progress == progress && progress > 0.0 ) {
+			std::size_t visible_progress = progress * width ;
+			return
+				"["
+				+ std::string( std::size_t( visible_progress ), '*' )
+				+ std::string( std::size_t( width - visible_progress ), ' ' )
+				+ "]" ;
+		} else {
+			return
+				"["
+				+ std::string( std::size_t( width ), ' ' )
+				+ "]" ;
+		}
 	}
 }
 
