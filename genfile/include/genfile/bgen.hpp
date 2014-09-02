@@ -265,7 +265,8 @@ namespace genfile {
 
 			template< typename GenotypeProbabilityGetter >
 			void write_uncompressed_snp_probability_data(
-				std::ostream& aStream,
+				char* buffer,
+				char* const end,
 				uint32_t const flags,
 				uint32_t number_of_samples,
 				GenotypeProbabilityGetter get_AA_probability,
@@ -275,13 +276,13 @@ namespace genfile {
 				double const factor = ( bool( flags & e_LongIds ) ? 32768.0 : impl::PROBABILITY_CONVERSION_FACTOR ) ;
 				for ( impl::uint32_t i = 0 ; i < number_of_samples ; ++i ) {
 					impl::uint16_t
-					AA = convert_to_integer_representation( get_AA_probability( i ), factor ),
-					AB = convert_to_integer_representation( get_AB_probability( i ), factor ),
-					BB = convert_to_integer_representation( get_BB_probability( i ), factor ) ;
-
-					write_little_endian_integer( aStream, AA ) ;
-					write_little_endian_integer( aStream, AB ) ;
-					write_little_endian_integer( aStream, BB ) ;
+						AA = convert_to_integer_representation( get_AA_probability( i ), factor ),
+						AB = convert_to_integer_representation( get_AB_probability( i ), factor ),
+						BB = convert_to_integer_representation( get_BB_probability( i ), factor ) ;
+					assert( ( buffer + 6 ) <= end ) ;
+					buffer = genfile::write_little_endian_integer( buffer, end, AA ) ;
+					buffer = genfile::write_little_endian_integer( buffer, end, AB ) ;
+					buffer = genfile::write_little_endian_integer( buffer, end, BB ) ;
 				}
 			}
 
@@ -338,9 +339,13 @@ namespace genfile {
 					std::vector< Bytef > compression_buffer( buffer_size ) ;
 					std::vector< Bytef > uncompressed_buffer( uncompressed_data_size ) ;
 					// get probability data, uncompressed.
-					std::ostringstream oStream ;
-					oStream.rdbuf()->pubsetbuf( reinterpret_cast< char* >( &uncompressed_buffer[0] ), uncompressed_data_size ) ;
-					write_uncompressed_snp_probability_data( oStream, flags, number_of_samples, get_AA_probability, get_AB_probability, get_BB_probability ) ;
+					write_uncompressed_snp_probability_data(
+						reinterpret_cast< char* >( &uncompressed_buffer[0] ),
+						reinterpret_cast< char* const >( &uncompressed_buffer[0] + uncompressed_data_size ),
+						flags,
+						number_of_samples,
+						get_AA_probability, get_AB_probability, get_BB_probability
+					) ;
 					// compress it
 					int result = compress( &compression_buffer[0], &buffer_size, &uncompressed_buffer[0], uncompressed_data_size ) ;
 					assert( result == Z_OK ) ;
@@ -394,8 +399,20 @@ namespace genfile {
 				GenotypeProbabilityGetter get_AB_probability,
 				GenotypeProbabilityGetter get_BB_probability
 			) {
+				std::size_t uncompressed_data_size = (6 * number_of_samples) ;
+				std::vector< char > uncompressed_buffer( uncompressed_data_size ) ;
+				// get probability data, uncompressed.
+				write_uncompressed_snp_probability_data(
+					&uncompressed_buffer[0],
+					&uncompressed_buffer[0] + uncompressed_data_size,
+					flags,
+					number_of_samples,
+					get_AA_probability, get_AB_probability, get_BB_probability
+				) ;
+				// compress it
+
 				write_snp_identifying_data( aStream, flags, number_of_samples, max_id_size, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele ) ;
-				write_uncompressed_snp_probability_data( aStream, flags, number_of_samples, get_AA_probability, get_AB_probability, get_BB_probability ) ;
+				aStream.write( &uncompressed_buffer[0], uncompressed_data_size ) ;
 			}
 
 
