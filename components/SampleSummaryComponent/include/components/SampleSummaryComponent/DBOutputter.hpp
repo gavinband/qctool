@@ -31,7 +31,7 @@ namespace sample_stats {
 		DBOutputter( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata, genfile::CohortIndividualSource const& samples, std::string const& table_name ) ;
 		~DBOutputter() ;
 
-		void operator()(
+		void store_per_sample_data(
 			std::string const& computation_name,
 			std::size_t sample,
 			std::string const& variable,

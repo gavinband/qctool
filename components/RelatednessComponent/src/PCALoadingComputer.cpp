@@ -87,7 +87,7 @@ void PCALoadingComputer::begin_processing_snps( std::size_t number_of_samples ) 
 
 void PCALoadingComputer::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 	data_reader.get(
-		"genotypes",
+		":genotypes:",
 		genfile::vcf::get_threshholded_calls( m_genotype_calls, m_non_missingness, 0.9, 0, 0, 1, 2 )
 	) ;
 	assert( m_genotype_calls.size() == m_U.rows() ) ;

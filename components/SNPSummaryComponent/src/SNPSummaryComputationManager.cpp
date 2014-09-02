@@ -97,9 +97,10 @@ void SNPSummaryComputationManager::begin_processing_snps( std::size_t number_of_
 void SNPSummaryComputationManager::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 	try {
 		genfile::vcf::GenotypeSetter< Eigen::MatrixBase< SNPSummaryComputation::Genotypes > > setter( m_genotypes ) ;
-		data_reader.get( "genotypes", setter ) ;
+		data_reader.get( ":genotypes:", setter ) ;
 
-		boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > callback = boost::bind( boost::ref( m_result_signal ), snp, _1, _2 ) ;
+		boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > callback
+			= boost::bind( boost::ref( m_result_signal ), snp, _1, _2 ) ;
 
 		if( !snp.get_position().chromosome().is_missing() && snp.get_position().chromosome().is_sex_determining() ) {
 			try {
@@ -170,7 +171,7 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes(
 
 				genotypes->row( males[i] ).setZero() ;
 				bad_males.push_back( males[i] ) ;
-				// throw genfile::BadArgumentError( "PerVariantComputationManager::fix_sex_chromosome_genotypes()", "genotypes" ) ;
+				// throw genfile::BadArgumentError( "PerVariantComputationManager::fix_sex_chromosome_genotypes()", ":genotypes:" ) ;
 			}
 
 			if( m_haploid_coding_column == 2 ) {
@@ -208,7 +209,7 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes(
 //					<< " (" << m_samples.get_entry( females[i], "ID_1" ) << ") "
 					<< " has nonzero genotype call!\n" ;
 #endif
-				//throw genfile::BadArgumentError( "PerVariantComputationManager::fix_sex_chromosome_genotypes()", "genotypes" ) ;
+				//throw genfile::BadArgumentError( "PerVariantComputationManager::fix_sex_chromosome_genotypes()", ":genotypes:" ) ;
 				genotypes->row( females[i] ).setZero() ;
 				bad_females.push_back( females[i] ) ;
 			}
@@ -247,7 +248,7 @@ int SNPSummaryComputationManager::determine_male_coding_column(
 					<< (males[i]+1)
 					<< " (" << m_samples.get_entry( males[i], "ID_1" ) << ") "
 					<< " has nonzero heterozygote and homozygote call probabilities!\n" ;
-				throw genfile::BadArgumentError( "SNPSummaryComputationManager::determine_male_coding_column()", "genotypes" ) ;
+				throw genfile::BadArgumentError( "SNPSummaryComputationManager::determine_male_coding_column()", ":genotypes:" ) ;
 		}
 		
 		for( int g = 1; g < 3; ++g ) {
@@ -271,7 +272,7 @@ int SNPSummaryComputationManager::determine_male_coding_column(
 						<< " is coded as a " << ( ( g == 1 ) ? "heterozygote" : "homozygote" )
 						<< ".\n" ;
 #endif
-					throw genfile::BadArgumentError( "SNPSummaryComputationManager::determine_male_coding_column()", "genotypes" ) ;
+					throw genfile::BadArgumentError( "SNPSummaryComputationManager::determine_male_coding_column()", ":genotypes:" ) ;
 				}
 				break ; // no need to do both genotypes due to the check above.
 			}

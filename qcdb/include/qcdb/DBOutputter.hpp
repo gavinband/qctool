@@ -33,6 +33,7 @@ namespace qcdb {
 			std::string const& analysis_name,
 			std::string const& analysis_description,
 			Metadata const& metadata,
+			boost::optional< db::Connection::RowId > analysis_id = boost::optional< db::Connection::RowId >(),
 			std::string const& snp_match_fields = "position,alleles"
 		) ;
 		static SharedPtr create_shared(
@@ -40,6 +41,7 @@ namespace qcdb {
 			std::string const& analysis_name,
 			std::string const& analysis_description,
 			Metadata const& metadata,
+			boost::optional< db::Connection::RowId > analysis_id = boost::optional< db::Connection::RowId >(),
 			std::string const& snp_match_fields = "position,alleles"
 		) ;
 
@@ -48,11 +50,12 @@ namespace qcdb {
 			std::string const& analysis_name,
 			std::string const& analysis_description,
 			Metadata const& metadata,
+			boost::optional< db::Connection::RowId > analysis_id = boost::optional< db::Connection::RowId >(),
 			std::string const& snp_match_fields = "position,alleles"
 		) ;
 		~DBOutputter() ;
 
-		// Create an entity.  Optionally suppy a class (which must be the id of another entity.)
+		// Create an entity.  Optionally supply a class (which must be the id of another entity.)
 		db::Connection::RowId get_or_create_entity(
 			std::string const& name,
 			std::string const& description,
@@ -67,7 +70,7 @@ namespace qcdb {
 		void insert_summary_data( db::Connection::RowId snp_id, db::Connection::RowId variable_id, genfile::VariantEntry const& value ) const ;
 
 		db::Connection& connection() const { return *m_connection ; }
-		db::Connection::RowId analysis_id() const { return m_analysis_id ; }
+		db::Connection::RowId analysis_id() const { return m_analysis_id.get() ; }
 
 		void finalise( long options = eCreateIndices ) ;
 		
@@ -95,7 +98,7 @@ namespace qcdb {
 		db::Connection::StatementPtr m_find_variant_identifier_statement ;
 		db::Connection::StatementPtr m_insert_variant_identifier_statement ;
 
-		db::Connection::RowId m_analysis_id ;
+		boost::optional< db::Connection::RowId > m_analysis_id ;
 		db::Connection::RowId m_is_a ;
 		db::Connection::RowId m_used_by ;
 

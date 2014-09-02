@@ -27,7 +27,12 @@ namespace snp_summary_component {
 		return SharedPtr( new DBOutputter( filename, analysis_name, analysis_description, metadata ) ) ;
 	}
 
-	DBOutputter::DBOutputter( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ):
+	DBOutputter::DBOutputter(
+		std::string const& filename,
+		std::string const& analysis_name,
+		std::string const& analysis_description,
+		Metadata const& metadata
+	):
 		m_outputter( filename, analysis_name, analysis_description, metadata ),
 		m_max_transaction_count( 10000 ),
 		m_variable_id( m_outputter.get_or_create_entity( "per-variant variable", "per-variant variable values" ) )

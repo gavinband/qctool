@@ -27,13 +27,34 @@ namespace sample_stats {
 		typedef std::auto_ptr< FlatTableDBOutputter > UniquePtr ;
 		typedef boost::shared_ptr< FlatTableDBOutputter > SharedPtr ;
 
-		static UniquePtr create( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, qcdb::DBOutputter::Metadata const& metadata, genfile::CohortIndividualSource const& samples ) ;
-		static SharedPtr create_shared( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, qcdb::DBOutputter::Metadata const& metadata, genfile::CohortIndividualSource const& samples ) ;
+		static UniquePtr create(
+			std::string const& filename,
+			std::string const& analysis_name,
+			std::string const& analysis_description,
+			qcdb::DBOutputter::Metadata const& metadata,
+			genfile::CohortIndividualSource const& samples,
+			boost::optional< db::Connection::RowId > analysis_id
+		) ;
+		static SharedPtr create_shared(
+			std::string const& filename,
+			std::string const& analysis_name,
+			std::string const& analysis_description,
+			qcdb::DBOutputter::Metadata const& metadata,
+			genfile::CohortIndividualSource const& samples,
+			boost::optional< db::Connection::RowId > analysis_id
+		) ;
 
-		FlatTableDBOutputter( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, qcdb::DBOutputter::Metadata const& metadata, genfile::CohortIndividualSource const& samples ) ;
+		FlatTableDBOutputter(
+			std::string const& filename,
+			std::string const& analysis_name,
+			std::string const& analysis_description,
+			qcdb::DBOutputter::Metadata const& metadata,
+			genfile::CohortIndividualSource const& samples,
+			boost::optional< db::Connection::RowId > analysis_id
+		) ;
 		~FlatTableDBOutputter() ;
 
-		void operator()(
+		void store_per_sample_data(
 			std::string const& computation_name,
 			std::size_t sample,
 			std::string const& variable,
@@ -47,6 +68,8 @@ namespace sample_stats {
 		
 		void add_variable( std::string const& ) ;
 		
+		AnalysisId analysis_id() const ;
+
 	private:
 		qcdb::DBOutputter m_outputter ;
 		std::string m_table_name ;

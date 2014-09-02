@@ -19,7 +19,7 @@ namespace sample_stats {
 		typedef boost::shared_ptr< SampleStorage > SharedPtr ;
 
 		virtual ~SampleStorage() {} ;
-		virtual void operator()(
+		virtual void store_per_sample_data(
 			std::string const& computation_name,
 			std::size_t sample,
 			std::string const& variable,
@@ -28,6 +28,9 @@ namespace sample_stats {
 		) = 0 ;
 		
 		virtual void finalise( long options = qcdb::eCreateIndices ) = 0 ;
+
+		typedef int64_t AnalysisId ;
+		virtual AnalysisId analysis_id() const = 0 ;
 	} ;
 }
 

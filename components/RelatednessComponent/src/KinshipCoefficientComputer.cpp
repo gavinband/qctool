@@ -437,7 +437,7 @@ namespace impl {
 		nonmissingness.setZero( m_result.rows() ) ;
 
 		data_reader->get(
-			"genotypes",
+			":genotypes:",
 			genfile::vcf::get_threshholded_calls( genotypes, nonmissingness, m_call_threshhold, 0, 0, 1, 2 )
 		) ;
 

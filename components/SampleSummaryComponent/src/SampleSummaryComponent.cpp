@@ -12,8 +12,7 @@
 #include "components/SampleSummaryComponent/SampleSummaryComponent.hpp"
 #include "components/SampleSummaryComponent/SampleSummaryComputationManager.hpp"
 #include "components/SampleSummaryComponent/SampleSummaryComputation.hpp"
-#include "components/SampleSummaryComponent/DBOutputter.hpp"
-#include "components/SampleSummaryComponent/FlatTableDBOutputter.hpp"
+#include "components/SampleSummaryComponent/SampleStorage.hpp"
 #include "components/SampleSummaryComponent/IntensityDistributionComputation.hpp"
 #include "components/SampleSummaryComponent/MissingnessHeterozygosityComputation.hpp"
 #include "components/SampleSummaryComponent/RiskScoreComputation.hpp"
@@ -32,44 +31,38 @@ void SampleSummaryComponent::declare_options( appcontext::OptionProcessor& optio
 		.set_description( "Compute a risk score for each sample based on a specified file of additive and heterozygote effect sizes." )
 		.set_takes_single_value() ;
 	
-	options.option_implies_option( "-sample-stats", "-o" ) ;
+	options.option_implies_option( "-sample-stats", "-osample" ) ;
 }
 
-SampleSummaryComponent::UniquePtr SampleSummaryComponent::create( appcontext::OptionProcessor const& options, genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context, qcdb::Storage::SharedPtr storage ) {
-	return SampleSummaryComponent::UniquePtr( new SampleSummaryComponent( options, samples, ui_context, storage )) ;
+bool SampleSummaryComponent::is_needed( appcontext::OptionProcessor const& options ) {
+	return options.check( "-sample-stats" )
+		|| options.check( "-risk-score" )
+	;
 }
 
-SampleSummaryComponent::SampleSummaryComponent( appcontext::OptionProcessor const& options, genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context, qcdb::Storage::SharedPtr ):
+SampleSummaryComponent::UniquePtr SampleSummaryComponent::create(
+	appcontext::OptionProcessor const& options,
+	genfile::CohortIndividualSource const& samples,
+	appcontext::UIContext& ui_context
+) {
+	return SampleSummaryComponent::UniquePtr( new SampleSummaryComponent( options, samples, ui_context )) ;
+}
+
+SampleSummaryComponent::SampleSummaryComponent(
+	appcontext::OptionProcessor const& options,
+	genfile::CohortIndividualSource const& samples,
+	appcontext::UIContext& ui_context
+):
 	m_options( options ),
 	m_samples( samples ),
 	m_ui_context( ui_context )
 {}
 
-void SampleSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor ) const {
+void SampleSummaryComponent::setup(
+	genfile::SNPDataSourceProcessor& processor,
+	sample_stats::SampleStorage::SharedPtr storage
+) const {
 	SampleSummaryComputationManager::UniquePtr manager = SampleSummaryComputationManager::create() ;
-	std::string filename ;
-	if( m_options.check( "-o" ) ) {
-		filename = m_options.get_value< std::string >( "-o" ) ;
-	}
-	else {
-		filename = genfile::strip_gen_file_extension_if_present( m_options.get< std::string >( "-g" ) ) + ".qcdb";
-	}
-	
-	{
-		sample_stats::FlatTableDBOutputter::SharedPtr outputter = sample_stats::FlatTableDBOutputter::create_shared(
-			filename,
-			m_options.get< std::string >( "-analysis-name" ),
-			m_options.get< std::string >( "-analysis-chunk" ) + " (sample stats)",
-			m_options.get_values_as_map(),
-			m_samples
-		) ;
-
-		if( m_options.check( "-table-name" ) ) {
-			outputter->set_table_name( m_options.get< std::string >( "-table-name" ) + "SampleData" ) ;
-		}
-	
-		manager->send_output_to( sample_stats::SampleStorage::SharedPtr( outputter )) ;
-	}
 	
 	if( m_options.check( "-sample-stats" )) {
 		manager->add(
@@ -108,7 +101,8 @@ void SampleSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor )
 		) ;
 	}
 
-	m_ui_context.logger() << "SampleSummaryComponent: the following components are in place:\n" << manager->get_summary( "  " ) << "\n" ;
+	manager->send_output_to( sample_stats::SampleStorage::SharedPtr( storage )) ;
 
+	m_ui_context.logger() << "SampleSummaryComponent: the following components are in place:\n" << manager->get_summary( "  " ) << "\n" ;
 	processor.add_callback( genfile::SNPDataSourceProcessor::Callback::UniquePtr( manager.release() ) ) ;
 }

@@ -28,7 +28,12 @@ namespace qcdb {
 		return SharedPtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata ) ) ;
 	}
 
-	FlatTableDBOutputter::FlatTableDBOutputter( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ):
+	FlatTableDBOutputter::FlatTableDBOutputter(
+		std::string const& filename,
+		std::string const& analysis_name,
+		std::string const& analysis_description,
+		Metadata const& metadata
+	):
 		m_outputter( filename, analysis_name, analysis_description, metadata ),
 		m_table_name( "Analysis" + genfile::string_utils::to_string( m_outputter.analysis_id() ) ),
 		m_max_snps_per_block( 1000 )

@@ -44,18 +44,20 @@ namespace qcdb {
 		std::string const& analysis_name,
 		std::string const& analysis_description,
 		Metadata const& metadata,
+		boost::optional< db::Connection::RowId > analysis_id,
 		std::string const& snp_match_fields
 	) {
-		return UniquePtr( new DBOutputter( filename, analysis_name, analysis_description, metadata, snp_match_fields ) ) ;
+		return UniquePtr( new DBOutputter( filename, analysis_name, analysis_description, metadata, analysis_id, snp_match_fields ) ) ;
 	}
 	DBOutputter::SharedPtr DBOutputter::create_shared(
 		std::string const& filename,
 		std::string const& analysis_name,
 		std::string const& analysis_description,
 		Metadata const& metadata,
+		boost::optional< db::Connection::RowId > analysis_id,
 		std::string const& snp_match_fields
 	) {
-		return SharedPtr( new DBOutputter( filename, analysis_name, analysis_description, metadata, snp_match_fields ) ) ;
+		return SharedPtr( new DBOutputter( filename, analysis_name, analysis_description, metadata, analysis_id, snp_match_fields ) ) ;
 	}
 
 	DBOutputter::~DBOutputter() {}
@@ -65,6 +67,7 @@ namespace qcdb {
 		std::string const& analysis_name,
 		std::string const& analysis_description,
 		Metadata const& metadata,
+		boost::optional< db::Connection::RowId > analysis_id,
 		std::string const& snp_match_fields
 	):
 		m_connection( db::Connection::create( filename )),
@@ -72,7 +75,8 @@ namespace qcdb {
 		m_analysis_chunk( analysis_description ),
 		m_metadata( metadata ),
 		m_create_indices( true ),
-		m_match_rsid( impl::get_match_rsid( snp_match_fields ))
+		m_match_rsid( impl::get_match_rsid( snp_match_fields )),
+		m_analysis_id( analysis_id )
 	{
 		try {
 			m_connection->run_statement( "PRAGMA journal_mode = OFF" ) ;
@@ -210,7 +214,7 @@ namespace qcdb {
 			) ;
 		}
 		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 7200 ) ;
-		end_analysis( m_analysis_id ) ;
+		end_analysis( m_analysis_id.get() ) ;
 	}
 
 	void DBOutputter::construct_statements() {
@@ -247,19 +251,42 @@ namespace qcdb {
 		m_used_by = get_or_create_entity_internal( "used_by", "used_by relationship" ) ;
 
 		try {
-			m_analysis_id = create_analysis(
-				m_analysis_name,
-				m_analysis_chunk
-			) ;
+			if( m_analysis_id ) {
+				m_find_analysis_statement
+					->bind( 1, m_analysis_name )
+					.bind( 2, m_analysis_chunk )
+					.step() ;
+				if( m_find_analysis_statement->empty() ) {
+					throw genfile::BadArgumentError(
+						"qcdb::DBOutputter::store_metadata()",
+						"m_analysis_id=" + genfile::string_utils::to_string( m_analysis_id.get() ),
+						"Could not find an analysis with the given name and chunk."
+					) ;
+				}
+				db::Connection::RowId const id = m_find_analysis_statement->get< db::Connection::RowId >( 0 ) ;
+				if( id != m_analysis_id.get() ) {
+					throw genfile::BadArgumentError(
+						"qcdb::DBOutputter::store_metadata()",
+						"m_analysis_id=" + genfile::string_utils::to_string( m_analysis_id.get() ),
+						"id does not match the analysis with with the given name and chunk."
+					) ;
+				}
+				m_find_analysis_statement->reset() ;
+			} else {
+				m_analysis_id = create_analysis(
+					m_analysis_name,
+					m_analysis_chunk
+				) ;
+			}
 		} catch( db::StatementStepError const& e ) {
 			throw genfile::BadArgumentError( "qcdb::DBOutputter::store_metadata()", "analysis_name=\"" + m_analysis_name + "\"", "An analysis with name \"" + m_analysis_name + "\" and chunk \"" + m_analysis_chunk + "\" already exists" ) ;
 		}
 
-		start_analysis( m_analysis_id ) ;
+		start_analysis( m_analysis_id.get() ) ;
 
 		for( Metadata::const_iterator i = m_metadata.begin(); i != m_metadata.end(); ++i ) {
 			set_analysis_property(
-				m_analysis_id,
+				m_analysis_id.get(),
 				i->first,
 				genfile::string_utils::join( i->second.first, "," ),
 				i->second.second
@@ -357,7 +384,7 @@ namespace qcdb {
 				.step() ;
 			if( m_find_entity_statement->empty() ) {
 				result = create_entity_internal( name, description, class_id ) ;
-				create_entity_relationship( result, m_used_by, m_analysis_id ) ;
+				create_entity_relationship( result, m_used_by, m_analysis_id.get() ) ;
 			} else {
 				result = m_find_entity_statement->get< db::Connection::RowId >( 0 ) ;
 			}

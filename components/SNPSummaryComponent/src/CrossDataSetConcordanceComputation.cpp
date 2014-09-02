@@ -123,7 +123,7 @@ namespace snp_stats {
 					}
 				}
 				m_alt_dataset_snps->read_variant_data()->get(
-					"genotypes",
+					":genotypes:",
 					genfile::vcf::get_threshholded_calls( m_alt_dataset_genotypes, m_call_threshhold, -1, AA, AB, BB )
 				) ;
 			}

@@ -292,7 +292,7 @@ void SQLiteHaplotypesSNPDataSink::write_variant_data_impl(
 	}
 	m_snps[ m_data_i ] = id_data ;
 	HaplotypeWriter writer( &(m_data[ m_data_i ]) ) ;
-	data_reader.get( "genotypes", writer ) ;
+	data_reader.get( ":genotypes:", writer ) ;
 	writer.finalise() ;
 	++m_data_i ;
 }

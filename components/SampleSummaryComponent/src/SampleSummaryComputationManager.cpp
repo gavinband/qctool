@@ -38,7 +38,7 @@ void SampleSummaryComputationManager::begin_processing_snps( std::size_t number_
 void SampleSummaryComputationManager::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 	{
 		genfile::vcf::GenotypeSetter< Eigen::MatrixBase< SampleSummaryComputation::Genotypes > > setter( m_genotypes ) ;
-		data_reader.get( "genotypes", setter ) ;
+		data_reader.get( ":genotypes:", setter ) ;
 	}
 	Computations::iterator i = m_computations.begin(), end_i = m_computations.end() ;
 	for( ; i != end_i; ++i ) {
@@ -83,7 +83,7 @@ void SampleSummaryComputationManager::send_output_to( sample_stats::SampleStorag
 	m_outputter = outputter ;
 	add_result_callback(
 		boost::bind(
-			&sample_stats::SampleStorage::operator(),
+			&sample_stats::SampleStorage::store_per_sample_data,
 			m_outputter,
 			_1, _2, _3, _4, _5
 		)

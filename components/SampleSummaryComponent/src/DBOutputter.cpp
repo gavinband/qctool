@@ -167,7 +167,7 @@ namespace sample_stats {
 		return result ;
 	}
 	
-	void DBOutputter::operator()(
+	void DBOutputter::store_per_sample_data(
 		std::string const& computation_name,
 		std::size_t sample,
 		std::string const& variable,

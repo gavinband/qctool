@@ -21,16 +21,37 @@
 //#define DEBUG_FLATTABLEDBOUTPUTTER 1
 
 namespace sample_stats {
-	FlatTableDBOutputter::UniquePtr FlatTableDBOutputter::create( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, qcdb::DBOutputter::Metadata const& metadata, genfile::CohortIndividualSource const& samples ) {
-		return UniquePtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata, samples ) ) ;
+	FlatTableDBOutputter::UniquePtr FlatTableDBOutputter::create(
+		std::string const& filename,
+		std::string const& analysis_name,
+		std::string const& analysis_description,
+		qcdb::DBOutputter::Metadata const& metadata,
+		genfile::CohortIndividualSource const& samples,
+		boost::optional< db::Connection::RowId > analysis_id
+	) {
+		return UniquePtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata, samples, analysis_id ) ) ;
 	}
 
-	FlatTableDBOutputter::SharedPtr FlatTableDBOutputter::create_shared( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, qcdb::DBOutputter::Metadata const& metadata, genfile::CohortIndividualSource const& samples ) {
-		return SharedPtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata, samples ) ) ;
+	FlatTableDBOutputter::SharedPtr FlatTableDBOutputter::create_shared(
+		std::string const& filename,
+		std::string const& analysis_name,
+		std::string const& analysis_description,
+		qcdb::DBOutputter::Metadata const& metadata,
+		genfile::CohortIndividualSource const& samples,
+		boost::optional< db::Connection::RowId > analysis_id
+	) {
+		return SharedPtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata, samples, analysis_id ) ) ;
 	}
 
-	FlatTableDBOutputter::FlatTableDBOutputter( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, qcdb::DBOutputter::Metadata const& metadata, genfile::CohortIndividualSource const& samples ):
-		m_outputter( filename, analysis_name, analysis_description, metadata ),
+	FlatTableDBOutputter::FlatTableDBOutputter(
+		std::string const& filename,
+		std::string const& analysis_name,
+		std::string const& analysis_description,
+		qcdb::DBOutputter::Metadata const& metadata,
+		genfile::CohortIndividualSource const& samples,
+		boost::optional< db::Connection::RowId > analysis_id
+	):
+		m_outputter( filename, analysis_name, analysis_description, metadata, analysis_id ),
 		m_table_name( "Analysis" + genfile::string_utils::to_string( m_outputter.analysis_id() ) + "SampleData" ),
 		m_samples( samples ),
 		m_max_transaction_count( 100000 )
@@ -60,7 +81,11 @@ namespace sample_stats {
 	}
 	
 	
-	void FlatTableDBOutputter::operator()(
+	SampleStorage::AnalysisId FlatTableDBOutputter::analysis_id() const {
+		return 0 ;
+	}
+	
+	void FlatTableDBOutputter::store_per_sample_data(
 		std::string const& computation_name,
 		std::size_t sample,
 		std::string const& variable,

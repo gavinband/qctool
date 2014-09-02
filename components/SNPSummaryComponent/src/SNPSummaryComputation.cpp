@@ -150,7 +150,7 @@ namespace snp_summary_component {
 #if DEBUG_SNP_SUMMARY_COMPUTATION
 				std::cerr << "!! ( MissingnessComputation::compute_sex_chromosome_counts() ): some males have BB probability!\n" ;
 #endif
-				throw genfile::BadArgumentError( " MissingnessComputation::compute_sex_chromosome_counts()", "genotypes" ) ;
+				throw genfile::BadArgumentError( " MissingnessComputation::compute_sex_chromosome_counts()", ":genotypes:" ) ;
 			}
 
 			callback( "males_NULL", null_counts[ 'm' ] ) ;

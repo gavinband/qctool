@@ -39,7 +39,7 @@ void HaplotypeFrequencyComponent::declare_options( appcontext::OptionProcessor& 
 			"distance in megabases or kilobases if desired." )
 		.set_takes_single_value()
 		.set_default_value( "0" ) ;
-	options.option_implies_option( "-compute-ld-with", "-o" ) ;
+	options.option_implies_option( "-compute-ld-with", "-osnp" ) ;
 }
 
 namespace {
@@ -114,7 +114,7 @@ HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
 	result->set_max_distance( parse_physical_distance( options.get< std::string >( "-max-ld-distance" ))) ;
 
 	haplotype_frequency_component::DBOutputter::SharedPtr outputter = haplotype_frequency_component::DBOutputter::create_shared(
-		options.get_value< std::string >( "-o" ),
+		options.get_value< std::string >( "-osnp" ),
 		options.get_value< std::string >( "-analysis-name" ),
 		"HaplotypeFrequencyComponent",
 		options.get_values_as_map()
@@ -159,7 +159,7 @@ void HaplotypeFrequencyComponent::processed_snp( genfile::SNPIdentifyingData con
 #endif
 	genfile::SNPIdentifyingData source_snp ;
 	genfile::SingleSNPGenotypeProbabilities source_probs, target_probs ;
-	target_data_reader.get( "genotypes", target_probs ) ;
+	target_data_reader.get( ":genotypes:", target_probs ) ;
 	m_source->reset_to_start() ;
 	while( m_source->get_snp_identifying_data( source_snp )) {
 #if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
@@ -193,8 +193,8 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 	genfile::VariantDataReader& target_data_reader
 ) {
 	std::vector< Eigen::VectorXd > genotypes( 2 ) ;
-	source_data_reader.get( "genotypes", genfile::vcf::get_threshholded_calls< Eigen::VectorXd >( genotypes[0], m_threshhold ) ) ;
-	target_data_reader.get( "genotypes", genfile::vcf::get_threshholded_calls< Eigen::VectorXd >( genotypes[1], m_threshhold ) ) ;
+	source_data_reader.get( ":genotypes:", genfile::vcf::get_threshholded_calls< Eigen::VectorXd >( genotypes[0], m_threshhold ) ) ;
+	target_data_reader.get( ":genotypes:", genfile::vcf::get_threshholded_calls< Eigen::VectorXd >( genotypes[1], m_threshhold ) ) ;
 	assert( genotypes[0].size() == m_source->number_of_samples() ) ;
 	assert( genotypes[0].size() == genotypes[1].size() ) ;
 	try {

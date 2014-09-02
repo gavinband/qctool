@@ -90,6 +90,24 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	CallComparerComponent::declare_options( options ) ;
 }
 
+bool SNPSummaryComponent::is_needed( appcontext::OptionProcessor const& options ) {
+	return options.check( "-snp-stats" )
+		|| options.check( "-intensity-stats" )
+		|| options.check( "-compare-to" )
+		|| options.check( "-annotate-ancestral" )
+		|| options.check( "-annotate-reference" )
+		|| options.check( "-annotate-genetic-map" )
+	;
+}
+
+SNPSummaryComponent::UniquePtr SNPSummaryComponent::create(
+	genfile::CohortIndividualSource const& samples,
+	appcontext::OptionProcessor const& options,
+	appcontext::UIContext& ui_context
+) {
+	return UniquePtr( new SNPSummaryComponent( samples, options, ui_context )) ;
+}
+
 SNPSummaryComponent::SNPSummaryComponent(
 	genfile::CohortIndividualSource const& samples,
 	appcontext::OptionProcessor const& options,
@@ -100,11 +118,18 @@ SNPSummaryComponent::SNPSummaryComponent(
 	m_ui_context( ui_context )
 {}
 
-void SNPSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor ) {
-	processor.add_callback( genfile::SNPDataSourceProcessor::Callback::UniquePtr( create_manager().release() ) ) ;
+void SNPSummaryComponent::setup(
+	genfile::SNPDataSourceProcessor& processor,
+	qcdb::Storage::SharedPtr storage
+) {
+	processor.add_callback( genfile::SNPDataSourceProcessor::Callback::UniquePtr(
+		create_manager( storage ).release() )
+	) ;
 }
 
-SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() {
+SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager(
+	qcdb::Storage::SharedPtr storage
+) {
 	SNPSummaryComputationManager::UniquePtr manager( new SNPSummaryComputationManager( m_samples, m_options.get_value< std::string >( "-sex-column" ) ) ) ;
 	if( m_options.check( "-haploid-genotype-coding" ) ) {
 		std::string const coding_string = m_options.get< std::string >( "-haploid-genotype-coding" ) ;
@@ -115,52 +140,6 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager() {
 		} else {
 			throw genfile::BadArgumentError( "SNPSummaryComponent::create_manager()", "-haploid-genotype-coding=\"" + coding_string + "\"", "Value should be \"hom\" or \"het\"." ) ;
 		}
-	}
-
-	using genfile::string_utils::to_string ;
-	
-	std::string filename ;
-	if( m_options.check( "-o" )) {
-		filename = m_options.get_value< std::string >( "-o" ) ;
-	}
-	else {
-		std::vector< std::string > filenames = m_options.get_values< std::string >( "-g" ) ;
-		if( filenames.size() == 1 ) {
-			filename = genfile::strip_gen_file_extension_if_present( filenames[0] ) + ( m_options.check( "-flat-file" ) ? ".snp-stats.tsv" : ".qcdb" ) ;
-		} else {
-			filename = "qctool_cohort_1-" + to_string( filenames.size() ) + ( m_options.check( "-flat-file" ) ? ".snp-stats.tsv" : ".qcdb" ) ;
-		}
-	}
-
-	qcdb::Storage::SharedPtr storage ;
-	
-	if( m_options.check( "-flat-file" )) {
-		storage = qcdb::FlatFileOutputter::create_shared(
-			filename,
-			m_options.get< std::string >( "-analysis-name" ),
-			m_options.get_values_as_map()
-		) ;
-	}
-	else if( m_options.check( "-flat-table" )) {
-		qcdb::FlatTableDBOutputter::SharedPtr table_storage = qcdb::FlatTableDBOutputter::create_shared(
-			filename,
-			m_options.get< std::string >( "-analysis-name" ),
-			m_options.get< std::string >( "-analysis-chunk" ),
-			m_options.get_values_as_map()
-		) ;
-
-		if( m_options.check( "-table-name" ) ) {
-			table_storage->set_table_name( m_options.get< std::string >( "-table-name" )) ;
-		}
-		storage = table_storage ;
-	}
-	else {
-		storage = snp_summary_component::DBOutputter::create_shared(
-			filename,
-			m_options.get< std::string >( "-analysis-name" ),
-			m_options.get< std::string >( "-analysis-chunk" ),
-			m_options.get_values_as_map()
-		) ;
 	}
 
 	manager->add_result_callback(
@@ -208,6 +187,10 @@ namespace impl {
 void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manager, qcdb::Storage::SharedPtr storage ) const {
 	using genfile::string_utils::split_and_strip_discarding_empty_entries ;
 
+	typedef 
+	std::map< std::string, qcdb::Storage::SharedPtr > Outputters ;
+	Outputters outputters ;
+
 	if( m_options.check( "-snp-stats" )) {
 		std::vector< std::string > elts = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-snp-stats-columns" ), ",", " \t" ) ;
 		BOOST_FOREACH( std::string const& elt, elts ) {
@@ -228,24 +211,12 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		) ;
 		assert( sample_id_columns.size() == 2 ) ;
 		
-		snp_stats::CrossDataSetComparison::UniquePtr computation ;
-
-		if( m_options.check( "-haplotypic" )) {
-			computation.reset(
-				new snp_stats::CrossDataSetHaplotypeComparisonComputation(
-					m_samples,
-					sample_id_columns[0]
-				)
-			) ;
-		}
-		else {
-			computation.reset(
-				new snp_stats::CrossDataSetConcordanceComputation(
-					m_samples,
-					sample_id_columns[0]
-				)
-			) ;
-		}
+		snp_stats::CrossDataSetComparison::UniquePtr computation(
+			new snp_stats::CrossDataSetHaplotypeComparisonComputation(
+				m_samples,
+				sample_id_columns[0]
+			)
+		) ;
 
 		computation->set_comparer(
 			genfile::SNPIdentifyingData::CompareFields(
