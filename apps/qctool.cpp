@@ -93,7 +93,6 @@
 #include "null_ostream.hpp"
 #include "SNPIDSink.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
-#include "VCDBWriter.hpp"
 #include "DataReadTest.hpp"
 #include "ClusterFitter.hpp"
 #include "components/RelatednessComponent/RelatednessComponent.hpp"
@@ -519,7 +518,6 @@ public:
 		RelatednessComponent::declare_options( options ) ;
 		DataReadTest::declare_options( options ) ;
 		ClusterFitter::declare_options( options ) ;
-		VCDBWriter::declare_options( options ) ;
 		ClusterPlotter::declare_options( options ) ;
 		SNPSummaryComponent::declare_options( options ) ;
 		SampleSummaryComponent::declare_options( options ) ;
@@ -2296,12 +2294,6 @@ private:
 			processor.add_callback( *data_read_test ) ;
 		}
 		
-		std::auto_ptr< VCDBWriter > db_writer ;
-		if( options().check_if_option_was_supplied( "-write-db" )) {
-			db_writer = VCDBWriter::create( options() ) ;
-			processor.add_callback( *db_writer ) ;
-		}
-
 		if( options().check_if_option_was_supplied_in_group( "Kinship options" )) {
 			RelatednessComponent::UniquePtr relatedness_component = RelatednessComponent::create(
 				options(),

@@ -15,7 +15,6 @@
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 #include "components/SNPSummaryComponent/HWEComputation.hpp"
 #include "components/SNPSummaryComponent/IntensitySummaryComputation.hpp"
-#include "components/SNPSummaryComponent/IntensityReporter.hpp"
 
 // #define DEBUG_SNP_SUMMARY_COMPUTATION 1
 

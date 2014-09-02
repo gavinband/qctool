@@ -20,13 +20,13 @@ namespace snptest {
 
 		LogLikelihood& LogLikelihood::set_phenotypes( Vector const& phenotypes ) {
 			if( m_genotype_call_probabilities.rows() > 0 || m_genotype_call_probabilities.cols() > 0 ) {
-				if( !phenotypes.rows() == m_genotype_call_probabilities.rows() ) {
+				if( phenotypes.rows() != m_genotype_call_probabilities.rows() ) {
 					throw genfile::BadArgumentError( "snptest::case_control::LogLikelihood::set_phenotypes()", "phenotypes" ) ;
 				}
 			}
 			
 			if( m_covariates.rows() > 0 || m_covariates.cols() > 0 ) {
-				if( !phenotypes.rows() == m_covariates.rows() ) {
+				if( phenotypes.rows() != m_covariates.rows() ) {
 					throw genfile::BadArgumentError( "snptest::case_control::LogLikelihood::set_phenotypes()", "phenotypes" ) ;
 				}
 			} else {
@@ -72,13 +72,13 @@ namespace snptest {
 		
 		LogLikelihood& LogLikelihood::set_covariates( Matrix const& covariates ) {
 			if( m_genotype_call_probabilities.rows() > 0 || m_genotype_call_probabilities.cols() > 0 ) {
-				if( !covariates.rows() == m_genotype_call_probabilities.rows() ) {
+				if( covariates.rows() != m_genotype_call_probabilities.rows() ) {
 					throw genfile::BadArgumentError( "snptest::case_control::LogLikelihood::set_covariates()", "phenotypes" ) ;
 				}
 			}
 			
 			if( m_phenotypes.size() > 0 ) {
-				if( !covariates.rows() == m_phenotypes.rows() ) {
+				if( covariates.rows() != m_phenotypes.rows() ) {
 					throw genfile::BadArgumentError( "snptest::case_control::LogLikelihood::set_covariates()", "phenotypes" ) ;
 				}
 			}
@@ -93,13 +93,13 @@ namespace snptest {
 
 		LogLikelihood& LogLikelihood::set_predictor_probs( Matrix const& genotypes, Vector const& levels ) {
 			if( m_covariates.rows() > 0 || m_covariates.cols() > 0 ) {
-				if( !genotypes.rows() == m_covariates.rows() ) {
+				if( genotypes.rows() != m_covariates.rows() ) {
 					throw genfile::BadArgumentError( "snptest::case_control::LogLikelihood::set_predictor_probs()", "phenotypes" ) ;
 				}
 			}
 			
 			if( m_phenotypes.size() > 0 ) {
-				if( !genotypes.rows() == m_phenotypes.size() ) {
+				if( genotypes.rows() != m_phenotypes.size() ) {
 					throw genfile::BadArgumentError( "snptest::case_control::LogLikelihood::set_predictor_probs()", "phenotypes" ) ;
 				}
 			}

@@ -28,7 +28,6 @@
 #include "components/SNPSummaryComponent/CrossDataSetConcordanceComputation.hpp"
 #include "components/SNPSummaryComponent/CrossDataSetHaplotypeComparisonComputation.hpp"
 #include "components/SNPSummaryComponent/GeneticMapAnnotation.hpp"
-#include "components/SNPSummaryComponent/IntensityReporter.hpp"
 #include "components/SNPSummaryComponent/CallComparerComponent.hpp"
 
 void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options ) {
@@ -43,8 +42,6 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options.declare_group( "Intensity computation options" ) ;
 	options[ "-intensity-stats" ]
 		.set_description( "Compute intensity means and (co)variances for each genotype class at each SNP." ) ;
-	options[ "-intensities" ]
-		.set_description( "Report per-sample intensities for each sample at each SNP." ) ;
 	
 	options[ "-stratify" ]
 		.set_description( "Compute all SNP summary statistics seperately for each level of the given variable in the sample file." )
@@ -220,13 +217,6 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 
 	if( m_options.check( "-intensity-stats" )) {
 		manager.add_computation( "intensity-stats", SNPSummaryComputation::create( "intensity-stats" )) ;
-	}
-
-	if( m_options.check( "-intensities" )) {
-		SNPSummaryComputation::UniquePtr computation(
-			new snp_summary_component::IntensityReporter( m_samples )
-		) ;
-		manager.add_computation( "intensities", computation ) ;
 	}
 
 	if( m_options.check( "-compare-to" )) {
