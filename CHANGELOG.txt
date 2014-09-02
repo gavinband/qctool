@@ -1,3 +1,15 @@
+CHANGELOG for QCTOOL:
+
+** Version 1.4, released June 2014 **
+
+* fix a bug with gzipped output that sometimes produced files with incorrect checksum.
+* Fix crashing bug with Hardy-Weinberg P-value computation for large sample sizes (>45,000).
+
+** Version 1.3, released September 2013 **
+
+* A new option pair -[in|ex]cl-snps has been added. This reads a list of SNPs in the format output by the -write-snp-excl-list option. This is a file with 6 named columns, SNPID, rsid, chromosome, position, alleleA, alleleB.
+* A bug preventing the -incl-snpids option from working correctly was fixed.
+
 ** Version 1.2, released June 2012 **
 
 * Fix a bug handling VCF files with more than 10000 variants.

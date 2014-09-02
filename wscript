@@ -302,8 +302,6 @@ def release( bld ):
 	import Release.TestHarness
 	import Release.ReleaseBuilder
 
-	import Release.TestHarness
-	import Release.ReleaseBuilder
 	inthinnerator_executable = "build/release/inthinnerator_v%s" % VERSION
 	builder = Release.ReleaseBuilder.ReleaseBuilder( "inthinnerator", VERSION, inthinnerator_executable )
 	release = builder.build()
