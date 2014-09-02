@@ -29,7 +29,7 @@ namespace genfile {
 	}
 	
 	double GenotypeGetter< Eigen::MatrixXd >::operator()( std::size_t i ) const {
-		assert( i < m_matrix.rows() ) ;
+		assert( i < std::size_t( m_matrix.rows() ) ) ;
 		return m_matrix( i, m_g ) ;
 	}
 }

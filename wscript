@@ -301,6 +301,15 @@ def release( bld ):
 	sys.path.append( "release" )
 	import Release.TestHarness
 	import Release.ReleaseBuilder
+
+	import Release.TestHarness
+	import Release.ReleaseBuilder
+	inthinnerator_executable = "build/release/inthinnerator_v%s" % VERSION
+	builder = Release.ReleaseBuilder.ReleaseBuilder( "inthinnerator", VERSION, inthinnerator_executable )
+	release = builder.build()
+
+	print "++ inthinnerator release tarball created in", release[ "release_tarball" ]
+
 	qctool_executable = "build/release/qctool_v%s" % VERSION
 	builder = Release.ReleaseBuilder.ReleaseBuilder( APPNAME, VERSION, qctool_executable )
 	release = builder.build()
@@ -317,3 +326,4 @@ def release( bld ):
 		print "++ all tests passed."
 	else:
 		print "!! some tests failed."
+
