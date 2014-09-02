@@ -70,6 +70,8 @@ namespace statfile {
 			stream() << value  ;
 		}
 
+		void begin_data_impl() ;
+
 	private:
 	
 		void setup( std::auto_ptr< std::ostream > stream_ptr ) ;

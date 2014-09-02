@@ -62,6 +62,9 @@ namespace statfile {
 	} ;
 	EndRow end_row() ;
 
+	struct BeginData {} ;
+	BeginData begin_data() ;
+	
 	struct ColumnSpec
 	{
 		ColumnSpec( std::string name, std::size_t repeats ) ;

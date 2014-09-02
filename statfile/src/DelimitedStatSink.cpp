@@ -48,6 +48,10 @@ namespace statfile {
 	void DelimitedStatSink::setup( std::auto_ptr< std::ostream > stream_ptr ) {
 		set_stream( stream_ptr ) ;
 	}
+
+	void DelimitedStatSink::begin_data_impl() {
+		write_header_if_necessary() ;
+	}
 	
 	void DelimitedStatSink::write_value( double const& value ) {
 		write_header_if_necessary() ;

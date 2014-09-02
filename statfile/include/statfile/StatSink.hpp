@@ -102,6 +102,15 @@ namespace statfile {
 			return *this ;
 		}
 
+		// Optional call to tell StatSink that no more column names etc. will be sent.
+		StatSink& operator<<( BeginData const& ) {
+			assert( m_number_of_rows_written == 0 && m_current_column == 0 ) ;
+			if( *this ) {
+				begin_data_impl() ;
+			}
+			return *this ;
+		}
+
 		virtual void write_metadata( std::string const& metadata ) {}
 
 	public:
@@ -152,7 +161,9 @@ namespace statfile {
 		}
 	
 		virtual void move_to_next_row_impl() {} ;
-	
+		virtual void begin_data_impl() {} ;
+
+	private:
 		int m_state ;
 		std::size_t m_current_column ;
 		std::size_t m_number_of_rows_written ;

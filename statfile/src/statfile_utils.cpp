@@ -16,6 +16,7 @@ namespace statfile {
 	IgnoreSome ignore( std::size_t n ) { return IgnoreSome( n ) ; }
 	IgnoreAll ignore_all() { return IgnoreAll() ; }
 	EndRow end_row() { return EndRow() ; }
+	BeginData begin_data() { return BeginData() ; }
 
 	ColumnSpec::ColumnSpec( std::string name, std::size_t repeats ) 
 		: m_name( name ), m_number_of_repeats( repeats )
