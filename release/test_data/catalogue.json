@@ -10,10 +10,6 @@
 			"result_tarball": "7d74cae1bc07736decac3c4baedee607.tgz"
 		}, 
 		{
-			"command": "-g %INPUT_DIR%/example_#.gen -og %OUTPUT_DIR%/example_#.bgen", 
-			"result_tarball": "b7145d3d59dec793f4c736a1326d645b.tgz"
-		}, 
-		{
 			"command": "-g %INPUT_DIR%/example_01.gen -og %OUTPUT_DIR%/example_01.bgen -assume-chromosome 01", 
 			"result_tarball": "4963d28ec976cd2defc284bc67230c40.tgz"
 		}, 
