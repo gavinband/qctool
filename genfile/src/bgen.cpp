@@ -26,7 +26,7 @@ namespace genfile {
 			) {
 
 				if( aStream ) {
-					impl::read_little_endian_integer( aStream, number_of_samples ) ;
+					genfile::read_little_endian_integer( aStream, number_of_samples ) ;
 				}
 				
 				if( flags & e_LongIds ) {
@@ -39,7 +39,7 @@ namespace genfile {
 					impl::read_length_followed_by_data( aStream, &SNPID_size, SNPID ) ;
 					impl::read_length_followed_by_data( aStream, &RSID_size, RSID ) ;
 					impl::read_length_followed_by_data( aStream, &chromosome_size, &chromosome_string ) ;
-					impl::read_little_endian_integer( aStream, SNP_position ) ;
+					genfile::read_little_endian_integer( aStream, SNP_position ) ;
 					impl::read_length_followed_by_data( aStream, &allele1_size, first_allele ) ;
 					impl::read_length_followed_by_data( aStream, &allele2_size, second_allele ) ;
 					*chromosome = ChromosomeEnum( Chromosome( chromosome_string ) ) ;
@@ -50,7 +50,7 @@ namespace genfile {
 					unsigned char RSID_size = 0;
 					
 					if( aStream ) {
-						impl::read_little_endian_integer( aStream, &max_id_size ) ;
+						genfile::read_little_endian_integer( aStream, &max_id_size ) ;
 					}
 					if( aStream ) {
 						impl::read_length_followed_by_data( aStream, &SNPID_size, SNPID ) ;
@@ -63,8 +63,8 @@ namespace genfile {
 						aStream.ignore( max_id_size - RSID_size ) ;
 					}
 					if( aStream ) {
-						impl::read_little_endian_integer( aStream, chromosome ) ;
-						impl::read_little_endian_integer( aStream, SNP_position ) ;
+						genfile::read_little_endian_integer( aStream, chromosome ) ;
+						genfile::read_little_endian_integer( aStream, SNP_position ) ;
 
 						if( flags & e_MultiCharacterAlleles ) {
 							unsigned char allele1_size = 0 ;
@@ -162,6 +162,21 @@ namespace genfile {
 				aStream.ignore( 6 * number_of_samples ) ;
 			}
 
+			void ignore_snp_probability_data(
+				std::istream& aStream,
+				uint32_t const flags,
+				uint32_t number_of_samples
+			) {
+				if( flags & bgen::e_CompressedSNPBlocks ) {
+					uint32_t compressed_data_size ;
+					genfile::read_little_endian_integer( aStream, &compressed_data_size ) ;
+					aStream.ignore( compressed_data_size ) ;
+				}
+				else {
+					aStream.ignore( 6 * number_of_samples ) ;
+				}
+			}
+
 			void read_compressed_snp_probability_data(
 				std::istream& aStream,
 				uint32_t const flags,
@@ -170,7 +185,7 @@ namespace genfile {
 			) {
 				// read the size of the compressed data
 				uint32_t compressed_data_size ;
-				impl::read_little_endian_integer( aStream, &compressed_data_size ) ;
+				genfile::read_little_endian_integer( aStream, &compressed_data_size ) ;
 				aStream.ignore( compressed_data_size ) ;
 			}
 		}
@@ -193,14 +208,14 @@ namespace genfile {
 			uint32_t flags
 		) {
 			uint32_t reserved = 0u ;
-			impl::uint32_t header_size = get_header_block_size( free_data ) ;
+			uint32_t header_size = get_header_block_size( free_data ) ;
 
-			impl::write_little_endian_integer( aStream, header_size ) ;
-			impl::write_little_endian_integer( aStream, number_of_snp_blocks ) ;
-			impl::write_little_endian_integer( aStream, number_of_samples ) ;
-			impl::write_little_endian_integer( aStream, reserved ) ;
+			genfile::write_little_endian_integer( aStream, header_size ) ;
+			genfile::write_little_endian_integer( aStream, number_of_snp_blocks ) ;
+			genfile::write_little_endian_integer( aStream, number_of_samples ) ;
+			genfile::write_little_endian_integer( aStream, reserved ) ;
 			aStream.write( free_data.data(), free_data.size() ) ;
-			impl::write_little_endian_integer( aStream, flags ) ;
+			genfile::write_little_endian_integer( aStream, flags ) ;
 		}
 	}
 }

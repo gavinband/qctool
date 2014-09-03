@@ -20,6 +20,8 @@
 #include "genfile/endianness_utils.hpp"
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/get_set.hpp"
+#include "genfile/Error.hpp"
+#include "genfile/zlib.hpp"
 
 /*
 * This file contains a reference implementation of the BGEN file format
@@ -32,13 +34,12 @@
 
 namespace genfile {
 	namespace bgen {
-		namespace impl {
+		namespace imple {
+			typedef ::uint32_t uint32_t ;
+			typedef ::uint16_t uint16_t ;
+		}
 		typedef ::uint32_t uint32_t ;
 		typedef ::uint16_t uint16_t ;
-		}
-
-		typedef impl::uint32_t uint32_t ;
-		typedef impl::uint16_t uint16_t ;
 		enum FlagsType { e_NoFlags = 0, e_CompressedSNPBlocks = 0x1, e_MultiCharacterAlleles = 0x2, e_LongIds = 0x4 } ;
 
 /*
@@ -177,16 +178,6 @@ namespace genfile {
 				out_stream.write( data_string.data(), length ) ;
 			}
 
-			template< typename IntegerType >
-			void read_little_endian_integer( std::istream& in_stream, IntegerType* integer_ptr ) {
-				genfile::read_little_endian_integer( in_stream, integer_ptr ) ;
-			}
-
-			template< typename IntegerType >
-			void write_little_endian_integer( std::ostream& out_stream, IntegerType integer ) {
-				genfile::write_little_endian_integer( out_stream, integer ) ;
-			}
-
 			template< typename FloatType >
 			uint16_t round_to_nearest_integer( FloatType number ) {
 				return static_cast< uint16_t > ( number + 0.5 ) ;
@@ -238,20 +229,28 @@ namespace genfile {
 				std::string second_allele
 			) ;
 
+			void ignore_snp_probability_data(
+				std::istream& aStream,
+				uint32_t const flags,
+				uint32_t number_of_samples
+			) ;
+
 			template<
 				typename GenotypeProbabilitySetter
 			>
 			void read_uncompressed_snp_probability_data(
-				std::istream& aStream,
+				char const* buffer,
+				char const* const end,
 				uint32_t const flags,
 				uint32_t number_of_samples,
 				GenotypeProbabilitySetter set_genotype_probabilities
 			) {
 				for ( uint32_t i = 0 ; i < number_of_samples ; ++i ) {
 					uint16_t AA = 0, AB = 0, BB = 0 ;
-					read_little_endian_integer( aStream, &AA ) ;
-					read_little_endian_integer( aStream, &AB ) ;
-					read_little_endian_integer( aStream, &BB ) ;
+					assert( end >= buffer + 6 ) ;
+					buffer = genfile::read_little_endian_integer( buffer, end, &AA ) ;
+					buffer = genfile::read_little_endian_integer( buffer, end, &AB ) ;
+					buffer = genfile::read_little_endian_integer( buffer, end, &BB ) ;
 
 					double const factor = ( bool( flags & e_LongIds ) ) ? 32768.0 : PROBABILITY_CONVERSION_FACTOR ;
 					set_genotype_probabilities(
@@ -261,6 +260,39 @@ namespace genfile {
 						convert_from_integer_representation( BB, factor )
 					) ;
 				}
+			}
+
+			template<
+				typename GenotypeProbabilitySetter
+			>
+			void read_snp_probability_data(
+				std::istream& aStream,
+				uint32_t const flags,
+				uint32_t number_of_samples,
+				GenotypeProbabilitySetter set_genotype_probabilities,
+				std::vector< char >* buffer1,
+				std::vector< char >* buffer2
+			) {
+				uint32_t const data_size = 6 * number_of_samples ;
+				buffer1->resize( data_size ) ;
+				if( flags & bgen::e_CompressedSNPBlocks ) {
+					uint32_t compressed_data_size ;
+					genfile::read_little_endian_integer( aStream, &compressed_data_size ) ;
+					buffer2->resize( compressed_data_size ) ;
+					aStream.read( &(*buffer2)[0], compressed_data_size ) ;
+					zlib_uncompress( *buffer2, buffer1 ) ;
+					assert( buffer1->size() == data_size ) ;
+				}
+				else {
+					aStream.read( &(*buffer1)[0], data_size ) ;
+				}
+				bgen::impl::read_uncompressed_snp_probability_data(
+					&(*buffer1)[0],
+					&(*buffer1)[0] + data_size,
+					flags,
+					number_of_samples,
+					set_genotype_probabilities
+				) ;
 			}
 
 			template< typename GenotypeProbabilityGetter >
@@ -274,8 +306,8 @@ namespace genfile {
 				GenotypeProbabilityGetter get_BB_probability
 			) {
 				double const factor = ( bool( flags & e_LongIds ) ? 32768.0 : impl::PROBABILITY_CONVERSION_FACTOR ) ;
-				for ( impl::uint32_t i = 0 ; i < number_of_samples ; ++i ) {
-					impl::uint16_t
+				for ( uint32_t i = 0 ; i < number_of_samples ; ++i ) {
+					uint16_t
 						AA = convert_to_integer_representation( get_AA_probability( i ), factor ),
 						AB = convert_to_integer_representation( get_AB_probability( i ), factor ),
 						BB = convert_to_integer_representation( get_BB_probability( i ), factor ) ;
@@ -285,41 +317,6 @@ namespace genfile {
 					buffer = genfile::write_little_endian_integer( buffer, end, BB ) ;
 				}
 			}
-
-			template<
-				typename GenotypeProbabilitySetter
-			>
-			void read_compressed_snp_probability_data(
-				std::istream& aStream,
-				uint32_t const flags,
-				uint32_t number_of_samples,
-				GenotypeProbabilitySetter set_genotype_probabilities
-			) {
-				// read the size of the compressed data
-				uint32_t compressed_data_size = 0 ;
-				impl::read_little_endian_integer( aStream, &compressed_data_size ) ;
-				uLongf uncompressed_data_size = (6 * number_of_samples) ;
-				// Construct buffers for the uncompressed and compressed data
-				std::vector< Bytef > compressed_data_buffer( compressed_data_size ) ;
-				std::vector< Bytef > uncompressed_data_buffer( uncompressed_data_size ) ;
-				// Read the data and uncompress
-				aStream.read( reinterpret_cast< char*> (&compressed_data_buffer[0]), compressed_data_size ) ;
-				int result = uncompress( &uncompressed_data_buffer[0], &uncompressed_data_size, &compressed_data_buffer[0], compressed_data_size ) ;
-				assert( result == Z_OK ) ;
-				// Load the uncompressed data into an istringstream
-				std::istringstream sStream ;
-				sStream.rdbuf()->pubsetbuf( reinterpret_cast< char* >( &uncompressed_data_buffer[0] ), uncompressed_data_size ) ;
-
-				if ( aStream ) {
-					// If all ok thus far, we'll take the plunge, calling the callbacks to (presumably)
-					// set up the user's data structure.  This way we avoid allocating memory
-					// for the genotype probabilities here.	 Note that if an error occurs while reading
-					// the probabilities, the user's data may therefore be left in a state which does
-					// not correspond to any actual valid snp block.
-					read_uncompressed_snp_probability_data( sStream, flags, number_of_samples, set_genotype_probabilities ) ;
-				}
-			}
-
 
 			template< typename GenotypeProbabilityGetter >
 			void write_compressed_snp_probability_data(
@@ -351,36 +348,9 @@ namespace genfile {
 					assert( result == Z_OK ) ;
 					// and write it (buffer_size is now the compressed length of the data).
 					uint32_t the_buffer_size = buffer_size ;
-					impl::write_little_endian_integer( aStream, the_buffer_size ) ;
+					genfile::write_little_endian_integer( aStream, the_buffer_size ) ;
 					aStream.write( reinterpret_cast< char const* >( &compression_buffer[0] ), buffer_size ) ;
 				#endif
-			}
-
-			template<
-			typename GenotypeProbabilitySetter
-			>
-			void read_snp_probability_data(
-				std::istream& aStream,
-				uint32_t const flags,
-				uint32_t number_of_samples,
-				GenotypeProbabilitySetter set_genotype_probabilities
-			) {
-				if( flags && e_CompressedSNPBlocks ) {
-					return read_compressed_snp_probability_data(
-							   aStream,
-							   flags,
-							   number_of_samples,
-							   set_genotype_probabilities
-						   ) ;
-				}
-				else {
-					return read_uncompressed_snp_probability_data(
-							   aStream,
-							   flags,
-							   number_of_samples,
-							   set_genotype_probabilities
-						   ) ;
-				}
 			}
 
 			template< typename GenotypeProbabilityGetter >
@@ -442,25 +412,18 @@ namespace genfile {
 				uint32_t number_of_samples,
 				Ignorer const&
 			) ;
-
-			void read_compressed_snp_probability_data(
-				std::istream& aStream,
-				uint32_t const flags,
-				uint32_t number_of_samples,
-				Ignorer const&
-			) ;
 		}
 
 		template< typename OffsetType >
 		void read_offset( std::istream& iStream, OffsetType* offset ) {
-			impl::uint32_t real_offset = 0 ;
+			uint32_t real_offset = 0 ;
 			read_little_endian_integer( iStream, &real_offset ) ;
 			*offset = real_offset ;
 		}
 
 		template< typename OffsetType >
 		void write_offset( std::ostream& oStream, OffsetType offset ) {
-			impl::uint32_t real_offset = offset ;
+			uint32_t real_offset = offset ;
 			write_little_endian_integer( oStream, real_offset ) ;
 		}
 
@@ -479,7 +442,7 @@ namespace genfile {
 			FreeDataSetter set_free_data,
 			FlagsSetter set_flags
 		) {
-			impl::uint32_t
+			uint32_t
 			header_size = 0,
 			number_of_snp_blocks = 0,
 			number_of_samples = 0,
@@ -491,14 +454,14 @@ namespace genfile {
 
 			std::vector<char> free_data ;
 
-			impl::read_little_endian_integer( aStream, &header_size ) ;
+			genfile::read_little_endian_integer( aStream, &header_size ) ;
 			assert( header_size >= fixed_data_size ) ;
-			impl::read_little_endian_integer( aStream, &number_of_snp_blocks ) ;
-			impl::read_little_endian_integer( aStream, &number_of_samples ) ;
-			impl::read_little_endian_integer( aStream, &reserved ) ;
+			genfile::read_little_endian_integer( aStream, &number_of_snp_blocks ) ;
+			genfile::read_little_endian_integer( aStream, &number_of_samples ) ;
+			genfile::read_little_endian_integer( aStream, &reserved ) ;
 			free_data.resize( header_size - fixed_data_size ) ;
 			aStream.read( &(free_data[0]), header_size - fixed_data_size ) ;
-			impl::read_little_endian_integer( aStream, &flags ) ;
+			genfile::read_little_endian_integer( aStream, &flags ) ;
 
 			if ( aStream ) {
 				set_header_size( header_size ) ;
@@ -509,55 +472,6 @@ namespace genfile {
 			}
 		}
 
-		template<
-		typename IntegerSetter,
-				 typename StringSetter,
-				 typename AlleleSetter,
-				 typename ChromosomeSetter,
-				 typename SNPPositionSetter,
-				 typename GenotypeProbabilitySetter
-				 >
-		void read_snp_block(
-			std::istream& aStream,
-			uint32_t const flags,
-			IntegerSetter set_number_of_samples,
-			StringSetter set_SNPID,
-			StringSetter set_RSID,
-			ChromosomeSetter set_chromosome,
-			SNPPositionSetter set_SNP_position,
-			AlleleSetter set_allele1,
-			AlleleSetter set_allele2,
-			GenotypeProbabilitySetter set_genotype_probabilities
-		) {
-			// We read the following data in the following order.
-			// Initialisers are provided so that, in the case where the stream becomes bad (e.g. end of file)
-			// the assertions below are not triggered.
-			impl::uint32_t number_of_samples = 0;
-			std::string SNPID ;
-			std::string RSID ;
-			unsigned char chromosome ;
-			impl::uint32_t SNP_position = 0;
-			std::string first_allele, second_allele ;
-
-			impl::read_snp_identifying_data( aStream, flags, &number_of_samples, &SNPID, &RSID, &chromosome, &SNP_position, &first_allele, &second_allele ) ;
-
-			if ( aStream ) {
-				// If all ok thus far, we'll take the plunge, calling the callbacks to (presumably)
-				// set up the user's data structure.  This way we avoid allocating memory
-				// for the genotype probabilities here.	 Note that if an error occurs while reading
-				// the probabilities, the user's data may therefore be left in a state which does
-				// not correspond to any actual valid snp block.
-				set_number_of_samples( number_of_samples ) ;
-				set_SNPID( SNPID ) ;
-				set_RSID( RSID ) ;
-				set_chromosome( chromosome ) ;
-				set_SNP_position( SNP_position ) ;
-				set_allele1( first_allele ) ;
-				set_allele2( second_allele ) ;
-
-				impl::read_snp_probability_data( aStream, flags, number_of_samples, set_genotype_probabilities ) ;
-			}
-		}
 
 
 		template< typename GenotypeProbabilityGetter >

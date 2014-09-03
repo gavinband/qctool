@@ -115,6 +115,7 @@ void do_snp_block_read_test(
 	uint32_t number_of_individuals2 ;
 	std::string SNPID2 ;
 	std::string RSID2 ;
+	unsigned char chromosome_enum ;
 	genfile::Chromosome chromosome2 ;
 	uint32_t SNP_position2 ;
 	std::string a2 ;
@@ -122,17 +123,28 @@ void do_snp_block_read_test(
 	std::vector< probabilities > genotype_probabilities ;
 	genotype_probabilities.resize( 1000 ) ;
 
-	genfile::bgen::read_snp_block(
+	std::vector< char > buffer1, buffer2 ;
+
+	genfile::bgen::impl::read_snp_identifying_data(
 		inStream,
 		flags,
-		make_setter( number_of_individuals2 ),
-		make_setter( SNPID2 ),
-		make_setter( RSID2 ),
-		make_setter( chromosome2 ),
-		make_setter( SNP_position2 ),
-		make_setter( a2 ),
-		make_setter( b2 ),
-		ProbabilitySetter( genotype_probabilities )
+		&number_of_individuals2,
+		&SNPID2,
+		&RSID2,
+		&chromosome_enum,
+		&SNP_position2,
+		&a2,
+		&b
+	) ;
+	chromosome2 = genfile::Chromosome( chromosome_enum ) ;
+
+	genfile::bgen::impl::read_snp_probability_data(
+		inStream,
+		flags,
+		number_of_individuals2,
+		ProbabilitySetter( genotype_probabilities ),
+		&buffer1,
+		&buffer2
 	) ;
 
 	TEST_ASSERT( number_of_individuals2 == number_of_individuals ) ;

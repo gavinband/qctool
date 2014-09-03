@@ -138,6 +138,7 @@ namespace genfile {
 			
 		private:
 			std::vector< double > m_genotypes ;
+			std::string m_buffer ;
 		} ;
 	}
 

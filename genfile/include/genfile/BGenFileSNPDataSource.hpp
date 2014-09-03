@@ -62,6 +62,8 @@ namespace genfile {
 
 		void setup( std::string const& filename, CompressionType compression_type ) ;
 		bgen::uint32_t read_header_data() ;
+		std::vector< char > m_compressed_data_buffer ;
+		std::vector< char > m_uncompressed_data_buffer ;
 	} ;
 }	
 

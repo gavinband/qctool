@@ -10,6 +10,7 @@
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/bgen.hpp"
 #include "genfile/BGenFileSNPDataSource.hpp"
+#include "genfile/zlib.hpp"
 
 namespace genfile {
 	BGenFileSNPDataSource::BGenFileSNPDataSource( std::string const& filename )
@@ -52,23 +53,14 @@ namespace genfile {
 		struct BGenFileSNPDataReader: public VariantDataReader {
 			BGenFileSNPDataReader( BGenFileSNPDataSource& source )
 			{
-				
-				if( source.m_flags & bgen::e_CompressedSNPBlocks ) {
-					bgen::impl::read_compressed_snp_probability_data(
-						source.stream(),
-						source.m_flags,
-						source.number_of_samples(),
-						set_genotypes( m_genotypes )
-					) ;
-				}
-				else {
-					bgen::impl::read_snp_probability_data(
-						source.stream(),
-						source.m_flags,
-						source.number_of_samples(),
-						set_genotypes( m_genotypes )
-					) ;
-				}
+				bgen::impl::read_snp_probability_data(
+					source.stream(),
+					source.m_flags,
+					source.number_of_samples(),
+					set_genotypes( m_genotypes ),
+					&source.m_uncompressed_data_buffer,
+					&source.m_compressed_data_buffer
+				) ;
 				assert( source ) ;
 				assert(( m_genotypes.size() % 3 ) == 0 ) ;
 			}
@@ -108,12 +100,11 @@ namespace genfile {
 	}
 
 	void BGenFileSNPDataSource::ignore_snp_probability_data_impl() {
-		if( m_flags & bgen::e_CompressedSNPBlocks ) {
-			bgen::impl::read_compressed_snp_probability_data( stream(), m_flags, number_of_samples(), ignore() ) ;
-		}
-		else {
-			bgen::impl::read_snp_probability_data( stream(), m_flags, number_of_samples(), ignore() ) ;
-		}
+		bgen::impl::ignore_snp_probability_data(
+			stream(),
+			m_flags,
+			number_of_samples()
+		) ;
 	}
 
 	void BGenFileSNPDataSource::setup( std::string const& filename, CompressionType compression_type ) {
