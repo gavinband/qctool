@@ -86,6 +86,8 @@ namespace sample_stats {
 		) ;
 	}
 
+	db::Connection::RowId DBOutputter::analysis_id() const { return qcdb::DBOutputter::analysis_id() ; }
+
 	DBOutputter::~DBOutputter() {
 		if( !m_data.empty() ) {
 			write_data( m_data ) ;

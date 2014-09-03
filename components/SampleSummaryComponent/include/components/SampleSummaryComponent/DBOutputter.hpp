@@ -41,6 +41,7 @@ namespace sample_stats {
 		
 		void finalise( long options = qcdb::eCreateIndices ) ;
 
+		db::Connection::RowId analysis_id() const ;
 	private:
 		std::string const m_table_name ;
 		genfile::CohortIndividualSource const& m_samples ;

@@ -18,12 +18,6 @@
 #include "components/SampleSummaryComponent/FlatFileOutputter.hpp"
 
 namespace sample_stats {
-	namespace {
-		void append_to_string( std::string* target, std::string const& value ) {
-			(*target) += ( target->size() > 0 ? "," : "" ) + value ;
-		}
-	}
-
 	FlatFileOutputter::UniquePtr FlatFileOutputter::create( genfile::CohortIndividualSource const& samples, std::string const& filename, std::string const& analysis_name, Metadata const& metadata ) {
 		return UniquePtr( new FlatFileOutputter( samples, filename, analysis_name, metadata ) ) ;
 	}
