@@ -20,15 +20,20 @@
 	class SQLiteHaplotypesSNPDataSink: public genfile::SNPDataSink
 	{
 	public:
-		SQLiteHaplotypesSNPDataSink( qcdb::DBOutputter::UniquePtr outputter ) ;
+		SQLiteHaplotypesSNPDataSink(
+			qcdb::DBOutputter::UniquePtr outputter,
+			genfile::CohortIndividualSource const& samples
+		) ;
 		
 		operator bool() const { return true ; }
 		std::string get_spec() const ;
 		
+        void set_genotype_field( std::string field ) ;
+		
 	private:
+		std::string m_genotype_field ; 
 		qcdb::DBOutputter::UniquePtr m_outputter ;
-		std::size_t m_number_of_samples ;
-		db::Connection::StatementPtr m_insert_sample_stmnt ;
+		genfile::CohortIndividualSource const& m_samples ;
 		db::Connection::StatementPtr m_insert_data_stmnt ;
 
 		std::vector< genfile::SNPIdentifyingData2 > m_snps ;

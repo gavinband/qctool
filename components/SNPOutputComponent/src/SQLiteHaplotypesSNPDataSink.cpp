@@ -17,17 +17,22 @@
 #include "genfile/zlib.hpp"
 #include "qcdb/DBOutputter.hpp"
 #include "components/SNPOutputComponent/SQLiteHaplotypesSNPDataSink.hpp"
+#include "qcdb/store_samples_in_db.hpp"
 
 // #define DEBUG_SQLITEHAPLOTYPESSNPDATASINK 1
 
-SQLiteHaplotypesSNPDataSink::SQLiteHaplotypesSNPDataSink( qcdb::DBOutputter::UniquePtr outputter ):
+SQLiteHaplotypesSNPDataSink::SQLiteHaplotypesSNPDataSink(
+	qcdb::DBOutputter::UniquePtr outputter,
+	genfile::CohortIndividualSource const& samples
+):
+	m_genotype_field( ":genotypes:" ),
 	m_outputter( outputter ),
-	m_number_of_samples( 0 ),
+	m_samples( samples ),
 	m_data_i( 0 )
 {
 	m_outputter->connection().run_statement(
 		"CREATE TABLE IF NOT EXISTS Haplotype ( "
-		"  analysis_id INT NOT NULL REFERENCES Entity( id ), "
+		"  analysis_id INT NOT NULL REFERENCES Analysis( id ), "
 		"  variant_id INT NOT NULL REFERENCES Variant( id ), "
 		"  N INT NOT NULL,"
 		"  data BLOB NOT NULL"
@@ -35,35 +40,26 @@ SQLiteHaplotypesSNPDataSink::SQLiteHaplotypesSNPDataSink( qcdb::DBOutputter::Uni
 	) ;
 	m_outputter->connection().run_statement(
 		"CREATE View IF NOT EXISTS HaplotypeView AS "
-		"SELECT analysis_id, E.name AS analysis, variant_id, chromosome, position, rsid, alleleA, alleleB, quote( data ) "
+		"SELECT analysis_id, A.name AS analysis, variant_id, chromosome, position, rsid, alleleA, alleleB, quote( data ) "
 		"FROM Haplotype H "
-		"INNER JOIN Entity E "
-		"ON E.id == H.analysis_id "
+		"INNER JOIN Analysis A "
+		"ON A.id == H.analysis_id "
 		"INNER JOIN Variant V "
 		"ON V.id == H.variant_id"
 	) ;
 	m_insert_data_stmnt = m_outputter->connection().get_statement(
 		"INSERT INTO Haplotype ( analysis_id, variant_id, N, data ) VALUES( ?, ?, ?, ? ) ;"
 	) ;
-	m_outputter->connection().run_statement(
-		"CREATE TABLE IF NOT EXISTS Sample ( "
-		"  analysis_id INTEGER NOT NULL REFERENCES Entity( id ), "
-		"  identifier TEXT NOT NULL, "
-		"  index_in_data INTEGER NOT NULL, "
-		"  UNIQUE( analysis_id, identifier ), "
-		"  UNIQUE( analysis_id, index_in_data )"
-		")"
-	) ;
-	m_insert_sample_stmnt = m_outputter->connection().get_statement(
-		"INSERT INTO Sample ( analysis_id, identifier, index_in_data ) VALUES( ?, ?, ? ) ;"
-	) ;
-	
 	m_snps.resize( 10000 ) ;
 	m_data.resize( 10000 ) ;
 }
 
 std::string SQLiteHaplotypesSNPDataSink::get_spec() const {
 	return "SQLiteHaplotypesSNPDataSink" ;
+}
+
+void SQLiteHaplotypesSNPDataSink::set_genotype_field( std::string field ) {
+	m_genotype_field = field ;
 }
 
 namespace {
@@ -268,17 +264,24 @@ namespace {
 }
 
 void SQLiteHaplotypesSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter getter ) {
-	db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 600 ) ;
-	for( std::size_t i = 0; i < number_of_samples; ++i ) {
-		m_insert_sample_stmnt
-			->bind( 1, m_outputter->analysis_id() )
-			.bind( 2, getter(i) )
-			.bind( 3, int64_t( i ) )
-			.step()
-		;
-		m_insert_sample_stmnt->reset() ;
+	if( number_of_samples != m_samples.get_number_of_individuals() ) {
+		throw genfile::BadArgumentError(
+			"SQLiteGenotypesSNPDataSink::set_sample_names_impl()",
+			"number_of_samples",
+			"number of samples ("
+			+ genfile::string_utils::to_string( number_of_samples )
+			+ ") does not match that in sample files ("
+			+ genfile::string_utils::to_string( m_samples.get_number_of_individuals() )
+			+ ")."
+		) ;
 	}
-	m_number_of_samples = number_of_samples ;
+	qcdb::store_samples_in_db(
+		number_of_samples,
+		getter,
+		m_samples,
+		*m_outputter,
+		"Sample"
+	) ;
 }
 
 void SQLiteHaplotypesSNPDataSink::write_variant_data_impl(
@@ -326,7 +329,7 @@ void SQLiteHaplotypesSNPDataSink::flush_data( std::size_t const data_count ) {
 		m_insert_data_stmnt
 			->bind( 1, m_outputter->analysis_id() )
 			.bind( 2, variant_ids[i] )
-			.bind( 3, int64_t( m_number_of_samples ) )
+			.bind( 3, int64_t( m_samples.get_number_of_individuals() ) )
 			.bind( 4, buffer, end_buffer )
 			.step() ;
 		m_insert_data_stmnt->reset() ;

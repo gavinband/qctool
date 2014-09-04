@@ -17,6 +17,7 @@
 #include "genfile/zlib.hpp"
 #include "qcdb/DBOutputter.hpp"
 #include "components/SNPOutputComponent/SQLiteGenotypesSNPDataSink.hpp"
+#include "qcdb/store_samples_in_db.hpp"
 
 // #define DEBUG_SQLITEGENOTYPESNPDATASINK 1
 
@@ -363,59 +364,14 @@ void SQLiteGenotypesSNPDataSink::set_sample_names_impl( std::size_t number_of_sa
 			+ ")."
 		) ;
 	}
-	genfile::CohortIndividualSource::ColumnSpec const spec = m_samples.get_column_spec() ;
-
-	db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 2400 ) ;
-
-	if( !m_insert_sample_stmnt.get() ) {
-		std::string sample_sql = 
-			"CREATE TABLE IF NOT EXISTS Sample ( "
-			"analysis_id INTEGER NOT NULL REFERENCES Analysis( id ), "
-			"index_in_data INTEGER NOT NULL" ;
-
-		std::string insert_sample_sql = 
-			"INSERT INTO Sample ( analysis_id, index_in_data" ;
-
-		for( std::size_t i = 0; i < spec.size(); ++i ) {
-			sample_sql += ", " + spec[i].name() + " " + ( spec[i].is_continuous() ? "FLOAT" : "TEXT" ) ;
-			insert_sample_sql += ", " + spec[i].name() ;
-		}
-		sample_sql += ", UNIQUE( analysis_id, \"" + spec[0].name() + "\" ), "
-			+ "UNIQUE( analysis_id, index_in_data )"
-			+ ")" ;
-
-		insert_sample_sql += " ) VALUES ( ?, ?" ;
-		for( std::size_t i = 0; i < spec.size(); ++i ) {
-			insert_sample_sql += ", ?" ;
-		}
-		insert_sample_sql += " ) ;" ;
-
-		m_outputter->connection().run_statement( sample_sql ) ;
-		
-		m_insert_sample_stmnt = m_outputter->connection().get_statement(
-			insert_sample_sql
-		) ;
-	}
-
-	for( std::size_t sample_i = 0; sample_i < number_of_samples; ++sample_i ) {
-		if( getter(sample_i) != m_samples.get_entry( sample_i, "ID_1" )) {
-			throw genfile::BadArgumentError(
-				"SQLiteGenotypesSNPDataSink::set_sample_names_impl()",
-				"getter",
-				"getter(" + genfile::string_utils::to_string( sample_i )  + " = \"" + getter(sample_i).as< std::string >() + "\", but expected \""
-				+ m_samples.get_entry( sample_i, "ID_1" ).as< std::string >()
-				+ "\"."
-			) ;
-		}
-		m_insert_sample_stmnt
-			->bind( 1, m_outputter->analysis_id() )
-			.bind( 2, int64_t( sample_i ) ) ;
-		for( std::size_t column_i = 0; column_i < spec.size(); ++column_i ) {
-			m_insert_sample_stmnt->bind( column_i+3, m_samples.get_entry( sample_i, spec[column_i].name() )) ;
-		}
-		m_insert_sample_stmnt->step() ;
-		m_insert_sample_stmnt->reset() ;
-	}
+	
+	qcdb::store_samples_in_db(
+		number_of_samples,
+		getter,
+		m_samples,
+		*m_outputter,
+		"Sample"
+	) ;
 }
 
 void SQLiteGenotypesSNPDataSink::write_variant_data_impl(

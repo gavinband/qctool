@@ -53,7 +53,7 @@ namespace genfile {
 			throw genfile::BadArgumentError(
 				"genfile::GenFileSNPDataSink::write_variant_data_impl()",
 				"data_reader",
-				"Data source must support GT or GP fields."
+				"Data source must support :genotypes: field."
 			) ;
 		}
 		stream() << "\n" ;

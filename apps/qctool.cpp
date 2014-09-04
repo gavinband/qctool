@@ -1764,8 +1764,11 @@ private:
 								filename,
 								m_options.get< std::string >( "-analysis-name" ),
 								m_options.get< std::string >( "-analysis-chunk" ),
-								m_options.get_values_as_map()
-							)
+								m_options.get_values_as_map(),
+								boost::optional< db::Connection::RowId >(),
+								m_options.get< std::string >( "-snp-match-fields" )
+							),
+							*m_samples
 						)
 					) ;
 				} else if( m_options.get< std::string >( "-ofiletype" ) == "sqlite_genotypes" ) {

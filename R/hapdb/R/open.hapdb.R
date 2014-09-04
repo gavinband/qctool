@@ -21,7 +21,7 @@ function( filename, get.variants = FALSE ) {
         samples = samples
     ) ;
     if( get.variants ) {
-        result$variants = get.variants( result ) ;
+        result$variants = dbGetQuery( db, "SELECT * FROM Variant" ) ;
         cat( sprintf( "open.hapdb(): opened hapdb with %d samples and %d variants.\n", nrow( result$samples ), nrow( result$variants ) ) )
     } else {
         cat( sprintf( "open.hapdb(): opened hapdb with %d samples.\n", nrow( result$samples ) ) )
