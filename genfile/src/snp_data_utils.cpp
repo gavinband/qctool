@@ -205,6 +205,7 @@ namespace genfile {
 		types[ ".gen" ]     = types[ ".gen.gz" ] 		= "gen" ;
 		types[ ".vcf" ]     = types[ ".vcf.gz" ] 		= "vcf" ;
 		types[ ".dosage" ]  = types[ ".dosage.gz" ] 	= "dosage" ;
+		types[ ".bed" ]  								= "binary_ped" ;
 
 		for(
 			std::map< std::string, std::string >::const_iterator i = types.begin();
