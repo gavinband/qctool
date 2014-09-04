@@ -295,9 +295,15 @@ void SQLiteHaplotypesSNPDataSink::write_variant_data_impl(
 	}
 	m_snps[ m_data_i ] = id_data ;
 	HaplotypeWriter writer( &(m_data[ m_data_i ]) ) ;
-	data_reader.get( ":genotypes:", writer ) ;
-	writer.finalise() ;
-	++m_data_i ;
+	try {
+		data_reader.get( ":genotypes:", writer ) ;
+		writer.finalise() ;
+		++m_data_i ;
+	} catch( genfile::InputError const& e ) {
+		std::cerr << "SQLiteHaplotypesSNPDataSink:write_variant_data_impl(): at variant " << id_data << ": "
+			<< e.format_message() << ".\n" ;
+		std::cerr << "I will not store haplotypes at this SNP.\n" ;
+	}
 }
 
 void SQLiteHaplotypesSNPDataSink::finalise_impl() {
