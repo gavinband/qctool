@@ -19,6 +19,7 @@
 #include "genfile/ImputeHaplotypesSNPDataSource.hpp"
 #include "genfile/ShapeITHaplotypesSNPDataSource.hpp"
 #include "genfile/DosageFileSNPDataSource.hpp"
+#include "genfile/BedFileSNPDataSource.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/vcf/get_set.hpp"
 #include "genfile/Error.hpp"
@@ -33,6 +34,7 @@ namespace genfile {
 		result.push_back( "hapmap_haplotypes" ) ;
 		result.push_back( "impute_haplotypes" ) ;
 		result.push_back( "shapeit_haplotypes" ) ;
+		result.push_back( "binary_plink" ) ;
 		return result ;
 	}
 	
@@ -78,6 +80,23 @@ namespace genfile {
 		}
 		else if( uf.first == "shapeit_haplotypes" ) {
 			return std::auto_ptr< SNPDataSource >( new ShapeITHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+		}
+		else if( uf.first == "binary_plink" ) {
+			if( uf.second.size() < 4 || uf.second.substr( uf.second.size() - 4, 4 ) != ".bed" ) {
+				throw genfile::BadArgumentError(
+					"SNPDataSource::create()",
+					"filename=\"" + uf.second + "\"",
+					"For binary PED format, expected the .bed extension."
+				) ;
+			}
+			std::string const bedFilename = uf.second ;
+			std::string bimFilename = bedFilename ;
+			bimFilename.replace( bimFilename.size() - 4, 4, ".bim" ); 
+			std::string famFilename = bedFilename ;
+			famFilename.replace( famFilename.size() - 4, 4, ".fam" ); 
+			return std::auto_ptr< SNPDataSource >( new BedFileSNPDataSource(
+				uf.second, bimFilename, famFilename
+			) ) ;
 		}
 		else {
 			// assume GEN format.

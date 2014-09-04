@@ -55,7 +55,8 @@ namespace genfile {
 		std::string const m_bed_filename ;
 		std::string const m_bim_filename ;
 		bool m_exhausted ;
-		unsigned int m_number_of_samples, m_total_number_of_snps ;
+		unsigned int m_number_of_samples ;
+		OptionalSnpCount m_total_number_of_snps ;
 		std::auto_ptr< std::istream > m_bed_stream_ptr ;
 		std::auto_ptr< std::istream > m_bim_stream_ptr ;
 		std::vector< std::pair< int64_t, int64_t > > m_genotype_table ;

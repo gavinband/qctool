@@ -6,10 +6,13 @@
 
 #include <iostream>
 #include <string>
+#include <boost/format.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/bgen.hpp"
 #include "genfile/BedFileSNPDataSource.hpp"
+
+#define DEBUG_BED_FORMAT 1
 
 namespace genfile {
 	BedFileSNPDataSource::BedFileSNPDataSource( std::string const& bedFilename, std::string const& bimFilename, std::string const& famFilename ):
@@ -18,6 +21,43 @@ namespace genfile {
 		m_exhausted( false )
 	{
 		setup( bedFilename, bimFilename, famFilename ) ;
+	}
+
+	void BedFileSNPDataSource::setup( std::string const& bedFilename, std::string const& bimFilename, std::string const& famFilename ) {
+		m_bed_stream_ptr = open_binary_file_for_input( bedFilename ) ;
+		m_bim_stream_ptr = open_text_file_for_input( bimFilename ) ;
+
+		{
+			std::size_t sampleCount = 0 ;
+			std::auto_ptr< std::istream > fam = open_text_file_for_input( famFilename ) ;
+			std::string line ;
+			while( std::getline( *fam, line )) {
+				++sampleCount ;
+			}
+			m_number_of_samples = sampleCount ;
+		}
+
+		char header[3] ;
+		m_bed_stream_ptr->read( &header[0], 3 ) ;
+		if( header[0] != 108 || header[1] != 27 ) {
+#if DEBUG_BED_FORMAT
+			std::cerr << "BedFileSNPDataSource::setup(): first few bytes of BED file are: " ;
+			boost::format fmt( "%02x" ) ;
+			std::cerr << fmt % int( header[0] ) << fmt % int( header[1] ) << fmt % int( header[2] ) << ".\n" ; 
+#endif
+			throw genfile::MalformedInputError(
+				bedFilename,
+				"File does not appear to be a binary PED file (according to magic number).  See http://pngu.mgh.harvard.edu/~purcell/plink/binary.shtml.",
+				0
+			) ;
+		}
+		if( header[2] != 1 ) {
+			throw genfile::MalformedInputError(
+				bedFilename,
+				"File has mode " + genfile::string_utils::to_string( int( header[2] ) ) + "; only SNP-major mode (mode = 1) is supported.",
+				0
+			) ;
+		}
 	}
 
 	void BedFileSNPDataSource::reset_to_start_impl() {
@@ -124,36 +164,5 @@ namespace genfile {
 		m_bed_stream_ptr->ignore( ( m_number_of_samples + 3 ) / 4 ) ;
 	}
 
-	void BedFileSNPDataSource::setup( std::string const& bedFilename, std::string const& bimFilename, std::string const& famFilename ) {
-		m_bed_stream_ptr = open_binary_file_for_input( bedFilename ) ;
-		m_bim_stream_ptr = open_text_file_for_input( bimFilename ) ;
-
-		{
-			std::size_t sampleCount = 0 ;
-			std::auto_ptr< std::istream > fam = open_text_file_for_input( famFilename ) ;
-			std::string line ;
-			while( std::getline( *fam, line )) {
-				++sampleCount ;
-			}
-			m_number_of_samples = sampleCount ;
-		}
-
-		char header[3] ;
-		m_bed_stream_ptr->read( &header[0], 3 ) ;
-		if( header[0] != 240 || header[1] != 27 ) {
-			throw genfile::MalformedInputError(
-				bedFilename,
-				"File does nota appear to be a binary PED file (according to magic number).  See http://pngu.mgh.harvard.edu/~purcell/plink/binary.shtml.",
-				0
-			) ;
-		}
-		if( header[2] != 1 ) {
-			throw genfile::MalformedInputError(
-				bedFilename,
-				"File has mode " + genfile::string_utils::to_string( int( header[2] ) ) + "; only SNP-major mode (mode = 1) is supported.",
-				0
-			) ;
-		}
-	}
 }	
 
