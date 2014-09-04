@@ -20,6 +20,10 @@ namespace genfile {
 		m_bim_filename( bimFilename ),
 		m_exhausted( false )
 	{
+		m_genotype_table.push_back( std::make_pair( 0, 0 )) ;
+		m_genotype_table.push_back( std::make_pair( -1, -1 )) ;
+		m_genotype_table.push_back( std::make_pair( 0, 1 )) ;
+		m_genotype_table.push_back( std::make_pair( 1, 1 )) ;
 		setup( bedFilename, bimFilename, famFilename ) ;
 	}
 
@@ -130,7 +134,7 @@ namespace genfile {
 					if( genotype.first == -1 ) {
 						setter( genfile::MissingValue() ) ;
 						setter( genfile::MissingValue() ) ;
-					} else{
+					} else {
 						setter( genotype.first ) ;
 						setter( genotype.second ) ;
 					}
