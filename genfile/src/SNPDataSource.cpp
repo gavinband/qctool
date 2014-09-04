@@ -34,7 +34,7 @@ namespace genfile {
 		result.push_back( "hapmap_haplotypes" ) ;
 		result.push_back( "impute_haplotypes" ) ;
 		result.push_back( "shapeit_haplotypes" ) ;
-		result.push_back( "binary_plink" ) ;
+		result.push_back( "binary_ped" ) ;
 		return result ;
 	}
 	
@@ -81,7 +81,7 @@ namespace genfile {
 		else if( uf.first == "shapeit_haplotypes" ) {
 			return std::auto_ptr< SNPDataSource >( new ShapeITHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
 		}
-		else if( uf.first == "binary_plink" ) {
+		else if( uf.first == "binary_ped" ) {
 			if( uf.second.size() < 4 || uf.second.substr( uf.second.size() - 4, 4 ) != ".bed" ) {
 				throw genfile::BadArgumentError(
 					"SNPDataSource::create()",
@@ -99,8 +99,13 @@ namespace genfile {
 			) ) ;
 		}
 		else {
+			throw genfile::BadArgumentError(
+				"genfile::SNPDataSource::create()",
+				"filetype_hint=\"" + filetype_hint + "\"",
+				"Unrecognised file type."
+			) ;
 			// assume GEN format.
-			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+			// return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
 		}
 	}
 

@@ -16,7 +16,7 @@ namespace statfile {
 	DelimitedStatSink::DelimitedStatSink( std::auto_ptr< std::ostream > stream_ptr, std::string const& delimiter )
 	: 	m_comment_character( '#' ),
 		m_delimiter( delimiter ),
-		m_precision(15)
+		m_precision(6)
 	{
 		setup( stream_ptr ) ;
 	}
@@ -24,7 +24,7 @@ namespace statfile {
 	DelimitedStatSink::DelimitedStatSink( std::string const& filename, std::string const& delimiter )
 	: 	m_comment_character( '#' ),
 		m_delimiter( delimiter ),
-		m_precision(15)
+		m_precision(6)
 	{
 		setup( filename ) ;
 	}

@@ -2195,6 +2195,7 @@ private:
 			m_progress_context.notify_progress( ++m_number_of_snps ) ;
 		}
 		void end_processing_snps() {
+			m_progress_context.finish() ;
 			std::cerr << "Total: " << m_number_of_snps << "SNPs.\n" ;
 		}
 
