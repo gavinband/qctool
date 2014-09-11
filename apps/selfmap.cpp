@@ -247,24 +247,26 @@ private:
 				i->first, "."
 			) ;
 			for( std::size_t j = 0; j < i->second.size(); ++j ) {
-				snp.set_position( genfile::GenomePosition( position.chromosome(), i->second[j].first ) ) ;
-				storage->store_per_variant_data(
-					snp,
-					"orientation",
-					std::string( 1, i->second[j].second )
-				) ;
-				for( std::size_t k = ( j + ( omit_diagonal ? 1 : 0 ) ); k < i->second.size(); ++k ) {
+				if( i->second[j].second == '+' ) {
+					snp.set_position( genfile::GenomePosition( position.chromosome(), i->second[j].first ) ) ;
 					storage->store_per_variant_data(
 						snp,
-						"other_position",
-						genfile::VariantEntry::Integer( i->second[k].first )
+						"orientation",
+						std::string( 1, i->second[j].second )
 					) ;
+					for( std::size_t k = ( j + ( omit_diagonal ? 1 : 0 ) ); k < i->second.size(); ++k ) {
+						storage->store_per_variant_data(
+							snp,
+							"other_position",
+							genfile::VariantEntry::Integer( i->second[k].first )
+						) ;
 
-					storage->store_per_variant_data(
-						snp,
-						"other_orientation",
-						std::string( 1, i->second[k].second )
-					) ;
+						storage->store_per_variant_data(
+							snp,
+							"other_orientation",
+							std::string( 1, i->second[k].second )
+						) ;
+					}
 				}
 			}
 			progress_context.notify_progress( count+1, kmerMap.size() ) ;
