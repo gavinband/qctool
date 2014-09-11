@@ -28,6 +28,14 @@ namespace genfile {
 			return aString ;
 		}
 
+		void to_lower( std::string* aString ) {
+			for( std::string::iterator i = aString->begin(); i != aString->end(); ++i ) {
+				if( *i >= 'A' && *i <= 'Z' ) {
+					*i += 32 ;
+				}
+			}
+		}
+
 		std::string to_upper( std::string aString ) {
 			for( std::string::iterator i = aString.begin(); i != aString.end(); ++i ) {
 				if( *i >= 'a' && *i <= 'z' ) {
@@ -35,6 +43,14 @@ namespace genfile {
 				}
 			}
 			return aString ;
+		}
+
+		void to_upper( std::string* aString ) {
+			for( std::string::iterator i = aString->begin(); i != aString->end(); ++i ) {
+				if( *i >= 'a' && *i <= 'z' ) {
+					*i -= 32 ;
+				}
+			}
 		}
 
 		bool case_insensitive_equality( std::string const& left, std::string const& right ) {

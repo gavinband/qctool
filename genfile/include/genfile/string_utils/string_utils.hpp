@@ -16,7 +16,9 @@ namespace genfile {
 	namespace string_utils {
 
 		std::string to_lower( std::string aString ) ;
+		void to_lower( std::string* aString ) ;
 		std::string to_upper( std::string aString ) ;
+		void to_upper( std::string* aString ) ;
 		bool case_insensitive_equality( std::string const& left, std::string const& right ) ;
 		std::string strip( std::string string_to_strip, std::string chars ) ;
 		std::vector< std::string > split( std::string const& string_to_split, std::string const& split_chars ) ;

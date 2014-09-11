@@ -9,6 +9,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/thread/thread.hpp>
+#include <boost/format.hpp>
 #include "genfile/SNPIdentifyingData2.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
@@ -37,33 +38,6 @@ namespace snp_summary_component {
 		m_max_transaction_count( 10000 ),
 		m_variable_id( m_outputter.get_or_create_entity( "per-variant variable", "per-variant variable values" ) )
 	{
-		m_outputter.connection().run_statement(
-			"CREATE TABLE IF NOT EXISTS SummaryData ( "
-			"variant_id INT, analysis_id INT, variable_id INT, value NONE, "
-			"FOREIGN KEY( variant_id ) REFERENCES Variant( id ), "
-			"FOREIGN KEY( analysis_id ) REFERENCES Entity( id ), "
-			"FOREIGN KEY( variable_id ) REFERENCES Entity( id ) "
-			")"
-		) ;
-		
-		m_outputter.connection().run_statement(
-			"CREATE VIEW IF NOT EXISTS SummaryDataView AS "
-			"SELECT          V.id AS variant_id, V.chromosome, V.position, V.rsid, "
-			"CASE WHEN length( V.alleleA < 10 ) THEN V.alleleA ELSE substr( V.alleleA, 1, 10 ) || '...' END AS alleleA, "
-			"CASE WHEN length( V.alleleB < 10 ) THEN V.alleleB ELSE substr( V.alleleB, 1, 10 ) || '...' END AS alleleB, "
-			"SD.analysis_id, Analysis.name AS analysis, Variable.id AS variable_id, Variable.name AS variable, "
-			"SD.value AS value "
-			"FROM SummaryData SD "
-			"INNER JOIN Variant V ON V.id == SD.variant_id "
-			"INNER JOIN Analysis ON Analysis.id = SD.analysis_id "
-			"INNER JOIN Entity Variable ON Variable.id = SD.variable_id "
-			"WHERE analysis_id IN ( SELECT id FROM Entity )"
-		) ;
-		
-		m_insert_summarydata_statement = m_outputter.connection().get_statement(
-			"INSERT INTO SummaryData ( variant_id, analysis_id, variable_id, value ) "
-			"VALUES( ?1, ?2, ?3, ?4 )"
-		) ;
 	}
 
 	DBOutputter::~DBOutputter() {
@@ -71,6 +45,13 @@ namespace snp_summary_component {
 		write_data( m_data ) ;
 		m_data.clear() ;
 		m_outputter.finalise() ;
+	}
+	
+	void DBOutputter::set_table_name( std::string const& table_name ) {
+		if( table_name.find_first_not_of( "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_" ) != std::string::npos ) {
+			throw genfile::BadArgumentError( "qcdb::DBOutputter::set_table_name()", "table_name=\"" + table_name + "\"" ) ;
+		}
+		m_table_name = table_name ;
 	}
 	
 	void DBOutputter::finalise( long options ) {
@@ -113,12 +94,58 @@ namespace snp_summary_component {
 			m_data.clear() ;
 		}
 	}
+	void DBOutputter::create_schema() {
+		m_outputter.connection().run_statement(
+			(
+				boost::format(
+					"CREATE TABLE IF NOT EXISTS %s ( "
+					"variant_id INT, analysis_id INT, variable_id INT, value NONE, "
+					"FOREIGN KEY( variant_id ) REFERENCES Variant( id ), "
+					"FOREIGN KEY( analysis_id ) REFERENCES Entity( id ), "
+					"FOREIGN KEY( variable_id ) REFERENCES Entity( id ) "
+					")"
+				) % m_table_name
+			).str()
+		) ;
+		
+		m_outputter.connection().run_statement(
+			(
+				boost::format(
+					"CREATE VIEW IF NOT EXISTS %sView AS "
+					"SELECT          V.id AS variant_id, V.chromosome, V.position, V.rsid, "
+					"CASE WHEN length( V.alleleA < 10 ) THEN V.alleleA ELSE substr( V.alleleA, 1, 10 ) || '...' END AS alleleA, "
+					"CASE WHEN length( V.alleleB < 10 ) THEN V.alleleB ELSE substr( V.alleleB, 1, 10 ) || '...' END AS alleleB, "
+					"SD.analysis_id, Analysis.name AS analysis, Variable.id AS variable_id, Variable.name AS variable, "
+					"SD.value AS value "
+					"FROM SummaryData SD "
+					"INNER JOIN Variant V ON V.id == SD.variant_id "
+					"INNER JOIN Analysis ON Analysis.id = SD.analysis_id "
+					"INNER JOIN Entity Variable ON Variable.id = SD.variable_id "
+					"WHERE analysis_id IN ( SELECT id FROM Entity )"
+				) % m_table_name
+			).str()
+		) ;
+		
+		m_insert_data_statement = m_outputter.connection().get_statement(
+			(
+				boost::format(
+					"INSERT INTO %s ( variant_id, analysis_id, variable_id, value ) "
+					"VALUES( ?1, ?2, ?3, ?4 )"
+				) % m_table_name
+			).str()
+		) ;
+		
+	}
 
 	void DBOutputter::write_data( Data const& data ) {
-		db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 600 ) ; // wait 10 minutes if we have to.
+		db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 2400 ) ; // wait 10 minutes if we have to.
 
 		if( !transaction.get() ) {
 			throw genfile::OperationFailedError( "SNPSummaryComponent::DBOutputter::write_data()", m_outputter.connection().get_spec(), "Opening transaction." ) ;
+		}
+
+		if( !m_insert_data_statement.get() ) {
+			create_schema() ;
 		}
 		
 		std::vector< db::Connection::RowId > snp_ids( data.size() ) ;
@@ -155,13 +182,13 @@ namespace snp_summary_component {
 		db::Connection::RowId variable_id,
 		genfile::VariantEntry const& value
 	) const {
-		m_insert_summarydata_statement
+		m_insert_data_statement
 			->bind( 1, snp_id )
 			.bind( 2, m_outputter.analysis_id() )
 			.bind( 3, variable_id )
 			.bind( 4, value )
 			.step() ;
-		m_insert_summarydata_statement->reset() ;
+		m_insert_data_statement->reset() ;
 	}
 	
 }

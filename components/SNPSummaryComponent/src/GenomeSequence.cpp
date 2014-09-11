@@ -102,10 +102,10 @@ void GenomeSequence::load_sequence(
 
 std::string GenomeSequence::get_summary( std::string const& prefix, std::size_t column_width ) const {
 	using genfile::string_utils::to_string ;
-	std::string result = prefix + "GenomeSequence "
+	std::string result = prefix + "GenomeSequence ("
 		+ ( m_organism ? m_organism.get() : "unknown organism" ) + ", "
 		+ ( m_build ? m_build.get() : "unknown build" ) + ") "
-		+ "for the following regions:\n" ;
+		+ "for the following regions:" ;
 	std::size_t count = 0 ;
 	for( SequenceData::const_iterator i = m_sequence.begin(); i != m_sequence.end(); ++i, ++count ) {
 		std::string const& identifier = m_identifiers.find( i->first )->second ;
