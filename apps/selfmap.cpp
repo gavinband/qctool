@@ -170,13 +170,11 @@ private:
 
 		KmerMap kmerMap ;
 		std::string kmer ;
-		char strand = '+' ;
 
 		GenomeSequence::PhysicalSequenceRange range = m_sequence->get_sequence( m_range.start().chromosome(), m_range.start().position(), m_range.end().position() ) ;
 		genfile::Position rangePosition = range.first.start().position() ;
 		GenomeSequence::ConstSequenceIterator kmer_start = range.second.first ;
 		GenomeSequence::ConstSequenceIterator kmer_end = kmer_start + m_kmer_size ;
-
 
 		{
 			appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Processing kmers" ) ;
