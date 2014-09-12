@@ -92,9 +92,10 @@ struct SelfMapOptions: public appcontext::CmdLineOptionProcessor {
 				.set_description( "Specify the path to the output file." )
 				.set_is_required()
 				.set_takes_single_value() ;
-			options[ "-omit-diagonal" ]
-				.set_description( "Specify that selfmap should not output matches on the diagonal." )
-					;
+			options[ "-include-diagonal" ]
+				.set_description( "Specify whether selfmap should include uniquely-mapping kmers in the output. "
+					"To reduce the size of the output, these are not output by default." )
+				;
 			options[ "-log" ]
 				.set_description( "Specify the path of a log file; all screen output will be copied to the file." )
 				.set_takes_single_value() ;
@@ -229,7 +230,7 @@ private:
 	void write_output( KmerMap const& kmerMap, qcdb::Storage::SharedPtr storage ) {
 		appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Storing results" ) ;
 
-		bool const omit_diagonal = options().check( "-omit-diagonal" ) ;
+		bool const omit_diagonal = !options().check( "-include-diagonal" ) ;
 		using genfile::string_utils::to_string ;
 		std::string const stub = to_string( m_range.start().chromosome() ) + ":" ;
 		genfile::GenomePosition position ( m_range.start().chromosome(), 0 ) ;
@@ -247,6 +248,7 @@ private:
 			for( std::size_t j = 0; j < i->second.size(); ++j ) {
 				if( i->second[j].second == '+' ) {
 					snp.set_position( genfile::GenomePosition( position.chromosome(), i->second[j].first ) ) ;
+					storage->create_new_variant( snp ) ;
 					storage->store_per_variant_data(
 						snp,
 						"orientation",
