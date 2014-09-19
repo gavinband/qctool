@@ -53,7 +53,7 @@ void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes co
 		std::string const reference_allele( flankingSequence.begin() + m_flanking.first, flankingSequence.begin() + m_flanking.first + first_allele_size ) ;
 		callback( m_annotation_name + "_" + "alleleA", reference_allele ) ;
 		callback( m_annotation_name + "_" + "left_flanking", std::string( flankingSequence.begin(), flankingSequence.begin() + m_flanking.first ) ) ;
-		callback( m_annotation_name + "_" + "alleleA_right_flanking", std::string( flankingSequence.begin() + m_flanking.first + first_allele_size, flankingSequence.end() ) ) ;
+		callback( m_annotation_name + "_" + "right_flanking", std::string( flankingSequence.begin() + m_flanking.first + first_allele_size, flankingSequence.end() ) ) ;
 
 		if( to_upper( reference_allele ) == to_upper( snp.get_first_allele() ) ) {
 			match = true ;
@@ -63,12 +63,14 @@ void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes co
 			if( to_upper( reference_allele ) == to_upper( snp.get_second_allele() ) ) {
 				match = true ;
 			}
+			callback( m_annotation_name + "_" + "alleleB_if_indel", genfile::MissingValue() ) ;
+			callback( m_annotation_name + "_" + "alleleB_right_flanking_if_indel", genfile::MissingValue() ) ;
 		} else {
 			m_sequence.get_sequence( snp.get_position().chromosome(), snp.get_position().position() - m_flanking.first, snp.get_position().position() + second_allele_size + m_flanking.second, &flankingSequence ) ;
 			assert( flankingSequence.size() == m_flanking.first + m_flanking.second + second_allele_size ) ;
 			std::string const second_reference_allele( flankingSequence.begin() + m_flanking.first, flankingSequence.begin() + m_flanking.first + second_allele_size ) ;
-			callback( m_annotation_name + "_" + "alleleB", second_reference_allele ) ;
-			callback( m_annotation_name + "_" + "alleleB", std::string( flankingSequence.begin() + m_flanking.first + second_allele_size, flankingSequence.end() ) ) ;
+			callback( m_annotation_name + "_" + "alleleB_if_indel", second_reference_allele ) ;
+			callback( m_annotation_name + "_" + "alleleB_right_flanking_if_indel", std::string( flankingSequence.begin() + m_flanking.first + second_allele_size, flankingSequence.end() ) ) ;
 
 			if( to_upper( second_reference_allele ) == to_upper( snp.get_second_allele() ) ) {
 				match = true ;
