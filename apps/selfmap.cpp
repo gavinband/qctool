@@ -230,6 +230,10 @@ private:
 	void write_output( KmerMap const& kmerMap, qcdb::Storage::SharedPtr storage ) {
 		appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Storing results" ) ;
 
+		storage->add_variable( "orientation" ) ;
+		storage->add_variable( "other_position" ) ;
+		storage->add_variable( "other_orientation" ) ;
+
 		bool const omit_diagonal = !options().check( "-include-diagonal" ) ;
 		using genfile::string_utils::to_string ;
 		std::string const stub = to_string( m_range.start().chromosome() ) + ":" ;
