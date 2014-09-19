@@ -39,22 +39,44 @@ void SequenceAnnotation::set_flanking( std::size_t left, std::size_t right ) {
 void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const&, genfile::VariantDataReader&, ResultCallback callback ) {
 	using namespace genfile::string_utils ;
 	std::deque< char > flankingSequence ;
+	std::size_t const first_allele_size = snp.get_first_allele().size() ;
+	std::size_t const second_allele_size = snp.get_second_allele().size() ;
 	try {
-		{
-			std::size_t const allele_size = snp.get_first_allele().size() ;
-			m_sequence.get_sequence( snp.get_position().chromosome(), snp.get_position().position() - m_flanking.first, snp.get_position().position() + allele_size + m_flanking.second, &flankingSequence ) ;
-			assert( flankingSequence.size() == m_flanking.first + m_flanking.second + allele_size ) ;
-			callback( m_annotation_name + "_" + "alleleA", std::string( flankingSequence.begin() + m_flanking.first, flankingSequence.begin() + m_flanking.first + allele_size ) ) ;
-			callback( m_annotation_name + "_" + "left_flanking", std::string( flankingSequence.begin(), flankingSequence.begin() + m_flanking.first ) ) ;
-			callback( m_annotation_name + "_" + "alleleA_right_flanking", std::string( flankingSequence.begin() + m_flanking.first + allele_size, flankingSequence.end() ) ) ;
-		}
+		bool match = false ;
+		m_sequence.get_sequence(
+			snp.get_position().chromosome(),
+			snp.get_position().position() - m_flanking.first,
+			snp.get_position().position() + first_allele_size + m_flanking.second,
+			&flankingSequence
+		) ;
+		assert( flankingSequence.size() == m_flanking.first + m_flanking.second + first_allele_size ) ;
+		std::string const reference_allele( flankingSequence.begin() + m_flanking.first, flankingSequence.begin() + m_flanking.first + first_allele_size ) ;
+		callback( m_annotation_name + "_" + "alleleA", reference_allele ) ;
+		callback( m_annotation_name + "_" + "left_flanking", std::string( flankingSequence.begin(), flankingSequence.begin() + m_flanking.first ) ) ;
+		callback( m_annotation_name + "_" + "alleleA_right_flanking", std::string( flankingSequence.begin() + m_flanking.first + first_allele_size, flankingSequence.end() ) ) ;
 
-		{
-			std::size_t const allele_size = snp.get_second_allele().size() ;
-			m_sequence.get_sequence( snp.get_position().chromosome(), snp.get_position().position() - m_flanking.first, snp.get_position().position() + allele_size + m_flanking.second, &flankingSequence ) ;
-			assert( flankingSequence.size() == m_flanking.first + m_flanking.second + allele_size ) ;
-			callback( m_annotation_name + "_" + "alleleB", std::string( flankingSequence.begin() + m_flanking.first, flankingSequence.begin() + m_flanking.first + allele_size ) ) ;
-			callback( m_annotation_name + "_" + "alleleA_right_flanking", std::string( flankingSequence.begin() + m_flanking.first + allele_size, flankingSequence.end() ) ) ;
+		if( to_upper( reference_allele ) == to_upper( snp.get_first_allele() ) ) {
+			match = true ;
+		}
+		
+		if( first_allele_size == second_allele_size ) {
+			if( to_upper( reference_allele ) == to_upper( snp.get_second_allele() ) ) {
+				match = true ;
+			}
+		} else {
+			m_sequence.get_sequence( snp.get_position().chromosome(), snp.get_position().position() - m_flanking.first, snp.get_position().position() + second_allele_size + m_flanking.second, &flankingSequence ) ;
+			assert( flankingSequence.size() == m_flanking.first + m_flanking.second + second_allele_size ) ;
+			std::string const second_reference_allele( flankingSequence.begin() + m_flanking.first, flankingSequence.begin() + m_flanking.first + second_allele_size ) ;
+			callback( m_annotation_name + "_" + "alleleB", second_reference_allele ) ;
+			callback( m_annotation_name + "_" + "alleleB", std::string( flankingSequence.begin() + m_flanking.first + second_allele_size, flankingSequence.end() ) ) ;
+
+			if( to_upper( second_reference_allele ) == to_upper( snp.get_second_allele() ) ) {
+				match = true ;
+			}
+		}
+		
+		if( !match ) {
+			callback( m_annotation_name + "_allele_mismatch", 1 ) ;
 		}
 	}
 	catch( genfile::BadArgumentError const& e ) {
