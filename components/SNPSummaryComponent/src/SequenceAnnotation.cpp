@@ -51,8 +51,8 @@ void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes co
 		) ;
 		assert( flankingSequence.size() == m_flanking.first + m_flanking.second + first_allele_size ) ;
 		std::string const reference_allele( flankingSequence.begin() + m_flanking.first, flankingSequence.begin() + m_flanking.first + first_allele_size ) ;
-		callback( m_annotation_name + "_" + "alleleA", reference_allele ) ;
 		callback( m_annotation_name + "_" + "left_flanking", std::string( flankingSequence.begin(), flankingSequence.begin() + m_flanking.first ) ) ;
+		callback( m_annotation_name + "_" + "alleleA", reference_allele ) ;
 		callback( m_annotation_name + "_" + "right_flanking", std::string( flankingSequence.begin() + m_flanking.first + first_allele_size, flankingSequence.end() ) ) ;
 
 		if( to_upper( reference_allele ) == to_upper( snp.get_first_allele() ) ) {
