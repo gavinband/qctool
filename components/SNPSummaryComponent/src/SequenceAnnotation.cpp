@@ -74,8 +74,12 @@ void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes co
 				match = true ;
 			}
 		}
-		
-		callback( m_annotation_name + "_allele_mismatch", match ? 1 : 0 ) ;
+	
+		if( match ) {	
+			callback( m_annotation_name + "_allele_mismatch", genfile::MissingValue() ) ;
+		} else {
+			callback( m_annotation_name + "_allele_mismatch", "mismatch" ) ;
+		}
 	}
 	catch( genfile::BadArgumentError const& e ) {
 		// nowt to do.
