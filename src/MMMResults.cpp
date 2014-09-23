@@ -42,7 +42,12 @@ bool MMMResults::check_if_snp_accepted( std::size_t snp_i ) const {
 	;
 }
 
+
 std::set< std::pair< std::string, bool > > MMMResults::get_desired_columns() const {
+	return m_required_columns ;
+}
+
+void MMMResults::setup_columns( std::vector< std::string > const& ) {
 	std::set< std::pair< std::string, bool > > required_columns ;
 	required_columns.insert( std::make_pair( m_effect_column_regex, true ) ) ;
 	required_columns.insert( std::make_pair( m_se_column_regex, true ) ) ;
@@ -61,7 +66,7 @@ std::set< std::pair< std::string, bool > > MMMResults::get_desired_columns() con
 			required_columns.insert( std::make_pair( *i, true ) ) ;
 		}
 	}
-	return required_columns ;
+	m_required_columns = required_columns ;
 }
 
 void MMMResults::store_value(

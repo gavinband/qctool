@@ -6,6 +6,7 @@
 
 #include <limits>
 #include <boost/regex.hpp>
+#include <boost/format.hpp>
 #include "FlatFileFrequentistGenomeWideAssociationResults.hpp"
 
 namespace {
@@ -95,7 +96,17 @@ std::string FlatFileFrequentistGenomeWideAssociationResults::get_summary( std::s
 			)
 			/ 1000000.0
 		) + "Mb in use.)" ;
-	return result ;
+	
+	std::ostringstream str( result ) ;
+	str << "\n" << " -- using the following columns:\n" ;
+	SourceColumnMap::const_iterator
+		i = m_column_map.get().begin(),
+		end_i = m_column_map.get().end() ;
+	
+	for( std::size_t count = 0; i != end_i; ++i, ++count ) {
+		str << " -- " << i->right.second << " (column " << (i->right.first+1) << ", matching \"" << i->left << "\")\n" ;
+	}
+	return str.str() ;
 }
 
 FlatFileFrequentistGenomeWideAssociationResults::FlatFileFrequentistGenomeWideAssociationResults():
@@ -117,8 +128,14 @@ void FlatFileFrequentistGenomeWideAssociationResults::setup(
 	SNPResultCallback callback,
 	ProgressCallback progress_callback
 ) {
-	ColumnMap column_map = get_columns_to_store( *source ) ;
-	
+	if( !m_column_map ) {
+		setup_columns( source->column_names() ) ;
+		m_column_map = get_source_column_map( *source ) ;
+		
+	} else {
+		check_columns( *source, m_column_map.get() ) ;
+	}
+	assert( m_column_map ) ;
 	int const degrees_of_freedom = get_number_of_effect_parameters() ;
 	
 	std::size_t snp_index = m_snps.size() ;
@@ -140,13 +157,13 @@ void FlatFileFrequentistGenomeWideAssociationResults::setup(
 			snp.set_SNPID( "" ) ;
 		}
 
-		// read data columns
-
-		ColumnMap::right_const_iterator i = column_map.right.begin(), end_i = column_map.right.end() ;
+		// read data columns.
+		// We use the index-to-regex map to iterate over required columns in the right order.
+		SourceColumnMap::right_const_iterator i = m_column_map.get().right.begin(), end_i = m_column_map.get().right.end() ;
 		std::string value ;
 		for( ; i != end_i; ++i ) {
 			(*source)
-				>> statfile::ignore( i->first - source->current_column() )
+				>> statfile::ignore( i->first.first - source->current_column() )
 				>> value ;
 
 			store_value(
@@ -171,23 +188,24 @@ void FlatFileFrequentistGenomeWideAssociationResults::setup(
 	resize_storage( snp_index, degrees_of_freedom ) ;
 }
 
-FlatFileFrequentistGenomeWideAssociationResults::ColumnMap FlatFileFrequentistGenomeWideAssociationResults::get_columns_to_store(
+FlatFileFrequentistGenomeWideAssociationResults::SourceColumnMap FlatFileFrequentistGenomeWideAssociationResults::get_source_column_map(
 	statfile::BuiltInTypeStatSource const& source
-) {
+) const {
 	using genfile::string_utils::to_string ;
-	typedef std::set< std::pair< std::string, bool > > DesiredColumns ;
 	DesiredColumns desired_columns = get_desired_columns() ;
 
-	ColumnMap result ;
+	SourceColumnMap result ;
 	for( std::size_t i = 0; i < source.number_of_columns(); ++i ) {
 		std::string name = source.name_of_column( i ) ;
 		for( DesiredColumns::iterator j = desired_columns.begin(); j != desired_columns.end(); ++j ) {
 			boost::regex regex( j->first ) ;
 			if( boost::regex_match( name, regex ) ) {
-				std::pair< ColumnMap::iterator, bool > insertion = result.insert( ColumnMap::value_type( j->first, i )) ;
+				std::pair< SourceColumnMap::iterator, bool > insertion = result.insert(
+					SourceColumnMap::value_type( j->first, std::make_pair( i, name ))
+				) ;
 				if( !insertion.second ) {
 					throw genfile::OperationFailedError(
-						"SNPTESTResults::get_columns_to_store()",
+						"FlatFileFrequentistGenomeWideAssociationResults::get_source_column_map()",
 						"m_column_map",
 						"Insertion of value for column \"" + name + "\" (matching \"" + j->first + "\")."
 					) ;
@@ -200,7 +218,7 @@ FlatFileFrequentistGenomeWideAssociationResults::ColumnMap FlatFileFrequentistGe
 		if( j->second == true ) {
 			if( result.left.find( j->first ) == result.left.end() ) {
 				throw genfile::BadArgumentError(
-					"FlatFileFrequentistGenomeWideAssociationResults::get_columns_to_store()",
+					"FlatFileFrequentistGenomeWideAssociationResults::get_source_column_map()",
 					"required column=\"" + j->first + "\"",
 					"Could not find column matching \"" + j->first + "\" in source \"" + source.get_source_spec() + "\""
 				) ;
@@ -209,6 +227,30 @@ FlatFileFrequentistGenomeWideAssociationResults::ColumnMap FlatFileFrequentistGe
 	}
 
 	return result ;
+}
+
+void FlatFileFrequentistGenomeWideAssociationResults::check_columns(
+	statfile::BuiltInTypeStatSource const& source,
+	SourceColumnMap const& column_map
+) const {
+	std::vector< std::string > const& column_names = source.column_names() ;
+	// typedef boost::bimap< std::string, std::size_t > SourceColumnMap ;
+
+	boost::format fmt( "Column %d (\"%s\") does not match regex \"%s\"." ) ;
+	SourceColumnMap::const_iterator
+		i = column_map.begin(),
+		end_i = column_map.end() ;
+	for( ; i != end_i; ++i ) {
+		std::string const& column_name = column_names[ i->right.first ] ;
+		boost::regex regex( i->left ) ;
+		if( !boost::regex_match( column_name, regex ) ) {
+			throw genfile::BadArgumentError(
+				"FlatFileFrequentistGenomeWideAssociationResults::check_columns()",
+				"source=\"" + source.get_source_spec() + "\"",
+				( fmt % ( i->right.first + 1 ) % column_name % i->left ).str()
+			) ;
+		} ;
+	}
 }
 
 void FlatFileFrequentistGenomeWideAssociationResults::resize_storage( Eigen::MatrixXf::Index const N_snps, Eigen::MatrixXf::Index const degrees_of_freedom ) {

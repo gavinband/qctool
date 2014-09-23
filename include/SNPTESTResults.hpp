@@ -14,23 +14,24 @@ struct SNPTESTResults: public FlatFileFrequentistGenomeWideAssociationResults {
 		genfile::SNPIdentifyingDataTest::UniquePtr test
 	) ;
 
-	void add_variable( std::string const& variable ) ;
-	std::string get_summary( std::string const& prefix, std::size_t target_column ) const ;
-
 	void set_effect_size_column_regex( std::string const& beta_column_regex ) ;
 	int get_number_of_effect_parameters() const ;
+	void add_variable( std::string const& variable ) ;
+	
+	std::string get_summary( std::string const& prefix, std::size_t target_column ) const ;
 
 private:
 	genfile::SNPIdentifyingDataTest::UniquePtr m_exclusion_test ;
-	std::string
-		m_beta1_column_regex,
-		m_beta2_column_regex,
-		m_se1_column_regex,
-		m_se2_column_regex ;
-	std::string m_cov_column_regex ;
+	std::string m_beta_column_regex ;
+	std::set< std::pair< std::string, bool > > m_desired_columns ;
+	std::vector< std::string > m_beta_columns ;
+	std::vector< std::string > m_se_columns ;
+	std::vector< std::string > m_cov_columns ;
 	std::set< std::string > m_variables ;
-	
-	std::set< std::pair< std::string, bool > > get_desired_columns() const ;
+
+private:
+	void setup_columns( std::vector< std::string > const& column_names ) ;
+	DesiredColumns get_desired_columns() const ;
 	bool read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const ;
 	bool check_if_snp_accepted( std::size_t snp_i ) const ;
 	void store_value(

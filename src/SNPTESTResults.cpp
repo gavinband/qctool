@@ -4,17 +4,16 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#include <algorithm>
+#include <boost/regex.hpp>
+#include "genfile/string_utils/string_utils.hpp"
 #include "SNPTESTResults.hpp"
 
 SNPTESTResults::SNPTESTResults(
 	genfile::SNPIdentifyingDataTest::UniquePtr test
 ):
  	m_exclusion_test( test ),
-	m_beta1_column_regex( ".*beta_[0-9]*" ),
-	m_beta2_column_regex( ".*beta_2.*" ),
-	m_se1_column_regex( ".*se_1.*" ),
-	m_se2_column_regex( ".*se_2.*" ),
-	m_cov_column_regex( ".*cov_1,2.*" )
+	m_beta_column_regex( ".*_beta_<i>.*" )
 {}
 
 void SNPTESTResults::add_variable( std::string const& variable ) {
@@ -28,31 +27,63 @@ std::string SNPTESTResults::get_summary( std::string const& prefix, std::size_t 
 }
 
 void SNPTESTResults::set_effect_size_column_regex( std::string const& beta_column_regex ) {
-	using genfile::string_utils::replace_all ;
-	m_beta1_column_regex = replace_all( beta_column_regex, "<i>", "1" ) ; ;
-	m_beta2_column_regex = replace_all( beta_column_regex, "<i>", "2" ) ; ;
-	m_se1_column_regex = replace_all( m_beta1_column_regex, "beta", "se" ) ;
-	m_se2_column_regex = replace_all( m_beta1_column_regex, "beta", "se" ) ;
-	m_cov_column_regex = replace_all( replace_all( beta_column_regex, "beta", "cov" ), "<i>", "1,2" ) ;
+//	m_beta_column_regex = beta_column_regex ;
 }
 
 int SNPTESTResults::get_number_of_effect_parameters() const {
-	return 1 ; // not right.
+	return m_beta_columns.size() ;
 }
 
-std::set< std::pair< std::string, bool > > SNPTESTResults::get_desired_columns() const {
+namespace impl {
+	bool matches_a_name( std::vector< std::string > names, boost::regex const& regex ) {
+		std::size_t i = 0 ;
+		for( i = 0; i < names.size(); ++i ) {
+			if( boost::regex_match( names[ i ], regex ) ) {
+				break ;
+			}
+		}
+		return i < names.size() ;
+	}
+}
+
+
+void SNPTESTResults::setup_columns( std::vector< std::string > const& column_names ) {
 	using namespace genfile::string_utils ;
 	
-	std::set< std::pair< std::string, bool > > desired_columns ;
-	desired_columns.insert( std::make_pair( m_beta1_column_regex, true ) ) ;
-	desired_columns.insert( std::make_pair( m_se1_column_regex, true ) ) ;
+	DesiredColumns desired_columns ;
+	
+	for( std::size_t i = 0; i < 100; ++i ) {
+		std::string const beta_regex = replace_all( m_beta_column_regex, "<i>", to_string(i) ) ;
+		std::string const se_regex = replace_all( replace_all( m_beta_column_regex, "<i>", to_string(i) ), "_beta", "_se" ) ;
 
-	desired_columns.insert( std::make_pair( m_beta2_column_regex, false ) ) ;
-	desired_columns.insert( std::make_pair( m_se2_column_regex, false ) ) ;
-
-	desired_columns.insert( std::make_pair( m_cov_column_regex, false ) ) ;
-
-	desired_columns.insert( std::make_pair( ".*_pvalue", true ) ) ;
+		std::size_t beta_column_i = 0 ;
+		for( beta_column_i = 0; beta_column_i < column_names.size(); ++beta_column_i ) {
+			boost::regex regex( beta_regex ) ;
+			if( boost::regex_match( column_names[ beta_column_i ], regex ) ) {
+				break ;
+			}
+		}
+		if( impl::matches_a_name( column_names, boost::regex( beta_regex ) ) ) {
+			desired_columns.insert( std::make_pair( beta_regex, true )) ;
+			desired_columns.insert( std::make_pair( se_regex, true )) ;
+			m_beta_columns.push_back( beta_regex ) ;
+			m_se_columns.push_back( se_regex ) ;
+			for( std::size_t j = i+1; j < 100; ++j ) {
+				std::string const other_beta_regex = replace_all( m_beta_column_regex, "<i>", to_string(j) ) ;
+				if( impl::matches_a_name( column_names, boost::regex( other_beta_regex ) ) ) {
+					std::string const cov_regex = replace_all(
+						replace_all( m_beta_column_regex, "<i>", to_string(i) + "," + to_string(j) ),
+						"_beta",
+						"_cov"
+					) ;
+					desired_columns.insert( std::make_pair( cov_regex, true )) ;
+					m_cov_columns.push_back( cov_regex ) ;
+				}
+			}
+		}
+	}
+	
+	desired_columns.insert( std::make_pair( replace_all( m_beta_column_regex, "_beta_<i>", "_pvalue" ), true ) ) ;
 	desired_columns.insert( std::make_pair( "(all_)?info", true ) ) ;
 	desired_columns.insert( std::make_pair( "all_maf", true ) ) ;
 	desired_columns.insert( std::make_pair( "all_AA", true ) ) ;
@@ -73,7 +104,11 @@ std::set< std::pair< std::string, bool > > SNPTESTResults::get_desired_columns()
 			desired_columns.insert( std::make_pair( *i, false ) ) ;
 		}
 	}
-	return desired_columns ;
+	m_desired_columns = desired_columns ;
+}
+
+std::set< std::pair< std::string, bool > > SNPTESTResults::get_desired_columns() const {
+	return m_desired_columns ;
 }
 
 bool SNPTESTResults::read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const {
@@ -93,23 +128,28 @@ void SNPTESTResults::store_value(
 	double value
 ) {
 	using genfile::string_utils::to_repr ;
+	bool matched = false ;
 	
-	if( variable == m_beta1_column_regex ) {
-		m_betas( snp_index, 0 ) = value ;
+	for( std::size_t i = 0; !matched && i < m_beta_columns.size(); ++i ) {
+		if( variable == m_beta_columns[i] ) {
+			m_betas( snp_index, i ) = value ;
+			matched = true ;
+		} else if( variable == m_se_columns[i] ) {
+			m_ses( snp_index, i ) = value ;
+			matched = true ;
+		}
 	}
-	else if( variable == m_se1_column_regex ) {
-		m_ses( snp_index, 0 ) = value ;
+	for( std::size_t i = 0; !matched && i < m_cov_columns.size(); ++i ) {
+		if( variable == m_cov_columns[i] ) {
+			m_covariance( snp_index, i ) = value ;
+			matched = true ;
+		}
 	}
-	else if( variable == m_beta2_column_regex )  {
-		m_betas( snp_index, 1 ) = value ;
+
+	if( matched ) {
+		return ;
 	}
-	else if( variable == m_se2_column_regex ) {
-		m_ses( snp_index, 1 ) = value ;
-	}
-	else if( variable == m_cov_column_regex ) {
-		m_covariance( snp_index, 0 ) = value ;
-	}
-	else if( variable == ".*_pvalue" ) {
+	if( variable == ".*_pvalue" ) {
 		m_pvalues( snp_index ) = value ;
 	}
 	else if( variable == "(all_)?info" ) {

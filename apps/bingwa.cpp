@@ -16,6 +16,7 @@
 #include <boost/signals2/signal.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/function.hpp>
+#include <boost/format.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/foreach.hpp>
 #define foreach BOOST_FOREACH
@@ -1655,33 +1656,42 @@ public:
 		
 		for( std::size_t i = 0; i < model_specs.size(); ++i ) {
 			std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > const rho_and_sds = parse_rho_and_sd( model_specs[i] ) ;
-#if DEBUG_BINGWA
-			std::cerr << "BingwaApplication::get_simple_priors(): rho_and_sds:\n" ;
-			for( std::size_t i = 0; i < rho_and_sds.size(); ++i ) {
-				std::cerr << "rho = " ;
-				for( std::size_t j = 0; j < rho_and_sds[i].get<0>().size(); ++j ) {
-					std::cerr << "\"" + rho_and_sds[i].get<0>()[j] << "\" " ;
-				}
-				std::cerr << "sd = " ;
-				for( std::size_t j = 0; j < rho_and_sds[i].get<1>().size(); ++j ) {
-					std::cerr << "\"" + rho_and_sds[i].get<1>()[j] << "\" " ;
-				}
-				std::cerr << "cor = " ;
-				for( std::size_t j = 0; j < rho_and_sds[i].get<2>().size(); ++j ) {
-					std::cerr << "\"" + rho_and_sds[i].get<2>()[j] << "\" " ;
-				}
-				std::cerr << std::endl ;
-			}
-#endif
 			for( std::size_t j = 0; j < rho_and_sds.size(); ++j ) {
 				boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > const& rho_and_sd = rho_and_sds[j] ;
+
+#if DEBUG_BINGWA
+				std::cerr << "BingwaApplication::get_simple_priors(): Looking at rho_and_sd:\n" ;
+				std::cerr << "rho = " ;
+				for( std::size_t j = 0; j < rho_and_sd.get<0>().size(); ++j ) {
+					std::cerr << "\"" + rho_and_sd.get<0>()[j] << "\" " ;
+				}
+				std::cerr << "sd = " ;
+				for( std::size_t j = 0; j < rho_and_sd.get<1>().size(); ++j ) {
+					std::cerr << "\"" + rho_and_sd.get<1>()[j] << "\" " ;
+				}
+				std::cerr << "cor = " ;
+				for( std::size_t j = 0; j < rho_and_sd.get<2>().size(); ++j ) {
+					std::cerr << "\"" + rho_and_sd.get<2>()[j] << "\" " ;
+				}
+				std::cerr << std::endl ;
+#endif
+
 				try {
-					if( int( rho_and_sd.get<0>().size() ) != m_processor->get_number_of_effect_parameters() ) {
+					if( rho_and_sd.get<0>().size() != 1 ) {
 						throw genfile::BadArgumentError(
 							"BingwaProcessor::get_simple_priors()",
 							"model_spec=\"" + model_specs[i] + "\"",
 							"In model spec \"" + model_specs[i] + "\", number of correlations specified ("
 							+ to_string( rho_and_sd.get<0>().size() )
+							+ ") is not 1"
+						) ;
+					}
+					if( int( rho_and_sd.get<1>().size() ) != m_processor->get_number_of_effect_parameters() ) {
+						throw genfile::BadArgumentError(
+							"BingwaProcessor::get_simple_priors()",
+							"model_spec=\"" + model_specs[i] + "\"",
+							"In model spec \"" + model_specs[i] + "\", number of sds specified ("
+							+ to_string( rho_and_sd.get<1>().size() )
 							+ ") does not match number of effect size parameters (" + to_string( m_processor->get_number_of_effect_parameters() ) + ")"
 						) ;
 					}
@@ -1696,25 +1706,48 @@ public:
 					{
 						int const N = m_processor->get_number_of_cohorts() ;
 						int const D = m_processor->get_number_of_effect_parameters() ;
-						Eigen::MatrixXd prior = Eigen::MatrixXd::Zero( N * D, N * D ) ;
+						Eigen::MatrixXd correlation = Eigen::MatrixXd::Zero( N * D, N * D ) ;
 
+						// We start by computing the correlation matrix.
+						// Prior is layed out in order of parameter (not cohort).
+						// Thus the first NxN block is for the first effect size parameter.
+						// We start with the diagonal blocks.  These do not involve the between-parameter correlation.
 						for( int block_i = 0; block_i < D; ++block_i ) {
-							prior.block( block_i * N, block_i * N, N, N ) = get_prior_matrix( number_of_cohorts, to_repr< double >( rho_and_sd.get<0>()[i] ), to_repr< double >( rho_and_sd.get<1>()[i] ) ) ;
+							correlation.block( block_i * N, block_i * N, N, N ) = get_prior_matrix(
+								number_of_cohorts,
+								to_repr< double >( rho_and_sd.get<0>()[0] ),
+								1
+							) ;
 						}
+						// ...and move on to the off-diagonal blocks which involve between-cohort and between-parameter correlation.
+						// We compute this using the diagonal block
 						int c = 0 ;
 						for( int block_i = 0; block_i < D; ++block_i ) {
 							for( int block_j = block_i + 1; block_j < D; ++block_j, ++c ) {
-								std::cerr << rho_and_sd.get<2>()[c] << "!\n" ;
-								prior.block( block_i * N, block_j * N, N, N ).array()
-									= prior.block( block_i * N, block_i * N, N, N ).array()
-									* prior.block( block_j * N, block_j * N, N, N ).array()
-									* to_repr< double >( rho_and_sd.get<2>()[c] )
+								correlation.block( block_i * N, block_j * N, N, N ).array()
+									= get_prior_matrix(
+										number_of_cohorts,
+										to_repr< double >( rho_and_sd.get<0>()[0] ),
+										1
+									) * to_repr< double >( rho_and_sd.get<2>()[c] ) ;
 								;
-								prior.block( block_j * N, block_i * N, N, N ) = prior.block( block_i * N, block_j * N, N, N ) ;
+								correlation.block( block_j * N, block_i * N, N, N ) = correlation.block( block_i * N, block_j * N, N, N ) ;
 							}
 						}
 		
-						(*result)[ model_name + "/sd=" + join( rho_and_sd.get<1>(), " " ) ] = prior ;
+						Eigen::VectorXd sd_matrix( N * D ) ;
+						for( int block_i = 0; block_i < D; ++block_i ) {
+							sd_matrix.segment( block_i * N, N ).setConstant( to_repr< double >( rho_and_sd.get<1>()[block_i] ) ) ;
+						}
+						Eigen::MatrixXd const covariance = sd_matrix.asDiagonal() * correlation * sd_matrix.asDiagonal() ;
+		
+						(*result)[ model_name + "/sd=" + join( rho_and_sd.get<1>(), " " ) ] = covariance ;
+						
+#if DEBUG_BINGWA
+						std::cerr << "For model " << ( model_name + "/sd=" + join( rho_and_sd.get<1>(), " " ) ) << ":\n"
+							<< "correlation =\n" << correlation << "\n"
+							<< "covariance = \n" << covariance << "\n" ;
+#endif
 					}
 				}
 				catch( StringConversionError const& e ) {
@@ -2057,39 +2090,48 @@ public:
 		return split_and_strip_discarding_empty_entries( spec.substr( 4, spec.size() ), " " ) ;
 	}
 
-	std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > parse_rho_and_sd( std::string const& spec ) {
+	typedef boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > RhoAndSd ;
+	std::vector< RhoAndSd > parse_rho_and_sd( std::string const& spec ) {
 		using namespace genfile::string_utils ;
-		std::vector< std::string > const parameters = split_and_strip( spec, "/" ) ;
+		std::vector< std::string > parameters = split_and_strip( spec, "/" ) ;
 		if(
-			( parameters.size() < 2 || parameters[0].substr( 0, 4 ) != "rho=" || parameters[1].substr( 0, 3 ) != "sd=" )
+			parameters.size() < 2
+			|| ( parameters[0].substr( 0, 4 ) != "rho=" || parameters[1].substr( 0, 3 ) != "sd=" )
+			|| ( parameters.size() == 3 && parameters[2].substr( 0, 4 ) != "cor=" )
 			|| ( parameters.size() > 3 )
-			|| ( parameters.size() == 3 && parameters[2].substr( 0, 8 ) != "cor_1,2=" )
 		) {
 			throw genfile::BadArgumentError(
 				"BingwaProcessor::parse_rho_and_sd()",
 				"spec=\"" + spec + "\"",
-				"Parameter spec \"" + spec + "\" is malformed, should be of the form rho=[rho]/sd=[sd] or rho=[rho1 rho2]/sd=[sd1 sd2]/cor_1,2=[cor]"
+				"Parameter spec \"" + spec + "\" is malformed, should be of the form rho=[rho]/sd=[sd] or rho=[rho]/sd=[sd1 sd1...]/cor=[cor12 cor13...]"
 			) ;
 		}
 
+		if( parameters.size() == 2 ) {
+			parameters.push_back( "cor=" ) ;
+		}
 		std::vector< std::string > const rhos = split_and_strip_discarding_empty_entries( parameters[0].substr( 4, parameters[0].size() ), " " ) ;
 		std::vector< std::string > const sds = split_and_strip_discarding_empty_entries( parameters[1].substr( 3, parameters[1].size() ), " " ) ;
+		std::vector< std::string > const cor = split_and_strip_discarding_empty_entries( parameters[2].substr( 4, parameters[2].size() ), " " ) ;
 
-		std::vector< std::string > cor ;
-		if( parameters.size() == 3 ) {
-			cor = split_and_strip_discarding_empty_entries( parameters[2].substr( 8, parameters[2].size() ), " " ) ;
-		}
-		
-		if( rhos.size() != sds.size() || cor.size() != (( rhos.size() - 1 ) * rhos.size() / 2 ) ) {
+		std::size_t const expectedNumberOfSDs = sds.size() ;
+		std::size_t const expectedNumberOfCorrelations = ( sds.size() * ( sds.size() - 1 ) ) / 2 ;
+		if( rhos.size() != 1 ) {
 			throw genfile::BadArgumentError(
 				"BingwaProcessor::parse_rho_and_sd()",
 				"spec=\"" + spec + "\"",
-				"Parameter spec \"" + spec + "\" is malformed, should be of the form rho=[rho]/sd=[sd] "
-				"or rho=[rho1 rho2]/sd=[sd1 sd2]/cor_1,2=[cor] if there is more than one effect parameter."
+				( boost::format( "Wrong number of sds (%d, should be %d)" ) % sds.size() % rhos.size() ).str()
+			) ;
+		}
+		if( cor.size() != expectedNumberOfCorrelations ) {
+			throw genfile::BadArgumentError(
+				"BingwaProcessor::parse_rho_and_sd()",
+				"spec=\"" + spec + "\"",
+				( boost::format( "Wrong number of correlations (%d, should be %d)" ) % cor.size() % expectedNumberOfCorrelations ).str()
 			) ;
 		}
 		
-		return expand_rhos_and_sds( rhos, sds, cor, m_value_sets[ "sd" ], m_value_sets[ "rho" ] ) ;
+		return std::vector< RhoAndSd >( 1, RhoAndSd( rhos, sds, cor ) ) ;
 	}
 
 	std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > expand_rhos_and_sds(
@@ -2504,7 +2546,7 @@ public:
 
 			boost::optional< std::string > effect_size_column_regex ;
 			if( options().check( "-effect-size-column-regex" ) ) {
-				std::vector< std::string > values = options().get_values< std::string >( "-effect-size-column-regex" ) ;
+				std::vector< std::string > values = options().get_values< std::string >( "g-column-regex" ) ;
 				if( values.size() != cohort_files.size() ) {
 					throw genfile::BadArgumentError(
 						"BingwaApplication::load_data()",

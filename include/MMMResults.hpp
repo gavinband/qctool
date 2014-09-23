@@ -24,11 +24,13 @@ private:
 	std::string m_effect_column_regex ;
 	std::string m_se_column_regex ;
 	std::set< std::string > m_variables ;
-
+	DesiredColumns m_required_columns ;
+	
 private:
+	void setup_columns( std::vector< std::string > const& column_names ) ;
+	DesiredColumns get_desired_columns() const ;
 	bool read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const ;
 	bool check_if_snp_accepted( std::size_t snp_i ) const ;
-	std::set< std::pair< std::string, bool > > get_desired_columns() const ;
 	void store_value(
 		int snp_index,
 		std::string const& variable,

@@ -50,7 +50,10 @@ public:
 protected:
 	std::string const m_missing_value ;
 	genfile::SNPIdentifyingDataTest::UniquePtr m_exclusion_test ;
-	typedef boost::bimap< std::string, std::size_t > ColumnMap ;
+	typedef boost::bimap< std::string, std::pair< std::size_t, std::string > > SourceColumnMap ;
+	typedef std::set< std::pair< std::string, bool > > DesiredColumns ;
+	
+	boost::optional< SourceColumnMap > m_column_map ;
 	
 	std::vector< genfile::SNPIdentifyingData2 > m_snps ;
 	int m_degrees_of_freedom ;
@@ -66,7 +69,8 @@ protected:
 	
 	FlatFileFrequentistGenomeWideAssociationResults() ;
 	
-	virtual std::set< std::pair< std::string, bool > > get_desired_columns() const = 0 ;
+	virtual void setup_columns( std::vector< std::string > const& column_names ) = 0 ;
+	virtual DesiredColumns get_desired_columns() const = 0 ;
 	virtual bool read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const = 0 ;
 	virtual bool check_if_snp_accepted( std::size_t snp_index ) const = 0 ;
 	virtual void store_value( int snp_index, std::string const& variable, double value ) = 0 ;
@@ -85,9 +89,13 @@ private:
 		ProgressCallback progress_callback
 	) ;
 	
-	ColumnMap get_columns_to_store(
+	SourceColumnMap get_source_column_map(
 		statfile::BuiltInTypeStatSource const& source
-	) ;
+	) const ;
+	void check_columns(
+		statfile::BuiltInTypeStatSource const& source,
+		SourceColumnMap const& column_map
+	) const ;
 
 	void resize_storage( Eigen::MatrixXf::Index const N_snps, Eigen::MatrixXf::Index const degrees_of_freedom ) ;
 	
