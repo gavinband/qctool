@@ -54,7 +54,9 @@ std::string const& EffectParameterNamePack::covariance_name( std::size_t i, std:
 	assert( j > i ) ;
 	// index in cov skips the lower diagonal.
 	// Lower diagonal has ((i+1)*(i+2)/2) entries since i is a 0-based index.
-	std::size_t index = j - ( (i+1)*(i+2)/2 ) ;
+	// index in full array would be i*N+j
+	std::size_t const N = m_betas.size() ;
+	std::size_t index = i*N + j - ( (i+1)*(i+2)/2 ) ;
 	return m_cov[index] ;
 }
 
