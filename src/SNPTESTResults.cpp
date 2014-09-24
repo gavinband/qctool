@@ -101,7 +101,7 @@ SNPTESTResults::DesiredColumns SNPTESTResults::setup_columns( std::vector< std::
 	DesiredColumns result ;
 	
 	{
-		regex unwanted_column_details( "^.*_frequentist_(add|dom|het|gen|rec)_(newml|ml|score|em|threshhold|expected)_" ) ;
+		regex unwanted_column_details( "^.*frequentist_(add|dom|het|gen|rec)(_newml|ml|score|em|threshhold|expected)*_" ) ;
 
 		std::vector< std::size_t > beta_indices ;
 		for( std::size_t i = 0; i < 1000; ++i ) {

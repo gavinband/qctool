@@ -2444,7 +2444,10 @@ public:
 		return result ;
 	}
 
-	void summarise_priors( std::map< std::string, Eigen::MatrixXd > const& priors, std::vector< std::string > const& cohort_names ) const {
+	void summarise_priors(
+		std::map< std::string, Eigen::MatrixXd > const& priors,
+		std::vector< std::string > const& cohort_names
+	) const {
 		get_ui_context().logger() << "\n================================================\n" ;
 		get_ui_context().logger() << "I will output the following bayesian models:\n\n" ;
 
@@ -2460,14 +2463,17 @@ public:
 			}
 		}
 
-		int const D = m_processor->get_number_of_effect_parameters() ;
+		EffectParameterNamePack const& parameter_names = m_processor->get_effect_parameter_names() ;
+		int const D = parameter_names.size() ;
 		int const N = cohort_names.size() ;
 
 		std::vector< std::size_t > column_widths( (D*N), 6 ) ;
 		for( std::size_t i = 0; i < (D*N); ++i ) {
-			column_widths[i] = std::max( cohort_names[i % N].size() + 4, 6ul ) ;
+			std::string const parameter_name = parameter_names.parameter_name( i / N ) ;
+			std::string const cohort_name = cohort_names[i % N] ;
+			std::size_t parameter_i = i / N ; // go in parameter order.
+			column_widths[i] = std::max( cohort_name.size() + parameter_name.size() + 2, 6ul ) ;
 		}
-
 
 		std::map< std::string, Eigen::MatrixXd >::const_iterator
 			prior_i = priors.begin(),
@@ -2479,15 +2485,13 @@ public:
 			Eigen::MatrixXd const& prior = prior_i->second ;
 			assert( prior.rows() == D*N ) ;
 
-			for( std::size_t parameter_i = 0; parameter_i < D; ++parameter_i ) {
-				std::string const parameter_number = genfile::string_utils::to_string( parameter_i + 1 ) ;
-				for( std::size_t i = 0; i < N; ++i ) {
-					get_ui_context().logger() << (( i > 0 ) ? " " : "" ) ;
-					// width + 2 accounts for 2-byte UTF8 encodings
-					get_ui_context().logger() << std::setw( column_widths[i] + 2 + parameter_number.size() ) << ( cohort_names[i] + ":β" + parameter_number ) ;
-				}
+			for( std::size_t i = 0; i < (D*N); ++i ) {
+				std::string const parameter_name = parameter_names.parameter_name( i / N ) ;
+				std::string const cohort_name = cohort_names[i % N] ;
+				get_ui_context().logger() << (( i > 0 ) ? " " : "" ) ;
+				get_ui_context().logger() << std::setw( column_widths[i] ) << ( cohort_name + ":" + parameter_name ) ;
 			}
-			
+
 			get_ui_context().logger() << "\n" ;
 
 			for( int i = 0; i < prior.rows(); ++i ) {
