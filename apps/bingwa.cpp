@@ -2468,34 +2468,41 @@ public:
 		int const N = cohort_names.size() ;
 
 		std::vector< std::size_t > column_widths( (D*N), 6 ) ;
+		std::size_t max_prefix_width = 6 ;
 		for( std::size_t i = 0; i < (D*N); ++i ) {
 			std::string const parameter_name = parameter_names.parameter_name( i / N ) ;
 			std::string const cohort_name = cohort_names[i % N] ;
 			std::size_t parameter_i = i / N ; // go in parameter order.
-			column_widths[i] = std::max( cohort_name.size() + parameter_name.size() + 2, 6ul ) ;
+			column_widths[i] = 6ul ;//std::max( cohort_name.size() + parameter_name.size() + 2, 6ul ) ;
+			max_prefix_width = std::max( max_prefix_width, cohort_name.size() + parameter_name.size() + 7 ) ;
 		}
+		max_model_name_width = std::max( max_model_name_width, max_prefix_width ) ;
 
 		std::map< std::string, Eigen::MatrixXd >::const_iterator
 			prior_i = priors.begin(),
 			end_prior_i = priors.end() ;
 		std::size_t count = 0 ;
 		for( ; prior_i != end_prior_i; ++prior_i, ++count ) {
-			get_ui_context().logger() << "  " << std::setw( max_model_name_width ) << prior_i->first << ":  " ;
-			std::string const padding = "  " + std::string( max_model_name_width, ' ' ) + "   " ;
+			get_ui_context().logger() << "-- " << prior_i->first << ":\n" ;
+			std::string const padding = "  " + std::string( ( max_model_name_width > max_prefix_width ) ? ( max_model_name_width - max_prefix_width ): 0, ' ' ) + "   " ;
 			Eigen::MatrixXd const& prior = prior_i->second ;
 			assert( prior.rows() == D*N ) ;
-
+			get_ui_context().logger() << "  " << std::setw( max_model_name_width ) << " " << "  " ;
 			for( std::size_t i = 0; i < (D*N); ++i ) {
-				std::string const parameter_name = parameter_names.parameter_name( i / N ) ;
-				std::string const cohort_name = cohort_names[i % N] ;
 				get_ui_context().logger() << (( i > 0 ) ? " " : "" ) ;
-				get_ui_context().logger() << std::setw( column_widths[i] ) << ( cohort_name + ":" + parameter_name ) ;
+				get_ui_context().logger() << std::setw( column_widths[i] ) << i ;
 			}
-
 			get_ui_context().logger() << "\n" ;
 
 			for( int i = 0; i < prior.rows(); ++i ) {
-				get_ui_context().logger() << padding ;
+//				get_ui_context().logger() << padding ;
+				std::string const parameter_name = parameter_names.parameter_name( i / N ) ;
+				std::string const cohort_name = cohort_names[i % N] ;
+				get_ui_context().logger()
+					<< "  " << std::setw( max_model_name_width )
+					<< std::right
+					<< ( "(" + cohort_name + ":" + parameter_name + ") " + std::to_string( i )) << "  "
+					<< std::left ;
 				for( int j = 0; j < prior.cols(); ++j ) {
 					get_ui_context().logger() << (( j > 0 ) ? " " : "" ) ;
 					get_ui_context().logger() << std::setw( column_widths[j] ) ;
