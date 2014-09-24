@@ -18,6 +18,7 @@
 #include <boost/function.hpp>
 #include <boost/format.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/tuple/tuple_comparison.hpp>
 #include <boost/foreach.hpp>
 #define foreach BOOST_FOREACH
 #include <boost/regex.hpp>
@@ -42,7 +43,6 @@
 #include "qcdb/Storage.hpp"
 #include "qcdb/FlatFileOutputter.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
-#include "components/SNPSummaryComponent/DBOutputter.hpp"
 #include "FrequentistGenomeWideAssociationResults.hpp"
 #include "EffectParameterNamePack.hpp"
 #include "SNPTESTResults.hpp"
@@ -199,9 +199,6 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 
 			options[ "-flat-file" ]
 				.set_description( "Specify the output file should be a flat file, not a db." ) ;
-			options[ "-flat-table" ]
-				.set_description( "Output all results for this analysis to one table with variables in columns and variants in rows. "
-					"This overrides the default db output style, which is in a normalised form with different variables on different rows." ) ;
 			options[ "-noindex" ]
 				.set_description( "Specify that " + globals::program_name + " should not create large indices on database tables when finalising storage."
 					" Indices are usually desired.  However, when running very large jobs parallelised across subsets, it is generally faster to"
@@ -218,14 +215,12 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_description( "Specify a name to label results from this analysis with" )
 				.set_takes_values_until_next_option() ;
 			options[ "-table-name" ]
-				.set_description( "Specify a name for the table to use when using -flat-table." )
+				.set_description( "Specify a name for the table to use." )
 				.set_takes_single_value() ;
 
 			options[ "-log" ]
 				.set_description( "Specify the path of a log file; all screen output will be copied to the file." )
 				.set_takes_single_value() ;
-				
-			options.option_implies_option( "-table-name", "-flat-table" ) ;
 		}
 
 		{
@@ -1487,7 +1482,7 @@ public:
 				options().get_values_as_map()
 			) ;
 		}
-		else if( options().check( "-flat-table" )) {
+		else {
 			qcdb::FlatTableDBOutputter::SharedPtr table_storage = qcdb::FlatTableDBOutputter::create_shared(
 				options().get< std::string >( "-o" ),
 				options().get< std::string >( "-analysis-name" ),
@@ -1499,14 +1494,6 @@ public:
 				table_storage->set_table_name( options().get< std::string >( "-table-name" )) ;
 			}
 			storage = table_storage ;
-		}
-		else {
-			storage = snp_summary_component::DBOutputter::create_shared(
-				options().get< std::string >( "-o" ),
-				options().get< std::string >( "-analysis-name" ),
-				options().get< std::string >( "-analysis-chunk" ),
-				options().get_values_as_map()
-			) ;
 		}
 
 		m_processor->send_results_to(
@@ -1665,43 +1652,42 @@ public:
 		}
 		
 		for( std::size_t i = 0; i < model_specs.size(); ++i ) {
-			std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > const rho_and_sds = parse_rho_and_sd( model_specs[i] ) ;
-			for( std::size_t j = 0; j < rho_and_sds.size(); ++j ) {
-				boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > const& rho_and_sd = rho_and_sds[j] ;
+			std::vector< CovarianceSpec > const covariance_specs = parse_covariance_spec( model_specs[i] ) ;
+			for( std::size_t j = 0; j < covariance_specs.size(); ++j ) {
+				CovarianceSpec const& covariance_spec = covariance_specs[j] ;
 
 #if DEBUG_BINGWA
-				std::cerr << "BingwaApplication::get_simple_priors(): Looking at rho_and_sd:\n" ;
 				std::cerr << "rho = " ;
-				for( std::size_t j = 0; j < rho_and_sd.get<0>().size(); ++j ) {
-					std::cerr << "\"" + rho_and_sd.get<0>()[j] << "\" " ;
+				for( std::size_t j = 0; j < covariance_spec.get<0>().size(); ++j ) {
+					std::cerr << "\"" + covariance_spec.get<0>()[j] << "\" " ;
 				}
 				std::cerr << "sd = " ;
-				for( std::size_t j = 0; j < rho_and_sd.get<1>().size(); ++j ) {
-					std::cerr << "\"" + rho_and_sd.get<1>()[j] << "\" " ;
+				for( std::size_t j = 0; j < covariance_spec.get<1>().size(); ++j ) {
+					std::cerr << "\"" + covariance_spec.get<1>()[j] << "\" " ;
 				}
 				std::cerr << "cor = " ;
-				for( std::size_t j = 0; j < rho_and_sd.get<2>().size(); ++j ) {
-					std::cerr << "\"" + rho_and_sd.get<2>()[j] << "\" " ;
+				for( std::size_t j = 0; j < covariance_spec.get<2>().size(); ++j ) {
+					std::cerr << "\"" + covariance_spec.get<2>()[j] << "\" " ;
 				}
 				std::cerr << std::endl ;
 #endif
 
 				try {
-					if( rho_and_sd.get<0>().size() != 1 ) {
+					if( covariance_spec.get<0>().size() != 1 ) {
 						throw genfile::BadArgumentError(
 							"BingwaProcessor::get_simple_priors()",
 							"model_spec=\"" + model_specs[i] + "\"",
 							"In model spec \"" + model_specs[i] + "\", number of correlations specified ("
-							+ to_string( rho_and_sd.get<0>().size() )
+							+ to_string( covariance_spec.get<0>().size() )
 							+ ") is not 1"
 						) ;
 					}
-					if( int( rho_and_sd.get<1>().size() ) != m_processor->get_number_of_effect_parameters() ) {
+					if( int( covariance_spec.get<1>().size() ) != m_processor->get_number_of_effect_parameters() ) {
 						throw genfile::BadArgumentError(
 							"BingwaProcessor::get_simple_priors()",
 							"model_spec=\"" + model_specs[i] + "\"",
 							"In model spec \"" + model_specs[i] + "\", number of sds specified ("
-							+ to_string( rho_and_sd.get<1>().size() )
+							+ to_string( covariance_spec.get<1>().size() )
 							+ ") does not match number of effect size parameters (" + to_string( m_processor->get_number_of_effect_parameters() ) + ")"
 						) ;
 					}
@@ -1710,7 +1696,7 @@ public:
 					if( model_names ) {
 						model_name = model_names.get()[i] ;
 					} else {
-						model_name = "rho=" + join( rho_and_sd.get<0>(), "," ) ;
+						model_name = "rho=" + join( covariance_spec.get<0>(), "," ) ;
 					}
 		
 					{
@@ -1725,7 +1711,7 @@ public:
 						for( int block_i = 0; block_i < D; ++block_i ) {
 							correlation.block( block_i * N, block_i * N, N, N ) = get_prior_matrix(
 								number_of_cohorts,
-								to_repr< double >( rho_and_sd.get<0>()[0] ),
+								to_repr< double >( covariance_spec.get<0>()[0] ),
 								1
 							) ;
 						}
@@ -1737,9 +1723,9 @@ public:
 								correlation.block( block_i * N, block_j * N, N, N ).array()
 									= get_prior_matrix(
 										number_of_cohorts,
-										to_repr< double >( rho_and_sd.get<0>()[0] ),
+										to_repr< double >( covariance_spec.get<0>()[0] ),
 										1
-									) * to_repr< double >( rho_and_sd.get<2>()[c] ) ;
+									) * to_repr< double >( covariance_spec.get<2>()[c] ) ;
 								;
 								correlation.block( block_j * N, block_i * N, N, N ) = correlation.block( block_i * N, block_j * N, N, N ) ;
 							}
@@ -1747,14 +1733,14 @@ public:
 		
 						Eigen::VectorXd sd_matrix( N * D ) ;
 						for( int block_i = 0; block_i < D; ++block_i ) {
-							sd_matrix.segment( block_i * N, N ).setConstant( to_repr< double >( rho_and_sd.get<1>()[block_i] ) ) ;
+							sd_matrix.segment( block_i * N, N ).setConstant( to_repr< double >( covariance_spec.get<1>()[block_i] ) ) ;
 						}
 						Eigen::MatrixXd const covariance = sd_matrix.asDiagonal() * correlation * sd_matrix.asDiagonal() ;
 		
-						(*result)[ model_name + "/sd=" + join( rho_and_sd.get<1>(), "," ) ] = covariance ;
+						(*result)[ model_name + "/sd=" + join( covariance_spec.get<1>(), "," ) + "/cor=" + join( covariance_spec.get<2>(), "," ) ] = covariance ;
 						
 #if DEBUG_BINGWA
-						std::cerr << "For model " << ( model_name + "/sd=" + join( rho_and_sd.get<1>(), " " ) ) << ":\n"
+						std::cerr << "For model " << ( model_name + "/sd=" + join( covariance_spec.get<1>(), " " ) ) << ":\n"
 							<< "correlation =\n" << correlation << "\n"
 							<< "covariance = \n" << covariance << "\n" ;
 #endif
@@ -1930,11 +1916,11 @@ public:
 				std::string const& group_name = elts[0] ;
 				group_names[ block_i ] = group_name ;
 				// Get the per-group correlation and sd.
-				std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > const rho_and_sds = parse_rho_and_sd( elts[1] ) ;
-				assert( rho_and_sds.size() == 1 ) ; // TODO: handle a set of rhos or sds.
-				for( std::size_t j = 0; j < rho_and_sds.size(); ++j ) {
-					boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > const& rho_and_sd = rho_and_sds[j] ;
-					if( int( rho_and_sd.get<0>().size() ) != m_processor->get_number_of_effect_parameters() ) {
+				std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > const covariance_specs = parse_covariance_spec( elts[1] ) ;
+				assert( covariance_specs.size() == 1 ) ; // TODO: handle a set of rhos or sds.
+				for( std::size_t j = 0; j < covariance_specs.size(); ++j ) {
+					boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > const& covariance_spec = covariance_specs[j] ;
+					if( int( covariance_spec.get<0>().size() ) != m_processor->get_number_of_effect_parameters() ) {
 						throw genfile::BadArgumentError(
 							"BingwaProcessor::get_group_priors()",
 							"model_spec=\"" + model_specs[i] + "\"",
@@ -1944,8 +1930,8 @@ public:
 						) ;
 					}
 
-					double const rho = to_repr< double >( rho_and_sd.get<0>()[0] ) ;
-					double const sd = to_repr< double >( rho_and_sd.get<1>()[0] ) ;
+					double const rho = to_repr< double >( covariance_spec.get<0>()[0] ) ;
+					double const sd = to_repr< double >( covariance_spec.get<1>()[0] ) ;
 					group_sds[ block_i ] = sd ;
 				
 					// Get the group members
@@ -2044,21 +2030,21 @@ public:
 			}
 			std::vector< std::string > const& cohorts = where->second ;
 
-			std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > const rho_and_sds = parse_rho_and_sd( bits[1] ) ;
-			for( std::size_t j = 0; j < rho_and_sds.size(); ++j ) {
-				boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > const& rho_and_sd = rho_and_sds[j] ;
-				if( int( rho_and_sd.get<0>().size() ) != m_processor->get_number_of_effect_parameters() ) {
+			std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > const covariance_specs = parse_covariance_spec( bits[1] ) ;
+			for( std::size_t j = 0; j < covariance_specs.size(); ++j ) {
+				boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > const& covariance_spec = covariance_specs[j] ;
+				if( int( covariance_spec.get<0>().size() ) != m_processor->get_number_of_effect_parameters() ) {
 					throw genfile::BadArgumentError(
 						"BingwaProcessor::get_group_specific_priors()",
 						"model_spec=\"" + model_specs[i] + "\"",
 						"In model spec \"" + model_specs[i] + "\", number of correlations and standard deviations specified ("
-						+ to_string( rho_and_sd.get<0>().size() )
+						+ to_string( covariance_spec.get<0>().size() )
 						+ ") does not match number of effect size parameters (" + to_string( m_processor->get_number_of_effect_parameters() ) + ")"
 					) ;
 				}
 
-				double const rho = to_repr< double >( rho_and_sd.get<0>()[0] ) ;
-				double const sd = to_repr< double >( rho_and_sd.get<1>()[0] ) ;
+				double const rho = to_repr< double >( covariance_spec.get<0>()[0] ) ;
+				double const sd = to_repr< double >( covariance_spec.get<1>()[0] ) ;
 			
 				Eigen::MatrixXd prior( number_of_cohorts, number_of_cohorts ) ;
 				prior.setZero() ;
@@ -2083,7 +2069,7 @@ public:
 					model_name = bits[0] + "-specific" ;
 				}
 			
-				(*result)[ model_name + "/rho=" + join( rho_and_sd.get<0>(), " " ) + "/sd=" + join( rho_and_sd.get<1>(), " " ) ] = prior ;
+				(*result)[ model_name + "/rho=" + join( covariance_spec.get<0>(), " " ) + "/sd=" + join( covariance_spec.get<1>(), " " ) ] = prior ;
 			}
 		}
 	}
@@ -2100,8 +2086,9 @@ public:
 		return split_and_strip_discarding_empty_entries( spec.substr( 4, spec.size() ), " " ) ;
 	}
 
-	typedef boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > RhoAndSd ;
-	std::vector< RhoAndSd > parse_rho_and_sd( std::string const& spec ) {
+	typedef boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > CovarianceSpec ;
+
+	std::vector< CovarianceSpec > parse_covariance_spec( std::string const& spec ) {
 		using namespace genfile::string_utils ;
 		std::vector< std::string > parameters = split_and_strip( spec, "/" ) ;
 		if(
@@ -2111,7 +2098,7 @@ public:
 			|| ( parameters.size() > 3 )
 		) {
 			throw genfile::BadArgumentError(
-				"BingwaProcessor::parse_rho_and_sd()",
+				"BingwaProcessor::parse_covariance_spec()",
 				"spec=\"" + spec + "\"",
 				"Parameter spec \"" + spec + "\" is malformed, should be of the form rho=[rho]/sd=[sd] or rho=[rho]/sd=[sd1 sd1...]/cor=[cor12 cor13...]"
 			) ;
@@ -2127,20 +2114,73 @@ public:
 		std::size_t const expectedNumberOfCorrelations = ( sds.size() * ( sds.size() - 1 ) ) / 2 ;
 		if( rhos.size() != 1 ) {
 			throw genfile::BadArgumentError(
-				"BingwaProcessor::parse_rho_and_sd()",
+				"BingwaProcessor::parse_covariance_spec()",
 				"spec=\"" + spec + "\"",
 				( boost::format( "Wrong number of sds (%d, should be %d)" ) % sds.size() % rhos.size() ).str()
 			) ;
 		}
 		if( cor.size() != expectedNumberOfCorrelations ) {
 			throw genfile::BadArgumentError(
-				"BingwaProcessor::parse_rho_and_sd()",
+				"BingwaProcessor::parse_covariance_spec()",
 				"spec=\"" + spec + "\"",
 				( boost::format( "Wrong number of correlations (%d, should be %d)" ) % cor.size() % expectedNumberOfCorrelations ).str()
 			) ;
 		}
 		
-		return std::vector< RhoAndSd >( 1, RhoAndSd( rhos, sds, cor ) ) ;
+		return expand_sds( CovarianceSpec( rhos, sds, cor ), m_value_sets[ "sd" ] ) ;
+	}
+
+	std::vector< CovarianceSpec > expand_sds(
+		CovarianceSpec const& covariance_spec,
+		std::map< std::string, std::vector< std::string > > const& sd_sets
+	) {
+		std::vector< CovarianceSpec > result ;
+		// currently we just expand sds according to the sets in sd_sets.
+		std::vector< std::string > const& sds = covariance_spec.get<1>() ;
+		std::vector< std::string > sd_set_names ;
+		std::vector< std::size_t > working_sd_indices ;
+		for( std::map< std::string, std::vector< std::string > >::const_iterator i = sd_sets.begin(); i != sd_sets.end(); ++i ) {
+			working_sd_indices.push_back( 0 ) ;
+			sd_set_names.push_back( i->first ) ;
+		}
+			
+		bool complete = false ;
+		while( !complete ) {
+			// construct the configuration
+			std::vector< std::string > these_sds = sds ;
+			for( std::size_t i = 0; i < sd_set_names.size(); ++i ) {
+				std::string const set_name = sd_set_names[i] ;
+				for( std::size_t j = 0; j < sds.size(); ++j ) {
+					these_sds[j] = genfile::string_utils::replace_all(
+						sds[j],
+						"[" + sd_set_names[i] + "]",
+						sd_sets.find( set_name )->second.at( working_sd_indices[ i ] )
+					) ;
+				}
+			}
+			CovarianceSpec new_spec( CovarianceSpec( covariance_spec.get<0>(), these_sds, covariance_spec.get<2>() ) ) ;
+			if( std::find( result.begin(), result.end(), new_spec ) == result.end() ) {
+				result.push_back( new_spec ) ;
+			}
+			
+			// move to next configuration of sds and rhos.
+			// The rather ungainly code below steps through substitutable values of sds and then of rhos in right-to-left order.
+			std::size_t k = 0 ;
+			for( ; k < sd_set_names.size(); ++k ) {
+				std::size_t j = sd_set_names.size() - k - 1 ;
+				std::string const set_name = sd_set_names[j] ;
+				if( ++working_sd_indices[j] == sd_sets.find( set_name )->second.size() ) {
+					working_sd_indices[j] = 0 ;
+				} else {
+					break ;
+				}
+			}
+			if( k == sd_set_names.size() ) {
+				complete = true ;
+			}
+		}
+
+		return result ;
 	}
 
 	std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > expand_rhos_and_sds(
@@ -2222,8 +2262,6 @@ public:
 		using genfile::string_utils::to_repr ;
 		using genfile::string_utils::split_and_strip_discarding_empty_entries ;
 		int const N = options.get_values< std::string >( "-data" ).size() ;
-		
-		
 		
 		if( options.check( "-define-sd-set" )) {
 			m_value_sets[ "sd" ] = parse_value_list( options.get_values< std::string >( "-define-sd-set" )) ;
