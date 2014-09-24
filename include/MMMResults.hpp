@@ -18,6 +18,7 @@ struct MMMResults: public FlatFileFrequentistGenomeWideAssociationResults {
 	void add_variable( std::string const& variable ) ;
 	std::string get_summary( std::string const& prefix, std::size_t target_column ) const ;
 	int get_number_of_effect_parameters() const ;
+	EffectParameterNamePack get_effect_parameter_names() const ;
 
 private:
 	genfile::SNPIdentifyingDataTest::UniquePtr m_exclusion_test ;
@@ -27,8 +28,7 @@ private:
 	DesiredColumns m_required_columns ;
 	
 private:
-	void setup_columns( std::vector< std::string > const& column_names ) ;
-	DesiredColumns get_desired_columns() const ;
+	DesiredColumns setup_columns( std::vector< std::string > const& column_names ) ;
 	bool read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const ;
 	bool check_if_snp_accepted( std::size_t snp_i ) const ;
 	void store_value(

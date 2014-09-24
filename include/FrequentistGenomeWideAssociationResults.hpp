@@ -17,6 +17,7 @@
 #include "genfile/SNPIdentifyingDataTest.hpp"
 #include "genfile/wildcard.hpp"
 #include "genfile/VariantEntry.hpp"
+#include "EffectParameterNamePack.hpp"
 
 struct FrequentistGenomeWideAssociationResults: public boost::noncopyable {
 public:
@@ -26,6 +27,7 @@ public:
 		boost::function< void ( genfile::SNPIdentifyingData2 const&, std::string const&, genfile::VariantEntry const& ) > 
 		SNPResultCallback ;
 	typedef boost::function< void ( std::size_t, boost::optional< std::size_t > ) > ProgressCallback ;
+	typedef EffectParameterNamePack EffectParameterNamePack ;
 
 	static UniquePtr create(
 		std::vector< genfile::wildcard::FilenameMatch > const& filenames,
@@ -43,7 +45,7 @@ public:
 	virtual void set_effect_size_column_regex( std::string const& ) = 0 ;
 	virtual std::size_t get_number_of_SNPs() const = 0 ;
 	virtual genfile::SNPIdentifyingData2 const& get_SNP( std::size_t snp_i ) const = 0 ;
-	virtual int get_number_of_effect_parameters() const = 0 ;
+	virtual EffectParameterNamePack get_effect_parameter_names() const = 0 ;
 	virtual void get_betas( std::size_t snp_i, Eigen::VectorXd* result ) const = 0 ;
 	virtual void get_ses( std::size_t snp_i, Eigen::VectorXd* result ) const = 0 ; 
 	virtual void get_covariance_upper_triangle( std::size_t snp_i, Eigen::VectorXd* result ) const = 0 ; 

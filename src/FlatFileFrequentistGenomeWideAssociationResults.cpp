@@ -104,7 +104,7 @@ std::string FlatFileFrequentistGenomeWideAssociationResults::get_summary( std::s
 		end_i = m_column_map.get().right.end() ;
 	
 	for( std::size_t count = 0; i != end_i; ++i, ++count ) {
-		str << " -- column " << i->first.first << ": " << "(\"" << i->first.second << "\", matching \"" << i->second << "\")\n" ;
+		str << " -- column " << i->first << ": " << "(\"" << i->second.name() << "\", matching \"" << i->second.pattern().str() << "\")\n" ;
 	}
 	return str.str() ;
 }
@@ -129,14 +129,14 @@ void FlatFileFrequentistGenomeWideAssociationResults::setup(
 	ProgressCallback progress_callback
 ) {
 	if( !m_column_map ) {
-		setup_columns( source->column_names() ) ;
-		m_column_map = get_source_column_map( *source ) ;
+		m_desired_columns = setup_columns( source->column_names() ) ;
+		m_column_map = get_source_column_map( *source, m_desired_columns ) ;
 		
 	} else {
 		check_columns( *source, m_column_map.get() ) ;
 	}
 	assert( m_column_map ) ;
-	int const degrees_of_freedom = get_number_of_effect_parameters() ;
+	int const degrees_of_freedom = get_effect_parameter_names().size() ;
 	
 	std::size_t snp_index = m_snps.size() ;
 
@@ -163,12 +163,12 @@ void FlatFileFrequentistGenomeWideAssociationResults::setup(
 		std::string value ;
 		for( ; i != end_i; ++i ) {
 			(*source)
-				>> statfile::ignore( i->first.first - source->current_column() )
+				>> statfile::ignore( i->first - source->current_column() )
 				>> value ;
 
 			store_value(
 				snp_index,
-				i->second,
+				i->second.simplified_name(),
 				( value == m_missing_value ) ? NA : genfile::string_utils::to_repr< double >( value )
 			) ;
 		}
@@ -189,43 +189,24 @@ void FlatFileFrequentistGenomeWideAssociationResults::setup(
 }
 
 FlatFileFrequentistGenomeWideAssociationResults::SourceColumnMap FlatFileFrequentistGenomeWideAssociationResults::get_source_column_map(
-	statfile::BuiltInTypeStatSource const& source
+	statfile::BuiltInTypeStatSource const& source,
+	DesiredColumns const& desired_columns
 ) const {
-	using genfile::string_utils::to_string ;
-	DesiredColumns desired_columns = get_desired_columns() ;
-
 	SourceColumnMap result ;
-	for( std::size_t i = 0; i < source.number_of_columns(); ++i ) {
-		std::string name = source.name_of_column( i ) ;
-		for( DesiredColumns::iterator j = desired_columns.begin(); j != desired_columns.end(); ++j ) {
-			boost::regex regex( j->first ) ;
-			if( boost::regex_match( name, regex ) ) {
-				std::pair< SourceColumnMap::iterator, bool > insertion = result.insert(
-					SourceColumnMap::value_type( j->first, std::make_pair( i, name ))
-				) ;
-				if( !insertion.second ) {
-					throw genfile::OperationFailedError(
-						"FlatFileFrequentistGenomeWideAssociationResults::get_source_column_map()",
-						"m_column_map",
-						"Insertion of value for column \"" + name + "\" (matching \"" + j->first + "\")."
-					) ;
-				}
-			}
+	for( std::size_t i = 0; i < desired_columns.size(); ++i ) {
+		std::pair< SourceColumnMap::iterator, bool > insertion = result.insert(
+			SourceColumnMap::value_type(
+				desired_columns[i], desired_columns[i].index()
+			)
+		) ;
+		if( !insertion.second ) {
+			throw genfile::OperationFailedError(
+				"FlatFileFrequentistGenomeWideAssociationResults::get_source_column_map()",
+				"m_column_map",
+				"Insertion of value for column \"" + desired_columns[i].name() + "\" (matching \"" + desired_columns[i].pattern().str() + "\")."
+			) ;
 		}
 	}
-	
-	for( DesiredColumns::const_iterator j = desired_columns.begin(); j != desired_columns.end(); ++j ) {
-		if( j->second == true ) {
-			if( result.left.find( j->first ) == result.left.end() ) {
-				throw genfile::BadArgumentError(
-					"FlatFileFrequentistGenomeWideAssociationResults::get_source_column_map()",
-					"required column=\"" + j->first + "\"",
-					"Could not find column matching \"" + j->first + "\" in source \"" + source.get_source_spec() + "\""
-				) ;
-			}
-		}
-	}
-
 	return result ;
 }
 
@@ -236,18 +217,18 @@ void FlatFileFrequentistGenomeWideAssociationResults::check_columns(
 	std::vector< std::string > const& column_names = source.column_names() ;
 	// typedef boost::bimap< std::string, std::size_t > SourceColumnMap ;
 
-	boost::format fmt( "Column %d (\"%s\") does not match regex \"%s\"." ) ;
+	boost::format fmt( "Column %d (\"%s\") does not match expected name \"%s\"." ) ;
 	SourceColumnMap::const_iterator
 		i = column_map.begin(),
 		end_i = column_map.end() ;
 	for( ; i != end_i; ++i ) {
-		std::string const& column_name = column_names[ i->right.first ] ;
-		boost::regex regex( i->left ) ;
-		if( !boost::regex_match( column_name, regex ) ) {
+		std::string const& column_name = column_names[ i->right ] ;
+		std::string const& expected_name = i->left.name() ;
+		if( column_name != expected_name ) {
 			throw genfile::BadArgumentError(
 				"FlatFileFrequentistGenomeWideAssociationResults::check_columns()",
 				"source=\"" + source.get_source_spec() + "\"",
-				( fmt % ( i->right.first + 1 ) % column_name % i->left ).str()
+				( fmt % ( i->right + 1 ) % column_name % expected_name ).str()
 			) ;
 		} ;
 	}

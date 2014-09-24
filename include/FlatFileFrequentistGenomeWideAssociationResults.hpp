@@ -8,6 +8,7 @@
 #define FLAT_FILE_FREQUENTISTGENOMEWIDEASSOCIATIONRESULTS_HPP
 
 #include <boost/bimap.hpp>
+#include <boost/regex.hpp>
 #include "statfile/BuiltInTypeStatSource.hpp"
 #include "FrequentistGenomeWideAssociationResults.hpp"
 
@@ -35,7 +36,6 @@ public:
 	std::size_t get_number_of_SNPs() const ;
 
 	genfile::SNPIdentifyingData2 const& get_SNP( std::size_t snp_i ) const ;
-	virtual int get_number_of_effect_parameters() const = 0 ;
 	void get_betas( std::size_t snp_i, Eigen::VectorXd* result ) const ;
 	void get_ses( std::size_t snp_i, Eigen::VectorXd* result ) const ;
 	void get_covariance_upper_triangle( std::size_t snp_i, Eigen::VectorXd* result ) const ; 
@@ -47,12 +47,63 @@ public:
 	void get_variable( std::size_t snp_i, std::string const& variable, double* value ) const ;
 	std::string get_summary( std::string const& prefix, std::size_t target_column ) const ;
 
+public:
+	struct ColumnSpec {
+		ColumnSpec():
+			 m_required( false )
+		{}
+		ColumnSpec( std::string const& name, boost::regex const& pattern, std::size_t index, bool required, std::string const& type ):
+			m_name( name ),
+			m_simplified_name( name ),
+			m_pattern( pattern ),
+			m_index( index ),
+			m_required( required ),
+			m_type( type )
+		{}
+		ColumnSpec( ColumnSpec const& other ):
+			m_name( other.m_name ),
+			m_simplified_name( other.m_simplified_name ),
+			m_pattern( other.m_pattern ),
+			m_index( other.m_index ),
+			m_required( other.m_required ),
+			m_type( other.m_type )
+		{}
+		ColumnSpec& operator=( ColumnSpec const& other ) {
+			m_name = other.m_name ;
+			m_name = other.m_simplified_name ;
+			m_pattern = other.m_pattern ;
+			m_index = other.m_index ;
+			m_required = other.m_required ;
+			m_type = other.m_type ;
+			return *this ;
+		}
+		bool operator<( ColumnSpec const& other ) const {
+			return m_name < other.m_name ;
+		}
+		std::string const& name() const { return m_name ; }
+		std::string const& simplified_name() const { return m_simplified_name ; }
+		boost::regex const& pattern() const { return m_pattern ; }
+		std::size_t index() const { return m_index ; }
+		bool const& required() const { return m_required ; }
+		std::string const& type() const { return m_type ; }
+
+		void set_simplified_name( std::string const& name ) { m_simplified_name = name ; }
+	private:
+		std::string m_name ;
+		std::string m_simplified_name ;
+		boost::regex m_pattern ;
+		std::size_t m_index ;
+		bool m_required ;
+		std::string m_type ;
+	} ;
+	typedef std::vector< ColumnSpec > DesiredColumns ;
+ 	typedef boost::bimap< ColumnSpec, std::size_t > SourceColumnMap ;
+	
 protected:
 	std::string const m_missing_value ;
 	genfile::SNPIdentifyingDataTest::UniquePtr m_exclusion_test ;
-	typedef boost::bimap< std::string, std::pair< std::size_t, std::string > > SourceColumnMap ;
-	typedef std::set< std::pair< std::string, bool > > DesiredColumns ;
-	
+
+	DesiredColumns m_desired_columns ;
 	boost::optional< SourceColumnMap > m_column_map ;
 	
 	std::vector< genfile::SNPIdentifyingData2 > m_snps ;
@@ -69,8 +120,7 @@ protected:
 	
 	FlatFileFrequentistGenomeWideAssociationResults() ;
 	
-	virtual void setup_columns( std::vector< std::string > const& column_names ) = 0 ;
-	virtual DesiredColumns get_desired_columns() const = 0 ;
+	virtual DesiredColumns setup_columns( std::vector< std::string > const& column_names ) = 0 ;
 	virtual bool read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const = 0 ;
 	virtual bool check_if_snp_accepted( std::size_t snp_index ) const = 0 ;
 	virtual void store_value( int snp_index, std::string const& variable, double value ) = 0 ;
@@ -90,7 +140,8 @@ private:
 	) ;
 	
 	SourceColumnMap get_source_column_map(
-		statfile::BuiltInTypeStatSource const& source
+		statfile::BuiltInTypeStatSource const& source,
+		DesiredColumns const&
 	) const ;
 	void check_columns(
 		statfile::BuiltInTypeStatSource const& source,

@@ -393,6 +393,7 @@ struct BingwaComputation: public boost::noncopyable {
 	virtual ~BingwaComputation() {}
 	typedef genfile::SNPIdentifyingData2 SNPIdentifyingData2 ;
 	typedef boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
+	typedef FrequentistGenomeWideAssociationResults::EffectParameterNamePack EffectParameterNamePack ;
 	
 	struct DataGetter: public boost::noncopyable {
 		virtual ~DataGetter() {} ;
@@ -410,7 +411,7 @@ struct BingwaComputation: public boost::noncopyable {
 
 	typedef boost::function< bool ( DataGetter const&, int i ) > Filter ;
 	
-	virtual void set_number_of_effect_parameters( int const d ) = 0 ;
+	virtual void set_effect_parameter_names( EffectParameterNamePack const& names ) = 0 ;
 	virtual void get_variables( boost::function< void ( std::string ) > ) const = 0 ;
 	virtual void operator()(
 		SNPIdentifyingData2 const&,
@@ -427,16 +428,15 @@ public:
 	
 public:
 	PerCohortValueReporter( std::vector< std::string > const& cohort_names ):
-		m_cohort_names( cohort_names ),
-		m_degrees_of_freedom( -1 )
+		m_cohort_names( cohort_names )
 	{}
 	
 	void add_variable( std::string const& variable ) {
 		m_extra_variables.insert( variable ) ;
 	}
 	
-	void set_number_of_effect_parameters( int const d ) {
-		m_degrees_of_freedom = d ;
+	void set_effect_parameter_names( EffectParameterNamePack const& names ) {
+		m_effect_parameter_names = names ;
 	}
 	
 	void get_variables( boost::function< void ( std::string ) > callback ) const {
@@ -454,13 +454,15 @@ public:
 			callback( prefix + "B_allele_frequency" ) ;
 			callback( prefix + "maf" ) ;
 
-			for( int i = 0; i < m_degrees_of_freedom; ++i ) {
-				callback( prefix + "beta_" + to_string( i+1 ) ) ;
-				callback( prefix + "se_" + to_string( i+1 ) ) ;
+			for( std::size_t i = 0; i < m_effect_parameter_names.size(); ++i ) {
+//				callback( prefix + "beta_" + to_string( i+1 ) ) ;
+//				callback( prefix + "se_" + to_string( i+1 ) ) ;
+				callback( prefix + m_effect_parameter_names.parameter_name(i) ) ;
+				callback( prefix + m_effect_parameter_names.se_name(i) ) ;
 			}
-			for( int i = 0; i < m_degrees_of_freedom; ++i ) {
-				for( int j = i+1; j < m_degrees_of_freedom; ++j ) {
-					callback( prefix + "cov_" + to_string( i+1 ) + "," + to_string( j+1) ) ;
+			for( std::size_t i = 0; i < m_effect_parameter_names.size(); ++i ) {
+				for( std::size_t j = i+1; j < m_effect_parameter_names.size(); ++j ) {
+					callback( prefix + m_effect_parameter_names.covariance_name(i,j) ) ;
 				}
 			}
 			
@@ -523,16 +525,17 @@ public:
 				assert( betas.size() == ses.size() ) ;
 				assert( covariance.size() == ( betas.size() - 1 ) * betas.size() / 2 ) ;
 				for( int j = 0; j < betas.size(); ++j ) {
-					callback( prefix + "beta_" + to_string( j+1 ), betas(j) ) ;
+//					callback( prefix + "beta_" + to_string( j+1 ), betas(j) ) ;
+					callback( prefix + m_effect_parameter_names.parameter_name(j), betas(j) ) ;
 				}
 				for( int j = 0; j < betas.size(); ++j ) {
-					callback( prefix + "se_" + to_string( j+1 ), ses(j) ) ;
+					callback( prefix + m_effect_parameter_names.se_name(j), ses(j) ) ;
 				}
 				{
 					int index = 0 ;
 					for( int j = 0; j < betas.size(); ++j ) {
 						for( int k = j+1; k < betas.size(); ++k, ++index ) {
-							callback( prefix + "cov_" + to_string(j+1) + "," + to_string(k+1), covariance( index ) ) ;
+							callback( prefix + m_effect_parameter_names.covariance_name(j,k), covariance( index ) ) ;
 						}
 					}
 					assert( index == covariance.size() ) ;
@@ -561,7 +564,7 @@ public:
 	private:
 		std::vector< std::string > const m_cohort_names ;
 		std::set< std::string > m_extra_variables ;
-		int m_degrees_of_freedom ;
+		EffectParameterNamePack m_effect_parameter_names ;
 } ;
 
 namespace impl {
@@ -721,14 +724,14 @@ struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {
 		m_filter = filter ;
 	}
 	
-	void set_number_of_effect_parameters( int const d ) {
-		m_degrees_of_freedom = d ;
+	void set_effect_parameter_names( EffectParameterNamePack const& names ) {
+		m_degrees_of_freedom = names.size() ;
 	}
 
 	void get_variables( boost::function< void ( std::string ) > callback ) const {
-		callback( "frequentist-fixed-effect:meta_beta" ) ;
-		callback( "frequentist-fixed-effect:meta_se" ) ;
-		callback( "frequentist-fixed-effect:pvalue" ) ;
+		callback( "FixedEffect:meta_beta" ) ;
+		callback( "FixedEffect:meta_se" ) ;
+		callback( "FixedEffect:pvalue" ) ;
 	}
 
 	void operator()(
@@ -744,9 +747,9 @@ struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {
 		Eigen::VectorXd ses = Eigen::VectorXd::Constant( N, NA ) ;
 		Eigen::VectorXd non_missingness = Eigen::VectorXd::Constant( N, NA ) ;
 		if( !impl::get_betas_and_ses_one_per_study( data_getter, m_filter, betas, ses, non_missingness ) ) {
-			callback( "frequentist-fixed-effect:meta_beta", genfile::MissingValue() ) ;
-			callback( "frequentist-fixed-effect:meta_se", genfile::MissingValue() ) ;
-			callback( "frequentist-fixed-effect:pvalue", genfile::MissingValue() ) ;
+			callback( "FixedEffect:meta_beta", genfile::MissingValue() ) ;
+			callback( "FixedEffect:meta_se", genfile::MissingValue() ) ;
+			callback( "FixedEffect:pvalue", genfile::MissingValue() ) ;
 			return ;
 		}
 		else {
@@ -761,8 +764,8 @@ struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {
 			double const meta_beta = ( non_missingness.sum() == 0 ) ? NA : ( inverse_variances.array() * betas.array() ).sum() / inverse_variances.sum() ;
 			double const meta_se = ( non_missingness.sum() == 0 ) ? NA : std::sqrt( 1.0 / inverse_variances.sum() ) ;
 
-			callback( "frequentist-fixed-effect", meta_beta ) ;
-			callback( "frequentist-fixed-effect:meta_se", meta_se ) ;
+			callback( "FixedEffect:meta_beta", meta_beta ) ;
+			callback( "FixedEffect:meta_se", meta_se ) ;
 
 			//std::cerr << "SNP: " << snp << ": betas = " << betas << ", ses = " << ses << ".\n" ;
 
@@ -771,7 +774,7 @@ struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {
 				NormalDistribution normal( 0, meta_se ) ;
 				// P-value is the mass under both tails of the normal distribution larger than |meta_beta|
 				double const pvalue = 2.0 * boost::math::cdf( boost::math::complement( normal, std::abs( meta_beta ) ) ) ;
-				callback( "frequentist-fixed-effect:pvalue", pvalue ) ;
+				callback( "FixedEffect:pvalue", pvalue ) ;
 			}
 			
 		}
@@ -824,8 +827,7 @@ struct ApproximateBayesianMetaAnalysis: public BingwaComputation {
 		m_prefix( name ),
 		m_sigma( sigma ),
 		m_compute_posterior_mean_and_variance( false ),
-		m_filter( &impl::basic_missingness_filter ),
-		m_degrees_of_freedom( -1 )
+		m_filter( &impl::basic_missingness_filter )
 	{
 		assert( m_sigma.rows() == m_sigma.cols() ) ;
 	}
@@ -834,8 +836,8 @@ struct ApproximateBayesianMetaAnalysis: public BingwaComputation {
 		m_filter = filter ;
 	}
 
-	void set_number_of_effect_parameters( int const d ) {
-		m_degrees_of_freedom = d ;
+	void set_effect_parameter_names( EffectParameterNamePack const& names ) {
+		m_effect_parameter_names = names ;
 	}
 
 	void get_variables( boost::function< void ( std::string ) > callback ) const {
@@ -865,7 +867,7 @@ private:
 	Eigen::MatrixXd const m_sigma ;
 	bool const m_compute_posterior_mean_and_variance ;
 	Filter m_filter ;
-	int m_degrees_of_freedom ;
+	EffectParameterNamePack m_effect_parameter_names ;
 	
 	void compute_bayes_factor( Eigen::MatrixXd const& prior, Eigen::MatrixXd const& V, Eigen::VectorXd const& betas, ResultCallback callback ) const ;
 
@@ -886,7 +888,7 @@ void ApproximateBayesianMetaAnalysis::operator()(
 	Eigen::VectorXd non_missingness ;
 	
 	if(
-		!impl::get_betas_and_covariance_per_study( data_getter, m_filter, betas, covariance, non_missingness, m_degrees_of_freedom )
+		!impl::get_betas_and_covariance_per_study( data_getter, m_filter, betas, covariance, non_missingness, m_effect_parameter_names.size() )
 		|| non_missingness.sum() == 0
 	) {
 		callback( m_prefix + ":bf", genfile::MissingValue() ) ;
@@ -1023,7 +1025,7 @@ struct ValueAccumulator: public BingwaComputation {
 public:
 	typedef boost::shared_ptr< ValueAccumulator > SharedPtr ;
 	typedef std::auto_ptr< ValueAccumulator > UniquePtr ;
-
+	typedef FrequentistGenomeWideAssociationResults::EffectParameterNamePack EffectParameterNamePack ;
 public:
 	ValueAccumulator( std::string const& name ):
 		m_name( name ),
@@ -1036,7 +1038,7 @@ public:
 		m_weights[ model ] = weight ;
 	}
 	
-	void set_number_of_effect_parameters( int const d ) {}
+	void set_effect_parameter_names( EffectParameterNamePack const& names ) {}
 
 	void get_variables( boost::function< void ( std::string ) > callback ) const {
 		callback( m_name ) ;
@@ -1118,13 +1120,15 @@ namespace impl {
 
 struct BingwaProcessor: public boost::noncopyable
 {
-	typedef std::auto_ptr< BingwaProcessor > UniquePtr ;
+public:
+		typedef std::auto_ptr< BingwaProcessor > UniquePtr ;
+		typedef FrequentistGenomeWideAssociationResults::EffectParameterNamePack EffectParameterNamePack ;
+public:
 	static UniquePtr create( genfile::SNPIdentifyingData2::CompareFields const& compare_fields ) {
 		return UniquePtr( new BingwaProcessor( compare_fields ) ) ;
 	}
 	
 	BingwaProcessor( genfile::SNPIdentifyingData2::CompareFields const& compare_fields ):
-		m_number_of_effect_parameters( -1 ),
 		m_snps( compare_fields ),
 		m_flip_alleles_if_necessary( false )
 	{
@@ -1187,15 +1191,19 @@ struct BingwaProcessor: public boost::noncopyable
 	
 	void add_computation( std::string const& name, BingwaComputation::UniquePtr computation ) {
 		m_computations.push_back( computation ) ;
-		m_computations.back().set_number_of_effect_parameters( m_number_of_effect_parameters ) ;
+		m_computations.back().set_effect_parameter_names( m_effect_parameter_names ) ;
 	}
 
-	void set_number_of_effect_parameters( int const d ) {
-		m_number_of_effect_parameters = d ;
+	void set_effect_parameter_names( EffectParameterNamePack const& names ) {
+		m_effect_parameter_names = names ;
+	}
+
+	EffectParameterNamePack const get_effect_parameter_names() const {
+		return m_effect_parameter_names ;
 	}
 
 	int const get_number_of_effect_parameters() const {
-		return m_number_of_effect_parameters ;
+		return int( m_effect_parameter_names.size() ) ;
 	}
 
 	void get_variables( boost::function< void ( std::string const& ) > callback ) const {
@@ -1227,7 +1235,7 @@ struct BingwaProcessor: public boost::noncopyable
 private:
 	std::vector< std::string > m_cohort_names ;
 	boost::ptr_vector< FrequentistGenomeWideAssociationResults > m_cohorts ;
-	int m_number_of_effect_parameters ;
+	EffectParameterNamePack m_effect_parameter_names ;
 	boost::ptr_vector< BingwaComputation > m_computations ;
 	struct SnpMatch {
 	public:
@@ -1559,7 +1567,7 @@ public:
 						for( ; i != end_i; ++i ) {
 							ApproximateBayesianMetaAnalysis::UniquePtr computation(
 								new ApproximateBayesianMetaAnalysis(
-									i->first,
+									"Bayesian:" + i->first,
 									i->second
 								)
 							) ;
@@ -1579,13 +1587,13 @@ public:
 					// computed.
 					{
 						ValueAccumulator::UniquePtr mean_bf(
-							new ValueAccumulator( "ApproximateBayesianMetaAnalysis/mean_bf" )
+							new ValueAccumulator( "Bayesian:mean_bf" )
 						) ;
 
 						std::map< std::string, Eigen::MatrixXd >::const_iterator i = priors.begin() ;
 						std::map< std::string, Eigen::MatrixXd >::const_iterator const end_i = priors.end() ;
 						for( ; i != end_i; ++i ) {
-							mean_bf->set_weight( "ApproximateBayesianMetaAnalysis/" + i->first + "/bf", 1.0 ) ;
+							mean_bf->set_weight( "Bayesian:" + i->first + ":bf", 1.0 ) ;
 						}
 
 						m_processor->send_results_to(
@@ -2527,6 +2535,7 @@ public:
 
 	void load_data() {
 		using genfile::string_utils::to_string ;
+		using genfile::string_utils::join ;
 
 		std::vector< std::string > cohort_files = options().get_values< std::string >( "-data" ) ;
 		for( std::size_t cohort_i = 0; cohort_i < cohort_files.size(); ++cohort_i ) {
@@ -2568,16 +2577,16 @@ public:
 			get_ui_context().logger() << "Cohort " << (cohort_i+1) << " summary: " << results->get_summary() << ".\n" ;
 			
 			if( cohort_i == 0 ) {
-				m_processor->set_number_of_effect_parameters( results->get_number_of_effect_parameters() ) ;
+				m_processor->set_effect_parameter_names( results->get_effect_parameter_names() ) ;
 			}
-			else if( results->get_number_of_effect_parameters() != m_processor->get_number_of_effect_parameters() ) {
+			else if( results->get_effect_parameter_names() != m_processor->get_effect_parameter_names() ) {
 				throw genfile::MalformedInputError(
 					cohort_files[ cohort_i ],
-					"Number of effect parameters in cohort " + to_string( cohort_i+1 )
+					"Names of effect parameters in cohort " + to_string( cohort_i+1 )
 						+ " ("
-						+ to_string( results->get_number_of_effect_parameters() )
-						+ ") does not match that in cohort 1 ("
-						+ to_string( m_processor->get_number_of_effect_parameters() )
+						+ results->get_effect_parameter_names().get_summary()
+						+ ") do not match that in cohort 1 ("
+						+ m_processor->get_effect_parameter_names().get_summary()
 						+ ")",
 					0
 				) ;

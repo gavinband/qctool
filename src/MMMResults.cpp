@@ -31,6 +31,15 @@ int MMMResults::get_number_of_effect_parameters() const {
 	return 1 ;
 }
 
+MMMResults::EffectParameterNamePack MMMResults::get_effect_parameter_names() const {
+	return EffectParameterNamePack(
+		std::vector< std::string >( 1, m_effect_column_regex ),
+		std::vector< std::string >( 1, m_se_column_regex ),
+		std::vector< std::string >()
+	) ;
+}
+
+
 bool MMMResults::read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const {
 	return( source >> snp.position().chromosome() >> snp.SNPID() >> snp.rsid() >> snp.position().position() >> snp.first_allele() >> snp.second_allele() ) ;
 }
@@ -43,12 +52,10 @@ bool MMMResults::check_if_snp_accepted( std::size_t snp_i ) const {
 }
 
 
-std::set< std::pair< std::string, bool > > MMMResults::get_desired_columns() const {
-	return m_required_columns ;
-}
-
-void MMMResults::setup_columns( std::vector< std::string > const& ) {
-	std::set< std::pair< std::string, bool > > required_columns ;
+MMMResults::DesiredColumns MMMResults::setup_columns( std::vector< std::string > const& ) {
+	assert(0) ;
+#if 0
+	DesiredColumns required_columns ;
 	required_columns.insert( std::make_pair( m_effect_column_regex, true ) ) ;
 	required_columns.insert( std::make_pair( m_se_column_regex, true ) ) ;
 	required_columns.insert( std::make_pair( "pval", true ) ) ;
@@ -67,6 +74,7 @@ void MMMResults::setup_columns( std::vector< std::string > const& ) {
 		}
 	}
 	m_required_columns = required_columns ;
+#endif
 }
 
 void MMMResults::store_value(

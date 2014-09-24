@@ -6,6 +6,8 @@
 
 #include <algorithm>
 #include <boost/regex.hpp>
+#include <boost/format.hpp>
+#include "genfile/Error.hpp"
 #include "genfile/string_utils/string_utils.hpp"
 #include "SNPTESTResults.hpp"
 
@@ -30,85 +32,187 @@ void SNPTESTResults::set_effect_size_column_regex( std::string const& beta_colum
 //	m_beta_column_regex = beta_column_regex ;
 }
 
-int SNPTESTResults::get_number_of_effect_parameters() const {
-	return m_beta_columns.size() ;
+SNPTESTResults::EffectParameterNamePack SNPTESTResults::get_effect_parameter_names() const {
+	return EffectParameterNamePack(
+		m_beta_columns,
+		m_se_columns,
+		m_cov_columns
+	) ;
 }
 
 namespace impl {
-	bool matches_a_name( std::vector< std::string > names, boost::regex const& regex ) {
+	boost::optional< SNPTESTResults::ColumnSpec > get_matching_name(
+		std::vector< std::string > names,
+		boost::regex const& regex,
+		bool required,
+		std::string const& type
+	) {
+		boost::optional< SNPTESTResults::ColumnSpec > result ;
 		std::size_t i = 0 ;
 		for( i = 0; i < names.size(); ++i ) {
 			if( boost::regex_match( names[ i ], regex ) ) {
 				break ;
 			}
 		}
-		return i < names.size() ;
+		if( i < names.size() ) {
+			result = SNPTESTResults::ColumnSpec( names[i], regex, i, required, type ) ;
+		}
+		return result ;
+	}
+	
+	void insert_if_matched(
+		std::vector< std::string > names,
+		boost::regex const& regex,
+		std::string const& type,
+		std::vector< SNPTESTResults::ColumnSpec >* result
+	) {
+		assert( result ) ;
+		boost::optional< SNPTESTResults::ColumnSpec > matched = get_matching_name( names, regex, false, type ) ;
+		if( matched ) {
+			result->push_back( matched.get() ) ;
+		}
+	}
+
+	void insert_matched(
+		std::vector< std::string > names,
+		boost::regex const& regex,
+		std::string const& type,
+		std::vector< SNPTESTResults::ColumnSpec >* result
+	) {
+		assert( result ) ;
+		boost::optional< SNPTESTResults::ColumnSpec > matched = get_matching_name( names, regex, true, type ) ;
+		if( matched ) {
+			result->push_back( matched.get() ) ;
+		} else {
+			throw genfile::BadArgumentError(
+				"impl::insert_matched()",
+				"names",
+				( boost::format( "No name matched \"%s\"" ) % regex.str() ).str()
+			) ;
+		}
 	}
 }
 
 
-void SNPTESTResults::setup_columns( std::vector< std::string > const& column_names ) {
+SNPTESTResults::DesiredColumns SNPTESTResults::setup_columns( std::vector< std::string > const& column_names ) {
 	using namespace genfile::string_utils ;
+	using boost::regex ;
+	DesiredColumns result ;
 	
-	DesiredColumns desired_columns ;
-	
-	for( std::size_t i = 0; i < 100; ++i ) {
-		std::string const beta_regex = replace_all( m_beta_column_regex, "<i>", to_string(i) ) ;
-		std::string const se_regex = replace_all( replace_all( m_beta_column_regex, "<i>", to_string(i) ), "_beta", "_se" ) ;
-
-		std::size_t beta_column_i = 0 ;
-		for( beta_column_i = 0; beta_column_i < column_names.size(); ++beta_column_i ) {
-			boost::regex regex( beta_regex ) ;
-			if( boost::regex_match( column_names[ beta_column_i ], regex ) ) {
-				break ;
-			}
-		}
-		if( impl::matches_a_name( column_names, boost::regex( beta_regex ) ) ) {
-			desired_columns.insert( std::make_pair( beta_regex, true )) ;
-			desired_columns.insert( std::make_pair( se_regex, true )) ;
-			m_beta_columns.push_back( beta_regex ) ;
-			m_se_columns.push_back( se_regex ) ;
-			for( std::size_t j = i+1; j < 100; ++j ) {
-				std::string const other_beta_regex = replace_all( m_beta_column_regex, "<i>", to_string(j) ) ;
-				if( impl::matches_a_name( column_names, boost::regex( other_beta_regex ) ) ) {
-					std::string const cov_regex = replace_all(
-						replace_all( m_beta_column_regex, "<i>", to_string(i) + "," + to_string(j) ),
-						"_beta",
-						"_cov"
-					) ;
-					desired_columns.insert( std::make_pair( cov_regex, true )) ;
-					m_cov_columns.push_back( cov_regex ) ;
-				}
-			}
-		}
-	}
-	
-	desired_columns.insert( std::make_pair( replace_all( m_beta_column_regex, "_beta_<i>", "(ml|em|score|threshhold|lrt)_pvalue" ), true ) ) ;
-	desired_columns.insert( std::make_pair( "(all_)?info", true ) ) ;
-	desired_columns.insert( std::make_pair( "all_maf", true ) ) ;
-	desired_columns.insert( std::make_pair( "all_AA", true ) ) ;
-	desired_columns.insert( std::make_pair( "all_AB", true ) ) ;
-	desired_columns.insert( std::make_pair( "all_BB", true ) ) ;
-	desired_columns.insert( std::make_pair( "all_A", false ) ) ;
-	desired_columns.insert( std::make_pair( "all_B", false ) ) ;
-	desired_columns.insert( std::make_pair( "all_NULL", true ) ) ;
 	{
-		std::set< std::string >::const_iterator
-			i = m_variables.begin(),
-			end_i = m_variables.end() ;
-		for( ; i != end_i; ++i ) {
-			std::set< std::pair< std::string, bool > >::iterator where = desired_columns.find( std::make_pair( *i, false ) ) ;
-			if( where != desired_columns.end() ) {
-				desired_columns.erase( where ) ;
+		regex unwanted_column_details( "^.*_frequentist_(add|dom|het|gen|rec)_(newml|ml|score|em|threshhold|expected)_" ) ;
+
+		std::vector< std::size_t > beta_indices ;
+		for( std::size_t i = 0; i < 1000; ++i ) {
+			regex const beta_regex = regex( replace_all( m_beta_column_regex, "<i>", to_string(i) ) ) ;
+			regex const se_regex = regex( replace_all( replace_all( m_beta_column_regex, "<i>", to_string(i) ), "_beta", "_se" ) ) ;
+
+			boost::optional< ColumnSpec > matched_beta_column = impl::get_matching_name( column_names, beta_regex, true, "beta" ) ;
+			if( matched_beta_column ) {
+				boost::optional< ColumnSpec > matched_se_column = impl::get_matching_name( column_names, se_regex, true, "se" ) ;
+				if( !matched_se_column ) {
+					throw genfile::BadArgumentError(
+						"SNPTESTResults::setup_columns()",
+						"column_names",
+						( boost::format( "No column matching \"%s\" although one matches \"%s\"." ) % se_regex % beta_regex ).str()
+					) ;
+				}
+				
+				matched_beta_column->set_simplified_name(
+					boost::regex_replace( matched_beta_column->name(), unwanted_column_details, "" )
+				) ;
+				matched_se_column->set_simplified_name(
+					boost::regex_replace( matched_se_column->name(), unwanted_column_details, "" )
+				) ;
+
+				result.push_back( *matched_beta_column ) ;
+				result.push_back( *matched_se_column ) ;
+				m_beta_columns.push_back( matched_beta_column->simplified_name() ) ;
+				m_se_columns.push_back( matched_se_column->simplified_name() ) ;
+				beta_indices.push_back( i ) ;
 			}
-			desired_columns.insert( std::make_pair( *i, false ) ) ;
+		}
+	
+		for( std::size_t i = 0; i < beta_indices.size(); ++i ) {
+			for( std::size_t j = i+1; j < beta_indices.size(); ++j ) {
+				std::string const cov_regex = replace_all(
+					replace_all( m_beta_column_regex, "<i>", to_string( beta_indices[i] ) + "," + to_string( beta_indices[j] ) ),
+					"_beta",
+					"_cov"
+				) ;
+				boost::optional< ColumnSpec > matched_cov_column = impl::get_matching_name( column_names, regex( cov_regex ), true, "cov" ) ;
+				if( !matched_cov_column ) {
+					throw genfile::BadArgumentError(
+						"SNPTESTResults::setup_columns()",
+						"column_names",
+						( boost::format( "No column matching \"%s\"." ) % cov_regex ).str()
+					) ;
+				}
+				matched_cov_column->set_simplified_name(
+					boost::regex_replace( matched_cov_column->name(), unwanted_column_details, "" )
+				) ;
+				result.push_back( *matched_cov_column ) ;
+				m_cov_columns.push_back( matched_cov_column->simplified_name() ) ;
+			}
+		}
+		
+		if( m_beta_columns.size() == 0 ) {
+			throw genfile::BadArgumentError(
+				"SNPTESTResults::setup_columns()",
+				"column_names",
+				( boost::format( "No column matching beta regex (\"%s\") could be found." ) % m_beta_column_regex ).str()
+			) ;
 		}
 	}
-	m_desired_columns = desired_columns ;
-}
 
-std::set< std::pair< std::string, bool > > SNPTESTResults::get_desired_columns() const {
-	return m_desired_columns ;
+	{
+		regex const pvalue_regex( replace_all( m_beta_column_regex, "_beta_<i>", "(ml|em|score|threshhold|lrt)_pvalue" ) ) ;
+		boost::optional< ColumnSpec > matched_pvalue_column = impl::get_matching_name( column_names, pvalue_regex, true, "pvalue" ) ;
+		if( !matched_pvalue_column ) {
+			throw genfile::BadArgumentError(
+				"SNPTESTResults::setup_columns()",
+				"column_names",
+				( boost::format( "No column matching overall pvalue regex (\"%s\") could be found." ) % pvalue_regex.str() ).str()
+			) ;
+		}
+		result.push_back( matched_pvalue_column.get() ) ;
+		m_pvalue_column = matched_pvalue_column.get().name() ;
+	}
+
+	{
+		regex const info_regex( "(all_)?info" ) ;
+		boost::optional< ColumnSpec > matched_info_column = impl::get_matching_name( column_names, info_regex, true, "info" ) ;
+		if( !matched_info_column ) {
+			throw genfile::BadArgumentError(
+				"SNPTESTResults::setup_columns()",
+				"column_names",
+				( boost::format( "No column matching info regex (\"%s\") could be found." ) % info_regex.str() ).str()
+			) ;
+		}
+		result.push_back( matched_info_column.get() ) ;
+		m_info_column = matched_info_column.get().name() ;
+	}
+	impl::insert_matched( column_names, regex( "all_maf" ), "maf", &result ) ;
+	impl::insert_matched( column_names, regex( "all_AA" ), "counts", &result ) ;
+	impl::insert_matched( column_names, regex( "all_AB" ), "counts", &result ) ;
+	impl::insert_matched( column_names, regex( "all_BB" ), "counts", &result ) ;
+	impl::insert_if_matched( column_names, regex( "all_A" ), "counts", &result ) ;
+	impl::insert_if_matched( column_names, regex( "all_B" ), "counts", &result ) ;
+	impl::insert_matched( column_names, regex( "all_NULL" ), "counts", &result ) ;
+	impl::insert_if_matched( column_names, regex( "cases_AA" ), "extra", &result ) ;
+	impl::insert_if_matched( column_names, regex( "cases_AB" ), "extra", &result ) ;
+	impl::insert_if_matched( column_names, regex( "cases_BB" ), "extra", &result ) ;
+	impl::insert_if_matched( column_names, regex( "cases_A" ), "counts", &result ) ;
+	impl::insert_if_matched( column_names, regex( "cases_B" ), "counts", &result ) ;
+	impl::insert_if_matched( column_names, regex( "cases_NULL" ), "extra", &result ) ;
+	impl::insert_if_matched( column_names, regex( "controls_AA" ), "extra", &result ) ;
+	impl::insert_if_matched( column_names, regex( "controls_AB" ), "extra", &result ) ;
+	impl::insert_if_matched( column_names, regex( "controls_BB" ), "extra", &result ) ;
+	impl::insert_if_matched( column_names, regex( "controls_A" ), "extra", &result ) ;
+	impl::insert_if_matched( column_names, regex( "controls_B" ), "extra", &result ) ;
+	impl::insert_if_matched( column_names, regex( "controls_NULL" ), "extra", &result ) ;
+	
+	return result ;
 }
 
 bool SNPTESTResults::read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const {
@@ -149,10 +253,10 @@ void SNPTESTResults::store_value(
 	if( matched ) {
 		return ;
 	}
-	if( variable == ".*_pvalue" ) {
+	if( variable == m_pvalue_column ) {
 		m_pvalues( snp_index ) = value ;
 	}
-	else if( variable == "(all_)?info" ) {
+	else if( variable == m_info_column ) {
 		m_info( snp_index ) = value ;
 	}
 	else if( variable == "all_maf" ) {
