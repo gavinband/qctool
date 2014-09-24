@@ -2501,7 +2501,7 @@ public:
 				get_ui_context().logger()
 					<< "  " << std::setw( max_model_name_width )
 					<< std::right
-					<< ( "(" + cohort_name + ":" + parameter_name + ") " + std::to_string( i )) << "  "
+					<< ( "(" + cohort_name + ":" + parameter_name + ") " + genfile::string_utils::to_string( i )) << "  "
 					<< std::left ;
 				for( int j = 0; j < prior.cols(); ++j ) {
 					get_ui_context().logger() << (( j > 0 ) ? " " : "" ) ;
