@@ -726,9 +726,9 @@ struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {
 	}
 
 	void get_variables( boost::function< void ( std::string ) > callback ) const {
-		callback( "FixedEffectFrequentistMetaAnalysis/meta_beta" ) ;
-		callback( "FixedEffectFrequentistMetaAnalysis/meta_se" ) ;
-		callback( "FixedEffectFrequentistMetaAnalysis/pvalue" ) ;
+		callback( "frequentist-fixed-effect:meta_beta" ) ;
+		callback( "frequentist-fixed-effect:meta_se" ) ;
+		callback( "frequentist-fixed-effect:pvalue" ) ;
 	}
 
 	void operator()(
@@ -744,9 +744,9 @@ struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {
 		Eigen::VectorXd ses = Eigen::VectorXd::Constant( N, NA ) ;
 		Eigen::VectorXd non_missingness = Eigen::VectorXd::Constant( N, NA ) ;
 		if( !impl::get_betas_and_ses_one_per_study( data_getter, m_filter, betas, ses, non_missingness ) ) {
-			callback( "FixedEffectFrequentistMetaAnalysis/meta_beta", genfile::MissingValue() ) ;
-			callback( "FixedEffectFrequentistMetaAnalysis/meta_se", genfile::MissingValue() ) ;
-			callback( "FixedEffectFrequentistMetaAnalysis/pvalue", genfile::MissingValue() ) ;
+			callback( "frequentist-fixed-effect:meta_beta", genfile::MissingValue() ) ;
+			callback( "frequentist-fixed-effect:meta_se", genfile::MissingValue() ) ;
+			callback( "frequentist-fixed-effect:pvalue", genfile::MissingValue() ) ;
 			return ;
 		}
 		else {
@@ -761,8 +761,8 @@ struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {
 			double const meta_beta = ( non_missingness.sum() == 0 ) ? NA : ( inverse_variances.array() * betas.array() ).sum() / inverse_variances.sum() ;
 			double const meta_se = ( non_missingness.sum() == 0 ) ? NA : std::sqrt( 1.0 / inverse_variances.sum() ) ;
 
-			callback( "FixedEffectFrequentistMetaAnalysis/meta_beta", meta_beta ) ;
-			callback( "FixedEffectFrequentistMetaAnalysis/meta_se", meta_se ) ;
+			callback( "frequentist-fixed-effect", meta_beta ) ;
+			callback( "frequentist-fixed-effect:meta_se", meta_se ) ;
 
 			//std::cerr << "SNP: " << snp << ": betas = " << betas << ", ses = " << ses << ".\n" ;
 
@@ -771,7 +771,7 @@ struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {
 				NormalDistribution normal( 0, meta_se ) ;
 				// P-value is the mass under both tails of the normal distribution larger than |meta_beta|
 				double const pvalue = 2.0 * boost::math::cdf( boost::math::complement( normal, std::abs( meta_beta ) ) ) ;
-				callback( "FixedEffectFrequentistMetaAnalysis/pvalue", pvalue ) ;
+				callback( "frequentist-fixed-effect:pvalue", pvalue ) ;
 			}
 			
 		}
@@ -821,7 +821,7 @@ struct ApproximateBayesianMetaAnalysis: public BingwaComputation {
 		Eigen::MatrixXd const& sigma
 	):
 		m_name( name ),
-		m_prefix( "ApproximateBayesianMetaAnalysis/" + name ),
+		m_prefix( name ),
 		m_sigma( sigma ),
 		m_compute_posterior_mean_and_variance( false ),
 		m_filter( &impl::basic_missingness_filter ),
@@ -839,10 +839,10 @@ struct ApproximateBayesianMetaAnalysis: public BingwaComputation {
 	}
 
 	void get_variables( boost::function< void ( std::string ) > callback ) const {
-		callback( m_prefix + "/bf" ) ;
+		callback( m_prefix + ":bf" ) ;
 		if( m_compute_posterior_mean_and_variance ) {
-			callback( m_prefix + "/posterior_mean" ) ;
-			callback( m_prefix + "/posterior_variance" ) ;
+			callback( m_prefix + ":posterior_mean" ) ;
+			callback( m_prefix + ":posterior_variance" ) ;
 		}
 	}
 
@@ -889,7 +889,7 @@ void ApproximateBayesianMetaAnalysis::operator()(
 		!impl::get_betas_and_covariance_per_study( data_getter, m_filter, betas, covariance, non_missingness, m_degrees_of_freedom )
 		|| non_missingness.sum() == 0
 	) {
-		callback( m_prefix + "/bf", genfile::MissingValue() ) ;
+		callback( m_prefix + ":bf", genfile::MissingValue() ) ;
 		return ;
 	}
 	else {
@@ -985,7 +985,7 @@ void ApproximateBayesianMetaAnalysis::compute_bayes_factor( Eigen::MatrixXd cons
 	double const constant = std::sqrt( Vsolver.vectorD().prod() / V_plus_prior_solver.vectorD().prod() ) ;
 	double const result = constant * std::exp( 0.5 * exponent(0) ) ;
 	
-	callback( m_prefix + "/bf", result ) ;
+	callback( m_prefix + ":bf", result ) ;
 
 #if DEBUG_BINGWA
 	std::cerr << "constant = " << constant << ".\n" ;
@@ -994,8 +994,8 @@ void ApproximateBayesianMetaAnalysis::compute_bayes_factor( Eigen::MatrixXd cons
 #endif
 
 	if( m_compute_posterior_mean_and_variance ) {
-		callback( m_prefix + "/posterior_mean", impl::format_matrix( betas - ( V * V_plus_prior_solver.solve( betas ) ) ) ) ;
-		callback( m_prefix + "/posterior_variance", impl::format_matrix( V - V * V_plus_prior_solver.solve( Eigen::MatrixXd::Identity( betas.size(), betas.size() ) ) * V ) ) ;
+		callback( m_prefix + ":posterior_mean", impl::format_matrix( betas - ( V * V_plus_prior_solver.solve( betas ) ) ) ) ;
+		callback( m_prefix + ":posterior_variance", impl::format_matrix( V - V * V_plus_prior_solver.solve( Eigen::MatrixXd::Identity( betas.size(), betas.size() ) ) * V ) ) ;
 	}
 }
 
@@ -1453,7 +1453,11 @@ public:
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 		catch( genfile::FileNotFoundError const& e ) {
-			get_ui_context().logger() << "!!Error: No file matching \"" << e.filespec() << "\" could be found.\n" ;
+			get_ui_context().logger() << "!! Error: No file matching \"" << e.filespec() << "\" could be found.\n" ;
+			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+		}
+		catch( genfile::OperationFailedError const& e ) {
+			get_ui_context().logger() << "!! Error: operation failed: " << e.get_message() << "\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 		catch( db::Error const& e ) {
@@ -1700,7 +1704,7 @@ public:
 					if( model_names ) {
 						model_name = model_names.get()[i] ;
 					} else {
-						model_name = "rho=" + join( rho_and_sd.get<0>(), " " ) ;
+						model_name = "rho=" + join( rho_and_sd.get<0>(), "," ) ;
 					}
 		
 					{
@@ -1741,7 +1745,7 @@ public:
 						}
 						Eigen::MatrixXd const covariance = sd_matrix.asDiagonal() * correlation * sd_matrix.asDiagonal() ;
 		
-						(*result)[ model_name + "/sd=" + join( rho_and_sd.get<1>(), " " ) ] = covariance ;
+						(*result)[ model_name + "/sd=" + join( rho_and_sd.get<1>(), "," ) ] = covariance ;
 						
 #if DEBUG_BINGWA
 						std::cerr << "For model " << ( model_name + "/sd=" + join( rho_and_sd.get<1>(), " " ) ) << ":\n"
@@ -2107,12 +2111,12 @@ public:
 			) ;
 		}
 
-		if( parameters.size() == 2 ) {
-			parameters.push_back( "cor=" ) ;
+		std::vector< std::string > const rhos = split_and_strip( parameters[0].substr( 4, parameters[0].size() ), "," ) ;
+		std::vector< std::string > const sds = split_and_strip( parameters[1].substr( 3, parameters[1].size() ), "," ) ;
+		std::vector< std::string > cor ;
+		if( parameters.size() == 3 ) {
+			cor = split_and_strip_discarding_empty_entries( parameters[2].substr( 4, parameters[2].size() ), "," ) ;
 		}
-		std::vector< std::string > const rhos = split_and_strip_discarding_empty_entries( parameters[0].substr( 4, parameters[0].size() ), " " ) ;
-		std::vector< std::string > const sds = split_and_strip_discarding_empty_entries( parameters[1].substr( 3, parameters[1].size() ), " " ) ;
-		std::vector< std::string > const cor = split_and_strip_discarding_empty_entries( parameters[2].substr( 4, parameters[2].size() ), " " ) ;
 
 		std::size_t const expectedNumberOfSDs = sds.size() ;
 		std::size_t const expectedNumberOfCorrelations = ( sds.size() * ( sds.size() - 1 ) ) / 2 ;
@@ -2470,20 +2474,13 @@ public:
 			Eigen::MatrixXd const& prior = prior_i->second ;
 			assert( prior.rows() == D*N ) ;
 
-			if( D > 0 ) {
+			for( std::size_t parameter_i = 0; parameter_i < D; ++parameter_i ) {
+				std::string const parameter_number = genfile::string_utils::to_string( parameter_i + 1 ) ;
 				for( std::size_t i = 0; i < N; ++i ) {
 					get_ui_context().logger() << (( i > 0 ) ? " " : "" ) ;
-					get_ui_context().logger() << std::setw( column_widths[i] + 3 ) << ( cohort_names[i] + ":β₁" ) ; // width + 2 accounts for 2-byte UTF8 encodings 
+					// width + 2 accounts for 2-byte UTF8 encodings
+					get_ui_context().logger() << std::setw( column_widths[i] + 2 + parameter_number.size() ) << ( cohort_names[i] + ":β" + parameter_number ) ;
 				}
-			}
-			if( D > 1 ) {
-				for( std::size_t i = N; i < (2*N); ++i ) {
-					get_ui_context().logger() << (( i > 0 ) ? " " : "" ) ;
-					get_ui_context().logger() << std::setw( column_widths[i] + 3 ) << ( cohort_names[i % N] + ":β₂" ) ; // width + 2 accounts for 2-byte UTF8 encodings
-				}
-			}
-			if( D > 2 ) {
-				assert(0) ; // more than 2 betas not supported.
 			}
 			
 			get_ui_context().logger() << "\n" ;

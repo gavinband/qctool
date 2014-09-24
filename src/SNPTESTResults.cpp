@@ -13,7 +13,7 @@ SNPTESTResults::SNPTESTResults(
 	genfile::SNPIdentifyingDataTest::UniquePtr test
 ):
  	m_exclusion_test( test ),
-	m_beta_column_regex( ".*_beta_<i>.*" )
+	m_beta_column_regex( ".*_beta_<i>($|[^0-9].*)" )
 {}
 
 void SNPTESTResults::add_variable( std::string const& variable ) {
@@ -83,7 +83,7 @@ void SNPTESTResults::setup_columns( std::vector< std::string > const& column_nam
 		}
 	}
 	
-	desired_columns.insert( std::make_pair( replace_all( m_beta_column_regex, "_beta_<i>", "_pvalue" ), true ) ) ;
+	desired_columns.insert( std::make_pair( replace_all( m_beta_column_regex, "_beta_<i>", "(ml|em|score|threshhold|lrt)_pvalue" ), true ) ) ;
 	desired_columns.insert( std::make_pair( "(all_)?info", true ) ) ;
 	desired_columns.insert( std::make_pair( "all_maf", true ) ) ;
 	desired_columns.insert( std::make_pair( "all_AA", true ) ) ;
