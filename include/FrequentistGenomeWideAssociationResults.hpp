@@ -27,7 +27,6 @@ public:
 		boost::function< void ( genfile::SNPIdentifyingData2 const&, std::string const&, genfile::VariantEntry const& ) > 
 		SNPResultCallback ;
 	typedef boost::function< void ( std::size_t, boost::optional< std::size_t > ) > ProgressCallback ;
-	typedef EffectParameterNamePack EffectParameterNamePack ;
 
 	static UniquePtr create(
 		std::vector< genfile::wildcard::FilenameMatch > const& filenames,
