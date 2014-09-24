@@ -99,12 +99,12 @@ std::string FlatFileFrequentistGenomeWideAssociationResults::get_summary( std::s
 	
 	std::ostringstream str( result ) ;
 	str << "\n" << " -- using the following columns:\n" ;
-	SourceColumnMap::const_iterator
-		i = m_column_map.get().begin(),
-		end_i = m_column_map.get().end() ;
+	SourceColumnMap::right_const_iterator
+		i = m_column_map.get().right.begin(),
+		end_i = m_column_map.get().right.end() ;
 	
 	for( std::size_t count = 0; i != end_i; ++i, ++count ) {
-		str << " -- " << i->right.second << " (column " << (i->right.first+1) << ", matching \"" << i->left << "\")\n" ;
+		str << " -- column " << i->first.first << ": " << "(\"" << i->first.second << "\", matching \"" << i->second << "\")\n" ;
 	}
 	return str.str() ;
 }

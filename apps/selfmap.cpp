@@ -191,6 +191,7 @@ private:
 					kmerMap[ kmer ].push_back( std::make_pair( rangePosition, '+' ) ) ;
 					impl::reverse_complement( &kmer ) ;
 					kmerMap[ kmer ].push_back( std::make_pair( rangePosition + m_kmer_size, '-' ) ) ;
+					
 				}
 			}
 			progress_context.notify_progress( rangePosition, range.first.end().position() - m_kmer_size ) ;
