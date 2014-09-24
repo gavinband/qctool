@@ -10,6 +10,7 @@
 #include "genfile/Error.hpp"
 #include "genfile/string_utils/string_utils.hpp"
 #include "SNPTESTResults.hpp"
+#include "EffectParameterNamePack.hpp"
 
 SNPTESTResults::SNPTESTResults(
 	genfile::SNPIdentifyingDataTest::UniquePtr test
@@ -32,7 +33,7 @@ void SNPTESTResults::set_effect_size_column_regex( std::string const& beta_colum
 //	m_beta_column_regex = beta_column_regex ;
 }
 
-SNPTESTResults::EffectParameterNamePack SNPTESTResults::get_effect_parameter_names() const {
+EffectParameterNamePack SNPTESTResults::get_effect_parameter_names() const {
 	return EffectParameterNamePack(
 		m_beta_columns,
 		m_se_columns,

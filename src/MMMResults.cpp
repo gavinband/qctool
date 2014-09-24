@@ -5,6 +5,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include "MMMResults.hpp"
+#include "EffectParameterNamePack.hpp"
 
 MMMResults::MMMResults(
 	genfile::SNPIdentifyingDataTest::UniquePtr test
@@ -31,7 +32,7 @@ int MMMResults::get_number_of_effect_parameters() const {
 	return 1 ;
 }
 
-MMMResults::EffectParameterNamePack MMMResults::get_effect_parameter_names() const {
+EffectParameterNamePack MMMResults::get_effect_parameter_names() const {
 	return EffectParameterNamePack(
 		std::vector< std::string >( 1, m_effect_column_regex ),
 		std::vector< std::string >( 1, m_se_column_regex ),

@@ -44,6 +44,7 @@
 #include "qcdb/FlatTableDBOutputter.hpp"
 #include "components/SNPSummaryComponent/DBOutputter.hpp"
 #include "FrequentistGenomeWideAssociationResults.hpp"
+#include "EffectParameterNamePack.hpp"
 #include "SNPTESTResults.hpp"
 #include "MMMResults.hpp"
 
@@ -393,7 +394,6 @@ struct BingwaComputation: public boost::noncopyable {
 	virtual ~BingwaComputation() {}
 	typedef genfile::SNPIdentifyingData2 SNPIdentifyingData2 ;
 	typedef boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
-	typedef FrequentistGenomeWideAssociationResults::EffectParameterNamePack EffectParameterNamePack ;
 	
 	struct DataGetter: public boost::noncopyable {
 		virtual ~DataGetter() {} ;
@@ -1025,7 +1025,6 @@ struct ValueAccumulator: public BingwaComputation {
 public:
 	typedef boost::shared_ptr< ValueAccumulator > SharedPtr ;
 	typedef std::auto_ptr< ValueAccumulator > UniquePtr ;
-	typedef FrequentistGenomeWideAssociationResults::EffectParameterNamePack EffectParameterNamePack ;
 public:
 	ValueAccumulator( std::string const& name ):
 		m_name( name ),
@@ -1122,7 +1121,6 @@ struct BingwaProcessor: public boost::noncopyable
 {
 public:
 		typedef std::auto_ptr< BingwaProcessor > UniquePtr ;
-		typedef FrequentistGenomeWideAssociationResults::EffectParameterNamePack EffectParameterNamePack ;
 public:
 	static UniquePtr create( genfile::SNPIdentifyingData2::CompareFields const& compare_fields ) {
 		return UniquePtr( new BingwaProcessor( compare_fields ) ) ;
@@ -2126,7 +2124,6 @@ public:
 			cor = split_and_strip_discarding_empty_entries( parameters[2].substr( 4, parameters[2].size() ), "," ) ;
 		}
 
-		std::size_t const expectedNumberOfSDs = sds.size() ;
 		std::size_t const expectedNumberOfCorrelations = ( sds.size() * ( sds.size() - 1 ) ) / 2 ;
 		if( rhos.size() != 1 ) {
 			throw genfile::BadArgumentError(
