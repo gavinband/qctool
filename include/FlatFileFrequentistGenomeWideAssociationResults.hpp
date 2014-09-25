@@ -44,7 +44,7 @@ public:
 	void get_info( std::size_t snp_i, double* result ) const ;
 	void get_maf( std::size_t snp_i, double* result ) const ;
 	void get_frequency( std::size_t snp_i, double* result ) const ;
-	void get_variable( std::size_t snp_i, std::string const& variable, double* value ) const ;
+	void get_variable( std::size_t snp_i, std::string const& variable, std::string* value ) const ;
 	std::string get_summary( std::string const& prefix, std::size_t target_column ) const ;
 
 public:
@@ -115,7 +115,7 @@ protected:
 	Eigen::VectorXf m_info ;
 	Eigen::VectorXf m_maf ;
 	Eigen::MatrixXf m_sample_counts ;
-	typedef std::map< std::string, std::vector< double > > ExtraVariables ;
+	typedef std::map< std::string, std::vector< std::string > > ExtraVariables ;
 	ExtraVariables m_extra_variables ;
 	
 	FlatFileFrequentistGenomeWideAssociationResults() ;
@@ -123,7 +123,7 @@ protected:
 	virtual DesiredColumns setup_columns( std::vector< std::string > const& column_names ) = 0 ;
 	virtual bool read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const = 0 ;
 	virtual bool check_if_snp_accepted( std::size_t snp_index ) const = 0 ;
-	virtual void store_value( int snp_index, std::string const& variable, double value ) = 0 ;
+	virtual void store_value( int snp_index, std::string const& variable, std::string const& value ) = 0 ;
 	
 private:
 

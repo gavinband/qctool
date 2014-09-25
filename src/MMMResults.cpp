@@ -81,35 +81,35 @@ MMMResults::DesiredColumns MMMResults::setup_columns( std::vector< std::string >
 void MMMResults::store_value(
 	int snp_index,
 	std::string const& variable,
-	double const value
+	std::string const& value
 ) {
 	using genfile::string_utils::to_repr ;
-	
+    double const NA = std::numeric_limits< double >::quiet_NaN() ;
 	if( variable == m_effect_column_regex ) {
-		m_betas( snp_index, 0 ) = value ;
+		m_betas( snp_index, 0 ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 	else if( variable == m_se_column_regex ) {
-		m_ses( snp_index, 0 ) = value ;
+		m_ses( snp_index, 0 ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 	else if( variable == "pval" ) {
-		m_pvalues( snp_index ) = value ;
+		m_pvalues( snp_index ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 	else if( variable == "var_info_all" ) {
-		m_info( snp_index ) = value ;
+		m_info( snp_index ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 	else if( variable == "freq_1" ) {
-		m_maf( snp_index ) = value ;
+		m_maf( snp_index ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 	else if( variable == "gen_00" ) {
-		m_sample_counts( snp_index, 0 ) = value ;
+		m_sample_counts( snp_index, 0 ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 	else if( variable == "gen_01" ) {
-		m_sample_counts( snp_index, 1 ) = value ;
+		m_sample_counts( snp_index, 1 ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 	else if( variable == "gen_11" ) {
-		m_sample_counts( snp_index, 2 ) = value ;
+		m_sample_counts( snp_index, 2 ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 	else if( variable == "gen_NULL" ) {
-		m_sample_counts( snp_index, 3 ) = value ;
+		m_sample_counts( snp_index, 3 ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 }

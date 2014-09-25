@@ -53,7 +53,7 @@ public:
 	virtual void get_info( std::size_t snp_i, double* result ) const = 0 ;
 	virtual void get_maf( std::size_t snp_i, double* result ) const = 0 ;
 	virtual void get_frequency( std::size_t snp_i, double* result ) const = 0 ;
-	virtual void get_variable( std::size_t snp_i, std::string const& variable, double* result ) const = 0 ;
+	virtual void get_variable( std::size_t snp_i, std::string const& variable, std::string* result ) const = 0 ;
 	
 	virtual std::string get_summary( std::string const& prefix = "", std::size_t target_column = 80 ) const = 0 ;
 

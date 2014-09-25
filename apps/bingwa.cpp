@@ -401,7 +401,7 @@ struct BingwaComputation: public boost::noncopyable {
 		virtual void get_pvalue( std::size_t i, double* result ) const = 0 ;
 		virtual void get_info( std::size_t i, double* result ) const = 0 ;
 		virtual void get_maf( std::size_t i, double* result ) const = 0 ;
-		virtual void get_variable( std::string const& variable, std::size_t i, double* result ) const = 0 ;
+		virtual void get_variable( std::string const& variable, std::size_t i, std::string* result ) const = 0 ;
 	} ;
 
 	typedef boost::function< bool ( DataGetter const&, int i ) > Filter ;
@@ -538,7 +538,7 @@ public:
 				callback( prefix + "pvalue", pvalue ) ;
 				callback( prefix + "info", info ) ;
 				{
-					double value ;
+					std::string value ;
 					BOOST_FOREACH( std::string const& variable, m_extra_variables ) {
 						data_getter.get_variable( variable, i, &value ) ;
 						callback( prefix + variable, value ) ;
@@ -1312,7 +1312,7 @@ private:
 		bool is_non_missing( std::size_t i ) const {
 			return( m_indices[i] ) ;
 		}
-		void get_variable( std::string const& variable, std::size_t i, double* result ) const {
+		void get_variable( std::string const& variable, std::size_t i, std::string* result ) const {
 			m_cohorts[i].get_variable( m_indices[i]->index, variable, result ) ;
 		}
 
@@ -2510,7 +2510,6 @@ public:
 		for( std::size_t i = 0; i < (D*N); ++i ) {
 			std::string const parameter_name = parameter_names.parameter_name( i / N ) ;
 			std::string const cohort_name = cohort_names[i % N] ;
-			std::size_t parameter_i = i / N ; // go in parameter order.
 			column_widths[i] = 6ul ;//std::max( cohort_name.size() + parameter_name.size() + 2, 6ul ) ;
 			max_prefix_width = std::max( max_prefix_width, cohort_name.size() + parameter_name.size() + 7 ) ;
 		}

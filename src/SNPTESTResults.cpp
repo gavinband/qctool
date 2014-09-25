@@ -167,7 +167,7 @@ SNPTESTResults::DesiredColumns SNPTESTResults::setup_columns( std::vector< std::
 	}
 
 	{
-		regex const pvalue_regex( replace_all( m_beta_column_regex, "_beta_<i>", "(ml|em|score|threshhold|lrt)_pvalue" ) ) ;
+		regex const pvalue_regex( replace_all( m_beta_column_regex, "_beta_<i>", ".*frequentist_(add|dom|het|gen|rec)(_ml|_em|_score|_threshhold|_lrt)*_pvalue" ) ) ;
 		boost::optional< ColumnSpec > matched_pvalue_column = impl::get_matching_name( column_names, pvalue_regex, true, "pvalue" ) ;
 		if( !matched_pvalue_column ) {
 			throw genfile::BadArgumentError(
@@ -212,6 +212,7 @@ SNPTESTResults::DesiredColumns SNPTESTResults::setup_columns( std::vector< std::
 	impl::insert_if_matched( column_names, regex( "controls_A" ), "extra", &result ) ;
 	impl::insert_if_matched( column_names, regex( "controls_B" ), "extra", &result ) ;
 	impl::insert_if_matched( column_names, regex( "controls_NULL" ), "extra", &result ) ;
+	impl::insert_if_matched( column_names, regex( "comment" ), "extra", &result ) ;
 	
 	return result ;
 }
@@ -230,23 +231,24 @@ bool SNPTESTResults::check_if_snp_accepted( std::size_t snp_i ) const {
 void SNPTESTResults::store_value(
 	int snp_index,
 	std::string const& variable,
-	double value
+	std::string const& value
 ) {
 	using genfile::string_utils::to_repr ;
 	bool matched = false ;
+	double const NA = std::numeric_limits< double >::quiet_NaN() ;
 	
 	for( std::size_t i = 0; !matched && i < m_beta_columns.size(); ++i ) {
 		if( variable == m_beta_columns[i] ) {
-			m_betas( snp_index, i ) = value ;
+			m_betas( snp_index, i ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 			matched = true ;
 		} else if( variable == m_se_columns[i] ) {
-			m_ses( snp_index, i ) = value ;
+			m_ses( snp_index, i ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 			matched = true ;
 		}
 	}
 	for( std::size_t i = 0; !matched && i < m_cov_columns.size(); ++i ) {
 		if( variable == m_cov_columns[i] ) {
-			m_covariance( snp_index, i ) = value ;
+			m_covariance( snp_index, i ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 			matched = true ;
 		}
 	}
@@ -255,31 +257,31 @@ void SNPTESTResults::store_value(
 		return ;
 	}
 	if( variable == m_pvalue_column ) {
-		m_pvalues( snp_index ) = value ;
+		m_pvalues( snp_index ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 	else if( variable == m_info_column ) {
-		m_info( snp_index ) = value ;
+		m_info( snp_index ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 	else if( variable == "all_maf" ) {
-		m_maf( snp_index ) = value ;
+		m_maf( snp_index ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 	else if( variable == "all_A" ) {
-		m_sample_counts( snp_index, 0 ) = value ;
+		m_sample_counts( snp_index, 0 ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 	else if( variable == "all_B" ) {
-		m_sample_counts( snp_index, 1 ) = value ;
+		m_sample_counts( snp_index, 1 ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 	else if( variable == "all_AA" ) {
-		m_sample_counts( snp_index, 2 ) = value ;
+		m_sample_counts( snp_index, 2 ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 	else if( variable == "all_AB" ) {
-		m_sample_counts( snp_index, 3 ) = value ;
+		m_sample_counts( snp_index, 3 ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 	else if( variable == "all_BB" ) {
-		m_sample_counts( snp_index, 4 ) = value ;
+		m_sample_counts( snp_index, 4 ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 	else if( variable == "all_NULL" ) {
-		m_sample_counts( snp_index, 5 ) = value ;
+		m_sample_counts( snp_index, 5 ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 	else if( m_variables.find( variable ) != m_variables.end() ) {
 		m_extra_variables[ variable ][ snp_index ] = value ;

@@ -37,7 +37,7 @@ private:
 	void store_value(
 		int snp_index,
 		std::string const& variable,
-		double value
+		std::string const& value
 	) ;
 } ;
 
