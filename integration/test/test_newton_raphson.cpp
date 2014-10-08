@@ -49,6 +49,7 @@ namespace impl {
 				0,									-2 * ( point( 1 ) - offset( 1 ) ) ;
 		return matrix + M ;
 	}
+
 }
 
 AUTO_TEST_CASE( test_newton_raphson_1d ) {
