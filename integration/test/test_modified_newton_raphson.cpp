@@ -9,6 +9,7 @@
 #include <boost/noncopyable.hpp>
 #include "test_case.hpp"
 #include "integration/ModifiedNewtonRaphson.hpp"
+#include "integration/AscentDirectionPicker.hpp"
 #include <Eigen/Dense>
 
 namespace impl {
@@ -36,7 +37,7 @@ namespace impl {
 		//
 		// With zeroes on off-diagonals
 		//
-		void evaluate_at( point, std::size_t number_of_derivatives = 0 ) {
+		void evaluate_at( Vector const& point, std::size_t number_of_derivatives = 0 ) {
 			assert( point.size() == 2 ) ;
 			m_point = point ;
 		}
@@ -54,7 +55,7 @@ namespace impl {
 			return result ;
 		}
 
-		Eigen::MatrixXd get_value_of_first_derivative() const {
+		Eigen::MatrixXd get_value_of_second_derivative() const {
 			Eigen::MatrixXd result ;
 			result.setZero(2,2) ;
 			result(0,0) = -1.2 * std::pow( m_point(0), 2 ) + 2.0 ;
@@ -63,14 +64,75 @@ namespace impl {
 		}
 
 	private:
-		Eigen::Vector m_point ;
+		Vector m_point ;
+	} ;
+	
+	struct WalkOneWay: public boost::noncopyable {
+		WalkOneWay( FunctionBase::Vector way ):
+			m_way( way )
+		{}
+			
+		void compute( FunctionBase::Matrix const& m ) {
+			// nothing to do
+		}
+		
+		FunctionBase::Vector solve( FunctionBase::Vector const& v ) {
+			return m_way ;
+		}
+	private:
+		FunctionBase::Vector m_way ;
+	} ;
+	
+	struct StoppingCondition {
+		bool operator()( FunctionBase::Vector const& point, double value, FunctionBase::Vector const& first_derivative ) {
+			return first_derivative.array().abs().maxCoeff() < 1E-12 ;
+		}
 	} ;
 }
 
 AUTO_TEST_CASE( test_modified_newton_raphson_2d ) {
 	{
+		typedef impl::FunctionBase::Vector Vector ;
 		impl::Function1 function ;
+		impl::StoppingCondition stoppingCondition ;
+		integration::CholeskyOrEigenvalueSolver solver ;
 		
+		Vector start ;
+		start.setZero(2) ;
+		start(0) = -1 ;
+		start(1) = -1 ;
+
+		Vector result = integration::find_maximum_by_modified_newton_raphson_with_line_search(
+			function,
+			start,
+			stoppingCondition,
+			solver
+		) ;
+			
+		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 1E-9 ) ;
+		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 1E-9 ) ;
 		
+		start << -1, -0.1 ;
+		result = integration::find_maximum_by_modified_newton_raphson_with_line_search(
+			function,
+			start,
+			stoppingCondition,
+			solver
+		) ;
+			
+		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 1E-9 ) ;
+		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 1E-9 ) ;
+
+		start << -100, -0.1 ;
+		result = integration::find_maximum_by_modified_newton_raphson_with_line_search(
+			function,
+			start,
+			stoppingCondition,
+			solver
+		) ;
+			
+		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 1E-9 ) ;
+		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 1E-9 ) ;
 	}
 }
+

@@ -46,3 +46,4 @@ def build( bld ):
 	
 	create_test( bld, 'test_integrators' )
 	create_test( bld, 'test_newton_raphson' )
+	create_test( bld, 'test_modified_newton_raphson' )
