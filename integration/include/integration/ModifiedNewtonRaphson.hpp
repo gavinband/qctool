@@ -14,108 +14,148 @@
 #include "integration/Error.hpp"
 
 namespace integration {
+	namespace {
+		template< typename Function, typename DirectionPicker, typename StoppingCondition >
+		struct Stepper: public boost::noncopyable {
+			Stepper(
+				DirectionPicker& solver,
+				StoppingCondition& stopping_condition
+			):
+				 m_solver( solver ),
+				 m_stopping_condition( stopping_condition )
+			{
+			}
+
+			bool step( Function& function, typename Function::Vector const& point, typename Function::Vector* result ) {
+				*result = m_solver.compute( function, point ) ;
+				return !m_stopping_condition( function, *result ) ;
+			}
+
+		private:
+			DirectionPicker& m_solver ;
+			StoppingCondition& m_stopping_condition ;
+		} ;
+		
+		template< typename Vector >
+		double oneNorm( Vector const& v ) {
+			return v.array().abs().maxCoeff() ;
+		}
+	}
 	//
 	// The following function represents a generic version of the multidimensional modified Newton-Raphson
 	// algorithm which finds a local maximum of the given function.
-	// It takes an 'evaluator' object which evaluates the function and its first and second derivatives.
-	// A 'solver' object is used to pick a (hopefully ascent) direction at each step.
-	// The 'stopping_condition' argument is used to determine when to stop iterating.
+	// It takes an 'function' object which evaluates the function and its first and second derivatives.
+	// A 'direction_picker' object is used to pick an ascent direction at each step.
+	// If a non-ascent direction is picked, the algorithm steps along it unconditionally without line search.
+	// The iteration stops when the picked direction is zero.
 	//
-	template< typename FunctionEvaluator, typename StoppingCondition, typename DirectionPicker >
-	typename FunctionEvaluator::Vector find_maximum_by_modified_newton_raphson_with_line_search(
-		FunctionEvaluator& evaluator,
-		typename FunctionEvaluator::Vector point,
-		StoppingCondition& stopping_condition,
+	template< typename Function, typename DirectionPicker, typename StoppingCondition >
+	typename Function::Vector find_maximum_by_modified_newton_raphson_with_line_search(
+		Function& function,
+		typename Function::Vector currentPoint,
 		DirectionPicker& direction_picker,
+		StoppingCondition& stopping_condition,
 		double const line_search_tolerance = 0.1
 	)
 	{
-		typedef typename FunctionEvaluator::Vector Vector ;
-		typedef typename FunctionEvaluator::Matrix Matrix ;
+		typedef typename Function::Vector Vector ;
+		typedef typename Function::Matrix Matrix ;
 		
-		evaluator.evaluate_at( point, 1 ) ;
-		double function_value = evaluator.get_value_of_function() ;
-		Vector first_derivative = evaluator.get_value_of_first_derivative() ;
-		Vector h ;
+		// 
+		// If h is an ascent direction (f(x + lambda h) > f(x) for small enough lambda)
+		// then we can do a line search starting with lambda = 1.
+		// We'll have f(x + lambda h) = f(x) + lambda Df_x (h) + O(lambda^2).
+		// Can look for a lambda with f(x + lambda h) - f(x) > c * lambda Df_x (h), say,
+		// where lambda = the line search tolerance.
+		//
 
-#if DEBUG_NEWTON_RAPHSON
-		std::cerr << "MNR: point = " << point << ", function = " << function_value << ", first derivative = " << first_derivative << ".\n" ;
-#endif
-		while( !stopping_condition( point, function_value, first_derivative ) ) {
-			// The Newton-Raphson rule comes from the observation that if
-			// f( x + h ) = f( x ) + (D_x f) (h) + higher order terms
-			// and if f( x + h ) = 0
-			// then h must satisfy (D_x f) (h) = -f( x ) + higher order terms.
-			// At each step we solve this and move to the point x + h.
-			// If the function is linear, this will actually get us to the root.
-			// For modified Newton-Raphson, we instead pick a direction by some
-			// modified strategy based on the second (encapsulated in the solver argument).
-			// 
-			// If h is an ascent direction (f(x + lambda h) > f(x) for small enough lambda)
-			// then we can do a line search starting with lambda = 1.
-			// We'll have f(x + lambda h) = f(x) + lambda Df_x (h) + O(lambda^2).
-			// Can look for a lambda with f(x + lambda h) - f(x) > c * lambda Df_x (h), say,
-			// where lambda = the line search tolerance.
-			//
+		Vector first_derivative ;
+		Vector h ;
+		Stepper< Function, DirectionPicker, StoppingCondition > stepper( direction_picker, stopping_condition ) ;
+		for(
+			function.evaluate_at( currentPoint, 1 ) ;
+			stepper.step( function, currentPoint, &h ) ;
+			function.evaluate_at( currentPoint, 1 )
+		) {
+			double const current_function_value = function.get_value_of_function() ;
+			first_derivative = function.get_value_of_first_derivative() ;
+			double directional_derivative = first_derivative.transpose() * h ;
 
 #if DEBUG_NEWTON_RAPHSON
 			std::cerr << "MNR: --------------------------\n" ;
-			std::cerr << "MNR: point is                 : " << point.transpose() << ".\n" ;
-			std::cerr << "MNR: first derivative is      : " << first_derivative.transpose() << ".\n" ;
-#endif
-			h = direction_picker.compute( evaluator, point ) ;
-
-			double const current_function_value = evaluator.get_value_of_function() ;
-			double lambda = 1 ;
-			double directional_derivative = first_derivative.transpose() * h ;
-#if DEBUG_NEWTON_RAPHSON
+			std::cerr << "MNR: point is                 : " << currentPoint.transpose() << ".\n" ;
+			std::cerr << "MNR: first derivative is      : " << first_derivative.transpose() << " with 1-norm " << oneNorm( first_derivative ) << ".\n" ;
 			std::cerr << "MNR: line search direction is : " << h.transpose() << ".\n" ;
-			std::cerr << "MNR: current function value is: " << std::setprecision(15) << current_function_value << ".\n" ;
+			std::cerr << "MNR: current function value is: " << std::setprecision(25) << current_function_value << ".\n" ;
 			std::cerr << "MNR: directional derivative is: " << directional_derivative << ".\n" ;
+			std::cerr << "MNR: machine epsilon is: " << std::numeric_limits< double >::epsilon() << ".\n" ;
 			std::cerr << "MNR: starting line search...\n" ;
 #endif
-			if( directional_derivative <= 0 ) {
-				throw NumericalError(
-					"integration::find_maximum_by_modified_newton_raphson_with_line_search()",
-					"Non-ascent direction picked.  Skipping line search."
-				) ;
-			}
-			for(
-				evaluator.evaluate_at( point + lambda * h, 0 ) ;
-				( evaluator.get_value_of_function() - current_function_value ) < ( line_search_tolerance * lambda * directional_derivative ) ;
-				evaluator.evaluate_at( point + lambda * h, 0 )
-			) {
-#if DEBUG_NEWTON_RAPHSON
-				std::cerr << "MNR: tried line search with lambda=" << lambda << ": function = " << evaluator.get_value_of_function() << ".\n" ;
-				std::cerr << "MNR: difference = " << ( evaluator.get_value_of_function() - current_function_value ) << ", target = " << ( line_search_tolerance * lambda * directional_derivative ) << ".\n" ;
-#endif
-				lambda = lambda * 0.5 ;
-				if( lambda < std::numeric_limits< double >::epsilon() ) {
-					throw NumericalError(
-						"integration::find_maximum_by_modified_newton_raphson_with_line_search()",
-						"Line search failed."
-					) ;
+
+			double lambda = 1 ;
+			// We can't reasonably expect to improve the function if the directional derivative is close to epsilon.
+			// But we might still make the derivative smaller.
+			if( directional_derivative > ( 10 * std::numeric_limits< double >::epsilon() ) ) {
+				// Directional derivative is not too small, so we can hope to improve the function value.
+				for(
+					function.evaluate_at( currentPoint + lambda * h, 0 ) ;
+					( function.get_value_of_function() - current_function_value ) < ( line_search_tolerance * lambda * directional_derivative ) ;
+					function.evaluate_at( currentPoint + lambda * h, 0 )
+				) {
+	#if DEBUG_NEWTON_RAPHSON
+				std::cerr << "MNR: tried line search with lambda=" << lambda << ": function = " << std::setprecision(25) << function.get_value_of_function() << ".\n" ;
+	#endif
+					lambda = lambda * 0.9 ;
+					if( lambda < std::numeric_limits< double >::epsilon() ) {
+						throw NumericalError(
+							"integration::find_maximum_by_modified_newton_raphson_with_line_search()",
+							"Line search failed."
+						) ;
+					}
+				}
+			} else {
+				// Directional derivative is tiny.
+				// We can't reasonably expect to improve the function if the directional derivative is close to epsilon.
+				// We aim to not make it worse, and to make the derivative smaller.
+				double const derivativeOneNorm = oneNorm( first_derivative ) ;
+				for(
+					function.evaluate_at( currentPoint + lambda * h, 1 ) ;
+					(( function.get_value_of_function() - current_function_value ) < 0 )
+					|| ( oneNorm( function.get_value_of_first_derivative() ) > derivativeOneNorm ) ;
+					function.evaluate_at( currentPoint + lambda * h, 0 )
+				) {
+	#if DEBUG_NEWTON_RAPHSON
+				std::cerr << "MNR: tried line search with lambda=" << lambda
+					<< ": function = " << std::setprecision(25) << function.get_value_of_function()
+					<< ": derivative = " << function.get_value_of_first_derivative().transpose()
+					<< ": 1-norm = " << oneNorm( function.get_value_of_first_derivative() )
+					<< ".\n" ;
+	#endif
+					lambda = lambda * 0.5 ;
+					if( lambda < std::numeric_limits< double >::epsilon() ) {
+						throw NumericalError(
+							"integration::find_maximum_by_modified_newton_raphson_with_line_search()",
+							"Line search failed."
+						) ;
+					}
 				}
 			}
+#if DEBUG_NEWTON_RAPHSON
+		std::cerr << "MNR: line search complete with lambda = "
+				<< lambda
+				<< " and function value "
+				<< function.get_value_of_function()
+				<< ", improvement = "
+				<< ( function.get_value_of_function() - current_function_value )
+				<< ".\n" ;
+#endif
 			
-#if DEBUG_NEWTON_RAPHSON
-			std::cerr << "MNR: line search complete with lambda = "
-					<< lambda
-					<< " and function value "
-					<< evaluator.get_value_of_function()
-					<< ", improvement = "
-					<< ( evaluator.get_value_of_function() - current_function_value )
-					<< ".\n" ;
-#endif
-			point += lambda * h ;
-			evaluator.evaluate_at( point ) ;
-
-#if DEBUG_NEWTON_RAPHSON
-			std::cerr << "MNR: point = " << point.transpose() << ", function = " << function_value << ", first derivative = " << first_derivative.transpose() << ".\n" ;
-#endif
-			first_derivative = evaluator.get_value_of_first_derivative() ;
+			currentPoint += lambda * h ;
 		}
-		return point ;
+#if DEBUG_NEWTON_RAPHSON
+		std::cerr << "MNR: point = " << currentPoint << ", function = " << function.get_value_of_function() << ", first derivative = " << function.get_value_of_first_derivative() << ".\n" ;
+#endif
+		return currentPoint ;
 	}
 }
 
