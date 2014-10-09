@@ -85,7 +85,7 @@ namespace impl {
 	
 	struct StoppingCondition {
 		bool operator()( FunctionBase::Vector const& point, double value, FunctionBase::Vector const& first_derivative ) {
-			return first_derivative.array().abs().maxCoeff() < 1E-12 ;
+			return first_derivative.array().abs().maxCoeff() < 1E-9 ;
 		}
 	} ;
 }

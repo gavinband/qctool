@@ -8,6 +8,8 @@
 
 #define DEBUG_NEWTON_RAPHSON 1
 
+#include <iostream>
+#include <iomanip>
 #include "integration/Error.hpp"
 
 namespace integration {
@@ -70,7 +72,7 @@ namespace integration {
 
 #if DEBUG_NEWTON_RAPHSON
 			std::cerr << "MNR: line search direction is : " << h.transpose() << ".\n" ;
-			std::cerr << "MNR: current function value is: " << function_value << ".\n" ;
+			std::cerr << "MNR: current function value is: " << std::setprecision(15) << current_function_value << ".\n" ;
 			std::cerr << "MNR: directional derivative is: " << directional_derivative << ".\n" ;
 			std::cerr << "MNR: starting line search...\n" ;
 #endif

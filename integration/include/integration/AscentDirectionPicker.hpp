@@ -41,11 +41,14 @@ namespace integration {
 #if DEBUG_ASCENT_DIRECTION_PICKER
 				std::cerr << "CholeskyOrEigenvalueSolver: Solving:\n" << matrix << "...\n" ;
 #endif
+			m_state = eUncomputed ;
 			m_cholesky_solver.compute( matrix ) ;
-			if( m_cholesky_solver.info() == Eigen::Success && m_cholesky_solver.isNegative() ) {
+			if( m_cholesky_solver.info() == Eigen::Success && m_cholesky_solver.vectorD().array().maxCoeff() < 0 ) {
 				m_state = eCholeskyComputed ;
 #if DEBUG_ASCENT_DIRECTION_PICKER
 				std::cerr << "CholeskyOrEigenvalueSolver: LDLT decomposition computed.  Matrix was negative-definite." ;
+				std::cerr << "CholeskyOrEigenvalueSolver: LDLT decomposition L:\n" << m_cholesky_solver.matrixLDLT() << ".\n" ;
+				std::cerr << "CholeskyOrEigenvalueSolver: LDLT decomposition D:\n" << m_cholesky_solver.vectorD().transpose() << ".\n" ;
 #endif
 			} else {
 #if DEBUG_ASCENT_DIRECTION_PICKER
@@ -57,18 +60,18 @@ namespace integration {
 				} else {
 					m_state = eEigenComputed ;
 				
-					m_inverse_eigenvalues = m_eigen_solver.eigenvalues() ;
+					m_d = m_eigen_solver.eigenvalues() ;
 #if DEBUG_ASCENT_DIRECTION_PICKER
 					std::cerr << "CholeskyOrEigenvalueSolver: Eigenvalue decomposition computed.  Eigenvalues are: "
-						<< m_inverse_eigenvalues.transpose() << ".\n" ;
+						<< m_d.transpose() << ".\n" ;
 #endif
-					double maxAbsEigenvalue = m_inverse_eigenvalues.array().abs().maxCoeff() ;
-					for( int i = 0; i < m_inverse_eigenvalues.size(); ++i ) {
-						if( m_inverse_eigenvalues(i) > -m_delta ) {
-							m_inverse_eigenvalues(i) = -m_delta ;
+					double maxAbsEigenvalue = m_d.array().abs().maxCoeff() ;
+					for( int i = 0; i < m_d.size(); ++i ) {
+						if( m_d(i) > -m_delta ) {
+							m_d(i) = -m_delta ;
 						}
 					}
-					m_inverse_eigenvalues = m_inverse_eigenvalues.array().inverse() ;
+					m_d = m_d.array().inverse() ;
 				}
 			}
 		}
@@ -84,7 +87,7 @@ namespace integration {
 					break ;
 				case eEigenComputed:
 					return (
-						m_eigen_solver.eigenvectors() * m_inverse_eigenvalues.asDiagonal() * m_eigen_solver.eigenvectors().transpose()
+						m_eigen_solver.eigenvectors() * m_d.asDiagonal() * m_eigen_solver.eigenvectors().transpose()
 					) * v ;
 					break ;
 			}
@@ -97,7 +100,7 @@ namespace integration {
 
 		// state variables
 		State m_state ;
-		Eigen::VectorXd m_inverse_eigenvalues ;
+		Eigen::VectorXd m_d ;
 	} ;
 }
 
