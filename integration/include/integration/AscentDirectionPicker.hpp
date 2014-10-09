@@ -12,7 +12,7 @@
 #include <Eigen/Cholesky>
 #include <Eigen/Eigenvalues>
 
-#define DEBUG_ASCENT_DIRECTION_PICKER 1
+// #define DEBUG_ASCENT_DIRECTION_PICKER 1
 
 namespace integration {
 	//
@@ -25,81 +25,73 @@ namespace integration {
 	// positive value delta.
 	// We expect the matrix passed in to usually be negative-definite; it will be
 	// a second derivative of a likelihood function.
+	template< typename FunctionEvaluator >
 	struct CholeskyOrEigenvalueSolver: public boost::noncopyable {
 	public:
 		typedef Eigen::VectorXd Vector ;
 		typedef Eigen::MatrixXd Matrix ;
 		
-		enum State { eUncomputed, eCholeskyComputed, eEigenComputed } ;
-
 	public:
-		CholeskyOrEigenvalueSolver( double const delta = 0.01 ):
+		CholeskyOrEigenvalueSolver( double const delta = -0.01 ):
 			m_delta( delta )
-		{}
+		{
+			assert( delta < 0 ) ;
+		}
 
-		void compute( Matrix const& matrix ) {
+		void set_delta( double const delta ) {
+			assert( delta < 0 ) ;
+			m_delta = delta ;
+		}
+		
+		Vector compute( FunctionEvaluator& evaluator, Vector const& point ) {
+			evaluator.evaluate_at( point, 2 ) ;
+			Vector const& first_derivative = evaluator.get_value_of_first_derivative() ;
+			Matrix const& second_derivative = evaluator.get_value_of_second_derivative() ;
+
 #if DEBUG_ASCENT_DIRECTION_PICKER
-				std::cerr << "CholeskyOrEigenvalueSolver: Solving:\n" << matrix << "...\n" ;
+				std::cerr << "CholeskyOrEigenvalueSolver: Solving:\n" << second_derivative << "...\n" ;
 #endif
-			m_state = eUncomputed ;
-			m_cholesky_solver.compute( matrix ) ;
+			m_cholesky_solver.compute( second_derivative ) ;
 			if( m_cholesky_solver.info() == Eigen::Success && m_cholesky_solver.vectorD().array().maxCoeff() < 0 ) {
-				m_state = eCholeskyComputed ;
 #if DEBUG_ASCENT_DIRECTION_PICKER
-				std::cerr << "CholeskyOrEigenvalueSolver: LDLT decomposition computed.  Matrix was negative-definite." ;
+				std::cerr << "CholeskyOrEigenvalueSolver: LDLT decomposition computed.  Matrix was negative-definite.\n" ;
 				std::cerr << "CholeskyOrEigenvalueSolver: LDLT decomposition L:\n" << m_cholesky_solver.matrixLDLT() << ".\n" ;
 				std::cerr << "CholeskyOrEigenvalueSolver: LDLT decomposition D:\n" << m_cholesky_solver.vectorD().transpose() << ".\n" ;
 #endif
+				// Return Newton direction
+				return m_cholesky_solver.solve( -first_derivative ) ;
 			} else {
 #if DEBUG_ASCENT_DIRECTION_PICKER
 				std::cerr << "CholeskyOrEigenvalueSolver: LDLT decomposition not computed.  Matrix was positive-definite or indefinite.\n" ;
 #endif
-				m_eigen_solver.compute( matrix ) ;
+				m_eigen_solver.compute( second_derivative ) ;
 				if( m_eigen_solver.info() == Eigen::NoConvergence ) {
-					m_state = eUncomputed ;
-				} else {
-					m_state = eEigenComputed ;
-				
-					m_d = m_eigen_solver.eigenvalues() ;
+					throw NumericalError( "integration::CholeskyOrEigenvalueSolver::operator()", "Eigenvalue decomposition did not converge" ) ;
+				} 
+			
+				m_d = m_eigen_solver.eigenvalues() ;
 #if DEBUG_ASCENT_DIRECTION_PICKER
-					std::cerr << "CholeskyOrEigenvalueSolver: Eigenvalue decomposition computed.  Eigenvalues are: "
-						<< m_d.transpose() << ".\n" ;
+				std::cerr << "CholeskyOrEigenvalueSolver: Eigenvalue decomposition computed.  Eigenvalues are: "
+					<< m_d.transpose() << ".\n" ;
 #endif
-					double maxAbsEigenvalue = m_d.array().abs().maxCoeff() ;
-					for( int i = 0; i < m_d.size(); ++i ) {
-						if( m_d(i) > -m_delta ) {
-							m_d(i) = -m_delta ;
-						}
+				double maxAbsEigenvalue = m_d.array().abs().maxCoeff() ;
+				for( int i = 0; i < m_d.size(); ++i ) {
+					if( m_d(i) > m_delta ) {
+						m_d(i) = m_delta ;
 					}
-					m_d = m_d.array().inverse() ;
 				}
-			}
-		}
-
-		Vector solve( Vector const& v ) {
-			assert( m_state != eUncomputed ) ;
-			switch( m_state ) {
-				case eUncomputed:
-					assert( 0 ) ;
-					break ;
-				case eCholeskyComputed:
-					return m_cholesky_solver.solve( v ) ;
-					break ;
-				case eEigenComputed:
-					return (
-						m_eigen_solver.eigenvectors() * m_d.asDiagonal() * m_eigen_solver.eigenvectors().transpose()
-					) * v ;
-					break ;
+				m_d = m_d.array().inverse() ;
+				
+				return -(
+					m_eigen_solver.eigenvectors() * m_d.asDiagonal() * m_eigen_solver.eigenvectors().transpose()
+				) * first_derivative ;
 			}
 		}
 
 	private:
 		Eigen::LDLT< Matrix > m_cholesky_solver ;
 		Eigen::SelfAdjointEigenSolver< Matrix > m_eigen_solver ;
-		double const m_delta ;
-
-		// state variables
-		State m_state ;
+		double m_delta ;
 		Eigen::VectorXd m_d ;
 	} ;
 }
