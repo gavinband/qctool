@@ -125,7 +125,7 @@
 					<td>Indicates SNP blocks are layed out according to the <a hred="bgen_format_v1.1.html">v1.1 spec</a>.
 						This allows for multiple characters in alleles and is supported in SNPTEST from 
 				     <a href="https://mathgen.stats.ox.ac.uk/genetics_software/snptest/snptest.html">version 2.3.0</a>,
-				    and in <a href="http://www.well.ox.ac.uk/~gav/qctool/qctool.html">QCTOOL</a> version 1.1.
+				    and in <a href="http://www.well.ox.ac.uk/~gav/qctool/qctool.html">QCTOOL</a> from version 1.1.
 				</td></tr>
 				<tr><td></td><td></td><td>2</td><td>Indicates SNP blocks are layed out according to version 1.2 of the spec
 					(as described in this document).
@@ -177,14 +177,14 @@
 				<tr><th>No. of bytes</th><th>Description</th></tr>
 				</thead>
 				<tbody>
-				<tr><td>4</td><td>The number of individuals the row represents, hereafter denoted <em>N</em>.</td></tr>
-				<tr><td>2</td><td>The length <em>LS</em> of the SNP id.</td></tr>
-				<tr><td><em>LS</em></td><td>The SNP id.</td></tr>
-				<tr><td>2</td><td>The length <em>LR</em> of the rsid.</td></tr>
-				<td><em>LR</em></td><td>The rsid.</td></tr>
-				<tr><td>2</td><td>The length <em>LC</em> of the chromosome</td></tr>
-				<tr><td><em>LC</em></td><td>The chromosome</td></tr>
-				<tr><td>4</td><td>The SNP position, encoded as an unsigned 32-bit integer.</td></tr>
+				<tr><td>2</td><td>The length <em>L<sub>id</sub></em> of the variant identifier. (The variant identifier is intended to store e.g. chip
+					manufacturer IDs for assayed SNPs).</td></tr>
+				<tr><td><em>L<sub>id</sub></em></td><td>The variant identifier.</td></tr>
+				<tr><td>2</td><td>The length <em>L<sub>rsid</sub></em> of the rsid.</td></tr>
+				<td><em>L<sub>rsid</sub></em></td><td>The rsid.</td></tr>
+				<tr><td>2</td><td>The length <em>L<sub>chr</sub></em> of the chromosome</td></tr>
+				<tr><td><em>L<sub>chr</chr></em></td><td>The chromosome</td></tr>
+				<tr><td>4</td><td>The variant position, encoded as an unsigned 32-bit integer.</td></tr>
 				<tr><td>2</td><td>The number <em>K</em> of alleles, encoded as an unsigned 16-bit integer.</td></tr>
 				<tr><td>4</td><td>The length <em>L<sub>a1</sub></em> of the first allele.</td></tr>
 				<tr><td><em>L<sub>a1</sub></em></td><td>The first allele.</td></tr>
@@ -198,7 +198,8 @@
 					See below for details of the storage scheme used.</td></tr>
 				</tbody>
 				<tfoot>
-				<tr><th>20 + 4x<em>K</em> + <em>L<sub>S</sub></em> + <em>L<sub>R</sub></em> + <em>L<sub>C</sub></em> + <em>L<sub>a1</sub></em> + ... + <em>L<sub>aK</sub></em> + <em>D</em></th><th>TOTAL</th></tr>
+				<tr><th>16 + 4x<em>K</em> + <em>L<sub>id</sub></em> + <em>L<sub>rsid</sub></em> + <em>L<sub>chr</sub></em>
+					+ &sum;<sub>k</sub><em>L<sub>ak</sub></em> + <em>D</em></th><th>TOTAL</th></tr>
 				</tfoot>
 			</table>
 		<h3>SNP genotype or haplotype probability data</h3>
@@ -208,9 +209,7 @@
 				<tr><th width='20%'>No. of bytes</th><th>Description</th></tr>
 				</thead>
 				<tbody>
-				<tr><td>1</td></td><td>Unsigned integer <em>B</em> representing the number of bits used to store
-					each probability in this row</td></tr>
-				<tr>
+				<tr><td>4</td><td>The number of individuals the row represents, hereafter denoted <em>N</em>.</td></tr>
 				<tr><td>1</td><td>The minimum ploidy <em>P<sub>min</sub></em> of samples in the row.
 				<tr><td>1</td><td>The maximum ploidy <em>P<sub>max</sub></em> of samples in the row.<br/>
 				    A value of 0xFF (all bits set to 1) for <em>P<sub>min</sub></em> or <em>P<sub>max</sub></em> indicates that all probability
@@ -241,6 +240,9 @@
 					probabilities per sample.<br />
 					Any other value for <em>Phased</em> is an error.
 				</td></tr>
+				<tr><td>1</td></td><td>Unsigned integer <em>B</em> representing the number of bits used to store
+					each probability in this row</td></tr>
+				<tr>
 				<td>
 					<em>N</em>&times;<em>Z</em>
 				</td>
@@ -256,7 +258,7 @@
 				</tr>
 				</tbody>
 				<tfoot>
-				<tr><th>4+<em>N</em>&times;(<em>Z</em>+1)</th><th>TOTAL</th></tr>
+				<tr><th>8+<em>N</em>&times;(<em>Z</em>+1)</th><th>TOTAL</th></tr>
 				</tfoot>
 			</table>
 		</p>
@@ -327,13 +329,13 @@
 			To convert a floating-point probability <em>x</em> to its binary representation in <em>B</em> bits, perform the following.
 			<ol>
 				<li>Multiply by 2<sup><em>B</em></sup>-1.</li>
-				<li>Clamp to be in between 0 and 2<sup><em>B</em></sup>-1.
-				<li>Round to the nearest integer and store the least-significant <em>B</em> bits of the integral representation.
+				<li>Clamp to be in between 0 and 2<sup><em>B</em></sup>-1.</li>
+				<li>Round to the nearest integer and store the least-significant <em>B</em> bits of the integral representation.</li>
 			</ol>
 			
 			To convert a value stored in <em>B</em> bits to a floating-point probability,
 			convert the unsigned integer to floating-point
 			and divide by 2<sup><em>B</em></sup>-1.
-		
+		</p>
 </body>
 </html>
