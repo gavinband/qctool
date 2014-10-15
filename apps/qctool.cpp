@@ -24,6 +24,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/foreach.hpp>
 #include <boost/iterator/counting_iterator.hpp>
+#include <boost/filesystem.hpp>
 
 #include "Timer.hpp"
 #include "appcontext/CmdLineOptionProcessor.hpp"
@@ -131,7 +132,7 @@ public:
 								"The given filename may contain the wildcard character '#', which expands to match a"
 								"one- or two-character chromosome identifier.  (For example, \"qctool -g myfile_#.gen\" will match "
 								"\"myfile_1.gen\", \"myfile_2.gen\", etc., or \"myfile_01.gen\", \"myfile_02.gen\", etc.)  Only human"
-								" autosomes are matched this way.\n"
+								" autosomes and sex chromosomes are matched this way.\n"
 								"This option may also be repeated, in which case each invocation is treated as a seperate cohort and cohorts"
 								" are joined together to create one big dataset." )
 			.set_takes_values( 1 )
@@ -366,6 +367,10 @@ public:
 
 		options[ "-omit-chromosome" ]
 			.set_description( "(This option is specific to output files in the GEN format.) Do not output a chromosome column." ) ;
+
+		options[ "-no-clobber" ]
+			.set_description( "Do not run QCTOOL if it would overwrite an existing file." )
+		;
 
 		options.option_implies_option( "-sort", "-og" ) ;
 		options.option_implies_option( "-write-index", "-og" ) ;
@@ -2151,8 +2156,40 @@ private:
 struct QCToolApplication: public appcontext::ApplicationContext
 {
 public:
+	static void check_options( appcontext::OptionProcessor const& options ) {
+		// Bail out early if -no-clobber is given and we might overwrite files
+		if( options.check( "-no-clobber" ) ) {
+			std::vector< std::string > outputOptions ;
+			outputOptions.push_back( "-og" ) ;
+			outputOptions.push_back( "-os" ) ;
+			outputOptions.push_back( "-osnp" ) ;
+			outputOptions.push_back( "-osample" ) ;
+			outputOptions.push_back( "-olog" ) ;
+
+			for( std::size_t i = 0; i < outputOptions.size(); ++i ) {
+				std::string const& option = outputOptions[i] ;
+				if( options.check( option ) && boost::filesystem::exists( options.get< std::string >( option ) ) ) {
+					throw genfile::BadArgumentError(
+						"QCToolApplication::check_options()",
+						option + "=\"" + options.get< std::string >( option ) + "\"",
+						"File \"" + options.get< std::string >( option ) + "\" exists, but -no-clobber is specified."
+					) ;
+				}
+			}
+		}
+	}
+	
+public:
 	QCToolApplication( int argc, char** argv ):
-		appcontext::ApplicationContext( globals::program_name, globals::program_version, std::auto_ptr< appcontext::OptionProcessor >( new QCToolOptionProcessor ), argc, argv, "-log" )
+		appcontext::ApplicationContext(
+			globals::program_name,
+			globals::program_version,
+			std::auto_ptr< appcontext::OptionProcessor >( new QCToolOptionProcessor ),
+			argc,
+			argv,
+			"-log",
+			QCToolApplication::check_options
+		)
 	{
 		process() ;
 	}

@@ -21,14 +21,15 @@ namespace appcontext {
 		std::auto_ptr< OptionProcessor > options,
 		int argc,
 		char** argv,
-		std::string const& log_option
+		std::string const& log_option,
+		OptionChecker checker
 	 ):
 		m_application_name( application_name ),
 		m_application_version( "" ),
 		m_options( options ),
 		m_ui_context( new appcontext::CmdLineUIContext )
 	{
-		process_options( argc, argv, log_option ) ;
+		process_options( argc, argv, log_option, checker ) ;
 		write_start_banner() ;
 	}
 
@@ -38,21 +39,25 @@ namespace appcontext {
 		std::auto_ptr< OptionProcessor > options,
 		int argc,
 		char** argv,
-		std::string const& log_option
+		std::string const& log_option,
+		OptionChecker checker
 	 ):
 		m_application_name( application_name ),
 		m_application_version( application_version ),
 		m_options( options ),
 		m_ui_context( new appcontext::CmdLineUIContext )
 	{
-		process_options( argc, argv, log_option ) ;
+		process_options( argc, argv, log_option, checker ) ;
 		write_start_banner() ;
 	}
 	
-	void ApplicationContext::process_options( int argc, char** argv, std::string const& log_option ) {
+	void ApplicationContext::process_options( int argc, char** argv, std::string const& log_option, OptionChecker checker ) {
 		try {
 			get_ui_context().logger().add_stream( "screen", std::cerr ) ;
 			m_options->process( argc, argv ) ;
+			if( checker ) {
+				checker( *m_options ) ;
+			}
 			construct_logger( log_option ) ;
 		}
 		catch( OptionProcessorMutuallyExclusiveOptionsSuppliedException const& e ) {
