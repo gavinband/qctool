@@ -1,12 +1,24 @@
+body {
+	width: 80% ;
+	max-width: 900px ;
+	margin-left: auto ;
+	margin-right: auto ;
+	text-align: left ;
+}
+
 table.filespec {
 	width: 80% ;
+	max-width: 900px ;
 	border-width: 5px;
 	border-spacing: ;
 	border-style: dotted;
 	border-color: gray;
 	border-collapse: collapse;
 	background-color: white;
+	margin-left: auto ;
+	margin-right: auto ;
 }
+
 table.filespec th {
 	border-width: 2px;
 	padding: 4px;
@@ -75,7 +87,7 @@ table.field_encoding_scheme td {
 
 table.changes {
 	width: 90% ;
-	font-size: 8pt ;
+	font-size: 10pt ;
 }
 
 .changes th {
@@ -84,3 +96,39 @@ table.changes {
 }
 
 
+h1, h2, h3, h4, .gavsheader {
+	text-align: left ;
+	font-family: helvetica ;
+}
+
+h2 {
+	border-bottom: 1px solid black ;
+	margin-top: 50px ;
+}
+
+.displayFormula {
+	text-align: center;
+	font-family: sans-serif ;
+}
+
+.printStyleTable {
+	border-collapse: collapse ;
+	margin-left: auto ;
+	margin-right: auto ;
+}
+
+.printStyleTable thead th {
+	border-bottom: 1px solid black ;
+	padding-left: 5px ;
+	padding-right: 10px ;
+}
+
+.printStyleTable tbody th {
+	padding-right: 10px ;
+	text-align: center;
+}
+
+.printStyleTable tbody td {
+	padding-right: 10px ;
+	text-align: center;
+}
