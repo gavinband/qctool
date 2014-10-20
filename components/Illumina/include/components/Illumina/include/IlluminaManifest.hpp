@@ -24,23 +24,31 @@ namespace illumina {
 		
 		void setup( std::string const& filename ) {
 			std::auto_ptr< std::istream > file = genfile::open_binary_file_for_input( filename ) ;
-			setup( *file )
+			setup( *file, filename )
 		}
 
-		void setup( std::istream& file ) {
+		void setup( std::istream& file, std::string const& filename ) {
 			std::string signature( 3, ' ' ) ;
 			file.read( &signature[0], 3 ) ;
 			if( signature != 'BPM' ) {
 				throw genfile::MalformedInputError(
 					"illumina::Manifest::setup()",
-					"File does not appear to be an Illumina manifest (.bpm) file."
+					"File (" + filename + ") does not appear to be an Illumina manifest (.bpm) file."
 				) ;
 			}
-			std::string version( 5, ' ' ) ;
-			file.read( &version[0], 5 ) ;
+			unsigned char version_major ;
+			uint32_t version_minor ;
+			file.read( &version_major, 1 ) ;
+			file.read( &version_minor, 4 ) ;
+			if( version_major != 1 || version_minor != 4 ) {
+				throw genfile::MalformedInputError(
+					"illumina::Manifest::setup()",
+					"Illumina manifest (" + filename + ") does not appear to have the right version (" + int( version_major ) + "," + version_minor + " instead of 1,4)"
+				) ;
+			}
+
+			
 		}
-		
-		
 	} ;
 }
 
