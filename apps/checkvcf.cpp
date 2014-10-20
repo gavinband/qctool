@@ -165,6 +165,9 @@ private:
 		std::istream* inStream = &(std::cin) ;
 		std::ostream* outStream = &(std::cout) ;
 		
+		appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading manifest variants" ) ;
+		progress_context( 0 ) ;
+		
 		// Ignore metadata
 		std::size_t lineCount = 0 ;
 		while( std::getline( *inStream, line ) && line.size() > 1 && line[0] == '#' && line[1] == '#' ) {
@@ -224,6 +227,8 @@ private:
 			outStream->put( '\t' ) ;
 			outStream->write( line.data() + fieldPos[3], line.size() - fieldPos[3] ) ;
 			outStream->put( '\n' ) ;
+			
+			progress_context( lineCount ) ;
 		}
 	}
 } ;
