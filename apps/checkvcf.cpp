@@ -216,6 +216,10 @@ private:
 				}
 
 				std::string rsid = line.substr( fieldPos[2], fieldPos[3] - fieldPos[2] - 1 ) ;
+				if( rsid.size() > 0 ) {
+					// Just take the first ID.
+					rsid = genfile::string_utils::slice( line ).split( "," )[0] ;
+				}
 				genfile::Chromosome chromosome( line.substr( fieldPos[0], fieldPos[1] - fieldPos[0] - 1 ) ) ;
 				genfile::Position position = genfile::string_utils::to_repr< genfile::Position >( line.substr( fieldPos[1], fieldPos[2] - fieldPos[1] - 1 ) ) ;
 
