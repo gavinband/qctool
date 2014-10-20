@@ -145,8 +145,22 @@ private:
 		
 		get_ui_context().logger() << std::string( 72, '=' ) << "\n\n" ;
 	}
-	
+
 	void process() {
+		try {
+			unsafe_process() ;
+		}
+		catch( genfile::InputError const& e ) {
+			get_ui_context().logger() << "!! Error (" << e.what() << "): " << e.format_message() << ".\n" ;
+			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+		}
+		catch( genfile::FileNotFoundError const& e ) {
+			get_ui_context().logger() << "\nError: No file matching \"" << e.filespec() << "\" could be found.\n" ;
+			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+		}
+	}
+
+	void unsafe_process() {
 		std::string line ;
 		std::istream* inStream = &(std::cin) ;
 		std::ostream* outStream = &(std::cout) ;
