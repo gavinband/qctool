@@ -16,20 +16,33 @@
 namespace statfile {
 	DelimitedStatSource::DelimitedStatSource(
 		std::auto_ptr< std::istream > stream_ptr,
-		std::string delimiter
+		std::string delimiter,
+		OptionalString const& ignore_until,
+		OptionalString const& ignore_from
 	): 	m_filename( "(unnamed stream)" ),
 		m_comment_character( '#' ),
 		m_delimiter( delimiter ),
-		m_quotes( "\"\"" )
+		m_quotes( "\"\"" ),
+		m_number_of_ignored_lines( 0 ),
+		m_ignore_until( ignore_until ),
+		m_ignore_from( ignore_from )
 	{
 		setup( stream_ptr ) ;
 	}
 
-	DelimitedStatSource::DelimitedStatSource( std::string const& filename, std::string delimiter )
+	DelimitedStatSource::DelimitedStatSource(
+		std::string const& filename,
+		std::string delimiter,
+		OptionalString const& ignore_until,
+		OptionalString const& ignore_from
+	)
 	: 	m_filename( filename ),
 		m_comment_character( '#' ),
 		m_delimiter( delimiter ),
-		m_quotes( "\"\"" )
+		m_quotes( "\"\"" ),
+		m_number_of_ignored_lines( 0 ),
+		m_ignore_until( ignore_until ),
+		m_ignore_from( ignore_from )
 	{
 		setup( filename ) ;
 	}
@@ -48,7 +61,7 @@ namespace statfile {
 		reset_stream_to_start() ;
 		// Skip comment and column header lines.
 		std::string line ;
-		for( std::size_t i = 0; i < m_number_of_comment_lines + 1; ++i ) {
+		for( std::size_t i = 0; i < m_number_of_comment_lines + m_number_of_ignored_lines + 1; ++i ) {
 			std::getline( stream(), line ) ;
 		}
 		Base::reset_to_start() ;
@@ -151,6 +164,13 @@ namespace statfile {
 		// First count the lines in the file.
 		set_stream( stream_ptr ) ;
 		read_descriptive_comments() ;
+		m_number_of_ignored_lines = 0 ;
+		if( m_ignore_until ) {
+			std::string line ;
+			while( std::getline( *stream_ptr, line ) && line != m_ignore_until.get() ) {
+				++m_number_of_ignored_lines ;
+			}
+		}
 		turn_off_ios_exceptions() ;
 		m_number_of_rows = count_remaining_lines() - 1 ;
 		// Go back to the start and get the column names, prepare for reading.
@@ -158,6 +178,12 @@ namespace statfile {
 		assert( stream() ) ;
 		turn_on_ios_exceptions() ;
 		m_descriptive_text = read_descriptive_comments() ;
+		{
+			std::string line ;
+			for( std::size_t i = 0; i < m_number_of_ignored_lines; ++i ) {
+				std::getline( *stream_ptr, line ) ;
+			}
+		}
 		read_column_names() ;
 	}
 
@@ -198,7 +224,9 @@ namespace statfile {
 		std::string line ;
 		std::size_t count = 0 ;
 		while( std::getline( stream(), line )) {
-			if( line.size() == 0 || line[0] != m_comment_character ) {
+			if( m_ignore_from && line == m_ignore_from.get() ) {
+				break ;
+			} else if( line.size() == 0 || line[0] != m_comment_character ) {
 				++count ;
 			}
 		}

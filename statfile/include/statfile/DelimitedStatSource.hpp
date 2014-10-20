@@ -10,6 +10,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <boost/optional.hpp>
 #include "genfile/string_utils/slice.hpp"
 #include "statfile/StatSource.hpp"
 #include "statfile/IstreamAggregator.hpp"
@@ -24,9 +25,20 @@ namespace statfile {
 		// the splitting character may not occur within the quoted strings.
 	{
 		typedef ColumnNamingStatSource< BuiltInTypeStatSource > Base ;
+		typedef boost::optional< std::string > OptionalString ;
 	public:
-		DelimitedStatSource( std::string const& filename, std::string delimiter ) ;
-		DelimitedStatSource( std::auto_ptr< std::istream > stream_ptr, std::string delimiter ) ;
+		DelimitedStatSource(
+			std::string const& filename,
+			std::string delimiter,
+			OptionalString const& ignore_until = OptionalString(),
+			OptionalString const& ignore_from = OptionalString()
+		) ;
+		DelimitedStatSource(
+			std::auto_ptr< std::istream > stream_ptr,
+			std::string delimiter,
+			OptionalString const& ignore_until = OptionalString(),
+			OptionalString const& ignore_from = OptionalString()
+		) ;
 
 		void reset_to_start() ;
 
@@ -81,6 +93,13 @@ namespace statfile {
 		std::size_t m_number_of_rows ;
 		std::string m_descriptive_text ;
 		std::size_t m_number_of_comment_lines ;
+		std::size_t m_number_of_ignored_lines ;
+		
+		// m_ignore_until and m_ignore_from represent a way to make the source
+		// ignore a header section and a trailing section of the file.
+		// This is useful for the type of csv that Excel sometimes writes.
+		boost::optional< std::string > m_ignore_until ;
+		boost::optional< std::string > m_ignore_from ;
 		
 		void reset_stream_to_start() ;
 	} ;

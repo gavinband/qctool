@@ -11,6 +11,7 @@
 #include <vector>
 #include <string>
 #include <boost/tuple/tuple.hpp>
+#include "genfile/Error.hpp"
 #include "statfile/StatSource.hpp"
 
 namespace statfile {
