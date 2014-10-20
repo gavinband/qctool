@@ -39,7 +39,10 @@ public:
 	        .set_description( "Path of manifest file to compare VCF with." )
 			.set_takes_values( 1 )
 			.set_is_required() ;
-		
+	    options[ "-o" ]
+	        .set_description( "Path of output file." )
+			.set_takes_values( 1 )
+		;
 		options.declare_group( "Other options" ) ;
 		options [ "-log" ]
 			.set_description( "Specify that " + globals::program_name + " should write a log file to the given file." )
@@ -162,9 +165,15 @@ private:
 	}
 
 	void unsafe_process() {
+		using genfile::string_utils::to_string ;
+		
 		std::string line ;
 		std::istream* inStream = &(std::cin) ;
-		std::ostream* outStream = &(std::cout) ;
+		std::auto_ptr< std::ostream > outStream ;
+		
+		if( options().check( "-o" )) {
+			outStream = genfile::open_text_file_for_output( options().get< std::string >( "-o" ) ) ;
+		}
 		
 		appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Processing vcf file" ) ;
 		progress_context( 0, boost::optional< std::size_t >() ) ;
@@ -172,77 +181,99 @@ private:
 		// Ignore metadata
 		std::size_t lineCount = 0 ;
 		while( std::getline( *inStream, line ) && line.size() > 1 && line[0] == '#' && line[1] == '#' ) {
-			outStream->write( line.data(), line.size() ).put( '\n' ) ;
+			if( outStream.get() ) {
+				outStream->write( line.data(), line.size() ).put( '\n' ) ;
+			}
 			++lineCount ;
 		}
 		
 		if( line.substr( 0, 6 ) != "#CHROM" ) {
 			throw genfile::MalformedInputError( "FixVCFApplication::process()", "vcf has malformed header line", lineCount ) ;
 		}
-		outStream->write( line.data(), line.size() ).put( '\n' ) ;
+		if( outStream.get() ) {
+			outStream->write( line.data(), line.size() ).put( '\n' ) ;
+		}
 		std::vector< std::size_t > fieldPos( 6, 0 ) ;
+		bool continueOnError = options().check( "-continue-on-error" ) ;
+
 		for( ; std::getline( *inStream, line ); ++lineCount ) {
-			// otherwise look up SNP by name
-			// id is third column
-			for( std::size_t i = 1; i < fieldPos.size(); ++i ) {
-				fieldPos[i] = line.find( '\t', fieldPos[i-1] ) ; 
-				if( fieldPos[i] == std::string::npos ) {
+			try {
+				// otherwise look up SNP by name
+				// id is third column
+				for( std::size_t i = 1; i < fieldPos.size(); ++i ) {
+					fieldPos[i] = line.find( '\t', fieldPos[i-1] ) ; 
+					if( fieldPos[i] == std::string::npos ) {
+						throw genfile::MalformedInputError(
+							"FixVCFApplication::process()",
+							"vcf line has fewer than " + genfile::string_utils::to_string( i+1) + " tab characters",
+							lineCount
+						) ;
+					}
+					++fieldPos[i] ; // skip the delimiter
+				}
+
+				std::string rsid = line.substr( fieldPos[2], fieldPos[3] - fieldPos[2] - 1 ) ;
+				genfile::Chromosome chromosome( line.substr( fieldPos[0], fieldPos[1] - fieldPos[0] - 1 ) ) ;
+				genfile::Position position = genfile::string_utils::to_repr< genfile::Position >( line.substr( fieldPos[1], fieldPos[2] - fieldPos[1] - 1 ) ) ;
+
+				VariantMap::const_iterator where = m_map.find( rsid ) ;
+				if( where == m_map.end() ) {
 					throw genfile::MalformedInputError(
 						"FixVCFApplication::process()",
-						"vcf line has fewer than " + genfile::string_utils::to_string( i+1) + " tab characters",
+						"vcf contains id (" + rsid + ") that is not in the variant map.",
 						lineCount
 					) ;
 				}
-				++fieldPos[i] ; // skip the delimiter
-			}
-//			std::cerr << "POS1 = " << pos1 << ", POS2 = " << pos2 << ", POS3 = " << pos3 << ".\n" ;
-			std::string rsid = line.substr( fieldPos[2], fieldPos[3] - fieldPos[2] - 1 ) ;
-			VariantMap::const_iterator where = m_map.find( rsid ) ;
-			if( where == m_map.end() ) {
-				throw genfile::MalformedInputError(
-					"FixVCFApplication::process()",
-					"vcf contains id (" + rsid + ") that is not in the variant map.",
-					lineCount
-				) ;
-			}
+				if( chromosome != where->second.get_position().chromosome() ) {
+					throw genfile::MalformedInputError(
+						"FixVCFApplication::process()",
+						"Chromosome for SNP " + rsid + " (" + to_string( chromosome ) + ") does not match manifest chromosome (" + to_string( where->second.get_position().chromosome() ) + ")",
+						lineCount
+					) ;
+				}
+				if( position != where->second.get_position().position() ) {
+					throw genfile::MalformedInputError(
+						"FixVCFApplication::process()",
+						"Position for SNP " + rsid + " (" + to_string( position ) + ") does not match manifest chromosome (" + to_string( where->second.get_position().position() ) + ")",
+						lineCount
+					) ;
+				}
+				if( line.compare( fieldPos[3], fieldPos[4] - fieldPos[3] - 1, where->second.get_first_allele() ) != 0 ) {
+					throw genfile::MalformedInputError(
+						"FixVCFApplication::process()",
+						"REF allele for SNP " + rsid + " (\"" + line.substr( fieldPos[3], fieldPos[4] - fieldPos[3] - 1 )
+							+ "\") does not match manifest allele (\"" + where->second.get_first_allele() + "\")",
+						lineCount
+					) ;
+				}
+				if( line.compare( fieldPos[4], fieldPos[5] - fieldPos[4] - 1, where->second.get_second_allele() ) != 0 ) {
+					throw genfile::MalformedInputError(
+						"FixVCFApplication::process()",
+						"REF allele for SNP " + rsid + " (\"" + line.substr( fieldPos[4], fieldPos[5] - fieldPos[4] - 1 )
+							+ "\") does not match manifest allele (\"" + where->second.get_second_allele() + "\")",
+						lineCount
+					) ;
+				}
+				rsid += "," + where->second.get_SNPID() ;
 
-			genfile::Chromosome chromosome( line.substr( fieldPos[0], fieldPos[1] - fieldPos[0] - 1 ) ) ;
-			if( chromosome != where->second.get_position().chromosome() ) {
-				get_ui_context().logger() << "!! At line: " << line.substr( 0, fieldPos[ fieldPos.size() - 1 ] )
-					<< ": CHROM(" << chromosome
-					<< ") does not match manifest chromosome (" << where->second.get_position().chromosome() << ")" ;
+				if( outStream.get() ) {
+					outStream->write( line.data(), fieldPos[2] ) ;
+					outStream->write( rsid.data(), rsid.size() ) ;
+					outStream->put( '\t' ) ;
+					outStream->write( line.data() + fieldPos[3], line.size() - fieldPos[3] ) ;
+					outStream->put( '\n' ) ;
+				}
 			}
-			genfile::Position position = genfile::string_utils::to_repr< genfile::Position >( line.substr( fieldPos[1], fieldPos[2] - fieldPos[1] - 1 ) ) ;
-			if( position != where->second.get_position().position() ) {
-				get_ui_context().logger() << "!! At line: " << line.substr( 0, fieldPos[ fieldPos.size() - 1 ] )
-					<< ": POS (" << position
-					<< ") does not match manifest position (" << where->second.get_position().position() << ")" ;
+			catch( genfile::MalformedInputError const& e ) {
+				get_ui_context().logger() << "!! Error (" << e.what() << "): " << e.format_message() << ".\n" ;
+				if( !continueOnError ) {
+					throw ;
+				}
 			}
-			if( line.compare( fieldPos[3], fieldPos[4] - fieldPos[3] - 1, where->second.get_first_allele() ) != 0 ) {
-				get_ui_context().logger() << "!! At line: " << line.substr( 0, fieldPos[ fieldPos.size() - 1 ] )
-					<< ": REF allele (\"" << line.substr( fieldPos[3], fieldPos[4] - fieldPos[3] - 1 )
-					<< "\") does not match manifest alleleA (\""
-					<< where->second.get_first_allele() << "\").\n"
-				;
-			}
-			if( line.compare( fieldPos[4], fieldPos[5] - fieldPos[4] - 1, where->second.get_second_allele() ) != 0 ) {
-				get_ui_context().logger() << "!! At line: " << line.substr( 0, fieldPos[ fieldPos.size() - 1 ] )
-					<< ": ALT allele (\"" << line.substr( fieldPos[4], fieldPos[5] - fieldPos[4] - 1 )
-					<< "\") does not match manifest alleleB (\""
-					<< where->second.get_second_allele() << "\").\n"
-				;
-			}
-
-			rsid += "," + where->second.get_SNPID() ;
-
-			outStream->write( line.data(), fieldPos[2] ) ;
-			outStream->write( rsid.data(), rsid.size() ) ;
-			outStream->put( '\t' ) ;
-			outStream->write( line.data() + fieldPos[3], line.size() - fieldPos[3] ) ;
-			outStream->put( '\n' ) ;
 			
 			progress_context( lineCount, boost::optional< std::size_t >() ) ;
 		}
+		progress_context( lineCount, lineCount ) ;
 	}
 } ;
 
