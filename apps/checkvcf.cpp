@@ -36,7 +36,8 @@ public:
 		options.declare_group( "Input file options" ) ;
 	    options[ "-manifest" ]
 	        .set_description( "Path of manifest file to compare VCF with." )
-			.set_takes_values( 1 ) ;
+			.set_takes_values( 1 )
+			.set_is_required() ;
 		
 		options.declare_group( "Other options" ) ;
 		options [ "-log" ]
@@ -147,12 +148,14 @@ private:
 		// Ignore metadata
 		std::size_t lineCount = 0 ;
 		while( std::getline( *inStream, line ) && line.size() > 1 && line[0] == '#' && line[1] == '#' ) {
+			outStream->write( line.data(), line.size() ).put( '\n' ) ;
 			++lineCount ;
 		}
 		
 		if( line.substr( 0, 6 ) != "#CHROM" ) {
 			throw genfile::MalformedInputError( "FixVCFApplication::process()", "vcf has malformed header line", lineCount ) ;
 		}
+		outStream->write( line.data(), line.size() ).put( '\n' ) ;
 		
 		for( ; std::getline( *inStream, line ); ++lineCount ) {
 			// otherwise look up SNP by name
@@ -179,7 +182,11 @@ private:
 				) ;
 			}
 			rsid += "," + where->second.get_SNPID() ;
-			(*outStream) << line.substr( 0, pos2 ) << rsid << line.substr( pos3, line.size() ) << "\n" ;
+
+			outStream->write( line.data(), pos2 ) ;
+			outStream->write( rsid.data(), rsid.size() ) ;
+			outStream->write( line.data() + pos3, line.size() - pos3 ) ;
+			outStream->put( '\n' ) ;
 		}
 	}
 } ;
