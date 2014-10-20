@@ -199,7 +199,10 @@ private:
 		std::vector< std::size_t > fieldPos( 6, 0 ) ;
 		bool continueOnError = options().check( "-continue-on-error" ) ;
 
-		for( ; std::getline( *inStream, line ); ++lineCount ) {
+		std::size_t totalVariantCount = 0 ;
+		std::size_t goodVariantCount = 0 ;
+
+		for( ; std::getline( *inStream, line ); ++lineCount, ++totalVariantCount ) {
 			try {
 				// otherwise look up SNP by name
 				// id is third column
@@ -218,7 +221,7 @@ private:
 				std::string rsid = line.substr( fieldPos[2], fieldPos[3] - fieldPos[2] - 1 ) ;
 				if( rsid.size() > 0 ) {
 					// Just take the first ID.
-					rsid = genfile::string_utils::slice( line ).split( "," )[0] ;
+					rsid = genfile::string_utils::slice( rsid ).split( "," )[0] ;
 				}
 				genfile::Chromosome chromosome( line.substr( fieldPos[0], fieldPos[1] - fieldPos[0] - 1 ) ) ;
 				genfile::Position position = genfile::string_utils::to_repr< genfile::Position >( line.substr( fieldPos[1], fieldPos[2] - fieldPos[1] - 1 ) ) ;
@@ -270,6 +273,8 @@ private:
 					outStream->write( line.data() + fieldPos[3], line.size() - fieldPos[3] ) ;
 					outStream->put( '\n' ) ;
 				}
+
+				++goodVariantCount ;
 			}
 			catch( genfile::MalformedInputError const& e ) {
 				get_ui_context().logger() << "!! Error (" << e.what() << "): " << e.format_message() << ".\n" ;
@@ -281,7 +286,9 @@ private:
 			progress_context( lineCount, boost::optional< std::size_t >() ) ;
 		}
 		progress_context( lineCount, lineCount ) ;
-	}
+
+		get_ui_context().logger() << "Visited " << totalVariantCount << " variants of which " << goodVariantCount << " matched SNPs in the manifest.\n" ;
+	}	
 } ;
 
 int main( int argc, char** argv ) {
