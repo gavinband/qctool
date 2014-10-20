@@ -48,8 +48,8 @@ namespace qcdb {
 			"INSERT INTO Sample ( analysis_id, index_in_data" ;
 
 		for( std::size_t i = 0; i < spec.size(); ++i ) {
-			sample_sql += ", " + spec[i].name() + " " + ( spec[i].is_continuous() ? "FLOAT" : "TEXT" ) ;
-			insert_sample_sql += ", " + spec[i].name() ;
+			sample_sql += ", \"" + spec[i].name() + "\" " + ( spec[i].is_continuous() ? "FLOAT" : "TEXT" ) ;
+			insert_sample_sql += ", \"" + spec[i].name() + "\"" ;
 		}
 		sample_sql += ", UNIQUE( analysis_id, \"" + spec[0].name() + "\" ), "
 			+ "UNIQUE( analysis_id, index_in_data )"
