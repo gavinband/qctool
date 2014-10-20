@@ -166,7 +166,7 @@ private:
 		std::ostream* outStream = &(std::cout) ;
 		
 		appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading manifest variants" ) ;
-		progress_context( 0 ) ;
+		progress_context( 0, boost::optional< std::size_t >() ) ;
 		
 		// Ignore metadata
 		std::size_t lineCount = 0 ;
@@ -228,7 +228,7 @@ private:
 			outStream->write( line.data() + fieldPos[3], line.size() - fieldPos[3] ) ;
 			outStream->put( '\n' ) ;
 			
-			progress_context( lineCount ) ;
+			progress_context( lineCount, boost::optional< std::size_t >() ) ;
 		}
 	}
 } ;
