@@ -11,6 +11,7 @@
 #include "genfile/GenomePosition.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/string_utils/string_utils.hpp"
 #include "statfile/DelimitedStatSource.hpp"
 #include "statfile/read_values.hpp"
 #include "appcontext/CmdLineOptionProcessor.hpp"
@@ -165,7 +166,7 @@ private:
 		std::istream* inStream = &(std::cin) ;
 		std::ostream* outStream = &(std::cout) ;
 		
-		appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading manifest variants" ) ;
+		appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Processing vcf file" ) ;
 		progress_context( 0, boost::optional< std::size_t >() ) ;
 		
 		// Ignore metadata
@@ -205,6 +206,18 @@ private:
 				) ;
 			}
 
+			genfile::Chromosome chromosome( line.substr( fieldPos[0], fieldPos[1] - fieldPos[0] - 1 ) ) ;
+			if( chromosome != where->second.get_position().chromosome() ) {
+				get_ui_context().logger() << "!! At line: " << line.substr( 0, fieldPos[ fieldPos.size() - 1 ] )
+					<< ": CHROM(" << chromosome
+					<< ") does not match manifest chromosome (" << where->second.get_position().chromosome() << ")" ;
+			}
+			genfile::Position position = genfile::string_utils::to_repr< genfile::Position >( line.substr( fieldPos[1], fieldPos[2] - fieldPos[1] - 1 ) ) ;
+			if( position != where->second.get_position().position() ) {
+				get_ui_context().logger() << "!! At line: " << line.substr( 0, fieldPos[ fieldPos.size() - 1 ] )
+					<< ": POS (" << position
+					<< ") does not match manifest position (" << where->second.get_position().position() << ")" ;
+			}
 			if( line.compare( fieldPos[3], fieldPos[4] - fieldPos[3] - 1, where->second.get_first_allele() ) != 0 ) {
 				get_ui_context().logger() << "!! At line: " << line.substr( 0, fieldPos[ fieldPos.size() - 1 ] )
 					<< ": REF allele (\"" << line.substr( fieldPos[3], fieldPos[4] - fieldPos[3] - 1 )
