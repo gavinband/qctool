@@ -144,14 +144,17 @@ private:
 		std::istream* inStream = &(std::cin) ;
 		std::ostream* outStream = &(std::cout) ;
 		
-		bool inHeader = true ;
-		for( std::size_t lineCount = 0; std::getline( *inStream, line ); ++lineCount ) {
-			if( line.size() > 0 && line[0] == '#' ) {
-				if( !inHeader ) {
-					throw genfile::MalformedInputError( "FixVCFApplication::process()", "vcf has comment characters outside header", lineCount ) ;
-				}
-				outStream->write( line.data(), line.size() ) ;
-			}
+		// Ignore metadata
+		std::size_t lineCount = 0 ;
+		while( std::getline( *inStream, line ) && line.size() > 1 && line[0] == '#' && line[1] == '#' ) {
+			++lineCount ;
+		}
+		
+		if( line.substr( 0, 6 ) != "#CHROM" ) {
+			throw genfile::MalformedInputError( "FixVCFApplication::process()", "vcf has malformed header line", lineCount ) ;
+		}
+		
+		for( ; std::getline( *inStream, line ); ++lineCount ) {
 			// otherwise look up SNP by name
 			// id is third column
 			std::size_t pos1 = line.find( "\t", 0 ) ;
