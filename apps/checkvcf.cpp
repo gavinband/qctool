@@ -145,22 +145,8 @@ private:
 		
 		get_ui_context().logger() << std::string( 72, '=' ) << "\n\n" ;
 	}
-
-	void process() {
-		try {
-			unsafe_process() ;
-		}
-		catch( genfile::InputError const& e ) {
-			get_ui_context().logger() << "!! Error (" << e.what() << "): " << e.format_message() << ".\n" ;
-			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
-		}
-		catch( genfile::FileNotFoundError const& e ) {
-			get_ui_context().logger() << "\nError: No file matching \"" << e.filespec() << "\" could be found.\n" ;
-			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
-		}
-	}
 	
-	void unsafe_process() {
+	void process() {
 		std::string line ;
 		std::istream* inStream = &(std::cin) ;
 		std::ostream* outStream = &(std::cout) ;
@@ -172,7 +158,7 @@ private:
 			++lineCount ;
 		}
 		
-		if( line.compare( 0, 6, "#CHROM" ) != 0 ) {
+		if( line.substr( 0, 6 ) != "#CHROM" ) {
 			throw genfile::MalformedInputError( "FixVCFApplication::process()", "vcf has malformed header line", lineCount ) ;
 		}
 		outStream->write( line.data(), line.size() ).put( '\n' ) ;
@@ -184,11 +170,11 @@ private:
 			if( pos1 == std::string::npos ) {
 				throw genfile::MalformedInputError( "FixVCFApplication::process()", "vcf line has no tab characters", lineCount ) ;
 			}
-			std::size_t pos2 = line.find( "\t", pos1 + 1 ) ;
+			std::size_t pos2 = line.find( "\t", pos1 ) ;
 			if( pos2 == std::string::npos ) {
 				throw genfile::MalformedInputError( "FixVCFApplication::process()", "vcf line has only one tab character", lineCount ) ;
 			}
-			std::size_t pos3 = line.find( "\t", pos2 + 1 ) ;
+			std::size_t pos3 = line.find( "\t", pos2 ) ;
 			if( pos3 == std::string::npos ) {
 				throw genfile::MalformedInputError( "FixVCFApplication::process()", "vcf line has only two tab characters", lineCount ) ;
 			}
