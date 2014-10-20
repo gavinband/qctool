@@ -87,6 +87,10 @@ private:
 		std::string Chr ;
 		genfile::Position position ;
 		std::string alleleString ;
+		
+		appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading manifest variants" ) ;
+		progress_context( 0, source->number_of_rows() ) ;
+		
 		while(
 			statfile::read_values(
 				*source,
@@ -120,6 +124,7 @@ private:
 			}
 			m_map[ Name ] = snp ;
 			(*source) >> statfile::ignore_all() ;
+			progress_context( source->number_of_rows_read(), source->number_of_rows() ) ;
 		}
 	}
 	
