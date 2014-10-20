@@ -167,7 +167,7 @@ namespace statfile {
 		m_number_of_ignored_lines = 0 ;
 		if( m_ignore_until ) {
 			std::string line ;
-			while( std::getline( *stream_ptr, line ) && line != m_ignore_until.get() ) {
+			while( std::getline( stream(), line ) && line != m_ignore_until.get() ) {
 				++m_number_of_ignored_lines ;
 			}
 		}
@@ -181,7 +181,7 @@ namespace statfile {
 		{
 			std::string line ;
 			for( std::size_t i = 0; i < m_number_of_ignored_lines; ++i ) {
-				std::getline( *stream_ptr, line ) ;
+				std::getline( stream(), line ) ;
 			}
 		}
 		read_column_names() ;
