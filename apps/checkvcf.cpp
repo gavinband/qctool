@@ -73,7 +73,7 @@ private:
 		std::string const& wantedColumns = "IlmnID|Name|Chr|MapInfo|SNP" ;
 		statfile::DelimitedStatSource::UniquePtr source(
 			new statfile::DelimitedStatSource(
-				genfile::open_text_file_for_input( filename ),
+				filename,
 				",",
 				std::string( "[Assay]" ), std::string( "[Control]" )
 			)
