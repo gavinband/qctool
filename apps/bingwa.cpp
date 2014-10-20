@@ -50,6 +50,7 @@
 
 // #define DEBUG_BINGWA 1
 
+
 namespace globals {
 	std::string const program_name = "bingwa" ;
 	std::string const program_version = "0.2" ;
@@ -2562,14 +2563,6 @@ public:
 		std::string const analysis = options().get< std::string >( "-analysis-name" ) ;
 		std::string const SQL = "SELECT * FROM SummaryDataView WHERE analysis == '" + analysis + "'" ;
 		get_ui_context().logger() << "\n" << globals::program_name << ": Analysis complete.\n" ;
-		get_ui_context().logger() << "\n---- VIEWING RESULTS ----\n" ;
-		get_ui_context().logger() << "View your results from the command-line using this command\n\n"
-			<< "$ sqlite3 -separator $'\\t' -header \"" << output_file << "\" \"" << SQL << "\"\n\n"
-			<< "or from R using this snippet:\n\n"
-			<< "> library( RSQLite ) ;\n"
-			<< "> db = dbConnect( dbDriver( \"SQLite\" ), \"" << output_file << "\" ) ;\n"
-			<< "> data = dbGetQuery( db, \"" << SQL << "\")  ;\n\n"
-			<< "...enjoy!\n" ;
 		get_ui_context().logger() << "\n-------------------------\n" ;
 		
 	}
