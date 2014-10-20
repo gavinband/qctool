@@ -47,6 +47,9 @@ public:
 		options [ "-log" ]
 			.set_description( "Specify that " + globals::program_name + " should write a log file to the given file." )
 			.set_takes_single_value() ;
+		options[ "-continue-on-error" ]
+			.set_description( "Specify that " + globals::program_name + " should continue if errors are found (lines with errors are skipped from output)." )
+		;
 	}
 } ;
 
