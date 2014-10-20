@@ -134,7 +134,12 @@ namespace statfile {
 		if( in_quote ) {
 			throw genfile::MalformedInputError( get_source_spec(), number_of_rows_read() ) ;
 		}
-		result.push_back( get_unquoted_substring( line, last_i, line.size() - last_i, quotes )) ;
+		// handle trailing newline.
+		if( line.size() > 0 && line[ line.size() - 1 ] == '\r' ) {
+			result.push_back( get_unquoted_substring( line, last_i, line.size() - last_i - 1, quotes )) ;
+		} else {
+			result.push_back( get_unquoted_substring( line, last_i, line.size() - last_i, quotes )) ;
+		}
 		
 		return result ;
 	}
@@ -167,8 +172,15 @@ namespace statfile {
 		m_number_of_ignored_lines = 0 ;
 		if( m_ignore_until ) {
 			std::string line ;
-			while( std::getline( stream(), line ) && genfile::string_utils::strip( line, "\r" ) != m_ignore_until.get() ) {
+			while( std::getline( stream(), line ) ) {
 				++m_number_of_ignored_lines ;
+				std::size_t end = line.size() ;
+				if( line.size() > 0 && line[ line.size() -1 ] == '\r' ) {
+					--end ;
+				}
+				if( line.compare( 0, end, m_ignore_until.get() ) == 0 ) {
+					break ;
+				}
 			}
 		}
 		turn_off_ios_exceptions() ;
@@ -202,6 +214,9 @@ namespace statfile {
 			if( line.size() > 0 && line[0] == ' ' ) {
 				line = line.substr( 1, line.size() ) ; // skip space.
 			}
+			if( line.size() > 0 && line[ line.size() - 1 ] == '\r' ) {
+				line = line.substr( 0, line.size() - 1 ) ; // remove trailing CR
+			}
 			if( result.size() > 0 ) {
 				result += '\n' ;
 			}
@@ -224,7 +239,11 @@ namespace statfile {
 		std::string line ;
 		std::size_t count = 0 ;
 		while( std::getline( stream(), line )) {
-			if( m_ignore_from && genfile::string_utils::strip( line, "\r" ) == m_ignore_from.get() ) {
+			std::size_t end = line.size() ;
+			if( line.size() > 0 && line[ end - 1 ] == '\r' ) {
+				--end ;
+			}
+			if( m_ignore_from && line.compare( 0, end, m_ignore_from.get() ) == 0 ) {
 				break ;
 			} else if( line.size() == 0 || line[0] != m_comment_character ) {
 				++count ;
