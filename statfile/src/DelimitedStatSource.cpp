@@ -19,7 +19,8 @@ namespace statfile {
 		std::string delimiter,
 		OptionalString const& ignore_until,
 		OptionalString const& ignore_from
-	): 	m_filename( "(unnamed stream)" ),
+	): 	
+		m_filename( "(unnamed stream)" ),
 		m_comment_character( '#' ),
 		m_delimiter( delimiter ),
 		m_quotes( "\"\"" ),
@@ -35,8 +36,8 @@ namespace statfile {
 		std::string delimiter,
 		OptionalString const& ignore_until,
 		OptionalString const& ignore_from
-	)
-	: 	m_filename( filename ),
+	): 	
+		m_filename( filename ),
 		m_comment_character( '#' ),
 		m_delimiter( delimiter ),
 		m_quotes( "\"\"" ),
@@ -187,7 +188,7 @@ namespace statfile {
 			if( !ignoreUntilStringFound ) {
 				throw genfile::MalformedInputError( 
 					"DelimitedStatSource::setup()",
-					"Line \"" + m_ignore_until.get() + "\" was not found",
+					"Expected line \"" + m_ignore_until.get() + "\" was not found",
 					m_number_of_ignored_lines + m_number_of_comment_lines
 				) ;
 			}
@@ -247,16 +248,26 @@ namespace statfile {
 	std::size_t DelimitedStatSource::count_remaining_lines() {
 		std::string line ;
 		std::size_t count = 0 ;
+		bool foundIgnoreFromString = false ;
+		
 		while( std::getline( stream(), line )) {
 			std::size_t end = line.size() ;
 			if( line.size() > 0 && line[ end - 1 ] == '\r' ) {
 				--end ;
 			}
 			if( m_ignore_from && line.compare( 0, end, m_ignore_from.get() ) == 0 ) {
+				foundIgnoreFromString = true ;
 				break ;
 			} else if( line.size() == 0 || line[0] != m_comment_character ) {
 				++count ;
 			}
+		}
+		if( m_ignore_from && !foundIgnoreFromString ) {
+			throw genfile::MalformedInputError( 
+				"DelimitedStatSource::setup()",
+				"Expected line \"" + m_ignore_from.get() + "\" was not found",
+				m_number_of_ignored_lines + m_number_of_comment_lines + count
+			) ;
 		}
 		return count ;
 	}

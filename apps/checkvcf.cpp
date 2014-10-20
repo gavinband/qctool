@@ -75,7 +75,7 @@ private:
 			new statfile::DelimitedStatSource(
 				filename,
 				",",
-				std::string( "[Assay]" ), std::string( "[Control]" )
+				std::string( "[Assay]" ), std::string( "[Controls]" )
 			)
 		) ;
 		std::map< std::size_t, std::size_t > const wantedColumnMap = statfile::impl::get_indices_of_columns(
