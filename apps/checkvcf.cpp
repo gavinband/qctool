@@ -176,23 +176,23 @@ private:
 			throw genfile::MalformedInputError( "FixVCFApplication::process()", "vcf has malformed header line", lineCount ) ;
 		}
 		outStream->write( line.data(), line.size() ).put( '\n' ) ;
-		
+		std::vector< std::size_t > fieldPos( 6, 0 ) ;
 		for( ; std::getline( *inStream, line ); ++lineCount ) {
 			// otherwise look up SNP by name
 			// id is third column
-			std::size_t pos1 = line.find( "\t", 0 ) ;
-			if( pos1 == std::string::npos ) {
-				throw genfile::MalformedInputError( "FixVCFApplication::process()", "vcf line has no tab characters", lineCount ) ;
+			for( std::size_t i = 1; i < fieldPos.size(); ++i ) {
+				fieldPos[i] = line.find( '\t', fieldPos[i-1] ) ; 
+				if( fieldPos[i] == std::string::npos ) {
+					throw genfile::MalformedInputError(
+						"FixVCFApplication::process()",
+						"vcf line has fewer than " + genfile::string_utils::to_string( i+1) + " tab characters",
+						lineCount
+					) ;
+				}
+				++fieldPos[i] ; // skip the delimiter
 			}
-			std::size_t pos2 = line.find( "\t", pos1 ) ;
-			if( pos2 == std::string::npos ) {
-				throw genfile::MalformedInputError( "FixVCFApplication::process()", "vcf line has only one tab character", lineCount ) ;
-			}
-			std::size_t pos3 = line.find( "\t", pos2 ) ;
-			if( pos3 == std::string::npos ) {
-				throw genfile::MalformedInputError( "FixVCFApplication::process()", "vcf line has only two tab characters", lineCount ) ;
-			}
-			std::string rsid = line.substr( pos2 + 1, pos3 - pos2 - 1 ) ;
+//			std::cerr << "POS1 = " << pos1 << ", POS2 = " << pos2 << ", POS3 = " << pos3 << ".\n" ;
+			std::string rsid = line.substr( fieldPos[2], fieldPos[3] - fieldPos[2] - 1 ) ;
 			VariantMap::const_iterator where = m_map.find( rsid ) ;
 			if( where == m_map.end() ) {
 				throw genfile::MalformedInputError(
@@ -201,11 +201,28 @@ private:
 					lineCount
 				) ;
 			}
+
+			if( line.compare( fieldPos[3], fieldPos[4] - fieldPos[3] - 1, where->second.get_first_allele() ) != 0 ) {
+				get_ui_context().logger() << "!! At line: " << line.substr( 0, fieldPos[ fieldPos.size() - 1 ] )
+					<< ": REF allele (\"" << line.substr( fieldPos[3], fieldPos[4] - fieldPos[3] - 1 )
+					<< "\") does not match manifest alleleA (\""
+					<< where->second.get_first_allele() << "\").\n"
+				;
+			}
+			if( line.compare( fieldPos[4], fieldPos[5] - fieldPos[4] - 1, where->second.get_second_allele() ) != 0 ) {
+				get_ui_context().logger() << "!! At line: " << line.substr( 0, fieldPos[ fieldPos.size() - 1 ] )
+					<< ": ALT allele (\"" << line.substr( fieldPos[4], fieldPos[5] - fieldPos[4] - 1 )
+					<< "\") does not match manifest alleleB (\""
+					<< where->second.get_second_allele() << "\").\n"
+				;
+			}
+
 			rsid += "," + where->second.get_SNPID() ;
 
-			outStream->write( line.data(), pos2 ) ;
+			outStream->write( line.data(), fieldPos[2] ) ;
 			outStream->write( rsid.data(), rsid.size() ) ;
-			outStream->write( line.data() + pos3, line.size() - pos3 ) ;
+			outStream->put( '\t' ) ;
+			outStream->write( line.data() + fieldPos[3], line.size() - fieldPos[3] ) ;
 			outStream->put( '\n' ) ;
 		}
 	}
