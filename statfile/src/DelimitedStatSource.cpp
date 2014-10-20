@@ -167,7 +167,7 @@ namespace statfile {
 		m_number_of_ignored_lines = 0 ;
 		if( m_ignore_until ) {
 			std::string line ;
-			while( std::getline( stream(), line ) && line != m_ignore_until.get() ) {
+			while( std::getline( stream(), line ) && genfile::string_utils::strip( line, "\r" ) != m_ignore_until.get() ) {
 				++m_number_of_ignored_lines ;
 			}
 		}
@@ -224,7 +224,7 @@ namespace statfile {
 		std::string line ;
 		std::size_t count = 0 ;
 		while( std::getline( stream(), line )) {
-			if( m_ignore_from && line == m_ignore_from.get() ) {
+			if( m_ignore_from && genfile::string_utils::strip( line, "\r" ) == m_ignore_from.get() ) {
 				break ;
 			} else if( line.size() == 0 || line[0] != m_comment_character ) {
 				++count ;
