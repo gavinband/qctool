@@ -172,6 +172,7 @@ namespace statfile {
 		m_number_of_ignored_lines = 0 ;
 		if( m_ignore_until ) {
 			std::string line ;
+			bool ignoreUntilStringFound = false ;
 			while( std::getline( stream(), line ) ) {
 				++m_number_of_ignored_lines ;
 				std::size_t end = line.size() ;
@@ -179,8 +180,16 @@ namespace statfile {
 					--end ;
 				}
 				if( line.compare( 0, end, m_ignore_until.get() ) == 0 ) {
+					ignoreUntilStringFound = true ;
 					break ;
 				}
+			}
+			if( !ignoreUntilStringFound ) {
+				throw genfile::MalformedInputError( 
+					"DelimitedStatSource::setup()",
+					"Line \"" + m_ignore_until.get() + "\" was not found",
+					m_number_of_ignored_lines + m_number_of_comment_lines
+				) ;
 			}
 		}
 		turn_off_ios_exceptions() ;
