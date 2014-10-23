@@ -315,7 +315,7 @@ private:
 				++goodVariantCount ;
 			}
 			catch( genfile::MalformedInputError const& e ) {
-				get_ui_context().logger() << "!! Error (" << e.what() << "): " << e.format_message() << ".\n" ;
+				get_ui_context().logger() << "\n!! Error (" << e.what() << "): " << e.format_message() << ".\n" ;
 				if( !continueOnError ) {
 					throw ;
 				}
