@@ -325,7 +325,7 @@ private:
 		}
 		progress_context( lineCount, lineCount ) ;
 
-		get_ui_context().logger() << "Visited " << totalVariantCount << " variants of which " << goodVariantCount << " matched SNPs in the manifest.\n" ;
+		get_ui_context().logger() << "\nVisited " << totalVariantCount << " variants of which " << goodVariantCount << " matched SNPs in the manifest.\n" ;
 	}	
 } ;
 
