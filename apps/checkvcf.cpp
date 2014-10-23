@@ -7,6 +7,7 @@
 #include <string>
 #include <boost/unordered_map.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/filesystem.hpp>
 #include "genfile/FileUtils.hpp"
 #include "genfile/GenomePosition.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
@@ -43,6 +44,8 @@ public:
 	        .set_description( "Path of output file." )
 			.set_takes_values( 1 )
 		;
+		options[ "-ignore-alleles" ]
+			.set_description( "Do not check correctness of alleles" ) ;
 		options.declare_group( "Other options" ) ;
 		options [ "-log" ]
 			.set_description( "Specify that " + globals::program_name + " should write a log file to the given file." )
@@ -66,6 +69,10 @@ public:
 			"-log"
 		)
 	{
+		if( options().check( "-o" ) && boost::filesystem::exists( options().get< std::string >( "-o" ) ) ) {
+			get_ui_context().logger() << "Output file \"" <<  options().get< std::string >( "-o" ) << "\" exists, I will not overwrite.\n" ;
+			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+		}
 		loadManifest( options().get< std::string >( "-manifest" ) ) ;
 		summarise() ;
 		process() ;
@@ -198,6 +205,7 @@ private:
 		}
 		std::vector< std::size_t > fieldPos( 6, 0 ) ;
 		bool continueOnError = options().check( "-continue-on-error" ) ;
+		bool compareAlleles = !options().check( "-ignore-alleles" ) ;
 
 		std::size_t totalVariantCount = 0 ;
 		std::size_t goodVariantCount = 0 ;
@@ -248,21 +256,23 @@ private:
 						lineCount
 					) ;
 				}
-				if( line.compare( fieldPos[3], fieldPos[4] - fieldPos[3] - 1, where->second.get_first_allele() ) != 0 ) {
-					throw genfile::MalformedInputError(
-						"FixVCFApplication::process()",
-						"REF allele for SNP " + rsid + " (\"" + line.substr( fieldPos[3], fieldPos[4] - fieldPos[3] - 1 )
-							+ "\") does not match manifest allele (\"" + where->second.get_first_allele() + "\")",
-						lineCount
-					) ;
-				}
-				if( line.compare( fieldPos[4], fieldPos[5] - fieldPos[4] - 1, where->second.get_second_allele() ) != 0 ) {
-					throw genfile::MalformedInputError(
-						"FixVCFApplication::process()",
-						"REF allele for SNP " + rsid + " (\"" + line.substr( fieldPos[4], fieldPos[5] - fieldPos[4] - 1 )
-							+ "\") does not match manifest allele (\"" + where->second.get_second_allele() + "\")",
-						lineCount
-					) ;
+				if( compareAlleles ) {
+					if( line.compare( fieldPos[3], fieldPos[4] - fieldPos[3] - 1, where->second.get_first_allele() ) != 0 ) {
+						throw genfile::MalformedInputError(
+							"FixVCFApplication::process()",
+							"REF allele for SNP " + rsid + " (\"" + line.substr( fieldPos[3], fieldPos[4] - fieldPos[3] - 1 )
+								+ "\") does not match manifest allele (\"" + where->second.get_first_allele() + "\")",
+							lineCount
+						) ;
+					}
+					if( line.compare( fieldPos[4], fieldPos[5] - fieldPos[4] - 1, where->second.get_second_allele() ) != 0 ) {
+						throw genfile::MalformedInputError(
+							"FixVCFApplication::process()",
+							"REF allele for SNP " + rsid + " (\"" + line.substr( fieldPos[4], fieldPos[5] - fieldPos[4] - 1 )
+								+ "\") does not match manifest allele (\"" + where->second.get_second_allele() + "\")",
+							lineCount
+						) ;
+					}
 				}
 				rsid += "," + where->second.get_SNPID() ;
 
