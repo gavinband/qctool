@@ -61,7 +61,7 @@ namespace genfile {
 	) {
 		write_variant( stream(), id_data ) ;
 		GenotypeWriter writer( stream() ) ;
-		data_reader.get( "genotypes", writer ) ;
+		data_reader.get( ":genotypes:", writer ) ;
 		stream() << "\n" ;
 	}
 }
