@@ -5,9 +5,11 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include <string>
+#include <fstream>
 #include <boost/unordered_map.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include "genfile/FileUtils.hpp"
 #include "genfile/GenomePosition.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
@@ -47,12 +49,20 @@ public:
 		options[ "-ignore-alleles" ]
 			.set_description( "Do not check correctness of alleles" ) ;
 		options.declare_group( "Other options" ) ;
+		options[ "-fix-format" ]
+			.set_description( "Specify that " + globals::program_name + " should replace x/x with ./. and nan,nan,nan with ././. and -nan,-nan,-nan with ././." ) ;
+		options[ "-replace-header-with" ]
+			.set_description( "Specify that " + globals::program_name + " should replace the VCF header with one from the given file." )
+			.set_takes_single_value() ;
 		options [ "-log" ]
 			.set_description( "Specify that " + globals::program_name + " should write a log file to the given file." )
 			.set_takes_single_value() ;
 		options[ "-continue-on-error" ]
 			.set_description( "Specify that " + globals::program_name + " should continue if errors are found (lines with errors are skipped from output)." )
 		;
+
+		options.option_implies_option( "-fix-format", "-o" ) ;
+		options.option_implies_option( "-replace-header-with", "-o" ) ;
 	}
 } ;
 
@@ -177,6 +187,11 @@ private:
 	void unsafe_process() {
 		using genfile::string_utils::to_string ;
 		
+		bool const continueOnError = options().check( "-continue-on-error" ) ;
+		bool const compareAlleles = !options().check( "-ignore-alleles" ) ;
+		bool const replaceHeader = options().check( "-replace-header-with" ) ;
+		bool const fixFormat = options().check( "-fix-format" ) ;
+
 		std::string line ;
 		std::istream* inStream = &(std::cin) ;
 		std::auto_ptr< std::ostream > outStream ;
@@ -191,7 +206,7 @@ private:
 		// Ignore metadata
 		std::size_t lineCount = 0 ;
 		while( std::getline( *inStream, line ) && line.size() > 1 && line[0] == '#' && line[1] == '#' ) {
-			if( outStream.get() ) {
+			if( outStream.get() && !replaceHeader ) {
 				outStream->write( line.data(), line.size() ).put( '\n' ) ;
 			}
 			++lineCount ;
@@ -200,12 +215,19 @@ private:
 		if( line.substr( 0, 6 ) != "#CHROM" ) {
 			throw genfile::MalformedInputError( "FixVCFApplication::process()", "vcf has malformed header line", lineCount ) ;
 		}
-		if( outStream.get() ) {
+		if( outStream.get() && !replaceHeader ) {
 			outStream->write( line.data(), line.size() ).put( '\n' ) ;
 		}
+
+		if( outStream.get() && replaceHeader ) {
+			std::ifstream file( options().get< std::string >( "-replace-header-with" ).c_str() ) ;
+			std::string line ;
+			while( std::getline( file, line ) ) {
+				outStream->write( line.data(), line.size() ).put( '\n' ) ;
+			}
+		}
+
 		std::vector< std::size_t > fieldPos( 6, 0 ) ;
-		bool continueOnError = options().check( "-continue-on-error" ) ;
-		bool compareAlleles = !options().check( "-ignore-alleles" ) ;
 
 		std::size_t totalVariantCount = 0 ;
 		std::size_t goodVariantCount = 0 ;
@@ -280,7 +302,13 @@ private:
 					outStream->write( line.data(), fieldPos[2] ) ;
 					outStream->write( rsid.data(), rsid.size() ) ;
 					outStream->put( '\t' ) ;
-					outStream->write( line.data() + fieldPos[3], line.size() - fieldPos[3] ) ;
+					std::string rest = line.substr( fieldPos[3], line.size() ) ;
+					if( fixFormat ) {
+						boost::algorithm::replace_all( rest, "x/x", "./." ) ;
+						boost::algorithm::replace_all( rest, "nan,nan,nan", ".,.,." ) ;
+						boost::algorithm::replace_all( rest, "-nan,-nan,-nan", ".,.,." ) ;
+					}
+					outStream->write( rest.data(), rest.size() ) ;
 					outStream->put( '\n' ) ;
 				}
 
