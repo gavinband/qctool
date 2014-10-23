@@ -147,6 +147,12 @@ public:
 			.set_takes_single_value()
 			.set_default_value( "guess" ) ;
 
+		options[ "-permissive" ]
+			.set_description( "Specify that qctool should be permissive about problems when parsing input."
+				"Currently this applies to VCF file input.  Entries that cannot be parsed are interpreted as missing values."
+				"If this option is not supplied, qctool will fail on malformed files."
+			) ;
+
 	    options[ "-ofiletype" ]
 			.set_description(
 				"Specify the filetype of the output genotype files specified by -og. "
@@ -1502,7 +1508,8 @@ private:
 		source->set_field_mapping( ":genotypes:", genotype_field ) ;
 		std::string intensity_field = m_options.get< std::string >( "-vcf-intensity-field" ) ;
 		source->set_field_mapping( ":intensities:", genotype_field ) ;
-		
+		source->set_strict_mode( !m_options.check( "-permissive" )) ;
+
 		return genfile::SNPDataSource::UniquePtr( source.release() ) ;
 	}
 	

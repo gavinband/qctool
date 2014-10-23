@@ -51,6 +51,8 @@ namespace genfile {
 		
 			~CallReader() {} ;
 		
+			void set_strict_mode( bool value ) ;
+			
 		private:
 			std::size_t const m_number_of_samples ;
 			std::size_t const m_number_of_alleles ;
@@ -67,6 +69,7 @@ namespace genfile {
 			std::vector< Setter::Integer > m_genotype_calls ;
 			std::vector< std::size_t > m_ploidy ;
 			std::vector< Setter::OrderType > m_order_types ;
+			bool m_strict_mode ;
 		private:
 			void split_data() ;
 			void load_genotypes() ;

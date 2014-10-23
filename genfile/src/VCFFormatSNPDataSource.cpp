@@ -58,6 +58,7 @@ namespace genfile {
 		m_genotype_field( "GT" ),
 		m_intensity_field( "XY" ),
 		m_have_id_data( false ),
+		m_strict_mode( true ),
 		m_column_names( read_column_names( *m_stream_ptr )),
 		m_number_of_samples( m_column_names.size() - 9 )
 	{
@@ -80,11 +81,16 @@ namespace genfile {
 		m_genotype_field( "GT" ),
 		m_intensity_field( "XY" ),
 		m_have_id_data( false ),
+		m_strict_mode( true ),
 		m_column_names( read_column_names( *m_stream_ptr )),
 		m_number_of_samples( m_column_names.size() - 9 )
 	{
 		setup() ;
 		reset_stream() ;
+	}
+
+	void VCFFormatSNPDataSource::set_strict_mode( bool value ) {
+		m_strict_mode = value ;
 	}
 
 	void VCFFormatSNPDataSource::setup() {}
@@ -348,6 +354,7 @@ namespace genfile {
 					std::string data ;
 					std::getline( *(m_source.m_stream_ptr), data ) ;
 					m_data_reader.reset( new vcf::CallReader( m_source.number_of_samples(), variant_alleles.size(), FORMAT, data, format_types ) ) ;
+					m_data_reader->set_strict_mode( m_source.m_strict_mode ) ;
 				}
 			}
 

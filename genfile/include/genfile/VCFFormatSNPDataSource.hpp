@@ -53,6 +53,8 @@ namespace genfile {
 		std::size_t get_index_of_first_data_line() const { return m_metadata_parser->get_number_of_lines() + 1 ; }
 		std::size_t get_index_of_first_data_column() const { return 9 ; }
 
+		void set_strict_mode( bool value ) ;
+
 	protected:
 
 		void get_snp_identifying_data_impl( 
@@ -96,6 +98,7 @@ namespace genfile {
 		std::string m_genotype_field ;
 		std::string m_intensity_field ;
 		bool m_have_id_data ;
+		bool m_strict_mode ;
 
 		std::vector< std::string > const m_column_names ;
 		std::size_t const m_number_of_samples ;

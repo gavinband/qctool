@@ -58,7 +58,8 @@ namespace genfile {
 			m_format_elts( impl::parse_format( format ) ),
 			m_data( data ),
 			m_entry_types( entry_types ),
-			m_entries_by_position( impl::get_entries_by_position( m_format_elts, entry_types ))
+			m_entries_by_position( impl::get_entries_by_position( m_format_elts, entry_types )),
+			m_strict_mode( true )
 		{
 			if( m_number_of_alleles == 0 ) {
 				throw BadArgumentError( "genfile::vcf::CallReader::CallReader()", "number_of_alleles = " + string_utils::to_string( number_of_alleles ) ) ;
@@ -72,6 +73,10 @@ namespace genfile {
 			for( std::size_t i = 0; i < m_format_elts.size(); ++i ) {
 				setter( m_format_elts[i] ) ;
 			}
+		}
+
+		void CallReader::set_strict_mode( bool value ) {
+			m_strict_mode = value ;
 		}
 
 		namespace impl {
@@ -269,9 +274,9 @@ namespace genfile {
 				) ;
 			}
 			catch( string_utils::StringConversionError const& ) {
-				throw MalformedInputError( "(data)", 0, sample_i ) ;
+				throw MalformedInputError( "(data)", 0, sample_i ) ;	
 			}
-			catch( BadArgumentError const& e ) {
+			catch( BadArgumentError const& ) {
 				throw MalformedInputError( "(data)", 0, sample_i ) ;
 			}
 		}
@@ -296,7 +301,17 @@ namespace genfile {
 					entry_type.get_missing_value( m_number_of_alleles, ploidy, setter ) ;
 				}
 				else {
-					entry_type.parse( *(begin_components + field_i ), m_number_of_alleles, ploidy, setter ) ;
+					try {
+						entry_type.parse( *(begin_components + field_i ), m_number_of_alleles, ploidy, setter ) ;
+					}
+					catch( BadArgumentError const& ) {
+						if( m_strict_mode ) {
+							throw ;
+						} else {
+							// parse error, set missing value.
+							entry_type.get_missing_value( m_number_of_alleles, ploidy, setter ) ;
+						}
+					}
 				}
 			}
 			else {
@@ -304,7 +319,17 @@ namespace genfile {
 					entry_type.get_missing_value( m_number_of_alleles, setter ) ;
 				}
 				else {
-					entry_type.parse( *(begin_components + field_i), m_number_of_alleles, setter ) ;
+					try {
+						entry_type.parse( *(begin_components + field_i), m_number_of_alleles, setter ) ;
+					}
+					catch( BadArgumentError const& ) {
+						if( m_strict_mode ) {
+							throw ;
+						} else {
+							// parse error, set missing value.
+							entry_type.get_missing_value( m_number_of_alleles, setter ) ;
+						}
+					}
 				}
 			}
 		}
