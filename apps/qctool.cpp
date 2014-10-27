@@ -54,7 +54,6 @@
 #include "genfile/SampleFilteringSNPDataSource.hpp"
 #include "genfile/SNPTranslatingSNPDataSource.hpp"
 #include "genfile/StrandAligningSNPDataSource.hpp"
-#include "genfile/AlleleFlippingSNPDataSource.hpp"
 #include "genfile/ThreshholdingSNPDataSource.hpp"
 #include "genfile/AsynchronousSNPDataSource.hpp"
 #include "genfile/VCFFormatSNPDataSource.hpp"
@@ -1009,6 +1008,27 @@ private:
 	typedef std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData > SNPDictionary ;
 	std::auto_ptr< SNPDictionary > m_snp_dictionary ;
 
+    struct StrandFlipSpec {
+        StrandFlipSpec():
+            strand( genfile::StrandAligningSNPDataSource::eUnknownStrand ),
+            flip( ' ' ) //genfile::StrandAligningSNPDataSource::eUnknownFlip )
+        {}
+
+        StrandFlipSpec( StrandFlipSpec const& other ):
+            strand( other.strand ),
+            flip( other.flip )
+        {}
+
+        StrandFlipSpec& operator=( StrandFlipSpec const& other ) {
+            strand = other.strand ;
+            flip = other.flip ;
+            return *this ;
+        }
+
+        char strand ;
+        char flip ;
+    } ;
+	//typedef std::map< genfile::SNPIdentifyingData, StrandFlipSpec, genfile::SNPIdentifyingData::CompareFields > StrandSpec ;
 	typedef std::map< genfile::SNPIdentifyingData, char, genfile::SNPIdentifyingData::CompareFields > StrandSpec ;
 	typedef std::vector< StrandSpec > StrandSpecs ;
 	std::auto_ptr< StrandSpecs > m_strand_specs ;
