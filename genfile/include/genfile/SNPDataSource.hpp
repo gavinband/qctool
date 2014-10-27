@@ -186,7 +186,7 @@ namespace genfile {
 		// calling this function.
 		SNPDataSource& read_snp_probability_data(
 			GenotypeProbabilitySetter const& set_genotype_probabilities,
-			std::string const& genotype_field = "genotypes"
+			std::string const& genotype_field = ":genotypes:"
 		) ;
 
 		// Function: read_variant_data()

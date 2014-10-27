@@ -8,10 +8,12 @@
 #include <boost/bind.hpp>
 #include <boost/noncopyable.hpp>
 #include "test_case.hpp"
-#include "integration/ModifiedNewtonRaphson.hpp"
-#include "integration/AscentDirectionPicker.hpp"
 #include <Eigen/Dense>
 #include <Eigen/QR>
+#include "integration/ModifiedNewtonRaphson.hpp"
+#include "integration/AscentDirectionPicker.hpp"
+#include "integration/ModifiedCholesky.hpp"
+
 
 namespace impl {
 	struct FunctionBase: public boost::noncopyable {
@@ -97,6 +99,35 @@ namespace impl {
 	private:
 		Vector m_point ;
 	} ;
+	
+	struct Rosenbrock: public FunctionBase {
+		// Rosenbrock's function
+		// has global minimum at (1,1)
+		// f(x1,x2) = 100*(x2−x1^2)^2+(1−x1)^2
+		// f'(x1,x2) = ( -4 * x1 * (x2−x1^2) -2 * x1,  )
+		// f''(x1,x2) = ( -400*x1-2 
+		void evaluate_at( Vector const& point, std::size_t number_of_derivatives = 0 ) {
+			assert( point.size() == 2 ) ;
+			m_point = point ;
+		}
+		double get_value_of_function() const {
+			Vector const& x = m_point ;
+			Vector x2 = m_point.array().square() ;
+			return 100.0 * (x(1) - x2(0)) * (x(1) - x2(0)) + (1 - x(0)) * (1 - x(0) )  ;
+		}
+
+		Eigen::VectorXd get_value_of_first_derivative() const {
+			assert(0) ;
+		}
+
+		Eigen::MatrixXd get_value_of_second_derivative() const {
+			assert(0) ;
+		}
+
+	private:
+		Vector m_point ;
+	} ;
+	
 	
 	template< typename Function >
 	struct OvershootTarget: public boost::noncopyable {
