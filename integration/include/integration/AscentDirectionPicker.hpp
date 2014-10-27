@@ -11,22 +11,11 @@
 #include <Eigen/Core>
 #include <Eigen/Cholesky>
 #include <Eigen/Eigenvalues>
+#include "integration/ModifiedCholesky.hpp"
 
 // #define DEBUG_ASCENT_DIRECTION_PICKER 1
 
 namespace integration {
-	
-	
-	//
-	// This class implements a solver which decomposes a symmetric matrix
-	// using Eigen's Cholesky decomposition if that works
-	// (i.e. if matrix is positive-definite )
-	// or falls back to a symmetric eigenvalue decomposition if not.
-	// In the latter case a positive-definite approximation to the
-	// inverse is provded by setting all eigenvalues to be at least some minimal
-	// positive value delta.
-	// We expect the matrix passed in to usually be negative-definite; it will be
-	// a second derivative of a likelihood function.
 	template< typename Function >
 	struct CholeskyOrEigenvalueSolver: public boost::noncopyable {
 	public:
@@ -50,6 +39,11 @@ namespace integration {
 		Vector compute( Function& function, Vector const& point ) {
 			function.evaluate_at( point, 2 ) ;
 			Matrix const matrix = function.get_value_of_second_derivative() ;
+
+			
+
+
+
 			Vector const v = -function.get_value_of_first_derivative() ;
 			m_cholesky_solver.compute( matrix ) ;
 			if( m_cholesky_solver.info() == Eigen::Success && m_cholesky_solver.vectorD().array().maxCoeff() < 0 ) {
