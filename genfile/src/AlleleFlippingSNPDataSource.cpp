@@ -232,7 +232,7 @@ namespace genfile {
 						m_base_reader->get( spec, setter ) ;
 						break ;
 					case AlleleFlippingSNPDataSource::eFlip:
-						if( spec == "genotypes" || spec == "intensities" ) {
+						if( spec == ":genotypes:" || spec == ":intensities:" ) {
 							FlippedAlleleSetter flipped_setter( setter ) ;
 							m_base_reader->get( spec, flipped_setter ) ;
 						}
@@ -242,7 +242,7 @@ namespace genfile {
 						}
 						break ;
 					case AlleleFlippingSNPDataSource::eUnknownFlip:
-						if( spec == "genotypes" || spec == "intensities" ) {
+						if( spec == ":genotypes:" || spec == ":intensities:" ) {
 							UnknownAlleleSetter unknown_allele_setter( setter ) ;
 							m_base_reader->get( spec, unknown_allele_setter ) ;
 						}
