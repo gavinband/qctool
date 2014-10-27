@@ -193,12 +193,15 @@
 				<tr><td>...</td><td>...(possibly more alleles)...</td></tr>
 				<tr><td>4</td><td>The length <em>L<sub>aK</sub></em> of the <em>K</em>th allele.</td></tr>
 				<tr><td><em>L<sub>aK</sub></em></td><td>The <em>K</em>th allele.</td></tr>
-				<tr><td><em>D</em></td><td>Compressed genotype probability data for the variant.  This consists of a 32-bit unsigned
-					integer indicating the length of the compressed data, followed by the compressed data itself.
-					See below for details of the storage scheme used.</td></tr>
+				<tr><td><em>4</em></td><td>The length <em>D</em> of the (compressed or uncompressed) genotype probability data.
+				<tr><td><em>D</em></td><td>Compressed or uncompressed genotype probability data for the variant.
+					When <em>CompressedSNPBlocks</em>=0, this consists of the genotype probability data as defined below.
+					When <em>CompressedSNPBlocks</em>=1, this consists of a 32-bit unsigned integer indicating the length of the
+					uncompressed data, followed by the compressed data itself.  See below for details of how SNP probability data
+					is stored.</td></tr>
 				</tbody>
 				<tfoot>
-				<tr><th>16 + 4x<em>K</em> + <em>L<sub>id</sub></em> + <em>L<sub>rsid</sub></em> + <em>L<sub>chr</sub></em>
+				<tr><th>16 + 4<em>K</em> + <em>L<sub>id</sub></em> + <em>L<sub>rsid</sub></em> + <em>L<sub>chr</sub></em>
 					+ &sum;<sub>k</sub><em>L<sub>ak</sub></em> + <em>D</em></th><th>TOTAL</th></tr>
 				</tfoot>
 			</table>
@@ -315,7 +318,7 @@
 			e.g. for <em>H</em>=4:
 			<div class="displayFormula">
 			<em>P<sub>1112</sub></em>, <em>P<sub>1113</sub></em>, ..., <em>P<sub>111K</sub></em>,
-			<em>P<sub>1121</sub></em>, <em>P<sub>1123</sub></em>, ..., <em>P<sub>112K</sub></em>,
+			<em>P<sub>1122</sub></em>, <em>P<sub>1123</sub></em>, ..., <em>P<sub>112K</sub></em>,
 			...,
 			<em>P<sub>KKK1</sub></em>, ..., <em>P<sub>KKKK</sub></em>.
 			</div>
