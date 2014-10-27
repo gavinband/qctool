@@ -412,11 +412,11 @@ void SQLiteGenotypesSNPDataSink::finalise_impl() {
 		flush_genotype_data( m_genotype_data_i ) ;
 		m_genotype_data_i = 0 ;
 	}
-    
-    if( m_intensity_data_i > 0 ) {
-        flush_intensity_data( m_intensity_data_i ) ;
-        m_intensity_data_i = 0 ;
-    }
+
+	if( m_intensity_data_i > 0 ) {
+		flush_intensity_data( m_intensity_data_i ) ;
+		m_intensity_data_i = 0 ;
+	}
 	
 	{
 		db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 2400 ) ;
