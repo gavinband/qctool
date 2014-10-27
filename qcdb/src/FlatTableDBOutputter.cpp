@@ -20,21 +20,29 @@
 // #define DEBUG_FLATTABLEDBOUTPUTTER 1
 
 namespace qcdb {
-	FlatTableDBOutputter::UniquePtr FlatTableDBOutputter::create( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) {
-		return UniquePtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata ) ) ;
+	FlatTableDBOutputter::UniquePtr FlatTableDBOutputter::create(
+		std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata,
+		std::string const& snp_match_fields
+	) {
+		return UniquePtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata, snp_match_fields ) ) ;
 	}
 
-	FlatTableDBOutputter::SharedPtr FlatTableDBOutputter::create_shared( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) {
-		return SharedPtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata ) ) ;
+	FlatTableDBOutputter::SharedPtr FlatTableDBOutputter::create_shared(
+		std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata,
+		std::string const& snp_match_fields
+	) {
+		return SharedPtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata, snp_match_fields ) ) ;
 	}
 
 	FlatTableDBOutputter::FlatTableDBOutputter(
 		std::string const& filename,
 		std::string const& analysis_name,
 		std::string const& analysis_description,
-		Metadata const& metadata
+		Metadata const& metadata,
+		std::string const& snp_match_fields
+		
 	):
-		m_outputter( filename, analysis_name, analysis_description, metadata ),
+		m_outputter( filename, analysis_name, analysis_description, metadata, boost::optional< db::Connection::RowId >(), snp_match_fields ),
 		m_table_name( "Analysis" + genfile::string_utils::to_string( m_outputter.analysis_id() ) ),
 		m_max_snps_per_block( 1000 )
 	{}

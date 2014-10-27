@@ -315,7 +315,7 @@ public:
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
-	    options[ "-flip-to-match-reference" ]
+	    options[ "-flip-to-match-allele" ]
 	        .set_description( "Specify that we should flip data if necessary so that the first allele is the given allele given in the "
 				"specified column of the strand file.  First the strand is applied, then the two alleles are compared to the given allele "
 				"and data flipped if necessary."
@@ -2414,7 +2414,8 @@ private:
 					elts[1],
 					options().get< std::string >( "-analysis-name" ),
 					options().get< std::string >( "-analysis-chunk" ),
-					options().get_values_as_map()
+					options().get_values_as_map(),
+					options().get< std::string >( "-snp-match-fields" )
 				) ;
 				if( elts.size() == 3 ) {
 					table_storage->set_table_name( elts[3] ) ;
