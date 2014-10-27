@@ -47,6 +47,10 @@ namespace genfile {
 		(*m_stream_ptr) << "\n" ;
 	}
 
+	void VCFFormatSNPDataSink::set_output_fields( std::set< std::string > const& fields ) {
+		m_output_fields = fields ;
+	}
+
 	namespace {
 		struct DataWriter: public VariantDataReader::PerSampleSetter {
 			DataWriter( boost::ptr_vector< std::ostringstream >& streams, bool field_is_genotype ):
@@ -144,7 +148,11 @@ namespace genfile {
 		(*m_stream_ptr) << tab ;
 		for( std::size_t field_i = 0; field_i < fields.size(); ++field_i ) {
 			std::string const field = fields[ field_i ] ;
-			if( field != ":genotypes:" && field != ":intensities:" ) {
+			if(
+				( !(m_output_fields) || ( m_output_fields.get().find( field ) != m_output_fields.get().end() ) )
+				&& field != ":genotypes:"
+				&& field != ":intensities:"
+			) {
 				if( data_reader.supports( field )) {
 					(*m_stream_ptr) << ( have_format ? ":" : "" ) << field ;
 					DataWriter writer( m_streams, ( field == "GT" ) ) ;

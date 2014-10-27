@@ -8,14 +8,20 @@
 #define GENFILE_VCF_FORMAT_SNP_DATA_SINK_HPP
 
 #include <string>
+#include <Set>
 #include <iostream>
 #include <boost/function.hpp>
+#include <boost/optional.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include "genfile/SNPDataSink.hpp"
 
 namespace genfile {
 	struct VCFFormatSNPDataSink: public SNPDataSink {
+	public:
 		VCFFormatSNPDataSink( std::string const& filename ) ;
+
+	public:		
+		void set_output_fields( std::set< std::string > const& fields ) ;
 
 	private:
 		void write_header( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) const ;
@@ -33,15 +39,14 @@ namespace genfile {
 
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) ;
 		SinkPos get_stream_pos() const ;
-		
+
 	private:
 		std::string const m_filename ;
-		std::vector< std::string > m_fields ;
+		boost::optional< std::set< std::string > > m_output_fields ;
 		CompressionType const m_compression_type ;
 		std::auto_ptr< std::ostream > m_stream_ptr ;
 		bool m_have_written_header ;
 		std::size_t m_number_of_samples ;
-		std::vector< std::string > m_output_fields ;
 		boost::ptr_vector< std::ostringstream > m_streams ;
 
 	private:

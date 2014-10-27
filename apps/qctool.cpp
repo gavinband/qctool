@@ -44,6 +44,7 @@
 #include "genfile/SampleMappingSNPDataSource.hpp"
 #include "genfile/SNPDataSinkChain.hpp"
 #include "genfile/GenFileSNPDataSink.hpp"
+#include "genfile/VCFFormatSNPDataSink.hpp"
 #include "genfile/SortingBGenFileSNPDataSink.hpp"
 #include "genfile/TrivialSNPDataSink.hpp"
 #include "genfile/CategoricalCohortIndividualSource.hpp"
@@ -417,6 +418,13 @@ public:
 			)
 			.set_takes_single_value()
 			.set_default_value( "XY" ) ;
+		options[ "-vcf-output-fields" ]
+			.set_description(
+				"Specify a subset of fields to appear in output vcf files"
+			)
+			.set_takes_values_until_next_option()
+		;
+		
 		options[ "-metadata" ]
 			.set_description(
 				"Specify the name of a file containing VCF metadata to be used to parse "
@@ -1828,6 +1836,13 @@ private:
 						genfile::GenLikeSNPDataSink* gen_sink = dynamic_cast< genfile::GenLikeSNPDataSink* >( sink.get() ) ;
 						if( gen_sink ) {
 							gen_sink->omit_chromosome() ;
+						}
+					}
+					if( m_options.check_if_option_was_supplied( "-vcf-output-fields" )) {
+						genfile::VCFFormatSNPDataSink* vcf_sink = dynamic_cast< genfile::VCFFormatSNPDataSink* >( sink.get() ) ;
+						if( vcf_sink ) {
+							std::vector< std::string > const values = m_options.get_values< std::string >( "-vcf-output-fields" ) ;
+							vcf_sink->set_output_fields( std::set< std::string >( values.begin(), values.end() ) ) ;
 						}
 					}
 					if( m_options.check( "-sort" )) {
