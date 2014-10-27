@@ -83,9 +83,9 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 			std::cerr << i << " " ;
 			for( std::size_t j = 0; j < snps.size(); ++j ) {
 				switch( (i*j) % 3 ) {
-					case 0: strand_alignments[ snps[j] ] = '+' ; break ;
-					case 1: strand_alignments[ snps[j] ] = '-' ; break ;
-					case 2: strand_alignments[ snps[j] ] = '?' ; break ;
+					case 0: strand_alignments[ snps[j] ].strand = '+' ; break ;
+					case 1: strand_alignments[ snps[j] ].strand = '-' ; break ;
+					case 2: strand_alignments[ snps[j] ].strand = '?' ; break ;
 				}
 			}
 			assert( strand_alignments.size() == data::number_of_snps ) ;
@@ -151,7 +151,7 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 
 			genfile::SNPIdentifyingData expected_aligned_snp = snps1[i] ;
 
-			switch( strand_alignments[ snps1[i] ] ) {
+			switch( strand_alignments[ snps1[i] ].strand ) {
 				case '+':
 					break ;
 				case '-':

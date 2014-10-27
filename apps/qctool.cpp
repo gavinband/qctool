@@ -315,13 +315,21 @@ public:
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
+	    options[ "-flip-to-match-reference" ]
+	        .set_description( "Specify that we should flip data if necessary so that the first allele is the given allele given in the "
+				"specified column of the strand file.  First the strand is applied, then the two alleles are compared to the given allele "
+				"and data flipped if necessary."
+			)
+			.set_takes_values( 1 )
+		;
+		options.option_implies_option( "-flip-to-match-allele", "-strand" ) ;
 		options[ "-translate-snp-positions" ]
 			.set_description( "Specify a \"dictionary\" of chromosome / position to chromosome / position mappings."
 				" (This should come as a 12-column file with the first six columns the original SNPID rsid chromosome position allele1 allele2"
 				" and the second six columns the same data with possibly different chromosome and position.)"
 				" Positions of SNPs will be mapped through this dictionary before processing." )
 			.set_takes_single_value() ;
-		options[ "-match-alleles-to-cohort1" ]
+		options[ "-flip-to-match-cohort1" ]
 			.set_description( "Specify that alleles (and corresponding genotypes) in all cohorts should be switched, if necessary,"
 				" so as to match the alleles of the first cohort." ) ;
 		options[ "-snp-match-fields" ]
@@ -1016,28 +1024,9 @@ private:
 	typedef std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData > SNPDictionary ;
 	std::auto_ptr< SNPDictionary > m_snp_dictionary ;
 
-    struct StrandFlipSpec {
-        StrandFlipSpec():
-            strand( genfile::StrandAligningSNPDataSource::eUnknownStrand ),
-            flip( ' ' ) //genfile::StrandAligningSNPDataSource::eUnknownFlip )
-        {}
-
-        StrandFlipSpec( StrandFlipSpec const& other ):
-            strand( other.strand ),
-            flip( other.flip )
-        {}
-
-        StrandFlipSpec& operator=( StrandFlipSpec const& other ) {
-            strand = other.strand ;
-            flip = other.flip ;
-            return *this ;
-        }
-
-        char strand ;
-        char flip ;
-    } ;
+	typedef genfile::StrandAligningSNPDataSource::StrandFlipSpec StrandFlipSpec ;
 	//typedef std::map< genfile::SNPIdentifyingData, StrandFlipSpec, genfile::SNPIdentifyingData::CompareFields > StrandSpec ;
-	typedef std::map< genfile::SNPIdentifyingData, char, genfile::SNPIdentifyingData::CompareFields > StrandSpec ;
+	typedef std::map< genfile::SNPIdentifyingData, StrandFlipSpec, genfile::SNPIdentifyingData::CompareFields > StrandSpec ;
 	typedef std::vector< StrandSpec > StrandSpecs ;
 	std::auto_ptr< StrandSpecs > m_strand_specs ;
 	genfile::Pedigree::UniquePtr m_pedigree ;	// this must go before snp_data_sinks.
@@ -1070,12 +1059,15 @@ private:
 		}
 
 		if( m_options.check_if_option_has_value( "-strand" )) {
-			m_strand_specs = get_strand_specs( m_options.get_values< std::string >( "-strand" ), m_options.get< std::string >( "-snp-match-fields" )) ;
+			m_strand_specs = get_strand_specs(
+				m_options.get_values< std::string >( "-strand" ),
+				m_options.get< std::string >( "-snp-match-fields" )
+			) ;
 		}
 		
 		m_snp_data_source = open_snp_data_sources(
 			m_mangled_options.gen_filenames(),
-			m_options.check( "-match-alleles-to-cohort1" )
+			m_options.check( "-flip-to-match-cohort1" )
 		) ;
 		
 		if( m_options.check( "-threshhold" )) {
@@ -1155,7 +1147,10 @@ private:
 		open_snp_data_sinks() ;
 	}
 	
-	std::auto_ptr< StrandSpecs > get_strand_specs( std::vector< std::string > const& filenames, genfile::SNPIdentifyingData::CompareFields const& comparator ) const {
+	std::auto_ptr< StrandSpecs > get_strand_specs(
+		std::vector< std::string > const& filenames,
+		genfile::SNPIdentifyingData::CompareFields const& comparator
+	) const {
 		std::auto_ptr< StrandSpecs > result( new StrandSpecs( filenames.size(), StrandSpec( comparator )) ) ;
 		
 		appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Loading strand files" ) ;
@@ -1196,6 +1191,18 @@ private:
 				throw genfile::MalformedInputError( source->get_source_spec(), 0 ) ;
 			}
 
+			boost::optional< std::size_t > flipColumnIndex ;
+			if( m_options.check( "-flip-to-match-allele" )) {
+				std::string const columnName = m_options.get< std::string >( "-flip-to-match-allele" ) ;
+				if( !source->has_column( columnName ) ) {
+					throw genfile::MalformedInputError(
+						source->get_source_spec(),
+						"Expected column (\"" + columnName + "\") not found in source.", 0
+					) ;
+				}
+				flipColumnIndex = source->index_of_column( columnName ) ;
+			}
+
 			summaries[i].first = source->number_of_rows() ; // row count.
 
 			while( *source ) {
@@ -1233,17 +1240,42 @@ private:
 							throw genfile::MalformedInputError( source->get_source_spec(), source->number_of_rows_read() + 1 ) ;
 						}
 				
+						char flip = genfile::StrandAligningSNPDataSource::eNoFlip ;
+
+						if( flipColumnIndex ) {
+							flip = genfile::StrandAligningSNPDataSource::eUnknownFlip ;
+							(*source) >> statfile::ignore( flipColumnIndex.get() - source->current_column() ) ;
+							std::string referenceAllele ;
+							(*source) >> referenceAllele ;
+							if( strand[0] != genfile::StrandAligningSNPDataSource::eUnknownStrand ) {
+								if( referenceAllele == genfile::StrandAligningSNPDataSource::apply_strand( snp.get_first_allele(), strand[0] )) {
+									flip = genfile::StrandAligningSNPDataSource::eNoFlip ;
+								} else if( referenceAllele == genfile::StrandAligningSNPDataSource::apply_strand( snp.get_second_allele(), strand[0] )) {
+									flip = genfile::StrandAligningSNPDataSource::eFlip ;
+								} else {
+									throw genfile::MalformedInputError(
+										source->get_source_spec(),
+										"For SNP ( " + genfile::string_utils::to_string( snp ) + ") with strand " + strand
+											+ ": neither alleleA (\"" + snp.get_first_allele() + "\") or alleleB (\"" + snp.get_second_allele()
+												+ "\") matches the reference allele (\"" + referenceAllele + "\").",
+										source->number_of_rows_read() + 1
+									) ;
+								}
+							}
+						}
+				
 						StrandSpec::iterator where = result->at(i).find( snp ) ;
 						if( where != result->at(i).end() ) {
 							throw genfile::DuplicateKeyError( source->get_source_spec(), genfile::string_utils::to_string( snp ) ) ;
 						}
-						result->at(i)[ snp ] = strand[0] ;
+						result->at(i)[ snp ] = StrandFlipSpec( strand[0], flip ) ;
 						(*source) >> statfile::ignore_all() ;
 					}
 				}
 				catch( genfile::InputError ) {
 					++summaries[i].second ; // failure count
 					(*source) >> statfile::ignore_all() ;
+					throw ;
 				}
 			}
 			assert( source->number_of_rows_read() == source->number_of_rows() ) ;
