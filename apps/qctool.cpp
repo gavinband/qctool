@@ -1266,6 +1266,7 @@ private:
 				
 						StrandSpec::iterator where = result->at(i).find( snp ) ;
 						if( where != result->at(i).end() ) {
+							if( 
 							throw genfile::DuplicateKeyError( source->get_source_spec(), genfile::string_utils::to_string( snp ) ) ;
 						}
 						result->at(i)[ snp ] = StrandFlipSpec( strand[0], flip ) ;
@@ -1275,7 +1276,7 @@ private:
 				catch( genfile::InputError ) {
 					++summaries[i].second ; // failure count
 					(*source) >> statfile::ignore_all() ;
-					throw ;
+					//throw ;
 				}
 			}
 			assert( source->number_of_rows_read() == source->number_of_rows() ) ;
@@ -2407,7 +2408,10 @@ private:
 				) ;
 			}
 			std::string const filename = options().get< std::string >( "-osnp" ) ;
-			if( filename.size() >= 7 && filename.substr( 0, 9 ) == "sqlite://" ) {
+			if( 
+				( filename.size() >= 7 && filename.substr( 0, 9 ) == "sqlite://" )
+				|| ( filename.size() >= 7 && filename.substr( filename.size() - 7, 7 ) == ".sqlite" )
+			) {
 				std::vector< std::string > const elts = parse_sqlite_filespec( filename ) ;
 				assert( elts.size() == 2 || elts.size() == 3 ) ;
 				qcdb::FlatTableDBOutputter::SharedPtr table_storage = qcdb::FlatTableDBOutputter::create_shared(
@@ -2418,7 +2422,7 @@ private:
 					options().get< std::string >( "-snp-match-fields" )
 				) ;
 				if( elts.size() == 3 ) {
-					table_storage->set_table_name( elts[3] ) ;
+					table_storage->set_table_name( elts[2] ) ;
 				}
 				per_snp_storage = table_storage ;
 			} else {
