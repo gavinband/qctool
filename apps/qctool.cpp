@@ -1266,7 +1266,6 @@ private:
 				
 						StrandSpec::iterator where = result->at(i).find( snp ) ;
 						if( where != result->at(i).end() ) {
-							if( 
 							throw genfile::DuplicateKeyError( source->get_source_spec(), genfile::string_utils::to_string( snp ) ) ;
 						}
 						result->at(i)[ snp ] = StrandFlipSpec( strand[0], flip ) ;
