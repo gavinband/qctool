@@ -8,7 +8,7 @@
 #define GENFILE_VCF_FORMAT_SNP_DATA_SINK_HPP
 
 #include <string>
-#include <Set>
+#include <set>
 #include <iostream>
 #include <boost/function.hpp>
 #include <boost/optional.hpp>
