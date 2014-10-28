@@ -31,7 +31,7 @@ namespace genfile {
 	            flip( flip_ )
 	        {
 	        	assert( strand == eUnknownStrand || strand == eForwardStrand || strand == eReverseStrand ) ;
-	        	assert( flip == eUnknownFlip || strand == eFlip || strand == eNoFlip ) ;
+	        	assert( flip == eUnknownFlip || flip == eFlip || flip == eNoFlip ) ;
 	        }
 
 	        StrandFlipSpec():
@@ -68,6 +68,7 @@ namespace genfile {
 		StrandAlignments const& m_strand_alignments ;
 		std::vector< SNPIdentifyingData > const m_aligned_snps ;
 		StrandFlipSpec m_current_strand_flip_spec ;
+		bool m_include_unknown_strand_or_flip ;
 		
 	public:
 		operator bool() const { return *m_source ; }

@@ -183,7 +183,8 @@ namespace genfile {
 		StrandAlignments const& strand_alignments
 	):
 		m_source( source ),
-		m_strand_alignments( strand_alignments )
+		m_strand_alignments( strand_alignments ),
+		m_include_unknown_strand_or_flip( false )
 	{}
 	
 	std::string StrandAligningSNPDataSource::get_summary( std::string const& prefix, std::size_t column_width ) const {
@@ -200,61 +201,66 @@ namespace genfile {
 		AlleleSetter const& set_allele2
 	) {
 		SNPIdentifyingData source_snp ;
-		if( m_source->get_snp_identifying_data( source_snp ) ) {
+		for( ; m_source->get_snp_identifying_data( source_snp ); m_source->ignore_snp_probability_data() ) {
 			m_current_strand_flip_spec = get_strand_alignment( source_snp ) ;
-			char strand_alignment = m_current_strand_flip_spec.strand ;
-			std::string allele1, allele2 ;
-			switch( strand_alignment ) {
-				case eForwardStrand:
-					m_source->get_snp_identifying_data(
-						set_number_of_samples,
-						set_SNPID,
-						set_RSID,
-						set_chromosome,
-						set_SNP_position,
-						set_allele1,
-						set_allele2
-					) ;
-					break ;
-				case eReverseStrand:
-					m_source->get_snp_identifying_data(
-						set_number_of_samples,
-						set_SNPID,
-						set_RSID,
-						set_chromosome,
-						set_SNP_position,
-						set_value( allele1 ),
-						set_value( allele2 )
-					) ;
-					set_allele1( impl::complement( allele1 )) ;
-					set_allele2( impl::complement( allele2 )) ;
-					break ;
-				case eUnknownStrand:
-					m_source->get_snp_identifying_data(
-						set_number_of_samples,
-						set_SNPID,
-						set_RSID,
-						set_chromosome,
-						set_SNP_position,
-						set_value( allele1 ),
-						set_value( allele2 )
-					) ;
-					if( allele1 == impl::complement( allele1 ) ) {
-						set_allele1( allele1 ) ;
-					}
-					else {
-						set_allele1( allele1 + "/" + impl::complement( allele1 ) ) ;
-					}
+			std::cerr << "looking at SNP " << source_snp << ".\n" ;
+			if(
+				m_include_unknown_strand_or_flip ||
+				( m_current_strand_flip_spec.strand != eUnknownStrand && m_current_strand_flip_spec.flip != eUnknownFlip )
+			) {
+				char strand_alignment = m_current_strand_flip_spec.strand ;
 
-					if( allele2 == impl::complement( allele2 ) ) {
-						set_allele2( allele2 ) ;
-					}
-					else {
-						set_allele2( allele2 + "/" + impl::complement( allele2 ) ) ;
-					}
-					break ;
-				default:
-					assert(0) ;
+				std::string allele1, allele2 ;
+
+				m_source->get_snp_identifying_data(
+					set_number_of_samples,
+					set_SNPID,
+					set_RSID,
+					set_chromosome,
+					set_SNP_position,
+					set_value( allele1 ),
+					set_value( allele2 )
+				) ;
+
+				switch( strand_alignment ) {
+					case eForwardStrand:
+						//ok.
+						break ;
+					case eReverseStrand:
+						//ok.
+						allele1 = impl::complement( allele1 ) ;
+						allele2 = impl::complement( allele2 ) ;
+						break ;
+					case eUnknownStrand:
+						if( allele1 != impl::complement( allele1 ) ) {
+							allele1 += ( "/" + impl::complement( allele1 ) ) ;
+						}
+						if( allele2 != impl::complement( allele2 ) ) {
+							allele2 += ( "/" + impl::complement( allele2 ) ) ;
+						}
+						break ;
+					default:
+						assert(0) ;
+				}
+
+				switch( m_current_strand_flip_spec.flip ) {
+					case eNoFlip:
+						// no change needed
+						break ;
+					case eFlip:
+						std::swap( allele1, allele2 ) ;
+						break ;
+					case eUnknownFlip:
+						allele1 = allele1 + "/" + allele2 ;
+						allele2 = allele2 + "/" + source_snp.get_first_allele() ;
+						break ;
+					default:
+						assert(0) ;
+				}
+				
+				set_allele1( allele1 ) ;
+				set_allele2( allele2 ) ;
+				return ;
 			}
 		}
 	}
