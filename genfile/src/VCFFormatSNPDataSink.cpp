@@ -134,7 +134,7 @@ namespace genfile {
 		(*m_stream_ptr)
 			<< id_data.get_position().chromosome() << tab
 			<< id_data.get_position().position() << tab
-			<< id_data.get_rsid() << tab
+			<< id_data.get_rsid() << "," << id_data.get_SNPID() << tab
 			<< id_data.get_first_allele() << tab
 			<< id_data.get_second_allele() << tab
 			<< "." << tab

@@ -438,15 +438,15 @@ namespace genfile {
 	VariantDataReader::UniquePtr VCFFormatSNPDataSource::read_variant_data_impl() {
 		std::string FORMAT = read_format() ;
 		VariantDataReader::UniquePtr result ;
-		if( m_number_of_samples > 0 ) {
-			try {
-				result.reset( new impl::VCFFormatDataReader( *this, m_variant_alleles, FORMAT, m_format_types, m_field_mapping )) ;
-			}
-			catch( BadArgumentError const& ) {
-				// problem with FORMAT
-				throw MalformedInputError( get_source_spec(), number_of_snps_read() + get_index_of_first_data_line(), 8 ) ;
-			}
+		//if( m_number_of_samples > 0 ) {
+		try {
+			result.reset( new impl::VCFFormatDataReader( *this, m_variant_alleles, FORMAT, m_format_types, m_field_mapping )) ;
 		}
+		catch( BadArgumentError const& ) {
+			// problem with FORMAT
+			throw MalformedInputError( get_source_spec(), number_of_snps_read() + get_index_of_first_data_line(), 8 ) ;
+		}
+		//}
 		m_have_id_data = false ;
 		return result ;
 	}

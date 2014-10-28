@@ -2586,6 +2586,10 @@ private:
 		} else {
 			get_ui_context().logger() << "SNPs do not need to be visited -- skipping.\n" ;
 		}
+		if( per_snp_storage ) {
+            per_snp_storage->finalise() ;
+        }
+
 	}
 } ;
 
