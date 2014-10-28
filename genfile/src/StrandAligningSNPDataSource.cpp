@@ -204,7 +204,7 @@ namespace genfile {
 		for( ; m_source->get_snp_identifying_data( source_snp ); m_source->ignore_snp_probability_data() ) {
 			m_current_strand_flip_spec = get_strand_alignment( source_snp ) ;
 			std::cerr << "looking at SNP " << source_snp << ".\n" ;
-			if(
+			if( 
 				m_include_unknown_strand_or_flip ||
 				( m_current_strand_flip_spec.strand != eUnknownStrand && m_current_strand_flip_spec.flip != eUnknownFlip )
 			) {
