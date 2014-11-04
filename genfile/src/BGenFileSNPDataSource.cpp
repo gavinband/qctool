@@ -132,7 +132,8 @@ namespace genfile {
 			set_value( m_total_number_of_snps ),
 			set_value( m_number_of_samples ),
 			ignore(),
-			set_value( m_flags )
+			set_value( m_flags ),
+			set_value( m_version )
 		) ;
 
 		return header_size ;

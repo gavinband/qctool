@@ -96,7 +96,7 @@ void do_snp_block_read_test(
 		std::string a,
 		std::string b
 ) {
-	uint32_t const flags = genfile::bgen::e_CompressedSNPBlocks | genfile::bgen::e_MultiCharacterAlleles ;
+	uint32_t const flags = genfile::bgen::e_CompressedSNPBlocks | genfile::bgen::e_v11Layout ;
 		
 	std::istringstream inStream ;
 	inStream.str(
@@ -125,7 +125,7 @@ void do_snp_block_read_test(
 
 	std::vector< char > buffer1, buffer2 ;
 
-	genfile::bgen::impl::read_snp_identifying_data(
+	genfile::bgen::read_snp_identifying_data(
 		inStream,
 		flags,
 		&number_of_individuals2,
@@ -138,7 +138,7 @@ void do_snp_block_read_test(
 	) ;
 	chromosome2 = genfile::Chromosome( chromosome_enum ) ;
 
-	genfile::bgen::impl::read_snp_probability_data(
+	genfile::bgen::read_snp_probability_data(
 		inStream,
 		flags,
 		number_of_individuals2,
@@ -173,11 +173,11 @@ void do_snp_block_write_test(
 		std::string a,
 		std::string b
 ) {
-	uint32_t const flags = genfile::bgen::e_CompressedSNPBlocks | genfile::bgen::e_MultiCharacterAlleles ;
+	uint32_t const flags = genfile::bgen::e_CompressedSNPBlocks | genfile::bgen::e_v11Layout ;
 	
 	std::ostringstream outStream ;
 	
-	genfile::bgen::write_snp_block( 
+	genfile::bgen::write_snp_identifying_data( 
 		outStream,
 		flags,
 		number_of_individuals,
@@ -187,7 +187,13 @@ void do_snp_block_write_test(
 		chromosome,
 		SNP_position,
 		a,
-		b,
+		b
+	) ;
+
+	genfile::bgen::write_snp_probability_data( 
+		outStream,
+		flags,
+		number_of_individuals,
 		&get_test_probability,
 		&get_test_probability,
 		&get_test_probability

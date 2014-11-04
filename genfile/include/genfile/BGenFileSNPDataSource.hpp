@@ -59,6 +59,7 @@ namespace genfile {
 		unsigned int m_number_of_samples, m_total_number_of_snps ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
 		bgen::uint32_t m_flags ;
+		std::string m_version ;
 
 		void setup( std::string const& filename, CompressionType compression_type ) ;
 		bgen::uint32_t read_header_data() ;
