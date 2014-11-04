@@ -15,6 +15,37 @@
 
 namespace genfile {
 	namespace bgen {
+        namespace impl {
+            void check_for_two_alleles( uint16_t numberOfAlleles ) {
+                if( numberOfAlleles != 2 ) {
+                    std::cerr << "genfile::bgen::impl::check_for_two_alleles: only biallelic variants are currently supported.\n" ;
+                    assert(0) ;
+                }
+            }
+            
+            struct TwoAlleleSetter {
+                TwoAlleleSetter( std::string* allele1, std::string* allele2 ):
+                    m_allele1( allele1 ),
+                    m_allele2( allele2 )
+                {
+                    assert( allele1 != 0 ) ;
+                    assert( allele2 != 0 ) ;
+                }
+
+                void operator()( uint16_t i, std::string const& value ) {
+                    if( i == 0 ) {
+                        *m_allele1 = value ;
+                    } else if( i == 1 ) {
+                        *m_allele2 = value ;
+                    } else {
+                        assert(0) ;
+                    }
+                }
+                std::string* m_allele1 ;
+                std::string* m_allele2 ;
+            } ;
+        }
+
 		void read_offset( std::istream& iStream, uint32_t* offset ) {
 			read_little_endian_integer( iStream, offset ) ;
 		}
@@ -51,7 +82,6 @@ namespace genfile {
 		void read_snp_identifying_data(
 			std::istream& aStream,
 			uint32_t const flags,
-			uint32_t* number_of_samples,
 			std::string* SNPID,
 			std::string* RSID,
 			unsigned char* chromosome,
@@ -59,10 +89,11 @@ namespace genfile {
 			std::string* first_allele,
 			std::string* second_allele
 		) {
-
+            uint32_t number_of_samples ;
 			if( aStream ) {
-				genfile::read_little_endian_integer( aStream, number_of_samples ) ;
+				genfile::read_little_endian_integer( aStream, &number_of_samples ) ;
 			}
+
 #if DEBUG_BGEN_FORMAT
 			std::cerr << "genfile::bgen::impl::read_snp_identifying_data(): flags = 0x" << std::hex << flags << ".\n" ;
 #endif
@@ -111,11 +142,19 @@ namespace genfile {
 					second_allele->resize( 1 ) ;
 					(*second_allele)[0] = aStream.get() ;
 				}
-			} else {
-				assert(0) ;
+			} else if( layout == e_v12Layout ) {
+                // forward to v12 version which can handle multiple alleles.
+                impl::TwoAlleleSetter allele_setter( first_allele, second_allele ) ;
+                
+                bgen::read_snp_identifying_data_v12(
+                    aStream, flags,
+                    SNPID, RSID, chromosome, SNP_position,
+                    &impl::check_for_two_alleles,
+                    allele_setter
+                ) ;
 			}
 		}
-
+        
 		void write_snp_identifying_data(
 			std::ostream& aStream,
 			uint32_t const flags,

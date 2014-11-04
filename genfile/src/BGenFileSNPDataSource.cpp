@@ -45,7 +45,8 @@ namespace genfile {
 		std::string* allele2
 	) {
 		unsigned char chr ;
-		bgen::impl::read_snp_identifying_data( stream(), m_flags, number_of_samples, SNPID, RSID, &chr, SNP_position, allele1, allele2 ) ;
+		bgen::read_snp_identifying_data( stream(), m_flags, SNPID, RSID, &chr, SNP_position, allele1, allele2 ) ;
+		*number_of_samples = m_number_of_samples ;
 		*chromosome = Chromosome( ChromosomeEnum( chr ) ) ;
 	}
 
@@ -53,7 +54,7 @@ namespace genfile {
 		struct BGenFileSNPDataReader: public VariantDataReader {
 			BGenFileSNPDataReader( BGenFileSNPDataSource& source )
 			{
-				bgen::impl::read_snp_probability_data(
+				bgen::read_snp_probability_data(
 					source.stream(),
 					source.m_flags,
 					source.number_of_samples(),
@@ -100,7 +101,7 @@ namespace genfile {
 	}
 
 	void BGenFileSNPDataSource::ignore_snp_probability_data_impl() {
-		bgen::impl::ignore_snp_probability_data(
+		bgen::ignore_snp_probability_data(
 			stream(),
 			m_flags,
 			number_of_samples()

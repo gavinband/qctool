@@ -172,11 +172,45 @@ namespace genfile {
 			}
 		}
 
+		template<
+			typename NumberOfAllelesSetter,
+			typename AlleleSetter
+		>
+		void read_snp_identifying_data_v12(
+			std::istream& aStream,
+			uint32_t const flags,
+			std::string* SNPID,
+			std::string* RSID,
+			unsigned char* chromosome,
+			uint32_t* SNP_position,
+			NumberOfAllelesSetter set_number_of_alleles,
+			AlleleSetter set_allele
+		) {
+			uint16_t SNPID_size = 0;
+			uint16_t RSID_size = 0;
+            uint16_t numberOfAlleles = 0 ;
+			uint16_t chromosome_size = 0 ;
+			uint32_t allele_size = 0;
+			std::string allele ;
+            
+			std::string chromosome_string ;
+			read_length_followed_by_data( aStream, &SNPID_size, SNPID ) ;
+			read_length_followed_by_data( aStream, &RSID_size, RSID ) ;
+			read_length_followed_by_data( aStream, &chromosome_size, &chromosome_string ) ;
+			read_little_endian_integer( aStream, SNP_position ) ;
+			*chromosome = ChromosomeEnum( Chromosome( chromosome_string ) ) ;
+            read_little_endian_integer( aStream, &numberOfAlleles ) ;
+			set_number_of_alleles( numberOfAlleles ) ;
+			for( uint16_t i = 0; i < numberOfAlleles; ++i ) {
+				read_length_followed_by_data( aStream, &allele_size, &allele ) ;
+				set_allele( i, allele ) ;
+			}
+		}
+
 		// Read identifying data fields for the next variant in the file
 		void read_snp_identifying_data(
 			std::istream& aStream,
 			uint32_t const flags,
-			uint32_t* number_of_samples,
 			std::string* SNPID,
 			std::string* RSID,
 			unsigned char* chromosome,
@@ -184,7 +218,7 @@ namespace genfile {
 			std::string* first_allele,
 			std::string* second_allele
 		) ;
-
+			
 		// Write identifying data fields for the given variant.
 		void write_snp_identifying_data(
 			std::ostream& aStream,

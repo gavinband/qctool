@@ -128,7 +128,6 @@ void do_snp_block_read_test(
 	genfile::bgen::read_snp_identifying_data(
 		inStream,
 		flags,
-		&number_of_individuals2,
 		&SNPID2,
 		&RSID2,
 		&chromosome_enum,
