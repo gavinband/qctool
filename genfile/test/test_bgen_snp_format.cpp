@@ -96,7 +96,7 @@ void do_snp_block_read_test(
 		std::string a,
 		std::string b
 ) {
-	uint32_t const flags = genfile::bgen::e_CompressedSNPBlocks | genfile::bgen::e_MultiCharacterAlleles ;
+	uint32_t const flags = genfile::bgen::e_CompressedSNPBlocks | genfile::bgen::e_v11Layout ;
 		
 	std::istringstream inStream ;
 	inStream.str(
@@ -173,7 +173,7 @@ void do_snp_block_write_test(
 		std::string a,
 		std::string b
 ) {
-	uint32_t const flags = genfile::bgen::e_CompressedSNPBlocks | genfile::bgen::e_MultiCharacterAlleles ;
+	uint32_t const flags = genfile::bgen::e_CompressedSNPBlocks | genfile::bgen::e_v11Layout ;
 	
 	std::ostringstream outStream ;
 	

@@ -10,9 +10,25 @@
 #include "genfile/endianness_utils.hpp"
 #include "genfile/bgen.hpp"
 
+#define DEBUG_BGEN_FORMAT 1
+
 namespace genfile {
 	namespace bgen {
 		namespace impl {
+			double get_probability_conversion_factor( uint32_t flags ) {
+				uint32_t layout = flags & e_Layout ;
+				if( layout == e_v10Layout ) {
+					// v1.0-style blocks, deprecated
+					return 10000.0 ;
+				} else if( layout == e_v11Layout ) {
+					// v1.1-style blocks
+					return 32768.0 ;
+				} else {
+					// v1.2 style (or other) blocks, these are treated differently and this function does not apply.
+					assert(0) ;
+				}
+			}
+			
 			void read_snp_identifying_data(
 				std::istream& aStream,
 				uint32_t const flags,
@@ -28,8 +44,12 @@ namespace genfile {
 				if( aStream ) {
 					genfile::read_little_endian_integer( aStream, number_of_samples ) ;
 				}
-				
-				if( flags & e_LongIds ) {
+#if DEBUG_BGEN_FORMAT
+				std::cerr << "genfile::bgen::impl::read_snp_identifying_data(): flags = 0x" << std::hex << flags << ".\n" ;
+#endif
+				uint32_t const layout = flags & e_Layout ;
+				if( layout == e_v11Layout ) {
+					// v1.1-style layout
 					uint16_t SNPID_size = 0;
 					uint16_t RSID_size = 0;
 					uint32_t allele1_size = 0;
@@ -44,7 +64,8 @@ namespace genfile {
 					impl::read_length_followed_by_data( aStream, &allele2_size, second_allele ) ;
 					*chromosome = ChromosomeEnum( Chromosome( chromosome_string ) ) ;
 				}
-				else {
+				else if( layout == e_v10Layout ) {
+					// v1.0-style layout, deprecated
 					unsigned char max_id_size = 0;
 					unsigned char SNPID_size = 0;
 					unsigned char RSID_size = 0;
@@ -66,20 +87,13 @@ namespace genfile {
 						genfile::read_little_endian_integer( aStream, chromosome ) ;
 						genfile::read_little_endian_integer( aStream, SNP_position ) ;
 
-						if( flags & e_MultiCharacterAlleles ) {
-							unsigned char allele1_size = 0 ;
-							unsigned char allele2_size = 0 ;
-							impl::read_length_followed_by_data( aStream, &allele1_size, first_allele ) ;
-							assert( allele1_size <= max_id_size ) ;
-							impl::read_length_followed_by_data( aStream, &allele2_size, second_allele ) ;
-							assert( allele2_size <= max_id_size ) ;
-						} else {
-							first_allele->resize( 1 ) ;
-							(*first_allele)[0] = aStream.get() ;
-							second_allele->resize( 1 ) ;
-							(*second_allele)[0] = aStream.get() ;
-						}
+						first_allele->resize( 1 ) ;
+						(*first_allele)[0] = aStream.get() ;
+						second_allele->resize( 1 ) ;
+						(*second_allele)[0] = aStream.get() ;
 					}
+				} else {
+					assert(0) ;
 				}
 			}
 			
@@ -96,8 +110,9 @@ namespace genfile {
 				std::string second_allele
 			) {
 				write_little_endian_integer( aStream, number_of_samples ) ;
+				uint32_t const layout = flags & e_Layout ;
 
-				if( flags & e_LongIds ) {
+				if( layout == e_v11Layout ) {
 					std::size_t const max_allele_length = std::numeric_limits< uint32_t >::max() ;
 					std::size_t const max_id_length = std::numeric_limits< uint16_t >::max() ;
 					assert( SNPID.size() <= static_cast< std::size_t >( max_id_length )) ;
@@ -120,7 +135,8 @@ namespace genfile {
 					write_length_followed_by_data( aStream, uint32_t( first_allele.size() ), first_allele.data() ) ;
 					write_length_followed_by_data( aStream, uint32_t( second_allele.size() ), second_allele.data() ) ;
 				}
-				else {
+				else if( layout == e_v10Layout ) {
+					// v1.0-style layout is deprecated.
 					assert( SNPID.size() <= static_cast< std::size_t >( max_id_size )) ;
 					assert( RSID.size() <= static_cast< std::size_t >( max_id_size )) ;
 					unsigned char SNPID_size = SNPID.size() ;
@@ -136,20 +152,11 @@ namespace genfile {
 					write_little_endian_integer( aStream, chromosome ) ;
 					write_little_endian_integer( aStream, SNP_position ) ;
 
-					if( flags & e_MultiCharacterAlleles ) {
-						assert(
-							first_allele.size() <= static_cast< std::size_t >( max_id_size )
-							&& second_allele.size() <= static_cast< std::size_t >( max_id_size )
-						) ;
-						unsigned char allele1_size = first_allele.size() ;
-						unsigned char allele2_size = second_allele.size() ;
-						write_length_followed_by_data( aStream, allele1_size, first_allele.data() ) ;
-						write_length_followed_by_data( aStream, allele2_size, second_allele.data() ) ;
-					} else {
-						assert( first_allele.size() == 1 && second_allele.size() == 1 ) ;
-						aStream.put( first_allele[0] ) ;
-						aStream.put( second_allele[0] ) ;
-					}
+					assert( first_allele.size() == 1 && second_allele.size() == 1 ) ;
+					aStream.put( first_allele[0] ) ;
+					aStream.put( second_allele[0] ) ;
+				} else {
+					assert(0) ;
 				}
 			}
 

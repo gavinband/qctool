@@ -63,7 +63,7 @@ void do_header_block_read_test(
 	) ;
 
 	uint32_t header_size, number_of_snp_blocks2, number_of_samples2, flags2 ;
-	std::string free_data2 ;
+	std::string free_data2, version ;
 
 	genfile::bgen::read_header_block(
 		inStream,
@@ -71,7 +71,8 @@ void do_header_block_read_test(
 		make_setter( number_of_snp_blocks2 ),
 		make_setter( number_of_samples2 ),
 		make_setter( free_data2 ),
-		make_setter( flags2 )
+		make_setter( flags2 ),
+		make_setter( version )
 	) ;
 	
 	TEST_ASSERT( inStream ) ;

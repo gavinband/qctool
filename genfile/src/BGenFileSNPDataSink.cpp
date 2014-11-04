@@ -107,7 +107,7 @@ namespace genfile {
 		std::string const& filename,
 		Metadata const& metadata
 	)
-	: 	BasicBGenFileSNPDataSink( filename, metadata, "no_compression", bgen::e_CompressedSNPBlocks | bgen::e_LongIds )
+		: BasicBGenFileSNPDataSink( filename, metadata, "no_compression", bgen::e_CompressedSNPBlocks | bgen::e_v11Layout )
 	{
 	}
 

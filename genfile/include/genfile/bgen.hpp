@@ -34,13 +34,17 @@
 
 namespace genfile {
 	namespace bgen {
-		namespace imple {
-			typedef ::uint32_t uint32_t ;
-			typedef ::uint16_t uint16_t ;
-		}
+		struct BGenError: public virtual std::exception {
+			~BGenError() throw() {}
+			char const* what() const throw() { return "BGenError" ; }
+		} ;
 		typedef ::uint32_t uint32_t ;
 		typedef ::uint16_t uint16_t ;
-		enum FlagsType { e_NoFlags = 0, e_CompressedSNPBlocks = 0x1, e_MultiCharacterAlleles = 0x2, e_LongIds = 0x4 } ;
+		// v1.1 definitions were:
+		// enum FlagsType { e_NoFlags = 0, e_CompressedSNPBlocks = 0x1, e_LongIds = 0x4 } ;
+		// v1.2 definitions:
+		enum FlagsType { e_NoFlags = 0, e_CompressedSNPBlocks = 0x1, e_Layout = 0x3C } ;
+		enum Layout { e_v10Layout = 0x0, e_v11Layout = 0x4, e_v12Layout = 0x8 } ;
 
 /*
 		* Function: read_offset
@@ -160,7 +164,7 @@ namespace genfile {
 		// Implementation
 
 		namespace impl {
-			double const PROBABILITY_CONVERSION_FACTOR = 10000.0 ;
+			double get_probability_conversion_factor( uint32_t flags ) ;
 
 			template< typename IntegerType >
 			void read_length_followed_by_data( std::istream& in_stream, IntegerType* length_ptr, std::string* string_ptr ) {
@@ -203,7 +207,7 @@ namespace genfile {
 				result /= factor ;
 				return result ;
 			}
-
+				
 			void read_snp_identifying_data(
 				std::istream& aStream,
 				uint32_t const flags,
@@ -241,7 +245,7 @@ namespace genfile {
 			void read_uncompressed_snp_probability_data(
 				char const* buffer,
 				char const* const end,
-				uint32_t const flags,
+				double const probability_conversion_factor,
 				uint32_t number_of_samples,
 				GenotypeProbabilitySetter set_genotype_probabilities
 			) {
@@ -252,12 +256,11 @@ namespace genfile {
 					buffer = genfile::read_little_endian_integer( buffer, end, &AB ) ;
 					buffer = genfile::read_little_endian_integer( buffer, end, &BB ) ;
 
-					double const factor = ( bool( flags & e_LongIds ) ) ? 32768.0 : PROBABILITY_CONVERSION_FACTOR ;
 					set_genotype_probabilities(
 						i,
-						convert_from_integer_representation( AA, factor ),
-						convert_from_integer_representation( AB, factor ),
-						convert_from_integer_representation( BB, factor )
+						convert_from_integer_representation( AA, probability_conversion_factor ),
+						convert_from_integer_representation( AB, probability_conversion_factor ),
+						convert_from_integer_representation( BB, probability_conversion_factor )
 					) ;
 				}
 			}
@@ -289,7 +292,7 @@ namespace genfile {
 				bgen::impl::read_uncompressed_snp_probability_data(
 					&(*buffer1)[0],
 					&(*buffer1)[0] + data_size,
-					flags,
+					impl::get_probability_conversion_factor( flags ),
 					number_of_samples,
 					set_genotype_probabilities
 				) ;
@@ -305,7 +308,7 @@ namespace genfile {
 				GenotypeProbabilityGetter get_AB_probability,
 				GenotypeProbabilityGetter get_BB_probability
 			) {
-				double const factor = ( bool( flags & e_LongIds ) ? 32768.0 : impl::PROBABILITY_CONVERSION_FACTOR ) ;
+				double const factor = impl::get_probability_conversion_factor( flags ) ;
 				for ( uint32_t i = 0 ; i < number_of_samples ; ++i ) {
 					uint16_t
 						AA = convert_to_integer_representation( get_AA_probability( i ), factor ),
@@ -432,47 +435,78 @@ namespace genfile {
 				 typename NumberOfSNPBlocksSetter,
 				 typename NumberOfSamplesSetter,
 				 typename FlagsSetter,
-				 typename FreeDataSetter
-				 >
+				 typename FreeDataSetter,
+				 typename VersionSetter
+		>
 		void read_header_block(
 			std::istream& aStream,
 			HeaderSizeSetter set_header_size,
 			NumberOfSNPBlocksSetter set_number_of_snp_blocks,
 			NumberOfSamplesSetter set_number_of_samples,
 			FreeDataSetter set_free_data,
-			FlagsSetter set_flags
+			FlagsSetter set_flags,
+			VersionSetter set_version = VersionSetter()
 		) {
 			uint32_t
-			header_size = 0,
-			number_of_snp_blocks = 0,
-			number_of_samples = 0,
-			reserved = 0,
-			flags = 0 ;
+				header_size = 0,
+				number_of_snp_blocks = 0,
+				number_of_samples = 0,
+				flags = 0 ;
 
-			std::size_t fixed_data_size
-				= get_header_block_size( "" ) ;
+			char version[4] ;
 
+			std::size_t fixed_data_size = get_header_block_size( "" ) ;
 			std::vector<char> free_data ;
 
 			genfile::read_little_endian_integer( aStream, &header_size ) ;
 			assert( header_size >= fixed_data_size ) ;
 			genfile::read_little_endian_integer( aStream, &number_of_snp_blocks ) ;
 			genfile::read_little_endian_integer( aStream, &number_of_samples ) ;
-			genfile::read_little_endian_integer( aStream, &reserved ) ;
+			aStream.read( &(version[0]), 4 ) ;
 			free_data.resize( header_size - fixed_data_size ) ;
-			aStream.read( &(free_data[0]), header_size - fixed_data_size ) ;
+			aStream.read( &(free_data[0]), free_data.size() ) ;
 			genfile::read_little_endian_integer( aStream, &flags ) ;
 
-			if ( aStream ) {
+			if( aStream ) {
 				set_header_size( header_size ) ;
 				set_number_of_snp_blocks( number_of_snp_blocks ) ;
 				set_number_of_samples( number_of_samples ) ;
 				set_free_data( std::string( free_data.begin(), free_data.end() )) ;
 				set_flags( flags ) ;
+				set_version( std::string( version, version + 4 )) ;
+			} else {
+				throw BGenError() ;
 			}
 		}
 
+		template<
+			typename NumberOfSamplesSetter,
+			typename SampleIdentifierSetter
+		>
+		void read_sample_block(
+			std::istream& aStream,
+			NumberOfSamplesSetter set_number_of_samples,
+			SampleIdentifierSetter set_identifier
+		) {
+			uint32_t block_size = 0 ;
+			uint32_t number_of_samples ;
 
+			genfile::read_little_endian_integer( aStream, &block_size ) ;
+			genfile::read_little_endian_integer( aStream, &number_of_samples ) ;
+			set_number_of_samples( number_of_samples ) ;
+
+			uint16_t identifier_size ;
+			std::string identifier ;
+
+			for( std::size_t i = 0; i < number_of_samples; ++i ) {
+				impl::read_length_followed_by_data( aStream, &identifier_size, &identifier ) ;
+				if( aStream ) {
+					set_identifier( i, identifier ) ;
+				} else {
+					throw BGenError() ;
+				}
+			}
+		}
 
 		template< typename GenotypeProbabilityGetter >
 		void write_snp_block(
