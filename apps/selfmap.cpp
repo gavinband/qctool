@@ -124,16 +124,29 @@ public:
 		),
 		m_sequence( GenomeSequence::create( options().get< std::string >( "-sequence" ), get_ui_context().get_progress_context( "Reading sequence" ) ) ),
 		m_kmer_size( options().get< std::size_t >( "-kmer-size" ) ),
-		m_range( genfile::GenomePositionRange::parse( options().get< std::string >( "-range" ) ) )
+		m_ranges( parse_ranges( options().get_values< std::string >( "-range" ) ) )
 	{
 	}
 	
+    std::vector< genfile::GenomePositionRange > parse_ranges( std::vector< std::string > const& spec ) {
+        std::vector< genfile::GenomePositionRange > result ;
+        result.reserve( spec.size() ) ;
+        for( std::size_t i = 0; i < spec.size(); ++i ) {
+            result.push_back( genfile::GenomePositionRange::parse( spec[i] ) ) ;
+        }
+        return result ;
+    }
+    
 public:
 	void pre_summarise() {
 		get_ui_context().logger() << "SelfMapApplication: running with the following parameters:\n"
 			<< "Sequence: " << m_sequence->get_summary( "  " ) << "\n"
-			<< "Range: " << m_range << "\n"
-			<< "kmer size: " << m_kmer_size << "bp.\n" ;
+			<< "Ranges: " ;
+            for( std::size_t i = 0; i < m_ranges.size(); ++i ) {
+                get_ui_context().logger() << ( i > 0 ? " " : "" ) << m_ranges[i] ;
+            }
+            
+			get_ui_context().logger() << "\n" << "kmer size: " << m_kmer_size << "bp.\n" ;
 	}
 	void run() {
 		try {
@@ -153,32 +166,42 @@ public:
 private:
 	GenomeSequence::UniquePtr m_sequence ;
 	std::size_t m_kmer_size ;
-	genfile::GenomePositionRange m_range ;
+	std::vector< genfile::GenomePositionRange > m_ranges ;
 
-	typedef std::map< std::string, std::vector< std::pair< genfile::Position, char > > > KmerMap ;
+	typedef std::map< std::string, std::vector< std::pair< genfile::GenomePosition, char > > > KmerMap ;
 	//typedef boost::unordered_map< std::string, std::vector< std::pair< genfile::Position, char > > > KmerMap ;
 	
 private:
 
 	void unsafe_run() {
-		genfile::GenomePosition const start = m_range.start() ;
-		genfile::GenomePosition const end = m_range.end() ;
+		KmerMap kmerMap ;
+        for( std::size_t i = 0; i < m_ranges.size(); ++i ) {
+            process_range( m_ranges[i], &kmerMap ) ;
+        }
+		write_output( kmerMap, open_storage() ) ;
+    }
 
+    void process_range(
+        genfile::GenomePositionRange const& genomeRange,
+        KmerMap* result
+    ) {
+        using genfile::string_utils::to_string ;
+        
+        genfile::GenomePosition const& start = genomeRange.start() ;
+        genfile::GenomePosition const& end = genomeRange.end() ;
 		if( end.position() <= start.position() + m_kmer_size ) {
 			get_ui_context().logger() << "!! No kmers of length " << m_kmer_size << " in the range (of length " << ( end.position() - start.position() + 1 ) << ")\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
-
-		KmerMap kmerMap ;
 		std::string kmer ;
 
-		GenomeSequence::PhysicalSequenceRange range = m_sequence->get_sequence( m_range.start().chromosome(), m_range.start().position(), m_range.end().position() ) ;
+		GenomeSequence::PhysicalSequenceRange range = m_sequence->get_sequence( start.chromosome(), start.position(), end.position() ) ;
 		genfile::Position rangePosition = range.first.start().position() ;
 		GenomeSequence::ConstSequenceIterator kmer_start = range.second.first ;
 		GenomeSequence::ConstSequenceIterator kmer_end = kmer_start + m_kmer_size ;
 
 		{
-			appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Processing kmers" ) ;
+			appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Processing kmers (" + to_string( genomeRange ) + ")" ) ;
 
 			for( ; kmer_end != range.second.second; ++kmer_start, ++kmer_end, ++rangePosition ) {
 				progress_context.notify_progress( rangePosition, range.first.end().position() - m_kmer_size ) ;
@@ -188,19 +211,27 @@ private:
 				kmer.assign( kmer_start, kmer_end ) ;
 				genfile::string_utils::to_upper( &kmer ) ;
 				if( kmer.find( 'N' ) == std::string::npos ) {
-					kmerMap[ kmer ].push_back( std::make_pair( rangePosition, '+' ) ) ;
+					(*result)[ kmer ].push_back(
+                        std::make_pair(
+                            genfile::GenomePosition( start.chromosome(), rangePosition ),
+                            '+'
+                        )
+                    ) ;
 					impl::reverse_complement( &kmer ) ;
-					kmerMap[ kmer ].push_back( std::make_pair( rangePosition + m_kmer_size, '-' ) ) ;
-					
+					(*result)[ kmer ].push_back(
+                        std::make_pair(
+                            genfile::GenomePosition( start.chromosome(), rangePosition + m_kmer_size ),
+                            '-'
+                        )
+                    ) ;
 				}
 			}
 			progress_context.notify_progress( rangePosition, range.first.end().position() - m_kmer_size ) ;
 		}
 			
 #if DEBUG_SELFMAP
-			std::cerr << "SelfMapApplication:run(): kmerMap.size() = " << kmerMap.size() << ".\n" ;
+			std::cerr << "SelfMapApplication:run(): kmerMap.size() = " << result->size() << ".\n" ;
 #endif
-		write_output( kmerMap, open_storage() ) ;
 	}
 
 	qcdb::Storage::SharedPtr open_storage() const {
@@ -237,22 +268,21 @@ private:
 
 		bool const omit_diagonal = !options().check( "-include-diagonal" ) ;
 		using genfile::string_utils::to_string ;
-		std::string const stub = to_string( m_range.start().chromosome() ) + ":" ;
-		genfile::GenomePosition position ( m_range.start().chromosome(), 0 ) ;
+		//genfile::GenomePosition position ( m_range.start().chromosome(), 0 ) ;
 		KmerMap::const_iterator i = kmerMap.begin() ;
 		KmerMap::const_iterator end_i = kmerMap.end() ;
 		std::size_t count = 0 ;
 		for( ; i != end_i; ++i, ++count ) {
-			position.position() = i->second[0].first ;
+			genfile::GenomePosition const& position = i->second[0].first ;
 			genfile::SNPIdentifyingData2 snp(
-				stub + to_string( i->second[0].first ),
+				to_string( position ),
 				".",
 				position,
 				i->first, "."
 			) ;
 			for( std::size_t j = 0; j < i->second.size(); ++j ) {
 				if( i->second[j].second == '+' ) {
-					snp.set_position( genfile::GenomePosition( position.chromosome(), i->second[j].first ) ) ;
+					snp.set_position( i->second[j].first ) ;
 					storage->create_new_variant( snp ) ;
 					storage->store_per_variant_data(
 						snp,
@@ -262,8 +292,14 @@ private:
 					for( std::size_t k = ( j + ( omit_diagonal ? 1 : 0 ) ); k < i->second.size(); ++k ) {
 						storage->store_per_variant_data(
 							snp,
+							"other_chromosome",
+							i->second[k].first.chromosome()
+						) ;
+
+						storage->store_per_variant_data(
+							snp,
 							"other_position",
-							genfile::VariantEntry::Integer( i->second[k].first )
+							genfile::VariantEntry::Integer( i->second[k].first.position() )
 						) ;
 
 						storage->store_per_variant_data(
