@@ -9,7 +9,7 @@
 #include <sstream>
 #include <cassert>
 #include "test_case.hpp"
-#include "genfile/bgen.hpp"
+#include "genfile/bgen/bgen.hpp"
 #include "stdint.h"
 
 // The following section contains a simple snp block writer.
@@ -72,16 +72,48 @@ struct probabilities {
 	double AA, AB, BB ;
 } ;
 
-struct ProbabilitySetter {
+struct ProbabilitySetter: public genfile::VariantDataReader::PerSampleSetter {
 	ProbabilitySetter( std::vector< probabilities >& probabilities ): m_probabilities( probabilities ) {}
-	void operator() ( std::size_t i, double aa, double ab, double bb ) {
-		m_probabilities[i].AA = aa ;  
-		m_probabilities[i].AB = ab ;  
-		m_probabilities[i].BB = bb ;  
+
+	void set_number_of_samples( std::size_t n ) {
+		TEST_ASSERT( n == m_probabilities.size() / 3 ) ;
+	}
+	void set_sample( std::size_t i ) {
+		TEST_ASSERT( i < ( m_probabilities.size() / 3 ) ) ;
+		m_sample_i = i ;
+	}
+	void set_number_of_entries( std::size_t n ) {
+		TEST_ASSERT( n == 3 ) ;
+		m_entry_i = 0 ;
+	}
+	void set_order_type( OrderType const type ) {
+		TEST_ASSERT( type == eOrderedList ) ;
+	}
+
+	void operator()( genfile::MissingValue const value ) {
+		TEST_ASSERT(0) ;
+	}
+	void operator()( std::string& value ) {
+		TEST_ASSERT(0) ;
+	}
+	void operator()( Integer const value ) {
+		TEST_ASSERT(0) ;
+	}
+	void operator()( double const value ) {
+		TEST_ASSERT( m_entry_i < 3 ) ;
+		if( m_entry_i == 0 ) {
+			m_probabilities[ m_sample_i ].AA = value ;
+		} else if( m_entry_i == 1 ) {
+			m_probabilities[ m_sample_i ].AB = value ;
+		} else {
+			m_probabilities[ m_sample_i ].BB = value ;
+		}
 	}
 
 private:
 	std::vector<probabilities>& m_probabilities ;
+	std::size_t m_sample_i ;
+	std::size_t m_entry_i ;
 } ;
 
 
@@ -121,7 +153,7 @@ void do_snp_block_read_test(
 	std::string a2 ;
 	std::string b2 ;
 	std::vector< probabilities > genotype_probabilities ;
-	genotype_probabilities.resize( 1000 ) ;
+	genotype_probabilities.resize( number_of_individuals ) ;
 
 	std::vector< char > buffer1, buffer2 ;
 
@@ -137,11 +169,12 @@ void do_snp_block_read_test(
 	) ;
 	chromosome2 = genfile::Chromosome( chromosome_enum ) ;
 
+	ProbabilitySetter setter( genotype_probabilities ) ;
 	genfile::bgen::read_snp_probability_data(
 		inStream,
 		flags,
 		number_of_individuals2,
-		ProbabilitySetter( genotype_probabilities ),
+		setter,
 		&buffer1,
 		&buffer2
 	) ;

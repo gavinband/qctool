@@ -17,11 +17,11 @@ namespace genfile {
 		return *this ;
 	}
 
-	VariantDataReader& VariantDataReader::get( std::string const& spec, genfile::SingleSNPGenotypeProbabilities& data ) {
-		vcf::GenotypeSetter< genfile::SingleSNPGenotypeProbabilities > setter( data ) ;
-		get( spec, setter ) ;
-		return *this ;
-	}
+//	VariantDataReader& VariantDataReader::get( std::string const& spec, genfile::SingleSNPGenotypeProbabilities& data ) {
+//		vcf::GenotypeSetter< genfile::SingleSNPGenotypeProbabilities > setter( data ) ;
+//		get( spec, setter ) ;
+//		return *this ;
+//	}
 
 	VariantDataReader& VariantDataReader::get( std::string const& spec, PerSampleSetter const& setter ) {
 		// Casting away const: this is bad.  But we want this usage for temporary setters.

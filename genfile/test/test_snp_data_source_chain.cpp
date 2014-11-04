@@ -17,7 +17,6 @@
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/GenFileSNPDataSink.hpp"
 #include "genfile/BGenFileSNPDataSink.hpp"
-#include "genfile/bgen.hpp"
 #include "stdint.h"
 
 

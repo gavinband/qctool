@@ -143,7 +143,7 @@ namespace genfile {
 					(*second_allele)[0] = aStream.get() ;
 				}
 			} else if( layout == e_v12Layout ) {
-                // forward to v12 version which can handle multiple alleles.
+                // forward to v12 version which handles multiple alleles.
                 impl::TwoAlleleSetter allele_setter( first_allele, second_allele ) ;
                 
                 bgen::read_snp_identifying_data_v12(
@@ -152,6 +152,8 @@ namespace genfile {
                     &impl::check_for_two_alleles,
                     allele_setter
                 ) ;
+			} else {
+			    assert(0) ;
 			}
 		}
         

@@ -11,7 +11,7 @@
 #include <string>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSink.hpp"
-#include "genfile/bgen.hpp"
+#include "genfile/bgen/bgen.hpp"
 #include "genfile/Error.hpp"
 
 namespace genfile {

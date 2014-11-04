@@ -39,7 +39,6 @@
         std::string m_intensity_field ;
 		qcdb::DBOutputter::UniquePtr m_outputter ;
         genfile::CohortIndividualSource const& m_samples ;
-		std::size_t m_number_of_samples ;
 		db::Connection::StatementPtr m_insert_sample_stmnt ;
 		db::Connection::StatementPtr m_insert_genotype_stmnt ;
 		db::Connection::StatementPtr m_insert_intensity_stmnt ;

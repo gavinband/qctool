@@ -14,7 +14,6 @@
 #include <stdint.h>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSink.hpp"
-#include "genfile/bgen.hpp"
 #include "genfile/BGenFileSNPDataSink.hpp"
 #include "genfile/GenomePosition.hpp"
 
