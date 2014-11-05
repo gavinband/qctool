@@ -256,7 +256,7 @@ namespace genfile {
 			std::vector< char >* buffer2
 		) {
 			uint32_t uncompressed_data_size = 0 ;
-			if( flags && e_Layout == e_v12Layout ) {
+			if( flags & e_Layout == e_v12Layout ) {
 				genfile::read_little_endian_integer( aStream, &uncompressed_data_size ) ;
 			} else {
 				uncompressed_data_size = 6 * number_of_samples ;
@@ -322,7 +322,7 @@ namespace genfile {
 			std::vector< char >* buffer2
 		) {
 			uint32_t uncompressed_data_size = 0 ;
-			if( flags && e_Layout == e_v12Layout ) {
+			if( (flags & e_Layout) == e_v12Layout ) {
 				genfile::read_little_endian_integer( aStream, &uncompressed_data_size ) ;
 			} else {
 				uncompressed_data_size = 6 * number_of_samples ;
