@@ -11,7 +11,7 @@
 #include <string>
 #include "snp_data_utils.hpp"
 #include "SNPDataSource.hpp"
-#include "bgen.hpp"
+#include "bgen/bgen.hpp"
 
 namespace genfile {
 	namespace impl {
@@ -34,6 +34,7 @@ namespace genfile {
 		std::istream& stream() { return *m_stream_ptr ; }
 		std::istream const& stream() const { return *m_stream_ptr ; }
 		std::string get_source_spec() const { return m_filename ; }
+		uint32_t flags() const { return m_flags ; }
 
 	private:
 
@@ -58,11 +59,11 @@ namespace genfile {
 		std::string m_filename ;
 		unsigned int m_number_of_samples, m_total_number_of_snps ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
-		bgen::uint32_t m_flags ;
+		uint32_t m_flags ;
 		std::string m_version ;
 
 		void setup( std::string const& filename, CompressionType compression_type ) ;
-		bgen::uint32_t read_header_data() ;
+		uint32_t read_header_data() ;
 		std::vector< char > m_compressed_data_buffer ;
 		std::vector< char > m_uncompressed_data_buffer ;
 	} ;

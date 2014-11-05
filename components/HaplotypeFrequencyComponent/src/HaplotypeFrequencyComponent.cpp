@@ -159,7 +159,10 @@ void HaplotypeFrequencyComponent::processed_snp( genfile::SNPIdentifyingData con
 #endif
 	genfile::SNPIdentifyingData source_snp ;
 	genfile::SingleSNPGenotypeProbabilities source_probs, target_probs ;
-	target_data_reader.get( ":genotypes:", target_probs ) ;
+	{
+		genfile::vcf::GenotypeSetter< genfile::SingleSNPGenotypeProbabilities > setter( target_probs ) ;
+		target_data_reader.get( ":genotypes:", setter ) ;
+	}
 	m_source->reset_to_start() ;
 	while( m_source->get_snp_identifying_data( source_snp )) {
 #if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT

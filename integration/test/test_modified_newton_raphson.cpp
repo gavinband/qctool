@@ -100,6 +100,7 @@ namespace impl {
 		Vector m_point ;
 	} ;
 	
+#if 0
 	struct Rosenbrock: public FunctionBase {
 		// Rosenbrock's function
 		// has global minimum at (1,1)
@@ -127,7 +128,7 @@ namespace impl {
 	private:
 		Vector m_point ;
 	} ;
-	
+#endif
 	
 	template< typename Function >
 	struct OvershootTarget: public boost::noncopyable {

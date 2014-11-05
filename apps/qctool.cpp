@@ -2589,7 +2589,6 @@ private:
 		if( per_snp_storage ) {
             per_snp_storage->finalise() ;
         }
-
 	}
 } ;
 

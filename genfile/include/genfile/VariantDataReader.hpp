@@ -35,18 +35,15 @@ namespace genfile {
 			typedef Eigen::MatrixXd Matrix ;
 			virtual void operator()( std::auto_ptr< Matrix > value ) ;
 		} ;
-		struct PerSampleSetter: public vcf::EntriesSetter, public boost::noncopyable {
-			typedef std::auto_ptr< PerSampleSetter > UniquePtr ;
-			virtual ~PerSampleSetter() throw() {}
-			virtual void set_number_of_samples( std::size_t n ) = 0 ;
-			virtual void set_sample( std::size_t i ) = 0 ;
-		} ;
+
+		typedef vcf::PerSampleEntriesSetter PerSampleSetter ;
 		typedef boost::function< void ( std::string, std::string ) > SpecSetter ;
 	public:
 		virtual ~VariantDataReader() {} ;
 		virtual VariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) = 0 ;
 		// The sole purpose of the next method is to support temporary setters.
-		// Do NOT use this with truly const objects!
+		// The method casts away const and forwards to the non-const version.
+		// Do NOT use this with truly const setter objects!
 		VariantDataReader& get( std::string const& spec, PerSampleSetter const& setter ) ;
 		virtual VariantDataReader& get( std::string const& spec, PerVariantSetter& setter ) ;
 		virtual bool supports( std::string const& spec ) const = 0 ;
@@ -56,7 +53,7 @@ namespace genfile {
 		// Convenience method.
 		VariantDataReader& get( std::string const& spec, std::vector< std::vector< Entry > >& data ) ;
 		// Convenience method setting SingleSNPGenotypeProbabilities.
-		VariantDataReader& get( std::string const& spec, SingleSNPGenotypeProbabilities& data ) ;
+		//VariantDataReader& get( std::string const& spec, SingleSNPGenotypeProbabilities& data ) ;
 	} ;
 }
 

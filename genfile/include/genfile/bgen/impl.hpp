@@ -49,33 +49,6 @@ namespace genfile {
 				return result ;
 			}
 			
-			template<
-				typename GenotypeProbabilitySetter
-			>
-			void read_uncompressed_snp_probability_data(
-				char const* buffer,
-				char const* const end,
-				double const probability_conversion_factor,
-				uint32_t number_of_samples,
-				GenotypeProbabilitySetter set_genotype_probabilities
-			) {
-				for ( uint32_t i = 0 ; i < number_of_samples ; ++i ) {
-					uint16_t AA = 0, AB = 0, BB = 0 ;
-					assert( end >= buffer + 6 ) ;
-					buffer = genfile::read_little_endian_integer( buffer, end, &AA ) ;
-					buffer = genfile::read_little_endian_integer( buffer, end, &AB ) ;
-					buffer = genfile::read_little_endian_integer( buffer, end, &BB ) ;
-
-					set_genotype_probabilities(
-						i,
-						convert_from_integer_representation( AA, probability_conversion_factor ),
-						convert_from_integer_representation( AB, probability_conversion_factor ),
-						convert_from_integer_representation( BB, probability_conversion_factor )
-					) ;
-				}
-			}
-			
-
 			template< typename GenotypeProbabilityGetter >
 			void write_uncompressed_snp_probability_data(
 				char* buffer,

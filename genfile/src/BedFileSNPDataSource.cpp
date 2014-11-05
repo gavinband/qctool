@@ -9,7 +9,7 @@
 #include <boost/format.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSource.hpp"
-#include "genfile/bgen.hpp"
+#include "genfile/bgen/bgen.hpp"
 #include "genfile/BedFileSNPDataSource.hpp"
 
 #define DEBUG_BED_FORMAT 1

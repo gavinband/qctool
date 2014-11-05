@@ -23,6 +23,7 @@
 #include "genfile/Error.hpp"
 #include "genfile/zlib.hpp"
 #include "genfile/bgen/impl.hpp"
+#include "genfile/VariantDataReader.hpp"
 
 /*
 * This file contains a reference implementation of the BGEN file format
@@ -172,11 +173,45 @@ namespace genfile {
 			}
 		}
 
+		template<
+			typename NumberOfAllelesSetter,
+			typename AlleleSetter
+		>
+		void read_snp_identifying_data_v12(
+			std::istream& aStream,
+			uint32_t const flags,
+			std::string* SNPID,
+			std::string* RSID,
+			unsigned char* chromosome,
+			uint32_t* SNP_position,
+			NumberOfAllelesSetter set_number_of_alleles,
+			AlleleSetter set_allele
+		) {
+			uint16_t SNPID_size = 0;
+			uint16_t RSID_size = 0;
+            uint16_t numberOfAlleles = 0 ;
+			uint16_t chromosome_size = 0 ;
+			uint32_t allele_size = 0;
+			std::string allele ;
+            
+			std::string chromosome_string ;
+			read_length_followed_by_data( aStream, &SNPID_size, SNPID ) ;
+			read_length_followed_by_data( aStream, &RSID_size, RSID ) ;
+			read_length_followed_by_data( aStream, &chromosome_size, &chromosome_string ) ;
+			read_little_endian_integer( aStream, SNP_position ) ;
+			*chromosome = ChromosomeEnum( Chromosome( chromosome_string ) ) ;
+            read_little_endian_integer( aStream, &numberOfAlleles ) ;
+			set_number_of_alleles( numberOfAlleles ) ;
+			for( uint16_t i = 0; i < numberOfAlleles; ++i ) {
+				read_length_followed_by_data( aStream, &allele_size, &allele ) ;
+				set_allele( i, allele ) ;
+			}
+		}
+
 		// Read identifying data fields for the next variant in the file
 		void read_snp_identifying_data(
 			std::istream& aStream,
 			uint32_t const flags,
-			uint32_t* number_of_samples,
 			std::string* SNPID,
 			std::string* RSID,
 			unsigned char* chromosome,
@@ -184,7 +219,7 @@ namespace genfile {
 			std::string* first_allele,
 			std::string* second_allele
 		) ;
-
+			
 		// Write identifying data fields for the given variant.
 		void write_snp_identifying_data(
 			std::ostream& aStream,
@@ -206,7 +241,9 @@ namespace genfile {
 			uint32_t number_of_samples
 		) ;
 		
-		// Read the probability data for the current variant
+#if 0
+		// Read per-variant probability data from the file, accounting for its layout.
+		// Two buffers used as working space must be provided.
 		template<
 			typename GenotypeProbabilitySetter
 		>
@@ -218,25 +255,96 @@ namespace genfile {
 			std::vector< char >* buffer1,
 			std::vector< char >* buffer2
 		) {
-			uint32_t const data_size = 6 * number_of_samples ;
-			buffer1->resize( data_size ) ;
+			uint32_t uncompressed_data_size = 0 ;
+			if( flags && e_Layout == e_v12Layout ) {
+				genfile::read_little_endian_integer( aStream, &uncompressed_data_size ) ;
+			} else {
+				uncompressed_data_size = 6 * number_of_samples ;
+			}
+			buffer1->resize( uncompressed_data_size ) ;
 			if( flags & bgen::e_CompressedSNPBlocks ) {
 				uint32_t compressed_data_size ;
 				genfile::read_little_endian_integer( aStream, &compressed_data_size ) ;
 				buffer2->resize( compressed_data_size ) ;
 				aStream.read( &(*buffer2)[0], compressed_data_size ) ;
 				zlib_uncompress( *buffer2, buffer1 ) ;
-				assert( buffer1->size() == data_size ) ;
+				assert( buffer1->size() == uncompressed_data_size ) ;
 			}
 			else {
-				aStream.read( &(*buffer1)[0], data_size ) ;
+				aStream.read( &(*buffer1)[0], uncompressed_data_size ) ;
 			}
 			impl::read_uncompressed_snp_probability_data(
 				&(*buffer1)[0],
-				&(*buffer1)[0] + data_size,
-				impl::get_probability_conversion_factor( flags ),
+				&(*buffer1)[0] + uncompressed_data_size,
+				flags,
 				number_of_samples,
 				set_genotype_probabilities
+			) ;
+		}
+#endif
+
+		void read_uncompressed_snp_probability_data(
+			char const* buffer,
+			char const* const end,
+			uint32_t const flags,
+			uint32_t number_of_samples,
+			VariantDataReader::PerSampleSetter& setter
+		) {
+			if( (flags & e_Layout) == e_v10Layout || (flags & e_Layout) == e_v11Layout ) {
+				setter.set_number_of_samples( number_of_samples ) ;
+				
+				double const probability_conversion_factor = impl::get_probability_conversion_factor( flags ) ;
+				for ( uint32_t i = 0 ; i < number_of_samples ; ++i ) {
+					setter.set_sample( i ) ;
+					setter.set_number_of_entries( 3 ) ;
+					setter.set_order_type( VariantDataReader::PerSampleSetter::eOrderedList ) ;
+					assert( end >= buffer + 6 ) ;
+					for( std::size_t g = 0; g < 3; ++g ) {
+						uint16_t prob ;
+						buffer = read_little_endian_integer( buffer, end, &prob ) ;
+						setter( impl::convert_from_integer_representation( prob, probability_conversion_factor ) ) ;
+					}
+				}
+			} else {
+				assert(0) ;
+			}
+		}
+
+		// Read per-variant probability data from the file, accounting for its layout.
+		// This reads the data into a VariantDataReader::PerSampleSetter
+		// Two buffers used as working space must be provided.
+		void read_snp_probability_data(
+			std::istream& aStream,
+			uint32_t const flags,
+			uint32_t number_of_samples,
+			VariantDataReader::PerSampleSetter& setter,
+			std::vector< char >* buffer1,
+			std::vector< char >* buffer2
+		) {
+			uint32_t uncompressed_data_size = 0 ;
+			if( flags && e_Layout == e_v12Layout ) {
+				genfile::read_little_endian_integer( aStream, &uncompressed_data_size ) ;
+			} else {
+				uncompressed_data_size = 6 * number_of_samples ;
+			}
+			buffer1->resize( uncompressed_data_size ) ;
+			if( flags & bgen::e_CompressedSNPBlocks ) {
+				uint32_t compressed_data_size ;
+				genfile::read_little_endian_integer( aStream, &compressed_data_size ) ;
+				buffer2->resize( compressed_data_size ) ;
+				aStream.read( &(*buffer2)[0], compressed_data_size ) ;
+				zlib_uncompress( *buffer2, buffer1 ) ;
+				assert( buffer1->size() == uncompressed_data_size ) ;
+			}
+			else {
+				aStream.read( &(*buffer1)[0], uncompressed_data_size ) ;
+			}
+			read_uncompressed_snp_probability_data(
+				&(*buffer1)[0],
+				&(*buffer1)[0] + uncompressed_data_size,
+				flags,
+				number_of_samples,
+				setter
 			) ;
 		}
 

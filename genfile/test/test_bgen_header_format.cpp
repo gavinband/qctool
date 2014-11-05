@@ -10,7 +10,7 @@
 #include <cassert>
 #include "test_case.hpp"
 #include "genfile/string_utils/hex.hpp"
-#include "genfile/bgen.hpp"
+#include "genfile/bgen/bgen.hpp"
 #include "stdint.h"
 
 namespace data {

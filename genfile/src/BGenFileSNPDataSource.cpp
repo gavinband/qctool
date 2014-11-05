@@ -8,7 +8,7 @@
 #include <string>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSource.hpp"
-#include "genfile/bgen.hpp"
+#include "genfile/bgen/bgen.hpp"
 #include "genfile/BGenFileSNPDataSource.hpp"
 #include "genfile/zlib.hpp"
 
@@ -45,44 +45,38 @@ namespace genfile {
 		std::string* allele2
 	) {
 		unsigned char chr ;
-		bgen::read_snp_identifying_data( stream(), m_flags, number_of_samples, SNPID, RSID, &chr, SNP_position, allele1, allele2 ) ;
+		bgen::read_snp_identifying_data( stream(), m_flags, SNPID, RSID, &chr, SNP_position, allele1, allele2 ) ;
+		*number_of_samples = m_number_of_samples ;
 		*chromosome = Chromosome( ChromosomeEnum( chr ) ) ;
 	}
 
 	namespace impl {
 		struct BGenFileSNPDataReader: public VariantDataReader {
-			BGenFileSNPDataReader( BGenFileSNPDataSource& source )
+			BGenFileSNPDataReader( BGenFileSNPDataSource& source ):
+				m_source( source )
 			{
-				bgen::read_snp_probability_data(
-					source.stream(),
-					source.m_flags,
-					source.number_of_samples(),
-					set_genotypes( m_genotypes ),
-					&source.m_uncompressed_data_buffer,
-					&source.m_compressed_data_buffer
-				) ;
 				assert( source ) ;
-				assert(( m_genotypes.size() % 3 ) == 0 ) ;
 			}
 			
 			BGenFileSNPDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
                 assert( spec == "GP" || spec == ":genotypes:" ) ;
-				std::size_t const N = m_genotypes.size() / 3 ;
-				setter.set_number_of_samples( N ) ;
-				for( std::size_t i = 0; i < N; ++i ) {
-					setter.set_sample( i ) ;
-					setter.set_number_of_entries( 3 ) ;
-					for( std::size_t g = 0; g < 3; ++g ) {
-						setter( m_genotypes[ 3*i + g ] ) ;
-					}
-				}
+				bgen::read_snp_probability_data(
+					m_source.stream(),
+					m_source.flags(),
+					m_source.number_of_samples(),
+					setter,
+					&m_source.m_uncompressed_data_buffer,
+					&m_source.m_compressed_data_buffer
+				) ;
 				return *this ;
 			}
 			
-			std::size_t get_number_of_samples() const { return m_genotypes.size() / 3 ; }
-			
 			bool supports( std::string const& spec ) const {
 				return spec == "GP" || spec == ":genotypes:";
+			}
+			
+			std::size_t get_number_of_samples() const {
+				return m_source.number_of_samples() ;
 			}
 
 			void get_supported_specs( SpecSetter setter ) const {
@@ -91,6 +85,7 @@ namespace genfile {
 			}
 
 		private:
+			BGenFileSNPDataSource& m_source ;
 			std::vector< double > m_genotypes ;
 		} ;
 	}

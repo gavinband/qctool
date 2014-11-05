@@ -38,6 +38,13 @@ namespace genfile {
 			virtual void set_order_type( OrderType const type ) {} ;
 		} ;
 		
+		struct PerSampleEntriesSetter: public vcf::EntriesSetter, public boost::noncopyable {
+			typedef std::auto_ptr< PerSampleEntriesSetter > UniquePtr ;
+			virtual ~PerSampleEntriesSetter() throw() {}
+			virtual void set_number_of_samples( std::size_t n ) = 0 ;
+			virtual void set_sample( std::size_t i ) = 0 ;
+		} ;
+		
 		struct SimpleType: public boost::noncopyable {
 			SimpleType() {}
 			virtual ~SimpleType() {}
