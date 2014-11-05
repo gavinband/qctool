@@ -9,6 +9,8 @@
 
 #include <iostream>
 #include <algorithm>
+#include <vector>
+#include <string>
 #include <limits>
 #include <cassert>
 #include "stdint.h"
@@ -94,6 +96,22 @@ namespace genfile {
 		char buffer[ sizeof( IntegerType ) ] ;
 		write_big_endian_integer( buffer, buffer + sizeof( IntegerType ), integer ) ;
 		out_stream.write( buffer, sizeof( IntegerType )) ;
+	}
+
+	template< typename IntegerType >
+	void read_length_followed_by_data( std::istream& in_stream, IntegerType* length_ptr, std::string* string_ptr ) {
+		IntegerType& length = *length_ptr ;
+		read_little_endian_integer( in_stream, length_ptr ) ;
+		std::vector< char > buffer( length ) ;
+		in_stream.read( &buffer[0], length ) ;
+		string_ptr->assign( &buffer[0], &buffer[0] + length ) ;
+	}
+
+	template< typename IntegerType >
+	void write_length_followed_by_data( std::ostream& out_stream, IntegerType length, std::string const data_string ) {
+		assert( length <= data_string.size() ) ;
+		write_little_endian_integer( out_stream, length ) ;
+		out_stream.write( data_string.data(), length ) ;
 	}
 
 	namespace impl {
