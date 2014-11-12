@@ -1695,10 +1695,9 @@ public:
 
 					std::string model_name ;
 					if( model_names ) {
-						model_name = model_names.get()[i] ;
-					} else {
-						model_name = "rho=" + join( covariance_spec.get<0>(), "," ) ;
-					}
+						model_name = model_names.get()[i] + "/" ;
+					} 
+					model_name += "rho=" + join( covariance_spec.get<0>(), "," ) ;
 		
 					{
 						int const N = m_processor->get_number_of_cohorts() ;
@@ -1794,11 +1793,18 @@ public:
 				sd = bits[0].substr( 0, bits[0].size() - 2 ) ;
 			}
 			try {
-				(*result)[ model_names[i] + "/sd=" + sd ] = get_prior_matrix( 
-					number_of_cohorts,
-					bits.back(),
-					to_repr< double >( sd )
-				) ;
+				int const N = m_processor->get_number_of_cohorts() ;
+				int const D = m_processor->get_number_of_effect_parameters() ;
+				std::vector< std::string > sds = expand_sd( sd, m_value_sets[ "sd" ] ) ;
+				std::cerr << ">>>> sds.size() = " << sds.size() << ".\n" ;
+				for( std::size_t sd_i = 0; sd_i < sds.size(); ++sd_i ) {
+					std::cerr << ">>>> Adding complex prior for sd = " << sds[sd_i] << ".\n" ;
+					(*result)[ model_names[i] + "/sd=" + sds[sd_i] ] = get_prior_matrix( 
+						N*D,
+						bits.back(),
+						to_repr< double >( sds[sd_i] )
+					) ;
+				}
 			} catch( genfile::string_utils::StringConversionError const& e ) {
 				throw genfile::BadArgumentError(
 					"BingwaProcessor::get_complex_priors()",
@@ -2088,7 +2094,110 @@ public:
 	}
 
 	typedef boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > CovarianceSpec ;
+	enum { RhoElement = 0, SdElement = 1 } ;
 
+	// Given a CovarianceSpec, expand each use of a name from the sets
+	//
+	template< int element >
+	std::vector< CovarianceSpec > expand(
+		CovarianceSpec const& covariance_spec,
+		std::map< std::string, std::vector< std::string > > const& sets
+	) {
+		std::vector< CovarianceSpec > result ;
+		// currently we just expand sds according to the sets in sets.
+		std::vector< std::string > const& elements = covariance_spec.get< element >() ;
+		std::vector< std::string > set_names ;
+		std::vector< std::size_t > working_indices ;
+		for( std::map< std::string, std::vector< std::string > >::const_iterator i = sets.begin(); i != sets.end(); ++i ) {
+			working_indices.push_back( 0 ) ;
+			set_names.push_back( i->first ) ;
+		}
+			
+		bool complete = false ;
+		while( !complete ) {
+			// construct the configuration
+			std::vector< std::string > these_elements = elements ;
+			for( std::size_t i = 0; i < set_names.size(); ++i ) {
+				std::string const set_name = set_names[i] ;
+				for( std::size_t j = 0; j < elements.size(); ++j ) {
+					these_elements[j] = genfile::string_utils::replace_all(
+						elements[j],
+						"[" + set_names[i] + "]",
+						sets.find( set_name )->second.at( working_indices[ i ] )
+					) ;
+				}
+			}
+			CovarianceSpec new_spec( covariance_spec ) ;
+			new_spec.get< element >() = these_elements ;
+			if( std::find( result.begin(), result.end(), new_spec ) == result.end() ) {
+				result.push_back( new_spec ) ;
+			}
+			
+			// move to next configuration of sds and rhos.
+			// The rather ungainly code below steps through substitutable values of sds and then of rhos in right-to-left order.
+			std::size_t k = 0 ;
+			for( ; k < set_names.size(); ++k ) {
+				std::size_t j = set_names.size() - k - 1 ;
+				std::string const set_name = set_names[j] ;
+				if( ++working_indices[j] == sets.find( set_name )->second.size() ) {
+					working_indices[j] = 0 ;
+				} else {
+					break ;
+				}
+			}
+			if( k == set_names.size() ) {
+				complete = true ;
+			}
+		}
+
+		return result ;
+	}
+	
+	template< int element >
+	std::vector< CovarianceSpec > expand(
+		std::vector< CovarianceSpec > const& covariance_specs,
+		std::map< std::string, std::vector< std::string > > const& sets
+	) {
+		std::vector< CovarianceSpec > result ;
+		for( std::size_t i = 0; i < covariance_specs.size(); ++i ) {
+			std::vector< CovarianceSpec > const& this_result = expand< element >( covariance_specs[i], sets ) ;
+			result.insert( result.end(), this_result.begin(), this_result.end() ) ;
+		}
+		return result ;
+	}
+	
+	std::vector< CovarianceSpec > expand_rhos_and_sds(
+		CovarianceSpec const& covariance_spec,
+		std::map< std::string, std::vector< std::string > > const& sd_sets,
+		std::map< std::string, std::vector< std::string > > const& rho_sets
+	) {
+		std::vector< CovarianceSpec > result;
+		result = expand< SdElement >( covariance_spec, sd_sets ) ;
+		result = expand< RhoElement >( result, rho_sets ) ;
+		return result ;
+	}
+	
+	std::vector< std::string > expand_sd(
+		std::string sd,
+		std::map< std::string, std::vector< std::string > > const& sd_sets
+	) {
+		std::vector< std::string > result ;
+		std::map< std::string, std::vector< std::string > >::const_iterator where = sd_sets.end() ;
+		if( sd.size() > 2 && sd[0] == '[' && sd.back() == ']' ) {
+			where = sd_sets.find( sd.substr( 1, sd.size() - 2 )) ;
+		}
+		if( where == sd_sets.end() ) {
+			result.push_back( sd ) ;
+		}
+		else {
+			std::cerr << ">>> Found sd set.\n" ;
+			for( std::size_t i = 0; i < where->second.size(); ++i ) {
+				result.push_back( where->second[i] ) ;
+			}
+		}
+		return result ;
+	}
+	
 	std::vector< CovarianceSpec > parse_covariance_spec( std::string const& spec ) {
 		using namespace genfile::string_utils ;
 		std::vector< std::string > parameters = split_and_strip( spec, "/" ) ;
@@ -2117,7 +2226,7 @@ public:
 			throw genfile::BadArgumentError(
 				"BingwaProcessor::parse_covariance_spec()",
 				"spec=\"" + spec + "\"",
-				( boost::format( "Wrong number of sds (%d, should be %d)" ) % sds.size() % rhos.size() ).str()
+				( boost::format( "Wrong number of rhos (%d, should be %d)" ) % rhos.size() % 1 ).str()
 			) ;
 		}
 		if( cor.size() != expectedNumberOfCorrelations ) {
@@ -2128,8 +2237,13 @@ public:
 			) ;
 		}
 		
-		return expand_sds( CovarianceSpec( rhos, sds, cor ), m_value_sets[ "sd" ] ) ;
+		return expand_rhos_and_sds(
+			CovarianceSpec( rhos, sds, cor ),
+			m_value_sets[ "sd" ],
+			m_value_sets[ "rho" ]
+		) ;
 	}
+
 
 	std::vector< CovarianceSpec > expand_sds(
 		CovarianceSpec const& covariance_spec,
@@ -2290,7 +2404,12 @@ public:
 		}
 
 		if( options.check( "-complex-prior" ) ) {
-			get_complex_priors( N, options.get_values< std::string >( "-complex-prior" ), options.get_values< std::string >( "-complex-prior-name" ), &result ) ;
+			get_complex_priors(
+				N,
+				options.get_values< std::string >( "-complex-prior" ),
+				options.get_values< std::string >( "-complex-prior-name" ),
+				&result
+			) ;
 		}
 
 		if( options.check( "-group-specific-prior" ) || options.check( "-group-prior" ) ) {
