@@ -289,26 +289,7 @@ namespace genfile {
 			uint32_t const flags,
 			uint32_t number_of_samples,
 			VariantDataReader::PerSampleSetter& setter
-		) {
-			if( (flags & e_Layout) == e_v10Layout || (flags & e_Layout) == e_v11Layout ) {
-				setter.set_number_of_samples( number_of_samples ) ;
-				
-				double const probability_conversion_factor = impl::get_probability_conversion_factor( flags ) ;
-				for ( uint32_t i = 0 ; i < number_of_samples ; ++i ) {
-					setter.set_sample( i ) ;
-					setter.set_number_of_entries( 3 ) ;
-					setter.set_order_type( VariantDataReader::PerSampleSetter::eOrderedList ) ;
-					assert( end >= buffer + 6 ) ;
-					for( std::size_t g = 0; g < 3; ++g ) {
-						uint16_t prob ;
-						buffer = read_little_endian_integer( buffer, end, &prob ) ;
-						setter( impl::convert_from_integer_representation( prob, probability_conversion_factor ) ) ;
-					}
-				}
-			} else {
-				assert(0) ;
-			}
-		}
+		) ;
 
 		// Read per-variant probability data from the file, accounting for its layout.
 		// This reads the data into a VariantDataReader::PerSampleSetter
@@ -320,33 +301,7 @@ namespace genfile {
 			VariantDataReader::PerSampleSetter& setter,
 			std::vector< char >* buffer1,
 			std::vector< char >* buffer2
-		) {
-			uint32_t uncompressed_data_size = 0 ;
-			if( (flags & e_Layout) == e_v12Layout ) {
-				genfile::read_little_endian_integer( aStream, &uncompressed_data_size ) ;
-			} else {
-				uncompressed_data_size = 6 * number_of_samples ;
-			}
-			buffer1->resize( uncompressed_data_size ) ;
-			if( flags & bgen::e_CompressedSNPBlocks ) {
-				uint32_t compressed_data_size ;
-				genfile::read_little_endian_integer( aStream, &compressed_data_size ) ;
-				buffer2->resize( compressed_data_size ) ;
-				aStream.read( &(*buffer2)[0], compressed_data_size ) ;
-				zlib_uncompress( *buffer2, buffer1 ) ;
-				assert( buffer1->size() == uncompressed_data_size ) ;
-			}
-			else {
-				aStream.read( &(*buffer1)[0], uncompressed_data_size ) ;
-			}
-			read_uncompressed_snp_probability_data(
-				&(*buffer1)[0],
-				&(*buffer1)[0] + uncompressed_data_size,
-				flags,
-				number_of_samples,
-				setter
-			) ;
-		}
+		) ;
 
 		// Write per-variant probability data to the given stream.
 		// Genotype probabilities must be supplied by the given GenotypeProbabilityGetter
