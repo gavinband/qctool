@@ -90,7 +90,7 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
     		cat( "load.intensities(): loaded, uncompressing...\n" ) ;
         }
 		result = list(
-			variant = D[,-which( colnames(D) == "data")],
+			variant = D[,-which( colnames(D) == "data"), drop = FALSE],
 			data = matrix( NA, nrow = nrow(D), ncol = 2 * D$N[1] )
 		)
 
@@ -101,7 +101,7 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 		}
 	} else {
 		result = list(
-			variant = D[,-which( colnames(D) == "data")],
+			variant = D[,-which( colnames(D) == "data"), drop = FALSE ],
 			data = matrix( NA, nrow = 0, ncol = 2 * length( which( hapdb$samples$analysis == analysis ) ) )
 		) ;
 	}
@@ -114,8 +114,8 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 		}
 		genotype.choice = sort( union( (samples.choice * 2) - 1, samples.choice * 2 ) )
 	
-		result$data = result$data[, genotype.choice ]
-		result$samples = result$samples[ samples.choice, ]
+		result$data = result$data[, genotype.choice, drop = FALSE ]
+		result$samples = result$samples[ samples.choice,, drop = FALSE ]
 		if( nrow( result$variant ) > 0 ) {
 			result$variant$N = length( samples )
 		}
