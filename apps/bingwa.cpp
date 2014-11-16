@@ -1747,6 +1747,13 @@ public:
 				// We compute this using the diagonal block
 				int c = 0 ;
 				for( int block_i = 0; block_i < D; ++block_i ) {
+					if( covariance_spec.get<eCorrelation>()[ c++ ] != "1" ) {
+						throw genfile::BadArgumentError(
+							"BingwaProcessor::get_simple_priors()",
+							"model_spec=\"" + model_spec + "\"",
+							"Between-parameter correlation matrix must have 1's on diagonal"
+						) ;
+					}
 					for( int block_j = block_i + 1; block_j < D; ++block_j, ++c ) {
 						correlation.block( block_i * N, block_j * N, N, N ).array()
 							= get_prior_matrix(
@@ -1813,13 +1820,13 @@ public:
 #endif
 
 		try {
-			if( covariance_spec.get<eBetweenPopulationCorrelation>().size() != 1 ) {
+			if( covariance_spec.get<eBetweenPopulationCorrelation>().size() != 0 ) {
 				throw genfile::BadArgumentError(
 					"BingwaProcessor::get_full_prior()",
 					"model_spec=\"" + model_spec + "\"",
-					"In model spec \"" + model_spec + "\", number of correlations specified ("
+					"In model spec \"" + model_spec + "\", number of between-cohort correlations specified ("
 					+ to_string( covariance_spec.get<eBetweenPopulationCorrelation>().size() )
-					+ ") is not 1"
+					+ ") is not 0"
 				) ;
 			}
 			if( int( covariance_spec.get<eSD>().size() ) != dimension ) {
@@ -1846,8 +1853,8 @@ public:
 			{
 				Eigen::MatrixXd correlation = Eigen::MatrixXd::Zero( dimension, dimension ) ;
 				// We start by parsing the correlation matrix into the matrix.
-				for( int c = 0, i = 0; i < correlation.size(); ++i ) {
-					for( int j = i; j < correlation.size(); ++j, ++c ) {
+				for( int c = 0, i = 0; i < correlation.rows(); ++i ) {
+					for( int j = i; j < correlation.cols(); ++j, ++c ) {
 						correlation(i,j) = to_repr< double >( covariance_spec.get<eCorrelation>()[c] ) ;
 						if( j > i ) {
 							correlation(j,i) = correlation(i,j) ;
@@ -2231,6 +2238,9 @@ public:
 		for( std::map< std::string, std::vector< std::string > >::const_iterator i = sets.begin(); i != sets.end(); ++i ) {
 			working_indices.push_back( 0 ) ;
 			set_names.push_back( i->first ) ;
+#if DEBUG_BINGWA
+			std::cerr << "expand(): added set name " << set_names.back() << ".\n" ;
+#endif
 		}
 			
 		bool complete = false ;
@@ -2241,12 +2251,22 @@ public:
 				std::string const set_name = set_names[i] ;
 				for( std::size_t j = 0; j < elements.size(); ++j ) {
 					these_elements[j] = genfile::string_utils::replace_all(
-						elements[j],
-						"[" + set_names[i] + "]",
+						these_elements[j],
+						"[" + set_name + "]",
 						sets.find( set_name )->second.at( working_indices[ i ] )
 					) ;
+#if DEBUG_BINGWA
+					std::cerr << "...got \"" << these_elements[j] << "\".\n" ;
+#endif
 				}
 			}
+#if DEBUG_BINGWA
+			std::cerr << "expand(): these_elements =" ;
+			for( std::size_t k = 0; k < these_elements.size(); ++k ) {
+				std::cerr << " " << these_elements[k] ;
+			}
+			std::cerr << "\n" ;
+#endif
 			CovarianceSpec new_spec( covariance_spec ) ;
 			new_spec.get< element >() = these_elements ;
 			if( std::find( result.begin(), result.end(), new_spec ) == result.end() ) {
@@ -2328,9 +2348,18 @@ public:
 		bool have_rho = ( rho_index >= 0 ) ;
 		bool have_sd = ( sd_index >= 0 ) ;
 		bool have_cor = ( cor_index >= 0 ) ;
+
+#if DEBUG_BINGWA
+		std::cerr << ( boost::format( "parse_covariance_spec(): spec = %s, rho_index = %d, sd_index = %d, cor_index = %d\n" ) % spec, rho_index, sd_index, cor_index ) ;
+#endif		
 			
 		// Only sd is required.
-		if( !have_sd ) {
+		if(
+			( parameters.size() < 1 || parameters.size() > 3 )
+			|| ( !have_sd )
+			|| ( parameters.size() == 2 && !( have_cor || have_rho ))
+			|| ( parameters.size() == 3 && !( have_cor && have_rho ) )
+		) {
 			throw genfile::BadArgumentError(
 				"BingwaProcessor::parse_covariance_spec()",
 				"spec=\"" + spec + "\"",
@@ -2340,10 +2369,10 @@ public:
 				" or sd=[sd1 sd2...]/cor=[cor11 cor12 cor13...]"
 			) ;
 		}
-		
-		std::vector< std::string > const rhos = ( have_rho ? split_and_strip( parameters[0].substr( 4, parameters[0].size() ), "," ) : std::vector< std::string >() ) ;
-		std::vector< std::string > const sds = ( have_sd ? split_and_strip( parameters[1].substr( 3, parameters[1].size() ), "," ) : std::vector< std::string >() ) ;
-		std::vector< std::string > const cor = ( have_cor ? split_and_strip_discarding_empty_entries( parameters[2].substr( 4, parameters[2].size() ), "," ) : std::vector< std::string >() ) ;
+
+		std::vector< std::string > const rhos = ( have_rho ? split_and_strip( parameters[ rho_index ].substr( 4, parameters[ rho_index ].size() ), "," ) : std::vector< std::string >() ) ;
+		std::vector< std::string > const sds = ( have_sd ? split_and_strip( parameters[ sd_index ].substr( 3, parameters[ sd_index ].size() ), "," ) : std::vector< std::string >() ) ;
+		std::vector< std::string > const cor = ( have_cor ? split_and_strip_discarding_empty_entries( parameters[ cor_index ].substr( 4, parameters[ cor_index ].size() ), "," ) : std::vector< std::string >() ) ;
 
 		if( sds.size() > 1 && !have_cor ) {
 			throw genfile::BadArgumentError(
@@ -2353,7 +2382,7 @@ public:
 			) ;
 		}
 
-		std::size_t const expectedNumberOfCorrelations = ( sds.size() * ( sds.size() - 1 ) ) / 2 ;
+		std::size_t const expectedNumberOfCorrelations = ( sds.size() * ( sds.size() + 1 ) ) / 2 ;
 		if( rhos.size() > 1 ) {
 			throw genfile::BadArgumentError(
 				"BingwaProcessor::parse_covariance_spec()",
@@ -2593,6 +2622,7 @@ public:
 	}
 
 	ValueListSet parse_value_list( std::vector< std::string > const& spec ) const {
+
 		using namespace genfile::string_utils ;
 		std::map< std::string, std::vector< std::string > > result ;
 		for( std::size_t i = 0; i < spec.size(); ++i ) {
@@ -2772,7 +2802,7 @@ public:
 			end_prior_i = priors.end() ;
 		std::size_t count = 0 ;
 		for( ; prior_i != end_prior_i; ++prior_i, ++count ) {
-			get_ui_context().logger() << "-- " << prior_i->first << ":\n" ;
+			get_ui_context().logger() << ( boost::format( "-- (#%.3d) " ) % count ) << prior_i->first << ":\n" ;
 			std::string const padding = "  " + std::string( ( max_model_name_width > max_prefix_width ) ? ( max_model_name_width - max_prefix_width ): 0, ' ' ) + "   " ;
 			Eigen::MatrixXd const& prior = prior_i->second ;
 			assert( prior.rows() == D*N ) ;
