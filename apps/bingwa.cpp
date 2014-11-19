@@ -2323,7 +2323,7 @@ public:
 	) {
 		std::vector< std::string > result ;
 		std::map< std::string, std::vector< std::string > >::const_iterator where = sd_sets.end() ;
-		if( sd.size() > 2 && sd[0] == '[' && sd.back() == ']' ) {
+		if( sd.size() > 2 && sd[0] == '[' && sd[ sd.size() -1 ] == ']' ) {
 			where = sd_sets.find( sd.substr( 1, sd.size() - 2 )) ;
 		}
 		if( where == sd_sets.end() ) {
