@@ -2,6 +2,7 @@ open.hapdb <-
 function( filename, get.variants = FALSE ) {
     require( RSQLite )
     db = dbConnect( dbDriver( "SQLite" ), filename ) ;
+	dbGetQuery( db, "PRAGMA omit_readlock=on" )
     samples = dbGetQuery(
         db,
         paste(
