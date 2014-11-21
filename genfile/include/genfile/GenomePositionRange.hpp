@@ -23,6 +23,7 @@ namespace genfile {
 		GenomePositionRange( GenomePositionRange const& ) ;
 		GenomePositionRange& operator=( GenomePositionRange const& other ) ;
 		
+		Chromosome const chromosome() const { return m_start.chromosome() ; }
 		GenomePosition const& start() const { return m_start ; }
 		GenomePosition const& end() const { return m_end ; }
 
