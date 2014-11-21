@@ -29,9 +29,11 @@ struct BinitOptions: public appcontext::CmdLineOptionProcessor {
 		options.set_help_option( "-help" ) ;
 
 		options[ "-bin-size" ]
-			.set_description( "Number of input items to put in each bin." )
+			.set_description( "Number of input items to put in each bin. "
+				"A value of 0 specifies a single bin containing all the data." )
 			.set_takes_single_value()
 			.set_is_required()
+			.set_default_value( 0 )
 		;
 
 		options[ "-assume-range" ]
@@ -48,6 +50,12 @@ struct BinitOptions: public appcontext::CmdLineOptionProcessor {
 				"with this string will be ignored.  Multiple values may be given." )
 			.set_takes_values_until_next_option()
 			.set_maximum_multiplicity( 100 )
+		;
+
+		options[ "-analysis-name" ]
+			.set_description( "Specify a name for the analysis. This will be included in the output." )
+			.set_takes_single_value()
+			.set_default_value( appcontext::get_current_time_as_string() ) ;
 		;
 
 		options[ "-precision" ]
@@ -76,13 +84,6 @@ public:
 		),
 		m_bin_size( options().get< std::size_t >( "-bin-size" ) )
 	{
-		if( m_bin_size == 0 ) {
-			throw genfile::BadArgumentError(
-				"BinitApplication::BinitApplication()",
-				"-bin-size",
-				"Expected a positive number"
-			) ;
-		}
 		if( options().check( "-assume-range" )) {
 			m_range = genfile::GenomePositionRange::parse( options().get< std::string >( "-assume-range" ) ) ;
 		}
@@ -105,18 +106,27 @@ private:
 		try {
 			unsafe_process( input ) ;
 		} catch( genfile::InputError const& e ) {
-			std::cerr << "!! (" << e.what() << ": " << e.format_message() << ".\n" ;
+			std::cerr << "!! (" << e.what() << "): " << e.format_message() << ".\n" ;
+			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+		} catch( genfile::string_utils::StringConversionError const& e ) {
+			std::cerr << "!! (" << e.what() << "): input should be numerical.\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 	}
 	
 	void unsafe_process( std::istream& input ) {
-		if( m_range ) {
-			std::cout << "chromosome start end count average\n" ;
-		} else {
-			std::cout << "start end count average\n" ;
+		boost::optional< std::string > analysis_name ;
+		if( options().check( "-analysis-name" ) ) {
+			analysis_name = options().get< std::string >( "-analysis-name" ) ;
+			std::cout << "analysis\t" ;
 		}
-		
+		if( m_range ) {
+			std::cout << "chromosome\tstart\tend\tcount\taverage\n" ;
+		} else {
+			std::cout << "start\tend\tcount\taverage\n" ;
+		}
+
+		char const tab = '\t' ;
 		std::cout << std::setprecision( options().get< std::size_t >( "-precision" ) ) ;
 
 		std::size_t count = 0 ;
@@ -127,34 +137,42 @@ private:
 			if( m_ignore_strings.size() > 0 ) {
 				for( std::size_t i = 0; !ignore && i < m_ignore_strings.size(); ++i ) {
 					if( line.compare( 0, m_ignore_strings[i].size(), m_ignore_strings[i] ) == 0 ) {
+						// ignore a line.
+						std::getline( input, line ) ;
 						ignore = true ;
 					}
 				}
 			}
 			if( !ignore ) {
 				accumulation += genfile::string_utils::to_repr< double >( line ) ;
-				if( ((++count) % m_bin_size) == 0 ) {
+				++count ;
+				if( m_bin_size > 0 && (count % m_bin_size) == 0 ) {
 					double const mean = ( accumulation / m_bin_size ) ;
+					if( analysis_name ) {
+						std::cout << (*analysis_name) << tab ;
+					}
 					if( m_range ) {
 						std::cout
 							<< m_range->chromosome()
-							<< " "
+							<< tab
 							<< (m_range->start().position() + count - m_bin_size )
-							<< " "
+							<< tab
 							<< (m_range->start().position() + count - 1)
-							<< " "
+							<< tab
 							<< m_bin_size
-							<< " "
+							<< tab
 							<< mean
 							<< "\n" ;
 					} else {
 						std::cout
+							<< analysis_name
+							<< tab
 							<< count - m_bin_size + 1
-							<< " "
+							<< tab
 							<< count
-							<< " "
+							<< tab
 							<< m_bin_size
-							<< " "
+							<< tab
 							<< mean
 							<< "\n" ;
 					}
@@ -162,29 +180,32 @@ private:
 				}
 			}
 		}
-		std::size_t const last_bin_count = (count % m_bin_size) ;
+		std::size_t const last_bin_count = ( m_bin_size > 0 ) ? (count % m_bin_size) : count ;
 		if( last_bin_count != 0 ) {
 			double const mean = ( accumulation / last_bin_count ) ;
+			if( analysis_name ) {
+				std::cout << (*analysis_name) << tab ;
+			}
 			if( m_range ) {
 				std::cout
 					<< m_range->chromosome()
-					<< " "
+					<< tab
 					<< (m_range->start().position() + count - last_bin_count )
-					<< " "
+					<< tab
 					<< (m_range->start().position() + count - 1)
-					<< " "
+					<< tab
 					<< last_bin_count
-					<< " "
+					<< tab
 					<< mean
 					<< "\n" ;
 			} else {
 				std::cout
-					<< (count - (count % m_bin_size) + 1 )
-					<< " "
+					<< (count - last_bin_count + 1 )
+					<< tab
 					<< count
-					<< " "
+					<< tab
 					<< last_bin_count
-					<< " "
+					<< tab
 					<< mean
 					<< "\n" ;
 			}
