@@ -165,8 +165,6 @@ private:
 							<< "\n" ;
 					} else {
 						std::cout
-							<< analysis_name
-							<< tab
 							<< count - m_bin_size + 1
 							<< tab
 							<< count
