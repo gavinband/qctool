@@ -236,7 +236,7 @@ private:
 				std::cout
 					<< m_range->chromosome()
 					<< tab
-					<< (m_range->start().position() + index - last_bin_count )
+					<< (m_range->start().position() + index - ( index % m_bin_size ) )
 					<< tab
 					<< (m_range->start().position() + index - 1 )
 					<< tab
@@ -246,7 +246,7 @@ private:
 					<< "\n" ;
 			} else {
 				std::cout
-					<< (index - last_bin_count + 1 )
+					<< index - (index % m_bin_size) + 1
 					<< tab
 					<< index
 					<< tab
