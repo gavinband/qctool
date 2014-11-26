@@ -57,6 +57,7 @@ namespace globals {
 
 namespace {
 	double const NA = std::numeric_limits< double >::quiet_NaN() ;
+	double const Infinity = std::numeric_limits< double >::infinity() ;
 }
 
 
@@ -787,6 +788,27 @@ private:
 	int m_degrees_of_freedom ;
 } ;
 
+
+namespace impl {
+	template< typename M >
+	std::string format_matrix( M const& m ) {
+		std::ostringstream s ;
+		s << "matrix( nrow=" << m.rows() << ", ncol=" << m.cols() << ", data = c(" ;
+		for( int i = 0; i < m.rows(); ++i ) {
+			if( i > 0 ) {
+				s << "," ;
+			}
+			for( int j = 0; j < m.cols(); ++j ) {
+				if( j > 0 ) {
+					s << "," ;
+				}
+				s << m(i,j) ;
+			}
+		}
+		s << "))" ;
+		return s.str() ;
+	}
+
 //
 // Bayesian meta-analysis treating the prior as normal with mean 0 and variance matrix \Sigma
 // and the likelihood as normal and given by
@@ -810,6 +832,110 @@ private:
 		return( constant * exp( exponent ))
 	}
 */
+	double compute_bayes_factor( Eigen::MatrixXd const& prior, Eigen::MatrixXd const& V, Eigen::VectorXd const& betas ) {
+	#if DEBUG_BINGWA
+		 std::cerr << std::resetiosflags( std::ios::floatfield ) ;
+		 std::cerr << "prior = " << prior << ".\n" ;
+		 std::cerr << "betas = " << betas.transpose() << ".\n" ;
+		 std::cerr << "V = " << V << ".\n" ;
+	#endif
+		// I hope LDLT copes with noninvertible matrices.
+		// Maybe it doesn't...but let's find out.
+		Eigen::LDLT< Eigen::MatrixXd > Vsolver( V ) ;
+		Eigen::LDLT< Eigen::MatrixXd > V_plus_prior_solver( V + prior ) ;
+		Eigen::VectorXd exponent = betas.transpose() * ( Vsolver.solve( betas ) - V_plus_prior_solver.solve( betas ) ) ;
+	
+		assert( exponent.size() == 1 ) ;
+	
+		double const constant = std::sqrt( Vsolver.vectorD().prod() / V_plus_prior_solver.vectorD().prod() ) ;
+		double const result = constant * std::exp( 0.5 * exponent(0) ) ;
+
+	#if DEBUG_BINGWA
+		std::cerr << "constant = " << constant << ".\n" ;
+		std::cerr << "exponent= " << exponent.transpose() << ".\n" ;
+		std::cerr << "BF = " << result << ".\n" ;
+	#endif
+		return result ;
+	}
+
+	void select_rows_and_columns(
+		Eigen::MatrixXd* prior,
+		
+	) ;
+
+	voif get_selected_prior(
+		Eigen::MatrixXd* prior,
+		Eigen::VectorXd* betas,
+		Eigen::VectorXd const& non_missingness,
+		Eigen::MatrixXd* covariance
+	) {
+		// deal with missingness.
+		// Make a matrix that will select the rows and columns we want.
+		assert( betas->size() == prior->rows() ) ;
+	
+		int const number_of_included_effects = (
+			( prior->diagonal().array() > 0 ).cast< double >() * ( non_missingness.array() > 0 ).cast< double >()
+		).sum() ;
+	
+		#if DEBUG_BINGWA	
+			std::cerr << "impl::get_selected_prior()" << ": SNP: " << snp << ".\n" ;
+			std::cerr << "impl::get_selected_prior()" << ": prior before selection is:\n" << *prior << "\n" ;
+			std::cerr << "impl::get_selected_prior()" << ": betas before selection is:\n" << betas->transpose() << "\n" ;
+			std::cerr << "impl::get_selected_prior()" << ": covariance before selection is:\n" << *covariance << "\n" ;
+		#endif
+
+		if( number_of_included_effects > 0 ) {
+			Eigen::MatrixXd prior_selector = Eigen::MatrixXd::Zero( number_of_included_effects, betas->size() ) ;
+			int count = 0 ;
+			for( int i = 0; i < betas.size(); ++i ) {
+				// std::cerr << "i=" << i << ", non_missingness(i) = " << non_missingness(i) << ", sigma( i, i ) = " << sigma(i,i) << ".\n" ;
+				if( non_missingness(i) ) {
+					if( sigma( i, i ) > 0.0 ) ) {
+						prior_selector( count++, i ) = 1 ;
+					} else {
+						// We ought to do a conditional analysis here.
+						// For now, just throw an error.
+						throw genfile::BadArgumentError(
+							"ApproximateBayesianMetaAnalysis::operator()",
+							"sigma",
+							( boost::format( "sigma has a zero on the diagonal (in position %d)" ) % i ).str()
+						) ;
+					}
+				} l
+				else {
+					// Remove cohorts with missing data or 0 effect size.
+					betas(i) = 0 ;
+					covariance.col(i).setZero() ;
+					covariance.row(i).setZero() ;
+				}
+			}
+		
+			*prior = prior_selector * (*prior) * prior_selector.transpose() ;
+			(*betas) = prior_selector * (*betas) ;
+			(*covariance) = prior_selector * (*covariance) * prior_selector.transpose() ;	#if DEBUG_BINGWA	
+
+#if DEBUG_BINGWA	
+
+			std::cerr << "impl::get_selected_prior()" << ": prior selector is:\n" << prior_selector << "\n" ;
+			std::cerr << "impl::get_selected_prior()" << ": prior after selection is:\n" << *prior << "\n" ;
+			std::cerr << "impl::get_selected_prior()" << ": betas after selection is:\n" << betas->transpose() << "\n" ;
+			std::cerr << "impl::get_selected_prior()" << ": covariance after selection is:\n" << *covariance << "\n" ;
+#endif
+		} else {
+			prior->resize( 0, 0 ) ;
+			betas->resize( 0 ) ;
+			covariance->resize( 0, 0 ) ;
+		}
+
+		assert( covariance->rows() == number_of_included_effects ) ;
+		assert( covariance->cols() == number_of_included_effects ) ;
+		assert( betas->size() == number_of_included_effects ) ;
+		assert( prior->rows() == number_of_included_effects ) ;
+		assert( prior->cols() == number_of_included_effects ) ;
+	}
+
+}
+
 
 struct ApproximateBayesianMetaAnalysis: public BingwaComputation {
 	typedef std::auto_ptr< ApproximateBayesianMetaAnalysis > UniquePtr ;
@@ -821,7 +947,6 @@ struct ApproximateBayesianMetaAnalysis: public BingwaComputation {
 		m_name( name ),
 		m_prefix( name ),
 		m_sigma( sigma ),
-		m_compute_posterior_mean_and_variance( false ),
 		m_filter( &impl::basic_missingness_filter )
 	{
 		assert( m_sigma.rows() == m_sigma.cols() ) ;
@@ -837,17 +962,91 @@ struct ApproximateBayesianMetaAnalysis: public BingwaComputation {
 
 	void get_variables( boost::function< void ( std::string ) > callback ) const {
 		callback( m_prefix + ":bf" ) ;
-		if( m_compute_posterior_mean_and_variance ) {
-			callback( m_prefix + ":posterior_mean" ) ;
-			callback( m_prefix + ":posterior_variance" ) ;
-		}
 	}
 
 	void operator()(
 		SNPIdentifyingData2 const& snp,
 		DataGetter const& data_getter,
 		ResultCallback callback
-	) ;
+	) {
+		std::size_t const N = data_getter.get_number_of_cohorts() ;
+		if( N == 0 ) {
+			return genfile::MissingValue() ;
+		}
+
+		Eigen::VectorXd betas ;
+		Eigen::MatrixXd covariance ;
+		Eigen::VectorXd non_missingness ;
+	
+		if(
+			!impl::get_betas_and_covariance_per_study( data_getter, m_filter, betas, covariance, non_missingness, m_effect_parameter_names.size() )
+			|| non_missingness.sum() == 0
+		) {
+			return NA ;
+		}
+		else {
+			Eigen::MatrixXd prior = m_sigma;
+			get_selected_prior( &prior, &betas, non_missingness, &covariance ) ;
+			callback( m_prefix + ":bf", compute_bayes_factor( prior, covariance, betas, callback ) ) ;
+		}
+	}
+		
+	std::string get_spec() const {
+		return "ApproximateBayesianMetaAnalysis( " + m_name + " ) with prior:\n" + genfile::string_utils::to_string( m_sigma ) ;
+	}
+
+	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const {
+		return prefix + get_spec() ;
+	}
+private:
+	std::string const m_name ;
+	std::string const m_prefix ;
+	Eigen::MatrixXd const m_sigma ;
+	Filter m_filter ;
+	EffectParameterNamePack m_effect_parameter_names ;
+	
+	void compute_bayes_factor( Eigen::MatrixXd const& prior, Eigen::MatrixXd const& V, Eigen::VectorXd const& betas, ResultCallback callback ) const ;
+
+} ;
+
+struct ModelAveragingBayesFactorAnalysis: public BingwaComputation {
+	ModelAveragingBayesFactorAnalysis() {}
+	~ModelAveragingBayesFactorAnalysis() {}
+	
+	void add_model( std::string const& name, Matrix const& sigma, double const& weight ) {
+		m_models[ name ] = std::make_pair( weight, sigma ) ;
+	}
+	
+	void set_filter( Filter filter ) {
+		m_filter = filter ;
+	}
+
+	void set_effect_parameter_names( EffectParameterNamePack const& names ) {
+		m_effect_parameter_names = names ;
+	}
+
+	void get_variables( boost::function< void ( std::string ) > callback ) const {
+		callback( m_prefix + ":bf" ) ;
+	}
+
+	void operator()(
+		SNPIdentifyingData2 const& snp,
+		DataGetter const& data_getter,
+		ResultCallback callback
+	) {
+		double result = 1 ;
+		double max_bf = -Infinity ;
+		double max_posterior = Infinity ;
+		Models::const_iterator i = m_models.begin() ;
+		Models::const_iterator const end_i = m_models.end() ;
+		for( ; i != end_i; ++i ) {
+			genfile::VariantEntry const bf = impl::compute_bayes_factor( m_models[ name ] ;
+			if( !bf.is_missing() ) {
+				weight += 
+			}
+			result += 
+		}
+	}
 
 	std::string get_spec() const {
 		return "ApproximateBayesianMetaAnalysis( " + m_name + " ) with prior:\n" + genfile::string_utils::to_string( m_sigma ) ;
@@ -860,141 +1059,9 @@ private:
 	std::string const m_name ;
 	std::string const m_prefix ;
 	Eigen::MatrixXd const m_sigma ;
-	bool const m_compute_posterior_mean_and_variance ;
 	Filter m_filter ;
 	EffectParameterNamePack m_effect_parameter_names ;
-	
-	void compute_bayes_factor( Eigen::MatrixXd const& prior, Eigen::MatrixXd const& V, Eigen::VectorXd const& betas, ResultCallback callback ) const ;
-
 } ;
-
-void ApproximateBayesianMetaAnalysis::operator()(
-	SNPIdentifyingData2 const& snp,
-	DataGetter const& data_getter,
-	ResultCallback callback
-) {
-	std::size_t const N = data_getter.get_number_of_cohorts() ;
-	if( N == 0 ) {
-		return ;
-	}
-
-	Eigen::VectorXd betas ;
-	Eigen::MatrixXd covariance ;
-	Eigen::VectorXd non_missingness ;
-	
-	if(
-		!impl::get_betas_and_covariance_per_study( data_getter, m_filter, betas, covariance, non_missingness, m_effect_parameter_names.size() )
-		|| non_missingness.sum() == 0
-	) {
-		callback( m_prefix + ":bf", genfile::MissingValue() ) ;
-		return ;
-	}
-	else {
-		// deal with missingness.
-		// Make a matrix that will select the rows and columns we want.
-		assert( betas.size() == m_sigma.rows() ) ;
-		
-		int const number_of_included_effects = (( m_sigma.diagonal().array() > 0 ).cast< double >() * ( non_missingness.array() > 0 ).cast< double >() ).sum() ;
-		
-		#if DEBUG_BINGWA	
-			std::cerr << m_name << ": SNP: " << snp << ".\n" ;
-			std::cerr << m_name << ": prior before selection is:\n" << m_sigma << "\n" ;
-			std::cerr << m_name << ": betas before selection is:\n" << betas.transpose() << "\n" ;
-			std::cerr << m_name << ": covariance before selection is:\n" << covariance << "\n" ;
-		#endif
-
-		if( number_of_included_effects > 0 ) {
-			Eigen::MatrixXd prior_selector = Eigen::MatrixXd::Zero( number_of_included_effects, betas.size() ) ;
-			Eigen::MatrixXd prior ;
-			{
-				int count = 0 ;
-				for( int i = 0; i < betas.size(); ++i ) {
-					// std::cerr << "i=" << i << ", non_missingness(i) = " << non_missingness(i) << ", m_sigma( i, i ) = " << m_sigma(i,i) << ".\n" ;
-					if( non_missingness(i) && ( m_sigma( i, i ) > 0.0 ) ) {
-						prior_selector( count++, i ) = 1 ;
-					} else {
-						// Remove cohorts with missing data or 0 effect size.
-						betas(i) = 0 ;
-						covariance.col(i).setZero() ;
-						covariance.row(i).setZero() ;
-					}
-				}
-				
-				prior = prior_selector * m_sigma * prior_selector.transpose() ;
-				betas = prior_selector * betas ;
-				covariance = prior_selector * covariance * prior_selector.transpose() ;
-				
-#if DEBUG_BINGWA	
-				std::cerr << m_name << ": prior selector is:\n" << prior_selector << "\n" ;
-				std::cerr << m_name << ": prior after selection is:\n" << prior << "\n" ;
-				std::cerr << m_name << ": betas after selection is:\n" << betas.transpose() << "\n" ;
-				std::cerr << m_name << ": covariance after selection is:\n" << covariance << "\n" ;
-#endif
-			}
-		
-			assert( covariance.rows() == number_of_included_effects ) ;
-			assert( covariance.cols() == number_of_included_effects ) ;
-			assert( betas.size() == number_of_included_effects ) ;
-			assert( prior.rows() == number_of_included_effects ) ;
-			assert( prior.cols() == number_of_included_effects ) ;
-		
-			compute_bayes_factor( prior, covariance, betas, callback ) ;
-		}
-	}
-}
-
-namespace impl {
-	template< typename M >
-	std::string format_matrix( M const& m ) {
-		std::ostringstream s ;
-		s << "matrix( nrow=" << m.rows() << ", ncol=" << m.cols() << ", data = c(" ;
-		for( int i = 0; i < m.rows(); ++i ) {
-			if( i > 0 ) {
-				s << "," ;
-			}
-			for( int j = 0; j < m.cols(); ++j ) {
-				if( j > 0 ) {
-					s << "," ;
-				}
-				s << m(i,j) ;
-			}
-		}
-		s << "))" ;
-		return s.str() ;
-	}
-}
-
-void ApproximateBayesianMetaAnalysis::compute_bayes_factor( Eigen::MatrixXd const& prior, Eigen::MatrixXd const& V, Eigen::VectorXd const& betas, ResultCallback callback ) const {
-#if DEBUG_BINGWA
-	 std::cerr << std::resetiosflags( std::ios::floatfield ) ;
-	 std::cerr << "prior = " << prior << ".\n" ;
-	 std::cerr << "betas = " << betas.transpose() << ".\n" ;
-	 std::cerr << "V = " << V << ".\n" ;
-#endif
-	// I hope LDLT copes with noninvertible matrices.
-	// Maybe it doesn't...but let's find out.
-	Eigen::LDLT< Eigen::MatrixXd > Vsolver( V ) ;
-	Eigen::LDLT< Eigen::MatrixXd > V_plus_prior_solver( V + prior ) ;
-	Eigen::VectorXd exponent = betas.transpose() * ( Vsolver.solve( betas ) - V_plus_prior_solver.solve( betas ) ) ;
-	
-	assert( exponent.size() == 1 ) ;
-	
-	double const constant = std::sqrt( Vsolver.vectorD().prod() / V_plus_prior_solver.vectorD().prod() ) ;
-	double const result = constant * std::exp( 0.5 * exponent(0) ) ;
-	
-	callback( m_prefix + ":bf", result ) ;
-
-#if DEBUG_BINGWA
-	std::cerr << "constant = " << constant << ".\n" ;
-	std::cerr << "exponent= " << exponent.transpose() << ".\n" ;
-	std::cerr << "BF = " << result << ".\n" ;
-#endif
-
-	if( m_compute_posterior_mean_and_variance ) {
-		callback( m_prefix + ":posterior_mean", impl::format_matrix( betas - ( V * V_plus_prior_solver.solve( betas ) ) ) ) ;
-		callback( m_prefix + ":posterior_variance", impl::format_matrix( V - V * V_plus_prior_solver.solve( Eigen::MatrixXd::Identity( betas.size(), betas.size() ) ) * V ) ) ;
-	}
-}
 
 BingwaComputation::UniquePtr BingwaComputation::create( std::string const& name, std::vector< std::string > const& cohort_names, appcontext::OptionProcessor const& options ) {
 	BingwaComputation::UniquePtr result ;
@@ -1552,7 +1619,7 @@ public:
 						for( ; i != end_i; ++i ) {
 							ApproximateBayesianMetaAnalysis::UniquePtr computation(
 								new ApproximateBayesianMetaAnalysis(
-									"Bayesian:" + i->first,
+									"ApproximateBayesianMetaAnalysis:" + i->first,
 									i->second
 								)
 							) ;

@@ -4,6 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#include <memory>
+#include <set>
 #include <iostream>
 #include <boost/format.hpp>
 #include <boost/optional.hpp>
@@ -16,6 +18,8 @@
 #include "genfile/Error.hpp"
 #include "genfile/GenomePositionRange.hpp"
 #include "genfile/string_utils/string_utils.hpp"
+#include "genfile/VariantEntry.hpp"
+#include "genfile/FileUtils.hpp"
 
 namespace globals {
 	std::string const program_name = "binit" ;
@@ -41,6 +45,15 @@ struct BinitOptions: public appcontext::CmdLineOptionProcessor {
 				"If this is given it is assumed that the N numbers passed into the standard input "
 				"correspond to the positions start - end on the given chromosome (and binit "
 				"will check that N = end - start + 1)."
+			)
+			.set_takes_single_value()
+		;
+
+		options[ "-at-positions" ]
+			.set_description( "Specify a file containing a list of positions. "
+				"Only values at the specified positions will be used. "
+				"If -assume-range is specified, positions should be in the form chr:position. "
+				"Otherwise, they should be indices in the range 1...N"
 			)
 			.set_takes_single_value()
 		;
@@ -90,6 +103,18 @@ public:
 		if( options().check( "-ignore-lines-starting-with" )) {
 			m_ignore_strings = options().get_values< std::string >( "-ignore-lines-starting-with" ) ;
 		}
+		if( options().check( "-at-positions" )) {
+			m_inclusions = std::set< genfile::VariantEntry >() ;
+			std::auto_ptr< std::istream > stream( genfile::open_text_file_for_input( options().get< std::string >( "-at-positions" )) ) ;
+			std::string line ;
+			while( std::getline( *stream, line ) ) {
+				if( m_range ) {
+					m_inclusions->insert( genfile::GenomePosition( line )) ;
+				} else {
+					m_inclusions->insert( genfile::string_utils::to_repr< int64_t >( line )) ;
+				}
+			}
+		}
 	}
 
 	void run() {
@@ -100,6 +125,7 @@ private:
 	std::size_t const m_bin_size ;
 	std::vector< std::string > m_ignore_strings ;
 	boost::optional< genfile::GenomePositionRange > m_range ;
+	boost::optional< std::set< genfile::VariantEntry > > m_inclusions ;
 	
 private:
 	void process( std::istream& input ) {
@@ -130,6 +156,7 @@ private:
 		std::cout << std::setprecision( options().get< std::size_t >( "-precision" ) ) ;
 
 		std::size_t count = 0 ;
+		std::size_t index = 0 ;
 		double accumulation = 0 ;
 		std::string line ;
 		while( input >> line ) {
@@ -143,39 +170,60 @@ private:
 					}
 				}
 			}
+
+			if( !ignore ) {
+				++index ;
+			}
+
+			if( m_inclusions && !ignore ) {
+				// only include if it's in the inclusions file
+				if( m_range ) {
+					genfile::GenomePosition position( m_range->chromosome(), m_range->start().position() + index ) ;
+					ignore = ( m_inclusions->find( position ) == m_inclusions->end() ) ;
+				} else {
+					int64_t position = index ;
+					ignore = ( m_inclusions->find( position ) == m_inclusions->end() ) ;
+				}
+			}
+			
 			if( !ignore ) {
 				accumulation += genfile::string_utils::to_repr< double >( line ) ;
 				++count ;
-				if( m_bin_size > 0 && (count % m_bin_size) == 0 ) {
-					double const mean = ( accumulation / m_bin_size ) ;
-					if( analysis_name ) {
-						std::cout << (*analysis_name) << tab ;
-					}
-					if( m_range ) {
-						std::cout
-							<< m_range->chromosome()
-							<< tab
-							<< (m_range->start().position() + count - m_bin_size )
-							<< tab
-							<< (m_range->start().position() + count - 1)
-							<< tab
-							<< m_bin_size
-							<< tab
-							<< mean
-							<< "\n" ;
-					} else {
-						std::cout
-							<< count - m_bin_size + 1
-							<< tab
-							<< count
-							<< tab
-							<< m_bin_size
-							<< tab
-							<< mean
-							<< "\n" ;
-					}
-					accumulation = 0 ;
+			}
+			
+			if( m_bin_size > 0 && ( index % m_bin_size ) == 0 ) {
+				genfile::VariantEntry mean ;
+				if( count > 0 ) {
+					mean = ( accumulation / count ) ;
 				}
+				if( analysis_name ) {
+					std::cout << (*analysis_name) << tab ;
+				}
+				if( m_range ) {
+					std::cout
+						<< m_range->chromosome()
+						<< tab
+						<< (m_range->start().position() + index - m_bin_size )
+						<< tab
+						<< (m_range->start().position() + index - 1 )
+						<< tab
+						<< count
+						<< tab
+						<< mean
+						<< "\n" ;
+				} else {
+					std::cout
+						<< index - m_bin_size + 1
+						<< tab
+						<< index
+						<< tab
+						<< count
+						<< tab
+						<< mean
+						<< "\n" ;
+				}
+				accumulation = 0 ;
+				count = 0 ;
 			}
 		}
 		std::size_t const last_bin_count = ( m_bin_size > 0 ) ? (count % m_bin_size) : count ;
@@ -188,9 +236,9 @@ private:
 				std::cout
 					<< m_range->chromosome()
 					<< tab
-					<< (m_range->start().position() + count - last_bin_count )
+					<< (m_range->start().position() + index - last_bin_count )
 					<< tab
-					<< (m_range->start().position() + count - 1)
+					<< (m_range->start().position() + index - 1 )
 					<< tab
 					<< last_bin_count
 					<< tab
@@ -198,9 +246,9 @@ private:
 					<< "\n" ;
 			} else {
 				std::cout
-					<< (count - last_bin_count + 1 )
+					<< (index - last_bin_count + 1 )
 					<< tab
-					<< count
+					<< index
 					<< tab
 					<< last_bin_count
 					<< tab
@@ -211,11 +259,11 @@ private:
 		
 		if( m_range ) {
 			std::size_t expected = m_range->end().position() - m_range->start().position() + 1 ;
-			if( count != expected ) {
+			if( index != expected ) {
 				throw genfile::MalformedInputError(
 					"(stdin)",
-					( boost::format( "Length of range (%d) does not match number of elements in input (%d)." ) % expected % count ).str(),
-					count
+					( boost::format( "Length of range (%d) does not match number of elements in input (%d)." ) % expected % index ).str(),
+					index
 				) ;
 			}
 		}
