@@ -351,7 +351,14 @@ FrequentistGenomeWideAssociationResults::UniquePtr FrequentistGenomeWideAssociat
 		std::auto_ptr< std::istream > file = genfile::open_text_file_for_input( filenames[0].filename() ) ;
 		std::string line ;
 		std::getline( *file, line ) ;
-		if( line.substr( 0, 32 ) == "chr snp_id1 snp_id2 pos allele_0" ) {
+		std::vector< std::string > const elts = genfile::string_utils::split( line, " \t," ) ;
+		if( elts.size() >= 5
+			&& elts[0] == "chr"
+			&& elts[1] == "snp_id1"
+			&& elts[2] == "snp_id2"
+			&& elts[3] == "pos"
+			&& elts[4] == "allele_0"
+		) {
 			type = "mmm" ; // Matti's mixed model, http://www.well.ox.ac.uk/~mpirinen/
 		}
 		else if( line.substr( 0, 40 ) == "id rsid chromosome pos allele_A allele_B" ) {
@@ -862,30 +869,26 @@ namespace impl {
 	Eigen::MatrixXd get_nonmissing_coefficient_selector(
 		Eigen::VectorXd const& non_missingness
 	) {
-		assert( betas.size() == non_missingness.size() ) ;
-		assert( betas.size() == covariance.rows() ) ;
-		assert( betas.size() == covariance.cols() ) ;
-
 		int const number_of_included_effects = (
 			( non_missingness.array() > 0 ).cast< double >()
 		).sum() ;
 
-		Eigen::MatrixXd prior_selector = Eigen::MatrixXd::Zero( number_of_included_effects, non_missingness.size() ) ;
+		Eigen::MatrixXd result = Eigen::MatrixXd::Zero( number_of_included_effects, non_missingness.size() ) ;
 	
 		if( number_of_included_effects > 0 ) {
 			int count = 0 ;
 			for( int i = 0; i < non_missingness.size(); ++i ) {
 				// std::cerr << "i=" << i << ", non_missingness(i) = " << non_missingness(i) << ", sigma( i, i ) = " << sigma(i,i) << ".\n" ;
 				if( non_missingness(i) ) {
-					(*prior_selector)( count++, i ) = 1 ;
+					result( count++, i ) = 1 ;
 				}
 			}
 		
 #if DEBUG_BINGWA	
-			std::cerr << "impl::get_nonmissing_coefficient_selector()" << ": prior selector is:\n" << prior_selector << "\n" ;
+			std::cerr << "impl::get_nonmissing_coefficient_selector()" << ": prior selector is:\n" << result << "\n" ;
 #endif
 		}
-		return prior_selector ;
+		return result ;
 	}
 
 }
@@ -925,7 +928,7 @@ struct ApproximateBayesianMetaAnalysis: public BingwaComputation {
 	) {
 		std::size_t const N = data_getter.get_number_of_cohorts() ;
 		if( N == 0 ) {
-			return genfile::MissingValue() ;
+			return ;
 		}
 
 		Eigen::VectorXd betas ;
@@ -936,7 +939,7 @@ struct ApproximateBayesianMetaAnalysis: public BingwaComputation {
 			!impl::get_betas_and_covariance_per_study( data_getter, m_filter, betas, covariance, non_missingness, m_effect_parameter_names.size() )
 			|| non_missingness.sum() == 0
 		) {
-			return NA ;
+			return ;
 		}
 		else {
 			Eigen::MatrixXd prior_selector = impl::get_nonmissing_coefficient_selector( non_missingness ) ;
@@ -981,8 +984,8 @@ public:
 		{}
 
 		ModelSpec& operator=( ModelSpec const& other ) {
-			m_name = other.m_name ) ;
-			m_covariance = other.m_covariance ) ;
+			m_name = other.m_name ;
+			m_covariance = other.m_covariance ;
 			m_weight = other.m_weight ;
 			return *this ;
 		}
@@ -991,16 +994,16 @@ public:
 		Eigen::MatrixXd const& covariance() const { return m_covariance ; }
 		double weight() const { return m_weight ; }
 	private:
-		std::string const m_name ;
-		Eigen::MatrixXd const m_covariance ;
-		double const m_weight ;
+		std::string  m_name ;
+		Eigen::MatrixXd m_covariance ;
+		double m_weight ;
 	} ;
 
 public:
 	ModelAveragingBayesFactorAnalysis() {}
 	~ModelAveragingBayesFactorAnalysis() {}
 	
-	void add_model( std::string const& name, Matrix const& sigma, double const& weight ) {
+	void add_model( std::string const& name, Eigen::MatrixXd const& sigma, double const& weight ) {
 		assert( weight == weight ) ;
 		m_models.push_back( ModelSpec( name, sigma, weight ) ) ;
 	}
@@ -1024,7 +1027,7 @@ public:
 	) {
 		std::size_t const N = data_getter.get_number_of_cohorts() ;
 		if( N == 0 ) {
-			return genfile::MissingValue() ;
+			return ;
 		}
 
 		Eigen::VectorXd betas ;
@@ -1046,6 +1049,7 @@ public:
 		std::vector< double > posteriors( m_models.size(), NA ) ;
 		double total_weight ;
 		double result = 1 ;
+		double mean_bf = 0 ;
 		double max_bf = -Infinity ;
 		std::size_t max_bf_i = m_models.size() ;
 		double max_posterior = -Infinity ;
