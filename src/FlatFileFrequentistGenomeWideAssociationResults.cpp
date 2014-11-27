@@ -131,7 +131,6 @@ void FlatFileFrequentistGenomeWideAssociationResults::setup(
 	if( !m_column_map ) {
 		m_desired_columns = setup_columns( source->column_names() ) ;
 		m_column_map = get_source_column_map( *source, m_desired_columns ) ;
-		
 	} else {
 		check_columns( *source, m_column_map.get() ) ;
 	}

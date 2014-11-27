@@ -352,12 +352,23 @@ FrequentistGenomeWideAssociationResults::UniquePtr FrequentistGenomeWideAssociat
 		std::string line ;
 		std::getline( *file, line ) ;
 		std::vector< std::string > const elts = genfile::string_utils::split( line, " \t," ) ;
-		if( elts.size() >= 5
+		if( elts.size() > 4
 			&& elts[0] == "chr"
 			&& elts[1] == "snp_id1"
 			&& elts[2] == "snp_id2"
 			&& elts[3] == "pos"
 			&& elts[4] == "allele_0"
+		) {
+			type = "mmm" ; // Matti's mixed model, http://www.well.ox.ac.uk/~mpirinen/
+		}
+		else if(
+			elts.size() > 5
+			&& elts[0] == "snp_id1"
+			&& elts[1] == "snp_id2"
+			&& elts[2] == "pos"
+			&& elts[3] == "allele_0"
+			&& elts[4] == "allele_1"
+			&& elts[5] == "n_included"
 		) {
 			type = "mmm" ; // Matti's mixed model, http://www.well.ox.ac.uk/~mpirinen/
 		}

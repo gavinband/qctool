@@ -4,9 +4,41 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#include <boost/regex.hpp>
+#include <boost/optional.hpp>
 #include "MMMResults.hpp"
 #include "EffectParameterNamePack.hpp"
 
+#define DEBUG_MMMRESULTS 1
+
+namespace {
+	namespace impl {	
+		boost::optional< MMMResults::ColumnSpec > get_matching_name(
+			std::vector< std::string > names,
+			boost::regex const& regex,
+			bool required,
+			std::string const& type
+		) {
+			boost::optional< MMMResults::ColumnSpec > result ;
+			std::size_t i = 0 ;
+			for( i = 0; i < names.size(); ++i ) {
+#if DEBUG_MMMRESULTS
+				std::cerr << "Looking for regex " << regex.str() << "in " << names[i] << "...\n" ;
+#endif
+				if( boost::regex_match( names[ i ], regex ) ) {
+#if DEBUG_MMMRESULTS
+					std::cerr << "Found!\n" ;
+#endif
+					break ;
+				}
+			}
+			if( i < names.size() ) {
+				result = MMMResults::ColumnSpec( names[i], regex, i, required, type ) ;
+			}
+			return result ;
+		}
+	}
+}
 MMMResults::MMMResults(
 	genfile::SNPIdentifyingDataTest::UniquePtr test
 ):
@@ -42,7 +74,7 @@ EffectParameterNamePack MMMResults::get_effect_parameter_names() const {
 
 
 bool MMMResults::read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const {
-	return( source >> snp.position().chromosome() >> snp.SNPID() >> snp.rsid() >> snp.position().position() >> snp.first_allele() >> snp.second_allele() ) ;
+	return( source >> snp.SNPID() >> snp.rsid() >> snp.position().position() >> snp.first_allele() >> snp.second_allele() ) ;
 }
 
 bool MMMResults::check_if_snp_accepted( std::size_t snp_i ) const {
@@ -53,29 +85,20 @@ bool MMMResults::check_if_snp_accepted( std::size_t snp_i ) const {
 }
 
 
-MMMResults::DesiredColumns MMMResults::setup_columns( std::vector< std::string > const& ) {
-	assert(0) ;
-#if 0
-	DesiredColumns required_columns ;
-	required_columns.insert( std::make_pair( m_effect_column_regex, true ) ) ;
-	required_columns.insert( std::make_pair( m_se_column_regex, true ) ) ;
-	required_columns.insert( std::make_pair( "pval", true ) ) ;
-	required_columns.insert( std::make_pair( "var_info_all", true ) ) ;
-	required_columns.insert( std::make_pair( "freq_1", true ) ) ;
-	required_columns.insert( std::make_pair( "gen_00", true ) ) ;
-	required_columns.insert( std::make_pair( "gen_01", true ) ) ;
-	required_columns.insert( std::make_pair( "gen_11", true ) ) ;
-	required_columns.insert( std::make_pair( "gen_NULL", true ) ) ;
-	{
-		std::set< std::string >::const_iterator
-			i = m_variables.begin(),
-			end_i = m_variables.end() ;
-		for( ; i != end_i; ++i ) {
-			required_columns.insert( std::make_pair( *i, true ) ) ;
-		}
-	}
-	m_required_columns = required_columns ;
-#endif
+MMMResults::DesiredColumns MMMResults::setup_columns( std::vector< std::string > const& columns ) {
+	DesiredColumns result ;
+	using boost::regex ;
+	result.push_back( *impl::get_matching_name( columns, regex( m_effect_column_regex ), true, "beta" ) ) ;
+	result.push_back( *impl::get_matching_name( columns, regex( m_se_column_regex ), true, "se" ) ) ;
+	result.push_back( *impl::get_matching_name( columns, regex( "pval" ), true, "pvalue" ) ) ;
+	result.push_back( *impl::get_matching_name( columns, regex( "var_info_all" ), true, "info" ) ) ;
+	result.push_back( *impl::get_matching_name( columns, regex( "freq_1" ), true, "info" ) ) ;
+	result.push_back( *impl::get_matching_name( columns, regex( "gen_00" ), true, "counts" ) ) ;
+	result.push_back( *impl::get_matching_name( columns, regex( "gen_01" ), true, "counts" ) ) ;
+	result.push_back( *impl::get_matching_name( columns, regex( "gen_11" ), true, "counts" ) ) ;
+	result.push_back( *impl::get_matching_name( columns, regex( "gen_NULL" ), true, "counts" ) ) ;
+	
+	return result ;	
 }
 
 void MMMResults::store_value(
@@ -101,15 +124,15 @@ void MMMResults::store_value(
 		m_maf( snp_index ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 	else if( variable == "gen_00" ) {
-		m_sample_counts( snp_index, 0 ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
-	}
-	else if( variable == "gen_01" ) {
-		m_sample_counts( snp_index, 1 ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
-	}
-	else if( variable == "gen_11" ) {
 		m_sample_counts( snp_index, 2 ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
-	else if( variable == "gen_NULL" ) {
+	else if( variable == "gen_01" ) {
 		m_sample_counts( snp_index, 3 ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
+	}
+	else if( variable == "gen_11" ) {
+		m_sample_counts( snp_index, 4 ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
+	}
+	else if( variable == "gen_NULL" ) {
+		m_sample_counts( snp_index, 5 ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 }
