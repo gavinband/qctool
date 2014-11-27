@@ -21,6 +21,8 @@
 #include "genfile/VariantEntry.hpp"
 #include "genfile/FileUtils.hpp"
 
+#define DEBUG_BINIT 1
+
 namespace globals {
 	std::string const program_name = "binit" ;
 	std::string const program_version = "0.1" ;
@@ -178,7 +180,7 @@ private:
 			if( m_inclusions && !ignore ) {
 				// only include if it's in the inclusions file
 				if( m_range ) {
-					genfile::GenomePosition position( m_range->chromosome(), m_range->start().position() + index ) ;
+					genfile::GenomePosition position( m_range->chromosome(), m_range->start().position() + index - 1 ) ;
 					ignore = ( m_inclusions->find( position ) == m_inclusions->end() ) ;
 				} else {
 					int64_t position = index ;
