@@ -858,80 +858,34 @@ namespace impl {
 		return result ;
 	}
 
-	void select_rows_and_columns(
-		Eigen::MatrixXd* prior,
-		
-	) ;
 
-	voif get_selected_prior(
-		Eigen::MatrixXd* prior,
-		Eigen::VectorXd* betas,
-		Eigen::VectorXd const& non_missingness,
-		Eigen::MatrixXd* covariance
+	Eigen::MatrixXd get_nonmissing_coefficient_selector(
+		Eigen::VectorXd const& non_missingness
 	) {
-		// deal with missingness.
-		// Make a matrix that will select the rows and columns we want.
-		assert( betas->size() == prior->rows() ) ;
-	
-		int const number_of_included_effects = (
-			( prior->diagonal().array() > 0 ).cast< double >() * ( non_missingness.array() > 0 ).cast< double >()
-		).sum() ;
-	
-		#if DEBUG_BINGWA	
-			std::cerr << "impl::get_selected_prior()" << ": SNP: " << snp << ".\n" ;
-			std::cerr << "impl::get_selected_prior()" << ": prior before selection is:\n" << *prior << "\n" ;
-			std::cerr << "impl::get_selected_prior()" << ": betas before selection is:\n" << betas->transpose() << "\n" ;
-			std::cerr << "impl::get_selected_prior()" << ": covariance before selection is:\n" << *covariance << "\n" ;
-		#endif
+		assert( betas.size() == non_missingness.size() ) ;
+		assert( betas.size() == covariance.rows() ) ;
+		assert( betas.size() == covariance.cols() ) ;
 
+		int const number_of_included_effects = (
+			( non_missingness.array() > 0 ).cast< double >()
+		).sum() ;
+
+		Eigen::MatrixXd prior_selector = Eigen::MatrixXd::Zero( number_of_included_effects, non_missingness.size() ) ;
+	
 		if( number_of_included_effects > 0 ) {
-			Eigen::MatrixXd prior_selector = Eigen::MatrixXd::Zero( number_of_included_effects, betas->size() ) ;
 			int count = 0 ;
-			for( int i = 0; i < betas.size(); ++i ) {
+			for( int i = 0; i < non_missingness.size(); ++i ) {
 				// std::cerr << "i=" << i << ", non_missingness(i) = " << non_missingness(i) << ", sigma( i, i ) = " << sigma(i,i) << ".\n" ;
 				if( non_missingness(i) ) {
-					if( sigma( i, i ) > 0.0 ) ) {
-						prior_selector( count++, i ) = 1 ;
-					} else {
-						// We ought to do a conditional analysis here.
-						// For now, just throw an error.
-						throw genfile::BadArgumentError(
-							"ApproximateBayesianMetaAnalysis::operator()",
-							"sigma",
-							( boost::format( "sigma has a zero on the diagonal (in position %d)" ) % i ).str()
-						) ;
-					}
-				} l
-				else {
-					// Remove cohorts with missing data or 0 effect size.
-					betas(i) = 0 ;
-					covariance.col(i).setZero() ;
-					covariance.row(i).setZero() ;
+					(*prior_selector)( count++, i ) = 1 ;
 				}
 			}
 		
-			*prior = prior_selector * (*prior) * prior_selector.transpose() ;
-			(*betas) = prior_selector * (*betas) ;
-			(*covariance) = prior_selector * (*covariance) * prior_selector.transpose() ;	#if DEBUG_BINGWA	
-
 #if DEBUG_BINGWA	
-
-			std::cerr << "impl::get_selected_prior()" << ": prior selector is:\n" << prior_selector << "\n" ;
-			std::cerr << "impl::get_selected_prior()" << ": prior after selection is:\n" << *prior << "\n" ;
-			std::cerr << "impl::get_selected_prior()" << ": betas after selection is:\n" << betas->transpose() << "\n" ;
-			std::cerr << "impl::get_selected_prior()" << ": covariance after selection is:\n" << *covariance << "\n" ;
+			std::cerr << "impl::get_nonmissing_coefficient_selector()" << ": prior selector is:\n" << prior_selector << "\n" ;
 #endif
-		} else {
-			prior->resize( 0, 0 ) ;
-			betas->resize( 0 ) ;
-			covariance->resize( 0, 0 ) ;
 		}
-
-		assert( covariance->rows() == number_of_included_effects ) ;
-		assert( covariance->cols() == number_of_included_effects ) ;
-		assert( betas->size() == number_of_included_effects ) ;
-		assert( prior->rows() == number_of_included_effects ) ;
-		assert( prior->cols() == number_of_included_effects ) ;
+		return prior_selector ;
 	}
 
 }
@@ -985,9 +939,13 @@ struct ApproximateBayesianMetaAnalysis: public BingwaComputation {
 			return NA ;
 		}
 		else {
-			Eigen::MatrixXd prior = m_sigma;
-			get_selected_prior( &prior, &betas, non_missingness, &covariance ) ;
-			callback( m_prefix + ":bf", compute_bayes_factor( prior, covariance, betas, callback ) ) ;
+			Eigen::MatrixXd prior_selector = impl::get_nonmissing_coefficient_selector( non_missingness ) ;
+			betas = prior_selector * betas ;
+			covariance = prior_selector * covariance ;
+			Eigen::MatrixXd prior = prior_selector * m_sigma * prior_selector.transpose() ;
+			
+			double const bf = impl::compute_bayes_factor( prior, covariance, betas ) ;
+			callback( m_prefix + ":bf", bf ) ;
 		}
 	}
 		
@@ -1004,17 +962,47 @@ private:
 	Eigen::MatrixXd const m_sigma ;
 	Filter m_filter ;
 	EffectParameterNamePack m_effect_parameter_names ;
-	
-	void compute_bayes_factor( Eigen::MatrixXd const& prior, Eigen::MatrixXd const& V, Eigen::VectorXd const& betas, ResultCallback callback ) const ;
-
 } ;
 
 struct ModelAveragingBayesFactorAnalysis: public BingwaComputation {
+public:
+	struct ModelSpec {
+	public:
+		ModelSpec( std::string const& name, Eigen::MatrixXd const& covariance, double weight ):
+			m_name( name ),
+			m_covariance( covariance ),
+			m_weight( weight )
+		{}
+			
+		ModelSpec( ModelSpec const& other ):
+			m_name( other.m_name ),
+			m_covariance( other.m_covariance ),
+			m_weight( other.m_weight )
+		{}
+
+		ModelSpec& operator=( ModelSpec const& other ) {
+			m_name = other.m_name ) ;
+			m_covariance = other.m_covariance ) ;
+			m_weight = other.m_weight ;
+			return *this ;
+		}
+		
+		std::string const& name() const { return m_name ; }
+		Eigen::MatrixXd const& covariance() const { return m_covariance ; }
+		double weight() const { return m_weight ; }
+	private:
+		std::string const m_name ;
+		Eigen::MatrixXd const m_covariance ;
+		double const m_weight ;
+	} ;
+
+public:
 	ModelAveragingBayesFactorAnalysis() {}
 	~ModelAveragingBayesFactorAnalysis() {}
 	
 	void add_model( std::string const& name, Matrix const& sigma, double const& weight ) {
-		m_models[ name ] = std::make_pair( weight, sigma ) ;
+		assert( weight == weight ) ;
+		m_models.push_back( ModelSpec( name, sigma, weight ) ) ;
 	}
 	
 	void set_filter( Filter filter ) {
@@ -1034,22 +1022,77 @@ struct ModelAveragingBayesFactorAnalysis: public BingwaComputation {
 		DataGetter const& data_getter,
 		ResultCallback callback
 	) {
+		std::size_t const N = data_getter.get_number_of_cohorts() ;
+		if( N == 0 ) {
+			return genfile::MissingValue() ;
+		}
+
+		Eigen::VectorXd betas ;
+		Eigen::MatrixXd covariance ;
+		Eigen::VectorXd non_missingness ;
+	
+		if(
+			!impl::get_betas_and_covariance_per_study( data_getter, m_filter, betas, covariance, non_missingness, m_effect_parameter_names.size() )
+			|| non_missingness.sum() == 0
+		) {
+			return ;
+		}
+
+		Eigen::MatrixXd prior_selector = impl::get_nonmissing_coefficient_selector( non_missingness ) ;
+		betas = prior_selector * betas ;
+		covariance = prior_selector * covariance ;
+		
+		std::vector< double > bfs( m_models.size(), NA ) ;
+		std::vector< double > posteriors( m_models.size(), NA ) ;
+		double total_weight ;
 		double result = 1 ;
 		double max_bf = -Infinity ;
-		double max_posterior = Infinity ;
-		Models::const_iterator i = m_models.begin() ;
-		Models::const_iterator const end_i = m_models.end() ;
-		for( ; i != end_i; ++i ) {
-			genfile::VariantEntry const bf = impl::compute_bayes_factor( m_models[ name ] ;
-			if( !bf.is_missing() ) {
-				weight += 
+		std::size_t max_bf_i = m_models.size() ;
+		double max_posterior = -Infinity ;
+		std::size_t max_posterior_i = m_models.size() ;
+
+		for( std::size_t i = 0; i < m_models.size(); ++i ) {
+			Eigen::MatrixXd const prior = prior_selector * m_models[i].covariance() * prior_selector.transpose() ;
+			double const bf = impl::compute_bayes_factor( prior, covariance, betas ) ;
+			if( bf == bf ) {
+				double const weight = m_models[i].weight() ;
+				total_weight += weight ;
+				mean_bf += m_models[i].weight() * bf ;
+
+				if( bf >= max_bf ) {
+					max_bf = bf ;
+					max_bf_i = i ;
+				}
+
+				double const posterior = weight * bf ;
+				if( posterior >= max_posterior ) {
+					max_posterior = posterior ;
+					max_posterior_i = i ;
+				}
 			}
-			result += 
 		}
+		
+		for( std::size_t i = 0; i < m_models.size(); ++i ) {
+			if( bfs[i] == bfs[i] ) {
+				callback( m_prefix + ":" + m_models[i].name() + ":bf", bfs[i] ) ;
+			}
+		}
+
+		for( std::size_t i = 0; i < m_models.size(); ++i ) {
+			if( bfs[i] == bfs[i] ) {
+				callback( m_prefix + ":" + m_models[i].name() + ":posterior", posteriors[i] / total_weight ) ;
+			}
+		}
+		
+		callback( m_prefix + ":mean_bf", mean_bf / total_weight ) ;
+		callback( m_prefix + ":max_bf", max_bf ) ;
+		callback( m_prefix + ":max_bf_model", m_models[max_bf_i].name() ) ;
+		callback( m_prefix + ":max_posterior", posteriors[ max_posterior_i ] / total_weight ) ;
+		callback( m_prefix + ":max_posterior_model", m_models[ max_posterior_i ].name() ) ;
 	}
 
 	std::string get_spec() const {
-		return "ApproximateBayesianMetaAnalysis( " + m_name + " ) with prior:\n" + genfile::string_utils::to_string( m_sigma ) ;
+		return "ModelAveragingBayesFactorAnalysis( " + m_name + " )" ;
 	}
 
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const {
@@ -1061,6 +1104,9 @@ private:
 	Eigen::MatrixXd const m_sigma ;
 	Filter m_filter ;
 	EffectParameterNamePack m_effect_parameter_names ;
+	
+
+	std::vector< ModelSpec > m_models ;
 } ;
 
 BingwaComputation::UniquePtr BingwaComputation::create( std::string const& name, std::vector< std::string > const& cohort_names, appcontext::OptionProcessor const& options ) {
