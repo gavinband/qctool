@@ -7,11 +7,14 @@
 #ifndef MMM_RESULTS_HPP
 #define MMM_RESULTS_HPP
 
+#include <boost/optional.hpp>
+#include "genfile/Chromosome.hpp"
 #include "FlatFileFrequentistGenomeWideAssociationResults.hpp"
 
 struct MMMResults: public FlatFileFrequentistGenomeWideAssociationResults {
 	MMMResults(
-		genfile::SNPIdentifyingDataTest::UniquePtr test
+		genfile::SNPIdentifyingDataTest::UniquePtr test,
+		boost::optional< genfile::Chromosome > const chromosome_hint = boost::optional< genfile::Chromosome >()
 	) ;
 
 	void set_effect_size_column_regex( std::string const& beta_column_regex ) ;
@@ -24,6 +27,7 @@ private:
 	genfile::SNPIdentifyingDataTest::UniquePtr m_exclusion_test ;
 	std::string m_effect_column_regex ;
 	std::string m_se_column_regex ;
+	boost::optional< genfile::Chromosome > m_chromosome_hint ;
 	std::set< std::string > m_variables ;
 	DesiredColumns m_required_columns ;
 	

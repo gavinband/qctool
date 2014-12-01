@@ -14,6 +14,7 @@
 #include <boost/optional.hpp>
 #include <Eigen/Core>
 #include "genfile/SNPIdentifyingData2.hpp"
+#include "genfile/Chromosome.hpp"
 #include "genfile/SNPIdentifyingDataTest.hpp"
 #include "genfile/wildcard.hpp"
 #include "genfile/VariantEntry.hpp"
@@ -33,6 +34,7 @@ public:
 		boost::optional< std::string > const& effect_size_column_regex,
 		std::vector< std::string > const& columns,
 		genfile::SNPIdentifyingDataTest::UniquePtr test,
+		boost::optional< genfile::Chromosome > chromosome_hint = boost::optional< genfile::Chromosome >(),
 		SNPResultCallback callback = SNPResultCallback(),
 		ProgressCallback progress_callback = ProgressCallback()
 	) ;

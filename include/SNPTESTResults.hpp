@@ -7,11 +7,14 @@
 #ifndef SNPTEST_RESULTS_HPP
 #define SNPTEST_RESULTS_HPP
 
+#include <boost/optional.hpp>
+#include "genfile/Chromosome.hpp"
 #include "FlatFileFrequentistGenomeWideAssociationResults.hpp"
 
 struct SNPTESTResults: public FlatFileFrequentistGenomeWideAssociationResults {
 	SNPTESTResults(
-		genfile::SNPIdentifyingDataTest::UniquePtr test
+		genfile::SNPIdentifyingDataTest::UniquePtr test,
+		boost::optional< genfile::Chromosome > const chromosome_hint = boost::optional< genfile::Chromosome >()
 	) ;
 
 	void set_effect_size_column_regex( std::string const& beta_column_regex ) ;
@@ -23,6 +26,7 @@ struct SNPTESTResults: public FlatFileFrequentistGenomeWideAssociationResults {
 private:
 	genfile::SNPIdentifyingDataTest::UniquePtr m_exclusion_test ;
 	std::string m_beta_column_regex ;
+	boost::optional< genfile::Chromosome > m_chromosome_hint ;
 	std::vector< std::string > m_beta_columns ;
 	std::vector< std::string > m_se_columns ;
 	std::vector< std::string > m_cov_columns ;

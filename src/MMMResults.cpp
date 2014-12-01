@@ -6,10 +6,11 @@
 
 #include <boost/regex.hpp>
 #include <boost/optional.hpp>
+#include "genfile/Chromosome.hpp"
 #include "MMMResults.hpp"
 #include "EffectParameterNamePack.hpp"
 
-#define DEBUG_MMMRESULTS 1
+// #define DEBUG_MMMRESULTS 1
 
 namespace {
 	namespace impl {	
@@ -40,11 +41,13 @@ namespace {
 	}
 }
 MMMResults::MMMResults(
-	genfile::SNPIdentifyingDataTest::UniquePtr test
+	genfile::SNPIdentifyingDataTest::UniquePtr test,
+	boost::optional< genfile::Chromosome > const chromosome_hint
 ):
  	m_exclusion_test( test ),
 	m_effect_column_regex( "z_est" ),
-	m_se_column_regex( "z_se" )
+	m_se_column_regex( "z_se" ),
+	m_chromosome_hint( chromosome_hint )
 {}
 
 void MMMResults::add_variable( std::string const& variable ) {
@@ -74,6 +77,9 @@ EffectParameterNamePack MMMResults::get_effect_parameter_names() const {
 
 
 bool MMMResults::read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const {
+	if( m_chromosome_hint ) {
+		snp.position().chromosome() = *m_chromosome_hint ;
+	}
 	return( source >> snp.SNPID() >> snp.rsid() >> snp.position().position() >> snp.first_allele() >> snp.second_allele() ) ;
 }
 

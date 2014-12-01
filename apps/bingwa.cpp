@@ -188,6 +188,9 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 			options[ "-flip-alleles" ]
 				.set_description( "Specify that, where alleles do not match between cohorts, bingwa will try to match them by flipping." )
 			;
+			options[ "-assume-chromosome" ]
+				.set_description( "Specify that bingwa should treat all SNPs with missing chromosome as having the given one." )
+				.set_takes_single_value() ;
 		}
 
 		{
@@ -340,6 +343,7 @@ FrequentistGenomeWideAssociationResults::UniquePtr FrequentistGenomeWideAssociat
 	boost::optional< std::string > const& effect_size_column_regex,
 	std::vector< std::string > const& columns,
 	genfile::SNPIdentifyingDataTest::UniquePtr test,
+	boost::optional< genfile::Chromosome > chromosome_hint,
 	SNPResultCallback result_callback,
 	ProgressCallback progress_callback
 ) {
@@ -379,10 +383,10 @@ FrequentistGenomeWideAssociationResults::UniquePtr FrequentistGenomeWideAssociat
 
 	FlatFileFrequentistGenomeWideAssociationResults::UniquePtr result ;
 	if( type == "snptest" || type == "unknown" ) {
-		result.reset( new SNPTESTResults( test ) ) ; 
+		result.reset( new SNPTESTResults( test, chromosome_hint ) ) ; 
 	}
 	else if( type == "mmm" ) {
-		result.reset( new MMMResults( test ) ) ;
+		result.reset( new MMMResults( test, chromosome_hint ) ) ;
 	}
 	
 	if( effect_size_column_regex ) {
@@ -1059,7 +1063,6 @@ public:
 		std::vector< double > bfs( m_models.size(), NA ) ;
 		std::vector< double > posteriors( m_models.size(), NA ) ;
 		double total_weight ;
-		double result = 1 ;
 		double mean_bf = 0 ;
 		double max_bf = -Infinity ;
 		std::size_t max_bf_i = m_models.size() ;
@@ -3010,12 +3013,17 @@ public:
 				effect_size_column_regex = values[ cohort_i ] ;
 			}
 
+			boost::optional< genfile::Chromosome > chromosome_hint ;
+			if( options().check( "-assume-chromosome" ) ) {
+				chromosome_hint = genfile::Chromosome( options().get< std::string >( "-assume-chromosome" ) ) ;
+			}
 			FrequentistGenomeWideAssociationResults::UniquePtr results
 				= FrequentistGenomeWideAssociationResults::create(
 					genfile::wildcard::find_files_by_chromosome( cohort_files[cohort_i] ),
 					effect_size_column_regex,
 					options().check( "-extra-columns" ) ? options().get_values< std::string >( "-extra-columns" ) : std::vector< std::string >(),
 					genfile::SNPIdentifyingDataTest::UniquePtr( test.release() ),
+					chromosome_hint,
 					SNPTESTResults::SNPResultCallback(),
 					progress_context
 			) ;

@@ -13,10 +13,12 @@
 #include "EffectParameterNamePack.hpp"
 
 SNPTESTResults::SNPTESTResults(
-	genfile::SNPIdentifyingDataTest::UniquePtr test
+	genfile::SNPIdentifyingDataTest::UniquePtr test,
+	boost::optional< genfile::Chromosome > const chromosome_hint
 ):
  	m_exclusion_test( test ),
-	m_beta_column_regex( ".*_beta_<i>($|[^0-9].*)" )
+	m_beta_column_regex( ".*_beta_<i>($|[^0-9].*)" ),
+	m_chromosome_hint( chromosome_hint )
 {}
 
 void SNPTESTResults::add_variable( std::string const& variable ) {
@@ -218,7 +220,11 @@ SNPTESTResults::DesiredColumns SNPTESTResults::setup_columns( std::vector< std::
 }
 
 bool SNPTESTResults::read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const {
-	return( source >> snp.SNPID() >> snp.rsid() >> snp.position().chromosome() >> snp.position().position() >> snp.first_allele() >> snp.second_allele() ) ;
+	source >> snp.SNPID() >> snp.rsid() >> snp.position().chromosome() >> snp.position().position() >> snp.first_allele() >> snp.second_allele() ;
+	if( m_chromosome_hint && snp.get_position().chromosome() == genfile::Chromosome() ) {
+		snp.position().chromosome() = *m_chromosome_hint ;
+	}
+	return source ;
 }
 
 bool SNPTESTResults::check_if_snp_accepted( std::size_t snp_i ) const {
