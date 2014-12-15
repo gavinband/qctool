@@ -22,7 +22,7 @@ struct SampleSummaryComputation: public boost::noncopyable {
 	typedef boost::function< void ( std::size_t sample_i, std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
 	virtual ~SampleSummaryComputation() {}
 	virtual void accumulate( genfile::SNPIdentifyingData const&, Genotypes const&, genfile::VariantDataReader& ) = 0 ;
-	virtual void compute( ResultCallback ) = 0 ;
+	virtual void compute( int sample, ResultCallback ) = 0 ;
 	virtual std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const = 0 ;
 } ;
 

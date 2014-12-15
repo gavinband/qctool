@@ -15,6 +15,7 @@
 
 namespace sample_stats {
 	RiskScoreComputation::RiskScoreComputation( genfile::CohortIndividualSource const& samples, genfile::SNPIdentifyingData::CompareFields comparator ):
+		m_samples( samples ),
 		m_number_of_samples( samples.get_number_of_individuals() ),
 		m_map( comparator )
 	{}
@@ -51,21 +52,19 @@ namespace sample_stats {
 		counts += non_missingness ;
 	}
 
-	void RiskScoreComputation::compute( ResultCallback callback ) {
+	void RiskScoreComputation::compute( int sample, ResultCallback callback ) {
 		for( Identifiers::const_iterator i = m_identifiers.begin(); i != m_identifiers.end(); ++i ) {
-			compute_impl( *i, callback ) ;
+			compute_impl( sample, *i, callback ) ;
 		}
 	}
 
-	void RiskScoreComputation::compute_impl( std::string const& risk_score_identifier, ResultCallback callback ) {
+	void RiskScoreComputation::compute_impl( int sample, std::string const& risk_score_identifier, ResultCallback callback ) {
 		Eigen::VectorXd const& scores = m_scores.at( risk_score_identifier ) ;
 		Eigen::VectorXd const& counts = m_counts.at( risk_score_identifier ) ;
 		assert( std::size_t( scores.size() ) == m_number_of_samples ) ;
 		assert( std::size_t( counts.size() ) == m_number_of_samples ) ;
-		for( int sample = 0; sample < scores.size(); ++sample ) {
-			callback( sample, risk_score_identifier + "_risk_score", scores( sample ) ) ;
-			callback( sample, risk_score_identifier + "_risk_score_count", counts( sample ) ) ;
-		}
+		callback( sample, risk_score_identifier + "_risk_score", scores( sample ) ) ;
+		callback( sample, risk_score_identifier + "_risk_score_count", counts( sample ) ) ;
 	}
 
 	std::string RiskScoreComputation::get_summary( std::string const& prefix, std::size_t column_width ) const {

@@ -22,13 +22,14 @@ namespace sample_stats {
 		typedef std::auto_ptr< RiskScoreComputation > UniquePtr ;
 		RiskScoreComputation( genfile::CohortIndividualSource const& samples, genfile::SNPIdentifyingData::CompareFields comparator ) ;
 		void accumulate( genfile::SNPIdentifyingData const&, Genotypes const&, genfile::VariantDataReader& ) ;
-		void compute( ResultCallback ) ;
+		void compute( int sample, ResultCallback ) ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 
 		typedef boost::function< void ( std::size_t, boost::optional< std::size_t > ) > ProgressCallback ;
 		void add_effects( statfile::BuiltInTypeStatSource& source, ProgressCallback ) ;
 		
 	private:
+		genfile::CohortIndividualSource const& m_samples ;
 		std::size_t const m_number_of_samples ;
 
 		typedef std::set< std::string > Identifiers ;
@@ -46,7 +47,7 @@ namespace sample_stats {
 		
 		void accumulate( Genotypes const& genotypes, Betas const& betas ) ;
 		void accumulate( Genotypes const& genotypes, Betas const& betas, Eigen::VectorXd& scores, Eigen::VectorXd& counts ) const ;
-		void compute_impl( std::string const& risk_score_identifier, ResultCallback callback ) ;
+		void compute_impl( int sample, std::string const& risk_score_identifier, ResultCallback callback ) ;
 	} ;
 }
 

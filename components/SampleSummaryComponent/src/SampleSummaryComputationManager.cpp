@@ -60,20 +60,22 @@ void SampleSummaryComputationManager::processed_snp( genfile::SNPIdentifyingData
 }
 
 void SampleSummaryComputationManager::end_processing_snps() {
-	Computations::iterator i = m_computations.begin(), end_i = m_computations.end() ;
-	for( ; i != end_i; ++i ) {
-		i->second->compute(
-			boost::bind(
-				boost::ref( m_result_signal ),
-				i->first.first,
-				_1,
-				_2,
-				i->first.first + " for " + i->first.second,
-				_3
-			)
-		) ;
+	for( int sample = 0; sample < m_genotypes.rows(); ++sample ) {
+		Computations::iterator i = m_computations.begin(), end_i = m_computations.end() ;
+		for( ; i != end_i; ++i ) {
+			i->second->compute(
+				sample,
+				boost::bind(
+					boost::ref( m_result_signal ),
+					i->first.first,
+					_1,
+					_2,
+					i->first.first + " for " + i->first.second,
+					_3
+				)
+			) ;
+		}
 	}
-	
 	if( m_outputter.get() ) {
 		m_outputter->finalise() ;
 	}

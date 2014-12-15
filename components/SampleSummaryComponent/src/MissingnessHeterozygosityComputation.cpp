@@ -44,13 +44,11 @@ namespace sample_stats {
 		m_snp_index++ ;
 	}
 
-	void MissingnessHeterozygosityComputation::compute( ResultCallback callback ) {
-		for( int sample = 0; sample < m_total_probabilities.size(); ++sample ) {
-			callback( sample, "missing_proportion", ( m_snp_index - m_total_probabilities( sample ) ) / m_snp_index ) ;
-			callback( sample, "missing_call_proportion", ( m_snp_index - m_total_calls( sample ) ) / m_snp_index ) ;
-			callback( sample, "heterozygous_proportion", m_het_snps( sample ) / m_total_probabilities( sample ) ) ;
-			callback( sample, "heterozygous_call_proportion", m_het_snp_calls( sample ) / m_total_calls( sample ) ) ;
-		}
+	void MissingnessHeterozygosityComputation::compute( int sample, ResultCallback callback ) {
+		callback( sample, "missing_proportion", ( m_snp_index - m_total_probabilities( sample ) ) / m_snp_index ) ;
+		callback( sample, "missing_call_proportion", ( m_snp_index - m_total_calls( sample ) ) / m_snp_index ) ;
+		callback( sample, "heterozygous_proportion", m_het_snps( sample ) / m_total_probabilities( sample ) ) ;
+		callback( sample, "heterozygous_call_proportion", m_het_snp_calls( sample ) / m_total_calls( sample ) ) ;
 	}
 
 	std::string MissingnessHeterozygosityComputation::get_summary( std::string const& prefix, std::size_t column_width ) const {

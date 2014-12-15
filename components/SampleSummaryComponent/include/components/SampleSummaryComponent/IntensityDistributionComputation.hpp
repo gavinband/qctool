@@ -16,7 +16,7 @@ namespace sample_stats {
 	{
 		IntensityDistributionComputation() ;
 		void accumulate( genfile::SNPIdentifyingData const&, Genotypes const&, genfile::VariantDataReader& ) ;
-		void compute( ResultCallback ) ;
+		void compute( int sample, ResultCallback ) ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 	private:
 		double const m_call_threshhold ;
