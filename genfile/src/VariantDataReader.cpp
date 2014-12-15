@@ -11,6 +11,9 @@
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
 
 namespace genfile {
+
+	VariantDataReader::~VariantDataReader() {}
+
 	VariantDataReader& VariantDataReader::get( std::string const& spec, std::vector< std::vector< Entry > >& data ) {
 		vcf::VectorSetter setter( data ) ;
 		get( spec, setter ) ;

@@ -42,8 +42,13 @@ public:
 	        .set_description( "Path of manifest file to compare VCF with." )
 			.set_takes_values( 1 )
 			.set_is_required() ;
+	    options[ "-i" ]
+	        .set_description( "Path of input VCF file." )
+			.set_takes_values( 1 )
+			.set_is_required()
+		;
 	    options[ "-o" ]
-	        .set_description( "Path of output file." )
+	        .set_description( "Path of output VCF file." )
 			.set_takes_values( 1 )
 		;
 		options[ "-ignore-alleles" ]
@@ -193,9 +198,16 @@ private:
 		bool const fixFormat = options().check( "-fix-format" ) ;
 
 		std::string line ;
-		std::istream* inStream = &(std::cin) ;
+		std::auto_ptr< std::istream > inStreamHolder ;
+		std::istream* inStream = 0 ;
+		if( options().get< std::string >( "-i" ) == "-" ) {
+			inStream = &(std::cin) ;
+		} else {
+			inStreamHolder = genfile::open_text_file_for_input( options().get< std::string >( "-i" ) );
+			inStream = inStreamHolder.get() ;
+		}
+
 		std::auto_ptr< std::ostream > outStream ;
-		
 		if( options().check( "-o" )) {
 			outStream = genfile::open_text_file_for_output( options().get< std::string >( "-o" ) ) ;
 		}
@@ -304,6 +316,7 @@ private:
 					outStream->put( '\t' ) ;
 					std::string rest = line.substr( fieldPos[3], line.size() ) ;
 					if( fixFormat ) {
+						boost::algorithm::replace_all( rest, "Index=", "id=" ) ;
 						boost::algorithm::replace_all( rest, "x/x", "./." ) ;
 						boost::algorithm::replace_all( rest, "nan,nan,nan", ".,.,." ) ;
 						boost::algorithm::replace_all( rest, "-nan,-nan,-nan", ".,.,." ) ;
