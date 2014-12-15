@@ -21,12 +21,6 @@ void SampleSummaryComponent::declare_options( appcontext::OptionProcessor& optio
 	options.declare_group( "Per-sample computation options" ) ;
     options[ "-sample-stats" ]
 		.set_description( "Calculate and output sample-wise statistics." ) ;
-    options[ "-sample-stats-table-name" ]
-		.set_description( "Set the table name for output of sample statistics when using database output."
-		 	" An additional view named <tablename>View will also be created." )
-		.set_takes_single_value()
-		.set_default_value( "SampleData" )
-	;
 	options[ "-risk-score" ]
 		.set_description( "Compute a risk score for each sample based on a specified file of additive and heterozygote effect sizes." )
 		.set_takes_single_value() ;
@@ -66,15 +60,15 @@ void SampleSummaryComponent::setup(
 	
 	if( m_options.check( "-sample-stats" )) {
 		manager->add(
-			"average intensities",
-			"all chromosomes",
-			SampleSummaryComputation::UniquePtr( new sample_stats::IntensityDistributionComputation() )
-		) ;
-
-		manager->add(
 			"missingness/heterozyosity",
 			"all chromosomes",
 			SampleSummaryComputation::UniquePtr( new sample_stats::MissingnessHeterozygosityComputation() )
+		) ;
+
+		manager->add(
+			"average intensities",
+			"all chromosomes",
+			SampleSummaryComputation::UniquePtr( new sample_stats::IntensityDistributionComputation() )
 		) ;
 	}
 	
