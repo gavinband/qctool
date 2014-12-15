@@ -133,18 +133,16 @@ namespace sample_stats {
 					callback( sample, "variance_Y", variance( sample, 1 ) ) ;
 					callback( sample, "variance_X+Y", variance( sample, 2 ) ) ;
 					callback( sample, "variance_X-Y", variance( sample, 3 ) ) ;
-				}
-			}
-			for( int g = 0; g < 4; ++g ) {
-				Eigen::MatrixXd const& mean = m_accumulator_by_genotype[g].get_mean() ;
-				Eigen::MatrixXd const& variance = m_accumulator_by_genotype[g].get_variance() ;
 
-				for( int sample = 0; sample < m_number_of_samples; ++sample ) {
-					std::string const stub = "g=" + ( g == 3 ? std::string( "NA" ) : genfile::string_utils::to_string( g ) ) ;
-					callback( sample, stub + ":mean_X", mean( sample, 0 ) ) ;
-					callback( sample, stub + ":mean_Y", mean( sample, 1 ) ) ;
-					callback( sample, stub + ":variance_X", variance( sample, 0 ) ) ;
-					callback( sample, stub + ":variance_Y", variance( sample, 1 ) ) ;
+					for( int g = 0; g < 4; ++g ) {
+						Eigen::MatrixXd const& g_mean = m_accumulator_by_genotype[g].get_mean() ;
+						Eigen::MatrixXd const& g_variance = m_accumulator_by_genotype[g].get_variance() ;
+						std::string const stub = "g=" + ( g == 3 ? std::string( "NA" ) : genfile::string_utils::to_string( g ) ) ;
+						callback( sample, stub + ":mean_X", g_mean( sample, 0 ) ) ;
+						callback( sample, stub + ":mean_Y", g_mean( sample, 1 ) ) ;
+						callback( sample, stub + ":variance_X", g_variance( sample, 0 ) ) ;
+						callback( sample, stub + ":variance_Y", g_variance( sample, 1 ) ) ;
+					}
 				}
 			}
 		}
