@@ -22,6 +22,10 @@ namespace metro {
 		return result ;
 	}
 	
+	double OnlineElementwiseMeanAndVariance::get_count( int row, int column ) const {
+		return m_nonmissingness(row, column) ;
+	}
+
 	double OnlineElementwiseMeanAndVariance::get_mean( int row, int column ) const {
 		// Return m_mean, but with NaN for counts that are zero.
 		return m_mean(row, column) + (( m_nonmissingness(row, column) / m_nonmissingness(row, column) ) - 1 ) ;
