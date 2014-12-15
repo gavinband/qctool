@@ -133,12 +133,10 @@ namespace sample_stats {
 
 			for( int g = 0; g < 4; ++g ) {
 				std::string const stub = "g=" + ( g == 3 ? std::string( "NA" ) : genfile::string_utils::to_string( g ) ) ;
-				Eigen::MatrixXd const& g_mean = m_accumulator_by_genotype[g].get_mean() ;
-				Eigen::MatrixXd const& g_variance = m_accumulator_by_genotype[g].get_variance() ;
-				callback( sample, stub + ":mean_X", g_mean( sample, 0 ) ) ;
-				callback( sample, stub + ":mean_Y", g_mean( sample, 1 ) ) ;
-				callback( sample, stub + ":variance_X", g_variance( sample, 0 ) ) ;
-				callback( sample, stub + ":variance_Y", g_variance( sample, 1 ) ) ;
+				callback( sample, stub + ":mean_X", m_accumulator_by_genotype[g].get_mean( sample, 0 ) ) ;
+				callback( sample, stub + ":mean_Y", m_accumulator_by_genotype[g].get_mean( sample, 1 ) ) ;
+				callback( sample, stub + ":variance_X", m_accumulator_by_genotype[g].get_variance( sample, 0 ) ) ;
+				callback( sample, stub + ":variance_Y", m_accumulator_by_genotype[g].get_variance( sample, 1 ) ) ;
 			}
 		}
 	}
