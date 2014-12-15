@@ -222,7 +222,7 @@ namespace genfile {
 						m_nonmissingness->setZero() ;
 					}
 				}
-				else if( n != m_result.rows() ) {
+				else if( n != m_result.cols() ) {
 					throw BadArgumentError( "genfile::vcf::MatrixSetter::set_number_of_entries()", "n" ) ;
 				}
 			}
