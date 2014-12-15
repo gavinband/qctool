@@ -30,7 +30,7 @@ def build( bld ):
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include',
 		uselib = 'ZLIB BOOST BOOST_IOSTREAMS BOOST_SYSTEM BOOST_FILESYSTEM',
-		uselib_local = 'eigen genfile db statfile integration appcontext snptest qcdb metro boost',
+		uselib_local = 'eigen db statfile integration appcontext snptest qcdb genfile metro boost',
 		export_incdirs = './include'
 	)
 
