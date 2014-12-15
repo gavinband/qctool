@@ -39,7 +39,7 @@ namespace genfile {
 		typedef vcf::PerSampleEntriesSetter PerSampleSetter ;
 		typedef boost::function< void ( std::string, std::string ) > SpecSetter ;
 	public:
-		virtual ~VariantDataReader() {} ;
+		virtual ~VariantDataReader() ;
 		virtual VariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) = 0 ;
 		// The sole purpose of the next method is to support temporary setters.
 		// The method casts away const and forwards to the non-const version.
