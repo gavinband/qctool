@@ -515,9 +515,6 @@ public:
 		options[ "-flat-table" ]
 			.set_description( "Output all results for this analysis to one table with variables in columns and variants in rows. "
 				"This overrides the default db output style, which is in a normalised form with different variables on different rows." ) ;
-		options[ "-table-name" ]
-			.set_description( "Specify a name for the table to use when using -flat-table." )
-			.set_takes_single_value() ;
 
 		options.declare_group( "Options for adjusting sample data" ) ;
 		options[ "-quantile-normalise" ]
@@ -2457,7 +2454,7 @@ private:
 
 				// Catch the case where we write both to the same db.
 				boost::optional< db::Connection::RowId > analysis_id ;
-				if( fileSpec == options().get< std::string >( "-osnp" ) && per_snp_storage ) {
+				if( options().check( "-osnp" ) && fileSpec == options().get< std::string >( "-osnp" ) && per_snp_storage ) {
 					analysis_id = per_snp_storage->analysis_id() ;
 				}
 				sample_stats::FlatTableDBOutputter::SharedPtr
