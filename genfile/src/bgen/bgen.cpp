@@ -173,7 +173,7 @@ namespace genfile {
 			write_little_endian_integer( aStream, number_of_samples ) ;
 			uint32_t const layout = flags & e_Layout ;
 
-			if( layout == e_v11Layout ) {
+			if( layout == e_v11Layout || layout == e_v12Layout ) {
 				std::size_t const max_allele_length = std::numeric_limits< uint32_t >::max() ;
 				std::size_t const max_id_length = std::numeric_limits< uint16_t >::max() ;
 				assert( SNPID.size() <= static_cast< std::size_t >( max_id_length )) ;
@@ -193,6 +193,10 @@ namespace genfile {
 				std::string const chromosome_string = Chromosome( chromosome ) ;
 				write_length_followed_by_data( aStream, uint16_t( chromosome_string.size() ), chromosome_string ) ;
 				write_little_endian_integer( aStream, SNP_position ) ;
+				
+				if( layout == e_v12Layout ) {
+					write_little_endian_integer( aStream, uint16_t(2) ) ;
+				}
 				write_length_followed_by_data( aStream, uint32_t( first_allele.size() ), first_allele.data() ) ;
 				write_length_followed_by_data( aStream, uint32_t( second_allele.size() ), second_allele.data() ) ;
 			}
@@ -251,7 +255,15 @@ namespace genfile {
 				aStream.ignore( 6 * number_of_samples ) ;
 			}
 		}
-		
+
+		void read_uncompressed_snp_probability_data_v12(
+			char const* buffer,
+			char const* const end,
+			uint32_t const flags,
+			uint32_t number_of_samples,
+			VariantDataReader::PerSampleSetter& setter
+		) ;
+
 		void read_uncompressed_snp_probability_data(
 			char const* buffer,
 			char const* const end,
@@ -275,7 +287,109 @@ namespace genfile {
 					}
 				}
 			} else {
-				assert(0) ;
+				read_uncompressed_snp_probability_data_v12(
+					buffer, end, flags, number_of_samples, setter
+				) ;
+			}
+		}
+		
+		namespace impl {
+			uint32_t n_choose_k( uint32_t n, uint32_t k ) {
+				if( k == 0 )  {
+					return 1 ;
+				}
+			    return ( n * n_choose_k(n - 1, k - 1) ) / k ;
+			}
+			
+			char const* fill_data(
+				char const* buffer,
+				char const* const end,
+				uint64_t* data,
+				uint8_t* size,
+				uint8_t const bits
+			) {
+				// fill data with up to 8 bytes.
+				while( (*size) < bits && buffer < end ) {
+					(*data) |= *(reinterpret_cast< unsigned char const* >( buffer++ )) << (*size) ;
+					(*size) += sizeof( unsigned char ) ;
+				}
+				assert( (*size) >= bits ) ;
+				return buffer ;
+			}
+		}
+		
+		void read_uncompressed_snp_probability_data_v12(
+			char const* buffer,
+			char const* const end,
+			uint32_t const flags,
+			uint32_t number_of_samples,
+			VariantDataReader::PerSampleSetter& setter
+		) {
+			uint32_t numberOfSamples ;
+			uint16_t numberOfAlleles ;
+			unsigned char ploidyExtent[2] ;
+			unsigned char phased ;
+			enum { ePhased = 1, eUnphased = 0 } ;
+			unsigned char bits ;
+				
+			buffer = read_little_endian_integer( buffer, end, &numberOfSamples ) ;
+			buffer = read_little_endian_integer( buffer, end, &numberOfAlleles ) ;
+			buffer = read_little_endian_integer( buffer, end, &ploidyExtent[0] ) ;
+			buffer = read_little_endian_integer( buffer, end, &ploidyExtent[1] ) ;
+
+			setter.set_number_of_samples( numberOfSamples ) ;
+
+			if( ploidyExtent[0] == 0xFF ) {
+				// all samples are missing.
+				return ;
+			} else {
+				// Keep a pointer to the ploidy and move buffer past the ploidy information
+				char const* ploidy_p = buffer ;
+				buffer += numberOfSamples ;
+				// Get the phased flag and number of bits
+				phased = *buffer++ ;
+				bits = *buffer++ ;
+				// 
+				uint64_t const bitMask = ( uint64_t( 1 ) << bits ) - 1 ;
+				double const bitScale = 1 / double( bitMask ) ;
+				uint64_t data = 0 ;
+				uint8_t size = 0 ;
+
+				if( phased == ePhased ) {
+					for( uint32_t i = 0; i < numberOfSamples; ++i, ++ploidy_p ) {
+						setter.set_number_of_entries( *ploidy_p * numberOfAlleles ) ;
+						setter.set_order_type( VariantDataReader::PerSampleSetter::eOrderedList ) ;
+						for( unsigned char h = 0; h < *ploidy_p; ++h ) {
+							double sum = 0 ;
+							for( uint16_t k = 0; k < numberOfAlleles - 1; ++k ) {
+								buffer = impl::fill_data( buffer, end, &data, &size, bits ) ;
+								double const value = ( data & bitMask ) * bitScale ;
+								setter( value ) ;
+								sum += value ;
+							}
+							assert( sum <= 1.0001 ) ;
+							setter( 1.0 - sum ) ;
+						}
+					}
+				} else if( phased == eUnphased ) {
+					for( uint32_t i = 0; i < numberOfSamples; ++i, ++ploidy_p ) {
+						uint32_t const count = impl::n_choose_k( *ploidy_p + numberOfAlleles - 1, numberOfAlleles - 1 ) ;
+						setter.set_number_of_entries( count ) ;
+						setter.set_number_of_entries( *ploidy_p * numberOfAlleles ) ;
+						setter.set_order_type( VariantDataReader::PerSampleSetter::eOrderedList ) ;
+						double sum = 0 ;
+						for( uint32_t h = 0; h < (count-1); ++h ) {
+							buffer = impl::fill_data( buffer, end, &data, &size, bits ) ;
+							double const value = ( data & bitMask ) * bitScale ;
+							setter( value ) ;
+							sum += value ;
+						}
+						assert( sum <= 1.0001 ) ;
+						setter( 1.0 - sum ) ;
+					}
+				} else {
+					assert(0) ;
+				}
 			}
 		}
 		
