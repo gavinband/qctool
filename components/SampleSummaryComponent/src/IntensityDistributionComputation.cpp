@@ -133,7 +133,7 @@ namespace sample_stats {
 
 			for( int g = 0; g < 4; ++g ) {
 				std::string const stub = "g=" + ( g == 3 ? std::string( "NA" ) : genfile::string_utils::to_string( g ) ) ;
-				callback( sample, stub + ":count", m_accumulator_by_genotype[g].get_mean( sample, 0 ) ) ;
+				callback( sample, stub + ":count", m_accumulator_by_genotype[g].get_count( sample, 0 ) ) ;
 				callback( sample, stub + ":mean_X", m_accumulator_by_genotype[g].get_mean( sample, 0 ) ) ;
 				callback( sample, stub + ":mean_Y", m_accumulator_by_genotype[g].get_mean( sample, 1 ) ) ;
 				callback( sample, stub + ":variance_X", m_accumulator_by_genotype[g].get_variance( sample, 0 ) ) ;

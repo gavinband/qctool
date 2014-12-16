@@ -18,7 +18,8 @@ void NormalClusterFitComparerManager::add_comparer( std::string const& name, Nor
 void NormalClusterFitComparerManager::begin_processed_snps( std::size_t number_of_samples, std::size_t number_of_snps ) {
 	m_number_of_samples = number_of_samples ;
 }
-void NormalClusterFitComparerManager::processed_snp( genfile::SNPIdentifyingData snp, genfile::VariantDataReader& data_reader ) {
+
+void NormalClusterFitComparerManager::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 	Eigen::MatrixXd intensities ;
 	genfile::vcf::MatrixSetter< Eigen::MatrixXd > intensity_setter( intensities ) ;
 	data_reader.get( m_spec, intensity_setter ) ;

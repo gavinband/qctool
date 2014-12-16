@@ -24,7 +24,7 @@ public:
 	NormalClusterFitComparerManager( std::string const& spec ): m_spec( spec ) {}
 	void add_comparer( std::string const& name, NormalClusterFitComparer::UniquePtr comparer ) ;
 	void begin_processed_snps( std::size_t number_of_samples, std::size_t number_of_snps ) ;
-	void processed_snp( genfile::SNPIdentifyingData snp, genfile::VariantDataReader& data_reader ) ;
+	void processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) ;
 	void end_processed_snps() ;
 
 	void send_results( genfile::SNPIdentifyingData const&, std::string const&, std::string const&, std::string const&, Eigen::MatrixXd const& ) const ;
