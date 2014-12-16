@@ -93,6 +93,11 @@ namespace genfile {
 		return (*this) ;
 	}
 	
+	SNPDataSink& SNPDataSink::set_metadata( Metadata const& metadata ) {
+		set_metadata_impl( metadata ) ;
+		return (*this) ;
+	}
+	
 	SNPDataSink& SNPDataSink::write_snp(
 		uint32_t number_of_samples,
 		SNPIdentifyingData const& snp,

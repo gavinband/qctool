@@ -10,6 +10,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <map>
 #include "../config.hpp"
 #include <boost/optional.hpp>
 #include <boost/function.hpp>
@@ -37,6 +38,9 @@ namespace genfile {
 	public:
 		typedef std::auto_ptr< SNPDataSource > UniquePtr ;
 		typedef boost::function< void ( std::size_t, std::size_t ) > NotifyProgress ;
+		typedef std::multimap< std::string, std::map< std::string, std::string > > Metadata ;
+
+	public:
 		
 		// The following methods are factory functions
 		static std::vector< std::string > get_file_types() ;
@@ -68,6 +72,8 @@ namespace genfile {
 		void set_source_reset_callback( source_reset_callback_t ) ;
 		typedef boost::function< int ( Chromosome const&, std::size_t ) > GetPloidy ;
 		virtual void set_expected_ploidy( GetPloidy ) {} ;
+
+		virtual Metadata get_metadata() const = 0 ;
 
 		// The next five functions form the main interface for reading snp data. 
 		// These typedefs reflect the signatures which the various setter objects

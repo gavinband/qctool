@@ -31,6 +31,7 @@ namespace genfile {
 		SNPFilteringSNPDataSource( SNPDataSource::UniquePtr source, IndexList indices_of_snps_to_include ) ;
 
 		operator bool() const ;
+		Metadata get_metadata() const ;
 		unsigned int number_of_samples() const ;
 		OptionalSnpCount total_number_of_snps() const ;
 		OptionalSnpCount total_number_of_snps_before_filtering() const ;

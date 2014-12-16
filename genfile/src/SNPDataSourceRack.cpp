@@ -81,6 +81,12 @@ namespace genfile {
 		m_flips.push_back( eNoFlip ) ;
 		m_number_of_samples += m_sources.back()->number_of_samples() ;
 		m_sources.back()->reset_to_start() ;
+		// update metadata
+		if( m_sources.size() == 1 ) {
+			m_metadata = m_sources.back()->get_metadata() ;
+		} else {
+			// We just take the first source's metadata, and assume the user knows what they're doing.
+		}
 	}
 	
 	void SNPDataSourceRack::check_snps_are_sorted_by_position(
@@ -113,6 +119,10 @@ namespace genfile {
 			}
 		}
 		return true ;
+	}
+
+	SNPDataSource::Metadata SNPDataSourceRack::get_metadata() const {
+		return m_metadata ;
 	}
 	
 	std::string SNPDataSourceRack::get_source_spec() const {

@@ -149,6 +149,10 @@ namespace genfile {
 		m_have_id_data = false ;
 	}
 
+	SNPDataSource::Metadata VCFFormatSNPDataSource::get_metadata() const {
+		return m_metadata ;
+	}
+
 	std::vector< std::string > VCFFormatSNPDataSource::read_column_names( std::istream& stream ) const {
 		std::string line ;
 		if( !std::getline( stream, line ) ) {

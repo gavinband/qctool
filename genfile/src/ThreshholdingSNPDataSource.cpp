@@ -6,10 +6,7 @@
 
 #include <queue>
 #include <memory>
-#include <boost/thread.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition.hpp>
-#include <boost/ptr_container/ptr_deque.hpp>
+#include <boost/format.hpp>
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/VariantDataReader.hpp"
@@ -24,6 +21,25 @@ namespace genfile {
 	
 	ThreshholdingSNPDataSource::operator bool() const {
 		return *m_source ;
+	}
+
+	SNPDataSource::Metadata ThreshholdingSNPDataSource::get_metadata() const {
+		// Remove GT from metadata
+		Metadata metadata = m_source->get_metadata() ;
+		for( Metadata::iterator i = metadata.begin(); i != metadata.end(); ) {
+			Metadata::iterator erase_i = i++ ;
+			if( erase_i->first == "FORMAT" ) {
+				if( erase_i->second.find( "ID" ) != erase_i->second.end() && erase_i->second[ "ID" ] == "GT" ) {
+					metadata.erase( erase_i ) ;
+				}
+			}
+		}
+		std::map< std::string, std::string > format ;
+		format[ "ID" ] = "GT" ;
+		format[ "Number" ] = "G" ;
+		format[ "Description" ] = ( boost::format( "Genotype call probabilities, threshholded at %.2f" ) % m_threshhold ).str() ;
+		metadata.insert( std::make_pair( "FORMAT", format )) ;
+		return metadata ;
 	}
 
 	unsigned int ThreshholdingSNPDataSource::number_of_samples() const {

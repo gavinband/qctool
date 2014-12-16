@@ -6,14 +6,18 @@
 
 #include <vector>
 #include <string>
+#include <map>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include <boost/format.hpp>
 #include <boost/bind.hpp>
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/VCFFormatSNPDataSink.hpp"
 #include "genfile/FileUtils.hpp"
 #include "genfile/Error.hpp"
+
+#define DEBUG_VCFFORMATSNPDATASINK 1
 
 namespace genfile {
 	namespace {
@@ -30,27 +34,23 @@ namespace genfile {
 		m_number_of_samples( 0 )
 	{
 		(*m_stream_ptr) << std::resetiosflags( std::ios::floatfield ) << std::setprecision( 6 ) ;
+#if DEBUG_VCFFORMATSNPDATASINK
+		std::map< std::string, std::string > format ;
+		format[ "ID" ] = "GT" ;
+		format[ "Number" ] = "1" ;
+		format[ "Description" ] = "Genotype call" ;
+		m_metadata.insert( Metadata::value_type( "FORMAT", format )) ;
+		format[ "ID" ] = "GP" ;
+		format[ "Number" ] = "G" ;
+		format[ "Description" ] = "Genotype call probabilities" ;
+		m_metadata.insert( Metadata::value_type( "FORMAT", format )) ;
+#endif
 	}
 	
 	std::string VCFFormatSNPDataSink::get_spec() const {
 		return m_filename ;
 	}
 	
-	void VCFFormatSNPDataSink::write_header( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) const {
-		(*m_stream_ptr) << "##fileformat=VCFv4.1\n"
-			"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype calls\">\n"
-			//"##FORMAT=<ID=GP,Number=3,Type=Float,Description=\"Genotype call probabilities\">\n"
-			"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT" ;
-		for( std::size_t i = 0; i < number_of_samples; ++i ) {
-			(*m_stream_ptr) << "\t" << sample_name_getter( i ) ;
-		}
-		(*m_stream_ptr) << "\n" ;
-	}
-
-	void VCFFormatSNPDataSink::set_output_fields( std::set< std::string > const& fields ) {
-		m_output_fields = fields ;
-	}
-
 	namespace {
 		struct DataWriter: public VariantDataReader::PerSampleSetter {
 			DataWriter( boost::ptr_vector< std::ostringstream >& streams, bool field_is_genotype ):
@@ -124,6 +124,82 @@ namespace genfile {
 			char m_sep ;
 		} ;
 	}
+
+	void VCFFormatSNPDataSink::set_metadata_impl( Metadata const& metadata ) {
+		m_metadata = metadata ;
+	}
+
+	void VCFFormatSNPDataSink::set_output_fields( std::set< std::string > const& fields ) {
+		m_output_fields = fields ;
+	}
+
+	namespace impl {
+		void write_metadata(
+			boost::optional< std::set< std::string > > output_fields,
+			SNPDataSink::Metadata const& metadata,
+			std::ostream& stream
+		) {
+			
+		}
+	}
+
+	void VCFFormatSNPDataSink::write_header( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) const {
+		(*m_stream_ptr) << "##fileformat=VCFv4.1\n" ;
+		
+		std::pair< Metadata::const_iterator, Metadata::const_iterator > const
+			formatDefinitions = std::make_pair( m_metadata.begin(), m_metadata.end() ) ;
+
+		boost::format formatFormat( "#FORMAT=<ID=\"%s\", Number=%s, Description=\"%s\">\n" ) ;
+
+#if DEBUG_VCFFORMATSNPDATASINK
+		Metadata::const_iterator format_i = m_metadata.begin() ;
+		std::cerr << "VCFFormatSNPDataSink::write_header(): FORMAT entries are:\n" ;
+		for( ; format_i != m_metadata.end(); ++format_i ) {
+			if( format_i->first == "FORMAT" ) {
+				std::cerr << ( formatFormat % format_i->second.at( "ID" ) % format_i->second.at( "Number" ) % format_i->second.at( "Description" ) ) ;
+			}
+		}
+		std::cerr << "\n" ;
+#endif
+
+		if( !m_output_fields ) {
+			Metadata::const_iterator format_i = formatDefinitions.first ;
+			for( ; format_i != formatDefinitions.second; ++format_i ) {
+				if( format_i->first == "FORMAT" ) {
+					(*m_stream_ptr) << ( formatFormat % format_i->second.at( "ID" ) % format_i->second.at( "Number" ) % format_i->second.at( "Description" ) ) ;
+				}
+			}
+		} else {
+			std::set< std::string >::const_iterator i = m_output_fields->begin() ;
+			std::set< std::string >::const_iterator end_i = m_output_fields->end() ;
+			for( ; i != end_i; ++i ) {
+				Metadata::const_iterator format_i = formatDefinitions.first ;
+				bool found = false ;
+				for( ; format_i != formatDefinitions.second; ++format_i ) {
+					if( format_i->first == "FORMAT" && format_i->second.at( "ID" ) == *i ) {
+						(*m_stream_ptr) << ( boost::format( "#FORMAT=<ID=\"%s\", Number=%s, Description=\"%s\">\n" )
+							% format_i->second.at( "ID" ) % format_i->second.at( "Number" ) % format_i->second.at( "Description" ) ) ;
+						found = true ;
+					}
+				}
+				if( !found ) {
+					std::map< std::string, std::string > unknownFormat ;
+					unknownFormat[ "ID" ] = *i ;
+					unknownFormat[ "Number" ] = "." ;
+					unknownFormat[ "Description" ] = "Unknown field" ;
+					(*m_stream_ptr) << ( boost::format( "#FORMAT=<ID=\"%s\", Number=., Description=\"Unknown field\">\n" )
+						% (*i) ) ;
+				}
+			}
+		}
+
+		(*m_stream_ptr) << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT" ;
+		for( std::size_t i = 0; i < number_of_samples; ++i ) {
+			(*m_stream_ptr) << "\t" << sample_name_getter( i ) ;
+		}
+		(*m_stream_ptr) << "\n" ;
+	}
+	
 
 	void VCFFormatSNPDataSink::write_variant_data_impl(
 		SNPIdentifyingData const& id_data,

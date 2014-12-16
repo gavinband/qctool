@@ -29,6 +29,8 @@ namespace genfile {
 		// Methods required by SNPDataSink
 		operator bool() const { return *m_stream_ptr ; }
 		
+		void set_metadata_impl( Metadata const& metadata ) ;
+		
 		void write_variant_data_impl(
 			SNPIdentifyingData const& id_data,
 			VariantDataReader& data_reader,
@@ -48,6 +50,7 @@ namespace genfile {
 		bool m_have_written_header ;
 		std::size_t m_number_of_samples ;
 		boost::ptr_vector< std::ostringstream > m_streams ;
+		Metadata m_metadata ;
 
 	private:
 		void write_info( Info const& info ) ;

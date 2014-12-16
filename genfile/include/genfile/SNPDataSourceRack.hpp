@@ -76,9 +76,11 @@ namespace genfile {
 		SNPDataSourceRack( std::string const& snp_match_fields ) ;
 		SNPDataSourceRack( SNPIdentifyingData::CompareFields const& comparator ) ;
 		~SNPDataSourceRack() ;
+
 		void add_source( std::auto_ptr< SNPDataSource > source ) ;
 		SNPDataSource& get_source( std::size_t ) const ;
 
+		Metadata get_metadata() const ;
 		unsigned int number_of_samples() const ;
 		OptionalSnpCount total_number_of_snps() const ;
 		operator bool() const ;
@@ -138,6 +140,7 @@ namespace genfile {
 		uint32_t m_number_of_samples ;
 		bool m_read_past_end ;
 		SNPIdentifyingData::CompareFields m_comparator ;
+		Metadata m_metadata ;
 	} ;
 }
 

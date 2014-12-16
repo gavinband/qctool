@@ -74,6 +74,16 @@ namespace genfile {
 		m_exhausted = false ;
 	}
 
+	SNPDataSource::Metadata BedFileSNPDataSource::get_metadata() const {
+		std::map< std::string, std::string > format ;
+		format[ "ID" ] = "GT" ;
+		format[ "Number" ] = "G" ;
+		format[ "Description" ] = "Genotype calls" ;
+		SNPDataSource::Metadata result ;
+		result.insert( std::make_pair( "FORMAT", format )) ;
+		return result ;
+	}
+
 	void BedFileSNPDataSource::read_snp_identifying_data_impl(
 		uint32_t* number_of_samples,
 		std::string* SNPID,

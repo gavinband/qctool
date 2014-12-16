@@ -76,6 +76,10 @@ namespace genfile {
 		}
 	}
 
+	SNPDataSource::Metadata SNPDataSourceChain::get_metadata() const {
+		return m_metadata ;
+	}
+
 	void SNPDataSourceChain::add_source( std::auto_ptr< SNPDataSource > source ) {
 		if( m_sources.empty() ) {
 			m_number_of_samples = source->number_of_samples() ;
@@ -86,6 +90,16 @@ namespace genfile {
 		}
 		m_sources.push_back( source.release() ) ;
 		m_sources.back()->reset_to_start() ;
+
+		// update metadata
+		Metadata new_source_metadata = m_sources.back()->get_metadata() ;
+		Metadata new_metadata ;
+		std::set_union(
+			m_metadata.begin(), m_metadata.end(),
+			new_source_metadata.begin(), new_source_metadata.end(),
+			std::inserter( new_metadata, new_metadata.end() )
+		) ;
+		m_metadata = new_metadata ;
 	}
 
 	unsigned int SNPDataSourceChain::number_of_samples() const {

@@ -70,6 +70,16 @@ namespace genfile {
 		}
 	}
 	
+	SNPDataSource::Metadata GenFileSNPDataSource::get_metadata() const {
+		std::map< std::string, std::string > format ;
+		format[ "ID" ] = "GP" ;
+		format[ "Number" ] = "G" ;
+		format[ "Description" ] = "Genotype call probabilities" ;
+		SNPDataSource::Metadata result ;
+		result.insert( std::make_pair( "FORMAT", format )) ;
+		return result ;
+	}
+	
 	void GenFileSNPDataSource::read_snp_identifying_data_impl( 
 		uint32_t* number_of_samples,
 		std::string* SNPID,

@@ -256,6 +256,10 @@ namespace genfile {
 		return (*m_source) ;
 	}
 
+	SNPDataSource::Metadata SampleMappingSNPDataSource::get_metadata() const {
+		return m_source->get_metadata() ;
+	}
+
 	unsigned int SampleMappingSNPDataSource::number_of_samples() const {
 		return m_sample_mapping->number_of_source_samples() ;
 	}

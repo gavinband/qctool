@@ -45,6 +45,7 @@ namespace genfile {
 		std::vector< SNPIdentifyingData > const m_flipped_snps ;
 		
 	public:
+		Metadata get_metadata() const ;
 		operator bool() const { return *m_source ; }
 		unsigned int number_of_samples() const { return m_source->number_of_samples() ; }
 		OptionalSnpCount total_number_of_snps() const { return m_source->total_number_of_snps() ; }

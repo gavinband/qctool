@@ -36,6 +36,7 @@ namespace genfile {
 		SNPIdentifyingDataFilteringSNPDataSource( SNPDataSource::UniquePtr source, SNPIdentifyingDataTest const& test ) ;
 
 		operator bool() const ;
+		Metadata get_metadata() const ;
 		unsigned int number_of_samples() const ;
 		OptionalSnpCount total_number_of_snps() const ;
 		std::string get_source_spec() const ;

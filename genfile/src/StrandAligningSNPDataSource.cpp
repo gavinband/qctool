@@ -187,6 +187,10 @@ namespace genfile {
 		m_include_unknown_strand_or_flip( false )
 	{}
 	
+	SNPDataSource::Metadata StrandAligningSNPDataSource::get_metadata() const {
+		return m_source->get_metadata() ;
+	}
+	
 	std::string StrandAligningSNPDataSource::get_summary( std::string const& prefix, std::size_t column_width ) const {
 		return m_source->get_summary( prefix + "  " ) ;
 	}

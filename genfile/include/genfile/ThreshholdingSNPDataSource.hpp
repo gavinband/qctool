@@ -23,6 +23,7 @@ namespace genfile {
 	public:
 		ThreshholdingSNPDataSource( SNPDataSource::UniquePtr source, double const threshhold ) ;
 		operator bool() const ;
+		Metadata get_metadata() const ;
 		unsigned int number_of_samples() const ;
 		OptionalSnpCount total_number_of_snps() const ;
 		std::string get_source_spec() const ;

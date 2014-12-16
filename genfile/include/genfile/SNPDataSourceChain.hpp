@@ -45,6 +45,8 @@ namespace genfile {
 		~SNPDataSourceChain() ;
 
 		void add_source( std::auto_ptr< SNPDataSource > source ) ;
+
+		Metadata get_metadata() const ;
 		unsigned int number_of_samples() const ;
 		OptionalSnpCount total_number_of_snps() const ;
 		unsigned int number_of_sources() const ;
@@ -91,6 +93,7 @@ namespace genfile {
 		std::vector< SNPDataSource* > m_sources ;
 		std::size_t m_current_source ;
 		unsigned int m_number_of_samples ;
+		Metadata m_metadata ;
 		
 		moved_to_next_source_callback_t m_moved_to_next_source_callback ;
 	} ;

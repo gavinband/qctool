@@ -22,6 +22,8 @@ namespace genfile {
 		HapmapHaplotypesSNPDataSource( std::string const& filename, Chromosome chromosome ) ;
 		HapmapHaplotypesSNPDataSource( std::string const& filename, Chromosome chromosome, CompressionType compression_type ) ;
 
+		Metadata get_metadata() const ;
+
 		unsigned int number_of_samples() const { return m_number_of_samples ; }
 		OptionalSnpCount total_number_of_snps() const { return m_total_number_of_snps ; }
 		

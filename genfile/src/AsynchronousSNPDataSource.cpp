@@ -34,6 +34,11 @@ namespace genfile {
 	AsynchronousSNPDataSource::operator bool() const {
 		return m_good ;
 	}
+
+	SNPDataSource::Metadata AsynchronousSNPDataSource::get_metadata() const {
+		return m_source->get_metadata() ;
+	}
+	
 	unsigned int AsynchronousSNPDataSource::number_of_samples() const {
 		return m_source->number_of_samples() ;
 	}

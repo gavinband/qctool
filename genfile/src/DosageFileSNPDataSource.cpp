@@ -84,6 +84,16 @@ namespace genfile {
         std::getline( stream(), m_line ) ;
 	}
 	
+	SNPDataSource::Metadata DosageFileSNPDataSource::get_metadata() const {
+		std::map< std::string, std::string > format ;
+		format[ "ID" ] = "Dosage" ;
+		format[ "Number" ] = "1" ;
+		format[ "Description" ] = "Genotype dosage" ;
+		SNPDataSource::Metadata result ;
+		result.insert( std::make_pair( "FORMAT", format )) ;
+		return result ;
+	}
+	
 	void DosageFileSNPDataSource::read_snp_identifying_data_impl( 
 		uint32_t* number_of_samples,
 		std::string* SNPID,

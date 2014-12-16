@@ -23,8 +23,10 @@ namespace genfile {
 
 		MergingSNPDataSource( genfile::SNPIdentifyingData::CompareFields const& ) ;
 		virtual ~MergingSNPDataSource() ;
-		
+
 		void add_source( SNPDataSource::UniquePtr, std::string const& id_prefix = "" ) ;
+
+		Metadata get_metadata() const ;
 
 		operator bool() const ;
 		// Return the number of samples represented in the snps in this source.
@@ -56,6 +58,8 @@ namespace genfile {
 		typedef std::multimap< SNPIdentifyingData, std::size_t, SNPIdentifyingData::CompareFields > CurrentSnps ;
 		CurrentSnps m_current_snps ;
 		std::vector< std::string > m_merge_id_prefixes ;
+		Metadata m_metadata ;
+		
 		void get_top_snp_in_source( std::size_t source_i ) ;
 	protected:
 		CurrentSnps& current_snps() { return m_current_snps ; }

@@ -64,6 +64,16 @@ namespace genfile {
 		}
 	}
 
+	SNPDataSource::Metadata ShapeITHaplotypesSNPDataSource::get_metadata() const {
+		std::map< std::string, std::string > format ;
+		format[ "ID" ] = "GT" ;
+		format[ "Number" ] = "A" ;
+		format[ "Description" ] = "Phased haplotype calls" ;
+		SNPDataSource::Metadata result ;
+		result.insert( std::make_pair( "FORMAT", format )) ;
+		return result ;
+	}
+
 	void ShapeITHaplotypesSNPDataSource::set_expected_ploidy( GetPloidy get_ploidy ) {
 		m_get_ploidy = get_ploidy ;
 	}
