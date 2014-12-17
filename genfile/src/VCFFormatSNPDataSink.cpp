@@ -149,7 +149,7 @@ namespace genfile {
 		std::pair< Metadata::const_iterator, Metadata::const_iterator > const
 			formatDefinitions = std::make_pair( m_metadata.begin(), m_metadata.end() ) ;
 
-		boost::format formatFormat( "#FORMAT=<ID=%s, Type=%s, Number=%s, Description=%s>\n" ) ;
+		boost::format formatFormat( "##FORMAT=<ID=%s,Type=%s,Number=%s,Description=%s>\n" ) ;
 
 #if DEBUG_VCFFORMATSNPDATASINK
 		Metadata::const_iterator format_i = m_metadata.begin() ;
