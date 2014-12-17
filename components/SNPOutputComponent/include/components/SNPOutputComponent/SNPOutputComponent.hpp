@@ -34,7 +34,7 @@ namespace impl {
 		SNPOutputter( genfile::CohortIndividualSource const& samples, genfile::SNPDataSink& sink ) ;
 		~SNPOutputter() ;
 		
-		void begin_processing_snps( std::size_t number_of_samples ) ;
+		void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& metadata ) ;
 		void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& data_reader ) ;
 		void end_processing_snps() ;
 		

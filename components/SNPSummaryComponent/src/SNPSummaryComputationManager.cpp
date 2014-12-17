@@ -85,7 +85,7 @@ void SNPSummaryComputationManager::set_haploid_genotype_coding( int coding ) {
 	m_haploid_coding_column = coding ;	
 }
 
-void SNPSummaryComputationManager::begin_processing_snps( std::size_t number_of_samples ) {
+void SNPSummaryComputationManager::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) {
 	m_snp_index = 0 ;
 	m_genotypes.resize( number_of_samples, 3 ) ;
 	Computations::iterator i = m_computations.begin(), end_i = m_computations.end() ;

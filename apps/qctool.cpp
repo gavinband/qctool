@@ -2297,7 +2297,7 @@ private:
 			m_number_of_snps( 0 )
 		{}
 
-		void begin_processing_snps( std::size_t ) {
+		void begin_processing_snps( std::size_t, genfile::SNPDataSource::Metadata const& ) {
 			m_progress_context.restart_timer() ;
 			m_progress_context.notify_progress( 0 ) ;
 		}

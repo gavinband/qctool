@@ -68,7 +68,10 @@ SNPOutputComponent::SNPOutputComponent(
 	m_options( options )
 {}
 
-void SNPOutputComponent::setup( genfile::SNPDataSink& sink, genfile::SNPDataSourceProcessor& processor ) {
+void SNPOutputComponent::setup(
+	genfile::SNPDataSink& sink,
+	genfile::SNPDataSourceProcessor& processor
+) {
 	impl::SNPOutputter::UniquePtr outputter = impl::SNPOutputter::create( m_samples, sink ) ;
 
 	if( m_options.check( "-write-index" )) {
@@ -94,11 +97,17 @@ namespace {
 }
 
 namespace impl {
-	SNPOutputter::UniquePtr SNPOutputter::create( genfile::CohortIndividualSource const& samples, genfile::SNPDataSink& sink ) {
+	SNPOutputter::UniquePtr SNPOutputter::create(
+		genfile::CohortIndividualSource const& samples,
+		genfile::SNPDataSink& sink
+	) {
 		return SNPOutputter::UniquePtr( new SNPOutputter( samples, sink ) ) ;
 	}
 
-	SNPOutputter::SNPOutputter( genfile::CohortIndividualSource const& samples, genfile::SNPDataSink& sink ):
+	SNPOutputter::SNPOutputter(
+		genfile::CohortIndividualSource const& samples,
+		genfile::SNPDataSink& sink
+	):
 		m_samples( samples ),
 		m_manage( false ),
 		m_sink( &sink )
@@ -116,7 +125,8 @@ namespace impl {
 		}
 	}
 
-	void SNPOutputter::begin_processing_snps( std::size_t number_of_samples ) {
+	void SNPOutputter::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& metadata ) {
+		m_sink->set_metadata( metadata ) ;
 		m_sink->set_sample_names( number_of_samples, boost::bind( get_sample_entry, boost::ref( m_samples ), "ID_1", _1 ) ) ;
 	}
 

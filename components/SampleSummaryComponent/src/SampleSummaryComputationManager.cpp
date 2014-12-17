@@ -30,7 +30,7 @@ void SampleSummaryComputationManager::add( std::string const& name, std::string 
 	m_computations.insert( std::make_pair( name, chromosome_spec ), computation ) ;
 }
 
-void SampleSummaryComputationManager::begin_processing_snps( std::size_t number_of_samples ) {
+void SampleSummaryComputationManager::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) {
 	m_snp_index = 0 ;
 	m_genotypes.resize( number_of_samples, 3 ) ;
 }

@@ -148,7 +148,7 @@ void HaplotypeFrequencyComponent::set_max_distance( uint64_t distance ) {
 	m_max_distance = distance ;
 }
 
-void HaplotypeFrequencyComponent::begin_processing_snps( std::size_t number_of_samples ) {
+void HaplotypeFrequencyComponent::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) {
 	std::cerr << m_source->number_of_samples() << " : " <<  number_of_samples << ".\n" ;
 	assert( m_source->number_of_samples() == number_of_samples ) ;
 }

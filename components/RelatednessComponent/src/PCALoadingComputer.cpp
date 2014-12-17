@@ -79,7 +79,7 @@ void PCALoadingComputer::set_UDUT( std::size_t number_of_snps, Matrix const& udu
 	m_number_of_snps = number_of_snps ;
 }
 
-void PCALoadingComputer::begin_processing_snps( std::size_t number_of_samples ) {
+void PCALoadingComputer::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) {
 	assert( number_of_samples = std::size_t( m_U.rows() )) ;
 	m_genotype_calls.resize( number_of_samples ) ;
 	m_non_missingness.resize( number_of_samples ) ;

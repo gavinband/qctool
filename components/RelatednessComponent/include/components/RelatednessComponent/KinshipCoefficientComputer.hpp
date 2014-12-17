@@ -52,7 +52,7 @@ public:
 		Computation::UniquePtr computation
 	) ;
 
-	void begin_processing_snps( std::size_t number_of_samples ) ;
+	void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) ;
 	void processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) ;
 	void end_processing_snps() ;
 
@@ -81,7 +81,7 @@ namespace impl {
 
 		Computation::Matrix const& result() const ;
 		Computation::IntegerMatrix const& nonmissingness() const ;
-		void begin_processing_snps( std::size_t number_of_samples ) ;
+		void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) ;
 		void processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) ;
 		void end_processing_snps() ;
 		std::size_t number_of_snps_included() const ;

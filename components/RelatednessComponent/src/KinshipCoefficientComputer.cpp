@@ -421,7 +421,7 @@ namespace impl {
 	KinshipCoefficientComputer::Computation::Matrix const& NormaliseGenotypesAndComputeXXt::result() const { return m_result ; }
 	KinshipCoefficientComputer::Computation::IntegerMatrix const& NormaliseGenotypesAndComputeXXt::nonmissingness() const { return m_nonmissingness ; }
 
-	void NormaliseGenotypesAndComputeXXt::begin_processing_snps( std::size_t number_of_samples ) {
+	void NormaliseGenotypesAndComputeXXt::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) {
 		m_result.setZero( number_of_samples, number_of_samples ) ;
 		m_nonmissingness.setZero( number_of_samples, number_of_samples ) ;
 		m_dispatcher->setup( number_of_samples ) ;
@@ -478,8 +478,8 @@ KinshipCoefficientComputer::KinshipCoefficientComputer(
 	assert( m_computation.get() ) ;
 }
 
-void KinshipCoefficientComputer::begin_processing_snps( std::size_t number_of_samples ) {
-	m_computation->begin_processing_snps( number_of_samples ) ;
+void KinshipCoefficientComputer::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& metadata ) {
+	m_computation->begin_processing_snps( number_of_samples, metadata ) ;
 }
 
 void KinshipCoefficientComputer::processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) {

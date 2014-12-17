@@ -22,7 +22,7 @@ void DataReadTest::declare_options( appcontext::OptionProcessor& options ) {
 
 DataReadTest::DataReadTest() {}
 
-void DataReadTest::begin_processing_snps( std::size_t number_of_samples ) {
+void DataReadTest::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) {
 	m_number_of_samples = number_of_samples ;
 	m_number_of_snps_read = 0 ;
 	m_data.resize( m_number_of_samples ) ;

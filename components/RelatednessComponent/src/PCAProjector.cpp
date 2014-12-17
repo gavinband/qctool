@@ -66,7 +66,7 @@ namespace pca {
 		m_result_signal.connect( callback ) ;
 	}
 
-	void PCAProjector::begin_processing_snps( std::size_t number_of_samples ) {
+	void PCAProjector::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) {
 		m_projections.setZero( number_of_samples, m_loadings.cols() ) ;
 	}
 

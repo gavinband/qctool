@@ -34,7 +34,7 @@ namespace genfile {
 		m_number_of_samples( 0 )
 	{
 		(*m_stream_ptr) << std::resetiosflags( std::ios::floatfield ) << std::setprecision( 6 ) ;
-#if DEBUG_VCFFORMATSNPDATASINK
+#if 0
 		std::map< std::string, std::string > format ;
 		format[ "ID" ] = "GT" ;
 		format[ "Number" ] = "1" ;
@@ -149,14 +149,14 @@ namespace genfile {
 		std::pair< Metadata::const_iterator, Metadata::const_iterator > const
 			formatDefinitions = std::make_pair( m_metadata.begin(), m_metadata.end() ) ;
 
-		boost::format formatFormat( "#FORMAT=<ID=\"%s\", Number=%s, Description=\"%s\">\n" ) ;
+		boost::format formatFormat( "#FORMAT=<ID=%s, Type=%s, Number=%s, Description=%s>\n" ) ;
 
 #if DEBUG_VCFFORMATSNPDATASINK
 		Metadata::const_iterator format_i = m_metadata.begin() ;
 		std::cerr << "VCFFormatSNPDataSink::write_header(): FORMAT entries are:\n" ;
 		for( ; format_i != m_metadata.end(); ++format_i ) {
 			if( format_i->first == "FORMAT" ) {
-				std::cerr << ( formatFormat % format_i->second.at( "ID" ) % format_i->second.at( "Number" ) % format_i->second.at( "Description" ) ) ;
+				std::cerr << ( formatFormat % format_i->second.at( "ID" ) % format_i->second.at( "Type" ) % format_i->second.at( "Number" ) % format_i->second.at( "Description" ) ) ;
 			}
 		}
 		std::cerr << "\n" ;
@@ -166,7 +166,7 @@ namespace genfile {
 			Metadata::const_iterator format_i = formatDefinitions.first ;
 			for( ; format_i != formatDefinitions.second; ++format_i ) {
 				if( format_i->first == "FORMAT" ) {
-					(*m_stream_ptr) << ( formatFormat % format_i->second.at( "ID" ) % format_i->second.at( "Number" ) % format_i->second.at( "Description" ) ) ;
+					(*m_stream_ptr) << ( formatFormat % format_i->second.at( "ID" ) % format_i->second.at( "Type" ) % format_i->second.at( "Number" ) % format_i->second.at( "Description" ) ) ;
 				}
 			}
 		} else {
@@ -177,8 +177,7 @@ namespace genfile {
 				bool found = false ;
 				for( ; format_i != formatDefinitions.second; ++format_i ) {
 					if( format_i->first == "FORMAT" && format_i->second.at( "ID" ) == *i ) {
-						(*m_stream_ptr) << ( boost::format( "#FORMAT=<ID=\"%s\", Number=%s, Description=\"%s\">\n" )
-							% format_i->second.at( "ID" ) % format_i->second.at( "Number" ) % format_i->second.at( "Description" ) ) ;
+						(*m_stream_ptr) << ( formatFormat % format_i->second.at( "ID" ) % format_i->second.at( "Type" ) % format_i->second.at( "Number" ) % format_i->second.at( "Description" ) ) ;
 						found = true ;
 					}
 				}
@@ -187,8 +186,7 @@ namespace genfile {
 					unknownFormat[ "ID" ] = *i ;
 					unknownFormat[ "Number" ] = "." ;
 					unknownFormat[ "Description" ] = "Unknown field" ;
-					(*m_stream_ptr) << ( boost::format( "#FORMAT=<ID=\"%s\", Number=., Description=\"Unknown field\">\n" )
-						% (*i) ) ;
+					(*m_stream_ptr) << ( formatFormat % *i % "String" % "." % "\"Unknown field\"" ) ;
 				}
 			}
 		}

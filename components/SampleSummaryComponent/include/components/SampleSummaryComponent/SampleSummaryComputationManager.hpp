@@ -26,7 +26,7 @@ struct SampleSummaryComputationManager: public genfile::SNPDataSourceProcessor::
 
 	void add( std::string const& name, std::string const& snp_set, SampleSummaryComputation::UniquePtr ) ;
 
-	void begin_processing_snps( std::size_t number_of_samples ) ;
+	void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) ;
 	void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& data_reader ) ;
 	void end_processing_snps() ;
 
