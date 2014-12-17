@@ -38,10 +38,10 @@ namespace genfile {
 			return result ;
 		}
 		
-		struct FlippedAlleleSetter: public VariantDataReader::PerSampleSetter {
-			~FlippedAlleleSetter() throw() {}
+		struct ReversedOrderSetter: public VariantDataReader::PerSampleSetter {
+			~ReversedOrderSetter() throw() {}
 		
-			FlippedAlleleSetter( VariantDataReader::PerSampleSetter& setter ):
+			ReversedOrderSetter( VariantDataReader::PerSampleSetter& setter ):
 				m_setter( setter ),
 				m_values( 3 ),
 				m_entry_i( 0 )
@@ -91,6 +91,26 @@ namespace genfile {
 			}
 		} ;
 	
+		struct FlippedGenotypeSetter: public VariantDataReader::PerSampleSetter {
+			~FlippedGenotypeSetter() throw() {}
+		
+			FlippedGenotypeSetter( VariantDataReader::PerSampleSetter& setter ):
+				m_setter( setter )
+			{}
+			void set_number_of_samples( std::size_t n ) { m_setter.set_number_of_samples( n ) ; }
+			void set_sample( std::size_t n ) { m_setter.set_sample( n ) ; }
+			void set_number_of_entries( std::size_t n ) {
+				m_setter.set_number_of_entries( n ) ;
+			}
+
+			void operator()( Integer const value ) {
+				m_setter( 1 - value ) ;
+			}
+
+		private:
+			VariantDataReader::PerSampleSetter& m_setter ;
+		} ;
+		
 		struct UnknownAlleleSetter: public VariantDataReader::PerSampleSetter {
 			UnknownAlleleSetter( VariantDataReader::PerSampleSetter& setter ):
 				m_setter( setter )
@@ -122,14 +142,31 @@ namespace genfile {
 		
 			AlleleFlippingVariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
 				assert( m_source.number_of_snps_read() > 0 ) ;
-				if( spec == ":genotypes:" || spec == ":intensities:" || spec == "GT" || spec == "GP" ) {
+				if(
+					m_flip == StrandAligningSNPDataSource::eNoFlip || ( spec != "GT" && spec != "XY" && spec != "GP" )
+				) {
+					// fall through to base reader.
+					m_base_reader->get( spec, setter ) ;
+				}
+				else if( spec == "GT" ) {
 					switch( m_flip ) {
-						case ( StrandAligningSNPDataSource::eNoFlip ): {
-							m_base_reader->get( spec, setter ) ;
+						case ( StrandAligningSNPDataSource::eFlip ): {
+							FlippedGenotypeSetter flipped_setter( setter ) ;
+							m_base_reader->get( spec, flipped_setter ) ;
 							break ;
 						}
+						case ( StrandAligningSNPDataSource::eUnknownFlip ): {
+							UnknownAlleleSetter unknown_allele_setter( setter ) ;
+							m_base_reader->get( spec, unknown_allele_setter ) ;
+							break ;
+						}
+						default:
+							assert(0) ;
+					}
+				} else if( spec == ":genotypes:" || spec == ":intensities:" || spec == "GP" || spec == "XY" ) {
+					switch( m_flip ) {
 						case ( StrandAligningSNPDataSource::eFlip ): {
-							FlippedAlleleSetter flipped_setter( setter ) ;
+							ReversedOrderSetter flipped_setter( setter ) ;
 							m_base_reader->get( spec, flipped_setter ) ;
 							break ;
 						}
