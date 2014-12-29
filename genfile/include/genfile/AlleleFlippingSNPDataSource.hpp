@@ -11,6 +11,7 @@
 #include <map>
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/OffsetFlippedAlleleSetter.hpp"
 
 namespace genfile {
 	namespace impl {
@@ -21,9 +22,9 @@ namespace genfile {
 		friend class impl::AlleleFlippingSNPDataReader ;
 	public:
 		typedef std::vector< char > AlleleFlipSpec ;
-		static char const eUnknownFlip = '?' ;
-		static char const eNoFlip = '+' ;
-		static char const eFlip  = '-' ;
+		static char const eUnknownFlip = OffsetFlippedAlleleSetter::eUnknownFlip ;
+		static char const eNoFlip = OffsetFlippedAlleleSetter::eNoFlip ;
+		static char const eFlip  = OffsetFlippedAlleleSetter::eFlip ;
 
 		static std::pair< std::vector< SNPIdentifyingData >, AlleleFlipSpec > get_allele_flip_spec(
 			std::vector< SNPIdentifyingData > reference_snps,

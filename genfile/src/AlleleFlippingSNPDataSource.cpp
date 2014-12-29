@@ -10,6 +10,7 @@
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/AlleleFlippingSNPDataSource.hpp"
+#include "genfile/AlleleFlippingVariantDataReader.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/Error.hpp"
 
@@ -141,143 +142,13 @@ namespace genfile {
 		}
 	}
 
-	namespace impl {
-		struct FlippedAlleleSetter: public VariantDataReader::PerSampleSetter {
-			~FlippedAlleleSetter() throw() {}
-			
-			FlippedAlleleSetter( VariantDataReader::PerSampleSetter& setter ):
-				m_setter( setter ),
-				m_values( 3 ),
-				m_number_of_entries( 0 ),
-				m_entry_i( 0 )
-			{}
-			void set_number_of_samples( std::size_t n ) { m_setter.set_number_of_samples( n ) ; }
-			void set_sample( std::size_t n ) { m_setter.set_sample( n ) ; }
-			void set_number_of_entries( std::size_t n ) {
-				m_number_of_entries = n ;
-				m_entry_i = 0 ;
-				m_setter.set_number_of_entries( n ) ;
-			}
-
-			void operator()( MissingValue const value ) { store( value ) ; }
-			void operator()( std::string& value ) { store( value ) ; }
-			void operator()( Integer const value ) { store( value ) ; }
-			void operator()( double const value ) { store( value ) ; }
-
-		private:
-			VariantDataReader::PerSampleSetter& m_setter ;
-			std::vector< VariantEntry > m_values ;
-			std::size_t m_number_of_entries ;
-			std::size_t m_entry_i ;
-
-			template< typename T >
-			void store( T value ) {
-				if( m_values.size() < ( m_entry_i + 1 ) ) {
-					m_values.resize( m_entry_i + 1 ) ;
-				}
-				m_values[ m_entry_i++ ] = value ;
-				if( m_entry_i == m_number_of_entries ) {
-					set_values() ;
-				}
-			}
-
-			void set_values() {
-				for( std::size_t i = 0; i < m_number_of_entries; ++i ) {
-					VariantEntry const& entry = m_values[ m_number_of_entries - 1 - i ] ;
-					if( entry.is_missing() ) {
-						m_setter( MissingValue() ) ;
-					} else if( entry.is_string() ) {
-						std::string value = entry.as< std::string >() ;
-						m_setter( value ) ;
-					} else if( entry.is_int() ) {
-						m_setter( entry.as< VariantEntry::Integer >() ) ;
-					} else if( entry.is_double() ) {
-						m_setter( entry.as< double >() ) ;
-					} else {
-						assert(0) ;
-					}
-				}
-			}
-		} ;
-		
-		struct UnknownAlleleSetter: public VariantDataReader::PerSampleSetter {
-			UnknownAlleleSetter( VariantDataReader::PerSampleSetter& setter ):
-				m_setter( setter )
-			{}
-			
-			void set_number_of_samples( std::size_t n ) { m_setter.set_number_of_samples( n ) ; }
-			void set_sample( std::size_t n ) { m_setter.set_sample( n ) ; }
-			void set_number_of_entries( std::size_t n ) { m_setter.set_number_of_entries( n ) ; }
-			void operator()( MissingValue const value ) { m_setter( value ) ; }
-			void operator()( Integer const value ) { m_setter( MissingValue() ) ; }
-			void operator()( double const value ) { m_setter( MissingValue() ) ; }
-		private:
-			VariantDataReader::PerSampleSetter& m_setter ;
-		} ;
-
-		class AlleleFlippingSNPDataReader: public VariantDataReader {
-		public:
-			AlleleFlippingSNPDataReader(
-				AlleleFlippingSNPDataSource& source,
-				VariantDataReader::UniquePtr base_reader,
-				AlleleFlippingSNPDataSource::AlleleFlipSpec const& allele_flips
-			):
-				m_source( source ),
-				m_base_reader( base_reader ),
-				m_allele_flips( allele_flips )
-			{}
-			
-			std::size_t get_number_of_samples() const { return m_source.number_of_samples() ; }
-			
-			AlleleFlippingSNPDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
-				assert( m_source.number_of_snps_read() > 0 ) ;
-				switch( m_allele_flips[ m_source.number_of_snps_read() - 1 ] ) {
-					case AlleleFlippingSNPDataSource::eNoFlip:
-						m_base_reader->get( spec, setter ) ;
-						break ;
-					case AlleleFlippingSNPDataSource::eFlip:
-						if( spec == ":genotypes:" || spec == ":intensities:" ) {
-							FlippedAlleleSetter flipped_setter( setter ) ;
-							m_base_reader->get( spec, flipped_setter ) ;
-						}
-						else {
-							// Pass through to base reader.
-							m_base_reader->get( spec, setter ) ;
-						}
-						break ;
-					case AlleleFlippingSNPDataSource::eUnknownFlip:
-						if( spec == ":genotypes:" || spec == ":intensities:" ) {
-							UnknownAlleleSetter unknown_allele_setter( setter ) ;
-							m_base_reader->get( spec, unknown_allele_setter ) ;
-						}
-						else {
-							m_base_reader->get( spec, setter ) ;
-						}
-						break ; 
-					default:
-						assert(0) ;
-				}
-				return *this ;
-			}
-			
-			bool supports( std::string const& spec ) const {
-				return m_base_reader->supports( spec ) ;
-			}
-			
-			void get_supported_specs( SpecSetter setter ) const {
-				return m_base_reader->get_supported_specs( setter ) ;
-			}
-
-		private:
-			AlleleFlippingSNPDataSource& m_source ;
-			VariantDataReader::UniquePtr m_base_reader ;
-			AlleleFlippingSNPDataSource::AlleleFlipSpec const& m_allele_flips ;
-		} ;
-	}
-
 	VariantDataReader::UniquePtr AlleleFlippingSNPDataSource::read_variant_data_impl() {
 		return VariantDataReader::UniquePtr(
-			new impl::AlleleFlippingSNPDataReader( *this, m_source->read_variant_data(), m_allele_flips )
+			new AlleleFlippingVariantDataReader(
+				number_of_samples(),
+				m_source->read_variant_data(),
+				m_allele_flips[ m_source->number_of_snps_read() ]
+			)
 		) ;
 	}
 	
