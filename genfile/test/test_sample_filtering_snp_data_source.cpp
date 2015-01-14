@@ -22,7 +22,7 @@
 #include "genfile/SampleFilteringSNPDataSource.hpp"
 #include "stdint.h"
 
-
+AUTO_TEST_SUITE( SampleFilteringSNPDataSourceTest )
 
 // The following section contains a simple snp block writer.
 namespace data {
@@ -167,7 +167,7 @@ AUTO_TEST_CASE( test_sample_filtering_snp_data_source ) {
 			TEST_ASSERT( filtering_source->number_of_samples() == filtered_number_of_samples ) ;
 
 			std::vector< SnpData > data = read_snp_data( *filtering_source ) ;
-			TEST_ASSERT( data.size() == filtering_source->get_parent_source().total_number_of_snps() ) ;
+			TEST_ASSERT( data.size() == 1 ) ;
 			for( std::size_t j = 0; j < data.size(); ++j ) {
 
 				TEST_ASSERT( data[j].number_of_samples == filtered_number_of_samples ) ;
@@ -185,3 +185,5 @@ AUTO_TEST_CASE( test_sample_filtering_snp_data_source ) {
 	}
 	std::cout << "==== success ====\n" ;
 }
+
+AUTO_TEST_SUITE_END()

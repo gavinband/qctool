@@ -156,7 +156,10 @@ namespace genfile {
 				}
 
 				setter.set_number_of_samples( N ) ;
-				setter.set_order_type( vcf::EntriesSetter::eOrderedList ) ;
+				setter.set_order_type(
+					vcf::EntriesSetter::ePerOrderedHaplotype,
+					vcf::EntriesSetter::eAlleleIndex
+				) ;
 				for( std::size_t i = 0; i < N; ++i ) {
 					int ploidy = m_ploidy[i] ;
 					if( ploidy == -1 ) {

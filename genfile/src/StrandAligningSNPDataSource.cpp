@@ -10,6 +10,8 @@
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/StrandAligningSNPDataSource.hpp"
+#include "genfile/OffsetFlippedAlleleSetter.hpp"
+#include "genfile/AlleleFlippingVariantDataReader.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/Error.hpp"
 
@@ -37,166 +39,6 @@ namespace genfile {
 			}
 			return result ;
 		}
-		
-		struct ReversedOrderSetter: public VariantDataReader::PerSampleSetter {
-			~ReversedOrderSetter() throw() {}
-		
-			ReversedOrderSetter( VariantDataReader::PerSampleSetter& setter ):
-				m_setter( setter ),
-				m_values( 3 ),
-				m_entry_i( 0 )
-			{}
-			void set_number_of_samples( std::size_t n ) { m_setter.set_number_of_samples( n ) ; }
-			void set_sample( std::size_t n ) { m_setter.set_sample( n ) ; }
-			void set_number_of_entries( std::size_t n ) {
-				m_setter.set_number_of_entries( n ) ;
-				m_values.resize( n ) ;
-				m_entry_i = 0 ;
-			}
-
-			void operator()( MissingValue const value ) { store( value ) ; }
-			void operator()( std::string& value ) { store( value ) ; }
-			void operator()( Integer const value ) { store( value ) ; }
-			void operator()( double const value ) { store( value ) ; }
-
-		private:
-			VariantDataReader::PerSampleSetter& m_setter ;
-			std::vector< VariantEntry > m_values ;
-			std::size_t m_entry_i ;
-
-			template< typename T >
-			void store( T value ) {
-				m_values[ m_entry_i++ ] = value ;
-				if( m_entry_i == m_values.size() ) {
-					set_values() ;
-				}
-			}
-
-			void set_values() {
-				for( std::size_t i = 0; i < m_values.size(); ++i ) {
-					VariantEntry const& entry = m_values[ m_values.size() - 1 - i ] ;
-					if( entry.is_missing() ) {
-						m_setter( MissingValue() ) ;
-					} else if( entry.is_string() ) {
-						std::string value = entry.as< std::string >() ;
-						m_setter( value ) ;
-					} else if( entry.is_int() ) {
-						m_setter( entry.as< VariantEntry::Integer >() ) ;
-					} else if( entry.is_double() ) {
-						m_setter( entry.as< double >() ) ;
-					} else {
-						assert(0) ;
-					}
-				}
-			}
-		} ;
-	
-		struct FlippedGenotypeSetter: public VariantDataReader::PerSampleSetter {
-			~FlippedGenotypeSetter() throw() {}
-		
-			FlippedGenotypeSetter( VariantDataReader::PerSampleSetter& setter ):
-				m_setter( setter )
-			{}
-			void set_number_of_samples( std::size_t n ) { m_setter.set_number_of_samples( n ) ; }
-			void set_sample( std::size_t n ) { m_setter.set_sample( n ) ; }
-			void set_number_of_entries( std::size_t n ) {
-				m_setter.set_number_of_entries( n ) ;
-			}
-
-			void operator()( Integer const value ) {
-				m_setter( 1 - value ) ;
-			}
-
-		private:
-			VariantDataReader::PerSampleSetter& m_setter ;
-		} ;
-		
-		struct UnknownAlleleSetter: public VariantDataReader::PerSampleSetter {
-			UnknownAlleleSetter( VariantDataReader::PerSampleSetter& setter ):
-				m_setter( setter )
-			{}
-		
-			void set_number_of_samples( std::size_t n ) { m_setter.set_number_of_samples( n ) ; }
-			void set_sample( std::size_t n ) { m_setter.set_sample( n ) ; }
-			void set_number_of_entries( std::size_t n ) { m_setter.set_number_of_entries( n ) ; }
-			void operator()( MissingValue const value ) { m_setter( value ) ; }
-			void operator()( Integer const value ) { m_setter( MissingValue() ) ; }
-			void operator()( double const value ) { m_setter( MissingValue() ) ; }
-		private:
-			VariantDataReader::PerSampleSetter& m_setter ;
-		} ;
-
-		class AlleleFlippingVariantDataReader: public VariantDataReader {
-		public:
-			AlleleFlippingVariantDataReader(
-				StrandAligningSNPDataSource& source,
-				VariantDataReader::UniquePtr base_reader,
-				char flip
-			):
-				m_source( source ),
-				m_base_reader( base_reader ),
-				m_flip( flip )
-			{}
-		
-			std::size_t get_number_of_samples() const { return m_source.number_of_samples() ; }
-		
-			AlleleFlippingVariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
-				assert( m_source.number_of_snps_read() > 0 ) ;
-				if(
-					m_flip == StrandAligningSNPDataSource::eNoFlip || ( spec != "GT" && spec != "XY" && spec != "GP" )
-				) {
-					// fall through to base reader.
-					m_base_reader->get( spec, setter ) ;
-				}
-				else if( spec == "GT" ) {
-					switch( m_flip ) {
-						case ( StrandAligningSNPDataSource::eFlip ): {
-							FlippedGenotypeSetter flipped_setter( setter ) ;
-							m_base_reader->get( spec, flipped_setter ) ;
-							break ;
-						}
-						case ( StrandAligningSNPDataSource::eUnknownFlip ): {
-							UnknownAlleleSetter unknown_allele_setter( setter ) ;
-							m_base_reader->get( spec, unknown_allele_setter ) ;
-							break ;
-						}
-						default:
-							assert(0) ;
-					}
-				} else if( spec == ":genotypes:" || spec == ":intensities:" || spec == "GP" || spec == "XY" ) {
-					switch( m_flip ) {
-						case ( StrandAligningSNPDataSource::eFlip ): {
-							ReversedOrderSetter flipped_setter( setter ) ;
-							m_base_reader->get( spec, flipped_setter ) ;
-							break ;
-						}
-						case ( StrandAligningSNPDataSource::eUnknownFlip ): {
-							UnknownAlleleSetter unknown_allele_setter( setter ) ;
-							m_base_reader->get( spec, unknown_allele_setter ) ;
-							break ;
-						}
-						default:
-							assert(0) ;
-					}
-				} else {
-					m_base_reader->get( spec, setter ) ;
-				}
-				return *this ;
-			}
-		
-			bool supports( std::string const& spec ) const {
-				return m_base_reader->supports( spec ) ;
-			}
-		
-			void get_supported_specs( SpecSetter setter ) const {
-				return m_base_reader->get_supported_specs( setter ) ;
-			}
-
-		private:
-			StrandAligningSNPDataSource& m_source ;
-			VariantDataReader::UniquePtr m_base_reader ;
-			char const m_flip ;
-		} ;
 	}
 	
 	std::string StrandAligningSNPDataSource::apply_strand( std::string const& allele, char strand ) {
@@ -317,8 +159,8 @@ namespace genfile {
 
  	VariantDataReader::UniquePtr StrandAligningSNPDataSource::read_variant_data_impl() {
 		return VariantDataReader::UniquePtr(
-			new impl::AlleleFlippingVariantDataReader(
-				*this,
+			new AlleleFlippingVariantDataReader(
+				number_of_samples(),
 				m_source->read_variant_data(),
 				m_current_strand_flip_spec.flip
 			)

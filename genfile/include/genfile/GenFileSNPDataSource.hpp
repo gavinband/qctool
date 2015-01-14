@@ -26,11 +26,6 @@ namespace genfile {
 	public:
 		GenFileSNPDataSource( std::auto_ptr< std::istream > stream, Chromosome chromosome ) ;
 		GenFileSNPDataSource( std::string const& filename, Chromosome chromosome ) ;
-		GenFileSNPDataSource(
-			std::string const& filename,
-			Chromosome chromosome,
-			CompressionType compression_type
-		) ;
 
 		Metadata get_metadata() const ;
 

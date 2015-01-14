@@ -7,6 +7,7 @@
 #ifndef GENFILE_VCF_TYPES_HPP
 #define GENFILE_VCF_TYPES_HPP
 
+#include <cassert>
 #include <limits>
 #include <map>
 #include <vector>
@@ -29,19 +30,50 @@ namespace genfile {
 			virtual void operator()( std::string& value ) ;
 			virtual void operator()( Integer const value ) ;
 			virtual void operator()( double const value ) ;
+			void operator()( VariantEntry const& value ) {
+				if( value.is_missing() ) {
+					this->operator()( genfile::MissingValue() ) ;
+				} else if( value.is_string() ) {
+					this->operator()( value.as< std::string >() ) ;
+				} else if( value.is_int() ) {
+					this->operator()( value.as< VariantEntry::Integer >() ) ;
+				} else if( value.is_double() ) {
+					this->operator()( value.as< double >() ) ;
+				} else {
+					assert(0) ;
+				}
+			}
 		} ;
 
 		struct EntriesSetter: public EntrySetter {
 			virtual ~EntriesSetter() throw() {}
 			virtual void set_number_of_entries( std::size_t n ) = 0 ;
-			enum OrderType { eUnorderedList = 0, eOrderedList = 1 } ;
-			virtual void set_order_type( OrderType const type ) {} ;
+			enum OrderType {
+				eUnknownOrderType = 0,
+				eUnorderedList = 1, 				// a list, treated as unordered
+				eOrderedList = 2,					// a list, treated as ordered
+				ePerUnorderedGenotype = 3, 			// E.g. genotype probabilities; GEN, BGEN v1.1, etc.
+				ePerOrderedHaplotype = 4,			// E.g. Phased GT, SHAPEIT or IMPUTE haplotypes
+				ePerUnorderedHaplotype = 5,			// E.g. Unphased GT, binary PED file.
+				ePerPhasedHaplotypePerAllele = 6,	// E.g. BGEN v1.2-style haplotype probabilities.
+				ePerAllele = 7,						// E.g. assay intensities.
+				eBAlleleDosage = 8					// 'B' allele dosage, one value per sample.
+			} ;
+			enum ValueType {
+				eUnknownValueType = 0,
+				eProbability = 1,
+				eAlleleIndex = 2,
+				eDosage = 3
+			} ;
+			
+			virtual void set_order_type( OrderType const order_type, ValueType const value_type ) = 0 ;
 		} ;
 		
 		struct PerSampleEntriesSetter: public vcf::EntriesSetter, public boost::noncopyable {
 			typedef std::auto_ptr< PerSampleEntriesSetter > UniquePtr ;
 			virtual ~PerSampleEntriesSetter() throw() {}
 			virtual void set_number_of_samples( std::size_t n ) = 0 ;
+			virtual void set_number_of_alleles( std::size_t n ) = 0 ;
 			virtual void set_sample( std::size_t i ) = 0 ;
 		} ;
 		
@@ -107,7 +139,7 @@ namespace genfile {
 			virtual void parse( string_utils::slice const&, std::size_t number_of_alleles, std::size_t ploidy, EntriesSetter& setter ) const ;
 			virtual void parse( string_utils::slice const&, std::size_t number_of_alleles, EntriesSetter& setter ) const ;
 
-			// Convenience functions for legacy interface.
+			// Convenience functions for testing purposes interface.
 			// This interface is deprecated because it involves lots of small memory allocations, which
 			// slows things down too much.
 			std::vector< Entry > parse( string_utils::slice const&, std::size_t number_of_alleles, std::size_t ploidy ) const ;
@@ -139,8 +171,10 @@ namespace genfile {
 		
 		struct ListVCFEntryType: public VCFEntryType {
 			ListVCFEntryType( SimpleType::UniquePtr type ): VCFEntryType( type ) {}
+
 			std::vector< string_utils::slice > lex( string_utils::slice const& value, std::size_t number_of_alleles, std::size_t ploidy ) const ;
 			std::vector< string_utils::slice > lex( string_utils::slice const& value, std::size_t number_of_alleles ) const ;
+
 			virtual void get_missing_value( std::size_t number_of_alleles, std::size_t ploidy, EntriesSetter& setter ) const ;
 			virtual void get_missing_value( std::size_t number_of_alleles, EntriesSetter& setter ) const ;
 			typedef std::pair< std::size_t, std::size_t > ValueCountRange ;

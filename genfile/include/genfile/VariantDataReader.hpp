@@ -51,7 +51,7 @@ namespace genfile {
 		virtual std::size_t get_number_of_samples() const = 0 ;
 
 		// Convenience method.
-		VariantDataReader& get( std::string const& spec, std::vector< std::vector< Entry > >& data ) ;
+		// VariantDataReader& get( std::string const& spec, std::vector< std::vector< Entry > >& data ) ;
 		// Convenience method setting SingleSNPGenotypeProbabilities.
 		//VariantDataReader& get( std::string const& spec, SingleSNPGenotypeProbabilities& data ) ;
 	} ;

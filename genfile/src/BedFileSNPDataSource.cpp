@@ -139,7 +139,10 @@ namespace genfile {
 
 					setter.set_sample( i ) ;
 					setter.set_number_of_entries( 2 ) ;
-					setter.set_order_type( VariantDataReader::PerSampleSetter::eUnorderedList ) ;
+					setter.set_order_type(
+						VariantDataReader::PerSampleSetter::ePerUnorderedHaplotype,
+						VariantDataReader::PerSampleSetter::eAlleleIndex
+					) ;
 					std::pair< int64_t, int64_t > const& genotype = m_source.m_genotype_table[ data ] ;
 					if( genotype.first == -1 ) {
 						setter( genfile::MissingValue() ) ;

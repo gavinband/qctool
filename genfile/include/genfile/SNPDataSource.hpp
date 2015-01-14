@@ -53,7 +53,7 @@ namespace genfile {
 	private:
 		static UniquePtr create(
 			std::string const& filename,
-			Chromosome,
+			Chromosome chromosome_hint,
 			CompressionType compression_type,
 			boost::optional< vcf::MetadataParser::Metadata > const&,
 			std::string const& filetype_hint

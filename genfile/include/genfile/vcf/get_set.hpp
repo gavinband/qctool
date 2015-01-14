@@ -7,6 +7,7 @@
 #ifndef GENFILE_VCF_GET_SET_HPP
 #define GENFILE_VCF_GET_SET_HPP
 
+#include <cassert>
 #include <limits>
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
@@ -22,7 +23,9 @@ namespace genfile {
 			{}
 
 			void set_number_of_samples( std::size_t n ) { m_data.resize( n ) ; }
+			void set_number_of_alleles( std::size_t n ) { assert( n == 2 ) ; }
 			void set_sample( std::size_t n ) { assert( n < m_data.size() ) ; m_sample = n ; }
+			void set_order_type( OrderType const order_type, ValueType const value_type ) {} ;
 			void set_number_of_entries( std::size_t n ) { m_data[ m_sample ].resize( n ) ; m_entry_i = 0 ; }
 
 		private:
@@ -46,10 +49,12 @@ namespace genfile {
 		struct GenotypeSetterBase: public VariantDataReader::PerSampleSetter
 		{
 			GenotypeSetterBase( std::string const& scale = "identity" ) ;
-			virtual ~GenotypeSetterBase() throw() ;
+			~GenotypeSetterBase() throw() ;
 
 			virtual void set_number_of_samples( std::size_t n ) ;
+			virtual void set_number_of_alleles( std::size_t n ) ;
 			virtual void set_sample( std::size_t n ) ;
+			virtual void set_order_type( OrderType const, ValueType const ) ;
 			virtual void set_number_of_entries( std::size_t n ) ;
 			virtual void operator()( MissingValue const value ) ;
 			virtual void operator()( Integer const value ) ;
@@ -63,6 +68,8 @@ namespace genfile {
 			ProbabilityScale m_probability_scale ;
 			std::size_t m_number_of_samples ;
 			std::size_t m_sample ;
+			OrderType m_order_type ;
+			ValueType m_value_type ;
 			std::size_t m_number_of_entries ;
 			std::size_t m_entry_i ;
 			double m_store[3] ;
@@ -73,19 +80,20 @@ namespace genfile {
 
 			template< typename T >
 			void store( T const value ) {
-				if( m_number_of_entries == 1 ) {
-					// Treat as a dosage
+				if( m_value_type == eDosage && m_order_type == eBAlleleDosage ) {
+					// A single dosage value
 					assert( value == 0 || value == 1 || value == 2 ) ;
 					m_A = 2 - value ;
 					m_B = value ;
-				} else if( m_number_of_entries == 2 ) {
-					// Treat as two calls.
+				}
+				else if( m_value_type == eAlleleIndex && ( m_order_type == ePerOrderedHaplotype || m_order_type == ePerUnorderedHaplotype )) {
+					// GT-style genotype calls
 					assert( value == 0 || value == 1 ) ;
 					m_A += ( value == 0 ) ? 1 : 0 ;
 					m_B += ( value == 0 ) ? 0 : 1 ;
 				}
-				else if( m_number_of_entries == 3 || m_number_of_entries == 4 ) {
-					// treat as probabilities.  Ignore the fourth probability, which we interpret as NULL call.
+				else if( m_value_type == eProbability && m_order_type == ePerUnorderedGenotype ) {
+					// genotype probabilities.
 					if( m_entry_i < 3 ) {
 						switch( m_probability_scale ) {
 							case ePhredScale:
@@ -108,18 +116,7 @@ namespace genfile {
 		} ;
 
 		template< typename Setter > struct GenotypeSetter ;
-/*
-		template< typename Setter >
-		struct GenotypeSetter: public GenotypeSetterBase
-		{
-			GenotypeSetter( Setter const& setter ): m_setter( setter ) {}
-			void set( std::size_t sample_i, double AA, double AB, double BB ) {
-				m_setter( sample_i, AA, AB, BB ) ;
-			}
-		private:
-			Setter const& m_setter ;
-		} ;
-*/
+
 		template<>
 		struct GenotypeSetter< boost::function< void ( std::size_t, double, double, double ) > >: public GenotypeSetterBase
 		{
@@ -209,10 +206,14 @@ namespace genfile {
 			{}
 
 			void set_number_of_samples( std::size_t n ) { m_number_of_samples = n ; }
+			void set_number_of_alleles( std::size_t n ) { assert( n == 2 ) ; }
 			void set_sample( std::size_t n ) {
 				assert( n < m_number_of_samples ) ; 
 				m_sample = n ;
 				m_entry_i = 0 ;
+			}
+			void set_order_type( OrderType const, ValueType const ) {
+				// do nothing
 			}
 			void set_number_of_entries( std::size_t n ) {
 				if( m_sample == 0 ) {

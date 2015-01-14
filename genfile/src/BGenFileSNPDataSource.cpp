@@ -19,12 +19,6 @@ namespace genfile {
 		setup( filename, get_compression_type_indicated_by_filename( filename )) ;
 	}
 
-	BGenFileSNPDataSource::BGenFileSNPDataSource( std::string const& filename, CompressionType compression_type )
-		: m_filename( filename )
-	{
-		setup( filename, compression_type ) ;
-	}
-
 	void BGenFileSNPDataSource::reset_to_start_impl() {
 		stream().clear() ;
 		stream().seekg(0) ;

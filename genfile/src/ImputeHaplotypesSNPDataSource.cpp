@@ -221,7 +221,10 @@ namespace genfile {
 				}
 
 				setter.set_number_of_samples( m_source.number_of_samples() ) ;
-				setter.set_order_type( vcf::EntriesSetter::eOrderedList ) ;
+				setter.set_order_type(
+					vcf::EntriesSetter::ePerOrderedHaplotype,
+					vcf::EntriesSetter::eAlleleIndex
+				) ;
 
 				for( std::size_t i = 0; i < m_source.number_of_samples(); ++i ) {
 					if( m_elts[2*i].size() != 1 ) {

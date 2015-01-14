@@ -8,6 +8,7 @@
 #include <string>
 #include <Eigen/Core>
 #include <boost/bind.hpp>
+#include <boost/format.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/gen.hpp"
 #include "genfile/GenLikeSNPDataSink.hpp"
@@ -28,7 +29,8 @@ namespace genfile {
 		struct IntensityWriter: public VariantDataReader::PerSampleSetter {
 			IntensityWriter( std::ostream& stream, std::size_t number_of_samples ):
 				m_stream( stream ),
-				m_number_of_samples( number_of_samples )
+				m_number_of_samples( number_of_samples ),
+				m_number_of_alleles( 0 )
 			{}
 
 			~IntensityWriter() throw() {}
@@ -39,12 +41,30 @@ namespace genfile {
 				}
 			}
 
+			void set_number_of_alleles( std::size_t n ) {
+				if( n != 2 ) {
+					throw genfile::BadArgumentError(
+						"genfile::IntensityWriter::set_number_of_samples()",
+						( boost::format( "n=%d" ) % n).str(),
+						"Expected two alleles."
+					) ;
+				}
+				m_number_of_alleles = n ;
+			}
+
 			void set_sample( std::size_t i ) {
 				assert( i < m_number_of_samples ) ;
 			}
+			void set_order_type( OrderType const order_type, ValueType const value_type ) {
+			}
+
 			void set_number_of_entries( std::size_t n ) {
-				if( n != 2 ) {
-					throw genfile::BadArgumentError( "genfile::IntensityWriter::set_number_of_entries()", "n=" + string_utils::to_string(n), "Expected 2 entries per sample." ) ;
+				if( n != m_number_of_alleles ) {
+					throw genfile::BadArgumentError(
+						"genfile::IntensityWriter::set_number_of_entries()",
+						"n=" + string_utils::to_string(n),
+						"Expected 2 entries per sample."
+					) ;
 				}
 			}
 			void operator()( MissingValue const value ) {
@@ -66,6 +86,7 @@ namespace genfile {
 		private:
 			std::ostream& m_stream ;
 			std::size_t const m_number_of_samples ;
+			std::size_t m_number_of_alleles ;
 		} ;
 	}
 	

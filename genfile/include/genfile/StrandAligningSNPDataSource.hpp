@@ -11,6 +11,7 @@
 #include <map>
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/OffsetFlippedAlleleSetter.hpp"
 
 namespace genfile {
 	struct StrandAligningSNPDataSource: public SNPDataSource
@@ -19,9 +20,9 @@ namespace genfile {
 		static char const eUnknownStrand = '?' ;
 		static char const eForwardStrand = '+' ;
 		static char const eReverseStrand  = '-' ;
-		static char const eUnknownFlip = '?' ;
-		static char const eNoFlip = '+' ;
-		static char const eFlip  = '-' ;
+		static char const eUnknownFlip = OffsetFlippedAlleleSetter::eUnknownFlip ;
+		static char const eNoFlip = OffsetFlippedAlleleSetter::eNoFlip ;
+		static char const eFlip  = OffsetFlippedAlleleSetter::eFlip ;
 
 		static std::string apply_strand( std::string const& allele, char strand ) ;
 

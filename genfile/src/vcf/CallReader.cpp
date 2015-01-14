@@ -96,14 +96,34 @@ namespace genfile {
 					m_ploidies.resize( n ) ;
 					m_entries.reserve( n * 2 ) ;
 				}
+
+				void set_number_of_alleles( std::size_t n ) {
+					assert( n == 2 ) ;
+				}
 				
 				void set_sample( std::size_t sample_i ) {
 					assert( sample_i < m_ploidies.size() ) ;
 					m_sample_i = sample_i ;
 				}
 
-				void set_order_type( OrderType const order_type ) {
+				void set_order_type( OrderType const order_type, ValueType const value_type ) {
+					if( order_type != ePerOrderedHaplotype && m_order_type != ePerUnorderedHaplotype ) {
+						throw BadArgumentError(
+							"genfile::vcf::impl::CallReaderGenotypeSetter::set_order_type()",
+							"order_type",
+							"Expected order_type = ePerOrderedHaplotype or ePerUnorderedHaplotype for genotype field."
+						) ;
+					}
+					if( value_type != eAlleleIndex ) {
+						throw BadArgumentError(
+							"genfile::vcf::impl::CallReaderGenotypeSetter::set_order_type()",
+							"value_type",
+							"Expected value_type = eAlleleIndex for genotype field."
+						) ;
+					}
 					m_order_type = order_type ;
+					//m_value_type = value_type ;
+					
 				}
 
 				void set_number_of_entries( std::size_t n ) {
@@ -167,7 +187,10 @@ namespace genfile {
 						assert( m_genotype_calls.size() >= ( index + ploidy ) ) ;
 						setter.set_sample( sample_i ) ;
 						setter.set_number_of_entries( ploidy ) ;
-						setter.set_order_type( m_order_types[ sample_i ] ) ;
+						setter.set_order_type(
+							m_order_types[ sample_i ],
+							vcf::EntriesSetter::eAlleleIndex
+						) ;
 						for( std::size_t const current_index = index; index < ( current_index + ploidy ); ++index ) {
 							if( m_genotype_calls[ index ] == -1 ) {
 								setter( MissingValue() ) ;

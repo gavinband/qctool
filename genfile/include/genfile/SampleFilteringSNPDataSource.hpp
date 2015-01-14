@@ -13,7 +13,7 @@
 
 namespace genfile {
 	namespace impl {
-		class SampleFilteringVariantDataReader ;
+		struct SampleFilteringVariantDataReader ;
 	}
 	class SampleFilteringSNPDataSource: public SNPDataSource
 	{

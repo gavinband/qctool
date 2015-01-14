@@ -32,20 +32,6 @@ namespace genfile {
 		setup( filename, m_compression_type ) ; 
 	}
 
-	GenFileSNPDataSource::GenFileSNPDataSource(
-		std::string const& filename,
-		Chromosome chromosome,
-		CompressionType compression_type
-	)
-		: m_filename( filename ),
-		  m_compression_type( compression_type ),
-		  m_number_of_samples( 0 ),
-		  m_chromosome( chromosome ),
-		  m_have_chromosome_column( false )
-	{
-		setup( filename, compression_type ) ;
-	}
-
 	void GenFileSNPDataSource::setup( std::string const& filename, CompressionType compression_type ) {
 		m_stream_ptr = open_text_file_for_input( filename, compression_type ) ;
 		read_header_data() ;
@@ -123,9 +109,14 @@ namespace genfile {
                 assert( spec == "GP" || spec == ":genotypes:" ) ;
 				std::size_t const N = m_genotypes.size() / 3 ;
 				setter.set_number_of_samples( N ) ;
+				setter.set_number_of_alleles( 2 ) ;
 				for( std::size_t i = 0; i < N; ++i ) {
 					setter.set_sample( i ) ;
 					setter.set_number_of_entries( 3 ) ;
+					setter.set_order_type(
+						VariantDataReader::PerSampleSetter::ePerUnorderedGenotype,
+						VariantDataReader::PerSampleSetter::eProbability
+					) ;
 					for( std::size_t g = 0; g < 3; ++g ) {
 						setter( m_genotypes[ 3*i + g ] ) ;
 					}

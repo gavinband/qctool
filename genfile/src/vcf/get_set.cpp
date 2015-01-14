@@ -16,6 +16,8 @@ namespace genfile {
 			m_probability_scale( scale == "identity" ? eIdentityScale : ePhredScale ),
 			m_number_of_samples(0),
 			m_sample(0),
+			m_order_type( eUnorderedList ),
+			m_value_type( eUnknownValueType ),
 			m_number_of_entries(0),
 			m_entry_i(0),
 			m_missing( false )
@@ -36,6 +38,11 @@ namespace genfile {
 			m_number_of_samples = n ;
 		}
 
+		void GenotypeSetterBase::set_number_of_alleles( std::size_t n ) {
+			// handle only biallelic variants for now
+			assert( n == 2 ) ;
+		}
+
 		void GenotypeSetterBase::set_sample( std::size_t n ) {
 			assert( n < m_number_of_samples ) ;
 			// First test to see if no data was supplied (i.e. set_number_of_entries was uncalled) for the previous sample.
@@ -44,6 +51,18 @@ namespace genfile {
 			}
 			m_sample = n ;
 			m_missing = true ;
+		}
+
+		void GenotypeSetterBase::set_order_type( OrderType const order_type, ValueType const value_type ) {
+			assert(
+				((value_type == eProbability) && (order_type == ePerUnorderedGenotype))
+				|| 
+				((value_type == eAlleleIndex) && (order_type == ePerOrderedHaplotype || order_type == ePerUnorderedHaplotype))
+				||
+				((value_type == eDosage) && (order_type == eBAlleleDosage))
+			) ;
+			m_order_type = order_type ;
+			m_value_type = value_type ;
 		}
 
 		void GenotypeSetterBase::set_number_of_entries( std::size_t n ) {
@@ -66,7 +85,10 @@ namespace genfile {
 		void GenotypeSetterBase::set() {
 			if( m_missing ) {
 				set( m_sample, 0.0, 0.0, 0.0 ) ;
-			} else if( m_number_of_entries == 1 || m_number_of_entries == 2 ) {
+			} else if(
+				(m_value_type == eDosage && m_order_type == eBAlleleDosage)
+					|| ( m_value_type == eAlleleIndex && ( m_order_type == ePerOrderedHaplotype || m_order_type == ePerUnorderedHaplotype ))
+			) {
 				if( m_A == 0 && m_B == 2 ) {
 					set( m_sample, 0.0, 0.0, 1.0 ) ;
 				}

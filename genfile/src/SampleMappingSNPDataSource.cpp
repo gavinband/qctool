@@ -138,6 +138,10 @@ namespace genfile {
 				m_last_source_sample = 0 ;
 			}
 
+			void set_number_of_alleles( std::size_t n ) {
+				m_setter.set_number_of_alleles( n ) ;
+			}
+
 			void set_sample( std::size_t n ) {
 				boost::optional< std::size_t > const source_sample = m_sample_mapping.find_source_sample_for( n ) ;
 				if( source_sample ) {
@@ -149,6 +153,12 @@ namespace genfile {
 					m_last_source_sample = source_sample.get() + 1 ;
 				} else {
 					m_set_this_sample = false ;
+				}
+			}
+
+			void set_order_type( OrderType const order_type, ValueType const value_type ) {
+				if( m_set_this_sample ) {
+					m_setter.set_order_type( order_type, value_type ) ;
 				}
 			}
 

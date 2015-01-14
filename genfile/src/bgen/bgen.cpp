@@ -10,8 +10,9 @@
 #include "genfile/endianness_utils.hpp"
 #include "genfile/bgen/bgen.hpp"
 #include "genfile/bgen/impl.hpp"
+#include "genfile/string_utils/hex.hpp"
 
-#define DEBUG_BGEN_FORMAT 1
+// #define DEBUG_BGEN_FORMAT 2
 
 namespace genfile {
 	namespace bgen {
@@ -90,23 +91,22 @@ namespace genfile {
 			std::string* first_allele,
 			std::string* second_allele
 		) {
-            uint32_t number_of_samples ;
-			if( aStream ) {
-				genfile::read_little_endian_integer( aStream, &number_of_samples ) ;
-			}
-
 #if DEBUG_BGEN_FORMAT
 			std::cerr << "genfile::bgen::impl::read_snp_identifying_data(): flags = 0x" << std::hex << flags << ".\n" ;
 #endif
 			uint32_t const layout = flags & e_Layout ;
 			if( layout == e_v11Layout ) {
 				// v1.1-style layout
+	            uint32_t number_of_samples ;
 				uint16_t SNPID_size = 0;
 				uint16_t RSID_size = 0;
 				uint32_t allele1_size = 0;
 				uint32_t allele2_size = 0;
 				uint16_t chromosome_size = 0 ;
 				std::string chromosome_string ;
+				if( aStream ) {
+					genfile::read_little_endian_integer( aStream, &number_of_samples ) ;
+				}
 				read_length_followed_by_data( aStream, &SNPID_size, SNPID ) ;
 				read_length_followed_by_data( aStream, &RSID_size, RSID ) ;
 				read_length_followed_by_data( aStream, &chromosome_size, &chromosome_string ) ;
@@ -117,10 +117,13 @@ namespace genfile {
 			}
 			else if( layout == e_v10Layout ) {
 				// v1.0-style layout, deprecated
+	            uint32_t number_of_samples ;
 				unsigned char max_id_size = 0;
 				unsigned char SNPID_size = 0;
 				unsigned char RSID_size = 0;
-				
+				if( aStream ) {
+					genfile::read_little_endian_integer( aStream, &number_of_samples ) ;
+				}
 				if( aStream ) {
 					genfile::read_little_endian_integer( aStream, &max_id_size ) ;
 				}
@@ -273,12 +276,16 @@ namespace genfile {
 		) {
 			if( (flags & e_Layout) == e_v10Layout || (flags & e_Layout) == e_v11Layout ) {
 				setter.set_number_of_samples( number_of_samples ) ;
+				setter.set_number_of_alleles( 2 ) ;
 				
 				double const probability_conversion_factor = impl::get_probability_conversion_factor( flags ) ;
 				for ( uint32_t i = 0 ; i < number_of_samples ; ++i ) {
 					setter.set_sample( i ) ;
 					setter.set_number_of_entries( 3 ) ;
-					setter.set_order_type( VariantDataReader::PerSampleSetter::eOrderedList ) ;
+					setter.set_order_type(
+						VariantDataReader::PerSampleSetter::ePerUnorderedGenotype,
+						VariantDataReader::PerSampleSetter::eProbability
+					) ;
 					assert( end >= buffer + 6 ) ;
 					for( std::size_t g = 0; g < 3; ++g ) {
 						uint16_t prob ;
@@ -301,20 +308,51 @@ namespace genfile {
 			    return ( n * n_choose_k(n - 1, k - 1) ) / k ;
 			}
 			
-			char const* fill_data(
-				char const* buffer,
-				char const* const end,
-				uint64_t* data,
-				uint8_t* size,
-				uint8_t const bits
-			) {
-				// fill data with up to 8 bytes.
-				while( (*size) < bits && buffer < end ) {
-					(*data) |= *(reinterpret_cast< unsigned char const* >( buffer++ )) << (*size) ;
-					(*size) += sizeof( unsigned char ) ;
+			namespace v12 {
+				char const* fill_data(
+					char const* buffer,
+					char const* const end,
+					uint64_t* data,
+					int* size,
+					uint8_t const bits
+				) {
+					// fill data with up to 8 bytes.
+					while( (*size) < bits && buffer < end ) {
+						(*data) |= uint64_t( *(reinterpret_cast< unsigned char const* >( buffer++ ))) << (*size) ;
+						(*size) += sizeof( unsigned char ) * 8 ;
+	#if DEBUG_BGEN_FORMAT > 1
+						std::cerr << "genfile::impl::v12::fill_data(): size = " << (*size)
+							<< ", buffer = " << reinterpret_cast< void const* >( buffer )
+							<< ", data = "
+							<< string_utils::to_hex(
+								reinterpret_cast< unsigned char const* >( data ),
+								reinterpret_cast< unsigned char const* >( data ) + 8
+							) << ".\n" ;
+	#endif
+					}
+					assert( (*size) >= bits ) ;
+					return buffer ;
 				}
-				assert( (*size) >= bits ) ;
-				return buffer ;
+			
+				double consume_value(
+					uint64_t* data,
+					int* size,
+					int const bits
+				) {
+#if DEBUG_BGEN_FORMAT > 1
+					std::cerr << "genfile::impl::v12::consume_value(): size = " << (*size)
+						<< ", data = "
+						<< string_utils::to_hex(
+							reinterpret_cast< unsigned char const* >( data ),
+							reinterpret_cast< unsigned char const* >( data ) + 8
+						) << ".\n" ;
+#endif
+					uint64_t bitMask = (0xFFFFFFFFFFFFFFFF >> ( 64 - bits )) ;
+					double const result = ( *data & bitMask ) / double( bitMask ) ;
+					(*size) -= bits ;
+					(*data) >>= bits ;
+					return result ; 
+				}
 			}
 		}
 		
@@ -328,9 +366,7 @@ namespace genfile {
 			uint32_t numberOfSamples ;
 			uint16_t numberOfAlleles ;
 			unsigned char ploidyExtent[2] ;
-			unsigned char phased ;
 			enum { ePhased = 1, eUnphased = 0 } ;
-			unsigned char bits ;
 				
 			buffer = read_little_endian_integer( buffer, end, &numberOfSamples ) ;
 			buffer = read_little_endian_integer( buffer, end, &numberOfAlleles ) ;
@@ -338,57 +374,81 @@ namespace genfile {
 			buffer = read_little_endian_integer( buffer, end, &ploidyExtent[1] ) ;
 
 			setter.set_number_of_samples( numberOfSamples ) ;
+			setter.set_number_of_alleles( uint32_t( numberOfAlleles ) ) ;
 
-			if( ploidyExtent[0] == 0xFF ) {
-				// all samples are missing.
-				return ;
-			} else {
-				// Keep a pointer to the ploidy and move buffer past the ploidy information
-				char const* ploidy_p = buffer ;
-				buffer += numberOfSamples ;
-				// Get the phased flag and number of bits
-				phased = *buffer++ ;
-				bits = *buffer++ ;
-				// 
-				uint64_t const bitMask = ( uint64_t( 1 ) << bits ) - 1 ;
-				double const bitScale = 1 / double( bitMask ) ;
+			// Keep a pointer to the ploidy and move buffer past the ploidy information
+			char const* ploidy_p = buffer ;
+			buffer += numberOfSamples ;
+			// Get the phased flag and number of bits
+			bool const phased = ((*buffer++) & 0x1 ) ;
+			int const bits = int( *reinterpret_cast< unsigned char const *>( buffer++ ) ) ;
+			uint64_t const bitMask = uint64_t( 0xFFFFFFFFFFFFFFFF ) >> ( 64 - bits ) ;
+			
+#if DEBUG_BGEN_FORMAT
+			std::cerr << "read_uncompressed_snp_probability_data_v12(): numberOfSamples = " << numberOfSamples
+				<< ", phased = " << phased << ".\n" ;
+			std::cerr << "read_uncompressed_snp_probability_data_v12(): *buffer: "
+				<< string_utils::to_hex( buffer, end ) << ".\n" ;
+			std::cerr << "read_uncompressed_snp_probability_data_v12(): bitMask: "
+				<< std::hex << bitMask
+				<< ".\n" ;
+#endif
+
+			{
 				uint64_t data = 0 ;
-				uint8_t size = 0 ;
+				int size = 0 ;
+				for( uint32_t i = 0; i < numberOfSamples; ++i, ++ploidy_p ) {
+					uint32_t const ploidy = uint32_t(*reinterpret_cast< unsigned char const* >( ploidy_p ) & 0x3F) ;
+					bool const missing = (*reinterpret_cast< unsigned char const* >( ploidy_p ) & 0x80) ;
+					uint32_t const valueCount
+						= phased
+						? (ploidy * numberOfAlleles)
+						: impl::n_choose_k( ploidy + numberOfAlleles - 1, numberOfAlleles - 1 ) ;
+					uint32_t const storedValueCount = valueCount - ( phased ? ploidy : 1 ) ;
+					
+#if DEBUG_BGEN_FORMAT > 1
+					std::cerr << "read_uncompressed_snp_probability_data_v12(): sample " << i
+						<< ", ploidy = " << ploidy
+						<< ", missing = " << missing
+						<< ", valueCount = " << valueCount
+						<< ", storedValueCount = " << storedValueCount
+						<< ", data = " << string_utils::to_hex( buffer, end )
+						<< ".\n" ;
+#endif
 
-				if( phased == ePhased ) {
-					for( uint32_t i = 0; i < numberOfSamples; ++i, ++ploidy_p ) {
-						setter.set_number_of_entries( *ploidy_p * numberOfAlleles ) ;
-						setter.set_order_type( VariantDataReader::PerSampleSetter::eOrderedList ) ;
-						for( unsigned char h = 0; h < *ploidy_p; ++h ) {
-							double sum = 0 ;
-							for( uint16_t k = 0; k < numberOfAlleles - 1; ++k ) {
-								buffer = impl::fill_data( buffer, end, &data, &size, bits ) ;
-								double const value = ( data & bitMask ) * bitScale ;
-								setter( value ) ;
-								sum += value ;
-							}
-							assert( sum <= 1.0001 ) ;
-							setter( 1.0 - sum ) ;
+					setter.set_sample( i ) ;
+					setter.set_number_of_entries( valueCount ) ;
+					setter.set_order_type(
+						(
+							phased
+								? VariantDataReader::PerSampleSetter::ePerPhasedHaplotypePerAllele
+								: VariantDataReader::PerSampleSetter::ePerUnorderedGenotype
+						),
+						VariantDataReader::PerSampleSetter::eProbability
+					) ;
+
+					if( missing ) {
+						for( std::size_t h = 0; h < valueCount; ++h ) {
+							setter( genfile::MissingValue() ) ;
 						}
-					}
-				} else if( phased == eUnphased ) {
-					for( uint32_t i = 0; i < numberOfSamples; ++i, ++ploidy_p ) {
-						uint32_t const count = impl::n_choose_k( *ploidy_p + numberOfAlleles - 1, numberOfAlleles - 1 ) ;
-						setter.set_number_of_entries( count ) ;
-						setter.set_number_of_entries( *ploidy_p * numberOfAlleles ) ;
-						setter.set_order_type( VariantDataReader::PerSampleSetter::eOrderedList ) ;
-						double sum = 0 ;
-						for( uint32_t h = 0; h < (count-1); ++h ) {
-							buffer = impl::fill_data( buffer, end, &data, &size, bits ) ;
-							double const value = ( data & bitMask ) * bitScale ;
+					} else {
+						double sum = 0.0 ;
+						for( uint32_t h = 0; h < storedValueCount; ++h ) {
+							buffer = impl::v12::fill_data( buffer, end, &data, &size, bits ) ;
+							double const value = impl::v12::consume_value( &data, &size, bits ) ;
 							setter( value ) ;
 							sum += value ;
+							
+							if(
+								( phased & (h+1) % (numberOfAlleles-1) )
+								|| ((!phased) & (h+1) == storedValueCount )
+							) {
+								assert( sum <= 1.00000001 ) ;
+								setter( 1.0 - sum ) ;
+								sum = 0.0 ;
+							}
 						}
-						assert( sum <= 1.0001 ) ;
-						setter( 1.0 - sum ) ;
 					}
-				} else {
-					assert(0) ;
 				}
 			}
 		}

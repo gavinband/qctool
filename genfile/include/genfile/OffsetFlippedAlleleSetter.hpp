@@ -4,8 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef FLIPPED_ALLELE_SETTER_HPP
-#define FLIPPED_ALLELE_SETTER_HPP
+#ifndef GENFILE_FLIPPED_ALLELE_SETTER_HPP
+#define GENFILE_FLIPPED_ALLELE_SETTER_HPP
 
 
 #include <string>

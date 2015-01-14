@@ -14,11 +14,11 @@ namespace genfile {
 
 	VariantDataReader::~VariantDataReader() {}
 
-	VariantDataReader& VariantDataReader::get( std::string const& spec, std::vector< std::vector< Entry > >& data ) {
-		vcf::VectorSetter setter( data ) ;
-		get( spec, setter ) ;
-		return *this ;
-	}
+//	VariantDataReader& VariantDataReader::get( std::string const& spec, std::vector< std::vector< Entry > >& data ) {
+//		vcf::VectorSetter setter( data ) ;
+//		get( spec, setter ) ;
+//		return *this ;
+//	}
 
 //	VariantDataReader& VariantDataReader::get( std::string const& spec, genfile::SingleSNPGenotypeProbabilities& data ) {
 //		vcf::GenotypeSetter< genfile::SingleSNPGenotypeProbabilities > setter( data ) ;

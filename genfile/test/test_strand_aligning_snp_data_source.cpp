@@ -16,7 +16,7 @@
 #include "genfile/SNPDataSink.hpp"
 #include "stdint.h"
 
-
+AUTO_TEST_SUITE( StrandAligningSNPDataSourceTest )
 
 // The following section contains a simple snp block writer.
 namespace data {
@@ -175,3 +175,5 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 	
 	std::cerr << "ok.\n" ;
 }
+
+AUTO_TEST_SUITE_END()

@@ -14,17 +14,18 @@
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceRack.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/OffsetFlippedAlleleSetter.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/get_list_of_snps_in_source.hpp"
 #include "genfile/string_utils/slice.hpp"
 
-namespace {
-	static char const eUnknownFlip = '?' ;
-	static char const eNoFlip = '+' ;
-	static char const eFlip  = '-' ;
-}
-
 namespace genfile {
+	namespace {
+		static char const eUnknownFlip = OffsetFlippedAlleleSetter::eUnknownFlip ;
+		static char const eNoFlip = OffsetFlippedAlleleSetter::eNoFlip ;
+		static char const eFlip  = OffsetFlippedAlleleSetter::eFlip ;
+	}
+
 	std::auto_ptr< SNPDataSourceRack > SNPDataSourceRack::create( std::vector< wildcard::FilenameMatch > const& filenames ) {
 		std::auto_ptr< SNPDataSourceRack > rack( new SNPDataSourceRack() ) ;
 		for( std::size_t i = 0; i < filenames.size(); ++i ) {
@@ -275,88 +276,7 @@ namespace genfile {
 		return false ;
 	}
 		
-
 	namespace impl {
-		struct OffsetFlipSampleSetter: public VariantDataReader::PerSampleSetter {
-            ~OffsetFlipSampleSetter() throw() {} 
-            OffsetFlipSampleSetter(
-				VariantDataReader::PerSampleSetter& setter,
-				std::size_t offset,
-				std::size_t number_of_samples
-			):
-				m_setter( setter ),
-				m_offset( offset ),
-				m_flip( eNoFlip ),
-				m_number_of_samples( number_of_samples )
-			{
-				m_setter.set_number_of_samples( m_number_of_samples ) ;
-			}
-
-			void set_number_of_samples( std::size_t n ) { /* do nothing. */ }
-			void set_sample( std::size_t n ) {
-				assert( ( n + m_offset ) < m_number_of_samples ) ;
-				m_setter.set_sample( n + m_offset ) ;
-			}
-
-			void set_number_of_entries( std::size_t n ) {
-				m_number_of_entries = n ;
-				m_entry_i = 0 ;
-				m_setter.set_number_of_entries( n ) ;
-			}
-
-			void set_offset( std::size_t offset ) { m_offset = offset ; }
-			std::size_t get_offset() const { return m_offset ; }
-
-			void set_flip( char flip ) {
-                assert( flip == eNoFlip || flip == eUnknownFlip || flip == eFlip ) ;
-                m_flip = flip ;
-            }
-			std::size_t get_flip() const { return m_flip ; }
-
-			void operator()( MissingValue const value ) { store( value ) ; }
-			void operator()( std::string& value ) { store( value ) ; }
-			void operator()( Integer const value ) { store( value ) ; }
-			void operator()( double const value ) { store( value ) ; }
-
-		private:
-			VariantDataReader::PerSampleSetter& m_setter ;
-			std::size_t m_offset ;
-			char m_flip ;
-			std::size_t m_number_of_samples ;
-			std::vector< VariantEntry > m_values ;
-			std::size_t m_number_of_entries ;
-			std::size_t m_entry_i ;
-            
-			template< typename T >
-			void store( T value ) {
-				if( m_values.size() < ( m_entry_i + 1 ) ) {
-					m_values.resize( m_entry_i + 1 ) ;
-				}
-				m_values[ m_entry_i++ ] = value ;
-				if( m_entry_i == m_number_of_entries ) {
-					set_values() ;
-				}
-			}
-
-			void set_values() {
-				for( std::size_t i = 0; i < m_number_of_entries; ++i ) {
-					VariantEntry const& entry = ( m_flip == eFlip ) ? m_values[ m_number_of_entries - 1 - i ] : m_values[ i ] ;
-					if( entry.is_missing() ) {
-						m_setter( MissingValue() ) ;
-					} else if( entry.is_string() ) {
-						std::string value = entry.as< std::string >() ;
-						m_setter( value ) ;
-					} else if( entry.is_int() ) {
-						m_setter( entry.as< VariantEntry::Integer >() ) ;
-					} else if( entry.is_double() ) {
-						m_setter( entry.as< double >() ) ;
-					} else {
-						assert(0) ;
-					}
-				}
-			}
-		} ;
-		
 		void add_spec_to_map( std::map< std::string, std::string >* map, std::string const& name, std::string const& type ) {
 			(*map)[ name ] = type ;
 		}
@@ -378,7 +298,7 @@ namespace genfile {
 			}
 
 			RackVariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
-				OffsetFlipSampleSetter offset_flip_sample_setter( setter, 0, m_rack.number_of_samples() ) ;
+				OffsetFlippedAlleleSetter offset_flip_sample_setter( setter, m_rack.number_of_samples(), eNoFlip, 0 ) ;
 				std::size_t sample_offset = 0 ;
 				for( std::size_t i = 0; i < m_rack.m_sources.size(); ++i ) {
 					offset_flip_sample_setter.set_offset( sample_offset ) ;

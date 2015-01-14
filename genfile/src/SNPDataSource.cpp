@@ -44,16 +44,6 @@ namespace genfile {
 		boost::optional< vcf::MetadataParser::Metadata > const& metadata,
 		std::string const& filetype_hint
 	) {
-		return SNPDataSource::create( filename, chromosome_hint, get_compression_type_indicated_by_filename( filename ), metadata, filetype_hint ) ;
-	}
-
-	std::auto_ptr< SNPDataSource > SNPDataSource::create(
-		std::string const& filename,
-		Chromosome chromosome_hint,
-		CompressionType compression_type,
-		boost::optional< vcf::MetadataParser::Metadata > const& metadata,
-		std::string const& filetype_hint
-	) {
 		std::pair< std::string, std::string > uf = uniformise( filename ) ;
 		
 		if( filetype_hint != "guess" ) {
@@ -61,25 +51,25 @@ namespace genfile {
 		}
 		
 		if( uf.first == "bgen" ) {
-			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second, compression_type )) ;
+			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second )) ;
 		}
 		else if( uf.first == "vcf" ) {
 			return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second, metadata )) ;
 		}
 		else if( uf.first == "gen" ) {
-			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint )) ;
 		}
 		else if( uf.first == "dosage" ) {
-			return std::auto_ptr< SNPDataSource >( new DosageFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+			return std::auto_ptr< SNPDataSource >( new DosageFileSNPDataSource( uf.second, chromosome_hint )) ;
 		}
 		else if( uf.first == "hapmap_haplotypes" ) {
-			return std::auto_ptr< SNPDataSource >( new HapmapHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+			return std::auto_ptr< SNPDataSource >( new HapmapHaplotypesSNPDataSource( uf.second, chromosome_hint )) ;
 		}
 		else if( uf.first == "impute_haplotypes" ) {
-			return std::auto_ptr< SNPDataSource >( new ImputeHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+			return std::auto_ptr< SNPDataSource >( new ImputeHaplotypesSNPDataSource( uf.second, chromosome_hint )) ;
 		}
 		else if( uf.first == "shapeit_haplotypes" ) {
-			return std::auto_ptr< SNPDataSource >( new ShapeITHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+			return std::auto_ptr< SNPDataSource >( new ShapeITHaplotypesSNPDataSource( uf.second, chromosome_hint )) ;
 		}
 		else if( uf.first == "binary_ped" ) {
 			if( uf.second.size() < 4 || uf.second.substr( uf.second.size() - 4, 4 ) != ".bed" ) {

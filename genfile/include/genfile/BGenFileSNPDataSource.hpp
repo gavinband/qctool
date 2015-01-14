@@ -25,7 +25,6 @@ namespace genfile {
 		friend struct impl::BGenFileSNPDataReader ;
 	public:
 		BGenFileSNPDataSource( std::string const& filename ) ;
-		BGenFileSNPDataSource( std::string const& filename, CompressionType compression_type ) ;
 
 		Metadata get_metadata() const ;
 
