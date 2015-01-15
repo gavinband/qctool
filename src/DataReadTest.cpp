@@ -10,6 +10,7 @@
 #include "genfile/Error.hpp"
 #include "genfile/zlib.hpp"
 #include "genfile/endianness_utils.hpp"
+#include "genfile/vcf/get_set.hpp"
 #include "appcontext/OptionProcessor.hpp"
 #include "DataReadTest.hpp"
 
@@ -35,7 +36,8 @@ void DataReadTest::processed_snp( genfile::SNPIdentifyingData const& snp, genfil
 	for( std::size_t field_i = 0; field_i < fields.size(); ++field_i ) {
 		std::string const field = fields[ field_i ] ;
 		// Make sure we've got these fields in Entity
-		data_reader.get( field, m_data ) ;
+		genfile::vcf::VectorSetter setter( m_data ) ;
+		data_reader.get( field, setter ) ;
 	}
 }
 

@@ -134,6 +134,11 @@ namespace {
 				m_bitpack_index = 0 ;
 			}
 		}
+		
+		void set_number_of_alleles( std::size_t n ) {
+			assert( n == 2 ) ;
+		}
+		
 		void set_sample( std::size_t i ) {
 			if( i > 0 ) {
 				*(m_buf_p[ eUBJSON ]++) = ']' ;
@@ -151,11 +156,19 @@ namespace {
 			m_ploidy = n ;
 		}
 
-		void set_order_type( OrderType order_type ) {
-			if( order_type != eOrderedList ) {
+		void set_order_type( OrderType const order_type, ValueType const value_type ) {
+			if( order_type != ePerOrderedHaplotype ) {
 				throw genfile::BadArgumentError(
 					"genfile::HaplotypeWriter::set_order_type()",
-					"order_type=eUnorderedList"
+					"order_type",
+					"Expected order_type == ePerOrderedHaplotype"
+				) ;
+			}
+			if( value_type != eAlleleIndex ) {
+				throw genfile::BadArgumentError(
+					"genfile::HaplotypeWriter::set_order_type()",
+					"value_type",
+					"Expected value_type == eAlleleIndex"
 				) ;
 			}
 		}

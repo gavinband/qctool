@@ -12,7 +12,7 @@
 #include "genfile/bgen/impl.hpp"
 #include "genfile/string_utils/hex.hpp"
 
-// #define DEBUG_BGEN_FORMAT 2
+//#define DEBUG_BGEN_FORMAT 2
 
 namespace genfile {
 	namespace bgen {
@@ -173,59 +173,40 @@ namespace genfile {
 			std::string first_allele,
 			std::string second_allele
 		) {
-			write_little_endian_integer( aStream, number_of_samples ) ;
 			uint32_t const layout = flags & e_Layout ;
+			assert( layout == e_v11Layout || layout == e_v12Layout ) ;
 
-			if( layout == e_v11Layout || layout == e_v12Layout ) {
-				std::size_t const max_allele_length = std::numeric_limits< uint32_t >::max() ;
-				std::size_t const max_id_length = std::numeric_limits< uint16_t >::max() ;
-				assert( SNPID.size() <= static_cast< std::size_t >( max_id_length )) ;
-				assert( RSID.size() <= static_cast< std::size_t >( max_id_length )) ;
-				if( first_allele.size() > static_cast< std::size_t >( max_allele_length ) ) {
-					std::cerr << "Warning: at SNP " << SNPID << " " << RSID << " pos=" << SNP_position << ", truncating first allele of size " << first_allele.size() << ".\n" ;
-					first_allele.resize( max_allele_length - 3 ) ;
-					first_allele += "..." ;
-				}
-				if( second_allele.size() > static_cast< std::size_t >( max_allele_length ) ) {
-					std::cerr << "Warning: at SNP " << SNPID << " " << RSID << " pos=" << SNP_position << ", truncating second allele of size " << second_allele.size() << ".\n" ;
-					second_allele.resize( max_allele_length - 3 ) ;
-					second_allele += "..." ;
-				}
-				write_length_followed_by_data( aStream, uint16_t( SNPID.size() ), SNPID.data() ) ;
-				write_length_followed_by_data( aStream, uint16_t( RSID.size() ), RSID.data() ) ;
-				std::string const chromosome_string = Chromosome( chromosome ) ;
-				write_length_followed_by_data( aStream, uint16_t( chromosome_string.size() ), chromosome_string ) ;
-				write_little_endian_integer( aStream, SNP_position ) ;
-				
-				if( layout == e_v12Layout ) {
-					write_little_endian_integer( aStream, uint16_t(2) ) ;
-				}
-				write_length_followed_by_data( aStream, uint32_t( first_allele.size() ), first_allele.data() ) ;
-				write_length_followed_by_data( aStream, uint32_t( second_allele.size() ), second_allele.data() ) ;
+			if( layout == e_v11Layout ) {
+				write_little_endian_integer( aStream, number_of_samples ) ;
+				// otherwise this is moved to the probability data block.
 			}
-			else if( layout == e_v10Layout ) {
-				// v1.0-style layout is deprecated.
-				assert( SNPID.size() <= static_cast< std::size_t >( max_id_size )) ;
-				assert( RSID.size() <= static_cast< std::size_t >( max_id_size )) ;
-				unsigned char SNPID_size = SNPID.size() ;
-				unsigned char RSID_size = RSID.size() ;
-				SNPID.resize( max_id_size, ' ' ) ;
-				RSID.resize( max_id_size, ' ' ) ;
 
-				write_little_endian_integer( aStream, max_id_size ) ;
-				write_length_followed_by_data( aStream, SNPID_size, SNPID.data() ) ;
-				aStream.write( SNPID.data() + SNPID_size, max_id_size - SNPID_size ) ;
-				write_length_followed_by_data( aStream, RSID_size, RSID.data() ) ;
-				aStream.write( RSID.data() + RSID_size, max_id_size - RSID_size ) ;
-				write_little_endian_integer( aStream, chromosome ) ;
-				write_little_endian_integer( aStream, SNP_position ) ;
-
-				assert( first_allele.size() == 1 && second_allele.size() == 1 ) ;
-				aStream.put( first_allele[0] ) ;
-				aStream.put( second_allele[0] ) ;
-			} else {
-				assert(0) ;
+			std::size_t const max_allele_length = std::numeric_limits< uint32_t >::max() ;
+			std::size_t const max_id_length = std::numeric_limits< uint16_t >::max() ;
+			assert( SNPID.size() <= static_cast< std::size_t >( max_id_length )) ;
+			assert( RSID.size() <= static_cast< std::size_t >( max_id_length )) ;
+			if( first_allele.size() > static_cast< std::size_t >( max_allele_length ) ) {
+				std::cerr << "Warning: at SNP " << SNPID << " " << RSID << " pos=" << SNP_position << ", truncating first allele of size " << first_allele.size() << ".\n" ;
+				first_allele.resize( max_allele_length - 3 ) ;
+				first_allele += "..." ;
 			}
+			if( second_allele.size() > static_cast< std::size_t >( max_allele_length ) ) {
+				std::cerr << "Warning: at SNP " << SNPID << " " << RSID << " pos=" << SNP_position << ", truncating second allele of size " << second_allele.size() << ".\n" ;
+				second_allele.resize( max_allele_length - 3 ) ;
+				second_allele += "..." ;
+			}
+			write_length_followed_by_data( aStream, uint16_t( SNPID.size() ), SNPID.data() ) ;
+			write_length_followed_by_data( aStream, uint16_t( RSID.size() ), RSID.data() ) ;
+			std::string const chromosome_string = Chromosome( chromosome ) ;
+			write_length_followed_by_data( aStream, uint16_t( chromosome_string.size() ), chromosome_string ) ;
+			write_little_endian_integer( aStream, SNP_position ) ;
+			
+			if( layout == e_v12Layout ) {
+				// v12 has an explicit allele count, here equal to 2.
+				write_little_endian_integer( aStream, uint16_t(2) ) ;
+			}
+			write_length_followed_by_data( aStream, uint32_t( first_allele.size() ), first_allele.data() ) ;
+			write_length_followed_by_data( aStream, uint32_t( second_allele.size() ), second_allele.data() ) ;
 		}
 
 		namespace impl {
@@ -290,7 +271,7 @@ namespace genfile {
 					for( std::size_t g = 0; g < 3; ++g ) {
 						uint16_t prob ;
 						buffer = read_little_endian_integer( buffer, end, &prob ) ;
-						setter( impl::convert_from_integer_representation( prob, probability_conversion_factor ) ) ;
+						setter( impl::v11::convert_from_integer_representation( prob, probability_conversion_factor ) ) ;
 					}
 				}
 			} else {
@@ -440,8 +421,8 @@ namespace genfile {
 							sum += value ;
 							
 							if(
-								( phased & (h+1) % (numberOfAlleles-1) )
-								|| ((!phased) & (h+1) == storedValueCount )
+								( phased && ((h+1) % (numberOfAlleles-1) ) == 0 )
+								|| ((!phased) && (h+1) == storedValueCount )
 							) {
 								assert( sum <= 1.00000001 ) ;
 								setter( 1.0 - sum ) ;

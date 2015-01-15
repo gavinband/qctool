@@ -3,7 +3,7 @@
 	<HEAD> 
 		<TITLE>The BGEN format</TITLE>
 		<LINK HREF="style.css" REL="stylesheet">
-	</HEAD> 
+	</HEAD>
   <BODY ALINK="orange"> 
 		 <!--#include virtual="/header.shtml" -->
 		<div>
@@ -169,16 +169,19 @@
 			<h3>SNP blocks</h3>
 			<p>
 				Following the header comes a sequence of 0 or more SNP blocks.
-				The format of SNP blocks depends on the value of the <em>Layout</em> flag set in the header block.
-				When <em>Layout</em>=0, SNP blocks are layed out as per the v1.0 spec, described <a href="bgen_format_v1.0.html">here</a>.)
-				When <em>Layout</em>=1, SNP blocks are layed out as per the v1.1 spec, described <a href="bgen_format_v1.1.html">here</a>.)
-				When <em>Layout</em>=2, SNP blocks are layed out as follows.
+                This document describes SNP blocks for version 1.1 (specified by <em>Layout</em>=1) and 1.2 (<em>Layout</em>=2) of the BGEN spec.
+                Version 1.0 of the spec (specified by <em>Layout</em>=0) is deprecated and will be removed from the spec at a later date.
+                A specification for version 1.0 can be found here <a href="bgen_format_v1.0.html">here</a>.
 			</p>
 			<table class="filespec" align="center">
 				<thead>
 				<tr><th>No. of bytes</th><th>Description</th></tr>
 				</thead>
 				<tbody>
+				<tr><td>4</td><td>
+                    The number of individuals the row represents, hereafter denoted <em>N</em>.
+                    This is only present if <em>Layout=1</em> (otherwise it appears instead in the SNP probability block below).
+                </td></tr>
 				<tr><td>2</td><td>The length <em>L<sub>id</sub></em> of the variant identifier. (The variant identifier is intended to store e.g. chip
 					manufacturer IDs for assayed SNPs).</td></tr>
 				<tr><td><em>L<sub>id</sub></em></td><td>The variant identifier.</td></tr>
@@ -187,7 +190,8 @@
 				<tr><td>2</td><td>The length <em>L<sub>chr</sub></em> of the chromosome</td></tr>
 				<tr><td><em>L<sub>chr</chr></em></td><td>The chromosome</td></tr>
 				<tr><td>4</td><td>The variant position, encoded as an unsigned 32-bit integer.</td></tr>
-				<tr><td>2</td><td>The number <em>K</em> of alleles, encoded as an unsigned 16-bit integer.</td></tr>
+				<tr><td>2</td><td>The number <em>K</em> of alleles, encoded as an unsigned 16-bit integer.
+                    If <em>Layout</em>=1, this field is omitted, and assumed to equal <em>2</em>.</td></tr>
 				<tr><td>4</td><td>The length <em>L<sub>a1</sub></em> of the first allele.</td></tr>
 				<tr><td><em>L<sub>a1</sub></em></td><td>The first allele.</td></tr>
 				<tr><td>4</td><td>The length <em>L<sub>a2</sub></em> of the second allele.</td></tr>
@@ -195,7 +199,9 @@
 				<tr><td>...</td><td>...(possibly more alleles)...</td></tr>
 				<tr><td>4</td><td>The length <em>L<sub>aK</sub></em> of the <em>K</em>th allele.</td></tr>
 				<tr><td><em>L<sub>aK</sub></em></td><td>The <em>K</em>th allele.</td></tr>
-				<tr><td><em>4</em></td><td>The length <em>D</em> of the (compressed or uncompressed) genotype probability data.
+				<tr><td><em>4</em></td><td>The total length <em>D</em> in bytes of the
+                    genotype probability data (after uncompression if <em>CompressedSNPBlocks</em>=1).
+                    If <em>Layout</em>=1, this field is omitted and assumed to equal <em>2 x N</em>.
 				<tr><td><em>D</em></td><td>Compressed or uncompressed genotype probability data for the variant.
 					When <em>CompressedSNPBlocks</em>=0, this consists of the genotype probability data as defined below.
 					When <em>CompressedSNPBlocks</em>=1, this consists of a 32-bit unsigned integer indicating the length of the
@@ -214,51 +220,42 @@
 				<tr><th width='20%'>No. of bytes</th><th>Description</th></tr>
 				</thead>
 				<tbody>
-				<tr><td>4</td><td>The number of individuals the row represents, hereafter denoted <em>N</em>.</td></tr>
-				<tr><td>1</td><td>The minimum ploidy <em>P<sub>min</sub></em> of samples in the row.
-				<tr><td>1</td><td>The maximum ploidy <em>P<sub>max</sub></em> of samples in the row.<br/>
-				    A value of 0xFF (all bits set to 1) for <em>P<sub>min</sub></em> or <em>P<sub>max</sub></em> indicates that all probability
-					data is missing for this row.  In this case both <em>P<sub>min</sub></em> and <em>P<sub>max</sub></em>
-					should be set to 0xFF, and no further data is stored for the row.  Otherwise, the following further fields are stored:
+				<tr><td>4</td><td>
+                    The number of individuals the row represents, hereafter denoted <em>N</em>.
+                </td></tr>
+				<tr><td>2</td><td>The number <em>K</em> of alleles, encoded as an unsigned 16-bit integer.
+                    If <em>Layout</em>=1, this field is omitted, and assumed to equal <em>2</em>.</td></tr>
+				<tr><td>1</td><td>The minimum ploidy <em>P<sub>min</sub></em> of samples in the row.  Values between 0 and 63 are allowed.
+				<tr><td>1</td><td>The maximum ploidy <em>P<sub>max</sub></em> of samples in the row.  Values between 0 and 63 are allowed.
 				<tr><td><em>N</em></td><td>A list of <em>N</em> bytes, where the <em>n</em>th byte is an unsigned integer
-					representing the ploidy of the <em>n</em>th sample.  A value of 0xFF
-					indicates that probabilities for that sample are missing.
+					representing the missingness and ploidy of the <em>n</em>th sample.  Ploidy (possible values 0-63) is
+                    encoded in the least significant 6 bits of this value.  Missingness is encoded by the most
+                    significant bit; thus a value of 1 for the most significant bit indicates that no probability data is stored
+                    for this sample.
+                    <br/>(Note: there is no way to indicate that the ploidy itself is missing.)
 				</td></tr>
-				<tr><td>1</td><td>Flag, denoted <em>Phased</em> indicating what is stored in the row.  The total number
-					of probabilities stored is <em>N</em>&times;</em>Z</em>, where <em>Z</em> is the number of probabilities
-					stored per sample as follows:</br />
-					If <em>Phased</em>=1 the row stores one probability per allele (other than the first allele)
-					per haplotype (e.g. to represent phased data).  Therefore <em>Z</em>=<em>H&times;(K-1)</em>
-					in this case.<br />
+				<tr><td>1</td><td>Flag, denoted <em>Phased</em> indicating what is stored in the row.
+                    </br />
+					If <em>Phased</em>=1 the row stores one probability per allele (other than the last allele)
+					per haplotype (e.g. to represent phased data).
+                    <br />
 					If <em>Phased</em>=0 the row stores one probability per possible genotype (other than
-					the 'first' genotype where all alleles are the first allele), to represent unphased data.  There will be
-					<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline">
-						<mi>Z</mi><mo>=</mo>
-						<mo>(</mo>
-						<mfrac linethickness="0">
-							<mi>H+K-1</mi>
-							<mi>K-1</mi>
-						</mfrac>
-						<mo>)</mo>
-						<mo>-</mo><mn>1</mn>
-					</math>
-					probabilities per sample.<br />
+					the 'last' genotype where all alleles are the last allele), to represent unphased data.<br />
 					Any other value for <em>Phased</em> is an error.
 				</td></tr>
 				<tr><td>1</td></td><td>Unsigned integer <em>B</em> representing the number of bits used to store
-					each probability in this row</td></tr>
+					each probability in this row.  This must be between 1 and 32 inclusive.</td></tr>
 				<tr>
 				<td>
-					<em>N</em>&times;<em>Z</em>
+					<em>X</em>
 				</td>
 				<td>
 					Probabilities for each possible haplotype (if <em>Phased</em>=1) or genotype (if <em>Phased</em>=0) for the samples.
 					Each probability is stored in <em>B</em> bits.  Values are interpreted by linear interpolation between 0 and 1,
-					i.e. value <em>b</em> corresponds to probability <em>b</em> / ( 2<sup>b</sup>-1 ).
-					When storing the value, probabilities should be rounded to the nearest value of this form.
-					Probabilities for samples with missing data (<em>P<sub>n</sub></em>=0xF) should be stored as 0.
-					Probabilities are stored consecutively for samples 1, 2, ..., <em>N</em>. 
-					For each sample the order of stored probabilities is described below.
+					i.e. value <em>b</em> corresponds to probability <em>b</em> / ( 2<sup>B</sup>-1 ).
+					When storing the value, probabilities should be rounded according to the algorithm described below.
+					Probabilities are stored consecutively for samples 1, 2, ..., <em>N</em>. For each sample the order of stored probabilities is described below.
+					Probabilities for samples with missing data (as defined by the missingness/ploidy byte) are omitted.
 				</td>
 				</tr>
 				</tbody>
@@ -270,66 +267,61 @@
 		<h3>Per-sample order of stored probabilities</h3>
 		<p>
 			Consider a sample with ploidy <em>H</em> and a variant with <em>K</em> alleles.
-        <p>
-			For phased data, probabilities are stored in the
-			order of haplotypes and then alleles, ie:
-			<div class="displayFormula">
-			<em>P<sub>12</sub></em>, <em>P<sub>13</sub></em>, ..., <em>P<sub>1K</sub></em>,
-			<em>P<sub>22</sub></em>, ..., <em>P<sub>2K</sub></em>,
-			..., 
-			<em>P<sub>H2</sub></em>, ..., <em>P<sub>HK</sub></em>.
-			</div>
-			where <em>P<sub>ij</sub></em> is the probability that haplotype <em>i</em> has allele <em>j</em>.
-			For each haplotype <em>i</em> the value <em>P<sub>i1</sub></em> is not stored; instead it is inferred as one minus the
-			sum of other probabilities for that haplotype.  If values are stored in <em>B</em> bits, the maximum possible rounding error
-			for one stored probability is 1/(2<sup><em>B</em>+1</sup>-2), but the maximum possible error in <em>P<sub>i1</sub></em> is
-			(<em>K</em>-1)/(2<sup><em>B</em>+1</sup>-2).  For a desired accuracy of &epsilon; we therefore recommend choosing
-			 <em>B</em> so that 2<sup><em>B+1</em></sup> &geq; (2+(<em>K</em>-1)/&epsilon;),
-			 i.e. <em>B</em> &geq; log<sub>2</sub>(2+(<em>K</em>-1)/&epsilon;) - 1  so that this quantity is less than
-			the desired accuracy.  For accuracy to <em>d</em> decimal places we need the values to be correct to within &epsilon; = 0.5&times;10<sup>-d</sup>.
-			The following table gives appropriate values of <em>B</em> for different accuracies and allele counts.
         </p>
-		<table class="printStyleTable">
-			<thead>
-				<tr><th></th><th>1dp</th><th>2dps</th><th>3dps</th><th>4dps</th></tr>
-			</thead>
-			<tbody>
-				<tr><th><em>K</em>=2</th><td>4</td><td>7</td><td>10</td><td>14</td></tr>
-				<tr><th><em>K</em>=3</th><td>5</td><td>8</td><td>11</td><td>15</td></tr>
-				<tr><th><em>K</em>=4</th><td>5</td><td>9</td><td>12</td><td>15</td></tr>
-				<tr><th><em>K</em>=5</th><td>6</td><td>9</td><td>12</td><td>16</td></tr>
-			</tbody>
-		</table>
-        <p>
-			For unphased data, the possible allelic configurations can be enumerated by considering all
-			strings of length <em>H</em> in the alphabet <em>1, ..., K</em> sorted so that digits
-			do not decrease across the string.  (The number of such strings equals the number of ways of
-			putting <em>H</em> unlabelled things into <em>K</em> boxes, i.e.
-			<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline">
-				<mo>(</mo>
-				<mfrac linethickness="0">
-					<mi>H+K-1</mi>
-					<mi>K-1</mi>
-				</mfrac>
-				<mo>)</mo>
-				<mo>-</mo><mn>1</mn>
-			</math>
-			).
+        <ul>
+            <li>
+    			For <b>phased data</b>, probabilities are stored in the
+    			order of haplotypes and then alleles, ie:
+    			<div class="displayFormula">
+    			<em>P<sub>11</sub></em>, <em>P<sub>13</sub></em>, ..., <em>P<sub>1(K-1)</sub></em>,
+    			<em>P<sub>21</sub></em>, ..., <em>P<sub>2(K-1)</sub></em>,
+    			..., 
+    			<em>P<sub>H1</sub></em>, ..., <em>P<sub>H(K-1)</sub></em>.
+    			</div>
+    			where <em>P<sub>ij</sub></em> is the probability that haplotype <em>i</em> has allele <em>j</em>.
+    			For each haplotype <em>i</em> the probability of the Kth allele (<em>P<sub>iK</sub></em>) is not stored; instead it is inferred as one minus the
+    			sum of other probabilities for that haplotype.
+            </li>
+            <li>
+                <p>
+        			For <b>unphased data</b>, the possible allelic configurations can be enumerated by considering all
+        			strings of length <em>H</em> in the alphabet <em>1, ..., K</em> sorted so that digits
+        			do not decrease across the string.  (The number of such strings equals the number of ways of
+        			putting <em>H</em> unlabelled things into <em>K</em> boxes, i.e.
+        			<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline">
+        				<mo>(</mo>
+        				<mfrac linethickness="0">
+        					<mi>H+K-1</mi>
+        					<mi>K-1</mi>
+        				</mfrac>
+        				<mo>)</mo>
+        			</math>
+        			).
 			
-			We store the probabilities in lexicographic order of these strings, omitting the first,
-			e.g. for <em>H</em>=4:
-			<div class="displayFormula">
-			<em>P<sub>1112</sub></em>, <em>P<sub>1113</sub></em>, ..., <em>P<sub>111K</sub></em>,
-			<em>P<sub>1122</sub></em>, <em>P<sub>1123</sub></em>, ..., <em>P<sub>112K</sub></em>,
-			...,
-			<em>P<sub>KKK1</sub></em>, ..., <em>P<sub>KKKK</sub></em>.
-			</div>
-			The value <em>P<sub>1111</sub></em> is not stored; instead it is inferred as one minus the
-			sum of other probabilities for that sample.
-			In particular for the common case of diploid chromosome and two alleles, <em>H</em>=2 and <em>K</em>=2, we store the
-			probabilities <em>P</sub>12</sub></em> and <em>P</sub>22</sub></em>.
-		</p>
+        			We store the probabilities in lexicographic order of these strings, omitting the last,
+        			e.g. for <em>H</em>=4:
+        			<div class="displayFormula">
+        			<em>P<sub>1111</sub></em>, ..., <em>P<sub>111K</sub></em>,
+        			<em>P<sub>1122</sub></em>, ..., <em>P<sub>112K</sub></em>,
+        			...,
+        			<em>P<sub>KKK1</sub></em>, ..., <em>P<sub>KKK(K-1)</sub></em>.
+        			</div>
+        			The probability of the K-th allele homozygote (<em>P<sub>K...K</sub></em>) is not stored; instead it is inferred as one minus the
+        			sum of other probabilities for that sample.
+                </p>
+                <p>
+        			For example, for the common case of diploid chromosome and two alleles, <em>H</em>=2 and <em>K</em>=2, we store the
+        			probabilities <em>P<sub>11</sub></em> and <em>P<sub>12</sub></em>.
+        		</p>
+            </li>
+        </ul>
+		<h3>Rounding</h3>
+        BGEN format stored probabilities rounded.  The maximum error is 
+        
 		<h3>Converting probabilities to binary representation and back again</h3>
+        <p>
+            Suppose given a collection of probabilities summing to one.  We use the following algorithm
+        </p>
 		<p>
 			To convert a floating-point probability <em>x</em> to its binary representation in <em>B</em> bits, perform the following.
 			<ol>

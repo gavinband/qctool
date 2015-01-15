@@ -159,6 +159,11 @@ namespace {
 				m_bitpack_index = 0 ;
 			}
 		}
+		
+		void set_number_of_alleles( std::size_t n ) {
+			assert( n == 2 ) ;
+		}
+		
 		void set_sample( std::size_t i ) {
 			// nothing to do.
 		}
@@ -171,11 +176,19 @@ namespace {
 				) ;
 			}
 		}
-		void set_order_type( OrderType order_type ) {
-			if( order_type != eUnorderedList ) {
+		void set_order_type( OrderType const order_type, ValueType const value_type ) {
+			if( order_type != eOrderedList && order_type != ePerUnorderedGenotype ) {
 				throw genfile::BadArgumentError(
 					"genfile:: PositiveFloatWriter::set_order_type()",
-					"order_type != eUnorderedList"
+					"order_type",
+					"Expected order_type to be eUnorderedList or ePerUnorderedGenotype"
+				) ;
+			}
+			if( value_type != eProbability && value_type != eUnknownValueType ) {
+				throw genfile::BadArgumentError(
+					"genfile:: PositiveFloatWriter::set_order_type()",
+					"value_type",
+					"Expected value_type == eProbability"
 				) ;
 			}
 		}
@@ -247,6 +260,9 @@ namespace {
 	struct GenotypeMunger: public genfile::VariantDataReader::PerSampleSetter {
 		GenotypeMunger( PositiveFloatWriter& writer ):
 			m_writer( writer ),
+			m_number_of_entries( 0 ),
+			m_order_type( eUnknownOrderType ),
+			m_value_type( eUnknownValueType ),
 			m_allele_probs( 2 ),
 			m_genotype_probs( 3 )
 		{}
@@ -256,8 +272,16 @@ namespace {
 		void set_number_of_samples( std::size_t n ) {
 			m_writer.set_number_of_samples(n) ;
 		}
+		void set_number_of_alleles( std::size_t n ) {
+			m_writer.set_number_of_alleles(n) ;
+		}
 		void set_sample( std::size_t i ) {
 			m_writer.set_sample(i) ;
+		}
+		void set_order_type( OrderType const order_type, ValueType const value_type ) {
+			m_order_type = order_type ;
+			m_value_type = value_type ;
+			m_writer.set_order_type( ePerUnorderedGenotype, eProbability ) ;
 		}
 		void set_number_of_entries( std::size_t n ) {
 			if( n != 1 && n != 2 && n != 3 ) {
@@ -275,14 +299,10 @@ namespace {
 			m_allele_probs[0] = m_allele_probs[1] = -1.0 ;  // encode missingness as -1
 		}
 
-		void set_order_type( OrderType order_type ) {
-			m_writer.set_order_type( eUnorderedList ) ;
-		}
 		void operator()( genfile::MissingValue const value ) {
 			double float_value = -1 ; // encode missingness as -1.
 			operator()( float_value ) ;
 		}
-
 		void operator()( std::string& value ) {
 			assert(0) ; // not allowed in this encoding.
 		}
@@ -290,9 +310,10 @@ namespace {
 			operator()( double( value )) ;
 		}
 		void operator()( double const value ) {
-			switch( m_number_of_entries ) {
-				case 1:
-					// genotype dosage information.  Just write the probabilities (to zeros, one one) directly.
+			// TODO: fix this to handle order_type and value_type properly.
+			switch( m_order_type ) {
+				case eBAlleleDosage:
+					// genotype dosage information.  Just write the probabilities (two zeros, one one) directly.
 					// If -1 comes in (via operator()( MissingValue )) then all genotype probs will remain as -1.
 					if( value >= 0.0 ) {
 						for( std::size_t g = 0; g < 3; ++g ) {
@@ -301,7 +322,8 @@ namespace {
 					}
 					go() ;
 					break ;
-				case 2:
+				case ePerOrderedHaplotype:
+				case ePerUnorderedHaplotype:
 					// GT-style pair of genotypes.  Need to store 'em.
 					m_allele_probs[ m_allele_prob_i++ ] = value ;
 					if( m_allele_prob_i == 2 ) {
@@ -314,7 +336,7 @@ namespace {
 						go() ;
 					}
 					break ;
-				case 3:
+				case ePerUnorderedGenotype:
 					m_genotype_probs[ m_genotype_prob_i++ ] = value ;
 					if( m_genotype_prob_i == 3 ) {
 						// store the genotype probs
@@ -343,6 +365,8 @@ namespace {
 	private:
 		PositiveFloatWriter& m_writer ;
 		std::size_t m_number_of_entries ;
+		OrderType m_order_type ;
+		ValueType m_value_type ;
 		std::vector< double > m_allele_probs ;
 		std::size_t m_allele_prob_i ;
 		std::vector< double > m_genotype_probs ;
