@@ -24,8 +24,9 @@
 #include "genfile/Error.hpp"
 #include "genfile/zlib.hpp"
 #include "genfile/bgen/types.hpp"
+#include "genfile/string_utils/hex.hpp"
 
-#define DEBUG_BGEN_FORMAT 3
+//#define DEBUG_BGEN_FORMAT 3
 
 namespace genfile {
 	namespace bgen {
@@ -82,6 +83,9 @@ namespace genfile {
 			namespace v12 {
 				void round_probs_to_scaled_simplex( double* p, std::size_t const n, int const number_of_bits ) ;
 
+				// Write data encoding n probabilities, given in probs, that sum to 1,
+				// starting at the given offset in data.
+				// Only t
 				char* write_scaled_probs(
 					uint64_t* data,
 					std::size_t* offset,
@@ -130,12 +134,25 @@ namespace genfile {
 						v[1] = get_AB_probability(i) ;
 						v[2] = get_BB_probability(i) ;
 						round_probs_to_scaled_simplex( &v[0], 3, number_of_bits ) ;
-						buffer = write_scaled_probs( &data, &offset, &v[0], 2, number_of_bits, buffer, end ) ;
+						buffer = write_scaled_probs( &data, &offset, &v[0], 3, number_of_bits, buffer, end ) ;
+#if DEBUG_BGEN_FORMAT
+						std::cerr << "genfile::bgen::impl::v12::write_uncompressed_snp_probability_data(): scaled probs are:"
+							<< v[0] << ", " << v[1] << ", " << v[2] << ".\n" ;
+						std::cerr << "genfile::bgen::impl::v12::write_uncompressed_snp_probability_data(): after write, data = "
+							<< string_utils::to_hex(
+								reinterpret_cast< unsigned char const* >( &data ),
+								reinterpret_cast< unsigned char const* >( &data ) + 8
+							) << ".\n" ;
+#endif
 						// Now write them
 					}
 					// Get any leftover bytes.
 					if( offset > 0 ) {
 						int const nBytes = (offset+7)/8 ;
+#if DEBUG_BGEN_FORMAT
+						std::cerr << "genfile::bgen::impl::v12::write_uncompressed_snp_probability_data(): final offset = "
+							<< offset << ", number of bits = " << number_of_bits << ", writing " << nBytes << " final bytes (space = " << (end-buffer) << ".\n" ;
+#endif
 						assert( (buffer+nBytes) <= end ) ;
 						buffer = std::copy(
 							reinterpret_cast< char const* >( &data ),
@@ -202,7 +219,11 @@ namespace genfile {
 				uLongf uncompressed_data_size = 
 					( layout == e_v11Layout )
 						? (6 * number_of_samples)
-						: ( 14 + number_of_samples + 8 * ( ( number_of_samples * number_of_bits * 2 ) / 8 ) ) ;
+						: ( 14 + number_of_samples +  ((( number_of_samples*number_of_bits*2 )+7) / 8) ) ;
+
+#if DEBUG_BGEN_FORMAT
+					std::cerr << "genfile::bgen::impl::write_uncompressed_snp_probability_data(): buffer size is " << uncompressed_data_size << ".\n" ;
+#endif
 
 				std::vector< char > uncompressed_buffer( uncompressed_data_size ) ;
 				char* buffer = &uncompressed_buffer[0] ;
@@ -235,8 +256,12 @@ namespace genfile {
 					uLongf uncompressed_data_size = 
 						( layout == e_v11Layout )
 							? (6 * number_of_samples)
-							: ( 4 + 8 + number_of_samples + 8 * ( ( number_of_samples * number_of_bits * 2 ) / 8 ) ) ;
-						
+							: ( 14 + number_of_samples + ((( number_of_samples*number_of_bits*2 )+7) / 8) ) ;
+
+#if DEBUG_BGEN_FORMAT
+					std::cerr << "genfile::bgen::impl::write_compressed_snp_probability_data(): buffer size is " << uncompressed_data_size << ".\n" ;
+#endif
+
 					uLongf buffer_size = 12 + (1.1 * uncompressed_data_size) ;		// calculated according to zlib manual.
 					std::vector< Bytef > compression_buffer( buffer_size ) ;
 					std::vector< Bytef > uncompressed_buffer( uncompressed_data_size ) ;

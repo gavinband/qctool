@@ -16,7 +16,7 @@
 #include "genfile/string_utils/hex.hpp"
 #include "stdint.h"
 
-#define DEBUG 1
+#define DEBUG 3
 
 // The following section contains a simple snp block writer.
 namespace data {
@@ -188,8 +188,9 @@ namespace data {
 		oStream.write( b_allele.data(), b_allele.size() ) ;
 		
 		// Total size of probability data is:
-		uint32_t const uncompressed_data_size = 10 + number_of_samples + ( number_of_samples * 2 * bits_per_probability ) ;
-		genfile::write_little_endian_integer( oStream, uncompressed_data_size ) ;
+		uint32_t const stored_probability_size = (((number_of_samples*2*bits_per_probability)+7)/8) ;
+		uint32_t const buffer_size = 10 + number_of_samples + stored_probability_size ;
+		genfile::write_little_endian_integer( oStream, buffer_size ) ;
 
 		// Write number of samples and ploidies.
 		genfile::write_little_endian_integer( oStream, number_of_samples ) ;
@@ -208,12 +209,13 @@ namespace data {
 		uint64_t const two_to_the_bits = ( uint64_t( 1 ) << bits_per_probability ) ;
 		double scale = two_to_the_bits - 1 ;
 		std::vector< char > probability_data( std::ceil( 2.0 * number_of_samples * bits_per_probability / 64.0 ) * 8, 0 ) ;
+		uint64_t* const buffer = reinterpret_cast< uint64_t* >( &probability_data[0] ) ;
+		uint64_t* const end = reinterpret_cast< uint64_t* const >( &probability_data[0] + probability_data.size() ) ;
+		uint64_t* p = buffer ;
+		std::size_t offset = 0 ;
 		if( type == "unphased" ) {
 			// Construct and write probability data.
 			{
-				uint64_t* p = reinterpret_cast< uint64_t* >( &probability_data[0] ) ;
-				uint64_t* const end_p = reinterpret_cast< uint64_t* const >( &probability_data[0] + probability_data.size() ) ;
-				std::size_t offset = 0 ;
 				double probs[3] ;
 				for( std::size_t i = 0; i < number_of_samples; ++i ) {
 					probs[0] = get_probs( i, 0 ) ;
@@ -225,14 +227,11 @@ namespace data {
 					std::cerr << ( boost::format( "sample %d of %d, bits_per_probability = %d, two_to_the_bits=%d, scale = %f, AA=%f, AB=%f, sum = %f\n" )
 						% i % number_of_samples % bits_per_probability % two_to_the_bits % scale % probs[0] % probs[1] % (probs[0]+probs[1]) ).str() ;
 #endif
-					write_probs( &p, &offset, end_p, probs, 3, bits_per_probability ) ;
+					write_probs( &p, &offset, end, probs, 3, bits_per_probability ) ;
 				}
 			}
 		} else if( type == "phased" ) {
 			// Construct and write probability data.
-			uint64_t* p = reinterpret_cast< uint64_t* >( &probability_data[0] ) ;
-			uint64_t* const end_p = reinterpret_cast< uint64_t* const >( &probability_data[0] + probability_data.size() ) ;
-			std::size_t offset = 0 ;
 			double probs[2] ;
 			for( std::size_t i = 0; i < number_of_samples; ++i ) {
 				for( std::size_t hap = 0; hap < 2; ++hap ) {
@@ -243,13 +242,15 @@ namespace data {
 					std::cerr << ( boost::format( "sample %d of %d, hap %d, bits_per_probability = %d, two_to_the_bits=%d, scale = %f, AA=%f, AB=%f, sum = %f\n" )
 						% i % number_of_samples % hap % bits_per_probability % two_to_the_bits % scale % probs[0] % probs[1] % (probs[0]+probs[1]) ).str() ;
 #endif
-					write_probs( &p, &offset, end_p, &probs[0], 2, bits_per_probability ) ;
+					write_probs( &p, &offset, end, &probs[0], 2, bits_per_probability ) ;
 				}
 			}
 		} else {
 			assert(0) ;
 		}
-		oStream.write( &probability_data[0], std::ceil( 3.0 * number_of_samples * bits_per_probability / 8.0 ) ) ;
+		std::size_t const numBytes = ((p-buffer)*8) + ((offset+7)/8) ;
+		BOOST_CHECK_EQUAL( numBytes, stored_probability_size ) ;
+		oStream.write( &probability_data[0], numBytes ) ;
 		
 		return oStream.str() ;
 	}
