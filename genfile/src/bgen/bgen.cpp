@@ -56,66 +56,75 @@ namespace genfile {
 			write_little_endian_integer( oStream, offset ) ;
 		}
 		
-		std::size_t get_header_block_size(
-			std::string const& free_data
+		std::size_t read_header_block(
+			std::istream& aStream,
+			BgenContext* context
 		) {
-			std::size_t fixed_data_size = 5 * sizeof( uint32_t ) ;
-			return fixed_data_size + free_data.size() ;
-		}
-		
-		void write_header_block(
-			std::ostream& aStream,
-			uint32_t number_of_snp_blocks,
-			uint32_t number_of_samples,
-			std::string const& free_data,
-			uint32_t flags
-		) {
-			uint32_t reserved = 0u ;
-			uint32_t header_size = get_header_block_size( free_data ) ;
+			assert( context != 0 ) ;
+			uint32_t
+				header_size = 0,
+				number_of_snp_blocks = 0,
+				number_of_samples = 0,
+				flags = 0 ;
 
-			genfile::write_little_endian_integer( aStream, header_size ) ;
-			genfile::write_little_endian_integer( aStream, number_of_snp_blocks ) ;
-			genfile::write_little_endian_integer( aStream, number_of_samples ) ;
-			genfile::write_little_endian_integer( aStream, reserved ) ;
-			aStream.write( free_data.data(), free_data.size() ) ;
-			genfile::write_little_endian_integer( aStream, flags ) ;
+			char magic[4] ;
+			std::size_t fixed_data_size = 20 ;
+			std::vector<char> free_data ;
+
+			read_little_endian_integer( aStream, &header_size ) ;
+			assert( header_size >= fixed_data_size ) ;
+			read_little_endian_integer( aStream, &number_of_snp_blocks ) ;
+			read_little_endian_integer( aStream, &number_of_samples ) ;
+			aStream.read( &magic[0], 4 ) ;
+			free_data.resize( header_size - fixed_data_size ) ;
+			aStream.read( &free_data[0], free_data.size() ) ;
+			read_little_endian_integer( aStream, &flags ) ;
+
+			if(
+				( magic[0] != 'b' || magic[1] != 'g' || magic[2] != 'e' || magic[3] != 'n' )
+				&& ( magic[0] != 0 || magic[1] != 0 || magic[2] != 0 || magic[3] != 0 )
+			) {
+				throw BGenError() ;
+			}
+
+			if( aStream ) {
+				context->number_of_samples = number_of_samples ;
+				context->number_of_variants = number_of_snp_blocks ;
+				context->magic.assign( &magic[0], &magic[0] + 4 ) ;
+				context->free_data.assign( free_data.begin(), free_data.end() ) ;
+				context->flags = flags ;
+
+				return( header_size ) ;
+			} else {
+				throw BGenError() ;
+			}
 		}
 		
+
 		void read_snp_identifying_data(
 			std::istream& aStream,
-			uint32_t const flags,
+			BgenContext const& context,
 			std::string* SNPID,
 			std::string* RSID,
-			unsigned char* chromosome,
+			std::string* chromosome,
 			uint32_t* SNP_position,
 			std::string* first_allele,
 			std::string* second_allele
 		) {
 #if DEBUG_BGEN_FORMAT
-			std::cerr << "genfile::bgen::impl::read_snp_identifying_data(): flags = 0x" << std::hex << flags << ".\n" ;
+			std::cerr << "genfile::bgen::impl::read_snp_identifying_data(): flags = 0x" << std::hex << context.flags << ".\n" ;
 #endif
-			uint32_t const layout = flags & e_Layout ;
-			if( layout == e_v11Layout ) {
-				// v1.1-style layout
-	            uint32_t number_of_samples ;
-				uint16_t SNPID_size = 0;
-				uint16_t RSID_size = 0;
-				uint32_t allele1_size = 0;
-				uint32_t allele2_size = 0;
-				uint16_t chromosome_size = 0 ;
-				std::string chromosome_string ;
-				if( aStream ) {
-					genfile::read_little_endian_integer( aStream, &number_of_samples ) ;
-				}
-				read_length_followed_by_data( aStream, &SNPID_size, SNPID ) ;
-				read_length_followed_by_data( aStream, &RSID_size, RSID ) ;
-				read_length_followed_by_data( aStream, &chromosome_size, &chromosome_string ) ;
-				genfile::read_little_endian_integer( aStream, SNP_position ) ;
-				read_length_followed_by_data( aStream, &allele1_size, first_allele ) ;
-				read_length_followed_by_data( aStream, &allele2_size, second_allele ) ;
-				*chromosome = ChromosomeEnum( Chromosome( chromosome_string ) ) ;
-			}
-			else if( layout == e_v10Layout ) {
+			uint32_t const layout = context.flags & e_Layout ;
+			if( layout == e_v11Layout || layout == e_v12Layout ) {
+                // forward to v12 version which handles multiple alleles.
+                impl::TwoAlleleSetter allele_setter( first_allele, second_allele ) ;
+                bgen::read_snp_identifying_data(
+                    aStream, context,
+                    SNPID, RSID, chromosome, SNP_position,
+                    &impl::check_for_two_alleles,
+                    allele_setter
+                ) ;
+			} else if( layout == e_v10Layout ) {
 				// v1.0-style layout, deprecated
 	            uint32_t number_of_samples ;
 				unsigned char max_id_size = 0;
@@ -123,6 +132,9 @@ namespace genfile {
 				unsigned char RSID_size = 0;
 				if( aStream ) {
 					genfile::read_little_endian_integer( aStream, &number_of_samples ) ;
+					if( number_of_samples != context.number_of_samples ) {
+						throw BGenError() ;
+					}
 				}
 				if( aStream ) {
 					genfile::read_little_endian_integer( aStream, &max_id_size ) ;
@@ -138,24 +150,16 @@ namespace genfile {
 					aStream.ignore( max_id_size - RSID_size ) ;
 				}
 				if( aStream ) {
-					genfile::read_little_endian_integer( aStream, chromosome ) ;
+					unsigned char chromosome_char ;
+					genfile::read_little_endian_integer( aStream, &chromosome_char ) ;
 					genfile::read_little_endian_integer( aStream, SNP_position ) ;
 
+					*chromosome = std::string( Chromosome( ChromosomeEnum( chromosome_char ) ) ) ;
 					first_allele->resize( 1 ) ;
 					(*first_allele)[0] = aStream.get() ;
 					second_allele->resize( 1 ) ;
 					(*second_allele)[0] = aStream.get() ;
 				}
-			} else if( layout == e_v12Layout ) {
-                // forward to v12 version which handles multiple alleles.
-                impl::TwoAlleleSetter allele_setter( first_allele, second_allele ) ;
-                
-                bgen::read_snp_identifying_data_v12(
-                    aStream, flags,
-                    SNPID, RSID, chromosome, SNP_position,
-                    &impl::check_for_two_alleles,
-                    allele_setter
-                ) ;
 			} else {
 			    assert(0) ;
 			}
@@ -163,8 +167,7 @@ namespace genfile {
         
 		void write_snp_identifying_data(
 			std::ostream& aStream,
-			uint32_t const flags,
-			uint32_t number_of_samples,
+			BgenContext const& context,
 			unsigned char max_id_size,
 			std::string SNPID,
 			std::string RSID,
@@ -173,11 +176,11 @@ namespace genfile {
 			std::string first_allele,
 			std::string second_allele
 		) {
-			uint32_t const layout = flags & e_Layout ;
+			uint32_t const layout = context.flags & e_Layout ;
 			assert( layout == e_v11Layout || layout == e_v12Layout ) ;
 
 			if( layout == e_v11Layout ) {
-				write_little_endian_integer( aStream, number_of_samples ) ;
+				write_little_endian_integer( aStream, context.number_of_samples ) ;
 				// otherwise this is moved to the probability data block.
 			}
 
@@ -225,42 +228,74 @@ namespace genfile {
 			}
 		}
 
+		void write_header_block(
+			std::ostream& aStream,
+			BgenContext const& context
+		) {
+			uint32_t header_size = context.header_size() ;
+			genfile::write_little_endian_integer( aStream, header_size ) ;
+			genfile::write_little_endian_integer( aStream, context.number_of_variants ) ;
+			genfile::write_little_endian_integer( aStream, context.number_of_samples ) ;
+			aStream.write( context.magic.data(), 4 ) ;
+			aStream.write( context.free_data.data(), context.free_data.size() ) ;
+			genfile::write_little_endian_integer( aStream, context.flags ) ;
+		}
+		
+		std::size_t write_sample_identifier_block(
+			std::ostream& aStream,
+			BgenContext const& context,
+			std::vector< std::string > const& sample_ids
+		) {
+			assert( sample_ids.size() == context.number_of_samples ) ;
+			uint32_t block_size = 8 ;
+			for( uint32_t i = 0; i < sample_ids.size(); ++i ) {
+				block_size += 2 + sample_ids[i].size() ;
+			}
+			write_little_endian_integer( aStream, block_size ) ;
+			write_little_endian_integer( aStream, context.number_of_samples ) ;
+			for( uint32_t i = 0; i < sample_ids.size(); ++i ) {
+				std::string const& identifier = sample_ids[i] ;
+				assert( identifier.size() <= std::size_t( std::numeric_limits< uint16_t >::max() ) ) ;
+				uint16_t const id_size = identifier.size() ;
+				write_little_endian_integer( aStream, id_size ) ;
+				write_length_followed_by_data( aStream, id_size, identifier ) ;
+			}
+			return block_size ;
+		}
+		
 		void ignore_snp_probability_data(
 			std::istream& aStream,
-			uint32_t const flags,
-			uint32_t number_of_samples
+			BgenContext const& context
 		) {
-			if( flags & bgen::e_CompressedSNPBlocks ) {
+			if( context.flags & bgen::e_CompressedSNPBlocks ) {
 				uint32_t compressed_data_size ;
 				genfile::read_little_endian_integer( aStream, &compressed_data_size ) ;
 				aStream.ignore( compressed_data_size ) ;
 			}
 			else {
-				aStream.ignore( 6 * number_of_samples ) ;
+				aStream.ignore( 6 * context.number_of_samples ) ;
 			}
 		}
 
 		void read_uncompressed_snp_probability_data_v12(
 			char const* buffer,
 			char const* const end,
-			uint32_t const flags,
-			uint32_t number_of_samples,
+			BgenContext const& context,
 			VariantDataReader::PerSampleSetter& setter
 		) ;
 
 		void read_uncompressed_snp_probability_data(
 			char const* buffer,
 			char const* const end,
-			uint32_t const flags,
-			uint32_t number_of_samples,
+			BgenContext const& context,
 			VariantDataReader::PerSampleSetter& setter
 		) {
-			if( (flags & e_Layout) == e_v10Layout || (flags & e_Layout) == e_v11Layout ) {
-				setter.set_number_of_samples( number_of_samples ) ;
+			if( (context.flags & e_Layout) == e_v10Layout || (context.flags & e_Layout) == e_v11Layout ) {
+				setter.set_number_of_samples( context.number_of_samples ) ;
 				setter.set_number_of_alleles( 2 ) ;
 				
-				double const probability_conversion_factor = impl::get_probability_conversion_factor( flags ) ;
-				for ( uint32_t i = 0 ; i < number_of_samples ; ++i ) {
+				double const probability_conversion_factor = impl::get_probability_conversion_factor( context.flags ) ;
+				for ( uint32_t i = 0 ; i < context.number_of_samples ; ++i ) {
 					setter.set_sample( i ) ;
 					setter.set_number_of_entries( 3 ) ;
 					setter.set_order_type(
@@ -276,7 +311,7 @@ namespace genfile {
 				}
 			} else {
 				read_uncompressed_snp_probability_data_v12(
-					buffer, end, flags, number_of_samples, setter
+					buffer, end, context, setter
 				) ;
 			}
 		}
@@ -340,8 +375,7 @@ namespace genfile {
 		void read_uncompressed_snp_probability_data_v12(
 			char const* buffer,
 			char const* const end,
-			uint32_t const flags,
-			uint32_t number_of_samples,
+			BgenContext const& context,
 			VariantDataReader::PerSampleSetter& setter
 		) {
 			uint32_t numberOfSamples ;
@@ -354,6 +388,9 @@ namespace genfile {
 			buffer = read_little_endian_integer( buffer, end, &ploidyExtent[0] ) ;
 			buffer = read_little_endian_integer( buffer, end, &ploidyExtent[1] ) ;
 
+			if( numberOfSamples != context.number_of_samples ) {
+				throw BGenError() ;
+			}
 			setter.set_number_of_samples( numberOfSamples ) ;
 			setter.set_number_of_alleles( uint32_t( numberOfAlleles ) ) ;
 
@@ -363,7 +400,6 @@ namespace genfile {
 			// Get the phased flag and number of bits
 			bool const phased = ((*buffer++) & 0x1 ) ;
 			int const bits = int( *reinterpret_cast< unsigned char const *>( buffer++ ) ) ;
-			uint64_t const bitMask = uint64_t( 0xFFFFFFFFFFFFFFFF ) >> ( 64 - bits ) ;
 			
 #if DEBUG_BGEN_FORMAT
 			std::cerr << "read_uncompressed_snp_probability_data_v12(): numberOfSamples = " << numberOfSamples
@@ -436,20 +472,19 @@ namespace genfile {
 		
 		void read_snp_probability_data(
 			std::istream& aStream,
-			uint32_t const flags,
-			uint32_t number_of_samples,
+			BgenContext const& context,
 			VariantDataReader::PerSampleSetter& setter,
 			std::vector< char >* buffer1,
 			std::vector< char >* buffer2
 		) {
 			uint32_t uncompressed_data_size = 0 ;
-			if( (flags & e_Layout) == e_v12Layout ) {
+			if( (context.flags & e_Layout) == e_v12Layout ) {
 				genfile::read_little_endian_integer( aStream, &uncompressed_data_size ) ;
 			} else {
-				uncompressed_data_size = 6 * number_of_samples ;
+				uncompressed_data_size = 6 * context.number_of_samples ;
 			}
 			buffer1->resize( uncompressed_data_size ) ;
-			if( flags & bgen::e_CompressedSNPBlocks ) {
+			if( context.flags & bgen::e_CompressedSNPBlocks ) {
 				uint32_t compressed_data_size ;
 				genfile::read_little_endian_integer( aStream, &compressed_data_size ) ;
 				buffer2->resize( compressed_data_size ) ;
@@ -463,8 +498,7 @@ namespace genfile {
 			read_uncompressed_snp_probability_data(
 				&(*buffer1)[0],
 				&(*buffer1)[0] + uncompressed_data_size,
-				flags,
-				number_of_samples,
+				context,
 				setter
 			) ;
 		}

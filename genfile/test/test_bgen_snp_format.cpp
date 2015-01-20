@@ -16,7 +16,7 @@
 #include "genfile/string_utils/hex.hpp"
 #include "stdint.h"
 
-#define DEBUG 3
+// #define DEBUG 3
 
 // The following section contains a simple snp block writer.
 namespace data {
@@ -526,14 +526,15 @@ void do_snp_block_read_test(
 		std::size_t bits_per_probability = 16,
 		std::string const& type = "unphased"
 ) {
-	uint32_t flags = 0 ;
+	genfile::bgen::BgenContext context ;
+	context.number_of_samples = number_of_individuals ;
 	boost::function< double ( std::size_t i, std::size_t g ) > get_probs ;
 	if( bgen_version == "v11" ) {
-		flags = e_v11Layout ;
+		context.flags = e_v11Layout ;
 	} else if( bgen_version == "v12" ) {
-		flags = e_v12Layout ;
+		context.flags = e_v12Layout ;
 	} else {
-		flags = e_v10Layout ;
+		context.flags = e_v10Layout ;
 	}
 	
 
@@ -556,12 +557,12 @@ void do_snp_block_read_test(
 #if DEBUG
 	std::cerr << "do_snp_block_read_test(): bgen_version=" << bgen_version << ".\n" ;
 	std::cerr << "do_snp_block_read_test():        data is: " << genfile::string_utils::to_hex( inStream.str() ) << "\n" ;
-//	std::cerr << "do_snp_block_read_test(): data (char) is: " << genfile::string_utils::to_hex_char( inStream.str() ) << "\n" ;
+	std::cerr << "do_snp_block_read_test(): data (char) is: " << genfile::string_utils::to_hex_char( inStream.str() ) << "\n" ;
 #endif
 	
 	std::string SNPID2 ;
 	std::string RSID2 ;
-	unsigned char chromosome_enum ;
+	std::string chromosome_string ;
 	genfile::Chromosome chromosome2 ;
 	uint32_t SNP_position2 ;
 	std::string a2 ;
@@ -571,15 +572,15 @@ void do_snp_block_read_test(
 
 	genfile::bgen::read_snp_identifying_data(
 		inStream,
-		flags,
+		context,
 		&SNPID2,
 		&RSID2,
-		&chromosome_enum,
+		&chromosome_string,
 		&SNP_position2,
 		&a2,
 		&b2
 	) ;
-	chromosome2 = genfile::Chromosome( chromosome_enum ) ;
+	chromosome2 = genfile::Chromosome( chromosome_string ) ;
 
 	BOOST_CHECK_EQUAL( SNPID2, SNPID ) ;
 	BOOST_CHECK_EQUAL( RSID2, RSID ) ;
@@ -603,8 +604,7 @@ void do_snp_block_read_test(
 
 	genfile::bgen::read_snp_probability_data(
 		inStream,
-		flags,
-		number_of_individuals,
+		context,
 		setter,
 		&buffer1,
 		&buffer2
@@ -623,25 +623,29 @@ void do_snp_block_write_test(
 		std::size_t bits_per_probability = 16,
 		std::string const& type = "unphased"
 ) {
-	uint32_t flags = 0 ;
+	genfile::bgen::BgenContext context ;
+	context.number_of_samples = number_of_individuals ;
 	if( bgen_version == "v11" ) {
-		flags = e_v11Layout ;
+		context.flags = e_v11Layout ;
 	} else if( bgen_version == "v12" ) {
-		flags = e_v12Layout ;
+		context.flags = e_v12Layout ;
 	} else {
 		assert(0) ;	
 	}
 	
 #if DEBUG
-	std::cerr << "do_snp_block_write_test(): bgen_version=" << bgen_version << ", number_of_samples = " << number_of_individuals << ".\n" ;
+	std::cerr
+		<< "do_snp_block_write_test(): bgen_version=" << bgen_version
+		<< ", number_of_samples = " << number_of_individuals
+		<< ", number_of_bits = " << bits_per_probability
+		<< ".\n" ;
 #endif
 	
 	std::ostringstream outStream ;
 	
 	genfile::bgen::write_snp_identifying_data( 
 		outStream,
-		flags,
-		number_of_individuals,
+		context,
 		std::max( SNPID.size(), RSID.size() ) + 1,
 		SNPID,
 		RSID,
@@ -651,14 +655,17 @@ void do_snp_block_write_test(
 		b
 	) ;
 
+	std::vector< char > buffer ;
+	std::vector< char > buffer2 ;
 	genfile::bgen::write_snp_probability_data( 
 		outStream,
-		flags,
-		number_of_individuals,
+		context,
 		boost::bind( &get_input_probability, number_of_individuals, _1, 0, type ),
 		boost::bind( &get_input_probability, number_of_individuals, _1, 1, type ),
 		boost::bind( &get_input_probability, number_of_individuals, _1, 2, type ),
-		bits_per_probability
+		bits_per_probability,
+		&buffer,
+		&buffer2
 	) ;	
 
 	std::string expected = data::construct_snp_block(

@@ -30,6 +30,7 @@ namespace genfile {
 		std::vector< std::string > result ;
 		result.push_back( "gen" ) ;
 		result.push_back( "bgen" ) ;
+		result.push_back( "bgen_v12" ) ;
 		result.push_back( "vcf" ) ;
 		result.push_back( "hapmap_haplotypes" ) ;
 		result.push_back( "impute_haplotypes" ) ;
@@ -51,6 +52,9 @@ namespace genfile {
 		}
 		
 		if( uf.first == "bgen" ) {
+			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second )) ;
+		}
+		else if( uf.first == "bgen_v12" ) {
 			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second )) ;
 		}
 		else if( uf.first == "vcf" ) {

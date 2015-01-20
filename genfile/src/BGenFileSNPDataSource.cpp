@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <string>
+#include <boost/bind.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/bgen/bgen.hpp"
@@ -48,10 +49,10 @@ namespace genfile {
 		std::string* allele1,
 		std::string* allele2
 	) {
-		unsigned char chr ;
-		bgen::read_snp_identifying_data( stream(), m_flags, SNPID, RSID, &chr, SNP_position, allele1, allele2 ) ;
-		*number_of_samples = m_number_of_samples ;
-		*chromosome = Chromosome( ChromosomeEnum( chr ) ) ;
+		std::string chromosome_string ;
+		bgen::read_snp_identifying_data( stream(), m_bgen_context, SNPID, RSID, &chromosome_string, SNP_position, allele1, allele2 ) ;
+		*number_of_samples = m_bgen_context.number_of_samples ;
+		*chromosome = Chromosome( chromosome_string ) ;
 	}
 
 	namespace impl {
@@ -66,8 +67,7 @@ namespace genfile {
                 assert( spec == "GP" || spec == ":genotypes:" ) ;
 				bgen::read_snp_probability_data(
 					m_source.stream(),
-					m_source.flags(),
-					m_source.number_of_samples(),
+					m_source.bgen_context(),
 					setter,
 					&m_source.m_uncompressed_data_buffer,
 					&m_source.m_compressed_data_buffer
@@ -101,41 +101,42 @@ namespace genfile {
 	void BGenFileSNPDataSource::ignore_snp_probability_data_impl() {
 		bgen::ignore_snp_probability_data(
 			stream(),
-			m_flags,
-			number_of_samples()
+			m_bgen_context
 		) ;
 	}
 
 	void BGenFileSNPDataSource::setup( std::string const& filename, CompressionType compression_type ) {
 		m_stream_ptr = open_binary_file_for_input( filename, compression_type ) ;
-		bgen::uint32_t offset ;
-		bgen::read_offset( (*m_stream_ptr), &offset ) ;
-		bgen::uint32_t header_size = read_header_data() ;
+		bgen::uint32_t offset = 0 ;
+		bgen::read_offset( *m_stream_ptr, &offset ) ;
+		std::size_t bytes_read = bgen::read_header_block( *m_stream_ptr, &m_bgen_context ) ;
 
-		if( offset < header_size ) {
+		if( offset < m_bgen_context.header_size() ) {
+			throw FileStructureInvalidError() ;
+		}
+		
+		if( m_bgen_context.flags & bgen::e_SampleIdentifiers ) {
+			m_sample_ids = std::vector< std::string >() ;
+			m_sample_ids->reserve( m_bgen_context.number_of_samples ) ;
+			bytes_read += bgen::read_sample_identifier_block(
+				*m_stream_ptr,
+				m_bgen_context,
+				boost::bind(
+					&std::vector< std::string >::push_back,
+					&(*m_sample_ids),
+					_1
+				)
+			) ;
+			assert( m_sample_ids->size() == m_bgen_context.number_of_samples ) ;
+		}
+		if( offset < bytes_read ) {
 			throw FileStructureInvalidError() ;
 		}
 		// skip any remaining bytes before the first snp block
-		m_stream_ptr->ignore( offset - header_size ) ;
+		m_stream_ptr->ignore( offset - bytes_read ) ;
 		if( !*m_stream_ptr ) {
 			throw FileStructureInvalidError() ;
 		}
-	}
-
-	bgen::uint32_t BGenFileSNPDataSource::read_header_data() {
-		bgen::uint32_t header_size ;
-
-		bgen::read_header_block(
-			(*m_stream_ptr),
-			set_value( header_size ),
-			set_value( m_total_number_of_snps ),
-			set_value( m_number_of_samples ),
-			ignore(),
-			set_value( m_flags ),
-			set_value( m_version )
-		) ;
-
-		return header_size ;
 	}
 }	
 

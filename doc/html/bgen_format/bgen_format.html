@@ -99,7 +99,8 @@
 					This must not be larger than <em>offset</em>.</td></tr>
            <tr><td>4</td><td>An unsigned integer indicating the number of snp blocks stored in the file.</td></tr>
            <tr><td>4</td><td>An unsigned integer <em>N</em> indicating the number of samples represented in the snp blocks in the file.</td></tr>
-           <tr><td>4</td><td>Reserved.  (Writers should write 0 here, readers should ignore these bytes.)</td></tr>
+           <tr><td>4</td><td>'Magic number' bytes.  This field should contain the four bytes 'b', 'g', 'e', 'n'.  For backwards compatibility, readers should also accept
+               the value 0 (four zero bytes) here.</td></tr>
            <tr><td><em>L<sub>H</sub></em>-20</td><td>Free data area.  This could be used to store, for example, identifying information about the file</td></tr>
            <tr><td>4</td><td>A set of <em>flags</em>, with bits numbered as for an unsigned integer.  See below for flag definitions.</td></tr>
 				<tr><th><em>L<sub>H</sub></em></th><th>TOTAL</th></tr>
@@ -200,13 +201,15 @@
 				<tr><td>4</td><td>The length <em>L<sub>aK</sub></em> of the <em>K</em>th allele.</td></tr>
 				<tr><td><em>L<sub>aK</sub></em></td><td>The <em>K</em>th allele.</td></tr>
 				<tr><td><em>4</em></td><td>The total length <em>D</em> in bytes of the
-                    genotype probability data (after uncompression if <em>CompressedSNPBlocks</em>=1).
-                    If <em>Layout</em>=1, this field is omitted and assumed to equal <em>2 x N</em>.
-				<tr><td><em>D</em></td><td>Compressed or uncompressed genotype probability data for the variant.
-					When <em>CompressedSNPBlocks</em>=0, this consists of the genotype probability data as defined below.
-					When <em>CompressedSNPBlocks</em>=1, this consists of a 32-bit unsigned integer indicating the length of the
-					compressed data, followed by the compressed data itself.  See below for details of how SNP probability
-                    data is stored.</td></tr>
+                    uncompressed probability data.
+                    If <em>Layout=1</em>, this field is omitted and it is assumed that <em>D=6N</em>.
+				<tr><td><em>4</em></td><td>The total length <em>C</em> in bytes of the
+                    compressed probability data.  This is only present if <em>CompressedSNPBlocks</em>=1.
+				<tr><td><em>D</em> or <em>C</em></td><td>Genotype probability data for the variant.  If <em>CompressedSNPBlocks</em>=0,
+                    this is <em>D</em> bytes stored in the format described below.  If <em>CompressedSNPBlocks</em>=1,
+                    this is <em>C</em> bytes formed from the format described below by compressing
+                    using zlib's compress() function.
+                </td></tr>
 				</tbody>
 				<tfoot>
 				<tr><th>16 + 4<em>K</em> + <em>L<sub>id</sub></em> + <em>L<sub>rsid</sub></em> + <em>L<sub>chr</sub></em>

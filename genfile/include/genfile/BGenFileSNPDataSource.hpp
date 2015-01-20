@@ -28,14 +28,14 @@ namespace genfile {
 
 		Metadata get_metadata() const ;
 
-		unsigned int number_of_samples() const { return m_number_of_samples ; }
-		OptionalSnpCount total_number_of_snps() const { return m_total_number_of_snps ; }
+		unsigned int number_of_samples() const { return m_bgen_context.number_of_samples ; }
+		OptionalSnpCount total_number_of_snps() const { return m_bgen_context.number_of_variants ; }
 		operator bool() const { return *m_stream_ptr ; }
 
 		std::istream& stream() { return *m_stream_ptr ; }
 		std::istream const& stream() const { return *m_stream_ptr ; }
 		std::string get_source_spec() const { return m_filename ; }
-		uint32_t flags() const { return m_flags ; }
+		bgen::BgenContext const& bgen_context() const { return m_bgen_context ; }
 
 	private:
 
@@ -58,15 +58,16 @@ namespace genfile {
 	private:
 
 		std::string m_filename ;
-		unsigned int m_number_of_samples, m_total_number_of_snps ;
+		bgen::BgenContext m_bgen_context ;
+		boost::optional< std::vector< std::string > > m_sample_ids ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
-		uint32_t m_flags ;
-		std::string m_version ;
 
 		void setup( std::string const& filename, CompressionType compression_type ) ;
 		uint32_t read_header_data() ;
 		std::vector< char > m_compressed_data_buffer ;
 		std::vector< char > m_uncompressed_data_buffer ;
+		
+		typedef std::istream_iterator<char> StreamIterator ;
 	} ;
 }	
 

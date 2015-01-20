@@ -30,7 +30,44 @@
 
 namespace genfile {
 	namespace bgen {
+		struct BgenContext {
+			BgenContext():
+				number_of_samples(0),
+				number_of_variants(0),
+				magic( "bgen" ),
+				free_data( "" ),
+				flags(0)
+			{}
+				
+			BgenContext( BgenContext const& other ):
+				number_of_samples( other.number_of_samples ),
+				number_of_variants( other.number_of_variants ),
+				magic( other.magic ),
+				free_data( other.free_data ),
+				flags( other.flags )
+			{}
+
+			BgenContext& operator=( BgenContext const& other ) {
+				number_of_samples = other.number_of_samples ;
+				number_of_variants = other.number_of_variants ;
+				magic = other.magic ;
+				free_data = other.free_data ;
+				flags = other.flags ;
+				return *this ;
+			}
+			
+			uint32_t header_size() const { return free_data.size() + 20 ; }
+		public:	
+			uint32_t number_of_samples ;
+			uint32_t number_of_variants ;
+			std::string magic ;
+			std::string free_data ;
+			uint32_t flags ;
+		} ;
+		
 		namespace impl {
+			uint32_t get_flags( std::string const& version ) ;
+			
 			double get_probability_conversion_factor( uint32_t flags ) ;
 
 			template< typename FloatType >
@@ -59,14 +96,13 @@ namespace genfile {
 				char* write_uncompressed_snp_probability_data(
 					char* buffer,
 					char* const end,
-					uint32_t const flags,
-					uint32_t number_of_samples,
+					BgenContext const& context,
 					GenotypeProbabilityGetter get_AA_probability,
 					GenotypeProbabilityGetter get_AB_probability,
 					GenotypeProbabilityGetter get_BB_probability
 				) {
-					double const factor = impl::get_probability_conversion_factor( flags ) ;
-					for ( uint32_t i = 0 ; i < number_of_samples ; ++i ) {
+					double const factor = impl::get_probability_conversion_factor( context.flags ) ;
+					for ( uint32_t i = 0 ; i < context.number_of_samples ; ++i ) {
 						uint16_t
 							AA = convert_to_integer_representation( get_AA_probability( i ), factor ),
 							AB = convert_to_integer_representation( get_AB_probability( i ), factor ),
@@ -100,8 +136,7 @@ namespace genfile {
 				char* write_uncompressed_snp_probability_data(
 					char* buffer,
 					char* const end,
-					uint32_t const flags,
-					uint32_t number_of_samples,
+					BgenContext const& context,
 					GenotypeProbabilityGetter get_AA_probability,
 					GenotypeProbabilityGetter get_AB_probability,
 					GenotypeProbabilityGetter get_BB_probability,
@@ -112,14 +147,14 @@ namespace genfile {
 #if DEBUG_BGEN_FORMAT
 					std::cerr << "genfile::bgen::impl::v12::write_uncompressed_snp_probability_data(): number_of_bits = " << number_of_bits << ", buffer = " << reinterpret_cast< void* >( buffer ) << ", (end-buffer) = " << (end-buffer) << ".\n" ;
 #endif
-					buffer = genfile::write_little_endian_integer( buffer, end, number_of_samples ) ;
+					buffer = genfile::write_little_endian_integer( buffer, end, context.number_of_samples ) ;
 					// Write ploidy
 					uint16_t const numberOfAlleles = 2 ;
 					uint8_t const ploidy = 2 ;
 					buffer = genfile::write_little_endian_integer( buffer, end, numberOfAlleles ) ;
 					buffer = genfile::write_little_endian_integer( buffer, end, ploidy ) ;
 					buffer = genfile::write_little_endian_integer( buffer, end, ploidy ) ;
-					for( std::size_t i = 0; i < number_of_samples; ++i ) {
+					for( std::size_t i = 0; i < context.number_of_samples; ++i ) {
 						buffer = genfile::write_little_endian_integer( buffer, end, ploidy ) ;
 					}
 					buffer = genfile::write_little_endian_integer( buffer, end, uint8_t( 0 ) ) ;
@@ -129,7 +164,7 @@ namespace genfile {
 					double v[3] ;
 					uint64_t data = 0 ;
 					std::size_t offset = 0 ;
-					for( std::size_t i = 0; i < number_of_samples; ++i ) {
+					for( std::size_t i = 0; i < context.number_of_samples; ++i ) {
 						v[0] = get_AA_probability(i) ;
 						v[1] = get_AB_probability(i) ;
 						v[2] = get_BB_probability(i) ;
@@ -169,120 +204,35 @@ namespace genfile {
 			char* write_uncompressed_snp_probability_data(
 				char* buffer,
 				char* const bufferEnd,
-				uint32_t const flags,
-				uint32_t const number_of_samples,
+				BgenContext const& context,
 				GenotypeProbabilityGetter get_AA_probability,
 				GenotypeProbabilityGetter get_AB_probability,
 				GenotypeProbabilityGetter get_BB_probability,
 				int const number_of_bits = 16
 			) {
-				uint32_t const layout = flags & e_Layout ;
+				uint32_t const layout = context.flags & e_Layout ;
 				if( layout == e_v11Layout ) {
 					buffer = v11::write_uncompressed_snp_probability_data(
 						buffer,
 						bufferEnd,
-						flags,
-						number_of_samples,
+						context,
 						get_AA_probability, get_AB_probability, get_BB_probability
 					) ;
 					assert( buffer == bufferEnd ) ;
 				} else if( layout == e_v12Layout ) {
-					char* originalBuffer = buffer ;
-					buffer += 4 ;
 					buffer = v12::write_uncompressed_snp_probability_data(
 						buffer,
 						bufferEnd,
-						flags,
-						number_of_samples,
+						context,
 						get_AA_probability, get_AB_probability, get_BB_probability,
 						number_of_bits
 					) ;
-					genfile::write_little_endian_integer( originalBuffer, originalBuffer+4, uint32_t( buffer - originalBuffer - 4 )) ;
 				} else {
 					assert(0) ;
 				}
 				return buffer ;
 			}
 			
-			template< typename GenotypeProbabilityGetter >
-			void write_uncompressed_snp_probability_data(
-				std::ostream& aStream,
-				uint32_t const flags,
-				uint32_t const number_of_samples,
-				GenotypeProbabilityGetter get_AA_probability,
-				GenotypeProbabilityGetter get_AB_probability,
-				GenotypeProbabilityGetter get_BB_probability,
-				int const number_of_bits
-			) {
-				uint32_t const layout = flags & e_Layout ;
-				// Construct a buffer into which we will compress.
-				uLongf uncompressed_data_size = 
-					( layout == e_v11Layout )
-						? (6 * number_of_samples)
-						: ( 14 + number_of_samples +  ((( number_of_samples*number_of_bits*2 )+7) / 8) ) ;
-
-#if DEBUG_BGEN_FORMAT
-					std::cerr << "genfile::bgen::impl::write_uncompressed_snp_probability_data(): buffer size is " << uncompressed_data_size << ".\n" ;
-#endif
-
-				std::vector< char > uncompressed_buffer( uncompressed_data_size ) ;
-				char* buffer = &uncompressed_buffer[0] ;
-				char* end = write_uncompressed_snp_probability_data(
-					buffer,
-					buffer + uncompressed_data_size,
-					flags,
-					number_of_samples,
-					get_AA_probability, get_AB_probability, get_BB_probability,
-					number_of_bits
-				) ;
-				aStream.write( buffer, end - buffer ) ;
-			}
-
-			template< typename GenotypeProbabilityGetter >
-			void write_compressed_snp_probability_data(
-				std::ostream& aStream,
-				uint32_t const flags,
-				uint32_t number_of_samples,
-				GenotypeProbabilityGetter get_AA_probability,
-				GenotypeProbabilityGetter get_AB_probability,
-				GenotypeProbabilityGetter get_BB_probability,
-				int const number_of_bits = 16
-			) {
-				#if !HAVE_ZLIB
-					assert(0) ; // zlib is required for compression support.
-				#else
-					uint32_t const layout = flags & e_Layout ;
-					// Construct a buffer into which we will compress.
-					uLongf uncompressed_data_size = 
-						( layout == e_v11Layout )
-							? (6 * number_of_samples)
-							: ( 14 + number_of_samples + ((( number_of_samples*number_of_bits*2 )+7) / 8) ) ;
-
-#if DEBUG_BGEN_FORMAT
-					std::cerr << "genfile::bgen::impl::write_compressed_snp_probability_data(): buffer size is " << uncompressed_data_size << ".\n" ;
-#endif
-
-					uLongf buffer_size = 12 + (1.1 * uncompressed_data_size) ;		// calculated according to zlib manual.
-					std::vector< Bytef > compression_buffer( buffer_size ) ;
-					std::vector< Bytef > uncompressed_buffer( uncompressed_data_size ) ;
-					// get probability data, uncompressed.
-					write_uncompressed_snp_probability_data(
-						reinterpret_cast< char* >( &uncompressed_buffer[0] ),
-						reinterpret_cast< char* const >( &uncompressed_buffer[0] + uncompressed_data_size ),
-						flags,
-						number_of_samples,
-						get_AA_probability, get_AB_probability, get_BB_probability,
-						number_of_bits
-					) ;
-					// compress it
-					int result = compress( &compression_buffer[0], &buffer_size, &uncompressed_buffer[0], uncompressed_data_size ) ;
-					assert( result == Z_OK ) ;
-					// and write it (buffer_size is now the compressed length of the data).
-					uint32_t the_buffer_size = buffer_size ;
-					genfile::write_little_endian_integer( aStream, the_buffer_size ) ;
-					aStream.write( reinterpret_cast< char const* >( &compression_buffer[0] ), buffer_size ) ;
-				#endif
-			}
 		}
 	}
 }

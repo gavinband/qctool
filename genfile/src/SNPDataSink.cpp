@@ -31,6 +31,7 @@ namespace genfile {
 		std::vector< std::string > result ;
 		result.push_back( "gen" ) ;
 		result.push_back( "bgen" ) ;
+		result.push_back( "bgen_v12" ) ;
 		result.push_back( "vcf" ) ;
 		result.push_back( "shapeit_haplotypes" ) ;
 		result.push_back( "shapeit" ) ;
@@ -59,6 +60,9 @@ namespace genfile {
 		}
 		if( d.first == "bgen" ) {
 			return SNPDataSink::UniquePtr( new BGenFileSNPDataSink( filename, metadata )) ;
+		}
+		else if( d.first == "bgen_v12" ) {
+			return SNPDataSink::UniquePtr( new BGenFileSNPDataSink( filename, metadata, "v12", 6 )) ;
 		}
 		else if( d.first == "vcf" ) {
 			return SNPDataSink::UniquePtr( new VCFFormatSNPDataSink( filename )) ;
