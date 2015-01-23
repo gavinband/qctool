@@ -55,6 +55,12 @@ namespace genfile {
 		setup() ;
 	}
 
+	void BasicBGenFileSNPDataSink::set_number_of_bits( int const bits ) {
+		assert( bits > 0 ) ;
+		assert( bits <= 32 ) ;
+		m_number_of_bits = bits ;
+	}
+
 	SNPDataSink::SinkPos BasicBGenFileSNPDataSink::get_stream_pos() const {
 		return SinkPos( this, m_stream_ptr->tellp() ) ;
 	}
@@ -117,12 +123,11 @@ namespace genfile {
 		m_bgen_context.number_of_samples = number_of_samples ;
 		update_offset_and_header_block() ;
 		m_offset = m_bgen_context.header_size() ;
-		m_offset += bgen::write_sample_identifier_block(
-			*m_stream_ptr,
-			m_bgen_context,
-			sample_ids
-		) ;
-		update_offset_and_header_block() ;
+//		m_offset += bgen::write_sample_identifier_block(
+//			*m_stream_ptr,
+//			m_bgen_context,
+//			sample_ids
+//		) ;
 		m_have_written_header = true ;
 	}
 

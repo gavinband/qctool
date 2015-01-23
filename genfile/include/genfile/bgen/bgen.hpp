@@ -4,8 +4,8 @@
 //	  (See accompanying file LICENSE_1_0.txt or copy at
 //			http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef GENBIN_REFERENCE_IMPLEMENTATION_HPP
-#define GENBIN_REFERENCE_IMPLEMENTATION_HPP
+#ifndef BGEN_REFERENCE_IMPLEMENTATION_HPP
+#define BGEN_REFERENCE_IMPLEMENTATION_HPP
 
 #include <iostream>
 #include <vector>
@@ -146,7 +146,8 @@ namespace genfile {
 			}
 		}
 
-		// Read identifying data fields for the next variant in the file
+		// Read identifying data fields for the next variant in the file.
+		// This will raise an exception if the number of alleles is different than 2.
 		void read_snp_identifying_data(
 			std::istream& aStream,
 			BgenContext const& context,
@@ -171,6 +172,19 @@ namespace genfile {
 			std::string second_allele
 		) ;
 
+		// Read per-variant probability data from the stream in the format
+		// specified by the context object passed in.
+		// Data is returned to the caller via the setter object, which must be a model of
+		// VariantDataReader::PerSampleSetter
+		// A buffer used for working space (e.g. decompression) must be provided.
+		void read_snp_probability_data(
+			std::istream& aStream,
+			BgenContext const& context,
+			VariantDataReader::PerSampleSetter& setter,
+			std::vector< char >* buffer1,
+			std::vector< char >* buffer2
+		) ;
+
 		// Skip over probability data for the current variant
 		void ignore_snp_probability_data(
 			std::istream& aStream,
@@ -182,17 +196,6 @@ namespace genfile {
 			char const* const end,
 			BgenContext const& context,
 			VariantDataReader::PerSampleSetter& setter
-		) ;
-
-		// Read per-variant probability data from the file, accounting for its layout.
-		// This reads the data into a VariantDataReader::PerSampleSetter
-		// Two buffers used as working space must be provided.
-		void read_snp_probability_data(
-			std::istream& aStream,
-			BgenContext const& context,
-			VariantDataReader::PerSampleSetter& setter,
-			std::vector< char >* buffer1,
-			std::vector< char >* buffer2
 		) ;
 
 		template< typename GenotypeProbabilityGetter >

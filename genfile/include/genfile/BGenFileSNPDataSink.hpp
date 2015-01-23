@@ -38,6 +38,7 @@ namespace genfile {
 			int const number_of_bits = 16
 		) ;
 
+
 		SinkPos get_stream_pos() const ;
 		std::string get_spec() const ;
 
@@ -61,6 +62,8 @@ namespace genfile {
 
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) ;
 
+		void set_number_of_bits( int const bits ) ;
+
 	protected:
 		// Other methods.
 		std::auto_ptr< std::ostream >& stream_ptr() ;
@@ -79,7 +82,7 @@ namespace genfile {
 		std::size_t m_offset ;
 		std::auto_ptr< std::ostream > m_stream_ptr ;
 		bool m_have_written_header ;
-		int const m_number_of_bits ;
+		int m_number_of_bits ;
 		
 		std::vector< char > m_buffer ;
 		std::vector< char > m_compression_buffer ;

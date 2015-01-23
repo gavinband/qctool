@@ -358,9 +358,6 @@ public:
 			.set_maximum_multiplicity( 1 ) ;
 		options[ "-sort" ]
 			.set_description( "Sort the genotypes in the output file.  Currently this is only supported if BGEN, unzipped GEN, unzipped VCF format is output." ) ;
-		options[ "-write-index" ]
-			.set_description( "Attempt to write an index file that records the position of each variant in the file(s) specified by -og." )
-			.set_takes_single_value() ;
 		options[ "-os" ]
 	        .set_description( "Output sample information to the file specified.  " )
 	        .set_takes_single_value() ;
@@ -385,10 +382,15 @@ public:
 		options[ "-no-clobber" ]
 			.set_description( "Do not run QCTOOL if it would overwrite an existing file." )
 		;
+		
+		options[ "-bgen-bits" ]
+			.set_description( "For use when outputting BGEN files only.  Tell QCTOOL to use this number"
+				" of bits to store each probability." )
+			.set_default_value( 16 )
+			.set_takes_single_value()
+		;
 
 		options.option_implies_option( "-sort", "-og" ) ;
-		options.option_implies_option( "-write-index", "-og" ) ;
-		options.option_excludes_option( "-write-index", "-sort" ) ;
 		options.option_implies_option( "-omit-chromosome", "-og" ) ;
 		options.option_implies_option( "-output-sample-format", "-os" ) ;
 
@@ -1872,6 +1874,12 @@ private:
 						if( vcf_sink ) {
 							std::vector< std::string > const values = m_options.get_values< std::string >( "-vcf-output-fields" ) ;
 							vcf_sink->set_output_fields( std::set< std::string >( values.begin(), values.end() ) ) ;
+						}
+					}
+					if( m_options.check_if_option_was_supplied( "-bgen-bits" )) {
+						genfile::BGenFileSNPDataSink* bgen_sink = dynamic_cast< genfile::BGenFileSNPDataSink* >( sink.get() ) ;
+						if( bgen_sink ) {
+							bgen_sink->set_number_of_bits( m_options.get< std::size_t >( "-bgen-bits" )) ;
 						}
 					}
 					if( m_options.check( "-sort" )) {

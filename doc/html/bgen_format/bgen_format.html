@@ -174,6 +174,12 @@
                 Version 1.0 of the spec (specified by <em>Layout</em>=0) is deprecated and will be removed from the spec at a later date.
                 A specification for version 1.0 can be found here <a href="bgen_format_v1.0.html">here</a>.
 			</p>
+            <p>
+                SNP blocks are comprised of: a section of identifying data (containing SNP IDs, position, and alleles);
+                immediately following this, a header section recording the size of the stored probability data;
+                and immediately following this, the probability data itself (which may be stored compressed).
+            </p>
+            <h4>SNP identifying data</h4>
 			<table class="filespec" align="center">
 				<thead>
 				<tr><th>No. of bytes</th><th>Description</th></tr>
@@ -200,6 +206,13 @@
 				<tr><td>...</td><td>...(possibly more alleles)...</td></tr>
 				<tr><td>4</td><td>The length <em>L<sub>aK</sub></em> of the <em>K</em>th allele.</td></tr>
 				<tr><td><em>L<sub>aK</sub></em></td><td>The <em>K</em>th allele.</td></tr>
+            </table>
+            <h4>SNP probability data header</h4>
+			<table class="filespec" align="center">
+				<thead>
+				<tr><th>No. of bytes</th><th>Description</th></tr>
+				</thead>
+				<tbody>
 				<tr><td><em>4</em></td><td>The total length <em>D</em> in bytes of the
                     uncompressed probability data.
                     If <em>Layout=1</em>, this field is omitted and it is assumed that <em>D=6N</em>.
@@ -216,8 +229,8 @@
 					+ &sum;<sub>k</sub><em>L<sub>ak</sub></em> + <em>D</em></th><th>TOTAL</th></tr>
 				</tfoot>
 			</table>
-		<h3>SNP genotype or haplotype probability data</h3>
-		<p>
+        <h4>SNP probability data</h4>
+        <p>
 			<table class="filespec">
 				<thead>
 				<tr><th width='20%'>No. of bytes</th><th>Description</th></tr>

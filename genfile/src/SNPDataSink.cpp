@@ -62,7 +62,7 @@ namespace genfile {
 			return SNPDataSink::UniquePtr( new BGenFileSNPDataSink( filename, metadata )) ;
 		}
 		else if( d.first == "bgen_v12" ) {
-			return SNPDataSink::UniquePtr( new BGenFileSNPDataSink( filename, metadata, "v12", 6 )) ;
+			return SNPDataSink::UniquePtr( new BGenFileSNPDataSink( filename, metadata, "v12", 16 )) ;
 		}
 		else if( d.first == "vcf" ) {
 			return SNPDataSink::UniquePtr( new VCFFormatSNPDataSink( filename )) ;

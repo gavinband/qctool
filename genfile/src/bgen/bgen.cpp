@@ -6,13 +6,12 @@
 
 #include <iostream>
 #include <string>
-#include "genfile/Chromosome.hpp"
 #include "genfile/endianness_utils.hpp"
 #include "genfile/bgen/bgen.hpp"
 #include "genfile/bgen/impl.hpp"
 #include "genfile/string_utils/hex.hpp"
 
-//#define DEBUG_BGEN_FORMAT 2
+// #define DEBUG_BGEN_FORMAT 2
 
 namespace genfile {
 	namespace bgen {
@@ -154,11 +153,38 @@ namespace genfile {
 					genfile::read_little_endian_integer( aStream, &chromosome_char ) ;
 					genfile::read_little_endian_integer( aStream, SNP_position ) ;
 
-					*chromosome = std::string( Chromosome( ChromosomeEnum( chromosome_char ) ) ) ;
-					first_allele->resize( 1 ) ;
-					(*first_allele)[0] = aStream.get() ;
-					second_allele->resize( 1 ) ;
-					(*second_allele)[0] = aStream.get() ;
+					switch( chromosome_char ) {
+						case 1: *chromosome = "01" ; break ;
+						case 2: *chromosome = "02" ; break ;
+						case 3: *chromosome = "03" ; break ;
+						case 4: *chromosome = "04" ; break ;
+						case 5: *chromosome = "05" ; break ;
+						case 6: *chromosome = "06" ; break ;
+						case 7: *chromosome = "07" ; break ;
+						case 8: *chromosome = "08" ; break ;
+						case 9: *chromosome = "09" ; break ;
+						case 10: *chromosome = "10" ; break ;
+						case 11: *chromosome = "11" ; break ;
+						case 12: *chromosome = "12" ; break ;
+						case 13: *chromosome = "13" ; break ;
+						case 14: *chromosome = "14" ; break ;
+						case 15: *chromosome = "15" ; break ;
+						case 16: *chromosome = "16" ; break ;
+						case 17: *chromosome = "17" ; break ;
+						case 18: *chromosome = "18" ; break ;
+						case 19: *chromosome = "19" ; break ;
+						case 20: *chromosome = "20" ; break ;
+						case 21: *chromosome = "21" ; break ;
+						case 22: *chromosome = "22" ; break ;
+						case 23: *chromosome = "0X" ; break ;
+						case 24: *chromosome = "0Y" ; break ;
+						case 253: *chromosome = "XY" ; break ;
+						case 254: *chromosome = "MT" ; break ;
+						default: *chromosome = "NA" ;
+					}
+					unsigned char allele1_size = 0, allele2_size = 0 ;
+					genfile::read_length_followed_by_data( aStream, &allele1_size, first_allele ) ;
+					genfile::read_length_followed_by_data( aStream, &allele2_size, second_allele ) ;
 				}
 			} else {
 			    assert(0) ;
@@ -253,7 +279,13 @@ namespace genfile {
 			}
 			write_little_endian_integer( aStream, block_size ) ;
 			write_little_endian_integer( aStream, context.number_of_samples ) ;
+#if DEBUG_BGEN_FORMAT
+			std::cerr << "genfile::bgen::write_sample_identifier_block(): writing " << sample_ids.size() << " samples...\n" ;
+#endif
 			for( uint32_t i = 0; i < sample_ids.size(); ++i ) {
+#if DEBUG_BGEN_FORMAT
+				std::cerr << "genfile::bgen::write_sample_identifier_block(): writing sample " << sample_ids[i] << ".\n" ;
+#endif
 				std::string const& identifier = sample_ids[i] ;
 				assert( identifier.size() <= std::size_t( std::numeric_limits< uint16_t >::max() ) ) ;
 				uint16_t const id_size = identifier.size() ;
@@ -406,9 +438,6 @@ namespace genfile {
 				<< ", phased = " << phased << ".\n" ;
 			std::cerr << "read_uncompressed_snp_probability_data_v12(): *buffer: "
 				<< string_utils::to_hex( buffer, end ) << ".\n" ;
-			std::cerr << "read_uncompressed_snp_probability_data_v12(): bitMask: "
-				<< std::hex << bitMask
-				<< ".\n" ;
 #endif
 
 			{
