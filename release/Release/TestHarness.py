@@ -26,9 +26,8 @@ class TestHarness:
 		self.m_success = None
 		
 	def run( self ):
-		working_dir = self.setup()
-		
 		test_results = { "succeeded": [], "failed": [] }
+		working_dir = self.setup()
 
 		for i in range( 0, len( self.tests )):
 			command = self.tests[i][ "command" ]

@@ -285,6 +285,26 @@ namespace genfile {
 				}
 			}
 
+			namespace {
+				// Adopted from code on StackOverflow.
+				struct OneShotReadBuf : public std::streambuf
+				{
+				    OneShotReadBuf(char* s, std::size_t n)
+				    {
+				        setg(s, s, s + n);
+				    }
+				} ;
+
+				// Adopted from code on StackOverflow.
+				struct OneShotWriteBuf : public std::streambuf
+				{
+				    OneShotWriteBuf(char* s, std::size_t n)
+				    {
+				        setp(s, s + n);
+				    }
+				} ;
+			}
+
 			template<
 				typename GenotypeProbabilitySetter
 			>
@@ -306,8 +326,8 @@ namespace genfile {
 				int result = uncompress( &uncompressed_data_buffer[0], &uncompressed_data_size, &compressed_data_buffer[0], compressed_data_size ) ;
 				assert( result == Z_OK ) ;
 				// Load the uncompressed data into an istringstream
-				std::istringstream sStream ;
-				sStream.rdbuf()->pubsetbuf( reinterpret_cast< char* >( &uncompressed_data_buffer[0] ), uncompressed_data_size ) ;
+				OneShotReadBuf readbuf( reinterpret_cast< char* >( &uncompressed_data_buffer[0] ), uncompressed_data_size ) ;
+				std::istream sStream( &readbuf ) ;
 
 				if ( aStream ) {
 					// If all ok thus far, we'll take the plunge, calling the callbacks to (presumably)
@@ -338,8 +358,8 @@ namespace genfile {
 					std::vector< Bytef > compression_buffer( buffer_size ) ;
 					std::vector< Bytef > uncompressed_buffer( uncompressed_data_size ) ;
 					// get probability data, uncompressed.
-					std::ostringstream oStream ;
-					oStream.rdbuf()->pubsetbuf( reinterpret_cast< char* >( &uncompressed_buffer[0] ), uncompressed_data_size ) ;
+					OneShotWriteBuf writebuf( reinterpret_cast< char* >( &uncompressed_buffer[0] ), uncompressed_data_size ) ;
+					std::ostream oStream( &writebuf ) ;
 					write_uncompressed_snp_probability_data( oStream, flags, number_of_samples, get_AA_probability, get_AB_probability, get_BB_probability ) ;
 					// compress it
 					int result = compress( &compression_buffer[0], &buffer_size, &uncompressed_buffer[0], uncompressed_data_size ) ;

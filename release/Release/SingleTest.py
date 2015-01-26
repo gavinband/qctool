@@ -4,16 +4,16 @@ import tempfile
 import filecmp
 
 class SingleTest:
-	def __init__( self, command, output_dir, result_tarball ):
+	def __init__( self, command, output_dir, result ):
 		self.command = command
-		self.result_tarball = result_tarball
+		self.result = result
 		self.output_dir = output_dir
 		self.directory_comparison = None
 		self.file_comparison = None
 		if not os.path.exists( output_dir ) or not os.path.isdir( output_dir ):
 			raise Exception( "SingleTest: The output dir \"" + output_dir + "\" does not exist." )
-		if ( not os.path.exists( result_tarball ) ) or ( not os.path.isfile( result_tarball )):
-			raise Exception( "SingleTest: The specified result tarball \"" + result_tarball + "\" does not exist." )
+		if ( not os.path.exists( result ) ):
+			raise Exception( "SingleTest: The specified result \"" + result + "\" does not exist." )
 
 	def run( self ):
 		subprocess.check_call( self.command.split( " " ), stderr = open( "/dev/null", 'w' ) )
@@ -21,10 +21,13 @@ class SingleTest:
 		self.compare( expected_result_dir, self.output_dir )
 	
 	def extract_expected_result( self ):
-		# Extract the expected result tarball
-		tmpdir = tempfile.mkdtemp( prefix="qctool-expected" )
-		subprocess.check_call( [ "tar", "-C", tmpdir, "-xzf", self.result_tarball ] )
-		return tmpdir
+		if os.path.isfile( self.result ) and ( self.result.endswith( ".tgz" ) or self.result.endswith( ".tar.gz" ) ):
+			# Extract the expected result tarball
+			tmpdir = tempfile.mkdtemp( prefix="qctool-expected" )
+			subprocess.check_call( [ "tar", "-C", tmpdir, "-xzf", self.result ] )
+			return tmpdir
+		else:
+			return self.result
 
 	def compare( self, expected_dir, output_dir ):
 		print "...and comparing to", expected_dir
@@ -38,7 +41,7 @@ class SingleTest:
 
 		if len( self.directory_comparison.left_only ) > 0 or len( self.directory_comparison.right_only ) > 0 or len( self.directory_comparison.common_funny ) > 0:
 			print '!! For command', self.command, 'expected result and actual result differ:'
-			F.report()
+			self.directory_comparison.report()
 			raise Exception( "Expected result differs from actual result" )
 
 		if ( len( self.file_comparison[ "mismatch" ] ) + len( self.file_comparison[ "errors" ] ) ) != 0:
