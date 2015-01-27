@@ -66,8 +66,10 @@
 		</table>
 	</td>
 	<tr><td>4</td><td>The SNP position, encoded as an unsigned 32-bit integer.</td></tr>
-	<tr><td>1</td><td>The A allele.</td></tr>
-	<tr><td>1</td><td>The B allele.</td></tr>
+	<tr><td>1</td><td>The length <em>LA</em>of the 'A' allele, encoded as an unsigned 8-bit integer.</td></tr>
+	<tr><td><em>LA</em></td><td>The B allele.</td></tr>
+	<tr><td>1</td><td>The length <em>LB</em> fo the B allele, encoded as an unsigned 8-bit integer.</td></tr>
+	<tr><td><em>LB</em></td><td>The B allele.</td></tr>
 	<tr><td><em>P</em></td><td>Genotype probability data for the SNP for each of the N individuals in
     the cohort.  If the <em>CompressedSNPBlocks</em> flag is not set, this field consists of <em>P</em>=6*<em>N</em> bytes representing the probabilities.
  	If <em>CompressedSNPBlocks</em> is set, this field contains a 32-bit unsigned integer specifying the length of the compressed data,

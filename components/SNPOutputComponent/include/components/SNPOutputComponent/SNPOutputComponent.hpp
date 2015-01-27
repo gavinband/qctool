@@ -34,20 +34,18 @@ namespace impl {
 		SNPOutputter( genfile::CohortIndividualSource const& samples, genfile::SNPDataSink& sink ) ;
 		~SNPOutputter() ;
 		
-		void begin_processing_snps( std::size_t number_of_samples ) ;
+		void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& metadata ) ;
 		void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& data_reader ) ;
 		void end_processing_snps() ;
 		
 		typedef boost::function< void ( genfile::SNPIdentifyingData const& snp, genfile::SNPDataSink& sink ) > IndexCallback ;
 		void send_index_to( impl::SNPDataSourceIndex::UniquePtr index ) ;
-		void write_samples_to( std::string const& filename ) ;
 
 	private:
 		genfile::CohortIndividualSource const& m_samples ;
 		bool m_manage ;
 		genfile::SNPDataSink* m_sink ;
 		impl::SNPDataSourceIndex::UniquePtr m_index ;
-		std::string m_sample_filename ;
 		Eigen::MatrixXd m_genotypes ;
 		
 	} ;
@@ -67,7 +65,6 @@ struct SNPOutputComponent: public boost::noncopyable {
 	private:
 		genfile::CohortIndividualSource const& m_samples ;
 		appcontext::OptionProcessor const& m_options ;
-		appcontext::UIContext& m_ui_context ;
 } ;
 
 #endif

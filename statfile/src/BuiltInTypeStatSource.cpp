@@ -8,9 +8,6 @@
 #include <string>
 #include "statfile/statfile_utils.hpp"
 #include "statfile/StatSource.hpp"
-#include "statfile/BinFormatStatSource.hpp"
-#include "statfile/PackedBinFormatStatSource.hpp"
-#include "statfile/RFormatStatSource.hpp"
 #include "statfile/DelimitedStatSource.hpp"
 #include "statfile/BuiltInTypeStatSource.hpp"
 #include "statfile/BuiltInTypeStatSourceChain.hpp"
@@ -19,23 +16,17 @@ namespace statfile {
 	BuiltInTypeStatSource::UniquePtr BuiltInTypeStatSource::open( std::string const& filename ) {
 		FileFormatType format = statfile::get_file_format_type_indicated_by_filename( filename ) ;
 		std::auto_ptr< BuiltInTypeStatSource > source ;
-		if( format == e_BinFormat ) {
-			source.reset( new statfile::BinFormatStatSource( filename )) ;
-		}
-		else if( format == e_PackedBinFormat ) {
-			source.reset( new statfile::PackedBinFormatStatSource( filename )) ;
-		}
-		else if( format == e_CommaDelimitedFormat ){
+		if( format == e_CommaDelimitedFormat ){
 			source.reset( new statfile::DelimitedStatSource( filename, "," )) ;
 		}
 		else if( format == e_TabDelimitedFormat ){
 			source.reset( new statfile::DelimitedStatSource( filename, "\t" )) ;
 		}
-		else if( format == e_RFormat ) {
+		else if( format == e_SpaceDelimited ) {
 			source.reset( new statfile::DelimitedStatSource( filename, " " )) ;
 		}
 		else {
-			// default to R format
+			// default to space-delimited format
 			source.reset( new statfile::DelimitedStatSource( filename, " " )) ;
 		}
 

@@ -10,12 +10,14 @@
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/device/file.hpp>
+#include "genfile/FileUtils.hpp"
 #include "statfile/statfile_utils.hpp"
 
 namespace statfile {
 	IgnoreSome ignore( std::size_t n ) { return IgnoreSome( n ) ; }
 	IgnoreAll ignore_all() { return IgnoreAll() ; }
 	EndRow end_row() { return EndRow() ; }
+	BeginData begin_data() { return BeginData() ; }
 
 	ColumnSpec::ColumnSpec( std::string name, std::size_t repeats ) 
 		: m_name( name ), m_number_of_repeats( repeats )
@@ -39,7 +41,7 @@ namespace statfile {
 	
 	FileFormatType get_file_format_type_indicated_by_filename( std::string const& filename ) {
 		if( filename.size() > 4 && ( filename.substr( filename.size() - 4, 4 ) == ".ssv" || filename.substr( filename.size() - 4, 4 ) == ".txt" )) {
-			return e_RFormat ;
+			return e_SpaceDelimited ;
 		}
 		else if( filename.size() > 4 && filename.substr( filename.size() - 4, 4 ) == ".csv" ) {
 			return e_CommaDelimitedFormat ;
@@ -47,13 +49,21 @@ namespace statfile {
 		else if( filename.size() > 4 && filename.substr( filename.size() - 4, 4 ) == ".tsv" ) {
 			return e_TabDelimitedFormat ;
 		}
-		else if( filename.size() > 4 && filename.substr( filename.size() - 4, 4 ) == ".bnv" ) {
-			return e_BinFormat ;
-		}
-		else if( filename.size() > 4 && filename.substr( filename.size() - 4, 4 ) == ".pbv" ) {
-			return e_PackedBinFormat ;
-		}
 		else {
+			std::auto_ptr< std::istream > stream = genfile::open_text_file_for_input( filename ) ;
+			std::string line ;
+			std::getline( (*stream), line ) ;
+			std::size_t nTab = std::count( line.begin(), line.end(), '\t' ) ;
+			std::size_t nSpace = std::count( line.begin(), line.end(), ' ' ) ;
+			std::size_t nComma = std::count( line.begin(), line.end(), ',' ) ;
+
+			if( nTab > nSpace && nTab > nComma ) {
+				return e_TabDelimitedFormat ;
+			} else if( nSpace > nTab && nSpace > nComma ) {
+				return e_SpaceDelimited ;
+			} else if( nComma > nTab && nComma > nSpace ) {
+				return e_CommaDelimitedFormat ;
+			}
 			return e_UnknownFormat ;
 		}
 	}

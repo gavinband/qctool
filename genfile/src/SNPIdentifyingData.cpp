@@ -241,25 +241,31 @@ namespace genfile {
 					}
 					break ;
 				case eAlleles: {
-					std::string const& l1 = left.get_first_allele() ;
-					std::string const& l2 = left.get_second_allele() ;
+					std::string const *l1 = &left.get_first_allele() ;
+					std::string const *l2 = &left.get_second_allele() ;
 					std::string const *r1 = &right.get_first_allele() ;
 					std::string const *r2 = &right.get_second_allele() ;
 					
-					if( m_flip_alleles_if_necessary && ( l1 < l2 ) && ((*r1) > (*r2)) ) {
-						r1 = &right.get_second_allele() ;
-						r2 = &right.get_first_allele() ;
+					if( m_flip_alleles_if_necessary ) {
+						if( (*l2) < (*l1) ) {
+							l1 = &left.get_second_allele() ;
+							l2 = &left.get_first_allele() ;
+						}
+						if( (*r2) < (*r1) ) {
+							r1 = &right.get_second_allele() ;
+							r2 = &right.get_first_allele() ;
+						}
 					}
-					if( l1 > (*r1) ) {
+					if( (*l1) > (*r1) ) {
 						return false ;
 					}
-					else if( l1 < (*r1) ) {
+					else if( (*l1) < (*r1) ) {
 						return true ;
 					}
-					else if( l2 > (*r2) ) {
+					else if( (*l2) > (*r2) ) {
 						return false ;
 					}
-					else if( l2 < (*r2) ) {
+					else if( (*l2) < (*r2) ) {
 						return true ;
 					}
 					break ;
@@ -295,7 +301,7 @@ namespace genfile {
 					std::string const& l2 = left.get_second_allele() ;
 					std::string const *r1 = &right.get_first_allele() ;
 					std::string const *r2 = &right.get_second_allele() ;
-					if( m_flip_alleles_if_necessary && l1 < l2 &&  (*r1) > (*r2) ) {
+					if( m_flip_alleles_if_necessary && ( l1 != *r1 ) ) {
 						r1 = &right.get_second_allele() ;
 						r2 = &right.get_first_allele() ;
 					}

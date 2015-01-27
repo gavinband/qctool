@@ -32,40 +32,8 @@ namespace genfile {
 		setup( filename, m_compression_type ) ; 
 	}
 
-	GenFileSNPDataSource::GenFileSNPDataSource(
-		std::string const& filename,
-		Chromosome chromosome,
-		CompressionType compression_type,
-		vcf::MetadataParser::Metadata const& metadata
-	)
-		: m_filename( filename ),
-		  m_compression_type( compression_type ),
-		  m_number_of_samples( 0 ),
-		  m_chromosome( chromosome ),
-		  m_have_chromosome_column( false )
-	{
-		setup( filename, compression_type, metadata ) ;
-	}
-
-	void GenFileSNPDataSource::setup( std::string const& filename, CompressionType compression_type, vcf::MetadataParser::Metadata const& metadata ) {
+	void GenFileSNPDataSource::setup( std::string const& filename, CompressionType compression_type ) {
 		m_stream_ptr = open_text_file_for_input( filename, compression_type ) ;
-
-		typedef vcf::MetadataParser::Metadata::const_iterator MetadataIterator ;
-		std::pair< MetadataIterator, MetadataIterator > range = metadata.equal_range( "number-of-variants" ) ;
-		if( range.first != range.second ) {
-			std::size_t total_number_of_snps = 0 ;
-			std::map< std::string, std::string >::const_iterator where = range.first->second.find( "" ) ;
-			if( where == range.first->second.end() ) {
-				throw MalformedInputError( "metadata", std::distance( metadata.begin(), range.first )) ;
-			}
-			else {
-				total_number_of_snps = string_utils::to_repr< std::size_t >( where->second ) ;
-			}
-			if( (++range.first) != range.second ) {
-				throw MalformedInputError( "metadata", std::distance( metadata.begin(), range.first )) ;
-			}
-			m_total_number_of_snps = total_number_of_snps ;
-		}
 		read_header_data() ;
 		reset_to_start() ;
 	}
@@ -86,6 +54,16 @@ namespace genfile {
 		if( !stream() ) {
 			throw OperationFailedError( "genfile::GenFileSNPDataSource::reset_to_start_impl()", get_source_spec(), "reset to start" ) ;
 		}
+	}
+	
+	SNPDataSource::Metadata GenFileSNPDataSource::get_metadata() const {
+		std::map< std::string, std::string > format ;
+		format[ "ID" ] = "GP" ;
+		format[ "Number" ] = "G" ;
+		format[ "Description" ] = "Genotype call probabilities" ;
+		SNPDataSource::Metadata result ;
+		result.insert( std::make_pair( "FORMAT", format )) ;
+		return result ;
 	}
 	
 	void GenFileSNPDataSource::read_snp_identifying_data_impl( 
@@ -121,16 +99,24 @@ namespace genfile {
 					set_value( this_data_number_of_samples ),
 					set_genotypes( m_genotypes )
 				) ;
-				assert( source ) ;
+				if( !source ) {
+					throw genfile::MalformedInputError( source.m_filename, source.number_of_snps_read() ) ;
+				}
 				assert(( m_genotypes.size() % 3 ) == 0 ) ;
 			}
 			
 			GenFileSNPDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
+                assert( spec == "GP" || spec == ":genotypes:" ) ;
 				std::size_t const N = m_genotypes.size() / 3 ;
 				setter.set_number_of_samples( N ) ;
+				setter.set_number_of_alleles( 2 ) ;
 				for( std::size_t i = 0; i < N; ++i ) {
 					setter.set_sample( i ) ;
 					setter.set_number_of_entries( 3 ) ;
+					setter.set_order_type(
+						VariantDataReader::PerSampleSetter::ePerUnorderedGenotype,
+						VariantDataReader::PerSampleSetter::eProbability
+					) ;
 					for( std::size_t g = 0; g < 3; ++g ) {
 						setter( m_genotypes[ 3*i + g ] ) ;
 					}
@@ -143,15 +129,17 @@ namespace genfile {
 			}
 			
 			bool supports( std::string const& spec ) const {
-				return spec == "genotypes" ;
+				return spec == "GP" || spec == ":genotypes:";
 			}
 			
 			void get_supported_specs( SpecSetter setter ) const {
-				setter( "genotypes", "Float" ) ;
+				setter( "GP", "Float" ) ;
+				setter( ":genotypes:", "Float" ) ;
 			}
 			
 		private:
 			std::vector< double > m_genotypes ;
+			std::string m_buffer ;
 		} ;
 	}
 

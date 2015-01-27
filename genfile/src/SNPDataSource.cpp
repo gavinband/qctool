@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <string>
 #include <sstream>
+#include <boost/optional.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/GenFileSNPDataSource.hpp"
@@ -17,6 +18,8 @@
 #include "genfile/HapmapHaplotypesSNPDataSource.hpp"
 #include "genfile/ImputeHaplotypesSNPDataSource.hpp"
 #include "genfile/ShapeITHaplotypesSNPDataSource.hpp"
+#include "genfile/DosageFileSNPDataSource.hpp"
+#include "genfile/BedFileSNPDataSource.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/vcf/get_set.hpp"
 #include "genfile/Error.hpp"
@@ -27,35 +30,19 @@ namespace genfile {
 		std::vector< std::string > result ;
 		result.push_back( "gen" ) ;
 		result.push_back( "bgen" ) ;
+		result.push_back( "bgen_v12" ) ;
 		result.push_back( "vcf" ) ;
 		result.push_back( "hapmap_haplotypes" ) ;
 		result.push_back( "impute_haplotypes" ) ;
 		result.push_back( "shapeit_haplotypes" ) ;
-		result.push_back( "shapeit" ) ;
+		result.push_back( "binary_ped" ) ;
 		return result ;
 	}
 	
 	std::auto_ptr< SNPDataSource > SNPDataSource::create(
 		std::string const& filename,
-		Chromosome chromosome_hint
-	) {
-		return SNPDataSource::create( filename, chromosome_hint, get_compression_type_indicated_by_filename( filename ) ) ;
-	}
-
-	std::auto_ptr< SNPDataSource > SNPDataSource::create(
-		std::string const& filename,
 		Chromosome chromosome_hint,
-		vcf::MetadataParser::Metadata const& metadata,
-		std::string const& filetype_hint
-	) {
-		return SNPDataSource::create( filename, chromosome_hint, get_compression_type_indicated_by_filename( filename ), metadata, filetype_hint ) ;
-	}
-
-	std::auto_ptr< SNPDataSource > SNPDataSource::create(
-		std::string const& filename,
-		Chromosome chromosome_hint,
-		CompressionType compression_type,
-		vcf::MetadataParser::Metadata const& metadata,
+		boost::optional< vcf::MetadataParser::Metadata > const& metadata,
 		std::string const& filetype_hint
 	) {
 		std::pair< std::string, std::string > uf = uniformise( filename ) ;
@@ -65,64 +52,52 @@ namespace genfile {
 		}
 		
 		if( uf.first == "bgen" ) {
-			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second, compression_type )) ;
+			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second )) ;
 		}
 		else if( uf.first == "vcf" ) {
 			return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second, metadata )) ;
 		}
 		else if( uf.first == "gen" ) {
-			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type, metadata )) ;
+			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint )) ;
+		}
+		else if( uf.first == "dosage" ) {
+			return std::auto_ptr< SNPDataSource >( new DosageFileSNPDataSource( uf.second, chromosome_hint )) ;
 		}
 		else if( uf.first == "hapmap_haplotypes" ) {
-			return std::auto_ptr< SNPDataSource >( new HapmapHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+			return std::auto_ptr< SNPDataSource >( new HapmapHaplotypesSNPDataSource( uf.second, chromosome_hint )) ;
 		}
 		else if( uf.first == "impute_haplotypes" ) {
-			return std::auto_ptr< SNPDataSource >( new ImputeHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+			return std::auto_ptr< SNPDataSource >( new ImputeHaplotypesSNPDataSource( uf.second, chromosome_hint )) ;
 		}
-		else if( uf.first == "shapeit_haplotypes" || uf.first == "shapeit" ) {
-			return std::auto_ptr< SNPDataSource >( new ShapeITHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+		else if( uf.first == "shapeit_haplotypes" ) {
+			return std::auto_ptr< SNPDataSource >( new ShapeITHaplotypesSNPDataSource( uf.second, chromosome_hint )) ;
 		}
-		else {
-			// assume GEN format.
-			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type, metadata )) ;
-		}
-	}
-
-	std::auto_ptr< SNPDataSource > SNPDataSource::create(
-		std::string const& filename,
-		Chromosome chromosome_hint,
-		CompressionType compression_type
-	) {
-		std::pair< std::string, std::string > uf = uniformise( filename ) ;
-		if( uf.first == "bgen" ) {
-			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second, compression_type )) ;
-		}
-		else if( uf.first == "vcf" ) {
-			return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second )) ;
-		}
-		else if( uf.first == "gen" ) {
-			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
-		}
-		else if( uf.first == "hapmap_haplotypes" ) {
-			return std::auto_ptr< SNPDataSource >( new HapmapHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
-		}
-		else if( uf.first == "impute_haplotypes" ) {
-			return std::auto_ptr< SNPDataSource >( new ImputeHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+		else if( uf.first == "binary_ped" ) {
+			if( uf.second.size() < 4 || uf.second.substr( uf.second.size() - 4, 4 ) != ".bed" ) {
+				throw genfile::BadArgumentError(
+					"SNPDataSource::create()",
+					"filename=\"" + uf.second + "\"",
+					"For binary PED format, expected the .bed extension."
+				) ;
+			}
+			std::string const bedFilename = uf.second ;
+			std::string bimFilename = bedFilename ;
+			bimFilename.replace( bimFilename.size() - 4, 4, ".bim" ); 
+			std::string famFilename = bedFilename ;
+			famFilename.replace( famFilename.size() - 4, 4, ".fam" ); 
+			return std::auto_ptr< SNPDataSource >( new BedFileSNPDataSource(
+				uf.second, bimFilename, famFilename
+			) ) ;
 		}
 		else {
+			throw genfile::BadArgumentError(
+				"genfile::SNPDataSource::create()",
+				"filetype_hint=\"" + filetype_hint + "\"",
+				"Unrecognised file type."
+			) ;
 			// assume GEN format.
-			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+			// return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
 		}
-	}
-
-	std::auto_ptr< SNPDataSource > SNPDataSource::create_chain(
-		std::vector< wildcard::FilenameMatch > const& matches,
-		vcf::MetadataParser::Metadata const& metadata,
-		std::string const& filetype_hint,
-		NotifyProgress notify_progress
-	) {
-		std::auto_ptr< SNPDataSourceChain > ptr = SNPDataSourceChain::create( matches, metadata, filetype_hint, notify_progress ) ;
-		return std::auto_ptr< SNPDataSource >( ptr.release() ) ;
 	}
 
 	SNPDataSource::SNPDataSource()

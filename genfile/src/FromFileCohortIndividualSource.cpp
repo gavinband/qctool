@@ -9,9 +9,11 @@
 #include <fstream>
 #include <boost/variant/variant.hpp>
 #include <boost/bind.hpp>
+#if HAVE_BOOST_SPIRIT
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix.hpp>
 #include <boost/fusion/include/std_pair.hpp>
+#endif
 #include "genfile/FileUtils.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/FromFileCohortIndividualSource.hpp"
@@ -50,7 +52,10 @@ namespace genfile {
 	std::size_t FromFileCohortIndividualSource::get_number_of_individuals() const { return m_entries.size() ; }
 
 	FromFileCohortIndividualSource::Entry FromFileCohortIndividualSource::get_entry( std::size_t sample_i, std::string const& column_name ) const {
-		std::size_t const column_i = find_column_name( column_name ) ;
+        std::size_t column_i = 0 ;
+        if( genfile::string_utils::to_upper( column_name ) != "ID_1" ) {
+            column_i = find_column_name( column_name ) ;
+        }
 		return m_entries[ sample_i ][ column_i ] ;
 	}
 
@@ -70,8 +75,8 @@ namespace genfile {
 	}
 
 	bool FromFileCohortIndividualSource::check_for_column( std::string const& column_name ) const {
-		std::vector< std::string >::const_iterator where = find_column_name_impl( column_name ) ;
-		return ( where != m_column_names.end() ) ;
+		std::map< std::string, std::size_t >::const_iterator where = m_column_indices.find( string_utils::to_lower( column_name ) ) ;
+		return ( where != m_column_indices.end() ) ;
 	}
 
 	std::vector< std::string >::const_iterator FromFileCohortIndividualSource::find_column_name_impl( std::string const& column_name ) const {
@@ -85,11 +90,27 @@ namespace genfile {
 			)
 		) ;
 	}
-	
+
+	std::vector< std::size_t > FromFileCohortIndividualSource::find_samples_by_value( std::string const& column_name, Entry const& entry ) const {
+        std::string const upperName = genfile::string_utils::to_upper( column_name ) ;
+		if( upperName == "ID_1" || upperName == m_column_names[0] ) {
+            // optimisation: fast lookup of principal ID field.
+			std::map< Entry, std::size_t >::const_iterator where = m_sample_indices.find( entry ) ;
+			if( where == m_sample_indices.end() ) {
+				throw BadArgumentError( "FromFileCohortIndividualSource::find_entries()", "entry=\"" + string_utils::to_string( entry ) + "\"", "The entry was not found in column \"" + column_name + "\"" ) ;
+			}
+			return std::vector< std::size_t >( 1, where->second ) ;
+		} else {
+			return CohortIndividualSource::find_samples_by_value( column_name, entry ) ;
+		}
+	}
+
 	std::size_t FromFileCohortIndividualSource::find_column_name( std::string const& column_name ) const {
-		std::vector< std::string >::const_iterator where = find_column_name_impl( column_name ) ;
-		assert( where != m_column_names.end() ) ;
-		return std::size_t( where - m_column_names.begin() ) ;
+		std::map< std::string, std::size_t >::const_iterator where = m_column_indices.find( string_utils::to_lower( column_name ) ) ;
+		if( where == m_column_indices.end() ) {
+			throw BadArgumentError( "FromFileCohortIndividualSource::find_column_name()", "column_name=\"" + column_name + "\"", "Column \"" + column_name + "\" not found" ) ;
+		}
+		return where->second ;
 	}
 
 	void FromFileCohortIndividualSource::setup( std::istream& str ) {
@@ -109,22 +130,59 @@ namespace genfile {
 		typedef std::map< std::string, CohortIndividualSource::ColumnType > ColumnTypeMap ;
 		boost::optional< ColumnTypeMap > column_types = read_column_types_from_comments( m_comments ) ;
 		
-		if( column_types ) {
-			m_column_names = read_column_names( stream ) ;
-			m_column_types.resize( m_column_names.size() ) ;
-			for( std::size_t i = 0; i < m_column_names.size(); ++i ) {
-				ColumnTypeMap::const_iterator where = (*column_types).find( m_column_names[i] ) ;
-				if( where == (*column_types).end() ) {
-					throw MalformedInputError( m_filename, m_number_of_metadata_lines + 1 ) ;
-				}
-				m_column_types[i] = where->second ;
+		m_column_names = read_column_names( stream ) ;
+		for( std::size_t i = 0; i < m_column_names.size(); ++i ) {
+			if( !m_column_indices.insert( std::make_pair( string_utils::to_lower( m_column_names[i] ), i ) ).second ) {
+				throw MalformedInputError( m_filename, "Column \"" + string_utils::to_lower( m_column_names[i] ) + "\" appears more than once", m_number_of_metadata_lines + 0 ) ;
 			}
-		} else {
-			m_column_names = read_column_names( stream ) ;
-			m_column_types = read_column_type_line( stream, m_column_names ) ;
 		}
+
+		if( !column_types ) {
+			column_types = read_column_type_line( stream, m_column_names ) ;
+		}
+
+		if( !column_types ) {
+			throw MalformedInputError( m_filename, "Expected column type line after column names.", m_number_of_metadata_lines + 1 ) ;
+        }
+
+		m_column_types.resize( m_column_names.size() ) ;
+		for( std::size_t i = 0; i < m_column_names.size(); ++i ) {
+			ColumnTypeMap::const_iterator where = (*column_types).find( m_column_names[i] ) ;
+			if( where == (*column_types).end() ) {
+				throw MalformedInputError( m_filename, m_number_of_metadata_lines + 1 ) ;
+			}
+			m_column_types[i] = where->second ;
+			
+            using genfile::string_utils::to_upper ;
+            if( to_upper( m_column_names[i] ) == "ID_1" && i != 0 ) {
+				throw MalformedInputError( m_filename, "The name 'ID_1', if used, must be the first column in the sample file.", 0 ) ;
+            }
+            if( to_upper( m_column_names[i] ) == "ID_2" && i != 1 ) {
+				throw MalformedInputError( m_filename, "The name 'ID_2', if used, must be the second column in the sample file.", 0 ) ;
+            }
+            if( to_upper( m_column_names[i] ) == "missing" && i != 2 ) {
+				throw MalformedInputError( m_filename, "The name 'missing', if used, must be the third column in the sample file.", 0 ) ;
+            }
+			if( i == 0 || to_upper( m_column_names[i] ) == "ID_1" || to_upper( m_column_names[i] ) == "ID_2" || to_upper( m_column_names[i] ) == "MISSING" ) {
+				if( m_column_types[i] != e_ID_COLUMN ) {
+					throw MalformedInputError( m_filename, "column " + genfile::string_utils::to_string( i+1 ) + "(\"" + m_column_names[i] + "\") should have type \"0\"", 0 ) ;
+				}
+			} else {
+				if( m_column_types[i] == e_ID_COLUMN ) {
+					throw MalformedInputError( m_filename, "Only the first (ID_1), second (ID_2), and third (missing) columns can have type \"0\"", 0 ) ;
+				}
+			}
+            // update the missingness column to the right type.
+			if( genfile::string_utils::to_upper( m_column_names[i] ) == "MISSING" ) {
+				m_column_types[i] = e_MISSINGNESS_COLUMN ;
+			}
+		}
+
 		assert( m_column_names.size() == m_column_types.size() ) ;
-		m_entries = read_entries( stream, m_column_types) ;
+		m_entries = read_entries( stream, m_column_types ) ;
+		for( std::size_t i = 0; i < m_entries.size(); ++i ) {
+			m_sample_indices[ m_entries[i].front() ] = i ;
+		}
 		assert( stream.eof() ) ;
 	}
 	
@@ -165,85 +223,64 @@ namespace genfile {
 			}
 			return result ;
 		}
-
-		void insert_name_and_type(
-			std::map< std::string, CohortIndividualSource::ColumnType >* result,
-			std::vector< char > const& the_name,
-			std::vector< char > const& the_type
-		) {
-			assert( result ) ;
-			std::string name( the_name.begin(), the_name.end() ) ;
-			std::string type_string( the_type.begin(), the_type.end() ) ;
-			std::cerr << "name:" << name << ", type:" << type_string << ".\n" ;
-			
-			boost::optional< CohortIndividualSource::ColumnType > type = get_column_type( type_string ) ;
-			if( !type ) {
-				throw MalformedInputError( "(unknown)", 0 ) ;
-			}
-			(*result)[ name ] = (*type) ;
-		}
 	}
 
 	boost::optional< std::map< std::string, CohortIndividualSource::ColumnType > > FromFileCohortIndividualSource::read_column_types_from_comments(
 		std::string const& comments
 	) const {
+		boost::optional< std::map< std::string, CohortIndividualSource::ColumnType > > result ;
+#if !HAVE_BOOST_SPIRIT
+		return result ;
+#else
 		using namespace boost::spirit::qi ;
 		using namespace boost::phoenix ;
 		using boost::spirit::ascii::char_ ;
 		using boost::spirit::ascii::graph ;
 		using boost::spirit::ascii::blank ;
 
-		boost::optional< std::map< std::string, CohortIndividualSource::ColumnType > > result ;
 		typedef std::map< std::string, CohortIndividualSource::ColumnType > Intermediate ;
 
-		for(
-			std::size_t pos = 0 ;
-			( pos = comments.find( "metadata", pos ) ) != std::string::npos ;
-			++pos
-		) {
+		std::size_t pos = comments.find( "metadata" ) ;
+		if( pos != std::string::npos ) {
 			Intermediate intermediate ;
 			std::string::const_iterator begin = comments.begin() + pos ;
-			bool parsed = false ;
-			try {
-				parsed = boost::spirit::qi::phrase_parse(
-					comments.begin(), comments.end(),
-						lit( "metadata:" )
+			bool parsed = boost::spirit::qi::phrase_parse(
+				begin, comments.end(),
+					lit( "metadata:" )
+					>> '{'
+					>> (
+						lit( "\"" )
+						>> ( +(graph - '\"') ) >> '\"'
+						>> ':'
 						>> '{'
-						>> (
-							lit( "\"" )
-							>> ( +(graph - '\"') ) >> '\"'
-							>> ':'
-							>> '{'
-							>> "\"type\""
-							>> ':'
-							>> '\"'
-							>> ( +(graph - '\"'))
-							>> '\"'
-							>> '}'
-						)
-						[
-							boost::phoenix::bind(
-								&insert_name_and_type,
-								&intermediate,
-								boost::spirit::_1,
-								boost::spirit::_2
-							) 
-						]
-						% ','
-						>> '}',
-					space
-				) ;
-			}
-			catch( MalformedInputError const& e ) {
-				throw MalformedInputError( m_filename, 0 ) ;
-			}
+						>> "\"type\""
+						>> ':'
+						>> '\"'
+						>> ( +(graph - '\"'))
+						>> '\"'
+						>> '}'
+					)
+					[
+						boost::phoenix::bind(
+							&insert_name_and_type,
+							&intermediate,
+							boost::spirit::_1,
+							boost::spirit::_2
+						) 
+					]
+					% ','
+				>> '}',
+				space
+			) ;
 	
 			if( parsed ) {
 				result = intermediate ;
-				break ;
+			} else {
+				throw MalformedInputError( m_filename, "\"metadata\" line found in header, but column specification was malformed", 0 ) ;
 			}
 		}
 		return result ;
+#endif
 	}
 	
 	std::vector< std::string > FromFileCohortIndividualSource::read_column_names( std::istream& stream ) const {
@@ -251,29 +288,14 @@ namespace genfile {
 		std::string line ;
 		std::getline( stream, line ) ;
 		result = string_utils::split_and_strip_discarding_empty_entries( line ) ;
-		if( result.size() < 3 ) {
+		if( result.size() < 1 ) {
 			throw MalformedInputError( m_filename, 0 + m_number_of_metadata_lines ) ;
-		}
-		if( string_utils::to_lower( result[0] ) != "id_1" ) {
-			throw MalformedInputError( m_filename, 0 + m_number_of_metadata_lines, 0 ) ;
-		}
-		if( string_utils::to_lower( result[1] ) != "id_2" ) {
-			throw MalformedInputError( m_filename, 0 + m_number_of_metadata_lines, 1 ) ;
-		}
-		if( string_utils::to_lower( result[2] ) != "missing" ) {
-			throw MalformedInputError( m_filename, 0 + m_number_of_metadata_lines, 2 ) ;
-		}
-		// check for uniqueness
-		for( std::size_t i = 0; i < result.size(); ++i ) {
-			if( ( std::find( result.begin(), result.end(), result[i] ) - result.begin() ) < i ) {
-				throw DuplicateKeyError( m_filename, result[i] ) ;
-			}
 		}
 		return result ;
 	}
 
-	std::vector< CohortIndividualSource::ColumnType > FromFileCohortIndividualSource::read_column_type_line( std::istream& stream, std::vector< std::string > const& column_names ) const {
-		std::vector< ColumnType > result ;
+	std::map< std::string, CohortIndividualSource::ColumnType > FromFileCohortIndividualSource::read_column_type_line( std::istream& stream, std::vector< std::string > const& column_names ) const {
+		std::map< std::string, CohortIndividualSource::ColumnType > result ;
 		std::string line ;
 		std::getline( stream, line ) ;
 		std::vector< std::string > type_strings = string_utils::split_and_strip_discarding_empty_entries( line ) ;
@@ -285,24 +307,11 @@ namespace genfile {
 			if( !type ) {
 				throw MalformedInputError( m_filename, 1 + m_number_of_metadata_lines, i ) ;
 			} else {
-				result.push_back( *type ) ;
+				result[ m_column_names[i] ] = *type ;
 			}
 		}
 		assert( result.size() == column_names.size() ) ;
 
-		// check that only the first three columns have type '0'
-		for( std::size_t i = 0; i < result.size(); ++i ) {
-			if( i < 3 ) {
-				if( result[i] != e_ID_COLUMN ) {
-					throw MalformedInputError( m_filename, 1 + m_number_of_metadata_lines ) ;
-				}
-			}
-			else if( result[i] == e_ID_COLUMN ) {
-				throw MalformedInputError( m_filename, 1 + m_number_of_metadata_lines ) ;
-			}
-		}
-		result[2] = e_MISSINGNESS_COLUMN ;
-		
 		return result ;
 	}
 

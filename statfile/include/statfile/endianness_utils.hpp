@@ -57,6 +57,25 @@ namespace statfile {
 			assert( 0 ) ; // Only little and big endian supported.
 		}
 	}
+
+	// Write an integer to the stream in big-endian format.
+	// The stream is assumed to have as many bytes writeable as the integer's in-memory representation.
+	template< typename IntegerType >
+	void write_big_endian_integer( std::ostream& out_stream, IntegerType const integer ) {
+		char const* ptr = reinterpret_cast< char const* >( &integer ) ;
+		if( impl::compile_machine_is_big_endian ) {
+			out_stream.write( ptr, sizeof( IntegerType )) ;
+		}
+		else if( impl::compile_machine_is_little_endian ) {
+			IntegerType buffer ;
+			char* buffer_ptr = reinterpret_cast< char* >( &buffer ) ;
+			std::reverse_copy( ptr, ptr + sizeof( IntegerType ), buffer_ptr ) ;
+			out_stream.write( ptr, sizeof( IntegerType )) ;
+		}
+		else {
+			assert( 0 ) ; // Only little and big endian supported.
+		}
+	}
 }
 
 #endif

@@ -10,11 +10,12 @@
 #include <vector>
 #include <fstream>
 #include <cstdio>
+#include "../config.hpp"
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSink.hpp"
-#include "genfile/bgen.hpp"
+#include "genfile/bgen/bgen.hpp"
 #include "genfile/BGenFileSNPDataSink.hpp"
 #include "genfile/GenomePosition.hpp"
 #include "genfile/SortingBGenFileSNPDataSink.hpp"

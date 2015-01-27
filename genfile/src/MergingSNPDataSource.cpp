@@ -67,8 +67,18 @@ namespace genfile {
 		m_sources.back() = source.release() ;
 		m_merge_id_prefixes.push_back( id_prefix ) ;
 
+		// Get metadata.
+		// Currently we just take the metadata from the first source.
+		if( m_sources.size() == 1 ) {
+			m_metadata = m_sources[0]->get_metadata() ;
+		}
+
 		// read first SNP from this source.
 		get_top_snp_in_source( m_sources.size() - 1 ) ;
+	}
+
+	SNPDataSource::Metadata MergingSNPDataSource::get_metadata() const {
+		return m_metadata ;
 	}
 
 	void MergingSNPDataSource::get_top_snp_in_source( std::size_t source_i ) {

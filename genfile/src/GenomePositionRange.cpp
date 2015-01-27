@@ -53,11 +53,20 @@ namespace genfile {
 		}
 	}
 
-	// Represents a closed, but possibly empty, range of genome positions.
 	GenomePositionRange::GenomePositionRange( Position start, Position end ):
 		m_start( GenomePosition( Chromosome(), start ) ),
 		m_end( GenomePosition( Chromosome(), end ) ),
 		m_have_chromosome( false )
+	{
+		if( m_end < m_start ) {
+			throw BadArgumentError( "genfile::GenomePositionRange::GenomePositionRange( start, end )", "start, end" ) ;
+		}
+	}
+
+	GenomePositionRange::GenomePositionRange( Chromosome chromosome, Position start, Position end ):
+		m_start( GenomePosition( chromosome, start ) ),
+		m_end( GenomePosition( chromosome, end ) ),
+		m_have_chromosome( true )
 	{
 		if( m_end < m_start ) {
 			throw BadArgumentError( "genfile::GenomePositionRange::GenomePositionRange( start, end )", "start, end" ) ;
@@ -90,7 +99,7 @@ namespace genfile {
 		return *this ;
 	}
 	
-	bool GenomePositionRange::check_if_contains( GenomePosition const& position ) const {
+	bool GenomePositionRange::contains( GenomePosition const& position ) const {
 		if( !m_have_chromosome ) {
 			return m_start.position() <= position.position() && position.position() <= m_end.position() ;
 		}
@@ -111,18 +120,18 @@ namespace genfile {
 	}
 	
 	std::ostream& operator<<( std::ostream& out, GenomePositionRange const& range ) {
-		if( range.get_start().chromosome() != Chromosome() ) {
-			out << range.get_start().chromosome() << ":" ;
+		if( range.start().chromosome() != Chromosome() ) {
+			out << range.start().chromosome() << ":" ;
 		}
-		if( range.get_start().position() > 0 ) {
-			out << range.get_start().position() ;
+		if( range.start().position() > 0 ) {
+			out << range.start().position() ;
 		}
 		out << "-" ;
-		if( range.get_end().chromosome() != range.get_start().chromosome() && range.get_end().chromosome() != Chromosome() ) {
-			out << range.get_end().chromosome() << ":" ;
+		if( range.end().chromosome() != range.start().chromosome() && range.end().chromosome() != Chromosome() ) {
+			out << range.end().chromosome() << ":" ;
 		}
-		if( range.get_end().position() < GenomePosition::get_max_position( range.get_end().chromosome() )) {
-			out << range.get_end().position() ;
+		if( range.end().position() < GenomePosition::get_max_position( range.end().chromosome() )) {
+			out << range.end().position() ;
 		}
 		return out ;
 	}

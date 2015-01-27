@@ -63,6 +63,10 @@ namespace genfile {
 		return (*m_source) ;
 	}
 
+	SNPDataSource::Metadata SNPIdentifyingDataFilteringSNPDataSource::get_metadata() const {
+		return m_source->get_metadata() ;
+	}
+
 	unsigned int SNPIdentifyingDataFilteringSNPDataSource::number_of_samples() const {
 		return m_source->number_of_samples() ;
 	}

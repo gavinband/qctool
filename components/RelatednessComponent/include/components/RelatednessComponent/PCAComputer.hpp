@@ -28,7 +28,7 @@ struct PCAComputer
 
 	void compute_PCA() ;
 
-	void begin_processing_snps( std::size_t number_of_samples ) ;
+	void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) ;
 	void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& ) ;
 	void end_processing_snps() ;
 	

@@ -32,9 +32,16 @@ namespace genfile {
 			void set_number_of_samples( std::size_t n ) {
 				// nothing to do.
 			}
+			void set_number_of_alleles( std::size_t n ) {
+				assert( n == 2 ) ;
+			}
 			void set_sample( std::size_t i ) {
 				// nothing to do
 			}
+			void set_order_type( OrderType const order_type, ValueType const value_type ) {
+				assert( order_type == ePerOrderedHaplotype && value_type == eAlleleIndex ) ;
+			}
+
 			virtual void set_number_of_entries( std::size_t n ) {
 				if( n != 2 ) {
 					throw genfile::BadArgumentError(

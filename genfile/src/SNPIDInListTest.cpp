@@ -37,7 +37,7 @@ namespace genfile {
 			}
 		}
 		else {
-			ostr << "set of " + m_id_fields.size() ;
+			ostr << "set of " << m_id_fields.size() ;
 		}
 		ostr << " }" ;
 		return ostr.str() ;

@@ -23,8 +23,15 @@ namespace snp_summary_component {
 	struct DBOutputter: public qcdb::Storage {
 		typedef qcdb::DBOutputter::Metadata Metadata ;
 		typedef qcdb::Storage Storage ;
-		static Storage::UniquePtr create( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) ;
-		static Storage::SharedPtr create_shared( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) ;
+		typedef boost::shared_ptr< DBOutputter > SharedPtr ;
+
+		static UniquePtr create( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) ;
+		static SharedPtr create_shared(
+			std::string const& filename,
+			std::string const& analysis_name,
+			std::string const& analysis_description,
+			Metadata const& metadata
+		) ;
 
 		DBOutputter(
 			std::string const& filename,
@@ -34,6 +41,9 @@ namespace snp_summary_component {
 		) ;
 
 		~DBOutputter() ;
+
+		// Set the name of the table where results are stored
+		void set_table_name( std::string const& table_name ) ;
 
 		void add_variable(
 			std::string const& 
@@ -48,14 +58,19 @@ namespace snp_summary_component {
 		
 		void finalise( long options ) ;
 
+		db::Connection::RowId analysis_id() const ;
 	private:
 		qcdb::DBOutputter m_outputter ;
 		std::size_t const m_max_transaction_count ;
 		db::Connection::RowId m_variable_id ;
 		typedef std::vector< boost::tuple< genfile::SNPIdentifyingData2, std::string, genfile::VariantEntry > > Data ;
 		Data m_data ;
+		
+		std::string m_table_name ;
+		db::Connection::StatementPtr m_insert_data_statement ;
 
 	private:
+		void create_schema() ;
 		void write_data( Data const& data ) ;
 
 		void store_data(
@@ -63,6 +78,12 @@ namespace snp_summary_component {
 			std::string const& variable,
 			genfile::VariantEntry const& value
 		) ;
+		
+		void insert_summary_data(
+			db::Connection::RowId snp_id,
+			db::Connection::RowId variable_id,
+			genfile::VariantEntry const& value
+		) const ;
 	} ;
 }
 

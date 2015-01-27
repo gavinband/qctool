@@ -46,6 +46,10 @@ namespace genfile {
 	
 	SampleFilteringSNPDataSource::~SampleFilteringSNPDataSource() {}
 
+	SNPDataSource::Metadata SampleFilteringSNPDataSource::get_metadata() const {
+		return m_source->get_metadata() ;
+	}
+
 	unsigned int SampleFilteringSNPDataSource::number_of_samples() const {
 		return m_source->number_of_samples() - m_indices_of_samples_to_filter_out.size() ;
 	}
@@ -175,6 +179,10 @@ namespace genfile {
 				m_number_filtered_out = 0 ;
 			}
 
+			void set_number_of_alleles( std::size_t n ) {
+				m_setter.set_number_of_samples( n ) ;
+			}
+
 			void set_sample( std::size_t n ) {
 			 	if( m_number_filtered_out < m_indices_of_samples_to_filter_out.size() && n == m_indices_of_samples_to_filter_out[ m_number_filtered_out ] ) {
 					m_filter_out_this_sample = true ;
@@ -182,6 +190,12 @@ namespace genfile {
 				} else {
 					m_filter_out_this_sample = false ;
 					m_setter.set_sample( n - m_number_filtered_out ) ;
+				}
+			}
+
+			void set_order_type( OrderType const order_type, ValueType const value_type ) {
+				if( !m_filter_out_this_sample ) {
+					m_setter.set_order_type( order_type, value_type ) ;
 				}
 			}
 

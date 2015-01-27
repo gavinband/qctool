@@ -12,8 +12,8 @@
 #include <boost/signals2/signal.hpp>
 #include <Eigen/Core>
 #include "genfile/SNPDataSourceProcessor.hpp"
-#include "genfile/RandomAccessSNPDataSource.hpp"
 #include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/CohortIndividualSource.hpp"
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
 #include "HaplotypeFrequencyLogLikelihood.hpp"
@@ -24,6 +24,10 @@ public:
 
 	static void declare_options( appcontext::OptionProcessor& options ) ;
 	static UniquePtr create(
+		genfile::CohortIndividualSource const& samples,
+		std::string const& source_sample_id_column,
+		genfile::CohortIndividualSource::UniquePtr ld_samples,
+		std::string const& ld_sample_id_column,
 		genfile::SNPDataSource::UniquePtr source,
 		appcontext::OptionProcessor const& options,
 		appcontext::UIContext& ui_context
@@ -35,7 +39,7 @@ public:
 	HaplotypeFrequencyComponent( genfile::SNPDataSource::UniquePtr source, appcontext::UIContext& ui_context ) ;
 
 public:
-	void begin_processing_snps( std::size_t number_of_samples ) ;
+	void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) ;
 	void processed_snp( genfile::SNPIdentifyingData const& target_snp, genfile::VariantDataReader& target_data_reader ) ;
 	void compute_ld_measures(
 		genfile::SNPIdentifyingData const& source_snp,
@@ -47,7 +51,7 @@ public:
 	void compute_ld_measures(
 		genfile::SNPIdentifyingData const& source_snp,
 		genfile::SNPIdentifyingData const& target_snp,
-		std::vector< std::vector< int > > const& genotypes
+		std::vector< Eigen::VectorXd > const& genotypes
 	) ;
 
 	void end_processing_snps() ;
@@ -56,7 +60,6 @@ public:
 	void send_results_to( ResultCallback callback ) ;
 
 private:
-	
 	genfile::SNPDataSource::UniquePtr m_source ;
 	appcontext::UIContext& m_ui_context ;
 	double const m_threshhold ;

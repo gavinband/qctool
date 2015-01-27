@@ -10,6 +10,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <map>
 #include "../config.hpp"
 #include <boost/optional.hpp>
 #include <boost/function.hpp>
@@ -19,6 +20,7 @@
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/vcf/MetadataParser.hpp"
+#include "genfile/CohortIndividualSource.hpp"
 
 namespace genfile {
 	struct SNPDataSourceError: public SNPDataError { char const* what() const throw() { return "SNPDataSourceError" ; } } ;
@@ -36,23 +38,24 @@ namespace genfile {
 	public:
 		typedef std::auto_ptr< SNPDataSource > UniquePtr ;
 		typedef boost::function< void ( std::size_t, std::size_t ) > NotifyProgress ;
+		typedef std::multimap< std::string, std::map< std::string, std::string > > Metadata ;
+
+	public:
 		
 		// The following methods are factory functions
 		static std::vector< std::string > get_file_types() ;
-		static UniquePtr create( std::string const& filename, Chromosome = UnidentifiedChromosome ) ;
-		static UniquePtr create( std::string const& filename, Chromosome, vcf::MetadataParser::Metadata const&, std::string const& filetype_hint = "guess" ) ;
-		static UniquePtr create_chain(
-			std::vector< wildcard::FilenameMatch > const& matches,
-			vcf::MetadataParser::Metadata const& metadata = vcf::MetadataParser::Metadata(),
-			std::string const& filetype_hint = "guess",
-			NotifyProgress notify_progress = NotifyProgress()
+		static UniquePtr create(
+			std::string const& filename,
+			Chromosome chromosome_hint = genfile::Chromosome(),
+			boost::optional< vcf::MetadataParser::Metadata > const& = boost::optional< vcf::MetadataParser::Metadata >(),
+			std::string const& filetype_hint = "guess"
 		) ;
 	private:
 		static UniquePtr create(
 			std::string const& filename,
-			Chromosome,
+			Chromosome chromosome_hint,
 			CompressionType compression_type,
-			vcf::MetadataParser::Metadata const&,
+			boost::optional< vcf::MetadataParser::Metadata > const&,
 			std::string const& filetype_hint
 		) ;
 
@@ -67,6 +70,10 @@ namespace genfile {
 		typedef boost::function< void() > source_reset_callback_t ;
 
 		void set_source_reset_callback( source_reset_callback_t ) ;
+		typedef boost::function< int ( Chromosome const&, std::size_t ) > GetPloidy ;
+		virtual void set_expected_ploidy( GetPloidy ) {} ;
+
+		virtual Metadata get_metadata() const = 0 ;
 
 		// The next five functions form the main interface for reading snp data. 
 		// These typedefs reflect the signatures which the various setter objects
@@ -185,7 +192,7 @@ namespace genfile {
 		// calling this function.
 		SNPDataSource& read_snp_probability_data(
 			GenotypeProbabilitySetter const& set_genotype_probabilities,
-			std::string const& genotype_field = "genotypes"
+			std::string const& genotype_field = ":genotypes:"
 		) ;
 
 		// Function: read_variant_data()
@@ -292,7 +299,6 @@ namespace genfile {
 		) ;
 
 	private:
-		bool m_have_cached_identifying_data ;
 		Chromosome m_cached_chromosome ;
 		uint32_t m_cached_number_of_samples, m_cached_SNP_position ;
 		std::string m_cached_SNPID, m_cached_RSID ;

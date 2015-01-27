@@ -11,7 +11,7 @@
 #include <string>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSink.hpp"
-#include "genfile/bgen.hpp"
+#include "genfile/bgen/bgen.hpp"
 #include "genfile/Error.hpp"
 
 namespace genfile {
@@ -25,7 +25,8 @@ namespace genfile {
 			std::string const& filename,
 			Metadata const& metadata,
 			CompressionType compression_type,
-			bgen::uint32_t flags
+			bgen::uint32_t flags,
+			int const number_of_bits = 16
 		) ;
 
 		BasicBGenFileSNPDataSink(
@@ -33,8 +34,10 @@ namespace genfile {
 			std::string const& filename,
 			Metadata const& metadata,
 			CompressionType compression_type,
-			bgen::uint32_t flags
+			bgen::uint32_t flags,
+			int const number_of_bits = 16
 		) ;
+
 
 		SinkPos get_stream_pos() const ;
 		std::string get_spec() const ;
@@ -59,12 +62,14 @@ namespace genfile {
 
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) ;
 
+		void set_number_of_bits( int const bits ) ;
+
 	protected:
 		// Other methods.
 		std::auto_ptr< std::ostream >& stream_ptr() ;
 		std::string const& filename() const ;
 		
-		void write_header_data( std::ostream& stream, std::size_t const number_of_samples ) ;
+		void update_offset_and_header_block() ;
 		
 	private:
 
@@ -73,10 +78,14 @@ namespace genfile {
 
 		std::string m_filename ;
 		Metadata m_metadata ;
-		std::string const m_free_data ;
+		bgen::BgenContext m_bgen_context ;
+		std::size_t m_offset ;
 		std::auto_ptr< std::ostream > m_stream_ptr ;
 		bool m_have_written_header ;
-		bgen::uint32_t m_flags ;
+		int m_number_of_bits ;
+		
+		std::vector< char > m_buffer ;
+		std::vector< char > m_compression_buffer ;
 	} ;
 
 
@@ -87,20 +96,24 @@ namespace genfile {
 	public:
 		BGenFileSNPDataSink(
 			std::string const& filename,
-			Metadata const& metadata = Metadata()
+			Metadata const& metadata = Metadata(),
+			std::string const& version = "v11",
+			int const number_of_bits = 16
 		) ;
 
 		BGenFileSNPDataSink(
 			std::auto_ptr< std::ostream > stream_ptr,
 			std::string const& filename,
 			Metadata const& metadata,
-			uint32_t const flags
+			uint32_t const flags,
+			int const number_of_bits = 16
 		) ;
 
 		BGenFileSNPDataSink(
 			std::string const& filename,
 			Metadata const& metadata,
-			uint32_t const flags
+			uint32_t const flags,
+			int const number_of_bits = 16
 		) ;
 
 		~BGenFileSNPDataSink() ;

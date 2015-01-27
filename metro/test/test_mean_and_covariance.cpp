@@ -11,7 +11,6 @@
 AUTO_TEST_CASE( test_mean_and_covariance_with_missingness ) {
 	using metro::compute_mean_and_covariance ;
 
-	double const tolerance = 0.000000000001 ;
 	Eigen::RowVectorXd mean ;
 	Eigen::MatrixXd covariance ;
 	Eigen::MatrixXd X ;
@@ -241,7 +240,6 @@ AUTO_TEST_CASE( test_mean_and_covariance_with_missingness ) {
 AUTO_TEST_CASE( test_mean_and_covariance_with_no_missingness ) {
 	using metro::compute_mean_and_covariance ;
 
-	double const tolerance = 0.000000000001 ;
 	Eigen::RowVectorXd mean ;
 	Eigen::MatrixXd covariance ;
 	Eigen::MatrixXd X ;

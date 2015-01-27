@@ -1,117 +1,121 @@
 {
-    "setup": "setup.tgz", 
-    "tests": [
-        {   
-            "command": "-g %INPUT_DIR%/example_#.gen -og %OUTPUT_DIR%/example.bgen", 
-            "result_tarball": "e7e9be61e6d008b0076987496b80c45f.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example_#.gen -og %OUTPUT_DIR%/example.vcf", 
-            "result_tarball": "7d74cae1bc07736decac3c4baedee607.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example_#.gen -og %OUTPUT_DIR%/example_#.bgen", 
-            "result_tarball": "b7145d3d59dec793f4c736a1326d645b.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example_01.gen -og %OUTPUT_DIR%/example_01.bgen -assume-chromosome 01", 
-            "result_tarball": "4963d28ec976cd2defc284bc67230c40.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example_01.gen.gz -og %OUTPUT_DIR%/example_01.bgen -assume-chromosome 01", 
-            "result_tarball": "5d18c029e59537ccf913ad61462355f3.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.vcf -og %OUTPUT_DIR%/converted.bgen", 
-            "result_tarball": "10717346bcd1300044d6f1e059b04a48.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.vcf.gz -og %OUTPUT_DIR%/converted.bgen", 
-            "result_tarball": "c9303cf8c3848570ae21979089abf2a4.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example_bgzipped.vcf.gz -og %OUTPUT_DIR%/converted.bgen", 
-            "result_tarball": "ee429ab306285b26e984149c559abc74.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.vcf -vcf-genotype-field GP -og %OUTPUT_DIR%/converted.bgen", 
-            "result_tarball": "f1e75291f44c79b76f7a225a98c3971f.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.bgen -sort -og %OUTPUT_DIR%/sorted.bgen", 
-            "result_tarball": "fdae6ae2cca6af6fe9055e87b7b617bb.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.bgen -sort -og %OUTPUT_DIR%/sorted.vcf", 
-            "result_tarball": "4e58b1968cd59121e5e188f5ce3a1122.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -incl-rsids %INPUT_DIR%/rsids_to_include.txt", 
-            "result_tarball": "02b4e7b9d19134bff475e4ab47774f02.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -excl-rsids %INPUT_DIR%/rsids_to_exclude.txt", 
-            "result_tarball": "beb81eda3016d5a7e295fc48a0547cd4.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -incl-positions %INPUT_DIR%/positions_to_include.txt", 
-            "result_tarball": "dcb06ebaa6cefbf3a9d418fae3569938.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -excl-positions %INPUT_DIR%/positions_to_exclude.txt", 
-            "result_tarball": "f96426b1f201c0a8a157b933b019d86f.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -excl-range 06:15000-18000", 
-            "result_tarball": "2ec7633648c7d0cfba37c3022fe7944c.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -snp-missing-rate 0.05 -maf 0.01 1 -info 0.9 1 -hwe 20", 
-            "result_tarball": "016b47e1e61b919262b78a19077d491e.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.bgen -write-snp-excl-list %OUTPUT_DIR%/snp_exclusions.txt -snp-missing-rate 0.05", 
-            "result_tarball": "7afeb9f641787813e71b33c68a1a43c7.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.bgen -s %INPUT_DIR%/example.sample -sample-stats %OUTPUT_DIR%/example.sample-stats -os %OUTPUT_DIR%/example.sample", 
-            "result_tarball": "dfb2160f47f237e68d7a419f92375db4.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.bgen -snp-stats %OUTPUT_DIR%/example.snp-stats", 
-            "result_tarball": "4ad6e5d7a116f0020f04557227391049.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.bgen -s %INPUT_DIR%/example.sample -snp-stats %OUTPUT_DIR%/example.snp-stats -excl-samples %INPUT_DIR%/samples_to_exclude.txt", 
-            "result_tarball": "55acb5cfea24aa16b9339eb91e88ba2b.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.bgen -s %INPUT_DIR%/example.sample -g %INPUT_DIR%/second_cohort.bgen -s %INPUT_DIR%/second_cohort.sample -og %OUTPUT_DIR%/joined.gen -os %OUTPUT_DIR%/joined.sample", 
-            "result_tarball": "89cd8cb1946efb9ec1aff5ca3ab29c2b.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.bgen -s %INPUT_DIR%/example.sample -g %INPUT_DIR%/second_cohort.bgen -s %INPUT_DIR%/second_cohort.sample -og %OUTPUT_DIR%/joined.gen -os %OUTPUT_DIR%/joined.sample -snp-match-fields position,alleles", 
-            "result_tarball": "8ef03f6764face5b96053304632369f1.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.bgen -s %INPUT_DIR%/example.sample -g %INPUT_DIR%/second_cohort.bgen -s %INPUT_DIR%/second_cohort.sample -og %OUTPUT_DIR%/joined.gen -os %OUTPUT_DIR%/joined.sample -snp-match-fields position,alleles -match-alleles-to-cohort1", 
-            "result_tarball": "a24a80ab653d479d7320588b713572ee.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example_#.gen -s %INPUT_DIR%/example.sample -os %OUTPUT_DIR%/example.sample -condition-on rs1234", 
-            "result_tarball": "d64e4342281c2124590073cd88610eb4.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example_#.gen -s %INPUT_DIR%/example.sample -os %OUTPUT_DIR%/example.sample -condition-on pos~03:10001", 
-            "result_tarball": "f6315fbf2c41fb862202c3ca6bdcd33d.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.bgen -s %INPUT_DIR%/example.sample -os %OUTPUT_DIR%/example.sample -quantile-normalise pheno1", 
-            "result_tarball": "0fc08af9c3233157dbb613a96ee495ba.tgz"
-        }, 
-        {
-            "command": "-g %INPUT_DIR%/example.bgen -s %INPUT_DIR%/example.sample -os %OUTPUT_DIR%/example.sample -quantile-normalise pheno1,pheno2", 
-            "result_tarball": "08779fe4397fd269e5e674acd0429928.tgz"
-        }
-    ]
+	"setup": "setup.tgz", 
+	"tests": [
+		{	
+			"command": "-g %INPUT_DIR%/example_#.gen -og %OUTPUT_DIR%/example.bgen", 
+			"result_tarball": "e7e9be61e6d008b0076987496b80c45f.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example_#.gen -og %OUTPUT_DIR%/example.vcf", 
+			"result_tarball": "7d74cae1bc07736decac3c4baedee607.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example_01.gen -og %OUTPUT_DIR%/example_01.bgen -assume-chromosome 01", 
+			"result_tarball": "4963d28ec976cd2defc284bc67230c40.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example_01.gen.gz -og %OUTPUT_DIR%/example_01.bgen -assume-chromosome 01", 
+			"result_tarball": "5d18c029e59537ccf913ad61462355f3.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.vcf -og %OUTPUT_DIR%/converted.bgen", 
+			"result_tarball": "10717346bcd1300044d6f1e059b04a48.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.vcf.gz -og %OUTPUT_DIR%/converted.bgen", 
+			"result_tarball": "c9303cf8c3848570ae21979089abf2a4.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example_bgzipped.vcf.gz -og %OUTPUT_DIR%/converted.bgen", 
+			"result_tarball": "ee429ab306285b26e984149c559abc74.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.vcf -vcf-genotype-field GP -og %OUTPUT_DIR%/converted.bgen", 
+			"result_tarball": "f1e75291f44c79b76f7a225a98c3971f.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.bgen -sort -og %OUTPUT_DIR%/sorted.bgen", 
+			"result_tarball": "fdae6ae2cca6af6fe9055e87b7b617bb.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.bgen -sort -og %OUTPUT_DIR%/sorted.vcf", 
+			"result_tarball": "4e58b1968cd59121e5e188f5ce3a1122.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -incl-rsids %INPUT_DIR%/rsids_to_include.txt", 
+			"result_tarball": "02b4e7b9d19134bff475e4ab47774f02.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -excl-rsids %INPUT_DIR%/rsids_to_exclude.txt", 
+			"result_tarball": "beb81eda3016d5a7e295fc48a0547cd4.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -excl-snps %INPUT_DIR%/snps_to_exclude.txt", 
+			"result_tarball": "225373cfe0f2dc801d0976d4db5307ed.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -incl-snps %INPUT_DIR%/snps_to_exclude.txt", 
+			"result_tarball": "71edb80176c9e69eeda96052f9a0c4c7.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -incl-positions %INPUT_DIR%/positions_to_include.txt", 
+			"result_tarball": "dcb06ebaa6cefbf3a9d418fae3569938.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -excl-positions %INPUT_DIR%/positions_to_exclude.txt", 
+			"result_tarball": "f96426b1f201c0a8a157b933b019d86f.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -excl-range 06:15000-18000", 
+			"result_tarball": "2ec7633648c7d0cfba37c3022fe7944c.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.bgen -og %OUTPUT_DIR%/subsetted.gen -snp-missing-rate 0.05 -maf 0.01 1 -info 0.9 1 -hwe 20", 
+			"result_tarball": "016b47e1e61b919262b78a19077d491e.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.bgen -write-snp-excl-list %OUTPUT_DIR%/snp_exclusions.txt -snp-missing-rate 0.05 -maf 0.01 1 -info 0.9 1 -hwe 20", 
+			"result_tarball": "7afeb9f641787813e71b33c68a1a43c7.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.bgen -s %INPUT_DIR%/example.sample -sample-stats %OUTPUT_DIR%/example.sample-stats -os %OUTPUT_DIR%/example.sample", 
+			"result_tarball": "dfb2160f47f237e68d7a419f92375db4.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.bgen -snp-stats %OUTPUT_DIR%/example.snp-stats", 
+			"result_tarball": "4ad6e5d7a116f0020f04557227391049.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.bgen -s %INPUT_DIR%/example.sample -snp-stats %OUTPUT_DIR%/example.snp-stats -excl-samples %INPUT_DIR%/samples_to_exclude.txt", 
+			"result_tarball": "55acb5cfea24aa16b9339eb91e88ba2b.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.bgen -s %INPUT_DIR%/example.sample -g %INPUT_DIR%/second_cohort.bgen -s %INPUT_DIR%/second_cohort.sample -og %OUTPUT_DIR%/joined.gen -os %OUTPUT_DIR%/joined.sample", 
+			"result_tarball": "89cd8cb1946efb9ec1aff5ca3ab29c2b.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.bgen -s %INPUT_DIR%/example.sample -g %INPUT_DIR%/second_cohort.bgen -s %INPUT_DIR%/second_cohort.sample -og %OUTPUT_DIR%/joined.gen -os %OUTPUT_DIR%/joined.sample -snp-match-fields position,alleles", 
+			"result_tarball": "8ef03f6764face5b96053304632369f1.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.bgen -s %INPUT_DIR%/example.sample -g %INPUT_DIR%/second_cohort.bgen -s %INPUT_DIR%/second_cohort.sample -og %OUTPUT_DIR%/joined.gen -os %OUTPUT_DIR%/joined.sample -snp-match-fields position,alleles -match-alleles-to-cohort1", 
+			"result_tarball": "a24a80ab653d479d7320588b713572ee.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example_#.gen -s %INPUT_DIR%/example.sample -os %OUTPUT_DIR%/example.sample -condition-on rs1234", 
+			"result_tarball": "d64e4342281c2124590073cd88610eb4.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example_#.gen -s %INPUT_DIR%/example.sample -os %OUTPUT_DIR%/example.sample -condition-on pos~03:10001", 
+			"result_tarball": "f6315fbf2c41fb862202c3ca6bdcd33d.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.bgen -s %INPUT_DIR%/example.sample -os %OUTPUT_DIR%/example.sample -quantile-normalise pheno1", 
+			"result_tarball": "0fc08af9c3233157dbb613a96ee495ba.tgz"
+		}, 
+		{
+			"command": "-g %INPUT_DIR%/example.bgen -s %INPUT_DIR%/example.sample -os %OUTPUT_DIR%/example.sample -quantile-normalise pheno1,pheno2", 
+			"result_tarball": "08779fe4397fd269e5e674acd0429928.tgz"
+		}
+	]
 }

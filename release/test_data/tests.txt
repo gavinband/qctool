@@ -1,0 +1,95 @@
+*** Settings ***
+Library	OperatingSystem
+Library	Process
+Test Setup	Setup	${CURDIR}/setup.tgz	${EXECDIR}/tmp
+*Test Teardown	RemoveDir	${EXECDIR}/tmp
+
+*** Variables ***
+${QCTOOL}	/Users/gav/Projects/Software/usr/bin/qctool-1.4
+${TMPDIR}	${CURDIR}/tmp
+
+*** Test cases ***
+Convert per-chromosome gen files to GEN format.
+	Converts	example_#.gen	output.gen
+	Converts	example_04.gen	output.gen
+	Converts	example_01.gen.gz	output.gen
+
+Convert bed files to gen format.
+	Converts	example_04.bed	output.gen
+
+Convert per-chromosome gen files to gzipped GEN format.
+	Converts	example_#.gen	output.gen.gz
+	Converts	example_04.gen	output.gen.gz
+	Converts	example_01.gen.gz	output.gen.gz
+
+Convert per-chromosome gen files to BGEN format.
+	Converts	example_#.gen	output.bgen
+	Converts	example_04.gen	output.bgen
+	Converts	example_01.gen.gz	output.gen
+
+Convert per-chromosome gen files to VCF format.
+	Converts	example_#.gen	output.vcf
+	Converts	example_04.gen	output.vcf
+	Converts	example_01.gen.gz	output.vcf
+
+Convert per-chromosome gen files to gzipped VCF format.
+	Converts	example_#.gen	output.vcf.gz
+	Converts	example_04.gen	output.vcf.gz
+	Converts	example_01.gen.gz	output.vcf.gz
+
+Convert per-chromosome gen files to hapdb format.
+	Converts	example_#.gen	output.sqlite	-ofiletype	sqlite_genotypes
+	Converts	example_04.gen	output.sqlite	-ofiletype	sqlite_genotypes
+	Converts	example_01.gen.gz	output.sqlite	-ofiletype	sqlite_genotypes
+
+Convert VCF file to GEN format.
+	Converts	example.vcf	output.gen
+	Converts	example.vcf.gz	output.gen
+
+Convert VCF file to gzipped GEN format.
+	Converts	example.vcf	output.gen.gz
+	Converts	example.vcf.gz	output.gen.gz
+
+Convert VCF file to BGEN format.
+	Converts	example.vcf	output.bgen
+	Converts	example.vcf.gz	output.bgen
+
+Convert VCF files to VCF format.
+	Converts	example.vcf	output.vcf
+	Converts	example.vcf.gz	output.vcf
+
+Convert VCF files to gzipped VCF format.
+	Converts	example.vcf	output.vcf.gz
+	Converts	example.vcf.gz	output.vcf.gz
+
+Convert VCF file to hapdb format.
+	Converts	example.vcf	output.sqlite	-ofiletype	sqlite_genotypes
+	Converts	example.vcf.gz	output.sqlite	-ofiletype	sqlite_genotypes
+
+*** Keywords ***
+CountLines
+	[Arguments]	${files}
+	Run	wc -l ${files}
+
+Converts
+	[Arguments]	${input}	${output}	@{args}
+	Run cmdline	${QCTOOL}	-g	${TMPDIR}/${input}	-og	${TMPDIR}/${output}	@{args}
+	File Should Exist	${TMPDIR}/${output}
+	File Should Not Be Empty	${TMPDIR}/${output}
+
+Run cmdline
+	[Arguments]	${executable}	@{args}
+	${result}=	Run Process	${executable}	@{args}
+	Log	${result.stderr}	DEBUG
+
+Setup
+	[Arguments]	${tarball}	${directory}
+	Run	mkdir -p ${directory}
+	Run	/usr/bin/tar -xzf ${tarball} -C ${directory}
+	Environment Variable Should Be Set	DYLD_LIBRARY_PATH
+	Set Environment Variable	DYLD_LIBRARY_PATH	/Users/gav/Projects/Software/usr/lib
+
+RemoveDir
+	[Arguments]	${directory}
+	Run	rm ${directory}/*
+	Run	rmdir ${directory}

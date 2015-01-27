@@ -10,7 +10,7 @@ def create_tests( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = bld.glob( 'test/*.cpp' ),
-		uselib_local = 'snptest',
+		uselib_local = 'snptest boost-unit_test_framework',
 		uselib = 'BOOST_UNIT_TEST_FRAMEWORK',
 		includes='./include',
 		unit_test=1,

@@ -10,7 +10,7 @@ def create_test( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'test/' + name + '.cpp' ],
-		uselib_local = 'fputils',
+		uselib_local = 'fputils boost-unit_test_framework',
 		uselib = 'BOOST_UNIT_TEST_FRAMEWORK',
 		includes='./include',
 		unit_test=1,
@@ -37,6 +37,7 @@ def build( bld ):
 		target = 'fputils',
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include',
+		uselib_local = 'boost',
 		uselib = 'BOOST',
 		export_incdirs = './include'
 	)

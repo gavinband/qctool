@@ -18,7 +18,7 @@ namespace genfile {
 	{}
 
  	bool SNPInSetTest::operator()( SNPIdentifyingData const& data ) const {
-		return ( m_snps.find( data ) != m_snps.end() ) ;
+		return( m_snps.find( data ) != m_snps.end() ) ;
 	}
 
 	bool SNPInSetTest::operator()(

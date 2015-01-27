@@ -8,13 +8,20 @@
 #define GENFILE_VCF_FORMAT_SNP_DATA_SINK_HPP
 
 #include <string>
+#include <set>
 #include <iostream>
 #include <boost/function.hpp>
+#include <boost/optional.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
 #include "genfile/SNPDataSink.hpp"
 
 namespace genfile {
 	struct VCFFormatSNPDataSink: public SNPDataSink {
+	public:
 		VCFFormatSNPDataSink( std::string const& filename ) ;
+
+	public:		
+		void set_output_fields( std::set< std::string > const& fields ) ;
 
 	private:
 		void write_header( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) const ;
@@ -22,17 +29,11 @@ namespace genfile {
 		// Methods required by SNPDataSink
 		operator bool() const { return *m_stream_ptr ; }
 		
-		void write_snp_impl(
-			uint32_t number_of_samples,
-			std::string SNPID,
-			std::string RSID,
-			Chromosome chromosome,
-			uint32_t SNP_position,
-			std::string first_allele,
-			std::string second_allele,
-			GenotypeProbabilityGetter const& get_AA_probability,
-			GenotypeProbabilityGetter const& get_AB_probability,
-			GenotypeProbabilityGetter const& get_BB_probability,
+		void set_metadata_impl( Metadata const& metadata ) ;
+		
+		void write_variant_data_impl(
+			SNPIdentifyingData const& id_data,
+			VariantDataReader& data_reader,
 			Info const& info
 		) ;
 		
@@ -40,15 +41,17 @@ namespace genfile {
 
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) ;
 		SinkPos get_stream_pos() const ;
-		
+
 	private:
 		std::string const m_filename ;
+		boost::optional< std::set< std::string > > m_output_fields ;
 		CompressionType const m_compression_type ;
 		std::auto_ptr< std::ostream > m_stream_ptr ;
 		bool m_have_written_header ;
 		std::size_t m_number_of_samples ;
-		double const m_call_threshhold ;
-		std::vector< std::string > m_output_fields ;
+		boost::ptr_vector< std::ostringstream > m_streams ;
+		Metadata m_metadata ;
+
 	private:
 		void write_info( Info const& info ) ;
 	} ;

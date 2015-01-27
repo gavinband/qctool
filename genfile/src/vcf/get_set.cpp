@@ -12,12 +12,24 @@
 
 namespace genfile {
 	namespace vcf {
-		GenotypeSetterBase::GenotypeSetterBase():
+		GenotypeSetterBase::GenotypeSetterBase( std::string const& scale ):
+			m_probability_scale( scale == "identity" ? eIdentityScale : ePhredScale ),
 			m_number_of_samples(0),
 			m_sample(0),
+			m_order_type( eUnorderedList ),
+			m_value_type( eUnknownValueType ),
 			m_number_of_entries(0),
-			m_entry_i(0)
-		{}
+			m_entry_i(0),
+			m_missing( false )
+		{
+			if( scale != "identity" && scale != "phred" ) {
+				throw BadArgumentError(
+					"genfile::vcf::GenotypeSetterBase()",
+					"scale=\"" + scale + "\"",
+					"scale must be \"identity\" or \"phred\""
+				) ;
+			}
+		}
 		
 		GenotypeSetterBase::~GenotypeSetterBase() throw() {}
 
@@ -26,17 +38,40 @@ namespace genfile {
 			m_number_of_samples = n ;
 		}
 
+		void GenotypeSetterBase::set_number_of_alleles( std::size_t n ) {
+			// handle only biallelic variants for now
+			assert( n == 2 ) ;
+		}
+
 		void GenotypeSetterBase::set_sample( std::size_t n ) {
 			assert( n < m_number_of_samples ) ;
+			// First test to see if no data was supplied (i.e. set_number_of_entries was uncalled) for the previous sample.
+			if( m_missing ) {
+				set( n-1, 0.0, 0.0, 0.0 ) ;
+			}
 			m_sample = n ;
-			m_missing = false ;
+			m_missing = true ;
+		}
+
+		void GenotypeSetterBase::set_order_type( OrderType const order_type, ValueType const value_type ) {
+			assert(
+				((value_type == eProbability) && (order_type == ePerUnorderedGenotype))
+				|| 
+				((value_type == eAlleleIndex) && (order_type == ePerOrderedHaplotype || order_type == ePerUnorderedHaplotype))
+				||
+				((value_type == eDosage) && (order_type == eBAlleleDosage))
+			) ;
+			m_order_type = order_type ;
+			m_value_type = value_type ;
 		}
 
 		void GenotypeSetterBase::set_number_of_entries( std::size_t n ) {
+			assert( n == 1 || n == 2 || n == 3 ) ;
 			m_number_of_entries = n ;
 			m_entry_i = 0 ;
 			m_A = 0 ;
 			m_B = 0 ;
+			m_missing = false ;
 		}
 
 		void GenotypeSetterBase::operator()( MissingValue const value ) {
@@ -50,8 +85,10 @@ namespace genfile {
 		void GenotypeSetterBase::set() {
 			if( m_missing ) {
 				set( m_sample, 0.0, 0.0, 0.0 ) ;
-			}
-			else if( m_number_of_entries == 2 ) {
+			} else if(
+				(m_value_type == eDosage && m_order_type == eBAlleleDosage)
+					|| ( m_value_type == eAlleleIndex && ( m_order_type == ePerOrderedHaplotype || m_order_type == ePerUnorderedHaplotype ))
+			) {
 				if( m_A == 0 && m_B == 2 ) {
 					set( m_sample, 0.0, 0.0, 1.0 ) ;
 				}
@@ -76,6 +113,7 @@ namespace genfile {
 		}
 
 		GenotypeSetter< SingleSNPGenotypeProbabilities >::GenotypeSetter( SingleSNPGenotypeProbabilities& result ):
+			GenotypeSetterBase( "identity" ),
 			m_result( result )
 		{}
 
@@ -90,6 +128,7 @@ namespace genfile {
 		}
 
 		GenotypeSetter< std::vector< double > >::GenotypeSetter( std::vector< double >& result ):
+			GenotypeSetterBase( "identity" ),
 			m_result( result )
 		{}
 
@@ -106,6 +145,7 @@ namespace genfile {
 		
 		ThreshholdingGenotypeSetter< std::vector< VariantEntry > >::
 			ThreshholdingGenotypeSetter( std::vector< VariantEntry >& result, double threshhold ):
+			GenotypeSetterBase( "identity" ),
 			m_result( result ),
 			m_threshhold( threshhold )
 		{}
@@ -133,6 +173,7 @@ namespace genfile {
 
 		ThreshholdingGenotypeSetter< std::vector< int > >::
 			ThreshholdingGenotypeSetter( std::vector< int >& result, double threshhold, int missing_value, int AA_value, int AB_value, int BB_value ):
+			GenotypeSetterBase( "identity" ),
 			m_result( result ),
 			m_missing_value( missing_value ),
 			m_AA_value( AA_value ),

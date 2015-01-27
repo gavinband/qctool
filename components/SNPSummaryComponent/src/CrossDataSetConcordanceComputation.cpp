@@ -122,8 +122,10 @@ namespace snp_stats {
 						BB = -1 ;
 					}
 				}
-				genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( m_alt_dataset_genotypes, m_call_threshhold, -1, AA, AB, BB ) ;
-				m_alt_dataset_snps->read_variant_data()->get( "genotypes", setter ) ;
+				m_alt_dataset_snps->read_variant_data()->get(
+					":genotypes:",
+					genfile::vcf::get_threshholded_calls( m_alt_dataset_genotypes, m_call_threshhold, -1, AA, AB, BB )
+				) ;
 			}
 			
 			callback( "compared_variant_rsid", alt_snp.get_rsid() ) ;

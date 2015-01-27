@@ -46,7 +46,6 @@ namespace appcontext {
 		
 		uint64_t m_start_time ;
 		double m_factor ;
-		mach_timebase_info_data_t m_mach_timebase_info ;
 	} ;
 }
 #elif HAVE_GETTIMEOFDAY

@@ -1,4 +1,4 @@
-#include <string>
+	#include <string>
 #include "qcdb/DBOutputter.hpp"
 #include "components/HaplotypeFrequencyComponent/DBOutputter.hpp"
 
@@ -26,17 +26,17 @@ namespace haplotype_frequency_component {
 			"FOREIGN KEY( analysis_id ) REFERENCES Entity( id ), "
 			"FOREIGN KEY( variant1_id ) REFERENCES Variant( id ), "
 			"FOREIGN KEY( variant2_id ) REFERENCES Variant( id ), "
-			"FOREIGN KEY( variable_id ) REFERENCES Entity( id ), "
-			"UNIQUE( variant1_id, variant2_id, analysis_id, variable_id ) "
+			"FOREIGN KEY( variable_id ) REFERENCES Entity( id ) "
 			")"
 		) ;
 		// Typical use is to look for all SNPs in r^2 with a given one, so add an index for this.
 		connection().run_statement(
-			"CREATE INDEX PairwiseSummaryDataIndex ON PairwiseSummaryData( analysis_id, variant1_id, variable_id )"
+			"CREATE INDEX IF NOT EXISTS PairwiseSummaryDataIndex ON PairwiseSummaryData( analysis_id, variant1_id, variable_id )"
 		) ;
 		connection().run_statement(
 			"CREATE VIEW IF NOT EXISTS PairwiseSummaryDataView AS "
 			"SELECT "
+			"PSD.analysis_id AS analysis_id, "
 			"V1.id AS variant1_id, V1.chromosome AS variant1_chromosome, V1.position AS variant1_position, V1.rsid AS variant1_rsid, "
 			"V2.id AS variant2_id, V2.chromosome AS variant2_chromosome, V2.position AS variant2_position, V2.rsid AS variant2_rsid, "
 			"Analysis.id AS analysis_id, Analysis.name AS analysis, "
@@ -45,7 +45,7 @@ namespace haplotype_frequency_component {
 			"FROM PairwiseSummaryData PSD "
 			"INNER JOIN Variant V1 ON V1.id == PSD.variant1_id "
 			"INNER JOIN Variant V2 ON V2.id == PSD.variant2_id "
-			"INNER JOIN Entity Analysis ON Analysis.id == PSD.analysis_id "
+			"INNER JOIN Analysis ON Analysis.id == PSD.analysis_id "
 			"INNER JOIN Entity Variable ON Variable.id == PSD.variable_id "
 		) ;
 		
@@ -80,7 +80,7 @@ namespace haplotype_frequency_component {
 
 	void DBOutputter::construct_statements() {
 		m_insert_summarydata_statement = connection().get_statement(
-			"INSERT OR REPLACE INTO PairwiseSummaryData (  analysis_id, variant1_id, variant2_id, variable_id, value ) "
+			"INSERT INTO PairwiseSummaryData (  analysis_id, variant1_id, variant2_id, variable_id, value ) "
 			"VALUES( ?1, ?2, ?3, ?4, ?5 )"
 		) ;
 	}

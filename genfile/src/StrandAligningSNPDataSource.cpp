@@ -4,10 +4,14 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#include <string>
 #include <vector>
+#include <algorithm>
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/StrandAligningSNPDataSource.hpp"
+#include "genfile/OffsetFlippedAlleleSetter.hpp"
+#include "genfile/AlleleFlippingVariantDataReader.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/Error.hpp"
 
@@ -29,12 +33,21 @@ namespace genfile {
 		}
 		
 		std::string complement( std::string const& allele ) {
-			if( allele.size() != 1 ) {
-				throw BadArgumentError( "StrandAligningSNPDataSource::complement", "allele=" + allele ) ;
+			std::string result = allele ;
+			for( std::size_t i = 0; i < result.size(); ++i ) {
+				result[i] = complement( result[i] ) ;
 			}
-			return std::string( 1, complement( allele[0] ) ) ;
+			return result ;
 		}
-		
+	}
+	
+	std::string StrandAligningSNPDataSource::apply_strand( std::string const& allele, char strand ) {
+		assert( strand == StrandAligningSNPDataSource::eForwardStrand || strand == StrandAligningSNPDataSource::eReverseStrand ) ;
+		if( strand == StrandAligningSNPDataSource::eForwardStrand ) {
+			return allele ;
+		} else {
+			return impl::complement( allele ) ;
+		}
 	}
 
 	StrandAligningSNPDataSource::UniquePtr StrandAligningSNPDataSource::create(
@@ -49,8 +62,13 @@ namespace genfile {
 		StrandAlignments const& strand_alignments
 	):
 		m_source( source ),
-		m_strand_alignments( strand_alignments )
+		m_strand_alignments( strand_alignments ),
+		m_include_unknown_strand_or_flip( false )
 	{}
+	
+	SNPDataSource::Metadata StrandAligningSNPDataSource::get_metadata() const {
+		return m_source->get_metadata() ;
+	}
 	
 	std::string StrandAligningSNPDataSource::get_summary( std::string const& prefix, std::size_t column_width ) const {
 		return m_source->get_summary( prefix + "  " ) ;
@@ -66,81 +84,87 @@ namespace genfile {
 		AlleleSetter const& set_allele2
 	) {
 		SNPIdentifyingData source_snp ;
-		if( m_source->get_snp_identifying_data( source_snp ) ) {
-			char strand_alignment = get_strand_alignment( source_snp ) ;
-			std::string allele1, allele2 ;
-			switch( strand_alignment ) {
-				case eForwardStrand:
-					m_source->get_snp_identifying_data(
-						set_number_of_samples,
-						set_SNPID,
-						set_RSID,
-						set_chromosome,
-						set_SNP_position,
-						set_allele1,
-						set_allele2
-					) ;
-					break ;
-				case eReverseStrand:
-					m_source->get_snp_identifying_data(
-						set_number_of_samples,
-						set_SNPID,
-						set_RSID,
-						set_chromosome,
-						set_SNP_position,
-						set_value( allele1 ),
-						set_value( allele2 )
-					) ;
-					set_allele1( impl::complement( allele1 )) ;
-					set_allele2( impl::complement( allele2 )) ;
-					break ;
-				case eUnknownStrand:
-					m_source->get_snp_identifying_data(
-						set_number_of_samples,
-						set_SNPID,
-						set_RSID,
-						set_chromosome,
-						set_SNP_position,
-						set_value( allele1 ),
-						set_value( allele2 )
-					) ;
-					if( allele1 == impl::complement( allele1 ) ) {
-						set_allele1( allele1 ) ;
-					}
-					else {
-						set_allele1( allele1 + "/" + impl::complement( allele1 ) ) ;
-					}
+		for( ; m_source->get_snp_identifying_data( source_snp ); m_source->ignore_snp_probability_data() ) {
+			m_current_strand_flip_spec = get_strand_alignment( source_snp ) ;
+			//std::cerr << "looking at SNP " << source_snp << ".\n" ;
+			if( 
+				m_include_unknown_strand_or_flip ||
+				( m_current_strand_flip_spec.strand != eUnknownStrand && m_current_strand_flip_spec.flip != eUnknownFlip )
+			) {
+				char strand_alignment = m_current_strand_flip_spec.strand ;
 
-					if( allele2 == impl::complement( allele2 ) ) {
-						set_allele2( allele2 ) ;
-					}
-					else {
-						set_allele2( allele2 + "/" + impl::complement( allele2 ) ) ;
-					}
-					break ;
-				default:
-					assert(0) ;
+				std::string allele1, allele2 ;
+
+				m_source->get_snp_identifying_data(
+					set_number_of_samples,
+					set_SNPID,
+					set_RSID,
+					set_chromosome,
+					set_SNP_position,
+					set_value( allele1 ),
+					set_value( allele2 )
+				) ;
+
+				switch( strand_alignment ) {
+					case eForwardStrand:
+						//ok.
+						break ;
+					case eReverseStrand:
+						//ok.
+						allele1 = impl::complement( allele1 ) ;
+						allele2 = impl::complement( allele2 ) ;
+						break ;
+					case eUnknownStrand:
+						if( allele1 != impl::complement( allele1 ) ) {
+							allele1 += ( "/" + impl::complement( allele1 ) ) ;
+						}
+						if( allele2 != impl::complement( allele2 ) ) {
+							allele2 += ( "/" + impl::complement( allele2 ) ) ;
+						}
+						break ;
+					default:
+						assert(0) ;
+				}
+
+				switch( m_current_strand_flip_spec.flip ) {
+					case eNoFlip:
+						// no change needed
+						break ;
+					case eFlip:
+						std::swap( allele1, allele2 ) ;
+						break ;
+					case eUnknownFlip:
+						allele1 = allele1 + "/" + allele2 ;
+						allele2 = allele2 + "/" + source_snp.get_first_allele() ;
+						break ;
+					default:
+						assert(0) ;
+				}
+				
+				set_allele1( allele1 ) ;
+				set_allele2( allele2 ) ;
+				return ;
 			}
 		}
 	}
 
-	char StrandAligningSNPDataSource::get_strand_alignment( SNPIdentifyingData const& snp ) const {
-		char result = eUnknownStrand ;
+	StrandAligningSNPDataSource::StrandFlipSpec StrandAligningSNPDataSource::get_strand_alignment( SNPIdentifyingData const& snp ) const {
+		StrandFlipSpec result = StrandFlipSpec() ;
 		StrandAlignments::const_iterator where = m_strand_alignments.find( snp ) ;
 		if( where != m_strand_alignments.end() ) {
 			result = where->second ;
-			if( result != eForwardStrand && result != eReverseStrand && result != eUnknownStrand ) {
-				throw BadArgumentError(
-					"StrandAligningSNPDataSource::get_snp_identifying_data_impl()",
-					"strand alignment for " + string_utils::to_string( snp ) + " = \"" + std::string( 1, result ) + "\""
-				) ;
-			}
 		}
 		return result ;
 	}
-	
+
  	VariantDataReader::UniquePtr StrandAligningSNPDataSource::read_variant_data_impl() {
-		return m_source->read_variant_data() ;
+		return VariantDataReader::UniquePtr(
+			new AlleleFlippingVariantDataReader(
+				number_of_samples(),
+				m_source->read_variant_data(),
+				m_current_strand_flip_spec.flip
+			)
+		) ;
 	}
 
 	void StrandAligningSNPDataSource::ignore_snp_probability_data_impl() {

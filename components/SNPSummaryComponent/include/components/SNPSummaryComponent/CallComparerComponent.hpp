@@ -37,9 +37,9 @@ public:
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 
 	private:
-		bool m_begun ;
-		std::vector< std::string > m_call_fields ;
 		PairwiseCallComparerManager::UniquePtr m_call_comparer ;
+		std::vector< std::string > m_call_fields ;
+		bool m_begun ;
 		PairwiseCallComparerManager::MergeClient::UniquePtr m_consensus_caller ;
 		Eigen::MatrixXd m_calls ;
 } ;
@@ -67,7 +67,7 @@ public:
 private:
 	genfile::CohortIndividualSource const& m_samples ;
 	appcontext::OptionProcessor const& m_options ;
-	appcontext::UIContext& m_ui_context ;
+	appcontext::UIContext& m_ui_context ; 
 } ;
 
 

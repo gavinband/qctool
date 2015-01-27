@@ -44,4 +44,5 @@ namespace genfile {
 
 	std::ostream& operator<< ( std::ostream& oStream, SampleFilter const& filter ) ;
 }
+
 #endif

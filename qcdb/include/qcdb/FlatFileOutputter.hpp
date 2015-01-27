@@ -39,6 +39,7 @@ namespace qcdb {
 
 		void finalise( long options = eCreateIndices ) ;
 
+		AnalysisId analysis_id() const ;
 	private:
 		std::string const m_filename ;
 		std::string const m_analysis_name ;

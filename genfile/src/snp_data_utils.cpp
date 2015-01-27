@@ -48,16 +48,6 @@ namespace genfile {
 	bool CompressionType::operator==( CompressionType const& other ) const {
 		return m_type == other.m_type ;
 	}
-	
-	bool filename_indicates_gen_format( std::string const& filename ) {
-		return ( filename.find( ".gen") != std::string::npos ) ;
-	}
-	bool filename_indicates_bgen_format( std::string const& filename ) {
-		return ( filename.find( ".bgen") != std::string::npos ) ;
-	}
-	bool filename_indicates_gen_or_bgen_format( std::string const& filename ) {
-		return filename_indicates_gen_format( filename ) || filename_indicates_bgen_format( filename ) ;
-	}
 
 	CompressionType get_compression_type_indicated_by_filename( std::string const& filename ) {
 		if( filename.size() > 3 && filename.substr( filename.size() - 3, 3 ) == ".gz" ) {
@@ -211,9 +201,11 @@ namespace genfile {
 	
 	std::pair< std::string, std::string > uniformise( std::string filename ) {
 		std::map< std::string, std::string > types  ;
-		types[ ".bgen" ]							= "bgen" ;
-		types[ ".gen" ] = types[ ".gen.gz" ] 		= "gen" ;
-		types[ ".vcf" ] = types[ ".vcf.gz" ] 		= "vcf" ;
+		types[ ".bgen" ]							    = "bgen" ;
+		types[ ".gen" ]     = types[ ".gen.gz" ] 		= "gen" ;
+		types[ ".vcf" ]     = types[ ".vcf.gz" ] 		= "vcf" ;
+		types[ ".dosage" ]  = types[ ".dosage.gz" ] 	= "dosage" ;
+		types[ ".bed" ]  								= "binary_ped" ;
 
 		for(
 			std::map< std::string, std::string >::const_iterator i = types.begin();

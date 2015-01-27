@@ -42,20 +42,20 @@ namespace qcdb {
 	}
 	
 	FlatFileOutputter::~FlatFileOutputter() {
-		if( m_snps.size() > 0 ) {
-			store_block() ;
-			m_snps.clear() ;
-			m_values.clear() ;
-		}
-	
+		store_block() ;
+		m_snps.clear() ;
+		m_values.clear() ;
 	}
 	
 	void FlatFileOutputter::finalise( long ) {
-		if( m_snps.size() > 0 ) {
-			store_block() ;
-			m_snps.clear() ;
-			m_values.clear() ;
-		}
+		store_block() ;
+		m_snps.clear() ;
+		m_values.clear() ;
+	}
+
+	FlatFileOutputter::AnalysisId FlatFileOutputter::analysis_id() const {
+		// A flat file only ever has one analysis.
+		return 0 ;
 	}
 
 	void FlatFileOutputter::add_variable(
@@ -127,6 +127,7 @@ namespace qcdb {
 			for( ; i != end_i; ++i ) {
 				(*m_sink).add_column( i->second ) ;
 			}
+			(*m_sink) << statfile::begin_data() ;
 		}
 		for( std::size_t snp_i = 0; snp_i < m_snps.size(); ++snp_i ) {
 			genfile::SNPIdentifyingData2 const& snp = m_snps[ snp_i ] ;

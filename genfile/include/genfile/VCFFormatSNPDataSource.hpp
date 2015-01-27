@@ -10,6 +10,7 @@
 #include <boost/optional.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/bimap.hpp>
+#include <boost/optional.hpp>
 #include "genfile/VariantEntry.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/vcf/MetadataParser.hpp"
@@ -28,23 +29,22 @@ namespace genfile {
 	// http://www.1000genomes.org/wiki/Analysis/Variant Call Format/vcf-variant-call-format-version-41
 	// to implement this.
 	{
-		friend class impl::VCFFormatDataReader ;
+		friend struct impl::VCFFormatDataReader ;
 	public:
 		typedef std::auto_ptr< VCFFormatSNPDataSource > UniquePtr ;
 		typedef vcf::MetadataParser::Metadata Metadata ;
 		
 		VCFFormatSNPDataSource(
-			std::auto_ptr< std::istream > stream_ptr
-		) ;
-		VCFFormatSNPDataSource(
-			std::string const& filename
+			std::auto_ptr< std::istream > stream_ptr,
+			boost::optional< Metadata > metadata = boost::optional< Metadata >()
 		) ;
 		VCFFormatSNPDataSource(
 			std::string const& filename,
-			Metadata const& metadata
+			boost::optional< Metadata > metadata = boost::optional< Metadata >()
 		) ;
 	public:
 		operator bool() const ;
+		Metadata get_metadata() const ;
 		unsigned int number_of_samples() const ;
 		OptionalSnpCount total_number_of_snps() const ;
 		std::string get_source_spec() const ;
@@ -53,6 +53,8 @@ namespace genfile {
 
 		std::size_t get_index_of_first_data_line() const { return m_metadata_parser->get_number_of_lines() + 1 ; }
 		std::size_t get_index_of_first_data_column() const { return 9 ; }
+
+		void set_strict_mode( bool value ) ;
 
 	protected:
 
@@ -94,6 +96,10 @@ namespace genfile {
 		EntryTypeMap m_format_types ;
 		typedef boost::bimap< std::string, std::string > FieldMapping ;
 		FieldMapping m_field_mapping ;
+		std::string m_genotype_field ;
+		std::string m_intensity_field ;
+		bool m_have_id_data ;
+		bool m_strict_mode ;
 
 		std::vector< std::string > const m_column_names ;
 		std::size_t const m_number_of_samples ;
@@ -110,7 +116,6 @@ namespace genfile {
 		std::string m_QUAL ;
 		std::string m_FILTER ;
 		std::string m_INFO ;
-		bool m_have_id_data ;
 		
 	private:
 		void setup() ;

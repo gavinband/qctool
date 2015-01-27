@@ -10,7 +10,7 @@ def create_tests( bld ):
 		features = 'cxx cprogram',
 		target = 'test_haplotype_frequency_component',
 		source = bld.glob( 'test/*.cpp' ),
-		uselib_local = 'genfile HaplotypeFrequencyComponent',
+		uselib_local = 'genfile HaplotypeFrequencyComponent boost-unit_test_framework',
 		uselib = 'BOOST BOOST_SYSTEM BOOST_UNIT_TEST_FRAMEWORK',
 		includes='./include',
 		unit_test=1,

@@ -21,4 +21,22 @@ namespace metro {
 		result.array() *= ( m_nonmissingness.array() - 1 ) / ( m_nonmissingness.array() - 1 ) ;
 		return result ;
 	}
+	
+	double OnlineElementwiseMeanAndVariance::get_count( int row, int column ) const {
+		return m_nonmissingness(row, column) ;
+	}
+
+	double OnlineElementwiseMeanAndVariance::get_mean( int row, int column ) const {
+		// Return m_mean, but with NaN for counts that are zero.
+		return m_mean(row, column) + (( m_nonmissingness(row, column) / m_nonmissingness(row, column) ) - 1 ) ;
+	}
+
+	double OnlineElementwiseMeanAndVariance::get_variance( int row, int column ) const {
+		// The result is NaN unless there are at least 2 observations
+		double result = std::numeric_limits< double >::quiet_NaN() ;
+		if( m_nonmissingness(row, column) > 1 ) {
+			result = m_sum_of_squares_of_differences(row, column) / ( m_nonmissingness(row, column) - 1 ) ;
+		}
+		return result ;
+	}
 }

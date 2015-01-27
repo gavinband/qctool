@@ -31,11 +31,12 @@ namespace genfile {
 		SNPFilteringSNPDataSource( SNPDataSource::UniquePtr source, IndexList indices_of_snps_to_include ) ;
 
 		operator bool() const ;
+		Metadata get_metadata() const ;
 		unsigned int number_of_samples() const ;
 		OptionalSnpCount total_number_of_snps() const ;
 		OptionalSnpCount total_number_of_snps_before_filtering() const ;
 		std::string get_source_spec() const ;
-		
+
 		SNPDataSource const& get_parent_source() const ;
 		SNPDataSource const& get_base_source() const ;
 		
@@ -62,7 +63,6 @@ namespace genfile {
 	private:
 		
 		SNPDataSource::UniquePtr m_source ;
-		std::size_t m_snp_index ;
 		std::set< std::size_t > m_indices_of_excluded_snps ;
 	} ;
 }

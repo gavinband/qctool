@@ -25,7 +25,7 @@ namespace statfile
 	>
 	struct NullStatSink: public StatSink< T1, T2, T3, T4, T5, T6, T7, T8, T9, T10 >
 	{
-		operator void*() const { return 0 ; }
+		operator bool() const { return 0 ; }
 		std::size_t number_of_columns() const { return 0 ; }
 		std::vector< std::string > const& column_names() const {
 			return m_column_names ;

@@ -1,0 +1,685 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="744.09448819"
+   height="1052.3622047"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.47 r22583"
+   sodipodi:docname="pieces.svg">
+  <defs
+     id="defs4">
+    <marker
+       inkscape:stockid="Arrow1Mend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Mend"
+       style="overflow:visible;">
+      <path
+         id="path3606"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1.0pt;marker-start:none;"
+         transform="scale(0.4) rotate(180) translate(10,0)" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       inkscape:stockid="InfiniteLineEnd"
+       id="InfiniteLineEnd"
+       refX="0"
+       refY="0"
+       orient="auto">
+      <g
+         id="g3833">
+        <circle
+           id="circle3835"
+           r="0.8"
+           cy="0"
+           cx="3" />
+        <circle
+           id="circle3837"
+           r="0.8"
+           cy="0"
+           cx="6.5" />
+        <circle
+           id="circle3839"
+           r="0.8"
+           cy="0"
+           cx="10" />
+      </g>
+    </marker>
+    <marker
+       inkscape:stockid="RazorWire"
+       id="RazorWire"
+       refX="0"
+       refY="0"
+       orient="auto">
+       style=&quot;overflow:visible&quot;&gt;
+      <path
+   id="path3830"
+   transform="scale(0.8,0.8)"
+   style="fill:#808080;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.1pt"
+   d="M 0.022727273,-0.74009011 L 0.022727273,0.69740989 L -7.7585227,3.0099099 L 10.678977,3.0099099 L 3.4914773,0.69740989 L 3.4914773,-0.74009011 L 10.741477,-2.8963401 L -7.7272727,-2.8963401 L 0.022727273,-0.74009011 z " />
+</marker>
+    <marker
+       inkscape:stockid="Legs"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Legs"
+       style="overflow:visible">
+      <g
+         id="g3797"
+         transform="scale(-0.7)">
+        <g
+           id="g3799"
+           transform="matrix(0,-1.000000,-1.000000,0,20.70862,21.31391)">
+          <path
+             id="path3801"
+             d="M 21.221250,20.675360 C 14.311099,25.396517 18.766725,27.282204 15.380179,34.118595"
+             style="fill:none;fill-opacity:0.75000000;fill-rule:evenodd;stroke:#000000;stroke-width:1.0000000pt;marker-start:none;marker-end:none" />
+          <path
+             id="path3803"
+             d="M 21.398110,20.548120 C 20.037601,28.895644 24.934182,29.318060 25.903151,34.373078"
+             style="fill:none;fill-opacity:0.75000000;fill-rule:evenodd;stroke:#000000;stroke-width:1.0000000pt;marker-start:none;marker-end:none" />
+        </g>
+        <path
+           id="path3805"
+           d="M -14.090070,-6.7318716 L -15.012238,-2.6884886 L -11.049487,-3.9115586 L -14.090070,-6.7318716 z "
+           style="fill:#030300;fill-rule:evenodd;stroke-width:1.0000000pt;marker-end:none" />
+        <path
+           id="path3807"
+           d="M -15.215679,4.5567534 L -13.341552,8.2563664 L -11.074678,4.7835114 L -15.215679,4.5567534 z "
+           style="fill:#030300;fill-rule:evenodd;stroke-width:1.0000000pt;marker-end:none" />
+      </g>
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Lend"
+       style="overflow:visible;">
+      <path
+         id="path3600"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1.0pt;marker-start:none;"
+         transform="scale(0.8) rotate(180) translate(12.5,0)" />
+    </marker>
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="0 : 526.18109 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_z="744.09448 : 526.18109 : 1"
+       inkscape:persp3d-origin="372.04724 : 350.78739 : 1"
+       id="perspective10" />
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.49497475"
+     inkscape:cx="258.31361"
+     inkscape:cy="813.76219"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1436"
+     inkscape:window-height="856"
+     inkscape:window-x="4"
+     inkscape:window-y="0"
+     inkscape:window-maximized="0"
+     inkscape:object-paths="false"
+     inkscape:snap-nodes="false" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <text
+       xml:space="preserve"
+       style="font-size:40px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
+       x="170.71577"
+       y="402.83411"
+       id="text2816"><tspan
+         sodipodi:role="line"
+         id="tspan2818"
+         x="170.71577"
+         y="402.83411">qctool</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
+       d="m 231.83754,414.95405 c 11.11168,19.26017 32.32488,22.22336 56.56854,22.22336"
+       id="path2820"
+       inkscape:export-filename="/Users/gav/Projects/Web/fs1.well.ox.ac.uk/public_html/style/images/arrow.tl.br.png"
+       inkscape:export-xdpi="120"
+       inkscape:export-ydpi="120"
+       sodipodi:nodetypes="ca" />
+    <text
+       xml:space="preserve"
+       style="font-size:24px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+       x="93.944199"
+       y="446.27066"
+       id="text4836"
+       sodipodi:linespacing="125%"
+       inkscape:export-filename="/Users/gav/Projects/Web/fs1.well.ox.ac.uk/public_html/style/images/overview_red.png"
+       inkscape:export-xdpi="120"
+       inkscape:export-ydpi="120"><tspan
+         sodipodi:role="line"
+         id="tspan4838"
+         x="93.944199"
+         y="446.27066">overview</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:24px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+       x="113.13708"
+       y="528.09302"
+       id="text4840"
+       sodipodi:linespacing="125%"
+       inkscape:export-filename="/Users/gav/Projects/Web/fs1.well.ox.ac.uk/public_html/style/images/documentation_red.png"
+       inkscape:export-xdpi="120"
+       inkscape:export-ydpi="120"><tspan
+         sodipodi:role="line"
+         id="tspan4842"
+         x="113.13708"
+         y="528.09302">documentation</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:24px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#800000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+       x="122.22845"
+       y="571.52954"
+       id="text4844"
+       sodipodi:linespacing="125%"
+       inkscape:export-filename="/Users/gav/Projects/Web/fs1.well.ox.ac.uk/public_html/style/images/download_red.png"
+       inkscape:export-xdpi="120"
+       inkscape:export-ydpi="120"><tspan
+         sodipodi:role="line"
+         id="tspan4846"
+         x="122.22845"
+         y="571.52954">download</tspan></text>
+    <g
+       id="g5603">
+      <g
+         id="g5591">
+        <text
+           xml:space="preserve"
+           style="font-size:14px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;line-height:100%;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+           x="171.4511"
+           y="684.3349"
+           id="text4871"
+           sodipodi:linespacing="100%"><tspan
+             sodipodi:role="line"
+             id="tspan4873"
+             x="171.4511"
+             y="684.3349">genotype data</tspan><tspan
+             sodipodi:role="line"
+             x="171.4511"
+             y="698.3349"
+             id="tspan4875">(GEN files)</tspan></text>
+        <rect
+           style="fill:none;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+           id="rect5513"
+           width="125.00006"
+           height="50.714241"
+           x="108.57143"
+           y="-713.07635"
+           ry="11.828596"
+           transform="scale(1,-1)" />
+      </g>
+      <g
+         id="g5597">
+        <text
+           xml:space="preserve"
+           style="font-size:14px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;line-height:100%;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+           x="365.92032"
+           y="683.8017"
+           id="text4877"
+           sodipodi:linespacing="100%"><tspan
+             sodipodi:role="line"
+             id="tspan4879"
+             x="365.92032"
+             y="683.8017">sample data</tspan><tspan
+             sodipodi:role="line"
+             x="365.92032"
+             y="697.8017"
+             id="tspan4881">(sample files)</tspan></text>
+        <rect
+           style="fill:none;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+           id="use5543"
+           width="125.00006"
+           height="50.714241"
+           x="303.57144"
+           y="-713.07635"
+           ry="11.828596"
+           transform="scale(1,-1)" />
+      </g>
+    </g>
+    <g
+       id="g5568"
+       transform="translate(2.5000012,8.035736)">
+      <text
+         sodipodi:linespacing="100%"
+         id="text4883"
+         y="759.44763"
+         x="265.75421"
+         style="font-size:14px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;line-height:100%;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           y="759.44763"
+           x="265.75421"
+           id="tspan4889"
+           sodipodi:role="line">generate per-sample</tspan><tspan
+           y="773.44763"
+           x="265.75421"
+           id="tspan4891"
+           sodipodi:role="line">summary statistics</tspan></text>
+      <use
+         height="1052.3622"
+         width="744.09448"
+         transform="matrix(1.4274464,0,0,1,21.876128,74.285714)"
+         id="use5547"
+         xlink:href="#rect5513"
+         y="0"
+         x="0" />
+    </g>
+    <g
+       id="g5574"
+       transform="translate(2.5000012,1.3473804)">
+      <text
+         sodipodi:linespacing="100%"
+         id="text5497"
+         y="853.79077"
+         x="265.96613"
+         style="font-size:14px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;line-height:100%;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           y="853.79077"
+           x="265.96613"
+           id="tspan5499"
+           sodipodi:role="line">filter samples</tspan><tspan
+           id="tspan5501"
+           y="867.79077"
+           x="265.96613"
+           sodipodi:role="line" /></text>
+      <use
+         height="1052.3622"
+         width="744.09448"
+         transform="translate(0,87.857143)"
+         id="use5562"
+         xlink:href="#use5547"
+         y="0"
+         x="0" />
+    </g>
+    <g
+       id="g5580"
+       transform="translate(2.5000012,5.5357129)">
+      <text
+         sodipodi:linespacing="100%"
+         id="text5503"
+         y="926.64795"
+         x="265.74738"
+         style="font-size:14px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;line-height:100%;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           y="926.64795"
+           x="265.74738"
+           id="tspan5505"
+           sodipodi:role="line">generate per-SNP</tspan><tspan
+           id="tspan5507"
+           y="940.64795"
+           x="265.74738"
+           sodipodi:role="line">summary statistics</tspan></text>
+      <use
+         height="1052.3622"
+         width="744.09448"
+         transform="translate(0,79.285715)"
+         id="use5564"
+         xlink:href="#use5562"
+         y="0"
+         x="0" />
+    </g>
+    <g
+       id="g5586"
+       transform="translate(2.5000012,20.714286)">
+      <text
+         sodipodi:linespacing="100%"
+         id="text5509"
+         y="1000.9336"
+         x="265.96613"
+         style="font-size:14px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;line-height:100%;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+         xml:space="preserve"><tspan
+           y="1000.9336"
+           x="265.96613"
+           id="tspan5511"
+           sodipodi:role="line">filter SNPs</tspan></text>
+      <use
+         height="1052.3622"
+         width="744.09448"
+         transform="translate(0,67.142857)"
+         id="use5566"
+         xlink:href="#use5564"
+         y="0"
+         x="0" />
+    </g>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Mend)"
+       d="m 268.57146,800.93361 0,21.42857"
+       id="path6021" />
+    <use
+       x="0"
+       y="0"
+       xlink:href="#path6021"
+       id="use6223"
+       transform="translate(-3.8574219e-8,80)"
+       width="744.09448"
+       height="1052.3622" />
+    <use
+       x="0"
+       y="0"
+       xlink:href="#use6223"
+       id="use6225"
+       transform="translate(-3.8574219e-8,84.285714)"
+       width="744.09448"
+       height="1052.3622" />
+    <g
+       id="g6450"
+       transform="translate(329.64287,372.14286)">
+      <text
+         xml:space="preserve"
+         style="font-size:14px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;line-height:100%;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+         x="171.4511"
+         y="684.3349"
+         id="text6452"
+         sodipodi:linespacing="100%"><tspan
+           sodipodi:role="line"
+           id="tspan6454"
+           x="171.4511"
+           y="684.3349">genotype data</tspan><tspan
+           sodipodi:role="line"
+           x="171.4511"
+           y="698.3349"
+           id="tspan6456">(GEN files)</tspan></text>
+      <rect
+         style="fill:none;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+         id="rect6458"
+         width="125.00006"
+         height="50.714241"
+         x="108.57143"
+         y="-713.07635"
+         ry="11.828596"
+         transform="scale(1,-1)" />
+    </g>
+    <g
+       id="g6460"
+       transform="translate(134.64285,205.6331)">
+      <text
+         xml:space="preserve"
+         style="font-size:14px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;line-height:100%;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+         x="365.92032"
+         y="683.8017"
+         id="text6462"
+         sodipodi:linespacing="100%"><tspan
+           sodipodi:role="line"
+           id="tspan6464"
+           x="365.92032"
+           y="683.8017">sample data</tspan><tspan
+           sodipodi:role="line"
+           x="365.92032"
+           y="697.8017"
+           id="tspan6466">(sample files)</tspan></text>
+      <rect
+         style="fill:none;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+         id="rect6468"
+         width="125.00006"
+         height="50.714241"
+         x="303.57144"
+         y="-713.07635"
+         ry="11.828596"
+         transform="scale(1,-1)" />
+    </g>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Mend)"
+       d="m 364.28571,850.21933 c 34.28572,0 22.05463,41.42857 65,41.42857"
+       id="path6480"
+       sodipodi:nodetypes="cc" />
+    <g
+       id="g7090"
+       transform="translate(4.3850395,0)">
+      <path
+         sodipodi:nodetypes="cc"
+         id="path5617"
+         d="m 197.85714,717.36218 c 0,7.85714 17.85715,22.85715 17.85715,22.85715"
+         style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Mend)" />
+      <use
+         height="1052.3622"
+         width="744.09448"
+         transform="matrix(-1,0,0,1,528.37285,0)"
+         id="use6684"
+         xlink:href="#path5617"
+         y="0"
+         x="0" />
+    </g>
+    <use
+       x="0"
+       y="0"
+       xlink:href="#path6480"
+       id="use7088"
+       transform="translate(0,168.57143)"
+       width="744.09448"
+       height="1052.3622" />
+    <text
+       inkscape:export-ydpi="120"
+       inkscape:export-xdpi="120"
+       inkscape:export-filename="/Users/gav/Projects/Web/fs1.well.ox.ac.uk/public_html/style/images/tutorial_red.png"
+       sodipodi:linespacing="125%"
+       id="text3122"
+       y="344.8421"
+       x="105.37276"
+       style="font-size:24px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#800000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+       xml:space="preserve"><tspan
+         sodipodi:role="line"
+         id="tspan3126"
+         x="105.37276"
+         y="344.8421">tutorial</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:24px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+       x="229.65848"
+       y="343.41354"
+       id="text3128"
+       sodipodi:linespacing="125%"
+       inkscape:export-filename="/Users/gav/Projects/Web/fs1.well.ox.ac.uk/public_html/style/images/tutorial.png"
+       inkscape:export-xdpi="120"
+       inkscape:export-ydpi="120"><tspan
+         id="tspan3130"
+         sodipodi:role="line"
+         x="229.65848"
+         y="343.41354">tutorial</tspan></text>
+    <text
+       inkscape:export-ydpi="120"
+       inkscape:export-xdpi="120"
+       inkscape:export-filename="/Users/gav/Projects/Web/fs1.well.ox.ac.uk/public_html/style/images/page1.png"
+       sodipodi:linespacing="125%"
+       id="text3132"
+       y="234.84212"
+       x="92.515617"
+       style="font-size:24px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+       xml:space="preserve"><tspan
+         sodipodi:role="line"
+         id="tspan3136">page 1</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:24px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+       x="195.37276"
+       y="233.41353"
+       id="text3138"
+       sodipodi:linespacing="125%"
+       inkscape:export-filename="/Users/gav/Projects/Web/fs1.well.ox.ac.uk/public_html/style/images/page2.png"
+       inkscape:export-xdpi="120"
+       inkscape:export-ydpi="120"><tspan
+         sodipodi:role="line"
+         id="tspan3142">page 2</tspan></text>
+    <text
+       inkscape:export-ydpi="120"
+       inkscape:export-xdpi="120"
+       inkscape:export-filename="/Users/gav/Projects/Web/fs1.well.ox.ac.uk/public_html/style/images/page3.png"
+       sodipodi:linespacing="125%"
+       id="text3144"
+       y="230.55638"
+       x="302.51562"
+       style="font-size:24px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+       xml:space="preserve"><tspan
+         sodipodi:role="line"
+         id="tspan3148">page 3</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:24px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#800000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+       x="92.515617"
+       y="267.69925"
+       id="text3150"
+       sodipodi:linespacing="125%"
+       inkscape:export-filename="/Users/gav/Projects/Web/fs1.well.ox.ac.uk/public_html/style/images/page1_red.png"
+       inkscape:export-xdpi="120"
+       inkscape:export-ydpi="120"><tspan
+         id="tspan3152"
+         sodipodi:role="line"
+         x="92.515617"
+         y="267.69925">page 1</tspan></text>
+    <text
+       inkscape:export-ydpi="120"
+       inkscape:export-xdpi="120"
+       inkscape:export-filename="/Users/gav/Projects/Web/fs1.well.ox.ac.uk/public_html/style/images/page2_red.png"
+       sodipodi:linespacing="125%"
+       id="text3154"
+       y="266.27066"
+       x="195.37276"
+       style="font-size:24px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#800000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+       xml:space="preserve"><tspan
+         id="tspan3156"
+         sodipodi:role="line"
+         x="195.37276"
+         y="266.27066">page 2</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:24px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#800000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+       x="302.51562"
+       y="263.41351"
+       id="text3158"
+       sodipodi:linespacing="125%"
+       inkscape:export-filename="/Users/gav/Projects/Web/fs1.well.ox.ac.uk/public_html/style/images/page3_red.png"
+       inkscape:export-xdpi="120"
+       inkscape:export-ydpi="120"><tspan
+         id="tspan3160"
+         sodipodi:role="line"
+         x="302.51562"
+         y="263.41351">page 3</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:3.75925303px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 117.19361,538.9387 173.53118,0"
+       id="path3162"
+       sodipodi:nodetypes="cc" />
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;line-height:100%;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+       x="90"
+       y="59.505039"
+       id="text3164"
+       sodipodi:linespacing="100%"
+       inkscape:export-filename="/Users/gav/Projects/Web/fs1.well.ox.ac.uk/public_html/style/images/introduction.png"
+       inkscape:export-xdpi="120"
+       inkscape:export-ydpi="120"><tspan
+         sodipodi:role="line"
+         id="tspan3166"
+         x="90"
+         y="59.505039">introduction</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;line-height:100%;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+       x="305.71426"
+       y="59.505039"
+       id="text3168"
+       sodipodi:linespacing="100%"
+       inkscape:export-filename="/Users/gav/Projects/Web/fs1.well.ox.ac.uk/public_html/style/images/summary_stats.png"
+       inkscape:export-xdpi="120"
+       inkscape:export-ydpi="120"><tspan
+         sodipodi:role="line"
+         id="tspan3184"
+         x="305.71426"
+         y="59.505039">summary stats</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;line-height:100%;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+       x="524.28571"
+       y="58.076469"
+       id="text3180"
+       sodipodi:linespacing="100%"
+       inkscape:export-filename="/Users/gav/Projects/Web/fs1.well.ox.ac.uk/public_html/style/images/filtering.png"
+       inkscape:export-xdpi="120"
+       inkscape:export-ydpi="120"><tspan
+         sodipodi:role="line"
+         id="tspan3182"
+         x="524.28571"
+         y="58.076469">filtering</tspan></text>
+    <text
+       sodipodi:linespacing="100%"
+       id="text3186"
+       y="99.505043"
+       x="90"
+       style="font-size:20px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;line-height:100%;writing-mode:lr-tb;text-anchor:middle;fill:#800000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+       xml:space="preserve"
+       inkscape:export-filename="/Users/gav/Projects/Web/fs1.well.ox.ac.uk/public_html/style/images/introduction_red.png"
+       inkscape:export-xdpi="120"
+       inkscape:export-ydpi="120"><tspan
+         y="99.505043"
+         x="90"
+         id="tspan3188"
+         sodipodi:role="line">introduction</tspan></text>
+    <text
+       sodipodi:linespacing="100%"
+       id="text3190"
+       y="99.505043"
+       x="305.71426"
+       style="font-size:20px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;line-height:100%;writing-mode:lr-tb;text-anchor:middle;fill:#800000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+       xml:space="preserve"
+       inkscape:export-filename="/Users/gav/Projects/Web/fs1.well.ox.ac.uk/public_html/style/images/summary_stats_red.png"
+       inkscape:export-xdpi="120"
+       inkscape:export-ydpi="120"><tspan
+         y="99.505043"
+         x="305.71426"
+         id="tspan3192"
+         sodipodi:role="line">summary stats</tspan></text>
+    <text
+       sodipodi:linespacing="100%"
+       id="text3194"
+       y="98.076469"
+       x="524.28571"
+       style="font-size:20px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;line-height:100%;writing-mode:lr-tb;text-anchor:middle;fill:#800000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
+       xml:space="preserve"
+       inkscape:export-filename="/Users/gav/Projects/Web/fs1.well.ox.ac.uk/public_html/style/images/filtering_red.png"
+       inkscape:export-xdpi="120"
+       inkscape:export-ydpi="120"><tspan
+         y="98.076469"
+         x="524.28571"
+         id="tspan3196"
+         sodipodi:role="line">filtering</tspan></text>
+  </g>
+</svg>

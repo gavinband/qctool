@@ -76,9 +76,11 @@ namespace genfile {
 		SNPDataSourceRack( std::string const& snp_match_fields ) ;
 		SNPDataSourceRack( SNPIdentifyingData::CompareFields const& comparator ) ;
 		~SNPDataSourceRack() ;
+
 		void add_source( std::auto_ptr< SNPDataSource > source ) ;
 		SNPDataSource& get_source( std::size_t ) const ;
 
+		Metadata get_metadata() const ;
 		unsigned int number_of_samples() const ;
 		OptionalSnpCount total_number_of_snps() const ;
 		operator bool() const ;
@@ -118,6 +120,8 @@ namespace genfile {
 
 		void check_snps_are_sorted_by_position( std::vector< SNPIdentifyingData > const& snps, std::size_t cohort_index ) ;
 
+		char const get_flip( std::size_t i ) const { return m_flips[i]; }
+
 		struct RackGenotypeProbabilitySetter
 		{
 			RackGenotypeProbabilitySetter( GenotypeProbabilitySetter const& base_setter, uint32_t index_of_first_sample ) ;
@@ -129,12 +133,14 @@ namespace genfile {
 			uint32_t const m_index_of_first_sample ;
 		} ;
 		
-		friend class impl::RackVariantDataReader ;
+		friend struct impl::RackVariantDataReader ;
 
 		std::vector< SNPDataSource* > m_sources ;
+		std::vector< char > m_flips ;
 		uint32_t m_number_of_samples ;
 		bool m_read_past_end ;
 		SNPIdentifyingData::CompareFields m_comparator ;
+		Metadata m_metadata ;
 	} ;
 }
 

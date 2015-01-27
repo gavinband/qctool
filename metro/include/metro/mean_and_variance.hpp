@@ -79,6 +79,9 @@ namespace metro {
 
 		Storage get_mean() const ;
 		Storage get_variance() const ;
+		double get_count( int row, int column ) const ;
+		double get_mean( int row, int column ) const ;
+		double get_variance( int row, int column ) const ;
 		
 	private:
 		Storage m_nonmissingness ;

@@ -16,16 +16,6 @@
 
 namespace genfile {
 	namespace {
-		char get_representation_of_allele( char allele ) {
-			switch( allele ) {
-				case 'A': return '1'; break ;
-				case 'C': return '2'; break ;
-				case 'G': return '3'; break ;
-				case 'T': return '4'; break ;
-			}
-			return '?' ;
-		}
-		
 		std::string sex_to_string( Pedigree::Sex sex ) {
 			switch( sex ) {
 				case Pedigree::eMale: return "1"; break ;
@@ -82,29 +72,22 @@ namespace genfile {
 		std::map< std::string, std::size_t > result ;
 
 		std::vector< std::string > ID_1( samples.get_number_of_individuals() ) ;
-		std::vector< std::string > ID_2( samples.get_number_of_individuals() ) ;
 		
 		for( std::size_t i = 0; i < samples.get_number_of_individuals(); ++i ) {
 			ID_1[i] = samples.get_entry( i, "ID_1" ).as< std::string >() ;
-			ID_2[i] = samples.get_entry( i, "ID_2" ).as< std::string >() ;
 		}
 		
 		for( std::size_t i = 0; i < pedigree.get_number_of_individuals(); ++i ) {
 			std::string const& id = pedigree.get_id_of( i ) ;
 			//std::cerr << "Matching up individual " << i << ": " << id << ".\n" ;
-			std::vector< std::string > const* which_id = &ID_1 ;
-			std::vector< std::string >::const_iterator where = std::find( which_id->begin(), which_id->end(), id ) ;
-			if( where == ID_1.end() ) {
-				// look in ID 2 instead
-				which_id = &ID_2 ;
-				where = std::find( which_id->begin(), which_id->end(), id ) ;
-			}
-			if( where != which_id->end() ) {
+			std::vector< std::string >::const_iterator where = std::find( ID_1.begin(), ID_1.end(), id ) ;
+			if( where !=ID_1.end() ) {
 				// check match is unique.
 				std::vector< std::string >::const_iterator next = where ;
+				std::vector< std::string >::const_iterator const end = ID_1.end() ;
 				++next ;
-				assert( std::find( next, which_id->end(), id ) == which_id->end() ) ;
-				result[ id ] = ( where - which_id->begin() )  ;
+				assert( std::find( next, end, id ) == end ) ;
+				result[ id ] = ( where - ID_1.begin() )  ;
 			}
 		}
 		return result ;

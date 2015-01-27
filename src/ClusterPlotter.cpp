@@ -75,7 +75,7 @@ void ClusterPlotter::set_intensity_threshhold( double value ) {
 	m_intensity_threshhold = value ;
 }
 
-void ClusterPlotter::begin_processing_snps( std::size_t number_of_samples ) {
+void ClusterPlotter::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) {
 	m_number_of_samples = number_of_samples ;
 }
 

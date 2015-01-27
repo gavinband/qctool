@@ -30,7 +30,7 @@ void SampleSummaryComputationManager::add( std::string const& name, std::string 
 	m_computations.insert( std::make_pair( name, chromosome_spec ), computation ) ;
 }
 
-void SampleSummaryComputationManager::begin_processing_snps( std::size_t number_of_samples ) {
+void SampleSummaryComputationManager::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) {
 	m_snp_index = 0 ;
 	m_genotypes.resize( number_of_samples, 3 ) ;
 }
@@ -38,7 +38,7 @@ void SampleSummaryComputationManager::begin_processing_snps( std::size_t number_
 void SampleSummaryComputationManager::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 	{
 		genfile::vcf::GenotypeSetter< Eigen::MatrixBase< SampleSummaryComputation::Genotypes > > setter( m_genotypes ) ;
-		data_reader.get( "genotypes", setter ) ;
+		data_reader.get( ":genotypes:", setter ) ;
 	}
 	Computations::iterator i = m_computations.begin(), end_i = m_computations.end() ;
 	for( ; i != end_i; ++i ) {
@@ -60,19 +60,36 @@ void SampleSummaryComputationManager::processed_snp( genfile::SNPIdentifyingData
 }
 
 void SampleSummaryComputationManager::end_processing_snps() {
-	Computations::iterator i = m_computations.begin(), end_i = m_computations.end() ;
-	for( ; i != end_i; ++i ) {
-		i->second->compute(
-			boost::bind(
-				boost::ref( m_result_signal ),
-				i->first.first,
-				_1,
-				_2,
-				i->first.first + " for " + i->first.second,
-				_3
-			)
-		) ;
+	for( int sample = 0; sample < m_genotypes.rows(); ++sample ) {
+		Computations::iterator i = m_computations.begin(), end_i = m_computations.end() ;
+		for( ; i != end_i; ++i ) {
+			i->second->compute(
+				sample,
+				boost::bind(
+					boost::ref( m_result_signal ),
+					i->first.first,
+					_1,
+					_2,
+					i->first.first + " for " + i->first.second,
+					_3
+				)
+			) ;
+		}
 	}
+	if( m_outputter.get() ) {
+		m_outputter->finalise() ;
+	}
+}
+
+void SampleSummaryComputationManager::send_output_to( sample_stats::SampleStorage::SharedPtr outputter ) {
+	m_outputter = outputter ;
+	add_result_callback(
+		boost::bind(
+			&sample_stats::SampleStorage::store_per_sample_data,
+			m_outputter,
+			_1, _2, _3, _4, _5
+		)
+	) ;
 }
 
 void SampleSummaryComputationManager::add_result_callback(  ResultSignal::slot_type callback ) {

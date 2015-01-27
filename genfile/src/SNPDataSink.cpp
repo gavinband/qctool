@@ -17,6 +17,7 @@
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/GenFileSNPDataSink.hpp"
 #include "genfile/GenDosageFileSNPDataSink.hpp"
+#include "genfile/GenIntensityFileSNPDataSink.hpp"
 #include "genfile/BGenFileSNPDataSink.hpp"
 #include "genfile/ShapeITHaplotypesSNPDataSink.hpp"
 #include "genfile/VCFFormatSNPDataSink.hpp"
@@ -30,9 +31,12 @@ namespace genfile {
 		std::vector< std::string > result ;
 		result.push_back( "gen" ) ;
 		result.push_back( "bgen" ) ;
+		result.push_back( "bgen_v12" ) ;
 		result.push_back( "vcf" ) ;
 		result.push_back( "shapeit_haplotypes" ) ;
 		result.push_back( "shapeit" ) ;
+		result.push_back( "dosage" ) ;
+		result.push_back( "intensity" ) ;
 		return result ;
 	}
 
@@ -57,6 +61,9 @@ namespace genfile {
 		if( d.first == "bgen" ) {
 			return SNPDataSink::UniquePtr( new BGenFileSNPDataSink( filename, metadata )) ;
 		}
+		else if( d.first == "bgen_v12" ) {
+			return SNPDataSink::UniquePtr( new BGenFileSNPDataSink( filename, metadata, "v12", 16 )) ;
+		}
 		else if( d.first == "vcf" ) {
 			return SNPDataSink::UniquePtr( new VCFFormatSNPDataSink( filename )) ;
 		}
@@ -65,6 +72,9 @@ namespace genfile {
 		}
 		else if( d.first == "dosage" ) {
 			return SNPDataSink::UniquePtr( new GenDosageFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
+		}
+		else if( d.first == "intensity" ) {
+			return SNPDataSink::UniquePtr( new GenIntensityFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
 		}
 		else {
 			return SNPDataSink::UniquePtr( new GenFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
@@ -84,6 +94,11 @@ namespace genfile {
 			m_samples_have_been_set = (*this) ;
 			m_number_of_samples = number_of_samples ;
 		}
+		return (*this) ;
+	}
+	
+	SNPDataSink& SNPDataSink::set_metadata( Metadata const& metadata ) {
+		set_metadata_impl( metadata ) ;
 		return (*this) ;
 	}
 	
@@ -174,7 +189,9 @@ namespace genfile {
 		m_genotypes.setZero() ;
 		{
 			vcf::GenotypeSetter< Eigen::MatrixBase< Eigen::MatrixXd > > setter( m_genotypes ) ;
-			data_reader.get( "genotypes", setter ) ;
+            if( data_reader.supports( ":genotypes:" )) {
+                data_reader.get( ":genotypes:", setter ) ;
+            }
 		}
 
 		write_snp_impl(
@@ -190,5 +207,10 @@ namespace genfile {
 			genfile::GenotypeGetter< Eigen::MatrixXd >( m_genotypes, 2ul ),
 			info
 		) ;
+	}
+	
+	SNPDataSink& SNPDataSink::finalise() {
+		finalise_impl() ;
+		return *this ;
 	}
 }

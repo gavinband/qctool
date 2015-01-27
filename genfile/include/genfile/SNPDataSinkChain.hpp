@@ -32,6 +32,7 @@ namespace genfile {
 		SinkPos get_stream_pos() const ;
 
 	private:
+		void set_metadata_impl( Metadata const& metadata ) ;
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter name_getter ) ;
 		void write_snp_impl(
 			uint32_t number_of_samples,
@@ -52,6 +53,8 @@ namespace genfile {
 			VariantDataReader& data_reader,
 			Info const& info
 		) ;
+
+		void finalise_impl() ;
 
 	private:
 

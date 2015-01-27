@@ -51,4 +51,9 @@ namespace appcontext {
 		m_ui_context->remove_progress_context( m_progress_context->name() ) ;
 		m_progress_context = 0 ;
 	}
+
+	void ProgressContextProxy::restart_timer() const {
+		assert( m_progress_context ) ;
+		m_progress_context->restart_timer() ;
+	}
 }

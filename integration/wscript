@@ -10,7 +10,7 @@ def create_test( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'test/' + name + '.cpp' ],
-		uselib_local = 'integration',
+		uselib_local = 'integration boost-unit_test_framework',
 		uselib = 'BOOST_UNIT_TEST_FRAMEWORK',
 		includes='./include',
 		unit_test=1,
@@ -39,10 +39,11 @@ def build( bld ):
 		target = 'integration',
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include',
-		uselib_local='fputils eigen',
+		uselib_local='fputils eigen boost',
 		uselib = 'BOOST',
 		export_incdirs = './include'
 	)
 	
 	create_test( bld, 'test_integrators' )
 	create_test( bld, 'test_newton_raphson' )
+	create_test( bld, 'test_modified_newton_raphson' )

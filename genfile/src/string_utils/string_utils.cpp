@@ -28,6 +28,14 @@ namespace genfile {
 			return aString ;
 		}
 
+		void to_lower( std::string* aString ) {
+			for( std::string::iterator i = aString->begin(); i != aString->end(); ++i ) {
+				if( *i >= 'A' && *i <= 'Z' ) {
+					*i += 32 ;
+				}
+			}
+		}
+
 		std::string to_upper( std::string aString ) {
 			for( std::string::iterator i = aString.begin(); i != aString.end(); ++i ) {
 				if( *i >= 'a' && *i <= 'z' ) {
@@ -35,6 +43,14 @@ namespace genfile {
 				}
 			}
 			return aString ;
+		}
+
+		void to_upper( std::string* aString ) {
+			for( std::string::iterator i = aString->begin(); i != aString->end(); ++i ) {
+				if( *i >= 'a' && *i <= 'z' ) {
+					*i -= 32 ;
+				}
+			}
 		}
 
 		bool case_insensitive_equality( std::string const& left, std::string const& right ) {
@@ -218,6 +234,13 @@ namespace genfile {
 				bool is_blank( char c) {
 						return c == ' ' || c == '\n' ;
 				}
+		}
+		
+		std::string replace_all( std::string in, std::string const& pattern, std::string const& replacement ) {
+			for( std::size_t pos = in.find( pattern ) ; pos != std::string::npos; pos = in.find( pattern ) ) {
+				in.replace( pos, pattern.size(), replacement ) ;
+			}
+			return in ;
 		}
 		
 		std::string wrap( std::string const& string_to_wrap, unsigned int wrap_column, unsigned int starting_column, std::size_t indent_amount ) { 

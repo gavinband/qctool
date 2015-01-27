@@ -17,7 +17,6 @@ namespace metro {
 		assert( data.cols() == nonmissingness.cols() ) ;
 		assert( data.rows() == nonmissingness.rows() ) ;
 		typedef typename Data::Index Index ;
-		Index const N = data.rows() ;
 
 		// Compute mean
 		mean = (( data.array() * nonmissingness.array() ).colwise().sum().array() ) / ( nonmissingness.colwise().sum().array() ) ;

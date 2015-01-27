@@ -6,8 +6,11 @@
 
 #include <iostream>
 #include <iomanip>
-#include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/ptr_container/ptr_deque.hpp>
 #include <boost/function.hpp>
+#include <boost/timer/timer.hpp>
+#include <boost/thread/thread.hpp>
+#include "unistd.h"
 #include "../config.hpp"
 #if HAVE_CBLAS
 	#include "cblas.h"
@@ -27,455 +30,473 @@
 #include "components/RelatednessComponent/KinshipCoefficientComputer.hpp"
 #include "components/RelatednessComponent/PCAComputer.hpp"
 #include "components/RelatednessComponent/mean_centre_genotypes.hpp"
-#include "components/RelatednessComponent/mean_centre_genotypes.hpp"
 
-// #define DEBUG_KINSHIP_COEFFICIENT_COMPUTER 1
+#include "boost/threadpool.hpp"
+
+#define DEBUG_KINSHIP_COEFFICIENT_COMPUTER 1
+#define USING_BOOST_THREADPOOL 1
 
 namespace impl {
 	#if HAVE_EIGEN
-		void accumulate_xxt_using_eigen( Eigen::VectorXd* data, Eigen::MatrixXd* result, double const scale ) {
-			result
-				->selfadjointView< Eigen::Lower >()
-				.rankUpdate( *data, scale ) ;
+		template< typename Vector, typename Matrix >
+		void accumulate_xxt_using_eigen(
+			Vector* data,
+			Matrix* result,
+			int const begin_sample_i, int const end_sample_i,
+			int const begin_sample_j, int const end_sample_j,
+			double const scale
+		) {
+			
+			if( begin_sample_i == begin_sample_j && end_sample_i == end_sample_j ) {
+				result
+					->block( begin_sample_i, begin_sample_j, end_sample_i - begin_sample_i, end_sample_j - begin_sample_j )
+					.template selfadjointView< Eigen::Lower >()
+					.rankUpdate( data->segment( begin_sample_i, end_sample_i - begin_sample_i ), scale ) ;
+			} else {
+				result
+					->block(  begin_sample_i, begin_sample_j, end_sample_i - begin_sample_i, end_sample_j - begin_sample_j ).noalias()
+					+= scale * (
+						data->segment( begin_sample_i, end_sample_i - begin_sample_i )
+						*
+						data->segment( begin_sample_j, end_sample_j - begin_sample_j ).transpose()
+					) ;
+			}
 		}
 	#endif
 	#if HAVE_CBLAS
-		void accumulate_xxt_using_cblas( Eigen::VectorXd* data, Eigen::MatrixXd* result, double const scale ) {
+		void accumulate_xxt_using_cblas(
+			KinshipCoefficientComputer::Computation::Vector* data,
+			KinshipCoefficientComputer::Computation::Matrix* result,
+			int const begin_sample_i, int const end_sample_i,
+			int const begin_sample_j, int const end_sample_j,
+			double const scale
+		) {
 			assert( result ) ;
 			assert( data ) ;
 			int const N = data->size() ;
 			assert( N == result->cols() ) ;
-			cblas_dsyr(
-				CblasColMajor,
-				CblasLower,
-				N,
-				scale,
-				data->data(),
-				1,
-				result->data(),
-				N
-			) ;
+			if( begin_sample_i == begin_sample_j && end_sample_i == end_sample_j ) {
+				cblas_dsyr(
+					CblasColMajor,
+					CblasLower,
+					end_sample_i - begin_sample_i,
+					scale,
+					data->segment( begin_sample_i, end_sample_i - begin_sample_i ).data(),
+					1,
+					result->block( begin_sample_i, begin_sample_j, end_sample_i - begin_sample_i, end_sample_j - begin_sample_j ).data(),
+					result->outerStride()
+				) ;
+			} else {
+				cblas_dger(
+					CblasColMajor,
+					end_sample_i - begin_sample_i,
+					end_sample_j - begin_sample_j,
+					scale,
+					data->segment( begin_sample_i, end_sample_i - begin_sample_i ).data(), 1,
+					data->segment( begin_sample_j, end_sample_j - begin_sample_j ).data(), 1,
+					result->block( begin_sample_i, begin_sample_j, end_sample_i - begin_sample_i, end_sample_j - begin_sample_j ).data(),
+					result->outerStride()
+				) ;
+			}
 		}
 	#endif
 
-	struct ComputeXXtTask: public KinshipCoefficientComputerTask {
-		ComputeXXtTask(
-			Eigen::MatrixXd* result,
-			Eigen::MatrixXd* missing_count,
+	struct SampleBounds {
+		int begin_sample_i ;
+		int end_sample_i ;
+		int begin_sample_j ;
+		int end_sample_j ;
+	} ;
+	
+	std::ostream& operator<<( std::ostream& out, SampleBounds const& b ) {
+		out << "[" << b.begin_sample_i << "-" << b.end_sample_i << ", " << b.begin_sample_j << "-" << b.end_sample_j << "]" ;
+		return out ;
+	}
+
+	struct ComputeXXtTask
+	{
+		typedef std::auto_ptr< ComputeXXtTask > UniquePtr ;
+		
+		virtual ~ComputeXXtTask() {}
+
+		virtual void add_data(
+			KinshipCoefficientComputer::Computation::Vector&
+		) {
+			assert(0) ;
+		}
+
+		virtual void add_data(
+			KinshipCoefficientComputer::Computation::IntegerVector&
+		) {
+			assert(0) ;
+		}
+
+		virtual void operator()() = 0 ;
+	} ;
+
+	template< typename Vector, typename Matrix >
+	struct ComputeXXtTaskImpl: public ComputeXXtTask {
+		
+		typedef boost::function< void (
+			Vector* data,
+			Matrix* result,
+			int const begin_sample_i, int const end_sample_i,
+			int const begin_sample_j, int const end_sample_j,
+			double const scale
+		) >
+		AccumulateXXt ;
+		
+		ComputeXXtTaskImpl(
+			Matrix* result,
+			SampleBounds const bounds,
 			AccumulateXXt accumulate_xxt
 		):
 			m_result( result ),
-			m_non_missing_count( missing_count ),
-			m_call_threshhold( 0.9 ),
-			m_allele_frequency_threshhold( 0.01 ),
-			m_accumulate_xxt( accumulate_xxt ),
-			m_number_of_samples( result->cols() ),
-			m_finalised( false )
+			m_bounds( bounds ),
+			m_accumulate_xxt( accumulate_xxt )
 		{
 			assert( result ) ;
 			assert( m_accumulate_xxt ) ;
 		}
 
-		void finalise() { m_finalised = true ;}		
-		bool is_finalised() const { return m_finalised ;}
+		void add_data(
+			Vector& data
+		) {
+			m_data.push_back( &data ) ;
+		}
 
 		std::size_t number_of_snps() const { return m_data.size() ; }
 
-	protected:
-		Eigen::MatrixXd* m_result ;
-		Eigen::MatrixXd* m_non_missing_count ;
-		double const m_call_threshhold ;
-		double const m_allele_frequency_threshhold ;
-		std::vector< Eigen::VectorXd* > m_data ;
-		std::vector< Eigen::VectorXd* > m_working_space ;
-		AccumulateXXt m_accumulate_xxt ;
-	private:
-		std::size_t const m_number_of_samples ;
-		bool m_finalised ;
-	} ;
-
-	struct NormaliseGenotypesAndComputeXXtTask: public ComputeXXtTask {
-		NormaliseGenotypesAndComputeXXtTask(
-			Eigen::MatrixXd* result,
-			Eigen::MatrixXd* missing_count,
-#if HAVE_CBLAS
-			AccumulateXXt accumulate_xxt = &accumulate_xxt_using_cblas
-#else
-			AccumulateXXt accumulate_xxt = &accumulate_xxt_using_eigen
-#endif
-		):
-			ComputeXXtTask( result, missing_count, accumulate_xxt )
-		{
-		}
-
-		void add_snp(
-			genfile::VariantDataReader::SharedPtr data_reader,
-			Eigen::VectorXd& genotypes,
-			Eigen::VectorXd& non_missing_calls
-		) {
-			genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( genotypes, non_missing_calls, m_call_threshhold, 0, 0, 1, 2 ) ;
-			data_reader->get( "genotypes", setter ) ;
-			m_data.push_back( &genotypes ) ;
-			m_working_space.push_back( &non_missing_calls ) ;
-		}
-		
 		void operator()() {
 			for( std::size_t snp_i = 0; snp_i < m_data.size(); ++snp_i ) {
-				Eigen::VectorXd& genotype_calls = *m_data[ snp_i ] ;
-				Eigen::VectorXd& non_missing_genotypes = *m_working_space[ snp_i ] ;
-				double allele_frequency = genotype_calls.sum() / ( 2.0 * non_missing_genotypes.sum() ) ;
-				if( std::min( allele_frequency, 1.0 - allele_frequency ) > m_allele_frequency_threshhold ) {
-	#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
-					std::cerr << std::resetiosflags( std::ios::floatfield ) << std::setprecision( 5 ) ;
-					std::cerr << "SNP: freq = " << allele_frequency << ", uncentred genotypes are: " << genotype_calls.transpose().head( 20 ) << "...\n" ;
-	#endif
-					pca::mean_centre_genotypes( &genotype_calls, non_missing_genotypes, allele_frequency ) ;
-					m_accumulate_xxt(
-						&genotype_calls,
-						m_result,
-						1.0 / ( 2.0 * allele_frequency * ( 1.0 - allele_frequency ))
-					) ;
-					m_accumulate_xxt(
-						&non_missing_genotypes,
-						m_non_missing_count,
-						1.0
-					) ;
-
-	#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
-					std::cerr << (*m_result).row(0).head(10) << "...\n" ;
-					if( (*m_result)(0,0) != (*m_result)(0,0) ) {
-						std::cerr << "AAAAAGH!\n" ;
-					}
-	#endif
-				}
-			}
-		}
-	} ;
-
-	struct ComputeConcordanceTask: public ComputeXXtTask {
-		ComputeConcordanceTask(
-			Eigen::MatrixXd* result,
-			Eigen::MatrixXd* missing_count,
-#if HAVE_CBLAS
-			AccumulateXXt accumulate_xxt = &accumulate_xxt_using_cblas
-#else
-			AccumulateXXt accumulate_xxt = &accumulate_xxt_using_eigen
-#endif
-		):
-			ComputeXXtTask( result, missing_count, accumulate_xxt )
-		{
-		}
-
-		void add_snp(
-			genfile::VariantDataReader::SharedPtr data_reader,
-			Eigen::VectorXd& genotypes,
-			Eigen::VectorXd& working_space
-		) {
-			genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( genotypes, m_call_threshhold, -1, 0, 1, 2 ) ;
-			data_reader->get( "genotypes", setter ) ;
-			m_data.push_back( &genotypes ) ;
-			m_working_space.push_back( &working_space ) ;
-		}
-		
-		void operator()() {
-			for( std::size_t snp_i = 0; snp_i < m_data.size(); ++snp_i ) {
-				Eigen::VectorXd& genotype_calls = *m_data[ snp_i ] ;
-				Eigen::VectorXd& genotype_indicator = *m_working_space[ snp_i ] ;
-
-				genotype_indicator.resize( genotype_calls.size() ) ;
-				for( double g = 0; g < 3; ++g ) {
-					genotype_indicator.array() = ( genotype_calls.array() == g ).cast< double >() ;
-					m_accumulate_xxt( &genotype_indicator, m_result, 1.0 ) ;
-				}
-				// deal with missingness.
-				genotype_indicator.array() = ( genotype_calls.array() != -1 ).cast< double >() ;
-				m_accumulate_xxt( &genotype_indicator, m_non_missing_count, 1.0 ) ;
-			}
-		}
-	} ;
-	
-	struct ComputeUnnormalisedXXtTask: public ComputeXXtTask {
-		struct MatrixSetter ;
-		
-		ComputeUnnormalisedXXtTask(
-			Eigen::MatrixXd* result,
-			Eigen::MatrixXd* missing_count,
-#if HAVE_CBLAS
-			AccumulateXXt accumulate_xxt = &accumulate_xxt_using_cblas,
-#else
-			AccumulateXXt accumulate_xxt = &accumulate_xxt_using_eigen,
-#endif
-			std::string const& data_field = "XY"
-		):
-			ComputeXXtTask( result, missing_count, accumulate_xxt ),
-			m_data_field( data_field )
-		{
-		}
-
-		void add_snp(
-			genfile::VariantDataReader::SharedPtr data_reader,
-			Eigen::VectorXd& data,
-			Eigen::VectorXd& non_missing_data
-		) {
-			VectorFiller setter( data, non_missing_data, 2, 0 ) ;
-			data_reader->get( m_data_field, setter ) ;
-			m_data.push_back( &data ) ;
-			m_working_space.push_back( &non_missing_data ) ;
-		}
-
-		void operator()() {
-			for( std::size_t snp_i = 0; snp_i < m_data.size(); ++snp_i ) {
-				Eigen::VectorXd& data = *m_data[ snp_i ] ;
-				Eigen::VectorXd& non_missing_data = *m_working_space[ snp_i ] ;
 				m_accumulate_xxt(
-					&data,
+					m_data[ snp_i ],
 					m_result,
-					1.0
-				) ;
-				m_accumulate_xxt(
-					&non_missing_data,
-					m_non_missing_count,
+					m_bounds.begin_sample_i, m_bounds.end_sample_i,
+					m_bounds.begin_sample_j, m_bounds.end_sample_j,
 					1.0
 				) ;
 			}
 		}
+		
+	protected:
+		Matrix* m_result ;
+		SampleBounds const m_bounds ;
+		std::vector< Vector* > m_data ;
+		AccumulateXXt m_accumulate_xxt ;
+	} ;
 
-	private:
-		std::string const m_data_field ;
-		Eigen::MatrixXd m_tmp_intensities ;
-		Eigen::MatrixXd m_tmp_non_missing_data ;
-	private:
-		struct VectorFiller: public genfile::VariantDataReader::PerSampleSetter
+	struct Dispatcher {
+		typedef std::auto_ptr< Dispatcher > UniquePtr ;
+		typedef KinshipCoefficientComputer::Computation::Vector Vector ;
+		typedef KinshipCoefficientComputer::Computation::Matrix Matrix ;
+		typedef KinshipCoefficientComputer::Computation::IntegerVector IntegerVector ;
+		typedef KinshipCoefficientComputer::Computation::IntegerMatrix IntegerMatrix ;
+
+		virtual ~Dispatcher() {}
+		virtual void setup( std::size_t number_of_samples ) = 0 ;
+		virtual void get_storage( Vector* data, IntegerVector* nonmissingness ) = 0 ;
+		virtual void add_data( Vector* data, IntegerVector* nonmissingness ) = 0 ;
+		virtual void wait_until_complete() = 0 ;
+	} ;
+
+	struct MultiThreadedDispatcher: public Dispatcher {
+		typedef void (*accumulate_xxt_t)( Vector*, Matrix*, int const begin_sample_i, int const end_sample_i, int const begin_sample_j, int const end_sample_j, double const ) ;
+		typedef void (*accumulate_xxt_integer_t)( IntegerVector*, IntegerMatrix*, int const begin_sample_i, int const end_sample_i, int const begin_sample_j, int const end_sample_j, double const ) ;
+
+		MultiThreadedDispatcher(
+			Matrix& result,
+			IntegerMatrix& nonmissingness,
+			worker::Worker* worker,
+			std::string const& method
+		):
+			m_result( result ),
+			m_nonmissingness( nonmissingness ),
+			m_worker( worker ),
+			m_storage( 100, std::make_pair( Vector(), IntegerVector() ) ),
+			m_storage_index( 0 ),
+			m_data_index( 0 )
+#if USING_BOOST_THREADPOOL
+			,m_pool( m_worker->get_number_of_worker_threads() )
+#endif
 		{
-			typedef Eigen::VectorXd Vector ;
-			VectorFiller(
-				Vector& result,
-				Vector& nonmissingness,
-				int const entries_per_sample,
-				double const missing_value = 0
-			):
-				m_result( result ),
-				m_nonmissingness( nonmissingness ),
-				m_entries_per_sample( entries_per_sample ),
-				m_missing_value( missing_value )
-			{}
+			if( method == "eigen" ) {
+				m_accumulate_xxt = &impl::accumulate_xxt_using_eigen< Vector, Matrix > ;
+				m_accumulate_xxt_integer = &impl::accumulate_xxt_using_eigen< IntegerVector, IntegerMatrix > ;
+			} else if( method == "cblas" ) {
+#if HAVE_CBLAS
+				m_accumulate_xxt = &impl::accumulate_xxt_using_cblas ;
+				m_accumulate_xxt_integer = &impl::accumulate_xxt_using_eigen< IntegerVector, IntegerMatrix > ;
+#else
+				throw genfile::BadArgumentError( "impl::MultiThreadedDispatcher::MultiThreadedDispatcher()", "method=\"" + method + "\"", "Support for cblas is not compiled in." ) ;
+#endif
+			} else {
+				throw genfile::BadArgumentError( "impl::MultiThreadedDispatcher::MultiThreadedDispatcher()", "method=\"" + method + "\"", "Only methods \"eigen\" and \"cblas\" are supported." ) ;
+			}
+		}
 
-			void set_number_of_samples( std::size_t n ) {
-				m_number_of_samples = n ;
-				m_result.resize( n * m_entries_per_sample ) ;
-				m_nonmissingness.resize( n * m_entries_per_sample ) ;
+		~MultiThreadedDispatcher() {
+		}
+		
+		void setup( std::size_t number_of_samples ) {
+			// If there are N worker threads we want about two jobs per thread.
+			// We imagine splitting up the lower diagonal of the matrix
+			// into B jobs, where B is roughly twice the number of threads.
+			// Because off-diagonal blocks take about twice as long, 
+			// we make them half the size vertically.
+			// If there are (N ( N+1)/2 ) square blocks this makes
+			// (N (N+1) ) - N = N^2 blocks in total.
+			// So we want to choose N so that N^2 is about twice the number of threads.
+			std::size_t N = 2 * std::sqrt( m_worker->get_number_of_worker_threads() ) ;
+			/*
+			if( m_worker->get_number_of_worker_threads() <= 1 ) {
+				N = 1 ;
 			}
-			void set_sample( std::size_t n ) {
-				assert( n < m_number_of_samples ) ; 
-				m_sample = n ;
-				m_entry_i = 0 ;
+			*/
+			//N = 5 ;
+			//N = 1 ;
+			N = 10 ;
+			double K = double( number_of_samples ) / N ;
+//#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+			std::cerr << "MultiThreadedDispatcher: sizeof(int) = " << sizeof(int) << ".\n" ;
+			std::cerr << "MultiThreadedDispatcher:setup(): " << number_of_samples << "x" << number_of_samples << " matrix, "
+				<< N << " blocks across top row, "
+				<< N*(N+1)/2 << " blocks on lower diagonal.\n" ;
+//#endif
+			// Set up some initial tasks.
+			// Do j (the column) as the outer loop
+			// so that tasks go in column-major direction.
+			for( std::size_t j = 0; j < N; ++j ) {
+				for( std::size_t i = 0; i < N; ++i ) {
+					if( i == j ) {
+						SampleBounds bounds ;
+						bounds.begin_sample_i = std::ceil(i*K) ;
+						bounds.end_sample_i = std::min( std::size_t( std::ceil( (i+1)*K ) ), number_of_samples ) ;
+						bounds.begin_sample_j = bounds.begin_sample_i ;
+						bounds.end_sample_j = bounds.end_sample_i ;
+						m_bounds.push_back( bounds ) ;
+						m_tasks.push_back( 0 ) ;
+						m_tasks.push_back( 0 ) ;
+
+//#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+					std::cerr << "MultiThreadedDispatcher::setup(): added block " << m_bounds.back() << ".\n" ;
+//#endif
+					}
+					else {
+						// Do two vertical stripes
+						SampleBounds bounds ;
+						bounds.begin_sample_i = std::ceil(i*K) ;
+						bounds.end_sample_i = std::min( std::size_t( std::ceil( (i+1)*K ) ), number_of_samples ) ;
+						bounds.begin_sample_j = std::ceil(j*K) ;
+						bounds.end_sample_j = std::ceil((j+0.5)*K) ;
+						m_bounds.push_back( bounds ) ;
+						m_tasks.push_back( 0 ) ;
+						m_tasks.push_back( 0 ) ;
+
+//#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+					std::cerr << "MultiThreadedDispatcher::setup(): added block " << m_bounds.back() << ".\n" ;
+//#endif
+
+						bounds.begin_sample_j = bounds.end_sample_j ;
+						bounds.end_sample_j = std::min( std::size_t( std::ceil( (j+1)*K ) ), number_of_samples ) ;
+						m_bounds.push_back( bounds ) ;
+						m_tasks.push_back( 0 ) ;
+						m_tasks.push_back( 0 ) ;
+
+//#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+					std::cerr << "MultiThreadedDispatcher::setup(): added block " << m_bounds.back() << ".\n" ;
+//#endif
+					}
+				}
 			}
-			void set_number_of_entries( std::size_t n ) {
-				if( n != m_entries_per_sample ) {
-					throw genfile::BadArgumentError( "impl::ComputeUnnormalisedXXtTask::VectorFiller::set_number_of_entries()", "n=" + genfile::string_utils::to_string( n ) ) ;
+			assert( m_tasks.size() == 2 * m_bounds.size() ) ;
+		}
+
+		void get_storage( Vector* data, IntegerVector* nonmissingness ) {
+			data->swap( m_storage[ m_storage_index % m_storage.size() ].first ) ;
+			nonmissingness->swap( m_storage[ m_storage_index % m_storage.size() ].second ) ;
+		}
+
+		void add_data( Vector* data, IntegerVector* nonmissingness ) {
+			// Take the data (without copying it).
+			data->swap( m_storage[ m_storage_index % m_storage.size() ].first ) ;
+			nonmissingness->swap( m_storage[ m_storage_index % m_storage.size() ].second ) ;
+	
+			bool const schedule = ( m_data_index % 20 ) == 0 ;
+			++m_data_index ;
+
+			for( std::size_t task_index = 0; task_index < m_bounds.size(); ++task_index ) {
+				std::size_t const bound_index = task_index ;
+				
+				if( m_tasks.is_null( task_index ) ) {
+					ComputeXXtTask::UniquePtr new_task(
+						new ComputeXXtTaskImpl< Vector, Matrix >(
+							&m_result,
+							m_bounds[ bound_index ],
+							m_accumulate_xxt
+						)
+					) ;
+					m_tasks.replace( task_index, new_task ) ;
+				}
+				m_tasks[ task_index ].add_data( m_storage[ m_storage_index % m_storage.size() ].first ) ;
+
+				if( schedule ) {
+					m_pool.schedule( boost::bind( &ComputeXXtTask::operator(), &m_tasks[ task_index ] )) ;
+				}
+			}
+			for( std::size_t task_index = m_bounds.size(); task_index < ( 2 * m_bounds.size() ); ++task_index ) {
+				std::size_t const bound_index = task_index % m_bounds.size() ;
+				
+				if( m_tasks.is_null( task_index ) ) {
+					ComputeXXtTask::UniquePtr new_task(
+						new ComputeXXtTaskImpl< IntegerVector, IntegerMatrix >(
+							&m_nonmissingness,
+							m_bounds[ bound_index ],
+							m_accumulate_xxt_integer
+						)
+					) ;
+					m_tasks.replace( task_index, new_task ) ;
+				}
+				m_tasks[ task_index ].add_data( m_storage[ m_storage_index % m_storage.size() ].second ) ;
+
+				if( schedule ) {
+					m_pool.schedule( boost::bind( &ComputeXXtTask::operator(), &m_tasks[ task_index ] )) ;
+				}
+			}
+			if( schedule ) {
+				m_pool.wait() ;
+				for( std::size_t i = 0; i < m_tasks.size(); ++i ) {
+					m_tasks.replace( i, 0 ) ;
 				}
 			}
 
-			void operator()( genfile::MissingValue const value ) {
-				int const index = m_sample * m_entries_per_sample + m_entry_i++ ;
-				m_result( index ) = m_missing_value ;
-				m_nonmissingness( index ) = 0 ;
-			}
-			void operator()( double const value ) {
-				int const index = m_sample * m_entries_per_sample + m_entry_i++ ;
-				m_result( index ) = m_missing_value ;
-				m_nonmissingness( index ) = 1 ;
-			}
+			++m_storage_index ;
+		}
+	
+		void wait_until_complete() {
+		}
 
-		private:
-			Vector& m_result ;
-			Vector& m_nonmissingness ;
-			int const m_entries_per_sample ;
-			double const m_missing_value ;
-			std::size_t m_number_of_samples ;
-			std::size_t m_sample ;
-			std::size_t m_number_of_entries ;
-			std::size_t m_entry_i ;
-		} ;
-		
+	private:
+		Matrix& m_result ;
+		IntegerMatrix& m_nonmissingness ;
+		worker::Worker* m_worker ;
+		std::vector< SampleBounds > m_bounds ;
+		boost::ptr_deque< boost::nullable< ComputeXXtTask > > m_tasks ;
+		std::vector<
+			std::pair<
+				KinshipCoefficientComputer::Computation::Vector,
+				KinshipCoefficientComputer::Computation::IntegerVector
+			>
+		> m_storage ;
+		std::size_t m_storage_index ;
+		std::size_t m_data_index ;
+		accumulate_xxt_t m_accumulate_xxt ;
+		accumulate_xxt_integer_t m_accumulate_xxt_integer ;
+#if USING_BOOST_THREADPOOL
+		boost::threadpool::pool m_pool ;
+#endif
 	} ;
-}
 
-impl::KinshipCoefficientComputerTask::UniquePtr KinshipCoefficientComputer::compute_kinship(
-	std::size_t const number_of_samples,
-	Eigen::MatrixXd* result,
-	Eigen::MatrixXd* non_missingness,
-	impl::KinshipCoefficientComputerTask::AccumulateXXt accumulate_xxt,
-	bool const initialise = false
-) {
-	assert( result ) ;
-	assert( non_missingness ) ;
-	if( initialise ) {
-		result->setZero( number_of_samples, number_of_samples ) ;
-		non_missingness->setZero( number_of_samples, number_of_samples ) ;
+	NormaliseGenotypesAndComputeXXt::UniquePtr NormaliseGenotypesAndComputeXXt::create( worker::Worker* worker, std::string const& method ) {
+		return NormaliseGenotypesAndComputeXXt::UniquePtr( new NormaliseGenotypesAndComputeXXt( worker, method) ) ;
 	}
-	return impl::KinshipCoefficientComputerTask::UniquePtr(
-		new impl::NormaliseGenotypesAndComputeXXtTask(
-			result,
-			non_missingness,
-			accumulate_xxt
-		)
-	) ;
-}
 
-impl::KinshipCoefficientComputerTask::UniquePtr KinshipCoefficientComputer::compute_concordance(
-	std::size_t const number_of_samples,
-	Eigen::MatrixXd* result,
-	Eigen::MatrixXd* non_missingness,
-	impl::KinshipCoefficientComputerTask::AccumulateXXt accumulate_xxt,
-	bool const initialise = false
-) {
-	assert( result ) ;
-	assert( non_missingness ) ;
-	if( initialise ) {
-		result->setZero( number_of_samples, number_of_samples ) ;
-		non_missingness->setZero( number_of_samples, number_of_samples ) ;
-	}
-	return impl::KinshipCoefficientComputerTask::UniquePtr(
-		new impl::ComputeConcordanceTask(
-			result,
-			non_missingness,
-			accumulate_xxt
+	NormaliseGenotypesAndComputeXXt::NormaliseGenotypesAndComputeXXt(
+		worker::Worker* worker,
+		std::string const& method
+	):
+		m_call_threshhold( 0.9 ),
+		m_allele_frequency_threshhold( 0.001 ),
+		m_number_of_snps_included( 0 ),
+		m_dispatcher(
+			new impl::MultiThreadedDispatcher(
+				m_result,
+				m_nonmissingness,
+				worker,
+				method
+			)
 		)
-	) ;
-}
+	{}
 
-impl::KinshipCoefficientComputerTask::UniquePtr KinshipCoefficientComputer::compute_intensity_covariance(
-	std::size_t const number_of_samples,
-	Eigen::MatrixXd* result,
-	Eigen::MatrixXd* non_missingness,
-	impl::KinshipCoefficientComputerTask::AccumulateXXt accumulate_xxt,
-	bool const initialise = false
-) {
-	assert( result ) ;
-	assert( non_missingness ) ;
-	if( initialise ) {
-		result->setZero( number_of_samples * 2, number_of_samples * 2 ) ;
-		non_missingness->setZero( number_of_samples * 2, number_of_samples * 2 ) ;
+	KinshipCoefficientComputer::Computation::Matrix const& NormaliseGenotypesAndComputeXXt::result() const { return m_result ; }
+	KinshipCoefficientComputer::Computation::IntegerMatrix const& NormaliseGenotypesAndComputeXXt::nonmissingness() const { return m_nonmissingness ; }
+
+	void NormaliseGenotypesAndComputeXXt::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) {
+		m_result.setZero( number_of_samples, number_of_samples ) ;
+		m_nonmissingness.setZero( number_of_samples, number_of_samples ) ;
+		m_dispatcher->setup( number_of_samples ) ;
 	}
-	return impl::KinshipCoefficientComputerTask::UniquePtr(
-		new impl::ComputeUnnormalisedXXtTask(
-			result,
-			non_missingness,
-			accumulate_xxt
-		)
-	) ;
+		
+	void NormaliseGenotypesAndComputeXXt::processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) {
+		KinshipCoefficientComputer::Computation::Vector genotypes ;
+		KinshipCoefficientComputer::Computation::IntegerVector nonmissingness ;
+
+		m_dispatcher->get_storage( &genotypes, &nonmissingness ) ;
+
+		genotypes.setZero( m_result.rows() ) ;
+		nonmissingness.setZero( m_result.rows() ) ;
+
+		data_reader->get(
+			":genotypes:",
+			genfile::vcf::get_threshholded_calls( genotypes, nonmissingness, m_call_threshhold, 0, 0, 1, 2 )
+		) ;
+
+		double allele_frequency = genotypes.sum() / ( 2.0 * nonmissingness.sum() ) ;
+		if( std::min( allele_frequency, 1.0 - allele_frequency ) > m_allele_frequency_threshhold ) {
+			pca::mean_centre_genotypes( &genotypes, nonmissingness, allele_frequency ) ;
+			// Could compute actual SNP sd:
+			//double const sd = std::sqrt( ( genotypes.array().square().sum() - ( genotypes.sum() * genotypes.sum() ) ) / ( nonmissingness.sum() - 1 ) ) ;
+			// Or sd based on allele frequency:
+			double const sd = std::sqrt( ( 2.0 * allele_frequency * ( 1.0 - allele_frequency )) ) ;
+			genotypes /= sd ;
+			m_dispatcher->add_data( &genotypes, &nonmissingness ) ;
+			++m_number_of_snps_included ;
+		}
+	}
+	
+	void NormaliseGenotypesAndComputeXXt::end_processing_snps() {
+		m_dispatcher->wait_until_complete() ;
+		m_result.array() /= m_nonmissingness.array().cast< double >() ;
+	}
+	
+	std::size_t NormaliseGenotypesAndComputeXXt::number_of_snps_included() const {
+		return m_number_of_snps_included ;
+	}
 }
 
 KinshipCoefficientComputer::KinshipCoefficientComputer(
 	appcontext::OptionProcessor const& options,
 	genfile::CohortIndividualSource const& samples,
-	worker::Worker* worker,
 	appcontext::UIContext& ui_context,
-	ComputationFactory computation_factory
+	Computation::UniquePtr computation
 ):
 	m_options( options ),
 	m_ui_context( ui_context ),
 	m_samples( samples ),
-	m_worker( worker ),
-	m_computation_factory( computation_factory ),
-#if HAVE_CBLAS
-	m_accumulate_xxt( options.check( "-use-eigen" ) ? &impl::accumulate_xxt_using_eigen : &impl::accumulate_xxt_using_cblas )
-#else
-	m_accumulate_xxt( &impl::accumulate_xxt_using_eigen )
-#endif
+	m_computation( computation )
 {
-	assert( m_worker ) ;
-	assert( m_computation_factory ) ;
+	assert( m_computation.get() ) ;
 }
 
-void KinshipCoefficientComputer::begin_processing_snps( std::size_t number_of_samples ) {
-	assert( m_samples.get_number_of_individuals() == number_of_samples ) ;
-	m_number_of_samples = number_of_samples ;
-	m_number_of_snps_processed = 0 ;
-	m_number_of_tasks = std::min( m_worker->get_number_of_worker_threads() + 1, 7ul ) ;
-	m_number_of_snps_per_task = 100 ;
-
-	m_genotypes.resize( m_number_of_tasks * m_number_of_snps_per_task ) ;
-	m_genotype_non_missingness.resize( m_number_of_tasks * m_number_of_snps_per_task ) ;
-
-	m_result.resize( m_number_of_tasks ) ;
-	m_non_missing_count.resize( m_number_of_tasks ) ;
-	for( std::size_t i = 0; i < m_number_of_tasks; ++i ) {
-		m_tasks.push_back(
-			m_computation_factory(
-				m_number_of_samples,
-				&m_result[ i ],
-				&m_non_missing_count[ i ],
-				m_accumulate_xxt,
-				true
-			)
-		) ;
-	}
-	m_current_task = 0 ;
+void KinshipCoefficientComputer::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& metadata ) {
+	m_computation->begin_processing_snps( number_of_samples, metadata ) ;
 }
 
 void KinshipCoefficientComputer::processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) {
-#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
-	std::cerr << "KinshipCoefficientComputer::processed_snp(): submitting work for " << id_data << ".\n" ;
-#endif
-
- 	if( m_tasks[ m_current_task ].is_finalised() ) {
-		m_tasks[ m_current_task ].wait_until_complete() ;
-		m_tasks.replace(
-			m_current_task,
-			m_computation_factory(
-				m_number_of_samples,
-				&m_result[ m_current_task ],
-				&m_non_missing_count[ m_current_task ],
-				m_accumulate_xxt,
-				false
-			)
-		) ;
-	}
-
-	std::size_t data_index = ( m_current_task * m_number_of_snps_per_task ) + m_tasks[ m_current_task ].number_of_snps() ;
-	m_tasks[ m_current_task ].add_snp(
-		data_reader,
-		m_genotypes[ data_index ],
-		m_genotype_non_missingness[ data_index ]
-	) ;
-
-	if( m_tasks[ m_current_task ].number_of_snps() == m_number_of_snps_per_task ) {
-		m_tasks[ m_current_task ].finalise() ;
-		m_worker->tell_to_perform_task( m_tasks[ m_current_task ] ) ;
-		m_current_task = ( m_current_task + 1 ) % m_number_of_tasks ;
-	}
-	
-	++m_number_of_snps_processed ;
+	m_computation->processed_snp( id_data, data_reader ) ;
 }
 
 void KinshipCoefficientComputer::end_processing_snps() {
-	if( !m_tasks[ m_current_task ].is_finalised() ) {
-		m_tasks[ m_current_task ].finalise() ;
-		m_worker->tell_to_perform_task( m_tasks[ m_current_task ] ) ;
-		m_current_task = ( m_current_task + 3 ) % m_number_of_tasks ;
-	}
-	
-	for( std::size_t i = 0; i < m_tasks.size(); ++i ) {
-		if( m_tasks[ i ].is_finalised() ) {
-			m_tasks[i].wait_until_complete() ;
-		}
-	}
-	for( std::size_t i = 1; i < m_result.size(); ++i ) {
-		m_result[0].noalias() += m_result[i] ;
-		m_non_missing_count[0].noalias() += m_non_missing_count[i] ;
-	}
-	m_result[0].array() /= m_non_missing_count[0].array() ;
-	
-	std::string description = "Number of SNPs: "
-		+ genfile::string_utils::to_string( m_number_of_snps_processed )
-		+ "\nNumber of samples: "
-		+ genfile::string_utils::to_string( m_number_of_samples ) ;
+	m_computation->end_processing_snps() ;
 
+	std::string description = "Number of SNPs: "
+		+ genfile::string_utils::to_string( m_computation->number_of_snps_included() )
+		+ "\nNumber of samples: "
+		+ genfile::string_utils::to_string( m_samples.get_number_of_individuals() )
+	;
 	send_results(
-		m_non_missing_count[0],
-		m_result[0],
+		m_computation->nonmissingness().cast< double >(),
+		m_computation->result().cast< double >(),
 		"KinshipCoefficientComputer",
 		description
 	) ;

@@ -20,25 +20,34 @@
 // #define DEBUG_FLATTABLEDBOUTPUTTER 1
 
 namespace qcdb {
-	FlatTableDBOutputter::UniquePtr FlatTableDBOutputter::create( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) {
-		return UniquePtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata ) ) ;
+	FlatTableDBOutputter::UniquePtr FlatTableDBOutputter::create(
+		std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata,
+		std::string const& snp_match_fields
+	) {
+		return UniquePtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata, snp_match_fields ) ) ;
 	}
 
-	FlatTableDBOutputter::SharedPtr FlatTableDBOutputter::create_shared( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ) {
-		return SharedPtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata ) ) ;
+	FlatTableDBOutputter::SharedPtr FlatTableDBOutputter::create_shared(
+		std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata,
+		std::string const& snp_match_fields
+	) {
+		return SharedPtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata, snp_match_fields ) ) ;
 	}
 
-	FlatTableDBOutputter::FlatTableDBOutputter( std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata ):
-		m_outputter( filename, analysis_name, analysis_description, metadata ),
+	FlatTableDBOutputter::FlatTableDBOutputter(
+		std::string const& filename,
+		std::string const& analysis_name,
+		std::string const& analysis_description,
+		Metadata const& metadata,
+		std::string const& snp_match_fields
+		
+	):
+		m_outputter( filename, analysis_name, analysis_description, metadata, boost::optional< db::Connection::RowId >(), snp_match_fields ),
 		m_table_name( "Analysis" + genfile::string_utils::to_string( m_outputter.analysis_id() ) ),
 		m_max_snps_per_block( 1000 )
 	{}
 
 	FlatTableDBOutputter::~FlatTableDBOutputter() {
-		store_block() ;
-		m_snps.clear() ;
-		m_values.clear() ;
-		m_outputter.finalise() ;
 	}
 	
 	void FlatTableDBOutputter::set_table_name( std::string const& table_name ) {
@@ -48,13 +57,17 @@ namespace qcdb {
 		m_table_name = table_name ;
 	}
 
+	FlatTableDBOutputter::AnalysisId FlatTableDBOutputter::analysis_id() const {
+		return m_outputter.analysis_id() ;
+	}
+
 	void FlatTableDBOutputter::finalise( long options ) {
 		store_block() ;
 		m_snps.clear() ;
 		m_values.clear() ;
 
 		if( options & eCreateIndices ) {
-			db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 600 ) ;
+			db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 7200 ) ;
 			m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS " + m_table_name + "_index ON " + m_table_name + "( variant_id )" ) ;
 		}
 
@@ -71,7 +84,7 @@ namespace qcdb {
 			}
 			else {
 				// Still have time to add the variable to our list of variables, retaining the order of addition.
-				m_variables.left.insert( VariableMap::left_value_type( variable, m_variables.size() ) ).first ;
+				m_variables.left.insert( VariableMap::left_value_type( variable, m_variables.size() ) ) ;
 			}
 		}
 	}
@@ -119,7 +132,7 @@ namespace qcdb {
 	}
 
 	void FlatTableDBOutputter::store_block() {
-		db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 1200 ) ;
+		db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 7200 ) ;
 
 		if( !m_insert_data_sql.get() ) {
 			create_schema() ;
@@ -127,7 +140,7 @@ namespace qcdb {
 		}
 		for( std::size_t i = 0; i < m_snps.size(); ++i ) {
 			db::Connection::RowId const variant_id = m_outputter.get_or_create_variant( m_snps[i] ) ;
-			store_data_for_variant( i, m_outputter.analysis_id(), variant_id ) ;
+			store_data_for_variant( i, m_snps[i], m_outputter.analysis_id(), variant_id ) ;
 		}
 	}
 
@@ -147,19 +160,21 @@ namespace qcdb {
 			<< table_name
 			<< " ( "
 			"analysis_id INT NOT NULL REFERENCES Entity( id ), "
-			"variant_id INT NOT NULL REFERENCES Variant( id )"
+			"variant_id INT NOT NULL REFERENCES Variant( id ), "
+			"chromosome TEXT, "
+			"position INTEGER"
 		;
 		
 		insert_data_sql << "INSERT INTO "
 			<< table_name ;
-		insert_data_sql_columns << "( analysis_id, variant_id" ;
-		insert_data_sql_values << "VALUES( ?1, ?2" ;
+		insert_data_sql_columns << "( analysis_id, variant_id, chromosome, position" ;
+		insert_data_sql_values << "VALUES( ?1, ?2, ?3, ?4" ;
 		
 		VariableMap::right_const_iterator
 			var_i = m_variables.right.begin(),
 			end_var_i = m_variables.right.end() ;
 
-		for( std::size_t bind_i = 3; var_i != end_var_i; ++var_i, ++bind_i ) {
+		for( std::size_t bind_i = 5; var_i != end_var_i; ++var_i, ++bind_i ) {
 			schema_sql << ", " ;
 			insert_data_sql_columns << ", " ;
 			insert_data_sql_values << ", " ;
@@ -188,10 +203,10 @@ namespace qcdb {
 		std::ostringstream view_sql ;	
 		view_sql
 			<< "CREATE VIEW IF NOT EXISTS \"" << table_name << "View\" AS "
-			<< "SELECT V.chromosome, V.position, V.rsid, V.alleleA, V.alleleB, A.name AS analysis, T.* FROM \""
+			<< "SELECT V.rsid, V.alleleA, V.alleleB, A.name AS analysis, T.* FROM \""
 			<< table_name << "\" T "
 			<< "INNER JOIN Variant V ON V.id = T.variant_id "
-			<< "INNER JOIN Entity A ON A.id = T.analysis_id"
+			<< "INNER JOIN Analysis A ON A.id = T.analysis_id"
 		;
 
 #if DEBUG_FLATTABLEDBOUTPUTTER
@@ -235,17 +250,20 @@ namespace qcdb {
 	
 	void FlatTableDBOutputter::store_data_for_variant(
 		std::size_t const snp_i,
+		genfile::SNPIdentifyingData2 const& snp,
 		db::Connection::RowId const analysis_id,
 		db::Connection::RowId const variant_id
 	) {
 		m_insert_data_sql->bind( 1, analysis_id ) ;
 		m_insert_data_sql->bind( 2, variant_id ) ;
+		m_insert_data_sql->bind( 3, std::string( snp.get_position().chromosome() ) ) ;
+		m_insert_data_sql->bind( 4, snp.get_position().position() ) ;
 		
 		VariableMap::right_const_iterator
 			var_i = m_variables.right.begin(),
 			end_var_i = m_variables.right.end() ;
 		
-		for( std::size_t bind_i = 3; var_i != end_var_i; ++var_i, ++bind_i ) {
+		for( std::size_t bind_i = 5; var_i != end_var_i; ++var_i, ++bind_i ) {
 			ValueMap::const_iterator where = m_values.find( std::make_pair( snp_i, var_i->first )) ;
 			if( where == m_values.end() ) {
 				m_insert_data_sql->bind( bind_i, genfile::MissingValue() ) ;

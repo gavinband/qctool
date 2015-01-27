@@ -44,7 +44,7 @@ namespace worker {
 		// set_complete locks the mutex and sets the completeness flag.
 		void set_complete() ;
 	private:
-		friend class Worker ;
+		friend struct Worker ;
 	} ;
 }
 

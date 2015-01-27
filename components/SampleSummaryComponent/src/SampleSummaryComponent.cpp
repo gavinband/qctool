@@ -12,61 +12,91 @@
 #include "components/SampleSummaryComponent/SampleSummaryComponent.hpp"
 #include "components/SampleSummaryComponent/SampleSummaryComputationManager.hpp"
 #include "components/SampleSummaryComponent/SampleSummaryComputation.hpp"
-#include "components/SampleSummaryComponent/DBOutputter.hpp"
+#include "components/SampleSummaryComponent/SampleStorage.hpp"
 #include "components/SampleSummaryComponent/IntensityDistributionComputation.hpp"
 #include "components/SampleSummaryComponent/MissingnessHeterozygosityComputation.hpp"
+#include "components/SampleSummaryComponent/RiskScoreComputation.hpp"
 
 void SampleSummaryComponent::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "Per-sample computation options" ) ;
     options[ "-sample-stats" ]
 		.set_description( "Calculate and output sample-wise statistics." ) ;
+	options[ "-risk-score" ]
+		.set_description( "Compute a risk score for each sample based on a specified file of additive and heterozygote effect sizes." )
+		.set_takes_single_value() ;
+	
+	options.option_implies_option( "-sample-stats", "-osample" ) ;
 }
 
-typedef std::auto_ptr< SampleSummaryComponent > UNiquePtr ;
-SampleSummaryComponent::UniquePtr SampleSummaryComponent::create( appcontext::OptionProcessor const& options, genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ) {
+bool SampleSummaryComponent::is_needed( appcontext::OptionProcessor const& options ) {
+	return options.check( "-sample-stats" )
+		|| options.check( "-risk-score" )
+	;
+}
+
+SampleSummaryComponent::UniquePtr SampleSummaryComponent::create(
+	appcontext::OptionProcessor const& options,
+	genfile::CohortIndividualSource const& samples,
+	appcontext::UIContext& ui_context
+) {
 	return SampleSummaryComponent::UniquePtr( new SampleSummaryComponent( options, samples, ui_context )) ;
 }
 
-SampleSummaryComponent::SampleSummaryComponent( appcontext::OptionProcessor const& options, genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ):
+SampleSummaryComponent::SampleSummaryComponent(
+	appcontext::OptionProcessor const& options,
+	genfile::CohortIndividualSource const& samples,
+	appcontext::UIContext& ui_context
+):
 	m_options( options ),
 	m_samples( samples ),
 	m_ui_context( ui_context )
 {}
 
-void SampleSummaryComponent::setup( genfile::SNPDataSourceProcessor& processor ) const { 
+void SampleSummaryComponent::setup(
+	genfile::SNPDataSourceProcessor& processor,
+	sample_stats::SampleStorage::SharedPtr storage
+) const {
 	SampleSummaryComputationManager::UniquePtr manager = SampleSummaryComputationManager::create() ;
-	std::string filename ;
-	if( m_options.check( "-o" ) ) {
-		filename = m_options.get_value< std::string >( "-o" ) ;
-	}
-	else {
-		filename = genfile::strip_gen_file_extension_if_present( m_options.get< std::string >( "-g" ) ) + ".qcdb";
-	}
-	sample_stats::DBOutputter::SharedPtr outputter = sample_stats::DBOutputter::create_shared(
-			filename,
-			m_options.get< std::string >( "-analysis-name" ),
-			m_options.get< std::string >( "-analysis-description" ),
-			m_options.get_values_as_map(),
-			m_samples
-	) ;
-	manager->add_result_callback(
-		boost::bind(
-			&sample_stats::DBOutputter::operator(),
-			outputter,
-			_1, _2, _3, _4, _5
-		)
-	) ;
-	manager->add(
-		"average intensities",
-		"autosomal chromosomes",
-		SampleSummaryComputation::UniquePtr( new sample_stats::IntensityDistributionComputation() )
-	) ;
+	
+	if( m_options.check( "-sample-stats" )) {
+		manager->add(
+			"missingness/heterozyosity",
+			"all chromosomes",
+			SampleSummaryComputation::UniquePtr( new sample_stats::MissingnessHeterozygosityComputation() )
+		) ;
 
-	manager->add(
-		"missingness/heterozyosity",
-		"autosomal chromosomes",
-		SampleSummaryComputation::UniquePtr( new sample_stats::MissingnessHeterozygosityComputation() )
-	) ;
+		manager->add(
+			"average intensities",
+			"all chromosomes",
+			SampleSummaryComputation::UniquePtr( new sample_stats::IntensityDistributionComputation() )
+		) ;
+	}
+	
+	if( m_options.check( "-risk-score" )) {
+		sample_stats::RiskScoreComputation::UniquePtr computation(
+			new sample_stats::RiskScoreComputation(
+				m_samples,
+				genfile::SNPIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
+			)
+		) ;
 
+		{
+			appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Loading effects from \"" + m_options.get_value< std::string >( "-risk-score" ) + "\"" ) ;
+			statfile::BuiltInTypeStatSource::UniquePtr source = statfile::BuiltInTypeStatSource::open( genfile::wildcard::find_files_by_chromosome( m_options.get_value< std::string >( "-risk-score" ) ) ) ;
+			computation->add_effects( *source, progress_context ) ;
+		}
+
+		manager->add(
+			"risk_score",
+			"all chromosomes",
+			SampleSummaryComputation::UniquePtr(
+				computation.release()
+			)
+		) ;
+	}
+
+	manager->send_output_to( sample_stats::SampleStorage::SharedPtr( storage )) ;
+
+	m_ui_context.logger() << "SampleSummaryComponent: the following components are in place:\n" << manager->get_summary( "  " ) << "\n" ;
 	processor.add_callback( genfile::SNPDataSourceProcessor::Callback::UniquePtr( manager.release() ) ) ;
 }

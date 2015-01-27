@@ -9,6 +9,7 @@
 #include <vector>
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/SampleFilter.hpp"
+#include "genfile/SampleFilterNegation.hpp"
 #include "genfile/VariableInRangeSampleFilter.hpp"
 #include "genfile/VariableInSetSampleFilter.hpp"
 #include "genfile/impl/filter_grammar.hpp"
@@ -51,14 +52,19 @@ namespace genfile {
 
 	// Factory function for conditions.
 	SampleFilter::UniquePtr SampleFilter::create( std::string const& spec ) {
-
 		using namespace genfile::string_utils ;
 
-		// for now just parse variable = value.
+		// for now just parse variable = value or variable != value.
 		std::vector< std::string > elts = split_and_strip( spec, "=", " \t\n" ) ;
+		std::string type = "=" ;
+
+		if( elts[0].size() > 0 && elts[0][elts[0].size()-1] == '!' ) {
+			elts[0] = elts[0].substr(0, elts[0].size() - 1 ) ;
+			type = "!=" ;
+		}
 
 		if( elts.size() !=2  ) {
-			throw genfile::BadArgumentError( "condition_factory()", "spec=\"" + spec + "\"" ) ;
+			throw genfile::BadArgumentError( "genfile::SampleFilter::create()", "spec=\"" + spec + "\"" ) ;
 		}
 
 		// remove quotes
@@ -71,8 +77,17 @@ namespace genfile {
 			elts[1] = elts[1].substr( 1, elts[1].size() - 2 ) ;
 		}
 
-		VariableInSetSampleFilter::UniquePtr filter( new VariableInSetSampleFilter( elts[0] ) ) ; 
-		filter->add_level( elts[1] ) ;
-		return SampleFilter::UniquePtr( filter.release() ) ;
+		SampleFilter::UniquePtr result ;
+		if( type == "=" ) {
+			VariableInSetSampleFilter::UniquePtr filter( new VariableInSetSampleFilter( elts[0] ) ) ;
+			filter->add_level( elts[1] ) ;
+			result.reset( filter.release() ) ;
+		} else {
+			VariableNotInSetSampleFilter::UniquePtr filter( new VariableNotInSetSampleFilter( elts[0] ) ) ;
+			filter->add_level( elts[1] ) ;
+			result.reset( filter.release() ) ;
+		}
+
+		return result ;
 	}
 }

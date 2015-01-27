@@ -47,6 +47,10 @@ namespace appcontext {
 
 		std::string name() const { return m_name ; }
 
+		void restart_timer() const {
+			m_timer.restart() ;
+		}
+
 	private:
 		void print_progress(
 			std::size_t const count,
@@ -57,7 +61,7 @@ namespace appcontext {
 
 		CmdLineUIContext const& m_ui_context ;
 		std::string const m_name ;
-		Timer m_timer ;
+		mutable Timer m_timer ;
 		mutable double m_last_time ;
 		
 		mutable std::size_t m_last_count ;

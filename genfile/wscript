@@ -5,24 +5,12 @@ import glob
 def configure( conf ):
 	pass
 
-def create_test( bld, name ):
-	bld.new_task_gen(
-		features = 'cxx cprogram',
-		target = name,
-		source = [  'test/' + name + '.cpp', 'test/test_case.cpp' ],
-		uselib_local = 'genfile',
-		uselib = 'BOOST_UNIT_TEST_FRAMEWORK',
-		includes='./include',
-		unit_test=1,
-		install_path=None
-	)
-
 def create_tests( bld ):
 	bld.new_task_gen(
 		features = 'cxx cprogram',
 		target = 'test_genfile',
 		source = bld.glob( 'test/*.cpp' ),
-		uselib_local = 'genfile',
+		uselib_local = 'genfile boost boost-unit_test_framework',
 		uselib = 'BOOST BOOST_IOSTREAMS BOOST_FILESYSTEM BOOST_SYSTEM BOOST_UNIT_TEST_FRAMEWORK ZLIB',
 		includes='./include',
 		unit_test=1,
@@ -34,13 +22,12 @@ def create_benchmark( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'benchmark/' + name + '.cpp' ],
-		uselib_local = 'genfile',
+		uselib_local = 'genfile boost boost-unit_test_framework',
 		uselib = 'BOOST BOOST_IOSTREAMS BOOST_FILESYSTEM BOOST_SYSTEM BOOST_UNIT_TEST_FRAMEWORK ZLIB',
 		includes = './include',\
 		export_incdirs = './include',
 		install_path = None
 	)
-
 
 def build( bld ):
 	import Options
@@ -51,13 +38,12 @@ def build( bld ):
 	bld.new_task_gen(
 		features = 'cxx cstaticlib',
 		target = 'genfile',
-		source = bld.glob( 'src/*.cpp' ) + bld.glob( 'src/vcf/*.cpp' ) + bld.glob( 'src/string_utils/*.cpp' ),
+		source = bld.glob( 'src/*.cpp' ) + bld.glob( 'src/bgen/*.cpp' ) + bld.glob( 'src/vcf/*.cpp' ) + bld.glob( 'src/string_utils/*.cpp' ),
 		includes='./include',
-		uselib = 'ZLIB BOOST BOOST_IOSTREAMS BOOST_SYSTEM BOOST_FILESYSTEM',
-		uselib_local = 'eigen',
+		uselib = ' BOOST BOOST_IOSTREAMS BOOST_SYSTEM BOOST_FILESYSTEM ZLIB',
+		uselib_local = 'eigen threadpool boost',
 		export_incdirs = './include'
 	)
 
 	create_tests( bld )
-
 	create_benchmark( bld, 'benchmark-io' )

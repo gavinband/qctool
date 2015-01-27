@@ -22,11 +22,17 @@ namespace statfile {
 	void SNPDataSourceAdapter::setup() {
 		using genfile::string_utils::to_lower ;
 		assert( m_source.get() ) ;
-		if( m_source->number_of_columns() != 6 ) {
+		if( m_source->number_of_columns() < 6 ) {
 			throw genfile::MalformedInputError( get_source_spec(), 0 ) ;
 		}
 		// Could check all the columns.  But let's allow some flexibility.
-		if( to_lower( m_source->name_of_column(2) ) != "chromosome" && to_lower( m_source->name_of_column(2) ) != "chromosome" ) {
+		if( to_lower( m_source->name_of_column(0) ) != "snpid" ) {
+			throw genfile::MalformedInputError( get_source_spec(), 0, 0 ) ;
+		}
+		if( to_lower( m_source->name_of_column(1) ) != "rsid" ) {
+			throw genfile::MalformedInputError( get_source_spec(), 0, 1 ) ;
+		}
+		if( to_lower( m_source->name_of_column(2) ) != "chromosome" && to_lower( m_source->name_of_column(2) ) != "chr" ) {
 			throw genfile::MalformedInputError( get_source_spec(), 0, 2 ) ;
 		}
 		if( to_lower( m_source->name_of_column(3) ) != "position" && to_lower( m_source->name_of_column(3) ) != "pos" ) {
@@ -75,7 +81,7 @@ namespace statfile {
 		std::string const& genotype_field
 	) {
 		assert( m_source->current_column() == 6 ) ;
-		(*m_source) >> end_row() ;
+		(*m_source) >> ignore_all() ;
 	}
 
 	namespace {
@@ -105,7 +111,7 @@ namespace statfile {
 
 	void SNPDataSourceAdapter::ignore_snp_probability_data_impl() {
 		assert( m_source->current_column() == 6 ) ;
-		(*m_source) >> end_row() ;
+		(*m_source) >> ignore_all() ;
 	}
 
 	void SNPDataSourceAdapter::reset_to_start_impl() {

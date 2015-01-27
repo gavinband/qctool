@@ -1,0 +1,10 @@
+Package: hapdb
+Type: Package
+Title: Manipulates hapdb files.
+Version: 1.0
+Date: 2013-11-12
+Author: Gavin Band
+Maintainer: Who to complain to <yourfault@somewhere.net>
+Description: Manipulates hapdb files.
+License: boost license
+Imports: RSQLite, Rcompression, bitops

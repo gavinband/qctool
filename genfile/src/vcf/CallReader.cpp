@@ -58,7 +58,8 @@ namespace genfile {
 			m_format_elts( impl::parse_format( format ) ),
 			m_data( data ),
 			m_entry_types( entry_types ),
-			m_entries_by_position( impl::get_entries_by_position( m_format_elts, entry_types ))
+			m_entries_by_position( impl::get_entries_by_position( m_format_elts, entry_types )),
+			m_strict_mode( true )
 		{
 			if( m_number_of_alleles == 0 ) {
 				throw BadArgumentError( "genfile::vcf::CallReader::CallReader()", "number_of_alleles = " + string_utils::to_string( number_of_alleles ) ) ;
@@ -74,6 +75,10 @@ namespace genfile {
 			}
 		}
 
+		void CallReader::set_strict_mode( bool value ) {
+			m_strict_mode = value ;
+		}
+
 		namespace impl {
 			struct CallReaderGenotypeSetter: public CallReader::Setter {
 				CallReaderGenotypeSetter(
@@ -83,17 +88,42 @@ namespace genfile {
 					m_entries( entries ),
 					m_ploidies( ploidies ),
 					m_sample_i( 0 ),
-					m_current_i( 0 )
+					m_current_i( 0 ),
+					m_order_type( eUnorderedList )
 				{}
 
 				void set_number_of_samples( std::size_t n ) {
 					m_ploidies.resize( n ) ;
 					m_entries.reserve( n * 2 ) ;
 				}
+
+				void set_number_of_alleles( std::size_t n ) {
+					assert( n == 2 ) ;
+				}
 				
 				void set_sample( std::size_t sample_i ) {
 					assert( sample_i < m_ploidies.size() ) ;
 					m_sample_i = sample_i ;
+				}
+
+				void set_order_type( OrderType const order_type, ValueType const value_type ) {
+					if( order_type != ePerOrderedHaplotype && m_order_type != ePerUnorderedHaplotype ) {
+						throw BadArgumentError(
+							"genfile::vcf::impl::CallReaderGenotypeSetter::set_order_type()",
+							"order_type",
+							"Expected order_type = ePerOrderedHaplotype or ePerUnorderedHaplotype for genotype field."
+						) ;
+					}
+					if( value_type != eAlleleIndex ) {
+						throw BadArgumentError(
+							"genfile::vcf::impl::CallReaderGenotypeSetter::set_order_type()",
+							"value_type",
+							"Expected value_type = eAlleleIndex for genotype field."
+						) ;
+					}
+					m_order_type = order_type ;
+					//m_value_type = value_type ;
+					
 				}
 
 				void set_number_of_entries( std::size_t n ) {
@@ -110,12 +140,17 @@ namespace genfile {
 					assert( m_current_i < m_entries.size() ) ;
 					m_entries[ m_current_i++ ] = value ;
 				}
+				
+				OrderType get_order_type() const {
+					return m_order_type ;
+				}
 
 			private:
 				std::vector< vcf::EntrySetter::Integer >& m_entries ;
 				std::vector< std::size_t >& m_ploidies ;
 				std::size_t m_sample_i ;
 				std::size_t m_current_i ;
+				OrderType m_order_type ;
 			} ;
 		}
 
@@ -152,6 +187,10 @@ namespace genfile {
 						assert( m_genotype_calls.size() >= ( index + ploidy ) ) ;
 						setter.set_sample( sample_i ) ;
 						setter.set_number_of_entries( ploidy ) ;
+						setter.set_order_type(
+							m_order_types[ sample_i ],
+							vcf::EntriesSetter::eAlleleIndex
+						) ;
 						for( std::size_t const current_index = index; index < ( current_index + ploidy ); ++index ) {
 							if( m_genotype_calls[ index ] == -1 ) {
 								setter( MissingValue() ) ;
@@ -214,6 +253,7 @@ namespace genfile {
 			}
 
 			m_ploidy.resize( m_number_of_samples ) ;
+			m_order_types.resize( m_number_of_samples ) ;
 			m_genotype_calls.reserve( m_number_of_samples * 2 ) ;
 			std::size_t total_number_of_calls = 0 ;
 			impl::CallReaderGenotypeSetter genotype_setter( m_genotype_calls, m_ploidy ) ;
@@ -226,6 +266,7 @@ namespace genfile {
 					genotype_setter.set_sample( sample_i ) ;
 					m_genotype_call_entry_type.parse( m_components[ component_index + GT_field_pos ], m_number_of_alleles, genotype_setter ) ;
 					total_number_of_calls += m_ploidy[ sample_i ] ;
+					m_order_types[ sample_i ] = genotype_setter.get_order_type() ;
 				}
 				catch( string_utils::StringConversionError const& ) {
 					throw MalformedInputError( "(data)", 0, sample_i ) ;
@@ -256,9 +297,9 @@ namespace genfile {
 				) ;
 			}
 			catch( string_utils::StringConversionError const& ) {
-				throw MalformedInputError( "(data)", 0, sample_i ) ;
+				throw MalformedInputError( "(data)", 0, sample_i ) ;	
 			}
-			catch( BadArgumentError const& e ) {
+			catch( BadArgumentError const& ) {
 				throw MalformedInputError( "(data)", 0, sample_i ) ;
 			}
 		}
@@ -283,7 +324,17 @@ namespace genfile {
 					entry_type.get_missing_value( m_number_of_alleles, ploidy, setter ) ;
 				}
 				else {
-					entry_type.parse( *(begin_components + field_i ), m_number_of_alleles, ploidy, setter ) ;
+					try {
+						entry_type.parse( *(begin_components + field_i ), m_number_of_alleles, ploidy, setter ) ;
+					}
+					catch( BadArgumentError const& ) {
+						if( m_strict_mode ) {
+							throw ;
+						} else {
+							// parse error, set missing value.
+							entry_type.get_missing_value( m_number_of_alleles, ploidy, setter ) ;
+						}
+					}
 				}
 			}
 			else {
@@ -291,7 +342,17 @@ namespace genfile {
 					entry_type.get_missing_value( m_number_of_alleles, setter ) ;
 				}
 				else {
-					entry_type.parse( *(begin_components + field_i), m_number_of_alleles, setter ) ;
+					try {
+						entry_type.parse( *(begin_components + field_i), m_number_of_alleles, setter ) ;
+					}
+					catch( BadArgumentError const& ) {
+						if( m_strict_mode ) {
+							throw ;
+						} else {
+							// parse error, set missing value.
+							entry_type.get_missing_value( m_number_of_alleles, setter ) ;
+						}
+					}
 				}
 			}
 		}

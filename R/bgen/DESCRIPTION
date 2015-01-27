@@ -1,0 +1,9 @@
+Package: bgen
+Type: Package
+Title: Reads bgen-formatted files
+Version: 1.0
+Date: 2013-12-12
+Author: Gavin Band
+Maintainer: Who to complain to <yourfault@somewhere.net>
+Description: It reads bgen files
+License: boost:

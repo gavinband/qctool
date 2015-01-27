@@ -10,7 +10,7 @@
 #include <cassert>
 #include "test_case.hpp"
 #include "genfile/string_utils/hex.hpp"
-#include "genfile/bgen.hpp"
+#include "genfile/bgen/bgen.hpp"
 #include "stdint.h"
 
 namespace data {
@@ -63,23 +63,21 @@ void do_header_block_read_test(
 	) ;
 
 	uint32_t header_size, number_of_snp_blocks2, number_of_samples2, flags2 ;
-	std::string free_data2 ;
+	std::string free_data2, version ;
+
+	genfile::bgen::BgenContext context ;
 
 	genfile::bgen::read_header_block(
 		inStream,
-		make_setter( header_size ),
-		make_setter( number_of_snp_blocks2 ),
-		make_setter( number_of_samples2 ),
-		make_setter( free_data2 ),
-		make_setter( flags2 )
+		&context
 	) ;
 	
 	TEST_ASSERT( inStream ) ;
-	TEST_ASSERT( header_size == 20 + free_data2.size()) ;
-	TEST_ASSERT( number_of_snp_blocks2 == number_of_snp_blocks ) ;	
-	TEST_ASSERT( number_of_samples2 == number_of_samples ) ;	
-	TEST_ASSERT( free_data == free_data2 ) ;
-	TEST_ASSERT( flags2 == flags ) ;	
+	TEST_ASSERT( context.header_size() == 20 + free_data.size()) ;
+	TEST_ASSERT( context.number_of_variants == number_of_snp_blocks ) ;	
+	TEST_ASSERT( context.number_of_samples == number_of_samples ) ;	
+	TEST_ASSERT( context.free_data == free_data ) ;
+	TEST_ASSERT( context.flags == flags ) ;	
 }
 
 void do_header_block_write_test( 
@@ -89,12 +87,14 @@ void do_header_block_write_test(
 	uint32_t flags
 ) {
 	std::ostringstream outStream ;
+	genfile::bgen::BgenContext context ;
+	context.number_of_variants = number_of_snp_blocks ;
+	context.number_of_samples = number_of_samples ;
+	context.free_data = free_data ;
+	context.flags = flags ;
 	genfile::bgen::write_header_block( 
 		outStream,
-		number_of_snp_blocks,
-		number_of_samples,
-		free_data,
-		flags
+		context
 	) ;
 
 	std::string expected = data::construct_header_block(

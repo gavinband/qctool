@@ -97,3 +97,4 @@ AUTO_TEST_MAIN {
 	test_load_key_value_pairs() ;
 	test_load_key_value_pairs_duplicates() ;
 }
+

@@ -22,14 +22,13 @@
 #include "genfile/SampleFilteringSNPDataSource.hpp"
 #include "stdint.h"
 
-
+AUTO_TEST_SUITE( SampleFilteringSNPDataSourceTest )
 
 // The following section contains a simple snp block writer.
 namespace data {
 	namespace {
 		// this data has 1504 samples per row.
 		unsigned int const number_of_samples = 1504 ;
-		unsigned int const number_of_snps = 16 ;
 	}
 }
 
@@ -132,11 +131,11 @@ namespace {
 AUTO_TEST_CASE( test_sample_filtering_snp_data_source ) {
 	std::vector< std::string > data = construct_data() ;
 	std::string const filename = tmpnam(0) + std::string( ".gen" ) ;
-	for( std::size_t i = 1; i < data.size(); ++i ) {
-		std::cerr << "====== Looking at data " << i << " ======\n" ;
-		create_file( data[i], filename ) ;
+	for( std::size_t data_i = 1; data_i < data.size(); ++data_i ) {
+		std::cerr << "====== Looking at data " << data_i << " ======\n" ;
+		create_file( data[data_i], filename ) ;
 		
-		std::size_t number_of_samples = i ;
+		std::size_t number_of_samples = data_i ;
 		std::set< std::set< std::size_t > > subsets ;
 		// insert empty set
 		subsets.insert( std::set< std::size_t >() ) ;
@@ -168,7 +167,7 @@ AUTO_TEST_CASE( test_sample_filtering_snp_data_source ) {
 			TEST_ASSERT( filtering_source->number_of_samples() == filtered_number_of_samples ) ;
 
 			std::vector< SnpData > data = read_snp_data( *filtering_source ) ;
-			TEST_ASSERT( data.size() == filtering_source->get_parent_source().total_number_of_snps() ) ;
+			TEST_ASSERT( data.size() == 1 ) ;
 			for( std::size_t j = 0; j < data.size(); ++j ) {
 
 				TEST_ASSERT( data[j].number_of_samples == filtered_number_of_samples ) ;
@@ -186,3 +185,5 @@ AUTO_TEST_CASE( test_sample_filtering_snp_data_source ) {
 	}
 	std::cout << "==== success ====\n" ;
 }
+
+AUTO_TEST_SUITE_END()

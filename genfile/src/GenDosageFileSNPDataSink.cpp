@@ -15,7 +15,6 @@
 #include "genfile/vcf/get_set_eigen.hpp"
 
 namespace genfile {
-	
 	GenDosageFileSNPDataSink::GenDosageFileSNPDataSink( std::string const& filename, Chromosome chromosome ):
 		GenLikeSNPDataSink( filename, chromosome, get_compression_type_indicated_by_filename( filename ) )
 	{}
@@ -32,7 +31,11 @@ namespace genfile {
 			~GenotypeWriter() throw() {}
 			
 			void set( std::size_t i, double AA, double AB, double BB ) {
-				m_stream << " " << ( ( 2 * BB ) + AB ) ;
+				if( AA == 0 && AB == 0 && BB == 0 ) {
+					m_stream << " " << "NA" ;
+				} else {
+					m_stream << " " << ( ( 2 * BB ) + AB ) ;
+				}
 			}
 
 		private:
@@ -46,8 +49,9 @@ namespace genfile {
 		}
 		stream() << "SNPID rsid position alleleA alleleB" ;
 		for( std::size_t i = 0; i < number_of_samples; ++i ) {
-			stream() << getter(i) ;
+			stream() << " " << getter(i) ;
 		}
+		stream() << "\n" ;
 	}
 
 	void GenDosageFileSNPDataSink::write_variant_data_impl(
@@ -57,7 +61,7 @@ namespace genfile {
 	) {
 		write_variant( stream(), id_data ) ;
 		GenotypeWriter writer( stream() ) ;
-		data_reader.get( "genotypes", writer ) ;
+		data_reader.get( ":genotypes:", writer ) ;
 		stream() << "\n" ;
 	}
 }

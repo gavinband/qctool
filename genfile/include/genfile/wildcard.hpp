@@ -40,7 +40,8 @@ namespace genfile {
 		find_files_by_chromosome(
 			std::string path,
 			WildcardMatchChoice choice = eNON_SEX_CHROMOSOMES,
-			char wildcard_char = '#'
+			char wildcard_char = '#',
+			std::string const& unmatched_match = ""
 		) ;
 
 		// Return a list of FilenameMatches consisting of filenames

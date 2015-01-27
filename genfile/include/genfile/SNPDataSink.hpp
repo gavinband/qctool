@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <string>
+#include <map>
 #include <stdint.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
@@ -32,7 +33,8 @@ namespace genfile {
 	public:
 		typedef std::auto_ptr< SNPDataSink > UniquePtr ;
 		typedef boost::shared_ptr< SNPDataSink > SharedPtr ;
-		
+		typedef std::multimap< std::string, std::map< std::string, std::string > > Metadata ;
+		typedef std::map< std::string, std::vector< VariantEntry > > Info ;
 		static std::vector< std::string> get_file_types() ;
 		
 	public:
@@ -40,8 +42,6 @@ namespace genfile {
 		virtual ~SNPDataSink() ;
 
 		// Factory functions
-		typedef std::multimap< std::string, std::map< std::string, std::string > > Metadata ;
-		typedef std::map< std::string, std::vector< VariantEntry > > Info ;
 		static UniquePtr create(
 			std::string const& filename,
 			Metadata const& metadata = Metadata(),
@@ -61,6 +61,7 @@ namespace genfile {
 
 		typedef boost::function< VariantEntry ( std::size_t ) > SampleNameGetter ;
 		SNPDataSink& set_sample_names( std::size_t number_of_samples, SampleNameGetter ) ;
+		SNPDataSink& set_metadata( Metadata const& ) ;
 
 		SNPDataSink& write_snp(
 			uint32_t number_of_samples,
@@ -91,6 +92,7 @@ namespace genfile {
 			Info const& info = Info()
 		) ;
 		
+		SNPDataSink& finalise() ;
 		
 
 	public:
@@ -117,6 +119,7 @@ namespace genfile {
 
 	protected:
 		virtual void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) {} ;
+		virtual void set_metadata_impl( Metadata const& ) {} ;
 		
 		// This function implements the SNP writing, and must be implemented by derived classes.
 		virtual void write_snp_impl(
@@ -139,6 +142,8 @@ namespace genfile {
 			Info const& info
 		) ;
 
+		virtual void finalise_impl() {}
+		
 	private:
 
 		uint32_t m_number_of_samples ;

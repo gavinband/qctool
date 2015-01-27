@@ -16,9 +16,14 @@ namespace sample_stats {
 		m_threshhold( 0.9 )
 	{}
 
+	MissingnessHeterozygosityComputation::MissingnessHeterozygosityComputation( genfile::Chromosome chromosome ):
+		m_chromosome( chromosome ),
+	 	m_snp_index( 0 ),
+		m_threshhold( 0.9 )
+	{}
+
 	void MissingnessHeterozygosityComputation::accumulate( genfile::SNPIdentifyingData const& snp, Genotypes const& genotypes, genfile::VariantDataReader& ) {
-		// ignore the X chromosome for now.
-		if( snp.get_position().chromosome().is_sex_determining() ) {
+		if( m_chromosome && m_chromosome.get() != snp.get_position().chromosome() ) {
 			return ;
 		}
 
@@ -39,13 +44,11 @@ namespace sample_stats {
 		m_snp_index++ ;
 	}
 
-	void MissingnessHeterozygosityComputation::compute( ResultCallback callback ) {
-		for( int sample = 0; sample < m_total_probabilities.size(); ++sample ) {
-			callback( sample, "missing proportion", ( m_snp_index - m_total_probabilities( sample ) ) / m_snp_index ) ;
-			callback( sample, "missing call proportion", ( m_snp_index - m_total_calls( sample ) ) / m_snp_index ) ;
-			callback( sample, "heterozygous proportion", m_het_snps( sample ) / m_total_probabilities( sample ) ) ;
-			callback( sample, "heterozygous call proportion", m_het_snp_calls( sample ) / m_total_calls( sample ) ) ;
-		}
+	void MissingnessHeterozygosityComputation::compute( int sample, ResultCallback callback ) {
+		callback( sample, "missing_proportion", ( m_snp_index - m_total_probabilities( sample ) ) / m_snp_index ) ;
+		callback( sample, "missing_call_proportion", ( m_snp_index - m_total_calls( sample ) ) / m_snp_index ) ;
+		callback( sample, "heterozygous_proportion", m_het_snps( sample ) / m_total_probabilities( sample ) ) ;
+		callback( sample, "heterozygous_call_proportion", m_het_snp_calls( sample ) / m_total_calls( sample ) ) ;
 	}
 
 	std::string MissingnessHeterozygosityComputation::get_summary( std::string const& prefix, std::size_t column_width ) const {

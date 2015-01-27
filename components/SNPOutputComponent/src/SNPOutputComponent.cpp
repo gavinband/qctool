@@ -43,7 +43,7 @@ namespace impl {
 	private:
 		std::string const m_table_name ;
 		qcdb::DBOutputter m_outputter ;
-		genfile::CohortIndividualSource const& m_samples ;
+		
 		db::Connection::StatementPtr m_insert_stmt ;
 		
 		std::vector< boost::tuple< genfile::SNPIdentifyingData2, std::string, std::ostream::streampos > > m_data ;
@@ -65,11 +65,13 @@ SNPOutputComponent::SNPOutputComponent(
 	appcontext::UIContext& ui_context
 ):
 	m_samples( samples ),
-	m_options( options ),
-	m_ui_context( ui_context )
+	m_options( options )
 {}
 
-void SNPOutputComponent::setup( genfile::SNPDataSink& sink, genfile::SNPDataSourceProcessor& processor ) {
+void SNPOutputComponent::setup(
+	genfile::SNPDataSink& sink,
+	genfile::SNPDataSourceProcessor& processor
+) {
 	impl::SNPOutputter::UniquePtr outputter = impl::SNPOutputter::create( m_samples, sink ) ;
 
 	if( m_options.check( "-write-index" )) {
@@ -79,16 +81,12 @@ void SNPOutputComponent::setup( genfile::SNPDataSink& sink, genfile::SNPDataSour
 				filename,
 				m_samples,
 				m_options.get< std::string >( "-analysis-name" ),
-				m_options.get< std::string >( "-analysis-description" ),
+				m_options.get< std::string >( "-analysis-chunk" ),
 				m_options.get_values_as_map()
 			)
 		) ;
 	}
 	
-	if( m_options.check( "-os" )) {
-		outputter->write_samples_to( m_options.get< std::string >( "-os" )) ;
-	}
-
 	processor.add_callback( genfile::SNPDataSourceProcessor::Callback::UniquePtr( outputter.release() ) ) ;
 }
 
@@ -99,11 +97,17 @@ namespace {
 }
 
 namespace impl {
-	SNPOutputter::UniquePtr SNPOutputter::create( genfile::CohortIndividualSource const& samples, genfile::SNPDataSink& sink ) {
+	SNPOutputter::UniquePtr SNPOutputter::create(
+		genfile::CohortIndividualSource const& samples,
+		genfile::SNPDataSink& sink
+	) {
 		return SNPOutputter::UniquePtr( new SNPOutputter( samples, sink ) ) ;
 	}
 
-	SNPOutputter::SNPOutputter( genfile::CohortIndividualSource const& samples, genfile::SNPDataSink& sink ):
+	SNPOutputter::SNPOutputter(
+		genfile::CohortIndividualSource const& samples,
+		genfile::SNPDataSink& sink
+	):
 		m_samples( samples ),
 		m_manage( false ),
 		m_sink( &sink )
@@ -115,17 +119,14 @@ namespace impl {
 		m_index = index ;
 	}
 	
-	void SNPOutputter::write_samples_to( std::string const& filename ) {
-		m_sample_filename = filename ;
-	}
-	
 	SNPOutputter::~SNPOutputter() {
 		if( m_manage ) {
 			delete m_sink ;
 		}
 	}
 
-	void SNPOutputter::begin_processing_snps( std::size_t number_of_samples ) {
+	void SNPOutputter::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& metadata ) {
+		m_sink->set_metadata( metadata ) ;
 		m_sink->set_sample_names( number_of_samples, boost::bind( get_sample_entry, boost::ref( m_samples ), "ID_1", _1 ) ) ;
 	}
 
@@ -137,35 +138,10 @@ namespace impl {
 		m_sink->write_variant_data( snp, data_reader, Info() ) ;
 	}
 
-	namespace {
-		void write_samples( genfile::CohortIndividualSource const& samples, std::string const& filename ) {
-			genfile::CohortIndividualSource::ColumnSpec const spec = samples.get_column_spec() ;
-			std::ofstream str( filename.c_str() ) ;
-			for( std::size_t j = 0; j < spec.size(); ++j ) {
-				str << ( j > 0 ? " " : "" ) << spec[j].name() ;
-			}
-			str << "\n" ;
-			for( std::size_t j = 0; j < spec.size(); ++j ) {
-				str << ( j > 0 ? " " : "" ) << spec[j].type() ;
-			}
-			str << "\n" ;
-			
-			for( std::size_t i = 0; i < samples.get_number_of_individuals(); ++i ) {
-				for( std::size_t j = 0; j < spec.size(); ++j ) {
-					str << ( j > 0 ? " " : "" ) << samples.get_entry( i, spec[j].name() ) ;
-				}
-				str << "\n" ;
-			}
-		}
-	}
-
 	void SNPOutputter::end_processing_snps() {
+		m_sink->finalise() ;
 		if( m_index.get() ) {
 			m_index->finalise() ;
-		}
-		
-		if( m_sample_filename != "" ) {
-			write_samples( m_samples, m_sample_filename ) ;
 		}
 	}
 	
@@ -200,8 +176,7 @@ namespace impl {
 			analysis_name,
 			analysis_description,
 			metadata
-		),
-		m_samples( samples )
+		)
 	{
 		setup() ;
 	}

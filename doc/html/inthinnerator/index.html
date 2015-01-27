@@ -1,0 +1,406 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <script type="text/javascript" src="js/jquery-1.4.2.min.js"></script>
+        <script type="text/javascript" src="js/jquery.ba-hashchange.min.js"></script>
+        <script type="text/javascript" src="js/local.js"></script>
+
+        <!-- Google Analytics tracking code-->
+        <script type="text/javascript">
+            var _gaq = _gaq || [];
+            _gaq.push(['_setAccount', 'UA-16521993-1']);
+            _gaq.push(['_trackPageview']);
+
+            (function() {
+                var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+                ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+                var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+            })();
+        </script>
+
+        <script type="text/javascript">
+            $(document).ready(
+                function() {
+                    setFirstPage( "overview" ) ;
+                }
+            ) ;
+        </script>
+        <link href="style/css/default.css" rel="stylesheet" type="text/css">
+        <title></title>
+    </head>
+    <body>
+        <div class="header" id="header1">
+            <!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
+			<img src="style/images/i.png" class="inthinnerator_title_image"></img>
+                <!--inth<span class="red">🔥</span>nnerator-->
+            <div class="header_subtext">
+                burn those SNPs!
+            </div>
+        </div>
+        <div class="button_bar">
+            <div class="nav_button" name="overview">
+                <span class = "nav_button_content" >
+                    overview
+                </span>
+            </div>
+            <div class="nav_button" name="documentation">
+                <span class = "nav_button_content" >
+                    documentation
+                </span>
+            </div>
+            <div class="nav_button" name="tutorial">
+                <span class = "nav_button_content" >
+                    examples
+                </span>
+            </div>
+            <div class="nav_button" name="file_formats">
+                <span class = "nav_button_content" >
+                    file formats
+                </span>
+            </div>
+            <div class="nav_button" name="download">
+                <span class = "nav_button_content" >
+                    download
+                </span>
+            </div>
+        </div>
+        <div class="main_text">
+            <div id="overview" style="display:none">
+                <p>
+					<strong>Introduction.</strong>
+					inthinnerator is a command-line utility to help with the common task of "thinning" genetic variants, most commonly SNPs, from
+					a dense (usually genome-wide) set of variants such as you would use in a GWAS study.  Inthinnerator might be useful if:
+					<ul>
+						<li>
+							You want an approximately independent set of variants for use in other analyses (like principal components analysis).
+						</li>
+						<li>
+							Or you want to pick out 'top' loci (e.g. lead GWAS SNPs) as best representatives of variation in each region.
+						</li>
+						<li>
+							Or you want to simulate 'null' sets of variants to use, for example, in empirical enrichment analysis.
+						</li>
+					</ul>
+				</p>
+
+				<p>
+					<strong>Features.</strong>
+					Inthinnerator can be used to:
+					<ul>
+						<li>Pick SNPs by rank (e.g. association P-value), randomly among SNPs, or uniformly in the genome.</li>
+						<li>Thin variants based on physical distance, recombination distance, or a combination of both.</li>
+						<li>Annotate variants with physical and recombination distances, and physical or recombination regions.</li>
+						<li>Annotate variants with nearby genes.</li>
+					</ul>
+                    Inthinnerator is designed to be as easy-to-use as possible and we hope you find it so.
+                </p>
+                <p>
+                    <em>Note</em>: Inthinnerator does not currently thin variants based on estimates of LD, though we may implement that in future.
+					For LD-based thinning, try other programs such as <a href="http://pngu.mgh.harvard.edu/~purcell/plink/">plink</a>.
+                </p>
+                <p>
+                    <strong>Change history.</strong>
+					<br />
+					<em>Important!</em>
+					This page documents version 2 of inthinnerator which is currently <b>experimental</b>.  This means we expect some features not to work, or
+					not to work well, or to work wrongly, or to destroy your computer or sanity.
+                </p>
+                <p>
+                    <strong>References.</strong> In different incarnations inthinnerator has been used in the guts of several papers.  Here are a few:
+					<ol>
+						<li>Band et al, "<a href="http://www.plosgenetics.org/article/info%3Adoi%2F10.1371%2Fjournal.pgen.1003509">Imputation-Based Meta-Analysis of Severe Malaria in Three African Populations</a>", PLOS Genetics (2013)</li>
+						<li>Su et al, "<a href="http://www.nature.com/ng/journal/v44/n10/full/ng.2408.html">Common variants at the MHC locus and at chromosome 16q24.1 predispose to Barrett's esophagus</a>", Nature Genetics (2012)</li>
+					</ol>
+					
+				</p>
+                <p>
+                    <strong>Acknowledgements.</strong> The following people contributed to the design and implementation of qctool:
+                </p>
+                <p>
+                    <ul>
+                        <li>
+                            <a href="http://www.well.ox.ac.uk/~gav/">Gavin Band</a>
+                        </li>
+					</ul>
+                </p>
+                <p>
+                    <strong>Contact.</strong> For more information or questions, please contact the oxstatgen mailing list at
+                    <pre class="monospace">
+                        oxstatgen (at) jiscmail.ac.uk
+                    </pre>
+                </p>
+            </div>
+            <div id="documentation" style="display:none">
+                <div class="display_diagram_right">
+                    <object data="style/images/inthinnerator-flow.svg"  type="image/svg+xml" align="center">
+					</object>
+                </div>
+                <p>
+                    The general process followed by inthinnerator is shown on the right.  In brief, inthinnerator picks SNPs by alternating two processes:
+					<ol>
+						<li>Pick a SNP from the set of SNPs remaining, using a <em>picking strategy</em>.
+						<li>Exclude SNPs from the remaining list using an <em>thinning strategy</em>
+							(typically by excluding SNPs in a physical or recombination interval around the picked SNP.)</li>
+						<li>Either go back to step 1 and repeat, or stop and write the results.</li>
+					</ol>
+					This process repeats until either there are no more SNPs to be picked, or a maximum number of SNPs has been reached.
+                </p>
+				<p><strong>Picking.</strong> Inthinnerator implements the following strategies for picking variants in step 1:
+					<ul>
+						<li>Pick a SNP at random from the SNPs remaining (<span class="option">-strategy random</span>).  This is the default behaviour.</li>
+						<li>Pick a SNP at uniformly at random from regions of the genome covered by SNPs in the input file (<span class="option">-strategy random_by_position</span>).
+							The <span class="option">-bin-size</span> option controls how genomic coverage is computed.</li>
+						<li>Pick the first SNP remaining (<span class="option">-strategy first</span>).</li>
+						<li>Pick SNPs according to a specified rank (<span class="option">-rank</span>).</li>
+					</ul>
+					The <span class="option">-match-tag</span> option tells inthinnerator to always pick the Nth SNP
+					from among SNPs having the same tag as the Nth tag specified. This can be used, for example, to pick SNPs approximately matching in
+					frequency to a previously defined list.
+				</p>
+				<p><strong>Thinning.</strong> Inthinnerator implements the following strategies for thinning variants in step 2:
+					<ul>
+						<li>Thin by physical distance, e.g. <span class="option">-min-distance 100kb</span>, <span class="option">-min-distance 20bp</span>, <span class="option">-min-distance 2.5Mb</span>.</li>
+						<li>Thin by recombination distance, e.g. <span class="option">-min-distance 0.125cM</span>.
+						<li>Thin by recombination distance with a physical margin, e.g. <span class="option">-min-distance 0.125cM+25kb</span>.
+					</ul>
+				</p>
+				<p><strong>Stopping.</strong> Inthinnerator can choose to stop picking in a few ways:
+					<ul>
+						<li>Continue until there are no SNPs left to pick (this is the default behaviour).</li>
+						<li>Continue until a specified number of SNPs have been picked (<span class="option">-max-picks</span>).</li>
+						<li>Continue until one SNP has been picked for each tag specified to <span class="option"><strong>-match-tag</strong></span>.</li>
+					</ul>
+				</p>
+				<p>
+					<strong>Repeating.</strong> Specifying <span class="option">-N <em>x</em></span>, where <em>x</em> is a number &gt; 1, will cause
+					inthinnerator to repeat the whole thinning process <em>x</em> times.  Output files will be numbered from 0 to <em>x-1</em>.
+				</p>
+				<p>By default inthinnerator will write all variants included and excluded from the thinned list to the output file.
+					The options <span class="option">-suppress-excluded</span> and <span class="option">-suppress-included</span> can be used to adjust this behaviour.
+				</p>
+				<p><strong>Example output.</strong> Basic tab-delimited inthinnerator output looks like this:
+
+<div class="terminal_display"><pre># Analysis: "inthinnerator analysis"
+#  started: 2014-09-02 08:54:33
+# 
+# Analysis properties:
+#   -g ../imputed_chr22.index (user-supplied)
+#   -map ../genetic_map_chr#_combined_b37.txt (user-supplied)
+#   -o example (user-supplied)
+# 
+alternate_ids   rsid    chromosome      position        alleleA alleleB iteration       pick_index      result  cM_from_start_of_chromosome     region_lower_bp region_upper_bp region_lower_cM region_upper_cM
+?       kgp14987749     22      16152031        A       C       0       2676    picked  0.462220808233324       16150629        16153432        0.452218357350001       0.472216124700895
+---     22-16156144     22      16156144        GC      G       0       1855    picked  0.491564660218421       16154742        16157545        0.481562209335098       0.501559976685992
+---     22-16158548     22      16158548        ACT     A       0       1325    picked  0.508715795684546       16157146        16159949        0.498713344801223       0.518711112152117
+---     22-16160493     22      16160493        A       AC      0       4950    picked  0.522592234320824       16159091        16161894        0.512589783437502       0.532587550788396
+---     22-16163055     22      16163055        TTATC   T       0       3397    picked  0.540870607475655       16161653        16164456        0.530868156592332       0.550865923943226
+---     22-16164909     22      16164909        CCT     C       0       4524    picked  0.554097814278565       16163507        16166310        0.544095363395242       0.564093130746136
+</pre>
+</div>
+				</p>
+				
+			</div>
+            <div id="tutorial" style="display:none">
+                <div class="tutorial_header">
+                    This page shows common command lines to use inthinnerator.
+					We assume the program is being run from a directory containing a file <span class="monospace">snps.txt</span>
+					containing a list of SNPs to be picked from.  This file should look like this:
+                    <div class="terminal_display">
+<pre>$ head snps.txt
+SNPID rsid chromosome position alleleA alleleB
+snp1 kgp14987749 22 16152031 A C
+snp2 rs150880246 22 16152288 A G
+snp3 rs144530981 22 16152415 G A
+snp4 rs142259989 22 16154873 T G
+snp5 rs186282246 22 16155262 C T
+snp6 22-16156144 22 16156144 GC G
+snp7 22-16156442 22 16156442 G GCGT
+snp8 22-16156727 22 16156727 T TG
+snp9 22-16158548 22 16158548 ACT A</pre>
+                    </div>
+				</p>
+				<p>
+					Also, we assume the directory contains files <span class="monospace">genetic_map_chr1.txt</span>, <span class="monospace">genetic_map_chr2.txt</span>, ...
+					containing a recombination map.  Suitable recombination map files can be downloaded
+					from the <a href="https://mathgen.stats.ox.ac.uk/genetics_software/shapeit/shapeit.html#gmap">SHAPEIT website</a>
+					or the <a href="https://mathgen.stats.ox.ac.uk/impute/impute_v2.html#reference">IMPUTE website</a>.
+				</p>
+				<p>
+					See also the <a href="inthinnerator_help.txt">list of options</a> and the <a href="#file_formats">file formats page</a>.
+				</p>
+                </div>
+                <div class="tutorial_separator">
+                </div>
+                <div class="task">
+                    <div class="task_name">
+                        View the program usage page
+                    </div>
+                    <div class="task_command_line">
+                        $ inthinnerator -help | less
+                    </div>
+                </div>
+                <div class="task">
+                    <div class="task_name">
+                        Thin SNPs based on physical distance
+                    </div>
+                    <div class="task_command_line">
+                        $ inthinnerator -g snps.txt -min-distance 10kb -o thinned.out
+                    </div>
+                </div>
+                <div class="task">
+                    <div class="task_name">
+                        Thin SNPs based on recombination distance
+                    </div>
+                </div>
+                <div class="task">
+                    <div class="task_command_line">
+                        $ inthinnerator -g snps.txt -map genetic_map_chr#.txt -min-distance 0.125cM -o thinned.out
+                    </div>
+                    <div class="task_notes">
+                        <b>Note</b>: Because the genetic map files don't contain chromosome information,
+						you usually need to make inthinnerator infer the chromosome by using the # wildcard
+						character, as shown above.
+                    </div>
+                </div>
+                <div class="task">
+                    <div class="task_name">
+                        Thin SNPs based on a combination of recombination distance with a physical margin
+                    </div>
+                </div>
+                <div class="task">
+                    <div class="task_command_line">
+                        $ inthinnerator -g snps.txt -map genetic_map_chr#.txt -min-distance 0.1cM+25kb -o thinned.out
+                    </div>
+                </div>
+            </div>
+            <div id="file_formats" style="display:none">
+                <div>
+                    Inthinnerator shares a codebase with <a href="http://www.well.ox.ac.uk/~gav/qctool">qctool</a> and supports
+					a similar set of file formats.  File types are detected based on the file extensions according to the following table.
+                    <table class="file_formats">
+                        <tr>
+                            <th>
+                                format
+                            </th>
+                            <th>
+                                recognised extension(s)
+                            </th>
+                            <th>
+                                notes
+                            </th>
+                        </tr>
+                        <tr>
+                            <td>
+                                <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format.html">GEN</a>,
+								<a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format.html">BGEN</a>,
+								<a href="http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41">VCF</a>
+								formats
+                            </td>
+                            <td>
+                                <span class="monospace">.gen</span>,
+								<span class="monospace">.gen.gz</span>,
+								<span class="monospace">.bgen</span>,
+								<span class="monospace">.vcf</span>,
+								<span class="monospace">.vcf.gz</span>
+                            </td>
+                            <td>
+								These can be supplied to the <span class="monospace">-g</span> option.  See the <a href="http://www.well.ox.ac.uk/~gav/qctool#file_formats">qctool webpage</a>
+								for more detailed information on support for these formats.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Inthinnerator flat-file format
+                            </td>
+                            <td>
+                                <span class="monospace">.txt</span>,
+                                <span class="monospace">.csv</span>,
+								<span class="monospace">.tsv</span>
+                            </td>
+                            <td>
+								This is the most flexible format to supply to the <span class="monospace">-g</span>.  It consists of six columns,
+								<span class="monospace">SNPID, rsid, chromosome, position, alleleA, alleleB</span>.  Optional additional columns include
+									a <em>rank</em> column (specified by name using the <span class="monospace">-rank-column</span> option) and
+									a <em>tag</em> column (specified using the <span class="monospace">-tag-column</span> option.)  Other columns
+									are ignored.
+									Inthinnerator expects space-, comma- or tab-separated file according to the file extension.
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div id="download" style="display:none">
+                <div>
+                    <p>
+                        Inthinnerator is available either as binaries or as source code.
+                    </p>
+                    <h3>
+                        Binaries
+                    </h3>
+                    <p>
+                        Pre-compiled binaries are available for the following platforms.
+                    </p>
+                    <table>
+                        <tr>
+                            <th>
+                                Version
+                            </th>
+                            <th>
+                                Platform
+                            </th>
+                            <th>
+                                File
+                            </th>
+                        </tr>
+                        <tr>
+                            <td>v2-dev<sup>&dagger;</sup></td>
+                            <td>
+                                Linux <small>x86-64 static build</small>
+                            </td>
+                            <td>
+                                <a href="resources/inthinnerator_v2.0-dev-linux-x86_64.tgz">inthinnerator_v2.0-dev-linux-x86_64.tgz</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>v2-dev<sup>&dagger;</sup></td>
+                            <td>
+                                Linux <small>alternative build</small>
+                            </td>
+                            <td>
+                                <a href="resources/inthinnerator_v2.0-dev-scientific-linux-x86_64.tgz">inthinnerator_v2.0-dev-scientific-linux-x86_64.tgz</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>v2-dev<sup>&dagger;</sup></td>
+                            <td>
+                                Mac OS X
+                            </td>
+                            <td>
+                                <a href="resources/inthinnerator_v2.0-dev-osx.tgz">inthinnerator_v2.0-dev-osx.tgz</a>
+                            </td>
+                        </tr>
+                    </table>
+                    <p>
+					<sup>&dagger;</sup><span class="smalltext">This version of inthinnerator is considered experimental.
+					</p>
+                    <p>
+                        To run inthinnerator, download the relevant file and extract it as follows.
+                    </p>
+                    <pre>
+$ tar -xzf inthinnerator_v2.0-dev-[machine].tgz
+$ cd inthinnerator_v2.0-dev-[machine]
+$ ./inthinnerator_v2.0-dev -help
+</pre>
+                    <h3>
+                        Source
+                    </h3>
+                    <p>
+                        The source code to inthinnerator is available as part of the <a href="http://bitbucket.org/gavinband/qctool">qctool package on bitbucket</a>.
+						See <a href="http://www.well.ox.ac.uk/~gav/qctool#download">this page</a> for details.
+					</p>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

@@ -53,7 +53,7 @@ namespace snp_stats {
 		if( m_alt_dataset_snps->get_next_snp_matching( &alt_snp, snp, m_comparer )) {
 			{
 				genfile::vcf::PhasedGenotypeSetter< Eigen::MatrixXd > setter( m_haplotypes1, m_nonmissingness1 ) ;
-				data_reader.get( "genotypes", setter ) ;
+				data_reader.get( ":genotypes:", setter ) ;
 			}
 			{
 				double A_coding = 0 ;
@@ -72,7 +72,7 @@ namespace snp_stats {
 					}
 				}
 				genfile::vcf::PhasedGenotypeSetter< Eigen::MatrixXd > setter( m_haplotypes2, m_nonmissingness2, 0, A_coding, B_coding ) ;
-				m_alt_dataset_snps->read_variant_data()->get( "genotypes", setter ) ;
+				m_alt_dataset_snps->read_variant_data()->get( ":genotypes:", setter ) ;
 
 				if( !matching_alleles ) {
 					callback( "comment", "Alleles in main and comparison datasets do not match." ) ;

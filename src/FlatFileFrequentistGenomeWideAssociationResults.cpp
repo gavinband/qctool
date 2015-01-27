@@ -5,6 +5,8 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include <limits>
+#include <boost/regex.hpp>
+#include <boost/format.hpp>
 #include "FlatFileFrequentistGenomeWideAssociationResults.hpp"
 
 namespace {
@@ -36,11 +38,15 @@ genfile::SNPIdentifyingData2 const& FlatFileFrequentistGenomeWideAssociationResu
 	assert( snp_i < m_snps.size() ) ;
 	return m_snps[ snp_i ] ;
 }
+
 void FlatFileFrequentistGenomeWideAssociationResults::get_betas( std::size_t snp_i, Eigen::VectorXd* result ) const {
 	*result = m_betas.row( snp_i ).cast< double >() ;
 }
 void FlatFileFrequentistGenomeWideAssociationResults::get_ses( std::size_t snp_i, Eigen::VectorXd* result ) const {
 	*result = m_ses.row( snp_i ).cast< double >() ;
+}
+void FlatFileFrequentistGenomeWideAssociationResults::get_covariance_upper_triangle( std::size_t snp_i, Eigen::VectorXd* result ) const {
+	*result = m_covariance.row( snp_i ).cast< double >() ;
 }
 void FlatFileFrequentistGenomeWideAssociationResults::get_pvalue( std::size_t snp_i, double* result ) const {
 	*result = m_pvalues( snp_i ) ;
@@ -57,8 +63,8 @@ void FlatFileFrequentistGenomeWideAssociationResults::get_maf( std::size_t snp_i
 void FlatFileFrequentistGenomeWideAssociationResults::get_frequency( std::size_t snp_i, double* result ) const {
 	*result = ( 2.0 * m_sample_counts( snp_i, 2 ) + m_sample_counts( snp_i, 1 ) ) / ( 2.0 * m_sample_counts.row( snp_i ).sum() ) ;
 }
-void FlatFileFrequentistGenomeWideAssociationResults::get_variable( std::size_t snp_i, std::string const& variable, double* value ) const {
-	std::map< std::string, std::vector< double > >::const_iterator where = m_extra_variables.find( variable ) ;
+void FlatFileFrequentistGenomeWideAssociationResults::get_variable( std::size_t snp_i, std::string const& variable, std::string* value ) const {
+	std::map< std::string, std::vector< std::string > >::const_iterator where = m_extra_variables.find( variable ) ;
 	assert( where != m_extra_variables.end() ) ;
 	*value = where->second[ snp_i ] ;
 }
@@ -90,11 +96,22 @@ std::string FlatFileFrequentistGenomeWideAssociationResults::get_summary( std::s
 			)
 			/ 1000000.0
 		) + "Mb in use.)" ;
-	return result ;
+	
+	std::ostringstream str( result ) ;
+	str << "\n" << " -- using the following columns:\n" ;
+	SourceColumnMap::right_const_iterator
+		i = m_column_map.get().right.begin(),
+		end_i = m_column_map.get().right.end() ;
+	
+	for( std::size_t count = 0; i != end_i; ++i, ++count ) {
+		str << " -- column " << i->first << ": " << "(\"" << i->second.name() << "\", matching \"" << i->second.pattern().str() << "\")\n" ;
+	}
+	return str.str() ;
 }
 
 FlatFileFrequentistGenomeWideAssociationResults::FlatFileFrequentistGenomeWideAssociationResults():
-	m_missing_value( "NA" )
+	m_missing_value( "NA" ),
+	m_degrees_of_freedom( 0 )
 {}
 
 void FlatFileFrequentistGenomeWideAssociationResults::setup(
@@ -111,15 +128,18 @@ void FlatFileFrequentistGenomeWideAssociationResults::setup(
 	SNPResultCallback callback,
 	ProgressCallback progress_callback
 ) {
-	ColumnMap column_map = get_columns_to_store( *source ) ;
-	
-	int degrees_of_freedom = ( column_map.left.find( "_beta_2" ) == column_map.left.end() ) ? 1 : 2 ;
+	if( !m_column_map ) {
+		m_desired_columns = setup_columns( source->column_names() ) ;
+		m_column_map = get_source_column_map( *source, m_desired_columns ) ;
+	} else {
+		check_columns( *source, m_column_map.get() ) ;
+	}
+	assert( m_column_map ) ;
+	int const degrees_of_freedom = get_effect_parameter_names().size() ;
 	
 	std::size_t snp_index = m_snps.size() ;
 
 	genfile::SNPIdentifyingData snp ;
-	Eigen::VectorXd betas ;
-	Eigen::VectorXd ses ;
 	
 	for( ; read_snp( *source, snp ); (*source) >> statfile::ignore_all() ) {
 		
@@ -136,9 +156,9 @@ void FlatFileFrequentistGenomeWideAssociationResults::setup(
 			snp.set_SNPID( "" ) ;
 		}
 
-		// read data columns
-
-		ColumnMap::right_const_iterator i = column_map.right.begin(), end_i = column_map.right.end() ;
+		// read data columns.
+		// We use the index-to-regex map to iterate over required columns in the right order.
+		SourceColumnMap::right_const_iterator i = m_column_map.get().right.begin(), end_i = m_column_map.get().right.end() ;
 		std::string value ;
 		for( ; i != end_i; ++i ) {
 			(*source)
@@ -147,8 +167,8 @@ void FlatFileFrequentistGenomeWideAssociationResults::setup(
 
 			store_value(
 				snp_index,
-				i->second,
-				( value == m_missing_value ) ? NA : genfile::string_utils::to_repr< double >( value )
+				i->second.simplified_name(),
+				value
 			) ;
 		}
 
@@ -167,57 +187,50 @@ void FlatFileFrequentistGenomeWideAssociationResults::setup(
 	resize_storage( snp_index, degrees_of_freedom ) ;
 }
 
-FlatFileFrequentistGenomeWideAssociationResults::ColumnMap FlatFileFrequentistGenomeWideAssociationResults::get_columns_to_store(
-	statfile::BuiltInTypeStatSource const& source
-) {
-	using genfile::string_utils::to_string ;
-	std::set< std::string > desired_columns = get_desired_columns() ;
-
-	ColumnMap result ;
-	for( std::size_t i = 0; i < source.number_of_columns(); ++i ) {
-		std::string name = source.name_of_column( i ) ;
-		for( std::set< std::string >::iterator j = desired_columns.begin(); j != desired_columns.end(); ++j ) {
-			assert( j->size() > 0 ) ;
-			if(
-				(
-					j->at(0) == '*'
-					&& name.size() >= ( j->size() - 1 )
-					&& name.compare( name.size() - j->size() + 1, j->size() - 1, j->substr( 1, j->size() ) ) == 0
-				) || (
-					j->at( j->size() - 1 ) == '*'
-					&& name.size() >= ( j->size() - 1 )
-					&& name.compare( 0, j->size() - 1, j->substr( 0, j->size() - 1 ) ) == 0
-				) || (
-					j->at(0) != '*' && j->at( j->size() - 1 ) != '*' && name == *j
-				)
-			) {
-				std::pair< ColumnMap::iterator, bool > insertion = result.insert( ColumnMap::value_type( *j, i )) ;
-				if( !insertion.second ) {
-					throw genfile::OperationFailedError(
-						"SNPTESTResults::get_columns_to_store()",
-						"m_column_map",
-						"Insertion of value for column \"" + name + "\" (matching \"" + to_string( *j ) + "\")."
-					) ;
-				}
-			}
-		}
-	}
-	
-	std::set< std::string > required_columns = desired_columns ;
-	required_columns.erase( "*_beta_2" ) ;
-	required_columns.erase( "*_se_2" ) ;
-	
-	for( std::set< std::string >::const_iterator i = required_columns.begin(); i != required_columns.end(); ++i ) {
-		if( result.left.find( *i ) == result.left.end() ) {
-			throw genfile::BadArgumentError(
-				"FlatFileFrequentistGenomeWideAssociationResults::get_columns_to_store()",
-				"required column=\"" + *i + "\"",
-				"Could not find matching column in source \"" + source.get_source_spec() + "\""
+FlatFileFrequentistGenomeWideAssociationResults::SourceColumnMap FlatFileFrequentistGenomeWideAssociationResults::get_source_column_map(
+	statfile::BuiltInTypeStatSource const& source,
+	DesiredColumns const& desired_columns
+) const {
+	SourceColumnMap result ;
+	for( std::size_t i = 0; i < desired_columns.size(); ++i ) {
+		std::pair< SourceColumnMap::iterator, bool > insertion = result.insert(
+			SourceColumnMap::value_type(
+				desired_columns[i], desired_columns[i].index()
+			)
+		) ;
+		if( !insertion.second ) {
+			throw genfile::OperationFailedError(
+				"FlatFileFrequentistGenomeWideAssociationResults::get_source_column_map()",
+				"m_column_map",
+				"Insertion of value for column \"" + desired_columns[i].name() + "\" (matching \"" + desired_columns[i].pattern().str() + "\")."
 			) ;
 		}
 	}
-
 	return result ;
+}
+
+void FlatFileFrequentistGenomeWideAssociationResults::check_columns(
+	statfile::BuiltInTypeStatSource const& source,
+	SourceColumnMap const& column_map
+) const {
+	std::vector< std::string > const& column_names = source.column_names() ;
+	// typedef boost::bimap< std::string, std::size_t > SourceColumnMap ;
+
+	boost::format fmt( "Column %d (\"%s\") does not match expected name \"%s\"." ) ;
+	SourceColumnMap::const_iterator
+		i = column_map.begin(),
+		end_i = column_map.end() ;
+	for( ; i != end_i; ++i ) {
+		std::string const& column_name = column_names[ i->right ] ;
+		std::string const& expected_name = i->left.name() ;
+		if( column_name != expected_name ) {
+			throw genfile::BadArgumentError(
+				"FlatFileFrequentistGenomeWideAssociationResults::check_columns()",
+				"source=\"" + source.get_source_spec() + "\"",
+				( fmt % ( i->right + 1 ) % column_name % expected_name ).str()
+			) ;
+		} ;
+	}
 }
 
 void FlatFileFrequentistGenomeWideAssociationResults::resize_storage( Eigen::MatrixXf::Index const N_snps, Eigen::MatrixXf::Index const degrees_of_freedom ) {
@@ -244,6 +257,13 @@ void FlatFileFrequentistGenomeWideAssociationResults::resize_storage( Eigen::Mat
 		m_ses.swap( ses ) ;
 	}
 	{
+		Eigen::MatrixXf covariance = Eigen::MatrixXf::Zero( N_snps, ( degrees_of_freedom - 1 ) * degrees_of_freedom / 2 )  ;
+		if( m_covariance.rows() > 0 ) {
+			covariance.block( 0, 0, current_N, covariance.cols() ) = m_covariance.block( 0, 0, current_N, covariance.cols() ) ;
+		}
+		m_covariance.swap( covariance ) ;
+	}
+	{
 		Eigen::VectorXf pvalues = Eigen::VectorXf::Zero( N_snps ) ;
 		pvalues.head( current_N ) = m_pvalues.head( current_N ) ;
 		m_pvalues.swap( pvalues ) ;
@@ -259,16 +279,16 @@ void FlatFileFrequentistGenomeWideAssociationResults::resize_storage( Eigen::Mat
 		m_maf.swap( maf ) ;
 	}
 	{
-		Eigen::MatrixXf sample_counts = Eigen::MatrixXf::Zero( N_snps, 4 ) ;
+		Eigen::MatrixXf sample_counts = Eigen::MatrixXf::Zero( N_snps, 6 ) ;
 		if( m_sample_counts.rows() > 0 ) {
-			sample_counts.block( 0, 0, current_N, 4 ) = m_sample_counts.block( 0, 0, current_N, 4 ) ;
+			sample_counts.block( 0, 0, current_N, 6 ) = m_sample_counts.block( 0, 0, current_N, 6 ) ;
 		}
 		m_sample_counts.swap( sample_counts ) ;
 	}
 	{
 		for( ExtraVariables::iterator i = m_extra_variables.begin(); i != m_extra_variables.end(); ++i ) {
 			i->second.resize( N_snps ) ; // std::vector resize does not lose data.
-			std::vector< double > v = i->second ;
+			std::vector< std::string > v = i->second ;
 			i->second.swap( v ) ;
 		}
 	}
@@ -289,6 +309,10 @@ void FlatFileFrequentistGenomeWideAssociationResults::free_unused_memory() {
 		m_ses.swap( ses ) ;
 	}
 	{
+		Eigen::MatrixXf covariance = m_covariance.block( 0, 0, N_snps, m_covariance.cols() ) ; ;
+		m_covariance.swap( covariance ) ;
+	}
+	{
 		Eigen::VectorXf pvalues = m_pvalues.head( N_snps ) ;
 		m_pvalues.swap( pvalues ) ;
 	}
@@ -307,7 +331,7 @@ void FlatFileFrequentistGenomeWideAssociationResults::free_unused_memory() {
 	{
 		for( ExtraVariables::iterator i = m_extra_variables.begin(); i != m_extra_variables.end(); ++i ) {
 			i->second.resize( N_snps ) ;
-			std::vector< double > v = i->second ;
+			std::vector< std::string > v = i->second ;
 			i->second.swap( v ) ;
 		}
 	}

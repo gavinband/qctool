@@ -22,16 +22,12 @@ namespace genfile {
 	// from a plain GEN file.
 	class GenFileSNPDataSource: public IdentifyingDataCachingSNPDataSource
 	{
-		friend class impl::GenFileSNPDataReader ;
+		friend struct impl::GenFileSNPDataReader ;
 	public:
 		GenFileSNPDataSource( std::auto_ptr< std::istream > stream, Chromosome chromosome ) ;
 		GenFileSNPDataSource( std::string const& filename, Chromosome chromosome ) ;
-		GenFileSNPDataSource(
-			std::string const& filename,
-			Chromosome chromosome,
-			CompressionType compression_type,
-			vcf::MetadataParser::Metadata const& = vcf::MetadataParser::Metadata()
-		) ;
+
+		Metadata get_metadata() const ;
 
 		unsigned int number_of_samples() const { return m_number_of_samples ; }
 		OptionalSnpCount total_number_of_snps() const { return m_total_number_of_snps ; }
@@ -69,7 +65,7 @@ namespace genfile {
 		Chromosome m_chromosome ;
 		bool m_have_chromosome_column ;
 
-		void setup( std::string const& filename, CompressionType compression_type, vcf::MetadataParser::Metadata const& = vcf::MetadataParser::Metadata() ) ;
+		void setup( std::string const& filename, CompressionType compression_type ) ;
 		void setup( std::auto_ptr< std::istream > stream_ptr ) ;
 		void read_header_data() ;
 	} ;

@@ -27,6 +27,12 @@ namespace genfile {
 		
 	}
 
+	void SNPDataSinkChain::set_metadata_impl( Metadata const& metadata ) {
+		for( std::size_t i = 0; i < m_sinks.size(); ++i ) {
+			m_sinks[i]->set_metadata( metadata ) ;
+		}
+	}
+
 	SNPDataSinkChain::operator bool() const {
 		if( m_current_sink < m_sinks.size() ) {
 			bool result = static_cast< bool >( *m_sinks[ m_current_sink ] ) ;
@@ -109,4 +115,11 @@ namespace genfile {
 			info
 		) ;
 	}
+	
+	void SNPDataSinkChain::finalise_impl() {
+		for( std::size_t i = 0; i < m_sinks.size(); ++i ) {
+			m_sinks[i]->finalise() ;
+		}
+	}
+	
 }

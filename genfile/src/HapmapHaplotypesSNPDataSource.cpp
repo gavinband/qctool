@@ -98,6 +98,16 @@ namespace genfile {
 		}
 	}
 	
+	SNPDataSource::Metadata HapmapHaplotypesSNPDataSource::get_metadata() const {
+		std::map< std::string, std::string > format ;
+		format[ "ID" ] = "GT" ;
+		format[ "Number" ] = "A" ;
+		format[ "Description" ] = "Phased haplotype calls" ;
+		SNPDataSource::Metadata result ;
+		result.insert( std::make_pair( "FORMAT", format )) ;
+		return result ;
+	}
+
 	void HapmapHaplotypesSNPDataSource::get_snp_identifying_data_impl( 
 		IntegerSetter const& set_number_of_samples,
 		StringSetter const& set_SNPID,

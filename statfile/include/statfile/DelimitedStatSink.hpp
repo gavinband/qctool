@@ -23,18 +23,20 @@ namespace statfile {
 	class DelimitedStatSink: public ColumnNamingStatSink< BuiltInTypeStatSink >, public OstreamAggregator
 	{
 	public:
+		typedef ColumnNamingStatSink< BuiltInTypeStatSink > Base ;
 		typedef std::auto_ptr< DelimitedStatSink > UniquePtr ;
 
 		DelimitedStatSink( std::string const& filename, std::string const& delimiter ) ;
 		DelimitedStatSink( std::auto_ptr< std::ostream > stream_ptr, std::string const& delimiter ) ;
 
-		operator void*() const { return OstreamAggregator::operator void*() ; }
+		operator bool() const { return OstreamAggregator::operator bool() ; }
 
 		void set_descriptive_text( std::string const& ) ;
 		void write_metadata( std::string const& metadata ) { set_descriptive_text( metadata ) ; }
 
 	protected:
 
+		using Base::write_value ;
 		void write_value( int32_t const& value ) {
 			write_value_impl< int32_t >( value ) ;
 		}
@@ -70,13 +72,15 @@ namespace statfile {
 			stream() << value  ;
 		}
 
+		void begin_data_impl() ;
+
 	private:
 	
 		void setup( std::auto_ptr< std::ostream > stream_ptr ) ;
 		void setup( std::string const& filename ) ;
 
 		void write_header_if_necessary() {
-			if( !(state() & e_HaveWrittenSomeData) ) {
+			if( !(state() & e_ReadyForData) ) {
 				write_descriptive_text() ;
 				write_column_names() ;
 				stream() << '\n' ;
@@ -99,7 +103,6 @@ namespace statfile {
 	private:
 		char m_comment_character ;
 		std::string const m_delimiter ;
-		bool have_written_header ;
 		int m_precision ;
 		std::string m_descriptive_text ;
 	} ;

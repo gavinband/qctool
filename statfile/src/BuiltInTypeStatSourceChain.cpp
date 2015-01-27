@@ -59,7 +59,7 @@ namespace statfile {
 
 	std::size_t BuiltInTypeStatSourceChain::number_of_columns() const { return m_column_names.size() ; }
 	std::vector< std::string > BuiltInTypeStatSourceChain::column_names() const { return m_column_names ; }
-	std::string const& BuiltInTypeStatSourceChain::column_name( std::size_t i ) { assert( i < m_column_names.size()) ; return m_column_names[i] ; }
+	std::string const& BuiltInTypeStatSourceChain::column_name( std::size_t i ) const { assert( i < m_column_names.size()) ; return m_column_names[i] ; }
 	std::size_t BuiltInTypeStatSourceChain::number_of_rows() const {
 		return m_number_of_rows ;
 	}

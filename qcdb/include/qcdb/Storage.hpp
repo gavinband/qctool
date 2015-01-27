@@ -7,6 +7,7 @@
 #ifndef QCTOOL_QCDB_STORAGE_HPP
 #define QCTOOL_QCDB_STORAGE_HPP
 
+#include <stdint.h>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include "genfile/SNPIdentifyingData2.hpp"
@@ -31,6 +32,9 @@ namespace qcdb {
 		) = 0 ;
 		
 		virtual void finalise( long options = eCreateIndices ) {} ;
+		
+		typedef int64_t AnalysisId ;
+		virtual AnalysisId analysis_id() const = 0 ;
 	} ;
 }
 

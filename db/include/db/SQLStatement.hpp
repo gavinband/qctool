@@ -21,7 +21,7 @@ namespace db {
 	struct SQLError: public std::exception
 	{
 		virtual ~SQLError() throw() {}
-		char const* what() { return "db::SQLError" ; }
+		char const* what() const throw() { return "db::SQLError" ; }
 		virtual std::string description() const = 0 ;
 	} ;
 	

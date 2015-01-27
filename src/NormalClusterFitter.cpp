@@ -38,7 +38,7 @@ NormalClusterFitter::NormalClusterFitter( appcontext::OptionProcessor const& opt
 	m_call_threshhold( options.get_value< double >( "-call-threshhold" ))
 {}
 
-void NormalClusterFitter::begin_processing_snps( std::size_t number_of_samples ) {
+void NormalClusterFitter::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) {
 	m_number_of_samples = number_of_samples ;
 }
 
@@ -52,9 +52,10 @@ void NormalClusterFitter::processed_snp( genfile::SNPIdentifyingData const& snp,
 	std::vector< std::size_t > non_missing_counts( 3 ) ;
 
 	for( std::size_t spec_i = 0; spec_i < m_spec.size(); ++spec_i ) {
+		genfile::vcf::GenotypeSetter< genfile::SingleSNPGenotypeProbabilities > genotype_setter( genotypes ) ;
 		genfile::vcf::MatrixSetter< Eigen::MatrixXd > intensity_setter( intensities ) ;
 		data_reader
-			.get( m_spec[spec_i].first, genotypes )
+			.get( m_spec[spec_i].first, genotype_setter )
 			.get( m_spec[spec_i].second, intensity_setter )
 		;
 		IntensityModel::SharedPtr model( IntensityModel::estimate( intensities, genotypes ) ) ;

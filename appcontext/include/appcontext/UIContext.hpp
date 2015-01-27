@@ -21,6 +21,7 @@ namespace appcontext {
 		virtual void notify_progress() const = 0 ;
 		virtual void finish() const = 0 ;
 		virtual std::string name() const = 0 ;
+		virtual void restart_timer() const = 0 ;
 		virtual ~ProgressContextImpl() {} ;
 	protected:
 		friend struct ProgressContextProxy ;
@@ -47,11 +48,12 @@ namespace appcontext {
 			boost::optional< std::size_t > const total_count = boost::optional< std::size_t >()
 		) const ;
 
-		void notify_progress(
-		) const ;
+		void notify_progress() const ;
 
 		void finish() const ;
 
+		void restart_timer() const ;
+		
 	private:
 		UIContext* m_ui_context ;
 		mutable ProgressContextImpl const* m_progress_context ;

@@ -79,15 +79,17 @@ void PCALoadingComputer::set_UDUT( std::size_t number_of_snps, Matrix const& udu
 	m_number_of_snps = number_of_snps ;
 }
 
-void PCALoadingComputer::begin_processing_snps( std::size_t number_of_samples ) {
+void PCALoadingComputer::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) {
 	assert( number_of_samples = std::size_t( m_U.rows() )) ;
 	m_genotype_calls.resize( number_of_samples ) ;
 	m_non_missingness.resize( number_of_samples ) ;
 }
 
 void PCALoadingComputer::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
-	genfile::vcf::ThreshholdingGenotypeSetter< Eigen::VectorXd > setter( m_genotype_calls, m_non_missingness, 0.9, 0, 0, 1, 2 ) ;
-	data_reader.get( "genotypes", setter ) ;
+	data_reader.get(
+		":genotypes:",
+		genfile::vcf::get_threshholded_calls( m_genotype_calls, m_non_missingness, 0.9, 0, 0, 1, 2 )
+	) ;
 	assert( m_genotype_calls.size() == m_U.rows() ) ;
 	assert( m_non_missingness.size() == m_U.rows() ) ;
 	// setup the storage
@@ -107,7 +109,7 @@ void PCALoadingComputer::processed_snp( genfile::SNPIdentifyingData const& snp, 
 		std::cerr << "     non-missingness is: " << m_non_missingness.head( 20 ).transpose() << "...\n" ;
 		std::cerr << "                   U is: " << m_U.block(0,0,10,10) << "...\n" ;
 		std::cerr << "                   D is: " << m_D << "...\n" ;
-#endif DEBUG_PCA_LOADING_COMPUTER
+#endif // DEBUG_PCA_LOADING_COMPUTER
 	
 
 		//

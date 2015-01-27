@@ -15,6 +15,7 @@
 #include "genfile/Chromosome.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/wildcard.hpp"
+#include "GenomeSequence.hpp"
 
 struct SequenceAnnotation: public SNPSummaryComputation
 {
@@ -31,18 +32,9 @@ private:
 	std::string const m_annotation_name ;
 	std::string const m_fasta_filename ;
 	std::vector< genfile::wildcard::FilenameMatch > const m_filenames ;
-	typedef std::deque< char > ChromosomeSequence ;
-	typedef genfile::Chromosome Chromosome ;
-	typedef std::pair< std::pair< genfile::Position, genfile::Position >, ChromosomeSequence > ChromosomeRangeAndSequence ;
-	typedef std::map< Chromosome, ChromosomeRangeAndSequence > Sequence ;
-	Sequence m_sequence ;
-	std::pair< genfile::Position, genfile::Position > m_flanking ;
-	genfile::VariantEntry m_organism ;
-	genfile::VariantEntry m_build ;
-private:
 	
-	void load_sequence( std::vector< genfile::wildcard::FilenameMatch > const& files, Sequence* sequence, ProgressCallback callback ) ;
-	void load_sequence( genfile::wildcard::FilenameMatch const& file, Chromosome* chromosome, ChromosomeSequence* sequence, std::pair< genfile::Position, genfile::Position >* range ) ;
+	GenomeSequence m_sequence ;
+	std::pair< genfile::Position, genfile::Position > m_flanking ;
 } ;
 
 #endif

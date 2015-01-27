@@ -20,7 +20,7 @@ namespace genfile {
 	{}
 
 	void VariableInSetSampleFilter::summarise( std::ostream& o ) const {
-		o << m_variable << " in (" ;
+		o << m_variable << " IN (" ;
 		for( std::size_t i = 0; i < std::min( std::size_t( 5 ), m_levels.size() ); ++i ) {
 			o << ( i > 0 ? ", " : "" ) << m_levels[i] ;
 		}
@@ -63,6 +63,37 @@ namespace genfile {
 			(*detail)( 0, 0 ) = in_set ;
 		}
 		return in_set ;
+	}
+
+	VariableNotInSetSampleFilter::VariableNotInSetSampleFilter( std::string const& variable ):
+		m_inverse_filter( variable )
+	{}
+
+	void VariableNotInSetSampleFilter::summarise( std::ostream& o ) const {
+		o << m_inverse_filter.m_variable << " NOT IN (" ;
+		for( std::size_t i = 0; i < std::min( std::size_t( 5 ), m_inverse_filter.m_levels.size() ); ++i ) {
+			o << ( i > 0 ? ", " : "" ) << m_inverse_filter.m_levels[i] ;
+		}
+		if( m_inverse_filter.m_levels.size() > 5 ) {
+			o << ", ..." ;
+		}
+		o << ")" ;
+	}
+
+	void VariableNotInSetSampleFilter::add_level( genfile::VariantEntry value ) {
+		m_inverse_filter.add_level( value ) ;
+	}
+
+	bool VariableNotInSetSampleFilter::test(
+		genfile::CohortIndividualSource const& source,
+		std::size_t i,
+		DetailBlock* detail
+	) const {
+		bool result = !m_inverse_filter.test( source, i, 0 ) ;
+		if( detail ) {
+			(*detail)( 0, 0 ) = result ;
+		}
+		return result ;
 	}
 }
 

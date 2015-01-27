@@ -25,7 +25,7 @@ namespace genfile {
 		std::string,
 		std::string
 	) const {
-		return m_range.check_if_contains( position ) ;
+		return m_range.contains( position ) ;
 	}
 	
 	std::string SNPPositionInRangeTest::display() const {
