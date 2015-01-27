@@ -4,7 +4,7 @@
 //	  (See accompanying file LICENSE_1_0.txt or copy at
 //			http://www.boost.org/LICENSE_1_0.txt)
 
-#include <cstdint>
+#include <stdint.h>
 #include <map>
 #include "genfile/bgen/impl.hpp"
 
@@ -32,7 +32,7 @@ namespace genfile {
 						fractional_parts.insert( std::make_pair( fractional_part, (p+i) ) ) ;
 						total_fractional_part += fractional_part ;
 					}
-					std::size_t const upper = std::round( total_fractional_part ) ;
+					std::size_t const upper = std::floor( total_fractional_part + 0.5 ) ;
 	#if DEBUG_BGEN_FORMAT > 2
 		std::cerr << "round_probs_to_scaled_simplex(): number_of_bits = " << number_of_bits
 				<< ", scale = " << scale

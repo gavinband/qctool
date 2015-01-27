@@ -53,9 +53,9 @@ namespace data {
 			// We store the probability
 			// ((i*100)+o) / 10000.0
 			uint16_t
-				AA = std::round( get_probs( i, 0 ) * 10000 ),
-				AB = std::round( get_probs( i, 1 ) * 10000 ),
-				BB = std::round( get_probs( i, 2 ) * 10000 )
+				AA = std::floor( 0.5 + get_probs( i, 0 ) * 10000 ),
+				AB = std::floor( 0.5 + get_probs( i, 1 ) * 10000 ),
+				BB = std::floor( 0.5 + get_probs( i, 2 ) * 10000 )
 			;
 			genfile::write_little_endian_integer( oStream, AA ) ;
 			genfile::write_little_endian_integer( oStream, AB ) ;
@@ -93,9 +93,9 @@ namespace data {
 		
 		for( std::size_t i = 0; i < number_of_samples; ++i ) {
 			uint16_t
-				AA = std::round( get_probs( i, 0 ) * 32768.0 ),
-				AB = std::round( get_probs( i, 1 ) * 32768.0 ),
-				BB = std::round( get_probs( i, 2 ) * 32768.0 )
+				AA = std::floor( 0.5 + get_probs( i, 0 ) * 32768.0 ),
+				AB = std::floor( 0.5 + get_probs( i, 1 ) * 32768.0 ),
+				BB = std::floor( 0.5 + get_probs( i, 2 ) * 32768.0 )
 			;
 			genfile::write_little_endian_integer( oStream, AA ) ;
 			genfile::write_little_endian_integer( oStream, AB ) ;
@@ -115,7 +115,7 @@ namespace data {
 			fractional_parts.insert( std::make_pair( fractional_part, (p+i) ) ) ;
 			total_fractional_part += fractional_part ;
 		}
-		std::size_t const upper = std::round( total_fractional_part ) ;
+		std::size_t const upper = std::floor( 0.5 + total_fractional_part ) ;
 #if DEBUG > 2
 		std::cerr << "round_probs_to_simplex(): number_of_bits = " << number_of_bits << ", scale = " << scale << ", total_fractional_part = " << total_fractional_part << ", upper = " << upper << ".\n" ;
 		std::cerr << "round_probs_to_simplex(): p1 = " << *p << ".\n" ;
@@ -483,9 +483,9 @@ double get_expected_stored_probability(
 	std::string const& type = "unphased"
 ) {
 	if( bgen_version == "v10" ) {
-		return std::round( get_input_probability( number_of_samples, i, g ) * 10000.0 ) / 10000.0 ;
+		return std::floor( 0.5 + get_input_probability( number_of_samples, i, g ) * 10000.0 ) / 10000.0 ;
 	} else if( bgen_version == "v11" ) {
-		return std::round( get_input_probability( number_of_samples, i, g ) * 32768.0 ) / 32768.0 ;
+		return std::floor( 0.5 + get_input_probability( number_of_samples, i, g ) * 32768.0 ) / 32768.0 ;
 	} else if( bgen_version == "v12" ){
 		double v[4] ;
 		if( type == "phased" ) {
