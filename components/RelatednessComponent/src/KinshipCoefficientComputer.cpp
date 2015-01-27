@@ -255,7 +255,7 @@ namespace impl {
 			*/
 			//N = 5 ;
 			//N = 1 ;
-			N = 10 ;
+			// N = 10 ;
 			double K = double( number_of_samples ) / N ;
 //#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
 			std::cerr << "MultiThreadedDispatcher: sizeof(int) = " << sizeof(int) << ".\n" ;
