@@ -12,7 +12,7 @@
 #include <map>
 #include <cassert>
 #include <cmath>
-#include <cstdint>
+#include <stdint.h>
 #include "../../config.hpp"
 #ifdef HAVE_ZLIB
 #include <sstream>
@@ -81,7 +81,7 @@ namespace genfile {
 					std::cerr << "!! genfile::bgen::convert_to_integer_representation: probability " << number << " is too large, clamping.\n" ;
 					number = 65535.0 ;
 				}
-				return static_cast< uint16_t > ( std::round( number ) ) ;
+				return static_cast< uint16_t > ( std::floor( number + 0.5 ) ) ;
 			}
 
 			namespace v11 {
