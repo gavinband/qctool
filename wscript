@@ -158,7 +158,7 @@ def misc_configure( conf ) :
 
 def get_cxx_flags( variant_name ):
 	cxxflags = [
-		'-std=c++11',
+		#'-std=c++11',
 		'-Wall',
 		'-pedantic',
 		'-Wno-long-long', # don't warn about the long long thing, it comes up in Eigen and Boost.
