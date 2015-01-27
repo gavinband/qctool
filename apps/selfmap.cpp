@@ -286,32 +286,30 @@ private:
 			for( std::size_t j = 0; j < i->second.size(); ++j ) {
 				if( i->second[j].second == '+' ) {
 					snp.set_position( i->second[j].first ) ;
-					if( include_diagonal || i->second.size() > 1 ) {
+					for( std::size_t k = ( j + ( include_diagonal ? 0 : 1 ) ); k < i->second.size(); ++k ) {
 						storage->create_new_variant( snp ) ;
 						storage->store_per_variant_data(
 							snp,
 							"orientation",
 							std::string( 1, i->second[j].second )
 						) ;
-						for( std::size_t k = ( j + ( include_diagonal ? 0 : 1 ) ); k < i->second.size(); ++k ) {
-							storage->store_per_variant_data(
-								snp,
-								"other_chromosome",
-								i->second[k].first.chromosome()
-							) ;
+						storage->store_per_variant_data(
+							snp,
+							"other_chromosome",
+							i->second[k].first.chromosome()
+						) ;
 
-							storage->store_per_variant_data(
-								snp,
-								"other_position",
-								genfile::VariantEntry::Integer( i->second[k].first.position() )
-							) ;
+						storage->store_per_variant_data(
+							snp,
+							"other_position",
+							genfile::VariantEntry::Integer( i->second[k].first.position() )
+						) ;
 
-							storage->store_per_variant_data(
-								snp,
-								"other_orientation",
-								std::string( 1, i->second[k].second )
-							) ;
-						}
+						storage->store_per_variant_data(
+							snp,
+							"other_orientation",
+							std::string( 1, i->second[k].second )
+						) ;
 					}
 				}
 			}
