@@ -959,7 +959,7 @@ struct ApproximateBayesianMetaAnalysis: public BingwaComputation {
 		else {
 			Eigen::MatrixXd prior_selector = impl::get_nonmissing_coefficient_selector( non_missingness ) ;
 			betas = prior_selector * betas ;
-			covariance = prior_selector * covariance ;
+			covariance = prior_selector * covariance * prior_selector.transpose() ;
 			Eigen::MatrixXd prior = prior_selector * m_sigma * prior_selector.transpose() ;
 			
 			double const bf = impl::compute_bayes_factor( prior, covariance, betas ) ;
