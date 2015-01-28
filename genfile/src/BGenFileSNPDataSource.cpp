@@ -85,7 +85,7 @@ namespace genfile {
 
 			void get_supported_specs( SpecSetter setter ) const {
 				setter( "GP", "Float" ) ;
-				setter( ":genotypes:", "Float" ) ;
+				//setter( ":genotypes:", "Float" ) ;
 			}
 
 		private:

@@ -167,6 +167,7 @@ namespace genfile {
 	SNPDataSource::Metadata ImputeHaplotypesSNPDataSource::get_metadata() const {
 		std::map< std::string, std::string > format ;
 		format[ "ID" ] = "GT" ;
+		format[ "Type" ] = "String" ;
 		format[ "Number" ] = "A" ;
 		format[ "Description" ] = "Phased haplotype calls" ;
 		SNPDataSource::Metadata result ;
@@ -254,11 +255,12 @@ namespace genfile {
 			std::size_t get_number_of_samples() const { return m_source.number_of_samples() ; }
 
 			bool supports( std::string const& spec ) const {
-				return spec == "genotypes" ;
+				return spec == "GT" || spec == ":genotypes:" ;
 			}
 			
 			void get_supported_specs( SpecSetter setter ) const {
-				setter( "genotypes", "Float" ) ;
+				setter( "GT", "Float" ) ;
+				setter( ":genotypes:", "Float" ) ;
 			}
 			
 			private:
