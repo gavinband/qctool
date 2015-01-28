@@ -38,13 +38,18 @@ namespace genfile {
 			m_number_of_alleles( 0 ),
 			m_values( 3 ),
 			m_entry_i( 0 )
-		{}
+		{
+			m_setter.set_number_of_samples( number_of_samples ) ;
+		}
 		void set_number_of_samples( std::size_t n ) {
-			m_setter.set_number_of_samples( n ) ;
+			//
+			// m_setter.set_number_of_samples( n ) ;
 		}
 		void set_number_of_alleles( std::size_t n ) {
-			m_number_of_alleles = n ;
-			m_setter.set_number_of_alleles( n ) ;
+			if( m_number_of_alleles == 0 ) {
+				m_number_of_alleles = n ;
+				m_setter.set_number_of_alleles( n ) ;
+			}
 		}
 
 		void set_offset( std::size_t offset ) {
