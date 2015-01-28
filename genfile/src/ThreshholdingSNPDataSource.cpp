@@ -36,7 +36,8 @@ namespace genfile {
 		}
 		std::map< std::string, std::string > format ;
 		format[ "ID" ] = "GT" ;
-		format[ "Number" ] = "G" ;
+		format[ "Number" ] = "1" ;
+		format[ "Type" ] = "String" ;
 		format[ "Description" ] = ( boost::format( "Genotype call probabilities, threshholded at %.2f" ) % m_threshhold ).str() ;
 		metadata.insert( std::make_pair( "FORMAT", format )) ;
 		return metadata ;
