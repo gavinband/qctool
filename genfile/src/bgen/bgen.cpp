@@ -15,36 +15,36 @@
 
 namespace genfile {
 	namespace bgen {
-        namespace impl {
-            void check_for_two_alleles( uint16_t numberOfAlleles ) {
-                if( numberOfAlleles != 2 ) {
-                    std::cerr << "genfile::bgen::impl::check_for_two_alleles: only biallelic variants are currently supported.\n" ;
-                    assert(0) ;
-                }
-            }
-            
-            struct TwoAlleleSetter {
-                TwoAlleleSetter( std::string* allele1, std::string* allele2 ):
-                    m_allele1( allele1 ),
-                    m_allele2( allele2 )
-                {
-                    assert( allele1 != 0 ) ;
-                    assert( allele2 != 0 ) ;
-                }
+		namespace impl {
+			void check_for_two_alleles( uint16_t numberOfAlleles ) {
+				if( numberOfAlleles != 2 ) {
+					std::cerr << "genfile::bgen::impl::check_for_two_alleles: only biallelic variants are currently supported.\n" ;
+					assert(0) ;
+				}
+			}
+			
+			struct TwoAlleleSetter {
+				TwoAlleleSetter( std::string* allele1, std::string* allele2 ):
+					m_allele1( allele1 ),
+					m_allele2( allele2 )
+				{
+					assert( allele1 != 0 ) ;
+					assert( allele2 != 0 ) ;
+				}
 
-                void operator()( uint16_t i, std::string const& value ) {
-                    if( i == 0 ) {
-                        *m_allele1 = value ;
-                    } else if( i == 1 ) {
-                        *m_allele2 = value ;
-                    } else {
-                        assert(0) ;
-                    }
-                }
-                std::string* m_allele1 ;
-                std::string* m_allele2 ;
-            } ;
-        }
+				void operator()( uint16_t i, std::string const& value ) {
+					if( i == 0 ) {
+						*m_allele1 = value ;
+					} else if( i == 1 ) {
+						*m_allele2 = value ;
+					} else {
+						assert(0) ;
+					}
+				}
+				std::string* m_allele1 ;
+				std::string* m_allele2 ;
+			} ;
+		}
 
 
 		void read_offset( std::istream& iStream, uint32_t* offset ) {
@@ -100,7 +100,7 @@ namespace genfile {
 		}
 		
 
-		void read_snp_identifying_data(
+		bool read_snp_identifying_data(
 			std::istream& aStream,
 			BgenContext const& context,
 			std::string* SNPID,
@@ -115,22 +115,25 @@ namespace genfile {
 #endif
 			uint32_t const layout = context.flags & e_Layout ;
 			if( layout == e_v11Layout || layout == e_v12Layout ) {
-                // forward to v12 version which handles multiple alleles.
-                impl::TwoAlleleSetter allele_setter( first_allele, second_allele ) ;
-                bgen::read_snp_identifying_data(
-                    aStream, context,
-                    SNPID, RSID, chromosome, SNP_position,
-                    &impl::check_for_two_alleles,
-                    allele_setter
-                ) ;
+				// forward to v12 version which handles multiple alleles.
+				impl::TwoAlleleSetter allele_setter( first_allele, second_allele ) ;
+				return bgen::read_snp_identifying_data(
+					aStream, context,
+					SNPID, RSID, chromosome, SNP_position,
+					&impl::check_for_two_alleles,
+					allele_setter
+				) ;
 			} else if( layout == e_v10Layout ) {
 				// v1.0-style layout, deprecated
-	            uint32_t number_of_samples ;
+				uint32_t number_of_samples ;
 				unsigned char max_id_size = 0;
 				unsigned char SNPID_size = 0;
 				unsigned char RSID_size = 0;
 				if( aStream ) {
 					genfile::read_little_endian_integer( aStream, &number_of_samples ) ;
+					if( !aStream ) {
+						return false ;
+					}
 					if( number_of_samples != context.number_of_samples ) {
 						throw BGenError() ;
 					}
@@ -187,10 +190,14 @@ namespace genfile {
 					genfile::read_length_followed_by_data( aStream, &allele2_size, second_allele ) ;
 				}
 			} else {
-			    assert(0) ;
+				assert(0) ;
 			}
+			if( !aStream ) {
+				throw BGenError() ;
+			}
+			return true ;
 		}
-        
+		
 		void write_snp_identifying_data(
 			std::ostream& aStream,
 			BgenContext const& context,
@@ -353,7 +360,7 @@ namespace genfile {
 				if( k == 0 )  {
 					return 1 ;
 				}
-			    return ( n * n_choose_k(n - 1, k - 1) ) / k ;
+				return ( n * n_choose_k(n - 1, k - 1) ) / k ;
 			}
 			
 			namespace v12 {

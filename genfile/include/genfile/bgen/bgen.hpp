@@ -100,11 +100,14 @@ namespace genfile {
 			std::vector< std::string > const& sample_ids
 		) ;
 
+		// Attempt to read identifying data fields for the next variant in the file.
+		// This function will return true if SNP data was successfully read or false if the initial
+		// reads met an EOF.  It will throw an BGenError if only a subset of fields can be read before EOF.
 		template<
 			typename NumberOfAllelesSetter,
 			typename AlleleSetter
 		>
-		void read_snp_identifying_data(
+		bool read_snp_identifying_data(
 			std::istream& aStream,
 			BgenContext const& context,
 			std::string* SNPID,
@@ -125,12 +128,18 @@ namespace genfile {
 			if( layout == e_v11Layout ) {
 				uint32_t number_of_samples ;
 				read_little_endian_integer( aStream, &number_of_samples ) ;
+				if( !aStream ) {
+					return false ;
+				}
 				if( number_of_samples != context.number_of_samples ) {
 					throw BGenError() ;
 				}
 			}
 			std::string chromosome_string ;
 			read_length_followed_by_data( aStream, &SNPID_size, SNPID ) ;
+			if( layout == e_v12Layout && !aStream ) {
+				return false ;
+			}
 			read_length_followed_by_data( aStream, &RSID_size, RSID ) ;
 			read_length_followed_by_data( aStream, &chromosome_size, chromosome ) ;
 			read_little_endian_integer( aStream, SNP_position ) ;
@@ -144,11 +153,16 @@ namespace genfile {
 				read_length_followed_by_data( aStream, &allele_size, &allele ) ;
 				set_allele( i, allele ) ;
 			}
+			if( !aStream ) {
+				throw BGenError() ;
+			}
+			return true ;
 		}
 
-		// Read identifying data fields for the next variant in the file.
-		// This will raise an exception if the number of alleles is different than 2.
-		void read_snp_identifying_data(
+		// Read identifying data fields for the next variant in the file, assuming 2 alleles.
+		// This function forwards to the generic multi-allele version, above, and will throw
+		// a BGenError if the number of alleles is different than 2.
+		bool read_snp_identifying_data(
 			std::istream& aStream,
 			BgenContext const& context,
 			std::string* SNPID,

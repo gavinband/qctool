@@ -50,9 +50,10 @@ namespace genfile {
 		std::string* allele2
 	) {
 		std::string chromosome_string ;
-		bgen::read_snp_identifying_data( stream(), m_bgen_context, SNPID, RSID, &chromosome_string, SNP_position, allele1, allele2 ) ;
-		*number_of_samples = m_bgen_context.number_of_samples ;
-		*chromosome = Chromosome( chromosome_string ) ;
+		if( bgen::read_snp_identifying_data( stream(), m_bgen_context, SNPID, RSID, &chromosome_string, SNP_position, allele1, allele2 ) ) {
+			*number_of_samples = m_bgen_context.number_of_samples ;
+			*chromosome = Chromosome( chromosome_string ) ;
+		}
 	}
 
 	namespace impl {
