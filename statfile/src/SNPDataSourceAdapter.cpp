@@ -26,7 +26,7 @@ namespace statfile {
 			throw genfile::MalformedInputError( get_source_spec(), 0 ) ;
 		}
 		// Could check all the columns.  But let's allow some flexibility.
-		if( to_lower( m_source->name_of_column(0) ) != "snpid" ) {
+		if( to_lower( m_source->name_of_column(0) ) != "snpid" && to_lower( m_source->name_of_column(0) ) != "alternate_ids" ) {
 			throw genfile::MalformedInputError( get_source_spec(), 0, 0 ) ;
 		}
 		if( to_lower( m_source->name_of_column(1) ) != "rsid" ) {
