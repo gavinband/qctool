@@ -11,6 +11,7 @@
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/device/file.hpp>
 #include "genfile/FileUtils.hpp"
+#include "genfile/Error.hpp"
 #include "statfile/statfile_utils.hpp"
 
 namespace statfile {
@@ -50,19 +51,22 @@ namespace statfile {
 			return e_TabDelimitedFormat ;
 		}
 		else {
-			std::auto_ptr< std::istream > stream = genfile::open_text_file_for_input( filename ) ;
-			std::string line ;
-			std::getline( (*stream), line ) ;
-			std::size_t nTab = std::count( line.begin(), line.end(), '\t' ) ;
-			std::size_t nSpace = std::count( line.begin(), line.end(), ' ' ) ;
-			std::size_t nComma = std::count( line.begin(), line.end(), ',' ) ;
+			try {
+				std::auto_ptr< std::istream > stream = genfile::open_text_file_for_input( filename ) ;
+				std::string line ;
+				std::getline( (*stream), line ) ;
+				std::size_t nTab = std::count( line.begin(), line.end(), '\t' ) ;
+				std::size_t nSpace = std::count( line.begin(), line.end(), ' ' ) ;
+				std::size_t nComma = std::count( line.begin(), line.end(), ',' ) ;
 
-			if( nTab > nSpace && nTab > nComma ) {
-				return e_TabDelimitedFormat ;
-			} else if( nSpace > nTab && nSpace > nComma ) {
-				return e_SpaceDelimited ;
-			} else if( nComma > nTab && nComma > nSpace ) {
-				return e_CommaDelimitedFormat ;
+				if( nTab > nSpace && nTab > nComma ) {
+					return e_TabDelimitedFormat ;
+				} else if( nSpace > nTab && nSpace > nComma ) {
+					return e_SpaceDelimited ;
+				} else if( nComma > nTab && nComma > nSpace ) {
+					return e_CommaDelimitedFormat ;
+				}
+			} catch( genfile::ResourceNotOpenedError const& e ) {
 			}
 			return e_UnknownFormat ;
 		}
