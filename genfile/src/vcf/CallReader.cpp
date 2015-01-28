@@ -107,7 +107,7 @@ namespace genfile {
 				}
 
 				void set_order_type( OrderType const order_type, ValueType const value_type ) {
-					if( order_type != ePerOrderedHaplotype && m_order_type != ePerUnorderedHaplotype ) {
+					if( order_type != ePerOrderedHaplotype && order_type != ePerUnorderedHaplotype ) {
 						throw BadArgumentError(
 							"genfile::vcf::impl::CallReaderGenotypeSetter::set_order_type()",
 							"order_type",
