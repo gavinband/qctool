@@ -64,6 +64,7 @@ namespace genfile {
 		std::auto_ptr< std::istream > m_stream_ptr ;
 		Chromosome m_chromosome ;
 		bool m_have_chromosome_column ;
+		std::string m_line ;
 
 		void setup( std::string const& filename, CompressionType compression_type ) ;
 		void setup( std::auto_ptr< std::istream > stream_ptr ) ;

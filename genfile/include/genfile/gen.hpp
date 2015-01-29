@@ -19,7 +19,10 @@
 #include <cmath>
 #include <algorithm>
 #include <stdint.h>
+#include <boost/format.hpp>
 #include "genfile/snp_data_utils.hpp"
+#include "genfile/string_utils/slice.hpp"
+#include "genfile/string_utils/strtod.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/get_set.hpp"
 
@@ -120,29 +123,36 @@ namespace genfile {
 			void read_snp_probability_data(
 				std::istream& inStream,
 				IntegerSetter set_number_of_samples,
-				GenotypeProbabilitySetter set_genotype_probabilities
+				GenotypeProbabilitySetter set_genotype_probabilities,
+				std::string& line
 			) {
-				std::string line ;
+				using namespace string_utils ;
+				//std::string line ;
+				if( inStream.get() != ' ' ) {
+					throw InputError(
+						"inStream",
+						"Expected a space before probabilities."
+					) ;
+				}
 				std::getline( inStream, line ) ;
-				std::istringstream lineStream ;
-				lineStream.str( line ) ;
-
-				// Now read genotype proportions.
-				std::size_t number_of_samples = 0;
-				std::size_t count = 0 ;
-				std::vector< double > d(3) ;
-				while( impl::read_float(lineStream, &(d[count])) ) {
-					count = (count+1) % 3 ;
-					if( count == 0 ) {
-						set_genotype_probabilities( number_of_samples++, d[0], d[1], d[2] ) ;
-					}
+				std::vector< string_utils::slice > elts ;
+				string_utils::slice( line ).split( " ", &elts ) ;
+				if( elts.size() % 3 != 0 ) {
+					throw InputError(
+						"inStream",
+						( boost::format( "Wrong number of elements (%d, not a multiple of 3)" ) % elts.size() ).str()
+					) ;
 				}
-				if( count % 3 != 0 ) {
-					inStream.setstate( std::ios::failbit ) ;
+				std::size_t number_of_samples = 0 ;
+				for( std::size_t i = 0; i < elts.size(); i += 3 ) {
+					set_genotype_probabilities(
+						number_of_samples++,
+						strtod( elts[i] ),
+						strtod( elts[i+1] ),
+						strtod( elts[i+2] )
+					) ;
 				}
-				else {
-					set_number_of_samples( number_of_samples ) ;
-				}
+				set_number_of_samples( number_of_samples ) ;
 			}
 		}
 

@@ -98,7 +98,8 @@ namespace genfile {
 				gen::impl::read_snp_probability_data(
 					source.stream(),
 					set_value( this_data_number_of_samples ),
-					set_genotypes( m_genotypes )
+					set_genotypes( m_genotypes ),
+					source.m_line
 				) ;
 				if( !source ) {
 					throw genfile::MalformedInputError( source.m_filename, source.number_of_snps_read() ) ;
