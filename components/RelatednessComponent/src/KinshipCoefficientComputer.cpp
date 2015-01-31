@@ -113,30 +113,32 @@ namespace impl {
 		return out ;
 	}
 
-	struct ComputeXXtTask
+	struct ComputeXXtTask: public boost::noncopyable
 	{
+		typedef KinshipCoefficientComputer::Computation::Vector Vector ;
+		typedef KinshipCoefficientComputer::Computation::Matrix Matrix ;
+		typedef KinshipCoefficientComputer::Computation::IntegerVector IntegerVector ;
+		typedef KinshipCoefficientComputer::Computation::IntegerMatrix IntegerMatrix ;
 		typedef std::auto_ptr< ComputeXXtTask > UniquePtr ;
 		
 		virtual ~ComputeXXtTask() {}
 
 		virtual void add_data(
-			KinshipCoefficientComputer::Computation::Vector&
-		) {
-			assert(0) ;
-		}
-
-		virtual void add_data(
+			KinshipCoefficientComputer::Computation::Vector&,
 			KinshipCoefficientComputer::Computation::IntegerVector&
-		) {
-			assert(0) ;
-		}
+		) = 0 ;
 
 		virtual void operator()() = 0 ;
+		
+		static UniquePtr create(
+			Matrix* result,
+			IntegerMatrix* counts,
+			SampleBounds const bounds,
+			std::string const& method
+		) ;
 	} ;
 
-	template< typename Vector, typename Matrix >
 	struct ComputeXXtTaskImpl: public ComputeXXtTask {
-		
 		typedef boost::function< void (
 			Vector* data,
 			Matrix* result,
@@ -145,24 +147,39 @@ namespace impl {
 			double const scale
 		) >
 		AccumulateXXt ;
+
+		typedef boost::function< void (
+			IntegerVector* data,
+			IntegerMatrix* result,
+			int const begin_sample_i, int const end_sample_i,
+			int const begin_sample_j, int const end_sample_j,
+			double const scale
+		) >
+		AccumulateXXtInteger ;
 		
 		ComputeXXtTaskImpl(
 			Matrix* result,
+			IntegerMatrix* counts,
 			SampleBounds const bounds,
-			AccumulateXXt accumulate_xxt
+			AccumulateXXt accumulate_xxt,
+			AccumulateXXtInteger accumulate_xxt_integer
 		):
 			m_result( result ),
+			m_counts( counts ),
 			m_bounds( bounds ),
-			m_accumulate_xxt( accumulate_xxt )
+			m_accumulate_xxt( accumulate_xxt ),
+			m_accumulate_xxt_integer( accumulate_xxt_integer )
 		{
 			assert( result ) ;
 			assert( m_accumulate_xxt ) ;
 		}
 
 		void add_data(
-			Vector& data
+			Vector& data,
+			IntegerVector& nonmissingness
 		) {
 			m_data.push_back( &data ) ;
+			m_nonmissingness.push_back( &nonmissingness ) ;
 		}
 
 		std::size_t number_of_snps() const { return m_data.size() ; }
@@ -176,15 +193,77 @@ namespace impl {
 					m_bounds.begin_sample_j, m_bounds.end_sample_j,
 					1.0
 				) ;
+
+				m_accumulate_xxt_integer(
+					m_nonmissingness[ snp_i ],
+					m_counts,
+					m_bounds.begin_sample_i, m_bounds.end_sample_i,
+					m_bounds.begin_sample_j, m_bounds.end_sample_j,
+					1.0
+				) ;
 			}
 		}
 		
 	protected:
 		Matrix* m_result ;
+		IntegerMatrix* m_counts ;
 		SampleBounds const m_bounds ;
 		std::vector< Vector* > m_data ;
+		std::vector< IntegerVector* > m_nonmissingness ;
 		AccumulateXXt m_accumulate_xxt ;
+		AccumulateXXtInteger m_accumulate_xxt_integer ;
 	} ;
+	
+	struct ComputeXXtUsingEigenTask: public ComputeXXtTaskImpl {
+		ComputeXXtUsingEigenTask(
+			Matrix* result,
+			IntegerMatrix* counts,
+			SampleBounds const bounds
+		):
+			ComputeXXtTaskImpl(
+				result, counts, bounds,
+				&impl::accumulate_xxt_using_eigen< Vector, Matrix >, &impl::accumulate_xxt_using_eigen< IntegerVector, IntegerMatrix >
+			)
+		{}
+	} ;
+
+#if HAVE_CBLAS
+	struct ComputeXXtUsingCBlasTask: public ComputeXXtTaskImpl {
+		ComputeXXtUsingCBlasTask(
+			Matrix* result,
+			IntegerMatrix* counts,
+			SampleBounds const bounds
+		):
+			ComputeXXtTaskImpl(
+				result, counts, bounds,
+				&impl::accumulate_xxt_using_cblas, &impl::accumulate_xxt_using_eigen< IntegerVector, IntegerMatrix >
+			)
+		{}
+	} ;
+#endif
+	
+	ComputeXXtTask::UniquePtr ComputeXXtTask::create(
+		Matrix* result,
+		IntegerMatrix* counts,
+		SampleBounds const bounds,
+		std::string const& method
+	) {
+		if( method == "cblas" ) {
+			return ComputeXXtTask::UniquePtr(
+				new ComputeXXtUsingCBlasTask(
+					result, counts, bounds
+				)
+			) ;
+		} else if( method == "eigen" ) {
+			return ComputeXXtTask::UniquePtr(
+				new ComputeXXtUsingEigenTask(
+					result, counts, bounds
+				)
+			) ;
+		} else {
+			assert(0) ;
+		}
+	}
 
 	struct Dispatcher {
 		typedef std::auto_ptr< Dispatcher > UniquePtr ;
@@ -192,6 +271,9 @@ namespace impl {
 		typedef KinshipCoefficientComputer::Computation::Matrix Matrix ;
 		typedef KinshipCoefficientComputer::Computation::IntegerVector IntegerVector ;
 		typedef KinshipCoefficientComputer::Computation::IntegerMatrix IntegerMatrix ;
+		typedef boost::function<
+			ComputeXXtTask::UniquePtr ( Matrix*, IntegerMatrix*, SampleBounds const )
+		> TaskFactory ;
 
 		virtual ~Dispatcher() {}
 		virtual void setup( std::size_t number_of_samples ) = 0 ;
@@ -208,11 +290,12 @@ namespace impl {
 			Matrix& result,
 			IntegerMatrix& nonmissingness,
 			worker::Worker* worker,
-			std::string const& method
+			TaskFactory task_factory
 		):
 			m_result( result ),
 			m_nonmissingness( nonmissingness ),
 			m_worker( worker ),
+			m_task_factory( task_factory ),
 			m_storage( 100, std::make_pair( Vector(), IntegerVector() ) ),
 			m_storage_index( 0 ),
 			m_data_index( 0 )
@@ -220,19 +303,6 @@ namespace impl {
 			,m_pool( m_worker->get_number_of_worker_threads() )
 #endif
 		{
-			if( method == "eigen" ) {
-				m_accumulate_xxt = &impl::accumulate_xxt_using_eigen< Vector, Matrix > ;
-				m_accumulate_xxt_integer = &impl::accumulate_xxt_using_eigen< IntegerVector, IntegerMatrix > ;
-			} else if( method == "cblas" ) {
-#if HAVE_CBLAS
-				m_accumulate_xxt = &impl::accumulate_xxt_using_cblas ;
-				m_accumulate_xxt_integer = &impl::accumulate_xxt_using_eigen< IntegerVector, IntegerMatrix > ;
-#else
-				throw genfile::BadArgumentError( "impl::MultiThreadedDispatcher::MultiThreadedDispatcher()", "method=\"" + method + "\"", "Support for cblas is not compiled in." ) ;
-#endif
-			} else {
-				throw genfile::BadArgumentError( "impl::MultiThreadedDispatcher::MultiThreadedDispatcher()", "method=\"" + method + "\"", "Only methods \"eigen\" and \"cblas\" are supported." ) ;
-			}
 		}
 
 		~MultiThreadedDispatcher() {
@@ -276,7 +346,6 @@ namespace impl {
 						bounds.end_sample_j = bounds.end_sample_i ;
 						m_bounds.push_back( bounds ) ;
 						m_tasks.push_back( 0 ) ;
-						m_tasks.push_back( 0 ) ;
 
 //#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
 					std::cerr << "MultiThreadedDispatcher::setup(): added block " << m_bounds.back() << ".\n" ;
@@ -291,7 +360,6 @@ namespace impl {
 						bounds.end_sample_j = std::ceil((j+0.5)*K) ;
 						m_bounds.push_back( bounds ) ;
 						m_tasks.push_back( 0 ) ;
-						m_tasks.push_back( 0 ) ;
 
 //#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
 					std::cerr << "MultiThreadedDispatcher::setup(): added block " << m_bounds.back() << ".\n" ;
@@ -301,7 +369,6 @@ namespace impl {
 						bounds.end_sample_j = std::min( std::size_t( std::ceil( (j+1)*K ) ), number_of_samples ) ;
 						m_bounds.push_back( bounds ) ;
 						m_tasks.push_back( 0 ) ;
-						m_tasks.push_back( 0 ) ;
 
 //#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
 					std::cerr << "MultiThreadedDispatcher::setup(): added block " << m_bounds.back() << ".\n" ;
@@ -309,7 +376,7 @@ namespace impl {
 					}
 				}
 			}
-			assert( m_tasks.size() == 2 * m_bounds.size() ) ;
+			assert( m_tasks.size() == m_bounds.size() ) ;
 		}
 
 		void get_storage( Vector* data, IntegerVector* nonmissingness ) {
@@ -322,6 +389,7 @@ namespace impl {
 			data->swap( m_storage[ m_storage_index % m_storage.size() ].first ) ;
 			nonmissingness->swap( m_storage[ m_storage_index % m_storage.size() ].second ) ;
 	
+			// Add 20 SNPs at a time before submitting.
 			bool const schedule = ( m_data_index % 20 ) == 0 ;
 			++m_data_index ;
 
@@ -329,35 +397,17 @@ namespace impl {
 				std::size_t const bound_index = task_index ;
 				
 				if( m_tasks.is_null( task_index ) ) {
-					ComputeXXtTask::UniquePtr new_task(
-						new ComputeXXtTaskImpl< Vector, Matrix >(
-							&m_result,
-							m_bounds[ bound_index ],
-							m_accumulate_xxt
-						)
+					ComputeXXtTask::UniquePtr new_task = m_task_factory(
+						&m_result,
+						&m_nonmissingness,
+						m_bounds[ bound_index ]
 					) ;
 					m_tasks.replace( task_index, new_task ) ;
 				}
-				m_tasks[ task_index ].add_data( m_storage[ m_storage_index % m_storage.size() ].first ) ;
-
-				if( schedule ) {
-					m_pool.schedule( boost::bind( &ComputeXXtTask::operator(), &m_tasks[ task_index ] )) ;
-				}
-			}
-			for( std::size_t task_index = m_bounds.size(); task_index < ( 2 * m_bounds.size() ); ++task_index ) {
-				std::size_t const bound_index = task_index % m_bounds.size() ;
-				
-				if( m_tasks.is_null( task_index ) ) {
-					ComputeXXtTask::UniquePtr new_task(
-						new ComputeXXtTaskImpl< IntegerVector, IntegerMatrix >(
-							&m_nonmissingness,
-							m_bounds[ bound_index ],
-							m_accumulate_xxt_integer
-						)
-					) ;
-					m_tasks.replace( task_index, new_task ) ;
-				}
-				m_tasks[ task_index ].add_data( m_storage[ m_storage_index % m_storage.size() ].second ) ;
+				m_tasks[ task_index ].add_data(
+					m_storage[ m_storage_index % m_storage.size() ].first,
+					m_storage[ m_storage_index % m_storage.size() ].second
+				) ;
 
 				if( schedule ) {
 					m_pool.schedule( boost::bind( &ComputeXXtTask::operator(), &m_tasks[ task_index ] )) ;
@@ -380,6 +430,7 @@ namespace impl {
 		Matrix& m_result ;
 		IntegerMatrix& m_nonmissingness ;
 		worker::Worker* m_worker ;
+		TaskFactory m_task_factory ;
 		std::vector< SampleBounds > m_bounds ;
 		boost::ptr_deque< boost::nullable< ComputeXXtTask > > m_tasks ;
 		std::vector<
@@ -413,7 +464,10 @@ namespace impl {
 				m_result,
 				m_nonmissingness,
 				worker,
-				method
+				boost::bind(
+					&ComputeXXtTask::create,
+					_1, _2, _3, method
+				)
 			)
 		)
 	{}
@@ -426,8 +480,11 @@ namespace impl {
 		m_nonmissingness.setZero( number_of_samples, number_of_samples ) ;
 		m_dispatcher->setup( number_of_samples ) ;
 	}
-		
-	void NormaliseGenotypesAndComputeXXt::processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) {
+	
+	void NormaliseGenotypesAndComputeXXt::processed_snp(
+		genfile::SNPIdentifyingData const& id_data,
+		genfile::VariantDataReader::SharedPtr data_reader
+	) {
 		KinshipCoefficientComputer::Computation::Vector genotypes ;
 		KinshipCoefficientComputer::Computation::IntegerVector nonmissingness ;
 
