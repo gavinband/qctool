@@ -275,6 +275,7 @@ namespace impl {
 		virtual void setup( std::size_t number_of_samples ) = 0 ;
 		virtual void get_storage( Vector* data, IntegerVector* nonmissingness ) = 0 ;
 		virtual void add_data( Vector* data, IntegerVector* nonmissingness ) = 0 ;
+		virtual void finalise() = 0 ;
 		virtual void wait_until_complete() = 0 ;
 	} ;
 
@@ -334,29 +335,49 @@ namespace impl {
 	}
 
 
-	std::vector< SampleBounds > get_matrix_lower_diagonal_strip_tiling( std::size_t d, std::size_t B ) {
+	std::vector< SampleBounds > get_matrix_lower_diagonal_vertical_strip_tiling( std::size_t d, std::size_t const strip_width ) {
 		std::vector< SampleBounds > result ;
 //#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
-		std::cerr << "get_matrix_lower_diagonal_strip_tiling: " << d << "x" << d << " matrix" ;
+		std::cerr << "get_matrix_lower_diagonal_vertical_strip_tiling: " << d << "x" << d << " matrix" ;
 //#endif
-		std::size_t const stride = 10 ;
 		// Set up some initial tasks.
 		// Do j (the column) as the outer loop
 		// so that tasks go in column-major direction.
-		for( std::size_t i = 0; i < d; i += stride ) {
+		for( std::size_t i = 0; i < d; i += strip_width ) {
 			SampleBounds bounds ;
 			bounds.begin_sample_i = i ;
 			bounds.end_sample_i = d ;
 			bounds.begin_sample_j = i ;
-			bounds.end_sample_j = std::min( i+stride, d ) ;
+			bounds.end_sample_j = std::min( i+strip_width, d ) ;
 			result.push_back( bounds ) ;
 		}
 //#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
-		std::cerr << "get_matrix_lower_diagonal_strip_tiling: tiling has " << result.size() << " blocks in total.\n" ;
+		std::cerr << "get_matrix_lower_diagonal_vertical_strip_tiling: tiling has " << result.size() << " blocks in total.\n" ;
 //#endif
 		return result ;
 	}
 	
+	std::vector< SampleBounds > get_matrix_lower_diagonal_horizontal_strip_tiling( std::size_t d, std::size_t const strip_width ) {
+		std::vector< SampleBounds > result ;
+//#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+		std::cerr << "get_matrix_lower_diagonal_horizontal_strip_tiling: " << d << "x" << d << " matrix" ;
+//#endif
+		// Set up some initial tasks.
+		// Do j (the column) as the outer loop
+		// so that tasks go in column-major direction.
+		for( std::size_t i = 0; i < d; i += strip_width ) {
+			SampleBounds bounds ;
+			bounds.begin_sample_i = i ;
+			bounds.end_sample_i = i + strip_width ;
+			bounds.begin_sample_j = 0 ;
+			bounds.end_sample_j = std::min( i+strip_width, d ) ;
+			result.push_back( bounds ) ;
+		}
+//#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+		std::cerr << "get_matrix_lower_diagonal_horizontal_strip_tiling: tiling has " << result.size() << " blocks in total.\n" ;
+//#endif
+		return result ;
+	}
 	struct MultiThreadedDispatcher: public Dispatcher {
 		typedef void (*accumulate_xxt_t)( Vector*, Matrix*, int const begin_sample_i, int const end_sample_i, int const begin_sample_j, int const end_sample_j, double const ) ;
 		typedef void (*accumulate_xxt_integer_t)( IntegerVector*, IntegerMatrix*, int const begin_sample_i, int const end_sample_i, int const begin_sample_j, int const end_sample_j, double const ) ;
@@ -385,9 +406,9 @@ namespace impl {
 		
 		void setup( std::size_t number_of_samples ) {
 			// If there are N worker threads go for about two jobs per thread.
-			std::size_t N = 2 * std::sqrt( m_worker->get_number_of_worker_threads() ) ;
+			std::size_t numberOfTasks = 2 * std::sqrt( m_worker->get_number_of_worker_threads() ) ;
 
-			m_bounds = get_matrix_lower_diagonal_tiling( number_of_samples, N ) ;
+			m_bounds = get_matrix_lower_diagonal_tiling( number_of_samples, numberOfTasks ) ;
 			for( std::size_t i = 0; i < m_bounds.size(); ++i ) {
 				m_tasks.push_back( 0 ) ;
 			}
@@ -437,6 +458,19 @@ namespace impl {
 			++m_storage_index ;
 		}
 	
+		void finalise() {
+			if( m_storage_index % m_storage.size() > 0 ) {
+				// we have unprocessed data.
+				for( std::size_t task_index = 0; task_index < m_bounds.size(); ++task_index ) {
+					m_pool.schedule( boost::bind( &ComputeXXtTask::operator(), &m_tasks[ task_index ] )) ;
+				}
+				m_pool.wait() ;
+				for( std::size_t i = 0; i < m_tasks.size(); ++i ) {
+					m_tasks.replace( i, 0 ) ;
+				}
+			}
+		}
+
 		void wait_until_complete() {
 		}
 
@@ -526,7 +560,7 @@ namespace impl {
 	}
 	
 	void NormaliseGenotypesAndComputeXXt::end_processing_snps() {
-		m_dispatcher->wait_until_complete() ;
+		m_dispatcher->finalise() ;
 		m_result.array() /= m_nonmissingness.array().cast< double >() ;
 	}
 	
@@ -565,7 +599,7 @@ void KinshipCoefficientComputer::end_processing_snps() {
 		+ "\nNumber of samples: "
 		+ genfile::string_utils::to_string( m_samples.get_number_of_individuals() )
 	;
-#if 1
+#if 0
 	send_results(
 		m_computation->nonmissingness().cast< double >(),
 		m_computation->result().cast< double >(),
@@ -663,7 +697,7 @@ namespace impl {
 		m_nonmissingness.setZero() ;
 		std::size_t numberOfTasks = m_worker->get_number_of_worker_threads() ;
 #if 0
-		m_matrix_tiling = get_matrix_lower_diagonal_strip_tiling( number_of_samples, numberOfTasks ) ;
+		m_matrix_tiling = get_matrix_lower_diagonal_vertical_strip_tiling( number_of_samples, 1 ) ;
 #else
 		m_matrix_tiling = get_matrix_lower_diagonal_tiling(
 			number_of_samples,

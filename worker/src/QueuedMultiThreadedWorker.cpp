@@ -17,7 +17,7 @@ namespace worker
 		: m_global_state( e_GlobalProcessing ),
 		  m_thread_states( number_of_threads, e_Processing ),
 		  m_tasks_completed( number_of_threads, 0 ),
-		  m_max_queue_size( 10000 )
+		  m_max_queue_size( 100000 )
 	{
 		for( std::size_t i = 0; i < number_of_threads; ++i ) {
 			m_thread_group.create_thread(

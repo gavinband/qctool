@@ -30,9 +30,6 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 	options[ "-kinship" ]
 		.set_description( "Perform kinship computation using threshholded genotype calls and cblas or Eigen libraries." )
 		.set_takes_single_value() ;
-	options[ "-fast-kinship" ]
-		.set_description( "Perform fast kinship computation using threshholded genotype calls." )
-		.set_takes_single_value() ;
 	options[ "-sample-concordance" ]
 		.set_description( "Compute concordance between all pairs of samples, using threshholded genotype calls." )
 		.set_takes_single_value() ;
@@ -67,12 +64,18 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 	options[ "-PCA-exclusions" ]
 		.set_description( "Output a list of exclusions based on outliers in the first N PCA components." )
 		.set_takes_single_value() ;
-	options[ "-use-eigen" ]
-		.set_description( "Don't use lapack to perform computations. "
-			"Usually this means to use the Eigen library (http://eigen.tuxfamily.org) instead." ) ;
+	options[ "-kinship-method" ]
+		.set_description( "Method to use for relatedness matrix computation."
+			"The default is \"lookup-table\", which uses a lookup table to compute kinship values across"
+			" several SNPs at a time.  This is usually fastest.  Alternatives are \"cblas\""
+			" or \"eigen\", which use those linear algebra libraries to compute the matrix."
+		)
+		.set_takes_single_value()
+		.set_default_value( "lookup-table" )
+	;
 
 	options.option_implies_option( "-kinship", "-s" ) ;
-	options.option_implies_option( "-fast-kinship", "-s" ) ;
+	options.option_implies_option( "-kinship-method", "-kinship" ) ;
 	options.option_implies_option( "-load-kinship", "-s" ) ;
 	options.option_implies_option( "-UDUT", "-load-kinship" ) ;
 	options.option_implies_option( "-nPCAs", "-PCAs" ) ;
@@ -133,19 +136,35 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 		_1
 	) ;
 	if( m_options.check( "-kinship" )) {
+		KinshipCoefficientComputer::Computation::UniquePtr computation ;
+		std::string const& method = m_options.get< std::string >( "-kinship-method" ) ;
+		if( method == "cblas" ) {
+			computation.reset(
+				impl::NormaliseGenotypesAndComputeXXt::create( m_worker, "cblas" ).release()
+			) ;
+		} else if( method == "eigen" ) {
+			computation.reset(
+				impl::NormaliseGenotypesAndComputeXXt::create( m_worker, "eigen" ).release()
+			) ;
+		} else if( method == "lookup-table" ) {
+			computation.reset(
+				impl::NormaliseGenotypesAndComputeXXtFast::create(
+					m_worker, 4
+				).release()
+			) ;
+		} else {
+			throw genfile::BadArgumentError(
+				"RelatednessComponent::setup()",
+				"-method " + method,
+				"Method must be \"fast\", \"cblas\", or \"eigen\""
+			) ;
+		}
 		KinshipCoefficientComputer::UniquePtr result(
 			new KinshipCoefficientComputer(
 				m_options,
 				m_samples,
 				m_ui_context,
-				impl::NormaliseGenotypesAndComputeXXt::create(
-					m_worker,
-#if HAVE_CBLAS
-					m_options.check( "-use-eigen" ) ? "eigen" : "cblas"
-#else
-					"eigen"
-#endif
-				)
+				computation
 			)
 		) ;
 		result->send_results_to(
@@ -161,29 +180,6 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 		) ;
 	}
 
-	if( m_options.check( "-fast-kinship" )) {
-		KinshipCoefficientComputer::UniquePtr result(
-			new KinshipCoefficientComputer(
-				m_options,
-				m_samples,
-				m_ui_context,
-				impl::NormaliseGenotypesAndComputeXXtFast::create(
-					m_worker, 4
-				)
-			)
-		) ;
-		result->send_results_to(
-			boost::bind(
-				&pca::write_matrix_lower_diagonals_in_long_form,
-				m_options.get< std::string >( "-fast-kinship" ),
-				_1, _2, _3, _4,
-				get_ids, get_ids
-			)
-		) ;
-		processor.add_callback(
-			genfile::SNPDataSourceProcessor::Callback::UniquePtr( result.release() )
-		) ;
-	}
 		#if 0
 	if( m_options.check( "-sample-concordance" )) {
 		KinshipCoefficientComputer::UniquePtr result(
