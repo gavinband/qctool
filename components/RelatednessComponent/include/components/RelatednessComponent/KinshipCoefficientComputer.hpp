@@ -7,6 +7,7 @@
 #ifndef COMPONENTS_RELATEDNESS_COMPONENT_KINSHIPCOEFFICIENTCOMPUTATION_HPP
 #define COMPONENTS_RELATEDNESS_COMPONENT_KINSHIPCOEFFICIENTCOMPUTATION_HPP
 
+#include <stdint.h>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/signals2.hpp>
 #include "Eigen/Core"
@@ -145,13 +146,14 @@ namespace impl {
 		NTaskDispatcher::UniquePtr m_dispatcher ;
 		double const m_call_threshhold ;
 		double const m_allele_frequency_threshhold ;
+		std::size_t const m_number_of_snps_per_chunk ;
 		std::size_t const m_number_of_snps_per_computation ;
-		std::vector< double > m_lookup_table ;
-		std::vector< int > m_nonmissingness_lookup_table ;
+		std::vector< std::vector< double > > m_lookup_tables ;
+		std::vector< std::vector< int > > m_nonmissingness_lookup_tables ;
 		std::vector< SampleBounds > m_matrix_tiling ;
-		std::vector< std::size_t > m_combined_genotypes ;
-		std::vector< std::size_t > m_per_snp_genotypes ;
-		std::size_t m_number_of_snps_included ;
+		std::vector< uint64_t > m_combined_genotypes ;
+		std::vector< uint64_t > m_per_snp_genotypes ;
+		std::size_t m_snp_count ;
 		Computation::Matrix m_result ;
 		Computation::IntegerMatrix m_nonmissingness ;
 	private:
@@ -164,16 +166,12 @@ namespace impl {
 		) ;
 
 		void submit_tasks(
-			std::vector< double > const& lookup_table,
-			std::vector< int > const& missingness_lookup_table,
-			std::vector< std::size_t > const& genotypes
+			std::vector< uint64_t > const& genotypes
 		) ;
 			
 		void compute_block(
 			SampleBounds const& sample_bounds,
-			std::vector< std::size_t > const& genotypes,
-			std::vector< double > const& lookup_table,
-			std::vector< int > const& missingness_lookup_table
+			std::vector< uint64_t > const& genotypes
 		) ;
 	} ;
 }

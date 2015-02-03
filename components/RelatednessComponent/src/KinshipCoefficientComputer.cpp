@@ -36,7 +36,7 @@
 
 #include "boost/threadpool.hpp"
 
-//#define DEBUG_KINSHIP_COEFFICIENT_COMPUTER 2
+// #define DEBUG_KINSHIP_COEFFICIENT_COMPUTER 2
 #define USING_BOOST_THREADPOOL 1
 
 namespace impl {
@@ -297,8 +297,8 @@ namespace impl {
 		double K = double( d ) / N ;
 //#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
 		std::cerr << "get_matrix_lower_diagonal_tiling: " << d << "x" << d << " matrix, "
-			<< N << " blocks across top row, "
-			<< N*(N-1) << " blocks on lower diagonal.\n" ;
+			<< N << " blocks across diagonal, "
+			<< N*(N-1) << " blocks in lower triangle.\n" ;
 //#endif
 		// Set up some initial tasks.
 		// Do j (the column) as the outer loop
@@ -489,8 +489,6 @@ namespace impl {
 		> m_storage ;
 		std::size_t m_storage_index ;
 		std::size_t m_data_index ;
-		accumulate_xxt_t m_accumulate_xxt ;
-		accumulate_xxt_integer_t m_accumulate_xxt_integer ;
 #if USING_BOOST_THREADPOOL
 		boost::threadpool::pool m_pool ;
 #endif
@@ -577,46 +575,6 @@ namespace impl {
 	}
 }
 
-KinshipCoefficientComputer::KinshipCoefficientComputer(
-	appcontext::OptionProcessor const& options,
-	genfile::CohortIndividualSource const& samples,
-	appcontext::UIContext& ui_context,
-	Computation::UniquePtr computation
-):
-	m_options( options ),
-	m_ui_context( ui_context ),
-	m_samples( samples ),
-	m_computation( computation )
-{
-	assert( m_computation.get() ) ;
-}
-
-void KinshipCoefficientComputer::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& metadata ) {
-	m_computation->begin_processing_snps( number_of_samples, metadata ) ;
-}
-
-void KinshipCoefficientComputer::processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) {
-	m_computation->processed_snp( id_data, data_reader ) ;
-}
-
-void KinshipCoefficientComputer::end_processing_snps() {
-	m_computation->end_processing_snps() ;
-
-	std::string description = "Number of SNPs: "
-		+ genfile::string_utils::to_string( m_computation->number_of_snps_included() )
-		+ "\nNumber of samples: "
-		+ genfile::string_utils::to_string( m_samples.get_number_of_individuals() )
-	;
-#if 0
-	send_results(
-		m_computation->nonmissingness().cast< double >(),
-		m_computation->result().cast< double >(),
-		"KinshipCoefficientComputer",
-		description
-	) ;
-	#endif
-}
-
 namespace impl {
 	NTaskDispatcher::NTaskDispatcher(
 		worker::Worker* worker
@@ -669,18 +627,18 @@ namespace impl {
 
 	NormaliseGenotypesAndComputeXXtFast::NormaliseGenotypesAndComputeXXtFast(
 		worker::Worker* worker,
-		std::size_t const number_of_snps_per_computation
+		std::size_t const number_of_snps_per_chunk
 	):
 		m_worker( worker ),
 		m_dispatcher( new NTaskDispatcher( worker ) ),
 		m_call_threshhold( 0.9 ),
 		m_allele_frequency_threshhold( 0.001 ),
-		m_number_of_snps_per_computation( number_of_snps_per_computation )
+		m_number_of_snps_per_chunk( number_of_snps_per_chunk ),
+		m_number_of_snps_per_computation( 4 * number_of_snps_per_chunk )
 	{
-		// We allocate lookup exactly once, here.
-		// The size must be a power of 4.
-		m_lookup_table.resize( std::pow( 4, 2 * m_number_of_snps_per_computation ), 0.0 ) ;
-		m_nonmissingness_lookup_table.resize( std::pow( 4, 2 * m_number_of_snps_per_computation ), 1 ) ;
+		// We allocate lookup tables exactly once, here.
+		m_lookup_tables.resize( 4, std::vector< double >( std::pow( 4, 2 * m_number_of_snps_per_chunk ), 0.0 ) ) ;
+		m_nonmissingness_lookup_tables.resize( 4, std::vector< int >( std::pow( 4, 2 * m_number_of_snps_per_chunk ), 0.0 ) ) ;
 	}
 
 	NormaliseGenotypesAndComputeXXtFast::Matrix const& NormaliseGenotypesAndComputeXXtFast::result() const {
@@ -692,7 +650,7 @@ namespace impl {
 	}
 
 	std::size_t NormaliseGenotypesAndComputeXXtFast::number_of_snps_included() const {
-		return m_number_of_snps_included ;
+		return m_snp_count ;
 	}
 
 	std::string NormaliseGenotypesAndComputeXXtFast::get_summary() const {
@@ -700,11 +658,13 @@ namespace impl {
 			boost::format(
 				"NormaliseGenotypesAndComputeXXtFast():\n"
 				" - %d SNPs per chunk\n"
-				" - lookup table size: %d\n"
+				" - %d chunks per array acces\n"
+				" - four lookup tables of size: %d\n"
 				" - minimum allele frequency: %.3f"
 			)
-				% m_number_of_snps_per_computation
-				% m_lookup_table.size()
+				% m_number_of_snps_per_chunk
+				% (m_number_of_snps_per_computation / m_number_of_snps_per_chunk)
+				% m_lookup_tables[0].size()
 				% m_allele_frequency_threshhold
 		).str()
 		;
@@ -729,7 +689,7 @@ namespace impl {
 		m_dispatcher->set_number_of_tasks( m_matrix_tiling.size() ) ;
 		m_combined_genotypes.resize( number_of_samples, 0 ) ;
 		m_per_snp_genotypes.resize( number_of_samples, 0 ) ;
-		m_number_of_snps_included = 0 ;
+		m_snp_count = 0 ;
 	}
 
 	namespace impl {
@@ -785,14 +745,20 @@ namespace impl {
 		allele_frequency /= ( nonmissing_count * 2.0 ) ;
 		if( std::min( allele_frequency, 1.0 - allele_frequency ) > m_allele_frequency_threshhold ) {
 			// Ok we will process this SNP.
-			// The three mean-centered genotype levels are 0 (for missing level), -2f, 1-2f, 2-2f
-			// We must build a table that handles this.
-			// We do this by expanding the table four times (once for each genotype class) on each SNP.
-			// 
-			std::size_t const lookup_snp_index = m_number_of_snps_included % m_number_of_snps_per_computation ;
+			// We batch SNPs together to form a total of m_number_of_snps_per_computation SNPs.
+			// This means we visit the result matrix (which for large samples won't fit in cache)
+			// as few times as possible.
+			// Here we are not quite as efficient as plink: I use four bits instead of three to
+			// encode the two genotypes.
+			std::size_t const lookup_snp_index = m_snp_count % m_number_of_snps_per_computation ;
 			if( lookup_snp_index == 0 ) {
 				m_dispatcher->wait_until_complete() ;
 				std::copy( m_per_snp_genotypes.begin(), m_per_snp_genotypes.end(), m_combined_genotypes.begin() ) ;
+				// Clear the lookup tables
+				for( std::size_t i = 0; i < m_lookup_tables.size(); ++i ) {
+					std::fill( m_lookup_tables[i].begin(), m_lookup_tables[i].end(), 0.0 ) ;
+					std::fill( m_nonmissingness_lookup_tables[i].begin(), m_nonmissingness_lookup_tables[i].end(), 0.0 ) ;
+				}
 			} else {
 				// We allow 4 bits per genotype, although each genotype takes up only the lower two bits.
 				// This allows us to encode pairs of genotypes in consecutive pairs of bits
@@ -802,26 +768,37 @@ namespace impl {
 				}
 			}
 
+			std::size_t const lookup_table_index = ( m_snp_count % m_number_of_snps_per_computation ) / m_number_of_snps_per_chunk ;
 			double const mean = 2.0 * allele_frequency ;
 			double const sd = std::sqrt( ( 2.0 * allele_frequency * ( 1.0 - allele_frequency )) ) ;
+#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+			std::cerr << "NormaliseGenotypesAndComputeXXtFast::processed_snp(): filling lookup table " << lookup_table_index << ".\n" ;
+#endif
+			
 			add_snp_to_lookup_table(
-				lookup_snp_index,
+				lookup_snp_index % m_number_of_snps_per_chunk,
 				mean, sd,
-				&m_lookup_table,
-				&m_nonmissingness_lookup_table
+				&m_lookup_tables[ lookup_table_index ],
+				&m_nonmissingness_lookup_tables[ lookup_table_index ]
 			) ;
 
-			++m_number_of_snps_included ;
+			++m_snp_count ;
 #if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
 			boost::format fmt( "%.2f" ) ;
-			std::cerr << "NormaliseGenotypesAndComputeXXtFast::processed_snp(): number_of_snps_included: " << m_number_of_snps_included << ".\n" ;
+			std::cerr << "NormaliseGenotypesAndComputeXXtFast::processed_snp(): m_snp_count: " << m_snp_count << ".\n" ;
 			std::cerr << "NormaliseGenotypesAndComputeXXtFast::processed_snp(): allele_frequency: " << fmt % allele_frequency << ".\n" ;
 			std::cerr << "NormaliseGenotypesAndComputeXXtFast::processed_snp(): mean: " << fmt % mean << ", sd = " << fmt % sd << ".\n" ;
-			print_lookup_table( std::cerr, m_lookup_table, 256 ) ;
+			print_lookup_table( std::cerr, m_lookup_tables[0], 32 ) ;
+			print_lookup_table( std::cerr, m_lookup_tables[1], 32 ) ;
+			print_lookup_table( std::cerr, m_lookup_tables[2], 32 ) ;
+			print_lookup_table( std::cerr, m_lookup_tables[3], 32 ) ;
 			//print_lookup_table( std::cerr, m_nonmissingness_lookup_table, 256 ) ;
 #endif
-			if( m_number_of_snps_included % m_number_of_snps_per_computation == 0 ) {
-				submit_tasks( m_lookup_table, m_nonmissingness_lookup_table, m_combined_genotypes ) ;
+			if( m_snp_count % m_number_of_snps_per_computation == 0 ) {
+#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+			std::cerr << "NormaliseGenotypesAndComputeXXtFast::processed_snp(): submitting tasks...\n" ;
+#endif
+				submit_tasks( m_combined_genotypes ) ;
 			}
 		}
 	}
@@ -886,9 +863,7 @@ namespace impl {
 	}
 
 	void NormaliseGenotypesAndComputeXXtFast::submit_tasks(
-		std::vector< double > const& lookup_table,
-		std::vector< int > const& nonmissingness_lookup_table,
-		std::vector< std::size_t > const& genotypes
+		std::vector< uint64_t > const& genotypes
 	) {
 		for( std::size_t tile_i = 0; tile_i < m_matrix_tiling.size(); ++tile_i ) {
 	#if 1
@@ -898,9 +873,7 @@ namespace impl {
 					&NormaliseGenotypesAndComputeXXtFast::compute_block,
 					this,
 					boost::cref( m_matrix_tiling[ tile_i ] ),
-					boost::cref( genotypes ),
-					boost::cref( m_lookup_table ),
-					boost::cref( m_nonmissingness_lookup_table )
+					boost::cref( genotypes )
 				)
 			) ;
 	#else
@@ -910,8 +883,8 @@ namespace impl {
 	}
 
 	void NormaliseGenotypesAndComputeXXtFast::end_processing_snps() {
-		if( m_number_of_snps_included % m_number_of_snps_per_computation > 0 ) {
-			submit_tasks( m_lookup_table, m_nonmissingness_lookup_table, m_combined_genotypes ) ;
+		if( m_snp_count % m_number_of_snps_per_computation > 0 ) {
+			submit_tasks( m_combined_genotypes ) ;
 		}
 		m_dispatcher->wait_until_complete() ;
 		m_result.array() /= m_nonmissingness.array().cast< double >() ;
@@ -919,27 +892,67 @@ namespace impl {
 
 	void NormaliseGenotypesAndComputeXXtFast::compute_block(
 		SampleBounds const& sample_bounds,
-		std::vector< std::size_t > const& genotypes,
-		std::vector< double > const& lookup_table,
-		std::vector< int > const& nonmissingness_lookup_table
+		std::vector< uint64_t > const& genotypes
 	) {
-#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
-		std::cerr << "NormaliseGenotypesAndComputeXXtFast::compute_block(): computing block for " << sample_bounds << ".\n" ;
-		std::cerr << "NormaliseGenotypesAndComputeXXtFast::compute_block(): e.g. for samples "
-			<< sample_bounds.begin_sample_i << " and " << sample_bounds.begin_sample_j << ":\n"
-			<< "lookup_table[" << genotypes[sample_bounds.begin_sample_i] << "] * lookup_table[" << genotypes[sample_bounds.begin_sample_j] << "] = "
-			<< lookup_table[ genotypes[sample_bounds.begin_sample_i] ] << " * " << lookup_table[ genotypes[sample_bounds.begin_sample_j] ] << ".\n" ;
-				
-#endif		
 		// only compute the lower diagonal.
 		// We also want to make the function go down the rows of the result
 		// in the inner loop, since it's stored column-major, so put row index in the inner loop.
 		for( std::size_t j = sample_bounds.begin_sample_j; j < sample_bounds.end_sample_j; ++j ) {
 			for( std::size_t i = std::max( j, std::size_t( sample_bounds.begin_sample_i ) ); i < sample_bounds.end_sample_i; ++i ) {
-				std::size_t const lookup_index = ( genotypes[i] << 2 ) + genotypes[j] ;
-				m_result(i,j) += lookup_table[ lookup_index ] ;
-				m_nonmissingness(i,j) += nonmissingness_lookup_table[ lookup_index ] ;
+				uint64_t const combined_genotype = ( genotypes[i] << 2 ) + genotypes[j] ;
+				std::size_t const lookup_index0 = combined_genotype & 0xFFFF ;
+				std::size_t const lookup_index1 = ( combined_genotype >> 16 ) & 0xFFFF ;
+				std::size_t const lookup_index2 = ( combined_genotype >> 32 ) & 0xFFFF ;
+				std::size_t const lookup_index3 = ( combined_genotype >> 48 ) & 0xFFFF ;
+				m_result(i,j) += m_lookup_tables[0][ lookup_index0 ] ;
+				m_result(i,j) += m_lookup_tables[1][ lookup_index1 ] ;
+				m_result(i,j) += m_lookup_tables[2][ lookup_index2 ] ;
+				m_result(i,j) += m_lookup_tables[3][ lookup_index3 ] ;
+				m_nonmissingness(i,j) += m_nonmissingness_lookup_tables[0][ lookup_index0 ] ;
+				m_nonmissingness(i,j) += m_nonmissingness_lookup_tables[1][ lookup_index1 ] ;
+				m_nonmissingness(i,j) += m_nonmissingness_lookup_tables[2][ lookup_index2 ] ;
+				m_nonmissingness(i,j) += m_nonmissingness_lookup_tables[3][ lookup_index3 ] ;
 			}
 		}
 	}
+}
+
+KinshipCoefficientComputer::KinshipCoefficientComputer(
+	appcontext::OptionProcessor const& options,
+	genfile::CohortIndividualSource const& samples,
+	appcontext::UIContext& ui_context,
+	Computation::UniquePtr computation
+):
+	m_options( options ),
+	m_ui_context( ui_context ),
+	m_samples( samples ),
+	m_computation( computation )
+{
+	assert( m_computation.get() ) ;
+}
+
+void KinshipCoefficientComputer::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& metadata ) {
+	m_computation->begin_processing_snps( number_of_samples, metadata ) ;
+}
+
+void KinshipCoefficientComputer::processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) {
+	m_computation->processed_snp( id_data, data_reader ) ;
+}
+
+void KinshipCoefficientComputer::end_processing_snps() {
+	m_computation->end_processing_snps() ;
+
+	std::string description = "Number of SNPs: "
+		+ genfile::string_utils::to_string( m_computation->number_of_snps_included() )
+		+ "\nNumber of samples: "
+		+ genfile::string_utils::to_string( m_samples.get_number_of_individuals() )
+	;
+#if 0
+	send_results(
+		m_computation->nonmissingness().cast< double >(),
+		m_computation->result().cast< double >(),
+		"KinshipCoefficientComputer",
+		description
+	) ;
+	#endif
 }
