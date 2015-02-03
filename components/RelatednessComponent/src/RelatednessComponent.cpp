@@ -159,6 +159,9 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 				"Method must be \"fast\", \"cblas\", or \"eigen\""
 			) ;
 		}
+		
+		m_ui_context.logger() << "RelatednessComponent::setup(): using computation: " << computation->get_summary() << ".\n" ;
+
 		KinshipCoefficientComputer::UniquePtr result(
 			new KinshipCoefficientComputer(
 				m_options,

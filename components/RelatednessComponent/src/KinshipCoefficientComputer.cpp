@@ -523,6 +523,14 @@ namespace impl {
 	KinshipCoefficientComputer::Computation::Matrix const& NormaliseGenotypesAndComputeXXt::result() const { return m_result ; }
 	KinshipCoefficientComputer::Computation::IntegerMatrix const& NormaliseGenotypesAndComputeXXt::nonmissingness() const { return m_nonmissingness ; }
 
+	std::string NormaliseGenotypesAndComputeXXt::get_summary() const {
+		return (
+			boost::format( "NormaliseGenotypesAndComputeXXt( min allele frequency %.3f)" )
+			% m_allele_frequency_threshhold
+		).str()
+		;
+	}
+
 	void NormaliseGenotypesAndComputeXXt::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) {
 		m_result.setZero( number_of_samples, number_of_samples ) ;
 		m_nonmissingness.setZero( number_of_samples, number_of_samples ) ;
@@ -687,6 +695,20 @@ namespace impl {
 		return m_number_of_snps_included ;
 	}
 
+	std::string NormaliseGenotypesAndComputeXXtFast::get_summary() const {
+		return (
+			boost::format(
+				"NormaliseGenotypesAndComputeXXtFast():\n"
+				" - %d SNPs per chunk\n"
+				" - lookup table size: %d\n"
+				" - minimum allele frequency: %.3f"
+			)
+				% m_number_of_snps_per_computation
+				% m_lookup_table.size()
+				% m_allele_frequency_threshhold
+		).str()
+		;
+	}
 	void NormaliseGenotypesAndComputeXXtFast::begin_processing_snps(
 		std::size_t number_of_samples,
 		genfile::SNPDataSource::Metadata const&
