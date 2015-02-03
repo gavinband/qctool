@@ -30,6 +30,9 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 	options[ "-kinship" ]
 		.set_description( "Perform kinship computation using threshholded genotype calls and cblas or Eigen libraries." )
 		.set_takes_single_value() ;
+	options[ "-fast-kinship" ]
+		.set_description( "Perform fast kinship computation using threshholded genotype calls." )
+		.set_takes_single_value() ;
 	options[ "-sample-concordance" ]
 		.set_description( "Compute concordance between all pairs of samples, using threshholded genotype calls." )
 		.set_takes_single_value() ;
@@ -69,6 +72,7 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 			"Usually this means to use the Eigen library (http://eigen.tuxfamily.org) instead." ) ;
 
 	options.option_implies_option( "-kinship", "-s" ) ;
+	options.option_implies_option( "-fast-kinship", "-s" ) ;
 	options.option_implies_option( "-load-kinship", "-s" ) ;
 	options.option_implies_option( "-UDUT", "-load-kinship" ) ;
 	options.option_implies_option( "-nPCAs", "-PCAs" ) ;
@@ -148,6 +152,30 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 			boost::bind(
 				&pca::write_matrix_lower_diagonals_in_long_form,
 				m_options.get< std::string >( "-kinship" ),
+				_1, _2, _3, _4,
+				get_ids, get_ids
+			)
+		) ;
+		processor.add_callback(
+			genfile::SNPDataSourceProcessor::Callback::UniquePtr( result.release() )
+		) ;
+	}
+
+	if( m_options.check( "-fast-kinship" )) {
+		KinshipCoefficientComputer::UniquePtr result(
+			new KinshipCoefficientComputer(
+				m_options,
+				m_samples,
+				m_ui_context,
+				impl::NormaliseGenotypesAndComputeXXtFast::create(
+					m_worker, 4
+				)
+			)
+		) ;
+		result->send_results_to(
+			boost::bind(
+				&pca::write_matrix_lower_diagonals_in_long_form,
+				m_options.get< std::string >( "-fast-kinship" ),
 				_1, _2, _3, _4,
 				get_ids, get_ids
 			)

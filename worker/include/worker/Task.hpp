@@ -7,6 +7,7 @@
 #ifndef WORKER_TASK_HPP
 #define WORKER_TASK_HPP
 
+#include <memory>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition.hpp>
 
@@ -21,6 +22,8 @@ namespace worker {
 	public:
 		Task() ;
 		virtual ~Task() {} ;
+		
+		typedef std::auto_ptr< Task > UniquePtr ;
 
 	protected:
 		virtual void operator()() = 0 ;

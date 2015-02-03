@@ -169,14 +169,41 @@ namespace genfile {
 		} ;
 
 		// Genotype setter which stores hard genotype calls as integers with specified values for each genotype.
-		template<>
-		struct ThreshholdingGenotypeSetter< std::vector< int > >: public GenotypeSetterBase
+		template< typename T >
+		struct ThreshholdingGenotypeSetter< std::vector< T > >: public GenotypeSetterBase
 		{
-			ThreshholdingGenotypeSetter( std::vector< int >& result, double threshhold, int missing_value = -1, int AA_value = 0, int AB_value = 1, int BB_value = 2 ) ;
-			void set_number_of_samples( std::size_t n ) ;
-			void set( std::size_t sample_i, double AA, double AB, double BB ) ;
+			ThreshholdingGenotypeSetter( std::vector< T >& result, double threshhold, T missing_value = -1, T AA_value = 0, T AB_value = 1, T BB_value = 2 ):
+				GenotypeSetterBase( "identity" ),
+				m_result( result ),
+				m_missing_value( missing_value ),
+				m_AA_value( AA_value ),
+				m_AB_value( AB_value ),
+				m_BB_value( BB_value ),
+				m_threshhold( threshhold )
+			{}
+				
+			void set_number_of_samples( std::size_t n ) {
+				m_result.clear() ;
+				m_result.resize( n, -1 ) ;
+				GenotypeSetterBase::set_number_of_samples( n ) ;
+			}
+			
+			void set( std::size_t sample_i, double AA, double AB, double BB ) {
+				if( AA > m_threshhold ) {
+					m_result[ sample_i ] = m_AA_value ;
+				}
+				else if( AB > m_threshhold ) {
+					m_result[ sample_i ] = m_AB_value ;
+				}
+				else if( BB > m_threshhold ) {
+					m_result[ sample_i ] = m_BB_value ;
+				}
+				else {
+					m_result[ sample_i ] = m_missing_value ;
+				}
+			}
 		private:
-			std::vector< int >& m_result ;
+			std::vector< T >& m_result ;
 			int const m_missing_value ;
 			int const m_AA_value ;
 			int const m_AB_value ;

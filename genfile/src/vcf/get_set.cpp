@@ -46,9 +46,9 @@ namespace genfile {
 		void GenotypeSetterBase::set_sample( std::size_t n ) {
 			assert( n < m_number_of_samples ) ;
 			// First test to see if no data was supplied (i.e. set_number_of_entries was uncalled) for the previous sample.
-			if( m_missing ) {
-				set( n-1, 0.0, 0.0, 0.0 ) ;
-			}
+			//if( m_missing ) {
+			//	set( n-1, 0.0, 0.0, 0.0 ) ;
+			//}
 			m_sample = n ;
 			m_missing = true ;
 		}
@@ -171,6 +171,7 @@ namespace genfile {
 			}
 		}
 
+#if 0
 		ThreshholdingGenotypeSetter< std::vector< int > >::
 			ThreshholdingGenotypeSetter( std::vector< int >& result, double threshhold, int missing_value, int AA_value, int AB_value, int BB_value ):
 			GenotypeSetterBase( "identity" ),
@@ -202,7 +203,7 @@ namespace genfile {
 				m_result[ sample_i ] = m_missing_value ;
 			}
 		}
-		
+#endif		
 	}
 }
 

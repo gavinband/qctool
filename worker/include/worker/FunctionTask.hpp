@@ -21,12 +21,12 @@ namespace worker {
 			assert( m_function ) ;
 		}
 		
-		virtual void operator()() {
+		void operator()() {
 			m_function() ;
 		}
 		
 	private:
-		boost::function< void () > m_function ;
+		boost::function< void() > m_function ;
 		FunctionTask( FunctionTask const& other ) ; //forbid copying.
 	} ;
 }

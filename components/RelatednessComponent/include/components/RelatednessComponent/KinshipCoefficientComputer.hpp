@@ -73,8 +73,37 @@ private:
 } ;
 
 namespace impl {
+	struct SampleBounds {
+		int begin_sample_i ;
+		int end_sample_i ;
+		int begin_sample_j ;
+		int end_sample_j ;
+	} ;
+	
 	struct Dispatcher ;
 
+	struct NTaskDispatcher {
+	public:
+		typedef std::auto_ptr< NTaskDispatcher > UniquePtr ;
+	public:
+			
+		NTaskDispatcher(
+			worker::Worker* worker
+		) ;
+
+		void set_number_of_tasks( std::size_t number_of_tasks ) ;
+
+		std::size_t number_of_tasks() const ;
+		
+		void submit_task( std::size_t task_i, boost::function< void() > task ) ;
+		
+		void wait_until_complete() ;
+
+	private:
+			boost::ptr_vector< boost::nullable< worker::Task > > m_tasks ;
+			worker::Worker* m_worker ;
+	} ;
+	
 	struct NormaliseGenotypesAndComputeXXt: public KinshipCoefficientComputer::Computation {
 		static UniquePtr create( worker::Worker*, std::string const& method ) ;
 		NormaliseGenotypesAndComputeXXt( worker::Worker*, std::string const& method ) ;
@@ -92,6 +121,56 @@ namespace impl {
 		Computation::Matrix m_result ;
 		Computation::IntegerMatrix m_nonmissingness ;
 		std::auto_ptr< Dispatcher > m_dispatcher ;
+	} ;
+
+	struct NormaliseGenotypesAndComputeXXtFast: public KinshipCoefficientComputer::Computation {
+		static UniquePtr create( worker::Worker*, std::size_t const number_of_snps_per_computation ) ;
+		
+		NormaliseGenotypesAndComputeXXtFast(
+			worker::Worker* worker,
+			std::size_t const number_of_snps_per_computation
+		) ;
+		Computation::Matrix const& result() const ;
+		Computation::IntegerMatrix const& nonmissingness() const ;
+		void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) ;
+		void processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) ;
+		void end_processing_snps() ;
+		std::size_t number_of_snps_included() const ;
+	private:
+		worker::Worker* m_worker ;
+		NTaskDispatcher::UniquePtr m_dispatcher ;
+		double const m_call_threshhold ;
+		double const m_allele_frequency_threshhold ;
+		std::size_t const m_number_of_snps_per_computation ;
+		std::vector< double > m_lookup_table ;
+		std::vector< int > m_nonmissingness_lookup_table ;
+		std::vector< SampleBounds > m_matrix_tiling ;
+		std::vector< std::size_t > m_combined_genotypes ;
+		std::vector< std::size_t > m_per_snp_genotypes ;
+		std::size_t m_number_of_snps_included ;
+		Computation::Matrix m_result ;
+		Computation::IntegerMatrix m_nonmissingness ;
+	private:
+		void add_snp_to_lookup_table(
+			std::size_t const lookup_snp_index,
+			double const mean,
+			double const sd,
+			std::vector< double >* lookup_table,
+			std::vector< int >* nonmissingness_lookup_table
+		) ;
+
+		void submit_tasks(
+			std::vector< double > const& lookup_table,
+			std::vector< int > const& missingness_lookup_table,
+			std::vector< std::size_t > const& genotypes
+		) ;
+			
+		void compute_block(
+			SampleBounds const& sample_bounds,
+			std::vector< std::size_t > const& genotypes,
+			std::vector< double > const& lookup_table,
+			std::vector< int > const& missingness_lookup_table
+		) ;
 	} ;
 }
 
