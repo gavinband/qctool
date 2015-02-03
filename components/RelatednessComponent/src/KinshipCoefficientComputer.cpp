@@ -285,18 +285,19 @@ namespace impl {
 	// Blocks should be roughly evenly sized.
 	// This implementation makes off-diagonal blocks half the size of diagonal blocks.
 	std::vector< SampleBounds > get_matrix_lower_diagonal_tiling( std::size_t d, std::size_t B ) {
-		// Because off-diagonal blocks take about twice as long, 
+		// Because off-diagonal blocks involve about twice as much computation,
 		// we make them half the size vertically.
 		// If there are (N ( N+1)/2 ) square blocks this makes
 		// (N (N+1) ) - N = N^2 blocks in total.
 		// So we want to choose N so that N^2 is about twice the number of threads.
+		// Def
 		std::size_t const N = B ;
 		std::vector< SampleBounds > result ;
 		double K = double( d ) / N ;
 //#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
 		std::cerr << "get_matrix_lower_diagonal_tiling: " << d << "x" << d << " matrix, "
 			<< N << " blocks across top row, "
-			<< N*(N+1)/2 << " blocks on lower diagonal.\n" ;
+			<< N*(N-1) << " blocks on lower diagonal.\n" ;
 //#endif
 		// Set up some initial tasks.
 		// Do j (the column) as the outer loop
@@ -326,6 +327,9 @@ namespace impl {
 				}
 			}
 		}
+//#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+		std::cerr << "get_matrix_lower_diagonal_tiling: tiling has " << result.size() << " blocks in total.\n" ;
+//#endif
 		return result ;
 	}
 
@@ -571,7 +575,11 @@ namespace impl {
 	void NTaskDispatcher::submit_task( std::size_t task_i, boost::function< void() > task ) {
 		assert( task_i < m_tasks.size() ) ;
 		if( !m_tasks.is_null( task_i ) ) {
-			m_tasks[ task_i ].wait_until_complete() ;
+			throw genfile::BadArgumentError(
+				"impl::NTaskDispatcher::submit_task()",
+				( boost::format( "task_i=%d" ) % task_i ).str(),
+				"Task is still running.  Call wait_until_complete() first."
+			) ;
 		}
 		worker::Task::UniquePtr new_task( new worker::FunctionTask( task ) ) ;
 		m_tasks.replace( task_i, new_task ) ;
@@ -582,6 +590,7 @@ namespace impl {
 		for( std::size_t i = 0; i < m_tasks.size(); ++i ) {
 			if( !m_tasks.is_null( i ) ) {
 				m_tasks[ i ].wait_until_complete() ;
+				m_tasks.replace( i, 0 ) ;
 			}
 		}
 	}
@@ -629,7 +638,7 @@ namespace impl {
 		m_result.setZero() ;
 		m_nonmissingness.resize( number_of_samples, number_of_samples ) ;
 		m_nonmissingness.setZero() ;
-		std::size_t numberOfTasks = 2 * std::sqrt( m_worker->get_number_of_worker_threads() ) ;
+		std::size_t numberOfTasks = std::sqrt( m_worker->get_number_of_worker_threads() ) ;
 		m_matrix_tiling = get_matrix_lower_diagonal_tiling(
 			number_of_samples,
 			numberOfTasks
@@ -697,7 +706,6 @@ namespace impl {
 			// We must build a table that handles this.
 			// We do this by expanding the table four times (once for each genotype class) on each SNP.
 			// 
-			std::size_t const current_size = m_lookup_table.size() ;
 			std::size_t const lookup_snp_index = m_number_of_snps_included % m_number_of_snps_per_computation ;
 			if( lookup_snp_index == 0 ) {
 				m_dispatcher->wait_until_complete() ;
@@ -806,10 +814,10 @@ namespace impl {
 				boost::bind(
 					&NormaliseGenotypesAndComputeXXtFast::compute_block,
 					this,
-					m_matrix_tiling[ tile_i ],
-					genotypes,
-					m_lookup_table,
-					m_nonmissingness_lookup_table
+					boost::cref( m_matrix_tiling[ tile_i ] ),
+					boost::cref( genotypes ),
+					boost::cref( m_lookup_table ),
+					boost::cref( m_nonmissingness_lookup_table )
 				)
 			) ;
 	#else
@@ -843,7 +851,6 @@ namespace impl {
 		// only compute the lower diagonal.
 		// We also want to make the function go down the rows of the result
 		// in the inner loop, since it's stored column-major, so put row index in the inner loop.
-		std::size_t const shift = 2 * m_number_of_snps_per_computation ;
 		for( std::size_t j = sample_bounds.begin_sample_j; j < sample_bounds.end_sample_j; ++j ) {
 			for( std::size_t i = std::max( j, std::size_t( sample_bounds.begin_sample_i ) ); i < sample_bounds.end_sample_i; ++i ) {
 				std::size_t const lookup_index = ( genotypes[i] << 2 ) + genotypes[j] ;
