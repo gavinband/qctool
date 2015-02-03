@@ -637,6 +637,12 @@ namespace impl {
 		m_number_of_snps_per_computation( 4 * number_of_snps_per_chunk )
 	{
 		// We allocate lookup tables exactly once, here.
+		// We follow, roughly, the scheme in plink 1.9 of having four lookup tables.
+		// Here we encode pairs of genotypes in 4 bits (though we could do 3 as in plink).
+		// Each computation then involves 16 variants, four from each lookup table.
+		// This multi-table version reduces the number of times the result matrices
+		// have to be traversed, and seems to make most difference in speed when
+		// multithreading.
 		m_lookup_tables.resize( 4, std::vector< double >( 1 << ( m_number_of_snps_per_chunk * 4 ), 0.0 ) ) ;
 		m_nonmissingness_lookup_tables.resize( 4, std::vector< int >( 1 << ( m_number_of_snps_per_chunk * 4 ), 0.0 ) ) ;
 	}
