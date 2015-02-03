@@ -5,6 +5,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include "genfile/vcf/CallReader.hpp"
+#include "genfile/vcf/Types.hpp"
 #include "genfile/string_utils.hpp"
 #include "genfile/Error.hpp"
 
