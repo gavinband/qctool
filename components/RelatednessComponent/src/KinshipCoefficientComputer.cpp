@@ -334,6 +334,29 @@ namespace impl {
 	}
 
 
+	std::vector< SampleBounds > get_matrix_lower_diagonal_strip_tiling( std::size_t d, std::size_t B ) {
+		std::vector< SampleBounds > result ;
+//#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+		std::cerr << "get_matrix_lower_diagonal_strip_tiling: " << d << "x" << d << " matrix" ;
+//#endif
+		std::size_t const stride = 10 ;
+		// Set up some initial tasks.
+		// Do j (the column) as the outer loop
+		// so that tasks go in column-major direction.
+		for( std::size_t i = 0; i < d; i += stride ) {
+			SampleBounds bounds ;
+			bounds.begin_sample_i = i ;
+			bounds.end_sample_i = d ;
+			bounds.begin_sample_j = i ;
+			bounds.end_sample_j = std::min( i+stride, d ) ;
+			result.push_back( bounds ) ;
+		}
+//#if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
+		std::cerr << "get_matrix_lower_diagonal_strip_tiling: tiling has " << result.size() << " blocks in total.\n" ;
+//#endif
+		return result ;
+	}
+	
 	struct MultiThreadedDispatcher: public Dispatcher {
 		typedef void (*accumulate_xxt_t)( Vector*, Matrix*, int const begin_sample_i, int const end_sample_i, int const begin_sample_j, int const end_sample_j, double const ) ;
 		typedef void (*accumulate_xxt_integer_t)( IntegerVector*, IntegerMatrix*, int const begin_sample_i, int const end_sample_i, int const begin_sample_j, int const end_sample_j, double const ) ;
@@ -638,11 +661,15 @@ namespace impl {
 		m_result.setZero() ;
 		m_nonmissingness.resize( number_of_samples, number_of_samples ) ;
 		m_nonmissingness.setZero() ;
-		std::size_t numberOfTasks = std::sqrt( m_worker->get_number_of_worker_threads() ) ;
+		std::size_t numberOfTasks = m_worker->get_number_of_worker_threads() ;
+#if 0
+		m_matrix_tiling = get_matrix_lower_diagonal_strip_tiling( number_of_samples, numberOfTasks ) ;
+#else
 		m_matrix_tiling = get_matrix_lower_diagonal_tiling(
 			number_of_samples,
 			numberOfTasks
 		) ;
+#endif
 		m_dispatcher->set_number_of_tasks( m_matrix_tiling.size() ) ;
 		m_combined_genotypes.resize( number_of_samples, 0 ) ;
 		m_per_snp_genotypes.resize( number_of_samples, 0 ) ;
