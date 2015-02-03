@@ -637,8 +637,8 @@ namespace impl {
 		m_number_of_snps_per_computation( 4 * number_of_snps_per_chunk )
 	{
 		// We allocate lookup tables exactly once, here.
-		m_lookup_tables.resize( 4, std::vector< double >( std::pow( 4, 2 * m_number_of_snps_per_chunk ), 0.0 ) ) ;
-		m_nonmissingness_lookup_tables.resize( 4, std::vector< int >( std::pow( 4, 2 * m_number_of_snps_per_chunk ), 0.0 ) ) ;
+		m_lookup_tables.resize( 4, std::vector< double >( 1 << ( m_number_of_snps_per_chunk * 4 ), 0.0 ) ) ;
+		m_nonmissingness_lookup_tables.resize( 4, std::vector< int >( 1 << ( m_number_of_snps_per_chunk * 4 ), 0.0 ) ) ;
 	}
 
 	NormaliseGenotypesAndComputeXXtFast::Matrix const& NormaliseGenotypesAndComputeXXtFast::result() const {
