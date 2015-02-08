@@ -663,8 +663,9 @@ namespace impl {
 				if( this_betas.size() != l || this_ses.size() != l || this_covariance.size() != ((l-1) * l / 2 ) ) {
 					return false ;
 				}
-				// beta_1's for all pops go in one block (to match priors).
-				// then beta_2's for all pops, etc.
+				// beta_1's for all pops go in one contiguous block.
+				// Then beta_2's for all pops.
+				// This matches the layout we use for the priors.
 				int cov_i = 0 ;
 				for( int j = 0; j < l; ++j ) {
 					int const index = (j*N)+i; //(l*i)+j ;
@@ -683,6 +684,48 @@ namespace impl {
 		return true ;
 	}
 
+#if 0
+	bool get_fixed_effect_betas_and_covariance_from_study(
+		BingwaComputation::DataGetter const& data_getter,
+		BingwaComputation::Filter filter,
+		Eigen::VectorXd& betas,
+		Eigen::MatrixXd& covariance,
+		Eigen::VectorXd& non_missingness,
+		int const l
+	) {
+		std::size_t N = data_getter.get_number_of_cohorts() ;
+
+		betas.setConstant( l, NA ) ;
+		non_missingness.setConstant( l, 1 ) ;
+		covariance.setZero( l, l ) ;
+
+		// We use a temporary matrix A to accumulate the inverses of per-study covariances.
+		Eigen::MatrixXd A = Eigen::MatrixXd::Zero( l, l ) ;
+		
+		for( std::size_t i = 0; i < N; ++i ) {
+			non_missingness( i ) = filter( data_getter, i ) ? 1.0 : 0.0 ;
+
+			if( non_missingness( i )) {
+				Eigen::VectorXd this_betas, this_ses, this_covariance_upper_triangle ;
+				data_getter.get_betas( i, &this_betas ) ;
+				data_getter.get_ses( i, &this_ses ) ;
+				data_getter.get_covariance_upper_triangle( i, &this_covariance_upper_triangle ) ;
+				if( this_betas.size() != l || this_ses.size() != l || this_covariance_upper_triangle.size() != ((l-1) * l / 2 ) ) {
+					return false ;
+				}
+				// Populate
+				Eigen::MatrixXd const& this_covariance = Eigen::MatrixXd::Zero( l, l ) ;
+				for( std::size_t i = 0; i < l; ++i ) {
+					this_covariance.block( i, i, 1, l-i ) = this_covariance_upper_triangle.segment( (i*l) ) ;
+				}
+
+				// FIX ME
+				FIX ME
+			}
+		}
+		return true ;
+	}
+#endif
 	std::string serialise( Eigen::VectorXd const& vector ) {
 		std::ostringstream ostr ;
 		for( int i = 0; i < vector.size(); ++i ) {
@@ -747,9 +790,9 @@ struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {
 	}
 
 	void get_variables( boost::function< void ( std::string ) > callback ) const {
-		callback( "FixedEffect:meta_beta" ) ;
-		callback( "FixedEffect:meta_se" ) ;
-		callback( "FixedEffect:pvalue" ) ;
+		callback( "FixedEffectMetaAnalysis:meta_beta" ) ;
+		callback( "FixedEffectMetaAnalysis:meta_se" ) ;
+		callback( "FixedEffectMetaAnalysis:pvalue" ) ;
 	}
 
 	void operator()(
@@ -765,9 +808,9 @@ struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {
 		Eigen::VectorXd ses = Eigen::VectorXd::Constant( N, NA ) ;
 		Eigen::VectorXd non_missingness = Eigen::VectorXd::Constant( N, NA ) ;
 		if( !impl::get_betas_and_ses_one_per_study( data_getter, m_filter, betas, ses, non_missingness ) ) {
-			callback( "FixedEffect:meta_beta", genfile::MissingValue() ) ;
-			callback( "FixedEffect:meta_se", genfile::MissingValue() ) ;
-			callback( "FixedEffect:pvalue", genfile::MissingValue() ) ;
+			callback( "FixedEffectMetaAnalysis:meta_beta", genfile::MissingValue() ) ;
+			callback( "FixedEffectMetaAnalysis:meta_se", genfile::MissingValue() ) ;
+			callback( "FixedEffectMetaAnalysis:pvalue", genfile::MissingValue() ) ;
 			return ;
 		}
 		else {
@@ -782,8 +825,8 @@ struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {
 			double const meta_beta = ( non_missingness.sum() == 0 ) ? NA : ( inverse_variances.array() * betas.array() ).sum() / inverse_variances.sum() ;
 			double const meta_se = ( non_missingness.sum() == 0 ) ? NA : std::sqrt( 1.0 / inverse_variances.sum() ) ;
 
-			callback( "FixedEffect:meta_beta", meta_beta ) ;
-			callback( "FixedEffect:meta_se", meta_se ) ;
+			callback( "FixedEffectMetaAnalysis:meta_beta", meta_beta ) ;
+			callback( "FixedEffectMetaAnalysis:meta_se", meta_se ) ;
 
 			//std::cerr << "SNP: " << snp << ": betas = " << betas << ", ses = " << ses << ".\n" ;
 
@@ -792,7 +835,7 @@ struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {
 				NormalDistribution normal( 0, meta_se ) ;
 				// P-value is the mass under both tails of the normal distribution larger than |meta_beta|
 				double const pvalue = 2.0 * boost::math::cdf( boost::math::complement( normal, std::abs( meta_beta ) ) ) ;
-				callback( "FixedEffect:pvalue", pvalue ) ;
+				callback( "FixedEffectMetaAnalysis:pvalue", pvalue ) ;
 			}
 			
 		}
