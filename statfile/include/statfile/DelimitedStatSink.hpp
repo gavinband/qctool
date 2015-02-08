@@ -49,9 +49,6 @@ namespace statfile {
 		void write_value( uint64_t const& value ) {
 			write_value_impl< uint64_t >( value ) ;
 		}
-		void write_value( std::string const& value ) {
-			write_value_impl< std::string >( value ) ;
-		}
 		void write_value( genfile::GenomePosition const& value ) {
 			write_value_impl< genfile::GenomePosition >( value ) ;
 		}
@@ -62,6 +59,7 @@ namespace statfile {
 			write_value_impl< genfile::MissingValue >( value ) ;
 		}
 		void write_value( double const& ) ;
+		void write_value( std::string const& value ) ;
 
 	private:
 		
@@ -103,6 +101,7 @@ namespace statfile {
 	private:
 		char m_comment_character ;
 		std::string const m_delimiter ;
+		bool const m_always_escape_strings ;
 		int m_precision ;
 		std::string m_descriptive_text ;
 	} ;
