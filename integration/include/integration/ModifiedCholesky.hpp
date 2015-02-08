@@ -12,7 +12,7 @@
 #include <Eigen/Cholesky>
 #include <Eigen/Eigenvalues>
 
-// #define DEBUG_ASCENT_DIRECTION_PICKER 1
+// #define DEBUG_MODIFIED_CHOLESKY 1
 
 namespace integration {
 	//
@@ -73,6 +73,17 @@ namespace integration {
 
 	public:
 		ModifiedCholesky() {}
+
+		ModifiedCholesky( ModifiedCholesky const& other ):
+			m_matrix( other.m_matrix ),
+			m_transpositions( other.m_transpositions )
+		{}
+
+		ModifiedCholesky& operator=( ModifiedCholesky const& other ) {
+			m_matrix = other.m_matrix ;
+			m_transpositions = other.m_transpositions ;
+			return *this ;
+		}
 		
 		ModifiedCholesky& compute( Matrix const& matrix ) {
 			m_matrix = matrix ;
@@ -92,7 +103,7 @@ namespace integration {
 			return m_transpositions ;
 		}
 		
-		Matrix solve( Matrix& rhs ) const
+		Matrix solve( Matrix const& rhs ) const
 	    {
 			Matrix result = rhs ;
 			assert( result.rows() == m_matrix.rows() ) ;
@@ -106,22 +117,25 @@ namespace integration {
 			}
 		    // result = L^-T (D^-1 L^-1 P rhs)
 		    matrixL().transpose().solveInPlace( result ) ;
-			//
+		    // result = P^-1 L^-T (D^-1 L^-1 P rhs)
 			result = m_transpositions.transpose() * result ;
 			return result ;
 	    }
-		
 
 	private:
 	    Matrix m_matrix ;
 	    Transpositions m_transpositions;
-	    int m_sign;
 		
 	private:
 		
-		void compute_inplace( Matrix& matrix ) const {
+		void compute_inplace( Matrix& matrix ) {
 			assert( matrix.rows() == matrix.cols() ) ;
+			m_transpositions.resize( matrix.rows() ) ;
 			Index const size = matrix.rows() ;
+			
+#if DEBUG_MODIFIED_CHOLESKY
+			std::cerr << "ModifiedCholesky::compute_inplace(): computing with matrix:\n" << matrix << ".\n" ;
+#endif
 			
 			Scalar biggestOnDiagonal ;
 			RealScalar beta ;
@@ -142,15 +156,28 @@ namespace integration {
 							biggestOffDiagonal = std::max( biggestOffDiagonal, std::abs( matrix( i, j )) ) ;
 						}
 					}
-					delta = std::numeric_limits< Scalar >::epsilon() * std::max( biggestOnDiagonal + biggestOffDiagonal, 1 ) ;
+					delta = std::numeric_limits< Scalar >::epsilon() * std::max( biggestOnDiagonal + biggestOffDiagonal, Scalar( 1 ) ) ;
 					beta = std::max(
 						std::numeric_limits< Scalar >::epsilon(),
-						std::max( biggestOnDiagonal, biggestOffDiagonal / std::sqrt( size * size - 1 ))
+						std::max( biggestOnDiagonal, biggestOffDiagonal / std::sqrt( ( size * size ) - 1 ) )
 					) ;
 					betaSquared = beta * beta ;
+					
+#if DEBUG_MODIFIED_CHOLESKY
+					std::cerr << "ModifiedCholesky::compute_inplace(): initialised with delta = "
+						<< delta << ", beta^2 = " << betaSquared << ".\n" ;
+#endif
+					
 				}
 				
-				// Swap rows and columns correspoinding to the jth and largest diagonal element.
+#if DEBUG_MODIFIED_CHOLESKY
+				std::cerr << "ModifiedCholesky::compute_inplace(): at iteration "
+					<< j
+						<< ": largest entry on diagonal = " << biggestOnDiagonal
+					<< " at index " << indexOfBiggestOnDiagonal << ".\n" ;
+#endif
+											
+				// Swap rows and columns corresponding to the jth and largest diagonal element.
 		        m_transpositions.coeffRef( j ) = indexOfBiggestOnDiagonal ;
 				Index const tailSize = size - indexOfBiggestOnDiagonal - 1 ;
 		        if( j != indexOfBiggestOnDiagonal ) {
@@ -174,6 +201,10 @@ namespace integration {
 				//
 				// by formula: l_js = c_js / d_s for s = 0,...,j-1.
 		        matrix.row( j ).head( j ).array() /= matrix.diagonal().head( j ).array() ;
+#if DEBUG_MODIFIED_CHOLESKY
+				std::cerr << "ModifiedCholesky::compute_inplace(): after computing ls, matrix =\n"
+					<< matrix << ".\n" ;
+#endif
 				// We next compute jth column of c_ijs to get:
 				// 1: d
 				// .  l d
@@ -186,7 +217,13 @@ namespace integration {
 				for( Index i = j+1; i < size; ++i ) {
 					matrix(i,j) -= ( matrix.row( j ).head( j ) * matrix.row( i ).head( j ).transpose() ) ;
 				}
-				Scalar const theta = matrix.col( j ).tail( tailSize ).maxCoeff() ;
+				Scalar const theta = ( (j+1) == size ) ? 0.0 : ( matrix.col( j ).tail( tailSize ).maxCoeff() ) ;
+#if DEBUG_MODIFIED_CHOLESKY
+				std::cerr << "ModifiedCholesky::compute_inplace(): after computing cs, matrix =\n"
+					<< matrix << ",\n"
+					<< "theta = " << theta << ".\n" ;
+#endif
+
 				// compute d_jj to produce
 				// 1: d
 				// .  l d
@@ -194,10 +231,17 @@ namespace integration {
 				// j: l l l d
 				// .  c c c c c
 				// .  c c c c a c
-				matrix(j,j) = std::max( delta, std::abs( matrix( j,j ), (theta*theta) / betaSquared ) ) ;
+				double new_dj = std::max( delta, std::abs( matrix(j,j) ) ) ;
+				new_dj = std::max( new_dj, (theta*theta) / betaSquared ) ;
+				matrix(j,j) = new_dj ;
 				//
 				// Finally update the c_ii's
 				matrix.diagonal().tail( tailSize ).array() -= ( matrix.col(j).tail( tailSize ).array().square() ) / matrix(j,j) ;
+				
+#if DEBUG_MODIFIED_CHOLESKY
+				std::cerr << "ModifiedCholesky::compute_inplace(): after iteration " << j << ", matrix is:\n"
+					<< matrix << ".\n" ;
+#endif
 			}
 		}
 	} ;

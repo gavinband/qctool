@@ -6,12 +6,12 @@
 #ifndef CORE_MODIFIED_NEWTON_RAPHSON_HPP
 #define CORE_MODIFIED_NEWTON_RAPHSON_HPP
 
-#define DEBUG_NEWTON_RAPHSON 1
-
 #include <limits>
 #include <iostream>
 #include <iomanip>
 #include "integration/Error.hpp"
+
+//#define DEBUG_NEWTON_RAPHSON 1
 
 namespace integration {
 	namespace {
@@ -93,10 +93,9 @@ namespace integration {
 #endif
 
 			double lambda = 1 ;
-			// We can't reasonably expect to improve the function if the directional derivative is close to epsilon.
-			// But we might still make the derivative smaller.
 			if( directional_derivative > ( 10 * std::numeric_limits< double >::epsilon() ) ) {
-				// Directional derivative is not too small, so we can hope to improve the function value.
+				// Directional derivative is not too close to machine epsilon,
+				// we can hope to improve the function value.
 				for(
 					function.evaluate_at( currentPoint + lambda * h, 0 ) ;
 					( function.get_value_of_function() - current_function_value ) < ( line_search_tolerance * lambda * directional_derivative ) ;
@@ -114,9 +113,9 @@ namespace integration {
 					}
 				}
 			} else {
-				// Directional derivative is tiny.
-				// We can't reasonably expect to improve the function if the directional derivative is close to epsilon.
-				// We aim to not make it worse, and to make the derivative smaller.
+				// Directional derivative is close to machine epsilon.
+				// We can't reasonably expect to improve the function if the directional derivative
+				// is so small. Instead we aim to not make it worse, and to make the derivative smaller.
 				double const derivativeOneNorm = oneNorm( first_derivative ) ;
 				for(
 					function.evaluate_at( currentPoint + lambda * h, 1 ) ;

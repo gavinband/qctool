@@ -149,20 +149,24 @@ namespace impl {
 	template< typename Function >
 	struct StoppingCondition {
 		StoppingCondition( double tolerance  = 1E-12 ):
-			m_tolerance( tolerance )
+			m_tolerance( tolerance ),
+			m_iterations(0)
 			{}
 		bool operator()(
 			Function const& function,
 			Eigen::VectorXd const& step
 		) {
+			++m_iterations ;
 			// Stop when all elements of the derivative are close to 0
 			// and the step size is also close to zero.
 			return
 				function.get_value_of_first_derivative().array().abs().maxCoeff() < m_tolerance
 				&& step.array().abs().maxCoeff() < m_tolerance ;
 		}
+		std::size_t iterations() const { return m_iterations ; }
 	private:
 		double m_tolerance ;
+		std::size_t m_iterations ;
 	} ;
 }
 
@@ -205,6 +209,38 @@ AUTO_TEST_CASE( test_ascent_direction_1d ) {
 	}
 }
 
+namespace {
+	template< typename Function >
+	struct ModifiedCholeskySolver {
+		typedef impl::FunctionBase::Vector Vector ;
+		typedef impl::FunctionBase::Matrix Matrix ;
+
+		Vector compute( Function& function, Vector const& point ) {
+			function.evaluate_at( point ) ;
+			m_solver.compute( -function.get_value_of_second_derivative() ) ;
+			return m_solver.solve( function.get_value_of_first_derivative() ) ;
+		} ;
+		
+	private:
+		integration::ModifiedCholesky< Matrix > m_solver ;
+	} ;
+}
+
+AUTO_TEST_CASE( test_modified_cholesky_direction_1d ) {
+	typedef impl::FunctionBase::Vector Vector ;
+	typedef impl::FunctionBase::Matrix Matrix ;
+	impl::Multimodal1d_1 function ;
+	ModifiedCholeskySolver< impl::Multimodal1d_1 > solver ;
+
+	Vector point( 1 ) ;
+	for( point(0) = -10; point(0) < 10; point(0) += 0.01 ) {
+		// Check that the solver always finds an ascent direction
+		Vector h = solver.compute( function, point ) ;
+		double directional_derivative = function.get_value_of_first_derivative().transpose() * h ;
+		BOOST_CHECK_GT( directional_derivative, 0 ) ;
+	}
+}
+
 AUTO_TEST_CASE( test_ascent_direction_2d ) {
 	typedef impl::FunctionBase::Vector Vector ;
 	typedef impl::FunctionBase::Matrix Matrix ;
@@ -222,7 +258,24 @@ AUTO_TEST_CASE( test_ascent_direction_2d ) {
 	}
 }
 
-AUTO_TEST_CASE( test_modified_newton_raphson_overshoot_1d ) {
+AUTO_TEST_CASE( test_modified_cholesky_direction_2d ) {
+	typedef impl::FunctionBase::Vector Vector ;
+	typedef impl::FunctionBase::Matrix Matrix ;
+	impl::Multimodal2d_1 function ;
+	ModifiedCholeskySolver< impl::Multimodal2d_1 > solver ;
+
+	Vector point( 2 ) ;
+	for( point(0) = -10; point(0) < 10; point(0) += 0.025 ) {
+		for( point(1) = -10; point(1) < 10; point(1) += 0.025 ) {
+			Vector h = solver.compute( function, point ) ;
+			function.evaluate_at( point ) ;
+			double const directional_derivative = function.get_value_of_first_derivative().transpose() * h ;
+			BOOST_CHECK_GT( directional_derivative, 0 ) ;
+		}
+	}
+}
+
+AUTO_TEST_CASE( test_ascent_direction_newton_raphson_overshoot_1d ) {
 	typedef impl::FunctionBase::Vector Vector ;
 	impl::Multimodal1d_1 function ;
 	impl::StoppingCondition< impl::Multimodal1d_1 > stoppingCondition( 1E-12 ) ;
@@ -245,10 +298,34 @@ AUTO_TEST_CASE( test_modified_newton_raphson_overshoot_1d ) {
 
 		BOOST_CHECK_CLOSE( result(0), -1, 1E-7 ) ;
 	}
-
 }
 
-AUTO_TEST_CASE( test_modified_newton_raphson_overshoot_2d ) {
+AUTO_TEST_CASE( test_modified_cholesky_newton_raphson_overshoot_1d ) {
+	typedef impl::FunctionBase::Vector Vector ;
+	impl::Multimodal1d_1 function ;
+	impl::StoppingCondition< impl::Multimodal1d_1 > stoppingCondition( 1E-12 ) ;
+	ModifiedCholeskySolver< impl::Multimodal1d_1 > solver ;
+
+	// For 1d function 1, maxima are at -1 and 1.
+	Vector target ;
+	target.setZero(1) ;
+	target(0) = -1 ;
+
+	{
+		impl::OvershootTarget< impl::Multimodal1d_1 > overshoot( target ) ;
+		Vector start = Vector::Constant( 1, -0.001 ) ;
+		Vector result = integration::find_maximum_by_modified_newton_raphson_with_line_search(
+			function,
+			start,
+			overshoot,
+			stoppingCondition
+		) ;
+
+		BOOST_CHECK_CLOSE( result(0), -1, 1E-7 ) ;
+	}
+}
+
+AUTO_TEST_CASE( test_ascent_direction_newton_raphson_overshoot_2d ) {
 	typedef impl::FunctionBase::Vector Vector ;
 	impl::Multimodal2d_1 function ;
 	impl::StoppingCondition< impl::Multimodal2d_1 >  stoppingCondition( 1E-12 ) ;
@@ -272,16 +349,42 @@ AUTO_TEST_CASE( test_modified_newton_raphson_overshoot_2d ) {
 		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 1E-5 ) ;
 		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 1E-5 ) ;
 	}
-
 }
 
-AUTO_TEST_CASE( test_modified_newton_raphson_2d ) {
+AUTO_TEST_CASE( test_modified_cholesky_newton_raphson_overshoot_2d ) {
+	typedef impl::FunctionBase::Vector Vector ;
+	impl::Multimodal2d_1 function ;
+	impl::StoppingCondition< impl::Multimodal2d_1 >  stoppingCondition( 1E-12 ) ;
+	ModifiedCholeskySolver< impl::Multimodal2d_1 > solver ;
+
+	Vector maximum ;
+	maximum.setZero(2) ;
+	maximum(0) = -sqrt(5) ;
+	maximum(1) = -sqrt(5) ;
+
+	{
+		impl::OvershootTarget< impl::Multimodal2d_1 > overshoot( maximum ) ;
+		Vector start = Vector::Constant(2,-1) ;
+		Vector result = integration::find_maximum_by_modified_newton_raphson_with_line_search(
+			function,
+			start,
+			overshoot,
+			stoppingCondition
+		) ;
+
+		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 1E-5 ) ;
+		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 1E-5 ) ;
+	}
+}
+
+AUTO_TEST_CASE( test_ascent_direction_newton_raphson_2d ) {
 	typedef impl::FunctionBase::Vector Vector ;
 	impl::Multimodal2d_1 function ;
 	impl::StoppingCondition< impl::Multimodal2d_1 >  stoppingCondition( 1E-12 ) ;
 	integration::CholeskyOrEigenvalueSolver< impl::Multimodal2d_1 > solver ;
 
 	{		
+		impl::StoppingCondition< impl::Multimodal2d_1 >  stoppingCondition( 1E-12 ) ;
 		Vector start = Vector::Constant(2,-1) ;
 		Vector result = integration::find_maximum_by_modified_newton_raphson_with_line_search(
 			function,
@@ -292,8 +395,10 @@ AUTO_TEST_CASE( test_modified_newton_raphson_2d ) {
 			
 		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 1E-5 ) ;
 		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 1E-5 ) ;
+		std::cerr << "test_modified_cholesky_newton_raphson_2d: took " << stoppingCondition.iterations() << " iterations.\n" ;
 	}
 	{	
+		impl::StoppingCondition< impl::Multimodal2d_1 >  stoppingCondition( 1E-12 ) ;
 		Vector start = Vector::Constant(2,-1) ;
 		start(1) = -0.1 ;
 		Vector result = integration::find_maximum_by_modified_newton_raphson_with_line_search(
@@ -305,8 +410,10 @@ AUTO_TEST_CASE( test_modified_newton_raphson_2d ) {
 			
 		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 1E-5 ) ;
 		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 1E-5 ) ;
+		std::cerr << "test_modified_cholesky_newton_raphson_2d: took " << stoppingCondition.iterations() << " iterations.\n" ;
 	}
 	{
+		impl::StoppingCondition< impl::Multimodal2d_1 >  stoppingCondition( 1E-12 ) ;
 		Vector start = Vector::Constant(2,-1) ;
 		start(0) = -100 ;
 		start(1) = -0.1 ;
@@ -319,6 +426,60 @@ AUTO_TEST_CASE( test_modified_newton_raphson_2d ) {
 			
 		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 1E-5 ) ;
 		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 1E-5 ) ;
+		std::cerr << "test_modified_cholesky_newton_raphson_2d: took " << stoppingCondition.iterations() << " iterations.\n" ;
 	}
 }
 
+AUTO_TEST_CASE( test_modified_cholesky_newton_raphson_2d ) {
+	typedef impl::FunctionBase::Vector Vector ;
+	impl::Multimodal2d_1 function ;
+	ModifiedCholeskySolver< impl::Multimodal2d_1 > solver ;
+
+	{		
+		impl::StoppingCondition< impl::Multimodal2d_1 >  stoppingCondition( 1E-12 ) ;
+		Vector start = Vector::Constant(2,-1) ;
+		Vector result = integration::find_maximum_by_modified_newton_raphson_with_line_search(
+			function,
+			start,
+			solver,
+			stoppingCondition
+		) ;
+			
+		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 1E-5 ) ;
+		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 1E-5 ) ;
+		std::cerr << "test_modified_cholesky_newton_raphson_2d: took " << stoppingCondition.iterations() << " iterations.\n" ;
+	}
+	{	
+		impl::StoppingCondition< impl::Multimodal2d_1 >  stoppingCondition( 1E-12 ) ;
+		Vector start = Vector::Constant(2,-1) ;
+		start(1) = -0.1 ;
+		Vector result = integration::find_maximum_by_modified_newton_raphson_with_line_search(
+			function,
+			start,
+			solver,
+			stoppingCondition
+		) ;
+			
+		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 1E-5 ) ;
+		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 1E-5 ) ;
+		std::cerr << "test_modified_cholesky_newton_raphson_2d: took " << stoppingCondition.iterations() << " iterations.\n" ;
+	}
+	{
+		impl::StoppingCondition< impl::Multimodal2d_1 >  stoppingCondition( 1E-12 ) ;
+		Vector start = Vector::Constant(2,-1) ;
+		start(0) = -100 ;
+		start(1) = -0.1 ;
+		Vector result = integration::find_maximum_by_modified_newton_raphson_with_line_search(
+			function,
+			start,
+			solver,
+			stoppingCondition
+		) ;
+			
+		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 1E-5 ) ;
+		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 1E-5 ) ;
+		std::cerr << "test_modified_cholesky_newton_raphson_2d: took " << stoppingCondition.iterations() << " iterations.\n" ;
+	}
+}
+
+ModifiedCholeskySolver< impl::Multimodal2d_1 > solver ;

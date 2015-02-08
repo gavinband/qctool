@@ -39,11 +39,6 @@ namespace integration {
 		Vector compute( Function& function, Vector const& point ) {
 			function.evaluate_at( point, 2 ) ;
 			Matrix const matrix = function.get_value_of_second_derivative() ;
-
-			
-
-
-
 			Vector const v = -function.get_value_of_first_derivative() ;
 			m_cholesky_solver.compute( matrix ) ;
 			if( m_cholesky_solver.info() == Eigen::Success && m_cholesky_solver.vectorD().array().maxCoeff() < 0 ) {
