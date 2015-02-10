@@ -322,8 +322,7 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 		options.declare_group( "Miscellaneous options" ) ;
 		options[ "-log" ]
 			.set_description( "Set the path of the log file to output." )
-			.set_takes_single_value()
-			.set_default_value( globals::program_name + ".log" ) ;
+			.set_takes_single_value() ;
 		options[ "-analysis-name" ]
 			.set_description( "Specify a name to label results from this analysis with.  (This applies to modules which store their results in a qcdb file.)" )
 			.set_takes_single_value()
