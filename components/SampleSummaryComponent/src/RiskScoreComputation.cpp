@@ -11,7 +11,7 @@
 #include "components/SampleSummaryComponent/SampleSummaryComputation.hpp"
 #include "components/SampleSummaryComponent/RiskScoreComputation.hpp"
 
-//#define DEBUG_RISK_SCORE_COMPUTATION 1
+//#define DEBUG_RISK_SCORE_COMPUTATION 3
 
 namespace sample_stats {
 	RiskScoreComputation::RiskScoreComputation( genfile::CohortIndividualSource const& samples, genfile::SNPIdentifyingData::CompareFields comparator ):
@@ -22,6 +22,9 @@ namespace sample_stats {
 
 	void RiskScoreComputation::accumulate( genfile::SNPIdentifyingData const& snp, Genotypes const& genotypes, genfile::VariantDataReader& ) {
 		// do nothing
+#if	DEBUG_RISK_SCORE_COMPUTATION
+				std::cerr << "Looking at SNP:" << snp << ".\n" ;
+#endif		
 		RiskScoreMap::const_iterator const where = m_map.find( snp ) ;
 		if( where != m_map.end() ) {
 			RiskScoreIdBetaMap::const_iterator i = where->second.begin() ;
@@ -45,6 +48,7 @@ namespace sample_stats {
 		std::cerr << "betas = \n"
 			<< betas << ".\n" ;
 		std::cerr << "non_missingness = " << non_missingness.head(10).transpose() << "...\n" ;
+		std::cerr << "genotypes =\n" << genotypes.block(0,0,10,3) << "...\n" ;
 		std::cerr << "contribution = " << contribution.head(10).transpose() << "...\n" ;
 #endif
 
