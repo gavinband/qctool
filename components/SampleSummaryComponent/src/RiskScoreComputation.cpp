@@ -159,7 +159,7 @@ namespace sample_stats {
 			m_map[ snp ][ risk_score_identifier ] = betas ;
 			++m_snp_counts[ risk_score_identifier ] ;
 			identifiers.insert( risk_score_identifier ) ;
-			source >> statfile::end_row() ;
+			source >> statfile::ignore_all() ;
 			if( progress_callback ) {
 				progress_callback( source.number_of_rows_read(), source.number_of_rows() ) ;
 			}
