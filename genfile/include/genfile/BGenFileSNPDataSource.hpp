@@ -35,7 +35,7 @@ namespace genfile {
 		std::istream& stream() { return *m_stream_ptr ; }
 		std::istream const& stream() const { return *m_stream_ptr ; }
 		std::string get_source_spec() const { return m_filename ; }
-		bgen::BgenContext const& bgen_context() const { return m_bgen_context ; }
+		bgen::Context const& bgen_context() const { return m_bgen_context ; }
 
 	private:
 
@@ -58,7 +58,7 @@ namespace genfile {
 	private:
 
 		std::string m_filename ;
-		bgen::BgenContext m_bgen_context ;
+		bgen::Context m_bgen_context ;
 		boost::optional< std::vector< std::string > > m_sample_ids ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
 

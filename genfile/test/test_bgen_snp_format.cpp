@@ -526,7 +526,7 @@ void do_snp_block_read_test(
 		std::size_t bits_per_probability = 16,
 		std::string const& type = "unphased"
 ) {
-	genfile::bgen::BgenContext context ;
+	genfile::bgen::Context context ;
 	context.number_of_samples = number_of_individuals ;
 	boost::function< double ( std::size_t i, std::size_t g ) > get_probs ;
 	if( bgen_version == "v11" ) {
@@ -623,7 +623,7 @@ void do_snp_block_write_test(
 		std::size_t bits_per_probability = 16,
 		std::string const& type = "unphased"
 ) {
-	genfile::bgen::BgenContext context ;
+	genfile::bgen::Context context ;
 	context.number_of_samples = number_of_individuals ;
 	if( bgen_version == "v11" ) {
 		context.flags = e_v11Layout ;

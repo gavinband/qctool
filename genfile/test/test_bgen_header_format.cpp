@@ -65,7 +65,7 @@ void do_header_block_read_test(
 	uint32_t header_size, number_of_snp_blocks2, number_of_samples2, flags2 ;
 	std::string free_data2, version ;
 
-	genfile::bgen::BgenContext context ;
+	genfile::bgen::Context context ;
 
 	genfile::bgen::read_header_block(
 		inStream,
@@ -87,7 +87,7 @@ void do_header_block_write_test(
 	uint32_t flags
 ) {
 	std::ostringstream outStream ;
-	genfile::bgen::BgenContext context ;
+	genfile::bgen::Context context ;
 	context.number_of_variants = number_of_snp_blocks ;
 	context.number_of_samples = number_of_samples ;
 	context.free_data = free_data ;

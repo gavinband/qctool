@@ -30,8 +30,8 @@
 
 namespace genfile {
 	namespace bgen {
-		struct BgenContext {
-			BgenContext():
+		struct Context {
+			Context():
 				number_of_samples(0),
 				number_of_variants(0),
 				magic( "bgen" ),
@@ -39,7 +39,7 @@ namespace genfile {
 				flags(0)
 			{}
 				
-			BgenContext( BgenContext const& other ):
+			Context( Context const& other ):
 				number_of_samples( other.number_of_samples ),
 				number_of_variants( other.number_of_variants ),
 				magic( other.magic ),
@@ -47,7 +47,7 @@ namespace genfile {
 				flags( other.flags )
 			{}
 
-			BgenContext& operator=( BgenContext const& other ) {
+			Context& operator=( Context const& other ) {
 				number_of_samples = other.number_of_samples ;
 				number_of_variants = other.number_of_variants ;
 				magic = other.magic ;
@@ -96,7 +96,7 @@ namespace genfile {
 				char* write_uncompressed_snp_probability_data(
 					char* buffer,
 					char* const end,
-					BgenContext const& context,
+					Context const& context,
 					GenotypeProbabilityGetter get_AA_probability,
 					GenotypeProbabilityGetter get_AB_probability,
 					GenotypeProbabilityGetter get_BB_probability
@@ -136,7 +136,7 @@ namespace genfile {
 				char* write_uncompressed_snp_probability_data(
 					char* buffer,
 					char* const end,
-					BgenContext const& context,
+					Context const& context,
 					GenotypeProbabilityGetter get_AA_probability,
 					GenotypeProbabilityGetter get_AB_probability,
 					GenotypeProbabilityGetter get_BB_probability,
@@ -204,7 +204,7 @@ namespace genfile {
 			char* write_uncompressed_snp_probability_data(
 				char* buffer,
 				char* const bufferEnd,
-				BgenContext const& context,
+				Context const& context,
 				GenotypeProbabilityGetter get_AA_probability,
 				GenotypeProbabilityGetter get_AB_probability,
 				GenotypeProbabilityGetter get_BB_probability,
