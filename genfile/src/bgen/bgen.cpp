@@ -57,7 +57,7 @@ namespace genfile {
 		
 		std::size_t read_header_block(
 			std::istream& aStream,
-			BgenContext* context
+			Context* context
 		) {
 			assert( context != 0 ) ;
 			uint32_t
@@ -102,7 +102,7 @@ namespace genfile {
 
 		bool read_snp_identifying_data(
 			std::istream& aStream,
-			BgenContext const& context,
+			Context const& context,
 			std::string* SNPID,
 			std::string* RSID,
 			std::string* chromosome,
@@ -200,7 +200,7 @@ namespace genfile {
 		
 		void write_snp_identifying_data(
 			std::ostream& aStream,
-			BgenContext const& context,
+			Context const& context,
 			unsigned char max_id_size,
 			std::string SNPID,
 			std::string RSID,
@@ -263,7 +263,7 @@ namespace genfile {
 
 		void write_header_block(
 			std::ostream& aStream,
-			BgenContext const& context
+			Context const& context
 		) {
 			uint32_t header_size = context.header_size() ;
 			genfile::write_little_endian_integer( aStream, header_size ) ;
@@ -276,7 +276,7 @@ namespace genfile {
 		
 		std::size_t write_sample_identifier_block(
 			std::ostream& aStream,
-			BgenContext const& context,
+			Context const& context,
 			std::vector< std::string > const& sample_ids
 		) {
 			assert( sample_ids.size() == context.number_of_samples ) ;
@@ -296,7 +296,6 @@ namespace genfile {
 				std::string const& identifier = sample_ids[i] ;
 				assert( identifier.size() <= std::size_t( std::numeric_limits< uint16_t >::max() ) ) ;
 				uint16_t const id_size = identifier.size() ;
-				write_little_endian_integer( aStream, id_size ) ;
 				write_length_followed_by_data( aStream, id_size, identifier ) ;
 			}
 			return block_size ;
@@ -304,7 +303,7 @@ namespace genfile {
 		
 		void ignore_snp_probability_data(
 			std::istream& aStream,
-			BgenContext const& context
+			Context const& context
 		) {
 			if( context.flags & bgen::e_CompressedSNPBlocks ) {
 				uint32_t compressed_data_size ;
@@ -319,14 +318,14 @@ namespace genfile {
 		void read_uncompressed_snp_probability_data_v12(
 			char const* buffer,
 			char const* const end,
-			BgenContext const& context,
+			Context const& context,
 			VariantDataReader::PerSampleSetter& setter
 		) ;
 
 		void read_uncompressed_snp_probability_data(
 			char const* buffer,
 			char const* const end,
-			BgenContext const& context,
+			Context const& context,
 			VariantDataReader::PerSampleSetter& setter
 		) {
 			if( (context.flags & e_Layout) == e_v10Layout || (context.flags & e_Layout) == e_v11Layout ) {
@@ -414,7 +413,7 @@ namespace genfile {
 		void read_uncompressed_snp_probability_data_v12(
 			char const* buffer,
 			char const* const end,
-			BgenContext const& context,
+			Context const& context,
 			VariantDataReader::PerSampleSetter& setter
 		) {
 			uint32_t numberOfSamples ;
@@ -508,7 +507,7 @@ namespace genfile {
 		
 		void read_snp_probability_data(
 			std::istream& aStream,
-			BgenContext const& context,
+			Context const& context,
 			VariantDataReader::PerSampleSetter& setter,
 			std::vector< char >* buffer1,
 			std::vector< char >* buffer2

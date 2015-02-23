@@ -46,8 +46,10 @@ namespace integration {
 	// algorithm which finds a local maximum of the given function.
 	// It takes an 'function' object which evaluates the function and its first and second derivatives.
 	// A 'direction_picker' object is used to pick an ascent direction at each step.
+	// If an ascent direction (=directional derivative positive) is picked, the algorithm
+	// performs a backward line search to find a step that actually increases the function value.
 	// If a non-ascent direction is picked, the algorithm steps along it unconditionally without line search.
-	// The iteration stops when the picked direction is zero.
+	// The iteration stops when the stopping condition indicates that the algorithm should stop.
 	//
 	template< typename Function, typename DirectionPicker, typename StoppingCondition >
 	typename Function::Vector find_maximum_by_modified_newton_raphson_with_line_search(
@@ -61,14 +63,6 @@ namespace integration {
 		typedef typename Function::Vector Vector ;
 		typedef typename Function::Matrix Matrix ;
 		
-		// 
-		// If h is an ascent direction (f(x + lambda h) > f(x) for small enough lambda)
-		// then we can do a line search starting with lambda = 1.
-		// We'll have f(x + lambda h) = f(x) + lambda Df_x (h) + O(lambda^2).
-		// Can look for a lambda with f(x + lambda h) - f(x) > c * lambda Df_x (h), say,
-		// where lambda = the line search tolerance.
-		//
-
 		Vector first_derivative ;
 		Vector h ;
 		Stepper< Function, DirectionPicker, StoppingCondition > stepper( direction_picker, stopping_condition ) ;
@@ -94,8 +88,14 @@ namespace integration {
 
 			double lambda = 1 ;
 			if( directional_derivative > ( 10 * std::numeric_limits< double >::epsilon() ) ) {
-				// Directional derivative is not too close to machine epsilon,
-				// we can hope to improve the function value.
+				// Directional derivative is greater than zero by a reasonable amount.
+				// We can hope to improve the function value.
+				//
+				// We conduct a line search starting, trying x + lh with l = 1.
+				// We stop the search when
+				//   f(x+lh) > c * l Df_x(h)
+				// where c is the line search tolerance.
+				//
 				for(
 					function.evaluate_at( currentPoint + lambda * h, 0 ) ;
 					( function.get_value_of_function() - current_function_value ) < ( line_search_tolerance * lambda * directional_derivative ) ;

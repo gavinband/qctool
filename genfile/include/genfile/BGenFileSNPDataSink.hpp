@@ -64,6 +64,8 @@ namespace genfile {
 
 		void set_number_of_bits( int const bits ) ;
 
+		bgen::Context const& bgen_context() const { return m_bgen_context ; }
+
 	protected:
 		// Other methods.
 		std::auto_ptr< std::ostream >& stream_ptr() ;
@@ -78,7 +80,7 @@ namespace genfile {
 
 		std::string m_filename ;
 		Metadata m_metadata ;
-		bgen::BgenContext m_bgen_context ;
+		bgen::Context m_bgen_context ;
 		std::size_t m_offset ;
 		std::auto_ptr< std::ostream > m_stream_ptr ;
 		bool m_have_written_header ;

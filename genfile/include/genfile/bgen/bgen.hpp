@@ -37,7 +37,6 @@
 
 namespace genfile {
 	namespace bgen {
-
 		// Read the offset from the start of the stream.
 		void read_offset( std::istream& iStream, uint32_t* offset ) ;
 		// Write an offset value to the stream.
@@ -47,14 +46,14 @@ namespace genfile {
 		// filling the fields of the supplied context object.
 		std::size_t read_header_block(
 			std::istream& aStream,
-			BgenContext* context
+			Context* context
 		) ;
 
 		// Write a bgen header block to the supplied stream,
 		// taking data from the fields of the supplied context object.
 		void write_header_block(
 			std::ostream& aStream,
-			BgenContext const& context
+			Context const& context
 		) ;
 
 		// Read a sample identifier block from the given stream.
@@ -65,7 +64,7 @@ namespace genfile {
 		template< typename SampleSetter >
 		std::size_t read_sample_identifier_block(
 			std::istream& aStream,
-			BgenContext const& context,
+			Context const& context,
 			SampleSetter setter
 		) {
 			uint32_t block_size = 0 ;
@@ -96,7 +95,7 @@ namespace genfile {
 		// given vector to the stream.
 		std::size_t write_sample_identifier_block(
 			std::ostream& aStream,
-			BgenContext const& context,
+			Context const& context,
 			std::vector< std::string > const& sample_ids
 		) ;
 
@@ -109,7 +108,7 @@ namespace genfile {
 		>
 		bool read_snp_identifying_data(
 			std::istream& aStream,
-			BgenContext const& context,
+			Context const& context,
 			std::string* SNPID,
 			std::string* RSID,
 			std::string* chromosome,
@@ -164,7 +163,7 @@ namespace genfile {
 		// a BGenError if the number of alleles is different than 2.
 		bool read_snp_identifying_data(
 			std::istream& aStream,
-			BgenContext const& context,
+			Context const& context,
 			std::string* SNPID,
 			std::string* RSID,
 			std::string* chromosome,
@@ -176,7 +175,7 @@ namespace genfile {
 		// Write identifying data fields for the given variant.
 		void write_snp_identifying_data(
 			std::ostream& aStream,
-			BgenContext const& context,
+			Context const& context,
 			unsigned char max_id_size,
 			std::string SNPID,
 			std::string RSID,
@@ -193,7 +192,7 @@ namespace genfile {
 		// A buffer used for working space (e.g. decompression) must be provided.
 		void read_snp_probability_data(
 			std::istream& aStream,
-			BgenContext const& context,
+			Context const& context,
 			VariantDataReader::PerSampleSetter& setter,
 			std::vector< char >* buffer1,
 			std::vector< char >* buffer2
@@ -202,20 +201,20 @@ namespace genfile {
 		// Skip over probability data for the current variant
 		void ignore_snp_probability_data(
 			std::istream& aStream,
-			BgenContext const& context
+			Context const& context
 		) ;
 		
 		void read_uncompressed_snp_probability_data(
 			char const* buffer,
 			char const* const end,
-			BgenContext const& context,
+			Context const& context,
 			VariantDataReader::PerSampleSetter& setter
 		) ;
 
 		template< typename GenotypeProbabilityGetter >
 		void write_snp_probability_data(
 			std::ostream& aStream,
-			BgenContext const& context,
+			Context const& context,
 			GenotypeProbabilityGetter get_AA_probability,
 			GenotypeProbabilityGetter get_AB_probability,
 			GenotypeProbabilityGetter get_BB_probability,
