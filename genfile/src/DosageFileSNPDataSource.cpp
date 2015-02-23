@@ -113,23 +113,25 @@ namespace genfile {
                 number_of_snps_read()
             ) ;
         }
-        stream() >> SNPID_ >> RSID_ >> position_ >> allele1_ >> allele2_ ;
-        if( !stream() ) {
-            throw genfile::MalformedInputError(
-                m_filename,
-                "Malformed line",
-                number_of_snps_read()
-            ) ;
-        } else {
-            *SNPID = SNPID_ ;
-            *RSID = RSID_ ;
-            *chromosome = Chromosome( chromosome_string ) ;
-            *SNP_position = position_ ;
-            *allele1 = allele1_ ;
-            *allele2 = allele2_ ;
-			// Prepare for the data...
-			if( stream().peek() == ' ' ) {
-				stream().get() ;
+		if( stream() ) {
+			stream() >> SNPID_ >> RSID_ >> position_ >> allele1_ >> allele2_ ;
+			if( !stream() ) {
+				throw genfile::MalformedInputError(
+					m_filename,
+					"Malformed line",
+					number_of_snps_read()
+				) ;
+			} else {
+				*SNPID = SNPID_ ;
+				*RSID = RSID_ ;
+				*chromosome = Chromosome( chromosome_string ) ;
+				*SNP_position = position_ ;
+				*allele1 = allele1_ ;
+				*allele2 = allele2_ ;
+				// Prepare for the data...
+				if( stream().peek() == ' ' ) {
+					stream().get() ;
+				}
 			}
 		}
 	}
@@ -147,9 +149,11 @@ namespace genfile {
 			DosageFileSNPDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
 				std::size_t const N = m_elts.size() ;
 				setter.set_number_of_samples( N ) ;
+				setter.set_number_of_alleles( 2 ) ;
 				for( std::size_t i = 0; i < N; ++i ) {
 					setter.set_sample( i ) ;
 					setter.set_number_of_entries( 1 ) ;
+					setter.set_order_type( PerSampleSetter::eBAlleleDosage, PerSampleSetter::eDosage ) ;
 					if( m_elts[i] == "NA" ) {
 						setter( genfile::MissingValue() ) ;
 					} else {
@@ -164,11 +168,11 @@ namespace genfile {
 			}
 			
 			bool supports( std::string const& spec ) const {
-				return spec == "genotypes" ;
+				return spec == ":genotypes:" ;
 			}
 			
 			void get_supported_specs( SpecSetter setter ) const {
-				setter( "genotypes", "Genotype" ) ;
+				setter( ":genotypes:", "Genotype" ) ;
 			}
 			
 		private:
@@ -181,7 +185,7 @@ namespace genfile {
         m_line.clear() ;
 		m_elts.clear() ;
 		std::getline( *m_stream_ptr, m_line ) ;
-        slice( m_line ).split( " ", &m_elts ) ;
+		slice( m_line ).split( " ", &m_elts ) ;
 		return VariantDataReader::UniquePtr( new impl::DosageFileSNPDataReader( *this, m_elts ) ) ;
 	}
 
