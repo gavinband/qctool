@@ -183,50 +183,6 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 		) ;
 	}
 
-		#if 0
-	if( m_options.check( "-sample-concordance" )) {
-		KinshipCoefficientComputer::UniquePtr result(
-			new KinshipCoefficientComputer( m_options, m_samples, m_worker, m_ui_context, KinshipCoefficientComputer::compute_concordance )
-		) ;
-		result->send_results_to(
-			boost::bind(
-				&pca::write_matrix_lower_diagonals_in_long_form,
-				m_options.get< std::string >( "-sample-concordance" ),
-				_1, _2, _3, _4,
-				get_ids, get_ids
-			)
-		) ;
-		processor.add_callback(
-			genfile::SNPDataSourceProcessor::Callback::UniquePtr( result.release() )
-		) ;
-	}
-	if( m_options.check( "-intensity-covariance" )) {
-		KinshipCoefficientComputer::UniquePtr result(
-			new KinshipCoefficientComputer( m_options, m_samples, m_worker, m_ui_context, KinshipCoefficientComputer::compute_intensity_covariance )
-		)  ;
-		std::vector< std::string > tags ;
-		tags.push_back( "X_intensity" ) ;
-		tags.push_back( "Y_intensity" ) ;
-		KinshipCoefficientManager::GetNames get_intensity_ids = boost::bind(
-			&impl::get_tagged_ids,
-			&m_samples,
-			_1,
-			tags
-		) ;
-		
-		result->send_results_to(
-			boost::bind(
-				&pca::write_matrix_lower_diagonals_in_long_form,
-				m_options.get< std::string >( "-intensity-covariance" ),
-				_1, _2, _3, _4,
-				get_intensity_ids, get_intensity_ids
-			)
-		) ;
-		processor.add_callback(
-			genfile::SNPDataSourceProcessor::Callback::UniquePtr( result.release() )
-		) ;
-	}
-	#endif
 	if( m_options.check( "-PCAs" ) ) {
 		assert( m_options.check( "-UDUT" )) ;
 		pca_computer.reset( new PCAComputer( m_options, m_samples, m_worker, m_ui_context ) ) ;
