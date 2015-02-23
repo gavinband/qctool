@@ -1746,13 +1746,13 @@ public:
 					// computed.
 					{
 						ValueAccumulator::UniquePtr mean_bf(
-							new ValueAccumulator( "Bayesian:mean_bf" )
+							new ValueAccumulator( "ApproximateBayesianMetaAnalysis:mean_bf" )
 						) ;
 
 						std::map< std::string, Eigen::MatrixXd >::const_iterator i = priors.begin() ;
 						std::map< std::string, Eigen::MatrixXd >::const_iterator const end_i = priors.end() ;
 						for( ; i != end_i; ++i ) {
-							mean_bf->set_weight( "Bayesian:" + i->first + ":bf", 1.0 ) ;
+							mean_bf->set_weight( "ApproximateBayesianMetaAnalysis:" + i->first + ":bf", 1.0 ) ;
 						}
 
 						m_processor->send_results_to(
