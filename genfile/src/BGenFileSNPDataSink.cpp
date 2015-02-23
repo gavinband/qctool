@@ -116,8 +116,10 @@ namespace genfile {
 	void BasicBGenFileSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) {
 		assert( sample_name_getter ) ;
 		assert( !m_have_written_header ) ;
-		// Start by writing dummy offset and header block, and the sample identifier block.
-		// Offset and header blocks get overwritten with correct values on destruction.
+		// Seems dumb but right now we have to write the header block, then the sample identifier block,
+		// then the header block again (to get the offset right).
+		// The header is rewritten when this class is deconstructed, but doing this here means at
+		// least that the header is well-formed even if an exception occurs.
 		std::vector< std::string > sample_ids ;
 		for( std::size_t i = 0; i < number_of_samples; ++i ) {
 			sample_ids.push_back( sample_name_getter(i).as< std::string >() ) ;
@@ -131,10 +133,9 @@ namespace genfile {
 			sample_ids
 		) ;
 		update_offset_and_header_block() ;
-		std::cerr << "Have written header with offset size = " << m_offset << ".\n" ;
+		m_stream_ptr->seekp( m_offset+4, std::ios_base::beg ) ;
 
 		m_have_written_header = true ;
-		m_stream_ptr->seekp( m_offset+4, std::ios_base::beg ) ;
 	}
 
 	std::string BasicBGenFileSNPDataSink::serialise( Metadata const& metadata ) const {
