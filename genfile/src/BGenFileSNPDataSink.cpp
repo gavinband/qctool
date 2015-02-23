@@ -25,6 +25,7 @@ namespace genfile {
 	)
 	: 	m_filename( filename ),
 		m_metadata( metadata ),
+		m_offset(0),
 		m_stream_ptr( open_binary_file_for_output( m_filename, compression_type ) ),
 		m_have_written_header( false ),
 		m_number_of_bits( number_of_bits )
@@ -44,6 +45,7 @@ namespace genfile {
 	)
 	: 	m_filename( filename ),
 		m_metadata( metadata ),
+		m_offset(0),
 		m_stream_ptr( stream_ptr ),
 		m_have_written_header( false ),
 		m_number_of_bits( number_of_bits )
@@ -94,14 +96,14 @@ namespace genfile {
 	std::auto_ptr< std::ostream >& BasicBGenFileSNPDataSink::stream_ptr() { return m_stream_ptr ; }
 	std::string const& BasicBGenFileSNPDataSink::filename() const { return m_filename ; }
 	
-	void BasicBGenFileSNPDataSink::update_offset_and_header_block( bgen::Context const& context ) {
+	void BasicBGenFileSNPDataSink::update_offset_and_header_block() {
 		m_bgen_context.number_of_variants = number_of_snps_written() ;
 		m_stream_ptr->seekp( 0, std::ios_base::beg ) ;
 		if( !stream_ptr()->bad() ) {
-			bgen::write_offset( *m_stream_ptr, context.header_size() ) ;
+			bgen::write_offset( *m_stream_ptr, m_offset ) ;
 			bgen::write_header_block(
 				*m_stream_ptr,
-				context
+				m_bgen_context
 			) ;
 		}
 	}
@@ -119,7 +121,14 @@ namespace genfile {
 			sample_ids.push_back( sample_name_getter(i).as< std::string >() ) ;
 		}
 		m_bgen_context.number_of_samples = number_of_samples ;
-		update_offset_and_header_block( m_bgen_context ) ;
+		m_offset = m_bgen_context.header_size() ;
+		m_offset += bgen::write_sample_identifier_block(
+			*m_stream_ptr,
+			m_bgen_context,
+			sample_ids
+		) ;
+		update_offset_and_header_block() ;
+		
 		m_have_written_header = true ;
 	}
 
@@ -168,7 +177,7 @@ namespace genfile {
 		// We are about to close the file.
 		// To write the correct header info, we seek back to the start and rewrite the header block
 		// The header comes after the offset which is 4 bytes.
-		update_offset_and_header_block( bgen_context() ) ;
+		update_offset_and_header_block() ;
 	}
 }
 

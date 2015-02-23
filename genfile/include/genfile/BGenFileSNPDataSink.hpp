@@ -71,7 +71,7 @@ namespace genfile {
 		std::auto_ptr< std::ostream >& stream_ptr() ;
 		std::string const& filename() const ;
 		
-		void update_offset_and_header_block( bgen::Context const& context ) ;
+		void update_offset_and_header_block() ;
 		
 	private:
 
@@ -81,6 +81,7 @@ namespace genfile {
 		std::string m_filename ;
 		Metadata m_metadata ;
 		bgen::Context m_bgen_context ;
+		std::size_t m_offset ;
 		std::auto_ptr< std::ostream > m_stream_ptr ;
 		bool m_have_written_header ;
 		int m_number_of_bits ;
