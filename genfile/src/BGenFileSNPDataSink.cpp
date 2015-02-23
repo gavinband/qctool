@@ -109,6 +109,8 @@ namespace genfile {
 	}
 	
 	void BasicBGenFileSNPDataSink::setup() {
+		m_offset = m_bgen_context.header_size() ;
+		update_offset_and_header_block() ;
 	}
 
 	void BasicBGenFileSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) {
@@ -122,14 +124,17 @@ namespace genfile {
 		}
 		m_bgen_context.number_of_samples = number_of_samples ;
 		m_offset = m_bgen_context.header_size() ;
+		update_offset_and_header_block() ;
 		m_offset += bgen::write_sample_identifier_block(
 			*m_stream_ptr,
 			m_bgen_context,
 			sample_ids
 		) ;
 		update_offset_and_header_block() ;
-		
+		std::cerr << "Have written header with offset size = " << m_offset << ".\n" ;
+
 		m_have_written_header = true ;
+		m_stream_ptr->seekp( m_offset+4, std::ios_base::beg ) ;
 	}
 
 	std::string BasicBGenFileSNPDataSink::serialise( Metadata const& metadata ) const {

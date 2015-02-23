@@ -296,7 +296,6 @@ namespace genfile {
 				std::string const& identifier = sample_ids[i] ;
 				assert( identifier.size() <= std::size_t( std::numeric_limits< uint16_t >::max() ) ) ;
 				uint16_t const id_size = identifier.size() ;
-				write_little_endian_integer( aStream, id_size ) ;
 				write_length_followed_by_data( aStream, id_size, identifier ) ;
 			}
 			return block_size ;
