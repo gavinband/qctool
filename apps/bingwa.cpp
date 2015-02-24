@@ -1000,10 +1000,10 @@ struct ApproximateBayesianMetaAnalysis: public BingwaComputation {
 			return ;
 		}
 		else {
-			Eigen::MatrixXd prior_selector = impl::get_nonmissing_coefficient_selector( non_missingness ) ;
-			betas = prior_selector * betas ;
-			covariance = prior_selector * covariance * prior_selector.transpose() ;
-			Eigen::MatrixXd prior = prior_selector * m_sigma * prior_selector.transpose() ;
+			Eigen::MatrixXd nonmissingness_selector = impl::get_nonmissing_coefficient_selector( non_missingness ) ;
+			betas = nonmissingness_selector * betas ;
+			covariance = nonmissingness_selector * covariance * nonmissingness_selector.transpose() ;
+			Eigen::MatrixXd prior = nonmissingness_selector * m_sigma * nonmissingness_selector.transpose() ;
 			
 			double const bf = impl::compute_bayes_factor( prior, covariance, betas ) ;
 			callback( m_prefix + ":bf", bf ) ;
@@ -1027,6 +1027,12 @@ private:
 
 struct ModelAveragingBayesFactorAnalysis: public BingwaComputation {
 public:
+	typedef std::auto_ptr< ModelAveragingBayesFactorAnalysis > UniquePtr ;
+
+	static UniquePtr create() {
+		return UniquePtr( new ModelAveragingBayesFactorAnalysis ) ;
+	}
+
 	struct ModelSpec {
 	public:
 		ModelSpec( std::string const& name, Eigen::MatrixXd const& covariance, double weight ):
@@ -1058,7 +1064,10 @@ public:
 	} ;
 
 public:
-	ModelAveragingBayesFactorAnalysis() {}
+	ModelAveragingBayesFactorAnalysis():
+		m_prefix( "ModelAveragingBayesFactorAnalysis" )
+	{}
+
 	~ModelAveragingBayesFactorAnalysis() {}
 	
 	void add_model( std::string const& name, Eigen::MatrixXd const& sigma, double const& weight ) {
@@ -1075,7 +1084,18 @@ public:
 	}
 
 	void get_variables( boost::function< void ( std::string ) > callback ) const {
-		callback( m_prefix + ":bf" ) ;
+		for( std::size_t i = 0; i < m_models.size(); ++i ) {
+			callback( m_prefix + ":" + m_models[i].name() + ":bf" ) ;
+		}
+		for( std::size_t i = 0; i < m_models.size(); ++i ) {
+			callback( m_prefix + ":" + m_models[i].name() + ":weighted_bf" ) ;
+		}
+		
+		callback( m_prefix + ":mean_bf" ) ;
+		callback( m_prefix + ":max_bf" ) ;
+		callback( m_prefix + ":max_bf_model" ) ;
+		callback( m_prefix + ":max_weighted_bf" ) ;
+		callback( m_prefix + ":max_posterior_model" ) ;
 	}
 
 	void operator()(
@@ -1099,35 +1119,38 @@ public:
 			return ;
 		}
 
-		Eigen::MatrixXd prior_selector = impl::get_nonmissing_coefficient_selector( non_missingness ) ;
-		betas = prior_selector * betas ;
-		covariance = prior_selector * covariance ;
+		Eigen::MatrixXd const nonmissingness_selector = impl::get_nonmissing_coefficient_selector( non_missingness ) ;
+		betas = nonmissingness_selector * betas ;
+		covariance = nonmissingness_selector * covariance * nonmissingness_selector.transpose() ;
 		
 		std::vector< double > bfs( m_models.size(), NA ) ;
-		std::vector< double > posteriors( m_models.size(), NA ) ;
-		double total_weight ;
+		std::vector< double > weighted_bfs( m_models.size(), NA ) ;
+		double total_weight = 0 ;
 		double mean_bf = 0 ;
 		double max_bf = -Infinity ;
 		std::size_t max_bf_i = m_models.size() ;
-		double max_posterior = -Infinity ;
+		double max_weighted_bf = -Infinity ;
 		std::size_t max_posterior_i = m_models.size() ;
 
 		for( std::size_t i = 0; i < m_models.size(); ++i ) {
-			Eigen::MatrixXd const prior = prior_selector * m_models[i].covariance() * prior_selector.transpose() ;
+			Eigen::MatrixXd const prior = nonmissingness_selector * m_models[i].covariance() * nonmissingness_selector.transpose() ;
 			double const bf = impl::compute_bayes_factor( prior, covariance, betas ) ;
 			if( bf == bf ) {
 				double const weight = m_models[i].weight() ;
+				double const weighted_bf = weight * bf ;
 				total_weight += weight ;
-				mean_bf += m_models[i].weight() * bf ;
+				mean_bf += weighted_bf ;
+
+				bfs[i] = bf ;
+				weighted_bfs[i] = weighted_bf ;
 
 				if( bf >= max_bf ) {
 					max_bf = bf ;
 					max_bf_i = i ;
 				}
 
-				double const posterior = weight * bf ;
-				if( posterior >= max_posterior ) {
-					max_posterior = posterior ;
+				if( weighted_bf >= max_weighted_bf ) {
+					max_weighted_bf = weighted_bf ;
 					max_posterior_i = i ;
 				}
 			}
@@ -1136,19 +1159,23 @@ public:
 		for( std::size_t i = 0; i < m_models.size(); ++i ) {
 			if( bfs[i] == bfs[i] ) {
 				callback( m_prefix + ":" + m_models[i].name() + ":bf", bfs[i] ) ;
+			} else {
+				callback( m_prefix + ":" + m_models[i].name() + ":bf", genfile::MissingValue() ) ;
 			}
 		}
 
 		for( std::size_t i = 0; i < m_models.size(); ++i ) {
 			if( bfs[i] == bfs[i] ) {
-				callback( m_prefix + ":" + m_models[i].name() + ":posterior", posteriors[i] / total_weight ) ;
+				callback( m_prefix + ":" + m_models[i].name() + ":weighted_bf", weighted_bfs[i] / total_weight ) ;
+			} else {
+				callback( m_prefix + ":" + m_models[i].name() + ":weighted_bf", genfile::MissingValue() ) ;
 			}
 		}
 		
 		callback( m_prefix + ":mean_bf", mean_bf / total_weight ) ;
 		callback( m_prefix + ":max_bf", max_bf ) ;
 		callback( m_prefix + ":max_bf_model", m_models[max_bf_i].name() ) ;
-		callback( m_prefix + ":max_posterior", posteriors[ max_posterior_i ] / total_weight ) ;
+		callback( m_prefix + ":max_weighted_bf", weighted_bfs[ max_posterior_i ] / total_weight ) ;
 		callback( m_prefix + ":max_posterior_model", m_models[ max_posterior_i ].name() ) ;
 	}
 
@@ -1719,6 +1746,7 @@ public:
 				}
 				if( options().check( "-simple-prior" ) || options().check( "-complex-prior" ) || options().check( "-group-specific-prior" )) {
 					std::map< std::string, Eigen::MatrixXd > const priors = get_priors( options(), cohort_names ) ;
+					ModelAveragingBayesFactorAnalysis::UniquePtr averager( new ModelAveragingBayesFactorAnalysis ) ;
 					assert( priors.size() > 0 ) ;
 					{
 						std::map< std::string, Eigen::MatrixXd >::const_iterator i = priors.begin() ;
@@ -1737,7 +1765,14 @@ public:
 								"ApproximateBayesianMetaAnalysis",
 								BingwaComputation::UniquePtr( computation.release() )
 							) ;
+							averager->add_model( i->first, i->second, 1.0 ) ;
+							averager->set_filter( filter ) ;
 						}
+						
+						m_processor->add_computation(
+							"Average",
+							BingwaComputation::UniquePtr( averager.release() )
+						) ;
 					}
 					
 					// Now set up an average bayes factor
@@ -1829,8 +1864,23 @@ public:
 		}
 		
 		for( std::size_t i = 0; i < model_specs.size(); ++i ) {
-			std::string const model_name = ( model_names ? model_names.get()[ i ] + "/" : "" ) ;
-			std::vector< CovarianceSpec > const covariance_specs = parse_covariance_spec( model_specs[i] ) ;
+			std::string model_name ;
+			std::string model_spec ;
+			bool use_detailed_name = false ;
+			{
+				std::size_t const colon_pos = model_specs[i].find( ':' ) ;
+				if( colon_pos != std::string::npos ) {
+					use_detailed_name = false ;
+					model_name = model_specs[i].substr( 0, colon_pos ) ;
+					model_spec = model_specs[i].substr( colon_pos + 1, model_specs[i].size() ) ;
+				} else {
+					use_detailed_name = true ;
+					model_name = "" ;
+					model_spec = model_specs[i] ;
+				}
+			}
+			std::vector< CovarianceSpec > const covariance_specs = parse_covariance_spec( model_spec ) ;
+			use_detailed_name = ( use_detailed_name || covariance_specs.size() ) > 1 ; 
 			for( std::size_t j = 0; j < covariance_specs.size(); ++j ) {
 				CovarianceSpec const& covariance_spec = covariance_specs[j] ;
 				if( covariance_spec.get< eBetweenPopulationCorrelation >().size() > 0 ) {
@@ -1839,7 +1889,8 @@ public:
 						model_specs[ i ],
 						covariance_spec,
 						model_name,
-						result
+						result,
+						use_detailed_name
 					) ;
 				} else {
 					get_all_population_prior(
@@ -1847,7 +1898,8 @@ public:
 						model_specs[ i ],
 						covariance_spec,
 						model_name,
-						result
+						result,
+						use_detailed_name
 					) ;
 				}
 			}
@@ -1859,7 +1911,8 @@ public:
 		std::string const& model_spec,
 		CovarianceSpec const& covariance_spec,
 		std::string model_name,
-		std::map< std::string, Eigen::MatrixXd >* result
+		std::map< std::string, Eigen::MatrixXd >* result,
+		bool const use_detailed_name
 	) const {
 		using namespace genfile::string_utils ;
 		
@@ -1898,8 +1951,6 @@ public:
 					+ ") does not match number of effect size parameters (" + to_string( m_processor->get_number_of_effect_parameters() ) + ")"
 				) ;
 			}
-
-			model_name += "rho=" + join( covariance_spec.get<eBetweenPopulationCorrelation>(), "," ) ;
 
 			{
 				int const N = m_processor->get_number_of_cohorts() ;
@@ -1946,10 +1997,15 @@ public:
 				}
 				Eigen::MatrixXd const covariance = sd_matrix.asDiagonal() * correlation * sd_matrix.asDiagonal() ;
 
-				(*result)[ model_name + "/sd=" + join( covariance_spec.get<eSD>(), "," ) + "/cor=" + join( covariance_spec.get<eCorrelation>(), "," ) ] = covariance ;
+				if( use_detailed_name ) {
+					model_name += ":rho=" + join( covariance_spec.get<eBetweenPopulationCorrelation>(), "," ) ;
+					model_name += "/sd=" + join( covariance_spec.get<eSD>(), "," ) + "/cor=" + join( covariance_spec.get<eCorrelation>(), "," ) ;
+				}
+
+				(*result)[ model_name ] = covariance ;
 				
 #if DEBUG_BINGWA
-				std::cerr << "For model " << ( model_name + "/sd=" + join( covariance_spec.get<eSD>(), " " ) ) << ":\n"
+				std::cerr << "For model " << model_name << ":\n"
 					<< "correlation =\n" << correlation << "\n"
 					<< "covariance = \n" << covariance << "\n" ;
 #endif
@@ -1969,7 +2025,8 @@ public:
 		std::string const& model_spec,
 		CovarianceSpec const& covariance_spec,
 		std::string model_name,
-		std::map< std::string, Eigen::MatrixXd >* result
+		std::map< std::string, Eigen::MatrixXd >* result,
+		bool const use_detailed_name
 	) const {
 		using namespace genfile::string_utils ;
 
@@ -1996,7 +2053,7 @@ public:
 		try {
 			if( covariance_spec.get<eBetweenPopulationCorrelation>().size() != 0 ) {
 				throw genfile::BadArgumentError(
-					"BingwaProcessor::get_full_prior()",
+					"BingwaProcessor::get_all_population_prior()",
 					"model_spec=\"" + model_spec + "\"",
 					"In model spec \"" + model_spec + "\", number of between-cohort correlations specified ("
 					+ to_string( covariance_spec.get<eBetweenPopulationCorrelation>().size() )
@@ -2005,7 +2062,7 @@ public:
 			}
 			if( int( covariance_spec.get<eSD>().size() ) != dimension ) {
 				throw genfile::BadArgumentError(
-					"BingwaProcessor::get_full_prior()",
+					"BingwaProcessor::get_all_population_prior()",
 					"model_spec=\"" + model_spec + "\"",
 					"In model spec \"" + model_spec + "\", number of sds specified ("
 					+ to_string( covariance_spec.get<eSD>().size() )
@@ -2016,7 +2073,7 @@ public:
 			std::size_t const numberOfCorrelations = ( dimension * ( dimension + 1 ) / 2 ) ;
 			if( int( covariance_spec.get<eCorrelation>().size() ) != numberOfCorrelations ) {
 				throw genfile::BadArgumentError(
-					"BingwaProcessor::get_full_prior()",
+					"BingwaProcessor::get_all_population_prior()",
 					"model_spec=\"" + model_spec + "\"",
 					"In model spec \"" + model_spec + "\", number of correlations specified ("
 					+ to_string( covariance_spec.get<eCorrelation>().size() )
@@ -2043,10 +2100,14 @@ public:
 
 				Eigen::MatrixXd const covariance = sd_vector.asDiagonal() * correlation * sd_vector.asDiagonal() ;
 
-				(*result)[ model_name + "sd=" + join( covariance_spec.get<eSD>(), "," ) + "/cor=" + join( covariance_spec.get<eCorrelation>(), "," ) ] = covariance ;
+				if( use_detailed_name ) {
+					model_name +=  + ":sd=" + join( covariance_spec.get<eSD>(), "," ) + "/cor=" + join( covariance_spec.get<eCorrelation>(), "," ) ;
+				}
+
+				(*result)[ model_name ] = covariance ;
 				
 #if DEBUG_BINGWA
-				std::cerr << "For model " << ( model_name + "/sd=" + join( covariance_spec.get<eSD>(), " " ) ) << ":\n"
+				std::cerr << "For model " << model_name << ":\n"
 					<< "correlation =\n" << correlation << "\n"
 					<< "covariance = \n" << covariance << "\n" ;
 #endif
