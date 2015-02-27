@@ -180,7 +180,7 @@ namespace genfile {
 			}
 
 			void set_number_of_alleles( std::size_t n ) {
-				m_setter.set_number_of_samples( n ) ;
+				m_setter.set_number_of_alleles( n ) ;
 			}
 
 			void set_sample( std::size_t n ) {

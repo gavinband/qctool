@@ -1093,8 +1093,8 @@ private:
 				) ;
 				m_snp_data_source->reset_to_start() ;
 			}
-			m_indices_of_filtered_out_samples = compute_excluded_samples( m_samples ) ;
 		}
+		m_indices_of_filtered_out_samples = compute_excluded_samples( m_samples ) ;
 
 		if( m_indices_of_filtered_out_samples.size() > 0 ) {
 			m_snp_data_source.reset(
@@ -2095,14 +2095,14 @@ private:
 			),
 			&m_sample_filter_diagnostic_matrix
 		) ;
-		std::vector< std::size_t > result(
+		std::vector< std::size_t > excluded_samples(
 			boost::counting_iterator< std::size_t >(0),
 			boost::counting_iterator< std::size_t >( sample_source->get_number_of_individuals() )
 		) ;
 		for( std::size_t i = 0; i < included_samples.size(); ++i ) {
-			result.erase( result.begin() + included_samples[i] - i ) ;
+			excluded_samples.erase( excluded_samples.begin() + included_samples[i] - i ) ;
 		}
-		return result ;
+		return excluded_samples ;
 	}
 	
 	genfile::CohortIndividualSource::UniquePtr condition_on(
