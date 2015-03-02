@@ -77,15 +77,12 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 	options.option_implies_option( "-kinship", "-s" ) ;
 	options.option_implies_option( "-kinship-method", "-kinship" ) ;
 	options.option_implies_option( "-load-kinship", "-s" ) ;
-	options.option_implies_option( "-UDUT", "-load-kinship" ) ;
 	options.option_implies_option( "-nPCAs", "-PCAs" ) ;
 	options.option_implies_option( "-UDUT", "-PCAs" ) ;
 	options.option_implies_option( "-PCAs", "-UDUT" ) ;
-	options.option_implies_option( "-PCAs", "-load-kinship" ) ;
 	options.option_excludes_option( "-load-kinship", "-kinship" ) ;
 	options.option_excludes_option( "-project-onto", "-loadings" ) ;
 	options.option_excludes_option( "-load-UDUT", "-UDUT" ) ;
-	options.option_excludes_option( "-PCAs", "-kinship" ) ;
 }
 
 RelatednessComponent::UniquePtr RelatednessComponent::create(
@@ -129,12 +126,73 @@ namespace impl {
 }
 
 void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) const {
-	PCAComputer::UniquePtr pca_computer ;
+	PCAComputer::SharedPtr pca_computer ;
 	KinshipCoefficientManager::GetNames get_ids = boost::bind(
 		&impl::get_ids,
 		&m_samples,
 		_1
 	) ;
+
+	if( m_options.check( "-PCAs" ) ) {
+		if( !m_options.check( "-kinship" ) && !m_options.check( "-load-kinship" )) {
+			throw genfile::BadArgumentError(
+				"RelatednessComponent::setup()",
+				"-PCAs",
+				"Expected -kinship or -load-kinship to be supplied."
+			) ;
+		}
+		pca_computer = PCAComputer::SharedPtr( new PCAComputer( m_options, m_samples, m_worker, m_ui_context ) ) ;
+		pca_computer->send_UDUT_to(
+			boost::bind(
+				&pca::write_matrix,
+				m_options.get< std::string >( "-UDUT" ),
+				_3, "qctool:PCAComputer" ,_1, _4, _5
+			)
+		) ;
+		pca_computer->send_PCAs_to(
+			boost::bind(
+				&pca::write_sample_file,
+				m_options.get< std::string >( "-PCAs" ),
+				boost::cref( m_samples ),
+				_3, "qctool:PCAComputer", _1, _4, _5
+			)
+		) ;
+	}
+
+	if( m_options.check( "-loadings" )) {
+		PCALoadingComputer::UniquePtr loading_computer( new PCALoadingComputer( m_options.get< int >( "-nPCAs" ) ) ) ;
+		if( pca_computer.get() ) {
+			pca_computer->send_UDUT_to( boost::bind( &PCALoadingComputer::set_UDUT, loading_computer.get(), _2, _3 ) ) ;
+		} else if( m_options.check( "-load-UDUT" )) {
+			relatedness::UDUTDecompositionLoader udut( m_samples ) ;
+			udut.send_UDUT_to( boost::bind( &PCALoadingComputer::set_UDUT, loading_computer.get(), _3, _1 )) ;
+			udut.load_matrix( m_options.get< std::string >( "-load-UDUT" )) ;
+		} else {
+			throw appcontext::OptionProcessorImpliedOptionNotSuppliedException( "-loadings", "-PCAs or -load-UDUT" ) ;
+		}
+
+		// Set up an output location for the loadings.
+		boost::shared_ptr< statfile::BuiltInTypeStatSink > loadings_file(
+			statfile::BuiltInTypeStatSink::open( m_options.get< std::string >( "-loadings" ) ).release()
+		) ;
+	
+		loadings_file->write_metadata( 
+			pca::get_metadata( "PCALoadingComputer", loading_computer->get_metadata() )
+		) ;
+
+		loading_computer->send_results_to(
+			boost::bind(
+				&pca::write_snp_and_vector_to_sink,
+				loadings_file,
+				_1, _2, _3
+			)
+		) ;
+
+		processor.add_callback(
+			genfile::SNPDataSourceProcessor::Callback::UniquePtr( loading_computer.release() )
+		) ;
+	}
+	
 	if( m_options.check( "-kinship" )) {
 		KinshipCoefficientComputer::Computation::UniquePtr computation ;
 		std::string const& method = m_options.get< std::string >( "-kinship-method" ) ;
@@ -174,71 +232,38 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 			boost::bind(
 				&pca::write_matrix_lower_diagonals_in_long_form,
 				m_options.get< std::string >( "-kinship" ),
-				_1, _2, _3, _4,
+				_2, _3, _4, _5,
 				get_ids, get_ids
 			)
 		) ;
+		if( pca_computer ) {
+			result->send_results_to(
+				boost::bind(
+					&PCAComputer::compute,
+					pca_computer,
+					_3, _1, m_options.get< std::string >( "-kinship" )
+				)
+			) ;
+		}
 		processor.add_callback(
 			genfile::SNPDataSourceProcessor::Callback::UniquePtr( result.release() )
 		) ;
+	} else if( m_options.check( "-load-kinship" )) {
+		assert( pca_computer.get() ) ;
+		assert( !m_options.check( "-kinship" ) ) ;
+		Eigen::MatrixXd relatednessMatrix ;
+		std::size_t number_of_snps ;
+		PCAComputer::load_long_form_matrix(
+			m_samples,
+			m_options.get< std::string >( "-load-kinship" ),
+			&relatednessMatrix,
+			&number_of_snps,
+			m_ui_context
+		) ;
+		pca_computer->compute( relatednessMatrix, number_of_snps, m_options.get< std::string >( "-load-kinship" ) ) ;
 	}
 
-	if( m_options.check( "-PCAs" ) ) {
-		assert( m_options.check( "-UDUT" )) ;
-		pca_computer.reset( new PCAComputer( m_options, m_samples, m_worker, m_ui_context ) ) ;
-		pca_computer->send_UDUT_to(
-			boost::bind(
-				&pca::write_matrix,
-				m_options.get< std::string >( "-UDUT" ),
-				_3, "qctool:PCAComputer" ,_1, _4, _5
-			)
-		) ;
-		pca_computer->send_PCAs_to(
-			boost::bind(
-				&pca::write_sample_file,
-				m_options.get< std::string >( "-PCAs" ),
-				boost::cref( m_samples ),
-				_3, "qctool:PCAComputer", _1, _4, _5
-			)
-		) ;
-	}
-	if( m_options.check( "-loadings" )) {
-		PCALoadingComputer::UniquePtr loading_computer( new PCALoadingComputer( m_options.get< int >( "-nPCAs" ) ) ) ;
-		if( pca_computer.get() ) {
-			pca_computer->send_UDUT_to( boost::bind( &PCALoadingComputer::set_UDUT, loading_computer.get(), _2, _3 ) ) ;
-			pca_computer->compute_PCA() ;
-		} else if( m_options.check( "-load-UDUT" )) {
-			relatedness::UDUTDecompositionLoader udut( m_samples ) ;
-			udut.send_UDUT_to( boost::bind( &PCALoadingComputer::set_UDUT, loading_computer.get(), _3, _1 )) ;
-			udut.load_matrix( m_options.get< std::string >( "-load-UDUT" )) ;
-		} else {
-			throw appcontext::OptionProcessorImpliedOptionNotSuppliedException( "-loadings", "-PCAs or -load-UDUT" ) ;
-		}
 
-		// Set up an output location for the loadings.
-		boost::shared_ptr< statfile::BuiltInTypeStatSink > loadings_file(
-			statfile::BuiltInTypeStatSink::open( m_options.get< std::string >( "-loadings" ) ).release()
-		) ;
-		
-		loadings_file->write_metadata( 
-			pca::get_metadata( "PCALoadingComputer", loading_computer->get_metadata() )
-		) ;
-
-		loading_computer->send_results_to(
-			boost::bind(
-				&pca::write_snp_and_vector_to_sink,
-				loadings_file,
-				_1, _2, _3
-			)
-		) ;
-
-		processor.add_callback(
-			genfile::SNPDataSourceProcessor::Callback::UniquePtr( loading_computer.release() )
-		) ;
-	} else if( pca_computer.get() ) {
-		pca_computer->compute_PCA() ;
-	}
-	
 	if( m_options.check( "-project-onto" )) {
 		std::vector< std::string > elts = m_options.get_values< std::string >( "-project-onto" ) ;
 		assert( elts.size() == 2 ) ;

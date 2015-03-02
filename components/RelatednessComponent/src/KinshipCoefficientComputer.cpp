@@ -955,6 +955,7 @@ void KinshipCoefficientComputer::end_processing_snps() {
 	;
 #if 1
 	send_results(
+		m_computation->number_of_snps_included(),
 		m_computation->nonmissingness().cast< double >(),
 		m_computation->result().cast< double >(),
 		"KinshipCoefficientComputer",

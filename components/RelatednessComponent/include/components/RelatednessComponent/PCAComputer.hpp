@@ -17,7 +17,15 @@
 
 struct PCAComputer
 {
+public:
 	typedef std::auto_ptr< PCAComputer > UniquePtr ;
+	typedef std::shared_ptr< PCAComputer > SharedPtr ;
+
+	static void load_matrix( genfile::CohortIndividualSource const& samples, std::string const& filename, Eigen::MatrixXd* matrix, std::size_t* number_of_snps, appcontext::UIContext& ui_context ) ;
+	static void load_long_form_matrix( genfile::CohortIndividualSource const& samples, std::string const& filename, Eigen::MatrixXd* matrix, std::size_t* number_of_snps, appcontext::UIContext& ui_context ) ;
+	static void load_matrix_metadata( genfile::CohortIndividualSource const& samples, statfile::BuiltInTypeStatSource& source, std::size_t* number_of_samples, std::size_t* number_of_snps, appcontext::UIContext& ui_context ) ;
+
+public:
 	virtual ~PCAComputer() throw() {}
 	PCAComputer(
 		appcontext::OptionProcessor const& options,
@@ -26,7 +34,7 @@ struct PCAComputer
 		appcontext::UIContext& ui_context
 	) ;
 
-	void compute_PCA() ;
+	void compute( Eigen::MatrixXd const& matrix, std::size_t const number_of_snps, std::string const& name ) ;
 
 	void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) ;
 	void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& ) ;
@@ -37,6 +45,7 @@ struct PCAComputer
 	typedef UDUTSignal::slot_type UDUTCallback ;
 	typedef boost::signals2::signal< void( std::string, Eigen::VectorXd const&, Eigen::MatrixXd const&, GetNames, GetNames ) > PCASignal ;
 	typedef PCASignal::slot_type PCACallback ;
+
 
 	void send_UDUT_to( UDUTCallback ) ;
 	void send_PCAs_to( PCACallback ) ;
@@ -66,10 +75,10 @@ private:
 	Eigen::VectorXd m_genotype_calls ;
 	Eigen::VectorXd m_non_missingness ;
 	Eigen::VectorXd m_loading_vectors ;
+
+private:
+	void compute_PCA() ;
 	
-	void load_matrix( std::string const& filename, Eigen::MatrixXd* matrix, std::size_t* number_of_snps ) const ;
-	void load_long_form_matrix( std::string const& filename, Eigen::MatrixXd* matrix, std::size_t* number_of_snps ) const ;
-	void load_matrix_metadata( statfile::BuiltInTypeStatSource& source, std::size_t* number_of_samples, std::size_t* number_of_snps ) const ;
 } ;
 
 #endif

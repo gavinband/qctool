@@ -35,14 +35,19 @@ PCAComputer::PCAComputer(
 	m_ui_context( ui_context ),
 	m_samples( samples ),
 	m_number_of_samples( samples.get_number_of_individuals() ),
-	m_number_of_PCAs_to_compute( 0 ),
+	m_number_of_PCAs_to_compute( std::min( m_options.get< std::size_t >( "-nPCAs" ), samples.get_number_of_individuals() ) ),
 	m_threshhold( 0.9 )
-{
-	assert( m_options.check( "-load-kinship" )) ;
-	m_filename = m_options.get< std::string >( "-load-kinship" ) ;
-	load_long_form_matrix( m_filename, &m_kinship_matrix, &m_number_of_snps ) ;
+{}
 
-	m_number_of_PCAs_to_compute = std::min( m_options.get< std::size_t >( "-nPCAs" ), samples.get_number_of_individuals() ) ;
+void PCAComputer::compute( Eigen::MatrixXd const& matrix, std::size_t const number_of_snps, std::string const& name ) {
+	m_number_of_snps = number_of_snps ;
+	m_kinship_matrix = matrix ;
+	m_filename = name ;
+
+	std::cerr << "PCAComputer::set_relatedness_matrix(): set relatedness matrix to:\n"
+		<< m_kinship_matrix.block( 0, 0, 10, 10) << ".\n" ;
+
+	compute_PCA() ;
 }
 
 namespace {
@@ -56,35 +61,41 @@ namespace {
 	}
 }
 
-void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* matrix, std::size_t* number_of_snps ) const {
+void PCAComputer::load_matrix(
+	genfile::CohortIndividualSource const& samples,
+	std::string const& filename,
+	Eigen::MatrixXd* matrix,
+	std::size_t* number_of_snps,
+	appcontext::UIContext& ui_context
+) {
 	statfile::BuiltInTypeStatSource::UniquePtr source = statfile::BuiltInTypeStatSource::open( filename ) ;
 	std::size_t number_of_samples = 0 ;
-	load_matrix_metadata( *source, &number_of_samples, number_of_snps ) ;
+	load_matrix_metadata( samples, *source, &number_of_samples, number_of_snps, ui_context ) ;
 
 	// Read the matrix, making sure the samples come in the same order as in the sample file.
-	matrix->resize( m_samples.get_number_of_individuals(), m_samples.get_number_of_individuals() ) ;
-	std::vector< std::size_t > sample_column_indices( m_samples.get_number_of_individuals() ) ;
-	for( std::size_t sample_i = 0; sample_i < m_samples.get_number_of_individuals(); ++sample_i ) {
-		sample_column_indices[sample_i] = source->index_of_column( pca::get_concatenated_sample_ids( &m_samples, sample_i )) ;
+	matrix->resize( samples.get_number_of_individuals(), samples.get_number_of_individuals() ) ;
+	std::vector< std::size_t > sample_column_indices( samples.get_number_of_individuals() ) ;
+	for( std::size_t sample_i = 0; sample_i < samples.get_number_of_individuals(); ++sample_i ) {
+		sample_column_indices[sample_i] = source->index_of_column( pca::get_concatenated_sample_ids( &samples, sample_i )) ;
 		if( sample_i > 0 ) {
 			if( sample_column_indices[sample_i] <= sample_column_indices[sample_i-1] ) {
-				m_ui_context.logger() << "!! Error in PCAComputer::load_matrix(): column order does not match samples.\n" ;
+				ui_context.logger() << "!! Error in PCAComputer::load_matrix(): column order does not match samples.\n" ;
 				throw genfile::MalformedInputError( source->get_source_spec(), 0, sample_column_indices[ sample_i ] ) ;
 			}
 		}
 	}
 
 	// Now apply sample exclusions.
-	for( std::size_t sample_i = 0; sample_i < m_samples.get_number_of_individuals(); ++sample_i ) {
+	for( std::size_t sample_i = 0; sample_i < samples.get_number_of_individuals(); ++sample_i ) {
 		std::string id ;
 		// find row corresponding to next sample.
-		for( (*source) >> id; (*source) && id != pca::get_concatenated_sample_ids( &m_samples, sample_i ); (*source) >> statfile::ignore_all() >> id ) ;
+		for( (*source) >> id; (*source) && id != pca::get_concatenated_sample_ids( &samples, sample_i ); (*source) >> statfile::ignore_all() >> id ) ;
 		if( !(*source) || source->number_of_rows_read() == source->number_of_rows() ) {
 			throw genfile::MalformedInputError( source->get_source_spec(), source->number_of_rows_read(), 0 ) ;
 		}
 		if( source->number_of_rows_read() != ( sample_column_indices[ sample_i ] - 1 ) ) {
-			m_ui_context.logger()
-				<< "!! Error( PCAComputer::load_matrix ): sample " << m_samples.get_entry( sample_i, "id_1" )
+			ui_context.logger()
+				<< "!! Error( PCAComputer::load_matrix ): sample " << samples.get_entry( sample_i, "id_1" )
 				<< " is on row "
 				<< source->number_of_rows_read()
 				<< " but column "
@@ -92,7 +103,7 @@ void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* mat
 				<< ".\n" ;
 			throw genfile::MalformedInputError( source->get_source_spec(), source->number_of_rows_read(), 0 ) ;
 		}
-		for( std::size_t sample_j = 0; sample_j < m_samples.get_number_of_individuals(); ++sample_j ) {
+		for( std::size_t sample_j = 0; sample_j < samples.get_number_of_individuals(); ++sample_j ) {
 			(*source)
 				>> statfile::ignore( sample_column_indices[ sample_j ] - source->current_column() )
 				>> (*matrix)( sample_i, sample_j )
@@ -102,19 +113,25 @@ void PCAComputer::load_matrix( std::string const& filename, Eigen::MatrixXd* mat
 	}
 }
 
-void PCAComputer::load_long_form_matrix( std::string const& filename, Eigen::MatrixXd* matrix, std::size_t* number_of_snps ) const {
+void PCAComputer::load_long_form_matrix(
+	genfile::CohortIndividualSource const& samples,
+	std::string const& filename,
+	Eigen::MatrixXd* matrix,
+	std::size_t* number_of_snps,
+	appcontext::UIContext& ui_context
+) {
 	statfile::BuiltInTypeStatSource::UniquePtr source = statfile::BuiltInTypeStatSource::open( filename ) ;
 	std::size_t number_of_samples = 0 ;
-	load_matrix_metadata( *source, &number_of_samples, number_of_snps ) ;
+	load_matrix_metadata( samples, *source, &number_of_samples, number_of_snps, ui_context ) ;
 
-	matrix->resize( m_samples.get_number_of_individuals(), m_samples.get_number_of_individuals() ) ;
+	matrix->resize( samples.get_number_of_individuals(), samples.get_number_of_individuals() ) ;
 	Eigen::MatrixXd non_missingness( matrix->rows(), matrix->cols() ) ;
 	non_missingness.setZero() ;
 	
 	std::map< std::string, int > samples_to_indices ;
 	std::map< std::string, int > samples_filled ;
-	for( std::size_t sample_i = 0; sample_i < m_samples.get_number_of_individuals(); ++sample_i ) {
-		std::string const sample = m_samples.get_entry( sample_i, "ID_1" ).as< std::string >() ;
+	for( std::size_t sample_i = 0; sample_i < samples.get_number_of_individuals(); ++sample_i ) {
+		std::string const sample = samples.get_entry( sample_i, "ID_1" ).as< std::string >() ;
 		samples_to_indices[ sample ] = sample_i ;
 		samples_filled[ sample ] = 0 ;
 	}
@@ -143,23 +160,26 @@ void PCAComputer::load_long_form_matrix( std::string const& filename, Eigen::Mat
 				non_missingness( i, j ) = non_missingness( j, i ) ;
 			}
 		}
-		
-		m_ui_context.logger() << "Matrix is:\n"
+
+#if DEBUG_PCA_COMPUTER		
+		ui_context.logger() << "Matrix is:\n"
 			<< (*matrix).block( 0, 0, 10, 10 )
 			<< "\n" ;
 
-		m_ui_context.logger() << "Non-missingness is:\n"
+		ui_context.logger() << "Non-missingness is:\n"
 			<< non_missingness.block( 0, 0, 10, 10 )
 			<< "\n" ;
+#endif DEBUG_PCA_COMPUTER
+
 		if( non_missingness.array().minCoeff() == 0 ) {
 			int count = 0 ;
 			for( int i = 0; i < matrix->rows() && count < 20; ++i ) {
 				for( int j = 0; j < matrix->cols() && count < 20; ++j ) {
 					if( non_missingness( i, j ) != 1 ) {
-						m_ui_context.logger() << "PCAComputer::load_long_form_matrix(): sample pair "
-							<< m_samples.get_entry( i, "ID_1" )
+						ui_context.logger() << "PCAComputer::load_long_form_matrix(): sample pair "
+							<< samples.get_entry( i, "ID_1" )
 							<< " : "
-							<< m_samples.get_entry( j, "ID_1" )
+							<< samples.get_entry( j, "ID_1" )
 							<< " seems unrepresented in \""
 							<< filename
 							<< "\".\n" ;
@@ -172,7 +192,13 @@ void PCAComputer::load_long_form_matrix( std::string const& filename, Eigen::Mat
 	}
 }
 
-void PCAComputer::load_matrix_metadata( statfile::BuiltInTypeStatSource& source, std::size_t* number_of_samples, std::size_t* number_of_snps ) const {
+void PCAComputer::load_matrix_metadata(
+	genfile::CohortIndividualSource const& samples,
+	statfile::BuiltInTypeStatSource& source,
+	std::size_t* number_of_samples,
+	std::size_t* number_of_snps,
+	appcontext::UIContext& ui_context
+) {
 	using namespace genfile::string_utils ;
 	// Read the metadata
 	std::size_t number_of_samples_ = 0, number_of_snps_ = 0 ;
@@ -186,12 +212,12 @@ void PCAComputer::load_matrix_metadata( statfile::BuiltInTypeStatSource& source,
 			number_of_samples_ = to_repr< std::size_t >( elts[1] ) ;
 		}
 	}
-	if( number_of_samples_ != m_samples.get_number_of_individuals() ) {
+	if( number_of_samples_ != samples.get_number_of_individuals() ) {
 		throw genfile::MismatchError(
 			"PCAComputer::load_matrix_metadata()",
 			source.get_source_spec(),
 			"number of samples: " + to_string( number_of_samples_ ),
-			"expected number: " + to_string( m_samples.get_number_of_individuals() )
+			"expected number: " + to_string( samples.get_number_of_individuals() )
 		) ;
 	}
 	*number_of_samples = number_of_samples_ ;
@@ -205,14 +231,13 @@ namespace {
 }
 
 void PCAComputer::compute_PCA() {
-	assert( m_options.check_if_option_was_supplied( "-PCAs" ) ) ;
 	Eigen::MatrixXd kinship_eigendecomposition( m_number_of_samples, m_number_of_samples + 1 ) ;
 #if HAVE_LAPACK
 	if( m_options.check( "-use-eigen" ))
 #endif
 	{
 		m_ui_context.logger() << "========================================================================\n" ;
-		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using Eigen...\n" ;
+		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of " << m_number_of_samples << "x" << m_number_of_samples << " kinship matrix using Eigen...\n" ;
 		Eigen::SelfAdjointEigenSolver< Eigen::MatrixXd > solver( m_kinship_matrix ) ;
 		if( solver.info() == Eigen::Success ) {
 			m_ui_context.logger() << "PCAComputer: Done, writing results...\n" ;
