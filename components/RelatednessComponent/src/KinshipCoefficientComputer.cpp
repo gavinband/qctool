@@ -749,7 +749,7 @@ namespace impl {
 			}
 		}
 		allele_frequency /= ( nonmissing_count * 2.0 ) ;
-		if( std::min( allele_frequency, 1.0 - allele_frequency ) > m_allele_frequency_threshhold ) {
+		if( nonmissing_count > 0 && std::min( allele_frequency, 1.0 - allele_frequency ) > m_allele_frequency_threshhold ) {
 			// Ok we will process this SNP.
 			// We batch SNPs together to form a total of m_number_of_snps_per_computation SNPs.
 			// This means we visit the result matrix (which for large samples won't fit in cache)

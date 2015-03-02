@@ -13,11 +13,12 @@
 #include "genfile/Error.hpp"
 #include "genfile/vcf/get_set_eigen.hpp"
 #include "components/RelatednessComponent/PCAProjector.hpp"
+#include "components/RelatednessComponent/PCAComputer.hpp"
 #include "components/RelatednessComponent/mean_centre_genotypes.hpp"
 #include "components/RelatednessComponent/names.hpp"
 #include "components/RelatednessComponent/write_matrix_to_stream.hpp"
 
-#define DEBUG_PCA_PROJECTOR 1
+// #define DEBUG_PCA_PROJECTOR 1
 
 namespace pca {
 	PCAProjector::UniquePtr PCAProjector::create( genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ) {
@@ -72,7 +73,7 @@ namespace pca {
 
 	void PCAProjector::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 		SnpMap::const_iterator where = m_snps.find( snp.get_position() ) ;
-		if( where != m_snps.end() ) {
+		if( where != m_snps.end() && m_loadings.row( where->second ).sum() == m_loadings.row( where->second ).sum() ) {
 			data_reader.get(
 				":genotypes:",
 				genfile::vcf::get_threshholded_calls( m_genotype_calls, m_non_missingness, 0.9, 0, 0, 1, 2 )
@@ -80,7 +81,7 @@ namespace pca {
 			assert( m_genotype_calls.size() == m_projections.rows() ) ;
 			assert( m_non_missingness.size() == m_genotype_calls.size() ) ;
 			double const allele_frequency = m_genotype_calls.sum() / ( 2.0 * m_non_missingness.sum() ) ;
-			if( allele_frequency > 0.01 ) {
+			if( allele_frequency > 0.001 ) {
 #if DEBUG_PCA_PROJECTOR
 				std::cerr << std::resetiosflags( std::ios::floatfield ) << std::setprecision( 5 ) ;
 				std::cerr << "SNP: " << snp << ": freq = " << allele_frequency << ", uncentred genotypes are: " << m_genotype_calls.transpose().head( 20 ) << "...\n" ;
@@ -122,8 +123,7 @@ namespace pca {
 				_1
 			),
 			boost::bind(
-				&pca::string_and_number,
-				"PCA_",
+				&PCAComputer::get_pca_name,
 				_1
 			)
 		) ;

@@ -12,6 +12,7 @@
 #include <Eigen/Core>
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
 #include "genfile/CohortIndividualSource.hpp"
+#include "statfile/BuiltInTypeStatSource.hpp"
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
 
@@ -25,12 +26,13 @@ public:
 	static void load_long_form_matrix( genfile::CohortIndividualSource const& samples, std::string const& filename, Eigen::MatrixXd* matrix, std::size_t* number_of_snps, appcontext::UIContext& ui_context ) ;
 	static void load_matrix_metadata( genfile::CohortIndividualSource const& samples, statfile::BuiltInTypeStatSource& source, std::size_t* number_of_samples, std::size_t* number_of_snps, appcontext::UIContext& ui_context ) ;
 
+	static genfile::VariantEntry get_pca_name( std::size_t i ) ;
+
 public:
 	virtual ~PCAComputer() throw() {}
 	PCAComputer(
 		appcontext::OptionProcessor const& options,
 		genfile::CohortIndividualSource const& samples,
-		worker::Worker* worker,
 		appcontext::UIContext& ui_context
 	) ;
 

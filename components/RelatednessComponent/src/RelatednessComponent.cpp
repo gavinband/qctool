@@ -141,7 +141,7 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 				"Expected -kinship or -load-kinship to be supplied."
 			) ;
 		}
-		pca_computer = PCAComputer::SharedPtr( new PCAComputer( m_options, m_samples, m_worker, m_ui_context ) ) ;
+		pca_computer = PCAComputer::SharedPtr( new PCAComputer( m_options, m_samples, m_ui_context ) ) ;
 		pca_computer->send_UDUT_to(
 			boost::bind(
 				&pca::write_matrix,

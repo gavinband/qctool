@@ -15,7 +15,6 @@
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "statfile/BuiltInTypeStatSource.hpp"
-#include "worker/Worker.hpp"
 #include "appcontext/FileUtil.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
 #include "appcontext/OptionProcessor.hpp"
@@ -28,7 +27,6 @@
 PCAComputer::PCAComputer(
 	appcontext::OptionProcessor const& options,
 	genfile::CohortIndividualSource const& samples,
-	worker::Worker* worker,
 	appcontext::UIContext& ui_context
 ):
 	m_options( options ),
@@ -224,10 +222,8 @@ void PCAComputer::load_matrix_metadata(
 	*number_of_snps = number_of_snps_ ;
 }
 
-namespace {
-	genfile::VariantEntry get_pca_name( std::size_t i ) {
-		return std::string( "PC_" ) + genfile::string_utils::to_string( i + 1 ) ;
-	}
+genfile::VariantEntry PCAComputer::get_pca_name( std::size_t i ) {
+	return std::string( "PC_" ) + genfile::string_utils::to_string( i + 1 ) ;
 }
 
 void PCAComputer::compute_PCA() {
@@ -372,7 +368,7 @@ void PCAComputer::compute_PCA() {
 				&m_samples,
 				_1
 			),
-			&get_pca_name
+			&PCAComputer::get_pca_name
 		) ;
 	}
 	
