@@ -41,6 +41,9 @@ namespace genfile {
 	void DosageFileSNPDataSource::setup( std::auto_ptr< std::istream > stream_ptr ) {
 		m_stream_ptr = stream_ptr ;
         std::getline( stream(), m_line ) ;
+		while( stream() && m_line.size() > 0 && m_line[0] == '#' ) {
+			std::getline( stream(), m_line ) ;
+		}
         bool bad = false ;
         if( !stream() ) {
             bad = true ;
@@ -82,6 +85,9 @@ namespace genfile {
 			throw OperationFailedError( "genfile::DosageFileSNPDataSource::reset_to_start_impl()", get_source_spec(), "reset to start" ) ;
 		}
         std::getline( stream(), m_line ) ;
+		while( stream() && m_line.size() > 0 && m_line[0] == '#' ) {
+			std::getline( stream(), m_line ) ;
+		}
 	}
 	
 	SNPDataSource::Metadata DosageFileSNPDataSource::get_metadata() const {
