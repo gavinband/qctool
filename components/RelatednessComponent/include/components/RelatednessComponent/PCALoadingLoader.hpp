@@ -19,7 +19,15 @@ namespace pca {
 	struct PCALoadingLoader: public boost::noncopyable {
 		PCALoadingLoader( genfile::CohortIndividualSource const& samples ) ;
 
-		typedef boost::signals2::signal< void ( std::vector< genfile::SNPIdentifyingData > const&, Eigen::MatrixXd const&, std::size_t number_of_snps, std::size_t number_of_loadings, std::vector< std::string > ) > ResultSignal ;
+		typedef boost::signals2::signal< void (
+			std::vector< genfile::SNPIdentifyingData > const&,
+			Eigen::VectorXd const&,
+			Eigen::VectorXd const&,
+			Eigen::MatrixXd const&,
+			std::size_t number_of_snps,
+			std::size_t number_of_loadings,
+			std::vector< std::string > )
+		> ResultSignal ;
 		void send_loadings_to( ResultSignal::slot_type ) ;
 		void load_loadings( std::string const& filename ) const ;
 	private:
@@ -29,6 +37,8 @@ namespace pca {
 		void load_loadings_impl(
 			std::string const& filename,
 			std::vector< genfile::SNPIdentifyingData >* snps,
+			Eigen::VectorXd* counts,
+			Eigen::VectorXd* frequencies,
 			Eigen::MatrixXd* loadings,
 			std::vector< std::string >* column_names
 		) const ;

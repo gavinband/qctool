@@ -29,7 +29,13 @@ namespace pca {
 		static UniquePtr create( genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ) ;
 		PCAProjector( genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ) ;
 		
-		void set_loadings( std::vector< genfile::SNPIdentifyingData > const& snps, Matrix const& loadings, std::vector< std::string > const& names ) ;
+		void set_loadings(
+			std::vector< genfile::SNPIdentifyingData > const& snps,
+			Vector const& counts,
+			Vector const& frequencies,
+			Matrix const& loadings,
+			std::vector< std::string > const& names
+		) ;
 
 		void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) ;
 		void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& ) ;
@@ -45,6 +51,8 @@ namespace pca {
 		appcontext::UIContext& m_ui_context ;
 		typedef std::map< genfile::GenomePosition, int > SnpMap ;
 		SnpMap m_snps ;
+		Eigen::VectorXd m_counts ;
+		Eigen::VectorXd m_frequencies ;
 		Eigen::MatrixXd m_loadings ;
 		std::vector< std::string > m_names ;
 		Eigen::VectorXd m_genotype_calls ;

@@ -182,9 +182,9 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 
 		loading_computer->send_results_to(
 			boost::bind(
-				&pca::write_snp_and_vector_to_sink,
+				&pca::write_loadings_to_sink,
 				loadings_file,
-				_1, _2, _3
+				_1, _2, _3 ,_4, _5
 			)
 		) ;
 
@@ -277,7 +277,7 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 			)
 		) ;
 		pca::PCALoadingLoader loader( m_samples ) ;
-		loader.send_loadings_to( boost::bind( &pca::PCAProjector::set_loadings, projector.get(), _1, _2, _5 )) ;
+		loader.send_loadings_to( boost::bind( &pca::PCAProjector::set_loadings, projector.get(), _1, _2, _3, _4, _7 )) ;
 		loader.load_loadings( elts[0] ) ;
 		
 		processor.add_callback(

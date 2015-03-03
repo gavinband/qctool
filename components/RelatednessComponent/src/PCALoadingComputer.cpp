@@ -146,6 +146,8 @@ void PCALoadingComputer::processed_snp( genfile::SNPIdentifyingData const& snp, 
 	}
 	send_results(
 		snp,
+		m_non_missingness.sum(),
+		allele_frequency,
 		m_loading_vectors,
 		boost::bind(
 			&eigenvector_column_names,
@@ -161,8 +163,8 @@ void PCALoadingComputer::send_results_to( ResultCallback callback ) {
 	m_result_signal.connect( callback ) ;
 }
 
-void PCALoadingComputer::send_results( genfile::SNPIdentifyingData const& snp, Eigen::VectorXd const& data, GetNames get_names ) {
-	m_result_signal( snp, data, get_names ) ;
+void PCALoadingComputer::send_results( genfile::SNPIdentifyingData const& snp, double const N, double const frequency, Eigen::VectorXd const& data, GetNames get_names ) {
+	m_result_signal( snp, N, frequency, data, get_names ) ;
 }
 
 std::string PCALoadingComputer::get_metadata() const {

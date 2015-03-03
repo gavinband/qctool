@@ -58,9 +58,11 @@ namespace pca {
 		boost::function< genfile::VariantEntry ( std::size_t ) > get_column_names = 0
 	) ;
 
-	void write_snp_and_vector_to_sink(
+	void write_loadings_to_sink(
 		boost::shared_ptr< statfile::BuiltInTypeStatSink> sink,
 		genfile::SNPIdentifyingData snp,
+		double const non_missingness,
+		double const allele_frequency,
 		Eigen::VectorXd const& vector,
 		boost::function< genfile::VariantEntry ( std::size_t ) > get_names
 	) ;

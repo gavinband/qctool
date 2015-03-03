@@ -169,14 +169,16 @@ namespace pca {
 		}
 	}
 
-	void write_snp_and_vector_to_sink(
+	void write_loadings_to_sink(
 		boost::shared_ptr< statfile::BuiltInTypeStatSink > sink,
 		genfile::SNPIdentifyingData snp,
+		double const non_missingness,
+		double const allele_frequency,
 		Eigen::VectorXd const& vector,
 		boost::function< genfile::VariantEntry ( std::size_t ) > get_names
 	) {
 		if( sink->number_of_rows_written() == 0 && sink->current_column() == 0 ) {
-			(*sink) | "SNPID" | "rsid" | "chromosome" | "position" | "allele_A" | "allele_B" ;
+			(*sink) | "SNPID" | "rsid" | "chromosome" | "position" | "allele_A" | "allele_B" | "N" | "B_allele_frequency" ;
 			if( get_names ) {
 				for( int i = 0; i < vector.size(); ++i ) {
 					(*sink) | get_names( i ).as< std::string >() ;
@@ -194,7 +196,10 @@ namespace pca {
 			<< std::string( snp.get_position().chromosome() )
 			<< snp.get_position().position()
 			<< snp.get_first_allele()
-			<< snp.get_second_allele() ;
+			<< snp.get_second_allele()
+			<< non_missingness
+			<< allele_frequency
+		;
 		for( int i = 0; i < vector.size(); ++i ) {
 			(*sink) << vector(i) ;
 		}

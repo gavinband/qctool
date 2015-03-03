@@ -24,16 +24,27 @@ namespace pca {
 
 	void PCALoadingLoader::load_loadings( std::string const& filename ) const {
 		Eigen::MatrixXd loadings ;
+		Eigen::VectorXd counts ;
+		Eigen::VectorXd frequencies ;
 		std::vector< genfile::SNPIdentifyingData > snps ;
 		std::vector< std::string > column_names ;
-		load_loadings_impl( filename, &snps, &loadings, &column_names ) ;
-		m_result_signal( snps, loadings, snps.size(), m_samples.get_number_of_individuals(), column_names ) ;
+		load_loadings_impl( filename, &snps, &counts, &frequencies, &loadings, &column_names ) ;
+		m_result_signal( snps, counts, frequencies, loadings, snps.size(), m_samples.get_number_of_individuals(), column_names ) ;
 	}
 
-	void PCALoadingLoader::load_loadings_impl( std::string const& filename, std::vector< genfile::SNPIdentifyingData >* snps, Eigen::MatrixXd* loadings, std::vector< std::string >* column_names ) const {
+	void PCALoadingLoader::load_loadings_impl(
+		std::string const& filename,
+		std::vector< genfile::SNPIdentifyingData >* snps,
+		Eigen::VectorXd* counts,
+		Eigen::VectorXd* frequencies,
+		Eigen::MatrixXd* loadings,
+		std::vector< std::string >* column_names
+	) const {
 		statfile::BuiltInTypeStatSource::UniquePtr source = statfile::BuiltInTypeStatSource::open( filename ) ;
 		assert( loadings ) ;
 		assert( snps ) ;
+		assert( counts ) ;
+		assert( frequencies ) ;
 		
 		using namespace genfile::string_utils ;
 		// Read the metadata
@@ -49,20 +60,25 @@ namespace pca {
 				number_of_samples = to_repr< std::size_t >( elts[1] ) ;
 			}
 		}
-		if( source->number_of_columns() < 7 ) {
+		if( source->number_of_columns() < 9 ) {
 			throw genfile::MalformedInputError( source->get_source_spec(), 0, source->number_of_columns() ) ;
 		}
-		if( ( source->number_of_columns() - 6 ) % 2 != 0 ) {
+		if( ( source->number_of_columns() - 8 ) % 2 != 0 ) {
 			throw genfile::MalformedInputError( source->get_source_spec(), 0, source->number_of_columns() ) ;
 		}
 		std::size_t const number_of_loadings = ( source->number_of_columns() - 6 ) / 2;
 
 		snps->resize( number_of_snps ) ;
 		loadings->resize( number_of_snps, number_of_loadings ) ;
+		counts->resize( number_of_snps ) ;
+		frequencies->resize( number_of_snps ) ;
+		double count, frequency ;
 		for( std::size_t i = 0; i < number_of_snps; ++i ) {
 			(*source) >> (*snps)[i].SNPID() >> (*snps)[i].rsid()
 				>> (*snps)[i].position().chromosome() >> (*snps)[i].position().position()
-				>> (*snps)[i].first_allele() >> (*snps)[i].second_allele() ;
+				>> (*snps)[i].first_allele() >> (*snps)[i].second_allele()
+				>> (*counts)(i)
+				>> (*frequencies)(i) ;
 			for( std::size_t j = 0; j < number_of_loadings; ++j ) {
 				(*source) >> (*loadings)(i,j) ;
 			}

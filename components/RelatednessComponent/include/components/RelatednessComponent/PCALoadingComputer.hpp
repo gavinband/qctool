@@ -27,9 +27,11 @@ public:
 	void end_processing_snps() ;
 
 	typedef boost::function< genfile::VariantEntry ( std::size_t ) > GetNames ;
-	typedef boost::function< void( genfile::SNPIdentifyingData const&, Eigen::VectorXd const&, GetNames ) > ResultCallback ;
+	typedef boost::signals2::signal< void( genfile::SNPIdentifyingData const&, double const, double const, Eigen::VectorXd const&, GetNames ) > ResultSignal ;
+	typedef ResultSignal::slot_type ResultCallback ;
+
 	void send_results_to( ResultCallback callback ) ;
-	void send_results( genfile::SNPIdentifyingData const& snp, Eigen::VectorXd const& data, GetNames ) ;
+	void send_results( genfile::SNPIdentifyingData const& snp, double const, double const, Eigen::VectorXd const& data, GetNames ) ;
 	
 	std::string get_metadata() const ;
 private:
@@ -38,10 +40,10 @@ private:
 	int const m_number_of_loadings ;
 	int m_number_of_snps ;
 	Eigen::RowVectorXd m_loading_vectors ;
+	Eigen::VectorXd m_allele_frequencies ;
 	Eigen::VectorXd m_genotype_calls ;
 	Eigen::VectorXd m_non_missingness ;
 	
-	typedef boost::signals2::signal< void( genfile::SNPIdentifyingData const&, Eigen::VectorXd const&, GetNames ) > ResultSignal ;
 	ResultSignal m_result_signal ;
 } ;
 

@@ -30,7 +30,13 @@ namespace pca {
 	 	m_ui_context( ui_context )
 	{}
 
-	void PCAProjector::set_loadings( std::vector< genfile::SNPIdentifyingData > const& snps, Matrix const& loadings, std::vector< std::string > const& names ) {
+	void PCAProjector::set_loadings(
+		std::vector< genfile::SNPIdentifyingData > const& snps,
+		Vector const& counts,
+		Vector const& frequencies,
+		Matrix const& loadings,
+		std::vector< std::string > const& names
+	) {
 		using genfile::string_utils::to_string ;
 		if( snps.size() != std::size_t( loadings.rows() ) ) {
 			throw genfile::MismatchError(
@@ -54,6 +60,8 @@ namespace pca {
 				throw genfile::DuplicateKeyError( "snps argument to pca::PCAProjector::set_loadings()", to_string( snps[i] )) ;
 			}
 		}
+		m_counts = counts ;
+		m_frequencies = frequencies ;
 		m_loadings = loadings ;
 		m_names = names ;
 		
@@ -80,9 +88,10 @@ namespace pca {
 			) ;
 			assert( m_genotype_calls.size() == m_projections.rows() ) ;
 			assert( m_non_missingness.size() == m_genotype_calls.size() ) ;
-			double const allele_frequency = m_genotype_calls.sum() / ( 2.0 * m_non_missingness.sum() ) ;
+			double const allele_frequency = m_frequencies( where->second ) ;
 			double const maf = std::min( allele_frequency, 1 - allele_frequency ) ;
-			if( maf > 0.001 ) {
+			double const count = m_counts( where->second ) ;
+			if( count > 0 && maf > 0.001 ) {
 #if DEBUG_PCA_PROJECTOR
 				std::cerr << std::resetiosflags( std::ios::floatfield ) << std::setprecision( 5 ) ;
 				std::cerr << "SNP: " << snp << ": freq = " << allele_frequency << ", uncentred genotypes are: " << m_genotype_calls.transpose().head( 20 ) << "...\n" ;
