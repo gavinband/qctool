@@ -73,7 +73,7 @@ namespace pca {
 
 	void PCAProjector::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 		SnpMap::const_iterator where = m_snps.find( snp.get_position() ) ;
-		if( where != m_snps.end() && m_loadings.row( where->second ).sum() == m_loadings.row( where->second ).sum() ) {
+		if( where != m_snps.end() && ( m_loadings.row( where->second ).sum() == m_loadings.row( where->second ).sum() ) ) {
 			data_reader.get(
 				":genotypes:",
 				genfile::vcf::get_threshholded_calls( m_genotype_calls, m_non_missingness, 0.9, 0, 0, 1, 2 )
@@ -81,7 +81,8 @@ namespace pca {
 			assert( m_genotype_calls.size() == m_projections.rows() ) ;
 			assert( m_non_missingness.size() == m_genotype_calls.size() ) ;
 			double const allele_frequency = m_genotype_calls.sum() / ( 2.0 * m_non_missingness.sum() ) ;
-			if( allele_frequency > 0.001 ) {
+			double const maf = std::min( allele_frequency, 1 - allele_frequency ) ;
+			if( maf > 0.001 ) {
 #if DEBUG_PCA_PROJECTOR
 				std::cerr << std::resetiosflags( std::ios::floatfield ) << std::setprecision( 5 ) ;
 				std::cerr << "SNP: " << snp << ": freq = " << allele_frequency << ", uncentred genotypes are: " << m_genotype_calls.transpose().head( 20 ) << "...\n" ;
@@ -101,6 +102,7 @@ namespace pca {
 				// with the row vector of loadings for that SNP.
 				//
 				m_projections += m_genotype_calls * m_loadings.row( where->second ) ;
+				assert( m_projections.sum() == m_projections.sum() ) ;
 			}
 			m_visited[ snp.get_position() ] = true ;
 		}
