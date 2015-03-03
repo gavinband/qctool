@@ -8,6 +8,7 @@
 #define COMPONENTS_RELATEDNESS_COMPONENT_PCA_COMPUTER_HPP
 
 #include <string>
+#include <boost/shared_ptr.hpp>
 #include <boost/signals2/signal.hpp>
 #include <Eigen/Core>
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
@@ -20,7 +21,7 @@ struct PCAComputer
 {
 public:
 	typedef std::auto_ptr< PCAComputer > UniquePtr ;
-	typedef std::shared_ptr< PCAComputer > SharedPtr ;
+	typedef boost::shared_ptr< PCAComputer > SharedPtr ;
 
 	static void load_matrix( genfile::CohortIndividualSource const& samples, std::string const& filename, Eigen::MatrixXd* matrix, std::size_t* number_of_snps, appcontext::UIContext& ui_context ) ;
 	static void load_long_form_matrix( genfile::CohortIndividualSource const& samples, std::string const& filename, Eigen::MatrixXd* matrix, std::size_t* number_of_snps, appcontext::UIContext& ui_context ) ;

@@ -22,7 +22,7 @@
 #include "components/RelatednessComponent/LapackEigenDecomposition.hpp"
 #include "components/RelatednessComponent/mean_centre_genotypes.hpp"
 
-#define DEBUG_PCA_LOADING_COMPUTER 1
+// #define DEBUG_PCA_LOADING_COMPUTER 1
 
 namespace {
 	template< typename Vector1, typename Vector2, typename NonMissingVector >
