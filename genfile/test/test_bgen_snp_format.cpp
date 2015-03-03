@@ -16,7 +16,7 @@
 #include "genfile/string_utils/hex.hpp"
 #include "stdint.h"
 
-// #define DEBUG 3
+#define DEBUG 3
 
 // The following section contains a simple snp block writer.
 namespace data {
@@ -46,7 +46,11 @@ namespace data {
 
 		assert( a_allele.size() == 1 ) ;
 		assert( b_allele.size() == 1 ) ;
+		unsigned char const a_allele_size = a_allele.size() ;
+		unsigned char const b_allele_size = a_allele.size() ;
+		oStream.put( a_allele_size ) ;
 		oStream.write( a_allele.data(), a_allele.size() ) ;
+		oStream.put( b_allele_size ) ;
 		oStream.write( b_allele.data(), b_allele.size() ) ;
 		
 		for( std::size_t i = 0; i < number_of_samples; ++i ) {
@@ -189,7 +193,9 @@ namespace data {
 		
 		// Total size of probability data is:
 		uint32_t const stored_probability_size = (((number_of_samples*2*bits_per_probability)+7)/8) ;
+		// To this we must add space for the header block
 		uint32_t const buffer_size = 10 + number_of_samples + stored_probability_size ;
+		// And four bytes indicating the total length.
 		genfile::write_little_endian_integer( oStream, buffer_size ) ;
 
 		// Write number of samples and ploidies.
@@ -602,7 +608,7 @@ void do_snp_block_read_test(
 		)
 	) ;
 
-	genfile::bgen::read_snp_probability_data(
+	genfile::bgen::read_and_parse_probability_data(
 		inStream,
 		context,
 		setter,

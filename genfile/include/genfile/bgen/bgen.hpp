@@ -124,7 +124,7 @@ namespace genfile {
 			std::string allele ;
 			uint32_t const layout = context.flags & e_Layout ;
             
-			if( layout == e_v11Layout ) {
+			if( layout == e_v11Layout || layout == e_v10Layout ) {
 				uint32_t number_of_samples ;
 				read_little_endian_integer( aStream, &number_of_samples ) ;
 				if( !aStream ) {
@@ -185,16 +185,18 @@ namespace genfile {
 			std::string second_allele
 		) ;
 
-		// Read per-variant probability data from the stream in the format
-		// specified by the context object passed in.
-		// Data is returned to the caller via the setter object, which must be a model of
-		// VariantDataReader::PerSampleSetter
-		// A buffer used for working space (e.g. decompression) must be provided.
-		void read_snp_probability_data(
+		// Read the raw (compressed or uncompressed) data for a variant from the stream
+		void read_raw_probability_data(
 			std::istream& aStream,
 			Context const& context,
-			VariantDataReader::PerSampleSetter& setter,
-			std::vector< char >* buffer1,
+			std::vector< char >* buffer1
+		) ;
+
+		// uncompress or swap probability data from buffer1
+		// into buffer2.  This may destroy the contents of buffer1.
+		void uncompress_raw_probability_data(
+			Context const& context,
+			std::vector< char > const& buffer1,
 			std::vector< char >* buffer2
 		) ;
 
@@ -204,11 +206,27 @@ namespace genfile {
 			Context const& context
 		) ;
 		
-		void read_uncompressed_snp_probability_data(
+		void parse_probability_data(
 			char const* buffer,
 			char const* const end,
 			Context const& context,
 			VariantDataReader::PerSampleSetter& setter
+		) ;
+
+		// Utility function which wraps the above steps into one.
+		// It takes these steps:
+		// 1: reads the length of the data
+		// 2: reads that many bytes from the stream into buffer1
+		// 3: if data is compressed, reads the uncompressed size of the data.
+		// 4: uncompressed the remaining data into buffer2
+		// 5: calls parse_probability_data to parse it, returning values to the setter.
+		// The buffers will be resizes to fit data as needed.
+		void read_and_parse_probability_data(
+			std::istream& aStream,
+			Context const& context,
+			VariantDataReader::PerSampleSetter& setter,
+			std::vector< char >* buffer1,
+			std::vector< char >* buffer2
 		) ;
 
 		template< typename GenotypeProbabilityGetter >
@@ -225,13 +243,9 @@ namespace genfile {
 			uint32_t const layout = context.flags & e_Layout ;
 			// Write the data to a buffer, which we then compress and write to the stream
 			uLongf uncompressed_data_size =
-				( layout == e_v11Layout || layout == e_v10Layout )
+				( layout == e_v11Layout )
 					? (6 * context.number_of_samples)
 					: ( 10 + context.number_of_samples + ((( context.number_of_samples * number_of_bits * 2 )+7) / 8) ) ;
-
-			if( layout == e_v12Layout ) {
-				genfile::write_little_endian_integer( aStream, uint32_t( uncompressed_data_size )) ;
-			}
 
 			buffer->resize( uncompressed_data_size ) ;
 			char* p = impl::write_uncompressed_snp_probability_data(
@@ -252,14 +266,24 @@ namespace genfile {
 					reinterpret_cast< Bytef* >( &(*buffer)[0] ), uncompressed_data_size
 				) ;
 				assert( result == Z_OK ) ;
-				// write its length (compression_buffer_size is now the compressed length of the data).
-				genfile::write_little_endian_integer( aStream, uint32_t( compression_buffer_size ) ) ;
+				// write total payload size (compression_buffer_size is now the compressed length of the data).
+				// Account for a 4-byte uncompressed data size if we are in layout 1.2
+				if( layout == e_v12Layout ) {
+					genfile::write_little_endian_integer( aStream, uint32_t( compression_buffer_size ) + 4 ) ;
+					genfile::write_little_endian_integer( aStream, uint32_t( uncompressed_data_size )) ;
+				} else {
+					genfile::write_little_endian_integer( aStream, uint32_t( compression_buffer_size ) ) ;
+				}
+
 				// and write the data
 				aStream.write( &(*compression_buffer)[0], compression_buffer_size ) ;
 	#else
 				assert(0) ;
 	#endif
 			} else {
+				if( layout == e_v12Layout ) {
+					genfile::write_little_endian_integer( aStream, uint32_t( uncompressed_data_size )) ;
+				}
 				aStream.write( &(*buffer)[0], uncompressed_data_size ) ;
 			}
 		}

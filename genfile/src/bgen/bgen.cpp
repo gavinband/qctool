@@ -315,14 +315,14 @@ namespace genfile {
 			}
 		}
 
-		void read_uncompressed_snp_probability_data_v12(
+		void parse_probability_data_v12(
 			char const* buffer,
 			char const* const end,
 			Context const& context,
 			VariantDataReader::PerSampleSetter& setter
 		) ;
 
-		void read_uncompressed_snp_probability_data(
+		void parse_probability_data(
 			char const* buffer,
 			char const* const end,
 			Context const& context,
@@ -348,7 +348,7 @@ namespace genfile {
 					}
 				}
 			} else {
-				read_uncompressed_snp_probability_data_v12(
+				parse_probability_data_v12(
 					buffer, end, context, setter
 				) ;
 			}
@@ -410,7 +410,7 @@ namespace genfile {
 			}
 		}
 		
-		void read_uncompressed_snp_probability_data_v12(
+		void parse_probability_data_v12(
 			char const* buffer,
 			char const* const end,
 			Context const& context,
@@ -440,9 +440,9 @@ namespace genfile {
 			int const bits = int( *reinterpret_cast< unsigned char const *>( buffer++ ) ) ;
 			
 #if DEBUG_BGEN_FORMAT
-			std::cerr << "read_uncompressed_snp_probability_data_v12(): numberOfSamples = " << numberOfSamples
+			std::cerr << "parse_probability_data_v12(): numberOfSamples = " << numberOfSamples
 				<< ", phased = " << phased << ".\n" ;
-			std::cerr << "read_uncompressed_snp_probability_data_v12(): *buffer: "
+			std::cerr << "parse_probability_data_v12(): *buffer: "
 				<< string_utils::to_hex( buffer, end ) << ".\n" ;
 #endif
 
@@ -459,7 +459,7 @@ namespace genfile {
 					uint32_t const storedValueCount = valueCount - ( phased ? ploidy : 1 ) ;
 					
 #if DEBUG_BGEN_FORMAT > 1
-					std::cerr << "read_uncompressed_snp_probability_data_v12(): sample " << i
+					std::cerr << "parse_probability_data_v12(): sample " << i
 						<< ", ploidy = " << ploidy
 						<< ", missing = " << missing
 						<< ", valueCount = " << valueCount
@@ -505,34 +505,58 @@ namespace genfile {
 			}
 		}
 		
-		void read_snp_probability_data(
+		void read_raw_probability_data(
+			std::istream& aStream,
+			Context const& context,
+			std::vector< char >* buffer
+		) {
+			uint32_t payload_size = 0 ;
+			if( (context.flags & e_Layout) == e_v12Layout || (context.flags & e_CompressedSNPBlocks) ) {
+				genfile::read_little_endian_integer( aStream, &payload_size ) ;
+			} else {
+				payload_size = 6 * context.number_of_samples ;
+			}
+			buffer->resize( payload_size ) ;
+			aStream.read( &(*buffer)[0], payload_size ) ;
+		}
+
+		void uncompress_raw_probability_data(
+			Context const& context,
+			std::vector< char > const& compressed_data,
+			std::vector< char >* buffer
+		) {
+			// compressed_data contains the (compressed or uncompressed) probability data.
+			if( context.flags & bgen::e_CompressedSNPBlocks ) {
+				char const* begin = &compressed_data[0] ;
+				char const* const end = &compressed_data[0] + compressed_data.size() ;
+				uint32_t uncompressed_data_size = 0 ;
+				if( (context.flags & e_Layout) == e_v11Layout ) {
+					uncompressed_data_size = 6 * context.number_of_samples ;
+				} else {
+					genfile::read_little_endian_integer( begin, end, &uncompressed_data_size ) ;
+				}
+				buffer->resize( uncompressed_data_size ) ;
+				zlib_uncompress( compressed_data, buffer ) ;
+				assert( buffer->size() == uncompressed_data_size ) ;
+			}
+			else {
+				// copy the data between buffers.
+				buffer->assign( compressed_data.begin(), compressed_data.end() ) ;
+			}
+		}
+
+		void read_and_parse_probability_data(
 			std::istream& aStream,
 			Context const& context,
 			VariantDataReader::PerSampleSetter& setter,
 			std::vector< char >* buffer1,
 			std::vector< char >* buffer2
 		) {
-			uint32_t uncompressed_data_size = 0 ;
-			if( (context.flags & e_Layout) == e_v12Layout ) {
-				genfile::read_little_endian_integer( aStream, &uncompressed_data_size ) ;
-			} else {
-				uncompressed_data_size = 6 * context.number_of_samples ;
-			}
-			buffer1->resize( uncompressed_data_size ) ;
-			if( context.flags & bgen::e_CompressedSNPBlocks ) {
-				uint32_t compressed_data_size ;
-				genfile::read_little_endian_integer( aStream, &compressed_data_size ) ;
-				buffer2->resize( compressed_data_size ) ;
-				aStream.read( &(*buffer2)[0], compressed_data_size ) ;
-				zlib_uncompress( *buffer2, buffer1 ) ;
-				assert( buffer1->size() == uncompressed_data_size ) ;
-			}
-			else {
-				aStream.read( &(*buffer1)[0], uncompressed_data_size ) ;
-			}
-			read_uncompressed_snp_probability_data(
-				&(*buffer1)[0],
-				&(*buffer1)[0] + uncompressed_data_size,
+			read_raw_probability_data( aStream, context, buffer1 ) ;
+			uncompress_raw_probability_data( context, *buffer1, buffer2 ) ;
+			parse_probability_data(
+				&(*buffer2)[0],
+				&(*buffer2)[0] + buffer2->size(),
 				context,
 				setter
 			) ;

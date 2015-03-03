@@ -213,15 +213,22 @@
 				<tr><th>No. of bytes</th><th>Description</th></tr>
 				</thead>
 				<tbody>
-				<tr><td><em>4</em></td><td>The total length <em>D</em> in bytes of the
-                    uncompressed probability data.
-                    If <em>Layout=1</em>, this field is omitted and it is assumed that <em>D=6N</em>.
 				<tr><td><em>4</em></td><td>The total length <em>C</em> in bytes of the
-                    compressed probability data.  This is only present if <em>CompressedSNPBlocks</em>=1.
-				<tr><td><em>D</em> or <em>C</em></td><td>Genotype probability data for the variant.  If <em>CompressedSNPBlocks</em>=0,
-                    this is <em>D</em> bytes stored in the format described below.  If <em>CompressedSNPBlocks</em>=1,
-                    this is <em>C</em> bytes formed from the format described below by compressing
-                    using zlib's compress() function.
+                    rest of the data for this variant (including the bytes for <em>D</em> below, if present).
+                    Seeking forward this many bytes takes you to the next SNP block. <br />
+                    
+                    If <em>Layout &lt; 2</em> and <em>CompressedSNPBlocks</em> = 0, this field is omitted and is
+                    assumed to equal <em>6N</em>.
+				<tr><td><em>4</em></td><td>The total length <em>D</em> in bytes of the probability data after uncompression.
+                    This field is only present if <em>CompressedSNPBlocks = 1</em> and <em>Layout=2</em>.
+                    Otherwise, this field is omitted and assumed to equal <em>C</em>.
+				<tr><td><em>C</em> or <em>C-4</em></td><td>Genotype probability data for the variant.
+                    <br />
+                    If <em>CompressedSNPBlocks = 0</em>,
+                    this is <em>C</em> bytes stored in the format described below.  
+                    <br />
+                    If <em>CompressedSNPBlocks = 1</em>, this is <em>C</em> bytes or <em>C-4</em> bytes formed from <em>D</em> bytes
+                    stored in the format described below, by compressing using zlib's compress() function.
                 </td></tr>
 				</tbody>
 				<tfoot>

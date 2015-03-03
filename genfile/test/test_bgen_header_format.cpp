@@ -20,7 +20,7 @@ namespace data {
 		std::string free_data,
 		uint32_t flags
 	) {
-		uint32_t reserved = 0;
+		uint32_t reserved = 0x6e656762 ; // 'bgen'
 		std::ostringstream oStream ;
 		uint32_t header_length = free_data.size() + 20 ;
 		genfile::write_little_endian_integer( oStream, header_length ) ;

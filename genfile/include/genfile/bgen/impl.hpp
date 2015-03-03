@@ -26,7 +26,7 @@
 #include "genfile/bgen/types.hpp"
 #include "genfile/string_utils/hex.hpp"
 
-//#define DEBUG_BGEN_FORMAT 3
+// #define DEBUG_BGEN_FORMAT 3
 
 namespace genfile {
 	namespace bgen {
