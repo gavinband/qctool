@@ -18,7 +18,7 @@
 #include "components/RelatednessComponent/names.hpp"
 #include "components/RelatednessComponent/write_matrix_to_stream.hpp"
 
-#define DEBUG_PCA_PROJECTOR 1
+// #define DEBUG_PCA_PROJECTOR 1
 
 namespace pca {
 	PCAProjector::UniquePtr PCAProjector::create( genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ) {
@@ -125,7 +125,7 @@ namespace pca {
 				_1
 			),
 			boost::bind(
-				&PCAComputer::get_pca_name,
+				&PCAProjector::get_projection_name,
 				_1
 			)
 		) ;
