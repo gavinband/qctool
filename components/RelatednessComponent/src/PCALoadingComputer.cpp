@@ -96,7 +96,7 @@ void PCALoadingComputer::processed_snp( genfile::SNPIdentifyingData const& snp, 
 	m_loading_vectors.resize( 2 * m_D.rows() ) ;
 	m_loading_vectors.setConstant( std::numeric_limits< double >::quiet_NaN() ) ;
 	double const allele_frequency = m_genotype_calls.sum() / ( 2.0 * m_non_missingness.sum() ) ;
-	if( m_non_missingness.sum() > 0 && allele_frequency > 0.01 ) {
+	if( m_non_missingness.sum() > 0 && allele_frequency > 0.001 ) {
 		//std::cerr << "pre-mean genotypes are: " << m_genotype_calls.head( 20 ).transpose() << "...\n" ;
 		pca::mean_centre_genotypes( &m_genotype_calls, m_non_missingness, allele_frequency ) ;
 		m_genotype_calls /= std::sqrt( 2.0 * allele_frequency * ( 1.0 - allele_frequency ) ) ;
