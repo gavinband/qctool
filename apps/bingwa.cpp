@@ -1173,10 +1173,14 @@ public:
 		}
 		
 		callback( m_prefix + ":mean_bf", mean_bf / total_weight ) ;
-		callback( m_prefix + ":max_bf", max_bf ) ;
-		callback( m_prefix + ":max_bf_model", m_models[max_bf_i].name() ) ;
-		callback( m_prefix + ":max_weighted_bf", weighted_bfs[ max_posterior_i ] / total_weight ) ;
-		callback( m_prefix + ":max_posterior_model", m_models[ max_posterior_i ].name() ) ;
+		if( max_bf_i < m_models.size() ) {
+			callback( m_prefix + ":max_bf", max_bf ) ;
+			callback( m_prefix + ":max_bf_model", m_models[max_bf_i].name() ) ;
+		}
+		if( max_posterior_i < m_models.size() ) {
+			callback( m_prefix + ":max_weighted_bf", weighted_bfs[ max_posterior_i ] / total_weight ) ;
+			callback( m_prefix + ":max_posterior_model", m_models[ max_posterior_i ].name() ) ;
+		}
 	}
 
 	std::string get_spec() const {
