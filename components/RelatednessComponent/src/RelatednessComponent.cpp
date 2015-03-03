@@ -270,8 +270,9 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 		pca::PCAProjector::UniquePtr projector = pca::PCAProjector::create( m_samples, m_ui_context ) ;
 		projector->send_results_to(
 			boost::bind(
-				&pca::write_matrix,
+				&pca::write_sample_file,
 				elts[1],
+				boost::cref( m_samples ),
 				_2, "qctool:PCAProjector", _1, _3, _4
 			)
 		) ;

@@ -18,13 +18,13 @@
 #include "components/RelatednessComponent/names.hpp"
 #include "components/RelatednessComponent/write_matrix_to_stream.hpp"
 
-// #define DEBUG_PCA_PROJECTOR 1
+#define DEBUG_PCA_PROJECTOR 1
 
 namespace pca {
 	PCAProjector::UniquePtr PCAProjector::create( genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ) {
 		return PCAProjector::UniquePtr( new PCAProjector( samples, ui_context )) ;
 	}
-
+	
 	PCAProjector::PCAProjector( genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ):
 		m_samples( samples ),
 	 	m_ui_context( ui_context )
@@ -131,6 +131,10 @@ namespace pca {
 		) ;
 	}
 
+	genfile::VariantEntry PCAProjector::get_projection_name( std::size_t i ) {
+		return std::string( "projection_onto_PC_" ) + genfile::string_utils::to_string( i + 1 ) ;
+	}
+	
 	void PCAProjector::diagnose_projection() const {
 		{
 			std::size_t missing_count = 0 ;

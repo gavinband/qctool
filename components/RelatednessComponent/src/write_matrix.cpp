@@ -92,9 +92,7 @@ namespace pca {
 		boost::function< genfile::VariantEntry ( std::size_t ) > get_column_names = 0
 	) {
 		assert( samples.get_number_of_individuals() == matrix.rows() ) ;
-		statfile::BuiltInTypeStatSink::UniquePtr sink(
-			new statfile::DelimitedStatSink( filename, " " )
-		) ;
+		statfile::BuiltInTypeStatSink::UniquePtr sink = statfile::BuiltInTypeStatSink::open( filename ) ;
 		genfile::CohortIndividualSource::ColumnSpec const spec = samples.get_column_spec() ;
 		if( !get_column_names ) {
 			get_column_names = boost::bind( &pca::string_and_number, "sample_", _1 ) ;

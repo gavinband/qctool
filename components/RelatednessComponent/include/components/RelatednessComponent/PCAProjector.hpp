@@ -23,6 +23,8 @@ namespace pca {
 		typedef Eigen::VectorXd Vector ;
 		typedef std::auto_ptr< PCAProjector > UniquePtr ;
 
+		static genfile::VariantEntry get_projection_name( std::size_t i ) ;
+
 	public:
 		static UniquePtr create( genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ) ;
 		PCAProjector( genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ) ;
