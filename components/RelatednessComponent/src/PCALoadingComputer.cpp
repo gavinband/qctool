@@ -58,10 +58,10 @@ namespace {
 	
 	std::string eigenvector_column_names( std::size_t N, std::string const& string1, std::string const& string2, std::size_t i ) {
 		if( i < N ) {
-			return string1 + genfile::string_utils::to_string( i ) ;
+			return string1 + genfile::string_utils::to_string( i+1 ) ;
 		}
 		else {
-			return string2 + genfile::string_utils::to_string( i - N ) ;
+			return string2 + genfile::string_utils::to_string( i+1 -N ) ;
 		}
 	}
 }
