@@ -139,7 +139,7 @@ namespace pca {
 		using genfile::string_utils::to_string ;
 		
 		for( int i = 0; i < m_projections.cols(); ++i ) {
-			m_projections.col(i).array() /= std::sqrt(m_snps.size()) ; // m_snps_visited_per_sample.array().sqrt() ;
+			m_projections.col(i).array() /= m_snps_visited_per_sample.array().sqrt() ;
 		}
 		
 		std::cerr << m_snps_visited_per_sample.transpose() << ".\n" ;

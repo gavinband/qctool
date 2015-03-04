@@ -59,7 +59,7 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 	options[ "-project-onto" ]
 		.set_description( "Project samples onto a PCA based on the loadings in the file given as the first argument. "
 		 	"Put the output in the file specified in the second argument." )
-		.set_takes_values(2)
+		.set_takes_values_until_next_option()
 		.set_maximum_multiplicity(1) ;
 	options[ "-PCA-exclusions" ]
 		.set_description( "Output a list of exclusions based on outliers in the first N PCA components." )
