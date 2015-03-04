@@ -77,7 +77,6 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 	options.option_implies_option( "-kinship", "-s" ) ;
 	options.option_implies_option( "-kinship-method", "-kinship" ) ;
 	options.option_implies_option( "-load-kinship", "-s" ) ;
-	options.option_implies_option( "-nPCAs", "-PCAs" ) ;
 	options.option_implies_option( "-UDUT", "-PCAs" ) ;
 	options.option_implies_option( "-PCAs", "-UDUT" ) ;
 	options.option_excludes_option( "-load-kinship", "-kinship" ) ;
