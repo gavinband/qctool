@@ -172,13 +172,23 @@ namespace pca {
 		}
 		m_ui_context.logger() << "++ ( pca::PCAProjector::diagnose_projection() ): a total of " << m_snps.size() - missing_count
 			<< " of " << m_snps.size() << " loading SNPs were used in the projection computation.\n" ;
-		m_ui_context.logger() << "++ ( pca::PCAProjector::diagnose_projection() ): but wait up!  otal SNPs visited = " << m_total_snps_visited << "!\n"  ;
 
-		
+		VisitedSnpMap::const_iterator i = m_visited.begin(), end_i = m_visited.end() ;
+		m_ui_context.logger() << "++ ( pca::PCAProjector::diagnose_projection() ): the following positions were visited more than once:\n" ;
+		bool twice = false ;
+		for( ; i != end_i; ++i ) {
+			if( i->second > 1 ) {
+				twice = true ;
+				m_ui_context.logger() << i->first << " (visited " << i->second << " time(s)).\n" ;
+			}
+		}
+		if( !twice ) {
+			m_ui_context.logger() << "(none)\n" ;
+		}
 	}
-
-std::string PCAProjector::get_metadata() const {
-	using namespace genfile::string_utils ;
+	
+	std::string PCAProjector::get_metadata() const {
+		using namespace genfile::string_utils ;
 		return "Number of SNPs: " + to_string( m_snps.size() ) ;
 	}
 	
