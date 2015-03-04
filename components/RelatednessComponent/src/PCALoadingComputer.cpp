@@ -186,7 +186,10 @@ void PCALoadingComputer::send_results( genfile::SNPIdentifyingData const& snp, d
 std::string PCALoadingComputer::get_metadata() const {
 	using namespace genfile::string_utils ;
 	return "Number of SNPs: " + to_string( m_number_of_snps ) + "\n"
-		+ "Number of samples: " + to_string( m_U.rows() ) ;
+		+ "Number of samples: " + to_string( m_U.rows() ) + "\n"
+		+ "These loadings represent unit eigenvectors of the variance-covariance matrix\n"
+		+ "    1/L X X^t\n"
+		+ "where X is the LxN matrix of genotypes at L SNPs and N samples (normalised across rows.)" ;
 }
 
 void PCALoadingComputer::end_processing_snps() {}
