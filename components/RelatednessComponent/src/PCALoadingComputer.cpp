@@ -75,6 +75,7 @@ void PCALoadingComputer::set_UDUT( std::size_t number_of_snps, Matrix const& udu
 	assert( udut.cols() == udut.rows() + 1 ) ;
 	int n = std::min( int( m_number_of_loadings ), int( udut.rows() ) ) ;
 	m_D = udut.block( 0, 0, n, 1 ) ;
+	m_sqrt_D_inverse = 1 / m_D.array().sqrt() ;
 	m_U = udut.block( 0, 1, udut.rows(), n ) ;
 	m_number_of_snps = number_of_snps ;
 }
@@ -114,23 +115,38 @@ void PCALoadingComputer::processed_snp( genfile::SNPIdentifyingData const& snp, 
 
 		//
 		// Let X  be the L\times n matrix (L SNPs, n samples) of (mean-centred, scaled) genotypes.  We want
-		// to compute the row of the matrix S of unit eigenvectors of X X^t that corresponds to the current SNP.
+		// to compute the row of the matrix S of unit eigenvectors of the variance-covariance matrix
+		// (1/L) X X^t that corresponds to the current SNP.
 		// The matrix S is given by
-		//              1 
-		//       S = ------- X U D^{-1/2}
-		//           sqrt(L)
+		//               
+		//       S = (1/√L) X U D^{-½}
+		//
 		// where
 		//       (1/L) X^t X = U D U^t
 		// is the eigenvalue decomposition of (1/L) X^t X that we are passed in via set_UDUT (and L is the number of SNPs).
 		//
-		// Note that
-		//            L
-		// X^t S = ------ U D U^t U D^{-1/2} = sqrt(L) U^t D^{1/2}
-		//         sqrt(L)
+		// This is true since then
 		//
-		// Here we must compute a single row of S.
-		m_loading_vectors.segment( 0, m_U.cols() ) = ( m_genotype_calls.transpose() * m_U ).array() / ( ( m_D.transpose().array() * m_number_of_snps ).sqrt() ) ;
-
+		// S^t S = D^{-½} U^t (1/L) X^t X U D^{-½} = id
+		//
+		// (so columns of S are orthogonal) while
+		//
+		// (1/L X X^t) S = (1/L√L) X X^t X U D^{-½}
+		//           = (1/√L) X U D U^t U D^{-½}
+		//           = (1/√L) X U D^½
+		//           = SD
+		//
+		// (so columns of S are eigenvectors with eigenvalues given by D.)
+		//
+#if 0
+		m_loading_vectors.segment( 0, m_U.cols() ) =
+			( m_genotype_calls.transpose() * m_U ) * m_D.array().sqrt().matrix().asDiagonal()
+			/ ( ( m_D.transpose().array() * m_number_of_snps ).sqrt() ) ;
+#else
+		m_loading_vectors.segment( 0, m_U.cols() ) =
+			( m_genotype_calls.transpose() * m_U ) * m_sqrt_D_inverse.asDiagonal() ;
+		m_loading_vectors /= std::sqrt( m_number_of_snps ) ;
+#endif
 		// We also wish to compute the correlation between the SNP and the PCA component.
 		// With S as above, the PCA components are the projections of columns of X onto columns of S.
 		// If we want samples to correspond to columns, this is

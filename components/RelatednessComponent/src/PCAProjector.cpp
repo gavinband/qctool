@@ -77,6 +77,8 @@ namespace pca {
 
 	void PCAProjector::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) {
 		m_projections.setZero( number_of_samples, m_loadings.cols() ) ;
+		m_snps_visited_per_sample = Eigen::VectorXd::Zero( number_of_samples ) ;
+		m_total_snps_visited = 0 ;
 	}
 
 	void PCAProjector::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
@@ -111,23 +113,34 @@ namespace pca {
 				// with the row vector of loadings for that SNP.
 				//
 				m_projections += m_genotype_calls * m_loadings.row( where->second ) ;
+				m_snps_visited_per_sample += m_non_missingness ;
+				m_visited[ snp.get_position() ] = true ;
+				++m_total_snps_visited ;
+
+				// sanity check we are not getting NaNs...
+				// (It's more helpful to abort because at least that shows you where the
+				// error is.  A file of NAs is not very helpful in this regard).
 				assert( m_projections.sum() == m_projections.sum() ) ;
 			}
-			m_visited[ snp.get_position() ] = true ;
 		}
 	}
 
 	void PCAProjector::end_processing_snps() {
 		diagnose_projection() ;
 		using genfile::string_utils::to_string ;
+		
+		for( int i = 0; i < m_projections.cols(); ++i ) {
+			m_projections.col(i).array() /= std::sqrt(m_snps.size()) ; // m_snps_visited_per_sample.array().sqrt() ;
+		}
+		
+		std::cerr << m_snps_visited_per_sample.transpose() << ".\n" ;
+		
 		m_result_signal(
-			"Number of SNPs: " + to_string( m_snps.size() ) + "\n" +
+			"Number of SNPs in loadings: " + to_string( m_snps.size() ) + "\n" +
+			"...of which " + to_string( m_total_snps_visited ) + " visited in this analysis.\n" +
 			"Number of samples: " + to_string( m_projections.size() ) + "\n" +
-			"Note: these PCAs are 1/sqrt(L) times the projection of samples onto unit eigenvectors of the variance-covariance matrix\n"
-			"    1/(L-1) X X^t,\n"
-			"where X is the L x N matrix of genotypes, L is the number of SNPs, and N the number of samples.\n"
-			"The constant 1/sqrt(L) ensures that the PCAs do not grow with the number of SNPs.",
-			m_projections / std::sqrt( m_snps.size() ),
+			"Note: these projections are 1/√L times the projection of samples onto the given loadings.\n",
+			m_projections.array(),
 			boost::bind(
 				&pca::get_concatenated_sample_ids,
 				&m_samples,

@@ -254,7 +254,7 @@ void PCAComputer::compute_PCA() {
 		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using lapack...\n" ;
 		lapack::compute_eigendecomposition( m_kinship_matrix, &eigenvalues, &eigenvectors ) ;
 		//lapack::compute_partial_eigendecomposition( m_kinship_matrix, &eigenvalues, &eigenvectors, m_number_of_PCAs_to_compute ) ;
-		kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 )  = eigenvalues.reverse() ;
+		kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) = eigenvalues.reverse() ;
 		kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( eigenvectors ) ;
 	}
 #endif
@@ -299,8 +299,6 @@ void PCAComputer::compute_PCA() {
 		} else if( diff > 0.01 ) {
 			m_ui_context.logger() << "...warning: diff > 0.01.\n" ;
 		}
-		
-		
 	}
 	
 	using genfile::string_utils::to_string ;
@@ -355,11 +353,11 @@ void PCAComputer::compute_PCA() {
 		send_PCAs(
 			"Number of SNPs: " + to_string( m_number_of_snps ) + "\n" +
 			"Number of samples: " + to_string( m_number_of_samples ) + "\n" +
-			"Note: the PCAs computed here are 1/sqrt(L) times the projection of samples onto unit eigenvectors of the variance-covariance matrix\n"
-			"    1/(L-1) X Xᵗ,\n"
+			"Note: the PCs computed here are 1/√L times the projection of samples onto unit eigenvectors of the variance-covariance matrix\n"
+			"    (1/L) X Xᵗ\n"
 			"where X is the L x N matrix of genotypes, L is the number of SNPs, and N the number of samples.\n"
-			"The constant 1/sqrt(L) ensures that the PCAs do not grow with the number of SNPs.\n"
-			"The PCAs are here computed as U D^{1/2} where U and D are the matrices in the UDUᵗ decomposition of the kinship matrix\n"
+			"The constant 1/√L ensures that the PCs do not grow with the number of SNPs.\n"
+			"The PCAs are here computed as U D^½ where U and D are the matrices in the UDUᵗ decomposition of the kinship matrix\n"
 			"in \"" + m_options.get< std::string >( "-UDUT" ) + "\".\n",
 			PCA_eigenvalues,
 			PCAs,

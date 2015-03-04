@@ -826,12 +826,16 @@ namespace impl {
 		// The block as computed after SNP k-1 is equal to the block
 		// for missing values for SNP k.
 		if( snp_lookup_index == 0 ) {
-			(*nonmissingness_lookup_table)[0x0] = 0 ;
-			(*nonmissingness_lookup_table)[0x1] = 0 ;
-			(*nonmissingness_lookup_table)[0x2] = 0 ;
-			(*nonmissingness_lookup_table)[0x3] = 0 ;
+			int const N = lookup_table->rows() ;
+			nonmissingness_lookup_table->setConstant( N, N, 1 ) ;
+			nonmissingness_lookup_table->setZero( N, N ) ;
+			for( std::size_t g = 0; g < 4; ++g ) {
+				(*nonmissingness_lookup_table)[g] = 0 ;
+			}
 			for( std::size_t g = 1; g < 4; ++g ) {
-				(*nonmissingness_lookup_table)[ (g << 2) + 0 ] = 0 ;
+				(*nonmissingness_lookup_table)[ (g << 2) + 1 ] = 1 ;
+				(*nonmissingness_lookup_table)[ (g << 2) + 2 ] = 1 ;
+				(*nonmissingness_lookup_table)[ (g << 2) + 3 ] = 1 ;
 				(*lookup_table)[ (g << 2) + 1 ] = ( ( 0.0 - mean ) / sd ) * ( ( (g-1) - mean ) / sd ) ;
 				(*lookup_table)[ (g << 2) + 2 ] = ( ( 1.0 - mean ) / sd ) * ( ( (g-1) - mean ) / sd ) ;
 				(*lookup_table)[ (g << 2) + 3 ] = ( ( 2.0 - mean ) / sd ) * ( ( (g-1) - mean ) / sd ) ;
@@ -893,6 +897,8 @@ namespace impl {
 			submit_tasks( m_combined_genotypes ) ;
 		}
 		m_dispatcher->wait_until_complete() ;
+		std::cerr << "snp count is: " << m_snp_count << ".\n" ;
+		std::cerr << "non-missingness array is:\n" << m_nonmissingness.block(0,0,10,10) << ".\n" ;
 		m_result.array() /= m_nonmissingness.array().cast< double >() ;
 	}
 

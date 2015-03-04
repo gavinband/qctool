@@ -72,7 +72,6 @@ namespace pca {
 		loadings->resize( number_of_snps, number_of_loadings ) ;
 		counts->resize( number_of_snps ) ;
 		frequencies->resize( number_of_snps ) ;
-		double count, frequency ;
 		for( std::size_t i = 0; i < number_of_snps; ++i ) {
 			(*source) >> (*snps)[i].SNPID() >> (*snps)[i].rsid()
 				>> (*snps)[i].position().chromosome() >> (*snps)[i].position().position()

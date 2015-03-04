@@ -58,11 +58,12 @@ namespace pca {
 		Eigen::VectorXd m_genotype_calls ;
 		Eigen::VectorXd m_non_missingness ;
 		Eigen::MatrixXd m_projections ;
+		Eigen::VectorXd m_snps_visited_per_sample ;
 	
 		// m_visited keeps track of which SNPs have been used in the projection.
 		typedef std::map< genfile::GenomePosition, bool > VisitedSnpMap ;
 		VisitedSnpMap m_visited ;
-	
+		std::size_t m_total_snps_visited ;
 		ResultSignal m_result_signal ;
 		
 		void diagnose_projection() const ;

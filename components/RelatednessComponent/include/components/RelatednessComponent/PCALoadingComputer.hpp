@@ -35,7 +35,8 @@ public:
 	
 	std::string get_metadata() const ;
 private:
-	Eigen::MatrixXd m_D ;
+	Eigen::VectorXd m_D ;
+	Eigen::VectorXd m_sqrt_D_inverse ;
 	Eigen::MatrixXd m_U ;
 	int const m_number_of_loadings ;
 	int m_number_of_snps ;
