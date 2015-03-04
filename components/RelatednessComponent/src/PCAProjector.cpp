@@ -114,7 +114,7 @@ namespace pca {
 				//
 				m_projections += m_genotype_calls * m_loadings.row( where->second ) ;
 				m_snps_visited_per_sample += m_non_missingness ;
-				m_visited[ snp.get_position() ] = true ;
+				++m_visited[ snp.get_position() ] ;
 				++m_total_snps_visited ;
 
 				// sanity check we are not getting NaNs...
@@ -172,6 +172,7 @@ namespace pca {
 		}
 		m_ui_context.logger() << "++ ( pca::PCAProjector::diagnose_projection() ): a total of " << m_snps.size() - missing_count
 			<< " of " << m_snps.size() << " loading SNPs were used in the projection computation.\n" ;
+		m_ui_context.logger() << "++ ( pca::PCAProjector::diagnose_projection() ): but wait! Total SNPs visited is " << m_total_snps_visited << ".\n" ;
 
 		VisitedSnpMap::const_iterator i = m_visited.begin(), end_i = m_visited.end() ;
 		m_ui_context.logger() << "++ ( pca::PCAProjector::diagnose_projection() ): the following positions were visited more than once:\n" ;

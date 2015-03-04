@@ -61,7 +61,7 @@ namespace pca {
 		Eigen::VectorXd m_snps_visited_per_sample ;
 	
 		// m_visited keeps track of which SNPs have been used in the projection.
-		typedef std::map< genfile::GenomePosition, bool > VisitedSnpMap ;
+		typedef std::map< genfile::GenomePosition, int > VisitedSnpMap ;
 		VisitedSnpMap m_visited ;
 		std::size_t m_total_snps_visited ;
 		ResultSignal m_result_signal ;
