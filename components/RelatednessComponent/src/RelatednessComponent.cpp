@@ -267,7 +267,14 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 	if( m_options.check( "-project-onto" )) {
 		std::vector< std::string > elts = m_options.get_values< std::string >( "-project-onto" ) ;
 		assert( elts.size() == 2 ) ;
-		pca::PCAProjector::UniquePtr projector = pca::PCAProjector::create( m_samples, m_ui_context ) ;
+		pca::PCAProjector::UniquePtr projector = pca::PCAProjector::create(
+			m_samples,
+			m_ui_context,
+			genfile::SNPIdentifyingData::CompareFields( "position,alleles" )
+			// could use this, but ids often differ between reference panels and data.
+			// so may be best not to.
+			// genfile::SNPIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
+		) ;
 		projector->send_results_to(
 			boost::bind(
 				&pca::write_sample_file,

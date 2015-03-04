@@ -21,13 +21,22 @@
 // #define DEBUG_PCA_PROJECTOR 1
 
 namespace pca {
-	PCAProjector::UniquePtr PCAProjector::create( genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ) {
-		return PCAProjector::UniquePtr( new PCAProjector( samples, ui_context )) ;
+	PCAProjector::UniquePtr PCAProjector::create(
+		genfile::CohortIndividualSource const& samples,
+		appcontext::UIContext& ui_context,
+		genfile::SNPIdentifyingData::CompareFields const& comparer
+	) {
+		return PCAProjector::UniquePtr( new PCAProjector( samples, ui_context, comparer )) ;
 	}
 	
-	PCAProjector::PCAProjector( genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ):
+	PCAProjector::PCAProjector(
+		genfile::CohortIndividualSource const& samples,
+		appcontext::UIContext& ui_context,
+		genfile::SNPIdentifyingData::CompareFields const& comparer
+	):
 		m_samples( samples ),
-	 	m_ui_context( ui_context )
+	 	m_ui_context( ui_context ),
+		m_snps( comparer )
 	{}
 
 	void PCAProjector::set_loadings(
@@ -55,7 +64,7 @@ namespace pca {
 			) ;
 		}
 		for( std::size_t i = 0; i < snps.size(); ++i ) {
-			std::pair< SnpMap::const_iterator, bool > where = m_snps.insert( std::make_pair( snps[i].get_position(), int( i ) ) ) ;
+			std::pair< SnpMap::const_iterator, bool > where = m_snps.insert( std::make_pair( snps[i], int( i ) ) ) ;
 			if( !where.second ) {
 				throw genfile::DuplicateKeyError( "snps argument to pca::PCAProjector::set_loadings()", to_string( snps[i] )) ;
 			}
@@ -82,7 +91,7 @@ namespace pca {
 	}
 
 	void PCAProjector::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
-		SnpMap::const_iterator where = m_snps.find( snp.get_position() ) ;
+		SnpMap::const_iterator where = m_snps.find( snp ) ;
 		if( where != m_snps.end() && ( m_loadings.row( where->second ).sum() == m_loadings.row( where->second ).sum() ) ) {
 			data_reader.get(
 				":genotypes:",
@@ -160,7 +169,7 @@ namespace pca {
 	void PCAProjector::diagnose_projection() const {
 		std::size_t missing_count = 0 ;
 		for( SnpMap::const_iterator i = m_snps.begin(); i != m_snps.end(); ++i ) {
-			VisitedSnpMap::const_iterator where = m_visited.find( i->first ) ;
+			VisitedSnpMap::const_iterator where = m_visited.find( i->first.get_position() ) ;
 			if( where == m_visited.end() ) {
 				if( missing_count == 0 ) {
 					m_ui_context.logger() << "!! ( pca::PCAProjector::diagnose_projection() ): "

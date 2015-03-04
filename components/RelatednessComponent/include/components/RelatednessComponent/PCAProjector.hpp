@@ -26,8 +26,16 @@ namespace pca {
 		static genfile::VariantEntry get_projection_name( std::size_t i ) ;
 
 	public:
-		static UniquePtr create( genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ) ;
-		PCAProjector( genfile::CohortIndividualSource const& samples, appcontext::UIContext& ui_context ) ;
+		static UniquePtr create(
+			genfile::CohortIndividualSource const& samples,
+			appcontext::UIContext& ui_context,
+			genfile::SNPIdentifyingData::CompareFields const&
+		) ;
+		PCAProjector(
+			genfile::CohortIndividualSource const& samples,
+			appcontext::UIContext& ui_context,
+			genfile::SNPIdentifyingData::CompareFields const&
+		) ;
 		
 		void set_loadings(
 			std::vector< genfile::SNPIdentifyingData > const& snps,
@@ -49,7 +57,7 @@ namespace pca {
 	private:
 		genfile::CohortIndividualSource const& m_samples ;
 		appcontext::UIContext& m_ui_context ;
-		typedef std::map< genfile::GenomePosition, int > SnpMap ;
+		typedef std::map< genfile::SNPIdentifyingData, int, genfile::SNPIdentifyingData::CompareFields > SnpMap ;
 		SnpMap m_snps ;
 		Eigen::VectorXd m_counts ;
 		Eigen::VectorXd m_frequencies ;
