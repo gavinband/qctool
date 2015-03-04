@@ -533,10 +533,10 @@ namespace genfile {
 				if( (context.flags & e_Layout) == e_v11Layout ) {
 					uncompressed_data_size = 6 * context.number_of_samples ;
 				} else {
-					genfile::read_little_endian_integer( begin, end, &uncompressed_data_size ) ;
+					begin = genfile::read_little_endian_integer( begin, end, &uncompressed_data_size ) ;
 				}
 				buffer->resize( uncompressed_data_size ) ;
-				zlib_uncompress( compressed_data, buffer ) ;
+				zlib_uncompress( begin, end, buffer ) ;
 				assert( buffer->size() == uncompressed_data_size ) ;
 			}
 			else {

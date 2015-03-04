@@ -39,26 +39,33 @@ namespace genfile {
 		return zlib_compress( begin, end, dest ) ;
 	}
 
+	template< typename T >
+	void zlib_uncompress( char const* begin, char const* const end, std::vector< T >* dest ) {
+	#if HAVE_ZLIB
+		uLongf const source_size = ( end - begin ) ;
+		uLongf dest_size = dest->size() * sizeof( T ) ;
+		int result = uncompress(
+			reinterpret_cast< Bytef* >( &dest->operator[]( 0 ) ),
+			&dest_size,
+			reinterpret_cast< Bytef const* >( begin ),
+			source_size
+		) ;
+		assert( result == Z_OK ) ;
+		assert( dest_size % sizeof( T ) == 0 ) ;
+		dest->resize( dest_size / sizeof( T )) ;
+	#else
+		assert( 0 ) ; // no zlib support.
+	#endif
+	}
+
 	// Uncompress the given data, symmetric with zlib_compress.
 	// The destination must be large enough to fit the uncompressed data,
 	// and it will be resized to exactly fit the uncompressed data.
 	template< typename T >
 	void zlib_uncompress( std::vector< char > const& source, std::vector< T >* dest ) {
-		#if HAVE_ZLIB
-			uLongf const source_size = source.size() ;
-			uLongf dest_size = dest->size() * sizeof( T ) ;
-			int result = uncompress(
-				reinterpret_cast< Bytef* >( &dest->operator[]( 0 ) ),
-				&dest_size,
-				reinterpret_cast< Bytef const* >( &source[0] ),
-				source_size
-			) ;
-			assert( result == Z_OK ) ;
-			assert( dest_size % sizeof( T ) == 0 ) ;
-			dest->resize( dest_size / sizeof( T )) ;
-		#else
-			assert( 0 ) ; // no zlib support.
-		#endif
+		char const* begin = &source[0] ;
+		char const* const end = &source[0] + source.size() ;
+		zlib_uncompress( begin, end, dest ) ;
 	}
 }
 
