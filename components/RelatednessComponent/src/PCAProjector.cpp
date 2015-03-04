@@ -158,26 +158,27 @@ namespace pca {
 	}
 	
 	void PCAProjector::diagnose_projection() const {
-		{
-			std::size_t missing_count = 0 ;
-			for( SnpMap::const_iterator i = m_snps.begin(); i != m_snps.end(); ++i ) {
-				VisitedSnpMap::const_iterator where = m_visited.find( i->first ) ;
-				if( where == m_visited.end() ) {
-					if( missing_count == 0 ) {
-						m_ui_context.logger() << "!! ( pca::PCAProjector::diagnose_projection() ): "
-							<< "The following SNPs with loadings were not used in the projection computation:\n" ;
-					}
-					m_ui_context.logger() << "    " << i->first << "\n" ;
-					++missing_count ;
+		std::size_t missing_count = 0 ;
+		for( SnpMap::const_iterator i = m_snps.begin(); i != m_snps.end(); ++i ) {
+			VisitedSnpMap::const_iterator where = m_visited.find( i->first ) ;
+			if( where == m_visited.end() ) {
+				if( missing_count == 0 ) {
+					m_ui_context.logger() << "!! ( pca::PCAProjector::diagnose_projection() ): "
+						<< "The following SNPs with loadings were not used in the projection computation:\n" ;
 				}
+				m_ui_context.logger() << "    " << i->first << "\n" ;
+				++missing_count ;
 			}
-			m_ui_context.logger() << "++ ( pca::PCAProjector::diagnose_projection() ): a total of " << m_snps.size() - missing_count
-				<< " of " << m_snps.size() << " loading SNPs were used in the projection computation.\n" ;
 		}
+		m_ui_context.logger() << "++ ( pca::PCAProjector::diagnose_projection() ): a total of " << m_snps.size() - missing_count
+			<< " of " << m_snps.size() << " loading SNPs were used in the projection computation.\n" ;
+		m_ui_context.logger() << "++ ( pca::PCAProjector::diagnose_projection() ): but wait up!  otal SNPs visited = " << m_total_snps_visited << "!\n"  ;
+
+		
 	}
-	
-	std::string PCAProjector::get_metadata() const {
-		using namespace genfile::string_utils ;
+
+std::string PCAProjector::get_metadata() const {
+	using namespace genfile::string_utils ;
 		return "Number of SNPs: " + to_string( m_snps.size() ) ;
 	}
 	
