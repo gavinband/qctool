@@ -826,16 +826,17 @@ namespace impl {
 		// The block as computed after SNP k-1 is equal to the block
 		// for missing values for SNP k.
 		if( snp_lookup_index == 0 ) {
-			int const N = lookup_table->rows() ;
-			nonmissingness_lookup_table->setConstant( N, N, 1 ) ;
-			nonmissingness_lookup_table->setZero( N, N ) ;
+			// bottom 2 bits correspond to top genotype = 0.
 			for( std::size_t g = 0; g < 4; ++g ) {
 				(*nonmissingness_lookup_table)[g] = 0 ;
+				(*lookup_table)[ g ] = 0 ;
 			}
 			for( std::size_t g = 1; g < 4; ++g ) {
+				(*nonmissingness_lookup_table)[ (g << 2) + 0 ] = 0 ;
 				(*nonmissingness_lookup_table)[ (g << 2) + 1 ] = 1 ;
 				(*nonmissingness_lookup_table)[ (g << 2) + 2 ] = 1 ;
 				(*nonmissingness_lookup_table)[ (g << 2) + 3 ] = 1 ;
+				(*lookup_table)[ (g << 2) + 0 ] = 0.0 ;
 				(*lookup_table)[ (g << 2) + 1 ] = ( ( 0.0 - mean ) / sd ) * ( ( (g-1) - mean ) / sd ) ;
 				(*lookup_table)[ (g << 2) + 2 ] = ( ( 1.0 - mean ) / sd ) * ( ( (g-1) - mean ) / sd ) ;
 				(*lookup_table)[ (g << 2) + 3 ] = ( ( 2.0 - mean ) / sd ) * ( ( (g-1) - mean ) / sd ) ;
