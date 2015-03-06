@@ -10,6 +10,8 @@
 #include <cassert>
 #include <algorithm>
 #include <fstream>
+#include <boost/optional.hpp>
+#include <boost/optional/optional_io.hpp>
 #include "test_case.hpp"
 
 #if HAVE_BOOST_FILESYSTEM

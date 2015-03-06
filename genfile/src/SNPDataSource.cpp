@@ -8,6 +8,8 @@
 #include <iomanip>
 #include <string>
 #include <sstream>
+#include <boost/optional.hpp>
+#include <boost/optional/optional_io.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/GenFileSNPDataSource.hpp"
