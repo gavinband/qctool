@@ -266,13 +266,6 @@ public:
 				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
 				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
 			.set_takes_single_value() ;
-		options[ "-include-sex-chromosomes" ]
-			.set_description(
-				"Specify that QCTOOL should process the sex chromosomes in per-SNP and per-sample summary computations."
-				" This version of QCTOOL does not understand ploidy, and treats sex chromosomes the same as autosomes. "
-				" If this option is not supplied, QCTOOL ignores sex chromosomes when computing summary statistics."
-				" This option does not affect the output of -og."
-			)
 		;
 		
 		options.declare_group( "Options for adjusting SNPs" ) ;
@@ -567,7 +560,7 @@ private:
 		for( std::size_t i = 0; i < input_gen_filenames_supplied.size(); ++i ) {
 			m_gen_filenames[i] = genfile::wildcard::find_files_by_chromosome(
 				input_gen_filenames_supplied[i],
-				genfile::wildcard::eALL_CHROMOSOMES
+				genfile::wildcard::eNON_SEX_CHROMOSOMES
 			) ;
 		}
 	}

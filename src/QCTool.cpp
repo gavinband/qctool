@@ -54,7 +54,6 @@ void QCTool::begin_processing_snps(
 	m_number_of_samples = number_of_samples ;
 	m_per_column_amounts.resize( number_of_samples ) ;
 	m_number_of_snps_processed = 0 ;
-	m_number_of_autosomal_snps_processed = 0 ;
 	m_number_of_filtered_in_snps = 0 ;
 	m_timer.restart() ;
 	
@@ -94,7 +93,6 @@ void QCTool::processed_snp(
 }
 
 void QCTool::end_processing_snps() {
-	assert( m_number_of_autosomal_snps_processed <= m_number_of_snps_processed ) ;
 	if( m_context.snp_filter().number_of_subconditions() > 0 ) {
 		m_ui_context.logger() << "(" << m_context.fltrd_in_snp_data_sink().number_of_snps_written() << " of " << m_number_of_snps_processed << " SNPs passed the filter.)\n" ;
 	}
@@ -121,24 +119,18 @@ void QCTool::unsafe_call_processed_snp(
 }		
 
 void QCTool::process_gen_row( GenRow const& row, std::size_t row_number ) {
-	if( m_context.options().check( "-include-sex-chromosomes" ) || (!row.chromosome().is_sex_determining()) ) {
-		m_context.snp_statistics().process( row ) ;
-		if( m_context.snp_filter().check_if_satisfied( m_context.snp_statistics() )) {
-			row.write_to_sink( m_context.fltrd_in_snp_data_sink() ) ;
-			output_gen_row_stats( m_context.snp_statistics() ) ;
-			accumulate_per_column_amounts( row, m_per_column_amounts ) ;
-			++m_number_of_filtered_in_snps ;
-		}
-		else {
-			row.write_to_sink( m_context.fltrd_out_snp_data_sink() ) ;
-			do_snp_filter_diagnostics( m_context.snp_statistics(), row_number ) ;
-		}
-		++m_number_of_autosomal_snps_processed ;
-	} else {
-		// Sex chromosome.  Don't filter, and output NAs to snp stats file.
+	m_context.snp_statistics().process( row ) ;
+	if( m_context.snp_filter().check_if_satisfied( m_context.snp_statistics() )) {
 		row.write_to_sink( m_context.fltrd_in_snp_data_sink() ) ;
-		output_missing_gen_row_stats( row, m_context.snp_statistics(), row_number ) ;
+		output_gen_row_stats( m_context.snp_statistics() ) ;
+		accumulate_per_column_amounts( row, m_per_column_amounts ) ;
+		++m_number_of_filtered_in_snps ;
 	}
+	else {
+		row.write_to_sink( m_context.fltrd_out_snp_data_sink() ) ;
+		do_snp_filter_diagnostics( m_context.snp_statistics(), row_number ) ;
+	}
+	++m_number_of_snps_processed ;
 }
 
 void QCTool::output_gen_row_stats( GenotypeAssayStatistics const& row_statistics ) {

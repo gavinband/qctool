@@ -74,7 +74,6 @@ private:
 	appcontext::UIContext& m_ui_context ;
 	std::size_t m_number_of_samples ;
 	std::size_t m_number_of_snps_processed ;
-	std::size_t m_number_of_autosomal_snps_processed ;
 	std::size_t m_number_of_filtered_in_snps ;
 	std::vector< GenotypeProportions > m_per_column_amounts ;
 	Timer m_timer ;
