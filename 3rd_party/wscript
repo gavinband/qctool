@@ -26,7 +26,7 @@ def build( bld ):
 
 	bld(
 		features = 'cc cprogram',
-		target = 'qcdbtool',
+		target = 'sqlite3-qctool',
 		source = [ 'sqlite3/sqlite3/shell.c', 'sqlite3/sqlite3/sqlite3.c', 'sqlite3/extensions/extension-functions.c' ],
 		includes = 'sqlite3/',
 		defines = 'SQLITE_ENABLE_COLUMN_METADATA SQLITE_ENABLE_STAT3 HAVE_READLINE',

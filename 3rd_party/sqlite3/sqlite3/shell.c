@@ -71,6 +71,12 @@
 #define popen(a,b) _popen((a),(b))
 #define pclose(x) _pclose(x)
 #else
+
+/* Make sure SQLITE_FLOAT_FORMAT is defined
+*/
+extern char const* SQLITE_FLOAT_FORMAT ;
+
+
 /* Make sure isatty() has a prototype.
 */
 extern int isatty(int);
@@ -2859,6 +2865,8 @@ int main(int argc, char **argv){
 
   // GB: auto-load the extension functions.
   sqlite3_auto_extension( (void(*)(void))extension_functions_init ); 
+  // GB: set default floating-point precision
+  SQLITE_FLOAT_FORMAT = "%!.15g" ;
 
   if( strcmp(sqlite3_sourceid(),SQLITE_SOURCE_ID)!=0 ){
     fprintf(stderr, "SQLite header and source version mismatch\n%s\n%s\n",
@@ -2889,6 +2897,7 @@ int main(int argc, char **argv){
     if( strcmp(z,"-separator")==0
      || strcmp(z,"-nullvalue")==0
      || strcmp(z,"-cmd")==0
+     || strcmp(z,"-floatformat")==0
     ){
       i++;
     }else if( strcmp(z,"-init")==0 ){
@@ -3080,7 +3089,20 @@ int main(int argc, char **argv){
           if( bail_on_error ) return rc;
         }
       }
-    }else{
+    }else if( strcmp(z,"-floatformat")==0 ){
+	  i++ ;
+      if(i>=argc){
+        fprintf(stderr,"%s: Error: missing argument for option: %s\n", Argv0, z);
+        fprintf(stderr,"Use -help for a list of options.\n");
+        return 1;
+      }
+	  size_t n = strlen( argv[i] ) + 1 ;
+	  char* p = (char*) malloc( n ) ;
+      strncpy( p, argv[i], n ) ;
+	  SQLITE_FLOAT_FORMAT = p ;
+	  // we never free p, but it will be freed at program termination.
+	  printf( "Set precision to: \"%s\".\n", SQLITE_FLOAT_FORMAT ) ;
+	}else{
       fprintf(stderr,"%s: Error: unknown option: %s\n", Argv0, z);
       fprintf(stderr,"Use -help for a list of options.\n");
       return 1;

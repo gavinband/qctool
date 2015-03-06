@@ -7046,6 +7046,8 @@ struct sqlite3_rtree_geometry {
   void (*xDelUser)(void *);       /* Called by SQLite to clean up pUser */
 };
 
+// GB: global variable for default float format
+extern char const* SQLITE_FLOAT_FORMAT ;
 
 #ifdef __cplusplus
 }  /* end of the 'extern "C"' block */
