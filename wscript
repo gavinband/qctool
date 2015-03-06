@@ -58,11 +58,11 @@ def check_for_3rd_party_components( conf ):
 	check_for_zlib( conf )
 	conf.define( 'HAVE_SQLITE3', 1 )
 	conf.define( 'HAVE_EIGEN', 1 )
-	if conf.check_cxx( lib = 'dl', uselib_store = 'DL' ):
-		conf.define( 'HAVE_DL', 1 )
+	if conf.check_cxx( lib = 'rt', uselib_store = 'RT' ):
+		conf.define( 'HAVE_RT', 1 )
 	if conf.check_cxx( lib = 'bz2', uselib_store = 'BZIP2' ):
 		conf.define( 'HAVE_BZIP2', 1 )
-	if conf.check_cxx( staticlib = 'pthread', uselib_store = "PTHREAD" ):
+	if Options.options.static and conf.check_cxx( staticlib = 'pthread', uselib_store = "PTHREAD" ):
 		conf.define( 'HAVE_PTHREAD', 1 )
 	elif conf.check_cxx( lib = 'pthread', uselib_store = "PTHREAD" ):
 		conf.define( 'HAVE_PTHREAD', 1 )
