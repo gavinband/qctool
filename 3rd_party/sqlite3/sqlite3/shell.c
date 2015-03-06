@@ -3101,7 +3101,7 @@ int main(int argc, char **argv){
       strncpy( p, argv[i], n ) ;
 	  SQLITE_FLOAT_FORMAT = p ;
 	  // we never free p, but it will be freed at program termination.
-	  printf( "Set precision to: \"%s\".\n", SQLITE_FLOAT_FORMAT ) ;
+	  //printf( "Set precision to: \"%s\".\n", SQLITE_FLOAT_FORMAT ) ;
 	}else{
       fprintf(stderr,"%s: Error: unknown option: %s\n", Argv0, z);
       fprintf(stderr,"Use -help for a list of options.\n");
