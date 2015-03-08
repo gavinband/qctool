@@ -7,8 +7,12 @@
 #ifndef GENFILE_FROMFILECOHORTINDIVIDUALSOURCE_HPP
 #define GENFILE_FROMFILECOHORTINDIVIDUALSOURCE_HPP
 
+#include <map>
+#include <string>
+#include "../config.hpp"
 #include <boost/variant.hpp>
 #include <boost/function.hpp>
+#include <boost/optional.hpp>
 #include "genfile/CohortIndividualSource.hpp"
 
 namespace genfile {
@@ -50,6 +54,7 @@ namespace genfile {
 
 		bool check_for_column( std::string const& column_name ) const ;
 
+		std::vector< std::size_t > find_samples_by_value( std::string const& column_name, Entry const& entry ) const ;
 		// Return the filename from which we read our information, or "(none)" if a stream was supplied. 
 		std::string const& get_filename() const ;
 		// Return the filename from which we read our information, or "(unknown)" if a stream was supplied. 
@@ -59,11 +64,15 @@ namespace genfile {
 		std::string const m_filename ;
 		std::vector< std::string > const m_missing_values ;
 		GetEntryFromString m_get_entry_from_string ;
+		std::string m_comments ;
+		std::size_t m_number_of_metadata_lines ;
 		std::vector< std::string > m_column_names ;
 		std::vector< ColumnType > m_column_types ;
 		// Entries stored by sample and then by column
 		std::vector< std::vector< Entry > > m_entries ;
-
+		std::map< Entry, std::size_t > m_sample_indices ;
+		std::map< std::string, std::size_t > m_column_indices ;
+		
 	protected:
 		// Case-insensitive search for a column in the sample file.
 		std::size_t find_column_name( std::string const& column_name ) const ;
@@ -71,8 +80,10 @@ namespace genfile {
 		std::vector< std::string >::const_iterator find_column_name_impl( std::string const& column_name ) const ;
 		void setup( std::istream& str ) ;
 		void unsafe_setup( std::istream& stream ) ;
+		std::string read_comments( std::istream& stream ) const ;
 		std::vector< std::string > read_column_names( std::istream& stream ) const ;
-		std::vector< ColumnType > read_column_types( std::istream& stream, std::vector< std::string > const& column_names ) const ;
+		boost::optional< std::map< std::string, CohortIndividualSource::ColumnType > > read_column_types_from_comments( std::string const& comments ) const ;
+		std::map< std::string, ColumnType > read_column_type_line( std::istream& stream, std::vector< std::string > const& column_names ) const ;
 		std::vector< std::vector< Entry > > read_entries( std::istream& stream, std::vector< ColumnType > const& column_types ) const ;
 		std::vector< Entry > get_checked_entries(
 			std::vector< std::string > const& string_entries,

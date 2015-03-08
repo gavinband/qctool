@@ -56,7 +56,6 @@
 #include "genfile/SampleFilteringSNPDataSource.hpp"
 #include "genfile/SNPTranslatingSNPDataSource.hpp"
 #include "genfile/StrandAligningSNPDataSource.hpp"
-#include "genfile/AlleleFlippingSNPDataSource.hpp"
 #include "genfile/VCFFormatSNPDataSource.hpp"
 #include "genfile/Pedigree.hpp"
 #include "genfile/PedFileSNPDataSink.hpp"
@@ -96,9 +95,7 @@
 #include "SampleIDSink.hpp"
 #include "QCToolContext.hpp"
 #include "QCTool.hpp"
-#include "Relatotron.hpp"
 //#include "VCDBWriter.hpp"
-#include "DataReadTest.hpp"
 #include "ClusterFitter.hpp"
 //#include "components/RelatednessComponent/RelatednessComponent.hpp"
 //#include "components/CallComparerComponent/CallComparerComponent.hpp"
@@ -478,9 +475,7 @@ public:
 		options.option_implies_option( "-condition-on", "-s" ) ;
 		options.option_implies_option( "-condition-on", "-os" ) ;
 
-		//Relatotron::declare_options( options ) ;
 		//RelatednessComponent::declare_options( options ) ;
-		DataReadTest::declare_options( options ) ;
 		//ClusterFitter::declare_options( options ) ;
 		//VCDBWriter::declare_options( options ) ;
 		//CallComparerComponent::declare_options( options ) ;
@@ -1243,12 +1238,18 @@ private:
 		return result ;
 	}
 	
-	genfile::SNPDataSource::UniquePtr open_main_snp_data_sources()
+	genfile::SNPDataSource::UniquePtr open_main_snp_data_sources() {
 	// Open the main gen files, taking care of filtering, strand alignment, translation, etc.
-	{
 		genfile::SNPDataSourceRack::UniquePtr rack ;
 		if( m_mangled_options.gen_filenames().size() > 1 ) {
-			rack.reset( new genfile::SNPDataSourceRack( m_options.get_value< std::string >( "-snp-match-fields" ) ) ) ;
+			rack.reset(
+				new genfile::SNPDataSourceRack(
+					genfile::SNPIdentifyingData::CompareFields(
+						m_options.get_value< std::string >( "-snp-match-fields" ),
+						m_options.check( "-match-alleles-to-cohort1" )
+					)
+				)
+			) ;
 		}
 
 		// count files.
@@ -1294,47 +1295,6 @@ private:
 			
 			source.reset( chain.release() ) ;
 			
-			// If we have strand alignment information, implement it now
-			if( m_strand_specs.get() ) {
-				assert( m_strand_specs->size() == m_mangled_options.gen_filenames().size() ) ;
-				genfile::StrandAligningSNPDataSource::StrandAlignments strand_alignments ;
-				boost::tie( snps, strand_alignments ) = genfile::StrandAligningSNPDataSource::create_strand_alignments(
-					snps,
-					m_strand_specs->at(i)
-				) ;
-				source.reset(
-					genfile::StrandAligningSNPDataSource::create(
-						source,
-						strand_alignments
-					)
-					.release()
-				) ;
-			}
-
-			if( m_options.check_if_option_was_supplied( "-match-alleles-to-cohort1" ) ) {
-				if( i == 0 ) {
-					cohort1_snps = snps ;
-				}
-				else {
-					genfile::AlleleFlippingSNPDataSource::AlleleFlipSpec allele_flip_spec ;
-					boost::tie( snps, allele_flip_spec ) = genfile::AlleleFlippingSNPDataSource::get_allele_flip_spec(
-						cohort1_snps,
-						snps,
-						genfile::SNPIdentifyingData::CompareFields(
-							m_options.get_value< std::string >( "-snp-match-fields" ) + ",alleles"
-						)
-					) ;
-				
-					source.reset(
-						genfile::AlleleFlippingSNPDataSource::create(
-							source,
-							allele_flip_spec
-						)
-						.release()
-					) ;
-				}
-			}
-			
 			if( rack.get() ) {
 				rack->add_source( source ) ;
 			} else {
@@ -1360,9 +1320,9 @@ private:
 		}
 
 		for( std::size_t i = 0; i < merge_in_files.size(); ++i ) {
-			genfile::SNPDataSource::UniquePtr source = genfile::SNPDataSource::create_chain(
+			genfile::SNPDataSource::UniquePtr source( genfile::SNPDataSourceChain::create(
 				genfile::wildcard::find_files_by_chromosome( merge_in_files[i] )
-			) ;
+			).release() ) ;
 			
 			// Make the merged-in source respect the filter.
 			genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter() ;
@@ -1959,7 +1919,8 @@ private:
 							m_mangled_options.input_sample_filenames()[i],
 							m_options.get_value< std::string >( "-missing-code" )
 						)
-					)
+					),
+					"cohort_" + genfile::string_utils::to_string( i+1 )
 				) ;
 			}
 			sample_source.reset( source_chain.release() ) ;
@@ -1991,7 +1952,7 @@ private:
 		SampleRow sample_row ;
 		if( sample_source.get() ) {
 			if( sample_source->get_number_of_individuals() != expected_number_of_samples ) {
-				throw genfile::BadArgumentWithMessageError( "number of samples in sample and genotype sources do not match", "QCToolContext::load_sample_rows()", "sample_source, expected_number_of_samples" ) ;
+				throw genfile::BadArgumentError( "qctool::load_sample_rows()", "sample_source", "number of samples in sample and genotype sources do not match" ) ;
 			}
 			for( std::size_t i = 0; i < sample_source->get_number_of_individuals(); ++i ) {
 				sample_row.read_ith_sample_from_source( i, *sample_source ) ;
@@ -2201,16 +2162,10 @@ private:
 		) {
 			processor.add_callback( qctool_basic ) ;
 		} else {
-			qctool_basic.begin_processing_snps( context.get_cohort_individual_source().get_number_of_individuals() ) ;
+			qctool_basic.begin_processing_snps( context.get_cohort_individual_source().get_number_of_individuals(), genfile::SNPDataSource::Metadata() ) ;
 			qctool_basic.end_processing_snps() ;
 		}
 		
-		std::auto_ptr< DataReadTest > data_read_test ;
-		if( options().check_if_option_was_supplied( "-read-test" )) {
-			data_read_test.reset( new DataReadTest() ) ;
-			processor.add_callback( *data_read_test ) ;
-		}
-
 		// Process it (but only if there was something to do) !
 		if( processor.get_callbacks().size() > 0 ) {
 			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Processing SNPs" ) ;

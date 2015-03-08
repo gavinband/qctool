@@ -12,6 +12,7 @@
 #if HAVE_BOOST_FUNCTION
 #include <boost/function.hpp>
 #endif
+#include <boost/optional.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
@@ -21,6 +22,8 @@
 namespace genfile {
 	SNPDataSourceChain::UniquePtr SNPDataSourceChain::create(
 		std::vector< wildcard::FilenameMatch > const& filenames,
+		boost::optional< vcf::MetadataParser::Metadata > const& metadata,
+		std::string const& filetype_hint,
 		NotifyProgress notify_progress
 	) {
 		std::auto_ptr< SNPDataSourceChain > chain( new SNPDataSourceChain() ) ;
@@ -28,7 +31,7 @@ namespace genfile {
 			if( notify_progress ) {
 				notify_progress( i, filenames.size() ) ;
 			}
-			chain->add_source( SNPDataSource::create( filenames[i].filename(), filenames[i].match() )) ;
+			chain->add_source( SNPDataSource::create( filenames[i].filename(), filenames[i].match(), metadata, filetype_hint )) ;
 			if( notify_progress ) {
 				notify_progress( i + 1, filenames.size() ) ;
 			}
@@ -73,6 +76,10 @@ namespace genfile {
 		}
 	}
 
+	SNPDataSource::Metadata SNPDataSourceChain::get_metadata() const {
+		return m_metadata ;
+	}
+
 	void SNPDataSourceChain::add_source( std::auto_ptr< SNPDataSource > source ) {
 		if( m_sources.empty() ) {
 			m_number_of_samples = source->number_of_samples() ;
@@ -83,6 +90,16 @@ namespace genfile {
 		}
 		m_sources.push_back( source.release() ) ;
 		m_sources.back()->reset_to_start() ;
+
+		// update metadata
+		Metadata new_source_metadata = m_sources.back()->get_metadata() ;
+		Metadata new_metadata ;
+		std::set_union(
+			m_metadata.begin(), m_metadata.end(),
+			new_source_metadata.begin(), new_source_metadata.end(),
+			std::inserter( new_metadata, new_metadata.end() )
+		) ;
+		m_metadata = new_metadata ;
 	}
 
 	unsigned int SNPDataSourceChain::number_of_samples() const {
@@ -122,7 +139,13 @@ namespace genfile {
 			return false ;
 		}
 	}
-	
+
+	void SNPDataSourceChain::set_expected_ploidy( GetPloidy get_ploidy ) {
+		for( std::size_t i = 0; i < m_sources.size(); ++i ) {
+			m_sources[i]->set_expected_ploidy( get_ploidy ) ;
+		}
+	}
+
 	std::string SNPDataSourceChain::get_source_spec() const {
 		std::string result = "chain:" ;
 		for( std::size_t i = 0; i < m_sources.size(); ++i ) {

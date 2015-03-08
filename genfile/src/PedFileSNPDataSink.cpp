@@ -16,16 +16,6 @@
 
 namespace genfile {
 	namespace {
-		char get_representation_of_allele( char allele ) {
-			switch( allele ) {
-				case 'A': return '1'; break ;
-				case 'C': return '2'; break ;
-				case 'G': return '3'; break ;
-				case 'T': return '4'; break ;
-			}
-			return '?' ;
-		}
-		
 		std::string sex_to_string( Pedigree::Sex sex ) {
 			switch( sex ) {
 				case Pedigree::eMale: return "1"; break ;
@@ -82,29 +72,22 @@ namespace genfile {
 		std::map< std::string, std::size_t > result ;
 
 		std::vector< std::string > ID_1( samples.get_number_of_individuals() ) ;
-		std::vector< std::string > ID_2( samples.get_number_of_individuals() ) ;
 		
 		for( std::size_t i = 0; i < samples.get_number_of_individuals(); ++i ) {
 			ID_1[i] = samples.get_entry( i, "ID_1" ).as< std::string >() ;
-			ID_2[i] = samples.get_entry( i, "ID_2" ).as< std::string >() ;
 		}
 		
 		for( std::size_t i = 0; i < pedigree.get_number_of_individuals(); ++i ) {
 			std::string const& id = pedigree.get_id_of( i ) ;
 			//std::cerr << "Matching up individual " << i << ": " << id << ".\n" ;
-			std::vector< std::string > const* which_id = &ID_1 ;
-			std::vector< std::string >::const_iterator where = std::find( which_id->begin(), which_id->end(), id ) ;
-			if( where == ID_1.end() ) {
-				// look in ID 2 instead
-				which_id = &ID_2 ;
-				where = std::find( which_id->begin(), which_id->end(), id ) ;
-			}
-			if( where != which_id->end() ) {
+			std::vector< std::string >::const_iterator where = std::find( ID_1.begin(), ID_1.end(), id ) ;
+			if( where !=ID_1.end() ) {
 				// check match is unique.
 				std::vector< std::string >::const_iterator next = where ;
+				std::vector< std::string >::const_iterator const end = ID_1.end() ;
 				++next ;
-				assert( std::find( next, which_id->end(), id ) == which_id->end() ) ;
-				result[ id ] = ( where - which_id->begin() )  ;
+				assert( std::find( next, end, id ) == end ) ;
+				result[ id ] = ( where - ID_1.begin() )  ;
 			}
 		}
 		return result ;
@@ -221,8 +204,6 @@ namespace genfile {
 			)
 		) ;
 
-		SNPIdentifyingData const& snp = m_written_snps.back() ;
-
 		m_written_alleles.push_back( std::vector< std::pair< char, char > >() ) ;
 		// Convert probabilities to calls.
 		for( std::size_t i = 0; i < number_of_samples; ++i ) {
@@ -230,27 +211,18 @@ namespace genfile {
 				AB = get_AB_probability( i ),
 				BB = get_BB_probability( i ) ;
 			std::pair< char, char > alleles = std::make_pair( '?', '?' );
-			// use the following
 			if( AA > m_call_threshhold ) {
-				if( snp.get_first_allele().size() == 1 ) {
-					alleles.first = alleles.second = get_representation_of_allele( snp.get_first_allele()[0] ) ;
-				}
+				alleles.first = alleles.second = '1' ;
 			}
 			else if( AB > m_call_threshhold ) {
-				if( snp.get_first_allele().size() == 1 ) {
-					alleles.first = get_representation_of_allele( snp.get_first_allele()[0] ) ;
-				}
-				if( snp.get_second_allele().size() == 1 ) {
-					alleles.second = get_representation_of_allele( snp.get_second_allele()[0] ) ;
-				}
+				alleles.first = '1' ;
+				alleles.second = '2' ;
 			}
 			else if( BB > m_call_threshhold ) {
-				if( snp.get_second_allele().size() == 1 ) {
-					alleles.first = alleles.second = get_representation_of_allele( snp.get_second_allele()[0] ) ;
-				}
+				alleles.first = alleles.second = '2' ;
 			}
 			else {
-				alleles.first = alleles.second = '?' ;
+				alleles.first = alleles.second = 'x' ;
 			}
 			m_written_alleles.back().push_back( alleles ) ;
 		}

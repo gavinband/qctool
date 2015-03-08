@@ -13,7 +13,7 @@
 #include "GenRow.hpp"
 #include "genfile/endianness_utils.hpp"
 #include "stdint.h"
-#include "genfile/bgen.hpp"
+#include "genfile/bgen/bgen.hpp"
 
 namespace data {
 	namespace {

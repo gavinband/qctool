@@ -14,6 +14,18 @@
 #include "genfile/SNPIdentifyingDataTest.hpp"
 
 namespace genfile {
+
+	namespace {
+		void append_with_comma( std::string* target, std::string const& value ) {
+			(*target) += "," + value ;
+		}
+	}
+
+	bool SNPIdentifyingDataTest::operator()( SNPIdentifyingData2 const& data ) const {
+		std::string identifiers ;
+		data.get_alternative_identifiers( boost::bind( append_with_comma, &identifiers, _1 )) ;
+		return operator()( identifiers, data.get_rsid(), data.get_position(), data.get_first_allele(), data.get_second_allele() ) ;
+	}
 	
 	std::ostream& operator<<( std::ostream& out, SNPIdentifyingDataTest const& test ) {
 		return out << test.display() ;
@@ -23,6 +35,16 @@ namespace genfile {
 		std::vector< std::size_t > result ;
 		for( std::size_t i = 0; i < snps.size(); ++i ) {
 			if( this->operator()( snps[i] )) {
+				result.push_back( i ) ;
+			}
+		}
+		return result ;
+	}
+
+	std::vector< std::size_t > SNPIdentifyingDataTest::get_indices_of_filtered_in_snps( std::size_t number_of_snps, SNPGetter snps ) const {
+		std::vector< std::size_t > result ;
+		for( std::size_t i = 0; i < number_of_snps; ++i ) {
+			if( this->operator()( snps(i) )) {
 				result.push_back( i ) ;
 			}
 		}

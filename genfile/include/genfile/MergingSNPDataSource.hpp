@@ -16,11 +16,17 @@ namespace genfile {
 
 		typedef std::auto_ptr< MergingSNPDataSource > UniquePtr ;
 		static std::vector< std::string > get_merge_strategies() ;
-		static UniquePtr create( std::string const& merge_strategy ) ;
-		MergingSNPDataSource() ;
+		static UniquePtr create(
+			std::string const& merge_strategy,
+			SNPIdentifyingData::CompareFields const& = SNPIdentifyingData::CompareFields()
+		) ;
+
+		MergingSNPDataSource( genfile::SNPIdentifyingData::CompareFields const& ) ;
 		virtual ~MergingSNPDataSource() ;
-		
+
 		void add_source( SNPDataSource::UniquePtr, std::string const& id_prefix = "" ) ;
+
+		Metadata get_metadata() const ;
 
 		operator bool() const ;
 		// Return the number of samples represented in the snps in this source.
@@ -49,9 +55,11 @@ namespace genfile {
 	
 	private:
 		std::vector< SNPDataSource* > m_sources ;
-		typedef std::multimap< SNPIdentifyingData, std::size_t > CurrentSnps ;
+		typedef std::multimap< SNPIdentifyingData, std::size_t, SNPIdentifyingData::CompareFields > CurrentSnps ;
 		CurrentSnps m_current_snps ;
 		std::vector< std::string > m_merge_id_prefixes ;
+		Metadata m_metadata ;
+		
 		void get_top_snp_in_source( std::size_t source_i ) ;
 	protected:
 		CurrentSnps& current_snps() { return m_current_snps ; }
@@ -61,10 +69,12 @@ namespace genfile {
 	} ;
 	
 	struct DropDuplicatesStrategyMergingSNPDataSource: public MergingSNPDataSource {
+		DropDuplicatesStrategyMergingSNPDataSource( SNPIdentifyingData::CompareFields const& compare_fields ) ;
 		void discard_top_snp_and_get_next() ;
 	} ;
 
 	struct KeepAllStrategyMergingSNPDataSource: public MergingSNPDataSource {
+		KeepAllStrategyMergingSNPDataSource( SNPIdentifyingData::CompareFields const& compare_fields ) ;
 		void discard_top_snp_and_get_next() ;
 	} ;
 }

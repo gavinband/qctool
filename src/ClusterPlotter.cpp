@@ -58,7 +58,7 @@ ClusterPlotter::ClusterPlotter(
 	m_max_tasks( 10 )
 {}
 
-void ClusterPlotter::begin_processing_snps( std::size_t number_of_samples ) {
+void ClusterPlotter::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) {
 	m_number_of_samples = number_of_samples ;
 }
 

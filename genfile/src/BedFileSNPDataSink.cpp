@@ -115,30 +115,24 @@ namespace genfile {
 	) {
 		std::map< std::size_t, std::size_t > result ;
 
+		using genfile::VariantEntry ;
 		std::vector< std::string > ID_1( samples.get_number_of_individuals() ) ;
-		std::vector< std::string > ID_2( samples.get_number_of_individuals() ) ;
 		
 		for( std::size_t i = 0; i < samples.get_number_of_individuals(); ++i ) {
 			ID_1[i] = samples.get_entry( i, "ID_1" ).as< std::string >() ;
-			ID_2[i] = samples.get_entry( i, "ID_2" ).as< std::string >() ;
 		}
 		
 		for( std::size_t i = 0; i < pedigree.get_number_of_individuals(); ++i ) {
 			std::string const& id = pedigree.get_id_of( i ) ;
 			//std::cerr << "Matching up individual " << i << ": " << id << ".\n" ;
-			std::vector< std::string > const* which_id = &ID_1 ;
-			std::vector< std::string >::const_iterator where = std::find( which_id->begin(), which_id->end(), id ) ;
-			if( where == ID_1.end() ) {
-				// look in ID 2 instead
-				which_id = &ID_2 ;
-				where = std::find( which_id->begin(), which_id->end(), id ) ;
-			}
-			if( where != which_id->end() ) {
+			std::vector< std::string >::const_iterator where = std::find( ID_1.begin(), ID_1.end(), id ) ;
+			if( where != ID_1.end() ) {
 				// check match is unique.
 				std::vector< std::string >::const_iterator next = where ;
+				std::vector< std::string >::const_iterator const end = ID_1.end() ;
 				++next ;
-				assert( std::find( next, which_id->end(), id ) == which_id->end() ) ;
-				result[ i ] = ( where - which_id->begin() )  ;
+				assert( std::find( next, end, id ) == end ) ;
+				result[ i ] = ( where - ID_1.begin() )  ;
 			}
 		}
 		return result ;

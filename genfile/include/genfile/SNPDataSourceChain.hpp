@@ -28,6 +28,8 @@ namespace genfile {
 		// Create a chain of SNPDataSources taking data from the specified files.
 		static UniquePtr create(
 			std::vector< wildcard::FilenameMatch > const& filenames,
+			boost::optional< vcf::MetadataParser::Metadata > const& metadata = boost::optional< vcf::MetadataParser::Metadata >(),
+			std::string const& filetype_hint = "guess",
 			NotifyProgress notify_progress = NotifyProgress()
 		) ;
 
@@ -43,12 +45,15 @@ namespace genfile {
 		~SNPDataSourceChain() ;
 
 		void add_source( std::auto_ptr< SNPDataSource > source ) ;
+
+		Metadata get_metadata() const ;
 		unsigned int number_of_samples() const ;
 		OptionalSnpCount total_number_of_snps() const ;
 		unsigned int number_of_sources() const ;
 		OptionalSnpCount number_of_snps_in_source( std::size_t source_index ) const ;
 		SNPDataSource const& get_source( std::size_t source_index ) const ;
 		operator bool() const ;
+		void set_expected_ploidy( GetPloidy ) ;
 		std::string get_source_spec() const ;
 		std::string get_summary( std::string const& prefix, std::size_t fill ) const ;
 
@@ -88,6 +93,7 @@ namespace genfile {
 		std::vector< SNPDataSource* > m_sources ;
 		std::size_t m_current_source ;
 		unsigned int m_number_of_samples ;
+		Metadata m_metadata ;
 		
 		moved_to_next_source_callback_t m_moved_to_next_source_callback ;
 	} ;

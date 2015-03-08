@@ -10,11 +10,12 @@
 #include <vector>
 #include <fstream>
 #include <cstdio>
+#include "../config.hpp"
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSink.hpp"
-#include "genfile/bgen.hpp"
+#include "genfile/bgen/bgen.hpp"
 #include "genfile/BGenFileSNPDataSink.hpp"
 #include "genfile/GenomePosition.hpp"
 #include "genfile/SortingBGenFileSNPDataSink.hpp"
@@ -59,8 +60,8 @@ namespace genfile {
 			std::make_pair(
 				snp,
 				std::make_pair(
-					m_sink->get_stream_pos(),
-					m_sink->get_stream_pos()
+					m_sink->get_stream_pos().second,
+					m_sink->get_stream_pos().second
 				)
 			)
 		) ;
@@ -79,7 +80,7 @@ namespace genfile {
 			info
 		) ;
 		
-		offset_i->second.second = m_sink->get_stream_pos() ;
+		offset_i->second.second = m_sink->get_stream_pos().second ;
 	}
 
 	SortingBGenFileSNPDataSink::~SortingBGenFileSNPDataSink() {
@@ -89,7 +90,11 @@ namespace genfile {
 		boost::system::error_code ec ;
 
 		// Move file to a similarly-named temporary.
+#if BOOST_FILESYSTEM_VERSION < 3
 		boost::filesystem::path temp_filename = boost::filesystem::unique_path( m_filename + ".tmp%%%%-%%%%-%%%%-%%%%", ec ) ;
+#else
+		boost::filesystem::path temp_filename = boost::filesystem::unique_path( m_filename + ".tmp%%%%-%%%%-%%%%-%%%%", ec ) ;
+#endif
 		// std::cerr << "Renaming \"" << m_filename << "\" to \"" << temp_filename << "\"...\n" ;
 		boost::filesystem::rename(
 			boost::filesystem::path( m_filename ),
@@ -146,6 +151,6 @@ namespace genfile {
 	
 	void SortingBGenFileSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter name_getter ) {
 		m_sink->set_sample_names( number_of_samples, name_getter ) ;
-		m_offset_of_first_snp = m_sink->get_stream_pos() ;
+		m_offset_of_first_snp = m_sink->get_stream_pos().second ;
 	}
 }

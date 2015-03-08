@@ -23,6 +23,7 @@ namespace statfile {
 	class DelimitedStatSink: public ColumnNamingStatSink< BuiltInTypeStatSink >, public OstreamAggregator
 	{
 	public:
+		typedef ColumnNamingStatSink< BuiltInTypeStatSink > Base ;
 		typedef std::auto_ptr< DelimitedStatSink > UniquePtr ;
 
 		DelimitedStatSink( std::string const& filename, std::string const& delimiter ) ;
@@ -35,6 +36,7 @@ namespace statfile {
 
 	protected:
 
+		using Base::write_value ;
 		void write_value( int32_t const& value ) {
 			write_value_impl< int32_t >( value ) ;
 		}
@@ -47,9 +49,6 @@ namespace statfile {
 		void write_value( uint64_t const& value ) {
 			write_value_impl< uint64_t >( value ) ;
 		}
-		void write_value( std::string const& value ) {
-			write_value_impl< std::string >( value ) ;
-		}
 		void write_value( genfile::GenomePosition const& value ) {
 			write_value_impl< genfile::GenomePosition >( value ) ;
 		}
@@ -60,6 +59,7 @@ namespace statfile {
 			write_value_impl< genfile::MissingValue >( value ) ;
 		}
 		void write_value( double const& ) ;
+		void write_value( std::string const& value ) ;
 
 	private:
 		
@@ -70,13 +70,15 @@ namespace statfile {
 			stream() << value  ;
 		}
 
+		void begin_data_impl() ;
+
 	private:
 	
 		void setup( std::auto_ptr< std::ostream > stream_ptr ) ;
 		void setup( std::string const& filename ) ;
 
 		void write_header_if_necessary() {
-			if( !(state() & e_HaveWrittenSomeData) ) {
+			if( !(state() & e_ReadyForData) ) {
 				write_descriptive_text() ;
 				write_column_names() ;
 				stream() << '\n' ;
@@ -99,7 +101,7 @@ namespace statfile {
 	private:
 		char m_comment_character ;
 		std::string const m_delimiter ;
-		bool have_written_header ;
+		bool const m_always_escape_strings ;
 		int m_precision ;
 		std::string m_descriptive_text ;
 	} ;

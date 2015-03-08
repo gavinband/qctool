@@ -7,9 +7,11 @@
 #ifndef GENFILE_STRING_UTILS_SLICE_HPP
 #define GENFILE_STRING_UTILS_SLICE_HPP
 
+#include <iostream>
 #include <vector>
 #include <string>
 #include <cassert>
+#include <boost/function.hpp>
 
 namespace genfile {
 	namespace string_utils {
@@ -41,12 +43,25 @@ namespace genfile {
 
 			std::vector< slice > split( std::string const& split_chars ) const ;
 			void split( std::string const& split_chars, std::vector< slice >* result ) const ;
+			void split( std::string const& split_chars, boost::function< void( slice ) > ) const ;
 			
 			slice substr( std::size_t start, std::size_t end ) const ;
 			
 			bool operator==( std::string const& other ) const ;
 			bool operator!=( std::string const& other ) const ;
-			bool operator==( slice const& other ) const ;
+			// bool operator==( slice const& other ) const ;
+			
+			std::string::const_iterator begin() const ;
+			std::string::const_iterator end() const ;
+
+			friend bool operator<( slice const& left, slice const& right ) ;
+			friend bool operator>( slice const& left, slice const& right ) ;
+			friend bool operator<=( slice const& left, slice const& right ) ;
+			friend bool operator>=( slice const& left, slice const& right ) ;
+			friend bool operator==( slice const& left, slice const& right ) ;
+			friend bool operator!=( slice const& left, slice const& right ) ;
+			friend std::ostream& operator<<( std::ostream& o, slice const& s ) ;
+			
 		private:
 			std::string const* m_string ;
 			std::size_t m_start, m_end ;
@@ -54,7 +69,8 @@ namespace genfile {
 		private:
 			std::size_t find_first_of( char* membership_array, std::size_t pos = 0 ) const ;
 		} ;
-		
+	
+		std::string join( std::vector< slice > const& slices, std::string const& joiner ) ;
 	}
 }
 

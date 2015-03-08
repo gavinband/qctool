@@ -19,10 +19,14 @@
 	#define AUTO_TEST_CASE( param ) BOOST_AUTO_TEST_CASE(param)
 	#define TEST_ASSERT( param ) BOOST_ASSERT( param )
 	#define AUTO_TEST_MAIN namespace { void test_case_dummy_function_WILL_NOT_BE_CALLED() ; } void test_case_dummy_function_WILL_NOT_BE_CALLED() 
+	#define AUTO_TEST_SUITE( param ) BOOST_AUTO_TEST_SUITE( param )
+	#define AUTO_TEST_SUITE_END BOOST_AUTO_TEST_SUITE_END
 #else
 	#define AUTO_TEST_CASE( param ) void param()
 	#define TEST_ASSERT( param ) assert( param )
 	#define AUTO_TEST_MAIN int main( int argc, char** argv )
+	#define AUTO_TEST_SUITE( param ) {
+	#define AUTO_TEST_SUITE_END }
 #endif	
 
 namespace data {

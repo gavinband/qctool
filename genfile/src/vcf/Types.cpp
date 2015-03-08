@@ -7,6 +7,7 @@
 #include <map>
 #include <string>
 #include <iostream>
+#include <cmath>
 #include <boost/ptr_container/ptr_map.hpp>
 #include "genfile/MissingValue.hpp"
 #include "genfile/VariantEntry.hpp"
@@ -18,21 +19,29 @@
 
 namespace genfile {
 	namespace vcf {
-		SimpleType::UniquePtr SimpleType::create( std::string const& spec ) {
+		SimpleType::UniquePtr SimpleType::create( std::string const& spec, std::string const& scale ) {
 			SimpleType::UniquePtr result ;
 			if( spec == "String" ) {
+				assert( scale == "identity" ) ;
 				result.reset( new StringType() ) ;
 			}
 			else if( spec == "Integer" ) {
+				assert( scale == "identity" ) ;
 				result.reset( new IntegerType() ) ;
 			}
 			else if( spec == "Float" ) {
-				result.reset( new FloatType() ) ;
+				if( scale == "identity" ) {
+					result.reset( new FloatType() ) ;
+				} else {
+					result.reset( new PhredScaleFloatType() ) ;
+				}
 			}
 			else if( spec == "Character" ) {
+				assert( scale == "identity" ) ;
 				result.reset( new CharacterType() ) ;
 			}
 			else if( spec == "Flag" ) {
+				assert( scale == "identity" ) ;
 				result.reset( new FlagType() ) ;
 			}
 			else {
@@ -82,10 +91,18 @@ namespace genfile {
 		void FloatType::parse( string_utils::slice const& value, EntrySetter& setter ) const {
 			try {
 				setter( string_utils::strtod( value )) ;
-				// return Entry( string_utils::to_repr< double >( value )) ;
 			}
 			catch( string_utils::StringConversionError const& ) {
 				throw BadArgumentError( "genfile::vcf::FloatType::parse()", "value = \"" + std::string( value ) + "\"" ) ;
+			}
+		}
+
+		void PhredScaleFloatType::parse( string_utils::slice const& value, EntrySetter& setter ) const {
+			try {
+				setter( std::pow( 10, -string_utils::strtod( value ) / 10 ) ) ;
+			}
+			catch( string_utils::StringConversionError const& ) {
+				throw BadArgumentError( "genfile::vcf::PhredScaleFloatType::parse()", "value = \"" + std::string( value ) + "\"" ) ;
 			}
 		}
 
@@ -106,46 +123,59 @@ namespace genfile {
 		VCFEntryType::UniquePtr VCFEntryType::create( Spec const& spec ) {
 			Spec::const_iterator ID = spec.find( "ID" ) ;
 			Spec::const_iterator number = spec.find( "Number" ) ;
-			Spec::const_iterator type = spec.find( "Type" ) ;
-			if( ID == spec.end() || number == spec.end() || type == spec.end() ) {
+			Spec::const_iterator type_i = spec.find( "Type" ) ;
+			if( ID == spec.end() || number == spec.end() || type_i == spec.end() ) {
 				throw BadArgumentError( "genfile::vcf::VCFEntryType::create()", "spec" ) ;
 			}
+
 			VCFEntryType::UniquePtr result ;
 
-			if( ID->second == "GT" || type->second == "Genotype" ) {
+			if( ID->second == "GT" || type_i->second == "Genotype" ) {
 				if( number->second != "." && number->second != "1" ) {
-					throw BadArgumentWithMessageError(
-						"\"Number\" of GT field must be encoded as . or 1 in metadata.",
+					throw BadArgumentError(
 						"genfile::vcf::VCFEntryType::create()",
-						"spec"
+						"Number=" + number->second,
+						"\"Number\" of GT field must be encoded as . or 1 in metadata."
 					) ;
 				}
-				if( type->second != "String" && type->second != "Genotype" ) {
+				if( type_i->second != "String" && type_i->second != "Genotype" ) {
 					throw BadArgumentError( "genfile::vcf::VCFEntryType::create()", "spec" ) ;
 				}
 				result.reset( new GenotypeCallVCFEntryType()) ;
 			}
-			else if( number->second == "A" ) {
-				result.reset( new OnePerAlternateAlleleVCFEntryType( SimpleType::create( type->second ))) ;
-			}
-			else if( number->second == "G" ) {
-				result.reset( new OnePerGenotypeVCFEntryType( SimpleType::create( type->second ))) ;
-			}
-			else if( number->second == "." ) {
-				result.reset(
-					new DynamicNumberVCFEntryType(
-						SimpleType::create( type->second )
-					)
-				) ;
-			}
 			else {
-				result.reset(
-					new FixedNumberVCFEntryType(
-						string_utils::to_repr< std::size_t >( number->second ),
-						SimpleType::create( type->second )
-					)
-				) ;
+				SimpleType::UniquePtr element_type ;
+				{
+					// deal with scale specifiable by "Scale" attribute.
+					std::string scale = "identity" ;
+					Spec::const_iterator scale_i = spec.find( "Scale" ) ;
+					if( scale_i != spec.end() ) {
+						scale = scale_i->second ;
+					}
+					element_type = SimpleType::create( type_i->second, scale ) ;
+				}
+
+				if( number->second == "A" ) {
+					result.reset( new OnePerAlternateAlleleVCFEntryType( element_type )) ;
+				}
+				else if( number->second == "G" ) {
+					result.reset( new OnePerGenotypeVCFEntryType( element_type )) ;
+				}
+				else if( number->second == "." ) {
+					result.reset(
+						new DynamicNumberVCFEntryType( element_type )
+					) ;
+				}
+				else {
+					result.reset(
+						new FixedNumberVCFEntryType(
+							string_utils::to_repr< std::size_t >( number->second ),
+							element_type
+						)
+					) ;
+				}
 			}
+
 			return result ;
 		}
 		
@@ -158,6 +188,7 @@ namespace genfile {
 			struct VariantEntriesEntriesSetter: public EntriesSetter {
 				VariantEntriesEntriesSetter( std::vector< Entry >& entries ): m_entries( entries ), entry_i( 0 ) {} 
 				void set_number_of_entries( std::size_t n ) { m_entries.resize( n ) ; }
+				void set_order_type( OrderType const order_type, ValueType const value_type ) {}
 				virtual void operator()( MissingValue const value ) { m_entries[ entry_i++ ] = value ; }
 				virtual void operator()( std::string& value ) { m_entries[ entry_i++ ] = value ; }
 				virtual void operator()( Integer const value ) { m_entries[ entry_i++ ] = value ; }
@@ -279,7 +310,7 @@ namespace genfile {
 				// There is one special case: if the ploidy is zero, there are no genotypes at all.
 				assert( n_alleles > 0 ) ;
 				if( ploidy == 0 || n_alleles == 1 ) {
-					return 1 ;
+					return 0 ;
 				}
 				std::size_t result = 0 ;
 				for( std::size_t i = 0; i <= ploidy; ++i ) {
@@ -352,17 +383,21 @@ namespace genfile {
 		namespace impl {
 			//
 			// 
-			struct CheckedGenotypeSetter: public EntriesSetter {
-				CheckedGenotypeSetter( EntriesSetter& setter, EntriesSetter::Integer const max_genotype ):
+			struct CheckedGTSetter: public EntriesSetter {
+				CheckedGTSetter( EntriesSetter& setter, EntriesSetter::Integer const max_genotype ):
 					m_setter( setter ),
 					m_max_genotype( max_genotype )
 				{}
 				
 				void set_number_of_entries( std::size_t n ) { m_setter.set_number_of_entries( n ) ; }
+				void set_order_type( OrderType const order_type, ValueType const value_type ) {
+					assert( order_type == ePerOrderedHaplotype || order_type == ePerUnorderedHaplotype ) ;
+					m_setter.set_order_type( order_type, value_type ) ;
+				}
 				void operator()( MissingValue const value ) { m_setter( value ) ; }
 				void operator()( Integer const value ) {
 					if( value < 0 || value > m_max_genotype ) {
-						throw BadArgumentError( "genfile::vcf::impl::GenotypeSetter::operator()", "value = \"" + string_utils::to_string( value ) + "\"" ) ;
+						throw BadArgumentError( "genfile::vcf::impl::CheckedGTSetter::operator()", "value = \"" + string_utils::to_string( value ) + "\"" ) ;
 					}
 					m_setter( value ) ;
 				}
@@ -386,7 +421,8 @@ namespace genfile {
 
 			std::vector< Entry > result ;
 			
-			// Most GT values have one character per allele.  We treat this as a special case.
+			// Most GT values have one character per allele.
+			// We treat this as a special case because it is much quicker
 			bool simple_parse_success = true ;
 
 			if( value.size() == 3 && ( value[1] == '|' || value[1] == '/' ) ) {
@@ -395,7 +431,10 @@ namespace genfile {
 				b = value[2] - '0' ;
 				if((( value[0] == m_missing_value[0] ) || ( a >= 0 && a <= max ) ) && ( ( value[2] == m_missing_value[0] ) || ( b >= 0 && b <= max ) ) ) {
 					setter.set_number_of_entries( 2 ) ;
-					setter.set_order_type( ( value[1] == '|' ) ? EntriesSetter::eOrderedList : EntriesSetter::eUnorderedList ) ;
+					setter.set_order_type(
+						( value[1] == '|' ) ? EntriesSetter::ePerOrderedHaplotype : EntriesSetter::ePerUnorderedHaplotype,
+						EntriesSetter::eAlleleIndex
+					) ;
 
 					if( value[0] == m_missing_value[0] ) {
 						setter( MissingValue() ) ;
@@ -432,7 +471,10 @@ namespace genfile {
 				}
 				if( simple_parse_success ) {
 					setter.set_number_of_entries( simple_values.size() ) ;
-					setter.set_order_type( ( value[1] == '|' ) ? EntriesSetter::eOrderedList : EntriesSetter::eUnorderedList ) ;
+					setter.set_order_type(
+						( value[1] == '|' ) ? EntriesSetter::ePerOrderedHaplotype : EntriesSetter::ePerUnorderedHaplotype,
+						EntriesSetter::eAlleleIndex
+					) ;
 					for( std::size_t i = 0; i < simple_values.size(); ++i ) {
 						if( simple_values[i] == -1 ) {
 							setter( MissingValue() ) ;
@@ -447,14 +489,14 @@ namespace genfile {
 			}
 
 			if( !simple_parse_success ) {
-				impl::CheckedGenotypeSetter genotype_setter( setter, number_of_alleles - 1 ) ;
+				impl::CheckedGTSetter genotype_setter( setter, number_of_alleles - 1 ) ;
 				std::vector< string_utils::slice > elts ;
-				if( value.find( '/' ) == std::string::npos ) {
+				if( value.find( '|' ) == std::string::npos ) {
 					// If there is a |, or no separator at all (ploidy = 1) the genotypes are phased.
-					setter.set_order_type( EntriesSetter::eOrderedList ) ;
+					setter.set_order_type( EntriesSetter::ePerOrderedHaplotype, EntriesSetter::eAlleleIndex ) ;
 				} else {
 					// / found, so genotypes are unphased.
-					setter.set_order_type( EntriesSetter::eUnorderedList ) ;
+					setter.set_order_type( EntriesSetter::ePerUnorderedHaplotype, EntriesSetter::eAlleleIndex ) ;
 				}
 				parse_elts( lex( value, number_of_alleles ), genotype_setter ) ;
 			}

@@ -21,7 +21,7 @@ namespace genfile {
 		CohortIndividualSourceChain() ;
 		~CohortIndividualSourceChain() ;
 		
-		void add_source( CohortIndividualSource::UniquePtr source ) ;
+		void add_source( CohortIndividualSource::UniquePtr source, std::string const& source_name ) ;
 		
 		std::size_t get_number_of_individuals() const ;
 		ColumnSpec get_column_spec() const ;
@@ -31,6 +31,7 @@ namespace genfile {
 		std::string get_source_spec() const ;
 	private:
 		boost::ptr_vector< CohortIndividualSource > m_sources ;
+        std::vector< std::string > m_source_names ;
 		ColumnSpec m_column_spec ;
 	} ;
 }

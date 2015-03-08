@@ -37,6 +37,10 @@ namespace genfile {
 			return  (*m_source) ;
 		}
 
+		Metadata get_metadata() const {
+			return m_source->get_metadata() ;
+		}
+		
 		unsigned int number_of_samples() const {
 			return m_source->number_of_samples() ;
 		}

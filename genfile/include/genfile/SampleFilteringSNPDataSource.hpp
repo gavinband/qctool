@@ -13,7 +13,7 @@
 
 namespace genfile {
 	namespace impl {
-		class SampleFilteringVariantDataReader ;
+		struct SampleFilteringVariantDataReader ;
 	}
 	class SampleFilteringSNPDataSource: public SNPDataSource
 	{
@@ -33,6 +33,7 @@ namespace genfile {
 	public:
 
 		operator bool() const ;
+		Metadata get_metadata() const ;
 		unsigned int number_of_samples() const ;
 		OptionalSnpCount total_number_of_snps() const ;
 		std::string get_source_spec() const ;
@@ -86,3 +87,4 @@ namespace genfile {
 }
 
 #endif
+

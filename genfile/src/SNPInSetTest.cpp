@@ -13,8 +13,8 @@
 #include "genfile/Error.hpp"
 
 namespace genfile {
-	SNPInSetTest::SNPInSetTest( std::set< SNPIdentifyingData > const& snps ):
-	 	m_snps( snps )
+	SNPInSetTest::SNPInSetTest( std::set< SNPIdentifyingData > const& snps, SNPIdentifyingData::CompareFields const& comparer ):
+	 	m_snps( snps.begin(), snps.end(), comparer )
 	{}
 
  	bool SNPInSetTest::operator()( SNPIdentifyingData const& data ) const {
@@ -37,17 +37,16 @@ namespace genfile {
 	
 	std::string SNPInSetTest::display() const {
 		std::ostringstream ostr ;
-		ostr << "SNP in { " ;
-		if( m_snps.size() <= 3 ) {
-			for( std::set< SNPIdentifyingData >::const_iterator i = m_snps.begin(); i != m_snps.end(); ++i ) {
-				if( i != m_snps.begin() ) {
-					ostr << ", " ;
-				}
-				ostr << (*i) ;
+		ostr << "SNP (" + m_snps.key_comp().get_summary() + ") in { " ;
+		int count = 0;
+		for( std::set< SNPIdentifyingData >::const_iterator i = m_snps.begin(); i != m_snps.end() && count < 3; ++i, ++count ) {
+			if( i != m_snps.begin() ) {
+				ostr << ", " ;
 			}
+				ostr << (*i) ;
 		}
-		else {
-			ostr << "set of " + m_snps.size() ;
+		if( m_snps.size() > 3 ) {
+			ostr << "...(+" << m_snps.size() << " others)" ;
 		}
 		ostr << " }" ;
 		return ostr.str() ;

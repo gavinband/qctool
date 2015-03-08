@@ -19,6 +19,8 @@
 #include "genfile/HapmapHaplotypesSNPDataSource.hpp"
 #include "genfile/ImputeHaplotypesSNPDataSource.hpp"
 #include "genfile/ShapeITHaplotypesSNPDataSource.hpp"
+#include "genfile/DosageFileSNPDataSource.hpp"
+#include "genfile/BedFileSNPDataSource.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/vcf/get_set.hpp"
 #include "genfile/Error.hpp"
@@ -29,99 +31,74 @@ namespace genfile {
 		std::vector< std::string > result ;
 		result.push_back( "gen" ) ;
 		result.push_back( "bgen" ) ;
+		result.push_back( "bgen_v12" ) ;
 		result.push_back( "vcf" ) ;
 		result.push_back( "hapmap_haplotypes" ) ;
 		result.push_back( "impute_haplotypes" ) ;
 		result.push_back( "shapeit_haplotypes" ) ;
+		result.push_back( "binary_ped" ) ;
 		return result ;
 	}
 	
 	std::auto_ptr< SNPDataSource > SNPDataSource::create(
 		std::string const& filename,
-		Chromosome chromosome_hint
-	) {
-		return SNPDataSource::create( filename, chromosome_hint, get_compression_type_indicated_by_filename( filename ) ) ;
-	}
-
-	std::auto_ptr< SNPDataSource > SNPDataSource::create(
-		std::string const& filename,
 		Chromosome chromosome_hint,
-		vcf::MetadataParser::Metadata const& metadata,
-		std::string const& filetype_hint
-	) {
-		return SNPDataSource::create( filename, chromosome_hint, get_compression_type_indicated_by_filename( filename ), metadata, filetype_hint ) ;
-	}
-
-	std::auto_ptr< SNPDataSource > SNPDataSource::create(
-		std::string const& filename,
-		Chromosome chromosome_hint,
-		CompressionType compression_type,
-		vcf::MetadataParser::Metadata const& metadata,
+		boost::optional< vcf::MetadataParser::Metadata > const& metadata,
 		std::string const& filetype_hint
 	) {
 		std::pair< std::string, std::string > uf = uniformise( filename ) ;
 		
-		if( filetype_hint != "" ) {
+		if( filetype_hint != "guess" ) {
 			uf.first = filetype_hint ;
 		}
 		
 		if( uf.first == "bgen" ) {
-			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second, compression_type )) ;
+			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second )) ;
 		}
 		else if( uf.first == "vcf" ) {
 			return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second, metadata )) ;
 		}
 		else if( uf.first == "gen" ) {
-			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type, metadata )) ;
+			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint )) ;
+		}
+		else if( uf.first == "dosage" ) {
+			return std::auto_ptr< SNPDataSource >( new DosageFileSNPDataSource( uf.second, chromosome_hint )) ;
 		}
 		else if( uf.first == "hapmap_haplotypes" ) {
-			return std::auto_ptr< SNPDataSource >( new HapmapHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+			return std::auto_ptr< SNPDataSource >( new HapmapHaplotypesSNPDataSource( uf.second, chromosome_hint )) ;
 		}
 		else if( uf.first == "impute_haplotypes" ) {
-			return std::auto_ptr< SNPDataSource >( new ImputeHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+			return std::auto_ptr< SNPDataSource >( new ImputeHaplotypesSNPDataSource( uf.second, chromosome_hint )) ;
 		}
 		else if( uf.first == "shapeit_haplotypes" ) {
-			return std::auto_ptr< SNPDataSource >( new ShapeITHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
+			return std::auto_ptr< SNPDataSource >( new ShapeITHaplotypesSNPDataSource( uf.second, chromosome_hint )) ;
+		}
+		else if( uf.first == "binary_ped" ) {
+			if( uf.second.size() < 4 || uf.second.substr( uf.second.size() - 4, 4 ) != ".bed" ) {
+				throw genfile::BadArgumentError(
+					"SNPDataSource::create()",
+					"filename=\"" + uf.second + "\"",
+					"For binary PED format, expected the .bed extension."
+				) ;
+			}
+			std::string const bedFilename = uf.second ;
+			std::string bimFilename = bedFilename ;
+			bimFilename.replace( bimFilename.size() - 4, 4, ".bim" ); 
+			std::string famFilename = bedFilename ;
+			famFilename.replace( famFilename.size() - 4, 4, ".fam" ); 
+			return std::auto_ptr< SNPDataSource >( new BedFileSNPDataSource(
+				uf.second, bimFilename, famFilename
+			) ) ;
 		}
 		else {
+			throw genfile::BadArgumentError(
+				"genfile::SNPDataSource::create()",
+				"filetype_hint=\"" + filetype_hint + "\"",
+				"Unrecognised file type."
+			) ;
 			// assume GEN format.
-			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type, metadata )) ;
+			// return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
 		}
-	}
-
-	std::auto_ptr< SNPDataSource > SNPDataSource::create(
-		std::string const& filename,
-		Chromosome chromosome_hint,
-		CompressionType compression_type
-	) {
-		std::pair< std::string, std::string > uf = uniformise( filename ) ;
-		if( uf.first == "bgen" ) {
-			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second, compression_type )) ;
-		}
-		else if( uf.first == "vcf" ) {
-			return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second )) ;
-		}
-		else if( uf.first == "gen" ) {
-			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
-		}
-		else if( uf.first == "hapmap_haplotypes" ) {
-			return std::auto_ptr< SNPDataSource >( new HapmapHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
-		}
-		else if( uf.first == "impute_haplotypes" ) {
-			return std::auto_ptr< SNPDataSource >( new ImputeHaplotypesSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
-		}
-		else {
-			// assume GEN format.
-			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint, compression_type )) ;
-		}
-	}
-
-	std::auto_ptr< SNPDataSource > SNPDataSource::create_chain(
-		std::vector< wildcard::FilenameMatch > const& matches,
-		NotifyProgress notify_progress
-	) {
-		std::auto_ptr< SNPDataSourceChain > ptr = SNPDataSourceChain::create( matches, notify_progress ) ;
-		return std::auto_ptr< SNPDataSource >( ptr.release() ) ;
 	}
 
 	SNPDataSource::SNPDataSource()
@@ -192,7 +169,7 @@ namespace genfile {
 		}
 		return *this ;
 	}
-	
+
 	bool SNPDataSource::get_next_snp_with_specified_position(
 		IntegerSetter const& set_number_of_samples,
 		StringSetter const& set_SNPID,
@@ -292,6 +269,39 @@ namespace genfile {
 		}
 
 		return false ;	
+	}
+
+	bool SNPDataSource::get_next_snp_matching(
+		SNPIdentifyingData* result,
+		SNPIdentifyingData const& snp_to_match,
+		SNPIdentifyingData::CompareFields const& comparer
+	) {
+		assert( result ) ;
+		bool found = false ;
+		SNPIdentifyingData snp ;
+		while(
+			get_next_snp_with_specified_position(
+				ignore(),
+				set_value( snp.SNPID() ),
+				set_value( snp.rsid() ),
+				set_value( snp.position().chromosome() ),
+				set_value( snp.position().position() ),
+				set_value( snp.first_allele() ),
+				set_value( snp.second_allele() ),
+				snp_to_match.get_position()
+			)
+		) {
+			if( comparer.are_equal( snp, snp_to_match )) {
+				found = true ;
+				break ;
+			} else {
+				ignore_snp_probability_data() ;
+			}
+		}
+		if( found ) {
+			*result = snp ;
+		}
+		return found ;
 	}
 
 	SNPDataSource& SNPDataSource::get_snp_identifying_data(

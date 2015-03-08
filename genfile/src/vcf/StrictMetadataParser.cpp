@@ -99,7 +99,14 @@ namespace genfile {
 					if( line.find( "\t" ) != std::string::npos ) {
 						throw MalformedInputError( m_spec, line_number ) ;
 					}
-					result->insert( parse_meta_line( line_number, line )) ;
+					try {
+						result->insert( parse_meta_line( line_number, line )) ;
+					}
+					catch( MalformedInputError const& error ) {
+						std::map< std::string, std::string > data ;
+						data[ "what" ] = line ;
+						result->insert( std::make_pair( "parse_error", data ) ) ;
+					}
 				} else {
 					in.putback( a_char ) ;
 					return false ;
@@ -119,28 +126,28 @@ namespace genfile {
 			tie( key, value ) = parse_key_value_pair( line ) ;
 			if( !validate_meta_key( line_number, key )) {
 				throw MalformedInputError( m_spec, line_number ) ;
-			} ;
-		
-			std::map< std::string, std::string > result ;
-		
-			if( key == "fileformat" ) {
-				if( value != "VCFv4.1" && value != "VCFv4.0" ) {
-					throw FormatUnsupportedError( m_spec, value ) ;
+			} else {
+				std::map< std::string, std::string > result ;
+			
+				if( key == "fileformat" ) {
+					if( value != "VCFv4.1" && value != "VCFv4.0" ) {
+						throw FormatUnsupportedError( m_spec, value ) ;
+					}
+					result[ "version" ] = value.substr( 4, 3 ) ;
 				}
-				result[ "version" ] = value.substr( 4, 3 ) ;
-			}
-			else if( key == "INFO" || key == "FILTER" || key == "FORMAT") {
-				result = parse_meta_value( line_number, key, value ) ;
-				if( !validate_meta_value( key, result )) {
-					throw MalformedInputError( m_spec, line_number ) ;
+				else if( key == "INFO" || key == "FILTER" || key == "FORMAT") {
+					result = parse_meta_value( line_number, key, value ) ;
+					if( !validate_meta_value( key, result )) {
+						throw MalformedInputError( m_spec, line_number ) ;
+					}
 				}
+				else {
+					// If we get here, unknown tag type.
+					// Return a map with key "" and value the whole string.
+					result[ "" ] = value ;
+				}
+				return std::make_pair( key, result ) ;
 			}
-			else {
-				// If we get here, unknown tag type.
-				// Return a map with key "" and value the whole string.
-				result[ "" ] = value ;
-			}
-			return std::make_pair( key, result ) ;
 		}
 
 		std::pair< std::string, std::string > StrictMetadataParser::parse_key_value_pair( std::string const& line ) const {

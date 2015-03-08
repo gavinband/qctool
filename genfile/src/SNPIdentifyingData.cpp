@@ -67,6 +67,10 @@ namespace genfile {
 		return *this ;
 	}
 	
+	void SNPIdentifyingData::swap_alleles() {
+		m_first_allele.swap( m_second_allele ) ;
+	}
+	
 	std::ostream& operator<<( std::ostream& out, SNPIdentifyingData const& data ) {
 		return out << data.get_SNPID()
 			<< " " << data.get_rsid()
@@ -135,15 +139,53 @@ namespace genfile {
 		) ;
 	}
 	
-	SNPIdentifyingData::CompareFields::CompareFields( std::string const& fields_to_compare ):
-		m_fields_to_compare( parse_fields_to_compare( fields_to_compare ) )
+	SNPIdentifyingData::CompareFields::CompareFields():
+		m_fields_to_compare( parse_fields_to_compare( "position,rsid,SNPID,alleles" ) )
+	{
+		assert( !m_fields_to_compare.empty() ) ;
+	}
+
+	SNPIdentifyingData::CompareFields::CompareFields( std::string const& fields_to_compare, bool flip_alleles_if_necessary ):
+		m_fields_to_compare( parse_fields_to_compare( fields_to_compare ) ),
+		m_flip_alleles_if_necessary( flip_alleles_if_necessary )
 	{
 		assert( !m_fields_to_compare.empty() ) ;
 	}
 	
+	std::string SNPIdentifyingData::CompareFields::get_summary() const {
+		std::string result = "comparing " ;
+		for( std::size_t i = 0; i < m_fields_to_compare.size(); ++i ) {
+			if( i > 0 ) {
+				result += "," ;
+			}
+			switch( m_fields_to_compare[i] ) {
+				case eSNPID:
+				result += "SNPID" ;
+				break ;
+				case eRSID:
+				result += "rsid" ;
+				break ;
+				case ePosition:
+				result += "position" ;
+				break ;
+				case eAlleles:
+				result += "alleles" ;
+				break ;
+			}
+		}
+		return result ;
+	}
+	
 	SNPIdentifyingData::CompareFields::CompareFields( CompareFields const& other ):
-		m_fields_to_compare( other.m_fields_to_compare )
+		m_fields_to_compare( other.m_fields_to_compare ),
+		m_flip_alleles_if_necessary( other.m_flip_alleles_if_necessary )
 	{}
+
+	SNPIdentifyingData::CompareFields& SNPIdentifyingData::CompareFields::operator=( SNPIdentifyingData::CompareFields const& other ) {
+		m_fields_to_compare = other.m_fields_to_compare ;
+		m_flip_alleles_if_necessary = other.m_flip_alleles_if_necessary ;
+		return *this ;
+	}
 
 	std::vector< int > SNPIdentifyingData::CompareFields::parse_fields_to_compare( std::string const& field_spec ) {
 		std::vector< std::string > elts = string_utils::split_and_strip( field_spec, ",", " \t\n\r" ) ;
@@ -198,20 +240,36 @@ namespace genfile {
 						return true ;
 					}
 					break ;
-				case eAlleles:
-					if( left.get_first_allele() > right.get_first_allele() ) {
+				case eAlleles: {
+					std::string const *l1 = &left.get_first_allele() ;
+					std::string const *l2 = &left.get_second_allele() ;
+					std::string const *r1 = &right.get_first_allele() ;
+					std::string const *r2 = &right.get_second_allele() ;
+					
+					if( m_flip_alleles_if_necessary ) {
+						if( (*l2) < (*l1) ) {
+							l1 = &left.get_second_allele() ;
+							l2 = &left.get_first_allele() ;
+						}
+						if( (*r2) < (*r1) ) {
+							r1 = &right.get_second_allele() ;
+							r2 = &right.get_first_allele() ;
+						}
+					}
+					if( (*l1) > (*r1) ) {
 						return false ;
 					}
-					else if( left.get_first_allele() < right.get_first_allele() ) {
+					else if( (*l1) < (*r1) ) {
 						return true ;
 					}
-					else if( left.get_second_allele() > right.get_second_allele() ) {
+					else if( (*l2) > (*r2) ) {
 						return false ;
 					}
-					else if( left.get_second_allele() < right.get_second_allele() ) {
+					else if( (*l2) < (*r2) ) {
 						return true ;
 					}
 					break ;
+				}
 				default:
 					assert(0) ;
 					break ;
@@ -238,14 +296,21 @@ namespace genfile {
 						return false ;
 					}
 					break ;
-				case eAlleles:
-					if( left.get_first_allele() != right.get_first_allele() ) {
-						return false ;
+				case eAlleles: {
+					std::string const& l1 = left.get_first_allele() ;
+					std::string const& l2 = left.get_second_allele() ;
+					std::string const *r1 = &right.get_first_allele() ;
+					std::string const *r2 = &right.get_second_allele() ;
+					if( m_flip_alleles_if_necessary && ( l1 != *r1 ) ) {
+						r1 = &right.get_second_allele() ;
+						r2 = &right.get_first_allele() ;
 					}
-					if( left.get_second_allele() != right.get_second_allele() ) {
+				
+					if( l1 != (*r1) || l2 != (*r2) ) {
 						return false ;
 					}
 					break ;
+				}
 				default:
 					assert(0) ;
 					break ;

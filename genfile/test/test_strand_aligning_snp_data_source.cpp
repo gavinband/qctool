@@ -16,7 +16,7 @@
 #include "genfile/SNPDataSink.hpp"
 #include "stdint.h"
 
-
+AUTO_TEST_SUITE( StrandAligningSNPDataSourceTest )
 
 // The following section contains a simple snp block writer.
 namespace data {
@@ -60,18 +60,35 @@ namespace {
 
 AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 	std::cerr << "test_strand_aligning_snp_data_source()..." ;
-	genfile::StrandAligningSNPDataSource::StrandAlignments strand_alignments( data::number_of_snps ) ;
 	
 	std::size_t const N = 100 ; // do 100 iterations.
 	
+	std::vector< genfile::SNPIdentifyingData > snps ;
+	{
+		std::auto_ptr< std::istream > istr( new std::istringstream( data::data ) ) ;
+		std::auto_ptr< genfile::SNPDataSource > plain_source(
+			new genfile::GenFileSNPDataSource( istr, genfile::Chromosome( "01" ) )
+		) ;
+		genfile::SNPIdentifyingData snp ;
+		while( plain_source->get_snp_identifying_data( snp )) {
+			snps.push_back( snp ) ;
+		}
+		assert( snps.size() == data::number_of_snps ) ;
+	}
+	
 	for( std::size_t i = 0; i < N; ++i ) {
-		std::cerr << i << " " ;
-		for( std::size_t j = 0; j < data::number_of_snps; ++j ) {
-			switch( (i*j) % 3 ) {
-				case 0: strand_alignments[j] = '+' ; break ;
-				case 1: strand_alignments[j] = '-' ; break ;
-				case 2: strand_alignments[j] = '?' ; break ;
+		genfile::StrandAligningSNPDataSource::StrandAlignments strand_alignments ;
+		
+		{
+			std::cerr << i << " " ;
+			for( std::size_t j = 0; j < snps.size(); ++j ) {
+				switch( (i*j) % 3 ) {
+					case 0: strand_alignments[ snps[j] ].strand = '+' ; break ;
+					case 1: strand_alignments[ snps[j] ].strand = '-' ; break ;
+					case 2: strand_alignments[ snps[j] ].strand = '?' ; break ;
+				}
 			}
+			assert( strand_alignments.size() == data::number_of_snps ) ;
 		}
 		
 		std::auto_ptr< genfile::SNPDataSource > plain_source ;
@@ -134,7 +151,7 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 
 			genfile::SNPIdentifyingData expected_aligned_snp = snps1[i] ;
 
-			switch( strand_alignments[i] ) {
+			switch( strand_alignments[ snps1[i] ].strand ) {
 				case '+':
 					break ;
 				case '-':
@@ -159,70 +176,4 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 	std::cerr << "ok.\n" ;
 }
 
-AUTO_TEST_CASE( test_create_strand_alignments ) {
-	std::cerr << "test_create_strand_alignments()..." ;
-
-	using genfile::SNPIdentifyingData ;
-	using genfile::StrandAligningSNPDataSource ;
-	using genfile::Chromosome ;
-	using genfile::GenomePosition ;
-
-	std::vector< SNPIdentifyingData > snps ;
-
-	snps.push_back( SNPIdentifyingData( "S1", "RS1", GenomePosition( Chromosome("01"), 1000 ), 'A', 'C' ) ) ;
-	snps.push_back( SNPIdentifyingData( "S2", "RS2", GenomePosition( Chromosome("01"), 1000 ), 'A', 'G' ) ) ;
-	snps.push_back( SNPIdentifyingData( "S3", "RS3", GenomePosition( Chromosome("01"), 1000 ), 'A', 'T' ) ) ;
-	snps.push_back( SNPIdentifyingData( "S4", "RS4", GenomePosition( Chromosome("01"), 1000 ), 'C', 'G' ) ) ;
-	snps.push_back( SNPIdentifyingData( "S5", "RS5", GenomePosition( Chromosome("01"), 1000 ), 'C', 'T' ) ) ;
-	snps.push_back( SNPIdentifyingData( "S6", "RS6", GenomePosition( Chromosome("01"), 1000 ), 'G', 'T' ) ) ;
-
-	snps.push_back( SNPIdentifyingData( "S21", "RS21", GenomePosition( Chromosome("02"), 20000 ), 'C', 'A' ) ) ;
-	snps.push_back( SNPIdentifyingData( "S22", "RS22", GenomePosition( Chromosome("02"), 20000 ), 'G', 'A' ) ) ;
-	snps.push_back( SNPIdentifyingData( "S23", "RS23", GenomePosition( Chromosome("02"), 20000 ), 'T', 'A' ) ) ;
-	snps.push_back( SNPIdentifyingData( "S24", "RS24", GenomePosition( Chromosome("02"), 20000 ), 'G', 'C' ) ) ;
-	snps.push_back( SNPIdentifyingData( "S25", "RS25", GenomePosition( Chromosome("02"), 20000 ), 'T', 'C' ) ) ;
-	snps.push_back( SNPIdentifyingData( "S26", "RS26", GenomePosition( Chromosome("02"), 20000 ), 'T', 'G' ) ) ;
-
-	std::map< SNPIdentifyingData, char > alignments ;
-	SNPIdentifyingData dummy_snp( "DUMMY", "DUMMY", GenomePosition( Chromosome("05"), 0 ), 'A', 'G' ) ;
-	for( std::size_t i = 0; i < 100; ++i ) {
-		std::cerr << i << " " ;
-		for( std::size_t j = 0; j < snps.size(); ++j ) {
-			alignments[ snps[j] ] = '+' ;
-			if( i != j ) {
-				alignments[ snps[j] ] = ((i*j) % 2 == 0 ) ? '+' : '-' ;
-			}
-			if( j > 1 && i % j == 0 ) {
-				alignments[ snps[j] ] = '?' ;
-			}
-			if( i % 2 == 0 ) alignments[ dummy_snp ] = '+' ;
-		}
-
-		std::pair< std::vector< SNPIdentifyingData >, std::vector< char > > results
-			= genfile::StrandAligningSNPDataSource::create_strand_alignments( snps, alignments ) ;
-
-		TEST_ASSERT( results.first.size() == snps.size() ) ;
-		TEST_ASSERT( results.second.size() == snps.size() ) ;
-
-		for( std::size_t j = 0; j < snps.size(); ++j ) {
-			SNPIdentifyingData expected_snp = snps[j] ;
-			char expected_alignment = '+' ;
-			if( i != j && (i*j) % 2 != 0 ) {
-				expected_alignment = '-' ;
-				expected_snp.first_allele() = complement( expected_snp.first_allele() ) ;
-				expected_snp.second_allele() = complement( expected_snp.second_allele() ) ;
-			}
-			if( j > 1 && i % j == 0 ) {
-				expected_alignment = '?' ;
-				expected_snp.first_allele() = '?' ;
-				expected_snp.second_allele() = '?' ;
-			}
-
-			// std::cerr << "expected: " << expected_snp << ", " << expected_alignment << "; got " << results.first[j]  << ", " << results.second[j]  << ".\n" ;
-			TEST_ASSERT( results.second[j] == expected_alignment ) ;
-			TEST_ASSERT( results.first[j] == expected_snp ) ;
-		}
-	}
-
-	std::cerr << "ok.\n" ;
-}
+AUTO_TEST_SUITE_END()

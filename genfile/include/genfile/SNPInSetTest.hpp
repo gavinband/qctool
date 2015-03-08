@@ -16,7 +16,7 @@ namespace genfile {
 	struct SNPInSetTest: public SNPIdentifyingDataTest
 	{
 	public:
-		SNPInSetTest( std::set< SNPIdentifyingData > const& ) ;
+		SNPInSetTest( std::set< SNPIdentifyingData > const&, SNPIdentifyingData::CompareFields const& comparer ) ;
 
 		bool operator()( SNPIdentifyingData const& data ) const ;
 
@@ -31,7 +31,7 @@ namespace genfile {
 		std::string display() const ;
 
 	private:
-		std::set< SNPIdentifyingData > m_snps ;
+		std::set< SNPIdentifyingData, SNPIdentifyingData::CompareFields > const m_snps ;
 	} ;
 }
 

@@ -9,8 +9,8 @@
 
 #include <iostream>
 #include <string>
-#include "snp_data_utils.hpp"
-#include "SNPDataSink.hpp"
+#include "genfile/snp_data_utils.hpp"
+#include "genfile/SNPDataSink.hpp"
 
 namespace genfile {
 	// class SNPDataSinkChain represents a SNPDataSink
@@ -18,60 +18,22 @@ namespace genfile {
 	class SNPDataSinkChain: public SNPDataSink
 	{
 	public:
-		SNPDataSinkChain(): m_current_sink(0) {}
+		SNPDataSinkChain() ;
 
-		~SNPDataSinkChain() {
-			for( std::size_t i = 0; i < m_sinks.size(); ++i ) {
-				delete m_sinks[i] ;
-			}
-		} ;
+		~SNPDataSinkChain() ;
 
-		void add_sink( SNPDataSink::UniquePtr sink ) {
-			if( m_sinks.empty() ) {
-				m_current_sink = 0 ;
-			}
-			m_sinks.push_back( sink.release() ) ;
-			
-		}
-
-		operator bool() const {
-			if( m_current_sink < m_sinks.size() ) {
-				bool result = static_cast< bool >( *m_sinks[ m_current_sink ] ) ;
-				return result ;
-			}
-			else {
-				return false ;
-			}
-		}
-
-		void move_to_next_sink() {
-			assert( m_current_sink < m_sinks.size() ) ;
-			++m_current_sink ;
-		}
-		
-		std::size_t number_of_sinks() const { return m_sinks.size() ; }
-
-		SNPDataSink const& sink( std::size_t i ) const { return *m_sinks[ i ] ; }
-		std::size_t index_of_current_sink() const { return m_current_sink ; }
-
-		std::string get_spec() const {
-			std::string result = "chain:" ;
-			for( std::size_t i = 0; i < m_sinks.size(); ++i ) {
-				if( i > 0 ) {
-					result += "," ;
-				}
-				result += m_sinks[i]->get_spec() ;
-			}
-			return result ;
-		}
+		void add_sink( SNPDataSink::UniquePtr sink ) ;
+		operator bool() const ;
+		void move_to_next_sink() ;
+		std::size_t number_of_sinks() const ;
+		SNPDataSink const& sink( std::size_t i ) const ;
+		std::size_t index_of_current_sink() const ;
+		std::string get_spec() const ;
+		SinkPos get_stream_pos() const ;
 
 	private:
-		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter name_getter ) {
-			for( std::size_t i = 0; i < m_sinks.size(); ++i ) {
-				m_sinks[i]->set_sample_names( number_of_samples, name_getter ) ;
-			}
-		}
-		
+		void set_metadata_impl( Metadata const& metadata ) ;
+		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter name_getter ) ;
 		void write_snp_impl(
 			uint32_t number_of_samples,
 			std::string SNPID,
@@ -84,22 +46,15 @@ namespace genfile {
 			GenotypeProbabilityGetter const& get_AB_probability,
 			GenotypeProbabilityGetter const& get_BB_probability,
 			Info const& info
-		) {
-			assert( m_current_sink < m_sinks.size() ) ;
-			m_sinks[m_current_sink]->write_snp(
-				number_of_samples,
-				SNPID,
-				RSID,
-				chromosome,
-				SNP_position,
-				first_allele,
-				second_allele,
-				get_AA_probability,
-				get_AB_probability,
-				get_BB_probability,
-				info
-			) ;
-		}
+		) ;
+
+		void write_variant_data_impl(
+			SNPIdentifyingData const& id_data,
+			VariantDataReader& data_reader,
+			Info const& info
+		) ;
+
+		void finalise_impl() ;
 
 	private:
 

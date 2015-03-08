@@ -37,6 +37,7 @@ namespace genfile {
 		std::size_t get_number_of_individuals() const ;
 		ColumnSpec get_column_spec() const ;
 		Entry get_entry( std::size_t sample_i, std::string const& column_name ) const ;
+		Entry get_entry( std::size_t sample_i, std::size_t const& column_index ) const ;
 
 		bool check_for_column( std::string const& column_name ) const ;
 

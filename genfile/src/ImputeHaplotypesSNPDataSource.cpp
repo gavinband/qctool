@@ -6,6 +6,11 @@
 
 #include <iostream>
 #include <string>
+#include "../config.hpp"
+#if HAVE_BOOST_FILESYSTEM
+	#include <boost/filesystem.hpp>
+	namespace BFS = boost::filesystem ;
+#endif
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/gen.hpp"
 #include "genfile/SNPDataSource.hpp"
@@ -16,7 +21,7 @@
 
 namespace genfile {
 	ImputeHaplotypesSNPDataSource::ImputeHaplotypesSNPDataSource( std::string const& filename, Chromosome chromosome )
-		: m_legend_filename( replace_or_add_extension( filename, ".legend" ) ),
+		: m_legend_filename( find_legend_file( filename ) ),
 		  m_haplotypes_filename( filename ),
 		  m_compression_type( get_compression_type_indicated_by_filename( m_haplotypes_filename ) ),
 		  m_number_of_samples( 0 ),
@@ -27,7 +32,7 @@ namespace genfile {
 	}
 
 	ImputeHaplotypesSNPDataSource::ImputeHaplotypesSNPDataSource( std::string const& filename, Chromosome chromosome, CompressionType compression_type )
-		: m_legend_filename( replace_or_add_extension( filename, ".legend" ) ),
+		: m_legend_filename( find_legend_file( filename ) ),
 		  m_haplotypes_filename( filename ),
 		  m_compression_type( compression_type ),
 		  m_number_of_samples( 0 ),
@@ -38,7 +43,17 @@ namespace genfile {
 	}
 
 	namespace impl {
-		std::vector< SNPIdentifyingData > read_legend( std::string const& filename, Chromosome const& chromosome, std::istream& stream ) {
+		// borrowed this code from http://stackoverflow.com/questions/874134/find-if-string-endswith-another-string-in-c.
+		bool has_ending( std::string const& a_string, std::string const& ending )
+		{
+			bool result = false ;
+		    if( a_string.length() >= ending.length() ) {
+		        result = ( 0 == a_string.compare( a_string.length() - ending.length(), ending.length(), ending ) ) ;
+		    } 
+			return result ;
+		}
+		
+		std::vector< SNPIdentifyingData2 > read_legend( std::string const& filename, Chromosome const& chromosome, std::istream& stream ) {
 			using string_utils::slice ;
 			std::string line ;
 			std::getline( stream, line ) ;
@@ -50,7 +65,7 @@ namespace genfile {
 				throw MalformedInputError( filename, 0 ) ;
 			}
 
-			std::vector< SNPIdentifyingData > result ;
+			std::vector< SNPIdentifyingData2 > result ;
 			while( std::getline( stream, line )) {
 				std::vector< slice > elts = slice( line ).split( " " ) ;
 				if( elts.size() != header_elts.size() ) {
@@ -60,8 +75,7 @@ namespace genfile {
 				std::string allele2 = elts[3] ;
 				
 				result.push_back(
-					SNPIdentifyingData(
-						"?",
+					SNPIdentifyingData2(
 						elts[0],
 						GenomePosition( chromosome, string_utils::to_repr< Position >( elts[1] ) ),
 						allele1,
@@ -72,6 +86,35 @@ namespace genfile {
 			return result ;
 		}
 	}
+
+	std::string ImputeHaplotypesSNPDataSource::find_legend_file( std::string const& haps_filename ) const {
+		std::string result ;
+#if HAVE_BOOST_FILESYSTEM
+		// look for a similar-named file 
+		if( impl::has_ending( haps_filename, ".haps" ) ) {
+			result = haps_filename.substr( 0, haps_filename.size() - 5 ) ;
+		} else if( impl::has_ending( haps_filename, ".haps.gz" ) ) {
+			result = haps_filename.substr( 0, haps_filename.size() - 8 ) ;
+		} else if( impl::has_ending( haps_filename, ".hap" ) ) {
+			result = haps_filename.substr( 0, haps_filename.size() - 4 ) ;
+		} else if( impl::has_ending( haps_filename, ".hap.gz" ) ) {
+			result = haps_filename.substr( 0, haps_filename.size() - 7 ) ;
+		}
+		
+		if( BFS::exists( result + ".legend" ) ) {
+			result += ".legend" ;
+		} else if( BFS::exists( result + ".legend.gz" )) {
+			result += ".legend.gz" ;
+		}
+		else {
+			throw genfile::InputError( result + ".legend[.gz]", "I could not find a legend file matching \"" + haps_filename + "\"." ) ;
+		}
+#else
+		result = replace_or_add_extension( filename, ".legend" ) ;
+#endif
+		return result ;
+	}
+
 
 	void ImputeHaplotypesSNPDataSource::setup( std::string const& filename, CompressionType compression_type ) {
 		std::auto_ptr< std::istream > legend_file = open_text_file_for_input( m_legend_filename ) ;
@@ -88,12 +131,10 @@ namespace genfile {
 	}
 
 	void ImputeHaplotypesSNPDataSource::read_header_data() {
-		std::size_t total_number_of_snps = 0 ;
 		std::string line ;
 		std::getline( *m_stream_ptr, line ) ;
 		if( *m_stream_ptr ) {
-			++total_number_of_snps ;
-			// deal with trailing space.
+			// deal with trailing space which is sometimes found in IMPUTE haplotype files
 			if( line.size() > 0 && line[ line.size() - 1 ] == ' ' ) {
 				line.resize( line.size() - 1 ) ;
 			}
@@ -104,13 +145,9 @@ namespace genfile {
 			}
 		
 			m_number_of_samples = elts.size() / 2 ;
-			total_number_of_snps += count_lines_left_in_stream( *m_stream_ptr ) + 1 ;
 		}
 		else {
 			m_number_of_samples = 0 ;
-		}
-		if( !total_number_of_snps == m_snps.size() ) {
-			throw MalformedInputError( m_haplotypes_filename, m_snps.size() ) ;
 		}
 	}
 
@@ -127,6 +164,17 @@ namespace genfile {
 		m_good = true ;
 	}
 	
+	SNPDataSource::Metadata ImputeHaplotypesSNPDataSource::get_metadata() const {
+		std::map< std::string, std::string > format ;
+		format[ "ID" ] = "GT" ;
+		format[ "Type" ] = "String" ;
+		format[ "Number" ] = "A" ;
+		format[ "Description" ] = "Phased haplotype calls" ;
+		SNPDataSource::Metadata result ;
+		result.insert( std::make_pair( "FORMAT", format )) ;
+		return result ;
+	}
+	
 	void ImputeHaplotypesSNPDataSource::get_snp_identifying_data_impl( 
 		IntegerSetter const& set_number_of_samples,
 		StringSetter const& set_SNPID,
@@ -137,9 +185,9 @@ namespace genfile {
 		AlleleSetter const& set_allele2
 	) {
 		if( number_of_snps_read() < m_snps.size() ) {
-			SNPIdentifyingData const& snp = m_snps[ number_of_snps_read() ] ;
+			SNPIdentifyingData2 const& snp = m_snps[ number_of_snps_read() ] ;
 			set_number_of_samples( m_number_of_samples ) ;
-			set_SNPID( snp.get_SNPID() ) ;
+			set_SNPID( snp.get_rsid() ) ;
 			set_RSID( snp.get_rsid() ) ;
 			set_chromosome( snp.get_position().chromosome() ) ;
 			set_SNP_position( snp.get_position().position() ) ;
@@ -174,7 +222,10 @@ namespace genfile {
 				}
 
 				setter.set_number_of_samples( m_source.number_of_samples() ) ;
-				setter.set_order_type( vcf::EntriesSetter::eOrderedList ) ;
+				setter.set_order_type(
+					vcf::EntriesSetter::ePerOrderedHaplotype,
+					vcf::EntriesSetter::eAlleleIndex
+				) ;
 
 				for( std::size_t i = 0; i < m_source.number_of_samples(); ++i ) {
 					if( m_elts[2*i].size() != 1 ) {
@@ -184,39 +235,18 @@ namespace genfile {
 						throw MalformedInputError( m_source.get_source_spec(), m_snp_index, 2*i ) ;
 					}
 					setter.set_sample( i ) ;
-					setter.set_number_of_entries( 3 ) ;
-					char allele1 = m_elts[2*i][0] ;
-					char allele2 = m_elts[(2*i)+1][0] ;
-					std::size_t A_allele_count = std::size_t( allele1 == '0' ) + std::size_t( allele2 == '0' ) ;
-					std::size_t B_allele_count = std::size_t( allele1 == '1' ) + std::size_t( allele2 == '1' ) ;
-					if( A_allele_count == 2 ) {
-						setter( 1.0 ) ;
-						setter( 0.0 ) ;
-						setter( 0.0 ) ;
-					}
-					else if( A_allele_count == 1 && B_allele_count == 1 ) {
-						setter( 0.0 ) ;
-						setter( 1.0 ) ;
-						setter( 0.0 ) ;
-					}
-					else if( B_allele_count == 2 ) {
-						setter( 0.0 ) ;
-						setter( 0.0 ) ;
-						setter( 1.0 ) ;
-					}
-					else {
-						// In any other case, did not recognise the allele, throw an error.
-						// Actually
-						if( m_elts[ 2*i ][0] != '0' && m_elts[ 2*i ][0] != '1' ) {
-							throw MalformedInputError( m_source.get_source_spec(), m_snp_index, (2*i) ) ;
+					setter.set_number_of_entries( 2 ) ;
+					for( std::size_t j = 0; j < 2; ++j ) {
+						try {
+							if( m_elts[2*i+j][0] == '.' || m_elts[2*i+j] == "NA" ) {
+								setter( MissingValue() ) ;
+							} else {
+								setter( string_utils::to_repr< Integer >( m_elts[ 2*i+j ] )) ;
+							}
 						}
-						else {
-							throw MalformedInputError( m_source.get_source_spec(), m_snp_index, (2*i)+1 ) ;
+						catch( string_utils::StringConversionError const& e ) {
+							throw MalformedInputError( m_source.get_source_spec(), m_snp_index, 2*i + j ) ;
 						}
-						// This is what we would do if we didn't throw, which we do, so we don't do this.
-						// setter( 0.0 ) ;
-						// setter( 0.0 ) ;
-						// setter( 0.0 ) ;
 					}
 				}
 				return *this ;
@@ -225,11 +255,12 @@ namespace genfile {
 			std::size_t get_number_of_samples() const { return m_source.number_of_samples() ; }
 
 			bool supports( std::string const& spec ) const {
-				return spec == "genotypes" ;
+				return spec == "GT" || spec == ":genotypes:" ;
 			}
 			
 			void get_supported_specs( SpecSetter setter ) const {
-				setter( "genotypes", "Float" ) ;
+				setter( "GT", "Float" ) ;
+				setter( ":genotypes:", "Float" ) ;
 			}
 			
 			private:

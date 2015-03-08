@@ -16,20 +16,34 @@
 namespace statfile {
 	DelimitedStatSource::DelimitedStatSource(
 		std::auto_ptr< std::istream > stream_ptr,
-		std::string delimiter
-	): 	m_filename( "(unnamed stream)" ),
+		std::string delimiter,
+		OptionalString const& ignore_until,
+		OptionalString const& ignore_from
+	): 	
+		m_filename( "(unnamed stream)" ),
 		m_comment_character( '#' ),
 		m_delimiter( delimiter ),
-		m_quotes( "\"\"" )
+		m_quotes( "\"\"" ),
+		m_number_of_ignored_lines( 0 ),
+		m_ignore_until( ignore_until ),
+		m_ignore_from( ignore_from )
 	{
 		setup( stream_ptr ) ;
 	}
 
-	DelimitedStatSource::DelimitedStatSource( std::string const& filename, std::string delimiter )
-	: 	m_filename( filename ),
+	DelimitedStatSource::DelimitedStatSource(
+		std::string const& filename,
+		std::string delimiter,
+		OptionalString const& ignore_until,
+		OptionalString const& ignore_from
+	): 	
+		m_filename( filename ),
 		m_comment_character( '#' ),
 		m_delimiter( delimiter ),
-		m_quotes( "\"\"" )
+		m_quotes( "\"\"" ),
+		m_number_of_ignored_lines( 0 ),
+		m_ignore_until( ignore_until ),
+		m_ignore_from( ignore_from )
 	{
 		setup( filename ) ;
 	}
@@ -48,10 +62,10 @@ namespace statfile {
 		reset_stream_to_start() ;
 		// Skip comment and column header lines.
 		std::string line ;
-		for( std::size_t i = 0; i < m_number_of_comment_lines + 1; ++i ) {
+		for( std::size_t i = 0; i < m_number_of_comment_lines + m_number_of_ignored_lines + 1; ++i ) {
 			std::getline( stream(), line ) ;
 		}
-		base_t::reset_to_start() ;
+		Base::reset_to_start() ;
 	}
 
 	void DelimitedStatSource::read_value( int32_t& field ) {
@@ -121,7 +135,12 @@ namespace statfile {
 		if( in_quote ) {
 			throw genfile::MalformedInputError( get_source_spec(), number_of_rows_read() ) ;
 		}
-		result.push_back( get_unquoted_substring( line, last_i, line.size() - last_i, quotes )) ;
+		// handle trailing newline.
+		if( line.size() > 0 && line[ line.size() - 1 ] == '\r' ) {
+			result.push_back( get_unquoted_substring( line, last_i, line.size() - last_i - 1, quotes )) ;
+		} else {
+			result.push_back( get_unquoted_substring( line, last_i, line.size() - last_i, quotes )) ;
+		}
 		
 		return result ;
 	}
@@ -151,6 +170,29 @@ namespace statfile {
 		// First count the lines in the file.
 		set_stream( stream_ptr ) ;
 		read_descriptive_comments() ;
+		m_number_of_ignored_lines = 0 ;
+		if( m_ignore_until ) {
+			std::string line ;
+			bool ignoreUntilStringFound = false ;
+			while( std::getline( stream(), line ) ) {
+				++m_number_of_ignored_lines ;
+				std::size_t end = line.size() ;
+				if( line.size() > 0 && line[ line.size() -1 ] == '\r' ) {
+					--end ;
+				}
+				if( line.compare( 0, end, m_ignore_until.get() ) == 0 ) {
+					ignoreUntilStringFound = true ;
+					break ;
+				}
+			}
+			if( !ignoreUntilStringFound ) {
+				throw genfile::MalformedInputError( 
+					"DelimitedStatSource::setup()",
+					"Expected line \"" + m_ignore_until.get() + "\" was not found",
+					m_number_of_ignored_lines + m_number_of_comment_lines
+				) ;
+			}
+		}
 		turn_off_ios_exceptions() ;
 		m_number_of_rows = count_remaining_lines() - 1 ;
 		// Go back to the start and get the column names, prepare for reading.
@@ -158,6 +200,12 @@ namespace statfile {
 		assert( stream() ) ;
 		turn_on_ios_exceptions() ;
 		m_descriptive_text = read_descriptive_comments() ;
+		{
+			std::string line ;
+			for( std::size_t i = 0; i < m_number_of_ignored_lines; ++i ) {
+				std::getline( stream(), line ) ;
+			}
+		}
 		read_column_names() ;
 	}
 
@@ -175,6 +223,9 @@ namespace statfile {
 			}
 			if( line.size() > 0 && line[0] == ' ' ) {
 				line = line.substr( 1, line.size() ) ; // skip space.
+			}
+			if( line.size() > 0 && line[ line.size() - 1 ] == '\r' ) {
+				line = line.substr( 0, line.size() - 1 ) ; // remove trailing CR
 			}
 			if( result.size() > 0 ) {
 				result += '\n' ;
@@ -197,10 +248,26 @@ namespace statfile {
 	std::size_t DelimitedStatSource::count_remaining_lines() {
 		std::string line ;
 		std::size_t count = 0 ;
+		bool foundIgnoreFromString = false ;
+		
 		while( std::getline( stream(), line )) {
-			if( line.size() == 0 || line[0] != m_comment_character ) {
+			std::size_t end = line.size() ;
+			if( line.size() > 0 && line[ end - 1 ] == '\r' ) {
+				--end ;
+			}
+			if( m_ignore_from && line.compare( 0, end, m_ignore_from.get() ) == 0 ) {
+				foundIgnoreFromString = true ;
+				break ;
+			} else if( line.size() == 0 || line[0] != m_comment_character ) {
 				++count ;
 			}
+		}
+		if( m_ignore_from && !foundIgnoreFromString ) {
+			throw genfile::MalformedInputError( 
+				"DelimitedStatSource::setup()",
+				"Expected line \"" + m_ignore_from.get() + "\" was not found",
+				m_number_of_ignored_lines + m_number_of_comment_lines + count
+			) ;
 		}
 		return count ;
 	}

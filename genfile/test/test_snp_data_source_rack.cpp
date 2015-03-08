@@ -10,10 +10,9 @@
 #include <cassert>
 #include <algorithm>
 #include <fstream>
+#include "test_case.hpp"
 #include <boost/optional.hpp>
 #include <boost/optional/optional_io.hpp>
-#include "test_case.hpp"
-
 #if HAVE_BOOST_FILESYSTEM
 	#include <boost/filesystem/operations.hpp>
 #endif
@@ -27,7 +26,6 @@
 namespace data {
 	// this data has 1504 samples per row.
 	unsigned int const number_of_samples = 1504 ;
-	unsigned int const number_of_snps = 16 ;
 }
 
 // The following section defines the needed objects for use with the bgen.hpp implementation.

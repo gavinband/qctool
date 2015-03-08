@@ -9,12 +9,16 @@
 
 #include <iostream>
 #include <string>
+#include <map>
 #include <stdint.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
+#include <Eigen/Core>
+
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/Error.hpp"
 
 namespace genfile {
@@ -29,16 +33,27 @@ namespace genfile {
 	public:
 		typedef std::auto_ptr< SNPDataSink > UniquePtr ;
 		typedef boost::shared_ptr< SNPDataSink > SharedPtr ;
+		typedef std::multimap< std::string, std::map< std::string, std::string > > Metadata ;
+		typedef std::map< std::string, std::vector< VariantEntry > > Info ;
+		static std::vector< std::string> get_file_types() ;
+		
 	public:
 		SNPDataSink() ;
 		virtual ~SNPDataSink() ;
 
 		// Factory functions
-		typedef std::multimap< std::string, std::map< std::string, std::string > > Metadata ;
-		typedef std::map< std::string, std::vector< VariantEntry > > Info ;
-		static UniquePtr create( std::string const& filename, Metadata const& metadata = Metadata() ) ;
+		static UniquePtr create(
+			std::string const& filename,
+			Metadata const& metadata = Metadata(),
+			std::string const& filetype_hint = "guess"
+		) ;
 	private:
-		static UniquePtr create_impl( std::string const& filename, CompressionType compression_type, Metadata const& metadata = Metadata() ) ;
+		static UniquePtr create_impl(
+			std::string const& filename,
+			CompressionType compression_type,
+			Metadata const& metadata = Metadata(),
+			std::string const& filetype_hint = "guess"
+		) ;
 
 	public:		
 
@@ -46,6 +61,7 @@ namespace genfile {
 
 		typedef boost::function< VariantEntry ( std::size_t ) > SampleNameGetter ;
 		SNPDataSink& set_sample_names( std::size_t number_of_samples, SampleNameGetter ) ;
+		SNPDataSink& set_metadata( Metadata const& ) ;
 
 		SNPDataSink& write_snp(
 			uint32_t number_of_samples,
@@ -75,6 +91,9 @@ namespace genfile {
 			VariantDataReader& data_reader,
 			Info const& info = Info()
 		) ;
+		
+		SNPDataSink& finalise() ;
+		
 
 	public:
 		// return the number of samples represented in SNPs in the file.
@@ -83,7 +102,8 @@ namespace genfile {
 		// return the number of SNPs that have been written to the file so far.
 		std::size_t number_of_snps_written() const { return m_number_of_snps_written ; }
 
-		virtual std::ostream::streampos get_stream_pos() const {
+		typedef std::pair< SNPDataSink const*, std::ostream::streampos > SinkPos ;
+		virtual SinkPos get_stream_pos() const {
 			throw OperationUnsupportedError(
 				"genfile::SNPDataSink::get_stream_pos()",
 				"Get write position",
@@ -99,6 +119,7 @@ namespace genfile {
 
 	protected:
 		virtual void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) {} ;
+		virtual void set_metadata_impl( Metadata const& ) {} ;
 		
 		// This function implements the SNP writing, and must be implemented by derived classes.
 		virtual void write_snp_impl(
@@ -113,7 +134,7 @@ namespace genfile {
 			GenotypeProbabilityGetter const& get_AB_probability,
 			GenotypeProbabilityGetter const& get_BB_probability,
 			Info const& info
-		) = 0 ;
+		) ;
 
 		virtual void write_variant_data_impl(
 			SNPIdentifyingData const& id_data,
@@ -121,11 +142,15 @@ namespace genfile {
 			Info const& info
 		) ;
 
+		virtual void finalise_impl() {}
+		
 	private:
 
 		uint32_t m_number_of_samples ;
 		bool m_samples_have_been_set ;
 		std::size_t m_number_of_snps_written ;
+		
+		Eigen::MatrixXd m_genotypes ;
 
 		SNPDataSink( SNPDataSink const& other ) ;
 		SNPDataSink& operator=( SNPDataSink const& other ) ;

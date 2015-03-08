@@ -28,11 +28,15 @@ namespace genfile {
 		// Create a SNPIdentifyingDataFilteringSNPDataSource from the given source and the given test.
 		// The test should return true for tests that are in and false for those excluded.
 		static UniquePtr create( SNPDataSource::UniquePtr source, SNPIdentifyingDataTest::UniquePtr test ) ;
+		static UniquePtr create( SNPDataSource::UniquePtr source, SNPIdentifyingDataTest const& test ) ;
 		
 	public:
+		~SNPIdentifyingDataFilteringSNPDataSource() ;
 		SNPIdentifyingDataFilteringSNPDataSource( SNPDataSource::UniquePtr source, SNPIdentifyingDataTest::UniquePtr test ) ;
+		SNPIdentifyingDataFilteringSNPDataSource( SNPDataSource::UniquePtr source, SNPIdentifyingDataTest const& test ) ;
 
 		operator bool() const ;
+		Metadata get_metadata() const ;
 		unsigned int number_of_samples() const ;
 		OptionalSnpCount total_number_of_snps() const ;
 		std::string get_source_spec() const ;
@@ -66,7 +70,8 @@ namespace genfile {
 	private:
 		
 		SNPDataSource::UniquePtr m_source ;
-		SNPIdentifyingDataTest::UniquePtr m_test ;
+		bool const m_manage_test ;
+		SNPIdentifyingDataTest const* m_test ;
 		SNPSignal m_filtered_out_snp_signal ;
 	} ;
 }

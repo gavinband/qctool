@@ -106,18 +106,6 @@ namespace genfile {
 			return !( *this == other ) ;
 		}
 
-		bool slice::operator==( slice const& other ) const {
-			if( size() != other.size() ) {
-				return false ;
-			}
-			for( std::size_t i = m_start; i < m_end; ++i ) {
-				if( (*m_string)[i] != other[ i - m_start ] ) {
-					return false ;
-				}
-			}
-			return true ;
-		}
-
 		std::vector< slice > slice::split( std::string const& split_chars ) const {
 			std::vector< slice > result ;
 			result.reserve( 1000 ) ;
@@ -156,9 +144,76 @@ namespace genfile {
 			}
 			while( pos != size() ) ;
 		}
+		
+		void slice::split( std::string const& split_chars, boost::function< void( slice ) > callback ) const {
+			assert( std::numeric_limits< unsigned char >::max() + 1 == 256 ) ;
+			char array[ 256 ] ;
+			impl::make_membership_array( split_chars, array, 256 ) ;
+			std::size_t last_pos = 0, pos = 0 ;
+			do {
+				pos = find_first_of( array, last_pos ) ;
+				if( pos == std::string::npos ) {
+					pos = size() ;
+				}
+				callback( slice( *this, last_pos, pos ) ) ;
+				last_pos = pos + 1 ;
+			}
+			while( pos != size() ) ;
+		}
 
+		std::string::const_iterator slice::begin() const {
+			return m_string->begin() + m_start ;
+		}
+
+		std::string::const_iterator slice::end() const {
+			return m_string->begin() + m_end ;
+		}
 		
+		bool operator==( slice const& left, slice const& right ) {
+			return left.m_string->compare( left.m_start, left.m_end - left.m_start, (*right.m_string), right.m_start, right.m_end - right.m_start ) == 0 ;
+		}
+
+		bool operator!=( slice const& left, slice const& right ) {
+			return left.m_string->compare( left.m_start, left.m_end - left.m_start, (*right.m_string), right.m_start, right.m_end - right.m_start ) != 0 ;
+		}
+
+		bool operator<( slice const& left, slice const& right ) {
+			return left.m_string->compare( left.m_start, left.m_end - left.m_start, (*right.m_string), right.m_start, right.m_end - right.m_start ) < 0 ;
+		}
+
+		bool operator>( slice const& left, slice const& right ) {
+			return left.m_string->compare( left.m_start, left.m_end - left.m_start, (*right.m_string), right.m_start, right.m_end - right.m_start ) > 0 ;
+		}
+
+		bool operator<=( slice const& left, slice const& right ) {
+			return left.m_string->compare( left.m_start, left.m_end - left.m_start, (*right.m_string), right.m_start, right.m_end - right.m_start ) <= 0 ;
+		}
+
+		bool operator>=( slice const& left, slice const& right ) {
+			return left.m_string->compare( left.m_start, left.m_end - left.m_start, (*right.m_string), right.m_start, right.m_end - right.m_start ) >= 0 ;
+		}
 		
+		std::ostream& operator<<( std::ostream& o, slice const& s ) {
+			for( std::size_t i = s.m_start; i < s.m_end; ++i ) {
+				o << (*s.m_string)[i] ;
+			}
+			return o ;
+		}
 		
+		std::string join( std::vector< slice > const& slices, std::string const& joiner ) {
+			std::size_t size = 0 ;
+			for( std::size_t i = 0; i < slices.size(); ++i ) {
+				size += (( i > 0 ) ? joiner.size() : 0 ) + slices[i].size() ;
+			}
+			std::string result( size, 0 ) ;
+			size = 0 ;
+			for( std::size_t i = 0; i < slices.size(); ++i ) {
+				std::copy( slices[i].begin(), slices[i].end(), result.begin() + size ) ;
+				size += slices[i].size() ;
+				std::copy( joiner.begin(), joiner.end(), result.begin() + size ) ;
+				size += joiner.size() ;
+			}
+			return result ;
+		}
 	}
 }

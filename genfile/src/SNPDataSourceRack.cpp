@@ -14,11 +14,18 @@
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceRack.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/OffsetFlippedAlleleSetter.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/get_list_of_snps_in_source.hpp"
+#include "genfile/string_utils/slice.hpp"
 
 namespace genfile {
-	
+	namespace {
+		static char const eUnknownFlip = OffsetFlippedAlleleSetter::eUnknownFlip ;
+		static char const eNoFlip = OffsetFlippedAlleleSetter::eNoFlip ;
+		static char const eFlip  = OffsetFlippedAlleleSetter::eFlip ;
+	}
+
 	std::auto_ptr< SNPDataSourceRack > SNPDataSourceRack::create( std::vector< wildcard::FilenameMatch > const& filenames ) {
 		std::auto_ptr< SNPDataSourceRack > rack( new SNPDataSourceRack() ) ;
 		for( std::size_t i = 0; i < filenames.size(); ++i ) {
@@ -54,6 +61,14 @@ namespace genfile {
 		assert( snp_match_fields.find( "position" ) == 0 ) ;
 	}
 
+	SNPDataSourceRack::SNPDataSourceRack( genfile::SNPIdentifyingData::CompareFields const& comparator )
+		: m_number_of_samples(0),
+		  m_read_past_end( false ),
+		  m_comparator( comparator )
+	{
+		assert( m_comparator.get_compared_fields().size() > 0 && m_comparator.get_compared_fields()[0] == SNPIdentifyingData::CompareFields::ePosition ) ;
+	}
+
 	SNPDataSourceRack::~SNPDataSourceRack() {
 		for( std::size_t i = 0; i < m_sources.size(); ++i ) {
 			delete m_sources[i] ;
@@ -64,10 +79,17 @@ namespace genfile {
 		std::auto_ptr< SNPDataSource > source
 	) {
 		m_sources.push_back( source.release() ) ;
+		m_flips.push_back( eNoFlip ) ;
 		m_number_of_samples += m_sources.back()->number_of_samples() ;
 		m_sources.back()->reset_to_start() ;
+		// update metadata
+		if( m_sources.size() == 1 ) {
+			m_metadata = m_sources.back()->get_metadata() ;
+		} else {
+			// We just take the first source's metadata, and assume the user knows what they're doing.
+		}
 	}
-
+	
 	void SNPDataSourceRack::check_snps_are_sorted_by_position(
 		std::vector< SNPIdentifyingData > const& snps,
 		std::size_t cohort_index
@@ -87,44 +109,6 @@ namespace genfile {
 		}
 	}
 
-	std::vector< SNPIdentifyingData > SNPDataSourceRack::get_intersected_snps(
-		std::vector< SNPIdentifyingData > const& snps1,
-		std::vector< SNPIdentifyingData > const& snps2
-	) const {
-		//
-		// The algorithm here must match that for get_snp_identifying_data_impl.
-		// This has the following feature: each list can only be traversed once,
-		// forwards.
-		// For each snp in the first list we find the first SNP not already considered in
-		// the second list which (has the same position and) matches according to our comparator.
-		// 
-		std::vector< SNPIdentifyingData >::const_iterator
-			i1 = snps1.begin(),
-			i1_end = snps1.end(),
-			i2 = snps2.begin(),
-			i2_end = snps2.end() ;
-
-		SNPIdentifyingData::CompareFields position_comparator( "position" ) ;
-
-		std::vector< SNPIdentifyingData > intersected_snps ;
-
-		for( ; i1 != i1_end && i2 != i2_end ; ++i1 ) {
-			// Find next SNP with matching position.
-			std::vector< SNPIdentifyingData >::const_iterator
-				i2_pos = std::lower_bound( i2, i2_end, *i1, position_comparator ) ;
-			// Find next SNP with all fields matching, including position.
-			for( ; i2_pos != i2_end && !m_comparator.are_equal( *i2_pos, *i1 ) && i2_pos->get_position() == i1->get_position(); ++i2_pos ) ;
-
-			if( i2_pos != i2_end && i2_pos->get_position() == i1->get_position() ) {
-				intersected_snps.push_back( *i1 ) ;
-				++i2_pos ;
-			}
-			i2 = i2_pos ;
-		}
-
-		return intersected_snps ;
-	}
-
 	// Implicit conversion to bool.  Return true if there have been no errors so far.
 	SNPDataSourceRack::operator bool() const {
 		if( m_sources.empty() ) {
@@ -136,6 +120,10 @@ namespace genfile {
 			}
 		}
 		return true ;
+	}
+
+	SNPDataSource::Metadata SNPDataSourceRack::get_metadata() const {
+		return m_metadata ;
 	}
 	
 	std::string SNPDataSourceRack::get_source_spec() const {
@@ -201,30 +189,46 @@ namespace genfile {
 		}
 		
 		SNPIdentifyingData this_snp ;
-		std::size_t last_matching_source = 0 ;
-		while( (*this) && m_sources[0]->get_snp_identifying_data( this_snp ) && last_matching_source < m_sources.size() ) {
-			// We will report ?'s in any field that differs between cohorts.
-			SNPIdentifyingData this_source_snp ;
-			last_matching_source = 1 ;
-			for( ;
-				last_matching_source < m_sources.size() && move_source_to_snp_matching( last_matching_source, this_snp, &this_source_snp );
-				++last_matching_source
-			) {
-				if( this_source_snp.get_SNPID() != this_snp.get_SNPID() ) {
-					this_snp.SNPID() += "/" + this_source_snp.get_SNPID() ;
+		std::vector< char > flips( m_sources.size(), eNoFlip ) ;
+		std::size_t source_i = 0 ;
+		if( m_sources[0]->get_snp_identifying_data( this_snp ) ) {
+			while( (*this) && source_i < m_sources.size() ) {
+				SNPIdentifyingData this_source_snp ;
+				source_i = 1 ;
+				for( ;
+					source_i < m_sources.size() && move_source_to_snp_matching( source_i, this_snp, &this_source_snp );
+					++source_i
+				) {
+					if( this_source_snp.get_SNPID() != this_snp.get_SNPID() ) {
+						this_snp.SNPID() += "/" + this_source_snp.get_SNPID() ;
+					}
+					if( this_source_snp.get_rsid() != this_snp.get_rsid() ) {
+						this_snp.rsid() += "/" + this_source_snp.get_SNPID() ;
+					}
+					if( m_comparator.get_flip_alleles_if_necessary() ) {
+                        if( this_source_snp.get_first_allele() == this_snp.get_second_allele() && this_source_snp.get_second_allele() == this_snp.get_first_allele() ) {
+							flips[ source_i ] = eFlip ;
+						} else if( this_source_snp.get_first_allele() == this_snp.get_first_allele() && this_source_snp.get_second_allele() == this_snp.get_second_allele() ) {
+							// do nothing
+						} else {
+							this_snp.first_allele() = this_snp.get_first_allele() + "/" + this_source_snp.get_first_allele() ;
+							this_snp.second_allele() = this_snp.get_second_allele() + "/" + this_source_snp.get_second_allele() ;
+							// Don't know how to flip.
+							flips[ source_i ] = eUnknownFlip ;
+						}
+					} else {
+						if( this_source_snp.get_first_allele() != this_snp.get_first_allele() || this_source_snp.get_second_allele() != this_snp.get_second_allele() ) {
+							this_snp.first_allele() = this_snp.get_first_allele() + "/" + this_source_snp.get_first_allele() ;
+							this_snp.second_allele() = this_snp.get_second_allele() + "/" + this_source_snp.get_second_allele() ;
+							// Set genotypes to missing for this cohort.
+							flips[ source_i ] = eUnknownFlip ;
+						}
+					}
 				}
-				if( this_source_snp.get_rsid() != this_snp.get_rsid() ) {
-					this_snp.rsid() += "/" + this_source_snp.get_SNPID() ;
+				if( (*this) && source_i < m_sources.size() ) {
+					m_sources[0]->ignore_snp_probability_data() ;
+					m_sources[0]->get_snp_identifying_data( this_snp ) ;
 				}
-				if( this_source_snp.get_first_allele() != this_snp.get_first_allele() ) {
-					this_snp.first_allele() = '?' ;
-				}
-				if( this_source_snp.get_second_allele() != this_snp.get_second_allele() ) {
-					this_snp.second_allele() = '?' ;
-				}
-			}
-			if( (*this) && last_matching_source < m_sources.size() ) {
-				m_sources[0]->ignore_snp_probability_data() ;
 			}
 		}
 		if( *this ) {
@@ -235,6 +239,8 @@ namespace genfile {
 			set_SNP_position( this_snp.get_position().position() ) ;
 			set_allele1( this_snp.get_first_allele() ) ;
 			set_allele2( this_snp.get_second_allele() ) ;
+			// Remember the flips.
+			m_flips = flips ;
 		}
 	}
 
@@ -270,53 +276,15 @@ namespace genfile {
 		return false ;
 	}
 		
-
 	namespace impl {
-		struct OffsetSampleSetter: public VariantDataReader::PerSampleSetter {
-			OffsetSampleSetter(
-				VariantDataReader::PerSampleSetter& setter,
-				std::size_t offset,
-				std::size_t number_of_samples
-			):
-				m_setter( setter ),
-				m_offset( offset ),
-				m_number_of_samples( number_of_samples )
-			{
-				m_setter.set_number_of_samples( m_number_of_samples ) ;
-			}
-
-			void set_number_of_samples( std::size_t n ) { /* do nothing. */ }
-			void set_sample( std::size_t n ) {
-				assert( ( n + m_offset ) < m_number_of_samples ) ;
-				m_setter.set_sample( n + m_offset ) ;
-			}
-
-			void set_number_of_entries( std::size_t n ) {
-				m_setter.set_number_of_entries( n ) ;
-			}
-
-			void operator()( MissingValue const value ) { m_setter( value ) ; }
-			void operator()( std::string& value ) { m_setter( value ) ; }
-			void operator()( Integer const value ) { m_setter( value ) ; }
-			void operator()( double const value ) { m_setter( value ) ; }
-
-			void set_offset( std::size_t offset ) { m_offset = offset ; }
-			std::size_t get_offset() const { return m_offset ; }
-
-		private:
-			VariantDataReader::PerSampleSetter& m_setter ;
-			std::size_t m_offset ;
-			std::size_t m_number_of_samples ;
-		} ;
-		
 		void add_spec_to_map( std::map< std::string, std::string >* map, std::string const& name, std::string const& type ) {
 			(*map)[ name ] = type ;
 		}
 
 		struct RackVariantDataReader: public VariantDataReader
 		{
-			RackVariantDataReader( SNPDataSourceRack& rack )
-				: m_rack( rack )
+			RackVariantDataReader( SNPDataSourceRack& rack ):
+				m_rack( rack )
 			{
 				for( std::size_t i = 0; i < m_rack.m_sources.size(); ++i ) {
 					m_data_readers.push_back( m_rack.m_sources[i]->read_variant_data().release() ) ;
@@ -330,10 +298,13 @@ namespace genfile {
 			}
 
 			RackVariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
-				OffsetSampleSetter offset_sample_setter( setter, 0 , m_rack.number_of_samples() ) ;
+				OffsetFlippedAlleleSetter offset_flip_sample_setter( setter, m_rack.number_of_samples(), eNoFlip, 0 ) ;
+				std::size_t sample_offset = 0 ;
 				for( std::size_t i = 0; i < m_rack.m_sources.size(); ++i ) {
-					m_data_readers[i]->get( spec, offset_sample_setter ) ;
-					offset_sample_setter.set_offset( offset_sample_setter.get_offset() + m_rack.m_sources[i]->number_of_samples() ) ;
+					offset_flip_sample_setter.set_offset( sample_offset ) ;
+					offset_flip_sample_setter.set_flip( m_rack.get_flip( i ) ) ;
+					m_data_readers[i]->get( spec, offset_flip_sample_setter ) ;
+					sample_offset += m_rack.m_sources[i]->number_of_samples() ;
 				}
 				return *this ;
 			}

@@ -18,6 +18,7 @@ namespace statfile {
 		SNPDataSourceAdapter( BuiltInTypeStatSource::UniquePtr source ) ;
 
 		operator bool() const { return *m_source ; }
+		Metadata get_metadata() const { return Metadata() ; }
 		unsigned int number_of_samples() const { return 0 ; }
 		OptionalSnpCount total_number_of_snps() const { return m_source->number_of_rows() ; }
 

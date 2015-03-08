@@ -13,6 +13,7 @@ namespace genfile {
 	struct MissingValue
 	{
 		bool operator<( MissingValue const& other ) const ;
+		bool operator<=( MissingValue const& other ) const ;
 		bool operator==( MissingValue const& other ) const ;
 	} ;
 

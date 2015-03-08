@@ -16,7 +16,7 @@
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/GenFileSNPDataSink.hpp"
 #include "genfile/BGenFileSNPDataSink.hpp"
-#include "genfile/bgen.hpp"
+#include "genfile/bgen/bgen.hpp"
 #include "stdint.h"
 
 
@@ -233,7 +233,7 @@ std::vector< SnpData > read_gen_file( genfile::SNPDataSource& snp_data_source ) 
 }
 
 std::vector< SnpData > read_gen_file( std::string filename ) {
-	std::auto_ptr< genfile::SNPDataSource > snp_data_source_ptr( genfile::SNPDataSource::create( filename )) ;
+	std::auto_ptr< genfile::SNPDataSource > snp_data_source_ptr( genfile::SNPDataSource::create( filename, genfile::Chromosome( "NA" ) )) ;
 	return read_gen_file( *snp_data_source_ptr ) ;
 }
 
@@ -253,15 +253,15 @@ AUTO_TEST_CASE( test_formats ) {
 	create_files( original, gen, bgen, bzgen, zgen ) ;
 	create_files2( original, gen2, bgen2, bzgen2, zgen2 ) ;
 	
-	genfile::GenFileSNPDataSource original_file_snp_data_source( original, genfile::UnidentifiedChromosome,"no_compression" ) ;
-	genfile::GenFileSNPDataSource gen_file_snp_data_source( gen, genfile::UnidentifiedChromosome,"no_compression" ) ;
+	genfile::GenFileSNPDataSource original_file_snp_data_source( original, genfile::UnidentifiedChromosome ) ;
+	genfile::GenFileSNPDataSource gen_file_snp_data_source( gen, genfile::UnidentifiedChromosome ) ;
 	genfile::BGenFileSNPDataSource bgen_file_snp_data_source( bgen ) ;
 	genfile::BGenFileSNPDataSource bzgen_file_snp_data_source( bzgen ) ;
-	genfile::GenFileSNPDataSource zgen_file_snp_data_source( zgen, genfile::UnidentifiedChromosome,"gzip_compression" ) ;
+	genfile::GenFileSNPDataSource zgen_file_snp_data_source( zgen, genfile::UnidentifiedChromosome ) ;
 	genfile::GenFileSNPDataSource gen_file_snp_data_source2( gen2, genfile::UnidentifiedChromosome ) ;
 	genfile::BGenFileSNPDataSource bgen_file_snp_data_source2( bgen2 ) ;
 	genfile::BGenFileSNPDataSource bzgen_file_snp_data_source2( bzgen2 ) ;
-	genfile::GenFileSNPDataSource zgen_file_snp_data_source2( zgen, genfile::UnidentifiedChromosome,"gzip_compression" ) ;
+	genfile::GenFileSNPDataSource zgen_file_snp_data_source2( zgen, genfile::UnidentifiedChromosome ) ;
 
 	std::vector< std::vector< SnpData > > results ;
 

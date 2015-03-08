@@ -11,10 +11,14 @@
 #include <vector>
 #include <string>
 #include <boost/tuple/tuple.hpp>
+#include "genfile/Error.hpp"
 #include "statfile/StatSource.hpp"
 
 namespace statfile {
 	namespace impl {
+		// Given a string of the form column1|column2|...
+		// We return a map of column indices in the first argument
+		// to locations in the second argument.
 		std::map< std::size_t, std::size_t > get_indices_of_columns(
  			std::vector< std::string > const& source_column_names,
 			std::string const& column_names
@@ -36,22 +40,15 @@ namespace statfile {
 		}
 	}
 	
-	template< typename StatSource, typename ValueTuple >
-	bool read_values( StatSource& source, std::string const& column_names, ValueTuple const& values )
 	// read_values is a convenience function which allows you to get data out of some columns
 	// of a stat source using only the column names.  Column order issues are automatically
 	// dealt with.
+	template< typename StatSource, typename ValueTuple >
+	bool read_values( StatSource& source, std::map< std::size_t, std::size_t > const& column_indices, ValueTuple const& values )
 	{
 		std::size_t const N = boost::tuples::length< ValueTuple >::value ;
 
 		typedef std::map< std::size_t, std::size_t > IndexMap ;
-		IndexMap column_indices ;
-		try {
-			 column_indices = impl::get_indices_of_columns( source.column_names(), column_names ) ;
-		}
-		catch( genfile::KeyNotFoundError const& e ) {
-			throw genfile::KeyNotFoundError( "columns of " + source.get_source_spec(), e.key() ) ;
-		}
 		assert( column_indices.size() == N ) ;
 
 		for( IndexMap::const_iterator i = column_indices.begin(); i != column_indices.end(); ++i ) {
@@ -75,6 +72,23 @@ namespace statfile {
 			}
 		}
 		return source ;
+	}
+
+	// read_values is a convenience function which allows you to get data out of some columns
+	// of a stat source using only the column names.  Column order issues are automatically
+	// dealt with.
+	template< typename StatSource, typename ValueTuple >
+	bool read_values( StatSource& source, std::string const& column_names, ValueTuple const& values )
+	{
+		typedef std::map< std::size_t, std::size_t > IndexMap ;
+		IndexMap column_indices ;
+		try {
+			 column_indices = impl::get_indices_of_columns( source.column_names(), column_names ) ;
+		}
+		catch( genfile::KeyNotFoundError const& e ) {
+			throw genfile::KeyNotFoundError( "columns of " + source.get_source_spec(), e.key() ) ;
+		}
+		return read_values( source, column_indices, values ) ;
 	}
 }
 

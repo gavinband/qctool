@@ -15,6 +15,7 @@
 #include <iostream>
 #include <iomanip>
 #include "genfile/SNPDataSourceProcessor.hpp"
+#include "genfile/vcf/get_set.hpp"
 
 #include "appcontext/ProgramFlow.hpp"
 
@@ -49,7 +50,8 @@ namespace {
 }
 
 void QCTool::begin_processing_snps(
-	std::size_t number_of_samples
+	std::size_t number_of_samples,
+	genfile::SNPDataSource::Metadata const&
 ) {
 	m_number_of_samples = number_of_samples ;
 	m_per_column_amounts.resize( number_of_samples ) ;
@@ -106,7 +108,8 @@ void QCTool::unsafe_call_processed_snp(
 ) {
 	genfile::SingleSNPGenotypeProbabilities genotypes( m_number_of_samples ) ;
 	try {
-		data_reader.get( "genotypes", genotypes ) ;
+		genfile::vcf::GenotypeSetter< genfile::SingleSNPGenotypeProbabilities > setter( genotypes ) ;
+		data_reader.get( ":genotypes:", setter ) ;
 	}
 	catch( genfile::BadArgumentError const& e ) {
 		m_ui_context.logger() << "!! Error (" << e.what() << ") at " << id_data.get_rsid() << ": in " << e.function() << ": " << e.arguments() << ".\n" ;

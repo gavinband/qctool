@@ -27,8 +27,8 @@
 
 
 namespace genfile {
-	SNPIdentifyingDataTest::UniquePtr WithSNPDosagesCohortIndividualSource::create_snp_matcher( std::string test_spec ) {
-		std::vector< std::string >  bits = genfile::string_utils::split_and_strip( test_spec, "~", " " ) ;
+	SNPIdentifyingDataTest::UniquePtr WithSNPDosagesCohortIndividualSource::create_snp_matcher( std::string test_spec, std::string const& splitter ) {
+		std::vector< std::string >  bits = genfile::string_utils::split_and_strip( test_spec, splitter, " " ) ;
 		if( bits.size() == 0 || bits.size() > 2 ) {
 			throw genfile::BadArgumentError( "SNPMatcher::create()", "test_spec = \"" + test_spec + "\"" ) ;
 		}

@@ -19,4 +19,8 @@ namespace genfile {
 	bool MissingValue::operator<( MissingValue const& other ) const {
 		return false ;
 	}
+
+	bool MissingValue::operator<=( MissingValue const& other ) const {
+		return true ;
+	}
 }

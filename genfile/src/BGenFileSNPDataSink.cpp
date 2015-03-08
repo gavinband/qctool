@@ -6,9 +6,11 @@
 
 #include <iostream>
 #include <string>
+#include <boost/bind.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSink.hpp"
-#include "genfile/bgen.hpp"
+#include "genfile/bgen/bgen.hpp"
+#include "genfile/bgen/impl.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/BGenFileSNPDataSink.hpp"
 
@@ -18,16 +20,18 @@ namespace genfile {
 		std::string const& filename,
 		Metadata const& metadata,
 		CompressionType compression_type,
-		bgen::uint32_t flags
+		bgen::uint32_t flags,
+		int const number_of_bits
 	)
 	: 	m_filename( filename ),
 		m_metadata( metadata ),
-		m_free_data( serialise( m_metadata )),
+		m_offset(0),
 		m_stream_ptr( open_binary_file_for_output( m_filename, compression_type ) ),
 		m_have_written_header( false ),
-		m_flags( flags )
-		
+		m_number_of_bits( number_of_bits )
 	{
+		m_bgen_context.flags = flags ;
+		m_bgen_context.free_data = serialise( metadata ) ;
 		setup() ;
 	}
 
@@ -36,25 +40,34 @@ namespace genfile {
 		std::string const& filename,
 		Metadata const& metadata,
 		CompressionType compression_type,
-		bgen::uint32_t flags
+		bgen::uint32_t flags,
+		int const number_of_bits
 	)
 	: 	m_filename( filename ),
 		m_metadata( metadata ),
-		m_free_data( serialise( m_metadata )),
+		m_offset(0),
 		m_stream_ptr( stream_ptr ),
 		m_have_written_header( false ),
-		m_flags( flags )
+		m_number_of_bits( number_of_bits )
 	{
+		m_bgen_context.flags = flags ;
+		m_bgen_context.free_data = serialise( metadata ) ;
 		setup() ;
 	}
 
-	std::ostream::streampos BasicBGenFileSNPDataSink::get_stream_pos() const {
-		return m_stream_ptr->tellp() ;
+	void BasicBGenFileSNPDataSink::set_number_of_bits( int const bits ) {
+		assert( bits > 0 ) ;
+		assert( bits <= 32 ) ;
+		m_number_of_bits = bits ;
+	}
+
+	SNPDataSink::SinkPos BasicBGenFileSNPDataSink::get_stream_pos() const {
+		return SinkPos( this, m_stream_ptr->tellp() ) ;
 	}
 	
 	std::string BasicBGenFileSNPDataSink::get_spec() const { return m_filename ; }
 
-	BasicBGenFileSNPDataSink::operator bool() const { return *m_stream_ptr ; }
+	BasicBGenFileSNPDataSink::operator bool() const { return m_stream_ptr->good() ; }
 	
 	void BasicBGenFileSNPDataSink::write_snp_impl(
 		uint32_t number_of_samples,
@@ -71,31 +84,57 @@ namespace genfile {
 	) {
 		assert( m_have_written_header ) ;
 		std::size_t id_field_size = std::min( std::max( SNPID.size(), RSID.size() ), static_cast< std::size_t >( 255 )) ;
-		bgen::write_snp_block( *stream_ptr(), m_flags, number_of_samples, id_field_size, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele, get_AA_probability, get_AB_probability, get_BB_probability ) ;
+		bgen::write_snp_identifying_data( *stream_ptr(), m_bgen_context, id_field_size, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele ) ;
+		bgen::write_snp_probability_data(
+			*m_stream_ptr,
+			m_bgen_context, get_AA_probability, get_AB_probability, get_BB_probability, m_number_of_bits,
+			&m_buffer,
+			&m_compression_buffer
+		) ;
 	}
 
 	std::auto_ptr< std::ostream >& BasicBGenFileSNPDataSink::stream_ptr() { return m_stream_ptr ; }
 	std::string const& BasicBGenFileSNPDataSink::filename() const { return m_filename ; }
 	
-	void BasicBGenFileSNPDataSink::write_header_data( std::ostream& stream, std::size_t const number_of_samples ) {
-		bgen::write_header_block(
-			stream,
-			number_of_snps_written(),
-			number_of_samples,
-			m_free_data,
-			m_flags
-		) ;
+	void BasicBGenFileSNPDataSink::update_offset_and_header_block() {
+		m_bgen_context.number_of_variants = number_of_snps_written() ;
+		m_stream_ptr->seekp( 0, std::ios_base::beg ) ;
+		if( !stream_ptr()->bad() ) {
+			bgen::write_offset( *m_stream_ptr, m_offset ) ;
+			bgen::write_header_block(
+				*m_stream_ptr,
+				m_bgen_context
+			) ;
+		}
 	}
 	
 	void BasicBGenFileSNPDataSink::setup() {
-		bgen::uint32_t offset = bgen::get_header_block_size( m_free_data ) ;
-		bgen::write_offset( (*m_stream_ptr), offset ) ;
+		m_offset = m_bgen_context.header_size() ;
+		update_offset_and_header_block() ;
 	}
 
 	void BasicBGenFileSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) {
 		assert( sample_name_getter ) ;
 		assert( !m_have_written_header ) ;
-		write_header_data( *m_stream_ptr, number_of_samples ) ;
+		// Seems dumb but right now we have to write the header block, then the sample identifier block,
+		// then the header block again (to get the offset right).
+		// The header is rewritten when this class is deconstructed, but doing this here means at
+		// least that the header is well-formed even if an exception occurs.
+		std::vector< std::string > sample_ids ;
+		for( std::size_t i = 0; i < number_of_samples; ++i ) {
+			sample_ids.push_back( sample_name_getter(i).as< std::string >() ) ;
+		}
+		m_bgen_context.number_of_samples = number_of_samples ;
+		m_offset = m_bgen_context.header_size() ;
+		update_offset_and_header_block() ;
+		m_offset += bgen::write_sample_identifier_block(
+			*m_stream_ptr,
+			m_bgen_context,
+			sample_ids
+		) ;
+		update_offset_and_header_block() ;
+		m_stream_ptr->seekp( m_offset+4, std::ios_base::beg ) ;
+
 		m_have_written_header = true ;
 	}
 
@@ -105,9 +144,17 @@ namespace genfile {
 
 	BGenFileSNPDataSink::BGenFileSNPDataSink(
 		std::string const& filename,
-		Metadata const& metadata
+		Metadata const& metadata,
+		std::string const& version,
+		int const number_of_bits
 	)
-	: 	BasicBGenFileSNPDataSink( filename, metadata, "no_compression", bgen::e_CompressedSNPBlocks | bgen::e_LongIds )
+		: BasicBGenFileSNPDataSink(
+			filename,
+			metadata,
+			"no_compression",
+			bgen::impl::get_flags( version ),
+			number_of_bits
+		)
 	{
 	}
 
@@ -115,18 +162,20 @@ namespace genfile {
 		std::auto_ptr< std::ostream > stream_ptr,
 		std::string const& filename,
 		Metadata const& metadata,
-		uint32_t const flags
+		uint32_t const flags,
+		int const number_of_bits
 	)
-	: 	BasicBGenFileSNPDataSink( stream_ptr, filename, metadata, "no_compression", flags )
+	: 	BasicBGenFileSNPDataSink( stream_ptr, filename, metadata, "no_compression", flags, number_of_bits )
 	{
 	}
 
 	BGenFileSNPDataSink::BGenFileSNPDataSink(
 		std::string const& filename,
 		Metadata const& metadata,
-		uint32_t const flags
+		uint32_t const flags,
+		int const number_of_bits
 	)
-	: 	BasicBGenFileSNPDataSink( filename, metadata, "no_compression", flags )
+	: 	BasicBGenFileSNPDataSink( filename, metadata, "no_compression", flags, number_of_bits )
 	{
 	}
 
@@ -134,12 +183,7 @@ namespace genfile {
 		// We are about to close the file.
 		// To write the correct header info, we seek back to the start and rewrite the header block
 		// The header comes after the offset which is 4 bytes.
-		stream_ptr()->seekp( 4, std::ios_base::beg ) ;
-		if( stream_ptr()->bad() ) {
-			throw OutputError( filename() ) ;
-		}
-
-		write_header_data( *stream_ptr(), number_of_samples() ) ;
+		update_offset_and_header_block() ;
 	}
 }
 

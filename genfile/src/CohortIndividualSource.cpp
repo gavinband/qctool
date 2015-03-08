@@ -183,7 +183,7 @@ namespace genfile {
 		return "(unknown)" ;
 	}
 	
-	std::vector< std::size_t > CohortIndividualSource::find_entries( Entry const& entry, std::string const& column_name ) const {
+	std::vector< std::size_t > CohortIndividualSource::find_samples_by_value( std::string const& column_name, Entry const& entry ) const {
 		std::vector< std::size_t > result ;
 		for( std::size_t i = 0; i < get_number_of_individuals(); ++i ) {
 			if( get_entry( i, column_name ) == entry ) {
@@ -193,6 +193,11 @@ namespace genfile {
 		return result ;
 	}
 	
+	void CohortIndividualSource::get_column_values( std::string const& column_name, boost::function< void ( std::size_t, VariantEntry ) > callback ) const {
+		for( std::size_t i = 0; i < get_number_of_individuals(); ++i ) {
+			callback( i, get_entry( i, column_name )) ;
+		}
+	}
 	
 	std::size_t CohortIndividualSource::ColumnSpec::get_number_of_covariates() const {
 		return std::count( m_column_types.begin(), m_column_types.end(), e_DISCRETE_COVARIATE )
@@ -222,7 +227,7 @@ namespace genfile {
 		std::vector< std::string >::const_iterator
 			where = std::find( m_column_names.begin(), m_column_names.end(), column_name ) ;
 		if( where == m_column_names.end() ) {
-			throw BadArgumentError( "CohortIndividualSource::ColumnSpec::find_column()", "column_name = \"" + column_name + "\".\n" ) ;
+			throw BadArgumentError( "CohortIndividualSource::ColumnSpec::find_column()", "column_name=\"" + column_name + "\".\n", "Column not found" ) ;
 		}
 		return std::size_t( where - m_column_names.begin() ) ;
 	}
