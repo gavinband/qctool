@@ -9,6 +9,7 @@
 #include <fstream>
 #include <boost/variant/variant.hpp>
 #include <boost/bind.hpp>
+#include "../config.hpp"
 #if HAVE_BOOST_SPIRIT
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix.hpp>
@@ -17,6 +18,7 @@
 #include "genfile/FileUtils.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/FromFileCohortIndividualSource.hpp"
+#include "genfile/string_utils/slice.hpp"
 
 namespace genfile {
 	// Read a sample file in the format described here:
@@ -222,6 +224,36 @@ namespace genfile {
 				}
 			}
 			return result ;
+		}
+	}
+
+	namespace {
+		void insert_name_and_type( std::map< std::string, CohortIndividualSource::ColumnType >* target,
+			std::vector< char > const& t1,
+			std::vector< char > const& t2
+		) {
+			assert( t2.size() == 1 ) ;
+			CohortIndividualSource::ColumnType type = CohortIndividualSource::e_ID_COLUMN ;
+			switch( t2[0] ) {
+				case '0':
+					type = CohortIndividualSource::e_ID_COLUMN ;
+					break ;
+				case 'D':
+					type = CohortIndividualSource::e_DISCRETE_COVARIATE ;
+					break ;
+				case 'C':
+					type = CohortIndividualSource::e_CONTINUOUS_COVARIATE ;
+					break ;
+				case 'B':
+					type = CohortIndividualSource::e_BINARY_PHENOTYPE ;
+					break ;
+				case 'P':
+					type = CohortIndividualSource::e_CONTINUOUS_PHENOTYPE ;
+					break ;
+				default:
+					assert(0) ;
+			}
+			target->insert( std::make_pair( std::string( t1.begin(), t1.end() ), type )) ;
 		}
 	}
 

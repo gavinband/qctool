@@ -86,6 +86,7 @@ def check_for_3rd_party_components( conf ):
 	conf.define( "HAVE_BOOST_REGEX", 1 )
 	conf.define( "HAVE_BOOST_MATH", 1 )
 	conf.define( "HAVE_BOOST_FUNCTION", 1 )
+	conf.define( "HAVE_BOOST_SPIRIT", 1 )
 	conf.define( "BOOST_FILESYSTEM_VERSION", 3 )
 
 def check_for_boost_components( conf ):
