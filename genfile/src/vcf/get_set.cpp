@@ -43,7 +43,7 @@ namespace genfile {
 			assert( n == 2 ) ;
 		}
 
-		void GenotypeSetterBase::set_sample( std::size_t n ) {
+		bool GenotypeSetterBase::set_sample( std::size_t n ) {
 			assert( n < m_number_of_samples ) ;
 			// First test to see if no data was supplied (i.e. set_number_of_entries was uncalled) for the previous sample.
 			//if( m_missing ) {
@@ -51,6 +51,7 @@ namespace genfile {
 			//}
 			m_sample = n ;
 			m_missing = true ;
+			return true ;
 		}
 
 		void GenotypeSetterBase::set_order_type( OrderType const order_type, ValueType const value_type ) {

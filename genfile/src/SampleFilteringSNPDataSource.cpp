@@ -27,20 +27,12 @@ namespace genfile {
 		std::set< std::size_t > const& indices_of_samples_to_filter_out
 	)
 		: m_source( source ),
-		  m_indices_of_samples_to_filter_out( indices_of_samples_to_filter_out ),
+		  m_indices_of_samples_to_filter_out( indices_of_samples_to_filter_out.begin(), indices_of_samples_to_filter_out.end() ),
 		  m_genotype_data( m_source->number_of_samples() * 3 )
 	{
-		verify_indices( m_indices_of_samples_to_filter_out ) ;
-	}
-	
-	void SampleFilteringSNPDataSource::verify_indices( std::set< std::size_t > const& indices ) const {
-		std::set< std::size_t >::const_iterator
-			i = indices.begin(),
-			end_i = indices.end() ;
-		for( ; i != end_i; ++i ) {
-			if( *i >= m_source->number_of_samples() ) {
-				throw SampleIndexOutOfRangeError( *i, m_source->number_of_samples() ) ;
-			}
+		std::sort( m_indices_of_samples_to_filter_out.begin(), m_indices_of_samples_to_filter_out.end() ) ;
+		if( m_indices_of_samples_to_filter_out.size() > 0 && m_indices_of_samples_to_filter_out.back() >= m_source->number_of_samples() ) {
+			throw SampleIndexOutOfRangeError( m_indices_of_samples_to_filter_out.back(), m_source->number_of_samples() ) ;
 		}
 	}
 	
@@ -117,7 +109,7 @@ namespace genfile {
 	void SampleFilteringSNPDataSource::return_filtered_genotype_probabilities(
 		GenotypeProbabilitySetter const& set_genotype_probabilities
 	) {
-		std::set< std::size_t >::const_iterator
+		std::vector< std::size_t >::const_iterator
 			i( m_indices_of_samples_to_filter_out.begin() ),
 			end_i( m_indices_of_samples_to_filter_out.end() ) ;
 
@@ -165,10 +157,10 @@ namespace genfile {
 		struct SampleFilteringPerSampleSetter: public VariantDataReader::PerSampleSetter {
 			SampleFilteringPerSampleSetter(
 				VariantDataReader::PerSampleSetter& setter,
-				std::set< std::size_t > const& indices_of_samples_to_filter_out
+				std::vector< std::size_t > const& indices_of_samples_to_filter_out
 			):
 					m_setter( setter ),
-					m_indices_of_samples_to_filter_out( indices_of_samples_to_filter_out.begin(), indices_of_samples_to_filter_out.end() ),
+					m_indices_of_samples_to_filter_out( indices_of_samples_to_filter_out ),
 					m_next_filtered_out( m_indices_of_samples_to_filter_out.size() ),
 					m_filter_out_this_sample( false )
 			{}
@@ -186,14 +178,16 @@ namespace genfile {
 				m_setter.set_number_of_alleles( n ) ;
 			}
 
-			void set_sample( std::size_t n ) {
+			bool set_sample( std::size_t n ) {
 			 	if( n == m_next_filtered_out ) {
 					m_filter_out_this_sample = true ;
 					++m_number_filtered_out ;
 					m_next_filtered_out = ( m_number_filtered_out < m_indices_of_samples_to_filter_out.size() ) ? m_indices_of_samples_to_filter_out[ m_number_filtered_out ] : 0 ;
+					return false ;
 				} else {
 					m_filter_out_this_sample = false ;
 					m_setter.set_sample( n - m_number_filtered_out ) ;
+					return true ;
 				}
 			}
 
@@ -216,7 +210,7 @@ namespace genfile {
 
 		private:
 			VariantDataReader::PerSampleSetter& m_setter ;
-			std::vector< std::size_t > const m_indices_of_samples_to_filter_out ;
+			std::vector< std::size_t > const& m_indices_of_samples_to_filter_out ;
 			std::size_t m_number_filtered_out ;
 			std::size_t m_next_filtered_out ;
 			bool m_filter_out_this_sample ;
@@ -225,7 +219,7 @@ namespace genfile {
 		struct SampleFilteringVariantDataReader: public VariantDataReader {
 			SampleFilteringVariantDataReader(
 				VariantDataReader::UniquePtr data_reader,
-				std::set< std::size_t > const& indices_of_samples_to_filter_out
+				std::vector< std::size_t > const& indices_of_samples_to_filter_out
 			):
 				m_data_reader( data_reader ),
 				m_indices_of_samples_to_filter_out( indices_of_samples_to_filter_out )
@@ -252,7 +246,7 @@ namespace genfile {
 
 		private:
 			VariantDataReader::UniquePtr m_data_reader ;
-			std::set< std::size_t > const& m_indices_of_samples_to_filter_out ;
+			std::vector< std::size_t > const& m_indices_of_samples_to_filter_out ;
 		} ;
 	}
 

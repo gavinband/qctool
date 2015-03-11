@@ -232,9 +232,10 @@ namespace genfile {
 				assert( n == 2 ) ;
 			}
 
-			void set_sample( std::size_t i ) {
+			bool set_sample( std::size_t i ) {
 				m_sample_i = i ;
 				m_entry_i = 0 ;
+				return true ;
 			}
 
 			void set_order_type( OrderType const order_type, ValueType const value_type ) {

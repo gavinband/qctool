@@ -72,8 +72,9 @@ namespace genfile {
 				assert( n == 2 ) ;
 			}
 
-			void set_sample( std::size_t i ) {
+			bool set_sample( std::size_t i ) {
 				m_sample_i = i ;
+				return true ;
 			}
 
 			void set_number_of_entries( std::size_t n ) {

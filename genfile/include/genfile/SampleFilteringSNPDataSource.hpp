@@ -81,7 +81,7 @@ namespace genfile {
 		void set_unfiltered_genotype_probabilities( std::size_t i, double aa, double ab, double bb ) ;
 
 		std::auto_ptr< SNPDataSource > m_source ;
-		std::set< std::size_t > m_indices_of_samples_to_filter_out ;
+		std::vector< std::size_t > m_indices_of_samples_to_filter_out ;
 		std::vector< double > m_genotype_data ;
 	} ;
 }

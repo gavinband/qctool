@@ -164,8 +164,9 @@ namespace {
 			assert( n == 2 ) ;
 		}
 		
-		void set_sample( std::size_t i ) {
+		bool set_sample( std::size_t i ) {
 			// nothing to do.
+			return true ;
 		}
 		void set_number_of_entries( std::size_t n ) {
 			if( n != m_expected_number_if_entries ) {
@@ -275,8 +276,9 @@ namespace {
 		void set_number_of_alleles( std::size_t n ) {
 			m_writer.set_number_of_alleles(n) ;
 		}
-		void set_sample( std::size_t i ) {
+		bool set_sample( std::size_t i ) {
 			m_writer.set_sample(i) ;
+			return true ;
 		}
 		void set_order_type( OrderType const order_type, ValueType const value_type ) {
 			m_order_type = order_type ;

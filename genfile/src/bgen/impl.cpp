@@ -22,17 +22,40 @@ namespace genfile {
 			}
 			
 			namespace v12 {
-				void round_probs_to_scaled_simplex( double* p, std::size_t const n, int const number_of_bits ) {
+				namespace {
+					struct CompareFractionalPart{
+						CompareFractionalPart( double* v, std::size_t n ):
+							m_v( v ), m_n( n )
+						{}
+						CompareFractionalPart( CompareFractionalPart const& other ):
+							m_v( other.m_v ), m_n( other.m_n )
+						{}
+						CompareFractionalPart& operator=( CompareFractionalPart const& other ) {
+							m_v = other.m_v ;
+							m_n =  other.m_n ;
+							return *this ;
+						}
+						
+						bool operator()( std::size_t a, std::size_t b ) const {
+							return ( m_v[a] - std::floor( m_v[a] ) ) > ( m_v[b] - std::floor( m_v[b] )) ;
+						}
+					private:
+						double* m_v ;
+						std::size_t m_n ;
+					} ;
+				}
+				void round_probs_to_scaled_simplex( double* p, std::size_t* index, std::size_t const n, int const number_of_bits ) {
 					double const scale = ( 0xFFFFFFFFFFFFFFFF >> ( 64 - number_of_bits ) ) ;
 					std::multimap< double, double*, std::greater< double > > fractional_parts ;
 					double total_fractional_part = 0.0 ;
 					for( std::size_t i = 0; i < n; ++i ) {
-						*(p+i) *= scale ;
-						double const fractional_part = *(p+i) - std::floor(*(p+i)) ;
-						fractional_parts.insert( std::make_pair( fractional_part, (p+i) ) ) ;
-						total_fractional_part += fractional_part ;
+						p[i] *= scale ;
+						index[i] = i ;
+						total_fractional_part += p[i] - std::floor( p[i] ) ;
 					}
 					std::size_t const upper = std::floor( total_fractional_part + 0.5 ) ;
+					std::sort( index, index + n, CompareFractionalPart( p, n ) ) ;
+
 	#if DEBUG_BGEN_FORMAT > 2
 		std::cerr << "round_probs_to_scaled_simplex(): number_of_bits = " << number_of_bits
 				<< ", scale = " << scale
@@ -40,14 +63,12 @@ namespace genfile {
 				<< ", upper = " << upper << ".\n" ;
 		std::cerr << "round_probs_to_scaled_simplex(): p1 = " << *p << ".\n" ;
 	#endif
-					std::multimap< double, double*, std::greater< double > >::const_iterator
-						i = fractional_parts.begin(),
-						end_i = fractional_parts.end() ;
-					for( std::size_t count = 0; i != end_i; ++i, ++count ) {
-						if( count < upper ) {
-							*(i->second) = std::ceil( *(i->second) ) ;
+
+					for( std::size_t i = 0; i < n; ++i ) {
+						if( i < upper ) {
+							p[ index[i] ] = std::ceil( p[ index[i] ] ) ;
 						} else {
-							*(i->second) = std::floor( *(i->second) ) ;
+							p[ index[i] ] = std::floor( p[ index[i] ] ) ;
 						}
 					}
 				}

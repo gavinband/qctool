@@ -52,8 +52,9 @@ namespace genfile {
 				m_number_of_alleles = n ;
 			}
 
-			void set_sample( std::size_t i ) {
+			bool set_sample( std::size_t i ) {
 				assert( i < m_number_of_samples ) ;
+				return true ;
 			}
 			void set_order_type( OrderType const order_type, ValueType const value_type ) {
 			}

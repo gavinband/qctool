@@ -25,7 +25,7 @@ struct NullCallChecker: public genfile::vcf::CallReader::Setter
 	~NullCallChecker() throw() {}
 	void set_number_of_samples( std::size_t n ) {}
 	void set_number_of_alleles( std::size_t n ) {}
-	void set_sample( std::size_t i ) {}
+	bool set_sample( std::size_t i ) { return true ; }
 	void set_order_type( OrderType const order_type, ValueType const value_type ) {} ;
 	void set_number_of_entries( std::size_t n ) {}
 	void operator()( genfile::MissingValue const value ) {}
@@ -85,10 +85,11 @@ struct GenotypeCallChecker: public genfile::vcf::CallReader::Setter
 		BOOST_CHECK_EQUAL( n, 2 ) ;
 	}
 
-	void set_sample( std::size_t i ) {
+	bool set_sample( std::size_t i ) {
 		TEST_ASSERT( i < m_calls.size() ) ;
 		m_sample_i = i ;
 		m_call_i = 0 ;
+		return true ;
 	}
 
 	void set_order_type( OrderType const order_type, ValueType const value_type ) {
@@ -138,7 +139,7 @@ struct Ignore: public genfile::vcf::CallReader::Setter
 {
 	void set_number_of_samples( std::size_t ) {}
 	void set_number_of_alleles( std::size_t ) {}
-	void set_sample( std::size_t ) {}
+	bool set_sample( std::size_t ) { return true ; }
 	void set_order_type( OrderType const, ValueType const ) {}
 	void set_number_of_entries( std::size_t ) {}
 	void operator()( genfile::MissingValue const ) {}

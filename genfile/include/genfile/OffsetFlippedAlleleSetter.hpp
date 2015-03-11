@@ -65,9 +65,10 @@ namespace genfile {
         }
 		std::size_t get_flip() const { return m_flip ; }
 		
-		void set_sample( std::size_t n ) {
+		bool set_sample( std::size_t n ) {
 			assert( ( n + m_sample_offset ) < m_number_of_samples ) ;
 			m_setter.set_sample( n + m_sample_offset ) ;
+			return true ;
 		}
 		void set_number_of_entries( std::size_t n ) {
 			m_values.resize( n ) ;

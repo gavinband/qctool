@@ -139,11 +139,12 @@ namespace {
 			assert( n == 2 ) ;
 		}
 		
-		void set_sample( std::size_t i ) {
+		bool set_sample( std::size_t i ) {
 			if( i > 0 ) {
 				*(m_buf_p[ eUBJSON ]++) = ']' ;
 			}
 			*(m_buf_p[ eUBJSON ]++) = '[' ;
+			return true ;
 		}
 		void set_number_of_entries( std::size_t n ) {
 			if( n != 1 && n != 2 ) {

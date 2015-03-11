@@ -102,9 +102,10 @@ namespace genfile {
 					assert( n == 2 ) ;
 				}
 				
-				void set_sample( std::size_t sample_i ) {
+				bool set_sample( std::size_t sample_i ) {
 					assert( sample_i < m_ploidies.size() ) ;
 					m_sample_i = sample_i ;
+					return true ;
 				}
 
 				void set_order_type( OrderType const order_type, ValueType const value_type ) {

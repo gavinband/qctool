@@ -73,14 +73,7 @@ namespace genfile {
 			template< typename FloatType >
 			uint16_t convert_to_integer_representation( FloatType number, FloatType factor ) {
 				number *= factor ;
-				if( number < 0 ) {
-					std::cerr << "!! genfile::bgen::convert_to_integer_representation: probability " << number << " is -ve, clamping.\n" ;
-					number = 0 ;
-				}
-				else if( number >= 65535.5 ) {
-					std::cerr << "!! genfile::bgen::convert_to_integer_representation: probability " << number << " is too large, clamping.\n" ;
-					number = 65535.0 ;
-				}
+				number = std::min( std::max( number, 0.0 ), 65535.0 ) ;
 				return static_cast< uint16_t > ( std::floor( number + 0.5 ) ) ;
 			}
 
@@ -117,7 +110,7 @@ namespace genfile {
 			}
 			
 			namespace v12 {
-				void round_probs_to_scaled_simplex( double* p, std::size_t const n, int const number_of_bits ) ;
+				void round_probs_to_scaled_simplex( double* p, std::size_t* index, std::size_t const n, int const number_of_bits ) ;
 
 				// Write data encoding n probabilities, given in probs, that sum to 1,
 				// starting at the given offset in data.
@@ -162,17 +155,18 @@ namespace genfile {
 					// We use an array of three doubles to compute the rounded probabilities.
 					// We use a single 64-bit integer to marshall the data to be written.
 					double v[3] ;
+					std::size_t index[3] ;
 					uint64_t data = 0 ;
 					std::size_t offset = 0 ;
 					for( std::size_t i = 0; i < context.number_of_samples; ++i ) {
 						v[0] = get_AA_probability(i) ;
 						v[1] = get_AB_probability(i) ;
 						v[2] = get_BB_probability(i) ;
-						round_probs_to_scaled_simplex( &v[0], 3, number_of_bits ) ;
+						round_probs_to_scaled_simplex( &v[0], &index[0], 3, number_of_bits ) ;
 						buffer = write_scaled_probs( &data, &offset, &v[0], 3, number_of_bits, buffer, end ) ;
 #if DEBUG_BGEN_FORMAT
 						std::cerr << "genfile::bgen::impl::v12::write_uncompressed_snp_probability_data(): scaled probs are:"
-							<< v[0] << ", " << v[1] << ", " << v[2] << ".\n" ;
+							<< rounded_v[0] << ", " << rounded_v[1] << ", " << rounded_v[2] << ".\n" ;
 						std::cerr << "genfile::bgen::impl::v12::write_uncompressed_snp_probability_data(): after write, data = "
 							<< string_utils::to_hex(
 								reinterpret_cast< unsigned char const* >( &data ),

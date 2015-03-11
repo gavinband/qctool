@@ -109,11 +109,12 @@ namespace genfile {
 					// assume diploid
 					m_calls.setZero( ( n * (n+1))/2 ) ;
 				} ;
-				void set_sample( std::size_t i ) {
+				bool set_sample( std::size_t i ) {
 					m_target.set_sample( i ) ;
 					m_missing = false ;
 					m_calls.setZero( m_calls.size() ) ;
 					m_entry_i = 0 ;
+					return true ;
 				}
 				void set_number_of_entries( std::size_t n ) {
 					assert( n == m_calls.size() ) ;

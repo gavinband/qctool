@@ -376,12 +376,13 @@ struct ProbabilitySetter: public genfile::VariantDataReader::PerSampleSetter {
 		TEST_ASSERT( n == 2 ) ;
 		m_state = eSetNumberOfAlleles ;
 	}
-	void set_sample( std::size_t i ) {
+	bool set_sample( std::size_t i ) {
 		TEST_ASSERT( i < m_number_of_samples ) ;
 		TEST_ASSERT( m_state == eSetNumberOfAlleles || m_state == eSetValue ) ;
 		BOOST_CHECK_EQUAL( m_entry_i, m_number_of_entries ) ;
 		m_sample_i = i ;
 		m_state = eSetSample ;
+		return true ;
 	}
 	void set_number_of_entries( std::size_t n ) {
 #if DEBUG > 2

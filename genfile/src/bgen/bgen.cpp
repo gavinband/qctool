@@ -471,37 +471,44 @@ namespace genfile {
 						<< ".\n" ;
 #endif
 
-					setter.set_sample( i ) ;
-					setter.set_number_of_entries( valueCount ) ;
-					setter.set_order_type(
-						(
-							phased
-								? VariantDataReader::PerSampleSetter::ePerPhasedHaplotypePerAllele
-								: VariantDataReader::PerSampleSetter::ePerUnorderedGenotype
-						),
-						VariantDataReader::PerSampleSetter::eProbability
-					) ;
+					if( setter.set_sample( i ) ) {
+						setter.set_number_of_entries( valueCount ) ;
+						setter.set_order_type(
+							(
+								phased
+									? VariantDataReader::PerSampleSetter::ePerPhasedHaplotypePerAllele
+									: VariantDataReader::PerSampleSetter::ePerUnorderedGenotype
+							),
+							VariantDataReader::PerSampleSetter::eProbability
+						) ;
 
-					if( missing ) {
-						for( std::size_t h = 0; h < valueCount; ++h ) {
-							setter( genfile::MissingValue() ) ;
+						if( missing ) {
+							for( std::size_t h = 0; h < valueCount; ++h ) {
+								setter( genfile::MissingValue() ) ;
+							}
+						} else {
+							double sum = 0.0 ;
+							for( uint32_t h = 0; h < storedValueCount; ++h ) {
+								buffer = impl::v12::fill_data( buffer, end, &data, &size, bits ) ;
+								double const value = impl::v12::consume_value( &data, &size, bits ) ;
+								setter( value ) ;
+								sum += value ;
+							
+								if(
+									( phased && ((h+1) % (numberOfAlleles-1) ) == 0 )
+									|| ((!phased) && (h+1) == storedValueCount )
+								) {
+									assert( sum <= 1.00000001 ) ;
+									setter( 1.0 - sum ) ;
+									sum = 0.0 ;
+								}
+							}
 						}
 					} else {
-						double sum = 0.0 ;
+						// just consume data, don't set anything.
 						for( uint32_t h = 0; h < storedValueCount; ++h ) {
 							buffer = impl::v12::fill_data( buffer, end, &data, &size, bits ) ;
-							double const value = impl::v12::consume_value( &data, &size, bits ) ;
-							setter( value ) ;
-							sum += value ;
-							
-							if(
-								( phased && ((h+1) % (numberOfAlleles-1) ) == 0 )
-								|| ((!phased) && (h+1) == storedValueCount )
-							) {
-								assert( sum <= 1.00000001 ) ;
-								setter( 1.0 - sum ) ;
-								sum = 0.0 ;
-							}
+							impl::v12::consume_value( &data, &size, bits ) ;
 						}
 					}
 				}

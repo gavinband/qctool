@@ -74,7 +74,9 @@ namespace genfile {
 			virtual ~PerSampleEntriesSetter() throw() {}
 			virtual void set_number_of_samples( std::size_t n ) = 0 ;
 			virtual void set_number_of_alleles( std::size_t n ) = 0 ;
-			virtual void set_sample( std::size_t i ) = 0 ;
+			// Prepare to receive values for given sample.
+			// Return true if we want these values, otherwise false.
+			virtual bool set_sample( std::size_t i ) = 0 ;
 		} ;
 		
 		struct SimpleType: public boost::noncopyable {
