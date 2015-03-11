@@ -169,6 +169,7 @@ namespace genfile {
 			):
 					m_setter( setter ),
 					m_indices_of_samples_to_filter_out( indices_of_samples_to_filter_out.begin(), indices_of_samples_to_filter_out.end() ),
+					m_next_filtered_out( m_indices_of_samples_to_filter_out.size() ),
 					m_filter_out_this_sample( false )
 			{}
 			
@@ -177,6 +178,8 @@ namespace genfile {
 			void set_number_of_samples( std::size_t n ) {
 				m_setter.set_number_of_samples( n - m_indices_of_samples_to_filter_out.size() ) ;
 				m_number_filtered_out = 0 ;
+				m_next_filtered_out = ( m_indices_of_samples_to_filter_out.size() > 0 ) ? m_indices_of_samples_to_filter_out.front() : n ;
+				m_filter_out_this_sample = false ;
 			}
 
 			void set_number_of_alleles( std::size_t n ) {
@@ -184,9 +187,10 @@ namespace genfile {
 			}
 
 			void set_sample( std::size_t n ) {
-			 	if( m_number_filtered_out < m_indices_of_samples_to_filter_out.size() && n == m_indices_of_samples_to_filter_out[ m_number_filtered_out ] ) {
+			 	if( n == m_next_filtered_out ) {
 					m_filter_out_this_sample = true ;
 					++m_number_filtered_out ;
+					m_next_filtered_out = ( m_number_filtered_out < m_indices_of_samples_to_filter_out.size() ) ? m_indices_of_samples_to_filter_out[ m_number_filtered_out ] : 0 ;
 				} else {
 					m_filter_out_this_sample = false ;
 					m_setter.set_sample( n - m_number_filtered_out ) ;
@@ -214,6 +218,7 @@ namespace genfile {
 			VariantDataReader::PerSampleSetter& m_setter ;
 			std::vector< std::size_t > const m_indices_of_samples_to_filter_out ;
 			std::size_t m_number_filtered_out ;
+			std::size_t m_next_filtered_out ;
 			bool m_filter_out_this_sample ;
 		} ;
 		

@@ -358,6 +358,8 @@ namespace genfile {
 			uint32_t n_choose_k( uint32_t n, uint32_t k ) {
 				if( k == 0 )  {
 					return 1 ;
+				} else if( k == 1 ) {
+					return n ;
 				}
 				return ( n * n_choose_k(n - 1, k - 1) ) / k ;
 			}
@@ -455,7 +457,8 @@ namespace genfile {
 					uint32_t const valueCount
 						= phased
 						? (ploidy * numberOfAlleles)
-						: impl::n_choose_k( ploidy + numberOfAlleles - 1, numberOfAlleles - 1 ) ;
+						: ((numberOfAlleles == 2) ? (ploidy+1) : impl::n_choose_k( ploidy + numberOfAlleles - 1, numberOfAlleles - 1 )) ;
+
 					uint32_t const storedValueCount = valueCount - ( phased ? ploidy : 1 ) ;
 					
 #if DEBUG_BGEN_FORMAT > 1
