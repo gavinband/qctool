@@ -209,14 +209,30 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 			m_options.get< std::string >( "-match-sample-ids" ),
 			"~"
 		) ;
-		assert( sample_id_columns.size() == 2 ) ;
 		
-		snp_stats::CrossDataSetComparison::UniquePtr computation(
-			new snp_stats::CrossDataSetHaplotypeComparisonComputation(
-				m_samples,
-				sample_id_columns[0]
-			)
-		) ;
+		if( sample_id_columns.size() != 2 ) {
+			throw genfile::BadArgumentError(
+				"SNPSummaryComponent::add_computations()",
+				"-match-sample-ids " + m_options.get< std::string >( "-match-sample-ids" ),
+				"Value should be of the form <id in main dataset>~<id in compared-to dataset>"
+			) ;
+		}
+		snp_stats::CrossDataSetComparison::UniquePtr computation ;
+		if( m_options.check( "-haplotypic" ) ) {
+			computation.reset(
+				new snp_stats::CrossDataSetHaplotypeComparisonComputation(
+					m_samples,
+					sample_id_columns[0]
+				)
+			) ;
+		} else {
+			computation.reset(
+				new snp_stats::CrossDataSetConcordanceComputation(
+					m_samples,
+					sample_id_columns[0]
+				)
+			) ;
+		}
 
 		computation->set_comparer(
 			genfile::SNPIdentifyingData::CompareFields(

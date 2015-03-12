@@ -129,6 +129,7 @@ namespace genfile {
 					number_of_snps_read()
 				) ;
 			} else {
+				*number_of_samples = m_number_of_samples ;
 				*SNPID = SNPID_ ;
 				*RSID = RSID_ ;
 				*chromosome = Chromosome( chromosome_string ) ;

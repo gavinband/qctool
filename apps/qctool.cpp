@@ -1619,14 +1619,21 @@ private:
 				
 					BOOST_FOREACH( std::string const& filename, files ) {
 						genfile::SNPDataSource::UniquePtr source ;
-						source.reset(
-							new statfile::SNPDataSourceAdapter(
-								statfile::BuiltInTypeStatSource::open(
-									genfile::wildcard::find_files_by_chromosome( filename )
+						try {
+							source.reset(
+								new statfile::SNPDataSourceAdapter(
+									statfile::BuiltInTypeStatSource::open(
+										genfile::wildcard::find_files_by_chromosome( filename )
+									)
 								)
-							)
-						) ;
-						
+							) ;
+						} catch( genfile::MalformedInputError const& e ) {
+							source.reset(
+								genfile::SNPDataSourceChain::create(
+									genfile::wildcard::find_files_by_chromosome( filename )
+								).release()
+							) ;
+						}
 						snp_filter->exclude_snps(
 							source->list_snps(),
 							genfile::SNPIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
@@ -1638,13 +1645,21 @@ private:
 					std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-snps" ) ;
 					BOOST_FOREACH( std::string const& filename, files ) {
 						genfile::SNPDataSource::UniquePtr source ;
-						source.reset(
-							new statfile::SNPDataSourceAdapter(
-								statfile::BuiltInTypeStatSource::open(
-									genfile::wildcard::find_files_by_chromosome( filename )
+						try {
+							source.reset(
+								new statfile::SNPDataSourceAdapter(
+									statfile::BuiltInTypeStatSource::open(
+										genfile::wildcard::find_files_by_chromosome( filename )
+									)
 								)
-							)
-						) ;
+							) ;
+						} catch( genfile::MalformedInputError const& e ) {
+							source.reset(
+								genfile::SNPDataSourceChain::create(
+									genfile::wildcard::find_files_by_chromosome( filename )
+								).release()
+							) ;
+						}
 						snp_filter->include_snps(
 							source->list_snps(),
 							genfile::SNPIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
