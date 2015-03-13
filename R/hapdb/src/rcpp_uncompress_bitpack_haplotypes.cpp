@@ -134,25 +134,31 @@ List rcpp_uncompress_floatarray_genotypes( List rawData, int N, IntegerVector co
 			for( std::size_t ji = 0; ji < chosen_samples.size(); ++ji ) {
 				std::size_t j = chosen_samples(ji) - 1 ; // Change R's 1-based indexing to 0-based
 				if( compute_probabilities ) {
+#if DEBUG_rcpp_uncompress_bitpack_haplotypes
+					std::cerr << "Setting probabilities for sample " << j << "...\n" ;
+#endif
 					for( std::size_t k = 0; k < 3; ++k ) {
 						std::size_t const index = 21 + ((3*j)+k)*4 ;
 						float const* value = reinterpret_cast< float const* >( (&buffer[0]) + index ) ;
 						if( *value < 0 ) {
-							probabilities(i,(3*j)+k) = NA_REAL ;
+							probabilities(i,(3*ji)+k) = NA_REAL ;
 						} else {
-							probabilities(i,(3*j)+k) = *value ;
+							probabilities(i,(3*ji)+k) = *value ;
 						}
 					}
 				}
 				
 				if( compute_dosage ) {
+#if DEBUG_rcpp_uncompress_bitpack_haplotypes
+					std::cerr << "Setting dosage for sample " << j << "...\n" ;
+#endif
 					float const* g0 = reinterpret_cast< float const* >( (&buffer[0]) + 21 + ((3*j)+0)*4 ) ;
 					float const* g1 = reinterpret_cast< float const* >( (&buffer[0]) + 21 + ((3*j)+1)*4 ) ;
 					float const* g2 = reinterpret_cast< float const* >( (&buffer[0]) + 21 + ((3*j)+2)*4 ) ;
 					if( *g0 < 0 | *g1 < 0 | *g2 < 0 ) {
-						dosage(i,j) = NA_REAL ;
+						dosage(i,ji) = NA_REAL ;
 					} else {
-						dosage(i,j) = *g1 + 2.0 * *g2 ;
+						dosage(i,ji) = *g1 + 2.0 * *g2 ;
 					}
 				}
 			}

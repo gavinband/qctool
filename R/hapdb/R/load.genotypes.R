@@ -84,6 +84,10 @@ function(
 		)
 		
 		if( method == "cpp" ) {
+			if( verbose ) {
+				cat( "samples.choice =\n" )
+				print( samples.choice )
+			}
 			X = rcpp_uncompress_floatarray_genotypes( D$data, N, samples.choice, compute.probabilities, compute.dosage ) ;
 			if( compute.probabilities ) {
 				result$data = X$probabilities ;
