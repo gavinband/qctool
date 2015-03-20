@@ -221,7 +221,7 @@ namespace genfile {
 			void get_missing_value( std::size_t, std::size_t ploidy, EntriesSetter& setter ) const ;
 			void get_missing_value( std::size_t number_of_alleles, EntriesSetter& setter ) const ;
 
-			bool check_if_requires_ploidy() const { return true; }
+			bool check_if_requires_ploidy() const { return false; }
 
 			// A special use of the genotype call is to infer ploidy for the other data.
 			// For this use we need to specialise the parse() function.

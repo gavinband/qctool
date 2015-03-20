@@ -234,7 +234,7 @@ namespace genfile {
 			) {
 				if( data_reader.supports( field )) {
 					(*m_stream_ptr) << ( have_format ? ":" : "" ) << field ;
-					DataWriter writer( m_streams, ( field == "GT" ) ) ;
+					DataWriter writer( m_streams, ( field == "GT" ) ) ; // kludge, fix this.
 					if( have_format ) {
 						for( std::size_t i = 0; i < m_streams.size(); ++i ) {
 							m_streams[i] << ":" ;
