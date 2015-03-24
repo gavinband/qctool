@@ -1692,7 +1692,8 @@ public:
 				options().get< std::string >( "-o" ),
 				options().get< std::string >( "-analysis-name" ),
 				options().get< std::string >( "-analysis-chunk" ),
-				options().get_values_as_map()
+				options().get_values_as_map(),
+				options().get< std::string >( "-snp-match-fields" )
 			) ;
 
 			if( options().check( "-table-name" ) ) {
