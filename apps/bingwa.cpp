@@ -1085,17 +1085,17 @@ public:
 
 	void get_variables( boost::function< void ( std::string ) > callback ) const {
 		for( std::size_t i = 0; i < m_models.size(); ++i ) {
-			callback( m_prefix + ":" + m_models[i].name() + ":bf" ) ;
+			callback( m_models[i].name() + ":bf" ) ;
 		}
 		for( std::size_t i = 0; i < m_models.size(); ++i ) {
-			callback( m_prefix + ":" + m_models[i].name() + ":weighted_bf" ) ;
+			callback( m_models[i].name() + ":weighted_bf" ) ;
 		}
 		
-		callback( m_prefix + ":mean_bf" ) ;
-		callback( m_prefix + ":max_bf" ) ;
-		callback( m_prefix + ":max_bf_model" ) ;
-		callback( m_prefix + ":max_weighted_bf" ) ;
-		callback( m_prefix + ":max_posterior_model" ) ;
+		callback( "mean_bf" ) ;
+		callback( "max_bf" ) ;
+		callback( "max_bf_model" ) ;
+		callback( "max_weighted_bf" ) ;
+		callback( "max_posterior_model" ) ;
 	}
 
 	void operator()(
@@ -1158,28 +1158,28 @@ public:
 		
 		for( std::size_t i = 0; i < m_models.size(); ++i ) {
 			if( bfs[i] == bfs[i] ) {
-				callback( m_prefix + ":" + m_models[i].name() + ":bf", bfs[i] ) ;
+				callback( m_models[i].name() + ":bf", bfs[i] ) ;
 			} else {
-				callback( m_prefix + ":" + m_models[i].name() + ":bf", genfile::MissingValue() ) ;
+				callback( m_models[i].name() + ":bf", genfile::MissingValue() ) ;
 			}
 		}
 
 		for( std::size_t i = 0; i < m_models.size(); ++i ) {
 			if( bfs[i] == bfs[i] ) {
-				callback( m_prefix + ":" + m_models[i].name() + ":weighted_bf", weighted_bfs[i] / total_weight ) ;
+				callback( m_models[i].name() + ":weighted_bf", weighted_bfs[i] / total_weight ) ;
 			} else {
-				callback( m_prefix + ":" + m_models[i].name() + ":weighted_bf", genfile::MissingValue() ) ;
+				callback( m_models[i].name() + ":weighted_bf", genfile::MissingValue() ) ;
 			}
 		}
 		
-		callback( m_prefix + ":mean_bf", mean_bf / total_weight ) ;
+		callback( "mean_bf", mean_bf / total_weight ) ;
 		if( max_bf_i < m_models.size() ) {
-			callback( m_prefix + ":max_bf", max_bf ) ;
-			callback( m_prefix + ":max_bf_model", m_models[max_bf_i].name() ) ;
+			callback( "max_bf", max_bf ) ;
+			callback( "max_bf_model", m_models[max_bf_i].name() ) ;
 		}
 		if( max_posterior_i < m_models.size() ) {
-			callback( m_prefix + ":max_weighted_bf", weighted_bfs[ max_posterior_i ] / total_weight ) ;
-			callback( m_prefix + ":max_posterior_model", m_models[ max_posterior_i ].name() ) ;
+			callback( "max_weighted_bf", weighted_bfs[ max_posterior_i ] / total_weight ) ;
+			callback( "max_posterior_model", m_models[ max_posterior_i ].name() ) ;
 		}
 	}
 
@@ -1766,10 +1766,10 @@ public:
 						
 							computation->set_filter( filter ) ;
 
-							m_processor->add_computation(
-								"ApproximateBayesianMetaAnalysis",
-								BingwaComputation::UniquePtr( computation.release() )
-							) ;
+							//m_processor->add_computation(
+							//	"ApproximateBayesianMetaAnalysis",
+							//	BingwaComputation::UniquePtr( computation.release() )
+							//) ;
 							averager->add_model( i->first, i->second, 1.0 ) ;
 							averager->set_filter( filter ) ;
 						}
@@ -1784,6 +1784,7 @@ public:
 					// Currently this must be added after the computations above in order
 					// that it is fed data (via the accumulate() callback) before the mean is
 					// computed.
+#if 0
 					{
 						ValueAccumulator::UniquePtr mean_bf(
 							new ValueAccumulator( "ApproximateBayesianMetaAnalysis:mean_bf" )
@@ -1809,6 +1810,7 @@ public:
 							BingwaComputation::UniquePtr( mean_bf.release() )
 						) ;
 					}
+#endif
 				
 					summarise_priors( priors, cohort_names ) ;
 				}
