@@ -21,8 +21,8 @@ namespace genfile {
 		m_exhausted( false )
 	{
 		m_genotype_table.push_back( std::make_pair( 0, 0 )) ;
-		m_genotype_table.push_back( std::make_pair( -1, -1 )) ;
 		m_genotype_table.push_back( std::make_pair( 0, 1 )) ;
+		m_genotype_table.push_back( std::make_pair( -1, -1 )) ;
 		m_genotype_table.push_back( std::make_pair( 1, 1 )) ;
 		setup( bedFilename, bimFilename, famFilename ) ;
 	}
@@ -133,6 +133,7 @@ namespace genfile {
 			BedFileSNPDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
                 assert( spec == "GT" || spec == ":genotypes:" ) ;
 				setter.set_number_of_samples( m_number_of_samples ) ;
+				setter.set_number_of_alleles( 2 ) ;
 				for( std::size_t i = 0; i < m_number_of_samples; ++i ) {
 					std::size_t index = i/4 ;
 					std::size_t data = ( m_buffer[ index ] >> (2*(i%4)) ) & 0x3 ;
@@ -144,6 +145,10 @@ namespace genfile {
 						VariantDataReader::PerSampleSetter::eAlleleIndex
 					) ;
 					std::pair< int64_t, int64_t > const& genotype = m_source.m_genotype_table[ data ] ;
+#if DEBUG_BED_FORMAT > 2
+					std::cerr << "data for sample " << i << " is: " << data << ".\n";
+					std::cerr << "genotype is " << genotype.first << "/" << genotype.second << ".\n" ;
+#endif
 					if( genotype.first == -1 ) {
 						setter( genfile::MissingValue() ) ;
 						setter( genfile::MissingValue() ) ;

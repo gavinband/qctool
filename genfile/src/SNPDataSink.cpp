@@ -19,8 +19,7 @@
 #include "genfile/GenDosageFileSNPDataSink.hpp"
 #include "genfile/GenIntensityFileSNPDataSink.hpp"
 #include "genfile/BGenFileSNPDataSink.hpp"
-#include "genfile/PedigreeMappingBedFileSNPDataSink.hpp"
-#include "genfile/FromSamplesPedigree.hpp"
+#include "genfile/BedFileSNPDataSink.hpp"
 #include "genfile/ShapeITHaplotypesSNPDataSink.hpp"
 #include "genfile/VCFFormatSNPDataSink.hpp"
 #include "genfile/vcf/get_set_eigen.hpp"
@@ -35,6 +34,7 @@ namespace genfile {
 		result.push_back( "bgen" ) ;
 		result.push_back( "bgen_v12" ) ;
 		result.push_back( "vcf" ) ;
+		result.push_back( "binary_ped" ) ;
 		result.push_back( "shapeit_haplotypes" ) ;
 		result.push_back( "shapeit" ) ;
 		result.push_back( "dosage" ) ;
@@ -78,9 +78,9 @@ namespace genfile {
 		else if( d.first == "intensity" ) {
 			return SNPDataSink::UniquePtr( new GenIntensityFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
 		}
-		else if( d.first == "bed" ) {
+		else if( d.first == "binary_ped" ) {
 			return SNPDataSink::UniquePtr(
-				PedigreeMappingBedFileSNPDataSink( filename, 0.9 )
+				new BedFileSNPDataSink( filename, 0.9 )
 			) ;
 		}
 		else {

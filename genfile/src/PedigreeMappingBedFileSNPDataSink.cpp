@@ -27,20 +27,6 @@ namespace genfile {
 	}
 	
 	PedigreeMappingBedFileSNPDataSink::PedigreeMappingBedFileSNPDataSink(
-		std::string const& output_bed_filename,
-		double call_threshhold
-	):
-		m_call_threshhold( call_threshhold )
-	{
-		assert( call_threshhold > 0.5 ) ;
-		if( output_bed_filename.size() < 4 || output_bed_filename.substr( output_bed_filename.size() - 4, 4 ) != ".bed" ) {
-			throw BadArgumentError( "PedigreeMappingBedFileSNPDataSink::PedigreeMappingBedFileSNPDataSink", "output_bed_filename = \"" + output_bed_filename + "\"" ) ;
-		}
-		m_output_filename_stub = output_bed_filename.substr( 0, output_bed_filename.size() - 4 ) ;
-		setup() ;
-	}
-
-	PedigreeMappingBedFileSNPDataSink::PedigreeMappingBedFileSNPDataSink(
 		Pedigree::UniquePtr pedigree,
 		std::string const& output_bed_filename,
 		double call_threshhold
@@ -48,6 +34,7 @@ namespace genfile {
 		m_pedigree( pedigree ),
 		m_call_threshhold( call_threshhold )
 	{
+		assert( m_pedigree.get() ) ;
 		assert( call_threshhold > 0.5 ) ;
 		if( output_bed_filename.size() < 4 || output_bed_filename.substr( output_bed_filename.size() - 4, 4 ) != ".bed" ) {
 			throw BadArgumentError( "PedigreeMappingBedFileSNPDataSink::PedigreeMappingBedFileSNPDataSink", "output_bed_filename = \"" + output_bed_filename + "\"" ) ;
@@ -67,19 +54,18 @@ namespace genfile {
 		for( std::size_t i = 0; i < number_of_samples; ++i ) {
 			m_sample_ids.push_back( getter(i).as< std::string >() ) ;
 		}
-		if( m_pedigree.get() ) {
-			m_pedigree_to_sample_mapping = get_pedigree_to_sample_mapping( *m_pedigree, m_sample_ids ) ;
-			if( m_pedigree_to_sample_mapping.empty() ) {
-				// No matches between sample file and pedigree could be found.
-				// All output genotypes would be NA, let's throw an error in this case.
-				throw MismatchError( "genfile::PedFileSNPDataSink::set_sample_names()", "Pedigree / sample file", "Individual id (column 2 of pedigree file)", "ID_1 / ID_2 column." ) ;
-			}
+		m_pedigree_to_sample_mapping = get_pedigree_to_sample_mapping( *m_pedigree, m_sample_ids ) ;
+		if( m_pedigree_to_sample_mapping.empty() ) {
+			// No matches between sample file and pedigree could be found.
+			// All output genotypes would be NA, let's throw an error in this case.
+			throw MismatchError( "genfile::PedFileSNPDataSink::set_sample_names()", "Pedigree / sample file", "Individual id (column 2 of pedigree file)", "ID_1 / ID_2 column." ) ;
 		}
 		return *this ;
 	}
 
 	PedigreeMappingBedFileSNPDataSink& PedigreeMappingBedFileSNPDataSink::set_metadata( Metadata const& ) {
 		// do nothing.  Metadata not supported.
+		return *this ;
 	}
 	
 	void PedigreeMappingBedFileSNPDataSink::setup() {
@@ -108,35 +94,19 @@ namespace genfile {
 			)
 		) ;
 
-		if( m_pedigree.get() ) {
-			for( std::size_t i = 0; i < m_pedigree->get_number_of_individuals(); ++i ) {
-				// first five columns are:
-				// family, id, father, mother, sex
-				std::string const id = m_pedigree->get_id_of( i ) ;
-				(*out) << m_pedigree->get_family_of( id )
-					<< " " << id
-					<< " " << m_pedigree->get_parents_of( id )[0]
-					<< " " << m_pedigree->get_parents_of( id )[1]
-					<< " " << sex_to_string( m_pedigree->get_sex_of( id ) ) ;
+		for( std::size_t i = 0; i < m_pedigree->get_number_of_individuals(); ++i ) {
+			// first five columns are:
+			// family, id, father, mother, sex
+			std::string const id = m_pedigree->get_id_of( i ) ;
+			(*out) << m_pedigree->get_family_of( id )
+				<< " " << id
+				<< " " << m_pedigree->get_parents_of( id )[0]
+				<< " " << m_pedigree->get_parents_of( id )[1]
+				<< " " << sex_to_string( m_pedigree->get_sex_of( id ) ) ;
 
-				// Then comes the phenotype column.
-				// PLINK needs exactly six columns here otherwise the poor thing gets confused.
-				(*out) << " NA\n" ;
-			}
-		} else {
-			for( std::size_t i = 0; i < m_sample_ids.size(); ++i ) {
-				// OUput samples as unrelated
-				std::string const& id = m_samples_ids[i] ;
-				(*out) << id
-					<< " " << id
-					<< " " << 0
-					<< " " << 0
-					<< " " << 0 ;
-
-				// Then comes the phenotype column.
-				// PLINK needs exactly six columns here otherwise the poor thing gets confused.
-				(*out) << " NA\n" ;
-			}
+			// Then comes the phenotype column.
+			// PLINK needs exactly six columns here otherwise the poor thing gets confused.
+			(*out) << " NA\n" ;
 		}
 		assert( (*out) ) ;
 	}

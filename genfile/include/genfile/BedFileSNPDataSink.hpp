@@ -12,7 +12,6 @@
 #include <map>
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/CohortIndividualSource.hpp"
-#include "genfile/Pedigree.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
 
 namespace genfile {
@@ -22,17 +21,16 @@ namespace genfile {
 	* Outputs data in PLINK Binary PED format (See http://pngu.mgh.harvard.edu/~purcell/plink/binary.shtml)
 	* Output is always in SNP-major mode.
 	*/
-	class PedigreeMappingBedFileSNPDataSink: public SNPDataSink
+	class BedFileSNPDataSink: public SNPDataSink
 	{
 	public:
-		PedigreeMappingBedFileSNPDataSink(
-			Pedigree::UniquePtr pedigree,
+		BedFileSNPDataSink(
 			std::string const& output_filename,
 			double call_threshhold = 0.9
 		) ;
 
 		// The destructor actually does the work of writing to the output file.
-		~PedigreeMappingBedFileSNPDataSink() ;
+		~BedFileSNPDataSink() ;
 
 		operator bool() const {
 			return true ;
@@ -40,22 +38,20 @@ namespace genfile {
 		
 		std::string get_spec() const ;
 
-		PedigreeMappingBedFileSNPDataSink& set_sample_names( std::size_t number_of_samples, SampleNameGetter ) ;
-		PedigreeMappingBedFileSNPDataSink& set_metadata( Metadata const& ) ;
+		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) ;
+		void set_metadata_impl( Metadata const& ) ;
 
 	private:
 		std::vector< std::string > m_sample_ids ;
-		Pedigree::UniquePtr m_pedigree ;
-		std::map< std::size_t, std::size_t > m_pedigree_to_sample_mapping ;
 		std::string m_output_filename_stub ;
 		double const m_call_threshhold ;
 		
 		std::auto_ptr< std::ostream > m_bim_file ;
 		std::auto_ptr< std::ostream > m_bed_file ;
+		
+		std::vector< char > m_buffer ;
 	private:
 		void setup() ;
-		std::map< std::size_t, std::size_t > get_pedigree_to_sample_mapping( Pedigree const& pedigree, std::vector< std::string > const& sample_ids ) ;
-		void write_ped_file( std::string const& output_filename ) const ;
 		void write_map_file( std::string const& output_filename ) const ;
 		
 		void write_snp_impl(
