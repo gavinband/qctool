@@ -189,6 +189,8 @@ namespace genfile {
 		}
 		
 		SNPIdentifyingData this_snp ;
+		std::set< std::string > rsids ;
+		std::set< std::string > SNPIDs ;
 		std::vector< char > flips( m_sources.size(), eNoFlip ) ;
 		std::size_t source_i = 0 ;
 		if( m_sources[0]->get_snp_identifying_data( this_snp ) ) {
@@ -199,11 +201,11 @@ namespace genfile {
 					source_i < m_sources.size() && move_source_to_snp_matching( source_i, this_snp, &this_source_snp );
 					++source_i
 				) {
-					if( this_source_snp.get_SNPID() != this_snp.get_SNPID() ) {
-						this_snp.SNPID() += "/" + this_source_snp.get_SNPID() ;
+					if( SNPIDs.insert( this_source_snp.get_SNPID() ).second ) {
+						this_snp.SNPID() += "," + this_source_snp.get_SNPID() ;
 					}
-					if( this_source_snp.get_rsid() != this_snp.get_rsid() ) {
-						this_snp.rsid() += "/" + this_source_snp.get_SNPID() ;
+					if( rsids.insert( this_source_snp.get_rsid() ).second ) {
+						this_snp.rsid() += "," + this_source_snp.get_rsid() ;
 					}
 					if( m_comparator.get_flip_alleles_if_necessary() ) {
                         if( this_source_snp.get_first_allele() == this_snp.get_second_allele() && this_source_snp.get_second_allele() == this_snp.get_first_allele() ) {
