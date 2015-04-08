@@ -58,9 +58,6 @@
 #include "genfile/ThreshholdingSNPDataSource.hpp"
 #include "genfile/AsynchronousSNPDataSource.hpp"
 #include "genfile/VCFFormatSNPDataSource.hpp"
-#include "genfile/Pedigree.hpp"
-#include "genfile/PedFileSNPDataSink.hpp"
-#include "genfile/BedFileSNPDataSink.hpp"
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/SNPFilteringSNPDataSource.hpp"
 #include "genfile/SNPIdentifyingDataFilteringSNPDataSource.hpp"
@@ -393,24 +390,6 @@ public:
 		options.option_implies_option( "-sort", "-og" ) ;
 		options.option_implies_option( "-omit-chromosome", "-og" ) ;
 		options.option_implies_option( "-output-sample-format", "-os" ) ;
-
-		options.declare_group( "Pedigree file options" ) ;
-		options[ "-op" ]
-			.set_description( "Output a pedigree file instead of a GEN-type file."
-			 	" You must also input a pedigree using -ip for this to work." )
-			.set_takes_values( 1 )
-			.set_maximum_multiplicity( 1 ) ;
-		options[ "-ip" ]
-			.set_description( "Input a pedigree from the specified file."
-			 	" The first six columns of this file should represent a PED format pedigree,"
-				" according to the spec on the PLINK website.  (Other columns are ignored.)"
-				" Ids are treated as non-whitespace strings and sex can be either"
-				" \"1\" or \"M\" (male) or \"2\" or \"F\" (female) or \"other\"." )
-			.set_takes_values( 1 )
-			.set_maximum_multiplicity( 1 ) ;
-
-		options.option_implies_option( "-op", "-ip" ) ;
-		options.option_implies_option( "-op", "-s" ) ;
 
 		// VCF file options
 		options.declare_group( "VCF file options" ) ;
@@ -769,7 +748,6 @@ struct QCToolCmdLineContext
 		m_fltrd_out_snp_data_sink.reset() ;
 		m_fltrd_in_snp_data_sink.reset() ;
 		m_samples.reset() ;
-		m_pedigree.reset() ;
 	}
 	
 	SNPDataSource& snp_data_source() const {
@@ -1028,7 +1006,6 @@ private:
 	typedef std::map< genfile::SNPIdentifyingData, StrandFlipSpec, genfile::SNPIdentifyingData::CompareFields > StrandSpec ;
 	typedef std::vector< StrandSpec > StrandSpecs ;
 	std::auto_ptr< StrandSpecs > m_strand_specs ;
-	genfile::Pedigree::UniquePtr m_pedigree ;	// this must go before snp_data_sinks.
 	genfile::CohortIndividualSource::UniquePtr m_samples ; // this must go before the snp_data_sinks.
 	std::auto_ptr< genfile::SNPDataSource > m_snp_data_source ;
 	std::auto_ptr< genfile::SNPDataSinkChain > m_fltrd_in_snp_data_sink ;
@@ -1804,39 +1781,7 @@ private:
 
 	void open_filtered_in_snp_data_sink() {
 		reset_filtered_in_snp_data_sink() ;
-		if( m_options.check_if_option_was_supplied( "-op" )) {
-			assert( m_options.check_if_option_was_supplied( "-ip" )) ;
-			assert( !m_options.check_if_option_was_supplied( "-og" )) ;
-			
-			m_pedigree = genfile::Pedigree::create(
-				"file:" + m_options.get_value< std::string >( "-ip" )
-			) ;
-
-			std::string filename = m_options.get_value< std::string >( "-op" ) ;
-			if( filename.size() > 4 && filename.substr( filename.size() - 4, 4 ) == ".bed" ) {
-				m_fltrd_in_snp_data_sink->add_sink(
-					genfile::SNPDataSink::UniquePtr(
-						new genfile::BedFileSNPDataSink(
-							*m_samples,
-							*m_pedigree,
-							filename
-						)
-					)
-				) ;
-			}
-			else {
-				m_fltrd_in_snp_data_sink->add_sink(
-					genfile::SNPDataSink::UniquePtr(
-						new genfile::PedFileSNPDataSink(
-							*m_samples,
-							*m_pedigree,
-							filename
-						)
-					)
-				) ;
-			}
-		}
-		else if( m_mangled_options.gen_filename_mapper().output_filenames().size() == 0 ) {
+		if( m_mangled_options.gen_filename_mapper().output_filenames().size() == 0 ) {
 			m_fltrd_in_snp_data_sink->add_sink( genfile::SNPDataSink::UniquePtr( new genfile::TrivialSNPDataSink() )) ;
 		}
 		else {
