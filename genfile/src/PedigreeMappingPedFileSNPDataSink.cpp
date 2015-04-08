@@ -11,7 +11,7 @@
 #include "genfile/Chromosome.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/Pedigree.hpp"
-#include "genfile/PedFileSNPDataSink.hpp"
+#include "genfile/PedigreeMappingPedFileSNPDataSink.hpp"
 #include "genfile/string_utils.hpp"
 
 namespace genfile {
@@ -37,7 +37,7 @@ namespace genfile {
 		}
 	}
 
-	PedFileSNPDataSink::PedFileSNPDataSink(
+	PedigreeMappingPedFileSNPDataSink::PedigreeMappingPedFileSNPDataSink(
 		CohortIndividualSource const& samples,
 		Pedigree const& pedigree,
 		std::string const& output_ped_filename,
@@ -51,21 +51,21 @@ namespace genfile {
 	{
 		assert( call_threshhold > 0.5 ) ;
 		if( output_ped_filename.size() < 4 || output_ped_filename.substr( output_ped_filename.size() - 4, 4 ) != ".ped" ) {
-			throw BadArgumentError( "PedFileSNPDataSink::PedFileSNPDataSink", "output_ped_filename = \"" + output_ped_filename + "\"" ) ;
+			throw BadArgumentError( "PedigreeMappingPedFileSNPDataSink::PedigreeMappingPedFileSNPDataSink", "output_ped_filename = \"" + output_ped_filename + "\"" ) ;
 		}
 		if( m_pedigree_to_sample_mapping.empty() ) {
 			// No matches between sample file and pedigree could be found.
 			// All output genotypes would be NA, let's throw an error in this case.
-			throw MismatchError( "genfile::PedFileSNPDataSink::PedFileSNPDataSink()", "Pedigree / sample file", "Individual id (column 2 of pedigree file)", "ID_1 / ID_2 column." ) ;
+			throw MismatchError( "genfile::PedigreeMappingPedFileSNPDataSink::PedigreeMappingPedFileSNPDataSink()", "Pedigree / sample file", "Individual id (column 2 of pedigree file)", "ID_1 / ID_2 column." ) ;
 		}
 		m_output_filename_stub = output_ped_filename.substr( 0, output_ped_filename.size() - 4 ) ;
 	}
 	
-	std::string PedFileSNPDataSink::get_spec() const {
+	std::string PedigreeMappingPedFileSNPDataSink::get_spec() const {
 		return m_output_filename_stub + "[.ped|.dat|.map]";
 	}
 	
-	std::map< std::string, std::size_t > PedFileSNPDataSink::get_pedigree_to_sample_mapping(
+	std::map< std::string, std::size_t > PedigreeMappingPedFileSNPDataSink::get_pedigree_to_sample_mapping(
 		Pedigree const& pedigree,
 		CohortIndividualSource const& samples
 	) {
@@ -93,13 +93,13 @@ namespace genfile {
 		return result ;
 	}
 	
-	PedFileSNPDataSink::~PedFileSNPDataSink() {
+	PedigreeMappingPedFileSNPDataSink::~PedigreeMappingPedFileSNPDataSink() {
 		write_ped_file( m_output_filename_stub + ".ped" ) ;
 		write_dat_file( m_output_filename_stub + ".dat" ) ;
 		write_map_file( m_output_filename_stub + ".map" ) ;
 	}
 	
-	void PedFileSNPDataSink::write_ped_file( std::string const& output_filename ) const {
+	void PedigreeMappingPedFileSNPDataSink::write_ped_file( std::string const& output_filename ) const {
 		assert( m_written_snps.size() == m_written_alleles.size() ) ;
 		for( std::size_t i = 0; i < m_written_alleles.size(); ++i ) {
 			assert( m_written_alleles[i].size() == m_samples.get_number_of_individuals() ) ;
@@ -148,7 +148,7 @@ namespace genfile {
 		assert( (*out) ) ;
 	}
 	
-	void PedFileSNPDataSink::write_dat_file( std::string const& output_filename ) const {
+	void PedigreeMappingPedFileSNPDataSink::write_dat_file( std::string const& output_filename ) const {
 		std::auto_ptr< std::ostream> out(
 			open_text_file_for_output(
 				output_filename,
@@ -164,7 +164,7 @@ namespace genfile {
 		assert( (*out) ) ;
 	}
 
-	void PedFileSNPDataSink::write_map_file( std::string const& output_filename ) const {
+	void PedigreeMappingPedFileSNPDataSink::write_map_file( std::string const& output_filename ) const {
 		std::auto_ptr< std::ostream > file = open_text_file_for_output( output_filename ) ;
 		for( std::size_t i = 0; i < m_written_snps.size(); ++i ) {
 			SNPIdentifyingData const& snp = m_written_snps[i] ;
@@ -178,7 +178,7 @@ namespace genfile {
 		}
 	}
 	
-	void PedFileSNPDataSink::write_snp_impl(
+	void PedigreeMappingPedFileSNPDataSink::write_snp_impl(
 		uint32_t number_of_samples,
 		std::string SNPID,
 		std::string RSID,

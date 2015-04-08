@@ -19,6 +19,8 @@
 #include "genfile/GenDosageFileSNPDataSink.hpp"
 #include "genfile/GenIntensityFileSNPDataSink.hpp"
 #include "genfile/BGenFileSNPDataSink.hpp"
+#include "genfile/PedigreeMappingBedFileSNPDataSink.hpp"
+#include "genfile/FromSamplesPedigree.hpp"
 #include "genfile/ShapeITHaplotypesSNPDataSink.hpp"
 #include "genfile/VCFFormatSNPDataSink.hpp"
 #include "genfile/vcf/get_set_eigen.hpp"
@@ -75,6 +77,11 @@ namespace genfile {
 		}
 		else if( d.first == "intensity" ) {
 			return SNPDataSink::UniquePtr( new GenIntensityFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
+		}
+		else if( d.first == "bed" ) {
+			return SNPDataSink::UniquePtr(
+				PedigreeMappingBedFileSNPDataSink( filename, 0.9 )
+			) ;
 		}
 		else {
 			return SNPDataSink::UniquePtr( new GenFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
