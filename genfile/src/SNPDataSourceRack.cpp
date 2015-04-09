@@ -19,6 +19,8 @@
 #include "genfile/get_list_of_snps_in_source.hpp"
 #include "genfile/string_utils/slice.hpp"
 
+// #define DEBUG_SNP_DATA_SOURCE_RACK 1
+
 namespace genfile {
 	namespace {
 		static char const eUnknownFlip = OffsetFlippedAlleleSetter::eUnknownFlip ;
@@ -189,23 +191,37 @@ namespace genfile {
 		}
 		
 		SNPIdentifyingData this_snp ;
+		std::string merged_SNPID, merged_rsid, merged_allele1, merged_allele2 ;
 		std::set< std::string > rsids ;
 		std::set< std::string > SNPIDs ;
 		std::vector< char > flips( m_sources.size(), eNoFlip ) ;
 		std::size_t source_i = 0 ;
 		if( m_sources[0]->get_snp_identifying_data( this_snp ) ) {
+			// we use source_i == m_source.size() to indicate a successful match across cohorts.
 			while( (*this) && source_i < m_sources.size() ) {
+				SNPIDs.clear() ;
+				rsids.clear() ;
+				SNPIDs.insert( this_snp.get_SNPID() ) ;
+				rsids.insert( this_snp.get_rsid() ) ;
+				merged_SNPID = this_snp.get_SNPID() ;
+				merged_rsid = this_snp.get_rsid() ;
+				merged_allele1 = this_snp.get_first_allele() ;
+				merged_allele2 = this_snp.get_second_allele() ;
+
 				SNPIdentifyingData this_source_snp ;
 				source_i = 1 ;
 				for( ;
 					source_i < m_sources.size() && move_source_to_snp_matching( source_i, this_snp, &this_source_snp );
 					++source_i
 				) {
+#if DEBUG_SNP_DATA_SOURCE_RACK
+					std::cerr << "SNP " << this_snp << " is in source " << source_i << ".\n" ;
+#endif
 					if( SNPIDs.insert( this_source_snp.get_SNPID() ).second ) {
-						this_snp.SNPID() += "," + this_source_snp.get_SNPID() ;
+						merged_SNPID += "," + this_source_snp.get_SNPID() ;
 					}
 					if( rsids.insert( this_source_snp.get_rsid() ).second ) {
-						this_snp.rsid() += "," + this_source_snp.get_rsid() ;
+						merged_rsid += "," + this_source_snp.get_rsid() ;
 					}
 					if( m_comparator.get_flip_alleles_if_necessary() ) {
                         if( this_source_snp.get_first_allele() == this_snp.get_second_allele() && this_source_snp.get_second_allele() == this_snp.get_first_allele() ) {
@@ -213,15 +229,15 @@ namespace genfile {
 						} else if( this_source_snp.get_first_allele() == this_snp.get_first_allele() && this_source_snp.get_second_allele() == this_snp.get_second_allele() ) {
 							// do nothing
 						} else {
-							this_snp.first_allele() = this_snp.get_first_allele() + "/" + this_source_snp.get_first_allele() ;
-							this_snp.second_allele() = this_snp.get_second_allele() + "/" + this_source_snp.get_second_allele() ;
+							merged_allele1 += "/" + this_source_snp.get_first_allele() ;
+							merged_allele2 += "/" + this_source_snp.get_second_allele() ;
 							// Don't know how to flip.
 							flips[ source_i ] = eUnknownFlip ;
 						}
 					} else {
 						if( this_source_snp.get_first_allele() != this_snp.get_first_allele() || this_source_snp.get_second_allele() != this_snp.get_second_allele() ) {
-							this_snp.first_allele() = this_snp.get_first_allele() + "/" + this_source_snp.get_first_allele() ;
-							this_snp.second_allele() = this_snp.get_second_allele() + "/" + this_source_snp.get_second_allele() ;
+							merged_allele1 += "/" + this_source_snp.get_first_allele() ;
+							merged_allele2 += "/" + this_source_snp.get_second_allele() ;
 							// Set genotypes to missing for this cohort.
 							flips[ source_i ] = eUnknownFlip ;
 						}
@@ -235,12 +251,12 @@ namespace genfile {
 		}
 		if( *this ) {
 			set_number_of_samples( m_number_of_samples ) ;
-			set_SNPID( this_snp.get_SNPID() ) ;
-			set_RSID( this_snp.get_rsid() ) ;
+			set_SNPID( merged_SNPID ) ;
+			set_RSID( merged_rsid ) ;
 			set_chromosome( this_snp.get_position().chromosome() ) ;
 			set_SNP_position( this_snp.get_position().position() ) ;
-			set_allele1( this_snp.get_first_allele() ) ;
-			set_allele2( this_snp.get_second_allele() ) ;
+			set_allele1( merged_allele1 ) ;
+			set_allele2( merged_allele2 ) ;
 			// Remember the flips.
 			m_flips = flips ;
 		}
@@ -255,6 +271,9 @@ namespace genfile {
 		SNPIdentifyingData const& reference_snp,
 		SNPIdentifyingData* result
 	) {
+#if DEBUG_SNP_DATA_SOURCE_RACK
+		std::cerr << "Moving source " << source_i << " to SNP " << reference_snp << ".\n" ;
+#endif
 		SNPIdentifyingData this_snp ;
 		
 		while( m_sources[source_i]->get_next_snp_with_specified_position(
@@ -268,12 +287,21 @@ namespace genfile {
 			reference_snp.get_position().chromosome(),
 			reference_snp.get_position().position()
 		) ) {
+#if DEBUG_SNP_DATA_SOURCE_RACK
+			std::cerr << "Found candidate: " << this_snp << ".\n" ;
+#endif
 			if( m_comparator.are_equal( this_snp, reference_snp )) {
 				*result = this_snp ;
+#if DEBUG_SNP_DATA_SOURCE_RACK
+				std::cerr << "Match!\n" ;
+#endif
 				return true ;
+			} else {
+#if DEBUG_SNP_DATA_SOURCE_RACK
+				std::cerr << "No match!\n" ;
+#endif
+				m_sources[source_i]->ignore_snp_probability_data() ;
 			}
-
-			m_sources[source_i]->ignore_snp_probability_data() ;
 		}
 		return false ;
 	}
