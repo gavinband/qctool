@@ -147,9 +147,8 @@ namespace genfile {
 					buffer = genfile::write_little_endian_integer( buffer, end, numberOfAlleles ) ;
 					buffer = genfile::write_little_endian_integer( buffer, end, ploidy ) ;
 					buffer = genfile::write_little_endian_integer( buffer, end, ploidy ) ;
-					for( std::size_t i = 0; i < context.number_of_samples; ++i ) {
-						buffer = genfile::write_little_endian_integer( buffer, end, ploidy ) ;
-					}
+					char* ploidy_p = buffer ;
+					buffer += context.number_of_samples ;
 					buffer = genfile::write_little_endian_integer( buffer, end, uint8_t( 0 ) ) ;
 					buffer = genfile::write_little_endian_integer( buffer, end, uint8_t( number_of_bits ) ) ;
 					// We use an array of three doubles to compute the rounded probabilities.
@@ -162,18 +161,23 @@ namespace genfile {
 						v[0] = get_AA_probability(i) ;
 						v[1] = get_AB_probability(i) ;
 						v[2] = get_BB_probability(i) ;
-						round_probs_to_scaled_simplex( &v[0], &index[0], 3, number_of_bits ) ;
-						buffer = write_scaled_probs( &data, &offset, &v[0], 3, number_of_bits, buffer, end ) ;
-#if DEBUG_BGEN_FORMAT
-						std::cerr << "genfile::bgen::impl::v12::write_uncompressed_snp_probability_data(): scaled probs are:"
-							<< rounded_v[0] << ", " << rounded_v[1] << ", " << rounded_v[2] << ".\n" ;
-						std::cerr << "genfile::bgen::impl::v12::write_uncompressed_snp_probability_data(): after write, data = "
-							<< string_utils::to_hex(
-								reinterpret_cast< unsigned char const* >( &data ),
-								reinterpret_cast< unsigned char const* >( &data ) + 8
-							) << ".\n" ;
-#endif
-						// Now write them
+						bool missing = ( v[0] + v[1] + v[2] == 0 ) ;
+						uint8_t ploidy = 2 | ( missing ? 0x80 : 0 ) ;
+						*(ploidy_p++) = ploidy ;
+
+						if( !missing ) {
+							round_probs_to_scaled_simplex( &v[0], &index[0], 3, number_of_bits ) ;
+							buffer = write_scaled_probs( &data, &offset, &v[0], 3, number_of_bits, buffer, end ) ;
+	#if DEBUG_BGEN_FORMAT
+							std::cerr << "genfile::bgen::impl::v12::write_uncompressed_snp_probability_data(): scaled probs are:"
+								<< rounded_v[0] << ", " << rounded_v[1] << ", " << rounded_v[2] << ".\n" ;
+							std::cerr << "genfile::bgen::impl::v12::write_uncompressed_snp_probability_data(): after write, data = "
+								<< string_utils::to_hex(
+									reinterpret_cast< unsigned char const* >( &data ),
+									reinterpret_cast< unsigned char const* >( &data ) + 8
+								) << ".\n" ;
+	#endif
+						}
 					}
 					// Get any leftover bytes.
 					if( offset > 0 ) {
