@@ -493,7 +493,11 @@ namespace genfile {
 								double const value = impl::v12::consume_value( &data, &size, bits ) ;
 								setter( value ) ;
 								sum += value ;
-							
+#if DEBUG_BGEN_FORMAT
+								std::cerr << "parse_probability_data_v12(): i = " << i << ", h = " << h << ", size = " << size << ", bits = " << bits << ", parsed value = " << value
+									<< ", sum = " << std::setprecision( 10 ) << sum << ".\n" ;
+#endif
+								
 								if(
 									( phased && ((h+1) % (numberOfAlleles-1) ) == 0 )
 									|| ((!phased) && (h+1) == storedValueCount )

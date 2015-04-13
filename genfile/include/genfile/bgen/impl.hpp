@@ -170,7 +170,7 @@ namespace genfile {
 							buffer = write_scaled_probs( &data, &offset, &v[0], 3, number_of_bits, buffer, end ) ;
 	#if DEBUG_BGEN_FORMAT
 							std::cerr << "genfile::bgen::impl::v12::write_uncompressed_snp_probability_data(): scaled probs are:"
-								<< rounded_v[0] << ", " << rounded_v[1] << ", " << rounded_v[2] << ".\n" ;
+								<< v[0] << ", " << v[1] << ", " << v[2] << ".\n" ;
 							std::cerr << "genfile::bgen::impl::v12::write_uncompressed_snp_probability_data(): after write, data = "
 								<< string_utils::to_hex(
 									reinterpret_cast< unsigned char const* >( &data ),
