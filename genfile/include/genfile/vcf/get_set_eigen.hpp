@@ -264,7 +264,7 @@ namespace genfile {
 			}
 
 			void operator()( Integer const value ) {
-				assert( value >= 0 & value < 2 ) ;
+				assert( value >= 0 && value < 2 ) ;
 				m_result( m_sample_i, m_entry_i ) = m_allele_coding[ std::size_t( value ) ] ;
 				if( m_non_missingness ) {
 					(*m_non_missingness)( m_sample_i, m_entry_i ) = 1 ;
