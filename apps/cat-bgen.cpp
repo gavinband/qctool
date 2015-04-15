@@ -88,7 +88,7 @@ public:
 			inputStreams.push_back( genfile::open_binary_file_for_input( inputFilenames[i], "no_compression" ).release() ) ;
 		}
 		
-		std::ofstream outputStream( options().get< std::string > ( "-og" ), std::ios::binary ) ;
+		std::ofstream outputStream( options().get< std::string > ( "-og" ).c_str(), std::ios::binary ) ;
 		genfile::bgen::Context result = concatenate( inputFilenames, inputStreams, outputStream ) ;
 		get_ui_context().logger() << boost::format( "Finished writing \"%s\" (%d samples, %d variants).\n" )
 			% options().get< std::string > ( "-og" ) % result.number_of_samples % result.number_of_variants ;
