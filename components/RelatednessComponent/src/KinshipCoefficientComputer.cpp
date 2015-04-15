@@ -244,13 +244,16 @@ namespace impl {
 		SampleBounds const bounds,
 		std::string const& method
 	) {
+#if HAVE_CBLAS
 		if( method == "cblas" ) {
 			return ComputeXXtTask::UniquePtr(
 				new ComputeXXtUsingCBlasTask(
 					result, counts, bounds
 				)
 			) ;
-		} else if( method == "eigen" ) {
+		} else
+#endif
+		 if( method == "eigen" ) {
 			return ComputeXXtTask::UniquePtr(
 				new ComputeXXtUsingEigenTask(
 					result, counts, bounds
