@@ -129,7 +129,7 @@ namespace impl {
 		m_sink->set_metadata( metadata ) ;
 		m_sink->set_sample_names( number_of_samples, boost::bind( get_sample_entry, boost::ref( m_samples ), "ID_1", _1 ) ) ;
 	}
-
+	
 	void SNPOutputter::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 		if( m_index.get() ) {
 			m_index->add_index_entry( snp, *m_sink ) ;

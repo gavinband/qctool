@@ -25,21 +25,33 @@ namespace genfile {
 
 	namespace {
 		struct GenotypeWriter: public vcf::GenotypeSetterBase {
-			GenotypeWriter( std::ostream& stream ):
-				m_stream( stream )
-			{}
+			GenotypeWriter( Eigen::VectorXd& data ):
+				m_data( data )
+			{
+				m_data.setConstant( -1 ) ;
+			}
 			~GenotypeWriter() throw() {}
 			
 			void set( std::size_t i, double AA, double AB, double BB ) {
 				if( AA == 0 && AB == 0 && BB == 0 ) {
-					m_stream << " " << "NA" ;
+					m_data[i] = -1 ;
 				} else {
-					m_stream << " " << ( ( 2 * BB ) + AB ) ;
+					m_data[i] = ( ( 2 * BB ) + AB ) ;
+				}
+			}
+
+			void write_to_stream( std::ostream& stream ) const {
+				for( std::size_t i = 0; i < m_data.size(); ++i ) {
+					if( m_data[i] == -1 ) {
+						stream << " NA" ;
+					} else {
+						stream << " " << m_data[i] ;
+					}
 				}
 			}
 
 		private:
-			std::ostream& m_stream ;
+			Eigen::VectorXd& m_data ;
 		} ;
 	}
 	
@@ -52,6 +64,8 @@ namespace genfile {
 			stream() << " " << getter(i) ;
 		}
 		stream() << "\n" ;
+		m_data.resize( number_of_samples ) ;
+		m_data.setZero() ;
 	}
 
 	void GenDosageFileSNPDataSink::write_variant_data_impl(
@@ -60,8 +74,9 @@ namespace genfile {
 		Info const& info
 	) {
 		write_variant( stream(), id_data ) ;
-		GenotypeWriter writer( stream() ) ;
+		GenotypeWriter writer( m_data ) ;
 		data_reader.get( ":genotypes:", writer ) ;
+		writer.write_to_stream( stream() ) ;
 		stream() << "\n" ;
 	}
 }

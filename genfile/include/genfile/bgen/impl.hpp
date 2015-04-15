@@ -161,16 +161,24 @@ namespace genfile {
 						v[0] = get_AA_probability(i) ;
 						v[1] = get_AB_probability(i) ;
 						v[2] = get_BB_probability(i) ;
-						bool missing = ( v[0] + v[1] + v[2] == 0 ) ;
+						double sum = v[0] + v[1] + v[2] ;
+						bool missing = ( sum == 0 ) ;
+						v[0] = v[0] / sum ;
+						v[1] = v[1] / sum ;
+						v[2] = v[2] / sum ;
 						uint8_t ploidy = 2 | ( missing ? 0x80 : 0 ) ;
 						*(ploidy_p++) = ploidy ;
 
 						if( !missing ) {
 							round_probs_to_scaled_simplex( &v[0], &index[0], 3, number_of_bits ) ;
+							
 							buffer = write_scaled_probs( &data, &offset, &v[0], 3, number_of_bits, buffer, end ) ;
 	#if DEBUG_BGEN_FORMAT
+							double sum = v[0] + v[1] + v[2] ;
 							std::cerr << "genfile::bgen::impl::v12::write_uncompressed_snp_probability_data(): scaled probs are:"
 								<< v[0] << ", " << v[1] << ", " << v[2] << ".\n" ;
+							std::cerr << "genfile::bgen::impl::v12::write_uncompressed_snp_probability_data(): sum is:"
+								<< sum << ".\n" ;
 							std::cerr << "genfile::bgen::impl::v12::write_uncompressed_snp_probability_data(): after write, data = "
 								<< string_utils::to_hex(
 									reinterpret_cast< unsigned char const* >( &data ),

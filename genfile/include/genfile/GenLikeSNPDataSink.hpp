@@ -40,6 +40,7 @@ namespace genfile {
 
 		std::string m_filename ;
 		std::auto_ptr< std::ostream > m_stream_ptr ;
+		
 		Chromosome m_chromosome ;
 		bool m_write_chromosome_column ;
 		CompressionType m_compression_type ;

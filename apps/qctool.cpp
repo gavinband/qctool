@@ -25,6 +25,9 @@
 #include <boost/foreach.hpp>
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/random_generator.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 #include "Timer.hpp"
 #include "appcontext/CmdLineOptionProcessor.hpp"
@@ -60,6 +63,8 @@
 #include "genfile/VCFFormatSNPDataSource.hpp"
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/SNPFilteringSNPDataSource.hpp"
+#include "genfile/ReorderingSNPDataSource.hpp"
+#include "genfile/ReorderingCohortIndividualSource.hpp"
 #include "genfile/SNPIdentifyingDataFilteringSNPDataSource.hpp"
 #include "genfile/utility.hpp"
 #include "genfile/QuantileNormalisingCrossCohortCovariateValueMapping.hpp"
@@ -380,10 +385,16 @@ public:
 			.set_description( "Do not run QCTOOL if it would overwrite an existing file." )
 		;
 		
+		options.declare_group( "BGEN-specific options" ) ;
 		options[ "-bgen-bits" ]
 			.set_description( "For use when outputting BGEN files only.  Tell QCTOOL to use this number"
 				" of bits to store each probability." )
 			.set_default_value( 16 )
+			.set_takes_single_value()
+		;
+		options[ "-bgen-free-data" ]
+			.set_description( "For use when outputting BGEN files only.  Tell QCTOOL to write the specified free data segment"
+				" in the BGEN header block." )
 			.set_takes_single_value()
 		;
 
@@ -521,6 +532,10 @@ public:
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
+
+		options [ "-reorder" ] 
+			.set_description( "Specify that qctool should write output files with individuals re-ordered randomly." )
+			.set_takes_single_value() ;
 				
 		options.option_implies_option( "-quantile-normalise", "-s" ) ;
 		options.option_implies_option( "-quantile-normalise", "-os" ) ;
@@ -1108,6 +1123,41 @@ private:
 					m_options.get_value< std::string >( "-quantile-normalise" ),
 					","
 				)
+			) ;
+		}
+		
+		if( m_options.check( "-reorder" )) {
+			std::string const& order_type = m_options.get< std::string > ( "-reorder" ) ;
+			using boost::counting_iterator ;
+			// generate a random order
+			// If order[i] = j then this indicates
+			// that sample i in result dataset is sample j in the original dataset.
+			std::vector< std::size_t > order(
+				counting_iterator< std::size_t >( 0 ),
+				counting_iterator< std::size_t >( m_samples->size() )
+			) ;
+			std::vector< std::string > ids ;
+			if( order_type == "backwards" ) {
+				std::reverse( order.begin(), order.end() ) ;
+				ids.resize( m_samples->size() ) ;
+				for( std::size_t i = 0; i < m_samples->size(); ++i ) {
+					ids[i] = m_samples->get_entry( i, "ID_1" ).as< std::string >() ;
+				}
+				std::reverse( ids.begin(), ids.end() ) ;
+			} else if( order_type == "randomly" ) {
+				std::random_shuffle( order.begin(), order.end() ) ;
+				ids = std::vector< std::string >( m_samples->get_number_of_individuals(), "" ) ;
+				boost::uuids::random_generator uuidGenerator;
+				for( std::size_t i = 0; i < ids.size(); ++i ) {
+					ids[i] = boost::uuids::to_string( uuidGenerator() ) ;
+				}
+				std::sort( ids.begin(), ids.end() ) ;
+			}
+			m_snp_data_source.reset(
+				new genfile::ReorderingSNPDataSource( m_snp_data_source, order )
+			) ;
+			m_samples.reset(
+				new genfile::ReorderingCohortIndividualSource( m_samples, order, ids )
 			) ;
 		}
 		
@@ -1840,6 +1890,12 @@ private:
 						genfile::BGenFileSNPDataSink* bgen_sink = dynamic_cast< genfile::BGenFileSNPDataSink* >( sink.get() ) ;
 						if( bgen_sink ) {
 							bgen_sink->set_number_of_bits( m_options.get< std::size_t >( "-bgen-bits" )) ;
+						}
+					}
+					if( m_options.check_if_option_was_supplied( "-bgen-free-data" )) {
+						genfile::BGenFileSNPDataSink* bgen_sink = dynamic_cast< genfile::BGenFileSNPDataSink* >( sink.get() ) ;
+						if( bgen_sink ) {
+							bgen_sink->set_free_data( m_options.get< std::string >( "-bgen-free-data" ) ) ;
 						}
 					}
 					if( m_options.check( "-sort" )) {

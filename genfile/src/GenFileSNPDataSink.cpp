@@ -24,19 +24,93 @@ namespace genfile {
 		GenLikeSNPDataSink( filename, chromosome, compression_type )
 	{}
 
+	void GenFileSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) {
+		m_data.resize( number_of_samples * 3 ) ;
+		m_data.setConstant( -1 ) ;
+	}
+
 	namespace {
-		struct GenotypeWriter: public vcf::GenotypeSetterBase {
-			GenotypeWriter( std::ostream& stream ):
-				m_stream( stream )
-			{}
+		struct GenotypeWriter: public VariantDataReader::PerSampleSetter {
+			GenotypeWriter( Eigen::VectorXd& data ):
+				m_data( data ),
+				m_number_of_samples( m_data.size() / 3 ),
+				m_number_of_alleles(0),
+				m_sample_i(0),
+				m_entry_i(0)
+			{
+				m_data.setConstant( -1 ) ;
+			}
+
 			~GenotypeWriter() throw() {}
 			
-			void set( std::size_t i, double AA, double AB, double BB ) {
-				m_stream << " " << AA << " " << AB << " " << BB ;
+			void set_number_of_samples( std::size_t n ) {
+				if( n != m_number_of_samples ) {
+					throw genfile::BadArgumentError( "genfile::GenotypeWriter::set_number_of_samples()", "n=" + string_utils::to_string(n), "Number of samples does not match expected number (" + string_utils::to_string( m_number_of_samples ) + ")" ) ;
+				}
+			}
+
+			void set_number_of_alleles( std::size_t n ) {
+				if( n != 2 ) {
+					throw genfile::BadArgumentError(
+						"genfile::GenotypeWriter::set_number_of_samples()",
+						( boost::format( "n=%d" ) % n).str(),
+						"Expected two alleles."
+					) ;
+				}
+				m_number_of_alleles = n ;
+			}
+
+			bool set_sample( std::size_t i ) {
+				assert( i < m_number_of_samples ) ;
+				m_sample_i = i ;
+				return true ;
+			}
+
+			void set_order_type( OrderType const order_type, ValueType const value_type ) {
+			}
+
+			void set_number_of_entries( std::size_t n ) {
+				if( n != 3 ) {
+					throw genfile::BadArgumentError(
+						"genfile::IntensityWriter::set_number_of_entries()",
+						"n=" + string_utils::to_string(n),
+						"Expected 3 entries per sample."
+					) ;
+				}
+				m_entry_i = 0 ;
+			}
+			void operator()( MissingValue const value ) {
+				m_data( m_sample_i * 3 + m_entry_i++ ) = -1 ;
+			}
+
+			void operator()( std::string& value ) {
+				assert(0) ;
+			}
+
+			void operator()( Integer const value ) {
+				m_data( m_sample_i * 3 + m_entry_i++ ) = value ;
+			}
+			
+			void operator()( double const value ) {
+				m_data( m_sample_i * 3 + m_entry_i++ ) = value ;
+			}
+
+			void write_to_stream( std::ostream& stream ) const {
+				for( std::size_t i = 0; i < m_data.size(); ++i ) {
+					if( m_data[i] == -1 ) {
+						stream << " NA" ;
+					} else {
+						stream << " " << m_data[i] ; 
+					}
+				}
 			}
 
 		private:
-			std::ostream& m_stream ;
+			Eigen::VectorXd& m_data ;
+			std::size_t m_number_of_samples ;
+			std::size_t m_number_of_alleles ;
+			std::size_t m_sample_i ;
+			std::size_t m_entry_i ;
 		} ;
 	}
 
@@ -46,7 +120,7 @@ namespace genfile {
 		Info const& info
 	) {
 		write_variant( stream(), id_data ) ;
-		GenotypeWriter writer( stream() ) ;
+		GenotypeWriter writer( m_data ) ;
 		if( data_reader.supports( ":genotypes:" )) {
 			data_reader.get( ":genotypes:", writer ) ;
 		} else {
@@ -56,6 +130,7 @@ namespace genfile {
 				"Data source must support :genotypes: field."
 			) ;
 		}
+		writer.write_to_stream( stream() ) ;
 		stream() << "\n" ;
 	}
 }

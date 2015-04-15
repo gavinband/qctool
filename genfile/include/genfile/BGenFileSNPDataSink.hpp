@@ -63,6 +63,7 @@ namespace genfile {
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) ;
 
 		void set_number_of_bits( int const bits ) ;
+		void set_free_data( std::string const& free_data ) ;
 
 		bgen::Context const& bgen_context() const { return m_bgen_context ; }
 

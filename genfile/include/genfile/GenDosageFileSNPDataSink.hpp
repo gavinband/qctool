@@ -24,10 +24,12 @@ namespace genfile {
 		GenDosageFileSNPDataSink( std::string const& filename, Chromosome chromosome ) ;
 		GenDosageFileSNPDataSink( std::string const& filename, Chromosome chromosome, CompressionType compression_type ) ;
 
-	private:
-
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) ;
 
+	private:
+
+		Eigen::VectorXd m_data ;
+		
 		void write_variant_data_impl(
 			SNPIdentifyingData const& id_data,
 			VariantDataReader& data_reader,

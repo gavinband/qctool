@@ -25,7 +25,8 @@ namespace genfile {
 		GenIntensityFileSNPDataSink( std::string const& filename, Chromosome chromosome, CompressionType compression_type ) ;
 
 	private:
-		std::size_t m_number_of_samples ;
+		Eigen::VectorXd m_data ;
+
 	private:
 
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) ;

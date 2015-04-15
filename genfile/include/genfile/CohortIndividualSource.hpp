@@ -39,6 +39,7 @@ namespace genfile {
 	public:
 		virtual ~CohortIndividualSource() {} ;
 		virtual std::size_t get_number_of_individuals() const = 0 ;
+		std::size_t size() const { return get_number_of_individuals() ; }
 		std::size_t get_number_of_covariates() const ;
 		std::size_t get_number_of_phenotypes() const ;
 

@@ -22,21 +22,31 @@ namespace genfile {
 		GenLikeSNPDataSink( filename, chromosome, compression_type )
 	{}
 
+	void ShapeITHaplotypesSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) {
+		m_data.resize( number_of_samples * 2 ) ;
+		m_data.setConstant( -1 ) ;
+	}
+
 	namespace {
 		struct HaplotypeWriter: public VariantDataReader::PerSampleSetter {
-			HaplotypeWriter( std::ostream& stream ):
-				m_stream( stream )
-			{}
+			HaplotypeWriter( Eigen::VectorXd& data ):
+				m_data( data ),
+				m_sample_i(0),
+				m_entry_i(0)
+			{
+				m_data.setConstant( -1 ) ;
+			}
+
 			~HaplotypeWriter() throw() {}
 			
 			void set_number_of_samples( std::size_t n ) {
-				// nothing to do.
+				assert( (2*n) == m_data.size() ) ;
 			}
 			void set_number_of_alleles( std::size_t n ) {
 				assert( n == 2 ) ;
 			}
 			bool set_sample( std::size_t i ) {
-				// nothing to do
+				m_sample_i = i ;
 				return true ;
 			}
 			void set_order_type( OrderType const order_type, ValueType const value_type ) {
@@ -50,6 +60,7 @@ namespace genfile {
 						"n != 2"
 					) ;
 				}
+				m_entry_i = 0 ;
 			}
 			virtual void set_order_type( OrderType order_type ) {
 				if( order_type != eOrderedList ) {
@@ -59,21 +70,33 @@ namespace genfile {
 					) ;
 				}
 			}
-			virtual void operator()( MissingValue const value ) {
-				m_stream << " " << value ;
+			void operator()( MissingValue const value ) {
+				m_data( m_sample_i * 2 + m_entry_i ) = -1 ;
 			}
-			virtual void operator()( std::string& value ) {
-				m_stream << " " << value ;
+			void operator()( std::string& value ) {
+				assert(0) ;
 			}
-			virtual void operator()( Integer const value ) {
-				m_stream << " " << value ;
+			void operator()( Integer const value ) {
+				m_data( m_sample_i * 2 + m_entry_i ) = value ;
 			}
-			virtual void operator()( double const value ) {
-				m_stream << " " << value ;
+			void operator()( double const value ) {
+				m_data( m_sample_i * 2 + m_entry_i ) = value ;
+			}
+			
+			void write_to_stream( std::ostream& ostr ) const {
+				for( std::size_t i = 0; i < m_data.size(); ++i ) {
+					if( m_data(i) == -1 ) {
+						ostr << " NA" ;
+					} else {
+						ostr << " " << m_data[i] ;
+					}
+				}
 			}
 			
 		private:
-			std::ostream& m_stream ;
+			Eigen::VectorXd& m_data ;
+			std::size_t m_sample_i ;
+			std::size_t m_entry_i ;
 		} ;
 	}
 
@@ -83,8 +106,9 @@ namespace genfile {
 		Info const& info
 	) {
 		write_variant( stream(), id_data ) ;
-		HaplotypeWriter writer( stream() ) ;
+		HaplotypeWriter writer( m_data ) ;
 		data_reader.get( "genotypes", writer ) ;
+		writer.write_to_stream( stream() ) ;
 		stream() << "\n" ;
 	}
 }

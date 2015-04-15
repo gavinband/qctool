@@ -107,10 +107,15 @@ namespace genfile {
 			) ;
 		}
 	}
+
+	void BasicBGenFileSNPDataSink::set_free_data( std::string const& free_data ) {
+		m_bgen_context.free_data = free_data ;
+	}
 	
 	void BasicBGenFileSNPDataSink::setup() {
 		m_offset = m_bgen_context.header_size() ;
 		update_offset_and_header_block() ;
+		// Probably don't need this here.  This will be overwritten in set_sample_names_impl().
 	}
 
 	void BasicBGenFileSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) {

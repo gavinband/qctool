@@ -27,17 +27,22 @@ namespace genfile {
 
 	namespace {
 		struct IntensityWriter: public VariantDataReader::PerSampleSetter {
-			IntensityWriter( std::ostream& stream, std::size_t number_of_samples ):
-				m_stream( stream ),
-				m_number_of_samples( number_of_samples ),
-				m_number_of_alleles( 0 )
-			{}
+			IntensityWriter( Eigen::VectorXd& data ):
+				m_data( data ),
+				m_number_of_samples( m_data.size() / 2 ),
+				m_number_of_alleles( 0 ),
+				m_sample_i( 0 ),
+				m_entry_i( 0 )
+			{
+				assert( m_data.size() % 2 == 0 ) ;
+				m_data.setConstant( -1 ) ;
+			}
 
 			~IntensityWriter() throw() {}
 
 			void set_number_of_samples( std::size_t n ) {
-				if( n != m_number_of_samples ) {
-					throw genfile::BadArgumentError( "genfile::IntensityWriter::set_number_of_samples()", "n=" + string_utils::to_string(n), "Number of samples does not match expected number (" + string_utils::to_string( m_number_of_samples ) + ")" ) ;
+				if( (n*2) != m_data.size() ) {
+					throw genfile::BadArgumentError( "genfile::IntensityWriter::set_number_of_samples()", "n=" + string_utils::to_string(n), "Number of samples does not match expected number (" + string_utils::to_string( m_data.size() / 2 ) + ")" ) ;
 				}
 			}
 
@@ -54,8 +59,10 @@ namespace genfile {
 
 			bool set_sample( std::size_t i ) {
 				assert( i < m_number_of_samples ) ;
+				m_sample_i = i ;
 				return true ;
 			}
+
 			void set_order_type( OrderType const order_type, ValueType const value_type ) {
 			}
 
@@ -67,32 +74,44 @@ namespace genfile {
 						"Expected 2 entries per sample."
 					) ;
 				}
+				m_entry_i = 0 ;
 			}
 			void operator()( MissingValue const value ) {
-				m_stream << " NA" ;
+				m_data( m_sample_i * 2 + m_entry_i ) = -1 ;
 			}
 
 			void operator()( std::string& value ) {
-				m_stream << " " << value ;
+				assert(0) ;
 			}
 
 			void operator()( Integer const value ) {
-				m_stream << " " << value ;
+				assert(0) ;
 			}
 			
 			void operator()( double const value ) {
-				m_stream << " " << value ;
+				m_data( m_sample_i * 2 + m_entry_i ) = value ;
+			}
+			
+			void write_to_stream( std::ostream& ostr ) const {
+				for( std::size_t i = 0; i < m_data.size(); ++i ) {
+					if( m_data(i) == -1 ) {
+						ostr << " NA" ;
+					} else {
+						ostr << " " << m_data(i) ;
+					}
+				}
 			}
 			
 		private:
-			std::ostream& m_stream ;
+			Eigen::VectorXd& m_data ;
 			std::size_t const m_number_of_samples ;
 			std::size_t m_number_of_alleles ;
+			std::size_t m_sample_i ;
+			std::size_t m_entry_i ;
 		} ;
 	}
 	
 	void GenIntensityFileSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter getter ) {
-		m_number_of_samples = number_of_samples ;
 		if( write_chromosome_column() ) {
 			stream() << "chromosome " ;
 		}
@@ -102,6 +121,8 @@ namespace genfile {
 			stream() << " " << getter(i) << "_Y" ;
 		}
 		stream() << "\n" ;
+		m_data.resize( number_of_samples * 2 ) ;
+		m_data.setConstant( -1 ) ;
 	}
 
 	void GenIntensityFileSNPDataSink::write_variant_data_impl(
@@ -110,8 +131,9 @@ namespace genfile {
 		Info const& info
 	) {
 		write_variant( stream(), id_data ) ;
-		IntensityWriter writer( stream(), m_number_of_samples ) ;
+		IntensityWriter writer( m_data ) ;
 		data_reader.get( "XY", writer ) ;
+		writer.write_to_stream( stream() ) ;
 		stream() << "\n" ;
 	}
 }
