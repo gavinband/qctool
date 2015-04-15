@@ -16,7 +16,7 @@
 #include "genfile/ReorderingSNPDataSource.hpp"
 #include "genfile/VariantDataReader.hpp"
 
-#define DEBUG_REORDERING_SNP_DATA_SOURCE 1
+// #define DEBUG_REORDERING_SNP_DATA_SOURCE 1
 
 namespace genfile {
 	namespace {
