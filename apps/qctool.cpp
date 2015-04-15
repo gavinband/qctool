@@ -1145,6 +1145,14 @@ private:
 				}
 				std::reverse( ids.begin(), ids.end() ) ;
 			} else if( order_type == "randomly" ) {
+				{
+					unsigned seed = 0 ;
+					std::ifstream urandom( "/dev/urandom", std::ios::in | std::ios::binary ) ;
+					urandom.read( reinterpret_cast< char* >( &seed ), sizeof( unsigned ) ) ;
+					urandom.close() ;
+					m_ui_context.logger() << boost::format( "Set random seed to %x.\n" ) % seed ;
+					std::srand( seed ) ;
+				}	
 				std::random_shuffle( order.begin(), order.end() ) ;
 				ids = std::vector< std::string >( m_samples->get_number_of_individuals(), "" ) ;
 				boost::uuids::random_generator uuidGenerator;
