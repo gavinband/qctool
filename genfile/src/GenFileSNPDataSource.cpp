@@ -76,35 +76,46 @@ namespace genfile {
 		std::string* allele1,
 		std::string* allele2
 	) {
-		if( m_have_chromosome_column ) {
-			gen::impl::read_snp_identifying_data( stream(), chromosome, SNPID, RSID, SNP_position, allele1, allele2 ) ;
-			if( *this ) {
-				*number_of_samples = m_number_of_samples ;
+		try {
+			if( m_have_chromosome_column ) {
+				gen::impl::read_snp_identifying_data( stream(), chromosome, SNPID, RSID, SNP_position, allele1, allele2 ) ;
+				if( *this ) {
+					*number_of_samples = m_number_of_samples ;
+				}
+			} else {
+				gen::impl::read_snp_identifying_data( stream(), SNPID, RSID, SNP_position, allele1, allele2 ) ;
+				if( *this ) {
+					*number_of_samples = m_number_of_samples ;
+					*chromosome = m_chromosome ;
+				}
 			}
-		} else {
-			gen::impl::read_snp_identifying_data( stream(), SNPID, RSID, SNP_position, allele1, allele2 ) ;
-			if( *this ) {
-				*number_of_samples = m_number_of_samples ;
-				*chromosome = m_chromosome ;
-			}
+		} catch( InputError const& e ) {
+			throw MalformedInputError(
+				m_filename,
+				e.message(),
+				number_of_snps_read()
+			) ;
 		}
 	}
 
 	namespace impl {
 		struct GenFileSNPDataReader: public VariantDataReader {
-			GenFileSNPDataReader( GenFileSNPDataSource& source )
-			{
-				uint32_t this_data_number_of_samples ;
-				gen::impl::read_snp_probability_data(
-					source.stream(),
-					set_value( this_data_number_of_samples ),
-					set_genotypes( m_genotypes ),
-					source.m_line
-				) ;
-				if( !source ) {
-					throw genfile::MalformedInputError( source.m_filename, source.number_of_snps_read() ) ;
+			GenFileSNPDataReader( GenFileSNPDataSource& source ) {
+				try {
+					uint32_t this_data_number_of_samples ;
+					gen::impl::read_snp_probability_data(
+						source.stream(),
+						set_value( this_data_number_of_samples ),
+						set_genotypes( m_genotypes ),
+						source.m_line
+					) ;
+					if( !source ) {
+						throw genfile::MalformedInputError( source.m_filename, source.number_of_snps_read() ) ;
+					}
+					assert(( m_genotypes.size() % 3 ) == 0 ) ;
+				} catch( genfile::InputError const& e ) {
+					throw genfile::MalformedInputError( source.m_filename, e.message(), source.number_of_snps_read() ) ;
 				}
-				assert(( m_genotypes.size() % 3 ) == 0 ) ;
 			}
 			
 			GenFileSNPDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
