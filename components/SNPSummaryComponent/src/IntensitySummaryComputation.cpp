@@ -19,17 +19,6 @@ namespace snp_summary_component {
 		m_call_threshhold( call_threshhold )
 	{}
 
-	namespace {
-		template< typename Data >
-		std::pair< double, double > compute_mean_and_variance_compensated( Data const& data ) {
-			double const mean = data.sum() / data.size() ;
-			double compensation = ( data.array() - mean ).sum() ;
-			compensation = ( compensation * compensation ) / data.size() ;
-			double const variance = ( ( ( data.array() - mean ).square() ).sum() * compensation ) / ( data.size() - 1 ) ;
-			return std::make_pair( mean, variance ) ;
-		}
-	}
-
 	void IntensitySummaryComputation::operator()(
 		SNPIdentifyingData const&,
 		Genotypes const& genotypes,
@@ -68,23 +57,22 @@ namespace snp_summary_component {
 		callback( "var_Y", covariance(1,1) ) ;
 		callback( "cov_XY",covariance(0,1) ) ;
 	
-		for( int g = 0; g < 4; ++g ) {
-			m_intensities_by_genotype = m_intensities ;
+		for( int g = 0; g < 3; ++g ) {
 			m_nonmissingness_by_genotype = m_nonmissingness ;
+
 			for( int i = 0; i < N; ++i ) {
 				if( g == 3 ) { // representing missing genotype
 					if( genotypes.row( i ).maxCoeff() >= m_call_threshhold ) {
 						m_nonmissingness_by_genotype.row( i ).setZero() ;
 					}
-				}
-				else {
+				} else {
 					if( genotypes( i, g ) < m_call_threshhold ) {
 						m_nonmissingness_by_genotype.row( i ).setZero() ;
 					}
 				}
 			}
 			metro::compute_mean_and_covariance(
-				m_intensities_by_genotype,
+				m_intensities,
 				m_nonmissingness_by_genotype,
 				mean,
 				covariance

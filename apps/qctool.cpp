@@ -99,7 +99,6 @@
 #include "SNPIDSink.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "DataReadTest.hpp"
-#include "ClusterFitter.hpp"
 #include "components/RelatednessComponent/RelatednessComponent.hpp"
 #include "components/HaplotypeFrequencyComponent/HaplotypeFrequencyComponent.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComponent.hpp"
@@ -545,7 +544,7 @@ public:
 		//Relatotron::declare_options( options ) ;
 		RelatednessComponent::declare_options( options ) ;
 		DataReadTest::declare_options( options ) ;
-		ClusterFitter::declare_options( options ) ;
+//		ClusterFitter::declare_options( options ) ;
 		ClusterPlotter::declare_options( options ) ;
 		SNPSummaryComponent::declare_options( options ) ;
 		SampleSummaryComponent::declare_options( options ) ;
@@ -2534,12 +2533,6 @@ private:
 				get_ui_context()
 			) ;
 			relatedness_component->setup( processor ) ;
-		}
-
-		ClusterFitter::UniquePtr cluster_fitter ;
-		if( options().check_if_option_was_supplied( "-fit-clusters" ) ) {
-			cluster_fitter = ClusterFitter::create( options() ) ;
-			processor.add_callback( *cluster_fitter ) ;
 		}
 
 		ClusterPlotter::UniquePtr cluster_plotter ;

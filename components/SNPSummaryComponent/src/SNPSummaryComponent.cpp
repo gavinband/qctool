@@ -29,6 +29,7 @@
 #include "components/SNPSummaryComponent/CrossDataSetHaplotypeComparisonComputation.hpp"
 #include "components/SNPSummaryComponent/GeneticMapAnnotation.hpp"
 #include "components/SNPSummaryComponent/CallComparerComponent.hpp"
+#include "components/SNPSummaryComponent/ClusterFitComputation.hpp"
 
 void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "SNP computation options" ) ;
@@ -42,6 +43,20 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options.declare_group( "Intensity computation options" ) ;
 	options[ "-intensity-stats" ]
 		.set_description( "Compute intensity means and (co)variances for each genotype class at each SNP." ) ;
+	options[ "-fit-clusters" ]
+		.set_description( "Fit multivariate T distributions to each cluster." ) ;
+	options[ "-fit-cluster-parameters" ]
+		.set_description( "Specify parameters for cluster fit.  This should have three values, which are:"
+			" 1. the degrees of freedom for the multivariate t.  Specify \"inf\" or ∞ to fit multivariate normal clusters."
+			" 2. the variance of a diagonal variance matrix used for regularisation."
+			" 3. the effective number of fake samples used for regularisation."
+		)
+		.set_takes_values( 3 )
+		.set_default_value( 3 )
+		.set_default_value( 0.5 )
+		.set_default_value( 10 )
+	;
+	options.option_implies_option( "-fit-cluster-parameters", "-fit-clusters" ) ;
 	
 	options[ "-stratify" ]
 		.set_description( "Compute all SNP summary statistics seperately for each level of the given variable in the sample file." )
@@ -57,7 +72,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_description( "Specify a FASTA-formatted file containing ancestral alleles to annotate variants with." )
 		.set_takes_single_value() ;
 	options[ "-annotate-reference" ]
-		.set_description( "Specify a FASTA-formatted file containing ancestral alleles to annotate variants with." )
+		.set_description( "Specify a FASTA-formatted file containing reference alleles to annotate variants with." )
 		.set_takes_single_value() ;
 	options[ "-annotate-genetic-map" ]
 		.set_description( "Specify a genetic map file or files.  QCTOOL will interpolate the map "
@@ -83,6 +98,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 			"and turns on computation of switch error for two sets of haplotypes." ) ;
 	options.option_implies_option( "-snp-stats", "-g" ) ;
 	options.option_implies_option( "-intensity-stats", "-g" ) ;
+	options.option_implies_option( "-fit-clusters", "-g" ) ;
 	options.option_implies_option( "-annotate-ancestral", "-g" ) ;
 	options.option_implies_option( "-annotate-reference", "-g" ) ;
 	options.option_implies_option( "-stratify", "-s" ) ;
@@ -93,6 +109,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 bool SNPSummaryComponent::is_needed( appcontext::OptionProcessor const& options ) {
 	return options.check( "-snp-stats" )
 		|| options.check( "-intensity-stats" )
+		|| options.check( "-fit-clusters" )
 		|| options.check( "-compare-to" )
 		|| options.check( "-annotate-ancestral" )
 		|| options.check( "-annotate-reference" )
@@ -200,6 +217,26 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 
 	if( m_options.check( "-intensity-stats" )) {
 		manager.add_computation( "intensity-stats", SNPSummaryComputation::create( "intensity-stats" )) ;
+	}
+
+	if( m_options.check( "-fit-clusters" )) {
+		std::vector< std::string > params = m_options.get_values( "-fit-cluster-parameters" ) ;
+		double nu = 0 ;
+		if( genfile::string_utils::to_lower( params[0] ) == "inf" || params[0] == "∞" ) {
+			nu = std::numeric_limits< double >::infinity() ;
+		} else {
+			nu = genfile::string_utils::to_repr< double >( params[0] ) ;
+		}
+		double regularisationVariance = genfile::string_utils::to_repr< double >( params[1] ) ;
+		double regularisationCount = genfile::string_utils::to_repr< double >( params[2] ) ;
+		manager.add_computation(
+			"fit-clusters",
+			SNPSummaryComputation::UniquePtr(
+				new snp_summary_component::ClusterFitComputation(
+					nu, regularisationVariance, regularisationCount
+				)
+			)
+		) ;
 	}
 
 	if( m_options.check( "-compare-to" )) {

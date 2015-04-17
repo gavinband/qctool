@@ -172,9 +172,9 @@ AUTO_TEST_CASE( test_loglikelihood_range ) {
 				0.45, -100,
 				10000, 100000
 			;
-			std::vector< metro::DataRange > ranges ;
-			ranges.push_back( metro::DataRange( 0, 1 )) ;
-			ranges.push_back( metro::DataRange( 2, 3 )) ;
+			metro::DataSubset ranges ;
+			ranges.add( metro::DataRange( 0, 1 )) ;
+			ranges.add( metro::DataRange( 2, 3 )) ;
 
 			metro::likelihood::MultivariateT< double, Vector, Matrix > T( data, ranges, 3 ) ;
 			T.evaluate_at( Vector::Constant( 2, 0 ), Matrix::Identity( 2, 2 )) ;
@@ -472,48 +472,56 @@ AUTO_TEST_CASE( test_regularised_em ) {
 }
 
 AUTO_TEST_CASE( test_loglikelihood_em_range ) {
-	double ll1 = 0, ll2 = 0, ll3 = 0, ll4 = 0 ;
-	double const likelihoodTolerance = 0.0000001 ;
-	metro::ValueStabilisesStoppingCondition stoppingCondition( 0.0000001 ) ;
-	{
-		Matrix data( 3, 2 ) ;
-		data <<
-			0.5, 0.1,
-			0.4, 0.2,
-			0.2, 0.3
-		;
+	std::vector< double > nu_values ;
+	nu_values.push_back( 1 ) ;
+	nu_values.push_back( 3 ) ;
+	nu_values.push_back( std::numeric_limits< double >::infinity() ) ;
+	
+	for( std::size_t i = 0; i < nu_values.size(); ++i ) {
+		double nu = nu_values[i] ;
+		double ll1 = 0, ll2 = 0, ll3 = 0, ll4 = 0 ;
+		double const likelihoodTolerance = 0.0000001 ;
+		metro::ValueStabilisesStoppingCondition stoppingCondition( 0.0000001 ) ;
+		{
+			Matrix data( 3, 2 ) ;
+			data <<
+				0.5, 0.1,
+				0.4, 0.2,
+				0.2, 0.3
+			;
 
-		metro::likelihood::MultivariateT< double, Vector, Matrix > T( data, 3 ) ;
-		stoppingCondition.reset() ;
-		BOOST_CHECK( T.estimate_by_em( stoppingCondition ) ) ;
+			metro::likelihood::MultivariateT< double, Vector, Matrix > T( data, nu ) ;
+			stoppingCondition.reset() ;
+			BOOST_CHECK( T.estimate_by_em( stoppingCondition ) ) ;
 		
-		ll1 = T.get_value_of_function() ;
-	}
+			ll1 = T.get_value_of_function() ;
+		}
 
-	{
-		Matrix data( 6, 2 ) ;
-		data <<
-			0.5, 0.1,
-			0.3, 0.1,
-			0.4, 0.2,
-			0.2, 0.3,
-			0.45, -100,
-			10000, 100000
+		{
+			Matrix data( 6, 2 ) ;
+			data <<
+				0.5, 0.1,
+				0.3, 0.1,
+				0.4, 0.2,
+				0.2, 0.3,
+				0.45, -100,
+				10000, 100000
 			
-		;
-		std::vector< metro::DataRange > ranges ;
-		ranges.push_back( metro::DataRange( 0, 1 )) ;
-		ranges.push_back( metro::DataRange( 2, 4 )) ;
+			;
+			metro::DataSubset ranges ;
+			ranges.add( metro::DataRange( 0, 1 )) ;
+			ranges.add( metro::DataRange( 2, 4 )) ;
 
-		metro::likelihood::MultivariateT< double, Vector, Matrix > T( data, ranges, 3 ) ;
-		stoppingCondition.reset() ;
-		T.estimate_by_em( stoppingCondition ) ;
-		ll2 = T.get_value_of_function() ;
+			metro::likelihood::MultivariateT< double, Vector, Matrix > T( data, ranges, nu ) ;
+			stoppingCondition.reset() ;
+			T.estimate_by_em( stoppingCondition ) ;
+			ll2 = T.get_value_of_function() ;
+		}
+
+		// Nominally exactly the same, the computation has slight rounding
+		// errors so gets a different value.
+		BOOST_CHECK_CLOSE( ll1, ll2, 1E-10 ) ;
 	}
-
-	// Nominally exactly the same, the computation has slight rounding
-	// errors so gets a different value.
-	BOOST_CHECK_CLOSE( ll1, ll2, 1E-10 ) ;
 }
 
 AUTO_TEST_CASE( test_weighted_em ) {
