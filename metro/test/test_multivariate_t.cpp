@@ -14,9 +14,11 @@ typedef Eigen::VectorXd Vector ;
 
 double const infinity = std::numeric_limits< double >::infinity() ;
 
-// #define DEBUG_MULTIVARIATE_T 1
+//#define DEBUG_MULTIVARIATE_T 1
 
-AUTO_TEST_CASE( test_multivariate_t_loglikelihood ) {
+BOOST_AUTO_TEST_SUITE( test_multivariate_t )
+
+AUTO_TEST_CASE( test_loglikelihood ) {
 	{
 		Matrix data( 1, 1 ) ;
 		data(0,0) = 0 ;
@@ -82,7 +84,7 @@ AUTO_TEST_CASE( test_multivariate_t_loglikelihood ) {
 	}
 }
 
-AUTO_TEST_CASE( test_multivariate_t_em ) {
+AUTO_TEST_CASE( test_em ) {
 
 	double const likelihoodTolerance = 0.0000001 ;
 	metro::ValueStabilisesStoppingCondition stoppingCondition( likelihoodTolerance ) ;
@@ -279,7 +281,7 @@ private:
 	double m_value ;
 } ;
 
-AUTO_TEST_CASE( test_multivariate_t_em_is_monotonic ) {
+AUTO_TEST_CASE( test_em_is_monotonic ) {
 	double const likelihoodTolerance = 0.0000001 ;
 	MonotonicCheck monotonicCheck( 1000 ) ;
 	Matrix data( 16, 2 ) ;
@@ -308,3 +310,61 @@ AUTO_TEST_CASE( test_multivariate_t_em_is_monotonic ) {
 		bool converged = T.estimate_by_em( monotonicCheck ) ;
 	}
 }
+
+AUTO_TEST_CASE( test_regularised_em ) {
+	double const likelihoodTolerance = 0.0000001 ;
+	Matrix data( 1, 2 ) ;
+	data <<
+		0.5, 0.5
+	;
+	{
+		metro::ValueStabilisesStoppingCondition stoppingCondition( likelihoodTolerance ) ;
+		metro::likelihood::MultivariateT< double, Vector, Matrix > T( data, 1 ) ;
+		bool converged = T.estimate_by_em( stoppingCondition ) ;
+		// will not converge because only one observation
+		BOOST_CHECK( converged == false ) ;
+	}
+
+	{
+		metro::ValueStabilisesStoppingCondition stoppingCondition( likelihoodTolerance ) ;
+		// try regularised EM.
+		metro::likelihood::MultivariateT< double, Vector, Matrix > T( data, 1 ) ;
+		bool converged = T.estimate_by_em(
+			stoppingCondition,
+			Matrix::Identity( 2, 2 ),
+			1
+		) ;
+		BOOST_CHECK( converged == true ) ;
+
+		// In effect two observations, one with identity sigma, one with sigma = 0.
+		BOOST_CHECK_CLOSE( T.get_sigma()(0,0), 0.5, 0.01 ) ;
+		BOOST_CHECK_CLOSE( T.get_sigma()(0,1), 0, 0.01 ) ;
+		BOOST_CHECK_CLOSE( T.get_sigma()(1,1), 0.5, 0.01 ) ;
+#if DEBUG_MULTIVARIATE_T
+			std::cerr << "test_multivariate_t_regularised_em(): data is:\n"
+				<< data << ", estimated parameters are:\n"
+				<< "nu = " << T.get_degrees_of_freedom() << ",\n"
+				<< "mean = " << T.get_mean().transpose() << ",\n"
+				<< "sigma =\n" << T.get_sigma() << ".\n"
+				<< "log-likelihood= " << T.get_value_of_function() << ".\n" ;
+#endif			
+	}
+
+	// test a massive weight.
+	{
+		metro::ValueStabilisesStoppingCondition stoppingCondition( likelihoodTolerance ) ;
+		metro::likelihood::MultivariateT< double, Vector, Matrix > T( data, 1 ) ;
+		bool converged = T.estimate_by_em(
+			stoppingCondition,
+			Matrix::Identity( 2, 2 ),
+			100000000
+		) ;
+		BOOST_CHECK( converged == true ) ;
+		// Weight is so strong we should get back the prior
+		BOOST_CHECK_CLOSE( T.get_sigma()(0,0), 1, 0.01 ) ;
+		BOOST_CHECK_CLOSE( T.get_sigma()(0,1), 0, 0.01 ) ;
+		BOOST_CHECK_CLOSE( T.get_sigma()(1,1), 1, 0.01 ) ;
+	}
+}
+
+BOOST_AUTO_TEST_SUITE_END()

@@ -13,6 +13,7 @@
 #include <Eigen/LU>
 #include <Eigen/Cholesky>
 #include "metro/LogLikelihood.hpp"
+#include "metro/DataRange.hpp"
 
 // #define DEBUG_MULTIVARIATE_T 1
 
@@ -22,12 +23,14 @@ namespace metro {
 		struct MultivariateT: public metro::LogLikelihood< Scalar, Vector, Matrix > {
 			MultivariateT( Matrix const& data, double const degrees_of_freedom ):
 				m_pi( 3.141592653589793238462643383279502884 ),
+				m_nu( degrees_of_freedom ),
 				m_data( data ),
+				m_data_range( std::vector< DataRange >( 1, DataRange( 0, m_data.rows() ))),
 				// parameters are:
 				// degrees of freedom
 				// mean 
-				m_nu( degrees_of_freedom ),
 				m_p( data.cols() ),
+				m_n( data.rows() ),
 				m_parameters( Vector::Zero( m_p + ( m_p * ( m_p + 1 ) / 2 ) )),
 				// Compute contribution to log-likelihood that does not depend
 				// on the parameters.
@@ -45,17 +48,32 @@ namespace metro {
 			{
 			}
 
-			MultivariateT( MultivariateT const& other ):
-				m_data( other.m_data ),
-				m_parameters( other.m_parameters )
-			{}
-
-			MultivariateT& operator=( MultivariateT const& other ) {
-				m_data = other.m_data ;
-				m_parameters = other.m_parameters ;
-				return *this ;
+			MultivariateT( Matrix const& data, std::vector< DataRange > const& data_range, double const degrees_of_freedom ):
+				m_pi( 3.141592653589793238462643383279502884 ),
+				m_nu( degrees_of_freedom ),
+				m_data( data ),
+				m_data_range( data_range ),
+				// parameters are:
+				// degrees of freedom
+				// mean 
+				m_p( data.cols() ),
+				m_n( data.rows() ),
+				m_parameters( Vector::Zero( m_p + ( m_p * ( m_p + 1 ) / 2 ) )),
+				// Compute contribution to log-likelihood that does not depend
+				// on the parameters.
+				m_kappa(
+					degrees_of_freedom == std::numeric_limits< double >::infinity()
+						? (
+							-0.5 * m_p * std::log( 2 * m_pi )
+						) : (
+							lgamma( ( m_nu + m_p ) / 2.0 )
+							- ( m_p / 2 ) * std::log( m_pi * m_nu )
+							- lgamma( m_nu / 2.0 )
+							+ (( m_nu + m_p ) * std::log( m_nu ) / 2.0 )
+						)
+				)
+			{
 			}
-
 			// Evaluate at a packed set of parameters
 			// These are:
 			// The p values of the mean, followed by
@@ -109,16 +127,25 @@ namespace metro {
 				double result = 0 ;
 				if( m_nu == std::numeric_limits< double >::infinity() ) {
 					// Multivariate normal.
-					result = -0.5 * ( m_Z2.sum() + m_data.rows() * m_log_determinant ) + ( m_data.rows() * m_kappa ) ;
-				} else {
-					result = -(( m_nu + m_p ) * ( m_Z2 + Vector::Constant( m_data.rows(), m_nu ) ).array().log().sum() ) / 2.0 ;
-					result -= m_data.rows() * 0.5 * m_log_determinant ;
-					result += m_data.rows() * m_kappa ;
-#if DEBUG_MULTIVARIATE_T > 2
+					for( std::size_t i = 0; i < m_data_range.size(); ++i ) {
+						DataRange const& range = m_data_range[i] ;
+#if DEBUG_MULTIVARIATE_T
 					std::cerr << "metro::likelihood::MultivariateT::get_value_of_function():\n"
-						<< " kappa = " << m_kappa << ".\n"
-						<< " terms = " << (( m_nu * m_p ) * m_Z2.array().log().transpose() ) / 2.0 << ".\n" ;
+						<< " Adding " << range << "\n" ;
 #endif				
+						result +=
+							( range.size() * m_kappa )
+							- 0.5 * ( m_Z2.segment( range.begin(), range.size() ).sum() + range.size() * m_log_determinant ) ;
+					}
+				} else {
+					for( std::size_t i = 0; i < m_data_range.size(); ++i ) {
+						DataRange const& range = m_data_range[i] ;
+						result += -(( m_nu + m_p ) * (
+							m_Z2.segment( range.begin(), range.size() )
+							+ Vector::Constant( range.size(), m_nu )
+						).array().log().sum() ) / 2.0 ;
+						result += range.size() * ( m_kappa - 0.5 * m_log_determinant ) ;
+					}
 				}
 				return result ;
 			}
@@ -131,16 +158,45 @@ namespace metro {
 				assert(0) ;
 			}
 
-			// Fit multivariate T by EM until the loglikelihood
-			// increases by less than the given amount.
-			// Algorithm details are from Nadarajah & Kotz, "Estimation methods for the Multivariate t Distribution.", p.103
+
+			// Fit multivariate T by EM until the loglikelihood increases by less than the given amount.
 			template< typename StoppingCondition >
-			bool estimate_by_em( StoppingCondition& stopping_condition ) {
+			bool estimate_by_em(
+				StoppingCondition& stopping_condition
+			) {
+				Matrix regularising_sigma = Matrix::Constant( m_p, m_p, 0 ) ;
+				double regularising_weight = 0 ;
+				return estimate_by_em(
+					stopping_condition,
+					regularising_sigma,
+					regularising_weight
+				) ;
+			}
+
+			// Fit multivariate T by EM until the stopping condition is satisfied.
+			// Algorithm details are from Nadarajah & Kotz, "Estimation methods for the Multivariate t Distribution.", p.103
+			// This function includes a regularising variance-covariance matrix, and weight
+			// to prevent the fit from becoming degenerate.
+			//
+			// StoppingCondition must support operator() with result convertible to bool.
+			// a value of true means stop, otherwise continue.
+			// It must also be callable as stopping_condition.converged(), which this function uses
+			// to return a value to the caller.
+			template< typename StoppingCondition >
+			bool estimate_by_em(
+				StoppingCondition& stopping_condition,
+				Matrix const& regularising_sigma,
+				double regularising_weight
+			) {
+				assert( regularising_sigma.rows() == m_p ) ;
+				assert( regularising_sigma.cols() == m_p ) ;
+				assert( regularising_weight >= 0.0 ) ;
+				
 				// Start with the MLE multivariate normal estimate
-				Vector mu = m_data.colwise().sum().transpose() / m_data.rows() ;
+				Vector mu = m_data.colwise().sum().transpose() / m_n ;
 				Eigen::MatrixXd Z = m_data.rowwise() - mu.transpose() ;
 				Matrix sum_of_squares = ( Z.transpose() * Z ) ;
-				Matrix sigma = sum_of_squares / m_data.rows() ;
+				Matrix sigma = ( sum_of_squares + regularising_weight * regularising_sigma ) / ( m_n + regularising_weight ) ;
 				evaluate_at( mu, sigma ) ;
 				double loglikelihood = get_value_of_function() ;
 				
@@ -154,7 +210,7 @@ namespace metro {
 					return true ;
 				}
 
-				Vector weights = Vector::Constant( m_data.rows(), 1 ) ;
+				Vector weights = Vector::Constant( m_n, 1 ) ;
 				std::size_t iteration = 0 ;
 				while( !stopping_condition( loglikelihood ) ) {
 					// compute weights
@@ -165,7 +221,7 @@ namespace metro {
 					Vector weights = (
 						m_mean_centred_data.array() * m_ldlt.solve( m_mean_centred_data.transpose() ).transpose().array()
 					).rowwise().sum() ;
-					weights += Vector::Constant( m_data.rows(), m_nu ) ;
+					weights += Vector::Constant( m_n, m_nu ) ;
 					weights.array() = weights.array().inverse() * ( m_nu + m_p ) ;
 
 					// compute new parameter estimates
@@ -175,13 +231,13 @@ namespace metro {
 					m_mean_centred_data = m_data.rowwise() - new_mu.transpose() ;
 					// sigma = 1/N sum ( w_i (x_i-mu)(x_i-mu)^t)
 					// we store x_i as a row not a column, so transposes go the opposite way.
-					sigma = ( m_mean_centred_data.transpose() * weights.asDiagonal() * m_mean_centred_data ) / m_data.rows() ;
+					sigma = ( ( m_mean_centred_data.transpose() * weights.asDiagonal() * m_mean_centred_data ) + regularising_weight * regularising_sigma ) / ( m_n + regularising_weight ) ;
 					evaluate_at( new_mu, sigma ) ;
 					loglikelihood = get_value_of_function() ;
 
 #if DEBUG_MULTIVARIATE_T
 					std::cerr << "metro::likelihood::MultivariateT::estimate_by_em(): after iteration "
-						<< iteration << ": params = " << get_parameters().transpose() << ", ll = " << loglikelihood << ".\n" ;
+						<< iteration << ": params = " << get_parameters().transpose() << ", ll = " << loglikelihood << ", weights = " << weights.transpose() << ".\n" ;
 #endif				
 					++iteration ;
 				}
@@ -198,9 +254,11 @@ namespace metro {
 
 		private:
 			double const m_pi ;
-			Matrix const m_data ;
 			double const m_nu ;
+			Matrix const& m_data ;
+			std::vector< DataRange > m_data_range ;
 			double const m_p ;
+			double const m_n ;
 			double const m_kappa ;
 			Vector m_parameters ;
 			Matrix m_sigma ;
@@ -208,7 +266,8 @@ namespace metro {
 
 			Eigen::LDLT< Matrix > m_ldlt ;
 			double m_log_determinant ;
-			Eigen::MatrixXd m_mean_centred_data, m_Z2, m_Z3 ;
+			Matrix m_mean_centred_data ;
+			Vector m_Z2 ;
 		} ;
 	}
 }
