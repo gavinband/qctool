@@ -8,11 +8,12 @@
 #define METRO_LIKELIHOOD_LOGLIKELIHOOD_HPP
 
 #include <memory>
+#include <boost/noncopyable.hpp>
 #include <Eigen/Core>
 
 namespace metro {
 	template< typename Scalar, typename Vector, typename Matrix >
-	struct LogLikelihood {
+	struct LogLikelihood: public boost::noncopyable {
 		typedef std::auto_ptr< LogLikelihood > UniquePtr ;
 		virtual ~LogLikelihood() {}
 		
