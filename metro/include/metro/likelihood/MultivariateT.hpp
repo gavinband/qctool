@@ -30,7 +30,6 @@ namespace metro {
 				// degrees of freedom
 				// mean 
 				m_p( data.cols() ),
-				m_n( data.rows() ),
 				m_parameters( Vector::Zero( m_p + ( m_p * ( m_p + 1 ) / 2 ) )),
 				// Compute contribution to log-likelihood that does not depend
 				// on the parameters.
@@ -57,7 +56,6 @@ namespace metro {
 				// degrees of freedom
 				// mean 
 				m_p( data.cols() ),
-				m_n( data.rows() ),
 				m_parameters( Vector::Zero( m_p + ( m_p * ( m_p + 1 ) / 2 ) )),
 				// Compute contribution to log-likelihood that does not depend
 				// on the parameters.
@@ -191,13 +189,13 @@ namespace metro {
 				assert( regularising_sigma.rows() == m_p ) ;
 				assert( regularising_sigma.cols() == m_p ) ;
 				assert( regularising_weight >= 0.0 ) ;
-				
-				// Start with the MLE multivariate normal estimate
-				Vector mu = m_data.colwise().sum().transpose() / m_n ;
-				Eigen::MatrixXd Z = m_data.rowwise() - mu.transpose() ;
-				Matrix sum_of_squares = ( Z.transpose() * Z ) ;
-				Matrix sigma = ( sum_of_squares + regularising_weight * regularising_sigma ) / ( m_n + regularising_weight ) ;
-				evaluate_at( mu, sigma ) ;
+
+				// Start with unit weights, giving MVN estimate
+				Vector weights = Vector::Constant( m_data.rows(), 1 ) ;
+				Vector mean = compute_weighted_mean( weights, m_data_range ) ;
+				Matrix sigma = compute_weighted_regularised_sigma( weights, mean, regularising_sigma, regularising_weight, m_data_range ) ;
+
+				evaluate_at( mean, sigma ) ;
 				double loglikelihood = get_value_of_function() ;
 				
 #if DEBUG_MULTIVARIATE_T
@@ -205,39 +203,37 @@ namespace metro {
 					<< get_parameters().transpose() << ", ll = " << get_value_of_function() << ".\n" ;
 #endif				
 
+				// If nu = ∞ we are at the MLE already, so bail out...
 				if( m_nu == std::numeric_limits< double >::infinity() ) {
 					// Multivariate normal.  Quit right now.
 					return true ;
 				}
 
-				Vector weights = Vector::Constant( m_n, 1 ) ;
+				// ..otherwise let's EM it.
 				std::size_t iteration = 0 ;
 				while( !stopping_condition( loglikelihood ) ) {
 					// compute weights
 					// Vector of weights is given as
-					// (nu+p) / nu + (x_i-mu)^t R^-1 ( x_i - mu ).
-					// Our x_i - mu_i is stored in a single row of m_mean_centred_data.
-				
+					// (nu+p) / nu + (x_i-mean)^t R^-1 ( x_i - mean ).
+					// Our x_i - mean_i is stored in a single row of m_mean_centred_data.
 					Vector weights = (
 						m_mean_centred_data.array() * m_ldlt.solve( m_mean_centred_data.transpose() ).transpose().array()
 					).rowwise().sum() ;
-					weights += Vector::Constant( m_n, m_nu ) ;
+					weights += Vector::Constant( m_data.rows(), m_nu ) ;
 					weights.array() = weights.array().inverse() * ( m_nu + m_p ) ;
 
 					// compute new parameter estimates
 					// these are
-					// mu = sum( w_i x_i ) / sum( w_i )
-					Eigen::VectorXd new_mu = (( weights.asDiagonal() * m_data ).colwise().sum() / weights.sum() ).transpose() ;
-					m_mean_centred_data = m_data.rowwise() - new_mu.transpose() ;
-					// sigma = 1/N sum ( w_i (x_i-mu)(x_i-mu)^t)
-					// we store x_i as a row not a column, so transposes go the opposite way.
-					sigma = ( ( m_mean_centred_data.transpose() * weights.asDiagonal() * m_mean_centred_data ) + regularising_weight * regularising_sigma ) / ( m_n + regularising_weight ) ;
-					evaluate_at( new_mu, sigma ) ;
+					// mean = sum( w_i x_i ) / sum( w_i )
+					mean = compute_weighted_mean( weights, m_data_range ) ;
+					sigma = compute_weighted_regularised_sigma( weights, mean, regularising_sigma, regularising_weight, m_data_range ) ;
+					evaluate_at( mean, sigma ) ;
 					loglikelihood = get_value_of_function() ;
 
 #if DEBUG_MULTIVARIATE_T
 					std::cerr << "metro::likelihood::MultivariateT::estimate_by_em(): after iteration "
-						<< iteration << ": params = " << get_parameters().transpose() << ", ll = " << loglikelihood << ", weights = " << weights.transpose() << ".\n" ;
+						<< iteration << ": params = " << get_parameters().transpose()
+						<< ", ll = " << loglikelihood << ", weights = " << weights.transpose() << ".\n" ;
 #endif				
 					++iteration ;
 				}
@@ -258,7 +254,6 @@ namespace metro {
 			Matrix const& m_data ;
 			std::vector< DataRange > m_data_range ;
 			double const m_p ;
-			double const m_n ;
 			double const m_kappa ;
 			Vector m_parameters ;
 			Matrix m_sigma ;
@@ -268,6 +263,55 @@ namespace metro {
 			double m_log_determinant ;
 			Matrix m_mean_centred_data ;
 			Vector m_Z2 ;
+			
+			Vector compute_weighted_mean(
+				Vector const& weights,
+				std::vector< DataRange > const& data_range
+			) const {
+				Vector result = Vector::Zero( m_p ) ;
+				double total_weight = 0 ;
+				for( std::size_t i = 0; i < data_range.size(); ++i ) {
+					DataRange const& range = data_range[i] ;
+					result += (
+						(
+							weights.segment( range.begin(), range.size() ).asDiagonal()
+							* m_data.block( range.begin(), 0, range.size(), m_p )
+						).colwise().sum()
+					).transpose() ;
+
+					total_weight += weights.segment( range.begin(), range.size() ).sum() ;
+				}
+				result /= total_weight ;
+				return result ;
+			}
+			
+			Matrix compute_weighted_regularised_sigma(
+				Vector const& weights,
+				Vector const& mean,
+				Matrix const& regularising_sigma,
+				double const regularising_weight,
+				std::vector< DataRange > const& data_range
+			) const {
+				Matrix mean_centred_data = m_data.rowwise() - mean.transpose() ;
+				// sigma = 1/N sum ( w_i (x_i-mean)(x_i-mean)^t)
+				// we store x_i as a row not a column, so transposes go the opposite way.
+				Matrix result = Matrix::Zero( m_p, m_p ) ;
+				double n = 0 ;
+				for( std::size_t i = 0; i < data_range.size(); ++i ) {
+					DataRange const& range = data_range[i] ;
+					result += (
+						(
+							mean_centred_data.block( range.begin(), 0, range.size(), m_p ).transpose()
+							* weights.segment( range.begin(), range.size() ).asDiagonal()
+							* mean_centred_data.block( range.begin(), 0, range.size(), m_p )
+						)
+					) ;
+					n += range.size() ;
+				}
+				result += regularising_weight * regularising_sigma ;
+				result /= ( n + regularising_weight ) ;
+				return result ;
+			}
 		} ;
 	}
 }
