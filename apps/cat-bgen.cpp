@@ -48,6 +48,7 @@ public:
 				"Path of bgen file to output."
 			)
 			.set_takes_single_value()
+		.set_is_required()
 		;
 
 		options[ "-set-free-data" ]
