@@ -50,6 +50,15 @@ public:
 			.set_takes_single_value()
 		;
 
+		options[ "-set-free-data" ]
+			.set_description(
+					"Specify that cat-bgen should set free data in the resulting file to the given value."
+					" If the value is an existing filename, bytes are read from that filename."
+					" Otherwise the value is treated as a string."
+			)
+			.set_takes_single_value()
+		;
+
 	    options[ "-clobber" ]
 	        .set_description(
 				"Specify that cat-bgen should overwrite existing output file if it exists."
@@ -115,6 +124,12 @@ private:
 
 			get_ui_context().logger() << boost::format( "Adding file \"%s\" (%d of %d, %d variants)...\n" )
 				% inputFilenames[0] % 1 % inputFiles.size() % resultContext.number_of_variants ;
+
+			if( options().check( "-set-free-data" )) {
+				std::string const newFreeData = options().get< std::string >( "-set-free-data" ) ;
+				offset += newFreeData.size() - resultContext.free_data.size() ;
+				resultContext.free_data = newFreeData ;
+			}
 
 			// Copy the header 
 			bgen::write_offset( outputFile, offset ) ;
