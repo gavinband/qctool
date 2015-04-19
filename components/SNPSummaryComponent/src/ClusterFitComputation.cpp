@@ -17,6 +17,8 @@
 #include "metro/likelihood/MultivariateT.hpp"
 #include "metro/ValueStabilisesStoppingCondition.hpp"
 
+// #define DEBUG_CLUSTERFITCOMPUTATION 1
+
 namespace snp_summary_component {
 	ClusterFitComputation::ClusterFitComputation(
 		double nu,
@@ -55,6 +57,14 @@ namespace snp_summary_component {
 		Eigen::RowVectorXd mean ;
 		Eigen::MatrixXd covariance ;
 
+
+		// We compute log-likelihood under a model which is a equally-weighted
+		// mixture of the three clusters.
+		// For this purpose we record the parameters etc.
+		Eigen::MatrixXd parameters = Eigen::MatrixXd::Constant( 3, 5, std::numeric_limits< double >::quiet_NaN() ) ;
+		Eigen::VectorXd counts = Eigen::VectorXd::Zero( 3 ) ;
+		metro::DataSubset nonMissingSubset ;
+		
 		for( int g = 0; g < 3; ++g ) {
 			metro::DataSubset subset ;
 				
@@ -88,6 +98,8 @@ namespace snp_summary_component {
 				}
 			}
 			
+			counts(g) = subset.size() ;
+			
 			metro::likelihood::MultivariateT< double, Eigen::VectorXd, Eigen::MatrixXd > cluster( m_intensities, subset, m_nu ) ;
 			metro::ValueStabilisesStoppingCondition stoppingCondition( 0.01, 100 ) ;
 			
@@ -101,10 +113,35 @@ namespace snp_summary_component {
 				callback( stub + ":sigma_XY", cluster.get_sigma()(1,0) ) ;
 				callback( stub + ":sigma_YY", cluster.get_sigma()(1,1) ) ;
 				callback( stub + ":iterations", genfile::VariantEntry::Integer( stoppingCondition.iterations() ) ) ;
+				
+#if DEBUG_CLUSTERFITCOMPUTATION
+				std::cerr << "cluster " << g << ": count = " << subset.size() << ", parameters = " << cluster.get_parameters().transpose() << ", ll = " << cluster.get_value_of_function() << ".\n" ;
+#endif
+				nonMissingSubset.add( subset ) ;
+				parameters.row(g) = cluster.get_parameters().transpose() ;
 			} else {
 				std::cerr << "!! No convergence.\n" ;
 			}
 		}
+
+		// Compute the log-likelihood of all the intensity data under a model
+		// which is an equally-weighted mixture of the three clusters.
+		{
+			double ll = 0 ;
+			double ll_weight = 0 ;
+			for( int g = 0; g < 3; ++g ) {
+				if( counts(g) > 0 ) {
+					metro::likelihood::MultivariateT< double, Eigen::VectorXd, Eigen::MatrixXd > cluster( m_intensities, nonMissingSubset, m_nu ) ;
+					cluster.evaluate_at( parameters.row(g).transpose() ) ;
+					ll += cluster.get_value_of_function() ;
+					ll_weight += 1 ;
+				}
+			}
+
+			callback( "cluster-model:number-of-clusters", ll_weight ) ;
+			callback( "cluster-model:loglikelihood", ll ) ;
+		}
+		
 	}
 
 	std::string ClusterFitComputation::get_summary( std::string const& prefix, std::size_t column_width ) const {

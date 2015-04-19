@@ -14,7 +14,7 @@ typedef Eigen::VectorXd Vector ;
 
 double const infinity = std::numeric_limits< double >::infinity() ;
 
-//#define DEBUG_MULTIVARIATE_T 1
+#define DEBUG_MULTIVARIATE_T 1
 
 BOOST_AUTO_TEST_SUITE( test_multivariate_t )
 
@@ -247,11 +247,39 @@ AUTO_TEST_CASE( test_em ) {
 			<< data << ", estimated parameters are:\n"
 			<< "nu = " << T.get_degrees_of_freedom() << ",\n"
 			<< "mean = " << T.get_mean().transpose() << ",\n"
-			<< "sigma =\n" << T.get_sigma() << ".\n" ;
+			<< "sigma =\n" << T.get_sigma() << ".\n"
+			<< "log-likelihood = " << T.get_value_of_function() << ".\n" ;
+		
 #endif
 	}
 
 	{
+	// data = matrix( c( 0.5, 0.5, 0.5, 0.6, 0.6, 0.5, 0.6, 0.6, 0.7, 0.54, 0.9, 0.4 ), ncol = 2, byrow = T )
+	// nu = 3
+	/* f <- function( params ) {
+		mu = params[1:2] ;
+		sigma = matrix( params[c(3,4,4,5)], nrow = 2, ncol = 2, byrow = T );
+		mu = matrix( rep( mu, nrow( data )), nrow = nrow( data ), ncol = ncol( data ), byrow = T )
+		D = data - mu
+		cat( "-----\n" ) ;
+		print( mu );
+		print( sigma ) ;
+		ll = sum( dmvt( D, sigma = sigma, df = nu, log = T ) )
+		return( -ll )
+	}
+	sigma = var( data )
+	mu = colSums( data ) / nrow( data )
+	starting.params = c( mu, c( sigma[1,1], sigma[1,2], sigma[2,2] ) )
+	f( starting.params )
+	params = optim( starting.params, fn = f, control = list( trace = TRUE ) )
+	print( params )
+	mu = params$par[1]
+	sigma = matrix( params$par[c(2)], nrow = 1 )
+	format( mu, digits = 16 )
+	format( sigma, digits = 16 )
+	format( params$value, digits = 16 )
+		*/
+
 		Matrix data( 6, 2 ) ;
 		data <<
 			0.5, 0.5,
@@ -275,7 +303,8 @@ AUTO_TEST_CASE( test_em ) {
 				<< data << ", estimated parameters are:\n"
 				<< "nu = " << T.get_degrees_of_freedom() << ",\n"
 				<< "mean = " << T.get_mean().transpose() << ",\n"
-				<< "sigma =\n" << T.get_sigma() << ".\n" ;
+				<< "sigma =\n" << T.get_sigma() << ".\n"
+				<< "log-likelihood = " << T.get_value_of_function() << ".\n" ;
 #endif
 		}
 

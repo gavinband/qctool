@@ -95,6 +95,7 @@ namespace metro {
 				m_weights = weights ;
 				m_p = m_data->cols() ;
 				m_kappa = compute_constant_terms( m_nu, m_p ) ;
+				m_parameters = Vector::Zero( m_p + ( m_p * ( m_p + 1 ) / 2 ) ) ;
 			}
 
 			// Evaluate at a packed set of parameters
