@@ -324,11 +324,13 @@ public:
 			.set_takes_values( 1 )
 		;
 		options.option_implies_option( "-flip-to-match-allele", "-strand" ) ;
-		options[ "-translate-snp-positions" ]
-			.set_description( "Specify a \"dictionary\" of chromosome / position to chromosome / position mappings."
-				" (This should come as a 12-column file with the first six columns the original SNPID rsid chromosome position allele1 allele2"
-				" and the second six columns the same data with possibly different chromosome and position.)"
-				" Positions of SNPs will be mapped through this dictionary before processing." )
+		options[ "-adjust-id-data" ]
+			.set_description( "Update the chromosome, position, IDs and/or alleles of a set of SNPs with new values."
+				" The argument must be a file with six columns equal to the original SNPID, rsid, chromosome, position and alleles,"
+				" followed by another six columns containing the values to replace with."
+				" SNPs not in this file will be passed to the output file unchanged. "
+				" This option only affects the identifying data, not genotypes themselves."
+			)
 			.set_takes_single_value() ;
 		options[ "-flip-to-match-cohort1" ]
 			.set_description( "Specify that alleles (and corresponding genotypes) in all cohorts should be switched, if necessary,"
@@ -1044,8 +1046,8 @@ private:
 		m_sample_filter = get_sample_filter() ;
 		process_other_options() ;
 		
-		if( m_options.check_if_option_has_value( "-translate-snp-positions" )) {
-			m_snp_dictionary = load_snp_dictionary( m_options.get_value< std::string >( "-translate-snp-positions" ) ) ;
+		if( m_options.check_if_option_has_value( "-adjust-id-data" )) {
+			m_snp_dictionary = load_snp_dictionary( m_options.get_value< std::string >( "-adjust-id-data" ) ) ;
 		}
 
 		if( m_options.check_if_option_has_value( "-strand" )) {
@@ -1616,7 +1618,7 @@ private:
 		
 		appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Opening position translation dictionary" ) ;
 		
-		if( source->number_of_columns() != 10 ) {
+		if( source->number_of_columns() != 12 ) {
 			throw genfile::MalformedInputError( filename, 1 ) ;
 		}
 		
