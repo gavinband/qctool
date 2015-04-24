@@ -14,7 +14,7 @@ typedef Eigen::VectorXd Vector ;
 
 double const infinity = std::numeric_limits< double >::infinity() ;
 
-#define DEBUG_MULTIVARIATE_T 1
+// #define DEBUG_MULTIVARIATE_T 1
 
 BOOST_AUTO_TEST_SUITE( test_multivariate_t )
 
@@ -138,8 +138,8 @@ AUTO_TEST_CASE( test_weighted_loglikelihood ) {
 		ll3 = T.get_value_of_function() ;
 	}
 	
-	BOOST_CHECK_EQUAL( ll1, ll2 ) ;
-	BOOST_CHECK_EQUAL( ll1, ll3 ) ;
+	BOOST_CHECK_CLOSE( ll1, ll2, 0.0000001 ) ;
+	BOOST_CHECK_CLOSE( ll1, ll3, 0.0000001 ) ;
 }
 
 AUTO_TEST_CASE( test_loglikelihood_range ) {
@@ -586,8 +586,8 @@ AUTO_TEST_CASE( test_weighted_em ) {
 		T3.estimate_by_em( stoppingCondition ) ;
 		stoppingCondition.reset() ;
 
-		BOOST_CHECK_EQUAL( T1.get_value_of_function(), T2.get_value_of_function() ) ;
-		BOOST_CHECK_EQUAL( T1.get_value_of_function(), T3.get_value_of_function() ) ;
+		BOOST_CHECK_CLOSE( T1.get_value_of_function(), T2.get_value_of_function(), likelihoodTolerance ) ;
+		BOOST_CHECK_CLOSE( T1.get_value_of_function(), T3.get_value_of_function(), likelihoodTolerance ) ;
 	}
 }
 

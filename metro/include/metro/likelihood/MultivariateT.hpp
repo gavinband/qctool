@@ -25,6 +25,8 @@ namespace metro {
 		public:
 			typedef typename Vector::SegmentReturnType Segment ;
 			typedef typename Vector::ConstSegmentReturnType ConstSegment ;
+			typedef typename Eigen::Ref< Matrix > MatrixRef ;
+			typedef typename Eigen::Block< Matrix > Block ;
 		public:
 			MultivariateT( double const degrees_of_freedom ):
 				m_pi( 3.141592653589793238462643383279502884 ),
@@ -122,7 +124,6 @@ namespace metro {
 
 				// We compute up-front some quantities that are useful
 				// when computing the log-likelihood.
-
 				m_ldlt.compute( m_sigma ) ;
 				m_log_determinant = m_ldlt.vectorD().array().log().sum() ;
 				m_mean_centred_data = m_data->rowwise() - m_mean.transpose() ;
@@ -141,47 +142,43 @@ namespace metro {
 			}
 
 			double get_value_of_function() const {
-				double result = 0 ;
-				if( m_nu == std::numeric_limits< double >::infinity() ) {
-					// Multivariate normal.
-					for( std::size_t i = 0; i < m_ranges.number_of_subranges(); ++i ) {
-						DataRange const& range = m_ranges[i] ;
-						ConstSegment const segmentZ = m_Z.segment( range.begin(), range.size() ) ;
-						ConstSegment const segmentWeights = m_weights.segment( range.begin(), range.size() ) ;
-						double const weightSum = segmentWeights.sum() ;
-						
-						result +=
-							( weightSum * m_kappa )
-							- ( 0.5 * weightSum * m_log_determinant )
-							- ( 0.5 * ( segmentZ.array() * segmentWeights.array() ).sum() ) ;
+				Vector terms = Vector::Constant( m_data->rows(), 0 ) ;
+				get_terms_of_function( terms ) ;
+				return terms.sum() ;
+			}
+
+			void get_terms_of_function( MatrixRef result ) const {
+				assert( result.rows() == m_data->rows() ) ;
+				assert( result.cols() == 1 ) ;
+				bool const mvn = m_nu == std::numeric_limits< double >::infinity() ;
+				for( std::size_t i = 0; i < m_ranges.number_of_subranges(); ++i ) {
+					DataRange const& range = m_ranges[i] ;
+					ConstSegment const segmentZ = m_Z.segment( range.begin(), range.size() ) ;
+					ConstSegment const segmentWeights = m_weights.segment( range.begin(), range.size() ) ;
+					Eigen::Block< MatrixRef > resultSegment = result.block( range.begin(), 0, range.size(), 1 ) ;
+
+					if( mvn ) {
+						resultSegment = segmentWeights.array() * (
+							Vector::Constant( range.size(), m_kappa - 0.5 * m_log_determinant )
+							- 0.5 * segmentZ
+						).array() ;
+					} else {
+						resultSegment = segmentWeights.array() * (
+							Vector::Constant( range.size(), m_kappa - 0.5 * m_log_determinant ).array()
+							-( 0.5 * ( m_nu + m_p ) * (( segmentZ + Vector::Constant( range.size(), m_nu ) ).array().log() ) )
+						) ;
 					}
-				} else {
-					for( std::size_t i = 0; i < m_ranges.number_of_subranges(); ++i ) {
-						DataRange const& range = m_ranges[i] ;
-						ConstSegment const segmentZ = m_Z.segment( range.begin(), range.size() ) ;
-						ConstSegment const segmentWeights = m_weights.segment( range.begin(), range.size() ) ;
-						double const weightSum = segmentWeights.sum() ;
-						result += -(( m_nu + m_p )
-							* (
-								(( segmentZ + Vector::Constant( range.size(), m_nu ) ).array().log() )
-									* segmentWeights.array()
-							).sum() ) / 2.0 ;
-						result += weightSum * ( m_kappa - 0.5 * m_log_determinant ) ;
 #if DEBUG_MULTIVARIATE_T
 					std::cerr << "metro::likelihood::MultivariateT::get_value_of_function():\n"
 						<< " Adding " << range << "\n"
 						<< " segmentZ = " << segmentZ.transpose() << "\n"
 						<< " segmentWeights = " << segmentWeights.transpose() << "\n"
-						<< " weightSum = " << weightSum << "\n"
 						<< " m_kappa = " << m_kappa << "\n"
 						<< " m_log_determinant = " << m_log_determinant << "\n"
 						<< " term = " << (( segmentZ + Vector::Constant( range.size(), m_nu ) ).array().log() )
 						<< " result = " << result << ".\n" ;
 #endif				
-
-					}
 				}
-				return result ;
 			}
 
 			Vector get_value_of_first_derivative() const {
