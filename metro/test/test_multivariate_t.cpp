@@ -176,8 +176,8 @@ AUTO_TEST_CASE( test_loglikelihood_range ) {
 			ranges.add( metro::DataRange( 0, 1 )) ;
 			ranges.add( metro::DataRange( 2, 3 )) ;
 
-			metro::likelihood::MultivariateT< double, Vector, Matrix > T( data, ranges, 3 ) ;
-			T.evaluate_at( Vector::Constant( 2, 0 ), Matrix::Identity( 2, 2 )) ;
+			metro::likelihood::MultivariateT< double, Vector, Matrix > T( data, 3 ) ;
+			T.evaluate_at( Vector::Constant( 2, 0 ), Matrix::Identity( 2, 2 ), ranges ) ;
 			ll2 = T.get_value_of_function() ;
 		}
 
@@ -541,9 +541,9 @@ AUTO_TEST_CASE( test_loglikelihood_em_range ) {
 			ranges.add( metro::DataRange( 0, 1 )) ;
 			ranges.add( metro::DataRange( 2, 4 )) ;
 
-			metro::likelihood::MultivariateT< double, Vector, Matrix > T( data, ranges, nu ) ;
+			metro::likelihood::MultivariateT< double, Vector, Matrix > T( data, nu ) ;
 			stoppingCondition.reset() ;
-			T.estimate_by_em( stoppingCondition ) ;
+			T.estimate_by_em( ranges, stoppingCondition ) ;
 			ll2 = T.get_value_of_function() ;
 		}
 

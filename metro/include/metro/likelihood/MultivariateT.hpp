@@ -12,16 +12,16 @@
 #include <Eigen/Core>
 #include <Eigen/LU>
 #include <Eigen/Cholesky>
-#include "metro/LogLikelihood.hpp"
+#include "metro/IndependentObservationLogLikelihood.hpp"
 #include "metro/DataRange.hpp"
 #include "metro/DataSubset.hpp"
 
-// #define DEBUG_MULTIVARIATE_T 1
+#define DEBUG_MULTIVARIATE_T 1
 
 namespace metro {
 	namespace likelihood {
 		template< typename Scalar, typename Vector, typename Matrix >
-		struct MultivariateT: public metro::LogLikelihood< Scalar, Vector, Matrix > {
+		struct MultivariateT: public metro::IndependentObservationLogLikelihood< Scalar, Vector, Matrix > {
 		public:
 			typedef typename Vector::SegmentReturnType Segment ;
 			typedef typename Vector::ConstSegmentReturnType ConstSegment ;
@@ -45,25 +45,7 @@ namespace metro {
 				set_data( data ) ;
 			}
 
-			MultivariateT( Matrix const& data, DataSubset const& data_range, double const degrees_of_freedom ):
-				m_pi( 3.141592653589793238462643383279502884 ),
-				m_nu( degrees_of_freedom ),
-				m_data( 0 ),
-				m_kappa( 0 )
-			{
-				set_data( data, data_range ) ;
-			}
-
 			MultivariateT( Matrix const& data, Vector const& weights, double const degrees_of_freedom ):
-				m_pi( 3.141592653589793238462643383279502884 ),
-				m_nu( degrees_of_freedom ),
-				m_data( 0 ),
-				m_kappa( 0 )
-			{
-				set_data( data, DataRange( 0, data.rows() ), weights ) ;
-			}
-
-			MultivariateT( Matrix const& data, DataSubset const& data_range, Vector const& weights, double const degrees_of_freedom ):
 				m_pi( 3.141592653589793238462643383279502884 ),
 				m_nu( degrees_of_freedom ),
 				m_data( 0 ),
@@ -72,27 +54,17 @@ namespace metro {
 				set_data( data, weights ) ;
 			}
 
-			void set_data( Matrix const& data ) {
-				set_data( data, DataRange( 0, data.rows() ) ) ;
-			}
-
 			void set_data(
-				Matrix const& data,
-				DataSubset const& data_range
+				Matrix const& data
 			) {
-				set_data( data, data_range, Vector::Constant( data.rows(), 1 )) ;
+				set_data( data, Vector::Constant( data.rows(), 1 )) ;
 			}
 
 			void set_data(
 				Matrix const& data,
 				Vector const& weights
 			) {
-				set_data( data, DataSubset( 1, DataRange( 0, data.rows() ), weights ) ) ; 
-			}
-
-			void set_data( Matrix const& data, DataSubset const& data_range, Vector const& weights ) {
 				m_data = &data ;
-				m_ranges = data_range ;
 				assert( weights.size() == m_data->rows() ) ;
 				m_weights = weights ;
 				m_p = m_data->cols() ;
@@ -100,24 +72,33 @@ namespace metro {
 				m_parameters = Vector::Zero( m_p + ( m_p * ( m_p + 1 ) / 2 ) ) ;
 			}
 
+			void evaluate_at( Vector const& parameters ) {
+				evaluate_at( parameters, DataRange( 0, m_data->rows() )) ;
+			}
+
+			void evaluate_at( Vector const& mean, Matrix const& sigma ) {
+				evaluate_at( mean, sigma, DataRange( 0, m_data->rows() )) ;
+			}
+
 			// Evaluate at a packed set of parameters
 			// These are:
 			// The p values of the mean, followed by
 			// The p (p+1)/2 entries of the lower diagonal of the sigma matrix (in column-major order.)
-			void evaluate_at( Vector const& parameters ) {
+			void evaluate_at( Vector const& parameters, DataSubset const& data_subset ) {
 				assert( parameters.size() == m_parameters.size() ) ;
 				assert( m_data ) ;
 				unpack_parameters( parameters, &m_mean, &m_sigma ) ;
-				evaluate_at( m_mean, m_sigma ) ;
+				evaluate_at( m_mean, m_sigma, data_subset ) ;
 			}
 
-			void evaluate_at( Vector const& mean, Matrix const& sigma ) {
+			void evaluate_at( Vector const& mean, Matrix const& sigma, DataSubset const& data_subset ) {
 				assert( mean.size() == m_data->cols() ) ;
 				assert( sigma.rows() == sigma.cols() ) ;
 				assert( sigma.rows() == m_data->cols() ) ;
 
 				m_mean = mean ;
 				m_sigma = sigma ;
+				m_data_subset = data_subset ;
 
 				// Pack parameters into the parameter vector
 				pack_parameters( mean, m_sigma, &m_parameters ) ;
@@ -151,8 +132,8 @@ namespace metro {
 				assert( result.rows() == m_data->rows() ) ;
 				assert( result.cols() == 1 ) ;
 				bool const mvn = m_nu == std::numeric_limits< double >::infinity() ;
-				for( std::size_t i = 0; i < m_ranges.number_of_subranges(); ++i ) {
-					DataRange const& range = m_ranges[i] ;
+				for( std::size_t i = 0; i < m_data_subset.number_of_subranges(); ++i ) {
+					DataRange const& range = m_data_subset[i] ;
 					ConstSegment const segmentZ = m_Z.segment( range.begin(), range.size() ) ;
 					ConstSegment const segmentWeights = m_weights.segment( range.begin(), range.size() ) ;
 					Eigen::Block< MatrixRef > resultSegment = result.block( range.begin(), 0, range.size(), 1 ) ;
@@ -169,7 +150,7 @@ namespace metro {
 						) ;
 					}
 #if DEBUG_MULTIVARIATE_T
-					std::cerr << "metro::likelihood::MultivariateT::get_value_of_function():\n"
+					std::cerr << "metro::likelihood::MultivariateT::get_terms_of_function():\n"
 						<< " Adding " << range << "\n"
 						<< " segmentZ = " << segmentZ.transpose() << "\n"
 						<< " segmentWeights = " << segmentWeights.transpose() << "\n"
@@ -198,6 +179,23 @@ namespace metro {
 				Matrix regularising_sigma = Matrix::Constant( m_p, m_p, 0 ) ;
 				double regularising_weight = 0 ;
 				return estimate_by_em(
+					DataRange( 0, m_data->rows() ),
+					stopping_condition,
+					regularising_sigma,
+					regularising_weight
+				) ;
+			}
+
+			// Fit multivariate T by EM until the loglikelihood increases by less than the given amount.
+			template< typename StoppingCondition >
+			bool estimate_by_em(
+				DataSubset const& data_subset,
+				StoppingCondition& stopping_condition
+			) {
+				Matrix regularising_sigma = Matrix::Constant( m_p, m_p, 0 ) ;
+				double regularising_weight = 0 ;
+				return estimate_by_em(
+					data_subset,
 					stopping_condition,
 					regularising_sigma,
 					regularising_weight
@@ -219,14 +217,30 @@ namespace metro {
 				Matrix const& regularising_sigma,
 				double regularising_weight
 			) {
+				return estimate_by_em(
+					DataRange( 0, m_data->rows() ),
+					stopping_condition,
+					regularising_sigma,
+					regularising_weight
+				) ;
+			}
+
+
+			template< typename StoppingCondition >
+			bool estimate_by_em(
+				DataSubset const& data_subset,
+				StoppingCondition& stopping_condition,
+				Matrix const& regularising_sigma,
+				double regularising_weight
+			) {
 				assert( regularising_sigma.rows() == m_p ) ;
 				assert( regularising_sigma.cols() == m_p ) ;
 				assert( regularising_weight >= 0.0 ) ;
 
 				// Start with unit weights, giving MVN estimate
 				Vector iterationWeights = Vector::Constant( m_data->rows(), 1 ) ;
-				Vector mean = compute_weighted_mean( iterationWeights, m_weights, m_ranges ) ;
-				Matrix sigma = compute_weighted_regularised_sigma( iterationWeights, m_weights, mean, regularising_sigma, regularising_weight, m_ranges ) ;
+				Vector mean = compute_weighted_mean( iterationWeights, m_weights, data_subset ) ;
+				Matrix sigma = compute_weighted_regularised_sigma( iterationWeights, m_weights, mean, regularising_sigma, regularising_weight, data_subset ) ;
 
 				evaluate_at( mean, sigma ) ;
 				double loglikelihood = get_value_of_function() ;
@@ -258,9 +272,9 @@ namespace metro {
 					// compute new parameter estimates
 					// these are
 					// mean = sum( w_i x_i ) / sum( w_i )
-					mean = compute_weighted_mean( iterationWeights, m_weights, m_ranges ) ;
-					sigma = compute_weighted_regularised_sigma( iterationWeights, m_weights, mean, regularising_sigma, regularising_weight, m_ranges ) ;
-					evaluate_at( mean, sigma ) ;
+					mean = compute_weighted_mean( iterationWeights, m_weights, data_subset ) ;
+					sigma = compute_weighted_regularised_sigma( iterationWeights, m_weights, mean, regularising_sigma, regularising_weight, data_subset ) ;
+					evaluate_at( mean, sigma, data_subset ) ;
 					loglikelihood = get_value_of_function() ;
 
 #if DEBUG_MULTIVARIATE_T
@@ -286,7 +300,7 @@ namespace metro {
 			double const m_pi ;
 			double const m_nu ;
 			Matrix const* m_data ;
-			DataSubset m_ranges ;
+			DataSubset m_data_subset ;
 			Vector m_weights ;
 			double m_p ;
 			double m_kappa ;
@@ -337,12 +351,12 @@ namespace metro {
 			Vector compute_weighted_mean(
 				Vector const& iterationWeights,
 				Vector const& dataWeights,
-				DataSubset const& data_range
+				DataSubset const& subset
 			) const {
 				Vector result = Vector::Zero( m_p ) ;
 				double total_weight = 0 ;
-				for( std::size_t i = 0; i < data_range.number_of_subranges(); ++i ) {
-					DataRange const& range = data_range[i] ;
+				for( std::size_t i = 0; i < subset.number_of_subranges(); ++i ) {
+					DataRange const& range = subset[i] ;
 					ConstSegment segmentIW = iterationWeights.segment( range.begin(), range.size() ) ;
 					ConstSegment segmentDW = dataWeights.segment( range.begin(), range.size() ) ;
 					
@@ -365,15 +379,15 @@ namespace metro {
 				Vector const& mean,
 				Matrix const& regularising_sigma,
 				double const regularising_weight,
-				DataSubset const& data_range
+				DataSubset const& subset
 			) const {
 				Matrix mean_centred_data = m_data->rowwise() - mean.transpose() ;
 				// sigma = 1/N sum ( w_i (x_i-mean)(x_i-mean)^t)
 				// we store x_i as a row not a column, so transposes go the opposite way.
 				Matrix result = Matrix::Zero( m_p, m_p ) ;
 				double n = 0 ;
-				for( std::size_t i = 0; i < data_range.number_of_subranges(); ++i ) {
-					DataRange const& range = data_range[i] ;
+				for( std::size_t i = 0; i < subset.number_of_subranges(); ++i ) {
+					DataRange const& range = subset[i] ;
 					ConstSegment segmentIW = iterationWeights.segment( range.begin(), range.size() ) ;
 					ConstSegment segmentDW = dataWeights.segment( range.begin(), range.size() ) ;
 
