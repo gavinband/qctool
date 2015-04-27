@@ -6,6 +6,7 @@
 
 #include <utility>
 #include <string>
+#include <boost/bind.hpp>
 #include <Eigen/Core>
 #include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
@@ -16,8 +17,9 @@
 #include "metro/DataSubset.hpp"
 #include "metro/likelihood/MultivariateT.hpp"
 #include "metro/ValueStabilisesStoppingCondition.hpp"
+#include "metro/log_sum_exp.hpp"
 
-// #define DEBUG_CLUSTERFITCOMPUTATION 1
+#define DEBUG_CLUSTERFITCOMPUTATION 1
 
 namespace snp_summary_component {
 	ClusterFitComputation::ClusterFitComputation(
@@ -32,6 +34,57 @@ namespace snp_summary_component {
 		m_regularisingWeight( regularisationWeight )
 	{}
 
+	namespace {
+		metro::DataSubset compute_data_subset( std::size_t N, boost::function< bool( std::size_t ) > predicate ) {
+			metro::DataSubset result ;
+			bool in_range = false ;
+			int start_of_range = 0 ;
+			for( int i = 0; i < N; ++i ) {
+				bool in = predicate( i ) ;
+				if( in ) {
+					if( !in_range ) {
+						start_of_range = i ;
+						in_range = true ;
+					}
+				} else {
+					if( in_range ) {
+						result.add( metro::DataRange( start_of_range, i )) ;
+						in_range = false ;
+					}
+				}
+			}
+			if( in_range ) {
+				result.add( metro::DataRange( start_of_range, N )) ;
+			}
+			return( result ) ;
+		}
+		
+		bool nonmissing_genotypes_and_intensities(
+			std::size_t i,
+			int g,
+			Eigen::MatrixXd const& genotypes,
+			Eigen::MatrixXd const& nonmissingness,
+			double call_threshhold
+		) {
+			// return true if the intensities are there
+			// and the genotype meets a hard call threshhold.
+			return ( nonmissingness.row(i).sum() == 2 )
+				&& (
+					g < 3
+					? ( genotypes( i, g ) > call_threshhold )
+					: ( genotypes.row(i).maxCoeff() < call_threshhold )
+				)
+			;
+		}
+
+		bool nonmissing_intensities(
+			std::size_t i,
+			Eigen::MatrixXd const& nonmissingness
+		) {
+			return ( nonmissingness.row(i).sum() == 2 ) ;
+		}
+	}
+	
 	void ClusterFitComputation::operator()(
 		SNPIdentifyingData const&,
 		Genotypes const& genotypes,
@@ -54,56 +107,41 @@ namespace snp_summary_component {
 			assert( m_nonmissingness.cols() == 2 ) ;
 		}
 	
-		Eigen::RowVectorXd mean ;
-		Eigen::MatrixXd covariance ;
-
-
 		// We compute log-likelihood under a model which is a equally-weighted
 		// mixture of the three clusters.
 		// For this purpose we record the parameters etc.
 		Eigen::MatrixXd parameters = Eigen::MatrixXd::Constant( 3, 5, std::numeric_limits< double >::quiet_NaN() ) ;
 		Eigen::VectorXd counts = Eigen::VectorXd::Zero( 3 ) ;
-		metro::DataSubset nonMissingSubset ;
+		Eigen::VectorXd genotypeLLs = Eigen::VectorXd::Zero( 3 ) ;
+		metro::DataSubset const nonMissingIntensitiesSubset = compute_data_subset(
+			N,
+			boost::bind( &nonmissing_intensities, _1, m_nonmissingness )
+		) ;
 		
+		// We also compute the log-likelihood P( intensities | clusters ) on the set of samples that have genotypes
+		// and compare it with the loglikelihood
+		// P( genotypes, intensities | clusters ) = P( intensities | genotypes, clusters ) P( genotypes | clusters )
+		// If the latter is much bigger than the former, this indicates the genotypes add a lot of information, which
+		// might indicate a badly clustered SNP.
+		metro::DataSubset nonMissingGenotypesAndIntensitySubset ;
+		double intensity_genotype_ll = 0 ;
+		double intensity_genotype_ll_weight = 0 ;
+
 		for( int g = 0; g < 3; ++g ) {
-			metro::DataSubset subset ;
-				
-			// We 
-			{
-				bool in_range = false ;
-				int start_of_range = 0 ;
-				for( int i = 0; i < N; ++i ) {
-					bool inCluster
-						= ( m_nonmissingness.row(i).sum() == 2 )
-						&& (
-							g < 3
-							? ( genotypes( i, g ) < m_call_threshhold )
-							: ( genotypes.row(i).maxCoeff() < m_call_threshhold )
-						)
-					;
-					if( inCluster ) {
-						if( !in_range ) {
-							start_of_range = i ;
-							in_range = true ;
-						}
-					} else {
-						if( in_range ) {
-							subset.add( metro::DataRange( start_of_range, i )) ;
-							in_range = false ;
-						}
-					}
-				}
-				if( in_range ) {
-					subset.add( metro::DataRange( start_of_range, N )) ;
-				}
-			}
+			metro::DataSubset subset = compute_data_subset(
+				N,
+				boost::bind(
+					&nonmissing_genotypes_and_intensities,
+					_1, g, genotypes, m_nonmissingness, m_call_threshhold
+				)
+			) ;
 			
 			counts(g) = subset.size() ;
 			
-			metro::likelihood::MultivariateT< double, Eigen::VectorXd, Eigen::MatrixXd > cluster( m_intensities, subset, m_nu ) ;
+			metro::likelihood::MultivariateT< double, Eigen::VectorXd, Eigen::MatrixXd > cluster( m_intensities, m_nu ) ;
 			metro::ValueStabilisesStoppingCondition stoppingCondition( 0.01, 100 ) ;
 			
-			if( cluster.estimate_by_em( stoppingCondition, m_regularisingSigma, m_regularisingWeight ) ) {
+			if( cluster.estimate_by_em( subset, stoppingCondition, m_regularisingSigma, m_regularisingWeight ) ) {
 				std::string const stub = "g=" + ( g == 3 ? std::string( "NA" ) : genfile::string_utils::to_string( g ) ) ;
 				callback( stub + ":count", genfile::VariantEntry::Integer( subset.size() ) ) ;
 				callback( stub + ":nu", m_nu ) ;
@@ -114,34 +152,16 @@ namespace snp_summary_component {
 				callback( stub + ":sigma_YY", cluster.get_sigma()(1,1) ) ;
 				callback( stub + ":iterations", genfile::VariantEntry::Integer( stoppingCondition.iterations() ) ) ;
 				
+				parameters.row(g) = cluster.get_parameters().transpose() ;
+				nonMissingGenotypesAndIntensitySubset.add( subset ) ;
+				genotypeLLs(g) = cluster.get_value_of_function() ;
 #if DEBUG_CLUSTERFITCOMPUTATION
 				std::cerr << "cluster " << g << ": count = " << subset.size() << ", parameters = " << cluster.get_parameters().transpose() << ", ll = " << cluster.get_value_of_function() << ".\n" ;
 #endif
-				nonMissingSubset.add( subset ) ;
-				parameters.row(g) = cluster.get_parameters().transpose() ;
 			} else {
 				std::cerr << "!! No convergence.\n" ;
 			}
 		}
-
-		// Compute the log-likelihood of all the intensity data under a model
-		// which is an equally-weighted mixture of the three clusters.
-		{
-			double ll = 0 ;
-			double ll_weight = 0 ;
-			for( int g = 0; g < 3; ++g ) {
-				if( counts(g) > 0 ) {
-					metro::likelihood::MultivariateT< double, Eigen::VectorXd, Eigen::MatrixXd > cluster( m_intensities, nonMissingSubset, m_nu ) ;
-					cluster.evaluate_at( parameters.row(g).transpose() ) ;
-					ll += cluster.get_value_of_function() ;
-					ll_weight += 1 ;
-				}
-			}
-
-			callback( "cluster-model:number-of-clusters", ll_weight ) ;
-			callback( "cluster-model:loglikelihood", ll ) ;
-		}
-		
 	}
 
 	std::string ClusterFitComputation::get_summary( std::string const& prefix, std::size_t column_width ) const {
