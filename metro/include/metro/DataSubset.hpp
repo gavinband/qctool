@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <vector>
+#include "metro/DataRange.hpp"
 
 namespace metro {
 	

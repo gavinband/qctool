@@ -26,8 +26,22 @@ namespace metro {
 		return max_value + std::log( ( exponential.array() * nonmissingness.array() ).sum() ) ;
 	}
 
+	// Ditto but assuming all values are present.
+	template< typename Matrix >
+	double log_sum_exp( Matrix const& data ) {
+		if( data.size() == 0 ) {
+			return 0.0 ;
+		}
+		double max_value = data.array().maxCoeff() ;
+		if( max_value == -std::numeric_limits< double >::infinity() ) {
+			return max_value ;
+		}
+		Eigen::MatrixXd const exponential = ( data - Eigen::MatrixXd::Constant( data.rows(), data.cols(), max_value ) ).array().exp() ;
+		return max_value + std::log( exponential.array().sum() ) ;
+	}
+
+	void rowwise_log_sum_exp( Eigen::MatrixXd const&, Eigen::VectorXd* result ) ;
 	void rowwise_log_sum_exp( Eigen::MatrixXd const&, Eigen::MatrixXd const& nonmissingness, Eigen::VectorXd* result ) ;
 }
 
 #endif
-	

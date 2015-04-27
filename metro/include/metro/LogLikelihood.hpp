@@ -10,17 +10,22 @@
 #include <memory>
 #include <boost/noncopyable.hpp>
 #include <Eigen/Core>
+#include "metro/DataSubset.hpp"
 
 namespace metro {
 	template< typename Scalar, typename Vector, typename Matrix >
 	struct LogLikelihood: public boost::noncopyable {
 		typedef std::auto_ptr< LogLikelihood > UniquePtr ;
 		virtual ~LogLikelihood() {}
+
+		virtual void evaluate_at( Vector const& parameters, DataSubset const& subset ) = 0 ;
 		
 		virtual Scalar get_value_of_function() const = 0 ;
 		virtual Vector get_value_of_first_derivative() const = 0 ;
 		virtual Matrix get_value_of_second_derivative() const = 0 ;
 		
+		virtual Vector const& get_parameters() const = 0 ;
+
 		virtual std::string get_spec() const = 0 ;
 	} ;
 }

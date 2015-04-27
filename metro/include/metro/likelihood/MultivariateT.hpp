@@ -16,13 +16,14 @@
 #include "metro/DataRange.hpp"
 #include "metro/DataSubset.hpp"
 
-#define DEBUG_MULTIVARIATE_T 1
+// #define DEBUG_MULTIVARIATE_T 1
 
 namespace metro {
 	namespace likelihood {
 		template< typename Scalar, typename Vector, typename Matrix >
 		struct MultivariateT: public metro::IndependentObservationLogLikelihood< Scalar, Vector, Matrix > {
 		public:
+			typedef std::auto_ptr< MultivariateT > UniquePtr ;
 			typedef typename Vector::SegmentReturnType Segment ;
 			typedef typename Vector::ConstSegmentReturnType ConstSegment ;
 			typedef typename Eigen::Ref< Matrix > MatrixRef ;

@@ -16,6 +16,7 @@
 #include "metro/DataRange.hpp"
 #include "metro/DataSubset.hpp"
 #include "metro/likelihood/MultivariateT.hpp"
+#include "metro/likelihood/Mixture.hpp"
 #include "metro/ValueStabilisesStoppingCondition.hpp"
 #include "metro/log_sum_exp.hpp"
 
@@ -110,7 +111,8 @@ namespace snp_summary_component {
 		// We compute log-likelihood under a model which is a equally-weighted
 		// mixture of the three clusters.
 		// For this purpose we record the parameters etc.
-		Eigen::MatrixXd parameters = Eigen::MatrixXd::Constant( 3, 5, std::numeric_limits< double >::quiet_NaN() ) ;
+		Eigen::MatrixXd parameters = Eigen::MatrixXd::Constant( 5, 3, std::numeric_limits< double >::quiet_NaN() ) ;
+		Eigen::VectorXd linearParameters = Eigen::VectorXd::Constant( 15, std::numeric_limits< double >::quiet_NaN() ) ;
 		Eigen::VectorXd counts = Eigen::VectorXd::Zero( 3 ) ;
 		Eigen::VectorXd genotypeLLs = Eigen::VectorXd::Zero( 3 ) ;
 		metro::DataSubset const nonMissingIntensitiesSubset = compute_data_subset(
@@ -127,6 +129,10 @@ namespace snp_summary_component {
 		double intensity_genotype_ll = 0 ;
 		double intensity_genotype_ll_weight = 0 ;
 
+		metro::likelihood::Mixture< double, Eigen::VectorXd, Eigen::MatrixXd > mixture( m_intensities ) ;
+
+		int numberOfClusters = 0 ;
+
 		for( int g = 0; g < 3; ++g ) {
 			metro::DataSubset subset = compute_data_subset(
 				N,
@@ -138,29 +144,48 @@ namespace snp_summary_component {
 			
 			counts(g) = subset.size() ;
 			
-			metro::likelihood::MultivariateT< double, Eigen::VectorXd, Eigen::MatrixXd > cluster( m_intensities, m_nu ) ;
+			typedef metro::likelihood::MultivariateT< double, Eigen::VectorXd, Eigen::MatrixXd > Cluster ;
+			Cluster::UniquePtr cluster( new Cluster( m_intensities, m_nu ) ) ;
 			metro::ValueStabilisesStoppingCondition stoppingCondition( 0.01, 100 ) ;
 			
-			if( cluster.estimate_by_em( subset, stoppingCondition, m_regularisingSigma, m_regularisingWeight ) ) {
+			if( cluster->estimate_by_em( subset, stoppingCondition, m_regularisingSigma, m_regularisingWeight ) ) {
 				std::string const stub = "g=" + ( g == 3 ? std::string( "NA" ) : genfile::string_utils::to_string( g ) ) ;
 				callback( stub + ":count", genfile::VariantEntry::Integer( subset.size() ) ) ;
 				callback( stub + ":nu", m_nu ) ;
-				callback( stub + ":mu_X", cluster.get_mean()(0) ) ;
-				callback( stub + ":mu_Y", cluster.get_mean()(1) ) ;
-				callback( stub + ":sigma_XX", cluster.get_sigma()(0,0) ) ;
-				callback( stub + ":sigma_XY", cluster.get_sigma()(1,0) ) ;
-				callback( stub + ":sigma_YY", cluster.get_sigma()(1,1) ) ;
+				callback( stub + ":mu_X", cluster->get_mean()(0) ) ;
+				callback( stub + ":mu_Y", cluster->get_mean()(1) ) ;
+				callback( stub + ":sigma_XX", cluster->get_sigma()(0,0) ) ;
+				callback( stub + ":sigma_XY", cluster->get_sigma()(1,0) ) ;
+				callback( stub + ":sigma_YY", cluster->get_sigma()(1,1) ) ;
 				callback( stub + ":iterations", genfile::VariantEntry::Integer( stoppingCondition.iterations() ) ) ;
 				
-				parameters.row(g) = cluster.get_parameters().transpose() ;
 				nonMissingGenotypesAndIntensitySubset.add( subset ) ;
-				genotypeLLs(g) = cluster.get_value_of_function() ;
+
+				linearParameters.segment( numberOfClusters * 5, 5 ) = cluster->get_parameters().transpose() ;
+				++numberOfClusters ;
+
+				genotypeLLs(g) = cluster->get_value_of_function() ;
+
 #if DEBUG_CLUSTERFITCOMPUTATION
-				std::cerr << "cluster " << g << ": count = " << subset.size() << ", parameters = " << cluster.get_parameters().transpose() << ", ll = " << cluster.get_value_of_function() << ".\n" ;
+				std::cerr << "cluster " << g << ": count = " << subset.size()
+					<< ", parameters = " << std::setprecision( 4 ) << cluster->get_parameters().transpose()
+					<< ", ll = " << cluster->get_value_of_function() << ".\n" ;
 #endif
+
+				mixture.add_component( stub, 1, cluster ) ;
 			} else {
 				std::cerr << "!! No convergence.\n" ;
 			}
+			
+			// Now output the loglikelihoods under a model conditional on genotype...
+			callback( "number-of-clusters", numberOfClusters ) ;
+			callback( "cluster-informative-sample-count", genfile::VariantEntry::Integer( nonMissingGenotypesAndIntensitySubset.size() ) ) ;
+			callback( "per-cluster:average_ll",  genotypeLLs.sum() ) ;
+			// And under equal-weighted mixtures...
+			mixture.evaluate_at( linearParameters.segment( 0, numberOfClusters * 5 ), nonMissingGenotypesAndIntensitySubset ) ;
+			callback( "equal-weighted-mixture:ll",  mixture.get_value_of_function() ) ;
+			mixture.evaluate_at( linearParameters.segment( 0, numberOfClusters * 5 ), nonMissingIntensitiesSubset ) ;
+			callback( "equal-weighted-mixture:intensities-ll",  mixture.get_value_of_function() ) ;
 		}
 	}
 
