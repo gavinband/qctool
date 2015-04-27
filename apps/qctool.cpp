@@ -324,7 +324,7 @@ public:
 			.set_takes_values( 1 )
 		;
 		options.option_implies_option( "-flip-to-match-allele", "-strand" ) ;
-		options[ "-adjust-id-data" ]
+		options[ "-update-id-data" ]
 			.set_description( "Update the chromosome, position, IDs and/or alleles of a set of SNPs with new values."
 				" The argument must be a file with six columns equal to the original SNPID, rsid, chromosome, position and alleles,"
 				" followed by another six columns containing the values to replace with."
@@ -1046,8 +1046,8 @@ private:
 		m_sample_filter = get_sample_filter() ;
 		process_other_options() ;
 		
-		if( m_options.check_if_option_has_value( "-adjust-id-data" )) {
-			m_snp_dictionary = load_snp_dictionary( m_options.get_value< std::string >( "-adjust-id-data" ) ) ;
+		if( m_options.check_if_option_has_value( "-update-id-data" )) {
+			m_snp_dictionary = load_snp_dictionary( m_options.get_value< std::string >( "-update-id-data" ) ) ;
 		}
 
 		if( m_options.check_if_option_has_value( "-strand" )) {
