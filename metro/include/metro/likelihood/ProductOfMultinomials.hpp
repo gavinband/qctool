@@ -41,7 +41,8 @@ namespace metro {
 				}
 			}
 
-			void evaluate_at( Vector const& parameters ) {
+			void evaluate_at( Vector const& parameters, DataSubset const& subset = DataRange( 0, 1 ) ) {
+				assert( subset.number_of_subranges() == 1 && subset[0].begin() == 0 && subset[0].end() == 1 ) ;
 				assert( parameters.size() == m_data.rows() * m_data.cols() ) ;
 				for( std::size_t i = 0; i < m_multinomials.size(); ++i ) {
 					m_multinomials[i].evaluate_at( parameters.segment( i * m_data.cols(), m_data.cols() ) ) ;

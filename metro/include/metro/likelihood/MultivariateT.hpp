@@ -289,7 +289,7 @@ namespace metro {
 				return stopping_condition.converged() ;
 			}
 
-			Vector const& get_parameters() const { return m_parameters ; }
+			Vector get_parameters() const { return m_parameters ; }
 			double get_degrees_of_freedom() const { return m_nu ; }
 			Vector const& get_mean() const { return m_mean ; }
 			Matrix const& get_sigma() const { return m_sigma ; }

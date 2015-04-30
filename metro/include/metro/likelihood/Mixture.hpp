@@ -81,7 +81,7 @@ namespace metro {
 				result = m_terms ;
 			}
 
-			Vector const& get_parameters() const {
+			Vector get_parameters() const {
 				return m_parameters ;
 			}
 

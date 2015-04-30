@@ -38,11 +38,12 @@ namespace metro {
 				return *this ;
 			}
 
-			void evaluate_at( Vector const& parameters ) {
+			void evaluate_at( Vector const& parameters, DataSubset const& subset = DataRange( 0, 1 ) ) {
+				assert( subset.number_of_subranges() == 1 && subset[0].begin() == 0 && subset[0].end() == 1 ) ;
 				assert( parameters.size() == m_counts.size() ) ;
 				m_parameters = parameters ;
 			}
-
+			
 			double get_value_of_function() const {
 				double result = 0.0 ;
 				for( int i = 0; i < m_counts.size(); ++i ) {
@@ -78,7 +79,7 @@ namespace metro {
 				return m_counts / m_counts.sum() ;
 			}
 
-			Vector const& get_parameters() const { return m_parameters ; }
+			Vector get_parameters() const { return m_parameters ; }
 			Vector const& get_data() const { return m_counts ; }
 			
 			std::string get_spec() const { return "Multinomial" ; }
