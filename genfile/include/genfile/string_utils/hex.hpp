@@ -10,7 +10,7 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
-#include <strstream>
+#include <sstream>
 
 namespace genfile {
 	namespace string_utils {
