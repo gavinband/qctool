@@ -1690,6 +1690,7 @@ private:
 								)
 							) ;
 						} catch( genfile::MalformedInputError const& e ) {
+							std::cerr << "Uh-oh...\n" ;
 							source.reset(
 								genfile::SNPDataSourceChain::create(
 									genfile::wildcard::find_files_by_chromosome( filename )

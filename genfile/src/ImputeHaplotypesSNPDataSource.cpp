@@ -168,8 +168,8 @@ namespace genfile {
 		std::map< std::string, std::string > format ;
 		format[ "ID" ] = "GT" ;
 		format[ "Type" ] = "String" ;
-		format[ "Number" ] = "A" ;
-		format[ "Description" ] = "Phased haplotype calls" ;
+		format[ "Number" ] = "1" ;
+		format[ "Description" ] = "Genotype" ;
 		SNPDataSource::Metadata result ;
 		result.insert( std::make_pair( "FORMAT", format )) ;
 		return result ;

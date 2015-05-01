@@ -20,7 +20,7 @@
 #include "metro/ValueStabilisesStoppingCondition.hpp"
 #include "metro/log_sum_exp.hpp"
 
-#define DEBUG_CLUSTERFITCOMPUTATION 1
+//#define DEBUG_CLUSTERFITCOMPUTATION 1
 
 namespace snp_summary_component {
 	ClusterFitComputation::ClusterFitComputation(
@@ -87,7 +87,7 @@ namespace snp_summary_component {
 	}
 	
 	void ClusterFitComputation::operator()(
-		SNPIdentifyingData const&,
+		SNPIdentifyingData const& snp,
 		Genotypes const& genotypes,
 		SampleSexes const&,
 		genfile::VariantDataReader& data_reader,
@@ -174,7 +174,12 @@ namespace snp_summary_component {
 
 				mixture.add_component( stub, 1, cluster ) ;
 			} else {
+#if DEBUG_CLUSTERFITCOMPUTATION
 				std::cerr << "!! No convergence.\n" ;
+#endif
+				if( subset.size() > 0 ) {
+					std::cerr << "!! For SNP " << snp << ", cluster " << g << " has size " << subset.size() << " but distribution did not converge.\n" ;
+				}
 			}
 			
 			// Now output the loglikelihoods under a model conditional on genotype...
