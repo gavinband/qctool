@@ -238,6 +238,11 @@ namespace metro {
 				assert( regularising_sigma.cols() == m_p ) ;
 				assert( regularising_weight >= 0.0 ) ;
 
+				if( data_subset.size() == 0 ) {
+					// No data.  Do nothing and return false.
+					return false ;
+				}
+
 				// Start with unit weights, giving MVN estimate
 				Vector iterationWeights = Vector::Constant( m_data->rows(), 1 ) ;
 				Vector mean = compute_weighted_mean( iterationWeights, m_weights, data_subset ) ;

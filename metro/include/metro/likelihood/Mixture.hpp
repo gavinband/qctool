@@ -22,7 +22,7 @@ namespace metro {
 		template< typename Scalar, typename Vector, typename Matrix >
 		struct Mixture: public metro::IndependentObservationLogLikelihood< Scalar, Vector, Matrix > {
 			typedef metro::IndependentObservationLogLikelihood< Scalar, Vector, Matrix > Component ;
-			using typename metro::IndependentObservationLogLikelihood< Scalar, Vector, Matrix >::MatrixRef ;
+			typedef typename metro::IndependentObservationLogLikelihood< Scalar, Vector, Matrix >::MatrixRef MatrixRef ;
 			
 			Mixture( Matrix const& data ):
 				m_data( data )
