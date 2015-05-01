@@ -36,6 +36,9 @@ namespace genfile {
 					result.reset( new PhredScaleFloatType() ) ;
 				}
 			}
+			else if( spec == "Probability" ) {
+				result.reset( new ProbabilityType() ) ;
+			}
 			else if( spec == "Character" ) {
 				assert( scale == "identity" ) ;
 				result.reset( new CharacterType() ) ;
@@ -143,20 +146,28 @@ namespace genfile {
 				}
 				result.reset( new GenotypeCallVCFEntryType()) ;
 			}
-			else {
-				SimpleType::UniquePtr element_type ;
-				{
-					// deal with scale specifiable by "Scale" attribute.
-					std::string scale = "identity" ;
-					Spec::const_iterator scale_i = spec.find( "Scale" ) ;
-					if( scale_i != spec.end() ) {
-						scale = scale_i->second ;
-					}
-					element_type = SimpleType::create( type_i->second, scale ) ;
+			else if( ID->second == "GP" ) {
+				if( number->second != "." && ( number->second == "A" || number->second == "R" ) ) {
+					throw BadArgumentError(
+						"genfile::vcf::VCFEntryType::create()",
+						"Number=" + number->second,
+						"\"Number\" of GP field must be encoded as ., G, or a number in metadata (ideally G)."
+					) ;
 				}
+				if( type_i->second != "Float" && type_i->second != "Integer" ) {
+					throw BadArgumentError( "genfile::vcf::VCFEntryType::create()", "spec" ) ;
+				}
+
+				SimpleType::UniquePtr element_type = SimpleType::create( "Probability", "identity" ) ;
+				result.reset( new OnePerGenotypeVCFEntryType( element_type )) ;
+			} else {
+				SimpleType::UniquePtr element_type = SimpleType::create( type_i->second, "identity" ) ;
 
 				if( number->second == "A" ) {
 					result.reset( new OnePerAlternateAlleleVCFEntryType( element_type )) ;
+				}
+				else if( number->second == "R" ) {
+					result.reset( new OnePerAlleleVCFEntryType( element_type )) ;
 				}
 				else if( number->second == "G" ) {
 					result.reset( new OnePerGenotypeVCFEntryType( element_type )) ;
@@ -228,6 +239,7 @@ namespace genfile {
 		
 		void VCFEntryType::parse_elts( std::vector< string_utils::slice > const& elts, EntriesSetter& setter ) const {
 			setter.set_number_of_entries( elts.size() ) ;
+			set_types( setter ) ;
 			for( std::size_t i = 0; i < elts.size(); ++i ) {
 				if( elts[i] == m_missing_value ) {
 					setter( MissingValue() ) ;
@@ -284,11 +296,22 @@ namespace genfile {
 			}
 		}
 		
+		void ListVCFEntryType::set_types( EntriesSetter& setter ) const {
+			setter.set_order_type( EntriesSetter::eOrderedList, get_type().genotype_value_type() ) ;
+		}
+
 		FixedNumberVCFEntryType::FixedNumberVCFEntryType( std::size_t number, SimpleType::UniquePtr type ):
 			ListVCFEntryType( type ),
 			m_number( number )
 		{}
-		
+
+		void OnePerAlternateAlleleVCFEntryType::set_types( EntriesSetter& setter ) const {
+			setter.set_order_type( EntriesSetter::eOrderedList, get_type().genotype_value_type() ) ;
+		}
+
+		void OnePerAlleleVCFEntryType::set_types( EntriesSetter& setter ) const {
+			setter.set_order_type( EntriesSetter::ePerAllele, get_type().genotype_value_type() ) ;
+		}
 		
 		namespace impl {
 			std::size_t n_choose_k( std::size_t const n, std::size_t const k ) {
@@ -301,22 +324,29 @@ namespace genfile {
 				return result ;
 			}
 			
+			uint32_t n_choose_k( uint32_t n, uint32_t k ) {
+				if( k == 0 )  {
+					return 1 ;
+				} else if( k == 1 ) {
+					return n ;
+				}
+				return ( n * n_choose_k(n - 1, k - 1) ) / k ;
+			}
+			
 			std::size_t get_number_of_unphased_genotypes( std::size_t const n_alleles, std::size_t const ploidy ) {
 				// The number is equal to the number of ways to fill an n-vector
 				// (where n is the number of alleles)
 				// with nonnegative integers so that the sum is the ploidy.
 				// This has a recursive expression involving filling the first
 				// entry and then filling the others.
-				// There is one special case: if the ploidy is zero, there are no genotypes at all.
-				assert( n_alleles > 0 ) ;
-				if( ploidy == 0 || n_alleles == 1 ) {
+				// There are two special cases: if the ploidy is zero, there are no genotypes at all,
+				// while if there is only one allele then there is only one genotype.
+				
+				if( ploidy == 0 ) {
 					return 0 ;
+				} else {
+					return n_choose_k( ploidy + n_alleles - 1, n_alleles - 1 ) ;
 				}
-				std::size_t result = 0 ;
-				for( std::size_t i = 0; i <= ploidy; ++i ) {
-					result += get_number_of_unphased_genotypes( n_alleles - 1, ploidy - i ) ;
-				}
-				return result ;
 			}
 
 			std::size_t get_number_of_phased_genotypes( std::size_t n_alleles, std::size_t ploidy ) {
@@ -348,6 +378,10 @@ namespace genfile {
 			assert(0) ;
 		}
 		
+		void OnePerGenotypeVCFEntryType::set_types( EntriesSetter& setter ) const {
+			setter.set_order_type( EntriesSetter::ePerUnorderedGenotype, get_type().genotype_value_type() ) ;
+		}
+
 		GenotypeCallVCFEntryType::GenotypeCallVCFEntryType():
 			VCFEntryType( SimpleType::create( "Integer" ))
 		{}

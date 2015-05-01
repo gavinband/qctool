@@ -52,7 +52,7 @@ namespace genfile {
 			std::map< std::string, std::string >::const_iterator j = i->second.find( "version" ) ;
 			assert( j != i->second.end() ) ;
 			std::string const result = j->second ;
-			assert( result == "4.0" || result == "4.1" ) ;
+			assert( result == "4.0" || result == "4.1" || result == "4.2" ) ;
 			in.exceptions( old_exceptions ) ;
 			return result ;
 		}
@@ -130,7 +130,7 @@ namespace genfile {
 				std::map< std::string, std::string > result ;
 			
 				if( key == "fileformat" ) {
-					if( value != "VCFv4.1" && value != "VCFv4.0" ) {
+					if( value != "VCFv4.2" && value != "VCFv4.1" && value != "VCFv4.0" ) {
 						throw FormatUnsupportedError( m_spec, value ) ;
 					}
 					result[ "version" ] = value.substr( 4, 3 ) ;
@@ -221,8 +221,14 @@ namespace genfile {
 					return false ;
 				}
 				// validate Number
-				if( ( where = meta_value.find( "Number" ) ) == meta_value.end() ) { return false ; }
-				if( where->second == "." || ( m_version == "4.1" && ( where->second == "A" || where->second == "G" ))) {
+				if( ( where = meta_value.find( "Number" ) ) == meta_value.end() ) {
+					return false ;
+				}
+				if(
+					where->second == "."
+					|| ( ( m_version == "4.1" || m_version == "4.2" ) && ( where->second == "A" || where->second == "G" ))
+					|| ( ( m_version == "4.2" ) && ( where->second == "R" ))
+				) {
 					// Ok, a non-numerical type.
 				}
 				else {

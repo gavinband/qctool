@@ -119,7 +119,13 @@ namespace genfile {
 			}
 			
 			GenFileSNPDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
-                assert( spec == "GP" || spec == ":genotypes:" ) ;
+				if( spec != "GP" && spec != ":genotypes:" ) {
+					throw BadArgumentError(
+						"genfile::GenFileSNPDataReader::get()",
+						"spec=\"" + spec + "\"",
+						"Only \"GP\" and \":genotypes:\" are supported in a GEN file."
+					) ;
+				}
 				std::size_t const N = m_genotypes.size() / 3 ;
 				setter.set_number_of_samples( N ) ;
 				setter.set_number_of_alleles( 2 ) ;

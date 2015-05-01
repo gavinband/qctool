@@ -9,6 +9,7 @@
 
 #include <boost/math/distributions/normal.hpp>
 #include "genfile/CrossCohortCovariateValueMapping.hpp"
+#include "genfile/ContinuousVariableCrossCohortCovariateValueMapping.hpp"
 
 namespace genfile {
 	class QuantileNormalisingCrossCohortCovariateValueMapping: public ContinuousVariableCrossCohortCovariateValueMapping
@@ -35,7 +36,7 @@ namespace genfile {
 		Mapping m_mapping ;
 		Mapping m_reverse_mapping ;
 	private:
-		void analyse_values( Entries const& entries ) ;
+		void analyse_values( Histogram const& entries ) ;
 		boost::math::normal m_normal_distribution ;
 	} ;
 }

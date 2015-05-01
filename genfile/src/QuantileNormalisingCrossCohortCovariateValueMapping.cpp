@@ -18,10 +18,10 @@ namespace genfile {
 	
 	void QuantileNormalisingCrossCohortCovariateValueMapping::add_source( CohortIndividualSource const& source ) {
 		ContinuousVariableCrossCohortCovariateValueMapping::add_source( source ) ;
-		analyse_values( entries() ) ;
+		analyse_values( histogram() ) ;
 	}
 	
-	void QuantileNormalisingCrossCohortCovariateValueMapping::analyse_values( Entries const& entries ) {
+	void QuantileNormalisingCrossCohortCovariateValueMapping::analyse_values( Histogram const& entries ) {
 		// Generate Normal quantiles, one per entry.
 		std::size_t const N = get_number_of_unmapped_values() ;
 		std::vector< double > normal_quantiles( N ) ;
@@ -29,12 +29,12 @@ namespace genfile {
 			normal_quantiles[i] = boost::math::quantile( m_normal_distribution, double( i+1 ) / double( N + 1 ) ) ;
 		}
 
-		Entries mapped_entries ;
+		Histogram mapped_entries ;
 
 		Mapping mapping, reverse_mapping ;
 		std::size_t quantile_i = 0 ;
 		for(
-			Entries::const_iterator i = entries.begin();
+			Histogram::const_iterator i = entries.begin();
 			i != entries.end();
 			quantile_i += (i++)->second
 		) {
