@@ -8,10 +8,10 @@ def configure( conf ):
 def create_tests( bld ):
 	bld.new_task_gen(
 		features = 'cxx cprogram',
-		target = 'test_genfile',
+		target = 'all_tests',
 		source = bld.glob( 'test/*.cpp' ),
 		uselib_local = 'genfile boost boost-unit_test_framework',
-		uselib = 'BOOST BOOST_IOSTREAMS BOOST_FILESYSTEM BOOST_SYSTEM BOOST_UNIT_TEST_FRAMEWORK ZLIB',
+		uselib = 'ZLIB',
 		includes='./include',
 		unit_test=1,
 		install_path=None
@@ -22,8 +22,8 @@ def create_benchmark( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'benchmark/' + name + '.cpp' ],
-		uselib_local = 'genfile boost boost-unit_test_framework',
-		uselib = 'BOOST BOOST_IOSTREAMS BOOST_FILESYSTEM BOOST_SYSTEM BOOST_UNIT_TEST_FRAMEWORK ZLIB',
+		uselib_local = 'genfile boost',
+		uselib = 'ZLIB',
 		includes = './include',\
 		export_incdirs = './include',
 		install_path = None
@@ -40,10 +40,9 @@ def build( bld ):
 		target = 'genfile',
 		source = bld.glob( 'src/*.cpp' ) + bld.glob( 'src/bgen/*.cpp' ) + bld.glob( 'src/vcf/*.cpp' ) + bld.glob( 'src/string_utils/*.cpp' ),
 		includes='./include',
-		uselib = ' BOOST BOOST_IOSTREAMS BOOST_SYSTEM BOOST_FILESYSTEM ZLIB',
-		uselib_local = 'eigen threadpool boost',
+		uselib_local = 'boost eigen',
+		uselib = 'ZLIB',
 		export_incdirs = './include'
 	)
 
-	create_tests( bld )
 	create_benchmark( bld, 'benchmark-io' )
