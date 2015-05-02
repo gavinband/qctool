@@ -398,7 +398,7 @@ public:
 				" in the BGEN header block." )
 			.set_takes_single_value()
 		;
-		options[ "-bgen-suppress-sample-identifier-block" ]
+		options[ "-bgen-omit-sample-identifier-block" ]
 			.set_description( "For use when outputting BGEN files only.  Tell QCTOOL to omit the sample identifier block.  By default"
 				" this is written whenever -s is specified." )
 		;
@@ -1910,7 +1910,7 @@ private:
 							if( m_options.check( "-bgen-free-data" )) {
 								bgen_sink->set_free_data( m_options.get< std::string >( "-bgen-free-data" ) ) ;
 							}
-							bgen_sink->set_write_sample_identifier_block( m_options.check( "-s" ) && ! m_options.check( "-bgen-suppress-sample-identifier-block" )) ;
+							bgen_sink->set_write_sample_identifier_block( m_options.check( "-s" ) && ! m_options.check( "-bgen-omit-sample-identifier-block" )) ;
 						}
 					}
 					if( m_options.check( "-sort" )) {
