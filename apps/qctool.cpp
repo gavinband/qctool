@@ -1623,6 +1623,7 @@ private:
 		}
 		
 		genfile::SNPIdentifyingData data1, data2 ;
+		bool found_duplicates = false ;
 		while(
 			(*source)
 				>> data1.SNPID() >> data1.rsid()
@@ -1634,7 +1635,17 @@ private:
 		) {
 			std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData >::const_iterator where = result->find( data1 ) ;
 			if( where != result->end() ) {
-				throw genfile::DuplicateSNPError( filename, genfile::string_utils::to_string( data1 ) ) ;
+				if( where->second == data2 && !found_duplicates ) {
+					m_ui_context.logger() << "qctool::load_snp_dictionary(): found duplicate rows in source "
+						<< source->get_source_spec()
+						<< ".\nFirst duplicated variant: " << data1 << ".\n" ;
+					found_duplicates = true ;	
+				} else if( where->second != data2 ) {
+					m_ui_context.logger() << "qctool::load_snp_dictionary(): found mismatching duplicate rows in source "
+						<< source->get_source_spec()
+						<< " for variant: " << data1 << ".\n" ;
+					throw genfile::DuplicateSNPError( filename, genfile::string_utils::to_string( data1 ) ) ;
+				}
 			}
 			(*result)[ data1 ] = data2 ;
 			(*source) >> statfile::end_row() ;
