@@ -398,6 +398,10 @@ public:
 				" in the BGEN header block." )
 			.set_takes_single_value()
 		;
+		options[ "-bgen-suppress-sample-identifier-block" ]
+			.set_description( "For use when outputting BGEN files only.  Tell QCTOOL to omit the sample identifier block.  By default"
+				" this is written whenever -s is specified." )
+		;
 
 		options.option_implies_option( "-sort", "-og" ) ;
 		options.option_implies_option( "-omit-chromosome", "-og" ) ;
@@ -1896,16 +1900,17 @@ private:
 							vcf_sink->set_output_fields( std::set< std::string >( values.begin(), values.end() ) ) ;
 						}
 					}
-					if( m_options.check_if_option_was_supplied( "-bgen-bits" )) {
+					// bgen-specific options
+					{
 						genfile::BGenFileSNPDataSink* bgen_sink = dynamic_cast< genfile::BGenFileSNPDataSink* >( sink.get() ) ;
 						if( bgen_sink ) {
-							bgen_sink->set_number_of_bits( m_options.get< std::size_t >( "-bgen-bits" )) ;
-						}
-					}
-					if( m_options.check_if_option_was_supplied( "-bgen-free-data" )) {
-						genfile::BGenFileSNPDataSink* bgen_sink = dynamic_cast< genfile::BGenFileSNPDataSink* >( sink.get() ) ;
-						if( bgen_sink ) {
-							bgen_sink->set_free_data( m_options.get< std::string >( "-bgen-free-data" ) ) ;
+							if( m_options.check( "-bgen-bits" )) {
+								bgen_sink->set_number_of_bits( m_options.get< std::size_t >( "-bgen-bits" )) ;
+							}
+							if( m_options.check( "-bgen-free-data" )) {
+								bgen_sink->set_free_data( m_options.get< std::string >( "-bgen-free-data" ) ) ;
+							}
+							bgen_sink->set_write_sample_identifier_block( m_options.check( "-s" ) && ! m_options.check( "-bgen-suppress-sample-identifier-block" )) ;
 						}
 					}
 					if( m_options.check( "-sort" )) {
