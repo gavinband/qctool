@@ -64,6 +64,7 @@ namespace genfile {
 
 		void set_number_of_bits( int const bits ) ;
 		void set_free_data( std::string const& free_data ) ;
+		void set_write_sample_identifier_block( bool write ) ;
 
 		bgen::Context const& bgen_context() const { return m_bgen_context ; }
 

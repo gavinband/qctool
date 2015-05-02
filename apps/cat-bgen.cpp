@@ -60,6 +60,13 @@ public:
 			.set_takes_single_value()
 		;
 
+		options[ "-omit-sample-identifier-block" ]
+			.set_description(
+					"Specify that cat-bgen should omit the sample identifier block in the output, even"
+					" if one is present in the first file specified to -og."
+			)
+		;
+
 	    options[ "-clobber" ]
 	        .set_description(
 				"Specify that cat-bgen should overwrite existing output file if it exists."
@@ -130,6 +137,12 @@ private:
 				std::string const newFreeData = options().get< std::string >( "-set-free-data" ) ;
 				offset += newFreeData.size() - resultContext.free_data.size() ;
 				resultContext.free_data = newFreeData ;
+			}
+			
+			if( options().check( "-omit-sample-identifier-block" )) {
+				resultContext.flags &= ~genfile::bgen::e_SampleIdentifiers ;
+				inputFiles[0].seekg( offset + 4 ) ;
+				offset = resultContext.header_size() ;
 			}
 
 			// Copy the header 

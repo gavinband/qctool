@@ -214,7 +214,7 @@ namespace genfile {
 
 			if( layout == e_v11Layout ) {
 				write_little_endian_integer( aStream, context.number_of_samples ) ;
-				// otherwise this is moved to the probability data block.
+				// otherwise appears in the probability data block below.
 			}
 
 			std::size_t const max_allele_length = std::numeric_limits< uint32_t >::max() ;
