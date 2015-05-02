@@ -111,6 +111,14 @@ namespace genfile {
 	void BasicBGenFileSNPDataSink::set_free_data( std::string const& free_data ) {
 		m_bgen_context.free_data = free_data ;
 	}
+
+	void BasicBGenFileSNPDataSink::set_write_sample_identifier_block( bool write ) {
+		if( write ) {
+			m_bgen_context.flags |= bgen::e_SampleIdentifiers ;
+		} else {
+			m_bgen_context.flags &= ~bgen::e_SampleIdentifiers ;
+		}
+	}
 	
 	void BasicBGenFileSNPDataSink::setup() {
 		m_offset = m_bgen_context.header_size() ;
@@ -132,11 +140,13 @@ namespace genfile {
 		m_bgen_context.number_of_samples = number_of_samples ;
 		m_offset = m_bgen_context.header_size() ;
 		update_offset_and_header_block() ;
-		m_offset += bgen::write_sample_identifier_block(
-			*m_stream_ptr,
-			m_bgen_context,
-			sample_ids
-		) ;
+		if( m_bgen_context.flags & bgen::e_SampleIdentifiers ) {
+			m_offset += bgen::write_sample_identifier_block(
+				*m_stream_ptr,
+				m_bgen_context,
+				sample_ids
+			) ;
+		}
 		update_offset_and_header_block() ;
 		m_stream_ptr->seekp( m_offset+4, std::ios_base::beg ) ;
 
