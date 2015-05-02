@@ -134,6 +134,7 @@ namespace snp_summary_component {
 		int numberOfClusters = 0 ;
 
 		for( int g = 0; g < 3; ++g ) {
+			std::string const stub = "g=" + ( g == 3 ? std::string( "NA" ) : genfile::string_utils::to_string( g ) ) ;
 			metro::DataSubset subset = compute_data_subset(
 				N,
 				boost::bind(
@@ -143,14 +144,13 @@ namespace snp_summary_component {
 			) ;
 			
 			counts(g) = subset.size() ;
+			callback( stub + ":count", genfile::VariantEntry::Integer( subset.size() ) ) ;
 			
 			typedef metro::likelihood::MultivariateT< double, Eigen::VectorXd, Eigen::MatrixXd > Cluster ;
 			Cluster::UniquePtr cluster( new Cluster( m_intensities, m_nu ) ) ;
 			metro::ValueStabilisesStoppingCondition stoppingCondition( 0.01, 100 ) ;
 			
 			if( cluster->estimate_by_em( subset, stoppingCondition, m_regularisingSigma, m_regularisingWeight ) ) {
-				std::string const stub = "g=" + ( g == 3 ? std::string( "NA" ) : genfile::string_utils::to_string( g ) ) ;
-				callback( stub + ":count", genfile::VariantEntry::Integer( subset.size() ) ) ;
 				callback( stub + ":nu", m_nu ) ;
 				callback( stub + ":mu_X", cluster->get_mean()(0) ) ;
 				callback( stub + ":mu_Y", cluster->get_mean()(1) ) ;
