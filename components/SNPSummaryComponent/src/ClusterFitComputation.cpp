@@ -141,6 +141,10 @@ namespace snp_summary_component {
 
 		int numberOfClusters = 0 ;
 
+#if DEBUG_CLUSTERFITCOMPUTATION
+				std::cerr << "snp: " << snp << ".\n" ;
+#endif
+
 		for( int g = 0; g < 3; ++g ) {
 			std::string const stub = "g=" + ( g == 3 ? std::string( "NA" ) : genfile::string_utils::to_string( g ) ) ;
 			metro::DataSubset subset = compute_data_subset(
@@ -150,8 +154,6 @@ namespace snp_summary_component {
 					_1, g, genotypes, m_nonmissingness, m_call_threshhold
 				)
 			) ;
-			
-			
 			
 			counts(g) = subset.size() ;
 			callback( stub + ":count", genfile::VariantEntry::Integer( subset.size() ) ) ;
@@ -167,7 +169,6 @@ namespace snp_summary_component {
 				callback( stub + ":sigma_XX", cluster->get_sigma()(0,0) ) ;
 				callback( stub + ":sigma_XY", cluster->get_sigma()(1,0) ) ;
 				callback( stub + ":sigma_YY", cluster->get_sigma()(1,1) ) ;
-				callback( stub + ":iterations", genfile::VariantEntry::Integer( stoppingCondition.iterations() ) ) ;
 				
 				nonMissingGenotypesAndIntensitySubset.add( subset ) ;
 
@@ -191,21 +192,44 @@ namespace snp_summary_component {
 				if( subset.size() > 0 ) {
 					std::cerr << "!! For SNP " << snp << ", cluster " << g << " has size " << subset.size() << " but distribution did not converge.\n" ;
 				}
+				genfile::MissingValue const NA = genfile::MissingValue();
+				callback( stub + ":nu", NA ) ;
+				callback( stub + ":mu_X", NA ) ;
+				callback( stub + ":mu_Y", NA ) ;
+				callback( stub + ":sigma_XX", NA ) ;
+				callback( stub + ":sigma_XY", NA ) ;
+				callback( stub + ":sigma_YY", NA ) ;
 			}
-			
-			// Not needed.
-			// mixture.set_data( m_intensities ) ;
 
-			// Now output the loglikelihoods under a model conditional on genotype...
-			callback( "number-of-clusters", numberOfClusters ) ;
-			callback( "cluster-informative-sample-count", genfile::VariantEntry::Integer( nonMissingGenotypesAndIntensitySubset.size() ) ) ;
-			callback( "ll-given-genotype",  genotypeLLs.sum() ) ;
-			// And under equal-weighted mixtures...
-			mixture.evaluate_at( mixture.get_parameters(), nonMissingGenotypesAndIntensitySubset ) ;
-			callback( "equal-weighted-mixture:ll",  mixture.get_value_of_function() ) ;
-			mixture.evaluate_at( mixture.get_parameters(), nonMissingIntensitiesSubset ) ;
-			callback( "equal-weighted-mixture:intensities-ll",  mixture.get_value_of_function() ) ;
+			callback( stub + ":iterations", genfile::VariantEntry::Integer( stoppingCondition.iterations() ) ) ;
 		}
+
+		
+
+		// Now output the loglikelihoods under a model conditional on genotype...
+		callback( "number-of-clusters", numberOfClusters ) ;
+		callback( "informative-sample-count", genfile::VariantEntry::Integer( nonMissingGenotypesAndIntensitySubset.size() ) ) ;
+		callback( "ll-given-genotype",  genotypeLLs.sum() ) ;
+		// And under equal-weighted mixtures...
+		mixture.set_data( m_intensities ) ;
+		mixture.evaluate_at( mixture.get_parameters(), nonMissingGenotypesAndIntensitySubset ) ;
+		double const mixtureLL = mixture.get_value_of_function() ;
+#if DEBUG_CLUSTERFITCOMPUTATION
+		std::cerr << "numberOfClusters = " << numberOfClusters << "\n"
+			<< "informative sample count = " << nonMissingGenotypesAndIntensitySubset.size() << "\n" ;
+		std::cerr << "Mixture parameters = " << mixture.get_parameters().transpose() << ".\n" ;
+		std::cerr << "mixtureLL = " << mixtureLL << ".\n" ;
+		Eigen::VectorXd terms( m_intensities.rows() ) ;
+		mixture.get_terms_of_function( terms ) ;
+		std::cerr << "terms = " << terms.transpose() << ".\n" ;
+#endif
+		callback( "equal-weighted-mixture:genotyped_samples:ll", mixtureLL ) ;
+		mixture.evaluate_at( mixture.get_parameters(), nonMissingIntensitiesSubset ) ;
+		callback( "equal-weighted-mixture:all_samples:ll",  mixture.get_value_of_function() ) ;
+		callback(
+			"ll-comparison",
+			( genotypeLLs.sum() - ( nonMissingGenotypesAndIntensitySubset.size() * std::log( numberOfClusters )) - mixtureLL )
+		) ;
 	}
 
 	std::string ClusterFitComputation::get_summary( std::string const& prefix, std::size_t column_width ) const {

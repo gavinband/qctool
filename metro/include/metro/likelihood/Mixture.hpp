@@ -25,7 +25,8 @@ namespace metro {
 			typedef typename metro::IndependentObservationLogLikelihood< Scalar, Vector, Matrix >::MatrixRef MatrixRef ;
 			
 			Mixture( Matrix const& data ):
-				m_data( &data )
+				m_data( &data ),
+				m_total_weight(0)
 			{}
 			
 			void set_data( Matrix const& data ) {
@@ -81,7 +82,18 @@ namespace metro {
 					m_components[i].get_terms_of_function( m_component_terms.col(i) ) ;
 					// Re-weight according to cluster weights.
 					m_component_terms.col(i) += Vector::Constant( m_component_terms.rows(), std::log( m_weights[i] / m_total_weight ) ) ;
+#if DEBUG_METRO_MIXTURE
+					std::cerr << "m_weights[" << i << "] = " << m_weights[i] / m_total_weight << "\n" ;
+#endif
 				}
+
+#if DEBUG_METRO_MIXTURE
+				std::cerr << "m_component_terms = \n"
+					<< m_component_terms.block( 0, 0, 10, m_component_terms.cols() ) << "\n" ;
+					std::cerr << "m_component_terms = \n"
+						<< m_component_terms.block( 0, 0, 10, m_component_terms.cols() ) << "\n" ;
+#endif
+					
 
 				// Compute it
 				m_terms.setZero( m_component_terms.rows() ) ;
