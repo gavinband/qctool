@@ -20,6 +20,8 @@ namespace metro {
 
 		// A function which returns the underlying terms of the log-likelihood.
 		virtual void get_terms_of_function( MatrixRef result ) const = 0 ;
+		
+		virtual void set_data( Matrix const& ) = 0 ;
 	} ;
 }
 

@@ -25,23 +25,39 @@ namespace metro {
 			typedef typename metro::IndependentObservationLogLikelihood< Scalar, Vector, Matrix >::MatrixRef MatrixRef ;
 			
 			Mixture( Matrix const& data ):
-				m_data( data )
+				m_data( &data )
 			{}
 			
+			void set_data( Matrix const& data ) {
+				m_data = &data ;
+				for( std::size_t i = 0; i < m_components.size(); ++i ) {
+					m_components[i].set_data( data ) ;
+				}
+			}
+			
 			// Add a component with given name and weight to the mixture.
-			template< typename Distribution >
+			// This takes ownership of the distribution
+			template< typename DistributionPtr >
 			void add_component(
 				std::string const& name,
 				Scalar const weight,
-				Distribution distribution
+				DistributionPtr distribution
 			) {
-				distribution->set_data( m_data ) ;
+				Eigen::VectorXd new_parameters( m_parameters.size() + distribution->get_parameters().size() ) ;
+				new_parameters.segment( 0, m_parameters.size() ) = m_parameters ;
+				new_parameters.segment( m_parameters.size(), distribution->get_parameters().size() ) = distribution->get_parameters() ;
+
 				m_component_names.push_back( name ) ;
 				m_components.push_back( distribution ) ;
 				m_weights.push_back( weight ) ;
 				m_total_weight += weight ;
+				m_parameters = new_parameters ;
 			}
 			
+			void evaluate_at( Vector const& parameters ) {
+				evaluate_at( parameters, DataSubset( DataRange( 0, m_data->rows() ))) ;
+			}
+
 			void evaluate_at( Vector const& parameters, DataSubset const& data_subset ) {
 				m_parameters = parameters ;
 				{
@@ -59,7 +75,7 @@ namespace metro {
 					assert( param_i == parameters.size() ) ;
 				}
 
-				m_component_terms.resize( m_data.rows(), m_components.size() ) ;
+				m_component_terms.resize( m_data->rows(), m_components.size() ) ;
 				m_component_terms.setZero() ;
 				for( std::size_t i = 0; i < m_components.size(); ++i ) {
 					m_components[i].get_terms_of_function( m_component_terms.col(i) ) ;
@@ -99,7 +115,7 @@ namespace metro {
 
 			private:
 				
-				Matrix const& m_data ;
+				Matrix const* m_data ;
 				boost::ptr_vector< Component > m_components ;
 				std::vector< std::string > m_component_names ;
 				std::vector< Scalar > m_weights ;

@@ -14,7 +14,7 @@ typedef Eigen::VectorXd Vector ;
 
 double const infinity = std::numeric_limits< double >::infinity() ;
 
-// #define DEBUG_MULTIVARIATE_T 1
+#define DEBUG_MULTIVARIATE_T 1
 
 BOOST_AUTO_TEST_SUITE( test_multivariate_t )
 
@@ -545,6 +545,15 @@ AUTO_TEST_CASE( test_loglikelihood_em_range ) {
 			stoppingCondition.reset() ;
 			T.estimate_by_em( ranges, stoppingCondition ) ;
 			ll2 = T.get_value_of_function() ;
+
+#if DEBUG_MULTIVARIATE_T
+			std::cerr << "test_multivariate_t_em_range ): data is:\n"
+				<< data << ", estimated parameters are:\n"
+				<< "nu = " << T.get_degrees_of_freedom() << ",\n"
+				<< "mean = " << T.get_mean().transpose() << ",\n"
+				<< "sigma =\n" << T.get_sigma() << ".\n"
+				<< "log-likelihood= " << T.get_value_of_function() << ".\n" ;
+#endif
 		}
 
 		// Nominally exactly the same, the computation has slight rounding
