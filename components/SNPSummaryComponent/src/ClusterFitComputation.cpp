@@ -20,7 +20,7 @@
 #include "metro/ValueStabilisesStoppingCondition.hpp"
 #include "metro/log_sum_exp.hpp"
 
-//#define DEBUG_CLUSTERFITCOMPUTATION 1
+// #define DEBUG_CLUSTERFITCOMPUTATION 1
 
 namespace snp_summary_component {
 	ClusterFitComputation::ClusterFitComputation(
@@ -108,11 +108,19 @@ namespace snp_summary_component {
 			assert( m_nonmissingness.cols() == 2 ) ;
 		}
 	
+#if DEBUG_CLUSTERFITCOMPUTATION
+				std::cerr << "At " << snp << ":\n"
+					<< "genotypes =\n"
+					<< genotypes.block( 0, 0, 10, 3 )
+					<< "\n, intensities =\n"
+					<< m_intensities.block( 0, 0, 10, 2 )
+					<< ".\n" ;
+#endif
+	
 		// We compute log-likelihood under a model which is a equally-weighted
 		// mixture of the three clusters.
 		// For this purpose we record the parameters etc.
 		Eigen::MatrixXd parameters = Eigen::MatrixXd::Constant( 5, 3, std::numeric_limits< double >::quiet_NaN() ) ;
-		Eigen::VectorXd linearParameters = Eigen::VectorXd::Constant( 15, std::numeric_limits< double >::quiet_NaN() ) ;
 		Eigen::VectorXd counts = Eigen::VectorXd::Zero( 3 ) ;
 		Eigen::VectorXd genotypeLLs = Eigen::VectorXd::Zero( 3 ) ;
 		metro::DataSubset const nonMissingIntensitiesSubset = compute_data_subset(
@@ -143,6 +151,8 @@ namespace snp_summary_component {
 				)
 			) ;
 			
+			
+			
 			counts(g) = subset.size() ;
 			callback( stub + ":count", genfile::VariantEntry::Integer( subset.size() ) ) ;
 			
@@ -161,13 +171,14 @@ namespace snp_summary_component {
 				
 				nonMissingGenotypesAndIntensitySubset.add( subset ) ;
 
-				linearParameters.segment( numberOfClusters * 5, 5 ) = cluster->get_parameters().transpose() ;
 				++numberOfClusters ;
 
 				genotypeLLs(g) = cluster->get_value_of_function() ;
 
 #if DEBUG_CLUSTERFITCOMPUTATION
-				std::cerr << "cluster " << g << ": count = " << subset.size()
+				std::cerr << "cluster " << g << ", "
+					<< "subset: " << subset << "\n"
+					<< "count = " << subset.size()
 					<< ", parameters = " << std::setprecision( 4 ) << cluster->get_parameters().transpose()
 					<< ", ll = " << cluster->get_value_of_function() << ".\n" ;
 #endif
@@ -182,14 +193,17 @@ namespace snp_summary_component {
 				}
 			}
 			
+			// Not needed.
+			// mixture.set_data( m_intensities ) ;
+
 			// Now output the loglikelihoods under a model conditional on genotype...
 			callback( "number-of-clusters", numberOfClusters ) ;
 			callback( "cluster-informative-sample-count", genfile::VariantEntry::Integer( nonMissingGenotypesAndIntensitySubset.size() ) ) ;
-			callback( "per-cluster:average_ll",  genotypeLLs.sum() ) ;
+			callback( "ll-given-genotype",  genotypeLLs.sum() ) ;
 			// And under equal-weighted mixtures...
-			mixture.evaluate_at( linearParameters.segment( 0, numberOfClusters * 5 ), nonMissingGenotypesAndIntensitySubset ) ;
+			mixture.evaluate_at( mixture.get_parameters(), nonMissingGenotypesAndIntensitySubset ) ;
 			callback( "equal-weighted-mixture:ll",  mixture.get_value_of_function() ) ;
-			mixture.evaluate_at( linearParameters.segment( 0, numberOfClusters * 5 ), nonMissingIntensitiesSubset ) ;
+			mixture.evaluate_at( mixture.get_parameters(), nonMissingIntensitiesSubset ) ;
 			callback( "equal-weighted-mixture:intensities-ll",  mixture.get_value_of_function() ) ;
 		}
 	}
