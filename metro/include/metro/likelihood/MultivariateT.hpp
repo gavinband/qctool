@@ -248,7 +248,7 @@ namespace metro {
 				Vector mean = compute_weighted_mean( iterationWeights, m_weights, data_subset ) ;
 				Matrix sigma = compute_weighted_regularised_sigma( iterationWeights, m_weights, mean, regularising_sigma, regularising_weight, data_subset ) ;
 
-				evaluate_at( mean, sigma ) ;
+				evaluate_at( mean, sigma, data_subset ) ;
 				double loglikelihood = get_value_of_function() ;
 				
 #if DEBUG_MULTIVARIATE_T

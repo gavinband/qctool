@@ -44,32 +44,12 @@ namespace metro {
 			add( DataSubset( range )) ;
 		}
 
-		void add( DataSubset const& other ) {
-			m_rep.insert( m_rep.end(), other.m_rep.begin(), other.m_rep.end() ) ;
-			std::sort( m_rep.begin(), m_rep.end() ) ;
-			// Now join ranges that need to be joined.
-			m_size = 0 ;
-			for( std::size_t i = 0; i < m_rep.size(); ++i ) {
-				int begin = m_rep[i].begin() ;
-				int end = m_rep[i].end() ;
-				std::size_t j = i ;
-				for( ++j; j < m_rep.size() && m_rep[j].begin() <= end; ++j ) {
-					end = std::max( end, m_rep[j].end() ) ;
-				}
-				m_rep[i] = DataRange( begin, end ) ;
-				m_rep.erase( m_rep.begin() + i + 1, m_rep.begin() + j ) ;
-				m_size += m_rep[i].size() ;
-				i = j ;
-			}
-		}
+		void add( DataSubset const& other ) ;
 
 	private:
 		std::vector< DataRange > m_rep ;
 		std::size_t m_size ;
 	} ;
-	
-	bool operator== ( DataSubset const& left, DataSubset const& right ) ;
-	bool operator< ( DataSubset const& left, DataSubset const& right ) ;
 	
 	std::ostream& operator<<( std::ostream& out, DataSubset const& range ) ;
 }
