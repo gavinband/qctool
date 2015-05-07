@@ -31,6 +31,9 @@ namespace snp_summary_component {
 	):
 		m_call_threshhold( call_threshhold ),
 		m_nu( nu ),
+		m_scale( "X:Y" ),
+		m_xAxisName( "X" ),
+		m_yAxisName( "Y" ),
 		m_regularisingSigma( regularisationVariance * Eigen::MatrixXd::Identity( 2, 2 ) ),
 		m_regularisingWeight( regularisationWeight )
 	{}
@@ -86,6 +89,23 @@ namespace snp_summary_component {
 		}
 	}
 	
+	void ClusterFitComputation::set_scale( std::string const& scale ) {
+		if( scale == "X:Y" ) {
+			m_xAxisName = "X" ;
+			m_yAxisName = "Y" ;
+		} else if( scale == "contrast:logR" ) {
+			m_xAxisName = "contrast" ;
+			m_yAxisName = "logR" ;
+		} else {
+			throw genfile::BadArgumentError(
+				"ClusterFitComputation::set_transform()",
+				"transform=\"" + scale + "\"",
+				"Unrecognised transform.  Use \"X:Y\" or \"contrast:logR\""
+			) ;
+		}
+		m_scale = scale ;
+	}
+	
 	void ClusterFitComputation::operator()(
 		SNPIdentifyingData const& snp,
 		Genotypes const& genotypes,
@@ -109,13 +129,28 @@ namespace snp_summary_component {
 		}
 	
 #if DEBUG_CLUSTERFITCOMPUTATION
-				std::cerr << "At " << snp << ":\n"
-					<< "genotypes =\n"
-					<< genotypes.block( 0, 0, 10, 3 )
-					<< "\n, intensities =\n"
-					<< m_intensities.block( 0, 0, 10, 2 )
-					<< ".\n" ;
+		std::cerr << "At " << snp << ":\n"
+			<< "genotypes =\n"
+			<< genotypes.block( 0, 0, 10, 3 )
+			<< "\n, intensities =\n"
+			<< m_intensities.block( 0, 0, 10, 2 )
+			<< ".\n" ;
 #endif
+
+		if( m_scale == "X:Y" ) {
+			// do nothing.
+		} else if( m_scale == "contrast:logR" ) {
+			Eigen::MatrixXd transform( 2, 2 ) ;
+			transform <<
+				1, 1,
+				-1, 1
+			;
+			m_intensities *= transform ;
+			m_intensities.col(0).array() /= m_intensities.col(1).array() ;
+			m_intensities.col(1).array() = m_intensities.col(1).array().log() ;
+		} else {
+			assert(0) ;
+		}
 	
 		// We compute log-likelihood under a model which is a equally-weighted
 		// mixture of the three clusters.
@@ -141,6 +176,8 @@ namespace snp_summary_component {
 
 		int numberOfClusters = 0 ;
 
+		callback( "clustering-scale", m_scale ) ;
+		
 #if DEBUG_CLUSTERFITCOMPUTATION
 				std::cerr << "snp: " << snp << ".\n" ;
 #endif
@@ -164,11 +201,11 @@ namespace snp_summary_component {
 			
 			if( cluster->estimate_by_em( subset, stoppingCondition, m_regularisingSigma, m_regularisingWeight ) ) {
 				callback( stub + ":nu", m_nu ) ;
-				callback( stub + ":mu_X", cluster->get_mean()(0) ) ;
-				callback( stub + ":mu_Y", cluster->get_mean()(1) ) ;
-				callback( stub + ":sigma_XX", cluster->get_sigma()(0,0) ) ;
-				callback( stub + ":sigma_XY", cluster->get_sigma()(1,0) ) ;
-				callback( stub + ":sigma_YY", cluster->get_sigma()(1,1) ) ;
+				callback( stub + ":mu_" + m_xAxisName, cluster->get_mean()(0) ) ;
+				callback( stub + ":mu_" + m_yAxisName, cluster->get_mean()(1) ) ;
+				callback( stub + ":sigma_" + m_xAxisName + m_xAxisName, cluster->get_sigma()(0,0) ) ;
+				callback( stub + ":sigma_" + m_xAxisName + m_yAxisName, cluster->get_sigma()(1,0) ) ;
+				callback( stub + ":sigma_" + m_yAxisName + m_yAxisName, cluster->get_sigma()(1,1) ) ;
 				
 				nonMissingGenotypesAndIntensitySubset.add( subset ) ;
 
@@ -194,11 +231,11 @@ namespace snp_summary_component {
 				}
 				genfile::MissingValue const NA = genfile::MissingValue();
 				callback( stub + ":nu", NA ) ;
-				callback( stub + ":mu_X", NA ) ;
-				callback( stub + ":mu_Y", NA ) ;
-				callback( stub + ":sigma_XX", NA ) ;
-				callback( stub + ":sigma_XY", NA ) ;
-				callback( stub + ":sigma_YY", NA ) ;
+				callback( stub + ":mu_" + m_xAxisName, NA ) ;
+				callback( stub + ":mu_" + m_yAxisName, NA ) ;
+				callback( stub + ":sigma_" + m_xAxisName + m_xAxisName, NA ) ;
+				callback( stub + ":sigma_" + m_xAxisName + m_yAxisName, NA ) ;
+				callback( stub + ":sigma_" + m_yAxisName + m_yAxisName, NA ) ;
 			}
 
 			callback( stub + ":iterations", genfile::VariantEntry::Integer( stoppingCondition.iterations() ) ) ;

@@ -56,7 +56,13 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_default_value( 0.5 )
 		.set_default_value( 10 )
 	;
+	options[ "-fit-cluster-scale" ]
+		.set_description( "Specify scale to fit clusters in.  Either \"X:Y\" or \"contrast\:logR\"." )
+		.set_takes_values( 1 )
+		.set_default_value( "X:Y" )
+	;
 	options.option_implies_option( "-fit-cluster-parameters", "-fit-clusters" ) ;
+	options.option_implies_option( "-fit-cluster-scale", "-fit-clusters" ) ;
 	
 	options[ "-stratify" ]
 		.set_description( "Compute all SNP summary statistics seperately for each level of the given variable in the sample file." )
@@ -229,13 +235,15 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		}
 		double regularisationVariance = genfile::string_utils::to_repr< double >( params[1] ) ;
 		double regularisationCount = genfile::string_utils::to_repr< double >( params[2] ) ;
+		snp_summary_component::ClusterFitComputation::UniquePtr computation(
+			new snp_summary_component::ClusterFitComputation(
+				nu, regularisationVariance, regularisationCount
+			)
+		) ;
+		computation->set_scale( m_options.get< std::string >( "-fit-cluster-scale" )) ;
 		manager.add_computation(
 			"fit-clusters",
-			SNPSummaryComputation::UniquePtr(
-				new snp_summary_component::ClusterFitComputation(
-					nu, regularisationVariance, regularisationCount
-				)
-			)
+			SNPSummaryComputation::UniquePtr( computation.release() )
 		) ;
 	}
 
