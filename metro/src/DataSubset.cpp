@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <vector>
+#include <algorithm>
 #include "metro/DataRange.hpp"
 #include "metro/DataSubset.hpp"
 
