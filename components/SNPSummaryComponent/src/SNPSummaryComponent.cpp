@@ -57,7 +57,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_default_value( 10 )
 	;
 	options[ "-fit-cluster-scale" ]
-		.set_description( "Specify scale to fit clusters in.  Either \"X:Y\" or \"contrast\:logR\"." )
+		.set_description( "Specify scale to fit clusters in.  Either \"X:Y\" or \"contrast:logR\"." )
 		.set_takes_values( 1 )
 		.set_default_value( "X:Y" )
 	;
