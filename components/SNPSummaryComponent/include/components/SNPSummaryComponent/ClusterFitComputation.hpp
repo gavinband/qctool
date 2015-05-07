@@ -21,6 +21,7 @@
 
 namespace snp_summary_component {
 	struct ClusterFitComputation: public SNPSummaryComputation {
+		typedef std::auto_ptr< ClusterFitComputation > UniquePtr ;
 		ClusterFitComputation(
 			double nu,
 			double regularisationVariance = 0.5,
@@ -29,9 +30,14 @@ namespace snp_summary_component {
 		) ;
 		void operator()( SNPIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
+		void set_scale( std::string const& scale ) ;
 	private:
 		double const m_call_threshhold ;
 		double const m_nu ;
+		std::string m_scale ;
+		std::string m_xAxisName ;
+		std::string m_yAxisName ;
+		
 		Eigen::MatrixXd const m_regularisingSigma ;
 		double const m_regularisingWeight ;
 		typedef Eigen::MatrixXd IntensityMatrix ;
