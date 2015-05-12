@@ -165,6 +165,7 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager(
 		}
 	}
 
+	storage->add_variable( "comment" ) ;
 	manager->add_result_callback(
 		boost::bind(
 			&qcdb::Storage::store_per_variant_data,
