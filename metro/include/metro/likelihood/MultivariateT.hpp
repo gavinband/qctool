@@ -110,9 +110,9 @@ namespace metro {
 				m_log_determinant = m_ldlt.vectorD().array().log().sum() ;
 				m_mean_centred_data = m_data->rowwise() - m_mean.transpose() ;
 				// Z is a vector of the terms ( x_i - mu )^t Sigma^-1 ( x_i - mu ).
+				m_A = m_ldlt.solve( m_mean_centred_data.transpose() ) ;
 				m_Z = (
-					m_mean_centred_data.array()
-					* ( m_ldlt.solve( m_mean_centred_data.transpose() ).transpose().array() )
+					m_mean_centred_data.array() * m_A.transpose().array()
 				).rowwise().sum() ;
 
 #if DEBUG_MULTIVARIATE_T
@@ -317,6 +317,7 @@ namespace metro {
 			Eigen::LDLT< Matrix > m_ldlt ;
 			double m_log_determinant ;
 			Matrix m_mean_centred_data ;
+			Matrix m_A ;
 			Vector m_Z ;
 			
 		private:
