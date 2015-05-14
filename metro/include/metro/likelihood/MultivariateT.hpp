@@ -269,8 +269,9 @@ namespace metro {
 					// Vector of weights is given as
 					// (nu+p) / nu + (x_i-mean)^t R^-1 ( x_i - mean ).
 					// Our x_i - mean_i is stored in a single row of m_mean_centred_data.
+					m_A = m_ldlt.solve( m_mean_centred_data.transpose() ) ;
 					iterationWeights = (
-						m_mean_centred_data.array() * m_ldlt.solve( m_mean_centred_data.transpose() ).transpose().array()
+						m_mean_centred_data.array() * m_A.transpose().array()
 					).rowwise().sum() ;
 					iterationWeights += Vector::Constant( m_data->rows(), m_nu ) ;
 					iterationWeights.array() = iterationWeights.array().inverse() * ( m_nu + m_p ) ;
