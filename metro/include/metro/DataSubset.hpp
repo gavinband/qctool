@@ -47,7 +47,8 @@ namespace metro {
 		void add( DataSubset const& other ) ;
 
 	private:
-		std::vector< DataRange > m_rep ;
+		typedef std::vector< DataRange > Rep ;
+		Rep m_rep ;
 		std::size_t m_size ;
 	} ;
 	
