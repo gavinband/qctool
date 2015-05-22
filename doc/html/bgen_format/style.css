@@ -1,17 +1,37 @@
 body {
-	width: 80% ;
-	max-width: 900px ;
+	width: 800px ;
 	margin-left: auto ;
 	margin-right: auto ;
-	text-align: left ;
+	overflow-y: scroll ;
+	/* border: 1px solid red; */
 }
+
+.header_text {
+	float: left ;
+	padding-left: 10px ;
+	padding-right: 10px ;
+	font-family: Arial, Helvetica, Tahoma, sans-serif;
+	font-size: 40px ;
+}
+
+div.header_subtext {
+	padding-top: 20px ;
+	padding-left: 100px ;
+}
+
+div.header {
+	border-bottom: 2px solid black ;
+	font-family: sans-serif ;
+	font-size: 15px ;
+}
+
 
 table.filespec {
 	width: 80% ;
 	max-width: 900px ;
 	border-width: 5px;
 	border-spacing: ;
-	border-style: dotted;
+	border-style: solid;
 	border-color: gray;
 	border-collapse: collapse;
 	background-color: white;
@@ -22,12 +42,15 @@ table.filespec {
 table.filespec th {
 	border-width: 2px;
 	padding: 4px;
+	padding-left: 10px;
+	padding-right: 10px;
 	border-style: solid;
 	border-color: black;
 	background-color: #D0D0D0;
-	-moz-border-radius: ;
 	v-align: middle;
+	min-width: 50px ;
 }
+
 table.filespec td {
 	border-width: 1px;
 	padding: 4px;
@@ -85,9 +108,21 @@ table.field_encoding_scheme td {
 	text-align: left ;
 }
 
-table.changes {
+#history .boxed {
+	font-size: 80% ;
+}
+
+#history dl dt {
+	font-family: sans-serif ;
+	font-weight: bold ;
+}
+
+.changes {
 	width: 90% ;
-	font-size: 10pt ;
+	border: 1px solid grey ;
+	padding: 15px ;
+	border-radius: 15px ;
+	font-family: sans-serif ;
 }
 
 .changes th {
