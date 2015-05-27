@@ -28,8 +28,8 @@
 	  </p>
     </div>
 
+    <h2>Introduction</h2>
 	<div id = "introduction">
-	    <h2>Introduction</h2>
 		<p>
 			Modern genetic association studies routinely employ data on tens to hundreds of thousands
 			of individuals, genotyped or imputed at tens of millions of markers genome-wide.  Traditional
@@ -37,9 +37,9 @@
 			the <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format.html">GEN</a>
 			format output by <a href="https://mathgen.stats.ox.ac.uk/impute/impute_v2.html">IMPUTE</a>,
 			or the <a href="http://ga4gh.org/#/fileformats-team">Variant Call Format</a>
-			- are not well suited to these data quantities.  Indeed, for simple programs the time spent parsing
+			- are sometimes not well suited to these data quantities.  Indeed, for simple programs the time spent parsing
 			these formats can dominate program execution time.
-		<p>
+		</p>
 		<p>
 			This page describes a binary GEN file format (the "BGEN" format) which aims to address these problems.
 			BGEN is a robust format that has been designed to have a specific blend of features that we believe make it
@@ -51,6 +51,20 @@
 				<li>Small file sizes through the use of efficient, variable-precision packed bit representations and compression.</li>
 				<li>The use of per-variant compression makes the format simple to index and easy to catalogue.</li>
 			</ul>
+		</p>
+		<p>
+			For example, the following plot shows the time taken to list variant identifying data - i.e. the genomic
+			position, ID fields and alleles - for various common formats (Y-axis), against file size (X axis), for a dataset
+			of 18,496 samples typed at 121,668 SNPs on chromosome 1.  Both BGEN v1.1 and v1.2-style storage are shown.
+		</p>
+		<div class="embedded_plot">
+			<center>
+				<img width = 400 height = 300 src="images/bgen_comparison.png"></img>
+			</center>
+		</div>
+		<p>
+			For <a href="">binary ped</a> (BED) files, identifying data is stored in a separate file (the <span class="monospace">.bim</span> file)
+			so the time is effectively zero.  For other formats there is a significant trade-off between file size and read performance.
 		</p>
 		<p>
 			The BGEN format has been used in several major projects, including the
@@ -858,31 +872,28 @@
 	
     <h4>Representation of probabilities</h4>
 	<p>
-		For both genotype and haplotype data, we store each probability using <em>B</em> bits as follows.
-		An unsigned integer of length <em>B</em> bits can represent the values <em>0, ..., 2<sup>B</sup>-1</em> inclusive.
-		We interpret each such value <em>x</em> as the probability <em>x/(2<sup>B</sup>-1)</em>.  Thus:
-		<ul>
-			<li>
-		To parse a probability stored in <em>B</em> bits, interpret the <em>B</em> bits as an integer (in little-endian format) and divide by
-				2<sup>B</sup>-1.
-		</li>
-	</ul>
+		For both genotype and haplotype data, each probability should be stored using <em>B</em> bits as follows.
+		An integer of length <em>B</em> bits can represent the values <em>0, ..., 2<sup>B</sup>-1</em> inclusive.
+		To interpret a stored value <em>x</em> as a probability:
+		<ol>
+			<li>Convert <em>x</em> to an integer in floating-point representation.
+			<li>Divide by <em>2<sup>B</sup>-1</em>.</li>
+		</ol>
+		Thus, probabilities stored in v1.2-style blocks take possible values of the form <em>x/(2<sup>B</sup>-1) &in; [0,1]</em>.
 	</p>
 	<p>
-		Writing a set of probabilities in <em>B</em> bits each requires a rounding rule.  We use the following
-		rule, which finds the closest representable point to the input probabilities that satisfies the constraint
-		that the sum of probabilities is one.
+		Storing probabilities to the limited precision afforded by <em>B</em> bits requires a rounding rule, which we specify as follows.
 		Given a vector <em>v=(v<sub>1</sub>, ...v<sub>d</sub>)</em> of <em>d</em>
-		probabilities that sum to one, we compute a vector of nonnegative integers each representable in <em>B</em> bits
-		using the following steps:
+		probabilities that sum to one, we round by finding the closest point to <em>v</em> of the
+		form <em>x/(2<sup>B</sup>-1)</em> where the entries of <em>x</em> are
+		nonnegative integers summing to (2<sup>B</sup>-1).  The integer vector <em>x</em> can be
+		found by the following algorithm:
 		<ol>
 			<li>
-				Multiply <em>v</em> by <em>2<sup>B</sup>-1</em>
+				Multiply <em>v</em> by <em>2<sup>B</sup>-1</em>.
 			</li>
 			<li>
-				Compute the fractional part <em>f<sub>i</sub>=(v<sub>i</sub>-floor(v<sub>i</sub>))</em> of each entry of <em>v</em>
-				and the sum <em>F = &Sum;<sub>i</sub> f<sub>i</sub></em>.  Because <em>v</em> sums to one, <em>F</em> is always
-				a nonnegative integer.
+				Compute the total fractional part <em>F = &Sum;<sub>i</sub> (v<sub>i</sub>- </em>floor<em>(v<sub>i</sub>))</em>.
 			</li>
 			<li>
 				Form <em>x</em> by rounding the <em>F</em> entries of <em>v</em> with the largest fractional parts up to the nearest integer,
@@ -894,10 +905,42 @@
 		<em>B</em> bits..
 	</p>
 	<p>
-		<b>Note:</b> In practice the probability vector <em>v</em> may not sum exactly to one because of rounding errors
-		in stored or computed values.  We therefore renormalise input probabilities to sum to one before
-		applying the above algorithm.
+		The maximum error in a probability stored using this rounding rule is <em>1/(2<sup>B</sup>-1)</em>.
 	</p>
+	<p>
+		In practice we there may be some rounding error in probabilities input into the BGEN format.
+		We therefore renormalise input probabilities to sum to one.
+	</p>
+</div>
+<h2>Rationale</h2>
+<div id = "rationale">
+	<p>
+	<b>Q.</b> Why compress the data for each variant seperately?  Doesn't this end up using more space?
+	</p>
+	<p>
+	<b>A.</b> It's true that maximum compression can be acheived by compressing as much data as possible.
+	However, for large cohorts, each variant has plenty of data to compress, so the difference is expected to be small.
+	Moreover compressing each variant seperately has advantages when it comes to 
+	Alternative approaches - like <a href="">bgzip</a>, which compresses data in blocks - also incur a size overhead.
+	</p>
+	<p>
+	<b>Q.</b> Why store the number of individuals on each row?  Why store the number of alleles twice?  Doesn't this waste space?
+	</p>
+	<p>
+	<b>A.</b> Yes, each repeated field wastes 4 bytes per variant.  However, this is expected to be a tiny fraction of overall file size.
+	The inclusion of repeated fields makes parsing simpler (since parsers don't need to be stateful) and also provides a useful way
+	of testing that file structure is correct.
+	</p>
+	<p>
+	<b>Q.</b> (For bgen v1.2-style variant data blocks) Why omit the last probability instead of the first?
+	</p>
+	<p>
+	<b>A.</b> The intention is to make parsing the file as simple and fast as possible.  If we omitted the first probability,
+	parsers would have to read and store all other <em>( Z+K-1 ) choose ( K-1 ) - 1</em> probabilities before computing and emitting
+	the first probability.  With the scheme described here, parsers can simply emit the probabilities as they are read from the file,
+	before finally emitting the last probability as one minus the sum of the stored probabilities.
+	</p>
+	
 </div>
 </body>
 </html>
