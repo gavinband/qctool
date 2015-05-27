@@ -29,6 +29,8 @@ namespace metro {
 				m_total_weight(0)
 			{}
 			
+			// Set data to a given matrix.
+			// This will invalidate the parameters iff it does for any of the components.
 			void set_data( Matrix const& data ) {
 				m_data = &data ;
 				for( std::size_t i = 0; i < m_components.size(); ++i ) {
@@ -37,43 +39,52 @@ namespace metro {
 			}
 			
 			// Add a component with given name and weight to the mixture.
-			// This takes ownership of the distribution
+			// This takes ownership of the distribution, which will be destroyed
+			// when this class goes out of scope.
 			template< typename DistributionPtr >
 			void add_component(
 				std::string const& name,
 				Scalar const weight,
 				DistributionPtr distribution
 			) {
-				Eigen::VectorXd new_parameters( m_parameters.size() + distribution->get_parameters().size() ) ;
-				new_parameters.segment( 0, m_parameters.size() ) = m_parameters ;
-				new_parameters.segment( m_parameters.size(), distribution->get_parameters().size() ) = distribution->get_parameters() ;
-
 				m_component_names.push_back( name ) ;
 				m_components.push_back( distribution ) ;
 				m_weights.push_back( weight ) ;
 				m_total_weight += weight ;
-				m_parameters = new_parameters ;
 			}
 			
+			// Evaluate at a given set of parameters expressed as a single vector.
+			// Parameters are taken in order of the components.
 			void evaluate_at( Vector const& parameters ) {
 				evaluate_at( parameters, DataSubset( DataRange( 0, m_data->rows() ))) ;
 			}
 
+			// Evaluate at a given set of parameters expressed as a single vector,
+			// on a given subset of the data. Parameters are taken in order of the components.
 			void evaluate_at( Vector const& parameters, DataSubset const& data_subset ) {
-				m_parameters = parameters ;
 				{
 					int param_i = 0 ;
+					double total_weight = 0 ;
 					for( std::size_t i = 0; i < m_components.size(); ++i ) {
+						int const componentParameterSize = m_components[i].parameters().size() ;
 						m_components[i].evaluate_at(
 							parameters.segment(
 								param_i,
-								m_components[i].get_parameters().size()
+								componentParameterSize
 							),
 							data_subset
 						) ;
-						param_i += m_components[i].get_parameters().size() ;
+						if( i == ( m_components.size() - 1 ) ) {
+							m_weights[i] = 1 - total_weight ;
+							m_total_weight = 1 ;
+						} else {
+							m_weights[i] = parameters( param_i + componentParameterSize ) ;
+							total_weight += m_weights[i] ;
+						}
+						param_i += m_components[i].parameters().size() + 1 ;
 					}
-					assert( param_i == parameters.size() ) ;
+					// sanity check
+					assert( param_i == parameters.size() + 1 ) ;
 				}
 
 				m_component_terms.resize( m_data->rows(), m_components.size() ) ;
@@ -98,7 +109,6 @@ namespace metro {
 				// Compute it
 				m_terms.setZero( m_component_terms.rows() ) ;
 				rowwise_log_sum_exp( m_component_terms, &m_terms ) ;
-				m_parameters = parameters ;
 			}
 
 			double get_value_of_function() const {
@@ -109,8 +119,14 @@ namespace metro {
 				result = m_terms ;
 			}
 
-			Vector get_parameters() const {
-				return m_parameters ;
+			// Return the parameter vector.
+			// This comes in the order:
+			// Parameters for first component, (normalised) weight for first component
+			// Parameters for second component, (normalised) weight for second component
+			// ...
+			// Parameters for last component.  No weight is included for last component as weights sum to one.
+			Vector parameters() const {
+				return compute_parameters() ;
 			}
 
 			std::string get_spec() const {
@@ -125,18 +141,38 @@ namespace metro {
 				assert(0) ;
 			}
 
-			private:
-				
-				Matrix const* m_data ;
-				boost::ptr_vector< Component > m_components ;
-				std::vector< std::string > m_component_names ;
-				std::vector< Scalar > m_weights ;
-				Scalar m_total_weight ;
-				Vector m_parameters ;
-				std::vector< Scalar > m_rescaled_weights ;
-				Matrix m_component_terms ;
-				Vector m_terms ;
-				
+		private:
+			Matrix const* m_data ;
+			boost::ptr_vector< Component > m_components ;
+			std::vector< std::string > m_component_names ;
+			std::vector< Scalar > m_weights ;
+			Scalar m_total_weight ;
+			std::vector< Scalar > m_rescaled_weights ;
+			Matrix m_component_terms ;
+			Vector m_terms ;
+
+		private:
+			Vector compute_parameters() const {
+				if( m_components.size() == 0 ) {
+					return Vector() ;
+				} else {
+					int numberOfParameters = 0 ;
+					for( std::size_t i = 0; i < m_components.size(); ++i ) {
+						numberOfParameters += m_components[i].parameters().size() + 1 ;
+					}
+					Eigen::VectorXd parameters( numberOfParameters - 1 ) ;
+					int parameterIndex = 0 ;
+					for( std::size_t i = 0; i < m_components.size(); ++i ) {
+						Vector const& componentParams = m_components[i].parameters() ;
+						parameters.segment( parameterIndex, componentParams.size() ) = componentParams ;
+						if( i != ( m_components.size() - 1 ) ) {
+							parameters( parameterIndex + componentParams.size() ) = m_weights[i] / m_total_weight ;
+						}
+						parameterIndex += componentParams.size() + 1 ;
+					}
+					return parameters ;
+				}
+			}
 		} ;
 	}
 }

@@ -55,12 +55,29 @@ namespace metro {
 				set_data( data, weights ) ;
 			}
 
+			int p() const { return m_p ; }
+			double nu() const { return m_nu ; }
+			double degrees_of_freedom() const { return m_nu ; }
+			Vector parameters() const { return m_parameters ; }
+			Vector const& mean() const { return m_mean ; }
+			Matrix const& sigma() const { return m_sigma ; }
+			Matrix const& data() const { return m_data ; }
+			
+			std::string get_spec() const { return "MultivariateT" ; }
+
+
+			// Behaves as if calling set_data() (below) with unit weights.
 			void set_data(
 				Matrix const& data
 			) {
 				set_data( data, Vector::Constant( data.rows(), 1 )) ;
 			}
 
+			// Set data to a give matrix with specified weights.
+			// If data.cols() == p() then parameters are left unchanged
+			// and the likelihood will be re-evaluated.
+			// Otherwise, if data.cols() != p() then parameters will be left undefined.
+			// In both cases, you must call evaluate_at() before evaluating the likelihood.
 			void set_data(
 				Matrix const& data,
 				Vector const& weights
@@ -68,23 +85,25 @@ namespace metro {
 				m_data = &data ;
 				assert( weights.size() == m_data->rows() ) ;
 				m_weights = weights ;
-				m_p = m_data->cols() ;
-				m_kappa = compute_constant_terms( m_nu, m_p ) ;
-				m_parameters = Vector::Zero( m_p + ( m_p * ( m_p + 1 ) / 2 ) ) ;
+				if( m_p != m_data->cols() ) {
+					m_p = m_data->cols() ;
+					m_kappa = compute_constant_terms( m_nu, m_p ) ;
+					m_parameters = Vector::Zero( m_p + ( m_p * ( m_p + 1 ) / 2 ) ) ;
+				}
 			}
 
+			// Evaluate at a given set of parameters, specified as a single vector.
+			// Parameters are taken in order as the p entries of the mean vector,
+			// followed by the p(p+1)/2 entries of the lower triangle of the
+			// variance-covariance matrix taken in column-major order.
 			void evaluate_at( Vector const& parameters ) {
 				evaluate_at( parameters, DataRange( 0, m_data->rows() )) ;
 			}
 
-			void evaluate_at( Vector const& mean, Matrix const& sigma ) {
-				evaluate_at( mean, sigma, DataRange( 0, m_data->rows() )) ;
-			}
-
-			// Evaluate at a packed set of parameters
-			// These are:
-			// The p values of the mean, followed by
-			// The p (p+1)/2 entries of the lower diagonal of the sigma matrix (in column-major order.)
+			// Evaluate at a given set of parameters on a specified subset of the data.
+			// Parameters are taken in order as the p entries of the mean vector,
+			// followed by the p(p+1)/2 entries of the lower triangle of the
+			// variance-covariance matrix taken in column-major order.
 			void evaluate_at( Vector const& parameters, DataSubset const& data_subset ) {
 				assert( parameters.size() == m_parameters.size() ) ;
 				assert( m_data ) ;
@@ -92,6 +111,17 @@ namespace metro {
 				evaluate_at( m_mean, m_sigma, data_subset ) ;
 			}
 
+			// Evaluate at a given set of parameters, specified as a mean vector
+			// and variance-covariance matrix.  Only the lower triangle of the
+			// variance-covariance matrix is used by this class.
+			void evaluate_at( Vector const& mean, Matrix const& sigma ) {
+				evaluate_at( mean, sigma, DataRange( 0, m_data->rows() )) ;
+			}
+
+			// Evaluate at a given set of parameters, on a subset of data.
+			// Parameters are specified as a mean vector
+			// and variance-covariance matrix.  Only the lower triangle of the
+			// variance-covariance matrix is used by this class.
 			void evaluate_at( Vector const& mean, Matrix const& sigma, DataSubset const& data_subset ) {
 				assert( mean.size() == m_data->cols() ) ;
 				assert( sigma.rows() == sigma.cols() ) ;
@@ -123,12 +153,17 @@ namespace metro {
 #endif				
 			}
 
+			// Get the value of the log-likelihood for the given data,
+			// and parameters and data subset passed to evaluate_at().
+			// You must call evaluate_at() before using this function.
 			double get_value_of_function() const {
 				Vector terms = Vector::Constant( m_data->rows(), 0 ) ;
 				get_terms_of_function( terms ) ;
 				return terms.sum() ;
 			}
 
+			// Get terms of the log-likelihood corresponding to each
+			// weighted data point.
 			void get_terms_of_function( MatrixRef result ) const {
 				assert( result.rows() == m_data->rows() ) ;
 				assert( result.cols() == 1 ) ;
@@ -163,16 +198,27 @@ namespace metro {
 				}
 			}
 
+			// Compute the first derivative of the log-likelihood
+			// You must call evaluate_at() before using this method.
 			Vector get_value_of_first_derivative() const {
 				assert(0) ;
 			}
 
+			// Compute the second derivative of the log-likelihood
+			// You must call evaluate_at() before using this method.
 			Matrix get_value_of_second_derivative() const {
 				assert(0) ;
 			}
 
-
-			// Fit multivariate T by EM until the loglikelihood increases by less than the given amount.
+			// Fit multivariate T on the full data using an EM algorithm
+			// until the stopping condition becomes satisfied.
+			// Algorithm details are from Nadarajah & Kotz, "Estimation methods for the Multivariate t Distribution.", p.103
+			// stopping_condition must be callable as stopping_condition( current loglikelihood ),
+			// where a return value of true indicates that iteration should stop.
+			// This function iterates until stopping_condition() == true, at which point
+			// it returns stopping_condition.converged().
+			// The postcondition of this function is as though evaluate_at() has been called
+			// for the last parameter value visited by the EM iteration (whether converged or not).
 			template< typename StoppingCondition >
 			bool estimate_by_em(
 				StoppingCondition& stopping_condition
@@ -187,7 +233,15 @@ namespace metro {
 				) ;
 			}
 
-			// Fit multivariate T by EM until the loglikelihood increases by less than the given amount.
+			// Fit multivariate T on a subset of data using an EM algorithm
+			// until the stopping condition becomes satisfied.
+			// Algorithm details are from Nadarajah & Kotz, "Estimation methods for the Multivariate t Distribution.", p.103
+			// stopping_condition must be callable as stopping_condition( current loglikelihood ),
+			// where a return value of true indicates that iteration should stop.
+			// This function iterates until stopping_condition() == true, at which point
+			// it returns stopping_condition.converged().
+			// The postcondition of this function is as though evaluate_at() has been called
+			// for the last parameter value visited by the EM iteration (whether converged or not).
 			template< typename StoppingCondition >
 			bool estimate_by_em(
 				DataSubset const& data_subset,
@@ -203,15 +257,17 @@ namespace metro {
 				) ;
 			}
 
-			// Fit multivariate T by EM until the stopping condition is satisfied.
+			// Fit multivariate T on the full data using an EM algorithm
+			// until the stopping condition becomes satisfied.
 			// Algorithm details are from Nadarajah & Kotz, "Estimation methods for the Multivariate t Distribution.", p.103
 			// This function includes a regularising variance-covariance matrix, and weight
 			// to prevent the fit from becoming degenerate.
-			//
-			// StoppingCondition must support operator() with result convertible to bool.
-			// a value of true means stop, otherwise continue.
-			// It must also be callable as stopping_condition.converged(), which this function uses
-			// to return a value to the caller.
+			// stopping_condition must be callable as stopping_condition( current loglikelihood ),
+			// where a return value of true indicates that iteration should stop.
+			// This function iterates until stopping_condition() == true, at which point
+			// it returns stopping_condition.converged().
+			// The postcondition of this function is as though evaluate_at() has been called
+			// for the last parameter value visited by the EM iteration (whether converged or not).
 			template< typename StoppingCondition >
 			bool estimate_by_em(
 				StoppingCondition& stopping_condition,
@@ -227,6 +283,17 @@ namespace metro {
 			}
 
 
+			// Fit multivariate T on a subset of data using an EM algorithm
+			// until the stopping condition becomes satisfied.
+			// Algorithm details are from Nadarajah & Kotz, "Estimation methods for the Multivariate t Distribution.", p.103
+			// This function includes a regularising variance-covariance matrix, and weight
+			// to prevent the fit from becoming degenerate.
+			// stopping_condition must be callable as stopping_condition( current loglikelihood ),
+			// where a return value of true indicates that iteration should stop.
+			// This function iterates until stopping_condition() == true, at which point
+			// it returns stopping_condition.converged().
+			// The postcondition of this function is as though evaluate_at() has been called
+			// for the last parameter value visited by the EM iteration (whether converged or not).
 			template< typename StoppingCondition >
 			bool estimate_by_em(
 				DataSubset const& data_subset,
@@ -294,14 +361,6 @@ namespace metro {
 				}
 				return stopping_condition.converged() ;
 			}
-
-			Vector get_parameters() const { return m_parameters ; }
-			double get_degrees_of_freedom() const { return m_nu ; }
-			Vector const& get_mean() const { return m_mean ; }
-			Matrix const& get_sigma() const { return m_sigma ; }
-			Matrix const& get_data() const { return m_data ; }
-			
-			std::string get_spec() const { return "MultivariateT" ; }
 
 		private:
 			double const m_pi ;

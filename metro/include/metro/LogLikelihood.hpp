@@ -24,7 +24,7 @@ namespace metro {
 		virtual Vector get_value_of_first_derivative() const = 0 ;
 		virtual Matrix get_value_of_second_derivative() const = 0 ;
 		
-		virtual Vector get_parameters() const = 0 ;
+		virtual Vector parameters() const = 0 ;
 
 		virtual std::string get_spec() const = 0 ;
 	} ;

@@ -144,7 +144,6 @@ AUTO_TEST_CASE( test_weighted_loglikelihood ) {
 
 AUTO_TEST_CASE( test_loglikelihood_range ) {
 	{
-
 		double ll1 = 0, ll2 = 0, ll3 = 0, ll4 = 0 ;
 		double const likelihoodTolerance = 0.0000001 ;
 		metro::ValueStabilisesStoppingCondition stoppingCondition( 0.0000001 ) ;
@@ -245,9 +244,9 @@ AUTO_TEST_CASE( test_em ) {
 #if DEBUG_MULTIVARIATE_T
 		std::cerr << "test_multivariate_t_em(): data is:\n"
 			<< data << ", estimated parameters are:\n"
-			<< "nu = " << T.get_degrees_of_freedom() << ",\n"
-			<< "mean = " << T.get_mean().transpose() << ",\n"
-			<< "sigma =\n" << T.get_sigma() << ".\n"
+			<< "nu = " << T.degrees_of_freedom() << ",\n"
+			<< "mean = " << T.mean().transpose() << ",\n"
+			<< "sigma =\n" << T.sigma() << ".\n"
 			<< "log-likelihood = " << T.get_value_of_function() << ".\n" ;
 		
 #endif
@@ -301,9 +300,9 @@ AUTO_TEST_CASE( test_em ) {
 #if DEBUG_MULTIVARIATE_T
 			std::cerr << "test_multivariate_t_em(): data is:\n"
 				<< data << ", estimated parameters are:\n"
-				<< "nu = " << T.get_degrees_of_freedom() << ",\n"
-				<< "mean = " << T.get_mean().transpose() << ",\n"
-				<< "sigma =\n" << T.get_sigma() << ".\n"
+				<< "nu = " << T.degrees_of_freedom() << ",\n"
+				<< "mean = " << T.mean().transpose() << ",\n"
+				<< "sigma =\n" << T.sigma() << ".\n"
 				<< "log-likelihood = " << T.get_value_of_function() << ".\n" ;
 #endif
 		}
@@ -321,9 +320,9 @@ AUTO_TEST_CASE( test_em ) {
 #if DEBUG_MULTIVARIATE_T
 			std::cerr << "test_multivariate_t_em(): data is:\n"
 				<< data << ", estimated parameters are:\n"
-				<< "nu = " << T.get_degrees_of_freedom() << ",\n"
-				<< "mean = " << T.get_mean().transpose() << ",\n"
-				<< "sigma =\n" << T.get_sigma() << ".\n" ;
+				<< "nu = " << T.degrees_of_freedom() << ",\n"
+				<< "mean = " << T.mean().transpose() << ",\n"
+				<< "sigma =\n" << T.sigma() << ".\n" ;
 #endif
 		}
 
@@ -369,18 +368,18 @@ AUTO_TEST_CASE( test_em ) {
 #if DEBUG_MULTIVARIATE_T
 			std::cerr << "test_multivariate_t_em(): data is:\n"
 				<< data << ", estimated parameters are:\n"
-				<< "nu = " << T.get_degrees_of_freedom() << ",\n"
-				<< "mean = " << T.get_mean().transpose() << ",\n"
-				<< "sigma =\n" << T.get_sigma() << ".\n"
+				<< "nu = " << T.degrees_of_freedom() << ",\n"
+				<< "mean = " << T.mean().transpose() << ",\n"
+				<< "sigma =\n" << T.sigma() << ".\n"
 				<< "log-likelihood= " << T.get_value_of_function() << ".\n" ;
 #endif			
-			BOOST_CHECK_EQUAL( T.get_degrees_of_freedom(), 3 ) ;
-			BOOST_CHECK_CLOSE( T.get_mean()(0), 0.6114408499165083, 1 ) ;
-			BOOST_CHECK_CLOSE( T.get_mean()(1), 0.5378066642845329, 1 ) ;
-			BOOST_CHECK_CLOSE( T.get_sigma()(0,0), 0.011982129787457576, 1 ) ;
-			BOOST_CHECK_CLOSE( T.get_sigma()(0,1), -0.003818628929149581, 1 ) ;
-			BOOST_CHECK_CLOSE( T.get_sigma()(1,0), -0.003818628929149581, 1 ) ;
-			BOOST_CHECK_CLOSE( T.get_sigma()(1,1), 0.003392185410464222, 1 ) ;
+			BOOST_CHECK_EQUAL( T.degrees_of_freedom(), 3 ) ;
+			BOOST_CHECK_CLOSE( T.mean()(0), 0.6114408499165083, 1 ) ;
+			BOOST_CHECK_CLOSE( T.mean()(1), 0.5378066642845329, 1 ) ;
+			BOOST_CHECK_CLOSE( T.sigma()(0,0), 0.011982129787457576, 1 ) ;
+			BOOST_CHECK_CLOSE( T.sigma()(0,1), -0.003818628929149581, 1 ) ;
+			BOOST_CHECK_CLOSE( T.sigma()(1,0), -0.003818628929149581, 1 ) ;
+			BOOST_CHECK_CLOSE( T.sigma()(1,1), 0.003392185410464222, 1 ) ;
 		}
 	}
 }
@@ -470,15 +469,15 @@ AUTO_TEST_CASE( test_regularised_em ) {
 		BOOST_CHECK( converged == true ) ;
 
 		// In effect two observations, one with identity sigma, one with sigma = 0.
-		BOOST_CHECK_CLOSE( T.get_sigma()(0,0), 0.5, 0.01 ) ;
-		BOOST_CHECK_CLOSE( T.get_sigma()(0,1), 0, 0.01 ) ;
-		BOOST_CHECK_CLOSE( T.get_sigma()(1,1), 0.5, 0.01 ) ;
+		BOOST_CHECK_CLOSE( T.sigma()(0,0), 0.5, 0.01 ) ;
+		BOOST_CHECK_CLOSE( T.sigma()(0,1), 0, 0.01 ) ;
+		BOOST_CHECK_CLOSE( T.sigma()(1,1), 0.5, 0.01 ) ;
 #if DEBUG_MULTIVARIATE_T
 			std::cerr << "test_multivariate_t_regularised_em(): data is:\n"
 				<< data << ", estimated parameters are:\n"
-				<< "nu = " << T.get_degrees_of_freedom() << ",\n"
-				<< "mean = " << T.get_mean().transpose() << ",\n"
-				<< "sigma =\n" << T.get_sigma() << ".\n"
+				<< "nu = " << T.degrees_of_freedom() << ",\n"
+				<< "mean = " << T.mean().transpose() << ",\n"
+				<< "sigma =\n" << T.sigma() << ".\n"
 				<< "log-likelihood= " << T.get_value_of_function() << ".\n" ;
 #endif			
 	}
@@ -494,9 +493,9 @@ AUTO_TEST_CASE( test_regularised_em ) {
 		) ;
 		BOOST_CHECK( converged == true ) ;
 		// Weight is so strong we should get back the prior
-		BOOST_CHECK_CLOSE( T.get_sigma()(0,0), 1, 0.01 ) ;
-		BOOST_CHECK_CLOSE( T.get_sigma()(0,1), 0, 0.01 ) ;
-		BOOST_CHECK_CLOSE( T.get_sigma()(1,1), 1, 0.01 ) ;
+		BOOST_CHECK_CLOSE( T.sigma()(0,0), 1, 0.01 ) ;
+		BOOST_CHECK_CLOSE( T.sigma()(0,1), 0, 0.01 ) ;
+		BOOST_CHECK_CLOSE( T.sigma()(1,1), 1, 0.01 ) ;
 	}
 }
 
@@ -549,9 +548,9 @@ AUTO_TEST_CASE( test_loglikelihood_em_range ) {
 #if DEBUG_MULTIVARIATE_T
 			std::cerr << "test_multivariate_t_em_range ): data is:\n"
 				<< data << ", estimated parameters are:\n"
-				<< "nu = " << T.get_degrees_of_freedom() << ",\n"
-				<< "mean = " << T.get_mean().transpose() << ",\n"
-				<< "sigma =\n" << T.get_sigma() << ".\n"
+				<< "nu = " << T.degrees_of_freedom() << ",\n"
+				<< "mean = " << T.mean().transpose() << ",\n"
+				<< "sigma =\n" << T.sigma() << ".\n"
 				<< "log-likelihood= " << T.get_value_of_function() << ".\n" ;
 #endif
 		}

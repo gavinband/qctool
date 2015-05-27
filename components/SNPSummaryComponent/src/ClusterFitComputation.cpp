@@ -201,11 +201,11 @@ namespace snp_summary_component {
 			
 			if( cluster->estimate_by_em( subset, stoppingCondition, m_regularisingSigma, m_regularisingWeight ) ) {
 				callback( stub + ":nu", m_nu ) ;
-				callback( stub + ":mu_" + m_xAxisName, cluster->get_mean()(0) ) ;
-				callback( stub + ":mu_" + m_yAxisName, cluster->get_mean()(1) ) ;
-				callback( stub + ":sigma_" + m_xAxisName + m_xAxisName, cluster->get_sigma()(0,0) ) ;
-				callback( stub + ":sigma_" + m_xAxisName + m_yAxisName, cluster->get_sigma()(1,0) ) ;
-				callback( stub + ":sigma_" + m_yAxisName + m_yAxisName, cluster->get_sigma()(1,1) ) ;
+				callback( stub + ":mu_" + m_xAxisName, cluster->mean()(0) ) ;
+				callback( stub + ":mu_" + m_yAxisName, cluster->mean()(1) ) ;
+				callback( stub + ":sigma_" + m_xAxisName + m_xAxisName, cluster->sigma()(0,0) ) ;
+				callback( stub + ":sigma_" + m_xAxisName + m_yAxisName, cluster->sigma()(1,0) ) ;
+				callback( stub + ":sigma_" + m_yAxisName + m_yAxisName, cluster->sigma()(1,1) ) ;
 				
 				nonMissingGenotypesAndIntensitySubset.add( subset ) ;
 
@@ -217,7 +217,7 @@ namespace snp_summary_component {
 				std::cerr << "cluster " << g << ", "
 					<< "subset: " << subset << "\n"
 					<< "count = " << subset.size()
-					<< ", parameters = " << std::setprecision( 4 ) << cluster->get_parameters().transpose()
+					<< ", parameters = " << std::setprecision( 4 ) << cluster->parameters().transpose()
 					<< ", ll = " << cluster->get_value_of_function() << ".\n" ;
 #endif
 
@@ -241,27 +241,25 @@ namespace snp_summary_component {
 			callback( stub + ":iterations", genfile::VariantEntry::Integer( stoppingCondition.iterations() ) ) ;
 		}
 
-		
-
 		// Now output the loglikelihoods under a model conditional on genotype...
 		callback( "number-of-clusters", numberOfClusters ) ;
 		callback( "informative-sample-count", genfile::VariantEntry::Integer( nonMissingGenotypesAndIntensitySubset.size() ) ) ;
 		callback( "ll-given-genotype",  genotypeLLs.sum() ) ;
 		// And under equal-weighted mixtures...
 		mixture.set_data( m_intensities ) ;
-		mixture.evaluate_at( mixture.get_parameters(), nonMissingGenotypesAndIntensitySubset ) ;
+		mixture.evaluate_at( mixture.parameters(), nonMissingGenotypesAndIntensitySubset ) ;
 		double const mixtureLL = mixture.get_value_of_function() ;
 #if DEBUG_CLUSTERFITCOMPUTATION
 		std::cerr << "numberOfClusters = " << numberOfClusters << "\n"
 			<< "informative sample count = " << nonMissingGenotypesAndIntensitySubset.size() << "\n" ;
-		std::cerr << "Mixture parameters = " << mixture.get_parameters().transpose() << ".\n" ;
+		std::cerr << "Mixture parameters = " << mixture.parameters().transpose() << ".\n" ;
 		std::cerr << "mixtureLL = " << mixtureLL << ".\n" ;
 		Eigen::VectorXd terms( m_intensities.rows() ) ;
 		mixture.get_terms_of_function( terms ) ;
 		std::cerr << "terms = " << terms.transpose() << ".\n" ;
 #endif
 		callback( "equal-weighted-mixture:genotyped_samples:ll", mixtureLL ) ;
-		mixture.evaluate_at( mixture.get_parameters(), nonMissingIntensitiesSubset ) ;
+		mixture.evaluate_at( mixture.parameters(), nonMissingIntensitiesSubset ) ;
 		callback( "equal-weighted-mixture:all_samples:ll",  mixture.get_value_of_function() ) ;
 		callback(
 			"ll-comparison",
