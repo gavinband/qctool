@@ -3,12 +3,10 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-  <meta name="generator" content=
-  "HTML Tidy for Linux/x86 (vers 25 March 2009), see www.w3.org" />
-
-  <title>The BGEN format</title>
-  <link href="style.css" rel="stylesheet" type="text/css" />
-  <!--<script type="text/javascript" src="js/local.js"></script>-->
+	<title>The BGEN format</title>
+	<link href="style.css" rel="stylesheet" type="text/css" />
+	<script type="text/javascript" src="js/jquery-1.4.2.min.js"></script>
+	<script type="text/javascript" src="js/local.js"></script>
 </head>
 
 <body>
@@ -23,8 +21,11 @@
   </div>
   <div class="main_text">
     <div id="overview">
-      <p><em>This page documents version 1.2 of the BGEN format.  This is backward-compatible with the previous version.
-		  For the previous version of the space, see <a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format_v1.1.html">here</a>.</em></p>
+      <p>
+		  <em>This page documents version 1.2 of the BGEN format,
+		  which is backward-compatible with previous versions.
+		  Earlier versions of the spec can be found <a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format_v1.1.html">here</a>.</em>
+	  </p>
     </div>
 
 	<div id = "introduction">
@@ -33,18 +34,19 @@
 			Modern genetic association studies routinely employ data on tens to hundreds of thousands
 			of individuals, genotyped or imputed at tens of millions of markers genome-wide.  Traditional
 			data formats based on text representation of these data - such as
-			the <a href="">GEN</a> format output by <a href="">IMPUTE</a>, or the <a href="">Variant Call Format</a>
+			the <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format.html">GEN</a>
+			format output by <a href="https://mathgen.stats.ox.ac.uk/impute/impute_v2.html">IMPUTE</a>,
+			or the <a href="http://ga4gh.org/#/fileformats-team">Variant Call Format</a>
 			- are not well suited to these data quantities.  Indeed, for simple programs the time spent parsing
 			these formats can dominate program execution time.
 		<p>
 		<p>
 			This page describes a binary GEN file format (the "BGEN" format) which aims to address these problems.
 			BGEN is a robust format that has been designed to have a specific blend of features that we believe make it
-			useful for this type of study.  It is more restricted
-			than <a href="">VCF</a> or <a href="">BCF</a>, but more flexible than <a href="">GEN</a> or <a href="">PED</a>,
-			and is targetted for use with large genetic datasets.  Key features include:
+			useful for this type of study.  It is targetted for use with large, potentially imputed genetic datasets.
+			Key features include:
 			</ul>
-				<li>The ability to efficiently store both directly typed and imputed data.</li>
+				<li>The ability store both directly typed and imputed data.</li>
 				<li>The ability to store both unphased genotypes and phased haplotype data.</li>
 				<li>Small file sizes through the use of efficient, variable-precision packed bit representations and compression.</li>
 				<li>The use of per-variant compression makes the format simple to index and easy to catalogue.</li>
@@ -73,6 +75,9 @@
 		<ul>
 			<li><a href="http://www.well.ox.ac.uk/~gav/qctool">QCTOOL</a> can be used to read and write
 			BGEN files, and to convert them to other formats.</li>
+			<li>We have written a tool <a href="http://www.well.ox.ac.uk/~gav/qctool">cat-bgen</a> which can be used to efficiently
+				concatenate BGEN files.  We found this useful for joining together chunks of imputed data after a genome-wide
+				imputation run.</li>
 			<li><a href="https://mathgen.stats.ox.ac.uk/genetics_software/snptest/snptest.html">SNPTEST</a> has supported BGEN v1.1 since
 			version 2.4.0, and BGEN v1.2 since version 2.5.1.</li>
 			<li><a href="">PLINK 1.9</a> now includes <a href="https://www.cog-genomics.org/plink2/input#oxford">support for BGEN</a>.</li>
@@ -141,48 +146,50 @@
 		</p>
 
 	    <h3>Data types</h3>
-	    <p>All numbers in a BGEN file are stored as unsigned integers in little endian (least
-	    significant byte first) order. This choice coincides with the memory layout used
-	    on most common architectures - see the <a href=
-	    "http://en.wikipedia.org/wiki/Endianness">wikipedia page</a> for more details.
-		</p>
-	    <p>Variant identifiers, chromosome identifiers, and other string fields are stored as a two- or four-byte integer length
-			followed by the data itself (which does not include a C-style trailing zero byte).
-		</p>
-	    <p>Genotype probabilities are stored in an efficient packed bit representation described in detail below.</p>
-	    <p>Finally, some fields in BGEN are interpreted as flags encoded as a bitmask.</p>
+		<div class="collapsible">
+		    <p>All numbers in a BGEN file are stored as unsigned integers in little endian (least
+		    significant byte first) order. This choice coincides with the memory layout used
+		    on most common architectures - see the <a href=
+		    "http://en.wikipedia.org/wiki/Endianness">wikipedia page</a> for more details.
+			</p>
+		    <p>Variant identifiers, chromosome identifiers, and other string fields are stored as a two- or four-byte integer length
+				followed by the data itself (which does not include a C-style trailing zero byte).
+			</p>
+		    <p>Genotype probabilities are stored in an efficient packed bit representation described in detail below.</p>
+		    <p>Finally, some fields in BGEN are interpreted as flags encoded as a bitmask.</p>
+		</div>
     <h3>The first four bytes</h3>
+	<div class="collapsible">
+	    <p>The first four bytes of the file encode an unsigned integer indicating the offset,
+	    relative to the 5th byte of the file, of the start of the first variant data block, or the end
+	    of the file if there are 0 variant data blocks. For example, if this offset is 20 (the
+	    minimum possible because the header block always has size at least 20) then the variant data
+	    blocks start at byte 25.</p>
 
-    <p>The first four bytes of the file encode an unsigned integer indicating the offset,
-    relative to the 5th byte of the file, of the start of the first variant data block, or the end
-    of the file if there are 0 variant data blocks. For example, if this offset is 20 (the
-    minimum possible because the header block always has size at least 20) then the variant data
-    blocks start at byte 25.</p>
+	    <center>
+	      <table class="filespec">
+	        <tr>
+	          <th>No. of bytes</th>
 
-    <center>
-      <table class="filespec">
-        <tr>
-          <th>No. of bytes</th>
+	          <th>Description</th>
+	        </tr>
 
-          <th>Description</th>
-        </tr>
+	        <tr>
+	          <td>4</td>
 
-        <tr>
-          <td>4</td>
+	          <td>An unsigned integer <em>offset</em> indicating the offset, relative to the
+	          fifth byte of the file, of the first byte of the first variant data block (or the end of
+	          the file if there are no variant data blocks).</td>
+	        </tr>
 
-          <td>An unsigned integer <em>offset</em> indicating the offset, relative to the
-          fifth byte of the file, of the first byte of the first variant data block (or the end of
-          the file if there are no variant data blocks).</td>
-        </tr>
+	        <tr>
+	          <th>4</th>
 
-        <tr>
-          <th>4</th>
-
-          <th>TOTAL</th>
-        </tr>
-      </table>
-    </center>
-
+	          <th>TOTAL</th>
+	        </tr>
+	      </table>
+	    </center>
+	</div>
     <h3>The header block</h3>
 
     <p>The header block contains global information about the file, including the number of samples and the number
@@ -246,7 +253,7 @@
       </tr>
     </table>
 
-    <h3>Header block -- flag definitions</h3>
+    <h4>Header block -- flag definitions</h4>
 
     <p>The following flags can be contained in the <em>flags</em> field in the header
     block. <b>Note</b>: all bits not listed here must be set to 0.</p>
@@ -459,7 +466,9 @@
     <p>Variant data blocks are comprised of: a section of identifying data (containing variant IDs,
     position, and alleles), followed by a section containing the genotype probability
     data itself.  Most files will have  <em>CompressedSNPBlocks=1</em>, indicating
-	that genotype probability data is stored compressed.</p>
+	that genotype probability data is stored compressed.  (The variant identifying data
+	is never compressed, however.)
+</p>
 
     <h4>Variant identifying data</h4>
 	<div class="collapsible">
@@ -590,6 +599,8 @@
 		<p>
 			BGEN v1.1-style blocks are used when <em>Layout=1</em>.  Only two alleles (<em>K=2</em>) are supported.
 			All samples are stored as if diploid; haploid samples should be stored as if having homozygous genotype.
+			Missing samples are encoded as three zero probabilities.  This is a direct translation to binary format of
+			a <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format.html">GEN</a> file.
 		</p>
 		<table class="filespec">
 			<thead>
@@ -800,7 +811,7 @@
       </tfoot>
     </table>
 
-    <h3>Per-sample order of stored probabilities</h3>
+    <h4>Per-sample order of stored probabilities</h4>
 
     <p>Consider a sample with ploidy <em>Z</em> and a variant with <em>K</em>
     alleles.</p>
@@ -845,35 +856,47 @@
       </li>
     </ul>
 	
-    <h3>Representation of probabilities</h3>
+    <h4>Representation of probabilities</h4>
 	<p>
 		For both genotype and haplotype data, we store each probability using <em>B</em> bits as follows.
-		An integer of length <em>B</em> bits can represent the values <em>0, ..., 2<sup>B</sup>-1</em> inclusive.
-		We interpret each value as the probability <em>x/(2<sup>B</sup>-1)</em>.
+		An unsigned integer of length <em>B</em> bits can represent the values <em>0, ..., 2<sup>B</sup>-1</em> inclusive.
+		We interpret each such value <em>x</em> as the probability <em>x/(2<sup>B</sup>-1)</em>.  Thus:
+		<ul>
+			<li>
+		To parse a probability stored in <em>B</em> bits, interpret the <em>B</em> bits as an integer (in little-endian format) and divide by
+				2<sup>B</sup>-1.
+		</li>
+	</ul>
 	</p>
 	<p>
-		Storing probabilities to limited precision requires a rounding.  We use the following rule.
+		Writing a set of probabilities in <em>B</em> bits each requires a rounding rule.  We use the following
+		rule, which finds the closest representable point to the input probabilities that satisfies the constraint
+		that the sum of probabilities is one.
 		Given a vector <em>v=(v<sub>1</sub>, ...v<sub>d</sub>)</em> of <em>d</em>
-		probabilities that sum to one, we find the closest point to <em>v</em> of the
-		form <em>x/(2<sup>B</sup>-1)</em> where the entries of <em>x</em> are
-		nonnegative integers summing to (2<sup>B</sup>-1).  The integer vector <em>x</em> can be
-		found by the following algorithm (see ):
+		probabilities that sum to one, we compute a vector of nonnegative integers each representable in <em>B</em> bits
+		using the following steps:
 		<ol>
 			<li>
 				Multiply <em>v</em> by <em>2<sup>B</sup>-1</em>
 			</li>
 			<li>
-				Compute the total fractional part <em>F = &Sum;<sub>i</sub> (v<sub>i</sub>- floor(v<sub>i</sub>))</em>.
+				Compute the fractional part <em>f<sub>i</sub>=(v<sub>i</sub>-floor(v<sub>i</sub>))</em> of each entry of <em>v</em>
+				and the sum <em>F = &Sum;<sub>i</sub> f<sub>i</sub></em>.  Because <em>v</em> sums to one, <em>F</em> is always
+				a nonnegative integer.
 			</li>
 			<li>
-				Form <em>x</em> by rounding the <em>F</em> entries of <em>v</em> with the largest fractional parts up to the nearest
-				larger integer, and the <em>d-F</em> entries down to the nearest smaller integer.
+				Form <em>x</em> by rounding the <em>F</em> entries of <em>v</em> with the largest fractional parts up to the nearest integer,
+				and the other <em>d-F</em> entries down to the nearest smaller integer.
 			</li>
 		</ol>
+		The results of <a href="http://link.springer.com/article/10.1007/s10898-013-0126-2">Bomze et al, 2014</a>
+		imply that <em>x/(2<sup>B</sup>-1)</em> is the nearest point to <em>v</em> that can be stored in the BGEN format with
+		<em>B</em> bits..
 	</p>
 	<p>
-		In practice we there may be some rounding error in probabilities input into the BGEN format, so that they do not
-		sum to one.  We therefore renormalise input probabilities to sum to one.
+		<b>Note:</b> In practice the probability vector <em>v</em> may not sum exactly to one because of rounding errors
+		in stored or computed values.  We therefore renormalise input probabilities to sum to one before
+		applying the above algorithm.
 	</p>
 </div>
 </body>

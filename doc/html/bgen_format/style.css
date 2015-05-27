@@ -172,3 +172,7 @@ h2 {
 .rationale_note {
     font-size: 75% ;
 }
+
+.expandButton {
+	float: right ;
+}
