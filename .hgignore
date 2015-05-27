@@ -4,3 +4,4 @@ build/
 doc/doxygen
 data/
 .pyc
+.DS_Store
