@@ -1,0 +1,172 @@
+<!DOCTYPE HTML PUBLIC "-//SoftQuad Software//DTD HoTMetaL PRO 6.0::19990601::extensions to HTML 4.0//EN" "hmpro6.dtd">
+<HTML> 
+  <HEAD> 
+	 <TITLE>Gavin Band's webspace at the Wellcome Trust Centre for Human Genetics</TITLE><META
+	 NAME="keywords" CONTENT="human genetics research"><LINK HREF="/styles/main.css"
+	 REL="stylesheet"><SCRIPT SRC="/scripts/random_images.js"></SCRIPT><SCRIPT SRC="/scripts/date.js"></SCRIPT> 
+	<LINK HREF="style.css" REL="stylesheet">
+</HEAD> 
+<body>
+				<h2>A Binary GEN file format - BGEN</h2>
+            <p>
+            <b>This page documents version 1.1 of the BGEN format.</b>
+				A new version of the BGEN format, BGEN v1.2, will soon be available. The new version supports storage of both genotype and haplotype data,
+				variants with multiple alleles, and improved compression, and is backward-compatible with the format described here.
+				The new format is described in draft form <a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format_v1.2.html">here</a>.
+            </p>
+            <p>
+                <h3>Change history</h3>
+                <center>
+                <table class="changes">
+                    <tr><th>Version</th><th>Date</th><th>Description</th></tr>
+                    <tr><td>v1.1</td><td>March 2012</td><td>Update designed to cope with the long alleles present at indels and structural variants in recent releases of the 1000 genomes project.
+                        Also, we use an altered scaling of probabilities to maximise stored precision.  This version is backwards-compatible with v1.0, via the <em>LongIds</em> flag documented below.</td></tr>
+                    <tr><td><a href="bgen_format_v1.0.html">v1.0</a></td><td>2009</td><td>Initial version.</td></tr>
+                </table>
+			</center>
+            </p>
+			<h3>Background</h3>
+
+				<p>
+            		A <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format.html">GEN file</a> typically contains
+                 millions of floating-point numbers -- often in a fixed format -- stored in the file in a textual
+                 representation. For example, for a cohort of 1500 individuals, typed at 30000 SNPs, to store the AA, AB and BB
+                 genotype probabilities takes 1500 x 30000 x 3 = 135 million floating-point numbers. Consequently, programs
+                 which manipulate this data must spend a long time parsing the numbers to produce in-memory float or double
+                 quantities. For simple programs this time can dominate the program execution time.  </p> <p>
+                 This page describes a binary GEN file format (the "BGEN" format) which overcomes this problem. Tests show
+                 that using this binary format can achieve a file input speed increase of 5-10x.  Genotype data is stored compressed
+                 so that BGEN files typically take up no more space (and usually less space) than a corresponding gzipped GEN file.
+                 </p>
+                 <p>
+                 The current specification has been updated to handle long alleles such as those
+                 present in the latest 1000 genomes release.
+				</p>
+				<p>A C++ implementation of this file format is available as the "genfile" sublibrary of QCTOOL, available <a href="http://bitbucket.org/gavinband/qctool/">here</a>.
+				<h2>Overview</h2>
+				
+				<p>
+				A <em>BGEN</em> file consists of a header block, followed by a series of blocks called snp blocks.  The first four
+				bytes of the file indicate the start position of the first snp block (relative to the fifth byte of the file).
+				<p>
+					<b>Note: All numbers in the file are stored as integers in little endian (least significant byte first)
+                    order.</b>  This choice coincides with the memory layout
+                    used on most common architectures. see the <a
+                    href="http://en.wikipedia.org/wiki/Endianness">wikipedia page</a> for more details.
+				</p>
+				<h2>Detailed specification</h2>
+				<h3>The first four bytes</h3>
+				<p>
+				The first four bytes of the file encode an unsigned integer indicating the offset, relative to the 5th byte of the file, of the
+                start of the first snp block (or the end of the file if there are 0 snp blocks). 
+				For example, if this offset is 20 (the minimum possible because the header block always has size at least 20) then the snp blocks start at byte 25.
+				</p>
+				<center>
+				<table class="filespec">
+					<tr><th>No. of bytes</th><th>Description</th></tr>
+					<tr><td>4</td><td>An unsigned integer <em>offset</em> indicating the offset, relative to the fifth
+                       byte of the file, of the first byte of the first snp block (or the end of the file if there are no
+                       snp blocks).</td></tr>
+					<tr><th>4</th><th>TOTAL</th></tr>
+				</table>
+				</center>
+
+				<h3>The header block</h3>
+            <p>
+				The header block contains global information about the file.
+            </p>
+            <center>
+            <table class="filespec">
+					<tr><th>No. of bytes</th><th>Description</th></tr>
+					<tr><td>4</td><td>An unsigned integer <em>H</em> indicating the length, in bytes, of the header block.
+						This must not be larger than <em>offset</em>.</td></tr>
+               <tr><td>4</td><td>An unsigned integer indicating the number of snp blocks stored in the file.</td></tr>
+               <tr><td>4</td><td>An unsigned integer indicating the number of samples represented in the snp blocks in the file.</td></tr>
+               <tr><td>4</td><td>Reserved.  (Writers should write 0 here, readers should ignore these bytes.)</td></tr>
+               <tr><td><em>H</em>-20</td><td>Free data area.  This could be used to store, for example, identifying information about the file</td></tr>
+               <tr><td>4</td><td>A set of <em>flags</em>, with bits numbered as for an unsigned integer.  See below for flag definitions.</td></tr>
+					<tr><th>20 + <em>H</em></th><th>TOTAL</th></tr>
+				</table>
+            </center>
+
+            <h3>Header block -- flag definitions</h3>
+            <p>
+            The following flags can be contained in the <em>flags</em> field in the header block. <b>Note</b>: all bits not listed here must be set to 0.
+            </p>
+            <center>
+            <table class="filespec">
+					<tr><th>Bit</th><th>Name</th><th>Value</th><th>Description</th></tr>
+					<tr><td>0</td><td><em>CompressedSNPBlocks</em></td><td>0</td><td>Indicates SNP block probability data is not compressed.</td></tr>
+					<tr><td></td><td></td><td>1</td><td>Indicates SNP block probability data is compressed using zlib's compress() function.</td></tr>
+					<tr><td>2</td><td><em>LongIds</em></td><td>0</td><td>Indicates alleles are stored as single characters.  SNP blocks are layed out according to the <a href="bgen_format_v1.0.html">v1.0 spec</a>.</td></tr>
+					<tr><td></td><td></td><td>1</td><td>Indicates version 1.1 of the SNP block layout is used.  This allows for multiple characters in alleles and is supported in SNPTEST from 
+					     <a href="https://mathgen.stats.ox.ac.uk/genetics_software/snptest/snptest.html">version 2.3.0</a>,
+					    and in <a href="http://www.well.ox.ac.uk/~gav/qctool/qctool.html">QCTOOL</a> version 1.1.</td></tr>
+				</table>
+            </center>
+
+				<h3>SNP blocks</h3>
+				<p>
+					Following the header comes a sequence of 0 or more SNP blocks.
+	 				Each SNP block consists of the following data in order.
+	 				(Note: the following description is valid when <em>LongIds</em>=1. When <em>LongIds</em>=0, SNP blocks are layout out as per the v1.0 spec, described <a href="bgen_format_v1.0.html">here</a>.)
+				</p>
+				<center>
+				<table class="filespec">
+					<thead>
+					<tr><th>No. of bytes</th><th>Description</th></tr>
+					</thead>
+					<tbody>
+					<tr><td>4</td><td>The number of individuals the row represents, hereafter denoted <em>N</em>.</td></tr>
+					<tr><td>2</td><td>The length <em>LS</em> of the SNP id.</td></tr>
+					<tr><td><em>LS</em></td><td>The SNP id.</td></tr>
+					<tr><td>2</td><td>The length <em>LR</em> of the rsid.</td></tr>
+					<td><em>LR</em></td><td>The rsid.</td></tr>
+					<tr><td>2</td><td>The length <em>LC</em> of the chromosome</td></tr>
+					<tr><td><em>LC</em></td><td>The chromosome</td></tr>
+					<tr><td>4</td><td>The SNP position, encoded as an unsigned 32-bit integer.</td></tr>
+					<tr><td>4</td><td>The length <em>LA</em> of the A allele.</td></tr>
+					<tr><td><em>LA</em></td><td>The A allele.</td></tr>
+					<tr><td>4</td><td>The length <em>LB</em> of the B allele.</td></tr>
+					<tr><td><em>LB</em></td><td>The B allele.</td></tr>
+					<tr><td><em>P</em></td><td>Genotype probability data for the SNP for each of the N individuals in
+                    the cohort.  If the <em>CompressedSNPBlocks</em> flag is not set, this field consists of <em>P</em>=6*<em>N</em> bytes representing the probabilities.
+                 	If <em>CompressedSNPBlocks</em> is set, this field contains a 32-bit unsigned integer specifying the length of the compressed data,
+					followed by the compressed data itself.  See below for details of the storage scheme used.</td></tr>
+					</tbody>
+					<tfoot>
+					<tr><th>21 + <em>LS</em> + <em>LR</em> + <em>LA</em> + <em>LB</em> + <em>P</em></th><th>TOTAL</th></tr>
+					</tfoot>
+				</table>
+				</center>
+			<h3>SNP block probability data</h3>
+            <p>
+					The probability data is listed as a sequence of 2-byte unsigned integers.  These should be interpreted in triples,
+					the first member being the probability of AA, the second the probability of AB, the third the probability of BB.
+					Altogether these occupy 6*<em>N</em> bytes where <em>N</em> is the number of samples.  When <em>CompressedSNPBlocks</em> is not set, these 6 * <em>N</em> bytes are
+					stored directly.  When <em>CompressedSNPBlocks</em> is set, these 6 * <em>N</em> bytes are first compressed using <a href="http://www.zlib.net/">zlib</a>, and
+					the length of the compressed data is stored as a 4-byte integer, followed by the compressed data itself.
+            </p>
+            <p>
+					To convert the stored 2-byte integers into probabilities, the following calculation should be performed:
+				</p>
+				<ol>
+					<li>Convert the number into a floating-point format (e.g. float or double).</li>
+					<li>Divide by 32,768.</li>
+				</ol>
+				<p>
+					Note that the range of a two-byte unsigned integer is 0 - 65,535 inclusive. Thus the resulting probabilities
+                    can take on values between 0 and 65,535/32768 ~ 1.9999 inclusive and they are accurate to four decimal places.
+				</p>
+				<p>
+					<b>Note</b>: to convert a floating point probability to its integer representation, do the following:
+				</p>
+				<ol>
+					<li>Multiply by 32,768.</li>
+					<li>Check that the number is in the half-open interval [0,65535.5) and round to the nearest integer.</li>
+				</ol>
+				<p>
+					All numbers are stored in little-endian (least significant byte first) order.
+				</p>
+</BODY>
+</HTML>
