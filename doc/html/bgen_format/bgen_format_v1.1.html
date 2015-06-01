@@ -7,44 +7,104 @@
 	<LINK HREF="style.css" REL="stylesheet">
 </HEAD> 
 <body>
-				<h2>A Binary GEN file format - BGEN</h2>
+  <div class="header">
+    <div class="header_text">
+      The BGEN format
+    </div>
+
+    <div class="header_subtext">
+      A compressed binary format for typed and imputed genotype data
+    </div>
+  </div>
             <p>
-            <b>This page documents version 1.1 of the BGEN format.</b>
-				A new version of the BGEN format, BGEN v1.2, will soon be available. The new version supports storage of both genotype and haplotype data,
+				<b>This page documents version 1.1 of the BGEN format.</b>
+	            <em>A new version of the BGEN format, BGEN v1.2, will soon be available. The new version supports storage of both genotype and haplotype data,
 				variants with multiple alleles, and improved compression, and is backward-compatible with the format described here.
 				The new format is described in draft form <a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format_v1.2.html">here</a>.
+			</em>
             </p>
-            <p>
-                <h3>Change history</h3>
-                <center>
-                <table class="changes">
-                    <tr><th>Version</th><th>Date</th><th>Description</th></tr>
-                    <tr><td>v1.1</td><td>March 2012</td><td>Update designed to cope with the long alleles present at indels and structural variants in recent releases of the 1000 genomes project.
-                        Also, we use an altered scaling of probabilities to maximise stored precision.  This version is backwards-compatible with v1.0, via the <em>LongIds</em> flag documented below.</td></tr>
-                    <tr><td><a href="bgen_format_v1.0.html">v1.0</a></td><td>2009</td><td>Initial version.</td></tr>
-                </table>
-			</center>
-            </p>
+			<h2>Introduction</h2>
 			<h3>Background</h3>
-
+			<div id="introduction">
 				<p>
-            		A <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format.html">GEN file</a> typically contains
-                 millions of floating-point numbers -- often in a fixed format -- stored in the file in a textual
-                 representation. For example, for a cohort of 1500 individuals, typed at 30000 SNPs, to store the AA, AB and BB
-                 genotype probabilities takes 1500 x 30000 x 3 = 135 million floating-point numbers. Consequently, programs
-                 which manipulate this data must spend a long time parsing the numbers to produce in-memory float or double
-                 quantities. For simple programs this time can dominate the program execution time.  </p> <p>
-                 This page describes a binary GEN file format (the "BGEN" format) which overcomes this problem. Tests show
-                 that using this binary format can achieve a file input speed increase of 5-10x.  Genotype data is stored compressed
-                 so that BGEN files typically take up no more space (and usually less space) than a corresponding gzipped GEN file.
-                 </p>
-                 <p>
-                 The current specification has been updated to handle long alleles such as those
-                 present in the latest 1000 genomes release.
+					Modern genetic association studies routinely employ data on tens to hundreds of thousands
+					of individuals, genotyped or imputed at tens of millions of markers genome-wide.  Traditional
+					data formats based on text representation of these data - such as
+					the <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format.html">GEN</a>
+					format output by <a href="https://mathgen.stats.ox.ac.uk/impute/impute_v2.html">IMPUTE</a>,
+					or the <a href="http://ga4gh.org/#/fileformats-team">Variant Call Format</a>
+					- are sometimes not well suited to these data quantities.  For simple programs the time spent parsing
+					these formats can dominate program execution time.
 				</p>
-				<p>A C++ implementation of this file format is available as the "genfile" sublibrary of QCTOOL, available <a href="http://bitbucket.org/gavinband/qctool/">here</a>.
-				<h2>Overview</h2>
-				
+				<p>
+					This page describes a binary GEN file format (the "BGEN" format) which aims to address these problems.
+					BGEN is a robust format that has been designed to have a specific blend of features that we believe make it
+					useful for this type of study.  It is targetted for use with large, potentially imputed genetic datasets.
+					Key features include:
+					</ul>
+						<li>The ability store both directly typed and imputed data.</li>
+						<li>Small file sizes through the use of an efficient representation of probability data and compression.</li>
+						<li>The use of per-variant compression makes the format simple to index and easy to catalogue.</li>
+					</ul>
+				</p>
+				 <p>
+					The BGEN format has been used in several major projects, including the
+					<a href="http://www.wtccc.org.uk/ccc2/">Wellcome Trust Case-Control Consortium 2</a>
+					and the <a href="https://www.malariagen.net/projects/host">MalariaGEN</a> project.
+					It will be the release format for genome-wide genotype data for
+					the <a href="http://www.ukbiobank.ac.uk">UK Biobank</a>.
+				</p>
+			</div>
+			<div id = "contributors">
+				<strong>Acknowledgements.</strong> The following people contributed to the design and implementation of the BGEN format:
+		        <ul>
+		                <li>
+		                    <a href="http://www.well.ox.ac.uk/~gav/">Gavin Band</a>
+		                </li>
+		                <li>
+		                    <a href="http://www.stats.ox.ac.uk/~marchini/">Jonathan Marchini</a>
+		                </li>
+					</ul>
+			</div>
+			<div id = "tools">
+				<h3>Tool support</h3>
+				<ul>
+					<li><a href="http://www.well.ox.ac.uk/~gav/qctool">QCTOOL</a> can be used to read and write
+					BGEN files, and to convert them to other formats.</li>
+					<li>We have written a tool <a href="http://www.well.ox.ac.uk/~gav/qctool">cat-bgen</a> which can be used to efficiently
+						concatenate BGEN files.  We found this useful for joining together chunks of imputed data after a genome-wide
+						imputation run.</li>
+					<li><a href="https://mathgen.stats.ox.ac.uk/genetics_software/snptest/snptest.html">SNPTEST</a> has supported BGEN since
+					version 2.4.0.</li>
+					<li><a href="">PLINK 1.9</a> now includes <a href="https://www.cog-genomics.org/plink2/input#oxford">support for BGEN</a>.</li>
+				</ul>
+				<p>A freely available C++ implementation of the BGEN format is available in the "genfile" sublibrary of QCTOOL,
+					available <a href="http://bitbucket.org/gavinband/qctool/">here</a>.</p>
+			</div>
+            <h3>Change history</h3>
+    <div id="history">
+
+	  <div class = "boxed">
+	  <dl>
+		  <dt>v1.1 (March 2012):</dt>
+		  <dd>
+              BGEN format that is designed to cope with the long alleles present at indels and
+              structural variants in recent releases of the 1000 genomes project.  Features
+			  of this version are:
+              <ul>
+                <li>Support for biallelic SNPs and indels with alleles of arbitrary length (up to 2<sup>32</sup>-1).</li>
+                <li>Store probabilities to at least 4 decimal places worth' of accuracy</li>
+              </ul>
+		  </dd>
+		  <dt>v1.0 (2009):</dt>
+		  <dd>
+			  The original BGEN format.  This version is now deprecated and will be removed
+			  from a future version of this spec; there probably aren't any files in the wild
+			  in this format.
+		  </dd>
+		</dl>
+	</div>
+				<h2>Detailed specification</h2>
 				<p>
 				A <em>BGEN</em> file consists of a header block, followed by a series of blocks called snp blocks.  The first four
 				bytes of the file indicate the start position of the first snp block (relative to the fifth byte of the file).
@@ -54,7 +114,6 @@
                     used on most common architectures. see the <a
                     href="http://en.wikipedia.org/wiki/Endianness">wikipedia page</a> for more details.
 				</p>
-				<h2>Detailed specification</h2>
 				<h3>The first four bytes</h3>
 				<p>
 				The first four bytes of the file encode an unsigned integer indicating the offset, relative to the 5th byte of the file, of the
