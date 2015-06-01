@@ -1,39 +1,31 @@
 <!DOCTYPE HTML PUBLIC "-//SoftQuad Software//DTD HoTMetaL PRO 6.0::19990601::extensions to HTML 4.0//EN" "hmpro6.dtd">
 <HTML> 
   <HEAD> 
-	 <TITLE>Gavin Band's webspace at the Wellcome Trust Centre for Human Genetics</TITLE><META
-	 NAME="keywords" CONTENT="human genetics research"><LINK HREF="/styles/main.css"
-	 REL="stylesheet"><SCRIPT SRC="/scripts/random_images.js"></SCRIPT><SCRIPT SRC="/scripts/date.js"></SCRIPT> 
 	<LINK HREF="style.css" REL="stylesheet">  </HEAD> 
-  <BODY ALINK="orange"> 
-	 <CENTER> 
-		<TABLE CELLSPACING="0" CELLPADDING="0" BORDER="0"> 
-		  <TR> 
-			 <TD WIDTH="150" VALIGN="TOP" CLASS="border"><SCRIPT SRC="/scripts/load_random_image.js"></SCRIPT> 
-				<P><A HREF="template.shtml">Group research interests</A></P> 
-				<P><A HREF="template.shtml">Link to another group item </A></P> 
-				<P><A HREF="template.shtml">A Sub-group</A></P> 
-				<P><A HREF="template.shtml">A research topic</A></P> 
-				<P><A HREF="template.shtml">Some meeting dates</A></P> 
-				<P><A HREF="template.shtml">Group people</A></P>&nbsp;</TD> 
-			 <TD>
+  <BODY> 
 			 <!--#include virtual="/header.shtml" -->
-			<DIV>
-				<div id="gavsheader">Gavin Band's webspace </div>
-				<h2>A Binary GEN file format - BGEN</h2>
+  <div class="header">
+    <div class="header_text">
+      The BGEN format
+    </div>
+
+    <div class="header_subtext">
+      A compressed binary format for typed and imputed genotype data
+    </div>
+  </div>
             <p>
-            <b>This page documents the SNP block layout for version 1.0 of the BGEN format.
-                For the latest version of the BGEN format, see <a href="bgen_format.html">here</a>.</b>
+            <b>This page documents v1.0 of the BGEN format, which is now deprecated.</b>
+			<em>This format should not be used for new files.  See <a href="bgen_format.html">here</a> for the most recent
+				version of the BGEN format.</em>
             </p>
             <p>Note: The data layout documented here has the limitation that alleles can be only 1 character long.
             This prevents its use with (for example) the latest 1000 genomes data release, which contains structural variants many kilobases long.
             <a href="bgen_format.html">Version 1.1</a> was developed to be backwards-compatible with this format, and addresses this issue.
             </p>
 
-<h3>The snp blocks</h3>
+<h3>SNP block format</h3>
 <p>
-	Following the header comes a sequence of 0 or more snp blocks.
-	Each snp block consists of the following data in order.
+	Each snp block in a BGEN v1.0 file consists of the following data in order.
 </p>
 <center>
 <table class="filespec">
