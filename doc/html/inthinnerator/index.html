@@ -247,13 +247,15 @@ snp9 22-16158548 22 16158548 ACT A</pre>
                     <div class="task_command_line">
                         $ inthinnerator -g snps.txt -min-distance 10kb -o thinned.out
                     </div>
+                    <div class="task_notes">
+                        <b>Note</b>: Inthinnerator understand distances expressed in base pairs ("bp"),
+						kb, or Mb.
+                    </div>
                 </div>
                 <div class="task">
                     <div class="task_name">
                         Thin SNPs based on recombination distance
                     </div>
-                </div>
-                <div class="task">
                     <div class="task_command_line">
                         $ inthinnerator -g snps.txt -map genetic_map_chr#.txt -min-distance 0.125cM -o thinned.out
                     </div>
@@ -265,12 +267,58 @@ snp9 22-16158548 22 16158548 ACT A</pre>
                 </div>
                 <div class="task">
                     <div class="task_name">
-                        Thin SNPs based on a combination of recombination distance with a physical margin
+                        Thin SNPs based on recombination distance with a margin
+                    </div>
+                    <div class="task_command_line">
+                        $ inthinnerator -g snps.txt -map genetic_map_chr#.txt -min-distance 0.125cM+25kb -o thinned.out
+                    </div>
+                    <div class="task_notes">
+                        <b>Note</b>: The above command means that the interval around each picked SNP will extend out
+						0.125cM in each direction.  The region is then expanded by 25kb in each direction.  This choice
+						corresponds to the region definitions used in the <a href="http://www.well.ox.ac.uk/wtccc2/ms">IMSGC / WTCCC2 Multiple sclerosis GWAS paper</a>.
                     </div>
                 </div>
                 <div class="task">
+                    <div class="task_name">
+						Write only the picked SNPs
+                    </div>
                     <div class="task_command_line">
-                        $ inthinnerator -g snps.txt -map genetic_map_chr#.txt -min-distance 0.1cM+25kb -o thinned.out
+                        $ inthinnerator -g snps.txt -map genetic_map_chr#.txt -min-distance 0.125cM+25kb -o thinned.out -suppress-excluded
+                    </div>
+					<div class='task_notes'>
+                        <b>Note</b>: Without the <span class="option">-suppress-excluded</span> flag, inthinnerator writes both the picked SNPs and the excluded ones.
+					</div>
+                </div>
+                <div class="task">
+                    <div class="task_name">
+                        Pick by rank
+                    </div>
+                    <div class="task_command_line">
+                        $ inthinnerator -g snps.txt -map genetic_map_chr#.txt -min-distance 0.125cM+25kb -o thinned.out -rank &lt;filename&gt; -rank-column bf
+                    </div>
+                    <div class="task_command_line">
+                        $ inthinnerator -g snps.txt -map genetic_map_chr#.txt -min-distance 0.125cM+25kb -o thinned.out -rank &lt;filename&gt; -rank-column -pvalue
+                    </div>
+                    <div class="task_notes">
+						<b>Note</b>: the -rank option specifies which must have columns SNPID, rsid, chromosome, position, alleleA and alleleB,
+						and the column named by the <span class="option">-rank-column</span> option.  Inthinnerator will pick the SNP with
+						highest rank first, followed by the SNP with next highest rank among those still included, etc.  If the rank column
+						name is preceded by a minus sign, ranks are negated before picking.  This can be useful for ranking by p-value.
+                    </div>
+                </div>
+                <div class="task">
+                    <div class="task_name">
+                        Annotate the output with nearby genes.
+                    </div>
+                    <div class="task_command_line">
+                        $ inthinnerator -g snps.txt -map genetic_map_chr#.txt -min-distance 0.125cM+25kb -o thinned.out -suppress-excluded
+						-genes &lt;genes filename&gt;
+                    </div>
+                    <div class="task_notes">
+						<b>Note</b>: Currently, the file passed to <span class="option">-genes</span> is expected to be in a similar format
+						to the refGene.txt file downloadable from UCSC
+						genome browser, but with a header line included.  Inthinnerator looks for and uses
+						the chrom, txStart, txEnd and name2 columns of that file.
                     </div>
                 </div>
             </div>
