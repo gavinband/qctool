@@ -446,10 +446,10 @@ void SQLiteGenotypesSNPDataSink::finalise_impl() {
 	
 	{
 		db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 2400 ) ;
-		m_outputter->connection().run_statement( "CREATE INDEX IntensityVariantIndex ON Intensity ( variant_id )" ) ;
-		m_outputter->connection().run_statement( "CREATE INDEX IntensityAnalysisVariantIndex ON Intensity ( analysis_id, variant_id )" ) ;
-		m_outputter->connection().run_statement( "CREATE INDEX GenotypeVariantIndex ON Genotype ( variant_id )" ) ;
-		m_outputter->connection().run_statement( "CREATE INDEX GenotypeAnalysisVariantIndex ON Genotype ( analysis_id, variant_id )" ) ;
+		m_outputter->connection().run_statement( "CREATE INDEX IF NOT EXISTS IntensityVariantIndex ON Intensity ( variant_id )" ) ;
+		m_outputter->connection().run_statement( "CREATE INDEX IF NOT EXISTS IntensityAnalysisVariantIndex ON Intensity ( analysis_id, variant_id )" ) ;
+		m_outputter->connection().run_statement( "CREATE INDEX IF NOT EXISTS GenotypeVariantIndex ON Genotype ( variant_id )" ) ;
+		m_outputter->connection().run_statement( "CREATE INDEX IF NOT EXISTS GenotypeAnalysisVariantIndex ON Genotype ( analysis_id, variant_id )" ) ;
 	}
 
 	m_outputter->finalise() ;
