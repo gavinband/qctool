@@ -453,8 +453,6 @@ namespace genfile {
 			}
 			int const max = number_of_alleles - 1 ;
 
-			std::vector< Entry > result ;
-			
 			// Most GT values have one character per allele.
 			// We treat this as a special case because it is much quicker
 			bool simple_parse_success = true ;
