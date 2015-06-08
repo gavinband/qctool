@@ -133,18 +133,18 @@ private:
 			get_ui_context().logger() << boost::format( "Adding file \"%s\" (%d of %d, %d variants)...\n" )
 				% inputFilenames[0] % 1 % inputFiles.size() % resultContext.number_of_variants ;
 
-			if( options().check( "-set-free-data" )) {
-				std::string const newFreeData = options().get< std::string >( "-set-free-data" ) ;
-				offset += newFreeData.size() - resultContext.free_data.size() ;
-				resultContext.free_data = newFreeData ;
-			}
-			
 			if( options().check( "-omit-sample-identifier-block" )) {
 				resultContext.flags &= ~genfile::bgen::e_SampleIdentifiers ;
 				inputFiles[0].seekg( offset + 4 ) ;
 				offset = resultContext.header_size() ;
 			}
 
+			if( options().check( "-set-free-data" )) {
+				std::string const newFreeData = options().get< std::string >( "-set-free-data" ) ;
+				offset += newFreeData.size() - resultContext.free_data.size() ;
+				resultContext.free_data = newFreeData ;
+			}
+			
 			// Copy the header 
 			bgen::write_offset( outputFile, offset ) ;
 			bgen::write_header_block( outputFile, resultContext ) ;
