@@ -87,10 +87,10 @@ namespace metro {
 
 			std::string get_spec() const { return "ProductOfMultinomials" ; }
 			
-			Vector get_parameters() const {
+			Vector parameters() const {
 				Vector result( m_data.rows() * m_data.cols() ) ;
 				for( std::size_t i = 0; i < m_multinomials.size(); ++i ) {
-					result.segment( m_data.cols() * i, m_data.cols() ) = m_multinomials[i].get_parameters() ;
+					result.segment( m_data.cols() * i, m_data.cols() ) = m_multinomials[i].parameters() ;
 				}
 				return result ;
 			}

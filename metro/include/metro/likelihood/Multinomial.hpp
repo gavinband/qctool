@@ -79,7 +79,7 @@ namespace metro {
 				return m_counts / m_counts.sum() ;
 			}
 
-			Vector get_parameters() const { return m_parameters ; }
+			Vector parameters() const { return m_parameters ; }
 			Vector const& get_data() const { return m_counts ; }
 			
 			std::string get_spec() const { return "Multinomial" ; }

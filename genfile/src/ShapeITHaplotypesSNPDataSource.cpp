@@ -208,11 +208,12 @@ namespace genfile {
 			}
 
 			bool supports( std::string const& spec ) const {
-				return spec == "GT" ;
+				return spec == "GT" || spec == ":genotypes:" ;
 			}
 			
 			void get_supported_specs( SpecSetter setter ) const {
 				setter( "GT", "Integer" ) ;
+				setter( ":genotypes:", "Integer" ) ;
 			}
 			
 			private:
