@@ -12,6 +12,10 @@
 #include "test_case.hpp"
 #include "genfile/TraditionalStrictCohortIndividualSource.hpp"
 #include "genfile/CrossCohortCovariateValueMapping.hpp"
+#include "genfile/CategoricalCrossCohortCovariateValueMapping.hpp"
+#include "genfile/ContinuousVariableCrossCohortCovariateValueMapping.hpp"
+#include "genfile/LevelCountingCrossCohortCovariateValueMapping.hpp"
+#include "genfile/NormalisingCrossCohortCovariateValueMapping.hpp"
 #include "genfile/string_utils.hpp"
 #include <cassert>
 
