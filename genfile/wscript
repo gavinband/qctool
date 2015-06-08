@@ -46,3 +46,4 @@ def build( bld ):
 	)
 
 	create_benchmark( bld, 'benchmark-io' )
+	create_tests( bld )

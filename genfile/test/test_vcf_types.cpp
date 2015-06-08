@@ -12,6 +12,8 @@
 using namespace genfile::vcf ;
 using namespace std ;
 
+BOOST_AUTO_TEST_SUITE( test_vcf_types )
+
 AUTO_TEST_CASE( test_string ) {
 	std::cerr << "test_string()..." ;
 	TEST_ASSERT( StringType().parse( string( "" ) ).as< string >() == "" ) ;
@@ -487,14 +489,14 @@ AUTO_TEST_CASE( test_dynamic_number_entry_type ) {
 	std::cerr << "ok.\n" ;
 }
 
-AUTO_TEST_CASE( test_one_per_alternate_allele_entry_type ) {
+AUTO_TEST_CASE( test_one_per_allele_entry_type ) {
 	std::cerr << "test_one_per_alternate_allele_entry_type()..." ;
 
 	using namespace genfile ;
 
 	{
 		typedef std::vector< Entry > Result ;
-		OnePerAlternateAlleleVCFEntryType type( SimpleType::create( "Integer" ) ) ;
+		OnePerAlleleVCFEntryType type( SimpleType::create( "Integer" ) ) ;
 		Result r, rp ;
 		for( std::size_t ploidy = 0; ploidy < 100; ++ploidy ) {
 			r = type.parse( std::string( "" ), 0 ) ;
@@ -521,8 +523,8 @@ AUTO_TEST_CASE( test_one_per_alternate_allele_entry_type ) {
 	}
 	
 	for( std::size_t n_alleles = 0; n_alleles < 100; ++n_alleles ) {
-		OnePerAlternateAlleleVCFEntryType type( SimpleType::create( "Integer" ) ) ;
-		OnePerAlternateAlleleVCFEntryType type2( SimpleType::create( "String" ) ) ;
+		OnePerAlleleVCFEntryType type( SimpleType::create( "Integer" ) ) ;
+		OnePerAlleleVCFEntryType type2( SimpleType::create( "String" ) ) ;
 		try { type.parse( std::string( "" ), n_alleles ) ; TEST_ASSERT( n_alleles == 0 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 0 ) ; }
 		try { type.parse( std::string( "," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
 		try { type.parse( std::string( "1" ), n_alleles ) ; TEST_ASSERT( n_alleles == 1 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 1 ) ; }
@@ -805,3 +807,5 @@ void test_gt_spec() {
 	}
 	catch( genfile::BadArgumentError const& ) {}	
 }
+
+BOOST_AUTO_TEST_SUITE_END()
