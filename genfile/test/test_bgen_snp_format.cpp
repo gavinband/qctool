@@ -16,7 +16,9 @@
 #include "genfile/string_utils/hex.hpp"
 #include "stdint.h"
 
-#define DEBUG 3
+#define DEBUG 1
+
+BOOST_AUTO_TEST_SUITE( test_bgen )
 
 // The following section contains a simple snp block writer.
 namespace data {
@@ -646,6 +648,7 @@ void do_snp_block_write_test(
 		<< ", number_of_samples = " << number_of_individuals
 		<< ", number_of_bits = " << bits_per_probability
 		<< ".\n" ;
+	std::cerr << "!! This test fails, phased output not implemented in bgen.hpp yet.\n" ;
 #endif
 	
 	std::ostringstream outStream ;
@@ -767,3 +770,5 @@ AUTO_TEST_CASE( test_snp_block_output_phased ) {
 		do_snp_block_write_test( "v12", 1001, "SNP01", "RS01", genfile::Chromosome1, 1000001, "A", "C", number_of_bits, "phased" ) ;
 	}
 }
+
+BOOST_AUTO_TEST_SUITE_END()
