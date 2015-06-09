@@ -23,8 +23,10 @@
 #define foreach BOOST_FOREACH
 #include <boost/regex.hpp>
 #include <boost/math/distributions/normal.hpp>
+#include <boost/math/distributions/chi_squared.hpp>
 #include <Eigen/Core>
 #include <Eigen/Cholesky>
+#include <Eigen/LU>
 #include "appcontext/CmdLineOptionProcessor.hpp"
 #include "appcontext/ApplicationContext.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
@@ -48,7 +50,7 @@
 #include "SNPTESTResults.hpp"
 #include "MMMResults.hpp"
 
-// #define DEBUG_BINGWA 1
+#define DEBUG_BINGWA 1
 
 namespace globals {
 	std::string const program_name = "bingwa" ;
@@ -608,7 +610,7 @@ namespace impl {
 		return result ;
 	}
 	
-	bool get_betas_and_ses_one_per_study( BingwaComputation::DataGetter const& data_getter, BingwaComputation::Filter filter, Eigen::VectorXd& betas, Eigen::VectorXd& ses, Eigen::VectorXd& non_missingness ) {
+	bool get_betas_and_ses_one_per_cohort( BingwaComputation::DataGetter const& data_getter, BingwaComputation::Filter filter, Eigen::VectorXd& betas, Eigen::VectorXd& ses, Eigen::VectorXd& non_missingness ) {
 		std::size_t N = data_getter.get_number_of_cohorts() ;
 		betas.resize( N ) ;
 		ses.resize( N ) ;
@@ -638,45 +640,56 @@ namespace impl {
 		return true ;
 	}
 	
-	bool get_betas_and_covariance_per_study(
+	enum Layout { eByBeta = 0, eByCohort = 1 } ;
+
+	// Layout depends on layout argument
+	// If layout == eByBeta then all beta_1's go in one contiguous block,
+	// followed by all beta_2's, etc.
+	// If layout == eByPopulation then beta_1, 2, etc. for population 1 go in one block,
+	// followed by beta_1, 2 etc for population 2.
+	// If there is only one beta both layouts are the same
+	//
+	// Betas from each study are assumed to come in the same order.
+	// Covariances in each study are assumed to reflect the upper triangle of covariances
+	// and come in the order cov_1,2 cov_1,3, ..., cov_2,3, cov_2,4, ...
+	bool get_betas_and_covariance_per_cohort(
 		BingwaComputation::DataGetter const& data_getter,
 		BingwaComputation::Filter filter,
 		Eigen::VectorXd& betas,
 		Eigen::MatrixXd& covariance,
 		Eigen::VectorXd& non_missingness,
-		int const l
+		int const numberOfEffects,
+		Layout const layout = eByBeta
 	) {
 		std::size_t N = data_getter.get_number_of_cohorts() ;
 
-		betas.setConstant( l*N, NA ) ;
-		non_missingness.setConstant( l*N, 1 ) ;
-		covariance.setZero( l*N, l*N ) ;
+		betas.setConstant( numberOfEffects*N, 0 ) ;
+		non_missingness.setConstant( numberOfEffects*N, 0 ) ;
+		covariance.setZero( numberOfEffects*N, numberOfEffects*N ) ;
 
 		for( std::size_t i = 0; i < N; ++i ) {
-			non_missingness( i ) = filter( data_getter, i ) ? 1.0 : 0.0 ;
-
-			if( non_missingness( i )) {
+			if( filter( data_getter, i ) ) {
 				Eigen::VectorXd this_betas, this_ses, this_covariance ;
 				data_getter.get_betas( i, &this_betas ) ;
 				data_getter.get_ses( i, &this_ses ) ;
 				data_getter.get_covariance_upper_triangle( i, &this_covariance ) ;
-				if( this_betas.size() != l || this_ses.size() != l || this_covariance.size() != ((l-1) * l / 2 ) ) {
+				if( this_betas.size() != numberOfEffects || this_ses.size() != numberOfEffects || this_covariance.size() != ((numberOfEffects-1) * numberOfEffects / 2 ) ) {
 					return false ;
 				}
-				// beta_1's for all pops go in one contiguous block.
-				// Then beta_2's for all pops.
-				// This matches the layout we use for the priors.
 				int cov_i = 0 ;
-				for( int j = 0; j < l; ++j ) {
-					int const index = (j*N)+i; //(l*i)+j ;
-					betas( index ) = this_betas(j) ;
-					covariance( index, index ) = this_ses(j) * this_ses(j) ;
-					if( this_betas(j) != this_betas(j) || this_ses(j) != this_ses(j) ) {
-						non_missingness( index ) = 0 ;
-					}
-					for( int k = (j+1); k < l; ++k, ++cov_i ) {
-						int const index2 = (k*N)+i; //(l*i)+j ;
-						covariance( index, index2 ) = covariance( index2, index ) = this_covariance( cov_i ) ;
+				for( int j = 0; j < numberOfEffects; ++j ) {
+					int const index = (layout == eByBeta ) ? ((j*N)+i) : ((numberOfEffects*i)+j) ;
+					// To avoid NaNs propagating through downstream computations,
+					// we convert NAs to zero values and return missingness information in
+					// the non_missingness vector.
+					if( this_betas(j) == this_betas(j) && this_ses(j) == this_ses(j) ) {
+						non_missingness( index ) = 1 ;
+						betas( index ) = this_betas(j) ;
+						covariance( index, index ) = this_ses(j) * this_ses(j) ;
+						for( int k = (j+1); k < numberOfEffects; ++k, ++cov_i ) {
+							int const index2 = (layout == eByBeta ) ? ((k*N)+i) : ((numberOfEffects*i)+k) ;
+							covariance( index, index2 ) = covariance( index2, index ) = this_covariance( cov_i++ ) ;
+						}
 					}
 				}
 			}
@@ -684,48 +697,6 @@ namespace impl {
 		return true ;
 	}
 
-#if 0
-	bool get_fixed_effect_betas_and_covariance_from_study(
-		BingwaComputation::DataGetter const& data_getter,
-		BingwaComputation::Filter filter,
-		Eigen::VectorXd& betas,
-		Eigen::MatrixXd& covariance,
-		Eigen::VectorXd& non_missingness,
-		int const l
-	) {
-		std::size_t N = data_getter.get_number_of_cohorts() ;
-
-		betas.setConstant( l, NA ) ;
-		non_missingness.setConstant( l, 1 ) ;
-		covariance.setZero( l, l ) ;
-
-		// We use a temporary matrix A to accumulate the inverses of per-study covariances.
-		Eigen::MatrixXd A = Eigen::MatrixXd::Zero( l, l ) ;
-		
-		for( std::size_t i = 0; i < N; ++i ) {
-			non_missingness( i ) = filter( data_getter, i ) ? 1.0 : 0.0 ;
-
-			if( non_missingness( i )) {
-				Eigen::VectorXd this_betas, this_ses, this_covariance_upper_triangle ;
-				data_getter.get_betas( i, &this_betas ) ;
-				data_getter.get_ses( i, &this_ses ) ;
-				data_getter.get_covariance_upper_triangle( i, &this_covariance_upper_triangle ) ;
-				if( this_betas.size() != l || this_ses.size() != l || this_covariance_upper_triangle.size() != ((l-1) * l / 2 ) ) {
-					return false ;
-				}
-				// Populate
-				Eigen::MatrixXd const& this_covariance = Eigen::MatrixXd::Zero( l, l ) ;
-				for( std::size_t i = 0; i < l; ++i ) {
-					this_covariance.block( i, i, 1, l-i ) = this_covariance_upper_triangle.segment( (i*l) ) ;
-				}
-
-				// FIX ME
-				FIX ME
-			}
-		}
-		return true ;
-	}
-#endif
 	std::string serialise( Eigen::VectorXd const& vector ) {
 		std::ostringstream ostr ;
 		for( int i = 0; i < vector.size(); ++i ) {
@@ -743,6 +714,7 @@ namespace impl {
 }
 
 /*
+	Univariate fixed-effect meta-analysis
 	Here is R code to do it:
 	frequentist_meta_analysis <- function( betas, ses, side = NULL ) {
 		if( class( betas ) == "numeric" ) {
@@ -807,7 +779,7 @@ struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {
 		Eigen::VectorXd betas = Eigen::VectorXd::Constant( N, NA ) ;
 		Eigen::VectorXd ses = Eigen::VectorXd::Constant( N, NA ) ;
 		Eigen::VectorXd non_missingness = Eigen::VectorXd::Constant( N, NA ) ;
-		if( !impl::get_betas_and_ses_one_per_study( data_getter, m_filter, betas, ses, non_missingness ) ) {
+		if( !impl::get_betas_and_ses_one_per_cohort( data_getter, m_filter, betas, ses, non_missingness ) ) {
 			callback( "FixedEffectMetaAnalysis:meta_beta", genfile::MissingValue() ) ;
 			callback( "FixedEffectMetaAnalysis:meta_se", genfile::MissingValue() ) ;
 			callback( "FixedEffectMetaAnalysis:pvalue", genfile::MissingValue() ) ;
@@ -899,6 +871,7 @@ namespace impl {
 */
 	double compute_bayes_factor( Eigen::MatrixXd const& prior, Eigen::MatrixXd const& V, Eigen::VectorXd const& betas ) {
 	#if DEBUG_BINGWA
+		 std::cerr << "impl::compute_bayes_factor()\n" ;
 		 std::cerr << std::resetiosflags( std::ios::floatfield ) ;
 		 std::cerr << "prior = " << prior << ".\n" ;
 		 std::cerr << "betas = " << betas.transpose() << ".\n" ;
@@ -923,6 +896,75 @@ namespace impl {
 		return result ;
 	}
 
+	void compute_fixed_effect_meta_and_variance(
+		Eigen::MatrixXd const& V,
+		Eigen::VectorXd const& betas,
+		int const numberOfCohorts,
+		int const numberOfEffects,
+		Eigen::VectorXd* metaBeta,
+		Eigen::MatrixXd* metaVariance,
+		double* chi_squared
+	) {
+	#if DEBUG_BINGWA
+		std::cerr << "impl::compute_fixed_effect_meta_and_variance()\n" ;
+		std::cerr << std::resetiosflags( std::ios::floatfield ) ;
+		std::cerr << "betas = " << betas.transpose() << ".\n" ;
+		std::cerr << "V = " << V << ".\n" ;
+	#endif
+		metaVariance->setZero( numberOfEffects, numberOfEffects ) ;
+		metaBeta->setZero( numberOfEffects ) ;
+		Eigen::MatrixXd Wi ;
+		Eigen::VectorXd beta = Eigen::VectorXd::Zero( numberOfEffects ) ;
+		for( int cohort = 0; cohort < numberOfCohorts; ++cohort ) {
+			Wi = V.block( cohort * numberOfEffects, cohort * numberOfEffects, numberOfEffects, numberOfEffects ).inverse() ;
+			Eigen::Block< Eigen::VectorXd const > beta_i = betas.block( cohort * numberOfEffects, 0, numberOfEffects, 1 ) ;
+			(*metaVariance) += Wi ;
+			beta += Wi * beta_i ;
+		}
+		
+		(*metaVariance) = metaVariance->inverse() ;
+		(*metaBeta) += (*metaVariance) * beta ;
+		*chi_squared = ( beta.array() * metaBeta->array() ).sum() ;
+	}
+
+	double compute_fixed_effect_pvalue( Eigen::VectorXd const& metaBeta, Eigen::MatrixXd const& metaVariance ) {
+		Eigen::LLT< Eigen::MatrixXd > metaVarianceSolver( metaVariance ) ;
+		
+		Eigen::VectorXd transformedBeta = metaVarianceSolver.matrixL() * metaBeta ;
+		double statistic = transformedBeta.squaredNorm() ;
+		double pvalue = NA ;
+		if( statistic == statistic ) {
+			typedef boost::math::chi_squared ChiSquareDistribution ;
+			ChiSquareDistribution chi( metaBeta.size() ) ;
+			pvalue = boost::math::cdf( boost::math::complement( chi, statistic ) ) ;
+		}
+		return pvalue ;
+	}
+
+	double compute_chisquared_pvalue( double statistic, int const numberOfEffects ) {
+		double pvalue = NA ;
+		if( statistic == statistic ) {
+			typedef boost::math::chi_squared ChiSquareDistribution ;
+			ChiSquareDistribution chi( numberOfEffects ) ;
+			pvalue = boost::math::cdf( boost::math::complement( chi, statistic ) ) ;
+		}
+
+#if DEBUG_BINGWA
+		std::cerr << "impl::compute_chisquared_pvalue(): df = " << numberOfEffects << ", stat = " << statistic << ", pvalue = " << pvalue << ".\n" ;
+#endif
+		return pvalue ;
+	}
+	
+	double impl::compute_normal_pvalue( double statistic, double variance, int tails = 2 ) {
+		assert( tails == 1 || tails == 2 ) ;
+		typedef boost::math::normal NormalDistribution ;
+		NormalDistribution normal( 0, std::sqrt( variance ) ) ;
+		return (tails == 2)
+			? 2.0 * boost::math::cdf( boost::math::complement( normal, std::abs( statistic ) ) ) ;
+			:  
+		if( tails == 2 ) {}
+		return 
+	}
 
 	Eigen::MatrixXd get_nonmissing_coefficient_selector(
 		Eigen::VectorXd const& non_missingness
@@ -930,9 +972,9 @@ namespace impl {
 		int const number_of_included_effects = (
 			( non_missingness.array() > 0 ).cast< double >()
 		).sum() ;
-
+		
 		Eigen::MatrixXd result = Eigen::MatrixXd::Zero( number_of_included_effects, non_missingness.size() ) ;
-	
+		
 		if( number_of_included_effects > 0 ) {
 			int count = 0 ;
 			for( int i = 0; i < non_missingness.size(); ++i ) {
@@ -941,14 +983,42 @@ namespace impl {
 					result( count++, i ) = 1 ;
 				}
 			}
-		
+			
 #if DEBUG_BINGWA	
-			std::cerr << "impl::get_nonmissing_coefficient_selector()" << ": prior selector is:\n" << result << "\n" ;
+			std::cerr << "impl::get_nonmissing_coefficient_selector()" << ": selector is:\n" << result << "\n" ;
 #endif
 		}
 		return result ;
 	}
 
+	Eigen::MatrixXd get_nonmissing_cohort_selector(
+		Eigen::VectorXd const& non_missingness,
+		int const numberOfCohorts,
+		int const numberOfEffects
+	) {
+		Eigen::MatrixXd result = Eigen::MatrixXd::Zero( non_missingness.size(), non_missingness.size() ) ;
+		int numberOfIncludedCohorts = 0 ;
+		for( int i = 0; i < numberOfCohorts; ++i ) {
+			double const betaSum = non_missingness.segment( i * numberOfEffects, numberOfEffects ).sum() ;
+			if( betaSum == numberOfEffects ) {
+				for( int k = 0; k < numberOfEffects; ++k ) {
+					result( numberOfEffects * numberOfIncludedCohorts + k, numberOfEffects * i + k ) = 1 ;
+				}
+				++numberOfIncludedCohorts ;
+			}
+		}
+		
+		result = result.block(
+			0, 0,
+			numberOfIncludedCohorts * numberOfEffects, result.cols()
+		) ;
+		
+#if DEBUG_BINGWA	
+		std::cerr << "impl::get_nonmissing_cohort_selector()" << ": non_missingness is:" << non_missingness.transpose() << "\n" ;
+		std::cerr << "impl::get_nonmissing_cohort_selector()" << ": selector is:\n" << result << "\n" ;
+#endif
+		return result ;
+	}
 }
 
 
@@ -994,12 +1064,9 @@ struct ApproximateBayesianMetaAnalysis: public BingwaComputation {
 		Eigen::VectorXd non_missingness ;
 	
 		if(
-			!impl::get_betas_and_covariance_per_study( data_getter, m_filter, betas, covariance, non_missingness, m_effect_parameter_names.size() )
-			|| non_missingness.sum() == 0
+			impl::get_betas_and_covariance_per_cohort( data_getter, m_filter, betas, covariance, non_missingness, m_effect_parameter_names.size(), impl::eByBeta )
+			&& non_missingness.sum() == 0
 		) {
-			return ;
-		}
-		else {
 			Eigen::MatrixXd nonmissingness_selector = impl::get_nonmissing_coefficient_selector( non_missingness ) ;
 			betas = nonmissingness_selector * betas ;
 			covariance = nonmissingness_selector * covariance * nonmissingness_selector.transpose() ;
@@ -1007,6 +1074,8 @@ struct ApproximateBayesianMetaAnalysis: public BingwaComputation {
 			
 			double const bf = impl::compute_bayes_factor( prior, covariance, betas ) ;
 			callback( m_prefix + ":bf", bf ) ;
+		} else {
+			
 		}
 	}
 		
@@ -1024,6 +1093,133 @@ private:
 	Filter m_filter ;
 	EffectParameterNamePack m_effect_parameter_names ;
 } ;
+
+struct MultivariateFixedEffectMetaAnalysis: public BingwaComputation {
+	typedef std::auto_ptr< MultivariateFixedEffectMetaAnalysis > UniquePtr ;
+	
+	MultivariateFixedEffectMetaAnalysis(
+		std::string const& name
+	):
+		m_name( name ),
+		m_prefix( name ),
+		m_filter( &impl::basic_missingness_filter )
+	{}
+
+	void set_filter( Filter filter ) {
+		m_filter = filter ;
+	}
+
+	void set_effect_parameter_names( EffectParameterNamePack const& names ) {
+		m_effect_parameter_names = names ;
+	}
+
+	void get_variables( boost::function< void ( std::string ) > callback ) const {
+		std::size_t const numberOfEffects = m_effect_parameter_names.size() ;
+		if( numberOfEffects > 0 ) {
+			for( std::size_t i = 0; i < numberOfEffects; ++i ) {
+				callback( m_prefix + ( boost::format( ":beta_%d" ) % (i+1)).str() ) ;
+			}
+			for( std::size_t i = 0; i < numberOfEffects; ++i ) {
+				callback( m_prefix + ( boost::format( ":se_%d" ) % (i+1)).str() ) ;
+			}
+			for( std::size_t i = 0; i < numberOfEffects; ++i ) {
+				callback( m_prefix + ( boost::format( ":wald_pvalue_%d" ) % (i+1)).str() ) ;
+			}
+			for( std::size_t i = 0; i < (numberOfEffects-1); ++i ) {
+				for( std::size_t j = i+1; j < numberOfEffects; ++j ) {
+					callback( m_prefix + ( boost::format( ":cov_%d,%d" ) % (i+1) % (j+1)).str() ) ;
+				}
+			}
+		}
+		callback( m_prefix + ":pvalue" ) ;
+	}
+
+	void operator()(
+		SNPIdentifyingData2 const& snp,
+		DataGetter const& data_getter,
+		ResultCallback callback
+	) {
+		std::size_t const numberOfEffects = m_effect_parameter_names.size() ;
+		if( data_getter.get_number_of_cohorts() == 0 || numberOfEffects == 0 ) {
+			return ;
+		}
+		
+		Eigen::VectorXd betas ;
+		Eigen::MatrixXd covariance ;
+		Eigen::VectorXd non_missingness ;
+	
+		if(
+			impl::get_betas_and_covariance_per_cohort( data_getter, m_filter, betas, covariance, non_missingness, numberOfEffects, impl::eByCohort )
+			&& non_missingness.sum() > 0
+		) {
+			Eigen::MatrixXd nonmissingness_selector = impl::get_nonmissing_cohort_selector( non_missingness, data_getter.get_number_of_cohorts(), numberOfEffects ) ;
+#if DEBUG_BINGWA
+			std::cerr << "MultivariateFixedEffectMetaAnalysis::operator(): pre-selector, N = " << data_getter.get_number_of_cohorts() << "\n"
+				<< "betas = " << betas.transpose() << ".\n"
+					<< "covariance = \n" << covariance << ".\n" ;
+#endif
+
+			betas = nonmissingness_selector * betas ;
+			covariance = nonmissingness_selector * covariance * nonmissingness_selector.transpose() ;
+
+			std::size_t const N = betas.size() / numberOfEffects ;
+#if DEBUG_BINGWA
+			std::cerr << "post-selector, N = " << N << "\n"
+				<< "betas = " << betas.transpose() << ".\n" ;
+			std::cerr << "variance =\n" << impl::format_matrix( covariance ) << ".\n" ;
+#endif
+			Eigen::MatrixXd metaVariance ;
+			Eigen::VectorXd metaBeta ;
+			double chi_squared = 0 ;
+			impl::compute_fixed_effect_meta_and_variance( covariance, betas, N, numberOfEffects, &metaBeta, &metaVariance, &chi_squared ) ;
+			//double const pvalue = impl::compute_fixed_effect_pvalue( metaBeta, metaVariance ) ;
+			double const pvalue = impl::compute_chisquared_pvalue( chi_squared, numberOfEffects ) ;
+
+#if DEBUG_BINGWA
+			std::cerr << "metaBeta = " << metaBeta.transpose() << ".\n" ;
+			std::cerr << "metaVariance =\n" << metaVariance << ".\n" ;
+			std::cerr << "chi_squared =\n" << chi_squared << ".\n" ;
+			std::cerr << "pvalue =\n" << pvalue << ".\n" ;
+#endif
+
+			for( std::size_t i = 0; i < numberOfEffects; ++i ) {
+				callback( m_prefix + ( boost::format( ":beta_%d" ) % (i+1)).str(), metaBeta(i) ) ;
+			}
+			for( std::size_t i = 0; i < numberOfEffects; ++i ) {
+				callback( m_prefix + ( boost::format( ":se_%d" ) % (i+1)).str(), std::sqrt( metaVariance(i,i) ) ) ;
+			}
+			for( std::size_t i = 0; i < numberOfEffects; ++i ) {
+				callback( m_prefix + ( boost::format( ":wald_pvalue_%d" ) % (i+1)).str(), impl::compute_tail_of_normal( metaBeta(i), metaVariance(i,i) ) ) ;
+			}
+			for( std::size_t i = 0; i < (numberOfEffects-1); ++i ) {
+				for( std::size_t j = i+1; j < numberOfEffects; ++j ) {
+					callback( m_prefix + ( boost::format( ":cov_%d,%d" ) % (i+1) % (j+1)).str(), metaVariance(i,j) ) ;
+				}
+			}
+			callback( m_prefix + ":pvalue", pvalue ) ;
+		} else {
+			return ;
+		}
+	}
+		
+	std::string get_spec() const {
+		return "MultivariateFixedEffectMetaAnalysis( " + m_name + " )" ;
+	}
+
+	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const {
+		return prefix + get_spec() ;
+	}
+private:
+	
+	
+	
+	std::string const m_name ;
+	std::string const m_prefix ;
+	Eigen::MatrixXd const m_sigma ;
+	Filter m_filter ;
+	EffectParameterNamePack m_effect_parameter_names ;
+} ;
+
 
 struct ModelAveragingBayesFactorAnalysis: public BingwaComputation {
 public:
@@ -1113,7 +1309,7 @@ public:
 		Eigen::VectorXd non_missingness ;
 	
 		if(
-			!impl::get_betas_and_covariance_per_study( data_getter, m_filter, betas, covariance, non_missingness, m_effect_parameter_names.size() )
+			!impl::get_betas_and_covariance_per_cohort( data_getter, m_filter, betas, covariance, non_missingness, m_effect_parameter_names.size() )
 			|| non_missingness.sum() == 0
 		) {
 			return ;
@@ -1749,6 +1945,16 @@ public:
 						BingwaComputation::UniquePtr( computation.release() )
 					) ;
 				}
+				{
+					MultivariateFixedEffectMetaAnalysis::UniquePtr computation(
+						new MultivariateFixedEffectMetaAnalysis( "MultivariateFixedEffectMetaAnalysis" )
+					) ;
+					computation->set_filter( filter ) ;
+					m_processor->add_computation(
+						"MultivariateFixedEffectMetaAnalysis",
+						BingwaComputation::UniquePtr( computation.release() )
+					) ;
+				}
 				if( options().check( "-simple-prior" ) || options().check( "-complex-prior" ) || options().check( "-group-specific-prior" )) {
 					std::map< std::string, Eigen::MatrixXd > const priors = get_priors( options(), cohort_names ) ;
 					ModelAveragingBayesFactorAnalysis::UniquePtr averager( new ModelAveragingBayesFactorAnalysis ) ;
@@ -1780,38 +1986,6 @@ public:
 						) ;
 					}
 					
-					// Now set up an average bayes factor
-					// Currently this must be added after the computations above in order
-					// that it is fed data (via the accumulate() callback) before the mean is
-					// computed.
-#if 0
-					{
-						ValueAccumulator::UniquePtr mean_bf(
-							new ValueAccumulator( "ApproximateBayesianMetaAnalysis:mean_bf" )
-						) ;
-
-						std::map< std::string, Eigen::MatrixXd >::const_iterator i = priors.begin() ;
-						std::map< std::string, Eigen::MatrixXd >::const_iterator const end_i = priors.end() ;
-						for( ; i != end_i; ++i ) {
-							mean_bf->set_weight( "ApproximateBayesianMetaAnalysis:" + i->first + ":bf", 1.0 ) ;
-						}
-
-						m_processor->send_results_to(
-							boost::bind(
-								&ValueAccumulator::accumulate,
-								mean_bf.get(),
-								_2,
-								_3
-							)
-						) ;
-						
-						m_processor->add_computation(
-							"ApproximateBayesianMetaAnalysis",
-							BingwaComputation::UniquePtr( mean_bf.release() )
-						) ;
-					}
-#endif
-				
 					summarise_priors( priors, cohort_names ) ;
 				}
 			}

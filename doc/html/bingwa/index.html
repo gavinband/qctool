@@ -31,11 +31,11 @@
     </head>
     <body>
         <div class="header" id="header1">
-            <!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
-			<img src="style/images/i.png" class="inthinnerator_title_image"></img>
-                <!--inth<span class="red">🔥</span>nnerator-->
+            <div class="header_text">
+				bingwa
+			</div>
             <div class="header_subtext">
-                burn those SNPs!
+				<b>b</b>ayes<b>i</b>an meta-a<b>n</b>alysis for <b>g</b>enome-<b>w</b>ide <b>a</b>ssociation studies
             </div>
         </div>
         <div class="button_bar">
@@ -69,58 +69,44 @@
             <div id="overview" style="display:none">
                 <p>
 					<strong>Introduction.</strong>
-					inthinnerator is a command-line utility to help with the common task of "thinning" genetic variants, most commonly SNPs, from
-					a dense (usually genome-wide) set of variants such as you would use in a GWAS study.  Inthinnerator might be useful if:
-					<ul>
-						<li>
-							You want an approximately independent set of variants for use in other analyses (like principal components analysis).
-						</li>
-						<li>
-							Or you want to pick out 'top' loci (e.g. lead GWAS SNPs) as best representatives of variation in each region.
-						</li>
-						<li>
-							Or you want to simulate 'null' sets of variants to use, for example, in empirical enrichment analysis.
-						</li>
-					</ul>
+					<b>b</b>ingwa is a command-line tool used to carry out meta-analysis of genome-wide association studies.
+					It is particularly suited for use with the program <a href="">SNPTEST</a>, but can also be used with other programs such as <a href="">MMM</a>.
+					Key features of bingwa include:
 				</p>
-
-				<p>
-					<strong>Features.</strong>
-					Inthinnerator can be used to:
-					<ul>
-						<li>Pick SNPs by rank (e.g. association P-value), randomly among SNPs, or uniformly in the genome.</li>
-						<li>Thin variants based on physical distance, recombination distance, or a combination of both.</li>
-						<li>Annotate variants with physical and recombination distances, and physical or recombination regions.</li>
-						<li>Annotate variants with nearby genes.</li>
-					</ul>
-                    Inthinnerator is designed to be as easy-to-use as possible and we hope you find it so.
-                </p>
-                <p>
-                    <em>Note</em>: Inthinnerator does not currently thin variants based on estimates of LD, though we may implement that in future.
-					For LD-based thinning, try other programs such as <a href="http://pngu.mgh.harvard.edu/~purcell/plink/">plink</a>.
-                </p>
+				<ul>
+					<li>
+						Computation of fixed-effect frequentist and flexible bayesian meta-analysis.
+					</li>
+					<li>
+						Support 
+					</li>
+				</ul>
                 <p>
                     <strong>Change history.</strong>
 					<br />
 					<em>Important!</em>
-					This page documents version 2 of inthinnerator which is currently <b>experimental</b>.  This means we expect some features not to work, or
+					This page documents version 2 of bingwa which is currently <b>experimental</b>.  This means we expect some features not to work, or
 					not to work well, or to work wrongly, or to destroy your computer or sanity.
                 </p>
                 <p>
-                    <strong>References.</strong> In different incarnations inthinnerator has been used in the guts of several papers.  Here are a few:
-					<ol>
-						<li>Band et al, "<a href="http://www.plosgenetics.org/article/info%3Adoi%2F10.1371%2Fjournal.pgen.1003509">Imputation-Based Meta-Analysis of Severe Malaria in Three African Populations</a>", PLOS Genetics (2013)</li>
-						<li>Su et al, "<a href="http://www.nature.com/ng/journal/v44/n10/full/ng.2408.html">Common variants at the MHC locus and at chromosome 16q24.1 predispose to Barrett's esophagus</a>", Nature Genetics (2012)</li>
-					</ol>
-					
-				</p>
-                <p>
-                    <strong>Acknowledgements.</strong> The following people contributed to the design and implementation of qctool:
+                    <strong>Acknowledgements.</strong> The following people contributed to the methods, design and implementation of this software:
                 </p>
                 <p>
                     <ul>
                         <li>
                             <a href="http://www.well.ox.ac.uk/~gav/">Gavin Band</a>
+                        </li>
+                        <li>
+                            <a href="http://www.well.ox.ac.uk/chris-spencer">Chris Spencer</a>
+                        </li>
+                        <li>
+                            <a href="http://www.well.ox.ac.uk/si-quang-le-2">Quang Si Le</a>
+                        </li>
+                        <li>
+                            <a href="http://www.helsinki.fi/~mjxpirin/">Matti Pirinen</a>
+                        </li>
+                        <li>
+                            <a href="http://www.well.ox.ac.uk/geraldine-clarke">Geraldine Clarke</a>
                         </li>
 					</ul>
                 </p>
@@ -133,73 +119,18 @@
             </div>
             <div id="documentation" style="display:none">
                 <div class="display_diagram_right">
-                    <object data="style/images/inthinnerator-flow.svg"  type="image/svg+xml" align="center">
-					</object>
+                    <!--><object data="style/images/inthinnerator-flow.svg"  type="image/svg+xml" align="center">
+					</object>-->
                 </div>
                 <p>
-                    The general process followed by inthinnerator is shown on the right.  In brief, inthinnerator picks SNPs by alternating two processes:
+                    The general process followed by bingwa is shown on the right.  In brief, bingwa proceeds by
 					<ol>
-						<li>Pick a SNP from the set of SNPs remaining, using a <em>picking strategy</em>.
-						<li>Exclude SNPs from the remaining list using an <em>thinning strategy</em>
-							(typically by excluding SNPs in a physical or recombination interval around the picked SNP.)</li>
-						<li>Either go back to step 1 and repeat, or stop and write the results.</li>
+						<li>Loading association test data from a set of cohorts (e.g. SNPTEST files).</li>
+						<li>Matching variants between cohorts.</li>
+						<li>Computing frequentist meta-analysis and one or more Bayes factors.</li>
+						<li>Writing results.</li>
 					</ol>
-					This process repeats until either there are no more SNPs to be picked, or a maximum number of SNPs has been reached.
                 </p>
-				<p><strong>Picking.</strong> Inthinnerator implements the following strategies for picking variants in step 1:
-					<ul>
-						<li>Pick a SNP at random from the SNPs remaining (<span class="option">-strategy random</span>).  This is the default behaviour.</li>
-						<li>Pick a SNP at uniformly at random from regions of the genome covered by SNPs in the input file (<span class="option">-strategy random_by_position</span>).
-							The <span class="option">-bin-size</span> option controls how genomic coverage is computed.</li>
-						<li>Pick the first SNP remaining (<span class="option">-strategy first</span>).</li>
-						<li>Pick SNPs according to a specified rank (<span class="option">-rank</span>).</li>
-					</ul>
-					The <span class="option">-match-tag</span> option tells inthinnerator to always pick the Nth SNP
-					from among SNPs having the same tag as the Nth tag specified. This can be used, for example, to pick SNPs approximately matching in
-					frequency to a previously defined list.
-				</p>
-				<p><strong>Thinning.</strong> Inthinnerator implements the following strategies for thinning variants in step 2:
-					<ul>
-						<li>Thin by physical distance, e.g. <span class="option">-min-distance 100kb</span>, <span class="option">-min-distance 20bp</span>, <span class="option">-min-distance 2.5Mb</span>.</li>
-						<li>Thin by recombination distance, e.g. <span class="option">-min-distance 0.125cM</span>.
-						<li>Thin by recombination distance with a physical margin, e.g. <span class="option">-min-distance 0.125cM+25kb</span>.
-					</ul>
-				</p>
-				<p><strong>Stopping.</strong> Inthinnerator can choose to stop picking in a few ways:
-					<ul>
-						<li>Continue until there are no SNPs left to pick (this is the default behaviour).</li>
-						<li>Continue until a specified number of SNPs have been picked (<span class="option">-max-picks</span>).</li>
-						<li>Continue until one SNP has been picked for each tag specified to <span class="option"><strong>-match-tag</strong></span>.</li>
-					</ul>
-				</p>
-				<p>
-					<strong>Repeating.</strong> Specifying <span class="option">-N <em>x</em></span>, where <em>x</em> is a number &gt; 1, will cause
-					inthinnerator to repeat the whole thinning process <em>x</em> times.  Output files will be numbered from 0 to <em>x-1</em>.
-				</p>
-				<p>By default inthinnerator will write all variants included and excluded from the thinned list to the output file.
-					The options <span class="option">-suppress-excluded</span> and <span class="option">-suppress-included</span> can be used to adjust this behaviour.
-				</p>
-				<p><strong>Example output.</strong> Basic tab-delimited inthinnerator output looks like this:
-
-<div class="terminal_display"><pre># Analysis: "inthinnerator analysis"
-#  started: 2014-09-02 08:54:33
-# 
-# Analysis properties:
-#   -g ../imputed_chr22.index (user-supplied)
-#   -map ../genetic_map_chr#_combined_b37.txt (user-supplied)
-#   -o example (user-supplied)
-# 
-alternate_ids   rsid    chromosome      position        alleleA alleleB iteration       pick_index      result  cM_from_start_of_chromosome     region_lower_bp region_upper_bp region_lower_cM region_upper_cM
-?       kgp14987749     22      16152031        A       C       0       2676    picked  0.462220808233324       16150629        16153432        0.452218357350001       0.472216124700895
----     22-16156144     22      16156144        GC      G       0       1855    picked  0.491564660218421       16154742        16157545        0.481562209335098       0.501559976685992
----     22-16158548     22      16158548        ACT     A       0       1325    picked  0.508715795684546       16157146        16159949        0.498713344801223       0.518711112152117
----     22-16160493     22      16160493        A       AC      0       4950    picked  0.522592234320824       16159091        16161894        0.512589783437502       0.532587550788396
----     22-16163055     22      16163055        TTATC   T       0       3397    picked  0.540870607475655       16161653        16164456        0.530868156592332       0.550865923943226
----     22-16164909     22      16164909        CCT     C       0       4524    picked  0.554097814278565       16163507        16166310        0.544095363395242       0.564093130746136
-</pre>
-</div>
-				</p>
-				
 			</div>
             <div id="tutorial" style="display:none">
                 <div class="tutorial_header">
@@ -377,6 +308,27 @@ snp9 22-16158548 22 16158548 ACT A</pre>
                         </tr>
                     </table>
                 </div>
+				<h3>Output file formats</h3>
+				<div>
+				<p>Bingwa can either output to a flat file or to a table in a sqlite database.  Both have pros and cons.</p>
+				<table class="file_formats">
+					<tr><th>Output type</th><th>Pros</th><th>Cons</th></tr>
+					<tr>
+						<td>Flat file</td>
+						<td>Simple, easy-to use.  Splitting jobs into chunks allows for massive parallelism e.g. via a compute cluster.</td>
+						<td>For large jobs, flat files can be awkward to analyse downstream because of large file sizes and potential
+							split into chunks.</td>
+					</tr>
+					<tr>
+						<td><a href="http://www.sqlite.org">Sqlite database</a></td>
+						<td>Allows for flexible access to genome-wide results via the power of SQL.  Indices on position, rsid or other fields
+							are used provide random access to scan results.</td>
+						<td>Not suited to large parallel jobs (though some parallelism is supported).  Database should not be created on an NFS drive
+							(but, once written, can be read across NFS).
+						</td>
+					</tr>
+				</table>
+			</div>
             </div>
             <div id="download" style="display:none">
                 <div>
