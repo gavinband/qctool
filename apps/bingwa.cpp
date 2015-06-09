@@ -687,9 +687,11 @@ namespace impl {
 						betas( index ) = this_betas(j) ;
 						covariance( index, index ) = this_ses(j) * this_ses(j) ;
 						for( int k = (j+1); k < numberOfEffects; ++k, ++cov_i ) {
-							int const index2 = (layout == eByBeta ) ? ((k*N)+i) : ((numberOfEffects*i)+k) ;
-							covariance( index, index2 ) = covariance( index2, index ) = this_covariance( cov_i++ ) ;
+							int const index2 = (layout == eByBeta) ? ((k*N)+i) : ((numberOfEffects*i)+k) ;
+							covariance( index, index2 ) = covariance( index2, index ) = this_covariance( cov_i ) ;
 						}
+					} else {
+						cov_i += numberOfEffects - j - 1 ;
 					}
 				}
 			}
@@ -923,22 +925,8 @@ namespace impl {
 		}
 		
 		(*metaVariance) = metaVariance->inverse() ;
-		(*metaBeta) += (*metaVariance) * beta ;
+		(*metaBeta) = (*metaVariance) * beta ;
 		*chi_squared = ( beta.array() * metaBeta->array() ).sum() ;
-	}
-
-	double compute_fixed_effect_pvalue( Eigen::VectorXd const& metaBeta, Eigen::MatrixXd const& metaVariance ) {
-		Eigen::LLT< Eigen::MatrixXd > metaVarianceSolver( metaVariance ) ;
-		
-		Eigen::VectorXd transformedBeta = metaVarianceSolver.matrixL() * metaBeta ;
-		double statistic = transformedBeta.squaredNorm() ;
-		double pvalue = NA ;
-		if( statistic == statistic ) {
-			typedef boost::math::chi_squared ChiSquareDistribution ;
-			ChiSquareDistribution chi( metaBeta.size() ) ;
-			pvalue = boost::math::cdf( boost::math::complement( chi, statistic ) ) ;
-		}
-		return pvalue ;
 	}
 
 	double compute_chisquared_pvalue( double statistic, int const numberOfEffects ) {
@@ -955,15 +943,24 @@ namespace impl {
 		return pvalue ;
 	}
 	
-	double impl::compute_normal_pvalue( double statistic, double variance, int tails = 2 ) {
-		assert( tails == 1 || tails == 2 ) ;
+	enum Tail { eLower = 0, eUpper = 1, eBoth = 2 } ;
+	
+	double compute_normal_pvalue( double statistic, double variance, Tail const tail = eBoth ) {
 		typedef boost::math::normal NormalDistribution ;
 		NormalDistribution normal( 0, std::sqrt( variance ) ) ;
-		return (tails == 2)
-			? 2.0 * boost::math::cdf( boost::math::complement( normal, std::abs( statistic ) ) ) ;
-			:  
-		if( tails == 2 ) {}
-		return 
+		double result = 0 ;
+		switch( tail ) {
+			case eBoth:
+				result = 2.0 * boost::math::cdf( boost::math::complement( normal, std::abs( statistic ) ) ) ;
+				break ;
+			case eLower:
+				result = boost::math::cdf( normal, statistic ) ;
+				break ;
+			case eUpper:
+				result = boost::math::cdf( boost::math::complement( normal, statistic ) ) ;
+				break ;
+		}
+		return result ;
 	}
 
 	Eigen::MatrixXd get_nonmissing_coefficient_selector(
@@ -996,25 +993,32 @@ namespace impl {
 		int const numberOfCohorts,
 		int const numberOfEffects
 	) {
-		Eigen::MatrixXd result = Eigen::MatrixXd::Zero( non_missingness.size(), non_missingness.size() ) ;
+#if DEBUG_BINGWA
+		std::cerr << "impl::get_nonmissing_cohort_selector()" << ": non_missingness is:" << non_missingness.transpose() << "\n" ;
+		std::cerr << "impl::get_nonmissing_cohort_selector()" << ": numberOfCohorts = " << numberOfCohorts << ".\n" ;
+		std::cerr << "impl::get_nonmissing_cohort_selector()" << ": numberOfEffects = " << numberOfEffects << ".\n" ;
+#endif
+		Eigen::MatrixXd selector = Eigen::MatrixXd::Zero( non_missingness.size(), non_missingness.size() ) ;
 		int numberOfIncludedCohorts = 0 ;
 		for( int i = 0; i < numberOfCohorts; ++i ) {
 			double const betaSum = non_missingness.segment( i * numberOfEffects, numberOfEffects ).sum() ;
 			if( betaSum == numberOfEffects ) {
 				for( int k = 0; k < numberOfEffects; ++k ) {
-					result( numberOfEffects * numberOfIncludedCohorts + k, numberOfEffects * i + k ) = 1 ;
+					selector( numberOfEffects * numberOfIncludedCohorts + k, numberOfEffects * i + k ) = 1 ;
 				}
 				++numberOfIncludedCohorts ;
 			}
+#if DEBUG_BINGWA
+			std::cerr << "impl::get_nonmissing_cohort_selector()" << ": after cohort " << i << " selector is:\n" << selector << "\n" ;
+#endif
 		}
 		
-		result = result.block(
+		Eigen::MatrixXd result = selector.block(
 			0, 0,
-			numberOfIncludedCohorts * numberOfEffects, result.cols()
+			numberOfIncludedCohorts * numberOfEffects, selector.cols()
 		) ;
 		
-#if DEBUG_BINGWA	
-		std::cerr << "impl::get_nonmissing_cohort_selector()" << ": non_missingness is:" << non_missingness.transpose() << "\n" ;
+#if DEBUG_BINGWA
 		std::cerr << "impl::get_nonmissing_cohort_selector()" << ": selector is:\n" << result << "\n" ;
 #endif
 		return result ;
@@ -1159,46 +1163,48 @@ struct MultivariateFixedEffectMetaAnalysis: public BingwaComputation {
 					<< "covariance = \n" << covariance << ".\n" ;
 #endif
 
-			betas = nonmissingness_selector * betas ;
-			covariance = nonmissingness_selector * covariance * nonmissingness_selector.transpose() ;
+			if( nonmissingness_selector.rows() > 0 ) {
+				betas = nonmissingness_selector * betas ;
+				covariance = nonmissingness_selector * covariance * nonmissingness_selector.transpose() ;
 
-			std::size_t const N = betas.size() / numberOfEffects ;
-#if DEBUG_BINGWA
-			std::cerr << "post-selector, N = " << N << "\n"
-				<< "betas = " << betas.transpose() << ".\n" ;
-			std::cerr << "variance =\n" << impl::format_matrix( covariance ) << ".\n" ;
-#endif
-			Eigen::MatrixXd metaVariance ;
-			Eigen::VectorXd metaBeta ;
-			double chi_squared = 0 ;
-			impl::compute_fixed_effect_meta_and_variance( covariance, betas, N, numberOfEffects, &metaBeta, &metaVariance, &chi_squared ) ;
-			//double const pvalue = impl::compute_fixed_effect_pvalue( metaBeta, metaVariance ) ;
-			double const pvalue = impl::compute_chisquared_pvalue( chi_squared, numberOfEffects ) ;
+				std::size_t const N = betas.size() / numberOfEffects ;
+	#if DEBUG_BINGWA
+				std::cerr << "post-selector, N = " << N << "\n"
+					<< "betas = " << betas.transpose() << ".\n" ;
+				std::cerr << "variance =\n" << impl::format_matrix( covariance ) << ".\n" ;
+	#endif
+				Eigen::MatrixXd metaVariance ;
+				Eigen::VectorXd metaBeta ;
+				double chi_squared = 0 ;
+				impl::compute_fixed_effect_meta_and_variance( covariance, betas, N, numberOfEffects, &metaBeta, &metaVariance, &chi_squared ) ;
+				double const pvalue = impl::compute_chisquared_pvalue( chi_squared, numberOfEffects ) ;
 
-#if DEBUG_BINGWA
-			std::cerr << "metaBeta = " << metaBeta.transpose() << ".\n" ;
-			std::cerr << "metaVariance =\n" << metaVariance << ".\n" ;
-			std::cerr << "chi_squared =\n" << chi_squared << ".\n" ;
-			std::cerr << "pvalue =\n" << pvalue << ".\n" ;
-#endif
+	#if DEBUG_BINGWA
+				std::cerr << "metaBeta = " << metaBeta.transpose() << ".\n" ;
+				std::cerr << "metaVariance =\n" << metaVariance << ".\n" ;
+				std::cerr << "chi_squared =\n" << chi_squared << ".\n" ;
+				std::cerr << "pvalue =\n" << pvalue << ".\n" ;
+	#endif
 
-			for( std::size_t i = 0; i < numberOfEffects; ++i ) {
-				callback( m_prefix + ( boost::format( ":beta_%d" ) % (i+1)).str(), metaBeta(i) ) ;
-			}
-			for( std::size_t i = 0; i < numberOfEffects; ++i ) {
-				callback( m_prefix + ( boost::format( ":se_%d" ) % (i+1)).str(), std::sqrt( metaVariance(i,i) ) ) ;
-			}
-			for( std::size_t i = 0; i < numberOfEffects; ++i ) {
-				callback( m_prefix + ( boost::format( ":wald_pvalue_%d" ) % (i+1)).str(), impl::compute_tail_of_normal( metaBeta(i), metaVariance(i,i) ) ) ;
-			}
-			for( std::size_t i = 0; i < (numberOfEffects-1); ++i ) {
-				for( std::size_t j = i+1; j < numberOfEffects; ++j ) {
-					callback( m_prefix + ( boost::format( ":cov_%d,%d" ) % (i+1) % (j+1)).str(), metaVariance(i,j) ) ;
+				for( std::size_t i = 0; i < numberOfEffects; ++i ) {
+					callback( m_prefix + ( boost::format( ":beta_%d" ) % (i+1)).str(), metaBeta(i) ) ;
 				}
+				for( std::size_t i = 0; i < numberOfEffects; ++i ) {
+					callback( m_prefix + ( boost::format( ":se_%d" ) % (i+1)).str(), std::sqrt( metaVariance(i,i) ) ) ;
+				}
+				for( std::size_t i = 0; i < numberOfEffects; ++i ) {
+					callback(
+						m_prefix + ( boost::format( ":wald_pvalue_%d" ) % (i+1)).str(),
+						impl::compute_normal_pvalue( metaBeta(i), metaVariance(i,i), impl::eBoth )
+					) ;
+				}
+				for( std::size_t i = 0; i < (numberOfEffects-1); ++i ) {
+					for( std::size_t j = i+1; j < numberOfEffects; ++j ) {
+						callback( m_prefix + ( boost::format( ":cov_%d,%d" ) % (i+1) % (j+1)).str(), metaVariance(i,j) ) ;
+					}
+				}
+				callback( m_prefix + ":pvalue", pvalue ) ;
 			}
-			callback( m_prefix + ":pvalue", pvalue ) ;
-		} else {
-			return ;
 		}
 	}
 		
