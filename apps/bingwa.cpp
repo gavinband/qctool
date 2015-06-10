@@ -243,7 +243,7 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_minimum_multiplicity( 0 )
 				.set_maximum_multiplicity( 1 ) ;
 
-			options[ "-define-rho-set" ]
+			options[ "-define-tau-set" ]
 				.set_description( "Define set(s) of correlations to use in prior specifications. "
 					"The value should be a whitespace-separated list of elements of the form "
 					"\"[name of set]=[value],[value],[value]...\"." )
@@ -2053,7 +2053,7 @@ public:
 	std::string format_covariance_spec( CovarianceSpec const& covariance_spec ) const {
 		std::string result ;
 		if( covariance_spec.get<eBetweenPopulationCorrelation>().size() > 0 ) {
-			result += "rho=" ;
+			result += "tau=" ;
 			for( std::size_t j = 0; j < covariance_spec.get<eBetweenPopulationCorrelation>().size(); ++j ) {
 				result += covariance_spec.get<eBetweenPopulationCorrelation>()[j] ;
 			}
@@ -2065,7 +2065,7 @@ public:
 			}
 		}
 		if( covariance_spec.get<eCorrelation>().size() > 0 ) {
-			result += "/cor=" ;
+			result += "/rho=" ;
 			for( std::size_t j = 0; j < covariance_spec.get<eCorrelation>().size(); ++j ) {
 				result += covariance_spec.get<eCorrelation>()[j] ;
 			}
@@ -2153,8 +2153,8 @@ public:
 				Eigen::MatrixXd const covariance = sd_matrix.asDiagonal() * correlation * sd_matrix.asDiagonal() ;
 
 				if( use_generated_name ) {
-					model_name += ":rho=" + join( covariance_spec.get<eBetweenPopulationCorrelation>(), "," ) ;
-					model_name += "/sd=" + join( covariance_spec.get<eSD>(), "," ) + "/cor=" + join( covariance_spec.get<eCorrelation>(), "," ) ;
+					model_name = "tau=" + join( covariance_spec.get<eBetweenPopulationCorrelation>(), "," ) ;
+					model_name += "/sd=" + join( covariance_spec.get<eSD>(), "," ) + "/rho=" + join( covariance_spec.get<eCorrelation>(), "," ) ;
 				}
 
 				result->insert( std::make_pair( model_name, std::make_pair( covariance_spec, covariance ) )) ;
@@ -2190,19 +2190,7 @@ public:
 		int const dimension = N*D ;
 
 #if DEBUG_BINGWA
-		std::cerr << "rho = " ;
-		for( std::size_t j = 0; j < covariance_spec.get<eBetweenPopulationCorrelation>().size(); ++j ) {
-			std::cerr << "\"" + covariance_spec.get<eBetweenPopulationCorrelation>()[j] << "\" " ;
-		}
-		std::cerr << "sd = " ;
-		for( std::size_t j = 0; j < covariance_spec.get<eSD>().size(); ++j ) {
-			std::cerr << "\"" + covariance_spec.get<eSD>()[j] << "\" " ;
-		}
-		std::cerr << "cor = " ;
-		for( std::size_t j = 0; j < covariance_spec.get<eCorrelation>().size(); ++j ) {
-			std::cerr << "\"" + covariance_spec.get<eCorrelation>()[j] << "\" " ;
-		}
-		std::cerr << std::endl ;
+		std::cerr << format_covariance_spec( covariance_spec ) << std::endl ;
 #endif
 
 		try {
@@ -2256,7 +2244,7 @@ public:
 				Eigen::MatrixXd const covariance = sd_vector.asDiagonal() * correlation * sd_vector.asDiagonal() ;
 
 				if( use_generated_name ) {
-					model_name +=  + ":sd=" + join( covariance_spec.get<eSD>(), "," ) + "/cor=" + join( covariance_spec.get<eCorrelation>(), "," ) ;
+					model_name += "sd=" + join( covariance_spec.get<eSD>(), "," ) + "/rho=" + join( covariance_spec.get<eCorrelation>(), "," ) ;
 				}
 
 				result->insert( std::make_pair( model_name, std::make_pair( covariance_spec, covariance ) ) ) ;
@@ -2305,13 +2293,13 @@ public:
 		return result ;
 	}
 	
-	std::vector< std::string > parse_rho( std::string const& spec ) {
+	std::vector< std::string > parse_tau( std::string const& spec ) {
 		using namespace genfile::string_utils ;
-		if( spec.substr( 0, 4 ) != "rho=" ) {
+		if( spec.substr( 0, 4 ) != "tau=" ) {
 			throw genfile::BadArgumentError(
-				"BingwaProcessor::parse_rho()",
+				"BingwaProcessor::parse_tau()",
 				"spec=\"" + spec + "\"",
-				"Parameter spec \"" + spec + "\" is malformed, should be of the form rho=[rho]/sd=[sd]."
+				"Parameter spec \"" + spec + "\" is malformed, should be of the form tau=[tau]/sd=[sd]."
 			) ;
 		}
 		return split_and_strip_discarding_empty_entries( spec.substr( 4, spec.size() ), " " ) ;
@@ -2367,8 +2355,8 @@ public:
 				result.push_back( new_spec ) ;
 			}
 			
-			// move to next configuration of sds and rhos.
-			// The rather ungainly code below steps through substitutable values of sds and then of rhos in right-to-left order.
+			// move to next configuration of sds and taus.
+			// The rather ungainly code below steps through substitutable values of sds and then of taus in right-to-left order.
 			std::size_t k = 0 ;
 			for( ; k < set_names.size(); ++k ) {
 				std::size_t j = set_names.size() - k - 1 ;
@@ -2400,14 +2388,14 @@ public:
 		return result ;
 	}
 	
-	std::vector< CovarianceSpec > expand_rhos_and_sds(
+	std::vector< CovarianceSpec > expand_taus_and_sds(
 		CovarianceSpec const& covariance_spec,
 		std::map< std::string, std::vector< std::string > > const& sd_sets,
-		std::map< std::string, std::vector< std::string > > const& rho_sets
+		std::map< std::string, std::vector< std::string > > const& tau_sets
 	) const {
 		std::vector< CovarianceSpec > result;
 		result = expand< eSD >( covariance_spec, sd_sets ) ;
-		result = expand< eBetweenPopulationCorrelation >( result, rho_sets ) ;
+		result = expand< eBetweenPopulationCorrelation >( result, tau_sets ) ;
 		return result ;
 	}
 	
@@ -2436,66 +2424,66 @@ public:
 		using namespace genfile::string_utils ;
 		std::vector< std::string > parameters = split_and_strip( spec, "/" ) ;
 
-		int const rho_index = (( parameters.size() > 0 ) && parameters[0].substr(0,4) == "rho=" ) ? 0 : -1 ;
-		int const sd_index = (( parameters.size() > (rho_index+1) ) && parameters[ rho_index+1 ].substr(0,3) == "sd=" ) ? (rho_index+1) : -1 ;
-		int const cor_index = (( parameters.size() > (sd_index+1) ) && parameters[ sd_index+1 ].substr(0,4) == "cor=" ) ? (sd_index+1) : -1 ;
-		bool have_rho = ( rho_index >= 0 ) ;
+		int const tau_index = (( parameters.size() > 0 ) && parameters[0].substr(0,4) == "tau=" ) ? 0 : -1 ;
+		int const sd_index = (( parameters.size() > (tau_index+1) ) && parameters[ tau_index+1 ].substr(0,3) == "sd=" ) ? (tau_index+1) : -1 ;
+		int const rho_index = (( parameters.size() > (sd_index+1) ) && parameters[ sd_index+1 ].substr(0,4) == "rho=" ) ? (sd_index+1) : -1 ;
+		bool have_tau = ( tau_index >= 0 ) ;
 		bool have_sd = ( sd_index >= 0 ) ;
-		bool have_cor = ( cor_index >= 0 ) ;
+		bool have_rho = ( rho_index >= 0 ) ;
 
 #if DEBUG_BINGWA
-		std::cerr << ( boost::format( "parse_covariance_spec(): spec = %s, rho_index = %d, sd_index = %d, cor_index = %d\n" ) % spec % rho_index % sd_index % cor_index ) ;
+		std::cerr << ( boost::format( "parse_covariance_spec(): spec = %s, tau_index = %d, sd_index = %d, rho_index = %d\n" ) % spec % tau_index % sd_index % rho_index ) ;
 #endif		
 			
 		// Only sd is required.
 		if(
 			( parameters.size() < 1 || parameters.size() > 3 )
 			|| ( !have_sd )
-			|| ( parameters.size() == 2 && !( have_cor || have_rho ))
-			|| ( parameters.size() == 3 && !( have_cor && have_rho ) )
+			|| ( parameters.size() == 2 && !( have_rho || have_tau ))
+			|| ( parameters.size() == 3 && !( have_rho && have_tau ) )
 		) {
 			throw genfile::BadArgumentError(
 				"BingwaProcessor::parse_covariance_spec()",
 				"spec=\"" + spec + "\"",
 				"Parameter spec \"" + spec + "\" is malformed, should be of the form "
-				"rho=[rho]/sd=[sd]"
-				" or rho=[rho]/sd=[sd1 sd1...]/cor=[cor12 cor13...]"
-				" or sd=[sd1 sd2...]/cor=[cor11 cor12 cor13...]"
+				"tau=[tau]/sd=[sd]"
+				" or tau=[tau]/sd=[sd1 sd1...]/rho=[rho12 rho13...]"
+				" or sd=[sd1 sd2...]/rho=[rho11 rho12 rho13...]"
 			) ;
 		}
 
-		std::vector< std::string > const rhos = ( have_rho ? split_and_strip( parameters[ rho_index ].substr( 4, parameters[ rho_index ].size() ), "," ) : std::vector< std::string >() ) ;
+		std::vector< std::string > const taus = ( have_tau ? split_and_strip( parameters[ tau_index ].substr( 4, parameters[ tau_index ].size() ), "," ) : std::vector< std::string >() ) ;
 		std::vector< std::string > const sds = ( have_sd ? split_and_strip( parameters[ sd_index ].substr( 3, parameters[ sd_index ].size() ), "," ) : std::vector< std::string >() ) ;
-		std::vector< std::string > const cor = ( have_cor ? split_and_strip_discarding_empty_entries( parameters[ cor_index ].substr( 4, parameters[ cor_index ].size() ), "," ) : std::vector< std::string >() ) ;
+		std::vector< std::string > const rho = ( have_rho ? split_and_strip_discarding_empty_entries( parameters[ rho_index ].substr( 4, parameters[ rho_index ].size() ), "," ) : std::vector< std::string >() ) ;
 
-		if( sds.size() > 1 && !have_cor ) {
+		if( sds.size() > 1 && !have_rho ) {
 			throw genfile::BadArgumentError(
 				"BingwaProcessor::parse_covariance_spec()",
 				"spec=\"" + spec + "\"",
-				"Parameter spec \"" + spec + "\" is malformed, you must supply cor= if there is more than one sd."
+				"Parameter spec \"" + spec + "\" is malformed, you must supply rho= if there is more than one sd."
 			) ;
 		}
 
 		std::size_t const expectedNumberOfCorrelations = ( sds.size() * ( sds.size() + 1 ) ) / 2 ;
-		if( rhos.size() > 1 ) {
+		if( taus.size() > 1 ) {
 			throw genfile::BadArgumentError(
 				"BingwaProcessor::parse_covariance_spec()",
 				"spec=\"" + spec + "\"",
-				( boost::format( "Wrong number of rhos (%d, should be at most %d)" ) % rhos.size() % 1 ).str()
+				( boost::format( "Wrong number of taus (%d, should be at most %d)" ) % taus.size() % 1 ).str()
 			) ;
 		}
-		if( cor.size() != expectedNumberOfCorrelations ) {
+		if( rho.size() != expectedNumberOfCorrelations ) {
 			throw genfile::BadArgumentError(
 				"BingwaProcessor::parse_covariance_spec()",
 				"spec=\"" + spec + "\"",
-				( boost::format( "Wrong number of correlations (%d, should be %d)" ) % cor.size() % expectedNumberOfCorrelations ).str()
+				( boost::format( "Wrong number of correlations (%d, should be %d)" ) % rho.size() % expectedNumberOfCorrelations ).str()
 			) ;
 		}
 		
-		return expand_rhos_and_sds(
-			CovarianceSpec( rhos, sds, cor ),
+		return expand_taus_and_sds(
+			CovarianceSpec( taus, sds, rho ),
 			m_value_sets.at( "sd" ),
-			m_value_sets.at( "rho" )
+			m_value_sets.at( "tau" )
 		) ;
 	}
 
@@ -2533,8 +2521,8 @@ public:
 				result.push_back( new_spec ) ;
 			}
 			
-			// move to next configuration of sds and rhos.
-			// The rather ungainly code below steps through substitutable values of sds and then of rhos in right-to-left order.
+			// move to next configuration of sds and taus.
+			// The rather ungainly code below steps through substitutable values of sds and then of taus in right-to-left order.
 			std::size_t k = 0 ;
 			for( ; k < sd_set_names.size(); ++k ) {
 				std::size_t j = sd_set_names.size() - k - 1 ;
@@ -2553,19 +2541,19 @@ public:
 		return result ;
 	}
 
-	std::vector< CovarianceSpec > expand_rhos_and_sds(
-		std::vector< std::string > rhos,
+	std::vector< CovarianceSpec > expand_taus_and_sds(
+		std::vector< std::string > taus,
 		std::vector< std::string > sds,
-		std::vector< std::string > cor,
+		std::vector< std::string > rho,
 		std::map< std::string, std::vector< std::string > > const& sd_sets,
-		std::map< std::string, std::vector< std::string > > const& rho_sets
+		std::map< std::string, std::vector< std::string > > const& tau_sets
 	) const {
 		std::vector< CovarianceSpec > result ;
 		// currently we just expand sds according to the sets in sd_sets.
 		std::vector< std::string > working_sds = sds ;
-		std::vector< std::string > working_rhos = rhos ;
+		std::vector< std::string > working_taus = taus ;
 		std::vector< std::size_t > working_sd_indices( sds.size(), 0 ) ;
-		std::vector< std::size_t > working_rho_indices( rhos.size(), 0 ) ;
+		std::vector< std::size_t > working_tau_indices( taus.size(), 0 ) ;
 
 		bool complete = false ;
 		while( !complete ) {
@@ -2578,17 +2566,17 @@ public:
 					}
 				}
 
-				if( rhos[j].size() > 0 && rhos[j][0] == '[' && rhos[j][rhos[j].size() - 1] == ']' ) {
-					std::map< std::string, std::vector< std::string > >::const_iterator where = rho_sets.find( rhos[j].substr( 1, rhos[j].size() - 2 ) ) ;
-					if( where != rho_sets.end() ) {
-						working_rhos[ j ] = where->second.at( working_rho_indices[j] ) ;
+				if( taus[j].size() > 0 && taus[j][0] == '[' && taus[j][taus[j].size() - 1] == ']' ) {
+					std::map< std::string, std::vector< std::string > >::const_iterator where = tau_sets.find( taus[j].substr( 1, taus[j].size() - 2 ) ) ;
+					if( where != tau_sets.end() ) {
+						working_taus[ j ] = where->second.at( working_tau_indices[j] ) ;
 					}
 				}
 			}
-			result.push_back( boost::make_tuple( working_rhos, working_sds, cor ) ) ;
+			result.push_back( boost::make_tuple( working_taus, working_sds, rho ) ) ;
 			
-			// move to next configuration of sds and rhos.
-			// The rather ungainly code below steps through substitutable values of sds and then of rhos in right-to-left order.
+			// move to next configuration of sds and taus.
+			// The rather ungainly code below steps through substitutable values of sds and then of taus in right-to-left order.
 			std::size_t k = 0 ;
 			for( ; k < sds.size(); ++k ) {
 				std::size_t j = sds.size() - k - 1 ;
@@ -2603,21 +2591,21 @@ public:
 				}
 			}
 			if( k == sds.size() ) {
-				// No more sds to substitute, so move on to rhos...
-				std::size_t k_rho = 0 ;
-				for( ; k_rho < rhos.size(); ++k_rho ) {
-					std::size_t j = rhos.size() - k_rho - 1 ;
-					if( rhos[j].size() > 1 && rhos[j][0] == '[' && rhos[j][rhos[j].size() - 1] == ']' ) {
-						std::map< std::string, std::vector< std::string > >::const_iterator where = rho_sets.find( rhos[j].substr( 1, rhos[j].size() - 2 ) ) ;
-						if( where != rho_sets.end() ) {
-							working_rho_indices[ j ] = ( working_rho_indices[ j ] + 1 ) % where->second.size() ;
-							if( working_rho_indices[ j ] > 0 ) {
+				// No more sds to substitute, so move on to taus...
+				std::size_t k_tau = 0 ;
+				for( ; k_tau < taus.size(); ++k_tau ) {
+					std::size_t j = taus.size() - k_tau - 1 ;
+					if( taus[j].size() > 1 && taus[j][0] == '[' && taus[j][taus[j].size() - 1] == ']' ) {
+						std::map< std::string, std::vector< std::string > >::const_iterator where = tau_sets.find( taus[j].substr( 1, taus[j].size() - 2 ) ) ;
+						if( where != tau_sets.end() ) {
+							working_tau_indices[ j ] = ( working_tau_indices[ j ] + 1 ) % where->second.size() ;
+							if( working_tau_indices[ j ] > 0 ) {
 								break ;
 							}
 						}
 					}
 				}
-				if( k_rho == rhos.size() ) {
+				if( k_tau == taus.size() ) {
 					complete = true ;
 				}
 			}
@@ -2639,10 +2627,10 @@ public:
 			m_value_sets[ "sd" ] ; // empty map
 		}
 
-		if( options.check( "-define-rho-set" )) {
-			m_value_sets[ "rho" ] = parse_value_list( options.get_values< std::string >( "-define-rho-set" )) ;
+		if( options.check( "-define-tau-set" )) {
+			m_value_sets[ "tau" ] = parse_value_list( options.get_values< std::string >( "-define-tau-set" )) ;
 		} else {
-			m_value_sets[ "rho" ] ; // empty map
+			m_value_sets[ "tau" ] ; // empty map
 		}
 
 		if( options.check( "-prior" ) ) {
@@ -2708,19 +2696,19 @@ public:
 	}
 
 
-	Eigen::MatrixXd get_prior_matrix( int const n, double const rho, double const sd ) const {
-		return get_correlation_matrix( n, rho ) * sd * sd ;
+	Eigen::MatrixXd get_prior_matrix( int const n, double const tau, double const sd ) const {
+		return get_correlation_matrix( n, tau ) * sd * sd ;
 	}
 
 	Eigen::MatrixXd get_prior_matrix( int const n, std::string const& matrix_spec, double const sd ) const {
 		return parse_correlation_matrix( n, matrix_spec ) * sd * sd ;
 	}
 
-	Eigen::MatrixXd get_correlation_matrix( int const n, double rho ) const {
+	Eigen::MatrixXd get_correlation_matrix( int const n, double tau ) const {
 		Eigen::MatrixXd result = Eigen::MatrixXd::Identity( n, n ) ;
 		for( int i = 0; i < (n-1); ++i ) {
 			for( int j = (i+1); j < n; ++j ) {
-				result( i, j ) = result( j, i ) = rho ;
+				result( i, j ) = result( j, i ) = tau ;
 			}
 		}
 		return result ;
