@@ -263,79 +263,7 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_minimum_multiplicity( 0 )
 				.set_maximum_multiplicity( 1 ) ;
 
-			options[ "-simple-prior-name" ]
-				.set_description( "Specify a name for each simple prior." )
-				.set_takes_values_until_next_option()
-				.set_minimum_multiplicity( 0 )
-				.set_maximum_multiplicity( 1 ) ;
-			
-			options[ "-complex-prior" ]
-				.set_description( "Specify the upper triangle (including diagonal) of the prior correlation matrix for bayesian analysis. "
-					"For example, the value \"1,0.5,1\" specifies the matrix\n"
-					"   [ 1    0.5 ]\n"
-					"   [ 0.5  1   ]."
-				)
-				.set_takes_values_until_next_option()
-				.set_minimum_multiplicity( 0 )
-				.set_maximum_multiplicity( 1 ) ;
-			
-			options[ "-complex-prior-name" ]
-				.set_description( "Specify the name of the complex models.  This option takes the same number of values as "
-					"are given to -complex-prior option."
-				)
-				.set_takes_values_until_next_option()
-				.set_minimum_multiplicity( 0 )
-				.set_maximum_multiplicity( 1 )
-			;
-
-			options[ "-define-group" ]
-				.set_description( "Specify a group of cohorts for use with -group-prior and -group-specific prior."
-					" The format for each group is [group name]=[cohort name 1],[cohort name 2],..." )
-					.set_takes_values_until_next_option()
-					.set_minimum_multiplicity( 0 )
-					.set_maximum_multiplicity( 1 )
-				;
-			
-			options[ "-group-prior" ]
-				.set_description( "Specify a prior made up of blocks per groups, in the format"
-					" [group1]:rho=[r1]/sd=[s1],[group2]:rho=[r2]/sd=[s2]...:rho=[r]" )
-				.set_takes_values_until_next_option()
-				.set_minimum_multiplicity( 0 )
-				.set_maximum_multiplicity( 1 )
-			;
-
-			options[ "-group-prior-name" ]
-				.set_description( "Specify the name of the group priors." )
-				.set_takes_values_until_next_option()
-				.set_minimum_multiplicity( 0 )
-				.set_maximum_multiplicity( 1 )
-			;
-
-			options[ "-group-specific-prior" ]
-				.set_description( "Specify a group-specific prior in the format [cohorts]:sd=[value]/rho=[value]" )
-				.set_takes_values_until_next_option()
-				.set_minimum_multiplicity( 0 )
-				.set_maximum_multiplicity( 1 )
-			;
-			
-			options[ "-group-specific-prior-name" ]
-				.set_description( "Specify the name of the group-specific priors." )
-				.set_takes_values_until_next_option()
-				.set_minimum_multiplicity( 0 )
-				.set_maximum_multiplicity( 1 )
-			;
-			
 			options.option_excludes_option( "-no-meta-analysis", "-simple-prior" ) ;
-			options.option_excludes_option( "-no-meta-analysis", "-complex-prior" ) ;
-			options.option_excludes_option( "-no-meta-analysis", "-group-specific-prior" ) ;
-
-			options.option_implies_option( "-simple-prior-name", "-simple-prior" ) ;
-
-			options.option_implies_option( "-complex-prior", "-complex-prior-name" ) ;
-			options.option_implies_option( "-complex-prior-name", "-complex-prior" ) ;
-//			options.option_implies_option( "-group-prior", "-define-group" ) ;
-//			options.option_implies_option( "-group-specific-prior", "-define-group" ) ;
-			options.option_implies_option( "-group-specific-prior-name", "-group-specific-prior" ) ;
 		}
 	}
 } ;
@@ -1217,15 +1145,12 @@ struct MultivariateFixedEffectMetaAnalysis: public BingwaComputation {
 	}
 private:
 	
-	
-	
 	std::string const m_name ;
 	std::string const m_prefix ;
 	Eigen::MatrixXd const m_sigma ;
 	Filter m_filter ;
 	EffectParameterNamePack m_effect_parameter_names ;
 } ;
-
 
 struct ModelAveragingBayesFactorAnalysis: public BingwaComputation {
 public:
@@ -1239,7 +1164,16 @@ public:
 	public:
 		ModelSpec( std::string const& name, Eigen::MatrixXd const& covariance, double weight ):
 			m_name( name ),
-			m_covariance( covariance ),
+			m_covariances( std::vector< Eigen::MatrixXd >( 1, covariance ) ),
+			m_weight( weight )
+		{
+			assert( weight == weight ) ;
+		}
+
+		template< typename IteratorBegin, IteratorEnd >
+		ModelSpec( std::string const& name, IteratorBegin begin, IteratorEnd end, double weight ):
+			m_name( name ),
+			m_covariances( begin, end ),
 			m_weight( weight )
 		{}
 			
@@ -1251,20 +1185,21 @@ public:
 
 		ModelSpec& operator=( ModelSpec const& other ) {
 			m_name = other.m_name ;
-			m_covariance = other.m_covariance ;
+			m_covariance = other.m_covariances ;
 			m_weight = other.m_weight ;
 			return *this ;
 		}
 		
 		std::string const& name() const { return m_name ; }
-		Eigen::MatrixXd const& covariance() const { return m_covariance ; }
+		std::size_t numberOfSubModels() const { return m_covariances.size() ; }
+		Eigen::MatrixXd const& covariance( std::size_t i ) const { return m_covariances[i] ; }
 		double weight() const { return m_weight ; }
 	private:
 		std::string  m_name ;
-		Eigen::MatrixXd m_covariance ;
+		std::vector< Eigen::MatrixXd > m_covariances ;
 		double m_weight ;
 	} ;
-
+	
 public:
 	ModelAveragingBayesFactorAnalysis():
 		m_prefix( "ModelAveragingBayesFactorAnalysis" )
@@ -1272,11 +1207,10 @@ public:
 
 	~ModelAveragingBayesFactorAnalysis() {}
 	
-	void add_model( std::string const& name, Eigen::MatrixXd const& sigma, double const& weight ) {
-		assert( weight == weight ) ;
-		m_models.push_back( ModelSpec( name, sigma, weight ) ) ;
+	void add_model( ModelSpec const& model_spec ) {
+		m_models.push_back( model_spec ) ;
 	}
-	
+
 	void set_filter( Filter filter ) {
 		m_filter = filter ;
 	}
@@ -1335,29 +1269,35 @@ public:
 		std::size_t max_posterior_i = m_models.size() ;
 
 		for( std::size_t i = 0; i < m_models.size(); ++i ) {
-			Eigen::MatrixXd const prior = nonmissingness_selector * m_models[i].covariance() * nonmissingness_selector.transpose() ;
-			double const bf = impl::compute_bayes_factor( prior, covariance, betas ) ;
-			if( bf == bf ) {
-				double const weight = m_models[i].weight() ;
-				double const weighted_bf = weight * bf ;
-				total_weight += weight ;
-				mean_bf += weighted_bf ;
-
-				bfs[i] = bf ;
-				weighted_bfs[i] = weighted_bf ;
-
-				if( bf >= max_bf ) {
-					max_bf = bf ;
-					max_bf_i = i ;
+			double model_bf = 0 ;
+			for( std::size_t j = 0; j < m_models.numberOfSubModels(); ++j ) {
+				Eigen::MatrixXd const prior = nonmissingness_selector * m_models[i].covariance(j) * nonmissingness_selector.transpose() ;
+				double bf = impl::compute_bayes_factor( prior, covariance, betas ) ;
+				if( bf != bf ) {
+					bf = 1 ;
 				}
+				model_bf += bf / m_models.numberOfSubModels() ;
+			}
+			
+			double const weight = m_models[i].weight() ;
+			double const weighted_bf = weight * model_bf ;
+			total_weight += weight ;
+			mean_bf += weighted_bf ;
 
-				if( weighted_bf >= max_weighted_bf ) {
-					max_weighted_bf = weighted_bf ;
-					max_posterior_i = i ;
-				}
+			bfs[i] = bf ;
+			weighted_bfs[i] = weighted_bf ;
+
+			if( bf >= max_bf ) {
+				max_bf = bf ;
+				max_bf_i = i ;
+			}
+
+			if( weighted_bf >= max_weighted_bf ) {
+				max_weighted_bf = weighted_bf ;
+				max_posterior_i = i ;
 			}
 		}
-		
+
 		for( std::size_t i = 0; i < m_models.size(); ++i ) {
 			if( bfs[i] == bfs[i] ) {
 				callback( m_models[i].name() + ":bf", bfs[i] ) ;
@@ -1398,7 +1338,6 @@ private:
 	Eigen::MatrixXd const m_sigma ;
 	Filter m_filter ;
 	EffectParameterNamePack m_effect_parameter_names ;
-	
 
 	std::vector< ModelSpec > m_models ;
 } ;
@@ -1834,7 +1773,8 @@ struct BingwaApplication: public appcontext::ApplicationContext {
 public:
 	typedef std::map< std::string, std::vector< std::string > > GroupDefinition ;
 	typedef std::map< std::string, std::vector< std::string > > ValueListSet ;
-
+	typedef std::map< std::string, Eigen::MatrixXd > Priors ;
+	
 public:
 	BingwaApplication( int argc, char **argv ):
 		appcontext::ApplicationContext(
@@ -1961,28 +1901,38 @@ public:
 						BingwaComputation::UniquePtr( computation.release() )
 					) ;
 				}
-				if( options().check( "-simple-prior" ) || options().check( "-complex-prior" ) || options().check( "-group-specific-prior" )) {
-					std::map< std::string, Eigen::MatrixXd > const priors = get_priors( options(), cohort_names ) ;
+				if( options().check( "-simple-prior" ) ) {
+					Priors const priors = get_priors( options(), cohort_names ) ;
+					PriorNames const prior_names = get_prior_names( priors ) ;
+					std::map< std::string, double > prior_weights = get_prior_weights( options(), prior_names ) ;
 					ModelAveragingBayesFactorAnalysis::UniquePtr averager( new ModelAveragingBayesFactorAnalysis ) ;
 					assert( priors.size() > 0 ) ;
+					typedef std::set< std::string > PriorNames ;
+					PriorNames priorNames ;
 					{
-						std::map< std::string, Eigen::MatrixXd >::const_iterator i = priors.begin() ;
-						std::map< std::string, Eigen::MatrixXd >::const_iterator const end_i = priors.end() ;
+						Priors::const_iterator i = priors.begin() ;
+						Priors::const_iterator const end_i = priors.end() ;
+						for( ; i != end_i; +i ) {
+							priorNames.insert( i->first ) ;
+						}
+					}
+					
+					{
+						PriorNames::const_iterator i = priorNames.begin() ;
+						PriorNames::const_iterator end_i = priorNames.end() ;
 						for( ; i != end_i; ++i ) {
-							ApproximateBayesianMetaAnalysis::UniquePtr computation(
-								new ApproximateBayesianMetaAnalysis(
-									"ApproximateBayesianMetaAnalysis:" + i->first,
-									i->second
-								)
-							) ;
-						
-							computation->set_filter( filter ) ;
-
 							//m_processor->add_computation(
 							//	"ApproximateBayesianMetaAnalysis",
 							//	BingwaComputation::UniquePtr( computation.release() )
 							//) ;
-							averager->add_model( i->first, i->second, 1.0 ) ;
+							averager->add_model(
+								ModelAveragingBayesFactorAnalysis::ModelSpec(
+									i->first,
+									priors.lower_bound( i->first ),
+									priors.upper_bound( i->first ),
+									prior_weights[ i->first ]
+								)
+							) ;
 							averager->set_filter( filter ) ;
 						}
 						
@@ -2039,7 +1989,7 @@ public:
 		int const number_of_cohorts,
 		std::vector< std::string > const& model_specs,
 		boost::optional< std::vector< std::string > > model_names,
-		std::map< std::string, Eigen::MatrixXd >* result
+		Priors* result
 	) const {
 		using namespace genfile::string_utils ;
 		if( model_names && model_names.get().size() != model_specs.size() ) {
@@ -2053,21 +2003,21 @@ public:
 		for( std::size_t i = 0; i < model_specs.size(); ++i ) {
 			std::string model_name ;
 			std::string model_spec ;
-			bool use_detailed_name = false ;
+			bool use_generated_name = false ;
 			{
 				std::size_t const colon_pos = model_specs[i].find( ':' ) ;
 				if( colon_pos != std::string::npos ) {
-					use_detailed_name = false ;
+					use_generated_name = false ;
 					model_name = model_specs[i].substr( 0, colon_pos ) ;
 					model_spec = model_specs[i].substr( colon_pos + 1, model_specs[i].size() ) ;
 				} else {
-					use_detailed_name = true ;
+					use_generated_name = true ;
 					model_name = "" ;
 					model_spec = model_specs[i] ;
 				}
 			}
 			std::vector< CovarianceSpec > const covariance_specs = parse_covariance_spec( model_spec ) ;
-			use_detailed_name = ( use_detailed_name || covariance_specs.size() ) > 1 ; 
+			use_generated_name = ( use_generated_name || covariance_specs.size() ) > 1 ; 
 			for( std::size_t j = 0; j < covariance_specs.size(); ++j ) {
 				CovarianceSpec const& covariance_spec = covariance_specs[j] ;
 				if( covariance_spec.get< eBetweenPopulationCorrelation >().size() > 0 ) {
@@ -2077,7 +2027,7 @@ public:
 						covariance_spec,
 						model_name,
 						result,
-						use_detailed_name
+						use_generated_name
 					) ;
 				} else {
 					get_all_population_prior(
@@ -2086,7 +2036,7 @@ public:
 						covariance_spec,
 						model_name,
 						result,
-						use_detailed_name
+						use_generated_name
 					) ;
 				}
 			}
@@ -2098,8 +2048,8 @@ public:
 		std::string const& model_spec,
 		CovarianceSpec const& covariance_spec,
 		std::string model_name,
-		std::map< std::string, Eigen::MatrixXd >* result,
-		bool const use_detailed_name
+		Priors* result,
+		bool const use_generated_name
 	) const {
 		using namespace genfile::string_utils ;
 		
@@ -2184,12 +2134,12 @@ public:
 				}
 				Eigen::MatrixXd const covariance = sd_matrix.asDiagonal() * correlation * sd_matrix.asDiagonal() ;
 
-				if( use_detailed_name ) {
+				if( use_generated_name ) {
 					model_name += ":rho=" + join( covariance_spec.get<eBetweenPopulationCorrelation>(), "," ) ;
 					model_name += "/sd=" + join( covariance_spec.get<eSD>(), "," ) + "/cor=" + join( covariance_spec.get<eCorrelation>(), "," ) ;
 				}
 
-				(*result)[ model_name ] = covariance ;
+				result->insert( std::make_pair( model_name, covariance )) ;
 				
 #if DEBUG_BINGWA
 				std::cerr << "For model " << model_name << ":\n"
@@ -2212,8 +2162,8 @@ public:
 		std::string const& model_spec,
 		CovarianceSpec const& covariance_spec,
 		std::string model_name,
-		std::map< std::string, Eigen::MatrixXd >* result,
-		bool const use_detailed_name
+		Priors* result,
+		bool const use_generated_name
 	) const {
 		using namespace genfile::string_utils ;
 
@@ -2287,11 +2237,11 @@ public:
 
 				Eigen::MatrixXd const covariance = sd_vector.asDiagonal() * correlation * sd_vector.asDiagonal() ;
 
-				if( use_detailed_name ) {
+				if( use_generated_name ) {
 					model_name +=  + ":sd=" + join( covariance_spec.get<eSD>(), "," ) + "/cor=" + join( covariance_spec.get<eCorrelation>(), "," ) ;
 				}
 
-				(*result)[ model_name ] = covariance ;
+				result->insert( std::make_pair( model_name, covariance ) ) ;
 				
 #if DEBUG_BINGWA
 				std::cerr << "For model " << model_name << ":\n"
@@ -2313,7 +2263,7 @@ public:
 		int const number_of_cohorts,
 		std::vector< std::string > const& model_specs,
 		std::vector< std::string > const& model_names,
-		std::map< std::string, Eigen::MatrixXd >* result
+		Priors* result
 	) {
 		using namespace genfile::string_utils ;
 		
@@ -2401,7 +2351,7 @@ public:
 		std::vector< std::string > const& model_specs,
 		boost::optional< std::vector< std::string > > model_names,
 		std::vector< std::string > const& cohort_names,
-		std::map< std::string, Eigen::MatrixXd >* result
+		Priors* result
 	) {
 		using namespace genfile::string_utils ;
 
@@ -2557,7 +2507,7 @@ public:
 		std::vector< std::string > const& model_specs,
 		boost::optional< std::vector< std::string > > model_names,
 		std::vector< std::string > const& cohort_names,
-		std::map< std::string, Eigen::MatrixXd >* result
+		Priors* result
 	) {
 		using namespace genfile::string_utils ;
 
@@ -2954,8 +2904,8 @@ public:
 		return result ;
 	}
 	
-	std::map< std::string, Eigen::MatrixXd > get_priors( appcontext::OptionProcessor const& options, std::vector< std::string > const& cohort_names ) {
-		std::map< std::string, Eigen::MatrixXd > result ;
+	Priors get_priors( appcontext::OptionProcessor const& options, std::vector< std::string > const& cohort_names ) {
+		Priors result ;
 		using genfile::string_utils::to_string ;
 		using genfile::string_utils::to_repr ;
 		using genfile::string_utils::split_and_strip_discarding_empty_entries ;
@@ -2975,9 +2925,6 @@ public:
 
 		if( options.check( "-simple-prior" ) ) {
 			boost::optional< std::vector< std::string > > model_names ;
-			if( options.check( "-simple-prior-name" )) {
-				model_names = options.get_values< std::string >( "-simple-prior-name" ) ;
-			}
 			get_simple_priors(
 				N,
 				options.get_values< std::string >( "-simple-prior" ),
@@ -2986,60 +2933,6 @@ public:
 			) ;
 		}
 
-		if( options.check( "-complex-prior" ) ) {
-			get_complex_priors(
-				N,
-				options.get_values< std::string >( "-complex-prior" ),
-				options.get_values< std::string >( "-complex-prior-name" ),
-				&result
-			) ;
-		}
-
-		if( options.check( "-group-specific-prior" ) || options.check( "-group-prior" ) ) {
-			GroupDefinition groups ;
-			for( std::size_t i = 0; i < cohort_names.size(); ++i ) {
-				groups[ cohort_names[i] ] = std::vector< std::string >( 1, cohort_names[i] ) ;
-			}
-			if( options.check( "-define-group" )) {
-				get_groups(
-					options.get_values< std::string >( "-define-group"  ),
-					cohort_names,
-					&groups
-				) ;
-			}
-			
-#if DEBUG_BINGWA
-			std::cerr << "BingwaApplication:get_priors(): groups are:\n" ;
-			GroupDefinition::const_iterator
-				i = groups.begin(),
-				end_i = groups.end() ;
-			for( ; i != end_i; ++i ) {
-				std::cerr << "  " << i->first << ":" ;
-				for( std::size_t j = 0; j < i->second.size(); ++j ) {
-					std::cerr << i->second.at( j ) << " " ;
-				}
-				std::cerr << "\n" ;
-			}
-#endif
-		
-			if( options.check( "-group-prior" )) {
-				boost::optional< std::vector< std::string > > model_names ;
-
-				if( options.check( "-group-prior-name" )) {
-					model_names = options.get_values< std::string >( "-group-prior-name" ) ;
-				}
-				get_group_priors( N, groups, options.get_values< std::string >( "-group-prior" ), model_names, cohort_names, &result ) ;
-			}
-
-			if( options.check( "-group-specific-prior" )) {
-				boost::optional< std::vector< std::string > > model_names ;
-				if( options.check( "-group-specific-prior-name" )) {
-					model_names = options.get_values< std::string >( "-group-specific-prior-name" ) ;
-				}			
-				get_group_specific_priors( N, groups, options.get_values< std::string >( "-group-specific-prior" ), model_names, cohort_names, &result ) ;
-			}
-		}
-		
 		return result ;
 	}
 
@@ -3187,7 +3080,7 @@ public:
 	}
 
 	void summarise_priors(
-		std::map< std::string, Eigen::MatrixXd > const& priors,
+		Priors const& priors,
 		std::vector< std::string > const& cohort_names
 	) const {
 		get_ui_context().logger() << "\n================================================\n" ;
@@ -3197,7 +3090,7 @@ public:
 		
 		std::size_t max_model_name_width = 0 ;
 		{
-			std::map< std::string, Eigen::MatrixXd >::const_iterator
+			Priors::const_iterator
 				prior_i = priors.begin(),
 				end_prior_i = priors.end() ;
 			for( ; prior_i != end_prior_i; ++prior_i ) {
@@ -3219,7 +3112,7 @@ public:
 		}
 		max_model_name_width = std::max( max_model_name_width, max_prefix_width ) ;
 
-		std::map< std::string, Eigen::MatrixXd >::const_iterator
+		Priors::const_iterator
 			prior_i = priors.begin(),
 			end_prior_i = priors.end() ;
 		std::size_t count = 0 ;
