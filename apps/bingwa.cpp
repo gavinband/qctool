@@ -18,9 +18,9 @@
 #include <boost/function.hpp>
 #include <boost/format.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/tuple/tuple_io.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/foreach.hpp>
-#define foreach BOOST_FOREACH
 #include <boost/regex.hpp>
 #include <boost/math/distributions/normal.hpp>
 #include <boost/math/distributions/chi_squared.hpp>
@@ -50,7 +50,7 @@
 #include "SNPTESTResults.hpp"
 #include "MMMResults.hpp"
 
-#define DEBUG_BINGWA 1
+// #define DEBUG_BINGWA 1
 
 namespace globals {
 	std::string const program_name = "bingwa" ;
@@ -1176,14 +1176,9 @@ public:
 
 	struct ModelSpec {
 	public:
-		ModelSpec( std::string const& name, Eigen::MatrixXd const& covariance, double weight ):
-			m_name( name ),
-			m_covariances( 1, std::make_pair( name, covariance )),
-			m_weight( weight )
-		{
-			assert( weight == weight ) ;
-		}
+		typedef boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > CovarianceSpec ;
 
+	public:
 		template< typename IteratorBegin, typename IteratorEnd >
 		ModelSpec( std::string const& name, IteratorBegin begin, IteratorEnd end, double weight ):
 			m_name( name ),
@@ -1206,11 +1201,11 @@ public:
 		
 		std::string const& name() const { return m_name ; }
 		std::size_t size() const { return m_covariances.size() ; }
-		Eigen::MatrixXd const& covariance( std::size_t i ) const { return m_covariances[i].second ; }
+		Eigen::MatrixXd const& covariance( std::size_t i ) const { return m_covariances[i].second.second ; }
 		double weight() const { return m_weight ; }
 	private:
 		std::string  m_name ;
-		std::vector< std::pair< std::string, Eigen::MatrixXd > > m_covariances ;
+		std::vector< std::pair< std::string, std::pair< CovarianceSpec, Eigen::MatrixXd > > > m_covariances ;
 		double m_weight ;
 	} ;
 	
@@ -1290,9 +1285,9 @@ public:
 				if( bf != bf ) {
 					bf = 1 ;
 				}
-				model_bf += bf / m_models.size() ;
+				model_bf += bf ;
 			}
-			
+			model_bf /= m_models[i].size() ;
 			double const weight = m_models[i].weight() ;
 			double const weighted_bf = weight * model_bf ;
 			total_weight += weight ;
@@ -1787,11 +1782,11 @@ struct BingwaApplication: public appcontext::ApplicationContext {
 public:
 	typedef std::map< std::string, std::vector< std::string > > GroupDefinition ;
 	typedef std::map< std::string, std::vector< std::string > > ValueListSet ;
-	typedef std::map< std::string, Eigen::MatrixXd > Priors ;
 	typedef std::set< std::string > PriorNames ;
 	typedef std::map< std::string, double > PriorWeights ;
 	typedef boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > CovarianceSpec ;
 	typedef std::vector< CovarianceSpec > CovarianceSpecs ;
+	typedef std::multimap< std::string, std::pair< CovarianceSpec, Eigen::MatrixXd > > Priors ;
 	enum { eBetweenPopulationCorrelation = 0, eSD = 1, eCorrelation = 2 } ;
 
 public:
@@ -2025,7 +2020,11 @@ public:
 				}
 			}
 			std::vector< CovarianceSpec > const covariance_specs = parse_covariance_spec( model_spec ) ;
-			use_generated_name = ( use_generated_name || covariance_specs.size() ) > 1 ; 
+
+#if DEBUG_BINGWA
+			std::cerr << "get_simple_priors(): for model " << model_spec << ", got " << covariance_specs.size() << " specs.\n" ;
+#endif
+
 			for( std::size_t j = 0; j < covariance_specs.size(); ++j ) {
 				CovarianceSpec const& covariance_spec = covariance_specs[j] ;
 				if( covariance_spec.get< eBetweenPopulationCorrelation >().size() > 0 ) {
@@ -2051,6 +2050,29 @@ public:
 		}
 	}
 
+	std::string format_covariance_spec( CovarianceSpec const& covariance_spec ) const {
+		std::string result ;
+		if( covariance_spec.get<eBetweenPopulationCorrelation>().size() > 0 ) {
+			result += "rho=" ;
+			for( std::size_t j = 0; j < covariance_spec.get<eBetweenPopulationCorrelation>().size(); ++j ) {
+				result += covariance_spec.get<eBetweenPopulationCorrelation>()[j] ;
+			}
+		}
+		if( covariance_spec.get<eSD>().size() > 0 ) {
+			result += "/sd=" ;
+			for( std::size_t j = 0; j < covariance_spec.get<eSD>().size(); ++j ) {
+				result += covariance_spec.get<eSD>()[j] ;
+			}
+		}
+		if( covariance_spec.get<eCorrelation>().size() > 0 ) {
+			result += "/cor=" ;
+			for( std::size_t j = 0; j < covariance_spec.get<eCorrelation>().size(); ++j ) {
+				result += covariance_spec.get<eCorrelation>()[j] ;
+			}
+		}
+		return result ;
+	}
+
 	void get_uniform_population_prior(
 		int const number_of_cohorts,
 		std::string const& model_spec,
@@ -2062,19 +2084,7 @@ public:
 		using namespace genfile::string_utils ;
 		
 #if DEBUG_BINGWA
-		std::cerr << "rho = " ;
-		for( std::size_t j = 0; j < covariance_spec.get<eBetweenPopulationCorrelation>().size(); ++j ) {
-			std::cerr << "\"" + covariance_spec.get<eBetweenPopulationCorrelation>()[j] << "\" " ;
-		}
-		std::cerr << "sd = " ;
-		for( std::size_t j = 0; j < covariance_spec.get<eSD>().size(); ++j ) {
-			std::cerr << "\"" + covariance_spec.get<eSD>()[j] << "\" " ;
-		}
-		std::cerr << "cor = " ;
-		for( std::size_t j = 0; j < covariance_spec.get<eCorrelation>().size(); ++j ) {
-			std::cerr << "\"" + covariance_spec.get<eCorrelation>()[j] << "\" " ;
-		}
-		std::cerr << std::endl ;
+		std::cerr << format_covariance_spec( covariance_spec ) ;
 #endif
 
 		try {
@@ -2147,7 +2157,7 @@ public:
 					model_name += "/sd=" + join( covariance_spec.get<eSD>(), "," ) + "/cor=" + join( covariance_spec.get<eCorrelation>(), "," ) ;
 				}
 
-				result->insert( std::make_pair( model_name, covariance )) ;
+				result->insert( std::make_pair( model_name, std::make_pair( covariance_spec, covariance ) )) ;
 				
 #if DEBUG_BINGWA
 				std::cerr << "For model " << model_name << ":\n"
@@ -2249,7 +2259,7 @@ public:
 					model_name +=  + ":sd=" + join( covariance_spec.get<eSD>(), "," ) + "/cor=" + join( covariance_spec.get<eCorrelation>(), "," ) ;
 				}
 
-				result->insert( std::make_pair( model_name, covariance ) ) ;
+				result->insert( std::make_pair( model_name, std::make_pair( covariance_spec, covariance ) ) ) ;
 				
 #if DEBUG_BINGWA
 				std::cerr << "For model " << model_name << ":\n"
@@ -2267,64 +2277,6 @@ public:
 		}
 	}
 	
-	void get_complex_priors(
-		int const number_of_cohorts,
-		std::vector< std::string > const& model_specs,
-		std::vector< std::string > const& model_names,
-		Priors* result
-	) {
-		using namespace genfile::string_utils ;
-		
-		if( model_specs.size() != model_names.size() ) {
-			throw genfile::BadArgumentError(
-				"BingwaProcessor::get_complex_priors()",
-				"model_names=\"" + join( model_names, " " ) + "\"",
-				"Wrong number of complex prior names specified (" + to_string( model_names.size() ) + ", should be " + to_string( model_specs.size() ) + ")"
-			) ;
-		}
-
-		for( std::size_t i = 0; i < model_specs.size(); ++i ) {
-			std::vector< std::string > bits = split_and_strip( model_specs[i], "*", " \t\n" ) ;
-			std::string sd = "1" ;
-			if( bits.size() > 2 ) {
-				throw genfile::BadArgumentError(
-					"BingwaProcessor::get_complex_priors()",
-					"model_spec #" + to_string( i + 1 ) + ": \"" + model_specs[i] + "\"",
-					"Malformatted model spec, should be of the form [sd]^2 * [matrix]."
-				) ;
-			} else if( bits.size() == 2 ) {
-				if( bits[0].size() < 3 || bits[0].substr( bits[0].size() - 2, 2 ) != "^2" ) {
-					throw genfile::BadArgumentError(
-						"BingwaProcessor::get_complex_priors()",
-						"model_spec #" + to_string( i + 1 ) + ": \"" + model_specs[i] + "\"",
-						"Malformatted model spec, should be of the form [sd]^2 * [matrix]."
-					) ;
-				}
-				sd = bits[0].substr( 0, bits[0].size() - 2 ) ;
-			}
-			try {
-				int const N = m_processor->get_number_of_cohorts() ;
-				int const D = m_processor->get_number_of_effect_parameters() ;
-				std::vector< std::string > sds = expand_sd( sd, m_value_sets[ "sd" ] ) ;
-				std::cerr << ">>>> sds.size() = " << sds.size() << ".\n" ;
-				for( std::size_t sd_i = 0; sd_i < sds.size(); ++sd_i ) {
-					std::cerr << ">>>> Adding complex prior for sd = " << sds[sd_i] << ".\n" ;
-					(*result)[ model_names[i] + "/sd=" + sds[sd_i] ] = get_prior_matrix( 
-						N*D,
-						bits.back(),
-						to_repr< double >( sds[sd_i] )
-					) ;
-				}
-			} catch( genfile::string_utils::StringConversionError const& e ) {
-				throw genfile::BadArgumentError(
-					"BingwaProcessor::get_complex_priors()",
-					"model_spec #" + to_string( i + 1 ) + ": \"" + model_specs[i] + "\"",
-					"Malformatted model spec, should be of the form [rho]^2 * [matrix]."
-				) ;
-			}
-		}
-	}
-
 	std::vector< std::string > get_group_members( std::string const& group_name, GroupDefinition const& groups ) const {
 		GroupDefinition::const_iterator where = groups.find( group_name ) ;
 		if( where == groups.end() ) {
@@ -2353,244 +2305,6 @@ public:
 		return result ;
 	}
 	
-	void get_group_priors(
-		int const number_of_cohorts,
-		GroupDefinition const& groups,
-		std::vector< std::string > const& model_specs,
-		boost::optional< std::vector< std::string > > model_names,
-		std::vector< std::string > const& cohort_names,
-		Priors* result
-	) {
-		using namespace genfile::string_utils ;
-
-		if( model_names && model_specs.size() != model_names.get().size() ) {
-			throw genfile::BadArgumentError(
-				"BingwaProcessor::get_group_priors()",
-				"model_names=\"" + join( model_names.get(), " " ) + "\"",
-				"Wrong number of group prior names specified (" + to_string( model_names.get().size() ) + ", should be " + to_string( model_specs.size() ) + ")"
-			) ;
-		}
-		
-		//
-		// format is group1:rho=r1/sd=s1,group2:rho=r2/sd=s2,...:rho=0.2
-		//
-		for( std::size_t i = 0; i < model_specs.size(); ++i ) {
-			std::vector< std::string > bits ;
-			{
-				std::size_t pos = model_specs[i].rfind( ":" ) ;
-				if( pos == std::string::npos ) {
-					throw genfile::BadArgumentError(
-						"BingwaProcessor::get_group_priors()",
-						"model_spec=\"" + model_specs[i] + "\"",
-						"Model spec \"" + model_specs[i] + "\" is malformed."
-					) ;
-				}
-				bits.push_back( model_specs[i].substr( 0, pos ) ) ;
-				bits.push_back( model_specs[i].substr( pos+1, model_specs[i].size() ) ) ;
-			}
-	
-			std::vector< std::string > const between_cohort_rho_string = parse_rho( bits[1] ) ;
-			if( between_cohort_rho_string.size() != m_processor->get_number_of_effect_parameters() ) {
-				throw genfile::BadArgumentError(
-					"BingwaProcessor::get_group_priors()",
-					"model_spec=\"" + model_specs[i] + "\"",
-					"In model spec \"" + model_specs[i] + "\", number of correlations specified ("
-					+ to_string( between_cohort_rho_string.size() )
-					+ ") does not match number of effect size parameters (" + to_string( m_processor->get_number_of_effect_parameters() ) + ")"
-				) ;
-			}
-			assert( between_cohort_rho_string.size() == 1 ) ;
-			double between_cohort_rho = to_repr< double >( between_cohort_rho_string[0] ) ;
-			
-			std::vector< std::string > const group_specs = split_and_strip( bits[0], "," ) ;
-			if( group_specs.size() == 0 ) {
-				throw genfile::BadArgumentError(
-					"BingwaProcessor::get_group_priors()",
-					"model_spec=\"" + model_specs[i] + "\"",
-					"In model spec \"" + model_specs[i] + "\", no groups are specified."
-				) ;
-			}
-			
-			Eigen::MatrixXd prior( number_of_cohorts, number_of_cohorts ) ;
-			prior.setZero() ;
-			
-			std::vector< int > used_cohorts( cohort_names.size(), 0 ) ;
-			std::vector< double > group_sds( group_specs.size(), NA ) ;
-			std::vector< std::string > group_names( group_specs.size(), "" ) ;
-			std::vector< std::size_t > cohort_group_map( cohort_names.size(), 0 ) ;
-			// Fill in the diagonal blocks, one for each group.
-			for( std::size_t block_i = 0; block_i < group_specs.size() ; ++block_i ) {
-				std::vector< std::string > const elts = split_and_strip( group_specs[block_i], ":" ) ;
-				if( elts.size() != 2 ) {
-					throw genfile::BadArgumentError(
-						"BingwaProcessor::get_group_priors()",
-						"model_spec=\"" + group_specs[block_i] + "\"",
-						"Group prior spec \"" + group_specs[block_i] + "\" is malformed."
-					) ;
-				}
-				
-				// Get the group name...
-				std::string const& group_name = elts[0] ;
-				group_names[ block_i ] = group_name ;
-				// Get the per-group correlation and sd.
-				 const std::vector< CovarianceSpec > covariance_specs = parse_covariance_spec( elts[1] ) ;
-				assert( covariance_specs.size() == 1 ) ; // TODO: handle a set of rhos or sds.
-				for( std::size_t j = 0; j < covariance_specs.size(); ++j ) {
-					boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > const& covariance_spec = covariance_specs[j] ;
-					if( int( covariance_spec.get<eBetweenPopulationCorrelation>().size() ) != m_processor->get_number_of_effect_parameters() ) {
-						throw genfile::BadArgumentError(
-							"BingwaProcessor::get_group_priors()",
-							"model_spec=\"" + model_specs[i] + "\"",
-							"In model spec \"" + model_specs[i] + "\", number of correlations and standard deviations specified ("
-							+ to_string( between_cohort_rho_string.size() )
-							+ ") does not match number of effect size parameters (" + to_string( m_processor->get_number_of_effect_parameters() ) + ")"
-						) ;
-					}
-
-					double const rho = to_repr< double >( covariance_spec.get<eBetweenPopulationCorrelation>()[0] ) ;
-					double const sd = to_repr< double >( covariance_spec.get<eSD>()[0] ) ;
-					group_sds[ block_i ] = sd ;
-				
-					// Get the group members
-					std::vector< std::string > const& group_cohorts = get_group_members( group_name, groups ) ;
-					std::vector< int > const& cohort_indices = get_cohort_indices( group_cohorts, cohort_names ) ;
-
-					// 
-					for( std::size_t k = 0; k < group_cohorts.size(); ++k ) {
-						if( used_cohorts[ cohort_indices[k] ] > 0 ) {
-							throw genfile::BadArgumentError(
-								"BingwaProcessor::get_group_priors()",
-								"model_spec=\"" + group_specs[block_i] + "\"",
-								"Cohort \"" + group_cohorts[k] + "\" occurs in more than one group."
-							) ;
-						}
-						++used_cohorts[ cohort_indices[k] ] ;
-						cohort_group_map[ cohort_indices[k] ] = block_i ;
-					}
-				
-					for( std::size_t cohort_i = 0; cohort_i < group_cohorts.size(); ++cohort_i ) {
-						prior( cohort_indices[ cohort_i ], cohort_indices[ cohort_i ] ) = sd*sd ;
-						for( std::size_t cohort_j = cohort_i + 1; cohort_j < group_cohorts.size(); ++cohort_j ) {
-							prior( cohort_indices[ cohort_i ], cohort_indices[ cohort_j ] ) = sd*sd*rho ;
-						}
-					}
-				}
-			}
-			// now fill in between-block elements.
-			for( std::size_t group1_i = 0; group1_i < group_specs.size() ; ++group1_i ) {
-				std::vector< int > const& group1_member_indices = get_cohort_indices( get_group_members( group_names[ group1_i ], groups ), cohort_names ) ;
-				for( std::size_t group2_i = group1_i + 1; group2_i < group_specs.size() ; ++group2_i ) {
-					std::vector< int > const& group2_member_indices = get_cohort_indices( get_group_members( group_names[ group2_i ], groups ), cohort_names ) ;
-					for( std::size_t group1_cohort_i = 0; group1_cohort_i < group1_member_indices.size(); ++group1_cohort_i ) {
-						for( std::size_t group2_cohort_i = 0; group2_cohort_i < group2_member_indices.size(); ++group2_cohort_i ) {
-							int const i = std::min( group1_member_indices[ group1_cohort_i ], group2_member_indices[ group2_cohort_i ] ) ;
-							int const j = std::max( group1_member_indices[ group1_cohort_i ], group2_member_indices[ group2_cohort_i ] ) ;
-							prior( i, j ) = between_cohort_rho * group_sds[ group1_i ] * group_sds[ group2_i ] ;
-						}
-					}
-				}
-			}
-	
-			// Finally fill in the lower diagonal
-			for( int row = 1; row < prior.rows(); ++row ) {
-				for( int col = 0; col < row; ++col ) {
-					prior( row, col ) = prior( col, row ) ;
-				}
-			}
-		
-			std::string model_name ;
-			if( model_names ) {
-				model_name = model_names.get()[i] ;
-			} else {
-				model_name = model_specs[i] ;
-			}
-
-			(*result)[ model_name ] = prior ;
-		}
-	}
-
-	void get_group_specific_priors(
-		int const number_of_cohorts,
-		GroupDefinition const& groups,
-		std::vector< std::string > const& model_specs,
-		boost::optional< std::vector< std::string > > model_names,
-		std::vector< std::string > const& cohort_names,
-		Priors* result
-	) {
-		using namespace genfile::string_utils ;
-
-		if( model_names && model_specs.size() != model_names.get().size() ) {
-			throw genfile::BadArgumentError(
-				"BingwaProcessor::get_group_specific_priors()",
-				"model_names=\"" + join( model_names.get(), " " ) + "\"",
-				"Wrong number of group-specific prior names specified (" + to_string( model_names.get().size() ) + ", should be " + to_string( model_specs.size() ) + ")"
-			) ;
-		}
-		
-		for( std::size_t i = 0; i < model_specs.size(); ++i ) {
-			std::vector< std::string > bits = split_and_strip( model_specs[i], ":" ) ;
-			if( bits.size() != 2 ) {
-				throw genfile::BadArgumentError(
-					"BingwaProcessor::get_group_specific_priors()",
-					"model_spec=\"" + model_specs[i] + "\"",
-					"Model spec (\"" + model_specs[i] + "\" is malformed."
-				) ;
-			}
-			
-			GroupDefinition::const_iterator where = groups.find( bits[0] ) ;
-			if( where == groups.end() ) {
-				throw genfile::BadArgumentError(
-					"BingwaProcessor::get_group_specific_priors()",
-					"model_spec=\"" + model_specs[i] + "\"",
-					"Group \"" + bits[0] + "\" is not recognised, please define it using the -group option."
-				) ;
-			}
-			std::vector< std::string > const& cohorts = where->second ;
-
-			std::vector< CovarianceSpec > const covariance_specs = parse_covariance_spec( bits[1] ) ;
-			for( std::size_t j = 0; j < covariance_specs.size(); ++j ) {
-				boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > const& covariance_spec = covariance_specs[j] ;
-				if( int( covariance_spec.get<eBetweenPopulationCorrelation>().size() ) != m_processor->get_number_of_effect_parameters() ) {
-					throw genfile::BadArgumentError(
-						"BingwaProcessor::get_group_specific_priors()",
-						"model_spec=\"" + model_specs[i] + "\"",
-						"In model spec \"" + model_specs[i] + "\", number of correlations and standard deviations specified ("
-						+ to_string( covariance_spec.get<eBetweenPopulationCorrelation>().size() )
-						+ ") does not match number of effect size parameters (" + to_string( m_processor->get_number_of_effect_parameters() ) + ")"
-					) ;
-				}
-
-				double const rho = to_repr< double >( covariance_spec.get<eBetweenPopulationCorrelation>()[0] ) ;
-				double const sd = to_repr< double >( covariance_spec.get<eSD>()[0] ) ;
-			
-				Eigen::MatrixXd prior( number_of_cohorts, number_of_cohorts ) ;
-				prior.setZero() ;
-
-				std::vector< int > const& cohort_indices = get_cohort_indices( cohorts, cohort_names ) ;
-			
-				for( std::size_t j1 = 0; j1 < cohorts.size(); ++j1 ) {
-					int const cohort1_j = cohort_indices[j1] ;
-					prior( cohort1_j, cohort1_j ) = 1 ;
-					for( std::size_t j2 = (j1+1); j2 < cohorts.size(); ++j2 ) {
-						int const cohort2_j = cohort_indices[j2] ;
-						prior( cohort1_j, cohort2_j ) = prior( cohort2_j, cohort1_j ) = rho ;
-					}
-				}
-			
-				prior *= sd * sd ;
-			
-				std::string model_name ;
-				if( model_names ) {
-					model_name = model_names.get()[i] ;
-				} else {
-					model_name = bits[0] + "-specific" ;
-				}
-			
-				(*result)[ model_name + "/rho=" + join( covariance_spec.get<eBetweenPopulationCorrelation>(), " " ) + "/sd=" + join( covariance_spec.get<eSD>(), " " ) ] = prior ;
-			}
-		}
-	}
-
 	std::vector< std::string > parse_rho( std::string const& spec ) {
 		using namespace genfile::string_utils ;
 		if( spec.substr( 0, 4 ) != "rho=" ) {
@@ -2730,7 +2444,7 @@ public:
 		bool have_cor = ( cor_index >= 0 ) ;
 
 #if DEBUG_BINGWA
-		std::cerr << ( boost::format( "parse_covariance_spec(): spec = %s, rho_index = %d, sd_index = %d, cor_index = %d\n" ) % spec, rho_index, sd_index, cor_index ) ;
+		std::cerr << ( boost::format( "parse_covariance_spec(): spec = %s, rho_index = %d, sd_index = %d, cor_index = %d\n" ) % spec % rho_index % sd_index % cor_index ) ;
 #endif		
 			
 		// Only sd is required.
@@ -2839,14 +2553,14 @@ public:
 		return result ;
 	}
 
-	std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > expand_rhos_and_sds(
+	std::vector< CovarianceSpec > expand_rhos_and_sds(
 		std::vector< std::string > rhos,
 		std::vector< std::string > sds,
 		std::vector< std::string > cor,
 		std::map< std::string, std::vector< std::string > > const& sd_sets,
 		std::map< std::string, std::vector< std::string > > const& rho_sets
 	) const {
-		std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > result ;
+		std::vector< CovarianceSpec > result ;
 		// currently we just expand sds according to the sets in sd_sets.
 		std::vector< std::string > working_sds = sds ;
 		std::vector< std::string > working_rhos = rhos ;
@@ -3137,16 +2851,16 @@ public:
 			end_name_i = prior_names.end() ;
 
 		for( ; name_i != end_name_i; ++name_i ) {
-			get_ui_context().logger() << *name_i << ":\n" ;
+			get_ui_context().logger() << "In model " << *name_i << ":\n" ;
 
 			Priors::const_iterator
 				prior_i = priors.lower_bound( *name_i ),
 				end_prior_i = priors.upper_bound( *name_i ) ;
 			std::size_t count = 0 ;
 			for( ; prior_i != end_prior_i; ++prior_i, ++count ) {
-				get_ui_context().logger() << ( boost::format( "-- (#%.3d) " ) % count ) << prior_i->first << ":\n" ;
+				get_ui_context().logger() << ( boost::format( "-- (#%.3d) " ) % count ) << format_covariance_spec( prior_i->second.first ) << ":\n" ;
 				std::string const padding = "  " + std::string( ( max_model_name_width > max_prefix_width ) ? ( max_model_name_width - max_prefix_width ): 0, ' ' ) + "   " ;
-				Eigen::MatrixXd const& prior = prior_i->second ;
+				Eigen::MatrixXd const& prior = prior_i->second.second ;
 				assert( prior.rows() == D*N ) ;
 				get_ui_context().logger() << "  " << std::setw( max_model_name_width ) << " " << "  " ;
 				for( std::size_t i = 0; i < (D*N); ++i ) {
