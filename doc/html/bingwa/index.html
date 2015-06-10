@@ -35,7 +35,7 @@
 				bingwa
 			</div>
             <div class="header_subtext">
-				<b>b</b>ayes<b>i</b>an meta-a<b>n</b>alysis for <b>g</b>enome-<b>w</b>ide <b>a</b>ssociation studies
+				<b>b</b>ayes<b>i</b>a<b>n</b> meta-analysis for <b>g</b>enome-<b>w</b>ide <b>a</b>ssociation studies
             </div>
         </div>
         <div class="button_bar">
@@ -119,7 +119,7 @@
             </div>
             <div id="documentation" style="display:none">
                 <div class="display_diagram_right">
-                    <!--><object data="style/images/inthinnerator-flow.svg"  type="image/svg+xml" align="center">
+                    <!--<object data="style/images/inthinnerator-flow.svg"  type="image/svg+xml" align="center">
 					</object>-->
                 </div>
                 <p>
@@ -133,33 +133,12 @@
                 </p>
 			</div>
             <div id="tutorial" style="display:none">
+				<h2>
+					Running bingwa
+				</h2>
                 <div class="tutorial_header">
-                    This page shows common command lines to use inthinnerator.
-					We assume the program is being run from a directory containing a file <span class="monospace">snps.txt</span>
-					containing a list of SNPs to be picked from.  This file should look like this:
-                    <div class="terminal_display">
-<pre>$ head snps.txt
-SNPID rsid chromosome position alleleA alleleB
-snp1 kgp14987749 22 16152031 A C
-snp2 rs150880246 22 16152288 A G
-snp3 rs144530981 22 16152415 G A
-snp4 rs142259989 22 16154873 T G
-snp5 rs186282246 22 16155262 C T
-snp6 22-16156144 22 16156144 GC G
-snp7 22-16156442 22 16156442 G GCGT
-snp8 22-16156727 22 16156727 T TG
-snp9 22-16158548 22 16158548 ACT A</pre>
-                    </div>
-				</p>
-				<p>
-					Also, we assume the directory contains files <span class="monospace">genetic_map_chr1.txt</span>, <span class="monospace">genetic_map_chr2.txt</span>, ...
-					containing a recombination map.  Suitable recombination map files can be downloaded
-					from the <a href="https://mathgen.stats.ox.ac.uk/genetics_software/shapeit/shapeit.html#gmap">SHAPEIT website</a>
-					or the <a href="https://mathgen.stats.ox.ac.uk/impute/impute_v2.html#reference">IMPUTE website</a>.
-				</p>
-				<p>
-					See also the <a href="inthinnerator_help.txt">list of options</a> and the <a href="#file_formats">file formats page</a>.
-				</p>
+                    This page shows common command lines to use bingwa.  These examples assume the program is being run from a directory
+					containing two SNPTEST files, <span class="monospace">cohort1.snptest</span> and <span class="monospace">cohort2.snptest</span>.
                 </div>
                 <div class="tutorial_separator">
                 </div>
@@ -168,95 +147,185 @@ snp9 22-16158548 22 16158548 ACT A</pre>
                         View the program usage page
                     </div>
                     <div class="task_command_line">
-                        $ inthinnerator -help | less
+                        $ bingwa -help | less
                     </div>
                 </div>
                 <div class="task">
                     <div class="task_name">
-                        Thin SNPs based on physical distance
+                        Compute fixed-effect meta-analysis of the two files
                     </div>
                     <div class="task_command_line">
-                        $ inthinnerator -g snps.txt -min-distance 10kb -o thinned.out
+                        $ bingwa -data cohort1.snptest cohort2.snptest -o output.sqlite
+					</div>
+                    <div class="task_command_line">
+                        $ bingwa -data cohort1.snptest cohort2.snptest -flat-file -o output.csv
                     </div>
                     <div class="task_notes">
-                        <b>Note</b>: Inthinnerator understand distances expressed in base pairs ("bp"),
-						kb, or Mb.
+                        <b>Note</b>: By default bingwa writes output to a sqlite file.  Use <code>-flat-file</code> to write a flat file instead.
+							Flat files are space, tab or comma-delimited according to the filename extension.
                     </div>
                 </div>
-                <div class="task">
-                    <div class="task_name">
-                        Thin SNPs based on recombination distance
-                    </div>
-                    <div class="task_command_line">
-                        $ inthinnerator -g snps.txt -map genetic_map_chr#.txt -min-distance 0.125cM -o thinned.out
-                    </div>
-                    <div class="task_notes">
-                        <b>Note</b>: Because the genetic map files don't contain chromosome information,
-						you usually need to make inthinnerator infer the chromosome by using the # wildcard
-						character, as shown above.
-                    </div>
+                <div class="tutorial_separator">
                 </div>
+				<h2>
+					Understanding bingwa sqlite output files
+				</h2>
+				<div>
+					<p>
+						Below we've given some examples of using the shell or various programming languages to extract data from a bingwa sqlite file.
+						We assume the file is named <code>bingwa.sqlite</code> and the meta-analysis results were stored
+						in the <code>MetaAnalysis</code> table.
+					</p>
+					<p>
+	                    <b>Note</b>: The <code>sqlite3</code> program is installed by default on most UNIX-like systems.
+						It's quite flexible.  It can be used in interactive mode, or to run queries directly from the command-line.
+						See the <a href="https://www.sqlite.org/cli.html">sqlite3 command shell documentation</a> for a full list of options.
+					</p>
+					<h3>Inspecting the contents of the results file</h3>
+					<p>
+						sqlite files can be inspected using the sqlite3 command shell.  Open the file by typing:
+					</p>
+	                    <code>
+							$ sqlite3 -column -header bingwa.sqlite <br/>
+						</code>
+					<p>
+						You should see the sqlite prompt (<code>sqlite3&gt;</code>).  Let's see what tables are stored in this file:
+					</p>
+					<pre>
+sqlite3&gt; .tables
+Analysis                Entity                  MetaAnalysis          
+AnalysisProperty        EntityData              MetaAnalysisView      
+AnalysisPropertyView    EntityDataView          Variant               
+AnalysisStatus          EntityRelationship      VariantIdentifier     
+AnalysisStatusView      EntityRelationshipView  VariantView
+					</pre>
+                    <p>
+                        Here, the main results are here stored in the <code>MetaAnalysis</code> table,
+						and bingwa has also created the <code>MetaAnalysisView</code> view which provides a nicer view of the results.
+						(The <code>-table-name</code> option can be used to change the name of the main results table.  By default it is a name of the form Analysis&lt;n&gt;, where n is an integer.)
+						The <code>Analysis*</code> and <code>Entity*</code> tables are used to store
+						metadata about the analyses you have run.  Let's see what's stored in this file:
+					</p>
+                    <pre>
+sqlite> SELECT * FROM Analysis ;
+id          name             chunk     
+----------  ---------------  ----------
+1           bingwa analysis  NA        
+
+sqlite> SELECT COUNT(*) AS count FROM MetaAnalysisView
+count  
+-------
+200
+					</pre>
+					<p>
+						So this file stores meta-analysis results for 200 variants from a single analysis called "bingwa analysis".
+					</p>
+					<p>
+						In a large, real analysis, it's often useful to use the <code>-analysis-name</code> and <code>-analysis-chunk</code> options to give the analysis a 
+						more descriptive name and explain what part of the data it corresponds to.  It's possible to store several analyses in the same sqlite file
+						(or even in the same table, provided analysis columns are compatible), so this information becomes important to understand the results.
+					</p>
+					<p>
+						Let's have a look at what the results actually look like.  Because there are lots of columns we'll switch sqlite3 to line-based output:
+					</p>
+					<pre>
+sqlite3&gt; .mode line
+sqlite3&gt; SELECT * FROM MetaAnalysisView LIMIT 1 ;
+                                             rsid = KGP1
+                                          alleleA = A
+                                          alleleB = G
+                                         analysis = bingwa analysis
+                                      analysis_id = 1
+                                       variant_id = 1
+                                       chromosome = NA
+                                         position = 1000
+                                       cohort 1:A = 0.0
+                                       cohort 1:B = 0.0
+                                      cohort 1:AA = 168.889999389648
+                                      cohort 1:AB = 240.240005493164
+                                      cohort 1:BB = 87.870002746582
+                                    cohort 1:NULL = 0.0
+                      cohort 1:B_allele_frequency = 0.418490950302478
+                                     cohort 1:maf = 0.418489992618561
+                               cohort 1:ml_beta_1 = 0.100000001490116
+                                 cohort 1:ml_se_1 = 0.0199999995529652
+                                  cohort 1:pvalue = 0.100000001490116
+                                    cohort 1:info = 0.374507993459702
+                                       cohort 2:A = 0.0
+                                       cohort 2:B = 0.0
+                                      cohort 2:AA = 176.800003051758
+                                      cohort 2:AB = 250.979995727539
+                                      cohort 2:BB = 71.2190017700195
+                                    cohort 2:NULL = 0.0
+                      cohort 2:B_allele_frequency = 0.394207201652197
+                                     cohort 2:maf = 0.394199997186661
+                               cohort 2:ml_beta_1 = 0.0799999982118607
+                                 cohort 2:ml_se_1 = 0.0199999995529652
+                                  cohort 2:pvalue = 0.94200998544693
+                                    cohort 2:info = 0.97086101770401
+                   FixedEffectMetaAnalysis:beta_1 = 0.0899999998509884
+                     FixedEffectMetaAnalysis:se_1 = 0.0141421353076296
+            FixedEffectMetaAnalysis:wald_pvalue_1 = 1.96615875463349e-10
+                   FixedEffectMetaAnalysis:pvalue = 1.96615875463348e-10
+			        </pre>
+			   	 	<p>
+						This analysis contains the results of a fixed-effect frequentist analysis of two cohorts, by default called "cohort 1" and "cohort 2".
+						The results file contains columns reflecting genotype counts and model fits in each cohort, and columns containing meta-analysed
+						effect size estimate, standard error, and a two-tailed fixed-effect meta-analysis P-value.
+					</p>
+					<p>
+						<b>Note</b>: the <code>-cohort-names</code> option can be used to name the cohorts in a more useful way.
+					</p>
+				</div>
+			<div>
+				<h2>
+					Processing bingwa sqlite output files
+				</h2>
+				<p>
+					Below are some example commands that process bingwa output in the command-line or in R.
+				</p>
                 <div class="task">
                     <div class="task_name">
-                        Thin SNPs based on recombination distance with a margin
+                        Extract a csv file of all results.
                     </div>
                     <div class="task_command_line">
-                        $ inthinnerator -g snps.txt -map genetic_map_chr#.txt -min-distance 0.125cM+25kb -o thinned.out
-                    </div>
-                    <div class="task_notes">
-                        <b>Note</b>: The above command means that the interval around each picked SNP will extend out
-						0.125cM in each direction.  The region is then expanded by 25kb in each direction.  This choice
-						corresponds to the region definitions used in the <a href="http://www.well.ox.ac.uk/wtccc2/ms">IMSGC / WTCCC2 Multiple sclerosis GWAS paper</a>.
-                    </div>
-                </div>
-                <div class="task">
-                    <div class="task_name">
-						Write only the picked SNPs
-                    </div>
-                    <div class="task_command_line">
-                        $ inthinnerator -g snps.txt -map genetic_map_chr#.txt -min-distance 0.125cM+25kb -o thinned.out -suppress-excluded
-                    </div>
-					<div class='task_notes'>
-                        <b>Note</b>: Without the <span class="option">-suppress-excluded</span> flag, inthinnerator writes both the picked SNPs and the excluded ones.
+                        $ sqlite3 -header -csv bingwa.sqlite "SELECT * FROM MetaAnalysisView" > my_file.csv
 					</div>
                 </div>
                 <div class="task">
                     <div class="task_name">
-                        Pick by rank
+                        Extract results from a specific region.
                     </div>
                     <div class="task_command_line">
-                        $ inthinnerator -g snps.txt -map genetic_map_chr#.txt -min-distance 0.125cM+25kb -o thinned.out -rank &lt;filename&gt; -rank-column bf
-                    </div>
-                    <div class="task_command_line">
-                        $ inthinnerator -g snps.txt -map genetic_map_chr#.txt -min-distance 0.125cM+25kb -o thinned.out -rank &lt;filename&gt; -rank-column -pvalue
-                    </div>
+                        $ sqlite3 -header -csv bingwa.sqlite "SELECT * FROM MetaAnalysisView WHERE chromosome == '05' AND position BETWEEN 120000000 AND 121000000" > my_file.csv
+					</div>
                     <div class="task_notes">
-						<b>Note</b>: the -rank option specifies which must have columns SNPID, rsid, chromosome, position, alleleA and alleleB,
-						and the column named by the <span class="option">-rank-column</span> option.  Inthinnerator will pick the SNP with
-						highest rank first, followed by the SNP with next highest rank among those still included, etc.  If the rank column
-						name is preceded by a minus sign, ranks are negated before picking.  This can be useful for ranking by p-value.
+                        <b>Note</b>: bingwa always stores chromosome identifiers as strings.  Currently these will be two-character strings with single-digit
+						chromosomes appearing as <code>01</code>, <code>02</code>, etc.
                     </div>
+					
                 </div>
                 <div class="task">
                     <div class="task_name">
-                        Annotate the output with nearby genes.
+                        Read bingwa results into R
                     </div>
                     <div class="task_command_line">
-                        $ inthinnerator -g snps.txt -map genetic_map_chr#.txt -min-distance 0.125cM+25kb -o thinned.out -suppress-excluded
-						-genes &lt;genes filename&gt;
-                    </div>
+						# R code to load bingwa results <br/>
+                        > library( RSQLite )<br/>
+                        > db = dbConnect( dbDriver( "SQLite" ), "bingwa.sqlite" )<br/>
+                        > D = dbGetQuery( db, "SELECT * FROM MetaAnalysisView" )
+					</div>
                     <div class="task_notes">
-						<b>Note</b>: Currently, the file passed to <span class="option">-genes</span> is expected to be in a similar format
-						to the refGene.txt file downloadable from UCSC
-						genome browser, but with a header line included.  Inthinnerator looks for and uses
-						the chrom, txStart, txEnd and name2 columns of that file.
+                        <b>Note</b>: You need the RSQLite library installed to process sqlite files from R.
                     </div>
+					
                 </div>
             </div>
+		</div>
             <div id="file_formats" style="display:none">
+				<h3>Input file formats</h3>
                 <div>
-                    Inthinnerator shares a codebase with <a href="http://www.well.ox.ac.uk/~gav/qctool">qctool</a> and supports
-					a similar set of file formats.  File types are detected based on the file extensions according to the following table.
+                    Bingwa supports the following input file formats:
                     <table class="file_formats">
                         <tr>
                             <th>
@@ -271,39 +340,14 @@ snp9 22-16158548 22 16158548 ACT A</pre>
                         </tr>
                         <tr>
                             <td>
-                                <a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format.html">GEN</a>,
-								<a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format.html">BGEN</a>,
-								<a href="http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41">VCF</a>
-								formats
+                                <a href="https://mathgen.stats.ox.ac.uk/genetics_software/snptest/snptest.html">SNPTEST</a> output file
                             </td>
                             <td>
-                                <span class="monospace">.gen</span>,
-								<span class="monospace">.gen.gz</span>,
-								<span class="monospace">.bgen</span>,
-								<span class="monospace">.vcf</span>,
-								<span class="monospace">.vcf.gz</span>
+								(none)
                             </td>
                             <td>
-								These can be supplied to the <span class="monospace">-g</span> option.  See the <a href="http://www.well.ox.ac.uk/~gav/qctool#file_formats">qctool webpage</a>
-								for more detailed information on support for these formats.
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                Inthinnerator flat-file format
-                            </td>
-                            <td>
-                                <span class="monospace">.txt</span>,
-                                <span class="monospace">.csv</span>,
-								<span class="monospace">.tsv</span>
-                            </td>
-                            <td>
-								This is the most flexible format to supply to the <span class="monospace">-g</span>.  It consists of six columns,
-								<span class="monospace">SNPID, rsid, chromosome, position, alleleA, alleleB</span>.  Optional additional columns include
-									a <em>rank</em> column (specified by name using the <span class="monospace">-rank-column</span> option) and
-									a <em>tag</em> column (specified using the <span class="monospace">-tag-column</span> option.)  Other columns
-									are ignored.
-									Inthinnerator expects space-, comma- or tab-separated file according to the file extension.
+								These can be supplied to the <span class="monospace">-data</span> option.  Files are space-, comma- or tab-delimited
+								according to the file extension (<code>.txt</code>, <code>.csv</code> or <code>.tsv</code>)
                             </td>
                         </tr>
                     </table>
@@ -311,29 +355,23 @@ snp9 22-16158548 22 16158548 ACT A</pre>
 				<h3>Output file formats</h3>
 				<div>
 				<p>Bingwa can either output to a flat file or to a table in a sqlite database.  Both have pros and cons.</p>
-				<table class="file_formats">
-					<tr><th>Output type</th><th>Pros</th><th>Cons</th></tr>
-					<tr>
-						<td>Flat file</td>
-						<td>Simple, easy-to use.  Splitting jobs into chunks allows for massive parallelism e.g. via a compute cluster.</td>
-						<td>For large jobs, flat files can be awkward to analyse downstream because of large file sizes and potential
-							split into chunks.</td>
-					</tr>
-					<tr>
-						<td><a href="http://www.sqlite.org">Sqlite database</a></td>
-						<td>Allows for flexible access to genome-wide results via the power of SQL.  Indices on position, rsid or other fields
-							are used provide random access to scan results.</td>
-						<td>Not suited to large parallel jobs (though some parallelism is supported).  Database should not be created on an NFS drive
-							(but, once written, can be read across NFS).
-						</td>
-					</tr>
-				</table>
+				<p>
+				<b>Flat files</b> are simple and easy to use.  However, they can become difficult to read from for very large analyses
+				(such as genome-wide analyses of datasets imputed into recent reference panels) which may require writing
+				special file-handling code.
+				</p>
+				<p>
+					<b><a href="http://www.sqlite.org">Sqlite</a> files</b> are also easy to use via the <a href="">sqlite3</a> command-line client,which 
+					is installed on most UNIX-like systems.  They can also be read directly from programming languages such as <a href="">R</a>.
+					An attractive feature is that they are <em>indexed</em>, so that data for specific regions of the genome or specific variants can
+					be easily found.  See the <a href='#tutorial'>examples page</a> for code snippets for processing bingwa-produced sqlite files.
+				</p>
 			</div>
             </div>
             <div id="download" style="display:none">
                 <div>
                     <p>
-                        Inthinnerator is available either as binaries or as source code.
+                        Bingwa is available either as binaries or as source code.
                     </p>
                     <h3>
                         Binaries
@@ -359,16 +397,7 @@ snp9 22-16158548 22 16158548 ACT A</pre>
                                 Linux <small>x86-64 static build</small>
                             </td>
                             <td>
-                                <a href="resources/inthinnerator_v2.0-dev-linux-x86_64.tgz">inthinnerator_v2.0-dev-linux-x86_64.tgz</a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>v2-dev<sup>&dagger;</sup></td>
-                            <td>
-                                Linux <small>alternative build</small>
-                            </td>
-                            <td>
-                                <a href="resources/inthinnerator_v2.0-dev-scientific-linux-x86_64.tgz">inthinnerator_v2.0-dev-scientific-linux-x86_64.tgz</a>
+                                <a href="resources/bingwa_v2.0-dev-linux-x86_64.tgz">inthinnerator_v2.0-dev-linux-x86_64.tgz</a>
                             </td>
                         </tr>
                         <tr>
@@ -377,26 +406,26 @@ snp9 22-16158548 22 16158548 ACT A</pre>
                                 Mac OS X
                             </td>
                             <td>
-                                <a href="resources/inthinnerator_v2.0-dev-osx.tgz">inthinnerator_v2.0-dev-osx.tgz</a>
+                                <a href="resources/bingwa_v2.0-dev-osx.tgz">inthinnerator_v2.0-dev-osx.tgz</a>
                             </td>
                         </tr>
                     </table>
                     <p>
-					<sup>&dagger;</sup><span class="smalltext">This version of inthinnerator is considered experimental.
+					<sup>&dagger;</sup><span class="smalltext">This version of bingwa is considered experimental.
 					</p>
                     <p>
-                        To run inthinnerator, download the relevant file and extract it as follows.
+                        To run bingwa, download the relevant file and extract it as follows.
                     </p>
                     <pre>
-$ tar -xzf inthinnerator_v2.0-dev-[machine].tgz
-$ cd inthinnerator_v2.0-dev-[machine]
-$ ./inthinnerator_v2.0-dev -help
+$ tar -xzf bingwa_v2.0-dev-[machine].tgz
+$ cd bingwa_v2.0-dev-[machine]
+$ ./bingwa_v2.0-dev -help
 </pre>
                     <h3>
                         Source
                     </h3>
                     <p>
-                        The source code to inthinnerator is available as part of the <a href="http://bitbucket.org/gavinband/qctool">qctool package on bitbucket</a>.
+                        The source code to bingwa is available as part of the <a href="http://bitbucket.org/gavinband/qctool">qctool package on bitbucket</a>.
 						See <a href="http://www.well.ox.ac.uk/~gav/qctool#download">this page</a> for details.
 					</p>
                 </div>
