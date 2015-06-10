@@ -251,7 +251,21 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_minimum_multiplicity( 0 )
 				.set_maximum_multiplicity( 1 ) ;
 			
-			options[ "-simple-prior" ]
+			options[ "-prior" ]
+				.set_description( "Specify a prior model to use when computing a bayes factor.\n"
+					"The format of the argument is as follows:\n"
+					"[<name>:][tau=<tau>/]sd=<sds>/rho=<rho>\n"
+					" where tau denotes between-cohort correlations, rho denotes the upper diagonal of a correlation matrix,"
+					"and sd is a list of standard errors."
+					"If tau is supplied the standard errors and rhos are specified within-cohort,"
+					"otherwise they specify the full matrix across cohorts."
+					"The name is optional, and if not supplied a name will be generated."
+				)
+				.set_takes_values_until_next_option()
+				.set_minimum_multiplicity( 0 )
+				.set_maximum_multiplicity( 1 ) ;
+
+			options[ "-prior-weights" ]
 				.set_description( "Specify a model of the form \"rho=[r]/sd=[s]\" giving a correlation matrix of the form\n"
 					"      [ 1 r r  .. ]\n"
 					"      [ r 1 r  .. ]\n"
@@ -263,7 +277,7 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_minimum_multiplicity( 0 )
 				.set_maximum_multiplicity( 1 ) ;
 
-			options.option_excludes_option( "-no-meta-analysis", "-simple-prior" ) ;
+			options.option_excludes_option( "-no-meta-analysis", "-prior" ) ;
 		}
 	}
 } ;
@@ -1164,13 +1178,13 @@ public:
 	public:
 		ModelSpec( std::string const& name, Eigen::MatrixXd const& covariance, double weight ):
 			m_name( name ),
-			m_covariances( std::vector< Eigen::MatrixXd >( 1, covariance ) ),
+			m_covariances( 1, std::make_pair( name, covariance )),
 			m_weight( weight )
 		{
 			assert( weight == weight ) ;
 		}
 
-		template< typename IteratorBegin, IteratorEnd >
+		template< typename IteratorBegin, typename IteratorEnd >
 		ModelSpec( std::string const& name, IteratorBegin begin, IteratorEnd end, double weight ):
 			m_name( name ),
 			m_covariances( begin, end ),
@@ -1179,24 +1193,24 @@ public:
 			
 		ModelSpec( ModelSpec const& other ):
 			m_name( other.m_name ),
-			m_covariance( other.m_covariance ),
+			m_covariances( other.m_covariances ),
 			m_weight( other.m_weight )
 		{}
 
 		ModelSpec& operator=( ModelSpec const& other ) {
 			m_name = other.m_name ;
-			m_covariance = other.m_covariances ;
+			m_covariances = other.m_covariances ;
 			m_weight = other.m_weight ;
 			return *this ;
 		}
 		
 		std::string const& name() const { return m_name ; }
-		std::size_t numberOfSubModels() const { return m_covariances.size() ; }
-		Eigen::MatrixXd const& covariance( std::size_t i ) const { return m_covariances[i] ; }
+		std::size_t size() const { return m_covariances.size() ; }
+		Eigen::MatrixXd const& covariance( std::size_t i ) const { return m_covariances[i].second ; }
 		double weight() const { return m_weight ; }
 	private:
 		std::string  m_name ;
-		std::vector< Eigen::MatrixXd > m_covariances ;
+		std::vector< std::pair< std::string, Eigen::MatrixXd > > m_covariances ;
 		double m_weight ;
 	} ;
 	
@@ -1270,13 +1284,13 @@ public:
 
 		for( std::size_t i = 0; i < m_models.size(); ++i ) {
 			double model_bf = 0 ;
-			for( std::size_t j = 0; j < m_models.numberOfSubModels(); ++j ) {
+			for( std::size_t j = 0; j < m_models[i].size(); ++j ) {
 				Eigen::MatrixXd const prior = nonmissingness_selector * m_models[i].covariance(j) * nonmissingness_selector.transpose() ;
 				double bf = impl::compute_bayes_factor( prior, covariance, betas ) ;
 				if( bf != bf ) {
 					bf = 1 ;
 				}
-				model_bf += bf / m_models.numberOfSubModels() ;
+				model_bf += bf / m_models.size() ;
 			}
 			
 			double const weight = m_models[i].weight() ;
@@ -1284,11 +1298,11 @@ public:
 			total_weight += weight ;
 			mean_bf += weighted_bf ;
 
-			bfs[i] = bf ;
+			bfs[i] = model_bf ;
 			weighted_bfs[i] = weighted_bf ;
 
-			if( bf >= max_bf ) {
-				max_bf = bf ;
+			if( model_bf >= max_bf ) {
+				max_bf = model_bf ;
 				max_bf_i = i ;
 			}
 
@@ -1774,7 +1788,12 @@ public:
 	typedef std::map< std::string, std::vector< std::string > > GroupDefinition ;
 	typedef std::map< std::string, std::vector< std::string > > ValueListSet ;
 	typedef std::map< std::string, Eigen::MatrixXd > Priors ;
-	
+	typedef std::set< std::string > PriorNames ;
+	typedef std::map< std::string, double > PriorWeights ;
+	typedef boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > CovarianceSpec ;
+	typedef std::vector< CovarianceSpec > CovarianceSpecs ;
+	enum { eBetweenPopulationCorrelation = 0, eSD = 1, eCorrelation = 2 } ;
+
 public:
 	BingwaApplication( int argc, char **argv ):
 		appcontext::ApplicationContext(
@@ -1901,25 +1920,15 @@ public:
 						BingwaComputation::UniquePtr( computation.release() )
 					) ;
 				}
-				if( options().check( "-simple-prior" ) ) {
+				if( options().check( "-prior" ) ) {
 					Priors const priors = get_priors( options(), cohort_names ) ;
 					PriorNames const prior_names = get_prior_names( priors ) ;
 					std::map< std::string, double > prior_weights = get_prior_weights( options(), prior_names ) ;
 					ModelAveragingBayesFactorAnalysis::UniquePtr averager( new ModelAveragingBayesFactorAnalysis ) ;
 					assert( priors.size() > 0 ) ;
-					typedef std::set< std::string > PriorNames ;
-					PriorNames priorNames ;
 					{
-						Priors::const_iterator i = priors.begin() ;
-						Priors::const_iterator const end_i = priors.end() ;
-						for( ; i != end_i; +i ) {
-							priorNames.insert( i->first ) ;
-						}
-					}
-					
-					{
-						PriorNames::const_iterator i = priorNames.begin() ;
-						PriorNames::const_iterator end_i = priorNames.end() ;
+						PriorNames::const_iterator i = prior_names.begin() ;
+						PriorNames::const_iterator end_i = prior_names.end() ;
 						for( ; i != end_i; ++i ) {
 							//m_processor->add_computation(
 							//	"ApproximateBayesianMetaAnalysis",
@@ -1927,10 +1936,10 @@ public:
 							//) ;
 							averager->add_model(
 								ModelAveragingBayesFactorAnalysis::ModelSpec(
-									i->first,
-									priors.lower_bound( i->first ),
-									priors.upper_bound( i->first ),
-									prior_weights[ i->first ]
+									*i,
+									priors.lower_bound( *i ),
+									priors.upper_bound( *i ),
+									prior_weights[ *i ]
 								)
 							) ;
 							averager->set_filter( filter ) ;
@@ -1942,7 +1951,7 @@ public:
 						) ;
 					}
 					
-					summarise_priors( priors, cohort_names ) ;
+					summarise_priors( priors, prior_names, cohort_names ) ;
 				}
 			}
 		}
@@ -1982,9 +1991,6 @@ public:
 		return filter ;
 	}
 
-	typedef boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > CovarianceSpec ;
-	enum { eBetweenPopulationCorrelation = 0, eSD = 1, eCorrelation = 2 } ;
-
 	void get_simple_priors(
 		int const number_of_cohorts,
 		std::vector< std::string > const& model_specs,
@@ -1996,7 +2002,9 @@ public:
 			throw genfile::BadArgumentError(
 				"BingwaProcessor::get_simple_priors()",
 				"model_names=\"" + join( model_names.get(), " " ) + "\"",
-				"Wrong number of simple prior names specified (" + to_string( model_names.get().size() ) + ", should be " + to_string( model_specs.size() ) + ")"
+				"Wrong number of simple prior names specified (" +
+					to_string( model_names.get().size() )
+					+ ", should be " + to_string( model_specs.size() ) + ")"
 			) ;
 		}
 		
@@ -2425,7 +2433,7 @@ public:
 				std::string const& group_name = elts[0] ;
 				group_names[ block_i ] = group_name ;
 				// Get the per-group correlation and sd.
-				std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > const covariance_specs = parse_covariance_spec( elts[1] ) ;
+				 const std::vector< CovarianceSpec > covariance_specs = parse_covariance_spec( elts[1] ) ;
 				assert( covariance_specs.size() == 1 ) ; // TODO: handle a set of rhos or sds.
 				for( std::size_t j = 0; j < covariance_specs.size(); ++j ) {
 					boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > const& covariance_spec = covariance_specs[j] ;
@@ -2539,7 +2547,7 @@ public:
 			}
 			std::vector< std::string > const& cohorts = where->second ;
 
-			std::vector< boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > > const covariance_specs = parse_covariance_spec( bits[1] ) ;
+			std::vector< CovarianceSpec > const covariance_specs = parse_covariance_spec( bits[1] ) ;
 			for( std::size_t j = 0; j < covariance_specs.size(); ++j ) {
 				boost::tuple< std::vector< std::string >, std::vector< std::string >, std::vector< std::string > > const& covariance_spec = covariance_specs[j] ;
 				if( int( covariance_spec.get<eBetweenPopulationCorrelation>().size() ) != m_processor->get_number_of_effect_parameters() ) {
@@ -2923,11 +2931,11 @@ public:
 			m_value_sets[ "rho" ] ; // empty map
 		}
 
-		if( options.check( "-simple-prior" ) ) {
+		if( options.check( "-prior" ) ) {
 			boost::optional< std::vector< std::string > > model_names ;
 			get_simple_priors(
 				N,
-				options.get_values< std::string >( "-simple-prior" ),
+				options.get_values< std::string >( "-prior" ),
 				model_names,
 				&result
 			) ;
@@ -2985,53 +2993,6 @@ public:
 		return result ;
 	}
 
-	void get_groups(
-		std::vector< std::string > const& spec,
-		std::vector< std::string > const& cohort_names,
-		GroupDefinition* result
-	) const {
-		using namespace genfile::string_utils ;
-		assert( result != 0 ) ;
-		
-		// add default groups
-		
-		for( std::size_t i = 0; i < spec.size(); ++i ) {
-			std::vector< std::string > const bits = split_and_strip( spec[i], "=" ) ;
-			if( bits.size() != 2 ) {
-				throw genfile::BadArgumentError(
-					"BingwaProcessor::get_groups()",
-					"spec=\"" + spec[i] + "\"",
-					"Group specification \"" + spec[i] + "\" is malformed, should be in the format [name]=group1,group2,..."
-				) ;
-			}
-			if( result->find( bits[0] ) != result->end() ) {
-				throw genfile::BadArgumentError(
-					"BingwaProcessor::get_groups()",
-					"spec=\"" + spec[i] + "\"",
-					"Group \"" + bits[0] + "\" is defined more than once (or is the name of a cohort)."
-				) ;
-			}
-			std::vector< std::string > cohorts = split_and_strip( bits[1], "," ) ;
-			if( cohorts.size() == 0 ) {
-				throw genfile::BadArgumentError(
-					"BingwaProcessor::get_groups()",
-					"spec=\"" + spec[i] + "\"",
-					"Group specification \"" + spec[i] + "\" contains no cohorts"
-				) ;
-			}
-			for( std::size_t i = 0; i < cohorts.size(); ++i ) {
-				if( std::find( cohort_names.begin(), cohort_names.end(), cohorts[i] ) == cohort_names.end() ) {
-					throw genfile::BadArgumentError(
-						"BingwaProcessor::get_groups()",
-						"spec=\"" + spec[i] + "\"",
-						"Cohort name \"" + cohorts[i] + "\" is not recognised"
-					) ;
-				}
-			}
-			
-			(*result)[ bits[0] ] = cohorts ;
-		}
-	}
 
 	Eigen::MatrixXd get_prior_matrix( int const n, double const rho, double const sd ) const {
 		return get_correlation_matrix( n, rho ) * sd * sd ;
@@ -3079,8 +3040,67 @@ public:
 		return result ;
 	}
 
+
+	PriorNames get_prior_names( Priors const& priors ) const {
+		PriorNames result ;
+		{
+			Priors::const_iterator i = priors.begin() ;
+			Priors::const_iterator const end_i = priors.end() ;
+			for( ; i != end_i; ++i ) {
+				result.insert( i->first ) ;
+			}
+		}
+		return result ;
+	}
+
+	PriorWeights get_prior_weights( appcontext::OptionProcessor const& options, PriorNames const& prior_names ) const {
+		using namespace genfile::string_utils ;
+		PriorWeights result ;
+		// Initialise with weight=1 for all priors.
+		{
+			PriorNames::const_iterator i = prior_names.begin() ;
+			PriorNames::const_iterator const end_i = prior_names.end() ;
+			for( ; i != end_i; ++i ) {
+				result[ *i ] = 1 ;
+			}
+		}
+		
+		if( options.check( "-prior-weights" )) {
+			std::vector< std::string > const weight_spec = options.get_values< std::string >( "-prior-weights" ) ;
+			for( std::size_t i = 0; i < result.size(); ++i ) {
+				std::vector< std::string > elts = split_and_strip_discarding_empty_entries( weight_spec[i], "=", " \t\r\n" ) ;
+				if( elts.size() != 2 ) {
+					throw genfile::BadArgumentError(
+						"BingwaApplication::get_prior_names()",
+						"-prior-weights " + join( weight_spec, " " ),
+						"Spec \"" + weight_spec[i] + "\" appears malformed.  It should be of the form <model name>=<weight>."
+					) ;
+				}
+				if( result.find( elts[0] ) == result.end() ) {
+					throw genfile::BadArgumentError(
+						"BingwaApplication::get_prior_names()",
+						"-prior-weights " + join( weight_spec, " " ),
+						"Spec \"" + weight_spec[i] + "\" refers to a model (\"" + elts[0] + "\") that has not been specified."
+					) ;
+				}
+				try {
+					double weight = to_repr< double >( elts[1] ) ;
+					result[ elts[0] ] = weight ;
+				} catch( StringConversionError const& e ) {
+					throw genfile::BadArgumentError(
+						"BingwaApplication::get_prior_names()",
+						"-prior-weights " + join( weight_spec, " " ),
+						"In spec \"" + weight_spec[i] + ", the weight appears malformed."
+					) ;
+				}
+			}
+		}
+		return result ;
+	}
+
 	void summarise_priors(
 		Priors const& priors,
+		PriorNames const& prior_names,
 		std::vector< std::string > const& cohort_names
 	) const {
 		get_ui_context().logger() << "\n================================================\n" ;
@@ -3090,11 +3110,11 @@ public:
 		
 		std::size_t max_model_name_width = 0 ;
 		{
-			Priors::const_iterator
-				prior_i = priors.begin(),
-				end_prior_i = priors.end() ;
-			for( ; prior_i != end_prior_i; ++prior_i ) {
-				max_model_name_width = std::max( max_model_name_width, prior_i->first.size() + 2 ) ;
+			PriorNames::const_iterator
+				name_i = prior_names.begin(),
+				end_name_i = prior_names.end() ;
+			for( ; name_i != end_name_i; ++name_i ) {
+				max_model_name_width = std::max( max_model_name_width, name_i->size() + 2 ) ;
 			}
 		}
 
@@ -3112,43 +3132,51 @@ public:
 		}
 		max_model_name_width = std::max( max_model_name_width, max_prefix_width ) ;
 
-		Priors::const_iterator
-			prior_i = priors.begin(),
-			end_prior_i = priors.end() ;
-		std::size_t count = 0 ;
-		for( ; prior_i != end_prior_i; ++prior_i, ++count ) {
-			get_ui_context().logger() << ( boost::format( "-- (#%.3d) " ) % count ) << prior_i->first << ":\n" ;
-			std::string const padding = "  " + std::string( ( max_model_name_width > max_prefix_width ) ? ( max_model_name_width - max_prefix_width ): 0, ' ' ) + "   " ;
-			Eigen::MatrixXd const& prior = prior_i->second ;
-			assert( prior.rows() == D*N ) ;
-			get_ui_context().logger() << "  " << std::setw( max_model_name_width ) << " " << "  " ;
-			for( std::size_t i = 0; i < (D*N); ++i ) {
-				get_ui_context().logger() << (( i > 0 ) ? " " : "" ) ;
-				get_ui_context().logger() << std::setw( column_widths[i] ) << i ;
-			}
-			get_ui_context().logger() << "\n" ;
+		PriorNames::const_iterator
+			name_i = prior_names.begin(),
+			end_name_i = prior_names.end() ;
 
-			for( int i = 0; i < prior.rows(); ++i ) {
-//				get_ui_context().logger() << padding ;
-				std::string const parameter_name = parameter_names.parameter_name( i / N ) ;
-				std::string const cohort_name = cohort_names[i % N] ;
-				get_ui_context().logger()
-					<< "  " << std::setw( max_model_name_width )
-					<< std::right
-					<< ( "(" + cohort_name + ":" + parameter_name + ") " + genfile::string_utils::to_string( i )) << "  "
-					<< std::left ;
-				for( int j = 0; j < prior.cols(); ++j ) {
-					get_ui_context().logger() << (( j > 0 ) ? " " : "" ) ;
-					get_ui_context().logger() << std::setw( column_widths[j] ) ;
-					if( j < i ) {
-						get_ui_context().logger() << " " ;
-					} else {
-						get_ui_context().logger() << prior(i,j) ;
-					}
+		for( ; name_i != end_name_i; ++name_i ) {
+			get_ui_context().logger() << *name_i << ":\n" ;
+
+			Priors::const_iterator
+				prior_i = priors.lower_bound( *name_i ),
+				end_prior_i = priors.upper_bound( *name_i ) ;
+			std::size_t count = 0 ;
+			for( ; prior_i != end_prior_i; ++prior_i, ++count ) {
+				get_ui_context().logger() << ( boost::format( "-- (#%.3d) " ) % count ) << prior_i->first << ":\n" ;
+				std::string const padding = "  " + std::string( ( max_model_name_width > max_prefix_width ) ? ( max_model_name_width - max_prefix_width ): 0, ' ' ) + "   " ;
+				Eigen::MatrixXd const& prior = prior_i->second ;
+				assert( prior.rows() == D*N ) ;
+				get_ui_context().logger() << "  " << std::setw( max_model_name_width ) << " " << "  " ;
+				for( std::size_t i = 0; i < (D*N); ++i ) {
+					get_ui_context().logger() << (( i > 0 ) ? " " : "" ) ;
+					get_ui_context().logger() << std::setw( column_widths[i] ) << i ;
 				}
 				get_ui_context().logger() << "\n" ;
+
+				for( int i = 0; i < prior.rows(); ++i ) {
+	//				get_ui_context().logger() << padding ;
+					std::string const parameter_name = parameter_names.parameter_name( i / N ) ;
+					std::string const cohort_name = cohort_names[i % N] ;
+					get_ui_context().logger()
+						<< "  " << std::setw( max_model_name_width )
+						<< std::right
+						<< ( "(" + cohort_name + ":" + parameter_name + ") " + genfile::string_utils::to_string( i )) << "  "
+						<< std::left ;
+					for( int j = 0; j < prior.cols(); ++j ) {
+						get_ui_context().logger() << (( j > 0 ) ? " " : "" ) ;
+						get_ui_context().logger() << std::setw( column_widths[j] ) ;
+						if( j < i ) {
+							get_ui_context().logger() << " " ;
+						} else {
+							get_ui_context().logger() << prior(i,j) ;
+						}
+					}
+					get_ui_context().logger() << "\n" ;
+				}
+				get_ui_context().logger() << "\n";
 			}
-			get_ui_context().logger() << "\n";
 		}
 
 		get_ui_context().logger() << "================================================\n" ;
