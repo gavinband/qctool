@@ -2803,6 +2803,7 @@ public:
 	void summarise_priors(
 		Priors const& priors,
 		PriorNames const& prior_names,
+		PriorWeights const& prior_weights,
 		std::vector< std::string > const& cohort_names
 	) const {
 		get_ui_context().logger() << "\n================================================\n" ;
@@ -2839,7 +2840,12 @@ public:
 			end_name_i = prior_names.end() ;
 
 		for( ; name_i != end_name_i; ++name_i ) {
-			get_ui_context().logger() << "In model " << *name_i << ":\n" ;
+			get_ui_context().logger() << "Model " << *name_i ;
+			{
+				PriorWeights::const_iterator where = prior_weights.find( *name_i ) ;
+				assert( where != prior_weights.end() ) ;
+				get_ui_context().logger() << " " << ( boost::format( "(weight %.2f)\n" ) % where->second ).str() ;
+			}
 
 			Priors::const_iterator
 				prior_i = priors.lower_bound( *name_i ),
