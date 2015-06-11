@@ -68,24 +68,31 @@
         <div class="main_text">
             <div id="overview" style="display:none">
                 <p>
+					<em>This page documents version 2.0-dev of bingwa, which is currently considered experimental</em>.
+				</p>
+                <p>
 					<strong>Introduction.</strong>
-					<b>b</b>ingwa is a command-line tool used to carry out meta-analysis of genome-wide association studies.
-					It is particularly suited for use with the program <a href="">SNPTEST</a>, but can also be used with other programs such as <a href="">MMM</a>.
-					Key features of bingwa include:
+					<span class="program_name">bingwa</span> is a command-line tool used to carry out meta-analysis of genome-wide association studies.
+					It is particularly suited for use with the program <a href="https://mathgen.stats.ox.ac.uk/genetics_software/snptest/snptest.html">SNPTEST</a>,
+					but can also be used with other association testing programs such as <a href="http://www.helsinki.fi/~mjxpirin/download.html">MMM</a>.
+					Features of bingwa include:
 				</p>
 				<ul>
 					<li>
-						Computation of fixed-effect frequentist and flexible bayesian meta-analysis.
+						Direct support for SNPTEST output files.
 					</li>
 					<li>
-						Support 
+						Support for fixed-effect frequentist and a flexible bayesian meta-analysis method.
+					</li>
+					<li>
+						Support for both univariate and multivariate meta-analysis (including support
+						for meta-analysing tests performed using  <a href="https://mathgen.stats.ox.ac.uk/genetics_software/snptest/snptest.html#multinomial_tests">SNPTEST's multinomial test</a>).
 					</li>
 				</ul>
                 <p>
-                    <strong>Change history.</strong>
-					<br />
-					<em>Important!</em>
-					This page documents version 2 of bingwa which is currently <b>experimental</b>.  This means we expect some features not to work, or
+                    <strong>Disclaimer.</strong>
+					This page documents version 2.0-dev of bingwa which is currently considered <b>experimental</b>.
+					This means we expect some features not to work, or
 					not to work well, or to work wrongly, or to destroy your computer or sanity.
                 </p>
                 <p>
@@ -131,6 +138,10 @@
 						<li>Writing results.</li>
 					</ol>
                 </p>
+				<p>
+					We'll update this page with more details on the method soon.  In the meantime the <a href="#tutorial">examples page</a>
+					has usage examples.
+                </p>
 			</div>
             <div id="tutorial" style="display:none">
 				<h2>
@@ -161,27 +172,93 @@
                         $ bingwa -data cohort1.snptest cohort2.snptest -flat-file -o output.csv
                     </div>
                     <div class="task_notes">
-                        <b>Note</b>: By default bingwa writes output to a sqlite file.  Use <code>-flat-file</code> to write a flat file instead.
+                        <b>Note</b>: By default bingwa writes output to a sqlite file (more details below).  Use <code>-flat-file</code> to write a flat file instead.
 							Flat files are space, tab or comma-delimited according to the filename extension.
                     </div>
                 </div>
-                <div class="tutorial_separator">
+                <div class="task">
+                    <div class="task_name">
+                        Compute a fixed-effect bayesian meta-analysis
+                    </div>
+                    <div class="task_command_line">
+                        $ bingwa -data cohort1.snptest cohort2.snptest -o output.sqlite -prior sd=0.2,0.2/rho=1,1,1 
+					</div>
+                    <div class="task_notes">
+                        <b>Note</b>: The above specifies a multivariate normal (MVN) prior on the 'true' effects
+						that is centred at zero and has variance-covariance matrix with every entry equal 0.2<sup>2</sup>.
+						(Bingwa will print this model to the screen output so you can double-check this).
+						Under this model the true effects in the two populations are assumed perfectly correlated; the only
+						variation comes from estimation effects represented by the within-study standard errors.
+						The bayes factor for this model will be stored in a column named <code>sd=0.2,0.2/rho=1,1,1:bf</code>.
+                    </div>
                 </div>
-				<h2>
+                <div class="task">
+                    <div class="task_name">
+                        Compute both a fixed and independent-effect bayesian meta-analysis
+                    </div>
+                    <div class="task_command_line">
+                        $ bingwa -data cohort1.snptest cohort2.snptest -o output.sqlite -prior fixed:sd=0.2,0.2/rho=1,1,1 -prior independent:sd=0.2,0.2/rho=1,0,1 
+					</div>
+                    <div class="task_notes">
+                        <b>Note</b>: In the above command we've named the models to avoid confusion - now the
+						output will contain <code>fixed:bf</code> and <code>independent:bf</code> columns.
+						Here, the independent model assumes that true effects are uncorrelated between the cohorts - i.e.
+						they have diagonal variance-covariance matrix.
+                        In addition to the two model-specific bayes factors, bingwa will compute a model-averaged bayes factor
+						over all the models specified, named <code>mean_bf</code>.
+                    </div>
+                </div>
+                <div class="task">
+                    <div class="task_name">
+                        Avoiding typing all those sds and rhos.
+                    </div>
+                    <div class="task_command_line">
+                        $ bingwa -data cohort1.snptest ... cohort&lt;n&gt;.snptest -o output.sqlite -prior fixed:tau=1/sd=0.2/rho=1 -prior independent:tau=0/sd=0.2/rho=1
+					</div>
+                    <div class="task_notes">
+                        <b>Note</b>: In the above command we use a short-hand version of the prior specification.
+						The first part (tau) denotes the between-cohort correlation.  The rest now denotes the prior
+						covariance matrix within each cohort.  Thus as before the fixed-effect model reflects a prior
+						covariance with all entries equal to 0.2<sup>2</sup>, while the independent-effect model
+						reflects a diagonal covariance matrix.
+                    </div>
+					<div class="task_notes">
+						We advise always checking the screen output to debug model definitions.
+					</div>
+                </div>
+                <div class="task">
+                    <div class="task_name">
+                        Getting nicer output
+                    </div>
+                    <div class="task_command_line">
+                        $ bingwa -data cohort1.snptest cohort2.snptest -o output.sqlite -table-name Meta -cohort-names set1 set2
+						-analysis-name "My first meta-analysis" 
+					</div>
+                    <div class="task_notes">
+                        <b>Note</b>: Bingwa includes a number of options that help in giving more interpretable names
+						to the output.  In the above command, we set the name of the table in which the primary output is produced
+						(see the <a href="#file_formats">file formats page for details</a>), a name for the analysis overall,
+						and names for each of the cohorts.
+                    </div>
+                </div>
+				<div class="tutorial_separator"></div>
+				<h3>
 					Understanding bingwa sqlite output files
-				</h2>
+				</h3>
 				<div>
 					<p>
-						Below we've given some examples of using the shell or various programming languages to extract data from a bingwa sqlite file.
+						Below we've given some examples of using the shell or various programming languages to extract data from a bingwa
+						<a href="http://www.sqlite.org">sqlite</a> file.
 						We assume the file is named <code>bingwa.sqlite</code> and the meta-analysis results were stored
 						in the <code>MetaAnalysis</code> table.
 					</p>
 					<p>
 	                    <b>Note</b>: The <code>sqlite3</code> program is installed by default on most UNIX-like systems.
-						It's quite flexible.  It can be used in interactive mode, or to run queries directly from the command-line.
+						It's quite flexible, and can be used in interactive mode, or to run queries directly from the command-line.
+						We'll use both methods below.
 						See the <a href="https://www.sqlite.org/cli.html">sqlite3 command shell documentation</a> for a full list of options.
 					</p>
-					<h3>Inspecting the contents of the results file</h3>
+					<h4>Inspecting the contents of the results file</h4>
 					<p>
 						sqlite files can be inspected using the sqlite3 command shell.  Open the file by typing:
 					</p>
@@ -200,9 +277,10 @@ AnalysisStatus          EntityRelationship      VariantIdentifier
 AnalysisStatusView      EntityRelationshipView  VariantView
 					</pre>
                     <p>
-                        Here, the main results are here stored in the <code>MetaAnalysis</code> table,
+                        Here, the main results are stored in the <code>MetaAnalysis</code> table,
 						and bingwa has also created the <code>MetaAnalysisView</code> view which provides a nicer view of the results.
-						(The <code>-table-name</code> option can be used to change the name of the main results table.  By default it is a name of the form Analysis&lt;n&gt;, where n is an integer.)
+						(The <code>-table-name</code> option can be used to change the name of the main results table.
+						By default it is a name of the form <code>Analysis&lt;n&gt;</code>, where n is an integer.)
 						The <code>Analysis*</code> and <code>Entity*</code> tables are used to store
 						metadata about the analyses you have run.  Let's see what's stored in this file:
 					</p>
@@ -277,12 +355,13 @@ sqlite3&gt; SELECT * FROM MetaAnalysisView LIMIT 1 ;
 						<b>Note</b>: the <code>-cohort-names</code> option can be used to name the cohorts in a more useful way.
 					</p>
 				</div>
-			<div>
+                <div class="tutorial_separator"></div>
 				<h2>
 					Processing bingwa sqlite output files
 				</h2>
 				<p>
 					Below are some example commands that process bingwa output in the command-line or in R.
+					See above for a full description of bingwa's sqlite output.
 				</p>
                 <div class="task">
                     <div class="task_name">
@@ -321,36 +400,11 @@ sqlite3&gt; SELECT * FROM MetaAnalysisView LIMIT 1 ;
 					
                 </div>
             </div>
-		</div>
             <div id="file_formats" style="display:none">
 				<h3>Input file formats</h3>
                 <div>
-                    Bingwa supports the following input file formats:
-                    <table class="file_formats">
-                        <tr>
-                            <th>
-                                format
-                            </th>
-                            <th>
-                                recognised extension(s)
-                            </th>
-                            <th>
-                                notes
-                            </th>
-                        </tr>
-                        <tr>
-                            <td>
-                                <a href="https://mathgen.stats.ox.ac.uk/genetics_software/snptest/snptest.html">SNPTEST</a> output file
-                            </td>
-                            <td>
-								(none)
-                            </td>
-                            <td>
-								These can be supplied to the <span class="monospace">-data</span> option.  Files are space-, comma- or tab-delimited
-								according to the file extension (<code>.txt</code>, <code>.csv</code> or <code>.tsv</code>)
-                            </td>
-                        </tr>
-                    </table>
+                    Bingwa supports reading SNPTEST output files.  Files are assumed space-, comma- or tab-delimited
+								according to the file extension (<code>.txt</code>, <code>.csv</code> or <code>.tsv</code>).
                 </div>
 				<h3>Output file formats</h3>
 				<div>
@@ -360,13 +414,14 @@ sqlite3&gt; SELECT * FROM MetaAnalysisView LIMIT 1 ;
 				(such as genome-wide analyses of datasets imputed into recent reference panels) which may require writing
 				special file-handling code.
 				</p>
+				<p>Flat files are written when the <code>-flat-file</code> option is specified.</p>
 				<p>
-					<b><a href="http://www.sqlite.org">Sqlite</a> files</b> are also easy to use via the <a href="">sqlite3</a> command-line client,which 
-					is installed on most UNIX-like systems.  They can also be read directly from programming languages such as <a href="">R</a>.
+					<b><a href="http://www.sqlite.org">Sqlite</a> files</b> are also easy to use via the <a href="https://www.sqlite.org/cli.html">sqlite3 command shell</a>,
+					which is installed on most UNIX-like systems.  They can also be read directly from programming languages such as <a href="">R</a>.
 					An attractive feature is that they are <em>indexed</em>, so that data for specific regions of the genome or specific variants can
 					be easily found.  See the <a href='#tutorial'>examples page</a> for code snippets for processing bingwa-produced sqlite files.
 				</p>
-			</div>
+				<p>Sqlite is the default output format for bingwa.</p>
             </div>
             <div id="download" style="display:none">
                 <div>

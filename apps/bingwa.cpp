@@ -50,7 +50,7 @@
 #include "SNPTESTResults.hpp"
 #include "MMMResults.hpp"
 
-// #define DEBUG_BINGWA 1
+//#define DEBUG_BINGWA 1
 
 namespace globals {
 	std::string const program_name = "bingwa" ;
@@ -266,18 +266,16 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_maximum_multiplicity( 1 ) ;
 
 			options[ "-prior-weights" ]
-				.set_description( "Specify a model of the form \"rho=[r]/sd=[s]\" giving a correlation matrix of the form\n"
-					"      [ 1 r r  .. ]\n"
-					"      [ r 1 r  .. ]\n"
-					"s^2 * [ r r 1  .. ]\n"
-					"      [       .   ]\n"
-					"      [         . ]\n"
+				.set_description( "Specify prior weights for each model. Each argument must be of the form"
+					"<model name>=<weight>, where <model name> is the name of a model specified by -prior."
+					"models that are not assigned weights are given the implicit weight of 1."
 				)
 				.set_takes_values_until_next_option()
 				.set_minimum_multiplicity( 0 )
 				.set_maximum_multiplicity( 1 ) ;
 
 			options.option_excludes_option( "-no-meta-analysis", "-prior" ) ;
+			options.option_implies_option( "-prior-weights", "-prior" ) ;
 		}
 	}
 } ;
@@ -1895,6 +1893,7 @@ public:
 			else {
 				BingwaComputation::Filter filter = get_filter( options() ) ;
 
+#if 0
 				{
 					FixedEffectFrequentistMetaAnalysis::UniquePtr computation(
 						new FixedEffectFrequentistMetaAnalysis()
@@ -1905,13 +1904,14 @@ public:
 						BingwaComputation::UniquePtr( computation.release() )
 					) ;
 				}
+#endif
 				{
 					MultivariateFixedEffectMetaAnalysis::UniquePtr computation(
-						new MultivariateFixedEffectMetaAnalysis( "MultivariateFixedEffectMetaAnalysis" )
+						new MultivariateFixedEffectMetaAnalysis( "FixedEffectMetaAnalysis" )
 					) ;
 					computation->set_filter( filter ) ;
 					m_processor->add_computation(
-						"MultivariateFixedEffectMetaAnalysis",
+						"FixedEffectMetaAnalysis",
 						BingwaComputation::UniquePtr( computation.release() )
 					) ;
 				}
@@ -2055,19 +2055,19 @@ public:
 		if( covariance_spec.get<eBetweenPopulationCorrelation>().size() > 0 ) {
 			result += "tau=" ;
 			for( std::size_t j = 0; j < covariance_spec.get<eBetweenPopulationCorrelation>().size(); ++j ) {
-				result += covariance_spec.get<eBetweenPopulationCorrelation>()[j] ;
+				result += (j>0 ? "," : "" ) + covariance_spec.get<eBetweenPopulationCorrelation>()[j] ;
 			}
 		}
 		if( covariance_spec.get<eSD>().size() > 0 ) {
 			result += "/sd=" ;
 			for( std::size_t j = 0; j < covariance_spec.get<eSD>().size(); ++j ) {
-				result += covariance_spec.get<eSD>()[j] ;
+				result += (j>0 ? "," : "" ) + covariance_spec.get<eSD>()[j] ;
 			}
 		}
 		if( covariance_spec.get<eCorrelation>().size() > 0 ) {
 			result += "/rho=" ;
 			for( std::size_t j = 0; j < covariance_spec.get<eCorrelation>().size(); ++j ) {
-				result += covariance_spec.get<eCorrelation>()[j] ;
+				result += (j>0 ? "," : "" ) + covariance_spec.get<eCorrelation>()[j] ;
 			}
 		}
 		return result ;
