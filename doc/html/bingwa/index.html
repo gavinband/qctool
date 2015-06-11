@@ -2,11 +2,22 @@
 "http://www.w3.org/TR/html4/strict.dtd">
 <html>
     <head>
+        <link href="style/css/default.css" rel="stylesheet" type="text/css">
+
+		<!-- Required scripts -->
         <script type="text/javascript" src="js/jquery-1.4.2.min.js"></script>
         <script type="text/javascript" src="js/jquery.ba-hashchange.min.js"></script>
         <script type="text/javascript" src="js/local.js"></script>
 
-        <!-- Google Analytics tracking code-->
+		<!-- MathJax configuration-->
+		<script type="text/x-mathjax-config">
+		  MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+		</script>        <!-- Google Analytics tracking code-->
+		<script type="text/javascript"
+		  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+		</script>
+
+		<!-- Google analytics tracking code-->
         <script type="text/javascript">
             var _gaq = _gaq || [];
             _gaq.push(['_setAccount', 'UA-16521993-1']);
@@ -19,6 +30,7 @@
             })();
         </script>
 
+		<!-- Go to first page if we get a vanilla URL-->
         <script type="text/javascript">
             $(document).ready(
                 function() {
@@ -26,7 +38,6 @@
                 }
             ) ;
         </script>
-        <link href="style/css/default.css" rel="stylesheet" type="text/css">
         <title></title>
     </head>
     <body>
@@ -142,6 +153,28 @@
 					We'll update this page with more details on the method soon.  In the meantime the <a href="#tutorial">examples page</a>
 					has usage examples.
                 </p>
+				<h3>Meta-analysis - a classical view</h3>
+				<p>
+					Suppose we have $N$ studies and in each study an estimate $\hat{\beta}_i$ of an effect parameter,
+					with associated standard error $\sigma_i$.  In a classical meta-analysis framework, we consider that
+					$\hat{\beta}_i$ is an estimate of a true effect parameter $\beta_i$.  The $\beta_i$'s might be equal
+					across cohorts, or might differ.  The aim of meta-analysis is to estimate the true effects and derive
+					statistical measures of evidence that they are non-zero.
+				</p>
+				<h3>Meta-analysis - a bayesian view</h3>
+				<p>
+					A bayesian view of meta-analysis is slightly different.  Suppose the likelihood function in cohort $i$ is
+					$$L_i( \beta_i ) = P(D_i|\beta_i)$$
+					where $D_i$ is the data for cohort $i$.  Write $D=\{D_i\}$ and $\beta=(\beta_i)$. In a bayesian framework we wish to compute the posterior distribution on parameters.
+					Bayes' theorem gives this as
+					$$P(\beta|D) = \frac{P(D|\beta)\cdot P(\beta)}{P(D)} = \frac{ \left( \prod_i L_i(\beta_i) \right)\cdot P(\beta)}{P(D)}$$
+					Thus, the posterior depends both on the study-specific log-likelihoods and on the prior distribution of true effects.
+				</p>
+				<p>
+					(...to be continued)
+				</p>
+					
+				
 			</div>
             <div id="tutorial" style="display:none">
 				<h2>
@@ -181,7 +214,7 @@
                         Compute a fixed-effect bayesian meta-analysis
                     </div>
                     <div class="task_command_line">
-                        $ bingwa -data cohort1.snptest cohort2.snptest -o output.sqlite -prior sd=0.2,0.2/rho=1,1,1 
+                        $ bingwa -data cohort1.snptest cohort2.snptest -o output.sqlite -prior sd=0.2,0.2/cor=1,1,1 
 					</div>
                     <div class="task_notes">
                         <b>Note</b>: The above specifies a multivariate normal (MVN) prior on the 'true' effects
@@ -189,7 +222,7 @@
 						(Bingwa will print this model to the screen output so you can double-check this).
 						Under this model the true effects in the two populations are assumed perfectly correlated; the only
 						variation comes from estimation effects represented by the within-study standard errors.
-						The bayes factor for this model will be stored in a column named <code>sd=0.2,0.2/rho=1,1,1:bf</code>.
+						The bayes factor for this model will be stored in a column named <code>sd=0.2,0.2/cor=1,1,1:bf</code>.
                     </div>
                 </div>
                 <div class="task">
@@ -197,7 +230,7 @@
                         Compute both a fixed and independent-effect bayesian meta-analysis
                     </div>
                     <div class="task_command_line">
-                        $ bingwa -data cohort1.snptest cohort2.snptest -o output.sqlite -prior fixed:sd=0.2,0.2/rho=1,1,1 -prior independent:sd=0.2,0.2/rho=1,0,1 
+                        $ bingwa -data cohort1.snptest cohort2.snptest -o output.sqlite -prior fixed:sd=0.2,0.2/cor=1,1,1 -prior independent:sd=0.2,0.2/cor=1,0,1 
 					</div>
                     <div class="task_notes">
                         <b>Note</b>: In the above command we've named the models to avoid confusion - now the
@@ -210,10 +243,10 @@
                 </div>
                 <div class="task">
                     <div class="task_name">
-                        Avoiding typing all those sds and rhos.
+                        Avoiding typing all those sds and cors.
                     </div>
                     <div class="task_command_line">
-                        $ bingwa -data cohort1.snptest ... cohort&lt;n&gt;.snptest -o output.sqlite -prior fixed:tau=1/sd=0.2/rho=1 -prior independent:tau=0/sd=0.2/rho=1
+                        $ bingwa -data cohort1.snptest ... cohort&lt;n&gt;.snptest -o output.sqlite -prior fixed:tau=1/sd=0.2/cor=1 -prior independent:tau=0/sd=0.2/cor=1
 					</div>
                     <div class="task_notes">
                         <b>Note</b>: In the above command we use a short-hand version of the prior specification.
@@ -407,14 +440,17 @@ sqlite3&gt; SELECT * FROM MetaAnalysisView LIMIT 1 ;
 								according to the file extension (<code>.txt</code>, <code>.csv</code> or <code>.tsv</code>).
                 </div>
 				<h3>Output file formats</h3>
-				<div>
-				<p>Bingwa can either output to a flat file or to a table in a sqlite database.  Both have pros and cons.</p>
+				<p>
+					Bingwa can either output to a flat file or to a table in a sqlite database.  Both have pros and cons.
+				</p>
 				<p>
 				<b>Flat files</b> are simple and easy to use.  However, they can become difficult to read from for very large analyses
 				(such as genome-wide analyses of datasets imputed into recent reference panels) which may require writing
 				special file-handling code.
 				</p>
-				<p>Flat files are written when the <code>-flat-file</code> option is specified.</p>
+				<p>
+					Flat files are written when the <code>-flat-file</code> option is specified.
+				</p>
 				<p>
 					<b><a href="http://www.sqlite.org">Sqlite</a> files</b> are also easy to use via the <a href="https://www.sqlite.org/cli.html">sqlite3 command shell</a>,
 					which is installed on most UNIX-like systems.  They can also be read directly from programming languages such as <a href="">R</a>.
@@ -452,7 +488,7 @@ sqlite3&gt; SELECT * FROM MetaAnalysisView LIMIT 1 ;
                                 Linux <small>x86-64 static build</small>
                             </td>
                             <td>
-                                <a href="resources/bingwa_v2.0-dev-linux-x86_64.tgz">inthinnerator_v2.0-dev-linux-x86_64.tgz</a>
+                                <a href="resources/bingwa_v2.0-dev-linux-x86_64.tgz">bingwa_v2.0-dev-linux-x86_64.tgz</a>
                             </td>
                         </tr>
                         <tr>
@@ -461,7 +497,7 @@ sqlite3&gt; SELECT * FROM MetaAnalysisView LIMIT 1 ;
                                 Mac OS X
                             </td>
                             <td>
-                                <a href="resources/bingwa_v2.0-dev-osx.tgz">inthinnerator_v2.0-dev-osx.tgz</a>
+                                <a href="resources/bingwa_v2.0-dev-osx.tgz">bingwa_v2.0-dev-osx.tgz</a>
                             </td>
                         </tr>
                     </table>
@@ -480,8 +516,8 @@ $ ./bingwa_v2.0-dev -help
                         Source
                     </h3>
                     <p>
-                        The source code to bingwa is available as part of the <a href="http://bitbucket.org/gavinband/qctool">qctool package on bitbucket</a>.
-						See <a href="http://www.well.ox.ac.uk/~gav/qctool#download">this page</a> for details.
+                        The source code to bingwa is built as part of the <a href="http://bitbucket.org/gavinband/qctool">qctool package on bitbucket</a>.
+						See <a href="https://bitbucket.org/gavinband/qctool/wiki/Home">the qctool wiki page</a> for more details.
 					</p>
                 </div>
             </div>
