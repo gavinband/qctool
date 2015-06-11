@@ -254,10 +254,10 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 			options[ "-prior" ]
 				.set_description( "Specify a prior model to use when computing a bayes factor.\n"
 					"The format of the argument is as follows:\n"
-					"[<name>:][tau=<tau>/]sd=<sds>/rho=<rho>\n"
-					" where tau denotes between-cohort correlations, rho denotes the upper diagonal of a correlation matrix,"
+					"[<name>:][tau=<tau>/]sd=<sds>/cor=<cor>\n"
+					" where tau denotes between-cohort correlations, cor denotes the upper diagonal of a correlation matrix,"
 					"and sd is a list of standard errors."
-					"If tau is supplied the standard errors and rhos are specified within-cohort,"
+					"If tau is supplied the standard errors and cors are specified within-cohort,"
 					"otherwise they specify the full matrix across cohorts."
 					"The name is optional, and if not supplied a name will be generated."
 				)
@@ -1946,7 +1946,7 @@ public:
 						) ;
 					}
 					
-					summarise_priors( priors, prior_names, cohort_names ) ;
+					summarise_priors( priors, prior_names, prior_weights, cohort_names ) ;
 				}
 			}
 		}
@@ -2065,7 +2065,7 @@ public:
 			}
 		}
 		if( covariance_spec.get<eCorrelation>().size() > 0 ) {
-			result += "/rho=" ;
+			result += "/cor=" ;
 			for( std::size_t j = 0; j < covariance_spec.get<eCorrelation>().size(); ++j ) {
 				result += (j>0 ? "," : "" ) + covariance_spec.get<eCorrelation>()[j] ;
 			}
@@ -2154,7 +2154,7 @@ public:
 
 				if( use_generated_name ) {
 					model_name = "tau=" + join( covariance_spec.get<eBetweenPopulationCorrelation>(), "," ) ;
-					model_name += "/sd=" + join( covariance_spec.get<eSD>(), "," ) + "/rho=" + join( covariance_spec.get<eCorrelation>(), "," ) ;
+					model_name += "/sd=" + join( covariance_spec.get<eSD>(), "," ) + "/cor=" + join( covariance_spec.get<eCorrelation>(), "," ) ;
 				}
 
 				result->insert( std::make_pair( model_name, std::make_pair( covariance_spec, covariance ) )) ;
@@ -2244,7 +2244,7 @@ public:
 				Eigen::MatrixXd const covariance = sd_vector.asDiagonal() * correlation * sd_vector.asDiagonal() ;
 
 				if( use_generated_name ) {
-					model_name += "sd=" + join( covariance_spec.get<eSD>(), "," ) + "/rho=" + join( covariance_spec.get<eCorrelation>(), "," ) ;
+					model_name += "sd=" + join( covariance_spec.get<eSD>(), "," ) + "/cor=" + join( covariance_spec.get<eCorrelation>(), "," ) ;
 				}
 
 				result->insert( std::make_pair( model_name, std::make_pair( covariance_spec, covariance ) ) ) ;
@@ -2426,41 +2426,41 @@ public:
 
 		int const tau_index = (( parameters.size() > 0 ) && parameters[0].substr(0,4) == "tau=" ) ? 0 : -1 ;
 		int const sd_index = (( parameters.size() > (tau_index+1) ) && parameters[ tau_index+1 ].substr(0,3) == "sd=" ) ? (tau_index+1) : -1 ;
-		int const rho_index = (( parameters.size() > (sd_index+1) ) && parameters[ sd_index+1 ].substr(0,4) == "rho=" ) ? (sd_index+1) : -1 ;
+		int const cor_index = (( parameters.size() > (sd_index+1) ) && parameters[ sd_index+1 ].substr(0,4) == "cor=" ) ? (sd_index+1) : -1 ;
 		bool have_tau = ( tau_index >= 0 ) ;
 		bool have_sd = ( sd_index >= 0 ) ;
-		bool have_rho = ( rho_index >= 0 ) ;
+		bool have_cor = ( cor_index >= 0 ) ;
 
 #if DEBUG_BINGWA
-		std::cerr << ( boost::format( "parse_covariance_spec(): spec = %s, tau_index = %d, sd_index = %d, rho_index = %d\n" ) % spec % tau_index % sd_index % rho_index ) ;
+		std::cerr << ( boost::format( "parse_covariance_spec(): spec = %s, tau_index = %d, sd_index = %d, cor_index = %d\n" ) % spec % tau_index % sd_index % cor_index ) ;
 #endif		
 			
 		// Only sd is required.
 		if(
 			( parameters.size() < 1 || parameters.size() > 3 )
 			|| ( !have_sd )
-			|| ( parameters.size() == 2 && !( have_rho || have_tau ))
-			|| ( parameters.size() == 3 && !( have_rho && have_tau ) )
+			|| ( parameters.size() == 2 && !( have_cor || have_tau ))
+			|| ( parameters.size() == 3 && !( have_cor && have_tau ) )
 		) {
 			throw genfile::BadArgumentError(
 				"BingwaProcessor::parse_covariance_spec()",
 				"spec=\"" + spec + "\"",
 				"Parameter spec \"" + spec + "\" is malformed, should be of the form "
 				"tau=[tau]/sd=[sd]"
-				" or tau=[tau]/sd=[sd1 sd1...]/rho=[rho12 rho13...]"
-				" or sd=[sd1 sd2...]/rho=[rho11 rho12 rho13...]"
+				" or tau=[tau]/sd=[sd1 sd1...]/cor=[cor12 cor13...]"
+				" or sd=[sd1 sd2...]/cor=[cor11 cor12 cor13...]"
 			) ;
 		}
 
 		std::vector< std::string > const taus = ( have_tau ? split_and_strip( parameters[ tau_index ].substr( 4, parameters[ tau_index ].size() ), "," ) : std::vector< std::string >() ) ;
 		std::vector< std::string > const sds = ( have_sd ? split_and_strip( parameters[ sd_index ].substr( 3, parameters[ sd_index ].size() ), "," ) : std::vector< std::string >() ) ;
-		std::vector< std::string > const rho = ( have_rho ? split_and_strip_discarding_empty_entries( parameters[ rho_index ].substr( 4, parameters[ rho_index ].size() ), "," ) : std::vector< std::string >() ) ;
+		std::vector< std::string > const cor = ( have_cor ? split_and_strip_discarding_empty_entries( parameters[ cor_index ].substr( 4, parameters[ cor_index ].size() ), "," ) : std::vector< std::string >() ) ;
 
-		if( sds.size() > 1 && !have_rho ) {
+		if( sds.size() > 1 && !have_cor ) {
 			throw genfile::BadArgumentError(
 				"BingwaProcessor::parse_covariance_spec()",
 				"spec=\"" + spec + "\"",
-				"Parameter spec \"" + spec + "\" is malformed, you must supply rho= if there is more than one sd."
+				"Parameter spec \"" + spec + "\" is malformed, you must supply cor= if there is more than one sd."
 			) ;
 		}
 
@@ -2472,16 +2472,16 @@ public:
 				( boost::format( "Wrong number of taus (%d, should be at most %d)" ) % taus.size() % 1 ).str()
 			) ;
 		}
-		if( rho.size() != expectedNumberOfCorrelations ) {
+		if( cor.size() != expectedNumberOfCorrelations ) {
 			throw genfile::BadArgumentError(
 				"BingwaProcessor::parse_covariance_spec()",
 				"spec=\"" + spec + "\"",
-				( boost::format( "Wrong number of correlations (%d, should be %d)" ) % rho.size() % expectedNumberOfCorrelations ).str()
+				( boost::format( "Wrong number of correlations (%d, should be %d)" ) % cor.size() % expectedNumberOfCorrelations ).str()
 			) ;
 		}
 		
 		return expand_taus_and_sds(
-			CovarianceSpec( taus, sds, rho ),
+			CovarianceSpec( taus, sds, cor ),
 			m_value_sets.at( "sd" ),
 			m_value_sets.at( "tau" )
 		) ;
@@ -2544,7 +2544,7 @@ public:
 	std::vector< CovarianceSpec > expand_taus_and_sds(
 		std::vector< std::string > taus,
 		std::vector< std::string > sds,
-		std::vector< std::string > rho,
+		std::vector< std::string > cor,
 		std::map< std::string, std::vector< std::string > > const& sd_sets,
 		std::map< std::string, std::vector< std::string > > const& tau_sets
 	) const {
@@ -2573,7 +2573,7 @@ public:
 					}
 				}
 			}
-			result.push_back( boost::make_tuple( working_taus, working_sds, rho ) ) ;
+			result.push_back( boost::make_tuple( working_taus, working_sds, cor ) ) ;
 			
 			// move to next configuration of sds and taus.
 			// The rather ungainly code below steps through substitutable values of sds and then of taus in right-to-left order.
@@ -2769,7 +2769,7 @@ public:
 		
 		if( options.check( "-prior-weights" )) {
 			std::vector< std::string > const weight_spec = options.get_values< std::string >( "-prior-weights" ) ;
-			for( std::size_t i = 0; i < result.size(); ++i ) {
+			for( std::size_t i = 0; i < weight_spec.size(); ++i ) {
 				std::vector< std::string > elts = split_and_strip_discarding_empty_entries( weight_spec[i], "=", " \t\r\n" ) ;
 				if( elts.size() != 2 ) {
 					throw genfile::BadArgumentError(
