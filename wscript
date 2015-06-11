@@ -315,8 +315,17 @@ def release( bld ):
 	inthinnerator_executable = "build/release/inthinnerator_v%s" % VERSION
 	builder = Release.ReleaseBuilder.ReleaseBuilder( "inthinnerator", VERSION, inthinnerator_executable )
 	release = builder.build()
-
 	print "++ inthinnerator release tarball created in", release[ "release_tarball" ]
+
+	inthinnerator_executable = "build/release/bingwa_v%s" % VERSION
+	builder = Release.ReleaseBuilder.ReleaseBuilder( "bingwa", VERSION, inthinnerator_executable )
+	release = builder.build()
+	print "++ bingwa release tarball created in", release[ "release_tarball" ]
+
+	cat_bgen_executable = "build/release/cat-bgen_v%s" % VERSION
+	builder = Release.ReleaseBuilder.ReleaseBuilder( "cat-bgen", VERSION, inthinnerator_executable )
+	release = builder.build()
+	print "++ cat-bgen release tarball created in", release[ "release_tarball" ]
 
 	qctool_executable = "build/release/qctool_v%s" % VERSION
 	builder = Release.ReleaseBuilder.ReleaseBuilder( APPNAME, VERSION, qctool_executable )
