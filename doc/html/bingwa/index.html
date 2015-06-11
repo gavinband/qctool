@@ -281,6 +281,20 @@
 						and names for each of the cohorts.
                     </div>
                 </div>
+                <div class="task">
+                    <div class="task_name">
+                        Reweighting models
+                    </div>
+                    <div class="task_command_line">
+                        $ bingwa -data cohort1.snptest cohort2.snptest -o output.sqlite -prior fixed:sd=0.2,0.2/cor=1,1,1 independent:sd=0.2,0.2/cor=1,0,1 -prior-weights fixed=1 independent=0.5
+					</div>
+                    <div class="task_notes">
+                        <b>Note</b>: By default all models are equally weighted in the model-average bayes factor.  Use the <code>-prior-weights</code>
+						option to reweight them.  Weights are renormalised to sum to one in the mean bayes factor computation - i.e. the mean Bayes factor is computed as
+						$$\text{BF}_{\text{avg}} = \frac{\sum_i \text{weight}_i \cdot \text{BF}_i}{\sum_i \text{weight}_i}$$
+						where $\text{weight}_i$ and $\text{BF}_i$ are the specified weight and Bayes factor for model $i$.
+                    </div>
+                </div>
 				<div class="tutorial_separator"></div>
 				<h3>
 					Understanding bingwa sqlite output files
@@ -495,7 +509,7 @@ sqlite3&gt; SELECT * FROM MetaAnalysisView LIMIT 1 ;
                                 Linux <small>x86-64 static build</small>
                             </td>
                             <td>
-                                <a href="resources/bingwa_v2.0-dev-linux-x86_64.tgz">bingwa_v2.0-dev-linux-x86_64.tgz</a>
+                                <a href="http://www.well.ox.ac.uk/~gav/resources/bingwa_v2.0-dev-linux-x86_64.tgz">bingwa_v2.0-dev-linux-x86_64.tgz</a>
                             </td>
                         </tr>
                         <tr>
@@ -504,7 +518,7 @@ sqlite3&gt; SELECT * FROM MetaAnalysisView LIMIT 1 ;
                                 Mac OS X
                             </td>
                             <td>
-                                <a href="resources/bingwa_v2.0-dev-osx.tgz">bingwa_v2.0-dev-osx.tgz</a>
+                                <a href="http://www.well.ox.ac.uk/~gav/resources/bingwa_v2.0-dev-osx.tgz">bingwa_v2.0-dev-osx.tgz</a>
                             </td>
                         </tr>
                     </table>
