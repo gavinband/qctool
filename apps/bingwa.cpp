@@ -2771,12 +2771,12 @@ public:
 	PriorWeights get_prior_weights( appcontext::OptionProcessor const& options, PriorNames const& prior_names ) const {
 		using namespace genfile::string_utils ;
 		PriorWeights result ;
-		// Initialise with weight=1 for all priors.
+		// Initialise with weight=0 for all priors.
 		{
 			PriorNames::const_iterator i = prior_names.begin() ;
 			PriorNames::const_iterator const end_i = prior_names.end() ;
 			for( ; i != end_i; ++i ) {
-				result[ *i ] = 1 ;
+				result[ *i ] = 0 ;
 			}
 		}
 		
