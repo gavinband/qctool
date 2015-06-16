@@ -1919,6 +1919,19 @@ public:
 					Priors const priors = get_priors( options(), cohort_names ) ;
 					PriorNames const prior_names = get_prior_names( priors ) ;
 					std::map< std::string, double > prior_weights = get_prior_weights( options(), prior_names ) ;
+					{
+						double total_weight = 0 ;
+						for( std::map< std::string, double >::const_iterator i = prior_weights.begin(); i != prior_weights.end(); ++i ) {
+							total_weight += i->second ;
+						}
+						if( std::abs( total_weight - 1.0 ) > 1E-9 ) {
+							throw genfile::BadArgumentError(
+								"BingwaProcessor::unsafe_run()",
+								"-prior-weights",
+								( boost::format( "Specified weights sum to %f, not one." ) % total_weight ).str()
+							) ;
+						}
+					}
 					ModelAveragingBayesFactorAnalysis::UniquePtr averager( new ModelAveragingBayesFactorAnalysis ) ;
 					assert( priors.size() > 0 ) ;
 					{
