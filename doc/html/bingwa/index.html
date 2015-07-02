@@ -46,7 +46,7 @@
 				bingwa
 			</div>
             <div class="header_subtext">
-				<b>b</b>ayes<b>i</b>a<b>n</b> meta-analysis for <b>g</b>enome-<b>w</b>ide <b>a</b>ssociation studies
+				model-based meta-analysis for genome-wide association studies
             </div>
         </div>
         <div class="button_bar">
@@ -107,22 +107,28 @@
 					not to work well, or to work wrongly, or to destroy your computer or sanity.
                 </p>
                 <p>
-					Methodology for the bayesian meta-analysis used in bingwa was described in these papers:
+					If you make use of bingwa, please cite the following paper, which describes the key methodology underlying the program:
+					<ul>
+					<li>
+						"<em>Imputation-Based Meta-Analysis of Severe Malaria in Three African Populations</em>",
+						Band et al, PLOS Genetics (2013)
+					</li>
+				</ul>
 				</p>
+				<p>
+					Similar methodology was employed in these papers:
 				<ul>
 					<li>
 						"<em>Genome-wide association study identifies a variant in HDAC9 associated with large vessel ischemic stroke</em>",
 						International Stroke Genetics Consortium (ISGC) and Wellcome Trust Case Control Consortium 2 (WTCCC2), Nat. Genetics (2012)
 					</li>
-					<li>
-						"<em>Imputation-Based Meta-Analysis of Severe Malaria in Three African Populations</em>",
-						Band et al, PLOS Genetics (2013)
-					</li>
-					<li>"<em>Reappraisal of known malaria resistance loci in a large multi-centre study</em>", Rockett et al, Nat. Genetics (2014).
+					<li>"<em>Reappraisal of known malaria resistance loci in a large multi-centre study</em>", Rockett et al, Nat. Genetics (2014).</li>
 				</ul>
                 <p>
-                    <strong>Acknowledgements.</strong> We are working on full list of people who have contributed to the methods,
-					design and implementation of this software.
+                    <strong>Acknowledgements.</strong>  Methodological work underpinning the use of bingwa was
+					carried out by Matti Pirinen, Chris Spencer, Gavin Band and others at
+					the <a href="http://www.well.ox.ac.uk/home">Wellcome Trust Centre for Human Genetics</a>, Oxford, UK.
+					This software was implemented by Gavin Band.
                 </p>
             </div>
             <div id="documentation" style="display:none">
@@ -143,35 +149,6 @@
 					We'll update this page with more details on the method soon.  In the meantime the <a href="#tutorial">examples page</a>
 					has usage examples.
                 </p>
-				<h3>Meta-analysis - a classical view</h3>
-				<p>
-					Suppose we have $N$ studies and in each study an estimate $\hat{\beta}_i$ of an effect parameter,
-					with associated standard error $\sigma_i$.  In a classical meta-analysis framework, we consider that
-					$\hat{\beta}_i$ is an estimate of a true effect parameter $\beta_i$.  The $\beta_i$'s might be equal
-					across cohorts, or might differ.  The aim of meta-analysis is to estimate the true effects and derive
-					statistical measures of evidence that they are non-zero.
-				</p>
-				<p>
-					(More details to come here...)
-				</p>
-				<h3>Meta-analysis - a bayesian view</h3>
-				<p>
-					A bayesian view of meta-analysis is slightly different.  Suppose the likelihood function in cohort $i$ is
-					$$L_i( \beta_i ) = P(D_i|\beta_i)$$
-					where $D_i$ is the data for cohort $i$.  Write $D=\{D_i\}$ and $\beta=(\beta_i)$. In a bayesian framework we wish to compute the posterior distribution on parameters.
-					Bayes' theorem gives this as
-					$$P(\beta|D) = \frac{P(D|\beta)\cdot P(\beta)}{P(D)} = \frac{ \left( \prod_i L_i(\beta_i) \right)\cdot P(\beta)}{P(D)}$$
-					Thus, the posterior depends both on the study-specific log-likelihoods and on the prior distribution of true effects.
-				</p>
-				<p>
-					In studies with lots of data, the study-specific likelihoods become close to normal (i.e. the likelihood is, up to a constant term, well approximated by the
-					density of a normal distribution with the given MLE $\hat{\beta}_i$ as mode and the estimated standard error $\sigma_i$.)
-				</p>
-				<p>
-					(More details to come here...)
-				</p>
-					
-				
 			</div>
             <div id="tutorial" style="display:none">
 				<h2>
@@ -480,6 +457,7 @@ sqlite3&gt; SELECT * FROM MetaAnalysisView LIMIT 1 ;
                     </h3>
                     <p>
                         Pre-compiled binaries are available for the following platforms.
+						(See <a href="http://www.well.ox.ac.uk/~gav/resources">here</a> for other builds.)
                     </p>
                     <table>
                         <tr>
@@ -496,10 +474,19 @@ sqlite3&gt; SELECT * FROM MetaAnalysisView LIMIT 1 ;
                         <tr>
                             <td>v2-dev<sup>&dagger;</sup></td>
                             <td>
-                                Linux <small>x86-64 static build</small>
+                                Ubuntu 12.04 <small>x86-64</small>
                             </td>
                             <td>
                                 <a href="http://www.well.ox.ac.uk/~gav/resources/bingwa_v2.0-dev-linux-x86_64.tgz">bingwa_v2.0-dev-linux-x86_64.tgz</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>v2-dev<sup>&dagger;</sup></td>
+                            <td>
+                                CentOS6.5 <small>x86-64</small>
+                            </td>
+                            <td>
+                                <a href="http://www.well.ox.ac.uk/~gav/resources/bingwa_v2.0-dev-linux-x86_64.tgz">bingwa_v2.0-dev-CentOS6.5-x86_64.tgz</a>
                             </td>
                         </tr>
                         <tr>

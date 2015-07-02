@@ -35,6 +35,10 @@ void SNPTESTResults::set_effect_size_column_regex( std::string const& beta_colum
 //	m_beta_column_regex = beta_column_regex ;
 }
 
+void SNPTESTResults::set_filter( Filter filter ) {
+	m_filter = filter ;
+}
+
 EffectParameterNamePack SNPTESTResults::get_effect_parameter_names() const {
 	return EffectParameterNamePack(
 		m_beta_columns,
@@ -227,10 +231,10 @@ bool SNPTESTResults::read_snp( statfile::BuiltInTypeStatSource& source, genfile:
 	return source ;
 }
 
-bool SNPTESTResults::check_if_snp_accepted( std::size_t snp_i ) const {
+bool SNPTESTResults::check_if_snp_accepted( std::size_t i ) const {
 	return
-		! m_exclusion_test.get()
-		|| m_exclusion_test->operator()( m_snps[ snp_i ] )
+		( (!m_exclusion_test.get()) || m_exclusion_test->operator()( m_snps[ i ] ) )
+		&& ( (!m_filter) || m_filter( m_info[i], m_maf[i], m_sample_counts.row(i), m_betas.row(i), m_ses.row(i) ) )
 	;
 }
 

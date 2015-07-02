@@ -234,7 +234,9 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 		
 			options[ "-no-meta-analysis" ]
 				.set_description( "Don't do a fixed effect meta-analysis.  Instead, just match up SNPs and store per-cohort values." ) ;
-
+		}
+		{
+			options.declare_group( "Bayesian meta-analysis options" ) ;
 			options[ "-define-sd-set" ]
 				.set_description( "Define set(s) of standard deviations to use in prior specifications. "
 					"The value should be a whitespace-separated list of elements of the form "
@@ -265,6 +267,12 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_minimum_multiplicity( 0 )
 				.set_maximum_multiplicity( 1 ) ;
 
+			options[ "-priors" ]
+				.set_description( "Specify a file containing prior models to load." )
+				.set_takes_single_value()
+				.set_minimum_multiplicity( 0 )
+				.set_maximum_multiplicity( 1 ) ;
+
 			options[ "-prior-weights" ]
 				.set_description( "Specify prior weights for each model. Each argument must be of the form"
 					"<model name>=<weight>, where <model name> is the name of a model specified by -prior."
@@ -275,6 +283,7 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 				.set_maximum_multiplicity( 1 ) ;
 
 			options.option_excludes_option( "-no-meta-analysis", "-prior" ) ;
+			options.option_excludes_option( "-priors", "-prior" ) ;
 			options.option_implies_option( "-prior-weights", "-prior" ) ;
 		}
 	}
@@ -544,6 +553,48 @@ namespace impl {
 			) || (
 				lower_maf_threshhold == lower_maf_threshhold && ( maf != maf || maf < lower_maf_threshhold )
 			) ) {
+				result = false ;
+			}
+		}
+		return result ;
+	}
+
+	bool minor_allele_count_filter( BingwaComputation::DataGetter const& data_getter, int i, double const threshhold ) {
+		bool result = data_getter.is_non_missing( i ) ;
+		if( result ) {
+			Eigen::VectorXd counts = Eigen::VectorXd::Zero(6) ;
+			data_getter.get_counts( i, &counts ) ;
+			// counts 0-1 are A/B
+			// counts 2-4 are AA/AB/BB
+
+			double alleleCount = counts(0) + (2 * counts(2)) + counts(3) ;
+			double const totalAlleles = counts(0) + counts(1) + 2 * (counts(2) + counts(3) + counts(4)) ;
+			if( alleleCount > totalAlleles / 2 ) {
+				alleleCount = totalAlleles - alleleCount ;
+			}
+			
+			if( alleleCount < threshhold ) {
+				result = false ;
+			}
+		}
+		return result ;
+	}
+
+	bool minor_homozygote_filter( BingwaComputation::DataGetter const& data_getter, int i, double const threshhold ) {
+		bool result = data_getter.is_non_missing( i ) ;
+		if( result ) {
+			Eigen::VectorXd counts = Eigen::VectorXd::Zero(4) ;
+			data_getter.get_counts( i, &counts ) ;
+			// counts 0-1 are A/B
+			// counts 2-4 are AA/AB/BB
+			// predictor is 1 for a B or a BB, 0 otherwise.
+			double count = counts(1) + counts(4) ;
+			double const total = counts.head(5).sum() ;
+			if( count > total / 2 ) {
+				count = total - count ;
+			}
+			
+			if( count < threshhold ) {
 				result = false ;
 			}
 		}
@@ -1915,7 +1966,7 @@ public:
 						BingwaComputation::UniquePtr( computation.release() )
 					) ;
 				}
-				if( options().check( "-prior" ) ) {
+				if( options().check_if_option_was_supplied_in_group( "Bayesian meta-analysis options" ) ) {
 					Priors const priors = get_priors( options(), cohort_names ) ;
 					PriorNames const prior_names = get_prior_names( priors ) ;
 					std::map< std::string, double > prior_weights = get_prior_weights( options(), prior_names ) ;
@@ -2646,14 +2697,22 @@ public:
 			m_value_sets[ "tau" ] ; // empty map
 		}
 
-		if( options.check( "-prior" ) ) {
-			boost::optional< std::vector< std::string > > model_names ;
-			get_simple_priors(
-				N,
-				options.get_values< std::string >( "-prior" ),
-				model_names,
-				&result
-			) ;
+		{
+			std::vector< std::string > model_specs ;
+			if( options.check( "-prior" ) ) {
+				model_specs = options.get_values< std::string >( "-prior" ) ;
+			} else if( options.check( "-priors" ) ) {
+				model_specs = parse_prior_spec_file( options.get< std::string >( "-priors" ) ) ;
+			}
+			if( model_specs.size() > 0 ) {
+				boost::optional< std::vector< std::string > > model_names ;
+				get_simple_priors(
+					N,
+					model_specs,
+					model_names,
+					&result
+				) ;
+			}
 		}
 
 		return result ;
@@ -2708,6 +2767,33 @@ public:
 		return result ;
 	}
 
+	std::vector< std::string > parse_prior_spec_file( std::string const& filename ) const {
+		std::auto_ptr< std::istream > file = genfile::open_text_file_for_input( filename ) ;
+		std::vector< std::string > result ;
+		std::string line ;
+		std::string spec ;
+		std::size_t lineCount = 0 ;
+		for( ; std::getline( *file, line ); ++lineCount ) {
+			line = genfile::string_utils::strip( line, " \t\r\n" ) ;
+			// spec ends on a blank line or a line that starts with a non-numeric character
+			if( line.size() > 0 && line[0] == '#' ) {
+				// ignore this line
+			} else {
+				// a spec ends on a blank line or a line not starting with a digit.
+				if( line.size() == 0 || line[0] < '0' || line[0] > '9' ) {
+					if( spec.size() > 0 ) {
+						result.push_back( spec ) ;
+						spec = "" ;
+					}
+				}
+				spec += line ;
+			}
+		}
+		if( spec != "" ) {
+			result.push_back( spec ) ;
+		}
+		return result ;
+	}
 
 	Eigen::MatrixXd get_prior_matrix( int const n, double const tau, double const sd ) const {
 		return get_correlation_matrix( n, tau ) * sd * sd ;
@@ -2772,15 +2858,16 @@ public:
 		using namespace genfile::string_utils ;
 		PriorWeights result ;
 		// Initialise with weight=0 for all priors.
-		{
-			PriorNames::const_iterator i = prior_names.begin() ;
-			PriorNames::const_iterator const end_i = prior_names.end() ;
-			for( ; i != end_i; ++i ) {
-				result[ *i ] = 0 ;
-			}
-		}
 		
 		if( options.check( "-prior-weights" )) {
+			{
+				PriorNames::const_iterator i = prior_names.begin() ;
+				PriorNames::const_iterator const end_i = prior_names.end() ;
+				for( ; i != end_i; ++i ) {
+					result[ *i ] = 0 ;
+				}
+			}
+
 			std::vector< std::string > const weight_spec = options.get_values< std::string >( "-prior-weights" ) ;
 			for( std::size_t i = 0; i < weight_spec.size(); ++i ) {
 				std::vector< std::string > elts = split_and_strip_discarding_empty_entries( weight_spec[i], "=", " \t\r\n" ) ;
@@ -2808,6 +2895,12 @@ public:
 						"In spec \"" + weight_spec[i] + ", the weight appears malformed."
 					) ;
 				}
+			}
+		} else {
+			PriorNames::const_iterator i = prior_names.begin() ;
+			PriorNames::const_iterator const end_i = prior_names.end() ;
+			for( ; i != end_i; ++i ) {
+				result[ *i ] = 1.0 / prior_names.size() ;
 			}
 		}
 		return result ;

@@ -8,10 +8,13 @@
 #define SNPTEST_RESULTS_HPP
 
 #include <boost/optional.hpp>
+#include <boost/function.hpp>
 #include "genfile/Chromosome.hpp"
 #include "FlatFileFrequentistGenomeWideAssociationResults.hpp"
 
 struct SNPTESTResults: public FlatFileFrequentistGenomeWideAssociationResults {
+	typedef boost::function< bool ( double info, double maf, Row const& betas, Row const& ses, Row const& counts ) > Filter ;
+
 	SNPTESTResults(
 		genfile::SNPIdentifyingDataTest::UniquePtr test,
 		boost::optional< genfile::Chromosome > const chromosome_hint = boost::optional< genfile::Chromosome >()
@@ -22,6 +25,8 @@ struct SNPTESTResults: public FlatFileFrequentistGenomeWideAssociationResults {
 	void add_variable( std::string const& variable ) ;
 	
 	std::string get_summary( std::string const& prefix, std::size_t target_column ) const ;
+
+	void set_filter( Filter filter ) ;
 
 private:
 	genfile::SNPIdentifyingDataTest::UniquePtr m_exclusion_test ;
@@ -34,6 +39,8 @@ private:
 	std::string m_info_column ;
 	std::set< std::string > m_variables ;
 
+	Filter m_filter ;
+	
 private:
 	DesiredColumns setup_columns( std::vector< std::string > const& column_names ) ;
 	bool read_snp( statfile::BuiltInTypeStatSource& source, genfile::SNPIdentifyingData& snp ) const ;

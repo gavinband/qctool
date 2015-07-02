@@ -115,6 +115,7 @@ protected:
 	Eigen::VectorXf m_info ;
 	Eigen::VectorXf m_maf ;
 	Eigen::MatrixXf m_sample_counts ;
+	typedef Eigen::MatrixXf::ConstRowXpr Row ;
 	typedef std::map< std::string, std::vector< std::string > > ExtraVariables ;
 	ExtraVariables m_extra_variables ;
 	
