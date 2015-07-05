@@ -125,11 +125,9 @@
 					<li>"<em>Reappraisal of known malaria resistance loci in a large multi-centre study</em>", Rockett et al, Nat. Genetics (2014).</li>
 				</ul>
                 <p>
-                    <strong>Acknowledgements.</strong>  Methodological work underpinning the use of bingwa was
-					carried out by Matti Pirinen, Chris Spencer, Gavin Band and others at
-					the <a href="http://www.well.ox.ac.uk/home">Wellcome Trust Centre for Human Genetics</a>, Oxford, UK.
-					This software was implemented by Gavin Band.
-                </p>
+                    <strong>Acknowledgements.</strong> A list of people who have contributed to this software will appear here.  For
+					methods development, see the publications listed above.
+		</p>
             </div>
             <div id="documentation" style="display:none">
                 <div class="display_diagram_right">
@@ -257,9 +255,11 @@
 					</div>
                     <div class="task_notes">
                         <b>Note</b>: By default all models are equally weighted in the model-average bayes factor.  Use the <code>-prior-weights</code>
-						option to reweight them.  Weights are renormalised to sum to one in the mean bayes factor computation - i.e. the mean Bayes factor is computed as
+						option to reweight them.  Weights are renormalised to sum to one in the mean bayes factor computation - i.e.
+						the mean Bayes factor is computed as
 						$$\text{BF}_{\text{avg}} = \frac{\sum_i \text{weight}_i \cdot \text{BF}_i}{\sum_i \text{weight}_i}$$
 						where $\text{weight}_i$ and $\text{BF}_i$ are the specified weight and Bayes factor for model $i$.
+						If <code>-prior-weights</code> is specified, any model not specified in the argument is given weight zero in the mean Bayes factor.
                     </div>
                 </div>
 				<div class="tutorial_separator"></div>
