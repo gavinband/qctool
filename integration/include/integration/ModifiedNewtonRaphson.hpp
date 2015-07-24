@@ -18,21 +18,21 @@ namespace integration {
 		template< typename Function, typename DirectionPicker, typename StoppingCondition >
 		struct Stepper: public boost::noncopyable {
 			Stepper(
-				DirectionPicker& solver,
+				DirectionPicker& direction_picker,
 				StoppingCondition& stopping_condition
 			):
-				 m_solver( solver ),
+				 m_direction_picker( direction_picker ),
 				 m_stopping_condition( stopping_condition )
 			{
 			}
 
 			bool step( Function& function, typename Function::Vector const& point, typename Function::Vector* result ) {
-				*result = m_solver.compute( function, point ) ;
+				*result = m_direction_picker.compute( function, point ) ;
 				return !m_stopping_condition( function, *result ) ;
 			}
 
 		private:
-			DirectionPicker& m_solver ;
+			DirectionPicker& m_direction_picker ;
 			StoppingCondition& m_stopping_condition ;
 		} ;
 		

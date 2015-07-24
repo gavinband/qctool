@@ -121,7 +121,7 @@ namespace integration {
 			result = m_transpositions.transpose() * result ;
 			return result ;
 	    }
-
+		
 	private:
 	    Matrix m_matrix ;
 	    Transpositions m_transpositions;
