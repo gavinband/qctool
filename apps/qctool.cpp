@@ -1195,7 +1195,7 @@ private:
 		appcontext::UIContext::ProgressContext progress_context = m_ui_context.get_progress_context( "Loading strand files" ) ;
 		progress_context.notify_progress( 0, filenames.size() ) ;
 		
-		std::vector< std::pair< int, int > > summaries( filenames.size(), std::make_pair( 0, 0 ) ) ; // first = row count, second = failure count.
+		std::vector< std::pair< statfile::BuiltInTypeStatSource::OptionalCount, int > > summaries( filenames.size(), std::make_pair( 0, 0 ) ) ; // first = row count, second = failure count.
 		
 		for( std::size_t i = 0; i < filenames.size(); ++i ) {
 			statfile::BuiltInTypeStatSource::UniquePtr source( statfile::BuiltInTypeStatSource::open( filenames[i] )) ;
@@ -1324,7 +1324,12 @@ private:
 		
 		m_ui_context.logger() << "\nStrand file summary:\n" ;
 		for( std::size_t i = 0; i < summaries.size(); ++i ) {
-			m_ui_context.logger() << std::setw( 30) << ( "  \"" + filenames[i] + "\"" ) << ": " << std::setw( 7 ) << summaries[i].first << " rows" ;
+			if( summaries[i].first ) {
+				m_ui_context.logger() << std::setw( 30) << ( "  \"" + filenames[i] + "\"" ) << ": " << std::setw( 7 )
+					<< *summaries[i].first << " rows" ;
+			} else {
+				m_ui_context.logger() << std::setw( 30) << ( "  \"" + filenames[i] + "\"" ) << ": unknown number of rows" ;
+			}
 			if( summaries[i].second > 0 ) {
 				m_ui_context.logger() << " of which " << summaries[i].second << " may be malformed, and will be ignored" ;
 			}

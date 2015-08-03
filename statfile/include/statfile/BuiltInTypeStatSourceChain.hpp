@@ -36,15 +36,16 @@ namespace statfile {
 		BuiltInTypeStatSourceChain() ;
 		~BuiltInTypeStatSourceChain() ;
 
+		operator bool() const ;
 		void add_source( std::auto_ptr< BuiltInTypeStatSource > source ) ;
 		void reset_to_start() ;
 		std::size_t number_of_columns() const ;
 		std::vector< std::string > column_names() const ;
 		std::string const& column_name( std::size_t i ) const ;
-		std::size_t number_of_rows() const ;
+		OptionalCount number_of_rows() const ;
 		std::size_t number_of_sources() const ;
-		unsigned int number_of_rows_in_source( std::size_t source_index ) const ;
-		std::vector< unsigned int > get_source_row_counts() const ;
+		OptionalCount number_of_rows_in_source( std::size_t source_index ) const ;
+		std::vector< OptionalCount > get_source_row_counts() const ;
 		std::string get_descriptive_text() const { return "" ; }
 		
 	protected:
@@ -56,6 +57,8 @@ namespace statfile {
 		void ignore_value() ;
 		void ignore_all() ;
 		void end_row() ;
+		void restart_row() ;
+		void move_to_next_row_impl() ;
 
 	protected:
 
@@ -78,7 +81,7 @@ namespace statfile {
 		std::size_t m_current_source ;
 		std::vector< std::string > m_column_names ;
 		moved_to_next_source_callback_t m_moved_to_next_source_callback ;
-		std::size_t m_number_of_rows ;
+		OptionalCount m_number_of_rows ;
 	} ;
 
 }

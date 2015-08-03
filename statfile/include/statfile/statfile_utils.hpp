@@ -52,13 +52,14 @@ namespace statfile {
 
 	IgnoreSome ignore( std::size_t n = 1 ) ;
 
-	struct IgnoreAll {
-	} ;
+	struct IgnoreAll {} ;
 	IgnoreAll ignore_all() ;
 
-	struct EndRow {	
-	} ;
+	struct EndRow {} ;
 	EndRow end_row() ;
+
+	struct RestartRow {} ;
+	RestartRow restart_row() ;
 
 	struct BeginData {} ;
 	BeginData begin_data() ;

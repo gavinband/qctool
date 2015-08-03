@@ -35,7 +35,7 @@ namespace statfile {
 	
 	struct NullBuiltInTypeStatSource: public BuiltInTypeStatSource
 	{
-		std::size_t number_of_rows() const { return 0 ; }
+		OptionalCount number_of_rows() const { return 0ul ; }
 		std::size_t number_of_columns() const { return 0 ; }
 		std::vector< std::string > column_names() const {
 			return std::vector< std::string >() ;
