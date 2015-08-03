@@ -284,7 +284,6 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 
 			options.option_excludes_option( "-no-meta-analysis", "-prior" ) ;
 			options.option_excludes_option( "-priors", "-prior" ) ;
-			options.option_implies_option( "-prior-weights", "-prior" ) ;
 		}
 	}
 } ;
@@ -2779,9 +2778,10 @@ public:
 			if( line.size() > 0 && line[0] == '#' ) {
 				// ignore this line
 			} else {
-				// a spec ends on a blank line or a line not starting with a digit.
-				if( line.size() == 0 || line[0] < '0' || line[0] > '9' ) {
+				// a spec ends on a blank line or current spec doesn't end on a continuation mark
+				if( line.size() == 0 || ( spec.size() > 0 && spec[spec.size()-1] != ':' && spec[spec.size()-1] != '/' && spec[spec.size()-1] != ',' ) ) {
 					if( spec.size() > 0 ) {
+						std::cerr << "Read " << lineCount << " lines, adding spec \"" << spec << "\".\n" ;
 						result.push_back( spec ) ;
 						spec = "" ;
 					}

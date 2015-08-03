@@ -78,6 +78,7 @@ namespace genfile {
 		std::map< std::string, std::string > format ;
 		format[ "ID" ] = "GT" ;
 		format[ "Number" ] = "G" ;
+		format[ "Type" ] = "String" ;
 		format[ "Description" ] = "Genotype calls" ;
 		SNPDataSource::Metadata result ;
 		result.insert( std::make_pair( "FORMAT", format )) ;
