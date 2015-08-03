@@ -63,6 +63,7 @@ namespace statfile {
 		catch( std::ios_base::failure const& ) {
 			set_stream( open_text_file_for_input( m_filename ) ) ;
 			assert( stream() ) ;
+			turn_off_ios_exceptions() ;
 		}
 	}
 
@@ -186,6 +187,7 @@ namespace statfile {
 	void DelimitedStatSource::setup( std::auto_ptr< std::istream > stream_ptr ) {
 		// First count the lines in the file.
 		set_stream( stream_ptr ) ;
+		turn_off_ios_exceptions() ;
 		read_comments() ;
 		m_number_of_ignored_lines = 0 ;
 		if( m_ignore_until ) {

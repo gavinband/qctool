@@ -58,6 +58,7 @@ namespace statfile {
 		void ignore_all() ;
 		void end_row() ;
 		void restart_row() ;
+		void move_to_next_row_impl() ;
 
 	protected:
 

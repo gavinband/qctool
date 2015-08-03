@@ -111,7 +111,8 @@ namespace statfile {
 		}
 
 	public:
-		// Return nonzero pointer iff there have been no errors up to now.
+		// Return true if there are more rows of data.
+		// Return false if there is no more data.
 		virtual operator bool() const = 0 ;
 		// Return the number of rows herein represented
 		typedef boost::optional< std::size_t > OptionalCount ;

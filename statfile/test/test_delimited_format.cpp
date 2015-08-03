@@ -203,6 +203,6 @@ AUTO_TEST_CASE( test_column_names ) {
 			TEST_ASSERT( column_names[12] == "8" ) ;
 			TEST_ASSERT( column_names[13] == "9" ) ;
 		}
-	
+		std::cout << "ok.\n" ;
 }
 

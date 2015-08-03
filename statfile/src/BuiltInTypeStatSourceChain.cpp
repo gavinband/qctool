@@ -72,6 +72,7 @@ namespace statfile {
 		}
 		m_current_source = 0 ;
 		BuiltInTypeStatSource::reset_to_start() ;
+		move_to_next_nonempty_source_if_necessary() ;
 	}
 
 	std::size_t BuiltInTypeStatSourceChain::number_of_columns() const { return m_column_names.size() ; }
@@ -97,37 +98,35 @@ namespace statfile {
 	}
 
 	void BuiltInTypeStatSourceChain::read_value( int32_t& value ) {
-		move_to_next_nonempty_source_if_necessary() ;
 		current_source() >> value ;
 	}
 
 	void BuiltInTypeStatSourceChain::read_value( uint32_t& value ) {
-		move_to_next_nonempty_source_if_necessary() ;
 		current_source() >> value ;
 	}
 
 	void BuiltInTypeStatSourceChain::read_value( std::string& value ) {
-		move_to_next_nonempty_source_if_necessary() ;
 		current_source() >> value ;
 	}
 
 	void BuiltInTypeStatSourceChain::read_value( double& value ) {
-		move_to_next_nonempty_source_if_necessary() ;
 		current_source() >> value ;
 	}
 	
 	void BuiltInTypeStatSourceChain::ignore_value() {
-		move_to_next_nonempty_source_if_necessary() ;
 		current_source() >> IgnoreSome() ;
 	}
 
 	void BuiltInTypeStatSourceChain::ignore_all() {
-		move_to_next_nonempty_source_if_necessary() ;
 		current_source() >> IgnoreAll() ;
 	}
 
 	void BuiltInTypeStatSourceChain::end_row() {
 		current_source() >> statfile::end_row() ;
+	}
+
+	void BuiltInTypeStatSourceChain::move_to_next_row_impl() {
+		move_to_next_nonempty_source_if_necessary() ;
 	}
 
 	void BuiltInTypeStatSourceChain::restart_row() {
