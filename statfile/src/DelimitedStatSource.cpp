@@ -21,6 +21,7 @@ namespace statfile {
 		OptionalString const& ignore_from
 	): 	
 		m_filename( "(unnamed stream)" ),
+		m_have_more_data( false ),
 		m_comment_character( '#' ),
 		m_delimiter( delimiter ),
 		m_quotes( "\"\"" ),
@@ -29,6 +30,7 @@ namespace statfile {
 		m_ignore_from( ignore_from )
 	{
 		setup( stream_ptr ) ;
+		read_one_line() ;
 	}
 
 	DelimitedStatSource::DelimitedStatSource(
@@ -38,6 +40,7 @@ namespace statfile {
 		OptionalString const& ignore_from
 	): 	
 		m_filename( filename ),
+		m_have_more_data( false ),
 		m_comment_character( '#' ),
 		m_delimiter( delimiter ),
 		m_quotes( "\"\"" ),
@@ -46,6 +49,11 @@ namespace statfile {
 		m_ignore_from( ignore_from )
 	{
 		setup( filename ) ;
+		read_one_line() ;
+	}
+
+	DelimitedStatSource::operator bool() const {
+		return m_have_more_data ;
 	}
 
 	void DelimitedStatSource::reset_stream_to_start() {
@@ -66,6 +74,7 @@ namespace statfile {
 			std::getline( stream(), line ) ;
 		}
 		Base::reset_to_start() ;
+		read_one_line() ;
 	}
 
 	void DelimitedStatSource::read_value( int32_t& field ) {
@@ -85,15 +94,19 @@ namespace statfile {
 	}
 
 	void DelimitedStatSource::ignore_value() {
-		if( current_column() == 0 ) {
-			read_one_line() ;
-		}
+		assert( m_have_more_data ) ;
 	}
 
 	void DelimitedStatSource::ignore_all() {
-		if( current_column() == 0 ) {
-			read_one_line() ;
-		}
+		// nothing to do.
+	}
+	
+	void DelimitedStatSource::move_to_next_row_impl() {
+		read_one_line() ;
+	}
+	
+	void DelimitedStatSource::restart_row() {
+		// nothing to do.
 	}
 
 	void DelimitedStatSource::read_one_line() {
@@ -103,10 +116,14 @@ namespace statfile {
 		while( stream() && m_current_line.size() > 0 && m_current_line[0] == m_comment_character ) {
 			std::getline( stream(), m_current_line ) ;
 		}
-			
-		m_current_fields = split_line( m_current_line, m_delimiter, m_quotes ) ;
-		if( m_current_fields.size() != number_of_columns() ) {
-			throw genfile::MalformedInputError( get_source_spec(), number_of_rows_read() ) ;
+		if( stream() ) {
+			m_current_fields = split_line( m_current_line, m_delimiter, m_quotes ) ;
+			if( m_current_fields.size() != number_of_columns() ) {
+				throw genfile::MalformedInputError( get_source_spec(), number_of_rows_read() ) ;
+			}
+			m_have_more_data = true ;
+		} else {
+			m_have_more_data = false ;
 		}
 	}
 
@@ -169,7 +186,7 @@ namespace statfile {
 	void DelimitedStatSource::setup( std::auto_ptr< std::istream > stream_ptr ) {
 		// First count the lines in the file.
 		set_stream( stream_ptr ) ;
-		read_descriptive_comments() ;
+		read_comments() ;
 		m_number_of_ignored_lines = 0 ;
 		if( m_ignore_until ) {
 			std::string line ;
@@ -177,9 +194,11 @@ namespace statfile {
 			while( std::getline( stream(), line ) ) {
 				++m_number_of_ignored_lines ;
 				std::size_t end = line.size() ;
-				if( line.size() > 0 && line[ line.size() -1 ] == '\r' ) {
+				// Handle Windows line endings
+				if( line.size() > 0 && line[ line.size() - 1 ] == '\r' ) {
 					--end ;
 				}
+				// Handle Windows line endings
 				if( line.compare( 0, end, m_ignore_until.get() ) == 0 ) {
 					ignoreUntilStringFound = true ;
 					break ;
@@ -193,13 +212,8 @@ namespace statfile {
 				) ;
 			}
 		}
-		turn_off_ios_exceptions() ;
-		m_number_of_rows = count_remaining_lines() - 1 ;
-		// Go back to the start and get the column names, prepare for reading.
 		reset_stream_to_start() ;
-		assert( stream() ) ;
-		turn_on_ios_exceptions() ;
-		m_descriptive_text = read_descriptive_comments() ;
+		m_descriptive_text = read_comments() ;
 		{
 			std::string line ;
 			for( std::size_t i = 0; i < m_number_of_ignored_lines; ++i ) {
@@ -213,7 +227,7 @@ namespace statfile {
 		setup( open_text_file_for_input( filename, get_compression_type_indicated_by_filename( filename ))) ;
 	}
 
-	std::string DelimitedStatSource::read_descriptive_comments() {
+	std::string DelimitedStatSource::read_comments() {
 		std::string line, result ;
 		m_number_of_comment_lines = 0 ;
 		while( stream().peek() == m_comment_character || stream().peek() == '\n' ) {
@@ -280,9 +294,7 @@ namespace statfile {
 	template<>
 	void DelimitedStatSource::do_read_value< std::string >( std::string& value ) {
 		//std::cerr << "do_read_value: size of line is " << m_current_fields.size() << ".\n" ;
-		if( current_column() == 0 ) {
-			read_one_line() ;
-		}
+		assert( m_have_more_data ) ;
 		std::string baked = m_current_fields[ current_column() ] ;
 	 	value.swap( baked );
 	}
@@ -291,9 +303,7 @@ namespace statfile {
 	// represented in the file as "inf".
 	template<>
 	void DelimitedStatSource::do_read_value< double >( double& value ) {
-		if( current_column() == 0 ) {
-			read_one_line() ;
-		}
+		assert( m_have_more_data ) ;
 		genfile::string_utils::slice const& elt = m_current_fields[ current_column() ] ;
 		if( elt.size() == 2 && elt[0] == 'N' && elt[1] == 'A' ) {
 			value = std::numeric_limits< double >::quiet_NaN() ;

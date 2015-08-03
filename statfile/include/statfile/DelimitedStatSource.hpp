@@ -41,9 +41,10 @@ namespace statfile {
 		) ;
 
 		void reset_to_start() ;
-
+		operator bool() const ;
+		
 	public:
-		std::size_t number_of_rows() const { return m_number_of_rows ; } ;
+		OptionalCount number_of_rows() const { return m_number_of_rows ; } ;
 
 		std::string get_descriptive_text() const { return m_descriptive_text ; }
 
@@ -56,13 +57,13 @@ namespace statfile {
 		void read_value( double& ) ;
 		void ignore_value() ;
 		void ignore_all() ;
+		void move_to_next_row_impl() ;
+		void restart_row() ;
 
 	private:
 		template< typename T >
 		void do_read_value( T& value ) {
-			if( current_column() == 0 ) {
-				read_one_line() ;
-			}
+			assert( m_have_more_data ) ;
 			std::istringstream istr( m_current_fields[ current_column() ]) ;
 			istr >> value ;
 			istr.peek() ;
@@ -79,18 +80,19 @@ namespace statfile {
 		void setup( std::auto_ptr< std::istream > stream_ptr ) ;
 		void setup( std::string const& filename ) ;
 
-		std::string read_descriptive_comments() ;
+		std::string read_comments() ;
 		void read_column_names() ;
 		std::size_t count_remaining_lines() ;
 		std::string get_source_spec() const ;
 	private:
 		std::string const m_filename ;
 		std::string m_current_line ;
+		bool m_have_more_data ;
 		std::vector< genfile::string_utils::slice > m_current_fields ;
 		char const m_comment_character ;
 		std::string const m_delimiter ;
 		std::string const m_quotes ;
-		std::size_t m_number_of_rows ;
+		OptionalCount m_number_of_rows ;
 		std::string m_descriptive_text ;
 		std::size_t m_number_of_comment_lines ;
 		std::size_t m_number_of_ignored_lines ;

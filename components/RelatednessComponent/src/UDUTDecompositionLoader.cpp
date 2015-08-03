@@ -59,8 +59,8 @@ namespace relatedness {
 		if( source->number_of_columns() != number_of_samples + 1 ) {
 			throw genfile::MalformedInputError( source->get_source_spec(), 0, std::min( source->number_of_columns(), number_of_samples + 1 )) ;
 		}
-		if( source->number_of_rows() != number_of_samples ) {
-			throw genfile::MalformedInputError( source->get_source_spec(), 0, std::min( source->number_of_rows(), number_of_samples )) ;
+		if( source->number_of_rows() && *source->number_of_rows() != number_of_samples ) {
+			throw genfile::MalformedInputError( source->get_source_spec(), 0, std::min( *source->number_of_rows(), number_of_samples )) ;
 		}
 		// Read the matrix, making sure the samples come in the same order as in the sample file.
 		matrix->resize( number_of_samples, number_of_samples+1 ) ;
@@ -70,5 +70,9 @@ namespace relatedness {
 			}
 			(*source) >> statfile::end_row() ;
 		}
+		if( source->number_of_rows_read() != number_of_samples ) {
+			throw genfile::MalformedInputError( source->get_source_spec(), 0, source->number_of_rows_read() ) ;
+		}
+		
 	}
 }

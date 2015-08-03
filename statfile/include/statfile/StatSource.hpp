@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include <boost/function.hpp>
+#include <boost/optional.hpp>
 #include "statfile/statfile_utils.hpp"
 #include "statfile/types.hpp"
 #include "statfile/TypeReaderBase.hpp"
@@ -63,11 +64,7 @@ namespace statfile {
 
 		template< typename T >
 		StatSource& operator>>( T& value ) {
-			if( m_number_read == number_of_rows() ) {
-				m_source_exhausted = true ;
-			}
-			else {
-				assert( m_current_column < number_of_columns()) ;
+			if( *this ) {
 				this->read_value( value ) ;
 				move_to_next_column() ;
 			}
@@ -75,10 +72,7 @@ namespace statfile {
 		}
 
 		StatSource& operator>>( IgnoreSome const& ignore_some ) {
-			if( m_number_read == number_of_rows() ) {
-				m_source_exhausted = true ;
-			}
-			else {
+			if( *this ) {
 				std::size_t target_column = m_current_column + ignore_some.number_to_ignore() ;
 				assert( target_column < number_of_columns() ) ;
 				for( std::size_t i = 0; i < ignore_some.number_to_ignore() ; ++i ) {
@@ -90,10 +84,7 @@ namespace statfile {
 		}
 
 		StatSource& operator>>( IgnoreAll const& ) {
-			if( m_number_read == number_of_rows() ) {
-				m_source_exhausted = true ;
-			}
-			else {
+			if( *this ) {
 				assert( m_current_column <= number_of_columns() ) ;
 				this->ignore_all() ;
 				move_to_next_row() ;
@@ -103,10 +94,7 @@ namespace statfile {
 
 		// TODO: make use of EndRow mandatory.
 		StatSource& operator>>( EndRow const& ) {
-			if( m_number_read == number_of_rows() ) {
-				m_source_exhausted = true ;
-			}
-			else {
+			if( *this ) {
 				assert( m_current_column == number_of_columns() ) ;
 				end_row() ;
 				move_to_next_row() ;
@@ -114,11 +102,20 @@ namespace statfile {
 			return *this ;
 		}
 
+		StatSource& operator>>( RestartRow const& ) {
+			if( *this ) {
+				restart_row() ;
+				m_current_column = 0 ;
+			}
+			return *this ;
+		}
+
 	public:
 		// Return nonzero pointer iff there have been no errors up to now.
-		operator void const*() const { return m_source_exhausted ? 0 :  reinterpret_cast< void const* >( this ) ; }
+		virtual operator bool() const = 0 ;
 		// Return the number of rows herein represented
-		virtual std::size_t number_of_rows() const = 0 ;
+		typedef boost::optional< std::size_t > OptionalCount ;
+		virtual OptionalCount number_of_rows() const = 0 ;
 		// Return the number of rows read so far
 		std::size_t number_of_rows_read() const { return m_number_read ; }
 		// Return the number of columns herein represented
@@ -159,6 +156,7 @@ namespace statfile {
 		virtual void ignore_value() = 0 ;
 		virtual void ignore_all() = 0 ;
 		virtual void end_row() {} ;
+		virtual void restart_row() = 0 ;
 
 	private:
 		void move_to_next_column() {
