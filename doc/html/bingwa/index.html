@@ -62,7 +62,7 @@
             </div>
             <div class="nav_button" name="tutorial">
                 <span class = "nav_button_content" >
-                    examples
+                    tutorial
                 </span>
             </div>
             <div class="nav_button" name="file_formats">
@@ -145,7 +145,7 @@
 					</ol>
                 </p>
 				<p>
-					We'll update this page with more details on the method soon.  In the meantime the <a href="#tutorial">examples page</a>
+					We'll update this page with more details on the method soon.  In the meantime the <a href="#tutorial">tutorial</a>
 					has usage examples.
                 </p>
 			</div>
@@ -261,6 +261,21 @@
 						$$\text{BF}_{\text{avg}} = \frac{\sum_i \text{weight}_i \cdot \text{BF}_i}{\sum_i \text{weight}_i}$$
 						where $\text{weight}_i$ and $\text{BF}_i$ are the specified weight and Bayes factor for model $i$.
 						If <code>-prior-weights</code> is specified, any model not specified in the argument is given weight zero in the mean Bayes factor.
+                    </div>
+                </div>
+                <div class="task">
+                    <div class="task_name">
+                        Specifying priors in a file
+                    </div>
+                    <div class="task_command_line">
+                        $ bingwa -data cohort1.snptest cohort2.snptest -o output.sqlite -priors priors.txt
+					</div>
+                    <div class="task_notes">
+                        <b>Note</b>: When there are many cohorts and several priors to specify, command lines can get rather
+						large an unwieldy.  The <code>-priors</code> option can be used to tell bingwa to load priors
+						from a file instead of the command-line.  Prior files additionally allow for comments and use of
+						whitespace.  See <a href="#file_formats">file formats page</a> for the
+						format of this file.  For example, the above priors could be specified
                     </div>
                 </div>
 				<div class="tutorial_separator"></div>
@@ -441,12 +456,39 @@ sqlite3&gt; SELECT * FROM MetaAnalysisView LIMIT 1 ;
 					Flat files are written when the <code>-flat-file</code> option is specified.
 				</p>
 				<p>
-					<b><a href="http://www.sqlite.org">Sqlite</a> files</b> are also easy to use via the <a href="https://www.sqlite.org/cli.html">sqlite3 command shell</a>,
-					which is installed on most UNIX-like systems.  They can also be read directly from programming languages such as <a href="">R</a>.
+					<b>Sqlite files</b> are easy to use via the <a href="https://www.sqlite.org/cli.html">sqlite3 command shell</a>,
+					which is installed on most UNIX-like systems.  They can also be read directly from programming languages,
+					e.g. by using the <a href="https://cran.r-project.org/package=RSQLite">RSQLite package</a> in <a href="">R</a> or
+					the <a href="https://docs.python.org/2/library/sqlite3.html">sqlite3</a> module in python.
 					An attractive feature is that they are <em>indexed</em>, so that data for specific regions of the genome or specific variants can
 					be easily found.  See the <a href='#tutorial'>examples page</a> for code snippets for processing bingwa-produced sqlite files.
 				</p>
 				<p>Sqlite is the default output format for bingwa.</p>
+				<h3>Specifying priors</h3>
+				<p>
+					The file format used for the <code>-priors</code> option follows the following rules.
+					<ul>
+						<li>Blank lines and lines starting with # (comment lines) are ignored.</li>
+						<li>Every other line is part of a prior specification.</li>
+						<li>Each prior may optionally start with a name specification of the form <code>&lt;name&gt;:</code>.
+							(Unnamed priors are given computed names, but it's usually best to name them.)</li>
+						<li>Two forms of prior specification are permissible, <em>full</em> and <em>shorthand</em> prior specification.</li>
+						<li>
+							A <em>full</em> prior specification is of the form <code>sd=&lt;a,b,c,...&gt;/cor=1,x,y,...</code>.
+								Here <code>a,b,c,...</code> are real numbers.  The number of sds specified must be <code>d</code>, the number
+								of parameters in all cohorts put together; the number of correlations specified must be equal to <code>d&times;(d+1)/2</code>.
+								The values of <code>sd</code> specify a diagonal matrix &sigma; with standard deviations on its diagonal, while the values of <code>cor</code> specify the upper triangle of a correlation matrix &Rho;.
+								The resulting prior is &sigma;&times;&Rho;&times;&sigma;
+								
+						</li>
+						<li>
+							A <em>shorthand</em> prior specification is of the form <code>tau=&lt;a&gt;/sd=&lt;b,c,d,...&gt;/cor=1,...</code>.
+								Here <code>a,b,c,...</code> are real numbers.  The number of sds specified must be <code>d</code>, the number
+								of parameters in each cohort; the number of correlations specified must be equal to <code>d&times;(d+1)/2</code>.
+						</li>
+							
+							Prior may be of the form <code>[name:]sd=&lt;value2&gt;[,&lt;value2&lt;&gt;,...]/cor=1[,x,y,z...]</code></li>
+					</ul>
             </div>
             <div id="download" style="display:none">
                 <div>
