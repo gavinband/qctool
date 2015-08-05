@@ -23,11 +23,11 @@ namespace {
 * - and implements the FrequentistGenomeWideAssociationResults interface for retrieving tresults..
 */
 void FlatFileFrequentistGenomeWideAssociationResults::add_data(
-	std::vector< genfile::wildcard::FilenameMatch > const& filenames,
+	statfile::BuiltInTypeStatSource::UniquePtr source,
 	SNPResultCallback callback,
 	ProgressCallback progress_callback
 ) {
-	setup( filenames, callback, progress_callback ) ;
+	setup( source, callback, progress_callback ) ;
 }
 
 std::size_t FlatFileFrequentistGenomeWideAssociationResults::get_number_of_SNPs() const {
@@ -113,15 +113,6 @@ FlatFileFrequentistGenomeWideAssociationResults::FlatFileFrequentistGenomeWideAs
 	m_missing_value( "NA" ),
 	m_degrees_of_freedom( 0 )
 {}
-
-void FlatFileFrequentistGenomeWideAssociationResults::setup(
-	std::vector< genfile::wildcard::FilenameMatch > const& filenames,
-	SNPResultCallback callback,
-	ProgressCallback progress_callback
-) {
-	progress_callback( 0, 100 ) ;
-	setup( statfile::BuiltInTypeStatSource::open( filenames ), callback, progress_callback ) ;
-}
 
 void FlatFileFrequentistGenomeWideAssociationResults::setup(
 	statfile::BuiltInTypeStatSource::UniquePtr source,

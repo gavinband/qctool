@@ -76,6 +76,10 @@ namespace statfile {
 		return Constraint( value1, value2, eBetween ) ;
 	}
 
+	Constraint Constraint::not_between( genfile::VariantEntry const& value1, genfile::VariantEntry const& value2 ) {
+		return Constraint( value1, value2, eNotBetween ) ;
+	}
+
 	Constraint Constraint::construct( std::string const& op, genfile::VariantEntry const& value ) {
 		if( op == "<" ) {
 			return Constraint::less_than( value ) ;
@@ -134,6 +138,10 @@ namespace statfile {
 				impl::cast_types_for_comparison( value, refValue2 ) ;
 				return (value >= refValue) && (value <= refValue2) ;
 				break ;
+			case eNotBetween:
+				impl::cast_types_for_comparison( value, refValue2 ) ;
+				return (value < refValue) || (value > refValue2) ;
+				break ;
 			default:
 				assert(0) ;
 		}
@@ -145,6 +153,71 @@ namespace statfile {
 		m_value2( value2 )
 	{}
 
+	std::string Constraint::get_spec() const {
+		std::string result ;
+		switch( m_type ) {
+			case eEqualTo:
+				result = "== " + genfile::string_utils::to_string( m_value1 ) ;
+				break ;
+			case eNotEqualTo:
+				result = "!= " + genfile::string_utils::to_string( m_value1 ) ;
+				break ;
+			case eLessThan:
+				result = "<" + genfile::string_utils::to_string( m_value1 ) ;
+				break ;
+			case eLessThanOrEqualTo:
+				result = "<=" + genfile::string_utils::to_string( m_value1 ) ;
+				break ;
+			case eGreaterThan:
+				result = ">" + genfile::string_utils::to_string( m_value1 ) ;
+				break ;
+			case eGreaterThanOrEqualTo:
+				result = ">=" + genfile::string_utils::to_string( m_value1 ) ;
+				break ;
+			case eBetween:
+				result = "between " + genfile::string_utils::to_string( m_value1 ) + " and " + genfile::string_utils::to_string( m_value2 ) ;
+				break ;
+			case eNotBetween:
+				result = "not between " + genfile::string_utils::to_string( m_value1 ) + " and " + genfile::string_utils::to_string( m_value2 ) ;
+				break ;
+			default:
+				assert(0) ;
+		}
+	}
+
+	Constraint Constraint::negation() const {
+		Type negatedType ;
+		switch( m_type ) {
+			case eEqualTo:
+				negatedType = eNotEqualTo ;
+				break ;
+			case eNotEqualTo:
+				negatedType = eEqualTo ;
+				break ;
+			case eLessThan:
+				negatedType = eGreaterThanOrEqualTo ;
+				break ;
+			case eLessThanOrEqualTo:
+				negatedType = eGreaterThan ;
+				break ;
+			case eGreaterThan:
+				negatedType = eLessThanOrEqualTo ;
+				break ;
+			case eGreaterThanOrEqualTo:
+				negatedType = eLessThan ;
+				break ;
+			case eBetween:
+				negatedType = eNotBetween ;
+				break ;
+			case eNotBetween:
+				negatedType = eBetween ;
+				break ;
+			default:
+				assert(0) ;
+		}
+		return Constraint( m_value1, m_value2, negatedType ) ;
+	}
+	
 	namespace {
 		genfile::VariantEntry parse_value( std::string spec ) {
 			using namespace genfile::string_utils ;
@@ -168,6 +241,23 @@ namespace statfile {
 			}
 			return result ;
 		}
+		
+		std::string parse_column_name( std::string spec ) {
+			using namespace genfile::string_utils ;
+			if( spec.size() == 0 ) {
+				throw genfile::BadArgumentError( "statfile::parse_column_name()", "spec=\"" + spec + "\"", "value is empty" ) ;
+			}
+			if(
+				spec.size() > 1
+				&& (
+					(spec[0] == '`' && spec[spec.size()-1] == '`')
+				)
+			) {
+				return spec.substr( 1, spec.size() - 2 ) ;
+			} else {
+				return spec ;
+			}
+		}
 	}
 
 	BoundConstraint BoundConstraint::parse( std::string const& spec ) {
@@ -176,7 +266,7 @@ namespace statfile {
 		if( elts.size() < 3 ) {
 			throw genfile::BadArgumentError( "statfile::BoundConstraint::parse()", "spec=\"" + spec + "\"", "expected at least three elements" ) ;
 		}
-		std::string const& column = elts[0] ;
+		std::string const& column = parse_column_name( elts[0] ) ;
 		Constraint constraint ;
 		if( to_lower( elts[1] ) == "between" ) {
 			if( elts.size() != 5 ) {
@@ -189,6 +279,8 @@ namespace statfile {
 				parse_value( elts[2] ),
 				parse_value( elts[4] )
 			) ;
+		} else if( to_lower( elts[1] ) == "not" ) {
+				throw genfile::BadArgumentError( "statfile::BoundConstraint::parse()", "spec=\"" + spec + "\"", "\"not between\" is not implemented yet." ) ;
 		} else {
 			if( elts.size() != 3 ) {
 				throw genfile::BadArgumentError( "statfile::BoundConstraint::parse()", "spec=\"" + spec + "\"", "expected three elements" ) ;
@@ -222,12 +314,28 @@ namespace statfile {
 		return *this ;
 	}
 
+	BoundConstraint BoundConstraint::negation() const {
+		return BoundConstraint(
+			m_variable,
+			m_constraint.negation()
+		) ;
+	}
+
+	FilteringStatSource::UniquePtr FilteringStatSource::create(
+		BuiltInTypeStatSource::UniquePtr source,
+		BoundConstraint const& constraint
+	) {
+		return FilteringStatSource::UniquePtr(
+			new FilteringStatSource( source, constraint )
+		) ;
+	}
+
 	FilteringStatSource::FilteringStatSource(
 		BuiltInTypeStatSource::UniquePtr source,
 		BoundConstraint const& constraint
 	):
 		m_source( source ),
-		m_constraint( constraint.constraint() )
+		m_constraint( constraint )
 	{
 		m_columns.insert( ColumnMap::value_type( constraint.variable(), m_source->index_of_column( constraint.variable() )) ) ;
 		move_to_next_matching_row() ;
@@ -237,6 +345,9 @@ namespace statfile {
 		return (*m_source) ;
 	}
 
+	std::string FilteringStatSource::get_source_spec() const {
+		return m_source->get_source_spec() + "(including: " + m_constraint.get_spec() + ")" ;
+	}
 	void FilteringStatSource::read_value( int32_t& value ) {
 		(*m_source) >> value ;
 	}
@@ -281,7 +392,7 @@ namespace statfile {
 		std::string value ;
 		for( ; i != end_i; ++i ) {
 			(*m_source) >> ignore( i->second - m_source->current_column() ) >> value ;
-			if( !m_constraint.test( value ) ) {
+			if( !m_constraint.constraint().test( value ) ) {
 				return false ;
 			}
 		}

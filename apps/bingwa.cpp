@@ -41,7 +41,9 @@
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "statfile/BuiltInTypeStatSource.hpp"
+#include "statfile/BuiltInTypeStatSourceChain.hpp"
 #include "statfile/SNPDataSourceAdapter.hpp"
+#include "statfile/FilteringStatSource.hpp"
 #include "qcdb/Storage.hpp"
 #include "qcdb/FlatFileOutputter.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
@@ -183,6 +185,16 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 			options[ "-min-maf" ]
 				.set_description( "Treat SNPs with maf (in controls) less than the given threshhold as missing." )
 				.set_takes_values( 1 ) ;
+			
+			options[ "-excl-snps-where" ]
+				.set_description( "Exclude SNPs that match a condition applied to columns of the input file." )
+				.set_takes_single_value()
+				.set_maximum_multiplicity(100) ;
+
+			options[ "-incl-snps-where" ]
+				.set_description( "Exclude SNPs that do not match a condition applied to columns of the input file." )
+				.set_takes_single_value()
+				.set_maximum_multiplicity(100) ;
 		}
 
 		{
@@ -287,74 +299,6 @@ struct BingwaOptions: public appcontext::CmdLineOptionProcessor {
 		}
 	}
 } ;
-
-FrequentistGenomeWideAssociationResults::UniquePtr FrequentistGenomeWideAssociationResults::create(
-	std::vector< genfile::wildcard::FilenameMatch > const& filenames,
-	boost::optional< std::string > const& effect_size_column_regex,
-	std::vector< std::string > const& columns,
-	genfile::SNPIdentifyingDataTest::UniquePtr test,
-	boost::optional< genfile::Chromosome > chromosome_hint,
-	SNPResultCallback result_callback,
-	ProgressCallback progress_callback
-) {
-	// peek at the file to determine file type
-	
-	std::string type = "unknown" ;
-
-	if( filenames.size() > 0 ) {
-		std::auto_ptr< std::istream > file = genfile::open_text_file_for_input( filenames[0].filename() ) ;
-		std::string line ;
-		std::getline( *file, line ) ;
-		std::vector< std::string > const elts = genfile::string_utils::split( line, " \t," ) ;
-		if( elts.size() > 4
-			&& elts[0] == "chr"
-			&& elts[1] == "snp_id1"
-			&& elts[2] == "snp_id2"
-			&& elts[3] == "pos"
-			&& elts[4] == "allele_0"
-		) {
-			type = "mmm" ; // Matti's mixed model, http://www.well.ox.ac.uk/~mpirinen/
-		}
-		else if(
-			elts.size() > 5
-			&& elts[0] == "snp_id1"
-			&& elts[1] == "snp_id2"
-			&& elts[2] == "pos"
-			&& elts[3] == "allele_0"
-			&& elts[4] == "allele_1"
-			&& elts[5] == "n_included"
-		) {
-			type = "mmm" ; // Matti's mixed model, http://www.well.ox.ac.uk/~mpirinen/
-		}
-		else if( line.substr( 0, 40 ) == "id rsid chromosome pos allele_A allele_B" ) {
-				type = "snptest" ;
-		}
-	}
-
-	FlatFileFrequentistGenomeWideAssociationResults::UniquePtr result ;
-	if( type == "snptest" || type == "unknown" ) {
-		result.reset( new SNPTESTResults( test, chromosome_hint ) ) ; 
-	}
-	else if( type == "mmm" ) {
-		result.reset( new MMMResults( test, chromosome_hint ) ) ;
-	}
-	
-	if( effect_size_column_regex ) {
-		result->set_effect_size_column_regex( effect_size_column_regex.get() ) ;
-	}
-
-	BOOST_FOREACH( std::string const& column, columns ) {
-		result->add_variable( column ) ;
-	}
-
-	result->add_data(
-		filenames,
-		result_callback,
-		progress_callback
-	) ;
-
-	return FrequentistGenomeWideAssociationResults::UniquePtr( result.release() ) ;
-}
 
 struct BingwaComputation: public boost::noncopyable {
 	typedef std::auto_ptr< BingwaComputation > UniquePtr ;
@@ -3005,6 +2949,98 @@ public:
 		
 	}
 	
+	FrequentistGenomeWideAssociationResults::UniquePtr create_cohort(
+		std::vector< genfile::wildcard::FilenameMatch > const& filenames,
+		boost::optional< std::string > const& effect_size_column_regex,
+		std::vector< std::string > const& columns,
+		genfile::SNPIdentifyingDataTest::UniquePtr test,
+		boost::optional< genfile::Chromosome > chromosome_hint,
+		FlatFileFrequentistGenomeWideAssociationResults::SNPResultCallback result_callback,
+		FlatFileFrequentistGenomeWideAssociationResults::ProgressCallback progress_callback
+	) {
+		// peek at the file to determine file type
+	
+		std::string type = "unknown" ;
+
+		if( filenames.size() > 0 ) {
+			std::auto_ptr< std::istream > file = genfile::open_text_file_for_input( filenames[0].filename() ) ;
+			std::string line ;
+			std::getline( *file, line ) ;
+			std::vector< std::string > const elts = genfile::string_utils::split( line, " \t," ) ;
+			if( elts.size() > 4
+				&& elts[0] == "chr"
+				&& elts[1] == "snp_id1"
+				&& elts[2] == "snp_id2"
+				&& elts[3] == "pos"
+				&& elts[4] == "allele_0"
+			) {
+				type = "mmm" ; // Matti's mixed model, http://www.well.ox.ac.uk/~mpirinen/
+			}
+			else if(
+				elts.size() > 5
+				&& elts[0] == "snp_id1"
+				&& elts[1] == "snp_id2"
+				&& elts[2] == "pos"
+				&& elts[3] == "allele_0"
+				&& elts[4] == "allele_1"
+				&& elts[5] == "n_included"
+			) {
+				type = "mmm" ; // Matti's mixed model, http://www.well.ox.ac.uk/~mpirinen/
+			}
+			else if( line.substr( 0, 40 ) == "id rsid chromosome pos allele_A allele_B" ) {
+					type = "snptest" ;
+			}
+		}
+
+		FlatFileFrequentistGenomeWideAssociationResults::UniquePtr result ;
+		if( type == "snptest" || type == "unknown" ) {
+			result.reset( new SNPTESTResults( test, chromosome_hint ) ) ; 
+		}
+		else if( type == "mmm" ) {
+			result.reset( new MMMResults( test, chromosome_hint ) ) ;
+		}
+	
+		if( effect_size_column_regex ) {
+			result->set_effect_size_column_regex( effect_size_column_regex.get() ) ;
+		}
+
+		BOOST_FOREACH( std::string const& column, columns ) {
+			result->add_variable( column ) ;
+		}
+
+		statfile::BuiltInTypeStatSource::UniquePtr source(
+			statfile::BuiltInTypeStatSourceChain::open( filenames )
+		) ;
+	
+		if( options().check( "-incl-snps-where" ) ) {
+			std::vector< std::string > const specs = options().get_values< std::string >( "-incl-snps-where" ) ;
+			for( std::size_t i = 0; i < specs.size(); ++i ) {
+				source = statfile::FilteringStatSource::create(
+					source,
+					statfile::BoundConstraint::parse( specs[i] )
+				) ;
+			}
+		}
+
+		if( options().check( "-excl-snps-where" ) ) {
+			std::vector< std::string > const specs = options().get_values< std::string >( "-excl-snps-where" ) ;
+			for( std::size_t i = 0; i < specs.size(); ++i ) {
+				source = statfile::FilteringStatSource::create(
+					source,
+					statfile::BoundConstraint::parse( specs[i] ).negation()
+				) ;
+			}
+		}
+		
+		result->add_data(
+			source,
+			result_callback,
+			progress_callback
+		) ;
+		
+		return FrequentistGenomeWideAssociationResults::UniquePtr( result.release() ) ;
+	}
+
 	typedef
 		boost::function< void ( genfile::SNPIdentifyingData2 const&, std::string const&, genfile::VariantEntry const& ) > 
 		ResultCallback ;
@@ -3043,15 +3079,14 @@ public:
 			if( options().check( "-assume-chromosome" ) ) {
 				chromosome_hint = genfile::Chromosome( options().get< std::string >( "-assume-chromosome" ) ) ;
 			}
-			FrequentistGenomeWideAssociationResults::UniquePtr results
-				= FrequentistGenomeWideAssociationResults::create(
-					genfile::wildcard::find_files_by_chromosome( cohort_files[cohort_i] ),
-					effect_size_column_regex,
-					options().check( "-extra-columns" ) ? options().get_values< std::string >( "-extra-columns" ) : std::vector< std::string >(),
-					genfile::SNPIdentifyingDataTest::UniquePtr( test.release() ),
-					chromosome_hint,
-					SNPTESTResults::SNPResultCallback(),
-					progress_context
+			FrequentistGenomeWideAssociationResults::UniquePtr results = create_cohort(
+				genfile::wildcard::find_files_by_chromosome( cohort_files[cohort_i] ),
+				effect_size_column_regex,
+				options().check( "-extra-columns" ) ? options().get_values< std::string >( "-extra-columns" ) : std::vector< std::string >(),
+				genfile::SNPIdentifyingDataTest::UniquePtr( test.release() ),
+				chromosome_hint,
+				SNPTESTResults::SNPResultCallback(),
+				progress_context
 			) ;
 			
 			// summarise right now so as to see memory used.

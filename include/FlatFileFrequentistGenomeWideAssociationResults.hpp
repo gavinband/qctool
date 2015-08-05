@@ -28,7 +28,7 @@ public:
 	virtual void set_effect_size_column_regex( std::string const& beta_column_regex ) = 0 ;
 
 	void add_data(
-		std::vector< genfile::wildcard::FilenameMatch > const& filenames,
+		statfile::BuiltInTypeStatSource::UniquePtr source,
 		SNPResultCallback callback,
 		ProgressCallback progress_callback
 	) ;
@@ -127,12 +127,6 @@ protected:
 	virtual void store_value( int snp_index, std::string const& variable, std::string const& value ) = 0 ;
 	
 private:
-
-	void setup(
-		std::vector< genfile::wildcard::FilenameMatch > const& filenames,
-		SNPResultCallback callback,
-		ProgressCallback progress_callback
-	) ;
 
 	void setup(
 		statfile::BuiltInTypeStatSource::UniquePtr source,

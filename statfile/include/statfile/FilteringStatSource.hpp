@@ -24,7 +24,7 @@ namespace statfile {
 	}
 	
 	struct Constraint {
-		enum Type { eEqualTo, eNotEqualTo, eLessThan, eLessThanOrEqualTo, eGreaterThan, eGreaterThanOrEqualTo, eBetween } ;
+		enum Type { eEqualTo, eNotEqualTo, eLessThan, eLessThanOrEqualTo, eGreaterThan, eGreaterThanOrEqualTo, eBetween, eNotBetween } ;
 
 		static Constraint equal_to( genfile::VariantEntry const& value ) ;
 		static Constraint not_equal_to( genfile::VariantEntry const& value ) ;
@@ -33,6 +33,7 @@ namespace statfile {
 		static Constraint greater_than( genfile::VariantEntry const& value ) ;
 		static Constraint greater_than_or_equal_to( genfile::VariantEntry const& value ) ;
 		static Constraint between( genfile::VariantEntry const& value1, genfile::VariantEntry const& value2 ) ;
+		static Constraint not_between( genfile::VariantEntry const& value1, genfile::VariantEntry const& value2 ) ;
 		static Constraint construct( std::string const& op, genfile::VariantEntry const& value ) ;
 
 		Constraint() ;
@@ -40,6 +41,9 @@ namespace statfile {
 		Constraint& operator=( Constraint const& other ) ;
 		bool test( genfile::VariantEntry value ) const ;
 		
+		std::string get_spec() const ;
+		Constraint negation() const ;
+
 	private:
 		Type m_type ;
 		genfile::VariantEntry m_value1 ;
@@ -60,6 +64,8 @@ namespace statfile {
 
 		std::string const& variable() const { return m_variable ; }
 		Constraint const& constraint() const { return m_constraint ; }
+		std::string get_spec() const { return m_variable + " " + m_constraint.get_spec() ; }
+		BoundConstraint negation() const ;
 
 	private:
 		std::string m_variable ;
@@ -68,11 +74,18 @@ namespace statfile {
 	
 	class FilteringStatSource: public BuiltInTypeStatSource {
 	public:
+		static UniquePtr create(
+			BuiltInTypeStatSource::UniquePtr source,
+			BoundConstraint const& constraint
+		) ;
+
+	public:
 		FilteringStatSource(
 			BuiltInTypeStatSource::UniquePtr source,
 			BoundConstraint const& constraint
 		) ;
 		operator bool() const ;
+		std::string get_source_spec() const ;
 
 	private:
 		OptionalCount number_of_rows() const { return OptionalCount() ; }
@@ -96,7 +109,7 @@ namespace statfile {
 		BuiltInTypeStatSource::UniquePtr m_source ;
 		typedef boost::bimap< std::string, std::size_t > ColumnMap ;
 		ColumnMap m_columns ;
-		Constraint m_constraint ;
+		BoundConstraint m_constraint ;
 	} ;
 }
 
