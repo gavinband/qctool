@@ -100,13 +100,13 @@ namespace genfile {
 					d = 0x0 ;
 				}
 				else if( AB > m_call_threshhold ) {
-					d = 0x1 ;
+					d = 0x2 ;
 				}
 				else if( BB > m_call_threshhold ) {
 					d = 0x3 ;
 				}
 				else {
-					d = 0x2 ;
+					d = 0x1 ;
 				}
 				d <<= ( 2 * ( i % 4 )) ;
 				//std::cerr << "sample " << i << "; " << ( boost::format( "AA=%f AB = %f BB = %f\n") % AA % AB % BB ) ;
