@@ -33,6 +33,9 @@ namespace statfile {
 		static Constraint greater_than( genfile::VariantEntry const& value ) ;
 		static Constraint greater_than_or_equal_to( genfile::VariantEntry const& value ) ;
 		static Constraint between( genfile::VariantEntry const& value1, genfile::VariantEntry const& value2 ) ;
+		static Constraint construct( std::string const& op, genfile::VariantEntry const& value ) ;
+
+		Constraint() ;
 		Constraint( Constraint const& other ) ;
 		Constraint& operator=( Constraint const& other ) ;
 		bool test( genfile::VariantEntry value ) const ;
@@ -50,21 +53,24 @@ namespace statfile {
 	public:
 		static BoundConstraint parse( std::string const& spec ) ;
 	public:
+		BoundConstraint() ;
 		BoundConstraint( std::string const& variable, Constraint const& constraint ) ;
 		BoundConstraint( BoundConstraint const& other ) ;
 		BoundConstraint& operator=( BoundConstraint const& other ) ;
 
+		std::string const& variable() const { return m_variable ; }
+		Constraint const& constraint() const { return m_constraint ; }
+
 	private:
-		std::string const m_variable ;
-		Constaint m_constraint ;
+		std::string m_variable ;
+		Constraint m_constraint ;
 	} ;
 	
 	class FilteringStatSource: public BuiltInTypeStatSource {
 	public:
 		FilteringStatSource(
 			BuiltInTypeStatSource::UniquePtr source,
-			std::string const column,
-			Constraint const& constraint
+			BoundConstraint const& constraint
 		) ;
 		operator bool() const ;
 

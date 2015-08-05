@@ -9,6 +9,7 @@
 #include "statfile/BuiltInTypeStatSourceChain.hpp"
 #include "statfile/FilteringStatSource.hpp"
 #include "genfile/VariantEntry.hpp"
+#include "genfile/Error.hpp"
 
 namespace statfile {
 	namespace impl {
@@ -42,6 +43,10 @@ namespace statfile {
 			}
 		}
 	}
+
+	Constraint::Constraint():
+		m_type( eLessThan )
+	{}
 	
 	Constraint Constraint::equal_to( genfile::VariantEntry const& value ) {
 		return Constraint( value, genfile::VariantEntry(), eEqualTo ) ;
@@ -69,6 +74,24 @@ namespace statfile {
 
 	Constraint Constraint::between( genfile::VariantEntry const& value1, genfile::VariantEntry const& value2 ) {
 		return Constraint( value1, value2, eBetween ) ;
+	}
+
+	Constraint Constraint::construct( std::string const& op, genfile::VariantEntry const& value ) {
+		if( op == "<" ) {
+			return Constraint::less_than( value ) ;
+		} else if( op == "<=" ) {
+			return Constraint::less_than_or_equal_to( value ) ;
+		} else if( op == ">" ) {
+			return Constraint::greater_than( value ) ;
+		} else if( op == ">=" ) {
+			return Constraint::greater_than_or_equal_to( value ) ;
+		} else if( op == "=" || op == "==" ) {
+			return Constraint::equal_to( value ) ;
+		} else if( op == "!=" ) {
+			return Constraint::not_equal_to( value ) ;
+		} else {
+			throw genfile::BadArgumentError( "statfile::Constraint::construct()", "op=\"" + op + "\"", "Unrecognised operator." ) ;
+		}
 	}
 	
 	Constraint::Constraint( Constraint const& other ):
@@ -122,15 +145,91 @@ namespace statfile {
 		m_value2( value2 )
 	{}
 
+	namespace {
+		genfile::VariantEntry parse_value( std::string spec ) {
+			using namespace genfile::string_utils ;
+			genfile::VariantEntry result ;
+			if( spec.size() == 0 ) {
+				throw genfile::BadArgumentError( "statfile::parse_value()", "spec=\"" + spec + "\"", "value is empty" ) ;
+			}
+			if(
+				spec.size() > 1
+				&& (
+					(spec[0] == '"' && spec[spec.size()-1] == '"')
+					||
+					(spec[0] == '\'' && spec[spec.size()-1] == '\'')
+				)
+			) {
+				// quoted value means a string
+				result = spec.substr( 1, spec.size() - 2 ) ;
+			} else {
+				// unquoted value means a number
+				result = to_repr< double >( spec ) ;
+			}
+			return result ;
+		}
+	}
+
+	BoundConstraint BoundConstraint::parse( std::string const& spec ) {
+		using namespace genfile::string_utils ;
+		std::vector< std::string > elts = split_and_strip_discarding_empty_entries( spec, " \n\t\r" ) ;
+		if( elts.size() < 3 ) {
+			throw genfile::BadArgumentError( "statfile::BoundConstraint::parse()", "spec=\"" + spec + "\"", "expected at least three elements" ) ;
+		}
+		std::string const& column = elts[0] ;
+		Constraint constraint ;
+		if( to_lower( elts[1] ) == "between" ) {
+			if( elts.size() != 5 ) {
+				throw genfile::BadArgumentError( "statfile::BoundConstraint::parse()", "spec=\"" + spec + "\"", "expected five elements" ) ;
+			}
+			if( to_lower( elts[3] ) != "and" ) {
+				throw genfile::BadArgumentError( "statfile::BoundConstraint::parse()", "spec=\"" + spec + "\"", "expected spec of form column BETWEEN value AND value" ) ;
+			}
+			constraint = Constraint::between(
+				parse_value( elts[2] ),
+				parse_value( elts[4] )
+			) ;
+		} else {
+			if( elts.size() != 3 ) {
+				throw genfile::BadArgumentError( "statfile::BoundConstraint::parse()", "spec=\"" + spec + "\"", "expected three elements" ) ;
+			}
+			constraint = Constraint::construct(
+				elts[1],
+				parse_value( elts[2] )
+			) ;
+		}
+		return BoundConstraint(
+			column,
+			constraint
+		) ;
+	}
+
+	BoundConstraint::BoundConstraint() {}
+
+	BoundConstraint::BoundConstraint( std::string const& variable, Constraint const& constraint ):
+		m_variable( variable ),
+		m_constraint( constraint )
+	{}
+
+	BoundConstraint::BoundConstraint( BoundConstraint const& other ):
+		m_variable( other.m_variable ),
+		m_constraint( other.m_constraint )
+	{}
+
+	BoundConstraint& BoundConstraint::operator=( BoundConstraint const& other ) {
+		m_variable = other.m_variable ;
+		m_constraint = other.m_constraint ;
+		return *this ;
+	}
+
 	FilteringStatSource::FilteringStatSource(
 		BuiltInTypeStatSource::UniquePtr source,
-		std::string const column,
-		Constraint const& constraint
+		BoundConstraint const& constraint
 	):
 		m_source( source ),
-		m_constraint( constraint )
+		m_constraint( constraint.constraint() )
 	{
-		m_columns.insert( ColumnMap::value_type( column, m_source->index_of_column( column )) ) ;
+		m_columns.insert( ColumnMap::value_type( constraint.variable(), m_source->index_of_column( constraint.variable() )) ) ;
 		move_to_next_matching_row() ;
 	}
 
@@ -158,7 +257,7 @@ namespace statfile {
 	}
 	void FilteringStatSource::end_row() {
 		(*m_source) >> statfile::end_row() ;
-	} ;
+	}
 	void FilteringStatSource::restart_row() {
 		(*m_source) >> statfile::restart_row() ;
 	}

@@ -170,8 +170,7 @@ namespace {
 							" "
 						)
 					),
-					column,
-					constraint
+					statfile::BoundConstraint( column, constraint )
 				)
 			) ;
 			return source ;
