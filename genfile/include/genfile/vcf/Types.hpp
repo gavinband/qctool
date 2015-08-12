@@ -237,7 +237,7 @@ namespace genfile {
 
 			std::vector< string_utils::slice > lex( string_utils::slice const& value, std::size_t number_of_alleles, std::size_t ploidy ) const ;
 			std::vector< string_utils::slice > lex( string_utils::slice const& value, std::size_t number_of_alleles ) const ;
-			void get_missing_value( std::size_t, std::size_t ploidy, EntriesSetter& setter ) const ;
+			void get_missing_value( std::size_t number_of_alleles, std::size_t ploidy, EntriesSetter& setter ) const ;
 			void get_missing_value( std::size_t number_of_alleles, EntriesSetter& setter ) const ;
 
 			bool check_if_requires_ploidy() const { return false; }

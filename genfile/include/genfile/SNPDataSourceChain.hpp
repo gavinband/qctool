@@ -48,6 +48,8 @@ namespace genfile {
 
 		Metadata get_metadata() const ;
 		unsigned int number_of_samples() const ;
+		void get_sample_ids( GetSampleIds ) const ;
+
 		OptionalSnpCount total_number_of_snps() const ;
 		unsigned int number_of_sources() const ;
 		OptionalSnpCount number_of_snps_in_source( std::size_t source_index ) const ;

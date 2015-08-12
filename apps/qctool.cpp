@@ -117,6 +117,13 @@ namespace globals {
 	std::string const program_version = qctool_revision ;
 }
 
+namespace impl {
+	void set_vector_entry( std::vector< std::string >* vector, std::size_t i, std::string const& value ) {
+		assert( i < vector->size() ) ;
+		(*vector)[i] = value ;
+	}
+}
+
 struct QCToolOptionProcessor: public appcontext::CmdLineOptionProcessor
 {
 public:
@@ -1071,7 +1078,7 @@ private:
 		}
 		
 		{
-			m_samples = open_samples( m_snp_data_source->number_of_samples() ) ;
+			m_samples = open_samples( *m_snp_data_source ) ;
 			if( m_options.check( "-sample-data" )) {
 				m_samples = open_sample_data( m_samples, m_options.get_values< std::string > ( "-sample-data" )) ;
 			}
@@ -2044,9 +2051,9 @@ private:
 		m_ignore_warnings = m_options.check_if_option_was_supplied( "-force" ) ;
 	}
 	
-	genfile::CohortIndividualSource::UniquePtr open_samples( std::size_t const expected_number_of_samples ) {
+	genfile::CohortIndividualSource::UniquePtr open_samples( genfile::SNPDataSource const& snp_data_source ) {
 		try {
-			return unsafe_open_samples( expected_number_of_samples ) ;
+			return unsafe_open_samples( snp_data_source ) ;
 		}
 		catch( ConditionValueNotFoundException const& ) {
 			m_ui_context.logger() << "\n\n!! ERROR: The input sample file must contain entries for all values used to filter on.\n"
@@ -2072,10 +2079,18 @@ private:
 		}
 	}
 	
-	genfile::CohortIndividualSource::UniquePtr unsafe_open_samples( std::size_t const expected_number_of_samples ) {
+	genfile::CohortIndividualSource::UniquePtr unsafe_open_samples( genfile::SNPDataSource const& snp_data_source ) {
+		std::vector< std::string > sample_ids( snp_data_source.number_of_samples() ) ;
+		{
+			for( std::size_t i = 0; i < sample_ids.size(); ++i ) {
+				sample_ids[i] = ( boost::format( "sample_%d" ) % i ).str() ;
+			}
+			snp_data_source.get_sample_ids( boost::bind( &impl::set_vector_entry, &sample_ids, _1, _2 )) ;
+		}
+
 		genfile::CohortIndividualSource::UniquePtr sample_source ;
 		if( m_mangled_options.input_sample_filenames().size() == 0 ) {
-			sample_source.reset( new genfile::CountingCohortIndividualSource( expected_number_of_samples, "sample_%d" ) ) ;
+			sample_source.reset( new genfile::CountingCohortIndividualSource( sample_ids ) ) ;
 		}
 		else {
 			genfile::CohortIndividualSourceChain::UniquePtr source_chain( new genfile::CohortIndividualSourceChain() ) ;
@@ -2092,12 +2107,12 @@ private:
 			}
 			sample_source.reset( source_chain.release() ) ;
 			
-			if( sample_source->get_number_of_individuals() != expected_number_of_samples ) {
+			if( sample_source->get_number_of_individuals() != sample_ids.size() ) {
 				throw genfile::MismatchError(
 					"QCToolCmdLineContext::unsafe_open_samples()",
 					sample_source->get_source_spec(),
 					"number of samples = " + genfile::string_utils::to_string( sample_source->get_number_of_individuals() ),
-					"expected number of samples = " + genfile::string_utils::to_string( expected_number_of_samples )
+					"expected number of samples = " + genfile::string_utils::to_string( sample_ids.size() )
 				) ;
 			}
 		}

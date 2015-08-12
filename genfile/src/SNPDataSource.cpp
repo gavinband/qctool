@@ -20,6 +20,7 @@
 #include "genfile/ShapeITHaplotypesSNPDataSource.hpp"
 #include "genfile/DosageFileSNPDataSource.hpp"
 #include "genfile/BedFileSNPDataSource.hpp"
+#include "genfile/LongFormatSNPDataSource.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/vcf/get_set.hpp"
 #include "genfile/Error.hpp"
@@ -36,6 +37,7 @@ namespace genfile {
 		result.push_back( "impute_haplotypes" ) ;
 		result.push_back( "shapeit_haplotypes" ) ;
 		result.push_back( "binary_ped" ) ;
+		result.push_back( "long" ) ;
 		return result ;
 	}
 	
@@ -88,6 +90,9 @@ namespace genfile {
 			return std::auto_ptr< SNPDataSource >( new BedFileSNPDataSource(
 				uf.second, bimFilename, famFilename
 			) ) ;
+		}
+		else if( uf.first == "long" ) {
+			return std::auto_ptr< SNPDataSource >( new LongFormatSNPDataSource( uf.second ) ) ;
 		}
 		else {
 			throw genfile::BadArgumentError(
