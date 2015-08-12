@@ -110,7 +110,6 @@ namespace genfile {
 						std::pair< int, int > snpsample = std::make_pair( m_snp_index, m_source.m_sample_map.at( m_samples[ sample_i ] )) ;
 						LongFormatSNPDataSource::BufferMap::const_iterator where = m_source.m_buffer_map.find( snpsample ) ;
 						if( where != m_source.m_buffer_map.end() ) {
-							std::cerr << "Parsing value: \"" << genfile::string_utils::slice( m_source.buffer(), where->second.first, where->second.second ) << "\".\n" ;
 							m_entry_parser.parse( genfile::string_utils::slice( m_source.buffer(), where->second.first, where->second.second ), 2, setter ) ;
 						} else {
 							m_entry_parser.get_missing_value( 2, 2, setter ) ;
@@ -203,7 +202,7 @@ namespace genfile {
 					0
 				) ;
 			}
-			elts = slice( line ).split( " " ) ;
+			elts = slice( line ).split( " \t," ) ;
 		
 		
 			if( elts.size() != expectedColumns.size() ) {
@@ -236,7 +235,7 @@ namespace genfile {
 
 			while( read_one_line( stream, &line )) {
 				++lineNumber ;
-				elts = slice( line ).split( " " ) ;
+				elts = slice( line ).split( " \t," ) ;
 				if( elts.size() != expectedColumns.size() ) {
 					throw genfile::MalformedInputError(
 						m_filename,
