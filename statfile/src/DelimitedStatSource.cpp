@@ -118,11 +118,15 @@ namespace statfile {
 			std::getline( stream(), m_current_line ) ;
 		}
 		if( stream() ) {
-			m_current_fields = split_line( m_current_line, m_delimiter, m_quotes ) ;
-			if( m_current_fields.size() != number_of_columns() ) {
-				throw genfile::MalformedInputError( get_source_spec(), number_of_rows_read() ) ;
+			if( m_ignore_from && m_current_line.compare( 0, m_current_line.size(), m_ignore_from.get() )) {
+				m_have_more_data = false ;
+			} else {
+				m_current_fields = split_line( m_current_line, m_delimiter, m_quotes ) ;
+				if( m_current_fields.size() != number_of_columns() ) {
+					throw genfile::MalformedInputError( get_source_spec(), number_of_rows_read() ) ;
+				}
+				m_have_more_data = true ;
 			}
-			m_have_more_data = true ;
 		} else {
 			m_have_more_data = false ;
 		}
