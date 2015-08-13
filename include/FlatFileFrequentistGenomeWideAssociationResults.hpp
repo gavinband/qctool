@@ -117,7 +117,7 @@ protected:
 	Eigen::MatrixXf m_sample_counts ;
 	typedef Eigen::MatrixXf::ConstRowXpr Row ;
 	typedef std::map< std::string, std::vector< std::string > > ExtraVariables ;
-	ExtraVariables m_extra_variables ;
+	ExtraVariables m_extra_variable_storage ;
 	
 	FlatFileFrequentistGenomeWideAssociationResults() ;
 	

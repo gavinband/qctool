@@ -64,8 +64,8 @@ void FlatFileFrequentistGenomeWideAssociationResults::get_frequency( std::size_t
 	*result = ( 2.0 * m_sample_counts( snp_i, 2 ) + m_sample_counts( snp_i, 1 ) ) / ( 2.0 * m_sample_counts.row( snp_i ).sum() ) ;
 }
 void FlatFileFrequentistGenomeWideAssociationResults::get_variable( std::size_t snp_i, std::string const& variable, std::string* value ) const {
-	std::map< std::string, std::vector< std::string > >::const_iterator where = m_extra_variables.find( variable ) ;
-	assert( where != m_extra_variables.end() ) ;
+	std::map< std::string, std::vector< std::string > >::const_iterator where = m_extra_variable_storage.find( variable ) ;
+	assert( where != m_extra_variable_storage.end() ) ;
 	*value = where->second[ snp_i ] ;
 }
 
@@ -277,7 +277,7 @@ void FlatFileFrequentistGenomeWideAssociationResults::resize_storage( Eigen::Mat
 		m_sample_counts.swap( sample_counts ) ;
 	}
 	{
-		for( ExtraVariables::iterator i = m_extra_variables.begin(); i != m_extra_variables.end(); ++i ) {
+		for( ExtraVariables::iterator i = m_extra_variable_storage.begin(); i != m_extra_variable_storage.end(); ++i ) {
 			i->second.resize( N_snps ) ; // std::vector resize does not lose data.
 			std::vector< std::string > v = i->second ;
 			i->second.swap( v ) ;
@@ -320,7 +320,7 @@ void FlatFileFrequentistGenomeWideAssociationResults::free_unused_memory() {
 		m_sample_counts.swap( sample_counts ) ;
 	}
 	{
-		for( ExtraVariables::iterator i = m_extra_variables.begin(); i != m_extra_variables.end(); ++i ) {
+		for( ExtraVariables::iterator i = m_extra_variable_storage.begin(); i != m_extra_variable_storage.end(); ++i ) {
 			i->second.resize( N_snps ) ;
 			std::vector< std::string > v = i->second ;
 			i->second.swap( v ) ;

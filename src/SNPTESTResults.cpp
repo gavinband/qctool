@@ -24,7 +24,7 @@ SNPTESTResults::SNPTESTResults(
 void SNPTESTResults::add_variable( std::string const& variable ) {
 	m_variables.insert( variable ) ;
 	/* Make sure we prepare storage. */
-	m_extra_variables[ variable ] ;
+	m_extra_variable_storage[ variable ] ;
 }
 
 std::string SNPTESTResults::get_summary( std::string const& prefix, std::size_t target_column ) const {
@@ -219,6 +219,10 @@ SNPTESTResults::DesiredColumns SNPTESTResults::setup_columns( std::vector< std::
 	impl::insert_if_matched( column_names, regex( "controls_B" ), "extra", &result ) ;
 	impl::insert_if_matched( column_names, regex( "controls_NULL" ), "extra", &result ) ;
 	impl::insert_if_matched( column_names, regex( "comment" ), "extra", &result ) ;
+
+	for( std::set< std::string >::const_iterator i = m_variables.begin(); i != m_variables.end(); ++i ) {
+		impl::insert_matched( column_names, regex( *i ), "extra", &result ) ;
+	}
 	
 	return result ;
 }
@@ -294,6 +298,6 @@ void SNPTESTResults::store_value(
 		m_sample_counts( snp_index, 5 ) = ( value == "NA" ? NA: to_repr< double >( value ) ) ;
 	}
 	else if( m_variables.find( variable ) != m_variables.end() ) {
-		m_extra_variables[ variable ][ snp_index ] = value ;
+		m_extra_variable_storage[ variable ][ snp_index ] = value ;
 	}
 }
