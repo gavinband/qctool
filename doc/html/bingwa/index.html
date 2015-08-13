@@ -156,6 +156,7 @@
                 <div class="tutorial_header">
                     This page shows common command lines to use bingwa.  These examples assume the program is being run from a directory
 					containing two SNPTEST files, <span class="monospace">cohort1.snptest</span> and <span class="monospace">cohort2.snptest</span>.
+					You can see example files in the <a href="example/">examples directory</a>.
                 </div>
                 <div class="tutorial_separator">
                 </div>
@@ -276,6 +277,19 @@
 						from a file instead of the command-line.  Prior files additionally allow for comments and use of
 						whitespace.  See <a href="#file_formats">file formats page</a> for the
 						format of this file.  For example, the above priors could be specified
+                    </div>
+                </div>
+                <div class="task">
+                    <div class="task_name">
+                        Getting extra columns in the output
+                    </div>
+                    <div class="task_command_line">
+                        $ bingwa -data cohort1.snptest cohort2.snptest -o output.sqlite -priors priors.txt -extra-columns controls_AA controls_AB controls_BB cases_AA cases_AB cases_BB frequentist_add_null_ll frequentist_add_alternative_ll
+					</div>
+                    <div class="task_notes">
+                        <b>Note</b>: It's often useful to record extra information from the input files in the output.
+						The <code>-extra-variables</code> option tells bingwa to output a given set of columns
+						in the output.
                     </div>
                 </div>
 				<div class="tutorial_separator"></div>

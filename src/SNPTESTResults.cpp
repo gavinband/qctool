@@ -76,7 +76,9 @@ namespace impl {
 		assert( result ) ;
 		boost::optional< SNPTESTResults::ColumnSpec > matched = get_matching_name( names, regex, false, type ) ;
 		if( matched ) {
-			result->push_back( matched.get() ) ;
+			if( std::find( result->begin(), result->end(), static_cast< SNPTESTResults::ColumnSpec const >( matched.get() ) ) == result->end() ) {
+				result->push_back( matched.get() ) ;
+			}
 		}
 	}
 
@@ -89,7 +91,9 @@ namespace impl {
 		assert( result ) ;
 		boost::optional< SNPTESTResults::ColumnSpec > matched = get_matching_name( names, regex, true, type ) ;
 		if( matched ) {
-			result->push_back( matched.get() ) ;
+			if( std::find( result->begin(), result->end(), matched.get()) == result->end() ) {
+				result->push_back( matched.get() ) ;
+			}
 		} else {
 			throw genfile::BadArgumentError(
 				"impl::insert_matched()",

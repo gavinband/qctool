@@ -80,6 +80,9 @@ public:
 		bool operator<( ColumnSpec const& other ) const {
 			return m_name < other.m_name ;
 		}
+		bool operator==( ColumnSpec const& other ) const {
+			return (m_name == other.m_name) ;
+		}
 		std::string const& name() const { return m_name ; }
 		std::string const& simplified_name() const { return m_simplified_name ; }
 		boost::regex const& pattern() const { return m_pattern ; }
