@@ -1,0 +1,127 @@
+Usage: qctool <options>
+
+OPTIONS:
+Input file options:
+                -filetype <a>: Specify the filetype of the genotype files specified by -g. By default, qctool will guess
+                               the file type.  Use this option to override that guess. Possible types are: "gen","bgen","v-
+                               cf","hapmap_haplotypes","impute_haplotypes","shapeit_haplotypes".
+                       -g <a>: Path of gen file(s) to input.  The given filename may contain the wildcard character '#',
+                               which expands to match aone- or two-character chromosome identifier.  (For example, "qcto-
+                               ol -g myfile_#.gen" will match "myfile_1.gen", "myfile_2.gen", etc., or "myfile_01.gen", 
+                               "myfile_02.gen", etc.)  Only human autosomes are matched this way.
+                               This option may also be repeated, in which case each invocation is treated as a seperate 
+                               cohort and cohorts are joined together to create one big dataset.
+                       -s <a>: Path of sample file to input.  If specified, this option must occur as often as the -g op-
+                               tion to specify one sample file per cohort.
+
+Sample exclusion options:
+            -excl-samples <a>: Filter out samples whose sample ID lies in the given file.
+            -incl-samples <a>: Filter out samples whose sample ID does not lie in the given file(s).
+
+SNP exclusion options:
+          -excl-positions <a>: Exclude all SNPs whose position is in the given file(s) from the analysis. Positions shou-
+                               ld be in the form [chromosome]:[position] and separated by whitespace.
+              -excl-range <a>: Specify a range of SNPs (or comma-separated list of ranges of SNPs) to exclude from opera-
+                               tion. Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx
+                               and yyyy are the start and end coordinates, or just xxxx-yyyy which matches that range fr-
+                               om all chromosomes. You can also omit either of xxxx or yyyy to get all SNPs from the sta-
+                               rt or to the end of a chromosome.
+              -excl-rsids <a>: Exclude all SNPs whose RSID is in the given file(s) from the analysis.
+             -excl-snpids <a>: Exclude all SNPs whose SNPID is in the given file(s) from the analysis.
+               -excl-snps <a>: Exclude all SNPs in the given file(s) from the analysis. The format of this file is the s-
+                               ame as that output by the -write-snp-excl-list option.  It must have six columns interpre-
+                               ted as SNPID, rsid, chromosome, position, first and second alleles.
+      -excl-snps-matching <a>: Filter out snps whose rsid or SNPID matches the given value. The value should be a string
+                               which can contain a % wildcard character (which matches any substring). Optionally, prefi-
+                               x the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields.
+          -incl-positions <a>: Exclude all SNPs whose position is not in the given file(s) from the analysis. Positions 
+                               should be in the form [chromosome]:[position] and separated by whitespace.
+              -incl-range <a>: Specify a range of SNPs (or comma-separated list of ranges of SNPs) to operate on. Each r-
+                               ange should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy ar-
+                               e the start and end coordinates, or just xxxx-yyyy which matches that range from all chro-
+                               mosomes. You can also omit either of xxxx or yyyy to get all SNPs from the start or to th-
+                               e end of a chromosome.
+              -incl-rsids <a>: Exclude all SNPs whose RSID is not in the given file(s) from the analysis.
+             -incl-snpids <a>: Exclude all SNPs whose SNPID is not in the given file(s) from the analysis.
+               -incl-snps <a>: Exclude all SNPs not in the given file(s) from the analysis. The format of this file is t-
+                               he same as that output by the -write-snp-excl-list option.  It must have six columns inte-
+                               rpreted as SNPID, rsid, chromosome, position, first and second alleles.
+      -incl-snps-matching <a>: Filter out snps whose rsid or SNPID does not match the given value. The value should be a
+                               string which can contain a % wildcard character (which matches any substring). Optionally,
+                               prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields.
+
+Options for adjusting SNPs:
+       -assume-chromosome <a>: Treat each SNP whose chromosome cannot be determined as though it lies on the specified c-
+                               hromosome.
+    -match-alleles-to-cohort1: Specify that alleles (and corresponding genotypes) in all cohorts should be switched, if 
+                               necessary, so as to match the alleles of the first cohort.
+        -snp-match-fields <a>: By default, matching SNPs between cohorts uses all the available fields (position, rsid, 
+                               SNPID, and alleles.) Use this option to specify a comma-separated subset of those fields 
+                               to use instead. The first entry must be "position". This option can be used, for example,
+                               when cohorts are typed on different platforms so have different SNPID fields.  Defaults t-
+                               o "position,rsid,SNPID,alleles".
+
+Output file options:
+                      -og <a>: Specify that qctool should write an output genotype file with the specified filename. The
+                               type of this file will be determined from the filename extension. If the first occurence 
+                               of -g uses a '#' wildcard character, the '#' character can also be used here to specify n-
+                               umbered output files corresponding to the input files.If "-" is specifed here, genotypes 
+                               are written to standard output in GEN format.
+             -omit-chromosome: (This option is specific to output files in the GEN format.) Do not output a chromosome c-
+                               olumn.
+                      -os <a>: Output sample information to the file specified.  
+                        -sort: Sort the genotypes in the output file.  Currently this is only supported if BGEN, unzippe-
+                               d GEN, unzipped VCF format is output.
+
+
+VCF file options:
+                -metadata <a>: Specify the name of a file containing VCF metadata to be used to parse a VCF file.  Keys 
+                               in this file must either not be present in the VCF file, or must have identical values.
+      -vcf-genotype-field <a>: Specify the name of the field in a VCF file to read genotypes from.  This must match the 
+                               name of a FORMAT field in the VCF file.  Defaults to "GT".
+
+Statistic calculation options:
+            -sample-stats <a>: Calculate and output sample-wise statistics.
+               -snp-stats <a>: Calculate per-SNP summary statistics and store them in the specified file.  (This implies
+                               that no SNP filtering options are used.)
+
+SNP filtering options:
+                     -hwe <a>: Filter out SNPs with -log10( HWE p-value ) greater than or equal to the value specified.
+                -info <a> <b>: Filter out SNPs with Fisher information lying outside the given range.
+                 -maf <a> <b>: Filter out SNPs whose minor allele frequency lies outside the interval [a,b].
+   -snp-missing-call-rate <a>: Filter out SNPs with missing call rate greater than or equal to the value specified.
+        -snp-missing-rate <a>: Filter out SNPs with missing data rate greater than or equal to the value specified.
+
+Sample filtering options:
+      -heterozygosity <a> <b>: Filter out samples with heterozygosity (as taken from the "heterozygosity" column of the 
+                               sample file, which must be present) outside the interval [a,b].
+     -sample-missing-rate <a>: Filter out samples with missing data rate (as taken from the "missing" column of the samp-
+                               le file) greater than the value specified.
+
+Inclusion / exclusion list options:
+  -write-sample-excl-list <a>: Write a file containing a list of the ids of individuals which are filtered out by the sa-
+                               mple filter.
+     -write-snp-excl-list <a>: Write a file (or files) containing the SNPs that are filtered out.
+
+Other options:
+                       -force: Ignore warnings and proceed with requested action.
+                     -log <a>: Specify that qctool should write a log file to the given file.
+
+Options for adjusting sample data:
+            -condition-on <a>: Condition on the dosages of a given SNP or set of SNPs. The argument should be a comma-se-
+                               parated list of values of the form:
+                               [field]~[value]:[dose][,dose...]
+                               where field is "rsid", "snpid", or "pos", value is the value to match, and each dose is o-
+                               ne of add,dom,het,rec,or gen. If the field is omitted, it is assumed to be rsid; if the d-
+                               ose is omitted it is assumed to be add.
+            -missing-code <a>: Specify a comma-separated list of strings to be treated as missing values when encountere-
+                               d in the sample file(s).  Defaults to "NA".
+      -quantile-normalise <a>: Quantile normalise each specified continuous phenotype or covariate by ranking its values
+                               and mapping to quantiles of the standard normal distribution N(0,1). Ties are handled by 
+                               sending tied values to the average of the corresponding quantiles.The argument should be 
+                               a comma-separated list of column names from the sample file.
+
+Test / benchmark options:
+                   -read-test: Don't do anything; just read the data.
+
+
