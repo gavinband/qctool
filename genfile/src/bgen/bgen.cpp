@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 #include "genfile/endianness_utils.hpp"
+#include "genfile/types.hpp"
 #include "genfile/bgen/bgen.hpp"
 #include "genfile/bgen/impl.hpp"
 #include "genfile/string_utils/hex.hpp"
@@ -329,17 +330,12 @@ namespace genfile {
 			VariantDataReader::PerSampleSetter& setter
 		) {
 			if( (context.flags & e_Layout) == e_v10Layout || (context.flags & e_Layout) == e_v11Layout ) {
-				setter.set_number_of_samples( context.number_of_samples ) ;
-				setter.set_number_of_alleles( 2 ) ;
+				setter.set_number_of_samples( context.number_of_samples, 2 ) ;
 				
 				double const probability_conversion_factor = impl::get_probability_conversion_factor( context.flags ) ;
 				for ( uint32_t i = 0 ; i < context.number_of_samples ; ++i ) {
 					setter.set_sample( i ) ;
-					setter.set_number_of_entries( 3 ) ;
-					setter.set_order_type(
-						VariantDataReader::PerSampleSetter::ePerUnorderedGenotype,
-						VariantDataReader::PerSampleSetter::eProbability
-					) ;
+					setter.set_number_of_entries( 3, ePerUnorderedGenotype, eProbability ) ;
 					assert( end >= buffer + 6 ) ;
 					for( std::size_t g = 0; g < 3; ++g ) {
 						uint16_t prob ;
@@ -431,8 +427,7 @@ namespace genfile {
 			if( numberOfSamples != context.number_of_samples ) {
 				throw BGenError() ;
 			}
-			setter.set_number_of_samples( numberOfSamples ) ;
-			setter.set_number_of_alleles( uint32_t( numberOfAlleles ) ) ;
+			setter.set_number_of_samples( numberOfSamples, uint32_t( numberOfAlleles ) ) ;
 
 			// Keep a pointer to the ploidy and move buffer past the ploidy information
 			char const* ploidy_p = buffer ;
@@ -472,16 +467,11 @@ namespace genfile {
 #endif
 
 					if( setter.set_sample( i ) ) {
-						setter.set_number_of_entries( valueCount ) ;
-						setter.set_order_type(
-							(
-								phased
-									? VariantDataReader::PerSampleSetter::ePerPhasedHaplotypePerAllele
-									: VariantDataReader::PerSampleSetter::ePerUnorderedGenotype
-							),
-							VariantDataReader::PerSampleSetter::eProbability
+						setter.set_number_of_entries(
+							valueCount, 
+							phased ? ePerPhasedHaplotypePerAllele : ePerUnorderedGenotype,
+							eProbability
 						) ;
-
 						if( missing ) {
 							for( std::size_t h = 0; h < valueCount; ++h ) {
 								setter( genfile::MissingValue() ) ;

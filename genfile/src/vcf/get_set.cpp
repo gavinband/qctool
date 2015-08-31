@@ -33,14 +33,10 @@ namespace genfile {
 		
 		GenotypeSetterBase::~GenotypeSetterBase() throw() {}
 
-		void GenotypeSetterBase::set_number_of_samples( std::size_t n ) {
+		void GenotypeSetterBase::set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+			assert( nAlleles == 2 ) ;
 			// destination is supposed to know its size.
-			m_number_of_samples = n ;
-		}
-
-		void GenotypeSetterBase::set_number_of_alleles( std::size_t n ) {
-			// handle only biallelic variants for now
-			assert( n == 2 ) ;
+			m_number_of_samples = nSamples ;
 		}
 
 		bool GenotypeSetterBase::set_sample( std::size_t n ) {
@@ -54,21 +50,19 @@ namespace genfile {
 			return true ;
 		}
 
-		void GenotypeSetterBase::set_order_type( OrderType const order_type, ValueType const value_type ) {
+		void GenotypeSetterBase::set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
 			assert(
 				((value_type == eProbability) && (order_type == ePerUnorderedGenotype))
 				|| 
 				((value_type == eAlleleIndex) && (order_type == ePerOrderedHaplotype || order_type == ePerUnorderedHaplotype))
 				||
-				((value_type == eDosage) && (order_type == eBAlleleDosage))
+				((value_type == eDosage) && (order_type == ePerSample))
 			) ;
-			m_order_type = order_type ;
-			m_value_type = value_type ;
-		}
-
-		void GenotypeSetterBase::set_number_of_entries( std::size_t n ) {
 			assert( n == 1 || n == 2 || n == 3 ) ;
 			m_number_of_entries = n ;
+			m_order_type = order_type ;
+			m_value_type = value_type ;
+
 			m_entry_i = 0 ;
 			m_A = 0 ;
 			m_B = 0 ;
@@ -87,7 +81,7 @@ namespace genfile {
 			if( m_missing ) {
 				set( m_sample, 0.0, 0.0, 0.0 ) ;
 			} else if(
-				(m_value_type == eDosage && m_order_type == eBAlleleDosage)
+				(m_value_type == eDosage && m_order_type == ePerSample)
 					|| ( m_value_type == eAlleleIndex && ( m_order_type == ePerOrderedHaplotype || m_order_type == ePerUnorderedHaplotype ))
 			) {
 				if( m_A == 0 && m_B == 2 ) {
@@ -118,10 +112,9 @@ namespace genfile {
 			m_result( result )
 		{}
 
-		void GenotypeSetter< SingleSNPGenotypeProbabilities >::set_number_of_samples( std::size_t n ) {
-			// destination is supposed to know its size.
-			m_result.resize( n ) ;
-			GenotypeSetterBase::set_number_of_samples( n ) ;
+		void GenotypeSetter< SingleSNPGenotypeProbabilities >::set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+			m_result.resize( nSamples ) ;
+			GenotypeSetterBase::set_number_of_samples( nSamples, nAlleles ) ;
 		}
 
 		void GenotypeSetter< SingleSNPGenotypeProbabilities >::set( std::size_t sample_i, double AA, double AB, double BB ) {
@@ -133,9 +126,10 @@ namespace genfile {
 			m_result( result )
 		{}
 
-		void GenotypeSetter< std::vector< double > >::set_number_of_samples( std::size_t n ) {
-			m_result.resize( n * 3 ) ;
-			GenotypeSetterBase::set_number_of_samples( n ) ;
+		void GenotypeSetter< std::vector< double > >::set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+			assert( nAlleles == 2 ) ;
+			m_result.resize( nSamples * 3 ) ;
+			GenotypeSetterBase::set_number_of_samples( nSamples, nAlleles ) ;
 		}
 
 		void GenotypeSetter< std::vector< double > >::set( std::size_t sample_i, double AA, double AB, double BB ) {
@@ -151,10 +145,11 @@ namespace genfile {
 			m_threshhold( threshhold )
 		{}
 
-		void ThreshholdingGenotypeSetter< std::vector< VariantEntry > >::set_number_of_samples( std::size_t n ) {
+		void ThreshholdingGenotypeSetter< std::vector< VariantEntry > >::set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+			assert( nAlleles == 2 ) ;
 			m_result.clear() ;
-			m_result.resize( n, MissingValue() ) ;
-			GenotypeSetterBase::set_number_of_samples( n ) ;
+			m_result.resize( nSamples, MissingValue() ) ;
+			GenotypeSetterBase::set_number_of_samples( nSamples, nAlleles ) ;
 		}
 
 		void ThreshholdingGenotypeSetter< std::vector< VariantEntry > >::set( std::size_t sample_i, double AA, double AB, double BB ) {
@@ -171,40 +166,6 @@ namespace genfile {
 				m_result[ sample_i ] = MissingValue() ;
 			}
 		}
-
-#if 0
-		ThreshholdingGenotypeSetter< std::vector< int > >::
-			ThreshholdingGenotypeSetter( std::vector< int >& result, double threshhold, int missing_value, int AA_value, int AB_value, int BB_value ):
-			GenotypeSetterBase( "identity" ),
-			m_result( result ),
-			m_missing_value( missing_value ),
-			m_AA_value( AA_value ),
-			m_AB_value( AB_value ),
-			m_BB_value( BB_value ),
-			m_threshhold( threshhold )
-		{}
-
-		void ThreshholdingGenotypeSetter< std::vector< int > >::set_number_of_samples( std::size_t n ) {
-			m_result.clear() ;
-			m_result.resize( n, -1 ) ;
-			GenotypeSetterBase::set_number_of_samples( n ) ;
-		}
-
-		void ThreshholdingGenotypeSetter< std::vector< int > >::set( std::size_t sample_i, double AA, double AB, double BB ) {
-			if( AA > m_threshhold ) {
-				m_result[ sample_i ] = m_AA_value ;
-			}
-			else if( AB > m_threshhold ) {
-				m_result[ sample_i ] = m_AB_value ;
-			}
-			else if( BB > m_threshhold ) {
-				m_result[ sample_i ] = m_BB_value ;
-			}
-			else {
-				m_result[ sample_i ] = m_missing_value ;
-			}
-		}
-#endif		
 	}
 }
 

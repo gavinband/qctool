@@ -43,21 +43,21 @@ namespace genfile {
 
 			~GenotypeWriter() throw() {}
 			
-			void set_number_of_samples( std::size_t n ) {
-				if( n != m_number_of_samples ) {
-					throw genfile::BadArgumentError( "genfile::GenotypeWriter::set_number_of_samples()", "n=" + string_utils::to_string(n), "Number of samples does not match expected number (" + string_utils::to_string( m_number_of_samples ) + ")" ) ;
-				}
-			}
-
-			void set_number_of_alleles( std::size_t n ) {
-				if( n != 2 ) {
+			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+				if( nSamples != m_number_of_samples ) {
 					throw genfile::BadArgumentError(
 						"genfile::GenotypeWriter::set_number_of_samples()",
-						( boost::format( "n=%d" ) % n).str(),
+						"n=" + string_utils::to_string( nSamples ),
+						"Number of samples does not match expected number (" + string_utils::to_string( m_number_of_samples ) + ")"
+					) ;
+				}
+				if( nAlleles != 2 ) {
+					throw genfile::BadArgumentError(
+						"genfile::GenotypeWriter::set_number_of_samples()",
+						( boost::format( "n=%d" ) % nAlleles ).str(),
 						"Expected two alleles."
 					) ;
 				}
-				m_number_of_alleles = n ;
 			}
 
 			bool set_sample( std::size_t i ) {
@@ -66,15 +66,12 @@ namespace genfile {
 				return true ;
 			}
 
-			void set_order_type( OrderType const order_type, ValueType const value_type ) {
-			}
-
-			void set_number_of_entries( std::size_t n ) {
-				if( n != 3 ) {
+			void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
+				if( n != 3 || order_type != ePerUnorderedGenotype || value_type != eProbability ) {
 					throw genfile::BadArgumentError(
 						"genfile::IntensityWriter::set_number_of_entries()",
 						"n=" + string_utils::to_string(n),
-						"Expected 3 entries per sample."
+						"Expected 3 genotype probabilities per sample."
 					) ;
 				}
 				m_entry_i = 0 ;

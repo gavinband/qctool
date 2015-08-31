@@ -37,21 +37,15 @@ namespace genfile {
 #endif					
 				}
 
-				void set_number_of_samples( std::size_t n ) {
-					m_setter.set_number_of_samples( n ) ;
+				void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+					m_setter.set_number_of_samples( nSamples, nAlleles ) ;
 				} ;
-				void set_number_of_alleles( std::size_t n ) {
-					m_setter.set_number_of_alleles( n ) ;
-				}
 				bool set_sample( std::size_t i ) {
 					return m_setter.set_sample( m_order[i] ) ;
 				}
-				void set_number_of_entries( std::size_t n ) {
-					return m_setter.set_number_of_entries( n ) ;
+				void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
+					return m_setter.set_number_of_entries( n, order_type, value_type ) ;
 				}
-				void set_order_type( OrderType const order_type, ValueType const value_type ) {
-					m_setter.set_order_type( order_type, value_type ) ;
-				} ;
 				void operator()( MissingValue const value ) {
 					m_setter( value ) ;
 				}

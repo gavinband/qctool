@@ -36,25 +36,23 @@ namespace genfile {
 			m_flip( flip ),
 			m_sample_offset( sample_offset ),
 			m_number_of_alleles( 0 ),
+			m_have_set_number_of_samples( false ),
 			m_values( 3 ),
 			m_entry_i( 0 )
-		{
-			m_setter.set_number_of_samples( number_of_samples ) ;
-		}
-		void set_number_of_samples( std::size_t n ) {
-			//
-			// m_setter.set_number_of_samples( n ) ;
-		}
-		void set_number_of_alleles( std::size_t n ) {
-			if( m_number_of_alleles == 0 ) {
-				m_number_of_alleles = n ;
-				m_setter.set_number_of_alleles( n ) ;
+		{}
+
+		void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+			if( !m_have_set_number_of_samples ) {
+				m_number_of_alleles = nAlleles ;
+				m_setter.set_number_of_samples( m_number_of_samples, nAlleles ) ;
+				m_have_set_number_of_samples = true ;
 			}
 		}
 
 		void set_offset( std::size_t offset ) {
 			m_sample_offset = offset ;
 		}
+
 		std::size_t get_offset() const {
 			return m_sample_offset ;
 		}
@@ -70,15 +68,12 @@ namespace genfile {
 			m_setter.set_sample( n + m_sample_offset ) ;
 			return true ;
 		}
-		void set_number_of_entries( std::size_t n ) {
+		void set_number_of_entries( std::size_t n, OrderType order_type, ValueType value_type ) {
 			m_values.resize( n ) ;
-			m_entry_i = 0 ;
-			m_setter.set_number_of_entries( n ) ;
-		}
-		void set_order_type( OrderType order_type, ValueType value_type ) {
 			m_order_type = order_type ;
 			m_value_type = value_type ;
-			m_setter.set_order_type( order_type, value_type ) ;
+			m_entry_i = 0 ;
+			m_setter.set_number_of_entries( n, order_type, value_type ) ;
 		}
 
 		void operator()( MissingValue const value ) { store( value ) ; }
@@ -89,6 +84,7 @@ namespace genfile {
 	private:
 		VariantDataReader::PerSampleSetter& m_setter ;
 		std::size_t const m_number_of_samples ;
+		bool m_have_set_number_of_samples ;
 		char m_flip ;
 		std::size_t m_sample_offset ;
 		std::size_t m_number_of_alleles ;

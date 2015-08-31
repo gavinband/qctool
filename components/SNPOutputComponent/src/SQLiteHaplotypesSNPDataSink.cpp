@@ -102,7 +102,8 @@ namespace {
 
 		~HaplotypeWriter() throw() {}
 		
-		void set_number_of_samples( std::size_t n ) {
+		void set_number_of_samples( std::size_t n, std::size_t nAlleles ) {
+			assert( nAlleles == 2 ) ;
 			m_buffers.resize(2) ;
 			m_buf_p.resize(2) ;
 			m_buf_end_p.resize(2) ;
@@ -135,10 +136,6 @@ namespace {
 			}
 		}
 		
-		void set_number_of_alleles( std::size_t n ) {
-			assert( n == 2 ) ;
-		}
-		
 		bool set_sample( std::size_t i ) {
 			if( i > 0 ) {
 				*(m_buf_p[ eUBJSON ]++) = ']' ;
@@ -146,7 +143,7 @@ namespace {
 			*(m_buf_p[ eUBJSON ]++) = '[' ;
 			return true ;
 		}
-		void set_number_of_entries( std::size_t n ) {
+		void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
 			if( n != 1 && n != 2 ) {
 				m_buffer_validity[ eBITPACK ] = false ;
 				throw genfile::BadArgumentError(
@@ -154,24 +151,21 @@ namespace {
 					"n != 1 or 2"
 				) ;
 			}
-			m_ploidy = n ;
-		}
-
-		void set_order_type( OrderType const order_type, ValueType const value_type ) {
-			if( order_type != ePerOrderedHaplotype ) {
+			if( order_type != genfile::ePerOrderedHaplotype ) {
 				throw genfile::BadArgumentError(
 					"genfile::HaplotypeWriter::set_order_type()",
 					"order_type",
-					"Expected order_type == ePerOrderedHaplotype"
+					"Expected values to represent ordered haplotype calls."
 				) ;
 			}
-			if( value_type != eAlleleIndex ) {
+			if( value_type != genfile::eAlleleIndex ) {
 				throw genfile::BadArgumentError(
 					"genfile::HaplotypeWriter::set_order_type()",
 					"value_type",
-					"Expected value_type == eAlleleIndex"
+					"Expected values to represent allele indices (i.e. GT field)."
 				) ;
 			}
+			m_ploidy = n ;
 		}
 
 		void operator()( genfile::MissingValue const value ) {

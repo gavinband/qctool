@@ -40,21 +40,22 @@ namespace genfile {
 
 			~IntensityWriter() throw() {}
 
-			void set_number_of_samples( std::size_t n ) {
-				if( (n*2) != m_data.size() ) {
-					throw genfile::BadArgumentError( "genfile::IntensityWriter::set_number_of_samples()", "n=" + string_utils::to_string(n), "Number of samples does not match expected number (" + string_utils::to_string( m_data.size() / 2 ) + ")" ) ;
-				}
-			}
-
-			void set_number_of_alleles( std::size_t n ) {
-				if( n != 2 ) {
+			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+				if( (nSamples*2) != m_data.size() ) {
 					throw genfile::BadArgumentError(
 						"genfile::IntensityWriter::set_number_of_samples()",
-						( boost::format( "n=%d" ) % n).str(),
+						"n=" + string_utils::to_string(nSamples),
+						"Number of samples does not match expected number (" + string_utils::to_string( m_data.size() / 2 ) + ")"
+					) ;
+				}
+				if( nAlleles != 2 ) {
+					throw genfile::BadArgumentError(
+						"genfile::IntensityWriter::set_number_of_samples()",
+						( boost::format( "n=%d" ) % nAlleles).str(),
 						"Expected two alleles."
 					) ;
 				}
-				m_number_of_alleles = n ;
+				m_number_of_alleles = nAlleles ;
 			}
 
 			bool set_sample( std::size_t i ) {
@@ -63,15 +64,12 @@ namespace genfile {
 				return true ;
 			}
 
-			void set_order_type( OrderType const order_type, ValueType const value_type ) {
-			}
-
-			void set_number_of_entries( std::size_t n ) {
-				if( n != m_number_of_alleles ) {
+			void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
+				if( n != m_number_of_alleles || order_type != ePerAllele ) {
 					throw genfile::BadArgumentError(
 						"genfile::IntensityWriter::set_number_of_entries()",
 						"n=" + string_utils::to_string(n),
-						"Expected 2 entries per sample."
+						"Expected one entry per allele per sample."
 					) ;
 				}
 				m_entry_i = 0 ;

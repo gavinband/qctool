@@ -35,6 +35,15 @@ namespace genfile {
 		setup( m_filename ) ;
 	}
 
+	LongFormatSNPDataSource::LongFormatSNPDataSource( std::istream& stream ):
+		m_filename( "(unknown stream)" ),
+		m_buffer_size( 20000000 ),
+		m_snp_index(0),
+		m_exhausted( false )
+	{
+		setup( stream ) ;
+	}
+
 	SNPDataSource::Metadata LongFormatSNPDataSource::get_metadata() const {
 		SNPDataSource::Metadata result ;
 
@@ -102,8 +111,7 @@ namespace genfile {
 			{}
 			
 			LongFormatVariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
-				setter.set_number_of_samples( m_samples.size() ) ;
-				setter.set_number_of_alleles( 2 ) ;
+				setter.set_number_of_samples( m_samples.size(), 2 ) ;
 				if( spec == "GT" || spec == ":genotypes:" ) {
 					for( std::size_t sample_i = 0; sample_i < m_samples.size(); ++sample_i ) {
 						setter.set_sample( sample_i ) ;
@@ -119,8 +127,7 @@ namespace genfile {
 				else if( spec == "typed" ) {
 					for( std::size_t sample_i = 0; sample_i < m_samples.size(); ++sample_i ) {
 						setter.set_sample( sample_i ) ;
-						setter.set_number_of_entries( 1 ) ;
-						setter.set_order_type( vcf::EntriesSetter::eUnorderedList, vcf::EntriesSetter::eUnknownValueType ) ;
+						setter.set_number_of_entries( 1, eUnorderedList, eUnknownValueType ) ;
 						std::pair< int, int > snpsample = std::make_pair( m_snp_index, m_source.m_sample_map.at( m_samples[ sample_i ] )) ;
 						LongFormatSNPDataSource::BufferMap::const_iterator where = m_source.m_buffer_map.find( snpsample ) ;
 						setter( ( where == m_source.m_buffer_map.end() ) ? vcf::EntriesSetter::Integer(0) : vcf::EntriesSetter::Integer(1) ) ;

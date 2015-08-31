@@ -38,9 +38,9 @@ namespace genfile {
 			}
 
 			~HaplotypeWriter() throw() {}
-			
-			void set_number_of_samples( std::size_t n ) {
-				assert( (2*n) == m_data.size() ) ;
+			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+				assert( (2*nSamples) == m_data.size() ) ;
+				assert( nAlleles == 2 ) ;
 			}
 			void set_number_of_alleles( std::size_t n ) {
 				assert( n == 2 ) ;
@@ -49,15 +49,12 @@ namespace genfile {
 				m_sample_i = i ;
 				return true ;
 			}
-			void set_order_type( OrderType const order_type, ValueType const value_type ) {
-				assert( order_type == ePerOrderedHaplotype && value_type == eAlleleIndex ) ;
-			}
-
-			virtual void set_number_of_entries( std::size_t n ) {
-				if( n != 2 ) {
+			void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
+				if( n != 2 || order_type != ePerOrderedHaplotype || value_type != eAlleleIndex) {
 					throw genfile::BadArgumentError(
 						"genfile::HaplotypeWriter::set_number_of_entries()",
-						"n != 2"
+						"n != 2",
+						"Expected two entries representing ordered haplotype calls"
 					) ;
 				}
 				m_entry_i = 0 ;

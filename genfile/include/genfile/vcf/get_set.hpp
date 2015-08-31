@@ -22,11 +22,11 @@ namespace genfile {
 				m_data( data )
 			{}
 
-			void set_number_of_samples( std::size_t n ) { m_data.resize( n ) ; }
-			void set_number_of_alleles( std::size_t n ) { assert( n == 2 ) ; }
+			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) { assert( nAlleles == 2 ); m_data.resize( nSamples ) ; }
 			bool set_sample( std::size_t n ) { assert( n < m_data.size() ) ; m_sample = n ; return true ; }
-			void set_order_type( OrderType const order_type, ValueType const value_type ) {} ;
-			void set_number_of_entries( std::size_t n ) { m_data[ m_sample ].resize( n ) ; m_entry_i = 0 ; }
+			void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
+				m_data[ m_sample ].resize( n ) ; m_entry_i = 0 ;
+			}
 
 		private:
 			template< typename T >
@@ -51,11 +51,9 @@ namespace genfile {
 			GenotypeSetterBase( std::string const& scale = "identity" ) ;
 			~GenotypeSetterBase() throw() ;
 
-			virtual void set_number_of_samples( std::size_t n ) ;
-			virtual void set_number_of_alleles( std::size_t n ) ;
+			virtual void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) ;
 			virtual bool set_sample( std::size_t n ) ;
-			virtual void set_order_type( OrderType const, ValueType const ) ;
-			virtual void set_number_of_entries( std::size_t n ) ;
+			virtual void set_number_of_entries( std::size_t n, OrderType const, ValueType const ) ;
 			virtual void operator()( MissingValue const value ) ;
 			virtual void operator()( Integer const value ) ;
 			virtual void operator()( double const value ) ;
@@ -80,7 +78,7 @@ namespace genfile {
 
 			template< typename T >
 			void store( T const value ) {
-				if( m_value_type == eDosage && m_order_type == eBAlleleDosage ) {
+				if( m_value_type == eDosage && m_order_type == ePerSample ) {
 					// A single dosage value
 					assert( value == 0 || value == 1 || value == 2 ) ;
 					m_A = 2 - value ;
@@ -134,7 +132,7 @@ namespace genfile {
 		struct GenotypeSetter< SingleSNPGenotypeProbabilities >: public GenotypeSetterBase
 		{
 			GenotypeSetter( SingleSNPGenotypeProbabilities& result ) ;
-			void set_number_of_samples( std::size_t n ) ;
+			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) ;
 			void set( std::size_t sample_i, double AA, double AB, double BB ) ;
 		private:
 			SingleSNPGenotypeProbabilities& m_result ;
@@ -147,7 +145,7 @@ namespace genfile {
 		struct GenotypeSetter< std::vector< double > >: public GenotypeSetterBase
 		{
 			GenotypeSetter( std::vector< double >& result ) ;
-			void set_number_of_samples( std::size_t n ) ;
+			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) ;
 			void set( std::size_t sample_i, double AA, double AB, double BB ) ;
 		private:
 			std::vector< double >& m_result ;
@@ -161,7 +159,7 @@ namespace genfile {
 		struct ThreshholdingGenotypeSetter< std::vector< VariantEntry > >: public GenotypeSetterBase
 		{
 			ThreshholdingGenotypeSetter( std::vector< VariantEntry >& result, double threshhold ) ;
-			void set_number_of_samples( std::size_t n ) ;
+			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) ;
 			void set( std::size_t sample_i, double AA, double AB, double BB ) ;
 		private:
 			std::vector< VariantEntry >& m_result ;
@@ -182,10 +180,11 @@ namespace genfile {
 				m_threshhold( threshhold )
 			{}
 				
-			void set_number_of_samples( std::size_t n ) {
+			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+				assert( nAlleles == 2 ) ;
 				m_result.clear() ;
-				m_result.resize( n, -1 ) ;
-				GenotypeSetterBase::set_number_of_samples( n ) ;
+				m_result.resize( nSamples, -1 ) ;
+				GenotypeSetterBase::set_number_of_samples( nSamples, nAlleles ) ;
 			}
 			
 			void set( std::size_t sample_i, double AA, double AB, double BB ) {
@@ -232,18 +231,14 @@ namespace genfile {
 				m_missing_value( missing_value )
 			{}
 
-			void set_number_of_samples( std::size_t n ) { m_number_of_samples = n ; }
-			void set_number_of_alleles( std::size_t n ) { assert( n == 2 ) ; }
+			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) { assert( nAlleles == 2 ) ; m_number_of_samples = nSamples ; }
 			bool set_sample( std::size_t n ) {
 				assert( n < m_number_of_samples ) ; 
 				m_sample = n ;
 				m_entry_i = 0 ;
 				return true ;
 			}
-			void set_order_type( OrderType const, ValueType const ) {
-				// do nothing
-			}
-			void set_number_of_entries( std::size_t n ) {
+			void set_number_of_entries( std::size_t n, OrderType const, ValueType const ) {
 				if( m_sample == 0 ) {
 					m_result.resize( m_number_of_samples, n ) ;
 					if( m_nonmissingness ) {

@@ -24,6 +24,9 @@ namespace genfile {
 	{
 	public:
 		LongFormatSNPDataSource( std::string const& filename ) ;
+		LongFormatSNPDataSource( std::istream& stream ) ;
+
+	public:
 		Metadata get_metadata() const ;
 
 		unsigned int number_of_samples() const { return m_samples.size() ; }

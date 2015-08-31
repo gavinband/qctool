@@ -63,13 +63,10 @@ namespace genfile {
 			
 			~DataWriter() throw() {}
 
-			void set_number_of_samples( std::size_t n ) {
-				assert( m_streams.size() == n ) ;
+			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+				assert( m_streams.size() == nSamples ) ;
+				assert( nAlleles == 2 ) ;
 				m_sample_i = 0 ;
-			}
-
-			void set_number_of_alleles( std::size_t n ) {
-				assert( n == 2 ) ;
 			}
 
 			bool set_sample( std::size_t i ) {
@@ -77,13 +74,10 @@ namespace genfile {
 				return true ;
 			}
 
-			void set_number_of_entries( std::size_t n ) {
+			void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
 				m_number_of_entries = n ;
-				m_entry_i = 0 ;
-			}
-
-			void set_order_type( OrderType const order_type, ValueType const value_type ) {
 				m_order_type = order_type ;
+				m_entry_i = 0 ;
 				if( m_field_is_genotype ) {
 					m_sep = ( order_type == ePerOrderedHaplotype ) ? '|' : '/' ;
 				} else {

@@ -16,8 +16,10 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include "genfile/MissingValue.hpp"
+#include "genfile/types.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/string_utils/slice.hpp"
+
 
 namespace genfile {
 	namespace vcf {
@@ -46,36 +48,19 @@ namespace genfile {
 		} ;
 
 		struct EntriesSetter: public EntrySetter {
+			typedef genfile::OrderType OrderType ;
+			typedef genfile::ValueType ValueType ;
 			virtual ~EntriesSetter() throw() {}
-			virtual void set_number_of_entries( std::size_t n ) = 0 ;
-			enum OrderType {
-				eUnknownOrderType = 0,
-				eUnorderedList = 1, 				// a list, treated as unordered
-				eOrderedList = 2,					// a list, treated as ordered
-				ePerUnorderedGenotype = 3, 			// E.g. genotype probabilities; GEN, BGEN v1.1, etc.
-				ePerOrderedHaplotype = 4,			// E.g. Phased GT, SHAPEIT or IMPUTE haplotypes
-				ePerUnorderedHaplotype = 5,			// E.g. Unphased GT, binary PED file.
-				ePerPhasedHaplotypePerAllele = 6,	// E.g. BGEN v1.2-style haplotype probabilities.
-				ePerAllele = 7,						// E.g. assay intensities.
-				eBAlleleDosage = 8					// 'B' allele dosage, one value per sample.
-			} ;
-			enum ValueType {
-				eUnknownValueType = 0,
-				eProbability = 1,
-				eAlleleIndex = 2,
-				eDosage = 3
-			} ;
-			
-			virtual void set_order_type( OrderType const order_type, ValueType const value_type ) = 0 ;
+			// Prepare to receive values for given sample.
+			virtual void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) = 0 ;
 		} ;
-		
+
 		struct PerSampleEntriesSetter: public vcf::EntriesSetter, public boost::noncopyable {
 			typedef std::auto_ptr< PerSampleEntriesSetter > UniquePtr ;
 			virtual ~PerSampleEntriesSetter() throw() {}
-			virtual void set_number_of_samples( std::size_t n ) = 0 ;
-			virtual void set_number_of_alleles( std::size_t n ) = 0 ;
-			// Prepare to receive values for given sample.
-			// Return true if we want these values, otherwise false.
+			// Prepare to receive values for a variant.
+			virtual void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) = 0 ;
+			// Return true if we want values for this variant, otherwise false.
 			virtual bool set_sample( std::size_t i ) = 0 ;
 		} ;
 		
@@ -88,7 +73,7 @@ namespace genfile {
 			virtual void parse( string_utils::slice const& value, EntrySetter& setter ) const = 0 ;
 			Entry parse( string_utils::slice const& value ) const ;
 			virtual std::string to_string() const = 0 ;
-			virtual EntriesSetter::ValueType genotype_value_type() const { return EntriesSetter::eUnknownValueType ; } ;
+			virtual ValueType genotype_value_type() const { return eUnknownValueType ; } ;
 		} ;
 		
 		struct StringType: public SimpleType {
@@ -111,7 +96,7 @@ namespace genfile {
 
 		struct ProbabilityType: public FloatType {
 			std::string to_string() const { return "Probability" ; }
-			EntriesSetter::ValueType genotype_value_type() const { return EntriesSetter::eProbability ; } ;
+			ValueType genotype_value_type() const { return eProbability ; } ;
 		} ;
 
 		struct PhredScaleFloatType: public SimpleType {
@@ -158,7 +143,7 @@ namespace genfile {
 			virtual bool check_if_requires_ploidy() const = 0 ;
 
 			virtual SimpleType const& get_type() const { return *m_type ; }
-			virtual void set_types( EntriesSetter& setter ) const = 0 ;
+			virtual void set_types( std::size_t nElements, EntriesSetter& setter ) const = 0 ;
 		protected:
 			virtual std::vector< string_utils::slice > lex(
 				string_utils::slice const& value,
@@ -190,7 +175,7 @@ namespace genfile {
 			virtual ValueCountRange get_value_count_range( std::size_t number_of_alleles, std::size_t ploidy ) const ;
 			virtual ValueCountRange get_value_count_range( std::size_t number_of_alleles ) const = 0 ;
 			bool check_if_requires_ploidy() const { return false ; }
-			void set_types( EntriesSetter& setter ) const ;
+			void set_types( std::size_t nElements, EntriesSetter& setter ) const ;
 		} ;
 		
 		struct FixedNumberVCFEntryType: public ListVCFEntryType {
@@ -213,7 +198,7 @@ namespace genfile {
 				assert( number_of_alleles > 0 ) ;
 				return ValueCountRange( number_of_alleles - 1, number_of_alleles - 1 ) ;
 			}
-			void set_types( EntriesSetter& setter ) const ;
+			void set_types( std::size_t nElements, EntriesSetter& setter ) const ;
 		} ;
 		
 		struct OnePerAlleleVCFEntryType: public ListVCFEntryType {
@@ -221,7 +206,7 @@ namespace genfile {
 			ValueCountRange get_value_count_range( std::size_t number_of_alleles ) const {
 				return ValueCountRange( number_of_alleles, number_of_alleles ) ;
 			}
-			void set_types( EntriesSetter& setter ) const ;
+			void set_types( std::size_t nElements, EntriesSetter& setter ) const ;
 		} ;
 		
 		struct OnePerGenotypeVCFEntryType: public ListVCFEntryType {
@@ -229,7 +214,7 @@ namespace genfile {
 			ValueCountRange get_value_count_range( std::size_t number_of_alleles, std::size_t ploidy ) const ;
 			ValueCountRange get_value_count_range( std::size_t number_of_alleles ) const ;
 			bool check_if_requires_ploidy() const { return true ; }
-			void set_types( EntriesSetter& setter ) const ;
+			void set_types( std::size_t nElements, EntriesSetter& setter ) const ;
 		} ;
 
 		struct GenotypeCallVCFEntryType: public VCFEntryType {
@@ -241,7 +226,9 @@ namespace genfile {
 			void get_missing_value( std::size_t number_of_alleles, EntriesSetter& setter ) const ;
 
 			bool check_if_requires_ploidy() const { return false; }
-			void set_types( EntriesSetter& setter ) const { /* do nothing, this is handled in parse() */ }
+			void set_types( std::size_t nElements, EntriesSetter& setter ) const {
+				/* do nothing, this is handled in parse() */
+			}
 
 			// A special use of the genotype call is to infer ploidy for the other data.
 			// For this use we need to specialise the parse() function.

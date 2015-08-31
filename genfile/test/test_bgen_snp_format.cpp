@@ -350,7 +350,7 @@ struct probabilities {
 
 struct ProbabilitySetter: public genfile::VariantDataReader::PerSampleSetter {
 	typedef boost::function< double( std::size_t i, std::size_t g ) > GetExpectedProbs ;
-	enum State { eNone, eSetNumberOfSamples, eSetNumberOfAlleles, eSetSample, eSetOrderType, eSetNumberOfEntries, eSetValue } ;
+	enum State { eNone, eSetNumberOfSamples, eSetSample, eSetNumberOfEntries, eSetValue } ;
 
 	ProbabilitySetter(
 		std::size_t n,
@@ -368,48 +368,37 @@ struct ProbabilitySetter: public genfile::VariantDataReader::PerSampleSetter {
 		BOOST_CHECK_EQUAL( m_sample_i + 1, m_number_of_samples ) ;
 		BOOST_CHECK_EQUAL( m_entry_i, m_number_of_entries ) ;
 	}
-	void set_number_of_samples( std::size_t n ) {
+	void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
 		BOOST_CHECK_EQUAL( m_state, eNone ) ;
-		BOOST_CHECK_EQUAL( n, m_number_of_samples ) ;
+		BOOST_CHECK_EQUAL( nSamples, m_number_of_samples ) ;
+		BOOST_CHECK_EQUAL( nAlleles, 2 ) ;
 		m_state = eSetNumberOfSamples ;
-	}
-	void set_number_of_alleles( std::size_t n ) {
-		BOOST_CHECK_EQUAL( m_state, eSetNumberOfSamples ) ;
-		TEST_ASSERT( n == 2 ) ;
-		m_state = eSetNumberOfAlleles ;
 	}
 	bool set_sample( std::size_t i ) {
 		TEST_ASSERT( i < m_number_of_samples ) ;
-		TEST_ASSERT( m_state == eSetNumberOfAlleles || m_state == eSetValue ) ;
+		TEST_ASSERT( m_state == eSetNumberOfSamples || m_state == eSetValue ) ;
 		BOOST_CHECK_EQUAL( m_entry_i, m_number_of_entries ) ;
 		m_sample_i = i ;
 		m_state = eSetSample ;
 		return true ;
 	}
-	void set_number_of_entries( std::size_t n ) {
+	void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
 #if DEBUG > 2
-		std::cerr << "ProbabilitySetter::set_number_of_entries(): n = " << n << ".\n" ;
+		std::cerr << "ProbabilitySetter::set_number_of_entries(): n = " << n
+			<< ", order_type = " << order_type << ".\n" ;
 #endif
 		BOOST_CHECK_EQUAL( m_state, eSetSample ) ;
+		TEST_ASSERT(
+			( order_type == genfile::ePerUnorderedGenotype && m_number_of_entries == 3)
+			||
+			( order_type == genfile::ePerPhasedHaplotypePerAllele && m_number_of_entries == 4)
+		) ;
+		BOOST_CHECK_EQUAL( value_type, genfile::eProbability ) ;
+		m_order_type = order_type ;
 		m_state = eSetNumberOfEntries ;
 		m_number_of_entries = n ;
 		m_entry_i = 0 ;
 	}
-	void set_order_type( OrderType const order_type, ValueType const value_type ) {
-#if DEBUG > 2
-		std::cerr << "ProbabilitySetter::set_number_of_entries(): order_type = " << order_type << ".\n" ;
-#endif
-		BOOST_CHECK_EQUAL( m_state, eSetNumberOfEntries ) ;
-		TEST_ASSERT(
-			( order_type == ePerUnorderedGenotype && m_number_of_entries == 3)
-			||
-			( order_type == ePerPhasedHaplotypePerAllele && m_number_of_entries == 4)
-		) ;
-		BOOST_CHECK_EQUAL( value_type, eProbability ) ;
-		m_order_type = order_type ;
-		m_state = eSetOrderType ;
-	}
-
 	void operator()( genfile::MissingValue const value ) {
 		TEST_ASSERT(0) ;
 	}
@@ -424,7 +413,7 @@ struct ProbabilitySetter: public genfile::VariantDataReader::PerSampleSetter {
 
 	void operator()( double const value ) {
 		TEST_ASSERT(
-			(m_entry_i == 0 && m_state == eSetOrderType)
+			(m_entry_i == 0 && m_state == eSetNumberOfEntries)
 			 || (m_entry_i > 0 && m_state == eSetValue)
 		) ;
 		m_state = eSetValue ;

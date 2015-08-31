@@ -93,22 +93,19 @@ namespace genfile {
 					m_order_type( eUnorderedList )
 				{}
 
-				void set_number_of_samples( std::size_t n ) {
-					m_ploidies.resize( n ) ;
-					m_entries.reserve( n * 2 ) ;
+				void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+					assert( nAlleles == 2 ) ;
+					m_ploidies.resize( nSamples ) ;
+					m_entries.reserve( nSamples * nAlleles ) ;
 				}
 
-				void set_number_of_alleles( std::size_t n ) {
-					assert( n == 2 ) ;
-				}
-				
 				bool set_sample( std::size_t sample_i ) {
 					assert( sample_i < m_ploidies.size() ) ;
 					m_sample_i = sample_i ;
 					return true ;
 				}
 
-				void set_order_type( OrderType const order_type, ValueType const value_type ) {
+				void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
 					if( order_type != ePerOrderedHaplotype && order_type != ePerUnorderedHaplotype ) {
 						throw BadArgumentError(
 							"genfile::vcf::impl::CallReaderGenotypeSetter::set_order_type()",
@@ -123,13 +120,8 @@ namespace genfile {
 							"Expected value_type = eAlleleIndex for genotype field."
 						) ;
 					}
-					m_order_type = order_type ;
-					//m_value_type = value_type ;
-					
-				}
-
-				void set_number_of_entries( std::size_t n ) {
 					m_ploidies[ m_sample_i ] = n ;
+					m_order_type = order_type ;
 					m_entries.resize( m_current_i + n ) ;
 				}
 			
@@ -183,16 +175,15 @@ namespace genfile {
 				if( spec == "GT" ) {
 					assert( m_ploidy.size() > 0 ) ;
 					std::size_t index = 0 ;
-					setter.set_number_of_samples( m_number_of_samples ) ;
-					setter.set_number_of_alleles( m_number_of_alleles ) ;
+					setter.set_number_of_samples( m_number_of_samples, m_number_of_alleles ) ;
 					for( std::size_t sample_i = 0; sample_i < m_number_of_samples; ++sample_i ) {
 						std::size_t const ploidy = m_ploidy[ sample_i ] ;
 						assert( m_genotype_calls.size() >= ( index + ploidy ) ) ;
 						setter.set_sample( sample_i ) ;
-						setter.set_number_of_entries( ploidy ) ;
-						setter.set_order_type(
+						setter.set_number_of_entries(
+							ploidy,
 							m_order_types[ sample_i ],
-							vcf::EntriesSetter::eAlleleIndex
+							eAlleleIndex
 						) ;
 						for( std::size_t const current_index = index; index < ( current_index + ploidy ); ++index ) {
 							if( m_genotype_calls[ index ] == -1 ) {
@@ -204,8 +195,7 @@ namespace genfile {
 					}
 				}
 				else {
-					setter.set_number_of_samples( m_number_of_samples ) ;
-					setter.set_number_of_alleles( m_number_of_alleles ) ;
+					setter.set_number_of_samples( m_number_of_samples, m_number_of_alleles ) ;
 					for(
 						std::size_t sample_i = 0, component_index = 0;
 						sample_i < m_number_of_samples;

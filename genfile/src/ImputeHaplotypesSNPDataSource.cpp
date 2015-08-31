@@ -221,12 +221,7 @@ namespace genfile {
 					throw MalformedInputError( m_source.get_source_spec(), m_snp_index ) ;
 				}
 
-				setter.set_number_of_samples( m_source.number_of_samples() ) ;
-				setter.set_order_type(
-					vcf::EntriesSetter::ePerOrderedHaplotype,
-					vcf::EntriesSetter::eAlleleIndex
-				) ;
-
+				setter.set_number_of_samples( m_source.number_of_samples(), 2 ) ;
 				for( std::size_t i = 0; i < m_source.number_of_samples(); ++i ) {
 					if( m_elts[2*i].size() != 1 ) {
 						throw MalformedInputError( m_source.get_source_spec(), m_snp_index, 2*i ) ;
@@ -235,7 +230,7 @@ namespace genfile {
 						throw MalformedInputError( m_source.get_source_spec(), m_snp_index, 2*i ) ;
 					}
 					setter.set_sample( i ) ;
-					setter.set_number_of_entries( 2 ) ;
+					setter.set_number_of_entries( 2, ePerOrderedHaplotype, eAlleleIndex ) ;
 					for( std::size_t j = 0; j < 2; ++j ) {
 						try {
 							if( m_elts[2*i+j][0] == '.' || m_elts[2*i+j] == "NA" ) {

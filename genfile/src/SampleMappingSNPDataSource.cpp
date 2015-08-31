@@ -133,13 +133,9 @@ namespace genfile {
 			
 			~SampleMappingPerSampleSetter() throw() {} ;
 			
-			void set_number_of_samples( std::size_t n ) {
-				m_setter.set_number_of_samples( m_sample_mapping.number_of_source_samples() ) ;
+			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+				m_setter.set_number_of_samples( m_sample_mapping.number_of_source_samples(), nAlleles ) ;
 				m_last_source_sample = 0 ;
-			}
-
-			void set_number_of_alleles( std::size_t n ) {
-				m_setter.set_number_of_alleles( n ) ;
 			}
 
 			bool set_sample( std::size_t n ) {
@@ -157,15 +153,9 @@ namespace genfile {
 				return m_set_this_sample ;
 			}
 
-			void set_order_type( OrderType const order_type, ValueType const value_type ) {
+			void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
 				if( m_set_this_sample ) {
-					m_setter.set_order_type( order_type, value_type ) ;
-				}
-			}
-
-			void set_number_of_entries( std::size_t n ) {
-				if( m_set_this_sample ) {
-					m_setter.set_number_of_entries( n ) ;
+					m_setter.set_number_of_entries( n, order_type, value_type ) ;
 				}
 			}
 

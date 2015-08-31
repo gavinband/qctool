@@ -147,21 +147,17 @@ namespace genfile {
 	namespace impl {
 		struct DosageFileSNPDataReader: public VariantDataReader {
 			DosageFileSNPDataReader( DosageFileSNPDataSource& source, std::vector< string_utils::slice > const& elts ):
-                m_elts( elts )
-            {
-				//std::cerr << "m_elts.size() == " << m_elts.size() << ", source.number_of_samples() == " << source.number_of_samples() << ".\n" ;
-				//std::cerr << "First few elts are: " << m_elts[0] << ", " << m_elts[1] << ", " << m_elts[2] << ",...\n" ;
-                assert( elts.size() == source.number_of_samples() ) ;
-            }
+				m_elts( elts )
+			{
+				assert( elts.size() == source.number_of_samples() ) ;
+			}
 			
 			DosageFileSNPDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
 				std::size_t const N = m_elts.size() ;
-				setter.set_number_of_samples( N ) ;
-				setter.set_number_of_alleles( 2 ) ;
+				setter.set_number_of_samples( N, 2 ) ;
 				for( std::size_t i = 0; i < N; ++i ) {
 					setter.set_sample( i ) ;
-					setter.set_number_of_entries( 1 ) ;
-					setter.set_order_type( PerSampleSetter::eBAlleleDosage, PerSampleSetter::eDosage ) ;
+					setter.set_number_of_entries( 1, ePerSample, eDosage ) ;
 					if( m_elts[i] == "NA" ) {
 						setter( genfile::MissingValue() ) ;
 					} else {

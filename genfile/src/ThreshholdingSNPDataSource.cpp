@@ -101,13 +101,9 @@ namespace genfile {
 				
 				~Threshholder() throw() {}
 					
-				void set_number_of_samples( std::size_t n ) {
-					m_target.set_number_of_samples( n ) ;
-				} ;
-				void set_number_of_alleles( std::size_t n ) {
-					m_target.set_number_of_alleles( n ) ;
-					// assume diploid
-					m_calls.setZero( ( n * (n+1))/2 ) ;
+				void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+					m_target.set_number_of_samples( nSamples, nAlleles ) ;
+					m_calls.setZero( ( nAlleles * (nAlleles+1))/2 ) ;
 				} ;
 				bool set_sample( std::size_t i ) {
 					m_target.set_sample( i ) ;
@@ -116,15 +112,12 @@ namespace genfile {
 					m_entry_i = 0 ;
 					return true ;
 				}
-				void set_number_of_entries( std::size_t n ) {
+				void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
 					assert( n == m_calls.size() ) ;
-					// assume diploid
-					m_target.set_number_of_entries( 2 ) ;
-				}
-				void set_order_type( OrderType const order_type, ValueType const value_type ) {
 					assert( order_type == ePerUnorderedGenotype ) ;
 					assert( value_type == eProbability ) ;
-					m_target.set_order_type( ePerUnorderedHaplotype, eAlleleIndex ) ;
+					// assume diploid
+					m_target.set_number_of_entries( 2, ePerUnorderedHaplotype, eAlleleIndex ) ;
 				}
 				void operator()( MissingValue const value ) {
 					m_missing = true ;

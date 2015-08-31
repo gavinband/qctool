@@ -13,6 +13,7 @@
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/function.hpp>
 #include "genfile/MissingValue.hpp"
+#include "genfile/types.hpp"
 #include "genfile/vcf/Types.hpp"
 #include "genfile/string_utils/slice.hpp"
 #include "genfile/VariantDataReader.hpp"
@@ -68,7 +69,7 @@ namespace genfile {
 			// std::vector< string_utils::slice > m_components ;
 			std::vector< Setter::Integer > m_genotype_calls ;
 			std::vector< std::size_t > m_ploidy ;
-			std::vector< Setter::OrderType > m_order_types ;
+			std::vector< OrderType > m_order_types ;
 			bool m_strict_mode ;
 		private:
 			void split_data() ;

@@ -144,7 +144,7 @@ namespace genfile {
 				if( type_i->second != "String" && type_i->second != "Genotype" ) {
 					throw BadArgumentError( "genfile::vcf::VCFEntryType::create()", "spec" ) ;
 				}
-				result.reset( new GenotypeCallVCFEntryType()) ;
+				result.reset( new GenotypeCallVCFEntryType() ) ;
 			}
 			else if( ID->second == "GP" ) {
 				if( number->second != "." && ( number->second == "A" || number->second == "R" ) ) {
@@ -198,8 +198,9 @@ namespace genfile {
 		namespace impl {
 			struct VariantEntriesEntriesSetter: public EntriesSetter {
 				VariantEntriesEntriesSetter( std::vector< Entry >& entries ): m_entries( entries ), entry_i( 0 ) {} 
-				void set_number_of_entries( std::size_t n ) { m_entries.resize( n ) ; }
-				void set_order_type( OrderType const order_type, ValueType const value_type ) {}
+				void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
+					m_entries.resize( n ) ;
+				}
 				virtual void operator()( MissingValue const value ) { m_entries[ entry_i++ ] = value ; }
 				virtual void operator()( std::string& value ) { m_entries[ entry_i++ ] = value ; }
 				virtual void operator()( Integer const value ) { m_entries[ entry_i++ ] = value ; }
@@ -238,8 +239,7 @@ namespace genfile {
 		}
 		
 		void VCFEntryType::parse_elts( std::vector< string_utils::slice > const& elts, EntriesSetter& setter ) const {
-			setter.set_number_of_entries( elts.size() ) ;
-			set_types( setter ) ;
+			set_types( elts.size(), setter ) ;
 			for( std::size_t i = 0; i < elts.size(); ++i ) {
 				if( elts[i] == m_missing_value ) {
 					setter( MissingValue() ) ;
@@ -282,7 +282,7 @@ namespace genfile {
 		
 		void ListVCFEntryType::get_missing_value( std::size_t number_of_alleles, std::size_t ploidy, EntriesSetter& setter ) const {
 			std::size_t const N = get_value_count_range( number_of_alleles, ploidy ).first ;
-			setter.set_number_of_entries( N ) ;
+			set_types( N, setter ) ;
 			for( std::size_t i = 0; i < N; ++i ) {
 				setter( MissingValue() ) ;
 			}
@@ -290,14 +290,14 @@ namespace genfile {
 
 		void ListVCFEntryType::get_missing_value( std::size_t number_of_alleles, EntriesSetter& setter ) const {
 			std::size_t const N = get_value_count_range( number_of_alleles ).first ;
-			setter.set_number_of_entries( N ) ;
+			set_types( N, setter ) ;
 			for( std::size_t i = 0; i < get_value_count_range( number_of_alleles ).first; ++i ) {
 				setter( MissingValue() ) ;
 			}
 		}
 		
-		void ListVCFEntryType::set_types( EntriesSetter& setter ) const {
-			setter.set_order_type( EntriesSetter::eOrderedList, get_type().genotype_value_type() ) ;
+		void ListVCFEntryType::set_types( std::size_t nElements, EntriesSetter& setter ) const {
+			setter.set_number_of_entries( nElements, eOrderedList, get_type().genotype_value_type() ) ;
 		}
 
 		FixedNumberVCFEntryType::FixedNumberVCFEntryType( std::size_t number, SimpleType::UniquePtr type ):
@@ -305,12 +305,12 @@ namespace genfile {
 			m_number( number )
 		{}
 
-		void OnePerAlternateAlleleVCFEntryType::set_types( EntriesSetter& setter ) const {
-			setter.set_order_type( EntriesSetter::eOrderedList, get_type().genotype_value_type() ) ;
+		void OnePerAlternateAlleleVCFEntryType::set_types( std::size_t nElements, EntriesSetter& setter ) const {
+			setter.set_number_of_entries( nElements, eOrderedList, get_type().genotype_value_type() ) ;
 		}
 
-		void OnePerAlleleVCFEntryType::set_types( EntriesSetter& setter ) const {
-			setter.set_order_type( EntriesSetter::ePerAllele, get_type().genotype_value_type() ) ;
+		void OnePerAlleleVCFEntryType::set_types( std::size_t nElements, EntriesSetter& setter ) const {
+			setter.set_number_of_entries( nElements, ePerAllele, get_type().genotype_value_type() ) ;
 		}
 		
 		namespace impl {
@@ -378,8 +378,8 @@ namespace genfile {
 			assert(0) ;
 		}
 		
-		void OnePerGenotypeVCFEntryType::set_types( EntriesSetter& setter ) const {
-			setter.set_order_type( EntriesSetter::ePerUnorderedGenotype, get_type().genotype_value_type() ) ;
+		void OnePerGenotypeVCFEntryType::set_types( std::size_t nElements, EntriesSetter& setter ) const {
+			setter.set_number_of_entries( nElements, ePerUnorderedGenotype, get_type().genotype_value_type() ) ;
 		}
 
 		GenotypeCallVCFEntryType::GenotypeCallVCFEntryType():
@@ -404,7 +404,7 @@ namespace genfile {
 		}
 
 		void GenotypeCallVCFEntryType::get_missing_value( std::size_t, std::size_t ploidy, EntriesSetter& setter ) const {
-			setter.set_number_of_entries( ploidy ) ;
+			setter.set_number_of_entries( ploidy, ePerUnorderedHaplotype, eAlleleIndex ) ;
 			for( std::size_t i = 0; i < ploidy; ++i ) {
 				setter( MissingValue() ) ;
 			}
@@ -417,21 +417,20 @@ namespace genfile {
 		namespace impl {
 			//
 			// 
-			struct CheckedGTSetter: public EntriesSetter {
-				CheckedGTSetter( EntriesSetter& setter, EntriesSetter::Integer const max_genotype ):
+			struct RangeCheckedGTSetter: public EntriesSetter {
+				RangeCheckedGTSetter( EntriesSetter& setter, EntriesSetter::Integer const max_genotype ):
 					m_setter( setter ),
 					m_max_genotype( max_genotype )
 				{}
 				
-				void set_number_of_entries( std::size_t n ) { m_setter.set_number_of_entries( n ) ; }
-				void set_order_type( OrderType const order_type, ValueType const value_type ) {
+				void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
 					assert( order_type == ePerOrderedHaplotype || order_type == ePerUnorderedHaplotype ) ;
-					m_setter.set_order_type( order_type, value_type ) ;
+					m_setter.set_number_of_entries( n, order_type, value_type ) ;
 				}
 				void operator()( MissingValue const value ) { m_setter( value ) ; }
 				void operator()( Integer const value ) {
 					if( value < 0 || value > m_max_genotype ) {
-						throw BadArgumentError( "genfile::vcf::impl::CheckedGTSetter::operator()", "value = \"" + string_utils::to_string( value ) + "\"" ) ;
+						throw BadArgumentError( "genfile::vcf::impl::RangeCheckedGTSetter::operator()", "value = \"" + string_utils::to_string( value ) + "\"" ) ;
 					}
 					m_setter( value ) ;
 				}
@@ -462,12 +461,7 @@ namespace genfile {
 				a = value[0] - '0' ;
 				b = value[2] - '0' ;
 				if((( value[0] == m_missing_value[0] ) || ( a >= 0 && a <= max ) ) && ( ( value[2] == m_missing_value[0] ) || ( b >= 0 && b <= max ) ) ) {
-					setter.set_number_of_entries( 2 ) ;
-					setter.set_order_type(
-						( value[1] == '|' ) ? EntriesSetter::ePerOrderedHaplotype : EntriesSetter::ePerUnorderedHaplotype,
-						EntriesSetter::eAlleleIndex
-					) ;
-
+					setter.set_number_of_entries( 2, ( value[1] == '|' ) ? ePerOrderedHaplotype : ePerUnorderedHaplotype, eAlleleIndex ) ;
 					if( value[0] == m_missing_value[0] ) {
 						setter( MissingValue() ) ;
 					} else {
@@ -502,11 +496,7 @@ namespace genfile {
 					}
 				}
 				if( simple_parse_success ) {
-					setter.set_number_of_entries( simple_values.size() ) ;
-					setter.set_order_type(
-						( value[1] == '|' ) ? EntriesSetter::ePerOrderedHaplotype : EntriesSetter::ePerUnorderedHaplotype,
-						EntriesSetter::eAlleleIndex
-					) ;
+					setter.set_number_of_entries( simple_values.size(), ( value[1] == '|' ) ? ePerOrderedHaplotype : ePerUnorderedHaplotype, eAlleleIndex ) ;
 					for( std::size_t i = 0; i < simple_values.size(); ++i ) {
 						if( simple_values[i] == -1 ) {
 							setter( MissingValue() ) ;
@@ -521,16 +511,16 @@ namespace genfile {
 			}
 
 			if( !simple_parse_success ) {
-				impl::CheckedGTSetter genotype_setter( setter, number_of_alleles - 1 ) ;
-				std::vector< string_utils::slice > elts ;
+				impl::RangeCheckedGTSetter checked_genotype_setter( setter, number_of_alleles - 1 ) ;
+				std::vector< string_utils::slice > const elts = lex( value, number_of_alleles ) ;
 				if( value.find( '|' ) == std::string::npos ) {
 					// If there is a |, or no separator at all (ploidy = 1) the genotypes are phased.
-					setter.set_order_type( EntriesSetter::ePerOrderedHaplotype, EntriesSetter::eAlleleIndex ) ;
+					setter.set_number_of_entries( ePerOrderedHaplotype, ePerOrderedHaplotype, eAlleleIndex ) ;
 				} else {
 					// / found, so genotypes are unphased.
-					setter.set_order_type( EntriesSetter::ePerUnorderedHaplotype, EntriesSetter::eAlleleIndex ) ;
+					setter.set_number_of_entries( ePerUnorderedHaplotype, ePerUnorderedHaplotype, eAlleleIndex ) ;
 				}
-				parse_elts( lex( value, number_of_alleles ), genotype_setter ) ;
+				parse_elts( elts, checked_genotype_setter ) ;
 			}
 		}
 
