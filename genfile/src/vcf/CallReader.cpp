@@ -93,7 +93,7 @@ namespace genfile {
 					m_order_type( eUnorderedList )
 				{}
 
-				void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+				void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 					assert( nAlleles == 2 ) ;
 					m_ploidies.resize( nSamples ) ;
 					m_entries.reserve( nSamples * nAlleles ) ;
@@ -175,7 +175,7 @@ namespace genfile {
 				if( spec == "GT" ) {
 					assert( m_ploidy.size() > 0 ) ;
 					std::size_t index = 0 ;
-					setter.set_number_of_samples( m_number_of_samples, m_number_of_alleles ) ;
+					setter.initialise( m_number_of_samples, m_number_of_alleles ) ;
 					for( std::size_t sample_i = 0; sample_i < m_number_of_samples; ++sample_i ) {
 						std::size_t const ploidy = m_ploidy[ sample_i ] ;
 						assert( m_genotype_calls.size() >= ( index + ploidy ) ) ;
@@ -195,7 +195,7 @@ namespace genfile {
 					}
 				}
 				else {
-					setter.set_number_of_samples( m_number_of_samples, m_number_of_alleles ) ;
+					setter.initialise( m_number_of_samples, m_number_of_alleles ) ;
 					for(
 						std::size_t sample_i = 0, component_index = 0;
 						sample_i < m_number_of_samples;

@@ -63,7 +63,7 @@ namespace genfile {
 			
 			~DataWriter() throw() {}
 
-			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+			void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 				assert( m_streams.size() == nSamples ) ;
 				assert( nAlleles == 2 ) ;
 				m_sample_i = 0 ;

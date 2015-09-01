@@ -102,7 +102,7 @@ namespace {
 
 		~HaplotypeWriter() throw() {}
 		
-		void set_number_of_samples( std::size_t n, std::size_t nAlleles ) {
+		void initialise( std::size_t n, std::size_t nAlleles ) {
 			assert( nAlleles == 2 ) ;
 			m_buffers.resize(2) ;
 			m_buf_p.resize(2) ;

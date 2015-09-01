@@ -6,48 +6,55 @@
 
 #include <iostream>
 #include <string>
-#include "genfile/endianness_utils.hpp"
+#include <map>
 #include "genfile/types.hpp"
 #include "genfile/bgen/bgen.hpp"
-#include "genfile/bgen/impl.hpp"
-#include "genfile/string_utils/hex.hpp"
 
 // #define DEBUG_BGEN_FORMAT 2
 
 namespace genfile {
 	namespace bgen {
+#if DEBUG_BGEN_FORMAT
 		namespace impl {
-			void check_for_two_alleles( uint16_t numberOfAlleles ) {
-				if( numberOfAlleles != 2 ) {
-					std::cerr << "genfile::bgen::impl::check_for_two_alleles: only biallelic variants are currently supported.\n" ;
-					assert(0) ;
+			std::string to_hex( std::string const& str ) {
+				std::ostringstream o ;
+				for( std::size_t i = 0; i < str.size(); ++i ) {
+					if( i % 4 == 0 )
+						o << "|" ;
+					o << std::hex << std::setw(2) << std::setfill('0') << static_cast<int> ( static_cast<unsigned char>( str[i] ) ) ;
 				}
+				return o.str() ;
 			}
-			
-			struct TwoAlleleSetter {
-				TwoAlleleSetter( std::string* allele1, std::string* allele2 ):
-					m_allele1( allele1 ),
-					m_allele2( allele2 )
-				{
-					assert( allele1 != 0 ) ;
-					assert( allele2 != 0 ) ;
-				}
-
-				void operator()( uint16_t i, std::string const& value ) {
-					if( i == 0 ) {
-						*m_allele1 = value ;
-					} else if( i == 1 ) {
-						*m_allele2 = value ;
-					} else {
-						assert(0) ;
-					}
-				}
-				std::string* m_allele1 ;
-				std::string* m_allele2 ;
-			} ;
 		}
+#endif
+		
+		Context::Context():
+			number_of_samples(0),
+			number_of_variants(0),
+			magic( "bgen" ),
+			free_data( "" ),
+			flags(0)
+		{}
+			
+		Context::Context( Context const& other ):
+			number_of_samples( other.number_of_samples ),
+			number_of_variants( other.number_of_variants ),
+			magic( other.magic ),
+			free_data( other.free_data ),
+			flags( other.flags )
+		{}
 
-
+		Context& Context::operator=( Context const& other ) {
+			number_of_samples = other.number_of_samples ;
+			number_of_variants = other.number_of_variants ;
+			magic = other.magic ;
+			free_data = other.free_data ;
+			flags = other.flags ;
+			return *this ;
+		}
+		
+		uint32_t Context::header_size() const { return free_data.size() + 20 ; }
+		
 		void read_offset( std::istream& iStream, uint32_t* offset ) {
 			read_little_endian_integer( iStream, offset ) ;
 		}
@@ -99,39 +106,97 @@ namespace genfile {
 				throw BGenError() ;
 			}
 		}
-		
 
-		bool read_snp_identifying_data(
-			std::istream& aStream,
-			Context const& context,
-			std::string* SNPID,
-			std::string* RSID,
-			std::string* chromosome,
-			uint32_t* SNP_position,
-			std::string* first_allele,
-			std::string* second_allele
+		void write_header_block(
+			std::ostream& aStream,
+			Context const& context
 		) {
+			uint32_t header_size = context.header_size() ;
+			write_little_endian_integer( aStream, header_size ) ;
+			write_little_endian_integer( aStream, context.number_of_variants ) ;
+			write_little_endian_integer( aStream, context.number_of_samples ) ;
+			aStream.write( context.magic.data(), 4 ) ;
+			aStream.write( context.free_data.data(), context.free_data.size() ) ;
+			write_little_endian_integer( aStream, context.flags ) ;
+		}
+		
+		std::size_t write_sample_identifier_block(
+			std::ostream& aStream,
+			Context const& context,
+			std::vector< std::string > const& sample_ids
+		) {
+			assert( sample_ids.size() == context.number_of_samples ) ;
+			uint32_t block_size = 8 ;
+			for( uint32_t i = 0; i < sample_ids.size(); ++i ) {
+				block_size += 2 + sample_ids[i].size() ;
+			}
+			write_little_endian_integer( aStream, block_size ) ;
+			write_little_endian_integer( aStream, context.number_of_samples ) ;
 #if DEBUG_BGEN_FORMAT
-			std::cerr << "genfile::bgen::impl::read_snp_identifying_data(): flags = 0x" << std::hex << context.flags << ".\n" ;
+			std::cerr << "genfile::bgen::write_sample_identifier_block(): writing " << sample_ids.size() << " samples...\n" ;
 #endif
-			uint32_t const layout = context.flags & e_Layout ;
-			if( layout == e_v11Layout || layout == e_v12Layout ) {
-				// forward to v12 version which handles multiple alleles.
-				impl::TwoAlleleSetter allele_setter( first_allele, second_allele ) ;
-				return bgen::read_snp_identifying_data(
-					aStream, context,
-					SNPID, RSID, chromosome, SNP_position,
-					&impl::check_for_two_alleles,
-					allele_setter
-				) ;
-			} else if( layout == e_v10Layout ) {
+			for( uint32_t i = 0; i < sample_ids.size(); ++i ) {
+#if DEBUG_BGEN_FORMAT
+				std::cerr << "genfile::bgen::write_sample_identifier_block(): writing sample " << sample_ids[i] << ".\n" ;
+#endif
+				std::string const& identifier = sample_ids[i] ;
+				assert( identifier.size() <= std::size_t( std::numeric_limits< uint16_t >::max() ) ) ;
+				uint16_t const id_size = identifier.size() ;
+				write_length_followed_by_data( aStream, id_size, identifier ) ;
+			}
+			return block_size ;
+		}
+		
+		
+		namespace impl {
+			void check_for_two_alleles( uint16_t numberOfAlleles ) {
+				if( numberOfAlleles != 2 ) {
+					std::cerr << "genfile::bgen::impl::check_for_two_alleles: only biallelic variants are currently supported.\n" ;
+					assert(0) ;
+				}
+			}
+		
+			struct TwoAlleleSetter {
+				TwoAlleleSetter( std::string* allele1, std::string* allele2 ):
+					m_allele1( allele1 ),
+					m_allele2( allele2 )
+				{
+					assert( allele1 != 0 ) ;
+					assert( allele2 != 0 ) ;
+				}
+
+				void operator()( uint16_t i, std::string const& value ) {
+					if( i == 0 ) {
+						*m_allele1 = value ;
+					} else if( i == 1 ) {
+						*m_allele2 = value ;
+					} else {
+						assert(0) ;
+					}
+				}
+				std::string* m_allele1 ;
+				std::string* m_allele2 ;
+			} ;
+		}
+		
+		namespace v10 {
+			bool read_snp_identifying_data(
+				std::istream& aStream,
+				Context const& context,
+				std::string* SNPID,
+				std::string* RSID,
+				std::string* chromosome,
+				uint32_t* SNP_position,
+				std::string* first_allele,
+				std::string* second_allele
+			) {
 				// v1.0-style layout, deprecated
 				uint32_t number_of_samples ;
 				unsigned char max_id_size = 0;
 				unsigned char SNPID_size = 0;
 				unsigned char RSID_size = 0;
 				if( aStream ) {
-					genfile::read_little_endian_integer( aStream, &number_of_samples ) ;
+					read_little_endian_integer( aStream, &number_of_samples ) ;
 					if( !aStream ) {
 						return false ;
 					}
@@ -140,7 +205,7 @@ namespace genfile {
 					}
 				}
 				if( aStream ) {
-					genfile::read_little_endian_integer( aStream, &max_id_size ) ;
+					read_little_endian_integer( aStream, &max_id_size ) ;
 				}
 				if( aStream ) {
 					read_length_followed_by_data( aStream, &SNPID_size, SNPID ) ;
@@ -154,8 +219,8 @@ namespace genfile {
 				}
 				if( aStream ) {
 					unsigned char chromosome_char ;
-					genfile::read_little_endian_integer( aStream, &chromosome_char ) ;
-					genfile::read_little_endian_integer( aStream, SNP_position ) ;
+					read_little_endian_integer( aStream, &chromosome_char ) ;
+					read_little_endian_integer( aStream, SNP_position ) ;
 
 					switch( chromosome_char ) {
 						case 1: *chromosome = "01" ; break ;
@@ -187,14 +252,40 @@ namespace genfile {
 						default: *chromosome = "NA" ;
 					}
 					unsigned char allele1_size = 0, allele2_size = 0 ;
-					genfile::read_length_followed_by_data( aStream, &allele1_size, first_allele ) ;
-					genfile::read_length_followed_by_data( aStream, &allele2_size, second_allele ) ;
+					read_length_followed_by_data( aStream, &allele1_size, first_allele ) ;
+					read_length_followed_by_data( aStream, &allele2_size, second_allele ) ;
 				}
+				return true ;
+			}
+		}
+		
+		bool read_snp_identifying_data(
+			std::istream& aStream,
+			Context const& context,
+			std::string* SNPID,
+			std::string* RSID,
+			std::string* chromosome,
+			uint32_t* SNP_position,
+			std::string* first_allele,
+			std::string* second_allele
+		) {
+#if DEBUG_BGEN_FORMAT
+			std::cerr << "genfile::bgen::impl::read_snp_identifying_data(): flags = 0x" << std::hex << context.flags << ".\n" ;
+#endif
+			uint32_t const layout = context.flags & e_Layout ;
+			if( layout == e_v11Layout || layout == e_v12Layout ) {
+				// forward to v12 version which handles multiple alleles.
+				impl::TwoAlleleSetter allele_setter( first_allele, second_allele ) ;
+				return bgen::read_snp_identifying_data(
+					aStream, context,
+					SNPID, RSID, chromosome, SNP_position,
+					&impl::check_for_two_alleles,
+					allele_setter
+				) ;
+			} else if( layout == e_v10Layout ) {
+				return v10::read_snp_identifying_data( aStream, context, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele ) ;
 			} else {
 				assert(0) ;
-			}
-			if( !aStream ) {
-				throw BGenError() ;
 			}
 			return true ;
 		}
@@ -205,7 +296,7 @@ namespace genfile {
 			unsigned char max_id_size,
 			std::string SNPID,
 			std::string RSID,
-			unsigned char chromosome,
+			std::string chromosome,
 			uint32_t SNP_position,
 			std::string first_allele,
 			std::string second_allele
@@ -234,8 +325,7 @@ namespace genfile {
 			}
 			write_length_followed_by_data( aStream, uint16_t( SNPID.size() ), SNPID.data() ) ;
 			write_length_followed_by_data( aStream, uint16_t( RSID.size() ), RSID.data() ) ;
-			std::string const chromosome_string = Chromosome( chromosome ) ;
-			write_length_followed_by_data( aStream, uint16_t( chromosome_string.size() ), chromosome_string ) ;
+			write_length_followed_by_data( aStream, uint16_t( chromosome.size() ), chromosome ) ;
 			write_little_endian_integer( aStream, SNP_position ) ;
 			
 			if( layout == e_v12Layout ) {
@@ -246,69 +336,31 @@ namespace genfile {
 			write_length_followed_by_data( aStream, uint32_t( second_allele.size() ), second_allele.data() ) ;
 		}
 
-		namespace impl {
-			double get_probability_conversion_factor( uint32_t flags ) {
-				uint32_t layout = flags & e_Layout ;
-				if( layout == e_v10Layout ) {
-					// v1.0-style blocks, deprecated
-					return 10000.0 ;
-				} else if( layout == e_v11Layout ) {
-					// v1.1-style blocks
-					return 32768.0 ;
-				} else {
-					// v1.2 style (or other) blocks, these are treated differently and this function does not apply.
-					assert(0) ;
+		namespace v11 {
+			namespace impl {
+				double get_probability_conversion_factor( uint32_t flags ) {
+					uint32_t layout = flags & e_Layout ;
+					if( layout == e_v10Layout ) {
+						// v1.0-style blocks, deprecated
+						return 10000.0 ;
+					} else if( layout == e_v11Layout ) {
+						// v1.1-style blocks
+						return 32768.0 ;
+					} else {
+						// v1.2 style (or other) blocks, these are treated differently and this function does not apply.
+						assert(0) ;
+					}
 				}
 			}
 		}
 
-		void write_header_block(
-			std::ostream& aStream,
-			Context const& context
-		) {
-			uint32_t header_size = context.header_size() ;
-			genfile::write_little_endian_integer( aStream, header_size ) ;
-			genfile::write_little_endian_integer( aStream, context.number_of_variants ) ;
-			genfile::write_little_endian_integer( aStream, context.number_of_samples ) ;
-			aStream.write( context.magic.data(), 4 ) ;
-			aStream.write( context.free_data.data(), context.free_data.size() ) ;
-			genfile::write_little_endian_integer( aStream, context.flags ) ;
-		}
-		
-		std::size_t write_sample_identifier_block(
-			std::ostream& aStream,
-			Context const& context,
-			std::vector< std::string > const& sample_ids
-		) {
-			assert( sample_ids.size() == context.number_of_samples ) ;
-			uint32_t block_size = 8 ;
-			for( uint32_t i = 0; i < sample_ids.size(); ++i ) {
-				block_size += 2 + sample_ids[i].size() ;
-			}
-			write_little_endian_integer( aStream, block_size ) ;
-			write_little_endian_integer( aStream, context.number_of_samples ) ;
-#if DEBUG_BGEN_FORMAT
-			std::cerr << "genfile::bgen::write_sample_identifier_block(): writing " << sample_ids.size() << " samples...\n" ;
-#endif
-			for( uint32_t i = 0; i < sample_ids.size(); ++i ) {
-#if DEBUG_BGEN_FORMAT
-				std::cerr << "genfile::bgen::write_sample_identifier_block(): writing sample " << sample_ids[i] << ".\n" ;
-#endif
-				std::string const& identifier = sample_ids[i] ;
-				assert( identifier.size() <= std::size_t( std::numeric_limits< uint16_t >::max() ) ) ;
-				uint16_t const id_size = identifier.size() ;
-				write_length_followed_by_data( aStream, id_size, identifier ) ;
-			}
-			return block_size ;
-		}
-		
-		void ignore_snp_probability_data(
+		void ignore_genotype_data_block(
 			std::istream& aStream,
 			Context const& context
 		) {
 			if( context.flags & bgen::e_CompressedSNPBlocks ) {
 				uint32_t compressed_data_size ;
-				genfile::read_little_endian_integer( aStream, &compressed_data_size ) ;
+				read_little_endian_integer( aStream, &compressed_data_size ) ;
 				aStream.ignore( compressed_data_size ) ;
 			}
 			else {
@@ -316,52 +368,58 @@ namespace genfile {
 			}
 		}
 
-		void parse_probability_data_v12(
-			char const* buffer,
-			char const* const end,
+		void read_genotype_data_block(
+			std::istream& aStream,
 			Context const& context,
-			VariantDataReader::PerSampleSetter& setter
-		) ;
-
-		void parse_probability_data(
-			char const* buffer,
-			char const* const end,
-			Context const& context,
-			VariantDataReader::PerSampleSetter& setter
+			std::vector< char >* buffer
 		) {
-			if( (context.flags & e_Layout) == e_v10Layout || (context.flags & e_Layout) == e_v11Layout ) {
-				setter.set_number_of_samples( context.number_of_samples, 2 ) ;
-				
-				double const probability_conversion_factor = impl::get_probability_conversion_factor( context.flags ) ;
-				for ( uint32_t i = 0 ; i < context.number_of_samples ; ++i ) {
-					setter.set_sample( i ) ;
-					setter.set_number_of_entries( 3, ePerUnorderedGenotype, eProbability ) ;
-					assert( end >= buffer + 6 ) ;
-					for( std::size_t g = 0; g < 3; ++g ) {
-						uint16_t prob ;
-						buffer = read_little_endian_integer( buffer, end, &prob ) ;
-						setter( impl::v11::convert_from_integer_representation( prob, probability_conversion_factor ) ) ;
-					}
-				}
+			uint32_t payload_size = 0 ;
+			if( (context.flags & e_Layout) == e_v12Layout || (context.flags & e_CompressedSNPBlocks) ) {
+				read_little_endian_integer( aStream, &payload_size ) ;
 			} else {
-				parse_probability_data_v12(
-					buffer, end, context, setter
-				) ;
+				payload_size = 6 * context.number_of_samples ;
+			}
+			buffer->resize( payload_size ) ;
+			aStream.read( &(*buffer)[0], payload_size ) ;
+		}
+
+		void uncompress_probability_data(
+			Context const& context,
+			std::vector< char > const& compressed_data,
+			std::vector< char >* buffer
+		) {
+			// compressed_data contains the (compressed or uncompressed) probability data.
+			if( context.flags & bgen::e_CompressedSNPBlocks ) {
+				char const* begin = &compressed_data[0] ;
+				char const* const end = &compressed_data[0] + compressed_data.size() ;
+				uint32_t uncompressed_data_size = 0 ;
+				if( (context.flags & e_Layout) == e_v11Layout ) {
+					uncompressed_data_size = 6 * context.number_of_samples ;
+				} else {
+					begin = read_little_endian_integer( begin, end, &uncompressed_data_size ) ;
+				}
+				buffer->resize( uncompressed_data_size ) ;
+				zlib_uncompress( begin, end, buffer ) ;
+				assert( buffer->size() == uncompressed_data_size ) ;
+			}
+			else {
+				// copy the data between buffers.
+				buffer->assign( compressed_data.begin(), compressed_data.end() ) ;
 			}
 		}
-		
-		namespace impl {
-			uint32_t n_choose_k( uint32_t n, uint32_t k ) {
-				if( k == 0 )  {
-					return 1 ;
-				} else if( k == 1 ) {
-					return n ;
+
+		namespace v12 {
+			namespace impl {
+				uint32_t n_choose_k( uint32_t n, uint32_t k ) {
+					if( k == 0 )  {
+						return 1 ;
+					} else if( k == 1 ) {
+						return n ;
+					}
+					return ( n * n_choose_k(n - 1, k - 1) ) / k ;
 				}
-				return ( n * n_choose_k(n - 1, k - 1) ) / k ;
-			}
 			
-			namespace v12 {
-				char const* fill_data(
+				char const* read_bits_from_buffer(
 					char const* buffer,
 					char const* const end,
 					uint64_t* data,
@@ -386,7 +444,7 @@ namespace genfile {
 					return buffer ;
 				}
 			
-				double consume_value(
+				double parse_bit_representation(
 					uint64_t* data,
 					int* size,
 					int const bits
@@ -403,167 +461,102 @@ namespace genfile {
 					double const result = ( *data & bitMask ) / double( bitMask ) ;
 					(*size) -= bits ;
 					(*data) >>= bits ;
-					return result ; 
+					return result ;
 				}
-			}
-		}
-		
-		void parse_probability_data_v12(
-			char const* buffer,
-			char const* const end,
-			Context const& context,
-			VariantDataReader::PerSampleSetter& setter
-		) {
-			uint32_t numberOfSamples ;
-			uint16_t numberOfAlleles ;
-			unsigned char ploidyExtent[2] ;
-			enum { ePhased = 1, eUnphased = 0 } ;
-				
-			buffer = read_little_endian_integer( buffer, end, &numberOfSamples ) ;
-			buffer = read_little_endian_integer( buffer, end, &numberOfAlleles ) ;
-			buffer = read_little_endian_integer( buffer, end, &ploidyExtent[0] ) ;
-			buffer = read_little_endian_integer( buffer, end, &ploidyExtent[1] ) ;
 
-			if( numberOfSamples != context.number_of_samples ) {
-				throw BGenError() ;
-			}
-			setter.set_number_of_samples( numberOfSamples, uint32_t( numberOfAlleles ) ) ;
-
-			// Keep a pointer to the ploidy and move buffer past the ploidy information
-			char const* ploidy_p = buffer ;
-			buffer += numberOfSamples ;
-			// Get the phased flag and number of bits
-			bool const phased = ((*buffer++) & 0x1 ) ;
-			int const bits = int( *reinterpret_cast< unsigned char const *>( buffer++ ) ) ;
-			
-#if DEBUG_BGEN_FORMAT
-			std::cerr << "parse_probability_data_v12(): numberOfSamples = " << numberOfSamples
-				<< ", phased = " << phased << ".\n" ;
-			std::cerr << "parse_probability_data_v12(): *buffer: "
-				<< string_utils::to_hex( buffer, end ) << ".\n" ;
-#endif
-
-			{
-				uint64_t data = 0 ;
-				int size = 0 ;
-				for( uint32_t i = 0; i < numberOfSamples; ++i, ++ploidy_p ) {
-					uint32_t const ploidy = uint32_t(*reinterpret_cast< unsigned char const* >( ploidy_p ) & 0x3F) ;
-					bool const missing = (*reinterpret_cast< unsigned char const* >( ploidy_p ) & 0x80) ;
-					uint32_t const valueCount
-						= phased
-						? (ploidy * numberOfAlleles)
-						: ((numberOfAlleles == 2) ? (ploidy+1) : impl::n_choose_k( ploidy + numberOfAlleles - 1, numberOfAlleles - 1 )) ;
-
-					uint32_t const storedValueCount = valueCount - ( phased ? ploidy : 1 ) ;
-					
-#if DEBUG_BGEN_FORMAT > 1
-					std::cerr << "parse_probability_data_v12(): sample " << i
-						<< ", ploidy = " << ploidy
-						<< ", missing = " << missing
-						<< ", valueCount = " << valueCount
-						<< ", storedValueCount = " << storedValueCount
-						<< ", data = " << string_utils::to_hex( buffer, end )
-						<< ".\n" ;
-#endif
-
-					if( setter.set_sample( i ) ) {
-						setter.set_number_of_entries(
-							valueCount, 
-							phased ? ePerPhasedHaplotypePerAllele : ePerUnorderedGenotype,
-							eProbability
-						) ;
-						if( missing ) {
-							for( std::size_t h = 0; h < valueCount; ++h ) {
-								setter( genfile::MissingValue() ) ;
-							}
-						} else {
-							double sum = 0.0 ;
-							for( uint32_t h = 0; h < storedValueCount; ++h ) {
-								buffer = impl::v12::fill_data( buffer, end, &data, &size, bits ) ;
-								double const value = impl::v12::consume_value( &data, &size, bits ) ;
-								setter( value ) ;
-								sum += value ;
-#if DEBUG_BGEN_FORMAT
-								std::cerr << "parse_probability_data_v12(): i = " << i << ", h = " << h << ", size = " << size << ", bits = " << bits << ", parsed value = " << value
-									<< ", sum = " << std::setprecision( 10 ) << sum << ".\n" ;
-#endif
-								
-								if(
-									( phased && ((h+1) % (numberOfAlleles-1) ) == 0 )
-									|| ((!phased) && (h+1) == storedValueCount )
-								) {
-									assert( sum <= 1.00000001 ) ;
-									setter( 1.0 - sum ) ;
-									sum = 0.0 ;
-								}
-							}
+				namespace {
+					struct CompareFractionalPart{
+						CompareFractionalPart( double* v, std::size_t n ):
+							m_v( v ), m_n( n )
+						{}
+						CompareFractionalPart( CompareFractionalPart const& other ):
+							m_v( other.m_v ), m_n( other.m_n )
+						{}
+						CompareFractionalPart& operator=( CompareFractionalPart const& other ) {
+							m_v = other.m_v ;
+							m_n =  other.m_n ;
+							return *this ;
 						}
-					} else {
-						// just consume data, don't set anything.
-						for( uint32_t h = 0; h < storedValueCount; ++h ) {
-							buffer = impl::v12::fill_data( buffer, end, &data, &size, bits ) ;
-							impl::v12::consume_value( &data, &size, bits ) ;
+						
+						bool operator()( std::size_t a, std::size_t b ) const {
+							return ( m_v[a] - std::floor( m_v[a] ) ) > ( m_v[b] - std::floor( m_v[b] )) ;
+						}
+					private:
+						double* m_v ;
+						std::size_t m_n ;
+					} ;
+				}
+
+				void round_probs_to_scaled_simplex( double* p, std::size_t* index, std::size_t const n, int const number_of_bits ) {
+					double const scale = ( 0xFFFFFFFFFFFFFFFF >> ( 64 - number_of_bits ) ) ;
+					std::multimap< double, double*, std::greater< double > > fractional_parts ;
+					double total_fractional_part = 0.0 ;
+					for( std::size_t i = 0; i < n; ++i ) {
+						p[i] *= scale ;
+						index[i] = i ;
+						total_fractional_part += p[i] - std::floor( p[i] ) ;
+					}
+					std::size_t const upper = std::floor( total_fractional_part + 0.5 ) ;
+					std::sort( index, index + n, CompareFractionalPart( p, n ) ) ;
+
+	#if DEBUG_BGEN_FORMAT > 2
+		std::cerr << "round_probs_to_scaled_simplex(): number_of_bits = " << number_of_bits
+				<< ", scale = " << scale
+				<< ", total_fractional_part = " << total_fractional_part
+				<< ", upper = " << upper << ".\n" ;
+		std::cerr << "round_probs_to_scaled_simplex(): p1 = " << *p << ".\n" ;
+	#endif
+
+					for( std::size_t i = 0; i < n; ++i ) {
+						if( i < upper ) {
+							p[ index[i] ] = std::ceil( p[ index[i] ] ) ;
+						} else {
+							p[ index[i] ] = std::floor( p[ index[i] ] ) ;
 						}
 					}
 				}
-			}
-		}
-		
-		void read_raw_probability_data(
-			std::istream& aStream,
-			Context const& context,
-			std::vector< char >* buffer
-		) {
-			uint32_t payload_size = 0 ;
-			if( (context.flags & e_Layout) == e_v12Layout || (context.flags & e_CompressedSNPBlocks) ) {
-				genfile::read_little_endian_integer( aStream, &payload_size ) ;
-			} else {
-				payload_size = 6 * context.number_of_samples ;
-			}
-			buffer->resize( payload_size ) ;
-			aStream.read( &(*buffer)[0], payload_size ) ;
-		}
 
-		void uncompress_raw_probability_data(
-			Context const& context,
-			std::vector< char > const& compressed_data,
-			std::vector< char >* buffer
-		) {
-			// compressed_data contains the (compressed or uncompressed) probability data.
-			if( context.flags & bgen::e_CompressedSNPBlocks ) {
-				char const* begin = &compressed_data[0] ;
-				char const* const end = &compressed_data[0] + compressed_data.size() ;
-				uint32_t uncompressed_data_size = 0 ;
-				if( (context.flags & e_Layout) == e_v11Layout ) {
-					uncompressed_data_size = 6 * context.number_of_samples ;
-				} else {
-					begin = genfile::read_little_endian_integer( begin, end, &uncompressed_data_size ) ;
+				char* write_scaled_probs(
+					uint64_t* data,
+					std::size_t* offset,
+					double const* probs,
+					std::size_t const n,
+					int const number_of_bits,
+					char* buffer,
+					char* const end
+				) {
+					for( std::size_t i = 0; i < (n-1); ++i ) {
+						uint64_t const storedValue = uint64_t( probs[i] ) ;
+						*data |= storedValue << (*offset) ;
+						(*offset) += number_of_bits ;
+						if( (*offset) >= 32 ) {
+#if DEBUG_BGEN_FORMAT > 1
+							std::cerr << "genfile::bgen:impl::v12::write_scaled_probs(): data = " << std::hex << (*data)
+								<< ", buffer = " << reinterpret_cast< void* >( buffer )
+								<< std::dec << ", offset = " << (*offset)
+								<< ", number_of_bits = " << number_of_bits
+								<< ".\n";
+							std::cerr << "genfile::bgen:impl::v12::write_scaled_probs(): writing data.\n" ;
+#endif
+							assert( (buffer+4) <= end ) ;
+							buffer = std::copy(
+								reinterpret_cast< char const* >( data ),
+								reinterpret_cast< char const* >( data ) + 4,
+								buffer
+							) ;
+							(*offset) -= 32 ;
+							(*data) >>= 32 ;
+#if DEBUG_BGEN_FORMAT > 1
+							std::cerr << "genfile::bgen:impl::v12::write_scaled_probs(): after write, data = " << std::hex << (*data)
+								<< ", buffer = " << std::hex << reinterpret_cast< void* >( buffer )
+								<< ", last four bytes written: " << genfile::string_utils::to_hex( buffer-4, buffer ) << ".\n" ;
+#endif
+							
+						}
+					}
+					return buffer ;
 				}
-				buffer->resize( uncompressed_data_size ) ;
-				zlib_uncompress( begin, end, buffer ) ;
-				assert( buffer->size() == uncompressed_data_size ) ;
 			}
-			else {
-				// copy the data between buffers.
-				buffer->assign( compressed_data.begin(), compressed_data.end() ) ;
-			}
-		}
-
-		void read_and_parse_probability_data(
-			std::istream& aStream,
-			Context const& context,
-			VariantDataReader::PerSampleSetter& setter,
-			std::vector< char >* buffer1,
-			std::vector< char >* buffer2
-		) {
-			read_raw_probability_data( aStream, context, buffer1 ) ;
-			uncompress_raw_probability_data( context, *buffer1, buffer2 ) ;
-			parse_probability_data(
-				&(*buffer2)[0],
-				&(*buffer2)[0] + buffer2->size(),
-				context,
-				setter
-			) ;
 		}
 	}
 }

@@ -167,8 +167,8 @@ namespace genfile {
 			
 			~SampleFilteringPerSampleSetter() throw() {} ;
 			
-			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
-				m_setter.set_number_of_samples( nSamples - m_indices_of_samples_to_filter_out.size(), nAlleles ) ;
+			void initialise( std::size_t nSamples, std::size_t nAlleles ) {
+				m_setter.initialise( nSamples - m_indices_of_samples_to_filter_out.size(), nAlleles ) ;
 				m_number_filtered_out = 0 ;
 				m_next_filtered_out = ( m_indices_of_samples_to_filter_out.size() > 0 ) ? m_indices_of_samples_to_filter_out.front() : nSamples ;
 				m_filter_out_this_sample = false ;

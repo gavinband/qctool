@@ -101,8 +101,8 @@ namespace genfile {
 				
 				~Threshholder() throw() {}
 					
-				void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
-					m_target.set_number_of_samples( nSamples, nAlleles ) ;
+				void initialise( std::size_t nSamples, std::size_t nAlleles ) {
+					m_target.initialise( nSamples, nAlleles ) ;
 					m_calls.setZero( ( nAlleles * (nAlleles+1))/2 ) ;
 				} ;
 				bool set_sample( std::size_t i ) {

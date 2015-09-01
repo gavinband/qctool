@@ -156,7 +156,7 @@ namespace genfile {
 					throw MalformedInputError( m_source.get_source_spec(), m_snp_index ) ;
 				}
 
-				setter.set_number_of_samples( N, 2 ) ;
+				setter.initialise( N, 2 ) ;
 				for( std::size_t i = 0; i < N; ++i ) {
 					int ploidy = m_ploidy[i] ;
 					if( ploidy == -1 ) {

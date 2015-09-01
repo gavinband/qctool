@@ -8,15 +8,19 @@
 #include <iomanip>
 #include <sstream>
 #include <cassert>
+#include <map>
+#include <set>
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
 #include <boost/function.hpp>
 #include "test_case.hpp"
 #include "genfile/bgen/bgen.hpp"
+#include "genfile/types.hpp"
+#include "genfile/Chromosome.hpp"
 #include "genfile/string_utils/hex.hpp"
 #include "stdint.h"
 
-#define DEBUG 1
+// #define DEBUG 3
 
 BOOST_AUTO_TEST_SUITE( test_bgen )
 
@@ -34,17 +38,17 @@ namespace data {
 		boost::function< double ( std::size_t i, std::size_t g ) > get_probs
 	) {
 		std::ostringstream oStream ;
-		genfile::write_little_endian_integer( oStream, number_of_samples ) ;
-		genfile::write_little_endian_integer( oStream, max_id_size ) ;
-		genfile::write_little_endian_integer( oStream, static_cast< char >( SNPID.size() )) ;
+		genfile::bgen::write_little_endian_integer( oStream, number_of_samples ) ;
+		genfile::bgen::write_little_endian_integer( oStream, max_id_size ) ;
+		genfile::bgen::write_little_endian_integer( oStream, static_cast< char >( SNPID.size() )) ;
 		oStream.write( SNPID.data(), SNPID.size() ) ;
 		oStream.write( "                ", max_id_size - SNPID.size()) ;
-		genfile::write_little_endian_integer( oStream, static_cast< char >( RSID.size() )) ;
+		genfile::bgen::write_little_endian_integer( oStream, static_cast< char >( RSID.size() )) ;
 		oStream.write( RSID.data(), RSID.size() ) ;
 		oStream.write( "                ", max_id_size - RSID.size()) ;
 		unsigned char chr = chromosome ;
-		genfile::write_little_endian_integer( oStream, chr ) ;
-		genfile::write_little_endian_integer( oStream, SNP_position ) ;
+		genfile::bgen::write_little_endian_integer( oStream, chr ) ;
+		genfile::bgen::write_little_endian_integer( oStream, SNP_position ) ;
 
 		assert( a_allele.size() == 1 ) ;
 		assert( b_allele.size() == 1 ) ;
@@ -63,9 +67,9 @@ namespace data {
 				AB = std::floor( 0.5 + get_probs( i, 1 ) * 10000 ),
 				BB = std::floor( 0.5 + get_probs( i, 2 ) * 10000 )
 			;
-			genfile::write_little_endian_integer( oStream, AA ) ;
-			genfile::write_little_endian_integer( oStream, AB ) ;
-			genfile::write_little_endian_integer( oStream, BB ) ;
+			genfile::bgen::write_little_endian_integer( oStream, AA ) ;
+			genfile::bgen::write_little_endian_integer( oStream, AB ) ;
+			genfile::bgen::write_little_endian_integer( oStream, BB ) ;
 		}
 
 		return oStream.str() ;
@@ -82,19 +86,19 @@ namespace data {
 		boost::function< double ( std::size_t i, std::size_t g ) > get_probs
 	) {
 		std::ostringstream oStream ;
-		genfile::write_little_endian_integer( oStream, number_of_samples ) ;
-		genfile::write_little_endian_integer( oStream, static_cast< uint16_t >( SNPID.size() )) ;
+		genfile::bgen::write_little_endian_integer( oStream, number_of_samples ) ;
+		genfile::bgen::write_little_endian_integer( oStream, static_cast< uint16_t >( SNPID.size() )) ;
 		oStream.write( SNPID.data(), SNPID.size() ) ;
-		genfile::write_little_endian_integer( oStream, static_cast< uint16_t >( RSID.size() )) ;
+		genfile::bgen::write_little_endian_integer( oStream, static_cast< uint16_t >( RSID.size() )) ;
 		oStream.write( RSID.data(), RSID.size() ) ;
 		std::string chr( chromosome ) ;
-		genfile::write_little_endian_integer( oStream, static_cast< uint16_t >( chr.size() ) ) ;
+		genfile::bgen::write_little_endian_integer( oStream, static_cast< uint16_t >( chr.size() ) ) ;
 		oStream.write( chr.data(), chr.size() ) ;
-		genfile::write_little_endian_integer( oStream, SNP_position ) ;
+		genfile::bgen::write_little_endian_integer( oStream, SNP_position ) ;
 
-		genfile::write_little_endian_integer( oStream, static_cast< uint32_t >( a_allele.size() )) ;
+		genfile::bgen::write_little_endian_integer( oStream, static_cast< uint32_t >( a_allele.size() )) ;
 		oStream.write( a_allele.data(), a_allele.size() ) ;
-		genfile::write_little_endian_integer( oStream, static_cast< uint32_t >( b_allele.size() )) ;
+		genfile::bgen::write_little_endian_integer( oStream, static_cast< uint32_t >( b_allele.size() )) ;
 		oStream.write( b_allele.data(), b_allele.size() ) ;
 		
 		for( std::size_t i = 0; i < number_of_samples; ++i ) {
@@ -103,9 +107,9 @@ namespace data {
 				AB = std::floor( 0.5 + get_probs( i, 1 ) * 32768.0 ),
 				BB = std::floor( 0.5 + get_probs( i, 2 ) * 32768.0 )
 			;
-			genfile::write_little_endian_integer( oStream, AA ) ;
-			genfile::write_little_endian_integer( oStream, AB ) ;
-			genfile::write_little_endian_integer( oStream, BB ) ;
+			genfile::bgen::write_little_endian_integer( oStream, AA ) ;
+			genfile::bgen::write_little_endian_integer( oStream, AB ) ;
+			genfile::bgen::write_little_endian_integer( oStream, BB ) ;
 		}
 
 		return oStream.str() ;
@@ -177,20 +181,20 @@ namespace data {
 		assert( bits_per_probability <= 64 ) ;
 
 		std::ostringstream oStream ;
-		genfile::write_little_endian_integer( oStream, static_cast< uint16_t >( SNPID.size() )) ;
+		genfile::bgen::write_little_endian_integer( oStream, static_cast< uint16_t >( SNPID.size() )) ;
 		oStream.write( SNPID.data(), SNPID.size() ) ;
-		genfile::write_little_endian_integer( oStream, static_cast< uint16_t >( RSID.size() )) ;
+		genfile::bgen::write_little_endian_integer( oStream, static_cast< uint16_t >( RSID.size() )) ;
 		oStream.write( RSID.data(), RSID.size() ) ;
 		std::string chr( chromosome ) ;
-		genfile::write_little_endian_integer( oStream, static_cast< uint16_t >( chr.size() ) ) ;
+		genfile::bgen::write_little_endian_integer( oStream, static_cast< uint16_t >( chr.size() ) ) ;
 		oStream.write( chr.data(), chr.size() ) ;
-		genfile::write_little_endian_integer( oStream, SNP_position ) ;
+		genfile::bgen::write_little_endian_integer( oStream, SNP_position ) ;
 
 		uint16_t const number_of_alleles = 2 ;
-		genfile::write_little_endian_integer( oStream, number_of_alleles ) ;
-		genfile::write_little_endian_integer( oStream, static_cast< uint32_t >( a_allele.size() )) ;
+		genfile::bgen::write_little_endian_integer( oStream, number_of_alleles ) ;
+		genfile::bgen::write_little_endian_integer( oStream, static_cast< uint32_t >( a_allele.size() )) ;
 		oStream.write( a_allele.data(), a_allele.size() ) ;
-		genfile::write_little_endian_integer( oStream, static_cast< uint32_t >( b_allele.size() )) ;
+		genfile::bgen::write_little_endian_integer( oStream, static_cast< uint32_t >( b_allele.size() )) ;
 		oStream.write( b_allele.data(), b_allele.size() ) ;
 		
 		// Total size of probability data is:
@@ -198,21 +202,21 @@ namespace data {
 		// To this we must add space for the header block
 		uint32_t const buffer_size = 10 + number_of_samples + stored_probability_size ;
 		// And four bytes indicating the total length.
-		genfile::write_little_endian_integer( oStream, buffer_size ) ;
+		genfile::bgen::write_little_endian_integer( oStream, buffer_size ) ;
 
 		// Write number of samples and ploidies.
-		genfile::write_little_endian_integer( oStream, number_of_samples ) ;
-		genfile::write_little_endian_integer( oStream, number_of_alleles ) ;
-		genfile::write_little_endian_integer( oStream, uint8_t( 2 ) ) ;
-		genfile::write_little_endian_integer( oStream, uint8_t( 2 ) ) ;
+		genfile::bgen::write_little_endian_integer( oStream, number_of_samples ) ;
+		genfile::bgen::write_little_endian_integer( oStream, number_of_alleles ) ;
+		genfile::bgen::write_little_endian_integer( oStream, uint8_t( 2 ) ) ;
+		genfile::bgen::write_little_endian_integer( oStream, uint8_t( 2 ) ) ;
 		for( std::size_t i = 0; i < number_of_samples; ++i ) {
 			uint8_t ploidy = 2 ;
-			genfile::write_little_endian_integer( oStream, ploidy ) ;
+			genfile::bgen::write_little_endian_integer( oStream, ploidy ) ;
 		}
 
 		uint8_t const phased = ( type == "phased" ) ? 1 : 0 ;
-		genfile::write_little_endian_integer( oStream, phased ) ;
-		genfile::write_little_endian_integer( oStream, uint8_t( bits_per_probability ) ) ;
+		genfile::bgen::write_little_endian_integer( oStream, phased ) ;
+		genfile::bgen::write_little_endian_integer( oStream, uint8_t( bits_per_probability ) ) ;
 
 		uint64_t const two_to_the_bits = ( uint64_t( 1 ) << bits_per_probability ) ;
 		double scale = two_to_the_bits - 1 ;
@@ -348,7 +352,7 @@ struct probabilities {
 	double AA, AB, BB ;
 } ;
 
-struct ProbabilitySetter: public genfile::VariantDataReader::PerSampleSetter {
+struct ProbabilitySetter {
 	typedef boost::function< double( std::size_t i, std::size_t g ) > GetExpectedProbs ;
 	enum State { eNone, eSetNumberOfSamples, eSetSample, eSetNumberOfEntries, eSetValue } ;
 
@@ -368,7 +372,7 @@ struct ProbabilitySetter: public genfile::VariantDataReader::PerSampleSetter {
 		BOOST_CHECK_EQUAL( m_sample_i + 1, m_number_of_samples ) ;
 		BOOST_CHECK_EQUAL( m_entry_i, m_number_of_entries ) ;
 	}
-	void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+	void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 		BOOST_CHECK_EQUAL( m_state, eNone ) ;
 		BOOST_CHECK_EQUAL( nSamples, m_number_of_samples ) ;
 		BOOST_CHECK_EQUAL( nAlleles, 2 ) ;
@@ -382,32 +386,24 @@ struct ProbabilitySetter: public genfile::VariantDataReader::PerSampleSetter {
 		m_state = eSetSample ;
 		return true ;
 	}
-	void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
+	void set_number_of_entries( std::size_t n, genfile::OrderType const order_type, genfile::ValueType const value_type ) {
 #if DEBUG > 2
 		std::cerr << "ProbabilitySetter::set_number_of_entries(): n = " << n
 			<< ", order_type = " << order_type << ".\n" ;
 #endif
 		BOOST_CHECK_EQUAL( m_state, eSetSample ) ;
 		TEST_ASSERT(
-			( order_type == genfile::ePerUnorderedGenotype && m_number_of_entries == 3)
+			( order_type == genfile::ePerUnorderedGenotype && n == 3)
 			||
-			( order_type == genfile::ePerPhasedHaplotypePerAllele && m_number_of_entries == 4)
+			( order_type == genfile::ePerPhasedHaplotypePerAllele && n == 4)
 		) ;
 		BOOST_CHECK_EQUAL( value_type, genfile::eProbability ) ;
-		m_order_type = order_type ;
-		m_state = eSetNumberOfEntries ;
 		m_number_of_entries = n ;
+		m_order_type = order_type ;
 		m_entry_i = 0 ;
+		m_state = eSetNumberOfEntries ;
 	}
 	void operator()( genfile::MissingValue const value ) {
-		TEST_ASSERT(0) ;
-	}
-
-	void operator()( std::string& value ) {
-		TEST_ASSERT(0) ;
-	}
-
-	void operator()( Integer const value ) {
 		TEST_ASSERT(0) ;
 	}
 
@@ -432,7 +428,7 @@ private:
 	std::size_t m_sample_i ;
 	std::size_t m_number_of_entries ;
 	std::size_t m_entry_i ;
-	OrderType m_order_type ;
+	genfile::OrderType m_order_type ;
 	std::set< std::pair< std::size_t, std::size_t > > m_set_values ;
 
 	State m_state ;
@@ -637,8 +633,10 @@ void do_snp_block_write_test(
 		<< ", number_of_samples = " << number_of_individuals
 		<< ", number_of_bits = " << bits_per_probability
 		<< ".\n" ;
-	std::cerr << "!! This test fails, phased output not implemented in bgen.hpp yet.\n" ;
 #endif
+	if( type == "phased" ) {
+		std::cerr << "!! This test fails, phased output not implemented in bgen.hpp yet.\n" ;
+	}
 	
 	std::ostringstream outStream ;
 	

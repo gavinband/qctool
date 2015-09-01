@@ -60,11 +60,10 @@ namespace genfile {
 	namespace impl {
 		struct BGenFileSNPDataReader: public VariantDataReader {
 			BGenFileSNPDataReader( BGenFileSNPDataSource& source ):
-				m_source( source ),
-				m_have_uncompressed_data( false )
+				m_source( source )
 			{
 				assert( source ) ;
-				bgen::read_raw_probability_data(
+				bgen::read_genotype_data_block(
 					m_source.stream(),
 					m_source.bgen_context(),
 					&m_source.m_compressed_data_buffer
@@ -72,14 +71,12 @@ namespace genfile {
 			}
 			
 			BGenFileSNPDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
-                assert( spec == "GP" || spec == ":genotypes:" ) ;
-				if( !m_have_uncompressed_data ) {
-					bgen::uncompress_raw_probability_data(
-						m_source.bgen_context(),
-						m_source.m_compressed_data_buffer,
-						&(m_source.m_uncompressed_data_buffer)
-					) ;
-				}
+				assert( spec == "GP" || spec == ":genotypes:" ) ;
+				bgen::uncompress_probability_data(
+					m_source.bgen_context(),
+					m_source.m_compressed_data_buffer,
+					&(m_source.m_uncompressed_data_buffer)
+				) ;
 				bgen::parse_probability_data(
 					&(m_source.m_uncompressed_data_buffer)[0],
 					&(m_source.m_uncompressed_data_buffer)[0] + m_source.m_uncompressed_data_buffer.size(),
@@ -105,7 +102,6 @@ namespace genfile {
 		private:
 			BGenFileSNPDataSource& m_source ;
 			std::vector< double > m_genotypes ;
-			bool m_have_uncompressed_data ;
 		} ;
 	}
 
@@ -114,7 +110,7 @@ namespace genfile {
 	}
 
 	void BGenFileSNPDataSource::ignore_snp_probability_data_impl() {
-		bgen::ignore_snp_probability_data(
+		bgen::ignore_genotype_data_block(
 			stream(),
 			m_bgen_context
 		) ;

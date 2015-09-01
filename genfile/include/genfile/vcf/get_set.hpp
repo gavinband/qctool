@@ -22,7 +22,7 @@ namespace genfile {
 				m_data( data )
 			{}
 
-			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) { assert( nAlleles == 2 ); m_data.resize( nSamples ) ; }
+			void initialise( std::size_t nSamples, std::size_t nAlleles ) { assert( nAlleles == 2 ); m_data.resize( nSamples ) ; }
 			bool set_sample( std::size_t n ) { assert( n < m_data.size() ) ; m_sample = n ; return true ; }
 			void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
 				m_data[ m_sample ].resize( n ) ; m_entry_i = 0 ;
@@ -51,7 +51,7 @@ namespace genfile {
 			GenotypeSetterBase( std::string const& scale = "identity" ) ;
 			~GenotypeSetterBase() throw() ;
 
-			virtual void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) ;
+			virtual void initialise( std::size_t nSamples, std::size_t nAlleles ) ;
 			virtual bool set_sample( std::size_t n ) ;
 			virtual void set_number_of_entries( std::size_t n, OrderType const, ValueType const ) ;
 			virtual void operator()( MissingValue const value ) ;
@@ -132,7 +132,7 @@ namespace genfile {
 		struct GenotypeSetter< SingleSNPGenotypeProbabilities >: public GenotypeSetterBase
 		{
 			GenotypeSetter( SingleSNPGenotypeProbabilities& result ) ;
-			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) ;
+			void initialise( std::size_t nSamples, std::size_t nAlleles ) ;
 			void set( std::size_t sample_i, double AA, double AB, double BB ) ;
 		private:
 			SingleSNPGenotypeProbabilities& m_result ;
@@ -145,7 +145,7 @@ namespace genfile {
 		struct GenotypeSetter< std::vector< double > >: public GenotypeSetterBase
 		{
 			GenotypeSetter( std::vector< double >& result ) ;
-			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) ;
+			void initialise( std::size_t nSamples, std::size_t nAlleles ) ;
 			void set( std::size_t sample_i, double AA, double AB, double BB ) ;
 		private:
 			std::vector< double >& m_result ;
@@ -159,7 +159,7 @@ namespace genfile {
 		struct ThreshholdingGenotypeSetter< std::vector< VariantEntry > >: public GenotypeSetterBase
 		{
 			ThreshholdingGenotypeSetter( std::vector< VariantEntry >& result, double threshhold ) ;
-			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) ;
+			void initialise( std::size_t nSamples, std::size_t nAlleles ) ;
 			void set( std::size_t sample_i, double AA, double AB, double BB ) ;
 		private:
 			std::vector< VariantEntry >& m_result ;
@@ -180,11 +180,11 @@ namespace genfile {
 				m_threshhold( threshhold )
 			{}
 				
-			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+			void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 				assert( nAlleles == 2 ) ;
 				m_result.clear() ;
 				m_result.resize( nSamples, -1 ) ;
-				GenotypeSetterBase::set_number_of_samples( nSamples, nAlleles ) ;
+				GenotypeSetterBase::initialise( nSamples, nAlleles ) ;
 			}
 			
 			void set( std::size_t sample_i, double AA, double AB, double BB ) {
@@ -231,7 +231,7 @@ namespace genfile {
 				m_missing_value( missing_value )
 			{}
 
-			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) { assert( nAlleles == 2 ) ; m_number_of_samples = nSamples ; }
+			void initialise( std::size_t nSamples, std::size_t nAlleles ) { assert( nAlleles == 2 ) ; m_number_of_samples = nSamples ; }
 			bool set_sample( std::size_t n ) {
 				assert( n < m_number_of_samples ) ; 
 				m_sample = n ;

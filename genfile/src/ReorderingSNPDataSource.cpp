@@ -37,8 +37,8 @@ namespace genfile {
 #endif					
 				}
 
-				void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
-					m_setter.set_number_of_samples( nSamples, nAlleles ) ;
+				void initialise( std::size_t nSamples, std::size_t nAlleles ) {
+					m_setter.initialise( nSamples, nAlleles ) ;
 				} ;
 				bool set_sample( std::size_t i ) {
 					return m_setter.set_sample( m_order[i] ) ;

@@ -10,12 +10,7 @@
 #include <vector>
 #include <stdint.h>
 #include <cassert>
-#include "../config.hpp"
-#ifdef HAVE_ZLIB
-#include <sstream>
 #include <zlib.h>
-#endif
-#include "genfile/Error.hpp"
 
 namespace genfile {
 

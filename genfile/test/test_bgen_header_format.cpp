@@ -23,12 +23,12 @@ namespace data {
 		uint32_t reserved = 0x6e656762 ; // 'bgen'
 		std::ostringstream oStream ;
 		uint32_t header_length = free_data.size() + 20 ;
-		genfile::write_little_endian_integer( oStream, header_length ) ;
-		genfile::write_little_endian_integer( oStream, number_of_snp_blocks ) ;
-		genfile::write_little_endian_integer( oStream, number_of_samples ) ;
-		genfile::write_little_endian_integer( oStream, reserved ) ;
+		genfile::bgen::write_little_endian_integer( oStream, header_length ) ;
+		genfile::bgen::write_little_endian_integer( oStream, number_of_snp_blocks ) ;
+		genfile::bgen::write_little_endian_integer( oStream, number_of_samples ) ;
+		genfile::bgen::write_little_endian_integer( oStream, reserved ) ;
 		oStream.write( free_data.data(), free_data.size() ) ;
-		genfile::write_little_endian_integer( oStream, flags ) ;
+		genfile::bgen::write_little_endian_integer( oStream, flags ) ;
 
 		return oStream.str() ;
 	}

@@ -11,10 +11,11 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <Eigen/Core>
 #include "genfile/snp_data_utils.hpp"
-#include "genfile/endianness_utils.hpp"
+#include "genfile/bgen/bgen.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/zlib.hpp"
+#include "genfile/endianness_utils.hpp"
 #include "qcdb/DBOutputter.hpp"
 #include "components/SNPOutputComponent/SQLiteGenotypesSNPDataSink.hpp"
 #include "qcdb/store_samples_in_db.hpp"
@@ -134,7 +135,7 @@ namespace {
 
 		~PositiveFloatWriter() throw() {}
 		
-		void set_number_of_samples( std::size_t n, std::size_t nAlleles ) {
+		void initialise( std::size_t n, std::size_t nAlleles ) {
 			assert( nAlleles == 2 ) ;
 
 			m_buffers.resize(1) ;
@@ -266,8 +267,8 @@ namespace {
 		
 		~GenotypeMunger() throw() {}
 		
-		void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
-			m_writer.set_number_of_samples( nSamples, nAlleles ) ;
+		void initialise( std::size_t nSamples, std::size_t nAlleles ) {
+			m_writer.initialise( nSamples, nAlleles ) ;
 		}
 		bool set_sample( std::size_t i ) {
 			m_writer.set_sample(i) ;

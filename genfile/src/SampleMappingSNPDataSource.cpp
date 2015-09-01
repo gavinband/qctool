@@ -133,8 +133,8 @@ namespace genfile {
 			
 			~SampleMappingPerSampleSetter() throw() {} ;
 			
-			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
-				m_setter.set_number_of_samples( m_sample_mapping.number_of_source_samples(), nAlleles ) ;
+			void initialise( std::size_t nSamples, std::size_t nAlleles ) {
+				m_setter.initialise( m_sample_mapping.number_of_source_samples(), nAlleles ) ;
 				m_last_source_sample = 0 ;
 			}
 

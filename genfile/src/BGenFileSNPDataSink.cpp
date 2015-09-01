@@ -10,7 +10,6 @@
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/bgen/bgen.hpp"
-#include "genfile/bgen/impl.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/BGenFileSNPDataSink.hpp"
 
@@ -157,6 +156,17 @@ namespace genfile {
 		return "" ;
 	}
 
+	namespace {
+		uint32_t get_flags( std::string const& version ) {
+			if( version == "v11" ) {
+				return bgen::e_CompressedSNPBlocks | bgen::e_v11Layout ;
+			} else if( version == "v12" ) {
+				return bgen::e_CompressedSNPBlocks | bgen::e_v12Layout ;
+			} else {
+				assert(0) ;
+			}
+		}
+	}
 	BGenFileSNPDataSink::BGenFileSNPDataSink(
 		std::string const& filename,
 		Metadata const& metadata,
@@ -167,7 +177,7 @@ namespace genfile {
 			filename,
 			metadata,
 			"no_compression",
-			bgen::impl::get_flags( version ),
+			get_flags( version ),
 			number_of_bits
 		)
 	{

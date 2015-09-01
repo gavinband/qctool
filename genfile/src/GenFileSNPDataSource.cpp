@@ -127,7 +127,7 @@ namespace genfile {
 					) ;
 				}
 				std::size_t const N = m_genotypes.size() / 3 ;
-				setter.set_number_of_samples( N, 2 ) ;
+				setter.initialise( N, 2 ) ;
 				for( std::size_t i = 0; i < N; ++i ) {
 					setter.set_sample( i ) ;
 					setter.set_number_of_entries( 3, ePerUnorderedGenotype, eProbability ) ;

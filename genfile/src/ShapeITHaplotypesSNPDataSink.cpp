@@ -38,7 +38,7 @@ namespace genfile {
 			}
 
 			~HaplotypeWriter() throw() {}
-			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+			void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 				assert( (2*nSamples) == m_data.size() ) ;
 				assert( nAlleles == 2 ) ;
 			}

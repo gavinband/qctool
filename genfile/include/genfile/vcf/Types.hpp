@@ -59,7 +59,7 @@ namespace genfile {
 			typedef std::auto_ptr< PerSampleEntriesSetter > UniquePtr ;
 			virtual ~PerSampleEntriesSetter() throw() {}
 			// Prepare to receive values for a variant.
-			virtual void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) = 0 ;
+			virtual void initialise( std::size_t nSamples, std::size_t nAlleles ) = 0 ;
 			// Return true if we want values for this variant, otherwise false.
 			virtual bool set_sample( std::size_t i ) = 0 ;
 		} ;

@@ -33,7 +33,7 @@ namespace genfile {
 		
 		GenotypeSetterBase::~GenotypeSetterBase() throw() {}
 
-		void GenotypeSetterBase::set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+		void GenotypeSetterBase::initialise( std::size_t nSamples, std::size_t nAlleles ) {
 			assert( nAlleles == 2 ) ;
 			// destination is supposed to know its size.
 			m_number_of_samples = nSamples ;
@@ -112,9 +112,9 @@ namespace genfile {
 			m_result( result )
 		{}
 
-		void GenotypeSetter< SingleSNPGenotypeProbabilities >::set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+		void GenotypeSetter< SingleSNPGenotypeProbabilities >::initialise( std::size_t nSamples, std::size_t nAlleles ) {
 			m_result.resize( nSamples ) ;
-			GenotypeSetterBase::set_number_of_samples( nSamples, nAlleles ) ;
+			GenotypeSetterBase::initialise( nSamples, nAlleles ) ;
 		}
 
 		void GenotypeSetter< SingleSNPGenotypeProbabilities >::set( std::size_t sample_i, double AA, double AB, double BB ) {
@@ -126,10 +126,10 @@ namespace genfile {
 			m_result( result )
 		{}
 
-		void GenotypeSetter< std::vector< double > >::set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+		void GenotypeSetter< std::vector< double > >::initialise( std::size_t nSamples, std::size_t nAlleles ) {
 			assert( nAlleles == 2 ) ;
 			m_result.resize( nSamples * 3 ) ;
-			GenotypeSetterBase::set_number_of_samples( nSamples, nAlleles ) ;
+			GenotypeSetterBase::initialise( nSamples, nAlleles ) ;
 		}
 
 		void GenotypeSetter< std::vector< double > >::set( std::size_t sample_i, double AA, double AB, double BB ) {
@@ -145,11 +145,11 @@ namespace genfile {
 			m_threshhold( threshhold )
 		{}
 
-		void ThreshholdingGenotypeSetter< std::vector< VariantEntry > >::set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+		void ThreshholdingGenotypeSetter< std::vector< VariantEntry > >::initialise( std::size_t nSamples, std::size_t nAlleles ) {
 			assert( nAlleles == 2 ) ;
 			m_result.clear() ;
 			m_result.resize( nSamples, MissingValue() ) ;
-			GenotypeSetterBase::set_number_of_samples( nSamples, nAlleles ) ;
+			GenotypeSetterBase::initialise( nSamples, nAlleles ) ;
 		}
 
 		void ThreshholdingGenotypeSetter< std::vector< VariantEntry > >::set( std::size_t sample_i, double AA, double AB, double BB ) {

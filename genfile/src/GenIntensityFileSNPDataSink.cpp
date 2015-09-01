@@ -40,17 +40,17 @@ namespace genfile {
 
 			~IntensityWriter() throw() {}
 
-			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+			void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 				if( (nSamples*2) != m_data.size() ) {
 					throw genfile::BadArgumentError(
-						"genfile::IntensityWriter::set_number_of_samples()",
+						"genfile::IntensityWriter::initialise()",
 						"n=" + string_utils::to_string(nSamples),
 						"Number of samples does not match expected number (" + string_utils::to_string( m_data.size() / 2 ) + ")"
 					) ;
 				}
 				if( nAlleles != 2 ) {
 					throw genfile::BadArgumentError(
-						"genfile::IntensityWriter::set_number_of_samples()",
+						"genfile::IntensityWriter::initialise()",
 						( boost::format( "n=%d" ) % nAlleles).str(),
 						"Expected two alleles."
 					) ;

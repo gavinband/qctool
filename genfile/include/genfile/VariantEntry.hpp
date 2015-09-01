@@ -13,10 +13,6 @@
 #include "genfile/GenomePosition.hpp"
 
 namespace genfile {
-	namespace impl {
-		class serializer ;
-		class deserializer ;
-	}
 	class VariantEntry {
 	public:
 		template< typename T > VariantEntry( T const& value ) ;
@@ -34,10 +30,6 @@ namespace genfile {
 		bool is_position() const ;
 		template< typename T > T as() const ;
 
-		std::size_t get_serialized_size() const ;
-		char* serialize( char* buffer, char* const end ) const ;
-		char const* deserialize( char const* buffer, char const* const end ) ;
-	
 		template< typename Visitor >
 		friend void apply_visitor( Visitor visitor, VariantEntry const& ) ;
 		template< typename Visitor >
@@ -56,8 +48,6 @@ namespace genfile {
 		enum Types { eMissing = 0, eString = 1, eInteger = 2, eDouble = 3, eChromosome = 4, eGenomePosition = 5 } ;
 		typedef boost::variant< MissingValue, std::string, Integer, double, Chromosome, GenomePosition > EntryData ;
 		EntryData m_entrydata ;
-		friend class impl::serializer ;
-		friend class impl::deserializer ;
 		
 	private:
 		// prevent implicit conversion to VariantEntry in comparisons.
@@ -97,8 +87,6 @@ namespace genfile {
 		return boost::apply_visitor( visitor, value.m_entrydata ) ;
 		
 	}
-	
-	
 }
 
 #endif

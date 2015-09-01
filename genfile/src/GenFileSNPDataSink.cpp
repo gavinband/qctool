@@ -43,17 +43,17 @@ namespace genfile {
 
 			~GenotypeWriter() throw() {}
 			
-			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+			void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 				if( nSamples != m_number_of_samples ) {
 					throw genfile::BadArgumentError(
-						"genfile::GenotypeWriter::set_number_of_samples()",
+						"genfile::GenotypeWriter::initialise()",
 						"n=" + string_utils::to_string( nSamples ),
 						"Number of samples does not match expected number (" + string_utils::to_string( m_number_of_samples ) + ")"
 					) ;
 				}
 				if( nAlleles != 2 ) {
 					throw genfile::BadArgumentError(
-						"genfile::GenotypeWriter::set_number_of_samples()",
+						"genfile::GenotypeWriter::initialise()",
 						( boost::format( "n=%d" ) % nAlleles ).str(),
 						"Expected two alleles."
 					) ;

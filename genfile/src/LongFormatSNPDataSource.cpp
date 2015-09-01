@@ -111,7 +111,7 @@ namespace genfile {
 			{}
 			
 			LongFormatVariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
-				setter.set_number_of_samples( m_samples.size(), 2 ) ;
+				setter.initialise( m_samples.size(), 2 ) ;
 				if( spec == "GT" || spec == ":genotypes:" ) {
 					for( std::size_t sample_i = 0; sample_i < m_samples.size(); ++sample_i ) {
 						setter.set_sample( sample_i ) ;
@@ -238,7 +238,6 @@ namespace genfile {
 			std::size_t lineNumber = 0 ;
 
 			std::size_t buffer_pos = 0 ;
-			int numberOfSamples = 0 ;
 
 			while( read_one_line( stream, &line )) {
 				++lineNumber ;

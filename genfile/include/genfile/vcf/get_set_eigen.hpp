@@ -22,10 +22,10 @@ namespace genfile {
 			GenotypeSetter( Eigen::MatrixBase< Derived >& result, std::string const& scale = "identity" ): GenotypeSetterBase( scale ), m_result( result ) {
 				result.setZero() ;
 			} ;
-			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+			void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 				assert( nAlleles ==  2 ) ;
 				m_result.derived().resize( nSamples, 3 ) ;
-				GenotypeSetterBase::set_number_of_samples( nSamples, nAlleles ) ;
+				GenotypeSetterBase::initialise( nSamples, nAlleles ) ;
 			}
 			void set( std::size_t sample_i, double AA, double AB, double BB ) {
 				m_result( sample_i, 0 ) = AA ;
@@ -64,11 +64,11 @@ namespace genfile {
 					m_BB_value( BB_value )
 				{}
 
-				void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+				void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 					//m_result.setConstant( n, m_missing_value ) ;
 					assert( nAlleles == 2 ) ;
 					m_result.resize( nSamples ) ;
-					GenotypeSetterBase::set_number_of_samples( nSamples, nAlleles ) ;
+					GenotypeSetterBase::initialise( nSamples, nAlleles ) ;
 				}
 
 				void set( std::size_t sample_i, double AA, double AB, double BB ) {
@@ -124,11 +124,11 @@ namespace genfile {
 					m_BB_value( BB_value )
 				{}
 
-				void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+				void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 					assert( nAlleles == 2 ) ;
 					m_result.setConstant( nSamples, m_missing_value ) ;
 					m_nonmissingness.setConstant( nSamples, 0 ) ;
-					GenotypeSetterBase::set_number_of_samples( nSamples, nAlleles ) ;
+					GenotypeSetterBase::initialise( nSamples, nAlleles ) ;
 				}
 
 				void set( std::size_t sample_i, double AA, double AB, double BB ) {
@@ -222,7 +222,7 @@ namespace genfile {
 				m_allele_coding[1] = B_coding ;
 			}
 
-			void set_number_of_samples( std::size_t nSamples, std::size_t nAlleles ) {
+			void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 				assert( nAlleles == 2 ) ;
 				m_result.resize( nSamples, 2  ) ;
 				if( m_non_missingness ) {

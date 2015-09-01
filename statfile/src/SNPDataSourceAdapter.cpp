@@ -87,7 +87,7 @@ namespace statfile {
 	namespace {
 		struct DataReader: public genfile::VariantDataReader {
 			VariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
-				setter.set_number_of_samples( 0 ) ;
+				setter.initialise( 0, 2 ) ;
 				return *this ;
 			}
 			VariantDataReader& get( std::string const& spec, PerVariantSetter& setter ) {

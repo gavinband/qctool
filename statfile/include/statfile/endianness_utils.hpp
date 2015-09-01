@@ -13,7 +13,6 @@
 #include "stdint.h"
 
 namespace statfile {
-	
 	namespace impl {
 		uint32_t const i = 0x04030201 ;
 		char const* const ptr = reinterpret_cast< char const * const >( &i ) ;

@@ -133,7 +133,7 @@ namespace genfile {
 			
 			BedFileSNPDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
 				assert( spec == "GT" || spec == ":genotypes:" ) ;
-				setter.set_number_of_samples( m_number_of_samples, 2 ) ;
+				setter.initialise( m_number_of_samples, 2 ) ;
 				for( std::size_t i = 0; i < m_number_of_samples; ++i ) {
 					std::size_t index = i/4 ;
 					std::size_t data = ( m_buffer[ index ] >> (2*(i%4)) ) & 0x3 ;
