@@ -23,7 +23,6 @@
 * specification described at:
 * http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format.html
 *
-* To use this file you will also need "endianness_utils.hpp".
 */
 
 // #define DEBUG_BGEN_FORMAT 1

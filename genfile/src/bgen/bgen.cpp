@@ -10,8 +10,6 @@
 #include "genfile/types.hpp"
 #include "genfile/bgen/bgen.hpp"
 
-// #define DEBUG_BGEN_FORMAT 2
-
 namespace genfile {
 	namespace bgen {
 #if DEBUG_BGEN_FORMAT
