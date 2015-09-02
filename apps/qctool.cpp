@@ -20,6 +20,7 @@
 #include <fstream>
 #include <memory>
 #include <numeric>
+#include <algorithm>
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/foreach.hpp>
@@ -1149,14 +1150,40 @@ private:
 				counting_iterator< std::size_t >( m_samples->size() )
 			) ;
 			std::vector< std::string > ids ;
-			if( order_type == "backwards" ) {
-				std::reverse( order.begin(), order.end() ) ;
+			{
 				ids.resize( m_samples->size() ) ;
 				for( std::size_t i = 0; i < m_samples->size(); ++i ) {
 					ids[i] = m_samples->get_entry( i, "ID_1" ).as< std::string >() ;
 				}
+			}
+			if( boost::filesystem::exists( order_type ) ) {
+				// order type is a file specifying the order.
+				std::auto_ptr< std::istream > file = genfile::open_text_file_for_input( order_type ) ;
+				std::vector< std::string > id_order ;
+				std::copy( std::istream_iterator< std::string >( *file ), std::istream_iterator< std::string >(), std::back_inserter< std::vector< std::string > >( id_order )) ;
+				if( id_order.size() != ids.size() ) {
+					throw genfile::BadArgumentError(
+						"QCToolCmdLineContext::setup()",
+						"-reorder " + order_type,
+						( boost::format( "File has the wrong number of entries (%d, expected %d)" ) % id_order.size() % ids.size() ).str()
+					) ;
+				}
+				for( std::size_t i = 0; i < ids.size(); ++i ) {
+					std::vector< std::string >::const_iterator where = std::find( ids.begin(), ids.end(), id_order[i] ) ;
+					if( where == ids.end() ) {
+						throw genfile::BadArgumentError(
+							"QCToolCmdLineContext::setup()",
+							"-reorder " + order_type,
+							"File contains id (\"" + id_order[i] + "\") that is not found in the dataset."
+						) ;
+					}
+					order[i] = ( where - ids.begin() ) ;
+				}
+			} else if( order_type == "backwards" ) {
+				std::reverse( order.begin(), order.end() ) ;
 				std::reverse( ids.begin(), ids.end() ) ;
 			} else if( order_type == "randomly" ) {
+				// Give the samples a random order, and give them random IDs too.
 				{
 					unsigned seed = 0 ;
 					std::ifstream urandom( "/dev/urandom", std::ios::in | std::ios::binary ) ;
@@ -1166,18 +1193,28 @@ private:
 					std::srand( seed ) ;
 				}	
 				std::random_shuffle( order.begin(), order.end() ) ;
+#if 0
+				// This code was to assign UUIDs to each sample
+				// Probably easier to do that externally.
 				ids = std::vector< std::string >( m_samples->get_number_of_individuals(), "" ) ;
 				boost::uuids::random_generator uuidGenerator;
 				for( std::size_t i = 0; i < ids.size(); ++i ) {
 					ids[i] = boost::uuids::to_string( uuidGenerator() ) ;
 				}
 				std::sort( ids.begin(), ids.end() ) ;
+#endif
+			} else {
+				throw genfile::BadArgumentError(
+					"QCToolCmdLineContext::setup()",
+					"-reorder " + order_type,
+					"Argument \"" + order_type + "\" should be \"backwards\", \"randomly\", or a file containing ids in the desired order."
+				) ;
 			}
 			m_snp_data_source.reset(
 				new genfile::ReorderingSNPDataSource( m_snp_data_source, order )
 			) ;
 			m_samples.reset(
-				new genfile::ReorderingCohortIndividualSource( m_samples, order, ids )
+				new genfile::ReorderingCohortIndividualSource( m_samples, order )
 			) ;
 		}
 		

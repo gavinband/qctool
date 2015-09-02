@@ -30,16 +30,13 @@ namespace genfile {
 	public:
 		ReorderingCohortIndividualSource(
 			CohortIndividualSource::UniquePtr source,
-			std::vector< std::size_t > const& order,
-			std::vector< std::string > const& ids
+			std::vector< std::size_t > const& order
 		): 
 			m_source( source ),
-			m_order( order ),
-			m_ids( ids )
+			m_order( order )
 		{
 			assert( m_source.get() ) ;
 			assert( m_order.size() == m_source->size() ) ;
-			assert( m_ids.size() == m_source->size() ) ;
 			assert( *std::min_element( m_order.begin(), m_order.end() ) == 0 ) ;
 			assert( *std::max_element( m_order.begin(), m_order.end() ) == ( m_order.size() - 1 ) ) ;
 			assert( std::set< std::size_t > ( m_order.begin(), m_order.end() ).size() == m_order.size() ) ;
@@ -50,30 +47,16 @@ namespace genfile {
 		}
 
 		ColumnSpec get_column_spec() const {
-			ColumnSpec spec = m_source->get_column_spec() ;
-			spec.add_column( "original_id", e_DISCRETE_COVARIATE ) ;
-			spec.add_column( "original_index", e_DISCRETE_COVARIATE ) ;
-			if( spec.check_for_column( "ID_2" )) {
-				spec.remove( "ID_2" ) ;
-			}
-			return spec ;
+			return m_source->get_column_spec() ;
 		}
 
 		bool check_for_column( std::string const& column_name ) const {
-			return( column_name == "original_id" || column_name == "original_index" || m_source->check_for_column( column_name )) ;
+			return m_source->check_for_column( column_name ) ;
 		}
 
 		Entry get_entry( std::size_t sample_i, std::string const& column_name ) const {
 			std::size_t original_sample_i = m_order[ sample_i ] ;
-			if( column_name == "original_id" ) {
-				return m_source->get_entry( original_sample_i, "ID_1" ) ;
-			} else if( column_name == "original_index" ) {
-				return Entry::Integer( original_sample_i ) ;
-			} else if( column_name == "ID_1" ) {
-				return m_ids[ sample_i ] ;
-			} else {
-				return m_source->get_entry( original_sample_i, column_name ) ;
-			}
+			return m_source->get_entry( original_sample_i, column_name ) ;
 		}
 
 		CohortIndividualSource const& get_base_source() const {
@@ -92,7 +75,6 @@ namespace genfile {
 		
 		CohortIndividualSource::UniquePtr m_source ;
 		std::vector< std::size_t > m_order ;
-		std::vector< std::string > m_ids ;
 	} ;
 }
 
