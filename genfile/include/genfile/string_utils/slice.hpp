@@ -40,6 +40,11 @@ namespace genfile {
 			
 			std::size_t find( char c, std::size_t pos = 0 ) const ;
 			std::size_t find_first_of( std::string const& chars, std::size_t pos = 0 ) const ;
+			std::size_t find_first_not_of( std::string const& chars, std::size_t pos = 0 ) const ;
+			std::size_t find_last_of( std::string const& chars, std::size_t pos = std::string::npos ) const ;
+			std::size_t find_last_not_of( std::string const& chars, std::size_t pos = std::string::npos ) const ;
+
+			slice strip( std::string const& strip_chars ) const ;
 
 			std::vector< slice > split( std::string const& split_chars ) const ;
 			void split( std::string const& split_chars, std::vector< slice >* result ) const ;
@@ -68,6 +73,7 @@ namespace genfile {
 
 		private:
 			std::size_t find_first_of( char* membership_array, std::size_t pos = 0 ) const ;
+			std::size_t find_last_of( char* membership_array, std::size_t pos = std::string::npos ) const ;
 		} ;
 	
 		std::string join( std::vector< slice > const& slices, std::string const& joiner ) ;
