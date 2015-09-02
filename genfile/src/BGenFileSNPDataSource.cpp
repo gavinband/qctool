@@ -14,8 +14,9 @@
 #include "genfile/zlib.hpp"
 
 namespace genfile {
-	BGenFileSNPDataSource::BGenFileSNPDataSource( std::string const& filename )
-		: m_filename( filename )
+	BGenFileSNPDataSource::BGenFileSNPDataSource( std::string const& filename, Chromosome missing_chromosome ):
+		m_filename( filename ),
+		m_missing_chromosome( missing_chromosome )
 	{
 		setup( filename, get_compression_type_indicated_by_filename( filename )) ;
 	}
@@ -53,7 +54,11 @@ namespace genfile {
 		std::string chromosome_string ;
 		if( bgen::read_snp_identifying_data( stream(), m_bgen_context, SNPID, RSID, &chromosome_string, SNP_position, allele1, allele2 ) ) {
 			*number_of_samples = m_bgen_context.number_of_samples ;
-			*chromosome = Chromosome( chromosome_string ) ;
+			Chromosome chr( chromosome_string ) ;
+			if( chr.is_missing() ) {
+				chr = m_missing_chromosome ;
+			}
+			*chromosome = chr ;
 		}
 	}
 

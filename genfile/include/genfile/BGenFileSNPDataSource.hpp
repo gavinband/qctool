@@ -12,6 +12,7 @@
 #include "snp_data_utils.hpp"
 #include "SNPDataSource.hpp"
 #include "bgen/bgen.hpp"
+#include "Chromosome.hpp"
 
 namespace genfile {
 	namespace impl {
@@ -24,7 +25,7 @@ namespace genfile {
 	{
 		friend struct impl::BGenFileSNPDataReader ;
 	public:
-		BGenFileSNPDataSource( std::string const& filename ) ;
+		BGenFileSNPDataSource( std::string const& filename, Chromosome missing_chromosome = Chromosome() ) ;
 
 		Metadata get_metadata() const ;
 
@@ -58,6 +59,7 @@ namespace genfile {
 	private:
 
 		std::string m_filename ;
+		Chromosome m_missing_chromosome ;
 		bgen::Context m_bgen_context ;
 		boost::optional< std::vector< std::string > > m_sample_ids ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
