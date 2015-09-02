@@ -21,6 +21,7 @@
 #include "genfile/DosageFileSNPDataSource.hpp"
 #include "genfile/BedFileSNPDataSource.hpp"
 #include "genfile/LongFormatSNPDataSource.hpp"
+#include "genfile/HLAIMPAsBiallelicVariantDataSource.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/vcf/get_set.hpp"
 #include "genfile/Error.hpp"
@@ -38,6 +39,7 @@ namespace genfile {
 		result.push_back( "shapeit_haplotypes" ) ;
 		result.push_back( "binary_ped" ) ;
 		result.push_back( "long" ) ;
+		result.push_back( "hlaimp" ) ;
 		return result ;
 	}
 	
@@ -93,6 +95,9 @@ namespace genfile {
 		}
 		else if( uf.first == "long" ) {
 			return std::auto_ptr< SNPDataSource >( new LongFormatSNPDataSource( uf.second ) ) ;
+		}
+		else if( uf.first == "hlaimp" ) {
+			return std::auto_ptr< SNPDataSource >( new HLAIMPAsBiallelicVariantDataSource( uf.second ) ) ;
 		}
 		else {
 			throw genfile::BadArgumentError(

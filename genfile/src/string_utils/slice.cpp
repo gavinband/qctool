@@ -65,11 +65,11 @@ namespace genfile {
 		}
 
 		namespace impl {
-			void make_membership_array( std::string const& chars, char* array, std::size_t const n ) {
+			void make_membership_array( std::string const& chars, char* array, std::size_t const n, char const out_value = 0, char const in_value = 1 ) {
 				assert( n >= std::size_t( std::numeric_limits< unsigned char >::max() + 1 )) ;
-				std::memset( array, 0, n ) ;
+				std::memset( array, out_value, n ) ;
 				for( char const* i = &chars[0]; i < (&chars[0] + chars.size()); ++i ) {
-					array[ static_cast< int >( static_cast< unsigned char const >( *i ) ) ] = 1 ;
+					array[ static_cast< int >( static_cast< unsigned char const >( *i ) ) ] = in_value ;
 				}
 			}
 		}
@@ -77,7 +77,14 @@ namespace genfile {
 		std::size_t slice::find_first_of( std::string const& chars, std::size_t pos ) const {
 			assert( std::numeric_limits< unsigned char >::max() + 1 == 256 ) ;
 			char array[ 256 ] ;
-			impl::make_membership_array( chars, array, 256 ) ;
+			impl::make_membership_array( chars, array, 256, 0, 1 ) ;
+			return find_first_of( array, pos ) ;
+		}
+
+		std::size_t slice::find_first_not_of( std::string const& chars, std::size_t pos ) const {
+			assert( std::numeric_limits< unsigned char >::max() + 1 == 256 ) ;
+			char array[ 256 ] ;
+			impl::make_membership_array( chars, array, 256, 1, 0 ) ;
 			return find_first_of( array, pos ) ;
 		}
 		
@@ -85,6 +92,32 @@ namespace genfile {
 			for( std::size_t i = m_start + pos; i < m_end; ++i ) {
 				if( membership_array[ static_cast< int >( (*m_string)[i] ) ] ) {
 					return i - m_start ;
+				}
+			}
+			return std::string::npos ;
+		}
+
+		std::size_t slice::find_last_of( std::string const& chars, std::size_t pos ) const {
+			assert( std::numeric_limits< unsigned char >::max() + 1 == 256 ) ;
+			char array[ 256 ] ;
+			impl::make_membership_array( chars, array, 256, 0, 1 ) ;
+			return find_last_of( array, pos ) ;
+		}
+
+		std::size_t slice::find_last_not_of( std::string const& chars, std::size_t pos ) const {
+			assert( std::numeric_limits< unsigned char >::max() + 1 == 256 ) ;
+			char array[ 256 ] ;
+			impl::make_membership_array( chars, array, 256, 1, 0 ) ;
+			return find_last_of( array, pos ) ;
+		}
+		
+		std::size_t slice::find_last_of( char* membership_array, std::size_t pos ) const {
+			if( pos == std::string::npos ) {
+				pos = m_end - m_start - 1 ;
+			}
+			for( std::size_t i = m_start + pos + 1; i > m_start; --i ) {
+				if( membership_array[ static_cast< int >( (*m_string)[i-1] ) ] ) {
+					return i - 1 - m_start ;
 				}
 			}
 			return std::string::npos ;
@@ -127,6 +160,20 @@ namespace genfile {
 
 		slice slice::substr( std::size_t start, std::size_t end ) const {
 			return slice( *this, start, end ) ;
+		}
+
+		slice slice::strip( std::string const& chars ) const {
+			if( chars.empty() ) {
+				return *this ;
+			}
+
+			std::size_t lpos = find_first_not_of( chars ) ;
+			if( lpos == std::string::npos ) {
+				return slice( *m_string, m_start, m_start ) ;
+			}
+
+			std::size_t rpos = find_last_not_of( chars ) ;
+			return slice( *m_string, m_start + lpos, m_start + rpos + 1 ) ;
 		}
 
 		void slice::split( std::string const& split_chars, std::vector< slice >* result ) const {
