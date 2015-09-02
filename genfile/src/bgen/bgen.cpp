@@ -6,7 +6,8 @@
 
 #include <iostream>
 #include <string>
-#include <map>
+#include <limits>
+#include <algorithm>
 #include "genfile/types.hpp"
 #include "genfile/bgen/bgen.hpp"
 
@@ -487,7 +488,6 @@ namespace genfile {
 
 				void round_probs_to_scaled_simplex( double* p, std::size_t* index, std::size_t const n, int const number_of_bits ) {
 					double const scale = ( 0xFFFFFFFFFFFFFFFF >> ( 64 - number_of_bits ) ) ;
-					std::multimap< double, double*, std::greater< double > > fractional_parts ;
 					double total_fractional_part = 0.0 ;
 					for( std::size_t i = 0; i < n; ++i ) {
 						p[i] *= scale ;
