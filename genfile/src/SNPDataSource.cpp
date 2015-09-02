@@ -54,7 +54,7 @@ namespace genfile {
 		}
 		
 		if( uf.first == "bgen" ) {
-			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second )) ;
+			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second, chromosome_hint )) ;
 		}
 		else if( uf.first == "vcf" ) {
 			return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second, metadata )) ;
