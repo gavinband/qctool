@@ -136,7 +136,7 @@ namespace genfile {
 					throw BadArgumentError(
 						"genfile::LongFormatVariantDataReader::get()",
 						"spec=\"" + spec + "\"",
-						"Only \"GP\" and \":genotypes:\" and \"typed\" are supported in a long-format file."
+						"Only \"GT\" and \":genotypes:\" and \"typed\" are supported in a long-format file."
 					) ;
 				}
 			}
