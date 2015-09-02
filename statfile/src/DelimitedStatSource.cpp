@@ -118,11 +118,17 @@ namespace statfile {
 			std::getline( stream(), m_current_line ) ;
 		}
 		if( stream() ) {
-			if( m_ignore_from && m_current_line.compare( 0, m_current_line.size(), m_ignore_from.get() )) {
+			// Handle Windows line endings
+			if( m_current_line.size() > 0 && m_current_line[ m_current_line.size() - 1 ] == '\r' ) {
+				m_current_line.resize( m_current_line.size() - 1 ) ; //--end ;
+			}
+			
+			if( m_ignore_from && m_current_line.compare( 0, m_current_line.size(), m_ignore_from.get() ) == 0 ) {
 				m_have_more_data = false ;
 			} else {
 				m_current_fields = split_line( m_current_line, m_delimiter, m_quotes ) ;
 				if( m_current_fields.size() != number_of_columns() ) {
+					std::cerr << "!! m_line = \"" << m_current_line << "\".\n" ;
 					throw genfile::MalformedInputError( get_source_spec(), number_of_rows_read() ) ;
 				}
 				m_have_more_data = true ;

@@ -77,6 +77,9 @@ namespace statfile {
 		) {
 			std::string result ;
 			if( always_escape || ( value.find_first_of( delimiter ) != std::string::npos ) ) {
+				if( value.find_first_of( begin_quote ) != std::string::npos ) {
+					std::cerr << "!! value = \"" + value + "\".\n" ;
+				}
 				assert( value.find_first_of( begin_quote ) == std::string::npos ) ; // embedded quotes not supported right now.
 				result = begin_quote + value + end_quote ;
 			} else {
