@@ -322,6 +322,8 @@ private:
 						boost::algorithm::replace_all( rest, "-nan,-nan,-nan", ".,.,." ) ;
 						boost::algorithm::replace_all( rest, "nan,nan", ".,." ) ;
 						boost::algorithm::replace_all( rest, "-nan,-nan", ".,." ) ;
+						boost::algorithm::replace_all( rest, "-nan", "." ) ;
+						boost::algorithm::replace_all( rest, "nan", "." ) ;
 					}
 					outStream->write( rest.data(), rest.size() ) ;
 					outStream->put( '\n' ) ;
