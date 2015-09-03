@@ -55,9 +55,9 @@ public:
 			.set_description( "Do not check correctness of alleles" ) ;
 		options.declare_group( "Other options" ) ;
 		options[ "-fix-format" ]
-			.set_description( "Specify that " + globals::program_name + " should replace x/x with ./. and nan,nan,nan with ././. and -nan,-nan,-nan with ././." ) ;
+			.set_description( "Specify that " + globals::program_name + " should replace x/x with ./. and nan with . and -nan with ." ) ;
 		options[ "-replace-header-with" ]
-			.set_description( "Specify that " + globals::program_name + " should replace the VCF header with one from the given file." )
+			.set_description( "Specify that " + globals::program_name + " should replace the VCF header (including #CHROM line) with one from the given file." )
 			.set_takes_single_value() ;
 		options [ "-log" ]
 			.set_description( "Specify that " + globals::program_name + " should write a log file to the given file." )
