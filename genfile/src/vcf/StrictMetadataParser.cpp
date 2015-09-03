@@ -123,7 +123,7 @@ namespace genfile {
 			std::string const& line
 		) const {
 			std::string key, value ;
-			tie( key, value ) = parse_key_value_pair( line ) ;
+			tie( key, value ) = parse_key_value_pair( line_number, line ) ;
 			if( !validate_meta_key( line_number, key )) {
 				throw MalformedInputError( m_spec, line_number ) ;
 			} else {
@@ -150,13 +150,20 @@ namespace genfile {
 			}
 		}
 
-		std::pair< std::string, std::string > StrictMetadataParser::parse_key_value_pair( std::string const& line ) const {
+		std::pair< std::string, std::string > StrictMetadataParser::parse_key_value_pair( std::size_t const line_number, std::string const& line ) const {
 			std::size_t pos = line.find( '=' ) ;
 			if( pos == std::string::npos ) {
 				// Take "" as key, whole line as value.
 				return std::make_pair( "", line ) ;
 			}
-			return std::make_pair( line.substr( 0, pos ), line.substr( pos + 1, line.size() )) ;
+			std::pair< std::string, std::string > result = std::make_pair( line.substr( 0, pos ), line.substr( pos + 1, line.size() )) ;
+			if( result.first == "Description" ) {
+				if( result.second.size() < 2 || result.second[0] != '"' || result.second[result.second.size() - 1] != '"' ) {
+					throw MalformedInputError( m_spec, line_number ) ;
+				}
+				result.second = result.second.substr( 1, result.second.size() - 2 ) ;
+			}
+			return result ;
 		}
 
 		bool StrictMetadataParser::validate_meta_key(
@@ -189,7 +196,7 @@ namespace genfile {
 					"\"\""
 				) ;
 				for( std::size_t i = 0; i < elts.size(); ++i ) {
-					result.insert( parse_key_value_pair( elts[i] ) ) ;
+					result.insert( parse_key_value_pair( line_number, elts[i] ) ) ;
 				}
 			}
 			catch( BadArgumentError const& e ) {
@@ -208,7 +215,7 @@ namespace genfile {
 			if( ( where = meta_value.find( "ID" ) ) == meta_value.end() ) { return false ; }
 			// validate Description
 			if( ( where = meta_value.find( "Description" ) ) == meta_value.end() ) { return false ; }
-			if( where->second.size() < 2 || where->second[0] != '"' || where->second[ where->second.size() - 1 ] != '"' ) {
+			if( where->second.size() > 1 && ( where->second[0] == '"' || where->second[ where->second.size() - 1 ] == '"' )) {
 				return false ;
 			}
 			if( key == "FILTER" ) {
