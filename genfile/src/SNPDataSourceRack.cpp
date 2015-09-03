@@ -127,6 +127,31 @@ namespace genfile {
 	SNPDataSource::Metadata SNPDataSourceRack::get_metadata() const {
 		return m_metadata ;
 	}
+
+	namespace impl {
+		struct OffsetSetter {
+		public:
+			OffsetSetter( SNPDataSource::GetSampleIds setter, std::size_t offset ):
+				m_setter( setter ),
+				m_offset( offset )
+			{}
+
+			void operator()( std::size_t i, std::string const& value ) const {
+				m_setter( i + m_offset, value ) ;
+			}
+		private:
+			SNPDataSource::GetSampleIds m_setter ;
+			std::size_t m_offset ;
+		} ;
+	}
+	void SNPDataSourceRack::get_sample_ids( GetSampleIds getter ) const {
+		std::size_t offset = 0 ;
+		for( std::size_t i = 0; i < m_sources.size(); ++i ) {
+			impl::OffsetSetter setter( getter, offset ) ;
+			m_sources[i]->get_sample_ids( setter ) ;
+			offset += m_sources[i]->number_of_samples() ;
+		}
+	}
 	
 	std::string SNPDataSourceRack::get_source_spec() const {
 		std::string result = "rack:" ;

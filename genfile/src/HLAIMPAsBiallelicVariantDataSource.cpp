@@ -96,8 +96,8 @@ namespace genfile {
 					if( columns[i] == allele + "_" + allele ) {
 						m_allele_dosage_columns[ allele_i ][2].push_back( i-1 ) ;
 					} else if(
-						columns[i].substr( 0, allele.size() + 1 ) == ( allele + "_" )
-						|| ( elts[i].size() > ( allele.size() + 1 ) && columns[i].substr( columns[i].size() - allele.size() - 1, allele.size() + 1 ) == ( "_" + allele ))
+						(columns[i].substr( 0, allele.size() + 1 ) == ( allele + "_" ))
+						|| ( columns[i].size() > ( allele.size() + 1 ) && columns[i].substr( columns[i].size() - allele.size() - 1, columns[i].size() ) == ( "_" + allele ))
 					) {
 						m_allele_dosage_columns[ allele_i ][1].push_back( i-1 ) ;
 					} else {
