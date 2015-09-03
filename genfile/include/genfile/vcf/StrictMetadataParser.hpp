@@ -35,7 +35,7 @@ namespace genfile {
 				std::size_t line_number,
 				std::string const& line
 			) const ;
-			std::pair< std::string, std::string > parse_key_value_pair( std::string const& line ) const ;
+			std::pair< std::string, std::string > parse_key_value_pair( std::size_t const line_number, std::string const& line ) const ;
 			bool validate_meta_key(
 				std::size_t line_number,
 				std::string const& key
