@@ -48,6 +48,10 @@ namespace genfile {
 		return m_source->number_of_samples() ;
 	}
 
+	void SNPFilteringSNPDataSource::get_sample_ids( GetSampleIds getter ) const {
+		return m_source->get_sample_ids( getter ) ;
+	}
+
 	SNPDataSource::OptionalSnpCount SNPFilteringSNPDataSource::total_number_of_snps() const {
 		if( m_source->total_number_of_snps() ) {
 			return *m_source->total_number_of_snps() - m_indices_of_excluded_snps.size() ;

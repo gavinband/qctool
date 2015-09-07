@@ -265,6 +265,11 @@ namespace genfile {
 		return m_sample_mapping->number_of_source_samples() ;
 	}
 
+	void SampleMappingSNPDataSource::get_sample_ids( GetSampleIds ) const {
+		assert(0) ; // requires implementation
+		return ;	
+	}
+
 	SNPDataSource::OptionalSnpCount SampleMappingSNPDataSource::total_number_of_snps() const {
 		return m_source->total_number_of_snps() ;
 	}
