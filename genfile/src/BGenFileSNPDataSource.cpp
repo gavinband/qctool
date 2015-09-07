@@ -42,6 +42,14 @@ namespace genfile {
 		return result ;
 	}
 
+	void BGenFileSNPDataSource::get_sample_ids( GetSampleIds getter ) const {
+		if( m_sample_ids ) {
+			for( std::size_t i = 0; i < m_sample_ids->size(); ++i ) {
+				getter( i, m_sample_ids->at(i) ) ;
+			}
+		}
+	}
+
 	void BGenFileSNPDataSource::read_snp_identifying_data_impl( 
 		uint32_t* number_of_samples,
 		std::string* SNPID,

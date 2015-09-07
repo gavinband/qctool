@@ -71,6 +71,10 @@ namespace genfile {
 		return m_source->number_of_samples() ;
 	}
 
+	void SNPIdentifyingDataFilteringSNPDataSource::get_sample_ids( GetSampleIds getter ) const {
+		return m_source->get_sample_ids( getter ) ;
+	}
+
 	SNPDataSource::OptionalSnpCount SNPIdentifyingDataFilteringSNPDataSource::total_number_of_snps() const {
 		return OptionalSnpCount() ;
 	}

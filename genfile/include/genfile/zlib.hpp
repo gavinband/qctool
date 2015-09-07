@@ -36,7 +36,6 @@ namespace genfile {
 
 	template< typename T >
 	void zlib_uncompress( char const* begin, char const* const end, std::vector< T >* dest ) {
-	#if HAVE_ZLIB
 		uLongf const source_size = ( end - begin ) ;
 		uLongf dest_size = dest->size() * sizeof( T ) ;
 		int result = uncompress(
@@ -48,9 +47,6 @@ namespace genfile {
 		assert( result == Z_OK ) ;
 		assert( dest_size % sizeof( T ) == 0 ) ;
 		dest->resize( dest_size / sizeof( T )) ;
-	#else
-		assert( 0 ) ; // no zlib support.
-	#endif
 	}
 
 	// Uncompress the given data, symmetric with zlib_compress.

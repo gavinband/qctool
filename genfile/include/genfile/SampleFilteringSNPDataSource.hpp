@@ -35,6 +35,7 @@ namespace genfile {
 		operator bool() const ;
 		Metadata get_metadata() const ;
 		unsigned int number_of_samples() const ;
+		void get_sample_ids( GetSampleIds ) const ;
 		OptionalSnpCount total_number_of_snps() const ;
 		std::string get_source_spec() const ;
 		
