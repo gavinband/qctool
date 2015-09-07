@@ -257,7 +257,7 @@ namespace genfile {
 		// Concretely this function:
 		// 1: calls read_genotype_data_block(), reading probability data from the given stream.
 		// 2: calls uncompress_probability_data() to uncompress the data where necessary.
-		// 3: calls parse_probability_data to parse it, returning values using the setter object provided.
+		// 3: calls parse_probability_data() to parse it, returning values using the setter object provided.
 		// The buffers are used as intermediate storage and will be resized to fit data as needed.
 		template< typename Setter >
 		void read_and_parse_genotype_data_block(
