@@ -596,7 +596,7 @@ void do_snp_block_read_test(
 		)
 	) ;
 
-	genfile::bgen::read_and_parse_probability_data(
+	genfile::bgen::read_and_parse_genotype_data_block(
 		inStream,
 		context,
 		setter,
