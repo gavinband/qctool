@@ -718,7 +718,7 @@ namespace genfile {
 		}
 
 		template< typename Setter >
-		void read_and_parse_probability_data(
+		void read_and_parse_genotype_data_block(
 			std::istream& aStream,
 			Context const& context,
 			Setter& setter,
