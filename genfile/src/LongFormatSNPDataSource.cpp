@@ -28,7 +28,7 @@ namespace genfile {
 	
 	LongFormatSNPDataSource::LongFormatSNPDataSource( std::string const& filename ):
 		m_filename( filename ),
-		m_buffer_size( 20000000 ),
+		m_buffer_size( 500000000 ),
 		m_snp_index(0),
 		m_exhausted( false )
 	{
@@ -37,7 +37,7 @@ namespace genfile {
 
 	LongFormatSNPDataSource::LongFormatSNPDataSource( std::istream& stream ):
 		m_filename( "(unknown stream)" ),
-		m_buffer_size( 20000000 ),
+		m_buffer_size( 500000000 ),
 		m_snp_index(0),
 		m_exhausted( false )
 	{
@@ -212,15 +212,15 @@ namespace genfile {
 			elts = slice( line ).split( " \t," ) ;
 		
 		
-			if( elts.size() != expectedColumns.size() ) {
+			if( elts.size() < expectedColumns.size() ) {
 				throw genfile::MalformedInputError(
 					m_filename,
-					( boost::format( "Expected %d header columns" ) % expectedColumns.size() ).str(),
+					( boost::format( "Expected at least %d header columns" ) % expectedColumns.size() ).str(),
 					0
 				) ;
 			}
 
-			for( std::size_t i = 0; i < elts.size(); ++i ) {
+			for( std::size_t i = 0; i < expectedColumns.size(); ++i ) {
 				if( !expectedColumns[i].is_missing() && elts[i] != expectedColumns[i].as< std::string >() ) {
 					throw genfile::MalformedInputError(
 						m_filename,
@@ -242,10 +242,10 @@ namespace genfile {
 			while( read_one_line( stream, &line )) {
 				++lineNumber ;
 				elts = slice( line ).split( " \t," ) ;
-				if( elts.size() != expectedColumns.size() ) {
+				if( elts.size() < expectedColumns.size() ) {
 					throw genfile::MalformedInputError(
 						m_filename,
-						( boost::format( "Wrong number of entries (%d, expected %d)" ) % elts.size() % expectedColumns.size() ).str(),
+						( boost::format( "Wrong number of entries (%d, expected at least %d)" ) % elts.size() % expectedColumns.size() ).str(),
 						lineNumber
 					) ;
 				}
