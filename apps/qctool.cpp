@@ -1361,7 +1361,7 @@ private:
 					//throw ;
 				}
 			}
-			assert( source->number_of_rows_read() == source->number_of_rows() ) ;
+			assert( (!source->number_of_rows()) || (*source->number_of_rows() == source->number_of_rows_read() ) ) ;
 
 			progress_context.notify_progress( i+1, filenames.size() ) ;
 		}
