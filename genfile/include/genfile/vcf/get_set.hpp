@@ -252,6 +252,9 @@ namespace genfile {
 			}
 			void operator()( MissingValue const value ) {
 				m_result( m_sample, m_entry_i++ ) = m_missing_value ;
+				if( m_nonmissingness ) {
+					(*m_nonmissingness )( m_sample, m_entry_i ) = 0 ;
+				}
 			}
 			void operator()( double const value ) {
 				if( m_nonmissingness ) {
