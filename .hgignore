@@ -3,5 +3,6 @@ build/
 .waf-*
 doc/doxygen
 data/
+doc/api
 .pyc
 .DS_Store
