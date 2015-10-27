@@ -175,7 +175,7 @@ namespace {
 					"n != " + genfile::string_utils::to_string( m_expected_number_if_entries )
 				) ;
 			}
-			if( order_type != genfile::eOrderedList && order_type != genfile::ePerUnorderedGenotype ) {
+			if( order_type != genfile::eOrderedList && order_type != genfile::ePerUnorderedGenotype && order_type != genfile::ePerAllele ) {
 				throw genfile::BadArgumentError(
 					"genfile:: PositiveFloatWriter::set_order_type()",
 					"order_type",
@@ -278,7 +278,7 @@ namespace {
 			if(
 				!(
 					( order_type == genfile::ePerSample && n == 1 )
-					|| (( order_type == genfile::ePerOrderedHaplotype || order_type == genfile::ePerOrderedHaplotype ) && n == 2 )
+					|| (( order_type == genfile::ePerOrderedHaplotype || order_type == genfile::ePerUnorderedHaplotype ) && n == 2 )
 					|| ( order_type == genfile::ePerUnorderedGenotype && n == 3 )
 				)
 			) {
