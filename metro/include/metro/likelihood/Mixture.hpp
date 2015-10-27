@@ -61,6 +61,11 @@ namespace metro {
 
 			// Evaluate at a given set of parameters expressed as a single vector,
 			// on a given subset of the data. Parameters are taken in order of the components.
+			// Parameters come in the order:
+			// Parameters for first component, (normalised) weight for first component
+			// Parameters for second component, (normalised) weight for second component
+			// ...
+			// Parameters for last component.  No weight is included for last component as weights sum to one.
 			void evaluate_at( Vector const& parameters, DataSubset const& data_subset ) {
 				{
 					int param_i = 0 ;
@@ -84,7 +89,7 @@ namespace metro {
 						param_i += m_components[i].parameters().size() + 1 ;
 					}
 					// sanity check
-					assert( param_i == parameters.size() + 1 ) ;
+					assert((m_components.size() == 0) || (param_i == parameters.size() + 1)) ;
 				}
 
 				m_component_terms.resize( m_data->rows(), m_components.size() ) ;
