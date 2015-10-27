@@ -120,6 +120,8 @@ namespace snp_summary_component {
 		int const N = genotypes.rows() ;
 		
 		{
+			m_intensities.setZero() ;
+			m_nonmissingness.setZero() ;
 			genfile::vcf::MatrixSetter< IntensityMatrix > intensity_setter( m_intensities, m_nonmissingness ) ;
 			data_reader.get( "XY", intensity_setter ) ;
 			assert( m_intensities.rows() == N ) ;
