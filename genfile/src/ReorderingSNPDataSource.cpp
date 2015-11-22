@@ -46,16 +46,16 @@ namespace genfile {
 				void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
 					return m_setter.set_number_of_entries( n, order_type, value_type ) ;
 				}
-				void operator()( MissingValue const value ) {
+				void set_value( MissingValue const value ) {
 					m_setter.set_value( value ) ;
 				}
-				void operator()( std::string& value ) {
+				void set_value( std::string& value ) {
 					m_setter.set_value( value ) ;
 				}
-				void operator()( Integer const value ) {
+				void set_value( Integer const value ) {
 					m_setter.set_value( value ) ;
 				}
-				void operator()( double const value ) {
+				void set_value( double const value ) {
 					m_setter.set_value( value ) ;
 				}
 					

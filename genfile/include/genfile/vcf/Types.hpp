@@ -28,7 +28,7 @@ namespace genfile {
 		struct EntrySetter {
 			typedef int64_t Integer ;
 			virtual ~EntrySetter() throw() {}
-			virtual void set_value( MissingValue const value ) ;
+			virtual void set_value( MissingValue const value ) = 0 ;
 			virtual void set_value( std::string& value ) ;
 			virtual void set_value( Integer const value ) ;
 			virtual void set_value( double const value ) ;

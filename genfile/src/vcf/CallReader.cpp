@@ -125,12 +125,12 @@ namespace genfile {
 					m_entries.resize( m_current_i + n ) ;
 				}
 			
-				void operator()( MissingValue const value ) {
+				void set_value( MissingValue const value ) {
 					assert( m_current_i < m_entries.size() ) ;
 					m_entries[ m_current_i++ ] = -1 ;
 				}
 
-				void operator()( Integer const value ) {
+				void set_value( Integer const value ) {
 					assert( m_current_i < m_entries.size() ) ;
 					m_entries[ m_current_i++ ] = value ;
 				}

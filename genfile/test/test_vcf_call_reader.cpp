@@ -29,10 +29,10 @@ struct NullCallChecker: public genfile::vcf::CallReader::Setter
 	void initialise( std::size_t nSamples, std::size_t nAlleles ) {}
 	bool set_sample( std::size_t i ) { return true ; }
 	void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {}
-	void operator()( genfile::MissingValue const value ) {}
-	void operator()( std::string& value ) {}
-	void operator()( Integer const value ) {}
-	void operator()( double const value ) {}
+	void set_value( genfile::MissingValue const value ) {}
+	void set_value( std::string& value ) {}
+	void set_value( Integer const value ) {}
+	void set_value( double const value ) {}
 } ;
 
 struct GenotypeCallChecker: public genfile::vcf::CallReader::Setter
@@ -96,25 +96,25 @@ struct GenotypeCallChecker: public genfile::vcf::CallReader::Setter
 		BOOST_CHECK_EQUAL( value_type, genfile::eAlleleIndex ) ;
 	}
 
-	void operator()( genfile::MissingValue const value ) {
+	void set_value( genfile::MissingValue const value ) {
 		m_indices_of_set_values.insert( std::make_pair( m_sample_i, m_call_i )) ;
 		TEST_ASSERT( m_call_i < m_calls[ m_sample_i ].size() ) ;
 		BOOST_CHECK_EQUAL( m_calls[ m_sample_i ][ m_call_i++ ], Entry( value ) ) ;
 	}
 
-	void operator()( std::string& value ) {
+	void set_value( std::string& value ) {
 		m_indices_of_set_values.insert( std::make_pair( m_sample_i, m_call_i )) ;
 		TEST_ASSERT( m_call_i < m_calls[ m_sample_i ].size() ) ;
 		BOOST_CHECK_EQUAL( m_calls[ m_sample_i ][ m_call_i++ ], Entry( value ) ) ;
 	}
 
-	void operator()( Integer const value ) {
+	void set_value( Integer const value ) {
 		m_indices_of_set_values.insert( std::make_pair( m_sample_i, m_call_i )) ;
 		TEST_ASSERT( m_call_i < m_calls[ m_sample_i ].size() ) ;
 		BOOST_CHECK_EQUAL( m_calls[ m_sample_i ][ m_call_i++ ], Entry( value ) ) ;
 	}
 
-	void operator()( double const value ) {
+	void set_value( double const value ) {
 		m_indices_of_set_values.insert( std::make_pair( m_sample_i, m_call_i )) ;
 		TEST_ASSERT( m_call_i < m_calls[ m_sample_i ].size() ) ;
 		BOOST_CHECK_EQUAL( m_calls[ m_sample_i ][ m_call_i++ ], Entry( value ) ) ;
@@ -135,10 +135,10 @@ struct Ignore: public genfile::vcf::CallReader::Setter
 	void initialise( std::size_t nSamples, std::size_t nAlleles ) {}
 	bool set_sample( std::size_t ) { return true ; }
 	void set_number_of_entries( std::size_t, OrderType const, ValueType const ) {}
-	void operator()( genfile::MissingValue const ) {}
-	void operator()( std::string& value ) {}
-	void operator()( Integer const value ) {}
-	void operator()( double const value ) {}
+	void set_value( genfile::MissingValue const ) {}
+	void set_value( std::string& value ) {}
+	void set_value( Integer const value ) {}
+	void set_value( double const value ) {}
 } ;
 
 

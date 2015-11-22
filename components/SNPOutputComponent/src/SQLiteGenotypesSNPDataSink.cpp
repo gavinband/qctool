@@ -190,19 +190,19 @@ namespace {
 				) ;
 			}
 		}
-		void operator()( genfile::MissingValue const value ) {
+		void set_value( genfile::MissingValue const value ) {
 			double float_value = -1 ; // encode missingness as -1.
-			operator()( float_value ) ;
+			set_value( float_value ) ;
 		}
 
-		void operator()( std::string& value ) {
+		void set_value( std::string& value ) {
 			assert(0) ; // not allowed in this encoding.
 		}
-		void operator()( Integer const value ) {
+		void set_value( Integer const value ) {
 			assert(0) ; // not allowed in this encoding.
 		}
 
-		void operator()( double const value ) {
+		void set_value( double const value ) {
 			assert( ( m_buf_p[ eBITPACK ] + 4 ) <= m_buf_end_p[ eBITPACK ] ) ;
 			float float_value = value ;
 			if( float_value != float_value ) {
@@ -298,22 +298,22 @@ namespace {
 			m_allele_probs[0] = m_allele_probs[1] = -1.0 ;  // encode missingness as -1
 		}
 
-		void operator()( genfile::MissingValue const value ) {
+		void set_value( genfile::MissingValue const value ) {
 			double float_value = -1 ; // encode missingness as -1.
-			operator()( float_value ) ;
+			set_value( float_value ) ;
 		}
-		void operator()( std::string& value ) {
+		void set_value( std::string& value ) {
 			assert(0) ; // not allowed in this encoding.
 		}
-		void operator()( Integer const value ) {
-			operator()( double( value )) ;
+		void set_value( Integer const value ) {
+			set_value( double( value )) ;
 		}
-		void operator()( double const value ) {
+		void set_value( double const value ) {
 			// TODO: fix this to handle order_type and value_type properly.
 			switch( m_order_type ) {
 				case genfile::ePerSample:
 					// genotype dosage information.  Just write the probabilities (two zeros, one one) directly.
-					// If -1 comes in (via operator()( MissingValue )) then all genotype probs will remain as -1.
+					// If -1 comes in (via set_value( MissingValue )) then all genotype probs will remain as -1.
 					if( value >= 0.0 ) {
 						for( std::size_t g = 0; g < 3; ++g ) {
 							m_genotype_probs[g] = ( ( value == g ) ? 1.0 : 0.0 )  ;
@@ -353,11 +353,11 @@ namespace {
 			 	|| ( m_genotype_probs[0] == -1.0 || m_genotype_probs[1] == -1.0 || m_genotype_probs[2] == -1.0 ) // all probs set as -1's.
 			) {
 				for( int g = 0; g < 3; ++g ) {
-					m_writer( genfile::MissingValue() ) ;
+					m_writer.set_value( genfile::MissingValue() ) ;
 				}
 			} else {
 				for( std::size_t g = 0; g < 3; ++g ) {
-					m_writer( m_genotype_probs[g] ) ;
+					m_writer.set_value( m_genotype_probs[g] ) ;
 				}
 			}
 		}

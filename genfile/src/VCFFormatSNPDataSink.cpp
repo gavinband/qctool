@@ -85,28 +85,28 @@ namespace genfile {
 				}
 			}
 
-			void operator()( MissingValue const value ) {
+			void set_value( MissingValue const value ) {
 				if( m_entry_i++ > 0 ) {
 					m_streams[ m_sample_i ] << m_sep ;
 				}
 				m_streams[ m_sample_i ] << "." ;
 			}
 
-			void operator()( std::string& value ) {
+			void set_value( std::string& value ) {
 				if( m_entry_i++ > 0 ) {
 					m_streams[ m_sample_i ] << m_sep ;
 				}
 				m_streams[ m_sample_i ] << value ;
 			}
 
-			void operator()( Integer const value ) {
+			void set_value( Integer const value ) {
 				if( m_entry_i++ > 0 ) {
 					m_streams[ m_sample_i ] << m_sep ;
 				}
 				m_streams[ m_sample_i ] << value ;
 			}
 
-			void operator()( double const value ) {
+			void set_value( double const value ) {
 				if( m_entry_i++ > 0 ) {
 					m_streams[ m_sample_i ] << m_sep ;
 				}

@@ -122,28 +122,28 @@ namespace genfile {
 					// assume diploid
 					m_target.set_number_of_entries( 2, ePerUnorderedHaplotype, eAlleleIndex ) ;
 				}
-				void operator()( MissingValue const value ) {
+				void set_value( MissingValue const value ) {
 					m_missing = true ;
 					m_entry_i++ ;
 					if( m_entry_i == m_calls.size() ) { 
 						send_results() ;
 					}
 				}
-				void operator()( std::string& value ) {
+				void set_value( std::string& value ) {
 					throw BadArgumentError(
-						"genfile::ThreshholdingDataReader::Threshholder::operator()",
+						"genfile::ThreshholdingDataReader::Threshholder::set_value",
 						"value",
 						"Expected a floating-point value (got a string)."
 					) ;
 				}
-				void operator()( Integer const value ) {
+				void set_value( Integer const value ) {
 					throw BadArgumentError(
-						"genfile::ThreshholdingDataReader::Threshholder::operator()",
+						"genfile::ThreshholdingDataReader::Threshholder::set_value",
 						"value",
 						"Expected a floating-point value (got an integer)."
 					) ;
 				}
-				void operator()( double const value ) {
+				void set_value( double const value ) {
 					m_calls( m_entry_i++ ) = value ;
 					if( m_entry_i == m_calls.size() ) { 
 						send_results() ;

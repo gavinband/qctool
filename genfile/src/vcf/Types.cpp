@@ -53,7 +53,9 @@ namespace genfile {
 			return result ;
 		}
 		
+#if 0
 		void EntrySetter::set_value( MissingValue const value ) { assert(0) ; }
+#endif
 		void EntrySetter::set_value( std::string& value ) { assert(0) ; }
 		void EntrySetter::set_value( Integer const value ) { assert(0) ; }
 		void EntrySetter::set_value( double const value ) { assert(0) ; }

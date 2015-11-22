@@ -168,7 +168,7 @@ namespace {
 			m_ploidy = n ;
 		}
 
-		void operator()( genfile::MissingValue const value ) {
+		void set_value( genfile::MissingValue const value ) {
 			assert( ( m_buf_p[ eUBJSON ] + 1 ) <= m_buf_end_p[ eUBJSON ] ) ;
 			*(m_buf_p[ eUBJSON ]++) = 'Z' ;
 			if( m_buffer_validity[ eBITPACK ] ) {
@@ -176,7 +176,7 @@ namespace {
 			}
 		}
 
-		void operator()( std::string& value ) {
+		void set_value( std::string& value ) {
 			assert( ( m_buf_p[ eUBJSON ] + 1 + value.size() ) <= m_buf_end_p[ eUBJSON ] ) ;
 			m_buffer_validity[ eBITPACK ] = false ;
 			*(m_buf_p[ eUBJSON ]++) = 'S' ;
@@ -184,7 +184,7 @@ namespace {
 			m_buf_p[ eUBJSON ] += value.size() ;
 		}
 
-		void operator()( Integer const value ) {
+		void set_value( Integer const value ) {
 			// We allow a maximum value of 127 here to allow for reserved values.
 	 		if( fits_in< Integer, uint8_t >( value ) && value < 127 ) {
 				assert( ( m_buf_p[ eUBJSON ] + 2 ) <= m_buf_end_p[ eUBJSON ] ) ;
@@ -217,7 +217,7 @@ namespace {
 			}
 		}
 
-		void operator()( double const value ) {
+		void set_value( double const value ) {
 			assert( ( m_buf_p[ eUBJSON ] + 5 ) <= m_buf_end_p[ eUBJSON ] ) ;
 			m_buffer_validity[ eBITPACK ] = false ;
 			float const float_value = value ;

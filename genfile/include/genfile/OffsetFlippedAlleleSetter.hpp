@@ -76,10 +76,10 @@ namespace genfile {
 			m_setter.set_number_of_entries( n, order_type, value_type ) ;
 		}
 
-		void operator()( MissingValue const value ) { store( value ) ; }
-		void operator()( std::string& value ) { store( value ) ; }
-		void operator()( Integer const value ) { store( value ) ; }
-		void operator()( double const value ) { store( value ) ; }
+		void set_value( MissingValue const value ) { store( value ) ; }
+		void set_value( std::string& value ) { store( value ) ; }
+		void set_value( Integer const value ) { store( value ) ; }
+		void set_value( double const value ) { store( value ) ; }
 
 	private:
 		VariantDataReader::PerSampleSetter& m_setter ;

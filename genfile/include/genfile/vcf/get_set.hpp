@@ -35,10 +35,10 @@ namespace genfile {
 				m_data[ m_sample ][ m_entry_i++ ] = value ;
 			}
 		public:
-			void operator()( MissingValue const value ) { set( value ) ; }
-			void operator()( std::string& value ) { set( value ) ; }
-			void operator()( Integer const value ) { set( value ) ; }
-			void operator()( double const value ) { set( value ) ; }
+			void set_value( MissingValue const value ) { set( value ) ; }
+			void set_value( std::string& value ) { set( value ) ; }
+			void set_value( Integer const value ) { set( value ) ; }
+			void set_value( double const value ) { set( value ) ; }
 
 		private:
 			std::vector< std::vector< Entry > >& m_data ;
@@ -54,9 +54,9 @@ namespace genfile {
 			virtual void initialise( std::size_t nSamples, std::size_t nAlleles ) ;
 			virtual bool set_sample( std::size_t n ) ;
 			virtual void set_number_of_entries( std::size_t n, OrderType const, ValueType const ) ;
-			virtual void operator()( MissingValue const value ) ;
-			virtual void operator()( Integer const value ) ;
-			virtual void operator()( double const value ) ;
+			virtual void set_value( MissingValue const value ) ;
+			virtual void set_value( Integer const value ) ;
+			virtual void set_value( double const value ) ;
 
 		protected:
 			virtual void set( std::size_t, double, double, double ) = 0 ;
@@ -250,13 +250,13 @@ namespace genfile {
 					throw BadArgumentError( "genfile::vcf::MatrixSetter::set_number_of_entries()", "n" ) ;
 				}
 			}
-			void operator()( MissingValue const value ) {
+			void set_value( MissingValue const value ) {
 				m_result( m_sample, m_entry_i++ ) = m_missing_value ;
 				if( m_nonmissingness ) {
 					(*m_nonmissingness )( m_sample, m_entry_i ) = 0 ;
 				}
 			}
-			void operator()( double const value ) {
+			void set_value( double const value ) {
 				if( m_nonmissingness ) {
 					(*m_nonmissingness )( m_sample, m_entry_i ) = 1 ;
 				}

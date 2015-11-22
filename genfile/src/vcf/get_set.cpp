@@ -69,7 +69,7 @@ namespace genfile {
 			m_missing = false ;
 		}
 
-		void GenotypeSetterBase::operator()( MissingValue const value ) {
+		void GenotypeSetterBase::set_value( MissingValue const value ) {
 			// if any prob is missing, all are.
 			m_missing = true ;
 			if( ++m_entry_i == m_number_of_entries ) {
@@ -99,11 +99,11 @@ namespace genfile {
 			}
 		}
 		
-		void GenotypeSetterBase::operator()( Integer const value ) {
+		void GenotypeSetterBase::set_value( Integer const value ) {
 			store( value ) ;
 		}
 
-		void GenotypeSetterBase::operator()( double const value ) {
+		void GenotypeSetterBase::set_value( double const value ) {
 			store( value ) ;
 		}
 

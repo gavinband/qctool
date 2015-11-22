@@ -74,19 +74,19 @@ namespace genfile {
 				}
 				m_entry_i = 0 ;
 			}
-			void operator()( MissingValue const value ) {
+			void set_value( MissingValue const value ) {
 				m_data( m_sample_i * 2 + m_entry_i++ ) = -1 ;
 			}
 
-			void operator()( std::string& value ) {
+			void set_value( std::string& value ) {
 				assert(0) ;
 			}
 
-			void operator()( Integer const value ) {
+			void set_value( Integer const value ) {
 				assert(0) ;
 			}
 			
-			void operator()( double const value ) {
+			void set_value( double const value ) {
 				m_data( m_sample_i * 2 + m_entry_i++ ) = value ;
 			}
 			
