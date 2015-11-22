@@ -82,8 +82,7 @@ namespace genfile {
 		Info const&
 	) {
 		assert( m_have_written_header ) ;
-		std::size_t id_field_size = std::min( std::max( SNPID.size(), RSID.size() ), static_cast< std::size_t >( 255 )) ;
-		bgen::write_snp_identifying_data( *stream_ptr(), m_bgen_context, id_field_size, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele ) ;
+		bgen::write_snp_identifying_data( *stream_ptr(), m_bgen_context, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele ) ;
 		bgen::write_snp_probability_data(
 			*m_stream_ptr,
 			m_bgen_context, get_AA_probability, get_AB_probability, get_BB_probability, m_number_of_bits,

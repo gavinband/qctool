@@ -88,8 +88,8 @@ namespace genfile {
 		bool m_have_written_header ;
 		int m_number_of_bits ;
 		
-		std::vector< char > m_buffer ;
-		std::vector< char > m_compression_buffer ;
+		std::vector< byte_t > m_buffer ;
+		std::vector< byte_t > m_compression_buffer ;
 	} ;
 
 

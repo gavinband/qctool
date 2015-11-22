@@ -6,6 +6,8 @@
 #ifndef GENFILE_TYPES_HPP
 #define GENFILE_TYPES_HPP
 
+#include <stdint.h>
+
 namespace genfile {
 	enum OrderType {
 		eUnknownOrderType = 0,
@@ -24,6 +26,8 @@ namespace genfile {
 		eAlleleIndex = 2,
 		eDosage = 3
 	} ;
+
+	typedef uint8_t byte_t ;
 }
 
 #endif

@@ -164,6 +164,7 @@ def get_cxx_flags( variant_name ):
 		'-pedantic',
 		'-Wno-long-long', # don't warn about the long long thing, it comes up in Eigen and Boost.
 		'-Wno-redeclared-class-member', # don't warn about class member redeclaration which comes up in Boost
+		'-Wno-unused-local-typedef', # warns in boost
 	]
 	if variant_name == 'default':
 		cxxflags.extend( ['-g' ] )

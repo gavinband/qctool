@@ -53,18 +53,18 @@ namespace genfile {
 			return result ;
 		}
 		
-		void EntrySetter::operator()( MissingValue const value ) { assert(0) ; }
-		void EntrySetter::operator()( std::string& value ) { assert(0) ; }
-		void EntrySetter::operator()( Integer const value ) { assert(0) ; }
-		void EntrySetter::operator()( double const value ) { assert(0) ; }
+		void EntrySetter::set_value( MissingValue const value ) { assert(0) ; }
+		void EntrySetter::set_value( std::string& value ) { assert(0) ; }
+		void EntrySetter::set_value( Integer const value ) { assert(0) ; }
+		void EntrySetter::set_value( double const value ) { assert(0) ; }
 		
 		namespace impl {
 			struct VariantEntryEntrySetter: public EntrySetter {
 				VariantEntryEntrySetter( Entry& entry ): m_entry( entry ) {} 
-				virtual void operator()( MissingValue const value ) { m_entry = value ; }
-				virtual void operator()( std::string& value ) { m_entry = value ; }
-				virtual void operator()( Integer const value ) { m_entry = value ; }
-				virtual void operator()( double const value ) { m_entry = value ; }
+				virtual void set_value( MissingValue const value ) { m_entry = value ; }
+				virtual void set_value( std::string& value ) { m_entry = value ; }
+				virtual void set_value( Integer const value ) { m_entry = value ; }
+				virtual void set_value( double const value ) { m_entry = value ; }
 			private:
 				Entry& m_entry ;
 			} ;
@@ -79,12 +79,12 @@ namespace genfile {
 
 		void StringType::parse( string_utils::slice const& value, EntrySetter& setter ) const {
 			std::string string_value = value ;
-			setter( string_value ) ;
+			setter.set_value( string_value ) ;
 		}
 		
 		void IntegerType::parse( string_utils::slice const& value, EntrySetter& setter ) const {
 			try {
-				setter( string_utils::to_repr< EntrySetter::Integer >( value ) ) ;
+				setter.set_value( string_utils::to_repr< EntrySetter::Integer >( value ) ) ;
 			}
 			catch( string_utils::StringConversionError const& ) {
 				throw BadArgumentError( "genfile::vcf::IntegerType::parse()", "value = \"" + std::string( value ) + "\"" ) ;
@@ -93,7 +93,7 @@ namespace genfile {
 
 		void FloatType::parse( string_utils::slice const& value, EntrySetter& setter ) const {
 			try {
-				setter( string_utils::strtod( value )) ;
+				setter.set_value( string_utils::strtod( value )) ;
 			}
 			catch( string_utils::StringConversionError const& ) {
 				throw BadArgumentError( "genfile::vcf::FloatType::parse()", "value = \"" + std::string( value ) + "\"" ) ;
@@ -102,7 +102,7 @@ namespace genfile {
 
 		void PhredScaleFloatType::parse( string_utils::slice const& value, EntrySetter& setter ) const {
 			try {
-				setter( std::pow( 10, -string_utils::strtod( value ) / 10 ) ) ;
+				setter.set_value( std::pow( 10, -string_utils::strtod( value ) / 10 ) ) ;
 			}
 			catch( string_utils::StringConversionError const& ) {
 				throw BadArgumentError( "genfile::vcf::PhredScaleFloatType::parse()", "value = \"" + std::string( value ) + "\"" ) ;
@@ -114,7 +114,7 @@ namespace genfile {
 				throw BadArgumentError("genfile::vcf::CharacterType::parse()", "value = \"" + std::string( value ) +"\"" ) ;
 			}
 			std::string string_value = value ;
-			setter( string_value ) ;
+			setter.set_value( string_value ) ;
 		}
 
 		void FlagType::parse( string_utils::slice const& value, EntrySetter& setter ) const {
@@ -201,10 +201,10 @@ namespace genfile {
 				void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
 					m_entries.resize( n ) ;
 				}
-				virtual void operator()( MissingValue const value ) { m_entries[ entry_i++ ] = value ; }
-				virtual void operator()( std::string& value ) { m_entries[ entry_i++ ] = value ; }
-				virtual void operator()( Integer const value ) { m_entries[ entry_i++ ] = value ; }
-				virtual void operator()( double const value ) { m_entries[ entry_i++ ] = value ; }
+				virtual void set_value( MissingValue const value ) { m_entries[ entry_i++ ] = value ; }
+				virtual void set_value( std::string& value ) { m_entries[ entry_i++ ] = value ; }
+				virtual void set_value( Integer const value ) { m_entries[ entry_i++ ] = value ; }
+				virtual void set_value( double const value ) { m_entries[ entry_i++ ] = value ; }
 			private:
 				std::vector< Entry >& m_entries ;
 				std::size_t entry_i ;
@@ -242,7 +242,7 @@ namespace genfile {
 			set_types( elts.size(), setter ) ;
 			for( std::size_t i = 0; i < elts.size(); ++i ) {
 				if( elts[i] == m_missing_value ) {
-					setter( MissingValue() ) ;
+					setter.set_value( MissingValue() ) ;
 				}
 				else {
 					m_type->parse( elts[i], setter ) ;
@@ -284,7 +284,7 @@ namespace genfile {
 			std::size_t const N = get_value_count_range( number_of_alleles, ploidy ).first ;
 			set_types( N, setter ) ;
 			for( std::size_t i = 0; i < N; ++i ) {
-				setter( MissingValue() ) ;
+				setter.set_value( MissingValue() ) ;
 			}
 		}
 
@@ -292,7 +292,7 @@ namespace genfile {
 			std::size_t const N = get_value_count_range( number_of_alleles ).first ;
 			set_types( N, setter ) ;
 			for( std::size_t i = 0; i < get_value_count_range( number_of_alleles ).first; ++i ) {
-				setter( MissingValue() ) ;
+				setter.set_value( MissingValue() ) ;
 			}
 		}
 		
@@ -406,7 +406,7 @@ namespace genfile {
 		void GenotypeCallVCFEntryType::get_missing_value( std::size_t, std::size_t ploidy, EntriesSetter& setter ) const {
 			setter.set_number_of_entries( ploidy, ePerUnorderedHaplotype, eAlleleIndex ) ;
 			for( std::size_t i = 0; i < ploidy; ++i ) {
-				setter( MissingValue() ) ;
+				setter.set_value( MissingValue() ) ;
 			}
 		}
 
@@ -427,12 +427,12 @@ namespace genfile {
 					assert( order_type == ePerOrderedHaplotype || order_type == ePerUnorderedHaplotype ) ;
 					m_setter.set_number_of_entries( n, order_type, value_type ) ;
 				}
-				void operator()( MissingValue const value ) { m_setter( value ) ; }
-				void operator()( Integer const value ) {
+				void set_value( MissingValue const value ) { m_setter.set_value( value ) ; }
+				void set_value( Integer const value ) {
 					if( value < 0 || value > m_max_genotype ) {
-						throw BadArgumentError( "genfile::vcf::impl::RangeCheckedGTSetter::operator()", "value = \"" + string_utils::to_string( value ) + "\"" ) ;
+						throw BadArgumentError( "genfile::vcf::impl::RangeCheckedGTSetter::set_value", "value = \"" + string_utils::to_string( value ) + "\"" ) ;
 					}
-					m_setter( value ) ;
+					m_setter.set_value( value ) ;
 				}
 			private:
 				EntriesSetter& m_setter ;
@@ -463,14 +463,14 @@ namespace genfile {
 				if((( value[0] == m_missing_value[0] ) || ( a >= 0 && a <= max ) ) && ( ( value[2] == m_missing_value[0] ) || ( b >= 0 && b <= max ) ) ) {
 					setter.set_number_of_entries( 2, ( value[1] == '|' ) ? ePerOrderedHaplotype : ePerUnorderedHaplotype, eAlleleIndex ) ;
 					if( value[0] == m_missing_value[0] ) {
-						setter( MissingValue() ) ;
+						setter.set_value( MissingValue() ) ;
 					} else {
-						setter( EntriesSetter::Integer( a ) ) ;
+						setter.set_value( EntriesSetter::Integer( a ) ) ;
 					}
 					if( value[2] == m_missing_value[0] ) {
-						setter( MissingValue() ) ;
+						setter.set_value( MissingValue() ) ;
 					} else {
-						setter( EntriesSetter::Integer( b ) ) ;
+						setter.set_value( EntriesSetter::Integer( b ) ) ;
 					}
 				}
 				else {
@@ -499,9 +499,9 @@ namespace genfile {
 					setter.set_number_of_entries( simple_values.size(), ( value[1] == '|' ) ? ePerOrderedHaplotype : ePerUnorderedHaplotype, eAlleleIndex ) ;
 					for( std::size_t i = 0; i < simple_values.size(); ++i ) {
 						if( simple_values[i] == -1 ) {
-							setter( MissingValue() ) ;
+							setter.set_value( MissingValue() ) ;
 						} else {
-							setter( EntriesSetter::Integer( simple_values[i] )) ;
+							setter.set_value( EntriesSetter::Integer( simple_values[i] )) ;
 						}
 					}
 				}

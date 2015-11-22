@@ -12,61 +12,61 @@
 namespace {
 	template< typename T, int SizeOf >
 	struct LittleEndianTester {
-		void operator()( char const* data ) const ;
+		void operator()( uint8_t const* data ) const ;
 	} ;
 
 	template< typename T >
 	struct LittleEndianTester< T, 1 > {
-		void operator()( char const* data, T const expected ) const {
+		void operator()( uint8_t const* data, T const expected ) const {
 			T t ;
-			char const* buffer = data ;
+			uint8_t const* buffer = data ;
 			buffer = genfile::read_little_endian_integer( buffer, buffer + 8, &t ) ;
 			TEST_ASSERT( buffer == data + 1 ) ;
 			TEST_ASSERT( t == *reinterpret_cast< T const* >( data ) ) ;
 			for( int i = 0; i < 1; ++i ) {
-				TEST_ASSERT( *( reinterpret_cast< char* >( &t ) + i ) == data[i] ) ;
+				TEST_ASSERT( *( reinterpret_cast< uint8_t* >( &t ) + i ) == data[i] ) ;
 			}
 		}
 	} ;
 
 	template< typename T >
 	struct LittleEndianTester< T, 2 > {
-		void operator()( char const* data, T const expected ) const {
+		void operator()( uint8_t const* data, T const expected ) const {
 			T t ;
-			char const* buffer = data ;
+			uint8_t const* buffer = data ;
 			buffer = genfile::read_little_endian_integer( buffer, buffer + 8, &t ) ;
 			TEST_ASSERT( buffer == data + 2 ) ;
 			TEST_ASSERT( t == *reinterpret_cast< T const* >( data ) ) ;
 			for( int i = 0; i < 2; ++i ) {
-				TEST_ASSERT( *( reinterpret_cast< char* >( &t ) + i ) == data[i] ) ;
+				TEST_ASSERT( *( reinterpret_cast< uint8_t* >( &t ) + i ) == data[i] ) ;
 			}
 		}
 	} ;
 
 	template< typename T >
 	struct LittleEndianTester< T, 4 > {
-		void operator()( char const* data, T const expected ) const {
+		void operator()( uint8_t const* data, T const expected ) const {
 			T t ;
-			char const* buffer = data ;
+			uint8_t const* buffer = data ;
 			buffer = genfile::read_little_endian_integer( buffer, buffer + 8, &t ) ;
 			TEST_ASSERT( buffer == data + 4 ) ;
 			TEST_ASSERT( t == *reinterpret_cast< T const* >( data ) ) ;
 			for( int i = 0; i < 4; ++i ) {
-				TEST_ASSERT( *( reinterpret_cast< char* >( &t ) + i ) == data[i] ) ;
+				TEST_ASSERT( *( reinterpret_cast< uint8_t* >( &t ) + i ) == data[i] ) ;
 			}
 		}
 	} ;
 
 	template< typename T >
 	struct LittleEndianTester< T, 8 > {
-		void operator()( char const* data, T const expected ) const {
+		void operator()( uint8_t const* data, T const expected ) const {
 			T t ;
-			char const* buffer = data ;
+			uint8_t const* buffer = data ;
 			buffer = genfile::read_little_endian_integer( buffer, buffer + 8, &t ) ;
 			TEST_ASSERT( buffer == data + 8 ) ;
 			TEST_ASSERT( t == *reinterpret_cast< T const* >( data ) ) ;
 			for( int i = 0; i < 8; ++i ) {
-				TEST_ASSERT( *( reinterpret_cast< char* >( &t ) + i ) == data[i] ) ;
+				TEST_ASSERT( *( reinterpret_cast< uint8_t* >( &t ) + i ) == data[i] ) ;
 			}
 		}
 	} ;
@@ -78,27 +78,27 @@ namespace {
 
 	bool machine_is_little_endian() {
 		unsigned int x = 1 ;
-		return *reinterpret_cast< char* >( &x ) == 1 ;
+		return *reinterpret_cast< uint8_t* >( &x ) == 1 ;
 	}
 	
 	template< typename T >
-	void read_little_endian_test( char const* data ) {
+	void read_little_endian_test( uint8_t const* data ) {
 		// This is if the machine is little-endian
 		if( machine_is_little_endian() ) {
 			little_endian_tester< T >()( data, *( reinterpret_cast< T const* >( data ))) ;
 		}
 		else {
-			char reversed[8] ;
+			uint8_t reversed[8] ;
 			std::reverse_copy( &data[0], &data[0] + 8, &reversed[0] ) ;
 			little_endian_tester< T >()( data, *( reinterpret_cast< T const* >( reversed ))) ;
 		}
 	}
 	
 	template< typename T >
-	void write_and_read_little_endian_test( char const* data ) {
+	void write_and_read_little_endian_test( uint8_t const* data ) {
 		T const* t = reinterpret_cast< T const* >( data ) ;
 		// std::cerr << "Writing and reading value: " << *t << ".\n" ;
-		char buffer[8] ;
+		uint8_t buffer[8] ;
 		TEST_ASSERT(
 			genfile::write_little_endian_integer( &buffer[0], &buffer[0] + 8, *t ) == ( buffer + sizeof(T) )
 		) ;
@@ -111,9 +111,9 @@ namespace {
 AUTO_TEST_CASE( test_read_little_endian_integer ) {
 	std::cerr << "test_read_little_endian_integer()..." ;
 	
-	char const raw_data[31] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 } ;
+	uint8_t const raw_data[31] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 } ;
 	for( int i = 0; i < ( 31 - 8 ); ++i ) {
-		char const* data = &raw_data[0] + i ;
+		uint8_t const* data = &raw_data[0] + i ;
 		read_little_endian_test< char >( data ) ;
 		read_little_endian_test< unsigned char >( data ) ;
 		read_little_endian_test< short >( data ) ;
@@ -140,16 +140,16 @@ AUTO_TEST_CASE( test_read_little_endian_integer ) {
 AUTO_TEST_CASE( test_write_and_read_little_endian_integer ) {
 	std::cerr << "test_write_and_read_little_endian_integer()..." ;
 	
-	char raw_data[265+255] ;
+	uint8_t raw_data[265+255] ;
 	for( int i = 0; i < 256; ++i ) {
-		raw_data[i] = char( i ) ;
+		raw_data[i] = uint8_t( i ) ;
 	}
 	for( int i = 256; i < ( 256 + 255 ); ++i ) {
-		raw_data[i] = char( 512 - i - 1 ) ;
+		raw_data[i] = uint8_t( 512 - i - 1 ) ;
 	}
 
 	for( int i = 0; i < ( 256 + 255 - 1 ); ++i ) {
-		char const* data = &raw_data[0] + i ;
+		uint8_t const* data = &raw_data[0] + i ;
 		write_and_read_little_endian_test< char >( data ) ;
 		write_and_read_little_endian_test< unsigned char >( data ) ;
 		write_and_read_little_endian_test< short >( data ) ;

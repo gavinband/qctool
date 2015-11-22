@@ -161,24 +161,24 @@ namespace genfile {
 
 			void operator()( MissingValue const value ) {
 				if( m_set_this_sample ) {
-					m_setter( value ) ;
+					m_setter.set_value( value ) ;
 				}
 			}
 			
 			void operator()( std::string& value ) {
 				if( m_set_this_sample ) {
-					m_setter( value ) ;
+					m_setter.set_value( value ) ;
 				}
 			}
 
 			void operator()( VariantEntry::Integer const value ) {
 				if( m_set_this_sample ) {
-					m_setter( value ) ;
+					m_setter.set_value( value ) ;
 				}
 			}
 			void operator()( double const value ) {
 				if( m_set_this_sample ) {
-					m_setter( value ) ;
+					m_setter.set_value( value ) ;
 				}
 			}
 

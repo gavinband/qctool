@@ -180,9 +180,9 @@ namespace genfile {
 					for( std::size_t j = 0; j < std::size_t( ploidy ); ++j ) {
 						try {
 							if( m_elts[ 2*i+j ] == "." || m_elts[ 2*i+j ] == "NA" || m_elts[ 2*i+j] == "-" ) { // IMPUTE2 writes - for nonexistent haplotypes in males
-								setter( MissingValue() ) ;
+								setter.set_value( MissingValue() ) ;
 							} else {
-								setter( string_utils::to_repr< Integer >( m_elts[ 2*i+j ] )) ;
+								setter.set_value( string_utils::to_repr< Integer >( m_elts[ 2*i+j ] )) ;
 							}
 						}
 						catch( string_utils::StringConversionError const& e ) {

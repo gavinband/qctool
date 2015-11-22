@@ -159,9 +159,9 @@ namespace genfile {
 					setter.set_sample( i ) ;
 					setter.set_number_of_entries( 1, ePerSample, eDosage ) ;
 					if( m_elts[i] == "NA" ) {
-						setter( genfile::MissingValue() ) ;
+						setter.set_value( genfile::MissingValue() ) ;
 					} else {
-						setter( string_utils::to_repr< Integer >( m_elts[i] )) ;
+						setter.set_value( string_utils::to_repr< Integer >( m_elts[i] )) ;
 					}
 				}
 				return *this ;

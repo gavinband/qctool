@@ -197,10 +197,10 @@ namespace genfile {
 				}
 			}
 
-			void operator()( MissingValue const value ) { if( !m_filter_out_this_sample ) { m_setter( value ) ; } }
-			void operator()( std::string& value ) { if( !m_filter_out_this_sample ) { m_setter( value ) ; } }
-			void operator()( VariantEntry::Integer const value ) { if( !m_filter_out_this_sample ) { m_setter( value ) ; } }
-			void operator()( double const value ) { if( !m_filter_out_this_sample ) { m_setter( value ) ; } }
+			void set_value( MissingValue const value ) { if( !m_filter_out_this_sample ) { m_setter.set_value( value ) ; } }
+			void set_value( std::string& value ) { if( !m_filter_out_this_sample ) { m_setter.set_value( value ) ; } }
+			void set_value( VariantEntry::Integer const value ) { if( !m_filter_out_this_sample ) { m_setter.set_value( value ) ; } }
+			void set_value( double const value ) { if( !m_filter_out_this_sample ) { m_setter.set_value( value ) ; } }
 
 		private:
 			VariantDataReader::PerSampleSetter& m_setter ;

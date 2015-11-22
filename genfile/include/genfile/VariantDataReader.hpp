@@ -33,7 +33,6 @@ namespace genfile {
 			typedef std::auto_ptr< PerVariantSetter > UniquePtr ;
 			virtual ~PerVariantSetter() throw() {}
 			typedef Eigen::MatrixXd Matrix ;
-			virtual void operator()( std::auto_ptr< Matrix > value ) ;
 		} ;
 
 		typedef vcf::PerSampleEntriesSetter PerSampleSetter ;

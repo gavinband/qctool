@@ -35,8 +35,8 @@ namespace genfile {
 			m_number_of_samples( number_of_samples ),
 			m_flip( flip ),
 			m_sample_offset( sample_offset ),
-			m_number_of_alleles( 0 ),
 			m_have_initialised( false ),
+			m_number_of_alleles( 0 ),
 			m_values( 3 ),
 			m_entry_i( 0 )
 		{}
@@ -107,7 +107,7 @@ namespace genfile {
 				|| !( m_order_type == ePerUnorderedGenotype || m_order_type == ePerAllele || m_value_type == eAlleleIndex )
 			) {
 				for( std::size_t i = 0; i < m_values.size(); ++i ) {
-					m_setter( m_values[i] ) ;
+					m_setter.set_value( m_values[i] ) ;
 				}
 			} else if( m_flip == '-' ) {
 				for( std::size_t i = 0; i < m_values.size(); ++i ) {
@@ -138,12 +138,12 @@ namespace genfile {
 						entry = VariantEntry::Integer( m_number_of_alleles - 1 ) - entry.as< VariantEntry::Integer >() ;
 					}
 
-					m_setter( entry ) ;
+					m_setter.set_value( entry ) ;
 				}
 			} else {
 				// unknown flip.
 				for( std::size_t i = 0; i < m_values.size(); ++i ) {
-					m_setter( genfile::MissingValue() ) ;
+					m_setter.set_value( genfile::MissingValue() ) ;
 				}
 			}
 		}

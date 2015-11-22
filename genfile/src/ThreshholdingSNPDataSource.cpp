@@ -159,24 +159,24 @@ namespace genfile {
 			private:
 				void send_results() {
 					if( m_missing || m_calls.array().maxCoeff() < m_threshhold ) {
-						m_target( genfile::MissingValue() ) ;
-						m_target( genfile::MissingValue() ) ;
+						m_target.set_value( genfile::MissingValue() ) ;
+						m_target.set_value( genfile::MissingValue() ) ;
 					} else {
 						if( m_calls(0) >= m_threshhold ) {
-							m_target( Integer( 0 ) ) ;
-							m_target( Integer( 0 ) ) ;
+							m_target.set_value( Integer( 0 ) ) ;
+							m_target.set_value( Integer( 0 ) ) ;
 						}
 						else if( m_calls(1) >= m_threshhold ) {
-							m_target( Integer( 0 ) ) ;
-							m_target( Integer( 1 ) ) ;
+							m_target.set_value( Integer( 0 ) ) ;
+							m_target.set_value( Integer( 1 ) ) ;
 						}
 						else if( m_calls(2) >= m_threshhold ) {
-							m_target( Integer( 1 ) ) ;
-							m_target( Integer( 1 ) ) ;
+							m_target.set_value( Integer( 1 ) ) ;
+							m_target.set_value( Integer( 1 ) ) ;
 						}
 						else {
-							m_target( genfile::MissingValue() ) ;
-							m_target( genfile::MissingValue() ) ;
+							m_target.set_value( genfile::MissingValue() ) ;
+							m_target.set_value( genfile::MissingValue() ) ;
 						}
 					}
 				}

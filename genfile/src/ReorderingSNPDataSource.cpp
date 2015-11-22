@@ -47,16 +47,16 @@ namespace genfile {
 					return m_setter.set_number_of_entries( n, order_type, value_type ) ;
 				}
 				void operator()( MissingValue const value ) {
-					m_setter( value ) ;
+					m_setter.set_value( value ) ;
 				}
 				void operator()( std::string& value ) {
-					m_setter( value ) ;
+					m_setter.set_value( value ) ;
 				}
 				void operator()( Integer const value ) {
-					m_setter( value ) ;
+					m_setter.set_value( value ) ;
 				}
 				void operator()( double const value ) {
-					m_setter( value ) ;
+					m_setter.set_value( value ) ;
 				}
 					
 			private:

@@ -28,19 +28,19 @@ namespace genfile {
 		struct EntrySetter {
 			typedef int64_t Integer ;
 			virtual ~EntrySetter() throw() {}
-			virtual void operator()( MissingValue const value ) ;
-			virtual void operator()( std::string& value ) ;
-			virtual void operator()( Integer const value ) ;
-			virtual void operator()( double const value ) ;
-			void operator()( VariantEntry const& value ) {
+			virtual void set_value( MissingValue const value ) ;
+			virtual void set_value( std::string& value ) ;
+			virtual void set_value( Integer const value ) ;
+			virtual void set_value( double const value ) ;
+			void set_value( VariantEntry const& value ) {
 				if( value.is_missing() ) {
-					this->operator()( genfile::MissingValue() ) ;
+					this->set_value( genfile::MissingValue() ) ;
 				} else if( value.is_string() ) {
-					this->operator()( value.as< std::string >() ) ;
+					this->set_value( value.as< std::string >() ) ;
 				} else if( value.is_int() ) {
-					this->operator()( value.as< VariantEntry::Integer >() ) ;
+					this->set_value( value.as< VariantEntry::Integer >() ) ;
 				} else if( value.is_double() ) {
-					this->operator()( value.as< double >() ) ;
+					this->set_value( value.as< double >() ) ;
 				} else {
 					assert(0) ;
 				}

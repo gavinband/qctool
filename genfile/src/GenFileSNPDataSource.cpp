@@ -132,7 +132,7 @@ namespace genfile {
 					setter.set_sample( i ) ;
 					setter.set_number_of_entries( 3, ePerUnorderedGenotype, eProbability ) ;
 					for( std::size_t g = 0; g < 3; ++g ) {
-						setter( m_genotypes[ 3*i + g ] ) ;
+						setter.set_value( m_genotypes[ 3*i + g ] ) ;
 					}
 				}
 				return *this ;

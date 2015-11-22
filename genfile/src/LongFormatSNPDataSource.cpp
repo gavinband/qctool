@@ -130,7 +130,7 @@ namespace genfile {
 						setter.set_number_of_entries( 1, eUnorderedList, eUnknownValueType ) ;
 						std::pair< int, int > snpsample = std::make_pair( m_snp_index, m_source.m_sample_map.at( m_samples[ sample_i ] )) ;
 						LongFormatSNPDataSource::BufferMap::const_iterator where = m_source.m_buffer_map.find( snpsample ) ;
-						setter( ( where == m_source.m_buffer_map.end() ) ? vcf::EntriesSetter::Integer(0) : vcf::EntriesSetter::Integer(1) ) ;
+						setter.set_value( ( where == m_source.m_buffer_map.end() ) ? vcf::EntriesSetter::Integer(0) : vcf::EntriesSetter::Integer(1) ) ;
 					}
 				} else {
 					throw BadArgumentError(
@@ -139,6 +139,7 @@ namespace genfile {
 						"Only \"GT\" and \":genotypes:\" and \"typed\" are supported in a long-format file."
 					) ;
 				}
+				return *this ;
 			}
 
 			std::size_t get_number_of_samples() const {

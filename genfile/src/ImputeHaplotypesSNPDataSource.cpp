@@ -234,9 +234,9 @@ namespace genfile {
 					for( std::size_t j = 0; j < 2; ++j ) {
 						try {
 							if( m_elts[2*i+j][0] == '.' || m_elts[2*i+j] == "NA" ) {
-								setter( MissingValue() ) ;
+								setter.set_value( MissingValue() ) ;
 							} else {
-								setter( string_utils::to_repr< Integer >( m_elts[ 2*i+j ] )) ;
+								setter.set_value( string_utils::to_repr< Integer >( m_elts[ 2*i+j ] )) ;
 							}
 						}
 						catch( string_utils::StringConversionError const& e ) {

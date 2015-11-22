@@ -145,11 +145,11 @@ namespace genfile {
 					std::cerr << "genotype is " << genotype.first << "/" << genotype.second << ".\n" ;
 #endif
 					if( genotype.first == -1 ) {
-						setter( genfile::MissingValue() ) ;
-						setter( genfile::MissingValue() ) ;
+						setter.set_value( genfile::MissingValue() ) ;
+						setter.set_value( genfile::MissingValue() ) ;
 					} else {
-						setter( genotype.first ) ;
-						setter( genotype.second ) ;
+						setter.set_value( genotype.first ) ;
+						setter.set_value( genotype.second ) ;
 					}
 				}
 				return *this ;
