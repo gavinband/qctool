@@ -370,7 +370,7 @@ namespace genfile {
 		void read_genotype_data_block(
 			std::istream& aStream,
 			Context const& context,
-			std::vector< char >* buffer
+			std::vector< byte_t >* buffer
 		) {
 			uint32_t payload_size = 0 ;
 			if( (context.flags & e_Layout) == e_v12Layout || (context.flags & e_CompressedSNPBlocks) ) {
@@ -379,18 +379,18 @@ namespace genfile {
 				payload_size = 6 * context.number_of_samples ;
 			}
 			buffer->resize( payload_size ) ;
-			aStream.read( &(*buffer)[0], payload_size ) ;
+			aStream.read( reinterpret_cast< char* >( &(*buffer)[0] ), payload_size ) ;
 		}
 
 		void uncompress_probability_data(
 			Context const& context,
-			std::vector< char > const& compressed_data,
-			std::vector< char >* buffer
+			std::vector< byte_t > const& compressed_data,
+			std::vector< byte_t >* buffer
 		) {
 			// compressed_data contains the (compressed or uncompressed) probability data.
 			if( context.flags & bgen::e_CompressedSNPBlocks ) {
-				char const* begin = &compressed_data[0] ;
-				char const* const end = &compressed_data[0] + compressed_data.size() ;
+				byte_t const* begin = &compressed_data[0] ;
+				byte_t const* const end = &compressed_data[0] + compressed_data.size() ;
 				uint32_t uncompressed_data_size = 0 ;
 				if( (context.flags & e_Layout) == e_v11Layout ) {
 					uncompressed_data_size = 6 * context.number_of_samples ;
@@ -409,53 +409,37 @@ namespace genfile {
 
 		namespace v12 {
 			namespace impl {
-				uint32_t n_choose_k( uint32_t n, uint32_t k ) {
-					if( k == 0 )  {
-						return 1 ;
-					} else if( k == 1 ) {
-						return n ;
-					}
-					return ( n * n_choose_k(n - 1, k - 1) ) / k ;
-				}
-			
-				char const* read_bits_from_buffer(
-					char const* buffer,
-					char const* const end,
+				// Fill a data field, encoded as a 64-bit integer, with bytes
+				// from a buffer, until the data contains at least the given number of bits.
+				// (For this to work we require in general that bits <= 56
+				// (on an 8-bit byte machine).
+				byte_t const* read_bits_from_buffer(
+					byte_t const* buffer,
+					byte_t const* const end,
 					uint64_t* data,
 					int* size,
 					uint8_t const bits
 				) {
-					// fill data with up to 8 bytes.
+					assert( CHAR_BIT == 8 ) ;
+					assert( bits <= 64 - CHAR_BIT ) ;
 					while( (*size) < bits && buffer < end ) {
-						(*data) |= uint64_t( *(reinterpret_cast< unsigned char const* >( buffer++ ))) << (*size) ;
-						(*size) += sizeof( unsigned char ) * 8 ;
-	#if DEBUG_BGEN_FORMAT > 1
-						std::cerr << "genfile::impl::v12::fill_data(): size = " << (*size)
-							<< ", buffer = " << reinterpret_cast< void const* >( buffer )
-							<< ", data = "
-							<< string_utils::to_hex(
-								reinterpret_cast< unsigned char const* >( data ),
-								reinterpret_cast< unsigned char const* >( data ) + 8
-							) << ".\n" ;
-	#endif
+						(*data) |= uint64_t( *(reinterpret_cast< byte_t const* >( buffer++ ))) << (*size) ;
+						(*size) += CHAR_BIT ;
 					}
-					assert( (*size) >= bits ) ;
+					if( (*size) < bits ) {
+						throw BGenError() ;
+					}
 					return buffer ;
 				}
 			
+				// Consume the given number of bits from the the least significant end
+				// of a data field (encoded as a uint64_t) and interpret them as a
+				// floating-point number in the range 0...1
 				double parse_bit_representation(
 					uint64_t* data,
 					int* size,
 					int const bits
 				) {
-#if DEBUG_BGEN_FORMAT > 1
-					std::cerr << "genfile::impl::v12::consume_value(): size = " << (*size)
-						<< ", data = "
-						<< string_utils::to_hex(
-							reinterpret_cast< unsigned char const* >( data ),
-							reinterpret_cast< unsigned char const* >( data ) + 8
-						) << ".\n" ;
-#endif
 					uint64_t bitMask = (0xFFFFFFFFFFFFFFFF >> ( 64 - bits )) ;
 					double const result = ( *data & bitMask ) / double( bitMask ) ;
 					(*size) -= bits ;
@@ -497,62 +481,39 @@ namespace genfile {
 					std::size_t const upper = std::floor( total_fractional_part + 0.5 ) ;
 					std::sort( index, index + n, CompareFractionalPart( p, n ) ) ;
 
-	#if DEBUG_BGEN_FORMAT > 2
-		std::cerr << "round_probs_to_scaled_simplex(): number_of_bits = " << number_of_bits
-				<< ", scale = " << scale
-				<< ", total_fractional_part = " << total_fractional_part
-				<< ", upper = " << upper << ".\n" ;
-		std::cerr << "round_probs_to_scaled_simplex(): p1 = " << *p << ".\n" ;
-	#endif
-
-					for( std::size_t i = 0; i < n; ++i ) {
-						if( i < upper ) {
-							p[ index[i] ] = std::ceil( p[ index[i] ] ) ;
-						} else {
-							p[ index[i] ] = std::floor( p[ index[i] ] ) ;
-						}
+					for( std::size_t i = 0; i < upper; ++i ) {
+						p[ index[i] ] = std::ceil( p[ index[i] ] ) ;
+					}
+					for( std::size_t i = upper; i < n; ++i ) {
+						p[ index[i] ] = std::floor( p[ index[i] ] ) ;
 					}
 				}
 
-				char* write_scaled_probs(
+				byte_t* write_scaled_probs(
 					uint64_t* data,
 					std::size_t* offset,
 					double const* probs,
 					std::size_t const n,
 					int const number_of_bits,
-					char* buffer,
-					char* const end
+					byte_t* destination,
+					byte_t* const end
 				) {
 					for( std::size_t i = 0; i < (n-1); ++i ) {
 						uint64_t const storedValue = uint64_t( probs[i] ) ;
 						*data |= storedValue << (*offset) ;
 						(*offset) += number_of_bits ;
 						if( (*offset) >= 32 ) {
-#if DEBUG_BGEN_FORMAT > 1
-							std::cerr << "genfile::bgen:impl::v12::write_scaled_probs(): data = " << std::hex << (*data)
-								<< ", buffer = " << reinterpret_cast< void* >( buffer )
-								<< std::dec << ", offset = " << (*offset)
-								<< ", number_of_bits = " << number_of_bits
-								<< ".\n";
-							std::cerr << "genfile::bgen:impl::v12::write_scaled_probs(): writing data.\n" ;
-#endif
-							assert( (buffer+4) <= end ) ;
-							buffer = std::copy(
-								reinterpret_cast< char const* >( data ),
-								reinterpret_cast< char const* >( data ) + 4,
-								buffer
+							assert( (destination+4) <= end ) ;
+							destination = std::copy(
+								reinterpret_cast< byte_t const* >( data ),
+								reinterpret_cast< byte_t const* >( data ) + 4,
+								destination
 							) ;
 							(*offset) -= 32 ;
 							(*data) >>= 32 ;
-#if DEBUG_BGEN_FORMAT > 1
-							std::cerr << "genfile::bgen:impl::v12::write_scaled_probs(): after write, data = " << std::hex << (*data)
-								<< ", buffer = " << std::hex << reinterpret_cast< void* >( buffer )
-								<< ", last four bytes written: " << genfile::string_utils::to_hex( buffer-4, buffer ) << ".\n" ;
-#endif
-							
 						}
 					}
-					return buffer ;
+					return destination ;
 				}
 			}
 		}
