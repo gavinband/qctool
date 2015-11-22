@@ -113,6 +113,15 @@ namespace db {
 		return *this ;
 	}
 
+	SQLite3Statement& SQLite3Statement::bind( std::size_t i, uint8_t const* buffer, uint8_t const* const end ) {
+		assert( m_statement != 0 ) ;
+		int error = sqlite3_bind_blob( m_statement, i, reinterpret_cast< void const* >( buffer ), int( end - buffer ), SQLITE_TRANSIENT ) ;
+		if( error != SQLITE_OK ) {
+			throw ValueBindError( "SQLite3Statement::bind()", m_connection->get_spec(), error, genfile::string_utils::to_string( i ) ) ;
+		}
+		return *this ;
+	}
+
 	SQLite3Statement& SQLite3Statement::bind_NULL( std::size_t i ) {
 		assert( m_statement != 0 ) ;
 		int error = sqlite3_bind_null( m_statement, i ) ;

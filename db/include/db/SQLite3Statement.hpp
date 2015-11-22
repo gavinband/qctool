@@ -34,6 +34,7 @@ namespace db {
 		SQLite3Statement& bind( std::size_t i, double value ) ;
 		SQLite3Statement& bind( std::size_t i, std::string const& value ) ;
 		SQLite3Statement& bind( std::size_t i, char const* buffer, char const* const end ) ;
+		SQLite3Statement& bind( std::size_t i, uint8_t const* buffer, uint8_t const* const end ) ;
 		SQLite3Statement& bind_NULL( std::size_t i ) ;
 
 		SQLite3Statement& reset() ;
