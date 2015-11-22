@@ -23,7 +23,8 @@ def build( bld ):
 			bld.glob( 'libs/date_time/src/posix_time/*.cpp' ),
 		includes = './',
 		export_incdirs = './', 
-		uselib = 'ZLIB BZIP2 RT'
+		uselib = 'ZLIB BZIP2 RT',
+		cxxflags = [ '-Wno-unused-function', '-Wno-keyword-macro', '-Wno-unused-const-variable' ]
 	)
 
 	bld(
@@ -52,5 +53,6 @@ def build( bld ):
 			'libs/test/src/xml_report_formatter.cpp'
 		],
 		includes='./',
-		export_incdirs = './'
+		export_incdirs = './',
+		cxxflags = [ '-Wunused-function' ]
 	)
