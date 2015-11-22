@@ -92,7 +92,7 @@ namespace {
 	struct HaplotypeWriter: public genfile::VariantDataReader::PerSampleSetter {
 		enum Encoding { eUBJSON = 0, eBITPACK = 1 } ; // must take contiguous values starting at zero.
 		
-		HaplotypeWriter( std::vector< char >* compression_buffer ):
+		HaplotypeWriter( std::vector< uint8_t >* compression_buffer ):
 			m_compression_buffer( compression_buffer ),
 			m_buffer_validity( 2, true ),
 			m_ploidy( 0 )
@@ -172,7 +172,7 @@ namespace {
 			assert( ( m_buf_p[ eUBJSON ] + 1 ) <= m_buf_end_p[ eUBJSON ] ) ;
 			*(m_buf_p[ eUBJSON ]++) = 'Z' ;
 			if( m_buffer_validity[ eBITPACK ] ) {
-				*(m_buf_p[ eBITPACK ]++) = static_cast< char >( -1 ) ; // missing value encoded by -1.
+				*(m_buf_p[ eBITPACK ]++) = 0xFF ;
 			}
 		}
 
@@ -186,16 +186,16 @@ namespace {
 
 		void operator()( Integer const value ) {
 			// We allow a maximum value of 127 here to allow for reserved values.
-	 		if( fits_in< Integer, char >( value ) && value < 127 ) {
+	 		if( fits_in< Integer, uint8_t >( value ) && value < 127 ) {
 				assert( ( m_buf_p[ eUBJSON ] + 2 ) <= m_buf_end_p[ eUBJSON ] ) ;
 				*(m_buf_p[ eUBJSON ]++) = 'i' ;
-				m_buf_p[ eUBJSON ] = genfile::write_big_endian_integer( m_buf_p[ eUBJSON ], m_buf_end_p[ eUBJSON ], static_cast< char >( value )) ;
+				m_buf_p[ eUBJSON ] = genfile::write_big_endian_integer( m_buf_p[ eUBJSON ], m_buf_end_p[ eUBJSON ], static_cast< uint8_t >( value )) ;
 
 				if( m_buffer_validity[ eBITPACK ] ) {
-					*(m_buf_p[ eBITPACK ]++) = static_cast< char >( value ) ;
+					*(m_buf_p[ eBITPACK ]++) = static_cast< uint8_t >( value ) ;
 					if( m_ploidy == 1 ) {
 						// store two haplotypes for males, the second filled wth missing values.
-						*(m_buf_p[ eBITPACK ]++) = static_cast< char >( -1 ) ;
+						*(m_buf_p[ eBITPACK ]++) = 0xFF ;
 					}
 				}
 			} else {
@@ -251,17 +251,17 @@ namespace {
 		}
 		
 	private:
-		std::vector< char >* m_compression_buffer ;
-		std::vector< std::vector< char > > m_buffers ;
+		std::vector< uint8_t >* m_compression_buffer ;
+		std::vector< std::vector< uint8_t > > m_buffers ;
 		std::size_t m_bitpack_index ;
 		std::vector< bool > m_buffer_validity ;
-		std::vector< char* > m_buf_p ;
-		std::vector< char* > m_buf_end_p ;
+		std::vector< uint8_t* > m_buf_p ;
+		std::vector< uint8_t* > m_buf_end_p ;
 		std::size_t m_ploidy ;
 
 	private:
-		char* write_float( char* buf_p, char* buf_end_p, float const& value ) const {
-			char const* v_p = reinterpret_cast< char const* >( &value ) ;
+		uint8_t* write_float( uint8_t* buf_p, uint8_t const* const buf_end_p, float const& value ) const {
+			uint8_t const* v_p = reinterpret_cast< uint8_t const* >( &value ) ;
 			*(buf_p++) = *v_p++ ;
 			*(buf_p++) = *v_p++ ;
 			*(buf_p++) = *v_p++ ;
@@ -337,8 +337,8 @@ void SQLiteHaplotypesSNPDataSink::flush_data( std::size_t const data_count ) {
 	std::cerr << "stored variants..." ;
 #endif
 	for( std::size_t i = 0; i < data_count; ++i ) {
-		char const* buffer = &(m_data[i][0]) ;
-		char const* end_buffer = &(m_data[i][0]) + m_data[i].size() ;
+		uint8_t const* buffer = &(m_data[i][0]) ;
+		uint8_t const* end_buffer = &(m_data[i][0]) + m_data[i].size() ;
 
 		m_insert_data_stmnt
 			->bind( 1, m_outputter->analysis_id() )

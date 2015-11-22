@@ -37,7 +37,7 @@
 		db::Connection::StatementPtr m_insert_data_stmnt ;
 
 		std::vector< genfile::SNPIdentifyingData2 > m_snps ;
-		std::vector< std::vector< char > > m_data ;
+		std::vector< std::vector< uint8_t > > m_data ;
 		std::size_t m_data_i ;
 
 	private:

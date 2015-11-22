@@ -125,7 +125,7 @@ namespace {
 	struct PositiveFloatWriter: public genfile::VariantDataReader::PerSampleSetter {
 		enum Encoding { eBITPACK = 0 } ; // must take contiguous values starting at zero.
 		
-		 PositiveFloatWriter( std::vector< char >* compression_buffer, std::size_t number_of_entries ):
+		 PositiveFloatWriter( std::vector< uint8_t >* compression_buffer, std::size_t number_of_entries ):
 			m_compression_buffer( compression_buffer ),
 			m_expected_number_if_entries( number_of_entries ),
 			m_buffer_validity( 1, true )
@@ -232,16 +232,16 @@ namespace {
 		}
 		
 	private:
-		std::vector< char >* m_compression_buffer ;
+		std::vector< uint8_t >* m_compression_buffer ;
 		std::size_t const m_expected_number_if_entries ;
-		std::vector< std::vector< char > > m_buffers ;
+		std::vector< std::vector< uint8_t > > m_buffers ;
 		std::size_t m_bitpack_index ;
 		std::vector< bool > m_buffer_validity ;
-		std::vector< char* > m_buf_p ;
-		std::vector< char* > m_buf_end_p ;
+		std::vector< uint8_t* > m_buf_p ;
+		std::vector< uint8_t* > m_buf_end_p ;
 	private:
-		char* write_float( char* buf_p, char* buf_end_p, float const& value ) const {
-			char const* v_p = reinterpret_cast< char const* >( &value ) ;
+		uint8_t* write_float( uint8_t* buf_p, uint8_t* buf_end_p, float const& value ) const {
+			uint8_t const* v_p = reinterpret_cast< uint8_t const* >( &value ) ;
 			*(buf_p++) = *v_p++ ;
 			*(buf_p++) = *v_p++ ;
 			*(buf_p++) = *v_p++ ;
@@ -467,8 +467,8 @@ void SQLiteGenotypesSNPDataSink::flush_genotype_data( std::size_t const data_cou
 	std::cerr << "stored variants..." ;
 #endif
 	for( std::size_t i = 0; i < data_count; ++i ) {
-		char const* buffer = &(m_genotype_data[i][0]) ;
-		char const* end_buffer = &(m_genotype_data[i][0]) + m_genotype_data[i].size() ;
+		uint8_t const* buffer = &(m_genotype_data[i][0]) ;
+		uint8_t const* end_buffer = &(m_genotype_data[i][0]) + m_genotype_data[i].size() ;
 
 		m_insert_genotype_stmnt
 			->bind( 1, m_outputter->analysis_id() )
@@ -501,8 +501,8 @@ void SQLiteGenotypesSNPDataSink::flush_intensity_data( std::size_t const data_co
 	std::cerr << "stored variants..." ;
 #endif
 	for( std::size_t i = 0; i < data_count; ++i ) {
-		char const* buffer = &(m_intensity_data[i][0]) ;
-		char const* end_buffer = &(m_intensity_data[i][0]) + m_intensity_data[i].size() ;
+		uint8_t const* buffer = &(m_intensity_data[i][0]) ;
+		uint8_t const* end_buffer = &(m_intensity_data[i][0]) + m_intensity_data[i].size() ;
 
 		m_insert_intensity_stmnt
 			->bind( 1, m_outputter->analysis_id() )
