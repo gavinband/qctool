@@ -118,16 +118,17 @@ namespace genfile {
 						std::pair< int, int > snpsample = std::make_pair( m_snp_index, m_source.m_sample_map.at( m_samples[ sample_i ] )) ;
 						LongFormatSNPDataSource::BufferMap::const_iterator where = m_source.m_buffer_map.find( snpsample ) ;
 						if( where != m_source.m_buffer_map.end() ) {
-							m_entry_parser.parse( genfile::string_utils::slice( m_source.buffer(), where->second.first, where->second.second ), 2, setter ) ;
+							m_entry_parser.parse( genfile::string_utils::slice( m_source.buffer(), where->second.first, where->second.second ), 2, 2, setter ) ;
 						} else {
 							m_entry_parser.get_missing_value( 2, 2, setter ) ;
 						}
 					} 
 				}
 				else if( spec == "typed" ) {
+					uint32_t const ploidy = 2 ;
 					for( std::size_t sample_i = 0; sample_i < m_samples.size(); ++sample_i ) {
 						setter.set_sample( sample_i ) ;
-						setter.set_number_of_entries( 1, eUnorderedList, eUnknownValueType ) ;
+						setter.set_number_of_entries( ploidy, 1, eUnorderedList, eUnknownValueType ) ;
 						std::pair< int, int > snpsample = std::make_pair( m_snp_index, m_source.m_sample_map.at( m_samples[ sample_i ] )) ;
 						LongFormatSNPDataSource::BufferMap::const_iterator where = m_source.m_buffer_map.find( snpsample ) ;
 						setter.set_value( ( where == m_source.m_buffer_map.end() ) ? vcf::EntriesSetter::Integer(0) : vcf::EntriesSetter::Integer(1) ) ;

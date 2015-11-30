@@ -609,7 +609,7 @@ namespace genfile {
 				for ( uint32_t i = 0 ; i < context.number_of_samples ; ++i ) {
 					setter.set_sample( i ) ;
 					// setter.set_number_of_entries( ploidy, 3, ePerUnorderedGenotype, eProbability ) ;
-					setter.set_number_of_entries( 3, ePerUnorderedGenotype, eProbability ) ;
+					setter.set_number_of_entries( ploidy, 3, ePerUnorderedGenotype, eProbability ) ;
 					assert( end >= buffer + 6 ) ;
 					for( std::size_t g = 0; g < 3; ++g ) {
 						uint16_t prob ;
@@ -729,7 +729,7 @@ namespace genfile {
 	#endif
 						if( setter.set_sample( i ) ) {
 							setter.set_number_of_entries(
-//								ploidy,
+								ploidy,
 								valueCount,
 								phased ? ePerPhasedHaplotypePerAllele : ePerUnorderedGenotype,
 								eProbability
@@ -747,7 +747,6 @@ namespace genfile {
 							} else {
 								// Consume values and interpret them.
 								double sum = 0.0 ;
-								uint32_t reportedValueCount = 0 ;
 								for( uint32_t h = 0; h < storedValueCount; ++h ) {
 									buffer = impl::read_bits_from_buffer( buffer, end, &data, &size, bits ) ;
 									double const value = impl::parse_bit_representation( &data, &size, bits ) ;

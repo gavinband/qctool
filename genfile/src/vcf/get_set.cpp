@@ -50,7 +50,7 @@ namespace genfile {
 			return true ;
 		}
 
-		void GenotypeSetterBase::set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
+		void GenotypeSetterBase::set_number_of_entries( uint32_t, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 			assert(
 				((value_type == eProbability) && (order_type == ePerUnorderedGenotype))
 				|| 

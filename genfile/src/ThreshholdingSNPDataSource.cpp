@@ -115,12 +115,12 @@ namespace genfile {
 					m_entry_i = 0 ;
 					return true ;
 				}
-				void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
+				void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 					assert( n == m_calls.size() ) ;
 					assert( order_type == ePerUnorderedGenotype ) ;
 					assert( value_type == eProbability ) ;
 					// assume diploid
-					m_target.set_number_of_entries( 2, ePerUnorderedHaplotype, eAlleleIndex ) ;
+					m_target.set_number_of_entries( ploidy, 2, ePerUnorderedHaplotype, eAlleleIndex ) ;
 				}
 				void set_value( MissingValue const value ) {
 					m_missing = true ;

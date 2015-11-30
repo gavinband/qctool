@@ -18,14 +18,16 @@ namespace genfile {
 		ePerUnorderedHaplotype = 5,			// E.g. Unphased GT, binary PED file.
 		ePerPhasedHaplotypePerAllele = 6,	// E.g. BGEN v1.2-style haplotype probabilities.
 		ePerAllele = 7,						// E.g. assay intensities.
-		ePerSample = 8					// 'B' allele dosage, one value per sample.
+		ePerSample = 8						// 'B' allele dosage, one value per sample.
 	} ;
 	enum ValueType {
 		eUnknownValueType = 0,
 		eProbability = 1,
 		eAlleleIndex = 2,
-		eDosage = 3
+		eDosage = 3,
+		eFlag = 4
 	} ;
+	uint32_t const eUnknownPloidy = uint32_t( 0xFFFFFFFFFF ) ;
 
 	typedef uint8_t byte_t ;
 }

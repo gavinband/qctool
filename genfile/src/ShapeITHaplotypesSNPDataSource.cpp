@@ -165,7 +165,7 @@ namespace genfile {
 					assert( ploidy == 1 || ploidy == 2 ) ;
 					
 					setter.set_sample( i ) ;
-					setter.set_number_of_entries( ploidy, ePerOrderedHaplotype, eAlleleIndex ) ;
+					setter.set_number_of_entries( ploidy,  ploidy, ePerOrderedHaplotype, eAlleleIndex ) ;
 					if( ploidy == 1 && m_elts[ 2*i ] != m_elts[ 2*i+1 ] && m_elts[ 2*i+1 ] != "-" ) { // SHAPEIT and IMPUTE behave differently for X chromosome males: SHAPEIT writes same haplotype twice, IMPUTE writes - for nonexistent data.
 						// ShapeIT writes the same haplotype twice for haploid samples.
 						// We report only one haplotype in such cases.

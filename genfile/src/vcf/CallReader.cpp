@@ -105,19 +105,26 @@ namespace genfile {
 					return true ;
 				}
 
-				void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
+				void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 					if( order_type != ePerOrderedHaplotype && order_type != ePerUnorderedHaplotype ) {
 						throw BadArgumentError(
-							"genfile::vcf::impl::CallReaderGenotypeSetter::set_order_type()",
+							"genfile::vcf::impl::CallReaderGenotypeSetter::set_number_of_entries()",
 							"order_type",
 							"Expected order_type = ePerOrderedHaplotype or ePerUnorderedHaplotype for genotype field."
 						) ;
 					}
 					if( value_type != eAlleleIndex ) {
 						throw BadArgumentError(
-							"genfile::vcf::impl::CallReaderGenotypeSetter::set_order_type()",
+							"genfile::vcf::impl::CallReaderGenotypeSetter::set_ordeset_number_of_entriesr_type()",
 							"value_type",
 							"Expected value_type = eAlleleIndex for genotype field."
+						) ;
+					}
+					if( ploidy != n ) {
+						throw BadArgumentError(
+							"genfile::vcf::impl::CallReaderGenotypeSetter::set_orderset_number_of_entries_type()",
+							"n",
+							"Expected n == ploidy"
 						) ;
 					}
 					m_ploidies[ m_sample_i ] = n ;
@@ -181,7 +188,7 @@ namespace genfile {
 						assert( m_genotype_calls.size() >= ( index + ploidy ) ) ;
 						setter.set_sample( sample_i ) ;
 						setter.set_number_of_entries(
-							ploidy,
+							ploidy, ploidy,
 							m_order_types[ sample_i ],
 							eAlleleIndex
 						) ;
@@ -258,7 +265,7 @@ namespace genfile {
 			) {
 				try {
 					genotype_setter.set_sample( sample_i ) ;
-					m_genotype_call_entry_type.parse( m_components[ component_index + GT_field_pos ], m_number_of_alleles, genotype_setter ) ;
+					m_genotype_call_entry_type.parse( m_components[ component_index + GT_field_pos ], m_number_of_alleles, eUnknownPloidy, genotype_setter ) ;
 					total_number_of_calls += m_ploidy[ sample_i ] ;
 					m_order_types[ sample_i ] = genotype_setter.get_order_type() ;
 				}
@@ -311,41 +318,24 @@ namespace genfile {
 			// Decide if element is trailing (so not specified).
 			bool const elt_is_trailing = (( begin_components + field_i ) >= end_components ) ;
 			// std::cerr << "CallReader::unsafe_set_values(): sample_i=" << sample_i << ", field_i=" << field_i << ".\n" ;
+			uint32_t ploidy = eUnknownPloidy ;
 			if( entry_type.check_if_requires_ploidy() ) {
 				assert( m_ploidy.size() == m_number_of_samples ) ;
-				std::size_t ploidy = m_ploidy[ sample_i ] ;
-				if( elt_is_trailing ) {
-					entry_type.get_missing_value( m_number_of_alleles, ploidy, setter ) ;
-				}
-				else {
-					try {
-						entry_type.parse( *(begin_components + field_i ), m_number_of_alleles, ploidy, setter ) ;
-					}
-					catch( BadArgumentError const& ) {
-						if( m_strict_mode ) {
-							throw ;
-						} else {
-							// parse error, set missing value.
-							entry_type.get_missing_value( m_number_of_alleles, ploidy, setter ) ;
-						}
-					}
-				}
+				ploidy = m_ploidy[ sample_i ] ;
+			}
+			if( elt_is_trailing ) {
+				entry_type.get_missing_value( m_number_of_alleles, ploidy, setter ) ;
 			}
 			else {
-				if( elt_is_trailing ) {
-					entry_type.get_missing_value( m_number_of_alleles, setter ) ;
+				try {
+					entry_type.parse( *(begin_components + field_i ), m_number_of_alleles, ploidy, setter ) ;
 				}
-				else {
-					try {
-						entry_type.parse( *(begin_components + field_i), m_number_of_alleles, setter ) ;
-					}
-					catch( BadArgumentError const& ) {
-						if( m_strict_mode ) {
-							throw ;
-						} else {
-							// parse error, set missing value.
-							entry_type.get_missing_value( m_number_of_alleles, setter ) ;
-						}
+				catch( BadArgumentError const& ) {
+					if( m_strict_mode ) {
+						throw ;
+					} else {
+						// parse error, set missing value.
+						entry_type.get_missing_value( m_number_of_alleles, ploidy, setter ) ;
 					}
 				}
 			}

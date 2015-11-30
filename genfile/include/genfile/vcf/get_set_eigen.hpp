@@ -242,7 +242,7 @@ namespace genfile {
 				return true ;
 			}
 
-			void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
+			void set_number_of_entries( uint32_t, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 				if( n != 2 ) {
 					throw BadArgumentError( "genfile::vcf::PhasedGenotypeSetter::set_number_of_entries()", "Only a value of 2 is supported." ) ;
 				}

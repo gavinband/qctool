@@ -64,7 +64,7 @@ namespace genfile {
 				return true ;
 			}
 
-			void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
+			void set_number_of_entries( uint32_t, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 				if( n != m_number_of_alleles || order_type != ePerAllele ) {
 					throw genfile::BadArgumentError(
 						"genfile::IntensityWriter::set_number_of_entries()",

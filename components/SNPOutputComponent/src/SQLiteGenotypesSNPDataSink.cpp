@@ -167,7 +167,7 @@ namespace {
 			// nothing to do.
 			return true ;
 		}
-		void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
+		void set_number_of_entries( uint32_t, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 			if( n != m_expected_number_if_entries ) {
 				m_buffer_validity[ eBITPACK ] = false ;
 				throw genfile::BadArgumentError(
@@ -274,7 +274,7 @@ namespace {
 			m_writer.set_sample(i) ;
 			return true ;
 		}
-		void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
+		void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 			if(
 				!(
 					( order_type == genfile::ePerSample && n == 1 )
@@ -291,7 +291,7 @@ namespace {
 			m_order_type = order_type ;
 			m_value_type = value_type ;
 
-			m_writer.set_number_of_entries( 3, genfile::ePerUnorderedGenotype, genfile::eProbability ) ;
+			m_writer.set_number_of_entries( 2, 3, genfile::ePerUnorderedGenotype, genfile::eProbability ) ;
 			m_allele_prob_i = 0 ;
 			m_genotype_prob_i = 0 ;
 			m_genotype_probs[0] = m_genotype_probs[1] = m_genotype_probs[2] = -1.0 ; // encode missingness as -1

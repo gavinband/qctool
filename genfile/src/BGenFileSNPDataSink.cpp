@@ -67,7 +67,7 @@ namespace genfile {
 	std::string BasicBGenFileSNPDataSink::get_spec() const { return m_filename ; }
 
 	BasicBGenFileSNPDataSink::operator bool() const { return m_stream_ptr->good() ; }
-	
+
 	void BasicBGenFileSNPDataSink::write_snp_impl(
 		uint32_t number_of_samples,
 		std::string SNPID,

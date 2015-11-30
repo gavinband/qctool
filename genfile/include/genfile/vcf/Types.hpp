@@ -51,8 +51,7 @@ namespace genfile {
 			typedef genfile::OrderType OrderType ;
 			typedef genfile::ValueType ValueType ;
 			virtual ~EntriesSetter() throw() {}
-			// Prepare to receive values for given sample.
-			virtual void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) = 0 ;
+			virtual void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) = 0 ;
 		} ;
 
 		struct PerSampleEntriesSetter: public vcf::EntriesSetter, public boost::noncopyable {
@@ -73,48 +72,57 @@ namespace genfile {
 			virtual void parse( string_utils::slice const& value, EntrySetter& setter ) const = 0 ;
 			Entry parse( string_utils::slice const& value ) const ;
 			virtual std::string to_string() const = 0 ;
-			virtual ValueType genotype_value_type() const { return eUnknownValueType ; } ;
+			virtual ValueType represented_type() const = 0 ;
 		} ;
 		
 		struct StringType: public SimpleType {
 			using SimpleType::parse ;
 			void parse( string_utils::slice const& value, EntrySetter& setter ) const ;
 			std::string to_string() const { return "String" ; }
+			ValueType represented_type() const { return eUnknownValueType ; }
 		} ;
 		
 		struct IntegerType: public SimpleType {
+			IntegerType( ValueType value_type = eUnknownValueType ): m_value_type( value_type ) {}
 			using SimpleType::parse ;
 			void parse( string_utils::slice const& value, EntrySetter& setter ) const ;
 			std::string to_string() const { return "Integer" ; }
+			ValueType represented_type() const { return m_value_type ; }
+		private:
+			ValueType const m_value_type ;
 		} ;
 
 		struct FloatType: public SimpleType {
 			using SimpleType::parse ;
 			void parse( string_utils::slice const& value, EntrySetter& setter ) const ;
 			std::string to_string() const { return "Float" ; }
+			ValueType represented_type() const { return eUnknownValueType ; }
 		} ;
 
 		struct ProbabilityType: public FloatType {
 			std::string to_string() const { return "Probability" ; }
-			ValueType genotype_value_type() const { return eProbability ; } ;
+			ValueType represented_type() const { return eProbability ; } ;
 		} ;
 
 		struct PhredScaleFloatType: public SimpleType {
 			using SimpleType::parse ;
 			void parse( string_utils::slice const& value, EntrySetter& setter ) const ;
 			std::string to_string() const { return "PhredScaleFloat" ; }
+			ValueType represented_type() const { return eProbability ; }
 		} ;
 
 		struct CharacterType: public SimpleType {
 			using SimpleType::parse ;
 			void parse( string_utils::slice const& value, EntrySetter& setter ) const ;
 			std::string to_string() const { return "Character" ; }
+			ValueType represented_type() const { return eUnknownValueType ; }
 		} ;
 
 		struct FlagType: public SimpleType {
 			using SimpleType::parse ;
 			void parse( string_utils::slice const& value, EntrySetter& setter ) const ;
 			std::string to_string() const { return "Flag" ; }
+			ValueType represented_type() const { return eFlag ; }
 		} ;
 		
 		struct VCFEntryType: public boost::noncopyable
@@ -128,35 +136,17 @@ namespace genfile {
 		public:
 			VCFEntryType( SimpleType::UniquePtr type ) ;
 			virtual ~VCFEntryType() {}
-
-			virtual void parse( string_utils::slice const&, std::size_t number_of_alleles, std::size_t ploidy, EntriesSetter& setter ) const ;
-			virtual void parse( string_utils::slice const&, std::size_t number_of_alleles, EntriesSetter& setter ) const ;
-
-			// Convenience functions for testing purposes interface.
-			// This interface is deprecated because it involves lots of small memory allocations, which
-			// slows things down too much.
-			std::vector< Entry > parse( string_utils::slice const&, std::size_t number_of_alleles, std::size_t ploidy ) const ;
-			std::vector< Entry > parse( string_utils::slice const&, std::size_t number_of_alleles ) const ;
-
-			virtual void get_missing_value( std::size_t number_of_alleles, std::size_t ploidy, EntriesSetter& setter ) const = 0 ;
-			virtual void get_missing_value( std::size_t number_of_alleles, EntriesSetter& setter ) const = 0 ;
+			// Parse a value returning values into the setter object.
+			virtual void parse( string_utils::slice const&, std::size_t number_of_alleles, uint32_t ploidy, EntriesSetter& setter ) const = 0 ;
+			// Return a set of missing values into the setter object.
+			virtual void get_missing_value( std::size_t number_of_alleles, uint32_t ploidy, EntriesSetter& setter ) const = 0 ;
+			// Return true if the entry type requires a valid (non-missing) ploidy value
+			// in order to parse.
 			virtual bool check_if_requires_ploidy() const = 0 ;
-
-			virtual SimpleType const& get_type() const { return *m_type ; }
-			virtual void set_types( std::size_t nElements, EntriesSetter& setter ) const = 0 ;
-		protected:
-			virtual std::vector< string_utils::slice > lex(
-				string_utils::slice const& value,
-				std::size_t number_of_alleles,
-				std::size_t ploidy
-			) const = 0 ;
-
-			virtual std::vector< string_utils::slice > lex(
-				string_utils::slice const& value,
-				std::size_t number_of_alleles
-			) const = 0 ;
-
-			void parse_elts( std::vector< string_utils::slice > const& elts, EntriesSetter& setter ) const ;
+			// Return the underlying value type
+			SimpleType const& get_value_type() const { return *m_type ; }
+			
+			std::string const& missing_value() const { return m_missing_value ; }
 		protected:
 			static std::string m_missing_value ;
 		private:
@@ -165,75 +155,79 @@ namespace genfile {
 		
 		struct ListVCFEntryType: public VCFEntryType {
 			ListVCFEntryType( SimpleType::UniquePtr type ): VCFEntryType( type ) {}
-
-			std::vector< string_utils::slice > lex( string_utils::slice const& value, std::size_t number_of_alleles, std::size_t ploidy ) const ;
-			std::vector< string_utils::slice > lex( string_utils::slice const& value, std::size_t number_of_alleles ) const ;
-
-			virtual void get_missing_value( std::size_t number_of_alleles, std::size_t ploidy, EntriesSetter& setter ) const ;
-			virtual void get_missing_value( std::size_t number_of_alleles, EntriesSetter& setter ) const ;
+			void parse( string_utils::slice const&, std::size_t number_of_alleles, uint32_t ploidy, EntriesSetter& setter ) const ;
+			void get_missing_value( std::size_t number_of_alleles, uint32_t ploidy, EntriesSetter& setter ) const ;
+			// Return the range of valid possible value counts.
 			typedef std::pair< std::size_t, std::size_t > ValueCountRange ;
-			virtual ValueCountRange get_value_count_range( std::size_t number_of_alleles, std::size_t ploidy ) const ;
-			virtual ValueCountRange get_value_count_range( std::size_t number_of_alleles ) const = 0 ;
-			bool check_if_requires_ploidy() const { return false ; }
-			void set_types( std::size_t nElements, EntriesSetter& setter ) const ;
+			virtual ValueCountRange get_value_count_range( std::size_t number_of_alleles, uint32_t ploidy ) const = 0 ;
+		protected:
+			// A list entry type has a specific order type, statically known.
+			virtual OrderType const get_order_type() const = 0 ;
+		private:
+			std::vector< string_utils::slice > m_storage ;
 		} ;
 		
 		struct FixedNumberVCFEntryType: public ListVCFEntryType {
 			FixedNumberVCFEntryType( std::size_t number, SimpleType::UniquePtr type ) ;
-			ValueCountRange get_value_count_range( std::size_t ) const { return ValueCountRange( m_number, m_number ) ; }
+			ValueCountRange get_value_count_range( std::size_t, uint32_t ) const { return ValueCountRange( m_number, m_number ) ; }
+			bool check_if_requires_ploidy() const { return false ; }
+			OrderType const get_order_type() const { return eOrderedList ; }
 		private:
 			std::size_t m_number ;
 		} ;
 
 		struct DynamicNumberVCFEntryType: public ListVCFEntryType {
 			DynamicNumberVCFEntryType( SimpleType::UniquePtr type ): ListVCFEntryType( type ) {} ;
-			ValueCountRange get_value_count_range( std::size_t ) const {
+			ValueCountRange get_value_count_range( std::size_t, uint32_t ) const {
 				return ValueCountRange( 0, std::numeric_limits< std::size_t >::max() ) ;
 			}
+			bool check_if_requires_ploidy() const { return false ; }
+			OrderType const get_order_type() const { return eOrderedList ; }
 		} ;
 		
 		struct OnePerAlternateAlleleVCFEntryType: public ListVCFEntryType {
 			OnePerAlternateAlleleVCFEntryType( SimpleType::UniquePtr type ): ListVCFEntryType( type ) {} ;
-			ValueCountRange get_value_count_range( std::size_t number_of_alleles ) const {
+			ValueCountRange get_value_count_range( std::size_t number_of_alleles, uint32_t /* ploidy */ ) const {
 				assert( number_of_alleles > 0 ) ;
 				return ValueCountRange( number_of_alleles - 1, number_of_alleles - 1 ) ;
 			}
-			void set_types( std::size_t nElements, EntriesSetter& setter ) const ;
+			bool check_if_requires_ploidy() const { return false ; }
+			OrderType const get_order_type() const { return eOrderedList ; }
 		} ;
 		
 		struct OnePerAlleleVCFEntryType: public ListVCFEntryType {
 			OnePerAlleleVCFEntryType( SimpleType::UniquePtr type ): ListVCFEntryType( type ) {} ;
-			ValueCountRange get_value_count_range( std::size_t number_of_alleles ) const {
+			ValueCountRange get_value_count_range( std::size_t number_of_alleles, uint32_t /* ploidy */ ) const {
 				return ValueCountRange( number_of_alleles, number_of_alleles ) ;
 			}
-			void set_types( std::size_t nElements, EntriesSetter& setter ) const ;
+			bool check_if_requires_ploidy() const { return false ; }
+			OrderType const get_order_type() const { return ePerAllele ; }
 		} ;
 		
 		struct OnePerGenotypeVCFEntryType: public ListVCFEntryType {
 			OnePerGenotypeVCFEntryType( SimpleType::UniquePtr type ): ListVCFEntryType( type ) {} ;
-			ValueCountRange get_value_count_range( std::size_t number_of_alleles, std::size_t ploidy ) const ;
-			ValueCountRange get_value_count_range( std::size_t number_of_alleles ) const ;
+			ValueCountRange get_value_count_range( std::size_t number_of_alleles, uint32_t ploidy ) const ;
 			bool check_if_requires_ploidy() const { return true ; }
-			void set_types( std::size_t nElements, EntriesSetter& setter ) const ;
+			OrderType const get_order_type() const { return ePerUnorderedGenotype ; }
 		} ;
 
 		struct GenotypeCallVCFEntryType: public VCFEntryType {
 			GenotypeCallVCFEntryType() ;
 
-			std::vector< string_utils::slice > lex( string_utils::slice const& value, std::size_t number_of_alleles, std::size_t ploidy ) const ;
-			std::vector< string_utils::slice > lex( string_utils::slice const& value, std::size_t number_of_alleles ) const ;
-			void get_missing_value( std::size_t number_of_alleles, std::size_t ploidy, EntriesSetter& setter ) const ;
-			void get_missing_value( std::size_t number_of_alleles, EntriesSetter& setter ) const ;
+			// Parse a value returning values into the setter object.
+			void parse( string_utils::slice const&, std::size_t number_of_alleles, uint32_t ploidy, EntriesSetter& setter ) const ;
+			// Return a set of missing values into the setter object.
+			void get_missing_value( std::size_t number_of_alleles, uint32_t ploidy, EntriesSetter& setter ) const ;
+			// Return true if the entry type requires a valid (non-missing) ploidy value
+			// in order to parse.
+			bool check_if_requires_ploidy() const { return false ; }
+//			ValueCountRange get_value_count_range( std::size_t number_of_alleles, uint32_t ploidy ) const ;
 
-			bool check_if_requires_ploidy() const { return false; }
-			void set_types( std::size_t nElements, EntriesSetter& setter ) const {
-				/* do nothing, this is handled in parse() */
-			}
-
-			// A special use of the genotype call is to infer ploidy for the other data.
-			// For this use we need to specialise the parse() function.
-			using VCFEntryType::parse ;
-			void parse( string_utils::slice const& value, std::size_t number_of_alleles, EntriesSetter& setter ) const ;
+		private:
+			std::string const m_missing_value ;
+			void lex( string_utils::slice const& value, std::vector< string_utils::slice >* result ) const ;
+			// Parse a value returning values into the setter object.
+			void parse_impl( string_utils::slice const&, std::size_t number_of_alleles, EntriesSetter& setter ) const ;
 		} ;
 
 		std::auto_ptr< boost::ptr_map< std::string, VCFEntryType > > get_entry_types(

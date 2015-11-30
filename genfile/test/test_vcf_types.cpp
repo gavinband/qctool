@@ -142,6 +142,43 @@ AUTO_TEST_CASE( test_float ) {
 	std::cerr << "ok.\n" ;
 }
 
+namespace {
+	void insert_elt(
+		std::vector< Entry >* destination,
+		Entry const& value
+	) {
+		destination->push_back( value ) ;
+	}
+
+	struct VariantEntriesEntriesSetter: public EntriesSetter {
+		VariantEntriesEntriesSetter( std::vector< Entry >& entries ): m_entries( entries ), entry_i( 0 ) {} 
+		void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
+			m_entries.resize( n ) ;
+		}
+		virtual void set_value( genfile::MissingValue const value ) { m_entries[ entry_i++ ] = value ; }
+		virtual void set_value( std::string& value ) { m_entries[ entry_i++ ] = value ; }
+		virtual void set_value( Integer const value ) { m_entries[ entry_i++ ] = value ; }
+		virtual void set_value( double const value ) { m_entries[ entry_i++ ] = value ; }
+	private:
+		std::vector< Entry >& m_entries ;
+		std::size_t entry_i ;
+	} ;
+
+	template <typename Type >
+	std::vector< Entry > parse(
+		Type const& type,
+		std::string const& value,
+		std::size_t n_alleles,
+		uint32_t ploidy
+	) {
+		std::vector< Entry > result ;
+		VariantEntriesEntriesSetter setter( result ) ;
+		type.parse( value, n_alleles, ploidy, setter ) ;
+		return result ;
+	}
+	
+	
+}
 AUTO_TEST_CASE( test_fixed_number_entry_type ) {
 	std::cerr << "test_fixed_number_entry_type()..." ;
 
@@ -156,27 +193,27 @@ AUTO_TEST_CASE( test_fixed_number_entry_type ) {
 				Result r, rp ;
 				{
 					FixedNumberVCFEntryType type( 0, SimpleType::create( "Integer" ) ) ;
-					r = type.parse( std::string( "" ), n_alleles ) ;
-					rp = type.parse( std::string( "" ), n_alleles, ploidy ) ;
+					r = parse( type, std::string( "" ), n_alleles, ploidy ) ;
+					rp = parse( type, std::string( "" ), n_alleles, ploidy ) ;
 					TEST_ASSERT( r == rp ) ;
 					TEST_ASSERT( r.size() == 0 ) ;
 				}
 				{
 					FixedNumberVCFEntryType type( 1, SimpleType::create( "Integer" ) ) ;
-					r = type.parse( std::string( "1" ), n_alleles ) ;
-					rp = type.parse( std::string( "1" ), n_alleles, ploidy ) ;
+					r = parse( type, std::string( "1" ), n_alleles, ploidy ) ;
+					rp = parse( type, std::string( "1" ), n_alleles, ploidy ) ;
 					TEST_ASSERT( r == rp ) ;
 					TEST_ASSERT( r.size() == 1 ) ;
 					TEST_ASSERT( r[0] == Entry( 1 )) ;
 
-					r = type.parse( std::string( "5" ), n_alleles ) ;
-					rp = type.parse( std::string( "5" ), n_alleles, ploidy ) ;
+					r = parse( type, std::string( "5" ), n_alleles, ploidy ) ;
+					rp = parse( type, std::string( "5" ), n_alleles, ploidy ) ;
 					TEST_ASSERT( r == rp ) ;
 					TEST_ASSERT( r.size() == 1 ) ;
 					TEST_ASSERT( r[0] == Entry( 5 )) ;
 
-					r = type.parse( std::string( "-1000" ), n_alleles ) ;
-					rp = type.parse( std::string( "-1000" ), n_alleles, ploidy ) ;
+					r = parse( type, std::string( "-1000" ), n_alleles, ploidy ) ;
+					rp = parse( type, std::string( "-1000" ), n_alleles, ploidy ) ;
 					TEST_ASSERT( r == rp ) ;
 					TEST_ASSERT( r.size() == 1 ) ;
 					TEST_ASSERT( r[0] == Entry( -1000 )) ;
@@ -184,8 +221,8 @@ AUTO_TEST_CASE( test_fixed_number_entry_type ) {
 
 				{
 					FixedNumberVCFEntryType type( 5, SimpleType::create( "Integer" ) ) ;
-					r = type.parse( std::string( "1,2,3,4,5" ), n_alleles ) ;
-					rp = type.parse( std::string( "1,2,3,4,5" ), n_alleles, ploidy ) ;
+					r = parse( type, std::string( "1,2,3,4,5" ), n_alleles, ploidy ) ;
+					rp = parse( type, std::string( "1,2,3,4,5" ), n_alleles, ploidy ) ;
 					TEST_ASSERT( r == rp ) ;
 					TEST_ASSERT( r.size() == 5 ) ;
 					TEST_ASSERT( r[0] == Entry( 1 )) ;
@@ -194,8 +231,8 @@ AUTO_TEST_CASE( test_fixed_number_entry_type ) {
 					TEST_ASSERT( r[3] == Entry( 4 )) ;
 					TEST_ASSERT( r[4] == Entry( 5 )) ;
 
-					r = type.parse( std::string( "5,4,.,0,-1" ), n_alleles ) ;
-					rp = type.parse( std::string( "5,4,.,0,-1" ), n_alleles, ploidy ) ;
+					r = parse( type, std::string( "5,4,.,0,-1" ), n_alleles, ploidy ) ;
+					rp = parse( type, std::string( "5,4,.,0,-1" ), n_alleles, ploidy ) ;
 					TEST_ASSERT( r == rp ) ;
 					TEST_ASSERT( r.size() == 5 ) ;
 					TEST_ASSERT( r[0] == Entry( 5 )) ;
@@ -204,8 +241,8 @@ AUTO_TEST_CASE( test_fixed_number_entry_type ) {
 					TEST_ASSERT( r[3] == Entry( 0 )) ;
 					TEST_ASSERT( r[4] == Entry( -1 )) ;
 
-					r = type.parse( std::string( ".,.,.,.,." ), n_alleles ) ;
-					rp = type.parse( std::string( ".,.,.,.,." ), n_alleles, ploidy ) ;
+					r = parse( type, std::string( ".,.,.,.,." ), n_alleles, ploidy ) ;
+					rp = parse( type, std::string( ".,.,.,.,." ), n_alleles, ploidy ) ;
 					TEST_ASSERT( r == rp ) ;
 					TEST_ASSERT( r.size() == 5 ) ;
 					TEST_ASSERT( r[0] == Entry( MissingValue() )) ;
@@ -217,177 +254,179 @@ AUTO_TEST_CASE( test_fixed_number_entry_type ) {
 			}
 		}
 	}
+
+	uint32_t const ploidy = genfile::eUnknownPloidy ;
 	
 	// Now check lots of parseable and non-parseable values.
 	for( std::size_t n_alleles = 0; n_alleles < 100; ++n_alleles ) {
 		FixedNumberVCFEntryType type( 0, SimpleType::create( "Integer" ) ) ;
 		FixedNumberVCFEntryType type2( 0, SimpleType::create( "String" ) ) ;
-		try { type.parse( std::string( "" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "1" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "-1" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "." ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( ".,." ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2,3" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,.,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "A,.,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2-3,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "A,.,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "1,2-3,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "1,2," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "1" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "-1" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "." ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( ".,." ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2,3" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "A,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2-3,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "A,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "1,2-3,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "1,2," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
 
-		try { type.parse( std::string( "1,2.," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "1,2.," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "3.5" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "3.5" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2.," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "1,2.," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "3.5" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "3.5" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
 	}
 
 	for( std::size_t n_alleles = 0; n_alleles < 100; ++n_alleles ) {
 		FixedNumberVCFEntryType type( 1, SimpleType::create( "Integer" ) ) ;
 		FixedNumberVCFEntryType type2( 1, SimpleType::create( "String" ) ) ;
-		try { type.parse( std::string( "" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "2" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "-1" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "." ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "1,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,." ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( ".,1" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( ".,." ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "-1,-1" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2,3" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,.,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "-1,.,-2000" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "A,.,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2-3,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "A,.,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "1,2-3,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "1,2," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "2" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "-1" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "." ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "1,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,." ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( ".,1" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( ".,." ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "-1,-1" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2,3" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "-1,.,-2000" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "A,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2-3,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "A,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "1,2-3,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "1,2," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
 
-		try { type.parse( std::string( "1,2.," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "1,2.," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "3.5" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "3.5" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "1,2.," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "1,2.," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "3.5" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "3.5" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
 	}
 
 	for( std::size_t n_alleles = 0; n_alleles < 100; ++n_alleles ) {
 		FixedNumberVCFEntryType type( 2, SimpleType::create( "Integer" ) ) ;
 		FixedNumberVCFEntryType type2( 2, SimpleType::create( "String" ) ) ;
-		try { type.parse( std::string( "" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "-1" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "." ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "1,2" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( ".,." ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "-1,-1" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "1,2,3" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,.,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "-1,.,-2000" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "A,.,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2-3,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "A,.,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "1,2-3,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "1,2," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "-1" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "." ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "1,2" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( ".,." ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "-1,-1" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "1,2,3" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "-1,.,-2000" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "A,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2-3,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "A,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "1,2-3,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "1,2," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
 
-		try { type.parse( std::string( "1,2.," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "1,2.," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "3.5" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type2.parse( std::string( "3.5" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "1,2.," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "1,2.," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "3.5" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type2, std::string( "3.5" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
 	}
 
 	for( std::size_t n_alleles = 0; n_alleles < 100; ++n_alleles ) {
 		FixedNumberVCFEntryType type( 3, SimpleType::create( "Integer" ) ) ;
 		FixedNumberVCFEntryType type2( 3, SimpleType::create( "String" ) ) ;
-		try { type.parse( std::string( "" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "-1" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "." ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "1,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( ".,." ), n_alleles ) ; TEST_ASSERT(0) ;  } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "-1,-1" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2,3" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "1,.,2" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "-1,.,-2000" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "A,.,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2-3,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "A,.,2" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type2.parse( std::string( "1,2-3,2" ), n_alleles ) ;  } catch( BadArgumentError const& ) { TEST_ASSERT(0) ;}
-		try { type2.parse( std::string( "1,2," ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "-1" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "." ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "1,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( ".,." ), n_alleles, ploidy ) ; TEST_ASSERT(0) ;  } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "-1,-1" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2,3" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "1,.,2" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "-1,.,-2000" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "A,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2-3,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "A,.,2" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type2, std::string( "1,2-3,2" ), n_alleles, ploidy ) ;  } catch( BadArgumentError const& ) { TEST_ASSERT(0) ;}
+		try { parse(  type2, std::string( "1,2," ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
 
-		try { type.parse( std::string( "1,2.," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "1,2.," ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "3.5" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type2.parse( std::string( "3.5" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "1,2.," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "1,2.," ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "3.5" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type2, std::string( "3.5" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
 	}
 
 	for( std::size_t n_alleles = 0; n_alleles < 100; ++n_alleles ) {
 		FixedNumberVCFEntryType type( 10, SimpleType::create( "Integer" ) ) ;
 		FixedNumberVCFEntryType type2( 10, SimpleType::create( "String" ) ) ;
-		try { type.parse( std::string( "" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "-1" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "." ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "1,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( ".,." ), n_alleles ) ; TEST_ASSERT(0) ;  } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "-1,-1" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2,3" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "1,.,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {  }
-		try { type.parse( std::string( "-1,.,-2000" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "1,.,2,3,3,50,50,.,76,." ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "A,.,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2-3,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "A,.,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "1,2-3,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "1,2," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "-1" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "." ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "1,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( ".,." ), n_alleles, ploidy ) ; TEST_ASSERT(0) ;  } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "-1,-1" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2,3" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "1,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {  }
+		try { parse(  type, std::string( "-1,.,-2000" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "1,.,2,3,3,50,50,.,76,." ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "A,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2-3,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "A,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "1,2-3,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "1,2," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
 
-		try { type.parse( std::string( "1,2.," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "1,2.," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "3.5" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type2.parse( std::string( "3.5" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "1,2.," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "1,2.," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "3.5" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type2, std::string( "3.5" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
 	}
 
 	for( std::size_t n_alleles = 0; n_alleles < 100; ++n_alleles ) {
 		FixedNumberVCFEntryType type( 300, SimpleType::create( "Integer" ) ) ;
 		FixedNumberVCFEntryType type2( 300, SimpleType::create( "String" ) ) ;
 		
-		try { type.parse( std::string( "" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "-1" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "." ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "1,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( ".,." ), n_alleles ) ; TEST_ASSERT(0) ;  } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "-1,-1" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2,3" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "1,.,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {  }
-		try { type.parse( std::string( "-1,.,-2000" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "1,.,2,3,3,50,50,.,76,." ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "A,.,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2-3,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "A,.,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "1,2-3,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "1,2," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "-1" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "." ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "1,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( ".,." ), n_alleles, ploidy ) ; TEST_ASSERT(0) ;  } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "-1,-1" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2,3" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "1,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {  }
+		try { parse(  type, std::string( "-1,.,-2000" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "1,.,2,3,3,50,50,.,76,." ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "A,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2-3,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "A,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "1,2-3,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "1,2," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
 
-		try { type.parse( std::string( "1,2.," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "1,2.," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type.parse( std::string( "3.5" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
-		try { type2.parse( std::string( "3.5" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "1,2.," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "1,2.," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type, std::string( "3.5" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
+		try { parse(  type2, std::string( "3.5" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) { }
 	}
 
 	std::cerr << "ok.\n" ;
@@ -406,31 +445,31 @@ AUTO_TEST_CASE( test_dynamic_number_entry_type ) {
 		for( std::size_t ploidy = 0; ploidy < 10; ++ploidy ) {
 			for( std::size_t n_alleles = 0; n_alleles < 10; ++n_alleles ) {
 				Result r, rp ;
-				r = type.parse( std::string( "" ), n_alleles ) ;
-				rp = type.parse( std::string( "" ), n_alleles, ploidy ) ;
+				r = parse(  type, std::string( "" ), n_alleles, ploidy ) ;
+				rp = parse( type, std::string( "" ), n_alleles, ploidy ) ;
 				TEST_ASSERT( r == rp ) ;
 				TEST_ASSERT( r.size() == 0 ) ;
 
-				r = type.parse( std::string( "1" ), n_alleles ) ;
-				rp = type.parse( std::string( "1" ), n_alleles, ploidy ) ;
+				r = parse(  type, std::string( "1" ), n_alleles, ploidy ) ;
+				rp = parse( type, std::string( "1" ), n_alleles, ploidy ) ;
 				TEST_ASSERT( r == rp ) ;
 				TEST_ASSERT( r.size() == 1 ) ;
 				TEST_ASSERT( r[0] == Entry( 1 )) ;
 
-				r = type.parse( std::string( "5" ), n_alleles ) ;
-				rp = type.parse( std::string( "5" ), n_alleles, ploidy ) ;
+				r = parse(  type, std::string( "5" ), n_alleles, ploidy ) ;
+				rp = parse( type, std::string( "5" ), n_alleles, ploidy ) ;
 				TEST_ASSERT( r == rp ) ;
 				TEST_ASSERT( r.size() == 1 ) ;
 				TEST_ASSERT( r[0] == Entry( 5 )) ;
 
-				r = type.parse( std::string( "-1000" ), n_alleles ) ;
-				rp = type.parse( std::string( "-1000" ), n_alleles, ploidy ) ;
+				r = parse(  type, std::string( "-1000" ), n_alleles, ploidy ) ;
+				rp = parse( type, std::string( "-1000" ), n_alleles, ploidy ) ;
 				TEST_ASSERT( r == rp ) ;
 				TEST_ASSERT( r.size() == 1 ) ;
 				TEST_ASSERT( r[0] == Entry( -1000 )) ;
 
-				r = type.parse( std::string( "1,2,3,4,5" ), n_alleles ) ;
-				rp = type.parse( std::string( "1,2,3,4,5" ), n_alleles, ploidy ) ;
+				r = parse(  type, std::string( "1,2,3,4,5" ), n_alleles, ploidy ) ;
+				rp = parse( type, std::string( "1,2,3,4,5" ), n_alleles, ploidy ) ;
 				TEST_ASSERT( r == rp ) ;
 				TEST_ASSERT( r.size() == 5 ) ;
 				TEST_ASSERT( r[0] == Entry( 1 )) ;
@@ -439,8 +478,8 @@ AUTO_TEST_CASE( test_dynamic_number_entry_type ) {
 				TEST_ASSERT( r[3] == Entry( 4 )) ;
 				TEST_ASSERT( r[4] == Entry( 5 )) ;
 
-				r = type.parse( std::string( "5,4,.,0,-1" ), n_alleles ) ;
-				rp = type.parse( std::string( "5,4,.,0,-1" ), n_alleles, ploidy ) ;
+				r = parse(  type, std::string( "5,4,.,0,-1" ), n_alleles, ploidy ) ;
+				rp = parse( type, std::string( "5,4,.,0,-1" ), n_alleles, ploidy ) ;
 				TEST_ASSERT( r == rp ) ;
 				TEST_ASSERT( r.size() == 5 ) ;
 				TEST_ASSERT( r[0] == Entry( 5 )) ;
@@ -449,8 +488,8 @@ AUTO_TEST_CASE( test_dynamic_number_entry_type ) {
 				TEST_ASSERT( r[3] == Entry( 0 )) ;
 				TEST_ASSERT( r[4] == Entry( -1 )) ;
 
-				r = type.parse( std::string( ".,.,.,.,." ), n_alleles ) ;
-				rp = type.parse( std::string( ".,.,.,.,." ), n_alleles, ploidy ) ;
+				r = parse(  type, std::string( ".,.,.,.,." ), n_alleles, ploidy ) ;
+				rp = parse( type, std::string( ".,.,.,.,." ), n_alleles, ploidy ) ;
 				TEST_ASSERT( r == rp ) ;
 				TEST_ASSERT( r.size() == 5 ) ;
 				TEST_ASSERT( r[0] == Entry( MissingValue() )) ;
@@ -462,29 +501,30 @@ AUTO_TEST_CASE( test_dynamic_number_entry_type ) {
 		}
 	}
 
+	uint32_t const ploidy = genfile::eUnknownPloidy ;
 	// test the boundaries of parseability
 	for( std::size_t n_alleles = 0; n_alleles < 100; ++n_alleles ) {
 		DynamicNumberVCFEntryType type( SimpleType::create( "Integer" ) ) ;
 		DynamicNumberVCFEntryType type2( SimpleType::create( "String" ) ) ;
-		try { type.parse( std::string( "" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "2" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "-1" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "." ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "1,2" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( ".,." ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "-1,-1" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "1,2,3" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "1,.,2" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "-1,.,-2000" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "1,.,2,3,3,50,50,.,76,." ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type.parse( std::string( "A,.,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2-3,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "A,.,2" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type2.parse( std::string( "1,2-3,2" ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
-		try { type2.parse( std::string( "1,2," ), n_alleles ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "2" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "-1" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "." ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "1,2" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( ".,." ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "-1,-1" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "1,2,3" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "1,.,2" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "-1,.,-2000" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "1,.,2,3,3,50,50,.,76,." ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type, std::string( "A,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2-3,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "A,.,2" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type2, std::string( "1,2-3,2" ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
+		try { parse(  type2, std::string( "1,2," ), n_alleles, ploidy ) ; } catch( BadArgumentError const& ) { TEST_ASSERT(0) ; }
 	}
 	std::cerr << "ok.\n" ;
 }
@@ -499,20 +539,20 @@ AUTO_TEST_CASE( test_one_per_allele_entry_type ) {
 		OnePerAlleleVCFEntryType type( SimpleType::create( "Integer" ) ) ;
 		Result r, rp ;
 		for( std::size_t ploidy = 0; ploidy < 100; ++ploidy ) {
-			r = type.parse( std::string( "" ), 0 ) ;
-			rp = type.parse( std::string( "" ), 0, ploidy ) ;
+			r = parse(  type, std::string( "" ), 0, ploidy ) ;
+			rp = parse( type, std::string( "" ), 0, ploidy ) ;
 			TEST_ASSERT( r == rp ) ;
 			TEST_ASSERT( r.size() == 0 ) ;
 
-			r = type.parse( std::string( "5,6" ), 2 ) ;
-			rp = type.parse( std::string( "5,6" ), 2, ploidy ) ;
+			r = parse(  type, std::string( "5,6" ), 2, ploidy ) ;
+			rp = parse( type, std::string( "5,6" ), 2, ploidy ) ;
 			TEST_ASSERT( r == rp ) ;
 			TEST_ASSERT( r.size() == 2 ) ;
 			TEST_ASSERT( r[0] == Entry( 5 )) ;
 			TEST_ASSERT( r[1] == Entry( 6 )) ;
 
-			r = type.parse( std::string( "-1,.,5,." ), 4 ) ;
-			rp = type.parse( std::string( "-1,.,5,." ), 4, ploidy ) ;
+			r = parse(  type, std::string( "-1,.,5,." ), 4, ploidy ) ;
+			rp = parse( type, std::string( "-1,.,5,." ), 4, ploidy ) ;
 			TEST_ASSERT( r == rp ) ;
 			TEST_ASSERT( r.size() == 4 ) ;
 			TEST_ASSERT( r[0] == Entry( -1 )) ;
@@ -522,28 +562,29 @@ AUTO_TEST_CASE( test_one_per_allele_entry_type ) {
 		}
 	}
 	
+	uint32_t const ploidy = genfile::eUnknownPloidy ;
 	for( std::size_t n_alleles = 0; n_alleles < 100; ++n_alleles ) {
 		OnePerAlleleVCFEntryType type( SimpleType::create( "Integer" ) ) ;
 		OnePerAlleleVCFEntryType type2( SimpleType::create( "String" ) ) ;
-		try { type.parse( std::string( "" ), n_alleles ) ; TEST_ASSERT( n_alleles == 0 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 0 ) ; }
-		try { type.parse( std::string( "," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1" ), n_alleles ) ; TEST_ASSERT( n_alleles == 1 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 1 ) ; }
-		try { type.parse( std::string( "2" ), n_alleles ) ; TEST_ASSERT( n_alleles == 1 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 1 ) ; }
-		try { type.parse( std::string( "-1" ), n_alleles ) ; TEST_ASSERT( n_alleles == 1 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 1 ) ; }
-		try { type.parse( std::string( "." ), n_alleles ) ; TEST_ASSERT( n_alleles == 1 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 1 ) ; }
-		try { type.parse( std::string( "1,2" ), n_alleles ) ; TEST_ASSERT( n_alleles == 2 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 2 ) ; }
-		try { type.parse( std::string( ".,." ), n_alleles ) ; TEST_ASSERT( n_alleles == 2 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 2 ) ; }
-		try { type.parse( std::string( "-1,-1" ), n_alleles ) ; TEST_ASSERT( n_alleles == 2 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 2 ) ; }
-		try { type.parse( std::string( "1,2,3" ), n_alleles ) ; TEST_ASSERT( n_alleles == 3 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 3 ) ; }
-		try { type.parse( std::string( "1,.,2" ), n_alleles ) ; TEST_ASSERT( n_alleles == 3 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 3 ) ; }
-		try { type.parse( std::string( "-1,.,-2000" ), n_alleles ) ; TEST_ASSERT( n_alleles == 3 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 3 ) ; }
-		try { type.parse( std::string( "1,.,2,3,3,50,50,.,76,." ), n_alleles ) ; TEST_ASSERT( n_alleles == 10 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 10 ) ; }
-		try { type.parse( std::string( "A,.,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2-3,2" ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type.parse( std::string( "1,2," ), n_alleles ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
-		try { type2.parse( std::string( "A,.,2" ), n_alleles ) ; TEST_ASSERT( n_alleles == 3 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 3 ) ; }
-		try { type2.parse( std::string( "1,2-3,2" ), n_alleles ) ; TEST_ASSERT( n_alleles == 3 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 3 ) ; }
-		try { type2.parse( std::string( "1,2," ), n_alleles ) ; TEST_ASSERT( n_alleles == 3 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 3 ) ; }
+		try { parse(  type, std::string( "" ), n_alleles, ploidy ) ; TEST_ASSERT( n_alleles == 0 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 0 ) ; }
+		try { parse(  type, std::string( "," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1" ), n_alleles, ploidy ) ; TEST_ASSERT( n_alleles == 1 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 1 ) ; }
+		try { parse(  type, std::string( "2" ), n_alleles, ploidy ) ; TEST_ASSERT( n_alleles == 1 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 1 ) ; }
+		try { parse(  type, std::string( "-1" ), n_alleles, ploidy ) ; TEST_ASSERT( n_alleles == 1 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 1 ) ; }
+		try { parse(  type, std::string( "." ), n_alleles, ploidy ) ; TEST_ASSERT( n_alleles == 1 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 1 ) ; }
+		try { parse(  type, std::string( "1,2" ), n_alleles, ploidy ) ; TEST_ASSERT( n_alleles == 2 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 2 ) ; }
+		try { parse(  type, std::string( ".,." ), n_alleles, ploidy ) ; TEST_ASSERT( n_alleles == 2 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 2 ) ; }
+		try { parse(  type, std::string( "-1,-1" ), n_alleles, ploidy ) ; TEST_ASSERT( n_alleles == 2 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 2 ) ; }
+		try { parse(  type, std::string( "1,2,3" ), n_alleles, ploidy ) ; TEST_ASSERT( n_alleles == 3 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 3 ) ; }
+		try { parse(  type, std::string( "1,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT( n_alleles == 3 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 3 ) ; }
+		try { parse(  type, std::string( "-1,.,-2000" ), n_alleles, ploidy ) ; TEST_ASSERT( n_alleles == 3 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 3 ) ; }
+		try { parse(  type, std::string( "1,.,2,3,3,50,50,.,76,." ), n_alleles, ploidy ) ; TEST_ASSERT( n_alleles == 10 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 10 ) ; }
+		try { parse(  type, std::string( "A,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2-3,2" ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type, std::string( "1,2," ), n_alleles, ploidy ) ; TEST_ASSERT(0) ; } catch( BadArgumentError const& ) {}
+		try { parse(  type2, std::string( "A,.,2" ), n_alleles, ploidy ) ; TEST_ASSERT( n_alleles == 3 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 3 ) ; }
+		try { parse(  type2, std::string( "1,2-3,2" ), n_alleles, ploidy ) ; TEST_ASSERT( n_alleles == 3 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 3 ) ; }
+		try { parse(  type2, std::string( "1,2," ), n_alleles, ploidy ) ; TEST_ASSERT( n_alleles == 3 ) ; } catch( BadArgumentError const& ) { TEST_ASSERT( n_alleles != 3 ) ; }
 	}
 	std::cerr << "ok.\n" ;
 }
@@ -571,12 +612,12 @@ AUTO_TEST_CASE( test_one_per_genotype_entry_type ) {
 	{
 		Result r ;
 
-		r = type.parse( std::string( "" ), 1, 0 ) ;
+		r = parse( type, std::string( "" ), 1, 0 ) ;
 		TEST_ASSERT( r.size() == 0 ) ;
 
 		// if number of alleles is zero, so should be the ploidy.
 		try {
-			r = type.parse( std::string( "" ), 0, 0 ) ;
+			r = parse( type, std::string( "" ), 0, 0 ) ;
 			TEST_ASSERT( r.size() == 0 ) ;
 		}
 		catch( BadArgumentError const& ) {
@@ -584,13 +625,13 @@ AUTO_TEST_CASE( test_one_per_genotype_entry_type ) {
 		}
 
 		try {
-			r = type.parse( std::string( "" ), 0, 1 ) ;
+			r = parse( type, std::string( "" ), 0, 1 ) ;
 			TEST_ASSERT( 0 ) ;
 		}
 		catch( BadArgumentError const& ) {}
 
 		try {
-			r = type.parse( std::string( "" ), 0, 2 ) ;
+			r = parse( type, std::string( "" ), 0, 2 ) ;
 			TEST_ASSERT( 0 ) ;
 		}
 		catch( BadArgumentError const& ) {}
@@ -599,7 +640,7 @@ AUTO_TEST_CASE( test_one_per_genotype_entry_type ) {
 		// (There is only one genotype.)
 		for( std::size_t ploidy = 0; ploidy < 10; ++ploidy ) {
 			try {
-				r = type.parse( std::string( "0" ), 1, ploidy ) ;
+				r = parse( type, std::string( "0" ), 1, ploidy ) ;
 				TEST_ASSERT( ploidy > 0 ) ;
 				TEST_ASSERT( r.size() == 1 ) ;
 				TEST_ASSERT( r[0] == Entry( 0 )) ;
@@ -610,7 +651,7 @@ AUTO_TEST_CASE( test_one_per_genotype_entry_type ) {
 
 		// Test two alleles, ploidy one, 2 genotypes.
 		try {
-			r = type.parse( std::string( "0,1" ), 2, 1 ) ;
+			r = parse( type, std::string( "0,1" ), 2, 1 ) ;
 			TEST_ASSERT( r.size() == 2 ) ;
 			TEST_ASSERT( r[0] == Entry( 0 )) ;
 			TEST_ASSERT( r[1] == Entry( 1 )) ;
@@ -650,7 +691,7 @@ AUTO_TEST_CASE( test_one_per_genotype_entry_type ) {
 				}
 				try {
 					// std::cerr << "i = " << i << ", number_of_alleles = " << number_of_alleles << ", ploidy = " << ploidy << ", N = " << N << ".\n" ;
-					Result r = type.parse( data, number_of_alleles, ploidy ) ;
+					Result r = parse( type, data, number_of_alleles, ploidy ) ;
 
 					TEST_ASSERT( ( number_of_alleles != 0 || ploidy == 0 ) && i == N ) ;
 
@@ -677,6 +718,8 @@ AUTO_TEST_CASE( test_genotype_call_entry_type ) {
 	GenotypeCallVCFEntryType type ;
 	typedef std::vector< Entry > Result ;
 
+	uint32_t const ploidy = genfile::eUnknownPloidy ;
+
 	for( std::size_t number_of_alleles = 0; number_of_alleles < 20; ++number_of_alleles ) {
 		for( int c = 0; c < std::numeric_limits< char >::max(); ++c ) {
 			while( c >= '0' && c <= '9' ) {
@@ -701,7 +744,7 @@ AUTO_TEST_CASE( test_genotype_call_entry_type ) {
 				try {
 					// std::cerr << "number_of_alleles = " << number_of_alleles << ", c = " << c << "('" << char(c) << "'), n = " << n << ", data = \"" << data << "\".\n" ;
 					// std::cerr << "bad_char = " << ( bad_char ? "true" : "false" ) << ", bad_call = " << ( bad_call ? "true" : "false" ) << ".\n" ;
-					Result r = type.parse( data, number_of_alleles ) ;
+					Result r = parse(  type, data, number_of_alleles, ploidy ) ;
 					TEST_ASSERT( (!bad_char) && (!bad_call) ) ;
 					TEST_ASSERT( r.size() == n ) ;
 					for( std::size_t i = 0; i < n; ++i ) {
@@ -716,7 +759,7 @@ AUTO_TEST_CASE( test_genotype_call_entry_type ) {
 					for( std::size_t ploidy = 0; ploidy < 10; ++ploidy ) {
 						// std::cerr << "ploidy = " << ploidy << ".\n" ;
 						try {
-							Result r = type.parse( data, number_of_alleles, ploidy ) ;
+							Result r = parse( type, data, number_of_alleles, ploidy ) ;
 							TEST_ASSERT( ploidy == n ) ;
 							TEST_ASSERT( r.size() == n ) ;
 							for( std::size_t i = 0; i < n; ++i ) {

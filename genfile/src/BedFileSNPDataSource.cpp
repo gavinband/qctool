@@ -134,11 +134,12 @@ namespace genfile {
 			BedFileSNPDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
 				assert( spec == "GT" || spec == ":genotypes:" ) ;
 				setter.initialise( m_number_of_samples, 2 ) ;
+				uint32_t const ploidy = 2 ;
 				for( std::size_t i = 0; i < m_number_of_samples; ++i ) {
 					std::size_t index = i/4 ;
 					std::size_t data = ( m_buffer[ index ] >> (2*(i%4)) ) & 0x3 ;
 					setter.set_sample( i ) ;
-					setter.set_number_of_entries( 2, ePerUnorderedHaplotype, eAlleleIndex ) ;
+					setter.set_number_of_entries( ploidy, 2, ePerUnorderedHaplotype, eAlleleIndex ) ;
 					std::pair< int64_t, int64_t > const& genotype = m_source.m_genotype_table[ data ] ;
 #if DEBUG_BED_FORMAT > 2
 					std::cerr << "data for sample " << i << " is: " << data << ".\n";

@@ -24,7 +24,7 @@ namespace genfile {
 
 			void initialise( std::size_t nSamples, std::size_t nAlleles ) { assert( nAlleles == 2 ); m_data.resize( nSamples ) ; }
 			bool set_sample( std::size_t n ) { assert( n < m_data.size() ) ; m_sample = n ; return true ; }
-			void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
+			void set_number_of_entries( uint32_t, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 				m_data[ m_sample ].resize( n ) ; m_entry_i = 0 ;
 			}
 
@@ -53,7 +53,7 @@ namespace genfile {
 
 			virtual void initialise( std::size_t nSamples, std::size_t nAlleles ) ;
 			virtual bool set_sample( std::size_t n ) ;
-			virtual void set_number_of_entries( std::size_t n, OrderType const, ValueType const ) ;
+			virtual void set_number_of_entries( uint32_t, std::size_t n, OrderType const, ValueType const ) ;
 			virtual void set_value( MissingValue const value ) ;
 			virtual void set_value( Integer const value ) ;
 			virtual void set_value( double const value ) ;
@@ -238,7 +238,7 @@ namespace genfile {
 				m_entry_i = 0 ;
 				return true ;
 			}
-			void set_number_of_entries( std::size_t n, OrderType const, ValueType const ) {
+			void set_number_of_entries( uint32_t, std::size_t n, OrderType const, ValueType const ) {
 				if( m_sample == 0 ) {
 					m_result.resize( m_number_of_samples, n ) ;
 					if( m_nonmissingness ) {

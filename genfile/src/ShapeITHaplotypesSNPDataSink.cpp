@@ -49,7 +49,7 @@ namespace genfile {
 				m_sample_i = i ;
 				return true ;
 			}
-			void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
+			void set_number_of_entries( uint32_t, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 				if( n != 2 || order_type != ePerOrderedHaplotype || value_type != eAlleleIndex) {
 					throw genfile::BadArgumentError(
 						"genfile::HaplotypeWriter::set_number_of_entries()",

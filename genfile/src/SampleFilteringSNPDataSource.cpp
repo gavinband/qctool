@@ -191,9 +191,9 @@ namespace genfile {
 				}
 			}
 
-			void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
+			void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 				if( !m_filter_out_this_sample ) {
-					m_setter.set_number_of_entries( n, order_type, value_type ) ;
+					m_setter.set_number_of_entries( ploidy,  n, order_type, value_type ) ;
 				}
 			}
 

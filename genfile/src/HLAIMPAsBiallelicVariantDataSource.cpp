@@ -228,11 +228,12 @@ namespace genfile {
 			HLAIMPVariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
 				std::size_t const K = m_source.m_alleles.size() ;
 				std::size_t const genotypeCount = K*(K+1)/2 ;
+				uint32_t ploidy = 2 ;
 				if( spec == ":genotypes:" || spec == "GP" ) {
 					setter.initialise( m_source.m_samples.size(), 2 ) ;
 					for( std::size_t sample_i = 0; sample_i < m_source.m_samples.size(); ++sample_i ) {
 						if( setter.set_sample( sample_i )) {
-							setter.set_number_of_entries( 3, ePerUnorderedGenotype, eProbability ) ;
+							setter.set_number_of_entries( ploidy, 3, ePerUnorderedGenotype, eProbability ) ;
 							for( std::size_t g = 0; g < 3; ++g ) {
 								double value = 0 ;
 								for( std::size_t j = 0; j < m_dosage_columns[g].size(); ++j ) {

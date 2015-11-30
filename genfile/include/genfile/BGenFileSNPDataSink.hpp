@@ -60,6 +60,13 @@ namespace genfile {
 			Info const&
 		) ;
 
+#if 0		
+		void write_variant_data_impl(
+			SNPIdentifyingData const& id_data,
+			VariantDataReader& data_reader,
+			Info const& info
+		) ;
+#endif
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) ;
 
 		void set_number_of_bits( int const bits ) ;

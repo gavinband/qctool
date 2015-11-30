@@ -155,9 +155,10 @@ namespace genfile {
 			DosageFileSNPDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
 				std::size_t const N = m_elts.size() ;
 				setter.initialise( N, 2 ) ;
+				uint32_t ploidy = 2 ;
 				for( std::size_t i = 0; i < N; ++i ) {
 					setter.set_sample( i ) ;
-					setter.set_number_of_entries( 1, ePerSample, eDosage ) ;
+					setter.set_number_of_entries( ploidy, 1, ePerSample, eDosage ) ;
 					if( m_elts[i] == "NA" ) {
 						setter.set_value( genfile::MissingValue() ) ;
 					} else {

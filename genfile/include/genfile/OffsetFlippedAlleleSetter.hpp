@@ -68,12 +68,12 @@ namespace genfile {
 			m_setter.set_sample( n + m_sample_offset ) ;
 			return true ;
 		}
-		void set_number_of_entries( std::size_t n, OrderType order_type, ValueType value_type ) {
+		void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType order_type, ValueType value_type ) {
 			m_values.resize( n ) ;
 			m_order_type = order_type ;
 			m_value_type = value_type ;
 			m_entry_i = 0 ;
-			m_setter.set_number_of_entries( n, order_type, value_type ) ;
+			m_setter.set_number_of_entries( ploidy, n, order_type, value_type ) ;
 		}
 
 		void set_value( MissingValue const value ) { store( value ) ; }

@@ -407,13 +407,13 @@ namespace genfile {
 
 			void get_supported_specs( SpecSetter setter ) const {
 				for( std::size_t i = 0; i < m_format_elts.size(); ++i ) {
-					setter( m_format_elts[i], m_format_types.find( m_format_elts[i] )->second->get_type().to_string() ) ;
+					setter( m_format_elts[i], m_format_types.find( m_format_elts[i] )->second->get_value_type().to_string() ) ;
 				}
 				if( m_source.m_genotype_field != "" &&  m_format_types.find( m_source.m_genotype_field ) != m_format_types.end() ) {
-					setter( ":genotypes:", m_format_types.find( m_source.m_genotype_field )->second->get_type().to_string() ) ;
+					setter( ":genotypes:", m_format_types.find( m_source.m_genotype_field )->second->get_value_type().to_string() ) ;
 				}
 				if( m_source.m_intensity_field != "" && m_format_types.find( m_source.m_intensity_field ) != m_format_types.end() ) {
-					setter( ":intensities:", m_format_types.find( m_source.m_intensity_field )->second->get_type().to_string() ) ;
+					setter( ":intensities:", m_format_types.find( m_source.m_intensity_field )->second->get_value_type().to_string() ) ;
 				}
 			}
 

@@ -43,8 +43,8 @@ namespace genfile {
 				bool set_sample( std::size_t i ) {
 					return m_setter.set_sample( m_order[i] ) ;
 				}
-				void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
-					return m_setter.set_number_of_entries( n, order_type, value_type ) ;
+				void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
+					return m_setter.set_number_of_entries( ploidy, n, order_type, value_type ) ;
 				}
 				void set_value( MissingValue const value ) {
 					m_setter.set_value( value ) ;
