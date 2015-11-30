@@ -365,13 +365,13 @@ struct TraditionalStrictCohortIndividualSourceTester
 		expected_success_categorical.push_back( true ) ;
 		test_data.push_back( "ID_1 ID_2 missing\n0 0 0\nS1 S1A 0.0\nS1 S2A 0.0\n" ) ;
 		expected_success_strict.push_back( false ) ;
-		expected_success_categorical.push_back( true ) ;
+		expected_success_categorical.push_back( false ) ;
 		test_data.push_back( "ID_1 ID_2 missing\n0 0 0\nS1 S1A 0.0\nS2 S2A 0.0\n" ) ;
 		expected_success_strict.push_back( true ) ;
 		expected_success_categorical.push_back( true ) ;
 		test_data.push_back( "ID_1 ID_2 missing\n0 0 0\nS1 S1A 0.0\nS2 S2A 0.0\nS1 S1 0.0" ) ;
 		expected_success_strict.push_back( false ) ;
-		expected_success_categorical.push_back( true ) ;
+		expected_success_categorical.push_back( false ) ;
 		test_data.push_back( "ID_1 ID_2 missing\n0 0 0\nS1 S1A 0.0\nS2 S2A 0.0\nS1 S1A 0.0" ) ;
 		expected_success_strict.push_back( false ) ;
 		expected_success_categorical.push_back( false ) ;
