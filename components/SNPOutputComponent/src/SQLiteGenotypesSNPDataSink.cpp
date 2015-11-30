@@ -347,6 +347,8 @@ namespace {
 			}
 		}
 		
+		void finalise() {}
+		
 		void go() {
 			if(
 				( m_genotype_probs[0] == 0.0 && m_genotype_probs[1] == 0.0 && m_genotype_probs[2] == 0.0 ) // gen-style setting of all probs to 0

@@ -154,6 +154,69 @@ namespace genfile {
 		return *this ;
 	}
 
+	namespace impl {
+		// Convert a write_snp_impl call into a write_variant_data call.
+		// Long term we want to remove write_snp_impl() altogether.
+		struct BiallelicProbReader: public VariantDataReader {
+			BiallelicProbReader(
+				SNPIdentifyingData const& id_data,
+				std::size_t number_of_samples,
+				SNPDataSink::GenotypeProbabilityGetter const& get_AA_probability,
+				SNPDataSink::GenotypeProbabilityGetter const& get_AB_probability,
+				SNPDataSink::GenotypeProbabilityGetter const& get_BB_probability,
+				SNPDataSink::Info const& info
+			):
+				m_id_data( id_data ),
+				m_number_of_samples( number_of_samples ),
+				m_get_AA_probability( get_AA_probability ),
+				m_get_AB_probability( get_AB_probability ),
+				m_get_BB_probability( get_BB_probability ),
+				m_info( info )
+			{}
+				
+			BiallelicProbReader& get( std::string const& spec, PerSampleSetter& setter ) {
+				if( spec != "GP" && spec != ":genotypes:" ) {
+					throw BadArgumentError(
+						"genfile::impl::BiallelicProbReader::get()",
+						"spec=\"" + spec + "\"",
+						"Only \"GP\" and \":genotypes:\" are supported by this code."
+					) ;
+				}
+				setter.initialise( m_number_of_samples, 2 ) ;
+				uint32_t ploidy = 2 ;
+				for( std::size_t i = 0; i < m_number_of_samples; ++i ) {
+					setter.set_sample( i ) ;
+					setter.set_number_of_entries( ploidy,  3, ePerUnorderedGenotype, eProbability ) ;
+					setter.set_value( m_get_AA_probability(i) ) ;
+					setter.set_value( m_get_AB_probability(i) ) ;
+					setter.set_value( m_get_BB_probability(i) ) ;
+				}
+				setter.finalise() ;
+			}
+
+			bool supports( std::string const& spec ) const {
+				return ( spec == "GP" || spec == ":genotypes:" ) ;
+			}
+			void get_supported_specs( SpecSetter setter ) const {
+				setter( "GP", "Float" ) ;
+				setter( ":genotypes:", "Float" ) ;
+			}
+
+			std::size_t get_number_of_samples() const {
+				return m_number_of_samples ;
+			}
+			
+			
+		private:
+			SNPIdentifyingData const& m_id_data ;
+			std::size_t const m_number_of_samples ;
+			SNPDataSink::GenotypeProbabilityGetter const& m_get_AA_probability ;
+			SNPDataSink::GenotypeProbabilityGetter const& m_get_AB_probability ;
+			SNPDataSink::GenotypeProbabilityGetter const& m_get_BB_probability ;
+			SNPDataSink::Info const& m_info ;
+		} ;
+	}
+
 	void SNPDataSink::write_snp_impl(
 		uint32_t number_of_samples,
 		std::string SNPID,
@@ -167,7 +230,13 @@ namespace genfile {
 		GenotypeProbabilityGetter const& get_BB_probability,
 		Info const& info
 	) {
-		assert(0) ;
+		SNPIdentifyingData id_data(
+			SNPID, RSID, GenomePosition( chromosome, SNP_position ),
+			first_allele, second_allele
+		) ;
+		impl::BiallelicProbReader reader( id_data, number_of_samples, 
+		get_AA_probability, get_AB_probability, get_BB_probability, info ) ;
+		write_variant_data_impl( id_data, reader, info ) ;
 	}
 
 	SNPDataSink& SNPDataSink::write_variant_data(

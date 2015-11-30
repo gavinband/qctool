@@ -93,7 +93,6 @@ namespace genfile {
 		) ;
 		
 		SNPDataSink& finalise() ;
-		
 
 	public:
 		// return the number of samples represented in SNPs in the file.

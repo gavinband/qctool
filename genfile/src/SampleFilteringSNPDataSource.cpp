@@ -202,6 +202,8 @@ namespace genfile {
 			void set_value( VariantEntry::Integer const value ) { if( !m_filter_out_this_sample ) { m_setter.set_value( value ) ; } }
 			void set_value( double const value ) { if( !m_filter_out_this_sample ) { m_setter.set_value( value ) ; } }
 
+			void finalise() {}
+
 		private:
 			VariantDataReader::PerSampleSetter& m_setter ;
 			std::vector< std::size_t > const& m_indices_of_samples_to_filter_out ;

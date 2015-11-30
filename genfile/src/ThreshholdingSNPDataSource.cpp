@@ -149,6 +149,8 @@ namespace genfile {
 						send_results() ;
 					}
 				}
+				
+				void finalise() {}
 			private:
 				PerSampleSetter& m_target ;
 				double const m_threshhold ;

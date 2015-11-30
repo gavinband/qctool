@@ -112,6 +112,8 @@ namespace genfile {
 				}
 				m_streams[ m_sample_i ] << value ;
 			}
+			
+			void finalise() {}
 
 		private:
 			boost::ptr_vector< std::ostringstream >& m_streams ;

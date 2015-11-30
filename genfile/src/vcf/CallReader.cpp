@@ -145,6 +145,8 @@ namespace genfile {
 				OrderType get_order_type() const {
 					return m_order_type ;
 				}
+				
+				void finalise() {}
 
 			private:
 				std::vector< vcf::EntrySetter::Integer >& m_entries ;

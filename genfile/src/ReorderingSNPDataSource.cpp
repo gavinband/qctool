@@ -58,7 +58,8 @@ namespace genfile {
 				void set_value( double const value ) {
 					m_setter.set_value( value ) ;
 				}
-					
+				void finalise() {}
+
 			private:
 				VariantDataReader::PerSampleSetter& m_setter ;
 				std::vector< std::size_t > const& m_order ;

@@ -273,6 +273,8 @@ namespace genfile {
 				++m_entry_i ;
 			}
 
+			void finalise() {} ;
+			
 		private:
 			HaplotypeAlleles& m_result ;
 			NonMissingness* m_non_missingness ;

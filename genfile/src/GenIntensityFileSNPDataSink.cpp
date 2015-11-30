@@ -90,6 +90,8 @@ namespace genfile {
 				m_data( m_sample_i * 2 + m_entry_i++ ) = value ;
 			}
 			
+			void finalise() {} ;
+			
 			void write_to_stream( std::ostream& ostr ) const {
 				for( std::size_t i = 0; i < m_data.size(); ++i ) {
 					if( m_data(i) == -1 ) {

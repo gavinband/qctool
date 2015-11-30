@@ -181,6 +181,8 @@ namespace genfile {
 					m_setter.set_value( value ) ;
 				}
 			}
+			
+			void finalise() {}
 
 		private:
 			VariantDataReader::PerSampleSetter& m_setter ;

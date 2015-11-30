@@ -40,6 +40,7 @@ namespace genfile {
 			void set_value( Integer const value ) { set( value ) ; }
 			void set_value( double const value ) { set( value ) ; }
 
+			void finalise() {}
 		private:
 			std::vector< std::vector< Entry > >& m_data ;
 			std::size_t m_sample ;
@@ -51,12 +52,13 @@ namespace genfile {
 			GenotypeSetterBase( std::string const& scale = "identity" ) ;
 			~GenotypeSetterBase() throw() ;
 
-			virtual void initialise( std::size_t nSamples, std::size_t nAlleles ) ;
-			virtual bool set_sample( std::size_t n ) ;
-			virtual void set_number_of_entries( uint32_t, std::size_t n, OrderType const, ValueType const ) ;
-			virtual void set_value( MissingValue const value ) ;
-			virtual void set_value( Integer const value ) ;
-			virtual void set_value( double const value ) ;
+			void initialise( std::size_t nSamples, std::size_t nAlleles ) ;
+			bool set_sample( std::size_t n ) ;
+			void set_number_of_entries( uint32_t, std::size_t n, OrderType const, ValueType const ) ;
+			void set_value( MissingValue const value ) ;
+			void set_value( Integer const value ) ;
+			void set_value( double const value ) ;
+			void finalise() {}
 
 		protected:
 			virtual void set( std::size_t, double, double, double ) = 0 ;
@@ -263,6 +265,8 @@ namespace genfile {
 				m_result( m_sample, m_entry_i++ ) = value ;
 			}
 
+			void finalise() {} ;
+			
 		private:
 			Matrix& m_result ;
 			Matrix* m_nonmissingness ;

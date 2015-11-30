@@ -61,6 +61,8 @@ namespace genfile {
 			virtual void initialise( std::size_t nSamples, std::size_t nAlleles ) = 0 ;
 			// Return true if we want values for this variant, otherwise false.
 			virtual bool set_sample( std::size_t i ) = 0 ;
+			// Finalise.
+			virtual void finalise() = 0 ;
 		} ;
 		
 		struct SimpleType: public boost::noncopyable {

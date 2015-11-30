@@ -136,6 +136,7 @@ namespace genfile {
 						setter.set_value( m_genotypes[ 3*i + g ] ) ;
 					}
 				}
+				setter.finalise() ;
 				return *this ;
 			}
 			

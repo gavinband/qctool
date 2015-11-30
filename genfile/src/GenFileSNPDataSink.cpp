@@ -91,6 +91,8 @@ namespace genfile {
 			void set_value( double const value ) {
 				m_data( m_sample_i * 3 + m_entry_i++ ) = value ;
 			}
+			
+			void finalise() {} ;
 
 			void write_to_stream( std::ostream& stream ) const {
 				for( std::size_t i = 0; i < m_data.size(); ++i ) {

@@ -143,14 +143,7 @@ namespace {
 			*(m_buf_p[ eUBJSON ]++) = '[' ;
 			return true ;
 		}
-		void set_number_of_entries( std::size_t n, OrderType const order_type, ValueType const value_type ) {
-			if( n != 1 && n != 2 ) {
-				m_buffer_validity[ eBITPACK ] = false ;
-				throw genfile::BadArgumentError(
-					"genfile::HaplotypeWriter::set_number_of_entries()",
-					"n != 1 or 2"
-				) ;
-			}
+		void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 			if( order_type != genfile::ePerOrderedHaplotype ) {
 				throw genfile::BadArgumentError(
 					"genfile::HaplotypeWriter::set_order_type()",
@@ -163,6 +156,19 @@ namespace {
 					"genfile::HaplotypeWriter::set_order_type()",
 					"value_type",
 					"Expected values to represent allele indices (i.e. GT field)."
+				) ;
+			}
+			if( n != 1 && n != 2 ) {
+				m_buffer_validity[ eBITPACK ] = false ;
+				throw genfile::BadArgumentError(
+					"genfile::HaplotypeWriter::set_number_of_entries()",
+					"n != 1 or 2"
+				) ;
+			}
+			if( ploidy != n ) {
+				throw genfile::BadArgumentError(
+					"genfile::HaplotypeWriter::set_number_of_entries()",
+					"ploidy != n"
 				) ;
 			}
 			m_ploidy = n ;

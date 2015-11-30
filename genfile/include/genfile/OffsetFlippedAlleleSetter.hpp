@@ -34,8 +34,8 @@ namespace genfile {
 			m_setter( setter ),
 			m_number_of_samples( number_of_samples ),
 			m_flip( flip ),
-			m_sample_offset( sample_offset ),
 			m_have_initialised( false ),
+			m_sample_offset( sample_offset ),
 			m_number_of_alleles( 0 ),
 			m_values( 3 ),
 			m_entry_i( 0 )
@@ -81,6 +81,8 @@ namespace genfile {
 		void set_value( Integer const value ) { store( value ) ; }
 		void set_value( double const value ) { store( value ) ; }
 
+		void finalise() {}
+		
 	private:
 		VariantDataReader::PerSampleSetter& m_setter ;
 		std::size_t const m_number_of_samples ;
