@@ -78,6 +78,7 @@ namespace genfile {
 		~SNPDataSourceRack() ;
 
 		void add_source( std::auto_ptr< SNPDataSource > source ) ;
+		std::size_t number_of_sources() const ;
 		SNPDataSource& get_source( std::size_t ) const ;
 
 		Metadata get_metadata() const ;

@@ -21,6 +21,8 @@
 #include "genfile/GenFileSNPDataSource.hpp"
 #include "stdint.h"
 
+AUTO_TEST_SUITE( test_snp_data_source_rack )
+	
 // The following section contains a simple snp block writer.
 namespace data {
 	// this data has 1504 samples per row.
@@ -198,7 +200,13 @@ AUTO_TEST_CASE( test_snp_data_source_rack ) {
 			number_of_snps = std::count( data[i].front().begin(), data[i].front().end(), '\n' ) ;
 		}
 		std::cout << "rack: " << rack->total_number_of_snps() << " SNPs, expected: " << number_of_snps << ".\n" ;
-		TEST_ASSERT( rack->total_number_of_snps() == number_of_snps ) ;
+		// We insist that a rack with a single source (or no sources) knows how many SNPs it contains.
+		// We do not mandate behaviour when there are more than one source.
+		TEST_ASSERT(
+			( rack->number_of_sources() <= 1 && rack->total_number_of_snps() && rack->total_number_of_snps().get() == number_of_snps )
+				||
+			( rack->number_of_sources() > 1 )
+		) ;
 		if( number_of_snps > 0 ) {
 			std::cout << "rack: " << rack->number_of_samples() << " samples, expected: " << 2 * data[i].size() << ".\n" ;
 			TEST_ASSERT( rack->number_of_samples() == 2 * data[i].size() ) ;
@@ -219,3 +227,6 @@ AUTO_TEST_CASE( test_snp_data_source_rack ) {
 	std::cout << "==== success ====\n" ;
 	
 }
+
+AUTO_TEST_SUITE_END()
+

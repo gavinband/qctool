@@ -21,6 +21,8 @@
 
 // #define DEBUG 1
 
+AUTO_TEST_SUITE( test_genfile_io )
+
 // The following section contains a simple snp block writer.
 namespace data {
 	// this data has 1504 samples per row.
@@ -354,3 +356,5 @@ AUTO_TEST_CASE( test_formats ) {
 		//TEST_ASSERT( results[i] == results[0] ) ;
 	}
 }
+
+AUTO_TEST_SUITE_END()

@@ -172,6 +172,10 @@ namespace genfile {
 		return ostr.str() ;
 	}
 
+	std::size_t SNPDataSourceRack::number_of_sources() const {
+		return m_sources.size() ;
+	}
+
 	SNPDataSource& SNPDataSourceRack::get_source( std::size_t index ) const {
 		assert( index < m_sources.size() ) ;
 		return *m_sources[ index ] ;
