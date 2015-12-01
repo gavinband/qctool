@@ -22,7 +22,9 @@
 #include "genfile/SampleFilteringSNPDataSource.hpp"
 #include "stdint.h"
 
-AUTO_TEST_SUITE( SampleFilteringSNPDataSourceTest )
+// #define DEBUG 1
+
+AUTO_TEST_SUITE( test_sample_filtering_snp_data_source )
 
 // The following section contains a simple snp block writer.
 namespace data {
@@ -119,11 +121,11 @@ namespace {
 	std::vector< std::string > construct_data() {
 		std::vector< std::string > data ;
 		data.push_back( "" ) ;
-		data.push_back( "SNP1 RS1 1000 a g 1 2 3 \n" ) ;
-		data.push_back( "SNP1 RS1 1000 a g 1 2 3 4 5 6\n" ) ;
-		data.push_back( "SNP1 RS1 1000 a g 1 2 3 4 5 6 7 8 9 \n" ) ;
-		data.push_back( "SNP1 RS1 1000 a g 1 2 3 4 5 6 7 8 9 10 11 12\n" ) ;
-		data.push_back( "SNP1 RS1 1000 a g 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15\n" ) ;
+		data.push_back( "SNP1 RS1 1000 a g 0.01 0.02 0.03\n" ) ;
+		data.push_back( "SNP1 RS1 1000 a g 0.01 0.02 0.03 0.04 0.05 0.06\n" ) ;
+		data.push_back( "SNP1 RS1 1000 a g 0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09\n" ) ;
+		data.push_back( "SNP1 RS1 1000 a g 0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09 0.10 0.11 0.12\n" ) ;
+		data.push_back( "SNP1 RS1 1000 a g 0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09 0.10 0.11 0.12 0.13 0.14 0.15\n" ) ;
 		return data ;
 	}
 }
@@ -174,9 +176,12 @@ AUTO_TEST_CASE( test_sample_filtering_snp_data_source ) {
 
 				for( std::size_t elt = 0, filtered_elt = 0; elt < number_of_samples; ++elt ) {
 					if( i->find( elt ) == i->end() ) {
-						TEST_ASSERT( data[ j ].probabilities[ filtered_elt ].AA == (3*elt) + 1 ) ;
-						TEST_ASSERT( data[ j ].probabilities[ filtered_elt ].AB == (3*elt) + 2 ) ;
-						TEST_ASSERT( data[ j ].probabilities[ filtered_elt ].BB == (3*elt) + 3 ) ;
+#if DEBUG
+						std::cerr << "elt=" << elt << ", j=" << j << ", " << data[ j ].probabilities[ filtered_elt ].AA << " : " << (((3*elt) + 1) / 100.0) << "\n" ;
+#endif
+						TEST_ASSERT( data[ j ].probabilities[ filtered_elt ].AA == ((3*elt) + 1) / 100.0 ) ;
+						TEST_ASSERT( data[ j ].probabilities[ filtered_elt ].AB == ((3*elt) + 2) / 100.0 ) ;
+						TEST_ASSERT( data[ j ].probabilities[ filtered_elt ].BB == ((3*elt) + 3) / 100.0 ) ;
 						++filtered_elt ;
 					}
 				}

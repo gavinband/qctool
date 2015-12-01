@@ -183,6 +183,7 @@ namespace statfile {
 			default:
 				assert(0) ;
 		}
+		return result ;
 	}
 
 	Constraint Constraint::negation() const {

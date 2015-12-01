@@ -33,6 +33,7 @@ struct NullCallChecker: public genfile::vcf::CallReader::Setter
 	void set_value( std::string& value ) {}
 	void set_value( Integer const value ) {}
 	void set_value( double const value ) {}
+	void finalise() {}
 } ;
 
 struct GenotypeCallChecker: public genfile::vcf::CallReader::Setter
@@ -120,6 +121,8 @@ struct GenotypeCallChecker: public genfile::vcf::CallReader::Setter
 		BOOST_CHECK_EQUAL( m_calls[ m_sample_i ][ m_call_i++ ], Entry( value ) ) ;
 	}
 
+	void finalise() {}
+
 	private:
 		std::vector< std::vector< Entry > > const m_calls ;
 		std::size_t m_number_of_samples ;
@@ -139,6 +142,7 @@ struct Ignore: public genfile::vcf::CallReader::Setter
 	void set_value( std::string& value ) {}
 	void set_value( Integer const value ) {}
 	void set_value( double const value ) {}
+	void finalise() {}
 } ;
 
 

@@ -35,11 +35,12 @@ namespace {
 			TEST_ASSERT( error ) ;
 		}
 		
-		if( (( a == a ) && ( b == b )) && ( a != b ) ) {
-			std::cerr << "Comparison false.  a = " << a << ", b = " << b << ".\n" ;
+//		std::cerr << "a = " << a << ", b = " << b << ".\n" ;
+		if( std::abs( a ) != std::numeric_limits< double >::infinity() && ( a == a ) ) {
+			BOOST_CHECK_CLOSE( a, b, 1E-12 ) ;
+		} else {
+			TEST_ASSERT( ((a != a) && (b != b)) || (a == b) ) ;
 		}
-		
-		TEST_ASSERT( (( a != a ) && ( b != b )) || ( a == b )) ;
 	}
 }
 
@@ -65,15 +66,15 @@ AUTO_TEST_CASE( test_strtod ) {
 
 	test_it( "NA" ) ;
 
-	for( double x = -100.0; x < 100.0; x += 0.0001 ) {
+	// Here are some values known to cause problems for some implementations.
+	test_it( "225073858507201e-308" ) ; // http://code.google.com/p/mochiweb/issues/detail?id=59#c0	
+	test_it( "1.15507e-173" ) ; // found using test_strtod_random
+
+	for( double x = -100.0; x < 100.0; x += 0.00047562660387 ) {
 		std::ostringstream ostr ;
 		ostr << x ;
 		test_it( ostr.str() ) ;
 	}
-	
-	// Here are some values known to cause problems for some implementations.
-	test_it( "225073858507201e-308" ) ; // http://code.google.com/p/mochiweb/issues/detail?id=59#c0	
-	test_it( "1.15507e-173" ) ; // found using test_strtod_random
 }
 
 

@@ -25,7 +25,6 @@ AUTO_TEST_SUITE( test_genfile_io )
 
 // The following section contains a simple snp block writer.
 namespace data {
-	// this data has 1504 samples per row.
 	unsigned int const number_of_samples = 7 ;
 	unsigned int const number_of_snps = 16 ;
 	std::string data =

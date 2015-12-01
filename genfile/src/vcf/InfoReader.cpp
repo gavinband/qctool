@@ -61,10 +61,10 @@ namespace genfile {
 				boost::ptr_map< std::string, VCFEntryType >::const_iterator entry_type_i = m_entry_types.find( i->first ) ;
 				assert( entry_type_i != m_entry_types.end() ) ;
 				if( where == m_data.end() ) {
-					entry_type_i->second->get_missing_value( m_number_of_alleles, *i->second ) ;
+					entry_type_i->second->get_missing_value( m_number_of_alleles, genfile::eUnknownPloidy, *i->second ) ;
 				}
 				else {
-					entry_type_i->second->parse( where->second, m_number_of_alleles, *i->second ) ;
+					entry_type_i->second->parse( where->second, m_number_of_alleles, genfile::eUnknownPloidy, *i->second ) ;
 				}
 			}
 		}
