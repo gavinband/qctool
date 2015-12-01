@@ -37,7 +37,11 @@ namespace {
 		
 //		std::cerr << "a = " << a << ", b = " << b << ".\n" ;
 		if( std::abs( a ) != std::numeric_limits< double >::infinity() && ( a == a ) ) {
-			BOOST_CHECK_CLOSE( a, b, 1E-12 ) ;
+			if( a == 0 || b == 0 ) {
+				BOOST_CHECK_SMALL( a - b, 1E-16 ) ;
+			} else {
+				BOOST_CHECK_CLOSE( a, b, 1E-12 ) ;
+			}
 		} else {
 			TEST_ASSERT( ((a != a) && (b != b)) || (a == b) ) ;
 		}

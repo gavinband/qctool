@@ -15,8 +15,11 @@
 #include "genfile/string_utils.hpp"
 #include "test_case.hpp"
 
+BOOST_AUTO_TEST_SUITE( test_vcf_call_reader )
+
 using namespace genfile::vcf ;
 using namespace genfile::string_utils ;
+using namespace genfile ;
 using genfile::ValueType ;
 using genfile::OrderType ;
 
@@ -44,9 +47,15 @@ struct GenotypeCallChecker: public genfile::vcf::CallReader::Setter
 // and, on destruction, that all values have been set.
 // You must therefore avoid copying using e.g. boost::cref().
 {
-	GenotypeCallChecker( std::vector< std::vector< Entry > > const& expected_calls ):
+	GenotypeCallChecker(
+		std::vector< std::vector< Entry > > const& expected_calls,
+		genfile::OrderType order_type,
+		genfile::ValueType value_type = eAlleleIndex
+	):
 		m_calls( expected_calls ),
 		m_number_of_samples( expected_calls.size() ),
+		m_order_type( order_type ),
+		m_value_type( value_type ),
 		m_sample_i( 0 ),
 		m_call_i( 0 )
 	{
@@ -55,6 +64,8 @@ struct GenotypeCallChecker: public genfile::vcf::CallReader::Setter
 	GenotypeCallChecker( std::size_t number_of_samples, std::vector< std::vector< Entry > > const& expected_calls ):
 		m_calls( expected_calls ),
 		m_number_of_samples( number_of_samples ),
+		m_order_type( genfile::eOrderedList ),
+		m_value_type( genfile::eAlleleIndex ),
 		m_sample_i( 0 ),
 		m_call_i( 0 )
 	{
@@ -62,6 +73,9 @@ struct GenotypeCallChecker: public genfile::vcf::CallReader::Setter
 
 	GenotypeCallChecker( GenotypeCallChecker const& other ):
 		m_calls( other.m_calls ),
+		m_number_of_samples( other.m_number_of_samples ),
+		m_order_type( genfile::eOrderedList ),
+		m_value_type( genfile::eAlleleIndex ),
 		m_indices_of_set_values( other.m_indices_of_set_values ),
 		m_sample_i( other.m_sample_i ),
 		m_call_i( other.m_call_i )
@@ -81,7 +95,6 @@ struct GenotypeCallChecker: public genfile::vcf::CallReader::Setter
 
 	void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 		BOOST_CHECK_EQUAL( m_number_of_samples, nSamples ) ;
-		BOOST_CHECK_EQUAL( nAlleles, 2 ) ;
 	}
 
 	bool set_sample( std::size_t i ) {
@@ -93,8 +106,8 @@ struct GenotypeCallChecker: public genfile::vcf::CallReader::Setter
 
 	void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 		BOOST_CHECK_EQUAL( m_calls[ m_sample_i ].size(), n ) ;
-		TEST_ASSERT( order_type == genfile::ePerOrderedHaplotype || order_type == genfile::ePerUnorderedHaplotype ) ;
-		BOOST_CHECK_EQUAL( value_type, genfile::eAlleleIndex ) ;
+		BOOST_CHECK_EQUAL( order_type, m_order_type ) ;
+		BOOST_CHECK_EQUAL( value_type, m_value_type ) ;
 	}
 
 	void set_value( genfile::MissingValue const value ) {
@@ -126,6 +139,8 @@ struct GenotypeCallChecker: public genfile::vcf::CallReader::Setter
 	private:
 		std::vector< std::vector< Entry > > const m_calls ;
 		std::size_t m_number_of_samples ;
+		genfile::OrderType const m_order_type ;
+		genfile::ValueType const m_value_type ;
 		std::set< std::pair< std::size_t, std::size_t > > m_indices_of_set_values ;
 		std::size_t m_sample_i ;
 		std::size_t m_call_i ;
@@ -299,7 +314,7 @@ AUTO_TEST_CASE( test_setters ) {
 	try {
 		std::vector< std::vector< Entry > > expected ;
 		expected.push_back( std::vector< Entry >( 2, Entry( 1 ))) ;
-		GenotypeCallChecker checker( expected ) ;
+		GenotypeCallChecker checker( expected, ePerOrderedHaplotype ) ;
 		CallReader( 1, 2, "GT", "1|1", types )
 			.get( "GT", checker ) ;
 	}
@@ -313,7 +328,7 @@ AUTO_TEST_CASE( test_setters ) {
 	try {
 		std::vector< std::vector< Entry > > expected ;
 		// HQ entry not in format; we do not expect it to be set.
-		GenotypeCallChecker checker( expected ) ;
+		GenotypeCallChecker checker( expected, ePerOrderedHaplotype, eUnknownValueType ) ;
 			CallReader( 1, 2, "GT", "1|1", types )
 			.get( "HQ", checker ) ;
 	}
@@ -328,7 +343,7 @@ AUTO_TEST_CASE( test_setters ) {
 		std::vector< std::vector< Entry > > expected ;
 		expected.push_back( std::vector< Entry >( 5, MissingValue() )) ;
 		// HQ entry in format; we expect it to be set to missing values.
-		GenotypeCallChecker checker( expected ) ;
+		GenotypeCallChecker checker( expected, eOrderedList, eUnknownValueType ) ;
 		std::string data = "1|1" ;
 		CallReader( 1, 2, "GT:HQ", data, types )
 			.get( "HQ", checker ) ;
@@ -342,7 +357,7 @@ AUTO_TEST_CASE( test_setters ) {
 
 	try {
 		std::vector< std::vector< Entry > > expected ;
-		GenotypeCallChecker checker( expected ) ;
+		GenotypeCallChecker checker( expected, ePerOrderedHaplotype, eUnknownValueType ) ;
 		// HQ not in format, not expected to be set.
 		std::string data = "1|1" ;
 		CallReader( 1, 2, "GT", data, types )
@@ -360,25 +375,25 @@ AUTO_TEST_CASE( test_setters ) {
 		std::vector< std::vector< Entry > > expected ;
 		// another_type not in format, not expected to be called.
 		{
-			GenotypeCallChecker checker( expected ) ;
+			GenotypeCallChecker checker( expected, eOrderedList, eUnknownValueType ) ;
 			CallReader( 1, 2, "GT:HQ", "1|1", types )
 				.get( "another_type", checker ) ;
 		}
 		{
-			GenotypeCallChecker checker( expected ) ;
+			GenotypeCallChecker checker( expected, eOrderedList, eUnknownValueType ) ;
 			CallReader( 2, 2, "GT:HQ", "1|1\t1|1", types )
 				.get( "another_type", checker ) ;
 		}
 		// another_type in format, expected to be called.
 		expected.push_back( std::vector< Entry >( 1, MissingValue() )) ;
 		{
-			GenotypeCallChecker checker( expected ) ;
+			GenotypeCallChecker checker( expected, eOrderedList, eUnknownValueType ) ;
 			CallReader( 1, 2, "GT:HQ:another_type", "1|1", types )
 				.get( "another_type", checker ) ;
 		}
 		expected.push_back( std::vector< Entry >( 1, MissingValue() )) ;
 		{
-			GenotypeCallChecker checker( expected ) ;
+			GenotypeCallChecker checker( expected, eOrderedList, eUnknownValueType ) ;
 			CallReader( 2, 2, "GT:HQ:another_type", "1|1\t1|1", types )
 				.get( "another_type", checker ) ;
 		}
@@ -567,7 +582,7 @@ AUTO_TEST_CASE( test_simple_gt_values ) {
 					if( bad_c1 || bad_c2 ) {
 						checker.reset( new NullCallChecker() ) ;
 					} else {
-						checker.reset( new GenotypeCallChecker( expected_calls ) ) ;
+						checker.reset( new GenotypeCallChecker( expected_calls, ePerOrderedHaplotype ) ) ;
 						
 					}
 					CallReader( 1, 5, "GT", data, types )
@@ -650,7 +665,7 @@ AUTO_TEST_CASE( test_omitted_values ) {
 		
 		std::vector< std::vector< Entry > > expected_values ;
 		expected_values.push_back( std::vector< Entry >( 1, MissingValue() )) ;
-		GenotypeCallChecker checker( expected_values ) ;
+		GenotypeCallChecker checker( expected_values, eOrderedList, eUnknownValueType ) ;
 			CallReader( 1, 2, "GT:AT", "1|1", types )
 			.get( "AT", checker ) ;
 	}
@@ -664,7 +679,7 @@ AUTO_TEST_CASE( test_omitted_values ) {
 		std::vector< std::vector< Entry > > expected_values ;
 		expected_values.push_back( std::vector< Entry >( 1, std::string( "hello" ) )) ;
 		expected_values.push_back( std::vector< Entry >( 1, MissingValue() )) ;
-		GenotypeCallChecker checker( expected_values ) ;
+		GenotypeCallChecker checker( expected_values, eOrderedList, eUnknownValueType ) ;
 			CallReader( 2, 2, "GT:AT", "1|1:hello\t0|1", types )
 			.get( "AT", checker ) ;
 	}
@@ -730,14 +745,14 @@ AUTO_TEST_CASE( test_complex_gt_values ) {
 						// std::cerr << "nind = " << number_of_individuals << ", ploidy = " << ploidy << ", phased data: \"" << phased_data << "\".\n" ;
 						// std::cerr << "here:" << number_of_individuals << " " << number_of_alleles << " " << ploidy << ": \"" << phased_data << "\"\n" ;
 						CallReader( number_of_individuals, number_of_alleles, "GT:AT", phased_data, types ) ;
-						GenotypeCallChecker checker( expected_calls ) ;
+						GenotypeCallChecker checker( expected_calls, ePerOrderedHaplotype ) ;
 						CallReader( number_of_individuals, number_of_alleles, "GT:AT", phased_data, types )
 						 	.get( "GT", boost::ref( checker )) ;
 					}
 					{
 						// std::cerr << "phased data: \"" << unphased_data << "\".\n" ;
 						CallReader( number_of_individuals, number_of_alleles, "GT:AT", unphased_data, types ) ;
-						GenotypeCallChecker checker( expected_calls ) ;
+						GenotypeCallChecker checker( expected_calls, ( (ploidy > 1) ? ePerUnorderedHaplotype : ePerOrderedHaplotype)) ;
 						CallReader( number_of_individuals, number_of_alleles, "GT:AT", unphased_data, types )
 						 	.get( "GT", boost::ref( checker )) ;
 					}
@@ -769,7 +784,7 @@ AUTO_TEST_CASE( test_gt_genotype_bounds ) {
 			else {
 				std::vector< std::vector< Entry > > expected_set_calls ;
 				expected_set_calls.push_back( std::vector< Entry >( 1, call )) ;
-				checker.reset( new GenotypeCallChecker( expected_set_calls ) ) ;
+				checker.reset( new GenotypeCallChecker( expected_set_calls, ePerOrderedHaplotype ) ) ;
 			}
 			
 			if( bad_call ) {
@@ -778,7 +793,7 @@ AUTO_TEST_CASE( test_gt_genotype_bounds ) {
 						1,
 						n_alleles,
 						"GT",
-						::to_string( call ),
+						to_string( call ),
 						types
 					)
 					.get( "GT", boost::ref( *checker )),
@@ -791,7 +806,7 @@ AUTO_TEST_CASE( test_gt_genotype_bounds ) {
 						1,
 						n_alleles,
 						"GT",
-						::to_string( call ),
+						to_string( call ),
 						types
 					)
 					.get( "GT", boost::ref( *checker ))
@@ -824,7 +839,7 @@ AUTO_TEST_CASE( test_gt_genotype_bounds_2_samples ) {
 				std::vector< std::vector< Entry > > expected_set_calls ;
 				expected_set_calls.push_back( std::vector< Entry >( 1, std::min( call, n_alleles - 1 ) ) ) ;
 				expected_set_calls.push_back( std::vector< Entry >( 1, call )) ;
-				checker.reset( new GenotypeCallChecker( expected_set_calls ) ) ;
+				checker.reset( new GenotypeCallChecker( expected_set_calls, ePerOrderedHaplotype ) ) ;
 			}
 
 
@@ -887,7 +902,7 @@ AUTO_TEST_CASE( test_float_fields ) {
 	{
 		try {
 			std::vector< std::vector< Entry > > expected_result( 1, std::vector< Entry >( 1, Entry() )) ;
-			GenotypeCallChecker checker( expected_result ) ;
+			GenotypeCallChecker checker( expected_result, eOrderedList, eUnknownValueType ) ;
 			CallReader( 1, 2, "GT:F1", "1|1", types )
 				.get( "F1", checker ) ;
 		}
@@ -897,7 +912,7 @@ AUTO_TEST_CASE( test_float_fields ) {
 		try {
 			std::vector< std::vector< Entry > > expected_result ;
 			expected_result.push_back( std::vector< Entry >( 1, 0.1 )) ;
-			GenotypeCallChecker checker( expected_result ) ;
+			GenotypeCallChecker checker( expected_result, eOrderedList, eUnknownValueType ) ;
 			CallReader( 1, 2, "GT:F1", "1|1:0.1", types )
 				.get( "F1", checker ) ;
 		}
@@ -910,7 +925,7 @@ AUTO_TEST_CASE( test_float_fields ) {
 			expected_result.push_back( std::vector< Entry >( 1, 0.1 )) ;
 			expected_result.push_back( std::vector< Entry >( 1, 1.1 )) ;
 			expected_result.push_back( std::vector< Entry >( 1, 2.1 )) ;
-			GenotypeCallChecker checker( expected_result ) ;
+			GenotypeCallChecker checker( expected_result, eOrderedList, eUnknownValueType ) ;
 			CallReader( 3, 2, "GT:F1", "1|1:0.1\t0|1:1.1\t0|0:2.1", types )
 			 	.get( "F1", checker ) ;
 		}
@@ -924,7 +939,7 @@ AUTO_TEST_CASE( test_float_fields ) {
 			expected_result.push_back( std::vector< Entry >( 1, genfile::MissingValue() )) ;
 			expected_result.push_back( std::vector< Entry >( 1, 2.1 )) ;
 
-			GenotypeCallChecker checker( expected_result ) ;
+			GenotypeCallChecker checker( expected_result, eOrderedList, eUnknownValueType ) ;
 			CallReader( 3, 2, "GT:F1", "1|1:0.1\t0|1:.\t0|0:2.1", types )
 			 	.get( "F1", checker ) ;
 		}
@@ -934,7 +949,7 @@ AUTO_TEST_CASE( test_float_fields ) {
 
 		try {
 			std::vector< std::vector< Entry > > expected_result( 1, std::vector< Entry >( 3, Entry() )) ;
-			GenotypeCallChecker checker( expected_result ) ;
+			GenotypeCallChecker checker( expected_result, eOrderedList, eUnknownValueType ) ;
 			CallReader( 1, 2, "GT:F2", "1|1", types )
 			 	.get( "F2", checker ) ;
 		}
@@ -949,7 +964,7 @@ AUTO_TEST_CASE( test_float_fields ) {
 			expected_result.back().push_back( -1.5568 ) ;
 			expected_result.back().push_back( -1e-08 ) ;
 			
-			GenotypeCallChecker checker( expected_result ) ;
+			GenotypeCallChecker checker( expected_result, eOrderedList, eUnknownValueType ) ;
 			CallReader( 1, 2, "GT:F2", "1|1:0.1,-1.5568,-1e-08", types )
 			 	.get( "F2", checker ) ;
 		}
@@ -968,7 +983,7 @@ AUTO_TEST_CASE( test_float_fields ) {
 			expected_result.back().push_back( -1000.556 ) ;
 			expected_result.back().push_back( double( 10 ) ) ;
 			
-			GenotypeCallChecker checker( expected_result ) ;
+			GenotypeCallChecker checker( expected_result, eOrderedList, eUnknownValueType ) ;
 			CallReader( 2, 2, "GT:F2", "1|1:0.1,-1.5568,-1e-08\t0/1:.,-1000.556,10", types )
 			 	.get( "F2", checker ) ;
 		}
@@ -991,7 +1006,7 @@ AUTO_TEST_CASE( test_float_fields ) {
 			expected_result.back().push_back( double( 10000 ) ) ;
 			expected_result.back().push_back( double( 100000 ) ) ;
 			
-			GenotypeCallChecker checker( expected_result ) ;
+			GenotypeCallChecker checker( expected_result, eOrderedList, eUnknownValueType ) ;
 			CallReader( 3, 2, "GT:F2", "1|1:0.1,-1.5568,-1e-08\t0/1:.,-1000.556,10\t0|0:1000,10000,100000", types )
 			 	.get( "F2", checker ) ;
 		}
@@ -1023,25 +1038,25 @@ AUTO_TEST_CASE( test_float_fields ) {
 			expected_result2.back().push_back( double( 100000 ) ) ;
 			
 			{
-				GenotypeCallChecker checker1( expected_result1 ) ;
-				GenotypeCallChecker checker2( expected_result2 ) ;
+				GenotypeCallChecker checker1( expected_result1, eOrderedList, eUnknownValueType ) ;
+				GenotypeCallChecker checker2( expected_result2, eOrderedList, eUnknownValueType ) ;
 				CallReader( 3, 2, "GT:F1:F2", "1|1:15.05:0.1,-1.5568,-1e-08\t0/1:110.110e02:.,-1000.556,10\t0|0:16.2:1000,10000,100000", types )
 				 	.get( "F1", checker1 )
 					.get( "F2", checker2 ) ;
 			}
 			
 			{
-				GenotypeCallChecker checker1( expected_result1 ) ;
-				GenotypeCallChecker checker2( expected_result2 ) ;
-				GenotypeCallChecker checker3( expected_result2 ) ;
+				GenotypeCallChecker checker1( expected_result1, eOrderedList, eUnknownValueType ) ;
+				GenotypeCallChecker checker2( expected_result2, eOrderedList, eUnknownValueType ) ;
+				GenotypeCallChecker checker3( expected_result2, eOrderedList, eUnknownValueType ) ;
 				CallReader( 3, 2, "GT:F1:F2", "1|1:15.05:0.1,-1.5568,-1e-08\t0/1:110.110e02:.,-1000.556,10\t0|0:16.2:1000,10000,100000", types )
 				 	.get( "F1", checker1 )
 				 	.get( "F2", checker2 )
 				 	.get( "F2", checker3 ) ;
 			}
 			{
-				GenotypeCallChecker checker1( expected_result1 ) ;
-				GenotypeCallChecker checker2( expected_result2 ) ;
+				GenotypeCallChecker checker1( expected_result1, eOrderedList, eUnknownValueType ) ;
+				GenotypeCallChecker checker2( expected_result2, eOrderedList, eUnknownValueType ) ;
 				CallReader( 3, 2, "GT:F2:F1", "1|1:0.1,-1.5568,-1e-08:15.05\t0/1:.,-1000.556,10:110.110e02\t0|0:1000,10000,100000:16.2", types )
 				 	.get( "F1", checker1 )
 					.get( "F2", checker2 ) ;
@@ -1055,3 +1070,4 @@ AUTO_TEST_CASE( test_float_fields ) {
 	std::cerr << "ok.\n" ;
 }
 
+BOOST_AUTO_TEST_SUITE_END()

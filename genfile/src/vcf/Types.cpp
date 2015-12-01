@@ -447,7 +447,8 @@ namespace genfile {
 					}
 				}
 				if( simple_parse_success ) {
-					setter.set_number_of_entries( simple_values.size(), simple_values.size(), ( value[1] == '|' ) ? ePerOrderedHaplotype : ePerUnorderedHaplotype, eAlleleIndex ) ;
+					OrderType const order_type = ( (value.size() == 1) || (value[1] == '|') ) ? ePerOrderedHaplotype : ePerUnorderedHaplotype ;
+					setter.set_number_of_entries( simple_values.size(), simple_values.size(), order_type, eAlleleIndex ) ;
 					for( std::size_t i = 0; i < simple_values.size(); ++i ) {
 						if( simple_values[i] == -1 ) {
 							setter.set_value( MissingValue() ) ;
@@ -465,9 +466,9 @@ namespace genfile {
 				impl::RangeCheckedGTSetter checked_genotype_setter( setter, number_of_alleles - 1 ) ;
 				std::vector< string_utils::slice > elts ;
 				lex( value, &elts ) ;
-				OrderType const order_type = ( value.find( '|' ) == std::string::npos )
-					? ePerUnorderedHaplotype
-					: ePerOrderedHaplotype ; 
+				OrderType const order_type = ( value.find( '/' ) == std::string::npos )
+					? ePerOrderedHaplotype
+					: ePerUnorderedHaplotype ; 
 				impl::parse_elts( elts, elts.size(), order_type, get_value_type(), m_missing_value, checked_genotype_setter ) ;
 			}
 		}
