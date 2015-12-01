@@ -99,7 +99,7 @@ void perform_test_against_cvcft(
 			std::auto_ptr< std::istream > istr( new std::istringstream( data ) ) ;
 
 			genfile::VCFFormatSNPDataSource source( istr ) ;
-			TEST_ASSERT( source.total_number_of_snps() == number_of_lines ) ;
+			TEST_ASSERT( !source.total_number_of_snps() || ( source.total_number_of_snps().get() == number_of_lines )) ;
 			genfile::SNPIdentifyingData snp ;
 			while( source.get_snp_identifying_data( snp )) {
 				std::vector< double > probs ;

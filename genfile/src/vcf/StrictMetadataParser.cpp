@@ -48,11 +48,19 @@ namespace genfile {
 			}
 			assert( fileformat_spec.size() == 1 ) ;
 			Metadata::const_iterator i = fileformat_spec.find( "fileformat" ) ;
-			assert( i != fileformat_spec.end() ) ;
+			if( i == fileformat_spec.end() ) {
+				throw MalformedInputError( m_spec, 0 ) ;
+			}
 			std::map< std::string, std::string >::const_iterator j = i->second.find( "version" ) ;
-			assert( j != i->second.end() ) ;
+			if( j == i->second.end() ) {
+				throw MalformedInputError( m_spec, 0 ) ;
+			}
 			std::string const result = j->second ;
 			assert( result == "4.0" || result == "4.1" || result == "4.2" ) ;
+			double const version = string_utils::to_repr< double >( result ) ;
+			if( version < 4.0 ) {
+				throw MalformedInputError( m_spec, 0 ) ;
+			}
 			in.exceptions( old_exceptions ) ;
 			return result ;
 		}
@@ -106,6 +114,7 @@ namespace genfile {
 						std::map< std::string, std::string > data ;
 						data[ "what" ] = line ;
 						result->insert( std::make_pair( "parse_error", data ) ) ;
+						throw ;
 					}
 				} else {
 					in.putback( a_char ) ;
@@ -159,6 +168,7 @@ namespace genfile {
 			std::pair< std::string, std::string > result = std::make_pair( line.substr( 0, pos ), line.substr( pos + 1, line.size() )) ;
 			if( result.first == "Description" ) {
 				if( result.second.size() < 2 || result.second[0] != '"' || result.second[result.second.size() - 1] != '"' ) {
+					std::cerr << "tt\n" ;
 					throw MalformedInputError( m_spec, line_number ) ;
 				}
 				result.second = result.second.substr( 1, result.second.size() - 2 ) ;
@@ -241,7 +251,8 @@ namespace genfile {
 				else {
 					// Must be an integer.
 					try {
-						string_utils::to_repr< unsigned int >( where->second ) ;
+						int const value = string_utils::to_repr< int >( where->second ) ;
+						if( value < 0 ) { return false ; }
 					} catch( string_utils::StringConversionError const& ) {
 						return false ;
 					}

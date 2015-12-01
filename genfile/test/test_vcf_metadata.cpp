@@ -12,6 +12,8 @@
 #include "genfile/Error.hpp"
 #include "test_case.hpp"
 
+BOOST_AUTO_TEST_SUITE( test_vcf_metadata )
+
 namespace data {
 	// This example is from http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41
 	std::string const ex1 =
@@ -106,7 +108,7 @@ AUTO_TEST_CASE( test_spec_example ) {
 	TEST_ASSERT( where->second.find( "Type" ) != where->second.end() ) ;
 	TEST_ASSERT( where->second.find( "Type" )->second == "Integer" ) ;
 	TEST_ASSERT( where->second.find( "Description" ) != where->second.end() ) ;
-	TEST_ASSERT( where->second.find( "Description" )->second == "\"Number of Samples With Data\"" ) ;
+	TEST_ASSERT( where->second.find( "Description" )->second == "Number of Samples With Data" ) ;
 	++++where ;
 	TEST_ASSERT( where->second.find( "ID" ) != where->second.end() ) ;
 	TEST_ASSERT( where->second.find( "ID" )->second == "AF" ) ;
@@ -115,7 +117,7 @@ AUTO_TEST_CASE( test_spec_example ) {
 	TEST_ASSERT( where->second.find( "Type" ) != where->second.end() ) ;
 	TEST_ASSERT( where->second.find( "Type" )->second == "Float" ) ;
 	TEST_ASSERT( where->second.find( "Description" ) != where->second.end() ) ;
-	TEST_ASSERT( where->second.find( "Description" )->second == "\"Allele Frequency\"" ) ;
+	TEST_ASSERT( where->second.find( "Description" )->second == "Allele Frequency" ) ;
 	
 	// FILTER
 	where = metadata.equal_range( "FILTER" ).first ;
@@ -235,25 +237,21 @@ void test_info_or_format_field( std::string const& field ) {
 					content = content + "##" + field + "=<Number=" + number + ",ID=" + id + ",Type=" + type + ",Description=" + description + ">\n" ;
 					content = content + "END" ;
 					std::istringstream istr( content ) ;
-					try {
-						genfile::vcf::StrictMetadataParser( "VCF_4_1_example_file", istr ) ;
-						TEST_ASSERT(
-							bad_IDs.count( id_i ) == 0
-							&& bad_numbers.count( number_i ) == 0
-							&& bad_types.count( type_i ) == 0
-							&& bad_descriptions.count( description_i ) == 0
-						) ;
+
+					bool const good = ( bad_IDs.count( id_i ) == 0 )
+						&& ( bad_numbers.count( number_i ) == 0 )
+						&& ( bad_types.count( type_i ) == 0 )
+						&& ( bad_descriptions.count( description_i ) == 0 ) ;
+
+					std::cerr << "DATA=\"" << istr.str() << "\", this is " << (good ? "good" : "bad") << ".\n" ;
+
+					if( good ) {
+						BOOST_CHECK_NO_THROW( genfile::vcf::StrictMetadataParser( "VCF_4_1_example_file", istr ) ) ;
 						std::string s ;
 						istr >> s ;
 						TEST_ASSERT( s == "END" ) ;
-					}
-					catch( genfile::MalformedInputError const& ) {
-						TEST_ASSERT(
-							bad_IDs.count( id_i ) > 0
-							|| bad_numbers.count( number_i ) > 0
-							|| bad_types.count( type_i ) > 0
-							|| bad_descriptions.count( description_i ) > 0
-						) ;
+					} else {
+						BOOST_CHECK_THROW( genfile::vcf::StrictMetadataParser( "VCF_4_1_example_file", istr ), genfile::InputError ) ;
 					}
 				}
 			}
@@ -296,21 +294,18 @@ AUTO_TEST_CASE( test_filter_fields ) {
 			content = content + "##FILTER=<Description=" + description + ",ID=" + id + ">\n" ;
 			content = content + "END" ;
 			std::istringstream istr( content ) ;
-			try {
-				genfile::vcf::StrictMetadataParser( "VCF_4_1_example_file", istr ) ;
-				TEST_ASSERT(
-					bad_IDs.count( id_i ) == 0
-					&& bad_descriptions.count( description_i ) == 0
-				) ;
+			
+			bool good = (
+				bad_IDs.count( id_i ) == 0
+				&& bad_descriptions.count( description_i ) == 0
+			) ;
+			if( good ) {
+				BOOST_CHECK_NO_THROW( genfile::vcf::StrictMetadataParser( "VCF_4_1_example_file", istr ) ) ;
 				std::string s ;
 				istr >> s ;
 				TEST_ASSERT( s == "END" ) ;
-			}
-			catch( genfile::MalformedInputError const& ) {
-				TEST_ASSERT(
-					bad_IDs.count( id_i ) > 0
-					|| bad_descriptions.count( description_i ) > 0
-				) ;
+			} else{
+				BOOST_CHECK_THROW( genfile::vcf::StrictMetadataParser( "VCF_4_1_example_file", istr ), genfile::InputError ) ;
 			}
 		}
 	}
@@ -341,32 +336,21 @@ AUTO_TEST_CASE( test_tab_characters ) {
 AUTO_TEST_CASE( test_v4_0 ) {
 	using namespace data ;
 	std::cerr << "test_v4_0()..." ;
-	try {
+	{
 		std::istringstream istr( ex1b + ex2 + ex3 + ex4 + ex5 + ex6 ) ;
-		genfile::vcf::StrictMetadataParser parser( "VCF_4_0_example_file", istr ) ;
-		TEST_ASSERT(0) ;
-	}
-	catch( genfile::MalformedInputError const& ) {
-		// ok.
+		BOOST_CHECK_THROW( genfile::vcf::StrictMetadataParser parser( "VCF_4_0_example_file", istr ), genfile::InputError ) ;
 	}
 
-	try {
+	{
 		std::istringstream istr( ex1b + ex2b + ex3 + ex4 + ex5 + ex6 ) ;
-		genfile::vcf::StrictMetadataParser parser( "VCF_4_0_example_file", istr ) ;
-		// ok.
-	}
-	catch( genfile::MalformedInputError const& ) {
-		TEST_ASSERT(0) ;
+		BOOST_CHECK_NO_THROW( genfile::vcf::StrictMetadataParser parser( "VCF_4_0_example_file", istr ) ) ;
 	}
 
-	try {
+	{
 		std::istringstream istr( ex1c + ex2 + ex3 + ex4 + ex5 + ex6 ) ;
-		genfile::vcf::StrictMetadataParser parser( "VCF_4_0_example_file", istr ) ;
-		TEST_ASSERT(0) ;
-	}
-	catch( genfile::FormatUnsupportedError const& ) {
-		// ok.
+		BOOST_CHECK_THROW( genfile::vcf::StrictMetadataParser parser( "VCF_4_0_example_file", istr ), genfile::InputError ) ;
 	}
 	std::cerr << "ok.\n" ;
 }
 
+BOOST_AUTO_TEST_SUITE_END()
