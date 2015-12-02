@@ -55,6 +55,46 @@ namespace data {
 	;
 }
 
+namespace impl {
+	struct VectorSetter: public genfile::VariantDataReader::PerSampleSetter
+	{
+		VectorSetter( std::vector< double >& values ):
+			m_values( values ),
+			m_sample_i( 0 )
+		{}
+			
+		void initialise( std::size_t nSamples, std::size_t nAlleles ) {
+			// do nothing.
+			m_sample_i = 0 ;
+			m_values.clear() ;
+		}
+		bool set_sample( std::size_t i ) {
+			m_sample_i = i ;
+			return true ;
+		}
+		void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
+			// do nothing
+		}
+		void set_value( MissingValue const value ) {
+			m_values.push_back( 0.0 ) ;
+		}
+		void set_value( std::string& value ) {
+			assert(0) ;
+		}
+		void set_value( Integer const value ) {
+			assert(0) ;
+		}
+		void set_value( double const value ) {
+			m_values.push_back( value ) ;
+		}
+		void finalise() {}
+			
+	public:
+		std::vector< double >& m_values ;
+		std::size_t m_sample_i ;
+	} ;
+}
+
 void perform_test_against_cvcft(
 	std::string const& data,
 	std::size_t const number_of_lines,
@@ -82,6 +122,7 @@ void perform_test_against_cvcft(
 				}
 				std::vector< double > prob ;
 				data.GetProb( prob ) ;
+				std::cerr << snp << ": " << key << ": " << prob.size() << " probs.\n" ;
 				
 				cvcft_snps.push_back( snp ) ;
 				cvcft_probs.push_back( prob ) ;
@@ -103,14 +144,14 @@ void perform_test_against_cvcft(
 			genfile::SNPIdentifyingData snp ;
 			while( source.get_snp_identifying_data( snp )) {
 				std::vector< double > probs ;
-				genfile::vcf::GenotypeSetter< std::vector< double > > setter( probs ) ;
+				impl::VectorSetter setter( probs ) ;
 				source.read_variant_data()->get( key, setter ) ;
+				std::cerr << snp << ": " << key << ": " << probs.size() << " probs.\n" ;
+				
 				TEST_ASSERT( probs.size() == 0 || probs.size() == number_of_probs_per_snp ) ;
 				my_snps.push_back( snp ) ;
 				my_probs.push_back( probs ) ;
 			}
-			TEST_ASSERT( my_snps.size() == source.total_number_of_snps() ) ;
-			TEST_ASSERT( my_probs.size() == source.total_number_of_snps() ) ;
 		}
 		
 		TEST_ASSERT( my_snps.size() == my_probs.size() ) ;

@@ -143,13 +143,6 @@ AUTO_TEST_CASE( test_float ) {
 }
 
 namespace {
-	void insert_elt(
-		std::vector< Entry >* destination,
-		Entry const& value
-	) {
-		destination->push_back( value ) ;
-	}
-
 	struct VariantEntriesEntriesSetter: public EntriesSetter {
 		VariantEntriesEntriesSetter( std::vector< Entry >& entries ): m_entries( entries ), entry_i( 0 ) {} 
 		void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
@@ -756,19 +749,17 @@ AUTO_TEST_CASE( test_genotype_call_entry_type ) {
 				}
 				
 				if( (!bad_char) && (!bad_call) ) {
-					for( std::size_t ploidy = 0; ploidy < 10; ++ploidy ) {
-						// std::cerr << "ploidy = " << ploidy << ".\n" ;
-						try {
-							Result r = parse( type, data, number_of_alleles, ploidy ) ;
-							TEST_ASSERT( ploidy == n ) ;
-							TEST_ASSERT( r.size() == n ) ;
-							for( std::size_t i = 0; i < n; ++i ) {
-								TEST_ASSERT( r[i].as<int>() == int( ( i+n ) - 5 ) ) ;
-							}
+					try {
+						Result r = parse( type, data, number_of_alleles, ploidy ) ;
+						// If we get here parsing succeeded.  So we must have
+						// had the right ploidy
+						TEST_ASSERT( r.size() == n ) ;
+						for( std::size_t i = 0; i < n; ++i ) {
+							TEST_ASSERT( r[i].as<int>() == int( ( i+n ) - 5 ) ) ;
 						}
-						catch( BadArgumentError const& ) {
-							TEST_ASSERT( ploidy != n ) ;
-						}
+					}
+					catch( BadArgumentError const& ) {
+						TEST_ASSERT( ploidy != n ) ;
 					}
 				}
 			}

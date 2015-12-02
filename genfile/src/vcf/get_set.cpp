@@ -52,7 +52,7 @@ namespace genfile {
 
 		void GenotypeSetterBase::set_number_of_entries( uint32_t, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 			assert(
-				((value_type == eProbability) && (order_type == ePerUnorderedGenotype))
+				((value_type == eProbability ) && (order_type == ePerUnorderedGenotype))
 				|| 
 				((value_type == eAlleleIndex) && (order_type == ePerOrderedHaplotype || order_type == ePerUnorderedHaplotype))
 				||

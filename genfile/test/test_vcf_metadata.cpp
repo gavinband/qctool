@@ -12,6 +12,8 @@
 #include "genfile/Error.hpp"
 #include "test_case.hpp"
 
+// #define DEBUG 1
+
 BOOST_AUTO_TEST_SUITE( test_vcf_metadata )
 
 namespace data {
@@ -242,9 +244,9 @@ void test_info_or_format_field( std::string const& field ) {
 						&& ( bad_numbers.count( number_i ) == 0 )
 						&& ( bad_types.count( type_i ) == 0 )
 						&& ( bad_descriptions.count( description_i ) == 0 ) ;
-
+#if DEBUG
 					std::cerr << "DATA=\"" << istr.str() << "\", this is " << (good ? "good" : "bad") << ".\n" ;
-
+#endif
 					if( good ) {
 						BOOST_CHECK_NO_THROW( genfile::vcf::StrictMetadataParser( "VCF_4_1_example_file", istr ) ) ;
 						std::string s ;
