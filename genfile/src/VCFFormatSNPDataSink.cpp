@@ -145,7 +145,7 @@ namespace genfile {
 	}
 
 	void VCFFormatSNPDataSink::write_header( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) const {
-		(*m_stream_ptr) << "##fileformat=VCFv4.1\n" ;
+		(*m_stream_ptr) << "##fileformat=VCFv4.2\n" ;
 		
 		std::pair< Metadata::const_iterator, Metadata::const_iterator > const
 			formatDefinitions = std::make_pair( m_metadata.begin(), m_metadata.end() ) ;
