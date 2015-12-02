@@ -140,7 +140,7 @@ namespace genfile {
 #endif
 				std::string const& identifier = sample_ids[i] ;
 				assert( identifier.size() <= std::size_t( std::numeric_limits< uint16_t >::max() ) ) ;
-				uint16_t const id_size = identifier.size() ;
+				uint16_t const id_size = uint16_t( identifier.size() ) ;
 				write_length_followed_by_data( aStream, id_size, identifier ) ;
 			}
 			return block_size ;
@@ -190,10 +190,10 @@ namespace genfile {
 				std::string* second_allele
 			) {
 				// v1.0-style layout, deprecated
-				uint32_t number_of_samples ;
-				unsigned char max_id_size = 0;
-				unsigned char SNPID_size = 0;
-				unsigned char RSID_size = 0;
+				uint32_t number_of_samples = 0 ;
+				unsigned char max_id_size = 0 ;
+				unsigned char SNPID_size = 0 ;
+				unsigned char RSID_size = 0 ;
 				if( aStream ) {
 					read_little_endian_integer( aStream, &number_of_samples ) ;
 					if( !aStream ) {
@@ -217,7 +217,7 @@ namespace genfile {
 					aStream.ignore( max_id_size - RSID_size ) ;
 				}
 				if( aStream ) {
-					unsigned char chromosome_char ;
+					unsigned char chromosome_char = 0 ;
 					read_little_endian_integer( aStream, &chromosome_char ) ;
 					read_little_endian_integer( aStream, SNP_position ) ;
 
@@ -292,7 +292,6 @@ namespace genfile {
 		void write_snp_identifying_data(
 			std::ostream& aStream,
 			Context const& context,
-			unsigned char max_id_size,
 			std::string SNPID,
 			std::string RSID,
 			std::string chromosome,
@@ -349,6 +348,7 @@ namespace genfile {
 						// v1.2 style (or other) blocks, these are treated differently and this function does not apply.
 						assert(0) ;
 					}
+					return -1 ;
 				}
 			}
 		}
@@ -358,9 +358,17 @@ namespace genfile {
 			Context const& context
 		) {
 			if( context.flags & bgen::e_CompressedSNPBlocks ) {
-				uint32_t compressed_data_size ;
+				uint32_t compressed_data_size = 0 ;
 				read_little_endian_integer( aStream, &compressed_data_size ) ;
-				aStream.ignore( compressed_data_size ) ;
+				if( compressed_data_size > 0 ) {
+					// gcc std::istream::ignore() has a bug / feature in which
+					// it peeks at the next char and sets eof() if you ignore all the bytes in the file.
+					// This breaks our expected invariant and means subsequent calls to peekg() fail with -1,
+					// which stops us getting file size.
+					// We deal with this by simply ignoring one less character here.
+					aStream.ignore( compressed_data_size - 1 ) ;
+					aStream.get() ;
+				}
 			}
 			else {
 				aStream.ignore( 6 * context.number_of_samples ) ;
@@ -440,6 +448,7 @@ namespace genfile {
 					int* size,
 					int const bits
 				) {
+					assert( bits <= 32 ) ;
 					uint64_t bitMask = (0xFFFFFFFFFFFFFFFF >> ( 64 - bits )) ;
 					double const result = ( *data & bitMask ) / double( bitMask ) ;
 					(*size) -= bits ;
