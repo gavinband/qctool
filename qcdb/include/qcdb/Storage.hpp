@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
-#include "genfile/SNPIdentifyingData2.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "qcdb/StorageOptions.hpp"
 
 namespace qcdb {
@@ -24,9 +24,9 @@ namespace qcdb {
 			std::string const& 
 		) = 0 ;
 
-		virtual void create_new_variant( genfile::SNPIdentifyingData2 const& ) = 0 ;
+		virtual void create_new_variant( genfile::VariantIdentifyingData const& ) = 0 ;
 		virtual void store_per_variant_data(
-			genfile::SNPIdentifyingData2 const& snp,
+			genfile::VariantIdentifyingData const& snp,
 			std::string const& variable,
 			genfile::VariantEntry const& value
 		) = 0 ;

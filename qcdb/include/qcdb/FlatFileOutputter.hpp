@@ -14,7 +14,7 @@
 #include <utility>
 #include <boost/bimap.hpp>
 #include "genfile/VariantEntry.hpp"
-#include "genfile/SNPIdentifyingData2.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "qcdb/Storage.hpp"
 #include "qcdb/StorageOptions.hpp"
@@ -30,9 +30,9 @@ namespace qcdb {
 
 		void add_variable( std::string const& ) ;
 
-		void create_new_variant( genfile::SNPIdentifyingData2 const& ) ;
+		void create_new_variant( genfile::VariantIdentifyingData const& ) ;
 		void store_per_variant_data(
-			genfile::SNPIdentifyingData2 const& snp,
+			genfile::VariantIdentifyingData const& snp,
 			std::string const& value_name,
 			genfile::VariantEntry const& value
 		) ;
@@ -46,7 +46,7 @@ namespace qcdb {
 		Metadata const m_metadata ;
 		std::size_t const m_max_snps_per_block ;
 		statfile::BuiltInTypeStatSink::UniquePtr m_sink ;
-		std::vector< genfile::SNPIdentifyingData2 > m_snps ;
+		std::vector< genfile::VariantIdentifyingData > m_snps ;
 		typedef boost::bimap< std::string, std::size_t > VariableMap ;
 		VariableMap m_variables ;
 		typedef std::map< std::pair< std::size_t, std::size_t >, genfile::VariantEntry > ValueMap ;

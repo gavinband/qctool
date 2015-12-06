@@ -34,7 +34,7 @@ std::size_t FlatFileFrequentistGenomeWideAssociationResults::get_number_of_SNPs(
 	return m_snps.size() ;
 }
 
-genfile::SNPIdentifyingData2 const& FlatFileFrequentistGenomeWideAssociationResults::get_SNP( std::size_t snp_i ) const {
+genfile::VariantIdentifyingData const& FlatFileFrequentistGenomeWideAssociationResults::get_SNP( std::size_t snp_i ) const {
 	assert( snp_i < m_snps.size() ) ;
 	return m_snps[ snp_i ] ;
 }
@@ -229,7 +229,7 @@ void FlatFileFrequentistGenomeWideAssociationResults::resize_storage( Eigen::Mat
 	int const current_N = min( N_snps, Eigen::MatrixXf::Index( m_snps.size() ) ) ;
 	{
 		// free any unused memory for SNPs.
-		std::vector< genfile::SNPIdentifyingData2 > snps( N_snps ) ;
+		std::vector< genfile::VariantIdentifyingData > snps( N_snps ) ;
 		std::copy( m_snps.begin(), m_snps.end(), snps.begin() ) ;
 		m_snps.swap( snps ) ;
 	}
@@ -288,7 +288,7 @@ void FlatFileFrequentistGenomeWideAssociationResults::resize_storage( Eigen::Mat
 void FlatFileFrequentistGenomeWideAssociationResults::free_unused_memory() {
 	std::size_t const N_snps = m_snps.size() ;
 	{
-		std::vector< genfile::SNPIdentifyingData2 > snps( m_snps.begin(), m_snps.end() ) ;
+		std::vector< genfile::VariantIdentifyingData > snps( m_snps.begin(), m_snps.end() ) ;
 		m_snps.swap( snps ) ;
 	}
 	{

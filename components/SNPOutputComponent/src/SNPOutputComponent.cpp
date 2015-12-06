@@ -36,7 +36,7 @@ namespace impl {
 			Metadata const& metadata
 		) ;
 		
-		void add_index_entry( genfile::SNPIdentifyingData2 const& snp, genfile::SNPDataSink& sink ) ;
+		void add_index_entry( genfile::VariantIdentifyingData const& snp, genfile::SNPDataSink& sink ) ;
 		
 		void finalise() ;
 		
@@ -46,7 +46,7 @@ namespace impl {
 		
 		db::Connection::StatementPtr m_insert_stmt ;
 		
-		std::vector< boost::tuple< genfile::SNPIdentifyingData2, std::string, std::ostream::streampos > > m_data ;
+		std::vector< boost::tuple< genfile::VariantIdentifyingData, std::string, std::ostream::streampos > > m_data ;
 		
 	private:
 		void setup() ;
@@ -218,7 +218,7 @@ namespace impl {
 		) ;
 	}
 	
-	void QCDBSNPDataSourceIndex::add_index_entry( genfile::SNPIdentifyingData2 const& snp, genfile::SNPDataSink& sink ) {
+	void QCDBSNPDataSourceIndex::add_index_entry( genfile::VariantIdentifyingData const& snp, genfile::SNPDataSink& sink ) {
 		if( m_data.size() > 10000 ) {
 			write_index_entries() ;
 			m_data.clear() ;

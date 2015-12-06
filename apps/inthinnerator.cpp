@@ -99,7 +99,7 @@ namespace {
 		TaggedSnp()
 		{}
 
-		TaggedSnp( genfile::SNPIdentifyingData2 const& snp, boost::optional< std::string > const tag ):
+		TaggedSnp( genfile::VariantIdentifyingData const& snp, boost::optional< std::string > const tag ):
 			m_snp( snp ),
 			m_tag( tag )
 		{}
@@ -115,11 +115,11 @@ namespace {
 			return *this ;
 		}
 		
-		genfile::SNPIdentifyingData2 const& snp() const { return m_snp ; }
+		genfile::VariantIdentifyingData const& snp() const { return m_snp ; }
 		boost::optional< std::string > const tag() const { return m_tag ; }
 
 	private:
-		genfile::SNPIdentifyingData2 m_snp ;
+		genfile::VariantIdentifyingData m_snp ;
 		boost::optional< std::string > m_tag ;
 	} ;
 
@@ -129,11 +129,11 @@ namespace {
 	
 	namespace impl {
 		// Compare SNP indices using their sorted order.
-		genfile::SNPIdentifyingData2 const& get_snp( std::vector< TaggedSnp > const& list, std::size_t i ) {
+		genfile::VariantIdentifyingData const& get_snp( std::vector< TaggedSnp > const& list, std::size_t i ) {
 			return list[i].snp() ;
 		}
 	
-		void add_snp( std::vector< TaggedSnp >* result, genfile::SNPIdentifyingData2 const& snp, boost::optional< std::string > const& tag ) {
+		void add_snp( std::vector< TaggedSnp >* result, genfile::VariantIdentifyingData const& snp, boost::optional< std::string > const& tag ) {
 			assert( result ) ;
 			result->push_back( TaggedSnp( snp, tag )) ;
 		}
@@ -347,7 +347,7 @@ public:
 	virtual ~SNPPicker() {}
 	
 	typedef boost::function< bool ( std::size_t, std::size_t ) > SNPComparator ;
-	typedef boost::function< genfile::SNPIdentifyingData2 const& ( std::size_t ) > SNPGetter ;
+	typedef boost::function< genfile::VariantIdentifyingData const& ( std::size_t ) > SNPGetter ;
 	virtual void set_snps( std::size_t, SNPGetter, SNPComparator ) = 0 ;
 
 	virtual std::size_t pick(
@@ -620,7 +620,7 @@ public:
 	typedef std::auto_ptr< SNPPicker > UniquePtr ;
 	
 	// TODO: use a boost::bimap here.
-	typedef std::map< genfile::SNPIdentifyingData2, double > SnpToValueMap ;
+	typedef std::map< genfile::VariantIdentifyingData, double > SnpToValueMap ;
 	typedef std::vector< double > IndexToValueMap ;
 	typedef std::multimap< double, std::size_t, DoubleComparator > ValueToIndexMap ;
 
@@ -713,7 +713,7 @@ class ProximityTest
 {
 public:
 	typedef std::auto_ptr< ProximityTest > UniquePtr ;
-	typedef boost::function< genfile::SNPIdentifyingData2 const& ( std::size_t ) > SNPGetter ;
+	typedef boost::function< genfile::VariantIdentifyingData const& ( std::size_t ) > SNPGetter ;
 public:
 	virtual ~ProximityTest() {}
 	virtual void set_snps( std::size_t number_of_snps, SNPGetter snps ) = 0 ;
@@ -854,7 +854,7 @@ public:
 	}
 
 private:
-	std::vector< genfile::SNPIdentifyingData2 > m_snps ;
+	std::vector< genfile::VariantIdentifyingData > m_snps ;
 	genfile::GeneticMap const& m_genetic_map ;
 	double const m_minimum_distance_in_cM ;
 	genfile::Position const m_margin_in_bp ;
@@ -994,7 +994,7 @@ public:
 	}
 	
 private:
-	std::vector< genfile::SNPIdentifyingData2 > m_snps ;
+	std::vector< genfile::VariantIdentifyingData > m_snps ;
 	genfile::Position const m_minimum_distance_in_base_pairs ;
 	
 	bool compare( std::size_t a, std::size_t b ) const {
@@ -1444,7 +1444,7 @@ private:
 			// std::cerr << "Read SNP: " << SNPID << " " << rsid << " " << chromosome << " " << position << ".\n" ;
 			filtered_snps.push_back(
 				TaggedSnp(
-					genfile::SNPIdentifyingData2(
+					genfile::VariantIdentifyingData(
 						SNPID,
 						rsid,
 						genfile::GenomePosition( chromosome, position ),
@@ -1463,7 +1463,7 @@ private:
 
 	std::vector< double > get_recombination_offsets(
 		std::size_t number_of_snps,
-		boost::function< genfile::SNPIdentifyingData2 const& ( std::size_t ) > snps,
+		boost::function< genfile::VariantIdentifyingData const& ( std::size_t ) > snps,
 		genfile::GeneticMap const& map
 	) const {
 		UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Computing recombination positions" ) ;
@@ -1564,7 +1564,7 @@ private:
 	) const {
 		SNPPicker::UniquePtr picker ;
 		if( options().check_if_option_was_supplied( "-rank" )) {
-			std::map< genfile::SNPIdentifyingData2, double > value_map = load_ranks(
+			std::map< genfile::VariantIdentifyingData, double > value_map = load_ranks(
 				options().get_value< std::string >( "-rank" ),
 				options().get_value< std::string >( "-rank-column" ),
 				genfile::string_utils::split_and_strip_discarding_empty_entries( options().get< std::string >( "-missing-code" ), ",", " \t" )
@@ -1642,7 +1642,7 @@ private:
 		return result ;
 	}
 
-	std::map< genfile::SNPIdentifyingData2, double > load_ranks(
+	std::map< genfile::VariantIdentifyingData, double > load_ranks(
 		std::string const& filename,
 		std::string const& column_name,
 		std::vector< std::string > const& missing_values
@@ -1673,7 +1673,7 @@ private:
 		return load_ranks( *chain, rank_column_index, sign, std::set< std::string >( missing_values.begin(), missing_values.end() ) ) ;
 	}
 
-	std::map< genfile::SNPIdentifyingData2, double > load_ranks(
+	std::map< genfile::VariantIdentifyingData, double > load_ranks(
 		statfile::BuiltInTypeStatSourceChain& chain,
 		std::size_t rank_column_index,
 		double sign,
@@ -1685,7 +1685,7 @@ private:
 
 		UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading ranks" ) ;
 		
-		std::map< genfile::SNPIdentifyingData2, double > result ;
+		std::map< genfile::VariantIdentifyingData, double > result ;
 		std::string SNPID ;
 		std::string rsid ;
 		std::string chromosome ;
@@ -1713,7 +1713,7 @@ private:
 			else {
 				rank = genfile::string_utils::to_repr< double >( rank_string ) ;
 			}
-			result[ genfile::SNPIdentifyingData2( SNPID, rsid, genfile::GenomePosition( chromosome, position ), alleleA, alleleB ) ] = sign * rank ;
+			result[ genfile::VariantIdentifyingData( SNPID, rsid, genfile::GenomePosition( chromosome, position ), alleleA, alleleB ) ] = sign * rank ;
 			chain >> statfile::ignore_all() ;
 			progress_context.notify_progress( chain.number_of_rows_read(), chain.number_of_rows() ) ;
 		}

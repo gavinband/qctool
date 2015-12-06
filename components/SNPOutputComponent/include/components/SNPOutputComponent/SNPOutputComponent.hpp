@@ -22,7 +22,7 @@ namespace impl {
 	struct SNPDataSourceIndex {
 		typedef std::auto_ptr< SNPDataSourceIndex > UniquePtr ;
 		virtual ~SNPDataSourceIndex() {}
-		virtual void add_index_entry( genfile::SNPIdentifyingData2 const& snp, genfile::SNPDataSink& sink ) = 0 ;
+		virtual void add_index_entry( genfile::VariantIdentifyingData const& snp, genfile::SNPDataSink& sink ) = 0 ;
 		virtual void finalise() = 0 ;
 	} ;
 

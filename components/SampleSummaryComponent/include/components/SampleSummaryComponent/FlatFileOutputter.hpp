@@ -14,7 +14,7 @@
 #include <utility>
 #include <boost/bimap.hpp>
 #include "genfile/VariantEntry.hpp"
-#include "genfile/SNPIdentifyingData2.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "components/SampleSummaryComponent/SampleStorage.hpp"

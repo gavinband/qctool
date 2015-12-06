@@ -15,7 +15,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/unordered_map.hpp>
-#include "genfile/SNPIdentifyingData2.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "db/Connection.hpp"
@@ -65,7 +65,7 @@ namespace qcdb {
 		// Associate some data with an entity.
 		db::Connection::RowId get_or_create_entity_data( db::Connection::RowId const entity_id, db::Connection::RowId const variable_id, genfile::VariantEntry const& value ) const ;
 		// Create a variant
-		db::Connection::RowId get_or_create_variant( genfile::SNPIdentifyingData2 const& snp ) const ;
+		db::Connection::RowId get_or_create_variant( genfile::VariantIdentifyingData const& snp ) const ;
 		// Store some data for a variant.
 		void insert_summary_data( db::Connection::RowId snp_id, db::Connection::RowId variable_id, genfile::VariantEntry const& value ) const ;
 

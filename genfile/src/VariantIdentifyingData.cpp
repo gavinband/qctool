@@ -13,22 +13,30 @@
 #include "genfile/string_utils/slice.hpp"
 #include "genfile/string_utils/string_utils.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
-#include "genfile/SNPIdentifyingData2.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 
 namespace genfile {
 	namespace {
 		std::size_t const MAX_SIZE = std::numeric_limits< uint32_t >::max() ;
 	}
 
-	SNPIdentifyingData2::SNPIdentifyingData2():
+	VariantIdentifyingData::VariantIdentifyingData():
 		m_rsid_start( 0 ),
-		m_first_allele_start( 0 ),
-		m_second_allele_start( 0 ),
+		m_allele_starts(),
 		m_identifiers_start( 0 ),
 		m_position( Chromosome(), 0 )
 	{}
 
-	SNPIdentifyingData2::SNPIdentifyingData2(
+	namespace {
+		std::vector< uint32_t > compute_allele_starts( uint32_t const rsid_start, std::string const& rsid, std::string const& first_allele, std::string const& second_allele ) {
+			std::vector< uint32_t > result( 2 ) ;
+			result[0] = rsid_start + rsid.size() ;
+			result[1] = result[0] + first_allele.size() ;
+			return result ;
+		}
+	}
+
+	VariantIdentifyingData::VariantIdentifyingData(
 		std::string const& rsid,
 		GenomePosition const& position,
 		std::string const& first_allele,
@@ -36,16 +44,15 @@ namespace genfile {
 	):
 		m_data( rsid + first_allele + second_allele ),
 		m_rsid_start( 0 ),
-		m_first_allele_start( m_rsid_start + rsid.size() ),
-		m_second_allele_start( m_first_allele_start + first_allele.size() ),
-		m_identifiers_start( m_second_allele_start + second_allele.size() ),
+		m_allele_starts( compute_allele_starts( m_rsid_start, rsid, first_allele, second_allele ) ),
+		m_identifiers_start( m_allele_starts[1] + second_allele.size() ),
 		m_position( position )
 	{
 		assert( rsid.size() < MAX_SIZE ) ; 
 		assert( first_allele.size() < MAX_SIZE ); 
 	}
 
- 	SNPIdentifyingData2::SNPIdentifyingData2(
+ 	VariantIdentifyingData::VariantIdentifyingData(
 		std::string const& SNPID,
 		std::string const& rsid,
 		GenomePosition const& position,
@@ -54,9 +61,8 @@ namespace genfile {
 	):
 		m_data( rsid + first_allele + second_allele + SNPID ),
 		m_rsid_start( 0 ),
-		m_first_allele_start( m_rsid_start + rsid.size() ),
-		m_second_allele_start( m_first_allele_start + first_allele.size() ),
-		m_identifiers_start( m_second_allele_start + second_allele.size() ),
+		m_allele_starts( compute_allele_starts( m_rsid_start, rsid, first_allele, second_allele ) ),
+		m_identifiers_start( m_allele_starts[1] + second_allele.size() ),
 		m_position( position )
 	{
 		assert( rsid.size() < MAX_SIZE ) ;
@@ -64,27 +70,25 @@ namespace genfile {
 		assert( first_allele.size() < MAX_SIZE );
 	}
 
-	SNPIdentifyingData2::SNPIdentifyingData2(
+	VariantIdentifyingData::VariantIdentifyingData(
 		SNPIdentifyingData const& snp
 	):
 		m_data( snp.get_rsid() + snp.get_first_allele() + snp.get_second_allele() + snp.get_SNPID() ),
 		m_rsid_start( 0 ),
-		m_first_allele_start( m_rsid_start + snp.get_rsid().size() ),
-		m_second_allele_start( m_first_allele_start + snp.get_first_allele().size() ),
-		m_identifiers_start( m_second_allele_start + snp.get_second_allele().size() ),
+		m_allele_starts( compute_allele_starts( m_rsid_start, snp.get_rsid(), snp.get_first_allele(), snp.get_second_allele() ) ),
+		m_identifiers_start( m_allele_starts[1] + snp.get_second_allele().size() ),
 		m_position( snp.get_position() )
 	{}
 	
-	SNPIdentifyingData2::SNPIdentifyingData2( SNPIdentifyingData2 const& other ):
+	VariantIdentifyingData::VariantIdentifyingData( VariantIdentifyingData const& other ):
 		m_data( other.m_data ),
 		m_rsid_start( other.m_rsid_start ),
-		m_first_allele_start( other.m_first_allele_start ),
-		m_second_allele_start( other.m_second_allele_start ),
+		m_allele_starts( other.m_allele_starts ),
 		m_identifiers_start( other.m_identifiers_start ),
 		m_position( other.m_position )
 	{}
 	
-	SNPIdentifyingData2& SNPIdentifyingData2::operator=( SNPIdentifyingData const& snp ) {
+	VariantIdentifyingData& VariantIdentifyingData::operator=( SNPIdentifyingData const& snp ) {
 		assert( snp.get_SNPID().size() < MAX_SIZE ) ; 
 		assert( snp.get_rsid().size() < MAX_SIZE ) ; 
 		assert( snp.get_first_allele().size() < MAX_SIZE ) ; 
@@ -100,75 +104,104 @@ namespace genfile {
 		}
 		
 		m_rsid_start = 0 ;
-		m_first_allele_start = m_rsid_start + snp.get_rsid().size() ;
-		m_second_allele_start = m_first_allele_start + snp.get_first_allele().size() ;
-		m_identifiers_start = m_second_allele_start + snp.get_second_allele().size() ;
+		m_allele_starts.resize(2) ;
+		m_allele_starts[0] = m_rsid_start + snp.get_rsid().size() ;
+		m_allele_starts[1] = m_allele_starts[0] + snp.get_first_allele().size() ;
+		m_identifiers_start = m_allele_starts[1] + snp.get_second_allele().size() ;
 		m_position = snp.get_position() ;
 		return *this ;
 	}
 
-	SNPIdentifyingData2& SNPIdentifyingData2::operator=( SNPIdentifyingData2 const& other ) {
+	VariantIdentifyingData& VariantIdentifyingData::operator=( VariantIdentifyingData const& other ) {
 		m_data = other.m_data ;
 		m_rsid_start = other.m_rsid_start ;
-		m_first_allele_start = other.m_first_allele_start ;
-		m_second_allele_start = other.m_second_allele_start ;
+		m_allele_starts = other.m_allele_starts ;
 		m_identifiers_start = other.m_identifiers_start ;
 		m_position = other.m_position ;
 		return *this ;
 	}
 	
-	SNPIdentifyingData2::operator SNPIdentifyingData() const {
-		return SNPIdentifyingData( m_data.substr( m_identifiers_start, m_data.size() - m_identifiers_start ), get_rsid(), get_position(), get_first_allele(), get_second_allele() ) ;
+	VariantIdentifyingData::operator SNPIdentifyingData() const {
+		assert( m_allele_starts.size() == 2 ) ;
+		return SNPIdentifyingData(
+			m_data.substr( m_identifiers_start, m_data.size() - m_identifiers_start ),
+			get_rsid(),
+			get_position(),
+			get_first_allele(),
+			get_second_allele()
+		) ;
 	}
 
-	void SNPIdentifyingData2::set_rsid( string_utils::slice const& rsid ) {
+	void VariantIdentifyingData::set_rsid( string_utils::slice const& rsid ) {
 		std::string new_data ;
-		std::size_t const difference = rsid.size() - m_first_allele_start ;
+		std::size_t const difference = rsid.size() - m_allele_starts[0] ;
 		new_data.reserve( m_data.size() + difference ) ;
 		new_data.append( rsid ) ;
-		new_data.append( m_data.begin() + m_first_allele_start, m_data.end() ) ;
+		new_data.append( m_data.begin() + m_allele_starts[0], m_data.end() ) ;
 		m_data.swap( new_data ) ;
-		m_first_allele_start += difference ;
-		m_second_allele_start += difference ;
+		for( std::size_t i = 0; i < m_allele_starts.size(); ++i ) {
+			m_allele_starts[i] += difference ;
+		}
 		m_identifiers_start += difference ;
 	}
 
-	void SNPIdentifyingData2::set_first_allele( string_utils::slice const& allele ) {
+	void VariantIdentifyingData::set_first_allele( string_utils::slice const& allele ) {
 		std::string new_data ;
-		std::size_t const difference = allele.size() - ( m_second_allele_start - m_first_allele_start ) ;
+		std::size_t const difference = allele.size() - ( m_allele_starts[1] - m_allele_starts[0] ) ;
 		new_data.reserve( m_data.size() + difference ) ;
-		new_data.append( m_data.begin(), m_data.begin() + m_first_allele_start ) ;
+		new_data.append( m_data.begin(), m_data.begin() + m_allele_starts[0] ) ;
 		new_data.append( allele.begin(), allele.end() ) ;
-		new_data.append( m_data.begin() + m_second_allele_start, m_data.end() ) ;
+		new_data.append( m_data.begin() + m_allele_starts[1], m_data.end() ) ;
 		m_data.swap( new_data ) ;
-		m_second_allele_start += difference ;
+		for( std::size_t i = 1; i < m_allele_starts.size(); ++i ) {
+			m_allele_starts[i] += difference ;
+		}
 		m_identifiers_start += difference ;
 	}
 
-	void SNPIdentifyingData2::set_second_allele( string_utils::slice const& allele ) {
+	void VariantIdentifyingData::set_second_allele( string_utils::slice const& allele ) {
 		std::string new_data ;
-		std::size_t const difference = allele.size() - ( m_identifiers_start - m_second_allele_start ) ;
+		std::size_t const difference = allele.size() - ( m_identifiers_start - m_allele_starts[1] ) ;
 		new_data.reserve( m_data.size() + difference ) ;
-		new_data.append( m_data.begin(), m_data.begin() + m_second_allele_start ) ;
+		new_data.append( m_data.begin(), m_data.begin() + m_allele_starts[1] ) ;
 		new_data.append( allele.begin(), allele.end() ) ;
 		new_data.append( m_data.begin() + m_identifiers_start, m_data.end() ) ;
 		m_data.swap( new_data ) ;
 		m_identifiers_start += difference ;
 	}
 
-	void SNPIdentifyingData2::swap_alleles() {
-		std::string const first_allele = get_first_allele() ;
-		genfile::string_utils::slice const second_allele = get_second_allele() ;
-		std::copy( second_allele.begin(), second_allele.end(), m_data.begin() + m_first_allele_start ) ;
-		m_second_allele_start = m_first_allele_start + second_allele.size() ;
-		std::copy( first_allele.begin(), first_allele.end(), m_data.begin() + m_second_allele_start ) ;
+	void VariantIdentifyingData::add_allele( slice const& allele ) {
+		std::string new_data ;
+		new_data.reserve( m_data.size() + allele.size() ) ;
+		new_data.append( m_data.begin(), m_data.begin() + m_identifiers_start ) ;
+		new_data.append( allele.begin(), allele.end() ) ;
+		new_data.append( m_data.begin() + m_identifiers_start, m_data.end() ) ;
+		m_identifiers_start += allele.size() ;
 	}
 
-	void SNPIdentifyingData2::clear_identifiers() {
+	void VariantIdentifyingData::get_alleles( boost::function< void( slice ) > callback ) const {
+		if( m_allele_starts.size() > 0 ) {
+			for( std::size_t i = 0; (i+1) < m_allele_starts.size(); ++i ) {
+				callback( slice( m_data, m_allele_starts[i], m_allele_starts[i+1] )) ;
+			}
+			callback( slice( m_data, m_allele_starts.back(), m_identifiers_start )) ;
+		}
+	}
+
+	void VariantIdentifyingData::swap_alleles() {
+		assert( m_allele_starts.size() == 2 ) ;
+		std::string const first_allele = get_first_allele() ;
+		genfile::string_utils::slice const second_allele = get_second_allele() ;
+		std::copy( second_allele.begin(), second_allele.end(), m_data.begin() + m_allele_starts[0] ) ;
+		m_allele_starts[1] = m_allele_starts[0] + second_allele.size() ;
+		std::copy( first_allele.begin(), first_allele.end(), m_data.begin() + m_allele_starts[1] ) ;
+	}
+
+	void VariantIdentifyingData::clear_identifiers() {
 		m_data.resize( m_identifiers_start ) ;
 	}
 
-	void SNPIdentifyingData2::add_identifier( slice const& id ) {
+	void VariantIdentifyingData::add_identifier( slice const& id ) {
 		// Deal with strange non-IDs
 		assert( id.size() > 0 ) ;
 		if( id != get_rsid() ) {
@@ -183,7 +216,7 @@ namespace genfile {
 		}
 	}
 
-	std::vector< genfile::string_utils::slice > SNPIdentifyingData2::get_alternative_identifiers() const {
+	std::vector< genfile::string_utils::slice > VariantIdentifyingData::get_alternative_identifiers() const {
 		if( m_identifiers_start == m_data.size() ) {
 			return std::vector< slice >() ;
 		}
@@ -192,21 +225,21 @@ namespace genfile {
 		}
 	}
 
-	void SNPIdentifyingData2::get_alternative_identifiers( boost::function< void( slice ) > callback ) const {
+	void VariantIdentifyingData::get_alternative_identifiers( boost::function< void( slice ) > callback ) const {
 		if( m_identifiers_start == m_data.size() ) {
 			return ;
 		}
 		slice( m_data, m_identifiers_start, m_data.size() ).split( "\t", callback ) ;
 	}
 
-	std::size_t SNPIdentifyingData2::get_estimated_bytes_used() const {
-		return sizeof( SNPIdentifyingData2 )
+	std::size_t VariantIdentifyingData::get_estimated_bytes_used() const {
+		return sizeof( VariantIdentifyingData )
 			+ m_data.size()
 			+ ( 3 * sizeof( std::size_t ) ) // there is about this much overhead on the stack per string.
 		;
 	}
 
-	std::ostream& operator<<( std::ostream& out, SNPIdentifyingData2 const& data ) {
+	std::ostream& operator<<( std::ostream& out, VariantIdentifyingData const& data ) {
 		out << data.get_rsid() ;
 		std::vector< genfile::string_utils::slice > const ids = data.get_alternative_identifiers() ;
 		if( ids.size() > 0 ) {
@@ -223,30 +256,29 @@ namespace genfile {
 		return out ;
 	}
 
-	std::ostream& operator<<( std::ostream& out, std::vector< SNPIdentifyingData2 > const& data ) {
+	std::ostream& operator<<( std::ostream& out, std::vector< VariantIdentifyingData > const& data ) {
 		for( std::size_t i = 0; i < data.size(); ++i ) {
 			out << data[i] << "\n" ;
 		}
 		return out ;
 	}
 	
-	bool operator==( SNPIdentifyingData2 const& left, SNPIdentifyingData2 const& right ) {
+	bool operator==( VariantIdentifyingData const& left, VariantIdentifyingData const& right ) {
 		using genfile::string_utils::slice ;
 		return left.m_data == right.m_data
 			&& left.m_rsid_start == right.m_rsid_start
-			&& left.m_first_allele_start == right.m_first_allele_start
-			&& left.m_second_allele_start == right.m_second_allele_start
+			&& left.m_allele_starts == right.m_allele_starts
 			&& left.m_identifiers_start == right.m_identifiers_start
 			&& slice( left.m_data, left.m_identifiers_start, left.m_data.size() ) == slice( right.m_data, right.m_identifiers_start, right.m_data.size() )
 			&& left.m_position == right.m_position ;
 	}
 
-	bool operator!=( SNPIdentifyingData2 const& left, SNPIdentifyingData2 const& right ) {
+	bool operator!=( VariantIdentifyingData const& left, VariantIdentifyingData const& right ) {
 		return !( left == right ) ;
 	}
 	
 	
-    bool operator<( SNPIdentifyingData2 const& left, SNPIdentifyingData2 const& right ) {
+    bool operator<( VariantIdentifyingData const& left, VariantIdentifyingData const& right ) {
 		using genfile::string_utils::slice ;
 		return (
 			( left.get_position() < right.get_position() )
@@ -283,17 +315,17 @@ namespace genfile {
 		) ;
 	}
 
-	SNPIdentifyingData2::CompareFields::CompareFields( std::string const& fields_to_compare ):
+	VariantIdentifyingData::CompareFields::CompareFields( std::string const& fields_to_compare ):
 		m_fields_to_compare( parse_fields_to_compare( fields_to_compare ) )
 	{
 		assert( !m_fields_to_compare.empty() ) ;
 	}
 	
-	SNPIdentifyingData2::CompareFields::CompareFields( CompareFields const& other ):
+	VariantIdentifyingData::CompareFields::CompareFields( CompareFields const& other ):
 		m_fields_to_compare( other.m_fields_to_compare )
 	{}
 
-	std::vector< int > SNPIdentifyingData2::CompareFields::parse_fields_to_compare( std::string const& field_spec ) {
+	std::vector< int > VariantIdentifyingData::CompareFields::parse_fields_to_compare( std::string const& field_spec ) {
 		std::vector< std::string > elts = string_utils::split_and_strip( field_spec, ",", " \t\n\r" ) ;
 		assert( elts.size() > 0 ) ;
 		std::vector< int > result ;
@@ -317,7 +349,7 @@ namespace genfile {
 		return result ;
 	}
 
-	bool SNPIdentifyingData2::CompareFields::operator()( SNPIdentifyingData2 const& left, SNPIdentifyingData2 const& right ) const {
+	bool VariantIdentifyingData::CompareFields::operator()( VariantIdentifyingData const& left, VariantIdentifyingData const& right ) const {
 		// Lexicographical compare in the same order as operator< above, but using only the specified fields.
 
 		for( std::size_t i = 0; i < m_fields_to_compare.size(); ++i ) {
@@ -368,7 +400,7 @@ namespace genfile {
 		return false ;
 	}
 	
-	bool SNPIdentifyingData2::CompareFields::are_equal( SNPIdentifyingData2 const& left, SNPIdentifyingData2 const& right ) const {
+	bool VariantIdentifyingData::CompareFields::are_equal( VariantIdentifyingData const& left, VariantIdentifyingData const& right ) const {
 		for( std::size_t i = 0; i < m_fields_to_compare.size(); ++i ) {
 			switch( m_fields_to_compare[i] ) {
 				case ePosition:
@@ -402,7 +434,7 @@ namespace genfile {
 		return true ;
 	}
 	
-	bool SNPIdentifyingData2::CompareFields::check_if_comparable_fields_are_known( SNPIdentifyingData2 const& value ) const {
+	bool VariantIdentifyingData::CompareFields::check_if_comparable_fields_are_known( VariantIdentifyingData const& value ) const {
 		if( std::find( m_fields_to_compare.begin(), m_fields_to_compare.end(), int( eAlleles ) ) != m_fields_to_compare.end() ) {
 			return value.get_first_allele() != "?" && value.get_second_allele() != "?" ;
 		}
