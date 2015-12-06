@@ -197,17 +197,11 @@ namespace genfile {
 	}
 
 	void SNPDataSourceChain::get_snp_identifying_data_impl( 
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2
+		VariantIdentifyingData* result
 	) {
 		move_to_next_nonempty_source_if_necessary() ;
 		if( m_current_source < m_sources.size() ) {
-			m_sources[m_current_source]->get_snp_identifying_data( set_number_of_samples, set_SNPID, set_RSID, set_chromosome, set_SNP_position, set_allele1, set_allele2 ) ;
+			m_sources[m_current_source]->get_snp_identifying_data( result ) ;
 		}
 	}
 
@@ -232,10 +226,11 @@ namespace genfile {
 	}
 
 	void SNPDataSourceChain::move_to_next_nonempty_source_if_necessary() {
+		VariantIdentifyingData variant ;
 		while(
 			m_current_source < m_sources.size()
 			&&
-			!m_sources[ m_current_source ]->get_snp_identifying_data( ignore(), ignore(), ignore(), ignore(), ignore(), ignore(), ignore() )
+			!m_sources[ m_current_source ]->get_snp_identifying_data( &variant )
 		) {
 			move_to_next_source() ;
 		}

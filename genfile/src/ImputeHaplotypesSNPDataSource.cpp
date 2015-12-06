@@ -176,23 +176,11 @@ namespace genfile {
 	}
 	
 	void ImputeHaplotypesSNPDataSource::get_snp_identifying_data_impl( 
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2
+		VariantIdentifyingData* result
 	) {
 		if( number_of_snps_read() < m_snps.size() ) {
 			VariantIdentifyingData const& snp = m_snps[ number_of_snps_read() ] ;
-			set_number_of_samples( m_number_of_samples ) ;
-			set_SNPID( snp.get_rsid() ) ;
-			set_RSID( snp.get_rsid() ) ;
-			set_chromosome( snp.get_position().chromosome() ) ;
-			set_SNP_position( snp.get_position().position() ) ;
-			set_allele1( snp.get_first_allele() ) ;
-			set_allele2( snp.get_second_allele() ) ;
+			*result = snp ;
 		} else {
 			m_good = false ;
 		}

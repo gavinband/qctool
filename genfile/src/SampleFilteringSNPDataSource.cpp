@@ -82,26 +82,10 @@ namespace genfile {
 	}
 
 	void SampleFilteringSNPDataSource::get_snp_identifying_data_impl( 
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2
+		VariantIdentifyingData* result
 	) {
 		uint32_t number_of_samples ;
-		m_source->get_snp_identifying_data( 
-			set_value( number_of_samples ),
-			set_SNPID,
-			set_RSID,
-			set_chromosome,
-			set_SNP_position,
-			set_allele1,
-			set_allele2
-		) ;
-		
-		set_number_of_samples( this->number_of_samples() ) ;
+		m_source->get_snp_identifying_data( result ) ;
 	}
 
 	void SampleFilteringSNPDataSource::read_source_probability_data() {

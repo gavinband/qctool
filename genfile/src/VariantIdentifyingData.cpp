@@ -339,7 +339,7 @@ namespace genfile {
 			else if( elts[i] == "alleles" ) {
 				result.push_back( eAlleles ) ;
 			}
-			else if( elts[i] == "IDs" ) {
+			else if( elts[i] == "IDs" || elts[i] == "SNPID" ) {
 				result.push_back( eIDs ) ;
 			}
 			else {

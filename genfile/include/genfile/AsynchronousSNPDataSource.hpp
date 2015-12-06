@@ -32,13 +32,7 @@ namespace genfile {
 		SNPDataSource const& get_base_source() const ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 		void get_snp_identifying_data_impl( 
-			IntegerSetter const& set_number_of_samples,
-			StringSetter const& set_SNPID,
-			StringSetter const& set_RSID,
-			ChromosomeSetter const& set_chromosome,
-			SNPPositionSetter const& set_SNP_position,
-			AlleleSetter const& set_allele1,
-			AlleleSetter const& set_allele2
+			VariantIdentifyingData* variant
 		) ;
 
 		VariantDataReader::UniquePtr read_variant_data_impl() ;

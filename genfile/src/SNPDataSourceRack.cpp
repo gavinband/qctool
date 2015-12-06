@@ -207,27 +207,22 @@ namespace genfile {
 	}
 
 	void SNPDataSourceRack::get_snp_identifying_data_impl( 
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2
+		VariantIdentifyingData* result
 	) {
 		if( m_sources.size() == 0 ) {
 			return ;
 		}
 		
-		SNPIdentifyingData this_snp ;
+		VariantIdentifyingData this_snp ;
 		std::string merged_SNPID, merged_rsid, merged_allele1, merged_allele2 ;
 		std::set< std::string > rsids ;
 		std::set< std::string > SNPIDs ;
 		std::vector< char > flips( m_sources.size(), eNoFlip ) ;
 		std::size_t source_i = 0 ;
-		if( m_sources[0]->get_snp_identifying_data( this_snp ) ) {
+		if( m_sources[0]->get_snp_identifying_data( &this_snp ) ) {
 			// we use source_i == m_source.size() to indicate a successful match across cohorts.
 			while( (*this) && source_i < m_sources.size() ) {
+				this_snp
 				SNPIDs.clear() ;
 				rsids.clear() ;
 				SNPIDs.insert( this_snp.get_SNPID() ) ;
@@ -237,7 +232,7 @@ namespace genfile {
 				merged_allele1 = this_snp.get_first_allele() ;
 				merged_allele2 = this_snp.get_second_allele() ;
 
-				SNPIdentifyingData this_source_snp ;
+				VariantIdentifyingData this_source_snp ;
 				source_i = 1 ;
 				for( ;
 					source_i < m_sources.size() && move_source_to_snp_matching( source_i, this_snp, &this_source_snp );
@@ -253,7 +248,7 @@ namespace genfile {
 						merged_rsid += "," + this_source_snp.get_rsid() ;
 					}
 					if( m_comparator.get_flip_alleles_if_necessary() ) {
-                        if( this_source_snp.get_first_allele() == this_snp.get_second_allele() && this_source_snp.get_second_allele() == this_snp.get_first_allele() ) {
+						if( this_source_snp.get_first_allele() == this_snp.get_second_allele() && this_source_snp.get_second_allele() == this_snp.get_first_allele() ) {
 							flips[ source_i ] = eFlip ;
 						} else if( this_source_snp.get_first_allele() == this_snp.get_first_allele() && this_source_snp.get_second_allele() == this_snp.get_second_allele() ) {
 							// do nothing

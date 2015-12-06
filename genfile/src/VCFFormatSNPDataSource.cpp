@@ -236,14 +236,7 @@ namespace genfile {
 	}
 	
 	void VCFFormatSNPDataSource::get_snp_identifying_data_impl( 
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2
-	) {
+VariantIdentifyingData* variant	) {
 		return get_snp_identifying_data_impl(
 			m_stream_ptr.get(),
 			set_number_of_samples,
@@ -258,14 +251,7 @@ namespace genfile {
 
 	void VCFFormatSNPDataSource::get_snp_identifying_data_impl( 
 		std::istream* stream_ptr,
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2
-	) {
+VariantIdentifyingData* variant	) {
 		if( !m_have_id_data ) {
 			std::size_t entry_count = 0 ;
 			try {

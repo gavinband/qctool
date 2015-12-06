@@ -83,8 +83,8 @@ namespace genfile {
 
 	void MergingSNPDataSource::get_top_snp_in_source( std::size_t source_i ) {
 		assert( source_i < m_sources.size() ) ;
-		SNPIdentifyingData snp ;
-		if( m_sources[ source_i ]->get_snp_identifying_data( snp ) ) {
+		VariantIdentifyingData snp ;
+		if( m_sources[ source_i ]->get_snp_identifying_data( &snp ) ) {
 			m_current_snps.insert(
 				std::make_pair( snp, source_i )
 			) ;
@@ -164,25 +164,18 @@ namespace genfile {
 	}
 
 	void MergingSNPDataSource::get_snp_identifying_data_impl( 
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2
+		VariantIdentifyingData* result
 	) {
 		if( m_current_snps.size() > 0 ) {
 			SNPIdentifyingData const& snp = m_current_snps.begin()->first ;
 			std::size_t source_index = m_current_snps.begin()->second ;
-			set_number_of_samples( number_of_samples() ) ;
-
-			set_SNPID( m_merge_id_prefixes[ source_index ] + snp.get_SNPID() ) ;
-			set_RSID( snp.get_rsid() ) ;
-			set_chromosome( snp.get_position().chromosome() ) ;
-			set_SNP_position( snp.get_position().position() ) ;
-			set_allele1( snp.get_first_allele() ) ;
-			set_allele2( snp.get_second_allele() ) ;
+			*result = VariantIdentifyingData(
+				m_merge_id_prefixes[ source_index ] + snp.get_SNPID(),
+				snp.get_rsid(),
+				snp.get_position(),
+				snp.get_first_allele(),
+				snp.get_second_allele()
+			) ;
 		}
 	}
 

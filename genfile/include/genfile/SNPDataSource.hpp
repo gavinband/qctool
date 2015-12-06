@@ -17,7 +17,7 @@
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/wildcard.hpp"
 #include "genfile/GenomePosition.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/vcf/MetadataParser.hpp"
 #include "genfile/CohortIndividualSource.hpp"
@@ -67,9 +67,6 @@ namespace genfile {
 
 		void reset_to_start() ;
 
-		typedef boost::function< void() > source_reset_callback_t ;
-
-		void set_source_reset_callback( source_reset_callback_t ) ;
 		typedef boost::function< int ( Chromosome const&, std::size_t ) > GetPloidy ;
 		virtual void set_expected_ploidy( GetPloidy ) {} ;
 
@@ -78,32 +75,21 @@ namespace genfile {
 		// The next five functions form the main interface for reading snp data. 
 		// These typedefs reflect the signatures which the various setter objects
 		// needed by these functions must support.
-		typedef boost::function< void ( uint32_t ) > IntegerSetter ;
-		typedef boost::function< void ( std::string const& ) > StringSetter ;
-		typedef boost::function< void ( std::string const& ) > AlleleSetter ;
-		typedef boost::function< void ( uint32_t ) > SNPPositionSetter ;
-		typedef boost::function< void ( Chromosome ) > ChromosomeSetter ;
 		typedef boost::function< void ( std::size_t, double, double, double ) > GenotypeProbabilitySetter ;
-		typedef boost::function< void ( SNPIdentifyingData const& ) > SNPSetter ;
+		typedef boost::function< void ( VariantIdentifyingData const& ) > VariantSetter ;
 		typedef boost::function< void( std::size_t, boost::optional< std::size_t > ) > ProgressCallback ;
 
 		// Function: list_snps
 		// Return (via the setter object) a list of all SNPs in the source.
-		virtual void list_snps( SNPSetter, ProgressCallback = ProgressCallback() ) ;
-		virtual std::vector< SNPIdentifyingData > list_snps( ProgressCallback = ProgressCallback() ) ;
+		virtual void list_snps( VariantSetter, ProgressCallback = ProgressCallback() ) ;
+		virtual std::vector< VariantIdentifyingData > list_snps( ProgressCallback = ProgressCallback() ) ;
 
 		// Function: read_snp()
 		// Read the data for the next snp from the source (and remove it from the source)
 		// Store the data using the given setter objects / function pointers.
 		// The returned object evaluates to true if the read was successful, otherwise false.
 		SNPDataSource& read_snp(
-			IntegerSetter set_number_of_samples,
-			StringSetter set_SNPID,
-			StringSetter set_RSID,
-			ChromosomeSetter set_chromosome,
-			SNPPositionSetter set_SNP_position,
-			AlleleSetter set_allele1,
-			AlleleSetter set_allele2,
+			VariantIdentifyingData* variant,
 			GenotypeProbabilitySetter set_genotype_probabilities
 		) ;
 
@@ -114,13 +100,7 @@ namespace genfile {
 		// 3. the source is exhausted
 		// In case 1., read the snp data and return true; otherwise return false.
 		bool get_next_snp_with_position_in_range(
-			IntegerSetter const& set_number_of_samples,
-			StringSetter const& set_SNPID,
-			StringSetter const& set_RSID,
-			ChromosomeSetter const& set_chromosome,
-			SNPPositionSetter const& set_SNP_position,
-			AlleleSetter const& set_allele1,
-			AlleleSetter const& set_allele2,
+			VariantIdentifyingData* result,
 			Chromosome chromosome_lower_bound,
 			Chromosome chromosome_upper_bound,
 			uint32_t position_lower_bound,
@@ -134,55 +114,29 @@ namespace genfile {
 		// 3. the source is exhausted
 		// In case 1., read the snp data and return true; otherwise return false.
 		bool get_next_snp_with_specified_position(
-			IntegerSetter const& set_number_of_samples,
-			StringSetter const& set_SNPID,
-			StringSetter const& set_RSID,
-			ChromosomeSetter const& set_chromosome,
-			SNPPositionSetter const& set_SNP_position,
-			AlleleSetter const& set_allele1,
-			AlleleSetter const& set_allele2,
+			VariantIdentifyingData* result,
 			Chromosome specified_chromosome,
 			uint32_t specified_SNP_position
 		) ;
 		
 		// As above but take a GenomePosition.
 		bool get_next_snp_with_specified_position(
-			IntegerSetter const& set_number_of_samples,
-			StringSetter const& set_SNPID,
-			StringSetter const& set_RSID,
-			ChromosomeSetter const& set_chromosome,
-			SNPPositionSetter const& set_SNP_position,
-			AlleleSetter const& set_allele1,
-			AlleleSetter const& set_allele2,
+			VariantIdentifyingData* result,
 			GenomePosition specified_position
 		) ;
 		
 		bool get_next_snp_matching(
-			SNPIdentifyingData* matching_snp,
-			SNPIdentifyingData const& snp,
-			SNPIdentifyingData::CompareFields const& comparer = SNPIdentifyingData::CompareFields()
+			VariantIdentifyingData* matching_snp,
+			VariantIdentifyingData const& snp,
+			VariantIdentifyingData::CompareFields const& comparer = VariantIdentifyingData::CompareFields()
 		) ;
 
 		// Function: get_snp_identifying_data()
-		// Get the SNP ID, RS ID, position, and alleles of the next snp in the source.
+		// Get identifying data fields and alleles of the next variant in the source.
 		// Repeated calls to this function return the data for the same snp, until a call to
 		// read_snp_probability_data() or ignore_snp_probability_data() is made.
 		SNPDataSource& get_snp_identifying_data(
-			IntegerSetter const& set_number_of_samples,
-			StringSetter const& set_SNPID,
-			StringSetter const& set_RSID,
-			ChromosomeSetter const& set_chromosome,
-			SNPPositionSetter const& set_SNP_position,
-			AlleleSetter const& set_allele1,
-			AlleleSetter const& set_allele2
-		) ;
-
-		// Function: get_snp_identifying_data()
-		// Get the SNP ID, RS ID, position, and alleles of the next snp in the source.
-		// Repeated calls to this function return the data for the same snp, until a call to
-		// read_snp_probability_data() or ignore_snp_probability_data() is made.
-		SNPDataSource& get_snp_identifying_data(
-			SNPIdentifyingData& snp
+			VariantIdentifyingData* snp
 		) ;
 
 		// Function: read_snp_probability_data()
@@ -243,13 +197,7 @@ namespace genfile {
 	protected:
 
 		virtual void get_snp_identifying_data_impl( 
-			IntegerSetter const& set_number_of_samples,
-			StringSetter const& set_SNPID,
-			StringSetter const& set_RSID,
-			ChromosomeSetter const& set_chromosome,
-			SNPPositionSetter const& set_SNP_position,
-			AlleleSetter const& set_allele1,
-			AlleleSetter const& set_allele2
+			VariantIdentifyingData* variant
 		) = 0 ;	
 
 		void read_snp_probability_data_impl(
@@ -274,32 +222,17 @@ namespace genfile {
 
 		// state variable SNP identifying data
 		State m_state ;
-
-		// callbacks
-		source_reset_callback_t m_source_reset_callback ;
 	} ;
 
 	class IdentifyingDataCachingSNPDataSource: public SNPDataSource
 	{
 		virtual void read_snp_identifying_data_impl( 
-			uint32_t* number_of_samples,
-			std::string* SNPID,
-			std::string* RSID,
-			Chromosome* chromosome,
-			uint32_t* SNP_position,
-			std::string* allele1,
-			std::string* allele2
+			VariantIdentifyingData* variant
 		) = 0 ;
 		
 
 		void get_snp_identifying_data_impl( 
-			IntegerSetter const& set_number_of_samples,
-			StringSetter const& set_SNPID,
-			StringSetter const& set_RSID,
-			ChromosomeSetter const& set_chromosome,
-			SNPPositionSetter const& set_SNP_position,
-			AlleleSetter const& set_allele1,
-			AlleleSetter const& set_allele2
+			VariantIdentifyingData* variant
 		) ;
 
 	private:

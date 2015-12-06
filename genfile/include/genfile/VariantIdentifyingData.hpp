@@ -67,7 +67,7 @@ namespace genfile {
 		std::size_t get_estimated_bytes_used() const ;
 	public:
 		struct CompareFields {
-			CompareFields( std::string const& fields_to_compare ) ;
+			CompareFields( std::string const& fields_to_compare = "position,rsid,IDs,alleles" ) ;
 			CompareFields( CompareFields const& other ) ;
 
 			enum { eIDs = 0x1, eRSID = 0x2, ePosition = 0x4, eAlleles = 0x8, eMask = 0xF } ;

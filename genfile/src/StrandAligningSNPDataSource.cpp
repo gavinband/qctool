@@ -75,14 +75,7 @@ namespace genfile {
 	}
 
 	void StrandAligningSNPDataSource::get_snp_identifying_data_impl( 
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2
-	) {
+VariantIdentifyingData* variant	) {
 		SNPIdentifyingData source_snp ;
 		for( ; m_source->get_snp_identifying_data( source_snp ); m_source->ignore_snp_probability_data() ) {
 			m_current_strand_flip_spec = get_strand_alignment( source_snp ) ;
