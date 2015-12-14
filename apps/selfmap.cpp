@@ -277,7 +277,7 @@ private:
 		std::size_t count = 0 ;
 		for( ; i != end_i; ++i, ++count ) {
 			genfile::GenomePosition const& position = i->second[0].first ;
-			genfile::SNPIdentifyingData2 snp(
+			genfile::VariantIdentifyingData snp(
 				to_string( position ),
 				".",
 				position,

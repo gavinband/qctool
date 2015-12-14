@@ -9,7 +9,7 @@
 #include <boost/bimap.hpp>
 #include <boost/bind.hpp>
 #include "genfile/VariantEntry.hpp"
-#include "genfile/SNPIdentifyingData2.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/string_utils.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"

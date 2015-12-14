@@ -378,7 +378,7 @@ namespace genfile {
 						} else if( spec == ":intensities:" ) {
 							actual_spec = m_source.m_intensity_field ;
 						}
-						if( std::find( m_format_elts.begin(), m_format_elts.end(), actual_spec ) != m_format_elts.end() ) {
+						if( m_format_types.find( actual_spec ) != m_format_types.end() ) {
 							m_data_reader->get( actual_spec, setter ) ;
 						}
 						else {

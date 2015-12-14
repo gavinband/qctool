@@ -9,7 +9,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/thread/thread.hpp>
-#include "genfile/SNPIdentifyingData2.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
 #include "db/Connection.hpp"
@@ -89,7 +89,7 @@ namespace qcdb {
 		}
 	}
 
-	void FlatTableDBOutputter::create_new_variant( genfile::SNPIdentifyingData2 const& snp ) {
+	void FlatTableDBOutputter::create_new_variant( genfile::VariantIdentifyingData const& snp ) {
 		if( m_snps.size() == m_max_snps_per_block ) {
 			store_block() ;
 			m_snps.clear() ;
@@ -99,7 +99,7 @@ namespace qcdb {
 	}
 
 	void FlatTableDBOutputter::store_per_variant_data(
-		genfile::SNPIdentifyingData2 const& snp,
+		genfile::VariantIdentifyingData const& snp,
 		std::string const& variable,
 		genfile::VariantEntry const& value
 	) {
@@ -250,7 +250,7 @@ namespace qcdb {
 	
 	void FlatTableDBOutputter::store_data_for_variant(
 		std::size_t const snp_i,
-		genfile::SNPIdentifyingData2 const& snp,
+		genfile::VariantIdentifyingData const& snp,
 		db::Connection::RowId const analysis_id,
 		db::Connection::RowId const variant_id
 	) {

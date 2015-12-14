@@ -10,7 +10,7 @@
 #include <boost/tuple/tuple.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/format.hpp>
-#include "genfile/SNPIdentifyingData2.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
 #include "db/Connection.hpp"
@@ -75,12 +75,12 @@ namespace snp_summary_component {
 		// nothing to do.  We do not report values for unused variables.
 	}
 
-	void DBOutputter::create_new_variant( genfile::SNPIdentifyingData2 const& snp ) {
+	void DBOutputter::create_new_variant( genfile::VariantIdentifyingData const& snp ) {
 		// nothing to do.
 	}
 
 	void DBOutputter::store_per_variant_data(
-		genfile::SNPIdentifyingData2 const& snp,
+		genfile::VariantIdentifyingData const& snp,
 		std::string const& variable,
 		genfile::VariantEntry const& value
 	) {

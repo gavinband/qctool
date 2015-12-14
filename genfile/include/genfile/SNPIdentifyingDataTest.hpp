@@ -18,7 +18,7 @@
 #include "genfile/GenomePosition.hpp"
 #include "genfile/Chromosome.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
-#include "genfile/SNPIdentifyingData2.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 
 namespace genfile {
 	
@@ -48,11 +48,11 @@ namespace genfile {
 			return operator()( data.get_SNPID(), data.get_rsid(), data.get_position(), data.get_first_allele(), data.get_second_allele() ) ;
 		}
 
-		virtual bool operator()( SNPIdentifyingData2 const& data ) const ;
+		virtual bool operator()( VariantIdentifyingData const& data ) const ;
 		
 		// Return a vector of indices of SNPs which pass the test.
 		std::vector< std::size_t > get_indices_of_filtered_in_snps( std::vector< SNPIdentifyingData> const& snps ) const ;
-		typedef boost::function< SNPIdentifyingData2 const& ( std::size_t ) > SNPGetter ;
+		typedef boost::function< VariantIdentifyingData const& ( std::size_t ) > SNPGetter ;
 		std::vector< std::size_t > get_indices_of_filtered_in_snps( std::size_t number_of_snps, SNPGetter ) const ;
 		
 	protected:

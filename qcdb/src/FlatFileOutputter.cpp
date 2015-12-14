@@ -9,7 +9,7 @@
 #include <boost/bimap.hpp>
 #include <boost/bind.hpp>
 #include "genfile/VariantEntry.hpp"
-#include "genfile/SNPIdentifyingData2.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/string_utils.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
@@ -74,7 +74,7 @@ namespace qcdb {
 		}
 	}
 
-	void FlatFileOutputter::create_new_variant( genfile::SNPIdentifyingData2 const& snp ) {
+	void FlatFileOutputter::create_new_variant( genfile::VariantIdentifyingData const& snp ) {
 		if( m_snps.size() == m_max_snps_per_block ) {
 			store_block() ;
 			m_snps.clear() ;
@@ -84,7 +84,7 @@ namespace qcdb {
 	}
 
 	void FlatFileOutputter::store_per_variant_data(
-		genfile::SNPIdentifyingData2 const& snp,
+		genfile::VariantIdentifyingData const& snp,
 		std::string const& variable,
 		genfile::VariantEntry const& value
 	) {
@@ -130,7 +130,7 @@ namespace qcdb {
 			(*m_sink) << statfile::begin_data() ;
 		}
 		for( std::size_t snp_i = 0; snp_i < m_snps.size(); ++snp_i ) {
-			genfile::SNPIdentifyingData2 const& snp = m_snps[ snp_i ] ;
+			genfile::VariantIdentifyingData const& snp = m_snps[ snp_i ] ;
 			std::string SNPID ;
 			snp.get_alternative_identifiers( boost::bind( &append_to_string, &SNPID, _1 )) ;
 			(*m_sink) << SNPID << snp.get_rsid() << snp.get_position().chromosome() << snp.get_position().position() << snp.get_first_allele() << snp.get_second_allele() ;

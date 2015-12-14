@@ -13,7 +13,7 @@
 #include <boost/function.hpp>
 #include <boost/optional.hpp>
 #include <Eigen/Core>
-#include "genfile/SNPIdentifyingData2.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/Chromosome.hpp"
 #include "genfile/SNPIdentifyingDataTest.hpp"
 #include "genfile/wildcard.hpp"
@@ -23,9 +23,9 @@
 struct FrequentistGenomeWideAssociationResults: public boost::noncopyable {
 public:
 	typedef std::auto_ptr< FrequentistGenomeWideAssociationResults > UniquePtr ;
-	typedef boost::function< void ( std::size_t i, genfile::SNPIdentifyingData2 const& snp ) > GetSNPCallback ;
+	typedef boost::function< void ( std::size_t i, genfile::VariantIdentifyingData const& snp ) > GetSNPCallback ;
 	typedef
-		boost::function< void ( genfile::SNPIdentifyingData2 const&, std::string const&, genfile::VariantEntry const& ) > 
+		boost::function< void ( genfile::VariantIdentifyingData const&, std::string const&, genfile::VariantEntry const& ) > 
 		SNPResultCallback ;
 	typedef boost::function< void ( std::size_t, boost::optional< std::size_t > ) > ProgressCallback ;
 
@@ -45,7 +45,7 @@ public:
 	virtual void add_variable( std::string const& variable ) = 0 ;
 	virtual void set_effect_size_column_regex( std::string const& ) = 0 ;
 	virtual std::size_t get_number_of_SNPs() const = 0 ;
-	virtual genfile::SNPIdentifyingData2 const& get_SNP( std::size_t snp_i ) const = 0 ;
+	virtual genfile::VariantIdentifyingData const& get_SNP( std::size_t snp_i ) const = 0 ;
 	virtual EffectParameterNamePack get_effect_parameter_names() const = 0 ;
 	virtual void get_betas( std::size_t snp_i, Eigen::VectorXd* result ) const = 0 ;
 	virtual void get_ses( std::size_t snp_i, Eigen::VectorXd* result ) const = 0 ; 

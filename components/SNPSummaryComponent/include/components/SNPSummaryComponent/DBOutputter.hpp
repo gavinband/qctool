@@ -11,7 +11,7 @@
 #include <memory>
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
-#include "genfile/SNPIdentifyingData2.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "db/Connection.hpp"
@@ -49,9 +49,9 @@ namespace snp_summary_component {
 			std::string const& 
 		) ;
 
-		void create_new_variant( genfile::SNPIdentifyingData2 const& ) ;
+		void create_new_variant( genfile::VariantIdentifyingData const& ) ;
 		void store_per_variant_data(
-			genfile::SNPIdentifyingData2 const& snp,
+			genfile::VariantIdentifyingData const& snp,
 			std::string const& variable,
 			genfile::VariantEntry const& value
 		) ;
@@ -63,7 +63,7 @@ namespace snp_summary_component {
 		qcdb::DBOutputter m_outputter ;
 		std::size_t const m_max_transaction_count ;
 		db::Connection::RowId m_variable_id ;
-		typedef std::vector< boost::tuple< genfile::SNPIdentifyingData2, std::string, genfile::VariantEntry > > Data ;
+		typedef std::vector< boost::tuple< genfile::VariantIdentifyingData, std::string, genfile::VariantEntry > > Data ;
 		Data m_data ;
 		
 		std::string m_table_name ;

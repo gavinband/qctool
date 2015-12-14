@@ -36,7 +36,7 @@
 #include "genfile/string_utils/string_utils.hpp"
 #include "genfile/string_utils/slice.hpp"
 #include "genfile/SNPIdentifyingData.hpp"
-#include "genfile/SNPIdentifyingData2.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/SNPIdentifyingDataTest.hpp"
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/VariantEntry.hpp"
@@ -304,7 +304,7 @@ struct BingwaComputation: public boost::noncopyable {
 	typedef std::auto_ptr< BingwaComputation > UniquePtr ;
 	static UniquePtr create( std::string const& name, std::vector< std::string > const& cohort_names, appcontext::OptionProcessor const& ) ;
 	virtual ~BingwaComputation() {}
-	typedef genfile::SNPIdentifyingData2 SNPIdentifyingData2 ;
+	typedef genfile::VariantIdentifyingData VariantIdentifyingData ;
 	typedef boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
 	
 	struct DataGetter: public boost::noncopyable {
@@ -326,7 +326,7 @@ struct BingwaComputation: public boost::noncopyable {
 	virtual void set_effect_parameter_names( EffectParameterNamePack const& names ) = 0 ;
 	virtual void get_variables( boost::function< void ( std::string ) > ) const = 0 ;
 	virtual void operator()(
-		SNPIdentifyingData2 const&,
+		VariantIdentifyingData const&,
 		DataGetter const& data_getter,
 		ResultCallback callback
 	) = 0 ;
@@ -388,7 +388,7 @@ public:
 	}
 	
 	void operator()(
-		SNPIdentifyingData2 const&,
+		VariantIdentifyingData const&,
 		DataGetter const& data_getter,
 		ResultCallback callback
 	) {
@@ -704,7 +704,7 @@ struct FixedEffectFrequentistMetaAnalysis: public BingwaComputation {
 	}
 
 	void operator()(
-		SNPIdentifyingData2 const& snp,
+		VariantIdentifyingData const& snp,
 		DataGetter const& data_getter,
 		ResultCallback callback
 	) {
@@ -988,7 +988,7 @@ struct ApproximateBayesianMetaAnalysis: public BingwaComputation {
 	}
 
 	void operator()(
-		SNPIdentifyingData2 const& snp,
+		VariantIdentifyingData const& snp,
 		DataGetter const& data_getter,
 		ResultCallback callback
 	) {
@@ -1073,7 +1073,7 @@ struct MultivariateFixedEffectMetaAnalysis: public BingwaComputation {
 	}
 
 	void operator()(
-		SNPIdentifyingData2 const& snp,
+		VariantIdentifyingData const& snp,
 		DataGetter const& data_getter,
 		ResultCallback callback
 	) {
@@ -1236,7 +1236,7 @@ public:
 	}
 
 	void operator()(
-		SNPIdentifyingData2 const& snp,
+		VariantIdentifyingData const& snp,
 		DataGetter const& data_getter,
 		ResultCallback callback
 	) {
@@ -1413,7 +1413,7 @@ public:
 	}
 
 	void operator()(
-		SNPIdentifyingData2 const& snp,
+		VariantIdentifyingData const& snp,
 		DataGetter const&,
 		ResultCallback callback
 	) {
@@ -1464,11 +1464,11 @@ struct BingwaProcessor: public boost::noncopyable
 public:
 		typedef std::auto_ptr< BingwaProcessor > UniquePtr ;
 public:
-	static UniquePtr create( genfile::SNPIdentifyingData2::CompareFields const& compare_fields ) {
+	static UniquePtr create( genfile::VariantIdentifyingData::CompareFields const& compare_fields ) {
 		return UniquePtr( new BingwaProcessor( compare_fields ) ) ;
 	}
 	
-	BingwaProcessor( genfile::SNPIdentifyingData2::CompareFields const& compare_fields ):
+	BingwaProcessor( genfile::VariantIdentifyingData::CompareFields const& compare_fields ):
 		m_snps( compare_fields ),
 		m_flip_alleles_if_necessary( false )
 	{
@@ -1562,7 +1562,7 @@ public:
 
 	typedef boost::signals2::signal<
 		void (
-			genfile::SNPIdentifyingData2 const& snp,
+			genfile::VariantIdentifyingData const& snp,
 			std::string const& value_name,
 			genfile::VariantEntry const& value
 		)
@@ -1589,9 +1589,9 @@ private:
 	} ;
 	typedef boost::optional< SnpMatch > OptionalSnpMatch ;
 	typedef std::map<
-		genfile::SNPIdentifyingData2,
+		genfile::VariantIdentifyingData,
 		std::vector< OptionalSnpMatch >,
-		genfile::SNPIdentifyingData2::CompareFields
+		genfile::VariantIdentifyingData::CompareFields
 	> SnpMap ;
 	SnpMap m_snps ;
 	typedef std::map< std::vector< bool >, std::size_t > CategoryCounts ;
@@ -1674,13 +1674,13 @@ private:
 		categorise_by_missingness() ;
 	}
 	
-	void add_SNP_callback( std::size_t cohort_i, std::size_t snp_i, genfile::SNPIdentifyingData2 const& snp ) {
+	void add_SNP_callback( std::size_t cohort_i, std::size_t snp_i, genfile::VariantIdentifyingData const& snp ) {
 		// Find the SNP that matches the given one (if it exists)
 		std::pair< SnpMap::iterator, SnpMap::iterator > range = m_snps.equal_range( snp ) ;
 		SnpMatch snp_match( snp_i, false ) ;
 
 		if( range.second == range.first && m_flip_alleles_if_necessary ) {
-			genfile::SNPIdentifyingData2 swapped_snp = snp ;
+			genfile::VariantIdentifyingData swapped_snp = snp ;
 			swapped_snp.swap_alleles() ;
 			range = m_snps.equal_range( swapped_snp ) ;
 			snp_match.flip = ( range.second != range.first ) ;
@@ -1697,12 +1697,12 @@ private:
 			// presented for this variant, but take the first rsid seen
 			// as the rsid.
 			// First save the currently-stored data and erase the current record.
-			genfile::SNPIdentifyingData2 stored_snp = range.first->first ;
+			genfile::VariantIdentifyingData stored_snp = range.first->first ;
 			std::vector< OptionalSnpMatch > snp_matches = range.first->second ;
 			m_snps.erase( range.first ) ;
 			
 			stored_snp.add_identifier( snp.get_rsid() ) ;
-			snp.get_alternative_identifiers( boost::bind( &genfile::SNPIdentifyingData2::add_identifier, &stored_snp, _1 ) ) ;
+			snp.get_alternative_identifiers( boost::bind( &genfile::VariantIdentifyingData::add_identifier, &stored_snp, _1 ) ) ;
 
 			snp_matches[ cohort_i ] = snp_match ;
 			m_snps[ stored_snp ] = snp_matches ;
@@ -1791,7 +1791,7 @@ public:
 			argv,
 			"-log"
 		),
-		m_processor( BingwaProcessor::create( genfile::SNPIdentifyingData2::CompareFields( options().get< std::string > ( "-snp-match-fields" )) ) )
+		m_processor( BingwaProcessor::create( genfile::VariantIdentifyingData::CompareFields( options().get< std::string > ( "-snp-match-fields" )) ) )
 	{
 		if( options().check( "-flip-alleles" )) {
 			m_processor->set_flip_alleles() ;
@@ -3042,7 +3042,7 @@ public:
 	}
 
 	typedef
-		boost::function< void ( genfile::SNPIdentifyingData2 const&, std::string const&, genfile::VariantEntry const& ) > 
+		boost::function< void ( genfile::VariantIdentifyingData const&, std::string const&, genfile::VariantEntry const& ) > 
 		ResultCallback ;
 
 	void load_data() {

@@ -465,7 +465,7 @@ namespace qcdb {
 		m_find_variant_identifier_statement->reset() ;
 	}
 
-	db::Connection::RowId DBOutputter::get_or_create_variant( genfile::SNPIdentifyingData2 const& snp ) const {
+	db::Connection::RowId DBOutputter::get_or_create_variant( genfile::VariantIdentifyingData const& snp ) const {
 		db::Connection::RowId result ;
 		m_find_variant_statement
 			->bind( 1, std::string( snp.get_position().chromosome() ) )

@@ -43,11 +43,11 @@
 		db::Connection::StatementPtr m_insert_genotype_stmnt ;
 		db::Connection::StatementPtr m_insert_intensity_stmnt ;
 
-		std::vector< genfile::SNPIdentifyingData2 > m_genotype_snps ;
+		std::vector< genfile::VariantIdentifyingData > m_genotype_snps ;
 		std::vector< std::vector< uint8_t > > m_genotype_data ;
 		std::size_t m_genotype_data_i ;
 
-		std::vector< genfile::SNPIdentifyingData2 > m_intensity_snps ;
+		std::vector< genfile::VariantIdentifyingData > m_intensity_snps ;
 		std::vector< std::vector< uint8_t > > m_intensity_data ;
 		std::size_t m_intensity_data_i ;
 

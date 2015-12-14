@@ -53,7 +53,7 @@ namespace genfile {
 			return result ;
 		}
 		
-		std::vector< SNPIdentifyingData2 > read_legend( std::string const& filename, Chromosome const& chromosome, std::istream& stream ) {
+		std::vector< VariantIdentifyingData > read_legend( std::string const& filename, Chromosome const& chromosome, std::istream& stream ) {
 			using string_utils::slice ;
 			std::string line ;
 			std::getline( stream, line ) ;
@@ -65,7 +65,7 @@ namespace genfile {
 				throw MalformedInputError( filename, 0 ) ;
 			}
 
-			std::vector< SNPIdentifyingData2 > result ;
+			std::vector< VariantIdentifyingData > result ;
 			while( std::getline( stream, line )) {
 				std::vector< slice > elts = slice( line ).split( " " ) ;
 				if( elts.size() != header_elts.size() ) {
@@ -75,7 +75,7 @@ namespace genfile {
 				std::string allele2 = elts[3] ;
 				
 				result.push_back(
-					SNPIdentifyingData2(
+					VariantIdentifyingData(
 						elts[0],
 						GenomePosition( chromosome, string_utils::to_repr< Position >( elts[1] ) ),
 						allele1,
@@ -185,7 +185,7 @@ namespace genfile {
 		AlleleSetter const& set_allele2
 	) {
 		if( number_of_snps_read() < m_snps.size() ) {
-			SNPIdentifyingData2 const& snp = m_snps[ number_of_snps_read() ] ;
+			VariantIdentifyingData const& snp = m_snps[ number_of_snps_read() ] ;
 			set_number_of_samples( m_number_of_samples ) ;
 			set_SNPID( snp.get_rsid() ) ;
 			set_RSID( snp.get_rsid() ) ;

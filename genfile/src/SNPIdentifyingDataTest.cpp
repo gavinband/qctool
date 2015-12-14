@@ -21,7 +21,7 @@ namespace genfile {
 		}
 	}
 
-	bool SNPIdentifyingDataTest::operator()( SNPIdentifyingData2 const& data ) const {
+	bool SNPIdentifyingDataTest::operator()( VariantIdentifyingData const& data ) const {
 		std::string identifiers ;
 		data.get_alternative_identifiers( boost::bind( append_with_comma, &identifiers, _1 )) ;
 		return operator()( identifiers, data.get_rsid(), data.get_position(), data.get_first_allele(), data.get_second_allele() ) ;

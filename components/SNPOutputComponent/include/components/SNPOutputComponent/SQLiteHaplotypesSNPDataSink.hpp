@@ -36,7 +36,7 @@
 		genfile::CohortIndividualSource const& m_samples ;
 		db::Connection::StatementPtr m_insert_data_stmnt ;
 
-		std::vector< genfile::SNPIdentifyingData2 > m_snps ;
+		std::vector< genfile::VariantIdentifyingData > m_snps ;
 		std::vector< std::vector< uint8_t > > m_data ;
 		std::size_t m_data_i ;
 

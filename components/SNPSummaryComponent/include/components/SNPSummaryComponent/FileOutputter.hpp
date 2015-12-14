@@ -10,7 +10,7 @@
 #include <string>
 #include <memory>
 #include "genfile/VariantEntry.hpp"
-#include "genfile/SNPIdentifyingData2.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "components/SNPSummaryComponent/Storage.hpp"
 
@@ -27,7 +27,7 @@ namespace snp_summary_component {
 		}
 
 		void store_per_variant_data(
-			genfile::SNPIdentifyingData2 const& snp,
+			genfile::VariantIdentifyingData const& snp,
 			std::string const& value_name,
 			genfile::VariantEntry const& value
 		) {

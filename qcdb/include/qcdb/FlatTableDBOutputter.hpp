@@ -12,7 +12,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/bimap.hpp>
-#include "genfile/SNPIdentifyingData2.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "db/Connection.hpp"
@@ -50,9 +50,9 @@ namespace qcdb {
 			std::string const& 
 		) ;
 		
-		void create_new_variant( genfile::SNPIdentifyingData2 const& ) ;
+		void create_new_variant( genfile::VariantIdentifyingData const& ) ;
 		void store_per_variant_data(
-			genfile::SNPIdentifyingData2 const& snp,
+			genfile::VariantIdentifyingData const& snp,
 			std::string const& variable,
 			genfile::VariantEntry const& value
 		) ;
@@ -66,7 +66,7 @@ namespace qcdb {
 		std::string m_table_name ;
 		std::size_t const m_max_snps_per_block ;
 		db::Connection::StatementPtr m_insert_data_sql ;
-		std::vector< genfile::SNPIdentifyingData2 > m_snps ;
+		std::vector< genfile::VariantIdentifyingData > m_snps ;
 		typedef boost::bimap< std::string, std::size_t > VariableMap ;
 		VariableMap m_variables ;
 		typedef std::map< std::pair< std::size_t, std::size_t >, genfile::VariantEntry > ValueMap ;
@@ -78,7 +78,7 @@ namespace qcdb {
 		void create_schema() ;
 		void store_data_for_variant(
 			std::size_t const,
-			genfile::SNPIdentifyingData2 const& snp,
+			genfile::VariantIdentifyingData const& snp,
 			db::Connection::RowId const,
 			db::Connection::RowId const
 		) ;

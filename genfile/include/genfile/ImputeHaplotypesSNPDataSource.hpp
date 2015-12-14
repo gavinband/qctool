@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 #include "genfile/SNPDataSource.hpp"
-#include "genfile/SNPIdentifyingData2.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/string_utils/slice.hpp"
 
 namespace genfile {
@@ -56,7 +56,7 @@ namespace genfile {
 		std::string m_legend_filename, m_haplotypes_filename ;
 		CompressionType m_compression_type ;
 		unsigned int m_number_of_samples ;
-		std::vector< SNPIdentifyingData2 > m_snps ;
+		std::vector< VariantIdentifyingData > m_snps ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
 		Chromosome m_chromosome ;
 		bool m_good ;

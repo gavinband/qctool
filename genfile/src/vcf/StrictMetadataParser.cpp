@@ -168,7 +168,6 @@ namespace genfile {
 			std::pair< std::string, std::string > result = std::make_pair( line.substr( 0, pos ), line.substr( pos + 1, line.size() )) ;
 			if( result.first == "Description" ) {
 				if( result.second.size() < 2 || result.second[0] != '"' || result.second[result.second.size() - 1] != '"' ) {
-					std::cerr << "tt\n" ;
 					throw MalformedInputError( m_spec, line_number ) ;
 				}
 				result.second = result.second.substr( 1, result.second.size() - 2 ) ;
