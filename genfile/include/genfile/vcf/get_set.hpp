@@ -233,7 +233,10 @@ namespace genfile {
 				m_missing_value( missing_value )
 			{}
 
-			void initialise( std::size_t nSamples, std::size_t nAlleles ) { assert( nAlleles == 2 ) ; m_number_of_samples = nSamples ; }
+			void initialise( std::size_t nSamples, std::size_t nAlleles ) {
+				assert( nAlleles == 2 ) ;
+				m_number_of_samples = nSamples ;
+			}
 			bool set_sample( std::size_t n ) {
 				assert( n < m_number_of_samples ) ; 
 				m_sample = n ;
@@ -253,10 +256,10 @@ namespace genfile {
 				}
 			}
 			void set_value( MissingValue const value ) {
-				m_result( m_sample, m_entry_i++ ) = m_missing_value ;
 				if( m_nonmissingness ) {
 					(*m_nonmissingness )( m_sample, m_entry_i ) = 0 ;
 				}
+				m_result( m_sample, m_entry_i++ ) = m_missing_value ;
 			}
 			void set_value( double const value ) {
 				if( m_nonmissingness ) {
