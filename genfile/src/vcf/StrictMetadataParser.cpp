@@ -114,7 +114,7 @@ namespace genfile {
 						std::map< std::string, std::string > data ;
 						data[ "what" ] = line ;
 						result->insert( std::make_pair( "parse_error", data ) ) ;
-						throw ;
+						// throw ;
 					}
 				} else {
 					in.putback( a_char ) ;
