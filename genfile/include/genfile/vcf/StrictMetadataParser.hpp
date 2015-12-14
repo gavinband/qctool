@@ -21,7 +21,6 @@ namespace genfile {
 
 			Metadata const& get_metadata() const { return m_metadata ; }
 			std::size_t get_number_of_lines() const { return m_metadata.size() ; }
-
 		private:
 			std::string const m_spec ;
 			std::string m_version ;

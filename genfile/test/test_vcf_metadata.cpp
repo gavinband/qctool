@@ -253,7 +253,8 @@ void test_info_or_format_field( std::string const& field ) {
 						istr >> s ;
 						TEST_ASSERT( s == "END" ) ;
 					} else {
-						BOOST_CHECK_THROW( genfile::vcf::StrictMetadataParser( "VCF_4_1_example_file", istr ), genfile::InputError ) ;
+						genfile::vcf::StrictMetadataParser parser( "VCF_4_1_example_file", istr ) ;
+						TEST_ASSERT( parser.get_metadata().find( "parse_error" ) != parser.get_metadata().end() ) ;
 					}
 				}
 			}
@@ -302,12 +303,14 @@ AUTO_TEST_CASE( test_filter_fields ) {
 				&& bad_descriptions.count( description_i ) == 0
 			) ;
 			if( good ) {
-				BOOST_CHECK_NO_THROW( genfile::vcf::StrictMetadataParser( "VCF_4_1_example_file", istr ) ) ;
+				genfile::vcf::StrictMetadataParser parser( "VCF_4_1_example_file", istr ) ;
+				TEST_ASSERT( parser.get_metadata().find( "parse_error" ) == parser.get_metadata().end() ) ;
 				std::string s ;
 				istr >> s ;
 				TEST_ASSERT( s == "END" ) ;
 			} else{
-				BOOST_CHECK_THROW( genfile::vcf::StrictMetadataParser( "VCF_4_1_example_file", istr ), genfile::InputError ) ;
+				genfile::vcf::StrictMetadataParser parser( "VCF_4_1_example_file", istr ) ;
+				TEST_ASSERT( parser.get_metadata().find( "parse_error" ) != parser.get_metadata().end() ) ;
 			}
 		}
 	}
@@ -339,16 +342,21 @@ AUTO_TEST_CASE( test_v4_0 ) {
 	using namespace data ;
 	std::cerr << "test_v4_0()..." ;
 	{
+		// Correct metadata
 		std::istringstream istr( ex1b + ex2 + ex3 + ex4 + ex5 + ex6 ) ;
-		BOOST_CHECK_THROW( genfile::vcf::StrictMetadataParser parser( "VCF_4_0_example_file", istr ), genfile::InputError ) ;
+		genfile::vcf::StrictMetadataParser parser( "VCF_4_0_example_file", istr ) ;
+		TEST_ASSERT( parser.get_metadata().find( "parse_error" ) != parser.get_metadata().end() ) ;
 	}
 
 	{
+		// Using Number=., unsupported in v4.0
 		std::istringstream istr( ex1b + ex2b + ex3 + ex4 + ex5 + ex6 ) ;
-		BOOST_CHECK_NO_THROW( genfile::vcf::StrictMetadataParser parser( "VCF_4_0_example_file", istr ) ) ;
+		genfile::vcf::StrictMetadataParser parser( "VCF_4_0_example_file", istr ) ;
+		TEST_ASSERT( parser.get_metadata().find( "parse_error" ) == parser.get_metadata().end() ) ;
 	}
 
 	{
+		// Incorrect fileformat line
 		std::istringstream istr( ex1c + ex2 + ex3 + ex4 + ex5 + ex6 ) ;
 		BOOST_CHECK_THROW( genfile::vcf::StrictMetadataParser parser( "VCF_4_0_example_file", istr ), genfile::InputError ) ;
 	}

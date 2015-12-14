@@ -174,7 +174,9 @@ void copy_gen_file( std::string const& original, std::string const& target ) {
 void create_files( std::string original, std::string gen, std::string bgen_v11, std::string bgen_v12, std::string zgen ) {
 	// set up our original file.
 	{
+#if DEBUG
 		std::cerr << "Creating original...\n" ;
+#endif
 		std::ofstream original_file( original.c_str() ) ;
 		original_file << data::data ;
 	}
@@ -185,7 +187,9 @@ void create_files( std::string original, std::string gen, std::string bgen_v11, 
 	
 	// Construct plain gen file.
 	{
+#if DEBUG
 		std::cerr << "Creating gen...\n" ;
+#endif
 		genfile::GenFileSNPDataSink gen_file_snp_data_sink( gen, genfile::UnidentifiedChromosome ) ;
 		copy_gen_file( original, gen_file_snp_data_sink ) ;
 	}
@@ -193,21 +197,27 @@ void create_files( std::string original, std::string gen, std::string bgen_v11, 
 	// Construct bgen v1.1
 	genfile::SNPDataSink::Metadata metadata ;
 	{
+#if DEBUG
 		std::cerr << "Creating v11 bgen...\n" ;
+#endif
 		genfile::BGenFileSNPDataSink bgen_file_snp_data_sink( bgen_v11, metadata, "v11" ) ;
 		copy_gen_file( original, bgen_file_snp_data_sink ) ;
 	}
 
 	// Construct bgen v1.2
 	{
+#if DEBUG
 		std::cerr << "Creating bgen v1.1...\n" ;
+#endif
 		genfile::BGenFileSNPDataSink bgen_file_snp_data_sink( bgen_v12, metadata, "v11" ) ;
 		copy_gen_file( original, bgen_file_snp_data_sink ) ;
 	}
 
 	// Construct zipped gen file
 	{
+#if DEBUG
 		std::cerr << "Creating gen.gz...\n" ;
+#endif
 		genfile::GenFileSNPDataSink zipped_gen_file_snp_data_sink( zgen, genfile::UnidentifiedChromosome, "gzip_compression" ) ;
 		copy_gen_file( original, zipped_gen_file_snp_data_sink ) ;
 	}
@@ -260,8 +270,10 @@ AUTO_TEST_CASE( test_formats ) {
 	std::string zgen = tmpnam(0) + std::string( ".gen.gz" );
 	std::string zgen2 = tmpnam(0) + std::string( ".gen.gz" );
 
+#if DEBUG
 	std::cerr << "Creating files...\n" ;
 	std::cerr << "Master = \"" << original << "\".\n" ;
+#endif
 	
 	create_files( original, gen, bgen_v11, bgen_v12, zgen ) ;
 	create_files2( original, gen2, bgen_v112, bgen_v122, zgen2 ) ;
@@ -278,43 +290,26 @@ AUTO_TEST_CASE( test_formats ) {
 
 	std::vector< std::vector< SnpData > > results ;
 
-	std::cerr << results.size() << ": " << "Reading original file...\n" ;
 	results.push_back(read_gen_file( original_file_snp_data_source )) ;
 	
-	std::cerr << results.size() << ": " << "Reading gen file...\n" ;
 	results.push_back( read_gen_file( gen_file_snp_data_source )) ;
-	std::cerr << results.size() << ": " << "Reading bgen file...\n" ;
 	results.push_back( read_gen_file( bgen_v11_file_snp_data_source )) ;
-	std::cerr << results.size() << ": " << "Reading bgen_v12 file...\n" ;
 	results.push_back( read_gen_file( bgen_v12_file_snp_data_source )) ;
-	std::cerr << results.size() << ": " << "Reading gen.gz file...\n" ;
 	results.push_back( read_gen_file( zgen_file_snp_data_source )) ;
 
-	std::cerr << results.size() << ": " << "Reading gen file \"" << gen << "\"...\n" ;
 	results.push_back( read_gen_file( gen )) ;
-	std::cerr << results.size() << ": " << "Reading bgen file \"" << bgen_v11 << "\"...\n" ;
 	results.push_back( read_gen_file( bgen_v11 )) ;
-	std::cerr << results.size() << ": " << "Reading bgen_v12 file \"" << bgen_v12 << "\"...\n" ;
 	results.push_back( read_gen_file( bgen_v12 )) ;
-	std::cerr << results.size() << ": " << "Reading gen.gz file \"" << zgen << "\"...\n" ;
 	results.push_back( read_gen_file( zgen )) ;
 
-	std::cerr << results.size() << ": " << "Reading gen file...\n" ;
 	results.push_back( read_gen_file( gen_file_snp_data_source2 )) ;
-	std::cerr << results.size() << ": " << "Reading bgen v1.1file...\n" ;
 	results.push_back( read_gen_file( bgen_v11_file_snp_data_source2 )) ;
-	std::cerr << results.size() << ": " << "Reading bgen v1.22 file...\n" ;
 	results.push_back( read_gen_file( bgen_v12_file_snp_data_source2 )) ;
-	std::cerr << results.size() << ": " << "Reading gen.gz file...\n" ;
 	results.push_back( read_gen_file( zgen_file_snp_data_source2 )) ;
 	
-	std::cerr << results.size() << ": " << "Reading gen file \"" << gen2 << "\"...\n" ;
 	results.push_back( read_gen_file( gen2 )) ;
-	std::cerr << results.size() << ": " << "Reading bgen v1.1 file \"" << bgen_v112 << "\"...\n" ;
 	results.push_back( read_gen_file( bgen_v112 )) ;
-	std::cerr << results.size() << ": " << "Reading bgen v1.2 file \"" << bgen_v122 << "\"...\n" ;
 	results.push_back( read_gen_file( bgen_v122 )) ;
-	std::cerr << results.size() << ": " << "Reading gen.gz file \"" << zgen2 << "\"...\n" ;
 	results.push_back( read_gen_file( zgen2 )) ;
 
 	TEST_ASSERT( gen_file_snp_data_source.number_of_samples() == data::number_of_samples ) ;
