@@ -1201,6 +1201,10 @@ private:
 		try {
 			unsafe_process() ;
 		}
+		catch( appcontext::OptionProcessingException const& e ) {
+			get_ui_context().logger() << "!! Error (" << e.what() << "): " << e.message() << ".\n" ;
+			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+		}
 		catch( genfile::FileNotFoundError const& e ) {
 			get_ui_context().logger() << "!! Error (" << e.what() << "): the file \"" << e.filespec() << "\" could not be found.\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
