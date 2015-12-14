@@ -30,6 +30,7 @@
 #if DEBUG_BGEN_FORMAT
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -569,6 +570,111 @@ namespace genfile {
 				double get_probability_conversion_factor( uint32_t flags ) ;
 			}
 
+			struct ProbabilityDataWriter {
+				enum Missing { eNotSet = 0, eMissing = 1, eNotMissing = 2 } ;
+				enum State { eUninitialised = 0, eInitialised = 1, eSampleSet = 2, eNumberOfEntriesSet = 3, eValueSet = 4, eBaked = 5, eFinalised = 6 } ;
+				
+				ProbabilityDataWriter( byte_t* buffer, byte_t* const end ):
+					m_buffer( buffer ),
+					m_p( buffer ),
+					m_end( end ),
+					m_state( eUninitialised ),
+					m_sample_i(0),
+					m_missing( eNotSet )
+				{
+					assert( m_buffer == m_p ) ; // to avoid unused variable warning.
+				}
+
+				void initialise( uint32_t nSamples, uint16_t nAlleles ) {
+					assert( nAlleles == 2 ) ;
+					m_number_of_samples = nSamples ;
+					m_state = eInitialised ;
+				}
+
+				bool set_sample( std::size_t i ) {
+					assert( m_state == eInitialised || m_state == eBaked ) ;
+					assert(( m_sample_i == 0 && i == 0 ) || ( i == m_sample_i + 1 )) ;
+					m_sample_i = i ;
+					m_state = eSampleSet ;
+					return true ;
+				}
+
+				void set_number_of_entries(
+					uint32_t ploidy,
+					uint32_t number_of_entries,
+					OrderType const order_type,
+					ValueType const value_type
+				) {
+					assert( m_state == eSampleSet ) ;
+					assert( ploidy == uint32_t(2) ) ;
+					assert( number_of_entries == uint32_t(3)) ;
+					assert( order_type == ePerUnorderedGenotype ) ;
+					m_entry_i = 0 ;
+					m_state = eNumberOfEntriesSet ;
+				}
+
+				void set_value( uint32_t entry_i, genfile::MissingValue const value ) {
+					assert( m_state == eNumberOfEntriesSet || m_state == eValueSet ) ;
+					assert( m_entry_i < 3 ) ;
+					assert( m_entry_i == 0 || m_missing == eMissing ) ;
+					m_values[m_entry_i++] = 0.0 ;
+					m_missing = eMissing ;
+					if( m_entry_i == 3 ) {
+						bake( &m_values[0] ) ;
+						m_state = eBaked ;
+					} else {
+						m_state = eValueSet ;
+					}
+				}
+
+				void set_value( uint32_t entry_i, double const value ) {
+					assert( m_state == eNumberOfEntriesSet || m_state == eValueSet ) ;
+					assert( m_missing == eNotSet || m_missing == eNotMissing ) ;
+					assert( m_entry_i < 3 ) ;
+					m_values[m_entry_i++] = value ;
+					if( value != 0.0 ) {
+						m_missing = eNotMissing ;
+					}
+					if( m_entry_i == 3 ) {
+						bake( &m_values[0] ) ;
+						m_state = eBaked ;
+					} else {
+						m_state = eValueSet ;
+					}
+				}
+
+				void finalise() {
+					assert(
+						( m_number_of_samples == 0 && m_state == eInitialised )
+						|| m_state == eBaked
+					) ;
+					m_state = eFinalised ;
+				}
+				
+				~ProbabilityDataWriter() {}
+				
+				byte_t* end_of_data() const { return m_p ; }
+
+			private:
+				byte_t* m_buffer ;
+				byte_t* m_p ;
+				byte_t* const m_end ;
+				State m_state ;
+				uint32_t m_number_of_samples ;
+				std::size_t m_sample_i ;
+				std::size_t m_entry_i ;
+				Missing m_missing ;
+				double m_values[3] ;
+				
+			private:
+				void bake( double* values ) {
+					assert( m_p + 6 <= m_end ) ;
+					m_p = write_little_endian_integer( m_p, m_end, impl::convert_to_integer_representation( *values++, 32768.0 ) ) ;
+					m_p = write_little_endian_integer( m_p, m_end, impl::convert_to_integer_representation( *values++, 32768.0 ) ) ;
+					m_p = write_little_endian_integer( m_p, m_end, impl::convert_to_integer_representation( *values++, 32768.0 ) ) ;
+				}
+			} ;
+			
 			template< typename GenotypeProbabilityGetter >
 			byte_t* write_uncompressed_snp_probability_data(
 				byte_t* buffer,
@@ -578,18 +684,17 @@ namespace genfile {
 				GenotypeProbabilityGetter get_AB_probability,
 				GenotypeProbabilityGetter get_BB_probability
 			) {
-				double const factor = impl::get_probability_conversion_factor( context.flags ) ;
+				v11::ProbabilityDataWriter writer( buffer, end ) ;
+				writer.initialise( context.number_of_samples, 2 ) ;
 				for ( uint32_t i = 0 ; i < context.number_of_samples ; ++i ) {
-					uint16_t
-						AA = impl::convert_to_integer_representation( get_AA_probability( i ), factor ),
-						AB = impl::convert_to_integer_representation( get_AB_probability( i ), factor ),
-						BB = impl::convert_to_integer_representation( get_BB_probability( i ), factor ) ;
-					assert( ( buffer + 6 ) <= end ) ;
-					buffer = write_little_endian_integer( buffer, end, AA ) ;
-					buffer = write_little_endian_integer( buffer, end, AB ) ;
-					buffer = write_little_endian_integer( buffer, end, BB ) ;
+					writer.set_sample( i ) ;
+					writer.set_number_of_entries( 2, 3, ePerUnorderedGenotype, eProbability ) ;
+					writer.set_value( 0, get_AA_probability( i ) ) ;
+					writer.set_value( 1, get_AB_probability( i ) ) ;
+					writer.set_value( 2, get_BB_probability( i ) ) ;
 				}
-				return buffer ;
+				writer.finalise() ;
+				return writer.end_of_data() ;
 			}
 
 			template< typename Setter >
@@ -613,8 +718,7 @@ namespace genfile {
 					for( std::size_t g = 0; g < 3; ++g ) {
 						uint16_t prob ;
 						buffer = read_little_endian_integer( buffer, end, &prob ) ;
-						// setter.set_value( g, impl::convert_from_integer_representation( prob, probability_conversion_factor ) ) ;
-						setter.set_value( impl::convert_from_integer_representation( prob, probability_conversion_factor ) ) ;
+						setter.set_value( /* g, */ impl::convert_from_integer_representation( prob, probability_conversion_factor ) ) ;
 					}
 				}
 				call_finalise( setter ) ;
@@ -645,7 +749,12 @@ namespace genfile {
 					int const bits
 				) ;
 					
-				void round_probs_to_scaled_simplex( double* p, std::size_t* index, std::size_t const n, int const number_of_bits ) ;
+				// Round a point on the unit simplex (expressed as n floating-point probabilities)
+				// to a point representable with the given number of bits.
+				// precondition: p points to n doubles between 0 and 1 that sum to 1
+				// (up to floating-point precision).
+				// postcondition: the values p points to are n integer values that sum to 2^(number_of_bits)-1.
+				void compute_approximate_probabilities( double* p, std::size_t* index, std::size_t const n, int const number_of_bits ) ;
 
 				// Write data encoding n probabilities, given in probs, that sum to 1,
 				// starting at the given offset in data, to the given buffer.
@@ -740,18 +849,16 @@ namespace genfile {
 									(void) impl::parse_bit_representation( &data, &size, bits ) ;
 								}
 								for( uint32_t h = 0; h < valueCount; ++h ) {
-									// setter.set_value( h, genfile::MissingValue() ) ;
-									setter.set_value( genfile::MissingValue() ) ;
+									setter.set_value( /* h, */ genfile::MissingValue() ) ;
 								}
 							} else {
 								// Consume values and interpret them.
 								double sum = 0.0 ;
-								// uint32_t reportedValueCount = 0 ;
+								uint32_t reportedValueCount = 0 ;
 								for( uint32_t h = 0; h < storedValueCount; ++h ) {
 									buffer = impl::read_bits_from_buffer( buffer, end, &data, &size, bits ) ;
 									double const value = impl::parse_bit_representation( &data, &size, bits ) ;
-									// setter.set_value( reportedValueCount++, value ) ;
-									setter.set_value( value ) ;
+									setter.set_value( /* reportedValueCount++, */ value ) ;
 									sum += value ;
 	#if DEBUG_BGEN_FORMAT
 									std::cerr << "parse_probability_data_v12(): i = " << i << ", h = " << h << ", size = " << size << ", bits = " << bits << ", parsed value = " << value
@@ -763,8 +870,7 @@ namespace genfile {
 										|| ((!phased) && (h+1) == storedValueCount )
 									) {
 										assert( sum <= 1.00000001 ) ;
-										// setter.set_value( reportedValueCount++, 1.0 - sum ) ;
-										setter.set_value( 1.0 - sum ) ;
+										setter.set_value( /* reportedValueCount++, */ 1.0 - sum ) ;
 										sum = 0.0 ;
 									}
 								}
@@ -787,15 +893,30 @@ namespace genfile {
 					ePloidyBytes = 8
 				} ;
 				enum Missing { eNotSet = 0, eMissing = 1, eNotMissing = 2 } ;
-				
-				ProbabilityDataWriter( byte_t* buffer, byte_t* const end, uint8_t const number_of_bits ):
+				enum State { eUninitialised = 0, eInitialised = 1, eSampleSet = 2, eNumberOfEntriesSet = 3, eValueSet = 4, eBaked = 5, eFinalised = 6 } ;
+
+				ProbabilityDataWriter(
+					byte_t* buffer,
+					byte_t* const end,
+					uint8_t const number_of_bits,
+					double const tolerance = 1.01
+				):
 					m_buffer( buffer ),
 					m_p( buffer ),
 					m_end( end ),
 					m_number_of_bits( number_of_bits ),
+					m_tolerance( tolerance ),
+					m_state( eUninitialised ),
 					m_order_type( eUnknownOrderType ),
+					m_number_of_samples(0),
+					m_number_of_alleles(0),
+					m_ploidy(0),
 					m_sample_i(0),
+					m_number_of_entries(0),
+					m_entries_per_bake(0),
+					m_entry_i(0),
 					m_missing( eNotSet ),
+					m_sum(0.0),
 					m_data(0)
 				{
 					m_ploidyExtent[0] = 63 ;
@@ -803,6 +924,7 @@ namespace genfile {
 				}
 
 				void initialise( uint32_t nSamples, uint16_t nAlleles ) {
+					assert( m_state == eUninitialised ) ;
 					m_p = write_little_endian_integer( m_p, m_end, nSamples ) ;
 					m_p = write_little_endian_integer( m_p, m_end, nAlleles ) ;
 					// skip the ploidy and other non-data bytes, which we'll write later
@@ -817,12 +939,15 @@ namespace genfile {
 					}
 					m_buffer[8+m_number_of_samples] = ( m_order_type == ePerPhasedHaplotypePerAllele ) ? 1 : 0 ;
 					m_buffer[9+m_number_of_samples] = m_number_of_bits ;
+					m_state = eInitialised ;
 				}
 
 				bool set_sample( std::size_t i ) {
+					assert( m_state == eInitialised || m_state == eBaked ) ;
 					// ensure samples are visited in order.
 					assert(( m_sample_i == 0 && i == 0 ) || ( i == m_sample_i + 1 )) ;
 					m_sample_i = i ;
+					m_state = eSampleSet ;
 					return true ;
 				}
 
@@ -832,6 +957,8 @@ namespace genfile {
 					OrderType const order_type,
 					ValueType const value_type
 				) {
+					assert( m_state == eSampleSet ) ;
+					
 					assert( ploidy < 64 ) ;
 					m_ploidy = ploidy ;
 					uint8_t ploidyByte( ploidy & 0xFF ) ;
@@ -855,43 +982,63 @@ namespace genfile {
 						throw BGenError() ;
 					}
 					m_number_of_entries = number_of_entries ;
+					m_entries_per_bake = (m_order_type == ePerUnorderedGenotype) ? m_number_of_entries : m_number_of_alleles ;
 					m_entry_i = 0 ;
 					m_missing = eNotSet ;
+					m_state = eNumberOfEntriesSet ;
+					m_sum = 0.0 ;
 				}
 
 				void set_value( uint32_t entry_i, genfile::MissingValue const value ) {
+					assert( m_state == eNumberOfEntriesSet || m_state == eValueSet || m_state == eBaked ) ;
 					assert( m_entry_i < m_number_of_entries ) ;
 					assert( m_entry_i == 0 || m_missing == eMissing ) ;
+					assert( m_entry_i == ( entry_i % m_entries_per_bake ) ) ;
 					m_values[m_entry_i++] = 0.0 ;
 					m_missing = eMissing ;
-					if(
-						(m_order_type == ePerUnorderedGenotype && m_entry_i == m_number_of_entries)
-						||
-						(m_order_type == ePerPhasedHaplotypePerAllele && m_entry_i == m_number_of_alleles)
-					) {
-						bake( &m_values[0], m_entry_i ) ;
+					if( m_entry_i == m_entries_per_bake ) {
+						bake( &m_values[0], m_entry_i, m_sum ) ;
 						m_entry_i = 0 ;
+						m_sum = 0.0 ;
+						m_state = eBaked ;
+					} else {
+						m_state = eValueSet ;
 					}
 				}
 
 				void set_value( uint32_t entry_i, double const value ) {
+					assert( m_state == eNumberOfEntriesSet || m_state == eValueSet || m_state == eBaked ) ;
 					assert( m_missing == eNotSet || m_missing == eNotMissing ) ;
 					assert( m_entry_i < m_number_of_entries ) ;
+					assert( m_entry_i == ( entry_i % m_entries_per_bake ) ) ;
 					m_values[m_entry_i++] = value ;
+					m_sum += value ;
+
+					// Any sane input values will sum to 1 ± somerounding error, which should be small.
+					if( ( m_sum != m_sum ) || (m_sum > m_tolerance)) {
+						std::cerr << "First " << entry_i << " input values sum to " << m_sum << ".\n" ;
+						throw BGenError() ;
+					}
+
 					if( value != 0.0 ) {
 						m_missing = eNotMissing ;
 					}
-					if(
-						(m_order_type == ePerUnorderedGenotype && m_entry_i == m_number_of_entries)
-						||
-						(m_order_type == ePerPhasedHaplotypePerAllele && m_entry_i == m_number_of_alleles )
-					) {
-						bake( &m_values[0], m_entry_i ) ;
+					if( m_entry_i == m_entries_per_bake ) {
+						bake( &m_values[0], m_entry_i, m_sum ) ;
 						m_entry_i = 0 ;
+						m_sum = 0.0 ;
+						m_state = eBaked ;
+					} else {
+						m_state = eValueSet ;
 					}
 				}
 
 				void finalise() {
+					assert(
+						( m_number_of_samples == 0 && m_state == eInitialised )
+						|| ( m_number_of_entries == 0 && m_state == eNumberOfEntriesSet )
+						|| m_state == eBaked
+					) ;
 					// Write any remaining data
 					if( m_offset > 0 ) {
 						int const nBytes = (m_offset+7)/8 ;
@@ -911,8 +1058,11 @@ namespace genfile {
 					}
 					m_buffer[eMinPloidyByte] = m_ploidyExtent[0] ;
 					m_buffer[eMaxPloidyByte] = m_ploidyExtent[1] ;
+					m_state = eFinalised ;
 				}
 				
+				~ProbabilityDataWriter() {}
+
 				byte_t* end_of_data() const { return m_p ; }
 
 			private:
@@ -920,6 +1070,8 @@ namespace genfile {
 				byte_t* m_p ;
 				byte_t* const m_end ;
 				uint8_t const m_number_of_bits ;
+				double const m_tolerance ;
+				State m_state ;
 				uint8_t m_ploidyExtent[2] ;
 				OrderType m_order_type ;
 				uint32_t m_number_of_samples ;
@@ -927,15 +1079,17 @@ namespace genfile {
 				uint32_t m_ploidy ;
 				std::size_t m_sample_i ;
 				std::size_t m_number_of_entries ;
+				std::size_t m_entries_per_bake ;
 				std::size_t m_entry_i ;
 				Missing m_missing ;
 				double m_values[100] ;
+				double m_sum ;
 				std::size_t index[100] ;
 				uint64_t m_data ;
 				std::size_t m_offset ;
 				
 			private:
-				void bake( double* values, std::size_t count ) {
+				void bake( double* values, std::size_t count, double const sum ) {
 					if( m_missing == eMissing || m_missing == eNotSet ) {
 						// Have never seen a non-missing value.
 						m_p = impl::write_scaled_probs(
@@ -949,7 +1103,15 @@ namespace genfile {
 						// flag this sample as missing.
 						m_buffer[ePloidyBytes + m_sample_i] |= 0x80 ;
 					} else {
-						impl::round_probs_to_scaled_simplex(values, &index[0], count, m_number_of_bits ) ;
+						if( ( sum != sum ) || (sum > m_tolerance) || (sum < (1.0/m_tolerance))) {
+							std::cerr << "These " << count << " values sum to " << sum << ".\n" ;
+							throw BGenError() ;
+						}
+						// We project onto the unit simplex before computing the approximation.
+						for( std::size_t i = 0; i < count; ++i ) {
+							values[i] /= sum ;
+						}
+						impl::compute_approximate_probabilities(values, &index[0], count, m_number_of_bits ) ;
 						m_p = impl::write_scaled_probs(
 							&m_data, &m_offset, values,
 							count, m_number_of_bits, m_p, m_end

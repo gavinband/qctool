@@ -8,6 +8,7 @@
 #include <string>
 #include <limits>
 #include <algorithm>
+#include <iomanip>
 #include "genfile/types.hpp"
 #include "genfile/bgen/bgen.hpp"
 
@@ -360,15 +361,7 @@ namespace genfile {
 			if( context.flags & bgen::e_CompressedSNPBlocks ) {
 				uint32_t compressed_data_size = 0 ;
 				read_little_endian_integer( aStream, &compressed_data_size ) ;
-				if( compressed_data_size > 0 ) {
-					// gcc std::istream::ignore() has a bug / feature in which
-					// it peeks at the next char and sets eof() if you ignore all the bytes in the file.
-					// This breaks our expected invariant and means subsequent calls to peekg() fail with -1,
-					// which stops us getting file size.
-					// We deal with this by simply ignoring one less character here.
-					aStream.ignore( compressed_data_size - 1 ) ;
-					aStream.get() ;
-				}
+				aStream.ignore( compressed_data_size ) ;
 			}
 			else {
 				aStream.ignore( 6 * context.number_of_samples ) ;
@@ -479,25 +472,38 @@ namespace genfile {
 					} ;
 				}
 
-				void round_probs_to_scaled_simplex( double* p, std::size_t* index, std::size_t const n, int const number_of_bits ) {
+				void compute_approximate_probabilities( double* p, std::size_t* index, std::size_t const n, int const number_of_bits ) {
 					double const scale = ( 0xFFFFFFFFFFFFFFFF >> ( 64 - number_of_bits ) ) ;
 					double total_fractional_part = 0.0 ;
+					double sum = 0.0 ;
 					for( std::size_t i = 0; i < n; ++i ) {
 						p[i] *= scale ;
+						sum += p[i] ;
 						index[i] = i ;
 						total_fractional_part += p[i] - std::floor( p[i] ) ;
 					}
-					std::size_t const upper = std::floor( total_fractional_part + 0.5 ) ;
+					// Suppose the n input numbers sum to 1
+					// Each has rounding error of at most machine epsilon
+					// the sum thus has maximum error of n * epsilon * scale.
+					assert( sum < (scale * (1 + n * std::numeric_limits< double >::epsilon()) ) ) ;
+
+					// We have n numbers which sum to scale ± delta,
+					// where delta is the above rounding error < n*epsilon.
+					// sum_i floor(p_i) is an integer by definition.
+					// Total fractional part is therefore of the form r ± delta where r is an integer.
+					// Since scale = sum_i floor(p_i) + r, rounding up r of the p_i's yields a
+					// set of integers summing to scale.
+					std::size_t const r = std::floor( total_fractional_part + 0.5 ) ;
 					std::sort( index, index + n, CompareFractionalPart( p, n ) ) ;
 
-					for( std::size_t i = 0; i < upper; ++i ) {
+					for( std::size_t i = 0; i < r; ++i ) {
 						p[ index[i] ] = std::ceil( p[ index[i] ] ) ;
 					}
-					for( std::size_t i = upper; i < n; ++i ) {
+					for( std::size_t i = r; i < n; ++i ) {
 						p[ index[i] ] = std::floor( p[ index[i] ] ) ;
 					}
 				}
-
+				
 				byte_t* write_scaled_probs(
 					uint64_t* data,
 					std::size_t* offset,

@@ -60,7 +60,7 @@ namespace genfile {
 			Info const&
 		) ;
 
-#if 0		
+#if 0
 		void write_variant_data_impl(
 			SNPIdentifyingData const& id_data,
 			VariantDataReader& data_reader,
