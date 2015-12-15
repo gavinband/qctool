@@ -41,7 +41,6 @@ namespace genfile {
 
 		operator SNPIdentifyingData() const ;
 
-
 		typedef string_utils::slice slice ;
 
 		void set_rsid( slice const& rsid ) ;
@@ -67,16 +66,27 @@ namespace genfile {
 		std::size_t get_estimated_bytes_used() const ;
 	public:
 		struct CompareFields {
-			CompareFields( std::string const& fields_to_compare = "position,rsid,IDs,alleles" ) ;
+			CompareFields(
+				std::string const& fields_to_compare = "position,rsid,IDs,alleles",
+				bool flip_alleleles_if_necessary = false
+			) ;
 			CompareFields( CompareFields const& other ) ;
+			CompareFields& operator=( CompareFields const& other ) ;
+
+			bool get_flip_alleles_if_necessary() const { return m_flip_alleles_if_necessary ; }
 
 			enum { eIDs = 0x1, eRSID = 0x2, ePosition = 0x4, eAlleles = 0x8, eMask = 0xF } ;
 			bool operator()( VariantIdentifyingData const& left, VariantIdentifyingData const& right ) const ;
 			bool are_equal( VariantIdentifyingData const& left, VariantIdentifyingData const& right ) const ;
 			bool check_if_comparable_fields_are_known( VariantIdentifyingData const& value ) const ;
+			std::vector< int > const& get_compared_fields() const { return m_fields_to_compare ;}
+			
+			std::string get_summary() const ;
+			
 		private:
 			static std::vector< int > parse_fields_to_compare( std::string const& field_spec ) ;
-			std::vector< int > const m_fields_to_compare ;
+			std::vector< int > m_fields_to_compare ;
+			bool m_flip_alleles_if_necessary ;
 		} ;
 		
 		friend bool operator==( VariantIdentifyingData const& left, VariantIdentifyingData const& right ) ;

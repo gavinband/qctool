@@ -315,15 +315,27 @@ namespace genfile {
 		) ;
 	}
 
-	VariantIdentifyingData::CompareFields::CompareFields( std::string const& fields_to_compare ):
-		m_fields_to_compare( parse_fields_to_compare( fields_to_compare ) )
+	VariantIdentifyingData::CompareFields::CompareFields(
+		std::string const& fields_to_compare,
+		bool flip_alleleles_if_necessary
+	):
+		m_fields_to_compare( parse_fields_to_compare( fields_to_compare ) ),
+		m_flip_alleles_if_necessary( flip_alleleles_if_necessary )
 	{
 		assert( !m_fields_to_compare.empty() ) ;
 	}
 	
 	VariantIdentifyingData::CompareFields::CompareFields( CompareFields const& other ):
-		m_fields_to_compare( other.m_fields_to_compare )
+		m_fields_to_compare( other.m_fields_to_compare ),
+		m_flip_alleles_if_necessary( other.m_flip_alleles_if_necessary )
 	{}
+
+	VariantIdentifyingData::CompareFields& VariantIdentifyingData::CompareFields::operator=(
+		VariantIdentifyingData::CompareFields const& other
+	) {
+		m_fields_to_compare = other.m_fields_to_compare ;
+		m_flip_alleles_if_necessary = other.m_flip_alleles_if_necessary ;
+	}
 
 	std::vector< int > VariantIdentifyingData::CompareFields::parse_fields_to_compare( std::string const& field_spec ) {
 		std::vector< std::string > elts = string_utils::split_and_strip( field_spec, ",", " \t\n\r" ) ;
@@ -432,6 +444,30 @@ namespace genfile {
 			}
 		}
 		return true ;
+	}
+	
+	std::string SNPIdentifyingData::CompareFields::get_summary() const {
+		std::string result = "comparing " ;
+		for( std::size_t i = 0; i < m_fields_to_compare.size(); ++i ) {
+			if( i > 0 ) {
+				result += "," ;
+			}
+			switch( m_fields_to_compare[i] ) {
+				case eSNPID:
+				result += "SNPID" ;
+				break ;
+				case eRSID:
+				result += "rsid" ;
+				break ;
+				case ePosition:
+				result += "position" ;
+				break ;
+				case eAlleles:
+				result += "alleles" ;
+				break ;
+			}
+		}
+		return result ;
 	}
 	
 	bool VariantIdentifyingData::CompareFields::check_if_comparable_fields_are_known( VariantIdentifyingData const& value ) const {

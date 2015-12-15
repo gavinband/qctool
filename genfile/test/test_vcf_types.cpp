@@ -148,10 +148,10 @@ namespace {
 		void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 			m_entries.resize( n ) ;
 		}
-		virtual void set_value( genfile::MissingValue const value ) { m_entries[ entry_i++ ] = value ; }
-		virtual void set_value( std::string& value ) { m_entries[ entry_i++ ] = value ; }
-		virtual void set_value( Integer const value ) { m_entries[ entry_i++ ] = value ; }
-		virtual void set_value( double const value ) { m_entries[ entry_i++ ] = value ; }
+		virtual void set_value( std::size_t, genfile::MissingValue const value ) { m_entries[ entry_i++ ] = value ; }
+		virtual void set_value( std::size_t, std::string& value ) { m_entries[ entry_i++ ] = value ; }
+		virtual void set_value( std::size_t, Integer const value ) { m_entries[ entry_i++ ] = value ; }
+		virtual void set_value( std::size_t, double const value ) { m_entries[ entry_i++ ] = value ; }
 	private:
 		std::vector< Entry >& m_entries ;
 		std::size_t entry_i ;

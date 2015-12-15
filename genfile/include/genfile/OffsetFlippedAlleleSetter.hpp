@@ -33,8 +33,8 @@ namespace genfile {
 		):
 			m_setter( setter ),
 			m_number_of_samples( number_of_samples ),
-			m_flip( flip ),
 			m_have_initialised( false ),
+			m_flip( flip ),
 			m_sample_offset( sample_offset ),
 			m_number_of_alleles( 0 ),
 			m_values( 3 ),
@@ -76,10 +76,10 @@ namespace genfile {
 			m_setter.set_number_of_entries( ploidy, n, order_type, value_type ) ;
 		}
 
-		void set_value( MissingValue const value ) { store( value ) ; }
-		void set_value( std::string& value ) { store( value ) ; }
-		void set_value( Integer const value ) { store( value ) ; }
-		void set_value( double const value ) { store( value ) ; }
+		void set_value( std::size_t, MissingValue const value ) { store( value ) ; }
+		void set_value( std::size_t, std::string& value ) { store( value ) ; }
+		void set_value( std::size_t, Integer const value ) { store( value ) ; }
+		void set_value( std::size_t, double const value ) { store( value ) ; }
 
 		void finalise() {}
 		
@@ -109,7 +109,7 @@ namespace genfile {
 				|| !( m_order_type == ePerUnorderedGenotype || m_order_type == ePerAllele || m_value_type == eAlleleIndex )
 			) {
 				for( std::size_t i = 0; i < m_values.size(); ++i ) {
-					m_setter.set_value( m_values[i] ) ;
+					m_setter.set_value( i, m_values[i] ) ;
 				}
 			} else if( m_flip == '-' ) {
 				for( std::size_t i = 0; i < m_values.size(); ++i ) {
@@ -140,12 +140,12 @@ namespace genfile {
 						entry = VariantEntry::Integer( m_number_of_alleles - 1 ) - entry.as< VariantEntry::Integer >() ;
 					}
 
-					m_setter.set_value( entry ) ;
+					m_setter.set_value( i, entry ) ;
 				}
 			} else {
 				// unknown flip.
 				for( std::size_t i = 0; i < m_values.size(); ++i ) {
-					m_setter.set_value( genfile::MissingValue() ) ;
+					m_setter.set_value( i, genfile::MissingValue() ) ;
 				}
 			}
 		}

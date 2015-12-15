@@ -23,14 +23,8 @@ namespace genfile {
 	CommonSNPFilter::CommonSNPFilter() {
 	}
 
-	bool CommonSNPFilter::operator()(
-		std::string SNPID,
-		std::string RSID,
-		GenomePosition position,
-		std::string first_allele,
-		std::string second_allele
-	) const {
-		return m_filter( SNPID, RSID, position, first_allele, second_allele ) ;
+	bool CommonSNPFilter::operator()( VariantIdentifyingData const& data ) const {
+		return m_filter( data ) ;
 	}
 	
 	std::string CommonSNPFilter::display() const { return m_filter.display() ; }
@@ -63,15 +57,15 @@ namespace genfile {
 		return *this ;
 	}
 
-	CommonSNPFilter& CommonSNPFilter::exclude_snps( std::vector< SNPIdentifyingData > const& snps, SNPIdentifyingData::CompareFields const& comparer ) {
-		SNPIdentifyingDataTest::UniquePtr test( new SNPInSetTest( std::set< SNPIdentifyingData >( snps.begin(), snps.end() ), comparer ) ) ;
+	CommonSNPFilter& CommonSNPFilter::exclude_snps( std::vector< VariantIdentifyingData > const& snps, VariantIdentifyingData::CompareFields const& comparer ) {
+		SNPIdentifyingDataTest::UniquePtr test( new SNPInSetTest( std::set< VariantIdentifyingData >( snps.begin(), snps.end() ), comparer ) ) ;
 		test.reset( new SNPIdentifyingDataTestNegation( test )) ;
 		m_filter.add_subtest( test ) ;
 		return *this ;
 	}
 
-	CommonSNPFilter& CommonSNPFilter::include_snps( std::vector< SNPIdentifyingData > const& snps, SNPIdentifyingData::CompareFields const& comparer ) {
-		SNPIdentifyingDataTest::UniquePtr test( new SNPInSetTest( std::set< SNPIdentifyingData >( snps.begin(), snps.end() ), comparer ) ) ;
+	CommonSNPFilter& CommonSNPFilter::include_snps( std::vector< VariantIdentifyingData > const& snps, VariantIdentifyingData::CompareFields const& comparer ) {
+		SNPIdentifyingDataTest::UniquePtr test( new SNPInSetTest( std::set< VariantIdentifyingData >( snps.begin(), snps.end() ), comparer ) ) ;
 		add_inclusion_filter_if_necessary( "snps" ) ;
 		m_inclusion_filters[ "snps" ]->add_subtest( test ) ;
 		return *this ;

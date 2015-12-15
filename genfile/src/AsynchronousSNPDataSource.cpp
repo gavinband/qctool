@@ -59,9 +59,14 @@ namespace genfile {
 		return prefix + "AsynchronousSNPDataSource( " + m_source->get_summary() + ")" ;
 	}
 	
+	namespace {
+		
+	}
+	
 	void AsynchronousSNPDataSource::get_snp_identifying_data_impl( 
-VariantIdentifyingData* variant	) {
-		SNPIdentifyingData snp ;
+		VariantIdentifyingData* variant
+	) {
+		VariantIdentifyingData snp ;
 		{
 			ScopedLock lock( m_mutex ) ;
 			while( m_snp_queue.empty() && !m_source_empty ) {
@@ -78,13 +83,7 @@ VariantIdentifyingData* variant	) {
 
 			snp = m_snp_queue.front() ;
 		}
-		set_number_of_samples( number_of_samples() ) ;
-		set_SNPID( snp.get_SNPID() ) ;
-		set_RSID( snp.get_rsid() ) ;
-		set_chromosome( snp.get_position().chromosome() ) ;
-		set_SNP_position( snp.get_position().position() ) ;
-		set_allele1( snp.get_first_allele() ) ;
-		set_allele2( snp.get_second_allele() ) ;
+		*variant = snp ;
 #if DEBUG_ASYNCHRONOUS_SNP_DATA_SOURCE
 		std::cerr << "i" ;
 #endif
@@ -132,9 +131,9 @@ VariantIdentifyingData* variant	) {
 	}
 	
 	void AsynchronousSNPDataSource::data_thread_read_data() {
-		SNPIdentifyingData snp ;
+		VariantIdentifyingData snp ;
 		
-		while( m_source->get_snp_identifying_data( snp ) ) {
+		while( m_source->get_snp_identifying_data( &snp ) ) {
 			VariantDataReader::UniquePtr variant_data = m_source->read_variant_data() ;
 			
 			ScopedLock lock( m_mutex ) ;

@@ -15,14 +15,8 @@ namespace genfile {
 		: m_id_fields( id_fields )
 	{}
 
-	bool RSIDInListTest::operator()(
-		std::string,
-		std::string RSID,
-		GenomePosition,
-		std::string,
-		std::string
-	) const {
-		return m_id_fields.find( RSID ) != m_id_fields.end() ;
+	bool RSIDInListTest::operator()( VariantIdentifyingData const& data ) const {
+		return m_id_fields.find( data.get_rsid() ) != m_id_fields.end() ;
 	}
 	
 	std::string RSIDInListTest::display() const {

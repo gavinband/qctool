@@ -13,7 +13,7 @@
 #include "genfile/Error.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceRack.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/OffsetFlippedAlleleSetter.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/get_list_of_snps_in_source.hpp"
@@ -63,12 +63,16 @@ namespace genfile {
 		assert( snp_match_fields.find( "position" ) == 0 ) ;
 	}
 
-	SNPDataSourceRack::SNPDataSourceRack( genfile::SNPIdentifyingData::CompareFields const& comparator )
+	SNPDataSourceRack::SNPDataSourceRack( genfile::VariantIdentifyingData::CompareFields const& comparator )
 		: m_number_of_samples(0),
 		  m_read_past_end( false ),
 		  m_comparator( comparator )
 	{
-		assert( m_comparator.get_compared_fields().size() > 0 && m_comparator.get_compared_fields()[0] == SNPIdentifyingData::CompareFields::ePosition ) ;
+		assert(
+			(m_comparator.get_compared_fields().size() > 0)
+			&&
+			(m_comparator.get_compared_fields()[0] == VariantIdentifyingData::CompareFields::ePosition)
+		) ;
 	}
 
 	SNPDataSourceRack::~SNPDataSourceRack() {
@@ -93,7 +97,7 @@ namespace genfile {
 	}
 	
 	void SNPDataSourceRack::check_snps_are_sorted_by_position(
-		std::vector< SNPIdentifyingData > const& snps,
+		std::vector< VariantIdentifyingData > const& snps,
 		std::size_t cohort_index
 	) {
 		for( std::size_t i = 1; i < snps.size(); ++i ) {
@@ -206,6 +210,14 @@ namespace genfile {
 		m_read_past_end = false ;
 	}
 
+	namespace {
+		void combine_ids( std::set< std::string >& target, std::string& combined, std::string const& value ) {
+			if( target.insert( value ).second ) {
+				combined += ( value.size() > 0 ? "," : "" ) + value ;
+			}
+		}
+	}
+	
 	void SNPDataSourceRack::get_snp_identifying_data_impl( 
 		VariantIdentifyingData* result
 	) {
@@ -222,12 +234,11 @@ namespace genfile {
 		if( m_sources[0]->get_snp_identifying_data( &this_snp ) ) {
 			// we use source_i == m_source.size() to indicate a successful match across cohorts.
 			while( (*this) && source_i < m_sources.size() ) {
-				this_snp
 				SNPIDs.clear() ;
 				rsids.clear() ;
-				SNPIDs.insert( this_snp.get_SNPID() ) ;
+
+				this_snp.get_alternative_identifiers( boost::bind( &combine_ids, &SNPIDs, &merged_SNPID, _1 ) ) ;
 				rsids.insert( this_snp.get_rsid() ) ;
-				merged_SNPID = this_snp.get_SNPID() ;
 				merged_rsid = this_snp.get_rsid() ;
 				merged_allele1 = this_snp.get_first_allele() ;
 				merged_allele2 = this_snp.get_second_allele() ;
@@ -241,11 +252,9 @@ namespace genfile {
 #if DEBUG_SNP_DATA_SOURCE_RACK
 					std::cerr << "SNP " << this_snp << " is in source " << source_i << ".\n" ;
 #endif
-					if( SNPIDs.insert( this_source_snp.get_SNPID() ).second ) {
-						merged_SNPID += "," + this_source_snp.get_SNPID() ;
-					}
+					this_source_snp.get_alternative_identifiers( boost::bind( &combine_ids, &SNPIDs, &merged_SNPID, _1 ) ) ;
 					if( rsids.insert( this_source_snp.get_rsid() ).second ) {
-						merged_rsid += "," + this_source_snp.get_rsid() ;
+						merged_rsid += "," + std::string( this_source_snp.get_rsid() ) ;
 					}
 					if( m_comparator.get_flip_alleles_if_necessary() ) {
 						if( this_source_snp.get_first_allele() == this_snp.get_second_allele() && this_source_snp.get_second_allele() == this_snp.get_first_allele() ) {
@@ -253,15 +262,15 @@ namespace genfile {
 						} else if( this_source_snp.get_first_allele() == this_snp.get_first_allele() && this_source_snp.get_second_allele() == this_snp.get_second_allele() ) {
 							// do nothing
 						} else {
-							merged_allele1 += "/" + this_source_snp.get_first_allele() ;
-							merged_allele2 += "/" + this_source_snp.get_second_allele() ;
+							merged_allele1 += "/" + std::string( this_source_snp.get_first_allele() ) ;
+							merged_allele2 += "/" + std::string( this_source_snp.get_second_allele() ) ;
 							// Don't know how to flip.
 							flips[ source_i ] = eUnknownFlip ;
 						}
 					} else {
 						if( this_source_snp.get_first_allele() != this_snp.get_first_allele() || this_source_snp.get_second_allele() != this_snp.get_second_allele() ) {
-							merged_allele1 += "/" + this_source_snp.get_first_allele() ;
-							merged_allele2 += "/" + this_source_snp.get_second_allele() ;
+							merged_allele1 += "/" + std::string( this_source_snp.get_first_allele() ) ;
+							merged_allele2 += "/" + std::string( this_source_snp.get_second_allele() ) ;
 							// Set genotypes to missing for this cohort.
 							flips[ source_i ] = eUnknownFlip ;
 						}
@@ -269,18 +278,12 @@ namespace genfile {
 				}
 				if( (*this) && source_i < m_sources.size() ) {
 					m_sources[0]->ignore_snp_probability_data() ;
-					m_sources[0]->get_snp_identifying_data( this_snp ) ;
+					m_sources[0]->get_snp_identifying_data( &this_snp ) ;
 				}
 			}
 		}
 		if( *this ) {
-			set_number_of_samples( m_number_of_samples ) ;
-			set_SNPID( merged_SNPID ) ;
-			set_RSID( merged_rsid ) ;
-			set_chromosome( this_snp.get_position().chromosome() ) ;
-			set_SNP_position( this_snp.get_position().position() ) ;
-			set_allele1( merged_allele1 ) ;
-			set_allele2( merged_allele2 ) ;
+			*result = VariantIdentifyingData( merged_SNPID, merged_rsid, this_snp.get_position(), merged_allele1, merged_allele2 ) ;
 			// Remember the flips.
 			m_flips = flips ;
 		}
@@ -292,25 +295,21 @@ namespace genfile {
 	// If such a SNP is found but it has different SNPID, RSID, or alleles, throw SNPMismatchError.
 	bool SNPDataSourceRack::move_source_to_snp_matching(
 		std::size_t source_i,
-		SNPIdentifyingData const& reference_snp,
-		SNPIdentifyingData* result
+		VariantIdentifyingData const& reference_snp,
+		VariantIdentifyingData* result
 	) {
 #if DEBUG_SNP_DATA_SOURCE_RACK
 		std::cerr << "Moving source " << source_i << " to SNP " << reference_snp << ".\n" ;
 #endif
-		SNPIdentifyingData this_snp ;
+		VariantIdentifyingData this_snp ;
 		
-		while( m_sources[source_i]->get_next_snp_with_specified_position(
-			ignore(),
-			set_value( this_snp.SNPID() ),
-			set_value( this_snp.rsid() ),
-			set_value( this_snp.position().chromosome() ),
-			set_value( this_snp.position().position() ),
-			set_value( this_snp.first_allele() ),
-			set_value( this_snp.second_allele() ),
-			reference_snp.get_position().chromosome(),
-			reference_snp.get_position().position()
-		) ) {
+		while(
+			m_sources[source_i]->get_next_snp_with_specified_position(
+				&this_snp,
+				reference_snp.get_position().chromosome(),
+				reference_snp.get_position().position()
+			)
+		) {
 #if DEBUG_SNP_DATA_SOURCE_RACK
 			std::cerr << "Found candidate: " << this_snp << ".\n" ;
 #endif

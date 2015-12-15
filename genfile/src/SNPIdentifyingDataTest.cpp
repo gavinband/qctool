@@ -11,6 +11,7 @@
 #include "unistd.h"
 #include "genfile/GenomePosition.hpp"
 #include "genfile/Chromosome.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/SNPIdentifyingDataTest.hpp"
 
 namespace genfile {
@@ -21,17 +22,11 @@ namespace genfile {
 		}
 	}
 
-	bool SNPIdentifyingDataTest::operator()( VariantIdentifyingData const& data ) const {
-		std::string identifiers ;
-		data.get_alternative_identifiers( boost::bind( append_with_comma, &identifiers, _1 )) ;
-		return operator()( identifiers, data.get_rsid(), data.get_position(), data.get_first_allele(), data.get_second_allele() ) ;
-	}
-	
 	std::ostream& operator<<( std::ostream& out, SNPIdentifyingDataTest const& test ) {
 		return out << test.display() ;
 	}
 	
-	std::vector< std::size_t > SNPIdentifyingDataTest::get_indices_of_filtered_in_snps( std::vector< SNPIdentifyingData> const& snps ) const {
+	std::vector< std::size_t > SNPIdentifyingDataTest::get_indices_of_filtered_in_snps( std::vector< VariantIdentifyingData> const& snps ) const {
 		std::vector< std::size_t > result ;
 		for( std::size_t i = 0; i < snps.size(); ++i ) {
 			if( this->operator()( snps[i] )) {
@@ -57,14 +52,8 @@ namespace genfile {
 		assert( m_subtest.get() ) ;
 	}
 
-	bool SNPIdentifyingDataTestNegation::operator()(
-		std::string SNPID,
-		std::string RSID,
-		GenomePosition position,
-		std::string first_allele,
-		std::string second_allele
-	) const {
-		return !m_subtest->operator()( SNPID, RSID, position, first_allele, second_allele ) ;
+	bool SNPIdentifyingDataTestNegation::operator()( VariantIdentifyingData const& data ) const {
+		return !m_subtest->operator()( data ) ;
 	}
 	
 	std::string SNPIdentifyingDataTestNegation::display() const {
@@ -90,22 +79,9 @@ namespace genfile {
 		return *m_subtests[ index ] ;
 	}
 
-	bool SNPIdentifyingDataTestConjunction::operator()(
-		std::string SNPID,
-		std::string RSID,
-		GenomePosition position,
-		std::string first_allele,
-		std::string second_allele
-	) const {
+	bool SNPIdentifyingDataTestConjunction::operator()( VariantIdentifyingData const& data ) const {
 		for( std::size_t i = 0; i < get_number_of_subtests(); ++i ) {
-			if( !get_subtest(i)(
-				SNPID,
-				RSID,
-				position,
-				first_allele,
-				second_allele
-				)
-			) {
+			if( !get_subtest(i)( data ) ) {
 				return false ;
 			}
 		}
@@ -131,22 +107,9 @@ namespace genfile {
 		}
 	}
 
-	bool SNPIdentifyingDataTestDisjunction::operator()(
-		std::string SNPID,
-		std::string RSID,
-		GenomePosition position,
-		std::string first_allele,
-		std::string second_allele
-	) const {
+	bool SNPIdentifyingDataTestDisjunction::operator()( VariantIdentifyingData const& data ) const {
 		for( std::size_t i = 0; i < get_number_of_subtests(); ++i ) {
-			if( get_subtest( i )(
-				SNPID,
-				RSID,
-				position,
-				first_allele,
-				second_allele
-				)
-			) {
+			if( get_subtest( i )( data ) ) {
 				return true ;
 			}
 		}

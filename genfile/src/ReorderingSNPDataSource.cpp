@@ -46,17 +46,17 @@ namespace genfile {
 				void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 					return m_setter.set_number_of_entries( ploidy, n, order_type, value_type ) ;
 				}
-				void set_value( MissingValue const value ) {
-					m_setter.set_value( value ) ;
+				void set_value( std::size_t i, MissingValue const value ) {
+					m_setter.set_value( i, value ) ;
 				}
-				void set_value( std::string& value ) {
-					m_setter.set_value( value ) ;
+				void set_value( std::size_t i, std::string& value ) {
+					m_setter.set_value( i, value ) ;
 				}
-				void set_value( Integer const value ) {
-					m_setter.set_value( value ) ;
+				void set_value( std::size_t i, Integer const value ) {
+					m_setter.set_value( i, value ) ;
 				}
-				void set_value( double const value ) {
-					m_setter.set_value( value ) ;
+				void set_value( std::size_t i, double const value ) {
+					m_setter.set_value( i, value ) ;
 				}
 				void finalise() {}
 

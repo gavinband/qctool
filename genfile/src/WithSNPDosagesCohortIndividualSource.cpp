@@ -133,23 +133,13 @@ namespace genfile {
 		SNPDosageSpec const& snp_matchers
 	) {
 		std::map< std::string, std::size_t > snp_counts ;
-		std::string snpid, rsid ;
-		GenomePosition position ;
-		std::string allele1, allele2 ;
+		VariantIdentifyingData snp ;
 		while(
-			snp_data_source.get_snp_identifying_data(
-				genfile::ignore(),
-				genfile::set_value( snpid ),
-				genfile::set_value( rsid ),
-				genfile::set_value( position.chromosome() ),
-				genfile::set_value( position.position() ),
-				genfile::set_value( allele1 ),
-				genfile::set_value( allele2 )
-			)
+			snp_data_source.get_snp_identifying_data( &snp )
 		) {
 			SNPDosageSpec::const_iterator where = snp_matchers.begin() ;
 			for( ; where != snp_matchers.end(); ++where ) {
-				if( where->first->operator()( snpid, rsid, position, allele1, allele2 )) {
+				if( where->first->operator()( snp.get_rsid(), snp.get_rsid(), snp.get_position(), snp.get_first_allele(), snp.get_second_allele() )) {
 					break ;
 				}
 			}

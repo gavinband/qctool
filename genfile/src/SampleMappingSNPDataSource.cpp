@@ -159,24 +159,24 @@ namespace genfile {
 				}
 			}
 
-			void set_value( MissingValue const value ) {
+			void set_value( std::size_t, MissingValue const value ) {
 				if( m_set_this_sample ) {
 					m_setter.set_value( value ) ;
 				}
 			}
 			
-			void set_value( std::string& value ) {
+			void set_value( std::size_t, std::string& value ) {
 				if( m_set_this_sample ) {
 					m_setter.set_value( value ) ;
 				}
 			}
 
-			void set_value( VariantEntry::Integer const value ) {
+			void set_value( std::size_t, VariantEntry::Integer const value ) {
 				if( m_set_this_sample ) {
 					m_setter.set_value( value ) ;
 				}
 			}
-			void set_value( double const value ) {
+			void set_value( std::size_t, double const value ) {
 				if( m_set_this_sample ) {
 					m_setter.set_value( value ) ;
 				}

@@ -67,16 +67,16 @@ namespace genfile {
 					) ;
 				}
 			}
-			void set_value( MissingValue const value ) {
+			void set_value( std::size_t, MissingValue const value ) {
 				m_data( m_sample_i * 2 + m_entry_i++ ) = -1 ;
 			}
-			void set_value( std::string& value ) {
+			void set_value( std::size_t, std::string& value ) {
 				assert(0) ;
 			}
-			void set_value( Integer const value ) {
+			void set_value( std::size_t, Integer const value ) {
 				m_data( m_sample_i * 2 + m_entry_i++ ) = value ;
 			}
-			void set_value( double const value ) {
+			void set_value( std::size_t, double const value ) {
 				m_data( m_sample_i * 2 + m_entry_i++ ) = value ;
 			}
 			

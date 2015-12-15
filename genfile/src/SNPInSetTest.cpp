@@ -13,26 +13,12 @@
 #include "genfile/Error.hpp"
 
 namespace genfile {
-	SNPInSetTest::SNPInSetTest( std::set< SNPIdentifyingData > const& snps, SNPIdentifyingData::CompareFields const& comparer ):
+	SNPInSetTest::SNPInSetTest( std::set< VariantIdentifyingData > const& snps, VariantIdentifyingData::CompareFields const& comparer ):
 	 	m_snps( snps.begin(), snps.end(), comparer )
 	{}
 
- 	bool SNPInSetTest::operator()( SNPIdentifyingData const& data ) const {
+	bool SNPInSetTest::operator()( VariantIdentifyingData const& data ) const {
 		return( m_snps.find( data ) != m_snps.end() ) ;
-	}
-
-	bool SNPInSetTest::operator()(
-		std::string SNPID,
-		std::string RSID,
-		GenomePosition position,
-		std::string alleleA,
-		std::string alleleB
-	) const {
-		return operator()( 
-			SNPIdentifyingData(
-				SNPID, RSID, position, alleleA, alleleB
-			)
-		) ;
 	}
 	
 	std::string SNPInSetTest::display() const {

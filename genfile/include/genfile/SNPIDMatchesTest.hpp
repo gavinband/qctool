@@ -15,17 +15,8 @@ namespace genfile {
 	{
 	public:
 		SNPIDMatchesTest( std::string const& expression ) ;
-
-		bool operator()(
-			std::string SNPID,
-			std::string RSID,
-			GenomePosition position,
-			std::string first_allele,
-			std::string second_allele
-		) const ;
-		
+		bool operator()( VariantIdentifyingData const& data ) const ;
 		std::string display() const ;
-
 	private:
 		void setup( std::string const& ) ;
 		bool match( std::string const& ) const ;

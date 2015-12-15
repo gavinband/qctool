@@ -84,7 +84,6 @@ namespace genfile {
 	void SampleFilteringSNPDataSource::get_snp_identifying_data_impl( 
 		VariantIdentifyingData* result
 	) {
-		uint32_t number_of_samples ;
 		m_source->get_snp_identifying_data( result ) ;
 	}
 
@@ -181,10 +180,10 @@ namespace genfile {
 				}
 			}
 
-			void set_value( MissingValue const value ) { if( !m_filter_out_this_sample ) { m_setter.set_value( value ) ; } }
-			void set_value( std::string& value ) { if( !m_filter_out_this_sample ) { m_setter.set_value( value ) ; } }
-			void set_value( VariantEntry::Integer const value ) { if( !m_filter_out_this_sample ) { m_setter.set_value( value ) ; } }
-			void set_value( double const value ) { if( !m_filter_out_this_sample ) { m_setter.set_value( value ) ; } }
+			void set_value( std::size_t i, MissingValue const value ) { if( !m_filter_out_this_sample ) { m_setter.set_value( i, value ) ; } }
+			void set_value( std::size_t i, std::string& value ) { if( !m_filter_out_this_sample ) { m_setter.set_value( i, value ) ; } }
+			void set_value( std::size_t i, VariantEntry::Integer const value ) { if( !m_filter_out_this_sample ) { m_setter.set_value( i, value ) ; } }
+			void set_value( std::size_t i, double const value ) { if( !m_filter_out_this_sample ) { m_setter.set_value( i, value ) ; } }
 
 			void finalise() {}
 

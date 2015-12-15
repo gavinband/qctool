@@ -75,16 +75,16 @@ namespace impl {
 		void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 			// do nothing
 		}
-		void set_value( MissingValue const value ) {
+		void set_value( std::size_t, MissingValue const value ) {
 			m_values.push_back( 0.0 ) ;
 		}
-		void set_value( std::string& value ) {
+		void set_value( std::size_t, std::string& value ) {
 			assert(0) ;
 		}
-		void set_value( Integer const value ) {
+		void set_value( std::size_t, Integer const value ) {
 			assert(0) ;
 		}
-		void set_value( double const value ) {
+		void set_value( std::size_t, double const value ) {
 			m_values.push_back( value ) ;
 		}
 		void finalise() {}

@@ -16,14 +16,7 @@ namespace genfile {
 	struct ChromosomeInSetTest: public SNPIdentifyingDataTest
 	{
 		ChromosomeInSetTest( std::set< Chromosome > const& chromosomes ) ;
-		bool operator()(
-			std::string SNPID,
-			std::string,
-			GenomePosition,
-			std::string,
-			std::string
-		) const ;
-		
+		bool operator()( VariantIdentifyingData const& data ) const ;
 		std::string display() const ;
 	private:
 		std::set< Chromosome > m_chromosomes ;

@@ -186,10 +186,10 @@ namespace genfile {
 				uint32_t ploidy = 2 ;
 				for( std::size_t i = 0; i < m_number_of_samples; ++i ) {
 					setter.set_sample( i ) ;
-					setter.set_number_of_entries( ploidy,  3, ePerUnorderedGenotype, eProbability ) ;
-					setter.set_value( m_get_AA_probability(i) ) ;
-					setter.set_value( m_get_AB_probability(i) ) ;
-					setter.set_value( m_get_BB_probability(i) ) ;
+					setter.set_number_of_entries( ploidy, 3, ePerUnorderedGenotype, eProbability ) ;
+					setter.set_value( 0, m_get_AA_probability(i) ) ;
+					setter.set_value( 1, m_get_AB_probability(i) ) ;
+					setter.set_value( 2, m_get_BB_probability(i) ) ;
 				}
 				setter.finalise() ;
 			}

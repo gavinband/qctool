@@ -47,7 +47,7 @@ namespace genfile {
 	private:
 		void reset_to_start_impl() ;
 		
-		void read_snp_identifying_data_impl( 
+		void read_snp_identifying_data_impl(
 			uint32_t*, // number_of_samples is unused.
 			std::string* SNPID,
 			std::string* RSID,
@@ -68,12 +68,12 @@ namespace genfile {
 		OptionalSnpCount m_total_number_of_snps ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
 		Chromosome m_chromosome ;
-        
-        std::string m_line ;
-        typedef string_utils::slice slice ;
-        std::vector< slice > m_elts ;
+		
+		std::string m_line ;
+		typedef string_utils::slice slice ;
+		std::vector< slice > m_elts ;
 
-    private:
+	private:
 		void setup( std::string const& filename, CompressionType compression_type ) ;
 		void setup( std::auto_ptr< std::istream > stream_ptr ) ;
 	} ;

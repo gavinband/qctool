@@ -115,28 +115,28 @@ VariantIdentifyingData* variant	) {
 					// assume diploid
 					m_target.set_number_of_entries( ploidy, 2, ePerUnorderedHaplotype, eAlleleIndex ) ;
 				}
-				void set_value( MissingValue const value ) {
+				void set_value( std::size_t, MissingValue const value ) {
 					m_missing = true ;
 					m_entry_i++ ;
 					if( m_entry_i == m_calls.size() ) { 
 						send_results() ;
 					}
 				}
-				void set_value( std::string& value ) {
+				void set_value( std::size_t, std::string& value ) {
 					throw BadArgumentError(
 						"genfile::ThreshholdingDataReader::Threshholder::set_value",
 						"value",
 						"Expected a floating-point value (got a string)."
 					) ;
 				}
-				void set_value( Integer const value ) {
+				void set_value( std::size_t, Integer const value ) {
 					throw BadArgumentError(
 						"genfile::ThreshholdingDataReader::Threshholder::set_value",
 						"value",
 						"Expected a floating-point value (got an integer)."
 					) ;
 				}
-				void set_value( double const value ) {
+				void set_value( std::size_t, double const value ) {
 					m_calls( m_entry_i++ ) = value ;
 					if( m_entry_i == m_calls.size() ) { 
 						send_results() ;
