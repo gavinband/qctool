@@ -75,16 +75,10 @@ namespace genfile {
 	}
 
 	void StrandAligningSNPDataSource::get_snp_identifying_data_impl( 
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2
+		VariantIdentifyingData* variant
 	) {
-		SNPIdentifyingData source_snp ;
-		for( ; m_source->get_snp_identifying_data( source_snp ); m_source->ignore_snp_probability_data() ) {
+		VariantIdentifyingData source_snp ;
+		for( ; m_source->get_snp_identifying_data( &source_snp ); m_source->ignore_snp_probability_data() ) {
 			m_current_strand_flip_spec = get_strand_alignment( source_snp ) ;
 			//std::cerr << "looking at SNP " << source_snp << ".\n" ;
 			if( 
@@ -93,17 +87,11 @@ namespace genfile {
 			) {
 				char strand_alignment = m_current_strand_flip_spec.strand ;
 
-				std::string allele1, allele2 ;
-
-				m_source->get_snp_identifying_data(
-					set_number_of_samples,
-					set_SNPID,
-					set_RSID,
-					set_chromosome,
-					set_SNP_position,
-					set_value( allele1 ),
-					set_value( allele2 )
-				) ;
+				VariantIdentifyingData this_snp ;
+				m_source->get_snp_identifying_data( &this_snp ) ;
+				std::string
+					allele1 = this_snp.get_first_allele(),
+					allele2 = this_snp.get_second_allele() ;
 
 				switch( strand_alignment ) {
 					case eForwardStrand:
@@ -135,14 +123,14 @@ namespace genfile {
 						break ;
 					case eUnknownFlip:
 						allele1 = allele1 + "/" + allele2 ;
-						allele2 = allele2 + "/" + source_snp.get_first_allele() ;
+						allele2 = allele2 + "/" + std::string( source_snp.get_first_allele() ) ;
 						break ;
 					default:
 						assert(0) ;
 				}
-				
-				set_allele1( allele1 ) ;
-				set_allele2( allele2 ) ;
+				this_snp.set_first_allele( allele1 ) ;
+				this_snp.set_second_allele( allele2 ) ;
+				*variant = this_snp ;
 				return ;
 			}
 		}

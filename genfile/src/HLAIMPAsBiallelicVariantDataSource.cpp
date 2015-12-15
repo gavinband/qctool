@@ -239,7 +239,7 @@ namespace genfile {
 								for( std::size_t j = 0; j < m_dosage_columns[g].size(); ++j ) {
 									value += m_source.m_data[sample_i](m_dosage_columns[g][j]) ;
 								}
-								setter.set_value( value ) ;
+								setter.set_value( g, value ) ;
 							}
 						}
 					}

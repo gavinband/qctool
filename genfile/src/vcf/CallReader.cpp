@@ -132,12 +132,12 @@ namespace genfile {
 					m_entries.resize( m_current_i + n ) ;
 				}
 			
-				void set_value( MissingValue const value ) {
+				void set_value( std::size_t, MissingValue const value ) {
 					assert( m_current_i < m_entries.size() ) ;
 					m_entries[ m_current_i++ ] = -1 ;
 				}
 
-				void set_value( Integer const value ) {
+				void set_value( std::size_t, Integer const value ) {
 					assert( m_current_i < m_entries.size() ) ;
 					m_entries[ m_current_i++ ] = value ;
 				}

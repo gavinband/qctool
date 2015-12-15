@@ -12,7 +12,7 @@
 #include <memory>
 
 #include "genfile/SNPDataSource.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 
 namespace genfile {
 
@@ -20,7 +20,7 @@ namespace genfile {
 	{
 	public:
 		typedef std::auto_ptr< SNPTranslatingSNPDataSource > UniquePtr ;
-		typedef std::map< SNPIdentifyingData, SNPIdentifyingData > Dictionary ;
+		typedef std::map< SNPIdentifyingData, VariantIdentifyingData > Dictionary ;
 		
 		static UniquePtr create(
 			SNPDataSource::UniquePtr source,
@@ -71,13 +71,7 @@ namespace genfile {
 		}
 
 		void get_snp_identifying_data_impl( 
-			IntegerSetter const& set_number_of_samples,
-			StringSetter const& set_SNPID,
-			StringSetter const& set_RSID,
-			ChromosomeSetter const& set_chromosome,
-			SNPPositionSetter const& set_SNP_position,
-			AlleleSetter const& set_allele1,
-			AlleleSetter const& set_allele2
+			VariantIdentifyingData* variant
 		) ;
 
 		VariantDataReader::UniquePtr read_variant_data_impl() ;

@@ -17,7 +17,7 @@
 #include "unistd.h"
 #include "genfile/GenomePosition.hpp"
 #include "genfile/Chromosome.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantIdentifyingData.hpp"
 
 namespace genfile {
@@ -32,26 +32,14 @@ namespace genfile {
 		typedef boost::shared_ptr< SNPIdentifyingDataTest > SharedPtr ;
 	public:
 		virtual ~SNPIdentifyingDataTest() {} ;
-
-		// Return true if the SNP passes the test.
-		virtual bool operator()(
-			std::string SNPID,
-			std::string RSID,
-			GenomePosition position,
-			std::string first_allele,
-			std::string second_allele
-		) const = 0 ;
 		
 		virtual std::string display() const = 0 ;
 	
-		virtual bool operator()( SNPIdentifyingData const& data ) const {
-			return operator()( data.get_SNPID(), data.get_rsid(), data.get_position(), data.get_first_allele(), data.get_second_allele() ) ;
-		}
-
-		virtual bool operator()( VariantIdentifyingData const& data ) const ;
+		// Return true if the variant passes the test.
+		virtual bool operator()( VariantIdentifyingData const& data ) const = 0 ;
 		
 		// Return a vector of indices of SNPs which pass the test.
-		std::vector< std::size_t > get_indices_of_filtered_in_snps( std::vector< SNPIdentifyingData> const& snps ) const ;
+		std::vector< std::size_t > get_indices_of_filtered_in_snps( std::vector< VariantIdentifyingData> const& snps ) const ;
 		typedef boost::function< VariantIdentifyingData const& ( std::size_t ) > SNPGetter ;
 		std::vector< std::size_t > get_indices_of_filtered_in_snps( std::size_t number_of_snps, SNPGetter ) const ;
 		
@@ -68,14 +56,7 @@ namespace genfile {
 	struct SNPIdentifyingDataTestNegation: public SNPIdentifyingDataTest
 	{
 		SNPIdentifyingDataTestNegation( SNPIdentifyingDataTest::UniquePtr ) ;
-		bool operator()(
-			std::string SNPID,
-			std::string RSID,
-			GenomePosition position,
-			std::string first_allele,
-			std::string second_allele
-		) const ;
-		
+		bool operator()( VariantIdentifyingData const& data ) const ;
 		std::string display() const ;
 	private:
 		SNPIdentifyingDataTest::UniquePtr m_subtest ;
@@ -96,14 +77,7 @@ namespace genfile {
 	public:
 		typedef std::auto_ptr< SNPIdentifyingDataTestConjunction > UniquePtr ;
 	public:
-		bool operator()(
-			std::string SNPID,
-			std::string RSID,
-			GenomePosition position,
-			std::string first_allele,
-			std::string second_allele
-		) const ;
-		
+		bool operator()( VariantIdentifyingData const& data ) const ;
 		std::string display() const ;
 	} ;
 
@@ -112,14 +86,7 @@ namespace genfile {
 	public:
 		typedef std::auto_ptr< SNPIdentifyingDataTestDisjunction > UniquePtr ;
 	public:
-		bool operator()(
-			std::string SNPID,
-			std::string RSID,
-			GenomePosition position,
-			std::string first_allele,
-			std::string second_allele
-		) const ;
-		
+		bool operator()( VariantIdentifyingData const& data ) const ;
 		std::string display() const ;
 	} ;
 }

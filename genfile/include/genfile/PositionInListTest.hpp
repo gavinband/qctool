@@ -16,14 +16,7 @@ namespace genfile {
 	struct PositionInListTest: public SNPIdentifyingDataTest
 	{
 		PositionInListTest( std::set< GenomePosition > id_fields ) ;
-		bool operator()(
-			std::string,
-			std::string,
-			GenomePosition position,
-			std::string,
-			std::string
-		) const ;
-		
+		bool operator()( VariantIdentifyingData const& data ) const ;
 		std::string display() const ;
 	private:
 		std::set< GenomePosition > const m_positions ;

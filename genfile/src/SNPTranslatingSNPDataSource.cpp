@@ -34,41 +34,17 @@ namespace genfile {
 	}
 		
 	void SNPTranslatingSNPDataSource::get_snp_identifying_data_impl( 
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2
+		VariantIdentifyingData* variant
 	) {
-		SNPIdentifyingData data ;
-		m_source->get_snp_identifying_data(
-			set_number_of_samples,
-			set_value( data.SNPID() ),
-			set_value( data.rsid() ),
-			set_value( data.position().chromosome() ),
-			set_value( data.position().position() ),
-			set_value( data.first_allele() ),
-			set_value( data.second_allele() )
-		) ;
-		
+		VariantIdentifyingData data ;
+		m_source->get_snp_identifying_data( &data ) ;
+
 		Dictionary::const_iterator where = m_dictionary.find( data ) ;
 		if( where != m_dictionary.end() ) {
-			set_SNPID( where->second.get_SNPID() ) ;
-			set_RSID( where->second.get_rsid() ) ;
-			set_chromosome( where->second.get_position().chromosome() ) ;
-			set_SNP_position( where->second.get_position().position() ) ;
-			set_allele1( where->second.get_first_allele() ) ;
-			set_allele2( where->second.get_second_allele() ) ;
+			*variant = where->second ;
 		}
 		else {
-			set_SNPID( data.get_SNPID() ) ;
-			set_RSID( data.get_rsid() ) ;
-			set_chromosome( data.get_position().chromosome() ) ;
-			set_SNP_position( data.get_position().position() ) ;
-			set_allele1( data.get_first_allele() ) ;
-			set_allele2( data.get_second_allele() ) ;
+			*variant = data ;
 		}
 	}
 

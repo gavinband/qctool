@@ -159,24 +159,24 @@ namespace genfile {
 				}
 			}
 
-			void set_value( MissingValue const value ) {
+			void set_value( std::size_t, MissingValue const value ) {
 				if( m_set_this_sample ) {
 					m_setter.set_value( value ) ;
 				}
 			}
 			
-			void set_value( std::string& value ) {
+			void set_value( std::size_t, std::string& value ) {
 				if( m_set_this_sample ) {
 					m_setter.set_value( value ) ;
 				}
 			}
 
-			void set_value( VariantEntry::Integer const value ) {
+			void set_value( std::size_t, VariantEntry::Integer const value ) {
 				if( m_set_this_sample ) {
 					m_setter.set_value( value ) ;
 				}
 			}
-			void set_value( double const value ) {
+			void set_value( std::size_t, double const value ) {
 				if( m_set_this_sample ) {
 					m_setter.set_value( value ) ;
 				}
@@ -285,14 +285,7 @@ namespace genfile {
 	}
 
 	void SampleMappingSNPDataSource::get_snp_identifying_data_impl( 
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2
-	) {
+VariantIdentifyingData* variant	) {
 		m_source->get_snp_identifying_data(
 			set_number_of_samples, set_SNPID, set_RSID, set_chromosome, set_SNP_position, set_allele1, set_allele2
 		) ;

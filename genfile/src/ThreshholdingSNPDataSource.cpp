@@ -65,14 +65,7 @@ namespace genfile {
 		return "ThreshholdingSNPDataSource(" + m_source->get_source_spec() + ")" ;
 	}
 	void ThreshholdingSNPDataSource::get_snp_identifying_data_impl( 
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2
-	) {
+VariantIdentifyingData* variant	) {
 		m_source->get_snp_identifying_data(
 			set_number_of_samples, set_SNPID, set_RSID, set_chromosome, set_SNP_position, set_allele1, set_allele2
 		) ;
@@ -122,28 +115,28 @@ namespace genfile {
 					// assume diploid
 					m_target.set_number_of_entries( ploidy, 2, ePerUnorderedHaplotype, eAlleleIndex ) ;
 				}
-				void set_value( MissingValue const value ) {
+				void set_value( std::size_t, MissingValue const value ) {
 					m_missing = true ;
 					m_entry_i++ ;
 					if( m_entry_i == m_calls.size() ) { 
 						send_results() ;
 					}
 				}
-				void set_value( std::string& value ) {
+				void set_value( std::size_t, std::string& value ) {
 					throw BadArgumentError(
 						"genfile::ThreshholdingDataReader::Threshholder::set_value",
 						"value",
 						"Expected a floating-point value (got a string)."
 					) ;
 				}
-				void set_value( Integer const value ) {
+				void set_value( std::size_t, Integer const value ) {
 					throw BadArgumentError(
 						"genfile::ThreshholdingDataReader::Threshholder::set_value",
 						"value",
 						"Expected a floating-point value (got an integer)."
 					) ;
 				}
-				void set_value( double const value ) {
+				void set_value( std::size_t, double const value ) {
 					m_calls( m_entry_i++ ) = value ;
 					if( m_entry_i == m_calls.size() ) { 
 						send_results() ;

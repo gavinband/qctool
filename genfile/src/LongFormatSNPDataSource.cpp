@@ -131,7 +131,7 @@ namespace genfile {
 						setter.set_number_of_entries( ploidy, 1, eUnorderedList, eUnknownValueType ) ;
 						std::pair< int, int > snpsample = std::make_pair( m_snp_index, m_source.m_sample_map.at( m_samples[ sample_i ] )) ;
 						LongFormatSNPDataSource::BufferMap::const_iterator where = m_source.m_buffer_map.find( snpsample ) ;
-						setter.set_value( ( where == m_source.m_buffer_map.end() ) ? vcf::EntriesSetter::Integer(0) : vcf::EntriesSetter::Integer(1) ) ;
+						setter.set_value( 0, ( where == m_source.m_buffer_map.end() ) ? vcf::EntriesSetter::Integer(0) : vcf::EntriesSetter::Integer(1) ) ;
 					}
 				} else {
 					throw BadArgumentError(
