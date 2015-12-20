@@ -211,9 +211,9 @@ namespace genfile {
 	}
 
 	namespace {
-		void combine_ids( std::set< std::string >& target, std::string& combined, std::string const& value ) {
-			if( target.insert( value ).second ) {
-				combined += ( value.size() > 0 ? "," : "" ) + value ;
+		void combine_ids( std::set< std::string >* target, std::string* combined, std::string const& value ) {
+			if( target->insert( value ).second ) {
+				(*combined) += ( combined->size() > 0 ? "," : "" ) + value ;
 			}
 		}
 	}
@@ -240,8 +240,8 @@ namespace genfile {
 				this_snp.get_alternative_identifiers( boost::bind( &combine_ids, &SNPIDs, &merged_SNPID, _1 ) ) ;
 				rsids.insert( this_snp.get_rsid() ) ;
 				merged_rsid = this_snp.get_rsid() ;
-				merged_allele1 = this_snp.get_first_allele() ;
-				merged_allele2 = this_snp.get_second_allele() ;
+				merged_allele1 = this_snp.get_allele(0) ;
+				merged_allele2 = this_snp.get_allele(1) ;
 
 				VariantIdentifyingData this_source_snp ;
 				source_i = 1 ;
@@ -257,20 +257,20 @@ namespace genfile {
 						merged_rsid += "," + std::string( this_source_snp.get_rsid() ) ;
 					}
 					if( m_comparator.get_flip_alleles_if_necessary() ) {
-						if( this_source_snp.get_first_allele() == this_snp.get_second_allele() && this_source_snp.get_second_allele() == this_snp.get_first_allele() ) {
+						if( this_source_snp.get_allele(0) == this_snp.get_allele(1) && this_source_snp.get_allele(1) == this_snp.get_allele(0) ) {
 							flips[ source_i ] = eFlip ;
-						} else if( this_source_snp.get_first_allele() == this_snp.get_first_allele() && this_source_snp.get_second_allele() == this_snp.get_second_allele() ) {
+						} else if( this_source_snp.get_allele(0) == this_snp.get_allele(0) && this_source_snp.get_allele(1) == this_snp.get_allele(1) ) {
 							// do nothing
 						} else {
-							merged_allele1 += "/" + std::string( this_source_snp.get_first_allele() ) ;
-							merged_allele2 += "/" + std::string( this_source_snp.get_second_allele() ) ;
+							merged_allele1 += "/" + std::string( this_source_snp.get_allele(0) ) ;
+							merged_allele2 += "/" + std::string( this_source_snp.get_allele(1) ) ;
 							// Don't know how to flip.
 							flips[ source_i ] = eUnknownFlip ;
 						}
 					} else {
-						if( this_source_snp.get_first_allele() != this_snp.get_first_allele() || this_source_snp.get_second_allele() != this_snp.get_second_allele() ) {
-							merged_allele1 += "/" + std::string( this_source_snp.get_first_allele() ) ;
-							merged_allele2 += "/" + std::string( this_source_snp.get_second_allele() ) ;
+						if( this_source_snp.get_allele(0) != this_snp.get_allele(0) || this_source_snp.get_allele(1) != this_snp.get_allele(1) ) {
+							merged_allele1 += "/" + std::string( this_source_snp.get_allele(0) ) ;
+							merged_allele2 += "/" + std::string( this_source_snp.get_allele(1) ) ;
 							// Set genotypes to missing for this cohort.
 							flips[ source_i ] = eUnknownFlip ;
 						}

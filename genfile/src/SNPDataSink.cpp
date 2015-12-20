@@ -111,7 +111,7 @@ namespace genfile {
 	
 	SNPDataSink& SNPDataSink::write_snp(
 		uint32_t number_of_samples,
-		SNPIdentifyingData const& snp,
+		VariantIdentifyingData const& snp,
 		GenotypeProbabilityGetter const& get_AA_probability,
 		GenotypeProbabilityGetter const& get_AB_probability,
 		GenotypeProbabilityGetter const& get_BB_probability,
@@ -119,12 +119,12 @@ namespace genfile {
 	) {
 		return write_snp(
 			number_of_samples,
-			snp.get_SNPID(),
+			snp.get_alternate_identifiers_as_string(),
 			snp.get_rsid(),
 			snp.get_position().chromosome(),
 			snp.get_position().position(),
-			snp.get_first_allele(),
-			snp.get_second_allele(),
+			snp.get_allele(0),
+			snp.get_allele(1),
 			get_AA_probability,
 			get_AB_probability,
 			get_BB_probability,
@@ -159,7 +159,7 @@ namespace genfile {
 		// Long term we want to remove write_snp_impl() altogether.
 		struct BiallelicProbReader: public VariantDataReader {
 			BiallelicProbReader(
-				SNPIdentifyingData const& id_data,
+				VariantIdentifyingData const& id_data,
 				std::size_t number_of_samples,
 				SNPDataSink::GenotypeProbabilityGetter const& get_AA_probability,
 				SNPDataSink::GenotypeProbabilityGetter const& get_AB_probability,
@@ -208,7 +208,7 @@ namespace genfile {
 			
 			
 		private:
-			SNPIdentifyingData const& m_id_data ;
+			VariantIdentifyingData const& m_id_data ;
 			std::size_t const m_number_of_samples ;
 			SNPDataSink::GenotypeProbabilityGetter const& m_get_AA_probability ;
 			SNPDataSink::GenotypeProbabilityGetter const& m_get_AB_probability ;
@@ -230,7 +230,7 @@ namespace genfile {
 		GenotypeProbabilityGetter const& get_BB_probability,
 		Info const& info
 	) {
-		SNPIdentifyingData id_data(
+		VariantIdentifyingData id_data(
 			SNPID, RSID, GenomePosition( chromosome, SNP_position ),
 			first_allele, second_allele
 		) ;
@@ -240,7 +240,7 @@ namespace genfile {
 	}
 
 	SNPDataSink& SNPDataSink::write_variant_data(
-		SNPIdentifyingData const& id_data,
+		VariantIdentifyingData const& id_data,
 		VariantDataReader& data_reader,
 		Info const& info
 	) {
@@ -258,7 +258,7 @@ namespace genfile {
 	}
 	
 	void SNPDataSink::write_variant_data_impl(
-		SNPIdentifyingData const& id_data,
+		VariantIdentifyingData const& id_data,
 		VariantDataReader& data_reader,
 		Info const& info
 	) {
@@ -272,12 +272,12 @@ namespace genfile {
 
 		write_snp_impl(
 			m_genotypes.rows(),
-			id_data.get_SNPID(),
+			id_data.get_alternate_identifiers_as_string(),
 			id_data.get_rsid(),
 			id_data.get_position().chromosome(),
 			id_data.get_position().position(),
-			id_data.get_first_allele(),
-			id_data.get_second_allele(),
+			id_data.get_allele(0),
+			id_data.get_allele(1),
 			genfile::GenotypeGetter< Eigen::MatrixXd >( m_genotypes, 0ul ),
 			genfile::GenotypeGetter< Eigen::MatrixXd >( m_genotypes, 1ul ),
 			genfile::GenotypeGetter< Eigen::MatrixXd >( m_genotypes, 2ul ),

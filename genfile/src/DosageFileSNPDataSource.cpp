@@ -101,17 +101,9 @@ namespace genfile {
 		return result ;
 	}
 	
-	void DosageFileSNPDataSource::read_snp_identifying_data_impl( 
-		uint32_t* number_of_samples,
-		std::string* SNPID,
-		std::string* RSID,
-		Chromosome* chromosome,
-		uint32_t* SNP_position,
-		std::string* allele1,
-		std::string* allele2
-	) {
-        std::string SNPID_, RSID_, allele1_, allele2_, chromosome_string ;
-        uint32_t position_ ;
+	void DosageFileSNPDataSource::read_snp_identifying_data_impl( VariantIdentifyingData* result ) {
+        std::string SNPID, RSID, allele1, allele2, chromosome_string ;
+        uint32_t position ;
         stream() >> chromosome_string ;
         if( !stream() && !m_stream_ptr->eof() ) {
             throw genfile::MalformedInputError(
@@ -121,7 +113,7 @@ namespace genfile {
             ) ;
         }
 		if( stream() ) {
-			stream() >> SNPID_ >> RSID_ >> position_ >> allele1_ >> allele2_ ;
+			stream() >> SNPID >> RSID >> position >> allele1 >> allele2 ;
 			if( !stream() ) {
 				throw genfile::MalformedInputError(
 					m_filename,
@@ -129,13 +121,9 @@ namespace genfile {
 					number_of_snps_read()
 				) ;
 			} else {
-				*number_of_samples = m_number_of_samples ;
-				*SNPID = SNPID_ ;
-				*RSID = RSID_ ;
-				*chromosome = Chromosome( chromosome_string ) ;
-				*SNP_position = position_ ;
-				*allele1 = allele1_ ;
-				*allele2 = allele2_ ;
+				*result = VariantIdentifyingData(
+					SNPID, RSID, GenomePosition( chromosome_string, position ), allele1, allele2
+				) ;
 				// Prepare for the data...
 				if( stream().peek() == ' ' ) {
 					stream().get() ;

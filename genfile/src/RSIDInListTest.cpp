@@ -7,7 +7,7 @@
 #include <set>
 #include <string>
 #include <sstream>
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 #include "genfile/RSIDInListTest.hpp"
 
 namespace genfile {

@@ -8,7 +8,7 @@
 #include <vector>
 #include <algorithm>
 #include "genfile/SNPDataSource.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/StrandAligningSNPDataSource.hpp"
 #include "genfile/OffsetFlippedAlleleSetter.hpp"
 #include "genfile/AlleleFlippingVariantDataReader.hpp"
@@ -90,8 +90,8 @@ namespace genfile {
 				VariantIdentifyingData this_snp ;
 				m_source->get_snp_identifying_data( &this_snp ) ;
 				std::string
-					allele1 = this_snp.get_first_allele(),
-					allele2 = this_snp.get_second_allele() ;
+					allele1 = this_snp.get_allele(0),
+					allele2 = this_snp.get_allele(1) ;
 
 				switch( strand_alignment ) {
 					case eForwardStrand:
@@ -123,7 +123,7 @@ namespace genfile {
 						break ;
 					case eUnknownFlip:
 						allele1 = allele1 + "/" + allele2 ;
-						allele2 = allele2 + "/" + std::string( source_snp.get_first_allele() ) ;
+						allele2 = allele2 + "/" + std::string( source_snp.get_allele(0) ) ;
 						break ;
 					default:
 						assert(0) ;
@@ -136,7 +136,7 @@ namespace genfile {
 		}
 	}
 
-	StrandAligningSNPDataSource::StrandFlipSpec StrandAligningSNPDataSource::get_strand_alignment( SNPIdentifyingData const& snp ) const {
+	StrandAligningSNPDataSource::StrandFlipSpec StrandAligningSNPDataSource::get_strand_alignment( VariantIdentifyingData const& snp ) const {
 		StrandFlipSpec result = StrandFlipSpec() ;
 		StrandAlignments::const_iterator where = m_strand_alignments.find( snp ) ;
 		if( where != m_strand_alignments.end() ) {

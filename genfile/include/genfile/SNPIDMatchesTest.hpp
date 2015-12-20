@@ -8,10 +8,10 @@
 #define GENFILE_SNPIDMATCHES_TEST_HPP
 
 #include <string>
-#include "SNPIdentifyingDataTest.hpp"
+#include "VariantIdentifyingDataTest.hpp"
 
 namespace genfile {
-	struct SNPIDMatchesTest: public SNPIdentifyingDataTest
+	struct SNPIDMatchesTest: public VariantIdentifyingDataTest
 	{
 	public:
 		SNPIDMatchesTest( std::string const& expression ) ;

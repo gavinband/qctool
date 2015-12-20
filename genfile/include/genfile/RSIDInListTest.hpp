@@ -9,10 +9,10 @@
 
 #include <set>
 #include <string>
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 
 namespace genfile {
-	struct RSIDInListTest: public SNPIdentifyingDataTest
+	struct RSIDInListTest: public VariantIdentifyingDataTest
 	{
 		RSIDInListTest( std::set< std::string > id_fields ) ;
 		bool operator()( VariantIdentifyingData const& data ) const ;

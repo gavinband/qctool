@@ -8,7 +8,7 @@
 #define GENFILE_MERGING_SNP_DATA_SOURCE_HPP
 
 #include <vector>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/SNPDataSource.hpp"
 
 namespace genfile {
@@ -18,10 +18,10 @@ namespace genfile {
 		static std::vector< std::string > get_merge_strategies() ;
 		static UniquePtr create(
 			std::string const& merge_strategy,
-			SNPIdentifyingData::CompareFields const& = SNPIdentifyingData::CompareFields()
+			VariantIdentifyingData::CompareFields const& = VariantIdentifyingData::CompareFields()
 		) ;
 
-		MergingSNPDataSource( genfile::SNPIdentifyingData::CompareFields const& ) ;
+		MergingSNPDataSource( genfile::VariantIdentifyingData::CompareFields const& ) ;
 		virtual ~MergingSNPDataSource() ;
 
 		void add_source( SNPDataSource::UniquePtr, std::string const& id_prefix = "" ) ;
@@ -48,7 +48,7 @@ VariantIdentifyingData* variant		) ;
 	
 	private:
 		std::vector< SNPDataSource* > m_sources ;
-		typedef std::multimap< SNPIdentifyingData, std::size_t, SNPIdentifyingData::CompareFields > CurrentSnps ;
+		typedef std::multimap< VariantIdentifyingData, std::size_t, VariantIdentifyingData::CompareFields > CurrentSnps ;
 		CurrentSnps m_current_snps ;
 		std::vector< std::string > m_merge_id_prefixes ;
 		Metadata m_metadata ;
@@ -62,12 +62,12 @@ VariantIdentifyingData* variant		) ;
 	} ;
 	
 	struct DropDuplicatesStrategyMergingSNPDataSource: public MergingSNPDataSource {
-		DropDuplicatesStrategyMergingSNPDataSource( SNPIdentifyingData::CompareFields const& compare_fields ) ;
+		DropDuplicatesStrategyMergingSNPDataSource( VariantIdentifyingData::CompareFields const& compare_fields ) ;
 		void discard_top_snp_and_get_next() ;
 	} ;
 
 	struct KeepAllStrategyMergingSNPDataSource: public MergingSNPDataSource {
-		KeepAllStrategyMergingSNPDataSource( SNPIdentifyingData::CompareFields const& compare_fields ) ;
+		KeepAllStrategyMergingSNPDataSource( VariantIdentifyingData::CompareFields const& compare_fields ) ;
 		void discard_top_snp_and_get_next() ;
 	} ;
 }

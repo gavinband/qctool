@@ -13,7 +13,7 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition.hpp>
 #include <boost/ptr_container/ptr_deque.hpp>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/VariantDataReader.hpp"
 

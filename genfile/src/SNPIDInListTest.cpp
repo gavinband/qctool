@@ -8,7 +8,7 @@
 #include <string>
 #include <sstream>
 #include <boost/bind.hpp>
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 #include "genfile/SNPIDInListTest.hpp"
 
 namespace genfile {

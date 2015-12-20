@@ -5,7 +5,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include <vector>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/MergingSNPDataSource.hpp"
 #include "genfile/string_utils.hpp"
@@ -22,7 +22,7 @@ namespace genfile {
 	
 	MergingSNPDataSource::UniquePtr MergingSNPDataSource::create(
 		std::string const& merge_strategy,
-		SNPIdentifyingData::CompareFields const& compare_fields
+		VariantIdentifyingData::CompareFields const& compare_fields
 	) {
 		MergingSNPDataSource::UniquePtr result ;
 		if( merge_strategy == "keep-all" ) {
@@ -37,7 +37,7 @@ namespace genfile {
 		return result ;
 	}
 	
-	MergingSNPDataSource::MergingSNPDataSource( SNPIdentifyingData::CompareFields const& compare_fields ):
+	MergingSNPDataSource::MergingSNPDataSource( VariantIdentifyingData::CompareFields const& compare_fields ):
 		m_current_snps( compare_fields )
 	{}
 
@@ -98,7 +98,7 @@ namespace genfile {
 		get_top_snp_in_source( source_i ) ;
 	}
 
-	KeepAllStrategyMergingSNPDataSource::KeepAllStrategyMergingSNPDataSource( SNPIdentifyingData::CompareFields const& compare_fields ):
+	KeepAllStrategyMergingSNPDataSource::KeepAllStrategyMergingSNPDataSource( VariantIdentifyingData::CompareFields const& compare_fields ):
 		MergingSNPDataSource( compare_fields )
 	{}
 
@@ -109,7 +109,7 @@ namespace genfile {
 	void DropDuplicatesStrategyMergingSNPDataSource::discard_top_snp_and_get_next() {
 		assert( current_snps().size() > 0 ) ;
 		
-		genfile::SNPIdentifyingData const current_snp = current_snps().begin()->first ;
+		genfile::VariantIdentifyingData const current_snp = current_snps().begin()->first ;
 		discard_top_snp_and_get_next_candidate() ;
 
 		while(
@@ -121,7 +121,7 @@ namespace genfile {
 		}
 	}
 
-	DropDuplicatesStrategyMergingSNPDataSource::DropDuplicatesStrategyMergingSNPDataSource( SNPIdentifyingData::CompareFields const& compare_fields ):
+	DropDuplicatesStrategyMergingSNPDataSource::DropDuplicatesStrategyMergingSNPDataSource( VariantIdentifyingData::CompareFields const& compare_fields ):
 		MergingSNPDataSource( compare_fields )
 	{}
 		
@@ -167,14 +167,14 @@ namespace genfile {
 		VariantIdentifyingData* result
 	) {
 		if( m_current_snps.size() > 0 ) {
-			SNPIdentifyingData const& snp = m_current_snps.begin()->first ;
+			VariantIdentifyingData const& snp = m_current_snps.begin()->first ;
 			std::size_t source_index = m_current_snps.begin()->second ;
 			*result = VariantIdentifyingData(
-				m_merge_id_prefixes[ source_index ] + snp.get_SNPID(),
+				m_merge_id_prefixes[ source_index ] + snp.get_alternate_identifiers_as_string(),
 				snp.get_rsid(),
 				snp.get_position(),
-				snp.get_first_allele(),
-				snp.get_second_allele()
+				snp.get_allele(0),
+				snp.get_allele(1)
 			) ;
 		}
 	}

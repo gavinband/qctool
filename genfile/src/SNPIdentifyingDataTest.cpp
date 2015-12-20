@@ -12,21 +12,14 @@
 #include "genfile/GenomePosition.hpp"
 #include "genfile/Chromosome.hpp"
 #include "genfile/VariantIdentifyingData.hpp"
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 
 namespace genfile {
-
-	namespace {
-		void append_with_comma( std::string* target, std::string const& value ) {
-			(*target) += "," + value ;
-		}
-	}
-
-	std::ostream& operator<<( std::ostream& out, SNPIdentifyingDataTest const& test ) {
+	std::ostream& operator<<( std::ostream& out, VariantIdentifyingDataTest const& test ) {
 		return out << test.display() ;
 	}
 	
-	std::vector< std::size_t > SNPIdentifyingDataTest::get_indices_of_filtered_in_snps( std::vector< VariantIdentifyingData> const& snps ) const {
+	std::vector< std::size_t > VariantIdentifyingDataTest::get_indices_of_filtered_in_snps( std::vector< VariantIdentifyingData> const& snps ) const {
 		std::vector< std::size_t > result ;
 		for( std::size_t i = 0; i < snps.size(); ++i ) {
 			if( this->operator()( snps[i] )) {
@@ -36,7 +29,7 @@ namespace genfile {
 		return result ;
 	}
 
-	std::vector< std::size_t > SNPIdentifyingDataTest::get_indices_of_filtered_in_snps( std::size_t number_of_snps, SNPGetter snps ) const {
+	std::vector< std::size_t > VariantIdentifyingDataTest::get_indices_of_filtered_in_snps( std::size_t number_of_snps, SNPGetter snps ) const {
 		std::vector< std::size_t > result ;
 		for( std::size_t i = 0; i < number_of_snps; ++i ) {
 			if( this->operator()( snps(i) )) {
@@ -46,40 +39,40 @@ namespace genfile {
 		return result ;
 	}
 	
-	SNPIdentifyingDataTestNegation::SNPIdentifyingDataTestNegation( SNPIdentifyingDataTest::UniquePtr subtest ):
+	VariantIdentifyingDataTestNegation::VariantIdentifyingDataTestNegation( VariantIdentifyingDataTest::UniquePtr subtest ):
 	 	m_subtest( subtest )
 	{
 		assert( m_subtest.get() ) ;
 	}
 
-	bool SNPIdentifyingDataTestNegation::operator()( VariantIdentifyingData const& data ) const {
+	bool VariantIdentifyingDataTestNegation::operator()( VariantIdentifyingData const& data ) const {
 		return !m_subtest->operator()( data ) ;
 	}
 	
-	std::string SNPIdentifyingDataTestNegation::display() const {
+	std::string VariantIdentifyingDataTestNegation::display() const {
 		return "NOT( " + m_subtest->display() + " )" ;
 	}
 	
-	CompoundSNPIdentifyingDataTest::~CompoundSNPIdentifyingDataTest() {
+	CompoundVariantIdentifyingDataTest::~CompoundVariantIdentifyingDataTest() {
 		for( std::size_t i = 0; i < m_subtests.size(); ++i ) {
 			delete m_subtests[i] ;
 		}
 	}
 
-	void CompoundSNPIdentifyingDataTest::add_subtest( SNPIdentifyingDataTest::UniquePtr subtest ) {
+	void CompoundVariantIdentifyingDataTest::add_subtest( VariantIdentifyingDataTest::UniquePtr subtest ) {
 		m_subtests.push_back( subtest.release() ) ;
 	}
 
-	std::size_t CompoundSNPIdentifyingDataTest::get_number_of_subtests() const {
+	std::size_t CompoundVariantIdentifyingDataTest::get_number_of_subtests() const {
 		return m_subtests.size() ;
 	}
 
-	SNPIdentifyingDataTest const& CompoundSNPIdentifyingDataTest::get_subtest( std::size_t index ) const {
+	VariantIdentifyingDataTest const& CompoundVariantIdentifyingDataTest::get_subtest( std::size_t index ) const {
 		assert( index < m_subtests.size() ) ;
 		return *m_subtests[ index ] ;
 	}
 
-	bool SNPIdentifyingDataTestConjunction::operator()( VariantIdentifyingData const& data ) const {
+	bool VariantIdentifyingDataTestConjunction::operator()( VariantIdentifyingData const& data ) const {
 		for( std::size_t i = 0; i < get_number_of_subtests(); ++i ) {
 			if( !get_subtest(i)( data ) ) {
 				return false ;
@@ -88,7 +81,7 @@ namespace genfile {
 		return true ;
 	}
 
-	std::string SNPIdentifyingDataTestConjunction::display() const {
+	std::string VariantIdentifyingDataTestConjunction::display() const {
 		if( get_number_of_subtests() == 0 ) {
 			return "true" ;
 		}
@@ -107,7 +100,7 @@ namespace genfile {
 		}
 	}
 
-	bool SNPIdentifyingDataTestDisjunction::operator()( VariantIdentifyingData const& data ) const {
+	bool VariantIdentifyingDataTestDisjunction::operator()( VariantIdentifyingData const& data ) const {
 		for( std::size_t i = 0; i < get_number_of_subtests(); ++i ) {
 			if( get_subtest( i )( data ) ) {
 				return true ;
@@ -116,7 +109,7 @@ namespace genfile {
 		return false ;
 	}
 	
-	std::string SNPIdentifyingDataTestDisjunction::display() const {
+	std::string VariantIdentifyingDataTestDisjunction::display() const {
 		if( get_number_of_subtests() == 0 ) {
 			return "false" ;
 		}

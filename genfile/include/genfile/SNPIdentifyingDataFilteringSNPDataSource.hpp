@@ -13,27 +13,27 @@
 #include <boost/signals2/signal.hpp>
 #include "genfile/Error.hpp"
 #include "genfile/SNPDataSource.hpp"
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 #include "genfile/CommonSNPFilter.hpp"
 
 namespace genfile {
-	// class SNPIdentifyingDataFilteringSNPDataSource
+	// class VariantIdentifyingDataFilteringSNPDataSource
 	// This class represents a view of its parent SNPDataSource such that
 	// only SNPs whose chromosome, position, id fields and alleles satisfy the
 	// given test are visible.
-	class SNPIdentifyingDataFilteringSNPDataSource: public SNPDataSource
+	class VariantIdentifyingDataFilteringSNPDataSource: public SNPDataSource
 	{
 	public:
-		typedef std::auto_ptr< SNPIdentifyingDataFilteringSNPDataSource > UniquePtr ;
-		// Create a SNPIdentifyingDataFilteringSNPDataSource from the given source and the given test.
+		typedef std::auto_ptr< VariantIdentifyingDataFilteringSNPDataSource > UniquePtr ;
+		// Create a VariantIdentifyingDataFilteringSNPDataSource from the given source and the given test.
 		// The test should return true for tests that are in and false for those excluded.
-		static UniquePtr create( SNPDataSource::UniquePtr source, SNPIdentifyingDataTest::UniquePtr test ) ;
-		static UniquePtr create( SNPDataSource::UniquePtr source, SNPIdentifyingDataTest const& test ) ;
+		static UniquePtr create( SNPDataSource::UniquePtr source, VariantIdentifyingDataTest::UniquePtr test ) ;
+		static UniquePtr create( SNPDataSource::UniquePtr source, VariantIdentifyingDataTest const& test ) ;
 		
 	public:
-		~SNPIdentifyingDataFilteringSNPDataSource() ;
-		SNPIdentifyingDataFilteringSNPDataSource( SNPDataSource::UniquePtr source, SNPIdentifyingDataTest::UniquePtr test ) ;
-		SNPIdentifyingDataFilteringSNPDataSource( SNPDataSource::UniquePtr source, SNPIdentifyingDataTest const& test ) ;
+		~VariantIdentifyingDataFilteringSNPDataSource() ;
+		VariantIdentifyingDataFilteringSNPDataSource( SNPDataSource::UniquePtr source, VariantIdentifyingDataTest::UniquePtr test ) ;
+		VariantIdentifyingDataFilteringSNPDataSource( SNPDataSource::UniquePtr source, VariantIdentifyingDataTest const& test ) ;
 
 		operator bool() const ;
 		Metadata get_metadata() const ;
@@ -45,7 +45,7 @@ namespace genfile {
 		SNPDataSource const& get_parent_source() const ;
 		SNPDataSource const& get_base_source() const ;
 		
-		typedef boost::signals2::signal< void ( SNPIdentifyingData const& ) > SNPSignal ;
+		typedef boost::signals2::signal< void ( VariantIdentifyingData const& ) > SNPSignal ;
 		void send_filtered_out_SNPs_to( SNPSignal::slot_type ) ;
 
 	private:
@@ -65,7 +65,7 @@ VariantIdentifyingData* variant		) ;
 		
 		SNPDataSource::UniquePtr m_source ;
 		bool const m_manage_test ;
-		SNPIdentifyingDataTest const* m_test ;
+		VariantIdentifyingDataTest const* m_test ;
 		SNPSignal m_filtered_out_snp_signal ;
 	} ;
 }

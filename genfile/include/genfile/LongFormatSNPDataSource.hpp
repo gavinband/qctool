@@ -42,8 +42,8 @@ namespace genfile {
 	private:
 		std::string m_filename ;
 		std::size_t const m_buffer_size ;
-		std::vector< SNPIdentifyingData > m_variants ;
-		typedef std::map< SNPIdentifyingData, int > VariantMap ;
+		std::vector< VariantIdentifyingData > m_variants ;
+		typedef std::map< VariantIdentifyingData, int > VariantMap ;
 		VariantMap m_variant_map ;
 		typedef boost::unordered_map< std::string, int > SampleMap ;
 		SampleMap m_sample_map ;

@@ -6,7 +6,7 @@
 
 #include <set>
 #include <string>
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 #include "genfile/SNPIDFieldsInListTest.hpp"
 #include "genfile/string_utils.hpp"
 

@@ -9,7 +9,7 @@
 #include <memory>
 
 #include "genfile/SNPDataSource.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/SNPTranslatingSNPDataSource.hpp"
 #include "genfile/get_set.hpp"
 

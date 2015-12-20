@@ -201,7 +201,7 @@ namespace genfile {
 	
 
 	void VCFFormatSNPDataSink::write_variant_data_impl(
-		SNPIdentifyingData const& id_data,
+		VariantIdentifyingData const& id_data,
 		VariantDataReader& data_reader,
 		Info const& info
 	) {
@@ -210,12 +210,12 @@ namespace genfile {
 			<< id_data.get_position().chromosome() << tab
 			<< id_data.get_position().position() << tab
 			<< id_data.get_rsid() ;
-		if( id_data.get_SNPID() != id_data.get_rsid() ) {
-			(*m_stream_ptr ) << "," << id_data.get_SNPID() ;
+		if( id_data.get_alternate_identifiers_as_string() != id_data.get_rsid() ) {
+			(*m_stream_ptr ) << "," << id_data.get_alternate_identifiers_as_string() ;
 		}
 		(*m_stream_ptr) << tab
-			<< id_data.get_first_allele() << tab
-			<< id_data.get_second_allele() << tab
+			<< id_data.get_allele(0) << tab
+			<< id_data.get_allele(1) << tab
 			<< "." << tab
 			<< "." << tab ;
 

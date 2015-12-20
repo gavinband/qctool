@@ -36,15 +36,16 @@ namespace genfile {
 			SNPIdentifyingData const& snp
 		) ;
 		VariantIdentifyingData( VariantIdentifyingData const& other ) ;
-		VariantIdentifyingData& operator=( SNPIdentifyingData const& other ) ;
 		VariantIdentifyingData& operator=( VariantIdentifyingData const& other ) ;
+		VariantIdentifyingData& operator=( SNPIdentifyingData const& other ) ;
 
 		operator SNPIdentifyingData() const ;
 
 		typedef string_utils::slice slice ;
 
 		void set_rsid( slice const& rsid ) ;
-		void set_position( GenomePosition const& position ) { m_position = position ;}
+		void set_genome_position( GenomePosition const& position ) { m_position = position ;}
+		void set_chromosome( Chromosome const& chromosome ) { m_position.chromosome() = chromosome ;}
 		void set_first_allele( slice const& allele ) ;
 		void set_second_allele( slice const& allele ) ;
 		void add_allele( slice const& allele ) ;
@@ -54,14 +55,22 @@ namespace genfile {
 		void swap_alleles() ;
 		
 		slice get_rsid() const { return slice( m_data, m_rsid_start, m_allele_starts[0] ) ; }
+		
 		GenomePosition const& get_position() const { return m_position ; }
 		std::size_t number_of_alleles() const { return m_allele_starts.size() ; }
-		slice get_first_allele() const { assert( m_allele_starts.size() > 0 ) ; return slice( m_data, m_allele_starts[0], m_allele_starts[1] ) ; }
-		slice get_second_allele() const { assert( m_allele_starts.size() > 1 ) ; return slice( m_data, m_allele_starts[1], m_identifiers_start ) ; }
+		slice get_allele( std::size_t i ) const {
+			assert( i < m_allele_starts.size() ) ;
+			if( i+1 < m_allele_starts.size() ) {
+				return slice( m_data, m_allele_starts[i], m_allele_starts[i+1] ) ;
+			} else {
+				return slice( m_data, m_allele_starts[i], m_identifiers_start ) ;
+			}
+		}
 		void get_alleles( boost::function< void( slice ) > ) const ;
 
 		std::vector< slice > get_alternative_identifiers() const ;
 		void get_alternative_identifiers( boost::function< void( slice ) > ) const ;
+		std::string get_alternate_identifiers_as_string() const ;
 
 		std::size_t get_estimated_bytes_used() const ;
 	public:

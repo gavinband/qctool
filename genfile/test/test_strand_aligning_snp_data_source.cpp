@@ -64,13 +64,13 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 	
 	std::size_t const N = 100 ; // do 100 iterations.
 	
-	std::vector< genfile::SNPIdentifyingData > snps ;
+	std::vector< genfile::VariantIdentifyingData > snps ;
 	{
 		std::auto_ptr< std::istream > istr( new std::istringstream( data::data ) ) ;
 		std::auto_ptr< genfile::SNPDataSource > plain_source(
 			new genfile::GenFileSNPDataSource( istr, genfile::Chromosome( "01" ) )
 		) ;
-		genfile::SNPIdentifyingData snp ;
+		genfile::VariantIdentifyingData snp ;
 		while( plain_source->get_snp_identifying_data( snp )) {
 			snps.push_back( snp ) ;
 			plain_source->ignore_snp_probability_data() ;
@@ -107,7 +107,7 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 			assert( strand_alignments.size() == data::number_of_snps ) ;
 		}
 		
-		genfile::SNPIdentifyingData snp ;
+		genfile::VariantIdentifyingData snp ;
 
 		// Set up and read from a plain, unaligned source.
 		std::auto_ptr< genfile::SNPDataSource > plain_source ;
@@ -115,7 +115,7 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 			std::auto_ptr< std::istream > istr( new std::istringstream( data::data ) ) ;
 			plain_source.reset( new genfile::GenFileSNPDataSource( istr, genfile::Chromosome( "01" ) ) );
 		}
-		std::vector< genfile::SNPIdentifyingData > snps1 ;
+		std::vector< genfile::VariantIdentifyingData > snps1 ;
 		std::vector< genfile::SingleSNPGenotypeProbabilities > probabilities1 ;
 		{
 			while( plain_source->get_snp_identifying_data( snp )) {
@@ -133,7 +133,7 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 
 		// Set up and read from an aligned source.
 		std::auto_ptr< genfile::SNPDataSource > aligned_source ;
-		std::vector< genfile::SNPIdentifyingData > snps2 ;
+		std::vector< genfile::VariantIdentifyingData > snps2 ;
 		std::vector< genfile::SingleSNPGenotypeProbabilities > probabilities2 ;
 		{
 			std::auto_ptr< std::istream > istr( new std::istringstream( data::data ) ) ;
@@ -171,7 +171,7 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 				}
 			}
 
-			genfile::SNPIdentifyingData expected_aligned_snp = snps1[i] ;
+			genfile::VariantIdentifyingData expected_aligned_snp = snps1[i] ;
 
 			switch( strand_alignments[ snps1[i] ].strand ) {
 				case '+':

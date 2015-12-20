@@ -10,10 +10,10 @@
 #include <set>
 #include <string>
 #include "genfile/Chromosome.hpp"
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 
 namespace genfile {
-	struct ChromosomeInSetTest: public SNPIdentifyingDataTest
+	struct ChromosomeInSetTest: public VariantIdentifyingDataTest
 	{
 		ChromosomeInSetTest( std::set< Chromosome > const& chromosomes ) ;
 		bool operator()( VariantIdentifyingData const& data ) const ;

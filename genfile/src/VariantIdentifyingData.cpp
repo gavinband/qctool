@@ -12,7 +12,7 @@
 #include "genfile/GenomePosition.hpp"
 #include "genfile/string_utils/slice.hpp"
 #include "genfile/string_utils/string_utils.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantIdentifyingData.hpp"
 
 namespace genfile {
@@ -127,8 +127,8 @@ namespace genfile {
 			m_data.substr( m_identifiers_start, m_data.size() - m_identifiers_start ),
 			get_rsid(),
 			get_position(),
-			get_first_allele(),
-			get_second_allele()
+			get_allele(0),
+			get_allele(1)
 		) ;
 	}
 
@@ -190,8 +190,8 @@ namespace genfile {
 
 	void VariantIdentifyingData::swap_alleles() {
 		assert( m_allele_starts.size() == 2 ) ;
-		std::string const first_allele = get_first_allele() ;
-		genfile::string_utils::slice const second_allele = get_second_allele() ;
+		std::string const first_allele = get_allele(0) ;
+		genfile::string_utils::slice const second_allele = get_allele(1) ;
 		std::copy( second_allele.begin(), second_allele.end(), m_data.begin() + m_allele_starts[0] ) ;
 		m_allele_starts[1] = m_allele_starts[0] + second_allele.size() ;
 		std::copy( first_allele.begin(), first_allele.end(), m_data.begin() + m_allele_starts[1] ) ;
@@ -232,6 +232,10 @@ namespace genfile {
 		slice( m_data, m_identifiers_start, m_data.size() ).split( "\t", callback ) ;
 	}
 
+	std::string VariantIdentifyingData::get_alternate_identifiers_as_string() const {
+		return join( get_alternative_identifiers(), "," ) ;
+	}
+
 	std::size_t VariantIdentifyingData::get_estimated_bytes_used() const {
 		return sizeof( VariantIdentifyingData )
 			+ m_data.size()
@@ -251,8 +255,8 @@ namespace genfile {
 		}
 		out << " " << data.get_position().chromosome()
 			<< " " << data.get_position().position()
-			<< " " << data.get_first_allele()
-			<< " " << data.get_second_allele() ;
+			<< " " << data.get_allele(0)
+			<< " " << data.get_allele(1) ;
 		return out ;
 	}
 
@@ -293,16 +297,16 @@ namespace genfile {
 						(left.get_rsid() == right.get_rsid())
 						&&
 						(
-							(left.get_first_allele() < right.get_first_allele())
+							(left.get_allele(0) < right.get_allele(0))
 							||
 							(
-								(left.get_first_allele() == right.get_first_allele())
+								(left.get_allele(0) == right.get_allele(0))
 								&&
 								(
-									(left.get_second_allele() < right.get_second_allele())
+									(left.get_allele(1) < right.get_allele(1))
 									||
 									(
-										(left.get_second_allele() == right.get_second_allele())
+										(left.get_allele(1) == right.get_allele(1))
 										&&
 										( slice( left.m_data, left.m_identifiers_start, left.m_data.size() ) < slice( right.m_data, right.m_identifiers_start, right.m_data.size() ) )
 									)
@@ -335,6 +339,7 @@ namespace genfile {
 	) {
 		m_fields_to_compare = other.m_fields_to_compare ;
 		m_flip_alleles_if_necessary = other.m_flip_alleles_if_necessary ;
+		return *this ;
 	}
 
 	std::vector< int > VariantIdentifyingData::CompareFields::parse_fields_to_compare( std::string const& field_spec ) {
@@ -391,16 +396,16 @@ namespace genfile {
 					}
 					break ;
 				case eAlleles:
-					if( left.get_first_allele() > right.get_first_allele() ) {
+					if( left.get_allele(0) > right.get_allele(0) ) {
 						return false ;
 					}
-					else if( left.get_first_allele() < right.get_first_allele() ) {
+					else if( left.get_allele(0) < right.get_allele(0) ) {
 						return true ;
 					}
-					else if( left.get_second_allele() > right.get_second_allele() ) {
+					else if( left.get_allele(1) > right.get_allele(1) ) {
 						return false ;
 					}
-					else if( left.get_second_allele() < right.get_second_allele() ) {
+					else if( left.get_allele(1) < right.get_allele(1) ) {
 						return true ;
 					}
 					break ;
@@ -431,10 +436,10 @@ namespace genfile {
 					}
 					break ;
 				case eAlleles:
-					if( left.get_first_allele() != right.get_first_allele() ) {
+					if( left.get_allele(0) != right.get_allele(0) ) {
 						return false ;
 					}
-					if( left.get_second_allele() != right.get_second_allele() ) {
+					if( left.get_allele(1) != right.get_allele(1) ) {
 						return false ;
 					}
 					break ;
@@ -446,15 +451,15 @@ namespace genfile {
 		return true ;
 	}
 	
-	std::string SNPIdentifyingData::CompareFields::get_summary() const {
+	std::string VariantIdentifyingData::CompareFields::get_summary() const {
 		std::string result = "comparing " ;
 		for( std::size_t i = 0; i < m_fields_to_compare.size(); ++i ) {
 			if( i > 0 ) {
 				result += "," ;
 			}
 			switch( m_fields_to_compare[i] ) {
-				case eSNPID:
-				result += "SNPID" ;
+				case eIDs:
+				result += "ids" ;
 				break ;
 				case eRSID:
 				result += "rsid" ;
@@ -472,7 +477,7 @@ namespace genfile {
 	
 	bool VariantIdentifyingData::CompareFields::check_if_comparable_fields_are_known( VariantIdentifyingData const& value ) const {
 		if( std::find( m_fields_to_compare.begin(), m_fields_to_compare.end(), int( eAlleles ) ) != m_fields_to_compare.end() ) {
-			return value.get_first_allele() != "?" && value.get_second_allele() != "?" ;
+			return value.get_allele(0) != "?" && value.get_allele(1) != "?" ;
 		}
 		else {
 			return true ;

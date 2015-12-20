@@ -8,7 +8,7 @@
 #include <string>
 #include <sstream>
 #include "genfile/Chromosome.hpp"
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 #include "genfile/ChromosomeInSetTest.hpp"
 
 namespace genfile {

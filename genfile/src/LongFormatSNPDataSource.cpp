@@ -93,12 +93,12 @@ namespace genfile {
 			return ;
 		} else {
 			*number_of_samples = m_sample_map.size() ;
-			*SNPID = m_variants[m_snp_index].get_SNPID() ;
+			*SNPID = m_variants[m_snp_index].get_alternate_identifiers_as_string() ;
 			*RSID = m_variants[m_snp_index].get_rsid() ;
 			*chromosome = m_variants[m_snp_index].get_position().chromosome() ;
 			*SNP_position = m_variants[m_snp_index].get_position().position() ;
-			*allele1 = m_variants[m_snp_index].get_first_allele() ;
-			*allele2 = m_variants[m_snp_index].get_second_allele() ;
+			*allele1 = m_variants[m_snp_index].get_allele(0) ;
+			*allele2 = m_variants[m_snp_index].get_allele(1) ;
 		}
 	}
 
@@ -236,7 +236,7 @@ namespace genfile {
 		// Read and validate SNPs and samples
 		m_buffer.resize( m_buffer_size ) ;
 		{
-			SNPIdentifyingData snp ;
+			VariantIdentifyingData snp ;
 			std::size_t lineNumber = 0 ;
 
 			std::size_t buffer_pos = 0 ;
@@ -268,7 +268,7 @@ namespace genfile {
 					) ;
 				}
 
-				SNPIdentifyingData snp(
+				VariantIdentifyingData snp(
 					elts[0], elts[1],
 					GenomePosition(
 						Chromosome( elts[2] ), to_repr< Position >( elts[3] )

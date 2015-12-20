@@ -85,9 +85,9 @@ namespace genfile {
 			setter.set_value( i, string_value ) ;
 		}
 		
-		void IntegerType::parse( string_utils::slice const& value, EntrySetter& setter ) const {
+		void IntegerType::parse( std::size_t i, string_utils::slice const& value, EntrySetter& setter ) const {
 			try {
-				setter.set_value( string_utils::to_repr< EntrySetter::Integer >( value ) ) ;
+				setter.set_value( i, string_utils::to_repr< EntrySetter::Integer >( value ) ) ;
 			}
 			catch( string_utils::StringConversionError const& ) {
 				throw BadArgumentError( "genfile::vcf::IntegerType::parse()", "value = \"" + std::string( value ) + "\"" ) ;

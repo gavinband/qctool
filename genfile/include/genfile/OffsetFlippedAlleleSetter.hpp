@@ -12,7 +12,7 @@
 #include <vector>
 #include <algorithm>
 #include <boost/format.hpp>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/Error.hpp"

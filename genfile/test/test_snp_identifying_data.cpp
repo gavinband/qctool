@@ -9,7 +9,7 @@
 #include <vector>
 #include <boost/bind.hpp>
 #include "test_case.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/GenomePosition.hpp"
 
@@ -62,8 +62,8 @@ AUTO_TEST_CASE( test_snp_values ) {
 	genfile::VariantIdentifyingData snp( "RSID_1", genfile::GenomePosition( genfile::Chromosome(), 1000 ), "A", "G" ) ;
 	BOOST_CHECK_EQUAL( snp.get_rsid(), "RSID_1" ) ;
 	BOOST_CHECK_EQUAL( snp.get_position(), genfile::GenomePosition( genfile::Chromosome(), 1000 ) ) ;
-	BOOST_CHECK_EQUAL( snp.get_first_allele(), "A" ) ;
-	BOOST_CHECK_EQUAL( snp.get_second_allele(), "G" ) ;
+	BOOST_CHECK_EQUAL( snp.get_allele(0), "A" ) ;
+	BOOST_CHECK_EQUAL( snp.get_allele(1), "G" ) ;
 	BOOST_CHECK( snp.get_alternative_identifiers() == std::vector< genfile::string_utils::slice >() ) ;
 }
 
@@ -74,7 +74,7 @@ AUTO_TEST_CASE( test_snp_copying ) {
 	genfile::VariantIdentifyingData snp2 = snp1 ;
 	BOOST_CHECK_EQUAL( snp1, snp2 ) ;
 
-	genfile::SNPIdentifyingData snp3( "SNP1", "RSID_1", genfile::GenomePosition( genfile::Chromosome(), 1000 ), "A", "G" ) ;
+	genfile::VariantIdentifyingData snp3( "SNP1", "RSID_1", genfile::GenomePosition( genfile::Chromosome(), 1000 ), "A", "G" ) ;
 	genfile::VariantIdentifyingData snp4 = snp3 ;
 	BOOST_CHECK_EQUAL( snp4, snp2 ) ;
 }
@@ -164,24 +164,24 @@ AUTO_TEST_CASE( test_snp_data_setters ) {
 	snp.add_identifier( std::string( "ID" ) ) ;
 	snp.set_rsid( std::string( "RSID_1_changed" ) ) ;
 	BOOST_CHECK_EQUAL( snp.get_rsid(), "RSID_1_changed" ) ;
-	BOOST_CHECK_EQUAL( snp.get_first_allele(), "A" ) ;
-	BOOST_CHECK_EQUAL( snp.get_second_allele(), "G" ) ;
+	BOOST_CHECK_EQUAL( snp.get_allele(0), "A" ) ;
+	BOOST_CHECK_EQUAL( snp.get_allele(1), "G" ) ;
 	BOOST_CHECK_EQUAL( snp.get_position(), pos ) ;
 	BOOST_CHECK_EQUAL( snp.get_alternative_identifiers().size(), 1 ) ;
 	BOOST_CHECK_EQUAL( snp.get_alternative_identifiers()[0], "ID" ) ;
 
 	snp.set_first_allele( std::string( "GA" ) ) ;
 	BOOST_CHECK_EQUAL( snp.get_rsid(), "RSID_1_changed" ) ;
-	BOOST_CHECK_EQUAL( snp.get_first_allele(), "GA" ) ;
-	BOOST_CHECK_EQUAL( snp.get_second_allele(), "G" ) ;
+	BOOST_CHECK_EQUAL( snp.get_allele(0), "GA" ) ;
+	BOOST_CHECK_EQUAL( snp.get_allele(1), "G" ) ;
 	BOOST_CHECK_EQUAL( snp.get_position(), pos ) ;
 	BOOST_CHECK_EQUAL( snp.get_alternative_identifiers().size(), 1 ) ;
 	BOOST_CHECK_EQUAL( snp.get_alternative_identifiers()[0], "ID" ) ;
 
 	snp.set_second_allele( std::string( "AG" ) ) ;
 	BOOST_CHECK_EQUAL( snp.get_rsid(), "RSID_1_changed" ) ;
-	BOOST_CHECK_EQUAL( snp.get_first_allele(), "GA" ) ;
-	BOOST_CHECK_EQUAL( snp.get_second_allele(), "AG" ) ;
+	BOOST_CHECK_EQUAL( snp.get_allele(0), "GA" ) ;
+	BOOST_CHECK_EQUAL( snp.get_allele(1), "AG" ) ;
 	BOOST_CHECK_EQUAL( snp.get_position(), pos ) ;
 	BOOST_CHECK_EQUAL( snp.get_alternative_identifiers().size(), 1 ) ;
 	BOOST_CHECK_EQUAL( snp.get_alternative_identifiers()[0], "ID" ) ;
@@ -189,8 +189,8 @@ AUTO_TEST_CASE( test_snp_data_setters ) {
 	pos.position() = 1000 ;
 	snp.set_position( pos ) ;
 	BOOST_CHECK_EQUAL( snp.get_rsid(), "RSID_1_changed" ) ;
-	BOOST_CHECK_EQUAL( snp.get_first_allele(), "GA" ) ;
-	BOOST_CHECK_EQUAL( snp.get_second_allele(), "AG" ) ;
+	BOOST_CHECK_EQUAL( snp.get_allele(0), "GA" ) ;
+	BOOST_CHECK_EQUAL( snp.get_allele(1), "AG" ) ;
 	BOOST_CHECK_EQUAL( snp.get_position(), pos ) ;
 	BOOST_CHECK_EQUAL( snp.get_alternative_identifiers().size(), 1 ) ;
 	BOOST_CHECK_EQUAL( snp.get_alternative_identifiers()[0], "ID" ) ;

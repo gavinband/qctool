@@ -10,10 +10,10 @@
 #include <set>
 #include <string>
 #include "VariantIdentifyingData.hpp"
-#include "SNPIdentifyingDataTest.hpp"
+#include "VariantIdentifyingDataTest.hpp"
 
 namespace genfile {
-	struct SNPInSetTest: public SNPIdentifyingDataTest
+	struct SNPInSetTest: public VariantIdentifyingDataTest
 	{
 	public:
 		SNPInSetTest( std::set< VariantIdentifyingData > const&, VariantIdentifyingData::CompareFields const& comparer ) ;

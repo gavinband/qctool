@@ -110,17 +110,10 @@ double process_gen_file( genfile::SNPDataSource& snp_data_source, std::size_t nu
 	std::size_t count = 0;
 	Timer timer ;
 
+	genfile::VariantIdentifyingData snp ;
 	while( ( count < number_of_snps_to_read )
-		&& snp_data_source.read_snp(
-		make_setter( snp_data.number_of_samples ),
-		make_setter( snp_data.SNPID ),
-		make_setter( snp_data.RSID ),
-		make_setter( snp_data.chromosome ),
-		make_setter( snp_data.SNP_position ),
-		make_setter( snp_data.allele1 ), 
-		make_setter( snp_data.allele2 ),
-		ProbabilitySetter( snp_data.probabilities )
-	)) {
+		&& snp_data_source.read_snp( &snp, ProbabilitySetter( snp_data.probabilities ) )
+	) {
 		++count ;
 	}
 	

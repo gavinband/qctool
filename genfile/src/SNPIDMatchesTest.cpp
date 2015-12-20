@@ -6,7 +6,7 @@
 
 #include <string>
 #include <cassert>
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 #include "genfile/SNPIDMatchesTest.hpp"
 #include "genfile/string_utils.hpp"
 #include "genfile/Error.hpp"

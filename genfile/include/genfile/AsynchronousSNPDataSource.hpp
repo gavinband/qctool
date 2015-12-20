@@ -13,7 +13,7 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition.hpp>
 #include <boost/ptr_container/ptr_deque.hpp>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/VariantDataReader.hpp"
 
@@ -53,7 +53,7 @@ namespace genfile {
 		Condition m_queue_not_full ;
 
 		// The following are accessed by both background and main threads and are protected by the above mutex.
-		std::queue< SNPIdentifyingData > m_snp_queue ;
+		std::queue< VariantIdentifyingData > m_snp_queue ;
 		boost::ptr_deque< VariantDataReader > m_data_queue ;
 		bool m_source_empty ;
 		bool m_reset ;

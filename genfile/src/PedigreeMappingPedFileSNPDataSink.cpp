@@ -167,7 +167,7 @@ namespace genfile {
 	void PedigreeMappingPedFileSNPDataSink::write_map_file( std::string const& output_filename ) const {
 		std::auto_ptr< std::ostream > file = open_text_file_for_output( output_filename ) ;
 		for( std::size_t i = 0; i < m_written_snps.size(); ++i ) {
-			SNPIdentifyingData const& snp = m_written_snps[i] ;
+			VariantIdentifyingData const& snp = m_written_snps[i] ;
 			(*file)
 				<< snp.get_position().chromosome()
 				<< " "
@@ -195,7 +195,7 @@ namespace genfile {
 		assert( number_of_samples == m_samples.get_number_of_individuals() ) ;
 		
 		m_written_snps.push_back(
-			SNPIdentifyingData(
+			VariantIdentifyingData(
 				SNPID,
 				RSID,
 				GenomePosition( chromosome, SNP_position ),

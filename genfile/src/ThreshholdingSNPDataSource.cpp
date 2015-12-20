@@ -7,7 +7,7 @@
 #include <queue>
 #include <memory>
 #include <boost/format.hpp>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/ThreshholdingSNPDataSource.hpp"

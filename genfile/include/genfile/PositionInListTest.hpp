@@ -10,10 +10,10 @@
 #include <set>
 #include <string>
 #include "genfile/GenomePosition.hpp"
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 
 namespace genfile {
-	struct PositionInListTest: public SNPIdentifyingDataTest
+	struct PositionInListTest: public VariantIdentifyingDataTest
 	{
 		PositionInListTest( std::set< GenomePosition > id_fields ) ;
 		bool operator()( VariantIdentifyingData const& data ) const ;

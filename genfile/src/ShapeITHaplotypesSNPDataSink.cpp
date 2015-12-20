@@ -100,7 +100,7 @@ namespace genfile {
 	}
 
 	void ShapeITHaplotypesSNPDataSink::write_variant_data_impl(
-		SNPIdentifyingData const& id_data,
+		VariantIdentifyingData const& id_data,
 		VariantDataReader& data_reader,
 		Info const& info
 	) {

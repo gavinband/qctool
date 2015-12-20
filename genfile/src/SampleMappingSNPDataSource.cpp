@@ -13,7 +13,7 @@
 #include <boost/bimap/unordered_set_of.hpp>
 #include <boost/bimap.hpp>
 #include "genfile/Error.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/SampleMappingSNPDataSource.hpp"
@@ -159,26 +159,26 @@ namespace genfile {
 				}
 			}
 
-			void set_value( std::size_t, MissingValue const value ) {
+			void set_value( std::size_t i, MissingValue const value ) {
 				if( m_set_this_sample ) {
-					m_setter.set_value( value ) ;
+					m_setter.set_value( i, value ) ;
 				}
 			}
 			
-			void set_value( std::size_t, std::string& value ) {
+			void set_value( std::size_t i, std::string& value ) {
 				if( m_set_this_sample ) {
-					m_setter.set_value( value ) ;
+					m_setter.set_value( i, value ) ;
 				}
 			}
 
-			void set_value( std::size_t, VariantEntry::Integer const value ) {
+			void set_value( std::size_t i, VariantEntry::Integer const value ) {
 				if( m_set_this_sample ) {
-					m_setter.set_value( value ) ;
+					m_setter.set_value( i, value ) ;
 				}
 			}
-			void set_value( std::size_t, double const value ) {
+			void set_value( std::size_t i, double const value ) {
 				if( m_set_this_sample ) {
-					m_setter.set_value( value ) ;
+					m_setter.set_value( i, value ) ;
 				}
 			}
 			
@@ -284,11 +284,8 @@ namespace genfile {
 		return *m_source ;
 	}
 
-	void SampleMappingSNPDataSource::get_snp_identifying_data_impl( 
-VariantIdentifyingData* variant	) {
-		m_source->get_snp_identifying_data(
-			set_number_of_samples, set_SNPID, set_RSID, set_chromosome, set_SNP_position, set_allele1, set_allele2
-		) ;
+	void SampleMappingSNPDataSource::get_snp_identifying_data_impl( VariantIdentifyingData* variant	) {
+		m_source->get_snp_identifying_data( variant ) ;
 	}
 
 	VariantDataReader::UniquePtr SampleMappingSNPDataSource::read_variant_data_impl() {

@@ -13,7 +13,7 @@
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/Pedigree.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 
 namespace genfile {
 	class PedigreeMappingPedFileSNPDataSink: public SNPDataSink
@@ -40,7 +40,7 @@ namespace genfile {
 		std::vector< std::string > const m_phenotypes ;
 		std::map< std::string, std::size_t > m_pedigree_to_sample_mapping ;
 		std::string m_output_filename_stub ;
-		std::vector< SNPIdentifyingData > m_written_snps ;
+		std::vector< VariantIdentifyingData > m_written_snps ;
 		std::vector< std::vector< std::pair< char, char > > > m_written_alleles ;
 		double const m_call_threshhold ;
 	private:

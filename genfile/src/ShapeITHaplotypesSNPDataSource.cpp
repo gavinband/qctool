@@ -92,36 +92,26 @@ namespace genfile {
 		m_good = true ;
 	}
 	
-	void ShapeITHaplotypesSNPDataSource::read_snp_identifying_data_impl( 
-		uint32_t* number_of_samples,
-		std::string* SNPID,
-		std::string* RSID,
-		Chromosome* chromosome,
-		uint32_t* SNP_position,
-		std::string* allele1,
-		std::string* allele2
+	void ShapeITHaplotypesSNPDataSource::read_snp_identifying_data_impl(
+		VariantIdentifyingData* result
 	) {
-		SNPIdentifyingData snp ;
+		Chromosome chromosome ;
 		if( m_have_chromosome_column ) {
 			std::string chromosome_string ;
 			(*m_stream_ptr) >> chromosome_string ;
-			snp.position().chromosome() = Chromosome( chromosome_string ) ;
+			chromosome = Chromosome( chromosome_string ) ;
 		} else {
-			snp.position().chromosome() = m_chromosome ;
+			chromosome = m_chromosome ;
 		}
 		
-		(*m_stream_ptr) >> snp.SNPID() >> snp.rsid() >> snp.position().position() >> snp.first_allele() >> snp.second_allele() ;
+		std::string SNPID, rsid, allele1, allele2 ;
+		Position position; 
+		(*m_stream_ptr) >> SNPID >> rsid >> position >> allele1 >> allele2 ;
 
+		VariantIdentifyingData snp( SNPID, rsid, GenomePosition( chromosome, position ), allele1, allele2 ) ;
 		if( *m_stream_ptr ) {
-			*number_of_samples = m_number_of_samples ;
-			*SNPID = snp.get_SNPID() ;
-			*RSID = snp.get_rsid() ;
-			*chromosome = snp.get_position().chromosome() ;
-			*SNP_position = snp.get_position().position() ;
-			*allele1 = snp.get_first_allele() ;
-			*allele2 = snp.get_second_allele() ;
-
-			m_current_snp = snp ; 
+			*result = snp ;
+			m_current_snp = snp ;
 		}
 		else {
 			m_good = false ;

@@ -196,9 +196,9 @@ namespace genfile {
 						) ;
 						for( std::size_t const current_index = index; index < ( current_index + ploidy ); ++index ) {
 							if( m_genotype_calls[ index ] == -1 ) {
-								setter.set_value( MissingValue() ) ;
+								setter.set_value( (index-current_index), MissingValue() ) ;
 							} else {
-								setter.set_value( m_genotype_calls[ index ] ) ;
+								setter.set_value( (index-current_index), m_genotype_calls[ index ] ) ;
 							}
 						}
 					}

@@ -39,7 +39,7 @@ namespace genfile {
 
 	GenLikeSNPDataSink::operator bool() const { return *m_stream_ptr ; }
 	
-	void GenLikeSNPDataSink::write_variant( std::ostream& out, genfile::SNPIdentifyingData const& variant ) {
+	void GenLikeSNPDataSink::write_variant( std::ostream& out, genfile::VariantIdentifyingData const& variant ) {
 		if( m_write_chromosome_column ) {
 			out << variant.get_position().chromosome() << " " ;
 		}
@@ -51,11 +51,11 @@ namespace genfile {
 				throw BadArgumentError( "GenLikeSNPDataSink::write_variant()", "chromosome=" + string_utils::to_string( variant.get_position().chromosome() ) ) ;
 			}
 		}
-		out << variant.get_SNPID() << " "
+		out << variant.get_alternate_identifiers_as_string() << " "
 			<< variant.get_rsid() << " "
 			<< variant.get_position().position() << " "
-			<< variant.get_first_allele() << " "
-			<< variant.get_second_allele() ;
+			<< variant.get_allele(0) << " "
+			<< variant.get_allele(1) ;
 	}
 
 	void GenLikeSNPDataSink::setup( std::string const& filename, CompressionType compression_type ) {

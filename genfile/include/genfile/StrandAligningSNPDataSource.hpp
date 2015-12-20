@@ -10,7 +10,7 @@
 #include <vector>
 #include <map>
 #include "genfile/SNPDataSource.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/OffsetFlippedAlleleSetter.hpp"
 
 namespace genfile {
@@ -57,17 +57,17 @@ namespace genfile {
 
 	public:
 		typedef std::auto_ptr< StrandAligningSNPDataSource > UniquePtr ;
-		typedef std::map< genfile::SNPIdentifyingData, StrandFlipSpec, genfile::SNPIdentifyingData::CompareFields > StrandAlignments ; 
+		typedef std::map< genfile::VariantIdentifyingData, StrandFlipSpec, genfile::VariantIdentifyingData::CompareFields > StrandAlignments ; 
 		static UniquePtr create( SNPDataSource::UniquePtr source, StrandAlignments const& strand_alignments ) ;
 
 		StrandAligningSNPDataSource( SNPDataSource::UniquePtr source, StrandAlignments const& strand_alignments ) ;
 
-		std::vector< SNPIdentifyingData > const& get_aligned_snps() const { return m_aligned_snps ; }
+		std::vector< VariantIdentifyingData > const& get_aligned_snps() const { return m_aligned_snps ; }
 	private:
 		
 		SNPDataSource::UniquePtr m_source ;
 		StrandAlignments const& m_strand_alignments ;
-		std::vector< SNPIdentifyingData > const m_aligned_snps ;
+		std::vector< VariantIdentifyingData > const m_aligned_snps ;
 		StrandFlipSpec m_current_strand_flip_spec ;
 		bool m_include_unknown_strand_or_flip ;
 		
@@ -90,7 +90,7 @@ namespace genfile {
 
 		void get_snp_identifying_data_impl( 
 VariantIdentifyingData* variant		) ;
-		StrandFlipSpec get_strand_alignment( SNPIdentifyingData const& snp ) const ;
+		StrandFlipSpec get_strand_alignment( VariantIdentifyingData const& snp ) const ;
 		VariantDataReader::UniquePtr read_variant_data_impl() ;
 		void ignore_snp_probability_data_impl() ;
 		void reset_to_start_impl() ;
