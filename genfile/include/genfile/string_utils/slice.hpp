@@ -21,9 +21,19 @@ namespace genfile {
 		// larger string.
 		struct slice
 		{
-			// A view of the whole string.
+		public:
+			typedef char const* const_iterator ;
+
+		public:
+			// A view of a C-style string; view does not include terminating null.
+			slice( char const* c_string ) ;
+			// A view of a character buffer
+			slice( char const* data, char const* end_of_data ) ;
+			// A view of a subset of a character buffer
+			slice( char const* data, char const* end_of_data, std::size_t start, std::size_t end ) ;
+			// A view of a string.
 			slice( std::string const& ) ;
-			// A view of the whole string.
+			// A view of a subset of a string.
 			slice( std::string const&, std::size_t start, std::size_t end ) ;
 			slice( slice const&, std::size_t start, std::size_t end ) ;
 			slice( slice const& other ) ;
@@ -54,10 +64,12 @@ namespace genfile {
 			
 			bool operator==( std::string const& other ) const ;
 			bool operator!=( std::string const& other ) const ;
+			bool operator==( char const* other ) const ;
+			bool operator!=( char const* other ) const ;
 			// bool operator==( slice const& other ) const ;
 			
-			std::string::const_iterator begin() const ;
-			std::string::const_iterator end() const ;
+			const_iterator begin() const ;
+			const_iterator end() const ;
 
 			friend bool operator<( slice const& left, slice const& right ) ;
 			friend bool operator>( slice const& left, slice const& right ) ;
@@ -68,6 +80,8 @@ namespace genfile {
 			friend std::ostream& operator<<( std::ostream& o, slice const& s ) ;
 			
 		private:
+			char const* const m_data ;
+			char const* const m_end_of_data ;
 			std::string const* m_string ;
 			std::size_t m_start, m_end ;
 

@@ -96,7 +96,7 @@ namespace snp_stats {
 		ResultCallback callback
 	) {
 		using genfile::string_utils::to_string ;
-		SNPIdentifyingData alt_snp ;
+		genfile::VariantIdentifyingData alt_snp ;
 		if( m_alt_dataset_snps->get_next_snp_matching( &alt_snp, snp, m_comparer )) {
 			// Get comparison dataset genotype data.
 			{

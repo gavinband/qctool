@@ -128,8 +128,8 @@ namespace genfile {
 					default:
 						assert(0) ;
 				}
-				this_snp.set_first_allele( allele1 ) ;
-				this_snp.set_second_allele( allele2 ) ;
+				this_snp.set_allele( 0, allele1 ) ;
+				this_snp.set_allele( 1, allele2 ) ;
 				*variant = this_snp ;
 				return ;
 			}

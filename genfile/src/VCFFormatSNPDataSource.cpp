@@ -235,23 +235,11 @@ namespace genfile {
 		}
 	}
 	
-	void VCFFormatSNPDataSource::get_snp_identifying_data_impl( 
-VariantIdentifyingData* variant	) {
-		return get_snp_identifying_data_impl(
-			m_stream_ptr.get(),
-			set_number_of_samples,
-			set_SNPID,
-			set_RSID,
-			set_chromosome,
-			set_SNP_position,
-			set_allele1,
-			set_allele2
-		) ;
+	void VCFFormatSNPDataSource::get_snp_identifying_data_impl( VariantIdentifyingData* variant	) {
+		return get_snp_identifying_data_impl( m_stream_ptr.get(), variant ) ;
 	}
 
-	void VCFFormatSNPDataSource::get_snp_identifying_data_impl( 
-		std::istream* stream_ptr,
-VariantIdentifyingData* variant	) {
+	void VCFFormatSNPDataSource::get_snp_identifying_data_impl( std::istream* stream_ptr, VariantIdentifyingData* result ) {
 		if( !m_have_id_data ) {
 			std::size_t entry_count = 0 ;
 			try {
@@ -289,46 +277,41 @@ VariantIdentifyingData* variant	) {
 			
 			m_have_id_data = true ;
 		}
-		// If we get here reading was successful.
-		set_number_of_samples( number_of_samples() ) ;
 
+		// If we get here reading was successful.
+		// Now parse these fields into the result.
 		std::vector< std::string > ids = string_utils::split( m_ID, "," ) ;
+		VariantIdentifyingData variant ;
 		if( ids.size() == 0 ) {
-			set_RSID( "?" ) ;
-			set_SNPID( "?" ) ;
+			variant.set_rsid( genfile::string_utils::slice( "?" ) ) ;
 		}
 		else if( ids.size() == 1 ) {
-			set_RSID( ids[0] ) ;
-			set_SNPID( ids[0] ) ;
-		}
-		else {
-			set_RSID( ids[0] ) ;
-			set_SNPID( ids[1] ) ;
+			variant.set_rsid( ids[0] ) ;
 		}
 		
-		set_chromosome( Chromosome( m_CHROM ) ) ;
-		set_SNP_position( string_utils::to_repr< Position >( m_POS ) ) ;
+		if( ids.size() > 1 ) {
+			for( std::size_t i = 0; i < ids.size(); ++i ) {
+				variant.add_identifier( ids[i] ) ;
+			}
+		}
+		
+		variant.set_genome_position( GenomePosition( m_CHROM, string_utils::to_repr< Position >( m_POS ) ) ) ;
 
 		m_variant_alleles = string_utils::split( m_ALT, "," ) ;
-		m_variant_alleles.insert( m_variant_alleles.begin(), m_REF ) ;
-
+		
+		if( m_REF != "." ) {
+			variant.add_allele( m_REF ) ;
+		}
+		for( std::size_t i = 0; i < m_variant_alleles.size(); ++i ) {
+			if( m_variant_alleles[i] != "." ) {
+				variant.add_allele( m_variant_alleles[i] ) ;
+			}
+		}
+		
 	 	// We ignore the INFO, but may as well verify that it's sane
 		// insofar as we can easily do so.
 		vcf::InfoReader( m_variant_alleles.size(), m_INFO, m_info_types ) ;
-
-		if( m_variant_alleles.size() >= 1 && m_variant_alleles[0] != "." ) {
-			set_allele1( m_variant_alleles[0] ) ;
-		}
-		else {
-			set_allele1( "?" ) ;
-		}
-
-		if( m_variant_alleles.size() == 2 && m_variant_alleles[1] != "." ) {
-			set_allele2( m_variant_alleles[1] ) ;
-		}
-		else {
-			set_allele2( "?" ) ;
-		}
+		*result = variant ;
 	}
 
 	namespace impl {

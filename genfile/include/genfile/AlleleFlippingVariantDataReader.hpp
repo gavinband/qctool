@@ -62,4 +62,3 @@ namespace genfile {
 }
 
 #endif
-	

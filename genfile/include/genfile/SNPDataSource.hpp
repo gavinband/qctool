@@ -39,6 +39,7 @@ namespace genfile {
 		typedef std::auto_ptr< SNPDataSource > UniquePtr ;
 		typedef boost::function< void ( std::size_t, std::size_t ) > NotifyProgress ;
 		typedef std::multimap< std::string, std::map< std::string, std::string > > Metadata ;
+		typedef boost::function< void() > SourceResetCallback ;
 
 	public:
 		
@@ -65,6 +66,7 @@ namespace genfile {
 		SNPDataSource() ;
 		virtual ~SNPDataSource() ;
 
+		void set_source_reset_callback( SourceResetCallback ) ;
 		void reset_to_start() ;
 
 		typedef boost::function< int ( Chromosome const&, std::size_t ) > GetPloidy ;
@@ -222,6 +224,8 @@ namespace genfile {
 
 		// state variable SNP identifying data
 		State m_state ;
+		
+		SourceResetCallback m_source_reset_callback ;
 	} ;
 
 	class IdentifyingDataCachingSNPDataSource: public SNPDataSource
@@ -229,7 +233,6 @@ namespace genfile {
 		virtual void read_snp_identifying_data_impl( 
 			VariantIdentifyingData* variant
 		) = 0 ;
-		
 
 		void get_snp_identifying_data_impl( 
 			VariantIdentifyingData* variant

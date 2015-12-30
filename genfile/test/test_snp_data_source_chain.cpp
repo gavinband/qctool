@@ -103,23 +103,11 @@ namespace {
 	struct SnpData {
 	
 		SnpData(): probabilities( data::number_of_samples ) {} ;
-	
-		uint32_t number_of_samples ;
-		std::string SNPID, RSID ;
-		genfile::Chromosome chromosome ;
-		uint32_t SNP_position ;
-		std::string allele1, allele2 ;
+		genfile::VariantIdentifyingData snp ;
 		std::vector< probabilities_t > probabilities ;
-	
+		
 		bool operator==( SnpData const& other ) const {
-			return number_of_samples == other.number_of_samples
-				&& SNPID == other.SNPID
-				&& RSID == other.RSID
-				&& chromosome == other.chromosome
-				&& SNP_position == other.SNP_position
-				&& allele1 == other.allele1
-				&& allele2 == other.allele2
-				&& probabilities == other.probabilities ;
+			return snp == other.snp && probabilities == other.probabilities ;
 		}
 	} ;
 
@@ -134,24 +122,10 @@ namespace {
 		
 		snp_data_sink.set_sample_names( snp_data_source.number_of_samples(), &get_test_sample_name ) ;
 
-		while( snp_data_source.read_snp(
-			make_setter( snp_data.number_of_samples ),
-			make_setter( snp_data.SNPID ),
-			make_setter( snp_data.RSID ),
-			make_setter( snp_data.chromosome ),
-			make_setter( snp_data.SNP_position ),
-			make_setter( snp_data.allele1 ), 
-			make_setter( snp_data.allele2 ),
-			ProbabilitySetter( snp_data.probabilities )
-		)) {
+		while( snp_data_source.read_snp( &snp_data.snp, ProbabilitySetter( snp_data.probabilities )) ) {
 			snp_data_sink.write_snp(
-				snp_data.number_of_samples,
-				snp_data.SNPID,
-				snp_data.RSID,
-				snp_data.chromosome,
-				snp_data.SNP_position,
-				snp_data.allele1,
-				snp_data.allele2,
+				snp_data_source.number_of_samples(),
+				snp_data.snp,
 				ProbabilityGetter( snp_data.probabilities, 0 ),
 				ProbabilityGetter( snp_data.probabilities, 1 ),
 				ProbabilityGetter( snp_data.probabilities, 2 )
@@ -187,16 +161,7 @@ namespace {
 		std::vector< SnpData > result ;
 		SnpData snp_data ;
 	
-		while( snp_data_source.read_snp(
-			make_setter( snp_data.number_of_samples ),
-			make_setter( snp_data.SNPID ),
-			make_setter( snp_data.RSID ),
-			make_setter( snp_data.chromosome ),
-			make_setter( snp_data.SNP_position ),
-			make_setter( snp_data.allele1 ), 
-			make_setter( snp_data.allele2 ),
-			ProbabilitySetter( snp_data.probabilities )
-		)) {
+		while( snp_data_source.read_snp( &snp_data.snp, ProbabilitySetter( snp_data.probabilities ) ) ) {
 			result.push_back( snp_data ) ;
 		}
 		return result ;

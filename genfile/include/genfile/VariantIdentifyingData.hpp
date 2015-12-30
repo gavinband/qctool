@@ -46,8 +46,8 @@ namespace genfile {
 		void set_rsid( slice const& rsid ) ;
 		void set_genome_position( GenomePosition const& position ) { m_position = position ;}
 		void set_chromosome( Chromosome const& chromosome ) { m_position.chromosome() = chromosome ;}
-		void set_first_allele( slice const& allele ) ;
-		void set_second_allele( slice const& allele ) ;
+		void set_allele( std::size_t i, std::string const& allele ) ;
+		void set_allele( std::size_t i, slice const& allele ) ;
 		void add_allele( slice const& allele ) ;
 
 		void clear_identifiers() ;

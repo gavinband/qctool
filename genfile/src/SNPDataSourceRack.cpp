@@ -257,6 +257,8 @@ namespace genfile {
 						merged_rsid += "," + std::string( this_source_snp.get_rsid() ) ;
 					}
 					if( m_comparator.get_flip_alleles_if_necessary() ) {
+						assert( this_snp.number_of_alleles() == 2 ) ;
+						assert( this_source_snp.number_of_alleles() == 2 ) ;
 						if( this_source_snp.get_allele(0) == this_snp.get_allele(1) && this_source_snp.get_allele(1) == this_snp.get_allele(0) ) {
 							flips[ source_i ] = eFlip ;
 						} else if( this_source_snp.get_allele(0) == this_snp.get_allele(0) && this_source_snp.get_allele(1) == this_snp.get_allele(1) ) {

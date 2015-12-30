@@ -95,7 +95,7 @@ namespace genfile {
 		m_source->reset_to_start() ;
 	}
 
-	void VariantIdentifyingDataFilteringSNPDataSource::get_snp_identifying_data_impl( VariantIdentifyingData* variant ) {
+	void VariantIdentifyingDataFilteringSNPDataSource::get_snp_identifying_data_impl( VariantIdentifyingData* result ) {
 		VariantIdentifyingData snp ;
 		while(
 			m_source->get_snp_identifying_data( &snp )

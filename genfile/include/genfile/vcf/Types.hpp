@@ -73,7 +73,7 @@ namespace genfile {
 			typedef boost::shared_ptr< SimpleType > SharedPtr ;
 			static UniquePtr create( std::string const& spec, std::string const& scale = "identity" ) ;
 			virtual void parse( std::size_t index, string_utils::slice const& value, EntrySetter& setter ) const = 0 ;
-			Entry parse( std::size_t index, string_utils::slice const& value ) const ;
+			Entry parse( string_utils::slice const& value ) const ;
 			virtual std::string to_string() const = 0 ;
 			virtual ValueType represented_type() const = 0 ;
 		} ;

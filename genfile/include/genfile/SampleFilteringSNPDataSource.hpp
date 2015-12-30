@@ -57,12 +57,11 @@ namespace genfile {
 		} ;
 
 	private:
-		friend class impl::SampleFilteringVariantDataReader ;
+		friend struct impl::SampleFilteringVariantDataReader ;
 
 		void reset_to_start_impl() ;
 
-		void get_snp_identifying_data_impl( 
-VariantIdentifyingData* variant		) ;
+		void get_snp_identifying_data_impl( VariantIdentifyingData* variant ) ;
 
 		VariantDataReader::UniquePtr read_variant_data_impl() ;
 

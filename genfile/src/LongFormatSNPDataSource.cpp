@@ -79,26 +79,12 @@ namespace genfile {
 		}
 	}
 	
-	void LongFormatSNPDataSource::read_snp_identifying_data_impl( 
-		uint32_t* number_of_samples, // number_of_samples is unused.
-		std::string* SNPID,
-		std::string* RSID,
-		Chromosome* chromosome,
-		uint32_t* SNP_position,
-		std::string* allele1,
-		std::string* allele2
-	) {
+	void LongFormatSNPDataSource::read_snp_identifying_data_impl( VariantIdentifyingData* result ) {
 		if( m_snp_index == m_variants.size() ) {
 			m_exhausted = true ;
 			return ;
 		} else {
-			*number_of_samples = m_sample_map.size() ;
-			*SNPID = m_variants[m_snp_index].get_alternate_identifiers_as_string() ;
-			*RSID = m_variants[m_snp_index].get_rsid() ;
-			*chromosome = m_variants[m_snp_index].get_position().chromosome() ;
-			*SNP_position = m_variants[m_snp_index].get_position().position() ;
-			*allele1 = m_variants[m_snp_index].get_allele(0) ;
-			*allele2 = m_variants[m_snp_index].get_allele(1) ;
+			*result = m_variants[ m_snp_index ] ;
 		}
 	}
 
@@ -212,7 +198,6 @@ namespace genfile {
 				) ;
 			}
 			elts = slice( line ).split( " \t," ) ;
-		
 		
 			if( elts.size() < expectedColumns.size() ) {
 				throw genfile::MalformedInputError(

@@ -73,10 +73,10 @@ namespace genfile {
 			} ;
 		}
 
-		Entry SimpleType::parse( std::size_t i, string_utils::slice const& value ) const {
+		Entry SimpleType::parse( string_utils::slice const& value ) const {
 			Entry result ;
 			impl::VariantEntryEntrySetter setter( result ) ;
-			parse( i, value, setter ) ;
+			parse( 0, value, setter ) ;
 			return result ;
 		}
 

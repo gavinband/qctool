@@ -110,8 +110,10 @@ namespace genfile {
 		}
 	}
 
-	SNPDataSource::SNPDataSource()
-	: m_number_of_snps_read(0), m_state( e_HaveNotReadIdentifyingData ), m_source_reset_callback(0)
+	SNPDataSource::SNPDataSource():
+		m_number_of_snps_read(0),
+		m_state( e_HaveNotReadIdentifyingData ),
+		m_source_reset_callback(0)
 	{}
 
 	SNPDataSource::~SNPDataSource() {}
@@ -125,11 +127,11 @@ namespace genfile {
 		}
 	}
 
-	void SNPDataSource::set_source_reset_callback( source_reset_callback_t callback ) {
+	void SNPDataSource::set_source_reset_callback( SourceResetCallback callback ) {
 		m_source_reset_callback = callback ;
 	}
 
-	void SNPDataSource::list_snps( SNPSetter setter, boost::function< void( std::size_t, boost::optional< std::size_t > ) > progress_callback ) {
+	void SNPDataSource::list_snps( VariantSetter setter, boost::function< void( std::size_t, boost::optional< std::size_t > ) > progress_callback ) {
 		reset_to_start() ;
 		for(
 			VariantIdentifyingData variant ;
@@ -155,12 +157,11 @@ namespace genfile {
 		GenotypeProbabilitySetter set_genotype_probabilities
 	)
 	{
-		uint32_t this_number_of_samples ;
-		get_snp_identifying_data( result ) ;
+		VariantIdentifyingData variant ;
+		get_snp_identifying_data( &variant ) ;
 		if( *this ) {
-			assert( this_number_of_samples == number_of_samples() ) ;
+			*result = variant ;
 			read_snp_probability_data( set_genotype_probabilities ) ;
-			set_number_of_samples( this_number_of_samples ) ;
 		}
 		return *this ;
 	}
@@ -205,14 +206,12 @@ namespace genfile {
 		VariantIdentifyingData variant ;
 		while( *this ) {
 			get_snp_identifying_data( &variant ) ;
-
 			if( *this ) {
-				genfile::Chromosome const& chromosome = variant.get_position().chromosome()
-				assert( this_number_of_samples == number_of_samples() ) ;
+				genfile::Chromosome const& chromosome = variant.get_position().chromosome() ;
 				if( chromosome < chromosome_lower_bound || ((chromosome <= chromosome_upper_bound) && (variant.get_position().position() < position_lower_bound ))) {
 					ignore_snp_probability_data() ;
 				}
-				else if( chromosome > chromosome_upper_bound || SNP_position > position_upper_bound ) {
+				else if( chromosome > chromosome_upper_bound || variant.get_position().position() > position_upper_bound ) {
 					return false ;
 				}
 				else {
@@ -236,7 +235,7 @@ namespace genfile {
 		while(
 			get_next_snp_with_specified_position(
 				&variant,
-				snp_to_match.get_position()
+				variant_to_match.get_position()
 			)
 		) {
 			if( comparer.are_equal( variant, variant_to_match )) {

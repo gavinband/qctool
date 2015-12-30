@@ -110,16 +110,19 @@ void perform_test_against_cvcft(
 			CVCFT data( *istr, key.c_str() ) ;
 
 			while( data.ReadNext() ) {
-				genfile::VariantIdentifyingData snp ;
-				snp.rsid() = data.GetRSID() ;
-				snp.first_allele() = data.GetRef() ;
-				snp.second_allele() = data.GetAlt() ;
+				genfile::GenomePosition position ;
 				{
 					std::string chr ;
 					int pos ;
 					data.GetChrPos( chr, pos ) ;
-					snp.position() = genfile::GenomePosition( chr, pos ) ;
+					position = genfile::GenomePosition( chr, pos ) ;
 				}
+				genfile::VariantIdentifyingData snp(
+					std::string( data.GetRSID() ),
+					position,
+					std::string( data.GetRef(), 1 ),
+					std::string( data.GetAlt(), 1 )
+				) ;
 				std::vector< double > prob ;
 				data.GetProb( prob ) ;
 				std::cerr << snp << ": " << key << ": " << prob.size() << " probs.\n" ;
@@ -142,7 +145,7 @@ void perform_test_against_cvcft(
 			genfile::VCFFormatSNPDataSource source( istr ) ;
 			TEST_ASSERT( !source.total_number_of_snps() || ( source.total_number_of_snps().get() == number_of_lines )) ;
 			genfile::VariantIdentifyingData snp ;
-			while( source.get_snp_identifying_data( snp )) {
+			while( source.get_snp_identifying_data( &snp )) {
 				std::vector< double > probs ;
 				impl::VectorSetter setter( probs ) ;
 				source.read_variant_data()->get( key, setter ) ;

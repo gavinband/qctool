@@ -63,6 +63,7 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 	std::cerr << "test_strand_aligning_snp_data_source()..." ;
 	
 	std::size_t const N = 100 ; // do 100 iterations.
+	std::string const question_mark = "?" ;
 	
 	std::vector< genfile::VariantIdentifyingData > snps ;
 	{
@@ -71,7 +72,7 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 			new genfile::GenFileSNPDataSource( istr, genfile::Chromosome( "01" ) )
 		) ;
 		genfile::VariantIdentifyingData snp ;
-		while( plain_source->get_snp_identifying_data( snp )) {
+		while( plain_source->get_snp_identifying_data( &snp )) {
 			snps.push_back( snp ) ;
 			plain_source->ignore_snp_probability_data() ;
 		}
@@ -118,7 +119,7 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 		std::vector< genfile::VariantIdentifyingData > snps1 ;
 		std::vector< genfile::SingleSNPGenotypeProbabilities > probabilities1 ;
 		{
-			while( plain_source->get_snp_identifying_data( snp )) {
+			while( plain_source->get_snp_identifying_data( &snp )) {
 				snps1.push_back( snp ) ;
 				genfile::SingleSNPGenotypeProbabilities probs( data::number_of_samples ) ;
 				plain_source->read_snp_probability_data(
@@ -142,7 +143,7 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 		}
 		
 		{
-			for( std::size_t count = 0; aligned_source->get_snp_identifying_data( snp ); ++count ) {
+			for( std::size_t count = 0; aligned_source->get_snp_identifying_data( &snp ); ++count ) {
 				snps2.push_back( snp ) ;
 				genfile::SingleSNPGenotypeProbabilities probs( data::number_of_samples ) ;
 				aligned_source->read_snp_probability_data(
@@ -177,12 +178,12 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 				case '+':
 					break ;
 				case '-':
-					expected_aligned_snp.first_allele() = complement( expected_aligned_snp.first_allele() ) ;
-					expected_aligned_snp.second_allele() = complement( expected_aligned_snp.second_allele() ) ;
+					expected_aligned_snp.set_allele( 0, complement( expected_aligned_snp.get_allele( 0 ) ) ) ;
+					expected_aligned_snp.set_allele( 1, complement( expected_aligned_snp.get_allele( 1 ) ) ) ;
 					break ;
 				case '?':
-					expected_aligned_snp.first_allele() = '?' ;
-					expected_aligned_snp.second_allele() = '?' ;
+					expected_aligned_snp.set_allele( 0, question_mark ) ;
+					expected_aligned_snp.set_allele( 1, question_mark ) ;
 					break ;
 				default:
 					assert(0) ;

@@ -73,22 +73,11 @@ namespace {
 	
 		SnpData(): probabilities( data::number_of_samples ) {} ;
 	
-		uint32_t number_of_samples ;
-		std::string SNPID, RSID ;
-		genfile::Chromosome chromosome ;
-		uint32_t SNP_position ;
-		std::string allele1, allele2 ;
+		genfile::VariantIdentifyingData snp ;
 		std::vector< probabilities_t > probabilities ;
 	
 		bool operator==( SnpData const& other ) const {
-			return number_of_samples == other.number_of_samples
-				&& SNPID == other.SNPID
-				&& RSID == other.RSID
-				&& chromosome == other.chromosome
-				&& SNP_position == other.SNP_position
-				&& allele1 == other.allele1
-				&& allele2 == other.allele2
-				&& probabilities == other.probabilities ;
+			return snp == other.snp && probabilities == other.probabilities ;
 		}
 	} ;
 
@@ -103,16 +92,7 @@ namespace {
 		std::vector< SnpData > result ;
 		SnpData snp_data ;
 	
-		while( snp_data_source.read_snp(
-			make_setter( snp_data.number_of_samples ),
-			make_setter( snp_data.SNPID ),
-			make_setter( snp_data.RSID ),
-			make_setter( snp_data.chromosome ),
-			make_setter( snp_data.SNP_position ),
-			make_setter( snp_data.allele1 ), 
-			make_setter( snp_data.allele2 ),
-			ProbabilitySetter( snp_data.probabilities )
-		)) {
+		while( snp_data_source.read_snp( &snp_data.snp, ProbabilitySetter( snp_data.probabilities ) )) {
 			result.push_back( snp_data ) ;
 		}
 		return result ;
@@ -172,7 +152,7 @@ AUTO_TEST_CASE( test_sample_filtering_snp_data_source ) {
 			TEST_ASSERT( data.size() == 1 ) ;
 			for( std::size_t j = 0; j < data.size(); ++j ) {
 
-				TEST_ASSERT( data[j].number_of_samples == filtered_number_of_samples ) ;
+				TEST_ASSERT( data[j].probabilities.size() == filtered_number_of_samples ) ;
 
 				for( std::size_t elt = 0, filtered_elt = 0; elt < number_of_samples; ++elt ) {
 					if( i->find( elt ) == i->end() ) {

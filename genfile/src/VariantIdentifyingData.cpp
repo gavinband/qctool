@@ -144,7 +144,7 @@ namespace genfile {
 		}
 		m_identifiers_start += difference ;
 	}
-
+#if 0
 	void VariantIdentifyingData::set_first_allele( string_utils::slice const& allele ) {
 		std::string new_data ;
 		std::size_t const difference = allele.size() - ( m_allele_starts[1] - m_allele_starts[0] ) ;
@@ -168,6 +168,27 @@ namespace genfile {
 		new_data.append( m_data.begin() + m_identifiers_start, m_data.end() ) ;
 		m_data.swap( new_data ) ;
 		m_identifiers_start += difference ;
+	}
+#endif
+	
+	void VariantIdentifyingData::set_allele( std::size_t i, slice const& allele ) {
+		assert( i < m_allele_starts.size() ) ;
+		std::size_t const old_end = ((i+1) == m_allele_starts.size()) ? m_identifiers_start : m_allele_starts[i+1] ;
+		std::size_t old_allele_size = old_end - m_allele_starts[i] ;
+		if( old_allele_size == allele.size() ) {
+			std::copy( &allele[0], &allele[0] + allele.size(), m_data.begin() + m_allele_starts[i] ) ;
+		} else {
+			std::string new_data ;
+			new_data.reserve( m_data.size() + allele.size() ) ;
+			new_data.append( m_data.begin(), m_data.begin() + m_allele_starts[i] ) ;
+			new_data.append( allele.begin(), allele.end() ) ;
+			new_data.append( m_data.begin() + old_end, m_data.end() ) ;
+			if( old_allele_size > allele.size() ) {
+				m_identifiers_start -= old_allele_size - allele.size() ;
+			} else {
+				m_identifiers_start += allele.size() - old_allele_size ;
+			}
+		}
 	}
 
 	void VariantIdentifyingData::add_allele( slice const& allele ) {
