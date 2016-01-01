@@ -20,7 +20,7 @@ namespace genfile {
 	
 	// This class represents a SNPDataSource which reads its data
 	// from a plain GEN file.
-	class LongFormatSNPDataSource: public IdentifyingDataCachingSNPDataSource
+	class LongFormatSNPDataSource: public SNPDataSource
 	{
 	public:
 		LongFormatSNPDataSource( std::string const& filename ) ;
@@ -57,7 +57,7 @@ namespace genfile {
 
 	private:
 		void reset_to_start_impl() ;
-		void read_snp_identifying_data_impl( VariantIdentifyingData* result ) ;
+		void get_snp_identifying_data_impl( VariantIdentifyingData* result ) ;
 		VariantDataReader::UniquePtr read_variant_data_impl() ;
 		void ignore_snp_probability_data_impl() ;
 		void setup( std::string const& filename ) ;

@@ -11,7 +11,7 @@
 #include <string>
 #include "snp_data_utils.hpp"
 #include "gen.hpp"
-#include "SNPDataSource.hpp"
+#include "IdentifyingDataCachingSNPDataSource.hpp"
 #include "vcf/MetadataParser.hpp"
 
 namespace genfile {

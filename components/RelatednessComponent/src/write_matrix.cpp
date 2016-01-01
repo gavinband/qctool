@@ -13,7 +13,7 @@
 #include <boost/bind.hpp>
 #include <Eigen/Core>
 #include "genfile/VariantEntry.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/string_utils.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "statfile/DelimitedStatSink.hpp"
@@ -171,7 +171,7 @@ namespace pca {
 
 	void write_loadings_to_sink(
 		boost::shared_ptr< statfile::BuiltInTypeStatSink > sink,
-		genfile::SNPIdentifyingData snp,
+		genfile::VariantIdentifyingData snp,
 		double const non_missingness,
 		double const allele_frequency,
 		Eigen::VectorXd const& vector,
@@ -191,12 +191,12 @@ namespace pca {
 			}
 		}
 		(*sink)
-			<< snp.get_SNPID()
+			<< snp.get_alternate_identifiers_as_string()
 			<< snp.get_rsid()
 			<< std::string( snp.get_position().chromosome() )
 			<< snp.get_position().position()
-			<< snp.get_first_allele()
-			<< snp.get_second_allele()
+			<< snp.get_allele(0)
+			<< snp.get_allele(1)
 			<< non_missingness
 			<< allele_frequency
 		;

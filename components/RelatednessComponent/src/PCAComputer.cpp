@@ -9,7 +9,7 @@
 #include "../config.hpp"
 #include "Eigen/Core"
 #include "Eigen/Eigenvalues"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"

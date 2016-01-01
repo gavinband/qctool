@@ -174,7 +174,7 @@ namespace {
 			m_ploidy = n ;
 		}
 
-		void set_value( genfile::MissingValue const value ) {
+		void set_value( std::size_t, genfile::MissingValue const value ) {
 			assert( ( m_buf_p[ eUBJSON ] + 1 ) <= m_buf_end_p[ eUBJSON ] ) ;
 			*(m_buf_p[ eUBJSON ]++) = 'Z' ;
 			if( m_buffer_validity[ eBITPACK ] ) {
@@ -182,7 +182,7 @@ namespace {
 			}
 		}
 
-		void set_value( std::string& value ) {
+		void set_value( std::size_t, std::string& value ) {
 			assert( ( m_buf_p[ eUBJSON ] + 1 + value.size() ) <= m_buf_end_p[ eUBJSON ] ) ;
 			m_buffer_validity[ eBITPACK ] = false ;
 			*(m_buf_p[ eUBJSON ]++) = 'S' ;
@@ -190,7 +190,7 @@ namespace {
 			m_buf_p[ eUBJSON ] += value.size() ;
 		}
 
-		void set_value( Integer const value ) {
+		void set_value( std::size_t, Integer const value ) {
 			// We allow a maximum value of 127 here to allow for reserved values.
 	 		if( fits_in< Integer, uint8_t >( value ) && value < 127 ) {
 				assert( ( m_buf_p[ eUBJSON ] + 2 ) <= m_buf_end_p[ eUBJSON ] ) ;
@@ -223,7 +223,7 @@ namespace {
 			}
 		}
 
-		void set_value( double const value ) {
+		void set_value( std::size_t, double const value ) {
 			assert( ( m_buf_p[ eUBJSON ] + 5 ) <= m_buf_end_p[ eUBJSON ] ) ;
 			m_buffer_validity[ eBITPACK ] = false ;
 			float const float_value = value ;
@@ -299,7 +299,7 @@ void SQLiteHaplotypesSNPDataSink::set_sample_names_impl( std::size_t number_of_s
 }
 
 void SQLiteHaplotypesSNPDataSink::write_variant_data_impl(
-	genfile::SNPIdentifyingData const& id_data,
+	genfile::VariantIdentifyingData const& id_data,
 	genfile::VariantDataReader& data_reader,
 	Info const& info
 ) {

@@ -44,19 +44,14 @@ namespace genfile {
 		typedef string_utils::slice slice ;
 
 		void set_rsid( slice const& rsid ) ;
-		void set_genome_position( GenomePosition const& position ) { m_position = position ;}
-		void set_chromosome( Chromosome const& chromosome ) { m_position.chromosome() = chromosome ;}
+		slice get_rsid() const { return slice( m_data, m_rsid_start, m_allele_starts[0] ) ; }
+
+		void set_position( GenomePosition const& position ) { m_position = position ;}
+		GenomePosition const& get_position() const { return m_position ; }
+
 		void set_allele( std::size_t i, std::string const& allele ) ;
 		void set_allele( std::size_t i, slice const& allele ) ;
 		void add_allele( slice const& allele ) ;
-
-		void clear_identifiers() ;
-		void add_identifier( slice const& id ) ;
-		void swap_alleles() ;
-		
-		slice get_rsid() const { return slice( m_data, m_rsid_start, m_allele_starts[0] ) ; }
-		
-		GenomePosition const& get_position() const { return m_position ; }
 		std::size_t number_of_alleles() const { return m_allele_starts.size() ; }
 		slice get_allele( std::size_t i ) const {
 			assert( i < m_allele_starts.size() ) ;
@@ -67,12 +62,15 @@ namespace genfile {
 			}
 		}
 		void get_alleles( boost::function< void( slice ) > ) const ;
+		void swap_alleles() ;
 
+		void clear_identifiers() ;
+		void add_identifier( slice const& id ) ;
 		std::vector< slice > get_alternative_identifiers() const ;
 		void get_alternative_identifiers( boost::function< void( slice ) > ) const ;
-		std::string get_alternate_identifiers_as_string() const ;
+		std::string get_alternate_identifiers_as_string( std::string const& separator = "," ) const ;
 
-		std::size_t get_estimated_bytes_used() const ;
+		std::size_t estimate_bytes_used() const ;
 	public:
 		struct CompareFields {
 			CompareFields(

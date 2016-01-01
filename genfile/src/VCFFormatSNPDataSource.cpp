@@ -295,7 +295,7 @@ namespace genfile {
 			}
 		}
 		
-		variant.set_genome_position( GenomePosition( m_CHROM, string_utils::to_repr< Position >( m_POS ) ) ) ;
+		variant.set_position( GenomePosition( m_CHROM, string_utils::to_repr< Position >( m_POS ) ) ) ;
 
 		m_variant_alleles = string_utils::split( m_ALT, "," ) ;
 		

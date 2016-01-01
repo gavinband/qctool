@@ -10,7 +10,7 @@
 #include <memory>
 #include "genfile/GeneticMap.hpp"
 #include "genfile/wildcard.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 
@@ -29,7 +29,7 @@ public:
 		std::vector< genfile::wildcard::FilenameMatch > const& filenames,
 		ProgressCallback = ProgressCallback()
 	) ;
-	void operator()( SNPIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
+	void operator()( VariantIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 private:
 	genfile::GeneticMap::UniquePtr m_map ;

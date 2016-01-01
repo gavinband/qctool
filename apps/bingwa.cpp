@@ -35,9 +35,9 @@
 #include "genfile/utility.hpp"
 #include "genfile/string_utils/string_utils.hpp"
 #include "genfile/string_utils/slice.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
 #include "genfile/VariantIdentifyingData.hpp"
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "statfile/BuiltInTypeStatSource.hpp"
@@ -2953,7 +2953,7 @@ public:
 		std::vector< genfile::wildcard::FilenameMatch > const& filenames,
 		boost::optional< std::string > const& effect_size_column_regex,
 		std::vector< std::string > const& columns,
-		genfile::SNPIdentifyingDataTest::UniquePtr test,
+		genfile::VariantIdentifyingDataTest::UniquePtr test,
 		boost::optional< genfile::Chromosome > chromosome_hint,
 		FlatFileFrequentistGenomeWideAssociationResults::SNPResultCallback result_callback,
 		FlatFileFrequentistGenomeWideAssociationResults::ProgressCallback progress_callback
@@ -3053,12 +3053,12 @@ public:
 		for( std::size_t cohort_i = 0; cohort_i < cohort_files.size(); ++cohort_i ) {
 			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading scan results \"" + cohort_files[cohort_i] + "\"" ) ;
 
-			genfile::SNPIdentifyingDataTestConjunction::UniquePtr test( new genfile::SNPIdentifyingDataTestConjunction() ) ;
+			genfile::VariantIdentifyingDataTestConjunction::UniquePtr test( new genfile::VariantIdentifyingDataTestConjunction() ) ;
 
 			if( options().check_if_option_was_supplied_in_group( "SNP inclusion / exclusion options" ) ) {
 				genfile::CommonSNPFilter::UniquePtr snp_filter = get_snp_exclusion_filter( cohort_i ) ;
 				if( snp_filter.get() ) {
-					test->add_subtest( genfile::SNPIdentifyingDataTest::UniquePtr( snp_filter.release() ) ) ;
+					test->add_subtest( genfile::VariantIdentifyingDataTest::UniquePtr( snp_filter.release() ) ) ;
 				}
 			}
 
@@ -3083,7 +3083,7 @@ public:
 				genfile::wildcard::find_files_by_chromosome( cohort_files[cohort_i] ),
 				effect_size_column_regex,
 				options().check( "-extra-columns" ) ? options().get_values< std::string >( "-extra-columns" ) : std::vector< std::string >(),
-				genfile::SNPIdentifyingDataTest::UniquePtr( test.release() ),
+				genfile::VariantIdentifyingDataTest::UniquePtr( test.release() ),
 				chromosome_hint,
 				SNPTESTResults::SNPResultCallback(),
 				progress_context
@@ -3255,7 +3255,7 @@ public:
 
 					snp_filter->exclude_snps(
 						source->list_snps(),
-						genfile::SNPIdentifyingData::CompareFields( options().get_value< std::string >( "-snp-match-fields" ) )
+						genfile::VariantIdentifyingData::CompareFields( options().get_value< std::string >( "-snp-match-fields" ) )
 					) ;
 				}
 			}
@@ -3278,7 +3278,7 @@ public:
 
 					snp_filter->include_snps(
 						source->list_snps(),
-						genfile::SNPIdentifyingData::CompareFields( options().get_value< std::string >( "-snp-match-fields" ) )
+						genfile::VariantIdentifyingData::CompareFields( options().get_value< std::string >( "-snp-match-fields" ) )
 					) ;
 				}
 			}

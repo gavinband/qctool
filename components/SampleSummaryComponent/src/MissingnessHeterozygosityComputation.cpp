@@ -22,7 +22,7 @@ namespace sample_stats {
 		m_threshhold( 0.9 )
 	{}
 
-	void MissingnessHeterozygosityComputation::accumulate( genfile::SNPIdentifyingData const& snp, Genotypes const& genotypes, genfile::VariantDataReader& ) {
+	void MissingnessHeterozygosityComputation::accumulate( genfile::VariantIdentifyingData const& snp, Genotypes const& genotypes, genfile::VariantDataReader& ) {
 		if( m_chromosome && m_chromosome.get() != snp.get_position().chromosome() ) {
 			return ;
 		}

@@ -91,6 +91,12 @@ namespace genfile {
 		} ;
 	
 		std::string join( std::vector< slice > const& slices, std::string const& joiner ) ;
+
+		std::string operator+( slice const& left, slice const& right ) ;
+		std::string operator+( slice const& left, std::string const& right ) ;
+		std::string operator+( std::string const& left, slice const& right ) ;
+		std::string operator+( slice const& left, char const* right ) ;
+		std::string operator+( char const* left, slice const& right ) ;
 	}
 }
 

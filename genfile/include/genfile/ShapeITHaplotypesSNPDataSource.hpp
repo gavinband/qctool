@@ -9,7 +9,7 @@
 
 #include <string>
 #include <vector>
-#include "genfile/SNPDataSource.hpp"
+#include "genfile/IdentifyingDataCachingSNPDataSource.hpp"
 #include "genfile/string_utils/slice.hpp"
 
 namespace genfile {

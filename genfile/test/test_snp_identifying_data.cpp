@@ -187,7 +187,7 @@ AUTO_TEST_CASE( test_snp_data_setters ) {
 	BOOST_CHECK_EQUAL( snp.get_alternative_identifiers()[0], "ID" ) ;
 
 	pos.position() = 1000 ;
-	snp.set_genome_position( pos ) ;
+	snp.set_position( pos ) ;
 	BOOST_CHECK_EQUAL( snp.get_rsid(), "RSID_1_changed" ) ;
 	BOOST_CHECK_EQUAL( snp.get_allele(0), "GA" ) ;
 	BOOST_CHECK_EQUAL( snp.get_allele(1), "AG" ) ;

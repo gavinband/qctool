@@ -20,8 +20,8 @@ namespace sample_stats {
 	struct RiskScoreComputation: public SampleSummaryComputation
 	{
 		typedef std::auto_ptr< RiskScoreComputation > UniquePtr ;
-		RiskScoreComputation( genfile::CohortIndividualSource const& samples, genfile::SNPIdentifyingData::CompareFields comparator ) ;
-		void accumulate( genfile::SNPIdentifyingData const&, Genotypes const&, genfile::VariantDataReader& ) ;
+		RiskScoreComputation( genfile::CohortIndividualSource const& samples, genfile::VariantIdentifyingData::CompareFields comparator ) ;
+		void accumulate( genfile::VariantIdentifyingData const&, Genotypes const&, genfile::VariantDataReader& ) ;
 		void compute( int sample, ResultCallback ) ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 
@@ -35,7 +35,7 @@ namespace sample_stats {
 		typedef std::set< std::string > Identifiers ;
 		typedef Eigen::MatrixXd Betas ;
 		typedef std::map< std::string, Betas > RiskScoreIdBetaMap ;
-		typedef std::map< genfile::SNPIdentifyingData, RiskScoreIdBetaMap, genfile::SNPIdentifyingData::CompareFields > RiskScoreMap ;
+		typedef std::map< genfile::VariantIdentifyingData, RiskScoreIdBetaMap, genfile::VariantIdentifyingData::CompareFields > RiskScoreMap ;
 		
 		Identifiers m_identifiers ;
 		RiskScoreMap m_map ;

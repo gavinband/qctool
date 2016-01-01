@@ -352,5 +352,33 @@ namespace genfile {
 			}
 			return result ;
 		}
+		
+		std::string operator+( slice const& left, slice const& right ) {
+			std::string result( left.begin(), left.end() ) ;
+			result += right ;
+			return result ;
+		}
+		std::string operator+( slice const& left, std::string const& right ) {
+			std::string result( left.begin(), left.end() ) ;
+			result += right ;
+			return result ;
+		}
+		std::string operator+( std::string const& left, slice const& right ) {
+			std::string result( left ) ;
+			result += right ;
+			return result ;
+		}
+		std::string operator+( slice const& left, char const* right ) {
+			int const length = strlen( right ) ;
+			std::string result( left ) ;
+			result += std::string( right ) ;
+			return result ;
+		}
+		std::string operator+( char const* left, slice const& right ) {
+			std::string result( left ) ;
+			result += std::string( right ) ;
+			return result ;
+		}
+		
 	}
 }

@@ -11,7 +11,7 @@
 #include <string>
 #include <map>
 #include <boost/unordered_map.hpp>
-#include "genfile/SNPDataSource.hpp"
+#include "genfile/IdentifyingDataCachingSNPDataSource.hpp"
 
 namespace genfile {
 	namespace impl {

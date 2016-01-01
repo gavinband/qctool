@@ -12,7 +12,7 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <algorithm>
 #include "genfile/FileUtils.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/bgen/bgen.hpp"
 #include "appcontext/CmdLineOptionProcessor.hpp"

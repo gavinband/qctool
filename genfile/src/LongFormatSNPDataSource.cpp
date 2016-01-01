@@ -79,7 +79,7 @@ namespace genfile {
 		}
 	}
 	
-	void LongFormatSNPDataSource::read_snp_identifying_data_impl( VariantIdentifyingData* result ) {
+	void LongFormatSNPDataSource::get_snp_identifying_data_impl( VariantIdentifyingData* result ) {
 		if( m_snp_index == m_variants.size() ) {
 			m_exhausted = true ;
 			return ;

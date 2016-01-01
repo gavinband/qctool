@@ -470,8 +470,8 @@ namespace qcdb {
 		m_find_variant_statement
 			->bind( 1, std::string( snp.get_position().chromosome() ) )
 			.bind( 2, snp.get_position().position() )
-			.bind( 3, snp.get_first_allele() )
-			.bind( 4, snp.get_second_allele() ) ;
+			.bind( 3, snp.get_allele(0) )
+			.bind( 4, snp.get_allele(1) ) ;
 		if( m_match_rsid ) {
 			m_find_variant_statement->bind( 5, snp.get_rsid() ) ;
 		}
@@ -482,8 +482,8 @@ namespace qcdb {
 				->bind( 1, snp.get_rsid() )
 				.bind( 2, std::string( snp.get_position().chromosome() ) )
 				.bind( 3, snp.get_position().position() )
-				.bind( 4, snp.get_first_allele())
-				.bind( 5, snp.get_second_allele())
+				.bind( 4, snp.get_allele(0))
+				.bind( 5, snp.get_allele(1))
 				.step()
 			;
 

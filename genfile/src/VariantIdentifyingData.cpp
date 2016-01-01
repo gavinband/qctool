@@ -191,6 +191,10 @@ namespace genfile {
 		}
 	}
 
+	void VariantIdentifyingData::set_allele( std::size_t i, std::string const& allele ) {
+		set_allele( i, slice( allele )) ;
+	}
+
 	void VariantIdentifyingData::add_allele( slice const& allele ) {
 		std::string new_data ;
 		new_data.reserve( m_data.size() + allele.size() ) ;
@@ -253,11 +257,11 @@ namespace genfile {
 		slice( m_data, m_identifiers_start, m_data.size() ).split( "\t", callback ) ;
 	}
 
-	std::string VariantIdentifyingData::get_alternate_identifiers_as_string() const {
-		return join( get_alternative_identifiers(), "," ) ;
+	std::string VariantIdentifyingData::get_alternate_identifiers_as_string( std::string const& separator ) const {
+		return join( get_alternative_identifiers(), separator ) ;
 	}
 
-	std::size_t VariantIdentifyingData::get_estimated_bytes_used() const {
+	std::size_t VariantIdentifyingData::estimate_bytes_used() const {
 		return sizeof( VariantIdentifyingData )
 			+ m_data.size()
 			+ ( 3 * sizeof( std::size_t ) ) // there is about this much overhead on the stack per string.

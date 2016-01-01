@@ -227,23 +227,6 @@ namespace genfile {
 		
 		SourceResetCallback m_source_reset_callback ;
 	} ;
-
-	class IdentifyingDataCachingSNPDataSource: public SNPDataSource
-	{
-		virtual void read_snp_identifying_data_impl( 
-			VariantIdentifyingData* variant
-		) = 0 ;
-
-		void get_snp_identifying_data_impl( 
-			VariantIdentifyingData* variant
-		) ;
-
-	private:
-		Chromosome m_cached_chromosome ;
-		uint32_t m_cached_number_of_samples, m_cached_SNP_position ;
-		std::string m_cached_SNPID, m_cached_RSID ;
-		std::string m_cached_allele1, m_cached_allele2 ;
-	} ;
 }
 
 #endif

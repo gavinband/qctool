@@ -317,28 +317,5 @@ namespace genfile {
 		return ostr.str() ;
 	}	
 
-	void IdentifyingDataCachingSNPDataSource::get_snp_identifying_data_impl( 
-VariantIdentifyingData* variant	) {
-		if( state() != e_HaveReadIdentifyingData ) {
-			read_snp_identifying_data_impl(
-				&m_cached_number_of_samples,
-				&m_cached_SNPID,
-				&m_cached_RSID,
-				&m_cached_chromosome,
-				&m_cached_SNP_position,
-				&m_cached_allele1,
-				&m_cached_allele2
-			) ;
-		}
-
-		set_number_of_samples( m_cached_number_of_samples ) ;
-		set_SNPID( m_cached_SNPID ) ;
-		set_RSID( m_cached_RSID ) ;
-		set_chromosome( m_cached_chromosome ) ;
-		set_SNP_position( m_cached_SNP_position ) ;
-		set_allele1( m_cached_allele1 ) ;
-		set_allele2( m_cached_allele2 ) ;
-	}
-	
 }
 
