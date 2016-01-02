@@ -27,6 +27,8 @@ namespace genfile {
 		public:
 			// A view of a C-style string; view does not include terminating null.
 			slice( char const* c_string ) ;
+			// A view of a subset of a c-style string.
+			slice( char const* c_string, std::size_t start, std::size_t end ) ;
 			// A view of a character buffer
 			slice( char const* data, char const* end_of_data ) ;
 			// A view of a subset of a character buffer
@@ -39,9 +41,8 @@ namespace genfile {
 			slice( slice const& other ) ;
 			// slice& operator=( slice const& other ) ;
 
-			char const& operator[]( std::size_t pos ) const { return (*m_string)[ m_start + pos ] ; }
-
-			operator std::string() const { return m_string->substr( m_start, m_end - m_start ) ; }
+			char const& operator[]( std::size_t pos ) const { return *(m_data + m_start + pos) ; }
+			operator std::string() const { return std::string( m_data + m_start, m_data + m_end ) ; }
 
 			std::size_t size() const { return m_end - m_start ; }
 			bool empty() const { return m_end == m_start ; }
@@ -82,7 +83,6 @@ namespace genfile {
 		private:
 			char const* const m_data ;
 			char const* const m_end_of_data ;
-			std::string const* m_string ;
 			std::size_t m_start, m_end ;
 
 		private:

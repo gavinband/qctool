@@ -26,6 +26,17 @@ namespace genfile {
 			m_end = (m_end_of_data - m_data) ;
 		}
 		
+		slice::slice( char const* c_string, std::size_t start, std::size_t end ):
+			m_data( c_string ),
+			m_end_of_data( c_string + std::strlen( c_string ) ),
+			m_start( start ),
+			m_end( end )
+		{
+			assert( c_string ) ;
+			assert( m_start <= m_end ) ;
+			assert( m_data + m_end <= m_end_of_data ) ;
+		}
+		
 		slice::slice( char const* data, char const* end ):
 			m_data( data ),
 			m_end_of_data( end ),
