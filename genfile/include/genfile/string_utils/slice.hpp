@@ -39,6 +39,8 @@ namespace genfile {
 			slice( std::string const&, std::size_t start, std::size_t end ) ;
 			slice( slice const&, std::size_t start, std::size_t end ) ;
 			slice( slice const& other ) ;
+
+			slice& operator=( slice const& other ) ;
 			// slice& operator=( slice const& other ) ;
 
 			char const& operator[]( std::size_t pos ) const { return *(m_data + m_start + pos) ; }
@@ -81,8 +83,8 @@ namespace genfile {
 			friend std::ostream& operator<<( std::ostream& o, slice const& s ) ;
 			
 		private:
-			char const* const m_data ;
-			char const* const m_end_of_data ;
+			char const* m_data ;
+			char const* m_end_of_data ;
 			std::size_t m_start, m_end ;
 
 		private:

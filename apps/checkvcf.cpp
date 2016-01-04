@@ -308,7 +308,7 @@ private:
 						) ;
 					}
 				}
-				rsid += "," + where->second.get_alternate_identifiers_as_string() ;
+				rsid += "," + where->second.get_identifiers_as_string( ",", 1 ) ;
 
 				if( outStream.get() ) {
 					outStream->write( line.data(), fieldPos[2] ) ;

@@ -191,7 +191,7 @@ namespace pca {
 			}
 		}
 		(*sink)
-			<< snp.get_alternate_identifiers_as_string()
+			<< snp.get_identifiers_as_string( ",", 1, snp.number_of_identifiers() )
 			<< snp.get_rsid()
 			<< std::string( snp.get_position().chromosome() )
 			<< snp.get_position().position()

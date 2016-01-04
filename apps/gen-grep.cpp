@@ -176,7 +176,7 @@ struct IDDataPrinter
 		while( m_context.snp_data_source().get_snp_identifying_data( &snp )) {
 			bool include = m_context.position_range().contains( snp.get_position().position() ) ;
 			if( m_context.have_snp_ids() ) {
-				std::vector< genfile::string_utils::slice > const& identifiers = snp.get_alternative_identifiers() ;
+				std::vector< genfile::string_utils::slice > const& identifiers = snp.get_identifiers() ;
 				bool found = false ;
 				for( std::size_t i = 0; i < identifiers.size(); ++i ) {
 					if( m_context.snp_ids().find( identifiers[i] ) != m_context.snp_ids().end() ) {
@@ -190,7 +190,7 @@ struct IDDataPrinter
 				include = include && ( m_context.rsids().find( snp.get_rsid() ) != m_context.rsids().end() ) ;
 			}
 			if( include ) {
-				std::cout << snp.get_alternate_identifiers_as_string() << " " << snp.get_rsid()
+				std::cout << snp.get_identifiers_as_string( "," ) << " " << snp.get_rsid()
 					<< " " << snp.get_position().chromosome() << " " << snp.get_position().position()
 					<< " " << snp.get_allele(0) << " " ;
 				for( std::size_t i = 1; i < snp.number_of_alleles(); ++i ) {

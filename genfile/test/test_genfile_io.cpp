@@ -126,7 +126,7 @@ void copy_gen_file( genfile::SNPDataSource& snp_data_source, genfile::SNPDataSin
 		snp_data_source.read_snp_probability_data( ProbabilitySetter( snp_data.probabilities ) ) ;
 		snp_data_sink.write_snp(
 			snp_data_source.number_of_samples(),
-			snp_data.snp.get_alternate_identifiers_as_string(),
+			snp_data.snp.get_identifiers_as_string( ",", 1 ),
 			snp_data.snp.get_rsid(),
 			snp_data.snp.get_position().chromosome(),
 			snp_data.snp.get_position().position(),
@@ -298,11 +298,13 @@ AUTO_TEST_CASE( test_formats ) {
 #endif
 		TEST_ASSERT( results[i].size() == data::number_of_snps ) ;
 			for( std::size_t j = 0; j < results[i].size(); ++j ) {
-				TEST_ASSERT( results[i][j].snp.get_alternate_identifiers_as_string() == results[0][j].snp.get_alternate_identifiers_as_string() ) ;
-				TEST_ASSERT( results[i][j].snp.get_rsid() == results[0][j].snp.get_rsid() ) ;
-				TEST_ASSERT( results[i][j].snp.get_position() == results[0][j].snp.get_position() ) ;
-				TEST_ASSERT( results[i][j].snp.get_allele(0) == results[0][j].snp.get_allele(0) ) ;
-				TEST_ASSERT( results[i][j].snp.get_allele(1) == results[0][j].snp.get_allele(1) ) ;
+				BOOST_CHECK_EQUAL( results[i][j].snp.number_of_identifiers(), results[0][j].snp.number_of_identifiers() ) ;
+				BOOST_CHECK_EQUAL( results[i][j].snp.get_identifiers_as_string(","), results[0][j].snp.get_identifiers_as_string(",") ) ;
+				TEST_ASSERT( results[i][j].snp.get_identifiers() == results[0][j].snp.get_identifiers() ) ;
+				BOOST_CHECK_EQUAL( results[i][j].snp.get_rsid(), results[0][j].snp.get_rsid() ) ;
+				BOOST_CHECK_EQUAL( results[i][j].snp.get_position(), results[0][j].snp.get_position() ) ;
+				BOOST_CHECK_EQUAL( results[i][j].snp.get_allele(0), results[0][j].snp.get_allele(0) ) ;
+				BOOST_CHECK_EQUAL( results[i][j].snp.get_allele(1), results[0][j].snp.get_allele(1) ) ;
 				if( results[i][j].probabilities != results[0][j].probabilities ) {
 					for( std::size_t k = 0; k < results[i][j].probabilities.size(); ++k ) {
 #if DEBUG

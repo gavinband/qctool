@@ -489,27 +489,29 @@ namespace qcdb {
 
 			result = connection().get_last_insert_row_id() ;
 			m_insert_variant_statement->reset() ;
-			snp.get_alternative_identifiers(
+			snp.get_identifiers(
 				boost::bind(
 					&DBOutputter::add_alternative_variant_identifier,
 					this,
 					result,
 					_1,
 					snp.get_rsid()
-				)
+				),
+				1
 			) ;
 		} else {
 			result = m_find_variant_statement->get< db::Connection::RowId >( 0 ) ;
 			std::string const rsid = m_find_variant_statement->get< std::string >( 1 ) ;
 			add_alternative_variant_identifier( result, snp.get_rsid(), rsid ) ;
-			snp.get_alternative_identifiers(
+			snp.get_identifiers(
 				boost::bind(
 					&DBOutputter::add_alternative_variant_identifier,
 					this,
 					result,
 					_1,
 					rsid
-				)
+				),
+				1
 			) ;
 		}
 		m_find_variant_statement->reset() ;

@@ -65,7 +65,6 @@ namespace genfile {
 
 			void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 				assert( m_streams.size() == nSamples ) ;
-				assert( nAlleles == 2 ) ;
 				m_sample_i = 0 ;
 			}
 
@@ -209,13 +208,9 @@ namespace genfile {
 		(*m_stream_ptr)
 			<< id_data.get_position().chromosome() << tab
 			<< id_data.get_position().position() << tab
-			<< id_data.get_rsid() ;
-		if( id_data.get_alternate_identifiers_as_string() != id_data.get_rsid() ) {
-			(*m_stream_ptr ) << "," << id_data.get_alternate_identifiers_as_string() ;
-		}
-		(*m_stream_ptr) << tab
+			<< id_data.get_identifiers_as_string( "," ) << tab
 			<< id_data.get_allele(0) << tab
-			<< id_data.get_allele(1) << tab
+			<< genfile::string_utils::join( id_data.get_alleles(1, id_data.number_of_alleles()), "," ) << tab
 			<< "." << tab
 			<< "." << tab ;
 

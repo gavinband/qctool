@@ -170,12 +170,15 @@ namespace genfile {
 			VariantIdentifyingData const& snp = m_current_snps.begin()->first ;
 			std::size_t source_index = m_current_snps.begin()->second ;
 			*result = VariantIdentifyingData(
-				m_merge_id_prefixes[ source_index ] + snp.get_alternate_identifiers_as_string(),
 				snp.get_rsid(),
 				snp.get_position(),
 				snp.get_allele(0),
 				snp.get_allele(1)
 			) ;
+			std::vector< genfile::string_utils::slice > ids( snp.get_identifiers(1) ) ;
+			for( std::size_t i = 1; i < ids.size(); ++i ) {
+				result->add_identifier( m_merge_id_prefixes[ source_index ] + ids[i] ) ;
+			}
 		}
 	}
 

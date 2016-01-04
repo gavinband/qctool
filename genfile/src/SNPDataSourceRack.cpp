@@ -237,7 +237,7 @@ namespace genfile {
 				SNPIDs.clear() ;
 				rsids.clear() ;
 
-				this_snp.get_alternative_identifiers( boost::bind( &combine_ids, &SNPIDs, &merged_SNPID, _1 ) ) ;
+				this_snp.get_identifiers( boost::bind( &combine_ids, &SNPIDs, &merged_SNPID, _1 ) ) ;
 				rsids.insert( this_snp.get_rsid() ) ;
 				merged_rsid = this_snp.get_rsid() ;
 				merged_allele1 = this_snp.get_allele(0) ;
@@ -252,7 +252,7 @@ namespace genfile {
 #if DEBUG_SNP_DATA_SOURCE_RACK
 					std::cerr << "SNP " << this_snp << " is in source " << source_i << ".\n" ;
 #endif
-					this_source_snp.get_alternative_identifiers( boost::bind( &combine_ids, &SNPIDs, &merged_SNPID, _1 ) ) ;
+					this_source_snp.get_identifiers( boost::bind( &combine_ids, &SNPIDs, &merged_SNPID, _1 ) ) ;
 					if( rsids.insert( this_source_snp.get_rsid() ).second ) {
 						merged_rsid += "," + std::string( this_source_snp.get_rsid() ) ;
 					}

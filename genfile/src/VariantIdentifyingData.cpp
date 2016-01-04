@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <limits>
 #include <cassert>
+#include <boost/bind.hpp>
 #include "genfile/GenomePosition.hpp"
 #include "genfile/string_utils/slice.hpp"
 #include "genfile/string_utils/string_utils.hpp"
@@ -194,8 +195,25 @@ namespace genfile {
 		return slice( m_data, m_allele_starts[i], m_allele_starts[i+1] ) ;
 	}
 
-	void VariantIdentifyingData::get_alleles( boost::function< void( slice ) > callback ) const {
-		for( std::size_t i = 0; (i+1) < m_allele_starts.size(); ++i ) {
+	std::vector< string_utils::slice > VariantIdentifyingData::get_alleles(
+		std::size_t start,
+		std::size_t end
+	) const {
+		std::vector< slice > result ;
+		end = std::min( end, (m_allele_starts.size()-1) ) ;
+		for( std::size_t i = start; i < end; ++i ) {
+			result.push_back( slice( m_data, m_allele_starts[i], m_allele_starts[i+1] )) ;
+		}
+		return result ;
+	}
+
+	void VariantIdentifyingData::get_alleles(
+		boost::function< void( slice ) > callback,
+		std::size_t start,
+		std::size_t end
+	) const {
+		end = std::min( end, (m_allele_starts.size()-1) ) ;
+		for( std::size_t i = start; i < end; ++i ) {
 			callback( slice( m_data, m_allele_starts[i], m_allele_starts[i+1] )) ;
 		}
 	}
@@ -214,10 +232,9 @@ namespace genfile {
 	}
 
 	void VariantIdentifyingData::add_identifier( slice const& id ) {
-		// Deal with strange non-IDs
 		assert( id.size() > 0 ) ;
 		if( id != get_rsid() ) {
-			std::vector< slice > ids = get_alternative_identifiers() ;
+			std::vector< slice > const& ids = get_identifiers(1) ;
 			if( ids.size() > 0 ) {
 				if( std::find( ids.begin(), ids.end(), id ) == ids.end() ) {
 					m_data += "\t" + std::string( id ) ;
@@ -228,24 +245,47 @@ namespace genfile {
 		}
 	}
 
-	std::vector< genfile::string_utils::slice > VariantIdentifyingData::get_alternative_identifiers() const {
-		if( m_allele_starts.back() == m_data.size() ) {
-			return std::vector< slice >() ;
-		}
-		else {
-			return slice( m_data, m_allele_starts.back(), m_data.size() ).split( "\t" ) ;
+	namespace {
+		void push_back( std::vector< genfile::string_utils::slice >* target, genfile::string_utils::slice const& value ) {
+			target->push_back( value ) ;
 		}
 	}
 
-	void VariantIdentifyingData::get_alternative_identifiers( boost::function< void( slice ) > callback ) const {
-		if( m_allele_starts.back() == m_data.size() ) {
-			return ;
-		}
-		slice( m_data, m_allele_starts.back(), m_data.size() ).split( "\t", callback ) ;
+	std::size_t VariantIdentifyingData::number_of_identifiers() const {
+		return get_identifiers().size() ;
+	}
+	std::vector< genfile::string_utils::slice > VariantIdentifyingData::get_identifiers(
+		std::size_t start,
+		std::size_t end
+	) const {
+		std::vector< genfile::string_utils::slice > result ;
+		get_identifiers( boost::bind( &push_back, &result, _1 ), start, end ) ;
+		return result ;
 	}
 
-	std::string VariantIdentifyingData::get_alternate_identifiers_as_string( std::string const& separator ) const {
-		return join( get_alternative_identifiers(), separator ) ;
+	void VariantIdentifyingData::get_identifiers(
+		boost::function< void( slice ) > callback,
+		std::size_t start,
+		std::size_t end
+	) const {
+		assert( start <= end ) ;
+		std::vector< genfile::string_utils::slice > elts( 1, get_rsid() ) ;
+		if( m_allele_starts.back() < m_data.size() ) {
+			slice( m_data, m_allele_starts.back(), m_data.size() ).split( "\t", boost::bind( &push_back, &elts, _1 )) ;
+		}
+		assert( end == std::string::npos || end <= elts.size() ) ;
+		end = std::min( end, elts.size() ) ;
+		for( std::size_t i = start; i < end; ++i ) {
+			callback( elts[i] ) ;
+		}
+	}
+
+	std::string VariantIdentifyingData::get_identifiers_as_string(
+		std::string const& separator,
+		std::size_t start,
+		std::size_t end
+	) const {
+		return join( get_identifiers( start, end ), separator ) ;
 	}
 
 	std::size_t VariantIdentifyingData::estimate_bytes_used() const {
@@ -257,7 +297,7 @@ namespace genfile {
 
 	std::ostream& operator<<( std::ostream& out, VariantIdentifyingData const& data ) {
 		out << data.get_rsid() ;
-		std::vector< genfile::string_utils::slice > const ids = data.get_alternative_identifiers() ;
+		std::vector< genfile::string_utils::slice > const ids = data.get_identifiers( 1 ) ;
 		if( ids.size() > 0 ) {
 			out << " [" ;
 			for( std::size_t i = 0; i < ids.size(); ++i ) {
@@ -402,10 +442,10 @@ namespace genfile {
 					}
 					break ;
 				case eIDs:
-					if( left.get_alternative_identifiers() > right.get_alternative_identifiers() ) {
+					if( left.get_identifiers() > right.get_identifiers() ) {
 						return false ;
 					}
-					else if( left.get_alternative_identifiers() < right.get_alternative_identifiers() ) {
+					else if( left.get_identifiers() < right.get_identifiers() ) {
 						return true ;
 					}
 					break ;
@@ -445,7 +485,7 @@ namespace genfile {
 					}
 					break ;
 				case eIDs:
-					if( left.get_alternative_identifiers() != right.get_alternative_identifiers() ) {
+					if( left.get_identifiers() != right.get_identifiers() ) {
 						return false ;
 					}
 					break ;

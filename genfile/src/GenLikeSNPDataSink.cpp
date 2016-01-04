@@ -51,7 +51,7 @@ namespace genfile {
 				throw BadArgumentError( "GenLikeSNPDataSink::write_variant()", "chromosome=" + string_utils::to_string( variant.get_position().chromosome() ) ) ;
 			}
 		}
-		out << variant.get_alternate_identifiers_as_string() << " "
+		out << variant.get_identifiers_as_string( ",", 1 ) << " "
 			<< variant.get_rsid() << " "
 			<< variant.get_position().position() << " "
 			<< variant.get_allele(0) << " "

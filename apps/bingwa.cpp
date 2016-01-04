@@ -1702,7 +1702,7 @@ private:
 			m_snps.erase( range.first ) ;
 			
 			stored_snp.add_identifier( snp.get_rsid() ) ;
-			snp.get_alternative_identifiers( boost::bind( &genfile::VariantIdentifyingData::add_identifier, &stored_snp, _1 ) ) ;
+			snp.get_identifiers( boost::bind( &genfile::VariantIdentifyingData::add_identifier, &stored_snp, _1 ) ) ;
 
 			snp_matches[ cohort_i ] = snp_match ;
 			m_snps[ stored_snp ] = snp_matches ;
