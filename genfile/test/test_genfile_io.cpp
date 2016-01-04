@@ -122,7 +122,8 @@ namespace {
 void copy_gen_file( genfile::SNPDataSource& snp_data_source, genfile::SNPDataSink& snp_data_sink ) {
 	SnpData snp_data ;
 	snp_data_sink.set_sample_names( snp_data_source.number_of_samples(), &get_test_sample_name ) ;
-	while( snp_data_source.read_snp( &snp_data.snp, ProbabilitySetter( snp_data.probabilities ) ) ) {
+	while( snp_data_source.get_snp_identifying_data( &snp_data.snp ) ) {
+		snp_data_source.read_snp_probability_data( ProbabilitySetter( snp_data.probabilities ) ) ;
 		snp_data_sink.write_snp(
 			snp_data_source.number_of_samples(),
 			snp_data.snp.get_alternate_identifiers_as_string(),
@@ -216,7 +217,8 @@ void create_files2( std::string original, std::string gen, std::string bgen_v11,
 std::vector< SnpData > read_gen_file( genfile::SNPDataSource& snp_data_source ) {
 	std::vector< SnpData > result ;
 	SnpData snp_data ;
-	while( snp_data_source.read_snp( &snp_data.snp, ProbabilitySetter( snp_data.probabilities ) ) ) {
+	while( snp_data_source.get_snp_identifying_data( &snp_data.snp ) ) {
+		snp_data_source.read_snp_probability_data( ProbabilitySetter( snp_data.probabilities ) ) ;
 		result.push_back( snp_data ) ;
 	}
 	return result ;

@@ -105,6 +105,7 @@ void perform_test_against_cvcft(
 	{
 		std::vector< genfile::VariantIdentifyingData > cvcft_snps ;
 		std::vector< std::vector< double > > cvcft_probs ;
+		std::cerr << "CVCFT:\n" ;
 		{
 			std::auto_ptr< std::istream > istr( new std::istringstream( data ) ) ;
 			CVCFT data( *istr, key.c_str() ) ;
@@ -120,8 +121,8 @@ void perform_test_against_cvcft(
 				genfile::VariantIdentifyingData snp(
 					std::string( data.GetRSID() ),
 					position,
-					std::string( data.GetRef(), 1 ),
-					std::string( data.GetAlt(), 1 )
+					std::string( 1, data.GetRef() ),
+					std::string( 1, data.GetAlt() )
 				) ;
 				std::vector< double > prob ;
 				data.GetProb( prob ) ;
@@ -139,6 +140,7 @@ void perform_test_against_cvcft(
 
 		using namespace genfile::vcf ;
 
+		std::cerr << "genfile::VCFFormatSNPDataSource:\n" ;
 		{
 			std::auto_ptr< std::istream > istr( new std::istringstream( data ) ) ;
 
@@ -162,10 +164,10 @@ void perform_test_against_cvcft(
 		
 		for( std::size_t i = 0; i < my_snps.size(); ++i ) {
 			TEST_ASSERT( my_probs[i] == cvcft_probs[i] ) ;
-			TEST_ASSERT( my_snps[i].get_rsid() == cvcft_snps[i].get_rsid() ) ;
-			TEST_ASSERT( my_snps[i].get_position() == cvcft_snps[i].get_position() ) ;
-			TEST_ASSERT( my_snps[i].get_allele(0) == cvcft_snps[i].get_allele(0) ) ;
-			TEST_ASSERT( my_snps[i].get_allele(1) == cvcft_snps[i].get_allele(1) ) ;
+			BOOST_CHECK_EQUAL( my_snps[i].get_rsid(), cvcft_snps[i].get_rsid() ) ;
+			BOOST_CHECK_EQUAL( my_snps[i].get_position(), cvcft_snps[i].get_position() ) ;
+			BOOST_CHECK_EQUAL( my_snps[i].get_allele(0), cvcft_snps[i].get_allele(0) ) ;
+			BOOST_CHECK_EQUAL( my_snps[i].get_allele(1), cvcft_snps[i].get_allele(1) ) ;
 		}
 	}
 }

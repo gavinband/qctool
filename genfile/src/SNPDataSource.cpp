@@ -152,7 +152,7 @@ namespace genfile {
 		return result ;
 	}
 
-	SNPDataSource& SNPDataSource::read_snp(
+/*	SNPDataSource& SNPDataSource::read_snp(
 		VariantIdentifyingData* result,
 		GenotypeProbabilitySetter set_genotype_probabilities
 	)
@@ -165,7 +165,7 @@ namespace genfile {
 		}
 		return *this ;
 	}
-
+*/
 	bool SNPDataSource::get_next_snp_with_specified_position(
 		VariantIdentifyingData* result,
 		Chromosome specified_chromosome,

@@ -90,10 +90,10 @@ namespace genfile {
 		// Read the data for the next snp from the source (and remove it from the source)
 		// Store the data using the given setter objects / function pointers.
 		// The returned object evaluates to true if the read was successful, otherwise false.
-		SNPDataSource& read_snp(
-			VariantIdentifyingData* variant,
-			GenotypeProbabilitySetter set_genotype_probabilities
-		) ;
+//		SNPDataSource& read_snp(
+//			VariantIdentifyingData* variant,
+//			GenotypeProbabilitySetter set_genotype_probabilities
+//		) ;
 
 		// Function: read_next_snp_with_position_in_range()
 		// Move forwards through the source until either

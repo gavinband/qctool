@@ -18,7 +18,7 @@ namespace genfile {
 	struct VariantIdentifyingData
 	{
 	public:
-		VariantIdentifyingData() ;
+		VariantIdentifyingData( std::string const& rsid = "(unknown variant)" ) ;
 		VariantIdentifyingData(
 			std::string const& RSID,
 			GenomePosition const& position,
@@ -43,32 +43,27 @@ namespace genfile {
 
 		typedef string_utils::slice slice ;
 
-		void set_rsid( slice const& rsid ) ;
+		void clear_identifiers() ;
+		std::size_t number_of_identifiers() const { return 1 + get_alternative_identifiers().size() ; }
+		void set_primary_id( slice const& id ) ;
+		void add_identifier( slice const& id ) ;
+		std::vector< slice > get_alternative_identifiers() const ;
+		void get_alternative_identifiers( boost::function< void( slice ) > ) const ;
+		std::string get_alternate_identifiers_as_string( std::string const& separator = "," ) const ;
 		slice get_rsid() const { return slice( m_data, m_rsid_start, m_allele_starts[0] ) ; }
 
 		void set_position( GenomePosition const& position ) { m_position = position ;}
 		GenomePosition const& get_position() const { return m_position ; }
 
+		void clear_alleles() ;
 		void set_allele( std::size_t i, std::string const& allele ) ;
 		void set_allele( std::size_t i, slice const& allele ) ;
+		void set_allele( std::size_t i, char const* allele ) ;
 		void add_allele( slice const& allele ) ;
-		std::size_t number_of_alleles() const { return m_allele_starts.size() ; }
-		slice get_allele( std::size_t i ) const {
-			assert( i < m_allele_starts.size() ) ;
-			if( i+1 < m_allele_starts.size() ) {
-				return slice( m_data, m_allele_starts[i], m_allele_starts[i+1] ) ;
-			} else {
-				return slice( m_data, m_allele_starts[i], m_identifiers_start ) ;
-			}
-		}
+		std::size_t number_of_alleles() const { return m_allele_starts.size() - 1 ; }
+		slice get_allele( std::size_t i ) const ;
 		void get_alleles( boost::function< void( slice ) > ) const ;
 		void swap_alleles() ;
-
-		void clear_identifiers() ;
-		void add_identifier( slice const& id ) ;
-		std::vector< slice > get_alternative_identifiers() const ;
-		void get_alternative_identifiers( boost::function< void( slice ) > ) const ;
-		std::string get_alternate_identifiers_as_string( std::string const& separator = "," ) const ;
 
 		std::size_t estimate_bytes_used() const ;
 	public:
@@ -107,7 +102,6 @@ namespace genfile {
 		typedef uint32_t Size ;
 		Size m_rsid_start ; // always equals 0 in current implementation.
 		std::vector< Size > m_allele_starts ;
-		Size m_identifiers_start ;
 		GenomePosition m_position ;
 		
 		CompareFields& operator=( CompareFields const& other ) ;

@@ -103,7 +103,8 @@ std::vector< SnpData > read_snp_data( genfile::SNPDataSource& snp_data_source ) 
 	std::vector< SnpData > result ;
 	SnpData snp_data ;
 	
-	while( snp_data_source.read_snp( &snp_data.snp, ProbabilitySetter( snp_data.probabilities ))) {
+	while( snp_data_source.get_snp_identifying_data( &snp_data.snp )) {
+		snp_data_source.read_snp_probability_data( ProbabilitySetter( snp_data.probabilities )) ;
 		result.push_back( snp_data ) ;
 	}
 	return result ;
@@ -193,7 +194,8 @@ AUTO_TEST_CASE( test_snp_data_source_rack ) {
 		}
 
 		std::size_t count = 0 ;
-		while( rack->read_snp( &snp, genfile::ignore() )) {
+		while( rack->get_snp_identifying_data( &snp )) {
+			rack->ignore_snp_probability_data() ;
 			++count ;
 		}
 

@@ -283,10 +283,10 @@ namespace genfile {
 		std::vector< std::string > ids = string_utils::split( m_ID, "," ) ;
 		VariantIdentifyingData variant ;
 		if( ids.size() == 0 ) {
-			variant.set_rsid( genfile::string_utils::slice( "?" ) ) ;
+			variant.set_primary_id( genfile::string_utils::slice( "?" ) ) ;
 		}
-		else if( ids.size() == 1 ) {
-			variant.set_rsid( ids[0] ) ;
+		else {
+			variant.set_primary_id( ids[0] ) ;
 		}
 		
 		if( ids.size() > 1 ) {
@@ -298,10 +298,9 @@ namespace genfile {
 		variant.set_position( GenomePosition( m_CHROM, string_utils::to_repr< Position >( m_POS ) ) ) ;
 
 		m_variant_alleles = string_utils::split( m_ALT, "," ) ;
-		
-		if( m_REF != "." ) {
-			variant.add_allele( m_REF ) ;
-		}
+		m_variant_alleles.insert( m_variant_alleles.begin(), m_REF ) ;
+
+		assert( m_REF != "." ) ;
 		for( std::size_t i = 0; i < m_variant_alleles.size(); ++i ) {
 			if( m_variant_alleles[i] != "." ) {
 				variant.add_allele( m_variant_alleles[i] ) ;

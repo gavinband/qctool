@@ -10,7 +10,6 @@
 #include <boost/bind.hpp>
 #include "test_case.hpp"
 #include "genfile/VariantIdentifyingData.hpp"
-#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/GenomePosition.hpp"
 
 AUTO_TEST_CASE( test_output_streaming ) {
@@ -162,7 +161,7 @@ AUTO_TEST_CASE( test_snp_data_setters ) {
 	genfile::GenomePosition pos( genfile::Chromosome( "01" ), 0 ) ;
 	genfile::VariantIdentifyingData snp( "RSID_1", pos, "A", "G" ) ;
 	snp.add_identifier( std::string( "ID" ) ) ;
-	snp.set_rsid( std::string( "RSID_1_changed" ) ) ;
+	snp.set_primary_id( std::string( "RSID_1_changed" ) ) ;
 	BOOST_CHECK_EQUAL( snp.get_rsid(), "RSID_1_changed" ) ;
 	BOOST_CHECK_EQUAL( snp.get_allele(0), "A" ) ;
 	BOOST_CHECK_EQUAL( snp.get_allele(1), "G" ) ;

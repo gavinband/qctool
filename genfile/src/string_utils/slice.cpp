@@ -380,7 +380,6 @@ namespace genfile {
 			return result ;
 		}
 		std::string operator+( slice const& left, char const* right ) {
-			int const length = strlen( right ) ;
 			std::string result( left ) ;
 			result += std::string( right ) ;
 			return result ;
