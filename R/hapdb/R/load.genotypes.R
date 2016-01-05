@@ -27,13 +27,13 @@ function(
 	
 	dbGetQuery( hapdb$db, "CREATE TEMPORARY TABLE tmpHapdbLoadGenotypes ( variant_id INT NOT NULL )" ) ;
 	if( !is.null( chromosome ) && !is.null( range )) {
-		dbGetQuery( hapdb$db, sprintf( "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE chromosome == '%s' AND position BETWEEN %d AND %d", chromosome, range[1], range[2] ) ) ;
+		dbGetQuery( hapdb$db, sprintf( "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE chromosome == '%s' AND position BETWEEN %d AND %d ORDER BY chromosome, position, rsid, alleleA, alleleB", chromosome, range[1], range[2] ) ) ;
     }
 	if( !is.null( rsids ) ) {
 		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE rsid == ?", data.frame( rsid = rsids )) ;
 	}
     if( !is.null( positions )) {
-		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE chromosome == ? AND position == ?", positions ) ;
+		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE chromosome == ? AND position == ? ORDER BY rsid, alleleA, alleleB", positions ) ;
     }
     if( !is.null( variant_ids )) {
 		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpHapdbLoadGenotypes VALUES(?)", data.frame( variant_id = variant_ids ) ) ;
@@ -46,6 +46,7 @@ function(
 		sprintf( "  ON E.id == %s", analysis_id ),
 		"INNER JOIN Variant V ON V.id == tmp.variant_id",
 		"INNER JOIN Genotype H ON H.analysis_id == E.id AND H.variant_id == tmp.variant_id",
+		"ORDER BY tmp.rowid",
 		sep = " "
 	)
 

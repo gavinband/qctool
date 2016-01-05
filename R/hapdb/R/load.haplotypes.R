@@ -40,13 +40,13 @@ function(
 	
 	dbGetQuery( hapdb$db, "CREATE TEMPORARY TABLE tmpHapdbLoadGenotypes ( variant_id INT NOT NULL )" ) ;
 	if( !is.null( chromosome ) && !is.null( range )) {
-		dbGetQuery( hapdb$db, sprintf( "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE chromosome == '%s' AND position BETWEEN %d AND %d", chromosome, range[1], range[2] ) ) ;
+		dbGetQuery( hapdb$db, sprintf( "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE chromosome == '%s' AND position BETWEEN %d AND %d ORDE RBY chromosome, position, rsid, alleleA, alleleB", chromosome, range[1], range[2] ) ) ;
     }
 	if( !is.null( rsids ) ) {
 		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE rsid == ?", data.frame( rsid = rsids ) ) ;
 	}
     if( !is.null( positions )) {
-		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE chromosome == ? AND position == ?", positions ) ;
+		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE chromosome == ? AND position == ? ORDER BY rsid, alleleA, alleleB", positions ) ;
     }
     if( !is.null( variant_ids )) {
 		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpHapdbLoadGenotypes VALUES(?)", data.frame( variant_id = variant_ids ) ) ;
@@ -125,6 +125,7 @@ function(
 	colnames( result$data ) = rep( NA, 2 * nrow( result$sample ) )
 	colnames( result$data )[ seq( from = 1, by = 2, length = N ) ] = paste( result$samples[, sample.identifier.column ], "0", sep = ":" )
 	colnames( result$data )[ seq( from = 2, by = 2, length = N ) ] = paste( result$samples[, sample.identifier.column ], "1", sep = ":" )
+	rownames( result$data ) = result$variant$rsid
 
 	if( compute.dosage ) {
 		A = result$data[, seq( from = 1, by = 2, length = N ), drop = FALSE ]

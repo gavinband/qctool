@@ -78,7 +78,9 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
             ")",
             sep = " " 
         )   
-    }   
+    }
+	sql = paste( sql, "ORDER BY chromosome, position, rsid, alleleA, alleleB", sep = " " ) ;
+
 	if( verbose ) {
 		cat( "load.intensities(): running query :\"", sql, "\"...\n", sep = "" ) ;
 		print( dbGetQuery( hapdb$db, sprintf( "EXPLAIN QUERY PLAN %s", sql ) ) )
@@ -124,6 +126,7 @@ function( hapdb, chromosome = NULL, rsids = NULL, range = NULL, positions = NULL
 	colnames( result$data ) = rep( NA, 2 * nrow( result$sample ) )
 	colnames( result$data )[ seq( from = 1, by = 2, length = nrow( result$samples ) ) ] = paste( result$samples[, sample.identifier.column ], "X", sep = ":" )
 	colnames( result$data )[ seq( from = 2, by = 2, length = nrow( result$samples ) ) ] = paste( result$samples[, sample.identifier.column ], "Y", sep = ":" )
+	rownames( result$data ) = result$variant$rsid 
 
 	if( verbose ) {
 		cat( "load.intensities(): done.\n" ) ;
