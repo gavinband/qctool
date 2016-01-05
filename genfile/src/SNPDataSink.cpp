@@ -21,6 +21,7 @@
 #include "genfile/BGenFileSNPDataSink.hpp"
 #include "genfile/BedFileSNPDataSink.hpp"
 #include "genfile/PennCNVSNPDataSink.hpp"
+#include "genfile/cnvHapSNPDataSink.hpp"
 #include "genfile/ShapeITHaplotypesSNPDataSink.hpp"
 #include "genfile/VCFFormatSNPDataSink.hpp"
 #include "genfile/vcf/get_set_eigen.hpp"
@@ -41,6 +42,7 @@ namespace genfile {
 		result.push_back( "dosage" ) ;
 		result.push_back( "intensity" ) ;
 		result.push_back( "penncnv" ) ;
+		result.push_back( "cnvhap" ) ;
 		return result ;
 	}
 
@@ -81,14 +83,13 @@ namespace genfile {
 			return SNPDataSink::UniquePtr( new GenIntensityFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
 		}
 		else if( d.first == "binary_ped" ) {
-			return SNPDataSink::UniquePtr(
-				new BedFileSNPDataSink( filename, 0.9 )
-			) ;
+			return SNPDataSink::UniquePtr( new BedFileSNPDataSink( filename, 0.9 ) ) ;
 		}
 		else if( d.first == "penncnv" ) {
-			return SNPDataSink::UniquePtr(
-				new PennCNVSNPDataSink( filename, 0.9 )
-			) ;
+			return SNPDataSink::UniquePtr( new PennCNVSNPDataSink( filename, 0.9 ) ) ;
+		}
+		else if( d.first == "cnvhap" ) {
+			return SNPDataSink::UniquePtr( new cnvHapSNPDataSink( filename ) ) ;
 		}
 		else {
 			return SNPDataSink::UniquePtr( new GenFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;

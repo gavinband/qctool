@@ -4,8 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef PENNCNVSNPDATASINK_HPP
-#define PENNCNVSNPDATASINK_HPP
+#ifndef CNVHAPSNPDATASINK_HPP
+#define CNVHAPSNPDATASINK_HPP
 
 #include <iostream>
 #include <string>
@@ -16,16 +16,14 @@
 
 namespace genfile {
 	// A SNPDataSink which writes its data in a format suitable for input
-	// to PennCNV [1,2] or QuantiSNP [3,4].
-	// [1] http://penncnv.openbioinformatics.org
-	// [2] http://genome.cshlp.org/content/17/11/1665.short
-	// [3] http://www.ncbi.nlm.nih.gov/pubmed/17341461
-	// [4] https://sites.google.com/site/quantisnp/
+	// to cnvHap's normalisation pipeline, c.f.
+	// http://www.nature.com/nmeth/journal/v7/n7/abs/nmeth.1466.html
+	// http://www.imperial.ac.uk/people/l.coin
 	//
-	class PennCNVSNPDataSink: public SNPDataSink
+	class cnvHapSNPDataSink: public SNPDataSink
 	{
 	public:
-		PennCNVSNPDataSink( std::string const& filename, double const threshhold = 0.9 ) ;
+		cnvHapSNPDataSink( std::string const& filename ) ;
 		SinkPos get_stream_pos() const ;
 		std::string get_spec() const ;
 		
@@ -48,12 +46,10 @@ namespace genfile {
 		void setup( std::string const& filename ) ;
 
 		std::string m_filename ;
-		double const m_threshhold ;
 		std::auto_ptr< std::ostream > m_stream_ptr ;
+		std::size_t m_number_of_samples ;
 		Eigen::MatrixXd m_intensities ;
 		Eigen::MatrixXd m_nonmissingness ;
-		std::vector< std::size_t > m_genotypes ;
-		std::vector< std::string > m_genotype_alleles ;
 	} ;
 }
 
