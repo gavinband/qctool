@@ -20,6 +20,7 @@
 #include "genfile/GenIntensityFileSNPDataSink.hpp"
 #include "genfile/BGenFileSNPDataSink.hpp"
 #include "genfile/BedFileSNPDataSink.hpp"
+#include "genfile/PennCNVSNPDataSink.hpp"
 #include "genfile/ShapeITHaplotypesSNPDataSink.hpp"
 #include "genfile/VCFFormatSNPDataSink.hpp"
 #include "genfile/vcf/get_set_eigen.hpp"
@@ -39,6 +40,7 @@ namespace genfile {
 		result.push_back( "shapeit" ) ;
 		result.push_back( "dosage" ) ;
 		result.push_back( "intensity" ) ;
+		result.push_back( "penncnv" ) ;
 		return result ;
 	}
 
@@ -81,6 +83,11 @@ namespace genfile {
 		else if( d.first == "binary_ped" ) {
 			return SNPDataSink::UniquePtr(
 				new BedFileSNPDataSink( filename, 0.9 )
+			) ;
+		}
+		else if( d.first == "penncnv" ) {
+			return SNPDataSink::UniquePtr(
+				new PennCNVSNPDataSink( filename, 0.9 )
 			) ;
 		}
 		else {

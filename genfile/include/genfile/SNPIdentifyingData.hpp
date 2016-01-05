@@ -40,6 +40,7 @@ namespace genfile {
 		std::string& first_allele() { return m_first_allele ;}
 		std::string& second_allele() { return m_second_allele ;}
 		void swap_alleles() ;
+		std::size_t number_of_alleles() const { return 2 ; }
 
 		void set_SNPID( std::string const& SNPID ) { m_SNPID = SNPID ; }
 		void set_rsid( std::string const& rsid ) { m_RSID = rsid ;}
