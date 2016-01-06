@@ -246,6 +246,7 @@ namespace snp_summary_component {
 		// Now output the loglikelihoods under a model conditional on genotype...
 		callback( "number-of-clusters", numberOfClusters ) ;
 		callback( "informative-sample-count", genfile::VariantEntry::Integer( nonMissingGenotypesAndIntensitySubset.size() ) ) ;
+		callback( "total-sample-count", genotypes.rows() ) ;
 		callback( "ll-given-genotype",  genotypeLLs.sum() ) ;
 		// And under equal-weighted mixtures...
 		mixture.set_data( m_intensities ) ;
