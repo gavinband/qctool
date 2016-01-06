@@ -116,7 +116,7 @@ private:
 			std::size_t const mid = numbers.size() / 2 ;
 			std::nth_element( numbers.begin(), numbers.begin() + mid, numbers.end() ) ;
 			double const median = numbers[ mid ] ;
-			std::cout << median << " " << (median / quantile( complement( chi_square, 0.5 ))) << "\n" ;
+			std::cout << median << " " << (median / quantile( complement( chi_square, 0.5 ))) ;
 		}
 		std::cout << "\n" ;
 	}
