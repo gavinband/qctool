@@ -4,7 +4,6 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-
 #include <string>
 #include <deque>
 #include <iostream>
@@ -84,17 +83,17 @@ private:
 
 		get_ui_context().logger() << "inflation.cpp: finding median...\n" ;
 
-		std::cout << "{ "
-			<< "\"analysis\": \""
-			<< options().get< std::string >( "-analysis-name" )
-			<< "\", \"N\"=" << numbers.size() << ", \"missing\"="
+		std::cout << "analysis N missing median lambda 1pc_adjusted_median 1pc_adjusted_lambda\n" ;
+		std::cout
+			<< options().get< std::string >( "-analysis-name" ) << " "
+			<< numbers.size() << " "
 			<< missing_count ;
 		// Compute basic lambda
 		{
 			std::size_t const mid = numbers.size() / 2 ;
 			std::nth_element( numbers.begin(), numbers.begin() + mid, numbers.end() ) ;
 			double const median = numbers[ mid ] ;
-			std::cout << ", \"median\"=" << median << ", \"lambda\"=" << median / quantile( complement( chi_square, 0.5 )) ;
+			std::cout << median << " " << (median / quantile( complement( chi_square, 0.5 ))) << " " ;
 		}
 
 		if( options().check( "-qq-plot" )) {
@@ -117,9 +116,9 @@ private:
 			std::size_t const mid = numbers.size() / 2 ;
 			std::nth_element( numbers.begin(), numbers.begin() + mid, numbers.end() ) ;
 			double const median = numbers[ mid ] ;
-			std::cout << ", \"1pc_adjusted_median\"=" << median << ", \"1pc_adjusted_lambda\"=" << median / quantile( complement( chi_square, 0.5 )) ;
+			std::cout << median << " " << (median / quantile( complement( chi_square, 0.5 ))) << "\n" ;
 		}
-		std::cout << " }\n" ;
+		std::cout << "\n" ;
 	}
 	
 #if HAVE_MGL
@@ -169,3 +168,4 @@ int main( int argc, char** argv ) {
 	}
 	return 0 ;
 }
+
