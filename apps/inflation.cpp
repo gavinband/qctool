@@ -83,17 +83,17 @@ private:
 
 		get_ui_context().logger() << "inflation.cpp: finding median...\n" ;
 
-		std::cout << "analysis N missing median lambda 1pc_adjusted_median 1pc_adjusted_lambda\n" ;
+		std::cout << "analysis,N,missing,median,lambda,1pc_adjusted_median,1pc_adjusted_lambda\n" ;
 		std::cout
-			<< options().get< std::string >( "-analysis-name" ) << " "
-			<< numbers.size() << " "
+			<< options().get< std::string >( "-analysis-name" ) << ","
+			<< numbers.size() << ","
 			<< missing_count ;
 		// Compute basic lambda
 		{
 			std::size_t const mid = numbers.size() / 2 ;
 			std::nth_element( numbers.begin(), numbers.begin() + mid, numbers.end() ) ;
 			double const median = numbers[ mid ] ;
-			std::cout << median << " " << (median / quantile( complement( chi_square, 0.5 ))) << " " ;
+			std::cout << "," << median << "," << (median / quantile( complement( chi_square, 0.5 ))) ;
 		}
 
 		if( options().check( "-qq-plot" )) {
@@ -116,7 +116,7 @@ private:
 			std::size_t const mid = numbers.size() / 2 ;
 			std::nth_element( numbers.begin(), numbers.begin() + mid, numbers.end() ) ;
 			double const median = numbers[ mid ] ;
-			std::cout << median << " " << (median / quantile( complement( chi_square, 0.5 ))) ;
+			std::cout << "," << median << "," << (median / quantile( complement( chi_square, 0.5 ))) ;
 		}
 		std::cout << "\n" ;
 	}
