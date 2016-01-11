@@ -120,7 +120,7 @@ namespace genfile {
 		return write_snp(
 			number_of_samples,
 			snp.get_identifiers_as_string( "," ),
-			snp.get_rsid(),
+			snp.get_primary_id(),
 			snp.get_position().chromosome(),
 			snp.get_position().position(),
 			snp.get_allele(0),
@@ -274,7 +274,7 @@ namespace genfile {
 		write_snp_impl(
 			m_genotypes.rows(),
 			id_data.get_identifiers_as_string( ",", 1 ),
-			id_data.get_rsid(),
+			id_data.get_primary_id(),
 			id_data.get_position().chromosome(),
 			id_data.get_position().position(),
 			id_data.get_allele(0),

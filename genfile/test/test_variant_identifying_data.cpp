@@ -18,14 +18,14 @@ BOOST_AUTO_TEST_CASE( test_constructors ) {
 		VariantIdentifyingData data ;
 		BOOST_CHECK_EQUAL( data.number_of_alleles(), 0 ) ;
 		BOOST_CHECK_EQUAL( data.number_of_identifiers(), 1 ) ;
-		BOOST_CHECK_EQUAL( data.get_rsid(), "(unknown variant)" ) ;
+		BOOST_CHECK_EQUAL( data.get_primary_id(), "(unknown variant)" ) ;
 	}
 
 	{
 		VariantIdentifyingData data( "rs1", GenomePosition( Chromosome( "01" ), 1000 ), "A", "G" ) ;
 		BOOST_CHECK_EQUAL( data.number_of_alleles(), 2 ) ;
 		BOOST_CHECK_EQUAL( data.number_of_identifiers(), 1 ) ;
-		BOOST_CHECK_EQUAL( data.get_rsid(), "rs1" ) ;
+		BOOST_CHECK_EQUAL( data.get_primary_id(), "rs1" ) ;
 		BOOST_CHECK_EQUAL( data.get_identifiers_as_string( "," ), "rs1" ) ;
 	}
 
@@ -33,7 +33,7 @@ BOOST_AUTO_TEST_CASE( test_constructors ) {
 		VariantIdentifyingData data( "SNP1", "rs1", GenomePosition( Chromosome( "01" ), 1000 ), "A", "G" ) ;
 		BOOST_CHECK_EQUAL( data.number_of_alleles(), 2 ) ;
 		BOOST_CHECK_EQUAL( data.number_of_identifiers(), 2 ) ;
-		BOOST_CHECK_EQUAL( data.get_rsid(), "rs1" ) ;
+		BOOST_CHECK_EQUAL( data.get_primary_id(), "rs1" ) ;
 		BOOST_CHECK_EQUAL( data.get_identifiers_as_string( "," ), "rs1,SNP1" ) ;
 	}
 }
@@ -46,38 +46,38 @@ BOOST_AUTO_TEST_CASE( test_identifiers ) {
 		BOOST_CHECK_EQUAL( data.number_of_alleles(), 0 ) ;
 		BOOST_CHECK_EQUAL( data.number_of_identifiers(), 1 ) ;
 		BOOST_CHECK_EQUAL( data.get_identifiers().size(), 1 ) ;
-		BOOST_CHECK_EQUAL( data.get_rsid(), "rs1" ) ;
+		BOOST_CHECK_EQUAL( data.get_primary_id(), "rs1" ) ;
 		BOOST_CHECK_EQUAL( data.get_identifiers_as_string( "," ), "rs1" ) ;
 		BOOST_CHECK_EQUAL( data.get_identifiers_as_string( ",", 1 ), "" ) ;
 
 		data.add_identifier( "rs1" ) ;
 		BOOST_CHECK_EQUAL( data.number_of_identifiers(), 1 ) ;
 		BOOST_CHECK_EQUAL( data.get_identifiers().size(), 1 ) ;
-		BOOST_CHECK_EQUAL( data.get_rsid(), "rs1" ) ;
+		BOOST_CHECK_EQUAL( data.get_primary_id(), "rs1" ) ;
 		BOOST_CHECK_EQUAL( data.get_identifiers_as_string( "," ), "rs1" ) ;
 
 		data.add_identifier( "rsx" ) ;
 		BOOST_CHECK_EQUAL( data.number_of_identifiers(), 2 ) ;
 		BOOST_CHECK_EQUAL( data.get_identifiers().size(), 2 ) ;
-		BOOST_CHECK_EQUAL( data.get_rsid(), "rs1" ) ;
+		BOOST_CHECK_EQUAL( data.get_primary_id(), "rs1" ) ;
 		BOOST_CHECK_EQUAL( data.get_identifiers_as_string( "," ), "rs1,rsx" ) ;
 
 		data.add_identifier( "rsx" ) ;
 		BOOST_CHECK_EQUAL( data.number_of_identifiers(), 2 ) ;
 		BOOST_CHECK_EQUAL( data.get_identifiers().size(), 2 ) ;
-		BOOST_CHECK_EQUAL( data.get_rsid(), "rs1" ) ;
+		BOOST_CHECK_EQUAL( data.get_primary_id(), "rs1" ) ;
 		BOOST_CHECK_EQUAL( data.get_identifiers_as_string( "," ), "rs1,rsx" ) ;
 
 		data.add_identifier( "rs1" ) ;
 		BOOST_CHECK_EQUAL( data.number_of_identifiers(), 2 ) ;
 		BOOST_CHECK_EQUAL( data.get_identifiers().size(), 2 ) ;
-		BOOST_CHECK_EQUAL( data.get_rsid(), "rs1" ) ;
+		BOOST_CHECK_EQUAL( data.get_primary_id(), "rs1" ) ;
 		BOOST_CHECK_EQUAL( data.get_identifiers_as_string( "," ), "rs1,rsx" ) ;
 
 		data.add_identifier( "rsy" ) ;
 		BOOST_CHECK_EQUAL( data.number_of_identifiers(), 3 ) ;
 		BOOST_CHECK_EQUAL( data.get_identifiers().size(), 3 ) ;
-		BOOST_CHECK_EQUAL( data.get_rsid(), "rs1" ) ;
+		BOOST_CHECK_EQUAL( data.get_primary_id(), "rs1" ) ;
 		BOOST_CHECK_EQUAL( data.get_identifiers_as_string( "," ), "rs1,rsx,rsy" ) ;
 		BOOST_CHECK_EQUAL( data.get_identifiers_as_string( ",", 1 ), "rsx,rsy" ) ;
 	}
@@ -119,7 +119,7 @@ BOOST_AUTO_TEST_CASE( test_identifiers ) {
 	{
 		genfile::VariantIdentifyingData snp( "rs1" ) ;
 		snp.set_primary_id( std::string( "rs1_changed" ) ) ;
-		BOOST_CHECK_EQUAL( snp.get_rsid(), "rs1_changed" ) ;
+		BOOST_CHECK_EQUAL( snp.get_primary_id(), "rs1_changed" ) ;
 		BOOST_CHECK_EQUAL( snp.get_identifiers().size(), 1 ) ;
 	}
 
@@ -128,7 +128,7 @@ BOOST_AUTO_TEST_CASE( test_identifiers ) {
 		genfile::VariantIdentifyingData snp( "rs1", pos, "A", "G" ) ;
 		snp.add_identifier( std::string( "ID" ) ) ;
 		snp.set_primary_id( std::string( "rs1_changed" ) ) ;
-		BOOST_CHECK_EQUAL( snp.get_rsid(), "rs1_changed" ) ;
+		BOOST_CHECK_EQUAL( snp.get_primary_id(), "rs1_changed" ) ;
 		BOOST_CHECK_EQUAL( snp.get_allele(0), "A" ) ;
 		BOOST_CHECK_EQUAL( snp.get_allele(1), "G" ) ;
 		BOOST_CHECK_EQUAL( snp.get_position(), pos ) ;

@@ -127,7 +127,7 @@ void copy_gen_file( genfile::SNPDataSource& snp_data_source, genfile::SNPDataSin
 		snp_data_sink.write_snp(
 			snp_data_source.number_of_samples(),
 			snp_data.snp.get_identifiers_as_string( ",", 1 ),
-			snp_data.snp.get_rsid(),
+			snp_data.snp.get_primary_id(),
 			snp_data.snp.get_position().chromosome(),
 			snp_data.snp.get_position().position(),
 			snp_data.snp.get_allele(0),
@@ -301,7 +301,7 @@ AUTO_TEST_CASE( test_formats ) {
 				BOOST_CHECK_EQUAL( results[i][j].snp.number_of_identifiers(), results[0][j].snp.number_of_identifiers() ) ;
 				BOOST_CHECK_EQUAL( results[i][j].snp.get_identifiers_as_string(","), results[0][j].snp.get_identifiers_as_string(",") ) ;
 				TEST_ASSERT( results[i][j].snp.get_identifiers() == results[0][j].snp.get_identifiers() ) ;
-				BOOST_CHECK_EQUAL( results[i][j].snp.get_rsid(), results[0][j].snp.get_rsid() ) ;
+				BOOST_CHECK_EQUAL( results[i][j].snp.get_primary_id(), results[0][j].snp.get_primary_id() ) ;
 				BOOST_CHECK_EQUAL( results[i][j].snp.get_position(), results[0][j].snp.get_position() ) ;
 				BOOST_CHECK_EQUAL( results[i][j].snp.get_allele(0), results[0][j].snp.get_allele(0) ) ;
 				BOOST_CHECK_EQUAL( results[i][j].snp.get_allele(1), results[0][j].snp.get_allele(1) ) ;

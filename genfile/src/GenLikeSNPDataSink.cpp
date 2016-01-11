@@ -52,7 +52,7 @@ namespace genfile {
 			}
 		}
 		out << variant.get_identifiers_as_string( ",", 1 ) << " "
-			<< variant.get_rsid() << " "
+			<< variant.get_primary_id() << " "
 			<< variant.get_position().position() << " "
 			<< variant.get_allele(0) << " "
 			<< variant.get_allele(1) ;

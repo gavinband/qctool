@@ -133,7 +133,7 @@ namespace qcdb {
 			genfile::VariantIdentifyingData const& snp = m_snps[ snp_i ] ;
 			std::string SNPID ;
 			snp.get_identifiers( boost::bind( &append_to_string, &SNPID, _1 ), 1 ) ;
-			(*m_sink) << SNPID << snp.get_rsid() << snp.get_position().chromosome()
+			(*m_sink) << SNPID << snp.get_primary_id() << snp.get_position().chromosome()
 				<< snp.get_position().position() << snp.get_allele(0) << snp.get_allele(1) ;
 			VariableMap::right_const_iterator
 				var_i = m_variables.right.begin(),

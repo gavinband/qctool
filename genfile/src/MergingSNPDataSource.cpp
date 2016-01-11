@@ -170,7 +170,7 @@ namespace genfile {
 			VariantIdentifyingData const& snp = m_current_snps.begin()->first ;
 			std::size_t source_index = m_current_snps.begin()->second ;
 			*result = VariantIdentifyingData(
-				snp.get_rsid(),
+				snp.get_primary_id(),
 				snp.get_position(),
 				snp.get_allele(0),
 				snp.get_allele(1)

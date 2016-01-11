@@ -61,7 +61,7 @@ namespace genfile {
 			std::size_t start = 0,
 			std::size_t end = std::string::npos
 		) const ;
-		slice get_rsid() const { return slice( m_data, m_rsid_start, m_allele_starts[0] ) ; }
+		slice get_primary_id() const { return slice( m_data, m_rsid_start, m_allele_starts[0] ) ; }
 
 		void set_position( GenomePosition const& position ) { m_position = position ;}
 		GenomePosition const& get_position() const { return m_position ; }

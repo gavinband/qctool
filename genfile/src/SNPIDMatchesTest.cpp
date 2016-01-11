@@ -65,7 +65,7 @@ namespace genfile {
 		if( m_type == eSNPID || m_type == eEITHER ) {
 			data.get_alleles( boost::bind( &insert_value, &ids, _1 )) ;
 		}
-		if( ( m_type == eRSID || m_type == eEITHER ) && match( data.get_rsid() ) ) {
+		if( ( m_type == eRSID || m_type == eEITHER ) && match( data.get_primary_id() ) ) {
 			return true ;
 		}
 		if( m_type == eSNPID || m_type == eEITHER ) {

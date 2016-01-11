@@ -238,8 +238,8 @@ namespace genfile {
 				rsids.clear() ;
 
 				this_snp.get_identifiers( boost::bind( &combine_ids, &SNPIDs, &merged_SNPID, _1 ) ) ;
-				rsids.insert( this_snp.get_rsid() ) ;
-				merged_rsid = this_snp.get_rsid() ;
+				rsids.insert( this_snp.get_primary_id() ) ;
+				merged_rsid = this_snp.get_primary_id() ;
 				merged_allele1 = this_snp.get_allele(0) ;
 				merged_allele2 = this_snp.get_allele(1) ;
 
@@ -253,8 +253,8 @@ namespace genfile {
 					std::cerr << "SNP " << this_snp << " is in source " << source_i << ".\n" ;
 #endif
 					this_source_snp.get_identifiers( boost::bind( &combine_ids, &SNPIDs, &merged_SNPID, _1 ) ) ;
-					if( rsids.insert( this_source_snp.get_rsid() ).second ) {
-						merged_rsid += "," + std::string( this_source_snp.get_rsid() ) ;
+					if( rsids.insert( this_source_snp.get_primary_id() ).second ) {
+						merged_rsid += "," + std::string( this_source_snp.get_primary_id() ) ;
 					}
 					if( m_comparator.get_flip_alleles_if_necessary() ) {
 						assert( this_snp.number_of_alleles() == 2 ) ;

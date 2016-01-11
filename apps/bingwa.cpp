@@ -1701,7 +1701,7 @@ private:
 			std::vector< OptionalSnpMatch > snp_matches = range.first->second ;
 			m_snps.erase( range.first ) ;
 			
-			stored_snp.add_identifier( snp.get_rsid() ) ;
+			stored_snp.add_identifier( snp.get_primary_id() ) ;
 			snp.get_identifiers( boost::bind( &genfile::VariantIdentifyingData::add_identifier, &stored_snp, _1 ) ) ;
 
 			snp_matches[ cohort_i ] = snp_match ;

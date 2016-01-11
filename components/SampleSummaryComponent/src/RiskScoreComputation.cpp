@@ -156,7 +156,7 @@ namespace sample_stats {
 
 			RiskScoreIdBetaMap::const_iterator where = m_map[ snp ].find( risk_score_identifier ) ;
 			if( where != m_map[ snp ].end() ) {
-				throw genfile::MalformedInputError( source.get_source_spec(), "SNP " + std::string( snp.get_rsid() ) + " has duplicated entries for risk score " + risk_score_identifier, source.number_of_rows_read() ) ;
+				throw genfile::MalformedInputError( source.get_source_spec(), "SNP " + std::string( snp.get_primary_id() ) + " has duplicated entries for risk score " + risk_score_identifier, source.number_of_rows_read() ) ;
 			}
 
 			m_map[ snp ][ risk_score_identifier ] = betas ;

@@ -164,7 +164,7 @@ void perform_test_against_cvcft(
 		
 		for( std::size_t i = 0; i < my_snps.size(); ++i ) {
 			TEST_ASSERT( my_probs[i] == cvcft_probs[i] ) ;
-			BOOST_CHECK_EQUAL( my_snps[i].get_rsid(), cvcft_snps[i].get_rsid() ) ;
+			BOOST_CHECK_EQUAL( my_snps[i].get_primary_id(), cvcft_snps[i].get_primary_id() ) ;
 			BOOST_CHECK_EQUAL( my_snps[i].get_position(), cvcft_snps[i].get_position() ) ;
 			BOOST_CHECK_EQUAL( my_snps[i].get_allele(0), cvcft_snps[i].get_allele(0) ) ;
 			BOOST_CHECK_EQUAL( my_snps[i].get_allele(1), cvcft_snps[i].get_allele(1) ) ;

@@ -16,7 +16,7 @@ namespace genfile {
 	{}
 
 	bool RSIDInListTest::operator()( VariantIdentifyingData const& data ) const {
-		return m_id_fields.find( data.get_rsid() ) != m_id_fields.end() ;
+		return m_id_fields.find( data.get_primary_id() ) != m_id_fields.end() ;
 	}
 	
 	std::string RSIDInListTest::display() const {

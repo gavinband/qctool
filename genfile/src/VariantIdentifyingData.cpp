@@ -127,7 +127,7 @@ namespace genfile {
 		assert( m_allele_starts.size() == 2 ) ;
 		return SNPIdentifyingData(
 			m_data.substr( m_allele_starts.back(), m_data.size() - m_allele_starts.back() ),
-			get_rsid(),
+			get_primary_id(),
 			get_position(),
 			get_allele(0),
 			get_allele(1)
@@ -233,7 +233,7 @@ namespace genfile {
 
 	void VariantIdentifyingData::add_identifier( slice const& id ) {
 		assert( id.size() > 0 ) ;
-		if( id != get_rsid() ) {
+		if( id != get_primary_id() ) {
 			std::vector< slice > const& ids = get_identifiers(1) ;
 			if( ids.size() > 0 ) {
 				if( std::find( ids.begin(), ids.end(), id ) == ids.end() ) {
@@ -269,7 +269,7 @@ namespace genfile {
 		std::size_t end
 	) const {
 		assert( start <= end ) ;
-		std::vector< genfile::string_utils::slice > elts( 1, get_rsid() ) ;
+		std::vector< genfile::string_utils::slice > elts( 1, get_primary_id() ) ;
 		if( m_allele_starts.back() < m_data.size() ) {
 			slice( m_data, m_allele_starts.back(), m_data.size() ).split( "\t", boost::bind( &push_back, &elts, _1 )) ;
 		}
@@ -296,7 +296,7 @@ namespace genfile {
 	}
 
 	std::ostream& operator<<( std::ostream& out, VariantIdentifyingData const& data ) {
-		out << data.get_rsid() ;
+		out << data.get_primary_id() ;
 		std::vector< genfile::string_utils::slice > const ids = data.get_identifiers( 1 ) ;
 		if( ids.size() > 0 ) {
 			out << " [" ;
@@ -342,10 +342,10 @@ namespace genfile {
 				(left.get_position() == right.get_position())
 				&&
 				(
-					( left.get_rsid() < right.get_rsid() )
+					( left.get_primary_id() < right.get_primary_id() )
 					||
 					(
-						(left.get_rsid() == right.get_rsid())
+						(left.get_primary_id() == right.get_primary_id())
 						&&
 						(
 							(left.get_allele(0) < right.get_allele(0))
@@ -434,10 +434,10 @@ namespace genfile {
 					}
 					break ;
 				case eRSID:
-					if( left.get_rsid() > right.get_rsid() ) {
+					if( left.get_primary_id() > right.get_primary_id() ) {
 						return false ;
 					}
-					else if( left.get_rsid() < right.get_rsid() ) {
+					else if( left.get_primary_id() < right.get_primary_id() ) {
 						return true ;
 					}
 					break ;
@@ -480,7 +480,7 @@ namespace genfile {
 					}
 					break ;
 				case eRSID:
-					if( left.get_rsid() != right.get_rsid() ) {
+					if( left.get_primary_id() != right.get_primary_id() ) {
 						return false ;
 					}
 					break ;

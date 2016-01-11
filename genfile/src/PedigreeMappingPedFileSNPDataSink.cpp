@@ -159,7 +159,7 @@ namespace genfile {
 			(*out) << "T " << m_phenotypes[ phenotype_i ] << "\n" ;
 		}
 		for( std::size_t i = 0 ; i < m_written_snps.size(); ++i ) {
-			(*out) << "M " << m_written_snps[i].get_rsid() << "\n" ;
+			(*out) << "M " << m_written_snps[i].get_primary_id() << "\n" ;
 		}
 		assert( (*out) ) ;
 	}
@@ -171,7 +171,7 @@ namespace genfile {
 			(*file)
 				<< snp.get_position().chromosome()
 				<< " "
-				<< snp.get_rsid()
+				<< snp.get_primary_id()
 				<< " "
 				<< snp.get_position().position()
 				<< "\n" ;

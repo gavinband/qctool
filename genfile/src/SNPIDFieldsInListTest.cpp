@@ -22,7 +22,7 @@ namespace genfile {
 	}
 
 	bool SNPIDFieldsInListTest::operator()( VariantIdentifyingData const& data ) const {
-		if( m_id_fields.find( data.get_rsid() ) != m_id_fields.end() ) {
+		if( m_id_fields.find( data.get_primary_id() ) != m_id_fields.end() ) {
 			return true ;
 		}
 		std::vector< std::string > ids ;
