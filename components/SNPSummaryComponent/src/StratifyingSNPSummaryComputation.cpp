@@ -50,7 +50,7 @@ namespace impl {
 }
 
 void StratifyingSNPSummaryComputation::operator()(
-	SNPIdentifyingData const& snp,
+	VariantIdentifyingData const& snp,
 	Genotypes const& genotypes,
 	SampleSexes const& sexes,
 	genfile::VariantDataReader& data_reader,

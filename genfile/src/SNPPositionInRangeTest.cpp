@@ -8,7 +8,7 @@
 #include <string>
 #include <cassert>
 #include "genfile/GenomePosition.hpp"
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 #include "genfile/SNPPositionInRangeTest.hpp"
 #include "genfile/string_utils.hpp"
 
@@ -18,14 +18,8 @@ namespace genfile {
 	{
 	}
 		
-	bool SNPPositionInRangeTest::operator()(
-		std::string,
-		std::string,
-		GenomePosition position,
-		std::string,
-		std::string
-	) const {
-		return m_range.contains( position ) ;
+	bool SNPPositionInRangeTest::operator()( VariantIdentifyingData const& data ) const {
+		return m_range.contains( data.get_position() ) ;
 	}
 	
 	std::string SNPPositionInRangeTest::display() const {

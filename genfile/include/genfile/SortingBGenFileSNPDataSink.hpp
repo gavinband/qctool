@@ -62,7 +62,7 @@ namespace genfile {
 	private:
 		std::string m_filename ;
 		SNPDataSink::UniquePtr m_sink ;
-		typedef std::multimap< SNPIdentifyingData, std::pair< std::ostream::streampos, std::ostream::streampos > > OffsetMap ;
+		typedef std::multimap< VariantIdentifyingData, std::pair< std::ostream::streampos, std::ostream::streampos > > OffsetMap ;
 		OffsetMap m_file_offsets ;
 		std::ostream::streampos m_offset_of_first_snp ;
 	} ;

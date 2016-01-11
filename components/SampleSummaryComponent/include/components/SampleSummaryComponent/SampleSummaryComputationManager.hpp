@@ -13,7 +13,7 @@
 #include <boost/signals2/signal.hpp>
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/SNPDataSourceProcessor.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/Chromosome.hpp"
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
@@ -27,7 +27,7 @@ struct SampleSummaryComputationManager: public genfile::SNPDataSourceProcessor::
 	void add( std::string const& name, std::string const& snp_set, SampleSummaryComputation::UniquePtr ) ;
 
 	void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) ;
-	void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& data_reader ) ;
+	void processed_snp( genfile::VariantIdentifyingData const&, genfile::VariantDataReader& data_reader ) ;
 	void end_processing_snps() ;
 
 	void add_computation( std::string const& name, SampleSummaryComputation::UniquePtr computation ) ;

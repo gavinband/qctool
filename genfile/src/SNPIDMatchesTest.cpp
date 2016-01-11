@@ -6,7 +6,7 @@
 
 #include <string>
 #include <cassert>
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 #include "genfile/SNPIDMatchesTest.hpp"
 #include "genfile/string_utils.hpp"
 #include "genfile/Error.hpp"
@@ -54,25 +54,28 @@ namespace genfile {
 		}
 	}
 
-	bool SNPIDMatchesTest::operator()(
-		std::string SNPID,
-		std::string RSID,
-		GenomePosition,
-		std::string,
-		std::string
-	) const {
-		if( m_type == eSNPID ) {
-			return match( SNPID ) ;
+	namespace {
+		void insert_value( std::vector< std::string >* target, std::string const& id ) {
+			target->push_back( id ) ;
 		}
-		else if( m_type == eRSID ) {
-			return match( RSID ) ;
+	}
+
+	bool SNPIDMatchesTest::operator()( VariantIdentifyingData const& data ) const {
+		std::vector< std::string > ids ;
+		if( m_type == eSNPID || m_type == eEITHER ) {
+			data.get_alleles( boost::bind( &insert_value, &ids, _1 )) ;
 		}
-		else if( m_type == eEITHER ) {
-			return match( SNPID ) || match( RSID ) ;
+		if( ( m_type == eRSID || m_type == eEITHER ) && match( data.get_primary_id() ) ) {
+			return true ;
 		}
-		else {
-			assert(0) ;
+		if( m_type == eSNPID || m_type == eEITHER ) {
+			for( std::size_t i = 0; i < ids.size(); ++i ) {
+				if( match( ids[i] ) ) {
+					return true ;
+				}
+			}
 		}
+		return false ;
 	}
 	
 	bool SNPIDMatchesTest::match( std::string const& s ) const {

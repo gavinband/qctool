@@ -11,7 +11,7 @@
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/SNPDataSink.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "qcdb/DBOutputter.hpp"
 #include "appcontext/OptionProcessor.hpp"
@@ -35,10 +35,10 @@ namespace impl {
 		~SNPOutputter() ;
 		
 		void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& metadata ) ;
-		void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& data_reader ) ;
+		void processed_snp( genfile::VariantIdentifyingData const&, genfile::VariantDataReader& data_reader ) ;
 		void end_processing_snps() ;
 		
-		typedef boost::function< void ( genfile::SNPIdentifyingData const& snp, genfile::SNPDataSink& sink ) > IndexCallback ;
+		typedef boost::function< void ( genfile::VariantIdentifyingData const& snp, genfile::SNPDataSink& sink ) > IndexCallback ;
 		void send_index_to( impl::SNPDataSourceIndex::UniquePtr index ) ;
 
 	private:

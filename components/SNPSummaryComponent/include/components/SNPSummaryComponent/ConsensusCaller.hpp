@@ -9,7 +9,7 @@
 
 #include <boost/signals2/signal.hpp>
 #include "genfile/SNPDataSourceProcessor.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/VCFFormatSNPDataSink.hpp"
 #include "PairwiseCallComparerManager.hpp"
@@ -31,7 +31,7 @@ public:
 public:
 	typedef boost::signals2::signal<
 		void (
-			genfile::SNPIdentifyingData const&,
+			genfile::VariantIdentifyingData const&,
 			Eigen::MatrixXd const&,
 			std::map< std::string, std::vector< genfile::VariantEntry > > const&
 		)
@@ -39,14 +39,14 @@ public:
 
 	void send_results_to( ResultSignal::slot_type ) ;
 	void send_results(
-		genfile::SNPIdentifyingData const& snp,
+		genfile::VariantIdentifyingData const& snp,
 		Eigen::MatrixXd const& genotypes,
 		std::map< std::string, std::vector< genfile::VariantEntry > > const& info
 	) ;
 
 	void begin_processing_snps( std::size_t number_of_samples ) ;
 	
-	void begin_comparisons( genfile::SNPIdentifyingData const& snp ) ;
+	void begin_comparisons( genfile::VariantIdentifyingData const& snp ) ;
 	virtual void set_result(
 		std::string const& comparison,
 		std::string const& accepted_calls,
@@ -55,12 +55,12 @@ public:
 	void end_comparisons() ;
 
 	std::size_t get_number_of_samples() const { return m_number_of_samples ; }
-	genfile::SNPIdentifyingData const& get_snp() const { return m_snp ; }
+	genfile::VariantIdentifyingData const& get_snp() const { return m_snp ; }
 	std::vector< std::string > const& get_consensus_call_names() const { return m_call_names ; }
 private:
 	std::vector< std::string > m_call_names ;
 	ResultSignal m_result_signal ;
-	genfile::SNPIdentifyingData m_snp ;
+	genfile::VariantIdentifyingData m_snp ;
 	std::size_t m_number_of_samples ;
 } ;
 

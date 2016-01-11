@@ -6,7 +6,7 @@
 
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/Error.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/string_utils.hpp"
 #include "genfile/GenomePosition.hpp"
 #include "statfile/BuiltInTypeStatSource.hpp"
@@ -48,31 +48,17 @@ namespace statfile {
 		return prefix + "SNPDataSourceAdapter( " + m_source->get_source_spec() + " )" ;
 	}
 
-	void SNPDataSourceAdapter::get_snp_identifying_data_impl( 
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2
-	) {
+	void SNPDataSourceAdapter::get_snp_identifying_data_impl( genfile::VariantIdentifyingData* result ) {
 		if( m_source->current_column() == 0 ) {
 			std::string SNPID, rsid, chr_string, alleleA, alleleB ;
 			uint32_t position ;
 			(*m_source) >> SNPID >> rsid >> chr_string >> position >> alleleA >> alleleB ;
 			if( *this ) {
-				m_snp = genfile::SNPIdentifyingData( SNPID, rsid, genfile::GenomePosition( chr_string, position ), alleleA, alleleB ) ;
+				m_snp = genfile::VariantIdentifyingData( SNPID, rsid, genfile::GenomePosition( chr_string, position ), alleleA, alleleB ) ;
 			}
 		}
 		if( *this ) {
-			set_number_of_samples( 0 ) ;
-			set_SNPID( m_snp.get_SNPID() ) ;
-			set_RSID( m_snp.get_rsid() ) ;
-			set_chromosome( m_snp.get_position().chromosome() ) ;
-			set_SNP_position( m_snp.get_position().position() ) ;
-			set_allele1( m_snp.get_first_allele() ) ;
-			set_allele2( m_snp.get_second_allele() ) ;
+			*result = m_snp ;
 		}
 	}
 

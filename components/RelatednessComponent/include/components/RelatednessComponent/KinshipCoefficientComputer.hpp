@@ -11,7 +11,7 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/signals2.hpp>
 #include "Eigen/Core"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
@@ -55,7 +55,7 @@ public:
 	) ;
 
 	void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) ;
-	void processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) ;
+	void processed_snp( genfile::VariantIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) ;
 	void end_processing_snps() ;
 
 private:
@@ -115,7 +115,7 @@ namespace impl {
 		std::string get_summary() const ;
 		
 		void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) ;
-		void processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) ;
+		void processed_snp( genfile::VariantIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) ;
 		void end_processing_snps() ;
 		std::size_t number_of_snps_included() const ;
 	private:
@@ -138,7 +138,7 @@ namespace impl {
 		Computation::IntegerMatrix const& nonmissingness() const ;
 		std::string get_summary() const ;
 		void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) ;
-		void processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) ;
+		void processed_snp( genfile::VariantIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) ;
 		void end_processing_snps() ;
 		std::size_t number_of_snps_included() const ;
 	private:

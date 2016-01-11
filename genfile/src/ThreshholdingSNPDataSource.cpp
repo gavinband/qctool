@@ -7,7 +7,7 @@
 #include <queue>
 #include <memory>
 #include <boost/format.hpp>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/ThreshholdingSNPDataSource.hpp"
@@ -64,18 +64,8 @@ namespace genfile {
 	std::string ThreshholdingSNPDataSource::get_summary( std::string const& prefix, std::size_t column_width ) const {
 		return "ThreshholdingSNPDataSource(" + m_source->get_source_spec() + ")" ;
 	}
-	void ThreshholdingSNPDataSource::get_snp_identifying_data_impl( 
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2
-	) {
-		m_source->get_snp_identifying_data(
-			set_number_of_samples, set_SNPID, set_RSID, set_chromosome, set_SNP_position, set_allele1, set_allele2
-		) ;
+	void ThreshholdingSNPDataSource::get_snp_identifying_data_impl( VariantIdentifyingData* variant	) {
+		m_source->get_snp_identifying_data( variant ) ;
 	}
 
 	namespace {
@@ -122,28 +112,28 @@ namespace genfile {
 					// assume diploid
 					m_target.set_number_of_entries( ploidy, 2, ePerUnorderedHaplotype, eAlleleIndex ) ;
 				}
-				void set_value( MissingValue const value ) {
+				void set_value( std::size_t, MissingValue const value ) {
 					m_missing = true ;
 					m_entry_i++ ;
 					if( m_entry_i == m_calls.size() ) { 
 						send_results() ;
 					}
 				}
-				void set_value( std::string& value ) {
+				void set_value( std::size_t, std::string& value ) {
 					throw BadArgumentError(
 						"genfile::ThreshholdingDataReader::Threshholder::set_value",
 						"value",
 						"Expected a floating-point value (got a string)."
 					) ;
 				}
-				void set_value( Integer const value ) {
+				void set_value( std::size_t, Integer const value ) {
 					throw BadArgumentError(
 						"genfile::ThreshholdingDataReader::Threshholder::set_value",
 						"value",
 						"Expected a floating-point value (got an integer)."
 					) ;
 				}
-				void set_value( double const value ) {
+				void set_value( std::size_t, double const value ) {
 					m_calls( m_entry_i++ ) = value ;
 					if( m_entry_i == m_calls.size() ) { 
 						send_results() ;
@@ -161,24 +151,24 @@ namespace genfile {
 			private:
 				void send_results() {
 					if( m_missing || m_calls.array().maxCoeff() < m_threshhold ) {
-						m_target.set_value( genfile::MissingValue() ) ;
-						m_target.set_value( genfile::MissingValue() ) ;
+						m_target.set_value( 0, genfile::MissingValue() ) ;
+						m_target.set_value( 1, genfile::MissingValue() ) ;
 					} else {
 						if( m_calls(0) >= m_threshhold ) {
-							m_target.set_value( Integer( 0 ) ) ;
-							m_target.set_value( Integer( 0 ) ) ;
+							m_target.set_value( 0, Integer( 0 ) ) ;
+							m_target.set_value( 1, Integer( 0 ) ) ;
 						}
 						else if( m_calls(1) >= m_threshhold ) {
-							m_target.set_value( Integer( 0 ) ) ;
-							m_target.set_value( Integer( 1 ) ) ;
+							m_target.set_value( 0, Integer( 0 ) ) ;
+							m_target.set_value( 1, Integer( 1 ) ) ;
 						}
 						else if( m_calls(2) >= m_threshhold ) {
-							m_target.set_value( Integer( 1 ) ) ;
-							m_target.set_value( Integer( 1 ) ) ;
+							m_target.set_value( 0, Integer( 1 ) ) ;
+							m_target.set_value( 1, Integer( 1 ) ) ;
 						}
 						else {
-							m_target.set_value( genfile::MissingValue() ) ;
-							m_target.set_value( genfile::MissingValue() ) ;
+							m_target.set_value( 0, genfile::MissingValue() ) ;
+							m_target.set_value( 1, genfile::MissingValue() ) ;
 						}
 					}
 				}

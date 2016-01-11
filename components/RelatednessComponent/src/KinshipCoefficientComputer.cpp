@@ -19,7 +19,7 @@
 #endif
 #include "Eigen/Core"
 #include "Eigen/Eigenvalues"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
@@ -539,7 +539,7 @@ namespace impl {
 	}
 	
 	void NormaliseGenotypesAndComputeXXt::processed_snp(
-		genfile::SNPIdentifyingData const& id_data,
+		genfile::VariantIdentifyingData const& id_data,
 		genfile::VariantDataReader::SharedPtr data_reader
 	) {
 		KinshipCoefficientComputer::Computation::Vector genotypes ;
@@ -727,7 +727,7 @@ namespace impl {
 #endif
 
 	void NormaliseGenotypesAndComputeXXtFast::processed_snp(
-		genfile::SNPIdentifyingData const& id_data,
+		genfile::VariantIdentifyingData const& id_data,
 		genfile::VariantDataReader::SharedPtr data_reader
 	) {
 		// std::vector< std::size_t > m_genotypes
@@ -951,7 +951,7 @@ void KinshipCoefficientComputer::begin_processing_snps( std::size_t number_of_sa
 	m_computation->begin_processing_snps( number_of_samples, metadata ) ;
 }
 
-void KinshipCoefficientComputer::processed_snp( genfile::SNPIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) {
+void KinshipCoefficientComputer::processed_snp( genfile::VariantIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) {
 	m_computation->processed_snp( id_data, data_reader ) ;
 }
 

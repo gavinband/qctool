@@ -44,7 +44,7 @@
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter getter ) ;
 
 		void write_variant_data_impl(
-			genfile::SNPIdentifyingData const& id_data,
+			genfile::VariantIdentifyingData const& id_data,
 			genfile::VariantDataReader& data_reader,
 			Info const& info = Info()
 		) ;

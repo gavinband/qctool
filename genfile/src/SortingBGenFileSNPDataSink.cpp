@@ -49,7 +49,7 @@ namespace genfile {
 		GenotypeProbabilityGetter const& get_BB_probability,
 		Info const& info
 	) {
-		SNPIdentifyingData snp(
+		VariantIdentifyingData snp(
 			SNPID,
 			RSID,
 			GenomePosition( chromosome, SNP_position ),

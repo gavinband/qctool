@@ -6,7 +6,7 @@
 
 #include "genfile/Error.hpp"
 #include "genfile/SNPDataSource.hpp"
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 #include "genfile/SNPFilteringSNPDataSource.hpp"
 #include "genfile/get_set.hpp"
 
@@ -87,36 +87,14 @@ namespace genfile {
 	}
 
 	void SNPFilteringSNPDataSource::get_snp_identifying_data_impl( 
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2
+		VariantIdentifyingData* result
 	) {
+		VariantIdentifyingData variant ;
 		while( (*m_source) && m_indices_of_excluded_snps.find( m_source->number_of_snps_read() ) != m_indices_of_excluded_snps.end() ) {
-			m_source->get_snp_identifying_data(
-				ignore(),
-				ignore(),
-				ignore(),
-				ignore(),
-				ignore(),
-				ignore(),
-				ignore()
-			) ;
-			
+			m_source->get_snp_identifying_data( &variant ) ;
 			m_source->ignore_snp_probability_data() ;
 		}
-		m_source->get_snp_identifying_data(
-			set_number_of_samples,
-			set_SNPID,
-			set_RSID,
-			set_chromosome,
-			set_SNP_position,
-			set_allele1,
-			set_allele2
-		) ;
+		m_source->get_snp_identifying_data( result ) ;
 	}
 
 	VariantDataReader::UniquePtr SNPFilteringSNPDataSource::read_variant_data_impl() {

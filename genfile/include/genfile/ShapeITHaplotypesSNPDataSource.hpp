@@ -9,7 +9,7 @@
 
 #include <string>
 #include <vector>
-#include "genfile/SNPDataSource.hpp"
+#include "genfile/IdentifyingDataCachingSNPDataSource.hpp"
 #include "genfile/string_utils/slice.hpp"
 
 namespace genfile {
@@ -39,19 +39,8 @@ namespace genfile {
 
 	private:
 		void reset_to_start_impl() ;
-		
-		void read_snp_identifying_data_impl( 
-			uint32_t* number_of_samples,
-			std::string* SNPID,
-			std::string* RSID,
-			Chromosome* chromosome,
-			uint32_t* SNP_position,
-			std::string* allele1,
-			std::string* allele2
-		) ;
-
+		void read_snp_identifying_data_impl( VariantIdentifyingData* result ) ;
 		VariantDataReader::UniquePtr read_variant_data_impl() ;
-
 		void ignore_snp_probability_data_impl() ;
 
 	private:
@@ -61,7 +50,7 @@ namespace genfile {
 		std::auto_ptr< std::istream > m_stream_ptr ;
 		bool m_have_chromosome_column ;
 		Chromosome m_chromosome ;
-		genfile::SNPIdentifyingData m_current_snp ;
+		genfile::VariantIdentifyingData m_current_snp ;
 		bool m_good ;
 		std::string m_current_line ;
 		

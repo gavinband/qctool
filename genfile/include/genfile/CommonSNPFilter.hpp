@@ -14,26 +14,20 @@
 #include "genfile/GenomePosition.hpp"
 #include "genfile/GenomePositionRange.hpp"
 #include "genfile/SNPDataSource.hpp"
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 
 namespace genfile {
-	class CommonSNPFilter: public SNPIdentifyingDataTest
+	class CommonSNPFilter: public VariantIdentifyingDataTest
 		/*
 		* This class acts as an easier-to-use frontend for a conjunction
-		* of common SNPIdentifyingDataTest types.
+		* of common VariantIdentifyingDataTest types.
 		*/
 	{
 	public:
 		typedef std::auto_ptr< CommonSNPFilter > UniquePtr ;
 		
-		using SNPIdentifyingDataTest::operator() ;
-		bool operator()(
-			std::string SNPID,
-			std::string RSID,
-			GenomePosition position,
-			std::string first_allele,
-			std::string second_allele
-		) const ;
+		using VariantIdentifyingDataTest::operator() ;
+		bool operator()( VariantIdentifyingData const& data ) const ;
 
 		std::string display() const ;
 
@@ -50,8 +44,8 @@ namespace genfile {
 		CommonSNPFilter& exclude_snps_not_in_set( std::set< std::string > const& set, int fields ) ;
 		CommonSNPFilter& include_snps_in_set( std::set< std::string > const& set, int fields ) ;
 
-		CommonSNPFilter& exclude_snps( std::vector< SNPIdentifyingData > const& snps, SNPIdentifyingData::CompareFields const& comparer = SNPIdentifyingData::CompareFields() ) ;
-		CommonSNPFilter& include_snps( std::vector< SNPIdentifyingData > const& snps, SNPIdentifyingData::CompareFields const& comparer = SNPIdentifyingData::CompareFields() ) ;
+		CommonSNPFilter& exclude_snps( std::vector< VariantIdentifyingData > const& snps, VariantIdentifyingData::CompareFields const& comparer = VariantIdentifyingData::CompareFields() ) ;
+		CommonSNPFilter& include_snps( std::vector< VariantIdentifyingData > const& snps, VariantIdentifyingData::CompareFields const& comparer = VariantIdentifyingData::CompareFields() ) ;
 		
 		CommonSNPFilter& exclude_chromosomes_in_set( std::set< genfile::Chromosome > const& set ) ;
 		CommonSNPFilter& exclude_chromosomes_not_in_set( std::set< genfile::Chromosome > const& set ) ;
@@ -66,10 +60,10 @@ namespace genfile {
 		CommonSNPFilter& include_snps_in_range( genfile::GenomePositionRange const& range ) ;
 
 	private:
-		SNPIdentifyingDataTestConjunction m_filter ;
-		std::map< std::string, CompoundSNPIdentifyingDataTest* > m_inclusion_filters ;
+		VariantIdentifyingDataTestConjunction m_filter ;
+		std::map< std::string, CompoundVariantIdentifyingDataTest* > m_inclusion_filters ;
 	private:
-		SNPIdentifyingDataTest::UniquePtr construct_snp_inclusion_test( std::set< std::string > const& set, int fields ) ;
+		VariantIdentifyingDataTest::UniquePtr construct_snp_inclusion_test( std::set< std::string > const& set, int fields ) ;
 		void add_inclusion_filter_if_necessary( std::string const& name ) ;
 		std::set< std::string > read_strings_from_file( std::string const& filename ) ;
 	} ;

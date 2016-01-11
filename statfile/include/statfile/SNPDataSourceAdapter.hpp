@@ -9,7 +9,7 @@
 
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/Error.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "statfile/BuiltInTypeStatSource.hpp"
 
@@ -24,15 +24,8 @@ namespace statfile {
 
 		std::string get_source_spec() const ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
-		void get_snp_identifying_data_impl( 
-			IntegerSetter const& set_number_of_samples,
-			StringSetter const& set_SNPID,
-			StringSetter const& set_RSID,
-			ChromosomeSetter const& set_chromosome,
-			SNPPositionSetter const& set_SNP_position,
-			AlleleSetter const& set_allele1,
-			AlleleSetter const& set_allele2
-		) ;	
+
+		void get_snp_identifying_data_impl( genfile::VariantIdentifyingData* result ) ;
 
 		void read_snp_probability_data_impl(
 			GenotypeProbabilitySetter const& ,
@@ -45,7 +38,7 @@ namespace statfile {
 		
 	private:
 		BuiltInTypeStatSource::UniquePtr m_source ;
-		genfile::SNPIdentifyingData m_snp ;
+		genfile::VariantIdentifyingData m_snp ;
 	private:
 		void setup() ;
 	} ;

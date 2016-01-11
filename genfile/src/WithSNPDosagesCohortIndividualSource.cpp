@@ -22,12 +22,12 @@
 #include "genfile/get_set.hpp"
 #include "genfile/get_set_eigen.hpp"
 #include "genfile/WithSNPDosagesCohortIndividualSource.hpp"
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 #include "genfile/SNPIDMatchesTest.hpp"
 
 
 namespace genfile {
-	SNPIdentifyingDataTest::UniquePtr WithSNPDosagesCohortIndividualSource::create_snp_matcher( std::string test_spec, std::string const& splitter ) {
+	VariantIdentifyingDataTest::UniquePtr WithSNPDosagesCohortIndividualSource::create_snp_matcher( std::string test_spec, std::string const& splitter ) {
 		std::vector< std::string >  bits = genfile::string_utils::split_and_strip( test_spec, splitter, " " ) ;
 		if( bits.size() == 0 || bits.size() > 2 ) {
 			throw genfile::BadArgumentError( "SNPMatcher::create()", "test_spec = \"" + test_spec + "\"" ) ;
@@ -40,13 +40,13 @@ namespace genfile {
 		assert( bits.size() == 2 ) ;
 
 		if( bits[0] == "rsid" ) {
-			return SNPIdentifyingDataTest::UniquePtr( new SNPIDMatchesTest( "rsid~" + bits[1] )) ;
+			return VariantIdentifyingDataTest::UniquePtr( new SNPIDMatchesTest( "rsid~" + bits[1] )) ;
 		}
 		else if( bits[0] == "snpid" ) {
-			return SNPIdentifyingDataTest::UniquePtr( new SNPIDMatchesTest( "snpid~" + bits[1] )) ;
+			return VariantIdentifyingDataTest::UniquePtr( new SNPIDMatchesTest( "snpid~" + bits[1] )) ;
 		}
 		else if( bits[0] == "pos" || bits[0] == "position" ) {
-			return SNPIdentifyingDataTest::UniquePtr( new PositionMatchesTest( bits[1] )) ;
+			return VariantIdentifyingDataTest::UniquePtr( new PositionMatchesTest( bits[1] )) ;
 		}
 		else {
 			throw genfile::BadArgumentError( "genfile::create_matcher()", "test_spec = \"" + test_spec + "\"" ) ;
@@ -57,14 +57,8 @@ namespace genfile {
 		m_position( position )
 	{}
 
-	bool PositionMatchesTest::operator()(
-		std::string,
-		std::string,
-		GenomePosition position,
-		std::string,
-		std::string
-	) const {
-		return position == m_position ;
+	bool PositionMatchesTest::operator()( VariantIdentifyingData const& data ) const {
+		return data.get_position() == m_position ;
 	}
 		
 	std::string PositionMatchesTest::display() const {
@@ -133,23 +127,13 @@ namespace genfile {
 		SNPDosageSpec const& snp_matchers
 	) {
 		std::map< std::string, std::size_t > snp_counts ;
-		std::string snpid, rsid ;
-		GenomePosition position ;
-		std::string allele1, allele2 ;
+		VariantIdentifyingData snp ;
 		while(
-			snp_data_source.get_snp_identifying_data(
-				genfile::ignore(),
-				genfile::set_value( snpid ),
-				genfile::set_value( rsid ),
-				genfile::set_value( position.chromosome() ),
-				genfile::set_value( position.position() ),
-				genfile::set_value( allele1 ),
-				genfile::set_value( allele2 )
-			)
+			snp_data_source.get_snp_identifying_data( &snp )
 		) {
 			SNPDosageSpec::const_iterator where = snp_matchers.begin() ;
 			for( ; where != snp_matchers.end(); ++where ) {
-				if( where->first->operator()( snpid, rsid, position, allele1, allele2 )) {
+				if( where->first->operator()( snp )) {
 					break ;
 				}
 			}

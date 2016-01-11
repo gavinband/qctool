@@ -76,7 +76,7 @@ void SampleSummaryComponent::setup(
 		sample_stats::RiskScoreComputation::UniquePtr computation(
 			new sample_stats::RiskScoreComputation(
 				m_samples,
-				genfile::SNPIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
+				genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
 			)
 		) ;
 

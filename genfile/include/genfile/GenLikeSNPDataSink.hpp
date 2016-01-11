@@ -32,7 +32,7 @@ namespace genfile {
 		operator bool() const ;
 		std::ostream& stream() { return *m_stream_ptr ; }
 		std::string const& filename() const { return m_filename ; }
-		void write_variant( std::ostream& out, genfile::SNPIdentifyingData const& variant ) ;
+		void write_variant( std::ostream& out, genfile::VariantIdentifyingData const& variant ) ;
 		bool write_chromosome_column() const { return m_write_chromosome_column ; }
 
 	private:

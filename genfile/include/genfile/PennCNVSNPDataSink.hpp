@@ -34,7 +34,7 @@ namespace genfile {
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) ;
 		void set_metadata_impl( Metadata const& ) {} ;
 		void write_variant_data_impl(
-			SNPIdentifyingData const& id_data,
+			VariantIdentifyingData const& id_data,
 			VariantDataReader& data_reader,
 			Info const& info
 		) ;

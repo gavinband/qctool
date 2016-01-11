@@ -8,7 +8,7 @@
 #define GENFILE_SAMPLE_MAPPING_SNP_DATA_SOURCE_HPP
 
 #include <vector>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 
@@ -36,16 +36,7 @@ namespace genfile {
 		SNPDataSource const& get_parent_source() const ;
 
 		private:
-			void get_snp_identifying_data_impl( 
-				IntegerSetter const& set_number_of_samples,
-				StringSetter const& set_SNPID,
-				StringSetter const& set_RSID,
-				ChromosomeSetter const& set_chromosome,
-				SNPPositionSetter const& set_SNP_position,
-				AlleleSetter const& set_allele1,
-				AlleleSetter const& set_allele2
-			) ;	
-
+			void get_snp_identifying_data_impl( VariantIdentifyingData* variant ) ;
 			VariantDataReader::UniquePtr read_variant_data_impl()  ;
 
 			void ignore_snp_probability_data_impl() ;
