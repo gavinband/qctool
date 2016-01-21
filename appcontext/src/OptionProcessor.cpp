@@ -47,7 +47,8 @@ namespace appcontext {
 			m_unknown_options( other.m_unknown_options ),
 			m_current_group( other.m_current_group ),
 			m_option_groups( other.m_option_groups ),
-			m_help_option_name( other.m_help_option_name )
+			m_help_option_name( other.m_help_option_name ),
+			m_spec_option_name( other.m_spec_option_name )
 	{}
 
 	OptionProcessor::~OptionProcessor() {}
@@ -77,6 +78,7 @@ namespace appcontext {
 		if( std::count( m_option_group_names.begin(), m_option_group_names.end(), m_current_group ) == 0 ) {
 			m_option_group_names.push_back( m_current_group ) ;
 		}
+		m_option_definitions[ arg ] = OptionDefinition( arg ) ;
 		return m_option_definitions[ arg ] ;
 	}
 
@@ -148,6 +150,10 @@ namespace appcontext {
 			if( arg == m_help_option_name ) {
 				throw OptionProcessorHelpRequestedException() ;
 			}
+			else if( arg == m_spec_option_name ) {
+				throw OptionProcessorSpecRequestedException() ;
+			}
+			std::map< std::string, OptionDefinition >::const_iterator arg_i = m_option_definitions.find( arg ) ;
 			if( !try_to_parse_named_option_and_values( argc, argv, i )) {
 				if( !try_to_parse_positional_option( argc, argv, i )) {
 					m_unknown_options[i] = argv[i] ;
@@ -344,9 +350,7 @@ namespace appcontext {
 		std::map< std::string, OptionDefinition >::const_iterator defn_i
 			= m_option_definitions.find( arg ) ;
 		assert( defn_i != m_option_definitions.end() ) ;
-		if( !defn_i->second.has_default_value() ) {
-			throw OptionProcessingException( arg, std::vector< std::string >(), "Option \"" + arg + "\" has no default value." ) ;
-		}
+		assert( defn_i->second.has_default_value() ) ;
 		return defn_i->second.default_value() ;
 	}
 
@@ -400,19 +404,19 @@ namespace appcontext {
 	}
 
 	std::string OptionProcessor::format_option_and_arguments( std::string const& option_name ) const {
-		std::ostringstream oStream ;
-		oStream
+		std::ostringstream ostream ;
+		ostream
 			<< option_name ;
 		char arg_name = 'a' ;
 		if( (*this)[option_name].number_of_values_per_use() == OptionDefinition::eUntilNextOption ) {
-			oStream << " <a> <b>..." ;
+			ostream << " <a> <b>..." ;
 		}
 		else {
 			for( std::size_t i = 1 ; i <= (*this)[option_name].number_of_values_per_use(); ++i ) {
-				oStream << " <" << arg_name++ << ">" ;
+				ostream << " <" << arg_name++ << ">" ;
 			}
 		}
-		return oStream.str() ;
+		return ostream.str() ;
 	}
 
 	void OptionProcessor::format_option_and_description( std::ostream& aStream, std::string const& option_name, std::size_t max_option_length ) const {
@@ -461,6 +465,22 @@ namespace appcontext {
 		return max_option_length ;
 	}
 
+	std::string OptionProcessor::format_spec() const {
+		std::ostringstream ostream ;
+		OptionDefinitions::const_iterator i = m_option_definitions.begin() ;
+		OptionDefinitions::const_iterator const end_i = m_option_definitions.end() ;
+
+		ostream  << "{\n" ;
+		std::size_t const indent = 2 ;
+		for( std::size_t count = 0; i != end_i; ++count ) {
+			ostream
+				<< i->second.format_spec( indent ) ;
+			++i ;
+			ostream << ( (i == end_i) ? "\n" : ",\n" ) ;
+		}
+		ostream << "}\n" ;
+		return ostream.str() ;
+	}
 
 	// get the values of the given option as a whitespace-separated string
 	// Note: from this function, it may not possible to determine if an option value
