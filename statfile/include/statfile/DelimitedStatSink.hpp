@@ -92,6 +92,7 @@ namespace statfile {
 		}
 
 		void write_descriptive_text() ;
+		void write_comment( std::string const& comment ) ;
 		void write_column_names() ;
 
 		void move_to_next_row_impl() {
