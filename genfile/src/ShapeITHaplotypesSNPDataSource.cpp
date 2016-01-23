@@ -67,7 +67,7 @@ namespace genfile {
 	SNPDataSource::Metadata ShapeITHaplotypesSNPDataSource::get_metadata() const {
 		std::map< std::string, std::string > format ;
 		format[ "ID" ] = "GT" ;
-		format[ "Number" ] = "A" ;
+		format[ "Number" ] = "1" ;
 		format[ "Type" ] = "String" ;
 		format[ "Description" ] = "Phased haplotype calls" ;
 		SNPDataSource::Metadata result ;
