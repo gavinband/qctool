@@ -28,6 +28,13 @@ namespace genfile {
 			SNPDataSink::UniquePtr m_sink
 		) ;
 
+		void write_variant_data_impl(
+				SNPIdentifyingData const& id_data,
+				VariantDataReader& data_reader,
+				Info const& info
+		) ;
+
+#if 0
 		void write_snp_impl(
 			uint32_t number_of_samples,
 			std::string SNPID,
@@ -41,7 +48,7 @@ namespace genfile {
 			GenotypeProbabilityGetter const& get_BB_probability,
 			Info const&
 		) ;
-
+#endif
 		~SortingBGenFileSNPDataSink() ;
 		
 		std::string get_spec() const ;
