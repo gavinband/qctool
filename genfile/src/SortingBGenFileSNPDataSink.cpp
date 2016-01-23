@@ -35,7 +35,23 @@ namespace genfile {
 		return m_filename ;
 	}
 
-
+	void SortingBGenFileSNPDataSink::write_variant_data_impl(
+			SNPIdentifyingData const& id_data,
+			VariantDataReader& data_reader,
+			Info const& info
+	) {
+		OffsetMap::iterator offset_i = m_file_offsets.insert(
+			std::make_pair(
+				id_data,
+				std::make_pair(
+					m_sink->get_stream_pos().second,
+					m_sink->get_stream_pos().second
+				)
+			)
+		) ;
+		m_sink->write_variant_data( id_data, data_reader, info ) ;
+	}
+#if 0
 	void SortingBGenFileSNPDataSink::write_snp_impl(
 		uint32_t number_of_samples,
 		std::string SNPID,
@@ -82,7 +98,7 @@ namespace genfile {
 		
 		offset_i->second.second = m_sink->get_stream_pos().second ;
 	}
-
+#endif
 	SortingBGenFileSNPDataSink::~SortingBGenFileSNPDataSink() {
 		// Ensure temporary file is flushed.
 		m_sink.reset() ;
