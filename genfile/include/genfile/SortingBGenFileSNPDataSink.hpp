@@ -39,6 +39,7 @@ namespace genfile {
 		std::string get_spec() const ;
 		
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) ;
+		void set_metadata_impl( Metadata const& ) ;
 		
 	public:
 		// return the number of samples represented in SNPs in the file.

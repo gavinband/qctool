@@ -93,7 +93,7 @@ namespace genfile {
 				std::pair< std::ostream::streampos, std::ostream::streampos > chunk ;
 				chunk.first = 0 ;
 				chunk.second = m_offset_of_first_snp ;
-				// std::cerr << "copying 0th chunk " << chunk.first << " - " << chunk.second << " of " << m_file_offsets.size() << "...\n" ;
+				//std::cerr << "copying 0th chunk " << chunk.first << " - " << chunk.second << " of " << m_file_offsets.size() << "...\n" ;
 				for( std::ostream::streampos i = 0; i < chunk.second; i += buffer.size() ) {
 					std::size_t n = std::min( std::size_t( chunk.second - i ), buffer.size() ) ;
 					input.read( &buffer[0], n ) ;
@@ -122,5 +122,10 @@ namespace genfile {
 	void SortingBGenFileSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter name_getter ) {
 		m_sink->set_sample_names( number_of_samples, name_getter ) ;
 		m_offset_of_first_snp = m_sink->get_stream_pos().second ;
+	}
+
+
+	void SortingBGenFileSNPDataSink::set_metadata_impl( Metadata const& metadata ) {
+		m_sink->set_metadata( metadata ) ;
 	}
 }
