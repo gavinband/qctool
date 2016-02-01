@@ -9,29 +9,18 @@
 
 #include <set>
 #include <string>
-#include "SNPIdentifyingData.hpp"
-#include "SNPIdentifyingDataTest.hpp"
+#include "VariantIdentifyingData.hpp"
+#include "VariantIdentifyingDataTest.hpp"
 
 namespace genfile {
-	struct SNPInSetTest: public SNPIdentifyingDataTest
+	struct SNPInSetTest: public VariantIdentifyingDataTest
 	{
 	public:
-		SNPInSetTest( std::set< SNPIdentifyingData > const&, SNPIdentifyingData::CompareFields const& comparer ) ;
-
-		bool operator()( SNPIdentifyingData const& data ) const ;
-
-		bool operator()(
-			std::string SNPID,
-			std::string RSID,
-			GenomePosition position,
-			std::string first_allele,
-			std::string second_allele
-		) const ;
-		
+		SNPInSetTest( std::set< VariantIdentifyingData > const&, VariantIdentifyingData::CompareFields const& comparer ) ;
+		bool operator()( VariantIdentifyingData const& data ) const ;
 		std::string display() const ;
-
 	private:
-		std::set< SNPIdentifyingData, SNPIdentifyingData::CompareFields > const m_snps ;
+		std::set< VariantIdentifyingData, VariantIdentifyingData::CompareFields > const m_snps ;
 	} ;
 }
 

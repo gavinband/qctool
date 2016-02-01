@@ -60,7 +60,7 @@ namespace pca {
 
 	void write_loadings_to_sink(
 		boost::shared_ptr< statfile::BuiltInTypeStatSink> sink,
-		genfile::SNPIdentifyingData snp,
+		genfile::VariantIdentifyingData snp,
 		double const non_missingness,
 		double const allele_frequency,
 		Eigen::VectorXd const& vector,

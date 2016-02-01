@@ -85,30 +85,17 @@ namespace genfile {
 		return result ;
 	}
 
-	void BedFileSNPDataSource::read_snp_identifying_data_impl(
-		uint32_t* number_of_samples,
-		std::string* SNPID,
-		std::string* RSID,
-		Chromosome* chromosome,
-		uint32_t* SNP_position,
-		std::string* allele1,
-		std::string* allele2
-	) {
-		std::string chromosome_string ;
+	void BedFileSNPDataSource::read_snp_identifying_data_impl( VariantIdentifyingData* result ) {
+		std::string chromosome ;
 		std::string rsid ;
 		uint32_t position ;
 		std::string alleleA, alleleB ;
 		double cM ;
-		(*m_bim_stream_ptr) >> chromosome_string >> rsid >> cM >> position >> alleleA >> alleleB ;
+		(*m_bim_stream_ptr) >> chromosome >> rsid >> cM >> position >> alleleA >> alleleB ;
 		m_bim_stream_ptr->ignore( std::numeric_limits< std::streamsize >::max(), '\n' ) ;
 		
 		if( *m_bim_stream_ptr ) {
-			*SNPID = rsid ;
-			*RSID = rsid ;
-			*chromosome = Chromosome( chromosome_string ) ;
-			*SNP_position = position ;
-			*allele1 = alleleA ;
-			*allele2 = alleleB ;
+			*result = VariantIdentifyingData( rsid, GenomePosition( chromosome, position ), alleleA, alleleB ) ;
 		} else {
 			m_exhausted = true ;
 		}
@@ -146,11 +133,11 @@ namespace genfile {
 					std::cerr << "genotype is " << genotype.first << "/" << genotype.second << ".\n" ;
 #endif
 					if( genotype.first == -1 ) {
-						setter.set_value( genfile::MissingValue() ) ;
-						setter.set_value( genfile::MissingValue() ) ;
+						setter.set_value( 0, genfile::MissingValue() ) ;
+						setter.set_value( 1, genfile::MissingValue() ) ;
 					} else {
-						setter.set_value( genotype.first ) ;
-						setter.set_value( genotype.second ) ;
+						setter.set_value( 0, genotype.first ) ;
+						setter.set_value( 1, genotype.second ) ;
 					}
 				}
 				return *this ;

@@ -48,10 +48,12 @@ namespace genfile {
 	}
 	
 	void cnvHapSNPDataSink::write_variant_data_impl(
-		SNPIdentifyingData const& variant,
+		VariantIdentifyingData const& variant,
 		VariantDataReader& data_reader,
 		Info const& info
 	) {
+		assert( variant.number_of_alleles() == 2 ) ;
+
 		{
 			m_intensities.setZero() ;
 			m_nonmissingness.setZero() ;
@@ -64,7 +66,7 @@ namespace genfile {
 		}
 
 		char const tab = '\t' ;
-		stream() << variant.get_rsid() << tab
+		stream() << variant.get_primary_id() << tab
 			<< variant.get_position().chromosome() << tab
 			<< variant.get_position().position() ;
 

@@ -14,7 +14,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/function.hpp>
 #include <Eigen/Core>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
@@ -28,7 +28,7 @@ namespace snp_summary_component {
 			double regularisationWeight = 10,
 			double call_threshhold = 0.9
 		) ;
-		void operator()( SNPIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
+		void operator()( VariantIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 		void set_scale( std::string const& scale ) ;
 	private:

@@ -23,15 +23,15 @@ public:
 	void set_number_of_loadings( std::size_t n ) ;
 
 	void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) ;
-	void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& ) ;
+	void processed_snp( genfile::VariantIdentifyingData const&, genfile::VariantDataReader& ) ;
 	void end_processing_snps() ;
 
 	typedef boost::function< genfile::VariantEntry ( std::size_t ) > GetNames ;
-	typedef boost::signals2::signal< void( genfile::SNPIdentifyingData const&, double const, double const, Eigen::VectorXd const&, GetNames ) > ResultSignal ;
+	typedef boost::signals2::signal< void( genfile::VariantIdentifyingData const&, double const, double const, Eigen::VectorXd const&, GetNames ) > ResultSignal ;
 	typedef ResultSignal::slot_type ResultCallback ;
 
 	void send_results_to( ResultCallback callback ) ;
-	void send_results( genfile::SNPIdentifyingData const& snp, double const, double const, Eigen::VectorXd const& data, GetNames ) ;
+	void send_results( genfile::VariantIdentifyingData const& snp, double const, double const, Eigen::VectorXd const& data, GetNames ) ;
 	
 	std::string get_metadata() const ;
 private:

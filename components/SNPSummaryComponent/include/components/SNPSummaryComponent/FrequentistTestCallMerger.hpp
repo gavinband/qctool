@@ -14,7 +14,7 @@
 #define foreach BOOST_FOREACH
 #include <Eigen/Core>
 
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "components/SNPSummaryComponent/PairwiseCallComparerManager.hpp"
 
@@ -23,7 +23,7 @@ struct FrequentistTestCallMerger: PairwiseCallComparerManager::Merger
 	static SharedPtr create_shared( std::string const& comparison_method, double threshhold ) ;
 	FrequentistTestCallMerger( std::string const& comparison_method, double threshhold ) ;
 	
-	void begin_comparisons( genfile::SNPIdentifyingData const& snp ) ;
+	void begin_comparisons( genfile::VariantIdentifyingData const& snp ) ;
 	void add_callset( std::string const& ) {}
 	void set_result(
 		std::string const& callset1,
@@ -39,7 +39,7 @@ struct FrequentistTestCallMerger: PairwiseCallComparerManager::Merger
 private:
 	std::string m_comparison_method ;
 	std::string const m_spec ;
-	genfile::SNPIdentifyingData m_snp ;
+	genfile::VariantIdentifyingData m_snp ;
 	typedef std::map< std::pair< std::string, std::string >, genfile::VariantEntry > ComparisonValues ;
 	ComparisonValues m_comparison_values ;
 	std::pair< double, double > m_pvalue_range ;

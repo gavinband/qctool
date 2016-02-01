@@ -109,13 +109,7 @@ namespace genfile {
 	}
 
 	void HapmapHaplotypesSNPDataSource::get_snp_identifying_data_impl( 
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2
+		VariantIdentifyingData* result
 	) {
 		using string_utils::slice ;
 		std::getline( *m_stream_ptr, m_line ) ;
@@ -129,13 +123,6 @@ namespace genfile {
 				throw MalformedInputError( m_filename, number_of_snps_read() ) ;
 			}
 
-			set_SNPID( "?" ) ;
-			set_RSID( m_elts[0] ) ;
-			set_chromosome( m_chromosome ) ;
-			set_SNP_position( string_utils::to_repr< Position >( m_elts[1] ) ) ;
-			std::string allele1 = "?" ;
-			std::string allele2 = "?" ;
-
 			std::size_t first_allele_i = 2 ;
 			std::size_t second_allele_i = 2 ;
 			// find the first allele not the same as the first_allele.
@@ -145,6 +132,9 @@ namespace genfile {
 				}
 			}
 			
+			std::string allele1 = "?" ;
+			std::string allele2 = "?" ;
+
 			if( first_allele_i < m_elts.size() ) {
 				m_first_allele = m_elts[ first_allele_i ] ;
 				allele1 = m_elts[ first_allele_i ] ;
@@ -155,8 +145,12 @@ namespace genfile {
 				allele2 = m_elts[ second_allele_i ] ;
 			}
 			
-			set_allele1( allele1 ) ;
-			set_allele2( allele2 ) ;
+			VariantIdentifyingData variant(
+				"?", m_elts[0],
+				GenomePosition( m_chromosome, string_utils::to_repr< Position >( m_elts[1] ) ),
+				allele1, allele2
+			) ;
+
 		}
 	}
 

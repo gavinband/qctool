@@ -470,46 +470,48 @@ namespace qcdb {
 		m_find_variant_statement
 			->bind( 1, std::string( snp.get_position().chromosome() ) )
 			.bind( 2, snp.get_position().position() )
-			.bind( 3, snp.get_first_allele() )
-			.bind( 4, snp.get_second_allele() ) ;
+			.bind( 3, snp.get_allele(0) )
+			.bind( 4, snp.get_allele(1) ) ;
 		if( m_match_rsid ) {
-			m_find_variant_statement->bind( 5, snp.get_rsid() ) ;
+			m_find_variant_statement->bind( 5, snp.get_primary_id() ) ;
 		}
 		m_find_variant_statement->step() ;
 
 		if( m_find_variant_statement->empty() ) {
 			m_insert_variant_statement
-				->bind( 1, snp.get_rsid() )
+				->bind( 1, snp.get_primary_id() )
 				.bind( 2, std::string( snp.get_position().chromosome() ) )
 				.bind( 3, snp.get_position().position() )
-				.bind( 4, snp.get_first_allele())
-				.bind( 5, snp.get_second_allele())
+				.bind( 4, snp.get_allele(0))
+				.bind( 5, snp.get_allele(1))
 				.step()
 			;
 
 			result = connection().get_last_insert_row_id() ;
 			m_insert_variant_statement->reset() ;
-			snp.get_alternative_identifiers(
+			snp.get_identifiers(
 				boost::bind(
 					&DBOutputter::add_alternative_variant_identifier,
 					this,
 					result,
 					_1,
-					snp.get_rsid()
-				)
+					snp.get_primary_id()
+				),
+				1
 			) ;
 		} else {
 			result = m_find_variant_statement->get< db::Connection::RowId >( 0 ) ;
 			std::string const rsid = m_find_variant_statement->get< std::string >( 1 ) ;
-			add_alternative_variant_identifier( result, snp.get_rsid(), rsid ) ;
-			snp.get_alternative_identifiers(
+			add_alternative_variant_identifier( result, snp.get_primary_id(), rsid ) ;
+			snp.get_identifiers(
 				boost::bind(
 					&DBOutputter::add_alternative_variant_identifier,
 					this,
 					result,
 					_1,
 					rsid
-				)
+				),
+				1
 			) ;
 		}
 		m_find_variant_statement->reset() ;

@@ -60,7 +60,7 @@ namespace snp_stats {
 		m_call_threshhold( 0.9 )
 	{}
 
-	void CrossDataSetConcordanceComputation::set_comparer( genfile::SNPIdentifyingData::CompareFields const& comparer ) {
+	void CrossDataSetConcordanceComputation::set_comparer( genfile::VariantIdentifyingData::CompareFields const& comparer ) {
 		m_comparer = comparer ;
 	}
 
@@ -89,27 +89,29 @@ namespace snp_stats {
 	}
 
 	void CrossDataSetConcordanceComputation::operator()(
-		SNPIdentifyingData const& snp,
+		VariantIdentifyingData const& snp,
 		Genotypes const& genotypes,
 		SampleSexes const&,
 		genfile::VariantDataReader&,
 		ResultCallback callback
 	) {
+		assert( snp.number_of_alleles() == 2 ) ;
+		
 		using genfile::string_utils::to_string ;
-		SNPIdentifyingData alt_snp ;
+		genfile::VariantIdentifyingData alt_snp ;
 		if( m_alt_dataset_snps->get_next_snp_matching( &alt_snp, snp, m_comparer )) {
 			// Get comparison dataset genotype data.
 			{
 				double AA = 0, AB = 1, BB = 2 ;
 				// If necessary, match alleles to the main dataset.
 				if( m_match_alleles ) {
-					if( alt_snp.get_first_allele() == snp.get_first_allele() && alt_snp.get_second_allele() == snp.get_second_allele() ) {
+					if( alt_snp.get_allele(0) == snp.get_allele(0) && alt_snp.get_allele(1) == snp.get_allele(1) ) {
 						AA = 0 ;
 						AB = 1 ;
 						BB = 2 ;
 						// ok, coding is fine.
 					}
-					else if( alt_snp.get_first_allele() == snp.get_second_allele() && alt_snp.get_second_allele() == snp.get_first_allele() ) {
+					else if( alt_snp.get_allele(0) == snp.get_allele(1) && alt_snp.get_allele(1) == snp.get_allele(0) ) {
 						AA = 2 ;
 						AB = 1 ;
 						BB = 0 ;
@@ -128,9 +130,9 @@ namespace snp_stats {
 				) ;
 			}
 			
-			callback( "compared_variant_rsid", alt_snp.get_rsid() ) ;
-			callback( "compared_variant_alleleA", alt_snp.get_first_allele() ) ;
-			callback( "compared_variant_alleleB", alt_snp.get_second_allele() ) ;
+			callback( "compared_variant_rsid", alt_snp.get_primary_id() ) ;
+			callback( "compared_variant_alleleA", alt_snp.get_allele(0) ) ;
+			callback( "compared_variant_alleleB", alt_snp.get_allele(1) ) ;
 			
 			CrossDataSetSampleMapper::SampleMapping::const_iterator i = m_sample_mapper.sample_mapping().begin() ;
 			CrossDataSetSampleMapper::SampleMapping::const_iterator const end_i = m_sample_mapper.sample_mapping().end() ;

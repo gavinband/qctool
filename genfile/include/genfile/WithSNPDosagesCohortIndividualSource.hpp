@@ -18,16 +18,14 @@
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/CompositeCohortIndividualSource.hpp"
 #include "genfile/SNPDataSource.hpp"
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 
 namespace genfile {
-	
-	
-	class PositionMatchesTest: public genfile::SNPIdentifyingDataTest
+	class PositionMatchesTest: public genfile::VariantIdentifyingDataTest
 	{
 	public:
 		PositionMatchesTest( GenomePosition const& position ) ;
-		bool operator()( std::string, std::string, GenomePosition position, std::string, std::string ) const ;
+		bool operator()( VariantIdentifyingData const& ) const ;
  		std::string display() const ;
  	private:
 		GenomePosition const m_position ;
@@ -35,7 +33,7 @@ namespace genfile {
 
  	class WithSNPDosagesCohortIndividualSource: public genfile::CompositeCohortIndividualSource {
 	public:
-		typedef genfile::SNPIdentifyingDataTest SNPMatcher ;
+		typedef genfile::VariantIdentifyingDataTest SNPMatcher ;
 		typedef std::auto_ptr< WithSNPDosagesCohortIndividualSource > UniquePtr ;
 		typedef std::map< SNPMatcher::SharedPtr, std::set< std::string > > SNPDosageSpec ;
 		typedef genfile::GenomePosition GenomePosition ;
@@ -46,7 +44,7 @@ namespace genfile {
 			SNPDosageSpec const& snp_matchers
 		) ;
 		
-		static SNPIdentifyingDataTest::UniquePtr create_snp_matcher( std::string test_spec, std::string const& splitter = "~" ) ;
+		static VariantIdentifyingDataTest::UniquePtr create_snp_matcher( std::string test_spec, std::string const& splitter = "~" ) ;
 		
 	public:
 		WithSNPDosagesCohortIndividualSource(

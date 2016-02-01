@@ -18,7 +18,6 @@
 #include "genfile/GenomePosition.hpp"
 #include "genfile/Chromosome.hpp"
 #include "genfile/VariantIdentifyingData.hpp"
-#include "genfile/VariantIdentifyingData.hpp"
 
 namespace genfile {
 	

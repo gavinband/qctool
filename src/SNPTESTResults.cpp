@@ -13,7 +13,7 @@
 #include "EffectParameterNamePack.hpp"
 
 SNPTESTResults::SNPTESTResults(
-	genfile::SNPIdentifyingDataTest::UniquePtr test,
+	genfile::VariantIdentifyingDataTest::UniquePtr test,
 	boost::optional< genfile::Chromosome > const chromosome_hint
 ):
  	m_exclusion_test( test ),

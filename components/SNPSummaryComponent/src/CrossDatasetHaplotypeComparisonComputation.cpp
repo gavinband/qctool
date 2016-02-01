@@ -23,7 +23,7 @@ namespace snp_stats {
 		m_call_threshhold( 0.9 )
 	{}
 
-	void CrossDataSetHaplotypeComparisonComputation::set_comparer( genfile::SNPIdentifyingData::CompareFields const& comparer ) {
+	void CrossDataSetHaplotypeComparisonComputation::set_comparer( genfile::VariantIdentifyingData::CompareFields const& comparer ) {
 		m_comparer = comparer ;
 	}
 
@@ -42,14 +42,14 @@ namespace snp_stats {
 	}
 
 	void CrossDataSetHaplotypeComparisonComputation::operator()(
-		SNPIdentifyingData const& snp,
+		VariantIdentifyingData const& snp,
 		Genotypes const&,
 		SampleSexes const&,
 		genfile::VariantDataReader& data_reader,
 		ResultCallback callback
 	) {
 		using genfile::string_utils::to_string ;
-		SNPIdentifyingData alt_snp ;
+		VariantIdentifyingData alt_snp ;
 		genfile::MissingValue const NA ;
 		if( m_alt_dataset_snps->get_next_snp_matching( &alt_snp, snp, m_comparer )) {
 			{
@@ -61,11 +61,11 @@ namespace snp_stats {
 				double B_coding = 1 ;
 				bool matching_alleles = true ;
 				if( m_match_alleles ) {
-					if( alt_snp.get_first_allele() == snp.get_first_allele() && alt_snp.get_second_allele() == snp.get_second_allele() ) {
+					if( alt_snp.get_allele(0) == snp.get_allele(0) && alt_snp.get_allele(1) == snp.get_allele(1) ) {
 						A_coding = 0 ;
 						B_coding = 1 ;
 					}
-					else if( alt_snp.get_first_allele() == snp.get_second_allele() && alt_snp.get_second_allele() == snp.get_first_allele() ) {
+					else if( alt_snp.get_allele(0) == snp.get_allele(1) && alt_snp.get_allele(1) == snp.get_allele(0) ) {
 						A_coding = 1 ;
 						B_coding = 0 ;
 					} else {
@@ -82,9 +82,9 @@ namespace snp_stats {
 				}
 			}
 			
-			callback( "compared_variant_rsid", alt_snp.get_rsid() ) ;
-			callback( "compared_variant_alleleA", alt_snp.get_first_allele() ) ;
-			callback( "compared_variant_alleleB", alt_snp.get_second_allele() ) ;
+			callback( "compared_variant_rsid", alt_snp.get_primary_id() ) ;
+			callback( "compared_variant_alleleA", alt_snp.get_allele(0) ) ;
+			callback( "compared_variant_alleleB", alt_snp.get_allele(1) ) ;
 
 			callback( "pairwise_non-missing_haplotypes", NA ) ;
 			callback( "pairwise_concordant_haplotypes", NA ) ;

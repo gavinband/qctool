@@ -7,7 +7,7 @@
 #include <utility>
 #include <string>
 #include <Eigen/Core>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/vcf/get_set.hpp"
@@ -20,7 +20,7 @@ namespace snp_summary_component {
 	{}
 
 	void IntensitySummaryComputation::operator()(
-		SNPIdentifyingData const&,
+		VariantIdentifyingData const&,
 		Genotypes const& genotypes,
 		SampleSexes const&,
 		genfile::VariantDataReader& data_reader,

@@ -7,7 +7,7 @@
 #ifndef GENFILE_OVERLAP_HPP
 #include <vector>
 #include <cassert>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/GenomePosition.hpp"
 #include "genfile/overlap.hpp"
 #include "genfile/Error.hpp"
@@ -15,7 +15,7 @@
 
 namespace genfile {
 	std::vector< std::vector< std::size_t > > get_overlapping_snps(
-		std::vector< std::vector< genfile::SNPIdentifyingData > > const& cohort_snps
+		std::vector< std::vector< genfile::VariantIdentifyingData > > const& cohort_snps
 	)
 	{
 		std::vector< std::vector< std::size_t > > snp_indices( cohort_snps.size() ) ;
@@ -29,7 +29,7 @@ namespace genfile {
 	}
 
 	std::vector< std::vector< std::size_t > > get_overlapping_snps(
-		std::vector< std::vector< genfile::SNPIdentifyingData > > const& cohort_snps,
+		std::vector< std::vector< genfile::VariantIdentifyingData > > const& cohort_snps,
 		std::vector< std::vector< std::size_t > > const& indices_of_snps_to_include
 	) {
 		assert( indices_of_snps_to_include.size() == cohort_snps.size() ) ;

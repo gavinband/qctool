@@ -8,7 +8,7 @@
 #include <string>
 #include <boost/bind.hpp>
 #include <Eigen/Core>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/vcf/get_set.hpp"
@@ -107,7 +107,7 @@ namespace snp_summary_component {
 	}
 	
 	void ClusterFitComputation::operator()(
-		SNPIdentifyingData const& snp,
+		VariantIdentifyingData const& snp,
 		Genotypes const& genotypes,
 		SampleSexes const&,
 		genfile::VariantDataReader& data_reader,
@@ -246,7 +246,7 @@ namespace snp_summary_component {
 		// Now output the loglikelihoods under a model conditional on genotype...
 		callback( "number-of-clusters", numberOfClusters ) ;
 		callback( "informative-sample-count", genfile::VariantEntry::Integer( nonMissingGenotypesAndIntensitySubset.size() ) ) ;
-		callback( "total-sample-count", genotypes.rows() ) ;
+		callback( "total-sample-count", genfile::VariantEntry::Integer( genotypes.rows() )) ;
 		callback( "ll-given-genotype",  genotypeLLs.sum() ) ;
 		// And under equal-weighted mixtures...
 		mixture.set_data( m_intensities ) ;

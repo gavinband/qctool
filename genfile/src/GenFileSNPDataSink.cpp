@@ -34,7 +34,6 @@ namespace genfile {
 			GenotypeWriter( Eigen::VectorXd& data ):
 				m_data( data ),
 				m_number_of_samples( m_data.size() / 3 ),
-				m_number_of_alleles(0),
 				m_sample_i(0),
 				m_entry_i(0)
 			{
@@ -76,19 +75,19 @@ namespace genfile {
 				}
 				m_entry_i = 0 ;
 			}
-			void set_value( MissingValue const value ) {
+			void set_value( std::size_t, MissingValue const value ) {
 				m_data( m_sample_i * 3 + m_entry_i++ ) = -1 ;
 			}
 
-			void set_value( std::string& value ) {
+			void set_value( std::size_t, std::string& value ) {
 				assert(0) ;
 			}
 
-			void set_value( Integer const value ) {
+			void set_value( std::size_t, Integer const value ) {
 				m_data( m_sample_i * 3 + m_entry_i++ ) = value ;
 			}
 			
-			void set_value( double const value ) {
+			void set_value( std::size_t, double const value ) {
 				m_data( m_sample_i * 3 + m_entry_i++ ) = value ;
 			}
 			
@@ -107,14 +106,13 @@ namespace genfile {
 		private:
 			Eigen::VectorXd& m_data ;
 			std::size_t m_number_of_samples ;
-			std::size_t m_number_of_alleles ;
 			std::size_t m_sample_i ;
 			std::size_t m_entry_i ;
 		} ;
 	}
 
 	void GenFileSNPDataSink::write_variant_data_impl(
-		SNPIdentifyingData const& id_data,
+		VariantIdentifyingData const& id_data,
 		VariantDataReader& data_reader,
 		Info const& info
 	) {

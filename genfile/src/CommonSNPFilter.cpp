@@ -7,7 +7,7 @@
 #include <cassert>
 #include <iterator>
 
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/RSIDInListTest.hpp"
 #include "genfile/SNPIDInListTest.hpp"
@@ -23,14 +23,8 @@ namespace genfile {
 	CommonSNPFilter::CommonSNPFilter() {
 	}
 
-	bool CommonSNPFilter::operator()(
-		std::string SNPID,
-		std::string RSID,
-		GenomePosition position,
-		std::string first_allele,
-		std::string second_allele
-	) const {
-		return m_filter( SNPID, RSID, position, first_allele, second_allele ) ;
+	bool CommonSNPFilter::operator()( VariantIdentifyingData const& data ) const {
+		return m_filter( data ) ;
 	}
 	
 	std::string CommonSNPFilter::display() const { return m_filter.display() ; }
@@ -50,28 +44,28 @@ namespace genfile {
 	}
 
 	CommonSNPFilter& CommonSNPFilter::exclude_snps_in_set( std::set< std::string > const& set, int fields ) {
-		SNPIdentifyingDataTest::UniquePtr test = construct_snp_inclusion_test( set, fields ) ;
-		test.reset( new SNPIdentifyingDataTestNegation( test )) ;
+		VariantIdentifyingDataTest::UniquePtr test = construct_snp_inclusion_test( set, fields ) ;
+		test.reset( new VariantIdentifyingDataTestNegation( test )) ;
 		m_filter.add_subtest( test ) ;
 		return *this ;
 	}
 
 	CommonSNPFilter& CommonSNPFilter::include_snps_in_set( std::set< std::string > const& set, int fields ) {
-		SNPIdentifyingDataTest::UniquePtr test = construct_snp_inclusion_test( set, fields ) ;
+		VariantIdentifyingDataTest::UniquePtr test = construct_snp_inclusion_test( set, fields ) ;
 		add_inclusion_filter_if_necessary( "id" ) ;
 		m_inclusion_filters[ "id" ]->add_subtest( test ) ;
 		return *this ;
 	}
 
-	CommonSNPFilter& CommonSNPFilter::exclude_snps( std::vector< SNPIdentifyingData > const& snps, SNPIdentifyingData::CompareFields const& comparer ) {
-		SNPIdentifyingDataTest::UniquePtr test( new SNPInSetTest( std::set< SNPIdentifyingData >( snps.begin(), snps.end() ), comparer ) ) ;
-		test.reset( new SNPIdentifyingDataTestNegation( test )) ;
+	CommonSNPFilter& CommonSNPFilter::exclude_snps( std::vector< VariantIdentifyingData > const& snps, VariantIdentifyingData::CompareFields const& comparer ) {
+		VariantIdentifyingDataTest::UniquePtr test( new SNPInSetTest( std::set< VariantIdentifyingData >( snps.begin(), snps.end() ), comparer ) ) ;
+		test.reset( new VariantIdentifyingDataTestNegation( test )) ;
 		m_filter.add_subtest( test ) ;
 		return *this ;
 	}
 
-	CommonSNPFilter& CommonSNPFilter::include_snps( std::vector< SNPIdentifyingData > const& snps, SNPIdentifyingData::CompareFields const& comparer ) {
-		SNPIdentifyingDataTest::UniquePtr test( new SNPInSetTest( std::set< SNPIdentifyingData >( snps.begin(), snps.end() ), comparer ) ) ;
+	CommonSNPFilter& CommonSNPFilter::include_snps( std::vector< VariantIdentifyingData > const& snps, VariantIdentifyingData::CompareFields const& comparer ) {
+		VariantIdentifyingDataTest::UniquePtr test( new SNPInSetTest( std::set< VariantIdentifyingData >( snps.begin(), snps.end() ), comparer ) ) ;
 		add_inclusion_filter_if_necessary( "snps" ) ;
 		m_inclusion_filters[ "snps" ]->add_subtest( test ) ;
 		return *this ;
@@ -79,14 +73,14 @@ namespace genfile {
 
 	void CommonSNPFilter::add_inclusion_filter_if_necessary( std::string const& name ) {
 		if( m_inclusion_filters.find( name ) == m_inclusion_filters.end() ) {
-			SNPIdentifyingDataTestDisjunction::UniquePtr test( new SNPIdentifyingDataTestDisjunction() ) ;
+			VariantIdentifyingDataTestDisjunction::UniquePtr test( new VariantIdentifyingDataTestDisjunction() ) ;
 			m_inclusion_filters[ name ] = test.get() ;
-			m_filter.add_subtest( SNPIdentifyingDataTest::UniquePtr( test.release() )) ;
+			m_filter.add_subtest( VariantIdentifyingDataTest::UniquePtr( test.release() )) ;
 		}
 	}
 
 	CommonSNPFilter& CommonSNPFilter::exclude_snps_not_in_set( std::set< std::string > const& set, int fields ) {
-		SNPIdentifyingDataTest::UniquePtr test = construct_snp_inclusion_test( set, fields ) ;
+		VariantIdentifyingDataTest::UniquePtr test = construct_snp_inclusion_test( set, fields ) ;
 		m_filter.add_subtest( test ) ;
 		return *this ;
 	}
@@ -98,8 +92,8 @@ namespace genfile {
 		return result ;
 	}
 	
-	SNPIdentifyingDataTest::UniquePtr CommonSNPFilter::construct_snp_inclusion_test( std::set< std::string > const& set, int fields ) {
-		SNPIdentifyingDataTest::UniquePtr test ;
+	VariantIdentifyingDataTest::UniquePtr CommonSNPFilter::construct_snp_inclusion_test( std::set< std::string > const& set, int fields ) {
+		VariantIdentifyingDataTest::UniquePtr test ;
 		std::set< GenomePosition > position_set ;
 		std::set< std::string >::const_iterator i = set.begin() ;
 		std::set< std::string >::const_iterator const end_i = set.end() ;
@@ -127,61 +121,61 @@ namespace genfile {
 	}
 
 	CommonSNPFilter& CommonSNPFilter::exclude_chromosomes_in_set( std::set< genfile::Chromosome > const& set ) {
-		SNPIdentifyingDataTest::UniquePtr test( new ChromosomeInSetTest( set ) ) ;
-		test.reset( new SNPIdentifyingDataTestNegation( test )) ;
+		VariantIdentifyingDataTest::UniquePtr test( new ChromosomeInSetTest( set ) ) ;
+		test.reset( new VariantIdentifyingDataTestNegation( test )) ;
 		m_filter.add_subtest( test ) ;
 		return *this ;
 	}
 
 	CommonSNPFilter& CommonSNPFilter::include_chromosomes_in_set( std::set< genfile::Chromosome > const& set ) {
-		SNPIdentifyingDataTest::UniquePtr test( new ChromosomeInSetTest( set ) ) ;
+		VariantIdentifyingDataTest::UniquePtr test( new ChromosomeInSetTest( set ) ) ;
 		add_inclusion_filter_if_necessary( "chromosome" ) ;
 		m_inclusion_filters[ "chromosome" ]->add_subtest( test ) ;
 		return *this ;
 	}
 	
 	CommonSNPFilter& CommonSNPFilter::exclude_chromosomes_not_in_set( std::set< genfile::Chromosome > const& set ) {
-		SNPIdentifyingDataTest::UniquePtr test( new ChromosomeInSetTest( set ) ) ;
+		VariantIdentifyingDataTest::UniquePtr test( new ChromosomeInSetTest( set ) ) ;
 		m_filter.add_subtest( test ) ;
 		return *this ;
 	}
 
 	CommonSNPFilter& CommonSNPFilter::exclude_snps_matching( std::string const& expression ) {
-		SNPIdentifyingDataTest::UniquePtr test( new SNPIDMatchesTest( expression ) ) ;
-		test.reset( new SNPIdentifyingDataTestNegation( test )) ;
+		VariantIdentifyingDataTest::UniquePtr test( new SNPIDMatchesTest( expression ) ) ;
+		test.reset( new VariantIdentifyingDataTestNegation( test )) ;
 		m_filter.add_subtest( test ) ;
 		return *this ;
 	}
 
 	CommonSNPFilter& CommonSNPFilter::include_snps_matching( std::string const& expression ) {
-		SNPIdentifyingDataTest::UniquePtr test( new SNPIDMatchesTest( expression ) ) ;
+		VariantIdentifyingDataTest::UniquePtr test( new SNPIDMatchesTest( expression ) ) ;
 		add_inclusion_filter_if_necessary( "match" ) ;
 		m_inclusion_filters[ "match" ]->add_subtest( test ) ;
 		return *this ;
 	}
 
 	CommonSNPFilter& CommonSNPFilter::exclude_snps_not_matching( std::string const& expression ) {
-		SNPIdentifyingDataTest::UniquePtr test( new SNPIDMatchesTest( expression ) ) ;
+		VariantIdentifyingDataTest::UniquePtr test( new SNPIDMatchesTest( expression ) ) ;
 		m_filter.add_subtest( test ) ;
 		return *this ;
 	}
 
 	CommonSNPFilter& CommonSNPFilter::exclude_snps_in_range( genfile::GenomePositionRange const& range ) {
-		SNPIdentifyingDataTest::UniquePtr test( new SNPPositionInRangeTest( range ) ) ;
-		test.reset( new SNPIdentifyingDataTestNegation( test )) ;
+		VariantIdentifyingDataTest::UniquePtr test( new SNPPositionInRangeTest( range ) ) ;
+		test.reset( new VariantIdentifyingDataTestNegation( test )) ;
 		m_filter.add_subtest( test ) ;
 		return *this ;
 	}
 
 	CommonSNPFilter& CommonSNPFilter::include_snps_in_range( genfile::GenomePositionRange const& range ) {
-		SNPIdentifyingDataTest::UniquePtr test( new SNPPositionInRangeTest( range ) ) ;
+		VariantIdentifyingDataTest::UniquePtr test( new SNPPositionInRangeTest( range ) ) ;
 		add_inclusion_filter_if_necessary( "range" ) ;
 		m_inclusion_filters[ "range" ]->add_subtest( test ) ;
 		return *this ;
 	}
 
 	CommonSNPFilter& CommonSNPFilter::exclude_snps_not_in_range( genfile::GenomePositionRange const& range ) {
-		SNPIdentifyingDataTest::UniquePtr test( new SNPPositionInRangeTest( range ) ) ;
+		VariantIdentifyingDataTest::UniquePtr test( new SNPPositionInRangeTest( range ) ) ;
 		m_filter.add_subtest( test ) ;
 		return *this ;
 	}

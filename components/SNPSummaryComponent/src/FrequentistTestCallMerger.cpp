@@ -11,7 +11,7 @@
 #define foreach BOOST_FOREACH
 #include <Eigen/Core>
 
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "components/SNPSummaryComponent/PairwiseCallComparerManager.hpp"
 #include "components/SNPSummaryComponent/FrequentistTestCallMerger.hpp"
@@ -42,7 +42,7 @@ std::string FrequentistTestCallMerger::get_result_as_string() const {
 	return result ;
 }
 
-void FrequentistTestCallMerger::begin_comparisons( genfile::SNPIdentifyingData const& snp ) {
+void FrequentistTestCallMerger::begin_comparisons( genfile::VariantIdentifyingData const& snp ) {
 	m_snp = snp ;
 	m_comparison_values.clear() ;
 	m_concordant_calls.clear() ;

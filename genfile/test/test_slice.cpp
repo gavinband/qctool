@@ -9,8 +9,56 @@
 
 using namespace genfile::string_utils ;
 
+BOOST_AUTO_TEST_SUITE( test_slice ) ;
+
 AUTO_TEST_CASE( test_constructors ) {
 	std::cerr << "test_constructors()..." ;
+
+	{
+		char const* s = "Hello" ;
+		TEST_ASSERT( std::string( slice( s )) == "Hello" ) ;
+		TEST_ASSERT( slice( s ).size() == 5 ) ;
+		TEST_ASSERT( slice( s )[0] == 'H' ) ;
+		TEST_ASSERT( slice( s )[2] == 'l' ) ;
+		TEST_ASSERT( slice( s )[4] == 'o' ) ;
+		TEST_ASSERT( std::string( slice( s, 1, 4 ) ) == "ell" ) ;
+		TEST_ASSERT( slice( s, 1, 4 ).size() == 3 ) ;
+		TEST_ASSERT( slice( s, 1, 4 )[0] == 'e' ) ;
+		TEST_ASSERT( slice( s, 1, 4 )[2] == 'l' ) ;
+		TEST_ASSERT( std::string( slice( s, 3, 5 ) ) == "lo" ) ;
+		TEST_ASSERT( slice( s, 3, 5 ).size() == 2 ) ;
+		TEST_ASSERT( slice( s, 3, 5 )[0] == 'l' ) ;
+		TEST_ASSERT( slice( s, 3, 5 )[1] == 'o' ) ;
+		TEST_ASSERT( std::string( slice( s, 0, 2 ) ) == "He" ) ;
+		TEST_ASSERT( slice( s, 0, 2 ).size() == 2 ) ;
+		TEST_ASSERT( std::string( slice( s, 0, 0 ) ) == "" ) ;
+		TEST_ASSERT( slice( s, 0, 0 ).size() == 0 ) ;
+		TEST_ASSERT( std::string( slice( s, 5, 5 ) ) == "" ) ;
+		TEST_ASSERT( slice( s, 5, 5 ).size() == 0 ) ;
+	}
+
+	{
+		char const* s = "Hello" ;
+		TEST_ASSERT( std::string( slice( s, s+5 )) == "Hello" ) ;
+		TEST_ASSERT( slice( s, s+5 ).size() == 5 ) ;
+		TEST_ASSERT( slice( s, s+5 )[0] == 'H' ) ;
+		TEST_ASSERT( slice( s, s+5 )[2] == 'l' ) ;
+		TEST_ASSERT( slice( s, s+5 )[4] == 'o' ) ;
+		TEST_ASSERT( std::string( slice( s, s+5, 1, 4 ) ) == "ell" ) ;
+		TEST_ASSERT( slice( s, s+5, 1, 4 ).size() == 3 ) ;
+		TEST_ASSERT( slice( s, s+5, 1, 4 )[0] == 'e' ) ;
+		TEST_ASSERT( slice( s, s+5, 1, 4 )[2] == 'l' ) ;
+		TEST_ASSERT( std::string( slice( s, s+5, 3, 5 ) ) == "lo" ) ;
+		TEST_ASSERT( slice( s, s+5, 3, 5 ).size() == 2 ) ;
+		TEST_ASSERT( slice( s, s+5, 3, 5 )[0] == 'l' ) ;
+		TEST_ASSERT( slice( s, s+5, 3, 5 )[1] == 'o' ) ;
+		TEST_ASSERT( std::string( slice( s, s+5, 0, 2 ) ) == "He" ) ;
+		TEST_ASSERT( slice( s, s+5, 0, 2 ).size() == 2 ) ;
+		TEST_ASSERT( std::string( slice( s, s+5, 0, 0 ) ) == "" ) ;
+		TEST_ASSERT( slice( s, s+5, 0, 0 ).size() == 0 ) ;
+		TEST_ASSERT( std::string( slice( s, s+5, 5, 5 ) ) == "" ) ;
+		TEST_ASSERT( slice( s, s+5, 5, 5 ).size() == 0 ) ;
+	}
 
 	{
 		std::string const s = "Hello" ;
@@ -211,4 +259,6 @@ AUTO_TEST_CASE( test_split_slice ) {
 
 	std::cerr << "ok.\n" ;
 }
+
+BOOST_AUTO_TEST_SUITE_END() ;
 

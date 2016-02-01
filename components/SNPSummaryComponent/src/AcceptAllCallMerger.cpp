@@ -11,7 +11,7 @@
 #define foreach BOOST_FOREACH
 #include <Eigen/Core>
 
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "components/SNPSummaryComponent/PairwiseCallComparerManager.hpp"
 #include "components/SNPSummaryComponent/AcceptAllCallMerger.hpp"
@@ -34,7 +34,7 @@ std::string AcceptAllCallMerger::get_result_as_string() const {
 	return result ;
 }
 
-void AcceptAllCallMerger::begin_comparisons( genfile::SNPIdentifyingData const& ) {
+void AcceptAllCallMerger::begin_comparisons( genfile::VariantIdentifyingData const& ) {
 	m_calls.clear() ;
 }
 

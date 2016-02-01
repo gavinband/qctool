@@ -41,7 +41,7 @@ namespace {
 	}
 }
 MMMResults::MMMResults(
-	genfile::SNPIdentifyingDataTest::UniquePtr test,
+	genfile::VariantIdentifyingDataTest::UniquePtr test,
 	boost::optional< genfile::Chromosome > const chromosome_hint
 ):
  	m_exclusion_test( test ),

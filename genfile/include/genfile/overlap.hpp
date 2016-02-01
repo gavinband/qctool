@@ -6,7 +6,7 @@
 
 #ifndef GENFILE_OVERLAP_HPP
 #include <vector>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 
 namespace genfile {
 
@@ -15,14 +15,14 @@ namespace genfile {
 	// Precondition: each of the lists in cohort_snps must store SNPs in nondecreasing position order.
 	// Postcondition: all result sets have the same size.
 	std::vector< std::vector< std::size_t > > get_overlapping_snps(
-		std::vector< std::vector< genfile::SNPIdentifyingData > > const& cohort_snps
+		std::vector< std::vector< genfile::VariantIdentifyingData > > const& cohort_snps
 	) ;
 	
 
 	// As above but ignore any SNP in cohort i whose index is not listed in the corresponding entry of the second argument.
 	// (The entries of the second argument are assumed to be in nondecreasing order).
 	std::vector< std::vector< std::size_t > > get_overlapping_snps(
-		std::vector< std::vector< genfile::SNPIdentifyingData > > const& cohort_snps,
+		std::vector< std::vector< genfile::VariantIdentifyingData > > const& cohort_snps,
 		std::vector< std::vector< std::size_t > > const& indices_of_snps_to_include
 	) ;
 }
