@@ -81,7 +81,7 @@ namespace snp_stats {
 				}
 			}
 			
-			callback( "CrossDataSetHaplotypeComparisonComputation:compared_variant_rsid", alt_snp.get_primary_id() ) ;
+			callback( "compared_variant_rsid", alt_snp.get_primary_id() ) ;
 			callback( "compared_variant_alleleA", alt_snp.get_allele(0) ) ;
 			callback( "compared_variant_alleleB", alt_snp.get_allele(1) ) ;
 
