@@ -35,51 +35,25 @@ namespace genfile {
 		return m_filename ;
 	}
 
-
-	void SortingBGenFileSNPDataSink::write_snp_impl(
-		uint32_t number_of_samples,
-		std::string SNPID,
-		std::string RSID,
-		Chromosome chromosome,
-		uint32_t SNP_position,
-		std::string first_allele,
-		std::string second_allele,
-		GenotypeProbabilityGetter const& get_AA_probability,
-		GenotypeProbabilityGetter const& get_AB_probability,
-		GenotypeProbabilityGetter const& get_BB_probability,
+	void SortingBGenFileSNPDataSink::write_variant_data_impl(
+		VariantIdentifyingData const& id_data,
+		VariantDataReader& data_reader,
 		Info const& info
 	) {
-		VariantIdentifyingData snp(
-			SNPID,
-			RSID,
-			GenomePosition( chromosome, SNP_position ),
-			first_allele,
-			second_allele
-		) ;
 		OffsetMap::iterator offset_i = m_file_offsets.insert(
 			std::make_pair(
-				snp,
+				id_data,
 				std::make_pair(
 					m_sink->get_stream_pos().second,
 					m_sink->get_stream_pos().second
 				)
 			)
 		) ;
-
-		m_sink->write_snp(
-			number_of_samples,
-			SNPID,
-			RSID,
-			chromosome,
-			SNP_position,
-			first_allele,
-			second_allele,
-			get_AA_probability,
-			get_AB_probability,
-			get_BB_probability,
+		m_sink->write_variant_data(
+			id_data,
+			data_reader,
 			info
 		) ;
-		
 		offset_i->second.second = m_sink->get_stream_pos().second ;
 	}
 
