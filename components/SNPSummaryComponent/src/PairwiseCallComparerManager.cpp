@@ -8,7 +8,7 @@
 #include <boost/signals2/signal.hpp>
 #include <boost/function.hpp>
 #include "genfile/SNPDataSourceProcessor.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
@@ -51,7 +51,7 @@ void PairwiseCallComparerManager::begin_processing_snps( std::size_t number_of_s
 	}
 }
 
-void PairwiseCallComparerManager::begin_processing_snp( genfile::SNPIdentifyingData const& snp ) {
+void PairwiseCallComparerManager::begin_processing_snp( genfile::VariantIdentifyingData const& snp ) {
 	m_calls.clear() ;
 	m_snp = snp ;
 }

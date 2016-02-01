@@ -23,7 +23,7 @@ struct SequenceAnnotation: public SNPSummaryComputation
 	
 	typedef boost::function< void ( std::size_t, boost::optional< std::size_t > ) > ProgressCallback ;
 	SequenceAnnotation( std::string const& annotation_name, std::string const& fasta_filename, ProgressCallback ) ;
-	void operator()( SNPIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
+	void operator()( VariantIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
 
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 	

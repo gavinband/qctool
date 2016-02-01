@@ -110,8 +110,10 @@ namespace genfile {
 		}
 	}
 
-	SNPDataSource::SNPDataSource()
-	: m_number_of_snps_read(0), m_state( e_HaveNotReadIdentifyingData ), m_source_reset_callback(0)
+	SNPDataSource::SNPDataSource():
+		m_number_of_snps_read(0),
+		m_state( e_HaveNotReadIdentifyingData ),
+		m_source_reset_callback(0)
 	{}
 
 	SNPDataSource::~SNPDataSource() {}
@@ -125,26 +127,18 @@ namespace genfile {
 		}
 	}
 
-	void SNPDataSource::set_source_reset_callback( source_reset_callback_t callback ) {
+	void SNPDataSource::set_source_reset_callback( SourceResetCallback callback ) {
 		m_source_reset_callback = callback ;
 	}
 
-	void SNPDataSource::list_snps( SNPSetter setter, boost::function< void( std::size_t, boost::optional< std::size_t > ) > progress_callback ) {
+	void SNPDataSource::list_snps( VariantSetter setter, boost::function< void( std::size_t, boost::optional< std::size_t > ) > progress_callback ) {
 		reset_to_start() ;
 		for(
-			SNPIdentifyingData data ;
-			get_snp_identifying_data(
-				genfile::ignore(),
-				genfile::set_value( data.SNPID() ),
-				genfile::set_value( data.rsid() ),
-				genfile::set_value( data.position().chromosome() ),
-				genfile::set_value( data.position().position() ),
-				genfile::set_value( data.first_allele() ),
-				genfile::set_value( data.second_allele() )
-			) ;
+			VariantIdentifyingData variant ;
+			get_snp_identifying_data( &variant ) ;
 			ignore_snp_probability_data()
 		) {
-			setter( data ) ;
+			setter( variant ) ;
 			if( progress_callback ) {
 				progress_callback( number_of_snps_read() + 1, total_number_of_snps() ) ;
 			}
@@ -152,52 +146,33 @@ namespace genfile {
 		
 	}
 
-	std::vector< SNPIdentifyingData > SNPDataSource::list_snps( ProgressCallback callback ) {
-		std::vector< SNPIdentifyingData > result ;
-		list_snps( boost::bind( &std::vector< SNPIdentifyingData >::push_back, &result, _1 ), callback ) ;
+	std::vector< VariantIdentifyingData > SNPDataSource::list_snps( ProgressCallback callback ) {
+		std::vector< VariantIdentifyingData > result ;
+		list_snps( boost::bind( &std::vector< VariantIdentifyingData >::push_back, &result, _1 ), callback ) ;
 		return result ;
 	}
 
-	SNPDataSource& SNPDataSource::read_snp(
-		IntegerSetter set_number_of_samples,
-		StringSetter set_SNPID,
-		StringSetter set_RSID,
-		ChromosomeSetter set_chromosome,
-		SNPPositionSetter set_SNP_position,
-		AlleleSetter set_allele1,
-		AlleleSetter set_allele2,
+/*	SNPDataSource& SNPDataSource::read_snp(
+		VariantIdentifyingData* result,
 		GenotypeProbabilitySetter set_genotype_probabilities
 	)
 	{
-		uint32_t this_number_of_samples ;
-		get_snp_identifying_data( set_value( this_number_of_samples ), set_SNPID, set_RSID, set_chromosome, set_SNP_position, set_allele1, set_allele2 ) ;
+		VariantIdentifyingData variant ;
+		get_snp_identifying_data( &variant ) ;
 		if( *this ) {
-			assert( this_number_of_samples == number_of_samples() ) ;
+			*result = variant ;
 			read_snp_probability_data( set_genotype_probabilities ) ;
-			set_number_of_samples( this_number_of_samples ) ;
 		}
 		return *this ;
 	}
-
+*/
 	bool SNPDataSource::get_next_snp_with_specified_position(
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2,
+		VariantIdentifyingData* result,
 		Chromosome specified_chromosome,
 		uint32_t specified_SNP_position
 	) {
 		return get_next_snp_with_position_in_range(
-			set_number_of_samples,
-			set_SNPID,
-			set_RSID,
-			set_chromosome,
-			set_SNP_position,
-			set_allele1,
-			set_allele2,
+			result,
 			specified_chromosome,
 			specified_chromosome,
 			specified_SNP_position,
@@ -206,23 +181,11 @@ namespace genfile {
 	}
 
 	bool SNPDataSource::get_next_snp_with_specified_position(
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2,
+		VariantIdentifyingData* result,
 		GenomePosition specified_position
 	) {
 		return get_next_snp_with_position_in_range(
-			set_number_of_samples,
-			set_SNPID,
-			set_RSID,
-			set_chromosome,
-			set_SNP_position,
-			set_allele1,
-			set_allele2,
+			result,
 			specified_position.chromosome(),
 			specified_position.chromosome(),
 			specified_position.position(),
@@ -231,13 +194,7 @@ namespace genfile {
 	}
 
 	bool SNPDataSource::get_next_snp_with_position_in_range(
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2,
+		VariantIdentifyingData* result,
 		Chromosome chromosome_lower_bound,
 		Chromosome chromosome_upper_bound,
 		uint32_t position_lower_bound,
@@ -246,32 +203,19 @@ namespace genfile {
 		assert( chromosome_lower_bound <= chromosome_upper_bound ) ;
 		assert( position_lower_bound <= position_upper_bound ) ;
 
-		uint32_t this_number_of_samples = number_of_samples() ;
-		std::string SNPID, RSID ;
-		unsigned char chromosome ;
-		uint32_t SNP_position ;
-		std::string first_allele, second_allele ;
-
-		while( *this )  {
-			get_snp_identifying_data( set_value( this_number_of_samples ), set_value( SNPID ), set_value( RSID ), set_value( chromosome ), set_value( SNP_position ), set_value( first_allele ), set_value( second_allele ) ) ;
-
+		VariantIdentifyingData variant ;
+		while( *this ) {
+			get_snp_identifying_data( &variant ) ;
 			if( *this ) {
-				assert( this_number_of_samples == number_of_samples() ) ;
-				if( chromosome < chromosome_lower_bound || ((chromosome <= chromosome_upper_bound) && (SNP_position < position_lower_bound ))) {
+				genfile::Chromosome const& chromosome = variant.get_position().chromosome() ;
+				if( chromosome < chromosome_lower_bound || ((chromosome <= chromosome_upper_bound) && (variant.get_position().position() < position_lower_bound ))) {
 					ignore_snp_probability_data() ;
 				}
-				else if( chromosome > chromosome_upper_bound || SNP_position > position_upper_bound ) {
+				else if( chromosome > chromosome_upper_bound || variant.get_position().position() > position_upper_bound ) {
 					return false ;
 				}
 				else {
-					set_SNPID( SNPID ) ;
-					set_RSID( RSID ) ;
-					set_chromosome( Chromosome( chromosome )) ;
-					set_SNP_position( SNP_position ) ;
-					set_allele1( first_allele ) ;
-					set_allele2( second_allele ) ;
-					set_number_of_samples( this_number_of_samples ) ;
-
+					*result = variant ;
 					return *this ;
 				}
 			}
@@ -281,26 +225,20 @@ namespace genfile {
 	}
 
 	bool SNPDataSource::get_next_snp_matching(
-		SNPIdentifyingData* result,
-		SNPIdentifyingData const& snp_to_match,
-		SNPIdentifyingData::CompareFields const& comparer
+		VariantIdentifyingData* result,
+		VariantIdentifyingData const& variant_to_match,
+		VariantIdentifyingData::CompareFields const& comparer
 	) {
 		assert( result ) ;
 		bool found = false ;
-		SNPIdentifyingData snp ;
+		VariantIdentifyingData variant ;
 		while(
 			get_next_snp_with_specified_position(
-				ignore(),
-				set_value( snp.SNPID() ),
-				set_value( snp.rsid() ),
-				set_value( snp.position().chromosome() ),
-				set_value( snp.position().position() ),
-				set_value( snp.first_allele() ),
-				set_value( snp.second_allele() ),
-				snp_to_match.get_position()
+				&variant,
+				variant_to_match.get_position()
 			)
 		) {
-			if( comparer.are_equal( snp, snp_to_match )) {
+			if( comparer.are_equal( variant, variant_to_match )) {
 				found = true ;
 				break ;
 			} else {
@@ -308,47 +246,21 @@ namespace genfile {
 			}
 		}
 		if( found ) {
-			*result = snp ;
+			*result = variant ;
 		}
 		return found ;
 	}
 
 	SNPDataSource& SNPDataSource::get_snp_identifying_data(
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2
+		VariantIdentifyingData* result
 	) {
-		get_snp_identifying_data_impl(
-			set_number_of_samples,
-			set_SNPID,
-			set_RSID,
-			set_chromosome,
-			set_SNP_position,
-			set_allele1,
-			set_allele2
-		) ;
+		VariantIdentifyingData variant ;
+		get_snp_identifying_data_impl( &variant ) ;
 		if( *this ) {
 			m_state = e_HaveReadIdentifyingData ;
+			*result = variant ;
 		}
 		return *this ;
-	}
-
-	SNPDataSource& SNPDataSource::get_snp_identifying_data(
-		SNPIdentifyingData& snp
-	) {
-		return get_snp_identifying_data(
-			ignore(),
-			set_value( snp.SNPID() ),
-			set_value( snp.rsid() ),
-			set_value( snp.position().chromosome() ),
-			set_value( snp.position().position() ),
-			set_value( snp.first_allele() ),
-			set_value( snp.second_allele() )
-		) ;
 	}
 
 	SNPDataSource& SNPDataSource::read_snp_probability_data(
@@ -405,35 +317,5 @@ namespace genfile {
 		return ostr.str() ;
 	}	
 
-	void IdentifyingDataCachingSNPDataSource::get_snp_identifying_data_impl( 
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2
-	) {
-		if( state() != e_HaveReadIdentifyingData ) {
-			read_snp_identifying_data_impl(
-				&m_cached_number_of_samples,
-				&m_cached_SNPID,
-				&m_cached_RSID,
-				&m_cached_chromosome,
-				&m_cached_SNP_position,
-				&m_cached_allele1,
-				&m_cached_allele2
-			) ;
-		}
-
-		set_number_of_samples( m_cached_number_of_samples ) ;
-		set_SNPID( m_cached_SNPID ) ;
-		set_RSID( m_cached_RSID ) ;
-		set_chromosome( m_cached_chromosome ) ;
-		set_SNP_position( m_cached_SNP_position ) ;
-		set_allele1( m_cached_allele1 ) ;
-		set_allele2( m_cached_allele2 ) ;
-	}
-	
 }
 

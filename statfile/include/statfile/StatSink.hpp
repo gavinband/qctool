@@ -106,6 +106,7 @@ namespace statfile {
 
 		// Method to deposit some metadata in the output.
 		virtual void write_metadata( std::string const& metadata ) {}
+		virtual void write_comment( std::string const& comment ) {}
 
 		// Methods to return information about what has been written so far
 		std::size_t number_of_rows_written() const { return m_number_of_rows_written ; }

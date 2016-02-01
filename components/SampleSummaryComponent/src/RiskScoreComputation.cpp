@@ -7,20 +7,20 @@
 #include <Eigen/Core>
 #include <strstream>
 #include "metro/mean_and_variance.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "components/SampleSummaryComponent/SampleSummaryComputation.hpp"
 #include "components/SampleSummaryComponent/RiskScoreComputation.hpp"
 
 //#define DEBUG_RISK_SCORE_COMPUTATION 3
 
 namespace sample_stats {
-	RiskScoreComputation::RiskScoreComputation( genfile::CohortIndividualSource const& samples, genfile::SNPIdentifyingData::CompareFields comparator ):
+	RiskScoreComputation::RiskScoreComputation( genfile::CohortIndividualSource const& samples, genfile::VariantIdentifyingData::CompareFields comparator ):
 		m_samples( samples ),
 		m_number_of_samples( samples.get_number_of_individuals() ),
 		m_map( comparator )
 	{}
 
-	void RiskScoreComputation::accumulate( genfile::SNPIdentifyingData const& snp, Genotypes const& genotypes, genfile::VariantDataReader& ) {
+	void RiskScoreComputation::accumulate( genfile::VariantIdentifyingData const& snp, Genotypes const& genotypes, genfile::VariantDataReader& ) {
 		// do nothing
 #if	DEBUG_RISK_SCORE_COMPUTATION
 				std::cerr << "Looking at SNP:" << snp << ".\n" ;
@@ -131,11 +131,14 @@ namespace sample_stats {
 		
 		std::set< std::string > identifiers ;
 		
-		genfile::SNPIdentifyingData snp ;
+		std::string SNPID, rsid, allele1, allele2 ;
+		genfile::GenomePosition position ;
 		std::string risk_score_identifier ;
 		Eigen::MatrixXd betas( 3, 2 ) ;
 		double beta1, beta2 ;
-		while( source >> snp.SNPID() >> snp.rsid() >> snp.position().chromosome() >> snp.position().position() >> snp.first_allele() >> snp.second_allele() ) {
+		while( source >> SNPID >> rsid >> position.chromosome() >> position.position() >> allele1 >> allele2 ) {
+			genfile::VariantIdentifyingData snp( SNPID, rsid, position, allele1, allele2 ) ;
+
 			source >> statfile::ignore( identifier_column - 6 ) >> risk_score_identifier ;
 			source >> statfile::ignore( min_beta_column - identifier_column - 1 ) >> beta1 ;
 			source >> statfile::ignore( max_beta_column - min_beta_column - 1 ) >> beta2 ;
@@ -153,7 +156,7 @@ namespace sample_stats {
 
 			RiskScoreIdBetaMap::const_iterator where = m_map[ snp ].find( risk_score_identifier ) ;
 			if( where != m_map[ snp ].end() ) {
-				throw genfile::MalformedInputError( source.get_source_spec(), "SNP " + snp.get_rsid() + " has duplicated entries for risk score " + risk_score_identifier, source.number_of_rows_read() ) ;
+				throw genfile::MalformedInputError( source.get_source_spec(), "SNP " + std::string( snp.get_primary_id() ) + " has duplicated entries for risk score " + risk_score_identifier, source.number_of_rows_read() ) ;
 			}
 
 			m_map[ snp ][ risk_score_identifier ] = betas ;

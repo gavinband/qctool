@@ -21,17 +21,30 @@ namespace genfile {
 		// larger string.
 		struct slice
 		{
-			// A view of the whole string.
+		public:
+			typedef char const* const_iterator ;
+
+		public:
+			// A view of a C-style string; view does not include terminating null.
+			slice( char const* c_string ) ;
+			// A view of a subset of a c-style string.
+			slice( char const* c_string, std::size_t start, std::size_t end ) ;
+			// A view of a character buffer
+			slice( char const* data, char const* end_of_data ) ;
+			// A view of a subset of a character buffer
+			slice( char const* data, char const* end_of_data, std::size_t start, std::size_t end ) ;
+			// A view of a string.
 			slice( std::string const& ) ;
-			// A view of the whole string.
+			// A view of a subset of a string.
 			slice( std::string const&, std::size_t start, std::size_t end ) ;
 			slice( slice const&, std::size_t start, std::size_t end ) ;
 			slice( slice const& other ) ;
+
+			slice& operator=( slice const& other ) ;
 			// slice& operator=( slice const& other ) ;
 
-			char const& operator[]( std::size_t pos ) const { return (*m_string)[ m_start + pos ] ; }
-
-			operator std::string() const { return m_string->substr( m_start, m_end - m_start ) ; }
+			char const& operator[]( std::size_t pos ) const { return *(m_data + m_start + pos) ; }
+			operator std::string() const { return std::string( m_data + m_start, m_data + m_end ) ; }
 
 			std::size_t size() const { return m_end - m_start ; }
 			bool empty() const { return m_end == m_start ; }
@@ -54,10 +67,12 @@ namespace genfile {
 			
 			bool operator==( std::string const& other ) const ;
 			bool operator!=( std::string const& other ) const ;
+			bool operator==( char const* other ) const ;
+			bool operator!=( char const* other ) const ;
 			// bool operator==( slice const& other ) const ;
 			
-			std::string::const_iterator begin() const ;
-			std::string::const_iterator end() const ;
+			const_iterator begin() const ;
+			const_iterator end() const ;
 
 			friend bool operator<( slice const& left, slice const& right ) ;
 			friend bool operator>( slice const& left, slice const& right ) ;
@@ -68,7 +83,8 @@ namespace genfile {
 			friend std::ostream& operator<<( std::ostream& o, slice const& s ) ;
 			
 		private:
-			std::string const* m_string ;
+			char const* m_data ;
+			char const* m_end_of_data ;
 			std::size_t m_start, m_end ;
 
 		private:
@@ -77,6 +93,12 @@ namespace genfile {
 		} ;
 	
 		std::string join( std::vector< slice > const& slices, std::string const& joiner ) ;
+
+		std::string operator+( slice const& left, slice const& right ) ;
+		std::string operator+( slice const& left, std::string const& right ) ;
+		std::string operator+( std::string const& left, slice const& right ) ;
+		std::string operator+( slice const& left, char const* right ) ;
+		std::string operator+( char const* left, slice const& right ) ;
 	}
 }
 

@@ -36,11 +36,11 @@ void SequenceAnnotation::set_flanking( std::size_t left, std::size_t right ) {
 	m_flanking.second = right ;
 }
 
-void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const&, genfile::VariantDataReader&, ResultCallback callback ) {
+void SequenceAnnotation::operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const&, genfile::VariantDataReader&, ResultCallback callback ) {
 	using namespace genfile::string_utils ;
 	std::deque< char > flankingSequence ;
-	std::size_t const first_allele_size = snp.get_first_allele().size() ;
-	std::size_t const second_allele_size = snp.get_second_allele().size() ;
+	std::size_t const first_allele_size = snp.get_allele(0).size() ;
+	std::size_t const second_allele_size = snp.get_allele(1).size() ;
 	try {
 		bool match = false ;
 		m_sequence.get_sequence(
@@ -59,12 +59,12 @@ void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes co
 			callback( m_annotation_name + "_" + "right_flanking", std::string( flankingSequence.begin() + m_flanking.first + first_allele_size, flankingSequence.end() ) ) ;
 		}
 
-		if( to_upper( reference_allele ) == to_upper( snp.get_first_allele() ) ) {
+		if( to_upper( reference_allele ) == to_upper( snp.get_allele(0) ) ) {
 			match = true ;
 		}
 		
 		if( first_allele_size == second_allele_size ) {
-			if( to_upper( reference_allele ) == to_upper( snp.get_second_allele() ) ) {
+			if( to_upper( reference_allele ) == to_upper( snp.get_allele(1) ) ) {
 				match = true ;
 			}
 			callback( m_annotation_name + "_" + "alleleB_if_indel", genfile::MissingValue() ) ;
@@ -80,7 +80,7 @@ void SequenceAnnotation::operator()( SNPIdentifyingData const& snp, Genotypes co
 				callback( m_annotation_name + "_" + "alleleB_right_flanking_if_indel", std::string( flankingSequence.begin() + m_flanking.first + second_allele_size, flankingSequence.end() ) ) ;
 			}
 
-			if( to_upper( second_reference_allele ) == to_upper( snp.get_second_allele() ) ) {
+			if( to_upper( second_reference_allele ) == to_upper( snp.get_allele(1) ) ) {
 				match = true ;
 			}
 		}

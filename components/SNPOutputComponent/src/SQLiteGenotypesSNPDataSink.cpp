@@ -190,19 +190,12 @@ namespace {
 				) ;
 			}
 		}
-		void set_value( genfile::MissingValue const value ) {
+		void set_value( std::size_t i, genfile::MissingValue const value ) {
 			double float_value = -1 ; // encode missingness as -1.
-			set_value( float_value ) ;
+			set_value( i, float_value ) ;
 		}
 
-		void set_value( std::string& value ) {
-			assert(0) ; // not allowed in this encoding.
-		}
-		void set_value( Integer const value ) {
-			assert(0) ; // not allowed in this encoding.
-		}
-
-		void set_value( double const value ) {
+		void set_value( std::size_t i, double const value ) {
 			assert( ( m_buf_p[ eBITPACK ] + 4 ) <= m_buf_end_p[ eBITPACK ] ) ;
 			float float_value = value ;
 			if( float_value != float_value ) {
@@ -298,17 +291,14 @@ namespace {
 			m_allele_probs[0] = m_allele_probs[1] = -1.0 ;  // encode missingness as -1
 		}
 
-		void set_value( genfile::MissingValue const value ) {
+		void set_value( std::size_t i, genfile::MissingValue const value ) {
 			double float_value = -1 ; // encode missingness as -1.
-			set_value( float_value ) ;
+			set_value( i, float_value ) ;
 		}
-		void set_value( std::string& value ) {
-			assert(0) ; // not allowed in this encoding.
+		void set_value( std::size_t i, Integer const value ) {
+			set_value( i, double( value )) ;
 		}
-		void set_value( Integer const value ) {
-			set_value( double( value )) ;
-		}
-		void set_value( double const value ) {
+		void set_value( std::size_t, double const value ) {
 			// TODO: fix this to handle order_type and value_type properly.
 			switch( m_order_type ) {
 				case genfile::ePerSample:
@@ -355,11 +345,11 @@ namespace {
 			 	|| ( m_genotype_probs[0] == -1.0 || m_genotype_probs[1] == -1.0 || m_genotype_probs[2] == -1.0 ) // all probs set as -1's.
 			) {
 				for( int g = 0; g < 3; ++g ) {
-					m_writer.set_value( genfile::MissingValue() ) ;
+					m_writer.set_value( g, genfile::MissingValue() ) ;
 				}
 			} else {
 				for( std::size_t g = 0; g < 3; ++g ) {
-					m_writer.set_value( m_genotype_probs[g] ) ;
+					m_writer.set_value( g, m_genotype_probs[g] ) ;
 				}
 			}
 		}
@@ -400,7 +390,7 @@ void SQLiteGenotypesSNPDataSink::set_sample_names_impl( std::size_t number_of_sa
 }
 
 void SQLiteGenotypesSNPDataSink::write_variant_data_impl(
-	genfile::SNPIdentifyingData const& id_data,
+	genfile::VariantIdentifyingData const& id_data,
 	genfile::VariantDataReader& data_reader,
 	Info const& info
 ) {

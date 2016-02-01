@@ -18,7 +18,7 @@
 struct StratifyingSNPSummaryComputation: public SNPSummaryComputation {
 	typedef std::map< genfile::VariantEntry, std::vector< int > > StrataMembers ;
 	StratifyingSNPSummaryComputation( SNPSummaryComputation::UniquePtr computation, std::string const& stratification_name, StrataMembers const& strata_members ) ;
-	void operator()( SNPIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
+	void operator()( VariantIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 private:
 	SNPSummaryComputation::UniquePtr m_computation ;

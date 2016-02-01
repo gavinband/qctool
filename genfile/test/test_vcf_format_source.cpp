@@ -75,16 +75,16 @@ namespace impl {
 		void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 			// do nothing
 		}
-		void set_value( MissingValue const value ) {
+		void set_value( std::size_t, MissingValue const value ) {
 			m_values.push_back( 0.0 ) ;
 		}
-		void set_value( std::string& value ) {
+		void set_value( std::size_t, std::string& value ) {
 			assert(0) ;
 		}
-		void set_value( Integer const value ) {
+		void set_value( std::size_t, Integer const value ) {
 			assert(0) ;
 		}
-		void set_value( double const value ) {
+		void set_value( std::size_t, double const value ) {
 			m_values.push_back( value ) ;
 		}
 		void finalise() {}
@@ -103,23 +103,27 @@ void perform_test_against_cvcft(
 ) {
 	using namespace data ;
 	{
-		std::vector< genfile::SNPIdentifyingData > cvcft_snps ;
+		std::vector< genfile::VariantIdentifyingData > cvcft_snps ;
 		std::vector< std::vector< double > > cvcft_probs ;
+		std::cerr << "CVCFT:\n" ;
 		{
 			std::auto_ptr< std::istream > istr( new std::istringstream( data ) ) ;
 			CVCFT data( *istr, key.c_str() ) ;
 
 			while( data.ReadNext() ) {
-				genfile::SNPIdentifyingData snp ;
-				snp.rsid() = data.GetRSID() ;
-				snp.first_allele() = data.GetRef() ;
-				snp.second_allele() = data.GetAlt() ;
+				genfile::GenomePosition position ;
 				{
 					std::string chr ;
 					int pos ;
 					data.GetChrPos( chr, pos ) ;
-					snp.position() = genfile::GenomePosition( chr, pos ) ;
+					position = genfile::GenomePosition( chr, pos ) ;
 				}
+				genfile::VariantIdentifyingData snp(
+					std::string( data.GetRSID() ),
+					position,
+					std::string( 1, data.GetRef() ),
+					std::string( 1, data.GetAlt() )
+				) ;
 				std::vector< double > prob ;
 				data.GetProb( prob ) ;
 				std::cerr << snp << ": " << key << ": " << prob.size() << " probs.\n" ;
@@ -131,18 +135,19 @@ void perform_test_against_cvcft(
 			TEST_ASSERT( cvcft_snps.size() == number_of_lines ) ;
 		}
 
-		std::vector< genfile::SNPIdentifyingData > my_snps ;
+		std::vector< genfile::VariantIdentifyingData > my_snps ;
 		std::vector< std::vector< double > > my_probs ;
 
 		using namespace genfile::vcf ;
 
+		std::cerr << "genfile::VCFFormatSNPDataSource:\n" ;
 		{
 			std::auto_ptr< std::istream > istr( new std::istringstream( data ) ) ;
 
 			genfile::VCFFormatSNPDataSource source( istr ) ;
 			TEST_ASSERT( !source.total_number_of_snps() || ( source.total_number_of_snps().get() == number_of_lines )) ;
-			genfile::SNPIdentifyingData snp ;
-			while( source.get_snp_identifying_data( snp )) {
+			genfile::VariantIdentifyingData snp ;
+			while( source.get_snp_identifying_data( &snp )) {
 				std::vector< double > probs ;
 				impl::VectorSetter setter( probs ) ;
 				source.read_variant_data()->get( key, setter ) ;
@@ -159,10 +164,10 @@ void perform_test_against_cvcft(
 		
 		for( std::size_t i = 0; i < my_snps.size(); ++i ) {
 			TEST_ASSERT( my_probs[i] == cvcft_probs[i] ) ;
-			TEST_ASSERT( my_snps[i].get_rsid() == cvcft_snps[i].get_rsid() ) ;
-			TEST_ASSERT( my_snps[i].get_position() == cvcft_snps[i].get_position() ) ;
-			TEST_ASSERT( my_snps[i].get_first_allele() == cvcft_snps[i].get_first_allele() ) ;
-			TEST_ASSERT( my_snps[i].get_second_allele() == cvcft_snps[i].get_second_allele() ) ;
+			BOOST_CHECK_EQUAL( my_snps[i].get_primary_id(), cvcft_snps[i].get_primary_id() ) ;
+			BOOST_CHECK_EQUAL( my_snps[i].get_position(), cvcft_snps[i].get_position() ) ;
+			BOOST_CHECK_EQUAL( my_snps[i].get_allele(0), cvcft_snps[i].get_allele(0) ) ;
+			BOOST_CHECK_EQUAL( my_snps[i].get_allele(1), cvcft_snps[i].get_allele(1) ) ;
 		}
 	}
 }

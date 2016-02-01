@@ -29,9 +29,9 @@ namespace genfile {
 		) ;
 
 		void write_variant_data_impl(
-				SNPIdentifyingData const& id_data,
-				VariantDataReader& data_reader,
-				Info const& info
+			VariantIdentifyingData const& id_data,
+			VariantDataReader& data_reader,
+			Info const& info
 		) ;
 
 		~SortingBGenFileSNPDataSink() ;
@@ -55,7 +55,7 @@ namespace genfile {
 	private:
 		std::string m_filename ;
 		SNPDataSink::UniquePtr m_sink ;
-		typedef std::multimap< SNPIdentifyingData, std::pair< std::ostream::streampos, std::ostream::streampos > > OffsetMap ;
+		typedef std::multimap< VariantIdentifyingData, std::pair< std::ostream::streampos, std::ostream::streampos > > OffsetMap ;
 		OffsetMap m_file_offsets ;
 		std::ostream::streampos m_offset_of_first_snp ;
 	} ;

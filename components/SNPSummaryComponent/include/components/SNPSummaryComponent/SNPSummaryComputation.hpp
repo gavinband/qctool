@@ -12,7 +12,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/function.hpp>
 #include <Eigen/Core>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "appcontext/OptionProcessor.hpp"
@@ -22,7 +22,7 @@ struct SNPSummaryComputation: public boost::noncopyable {
 	virtual ~SNPSummaryComputation() {}
 	static UniquePtr create( std::string const& name ) ;
 
-	typedef genfile::SNPIdentifyingData SNPIdentifyingData ;
+	typedef genfile::VariantIdentifyingData VariantIdentifyingData ;
 	typedef Eigen::MatrixXd Genotypes ;
 	typedef boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
 	typedef boost::function< void ( std::size_t sample_i, std::string const& value_name, genfile::VariantEntry const& value ) > PerSampleResultCallback ;
@@ -31,7 +31,7 @@ struct SNPSummaryComputation: public boost::noncopyable {
 	virtual std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const = 0 ;
 
 	virtual void begin_processing_snps( std::size_t ) {}
-	virtual void operator()( SNPIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) = 0 ;
+	virtual void operator()( VariantIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) = 0 ;
 	virtual void end_processing_snps( PerSampleResultCallback ) {}
 } ;
 

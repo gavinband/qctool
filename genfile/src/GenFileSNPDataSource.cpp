@@ -67,26 +67,24 @@ namespace genfile {
 		return result ;
 	}
 	
-	void GenFileSNPDataSource::read_snp_identifying_data_impl( 
-		uint32_t* number_of_samples,
-		std::string* SNPID,
-		std::string* RSID,
-		Chromosome* chromosome,
-		uint32_t* SNP_position,
-		std::string* allele1,
-		std::string* allele2
-	) {
+	void GenFileSNPDataSource::read_snp_identifying_data_impl( VariantIdentifyingData* result ) {
+		std::string SNPID, rsid, allele1, allele2 ;
+		uint32_t position ;
+		Chromosome chromosome ;
 		try {
 			if( m_have_chromosome_column ) {
-				gen::impl::read_snp_identifying_data( stream(), chromosome, SNPID, RSID, SNP_position, allele1, allele2 ) ;
+				gen::impl::read_snp_identifying_data( stream(), &chromosome, &SNPID, &rsid, &position, &allele1, &allele2 ) ;
 				if( *this ) {
-					*number_of_samples = m_number_of_samples ;
+					*result = VariantIdentifyingData(
+						SNPID, rsid, GenomePosition( chromosome, position ), allele1, allele2
+					) ;
 				}
 			} else {
-				gen::impl::read_snp_identifying_data( stream(), SNPID, RSID, SNP_position, allele1, allele2 ) ;
+				gen::impl::read_snp_identifying_data( stream(), &SNPID, &rsid, &position, &allele1, &allele2 ) ;
 				if( *this ) {
-					*number_of_samples = m_number_of_samples ;
-					*chromosome = m_chromosome ;
+					*result = VariantIdentifyingData(
+						SNPID, rsid, GenomePosition( m_chromosome, position ), allele1, allele2
+					) ;
 				}
 			}
 		} catch( InputError const& e ) {
@@ -133,7 +131,7 @@ namespace genfile {
 					setter.set_sample( i ) ;
 					setter.set_number_of_entries( ploidy,  3, ePerUnorderedGenotype, eProbability ) ;
 					for( std::size_t g = 0; g < 3; ++g ) {
-						setter.set_value( m_genotypes[ 3*i + g ] ) ;
+						setter.set_value( g, m_genotypes[ 3*i + g ] ) ;
 					}
 				}
 				setter.finalise() ;

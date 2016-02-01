@@ -60,8 +60,8 @@ namespace haplotype_frequency_component {
 
 	void DBOutputter::operator()(
 		std::string const& cohort,
-		genfile::SNPIdentifyingData const& source_snp,
-		genfile::SNPIdentifyingData const& target_snp,
+		genfile::VariantIdentifyingData const& source_snp,
+		genfile::VariantIdentifyingData const& target_snp,
 		std::string const& variable,
 		genfile::VariantEntry const& value
 	) {

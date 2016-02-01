@@ -65,7 +65,6 @@ namespace genfile {
 
 			void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 				assert( m_streams.size() == nSamples ) ;
-				assert( nAlleles == 2 ) ;
 				m_sample_i = 0 ;
 			}
 
@@ -85,28 +84,28 @@ namespace genfile {
 				}
 			}
 
-			void set_value( MissingValue const value ) {
+			void set_value( std::size_t, MissingValue const value ) {
 				if( m_entry_i++ > 0 ) {
 					m_streams[ m_sample_i ] << m_sep ;
 				}
 				m_streams[ m_sample_i ] << "." ;
 			}
 
-			void set_value( std::string& value ) {
+			void set_value( std::size_t, std::string& value ) {
 				if( m_entry_i++ > 0 ) {
 					m_streams[ m_sample_i ] << m_sep ;
 				}
 				m_streams[ m_sample_i ] << value ;
 			}
 
-			void set_value( Integer const value ) {
+			void set_value( std::size_t, Integer const value ) {
 				if( m_entry_i++ > 0 ) {
 					m_streams[ m_sample_i ] << m_sep ;
 				}
 				m_streams[ m_sample_i ] << value ;
 			}
 
-			void set_value( double const value ) {
+			void set_value( std::size_t, double const value ) {
 				if( m_entry_i++ > 0 ) {
 					m_streams[ m_sample_i ] << m_sep ;
 				}
@@ -201,7 +200,7 @@ namespace genfile {
 	
 
 	void VCFFormatSNPDataSink::write_variant_data_impl(
-		SNPIdentifyingData const& id_data,
+		VariantIdentifyingData const& id_data,
 		VariantDataReader& data_reader,
 		Info const& info
 	) {
@@ -209,13 +208,9 @@ namespace genfile {
 		(*m_stream_ptr)
 			<< id_data.get_position().chromosome() << tab
 			<< id_data.get_position().position() << tab
-			<< id_data.get_rsid() ;
-		if( id_data.get_SNPID() != id_data.get_rsid() ) {
-			(*m_stream_ptr ) << "," << id_data.get_SNPID() ;
-		}
-		(*m_stream_ptr) << tab
-			<< id_data.get_first_allele() << tab
-			<< id_data.get_second_allele() << tab
+			<< id_data.get_identifiers_as_string( "," ) << tab
+			<< id_data.get_allele(0) << tab
+			<< genfile::string_utils::join( id_data.get_alleles(1, id_data.number_of_alleles()), "," ) << tab
 			<< "." << tab
 			<< "." << tab ;
 

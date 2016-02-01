@@ -13,14 +13,14 @@
 #include <boost/signals2/signal.hpp>
 #include <Eigen/Core>
 #include "genfile/CohortIndividualSource.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 
 namespace pca {
 	struct PCALoadingLoader: public boost::noncopyable {
 		PCALoadingLoader( genfile::CohortIndividualSource const& samples ) ;
 
 		typedef boost::signals2::signal< void (
-			std::vector< genfile::SNPIdentifyingData > const&,
+			std::vector< genfile::VariantIdentifyingData > const&,
 			Eigen::VectorXd const&,
 			Eigen::VectorXd const&,
 			Eigen::MatrixXd const&,
@@ -36,7 +36,7 @@ namespace pca {
 
 		void load_loadings_impl(
 			std::string const& filename,
-			std::vector< genfile::SNPIdentifyingData >* snps,
+			std::vector< genfile::VariantIdentifyingData >* snps,
 			Eigen::VectorXd* counts,
 			Eigen::VectorXd* frequencies,
 			Eigen::MatrixXd* loadings,

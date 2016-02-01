@@ -16,7 +16,7 @@ struct SNPTESTResults: public FlatFileFrequentistGenomeWideAssociationResults {
 	typedef boost::function< bool ( double info, double maf, Row const& betas, Row const& ses, Row const& counts ) > Filter ;
 
 	SNPTESTResults(
-		genfile::SNPIdentifyingDataTest::UniquePtr test,
+		genfile::VariantIdentifyingDataTest::UniquePtr test,
 		boost::optional< genfile::Chromosome > const chromosome_hint = boost::optional< genfile::Chromosome >()
 	) ;
 
@@ -29,7 +29,7 @@ struct SNPTESTResults: public FlatFileFrequentistGenomeWideAssociationResults {
 	void set_filter( Filter filter ) ;
 
 private:
-	genfile::SNPIdentifyingDataTest::UniquePtr m_exclusion_test ;
+	genfile::VariantIdentifyingDataTest::UniquePtr m_exclusion_test ;
 	std::string m_beta_column_regex ;
 	boost::optional< genfile::Chromosome > m_chromosome_hint ;
 	std::vector< std::string > m_beta_columns ;

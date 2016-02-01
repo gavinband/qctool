@@ -718,7 +718,7 @@ namespace genfile {
 					for( std::size_t g = 0; g < 3; ++g ) {
 						uint16_t prob ;
 						buffer = read_little_endian_integer( buffer, end, &prob ) ;
-						setter.set_value( /* g, */ impl::convert_from_integer_representation( prob, probability_conversion_factor ) ) ;
+						setter.set_value( g, impl::convert_from_integer_representation( prob, probability_conversion_factor ) ) ;
 					}
 				}
 				call_finalise( setter ) ;
@@ -849,7 +849,7 @@ namespace genfile {
 									(void) impl::parse_bit_representation( &data, &size, bits ) ;
 								}
 								for( uint32_t h = 0; h < valueCount; ++h ) {
-									setter.set_value( /* h, */ genfile::MissingValue() ) ;
+									setter.set_value( h, genfile::MissingValue() ) ;
 								}
 							} else {
 								// Consume values and interpret them.
@@ -858,7 +858,7 @@ namespace genfile {
 								for( uint32_t h = 0; h < storedValueCount; ++h ) {
 									buffer = impl::read_bits_from_buffer( buffer, end, &data, &size, bits ) ;
 									double const value = impl::parse_bit_representation( &data, &size, bits ) ;
-									setter.set_value( /* reportedValueCount++, */ value ) ;
+									setter.set_value( reportedValueCount++, value ) ;
 									sum += value ;
 	#if DEBUG_BGEN_FORMAT
 									std::cerr << "parse_probability_data_v12(): i = " << i << ", h = " << h << ", size = " << size << ", bits = " << bits << ", parsed value = " << value
@@ -870,7 +870,7 @@ namespace genfile {
 										|| ((!phased) && (h+1) == storedValueCount )
 									) {
 										assert( sum <= 1.00000001 ) ;
-										setter.set_value( /* reportedValueCount++, */ 1.0 - sum ) ;
+										setter.set_value( reportedValueCount++, 1.0 - sum ) ;
 										sum = 0.0 ;
 									}
 								}

@@ -104,7 +104,7 @@ public:
 	
 protected:
 	std::string const m_missing_value ;
-	genfile::SNPIdentifyingDataTest::UniquePtr m_exclusion_test ;
+	genfile::VariantIdentifyingDataTest::UniquePtr m_exclusion_test ;
 
 	DesiredColumns m_desired_columns ;
 	boost::optional< SourceColumnMap > m_column_map ;

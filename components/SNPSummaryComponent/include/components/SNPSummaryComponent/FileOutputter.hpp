@@ -38,11 +38,11 @@ namespace snp_summary_component {
 			}
 			(*m_sink)
 				<< SNPID
-				<< snp.get_rsid()
+				<< snp.get_primary_id()
 				<< std::string( snp.get_position().chromosome() )
 				<< snp.get_position().position()
-				<< snp.get_first_allele()
-				<< snp.get_second_allele()
+				<< snp.get_allele(0)
+				<< snp.get_allele(1)
 				<< value_name ;
 			if( value == value ) {
 				(*m_sink) << value ;

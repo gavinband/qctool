@@ -12,8 +12,8 @@
 #include <boost/algorithm/string/replace.hpp>
 #include "genfile/FileUtils.hpp"
 #include "genfile/GenomePosition.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/string_utils/string_utils.hpp"
 #include "statfile/DelimitedStatSource.hpp"
 #include "statfile/read_values.hpp"
@@ -95,7 +95,7 @@ public:
 
 private:
 	
-	typedef boost::unordered_map< std::string, genfile::SNPIdentifyingData > VariantMap ;
+	typedef boost::unordered_map< std::string, genfile::VariantIdentifyingData > VariantMap ;
 	VariantMap m_map ;
 	
 	void loadManifest( std::string const& filename ) {
@@ -138,7 +138,7 @@ private:
 			std::string const allele1 = alleleString.substr( 1, 1 ) ;
 			std::string const allele2 = alleleString.substr( 3, 1 ) ;
 			
-			genfile::SNPIdentifyingData snp(
+			genfile::VariantIdentifyingData snp(
 				IlmnID, Name, genfile::GenomePosition( Chr, position ), allele1, allele2
 			) ;
 			
@@ -291,24 +291,24 @@ private:
 					) ;
 				}
 				if( compareAlleles ) {
-					if( line.compare( fieldPos[3], fieldPos[4] - fieldPos[3] - 1, where->second.get_first_allele() ) != 0 ) {
+					if( line.compare( fieldPos[3], fieldPos[4] - fieldPos[3] - 1, where->second.get_allele(0) ) != 0 ) {
 						throw genfile::MalformedInputError(
 							"FixVCFApplication::process()",
 							"REF allele for SNP " + rsid + " (\"" + line.substr( fieldPos[3], fieldPos[4] - fieldPos[3] - 1 )
-								+ "\") does not match manifest allele (\"" + where->second.get_first_allele() + "\")",
+								+ "\") does not match manifest allele (\"" + where->second.get_allele(0) + "\")",
 							lineCount
 						) ;
 					}
-					if( line.compare( fieldPos[4], fieldPos[5] - fieldPos[4] - 1, where->second.get_second_allele() ) != 0 ) {
+					if( line.compare( fieldPos[4], fieldPos[5] - fieldPos[4] - 1, where->second.get_allele(1) ) != 0 ) {
 						throw genfile::MalformedInputError(
 							"FixVCFApplication::process()",
 							"REF allele for SNP " + rsid + " (\"" + line.substr( fieldPos[4], fieldPos[5] - fieldPos[4] - 1 )
-								+ "\") does not match manifest allele (\"" + where->second.get_second_allele() + "\")",
+								+ "\") does not match manifest allele (\"" + where->second.get_allele(1) + "\")",
 							lineCount
 						) ;
 					}
 				}
-				rsid += "," + where->second.get_SNPID() ;
+				rsid += "," + where->second.get_identifiers_as_string( ",", 1 ) ;
 
 				if( outStream.get() ) {
 					outStream->write( line.data(), fieldPos[2] ) ;

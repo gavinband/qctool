@@ -11,22 +11,14 @@
 #include <string>
 #include "genfile/GenomePosition.hpp"
 #include "genfile/GenomePositionRange.hpp"
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 
 namespace genfile {
 	// Test if the given SNP is in the given (closed) range of positions.
-	struct SNPPositionInRangeTest: public SNPIdentifyingDataTest
+	struct SNPPositionInRangeTest: public VariantIdentifyingDataTest
 	{
 		SNPPositionInRangeTest( GenomePositionRange const range ) ;
-		
-		bool operator()(
-			std::string,
-			std::string,
-			GenomePosition position,
-			std::string,
-			std::string
-		) const ;
-
+		bool operator()( VariantIdentifyingData const& data ) const ;
 		std::string display() const ;
 	private:
 		GenomePositionRange const m_range ;

@@ -10,7 +10,7 @@
 #include <boost/function.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/thread.hpp>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/vcf/get_set_eigen.hpp"
 #include "genfile/Error.hpp"
@@ -94,7 +94,7 @@ void SNPSummaryComputationManager::begin_processing_snps( std::size_t number_of_
 	}
 }
 
-void SNPSummaryComputationManager::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
+void SNPSummaryComputationManager::processed_snp( genfile::VariantIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 	try {
 		genfile::vcf::GenotypeSetter< Eigen::MatrixBase< SNPSummaryComputation::Genotypes > > setter( m_genotypes ) ;
 		data_reader.get( ":genotypes:", setter ) ;
@@ -132,7 +132,7 @@ void SNPSummaryComputationManager::processed_snp( genfile::SNPIdentifyingData co
 // On X and Y chromosome, recode males if necessary so the genotypes are 0/1.
 // On Y chromosome check all female calls are 0.
 void SNPSummaryComputationManager::fix_sex_chromosome_genotypes(
-	genfile::SNPIdentifyingData const& snp,
+	genfile::VariantIdentifyingData const& snp,
 	SNPSummaryComputation::Genotypes* genotypes,
 	boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > callback
 ) {
@@ -234,7 +234,7 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes(
 
 // Figure out if males are coded like heterozygote or homozygote females.
 int SNPSummaryComputationManager::determine_male_coding_column(
-	genfile::SNPIdentifyingData const& snp,
+	genfile::VariantIdentifyingData const& snp,
 	SNPSummaryComputation::Genotypes const& genotypes,
 	std::vector< int > const& males
 ) const {

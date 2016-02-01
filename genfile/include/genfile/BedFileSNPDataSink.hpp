@@ -12,7 +12,7 @@
 #include <map>
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/CohortIndividualSource.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 
 namespace genfile {
 	

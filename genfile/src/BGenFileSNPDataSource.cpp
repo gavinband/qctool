@@ -50,23 +50,18 @@ namespace genfile {
 		}
 	}
 
-	void BGenFileSNPDataSource::read_snp_identifying_data_impl( 
-		uint32_t* number_of_samples,
-		std::string* SNPID,
-		std::string* RSID,
-		Chromosome* chromosome,
-		uint32_t* SNP_position,
-		std::string* allele1,
-		std::string* allele2
-	) {
+	void BGenFileSNPDataSource::read_snp_identifying_data_impl( VariantIdentifyingData* result ) {
+		std::string SNPID, rsid, allele1, allele2 ;
+		uint32_t position ;
 		std::string chromosome_string ;
-		if( bgen::read_snp_identifying_data( stream(), m_bgen_context, SNPID, RSID, &chromosome_string, SNP_position, allele1, allele2 ) ) {
-			*number_of_samples = m_bgen_context.number_of_samples ;
+		if( bgen::read_snp_identifying_data( stream(), m_bgen_context, &SNPID, &rsid, &chromosome_string, &position, &allele1, &allele2 ) ) {
 			Chromosome chr( chromosome_string ) ;
 			if( chr.is_missing() ) {
 				chr = m_missing_chromosome ;
 			}
-			*chromosome = chr ;
+			*result = VariantIdentifyingData(
+				SNPID, rsid, GenomePosition( chr, position ), allele1, allele2
+			) ;
 		}
 	}
 

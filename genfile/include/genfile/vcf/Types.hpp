@@ -29,19 +29,19 @@ namespace genfile {
 			typedef int64_t Integer ;
 			typedef ::genfile::MissingValue MissingValue ;
 			virtual ~EntrySetter() throw() {}
-			virtual void set_value( MissingValue const value ) = 0 ;
-			virtual void set_value( std::string& value ) ;
-			virtual void set_value( Integer const value ) ;
-			virtual void set_value( double const value ) ;
-			void set_value( VariantEntry const& value ) {
+			virtual void set_value( std::size_t, MissingValue const value ) = 0 ;
+			virtual void set_value( std::size_t, std::string& value ) ;
+			virtual void set_value( std::size_t, Integer const value ) ;
+			virtual void set_value( std::size_t, double const value ) ;
+			void set_value( std::size_t i, VariantEntry const& value ) {
 				if( value.is_missing() ) {
-					this->set_value( genfile::MissingValue() ) ;
+					this->set_value( i, genfile::MissingValue() ) ;
 				} else if( value.is_string() ) {
-					this->set_value( value.as< std::string >() ) ;
+					this->set_value( i, value.as< std::string >() ) ;
 				} else if( value.is_int() ) {
-					this->set_value( value.as< VariantEntry::Integer >() ) ;
+					this->set_value( i, value.as< VariantEntry::Integer >() ) ;
 				} else if( value.is_double() ) {
-					this->set_value( value.as< double >() ) ;
+					this->set_value( i, value.as< double >() ) ;
 				} else {
 					assert(0) ;
 				}
@@ -72,7 +72,7 @@ namespace genfile {
 			typedef std::auto_ptr< SimpleType > UniquePtr ;
 			typedef boost::shared_ptr< SimpleType > SharedPtr ;
 			static UniquePtr create( std::string const& spec, std::string const& scale = "identity" ) ;
-			virtual void parse( string_utils::slice const& value, EntrySetter& setter ) const = 0 ;
+			virtual void parse( std::size_t index, string_utils::slice const& value, EntrySetter& setter ) const = 0 ;
 			Entry parse( string_utils::slice const& value ) const ;
 			virtual std::string to_string() const = 0 ;
 			virtual ValueType represented_type() const = 0 ;
@@ -80,7 +80,7 @@ namespace genfile {
 		
 		struct StringType: public SimpleType {
 			using SimpleType::parse ;
-			void parse( string_utils::slice const& value, EntrySetter& setter ) const ;
+			void parse( std::size_t index, string_utils::slice const& value, EntrySetter& setter ) const ;
 			std::string to_string() const { return "String" ; }
 			ValueType represented_type() const { return eUnknownValueType ; }
 		} ;
@@ -88,7 +88,7 @@ namespace genfile {
 		struct IntegerType: public SimpleType {
 			IntegerType( ValueType value_type = eUnknownValueType ): m_value_type( value_type ) {}
 			using SimpleType::parse ;
-			void parse( string_utils::slice const& value, EntrySetter& setter ) const ;
+			void parse( std::size_t index, string_utils::slice const& value, EntrySetter& setter ) const ;
 			std::string to_string() const { return "Integer" ; }
 			ValueType represented_type() const { return m_value_type ; }
 		private:
@@ -97,7 +97,7 @@ namespace genfile {
 
 		struct FloatType: public SimpleType {
 			using SimpleType::parse ;
-			void parse( string_utils::slice const& value, EntrySetter& setter ) const ;
+			void parse( std::size_t index, string_utils::slice const& value, EntrySetter& setter ) const ;
 			std::string to_string() const { return "Float" ; }
 			ValueType represented_type() const { return eUnknownValueType ; }
 		} ;
@@ -109,21 +109,21 @@ namespace genfile {
 
 		struct PhredScaleFloatType: public SimpleType {
 			using SimpleType::parse ;
-			void parse( string_utils::slice const& value, EntrySetter& setter ) const ;
+			void parse( std::size_t index, string_utils::slice const& value, EntrySetter& setter ) const ;
 			std::string to_string() const { return "PhredScaleFloat" ; }
 			ValueType represented_type() const { return eProbability ; }
 		} ;
 
 		struct CharacterType: public SimpleType {
 			using SimpleType::parse ;
-			void parse( string_utils::slice const& value, EntrySetter& setter ) const ;
+			void parse( std::size_t index, string_utils::slice const& value, EntrySetter& setter ) const ;
 			std::string to_string() const { return "Character" ; }
 			ValueType represented_type() const { return eUnknownValueType ; }
 		} ;
 
 		struct FlagType: public SimpleType {
 			using SimpleType::parse ;
-			void parse( string_utils::slice const& value, EntrySetter& setter ) const ;
+			void parse( std::size_t index, string_utils::slice const& value, EntrySetter& setter ) const ;
 			std::string to_string() const { return "Flag" ; }
 			ValueType represented_type() const { return eFlag ; }
 		} ;

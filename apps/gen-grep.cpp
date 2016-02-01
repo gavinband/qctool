@@ -171,33 +171,32 @@ struct IDDataPrinter
 	{}
 
 	void process() {
-		std::cout << "SNPID rsid chromosome position alleleA alleleB\n" ;
-		
-		std::string SNPID, RSID ;
-		genfile::Chromosome chromosome ;
-		uint32_t number_of_samples, SNP_position ;
-		std::string allele1, allele2 ;
-		while( m_context.snp_data_source().get_snp_identifying_data(
-		 	genfile::set_value( number_of_samples ),
-			genfile::set_value( SNPID ),
-			genfile::set_value( RSID ),
-			genfile::set_value( chromosome ),
-			genfile::set_value( SNP_position ),
-			genfile::set_value( allele1 ),
-			genfile::set_value( allele2 )
-		)) {
-			if(
-				m_context.position_range().contains( SNP_position )
-				&& (
-					!m_context.have_snp_ids()
-					|| ( m_context.snp_ids().find( SNPID ) != m_context.snp_ids().end() )
-					)
-				&& (
-					!m_context.have_rsids()
-					|| ( m_context.rsids().find( RSID ) != m_context.rsids().end() )
-				)
-			) {
-				std::cout << SNPID << " " << RSID << " " << chromosome << " " << SNP_position << " " << allele1 << " " << allele2 << "\n" ;
+		std::cout << "SNPID rsid chromosome position first_allele other_alleles number_of_alleles\n" ;
+		genfile::VariantIdentifyingData snp ;
+		while( m_context.snp_data_source().get_snp_identifying_data( &snp )) {
+			bool include = m_context.position_range().contains( snp.get_position().position() ) ;
+			if( m_context.have_snp_ids() ) {
+				std::vector< genfile::string_utils::slice > const& identifiers = snp.get_identifiers() ;
+				bool found = false ;
+				for( std::size_t i = 0; i < identifiers.size(); ++i ) {
+					if( m_context.snp_ids().find( identifiers[i] ) != m_context.snp_ids().end() ) {
+						found = true ;
+						break ;
+					}
+				}
+				include = include && found ;
+			}
+			if( m_context.have_rsids() ) {
+				include = include && ( m_context.rsids().find( snp.get_primary_id() ) != m_context.rsids().end() ) ;
+			}
+			if( include ) {
+				std::cout << snp.get_identifiers_as_string( "," ) << " " << snp.get_primary_id()
+					<< " " << snp.get_position().chromosome() << " " << snp.get_position().position()
+					<< " " << snp.get_allele(0) << " " ;
+				for( std::size_t i = 1; i < snp.number_of_alleles(); ++i ) {
+					std::cout << (i>1 ? "," : "") << snp.get_allele(i) ;
+				}
+				std::cout << " " << snp.number_of_alleles() << "\n" ;
 			}
 			m_context.snp_data_source().ignore_snp_probability_data() ;
 		}

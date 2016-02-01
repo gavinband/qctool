@@ -11,7 +11,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include "genfile/SNPDataSourceProcessor.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "appcontext/OptionProcessor.hpp"
 #include "components/SNPSummaryComponent/PairwiseCallComparer.hpp"
@@ -37,7 +37,7 @@ public:
 	struct Client
 	{
 		virtual ~Client() {} ;
-		virtual void begin_comparisons( genfile::SNPIdentifyingData const& snp ) = 0 ;
+		virtual void begin_comparisons( genfile::VariantIdentifyingData const& snp ) = 0 ;
 		virtual void end_comparisons() = 0 ;
 	} ;
 
@@ -88,7 +88,7 @@ public:
 	void set_merger( Merger::UniquePtr ) ;
 
 	void begin_processing_snps( std::size_t number_of_samples ) ;
-	void begin_processing_snp( genfile::SNPIdentifyingData const& snp ) ;
+	void begin_processing_snp( genfile::VariantIdentifyingData const& snp ) ;
 	void add_calls( std::string const& name, Eigen::MatrixXd const& calls ) ;
 	void end_processing_snp() ;
 	
@@ -98,7 +98,7 @@ private:
 	Merger::UniquePtr m_merger ;
 	Calls m_calls ;
 
-	genfile::SNPIdentifyingData m_snp ;
+	genfile::VariantIdentifyingData m_snp ;
 
 public:
 	std::vector< ComparisonClient::SharedPtr > m_comparison_clients ;

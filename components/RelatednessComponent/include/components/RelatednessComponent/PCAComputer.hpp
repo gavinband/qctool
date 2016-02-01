@@ -40,7 +40,7 @@ public:
 	void compute( Eigen::MatrixXd const& matrix, std::size_t const number_of_snps, std::string const& name ) ;
 
 	void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) ;
-	void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& ) ;
+	void processed_snp( genfile::VariantIdentifyingData const&, genfile::VariantDataReader& ) ;
 	void end_processing_snps() ;
 	
 	typedef boost::function< genfile::VariantEntry ( std::size_t ) > GetNames ;

@@ -51,6 +51,7 @@ namespace qcdb {
 		store_block() ;
 		m_snps.clear() ;
 		m_values.clear() ;
+		m_sink->write_comment( "Completed successfully at " + appcontext::get_current_time_as_string() ) ;
 	}
 
 	FlatFileOutputter::AnalysisId FlatFileOutputter::analysis_id() const {
@@ -132,8 +133,9 @@ namespace qcdb {
 		for( std::size_t snp_i = 0; snp_i < m_snps.size(); ++snp_i ) {
 			genfile::VariantIdentifyingData const& snp = m_snps[ snp_i ] ;
 			std::string SNPID ;
-			snp.get_alternative_identifiers( boost::bind( &append_to_string, &SNPID, _1 )) ;
-			(*m_sink) << SNPID << snp.get_rsid() << snp.get_position().chromosome() << snp.get_position().position() << snp.get_first_allele() << snp.get_second_allele() ;
+			snp.get_identifiers( boost::bind( &append_to_string, &SNPID, _1 ), 1 ) ;
+			(*m_sink) << SNPID << snp.get_primary_id() << snp.get_position().chromosome()
+				<< snp.get_position().position() << snp.get_allele(0) << snp.get_allele(1) ;
 			VariableMap::right_const_iterator
 				var_i = m_variables.right.begin(),
 				end_var_i = m_variables.right.end() ;

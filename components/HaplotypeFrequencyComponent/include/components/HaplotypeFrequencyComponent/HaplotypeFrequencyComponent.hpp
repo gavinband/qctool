@@ -12,7 +12,7 @@
 #include <boost/signals2/signal.hpp>
 #include <Eigen/Core>
 #include "genfile/SNPDataSourceProcessor.hpp"
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
@@ -40,23 +40,23 @@ public:
 
 public:
 	void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) ;
-	void processed_snp( genfile::SNPIdentifyingData const& target_snp, genfile::VariantDataReader& target_data_reader ) ;
+	void processed_snp( genfile::VariantIdentifyingData const& target_snp, genfile::VariantDataReader& target_data_reader ) ;
 	void compute_ld_measures(
-		genfile::SNPIdentifyingData const& source_snp,
+		genfile::VariantIdentifyingData const& source_snp,
 		genfile::VariantDataReader& source_data_reader,
-		genfile::SNPIdentifyingData const& target_snp,
+		genfile::VariantIdentifyingData const& target_snp,
 		genfile::VariantDataReader& target_data_reader
 	) ;
 	
 	void compute_ld_measures(
-		genfile::SNPIdentifyingData const& source_snp,
-		genfile::SNPIdentifyingData const& target_snp,
+		genfile::VariantIdentifyingData const& source_snp,
+		genfile::VariantIdentifyingData const& target_snp,
 		std::vector< Eigen::VectorXd > const& genotypes
 	) ;
 
 	void end_processing_snps() ;
 	
-	typedef boost::function< void( genfile::SNPIdentifyingData const& source, genfile::SNPIdentifyingData const& target, std::string const&, genfile::VariantEntry const& ) > ResultCallback ;
+	typedef boost::function< void( genfile::VariantIdentifyingData const& source, genfile::VariantIdentifyingData const& target, std::string const&, genfile::VariantEntry const& ) > ResultCallback ;
 	void send_results_to( ResultCallback callback ) ;
 
 private:
@@ -64,7 +64,7 @@ private:
 	appcontext::UIContext& m_ui_context ;
 	double const m_threshhold ;
 	int64_t m_max_distance ;
-	boost::signals2::signal< void( genfile::SNPIdentifyingData const& source, genfile::SNPIdentifyingData const& target, std::string const&, genfile::VariantEntry const& ) > m_result_signal ;
+	boost::signals2::signal< void( genfile::VariantIdentifyingData const& source, genfile::VariantIdentifyingData const& target, std::string const&, genfile::VariantEntry const& ) > m_result_signal ;
 } ;
 
 #endif
