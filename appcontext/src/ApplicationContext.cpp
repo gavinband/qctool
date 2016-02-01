@@ -92,6 +92,10 @@ namespace appcontext {
 				<< "\n" ;
 			throw HaltProgramWithReturnCode( 0 );
 		}
+		catch( appcontext::OptionProcessorSpecRequestedException const& ) {
+			get_ui_context().logger() << options().format_spec() ;
+			throw HaltProgramWithReturnCode( 0 );
+		}
 		catch( FileNotOpenedError const& e ) {
 			get_ui_context().logger() << "!! Error (" << e.what() << "): Could not open the file \"" + e.filename() + "\".\n" ;
 			throw HaltProgramWithReturnCode( -1 ) ;

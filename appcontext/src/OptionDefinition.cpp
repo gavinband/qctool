@@ -76,7 +76,7 @@ namespace appcontext {
 		ostream << space << "\"" << m_name << "\": {\n" ;
 		ostream
 			<< space2 << "\"group\": \"" << m_group << "\",\n"
-//			<< space2 << "\"description\": \"" << m_description << "\",\n"
+			<< space2 << "\"description\": \"" << m_description << "\",\n"
 			<< space2 << "\"is_required\": " << m_is_required << ",\n"
 			<< space2 << "\"multiplicity\": {\n"
 			<< space2 << space << "\"min\": " << m_minimum_multiplicity << ",\n"

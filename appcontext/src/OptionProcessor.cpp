@@ -153,7 +153,6 @@ namespace appcontext {
 			else if( arg == m_spec_option_name ) {
 				throw OptionProcessorSpecRequestedException() ;
 			}
-			std::map< std::string, OptionDefinition >::const_iterator arg_i = m_option_definitions.find( arg ) ;
 			if( !try_to_parse_named_option_and_values( argc, argv, i )) {
 				if( !try_to_parse_positional_option( argc, argv, i )) {
 					m_unknown_options[i] = argv[i] ;
