@@ -34,21 +34,6 @@ namespace genfile {
 				Info const& info
 		) ;
 
-#if 0
-		void write_snp_impl(
-			uint32_t number_of_samples,
-			std::string SNPID,
-			std::string RSID,
-			Chromosome chromosome,
-			uint32_t SNP_position,
-			std::string first_allele,
-			std::string second_allele,
-			GenotypeProbabilityGetter const& get_AA_probability,
-			GenotypeProbabilityGetter const& get_AB_probability,
-			GenotypeProbabilityGetter const& get_BB_probability,
-			Info const&
-		) ;
-#endif
 		~SortingBGenFileSNPDataSink() ;
 		
 		std::string get_spec() const ;
