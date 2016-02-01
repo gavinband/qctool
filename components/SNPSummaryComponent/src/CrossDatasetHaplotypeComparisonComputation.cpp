@@ -50,6 +50,7 @@ namespace snp_stats {
 	) {
 		using genfile::string_utils::to_string ;
 		SNPIdentifyingData alt_snp ;
+		genfile::MissingValue const NA ;
 		if( m_alt_dataset_snps->get_next_snp_matching( &alt_snp, snp, m_comparer )) {
 			{
 				genfile::vcf::PhasedGenotypeSetter< Eigen::MatrixXd > setter( m_haplotypes1, m_nonmissingness1 ) ;
@@ -81,10 +82,14 @@ namespace snp_stats {
 				}
 			}
 			
-			callback( "CrossDataSetHaplotypeComparisonComputation:compared_variant_rsid", alt_snp.get_rsid() ) ;
+			callback( "compared_variant_rsid", alt_snp.get_rsid() ) ;
 			callback( "compared_variant_alleleA", alt_snp.get_first_allele() ) ;
 			callback( "compared_variant_alleleB", alt_snp.get_second_allele() ) ;
 
+			callback( "pairwise_non-missing_haplotypes", NA ) ;
+			callback( "pairwise_concordant_haplotypes", NA ) ;
+			callback( "concordant_heterozygous_haplotypes", NA ) ;
+			callback( "concordant_heterozygous_haplotypes_with_switch_error", NA ) ;
 			// Threshhold the calls and set to missing any rows not meeting the
 			// threshhold.
 			m_haplotypes1.array() *= ( m_haplotypes1.array() >= m_call_threshhold ).cast< double >() ; 
