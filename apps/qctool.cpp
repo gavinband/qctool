@@ -133,6 +133,7 @@ public:
 	void declare_options( appcontext::OptionProcessor& options ) {
 		// Meta-options
 		options.set_help_option( "-help" ) ;
+		options.set_spec_option( "-spec" ) ;
 
 		// File options
 		options.declare_group( "Input file options" ) ;
