@@ -40,7 +40,7 @@ function(
 	
 	dbGetQuery( hapdb$db, "CREATE TEMPORARY TABLE tmpHapdbLoadGenotypes ( variant_id INT NOT NULL )" ) ;
 	if( !is.null( chromosome ) && !is.null( range )) {
-		dbGetQuery( hapdb$db, sprintf( "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE chromosome == '%s' AND position BETWEEN %d AND %d ORDE RBY chromosome, position, rsid, alleleA, alleleB", chromosome, range[1], range[2] ) ) ;
+		dbGetQuery( hapdb$db, sprintf( "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE chromosome == '%s' AND position BETWEEN %d AND %d ORDER BY chromosome, position, rsid, alleleA, alleleB", chromosome, range[1], range[2] ) ) ;
     }
 	if( !is.null( rsids ) ) {
 		dbGetPreparedQuery( hapdb$db, "INSERT INTO tmpHapdbLoadGenotypes SELECT id FROM Variant WHERE rsid == ?", data.frame( rsid = rsids ) ) ;

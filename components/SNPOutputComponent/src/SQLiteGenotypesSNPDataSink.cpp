@@ -416,7 +416,7 @@ void SQLiteGenotypesSNPDataSink::write_variant_data_impl(
 
 		m_intensity_snps[ m_intensity_data_i ] = id_data ;
 		PositiveFloatWriter writer( &(m_intensity_data[ m_intensity_data_i ]), 2 ) ;
-		data_reader.get( "XY", writer ) ;
+		data_reader.get( ":intensities:", writer ) ;
 		writer.finalise() ;
 		++m_intensity_data_i ;
 	}
