@@ -11,8 +11,9 @@
 #include "genfile/gen.hpp"
 #include "genfile/GenLikeSNPDataSink.hpp"
 #include "genfile/GenFileSNPDataSink.hpp"
-#include "genfile/vcf/get_set.hpp"
-#include "genfile/vcf/get_set_eigen.hpp"
+//#include "genfile/vcf/get_set.hpp"
+//#include "genfile/vcf/get_set_eigen.hpp"
+#include "genfile/ToGP.hpp"
 
 namespace genfile {
 	
@@ -119,7 +120,7 @@ namespace genfile {
 		write_variant( stream(), id_data ) ;
 		GenotypeWriter writer( m_data ) ;
 		if( data_reader.supports( ":genotypes:" )) {
-			data_reader.get( ":genotypes:", writer ) ;
+			data_reader.get( ":genotypes:", to_GP( writer ) ) ;
 		} else {
 			throw genfile::BadArgumentError(
 				"genfile::GenFileSNPDataSink::write_variant_data_impl()",
