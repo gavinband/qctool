@@ -128,12 +128,12 @@ namespace snp_stats {
 						
 						int const relative_phase = ( h1 == h2 ) ? 1 : -1 ;
 						int const switch_error = ( m_relative_phase( count ) != 0 ) && ( m_relative_phase( count ) != relative_phase ) ;
-						callback( stub + "switch_error", switch_error ) ;
+						callback( stub + ":switch_error", switch_error ) ;
 						// take account of the switch for the next SNP.
 						m_relative_phase( count ) = relative_phase ;
 						switch_error_count += switch_error ;
 					} else {
-						callback( stub + "switch_error", genfile::MissingValue() ) ;
+						callback( stub + ":switch_error", genfile::MissingValue() ) ;
 					}
 				} else {
 					callback( stub + ":concordance", genfile::MissingValue() ) ;
