@@ -64,7 +64,7 @@ struct SelfMapOptions: public appcontext::CmdLineOptionProcessor {
 		{
 			options.declare_group( "Analysis options" ) ;
 			options[ "-range" ]
-				.set_description( "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to operate on. "
+				.set_description( "Specify one or more ranges of SNPs to operate on. "
 					"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
 					"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
 					"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
