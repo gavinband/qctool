@@ -52,7 +52,7 @@
 #include "SNPTESTResults.hpp"
 #include "MMMResults.hpp"
 
-//#define DEBUG_BINGWA 1
+// #define DEBUG_BINGWA 1
 
 namespace globals {
 	std::string const program_name = "bingwa" ;
@@ -865,7 +865,7 @@ namespace impl {
 
 	double compute_chisquared_pvalue( double statistic, int const numberOfEffects ) {
 		double pvalue = NA ;
-		if( statistic == statistic ) {
+		if( statistic == statistic && statistic >= 0 ) {
 			typedef boost::math::chi_squared ChiSquareDistribution ;
 			ChiSquareDistribution chi( numberOfEffects ) ;
 			pvalue = boost::math::cdf( boost::math::complement( chi, statistic ) ) ;
@@ -881,18 +881,20 @@ namespace impl {
 	
 	double compute_normal_pvalue( double statistic, double variance, Tail const tail = eBoth ) {
 		typedef boost::math::normal NormalDistribution ;
-		NormalDistribution normal( 0, std::sqrt( variance ) ) ;
-		double result = 0 ;
-		switch( tail ) {
-			case eBoth:
-				result = 2.0 * boost::math::cdf( boost::math::complement( normal, std::abs( statistic ) ) ) ;
-				break ;
-			case eLower:
-				result = boost::math::cdf( normal, statistic ) ;
-				break ;
-			case eUpper:
-				result = boost::math::cdf( boost::math::complement( normal, statistic ) ) ;
-				break ;
+		double result = NA ;
+		if( variance > 0 ) {
+			NormalDistribution normal( 0, std::sqrt( variance ) ) ;
+			switch( tail ) {
+				case eBoth:
+					result = 2.0 * boost::math::cdf( boost::math::complement( normal, std::abs( statistic ) ) ) ;
+					break ;
+				case eLower:
+					result = boost::math::cdf( normal, statistic ) ;
+					break ;
+				case eUpper:
+					result = boost::math::cdf( boost::math::complement( normal, statistic ) ) ;
+					break ;
+			}
 		}
 		return result ;
 	}
@@ -1092,6 +1094,7 @@ struct MultivariateFixedEffectMetaAnalysis: public BingwaComputation {
 		) {
 			Eigen::MatrixXd nonmissingness_selector = impl::get_nonmissing_cohort_selector( non_missingness, data_getter.get_number_of_cohorts(), numberOfEffects ) ;
 #if DEBUG_BINGWA
+			std::cerr << "MultivariateFixedEffectMetaAnalysis::operator(): looking at variant: " << snp << "\n" ;
 			std::cerr << "MultivariateFixedEffectMetaAnalysis::operator(): pre-selector, N = " << data_getter.get_number_of_cohorts() << "\n"
 				<< "betas = " << betas.transpose() << ".\n"
 					<< "covariance = \n" << covariance << ".\n" ;
