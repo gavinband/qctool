@@ -11,7 +11,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/function.hpp>
 #include <boost/signals2/signal.hpp>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/CohortIndividualSource.hpp"
@@ -24,7 +24,7 @@ public:
 	typedef std::auto_ptr< SNPSummaryComputationManager > UniquePtr ;
 	typedef boost::signals2::signal<
 		void (
-			genfile::SNPIdentifyingData const& snp,
+			genfile::VariantIdentifyingData const& snp,
 			std::string const& value_name,
 			genfile::VariantEntry const& value
 		)
@@ -46,7 +46,7 @@ public:
 	SNPSummaryComputationManager( genfile::CohortIndividualSource const& samples, std::string const& sex_column_name ) ;
 	
 	void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) ;
-	void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& data_reader ) ;
+	void processed_snp( genfile::VariantIdentifyingData const&, genfile::VariantDataReader& data_reader ) ;
 	void end_processing_snps() ;
 
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) ;
@@ -78,9 +78,9 @@ private:
 private:
 	std::vector< char > get_sexes( genfile::CohortIndividualSource const& samples, std::string const& sex_column_name ) const ;
 	std::map< char, std::vector< int > > get_samples_by_sex( std::vector< char > const& sexes ) const ;
-	void fix_sex_chromosome_genotypes( genfile::SNPIdentifyingData const& snp, SNPSummaryComputation::Genotypes* genotypes, boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > callback ) ;
+	void fix_sex_chromosome_genotypes( genfile::VariantIdentifyingData const& snp, SNPSummaryComputation::Genotypes* genotypes, boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > callback ) ;
 	int determine_male_coding_column(
-		genfile::SNPIdentifyingData const& snp,
+		genfile::VariantIdentifyingData const& snp,
 		SNPSummaryComputation::Genotypes const& genotypes,
 		std::vector< int > const& males
 	) const ;

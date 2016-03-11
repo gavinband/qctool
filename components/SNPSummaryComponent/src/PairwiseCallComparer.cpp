@@ -8,7 +8,7 @@
 #include <boost/signals2/signal.hpp>
 #include <boost/function.hpp>
 #include "genfile/SNPDataSourceProcessor.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
 #include "components/SNPSummaryComponent/GenotypeFrequencyTestCallComparer.hpp"

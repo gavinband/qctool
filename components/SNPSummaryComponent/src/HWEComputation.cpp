@@ -25,7 +25,7 @@ namespace snp_summary_component {
 		m_chi_squared_2df( 2.0 )
 	{}
 	
-	void HWEComputation::operator()( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, genfile::VariantDataReader&, ResultCallback callback ) {
+	void HWEComputation::operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, genfile::VariantDataReader&, ResultCallback callback ) {
 		genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
 		if( chromosome == genfile::Chromosome( "0X" ) ) {
 			X_chromosome_test( snp, genotypes, sexes, callback ) ;
@@ -37,7 +37,7 @@ namespace snp_summary_component {
 
 	std::string HWEComputation::get_summary( std::string const& prefix, std::size_t column_width ) const { return prefix + "HWEComputation" ; }
 
-	void HWEComputation::autosomal_test( SNPIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) {
+	void HWEComputation::autosomal_test( VariantIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) {
 		Eigen::VectorXd genotype_counts = Eigen::VectorXd::Zero( 3 ) ;
 		for( int g = 0; g < 3; ++g ) {
 			genotype_counts( g ) = std::floor( genotypes.col(g).sum() + 0.5 ) ;
@@ -46,7 +46,7 @@ namespace snp_summary_component {
 		autosomal_multinomial_test( snp, genotype_counts, callback ) ;
 	}
 
-	void HWEComputation::autosomal_exact_test( SNPIdentifyingData const& snp, Eigen::VectorXd const& genotype_counts, ResultCallback callback ) {
+	void HWEComputation::autosomal_exact_test( VariantIdentifyingData const& snp, Eigen::VectorXd const& genotype_counts, ResultCallback callback ) {
 		if( genotype_counts.array().maxCoeff() > 0.5 ) {
 			double HWE_pvalue = SNPHWE( genotype_counts(1), genotype_counts(0), genotype_counts(2) ) ;
 			callback( "HW_exact_p_value", HWE_pvalue ) ;
@@ -56,7 +56,7 @@ namespace snp_summary_component {
 		}
 	}
 
-	void HWEComputation::autosomal_multinomial_test( SNPIdentifyingData const& snp, Eigen::VectorXd const& genotype_counts, ResultCallback callback ) {
+	void HWEComputation::autosomal_multinomial_test( VariantIdentifyingData const& snp, Eigen::VectorXd const& genotype_counts, ResultCallback callback ) {
 		metro::likelihood::Multinomial< double, Eigen::VectorXd, Eigen::MatrixXd > hw_model( genotype_counts ) ;
 		{
 			// compute MLE under assumption of hardy-weinberg.
@@ -97,7 +97,7 @@ namespace snp_summary_component {
 		callback( "HW_multinomial_p_value", p_value ) ;
 	}
 
-	void HWEComputation::X_chromosome_test( SNPIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, ResultCallback callback ) {
+	void HWEComputation::X_chromosome_test( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, ResultCallback callback ) {
 		// We look at three models and perform two LR tests.
 		// model1: full model, males and females may have different frequencies and no assumption of HW in females.  (3 parameters)
 		// model2: HWE holds in females, but males and females may have different frequencies. (2 parameters)

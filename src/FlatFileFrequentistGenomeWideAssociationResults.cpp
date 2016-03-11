@@ -75,7 +75,7 @@ std::string FlatFileFrequentistGenomeWideAssociationResults::get_summary( std::s
 	// estimate memory used in SNPs.
 	unsigned long mem_used = 0 ;
 	for( std::size_t i = 0; i < m_snps.size(); ++i ) {
-		mem_used += m_snps[i].get_estimated_bytes_used() ;
+		mem_used += m_snps[i].estimate_bytes_used() ;
 	}
 	
 	std::string result = "scan results object ("

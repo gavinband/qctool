@@ -57,7 +57,7 @@ namespace snp_stats {
 			genfile::SNPDataSource::UniquePtr snps
 		) = 0 ;
 		
-		virtual void set_comparer( genfile::SNPIdentifyingData::CompareFields const& comparer ) = 0 ;
+		virtual void set_comparer( genfile::VariantIdentifyingData::CompareFields const& comparer ) = 0 ;
 		virtual void set_match_alleles() = 0 ;
 	} ;
 
@@ -75,16 +75,16 @@ namespace snp_stats {
 			genfile::SNPDataSource::UniquePtr snps
 		) ;
 		
-		void set_comparer( genfile::SNPIdentifyingData::CompareFields const& comparer ) ;
+		void set_comparer( genfile::VariantIdentifyingData::CompareFields const& comparer ) ;
 		void set_match_alleles() ;
 		
-		void operator()( SNPIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
+		void operator()( VariantIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 
 	private:
 		CrossDataSetSampleMapper m_sample_mapper ;
 
-		genfile::SNPIdentifyingData::CompareFields m_comparer ;
+		genfile::VariantIdentifyingData::CompareFields m_comparer ;
 		bool m_match_alleles ;
 		genfile::SNPDataSource::UniquePtr m_alt_dataset_snps ;
 

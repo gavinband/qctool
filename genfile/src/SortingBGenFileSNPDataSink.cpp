@@ -36,9 +36,9 @@ namespace genfile {
 	}
 
 	void SortingBGenFileSNPDataSink::write_variant_data_impl(
-			SNPIdentifyingData const& id_data,
-			VariantDataReader& data_reader,
-			Info const& info
+		VariantIdentifyingData const& id_data,
+		VariantDataReader& data_reader,
+		Info const& info
 	) {
 		OffsetMap::iterator offset_i = m_file_offsets.insert(
 			std::make_pair(

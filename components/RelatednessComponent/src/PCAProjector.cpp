@@ -24,7 +24,7 @@ namespace pca {
 	PCAProjector::UniquePtr PCAProjector::create(
 		genfile::CohortIndividualSource const& samples,
 		appcontext::UIContext& ui_context,
-		genfile::SNPIdentifyingData::CompareFields const& comparer
+		genfile::VariantIdentifyingData::CompareFields const& comparer
 	) {
 		return PCAProjector::UniquePtr( new PCAProjector( samples, ui_context, comparer )) ;
 	}
@@ -32,7 +32,7 @@ namespace pca {
 	PCAProjector::PCAProjector(
 		genfile::CohortIndividualSource const& samples,
 		appcontext::UIContext& ui_context,
-		genfile::SNPIdentifyingData::CompareFields const& comparer
+		genfile::VariantIdentifyingData::CompareFields const& comparer
 	):
 		m_samples( samples ),
 	 	m_ui_context( ui_context ),
@@ -40,7 +40,7 @@ namespace pca {
 	{}
 
 	void PCAProjector::set_loadings(
-		std::vector< genfile::SNPIdentifyingData > const& snps,
+		std::vector< genfile::VariantIdentifyingData > const& snps,
 		Vector const& counts,
 		Vector const& frequencies,
 		Matrix const& loadings,
@@ -90,7 +90,7 @@ namespace pca {
 		m_total_snps_visited = 0 ;
 	}
 
-	void PCAProjector::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
+	void PCAProjector::processed_snp( genfile::VariantIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 		SnpMap::const_iterator where = m_snps.find( snp ) ;
 		if( where != m_snps.end() && ( m_loadings.row( where->second ).sum() == m_loadings.row( where->second ).sum() ) ) {
 			data_reader.get(

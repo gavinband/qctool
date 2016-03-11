@@ -111,4 +111,10 @@ namespace statfile {
 			stream() << escape_string( column_names()[i], m_delimiter[0], "\"", "\"", m_always_escape_strings ) ;
 		}
 	}
+
+	void DelimitedStatSink::write_comment( std::string const& comment ) {
+		assert( current_column() == 0 ) ;
+		assert( stream().good() ) ;
+		stream() << "# " << comment << "\n" ;
+	}
 }

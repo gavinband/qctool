@@ -7,7 +7,7 @@
 #include <set>
 #include <string>
 #include <sstream>
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 #include "genfile/PositionInListTest.hpp"
 
 namespace genfile {
@@ -15,16 +15,10 @@ namespace genfile {
 		: m_positions( positions )
 	{}
 
-	bool PositionInListTest::operator()(
-		std::string,
-		std::string,
-		GenomePosition position,
-		std::string,
-		std::string
-	) const {
-		return m_positions.find( position ) != m_positions.end() ;
+	bool PositionInListTest::operator()( VariantIdentifyingData const& data ) const {
+		return m_positions.find( data.get_position() ) != m_positions.end() ;
 	}
-	
+
 	std::string PositionInListTest::display() const {
 		std::ostringstream ostr ;
 		ostr << "Position in { " ;

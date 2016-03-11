@@ -193,23 +193,15 @@ namespace genfile {
 		m_exhausted = false ;
 	}
 	
-	void HLAIMPAsBiallelicVariantDataSource::read_snp_identifying_data_impl( 
-		uint32_t* number_of_samples,
-		std::string* SNPID,
-		std::string* RSID,
-		Chromosome* chromosome,
-		uint32_t* SNP_position,
-		std::string* allele1,
-		std::string* allele2
-	) {
+	void HLAIMPAsBiallelicVariantDataSource::read_snp_identifying_data_impl( VariantIdentifyingData* result ) {
 		if( m_allele_index < m_alleles.size() ) {
-			*number_of_samples = m_samples.size() ;
-			*SNPID = m_alleles[ m_allele_index ] ;
-			*RSID = m_alleles[ m_allele_index ] ;
-			*chromosome = Chromosome( "06" ) ;
-			*SNP_position = 0 ;
-			*allele1 = "non-" + m_alleles[ m_allele_index ] + "_alleles" ;
-			*allele2 = m_alleles[ m_allele_index ] ;
+			*result = VariantIdentifyingData(
+				m_alleles[ m_allele_index ],
+				m_alleles[ m_allele_index ],
+				GenomePosition( Chromosome( "06" ), 0 ),
+				"non-" + m_alleles[ m_allele_index ] + "_alleles",
+				m_alleles[ m_allele_index ]
+			) ;
 		}
 	}
 
@@ -239,7 +231,7 @@ namespace genfile {
 								for( std::size_t j = 0; j < m_dosage_columns[g].size(); ++j ) {
 									value += m_source.m_data[sample_i](m_dosage_columns[g][j]) ;
 								}
-								setter.set_value( value ) ;
+								setter.set_value( g, value ) ;
 							}
 						}
 					}

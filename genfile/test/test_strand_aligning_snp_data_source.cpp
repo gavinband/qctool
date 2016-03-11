@@ -63,15 +63,16 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 	std::cerr << "test_strand_aligning_snp_data_source()..." ;
 	
 	std::size_t const N = 100 ; // do 100 iterations.
+	std::string const question_mark = "?" ;
 	
-	std::vector< genfile::SNPIdentifyingData > snps ;
+	std::vector< genfile::VariantIdentifyingData > snps ;
 	{
 		std::auto_ptr< std::istream > istr( new std::istringstream( data::data ) ) ;
 		std::auto_ptr< genfile::SNPDataSource > plain_source(
 			new genfile::GenFileSNPDataSource( istr, genfile::Chromosome( "01" ) )
 		) ;
-		genfile::SNPIdentifyingData snp ;
-		while( plain_source->get_snp_identifying_data( snp )) {
+		genfile::VariantIdentifyingData snp ;
+		while( plain_source->get_snp_identifying_data( &snp )) {
 			snps.push_back( snp ) ;
 			plain_source->ignore_snp_probability_data() ;
 		}
@@ -107,7 +108,7 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 			assert( strand_alignments.size() == data::number_of_snps ) ;
 		}
 		
-		genfile::SNPIdentifyingData snp ;
+		genfile::VariantIdentifyingData snp ;
 
 		// Set up and read from a plain, unaligned source.
 		std::auto_ptr< genfile::SNPDataSource > plain_source ;
@@ -115,10 +116,10 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 			std::auto_ptr< std::istream > istr( new std::istringstream( data::data ) ) ;
 			plain_source.reset( new genfile::GenFileSNPDataSource( istr, genfile::Chromosome( "01" ) ) );
 		}
-		std::vector< genfile::SNPIdentifyingData > snps1 ;
+		std::vector< genfile::VariantIdentifyingData > snps1 ;
 		std::vector< genfile::SingleSNPGenotypeProbabilities > probabilities1 ;
 		{
-			while( plain_source->get_snp_identifying_data( snp )) {
+			while( plain_source->get_snp_identifying_data( &snp )) {
 				snps1.push_back( snp ) ;
 				genfile::SingleSNPGenotypeProbabilities probs( data::number_of_samples ) ;
 				plain_source->read_snp_probability_data(
@@ -133,7 +134,7 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 
 		// Set up and read from an aligned source.
 		std::auto_ptr< genfile::SNPDataSource > aligned_source ;
-		std::vector< genfile::SNPIdentifyingData > snps2 ;
+		std::vector< genfile::VariantIdentifyingData > snps2 ;
 		std::vector< genfile::SingleSNPGenotypeProbabilities > probabilities2 ;
 		{
 			std::auto_ptr< std::istream > istr( new std::istringstream( data::data ) ) ;
@@ -142,7 +143,7 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 		}
 		
 		{
-			for( std::size_t count = 0; aligned_source->get_snp_identifying_data( snp ); ++count ) {
+			for( std::size_t count = 0; aligned_source->get_snp_identifying_data( &snp ); ++count ) {
 				snps2.push_back( snp ) ;
 				genfile::SingleSNPGenotypeProbabilities probs( data::number_of_samples ) ;
 				aligned_source->read_snp_probability_data(
@@ -171,18 +172,18 @@ AUTO_TEST_CASE( test_strand_aligning_snp_data_source ) {
 				}
 			}
 
-			genfile::SNPIdentifyingData expected_aligned_snp = snps1[i] ;
+			genfile::VariantIdentifyingData expected_aligned_snp = snps1[i] ;
 
 			switch( strand_alignments[ snps1[i] ].strand ) {
 				case '+':
 					break ;
 				case '-':
-					expected_aligned_snp.first_allele() = complement( expected_aligned_snp.first_allele() ) ;
-					expected_aligned_snp.second_allele() = complement( expected_aligned_snp.second_allele() ) ;
+					expected_aligned_snp.set_allele( 0, complement( expected_aligned_snp.get_allele( 0 ) ) ) ;
+					expected_aligned_snp.set_allele( 1, complement( expected_aligned_snp.get_allele( 1 ) ) ) ;
 					break ;
 				case '?':
-					expected_aligned_snp.first_allele() = '?' ;
-					expected_aligned_snp.second_allele() = '?' ;
+					expected_aligned_snp.set_allele( 0, question_mark ) ;
+					expected_aligned_snp.set_allele( 1, question_mark ) ;
 					break ;
 				default:
 					assert(0) ;

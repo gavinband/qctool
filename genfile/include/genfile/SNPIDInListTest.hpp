@@ -9,20 +9,13 @@
 
 #include <set>
 #include <string>
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 
 namespace genfile {
-	struct SNPIDInListTest: public SNPIdentifyingDataTest
+	struct SNPIDInListTest: public VariantIdentifyingDataTest
 	{
 		SNPIDInListTest( std::set< std::string > id_fields ) ;
-		bool operator()(
-			std::string SNPID,
-			std::string,
-			GenomePosition,
-			std::string,
-			std::string
-		) const ;
-		
+		bool operator()( VariantIdentifyingData const& data ) const ;
 		std::string display() const ;
 	private:
 		std::set< std::string > m_id_fields ;

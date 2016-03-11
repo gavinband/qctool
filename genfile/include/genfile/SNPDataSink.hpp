@@ -17,7 +17,7 @@
 
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/VariantDataReader.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/Error.hpp"
 
@@ -65,7 +65,7 @@ namespace genfile {
 
 		SNPDataSink& write_snp(
 			uint32_t number_of_samples,
-			SNPIdentifyingData const& snp,
+			VariantIdentifyingData const& snp,
 			GenotypeProbabilityGetter const& get_AA_probability,
 			GenotypeProbabilityGetter const& get_AB_probability,
 			GenotypeProbabilityGetter const& get_BB_probability,
@@ -87,7 +87,7 @@ namespace genfile {
 		) ;
 
 		SNPDataSink& write_variant_data(
-			SNPIdentifyingData const& id_data,
+			VariantIdentifyingData const& id_data,
 			VariantDataReader& data_reader,
 			Info const& info = Info()
 		) ;
@@ -136,7 +136,7 @@ namespace genfile {
 		) ;
 
 		virtual void write_variant_data_impl(
-			SNPIdentifyingData const& id_data,
+			VariantIdentifyingData const& id_data,
 			VariantDataReader& data_reader,
 			Info const& info
 		) ;

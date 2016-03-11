@@ -16,7 +16,7 @@ namespace sample_stats {
 	{
 		MissingnessHeterozygosityComputation() ;
 		MissingnessHeterozygosityComputation( genfile::Chromosome ) ;
-		void accumulate( genfile::SNPIdentifyingData const&, Genotypes const&, genfile::VariantDataReader& ) ;
+		void accumulate( genfile::VariantIdentifyingData const&, Genotypes const&, genfile::VariantDataReader& ) ;
 		void compute( int sample, ResultCallback ) ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 	private:

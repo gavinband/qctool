@@ -8,7 +8,7 @@
 #include <string>
 #include <sstream>
 #include "genfile/Chromosome.hpp"
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 #include "genfile/ChromosomeInSetTest.hpp"
 
 namespace genfile {
@@ -16,14 +16,8 @@ namespace genfile {
 		m_chromosomes( chromosomes )
 	{}
 	
-	bool ChromosomeInSetTest::operator()(
-		std::string,
-		std::string,
-		GenomePosition pos,
-		std::string,
-		std::string
-	) const {
-		return m_chromosomes.find( pos.chromosome() ) != m_chromosomes.end() ;
+	bool ChromosomeInSetTest::operator()( VariantIdentifyingData const& data ) const {
+		return m_chromosomes.find( data.get_position().chromosome() ) != m_chromosomes.end() ;
 	}
 	
 	std::string ChromosomeInSetTest::display() const {

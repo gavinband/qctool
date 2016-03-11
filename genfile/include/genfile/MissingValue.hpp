@@ -12,6 +12,9 @@
 namespace genfile {
 	struct MissingValue
 	{
+		MissingValue() {}
+		MissingValue( MissingValue const& other ) {}
+		MissingValue& operator=( MissingValue const& other ) { return *this ; }
 		bool operator<( MissingValue const& other ) const ;
 		bool operator<=( MissingValue const& other ) const ;
 		bool operator==( MissingValue const& other ) const ;

@@ -1,9 +1,3 @@
-
-//          Copyright Gavin Band 2008 - 2012.
-// Distributed under the Boost Software License, Version 1.0.
-//    (See accompanying file LICENSE_1_0.txt or copy at
-//          http://www.boost.org/LICENSE_1_0.txt)
-
 #ifndef QCTOOL_APPCONTEXT_OPTION_DEFINITION_HPP
 #define QCTOOL_APPCONTEXT_OPTION_DEFINITION_HPP
 
@@ -18,7 +12,7 @@ namespace appcontext {
 	struct OptionDefinition {
 		enum { eUntilNextOption = 2147483647 } ;
 		public:
-			OptionDefinition() ;
+			OptionDefinition( std::string const& name = "" ) ;
 			OptionDefinition( OptionDefinition const& other ) ;
 			OptionDefinition& operator=( OptionDefinition const& other ) ;
 
@@ -63,8 +57,8 @@ namespace appcontext {
 			}
 			OptionDefinition& set_takes_single_value() {
 				m_number_of_values_per_use = 1u ;	
+				m_minimum_multiplicity = 0u ;
 				m_maximum_multiplicity = 1u ;
-				m_minimum_multiplicity = std::min( m_minimum_multiplicity, m_maximum_multiplicity ) ;
 				return *this ;
 			}
 			OptionDefinition& set_takes_values_until_next_option() {
@@ -93,10 +87,13 @@ namespace appcontext {
 
 			void check_option_values( std::string const& option_name, std::vector< std::string > const& option_values ) const ;
 
+			std::string format_spec( std::size_t indent ) const ; 
 	    private:
 
+			std::string m_name ;
 			std::string m_group ;
 			std::string m_description ;
+			bool m_is_required ;
 			unsigned int m_number_of_values_per_use ;
 			unsigned int m_minimum_multiplicity, m_maximum_multiplicity ;
 			std::vector< value_checker_t > m_value_checkers ;

@@ -7,17 +7,17 @@
 #include <vector>
 #include <boost/bind.hpp>
 #include "genfile/SNPDataSource.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/get_list_of_snps_in_source.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/Error.hpp"
 
 namespace genfile {
-	std::vector< SNPIdentifyingData > get_list_of_snps_in_source(
+	std::vector< VariantIdentifyingData > get_list_of_snps_in_source(
 		SNPDataSource& source,
 		boost::function< void( std::size_t, boost::optional< std::size_t > ) > progress_callback
 	) {
-		typedef std::vector< SNPIdentifyingData > Result ;
+		typedef std::vector< VariantIdentifyingData > Result ;
 		Result result ;
 		if( source.total_number_of_snps() ) {
 			result.reserve( *source.total_number_of_snps() ) ;

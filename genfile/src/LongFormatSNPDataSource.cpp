@@ -79,26 +79,12 @@ namespace genfile {
 		}
 	}
 	
-	void LongFormatSNPDataSource::read_snp_identifying_data_impl( 
-		uint32_t* number_of_samples, // number_of_samples is unused.
-		std::string* SNPID,
-		std::string* RSID,
-		Chromosome* chromosome,
-		uint32_t* SNP_position,
-		std::string* allele1,
-		std::string* allele2
-	) {
+	void LongFormatSNPDataSource::get_snp_identifying_data_impl( VariantIdentifyingData* result ) {
 		if( m_snp_index == m_variants.size() ) {
 			m_exhausted = true ;
 			return ;
 		} else {
-			*number_of_samples = m_sample_map.size() ;
-			*SNPID = m_variants[m_snp_index].get_SNPID() ;
-			*RSID = m_variants[m_snp_index].get_rsid() ;
-			*chromosome = m_variants[m_snp_index].get_position().chromosome() ;
-			*SNP_position = m_variants[m_snp_index].get_position().position() ;
-			*allele1 = m_variants[m_snp_index].get_first_allele() ;
-			*allele2 = m_variants[m_snp_index].get_second_allele() ;
+			*result = m_variants[ m_snp_index ] ;
 		}
 	}
 
@@ -131,7 +117,7 @@ namespace genfile {
 						setter.set_number_of_entries( ploidy, 1, eUnorderedList, eUnknownValueType ) ;
 						std::pair< int, int > snpsample = std::make_pair( m_snp_index, m_source.m_sample_map.at( m_samples[ sample_i ] )) ;
 						LongFormatSNPDataSource::BufferMap::const_iterator where = m_source.m_buffer_map.find( snpsample ) ;
-						setter.set_value( ( where == m_source.m_buffer_map.end() ) ? vcf::EntriesSetter::Integer(0) : vcf::EntriesSetter::Integer(1) ) ;
+						setter.set_value( 0, ( where == m_source.m_buffer_map.end() ) ? vcf::EntriesSetter::Integer(0) : vcf::EntriesSetter::Integer(1) ) ;
 					}
 				} else {
 					throw BadArgumentError(
@@ -213,7 +199,6 @@ namespace genfile {
 			}
 			elts = slice( line ).split( " \t," ) ;
 		
-		
 			if( elts.size() < expectedColumns.size() ) {
 				throw genfile::MalformedInputError(
 					m_filename,
@@ -236,7 +221,7 @@ namespace genfile {
 		// Read and validate SNPs and samples
 		m_buffer.resize( m_buffer_size ) ;
 		{
-			SNPIdentifyingData snp ;
+			VariantIdentifyingData snp ;
 			std::size_t lineNumber = 0 ;
 
 			std::size_t buffer_pos = 0 ;
@@ -268,7 +253,7 @@ namespace genfile {
 					) ;
 				}
 
-				SNPIdentifyingData snp(
+				VariantIdentifyingData snp(
 					elts[0], elts[1],
 					GenomePosition(
 						Chromosome( elts[2] ), to_repr< Position >( elts[3] )

@@ -22,8 +22,8 @@ namespace haplotype_frequency_component {
 
 		void operator()(
 			std::string const& cohort,
-			genfile::SNPIdentifyingData const& source_snp,
-			genfile::SNPIdentifyingData const& target_snp,
+			genfile::VariantIdentifyingData const& source_snp,
+			genfile::VariantIdentifyingData const& target_snp,
 			std::string const& variable,
 			genfile::VariantEntry const& value
 		) ;
@@ -33,7 +33,7 @@ namespace haplotype_frequency_component {
 		db::Connection::RowId m_variable_class_id ;
 		db::Connection::StatementPtr m_insert_summarydata_statement ;
 		bool m_create_indices ;
-		typedef std::vector< boost::tuple< std::string, genfile::SNPIdentifyingData, genfile::SNPIdentifyingData, std::string, genfile::VariantEntry > > Data ;
+		typedef std::vector< boost::tuple< std::string, genfile::VariantIdentifyingData, genfile::VariantIdentifyingData, std::string, genfile::VariantEntry > > Data ;
 		Data m_data ;
 
 	private:

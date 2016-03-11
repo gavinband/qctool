@@ -7,7 +7,7 @@
 #ifndef QCTOOL_LEASTMISSINGCALLCOMPARERCOMPONENT_CONSENSUS_CALLER_HPP
 #define QCTOOL_LEASTMISSINGCALLCOMPARERCOMPONENT_CONSENSUS_CALLER_HPP
 
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "components/SNPSummaryComponent/ConsensusCaller.hpp"
 

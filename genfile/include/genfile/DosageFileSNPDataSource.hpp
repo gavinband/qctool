@@ -11,7 +11,7 @@
 #include <string>
 #include "snp_data_utils.hpp"
 #include "gen.hpp"
-#include "SNPDataSource.hpp"
+#include "genfile/IdentifyingDataCachingSNPDataSource.hpp"
 #include "string_utils/slice.hpp"
 #include "vcf/MetadataParser.hpp"
 
@@ -47,15 +47,7 @@ namespace genfile {
 	private:
 		void reset_to_start_impl() ;
 		
-		void read_snp_identifying_data_impl( 
-			uint32_t*, // number_of_samples is unused.
-			std::string* SNPID,
-			std::string* RSID,
-			Chromosome* chromosome,
-			uint32_t* SNP_position,
-			std::string* allele1,
-			std::string* allele2
-		) ;
+		void read_snp_identifying_data_impl( VariantIdentifyingData* result ) ;
 
 		VariantDataReader::UniquePtr read_variant_data_impl() ;
 
@@ -68,12 +60,12 @@ namespace genfile {
 		OptionalSnpCount m_total_number_of_snps ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
 		Chromosome m_chromosome ;
-        
-        std::string m_line ;
-        typedef string_utils::slice slice ;
-        std::vector< slice > m_elts ;
+		
+		std::string m_line ;
+		typedef string_utils::slice slice ;
+		std::vector< slice > m_elts ;
 
-    private:
+	private:
 		void setup( std::string const& filename, CompressionType compression_type ) ;
 		void setup( std::auto_ptr< std::istream > stream_ptr ) ;
 	} ;

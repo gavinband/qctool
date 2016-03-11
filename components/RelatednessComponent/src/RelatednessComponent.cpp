@@ -6,7 +6,7 @@
 
 #include <boost/function.hpp>
 #include "../config.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
@@ -270,7 +270,7 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 		pca::PCAProjector::UniquePtr projector = pca::PCAProjector::create(
 			m_samples,
 			m_ui_context,
-			genfile::SNPIdentifyingData::CompareFields( match_fields )
+			genfile::VariantIdentifyingData::CompareFields( match_fields )
 		) ;
 		projector->send_results_to(
 			boost::bind(

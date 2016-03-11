@@ -29,16 +29,16 @@ namespace pca {
 		static UniquePtr create(
 			genfile::CohortIndividualSource const& samples,
 			appcontext::UIContext& ui_context,
-			genfile::SNPIdentifyingData::CompareFields const&
+			genfile::VariantIdentifyingData::CompareFields const&
 		) ;
 		PCAProjector(
 			genfile::CohortIndividualSource const& samples,
 			appcontext::UIContext& ui_context,
-			genfile::SNPIdentifyingData::CompareFields const&
+			genfile::VariantIdentifyingData::CompareFields const&
 		) ;
 		
 		void set_loadings(
-			std::vector< genfile::SNPIdentifyingData > const& snps,
+			std::vector< genfile::VariantIdentifyingData > const& snps,
 			Vector const& counts,
 			Vector const& frequencies,
 			Matrix const& loadings,
@@ -46,7 +46,7 @@ namespace pca {
 		) ;
 
 		void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) ;
-		void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader& ) ;
+		void processed_snp( genfile::VariantIdentifyingData const&, genfile::VariantDataReader& ) ;
 		void end_processing_snps() ;
 
 		typedef boost::function< genfile::VariantEntry ( std::size_t ) > GetNames ;
@@ -57,7 +57,7 @@ namespace pca {
 	private:
 		genfile::CohortIndividualSource const& m_samples ;
 		appcontext::UIContext& m_ui_context ;
-		typedef std::map< genfile::SNPIdentifyingData, int, genfile::SNPIdentifyingData::CompareFields > SnpMap ;
+		typedef std::map< genfile::VariantIdentifyingData, int, genfile::VariantIdentifyingData::CompareFields > SnpMap ;
 		SnpMap m_snps ;
 		Eigen::VectorXd m_counts ;
 		Eigen::VectorXd m_frequencies ;

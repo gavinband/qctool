@@ -7,7 +7,8 @@
 #include <set>
 #include <string>
 #include <sstream>
-#include "genfile/SNPIdentifyingDataTest.hpp"
+#include <boost/bind.hpp>
+#include "genfile/VariantIdentifyingDataTest.hpp"
 #include "genfile/SNPIDInListTest.hpp"
 
 namespace genfile {
@@ -15,14 +16,20 @@ namespace genfile {
 	: m_id_fields( id_fields )
 	{}
 
-	bool SNPIDInListTest::operator()(
-		std::string SNPID,
-		std::string,
-		GenomePosition,
-		std::string,
-		std::string
-	) const {
-		return m_id_fields.find( SNPID ) != m_id_fields.end() ;
+	namespace {
+		void insert_value( std::vector< std::string >* target, std::string const& id ) {
+			target->push_back( id ) ;
+		}
+	}
+	bool SNPIDInListTest::operator()( VariantIdentifyingData const& data ) const {
+		std::vector< std::string > ids ;
+		data.get_alleles( boost::bind( &insert_value, &ids, _1 )) ;
+		for( std::size_t i = 0; i < ids.size(); ++i ) {
+			if( m_id_fields.find( ids[i] ) != m_id_fields.end() ) {
+				return true ;
+			}
+		}
+		return false ;
 	}
 	
 	std::string SNPIDInListTest::display() const {

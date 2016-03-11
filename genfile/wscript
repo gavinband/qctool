@@ -17,18 +17,6 @@ def create_tests( bld ):
 		install_path=None
 	)
 
-def create_benchmark( bld, name ):
-	bld.new_task_gen(
-		features = 'cxx cprogram',
-		target = name,
-		source = [  'benchmark/' + name + '.cpp' ],
-		uselib_local = 'genfile boost',
-		uselib = 'ZLIB',
-		includes = './include',\
-		export_incdirs = './include',
-		install_path = None
-	)
-
 def build( bld ):
 	import Options
 	
@@ -45,5 +33,4 @@ def build( bld ):
 		export_incdirs = './include'
 	)
 
-	create_benchmark( bld, 'benchmark-io' )
 	create_tests( bld )

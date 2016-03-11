@@ -50,13 +50,13 @@ namespace genfile {
 	}
 	
 	void PennCNVSNPDataSink::write_variant_data_impl(
-		SNPIdentifyingData const& variant,
+		VariantIdentifyingData const& variant,
 		VariantDataReader& data_reader,
 		Info const& info
 	) {
 		assert( variant.number_of_alleles() == 2 ) ;
-		assert( variant.get_first_allele().size() == 1 ) ;
-		assert( variant.get_second_allele().size() == 1 ) ;
+		assert( variant.get_allele(0).size() == 1 ) ;
+		assert( variant.get_allele(1).size() == 1 ) ;
 
 		{
 			data_reader.get( ":genotypes:", genfile::vcf::get_threshholded_calls( m_genotypes, m_threshhold, 0, 1, 2, 3 ) ) ;
@@ -72,14 +72,14 @@ namespace genfile {
 		}
 
 		char const tab = '\t' ;
-		stream() << variant.get_rsid() << tab
+		stream() << variant.get_primary_id() << tab
 			<< variant.get_position().chromosome() << tab
 			<< variant.get_position().position() ;
 
 		m_genotype_alleles[0] = "NA" ;
-		m_genotype_alleles[1] = variant.get_first_allele() + variant.get_first_allele() ;
-		m_genotype_alleles[2] = variant.get_first_allele() + variant.get_second_allele() ;
-		m_genotype_alleles[3] = variant.get_second_allele() + variant.get_second_allele() ;
+		m_genotype_alleles[1] = variant.get_allele(0) + variant.get_allele(0) ;
+		m_genotype_alleles[2] = variant.get_allele(0) + variant.get_allele(1) ;
+		m_genotype_alleles[3] = variant.get_allele(1) + variant.get_allele(1) ;
 
 		for( int i = 0; i < m_intensities.rows(); ++i ) {
 			// PennCNV / QuantiSNP-style files are genotype, log R ratio, then B Allele Freq.

@@ -9,7 +9,7 @@
 #include <boost/noncopyable.hpp>
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/SNPDataSourceProcessor.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/vcf/get_set_eigen.hpp"
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
@@ -35,7 +35,7 @@ void SampleSummaryComputationManager::begin_processing_snps( std::size_t number_
 	m_genotypes.resize( number_of_samples, 3 ) ;
 }
 
-void SampleSummaryComputationManager::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
+void SampleSummaryComputationManager::processed_snp( genfile::VariantIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 	{
 		genfile::vcf::GenotypeSetter< Eigen::MatrixBase< SampleSummaryComputation::Genotypes > > setter( m_genotypes ) ;
 		data_reader.get( ":genotypes:", setter ) ;
