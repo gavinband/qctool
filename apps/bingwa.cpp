@@ -882,7 +882,7 @@ namespace impl {
 	double compute_normal_pvalue( double statistic, double variance, Tail const tail = eBoth ) {
 		typedef boost::math::normal NormalDistribution ;
 		double result = NA ;
-		if( variance > 0 ) {
+		if( variance == variance && variance > 0 ) {
 			NormalDistribution normal( 0, std::sqrt( variance ) ) ;
 			switch( tail ) {
 				case eBoth:
