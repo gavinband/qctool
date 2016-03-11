@@ -110,7 +110,7 @@ namespace genfile {
 		std::string format_call( uint16_t call ) ;
 	}
 
-	// This class receives unphased GT-style genotypes
+	// This class receives unphased (or phased) GT-style genotypes
 	// and outputs unphased genotype probabilities.
 	template< typename Setter >
 	struct GTToGPUnphased: public ToGPImpl< Setter >, impl::GTToGPUnphasedBase
@@ -197,11 +197,106 @@ namespace genfile {
 		uint16_t m_encoded_call ;
 		bool m_missing ;
 	} ;
+
+	// This class receives unphased (or phased) GT-style genotypes
+	// and outputs unphased genotype probabilities.
+	template< typename Setter >
+	struct GTToGPPhased: public ToGPImpl< Setter >, impl::GTToGPUnphasedBase
+	{
+		typedef typename ToGPImpl< Setter >::SharedPtr SharedPtr ;
+
+
+		static SharedPtr create() {
+			return SharedPtr( new GTToGPPhased() ) ;
+		}
+		
+		GTToGPPhased():
+			m_setter( 0 ),
+			m_missing( false )
+		{
+		}
+
+		void initialise( Setter& setter, std::size_t number_of_alleles, uint32_t ploidy, std::size_t number_of_entries ) {
+			m_setter = &setter ;
+			m_number_of_alleles = number_of_alleles ;
+			m_ploidy = ploidy ;
+			m_number_of_entries = number_of_entries ;
+			assert( m_ploidy == m_number_of_entries ) ;
+			m_missing = false ;
+			m_values.resize( m_number_of_entries ) ;
+			std::cerr << "Initialised.\n" ;
+		}
+
+		void set_value( std::size_t value_i, genfile::MissingValue const value ) {
+			m_missing = true ;
+			if( value_i+1 == m_number_of_entries ) {
+				finalise() ;
+			}
+		}
+
+		void set_value( std::size_t value_i, int64_t const value ) {
+			assert( value < 5 ) ;
+			m_values[value_i] = value ;
+			if( value_i+1 == m_number_of_entries ) {
+				finalise() ;
+			}
+		}
+		
+		void finalise() {
+			std::size_t const count = m_number_of_alleles * m_ploidy ;
+			m_setter->set_number_of_entries( m_ploidy, count, ePerPhasedHaplotypePerAllele, eProbability ) ;
+			
+			if( m_missing ) {
+				std::cerr << "count = " << count << ", call is .|.\n" ;
+				
+				for( std::size_t i = 0 ; i < count; ++i ) {
+					m_setter->set_value( i, 0.0 ) ;
+				}
+			} else {
+				for( std::size_t i = 0; i < m_ploidy; ++i ) {
+					std::size_t const index_of_nonzero_probability = m_values[ i ] ;
+					std::size_t allele = 0 ;
+					for( ; allele < index_of_nonzero_probability; ++allele ) {
+						m_setter->set_value( i*m_number_of_alleles+allele, 0.0 ) ;
+					}
+					m_setter->set_value( i * m_number_of_alleles + allele, 1.0 ) ;
+					for( ++allele; allele < m_ploidy * m_number_of_alleles; ++allele ) {
+						m_setter->set_value( i*m_number_of_alleles + allele, 0.0 ) ;
+					}
+				}
+			}
+		}
+		
+	private:
+		Setter* m_setter ;
+		std::size_t m_number_of_alleles ;
+		std::size_t m_ploidy ;
+		std::size_t m_number_of_entries ;
+		std::vector< std::size_t > m_values ;
+		bool m_missing ;
+	} ;
+	
+	template< typename Setter >
+	ToGP< Setter > to_GP_unphased( Setter& setter ) {
+		ToGP< Setter > result( setter ) ;
+		result.add_impl( ePerUnorderedHaplotype, eAlleleIndex, GTToGPUnphased< Setter >::create() ) ;
+		result.add_impl( ePerOrderedHaplotype, eAlleleIndex, GTToGPUnphased< Setter >::create() ) ;
+		return result ;
+	}
+
+	template< typename Setter >
+	ToGP< Setter > to_GP_phased( Setter& setter ) {
+		ToGP< Setter > result( setter ) ;
+		result.add_impl( ePerOrderedHaplotype, eAlleleIndex, GTToGPPhased< Setter >::create() ) ;
+		return result ;
+	}
 	
 	template< typename Setter >
 	ToGP< Setter > to_GP( Setter& setter ) {
 		ToGP< Setter > result( setter ) ;
 		result.add_impl( ePerUnorderedHaplotype, eAlleleIndex, GTToGPUnphased< Setter >::create() ) ;
+		result.add_impl( ePerOrderedHaplotype, eAlleleIndex, GTToGPPhased< Setter >::create() ) ;
 		return result ;
 	}
+	
 }
