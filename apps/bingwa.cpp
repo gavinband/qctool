@@ -2080,6 +2080,20 @@ public:
 		return result ;
 	}
 
+	double parse_sd( std::string sd_spec ) const {
+		using namespace genfile::string_utils ;
+		std::size_t pos = sd_spec.find( '*' ) ;
+		double factor = 1.0 ;
+		if( pos != std::string::npos ) {
+			factor = to_repr< double >( sd_spec.substr( 0, pos )) ;
+			++pos ;
+		} else {
+			pos = 0 ;
+			factor = 1.0 ;
+		}
+		return factor * to_repr< double >( sd_spec.substr( pos, sd_spec.size() - pos )) ;
+	}
+
 	void get_uniform_population_prior(
 		int const number_of_cohorts,
 		std::string const& model_spec,
@@ -2155,7 +2169,7 @@ public:
 
 				Eigen::VectorXd sd_matrix( N * D ) ;
 				for( int block_i = 0; block_i < D; ++block_i ) {
-					sd_matrix.segment( block_i * N, N ).setConstant( to_repr< double >( covariance_spec.get<eSD>()[block_i] ) ) ;
+					sd_matrix.segment( block_i * N, N ).setConstant( parse_sd( covariance_spec.get<eSD>()[block_i] ) ) ;
 				}
 				Eigen::MatrixXd const covariance = sd_matrix.asDiagonal() * correlation * sd_matrix.asDiagonal() ;
 
@@ -2245,7 +2259,7 @@ public:
 
 				Eigen::VectorXd sd_vector( dimension ) ;
 				for( int i = 0; i < dimension; ++i ) {
-					sd_vector(i) = to_repr< double >( covariance_spec.get<eSD>()[ i ] ) ;
+					sd_vector(i) = parse_sd( covariance_spec.get<eSD>()[ i ] ) ;
 				}
 
 				Eigen::MatrixXd const covariance = sd_vector.asDiagonal() * correlation * sd_vector.asDiagonal() ;
@@ -2406,27 +2420,6 @@ public:
 		return result ;
 	}
 	
-	std::vector< std::string > expand_sd(
-		std::string sd,
-		std::map< std::string, std::vector< std::string > > const& sd_sets
-	) {
-		std::vector< std::string > result ;
-		std::map< std::string, std::vector< std::string > >::const_iterator where = sd_sets.end() ;
-		if( sd.size() > 2 && sd[0] == '[' && sd[ sd.size() -1 ] == ']' ) {
-			where = sd_sets.find( sd.substr( 1, sd.size() - 2 )) ;
-		}
-		if( where == sd_sets.end() ) {
-			result.push_back( sd ) ;
-		}
-		else {
-			std::cerr << ">>> Found sd set.\n" ;
-			for( std::size_t i = 0; i < where->second.size(); ++i ) {
-				result.push_back( where->second[i] ) ;
-			}
-		}
-		return result ;
-	}
-	
 	std::vector< CovarianceSpec > parse_covariance_spec( std::string const& spec ) const {
 		using namespace genfile::string_utils ;
 		std::vector< std::string > parameters = split_and_strip( spec, "/" ) ;
@@ -2494,60 +2487,6 @@ public:
 		) ;
 	}
 
-
-	std::vector< CovarianceSpec > expand_sds(
-		CovarianceSpec const& covariance_spec,
-		std::map< std::string, std::vector< std::string > > const& sd_sets
-	) {
-		std::vector< CovarianceSpec > result ;
-		// currently we just expand sds according to the sets in sd_sets.
-		std::vector< std::string > const& sds = covariance_spec.get<eSD>() ;
-		std::vector< std::string > sd_set_names ;
-		std::vector< std::size_t > working_sd_indices ;
-		for( std::map< std::string, std::vector< std::string > >::const_iterator i = sd_sets.begin(); i != sd_sets.end(); ++i ) {
-			working_sd_indices.push_back( 0 ) ;
-			sd_set_names.push_back( i->first ) ;
-		}
-			
-		bool complete = false ;
-		while( !complete ) {
-			// construct the configuration
-			std::vector< std::string > these_sds = sds ;
-			for( std::size_t i = 0; i < sd_set_names.size(); ++i ) {
-				std::string const set_name = sd_set_names[i] ;
-				for( std::size_t j = 0; j < sds.size(); ++j ) {
-					these_sds[j] = genfile::string_utils::replace_all(
-						sds[j],
-						"[" + sd_set_names[i] + "]",
-						sd_sets.find( set_name )->second.at( working_sd_indices[ i ] )
-					) ;
-				}
-			}
-			CovarianceSpec new_spec( CovarianceSpec( covariance_spec.get<eBetweenPopulationCorrelation>(), these_sds, covariance_spec.get<eCorrelation>() ) ) ;
-			if( std::find( result.begin(), result.end(), new_spec ) == result.end() ) {
-				result.push_back( new_spec ) ;
-			}
-			
-			// move to next configuration of sds and taus.
-			// The rather ungainly code below steps through substitutable values of sds and then of taus in right-to-left order.
-			std::size_t k = 0 ;
-			for( ; k < sd_set_names.size(); ++k ) {
-				std::size_t j = sd_set_names.size() - k - 1 ;
-				std::string const set_name = sd_set_names[j] ;
-				if( ++working_sd_indices[j] == sd_sets.find( set_name )->second.size() ) {
-					working_sd_indices[j] = 0 ;
-				} else {
-					break ;
-				}
-			}
-			if( k == sd_set_names.size() ) {
-				complete = true ;
-			}
-		}
-
-		return result ;
-	}
-
 	std::vector< CovarianceSpec > expand_taus_and_sds(
 		std::vector< std::string > taus,
 		std::vector< std::string > sds,
@@ -2566,15 +2505,26 @@ public:
 		while( !complete ) {
 			// construct this configuration
 			for( std::size_t j = 0; j < sds.size(); ++j ) {
-				if( sds[j].size() > 0 && sds[j][0] == '[' && sds[j][sds[j].size() - 1] == ']' ) {
-					std::map< std::string, std::vector< std::string > >::const_iterator where = sd_sets.find( sds[j].substr( 1, sds[j].size() - 2 ) ) ;
-					if( where != sd_sets.end() ) {
-						working_sds[ j ] = where->second.at( working_sd_indices[j] ) ;
+				std::string spec = sds[j] ;
+				if( spec.size() > 0 ) {
+					std::size_t pos = spec.find( '[' ) ;
+					if( pos != std::string::npos ) {
+						std::size_t end_pos = spec.find( ']', pos + 1 ) ;
+						if( end_pos != std::string::npos ) {
+							std::map< std::string, std::vector< std::string > >::const_iterator where
+								= sd_sets.find( spec.substr( pos+1, end_pos - pos - 1 ) ) ;
+							if( where != sd_sets.end() ) {
+								spec.replace( pos, end_pos - pos + 1, where->second.at( working_sd_indices[j] ) ) ;
+								working_sds[ j ] = spec ;
+							}
+						}
 					}
 				}
-
+			}
+			for( std::size_t j = 0; j < taus.size(); ++j ) {
 				if( taus[j].size() > 0 && taus[j][0] == '[' && taus[j][taus[j].size() - 1] == ']' ) {
-					std::map< std::string, std::vector< std::string > >::const_iterator where = tau_sets.find( taus[j].substr( 1, taus[j].size() - 2 ) ) ;
+					std::map< std::string, std::vector< std::string > >::const_iterator where
+						= tau_sets.find( taus[j].substr( 1, taus[j].size() - 2 ) ) ;
 					if( where != tau_sets.end() ) {
 						working_taus[ j ] = where->second.at( working_tau_indices[j] ) ;
 					}
