@@ -15,6 +15,7 @@
 #include "components/SNPSummaryComponent/HWEComputation.hpp"
 #include "metro/likelihood/Multinomial.hpp"
 #include "metro/likelihood/ProductOfMultinomials.hpp"
+#include "metro/FishersExactTest.hpp"
 
 // #define DEBUG_HWE_COMPUTATION 1
 
@@ -195,6 +196,21 @@ namespace snp_summary_component {
 				callback( "HWE_females_lr_pvalue", p_value_12 ) ;
 			}
 
+			// Also get exact male/female p-value
+			{
+				Eigen::Matrix2d A = allele_counts ;
+				A(0,0) = std::floor( A(0,0) + 0.5 ) ;
+				A(0,1) = std::floor( A(0,1) + 0.5 ) ;
+				A(1,0) = std::floor( A(1,0) + 0.5 ) ;
+				A(1,1) = std::floor( A(1,1) + 0.5 ) ;
+				double const male_female_pvalue = metro::FishersExactTest( A ).get_pvalue( metro::FishersExactTest::eTwoSided ) ;
+				if( male_female_pvalue == male_female_pvalue ) {
+					callback( "male_female_exact_pvalue", male_female_pvalue ) ;
+				} else {
+					callback( "male_female_exact_pvalue", genfile::MissingValue() ) ;
+				}
+			}
+
 			double const lr_stat_23 = 2.0 * ( model2.get_value_of_function() - model3.get_value_of_function() ) ;
 			double p_value_23 = NaN ;
 			if( lr_stat_23 == lr_stat_23 && lr_stat_23 > 0 && lr_stat_23 != std::numeric_limits< double >::infinity() ) {
@@ -206,7 +222,7 @@ namespace snp_summary_component {
 			double p_value_13 = NaN ;
 			if( lr_stat_13 == lr_stat_13 && lr_stat_13 > 0 && lr_stat_13 != std::numeric_limits< double >::infinity() ) {
 				p_value_13 = cdf( complement( m_chi_squared_2df, lr_stat_13 ) ) ;
-				callback( "HWE_all_lr_2df_pvalue", p_value_13 ) ;
+				callback( "male_female_and_HWE_2df_lr_pvalue", p_value_13 ) ;
 			}
 		}
 	}
