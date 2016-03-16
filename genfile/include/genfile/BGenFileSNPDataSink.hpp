@@ -46,27 +46,11 @@ namespace genfile {
 		// Methods required by SNPDataSink
 		operator bool() const ;
 		
-		void write_snp_impl(
-			uint32_t number_of_samples,
-			std::string SNPID,
-			std::string RSID,
-			Chromosome chromosome,
-			uint32_t SNP_position,
-			std::string first_allele,
-			std::string second_allele,
-			GenotypeProbabilityGetter const& get_AA_probability,
-			GenotypeProbabilityGetter const& get_AB_probability,
-			GenotypeProbabilityGetter const& get_BB_probability,
-			Info const&
-		) ;
-
-#if 0
 		void write_variant_data_impl(
 			VariantIdentifyingData const& id_data,
 			VariantDataReader& data_reader,
 			Info const& info
 		) ;
-#endif
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) ;
 
 		void set_number_of_bits( int const bits ) ;
@@ -95,8 +79,8 @@ namespace genfile {
 		bool m_have_written_header ;
 		int m_number_of_bits ;
 		
-		std::vector< byte_t > m_buffer ;
-		std::vector< byte_t > m_compression_buffer ;
+		std::vector< byte_t > m_buffer1 ;
+		std::vector< byte_t > m_buffer2 ;
 	} ;
 
 

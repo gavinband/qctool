@@ -12,6 +12,7 @@
 #include "genfile/bgen/bgen.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/BGenFileSNPDataSink.hpp"
+#include "genfile/ToGP.hpp"
 
 namespace genfile {
 	// This class is intended to be used via a derived class.
@@ -68,6 +69,45 @@ namespace genfile {
 
 	BasicBGenFileSNPDataSink::operator bool() const { return m_stream_ptr->good() ; }
 
+	namespace {
+		std::string get_allele( VariantIdentifyingData const* id_data, std::size_t i ) {
+			return id_data->get_allele( i ) ;
+		}
+	}
+
+	void BasicBGenFileSNPDataSink::write_variant_data_impl(
+		VariantIdentifyingData const& id_data,
+		VariantDataReader& data_reader,
+		Info const& info
+	) {
+		assert( m_have_written_header ) ;
+		{
+			byte_t const* const end = bgen::write_snp_identifying_data(
+				&m_buffer1,
+				m_bgen_context,
+				id_data.get_identifiers_as_string(",", 1),
+				id_data.get_primary_id(),
+				id_data.get_position().chromosome(),
+				id_data.get_position().position(),
+				id_data.number_of_alleles(),
+				boost::bind( &get_allele, &id_data, _1 )
+			) ;
+			stream_ptr()->write( reinterpret_cast< char* >( &(m_buffer1[0]) ), end - &(m_buffer1[0]) ) ;
+		}
+
+		{
+			bgen::GenotypeDataBlockWriter writer(
+				&m_buffer1, &m_buffer2,
+				m_bgen_context,
+				m_number_of_bits
+			) ;
+				
+			data_reader.get( ":genotypes:", to_GP( writer ) ) ;
+			
+			stream_ptr()->write( reinterpret_cast< char const* >( writer.repr().first ), writer.repr().second  - writer.repr().first ) ;
+		}
+	}
+#if 0
 	void BasicBGenFileSNPDataSink::write_snp_impl(
 		uint32_t number_of_samples,
 		std::string SNPID,
@@ -90,7 +130,7 @@ namespace genfile {
 			&m_compression_buffer
 		) ;
 	}
-
+#endif
 	std::auto_ptr< std::ostream >& BasicBGenFileSNPDataSink::stream_ptr() { return m_stream_ptr ; }
 	std::string const& BasicBGenFileSNPDataSink::filename() const { return m_filename ; }
 	

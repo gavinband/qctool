@@ -202,6 +202,7 @@ namespace genfile {
 							}
 						}
 					}
+					setter.finalise() ;
 				}
 				else {
 					setter.initialise( m_number_of_samples, m_number_of_alleles ) ;
@@ -221,6 +222,7 @@ namespace genfile {
 							setter
 						) ;
 					}
+					setter.finalise() ;
 				}
 			}
 

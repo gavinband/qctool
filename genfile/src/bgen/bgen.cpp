@@ -290,51 +290,6 @@ namespace genfile {
 			return true ;
 		}
 		
-		void write_snp_identifying_data(
-			std::ostream& aStream,
-			Context const& context,
-			std::string SNPID,
-			std::string RSID,
-			std::string chromosome,
-			uint32_t SNP_position,
-			std::string first_allele,
-			std::string second_allele
-		) {
-			uint32_t const layout = context.flags & e_Layout ;
-			assert( layout == e_v11Layout || layout == e_v12Layout ) ;
-
-			if( layout == e_v11Layout ) {
-				write_little_endian_integer( aStream, context.number_of_samples ) ;
-				// otherwise appears in the probability data block below.
-			}
-
-			std::size_t const max_allele_length = std::numeric_limits< uint32_t >::max() ;
-			std::size_t const max_id_length = std::numeric_limits< uint16_t >::max() ;
-			assert( SNPID.size() <= static_cast< std::size_t >( max_id_length )) ;
-			assert( RSID.size() <= static_cast< std::size_t >( max_id_length )) ;
-			if( first_allele.size() > static_cast< std::size_t >( max_allele_length ) ) {
-				std::cerr << "Warning: at SNP " << SNPID << " " << RSID << " pos=" << SNP_position << ", truncating first allele of size " << first_allele.size() << ".\n" ;
-				first_allele.resize( max_allele_length - 3 ) ;
-				first_allele += "..." ;
-			}
-			if( second_allele.size() > static_cast< std::size_t >( max_allele_length ) ) {
-				std::cerr << "Warning: at SNP " << SNPID << " " << RSID << " pos=" << SNP_position << ", truncating second allele of size " << second_allele.size() << ".\n" ;
-				second_allele.resize( max_allele_length - 3 ) ;
-				second_allele += "..." ;
-			}
-			write_length_followed_by_data( aStream, uint16_t( SNPID.size() ), SNPID.data() ) ;
-			write_length_followed_by_data( aStream, uint16_t( RSID.size() ), RSID.data() ) ;
-			write_length_followed_by_data( aStream, uint16_t( chromosome.size() ), chromosome ) ;
-			write_little_endian_integer( aStream, SNP_position ) ;
-			
-			if( layout == e_v12Layout ) {
-				// v12 has an explicit allele count, here equal to 2.
-				write_little_endian_integer( aStream, uint16_t(2) ) ;
-			}
-			write_length_followed_by_data( aStream, uint32_t( first_allele.size() ), first_allele.data() ) ;
-			write_length_followed_by_data( aStream, uint32_t( second_allele.size() ), second_allele.data() ) ;
-		}
-
 		namespace v11 {
 			namespace impl {
 				double get_probability_conversion_factor( uint32_t flags ) {

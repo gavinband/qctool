@@ -17,6 +17,8 @@
 #include "genfile/Error.hpp"
 #include "genfile/VariantDataReader.hpp"
 
+#define DEBUG_TO_GP 1
+
 namespace genfile {
 
 	template< typename Setter >
@@ -27,8 +29,12 @@ namespace genfile {
 
 		virtual ~ToGPImpl() {}
 		virtual void initialise( Setter& setter, std::size_t number_of_alleles, uint32_t ploidy, std::size_t number_of_entries ) = 0 ;
+		virtual bool initialised() const = 0 ;
 		virtual void set_value( std::size_t value_i, int64_t const value ) = 0 ;
 		virtual void set_value( std::size_t value_i, genfile::MissingValue const value ) = 0 ;
+		virtual void set_value( std::size_t value_i, double const value ) = 0 ;
+		virtual void finalise() = 0 ;
+		
 	} ;
 
 	template< typename Setter >
@@ -58,9 +64,15 @@ namespace genfile {
 			m_number_of_samples = number_of_samples ;
 			m_number_of_alleles = number_of_alleles ;
 			m_setter.initialise( number_of_samples, number_of_alleles ) ;
+#if DEBUG_TO_GP
+			std::cerr << "NEW SNP\n" ;
+#endif
 		}
 		
 		bool set_sample( std::size_t i ) {
+			if( m_current_impl && m_current_impl->initialised() ) {
+				m_current_impl->finalise() ;
+			}
 			m_current_impl.reset() ;
 			return m_setter.set_sample( i ) ;
 		}
@@ -87,8 +99,15 @@ namespace genfile {
 			m_current_impl->set_value( value_i, value ) ;
 		}
 		
+		void set_value( std::size_t value_i, double const value ) {
+			m_current_impl->set_value( value_i, value ) ;
+		}
+		
 		void finalise() {
-			// nothing to do.
+			if( m_current_impl->initialised() ) {
+				m_current_impl->finalise() ;
+			}
+			m_setter.finalise() ;
 		}
 		
 	private:
@@ -100,6 +119,15 @@ namespace genfile {
 	} ;
 
 	namespace impl {
+		// Generate all possible genotypes for a given ploidy and up to K alleles.
+		// The order is the order such that genotypes carrying at least one allele k,...K
+		// later in the order than those carrying no alleles k,....,K
+		// This order is especially useful because (for the given ploidy) the genotypes at 
+		// biallelic variants are ordered in the same way as those at a triallelic variant
+		// but carrying none of the third allele - thus the orders are nested.
+		//
+		// Genotypes are stored as uint16_t with 4 bits per allele.  This gives
+		// up to four alleles and up to ploidy of 15.
 		std::vector< uint16_t > enumerate_unphased_genotypes( std::size_t ploidy ) ;
 
 		struct GTToGPUnphasedBase {
@@ -116,7 +144,6 @@ namespace genfile {
 	struct GTToGPUnphased: public ToGPImpl< Setter >, impl::GTToGPUnphasedBase
 	{
 		typedef typename ToGPImpl< Setter >::SharedPtr SharedPtr ;
-
 
 		static SharedPtr create() {
 			if( m_tables.empty() ) {
@@ -140,23 +167,27 @@ namespace genfile {
 			m_number_of_entries = number_of_entries ;
 			m_missing = false ;
 			m_encoded_call = 0 ;
-			std::cerr << "Initialised.\n" ;
+#if DEBUG_TO_GP
+			std::cerr << "Initialised, ploidy = " << m_ploidy << ".\n" ;
+#endif
 		}
+		
+		bool initialised() const { return (m_setter != 0)  ; }
 
 		void set_value( std::size_t value_i, genfile::MissingValue const value ) {
 			m_missing = true ;
-			if( value_i+1 == m_number_of_entries ) {
-				finalise() ;
-			}
+		}
+
+		void set_value( std::size_t value_i, double const value ) {
+			throw BadArgumentError( "genfile::GTToGPUnphased::set_value()", "value", "Expected an integer or missing value" ) ;
 		}
 
 		void set_value( std::size_t value_i, int64_t const value ) {
 			assert( value < 5 ) ;
 			m_encoded_call += encode_call( value, 4 ) ;
-			std::cerr << "Encoded value " << value_i << ", " << value << ", m_encoded_call is:" << impl::format_call( m_encoded_call ) << "\n" ;
-			if( value_i+1 == m_number_of_entries ) {
-				finalise() ;
-			}
+#if DEBUG_TO_GP
+			std::cerr << "Encoded value #" << value_i << "(" << value << ") encoded as:" << impl::format_call( m_encoded_call ) << "\n" ;
+#endif
 		}
 		
 		uint16_t encode_call( int64_t const value, std::size_t bits ) {
@@ -169,15 +200,19 @@ namespace genfile {
 			m_setter->set_number_of_entries( m_ploidy, count, ePerUnorderedGenotype, eProbability ) ;
 			
 			if( m_missing ) {
+#if DEBUG_TO_GP
 				std::cerr << "count = " << count << ", call is ./././.\n" ;
+#endif
 				
 				for( std::size_t i = 0 ; i < count; ++i ) {
 					m_setter->set_value( i, 0.0 ) ;
 				}
 			} else {
 				std::size_t index_of_nonzero_probability = m_tables[ m_ploidy ][ m_encoded_call ] ;
+#if DEBUG_TO_GP
 				std::cerr << "count = " << count << ", call is: " << impl::format_call( m_encoded_call ) ;
 				std::cerr << ", index is: " << index_of_nonzero_probability << "\n" ;
+#endif
 				std::size_t i = 0 ;
 				for( ; i < index_of_nonzero_probability; ++i ) {
 					m_setter->set_value( i, 0.0 ) ;
@@ -187,6 +222,7 @@ namespace genfile {
 					m_setter->set_value( i, 0.0 ) ;
 				}
 			}
+			m_setter = 0 ;
 		}
 		
 	private:
@@ -197,6 +233,7 @@ namespace genfile {
 		uint16_t m_encoded_call ;
 		bool m_missing ;
 	} ;
+
 
 	// This class receives unphased (or phased) GT-style genotypes
 	// and outputs unphased genotype probabilities.
@@ -224,22 +261,21 @@ namespace genfile {
 			assert( m_ploidy == m_number_of_entries ) ;
 			m_missing = false ;
 			m_values.resize( m_number_of_entries ) ;
-			std::cerr << "Initialised.\n" ;
+//			std::cerr << "Initialised.\n" ;
 		}
+		
+		bool initialised() const { return ( m_setter != 0 ) ; }
 
 		void set_value( std::size_t value_i, genfile::MissingValue const value ) {
 			m_missing = true ;
-			if( value_i+1 == m_number_of_entries ) {
-				finalise() ;
-			}
 		}
 
 		void set_value( std::size_t value_i, int64_t const value ) {
-			assert( value < 5 ) ;
 			m_values[value_i] = value ;
-			if( value_i+1 == m_number_of_entries ) {
-				finalise() ;
-			}
+		}
+
+		void set_value( std::size_t value_i, double const value ) {
+			throw BadArgumentError( "genfile::GTToGPUnphased::set_value()", "value", "Expected an integer or missing value" ) ;
 		}
 		
 		void finalise() {
@@ -247,24 +283,31 @@ namespace genfile {
 			m_setter->set_number_of_entries( m_ploidy, count, ePerPhasedHaplotypePerAllele, eProbability ) ;
 			
 			if( m_missing ) {
-				std::cerr << "count = " << count << ", call is .|.\n" ;
+//				std::cerr << "count = " << count << ", call is .|.\n" ;
 				
 				for( std::size_t i = 0 ; i < count; ++i ) {
 					m_setter->set_value( i, 0.0 ) ;
 				}
 			} else {
+#if DEBUG_TO_GP
+				std::cerr << "ploidy = " << m_ploidy << ", count = " << count << "\n" ;
+#endif
 				for( std::size_t i = 0; i < m_ploidy; ++i ) {
 					std::size_t const index_of_nonzero_probability = m_values[ i ] ;
+#if DEBUG_TO_GP
+					std::cerr << "allele " << i << ", index is: " << index_of_nonzero_probability << "\n" ;
+#endif
 					std::size_t allele = 0 ;
 					for( ; allele < index_of_nonzero_probability; ++allele ) {
 						m_setter->set_value( i*m_number_of_alleles+allele, 0.0 ) ;
 					}
 					m_setter->set_value( i * m_number_of_alleles + allele, 1.0 ) ;
-					for( ++allele; allele < m_ploidy * m_number_of_alleles; ++allele ) {
-						m_setter->set_value( i*m_number_of_alleles + allele, 0.0 ) ;
+					for( ++allele; allele < m_number_of_alleles; ++allele ) {
+						m_setter->set_value( i*m_number_of_alleles+allele, 0.0 ) ;
 					}
 				}
 			}
+			m_setter = 0 ;
 		}
 		
 	private:
@@ -276,11 +319,56 @@ namespace genfile {
 		bool m_missing ;
 	} ;
 	
+	// This class receives unphased (or phased) GT-style genotypes
+	// and outputs unphased genotype probabilities.
+	template< typename Setter >
+	struct GPToGPUnphased: public ToGPImpl< Setter >, impl::GTToGPUnphasedBase
+	{
+		typedef typename ToGPImpl< Setter >::SharedPtr SharedPtr ;
+
+
+		static SharedPtr create() {
+			return SharedPtr( new GPToGPUnphased() ) ;
+		}
+		
+		GPToGPUnphased():
+			m_setter( 0 )
+		{
+		}
+
+		void initialise( Setter& setter, std::size_t number_of_alleles, uint32_t ploidy, std::size_t number_of_entries ) {
+			m_setter = &setter ;
+			m_setter->set_number_of_entries( ploidy, number_of_entries, ePerUnorderedGenotype, eProbability ) ;
+		}
+		
+		bool initialised() const { return ( m_setter != 0 ) ; }
+
+		void set_value( std::size_t value_i, genfile::MissingValue const value ) {
+			m_setter->set_value( value_i, value ) ;
+		}
+
+		void set_value( std::size_t value_i, int64_t const value ) {
+			throw BadArgumentError( "genfile::GTToGPUnphased::set_value()", "value", "Expected a double or missing value" ) ;
+		}
+
+		void set_value( std::size_t value_i, double const value ) {
+			m_setter->set_value( value_i, value ) ;
+		}
+		
+		void finalise() {
+			m_setter = 0 ; 
+		}
+
+	private:
+		Setter* m_setter ;
+	} ;
+	
 	template< typename Setter >
 	ToGP< Setter > to_GP_unphased( Setter& setter ) {
 		ToGP< Setter > result( setter ) ;
 		result.add_impl( ePerUnorderedHaplotype, eAlleleIndex, GTToGPUnphased< Setter >::create() ) ;
 		result.add_impl( ePerOrderedHaplotype, eAlleleIndex, GTToGPUnphased< Setter >::create() ) ;
+		result.add_impl( ePerUnorderedGenotype, eProbability, GPToGPUnphased< Setter >::create() ) ;
 		return result ;
 	}
 
@@ -296,6 +384,7 @@ namespace genfile {
 		ToGP< Setter > result( setter ) ;
 		result.add_impl( ePerUnorderedHaplotype, eAlleleIndex, GTToGPUnphased< Setter >::create() ) ;
 		result.add_impl( ePerOrderedHaplotype, eAlleleIndex, GTToGPPhased< Setter >::create() ) ;
+		result.add_impl( ePerUnorderedGenotype, eProbability, GPToGPUnphased< Setter >::create() ) ;
 		return result ;
 	}
 	

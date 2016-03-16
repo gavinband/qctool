@@ -12,14 +12,15 @@
 // #define DEBUG_TOGP 1
 namespace genfile {
 	namespace impl {
-		// Generate all possible genotypes for a given ploidy and up to K alleles.
+		// Generate all possible genotypes for a given ploidy and up to 4 alleles.
 		// The order is the order such that genotypes carrying at least one allele k,...K
 		// later in the order than those carrying no alleles k,....,K
 		// This order is especially useful because (for the given ploidy) the genotypes at 
 		// biallelic variants are ordered in the same way as those at a triallelic variant
 		// but carrying none of the third allele - thus the orders are nested.
-		// biallelic variants are ordered in the same way as those at a triallelic variant
-		// but carrying none of the third allele - thus the orders are nested.
+		//
+		// Genotypes are stored as uint16_t with 4 bits per allele.  This gives
+		// up to four alleles and up to ploidy of 15.
 		std::vector< uint16_t > enumerate_unphased_genotypes(
 			std::size_t ploidy
 		) {
