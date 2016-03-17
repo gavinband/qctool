@@ -947,7 +947,10 @@ namespace genfile {
 						m_ploidyExtent[0] = 0 ;
 						m_order_type = ePerUnorderedGenotype ;
 					}
-					m_buffer[8+m_number_of_samples] = ( m_order_type == ePerPhasedHaplotypePerAllele ) ? 1 : 0 ;
+					// We set data as phased until we learn otherwise
+					// This helps in the case where some samples have ploidy=1
+					// which can be consistent with phased or unphased data.
+					m_buffer[8+m_number_of_samples] = 1 ; 
 					m_buffer[9+m_number_of_samples] = m_number_of_bits ;
 					m_state = eInitialised ;
 				}
@@ -977,14 +980,16 @@ namespace genfile {
 					m_ploidyExtent[1] = std::max( m_ploidyExtent[1], ploidyByte ) ;
 					
 					assert( order_type == ePerUnorderedGenotype || order_type == ePerPhasedHaplotypePerAllele ) ;
-					if( m_order_type == eUnknownOrderType ) {
-						m_order_type = order_type ;
-						// write phased flag.
-						m_buffer[8+m_number_of_samples] = ( m_order_type == ePerPhasedHaplotypePerAllele ) ? 1 : 0 ;
-						m_buffer[9+m_number_of_samples] = m_number_of_bits ;
-					} else {
-						if( m_order_type != order_type ) {
-							throw BGenError() ;
+					if( ploidy > 1 ) {
+						if( m_order_type == eUnknownOrderType ) {
+							m_order_type = order_type ;
+							// write phased flag.
+							m_buffer[8+m_number_of_samples] = ( m_order_type == ePerPhasedHaplotypePerAllele ) ? 1 : 0 ;
+							m_buffer[9+m_number_of_samples] = m_number_of_bits ;
+						} else {
+							if( m_order_type != order_type ) {
+								throw BGenError() ;
+							}
 						}
 					}
 					if( value_type != eProbability ) {
