@@ -30,8 +30,7 @@ namespace snp_summary_component {
 		genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
 		if( chromosome == genfile::Chromosome( "0X" ) ) {
 			X_chromosome_test( snp, genotypes, sexes, callback ) ;
-		}
-		else if( chromosome.is_autosome() ) {
+		} else {
 			autosomal_test( snp, genotypes, callback ) ;
 		}
 	}
@@ -106,18 +105,19 @@ namespace snp_summary_component {
 		//
 		// test1: test that males and females have the same allele frequency
 		// test2: test HWE in females.
-
+		//
+		// Note: males will be called as 0/1 on the X and Y chromosomes.
 		Eigen::MatrixXd genotype_counts = Eigen::MatrixXd::Zero( 2, 3 ) ; // first row is males, second row is females.  Last column will be zero for males.
 		Eigen::MatrixXd allele_counts = Eigen::MatrixXd::Zero( 2, 2 ) ; // first row is males, second row is females.
 
 		typedef Eigen::VectorXd Vector ;
 
-		int const MALES = 0 ;
-		int const FEMALES = 1 ;
+		int const HAPLOID = 0 ;
+		int const DIPLOID = 1 ;
 
 		for( int i = 0; i < genotypes.rows(); ++i ) {
 			if( sexes[ i ] == 'm' || sexes[ i ] == 'f' ) {
-				int const index = ( sexes[ i ] == 'm' ) ? MALES : FEMALES ;
+				int const index = ( sexes[ i ] == 'm' && ( snp.get_position().chromosome() == genfile::Chromosome( '0X' ) || snp.get_position().chromosome() == genfile::Chromosome( '0Y' ) ) ) ? HAPLOID : DIPLOID ;
 				for( int g = 0; g < 3; ++g ) {
 					if( genotypes( i, g ) > m_threshhold ) {
 						++genotype_counts( index, g ) ;
@@ -142,8 +142,8 @@ namespace snp_summary_component {
 			// In model2 alleles are independent (HWE) in females, but males and females may differ.
 			ProductOfIndependentMultinomials model2( genotype_counts ) ;
 			{
-				double const p_females = ( 2 * genotype_counts( FEMALES, 0 ) + genotype_counts( FEMALES, 1 ) ) / (2 * genotype_counts.row( FEMALES ).sum() ) ;
-				double const p_males = genotype_counts( MALES, 0 ) / genotype_counts.row( MALES ).sum() ;
+				double const p_females = ( 2 * genotype_counts( DIPLOID, 0 ) + genotype_counts( DIPLOID, 1 ) ) / (2 * genotype_counts.row( DIPLOID ).sum() ) ;
+				double const p_males = genotype_counts( HAPLOID, 0 ) / genotype_counts.row( HAPLOID ).sum() ;
 				Vector params( 6 ) ;
 				params( 0 ) = p_males ;
 				params( 1 ) = 1-p_males ;
@@ -157,8 +157,8 @@ namespace snp_summary_component {
 			// In model3, the NULL model, alleles are independent (HWE) and males and females must agree.
 			ProductOfIndependentMultinomials model3( genotype_counts ) ;
 			{
-				double const p = ( 2 * genotype_counts( FEMALES, 0 ) + genotype_counts( MALES, 0 ) + genotype_counts( FEMALES, 1 ) )
-					/ ( 2 * genotype_counts.row( FEMALES ).sum() + genotype_counts.row( MALES ).sum() ) ;
+				double const p = ( 2 * genotype_counts( DIPLOID, 0 ) + genotype_counts( HAPLOID, 0 ) + genotype_counts( DIPLOID, 1 ) )
+					/ ( 2 * genotype_counts.row( DIPLOID ).sum() + genotype_counts.row( HAPLOID ).sum() ) ;
 				
 				Vector params( 6 ) ;
 				params( 0 ) = p ;
@@ -182,8 +182,8 @@ namespace snp_summary_component {
 			using boost::math::cdf ;
 			using boost::math::complement ;
 
-			if( genotype_counts.row( FEMALES ).array().maxCoeff() > 0.5 ) {
-				double exact_HWE_pvalue = SNPHWE( genotype_counts( FEMALES, 1 ), genotype_counts( FEMALES, 0 ), genotype_counts( FEMALES, 2 ) ) ;
+			if( genotype_counts.row( DIPLOID ).array().maxCoeff() > 0.5 ) {
+				double exact_HWE_pvalue = SNPHWE( genotype_counts( DIPLOID, 1 ), genotype_counts( DIPLOID, 0 ), genotype_counts( DIPLOID, 2 ) ) ;
 				callback( "HW_females_exact_pvalue", exact_HWE_pvalue ) ;
 			} else {
 				callback( "HW_females_exact_pvalue", genfile::MissingValue() ) ;
