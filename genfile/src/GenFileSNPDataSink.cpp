@@ -120,7 +120,7 @@ namespace genfile {
 		write_variant( stream(), id_data ) ;
 		GenotypeWriter writer( m_data ) ;
 		if( data_reader.supports( ":genotypes:" )) {
-			data_reader.get( ":genotypes:", to_GP( writer ) ) ;
+			data_reader.get( ":genotypes:", to_GP_unphased( writer ) ) ;
 		} else {
 			throw genfile::BadArgumentError(
 				"genfile::GenFileSNPDataSink::write_variant_data_impl()",

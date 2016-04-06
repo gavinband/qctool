@@ -17,7 +17,7 @@
 #include "genfile/Error.hpp"
 #include "genfile/VariantDataReader.hpp"
 
-#define DEBUG_TO_GP 1
+// #define DEBUG_TO_GP 1
 
 namespace genfile {
 
