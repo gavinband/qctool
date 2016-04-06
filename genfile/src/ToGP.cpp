@@ -5,7 +5,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include <vector>
-#include <cstdint>
+#include <stdint.h>
 #include <strstream>
 #include "genfile/ToGP.hpp"
 
