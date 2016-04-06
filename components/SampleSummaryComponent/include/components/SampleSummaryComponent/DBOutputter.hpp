@@ -11,7 +11,7 @@
 #include <memory>
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "db/Connection.hpp"

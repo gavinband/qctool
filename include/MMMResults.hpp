@@ -9,11 +9,12 @@
 
 #include <boost/optional.hpp>
 #include "genfile/Chromosome.hpp"
+#include "genfile/VariantIdentifyingDataTest.hpp"
 #include "FlatFileFrequentistGenomeWideAssociationResults.hpp"
 
 struct MMMResults: public FlatFileFrequentistGenomeWideAssociationResults {
 	MMMResults(
-		genfile::SNPIdentifyingDataTest::UniquePtr test,
+		genfile::VariantIdentifyingDataTest::UniquePtr test,
 		boost::optional< genfile::Chromosome > const chromosome_hint = boost::optional< genfile::Chromosome >()
 	) ;
 
@@ -24,7 +25,7 @@ struct MMMResults: public FlatFileFrequentistGenomeWideAssociationResults {
 	EffectParameterNamePack get_effect_parameter_names() const ;
 
 private:
-	genfile::SNPIdentifyingDataTest::UniquePtr m_exclusion_test ;
+	genfile::VariantIdentifyingDataTest::UniquePtr m_exclusion_test ;
 	std::string m_effect_column_regex ;
 	std::string m_se_column_regex ;
 	boost::optional< genfile::Chromosome > m_chromosome_hint ;

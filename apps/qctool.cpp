@@ -133,6 +133,7 @@ public:
 	void declare_options( appcontext::OptionProcessor& options ) {
 		// Meta-options
 		options.set_help_option( "-help" ) ;
+		options.set_spec_option( "-spec" ) ;
 
 		// File options
 		options.declare_group( "Input file options" ) ;
@@ -1026,12 +1027,12 @@ private:
 	QCToolOptionMangler const m_mangled_options ;
 	appcontext::UIContext& m_ui_context ;
 
-	typedef std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData > SNPDictionary ;
+	typedef std::map< genfile::VariantIdentifyingData, genfile::VariantIdentifyingData > SNPDictionary ;
 	std::auto_ptr< SNPDictionary > m_snp_dictionary ;
 
 	typedef genfile::StrandAligningSNPDataSource::StrandFlipSpec StrandFlipSpec ;
-	//typedef std::map< genfile::SNPIdentifyingData, StrandFlipSpec, genfile::SNPIdentifyingData::CompareFields > StrandSpec ;
-	typedef std::map< genfile::SNPIdentifyingData, StrandFlipSpec, genfile::SNPIdentifyingData::CompareFields > StrandSpec ;
+	//typedef std::map< genfile::VariantIdentifyingData, StrandFlipSpec, genfile::VariantIdentifyingData::CompareFields > StrandSpec ;
+	typedef std::map< genfile::VariantIdentifyingData, StrandFlipSpec, genfile::VariantIdentifyingData::CompareFields > StrandSpec ;
 	typedef std::vector< StrandSpec > StrandSpecs ;
 	std::auto_ptr< StrandSpecs > m_strand_specs ;
 	genfile::CohortIndividualSource::UniquePtr m_samples ; // this must go before the snp_data_sinks.
@@ -1232,7 +1233,7 @@ private:
 	
 	std::auto_ptr< StrandSpecs > get_strand_specs(
 		std::vector< std::string > const& filenames,
-		genfile::SNPIdentifyingData::CompareFields const& comparator
+		genfile::VariantIdentifyingData::CompareFields const& comparator
 	) const {
 		std::auto_ptr< StrandSpecs > result( new StrandSpecs( filenames.size(), StrandSpec( comparator )) ) ;
 		
@@ -1289,24 +1290,24 @@ private:
 			summaries[i].first = source->number_of_rows() ; // row count.
 
 			while( *source ) {
-				genfile::SNPIdentifyingData snp ;
-				std::string strand ;
+				genfile::VariantIdentifyingData snp ;
+				std::string SNPID, rsid, allele1, allele2, strand ;
+				genfile::GenomePosition position ;
 				try {
 					if(
 						statfile::read_values(
 							*source,
 							platform_column_names,
 							boost::tie(
-								snp.position().chromosome(),
-								snp.position().position(),
-								snp.SNPID(),
-								snp.rsid(),
-								snp.first_allele(),
-								snp.second_allele(),
-								strand
+								position.chromosome(), position.position(),
+								SNPID, rsid, allele1, allele2, strand
 							)
 						)
 					) {
+						snp = genfile::VariantIdentifyingData(
+							SNPID, rsid, position, allele1, allele2
+						) ;
+						
 						// Support illumina "FWD" and "REV" strands.
 						if( strand == "REV" || strand == "-" ) {
 							strand = genfile::StrandAligningSNPDataSource::eReverseStrand ;
@@ -1331,15 +1332,15 @@ private:
 							std::string referenceAllele ;
 							(*source) >> referenceAllele ;
 							if( strand[0] != genfile::StrandAligningSNPDataSource::eUnknownStrand ) {
-								if( referenceAllele == genfile::StrandAligningSNPDataSource::apply_strand( snp.get_first_allele(), strand[0] )) {
+								if( referenceAllele == genfile::StrandAligningSNPDataSource::apply_strand( snp.get_allele(0), strand[0] )) {
 									flip = genfile::StrandAligningSNPDataSource::eNoFlip ;
-								} else if( referenceAllele == genfile::StrandAligningSNPDataSource::apply_strand( snp.get_second_allele(), strand[0] )) {
+								} else if( referenceAllele == genfile::StrandAligningSNPDataSource::apply_strand( snp.get_allele(1), strand[0] )) {
 									flip = genfile::StrandAligningSNPDataSource::eFlip ;
 								} else {
 									throw genfile::MalformedInputError(
 										source->get_source_spec(),
 										"For SNP ( " + genfile::string_utils::to_string( snp ) + ") with strand " + strand
-											+ ": neither alleleA (\"" + snp.get_first_allele() + "\") or alleleB (\"" + snp.get_second_allele()
+											+ ": neither alleleA (\"" + snp.get_allele(0) + "\") or alleleB (\"" + snp.get_allele(1)
 												+ "\") matches the reference allele (\"" + referenceAllele + "\").",
 										source->number_of_rows_read() + 1
 									) ;
@@ -1402,7 +1403,7 @@ private:
 		if( filenames.size() > 1 ) {
 			rack.reset(
 				new genfile::SNPDataSourceRack(
-					genfile::SNPIdentifyingData::CompareFields(
+					genfile::VariantIdentifyingData::CompareFields(
 						m_options.get_value< std::string >( "-snp-match-fields" ),
 						match_alleles_between_cohorts
 					)
@@ -1423,7 +1424,7 @@ private:
 
 		genfile::SNPDataSource::UniquePtr source ;
 
-		std::vector< genfile::SNPIdentifyingData > cohort1_snps ;
+		std::vector< genfile::VariantIdentifyingData > cohort1_snps ;
 		
 		for( std::size_t i = 0; i < filenames.size(); ++i ) {
 			genfile::SNPDataSourceChain::UniquePtr chain( new genfile::SNPDataSourceChain() ) ;
@@ -1477,7 +1478,7 @@ private:
 	genfile::SNPDataSource::UniquePtr open_merged_data_sources() {
 		genfile::MergingSNPDataSource::UniquePtr merged_source = genfile::MergingSNPDataSource::create(
 			m_options.get< std::string >( "-merge-strategy" ),
-			genfile::SNPIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
+			genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
 		) ;
 
 		merged_source->add_source( m_snp_data_source ) ;
@@ -1529,7 +1530,7 @@ private:
 			// Make the merged-in source respect the filter.
 			genfile::CommonSNPFilter* snp_filter = get_snp_filter() ;
 			if( snp_filter ) {
-				merge_in_source = genfile::SNPIdentifyingDataFilteringSNPDataSource::create(
+				merge_in_source = genfile::VariantIdentifyingDataFilteringSNPDataSource::create(
 					merge_in_source,
 					*snp_filter
 				) ;
@@ -1544,7 +1545,7 @@ private:
 		return genfile::SNPDataSource::UniquePtr( merged_source.release() ) ;
 	}
 	
-	void write_excluded_SNP( genfile::SNPIdentifyingData const& snp ) const {
+	void write_excluded_SNP( genfile::VariantIdentifyingData const& snp ) const {
 		if( m_fltrd_out_snp_data_sink.get() ) {
 			Eigen::MatrixXd matrix( m_samples->get_number_of_individuals(), 3 ) ;
 			matrix.setZero() ;
@@ -1597,8 +1598,8 @@ private:
 		genfile::CommonSNPFilter* snp_filter = get_snp_filter() ;
 		// Filter SNPs if necessary
 		if( snp_filter ) {
-			genfile::SNPIdentifyingDataFilteringSNPDataSource::UniquePtr snp_filtering_source
-				= genfile::SNPIdentifyingDataFilteringSNPDataSource::create(
+			genfile::VariantIdentifyingDataFilteringSNPDataSource::UniquePtr snp_filtering_source
+				= genfile::VariantIdentifyingDataFilteringSNPDataSource::create(
 					source,
 					*snp_filter
 				) ;
@@ -1675,18 +1676,23 @@ private:
 			throw genfile::MalformedInputError( filename, 1 ) ;
 		}
 		
-		genfile::SNPIdentifyingData data1, data2 ;
 		bool found_duplicates = false ;
+		std::string SNPID1, SNPID2, rsid1, rsid2, allele11, allele12, allele21, allele22 ;
+		genfile::GenomePosition position1, position2 ;
 		while(
 			(*source)
-				>> data1.SNPID() >> data1.rsid()
-				>> data1.position().chromosome() >> data1.position().position()
-				>> data1.first_allele() >> data1.second_allele()
-				>> data2.SNPID() >> data2.rsid()
-				>> data2.position().chromosome() >> data2.position().position()
-				>> data2.first_allele() >> data2.second_allele()
+				>> SNPID1 >> rsid1
+				>> position1.chromosome() >> position1.position()
+				>> allele11 >> allele12
+				>> SNPID2 >> rsid2
+				>> position2.chromosome() >> position2.position()
+				>> allele21 >> allele22
 		) {
-			std::map< genfile::SNPIdentifyingData, genfile::SNPIdentifyingData >::const_iterator where = result->find( data1 ) ;
+			genfile::VariantIdentifyingData
+				data1( SNPID1, rsid1, position1, allele11, allele12 ),
+				data2( SNPID2, rsid2, position2, allele21, allele22 ) ;
+			
+			std::map< genfile::VariantIdentifyingData, genfile::VariantIdentifyingData >::const_iterator where = result->find( data1 ) ;
 			if( where != result->end() ) {
 				if( where->second == data2 && !found_duplicates ) {
 					m_ui_context.logger() << "qctool::load_snp_dictionary(): found duplicate rows in source "
@@ -1736,7 +1742,7 @@ private:
 						}
 						snp_filter->exclude_snps(
 							source->list_snps(),
-							genfile::SNPIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
+							genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
 						) ;
 					}
 				}
@@ -1763,7 +1769,7 @@ private:
 						}
 						snp_filter->include_snps(
 							source->list_snps(),
-							genfile::SNPIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
+							genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
 						) ;
 					}
 				}
@@ -2229,7 +2235,7 @@ private:
 				parts[1].resize( parts[1].size() - 1 ) ;
 			}
 
-			genfile::SNPIdentifyingDataTest::SharedPtr snp_matcher(
+			genfile::VariantIdentifyingDataTest::SharedPtr snp_matcher(
 				genfile::WithSNPDosagesCohortIndividualSource::create_snp_matcher( parts[0] ).release()
 			) ;
 			
@@ -2409,7 +2415,7 @@ private:
 			m_progress_context.notify_progress( 0 ) ;
 		}
 
-		void processed_snp( genfile::SNPIdentifyingData const&, genfile::VariantDataReader::SharedPtr data_reader ) {
+		void processed_snp( genfile::VariantIdentifyingData const&, genfile::VariantDataReader::SharedPtr data_reader ) {
 			m_progress_context.notify_progress( ++m_number_of_snps ) ;
 		}
 		void end_processing_snps() {

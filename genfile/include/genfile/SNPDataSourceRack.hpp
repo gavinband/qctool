@@ -10,7 +10,7 @@
 #include <vector>
 #include <memory>
 #include "genfile/SNPDataSource.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/GenomePosition.hpp"
 
 namespace genfile {
@@ -24,7 +24,7 @@ namespace genfile {
 	public:
 		struct Error: public SNPDataError
 		{
-			Error( std::size_t source_index, SNPIdentifyingData snp )
+			Error( std::size_t source_index, VariantIdentifyingData snp )
 				: m_source_index( source_index ),
 				  m_snp( snp )
 			{}
@@ -32,28 +32,28 @@ namespace genfile {
 			~Error() throw() {}
 
 			std::size_t source_index() const { return m_source_index ; }
-			SNPIdentifyingData snp() const { return m_snp ; }
+			VariantIdentifyingData snp() const { return m_snp ; }
 
 		private:
 			std::size_t m_source_index ;
-			SNPIdentifyingData m_snp ;
+			VariantIdentifyingData m_snp ;
 		} ;
 
 		struct MissingSNPError: public Error
 		{
-			MissingSNPError( std::size_t source_index, SNPIdentifyingData snp )
+			MissingSNPError( std::size_t source_index, VariantIdentifyingData snp )
 				: Error( source_index, snp )
 			{}
 			~MissingSNPError() throw() {}
 			char const* what() const throw() { return "MissingSNPError" ; }
-			SNPIdentifyingData const& snp() const { return m_snp ; }
+			VariantIdentifyingData const& snp() const { return m_snp ; }
 		private:
-			SNPIdentifyingData const m_snp ;
+			VariantIdentifyingData const m_snp ;
 		} ;
 
 		struct SNPMismatchError: public Error
 		{
-			SNPMismatchError( std::size_t source_index, SNPIdentifyingData snp )
+			SNPMismatchError( std::size_t source_index, VariantIdentifyingData snp )
 				: Error( source_index, snp )
 			{}
 			~SNPMismatchError() throw() {}
@@ -74,7 +74,7 @@ namespace genfile {
 	public:
 		SNPDataSourceRack() ;
 		SNPDataSourceRack( std::string const& snp_match_fields ) ;
-		SNPDataSourceRack( SNPIdentifyingData::CompareFields const& comparator ) ;
+		SNPDataSourceRack( VariantIdentifyingData::CompareFields const& comparator ) ;
 		~SNPDataSourceRack() ;
 
 		void add_source( std::auto_ptr< SNPDataSource > source ) ;
@@ -95,14 +95,7 @@ namespace genfile {
 		void reset_to_start_impl() ;
 
 		void get_snp_identifying_data_impl( 
-			IntegerSetter const& set_number_of_samples,
-			StringSetter const& set_SNPID,
-			StringSetter const& set_RSID,
-			ChromosomeSetter const& set_chromosome,
-			SNPPositionSetter const& set_SNP_position,
-			AlleleSetter const& set_allele1,
-			AlleleSetter const& set_allele2
-		) ;	
+VariantIdentifyingData* variant		) ;	
 
 		VariantDataReader::UniquePtr read_variant_data_impl() ;
 	
@@ -112,16 +105,16 @@ namespace genfile {
 		
 		bool move_source_to_snp_matching(
 			std::size_t source_i,
-			SNPIdentifyingData const& reference_snp,
-			SNPIdentifyingData* result
+			VariantIdentifyingData const& reference_snp,
+			VariantIdentifyingData* result
 		) ;
 		
-		std::vector< SNPIdentifyingData > get_intersected_snps(
-			std::vector< SNPIdentifyingData > const& snps1,
-			std::vector< SNPIdentifyingData > const& snps2
+		std::vector< VariantIdentifyingData > get_intersected_snps(
+			std::vector< VariantIdentifyingData > const& snps1,
+			std::vector< VariantIdentifyingData > const& snps2
 		) const ;
 
-		void check_snps_are_sorted_by_position( std::vector< SNPIdentifyingData > const& snps, std::size_t cohort_index ) ;
+		void check_snps_are_sorted_by_position( std::vector< VariantIdentifyingData > const& snps, std::size_t cohort_index ) ;
 
 		char const get_flip( std::size_t i ) const { return m_flips[i]; }
 
@@ -142,7 +135,7 @@ namespace genfile {
 		std::vector< char > m_flips ;
 		uint32_t m_number_of_samples ;
 		bool m_read_past_end ;
-		SNPIdentifyingData::CompareFields m_comparator ;
+		VariantIdentifyingData::CompareFields m_comparator ;
 		Metadata m_metadata ;
 	} ;
 }

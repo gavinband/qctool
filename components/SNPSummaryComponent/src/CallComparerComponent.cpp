@@ -11,7 +11,7 @@
 
 
 #include "genfile/SNPDataSourceProcessor.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/SNPDataSink.hpp"
@@ -46,7 +46,7 @@ CallComparerProcessor::CallComparerProcessor( PairwiseCallComparerManager::Uniqu
 {}
 
 void CallComparerProcessor::operator()(
-	SNPIdentifyingData const& snp,
+	VariantIdentifyingData const& snp,
 	Genotypes const& genotypes,
 	SampleSexes const&,
 	genfile::VariantDataReader& data_reader,
@@ -138,7 +138,7 @@ namespace {
 	
 	void send_results_to_sink(
 		genfile::SNPDataSink::SharedPtr sink,
-		genfile::SNPIdentifyingData const& snp,
+		genfile::VariantIdentifyingData const& snp,
 		Eigen::MatrixXd const& genotypes,
 		std::map< std::string, std::vector< genfile::VariantEntry > > const& info
 	) {
@@ -170,7 +170,7 @@ namespace {
 			m_outputter( outputter )
 		{}
 
-		void begin_comparisons( genfile::SNPIdentifyingData const& snp ) {
+		void begin_comparisons( genfile::VariantIdentifyingData const& snp ) {
 			m_snp = snp ;
 		} ;
 
@@ -192,7 +192,7 @@ namespace {
 
 	private:
 		qcdb::Storage::SharedPtr m_outputter ;
-		genfile::SNPIdentifyingData m_snp ;
+		genfile::VariantIdentifyingData m_snp ;
 	} ;	
 }
 

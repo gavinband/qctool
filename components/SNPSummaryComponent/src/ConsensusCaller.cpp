@@ -39,7 +39,7 @@ void ConsensusCaller::send_results_to( ResultSignal::slot_type callback ) {
 }
 
 void ConsensusCaller::send_results(
-	genfile::SNPIdentifyingData const& snp,
+	genfile::VariantIdentifyingData const& snp,
 	Eigen::MatrixXd const& genotypes,
 	std::map< std::string, std::vector< genfile::VariantEntry > > const& info
 ) {
@@ -50,7 +50,7 @@ void ConsensusCaller::begin_processing_snps( std::size_t number_of_samples ) {
 	m_number_of_samples = number_of_samples ;
 }
 
-void ConsensusCaller::begin_comparisons( genfile::SNPIdentifyingData const& snp ) {
+void ConsensusCaller::begin_comparisons( genfile::VariantIdentifyingData const& snp ) {
 	m_snp = snp ;
 	m_call_names.clear() ;
 }

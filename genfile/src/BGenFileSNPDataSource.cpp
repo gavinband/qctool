@@ -50,23 +50,37 @@ namespace genfile {
 		}
 	}
 
-	void BGenFileSNPDataSource::read_snp_identifying_data_impl( 
-		uint32_t* number_of_samples,
-		std::string* SNPID,
-		std::string* RSID,
-		Chromosome* chromosome,
-		uint32_t* SNP_position,
-		std::string* allele1,
-		std::string* allele2
-	) {
+	namespace {
+		void set_number_of_alleles( std::vector< std::string >* result, std::size_t n ) {
+			result->resize(n) ;
+		}
+		void set_allele( std::vector< std::string >* result, std::size_t i, std::string value ) {
+			(*result)[i] = value ;
+		}
+	}
+
+	void BGenFileSNPDataSource::read_snp_identifying_data_impl( VariantIdentifyingData* result ) {
+		std::string SNPID, rsid ;
+		uint32_t position ;
 		std::string chromosome_string ;
-		if( bgen::read_snp_identifying_data( stream(), m_bgen_context, SNPID, RSID, &chromosome_string, SNP_position, allele1, allele2 ) ) {
-			*number_of_samples = m_bgen_context.number_of_samples ;
+		std::vector< std::string > alleles ;
+		if(
+			bgen::read_snp_identifying_data( stream(), m_bgen_context, &SNPID, &rsid, &chromosome_string, &position,
+			boost::bind( &set_number_of_alleles, &alleles, _1 ),
+			boost::bind( &set_allele, &alleles, _1, _2 )
+		) ) {
 			Chromosome chr( chromosome_string ) ;
 			if( chr.is_missing() ) {
 				chr = m_missing_chromosome ;
 			}
-			*chromosome = chr ;
+			*result = VariantIdentifyingData( rsid ) ;
+			if( SNPID.size() > 0 ) {
+				result->add_identifier( SNPID ) ;
+			}
+			result->set_position( GenomePosition( chr, position ) ) ;
+			for( std::size_t i = 0; i < alleles.size(); ++i ) {
+				result->add_allele( alleles[i] ) ;
+			}
 		}
 	}
 

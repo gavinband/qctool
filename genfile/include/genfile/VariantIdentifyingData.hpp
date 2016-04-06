@@ -18,7 +18,7 @@ namespace genfile {
 	struct VariantIdentifyingData
 	{
 	public:
-		VariantIdentifyingData() ;
+		VariantIdentifyingData( std::string const& rsid = "(unknown variant)" ) ;
 		VariantIdentifyingData(
 			std::string const& RSID,
 			GenomePosition const& position,
@@ -36,47 +36,71 @@ namespace genfile {
 			SNPIdentifyingData const& snp
 		) ;
 		VariantIdentifyingData( VariantIdentifyingData const& other ) ;
-		VariantIdentifyingData& operator=( SNPIdentifyingData const& other ) ;
 		VariantIdentifyingData& operator=( VariantIdentifyingData const& other ) ;
+		VariantIdentifyingData& operator=( SNPIdentifyingData const& other ) ;
 
 		operator SNPIdentifyingData() const ;
 
-
 		typedef string_utils::slice slice ;
 
-		void set_rsid( slice const& rsid ) ;
-		void set_position( GenomePosition const& position ) { m_position = position ;}
-		void set_first_allele( slice const& allele ) ;
-		void set_second_allele( slice const& allele ) ;
-		void add_allele( slice const& allele ) ;
-
 		void clear_identifiers() ;
+		std::size_t number_of_identifiers() const ;
+		void set_primary_id( slice const& id ) ;
 		void add_identifier( slice const& id ) ;
-		void swap_alleles() ;
-		
-		slice get_rsid() const { return slice( m_data, m_rsid_start, m_allele_starts[0] ) ; }
+		std::vector< slice > get_identifiers(
+			std::size_t start = 0,
+			std::size_t end = std::string::npos
+		) const ;
+		void get_identifiers(
+			boost::function< void( slice ) >,
+			std::size_t start = 0,
+			std::size_t end = std::string::npos
+		) const ;
+		std::string get_identifiers_as_string(
+			std::string const& separator,
+			std::size_t start = 0,
+			std::size_t end = std::string::npos
+		) const ;
+		slice get_primary_id() const { return slice( m_data, m_rsid_start, m_allele_starts[0] ) ; }
+
+		void set_position( GenomePosition const& position ) { m_position = position ;}
 		GenomePosition const& get_position() const { return m_position ; }
-		std::size_t number_of_alleles() const { return m_allele_starts.size() ; }
-		slice get_first_allele() const { assert( m_allele_starts.size() > 0 ) ; return slice( m_data, m_allele_starts[0], m_allele_starts[1] ) ; }
-		slice get_second_allele() const { assert( m_allele_starts.size() > 1 ) ; return slice( m_data, m_allele_starts[1], m_identifiers_start ) ; }
-		void get_alleles( boost::function< void( slice ) > ) const ;
 
-		std::vector< slice > get_alternative_identifiers() const ;
-		void get_alternative_identifiers( boost::function< void( slice ) > ) const ;
+		void clear_alleles() ;
+		void set_allele( std::size_t i, std::string const& allele ) ;
+		void set_allele( std::size_t i, slice const& allele ) ;
+		void set_allele( std::size_t i, char const* allele ) ;
+		void add_allele( slice const& allele ) ;
+		std::size_t number_of_alleles() const { return m_allele_starts.size() - 1 ; }
+		slice get_allele( std::size_t i ) const ;
+		std::vector< slice > get_alleles( std::size_t start = 0, std::size_t end = std::string::npos ) const ;
+		void get_alleles( boost::function< void( slice ) >, std::size_t start = 0, std::size_t end = std::string::npos ) const ;
+		void swap_alleles() ;
 
-		std::size_t get_estimated_bytes_used() const ;
+		std::size_t estimate_bytes_used() const ;
 	public:
 		struct CompareFields {
-			CompareFields( std::string const& fields_to_compare ) ;
+			CompareFields(
+				std::string const& fields_to_compare = "position,rsid,IDs,alleles",
+				bool flip_alleleles_if_necessary = false
+			) ;
 			CompareFields( CompareFields const& other ) ;
+			CompareFields& operator=( CompareFields const& other ) ;
+
+			bool get_flip_alleles_if_necessary() const { return m_flip_alleles_if_necessary ; }
 
 			enum { eIDs = 0x1, eRSID = 0x2, ePosition = 0x4, eAlleles = 0x8, eMask = 0xF } ;
 			bool operator()( VariantIdentifyingData const& left, VariantIdentifyingData const& right ) const ;
 			bool are_equal( VariantIdentifyingData const& left, VariantIdentifyingData const& right ) const ;
 			bool check_if_comparable_fields_are_known( VariantIdentifyingData const& value ) const ;
+			std::vector< int > const& get_compared_fields() const { return m_fields_to_compare ;}
+			
+			std::string get_summary() const ;
+			
 		private:
 			static std::vector< int > parse_fields_to_compare( std::string const& field_spec ) ;
-			std::vector< int > const m_fields_to_compare ;
+			std::vector< int > m_fields_to_compare ;
+			bool m_flip_alleles_if_necessary ;
 		} ;
 		
 		friend bool operator==( VariantIdentifyingData const& left, VariantIdentifyingData const& right ) ;
@@ -90,7 +114,6 @@ namespace genfile {
 		typedef uint32_t Size ;
 		Size m_rsid_start ; // always equals 0 in current implementation.
 		std::vector< Size > m_allele_starts ;
-		Size m_identifiers_start ;
 		GenomePosition m_position ;
 		
 		CompareFields& operator=( CompareFields const& other ) ;

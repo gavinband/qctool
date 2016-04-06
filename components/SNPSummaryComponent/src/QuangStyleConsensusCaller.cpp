@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 #include <map>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/vcf/get_set_eigen.hpp"
 #include "components/SNPSummaryComponent/QuangStyleConsensusCaller.hpp"

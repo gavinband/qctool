@@ -153,13 +153,13 @@ void HaplotypeFrequencyComponent::begin_processing_snps( std::size_t number_of_s
 	assert( m_source->number_of_samples() == number_of_samples ) ;
 }
 
-void HaplotypeFrequencyComponent::processed_snp( genfile::SNPIdentifyingData const& target_snp, genfile::VariantDataReader& target_data_reader ) {
+void HaplotypeFrequencyComponent::processed_snp( genfile::VariantIdentifyingData const& target_snp, genfile::VariantDataReader& target_data_reader ) {
 #if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
 	std::cerr << "Processing " << target_snp << "...\n" ;
 #endif
-	genfile::SNPIdentifyingData source_snp ;
+	genfile::VariantIdentifyingData source_snp ;
 	m_source->reset_to_start() ;
-	while( m_source->get_snp_identifying_data( source_snp )) {
+	while( m_source->get_snp_identifying_data( &source_snp )) {
 #if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
 		std::cerr << "Comparing to " << source_snp << "...\n" ;
 #endif
@@ -185,9 +185,9 @@ void HaplotypeFrequencyComponent::processed_snp( genfile::SNPIdentifyingData con
 }
 
 void HaplotypeFrequencyComponent::compute_ld_measures(
-	genfile::SNPIdentifyingData const& source_snp,
+	genfile::VariantIdentifyingData const& source_snp,
 	genfile::VariantDataReader& source_data_reader,
-	genfile::SNPIdentifyingData const& target_snp,
+	genfile::VariantIdentifyingData const& target_snp,
 	genfile::VariantDataReader& target_data_reader
 ) {
 	std::vector< Eigen::VectorXd > genotypes( 2 ) ;
@@ -209,8 +209,8 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 }
 
 void HaplotypeFrequencyComponent::compute_ld_measures(
-	genfile::SNPIdentifyingData const& source_snp,
-	genfile::SNPIdentifyingData const& target_snp,
+	genfile::VariantIdentifyingData const& source_snp,
+	genfile::VariantIdentifyingData const& target_snp,
 	std::vector< Eigen::VectorXd > const& genotypes
 ) {
 	// Construct table of genotypes at each SNP.

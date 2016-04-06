@@ -53,6 +53,10 @@ namespace appcontext {
 		char const* what() const throw() { return "OptionProcessorHelpRequestedException" ; }
 	} ;
 
+	struct OptionProcessorSpecRequestedException: public std::exception {
+		char const* what() const throw() { return "OptionProcessorSpecRequestedException" ; }
+	} ;
+
 	struct OptionProcessorMutuallyExclusiveOptionsSuppliedException: public std::exception {
 		OptionProcessorMutuallyExclusiveOptionsSuppliedException( std::string const& option1, std::string const& option2 )
 		: m_option1( option1 ),
@@ -108,7 +112,8 @@ namespace appcontext {
 			OptionDefinition const& operator[] ( std::string const& arg ) const ;
 
 			void declare_group( std::string const& ) ;
-			void set_help_option( std::string const& help_option_name ) { m_help_option_name = help_option_name ; }
+			void set_help_option( std::string const& name ) { m_help_option_name = name ; }
+			void set_spec_option( std::string const& name ) { m_spec_option_name = name ; }
 
 			void option_excludes_option( std::string const& excluding_option, std::string const& excluded_option ) ;
 			void option_excludes_group( std::string const& excluding_option, std::string const& excluded_option_group ) ;
@@ -138,7 +143,7 @@ namespace appcontext {
 				std::istringstream s( get_value( arg )) ;
 				T t ;
 				s >> t ;
-				s.peek() ;
+				s.get() ;
 				if( !s.eof() ) {
 					throw OptionValueInvalidException( arg, get_values( arg ), "Type error." ) ;
 				}
@@ -170,12 +175,15 @@ namespace appcontext {
 			friend std::ostream& operator<<( std::ostream& aStream, OptionProcessor const& options ) ;
 
 			std::string const& get_help_option_name() const { return m_help_option_name ; }
+			std::string const& get_spec_option_name() const { return m_spec_option_name ; }
 
 			enum { eUserSupplied = 0x1, eDefaulted = 0x2, eNotSet = 0x4 } ;
 			OptionValueMap get_values_as_map(
 				int const value_types = eUserSupplied
 			) const ;
 
+			std::string format_spec() const ;
+		
 		public:
 			// checks
 			typedef boost::function< void ( OptionProcessor& ) > Check ;
@@ -211,6 +219,7 @@ namespace appcontext {
 			std::map< std::string, std::set< std::string > > m_option_groups ;
 			std::vector< std::string > m_option_group_names ;
 			std::string m_help_option_name ;
+			std::string m_spec_option_name ;
 			std::map< std::string, std::set< std::string > > m_option_exclusions ;
 			std::map< std::string, std::set< std::string > > m_option_implications ;
 			std::vector< Check > m_checks ;

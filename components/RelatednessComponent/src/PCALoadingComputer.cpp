@@ -14,7 +14,7 @@
 #endif
 #include "Eigen/Core"
 #include "Eigen/Eigenvalues"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/vcf/get_set_eigen.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
@@ -86,7 +86,7 @@ void PCALoadingComputer::begin_processing_snps( std::size_t number_of_samples, g
 	m_non_missingness.resize( number_of_samples ) ;
 }
 
-void PCALoadingComputer::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
+void PCALoadingComputer::processed_snp( genfile::VariantIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 	data_reader.get(
 		":genotypes:",
 		genfile::vcf::get_threshholded_calls( m_genotype_calls, m_non_missingness, 0.9, 0, 0, 1, 2 )
@@ -179,7 +179,7 @@ void PCALoadingComputer::send_results_to( ResultCallback callback ) {
 	m_result_signal.connect( callback ) ;
 }
 
-void PCALoadingComputer::send_results( genfile::SNPIdentifyingData const& snp, double const N, double const frequency, Eigen::VectorXd const& data, GetNames get_names ) {
+void PCALoadingComputer::send_results( genfile::VariantIdentifyingData const& snp, double const N, double const frequency, Eigen::VectorXd const& data, GetNames get_names ) {
 	m_result_signal( snp, N, frequency, data, get_names ) ;
 }
 

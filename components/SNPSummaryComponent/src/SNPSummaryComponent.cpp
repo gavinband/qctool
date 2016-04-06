@@ -9,7 +9,7 @@
 #include <boost/function.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/thread.hpp>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/Error.hpp"
@@ -281,7 +281,7 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		}
 
 		computation->set_comparer(
-			genfile::SNPIdentifyingData::CompareFields(
+			genfile::VariantIdentifyingData::CompareFields(
 				m_options.get_value< std::string >( "-snp-match-fields" ),
 				m_options.check( "-match-alleles-to-cohort1" )
 			)

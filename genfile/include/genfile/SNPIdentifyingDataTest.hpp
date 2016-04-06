@@ -17,7 +17,7 @@
 #include "unistd.h"
 #include "genfile/GenomePosition.hpp"
 #include "genfile/Chromosome.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantIdentifyingData.hpp"
 
 namespace genfile {
@@ -25,101 +25,68 @@ namespace genfile {
 	// Base class for objects which represent a boolean test of a SNP's "identifying data"
 	// (i.e. position, ids, and alleles)
 	//
-	class SNPIdentifyingDataTest
+	class VariantIdentifyingDataTest
 	{
 	public:
-		typedef std::auto_ptr< SNPIdentifyingDataTest > UniquePtr ;
-		typedef boost::shared_ptr< SNPIdentifyingDataTest > SharedPtr ;
+		typedef std::auto_ptr< VariantIdentifyingDataTest > UniquePtr ;
+		typedef boost::shared_ptr< VariantIdentifyingDataTest > SharedPtr ;
 	public:
-		virtual ~SNPIdentifyingDataTest() {} ;
-
-		// Return true if the SNP passes the test.
-		virtual bool operator()(
-			std::string SNPID,
-			std::string RSID,
-			GenomePosition position,
-			std::string first_allele,
-			std::string second_allele
-		) const = 0 ;
+		virtual ~VariantIdentifyingDataTest() {} ;
 		
 		virtual std::string display() const = 0 ;
 	
-		virtual bool operator()( SNPIdentifyingData const& data ) const {
-			return operator()( data.get_SNPID(), data.get_rsid(), data.get_position(), data.get_first_allele(), data.get_second_allele() ) ;
-		}
-
-		virtual bool operator()( VariantIdentifyingData const& data ) const ;
+		// Return true if the variant passes the test.
+		virtual bool operator()( VariantIdentifyingData const& data ) const = 0 ;
 		
 		// Return a vector of indices of SNPs which pass the test.
-		std::vector< std::size_t > get_indices_of_filtered_in_snps( std::vector< SNPIdentifyingData> const& snps ) const ;
+		std::vector< std::size_t > get_indices_of_filtered_in_snps( std::vector< VariantIdentifyingData> const& snps ) const ;
 		typedef boost::function< VariantIdentifyingData const& ( std::size_t ) > SNPGetter ;
 		std::vector< std::size_t > get_indices_of_filtered_in_snps( std::size_t number_of_snps, SNPGetter ) const ;
 		
 	protected:
-		SNPIdentifyingDataTest() {} ;
+		VariantIdentifyingDataTest() {} ;
 	private:
 		// forbid copying, assignment.
-		SNPIdentifyingDataTest( SNPIdentifyingDataTest const& ) ;
-		SNPIdentifyingDataTest& operator=( SNPIdentifyingDataTest const& ) ;
+		VariantIdentifyingDataTest( VariantIdentifyingDataTest const& ) ;
+		VariantIdentifyingDataTest& operator=( VariantIdentifyingDataTest const& ) ;
 	} ;
 	
-	std::ostream& operator<<( std::ostream&, SNPIdentifyingDataTest const& ) ;
+	std::ostream& operator<<( std::ostream&, VariantIdentifyingDataTest const& ) ;
 	
-	struct SNPIdentifyingDataTestNegation: public SNPIdentifyingDataTest
+	struct VariantIdentifyingDataTestNegation: public VariantIdentifyingDataTest
 	{
-		SNPIdentifyingDataTestNegation( SNPIdentifyingDataTest::UniquePtr ) ;
-		bool operator()(
-			std::string SNPID,
-			std::string RSID,
-			GenomePosition position,
-			std::string first_allele,
-			std::string second_allele
-		) const ;
-		
+		VariantIdentifyingDataTestNegation( VariantIdentifyingDataTest::UniquePtr ) ;
+		bool operator()( VariantIdentifyingData const& data ) const ;
 		std::string display() const ;
 	private:
-		SNPIdentifyingDataTest::UniquePtr m_subtest ;
+		VariantIdentifyingDataTest::UniquePtr m_subtest ;
 	} ;
 	
-	struct CompoundSNPIdentifyingDataTest: public SNPIdentifyingDataTest
+	struct CompoundVariantIdentifyingDataTest: public VariantIdentifyingDataTest
 	{
-		virtual ~CompoundSNPIdentifyingDataTest() ;
-		void add_subtest( SNPIdentifyingDataTest::UniquePtr subtest ) ;
+		virtual ~CompoundVariantIdentifyingDataTest() ;
+		void add_subtest( VariantIdentifyingDataTest::UniquePtr subtest ) ;
 		std::size_t get_number_of_subtests() const ;
-		SNPIdentifyingDataTest const& get_subtest( std::size_t index ) const ;
+		VariantIdentifyingDataTest const& get_subtest( std::size_t index ) const ;
 	private:
-		std::vector< SNPIdentifyingDataTest* > m_subtests ;
+		std::vector< VariantIdentifyingDataTest* > m_subtests ;
 	} ;
 
-	struct SNPIdentifyingDataTestConjunction: public CompoundSNPIdentifyingDataTest
+	struct VariantIdentifyingDataTestConjunction: public CompoundVariantIdentifyingDataTest
 	{
 	public:
-		typedef std::auto_ptr< SNPIdentifyingDataTestConjunction > UniquePtr ;
+		typedef std::auto_ptr< VariantIdentifyingDataTestConjunction > UniquePtr ;
 	public:
-		bool operator()(
-			std::string SNPID,
-			std::string RSID,
-			GenomePosition position,
-			std::string first_allele,
-			std::string second_allele
-		) const ;
-		
+		bool operator()( VariantIdentifyingData const& data ) const ;
 		std::string display() const ;
 	} ;
 
-	struct SNPIdentifyingDataTestDisjunction: public CompoundSNPIdentifyingDataTest
+	struct VariantIdentifyingDataTestDisjunction: public CompoundVariantIdentifyingDataTest
 	{
 	public:
-		typedef std::auto_ptr< SNPIdentifyingDataTestDisjunction > UniquePtr ;
+		typedef std::auto_ptr< VariantIdentifyingDataTestDisjunction > UniquePtr ;
 	public:
-		bool operator()(
-			std::string SNPID,
-			std::string RSID,
-			GenomePosition position,
-			std::string first_allele,
-			std::string second_allele
-		) const ;
-		
+		bool operator()( VariantIdentifyingData const& data ) const ;
 		std::string display() const ;
 	} ;
 }

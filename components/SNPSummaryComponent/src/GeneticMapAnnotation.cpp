@@ -6,7 +6,7 @@
 
 #include <memory>
 #include "genfile/wildcard.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/FromFilesGeneticMap.hpp"
 #include "components/SNPSummaryComponent/GeneticMapAnnotation.hpp"
@@ -31,7 +31,7 @@ GeneticMapAnnotation::GeneticMapAnnotation(
 {}
 
 void GeneticMapAnnotation::operator()(
-	SNPIdentifyingData const& snp,
+	VariantIdentifyingData const& snp,
 	Genotypes const&,
 	SampleSexes const&,
 	genfile::VariantDataReader&,

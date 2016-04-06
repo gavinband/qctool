@@ -518,7 +518,7 @@ $ qctool -help
                         </tr>
                         <tr>
                             <td>
-                                <a href="http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41">Variant call format</a>
+                                <a href="http://samtools.github.io/hts-specs/VCFv4.2.pdf">Variant call format</a>
                             </td>
                             <td>
                                 <span class="monospace">.vcf</span>, <span class="monospace">.vcf.gz</span>
@@ -556,6 +556,46 @@ $ qctool -help
 								For genotypic computations, genotypes are formed from pairs of haplotypes; it is assumed that the two haplotypes for each individual
 								are consecutive columns in the file. (This format is
 								described <a href="http://www.shapeit.fr/pages/hapssample.html">here</a>.)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <a href="https://oxfordhla.well.ox.ac.uk/hla/">HLAIMP</a> probability format
+                            </td>
+                            <td>
+                                (none)
+                            </td>
+                            <td>
+                                Input only.  Use <span class="monospace">-filetype hlaimp</span> to specify reading this file type.
+                                Currently, this input format implicitly splits each HLA locus as a series of bi-allelic variants.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <a href="http://penncnv.openbioinformatics.org/en/latest/">PennCNV</a>/<a href="https://sites.google.com/site/quantisnp/">QuantiSNP</a> format
+                            </td>
+                            <td>
+                                (none)
+                            </td>
+                            <td>
+                                Output only; use <span class="monospace">-ofiletype penncnv</span> to specify writing this file type.
+                                PennCNV uses a single sample per input file, which can be acheived using the
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                QCTOOL long format
+                            </td>
+                            <td>
+                                (none)
+                            </td>
+                            <td>
+                                Current input only; use <span class="monospace">-filetype long</span> to specify reading this file type.
+                                Input must be a file with columns SNPID,rsid,chromosome,position,number_of_alleles,allele1,other_alleles,sample_id,ploidy,genotype
+                                Further columns may also be included (but QCTOOL ignores these).
+                                Allelesin the other_alleles column must be comma-separated (as with <a href="http://samtools.github.io/hts-specs/VCFv4.2.pdf">VCF</a> ALT alleles).
+                                When outputting to vcf format, both genotype (GT) and a field 'typed' indicating whether a row for each
+                                sample and variant was present will be output.
                             </td>
                         </tr>
                     </table>

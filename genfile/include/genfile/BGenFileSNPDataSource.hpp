@@ -11,6 +11,7 @@
 #include <string>
 #include "snp_data_utils.hpp"
 #include "SNPDataSource.hpp"
+#include "IdentifyingDataCachingSNPDataSource.hpp"
 #include "bgen/bgen.hpp"
 #include "Chromosome.hpp"
 
@@ -43,15 +44,7 @@ namespace genfile {
 
 		void reset_to_start_impl() ;
 
-		void read_snp_identifying_data_impl( 
-			uint32_t* number_of_samples,
-			std::string* SNPID,
-			std::string* RSID,
-			Chromosome* chromosome,
-			uint32_t* SNP_position,
-			std::string* allele1,
-			std::string* allele2
-		) ;
+		void read_snp_identifying_data_impl( VariantIdentifyingData* result ) ;
 
 		VariantDataReader::UniquePtr read_variant_data_impl() ;
 

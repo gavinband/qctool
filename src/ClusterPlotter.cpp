@@ -6,7 +6,7 @@
 
 #include <boost/ptr_container/ptr_vector.hpp>
 #include "genfile/SNPDataSourceProcessor.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/vcf/get_set.hpp"
 #include "genfile/string_utils/substitute.hpp"
@@ -90,7 +90,7 @@ namespace impl {
 			std::string const& analysis_name,
 			std::string const& intensity_field,
 			std::vector< std::string > const& call_fields,
-			genfile::SNPIdentifyingData const& snp,
+			genfile::VariantIdentifyingData const& snp,
 			genfile::VariantDataReader& data_reader,
 			std::string const& filename
 		):
@@ -132,7 +132,7 @@ namespace impl {
 				x.Set( m_intensities.col(0).data(), m_intensities.rows() ) ;
 				y.Set( m_intensities.col(1).data(), m_intensities.rows() ) ;
 				colour.Set( i->second ) ;
-				graph.Title( ( m_analysis_name + ":" + m_snp.get_rsid() ).c_str(), 0, 4 ) ;
+				graph.Title( ( m_analysis_name + ":" + m_snp.get_primary_id() ).c_str(), 0, 4 ) ;
 				graph.SubPlot( N, M, count ) ;
 				graph.SetTickLen( 0.04 ) ;
 				double m_max_value = -1 ;
@@ -170,7 +170,7 @@ namespace impl {
 		std::string const m_intensity_field ;
 		IntensityMatrix m_intensities ;
 		double const m_call_threshhold ;
-		genfile::SNPIdentifyingData const m_snp ;
+		genfile::VariantIdentifyingData const m_snp ;
 		
 		std::string const m_analysis_name ;
 		std::string const m_call_field ;
@@ -179,12 +179,12 @@ namespace impl {
 	} ;
 }
 
-void ClusterPlotter::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
+void ClusterPlotter::processed_snp( genfile::VariantIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 	using genfile::string_utils::substitute ;
 	using genfile::string_utils::to_string ;
 	std::string filename = m_filename_template ;
 	filename = substitute( filename , "#analysis", m_analysis_name ) ;
-	filename = substitute( filename , "#rsid", snp.get_rsid() ) ;
+	filename = substitute( filename , "#rsid", snp.get_primary_id() ) ;
 	filename = substitute( filename, "#intensity", m_intensity_field ) ;
 	filename = substitute( filename, "#position", to_string( snp.get_position() ) ) ;
 
@@ -221,7 +221,7 @@ void ClusterPlotter::processed_snp( genfile::SNPIdentifyingData const& snp, genf
 	}
 }
 #else
-void ClusterPlotter::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
+void ClusterPlotter::processed_snp( genfile::VariantIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
 	assert(0) ;
 }
 #endif

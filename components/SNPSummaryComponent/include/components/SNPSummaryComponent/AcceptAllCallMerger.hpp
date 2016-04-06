@@ -14,7 +14,7 @@
 #define foreach BOOST_FOREACH
 #include <Eigen/Core>
 
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "components/SNPSummaryComponent/PairwiseCallComparerManager.hpp"
 
@@ -23,7 +23,7 @@ struct AcceptAllCallMerger: PairwiseCallComparerManager::Merger
 {
 	AcceptAllCallMerger() ;
 	
-	void begin_comparisons( genfile::SNPIdentifyingData const& snp ) ;
+	void begin_comparisons( genfile::VariantIdentifyingData const& snp ) ;
 	void add_callset( std::string const& ) ;
 	void set_result(
 		std::string const& callset1,

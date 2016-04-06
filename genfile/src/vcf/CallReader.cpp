@@ -132,12 +132,12 @@ namespace genfile {
 					m_entries.resize( m_current_i + n ) ;
 				}
 			
-				void set_value( MissingValue const value ) {
+				void set_value( std::size_t, MissingValue const value ) {
 					assert( m_current_i < m_entries.size() ) ;
 					m_entries[ m_current_i++ ] = -1 ;
 				}
 
-				void set_value( Integer const value ) {
+				void set_value( std::size_t, Integer const value ) {
 					assert( m_current_i < m_entries.size() ) ;
 					m_entries[ m_current_i++ ] = value ;
 				}
@@ -196,12 +196,13 @@ namespace genfile {
 						) ;
 						for( std::size_t const current_index = index; index < ( current_index + ploidy ); ++index ) {
 							if( m_genotype_calls[ index ] == -1 ) {
-								setter.set_value( MissingValue() ) ;
+								setter.set_value( (index-current_index), MissingValue() ) ;
 							} else {
-								setter.set_value( m_genotype_calls[ index ] ) ;
+								setter.set_value( (index-current_index), m_genotype_calls[ index ] ) ;
 							}
 						}
 					}
+					setter.finalise() ;
 				}
 				else {
 					setter.initialise( m_number_of_samples, m_number_of_alleles ) ;
@@ -221,6 +222,7 @@ namespace genfile {
 							setter
 						) ;
 					}
+					setter.finalise() ;
 				}
 			}
 

@@ -7,7 +7,7 @@
 #include <queue>
 #include <memory>
 #include <boost/format.hpp>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/ThreshholdingSNPDataSource.hpp"
@@ -64,18 +64,8 @@ namespace genfile {
 	std::string ThreshholdingSNPDataSource::get_summary( std::string const& prefix, std::size_t column_width ) const {
 		return "ThreshholdingSNPDataSource(" + m_source->get_source_spec() + ")" ;
 	}
-	void ThreshholdingSNPDataSource::get_snp_identifying_data_impl( 
-		IntegerSetter const& set_number_of_samples,
-		StringSetter const& set_SNPID,
-		StringSetter const& set_RSID,
-		ChromosomeSetter const& set_chromosome,
-		SNPPositionSetter const& set_SNP_position,
-		AlleleSetter const& set_allele1,
-		AlleleSetter const& set_allele2
-	) {
-		m_source->get_snp_identifying_data(
-			set_number_of_samples, set_SNPID, set_RSID, set_chromosome, set_SNP_position, set_allele1, set_allele2
-		) ;
+	void ThreshholdingSNPDataSource::get_snp_identifying_data_impl( VariantIdentifyingData* variant	) {
+		m_source->get_snp_identifying_data( variant ) ;
 	}
 
 	namespace {
@@ -90,7 +80,10 @@ namespace genfile {
 			struct Threshholder: public VariantDataReader::PerSampleSetter {
 				Threshholder( PerSampleSetter& target, double const threshhold ):
 					m_target( target ),
-					m_threshhold( threshhold )
+					m_threshhold( threshhold ),
+					m_number_of_alleles(0),
+					m_order_type( eUnknownOrderType ),
+					m_ploidy(0)
 				{
 					if( m_threshhold <= 0.5 ) {
 						throw BadArgumentError(
@@ -105,45 +98,52 @@ namespace genfile {
 				~Threshholder() throw() {}
 					
 				void initialise( std::size_t nSamples, std::size_t nAlleles ) {
+					m_number_of_alleles = nAlleles ;
 					m_target.initialise( nSamples, nAlleles ) ;
-					m_calls.setZero( ( nAlleles * (nAlleles+1))/2 ) ;
 				} ;
 				bool set_sample( std::size_t i ) {
 					m_target.set_sample( i ) ;
 					m_missing = false ;
-					m_calls.setZero( m_calls.size() ) ;
+					m_order_type = eUnknownOrderType ;
+					m_ploidy = 0 ;
 					m_entry_i = 0 ;
 					return true ;
 				}
-				void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
-					assert( n == m_calls.size() ) ;
-					assert( order_type == ePerUnorderedGenotype ) ;
+				void set_number_of_entries( uint32_t ploidy, std::size_t number_of_entries, OrderType const order_type, ValueType const value_type ) {
+					assert( order_type == ePerUnorderedGenotype || ePerPhasedHaplotypePerAllele ) ;
 					assert( value_type == eProbability ) ;
-					// assume diploid
-					m_target.set_number_of_entries( ploidy, 2, ePerUnorderedHaplotype, eAlleleIndex ) ;
+					m_order_type = order_type ;
+					
+					m_ploidy = ploidy ;
+					m_calls.setZero( number_of_entries ) ;
+					m_target.set_number_of_entries(
+						m_ploidy, m_ploidy,
+						( m_order_type == ePerUnorderedGenotype ) ? ePerUnorderedHaplotype : ePerOrderedHaplotype,
+						eAlleleIndex
+					) ;
 				}
-				void set_value( MissingValue const value ) {
+				void set_value( std::size_t, MissingValue const value ) {
 					m_missing = true ;
 					m_entry_i++ ;
 					if( m_entry_i == m_calls.size() ) { 
 						send_results() ;
 					}
 				}
-				void set_value( std::string& value ) {
+				void set_value( std::size_t, std::string& value ) {
 					throw BadArgumentError(
 						"genfile::ThreshholdingDataReader::Threshholder::set_value",
 						"value",
 						"Expected a floating-point value (got a string)."
 					) ;
 				}
-				void set_value( Integer const value ) {
+				void set_value( std::size_t, Integer const value ) {
 					throw BadArgumentError(
 						"genfile::ThreshholdingDataReader::Threshholder::set_value",
 						"value",
 						"Expected a floating-point value (got an integer)."
 					) ;
 				}
-				void set_value( double const value ) {
+				void set_value( std::size_t, double const value ) {
 					m_calls( m_entry_i++ ) = value ;
 					if( m_entry_i == m_calls.size() ) { 
 						send_results() ;
@@ -154,6 +154,9 @@ namespace genfile {
 			private:
 				PerSampleSetter& m_target ;
 				double const m_threshhold ;
+				std::size_t m_number_of_alleles ;
+				OrderType m_order_type ;
+				uint32_t m_ploidy ;
 				int m_entry_i ;
 				Eigen::VectorXd m_calls ;
 				bool m_missing ;
@@ -161,24 +164,85 @@ namespace genfile {
 			private:
 				void send_results() {
 					if( m_missing || m_calls.array().maxCoeff() < m_threshhold ) {
-						m_target.set_value( genfile::MissingValue() ) ;
-						m_target.set_value( genfile::MissingValue() ) ;
+						for( uint32_t i = 0 ; i < m_ploidy; ++i ) {
+							m_target.set_value( i, genfile::MissingValue() ) ;
+						}
 					} else {
-						if( m_calls(0) >= m_threshhold ) {
-							m_target.set_value( Integer( 0 ) ) ;
-							m_target.set_value( Integer( 0 ) ) ;
-						}
-						else if( m_calls(1) >= m_threshhold ) {
-							m_target.set_value( Integer( 0 ) ) ;
-							m_target.set_value( Integer( 1 ) ) ;
-						}
-						else if( m_calls(2) >= m_threshhold ) {
-							m_target.set_value( Integer( 1 ) ) ;
-							m_target.set_value( Integer( 1 ) ) ;
-						}
-						else {
-							m_target.set_value( genfile::MissingValue() ) ;
-							m_target.set_value( genfile::MissingValue() ) ;
+						// How to figure out the order here?
+						// Well..it goes like this.
+						if( m_order_type == ePerPhasedHaplotypePerAllele ) {
+							// for phased data it is simple:
+							for( uint32_t i = 0; i < m_ploidy; ++i ) {
+								for( uint32_t j = 0; j < m_number_of_alleles; ++j ) {
+									if( m_calls[i*m_number_of_alleles+j] > m_threshhold ) {
+										m_target.set_value( i, Integer( j ) ) ;
+										break ;
+									}
+								}
+							}
+						} else if( m_order_type == ePerUnorderedGenotype ) {
+							// For unphased data it is more complex.
+							// We have m_ploidy = n chromosomes in total.
+							// Genotypes are all ways to put n_alleles = k alleles into
+							// those chromosomes.
+							// Represent these as k-vectors that sum to n (i.e. v_i is the count of allele i)
+							// Or (k-1)-vectors that sum to at most n.
+							// The order is chosen so that lower indices are always used first.
+							// 3,0,0 = AAA
+							// 2,1,0 = AAB
+							// 1,2,0 = ABB
+							// 0,3,0 = BBB
+							// 2,0,1 = BBC
+							// 1,1,1 = ABC
+							// 0,2,1 = BBC
+							// 0,1,2 = BCC
+							// 0,0,3 = CCC
+							
+							// We enumerate vectors in this order and stop when we meet a probabiltiy
+							// meeting the desired threshhold.
+							
+							// This code handles up to 
+							std::vector< uint16_t > limits( (m_number_of_alleles-1), m_ploidy ) ;
+							std::vector< uint16_t > allele_counts( m_number_of_alleles, 0 ) ;
+							allele_counts[0] = m_ploidy ;
+							bool finished = false ;
+							for( std::size_t index = 0; !finished; ++index ) {
+								if( m_calls[index] > m_threshhold ) {
+									std::size_t this_index = 0 ;
+									for( std::size_t allele = 0; allele < m_number_of_alleles; ++allele ) {
+										for( uint16_t count = 0; count < allele_counts[allele]; ++count ) {
+											m_target.set_value( ++this_index, Integer( allele )) ;
+										}
+									}
+									break ;
+								}
+								
+								// Move to next possible genotype
+								std::size_t j = 0 ;
+								for( ; j < (m_number_of_alleles-1); ++j ) {
+									uint16_t value = allele_counts[j+1] ;
+									if( value < limits[ j ] ) {
+										++allele_counts[j+1] ;
+										--allele_counts[0] ;
+										for( std::size_t k = 0; k < j; ++k ) {
+											--limits[k] ;
+										}
+										break ;
+									} else {
+										// allele count has reached its limit.
+										// Reset it to zero.
+										// Note that to get here all lower-order counts must be zero.
+										allele_counts[j+1] = 0 ;
+										allele_counts[0] += value ;
+										for( std::size_t k = 0; k < j; ++k ) {
+											limits[k] += value ;
+										}
+									}
+								}
+								if( j == (m_number_of_alleles-1) ) {
+									finished = true ;
+								}
+							}
 						}
 					}
 				}

@@ -11,10 +11,10 @@
 #include <boost/function.hpp>
 #include <boost/optional.hpp>
 #include "genfile/SNPDataSource.hpp"
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 
 namespace genfile {
-	std::vector< SNPIdentifyingData > get_list_of_snps_in_source(
+	std::vector< VariantIdentifyingData > get_list_of_snps_in_source(
 		SNPDataSource& source,
 		boost::function< void( std::size_t, boost::optional< std::size_t > ) > progress_callback
 			= boost::function< void( std::size_t, boost::optional< std::size_t > ) >()

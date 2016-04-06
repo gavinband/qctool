@@ -26,7 +26,7 @@ namespace pca {
 		Eigen::MatrixXd loadings ;
 		Eigen::VectorXd counts ;
 		Eigen::VectorXd frequencies ;
-		std::vector< genfile::SNPIdentifyingData > snps ;
+		std::vector< genfile::VariantIdentifyingData > snps ;
 		std::vector< std::string > column_names ;
 		load_loadings_impl( filename, &snps, &counts, &frequencies, &loadings, &column_names ) ;
 		m_result_signal( snps, counts, frequencies, loadings, snps.size(), m_samples.get_number_of_individuals(), column_names ) ;
@@ -34,7 +34,7 @@ namespace pca {
 
 	void PCALoadingLoader::load_loadings_impl(
 		std::string const& filename,
-		std::vector< genfile::SNPIdentifyingData >* snps,
+		std::vector< genfile::VariantIdentifyingData >* snps,
 		Eigen::VectorXd* counts,
 		Eigen::VectorXd* frequencies,
 		Eigen::MatrixXd* loadings,
@@ -72,16 +72,19 @@ namespace pca {
 		loadings->resize( number_of_snps, number_of_loadings ) ;
 		counts->resize( number_of_snps ) ;
 		frequencies->resize( number_of_snps ) ;
-		for( std::size_t i = 0; i < number_of_snps; ++i ) {
-			(*source) >> (*snps)[i].SNPID() >> (*snps)[i].rsid()
-				>> (*snps)[i].position().chromosome() >> (*snps)[i].position().position()
-				>> (*snps)[i].first_allele() >> (*snps)[i].second_allele()
-				>> (*counts)(i)
-				>> (*frequencies)(i) ;
-			for( std::size_t j = 0; j < number_of_loadings; ++j ) {
-				(*source) >> (*loadings)(i,j) ;
+		
+		{
+			std::string SNPID, rsid, allele1, allele2 ;
+			genfile::GenomePosition position ;
+			for( std::size_t i = 0; i < number_of_snps; ++i ) {
+				(*source) >> SNPID >> rsid >> position.chromosome() >> position.position()
+					>> allele1 >> allele2 >> (*counts)(i) >> (*frequencies)(i) ;
+				(*snps)[i] = genfile::VariantIdentifyingData( SNPID, rsid, position, allele1, allele2 ) ;
+				for( std::size_t j = 0; j < number_of_loadings; ++j ) {
+					(*source) >> (*loadings)(i,j) ;
+				}
+				(*source) >> statfile::ignore_all() ;
 			}
-			(*source) >> statfile::ignore_all() ;
 		}
 		
 		assert( column_names ) ;
