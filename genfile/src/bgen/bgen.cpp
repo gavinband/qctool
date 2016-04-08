@@ -316,7 +316,15 @@ namespace genfile {
 			if( context.flags & bgen::e_CompressedSNPBlocks ) {
 				uint32_t compressed_data_size = 0 ;
 				read_little_endian_integer( aStream, &compressed_data_size ) ;
-				aStream.ignore( compressed_data_size ) ;
+				if( compressed_data_size > 0 ) {
+					// gcc std::istream::ignore() has a bug / feature in which
+					// it peeks at the next char and sets eof() if you ignore all the bytes in the file.
+					// This breaks our expected invariant and means subsequent calls to peekg() fail with -1,
+					// which stops us getting file size.
+					// We deal with this by simply ignoring one less character here.
+					aStream.ignore( compressed_data_size - 1 ) ;
+					aStream.get() ;
+				}
 			}
 			else {
 				aStream.ignore( 6 * context.number_of_samples ) ;

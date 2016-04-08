@@ -80,6 +80,7 @@ namespace genfile {
 		VariantDataReader& data_reader,
 		Info const& info
 	) {
+		// std::cerr << id_data << ".\n" ;
 		assert( m_have_written_header ) ;
 		{
 			byte_t const* const end = bgen::write_snp_identifying_data(
