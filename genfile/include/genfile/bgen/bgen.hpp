@@ -1028,7 +1028,9 @@ namespace genfile {
 					m_values[m_entry_i++] = value ;
 					m_sum += value ;
 
+#if DEBUG_BGEN_FORMAT
 					std::cerr << "set_value( " << entry_i << ", " << value << "); m_entry_i = " << m_entry_i << "\n" ;
+#endif
 					// Any sane input values will sum to 1 ± somerounding error, which should be small.
 					if( ( m_sum != m_sum ) || (m_sum > m_tolerance)) {
 						std::cerr << "First " << entry_i << " input values sum to " << m_sum << ".\n" ;
@@ -1254,12 +1256,15 @@ namespace genfile {
 
 			void initialise( uint32_t nSamples, uint16_t nAlleles ) {
 				assert( nSamples == m_context.number_of_samples ) ;
-				std::size_t const max_ploidy = 15 ;
+				std::size_t const max_ploidy = 5 ;
 				std::size_t const uncompressed_data_size =
 					( m_layout == e_v11Layout )
 						? (6 * nSamples)
-						: ( 10 + nSamples + ((( nSamples * m_number_of_bits * (max_ploidy-1) )+7)/8) ) ;
+						: ( 10 + nSamples + ((( nSamples * ( impl::n_choose_k( max_ploidy + nAlleles - 1, std::size_t( nAlleles ) - 1 ) - 1 ) * m_number_of_bits )+7)/8)) ;
 				;
+#if DEBUG_BGEN_FORMAT
+				std::cerr << "uncompressed data size is " << uncompressed_data_size << ".\n" ;
+#endif
 				m_buffer1->resize( uncompressed_data_size ) ;
 				m_writer->initialise( nSamples, nAlleles, &(*m_buffer1)[0], &(*m_buffer1)[0] + uncompressed_data_size ) ;
 			}
@@ -1292,8 +1297,10 @@ namespace genfile {
 				assert( (m_writer->repr().second - m_writer->repr().first) <= m_buffer1->size() ) ;
 				uLongf const uncompressed_data_size = (m_writer->repr().second - m_writer->repr().first) ;
 
+#if DEBUG_BGEN_FORMAT
 				std::cerr << ( m_writer->repr().first ) << "  :" << m_writer->repr().second << ", diff = " << (m_writer->repr().second - m_writer->repr().first) << "\n" ;
 				std::cerr << "expected " << uncompressed_data_size << "\n" ;
+#endif
 				if( m_context.flags & e_CompressedSNPBlocks ) {
 		#if HAVE_ZLIB
 					std::size_t offset = (m_layout == e_v12Layout) ? 8 : 4 ;
