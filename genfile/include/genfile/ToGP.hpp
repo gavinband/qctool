@@ -128,14 +128,14 @@ namespace genfile {
 		//
 		// Genotypes are stored as uint16_t with 4 bits per allele.  This gives
 		// up to four alleles and up to ploidy of 15.
-		std::vector< uint16_t > enumerate_unphased_genotypes( std::size_t ploidy ) ;
+		std::pair< uint32_t, std::vector< uint16_t > > enumerate_unphased_genotypes( std::size_t ploidy ) ;
 
 		struct GTToGPUnphasedBase {
 		protected:
-			static std::vector< std::vector< uint16_t > > m_tables ;
+			static std::vector< std::pair< uint32_t, std::vector< uint16_t > > > m_tables ;
 		} ;
 		
-		std::string format_call( uint16_t call ) ;
+		std::string format_call( uint16_t call, uint32_t bitsPerAllele ) ;
 	}
 
 	// This class receives unphased (or phased) GT-style genotypes
@@ -164,6 +164,8 @@ namespace genfile {
 			m_setter = &setter ;
 			m_number_of_alleles = number_of_alleles ;
 			m_ploidy = ploidy ;
+			// Compute number of bits required to store values up to ploidy.
+			assert( ploidy < 64 ) ;
 			m_number_of_entries = number_of_entries ;
 			m_missing = false ;
 			m_encoded_call = 0 ;
@@ -183,16 +185,17 @@ namespace genfile {
 		}
 
 		void set_value( std::size_t value_i, int64_t const value ) {
-			assert( value < 5 ) ;
-			m_encoded_call += encode_call( value, 4 ) ;
+			m_encoded_call += encode_call( value, m_tables[ m_ploidy ].first ) ;
 #if DEBUG_TO_GP
 			std::cerr << "Encoded value #" << value_i << "(" << value << ") encoded as:" << impl::format_call( m_encoded_call ) << "\n" ;
 #endif
 		}
 		
-		uint16_t encode_call( int64_t const value, std::size_t bits ) {
-			assert( value < 5 ) ;
-			return(( value == 0 ) ? uint16_t(0) : (1 << ((value-1)*bits))) ;
+		uint16_t encode_call( int64_t const value, uint32_t const bitsPerAllele ) {
+			uint16_t const bitMask = uint16_t( 0xFFFF ) >> ( 16 - bitsPerAllele ) ;
+			std::size_t const numberOfAlleles = 16 / bitsPerAllele ;
+			assert( value <= numberOfAlleles ) ;
+			return(( value == 0 ) ? uint16_t(0) : (1 << ((value-1)*bitsPerAllele))) ;
 		}
 		
 		void finalise() {
@@ -208,9 +211,9 @@ namespace genfile {
 					m_setter->set_value( i, 0.0 ) ;
 				}
 			} else {
-				std::size_t index_of_nonzero_probability = m_tables[ m_ploidy ][ m_encoded_call ] ;
+				std::size_t index_of_nonzero_probability = m_tables[ m_ploidy ].second[ m_encoded_call ] ;
 #if DEBUG_TO_GP
-				std::cerr << "count = " << count << ", call is: " << impl::format_call( m_encoded_call ) ;
+				std::cerr << "count = " << count << ", call is: " << impl::format_call( m_encoded_call, m_tables[ m_ploidy ].first ) ;
 				std::cerr << ", index is: " << index_of_nonzero_probability << "\n" ;
 #endif
 				std::size_t i = 0 ;

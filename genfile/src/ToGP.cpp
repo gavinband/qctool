@@ -19,71 +19,80 @@ namespace genfile {
 		// biallelic variants are ordered in the same way as those at a triallelic variant
 		// but carrying none of the third allele - thus the orders are nested.
 		//
-		// Genotypes are stored as uint16_t with 4 bits per allele.  This gives
-		// up to four alleles and up to ploidy of 15.
-		std::vector< uint16_t > enumerate_unphased_genotypes(
-			std::size_t ploidy
+		// Genotypes are stored as uint16_t with the given number of bits per allele.
+		std::pair< uint32_t, std::vector< uint16_t > > enumerate_unphased_genotypes(
+			std::size_t const ploidy
 		) {
-			std::size_t const max_number_of_alleles = 4 ;
-#if DEBUG_TOGP
-			std::cerr << "compute_genotype_ordering( " << ploidy << ", " << max_number_of_alleles << "):\n" ;
-#endif
-			// We will encode the genotypes in  uint16_t allowing 
-			// 4 bits per allele, that is, up to four alleles and ploidy from 0 to 15.
-			assert( max_number_of_alleles <= 4 ) ;
-			assert( ploidy < 16 ) ;
-			std::vector< uint16_t > limits( 4, ploidy ) ;
-			// we assign 4 bits per allele, i.e. max ploidy is 15.
-			uint16_t currentEncoded = 0 ;
+			assert( ploidy < 128 ) ;
+			if( ploidy == 0 ) {
+				return std::make_pair(
+					0,
+					std::vector< uint16_t >( 1, 0 )
+				) ;
+			}
+			// compute no. bits required to store values up to ploidy
+			uint32_t bitsPerAllele = 0 ;
+			for( std::size_t a = ploidy; a != 0; a >>= 1, ++bitsPerAllele ) ;
+			std::size_t const numberOfAlleles = 16 / bitsPerAllele ;
+			uint16_t const bitMask = uint16_t( 0xFFFF ) >> ( 16 - bitsPerAllele ) ;
+			std::vector< uint16_t > limits( numberOfAlleles, ploidy ) ;
 			bool finished = false ;
 			std::vector< uint16_t > result( 65536, 65535 ) ;
+			
+			uint16_t currentEncoded = 0 ;
 			for( std::size_t index = 0; !finished; ++index ) {
 				result[ currentEncoded ] = index ;
 #if DEBUG_TOGP
+				std::cerr << "ploidy: " << ploidy << ", " ;
 				std::cerr << "Stored genotype:" ;
-				for( std::size_t i = 0; i < 4; ++i ) {
-					std::cerr << " " << ((currentEncoded >> (4*i)) & 0xF) ;
+				for( std::size_t i = 0; i < numberOfAlleles; ++i ) {
+					std::cerr << " " << ((currentEncoded >> (bitsPerAllele*i)) & bitMask) ;
 				}
 				std::cerr << ", limits:" ;
-				for( std::size_t i = 0; i < 4; ++i ) {
+				for( std::size_t i = 0; i < numberOfAlleles; ++i ) {
 					std::cerr << " " << limits[i] ;
 				}
 				std::cerr << "\n" ;
 #endif
 				std::size_t j = 0 ;
-				for( ; j < 4; ++j ) {
-					uint16_t value = (currentEncoded >> (j*4)) & 0xF ;
+				for( ; j < numberOfAlleles; ++j ) {
+					uint16_t value = (currentEncoded >> (j*bitsPerAllele)) & bitMask ;
 					if( value < limits[ j ] ) {
-						currentEncoded += uint16_t( 1 ) << (j*4) ;
+						// value has not reached its limit; increase it by one.
+						// Accordingly, lower the limits for all lower values by one.
+						currentEncoded += uint16_t( 1 ) << (j*bitsPerAllele) ;
 						for( std::size_t k = 0; k < j; ++k ) {
 							assert( limits[k] > 0 ) ;
 							--limits[k] ;
 						}
 						break ;
 					} else {
-						// Reset it to zero.
-						// Note that to get here all lower-order counts must be zero.
-						currentEncoded &= ( 0xFFFF << ((j+1)*4)) | (0xFFFF >> ((4-j)*4)) ;
+						// Value has reached its limit.
+						// Reset it to zero and reset the limits for lower values accordingly.
+						// Note to get here all the values for lower alleles must be zero.
+						currentEncoded &= (( 0xFFFF << ((j+1)*bitsPerAllele)) | ~( 0xFFFF << (j*bitsPerAllele )));
 						for( std::size_t k = 0; k < j; ++k ) {
 							limits[k] += value ;
 						}
 					}
 				}
-				if( j == 4 ) {
+				if( j == numberOfAlleles ) {
 					finished = true ;
 				}
 			}
-			return result ;
+			return std::make_pair( bitsPerAllele, result ) ;
 		}
 
-		std::string format_call( uint16_t call ) {
+		std::string format_call( uint16_t call, uint32_t const bitsPerAllele ) {
 			std::ostringstream out ;
-			for( std::size_t k = 0; k < 4; ++k ) {
-				out << (k>0 ? "/": "") << ((call >> (4*k)) & 0xF) ;
+			uint16_t const bitMask = uint16_t( 0xFFFF ) >> ( 16 - bitsPerAllele ) ;
+			std::size_t const numberOfAlleles = 16 / bitsPerAllele ;
+			for( std::size_t k = 0; k < numberOfAlleles; ++k ) {
+				out << (k>0 ? "/": "") << ((call >> (numberOfAlleles*k)) & bitMask) ;
 			}
 			return out.str() ;
 		}
 
-		std::vector< std::vector< uint16_t > > GTToGPUnphasedBase::m_tables ;
+		std::vector< std::pair< uint32_t, std::vector< uint16_t > > > GTToGPUnphasedBase::m_tables ;
 	}
 }
