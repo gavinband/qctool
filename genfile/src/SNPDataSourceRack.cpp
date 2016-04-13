@@ -361,6 +361,7 @@ namespace genfile {
 					m_data_readers[i]->get( spec, offset_flip_sample_setter ) ;
 					sample_offset += m_rack.m_sources[i]->number_of_samples() ;
 				}
+				setter.finalise() ;
 				return *this ;
 			}
 
