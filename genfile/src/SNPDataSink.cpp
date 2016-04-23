@@ -35,6 +35,7 @@ namespace genfile {
 		result.push_back( "gen" ) ;
 		result.push_back( "bgen" ) ;
 		result.push_back( "bgen_v12" ) ;
+		result.push_back( "bgen_v11" ) ;
 		result.push_back( "vcf" ) ;
 		result.push_back( "binary_ped" ) ;
 		result.push_back( "shapeit_haplotypes" ) ;
@@ -64,10 +65,10 @@ namespace genfile {
 		if( filetype_hint != "guess" ) {
 			d.first = filetype_hint ;
 		}
-		if( d.first == "bgen" ) {
+		if( d.first == "bgen_v11" ) {
 			return SNPDataSink::UniquePtr( new BGenFileSNPDataSink( filename, metadata )) ;
 		}
-		else if( d.first == "bgen_v12" ) {
+		else if( d.first == "bgen" || d.first == "bgen_v12" ) {
 			return SNPDataSink::UniquePtr( new BGenFileSNPDataSink( filename, metadata, "v12", 16 )) ;
 		}
 		else if( d.first == "vcf" ) {
