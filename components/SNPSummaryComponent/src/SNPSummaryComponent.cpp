@@ -154,7 +154,7 @@ SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager(
 	qcdb::Storage::SharedPtr storage
 ) {
 	SNPSummaryComputationManager::UniquePtr manager( new SNPSummaryComputationManager( m_samples, m_options.get_value< std::string >( "-sex-column" ) ) ) ;
-	if( m_options.check( "-haploid-genotype-coding" ) ) {
+	{
 		std::string const coding_string = m_options.get< std::string >( "-haploid-genotype-coding" ) ;
 		if( coding_string == "hom" ) {
 			manager->set_haploid_genotype_coding( 2 ) ; 

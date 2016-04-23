@@ -110,6 +110,8 @@ namespace snp_summary_component {
 			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
 
 			if( !chromosome.is_sex_determining() ) {
+				callback( "A", 0 ) ;
+				callback( "B", 0 ) ;
 				callback( "AA", genotypes.col(0).sum() ) ;
 				callback( "AB", genotypes.col(1).sum() ) ;
 				callback( "BB", genotypes.col(2).sum() ) ;
@@ -143,30 +145,14 @@ namespace snp_summary_component {
 #endif
 			}
 			
-			callback( "males_A", counts[ 'm' ]( 0 ) ) ;
-			callback( "males_B", counts[ 'm' ]( 1 ) ) ;
-
-			if( counts[ 'm' ]( 2 ) != 0 ) {
-				callback( "males_incorrect", counts[ 'm' ]( 2 ) ) ;
-#if DEBUG_SNP_SUMMARY_COMPUTATION
-				std::cerr << "!! ( MissingnessComputation::compute_sex_chromosome_counts() ): some males have BB probability!\n" ;
-#endif
-				throw genfile::BadArgumentError( " MissingnessComputation::compute_sex_chromosome_counts()", ":genotypes:" ) ;
-			}
-
-			callback( "males_NULL", null_counts[ 'm' ] ) ;
-
-			if( chromosome == genfile::Chromosome( "0X" ) ) {
-				callback( "females_AA", counts[ 'f' ]( 0 ) ) ;
-				callback( "females_AB", counts[ 'f' ]( 1 ) ) ;
-				callback( "females_BB", counts[ 'f' ]( 2 ) ) ;
-				callback( "females_NULL", null_counts[ 'f' ] ) ;
-			
-				callback( "unknown_ploidy_AA", counts[ '.' ]( 0 ) ) ;
-				callback( "unknown_ploidy_AB", counts[ '.' ]( 1 ) ) ;
-				callback( "unknown_ploidy_BB", counts[ '.' ]( 2 ) ) ;
-				callback( "unknown_ploidy_NULL", null_counts[ ',' ] ) ;
-			}
+			callback( "A", counts[ 'm' ]( 0 ) ) ;
+			callback( "B", counts[ 'm' ]( 1 ) ) ;
+			callback( "AA", counts[ 'f' ]( 0 ) ) ;
+			callback( "AB", counts[ 'f' ]( 1 ) ) ;
+			callback( "BB", counts[ 'f' ]( 2 ) ) ;
+			callback( "NULL", null_counts[ 'm' ] + null_counts[ 'f' ] ) ;
+			callback( "unknown_ploidy", counts[ '.' ].sum() + null_counts[ '.' ] ) ;
+			assert( counts[ 'm' ]( 2 ) == 0 ) ;
 		}
 		
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "MissingnessComputation" ; }

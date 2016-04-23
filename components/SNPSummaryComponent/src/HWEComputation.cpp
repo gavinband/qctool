@@ -94,7 +94,7 @@ namespace snp_summary_component {
 			) ;
 		}
 		
-		callback( "HW_multinomial_p_value", p_value ) ;
+		callback( "HW_lrt_p_value", p_value ) ;
 	}
 
 	void HWEComputation::X_chromosome_test( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, ResultCallback callback ) {
@@ -193,7 +193,7 @@ namespace snp_summary_component {
 			double p_value_12 = NaN ;
 			if( lr_stat_12 == lr_stat_12 && lr_stat_12 > 0 && lr_stat_12 != std::numeric_limits< double >::infinity() ) {
 				p_value_12 = cdf( complement( m_chi_squared_1df, lr_stat_12 ) ) ;
-				callback( "HWE_females_lr_pvalue", p_value_12 ) ;
+				callback( "HW_females_lrt_pvalue", p_value_12 ) ;
 			}
 
 			// Also get exact male/female p-value
@@ -215,14 +215,14 @@ namespace snp_summary_component {
 			double p_value_23 = NaN ;
 			if( lr_stat_23 == lr_stat_23 && lr_stat_23 > 0 && lr_stat_23 != std::numeric_limits< double >::infinity() ) {
 				p_value_23 = cdf( complement( m_chi_squared_1df, lr_stat_23 ) ) ;
-				callback( "male_female_lr_pvalue", p_value_23 ) ;
+				callback( "male_female_lrt_pvalue", p_value_23 ) ;
 			}
 
 			double const lr_stat_13 = 2.0 * ( full_model.get_value_of_function() - model3.get_value_of_function() ) ;
 			double p_value_13 = NaN ;
 			if( lr_stat_13 == lr_stat_13 && lr_stat_13 > 0 && lr_stat_13 != std::numeric_limits< double >::infinity() ) {
 				p_value_13 = cdf( complement( m_chi_squared_2df, lr_stat_13 ) ) ;
-				callback( "male_female_and_HWE_2df_lr_pvalue", p_value_13 ) ;
+				callback( "male_female_and_HW_lrt_pvalue", p_value_13 ) ;
 			}
 		}
 	}

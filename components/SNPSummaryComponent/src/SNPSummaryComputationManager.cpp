@@ -192,7 +192,7 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes(
 			
 		}
 #endif
-		callback( "incorrectly_coded_males", int( bad_males.size() ) ) ;
+		callback( "incorrect_ploidy", int( bad_males.size() ) ) ;
 	}
 	
 	if( chromosome == genfile::Chromosome( "0Y" )) {
