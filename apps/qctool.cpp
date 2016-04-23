@@ -218,7 +218,9 @@ public:
 		options[ "-haploid-genotype-coding" ]
 			.set_description( "Specify whether haploid samples (e.g. males on the non-pseudoautosomal region of the X chromosome)"
 			" are coded as heterozygotes (\"het\") or homozygotes (\"hom\")." )
-			.set_takes_single_value() ;
+			.set_takes_single_value()
+			.set_default_value( "hom" )
+		;
 
 /*	    options[ "-i" ]
 	        .set_description( 	"Path of intensity file(s) to input.  "
@@ -1081,13 +1083,14 @@ private:
 		
 		{
 			m_samples = open_samples( *m_snp_data_source ) ;
-			if( m_options.check( "-sample-data" )) {
-				m_samples = open_sample_data( m_samples, m_options.get_values< std::string > ( "-sample-data" )) ;
-			}
 		}
 
 		if( m_options.check( "-merge-in" )) {
 			m_snp_data_source = open_merged_data_sources() ;
+		}
+
+		if( m_options.check( "-sample-data" )) {
+			m_samples = open_sample_data( m_samples, m_options.get_values< std::string > ( "-sample-data" )) ;
 		}
 
 		{
