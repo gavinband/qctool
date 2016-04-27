@@ -24,13 +24,13 @@ namespace statfile {
 		static UniquePtr open( std::string const& filename ) ;
 		using Base::write_value ;
 		
-		virtual void write_value( genfile::MissingValue const& ) = 0 ;
 		virtual void write_value( int32_t const& ) = 0 ;
 		virtual void write_value( uint32_t const& ) = 0 ;
 		virtual void write_value( int64_t const& ) = 0 ;
 		virtual void write_value( uint64_t const& ) = 0 ;
 		virtual void write_value( std::string const& ) = 0 ;
 		virtual void write_value( double const& ) = 0 ;
+		virtual void write_value( genfile::MissingValue const& ) = 0 ;
 		virtual void write_value( genfile::Chromosome const& ) = 0 ;
 		virtual void write_value( genfile::GenomePosition const& ) = 0 ;
 	} ;
@@ -40,6 +40,16 @@ namespace statfile {
 		static std::auto_ptr< BuiltInTypeStatSink > open() ;
 		
 		operator bool() const { return 0 ; }
+		
+		void write_value( int32_t const& ) { assert(0) ; }
+		void write_value( uint32_t const& ) { assert(0) ; }
+		void write_value( int64_t const& ) { assert(0) ; }
+		void write_value( uint64_t const& ) { assert(0) ; }
+		void write_value( std::string const& ) { assert(0) ; }
+		void write_value( double const& ) { assert(0) ; }
+		void write_value( genfile::MissingValue const& ) { assert(0) ; }
+		void write_value( genfile::Chromosome const& ) { assert(0) ; }
+		void write_value( genfile::GenomePosition const& ) { assert(0) ; }
 	} ;
 	
 	struct TrivialBuiltInTypeStatSink: public ColumnNamingStatSink< BuiltInTypeStatSink >

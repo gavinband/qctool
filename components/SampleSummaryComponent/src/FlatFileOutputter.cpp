@@ -120,7 +120,7 @@ namespace sample_stats {
 		for( std::size_t i = 0; i < m_sample_indices.size(); ++i ) {
 			std::size_t const sample_index = m_sample_indices[ i ] ;
 			genfile::VariantEntry const& sample = m_samples[ sample_index ] ;
-			(*m_sink) << sample << sample_index ;
+			(*m_sink) << sample << uint64_t( sample_index ) ;
 			VariableMap::right_const_iterator
 				var_i = m_variables.right.begin(),
 				end_var_i = m_variables.right.end() ;
