@@ -60,6 +60,12 @@ namespace statfile {
 		}
 	}
 
+	void BuiltInTypeStatSinkChain::write_value( uint64_t const& value ) {
+		if( *this ) {
+			current_sink() << value ;
+		}
+	}
+
 	void BuiltInTypeStatSinkChain::write_value( std::string const& value ) {
 		if( *this ) {
 			current_sink() << value ;
@@ -71,6 +77,23 @@ namespace statfile {
 			current_sink() << value ;
 		}
 	}
+	
+	void BuiltInTypeStatSinkChain::write_value( genfile::Chromosome const& value ) {
+		if( *this ) {
+			current_sink() << value ;
+		}
+	}
+	void BuiltInTypeStatSinkChain::write_value( genfile::GenomePosition const& value ) {
+		if( *this ) {
+			current_sink() << value ;
+		}
+	}
+	void BuiltInTypeStatSinkChain::write_value( genfile::MissingValue const& value ) {
+		if( *this ) {
+			current_sink() << value ;
+		}
+	}
+
 	
 	void BuiltInTypeStatSinkChain::end_row() {
 		if( *this ) {

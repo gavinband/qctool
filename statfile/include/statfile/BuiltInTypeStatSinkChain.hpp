@@ -36,8 +36,12 @@ namespace statfile {
 		void write_value( int32_t const& value ) ;
 		void write_value( int64_t const& value ) ;
 		void write_value( uint32_t const& value ) ;
+		void write_value( uint64_t const& value ) ;
 		void write_value( std::string const& value ) ;
 		void write_value( double const& value ) ;
+		void write_value( genfile::Chromosome const& ) ;
+		void write_value( genfile::GenomePosition const& ) ;
+		void write_value( genfile::MissingValue const& ) ;
 		void end_row() ;
 		void move_to_next_sink() ;
 		std::size_t number_of_sinks() const ;
