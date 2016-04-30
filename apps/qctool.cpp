@@ -397,6 +397,12 @@ public:
 			.set_description( "Do not run QCTOOL if it would overwrite an existing file." )
 		;
 		
+		options.declare_group( "GEN-specific options" ) ;
+		options[ "-precision" ]
+			.set_description( "Currently used when outputting GEN files only.  Use this many bits of precision in output." )
+			.set_default_value( 5 )
+			.set_takes_single_value()
+		;
 		options.declare_group( "BGEN-specific options" ) ;
 		options[ "-bgen-bits" ]
 			.set_description( "For use when outputting BGEN files only.  Tell QCTOOL to use this number"
@@ -1980,6 +1986,15 @@ private:
 								bgen_sink->set_free_data( m_options.get< std::string >( "-bgen-free-data" ) ) ;
 							}
 							bgen_sink->set_write_sample_identifier_block( m_options.check( "-s" ) && ! m_options.check( "-bgen-omit-sample-identifier-block" )) ;
+						}
+					}
+					// gen-specific options
+					{
+						genfile::GenFileSNPDataSink* gen_sink = dynamic_cast< genfile::GenFileSNPDataSink* >( sink.get() ) ;
+						if( gen_sink ) {
+							if( m_options.check( "-precision" )) {
+								gen_sink->set_precision( m_options.get< std::size_t >( "-precision" )) ;
+							}
 						}
 					}
 					if( m_options.check( "-sort" )) {

@@ -5,6 +5,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <Eigen/Core>
 #include "genfile/snp_data_utils.hpp"
@@ -28,6 +29,10 @@ namespace genfile {
 	void GenFileSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) {
 		m_data.resize( number_of_samples * 3 ) ;
 		m_data.setConstant( -1 ) ;
+	}
+
+	void GenFileSNPDataSink::set_precision( std::size_t precision ) {
+		stream() << std::setprecision( precision ) ;
 	}
 
 	namespace {
