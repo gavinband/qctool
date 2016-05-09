@@ -1,0 +1,136 @@
+*** Settings ***
+Library	OperatingSystem
+Library	String
+Library	Process
+Library	QctoolRunner	../../build/release/qctool_v2.0-dev
+Library	QctoolTest
+
+*** Variables ***
+${TMPDIR}	${CURDIR}/tmp
+${HOME}	%{HOME}
+
+*** Test cases ***
+Runs basic commands
+	RunsCommandWithResult	{ "g": ["data/test.gen" ], "s": [ "data/test.sample" ], "snp-stats": "", "osnp": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.gen" ], "s": [ "data/test.sample" ], "snp-stats": "" }	fail
+	RunsCommandWithResult	{ "g": ["data/test.gen" ], "s": [ "data/test.sample" ], "og": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.gen" ], "s": [ "data/test.sample" ], "sample-stats": "" }	fail
+	RunsCommandWithResult	{ "g": ["data/test.gen" ], "s": [ "data/test.sample" ], "sample-stats": "", "osample": "<tmp>" }	ok
+
+Accepts output formats
+	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>", "ofiletype": "gen" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>", "ofiletype": "vcf" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>", "ofiletype": "bgen" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>", "ofiletype": "bgen_v11" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>", "ofiletype": "dosage" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>", "ofiletype": "bed" }	ok
+
+Accepts input files
+	RunsCommandWithResult	{ "g": ["data/test.gen" ], "snp-stats": "", "osnp": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.gen.gz" ], "snp-stats": "", "osnp": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.v4.1.vcf"], "snp-stats": "", "osnp": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.v4.1.vcf.gz"], "snp-stats": "", "osnp": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.v4.2.vcf"], "snp-stats": "", "osnp": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.bgen"], "snp-stats": "", "osnp": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.v12.bgen"], "snp-stats": "", "osnp": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.bed"], "snp-stats": "", "osnp": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.gen" ], "filetype": "gen", "snp-stats": "", "osnp": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.gen.gz" ], "filetype": "gen", "snp-stats": "", "osnp": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.v4.1.vcf"], "filetype": "vcf", "snp-stats": "", "osnp": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.v4.1.vcf.gz"], "filetype": "vcf", "snp-stats": "", "osnp": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.v4.2.vcf"], "filetype": "vcf", "snp-stats": "", "osnp": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.bgen"], "filetype": "bgen", "snp-stats": "", "osnp": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.v12.bgen"], "filetype": "bgen", "snp-stats": "", "osnp": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.bed"], "filetype": "bed", "snp-stats": "", "osnp": "<tmp>" }	ok
+
+Produces well-formed snp stats output
+	@{commandSpecs}=	Create List	{ "snp-stats": "", "osnp": "<tmp>" }
+	Set data	{ "g": ["data/test.gen"], "s": ["data/test.sample"] }
+	:FOR	${commandSpec}	IN	@{commandSpecs}
+	\	${startChar}=	Get Substring	${commandSpec}	0	1
+	\	Run Keyword If	'${startChar}' != '\#'	ProducesWellFormedSnpStatsOutput	${commandSpec}
+
+Produces well-formed sample output
+	@{commandSpecs}=	Create List	{ "sample-stats": "", "osample": "<tmp>" }
+	Set data	{ "g": ["data/test.gen"], "s": ["data/test.sample"] }
+	:FOR	${commandSpec}	IN	@{commandSpecs}
+	\	${startChar}=	Get Substring	${commandSpec}	0	1
+	\	Run Keyword If	'${startChar}' != '\#'	ProducesWellFormedSampleStatsOutput	${commandSpec}
+
+Accepts Different VCF fields
+	ProducesWellFormedSnpStatsOutput	{ "g": ["data/test.v4.2.vcf"], "s": ["data/test.sample" ], "snp-stats":"", "vcf-genotype-field": "GT", "osnp": "<tmp>" }
+	ProducesWellFormedSnpStatsOutput	{ "g": ["data/test.v4.2.vcf"], "s": ["data/test.sample" ], "snp-stats":"", "vcf-genotype-field": "GP", "osnp": "<tmp>" }
+
+Accepts Windows line endings
+	ProducesWellFormedSnpStatsOutput	{ "g": [ "data/test.gen" ], "s":["data/test.windows.sample"], "snp-stats":"", "osnp": "<tmp>" }
+
+
+Roundtrips gen files via bgen (v1.1)
+	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	16	--iterations	1	--max_samples	100	--bgen_version	v11
+Roundtrips gen files via bgen (v1.2, even bit counts)
+	:FOR	${bits}	IN	2	4	6	8	10	12	14	16	18	20	22	24	26	28	30	32
+	\	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	${bits}	--iterations	1	--max_samples	100	--bgen_version	v12
+Roundtrips gen files via bgen (v1.2, odd bit counts)
+	:FOR	${bits}	IN	1	3	5	7	9	11	13	15	17	19	21	23	25	27	29	31
+	\	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	${bits}	--iterations	1	--max_samples	100	--bgen_version	v12
+
+*** Keywords ***
+
+CheckRun
+	[Arguments]	@{command}
+	${result} =	Run Process	@{command}
+	ShouldBeEqualAsIntegers	${result.rc}	0
+
+RunsCommandWIthResult
+	[Arguments]	${command}	${expected_result}
+	Run Qctool	${command}	${expected_result}
+	
+ProducesWellFormedSampleStatsOutput
+	[Arguments]	${command}
+	${filenames}=	Run Qctool	${command}	ok
+	${filename}=	Get Variable Value	${filenames['osample']}
+	IsWellFormed	${filename}
+	HasSameLineCount	${filename}	data/test.sample	2
+	Has Column Matching	${filename}	sample
+	Has Column Matching	${filename}	index
+	Has Column Matching	${filename}	missing_proportion
+	Has Column Matching	${filename}	heterozygous_proportion
+
+ProducesWellFormedSnpStatsOutput
+	[Arguments]	${command}
+	${filenames}=	Run Qctool	${command}	ok
+	${filename}=	Get Variable Value	${filenames['osnp']}
+	IsWellFormed	${filename}
+	HasSameLineCount	${filename}	data/test.gen	0
+	Has Column Matching	${filename}	rsid
+	Has Column Matching	${filename}	chromosome
+	Has Column Matching	${filename}	position
+	Has Column Matching	${filename}	alleleA
+	Has Column Matching	${filename}	alleleB
+	Has Column Matching	${filename}	comment
+	Has Column Matching	${filename}	A
+	Has Column Matching	${filename}	B
+	Has Column Matching	${filename}	AA
+	Has Column Matching	${filename}	AB
+	Has Column Matching	${filename}	BB
+	Has Column Matching	${filename}	alleleA_frequency
+	Has Column Matching	${filename}	alleleB_frequency
+	Has Column Matching	${filename}	minor_allele_frequency
+	Has Column Matching	${filename}	NULL
+	Has Column Matching	${filename}	missing_proportion
+	Has Column Matching	${filename}	missing_call_proportion
+	Has Column Matching	${filename}	info
+	Has Column Matching	${filename}	impute_info
+	Has Column Matching	${filename}	HW_exact_p_value
+	Has Column Matching	${filename}	HW_lrt_p_value
+	
+HasSameLineCount
+	[Arguments]	${filename}	${other_filename}	${other_skip}
+	Matches Linecount	${filename}	${other_filename}	${other_skip}
+
+IsWellFormed
+    [Arguments]     ${filename}
+	Has Valid Metadata	${filename}
+	Has Column Header	${filename}
+	Has Footer	${filename}
