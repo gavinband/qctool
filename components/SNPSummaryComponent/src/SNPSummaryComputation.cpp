@@ -52,8 +52,8 @@ namespace snp_summary_component {
 
 			double const a_allele_freq = 1 - b_allele_freq ;
 
-			callback( "A_allele_frequency", a_allele_freq ) ;
-			callback( "B_allele_frequency", b_allele_freq ) ;
+			callback( "alleleA_frequency", a_allele_freq ) ;
+			callback( "alleleB_frequency", b_allele_freq ) ;
 
 			if( a_allele_freq < b_allele_freq ) {
 				callback( "minor_allele_frequency", a_allele_freq ) ;
@@ -73,8 +73,8 @@ namespace snp_summary_component {
 			double const a_allele_freq = ( ( 2.0 * genotypes.col(0).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
 			double const b_allele_freq = ( ( 2.0 * genotypes.col(2).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
 
-			callback( "A_allele_frequency", a_allele_freq ) ;
-			callback( "B_allele_frequency", b_allele_freq ) ;
+			callback( "alleleA_frequency", a_allele_freq ) ;
+			callback( "alleleB_frequency", b_allele_freq ) ;
 
 			if( a_allele_freq < b_allele_freq ) {
 				callback( "minor_allele_frequency", a_allele_freq ) ;
