@@ -53,8 +53,10 @@ args = parser$parse_args()
 
 if( args$bgen_version == "v11" ) {
 	stopifnot( args$bits == 16 )
+	args$bound = 1.0/32768
 } else if( args$bgen_version == "v12" ) {
 	stopifnot( args$bits <= 32 )
+	args$bound = 1.0/((2^(args$bits))-1)
 } else {
 	stop( sprintf( "Unrecognised bgen version %s.", args$bgen_version ))
 }
@@ -125,12 +127,11 @@ for( i in 1:args$iterations ) {
 		stopifnot( length( which( original.data[,col] != reconstructed.data[,col] )) == 0 )
 	}
 	max.discrepancy = max( original.data[,7:ncol( original.data)] - reconstructed.data[,7:ncol( reconstructed.data)] )
-	bound = 1.0/((2^(args$bits))-1)
 	if( args$verbose ) {
 		cat( sprintf( "%s\n", gen.filename ))
-		cat( sprintf( "simulation %d of %d, %d samples, %d variants, max discrepancy is %g, bound is %g.\n", i, args$iterations, N, args$variants, max.discrepancy, bound ))
+		cat( sprintf( "simulation %d of %d, %d samples, %d variants, max discrepancy is %g, bound is %g.\n", i, args$iterations, N, args$variants, max.discrepancy, args$bound ))
 	}
-	stopifnot( max.discrepancy <= 1.0/((2^(args$bits))-1))
+	stopifnot( max.discrepancy <= args$bound )
 }
 cat( "Success." )
 
