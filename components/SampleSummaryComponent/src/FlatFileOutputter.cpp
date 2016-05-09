@@ -46,6 +46,7 @@ namespace sample_stats {
 		store_block() ;
 		m_sample_indices.clear() ;
 		m_values.clear() ;
+		m_sink->write_comment( "Completed successfully at " + appcontext::get_current_time_as_string() ) ;
 	}
 
 	FlatFileOutputter::AnalysisId FlatFileOutputter::analysis_id() const {
