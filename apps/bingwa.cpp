@@ -603,7 +603,7 @@ namespace impl {
 	}
 	
 	bool single_population_filter( BingwaComputation::DataGetter const& data_getter, int i, int population ) {
-		return ( i == j ) ;
+		return ( i == population ) ;
 	}
 	
 	bool info_maf_filter( BingwaComputation::DataGetter const& data_getter, int i, double const lower_info_threshhold, double const lower_maf_threshhold ) {
