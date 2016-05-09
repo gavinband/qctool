@@ -2569,6 +2569,7 @@ private:
 			component.setup( processor, per_snp_storage ) ;
 		}
 
+		sample_stats::SampleStorage::SharedPtr per_sample_storage ;
 		if( SampleSummaryComponent::is_needed( options() ) ) {
 			if( !options().check( "-osample" )) {
 				throw genfile::BadArgumentError(
@@ -2578,7 +2579,6 @@ private:
 				) ;
 			}
 			std::string const fileSpec = options().get< std::string >( "-osample" ) ;
-			sample_stats::SampleStorage::SharedPtr per_sample_storage ;
 			if( fileSpec.size() >= 7 && fileSpec.substr( 0, 9 ) == "sqlite://" ) {
 				std::vector< std::string > elts = parse_sqlite_filespec( fileSpec ) ;
 				assert( elts.size() == 2 || elts.size() == 3 ) ;
@@ -2709,8 +2709,8 @@ private:
 			get_ui_context().logger() << "SNPs do not need to be visited -- skipping.\n" ;
 		}
 		if( per_snp_storage ) {
-            per_snp_storage->finalise() ;
-        }
+			per_snp_storage->finalise() ;
+		}
 	}
 } ;
 
