@@ -10,6 +10,13 @@ ${TMPDIR}	${CURDIR}/tmp
 ${HOME}	%{HOME}
 
 *** Test cases ***
+
+Merges Samples
+	CorrectlyMergesSamples	{ "g": ["data/test.gen", "data/test_cohort2.gen"], "s": ["data/test.sample", "data/test_cohort2.sample"], "os": "<tmp>" }	${598}
+
+Merges Genotype Data
+	CorrectlyMergesGenotypes	{ "g": ["data/test.gen", "data/test_cohort2.gen"], "s": ["data/test.sample", "data/test_cohort2.sample"], "og": "<tmp>" }	${8}
+
 Runs basic commands
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "s": [ "data/test.sample" ], "snp-stats": "", "osnp": "<tmp>" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "s": [ "data/test.sample" ], "snp-stats": "" }	fail
@@ -65,7 +72,6 @@ Accepts Different VCF fields
 Accepts Windows line endings
 	ProducesWellFormedSnpStatsOutput	{ "g": [ "data/test.gen" ], "s":["data/test.windows.sample"], "snp-stats":"", "osnp": "<tmp>" }
 
-
 Roundtrips gen files via bgen (v1.1)
 	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	16	--iterations	1	--max_samples	100	--bgen_version	v11
 Roundtrips gen files via bgen (v1.2, even bit counts)
@@ -82,10 +88,30 @@ CheckRun
 	${result} =	Run Process	@{command}
 	ShouldBeEqualAsIntegers	${result.rc}	0
 
-RunsCommandWIthResult
+RunsCommandWithResult
 	[Arguments]	${command}	${expected_result}
 	Run Qctool	${command}	${expected_result}
-	
+
+CorrectlyMergesGenotypes
+	[Arguments]	${command}	${expected_count}
+	${filenames}=	Run QCtool	${command}	ok
+	${filename}=	Get Variable Value	${filenames['og']}
+	File Should Exist	${filename}
+	File Should Not Be Empty	${filename}
+	${contents}=	Get File	${filename}
+	${linecount}=	Get Line Count	${contents}
+	Should Be Equal As Integers	${linecount}	${expected_count}
+
+CorrectlyMergesSamples
+	[Arguments]	${command}	${expected_sample_count}
+	${filenames}=	Run QCtool	${command}	ok
+	${filename}=	Get Variable Value	${filenames['os']}
+	File Should Exist	${filename}
+	File Should Not Be Empty	${filename}
+	${contents}=	Get File	${filename}
+	${linecount}=	Get Line Count	${contents}
+	Should Be Equal As Integers	${linecount}	${expected_sample_count+2}
+
 ProducesWellFormedSampleStatsOutput
 	[Arguments]	${command}
 	${filenames}=	Run Qctool	${command}	ok
