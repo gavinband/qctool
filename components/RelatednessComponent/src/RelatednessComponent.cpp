@@ -61,9 +61,6 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 		 	"Put the output in the file specified in the second argument." )
 		.set_takes_values_until_next_option()
 		.set_maximum_multiplicity(1) ;
-	options[ "-PCA-exclusions" ]
-		.set_description( "Output a list of exclusions based on outliers in the first N PCA components." )
-		.set_takes_single_value() ;
 	options[ "-kinship-method" ]
 		.set_description( "Method to use for relatedness matrix computation."
 			"The default is \"lookup-table\", which uses a lookup table to compute kinship values across"
