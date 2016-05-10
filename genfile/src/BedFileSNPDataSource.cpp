@@ -140,6 +140,7 @@ namespace genfile {
 						setter.set_value( 1, genotype.second ) ;
 					}
 				}
+				setter.finalise() ;
 				return *this ;
 			}
 			

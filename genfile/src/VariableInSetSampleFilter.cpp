@@ -34,7 +34,7 @@ namespace genfile {
 		if( value.is_int() ) {
 			value = double( value.as< int >() ) ;
 		}
-		if( !( value.is_double() || value.is_string() ) ) {
+		if( !( value.is_double() || value.is_string() || value.is_missing() ) ) {
 			throw genfile::BadArgumentError(
 				"VariableInSetSampleFilter::add_level()",
 				"value=\"" + genfile::string_utils::to_string( value ) + "\"",
@@ -57,6 +57,10 @@ namespace genfile {
 				genfile::VariantEntry level = m_levels[i] ;
 				impl::cast_types_for_comparison( v, level ) ;
 				in_set = ( v == level ) ;
+			}
+		} else {
+			for( std::size_t i = 0; i < m_levels.size() && !in_set; ++i ) {
+				in_set = m_levels[i].is_missing() ;
 			}
 		}
 		if( detail ) {

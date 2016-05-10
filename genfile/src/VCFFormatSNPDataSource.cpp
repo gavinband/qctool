@@ -300,7 +300,7 @@ namespace genfile {
 		m_variant_alleles = string_utils::split( m_ALT, "," ) ;
 		m_variant_alleles.insert( m_variant_alleles.begin(), m_REF ) ;
 
-		assert( m_REF != "." ) ;
+		// assert( m_REF != "." ) ;
 		for( std::size_t i = 0; i < m_variant_alleles.size(); ++i ) {
 			if( m_variant_alleles[i] != "." ) {
 				variant.add_allele( m_variant_alleles[i] ) ;

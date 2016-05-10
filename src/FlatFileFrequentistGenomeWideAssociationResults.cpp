@@ -95,10 +95,12 @@ std::string FlatFileFrequentistGenomeWideAssociationResults::get_summary( std::s
 				+ mem_used
 			)
 			/ 1000000.0
-		) + "Mb in use.)" ;
+		) + "Mb in use.)\n" ;
 	
 	std::ostringstream str( result ) ;
+#if 0
 	str << "\n" << " -- using the following columns:\n" ;
+
 	SourceColumnMap::right_const_iterator
 		i = m_column_map.get().right.begin(),
 		end_i = m_column_map.get().right.end() ;
@@ -106,6 +108,8 @@ std::string FlatFileFrequentistGenomeWideAssociationResults::get_summary( std::s
 	for( std::size_t count = 0; i != end_i; ++i, ++count ) {
 		str << " -- column " << i->first << ": " << "(\"" << i->second.name() << "\", matching \"" << i->second.pattern().str() << "\")\n" ;
 	}
+#endif
+
 	return str.str() ;
 }
 
