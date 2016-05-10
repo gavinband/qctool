@@ -190,7 +190,7 @@ struct IDDataPrinter
 				include = include && ( m_context.rsids().find( snp.get_primary_id() ) != m_context.rsids().end() ) ;
 			}
 			if( include ) {
-				std::cout << snp.get_identifiers_as_string( "," ) << " " << snp.get_primary_id()
+				std::cout << snp.get_identifiers_as_string( ",", 1 ) << " " << snp.get_primary_id()
 					<< " " << snp.get_position().chromosome() << " " << snp.get_position().position()
 					<< " " << snp.get_allele(0) << " " ;
 				for( std::size_t i = 1; i < snp.number_of_alleles(); ++i ) {
