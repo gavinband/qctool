@@ -613,7 +613,7 @@ private:
 		for( std::size_t i = 0; i < input_gen_filenames_supplied.size(); ++i ) {
 			m_gen_filenames[i] = genfile::wildcard::find_files_by_chromosome(
 				input_gen_filenames_supplied[i],
-				genfile::wildcard::eALL_CHROMOSOMES
+				genfile::wildcard::eNON_SEX_CHROMOSOMES
 			) ;
 		}
 	}
@@ -2658,7 +2658,7 @@ private:
 				context.open_snp_data_sources(
 					genfile::wildcard::find_files_by_chromosome(
 						filenames[0],
-						genfile::wildcard::eALL_CHROMOSOMES
+						genfile::wildcard::eNON_SEX_CHROMOSOMES
 					)
 				),
 				options(),
