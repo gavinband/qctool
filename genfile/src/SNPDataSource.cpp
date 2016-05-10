@@ -102,7 +102,7 @@ namespace genfile {
 		else {
 			throw genfile::BadArgumentError(
 				"genfile::SNPDataSource::create()",
-				"filetype_hint=\"" + filetype_hint + "\"",
+				"filetype_hint=\"" + filetype_hint + "\", inferred type = \"" + uf.first + "\"",
 				"Unrecognised file type."
 			) ;
 			// assume GEN format.
