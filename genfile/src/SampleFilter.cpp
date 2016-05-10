@@ -80,11 +80,19 @@ namespace genfile {
 		SampleFilter::UniquePtr result ;
 		if( type == "=" ) {
 			VariableInSetSampleFilter::UniquePtr filter( new VariableInSetSampleFilter( elts[0] ) ) ;
-			filter->add_level( elts[1] ) ;
+			if( elts[1] == "NA" ) {
+				filter->add_level( genfile::MissingValue() ) ;
+			} else {
+				filter->add_level( elts[1] ) ;
+			}
 			result.reset( filter.release() ) ;
 		} else {
 			VariableNotInSetSampleFilter::UniquePtr filter( new VariableNotInSetSampleFilter( elts[0] ) ) ;
-			filter->add_level( elts[1] ) ;
+			if( elts[1] == "NA" ) {
+				filter->add_level( genfile::MissingValue() ) ;
+			} else {
+				filter->add_level( elts[1] ) ;
+			}
 			result.reset( filter.release() ) ;
 		}
 
