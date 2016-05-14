@@ -2116,11 +2116,6 @@ private:
 		try {
 			return unsafe_open_samples( snp_data_source ) ;
 		}
-		catch( ConditionValueNotFoundException const& ) {
-			m_ui_context.logger() << "\n\n!! ERROR: The input sample file must contain entries for all values used to filter on.\n"
-				<< "!! This includes \"missing\" and \"heterozygosity\".\n" ;
-			throw ;
-		}
 		catch( genfile::MalformedInputError const& e ) {
 			m_ui_context.logger() << "\n\n!! ERROR (" << e.what() << "): the sample file \"" << e.source() << "\" is malformed on line "
 				<< e.line() + 1 ;

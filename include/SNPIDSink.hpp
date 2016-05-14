@@ -12,7 +12,6 @@
 #include <memory>
 #include <stddef.h>
 
-#include "SNPInListCondition.hpp"
 #include "genfile/SNPDataSink.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
 

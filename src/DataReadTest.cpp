@@ -29,15 +29,15 @@ void DataReadTest::begin_processing_snps( std::size_t number_of_samples, genfile
 	m_data.resize( m_number_of_samples ) ;
 }
 
-void DataReadTest::processed_snp( genfile::SNPIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
+void DataReadTest::processed_snp( genfile::VariantIdentifyingData const& snp, genfile::VariantDataReader::SharedPtr data_reader ) {
 	std::vector< std::string > fields ;
-	data_reader.get_supported_specs( boost::bind( &std::vector< std::string >::push_back, &fields, _1 )) ;
+	data_reader->get_supported_specs( boost::bind( &std::vector< std::string >::push_back, &fields, _1 )) ;
 	
 	for( std::size_t field_i = 0; field_i < fields.size(); ++field_i ) {
 		std::string const field = fields[ field_i ] ;
 		// Make sure we've got these fields in Entity
 		genfile::vcf::VectorSetter setter( m_data ) ;
-		data_reader.get( field, setter ) ;
+		data_reader->get( field, setter ) ;
 	}
 }
 
