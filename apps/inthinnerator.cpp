@@ -43,7 +43,7 @@
 
 #include "db/SQLite3Connection.hpp"
 #include "genfile/FromFilesGeneticMap.hpp"
-#include "FileUtil.hpp"
+//#include "FileUtil.hpp"
 #include "qcdb/Storage.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
 #include "qcdb/FlatFileOutputter.hpp"
@@ -1224,10 +1224,6 @@ private:
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 		catch( statfile::FileNotOpenedError const& e ) {
-			get_ui_context().logger() << "!! Error (" << e.what() << "): The file \"" << e.filename() << "\" could not be opened.\n" ;
-			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
-		}
-		catch( FileNotOpenedError const& e ) {
 			get_ui_context().logger() << "!! Error (" << e.what() << "): The file \"" << e.filename() << "\" could not be opened.\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}

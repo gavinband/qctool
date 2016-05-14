@@ -30,14 +30,10 @@
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
-#include "Timer.hpp"
 #include "appcontext/CmdLineOptionProcessor.hpp"
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
-#include "FileUtil.hpp"
-#include "ObjectSource.hpp"
-#include "SimpleFileObjectSource.hpp"
-#include "SimpleFileObjectSink.hpp"
+//#include "FileUtil.hpp"
 
 #include "db/Error.hpp"
 
@@ -93,10 +89,8 @@
 #include "worker/QueuedMultiThreadedWorker.hpp"
 #include "worker/SynchronousWorker.hpp"
 
-#include "progress_bar.hpp"
 #include "FileBackupCreator.hpp"
 #include "InputToOutputFilenameMapper.hpp"
-#include "null_ostream.hpp"
 #include "SNPIDSink.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "DataReadTest.hpp"
@@ -748,10 +742,6 @@ struct QCToolCmdLineContext
 		}
 		catch( genfile::ResourceNotOpenedError const& e ) {
 			m_ui_context.logger() << "\nError: (" << e.what() << "): resource \"" << e.source() << "\" could not be opened.\n" ;
-			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
-		}
-		catch ( FileError const& e ) {
-			m_ui_context.logger() << "\nFile handling exception: " << e.what() << ": relating to file \"" << e.filename() << "\".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 		catch ( genfile::KeyNotFoundError const& e ) {

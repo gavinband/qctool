@@ -8,17 +8,35 @@
 
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
+#include "genfile/GenomePositionRange.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/wildcard.hpp"
+#include "genfile/FileUtils.hpp"
 #include "appcontext/CmdLineOptionProcessor.hpp"
 #include "appcontext/ProgramFlow.hpp"
-#include "PositionRange.hpp"
-#include "FileSet.hpp"
 
 using namespace appcontext ;
 
 namespace globals {
 	std::string program_name = "gen-grep" ;
+}
+
+typedef genfile::GenomePositionRange PositionRange ;
+
+namespace {
+	// Read a set of things from a file (optionally gzipped).
+	template< typename Set >
+	Set read_set_from_file( std::string const& filename ) {
+		Set aSet ;
+		std::auto_ptr< std::istream > aStream( genfile::open_text_file_for_input( filename )) ;
+		if( aStream.get() && aStream->good() ) {
+			std::copy( std::istream_iterator< typename Set::value_type >( *aStream ),
+			           std::istream_iterator< typename Set::value_type >(),
+			           std::inserter( aSet, aSet.end() )) ;
+		}
+
+		return aSet ;
+	}
 }
 
 struct IDDataPrinterOptionProcessor: public CmdLineOptionProcessor
@@ -174,7 +192,7 @@ struct IDDataPrinter
 		std::cout << "SNPID rsid chromosome position first_allele other_alleles number_of_alleles\n" ;
 		genfile::VariantIdentifyingData snp ;
 		while( m_context.snp_data_source().get_snp_identifying_data( &snp )) {
-			bool include = m_context.position_range().contains( snp.get_position().position() ) ;
+			bool include = m_context.position_range().contains( snp.get_position() ) ;
 			if( m_context.have_snp_ids() ) {
 				std::vector< genfile::string_utils::slice > const& identifiers = snp.get_identifiers() ;
 				bool found = false ;
