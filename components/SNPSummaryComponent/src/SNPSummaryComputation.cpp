@@ -119,6 +119,7 @@ namespace snp_summary_component {
 			} else {
 				compute_sex_chromosome_counts( snp, genotypes, sexes, callback ) ;
 			}
+			callback( "total", genotypes.rows() ) ;
 		}
 		
 		void compute_sex_chromosome_counts( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, ResultCallback callback ) {
