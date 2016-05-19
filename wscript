@@ -245,7 +245,7 @@ def build( bld ):
 	#---------------------
 	# misc tests...
 
-	create_tests( bld, uselib = USELIB, components = Components )
+	# create_tests( bld, uselib = USELIB, components = Components )
 
 def create_app( bld, name, uselib = '', uselib_local = '' ):
 	bld.new_task_gen(
