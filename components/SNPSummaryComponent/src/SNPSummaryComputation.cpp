@@ -106,14 +106,6 @@ namespace snp_summary_component {
 		void operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, genfile::VariantDataReader&, ResultCallback callback ) {
 			double missingness = double( genotypes.rows() ) - genotypes.array().sum() ;
 			callback( "missing_proportion", missingness / double( genotypes.rows() ) ) ;
-			
-			double missing_calls = 0.0 ;
-			for( int i = 0; i < genotypes.rows(); ++i ) {
-				if( genotypes.row( i ).maxCoeff() < m_call_threshhold ) {
-					++missing_calls ;
-				}
-			}
-			callback( "missing_call_proportion", missing_calls / double( genotypes.rows() )) ;
 
 			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
 
