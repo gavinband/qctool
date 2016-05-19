@@ -30,12 +30,6 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 	options[ "-kinship" ]
 		.set_description( "Perform kinship computation using threshholded genotype calls and cblas or Eigen libraries." )
 		.set_takes_single_value() ;
-	options[ "-sample-concordance" ]
-		.set_description( "Compute concordance between all pairs of samples, using threshholded genotype calls." )
-		.set_takes_single_value() ;
-	options[ "-intensity-covariance" ]
-		.set_description( "Compute covariance matrix of intensity values" )
-		.set_takes_single_value() ;
 	options[ "-load-kinship" ]
 		.set_description( "Load a previously-computed kinship matrix from the specified file." )
 		.set_takes_single_value() ;
@@ -45,10 +39,10 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 	options[ "-UDUT" ]
 		.set_description( "Compute the UDUT decomposition of the matrix passed to -load-kinship, and save it in the specified file." )
 		.set_takes_single_value() ;
-	options[ "-PCAs" ]
+	options[ "-PCs" ]
 		.set_description( "Specify the name of a file to save PCA components in." )
 		.set_takes_single_value() ;
-	options[ "-nPCAs" ]
+	options[ "-nPCs" ]
 		.set_description( "Compute PCA components of kinship matrix. "
 		 	"The argument should be the number of PCA components to compute.")
 		.set_takes_single_value()
@@ -74,8 +68,8 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 	options.option_implies_option( "-kinship", "-s" ) ;
 	options.option_implies_option( "-kinship-method", "-kinship" ) ;
 	options.option_implies_option( "-load-kinship", "-s" ) ;
-	options.option_implies_option( "-UDUT", "-PCAs" ) ;
-	options.option_implies_option( "-PCAs", "-UDUT" ) ;
+	options.option_implies_option( "-UDUT", "-PCs" ) ;
+	options.option_implies_option( "-PCs", "-UDUT" ) ;
 	options.option_excludes_option( "-load-kinship", "-kinship" ) ;
 	options.option_excludes_option( "-project-onto", "-loadings" ) ;
 	options.option_excludes_option( "-load-UDUT", "-UDUT" ) ;
@@ -129,11 +123,11 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 		_1
 	) ;
 
-	if( m_options.check( "-PCAs" ) ) {
+	if( m_options.check( "-PCs" ) ) {
 		if( !m_options.check( "-kinship" ) && !m_options.check( "-load-kinship" )) {
 			throw genfile::BadArgumentError(
 				"RelatednessComponent::setup()",
-				"-PCAs",
+				"-PCs",
 				"Expected -kinship or -load-kinship to be supplied."
 			) ;
 		}
@@ -148,7 +142,7 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 		pca_computer->send_PCAs_to(
 			boost::bind(
 				&pca::write_sample_file,
-				m_options.get< std::string >( "-PCAs" ),
+				m_options.get< std::string >( "-PCs" ),
 				boost::cref( m_samples ),
 				_3, "qctool:PCAComputer", _1, _4, _5
 			)
@@ -156,7 +150,7 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 	}
 
 	if( m_options.check( "-loadings" )) {
-		PCALoadingComputer::UniquePtr loading_computer( new PCALoadingComputer( m_options.get< int >( "-nPCAs" ) ) ) ;
+		PCALoadingComputer::UniquePtr loading_computer( new PCALoadingComputer( m_options.get< int >( "-nPCs" ) ) ) ;
 		if( pca_computer.get() ) {
 			pca_computer->send_UDUT_to( boost::bind( &PCALoadingComputer::set_UDUT, loading_computer.get(), _2, _3 ) ) ;
 		} else if( m_options.check( "-load-UDUT" )) {
@@ -164,7 +158,7 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 			udut.send_UDUT_to( boost::bind( &PCALoadingComputer::set_UDUT, loading_computer.get(), _3, _1 )) ;
 			udut.load_matrix( m_options.get< std::string >( "-load-UDUT" )) ;
 		} else {
-			throw appcontext::OptionProcessorImpliedOptionNotSuppliedException( "-loadings", "-PCAs or -load-UDUT" ) ;
+			throw appcontext::OptionProcessorImpliedOptionNotSuppliedException( "-loadings", "-PCs or -load-UDUT" ) ;
 		}
 
 		// Set up an output location for the loadings.

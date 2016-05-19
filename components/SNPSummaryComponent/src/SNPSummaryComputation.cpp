@@ -48,10 +48,13 @@ namespace snp_summary_component {
 			double const b_allele_count = male_genotypes.col(1).sum()
 				+ ( ( 2.0 * female_genotypes.col(2).sum() ) + female_genotypes.col(1).sum() ) ;
 
-			double const b_allele_freq = b_allele_count / ( male_genotypes.sum() + 2.0 * female_genotypes.sum() ) ;
+			double const total_allele_count = ( male_genotypes.sum() + 2.0 * female_genotypes.sum() ) ;
+			double const b_allele_freq = b_allele_count / total_allele_count ;
 
 			double const a_allele_freq = 1 - b_allele_freq ;
 
+			callback( "alleleA_count", a_allele_freq ) ;
+			callback( "alleleB_count", b_allele_count ) ;
 			callback( "alleleA_frequency", a_allele_freq ) ;
 			callback( "alleleB_frequency", b_allele_freq ) ;
 
@@ -70,9 +73,14 @@ namespace snp_summary_component {
 		}
 
 		void compute_autosomal_frequency( VariantIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) {
-			double const a_allele_freq = ( ( 2.0 * genotypes.col(0).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
-			double const b_allele_freq = ( ( 2.0 * genotypes.col(2).sum() ) + genotypes.col(1).sum() ) / ( 2.0 * genotypes.sum() ) ;
+			double const a_allele_count = ( 2.0 * genotypes.col(0).sum() ) + genotypes.col(1).sum() ;
+			double const b_allele_count = ( 2.0 * genotypes.col(2).sum() ) + genotypes.col(1).sum() ;
+			double const total_allele_count = ( 2.0 * genotypes.sum() ) ;
+			double const a_allele_freq = a_allele_count / total_allele_count ;
+			double const b_allele_freq = b_allele_count / total_allele_count ;
 
+			callback( "alleleA_count", a_allele_count ) ;
+			callback( "alleleB_count", b_allele_count ) ;
 			callback( "alleleA_frequency", a_allele_freq ) ;
 			callback( "alleleB_frequency", b_allele_freq ) ;
 
