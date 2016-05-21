@@ -26,6 +26,7 @@ namespace genfile {
 	{
 		friend struct impl::BGenFileSNPDataReader ;
 	public:
+		BGenFileSNPDataSource( std::auto_ptr< std::istream >, Chromosome missing_chromosome = Chromosome() ) ;
 		BGenFileSNPDataSource( std::string const& filename, Chromosome missing_chromosome = Chromosome() ) ;
 
 		Metadata get_metadata() const ;
@@ -58,7 +59,8 @@ namespace genfile {
 		boost::optional< std::vector< std::string > > m_sample_ids ;
 		std::auto_ptr< std::istream > m_stream_ptr ;
 
-		void setup( std::string const& filename, CompressionType compression_type ) ;
+		void setup( std::auto_ptr< std::istream > stream ) ;
+
 		uint32_t read_header_data() ;
 		std::vector< byte_t > m_compressed_data_buffer ;
 		std::vector< byte_t > m_uncompressed_data_buffer ;
