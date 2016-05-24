@@ -33,7 +33,7 @@ PCAComputer::PCAComputer(
 	m_ui_context( ui_context ),
 	m_samples( samples ),
 	m_number_of_samples( samples.get_number_of_individuals() ),
-	m_number_of_PCAs_to_compute( std::min( m_options.get< std::size_t >( "-nPCAs" ), samples.get_number_of_individuals() ) ),
+	m_number_of_PCAs_to_compute( std::min( m_options.get< std::size_t >( "-nPCs" ), samples.get_number_of_individuals() ) ),
 	m_threshhold( 0.9 )
 {}
 
