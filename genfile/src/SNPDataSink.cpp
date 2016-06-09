@@ -17,6 +17,7 @@
 #include "genfile/SNPDataSink.hpp"
 #include "genfile/GenFileSNPDataSink.hpp"
 #include "genfile/GenDosageFileSNPDataSink.hpp"
+#include "genfile/BimBamDosageSNPDataSink.hpp"
 #include "genfile/GenIntensityFileSNPDataSink.hpp"
 #include "genfile/BGenFileSNPDataSink.hpp"
 #include "genfile/BedFileSNPDataSink.hpp"
@@ -41,6 +42,7 @@ namespace genfile {
 		result.push_back( "shapeit_haplotypes" ) ;
 		result.push_back( "shapeit" ) ;
 		result.push_back( "dosage" ) ;
+		result.push_back( "bimbam_dosage" ) ;
 		result.push_back( "intensity" ) ;
 		result.push_back( "penncnv" ) ;
 		result.push_back( "cnvhap" ) ;
@@ -79,6 +81,9 @@ namespace genfile {
 		}
 		else if( d.first == "dosage" ) {
 			return SNPDataSink::UniquePtr( new GenDosageFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
+		}
+		else if( d.first == "bimbam_dosage" ) {
+			return SNPDataSink::UniquePtr( new BimBamDosageSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
 		}
 		else if( d.first == "intensity" ) {
 			return SNPDataSink::UniquePtr( new GenIntensityFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;

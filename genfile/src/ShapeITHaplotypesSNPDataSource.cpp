@@ -185,6 +185,7 @@ namespace genfile {
 						}
 					}
 				}
+				setter.finalise() ;
 				return *this ;
 			}
 			
