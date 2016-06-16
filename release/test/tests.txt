@@ -25,6 +25,7 @@ Accepts output formats
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>", "ofiletype": "bgen_v11" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>", "ofiletype": "dosage" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>", "ofiletype": "bed" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.shapeit" ], "s": [ "data/complex.sample"], "filetype": "shapeit_haplotypes", "og": "<tmp>", "ofiletype": "shapeit_haplotypes" }	ok
 
 Accepts input files
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "snp-stats": "", "osnp": "<tmp>" }	ok
@@ -42,7 +43,8 @@ Accepts input files
 	RunsCommandWithResult	{ "g": ["data/test.v4.2.vcf"], "filetype": "vcf", "snp-stats": "", "osnp": "<tmp>" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.bgen"], "filetype": "bgen", "snp-stats": "", "osnp": "<tmp>" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.v12.bgen"], "filetype": "bgen", "snp-stats": "", "osnp": "<tmp>" }	ok
-	RunsCommandWithResult	{ "g": ["data/test.bed"], "filetype": "bed", "snp-stats": "", "osnp": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.bed"], "filetype": "binary_ped", "snp-stats": "", "osnp": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.shapeit"], "s": [ "data/complex.sample" ], "filetype": "shapeit_haplotypes", "snp-stats": "", "osnp": "<tmp>" }	ok
 
 Produces well-formed snp stats output
 	@{commandSpecs}=	Create List	{ "snp-stats": "", "osnp": "<tmp>" }
