@@ -65,6 +65,9 @@ Accepts Different VCF fields
 Accepts Windows line endings
 	ProducesWellFormedSnpStatsOutput	{ "g": [ "data/test.gen" ], "s":["data/test.windows.sample"], "snp-stats":"", "osnp": "<tmp>" }
 
+Processes complex bgen file
+	RunsCommandWithResult	{ "g": ["data/complex.bgen"], "s": [ "data/complex.sample"], "og": "<tmp>", "ofiletype": "vcf" }	ok
+	RunsCommandWithResult	{ "g": ["data/complex.bgen"], "s": [ "data/complex.sample"], "og": "<tmp>", "ofiletype": "bgen" }	ok
 
 Roundtrips gen files via bgen (v1.1)
 	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	16	--iterations	1	--max_samples	100	--bgen_version	v11
@@ -85,7 +88,6 @@ CheckRun
 RunsCommandWIthResult
 	[Arguments]	${command}	${expected_result}
 	Run Qctool	${command}	${expected_result}
-<<<<<<< Local Changes
 
 CorrectlyMergesGenotypes
 	[Arguments]	${command}	${expected_count}
@@ -108,9 +110,6 @@ CorrectlyMergesSamples
 	${linecount}=	Get Line Count	${contents}
 	Should Be Equal As Integers	${linecount}	${expected_sample_count+2}
 
-=======
-	
->>>>>>> External Changes
 ProducesWellFormedSampleStatsOutput
 	[Arguments]	${command}
 	${filenames}=	Run Qctool	${command}	ok
@@ -144,7 +143,6 @@ ProducesWellFormedSnpStatsOutput
 	Has Column Matching	${filename}	minor_allele_frequency
 	Has Column Matching	${filename}	NULL
 	Has Column Matching	${filename}	missing_proportion
-	Has Column Matching	${filename}	missing_call_proportion
 	Has Column Matching	${filename}	info
 	Has Column Matching	${filename}	impute_info
 	Has Column Matching	${filename}	HW_exact_p_value

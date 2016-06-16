@@ -43,7 +43,7 @@ class QctoolRunner:
 		for i in range( 0, len(sdata) ):
 			cmd += [ "-s", sdata[i] ]
 		
-		for option in [ 'vcf-genotype-field', 'incl-samples', 'excl-samples', 'osnp', 'osample' ]:
+		for option in [ 'vcf-genotype-field', 'incl-samples', 'excl-samples', 'osnp', 'osample', 'ofiletype' ]:
 			if values.get( option, None ) is not None:
 				value = values[ option ]
 				if value == '<tmp>':
