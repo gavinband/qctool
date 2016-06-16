@@ -189,7 +189,7 @@ struct IDDataPrinter
 	{}
 
 	void process() {
-		std::cout << "SNPID rsid chromosome position first_allele other_alleles number_of_alleles\n" ;
+		std::cout << "alternate_identifiers rsid chromosome position first_allele other_alleles number_of_alleles\n" ;
 		genfile::VariantIdentifyingData snp ;
 		while( m_context.snp_data_source().get_snp_identifying_data( &snp )) {
 			bool include = m_context.position_range().contains( snp.get_position() ) ;
@@ -208,7 +208,7 @@ struct IDDataPrinter
 				include = include && ( m_context.rsids().find( snp.get_primary_id() ) != m_context.rsids().end() ) ;
 			}
 			if( include ) {
-				std::cout << snp.get_identifiers_as_string( ",", 1 ) << " " << snp.get_primary_id()
+				std::cout << ( snp.number_of_identifiers() > 1 ? snp.get_identifiers_as_string( ",", 1 ) : "." ) << " " << snp.get_primary_id()
 					<< " " << snp.get_position().chromosome() << " " << snp.get_position().position()
 					<< " " << snp.get_allele(0) << " " ;
 				for( std::size_t i = 1; i < snp.number_of_alleles(); ++i ) {
