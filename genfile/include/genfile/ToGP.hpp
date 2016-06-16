@@ -192,7 +192,6 @@ namespace genfile {
 		}
 		
 		uint16_t encode_call( int64_t const value, uint32_t const bitsPerAllele ) {
-			uint16_t const bitMask = uint16_t( 0xFFFF ) >> ( 16 - bitsPerAllele ) ;
 			std::size_t const numberOfAlleles = 16 / bitsPerAllele ;
 			assert( value <= numberOfAlleles ) ;
 			return(( value == 0 ) ? uint16_t(0) : (1 << ((value-1)*bitsPerAllele))) ;
@@ -325,23 +324,25 @@ namespace genfile {
 	// This class receives unphased (or phased) GT-style genotypes
 	// and outputs unphased genotype probabilities.
 	template< typename Setter >
-	struct GPToGPUnphased: public ToGPImpl< Setter >, impl::GTToGPUnphasedBase
+	struct GPToGP: public ToGPImpl< Setter >, impl::GTToGPUnphasedBase
 	{
 		typedef typename ToGPImpl< Setter >::SharedPtr SharedPtr ;
 
 
-		static SharedPtr create() {
-			return SharedPtr( new GPToGPUnphased() ) ;
+		static SharedPtr create( OrderType order_type, ValueType value_type ) {
+			return SharedPtr( new GPToGP( order_type, value_type ) ) ;
 		}
 		
-		GPToGPUnphased():
-			m_setter( 0 )
+		GPToGP( OrderType order_type, ValueType value_type ):
+			m_setter( 0 ),
+			m_order_type( order_type ),
+			m_value_type( value_type )
 		{
 		}
 
 		void initialise( Setter& setter, std::size_t number_of_alleles, uint32_t ploidy, std::size_t number_of_entries ) {
 			m_setter = &setter ;
-			m_setter->set_number_of_entries( ploidy, number_of_entries, ePerUnorderedGenotype, eProbability ) ;
+			m_setter->set_number_of_entries( ploidy, number_of_entries, m_order_type, m_value_type ) ;
 		}
 		
 		bool initialised() const { return ( m_setter != 0 ) ; }
@@ -364,6 +365,8 @@ namespace genfile {
 
 	private:
 		Setter* m_setter ;
+		OrderType m_order_type ;
+		ValueType m_value_type ;
 	} ;
 	
 	template< typename Setter >
@@ -371,7 +374,7 @@ namespace genfile {
 		ToGP< Setter > result( setter ) ;
 		result.add_impl( ePerUnorderedHaplotype, eAlleleIndex, GTToGPUnphased< Setter >::create() ) ;
 		result.add_impl( ePerOrderedHaplotype, eAlleleIndex, GTToGPUnphased< Setter >::create() ) ;
-		result.add_impl( ePerUnorderedGenotype, eProbability, GPToGPUnphased< Setter >::create() ) ;
+		result.add_impl( ePerUnorderedGenotype, eProbability, GPToGP< Setter >::create( ePerUnorderedGenotype, eProbability ) ) ;
 		return result ;
 	}
 
@@ -379,6 +382,7 @@ namespace genfile {
 	ToGP< Setter > to_GP_phased( Setter& setter ) {
 		ToGP< Setter > result( setter ) ;
 		result.add_impl( ePerOrderedHaplotype, eAlleleIndex, GTToGPPhased< Setter >::create() ) ;
+		result.add_impl( ePerPhasedHaplotypePerAllele, eProbability, GPToGP< Setter >::create( ePerPhasedHaplotypePerAllele, eProbability ) ) ;
 		return result ;
 	}
 	
@@ -387,7 +391,8 @@ namespace genfile {
 		ToGP< Setter > result( setter ) ;
 		result.add_impl( ePerUnorderedHaplotype, eAlleleIndex, GTToGPUnphased< Setter >::create() ) ;
 		result.add_impl( ePerOrderedHaplotype, eAlleleIndex, GTToGPPhased< Setter >::create() ) ;
-		result.add_impl( ePerUnorderedGenotype, eProbability, GPToGPUnphased< Setter >::create() ) ;
+		result.add_impl( ePerUnorderedGenotype, eProbability, GPToGP< Setter >::create( ePerUnorderedGenotype, eProbability ) ) ;
+		result.add_impl( ePerPhasedHaplotypePerAllele, eProbability, GPToGP< Setter >::create( ePerPhasedHaplotypePerAllele, eProbability ) ) ;
 		return result ;
 	}
 	

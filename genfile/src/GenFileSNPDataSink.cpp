@@ -80,9 +80,10 @@ namespace genfile {
 					) ;
 				}
 				m_entry_i = 0 ;
+				m_missing = std::vector< bool >( m_number_of_samples, false ) ;
 			}
 			void set_value( std::size_t, MissingValue const value ) {
-				m_data( m_sample_i * 3 + m_entry_i++ ) = -1 ;
+				m_missing[ m_sample_i ] = true ;
 			}
 
 			void set_value( std::size_t, std::string& value ) {
@@ -100,11 +101,15 @@ namespace genfile {
 			void finalise() {} ;
 
 			void write_to_stream( std::ostream& stream ) const {
-				for( std::size_t i = 0; i < m_data.size(); ++i ) {
-					if( m_data[i] == -1 ) {
-						stream << " NA" ;
+				for( std::size_t i = 0; i < m_number_of_samples; ++i ) {
+					if( m_missing[i] ) {
+						stream << " 0 0 0 " ;
 					} else {
-						stream << " " << m_data[i] ; 
+						stream
+							<< " " << m_data[3*i+0] 
+							<< " " << m_data[3*i+1] 
+							<< " " << m_data[3*i+2]
+						;
 					}
 				}
 			}
@@ -114,6 +119,7 @@ namespace genfile {
 			std::size_t m_number_of_samples ;
 			std::size_t m_sample_i ;
 			std::size_t m_entry_i ;
+			std::vector< bool > m_missing ;
 		} ;
 	}
 

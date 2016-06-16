@@ -14,11 +14,21 @@
 #include "genfile/zlib.hpp"
 
 namespace genfile {
+	BGenFileSNPDataSource::BGenFileSNPDataSource( std::auto_ptr< std::istream >, Chromosome missing_chromosome ):
+		m_filename( "(anonymous stream)" ),
+		m_missing_chromosome( missing_chromosome )
+	{}
+		
 	BGenFileSNPDataSource::BGenFileSNPDataSource( std::string const& filename, Chromosome missing_chromosome ):
 		m_filename( filename ),
 		m_missing_chromosome( missing_chromosome )
 	{
-		setup( filename, get_compression_type_indicated_by_filename( filename )) ;
+		setup(
+			open_binary_file_for_input(
+				filename,
+				get_compression_type_indicated_by_filename( filename )
+			)
+		) ;
 	}
 
 	void BGenFileSNPDataSource::reset_to_start_impl() {
@@ -143,8 +153,8 @@ namespace genfile {
 		) ;
 	}
 
-	void BGenFileSNPDataSource::setup( std::string const& filename, CompressionType compression_type ) {
-		m_stream_ptr = open_binary_file_for_input( filename, compression_type ) ;
+	void BGenFileSNPDataSource::setup( std::auto_ptr< std::istream > stream ) {
+		m_stream_ptr = stream ;
 		bgen::uint32_t offset = 0 ;
 		bgen::read_offset( *m_stream_ptr, &offset ) ;
 		std::size_t bytes_read = bgen::read_header_block( *m_stream_ptr, &m_bgen_context ) ;
