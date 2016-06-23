@@ -2,7 +2,7 @@
 Copyright 2009-2016 Gavin Band, University of Oxford
 
 This package comprises the QCTOOL program for quality control of a set of SNP marker data,
-together with some other utility programs.  For full details seethe QCTOOL webpage at <http://www.well.ox.ac.uk/~gav/qctool>.
+together with some other utility programs.  For full details see <http://www.well.ox.ac.uk/~gav/qctool>.
 
 ## INSTALLATION
 
