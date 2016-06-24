@@ -9,94 +9,76 @@
 
 #include <string>
 #include <iostream>
+#include <boost/optional.hpp>
 
 namespace genfile {
-	
-	enum ChromosomeEnum {
-		Chromosome1 = 1,
-		Chromosome2,
-		Chromosome3,
-		Chromosome4,
-		Chromosome5,
-		Chromosome6,
-		Chromosome7,
-		Chromosome8,
-		Chromosome9,
-		Chromosome10,
-		Chromosome11,
-		Chromosome12,
-		Chromosome13,
-		Chromosome14,
-		Chromosome15,
-		Chromosome16,
-		Chromosome17,
-		Chromosome18,
-		Chromosome19,
-		Chromosome20,
-		Chromosome21,
-		Chromosome22,
-		XChromosome = 23,
-		YChromosome = 24,
-		XYPseudoAutosomalDNA = 253,
-		MitochondrialDNA = 254,
-		UnidentifiedChromosome = 255
+	struct Genome {
 	} ;
-	
+
 	struct Chromosome
 	{
-		Chromosome()
-			: m_chromosome_e( UnidentifiedChromosome )
+		Chromosome():
+			m_repr()
 		{}
 
-		Chromosome( ChromosomeEnum chromosome_e )
-			: m_chromosome_e( chromosome_e )
+		Chromosome( std::string const& chromosome_str ):
+			m_repr( chromosome_str )
 		{}
 
-		Chromosome( unsigned char c )
-			: m_chromosome_e( ChromosomeEnum( c ) )
+		Chromosome( Chromosome const& other ):
+			m_repr( other.m_repr )
 		{}
 
-		Chromosome( std::string const& chromosome_str ) ;
-		
-		Chromosome& operator=( ChromosomeEnum chromosome_e ) {
-			m_chromosome_e = chromosome_e ;
+		Chromosome& operator=( Chromosome const& other ) {
+			m_repr = other.m_repr ;
+			return *this ;
+		}
+
+		Chromosome& operator=( std::string const& other ) {
+			m_repr = other ;
 			return *this ;
 		}
 		
-		bool operator==( std::string const& other ) const ;
+		bool operator==( std::string const& other ) const {
+			return m_repr == other ;
+		}
 
 		bool operator==( Chromosome other ) const {
-			return m_chromosome_e == other.m_chromosome_e ;
+			return m_repr == other.m_repr ;
+		}
+
+		bool operator!=( std::string const& other ) const {
+			return m_repr != other ;
+		}
+		
+		bool operator!=( Chromosome other ) const {
+			return m_repr != other.m_repr ;
 		}
 		
 		bool operator<=( Chromosome other ) const {
-			return m_chromosome_e <= other.m_chromosome_e ;
+			return m_repr <= other.m_repr ;
 		}
 
 		bool operator>=( Chromosome other ) const {
-			return m_chromosome_e >= other.m_chromosome_e ;
+			return m_repr >= other.m_repr ;
 		}
 
 		bool operator<( Chromosome other ) const {
-			return m_chromosome_e < other.m_chromosome_e ;
+			return m_repr < other.m_repr ;
 		}
 
 		bool operator>( Chromosome other ) const {
-			return m_chromosome_e > other.m_chromosome_e ;
+			return m_repr > other.m_repr ;
 		}
-		
-		Chromosome& operator++() ;
 		
 		bool is_sex_determining() const ;
 		bool is_autosome() const ;
 		bool is_missing() const ;
-        
-		operator ChromosomeEnum() const { return m_chromosome_e ; }
 		
 		operator std::string () const ;
 
 	private:
-		ChromosomeEnum m_chromosome_e ;
+		boost::optional< std::string > m_repr ;
 	} ;
 	
 	std::ostream& operator<<( std::ostream&, Chromosome const& ) ;

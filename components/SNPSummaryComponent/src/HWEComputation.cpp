@@ -117,7 +117,7 @@ namespace snp_summary_component {
 
 		for( int i = 0; i < genotypes.rows(); ++i ) {
 			if( sexes[ i ] == 'm' || sexes[ i ] == 'f' ) {
-				int const index = ( sexes[ i ] == 'm' && ( snp.get_position().chromosome() == genfile::Chromosome( '0X' ) || snp.get_position().chromosome() == genfile::Chromosome( '0Y' ) ) ) ? HAPLOID : DIPLOID ;
+				int const index = ( sexes[ i ] == 'm' && ( snp.get_position().chromosome().is_sex_determining() ) ) ? HAPLOID : DIPLOID ;
 				for( int g = 0; g < 3; ++g ) {
 					if( genotypes( i, g ) > m_threshhold ) {
 						++genotype_counts( index, g ) ;

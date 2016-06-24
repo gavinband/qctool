@@ -15,12 +15,12 @@
 #include "genfile/vcf/get_set_eigen.hpp"
 
 namespace genfile {
-	BimBamDosageSNPDataSink::BimBamDosageSNPDataSink( std::string const& filename, Chromosome chromosome ):
-		GenLikeSNPDataSink( filename, chromosome, get_compression_type_indicated_by_filename( filename ) )
+	BimBamDosageSNPDataSink::BimBamDosageSNPDataSink( std::string const& filename ):
+		GenLikeSNPDataSink( filename, get_compression_type_indicated_by_filename( filename ) )
 	{}
 
-	BimBamDosageSNPDataSink::BimBamDosageSNPDataSink( std::string const& filename, Chromosome chromosome, CompressionType compression_type ):
-		GenLikeSNPDataSink( filename, chromosome, compression_type )
+	BimBamDosageSNPDataSink::BimBamDosageSNPDataSink( std::string const& filename, CompressionType compression_type ):
+		GenLikeSNPDataSink( filename, compression_type )
 	{}
 
 	void BimBamDosageSNPDataSink::write_variant( std::ostream& out, genfile::VariantIdentifyingData const& variant ) {

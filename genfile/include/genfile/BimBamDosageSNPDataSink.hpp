@@ -21,8 +21,8 @@ namespace genfile {
 	class BimBamDosageSNPDataSink: public GenLikeSNPDataSink
 	{
 	public:
-		BimBamDosageSNPDataSink( std::string const& filename, Chromosome chromosome ) ;
-		BimBamDosageSNPDataSink( std::string const& filename, Chromosome chromosome, CompressionType compression_type ) ;
+		BimBamDosageSNPDataSink( std::string const& filename ) ;
+		BimBamDosageSNPDataSink( std::string const& filename, CompressionType compression_type ) ;
 
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) ;
 		void write_variant( std::ostream& out, genfile::VariantIdentifyingData const& variant ) ; // overrides

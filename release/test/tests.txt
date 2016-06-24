@@ -29,6 +29,7 @@ Accepts output formats
 
 Accepts input files
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "snp-stats": "", "osnp": "<tmp>" }	ok
+	RunsCommandWithResult	{ "g": ["data/test_#.gen" ], "snp-stats": "", "osnp": "<tmp>" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.gen.gz" ], "snp-stats": "", "osnp": "<tmp>" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.v4.1.vcf"], "snp-stats": "", "osnp": "<tmp>" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.v4.1.vcf.gz"], "snp-stats": "", "osnp": "<tmp>" }	ok

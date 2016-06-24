@@ -16,7 +16,7 @@
 
 namespace genfile {
 	
-	GenLikeSNPDataSink::GenLikeSNPDataSink( std::string const& filename, Chromosome chromosome, CompressionType compression_type ):
+	GenLikeSNPDataSink::GenLikeSNPDataSink( std::string const& filename, CompressionType compression_type ):
 		m_filename( filename ),
 		m_write_chromosome_column( true ),
 		m_compression_type( compression_type )

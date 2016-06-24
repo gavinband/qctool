@@ -84,15 +84,8 @@ namespace genfile {
 				// zeroes, so ordering by the matching string is the wrong thing to do.
 				std::map< Chromosome, FilenameMatch > matching_files ;
 				for( std::size_t i = 0; i < candidates.size(); ++i ) {
-					try {
-						Chromosome chromosome( candidates[i].match() ) ;
-						if( chromosome != Chromosome() ) {
-							matching_files[ chromosome ] = candidates[i] ;
-						}
-					}
-					catch( BadArgumentError const& e ) {
-						// Filename doesn't indicate a chromosome.
-					}
+					Chromosome chromosome( candidates[i].match() ) ;
+					matching_files[ chromosome ] = candidates[i] ;
 				}
 	
 				// Copy into the result.
@@ -161,7 +154,7 @@ namespace genfile {
 								keep_match = Chromosome( matches[i].match() ).is_sex_determining() ;
 								break ;
 							case eNON_SEX_CHROMOSOMES:
-								keep_match = !Chromosome( matches[i].match() ).is_sex_determining() ;
+								keep_match = Chromosome( matches[i].match() ).is_autosome() || matches[i].match() == "MT" ;
 								break ;
 							default:
 								assert(0) ;

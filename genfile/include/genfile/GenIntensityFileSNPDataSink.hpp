@@ -21,8 +21,8 @@ namespace genfile {
 	class GenIntensityFileSNPDataSink: public GenLikeSNPDataSink
 	{
 	public:
-		GenIntensityFileSNPDataSink( std::string const& filename, Chromosome chromosome ) ;
-		GenIntensityFileSNPDataSink( std::string const& filename, Chromosome chromosome, CompressionType compression_type ) ;
+		GenIntensityFileSNPDataSink( std::string const& filename ) ;
+		GenIntensityFileSNPDataSink( std::string const& filename, CompressionType compression_type ) ;
 
 	private:
 		Eigen::VectorXd m_data ;

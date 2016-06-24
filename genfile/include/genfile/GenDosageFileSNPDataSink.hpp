@@ -21,8 +21,8 @@ namespace genfile {
 	class GenDosageFileSNPDataSink: public GenLikeSNPDataSink
 	{
 	public:
-		GenDosageFileSNPDataSink( std::string const& filename, Chromosome chromosome ) ;
-		GenDosageFileSNPDataSink( std::string const& filename, Chromosome chromosome, CompressionType compression_type ) ;
+		GenDosageFileSNPDataSink( std::string const& filename ) ;
+		GenDosageFileSNPDataSink( std::string const& filename, CompressionType compression_type ) ;
 
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) ;
 

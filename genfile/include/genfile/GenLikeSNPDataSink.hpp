@@ -22,7 +22,7 @@ namespace genfile {
 	class GenLikeSNPDataSink: public SNPDataSink
 	{
 	public:
-		GenLikeSNPDataSink( std::string const& filename, Chromosome chromosome, CompressionType compression_type ) ;
+		GenLikeSNPDataSink( std::string const& filename, CompressionType compression_type ) ;
 		SinkPos get_stream_pos() const ;
 		void omit_chromosome() ;
 		std::string get_spec() const ;

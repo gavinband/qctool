@@ -77,16 +77,16 @@ namespace genfile {
 			return SNPDataSink::UniquePtr( new VCFFormatSNPDataSink( filename )) ;
 		}
 		else if( d.first == "shapeit_haplotypes" || d.first == "shapeit" ) {
-			return SNPDataSink::UniquePtr( new ShapeITHaplotypesSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
+			return SNPDataSink::UniquePtr( new ShapeITHaplotypesSNPDataSink( filename, compression_type )) ;
 		}
 		else if( d.first == "dosage" ) {
-			return SNPDataSink::UniquePtr( new GenDosageFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
+			return SNPDataSink::UniquePtr( new GenDosageFileSNPDataSink( filename, compression_type )) ;
 		}
 		else if( d.first == "bimbam_dosage" ) {
-			return SNPDataSink::UniquePtr( new BimBamDosageSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
+			return SNPDataSink::UniquePtr( new BimBamDosageSNPDataSink( filename, compression_type )) ;
 		}
 		else if( d.first == "intensity" ) {
-			return SNPDataSink::UniquePtr( new GenIntensityFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
+			return SNPDataSink::UniquePtr( new GenIntensityFileSNPDataSink( filename, compression_type )) ;
 		}
 		else if( d.first == "binary_ped" ) {
 			return SNPDataSink::UniquePtr( new BedFileSNPDataSink( filename, 0.9 ) ) ;
@@ -98,7 +98,7 @@ namespace genfile {
 			return SNPDataSink::UniquePtr( new cnvHapSNPDataSink( filename ) ) ;
 		}
 		else {
-			return SNPDataSink::UniquePtr( new GenFileSNPDataSink( filename, get_chromosome_indicated_by_filename( filename ), compression_type )) ;
+			return SNPDataSink::UniquePtr( new GenFileSNPDataSink( filename, compression_type )) ;
 		}
 	}
 	

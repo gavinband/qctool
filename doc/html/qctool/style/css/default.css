@@ -200,3 +200,10 @@ h1, h2, h3, h4 {
 .smalltext {
 	font-size: 80% ;
 }
+
+.column_definition lh {
+    font-size: 100% ;
+    margin-top: 10px ;
+    margin-bottom: 10px ;
+    font-family: sans-serif ;
+}

@@ -18,12 +18,12 @@
 
 namespace genfile {
 	
-	GenFileSNPDataSink::GenFileSNPDataSink( std::string const& filename, Chromosome chromosome ):
-		GenLikeSNPDataSink( filename, chromosome, get_compression_type_indicated_by_filename( filename ) )
+	GenFileSNPDataSink::GenFileSNPDataSink( std::string const& filename ):
+		GenLikeSNPDataSink( filename, get_compression_type_indicated_by_filename( filename ) )
 	{}
 
-	GenFileSNPDataSink::GenFileSNPDataSink( std::string const& filename, Chromosome chromosome, CompressionType compression_type ):
-		GenLikeSNPDataSink( filename, chromosome, compression_type )
+	GenFileSNPDataSink::GenFileSNPDataSink( std::string const& filename, CompressionType compression_type ):
+		GenLikeSNPDataSink( filename, compression_type )
 	{}
 
 	void GenFileSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) {

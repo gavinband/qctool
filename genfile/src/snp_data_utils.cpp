@@ -58,34 +58,6 @@ namespace genfile {
 		}
 	}
 
-	Chromosome get_chromosome_indicated_by_filename( std::string const& filename ) {
-		std::vector< Chromosome > indicated_chromosomes ;
-		std::ostringstream ostr ;
-		for( unsigned char i = 0; i < 23; ++i ) {
-			ostr.str( "" ) ;
-			ostr << Chromosome( i ) ;
-			if( filename.find( ostr.str() ) != std::string::npos ) {
-				indicated_chromosomes.push_back( Chromosome( i )) ;
-			}
-		}
-		ostr.str( "" ) ;
-		ostr << XYPseudoAutosomalDNA ;
-		if( filename.find( ostr.str() ) != std::string::npos ) {
-			indicated_chromosomes.push_back( XYPseudoAutosomalDNA ) ;
-		}
-		ostr.str( "" ) ;
-		ostr << MitochondrialDNA ;
-		if( filename.find( ostr.str() ) != std::string::npos ) {
-			indicated_chromosomes.push_back( MitochondrialDNA ) ;
-		}
-
-		if( indicated_chromosomes.size() != 1 ) {
-			return UnidentifiedChromosome ;
-		}
-
-		return indicated_chromosomes[0] ;
-	}
-
 	std::string strip_gen_file_extension_if_present( std::string const& filename ) {
 		std::string extension = get_gen_file_extension_if_present( filename ) ;
 		return filename.substr( 0, filename.size() - extension.size() ) ;

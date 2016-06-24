@@ -135,7 +135,7 @@ namespace {
 	}
 
 	void copy_gen_file( std::string original, genfile::SNPDataSink& target ) {
-		genfile::GenFileSNPDataSource gen_file_snp_data_source( original, genfile::UnidentifiedChromosome ) ;
+		genfile::GenFileSNPDataSource gen_file_snp_data_source( original, genfile::Chromosome() ) ;
 		copy_gen_file( gen_file_snp_data_source, target ) ;
 	}
 

@@ -21,8 +21,8 @@ namespace genfile {
 	class ShapeITHaplotypesSNPDataSink: public GenLikeSNPDataSink
 	{
 	public:
-		ShapeITHaplotypesSNPDataSink( std::string const& filename, Chromosome chromosome ) ;
-		ShapeITHaplotypesSNPDataSink( std::string const& filename, Chromosome chromosome, CompressionType compression_type ) ;
+		ShapeITHaplotypesSNPDataSink( std::string const& filename ) ;
+		ShapeITHaplotypesSNPDataSink( std::string const& filename, CompressionType compression_type ) ;
 		
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) ;
 		

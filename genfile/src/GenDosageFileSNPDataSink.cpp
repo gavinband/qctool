@@ -15,12 +15,12 @@
 #include "genfile/vcf/get_set_eigen.hpp"
 
 namespace genfile {
-	GenDosageFileSNPDataSink::GenDosageFileSNPDataSink( std::string const& filename, Chromosome chromosome ):
-		GenLikeSNPDataSink( filename, chromosome, get_compression_type_indicated_by_filename( filename ) )
+	GenDosageFileSNPDataSink::GenDosageFileSNPDataSink( std::string const& filename ):
+		GenLikeSNPDataSink( filename, get_compression_type_indicated_by_filename( filename ) )
 	{}
 
-	GenDosageFileSNPDataSink::GenDosageFileSNPDataSink( std::string const& filename, Chromosome chromosome, CompressionType compression_type ):
-		GenLikeSNPDataSink( filename, chromosome, compression_type )
+	GenDosageFileSNPDataSink::GenDosageFileSNPDataSink( std::string const& filename, CompressionType compression_type ):
+		GenLikeSNPDataSink( filename, compression_type )
 	{}
 
 	namespace {

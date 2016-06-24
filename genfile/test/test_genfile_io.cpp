@@ -140,7 +140,7 @@ void copy_gen_file( genfile::SNPDataSource& snp_data_source, genfile::SNPDataSin
 }
 
 void copy_gen_file( std::string original, genfile::SNPDataSink& target ) {
-	genfile::GenFileSNPDataSource gen_file_snp_data_source( original, genfile::UnidentifiedChromosome ) ;
+	genfile::GenFileSNPDataSource gen_file_snp_data_source( original, genfile::Chromosome() ) ;
 	copy_gen_file( gen_file_snp_data_source, target ) ;
 }
 
@@ -169,7 +169,7 @@ void create_files( std::string original, std::string gen, std::string bgen_v11, 
 #if DEBUG
 		std::cerr << "Creating gen...\n" ;
 #endif
-		genfile::GenFileSNPDataSink gen_file_snp_data_sink( gen, genfile::UnidentifiedChromosome ) ;
+		genfile::GenFileSNPDataSink gen_file_snp_data_sink( gen ) ;
 		copy_gen_file( original, gen_file_snp_data_sink ) ;
 	}
 
@@ -197,7 +197,7 @@ void create_files( std::string original, std::string gen, std::string bgen_v11, 
 #if DEBUG
 		std::cerr << "Creating gen.gz...\n" ;
 #endif
-		genfile::GenFileSNPDataSink zipped_gen_file_snp_data_sink( zgen, genfile::UnidentifiedChromosome, "gzip_compression" ) ;
+		genfile::GenFileSNPDataSink zipped_gen_file_snp_data_sink( zgen, "gzip_compression" ) ;
 		copy_gen_file( original, zipped_gen_file_snp_data_sink ) ;
 	}
 }
@@ -248,15 +248,15 @@ AUTO_TEST_CASE( test_formats ) {
 	create_files( original, gen, bgen_v11, bgen_v12, zgen ) ;
 	create_files2( original, gen2, bgen_v112, bgen_v122, zgen2 ) ;
 	
-	genfile::GenFileSNPDataSource original_file_snp_data_source( original, genfile::UnidentifiedChromosome ) ;
-	genfile::GenFileSNPDataSource gen_file_snp_data_source( gen, genfile::UnidentifiedChromosome ) ;
+	genfile::GenFileSNPDataSource original_file_snp_data_source( original, genfile::Chromosome() ) ;
+	genfile::GenFileSNPDataSource gen_file_snp_data_source( gen, genfile::Chromosome() ) ;
 	genfile::BGenFileSNPDataSource bgen_v11_file_snp_data_source( bgen_v11 ) ;
 	genfile::BGenFileSNPDataSource bgen_v12_file_snp_data_source( bgen_v12 ) ;
 	genfile::BGenFileSNPDataSource bgen_v11_file_snp_data_source2( bgen_v112 ) ;
 	genfile::BGenFileSNPDataSource bgen_v12_file_snp_data_source2( bgen_v122 ) ;
-	genfile::GenFileSNPDataSource zgen_file_snp_data_source( zgen, genfile::UnidentifiedChromosome ) ;
-	genfile::GenFileSNPDataSource gen_file_snp_data_source2( gen2, genfile::UnidentifiedChromosome ) ;
-	genfile::GenFileSNPDataSource zgen_file_snp_data_source2( zgen, genfile::UnidentifiedChromosome ) ;
+	genfile::GenFileSNPDataSource zgen_file_snp_data_source( zgen, genfile::Chromosome() ) ;
+	genfile::GenFileSNPDataSource gen_file_snp_data_source2( gen2, genfile::Chromosome() ) ;
+	genfile::GenFileSNPDataSource zgen_file_snp_data_source2( zgen, genfile::Chromosome() ) ;
 
 	std::vector< std::vector< SnpData > > results ;
 
