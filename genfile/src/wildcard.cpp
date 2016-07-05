@@ -154,7 +154,7 @@ namespace genfile {
 								keep_match = Chromosome( matches[i].match() ).is_sex_determining() ;
 								break ;
 							case eNON_SEX_CHROMOSOMES:
-								keep_match = Chromosome( matches[i].match() ).is_autosome() || matches[i].match() == "MT" ;
+								keep_match = matches[i].match() == "" || Chromosome( matches[i].match() ).is_autosome() || matches[i].match() == "MT" ;
 								break ;
 							default:
 								assert(0) ;
