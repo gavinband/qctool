@@ -122,7 +122,7 @@ function(
 	}
 
     N = nrow( result$samples )
-	colnames( result$data ) = rep( NA, 2 * nrow( result$sample ) )
+	colnames( result$data ) = rep( NA, 2 * nrow( result$samples ) )
 	colnames( result$data )[ seq( from = 1, by = 2, length = N ) ] = paste( result$samples[, sample.identifier.column ], "0", sep = ":" )
 	colnames( result$data )[ seq( from = 2, by = 2, length = N ) ] = paste( result$samples[, sample.identifier.column ], "1", sep = ":" )
 	rownames( result$data ) = result$variant$rsid
