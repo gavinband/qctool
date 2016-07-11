@@ -398,15 +398,39 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 	if( m_options.check( "-annotate-bed" )) {
 		using boost::regex_replace ;
 		using boost::regex ;
+		using genfile::string_utils::slice ;
+		using genfile::string_utils::join ;
+		using genfile::string_utils::to_repr ;
 		BedAnnotation::UniquePtr annotation = BedAnnotation::create() ;
 
 		{
 			appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading bed intervals" ) ;
-			std::vector< std::string > const& filenames = m_options.get_values< std::string >( "-annotate-bed" ) ;
-			progress( 0, filenames.size() ) ;
-			for( std::size_t i = 0; i < filenames.size(); ++i ) {
-				annotation->add_annotation( regex_replace( filenames[i], regex( ".bed$|.bed.gz$" ), "" ), filenames[i] ) ;
-				progress( i+1, filenames.size() ) ;
+			std::vector< std::string > const& specs = m_options.get_values< std::string >( "-annotate-bed" ) ;
+			progress( 0, specs.size() ) ;
+			for( std::size_t i = 0; i < specs.size(); ++i ) {
+				std::vector< slice > elts = slice( specs[i] ).split( "+" ) ;
+				assert( elts.size() > 0 ) ;
+				int margin = 0 ;
+				if( elts.size() > 2 ) {
+					throw genfile::BadArgumentError(
+						"SNPSummaryComponent::add_computations()",
+						"-annotate-bed=\"" + join( specs, " " ),
+						"Too many +'s in \"" + specs[i] + "\"."
+					) ;
+				}
+				if( elts.size() == 2 ) {
+					if( elts[1].size() < 2 || elts[1].substr( elts[1].size() - 2, elts[1].size() ) != "bp" ) {
+						throw genfile::BadArgumentError(
+							"SNPSummaryComponent::add_computations()",
+							"-annotate-bed=\"" + join( specs, " " ),
+							"In \"" + specs[i] + "\", margin should be of the form +<n>bp for a positive integer n."
+						) ;
+					}
+					margin = to_repr< unsigned int >( elts[1].substr( 0, elts[1].size() - 2 )) ; 
+				}
+				
+				annotation->add_annotation( regex_replace( std::string( elts[0] ), regex( ".bed$|.bed.gz$" ), "" ), elts[0], margin, margin ) ;
+				progress( i+1, specs.size() ) ;
 			}
 		}
 		

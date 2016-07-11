@@ -82,7 +82,7 @@ std::string BedAnnotation::get_summary( std::string const& prefix, std::size_t c
 	for( std::size_t i = 0; i < m_annotation_names.size(); ++i ) {
 		AnnotationMap::const_iterator ai = m_annotations.find( m_annotation_names[i] ) ;
 		assert( ai != m_annotations.end() ) ;
-		o << prefix << " - " << ( boost::format( "%s (%d disjoint intervals)\n" ) % m_annotation_names[i] % ai->second.size() ).str() ;
+		o << prefix << " - " << ( boost::format( "%s (%d disjoint intervals)\n" ) % m_annotation_names[i] % ai->second.iterative_size() ).str() ;
 	}
 	return o.str() ;
 }
