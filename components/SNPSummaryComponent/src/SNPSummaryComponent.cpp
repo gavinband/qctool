@@ -9,6 +9,7 @@
 #include <boost/function.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/thread.hpp>
+#include <boost/regex.hpp>
 #include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
@@ -28,6 +29,7 @@
 #include "components/SNPSummaryComponent/CrossDataSetConcordanceComputation.hpp"
 #include "components/SNPSummaryComponent/CrossDataSetHaplotypeComparisonComputation.hpp"
 #include "components/SNPSummaryComponent/GeneticMapAnnotation.hpp"
+#include "components/SNPSummaryComponent/BedAnnotation.hpp"
 #include "components/SNPSummaryComponent/CallComparerComponent.hpp"
 #include "components/SNPSummaryComponent/ClusterFitComputation.hpp"
 
@@ -73,7 +75,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 			" Currently a test for differential missingness is performed." )
 		.set_takes_single_value() ;
 	
-	options.declare_group( "Sequence annotation options" ) ;
+	options.declare_group( "Annotation options" ) ;
 	options[ "-annotate-ancestral" ]
 		.set_description( "Specify a FASTA-formatted file containing ancestral alleles to annotate variants with." )
 		.set_takes_single_value() ;
@@ -84,6 +86,11 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_description( "Specify a genetic map file or files.  QCTOOL will interpolate the map "
 			"to produce approximate positions in centiMorgans for each SNP in the data." )
 		.set_takes_single_value() ;
+	options[ "-annotate-bed" ]
+		.set_description( "Annotated variants with 1 or 0 according to whether the position of the variant "
+			"is within an interval in one of the given BED files.  BED files must contain 0-based, right-open intervals "
+			"which will be translated to 1-based coordinates for comparison with input data. " )
+		.set_takes_values_until_next_option() ;
 	options[ "-flanking" ]
 		.set_description( "Specify that flanking sequence annotations [ pos - a, pos + b ] should be output when using "
 			"-annotate-reference and -annotate-ancestral" )
@@ -120,6 +127,7 @@ bool SNPSummaryComponent::is_needed( appcontext::OptionProcessor const& options 
 		|| options.check( "-annotate-ancestral" )
 		|| options.check( "-annotate-reference" )
 		|| options.check( "-annotate-genetic-map" )
+		|| options.check( "-annotate-bed" )
 	;
 }
 
@@ -383,6 +391,29 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 			"genetic_map",
 			SNPSummaryComputation::UniquePtr(
 				computation.release()
+			)
+		) ;
+	}
+
+	if( m_options.check( "-annotate-bed" )) {
+		using boost::regex_replace ;
+		using boost::regex ;
+		BedAnnotation::UniquePtr annotation = BedAnnotation::create() ;
+
+		{
+			appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading bed intervals" ) ;
+			std::vector< std::string > const& filenames = m_options.get_values< std::string >( "-annotate-bed" ) ;
+			progress( 0, filenames.size() ) ;
+			for( std::size_t i = 0; i < filenames.size(); ++i ) {
+				annotation->add_annotation( regex_replace( filenames[i], regex( ".bed$|.bed.gz$" ), "" ), filenames[i] ) ;
+				progress( i+1, filenames.size() ) ;
+			}
+		}
+		
+		manager.add_computation(
+			"bed_annotation",
+			SNPSummaryComputation::UniquePtr(
+				annotation.release()
 			)
 		) ;
 	}

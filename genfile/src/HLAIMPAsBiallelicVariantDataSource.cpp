@@ -219,7 +219,6 @@ namespace genfile {
 			
 			HLAIMPVariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
 				std::size_t const K = m_source.m_alleles.size() ;
-				std::size_t const genotypeCount = K*(K+1)/2 ;
 				uint32_t ploidy = 2 ;
 				if( spec == ":genotypes:" || spec == "GP" ) {
 					setter.initialise( m_source.m_samples.size(), 2 ) ;

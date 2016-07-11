@@ -11,36 +11,34 @@
 #include <map>
 #include <deque>
 #include <boost/function.hpp>
+#include <boost/icl/interval_set.hpp>
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 #include "genfile/Chromosome.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/wildcard.hpp"
-#include "GenomeSequence.hpp"
 
-// Annotate each variant with a 1 or a 0
-// depending on whether it is in one of the ranges in the given set of
-// BED files.
+// Annotate each variant with a set of 1's or 0's according to whether
+// it lies in ranges in one or more BED files (plus or minus a margin).
+// Filenames of BED files are passed in using the add_annotation() function.
+// This class translates between BED style 0-based, half-open coordinates
+// and the 1-based coordinates used in qctool implicitly.
 struct BedAnnotation: public SNPSummaryComputation
 {
-	typedef std::auto_ptr< SequenceAnnotation > UniquePtr ;
-	
-	typedef boost::function< void ( std::size_t, boost::optional< std::size_t > ) > ProgressCallback ;
-	BedAnnotation( std::string const& annotation_name, std::string const& fasta_filename, ProgressCallback ) ;
+public:
+	typedef std::auto_ptr< BedAnnotation > UniquePtr ;
+	static UniquePtr create() ;
 
-	void add_annotation( std::string const& name, std::string const& filename ) ;
+public:
+	BedAnnotation() ;
+	void add_annotation( std::string const& name, std::string const& filename, int left_margin_bp = 0, int right_margin_bp = 0 ) ;
 	void operator()( VariantIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
 
 	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
-	
-	void set_flanking( std::size_t left, std::size_t right ) ;
-
 private:
-	std::vector< 
-	std::vector< std::string > m_filenames ;
-	
-	
-	GenomeSequence m_sequence ;
-	std::pair< genfile::Position, genfile::Position > m_flanking ;
+	typedef boost::icl::interval_set< genfile::GenomePosition > Annotation ;
+	typedef std::map< std::string, Annotation > AnnotationMap ;
+	AnnotationMap m_annotations ;
+	std::vector< std::string > m_annotation_names ;
 } ;
 
 #endif
