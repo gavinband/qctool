@@ -9,7 +9,7 @@
 
 using namespace genfile::string_utils ;
 
-BOOST_AUTO_TEST_SUITE( test_slice ) ;
+BOOST_AUTO_TEST_SUITE( test_slice )
 
 AUTO_TEST_CASE( test_constructors ) {
 	std::cerr << "test_constructors()..." ;
@@ -260,5 +260,5 @@ AUTO_TEST_CASE( test_split_slice ) {
 	std::cerr << "ok.\n" ;
 }
 
-BOOST_AUTO_TEST_SUITE_END() ;
+BOOST_AUTO_TEST_SUITE_END()
 

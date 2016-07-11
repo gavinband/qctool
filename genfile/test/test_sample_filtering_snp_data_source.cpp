@@ -30,7 +30,7 @@ AUTO_TEST_SUITE( test_sample_filtering_snp_data_source )
 namespace data {
 	namespace {
 		// this data has 1504 samples per row.
-		unsigned int const number_of_samples = 1504 ;
+		//unsigned int const number_of_samples = 1504 ;
 	}
 }
 

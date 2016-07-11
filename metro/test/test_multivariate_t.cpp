@@ -144,8 +144,7 @@ AUTO_TEST_CASE( test_weighted_loglikelihood ) {
 
 AUTO_TEST_CASE( test_loglikelihood_range ) {
 	{
-		double ll1 = 0, ll2 = 0, ll3 = 0, ll4 = 0 ;
-		double const likelihoodTolerance = 0.0000001 ;
+		double ll1 = 0, ll2 = 0 ;
 		metro::ValueStabilisesStoppingCondition stoppingCondition( 0.0000001 ) ;
 		{
 			Matrix data( 2, 2 ) ;
@@ -237,8 +236,7 @@ AUTO_TEST_CASE( test_em ) {
 		metro::likelihood::MultivariateT< double, Vector, Matrix > T( data, 3 ) ;
 	
 		stoppingCondition.reset() ;
-		bool converged = T.estimate_by_em( stoppingCondition ) ;
-		BOOST_CHECK_EQUAL( converged, true ) ;
+		BOOST_CHECK_EQUAL( T.estimate_by_em( stoppingCondition ), true ) ;
 		BOOST_CHECK_CLOSE( T.get_value_of_function(), -0.3457225488574268, relativeTolerancePercent ) ;
 
 #if DEBUG_MULTIVARIATE_T
@@ -439,7 +437,7 @@ AUTO_TEST_CASE( test_em_is_monotonic ) {
 	for( std::size_t nu = 1; nu < 10; ++nu ) {
 		monotonicCheck.reset() ;
 		metro::likelihood::MultivariateT< double, Vector, Matrix > T( data, nu ) ;
-		bool converged = T.estimate_by_em( monotonicCheck ) ;
+		T.estimate_by_em( monotonicCheck ) ;
 	}
 }
 
@@ -507,7 +505,7 @@ AUTO_TEST_CASE( test_loglikelihood_em_range ) {
 	
 	for( std::size_t i = 0; i < nu_values.size(); ++i ) {
 		double nu = nu_values[i] ;
-		double ll1 = 0, ll2 = 0, ll3 = 0, ll4 = 0 ;
+		double ll1 = 0, ll2 = 0 ;
 		double const likelihoodTolerance = 0.0000001 ;
 		metro::ValueStabilisesStoppingCondition stoppingCondition( 0.0000001 ) ;
 		{
@@ -562,7 +560,7 @@ AUTO_TEST_CASE( test_loglikelihood_em_range ) {
 }
 
 AUTO_TEST_CASE( test_weighted_em ) {
-	double ll1 = 0, ll2 = 0, ll3 = 0 ;
+	double ll2 = 0, ll3 = 0 ;
 	double const likelihoodTolerance = 0.0000001 ;
 	metro::ValueStabilisesStoppingCondition stoppingCondition( 0.0000001 ) ;
 	{
