@@ -428,8 +428,17 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 					}
 					margin = to_repr< unsigned int >( elts[1].substr( 0, elts[1].size() - 2 )) ; 
 				}
-				
-				annotation->add_annotation( regex_replace( std::string( elts[0] ), regex( ".bed$|.bed.gz$" ), "" ), elts[0], margin, margin ) ;
+				std::vector< slice > filenames = elts[0].split( "," ) ;
+				assert( filenames.size() > 0 ) ;
+				for( std::size_t j = 0; j < filenames.size(); ++j ) {
+					annotation->add_annotation(
+						regex_replace( std::string( filenames[j] ),
+						regex( ".bed$|.bed.gz$" ), "" ),
+						specs[i],
+						margin,
+						margin
+					) ;
+				}
 				progress( i+1, specs.size() ) ;
 			}
 		}
