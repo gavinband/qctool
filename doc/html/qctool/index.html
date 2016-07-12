@@ -261,7 +261,7 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 	<tr><td><code>-intensity-stats</code></td><td>Mean per-variant X and Y channel intensities.</td></tr>
 	<tr><td><code>-fit-clusters</code></td><td>Parameters of clusters fit to genotype calls and intensities.</td></tr>
 	<tr><td><code>-annotate-sequence</code></td><td>Annotation of reference base(s) and flanking sequence from a reference FASTA file.</td></tr>
-	<tr><td><code>-annotate-bed</code></td><td>Annotation of occupancy of regions defined in one or more BED files.</td></tr>
+	<tr><td><code>-annotate-bed3</code>,<code>-annotate-bed4</code></td><td>Annotation of occupancy of regions defined in one or more BED files.</td></tr>
 </table>
 <h3>Details of summary statistics</h3>
 	<p>
@@ -371,13 +371,14 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 		<dd>The correlation between genotype dosages in the primary and compared datasets</dd>
 </dl>
 <p>
-	Computed by <code>-annotate-bed &lt;name of file in <a href="https://genome.ucsc.edu/FAQ/FAQformat.html#format1">BED</a> format&gt;</code>:
+	Computed by <code>-annotate-bed[3|4] &lt;name of file in <a href="https://genome.ucsc.edu/FAQ/FAQformat.html#format1">BED</a> format&gt;</code>:
 </p>
 <dl>
 			<dt><code>&lt;filename&gt;</code></dt>
-			<dd>An 0/1 indicator of whether the position of the variant is in a region specified in the BED file.
-				Note positions in BED files are in 0-based coordinates; QCTOOL assumes 1 based coordinates for
-				the positions of variants and will translate BED coordinates accordingly.
+			<dd>For <code>-annotate-bed3</code>, a 0/1 indicator of whether the variant lies in an interval in the given BED file;
+				for <code>-annotate-bed4</code>, a list of values from the fourth column of the BED file for intervals which the
+				variant lies in.  Note positions in BED files are in 0-based coordinates; QCTOOL
+				assumes 1 based coordinates for the positions of variants and will translate BED coordinates accordingly.
 			</dd>
 			
 	</dl>

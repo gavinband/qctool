@@ -29,7 +29,8 @@
 #include "components/SNPSummaryComponent/CrossDataSetConcordanceComputation.hpp"
 #include "components/SNPSummaryComponent/CrossDataSetHaplotypeComparisonComputation.hpp"
 #include "components/SNPSummaryComponent/GeneticMapAnnotation.hpp"
-#include "components/SNPSummaryComponent/BedAnnotation.hpp"
+#include "components/SNPSummaryComponent/Bed3Annotation.hpp"
+#include "components/SNPSummaryComponent/Bed4Annotation.hpp"
 #include "components/SNPSummaryComponent/CallComparerComponent.hpp"
 #include "components/SNPSummaryComponent/ClusterFitComputation.hpp"
 
@@ -86,10 +87,15 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_description( "Specify a genetic map file or files.  QCTOOL will interpolate the map "
 			"to produce approximate positions in centiMorgans for each SNP in the data." )
 		.set_takes_single_value() ;
-	options[ "-annotate-bed" ]
-		.set_description( "Annotated variants with 1 or 0 according to whether the position of the variant "
+	options[ "-annotate-bed3" ]
+		.set_description( "Annotate variants with 1 or 0 according to whether the position of the variant "
 			"is within an interval in one of the given BED files.  BED files must contain 0-based, right-open intervals "
 			"which will be translated to 1-based coordinates for comparison with input data. " )
+		.set_takes_values_until_next_option() ;
+	options[ "-annotate-bed4" ]
+		.set_description( "Annotate variants with the values (4th column) of a BED file according to the BED regions it lies in."
+			" BED files must contain 0-based, right-open intervals which will be translated to 1-based coordinates for comparison"
+			" with input data. " )
 		.set_takes_values_until_next_option() ;
 	options[ "-flanking" ]
 		.set_description( "Specify that flanking sequence annotations [ pos - a, pos + b ] should be output when using "
@@ -127,7 +133,8 @@ bool SNPSummaryComponent::is_needed( appcontext::OptionProcessor const& options 
 		|| options.check( "-annotate-ancestral" )
 		|| options.check( "-annotate-reference" )
 		|| options.check( "-annotate-genetic-map" )
-		|| options.check( "-annotate-bed" )
+		|| options.check( "-annotate-bed3" )
+		|| options.check( "-annotate-bed4" )
 	;
 }
 
@@ -216,11 +223,16 @@ namespace impl {
 	}
 }
 
+namespace {
+	void parse_bed_annotation_spec( std::string const& spec, std::vector< genfile::string_utils::slice >* filenames, unsigned int* margin ) ;
+}
+	
 void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manager, qcdb::Storage::SharedPtr storage ) const {
 	using genfile::string_utils::split_and_strip_discarding_empty_entries ;
+	using boost::regex_replace ;
+	using boost::regex ;
 
-	typedef 
-	std::map< std::string, qcdb::Storage::SharedPtr > Outputters ;
+	typedef std::map< std::string, qcdb::Storage::SharedPtr > Outputters ;
 	Outputters outputters ;
 
 	if( m_options.check( "-snp-stats" )) {
@@ -395,48 +407,24 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		) ;
 	}
 
-	if( m_options.check( "-annotate-bed" )) {
-		using boost::regex_replace ;
-		using boost::regex ;
-		using genfile::string_utils::slice ;
-		using genfile::string_utils::join ;
-		using genfile::string_utils::to_repr ;
-		BedAnnotation::UniquePtr annotation = BedAnnotation::create() ;
+	if( m_options.check( "-annotate-bed3" )) {
+		Bed3Annotation::UniquePtr annotation = Bed3Annotation::create() ;
 
 		{
 			appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading bed intervals" ) ;
-			std::vector< std::string > const& specs = m_options.get_values< std::string >( "-annotate-bed" ) ;
+			std::vector< std::string > const& specs = m_options.get_values< std::string >( "-annotate-bed3" ) ;
 			progress( 0, specs.size() ) ;
 			for( std::size_t i = 0; i < specs.size(); ++i ) {
-				std::vector< slice > elts = slice( specs[i] ).split( "+" ) ;
-				assert( elts.size() > 0 ) ;
-				int margin = 0 ;
-				if( elts.size() > 2 ) {
-					throw genfile::BadArgumentError(
-						"SNPSummaryComponent::add_computations()",
-						"-annotate-bed=\"" + join( specs, " " ),
-						"Too many +'s in \"" + specs[i] + "\"."
-					) ;
-				}
-				if( elts.size() == 2 ) {
-					if( elts[1].size() < 2 || elts[1].substr( elts[1].size() - 2, elts[1].size() ) != "bp" ) {
-						throw genfile::BadArgumentError(
-							"SNPSummaryComponent::add_computations()",
-							"-annotate-bed=\"" + join( specs, " " ),
-							"In \"" + specs[i] + "\", margin should be of the form +<n>bp for a positive integer n."
-						) ;
-					}
-					margin = to_repr< unsigned int >( elts[1].substr( 0, elts[1].size() - 2 )) ; 
-				}
-				std::vector< slice > filenames = elts[0].split( "," ) ;
+				std::vector< genfile::string_utils::slice > filenames ;
+				unsigned int margin = 0 ;
+				parse_bed_annotation_spec( specs[i], &filenames, &margin ) ;
 				assert( filenames.size() > 0 ) ;
 				for( std::size_t j = 0; j < filenames.size(); ++j ) {
+					std::cerr << filenames[j] << ".\n" ;
 					annotation->add_annotation(
-						regex_replace( std::string( filenames[j] ),
-						regex( ".bed$|.bed.gz$" ), "" ),
-						specs[i],
-						margin,
-						margin
+						regex_replace( std::string( specs[i] ), regex( ".bed|.bed.gz" ), "" ),
+						filenames[j],
+						margin, margin
 					) ;
 				}
 				progress( i+1, specs.size() ) ;
@@ -444,7 +432,39 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		}
 		
 		manager.add_computation(
-			"bed_annotation",
+			"bed3_annotation",
+			SNPSummaryComputation::UniquePtr(
+				annotation.release()
+			)
+		) ;
+	}
+
+	if( m_options.check( "-annotate-bed4" )) {
+		Bed4Annotation::UniquePtr annotation = Bed4Annotation::create() ;
+
+		{
+			appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading bed values" ) ;
+			std::vector< std::string > const& specs = m_options.get_values< std::string >( "-annotate-bed4" ) ;
+			progress( 0, specs.size() ) ;
+			for( std::size_t i = 0; i < specs.size(); ++i ) {
+				std::vector< genfile::string_utils::slice > filenames ;
+				unsigned int margin = 0 ;
+				parse_bed_annotation_spec( specs[i], &filenames, &margin ) ;
+				assert( filenames.size() > 0 ) ;
+				for( std::size_t j = 0; j < filenames.size(); ++j ) {
+					std::cerr << filenames[j] << ".\n" ;
+					annotation->add_annotation(
+						regex_replace( std::string( specs[i] ), regex( ".bed|.bed.gz" ), "" ),
+						filenames[j],
+						margin, margin
+					) ;
+				}
+				progress( i+1, specs.size() ) ;
+			}
+		}
+		
+		manager.add_computation(
+			"bed4_annotation",
 			SNPSummaryComputation::UniquePtr(
 				annotation.release()
 			)
@@ -459,6 +479,36 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		) ;
 
 		cc->setup( manager, storage ) ;
+	}
+}
+
+namespace {
+	void parse_bed_annotation_spec( std::string const& spec, std::vector< genfile::string_utils::slice >* filenames, unsigned int* margin ) {
+		using genfile::string_utils::slice ;
+		using genfile::string_utils::join ;
+		using genfile::string_utils::to_repr ;
+		assert( filenames ) ;
+		filenames->clear() ;
+		std::vector< slice > elts = slice( spec ).split( "+" ) ;
+		assert( elts.size() > 0 ) ;
+		if( elts.size() > 2 ) {
+			throw genfile::BadArgumentError(
+				"SNPSummaryComponent::parse_bed_annotation_spec()",
+				"spec=\"" + spec + "\"",
+				"Too many +'s in BED annotation spec."
+			) ;
+		}
+		if( elts.size() == 2 ) {
+			if( elts[1].size() < 2 || elts[1].substr( elts[1].size() - 2, elts[1].size() ) != "bp" ) {
+				throw genfile::BadArgumentError(
+					"SNPSummaryComponent::parse_bed_annotation_spec()",
+					"spec=\"" + spec + "\"",
+					"In \"" + spec + "\", margin should be of the form +<n>bp for a positive integer n."
+				) ;
+			}
+			*margin = to_repr< unsigned int >( elts[1].substr( 0, elts[1].size() - 2 )) ; 
+		}
+		*filenames = elts[0].split( "," ) ;
 	}
 }
 

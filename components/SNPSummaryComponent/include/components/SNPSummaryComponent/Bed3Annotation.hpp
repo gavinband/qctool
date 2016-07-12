@@ -4,8 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef QCTOOL_SNP_SUMMARY_COMPONENT_BED_ANNOTATION_HPP
-#define QCTOOL_SNP_SUMMARY_COMPONENT_BED_ANNOTATION_HPP
+#ifndef QCTOOL_SNP_SUMMARY_COMPONENT_BED3_ANNOTATION_HPP
+#define QCTOOL_SNP_SUMMARY_COMPONENT_BED3_ANNOTATION_HPP
 
 #include <utility>
 #include <map>
@@ -19,17 +19,18 @@
 
 // Annotate each variant with a set of 1's or 0's according to whether
 // it lies in ranges in one or more BED files (plus or minus a margin).
+// This just uses the first three columns (chrom, start, end) of the BED file.
 // Filenames of BED files are passed in using the add_annotation() function.
 // This class translates between BED style 0-based, half-open coordinates
 // and the 1-based coordinates used in qctool implicitly.
-struct BedAnnotation: public SNPSummaryComputation
+struct Bed3Annotation: public SNPSummaryComputation
 {
 public:
-	typedef std::auto_ptr< BedAnnotation > UniquePtr ;
+	typedef std::auto_ptr< Bed3Annotation > UniquePtr ;
 	static UniquePtr create() ;
 
 public:
-	BedAnnotation() ;
+	Bed3Annotation() ;
 	void add_annotation( std::string const& name, std::string const& filename, int left_margin_bp = 0, int right_margin_bp = 0 ) ;
 	void operator()( VariantIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
 

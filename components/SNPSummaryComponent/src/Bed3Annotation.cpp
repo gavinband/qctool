@@ -15,17 +15,17 @@
 #include "genfile/VariantEntry.hpp"
 #include "genfile/wildcard.hpp"
 #include "genfile/FileUtils.hpp"
-#include "components/SNPSummaryComponent/BedAnnotation.hpp"
+#include "components/SNPSummaryComponent/Bed3Annotation.hpp"
 
-BedAnnotation::UniquePtr BedAnnotation::create() {
-	return UniquePtr( new BedAnnotation() ) ;
+Bed3Annotation::UniquePtr Bed3Annotation::create() {
+	return UniquePtr( new Bed3Annotation() ) ;
 }
 
-BedAnnotation::BedAnnotation() {
+Bed3Annotation::Bed3Annotation() {
 	
 }
 
-void BedAnnotation::add_annotation( std::string const& name, std::string const& filename, int left_margin_bp, int right_margin_bp ) {
+void Bed3Annotation::add_annotation( std::string const& name, std::string const& filename, int left_margin_bp, int right_margin_bp ) {
 	std::auto_ptr< std::istream > in = genfile::open_text_file_for_input( filename ) ;
 	std::string line ;
 	std::getline( *in, line ) ;
@@ -61,7 +61,7 @@ void BedAnnotation::add_annotation( std::string const& name, std::string const& 
 	}
 }
 
-void BedAnnotation::operator()(
+void Bed3Annotation::operator()(
 	VariantIdentifyingData const& variant,
 	Genotypes const&,
 	SampleSexes const&,
@@ -76,9 +76,9 @@ void BedAnnotation::operator()(
 	}
 }
 
-std::string BedAnnotation::get_summary( std::string const& prefix, std::size_t column_width ) const {
+std::string Bed3Annotation::get_summary( std::string const& prefix, std::size_t column_width ) const {
 	std::ostringstream o ;
-	o << prefix << boost::format( "BedAnnotation with %d annotations:\n" ) % m_annotation_names.size() ;
+	o << prefix << boost::format( "Bed3Annotation with %d annotations:\n" ) % m_annotation_names.size() ;
 	for( std::size_t i = 0; i < m_annotation_names.size(); ++i ) {
 		AnnotationMap::const_iterator ai = m_annotations.find( m_annotation_names[i] ) ;
 		assert( ai != m_annotations.end() ) ;
