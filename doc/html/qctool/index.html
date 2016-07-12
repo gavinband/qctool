@@ -252,13 +252,26 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 	<tr><td><code>-</code></td><td>Write to standard output</td></tr>
 </table>
 <p>
+	A number of options produce data that is output to the file specified by <code>-osnp</code>.  They are
+	tabulated in the following table.
+</p>
+<table>
+	<tr><th>Option</th><th>Summary</th></tr>
+	<tr><td><code>-snp-stats</code></td><td>Basic per-variant summary statistics - frequency, missing proportion, P-value for Hardy-Weinberg, etc.</td></tr>
+	<tr><td><code>-intensity-stats</code></td><td>Mean per-variant X and Y channel intensities.</td></tr>
+	<tr><td><code>-fit-clusters</code></td><td>Parameters of clusters fit to genotype calls and intensities.</td></tr>
+	<tr><td><code>-annotate-sequence</code></td><td>Annotation of reference base(s) and flanking sequence from a reference FASTA file.</td></tr>
+	<tr><td><code>-annotate-bed</code></td><td>Annotation of occupancy of regions defined in one or more BED files.</td></tr>
+</table>
+<h3>Details of summary statistics</h3>
+	<p>
 	The following table lists columns output by QCTOOL when using each option.
 	Note that QCTOOL was originally designed for human data; summary statistic computation currently only supports
 	diploid samples (and haploids on the sex chromosomes, as determined by sex information in the sample file).
 	Summary statistics currently only support biallelic variants.
 </p>
+	<p>Computed by <code>-snp-stats</code>:</p>
 	<dl class="column_definition">
-		<lh>...computed by <code>-snp-stats</code>:</lh>
 
 		<dt><code>[A|B|AA|AB|BB|NULL]</code></dt>
 		<dd>
@@ -326,7 +339,9 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 				computed using asymptotically chi-squared distributed likelihood ratio statistic.
 				(Note this P-value may be invalid when counts are small.)
 			</dd>
-		<lh>...computed by <code>-intensity-stats</code>:</lh>
+	</dl>
+		<p>Computed by <code>-intensity-stats</code>:</p>
+	<dl class="column_definition">
 		<dt>
 			<dt><code>mean_X</code>, <code>mean_Y</code></dt>  
 				<dd>Mean X channel and Y channel intensities</dd>
@@ -336,8 +351,9 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 				<dd>Mean X channel and Y channel intensities for calls having the given genotype</dd>
 			<dt><code>g=&lt;x&gt;:var_X</code>, <code>g=&lt;x&gt;:var_Y</code>, <code>g=&lt;x&gt;:cov_XY</code><dt>
 				<dd>Variance and covariance in X and Y channel intensities for calls having the given genotype</dd>
-
-		<lh>...computed by <code>-compare-to &lt;auxiliary genotype file&gt; &lt;auxiliary sample file&gt;</code>:</lh>
+	</dl>
+		<p>Computed by <code>-compare-to &lt;auxiliary genotype file&gt; &lt;auxiliary sample file&gt;</code>:</p>
+	<dl class="column_definition">
 		<dt><code>compared_variant_rsid</code>, <code>compared_variant_alleleA</code>, <code>compared_variant_alleleB</code></dt>
 			<dd>RSID and first and second alleles of the variant in the auxiliary data this variant was compared to.
 				(Matching of variants is controlled by the <code>-snp-match-fields</code> option.)</dd>
@@ -353,6 +369,17 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 		<dd>The number of pairwise non-missing genotypes that were concordant in primary and compared datasets</dd>
 		<dt><code>correlation</code></dt>
 		<dd>The correlation between genotype dosages in the primary and compared datasets</dd>
+</dl>
+<p>
+	Computed by <code>-annotate-bed &lt;name of file in <a href="https://genome.ucsc.edu/FAQ/FAQformat.html#format1">BED</a> format&gt;</code>:
+</p>
+<dl>
+			<dt><code>&lt;filename&gt;</code></dt>
+			<dd>An 0/1 indicator of whether the position of the variant is in a region specified in the BED file.
+				Note positions in BED files are in 0-based coordinates; QCTOOL assumes 1 based coordinates for
+				the positions of variants and will translate BED coordinates accordingly.
+			</dd>
+			
 	</dl>
 <p>
 </div>
