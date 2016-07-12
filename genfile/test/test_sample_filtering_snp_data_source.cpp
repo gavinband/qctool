@@ -16,6 +16,7 @@
 	#include <boost/filesystem/operations.hpp>
 #endif
 
+#include "genfile/FileUtils.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceRack.hpp"
 #include "genfile/GenFileSNPDataSource.hpp"
@@ -116,7 +117,7 @@ namespace {
 
 AUTO_TEST_CASE( test_sample_filtering_snp_data_source ) {
 	std::vector< std::string > data = construct_data() ;
-	std::string const filename = tmpnam(0) + std::string( ".gen" ) ;
+	std::string const filename = genfile::create_temporary_filename() + std::string( ".gen" ) ;
 	for( std::size_t data_i = 1; data_i < data.size(); ++data_i ) {
 		std::cerr << "====== Looking at data " << data_i << " ======\n" ;
 		create_file( data[data_i], filename ) ;

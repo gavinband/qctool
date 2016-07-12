@@ -412,7 +412,6 @@ private:
 } ;
 
 AUTO_TEST_CASE( test_em_is_monotonic ) {
-	double const likelihoodTolerance = 0.0000001 ;
 	MonotonicCheck monotonicCheck( 1000 ) ;
 	Matrix data( 16, 2 ) ;
 	data <<
@@ -506,7 +505,6 @@ AUTO_TEST_CASE( test_loglikelihood_em_range ) {
 	for( std::size_t i = 0; i < nu_values.size(); ++i ) {
 		double nu = nu_values[i] ;
 		double ll1 = 0, ll2 = 0 ;
-		double const likelihoodTolerance = 0.0000001 ;
 		metro::ValueStabilisesStoppingCondition stoppingCondition( 0.0000001 ) ;
 		{
 			Matrix data( 3, 2 ) ;
@@ -560,7 +558,6 @@ AUTO_TEST_CASE( test_loglikelihood_em_range ) {
 }
 
 AUTO_TEST_CASE( test_weighted_em ) {
-	double ll2 = 0, ll3 = 0 ;
 	double const likelihoodTolerance = 0.0000001 ;
 	metro::ValueStabilisesStoppingCondition stoppingCondition( 0.0000001 ) ;
 	{

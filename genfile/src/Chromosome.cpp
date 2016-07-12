@@ -68,9 +68,9 @@ namespace genfile {
 			MapType::const_iterator li = m_map.find( *left.m_repr ) ;
 			MapType::const_iterator ri = m_map.find( *right.m_repr ) ;
 			return (
-				( li != m_map.end() ) && (( ri == m_map.end() ) || ( li->second < ri->second ))
+				(( li != m_map.end() ) && (( ri == m_map.end() ) || ( li->second < ri->second )))
 				||
-				(( li == m_map.end() ) && (( ri == m_map.end() ) && (left.m_repr < right.m_repr)))
+				(( li == m_map.end() ) && (( ri == m_map.end() ) && ( left.m_repr < right.m_repr )))
 			) ;		
 		}
 	}

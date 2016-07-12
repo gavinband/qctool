@@ -13,6 +13,7 @@
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/device/file.hpp>
+#include <boost/filesystem.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/get_set.hpp"
@@ -168,7 +169,8 @@ namespace genfile {
 	}
 	
 	std::string create_temporary_filename() {
-		return std::tmpnam( 0 ) ;
+		using namespace boost::filesystem ;
+		return ( temp_directory_path() / unique_path() ).native() ;
 	}
 	
 	std::pair< std::string, std::string > uniformise( std::string filename ) {

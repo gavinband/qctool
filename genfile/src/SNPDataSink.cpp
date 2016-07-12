@@ -180,12 +180,10 @@ namespace genfile {
 				SNPDataSink::GenotypeProbabilityGetter const& get_BB_probability,
 				SNPDataSink::Info const& info
 			):
-				m_id_data( id_data ),
 				m_number_of_samples( number_of_samples ),
 				m_get_AA_probability( get_AA_probability ),
 				m_get_AB_probability( get_AB_probability ),
-				m_get_BB_probability( get_BB_probability ),
-				m_info( info )
+				m_get_BB_probability( get_BB_probability )
 			{}
 				
 			BiallelicProbReader& get( std::string const& spec, PerSampleSetter& setter ) {
@@ -223,12 +221,10 @@ namespace genfile {
 			
 			
 		private:
-			VariantIdentifyingData const& m_id_data ;
 			std::size_t const m_number_of_samples ;
 			SNPDataSink::GenotypeProbabilityGetter const& m_get_AA_probability ;
 			SNPDataSink::GenotypeProbabilityGetter const& m_get_AB_probability ;
 			SNPDataSink::GenotypeProbabilityGetter const& m_get_BB_probability ;
-			SNPDataSink::Info const& m_info ;
 		} ;
 	}
 

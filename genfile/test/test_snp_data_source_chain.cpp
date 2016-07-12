@@ -15,6 +15,7 @@
 #include "genfile/GenFileSNPDataSource.hpp"
 #include "genfile/BGenFileSNPDataSource.hpp"
 #include "genfile/SNPDataSink.hpp"
+#include "genfile/FileUtils.hpp"
 #include "genfile/GenFileSNPDataSink.hpp"
 #include "genfile/BGenFileSNPDataSink.hpp"
 #include "stdint.h"
@@ -178,9 +179,9 @@ namespace {
 }
 
 AUTO_TEST_CASE( test_snp_data_source_chain ) {
-	std::string original = tmpnam(0) + std::string( ".gen" );
-	std::string gen = tmpnam(0) + std::string( ".gen" );
-	std::string gen2 = tmpnam(0) + std::string( ".gen" );
+	std::string original = genfile::create_temporary_filename() + std::string( ".gen" );
+	std::string gen = genfile::create_temporary_filename() + std::string( ".gen" );
+	std::string gen2 = genfile::create_temporary_filename() + std::string( ".gen" );
 
 	std::vector< genfile::wildcard::FilenameMatch > filenames ;
 	filenames.push_back( gen ) ;

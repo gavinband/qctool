@@ -14,6 +14,7 @@
 #include "genfile/GenFileSNPDataSource.hpp"
 #include "genfile/BGenFileSNPDataSource.hpp"
 #include "genfile/SNPDataSink.hpp"
+#include "genfile/FileUtils.hpp"
 #include "genfile/GenFileSNPDataSink.hpp"
 #include "genfile/BGenFileSNPDataSink.hpp"
 #include "genfile/bgen/bgen.hpp"
@@ -230,15 +231,15 @@ std::vector< SnpData > read_gen_file( std::string filename ) {
 }
 
 AUTO_TEST_CASE( test_formats ) {
-	std::string original = tmpnam(0) + std::string( ".gen" );
-	std::string gen = tmpnam(0) + std::string( ".gen" );
-	std::string gen2 = tmpnam(0) + std::string( ".gen" );
-	std::string bgen_v11 = tmpnam(0) + std::string( ".v11.bgen" );
-	std::string bgen_v112 = tmpnam(0) + std::string( ".v11.bgen" );
-	std::string bgen_v12 = tmpnam(0) + std::string( ".v12.bgen" );
-	std::string bgen_v122 = tmpnam(0) + std::string( ".v12.bgen" );
-	std::string zgen = tmpnam(0) + std::string( ".gen.gz" );
-	std::string zgen2 = tmpnam(0) + std::string( ".gen.gz" );
+	std::string original = genfile::create_temporary_filename() + std::string( ".gen" );
+	std::string gen = genfile::create_temporary_filename() + std::string( ".gen" );
+	std::string gen2 = genfile::create_temporary_filename() + std::string( ".gen" );
+	std::string bgen_v11 = genfile::create_temporary_filename() + std::string( ".v11.bgen" );
+	std::string bgen_v112 = genfile::create_temporary_filename() + std::string( ".v11.bgen" );
+	std::string bgen_v12 = genfile::create_temporary_filename() + std::string( ".v12.bgen" );
+	std::string bgen_v122 = genfile::create_temporary_filename() + std::string( ".v12.bgen" );
+	std::string zgen = genfile::create_temporary_filename() + std::string( ".gen.gz" );
+	std::string zgen2 = genfile::create_temporary_filename() + std::string( ".gen.gz" );
 
 #if DEBUG
 	std::cerr << "Creating files...\n" ;
