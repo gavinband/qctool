@@ -14,6 +14,7 @@
 #include <iostream>
 #include <deque>
 #include <algorithm>
+#include <map>
 
 #include <boost/bind.hpp>
 #include <boost/random/mersenne_twister.hpp>
@@ -22,6 +23,9 @@
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
+#include <boost/bimap.hpp>
+#include <boost/bimap/multiset_of.hpp>
+#include <boost/bimap/set_of.hpp>
 
 #include "appcontext/ProgramFlow.hpp"
 #include "appcontext/CmdLineOptionProcessor.hpp"
@@ -48,7 +52,7 @@
 #include "qcdb/FlatTableDBOutputter.hpp"
 #include "qcdb/FlatFileOutputter.hpp"
 
-// #define DEBUG_INTHINNERATOR 1
+//#define DEBUG_INTHINNERATOR 1
 
 namespace globals {
 	std::string const program_name = "inthinnerator" ;
@@ -1042,7 +1046,7 @@ namespace genes {
 		genfile::Chromosome const chromosome() const { return m_start.chromosome() ; }
 		genfile::GenomePosition const start() const { return m_start ; }
 		genfile::GenomePosition const end() const { return m_end ; }
-		
+	
 	private:
 		std::string m_name ;
 		genfile::GenomePosition m_start ;
@@ -1057,7 +1061,7 @@ namespace genes {
 	} ;
 	
 	bool operator<( Feature const& left, Feature const& right ) {
-		return( left.start() < right.start() ) ;
+		return( left.start() < right.start() || left.end() < right.end() || left.name() < right.name() ) ;
 	}
 
 	namespace {
@@ -1135,7 +1139,9 @@ namespace genes {
 		std::size_t txEndColumn = source->index_of_column( "txEnd" ) ;
 		std::size_t name2Column = source->index_of_column( "name2" ) ;
 
-		//std::cerr << "chromColumn = " << chromColumn << ", txStartColumn = " << txStartColumn << ", txEndColumn = " << txEndColumn << ", name2Column = " << name2Column << ", number of columns is " << source->number_of_columns() << ".\n" ;
+//#if DEBUG_INTHINNERATOR
+		std::cerr << "chromColumn = " << chromColumn << ", txStartColumn = " << txStartColumn << ", txEndColumn = " << txEndColumn << ", name2Column = " << name2Column << ", number of columns is " << source->number_of_columns() << ".\n" ;
+//#endif
 		int bin ;
 		genfile::Position txStart ;
 		genfile::Position txEnd ;
@@ -1157,10 +1163,13 @@ namespace genes {
 			if( !(*source)) {
 				throw genfile::MalformedInputError( source->get_source_spec(), "Malformed refGene-format file", source->number_of_rows_read() ) ;
 			}
-			
+		
+			if( name2 == "MKL1" ) {
+				std::cerr << "MKL1: " << txStart << "-" << txEnd << ".\n" ;
+			}	
 			// UCSC coordinates are 0-based.  Map them here.
 			++txStart ;
-			++txEnd ;
+			txEnd ;
 
 			// reformat the chromosome by getting rid of the 'chr'.
 			if( chrom.size() > 3 && chrom.substr(0, 3 ) == "chr" ) {
@@ -1907,7 +1916,6 @@ private:
 		}
 		if( genes.get() ) {
 			storage->add_variable( "nearest_gene_in_region" ) ;
-			storage->add_variable( "distance_to_nearest_gene_in_region" ) ;
 			storage->add_variable( "all_genes_in_region" ) ;
 		}
 
@@ -2040,45 +2048,56 @@ private:
 			}
 			
 			if( genes.get() ) {
+				boost::format format( "%s(%dkb)" ) ;
 				genfile::Position const lower_bp = test_attributes[ "region_lower_bp" ].as< int >() ;
 				genfile::Position const upper_bp = test_attributes[ "region_upper_bp" ].as< int >() ;
 				std::vector< genes::Feature const* > const genes_in_region = genes->find_genes_in_region( snps[snp_i].snp().get_position().chromosome(), lower_bp, upper_bp ) ;
 				if( genes_in_region.size() > 0 ) {
-					std::set< std::string > geneNames ;
-					std::size_t wNearest = genes_in_region.size() ;
+					typedef boost::bimap< boost::bimaps::multiset_of< std::size_t >, boost::bimaps::set_of< std::string > > GeneNames ;
+					GeneNames geneNames ;
 					std::size_t nearestDistance = std::numeric_limits< std::size_t >::max() ;
 					//std::cerr << "For SNP " << snps[snp_i] << ":\n" ;
 					for( std::size_t gene_i = 0; gene_i < genes_in_region.size(); ++gene_i ) {
+						std::string const& name = genes_in_region[gene_i].name() ;
 						// distance is 0 if SNP is in gene.
 						// Otherwise it's the distance to the nearest end.
 						// Note genes treated as closed.
-						std::size_t distance = std::max(
-							std::max( int( snps[snp_i].snp().get_position().position() ) - int( genes_in_region[gene_i]->end().position() ), 0 ),
-							std::max( int( genes_in_region[gene_i]->start().position() ) - int( snps[snp_i].snp().get_position().position() ), 0 )
-						) ;
-						//std::cerr << " - " << genes_in_region[gene_i]->name() << " has distance " << distance << ".\n" ;
+						int const rightDistance = int( snps[snp_i].snp().get_position().position() ) - int( genes_in_region[gene_i]->end().position() ) ;
+						int const leftDistance = int( genes_in_region[gene_i]->start().position() ) - int( snps[snp_i].snp().get_position().position() ) ;
+						std::size_t distance = std::max( std::max( leftDistance, rightDistance ), 0 ) ;
+						// std::cerr << " - " << genes_in_region[gene_i]->name() << " has distance " << distance << ".\n" ;
 						if( distance < nearestDistance ) {
-							wNearest = gene_i ;
 							nearestDistance = distance ;
 						}
-						geneNames.insert( genes_in_region[gene_i]->name() ) ;
+						// We may see multiple transcripts per gene but want only the gene-level summary here.
+						// So take the smallest distance per gene.
+						GeneNames::right_iterator where = geneNames.right.find( name ) ;
+						if( where != geneNames.right.end() && where->second > distance ) {
+							geneNames.right.replace_data( where, distance ) ;
+						} else {
+							geneNames.insert( distance, name ) ;
+						}
 					}
 
-					storage.store_per_variant_data(
-						snps[snp_i].snp(),
-						"nearest_gene_in_region",
-						genes_in_region[ wNearest ]->name()
-					) ;
-
-					storage.store_per_variant_data(
-						snps[snp_i].snp(),
-						"distance_to_nearest_gene_in_region",
-						genfile::VariantEntry::Integer( nearestDistance )
-					) ;
+					{
+						std::pair< GeneNames::left_const_iterator, GeneNames::left_const_iterator > nearest_range = geneNames.left.equal_range( nearestDistance ) ;
+						if( nearest_range.second != nearest_range.first ) {
+							std::ostringstream theseGenes ;
+							for( std::size_t n = 0; nearest_range.first != nearest_range.second; ++nearest_range.first, ++n ) {
+								theseGenes << (n>0?",":"") << ( geneFormat % nearest_range.second % ( nearest_range.first / 1000 )).str() ;
+							}
+							storage.store_per_variant_data(
+								snps[snp_i].snp(),
+								"nearest_gene_in_region",
+								theseGenes.str()
+							) ;
+						}
+			
+					}
 
 					std::ostringstream theseGenes ;
-					for( std::set< std::string >::const_iterator name_i = geneNames.begin(); name_i != geneNames.end(); ++name_i ) {
-						theseGenes << (name_i == geneNames.begin() ? "" : "," ) << *name_i ;
+					for( GeneNames::left_const_iterator name_i = geneNames.left.begin(); name_i != geneNames.left.end(); ++name_i ) {
+						theseGenes << (name_i == geneNames.begin() ? "" : "," ) << ( geneFormat % name_i->second % (name_i->first / 1000)).str() ;
 					}
 					storage.store_per_variant_data(
 						snps[snp_i].snp(),
