@@ -1169,7 +1169,7 @@ namespace genes {
 			}	
 			// UCSC coordinates are 0-based.  Map them here.
 			++txStart ;
-			txEnd ;
+			// txEnd ;
 
 			// reformat the chromosome by getting rid of the 'chr'.
 			if( chrom.size() > 3 && chrom.substr(0, 3 ) == "chr" ) {
@@ -2048,7 +2048,7 @@ private:
 			}
 			
 			if( genes.get() ) {
-				boost::format format( "%s(%dkb)" ) ;
+				boost::format geneFormat( "%s(%dkb)" ) ;
 				genfile::Position const lower_bp = test_attributes[ "region_lower_bp" ].as< int >() ;
 				genfile::Position const upper_bp = test_attributes[ "region_upper_bp" ].as< int >() ;
 				std::vector< genes::Feature const* > const genes_in_region = genes->find_genes_in_region( snps[snp_i].snp().get_position().chromosome(), lower_bp, upper_bp ) ;
@@ -2058,7 +2058,7 @@ private:
 					std::size_t nearestDistance = std::numeric_limits< std::size_t >::max() ;
 					//std::cerr << "For SNP " << snps[snp_i] << ":\n" ;
 					for( std::size_t gene_i = 0; gene_i < genes_in_region.size(); ++gene_i ) {
-						std::string const& name = genes_in_region[gene_i].name() ;
+						std::string const& name = genes_in_region[gene_i]->name() ;
 						// distance is 0 if SNP is in gene.
 						// Otherwise it's the distance to the nearest end.
 						// Note genes treated as closed.
@@ -2075,7 +2075,7 @@ private:
 						if( where != geneNames.right.end() && where->second > distance ) {
 							geneNames.right.replace_data( where, distance ) ;
 						} else {
-							geneNames.insert( distance, name ) ;
+							geneNames.insert( GeneNames::value_type( distance, name )) ;
 						}
 					}
 
@@ -2084,7 +2084,7 @@ private:
 						if( nearest_range.second != nearest_range.first ) {
 							std::ostringstream theseGenes ;
 							for( std::size_t n = 0; nearest_range.first != nearest_range.second; ++nearest_range.first, ++n ) {
-								theseGenes << (n>0?",":"") << ( geneFormat % nearest_range.second % ( nearest_range.first / 1000 )).str() ;
+								theseGenes << (n>0?",":"") << ( geneFormat % nearest_range.first->second % ( nearest_range.first->first / 1000 )).str() ;
 							}
 							storage.store_per_variant_data(
 								snps[snp_i].snp(),
@@ -2097,7 +2097,7 @@ private:
 
 					std::ostringstream theseGenes ;
 					for( GeneNames::left_const_iterator name_i = geneNames.left.begin(); name_i != geneNames.left.end(); ++name_i ) {
-						theseGenes << (name_i == geneNames.begin() ? "" : "," ) << ( geneFormat % name_i->second % (name_i->first / 1000)).str() ;
+						theseGenes << (name_i == geneNames.left.begin() ? "" : "," ) << ( geneFormat % name_i->second % (name_i->first / 1000)).str() ;
 					}
 					storage.store_per_variant_data(
 						snps[snp_i].snp(),
