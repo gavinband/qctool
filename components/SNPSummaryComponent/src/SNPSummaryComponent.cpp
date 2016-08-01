@@ -316,7 +316,7 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 				genfile::wildcard::find_files_by_chromosome(
 					filenames[0]
 				),
-				genfile::vcf::MetadataParser::Metadata(),
+				boost::optional< genfile::vcf::MetadataParser::Metadata >(),
 				m_options.get< std::string >( "-filetype" )
 			).release()
 		) ;
