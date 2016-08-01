@@ -197,7 +197,6 @@ namespace genfile {
 		if( m_allele_index < m_alleles.size() ) {
 			*result = VariantIdentifyingData(
 				m_alleles[ m_allele_index ],
-				m_alleles[ m_allele_index ],
 				GenomePosition( Chromosome( "06" ), 0 ),
 				"non-" + m_alleles[ m_allele_index ] + "_alleles",
 				m_alleles[ m_allele_index ]
