@@ -451,32 +451,9 @@ public:
 
 		// SNP filtering options
 		options.declare_group( "SNP filtering options" ) ;
-		options[ "-hwe"]
-			.set_description( "Filter out SNPs with -log10( HWE p-value ) greater than or equal to the value specified.")
-			.set_takes_single_value() ;
-		options[ "-info" ]
-			.set_description( "Filter out SNPs with Fisher information lying outside the given range.")
-			.set_takes_values( 2 ) ;
-		options[ "-snp-missing-rate" ]
-			.set_description( "Filter out SNPs with missing data rate greater than or equal to the value specified.")
-			.set_takes_single_value() ;
-		options[ "-missing-call-rate" ]
-			.set_description( "Filter out SNPs with missing call rate greater than or equal to the value specified.")
-			.set_takes_single_value() ;
-		options[ "-maf" ]
-			.set_description( "Filter out SNPs whose minor allele frequency lies outside the interval [a,b]." )
-			.set_takes_values( 2 ) ;
 		
 		// Sample filtering options
 		options.declare_group( "Sample filtering options" ) ;
-		options[ "-sample-missing-rate" ]
-			.set_description( "Filter out samples with missing data rate (as taken from the \"missing\" column of the sample file)"
-			" greater than the value specified." )
-			.set_takes_single_value() ;
-		options[ "-heterozygosity" ]
-			.set_description( "Filter out samples with heterozygosity (as taken from the \"heterozygosity\" column of the sample file, which must be present)"
-				" outside the interval [a,b]." )
-			.set_takes_values( 2 ) ;
 
 		// Inclusion / exclusion list options
 		options.declare_group( "Inclusion / exclusion list options" ) ;
@@ -573,9 +550,6 @@ public:
 
 		options.option_implies_option( "-excl-samples", "-s" ) ;
 		options.option_implies_option( "-incl-samples", "-s" ) ;
-
-		options.option_implies_option( "-sample-missing-rate", "-s" ) ;
-		options.option_implies_option( "-heterozygosity", "-s" ) ;
 	}
 } ;
 
