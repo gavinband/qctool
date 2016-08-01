@@ -321,13 +321,14 @@ namespace genfile {
 			assert( m_format_elts[ field_i ] != "GT" ) ;
 			// Decide if element is trailing (so not specified).
 			bool const elt_is_trailing = (( begin_components + field_i ) >= end_components ) ;
+			bool const elt_is_completely_missing = (*(begin_components + field_i ) == "." ) ;
 			// std::cerr << "CallReader::unsafe_set_values(): sample_i=" << sample_i << ", field_i=" << field_i << ".\n" ;
 			uint32_t ploidy = eUnknownPloidy ;
 			if( entry_type.check_if_requires_ploidy() ) {
 				assert( m_ploidy.size() == m_number_of_samples ) ;
 				ploidy = m_ploidy[ sample_i ] ;
 			}
-			if( elt_is_trailing ) {
+			if( elt_is_trailing || elt_is_completely_missing ) {
 				entry_type.get_missing_value( m_number_of_alleles, ploidy, setter ) ;
 			}
 			else {
