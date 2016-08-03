@@ -10,6 +10,8 @@
 #include <boost/bind.hpp>
 #include <boost/math/distributions/chi_squared.hpp>
 #include "genfile/Error.hpp"
+#include "genfile/ToGP.hpp"
+#include "genfile/VariantDataReader.hpp"
 #include "metro/likelihood/Multinomial.hpp"
 #include "components/SNPSummaryComponent/SNPHWE.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
@@ -20,6 +22,122 @@
 // #define DEBUG_SNP_SUMMARY_COMPUTATION 1
 
 namespace snp_summary_component {
+	
+	namespace {
+		struct AlleleCountClient: public genfile::VariantDataReader::PerSampleSetter {
+			AlleleCountClient( std::vector< double >* counts ):
+				m_counts( counts ),
+				m_number_of_alleles( 0 )
+			{
+				assert( counts != 0 ) ;
+			}
+
+			~AlleleCountClient() throw() {}
+			
+			void set_counts( std::vector< double >* counts ) {
+				assert( counts != 0 ) ;
+				m_counts = counts ;
+			}
+			
+			void initialise( std::size_t number_of_samples, std::size_t number_of_alleles ) {
+				m_number_of_alleles = number_of_alleles ;
+				assert( m_counts->size() == number_of_alleles ) ;
+			}
+			
+			bool set_sample( std::size_t i ) {
+				m_ploidy = 0 ;
+				m_table = 0 ;
+				return true ;
+			}
+			
+			void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
+				assert( order_type == genfile::ePerUnorderedGenotype ) ;
+				assert( value_type == genfile::eProbability ) ;
+				
+				std::map< uint32_t, genfile::impl::Enumeration >::iterator where = m_tables.find( ploidy ) ;
+				if( where == m_tables.end() ) {
+					std::pair< std::map< uint32_t, genfile::impl::Enumeration >::iterator, bool >
+						result = m_tables.insert( std::make_pair( ploidy, genfile::impl::enumerate_unphased_genotypes( ploidy ) )) ;
+					assert( result.second ) ;
+					where = result.first ;
+				}
+				m_ploidy = ploidy ;
+				m_table = &(where->second) ;
+			}
+			
+			void set_value( std::size_t value_i, genfile::MissingValue const value ) {
+				set_value( value_i, std::numeric_limits< double >::quiet_NaN() ) ;
+			}
+
+			void set_value( std::size_t value_i, double const value ) {
+				assert( value_i <= std::size_t( std::numeric_limits< uint16_t >::max() )) ;
+				genfile::impl::Enumeration const& enumeration = *m_table ;
+				std::size_t const& maxAlleles = enumeration.first.second ;
+				assert( m_number_of_alleles <= maxAlleles ) ;
+				uint16_t const encodedGenotype = enumeration.second.second[ uint16_t( value_i ) ] ;
+				uint32_t const bitsPerAllele = enumeration.first.first ;
+				uint16_t mask = uint16_t( 0xFFFF ) >> ( 16 - bitsPerAllele ) ;
+				// Dosage of the 1st allele in the genotype is not encoded directly.
+				// We compute it as the ploidy minus the dosage of other alleles.
+				uint16_t dosage_of_nonref_alleles = 0 ;
+				for( std::size_t allele = 1; allele < m_number_of_alleles; ++allele ) {
+					uint16_t const dosage = ( encodedGenotype >> ( (allele-1) * bitsPerAllele )) & mask ;
+					(*m_counts)[allele] += value * dosage ;
+					dosage_of_nonref_alleles += dosage ;
+				}
+				(*m_counts)[0] += value * (m_ploidy - dosage_of_nonref_alleles) ;
+			}
+			
+			void finalise() {}
+		private:
+			std::vector< double >* m_counts ;
+			std::size_t m_number_of_alleles ;
+			uint32_t m_ploidy ;
+			std::map< uint32_t, genfile::impl::Enumeration > m_tables ;
+			genfile::impl::Enumeration* m_table ;
+		} ;
+	}
+
+	struct AlleleCountComputation: public SNPSummaryComputation {
+	public:
+		
+		AlleleCountComputation():
+			m_counter( &m_counts )
+		{}
+
+		void list_variables( NameCallback callback ) const {
+			using genfile::string_utils::to_string ;
+			// By default we list 2 alleles
+			// In files with more alleles.
+			for( std::size_t i = 0; i < 2; ++i ) {
+				callback( "allele" + to_string(i+1) + "_count" ) ;
+			}
+		}
+
+		void operator()(
+			VariantIdentifyingData const& snp,
+			Genotypes const& genotypes,
+			SampleSexes const& sexes,
+			genfile::VariantDataReader& data_reader,
+			ResultCallback callback
+		) {
+			using genfile::string_utils::to_string ;
+			m_counts = std::vector< double >( snp.number_of_alleles(), 0.0 ) ;
+			m_counter.set_counts( &m_counts ) ;
+			data_reader.get( ":genotypes:", genfile::to_GP_unphased( m_counter ) ) ;
+			for( std::size_t i = 0; i < snp.number_of_alleles(); ++i ) {
+				callback( "allele" + to_string(i+1) + "_count", m_counts[i] ) ;
+			}
+		}
+		
+		std::string get_summary( std::string const& prefix, std::size_t column_width ) const {
+			return prefix + "AlleleCountComputation" ;
+		}
+	private:
+		std::vector< double > m_counts ;
+		AlleleCountClient m_counter ;
+	} ;
+
 	struct AlleleFrequencyComputation: public SNPSummaryComputation
 	{
 		void operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, genfile::VariantDataReader&, ResultCallback callback ) {
@@ -98,7 +216,9 @@ namespace snp_summary_component {
 			}
 		}
 		
-		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "AlleleFrequencyComputation" ; }
+		std::string get_summary( std::string const& prefix, std::size_t column_width ) const {
+			return prefix + "AlleleFrequencyComputation" ;
+		}
 	} ;
 	
 	struct MissingnessComputation: public SNPSummaryComputation {
@@ -161,7 +281,7 @@ namespace snp_summary_component {
 		double const m_call_threshhold ;
 	} ;
 
-	struct InformationComputation: public SNPSummaryComputation {
+	struct InfoComputation: public SNPSummaryComputation {
 		void operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sample_sexes, genfile::VariantDataReader&, ResultCallback callback ) {
 			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
 			if( chromosome.is_sex_determining() ) {
@@ -298,7 +418,7 @@ namespace snp_summary_component {
 			}
 		}
 
-		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "InformationComputation" ; }
+		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "InfoComputation" ; }
 		
 	private:
 		double compute_expected_variance( Eigen::VectorXd const& levels, Eigen::MatrixXd const& probabilities, Eigen::VectorXd const& fallback ) const {
@@ -343,8 +463,9 @@ SNPSummaryComputation::UniquePtr SNPSummaryComputation::create(
 	if( name == "alleles" ) { result.reset( new snp_summary_component::AlleleFrequencyComputation()) ; }
 	else if( name == "HWE" ) { result.reset( new snp_summary_component::HWEComputation()) ; }
 	else if( name == "missingness" ) { result.reset( new snp_summary_component::MissingnessComputation()) ; }
-	else if( name == "information" ) { result.reset( new snp_summary_component::InformationComputation()) ; }
+	else if( name == "info" ) { result.reset( new snp_summary_component::InfoComputation()) ; }
 	else if( name == "intensity-stats" ) { result.reset( new snp_summary_component::IntensitySummaryComputation() ) ; }
+	else if( name == "allele-counts" ) { result.reset( new snp_summary_component::AlleleCountComputation() ) ; }
 	else {
 		throw genfile::BadArgumentError( "SNPSummaryComputation::create()", "name=\"" + name + "\"" ) ;
 	}

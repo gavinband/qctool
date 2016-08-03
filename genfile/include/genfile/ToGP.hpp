@@ -77,7 +77,7 @@ namespace genfile {
 			return m_setter.set_sample( i ) ;
 		}
 		
-		void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
+		void set_number_of_entries( uint32_t ploidy, std::size_t number_of_entries, OrderType const order_type, ValueType const value_type ) {
 			typename ImplMap::iterator where = m_impls.find( std::make_pair( order_type, value_type )) ;
 			if( where == m_impls.end() ) {
 				throw genfile::BadArgumentError(
@@ -87,7 +87,7 @@ namespace genfile {
 				) ;
 			} else {
 				m_current_impl = where->second ;
-				m_current_impl->initialise( m_setter, m_number_of_alleles, ploidy, n ) ;
+				m_current_impl->initialise( m_setter, m_number_of_alleles, ploidy, number_of_entries ) ;
 			}
 		}
 		
@@ -128,7 +128,9 @@ namespace genfile {
 		//
 		// Genotypes are stored as uint16_t with 4 bits per allele.  This gives
 		// up to four alleles and up to ploidy of 15.
-		std::pair< uint32_t, std::vector< uint16_t > > enumerate_unphased_genotypes( std::size_t ploidy ) ;
+		typedef std::pair< std::vector< uint16_t >, std::vector< uint16_t > > MapType ;
+		typedef std::pair< std::pair< uint32_t, std::size_t >, MapType > Enumeration ;
+		Enumeration enumerate_unphased_genotypes( std::size_t ploidy ) ;
 
 		struct GTToGPUnphasedBase {
 		protected:
@@ -148,7 +150,8 @@ namespace genfile {
 		static SharedPtr create() {
 			if( m_tables.empty() ) {
 				for( std::size_t ploidy = 0; ploidy < 16; ++ploidy ) {
-					m_tables.push_back( impl::enumerate_unphased_genotypes( ploidy )) ;
+					impl::Enumeration const& e = impl::enumerate_unphased_genotypes( ploidy ) ;
+					m_tables.push_back( std::make_pair( e.first.first, e.second.first )) ;
 				}
 			}
 			return SharedPtr( new GTToGPUnphased() ) ;

@@ -41,7 +41,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options[ "-snp-stats-columns" ]
         .set_description( "Comma-seperated list of extra columns to output in the snp-wise statistics file." )
 		.set_takes_single_value()
-		.set_default_value( "alleles,HWE,missingness,information" ) ;
+		.set_default_value( "alleles,HWE,missingness,info" ) ;
 
 	options.declare_group( "Intensity computation options" ) ;
 	options[ "-intensity-stats" ]
@@ -235,6 +235,13 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 	typedef std::map< std::string, qcdb::Storage::SharedPtr > Outputters ;
 	Outputters outputters ;
 
+	if( m_options.check( "-snp-stats" )) {
+		std::vector< std::string > elts = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-snp-stats-columns" ), ",", " \t" ) ;
+		BOOST_FOREACH( std::string const& elt, elts ) {
+			manager.add_computation( elt, SNPSummaryComputation::create( elt )) ;
+		}
+	}
+	
 	if( m_options.check( "-snp-stats" )) {
 		std::vector< std::string > elts = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-snp-stats-columns" ), ",", " \t" ) ;
 		BOOST_FOREACH( std::string const& elt, elts ) {

@@ -135,7 +135,9 @@ namespace qcdb {
 			std::string SNPID ;
 			snp.get_identifiers( boost::bind( &append_to_string, &SNPID, _1 ), 1 ) ;
 			(*m_sink) << SNPID << snp.get_primary_id() << snp.get_position().chromosome()
-				<< snp.get_position().position() << snp.get_allele(0) << snp.get_allele(1) ;
+				<< snp.get_position().position()
+				<< snp.get_allele(0)
+				<< (( snp.number_of_alleles() < 2 ) ? "." : snp.get_alleles_as_string( ",", 1, snp.number_of_alleles() )) ;
 			VariableMap::right_const_iterator
 				var_i = m_variables.right.begin(),
 				end_var_i = m_variables.right.end() ;

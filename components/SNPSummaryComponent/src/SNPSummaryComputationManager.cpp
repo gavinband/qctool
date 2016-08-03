@@ -14,6 +14,7 @@
 #include "genfile/VariantEntry.hpp"
 #include "genfile/vcf/get_set_eigen.hpp"
 #include "genfile/Error.hpp"
+#include "genfile/ToGP.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputationManager.hpp"
 #include "components/SNPSummaryComponent/StratifyingSNPSummaryComputation.hpp"
@@ -94,22 +95,91 @@ void SNPSummaryComputationManager::begin_processing_snps( std::size_t number_of_
 	}
 }
 
-void SNPSummaryComputationManager::processed_snp( genfile::VariantIdentifyingData const& snp, genfile::VariantDataReader& data_reader ) {
+namespace {
+	struct GPSetter: public genfile::VariantDataReader::PerSampleSetter {
+		~GPSetter() throw() {}
+		GPSetter( Eigen::MatrixXd* genotypes ):
+			m_genotypes( genotypes ),
+			m_sample_i( 0 )
+		{
+			assert( genotypes != 0 ) ;
+		}
+
+		void initialise( std::size_t number_of_samples, std::size_t number_of_alleles ) {
+			// assume at most diploidy
+			std::cerr << "GPSetter::initialise( " << number_of_samples << ", " << number_of_alleles << " ).\n" ;
+			m_genotypes->resize( number_of_samples, number_of_alleles * (number_of_alleles+1)/2 ) ;
+			m_genotypes->setConstant( std::numeric_limits< double >::quiet_NaN() ) ;
+			m_sample_i = 0 ;
+			m_ploidy = std::vector< uint32_t >( number_of_samples, 0 ) ;
+			m_max_ploidy = 0 ;
+			m_min_ploidy = std::numeric_limits< uint32_t >::max() ;
+		}
+
+		bool set_sample( std::size_t i ) {
+			m_sample_i = i ;
+			return true ;
+		}
+		
+		void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
+			assert( order_type == genfile::ePerUnorderedGenotype ) ;
+			assert( value_type == genfile::eProbability ) ;
+			m_max_ploidy = std::max( m_max_ploidy, ploidy ) ;
+			m_min_ploidy = std::min( m_min_ploidy, ploidy ) ;
+			m_ploidy[ m_sample_i ] = ploidy ;
+		}
+		
+		void set_value( std::size_t value_i, genfile::MissingValue const value ) {
+			set_value( value_i, std::numeric_limits< double >::quiet_NaN() ) ;
+		}
+
+		void set_value( std::size_t value_i, double const value ) {
+			std::cerr << "GPSetter::set_value( " << value_i << ", " << value << " ).\n" ;
+			if( m_ploidy[ m_sample_i ] <= 2 ) {
+				assert( value_i < m_genotypes->cols() ) ;
+				(*m_genotypes)( m_sample_i, value_i ) = value ;
+			}
+		}
+
+		void finalise() {}
+
+		uint32_t max_ploidy() const { return m_max_ploidy ; }
+		uint32_t min_ploidy() const { return m_min_ploidy ; }
+
+	private:
+		Eigen::MatrixXd* m_genotypes ;
+		std::vector< uint32_t > m_ploidy ;
+		int m_sample_i ;
+		uint32_t m_max_ploidy ;
+		uint32_t m_min_ploidy ;
+	} ;
+}
+
+void SNPSummaryComputationManager::processed_snp(
+	genfile::VariantIdentifyingData const& snp,
+	genfile::VariantDataReader& data_reader
+) {
 	try {
-		genfile::vcf::GenotypeSetter< Eigen::MatrixBase< SNPSummaryComputation::Genotypes > > setter( m_genotypes ) ;
-		data_reader.get( ":genotypes:", setter ) ;
+		GPSetter setter( &m_genotypes ) ;
+		data_reader.get( ":genotypes:", genfile::to_GP_unphased( setter )) ;
 
 		boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > callback
 			= boost::bind( boost::ref( m_result_signal ), snp, _1, _2 ) ;
 
-		if( !snp.get_position().chromosome().is_missing() && snp.get_position().chromosome().is_sex_determining() ) {
-			try {
-				fix_sex_chromosome_genotypes( snp, &m_genotypes, callback ) ;
+		if( setter.max_ploidy() == 2 && setter.min_ploidy() == 2 ) {
+			if( !snp.get_position().chromosome().is_missing() && snp.get_position().chromosome().is_sex_determining() ) {
+				try {
+					fix_sex_chromosome_genotypes( snp, &m_genotypes, callback ) ;
+				}
+				catch( genfile::BadArgumentError const& e ) {
+					m_result_signal( snp, "comment", "Unable to determine genotype coding for males/females.  Calling may be wrong so I will treat the genotypes as missing." ) ;
+					m_genotypes.setZero() ;
+				}
 			}
-			catch( genfile::BadArgumentError const& e ) {
-				m_result_signal( snp, "comment", "Unable to determine genotype coding for males/females.  Calling may be wrong so I will treat the genotypes as missing." ) ;
-				m_genotypes.setZero() ;
-			}
+		} else {
+			// Currently non-diploid computations are unsupported except
+			// via particular computations which handle it directly.
+			m_genotypes.setZero() ;
 		}
 
 		Computations::iterator i = m_computations.begin(), end_i = m_computations.end() ;

@@ -217,6 +217,14 @@ namespace genfile {
 			callback( slice( m_data, m_allele_starts[i], m_allele_starts[i+1] )) ;
 		}
 	}
+	
+	std::string VariantIdentifyingData::get_alleles_as_string(
+		std::string const& separator,
+		std::size_t start,
+		std::size_t end
+	) const {
+		return join( get_alleles( start, end ), separator ) ;
+	}
 
 	void VariantIdentifyingData::swap_alleles() {
 		assert( m_allele_starts.size() == 3 ) ;

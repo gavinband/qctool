@@ -75,6 +75,11 @@ namespace genfile {
 		slice get_allele( std::size_t i ) const ;
 		std::vector< slice > get_alleles( std::size_t start = 0, std::size_t end = std::string::npos ) const ;
 		void get_alleles( boost::function< void( slice ) >, std::size_t start = 0, std::size_t end = std::string::npos ) const ;
+		std::string get_alleles_as_string(
+			std::string const& separator,
+			std::size_t start = 0,
+			std::size_t end = std::string::npos
+		) const ;
 		void swap_alleles() ;
 
 		std::size_t estimate_bytes_used() const ;
