@@ -7,6 +7,8 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <cstdio>
+#include <boost/spirit/include/karma.hpp>
 #include <Eigen/Core>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/gen.hpp"
@@ -32,12 +34,22 @@ namespace genfile {
 	}
 
 	void GenFileSNPDataSink::set_precision( std::size_t precision ) {
-		stream() << std::setprecision( precision ) ;
+		assert( precision == 5 ) ;
 	}
 
 	namespace {
+		template< typename Num >
+		struct float_policy: public boost::spirit::karma::real_policies< Num >
+		{
+			static bool trailing_zeros( Num n ) { return true ; }
+			static int floatfield( Num n ) { return boost::spirit::karma::real_policies< Num >::fmtflags::fixed ; }
+			static unsigned precision( Num n ) { return 5 ; }
+		} ;
+
+		typedef boost::spirit::karma::real_generator<double, float_policy<double> > FormatFloat ;
+
 		struct GenotypeWriter: public VariantDataReader::PerSampleSetter {
-			GenotypeWriter( Eigen::VectorXd& data ):
+			GenotypeWriter( Eigen::VectorXd& data, std::size_t const precision = 5 ):
 				m_data( data ),
 				m_number_of_samples( m_data.size() / 3 ),
 				m_sample_i(0),
@@ -80,36 +92,41 @@ namespace genfile {
 					) ;
 				}
 				m_entry_i = 0 ;
-				m_missing = std::vector< bool >( m_number_of_samples, false ) ;
 			}
-			void set_value( std::size_t, MissingValue const value ) {
-				m_missing[ m_sample_i ] = true ;
+			void set_value( std::size_t j, MissingValue const value ) {
+				// Value of -1 means missing data for this sample
+				m_data[ 3 * m_sample_i + 0 ] = -1 ;
 			}
-
 			void set_value( std::size_t, std::string& value ) {
 				assert(0) ;
 			}
-
 			void set_value( std::size_t, Integer const value ) {
 				m_data( m_sample_i * 3 + m_entry_i++ ) = value ;
 			}
-			
 			void set_value( std::size_t, double const value ) {
 				m_data( m_sample_i * 3 + m_entry_i++ ) = value ;
 			}
-			
 			void finalise() {} ;
 
-			void write_to_stream( std::ostream& stream ) const {
+			void write_to_stream( std::ostream& stream ) {
 				for( std::size_t i = 0; i < m_number_of_samples; ++i ) {
-					if( m_missing[i] ) {
+					if( m_data[3*i+0] < 0 ) {
 						stream << " 0 0 0 " ;
 					} else {
-						stream
+						using boost::spirit::karma::double_ ;
+						using boost::spirit::karma::generate ;
+						FormatFloat formatter ;
+						//sprintf( &m_buffer[0], " %.5f %.5f %.5f", m_data[3*i+0], m_data[3*i+1], m_data[3*i+2] ) ;
+						generate( &m_buffer[0], ( " " << formatter << " " << formatter << " " << formatter << "\0" ), m_data[3*i+0], m_data[3*i+1], m_data[3*i+2] ) ;
+						stream << m_buffer ;
+						//generate( std::ostream_iterator<char>( stream ), ( " " << formatter << " " << formatter << " " << formatter ), m_data[3*i+0], m_data[3*i+1], m_data[3*i+2] ) ;
+						/*
+						stream 
 							<< " " << m_data[3*i+0] 
 							<< " " << m_data[3*i+1] 
 							<< " " << m_data[3*i+2]
 						;
+						*/
 					}
 				}
 			}
@@ -119,7 +136,7 @@ namespace genfile {
 			std::size_t m_number_of_samples ;
 			std::size_t m_sample_i ;
 			std::size_t m_entry_i ;
-			std::vector< bool > m_missing ;
+			char m_buffer[100];
 		} ;
 	}
 
