@@ -69,7 +69,7 @@
 		<div class="main_text">
 			<div id="overview" style="display:none">
 				<p>
-					<b>IMPORTANT</b>: this page documents QCTOOL version 2, which is currently in <b>alpha</b> status.
+					<b>IMPORTANT</b>: this page documents QCTOOL version 2, which is currently in <b>beta</b> status.
 					Go <a href="http://www.well.ox.ac.uk/~gav/qctool/">here</a> if you want the stable QCTOOL version 1.
 				</p>
 				<p>
@@ -84,8 +84,8 @@
 						<a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format.html">BGEN</a> files (including full support for BGEN v1.2).</li>
 					<li>To manipulate data in various ways - e.g. by updating data fields or aligning alleles to a reference sequence using an
 						externally-supplied strand file.</li>
-					<li>To compare datasets.</li>
-					<li>To compute relatedness between samples and principal components.</li>
+					<li>To compare genotypes for individuals typed or imputed or phased in different datasets.</li>
+					<li>To compute between-sample relatedness and principal components.</li>
 				</ul>
 				<p>
 					QCTOOL is designed to be as easy-to-use as possible and we hope you find it so.
@@ -96,6 +96,17 @@
 					not to work well, or to work wrongly, or to destroy your computer, or your sanity.	It also differs in several important ways
 					from the v1 release series.  On the plus side, QCTOOL v2 has several features not found elsewhere.
 				</p>
+				<p>
+					Some important changes in QCTOOL v2 relative to v1 are:
+				</p>
+				<ul>
+					<li>QCTOOL no longer converts chromosome to a normalised two-digit format, but will
+						allow any string as a chromosome identifier.  This brings QCTOOL into line with other tools,
+						e.g. those that use contig identifiers from a reference genome build.  However, this also
+						breaks some workflows that would previously have worked, namely when matching between datasets
+						that have inconsistently encoded chromosome names.
+					<li>
+				</ul>
 				<p>
 					<strong>Acknowledgements.</strong> The following people contributed to the design and implementation of qctool:
 				</p>
@@ -968,7 +979,7 @@ $ ./qctool -help
 					</p>
 					<div class="terminal">
 						<pre>
-	$ hg clone --rev master https://gavinband@bitbucket.org/gavinband/qctool
+	$ hg clone --rev beta https://gavinband@bitbucket.org/gavinband/qctool
 	$ cd qctool
 	$ ./waf-1.5.18 configure
 	$ ./waf-1.5.18
@@ -976,7 +987,7 @@ $ ./qctool -help
 </pre>
 					</div>This produces an executable
 					<pre>
-./build/release/qctool-v2.0-dev
+./build/release/qctool-v2.0-betaX
 </pre>
 					<p>
 						QCTOOL relies on <a href="http://www.zlib.net">zlib</a> which must be installed (with headers) 
