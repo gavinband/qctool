@@ -82,6 +82,7 @@ namespace appcontext {
 		}
 		catch( OptionProcessingException const& e ) {
 			get_ui_context().logger() << "!! Error (" << e.what() << "): " << e.message() << ".\n" ;
+			get_ui_context().logger() << "!! Run " << m_application_name << " " << m_options->get_help_option_name() << " for usage information.\n" ;
 			throw HaltProgramWithReturnCode( 0 );
 		}
 		catch( OptionProcessorHelpRequestedException const& ) {
