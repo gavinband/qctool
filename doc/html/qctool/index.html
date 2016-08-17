@@ -69,7 +69,7 @@
 		<div class="main_text">
 			<div id="overview" style="display:none">
 				<p>
-					<b>IMPORTANT</b>: this page documents QCTOOL version 2, which is currently in <b>alpha</b> status.
+					<b>IMPORTANT</b>: this page documents QCTOOL version 2, which is currently in <b>beta</b> status.
 					Go <a href="http://www.well.ox.ac.uk/~gav/qctool/">here</a> if you want the stable QCTOOL version 1.
 				</p>
 				<p>
@@ -77,15 +77,15 @@
 					genome-wide data.  QCTOOL can be used
 				</p>
 				<ul>
-					<li>To compute commonly-used QC metrics.</li>
+					<li>To compute per-variant and per-sample QC metrics.</li>
 					<li>To filter out samples or variants.</li>
-					<li>To merge samples or variants.</li>
-					<li>To convert data files between formats.  In particular QCTOOL can read and write
-						<a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format.html">BGEN</a> files (including full support for BGEN v1.2).</li>
-					<li>To manipulate data in various ways - e.g. by updating data fields or aligning alleles to a reference sequence using an
+					<li>To merge datasets in various ways.</li>
+					<li>To convert dataset between file formats.  (In particular QCTOOL can read and write
+						<a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format.html">BGEN</a> files, including full support for BGEN v1.2).</li>
+					<li>To manipulate datasets in various ways - e.g. by updating data fields or aligning alleles to a reference sequence using an
 						externally-supplied strand file.</li>
-					<li>To compare datasets.</li>
-					<li>To compute relatedness between samples and principal components.</li>
+					<li>To compare genotypes for individuals typed or imputed or phased in different datasets.</li>
+					<li>To compute between-sample relatedness and principal components.</li>
 				</ul>
 				<p>
 					QCTOOL is designed to be as easy-to-use as possible and we hope you find it so.
@@ -94,8 +94,21 @@
 					<strong>Change history.</strong>
 					This page documents version 2 of QCTOOL which is currently <em>experimental</em>.  This means we expect some features not to work, or
 					not to work well, or to work wrongly, or to destroy your computer, or your sanity.	It also differs in several important ways
-					from the v1 release series.  On the plus side, QCTOOL v2 has several features not found elsewhere.
+					from the v1 release series.  Some important changes in QCTOOL v2 relative to v1 are:
 				</p>
+				<ul>
+					<li>
+						<b>Treatment of chromosomes</b>: QCTOOL v1 always converted chromosomes to
+						a two-digit form (<code>01</code>,<code>02</code>, ...) and would treat chromosomes as missing
+						if they were not of specific forms pertinent to human datasets.  QCTOOL v2 instead allows arbitrary
+						strings to be used as chromosomes.  This change brings QCTOOL into line with other tools,
+						e.g. those that use contig identifiers from a reference genome build.  However, this also
+						breaks some workflows that would previously have worked, namely when matching between datasets
+						that have differently encoded chromosome names.  A possible workaround is to use the
+						<code>-map-id-data</code> option to replace chromosome identifiers on the fly during analysis
+						- see the <a href="#tutorial">examples page</a> for details.
+					</li>
+				</ul>
 				<p>
 					<strong>Acknowledgements.</strong> The following people contributed to the design and implementation of qctool:
 				</p>
@@ -292,7 +305,7 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 		<dd>
 			<em>(Only computed on sex chromosomes)</em>:
 			The count of samples whose ploidy could not be determined.  On the X and Y chromosomes,
-			this occurs for any sample with a missing sex information (as determined by the column of
+			this occurs for any sample with missing sex information (as determined by the column of
 			the sample file specified by <code>-sex-column</code>).	 
 		</dd>
 
@@ -374,13 +387,12 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 	Computed by <code>-annotate-bed[3|4] &lt;name of file in <a href="https://genome.ucsc.edu/FAQ/FAQformat.html#format1">BED</a> format&gt;</code>:
 </p>
 <dl>
-			<dt><code>&lt;filename&gt;</code></dt>
+			<dt><code>&lt;filename&gt;</code> (minus the extension)</dt>
 			<dd>For <code>-annotate-bed3</code>, a 0/1 indicator of whether the variant lies in an interval in the given BED file;
 				for <code>-annotate-bed4</code>, a list of values from the fourth column of the BED file for intervals which the
 				variant lies in.  Note positions in BED files are in 0-based coordinates; QCTOOL
 				assumes 1 based coordinates for the positions of variants and will translate BED coordinates accordingly.
 			</dd>
-			
 	</dl>
 <p>
 </div>
@@ -427,39 +439,6 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 				</div>
 				<div class="task">
 					<div class="task_name">
-						Manipulate SNP metadata
-					</div>
-					<div class="task_command_line">
-						$ qctool -g &lt;input file&gt; -assume-chromosome &lt;chromosome&gt; [+analysis/output options]
-					</div>
-					<div class="task_notes">
-						The <code>-assume-chromosome</code> option tells QCTOOL to assume the given chromosome for any variant
-						where the chromosome is missing or not present in the input file.  (Note that chromosome information can also
-						be inferred from the chromosomal wildcard character # in input files.)
-					</div>
-					<div class="task_command_line">
-						$ qctool -g &lt;input file(s)&gt; -map-id-data &lt;map file&gt; [+analysis/output options]
-					</div>
-					<div class="task_notes">
-						The <code>-map-id-data</code> tells QCTOOL to replace the chromosome, position, allele and ID information
-						of the input data with a new set of information specified in the given file.  For example, a potential use is 
-						updating files when remapping data to a new genome build.
-					</div>
-					<div class="task_command_line">
-						$ qctool -g &lt;input file(s)&gt; -strand &lt;strand file&gt; [-flip-to-match-allele &lt;column name&gt;] [+analysis/output options]
-					</div>
-					<div class="task_notes">
-						The <code>-strand</code> option tells QCTOOL to read strand information from the given file.
-						Alleles at SNPs where the strand is '+' will be unchanged; alleles at SNPs where the strand is '-' will
-						be complemented; alleles at SNPs which have missing strand will be 
-						where the
-						 and to complement alleles
-						of the input data with a new set of information specified in the given file.  For example, a potential use is 
-						updating files when remapping data to a new genome build.
-					</div>
-				</div>
-				<div class="task">
-					<div class="task_name">
 						Sort data
 					</div>
 					<div class="task_command_line">
@@ -470,7 +449,7 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 					</div>
 					<div class="task_notes">
 						The sort operation works for BGEN, unzipped GEN, and unzipped VCF output formats.
-						The default is to sort by chromosome,position,alleles,rsid, and SNPID.
+						The default is to sort by chromosome, position, alleles, rsid, and SNPID.
 						The <code>-snp-match-fields</code> option can be used to restrict to sorting on a subset of fields.
 					</div>
 				</div>
@@ -505,7 +484,53 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 						cohort are the same as those in the first cohort, but coded the other way round (e.g. cohort1 = A G,
 						cohort2 = G A), then the alleles are flipped accordingly.
 					</div>
-				</div>					
+				</div>			
+				<div class="task">
+					<div class="task_name">
+						Manipulate SNP metadata
+					</div>
+					<div class="task_command_line">
+						$ qctool -g &lt;input file&gt; -assume-chromosome &lt;chromosome&gt; ...
+					</div>
+					<div class="task_notes">
+						The <code>-assume-chromosome</code> option tells QCTOOL to assume the given chromosome for any variant
+						where the chromosome is missing or not present in the input file.  (Note that chromosome information can also
+						be inferred from the chromosomal wildcard character # in input files.)
+					</div>
+					<div class="task_command_line">
+						$ qctool -g &lt;input file(s)&gt; -map-id-data &lt;map file&gt; ...
+					</div>
+					<div class="task_notes">
+						The <code>-map-id-data</code> tells QCTOOL to replace the chromosome, position, allele and ID information
+						of the input data with a new set of information specified in the given file.  For example, a potential use is 
+						updating files when remapping data to a new genome build.  The file given to <code>-map-id-data</code> must
+						have twelve named columns, in the following order: the current SNPID, rsid, chromosome, position, first and second alleles, followed
+						by the desired updated SNPID, rsid, chromosome, position and alleles.  The first line is treated as column names
+						(currently it doesn't matter what these are called.)  Variants not in this file are not affected.
+						Matching to this file is controlled by the <code>-snp-match-fields</code>
+						option.
+					</div>
+					<div class="task_command_line">
+						$ qctool -g &lt;input file(s)&gt; -strand &lt;strand file&gt; [-flip-to-match-allele &lt;column name&gt;] ...
+					</div>
+					<div class="task_notes">
+						The <code>-strand</code> option tells QCTOOL to read strand information from a specified file and apply strand alignment
+						to the data.  Alleles at SNPs where the strand is '+' will be processed unchanged; alleles
+						at SNPs where the strand is '-' will be complemented (i.e. A&lt;-&gt;T, G&lt;-&gt;C);
+						alleles at SNPs which have missing strand will be processed with alleles recorded in an ambiguous manner.
+						Strand files should have six named columns,
+						<code>SNPID</code>,
+						<code>rsid</code>,
+						<code>chromosome</code>,
+						<code>position</code>,
+						<code>alleleA</code>,
+						<code>alleleB</code>,
+						<code>strand</code>; plus any additional columns.
+						If the <code>-flip-to-match-allele</code> option is given, alleles and genotypes are also recoded so that
+						the allele in the named column is the first allele and the other allele the second allele.
+					</div>
+				</div>
+		
 				<div class="task">
 					<div class="task_name">
 						Threshhold genotype probabilities (e.g. GP to GT)
@@ -742,7 +767,8 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 								<span class="monospace">.gen[.gz]</span>
 							</td>
 							<td>
-								Optionally, an extra initial column containing chromosomes can be included in the input.  QCTOOL auto-detects this by counting the columns in the file.
+								Optionally, an extra initial column containing chromosomes can be included in the input.  QCTOOL auto-detects this
+								in input files by counting the columns in the file.
 								To suppress this column in output files, use the <span class="monospace">-omit-chromosome</span> option.
 							</td>
 						</tr>
@@ -756,7 +782,7 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 							<td>
 								Output files are in BGEN v1.2 with 16 bits per probability by default. 
 								The <code>-bgen-bits</code> option can be used to adjust the number of bits used.
-								Use <code>-ofiletype bgen_v11</code> to specify
+								Use <code>-ofiletype bgen_v1.1</code> to specify
 								BGEN v1.1 files.  
 							</td>
 						</tr>
@@ -842,7 +868,7 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 						</tr>
 						<tr>
 							<td>
-								QCTOOL long format
+								QCTOOL 'long' format
 							</td>
 							<td>
 								
@@ -899,89 +925,56 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 						Binaries
 					</h3>
 					<p>
-						Pre-compiled binaries are currently unavailable - please download and compile instead.
+						Pre-compiled binaries are not currently available - please download and compile on your
+						target platform instead.
 					</p>
-					<!--
-					<p>
-						Pre-compiled binaries are available for the following platforms.
-					</p>
-					<table>
-						<tr>
-							<th>
-								Version
-							</th>
-							<th>
-								Platform
-							</th>
-							<th>
-								File
-							</th>
-						</tr>
-						<tr>
-							<td>v2-dev<sup>&dagger;</sup></td>
-							<td>
-								Linux <small>x86-64 static build</small>
-							</td>
-							<td>
-								<a href="resources/qctool_v2.0-dev-linux-x86_64.tgz">qctool_v2.0-dev-linux-x86_64.tgz</a>
-							</td>
-						</tr>
-						<tr>
-							<td>v2-dev<sup>&dagger;</sup></td>
-							<td>
-								Linux <small>alternative build</small>
-							</td>
-							<td>
-								<a href="resources/qctool_v2.0-dev-scientific-linux-x86_64.tgz">qctool_v2.0-dev-scientific-linux-x86_64.tgz</a>
-							</td>
-						</tr>
-						<tr>
-							<td>v2-dev<sup>&dagger;</sup></td>
-							<td>
-								Mac OS X
-							</td>
-							<td>
-								<a href="resources/qctool_v2.0-dev-osx.tgz">qctool_v2.0-dev-osx.tgz</a> (1.1Mb)
-							</td>
-						</tr>
-					</table>
-					<p>
-					<sup>&dagger;</sup><span class="smalltext">Version 2 of QCTOOL is currently considered experimental.
-					For stable versions of this software, see <a href="http://www.well.ox.ac.uk/~gav/qctool">here</a>.</span>
-					</p>
-					<p>
-					<sup>*</sup><span class="smalltext">Older versions are preserved for download here but are unsupported.</span>
-					</p>
-					<p>
-						To run qctool, download the relevant file and extract it as follows.
-					</p>
-					<pre>
-$ tar -xzf qctool_v1.x-[machine].tgz
-$ cd qctool_v1.x-[machine]
-$ ./qctool -help
-</pre>-->
 					<h3>
-						Source
+						Installing from source
 					</h3>
+					</details>
 					<p>
-						The source code to qctool is available as a mercurial repository hosted <a href="http://www.bitbucket.org/gavinband/qctool">on bitbucket</a>. Assuming you have mercurial installed, a basic download and compilation sequence (for the currently released version) would be:
+						The source code to qctool is available as a mercurial repository hosted <a href="http://www.bitbucket.org/gavinband/qctool">on bitbucket</a>.
+						Assuming you have <a href="">mercurial</a> installed, the source for the qctool v2 beta branch
+						can be downloaded using the command
 					</p>
 					<div class="terminal">
-						<pre>
-	$ hg clone --rev master https://gavinband@bitbucket.org/gavinband/qctool
+						<code>$ hg clone --rev beta https://gavinband@bitbucket.org/gavinband/qctool</code>
+					</div>
+<p>
+	Alternatively, a tarball of the latest qctool v2 beta source code can be downloaded
+	from <a href="https://bitbucket.org/gavinband/qctool/downloads?tab=branches">the download page on bitbucket</a>.
+	Make sure to select the 'beta' branch for qctool v2.  You will need to extract the tarball using a command like
+	<code>tar -xzf &lt;filename&gt;.tgz</code>.
+</p>
+<p>
+	Having downloaded the source code (and extracted it if necessary), a basic compilation sequence would then be:
+	<pre>
 	$ cd qctool
 	$ ./waf-1.5.18 configure
 	$ ./waf-1.5.18
-							
 </pre>
-					</div>This produces an executable
-					<pre>
-./build/release/qctool-v2.0-dev
-</pre>
+</p>
+					</div>
 					<p>
-						QCTOOL relies on <a href="http://www.zlib.net">zlib</a> which must be installed (with headers) 
-						on the system before compilation.
-					</p>
+						This produces an executable
+					<code>./build/release/qctool-v2.0-betaX</code>
+					(where X should be replaced with the number of the current beta release.)
+				</p>
+				<p>
+					(Note that QCTOOL relies on <a href="http://www.zlib.net">zlib</a> which must be installed (with headers) 
+					on the system before compilation; the configure step will fail if this is not found.)
+				</p>
+				<p>
+					You can check qctool is working by running it:
+				</p>
+				<pre>
+				$ ./build/release/qctool-v2.0-betaX -help
+</pre>
+<p>This should print out a list of options.</p>
+					<p>
+					<b>Note:</b> a debug build is also created in <code>./build/default/qctool_v2.0-betaX</code>, use this if you want
+					to run qctool in a debugger.
+				</p>
 				</div>
 			</div>
 		</div>
