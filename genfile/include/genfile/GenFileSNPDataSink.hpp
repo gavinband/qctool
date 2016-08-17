@@ -28,6 +28,7 @@ namespace genfile {
 		void set_precision( std::size_t precision ) ;
 	private:
 		Eigen::VectorXd m_data ;
+		std::size_t m_precision ;
 		
 		void write_variant_data_impl(
 			VariantIdentifyingData const& id_data,

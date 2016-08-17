@@ -21,11 +21,13 @@
 namespace genfile {
 	
 	GenFileSNPDataSink::GenFileSNPDataSink( std::string const& filename ):
-		GenLikeSNPDataSink( filename, get_compression_type_indicated_by_filename( filename ) )
+		GenLikeSNPDataSink( filename, get_compression_type_indicated_by_filename( filename ) ),
+		m_precision( 5 )
 	{}
 
 	GenFileSNPDataSink::GenFileSNPDataSink( std::string const& filename, CompressionType compression_type ):
-		GenLikeSNPDataSink( filename, compression_type )
+		GenLikeSNPDataSink( filename, compression_type ),
+		m_precision( 5 )
 	{}
 
 	void GenFileSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter ) {
@@ -34,23 +36,26 @@ namespace genfile {
 	}
 
 	void GenFileSNPDataSink::set_precision( std::size_t precision ) {
-		assert( precision == 5 ) ;
+        m_precision = precision ;
 	}
 
 	namespace {
-		template< typename Num >
-		struct float_policy: public boost::spirit::karma::real_policies< Num >
+		template< typename Num, unsigned int DPs >
+		struct fixed_precision_policy: public boost::spirit::karma::real_policies< Num >
 		{
 			static bool trailing_zeros( Num n ) { return true ; }
 			static int floatfield( Num n ) { return boost::spirit::karma::real_policies< Num >::fmtflags::fixed ; }
-			static unsigned precision( Num n ) { return 5 ; }
+			static unsigned precision( Num n ) { return DPs ; }
 		} ;
 
-		typedef boost::spirit::karma::real_generator<double, float_policy<double> > FormatFloat ;
+		typedef boost::spirit::karma::real_generator<double, fixed_precision_policy<double,5> > FormatFloat5dp ;
+		typedef boost::spirit::karma::real_generator<double, fixed_precision_policy<double,6> > FormatFloat6dp ;
+		typedef boost::spirit::karma::real_generator<double, fixed_precision_policy<double,10> > FormatFloat10dp ;
 
 		struct GenotypeWriter: public VariantDataReader::PerSampleSetter {
 			GenotypeWriter( Eigen::VectorXd& data, std::size_t const precision = 5 ):
 				m_data( data ),
+				m_precision( precision ),
 				m_number_of_samples( m_data.size() / 3 ),
 				m_sample_i(0),
 				m_entry_i(0)
@@ -115,24 +120,27 @@ namespace genfile {
 					} else {
 						using boost::spirit::karma::double_ ;
 						using boost::spirit::karma::generate ;
-						FormatFloat formatter ;
-						//sprintf( &m_buffer[0], " %.5f %.5f %.5f", m_data[3*i+0], m_data[3*i+1], m_data[3*i+2] ) ;
-						generate( &m_buffer[0], ( " " << formatter << " " << formatter << " " << formatter << "\0" ), m_data[3*i+0], m_data[3*i+1], m_data[3*i+2] ) ;
-						stream << m_buffer ;
-						//generate( std::ostream_iterator<char>( stream ), ( " " << formatter << " " << formatter << " " << formatter ), m_data[3*i+0], m_data[3*i+1], m_data[3*i+2] ) ;
-						/*
-						stream 
-							<< " " << m_data[3*i+0] 
-							<< " " << m_data[3*i+1] 
-							<< " " << m_data[3*i+2]
-						;
-						*/
+						if( m_precision == 5 ) {
+							// Fast formatting at 5dps.
+							FormatFloat5dp formatter ;
+							generate( &m_buffer[0], ( " " << formatter << " " << formatter << " " << formatter << "\0" ), m_data[3*i+0], m_data[3*i+1], m_data[3*i+2] ) ;
+							stream << m_buffer ;
+						} else {
+							// Slow but flexible formatting at any precision.
+							stream 
+								<< std::setprecision( m_precision )
+								<< " " << m_data[3*i+0] 
+								<< " " << m_data[3*i+1] 
+								<< " " << m_data[3*i+2]
+							;
+						}
 					}
 				}
 			}
 
 		private:
 			Eigen::VectorXd& m_data ;
+			std::size_t const m_precision ;
 			std::size_t m_number_of_samples ;
 			std::size_t m_sample_i ;
 			std::size_t m_entry_i ;
@@ -146,7 +154,7 @@ namespace genfile {
 		Info const& info
 	) {
 		write_variant( stream(), id_data ) ;
-		GenotypeWriter writer( m_data ) ;
+		GenotypeWriter writer( m_data, m_precision ) ;
 		if( data_reader.supports( ":genotypes:" )) {
 			data_reader.get( ":genotypes:", to_GP_unphased( writer ) ) ;
 		} else {

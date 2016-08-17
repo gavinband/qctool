@@ -15,6 +15,7 @@
 #include "genfile/VariantEntry.hpp"
 #include "genfile/wildcard.hpp"
 #include "genfile/FileUtils.hpp"
+#include "genfile/Error.hpp"
 #include "components/SNPSummaryComponent/Bed4Annotation.hpp"
 
 Bed4Annotation::UniquePtr Bed4Annotation::create() {
@@ -36,11 +37,18 @@ void Bed4Annotation::add_annotation( std::string const& name, std::string const&
 	using genfile::string_utils::slice ;
 	using genfile::string_utils::to_repr ;
 	std::vector< slice > elts ;
-
+	std::size_t lineCount = 1 ;
 	while(*in) {
 		elts.clear() ;
 		slice( line ).split( "\t", &elts ) ;
-		assert( elts.size() > 2 ) ;
+		if( elts.size() < 4 ) {
+			throw genfile::MalformedInputError(
+				filename,
+				"Expected at least 4 columns in BED4 file",
+				lineCount
+			) ;
+		}
+		assert( elts.size() > 3 ) ;
 		genfile::Chromosome chromosome( elts[0] ) ;
 		uint32_t start( to_repr< uint32_t >( elts[1] ) ) ;
 		uint32_t end( to_repr< uint32_t >( elts[2] ) ) ;
@@ -60,6 +68,7 @@ void Bed4Annotation::add_annotation( std::string const& name, std::string const&
 		}
 		m_annotations[ name ].add( std::make_pair( interval, values ) ) ;
 		std::getline( *in, line ) ;
+		++lineCount ;
 	}
 }
 

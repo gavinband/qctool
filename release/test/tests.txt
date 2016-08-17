@@ -74,11 +74,11 @@ Processes complex bgen file
 	RunsCommandWithResult	{ "g": ["data/complex.bgen"], "s": [ "data/complex.sample"], "og": "<tmp>", "ofiletype": "bgen" }	ok
 
 Annotates BED intervals
-	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "-annotate-bed3": [ "data/annotation1.bed" ] }	data/annotation1.bed
-	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "-annotate-bed4": [ "data/annotation2.bed" ] }	data/annotation2.bed
-	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "-annotate-bed3": [ "data/annotation1.bed", "data/annotation2.bed" ] }	data/annotation1.bed	data/annotation1.bed
-	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "-annotate-bed4": [ "data/annotation1.bed" ] }	"data/annotation1.bed"
-	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "-annotate-bed3": [ "data/annotation2.bed" ], "-annotate-bed4": [ "data/annotation1.bed" ] }	data/annotation1.bed	data/annotation2.bed
+	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "annotate-bed3": [ "data/annotation1.bed" ] }	data/annotation1
+	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "annotate-bed3": [ "data/annotation1.bed", "data/annotation2.bed" ] }	data/annotation1	data/annotation2
+	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "annotate-bed4": [ "data/annotation1.bed" ] }	data/annotation1
+	RunsCommandWithResult	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "annotate-bed4": [ "data/annotation2.bed" ] }	fail
+	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "annotate-bed3": [ "data/annotation2.bed" ], "annotate-bed4": [ "data/annotation1.bed" ] }	data/annotation1	data/annotation2
 
 Roundtrips gen files via bgen (v1.1)
 	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	16	--iterations	1	--max_samples	100	--bgen_version	v11

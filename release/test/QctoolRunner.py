@@ -43,13 +43,17 @@ class QctoolRunner:
 		for i in range( 0, len(sdata) ):
 			cmd += [ "-s", sdata[i] ]
 		
-		for option in [ 'vcf-genotype-field', 'incl-samples', 'excl-samples', 'osnp', 'osample', 'ofiletype', 'filetype' ]:
+		for option in [ 'vcf-genotype-field', 'incl-samples', 'excl-samples', 'osnp', 'osample', 'ofiletype', 'filetype', 'annotate-bed3', 'annotate-bed4' ]:
 			if values.get( option, None ) is not None:
-				value = values[ option ]
-				if value == '<tmp>':
-					filenames[ option ] = tempfile.mkstemp()[1]
-					value = filenames[ option ]
-				cmd.extend( [ '-%s' % option, value ] )
+				cmd.extend( [ '-%s' % option ] )
+				valueList = values[ option ]
+				if not isinstance( valueList, list ):
+					valueList = [ valueList ]
+				for i in range( 0, len(valueList)):
+					if valueList[i] == '<tmp>':
+						filenames[ option ] = tempfile.mkstemp()[1]
+						valueList[i] = filenames[ option ]
+					cmd.extend( valueList )
 
 		for option in [ 'snp-stats', 'sample-stats' ]:
 			if values.get( option, None ) is not None:
