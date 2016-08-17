@@ -32,8 +32,8 @@ parser$add_argument(
 	"--bgen_version",
 	type = "character",
 	nargs = 1,
-	help = "bgen version to use = v11 or v12",
-	default = "v12"
+	help = "bgen version to use = v1.1 or v1.2",
+	default = "v1.2"
 )
 parser$add_argument(
 	"--qctool",
@@ -51,10 +51,10 @@ parser$add_argument(
 
 args = parser$parse_args()
 
-if( args$bgen_version == "v11" ) {
+if( args$bgen_version == "v1.1" ) {
 	stopifnot( args$bits == 16 )
 	args$bound = 1.0/32768
-} else if( args$bgen_version == "v12" ) {
+} else if( args$bgen_version == "v1.2" ) {
 	stopifnot( args$bits <= 32 )
 	args$bound = 1.0/((2^(args$bits))-1)
 } else {

@@ -23,7 +23,7 @@ Accepts output formats
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>", "ofiletype": "gen" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>", "ofiletype": "vcf" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>", "ofiletype": "bgen" }	ok
-	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>", "ofiletype": "bgen_v11" }	ok
+	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>", "ofiletype": "bgen_v1.1" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>", "ofiletype": "dosage" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>", "ofiletype": "bed" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.shapeit" ], "s": [ "data/complex.sample"], "filetype": "shapeit_haplotypes", "og": "<tmp>", "ofiletype": "shapeit_haplotypes" }	ok
@@ -81,15 +81,15 @@ Annotates BED intervals
 	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "annotate-bed3": [ "data/annotation2.bed" ], "annotate-bed4": [ "data/annotation1.bed" ] }	data/annotation1	data/annotation2
 
 Roundtrips gen files via bgen (v1.1)
-	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	16	--iterations	1	--max_samples	100	--bgen_version	v11
+	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	16	--iterations	1	--max_samples	100	--bgen_version	v1.1
 
 Roundtrips gen files via bgen (v1.2, even bit counts)
 	:FOR	${bits}	IN	2	4	6	8	10	12	14	16	18	20	22	24	26	28	30	32
-	\	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	${bits}	--iterations	1	--max_samples	100	--bgen_version	v12
+	\	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	${bits}	--iterations	1	--max_samples	100	--bgen_version	v1.2
 
 Roundtrips gen files via bgen (v1.2, odd bit counts)
 	:FOR	${bits}	IN	1	3	5	7	9	11	13	15	17	19	21	23	25	27	29	31
-	\	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	${bits}	--iterations	1	--max_samples	100	--bgen_version	v12
+	\	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	${bits}	--iterations	1	--max_samples	100	--bgen_version	v1.2
 
 *** Keywords ***
 
