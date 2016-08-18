@@ -1053,7 +1053,7 @@ namespace genes {
 		genfile::GenomePosition m_end ;
 	} ;
 
-	// order from left-to-right along chromosomes by start position then by end position.
+	// order from left-to-right along chromosomes by start position
 	struct CompareFeaturesByStart {
 		bool operator()( Feature const& left, Feature const& right ) const {
 			return( left.start() < right.start() ) ;
@@ -1071,7 +1071,7 @@ namespace genes {
 	
 	struct Genes: public boost::noncopyable {
 	private:
-		typedef std::set< Feature > ChromosomeGeneSet ;
+		typedef std::multiset< Feature, CompareFeaturesByStart > ChromosomeGeneSet ;
 		typedef std::map< genfile::Chromosome, ChromosomeGeneSet > GeneMap ;
 	public:
 		typedef std::auto_ptr< Genes > UniquePtr ;
@@ -1164,9 +1164,6 @@ namespace genes {
 				throw genfile::MalformedInputError( source->get_source_spec(), "Malformed refGene-format file", source->number_of_rows_read() ) ;
 			}
 		
-			if( name2 == "MKL1" ) {
-				std::cerr << "MKL1: " << txStart << "-" << txEnd << ".\n" ;
-			}	
 			// UCSC coordinates are 0-based.  Map them here.
 			++txStart ;
 			// txEnd ;
@@ -2072,6 +2069,7 @@ private:
 						// We may see multiple transcripts per gene but want only the gene-level summary here.
 						// So take the smallest distance per gene.
 						GeneNames::right_iterator where = geneNames.right.find( name ) ;
+						//std::cerr << "SNP: " << snps[snp_i].snp() << ": " << name << ": distance = " << distance << ".\n" ;
 						if( where != geneNames.right.end() && where->second > distance ) {
 							geneNames.right.replace_data( where, distance ) ;
 						} else {
