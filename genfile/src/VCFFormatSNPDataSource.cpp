@@ -283,14 +283,14 @@ namespace genfile {
 		std::vector< std::string > ids = string_utils::split( m_ID, "," ) ;
 		VariantIdentifyingData variant ;
 		if( ids.size() == 0 ) {
-			variant.set_primary_id( genfile::string_utils::slice( "?" ) ) ;
+			variant.set_primary_id( genfile::string_utils::slice( "." ) ) ;
 		}
 		else {
 			variant.set_primary_id( ids[0] ) ;
 		}
 		
-		if( ids.size() > 1 ) {
-			for( std::size_t i = 0; i < ids.size(); ++i ) {
+		for( std::size_t i = 1; i < ids.size(); ++i ) {
+			if( ids[i] != "." ) {
 				variant.add_identifier( ids[i] ) ;
 			}
 		}
