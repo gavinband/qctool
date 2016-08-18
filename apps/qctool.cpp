@@ -291,12 +291,12 @@ public:
 			.set_description( "Filter out snps whose rsid or SNPID matches the given value. "
 				"The value should be a string which can contain a % wildcard character (which matches any substring). "
 				"Optionally, prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields." )
-			.set_takes_single_value() ;
+			.set_takes_values_until_next_option() ;
 		options[ "-incl-snps-matching" ]
 			.set_description( "Filter out snps whose rsid or SNPID does not match the given value. "
 				"The value should be a string which can contain a % wildcard character (which matches any substring). "
 				"Optionally, prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields." )
-			.set_takes_single_value() ;
+			.set_takes_values_until_next_option() ;
 		options[ "-incl-range" ]
 			.set_description( "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to operate on. "
 				"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
@@ -1808,8 +1808,7 @@ private:
 					}
 				}
 				if( m_options.check_if_option_was_supplied( "-excl-snps-matching" )) {
-					std::string it = m_options.get< std::string > ( "-excl-snps-matching" ) ;
-					std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( it, ",", " " ) ;
+					std::vector< std::string > specs = m_options.get_values< std::string >( "-excl-snps-matching" ) ;
 					BOOST_FOREACH( std::string const& spec, specs ) {
 						snp_filter->exclude_snps_matching(
 							spec
@@ -1818,8 +1817,7 @@ private:
 				}
 
 				if( m_options.check_if_option_was_supplied( "-incl-snps-matching" )) {
-					std::string it = m_options.get< std::string > ( "-incl-snps-matching" ) ;
-					std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( it, ",", " " ) ;
+					std::vector< std::string > specs = m_options.get_values< std::string >( "-incl-snps-matching" ) ;
 					BOOST_FOREACH( std::string const& spec, specs ) {
 						snp_filter->include_snps_matching(
 							spec
