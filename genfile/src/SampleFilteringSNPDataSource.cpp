@@ -185,7 +185,9 @@ namespace genfile {
 			void set_value( std::size_t i, VariantEntry::Integer const value ) { if( !m_filter_out_this_sample ) { m_setter.set_value( i, value ) ; } }
 			void set_value( std::size_t i, double const value ) { if( !m_filter_out_this_sample ) { m_setter.set_value( i, value ) ; } }
 
-			void finalise() {}
+			void finalise() {
+				m_setter.finalise() ;
+			}
 
 		private:
 			VariantDataReader::PerSampleSetter& m_setter ;
