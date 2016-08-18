@@ -234,10 +234,16 @@ namespace genfile {
 		if( m_sources[0]->get_snp_identifying_data( &this_snp ) ) {
 			// we use source_i == m_source.size() to indicate a successful match across cohorts.
 			while( (*this) && source_i < m_sources.size() ) {
+				merged_SNPID = "" ;
+				merged_rsid = "" ;
+				merged_allele1 = "" ;
+				merged_allele2 = "" ;
 				SNPIDs.clear() ;
 				rsids.clear() ;
 
-				this_snp.get_identifiers( boost::bind( &combine_ids, &SNPIDs, &merged_SNPID, _1 ) ) ;
+				if( this_snp.number_of_identifiers() > 1 ) {
+					this_snp.get_identifiers( boost::bind( &combine_ids, &SNPIDs, &merged_SNPID, _1 ), 1 ) ;
+				}
 				rsids.insert( this_snp.get_primary_id() ) ;
 				merged_rsid = this_snp.get_primary_id() ;
 				merged_allele1 = this_snp.get_allele(0) ;
@@ -252,7 +258,9 @@ namespace genfile {
 #if DEBUG_SNP_DATA_SOURCE_RACK
 					std::cerr << "SNP " << this_snp << " is in source " << source_i << ".\n" ;
 #endif
-					this_source_snp.get_identifiers( boost::bind( &combine_ids, &SNPIDs, &merged_SNPID, _1 ) ) ;
+					if( this_source_snp.number_of_identifiers() > 1 ) {
+						this_source_snp.get_identifiers( boost::bind( &combine_ids, &SNPIDs, &merged_SNPID, _1 ), 1 ) ;
+					}
 					if( rsids.insert( this_source_snp.get_primary_id() ).second ) {
 						merged_rsid += "," + std::string( this_source_snp.get_primary_id() ) ;
 					}
@@ -283,6 +291,9 @@ namespace genfile {
 					m_sources[0]->get_snp_identifying_data( &this_snp ) ;
 				}
 			}
+		}
+		if( SNPIDs.size() == 0 ) {
+			merged_SNPID = "." ;
 		}
 		if( *this ) {
 			*result = VariantIdentifyingData( merged_SNPID, merged_rsid, this_snp.get_position(), merged_allele1, merged_allele2 ) ;
