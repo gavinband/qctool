@@ -133,7 +133,11 @@ namespace qcdb {
 		for( std::size_t snp_i = 0; snp_i < m_snps.size(); ++snp_i ) {
 			genfile::VariantIdentifyingData const& snp = m_snps[ snp_i ] ;
 			std::string SNPID ;
-			snp.get_identifiers( boost::bind( &append_to_string, &SNPID, _1 ), 1 ) ;
+			if( snp.number_of_identifiers() == 1 ) {
+				SNPID = "NA" ;
+			} else {
+				snp.get_identifiers( boost::bind( &append_to_string, &SNPID, _1 ), 1 ) ;
+			}
 			(*m_sink) << SNPID << snp.get_primary_id() << snp.get_position().chromosome()
 				<< snp.get_position().position()
 				<< snp.get_allele(0)
