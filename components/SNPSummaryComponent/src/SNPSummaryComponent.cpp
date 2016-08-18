@@ -41,7 +41,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options[ "-snp-stats-columns" ]
         .set_description( "Comma-seperated list of extra columns to output in the snp-wise statistics file." )
 		.set_takes_single_value()
-		.set_default_value( "alleles,HWE,missingness,info" ) ;
+		.set_default_value( "allele-frequencies,HWE,missingness,info" ) ;
 
 	options.declare_group( "Intensity computation options" ) ;
 	options[ "-intensity-stats" ]

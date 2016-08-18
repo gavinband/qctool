@@ -107,7 +107,7 @@ namespace {
 
 		void initialise( std::size_t number_of_samples, std::size_t number_of_alleles ) {
 			// assume at most diploidy
-#if DEBUG_SNP_SUMMARY_COMPUTATION_MANAGER
+#if DEBUG_PER_VARIANT_COMPUTATION_MANAGER
 			std::cerr << "GPSetter::initialise( " << number_of_samples << ", " << number_of_alleles << " ).\n" ;
 #endif
 			m_genotypes->resize( number_of_samples, number_of_alleles * (number_of_alleles+1)/2 ) ;
@@ -136,7 +136,7 @@ namespace {
 		}
 
 		void set_value( std::size_t value_i, double const value ) {
-#if DEBUG_SNP_SUMMARY_COMPUTATION_MANAGER
+#if DEBUG_PER_VARIANT_COMPUTATION_MANAGER
 			std::cerr << "GPSetter::set_value( " << value_i << ", " << value << " ).\n" ;
 #endif
 			if( m_ploidy[ m_sample_i ] <= 2 ) {

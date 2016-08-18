@@ -140,6 +140,13 @@ namespace snp_summary_component {
 
 	struct AlleleFrequencyComputation: public SNPSummaryComputation
 	{
+		
+		AlleleFrequencyComputation( std::string const& what ):
+			m_compute_counts( what == "everything" || what == "counts" ),
+			m_compute_frequencies( what == "everything" )
+		{
+			assert( what == "counts" || what == "everything" ) ;
+		}
 		void operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, genfile::VariantDataReader&, ResultCallback callback ) {
 			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
 			if( chromosome.is_sex_determining() ) {
@@ -167,58 +174,73 @@ namespace snp_summary_component {
 				+ ( ( 2.0 * female_genotypes.col(0).sum() ) + female_genotypes.col(1).sum() ) ;
 			double const b_allele_count = male_genotypes.col(1).sum()
 				+ ( ( 2.0 * female_genotypes.col(2).sum() ) + female_genotypes.col(1).sum() ) ;
-			double const total_allele_count = ( male_genotypes.sum() + 2.0 * female_genotypes.sum() ) ;
-			double const a_allele_freq = a_allele_freq / total_allele_count ;
-			double const b_allele_freq = b_allele_count / total_allele_count ;
 
-			callback( "alleleA_count", a_allele_count ) ;
-			callback( "alleleB_count", b_allele_count ) ;
-			callback( "alleleA_frequency", a_allele_freq ) ;
-			callback( "alleleB_frequency", b_allele_freq ) ;
-
-			if( a_allele_freq < b_allele_freq ) {
-				callback( "minor_allele_frequency", a_allele_freq ) ;
-				callback( "minor_allele", snp.get_allele(0) ) ;
-				callback( "major_allele", snp.get_allele(1) ) ;
+			if( m_compute_counts ) {
+				callback( "alleleA_count", a_allele_count ) ;
+				callback( "alleleB_count", b_allele_count ) ;
 			}
-			else if( a_allele_freq > b_allele_freq ) {
-				callback( "minor_allele_frequency", b_allele_freq ) ;
-				callback( "minor_allele", snp.get_allele(1) ) ;
-				callback( "major_allele", snp.get_allele(0) ) ;
-			} else {
-				callback( "minor_allele_frequency", a_allele_freq ) ;
+
+			if( m_compute_frequencies ) {
+				double const total_allele_count = ( male_genotypes.sum() + 2.0 * female_genotypes.sum() ) ;
+				double const a_allele_freq = a_allele_freq / total_allele_count ;
+				double const b_allele_freq = b_allele_count / total_allele_count ;
+
+				callback( "alleleA_frequency", a_allele_freq ) ;
+				callback( "alleleB_frequency", b_allele_freq ) ;
+
+				if( a_allele_freq < b_allele_freq ) {
+					callback( "minor_allele_frequency", a_allele_freq ) ;
+					callback( "minor_allele", snp.get_allele(0) ) ;
+					callback( "major_allele", snp.get_allele(1) ) ;
+				}
+				else if( a_allele_freq > b_allele_freq ) {
+					callback( "minor_allele_frequency", b_allele_freq ) ;
+					callback( "minor_allele", snp.get_allele(1) ) ;
+					callback( "major_allele", snp.get_allele(0) ) ;
+				} else {
+					callback( "minor_allele_frequency", a_allele_freq ) ;
+				}
 			}
 		}
 
 		void compute_autosomal_frequency( VariantIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) {
 			double const a_allele_count = ( 2.0 * genotypes.col(0).sum() ) + genotypes.col(1).sum() ;
 			double const b_allele_count = ( 2.0 * genotypes.col(2).sum() ) + genotypes.col(1).sum() ;
-			double const total_allele_count = ( 2.0 * genotypes.sum() ) ;
-			double const a_allele_freq = a_allele_count / total_allele_count ;
-			double const b_allele_freq = b_allele_count / total_allele_count ;
 
-			callback( "alleleA_count", a_allele_count ) ;
-			callback( "alleleB_count", b_allele_count ) ;
-			callback( "alleleA_frequency", a_allele_freq ) ;
-			callback( "alleleB_frequency", b_allele_freq ) ;
-
-			if( a_allele_freq < b_allele_freq ) {
-				callback( "minor_allele_frequency", a_allele_freq ) ;
-				callback( "minor_allele", snp.get_allele(0) ) ;
-				callback( "major_allele", snp.get_allele(1) ) ;
+			if( m_compute_counts ) {
+				callback( "alleleA_count", a_allele_count ) ;
+				callback( "alleleB_count", b_allele_count ) ;
 			}
-			else if( a_allele_freq > b_allele_freq ) {
-				callback( "minor_allele_frequency", b_allele_freq ) ;
-				callback( "minor_allele", snp.get_allele(1) ) ;
-				callback( "major_allele", snp.get_allele(0) ) ;
-			} else {
-				callback( "minor_allele_frequency", a_allele_freq ) ;
+			
+			if( m_compute_frequencies ) {
+				double const total_allele_count = ( 2.0 * genotypes.sum() ) ;
+				double const a_allele_freq = a_allele_count / total_allele_count ;
+				double const b_allele_freq = b_allele_count / total_allele_count ;
+
+				callback( "alleleA_frequency", a_allele_freq ) ;
+				callback( "alleleB_frequency", b_allele_freq ) ;
+
+				if( a_allele_freq < b_allele_freq ) {
+					callback( "minor_allele_frequency", a_allele_freq ) ;
+					callback( "minor_allele", snp.get_allele(0) ) ;
+					callback( "major_allele", snp.get_allele(1) ) ;
+				}
+				else if( a_allele_freq > b_allele_freq ) {
+					callback( "minor_allele_frequency", b_allele_freq ) ;
+					callback( "minor_allele", snp.get_allele(1) ) ;
+					callback( "major_allele", snp.get_allele(0) ) ;
+				} else {
+					callback( "minor_allele_frequency", a_allele_freq ) ;
+				}
 			}
 		}
 		
 		std::string get_summary( std::string const& prefix, std::size_t column_width ) const {
 			return prefix + "AlleleFrequencyComputation" ;
 		}
+	private:
+		bool const m_compute_counts ;
+		bool const m_compute_frequencies ;
 	} ;
 	
 	struct MissingnessComputation: public SNPSummaryComputation {
@@ -460,12 +482,13 @@ SNPSummaryComputation::UniquePtr SNPSummaryComputation::create(
 	std::string const& name
 ) {
 	UniquePtr result ;
-	if( name == "alleles" ) { result.reset( new snp_summary_component::AlleleFrequencyComputation()) ; }
+	if( name == "allele-frequencies" ) { result.reset( new snp_summary_component::AlleleFrequencyComputation( "everything" )) ; }
+	else if( name == "allele-counts" ) { result.reset( new snp_summary_component::AlleleFrequencyComputation( "counts" )) ; }
 	else if( name == "HWE" ) { result.reset( new snp_summary_component::HWEComputation()) ; }
 	else if( name == "missingness" ) { result.reset( new snp_summary_component::MissingnessComputation()) ; }
 	else if( name == "info" ) { result.reset( new snp_summary_component::InfoComputation()) ; }
 	else if( name == "intensity-stats" ) { result.reset( new snp_summary_component::IntensitySummaryComputation() ) ; }
-	else if( name == "allele-counts" ) { result.reset( new snp_summary_component::AlleleCountComputation() ) ; }
+	else if( name == "multi-allele-counts" ) { result.reset( new snp_summary_component::AlleleCountComputation() ) ; }
 	else {
 		throw genfile::BadArgumentError( "SNPSummaryComputation::create()", "name=\"" + name + "\"" ) ;
 	}
