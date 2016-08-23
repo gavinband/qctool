@@ -302,13 +302,13 @@ public:
 				"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
 				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
 				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
-			.set_takes_single_value() ;
+			.set_takes_values_until_next_option() ;
 		options[ "-excl-range" ]
 			.set_description( "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to exclude from operation. "
 				"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
 				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
 				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
-			.set_takes_single_value() ;
+			.set_takes_values_until_next_option() ;
 
 		options.declare_group( "Options for adjusting SNPs" ) ;
 	    options[ "-strand" ]
@@ -1826,7 +1826,7 @@ private:
 				}
 			
 				if( m_options.check_if_option_was_supplied( "-incl-range" )) {
-					std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-incl-range" ), ",", " \t" ) ;
+					std::vector< std::string > specs = m_options.get_values< std::string >( "-incl-range" ) ;
 					for ( std::size_t i = 0; i < specs.size(); ++i ) {
 						snp_filter->include_snps_in_range(
 							genfile::GenomePositionRange::parse( specs[i] )
@@ -1835,7 +1835,7 @@ private:
 				}
 
 				if( m_options.check_if_option_was_supplied( "-excl-range" )) {
-					std::vector< std::string > specs = genfile::string_utils::split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-excl-range" ), ",", " \t" ) ;
+					std::vector< std::string > specs = m_options.get_values< std::string >( "-excl-range" ) ;
 					for ( std::size_t i = 0; i < specs.size(); ++i ) {
 						snp_filter->exclude_snps_in_range(
 							genfile::GenomePositionRange::parse( specs[i] )
