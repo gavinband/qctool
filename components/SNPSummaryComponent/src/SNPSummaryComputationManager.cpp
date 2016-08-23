@@ -132,12 +132,13 @@ namespace {
 		}
 		
 		void set_value( std::size_t value_i, genfile::MissingValue const value ) {
-			set_value( value_i, std::numeric_limits< double >::quiet_NaN() ) ;
+			set_value( value_i, 0.0 ) ;
 		}
 
 		void set_value( std::size_t value_i, double const value ) {
 #if DEBUG_PER_VARIANT_COMPUTATION_MANAGER
 			std::cerr << "GPSetter::set_value( " << value_i << ", " << value << " ).\n" ;
+			std::cerr << "GPSetter: m_ploidy[" << m_sample_i << "] = " << m_ploidy[ m_sample_i ] << ".\n" ;
 #endif
 			if( m_ploidy[ m_sample_i ] <= 2 ) {
 				assert( value_i < m_genotypes->cols() ) ;
@@ -171,7 +172,7 @@ void SNPSummaryComputationManager::processed_snp(
 			= boost::bind( boost::ref( m_result_signal ), snp, _1, _2 ) ;
 
 		if( setter.max_ploidy() == 2 && setter.min_ploidy() == 2 ) {
-			if( !snp.get_position().chromosome().is_missing() && snp.get_position().chromosome().is_sex_determining() ) {
+			if( (!snp.get_position().chromosome().is_missing()) && snp.get_position().chromosome().is_sex_determining() ) {
 				try {
 					fix_sex_chromosome_genotypes( snp, &m_genotypes, callback ) ;
 				}
