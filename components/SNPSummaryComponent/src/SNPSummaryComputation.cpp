@@ -66,7 +66,7 @@ namespace snp_summary_component {
 			}
 			
 			void set_value( std::size_t value_i, genfile::MissingValue const value ) {
-				set_value( value_i, std::numeric_limits< double >::quiet_NaN() ) ;
+				set_value( value_i, 0.0 ) ;
 			}
 
 			void set_value( std::size_t value_i, double const value ) {
@@ -109,7 +109,8 @@ namespace snp_summary_component {
 			using genfile::string_utils::to_string ;
 			// By default we list 2 alleles
 			// In files with more alleles.
-			for( std::size_t i = 0; i < 2; ++i ) {
+			callback( "number_of_alleles" ) ;
+			for( std::size_t i = 0; i < 10; ++i ) {
 				callback( "allele" + to_string(i+1) + "_count" ) ;
 			}
 		}
@@ -124,9 +125,14 @@ namespace snp_summary_component {
 			using genfile::string_utils::to_string ;
 			m_counts = std::vector< double >( snp.number_of_alleles(), 0.0 ) ;
 			m_counter.set_counts( &m_counts ) ;
+			callback( "number_of_alleles", int64_t( snp.number_of_alleles() )) ;
 			data_reader.get( ":genotypes:", genfile::to_GP_unphased( m_counter ) ) ;
-			for( std::size_t i = 0; i < snp.number_of_alleles(); ++i ) {
+			std::size_t i = 0 ;
+			for( ; i < snp.number_of_alleles(); ++i ) {
 				callback( "allele" + to_string(i+1) + "_count", m_counts[i] ) ;
+			}
+			for( ; i < 10; ++i ) {
+				callback( "allele" + to_string(i+1) + "_count", genfile::MissingValue() ) ;
 			}
 		}
 		
