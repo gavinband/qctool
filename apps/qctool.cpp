@@ -2100,8 +2100,9 @@ private:
 	genfile::CohortIndividualSource::UniquePtr unsafe_open_samples( genfile::SNPDataSource const& snp_data_source ) {
 		std::vector< std::string > sample_ids( snp_data_source.number_of_samples() ) ;
 		{
+			boost::format fmt( "sample_%d" ) ;
 			for( std::size_t i = 0; i < sample_ids.size(); ++i ) {
-				sample_ids[i] = ( boost::format( "sample_%d" ) % i ).str() ;
+				sample_ids[i] = ( fmt % i ).str() ;
 			}
 			snp_data_source.get_sample_ids( boost::bind( &impl::set_vector_entry, &sample_ids, _1, _2 )) ;
 		}
