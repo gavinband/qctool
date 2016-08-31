@@ -418,23 +418,27 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 						Convert between file formats:
 					</div>
 					<div class="task_command_line">
-						$ qctool -g example_#.gen -s example.sample -og example.bgen
-					</div>
-					<div class="task_command_line">
 						$ qctool -g example.bgen -og example.vcf
 					</div>
 					<div class="task_notes">
+						QCTOOL deduces file types from the file extension as described on the <a href="#file_formats">file formats page</a>.
+						For filetypes not automatically recognised, the <code>-filetype</code> and <code>-ofiletype</code> options can be used to specify, as in:
+					</div>
+					<div class="task_command_line">
+						$ qctool -g &lt;input file&gt; -filetype &lt;input file type&gt; -og &lt;output file&gt; -ofiletype &lt;output file type&gt;
+					</div>
+					<div class="task_notes">
 						If the input filename contains a # character, e.g. <code>example_#.gen</code> this is treated as a
-						chromosomal wildcard and will match (human) chromosomes.
-						All files obtained by substituting in chromosome names in place of # will be included in the output.
+						chromosomal wildcard and will match all (human) chromosomes.
+						All files obtained by substituting in valid chromosome names in place of # will be included in the output.
 						This will also be used to infer the chromosome, if chromosome information is not present in the files themselves.
 					</div>
 					<div class="task_notes">
 						Although specifying a sample file is optional, it's sometimes preferable to include one so that output files have
-						the correct sample identifiers (e.g. when converting GEN format to BGEN or VCF).
+						the correct sample identifiers (e.g. when converting GEN format to BGEN or VCF), e.g.:
 					</div>
-					<div class="task_notes">
-						Available filetypes are specified on the <a href="#file_formats">file formats page</a>.
+					<div class="task_command_line">
+						$ qctool -g example_#.gen -s example.sample -og example.bgen
 					</div>
 				</div>
 				<div class="task">
@@ -483,6 +487,39 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 						Note: This again matches by position and alleles.  However, if the variant is biallelic and the alleles in the second
 						cohort are the same as those in the first cohort, but coded the other way round (e.g. cohort1 = A G,
 						cohort2 = G A), then the alleles are flipped accordingly.
+					</div>
+				</div>			
+				<div class="task">
+					<div class="task_name">
+						Merge variants from one dataset into another
+					</div>
+					<div class="task_command_line">
+						$ qctool -g first.bgen -s first.sample -merge-in second.bgen -s second.sample -og merged.bgen
+					</div>
+					<div class="task_notes">
+						This command produces a dataset that contains a record for each variant from <code>first.bgen</code> and a record for
+						each variant from <code>second.bgen</code>.  Data is output for the set of samples in the first dataset. To acheive this, samples are matched
+						between cohorts identified using the first sample identifier by default.
+						Where a sample is not present in the merged dataset, missing data will be output.
+					</div>
+					<div class="task_notes">
+						For best results, variants in each dataset must be sorted by position (and, where multiple variants at
+						the same position exist in each dataset, ideally also uniquely ordered by the other fields
+						specified by <code>-snp-match-fields</code>).
+					</div>
+					<div class="task_notes">
+						This command never merges variants into single records - if the same variant is present in both datasets, it will occur twice in the output.
+						The <code>-merge-strategy</code> and <code>-merge-prefix</code> options can be used to control how variants appear in the merged dataset.
+					</div>
+					<div class="task_notes">
+						Sometimes datasets have different primary identifiers for the same samples.   To match samples by a different column of the
+						sample files, use the <code>-match-sample-ids</code> option:
+					</div>
+					<div class="task_command_line">
+						$ qctool -g first.bgen -s first.sample -merge-in second.bgen -s second.sample -og merged.bgen -match-sample-ids &lt;id in first dataset&gt;~&lt;id in second dataset&gt;
+					</div>
+					<div class="task_notes">
+						(We recommend that sample file columns used to match samples should be unique sample identifiers.)
 					</div>
 				</div>			
 				<div class="task">
