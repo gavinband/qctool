@@ -677,7 +677,7 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 				</div>
 				<div class="task">
 					<div class="task_name">
-						Filter out variants
+						Filter variants
 					</div>
 					<div class="task_command_line">
 						$ qctool -g example.bgen -og subsetted.bgen -excl-rsids rsids_to_exclude.txt
@@ -689,15 +689,20 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 						$ qctool -g example.bgen -og subsetted.bgen -excl-range 06:25000000-40000000
 					</div>
 					<div class="task_command_line">
-						$ qctool -g example.bgen -og subsetted.bgen -excl-snps 06:25000000-40000000
+						$ qctool -g example.bgen -og subsetted.bgen -excl-snps snps_to_exclude.txt
+					</div>
+					<div class="task_command_line">
+						$ qctool -g example.bgen -og subsetted.bgen -excl-snps-matching rsid~rs1234
 					</div>
 					<div class="task_command_line">
 						$ qctool -g example.bgen -og subsetted.bgen -excl-snps-matching rsid~rs1%
 					</div>
 					<div class="task_notes">
-						Note: each of the above options has a corresponding <code>-incl-&lt;option&gt;</code> option.
-						Exclusion conditions are ANDed together (exclude variants matching any condition), while
-						inclusion options are ORed together (include variants matching any condition).
+						Note: inclusion/exclusion options come in pairs named <code>-excl-&lt;option&gt;</code> / <code>-incl-&lt;option&gt;</code>.
+						Exclusion conditions are ANDed together (a variant will be excluded if it matches any exclusion condition), while
+						inclusion options are ORed together (a variant will be included if it matches any inclusion condition).
+						Finally, exclusion and inclusion options are ANDed together, so the final of variants will be all variants in the input data
+						that are matched by any inclusion condition (if present) and not matched by any exclusion condition.
 					</div>
 					<div class="task_notes">
 						The file passed to <span class="monospace">-[in|ex]cl-positions</span> should contain a whitespace-separated list of positions in the form <span class="monospace">&lt;chromosome&gt;:&lt;position&gt;</span>.
@@ -705,6 +710,15 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 					<div class="task_notes">
 						The file passed to <span class="monospace">-[in|ex]cl-snps</span> should have
 						six (named) columns: SNPID, rsid, chromosome, position, first and second alleles.
+					</div>
+					<div class="task_notes">
+						The argument to <span class="monospace">-[in|ex]cl-snps-matching</span> specifies a
+						pattern to use to match SNPs.  A limited wildcard functionality is implemented:
+						if the last character of the argument is %, this stands for a wildcard and will match
+						any string. Thus e.g. <code>-excl-snps-matching rsid~rs1%</code>
+						will exclude any SNP whose primary identifier begins with <code>rs1</code>.  It's also
+						possible to match by alternate identifiers (<code>-excl-snps-matching SNPID~rs1%</code>)
+						or by any of the identifiers (<code>-excl-snps-matching rs1%</code>).
 					</div>
 				</div>
 				<div class="task">

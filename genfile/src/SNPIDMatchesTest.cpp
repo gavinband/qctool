@@ -63,13 +63,13 @@ namespace genfile {
 	bool SNPIDMatchesTest::operator()( VariantIdentifyingData const& data ) const {
 		std::vector< std::string > ids ;
 		if( m_type == eSNPID || m_type == eEITHER ) {
-			data.get_alleles( boost::bind( &insert_value, &ids, _1 )) ;
+			data.get_identifiers( boost::bind( &insert_value, &ids, _1 )) ;
 		}
 		if( ( m_type == eRSID || m_type == eEITHER ) && match( data.get_primary_id() ) ) {
 			return true ;
 		}
 		if( m_type == eSNPID || m_type == eEITHER ) {
-			for( std::size_t i = 0; i < ids.size(); ++i ) {
+			for( std::size_t i = 1; i < ids.size(); ++i ) {
 				if( match( ids[i] ) ) {
 					return true ;
 				}
