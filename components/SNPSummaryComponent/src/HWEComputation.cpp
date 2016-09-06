@@ -28,7 +28,7 @@ namespace snp_summary_component {
 	
 	void HWEComputation::operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, genfile::VariantDataReader&, ResultCallback callback ) {
 		genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
-		if( chromosome == genfile::Chromosome( "0X" ) ) {
+		if( chromosome.is_sex_determining() ) {
 			X_chromosome_test( snp, genotypes, sexes, callback ) ;
 		} else {
 			autosomal_test( snp, genotypes, callback ) ;
