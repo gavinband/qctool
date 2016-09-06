@@ -38,7 +38,7 @@ namespace genfile {
 
 		std::istream& stream() { return *m_stream_ptr ; }
 		std::istream const& stream() const { return *m_stream_ptr ; }
-		std::string get_source_spec() const { return m_filename ; }
+		std::string get_source_spec() const ;
 		bgen::Context const& bgen_context() const { return m_bgen_context ; }
 
 	private:

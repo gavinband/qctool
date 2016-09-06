@@ -188,7 +188,7 @@ namespace snp_summary_component {
 
 			if( m_compute_frequencies ) {
 				double const total_allele_count = ( male_genotypes.sum() + 2.0 * female_genotypes.sum() ) ;
-				double const a_allele_freq = a_allele_freq / total_allele_count ;
+				double const a_allele_freq = a_allele_count / total_allele_count ;
 				double const b_allele_freq = b_allele_count / total_allele_count ;
 
 				callback( "alleleA_frequency", a_allele_freq ) ;
@@ -272,7 +272,7 @@ namespace snp_summary_component {
 		
 		void compute_sex_chromosome_counts( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, ResultCallback callback ) {
 			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
-			assert( chromosome == genfile::Chromosome( "0X" ) || chromosome == genfile::Chromosome( "0Y" )) ;
+			assert( chromosome.is_sex_determining() ) ;
 			assert( std::size_t( genotypes.rows() ) == sexes.size() ) ;
 
 			std::map< char, Eigen::VectorXd > counts ;

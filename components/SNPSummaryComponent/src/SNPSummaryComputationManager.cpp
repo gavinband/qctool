@@ -19,7 +19,7 @@
 #include "components/SNPSummaryComponent/SNPSummaryComputationManager.hpp"
 #include "components/SNPSummaryComponent/StratifyingSNPSummaryComputation.hpp"
 
-// #define DEBUG_SNP_SUMMARY_COMPUTATION_MANAGER 1
+#define DEBUG_SNP_SUMMARY_COMPUTATION_MANAGER 1
 
 SNPSummaryComputationManager::SNPSummaryComputationManager( genfile::CohortIndividualSource const& samples, std::string const& sex_column_name ):
 	m_samples( samples ),
@@ -129,10 +129,13 @@ namespace {
 			m_max_ploidy = std::max( m_max_ploidy, ploidy ) ;
 			m_min_ploidy = std::min( m_min_ploidy, ploidy ) ;
 			m_ploidy[ m_sample_i ] = ploidy ;
+			if( ploidy <= 2 ) {
+				m_genotypes->row( m_sample_i ).setZero() ;
+			}
 		}
 		
 		void set_value( std::size_t value_i, genfile::MissingValue const value ) {
-			set_value( value_i, 0.0 ) ;
+			// GEnotypes already set to 0, nothing to do.
 		}
 
 		void set_value( std::size_t value_i, double const value ) {
@@ -171,8 +174,17 @@ void SNPSummaryComputationManager::processed_snp(
 		boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > callback
 			= boost::bind( boost::ref( m_result_signal ), snp, _1, _2 ) ;
 
-		if( setter.max_ploidy() == 2 && setter.min_ploidy() == 2 ) {
-			if( (!snp.get_position().chromosome().is_missing()) && snp.get_position().chromosome().is_sex_determining() ) {
+		// We make m_genotypes handle the case of diploid samples,
+		// or haploids on the sex chromosome encoded like het diploids.
+		// For all others clients must handle the data themselves so we set m_genotypes to 0.
+		if( snp.get_position().chromosome().is_sex_determining() ) {
+			// For some formats, data is encoded as diploid even though it represents the sex chromosomes.
+			// For those we fix genotypes here.
+			// (ALTERNATIVE: get the GPSetter to enact this transformation above.)
+			// (ALTERNATIVE 2: get the data source to enact this transformation.)
+			if( setter.max_ploidy() > 2 ) {
+				m_genotypes.setZero() ;
+			} else if( setter.min_ploidy() == 2 && setter.max_ploidy() == 2 ) {
 				try {
 					fix_sex_chromosome_genotypes( snp, &m_genotypes, callback ) ;
 				}
@@ -181,7 +193,7 @@ void SNPSummaryComputationManager::processed_snp(
 					m_genotypes.setZero() ;
 				}
 			}
-		} else {
+		} else if( setter.min_ploidy() != 2 || setter.max_ploidy() != 2 ) {
 			// Currently non-diploid computations are unsupported except
 			// via particular computations which handle it directly.
 			m_genotypes.setZero() ;
@@ -212,9 +224,7 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes(
 	boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > callback
 ) {
 	genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
-	if( chromosome != genfile::Chromosome( "0X" ) && chromosome != genfile::Chromosome( "0Y" ) ) {
-		return ;
-	}
+	assert( chromosome.is_sex_determining() ) ;
 
 	std::vector< int > const& males = m_samples_by_sex.find( 'm' )->second ;
 	std::vector< int > const& females = m_samples_by_sex.find( 'f' )->second ;
