@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 #include <boost/bind.hpp>
+#include <boost/format.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/bgen/bgen.hpp"
@@ -58,6 +59,30 @@ namespace genfile {
 				getter( i, m_sample_ids->at(i) ) ;
 			}
 		}
+	}
+	
+	std::string BGenFileSNPDataSource::get_source_spec() const {
+		std::string result = m_filename + " (";
+		if( (m_bgen_context.flags & bgen::e_Layout) == bgen::e_v10Layout ) {
+			result += "bgen v1.0; " ;
+		} else if( (m_bgen_context.flags & bgen::e_Layout) == bgen::e_v11Layout ) {
+			result += "bgen v1.1; " ;
+		} else if( (m_bgen_context.flags & bgen::e_Layout) == bgen::e_v12Layout ) {
+			result += "bgen v1.2; " ;
+		} else {
+			assert(0);
+		}
+		
+		result += (
+			genfile::string_utils::to_string( m_bgen_context.number_of_samples )
+			+ ( m_sample_ids ? " named samples; " : " unnamed samples; ")
+		) ;
+		
+		result += ( m_bgen_context.flags & bgen::e_CompressedSNPBlocks )
+			? "compressed" : "uncompressed" ;
+
+		return result + ")" ;
+		
 	}
 
 	namespace {
