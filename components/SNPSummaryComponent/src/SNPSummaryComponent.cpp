@@ -55,9 +55,9 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 			" 3. the effective number of fake samples used for regularisation."
 		)
 		.set_takes_values( 3 )
-		.set_default_value( 3 )
-		.set_default_value( 0.5 )
-		.set_default_value( 10 )
+		.set_default_value( 5 )
+		.set_default_value( 0.0005 )
+		.set_default_value( 1 )
 	;
 	options[ "-fit-cluster-scale" ]
 		.set_description( "Specify scale to fit clusters in.  Either \"X:Y\" or \"contrast:logR\"." )
