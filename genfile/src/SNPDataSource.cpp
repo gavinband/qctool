@@ -22,6 +22,7 @@
 #include "genfile/BedFileSNPDataSource.hpp"
 #include "genfile/LongFormatSNPDataSource.hpp"
 #include "genfile/HLAIMPAsBiallelicVariantDataSource.hpp"
+#include "genfile/ImputeHapProbsSNPDataSource.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/vcf/get_set.hpp"
 #include "genfile/Error.hpp"
@@ -35,6 +36,7 @@ namespace genfile {
 		result.push_back( "vcf" ) ;
 		result.push_back( "hapmap_haplotypes" ) ;
 		result.push_back( "impute_haplotypes" ) ;
+		result.push_back( "impute_allele_probs" ) ;
 		result.push_back( "shapeit_haplotypes" ) ;
 		result.push_back( "binary_ped" ) ;
 		result.push_back( "long" ) ;
@@ -71,6 +73,9 @@ namespace genfile {
 		}
 		else if( uf.first == "impute_haplotypes" ) {
 			return std::auto_ptr< SNPDataSource >( new ImputeHaplotypesSNPDataSource( uf.second, chromosome_hint )) ;
+		}
+		else if( uf.first == "impute_allele_probs" ) {
+			return std::auto_ptr< SNPDataSource >( new ImputeHapProbsSNPDataSource( uf.second, chromosome_hint )) ;
 		}
 		else if( uf.first == "shapeit_haplotypes" ) {
 			return std::auto_ptr< SNPDataSource >( new ShapeITHaplotypesSNPDataSource( uf.second, chromosome_hint )) ;
