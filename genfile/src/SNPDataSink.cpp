@@ -25,6 +25,7 @@
 #include "genfile/cnvHapSNPDataSink.hpp"
 #include "genfile/ShapeITHaplotypesSNPDataSink.hpp"
 #include "genfile/VCFFormatSNPDataSink.hpp"
+#include "genfile/ImputeHapProbsSNPDataSink.hpp"
 #include "genfile/vcf/get_set_eigen.hpp"
 #include "genfile/get_set_eigen.hpp"
 #include "genfile/get_set.hpp"
@@ -41,6 +42,7 @@ namespace genfile {
 		result.push_back( "binary_ped" ) ;
 		result.push_back( "shapeit_haplotypes" ) ;
 		result.push_back( "shapeit" ) ;
+		result.push_back( "impute_allele_probs" ) ;
 		result.push_back( "dosage" ) ;
 		result.push_back( "bimbam_dosage" ) ;
 		result.push_back( "intensity" ) ;
@@ -96,6 +98,9 @@ namespace genfile {
 		}
 		else if( d.first == "cnvhap" ) {
 			return SNPDataSink::UniquePtr( new cnvHapSNPDataSink( filename ) ) ;
+		}
+		else if( d.first == "impute_allele_probs" ) {
+			return SNPDataSink::UniquePtr( new ImputeHapProbsSNPDataSink( filename ) ) ;
 		}
 		else {
 			return SNPDataSink::UniquePtr( new GenFileSNPDataSink( filename, compression_type )) ;
