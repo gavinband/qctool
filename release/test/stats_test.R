@@ -128,7 +128,7 @@ cmd = sprintf(
     vcf.filename, sample.filename, snp.stats.filename
 )
 
-system( cmd )
+system( sprintf( "%s 2>/dev/null", cmd ))
 
 cat( "I simulated variants on these chromosomes:\n" )
 table( VAR$`#CHROM` )
@@ -141,6 +141,8 @@ compare.floats <- function( a, b, tolerance = 1E-6 ) {
 }
 
 
+cat( sprintf( "Compariing results from %s with expected results:\n", snp.stats.filename ))
+print( stats[1:10,])
 results = read.table( snp.stats.filename, sep = '\t', comment = '#', header = T )
 
 columns = c( "alleleA_count", "alleleB_count", "alleleA_frequency", "alleleB_frequency", "A", "B", "AA", "AB", "BB" )
@@ -157,3 +159,6 @@ for( column in columns ) {
         failed.columns = c( failed.columns, column )
     })
 }
+
+print( failed.columns )
+

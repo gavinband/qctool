@@ -48,6 +48,9 @@ Accepts input files
 	RunsCommandWithResult	{ "g": ["data/test.bed"], "filetype": "binary_ped", "snp-stats": "", "osnp": "<tmp>" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.shapeit"], "s": [ "data/complex.sample" ], "filetype": "shapeit_haplotypes", "snp-stats": "", "osnp": "<tmp>" }	ok
 
+Computes correct snp stats
+	CheckRun	Rscript	--vanilla	test_stats.R
+
 Produces well-formed snp stats output
 	@{commandSpecs}=	Create List	{ "snp-stats": "", "osnp": "<tmp>" }
 	Set data	{ "g": ["data/test.gen"], "s": ["data/test.sample"] }
@@ -82,6 +85,9 @@ Annotates BED intervals
 
 Roundtrips gen files via bgen (v1.1)
 	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	16	--iterations	1	--max_samples	100	--bgen_version	v1.1
+
+Roundtrips allele probs formats
+	CheckRun	Rscript	--vanilla	test_allele_probs_format.R
 
 Roundtrips gen files via bgen (v1.2, even bit counts)
 	:FOR	${bits}	IN	2	4	6	8	10	12	14	16	18	20	22	24	26	28	30	32
