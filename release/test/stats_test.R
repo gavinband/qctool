@@ -154,6 +154,8 @@ for( column in columns ) {
             failed.columns = c( failed.columns, column )
             cat( sprintf( "Expected results for column \"%s\" differ, differences are:\n", column ))
             print( cbind( results[w,1:6], expected = stats[w,column], observed = results[w,column] ) )
+	    cat( "Failure, quitting.\n" )
+	    quit( status = -1 )
         }
     }, error = function(e) {
         failed.columns = c( failed.columns, column )
