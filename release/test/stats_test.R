@@ -141,7 +141,7 @@ compare.floats <- function( a, b, tolerance = 1E-6 ) {
 }
 
 
-cat( sprintf( "Compariing results from %s with expected results:\n", snp.stats.filename ))
+cat( sprintf( "Comparing results from %s with expected results:\n", snp.stats.filename ))
 print( stats[1:10,])
 results = read.table( snp.stats.filename, sep = '\t', comment = '#', header = T )
 
@@ -161,4 +161,4 @@ for( column in columns ) {
 }
 
 print( failed.columns )
-
+cat( "Success.\n" )
