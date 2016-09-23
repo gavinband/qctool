@@ -5,7 +5,7 @@ import Options
 
 srcdir="."
 APPNAME = "qctool"
-VERSION = "2.0-beta2"
+VERSION = "2.0-beta3"
 
 subdirs = [
 	'genfile', 'statfile', 'string_utils', 'appcontext',
