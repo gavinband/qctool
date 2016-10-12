@@ -255,6 +255,7 @@ namespace snp_summary_component {
 #if DEBUG_CLUSTERFITCOMPUTATION
 		std::cerr << "numberOfClusters = " << numberOfClusters << "\n"
 			<< "informative sample count = " << nonMissingGenotypesAndIntensitySubset.size() << "\n" ;
+		std::cerr << "non-missing intensities subset count = " << nonMissingIntensitiesSubset.size() << "\n" ;
 		std::cerr << "Mixture parameters = " << mixture.parameters().transpose() << ".\n" ;
 		std::cerr << "mixtureLL = " << mixtureLL << ".\n" ;
 		Eigen::VectorXd terms( m_intensities.rows() ) ;
