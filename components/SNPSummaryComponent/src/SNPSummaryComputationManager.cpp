@@ -111,7 +111,7 @@ namespace {
 			std::cerr << "GPSetter::initialise( " << number_of_samples << ", " << number_of_alleles << " ).\n" ;
 #endif
 			m_genotypes->resize( number_of_samples, number_of_alleles * (number_of_alleles+1)/2 ) ;
-			m_genotypes->setConstant( std::numeric_limits< double >::quiet_NaN() ) ;
+			m_genotypes->setZero() ;
 			m_sample_i = 0 ;
 			m_ploidy = std::vector< uint32_t >( number_of_samples, 0 ) ;
 			m_max_ploidy = 0 ;
@@ -196,6 +196,7 @@ void SNPSummaryComputationManager::processed_snp(
 		} else if( setter.min_ploidy() != 2 || setter.max_ploidy() != 2 ) {
 			// Currently non-diploid computations are unsupported except
 			// via particular computations which handle it directly.
+			// std::cerr << "WOAH! min ploidy is " << setter.min_ploidy() << ", max is " << setter.max_ploidy() << "!!!\n" ;
 			m_genotypes.setZero() ;
 		}
 
