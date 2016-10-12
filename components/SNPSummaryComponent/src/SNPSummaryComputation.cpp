@@ -248,6 +248,45 @@ namespace snp_summary_component {
 		bool const m_compute_counts ;
 		bool const m_compute_frequencies ;
 	} ;
+
+	// What proportion of the mass on a genotype is due to high-confidence calls?
+	struct CallMassComputation: public SNPSummaryComputation
+	{
+		
+		CallMassComputation( double const threshhold = 0.9 ):
+			m_threshhold(threshhold)
+		{}
+
+		void operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, genfile::VariantDataReader&, ResultCallback callback ) {
+			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
+			if( chromosome.is_sex_determining() ) {
+				return ;
+			}
+			else {
+				compute_autosomal_call_mass( snp, genotypes, callback ) ;
+			}
+		}
+		
+		void compute_autosomal_call_mass( VariantIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) {
+			Eigen::VectorXd const masses = genotypes.colwise().sum() ;
+			m_hcGenotypes = ( genotypes.array() > m_threshhold ).cast< double >()  * genotypes.array() ;	
+			Eigen::VectorXd const hcMasses = m_hcGenotypes.colwise().sum() ; 
+
+			callback( "AA_mass_propn", hcMasses(0)/masses(0) ) ;
+			callback( "AB_mass_propn", hcMasses(1)/masses(1) ) ;
+			callback( "BB_mass_propn", hcMasses(2)/masses(2) ) ;
+
+			callback( "non-AA-mass_propn", (hcMasses(1)+hcMasses(2))/(masses(1)+masses(2))) ;
+			callback( "non-BB-mass_propn", (hcMasses(1)+hcMasses(0))/(masses(1)+masses(0))) ;
+		}
+		
+		std::string get_summary( std::string const& prefix, std::size_t column_width ) const {
+			return prefix + "CallMassComputation" ;
+		}
+	private:
+		double const m_threshhold ;
+		Genotypes m_hcGenotypes ;
+	} ;
 	
 	struct MissingnessComputation: public SNPSummaryComputation {
 		MissingnessComputation( double call_threshhold = 0.9 ): m_call_threshhold( call_threshhold ) {}
@@ -493,6 +532,7 @@ SNPSummaryComputation::UniquePtr SNPSummaryComputation::create(
 	else if( name == "HWE" ) { result.reset( new snp_summary_component::HWEComputation()) ; }
 	else if( name == "missingness" ) { result.reset( new snp_summary_component::MissingnessComputation()) ; }
 	else if( name == "info" ) { result.reset( new snp_summary_component::InfoComputation()) ; }
+	else if( name == "call-mass-proportion" ) { result.reset( new snp_summary_component::CallMassComputation()) ; }
 	else if( name == "intensity-stats" ) { result.reset( new snp_summary_component::IntensitySummaryComputation() ) ; }
 	else if( name == "multi-allele-counts" ) { result.reset( new snp_summary_component::AlleleCountComputation() ) ; }
 	else {
