@@ -150,7 +150,9 @@ namespace genfile {
 					}
 				}
 				
-				void finalise() {}
+				void finalise() {
+					m_target.finalise() ;
+				}
 			private:
 				PerSampleSetter& m_target ;
 				double const m_threshhold ;

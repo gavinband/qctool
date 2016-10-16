@@ -259,6 +259,7 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 		options.option_excludes_option( "-rank", "-strategy" ) ;
 		options.option_excludes_option( "-strategy", "-rank" ) ;
 		options.option_implies_option( "-rank", "-rank-column" ) ;
+		options.option_implies_option( "-rank-column", "-rank" ) ;
 		options.option_implies_option( "-missing-code", "-rank" ) ;
 
 		options[ "-match-tag" ]
