@@ -409,6 +409,12 @@ public:
 				" in the BGEN header block." )
 			.set_takes_single_value()
 		;
+		options[ "-bgen-compression" ]
+			.set_description( "Specify what compression to use when outputting BGEN files only."
+				" This can be \"none\", \"zlib\", or \"zstd\"." )
+			.set_default_value( "zlib" )
+			.set_takes_single_value()
+		;
 		options[ "-bgen-omit-sample-identifier-block" ]
 			.set_description( "For use when outputting BGEN files only.  Tell QCTOOL to omit the sample identifier block.  By default"
 				" this is written whenever -s is specified." )
@@ -1947,6 +1953,10 @@ private:
 							if( m_options.check( "-bgen-free-data" )) {
 								bgen_sink->set_free_data( m_options.get< std::string >( "-bgen-free-data" ) ) ;
 							}
+							if( m_options.check( "-bgen-compression" )) {
+								bgen_sink->set_compression_type( m_options.get< std::string >( "-bgen-compression" ) ) ;
+							}
+							
 							bgen_sink->set_write_sample_identifier_block( m_options.check( "-s" ) && ! m_options.check( "-bgen-omit-sample-identifier-block" )) ;
 						}
 					}
