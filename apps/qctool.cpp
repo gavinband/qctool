@@ -2177,10 +2177,11 @@ private:
 	
 	std::vector< std::size_t > compute_excluded_samples( genfile::CohortIndividualSource::UniquePtr const& sample_source ) {
 		std::vector< std::size_t > included_samples ;
+		void(std::vector<std::size_t>::*push_back)(std::size_t const&) = &std::vector<std::size_t>::push_back ;
 		m_sample_filter->test(
 			*sample_source,
 			boost::bind(
-				&std::vector< std::size_t >::push_back,
+				push_back,
 				&included_samples,
 				_1
 			),
