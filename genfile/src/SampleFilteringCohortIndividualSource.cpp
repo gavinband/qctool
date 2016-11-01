@@ -51,6 +51,11 @@ namespace genfile {
 		return m_source->get_entry( m_indices_of_samples_to_include[ sample_i ], column_name ) ;
 	}
 
+	CohortIndividualSource::Entry SampleFilteringCohortIndividualSource::get_entry( std::size_t sample_i, std::size_t const column_index ) const {
+		assert( sample_i < m_indices_of_samples_to_include.size() ) ;
+		return m_source->get_entry( m_indices_of_samples_to_include[ sample_i ], column_index ) ;
+	}
+
 	bool SampleFilteringCohortIndividualSource::check_for_column( std::string const& column_name ) const {
 		return m_source->check_for_column( column_name ) ;
 	}

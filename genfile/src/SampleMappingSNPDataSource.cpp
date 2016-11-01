@@ -81,28 +81,39 @@ namespace genfile {
 				CohortIndividualSource const& target_samples,
 				std::string const& target_sample_column
 			) {
-				source_samples.get_column_values( source_sample_column, boost::bind( &SampleIdList::push_back, &m_source_ids, _2 ) ) ;
-				target_samples.get_column_values( target_sample_column, boost::bind( &SampleIdList::push_back, &m_target_ids, _2 ) ) ;
+				std::cerr << "setup()\n" ;
+				void(SampleIdList::*push_back)(VariantEntry const&) = &SampleIdList::push_back;	
+				source_samples.get_column_values( source_sample_column, boost::bind( push_back, &m_source_ids, _2 ) ) ;
+				target_samples.get_column_values( target_sample_column, boost::bind( push_back, &m_target_ids, _2 ) ) ;
+				// typedef boost::unordered_map< VariantEntry, std::size_t > TargetMap ;
+				typedef std::map< VariantEntry, std::size_t > TargetMap ;
+				TargetMap target_map ;
+				for( std::size_t i = 0; i < m_target_ids.size(); ++i ) {
+					if( !target_map.insert( std::make_pair( m_target_ids[i], i )).second ) {
+						throw BadArgumentError(
+							"genfile::impl::SampleMapping::setup()",
+							"target_sample_column=\"" + target_sample_column + "\"",
+							"Target sample " + source_sample_column + "=\"" + m_target_ids[i].as< std::string >() + "\" occurs more than once."
+						) ;
+					} ;
+				}
 				for( std::size_t i = 0; i < m_source_ids.size(); ++i ) {
-					std::vector< VariantEntry >::const_iterator where = std::find( m_target_ids.begin(), m_target_ids.end(), m_source_ids[i] ) ;
-					if( where != m_target_ids.end() ) {
-						if( !m_map.insert( Map::value_type( i, std::size_t( where - m_target_ids.begin() ) ) ).second ) {
+				//	std::cerr << i << ".. " ;
+					TargetMap::const_iterator where = target_map.find( m_source_ids[i] ) ;
+					if( where != target_map.end() ) {
+						// for debug purposes
+						//std::vector< VariantEntry >::const_iterator whereold = std::find( m_target_ids.begin(), m_target_ids.end(), m_source_ids[i] ) ;
+						//assert(( whereold - m_target_ids.begin() ) == where->second ) ;
+						if( !m_map.insert( Map::value_type( i, where->second ) ).second ) {
 							throw BadArgumentError(
 								"genfile::impl::SampleMapping::setup()",
 								"target_sample_column=\"" + target_sample_column + "\"",
-								"Target sample \"" + where->as< std::string >() + "\" matches multiple source samples."
-							) ;
-						}
-						where = std::find( ++where, std::vector< VariantEntry >::const_iterator( m_target_ids.end() ), m_source_ids[i] ) ;
-						if( where != m_target_ids.end() ) {
-							throw BadArgumentError(
-								"genfile::impl::SampleMapping::setup()",
-								"target_sample_column=\"" + target_sample_column + "\"",
-								"Source sample " + source_sample_column + "=\"" + m_source_ids[i].as< std::string >() + "\" matches multiple target samples in column " + target_sample_column + "."
+								"Target sample \"" + where->first.as< std::string >() + "\" matches multiple source samples."
 							) ;
 						}
 					}
 				}
+				std::cerr << "end setup()\n" ;
 			}
 		} ;
 		

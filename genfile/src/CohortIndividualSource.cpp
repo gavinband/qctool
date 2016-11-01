@@ -194,8 +194,9 @@ namespace genfile {
 	}
 	
 	void CohortIndividualSource::get_column_values( std::string const& column_name, boost::function< void ( std::size_t, VariantEntry ) > callback ) const {
+		std::size_t const column_index = get_column_spec().find_column( column_name ) ;
 		for( std::size_t i = 0; i < get_number_of_individuals(); ++i ) {
-			callback( i, get_entry( i, column_name )) ;
+			callback( i, get_entry( i, column_index )) ;
 		}
 	}
 	

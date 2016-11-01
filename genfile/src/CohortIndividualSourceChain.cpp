@@ -89,6 +89,13 @@ namespace genfile {
 		return result ;
 	}
 
+	CohortIndividualSource::Entry CohortIndividualSourceChain::get_entry( std::size_t sample_i, std::size_t const column_index ) const {
+		// Source columns are linked by name, so we have to do this by name.
+		// TODO: implement this more efficiently by building the required mapping of column indices.
+		std::string const column_name = m_column_spec[column_index].name() ;
+		return get_entry( sample_i, column_name ) ;
+	}
+
 	std::string CohortIndividualSourceChain::get_source_spec() const {
 		return "(chain of " + string_utils::to_string( m_sources.size() ) + " sources)" ;
 	}

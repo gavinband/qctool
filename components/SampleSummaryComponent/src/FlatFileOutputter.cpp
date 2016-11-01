@@ -33,7 +33,8 @@ namespace sample_stats {
 		m_max_samples_per_block( 1000 )
 	{
 		m_sample_indices.reserve( 1000 ) ;
-		samples.get_column_values( "ID_1", boost::bind( &std::vector< genfile::VariantEntry >::push_back, &m_samples, _2 )) ;
+		void(std::vector<genfile::VariantEntry>::*push_back)(genfile::VariantEntry const&) = &std::vector<genfile::VariantEntry>::push_back ;
+		samples.get_column_values( "ID_1", boost::bind( push_back, &m_samples, _2 )) ;
 	}
 	
 	FlatFileOutputter::~FlatFileOutputter() {

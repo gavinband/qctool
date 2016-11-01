@@ -159,15 +159,16 @@ def misc_configure( conf ) :
 
 def get_cxx_flags( variant_name ):
 	cxxflags = [
-		#'-std=c++11',
+		'-std=c++11',
+		#'-std=c++98',
 		'-Wall',
 		'-pedantic',
 		'-Wno-long-long', # don't warn about the long long thing, it comes up in Eigen and Boost.
 		'-Wno-redeclared-class-member', # don't warn about class member redeclaration which comes up in Boost
-		'-Wno-unused-local-typedefs', # warns in boost
+		'-Wno-unused-local-typedefs' # warns in boost
 	]
 	if variant_name == 'default':
-		cxxflags.extend( ['-g' ] )
+		cxxflags.extend( [ '-g' ] )
 	elif variant_name == 'release':
 		cxxflags.extend( [ '-O3' ])
 	return cxxflags

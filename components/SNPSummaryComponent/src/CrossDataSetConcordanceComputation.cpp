@@ -39,16 +39,18 @@ namespace snp_stats {
 	):
 		m_dataset1_samples( dataset1_samples )
 	{
-		m_dataset1_samples.get_column_values( "ID_1", boost::bind( &SampleIdList::push_back, &m_dataset1_main_ids, _2 ) ) ;
-		m_dataset1_samples.get_column_values( sample_id_column, boost::bind( &SampleIdList::push_back, &m_dataset1_sample_ids, _2 ) ) ;
+		void(SampleIdList::*push_back)(genfile::VariantEntry const&) = &SampleIdList::push_back ;
+		m_dataset1_samples.get_column_values( "ID_1", boost::bind( push_back, &m_dataset1_main_ids, _2 ) ) ;
+		m_dataset1_samples.get_column_values( sample_id_column, boost::bind( push_back, &m_dataset1_sample_ids, _2 ) ) ;
 	}
 
 	void CrossDataSetSampleMapper::set_alternate_dataset(
 		genfile::CohortIndividualSource::UniquePtr samples,
 		std::string const& sample_id_column
 	) {
-		m_dataset2_samples = samples ;
-		m_dataset2_samples->get_column_values( sample_id_column, boost::bind( &SampleIdList::push_back, &m_dataset2_sample_ids, _2 ) ) ;
+		m_dataset2_samples = samples ;	
+		void(SampleIdList::*push_back)(genfile::VariantEntry const&) = &SampleIdList::push_back ;
+		m_dataset2_samples->get_column_values( sample_id_column, boost::bind( push_back, &m_dataset2_sample_ids, _2 ) ) ;
 		m_sample_mapping = impl::create_sample_mapping( m_dataset1_sample_ids, m_dataset2_sample_ids ) ;
 	}
 

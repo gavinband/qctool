@@ -112,6 +112,11 @@ namespace genfile {
 		return result ;
 	}
 
+	CohortIndividualSource::Entry DataLinkingCohortIndividualSource::get_entry( std::size_t sample_i, std::size_t const column_index ) const {
+		std::string const column_name = get_column_spec()[column_index].name() ;
+		return get_entry( sample_i, column_name ) ;
+	}
+
 	CohortIndividualSource const& DataLinkingCohortIndividualSource::get_base_source() const {
 		return m_sources[0].get_base_source() ;
 	}

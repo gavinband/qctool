@@ -37,7 +37,7 @@ namespace genfile {
 
 	std::string GenLikeSNPDataSink::get_spec() const { return m_filename ; }
 
-	GenLikeSNPDataSink::operator bool() const { return *m_stream_ptr ; }
+	GenLikeSNPDataSink::operator bool() const { return m_stream_ptr->good() ; }
 	
 	void GenLikeSNPDataSink::write_variant( std::ostream& out, genfile::VariantIdentifyingData const& variant ) {
 		if( m_write_chromosome_column ) {

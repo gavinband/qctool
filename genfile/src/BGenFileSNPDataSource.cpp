@@ -191,11 +191,12 @@ namespace genfile {
 		if( m_bgen_context.flags & bgen::e_SampleIdentifiers ) {
 			m_sample_ids = std::vector< std::string >() ;
 			m_sample_ids->reserve( m_bgen_context.number_of_samples ) ;
+			void(std::vector<std::string>::*push_back)(std::string const&) = &std::vector<std::string>::push_back;	
 			bytes_read += bgen::read_sample_identifier_block(
 				*m_stream_ptr,
 				m_bgen_context,
 				boost::bind(
-					&std::vector< std::string >::push_back,
+					push_back,
 					&(*m_sample_ids),
 					_1
 				)

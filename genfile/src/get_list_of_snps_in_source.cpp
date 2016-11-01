@@ -24,8 +24,9 @@ namespace genfile {
 		} else {
 			result.reserve( 10000 ) ;
 		}
+		void(std::vector<VariantIdentifyingData>::*push_back)(VariantIdentifyingData const&) = &std::vector<VariantIdentifyingData>::push_back;
 		source.list_snps(
-			boost::bind( &Result::push_back, &result, _1 ),
+			boost::bind( push_back, &result, _1 ),
 			progress_callback
 		) ;
 		if( source.total_number_of_snps() && result.size() != *source.total_number_of_snps() ) {

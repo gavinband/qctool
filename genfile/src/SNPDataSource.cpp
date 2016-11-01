@@ -152,7 +152,8 @@ namespace genfile {
 
 	std::vector< VariantIdentifyingData > SNPDataSource::list_snps( ProgressCallback callback ) {
 		std::vector< VariantIdentifyingData > result ;
-		list_snps( boost::bind( &std::vector< VariantIdentifyingData >::push_back, &result, _1 ), callback ) ;
+		void(std::vector<VariantIdentifyingData>::*push_back)(VariantIdentifyingData const&) = &std::vector<VariantIdentifyingData>::push_back;
+		list_snps( boost::bind( push_back, &result, _1 ), callback ) ;
 		return result ;
 	}
 

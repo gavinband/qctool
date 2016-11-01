@@ -54,11 +54,16 @@ namespace genfile {
 	std::size_t FromFileCohortIndividualSource::get_number_of_individuals() const { return m_entries.size() ; }
 
 	FromFileCohortIndividualSource::Entry FromFileCohortIndividualSource::get_entry( std::size_t sample_i, std::string const& column_name ) const {
-        std::size_t column_i = 0 ;
-        if( genfile::string_utils::to_upper( column_name ) != "ID_1" ) {
-            column_i = find_column_name( column_name ) ;
-        }
-		return m_entries[ sample_i ][ column_i ] ;
+		std::size_t column_index = 0 ;
+		if( genfile::string_utils::to_upper( column_name ) != "ID_1" ) {
+			column_index = find_column_name( column_name ) ;
+		}
+		return m_entries[ sample_i ][ column_index ] ;
+	}
+
+	FromFileCohortIndividualSource::Entry FromFileCohortIndividualSource::get_entry( std::size_t sample_i, std::size_t const column_index ) const {
+		assert( column_index < m_column_names.size() ) ;
+		return m_entries[ sample_i ][ column_index ] ;
 	}
 
 	std::string const& FromFileCohortIndividualSource::get_filename() const { return m_filename ; }

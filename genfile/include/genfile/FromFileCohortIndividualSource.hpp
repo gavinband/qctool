@@ -51,6 +51,7 @@ namespace genfile {
 
 		// Return the entry in the specified row and column
 		Entry get_entry( std::size_t sample_i, std::string const& column_name ) const ;
+		Entry get_entry( std::size_t sample_i, std::size_t const column_index ) const ;
 
 		bool check_for_column( std::string const& column_name ) const ;
 
