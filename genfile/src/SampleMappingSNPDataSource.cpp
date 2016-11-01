@@ -81,7 +81,7 @@ namespace genfile {
 				CohortIndividualSource const& target_samples,
 				std::string const& target_sample_column
 			) {
-				std::cerr << "setup()\n" ;
+				//std::cerr << "setup()\n" ;
 				void(SampleIdList::*push_back)(VariantEntry const&) = &SampleIdList::push_back;	
 				source_samples.get_column_values( source_sample_column, boost::bind( push_back, &m_source_ids, _2 ) ) ;
 				target_samples.get_column_values( target_sample_column, boost::bind( push_back, &m_target_ids, _2 ) ) ;
@@ -113,7 +113,7 @@ namespace genfile {
 						}
 					}
 				}
-				std::cerr << "end setup()\n" ;
+				//std::cerr << "end setup()\n" ;
 			}
 		} ;
 		

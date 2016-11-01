@@ -18,6 +18,7 @@ load.sample.file <- function( filename, na.strings = "NA", sep = " " ) {
 		}
 	}
 	
+	attr( samples, 'types' ) = types ;
 	return( samples ) ;
 }
 
