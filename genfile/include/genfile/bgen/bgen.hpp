@@ -1339,7 +1339,7 @@ namespace genfile {
 							&(*m_buffer1)[0], &(*m_buffer1)[0] + uncompressed_data_size,
 							m_buffer2,
 							offset,
-							13 // reasonable balance between speed and compression.
+							15 // reasonable balance between speed and compression.
 						) ;
 					} else {
 						assert(0) ;
