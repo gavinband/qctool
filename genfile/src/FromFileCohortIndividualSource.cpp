@@ -352,11 +352,30 @@ namespace genfile {
 		return result ;
 	}
 
+	namespace {
+		void insert_if_nonempty( std::vector< string_utils::slice >* dest, string_utils::slice const& elt ) {
+			if( !elt.empty() ) {
+				dest->push_back( elt ) ;
+			}
+		}
+	}
+
 	std::vector< std::vector< CohortIndividualSource::Entry > > FromFileCohortIndividualSource::read_entries( std::istream& stream, std::vector< ColumnType > const& column_types ) const {
 		std::vector< std::vector< Entry > > result ;
-		std::string line ;
-		while( std::getline( stream, line ) ) {
-			std::vector< std::string > string_entries = string_utils::split_and_strip_discarding_empty_entries( line, " \t\n\r" ) ;
+		std::string const data(
+			(std::istreambuf_iterator<char>(stream)),
+			(std::istreambuf_iterator<char>())
+		) ;
+		stream.peek() ; // be sure to trigger eof()
+		using genfile::string_utils::slice ;
+		std::vector< slice > lines = slice( data ).split( "\n\r" ) ;
+		// handle the case of a trailing newline or a lack of it.
+		if( lines.size() > 0 && lines.back() == "" ) {
+			lines.pop_back() ;
+		}
+		for( std::size_t i = 0; i < lines.size(); ++i ) {
+			std::vector< slice > string_entries ;
+			lines[i].split( " \t", boost::bind( &insert_if_nonempty, &string_entries, _1 )) ;
 			if( string_entries.size() != column_types.size() ) {
 				throw MalformedInputError( m_filename, 2 + m_number_of_metadata_lines + result.size() ) ;
 			}
@@ -366,7 +385,7 @@ namespace genfile {
 	}
 
 	std::vector< CohortIndividualSource::Entry > FromFileCohortIndividualSource::get_checked_entries(
-		std::vector< std::string > const& string_entries,
+		std::vector< string_utils::slice > const& string_entries,
 		std::vector< ColumnType > const& column_types,
 		std::size_t line_number
 	) const {
