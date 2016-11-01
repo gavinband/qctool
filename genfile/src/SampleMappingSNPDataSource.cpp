@@ -22,7 +22,10 @@ namespace genfile {
 	namespace impl {
 		struct SampleMapping {
 			typedef std::auto_ptr< SampleMapping > UniquePtr ;
-			typedef boost::bimaps::bimap< std::size_t, std::size_t > Map ;
+			typedef boost::bimaps::bimap<
+				boost::bimaps::unordered_set_of< std::size_t >,
+				boost::bimaps::unordered_set_of< std::size_t >
+			> Map ;
 
 		public:
 			static UniquePtr create(
