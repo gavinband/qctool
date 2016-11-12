@@ -368,14 +368,17 @@ namespace genfile {
 		) ;
 		stream.peek() ; // be sure to trigger eof()
 		using genfile::string_utils::slice ;
-		std::vector< slice > lines = slice( data ).split( "\n\r" ) ;
+		std::vector< slice > lines = slice( data ).split( "\n" ) ;
 		// handle the case of a trailing newline or a lack of it.
 		if( lines.size() > 0 && lines.back() == "" ) {
 			lines.pop_back() ;
 		}
 		for( std::size_t i = 0; i < lines.size(); ++i ) {
+			// Handle windows line endings.
+			lines[i] = lines[i].split( "\r" )[0] ;
 			std::vector< slice > string_entries ;
 			lines[i].split( " \t", boost::bind( &insert_if_nonempty, &string_entries, _1 )) ;
+			// Handle windows-style line endings.
 			if( string_entries.size() != column_types.size() ) {
 				throw MalformedInputError( m_filename, 2 + m_number_of_metadata_lines + result.size() ) ;
 			}
