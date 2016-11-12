@@ -116,7 +116,7 @@ namespace genfile {
 			void write_to_stream( std::ostream& stream ) {
 				for( std::size_t i = 0; i < m_number_of_samples; ++i ) {
 					if( m_data[3*i+0] < 0 ) {
-						stream << " 0 0 0 " ;
+						stream << " 0 0 0" ;
 					} else {
 						using boost::spirit::karma::double_ ;
 						using boost::spirit::karma::generate ;
