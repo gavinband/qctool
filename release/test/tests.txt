@@ -48,15 +48,20 @@ Accepts input files
 	RunsCommandWithResult	{ "g": ["data/test.bed"], "filetype": "binary_ped", "snp-stats": "", "osnp": "<tmp>" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.shapeit"], "s": [ "data/complex.sample" ], "filetype": "shapeit_haplotypes", "snp-stats": "", "osnp": "<tmp>" }	ok
 
-Computes correct snp stats
-	CheckRun	Rscript	--vanilla	stats_test.R
-
 Produces well-formed snp stats output
 	@{commandSpecs}=	Create List	{ "snp-stats": "", "osnp": "<tmp>" }
 	Set data	{ "g": ["data/test.gen"], "s": ["data/test.sample"] }
 	:FOR	${commandSpec}	IN	@{commandSpecs}
 	\	${startChar}=	Get Substring	${commandSpec}	0	1
 	\	Run Keyword If	'${startChar}' != '\#'	ProducesWellFormedSnpStatsOutput	${commandSpec}
+
+Computes correct snp stats
+	CheckRun	Rscript	--vanilla	stats_test.R
+
+Correctly merges files
+	${filenames}=	Run Qctool	{ "g": ["data/merge1.gen"], "s": [ "data/merge1.sample" ], "merge-in": [ "data/merge2.gen", "data/merge2.sample" ], "og": "<tmp>" }	ok
+	${filename}=	Get Variable Value	${filenames['og']}
+	CheckRun	Rscript	--vanilla	compare_gen_files.R	--file1	data/merged.gen	--file2	data/merged.gen
 
 Produces well-formed sample output
 	@{commandSpecs}=	Create List	{ "sample-stats": "", "osample": "<tmp>" }
@@ -114,27 +119,6 @@ RunsCommandWithColumns
 	${filename}=	Get Variable Value	${filenames['osnp']}
 	:FOR	${elt}	IN	@{columns}
 	\	Has Column Matching	${filename}	${elt}
-
-CorrectlyMergesGenotypes
-	[Arguments]	${command}	${expected_count}
-	${filenames}=	Run QCtool	${command}	ok
-	${filename}=	Get Variable Value	${filenames['og']}
-	File Should Exist	${filename}
-	File Should Not Be Empty	${filename}
-	${contents}=	Get File	${filename}
-	${linecount}=	Get Line Count	${contents}
-	Should Be Equal As Integers	${linecount}	${expected_count}
-
-CorrectlyMergesSamples
-	[Arguments]	${command}	${expected_sample_count}
-	${filenames}=	Run QCtool	${command}	ok
-	${filename}=	Get Variable Value	${filenames['os']}
-	Check Merged Samples	${command}	${filename}
-	File Should Exist	${filename}
-	File Should Not Be Empty	${filename}
-	${contents}=	Get File	${filename}
-	${linecount}=	Get Line Count	${contents}
-	Should Be Equal As Integers	${linecount}	${expected_sample_count+2}
 
 ProducesWellFormedSampleStatsOutput
 	[Arguments]	${command}

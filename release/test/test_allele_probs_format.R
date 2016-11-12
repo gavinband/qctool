@@ -47,7 +47,7 @@ V = data.frame(
 	alleleB = sample( c( 'A', 'C', 'T', 'G' ), opts$variants, replace = T )
 )
 for( i in 1:opts$iterations ) {
-	N = sample( 0:opts$max_samples, 1 )
+	N = sample( 1:opts$max_samples, 1 )
 	G = matrix( NA, nrow = opts$variants, ncol = N*2 )
 	G[,] = runif( nrow(G) * ncol(G) )
 	omit.chromosome = ( runif(1) > 0.5 )
