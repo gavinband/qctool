@@ -225,12 +225,16 @@ namespace genfile {
 	}
 
 	std::size_t CohortIndividualSource::ColumnSpec::find_column( std::string const& column_name ) const {
-		std::vector< std::string >::const_iterator
-			where = std::find( m_column_names.begin(), m_column_names.end(), column_name ) ;
-		if( where == m_column_names.end() ) {
-			throw BadArgumentError( "CohortIndividualSource::ColumnSpec::find_column()", "column_name=\"" + column_name + "\".\n", "Column not found" ) ;
+		std::size_t result = 0 ;
+		if( string_utils::to_lower( column_name ) != "id_1" ) {
+			std::vector< std::string >::const_iterator
+				where = std::find( m_column_names.begin(), m_column_names.end(), column_name ) ;
+			if( where == m_column_names.end() ) {
+				throw BadArgumentError( "CohortIndividualSource::ColumnSpec::find_column()", "column_name=\"" + column_name + "\".\n", "Column not found" ) ;
+			}
+			result = ( where - m_column_names.begin() ) ;
 		}
-		return std::size_t( where - m_column_names.begin() ) ;
+		return result ;
 	}
 	
 	std::ostream& operator<< ( std::ostream& out, CohortIndividualSource::ColumnType const& type ) {
