@@ -185,7 +185,7 @@ namespace genfile {
 	}
 
 	VCFFormatSNPDataSource::operator bool() const {
-		return *m_stream_ptr ;
+		return m_stream_ptr->good() ;
 	}
 
 	unsigned int VCFFormatSNPDataSource::number_of_samples() const {

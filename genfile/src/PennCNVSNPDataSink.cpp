@@ -30,7 +30,7 @@ namespace genfile {
 
 	std::string PennCNVSNPDataSink::get_spec() const { return m_filename ; }
 
-	PennCNVSNPDataSink::operator bool() const { return *m_stream_ptr ; }
+	PennCNVSNPDataSink::operator bool() const { return m_stream_ptr->good() ; }
 	
 	void PennCNVSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter getter ) {
 		char const tab = '\t' ;
