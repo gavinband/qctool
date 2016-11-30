@@ -77,12 +77,17 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 		.set_takes_single_value() ;
 	
 	options.declare_group( "Annotation options" ) ;
-	options[ "-annotate-ancestral" ]
-		.set_description( "Specify a FASTA-formatted file containing ancestral alleles to annotate variants with." )
-		.set_takes_single_value() ;
-	options[ "-annotate-reference" ]
-		.set_description( "Specify a FASTA-formatted file containing reference alleles to annotate variants with." )
-		.set_takes_single_value() ;
+	options[ "-annotate-sequence" ]
+		.set_description( "Specify a FASTA-formatted file containing reference alleles to annotate variants with."
+			" This will appear as <name>_allele where <name> is the second argument." )
+		.set_takes_values( 2 ) ;
+	options[ "-flanking" ]
+		.set_description( "Specify that flanking sequence annotations [ pos - a, pos + b ] should be output when using "
+			"-annotate-sequence and -annotate-sequence" )
+		.set_takes_values( 2 )
+		.set_minimum_multiplicity( 0 )
+		.set_maximum_multiplicity( 1 ) ;
+
 	options[ "-annotate-genetic-map" ]
 		.set_description( "Specify a genetic map file or files.  QCTOOL will interpolate the map "
 			"to produce approximate positions in centiMorgans for each SNP in the data." )
@@ -97,13 +102,6 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 			" BED files must contain 0-based, right-open intervals which will be translated to 1-based coordinates for comparison"
 			" with input data. " )
 		.set_takes_values_until_next_option() ;
-	options[ "-flanking" ]
-		.set_description( "Specify that flanking sequence annotations [ pos - a, pos + b ] should be output when using "
-			"-annotate-reference and -annotate-ancestral" )
-		.set_takes_values( 2 )
-		.set_minimum_multiplicity( 0 )
-		.set_maximum_multiplicity( 1 ) ;
-
 	options.declare_group( "Callset comparison options" ) ;
 	options[ "-compare-to" ]
 		.set_description( "Compute a matrix of values indicating concordance of samples between the main dataset and the dataset given as argument to this option. "
@@ -118,8 +116,7 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options.option_implies_option( "-snp-stats", "-g" ) ;
 	options.option_implies_option( "-intensity-stats", "-g" ) ;
 	options.option_implies_option( "-fit-clusters", "-g" ) ;
-	options.option_implies_option( "-annotate-ancestral", "-g" ) ;
-	options.option_implies_option( "-annotate-reference", "-g" ) ;
+	options.option_implies_option( "-annotate-sequence", "-g" ) ;
 	options.option_implies_option( "-stratify", "-s" ) ;
 	
 	CallComparerComponent::declare_options( options ) ;
@@ -130,8 +127,7 @@ bool SNPSummaryComponent::is_needed( appcontext::OptionProcessor const& options 
 		|| options.check( "-intensity-stats" )
 		|| options.check( "-fit-clusters" )
 		|| options.check( "-compare-to" )
-		|| options.check( "-annotate-ancestral" )
-		|| options.check( "-annotate-reference" )
+		|| options.check( "-annotate-sequence" )
 		|| options.check( "-annotate-genetic-map" )
 		|| options.check( "-annotate-bed3" )
 		|| options.check( "-annotate-bed4" )
@@ -357,24 +353,34 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		manager.stratify_by( strata, variable ) ;
 	}
 	
-	if( m_options.check( "-annotate-reference" )) {
+	if( m_options.check( "-annotate-sequence" )) {
 		appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading reference sequence" ) ;
-		SequenceAnnotation::UniquePtr computation(
-			new SequenceAnnotation( "reference", m_options.get< std::string >( "-annotate-reference" ), progress )
-		) ;
-		
-		if( m_options.check( "-flanking" )) {
-			std::vector< std::size_t > data = m_options.get_values< std::size_t >( "-flanking" ) ;
-			assert( data.size() == 2 ) ;
-			computation->set_flanking( data[0], data[1] ) ;
+		std::vector< std::string > const elts = m_options.get_values< std::string >( "-annotate-sequence" ) ;
+		if( elts.size() % 2 != 0 ) {
+			throw genfile::BadArgumentError(
+				"SNPSummaryComponent::add_computations()",
+				"-annotate-sequence " + genfile::string_utils::join( elts, " " ),
+				"-annotate-sequence takes an even number of arguments: <filename> <annotation name>..."
+			) ;
 		}
+		for( std::size_t i = 0; i < elts.size(); i += 2 ) {
+			SequenceAnnotation::UniquePtr computation(
+				new SequenceAnnotation( elts[i+1], elts[i], progress )
+			) ;
 		
-		manager.add_computation(
-			"reference_sequence",
-			SNPSummaryComputation::UniquePtr(
-				computation.release()
-			)
-		) ;
+			if( m_options.check( "-flanking" )) {
+				std::vector< std::size_t > data = m_options.get_values< std::size_t >( "-flanking" ) ;
+				assert( data.size() == 2 ) ;
+				computation->set_flanking( data[0], data[1] ) ;
+			}
+		
+			manager.add_computation(
+				elts[1] + "_sequence",
+				SNPSummaryComputation::UniquePtr(
+					computation.release()
+				)
+			) ;
+		}
 	}
 
 	if( m_options.check( "-annotate-ancestral" )) {
