@@ -61,7 +61,7 @@ Computes correct snp stats
 Correctly merges files
 	${filenames}=	Run Qctool	{ "g": ["data/merge1.gen"], "s": [ "data/merge1.sample" ], "merge-in": [ "data/merge2.gen", "data/merge2.sample" ], "og": "<tmp>" }	ok
 	${filename}=	Get Variable Value	${filenames['og']}
-	CheckRun	Rscript	--vanilla	compare_gen_files.R	--file1	data/merged.gen	--file2	data/merged.gen
+	CheckRun	Rscript	--vanilla	compare_gen_files.R	--file1	${filename}	--file2	data/merged.gen
 
 Produces well-formed sample output
 	@{commandSpecs}=	Create List	{ "sample-stats": "", "osample": "<tmp>" }
