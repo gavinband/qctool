@@ -15,11 +15,13 @@
 #include "genfile/zlib.hpp"
 
 namespace genfile {
-	BGenFileSNPDataSource::BGenFileSNPDataSource( std::auto_ptr< std::istream >, Chromosome missing_chromosome ):
+	BGenFileSNPDataSource::BGenFileSNPDataSource( std::auto_ptr< std::istream > stream, Chromosome missing_chromosome ):
 		m_filename( "(anonymous stream)" ),
 		m_missing_chromosome( missing_chromosome )
-	{}
-		
+	{
+		setup( stream ) ;
+	}
+	
 	BGenFileSNPDataSource::BGenFileSNPDataSource( std::string const& filename, Chromosome missing_chromosome ):
 		m_filename( filename ),
 		m_missing_chromosome( missing_chromosome )
