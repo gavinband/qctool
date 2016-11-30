@@ -89,7 +89,7 @@ namespace genfile {
 			throw FileContainsSNPsOfDifferentSizes() ;
 		}
 		m_sources.push_back( source.release() ) ;
-		m_sources.back()->reset_to_start() ;
+		//m_sources.back()->reset_to_start() ;
 
 		// update metadata
 		Metadata new_source_metadata = m_sources.back()->get_metadata() ;

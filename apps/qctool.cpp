@@ -1450,7 +1450,6 @@ private:
 			source.reset( rack.release() ) ;
 		}
 
-		source->reset_to_start() ;
 		return source ;
 	}
 
