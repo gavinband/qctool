@@ -272,8 +272,9 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 	<tr><th>Option</th><th>Summary</th></tr>
 	<tr><td><code>-snp-stats</code></td><td>Basic per-variant summary statistics - frequency, missing proportion, P-value for Hardy-Weinberg, etc.</td></tr>
 	<tr><td><code>-intensity-stats</code></td><td>Mean per-variant X and Y channel intensities.</td></tr>
-	<tr><td><code>-fit-clusters</code></td><td>Parameters of clusters fit to genotype calls and intensities.</td></tr>
+	<tr><td><code>-fit-clusters</code></td><td>Fit multivariate T distribution clusters to genotype calls and intensities, output parameters.</td></tr>
 	<tr><td><code>-annotate-sequence</code></td><td>Annotation of reference base(s) and flanking sequence from a reference FASTA file.</td></tr>
+	<tr><td><code>-annotate-genetic-map</code></td><td>Annotation of interpolated genetic map positions from genetic map file(s).</td></tr>
 	<tr><td><code>-annotate-bed3</code>,<code>-annotate-bed4</code></td><td>Annotation of occupancy of regions defined in one or more BED files.</td></tr>
 </table>
 <h3>Details of summary statistics</h3>
@@ -393,6 +394,20 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 				variant lies in.  Note positions in BED files are in 0-based coordinates; QCTOOL
 				assumes 1 based coordinates for the positions of variants and will translate BED coordinates accordingly.
 			</dd>
+	</dl>
+<p>
+<p>
+	Computed by <code>-annotate-sequence &lt;name of fasta file&gt; &lt;name&gt;</code>:
+</p>
+<dl>
+			<dt><code>&lt;name&gt;_alleleA</code></dt>
+			<dd>The content of the given FASTA file for the bases covered by the first allele at each variant</dd>
+			<dt><code>&lt;name&gt;_alleleA_left_flanking</code>, <code>&lt;name&gt;_alleleA_right_flanking</code></dt>
+			<dd>The left and right flanking sequence from the given FASTA file.  The length of flanking sequence output
+				is controlled by the <code>-flanking</code> option.</dd>
+			<dt><code>&lt;name&gt;_alleleB_if_indel</code></dt>
+			<dd>The content of the given FASTA file for the bases covered by the second allele.  This is only output if the length
+				of the two alleles is different (i.e. variant is an insertion or deletion).</dd>
 	</dl>
 <p>
 </div>
