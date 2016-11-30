@@ -58,6 +58,7 @@ def check_for_3rd_party_components( conf ):
 	check_for_zlib( conf )
 	conf.define( 'HAVE_SQLITE3', 1 )
 	conf.define( 'HAVE_EIGEN', 1 )
+	conf.define( 'HAVE_ZSTD', 1 )
 	if conf.check_cxx( lib = 'dl', uselib_store = 'DL' ):
 		conf.define( 'HAVE_DL', 1 )
 	if conf.check_cxx( lib = 'rt', uselib_store = 'RT' ):
