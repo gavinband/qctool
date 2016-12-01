@@ -61,6 +61,22 @@ namespace genfile {
 		m_number_of_bits = bits ;
 	}
 
+	void BasicBGenFileSNPDataSink::set_compression_type( std::string const& compression_type ) {
+		if( compression_type == "none" ) {
+			m_bgen_context.flags = ( m_bgen_context.flags & ~bgen::e_CompressedSNPBlocks ) | bgen::e_NoCompression ;
+		} else if( compression_type == "zlib" ) {
+			m_bgen_context.flags = ( m_bgen_context.flags & ~bgen::e_CompressedSNPBlocks ) | bgen::e_ZlibCompression ;
+		} else if( compression_type == "zstd" ) {
+			m_bgen_context.flags = ( m_bgen_context.flags & ~bgen::e_CompressedSNPBlocks ) | bgen::e_ZstdCompression ;
+		} else {
+			throw BadArgumentError(
+				"genfile::BasicBGenFileSNPDataSink::set_compression_type()",
+				"compression_type=\"" + compression_type + "\"",
+				"Unrecognised compression type"
+			) ;
+		}
+	}
+
 	SNPDataSink::SinkPos BasicBGenFileSNPDataSink::get_stream_pos() const {
 		return SinkPos( this, m_stream_ptr->tellp() ) ;
 	}
@@ -199,9 +215,9 @@ namespace genfile {
 	namespace {
 		uint32_t get_flags( std::string const& version ) {
 			if( version == "v11" ) {
-				return bgen::e_CompressedSNPBlocks | bgen::e_v11Layout ;
+				return bgen::e_ZlibCompression | bgen::e_v11Layout ;
 			} else if( version == "v12" ) {
-				return bgen::e_CompressedSNPBlocks | bgen::e_v12Layout ;
+				return bgen::e_ZlibCompression | bgen::e_v12Layout ;
 			} else {
 				assert(0) ;
 			}

@@ -59,6 +59,11 @@ namespace genfile {
 			return m_source->get_entry( original_sample_i, column_name ) ;
 		}
 
+		Entry get_entry( std::size_t sample_i, std::size_t const column_index ) const {
+			std::size_t original_sample_i = m_order[ sample_i ] ;
+			return m_source->get_entry( original_sample_i, column_index ) ;
+		}
+
 		CohortIndividualSource const& get_base_source() const {
 			return m_source->get_base_source() ;
 		}

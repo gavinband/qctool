@@ -51,6 +51,18 @@ namespace genfile {
 		return result ;
 	}
 
+	CohortIndividualSource::Entry CountingCohortIndividualSource::get_entry( std::size_t sample_i, std::size_t const column_index ) const {
+		Entry result ;
+		if( column_index < 2 ) {
+			result = m_sample_ids[sample_i] ;
+		} else if( column_index == 2 ) {
+			result = 0.0 ;
+		} else {
+			assert(0) ;
+		}
+		return result ;
+	}
+
 	std::string CountingCohortIndividualSource::get_source_spec() const {
 		return "CountingCohortIndividualSource(" + string_utils::to_string( m_sample_ids.size() ) + ")" ;
 	}

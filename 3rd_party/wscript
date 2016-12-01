@@ -31,6 +31,7 @@ def build( bld ):
 		includes = 'sqlite3/',
 		defines = 'SQLITE_ENABLE_COLUMN_METADATA SQLITE_ENABLE_STAT3 HAVE_READLINE',
 		uselib = 'DL READLINE ZLIB M PTHREAD',
+		cflags = '-O3',
 		export_incdirs = 'sqlite3'
 	)
 
@@ -41,6 +42,29 @@ def build( bld ):
 		source = [ 'sqlite3/sqlite3/sqlite3.c' ],
 		includes = 'sqlite3/',
 		defines = 'SQLITE_ENABLE_COLUMN_METADATA SQLITE_ENABLE_STAT3',
+		cflags = '-O3',
 		uselib = 'DL',
 		export_incdirs = 'sqlite3'
+	)
+
+	bld(
+		features = 'cc cstaticlib',
+		name = 'zstd',
+		target = 'zstd',
+		source = [
+			'zstd-1.1.0/lib/common/zstd_common.c',
+			'zstd-1.1.0/lib/common/entropy_common.c',
+			'zstd-1.1.0/lib/common/fse_decompress.c',
+			'zstd-1.1.0/lib/common/xxhash.c',
+			'zstd-1.1.0/lib/decompress/huf_decompress.c',
+			'zstd-1.1.0/lib/decompress/zbuff_decompress.c',
+			'zstd-1.1.0/lib/decompress/zstd_decompress.c',
+			'zstd-1.1.0/lib/compress/fse_compress.c',
+			'zstd-1.1.0/lib/compress/huf_compress.c',
+			'zstd-1.1.0/lib/compress/zbuff_compress.c',
+			'zstd-1.1.0/lib/compress/zstd_compress.c'
+		],
+		cflags = '-O3',
+		includes = [ 'zstd-1.1.0/lib', 'zstd-1.1.0/lib/common', 'zstd-1.1.0/lib/compress', 'zstd-1.1.0/lib/decompress' ],
+		export_incdirs = 'zstd-1.1.0/lib/'
 	)

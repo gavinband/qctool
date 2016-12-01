@@ -27,7 +27,7 @@ namespace genfile {
 		void write_header( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) const ;
 		
 		// Methods required by SNPDataSink
-		operator bool() const { return *m_stream_ptr ; }
+		operator bool() const { return m_stream_ptr->good() ; }
 		
 		void set_metadata_impl( Metadata const& metadata ) ;
 		

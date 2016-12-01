@@ -12,6 +12,7 @@
 #include <cassert>
 #include <cmath>
 #include <stdint.h>
+#include <limits>
 //#include "genfile/snp_data_utils.hpp"
 //#include "genfile/get_set.hpp"
 #include "genfile/zlib.hpp"
@@ -82,9 +83,10 @@ namespace genfile {
 		typedef ::uint16_t uint16_t ;
 
 		// Header flag definitions
-		enum FlagMask { e_NoFlags = 0, e_CompressedSNPBlocks = 0x1, e_Layout = 0x3C } ;
+		enum FlagMask { e_NoFlags = 0, e_CompressedSNPBlocks = 0x3, e_Layout = 0x3C } ;
 		enum Layout { e_v10Layout = 0x0, e_v11Layout = 0x4, e_v12Layout = 0x8 } ;
 		enum Structure { e_SampleIdentifiers = 0x80000000 } ;
+		enum Compression { e_NoCompression = 0, e_ZlibCompression = 1, e_ZstdCompression = 2 } ;
 		
 		// Structure containing information from the header block.
 		struct Context {
@@ -1316,34 +1318,44 @@ namespace genfile {
 				m_writer->finalise() ;
 				// Sanity check: did we get the size right?
 				assert( m_writer->repr().first == &(*m_buffer1)[0] ) ;
-				assert( (m_writer->repr().second - m_writer->repr().first) <= m_buffer1->size() ) ;
+				assert( (m_writer->repr().second >= m_writer->repr().first) && std::size_t(m_writer->repr().second - m_writer->repr().first) <= m_buffer1->size() ) ;
 				uLongf const uncompressed_data_size = (m_writer->repr().second - m_writer->repr().first) ;
 
 #if DEBUG_BGEN_FORMAT
 				std::cerr << ( m_writer->repr().first ) << "  :" << m_writer->repr().second << ", diff = " << (m_writer->repr().second - m_writer->repr().first) << "\n" ;
 				std::cerr << "expected " << uncompressed_data_size << "\n" ;
 #endif
-				if( m_context.flags & e_CompressedSNPBlocks ) {
+				uint32_t const compressionType = ( m_context.flags & e_CompressedSNPBlocks ) ;
+				if( compressionType != e_NoCompression ) {
 		#if HAVE_ZLIB
 					std::size_t offset = (m_layout == e_v12Layout) ? 8 : 4 ;
-					uLongf compression_buffer_size = 12 + (1.1 * m_buffer1->size()) ;		// calculated according to zlib manual.
-					m_buffer2->resize( compression_buffer_size + offset ) ;
-					int result = compress(
-						reinterpret_cast< Bytef* >( &(*m_buffer2)[0] + offset ), &compression_buffer_size,
-						reinterpret_cast< Bytef* >( &(*m_buffer1)[0] ), uncompressed_data_size
-					) ;
-					assert( result == Z_OK ) ;
+					if( compressionType == e_ZlibCompression ) {
+						zlib_compress(
+							&(*m_buffer1)[0], &(*m_buffer1)[0] + uncompressed_data_size,
+							m_buffer2,
+							offset
+						) ;
+					} else if( compressionType == e_ZstdCompression ) {
+						zstd_compress(
+							&(*m_buffer1)[0], &(*m_buffer1)[0] + uncompressed_data_size,
+							m_buffer2,
+							offset,
+							17 // reasonable balance between speed and compression.
+						) ;
+					} else {
+						assert(0) ;
+					}
 					// compression_buffer_size is now the compressed length of the data.
 					// Now write total compressed data size to the start of the buffer, including
 					// the uncompressed data size if we are in layout 1.2.
 					if( m_layout == e_v12Layout ) {
-						write_little_endian_integer( &(*m_buffer2)[0], &(*m_buffer2)[0]+4, uint32_t( compression_buffer_size ) + 4 ) ;
+						write_little_endian_integer( &(*m_buffer2)[0], &(*m_buffer2)[0]+4, uint32_t( m_buffer2->size() ) - 4 ) ;
 						write_little_endian_integer( &(*m_buffer2)[0]+4, &(*m_buffer2)[0]+8, uint32_t( uncompressed_data_size ) ) ;
 					} else {
-						write_little_endian_integer( &(*m_buffer2)[0], &(*m_buffer2)[0]+4, uint32_t( compression_buffer_size ) ) ;
+						write_little_endian_integer( &(*m_buffer2)[0], &(*m_buffer2)[0]+4, uint32_t( m_buffer2->size() ) - 4 ) ;
 					}
 					
-					m_result = std::make_pair( &(*m_buffer2)[0], &(*m_buffer2)[0] + compression_buffer_size + offset ) ;
+					m_result = std::make_pair( &(*m_buffer2)[0], &(*m_buffer2)[0] + m_buffer2->size() ) ;
 		#else
 					assert(0) ;
 		#endif

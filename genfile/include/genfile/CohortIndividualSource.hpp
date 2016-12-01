@@ -46,12 +46,12 @@ namespace genfile {
 		virtual ColumnSpec get_column_spec() const = 0 ;
 		virtual bool check_for_column( std::string const& column_name ) const ;
 
-		// method: get_entry()
-		// get_entry returns the entry for the sample whose index is given and the named column.
-		// is_missing(): return true if the value is missing, false otherwise
-		// as< type >(): return the value.  type must either be int, double, or string, according to the type of the column.
 		typedef VariantEntry Entry ;
+		// get_entry() methods
+		// get_entry returns the entry for the sample whose index is given and the named column.
 		virtual Entry get_entry( std::size_t sample_i, std::string const& column_name ) const = 0 ;
+		// get_entry returns the entry for the sample whose index is given and the column with the specified index.
+		virtual Entry get_entry( std::size_t sample_i, std::size_t const column_index ) const = 0 ;
 
 		virtual void get_column_values( std::string const& column_name, boost::function< void ( std::size_t, VariantEntry ) > callback ) const ;
 

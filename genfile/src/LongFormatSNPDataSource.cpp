@@ -22,7 +22,7 @@ namespace genfile {
 			while( stream && (line->size() > 0) && ((*line)[0] == '#') ) {
 				std::getline( stream, *line ) ;
 			}
-			return stream ;
+			return stream.good() ;
 		}
 	}
 	

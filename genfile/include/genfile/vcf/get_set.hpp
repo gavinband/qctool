@@ -256,7 +256,6 @@ namespace genfile {
 				}
 			}
 			void set_value( std::size_t, MissingValue const value ) {
-				m_result( m_sample, m_entry_i++ ) = m_missing_value ;
 				if( m_nonmissingness ) {
 					(*m_nonmissingness )( m_sample, m_entry_i ) = 0 ;
 				}

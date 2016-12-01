@@ -32,7 +32,7 @@ namespace genfile {
 	}
 
 	void CompressionType::check_type() const {
-		if( m_type != "no_compression" && m_type != "gzip_compression" ) {
+		if( m_type != "no_compression" && m_type != "gzip_compression" && m_type != "zstd_compression" ) {
 			throw BadArgumentError( "CompressionType::check_type()", "type==\"" + m_type + "\"." ) ;
 		}
 	}

@@ -29,7 +29,7 @@ namespace genfile {
 
 	std::string cnvHapSNPDataSink::get_spec() const { return m_filename ; }
 
-	cnvHapSNPDataSink::operator bool() const { return *m_stream_ptr ; }
+	cnvHapSNPDataSink::operator bool() const { return m_stream_ptr->good() ; }
 	
 	void cnvHapSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter getter ) {
 		char const tab = '\t' ;

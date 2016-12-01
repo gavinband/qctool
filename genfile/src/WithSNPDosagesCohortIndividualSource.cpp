@@ -110,6 +110,17 @@ namespace genfile {
 		}
 	}
 	
+	genfile::CohortIndividualSource::Entry WithSNPDosagesCohortIndividualSource::get_entry( std::size_t sample_i, std::size_t const column_index ) const {
+		assert( sample_i < get_number_of_individuals() ) ;
+		std::size_t const N = m_source->get_column_spec().size() ;
+		if( column_index < N ) {
+			return m_source->get_entry( sample_i, column_index ) ;
+		}
+		else {
+			return m_column_data[ column_index - N ][ sample_i ] ;
+		}
+	}
+	
 	genfile::CohortIndividualSource const& WithSNPDosagesCohortIndividualSource::get_parent_source() const {
 		return *m_source ;
 	}

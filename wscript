@@ -5,7 +5,7 @@ import Options
 
 srcdir="."
 APPNAME = "qctool"
-VERSION = "2.0-beta3"
+VERSION = "2.0-beta4"
 
 subdirs = [
 	'genfile', 'statfile', 'string_utils', 'appcontext',
@@ -58,6 +58,7 @@ def check_for_3rd_party_components( conf ):
 	check_for_zlib( conf )
 	conf.define( 'HAVE_SQLITE3', 1 )
 	conf.define( 'HAVE_EIGEN', 1 )
+	conf.define( 'HAVE_ZSTD', 1 )
 	if conf.check_cxx( lib = 'dl', uselib_store = 'DL' ):
 		conf.define( 'HAVE_DL', 1 )
 	if conf.check_cxx( lib = 'rt', uselib_store = 'RT' ):
@@ -159,15 +160,16 @@ def misc_configure( conf ) :
 
 def get_cxx_flags( variant_name ):
 	cxxflags = [
-		#'-std=c++11',
+		'-std=c++11',
+		#'-std=c++98',
 		'-Wall',
 		'-pedantic',
 		'-Wno-long-long', # don't warn about the long long thing, it comes up in Eigen and Boost.
 		'-Wno-redeclared-class-member', # don't warn about class member redeclaration which comes up in Boost
-		'-Wno-unused-local-typedefs', # warns in boost
+		'-Wno-unused-local-typedefs' # warns in boost
 	]
 	if variant_name == 'default':
-		cxxflags.extend( ['-g' ] )
+		cxxflags.extend( [ '-g' ] )
 	elif variant_name == 'release':
 		cxxflags.extend( [ '-O3' ])
 	return cxxflags

@@ -57,7 +57,12 @@ namespace genfile {
 		}
 		
 		if( uf.first == "bgen" ) {
-			return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second, chromosome_hint )) ;
+			if( uf.second == "-" ) {
+				std::auto_ptr< std::istream > str( new std::istream( std::cin.rdbuf() ) ) ;
+				return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( str, chromosome_hint )) ;
+			} else {
+				return std::auto_ptr< SNPDataSource >( new BGenFileSNPDataSource( uf.second, chromosome_hint )) ;
+			}
 		}
 		else if( uf.first == "vcf" ) {
 			return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second, metadata )) ;
@@ -152,7 +157,8 @@ namespace genfile {
 
 	std::vector< VariantIdentifyingData > SNPDataSource::list_snps( ProgressCallback callback ) {
 		std::vector< VariantIdentifyingData > result ;
-		list_snps( boost::bind( &std::vector< VariantIdentifyingData >::push_back, &result, _1 ), callback ) ;
+		void(std::vector<VariantIdentifyingData>::*push_back)(VariantIdentifyingData const&) = &std::vector<VariantIdentifyingData>::push_back;
+		list_snps( boost::bind( push_back, &result, _1 ), callback ) ;
 		return result ;
 	}
 

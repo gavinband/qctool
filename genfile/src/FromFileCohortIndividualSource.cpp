@@ -54,11 +54,16 @@ namespace genfile {
 	std::size_t FromFileCohortIndividualSource::get_number_of_individuals() const { return m_entries.size() ; }
 
 	FromFileCohortIndividualSource::Entry FromFileCohortIndividualSource::get_entry( std::size_t sample_i, std::string const& column_name ) const {
-        std::size_t column_i = 0 ;
-        if( genfile::string_utils::to_upper( column_name ) != "ID_1" ) {
-            column_i = find_column_name( column_name ) ;
-        }
-		return m_entries[ sample_i ][ column_i ] ;
+		std::size_t column_index = 0 ;
+		if( genfile::string_utils::to_upper( column_name ) != "ID_1" ) {
+			column_index = find_column_name( column_name ) ;
+		}
+		return m_entries[ sample_i ][ column_index ] ;
+	}
+
+	FromFileCohortIndividualSource::Entry FromFileCohortIndividualSource::get_entry( std::size_t sample_i, std::size_t const column_index ) const {
+		assert( column_index < m_column_names.size() ) ;
+		return m_entries[ sample_i ][ column_index ] ;
 	}
 
 	std::string const& FromFileCohortIndividualSource::get_filename() const { return m_filename ; }
@@ -347,11 +352,33 @@ namespace genfile {
 		return result ;
 	}
 
+	namespace {
+		void insert_if_nonempty( std::vector< string_utils::slice >* dest, string_utils::slice const& elt ) {
+			if( !elt.empty() ) {
+				dest->push_back( elt ) ;
+			}
+		}
+	}
+
 	std::vector< std::vector< CohortIndividualSource::Entry > > FromFileCohortIndividualSource::read_entries( std::istream& stream, std::vector< ColumnType > const& column_types ) const {
 		std::vector< std::vector< Entry > > result ;
-		std::string line ;
-		while( std::getline( stream, line ) ) {
-			std::vector< std::string > string_entries = string_utils::split_and_strip_discarding_empty_entries( line, " \t\n\r" ) ;
+		std::string const data(
+			(std::istreambuf_iterator<char>(stream)),
+			(std::istreambuf_iterator<char>())
+		) ;
+		stream.peek() ; // be sure to trigger eof()
+		using genfile::string_utils::slice ;
+		std::vector< slice > lines = slice( data ).split( "\n" ) ;
+		// handle the case of a trailing newline or a lack of it.
+		if( lines.size() > 0 && lines.back() == "" ) {
+			lines.pop_back() ;
+		}
+		for( std::size_t i = 0; i < lines.size(); ++i ) {
+			// Handle windows line endings.
+			lines[i] = lines[i].split( "\r" )[0] ;
+			std::vector< slice > string_entries ;
+			lines[i].split( " \t", boost::bind( &insert_if_nonempty, &string_entries, _1 )) ;
+			// Handle windows-style line endings.
 			if( string_entries.size() != column_types.size() ) {
 				throw MalformedInputError( m_filename, 2 + m_number_of_metadata_lines + result.size() ) ;
 			}
@@ -361,7 +388,7 @@ namespace genfile {
 	}
 
 	std::vector< CohortIndividualSource::Entry > FromFileCohortIndividualSource::get_checked_entries(
-		std::vector< std::string > const& string_entries,
+		std::vector< string_utils::slice > const& string_entries,
 		std::vector< ColumnType > const& column_types,
 		std::size_t line_number
 	) const {

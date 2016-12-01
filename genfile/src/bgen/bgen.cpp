@@ -313,7 +313,7 @@ namespace genfile {
 			std::istream& aStream,
 			Context const& context
 		) {
-			if( context.flags & bgen::e_CompressedSNPBlocks ) {
+			if( (context.flags & bgen::e_CompressedSNPBlocks) != e_NoCompression ) {
 				uint32_t compressed_data_size = 0 ;
 				read_little_endian_integer( aStream, &compressed_data_size ) ;
 				if( compressed_data_size > 0 ) {
@@ -337,7 +337,7 @@ namespace genfile {
 			std::vector< byte_t >* buffer
 		) {
 			uint32_t payload_size = 0 ;
-			if( (context.flags & e_Layout) == e_v12Layout || (context.flags & e_CompressedSNPBlocks) ) {
+			if( (context.flags & e_Layout) == e_v12Layout || ((context.flags & e_CompressedSNPBlocks) != e_NoCompression ) ) {
 				read_little_endian_integer( aStream, &payload_size ) ;
 			} else {
 				payload_size = 6 * context.number_of_samples ;
@@ -352,7 +352,8 @@ namespace genfile {
 			std::vector< byte_t >* buffer
 		) {
 			// compressed_data contains the (compressed or uncompressed) probability data.
-			if( context.flags & bgen::e_CompressedSNPBlocks ) {
+			uint32_t const compressionType = (context.flags & bgen::e_CompressedSNPBlocks) ;
+			if( compressionType != e_NoCompression ) {
 				byte_t const* begin = &compressed_data[0] ;
 				byte_t const* const end = &compressed_data[0] + compressed_data.size() ;
 				uint32_t uncompressed_data_size = 0 ;
@@ -362,7 +363,11 @@ namespace genfile {
 					begin = read_little_endian_integer( begin, end, &uncompressed_data_size ) ;
 				}
 				buffer->resize( uncompressed_data_size ) ;
-				zlib_uncompress( begin, end, buffer ) ;
+				if( compressionType == e_ZlibCompression ) {
+					zlib_uncompress( begin, end, buffer ) ;
+				} else if( compressionType == e_ZstdCompression ) {
+					zstd_uncompress( begin, end, buffer ) ;
+				}
 				assert( buffer->size() == uncompressed_data_size ) ;
 			}
 			else {

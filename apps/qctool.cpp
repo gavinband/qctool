@@ -409,6 +409,12 @@ public:
 				" in the BGEN header block." )
 			.set_takes_single_value()
 		;
+		options[ "-bgen-compression" ]
+			.set_description( "Specify what compression to use when outputting BGEN files only."
+				" This can be \"none\", \"zlib\", or \"zstd\"." )
+			.set_default_value( "zlib" )
+			.set_takes_single_value()
+		;
 		options[ "-bgen-omit-sample-identifier-block" ]
 			.set_description( "For use when outputting BGEN files only.  Tell QCTOOL to omit the sample identifier block.  By default"
 				" this is written whenever -s is specified." )
@@ -1444,7 +1450,6 @@ private:
 			source.reset( rack.release() ) ;
 		}
 
-		source->reset_to_start() ;
 		return source ;
 	}
 
@@ -1947,6 +1952,10 @@ private:
 							if( m_options.check( "-bgen-free-data" )) {
 								bgen_sink->set_free_data( m_options.get< std::string >( "-bgen-free-data" ) ) ;
 							}
+							if( m_options.check( "-bgen-compression" )) {
+								bgen_sink->set_compression_type( m_options.get< std::string >( "-bgen-compression" ) ) ;
+							}
+							
 							bgen_sink->set_write_sample_identifier_block( m_options.check( "-s" ) && ! m_options.check( "-bgen-omit-sample-identifier-block" )) ;
 						}
 					}
@@ -2167,23 +2176,24 @@ private:
 	
 	std::vector< std::size_t > compute_excluded_samples( genfile::CohortIndividualSource::UniquePtr const& sample_source ) {
 		std::vector< std::size_t > included_samples ;
+		void(std::vector<std::size_t>::*push_back)(std::size_t const&) = &std::vector<std::size_t>::push_back ;
 		m_sample_filter->test(
 			*sample_source,
 			boost::bind(
-				&std::vector< std::size_t >::push_back,
+				push_back,
 				&included_samples,
 				_1
 			),
 			&m_sample_filter_diagnostic_matrix
 		) ;
-		std::vector< std::size_t > excluded_samples(
+		std::set< std::size_t > excluded_samples(
 			boost::counting_iterator< std::size_t >(0),
 			boost::counting_iterator< std::size_t >( sample_source->get_number_of_individuals() )
 		) ;
 		for( std::size_t i = 0; i < included_samples.size(); ++i ) {
-			excluded_samples.erase( excluded_samples.begin() + included_samples[i] - i ) ;
+			excluded_samples.erase( included_samples[i] ) ;
 		}
-		return excluded_samples ;
+		return std::vector< std::size_t >( excluded_samples.begin(), excluded_samples.end() ) ;
 	}
 	
 	genfile::CohortIndividualSource::UniquePtr condition_on(

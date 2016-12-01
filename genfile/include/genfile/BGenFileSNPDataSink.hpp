@@ -54,6 +54,7 @@ namespace genfile {
 		void set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter sample_name_getter ) ;
 
 		void set_number_of_bits( int const bits ) ;
+		void set_compression_type( std::string const& compression_type ) ;
 		void set_free_data( std::string const& free_data ) ;
 		void set_write_sample_identifier_block( bool write ) ;
 

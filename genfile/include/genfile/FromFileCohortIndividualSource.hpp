@@ -14,6 +14,7 @@
 #include <boost/function.hpp>
 #include <boost/optional.hpp>
 #include "genfile/CohortIndividualSource.hpp"
+#include "genfile/string_utils/slice.hpp"
 
 namespace genfile {
 	// class FromFileCohortIndividualSource
@@ -51,6 +52,7 @@ namespace genfile {
 
 		// Return the entry in the specified row and column
 		Entry get_entry( std::size_t sample_i, std::string const& column_name ) const ;
+		Entry get_entry( std::size_t sample_i, std::size_t const column_index ) const ;
 
 		bool check_for_column( std::string const& column_name ) const ;
 
@@ -86,7 +88,7 @@ namespace genfile {
 		std::map< std::string, ColumnType > read_column_type_line( std::istream& stream, std::vector< std::string > const& column_names ) const ;
 		std::vector< std::vector< Entry > > read_entries( std::istream& stream, std::vector< ColumnType > const& column_types ) const ;
 		std::vector< Entry > get_checked_entries(
-			std::vector< std::string > const& string_entries,
+			std::vector< string_utils::slice > const& string_entries,
 			std::vector< ColumnType > const& column_types,
 			std::size_t line_number
 		) const ;

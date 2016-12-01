@@ -180,7 +180,7 @@ namespace genfile {
 		) {
 			std::vector< FilenameMatch > result ;
 #if HAVE_BOOST_FILESYSTEM
-			if( BFS::exists( path )) {
+			if( BFS::exists( path ) || path == "-" ) {
 				result.push_back( FilenameMatch( path, unmatched_match )) ;
 			}
 			else if( impl::has_wildcard( path, wildcard_char )) {

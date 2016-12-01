@@ -44,7 +44,7 @@ namespace genfile {
 		assert( mapping.get() ) ;
 		m_mappings[ target_column_name ] = std::make_pair( source_column_name, mapping.release() ) ;
 	}
-		
+
 	CohortIndividualSource::Entry ValueMappingCohortIndividualSource::get_entry( std::size_t sample_i, std::string const& column_name ) const {
 		Entry result ;
 		Mappings::const_iterator i = m_mappings.find( column_name ) ;
@@ -59,6 +59,11 @@ namespace genfile {
 			result = m_source->get_entry( sample_i, column_name ) ;
 		}
 		return result ;
+	}
+
+	CohortIndividualSource::Entry ValueMappingCohortIndividualSource::get_entry( std::size_t sample_i, std::size_t const column_index ) const {
+		std::string const column_name = m_source->get_column_spec()[ column_index ].name() ;
+		return get_entry( sample_i, column_name ) ;
 	}
 
 	std::string ValueMappingCohortIndividualSource::get_source_spec() const {
