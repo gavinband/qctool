@@ -12,25 +12,13 @@ QCTOOL requires the following external libraries which must be installed (with h
 
 - zlib (http://zlib.net/)
 
+Zlib is already installed on most systems.
+
 QCTOOL also depends on the boost libraries (<http://www.boost.org>), sqlite3 (<http://www.sqlite.org>),
 the Eigen library (<http://eigen.tuxfamily.org>) as well as the SNPHWE code from Wigginton et al
 (http://www.sph.umich.edu/csg/abecasis/Exact).  All of these are included in the qctool repository and don't need
 to installed beforehand.
 
-### Steps to compile
+## Compiling QCTOOL ##
 
-Here we give brief compilation instructions - for more detailed information, see the page on [compiling QCTOOL](https://bitbucket.org/gavinband/qctool/wiki/Compiling%20QCTOOL).
-
-Compilation involves two steps: configuration and build.
-To configure the package, from the top-level directory run
-`./waf-1.5.18 configure`
-Or:
-`./waf-1.5.18 configure --prefix path/to/install/location/`
-to specify an installation location other than /usr/local.
-
-To build the package, run
-`./waf-1.5.18`
-Then main qctool executable can be found under build/release/.  For debugging purposes, a debug build is also built under build/default/.
-
-To install the executable, run
-`./waf-1.5.18 install`
+Basic instructions for downloading and compiling QCTOOL can be found on the [QCTOOL download page](http://www.well.ox.ac.uk/~gav/qctool_v2/#download).  For further information, see the wiki page on [compiling QCTOOL](https://bitbucket.org/gavinband/qctool/wiki/Compiling%20QCTOOL).
