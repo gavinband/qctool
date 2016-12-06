@@ -882,10 +882,12 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 								<code>.bgen</code>
 							</td>
 							<td>
-								Output files are in BGEN v1.2 with 16 bits per probability by default. 
+								Output files are in BGEN v1.2 with 16 bits per probability and compressed
+								using <a href="http://www.zstd.net">zstandard</a> by default. 
 								The <code>-bgen-bits</code> option can be used to adjust the number of bits used.
-								Use <code>-ofiletype bgen_v1.1</code> to specify
-								BGEN v1.1 files.  
+								The <code>-bgen-compression</code> option can be used to choose the method of compression
+								(zlib or zstandard).  Use <code>-ofiletype bgen_v1.1</code> to specify
+								BGEN v1.1 files (these always use 16 bits per probability and zlib compression).
 							</td>
 						</tr>
 						<tr>
