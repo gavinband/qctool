@@ -18,6 +18,9 @@ the Eigen library (<http://eigen.tuxfamily.org>) as well as the SNPHWE code from
 to installed beforehand.
 
 ### Steps to compile
+
+Here we give brief compilation instructions - for more detailed information, see the page on [compiling QCTOOL](Compiling QCTOOL).
+
 Compilation involves two steps: configuration and build.
 To configure the package, from the top-level directory run
 `./waf-1.5.18 configure`
