@@ -3,12 +3,13 @@ Library	OperatingSystem
 Library	String
 Library	Process
 Library	Collections
-Library	QctoolRunner	../../build/release/qctool_v2.0-dev
+Library	QctoolRunner	../../build/release/qctool_v2.0-beta4
 Library	QctoolTest
 
 *** Variables ***
 ${TMPDIR}	${CURDIR}/tmp
 ${HOME}	%{HOME}
+${QCTOOL}	../../build/release/qctool_v2.0-beta4
 
 *** Test cases ***
 Runs basic commands
@@ -56,7 +57,7 @@ Produces well-formed snp stats output
 	\	Run Keyword If	'${startChar}' != '\#'	ProducesWellFormedSnpStatsOutput	${commandSpec}
 
 Computes correct snp stats
-	CheckRun	Rscript	--vanilla	stats_test.R
+	CheckRun	Rscript	--vanilla	stats_test.R	--qctool	${QCTOOL}
 
 Correctly merges files
 	${filenames}=	Run Qctool	{ "g": ["data/merge1.gen"], "s": [ "data/merge1.sample" ], "merge-in": [ "data/merge2.gen", "data/merge2.sample" ], "og": "<tmp>" }	ok
@@ -89,18 +90,18 @@ Annotates BED intervals
 	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "annotate-bed3": [ "data/annotation2.bed" ], "annotate-bed4": [ "data/annotation1.bed" ] }	data/annotation1	data/annotation2
 
 Roundtrips gen files via bgen (v1.1)
-	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	16	--iterations	1	--max_samples	100	--bgen_version	v1.1	--qctool	../../build/release/qctool_v2.0-dev
+	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	16	--iterations	1	--max_samples	100	--bgen_version	v1.1	--qctool	${QCTOOL}
 
 Roundtrips allele probs formats
 	CheckRun	Rscript	--vanilla	test_allele_probs_format.R
 
 Roundtrips gen files via bgen (v1.2, even bit counts)
 	:FOR	${bits}	IN	2	4	6	8	10	12	14	16	18	20	22	24	26	28	30	32
-	\	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	${bits}	--iterations	1	--max_samples	100	--bgen_version	v1.2	--qctool	../../build/release/qctool_v2.0-dev
+	\	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	${bits}	--iterations	1	--max_samples	100	--bgen_version	v1.2	--qctool	${QCTOOL}
 
 Roundtrips gen files via bgen (v1.2, odd bit counts)
 	:FOR	${bits}	IN	1	3	5	7	9	11	13	15	17	19	21	23	25	27	29	31
-	\	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	${bits}	--iterations	1	--max_samples	100	--bgen_version	v1.2	--qctool	../../build/release/qctool_v2.0-dev
+	\	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	${bits}	--iterations	1	--max_samples	100	--bgen_version	v1.2	--qctool	${QCTOOL}
 
 *** Keywords ***
 
