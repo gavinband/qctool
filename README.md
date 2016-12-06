@@ -19,7 +19,7 @@ to installed beforehand.
 
 ### Steps to compile
 
-Here we give brief compilation instructions - for more detailed information, see the page on [compiling QCTOOL](Compiling QCTOOL).
+Here we give brief compilation instructions - for more detailed information, see the page on [compiling QCTOOL](https://bitbucket.org/gavinband/qctool/wiki/Compiling%20QCTOOL).
 
 Compilation involves two steps: configuration and build.
 To configure the package, from the top-level directory run
