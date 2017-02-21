@@ -418,6 +418,23 @@ namespace genfile {
 				}
 
 				namespace {
+
+					double floor( double v ) {
+						return double( long( v ) ) ;
+						//return std::floor(v) ;
+					}
+
+					// v - std::floor(v) seems to eat cycles
+					// try with a cast instead.
+					// all the values should be in the range 0...2^32-1 so should fit in a uint32.
+					double fractional_part( double v ) {
+						return(v - floor(v)) ;
+					}
+
+					double round( double v ) {
+						return floor( v+0.5 ) ;
+					}
+
 					struct CompareFractionalPart{
 						CompareFractionalPart( double* v, std::size_t n ):
 							m_v( v ), m_n( n )
@@ -432,7 +449,8 @@ namespace genfile {
 						}
 						
 						bool operator()( std::size_t a, std::size_t b ) const {
-							return ( m_v[a] - std::floor( m_v[a] ) ) > ( m_v[b] - std::floor( m_v[b] )) ;
+							// return (( m_v[a] - std::floor( m_v[a] ) ) > ( m_v[b] - std::floor( m_v[b] ))) ;
+							return ( fractional_part( m_v[a] ) > fractional_part( m_v[b] )) ;
 						}
 					private:
 						double* m_v ;
@@ -448,7 +466,7 @@ namespace genfile {
 						p[i] *= scale ;
 						sum += p[i] ;
 						index[i] = i ;
-						total_fractional_part += p[i] - std::floor( p[i] ) ;
+						total_fractional_part += fractional_part( p[i] ) ;
 					}
 					// Suppose the n input numbers sum to 1
 					// Each has rounding error of at most machine epsilon
@@ -461,14 +479,14 @@ namespace genfile {
 					// Total fractional part is therefore of the form r ± delta where r is an integer.
 					// Since scale = sum_i floor(p_i) + r, rounding up r of the p_i's yields a
 					// set of integers summing to scale.
-					std::size_t const r = std::floor( total_fractional_part + 0.5 ) ;
+					std::size_t const r = round( total_fractional_part ) ;
 					std::sort( index, index + n, CompareFractionalPart( p, n ) ) ;
 
 					for( std::size_t i = 0; i < r; ++i ) {
 						p[ index[i] ] = std::ceil( p[ index[i] ] ) ;
 					}
 					for( std::size_t i = r; i < n; ++i ) {
-						p[ index[i] ] = std::floor( p[ index[i] ] ) ;
+						p[ index[i] ] = floor( p[ index[i] ] ) ;
 					}
 				}
 				

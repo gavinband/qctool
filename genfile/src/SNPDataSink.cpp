@@ -69,7 +69,10 @@ namespace genfile {
 		if( filetype_hint != "guess" ) {
 			d.first = filetype_hint ;
 		}
-		if( d.first == "bgen_v1.1" ) {
+		if( d.first == "gen" ) {
+			return SNPDataSink::UniquePtr( new GenFileSNPDataSink( filename, compression_type )) ;
+		}
+		else if( d.first == "bgen_v1.1" ) {
 			return SNPDataSink::UniquePtr( new BGenFileSNPDataSink( filename, metadata )) ;
 		}
 		else if( d.first == "bgen" || d.first == "bgen_v1.2" ) {
@@ -103,7 +106,7 @@ namespace genfile {
 			return SNPDataSink::UniquePtr( new ImputeHapProbsSNPDataSink( filename ) ) ;
 		}
 		else {
-			return SNPDataSink::UniquePtr( new GenFileSNPDataSink( filename, compression_type )) ;
+			throw BadArgumentError( "SNPDataSink::create_impl()", "filetype_hint", "Unrecognised file type \"" + filetype_hint + "\"." ) ;
 		}
 	}
 	

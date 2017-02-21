@@ -51,7 +51,8 @@ namespace genfile {
 				throw BadArgumentError( "GenLikeSNPDataSink::write_variant()", "chromosome=" + string_utils::to_string( variant.get_position().chromosome() ) ) ;
 			}
 		}
-		out << ( variant.number_of_identifiers() > 1 ? variant.get_identifiers_as_string( ",", 1 ) : "." ) << " "
+		std::string const& SNPID = ( variant.number_of_identifiers() > 1 ? variant.get_identifiers_as_string(",", 1) : variant.get_identifiers_as_string(",", 0,1) ) ;
+		out << SNPID << " "
 			<< variant.get_primary_id() << " "
 			<< variant.get_position().position() << " "
 			<< variant.get_allele(0) << " "

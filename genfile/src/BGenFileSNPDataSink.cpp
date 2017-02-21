@@ -99,10 +99,12 @@ namespace genfile {
 		// std::cerr << id_data << ".\n" ;
 		assert( m_have_written_header ) ;
 		{
+			std::string const& SNPID = ( id_data.number_of_identifiers() > 1 ? id_data.get_identifiers_as_string(",", 1) : id_data.get_identifiers_as_string(",", 0,1) ) ;
 			byte_t const* const end = bgen::write_snp_identifying_data(
 				&m_buffer1,
 				m_bgen_context,
-				id_data.get_identifiers_as_string(",", 1),
+				//id_data.get_identifiers_as_string(",", 1),
+				SNPID,
 				id_data.get_primary_id(),
 				id_data.get_position().chromosome(),
 				id_data.get_position().position(),

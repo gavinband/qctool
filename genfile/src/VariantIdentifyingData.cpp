@@ -241,15 +241,13 @@ namespace genfile {
 
 	void VariantIdentifyingData::add_identifier( slice const& id ) {
 		assert( id.size() > 0 ) ;
-		if( id != get_primary_id() ) {
-			std::vector< slice > const& ids = get_identifiers(1) ;
-			if( ids.size() > 0 ) {
-				if( std::find( ids.begin(), ids.end(), id ) == ids.end() ) {
-					m_data += "\t" + std::string( id ) ;
-				}
-			} else {
-				m_data += std::string( id ) ;
+		std::vector< slice > const& ids = get_identifiers(1) ;
+		if( ids.size() > 0 ) {
+			if( std::find( ids.begin(), ids.end(), id ) == ids.end() ) {
+				m_data += "\t" + std::string( id ) ;
 			}
+		} else {
+			m_data += std::string( id ) ;
 		}
 	}
 

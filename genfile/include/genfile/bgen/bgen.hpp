@@ -1333,14 +1333,15 @@ namespace genfile {
 						zlib_compress(
 							&(*m_buffer1)[0], &(*m_buffer1)[0] + uncompressed_data_size,
 							m_buffer2,
-							offset
+							offset,
+							6
 						) ;
 					} else if( compressionType == e_ZstdCompression ) {
 						zstd_compress(
 							&(*m_buffer1)[0], &(*m_buffer1)[0] + uncompressed_data_size,
 							m_buffer2,
 							offset,
-							17 // reasonable balance between speed and compression.
+							14 // reasonable balance between speed and compression.
 						) ;
 					} else {
 						assert(0) ;

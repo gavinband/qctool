@@ -205,10 +205,22 @@ namespace genfile {
 		Info const& info
 	) {
 		char const tab = '\t' ;
+		
+		using genfile::string_utils::slice ;
+		slice const& primary_id = id_data.get_primary_id() ;
 		(*m_stream_ptr)
 			<< id_data.get_position().chromosome() << tab
 			<< id_data.get_position().position() << tab
-			<< id_data.get_identifiers_as_string( "," ) << tab
+			<< primary_id ;
+			// Alternate IDs are guaranteed distinct but not necessarily distinct from primary id.
+			// For vcf we only print each ID once.
+			std::vector< genfile::string_utils::slice > const& ids = id_data.get_identifiers( 1 ) ;
+			for( std::size_t i = 0; i < ids.size(); ++i ) {
+				if( ids[i] != primary_id ) {
+					(*m_stream_ptr) << "," << ids[i] ;
+				}
+			}
+		(*m_stream_ptr) << tab
 			<< id_data.get_allele(0) << tab
 			<< genfile::string_utils::join( id_data.get_alleles(1, id_data.number_of_alleles()), "," ) << tab
 			<< "." << tab
