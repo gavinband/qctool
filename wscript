@@ -5,7 +5,7 @@ import Options
 
 srcdir="."
 APPNAME = "qctool"
-VERSION = "2.0-dev"
+VERSION = "2.0-beta5"
 
 subdirs = [
 	'genfile', 'statfile', 'string_utils', 'appcontext',
@@ -317,30 +317,8 @@ def release( bld ):
 	release = builder.build()
 	print "++ inthinnerator release tarball created in", release[ "release_tarball" ]
 
-	inthinnerator_executable = "build/release/bingwa_v%s" % VERSION
-	builder = Release.ReleaseBuilder.ReleaseBuilder( "bingwa", VERSION, inthinnerator_executable )
-	release = builder.build()
-	print "++ bingwa release tarball created in", release[ "release_tarball" ]
-
-	cat_bgen_executable = "build/release/cat-bgen_v%s" % VERSION
-	builder = Release.ReleaseBuilder.ReleaseBuilder( "cat-bgen", VERSION, inthinnerator_executable )
-	release = builder.build()
-	print "++ cat-bgen release tarball created in", release[ "release_tarball" ]
-
 	qctool_executable = "build/release/qctool_v%s" % VERSION
 	builder = Release.ReleaseBuilder.ReleaseBuilder( APPNAME, VERSION, qctool_executable )
 	release = builder.build()
 
-	print "Performing functional tests..."
-	import json
-	working_dir = "release/test_data"
-	json = json.loads( open( os.path.join( working_dir, "catalogue.json" ) ).read() )
-	harness = Release.TestHarness.TestHarness( release[ "release_executable" ], working_dir, json )
-	harness.run()
-
 	print "++ Release tarball created in", release[ "release_tarball" ]
-	if harness.success():
-		print "++ all tests passed."
-	else:
-		print "!! some tests failed."
-
