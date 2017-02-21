@@ -1009,7 +1009,6 @@ private:
 	std::auto_ptr< SNPDictionary > m_snp_dictionary ;
 
 	typedef genfile::StrandAligningSNPDataSource::StrandFlipSpec StrandFlipSpec ;
-	//typedef std::map< genfile::VariantIdentifyingData, StrandFlipSpec, genfile::VariantIdentifyingData::CompareFields > StrandSpec ;
 	typedef std::map< genfile::VariantIdentifyingData, StrandFlipSpec, genfile::VariantIdentifyingData::CompareFields > StrandSpec ;
 	typedef std::vector< StrandSpec > StrandSpecs ;
 	std::auto_ptr< StrandSpecs > m_strand_specs ;
