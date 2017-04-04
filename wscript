@@ -320,5 +320,6 @@ def release( bld ):
 	qctool_executable = "build/release/qctool_v%s" % VERSION
 	builder = Release.ReleaseBuilder.ReleaseBuilder( APPNAME, VERSION, qctool_executable )
 	release = builder.build()
+	print "++ qctool release tarball created in", release[ "release_tarball" ]
 
 	print "++ Release tarball created in", release[ "release_tarball" ]
