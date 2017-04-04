@@ -45,6 +45,12 @@ namespace genfile {
 		for( std::size_t i = 0; i < number_of_samples; ++i ) {
 			m_sample_ids[i] = getter(i).as< std::string >() ;
 		}
+		
+		// We write a dummy FAM file with missing info in most fields
+		std::auto_ptr< std::ostream > fam_file = open_text_file_for_output( m_output_filename_stub + ".fam", "no_compression" ) ;
+		for( std::size_t i = 0; i < number_of_samples; ++i ) {
+			(*fam_file) << (i+1) << " " << m_sample_ids[i] << " 0 0 0 0\n" ;
+		}
 	}
 
 	void BedFileSNPDataSink::set_metadata_impl( Metadata const& ) {
