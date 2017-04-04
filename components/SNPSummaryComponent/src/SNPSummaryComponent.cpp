@@ -80,7 +80,9 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options[ "-annotate-sequence" ]
 		.set_description( "Specify a FASTA-formatted file containing reference alleles to annotate variants with."
 			" This will appear as <name>_allele where <name> is the second argument." )
-		.set_takes_values( 2 ) ;
+		.set_takes_values( 2 )
+		.set_minimum_multiplicity( 0 )
+		.set_maximum_multiplicity( 100 ) ;
 	options[ "-flanking" ]
 		.set_description( "Specify that flanking sequence annotations [ pos - a, pos + b ] should be output when using "
 			"-annotate-sequence and -annotate-sequence" )
