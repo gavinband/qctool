@@ -141,7 +141,7 @@ public:
 								" are joined together to create one big dataset." )
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 1 )
-			.set_maximum_multiplicity( 100 ) ;
+			.set_maximum_multiplicity( 1000 ) ;
 
 	    options[ "-filetype" ]
 			.set_description(
@@ -195,7 +195,7 @@ public:
 							" to specify one sample file per cohort." )
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
-			.set_maximum_multiplicity( 100 ) ;
+			.set_maximum_multiplicity( 1000 ) ;
 
 	    options[ "-sample-data" ]
 	        .set_description( "Path of additional sample file(s) (in the same format as accepted by -s) to read." )
