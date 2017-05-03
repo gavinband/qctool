@@ -203,7 +203,6 @@ namespace genfile {
 							// We enumerate vectors in this order and stop when we meet a probabiltiy
 							// meeting the desired threshhold.
 							
-							// This code handles up to 
 							std::vector< uint16_t > limits( (m_number_of_alleles-1), m_ploidy ) ;
 							std::vector< uint16_t > allele_counts( m_number_of_alleles, 0 ) ;
 							allele_counts[0] = m_ploidy ;
