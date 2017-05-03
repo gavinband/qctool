@@ -24,17 +24,17 @@ namespace genfile {
 		m_call_threshhold( call_threshhold )
 	{
 		assert( call_threshhold > 0.5 ) ;
-		if( output_bed_filename.size() < 4 || output_bed_filename.substr( output_bed_filename.size() - 4, 4 ) != ".bed" ) {
-			throw BadArgumentError( "BedFileSNPDataSink::BedFileSNPDataSink", "output_bed_filename = \"" + output_bed_filename + "\"" ) ;
+		if( output_bed_filename.size() >= 4 && output_bed_filename.substr( output_bed_filename.size() - 4, 4 ) == ".bed" ) {
+			m_output_filename_stub = output_bed_filename.substr( 0, output_bed_filename.size() - 4 ) ;
+		} else {
+			m_output_filename_stub = output_bed_filename ;
 		}
-		m_output_filename_stub = output_bed_filename.substr( 0, output_bed_filename.size() - 4 ) ;
 		setup() ;
 	}
 
 	std::string BedFileSNPDataSink::get_spec() const {
 		return m_output_filename_stub ;
 	}
-
 	
 	void BedFileSNPDataSink::set_sample_names_impl( std::size_t number_of_samples, SampleNameGetter getter ) {
 #if DEBUG_BED_FILE_SNP_DATA_SINK
