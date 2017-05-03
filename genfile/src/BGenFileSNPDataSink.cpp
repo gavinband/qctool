@@ -171,7 +171,7 @@ namespace genfile {
 
 	void BasicBGenFileSNPDataSink::set_write_sample_identifier_block( bool write ) {
 		uint32_t const layout = m_bgen_context.flags & bgen::e_Layout ;
-		if( write && (layout == bgen::e_v12Layout) ) {
+		if( write && (layout == bgen::e_Layout2) ) {
 			m_bgen_context.flags |= bgen::e_SampleIdentifiers ;
 		} else {
 			m_bgen_context.flags &= ~bgen::e_SampleIdentifiers ;
@@ -218,9 +218,9 @@ namespace genfile {
 	namespace {
 		uint32_t get_flags( std::string const& version ) {
 			if( version == "v11" ) {
-				return bgen::e_ZlibCompression | bgen::e_v11Layout ;
+				return bgen::e_ZlibCompression | bgen::e_Layout1 ;
 			} else if( version == "v12" ) {
-				return bgen::e_ZlibCompression | bgen::e_v12Layout ;
+				return bgen::e_ZlibCompression | bgen::e_Layout2 ;
 			} else {
 				assert(0) ;
 			}

@@ -65,11 +65,11 @@ namespace genfile {
 	
 	std::string BGenFileSNPDataSource::get_source_spec() const {
 		std::string result = m_filename + " (";
-		if( (m_bgen_context.flags & bgen::e_Layout) == bgen::e_v10Layout ) {
+		if( (m_bgen_context.flags & bgen::e_Layout) == bgen::e_Layout0 ) {
 			result += "bgen v1.0; " ;
-		} else if( (m_bgen_context.flags & bgen::e_Layout) == bgen::e_v11Layout ) {
+		} else if( (m_bgen_context.flags & bgen::e_Layout) == bgen::e_Layout1 ) {
 			result += "bgen v1.1; " ;
-		} else if( (m_bgen_context.flags & bgen::e_Layout) == bgen::e_v12Layout ) {
+		} else if( (m_bgen_context.flags & bgen::e_Layout) == bgen::e_Layout2 ) {
 			result += "bgen v1.2; " ;
 		} else {
 			assert(0);

@@ -84,7 +84,7 @@ namespace genfile {
 
 		// Header flag definitions
 		enum FlagMask { e_NoFlags = 0, e_CompressedSNPBlocks = 0x3, e_Layout = 0x3C } ;
-		enum Layout { e_v10Layout = 0x0, e_v11Layout = 0x4, e_v12Layout = 0x8 } ;
+		enum Layout { e_Layout0 = 0x0, e_Layout1 = 0x4, e_Layout2 = 0x8 } ;
 		enum Structure { e_SampleIdentifiers = 0x80000000 } ;
 		enum Compression { e_NoCompression = 0, e_ZlibCompression = 1, e_ZstdCompression = 2 } ;
 		
@@ -442,7 +442,7 @@ namespace genfile {
 			
 			// If we can't read a valid first field we return false; this will indicate EOF.
 			// Any other fail to read is an error and an exception will be thrown.
-			if( layout == e_v11Layout || layout == e_v10Layout ) {
+			if( layout == e_Layout1 || layout == e_Layout0 ) {
 				uint32_t number_of_samples ;
 				try {
 					read_little_endian_integer( aStream, &number_of_samples ) ;
@@ -453,7 +453,7 @@ namespace genfile {
 					throw BGenError() ;
 				}
 				read_length_followed_by_data( aStream, &SNPID_size, SNPID ) ;
-			} else if( layout == e_v12Layout ) {
+			} else if( layout == e_Layout2 ) {
 				try {
 					read_length_followed_by_data( aStream, &SNPID_size, SNPID ) ;
 				} catch( BGenError const& ) {
@@ -466,7 +466,7 @@ namespace genfile {
 			read_length_followed_by_data( aStream, &RSID_size, RSID ) ;
 			read_length_followed_by_data( aStream, &chromosome_size, chromosome ) ;
 			read_little_endian_integer( aStream, SNP_position ) ;
-			if( layout == e_v12Layout ) {
+			if( layout == e_Layout2 ) {
 				read_little_endian_integer( aStream, &numberOfAlleles ) ;
 			} else {
 				numberOfAlleles = 2 ;
@@ -652,6 +652,7 @@ namespace genfile {
 					assert( number_of_entries == uint32_t(3)) ;
 					assert( order_type == ePerUnorderedGenotype ) ;
 					m_entry_i = 0 ;
+					m_missing = eNotSet ;
 					m_state = eNumberOfEntriesSet ;
 				}
 
@@ -1170,7 +1171,7 @@ namespace genfile {
 			Context const& context,
 			Setter& setter
 		) {
-			if( (context.flags & e_Layout) == e_v10Layout || (context.flags & e_Layout) == e_v11Layout ) {
+			if( (context.flags & e_Layout) == e_Layout0 || (context.flags & e_Layout) == e_Layout1 ) {
 				v11::parse_probability_data( buffer, end, context, setter ) ;
 			} else {
 				v12::parse_probability_data( buffer, end, context, setter ) ;
@@ -1208,10 +1209,10 @@ namespace genfile {
 			AlleleGetter get_allele
 		) {
 			uint32_t const layout = context.flags & e_Layout ;
-			assert( layout == e_v11Layout || layout == e_v12Layout ) ;
+			assert( layout == e_Layout1 || layout == e_Layout2 ) ;
 
 			// Make sure we have space
-			std::size_t size = 10 + RSID.size() + SNPID.size() + chromosome.size() + ((layout == e_v11Layout) ? 4 : 2) ;
+			std::size_t size = 10 + RSID.size() + SNPID.size() + chromosome.size() + ((layout == e_Layout1) ? 4 : 2) ;
 			for( uint16_t allele_i = 0; allele_i < number_of_alleles; ++allele_i ) {
 				size += 4 + get_allele( allele_i ).size() ;
 			}
@@ -1221,7 +1222,7 @@ namespace genfile {
 			byte_t* p = &(buffer->operator[](0)) ;
 			byte_t* const end = p + size ;
 
-			if( layout == e_v11Layout ) {
+			if( layout == e_Layout1 ) {
 				p = write_little_endian_integer( p, end, context.number_of_samples ) ;
 				// otherwise number of samples appears in the probability data block below.
 			}
@@ -1234,7 +1235,7 @@ namespace genfile {
 			p = write_length_followed_by_data( p, end, uint16_t( chromosome.size() ), chromosome ) ;
 			p = write_little_endian_integer( p, end, position ) ;
 			
-			if( layout == e_v12Layout ) {
+			if( layout == e_Layout2 ) {
 				// v12 has an explicit allele count
 				p = write_little_endian_integer( p, end, number_of_alleles ) ;
 			} else if( number_of_alleles != 2u ) {
@@ -1266,16 +1267,16 @@ namespace genfile {
 				m_context( context ),
 				m_layout( m_context.flags & e_Layout ),
 				m_number_of_bits( number_of_bits ),
-				m_v11_writer(),
-				m_v12_writer( number_of_bits ),
+				m_layout1_writer(),
+				m_layout2_writer( number_of_bits ),
 				m_writer(0)
 			{
 				assert( m_buffer1 != 0 && m_buffer2 != 0 ) ;
-				assert( m_layout == e_v11Layout || m_layout == e_v12Layout ) ;
-				if( m_layout == e_v11Layout ) {
-					m_writer = &m_v11_writer ;
-				} else if( m_layout == e_v12Layout ) {
-					m_writer = &m_v12_writer ;
+				assert( m_layout == e_Layout1 || m_layout == e_Layout2 ) ;
+				if( m_layout == e_Layout1 ) {
+					m_writer = &m_layout1_writer ;
+				} else if( m_layout == e_Layout2 ) {
+					m_writer = &m_layout2_writer ;
 				} else {
 					assert(0) ;
 				}
@@ -1285,7 +1286,7 @@ namespace genfile {
 				assert( nSamples == m_context.number_of_samples ) ;
 				std::size_t const max_ploidy = 15 ;
 				std::size_t const buffer_size =
-					( m_layout == e_v11Layout )
+					( m_layout == e_Layout1 )
 						? (6 * nSamples)
 						: ( 10 + nSamples + ((( nSamples * ( impl::n_choose_k( max_ploidy + nAlleles - 1, std::size_t( nAlleles ) - 1 ) - 1 ) * m_number_of_bits )+7)/8)) ;
 				;
@@ -1328,7 +1329,7 @@ namespace genfile {
 				uint32_t const compressionType = ( m_context.flags & e_CompressedSNPBlocks ) ;
 				if( compressionType != e_NoCompression ) {
 		#if HAVE_ZLIB
-					std::size_t offset = (m_layout == e_v12Layout) ? 8 : 4 ;
+					std::size_t offset = (m_layout == e_Layout2) ? 8 : 4 ;
 					if( compressionType == e_ZlibCompression ) {
 						zlib_compress(
 							&(*m_buffer1)[0], &(*m_buffer1)[0] + uncompressed_data_size,
@@ -1349,7 +1350,7 @@ namespace genfile {
 					// compression_buffer_size is now the compressed length of the data.
 					// Now write total compressed data size to the start of the buffer, including
 					// the uncompressed data size if we are in layout 1.2.
-					if( m_layout == e_v12Layout ) {
+					if( m_layout == e_Layout2 ) {
 						write_little_endian_integer( &(*m_buffer2)[0], &(*m_buffer2)[0]+4, uint32_t( m_buffer2->size() ) - 4 ) ;
 						write_little_endian_integer( &(*m_buffer2)[0]+4, &(*m_buffer2)[0]+8, uint32_t( uncompressed_data_size ) ) ;
 					} else {
@@ -1364,9 +1365,9 @@ namespace genfile {
 				else {
 					// Copy uncompressed data to compression buffer
 					// This is inefficient but is not expected to be used much, so not important.
-					std::size_t offset = (m_layout == e_v12Layout) ? 4 : 0 ;
+					std::size_t offset = (m_layout == e_Layout2) ? 4 : 0 ;
 					m_buffer2->resize( m_buffer1->size() + offset ) ;
-					if( m_layout == e_v12Layout ) {
+					if( m_layout == e_Layout2 ) {
 						write_little_endian_integer( &(*m_buffer2)[0], &(*m_buffer2)[0]+4, uint32_t( uncompressed_data_size )) ;
 					}
 					std::copy( &(*m_buffer1)[0], &(*m_buffer1)[0] + uncompressed_data_size, &(*m_buffer2)[0] + offset ) ;
@@ -1382,8 +1383,8 @@ namespace genfile {
 			Context const& m_context ;
 			uint32_t const m_layout ;
 			std::size_t m_number_of_bits ;
-			v11::ProbabilityDataWriter m_v11_writer ;
-			v12::ProbabilityDataWriter m_v12_writer ;
+			v11::ProbabilityDataWriter m_layout1_writer ;
+			v12::ProbabilityDataWriter m_layout2_writer ;
 			impl::ProbabilityDataWriterBase* m_writer ;
 			std::pair< byte_t const*, byte_t const* > m_result ;
 		} ;

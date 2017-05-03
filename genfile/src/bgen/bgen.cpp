@@ -273,7 +273,7 @@ namespace genfile {
 			std::cerr << "genfile::bgen::impl::read_snp_identifying_data(): flags = 0x" << std::hex << context.flags << ".\n" ;
 #endif
 			uint32_t const layout = context.flags & e_Layout ;
-			if( layout == e_v11Layout || layout == e_v12Layout ) {
+			if( layout == e_Layout1 || layout == e_Layout2 ) {
 				// forward to v12 version which handles multiple alleles.
 				impl::TwoAlleleSetter allele_setter( first_allele, second_allele ) ;
 				return bgen::read_snp_identifying_data(
@@ -282,7 +282,7 @@ namespace genfile {
 					&impl::check_for_two_alleles,
 					allele_setter
 				) ;
-			} else if( layout == e_v10Layout ) {
+			} else if( layout == e_Layout0 ) {
 				return v10::read_snp_identifying_data( aStream, context, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele ) ;
 			} else {
 				assert(0) ;
@@ -294,10 +294,10 @@ namespace genfile {
 			namespace impl {
 				double get_probability_conversion_factor( uint32_t flags ) {
 					uint32_t layout = flags & e_Layout ;
-					if( layout == e_v10Layout ) {
+					if( layout == e_Layout0 ) {
 						// v1.0-style blocks, deprecated
 						return 10000.0 ;
-					} else if( layout == e_v11Layout ) {
+					} else if( layout == e_Layout1 ) {
 						// v1.1-style blocks
 						return 32768.0 ;
 					} else {
@@ -337,7 +337,7 @@ namespace genfile {
 			std::vector< byte_t >* buffer
 		) {
 			uint32_t payload_size = 0 ;
-			if( (context.flags & e_Layout) == e_v12Layout || ((context.flags & e_CompressedSNPBlocks) != e_NoCompression ) ) {
+			if( (context.flags & e_Layout) == e_Layout2 || ((context.flags & e_CompressedSNPBlocks) != e_NoCompression ) ) {
 				read_little_endian_integer( aStream, &payload_size ) ;
 			} else {
 				payload_size = 6 * context.number_of_samples ;
@@ -357,7 +357,7 @@ namespace genfile {
 				byte_t const* begin = &compressed_data[0] ;
 				byte_t const* const end = &compressed_data[0] + compressed_data.size() ;
 				uint32_t uncompressed_data_size = 0 ;
-				if( (context.flags & e_Layout) == e_v11Layout ) {
+				if( (context.flags & e_Layout) == e_Layout1 ) {
 					uncompressed_data_size = 6 * context.number_of_samples ;
 				} else {
 					begin = read_little_endian_integer( begin, end, &uncompressed_data_size ) ;
