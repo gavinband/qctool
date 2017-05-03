@@ -68,6 +68,7 @@ namespace genfile {
 		std::pair< std::string, std::string > d = uniformise( filename ) ;
 		if( filetype_hint != "guess" ) {
 			d.first = filetype_hint ;
+			std::cerr << "filetype hint = \"" << filetype_hint << "\", guess is \"" << d.first << "\".\n" ;
 		}
 		if( d.first == "gen" ) {
 			return SNPDataSink::UniquePtr( new GenFileSNPDataSink( filename, compression_type )) ;
@@ -105,8 +106,11 @@ namespace genfile {
 		else if( d.first == "impute_allele_probs" ) {
 			return SNPDataSink::UniquePtr( new ImputeHapProbsSNPDataSink( filename ) ) ;
 		}
+		else if( d.first == "" ) {
+			return SNPDataSink::UniquePtr( new VCFFormatSNPDataSink( filename ) ) ;
+		}
 		else {
-			throw BadArgumentError( "SNPDataSink::create_impl()", "filetype_hint", "Unrecognised file type \"" + filetype_hint + "\"." ) ;
+			throw BadArgumentError( "SNPDataSink::create_impl()", "filename", "Unrecognised file type for file \"" + filename + "\"." ) ;
 		}
 	}
 	
