@@ -364,7 +364,10 @@ namespace snp_summary_component {
 			// for the new info measure, we use data augmentation adding a single allele of each type
 			// This makes info better behaved at low frequencies
 			// Note adding one of each allele constitutes minimal prior information that the variant is polymorphic.
-			double const theta_est = ( 1 + genotypes.col( 1 ).sum() + 2.0 * genotypes.col( 2 ).sum() ) / ( 2.0 + 2.0 * genotypes.sum() ) ;
+			//double const theta_est = ( 1 + genotypes.col( 1 ).sum() + 2.0 * genotypes.col( 2 ).sum() ) / ( 2.0 + 2.0 * genotypes.sum() ) ;
+
+			// ...but don't actually do that; it is less conservative at rare SNPs.
+			double const theta_est = theta_mle ;
 			
 			Eigen::VectorXd const impute_fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
 			Eigen::VectorXd fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
@@ -439,8 +442,11 @@ namespace snp_summary_component {
 			// For the new info measure, regularise by data augmentation, adding one allele of each type.
 			// This makes info better behaved at low frequencies.
 			// Note adding one of each allele constitutes minimal prior information that the variant is polymorphic.
-			double const theta_est = ( b_allele_count_diploid + b_allele_count_haploid + 1 )
-				/ ( a_allele_count_diploid + b_allele_count_diploid + a_allele_count_haploid + b_allele_count_haploid + 2 ) ;
+			// double const theta_est = ( b_allele_count_diploid + b_allele_count_haploid + 1 )
+			//	/ ( a_allele_count_diploid + b_allele_count_diploid + a_allele_count_haploid + b_allele_count_haploid + 2 ) ;
+			
+			// ...but don't actually do that; it is less conservative at rare SNPs.
+			double const theta_est = theta_mle ;
 
 			Eigen::VectorXd diploid_fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
 			diploid_fallback_distribution( 0 ) = ( 1 - theta_est ) * ( 1 - theta_est ) ;
