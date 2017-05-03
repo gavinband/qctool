@@ -360,20 +360,25 @@ namespace snp_summary_component {
 		
 		void compute_autosomal_info( VariantIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) {
 			double theta_mle = ( genotypes.col( 1 ).sum() + 2.0 * genotypes.col( 2 ).sum() ) / ( 2.0 * genotypes.sum() ) ;
+
+			// for the new info measure, we use data augmentation adding a single allele of each type
+			// This makes info better behaved at low frequencies
+			// Note adding one of each allele constitutes minimal prior information that the variant is polymorphic.
+			double const theta_est = ( 1 + genotypes.col( 1 ).sum() + 2.0 * genotypes.col( 2 ).sum() ) / ( 2.0 + 2.0 * genotypes.sum() ) ;
 			
 			Eigen::VectorXd const impute_fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
 			Eigen::VectorXd fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
-			fallback_distribution( 0 ) = ( 1 - theta_mle ) * ( 1 - theta_mle ) ;
-			fallback_distribution( 1 ) = 2.0 * theta_mle * ( 1 - theta_mle ) ;
-			fallback_distribution( 2 ) = theta_mle * theta_mle ;
+			fallback_distribution( 0 ) = ( 1 - theta_est ) * ( 1 - theta_est ) ;
+			fallback_distribution( 1 ) = 2.0 * theta_est * ( 1 - theta_est ) ;
+			fallback_distribution( 2 ) = theta_est * theta_est ;
 			
-			//std::cerr << "theta = " << theta_mle << ", fallback_distribution = " << fallback_distribution.transpose() << ".\n" ;
+			//std::cerr << "theta = " << theta_est << ", fallback_distribution = " << fallback_distribution.transpose() << ".\n" ;
 			
 			Eigen::VectorXd const levels = Eigen::VectorXd::LinSpaced( 3, 0, 2 ) ;
 
 			double const info = 1.0 - (
 				compute_expected_variance( levels, genotypes, fallback_distribution )
-				/ ( 2.0 * theta_mle * ( 1 - theta_mle ) )
+				/ ( 2.0 * theta_est * ( 1 - theta_est ) )
 			) ;
 
 			double const impute_info = 1.0 - (
@@ -431,22 +436,20 @@ namespace snp_summary_component {
 				genotypes.col( 1 ).sum() + 2.0 * genotypes.col( 2 ).sum() ) / ( 2.0 * genotypes.sum()
 			) ;
 
-			// Estimate of allele frequency regularised by adding 1 a and 1 b allele to counts.
-			// This is better behaved at low frequencies.
-			//double const theta_est = ( b_allele_count_diploid + b_allele_count_haploid + 1 )
-			//	/ ( a_allele_count_diploid + b_allele_count_diploid + a_allele_count_haploid + b_allele_count_haploid + 2 ) ;
+			// For the new info measure, regularise by data augmentation, adding one allele of each type.
+			// This makes info better behaved at low frequencies.
+			// Note adding one of each allele constitutes minimal prior information that the variant is polymorphic.
+			double const theta_est = ( b_allele_count_diploid + b_allele_count_haploid + 1 )
+				/ ( a_allele_count_diploid + b_allele_count_diploid + a_allele_count_haploid + b_allele_count_haploid + 2 ) ;
 
 			Eigen::VectorXd diploid_fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
-			diploid_fallback_distribution( 0 ) = ( 1 - theta_mle ) * ( 1 - theta_mle ) ;
-			diploid_fallback_distribution( 1 ) = 2.0 * theta_mle * ( 1 - theta_mle ) ;
-			diploid_fallback_distribution( 2 ) = theta_mle * theta_mle ;
+			diploid_fallback_distribution( 0 ) = ( 1 - theta_est ) * ( 1 - theta_est ) ;
+			diploid_fallback_distribution( 1 ) = 2.0 * theta_est * ( 1 - theta_est ) ;
+			diploid_fallback_distribution( 2 ) = theta_est * theta_est ;
 			
 			Eigen::VectorXd haploid_fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
-			haploid_fallback_distribution( 0 ) = 1 - theta_mle ;
-			haploid_fallback_distribution( 1 ) = theta_mle ;
-			
-			Eigen::VectorXd unknown_fallback_distribution
-				= 0.5 * haploid_fallback_distribution + 0.5 * diploid_fallback_distribution ;
+			haploid_fallback_distribution( 0 ) = 1 - theta_est ;
+			haploid_fallback_distribution( 1 ) = theta_est ;
 			
 			//std::cerr << "theta = " << theta_mle << ", fallback_distribution = " << fallback_distribution.transpose() << ".\n" ;
 			
@@ -457,13 +460,13 @@ namespace snp_summary_component {
 				Eigen::VectorXd haploids = ( hap_or_diploid.col( 0 ).array() == 1 ).cast< double >() ;
 				if( haploids.sum() > 0 ) {
 					info -= compute_expected_variance( levels, genotypes, diploid_fallback_distribution, haploids )
-						/ ( theta_mle * ( 1 - theta_mle ) ) ;
+						/ ( theta_est * ( 1 - theta_est ) ) ;
 				}
 
 				Eigen::VectorXd diploids = ( hap_or_diploid.col( 1 ).array() == 1 ).cast< double >() ;
 				if( diploids.sum() > 0 ) {
-					info -= compute_expected_variance( levels, genotypes, diploid_fallback_distribution, ( hap_or_diploid.col( 1 ).array() == 1 ).cast< double >() )
-						/ ( 2.0 * theta_mle * ( 1 - theta_mle ) ) ;
+					info -= compute_expected_variance( levels, genotypes, diploid_fallback_distribution, diploids )
+						/ ( 2.0 * theta_est * ( 1 - theta_est ) ) ;
 				}
 			}
 			
