@@ -80,11 +80,14 @@ namespace genfile {
 			+ ( m_sample_ids ? " named samples; " : " unnamed samples; ")
 		) ;
 		
-		result += ( m_bgen_context.flags & bgen::e_CompressedSNPBlocks )
-			? "compressed" : "uncompressed" ;
-
+		if( (m_bgen_context.flags & bgen::e_CompressedSNPBlocks) == bgen::e_ZlibCompression ) {
+			result += "zlib compression" ;
+		} else if( (m_bgen_context.flags & bgen::e_CompressedSNPBlocks) == bgen::e_ZstdCompression ) {
+			result += "zstd compression" ;
+		} else {
+			result += "uncompressed" ;
+		}
 		return result + ")" ;
-		
 	}
 
 	namespace {
