@@ -385,11 +385,12 @@ namespace snp_summary_component {
 			callback( "impute_info", impute_info ) ;
 		}
 
-		void compute_sex_chromosome_info( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, ResultCallback callback ) {
-			if( snp.get_position().chromosome() != genfile::Chromosome( "0X" )) {
-				return ;
-			}
-
+		void compute_sex_chromosome_info(
+			VariantIdentifyingData const& snp,
+			Genotypes const& genotypes,
+			SampleSexes const& sexes,
+			ResultCallback callback
+		) {
 			Eigen::MatrixXd hap_or_diploid( genotypes.rows(), 2 ) ;
 			for( std::size_t i = 0; i < sexes.size(); ++i ) {
 				if( sexes[i] == 'm' ) {
@@ -401,31 +402,40 @@ namespace snp_summary_component {
 					hap_or_diploid(i,1) = 1 ;
 				}
 				else if( sexes[ i ] == '.' ) {
-					// individuals with missing sex contribute 50/50 to both parts of the variance computation.
-					hap_or_diploid(i,0) = 0.5 ;
-					hap_or_diploid(i,1) = 0.5 ;
+					// individuals with missing sex do not contribute to the computation.
+					// I think this is the least surprising thing to do.
+					hap_or_diploid(i,0) = 0 ;
+					hap_or_diploid(i,1) = 0 ;
 				}
 			}
 
+			double const a_allele_count_diploid = (
+					( genotypes.col( 1 ) + 2.0 * genotypes.col( 0 ) ).array() * ( hap_or_diploid.col(1).array() )
+				).sum() ;
 			double const b_allele_count_diploid = (
 					( genotypes.col( 1 ) + 2.0 * genotypes.col( 2 ) ).array() * ( hap_or_diploid.col(1).array() )
+				).sum() ;
+			double const a_allele_count_haploid = 	(
+					genotypes.col( 0 ).array() * hap_or_diploid.col(0).array() 
 				).sum() ;
 			double const b_allele_count_haploid = 	(
 					genotypes.col( 1 ).array() * hap_or_diploid.col(0).array() 
 				).sum() ;
 			
-			double theta_mle = 0 ;
-			if( b_allele_count_diploid > 0 ) {
-				theta_mle += b_allele_count_diploid / (
-					2.0 * genotypes.rowwise().sum().array() * hap_or_diploid.col(1).array()
-				).sum() ;
-			}
-			if( b_allele_count_haploid > 0 ) {
-				theta_mle += b_allele_count_haploid / (
-					genotypes.block( 0, 0, genotypes.rows(), 2 ).rowwise().sum().array()
-					* hap_or_diploid.col(0).array()
-				).sum() ;
-			}
+			// MLE estimate of allele frequency
+			double const theta_mle = ( b_allele_count_diploid + b_allele_count_haploid )
+				/ ( a_allele_count_diploid + b_allele_count_diploid + a_allele_count_haploid + b_allele_count_haploid ) ;
+
+			// IMPUTE-style MLE, treat all samples as diploid.
+			double const autosomal_theta_mle = (
+				genotypes.col( 1 ).sum() + 2.0 * genotypes.col( 2 ).sum() ) / ( 2.0 * genotypes.sum()
+			) ;
+
+			// Estimate of allele frequency regularised by adding 1 a and 1 b allele to counts.
+			// This is better behaved at low frequencies.
+			//double const theta_est = ( b_allele_count_diploid + b_allele_count_haploid + 1 )
+			//	/ ( a_allele_count_diploid + b_allele_count_diploid + a_allele_count_haploid + b_allele_count_haploid + 2 ) ;
+
 			Eigen::VectorXd diploid_fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
 			diploid_fallback_distribution( 0 ) = ( 1 - theta_mle ) * ( 1 - theta_mle ) ;
 			diploid_fallback_distribution( 1 ) = 2.0 * theta_mle * ( 1 - theta_mle ) ;
@@ -455,32 +465,15 @@ namespace snp_summary_component {
 					info -= compute_expected_variance( levels, genotypes, diploid_fallback_distribution, ( hap_or_diploid.col( 1 ).array() == 1 ).cast< double >() )
 						/ ( 2.0 * theta_mle * ( 1 - theta_mle ) ) ;
 				}
-
-				Eigen::VectorXd unknowns = ( hap_or_diploid.col( 0 ).array() == 0.5 ).cast< double >() ;
-				if( unknowns.sum() > 0 ) {
-					info -= compute_expected_variance( levels, genotypes, diploid_fallback_distribution, ( hap_or_diploid.col( 0 ).array() == 0.5 ).cast< double >() )
-						/ ( (3.0/2.0) * theta_mle - ( 5.0 / 4.0 ) * theta_mle * theta_mle ) ;
-				}
 			}
 			
 			{
-				double const autosomal_theta_mle = ( genotypes.col( 1 ).sum() + 2.0 * genotypes.col( 2 ).sum() ) / ( 2.0 * genotypes.sum() ) ;
-				Eigen::VectorXd autosomal_fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
-				autosomal_fallback_distribution( 0 ) = ( 1 - autosomal_theta_mle ) * ( 1 - autosomal_theta_mle ) ;
-				autosomal_fallback_distribution( 1 ) = 2.0 * autosomal_theta_mle * ( 1 - autosomal_theta_mle ) ;
-				autosomal_fallback_distribution( 2 ) = autosomal_theta_mle * autosomal_theta_mle ;
-			
-				double const autosomal_info = 1.0 - (
-					compute_expected_variance( levels, genotypes, autosomal_fallback_distribution )
-					/ ( 2.0 * autosomal_theta_mle * ( 1 - autosomal_theta_mle ) )
-				) ;
 				double const impute_info = 1.0 - (
 					compute_expected_variance( levels, genotypes, Eigen::VectorXd::Zero( 3 ) )
 					/ ( 2.0 * autosomal_theta_mle * ( 1 - autosomal_theta_mle ) )
 				) ;
 			
 				callback( "info", info ) ;
-				callback( "autosomal_info", autosomal_info ) ;
 				callback( "impute_info", impute_info ) ;
 			}
 		}
