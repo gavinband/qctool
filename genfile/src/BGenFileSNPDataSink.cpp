@@ -170,7 +170,8 @@ namespace genfile {
 	}
 
 	void BasicBGenFileSNPDataSink::set_write_sample_identifier_block( bool write ) {
-		if( write ) {
+		uint32_t const layout = m_bgen_context.flags & bgen::e_Layout ;
+		if( write && (layout == bgen::e_v12Layout) ) {
 			m_bgen_context.flags |= bgen::e_SampleIdentifiers ;
 		} else {
 			m_bgen_context.flags &= ~bgen::e_SampleIdentifiers ;
