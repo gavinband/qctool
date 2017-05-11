@@ -381,13 +381,13 @@ namespace snp_summary_component {
 			Eigen::VectorXd const levels = Eigen::VectorXd::LinSpaced( 3, 0, 2 ) ;
 
 			double const info = 1.0 - (
-				compute_expected_variance( levels, genotypes, fallback_distribution )
-				/ ( 2.0 * theta_est * ( 1 - theta_est ) )
+				compute_sum_of_variances( levels, genotypes, fallback_distribution )
+				/ ( genotypes.sum() * 2.0 * theta_est * ( 1 - theta_est ) )
 			) ;
 
 			double const impute_info = 1.0 - (
-				compute_expected_variance( levels, genotypes, impute_fallback_distribution )
-				/ ( 2.0 * theta_mle * ( 1 - theta_mle ) )
+				compute_sum_of_variances( levels, genotypes, impute_fallback_distribution )
+				/ ( genotypes.sum() * 2.0 * theta_mle * ( 1 - theta_mle ) )
 			) ;
 		
 			callback( "info", info ) ;
@@ -435,11 +435,6 @@ namespace snp_summary_component {
 			double const theta_mle = ( b_allele_count_diploid + b_allele_count_haploid )
 				/ ( a_allele_count_diploid + b_allele_count_diploid + a_allele_count_haploid + b_allele_count_haploid ) ;
 
-			// IMPUTE-style MLE, treat all samples as diploid.
-			double const autosomal_theta_mle = (
-				genotypes.col( 1 ).sum() + 2.0 * genotypes.col( 2 ).sum() ) / ( 2.0 * genotypes.sum()
-			) ;
-
 			// For the new info measure, could regularise by data augmentation, adding one allele of each type.
 			// This makes info better behaved at low frequencies.
 			// Note adding one of each allele constitutes minimal prior information that the variant is polymorphic.
@@ -462,25 +457,48 @@ namespace snp_summary_component {
 			
 			Eigen::VectorXd const levels = Eigen::VectorXd::LinSpaced( 3, 0, 2 ) ;
 			
-			double info = 1.0 ;
+			double info = 0.0 ;
+			Eigen::VectorXd const haploids = ( hap_or_diploid.col( 0 ).array() == 1 ).cast< double >() ;
+			Eigen::VectorXd const diploids = ( hap_or_diploid.col( 1 ).array() == 1 ).cast< double >() ;
 			{
-				Eigen::VectorXd haploids = ( hap_or_diploid.col( 0 ).array() == 1 ).cast< double >() ;
 				if( haploids.sum() > 0 ) {
-					info -= compute_expected_variance( levels, genotypes, diploid_fallback_distribution, haploids )
+					info -= compute_sum_of_variances( levels, genotypes, haploid_fallback_distribution, haploids )
 						/ ( theta_est * ( 1 - theta_est ) ) ;
 				}
 
-				Eigen::VectorXd diploids = ( hap_or_diploid.col( 1 ).array() == 1 ).cast< double >() ;
 				if( diploids.sum() > 0 ) {
-					info -= compute_expected_variance( levels, genotypes, diploid_fallback_distribution, diploids )
+					info -= compute_sum_of_variances( levels, genotypes, diploid_fallback_distribution, diploids )
 						/ ( 2.0 * theta_est * ( 1 - theta_est ) ) ;
 				}
+
+				double const totalProb = (
+					( genotypes.block( 0, 0, genotypes.rows(), 2 ).rowwise().sum().array() * haploids.array() ).sum()
+					+ ( genotypes.rowwise().sum().array() * diploids.array() ).sum() 
+				) ;
+
+				info = 1.0 + (info / totalProb) ;
 			}
 			
 			{
+				// IMPUTE-style MLE, treat all samples as diploid ignoring gender.
+				// Haploids are encoded in the 0/1 columns here so we have to reverse-engineer the
+				// original info computation to allow for this.
+				double const autosomal_theta_mle = (
+					( 2.0 * genotypes.col( 1 ).array() * haploids.array() )
+					+ (( genotypes.col( 1 ) + 2.0 * genotypes.col( 2 ) ).array() * ( 1.0 - haploids.array() ))
+				).sum() / ( 2.0 * genotypes.sum() ) ;
+
+#if DEBUG
+				std::cerr << "autosomal_theta_mle  = " << std::setprecision(10) << autosomal_theta_mle << ".\n" ;
+				std::cerr << genotypes << ".\n" ;
+#endif
+				Eigen::VectorXd haploidLevels = Eigen::VectorXd::Zero(3) ;
+				haploidLevels(1) = 2 ;
 				double const impute_info = 1.0 - (
-					compute_expected_variance( levels, genotypes, Eigen::VectorXd::Zero( 3 ) )
-					/ ( 2.0 * autosomal_theta_mle * ( 1 - autosomal_theta_mle ) )
+					(
+						compute_sum_of_variances( haploidLevels, genotypes, Eigen::VectorXd::Zero( 3 ), haploids )
+						+ compute_sum_of_variances( levels, genotypes, Eigen::VectorXd::Zero( 3 ), 1.0 - haploids.array() )
+					) / ( genotypes.sum() * 2.0 * autosomal_theta_mle * ( 1 - autosomal_theta_mle ) )
 				) ;
 			
 				callback( "info", info ) ;
@@ -491,15 +509,15 @@ namespace snp_summary_component {
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "InfoComputation" ; }
 		
 	private:
-		double compute_expected_variance( Eigen::VectorXd const& levels, Eigen::MatrixXd const& probabilities, Eigen::VectorXd const& fallback ) const {
-			return compute_expected_variance( levels, probabilities, fallback, Eigen::VectorXd::Constant( probabilities.rows(), 1 ) ) ;
+		double compute_sum_of_variances( Eigen::VectorXd const& levels, Eigen::MatrixXd const& probabilities, Eigen::VectorXd const& fallback ) const {
+			return compute_sum_of_variances( levels, probabilities, fallback, Eigen::VectorXd::Constant( probabilities.rows(), 1 ) ) ;
 		}
 		
 		// treat the rows of the probabilities matrix as probabilities.
 		// distribution for individual i is taken as a mixture of the distribution given by row i of probabilities,
 		// and the fallback distribution if the sum of row i < 1, appropriately weighted.
 		// Only individuals with inclusion = 1 are used.
-		double compute_expected_variance( Eigen::VectorXd const& levels, Eigen::MatrixXd const& probabilities, Eigen::VectorXd const& fallback, Eigen::VectorXd const& inclusion ) const {
+		double compute_sum_of_variances( Eigen::VectorXd const& levels, Eigen::MatrixXd const& probabilities, Eigen::VectorXd const& fallback, Eigen::VectorXd const& inclusion ) const {
 			assert( levels.size() == fallback.size() ) ;
 			assert( levels.size() == probabilities.cols() ) ;
 			assert( inclusion.size() == probabilities.rows() ) ;
@@ -512,7 +530,7 @@ namespace snp_summary_component {
 					result += compute_variance( levels, levels_squared, probabilities.row( i ).transpose() + ( 1 - c ) * fallback ) ;
 				}
 			}
-			return result / inclusion.sum() ;
+			return result ;
 		}
 		
 		double compute_variance( Eigen::VectorXd const& levels, Eigen::VectorXd const& levels_squared, Eigen::VectorXd const& probs ) const {
