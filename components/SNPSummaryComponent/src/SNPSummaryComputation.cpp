@@ -171,7 +171,8 @@ namespace snp_summary_component {
 			for( int i = 0; i < genotypes.rows(); ++i ) {
 				if( sexes[i] != 'm' ) {
 					male_genotypes.row(i).setZero() ;
-				} else if( sexes[i] != 'f' ) {
+				}
+				if( sexes[i] != 'f' ) {
 					female_genotypes.row(i).setZero() ;
 				}
 			}
@@ -439,7 +440,7 @@ namespace snp_summary_component {
 				genotypes.col( 1 ).sum() + 2.0 * genotypes.col( 2 ).sum() ) / ( 2.0 * genotypes.sum()
 			) ;
 
-			// For the new info measure, regularise by data augmentation, adding one allele of each type.
+			// For the new info measure, could regularise by data augmentation, adding one allele of each type.
 			// This makes info better behaved at low frequencies.
 			// Note adding one of each allele constitutes minimal prior information that the variant is polymorphic.
 			// double const theta_est = ( b_allele_count_diploid + b_allele_count_haploid + 1 )

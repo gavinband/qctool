@@ -131,7 +131,14 @@ namespace snp_summary_component {
 			allele_counts( 1, g ) = genotype_counts( 1, 1 ) + 2.0 * genotype_counts( 1, 2.0 * g ) ;
 		}
 
-		if( genotype_counts.maxCoeff() > 0 ) {
+		if( genotype_counts.maxCoeff() == 0 ) {
+				callback( "HW_females_exact_pvalue", genfile::MissingValue() ) ;
+				callback( "HW_females_lrt_pvalue", genfile::MissingValue()) ;
+				callback( "male_female_exact_pvalue", genfile::MissingValue() ) ;
+				callback( "male_female_lrt_pvalue", genfile::MissingValue() ) ;
+				callback( "male_female_and_HW_lrt_pvalue", genfile::MissingValue() ) ;
+
+		} else {
 			typedef metro::likelihood::Multinomial< double, Eigen::VectorXd, Eigen::MatrixXd > Multinomial ;
 			typedef metro::likelihood::ProductOfMultinomials< double, Eigen::VectorXd, Eigen::MatrixXd > ProductOfIndependentMultinomials ;
 			// In model 1 each genotype is allowed to have its own frequency.
@@ -194,6 +201,8 @@ namespace snp_summary_component {
 			if( lr_stat_12 == lr_stat_12 && lr_stat_12 > 0 && lr_stat_12 != std::numeric_limits< double >::infinity() ) {
 				p_value_12 = cdf( complement( m_chi_squared_1df, lr_stat_12 ) ) ;
 				callback( "HW_females_lrt_pvalue", p_value_12 ) ;
+			} else {
+				callback( "HW_females_lrt_pvalue", genfile::MissingValue()) ;
 			}
 
 			// Also get exact male/female p-value
@@ -216,6 +225,8 @@ namespace snp_summary_component {
 			if( lr_stat_23 == lr_stat_23 && lr_stat_23 > 0 && lr_stat_23 != std::numeric_limits< double >::infinity() ) {
 				p_value_23 = cdf( complement( m_chi_squared_1df, lr_stat_23 ) ) ;
 				callback( "male_female_lrt_pvalue", p_value_23 ) ;
+			} else {
+				callback( "male_female_lrt_pvalue", genfile::MissingValue() ) ;
 			}
 
 			double const lr_stat_13 = 2.0 * ( full_model.get_value_of_function() - model3.get_value_of_function() ) ;
@@ -223,6 +234,8 @@ namespace snp_summary_component {
 			if( lr_stat_13 == lr_stat_13 && lr_stat_13 > 0 && lr_stat_13 != std::numeric_limits< double >::infinity() ) {
 				p_value_13 = cdf( complement( m_chi_squared_2df, lr_stat_13 ) ) ;
 				callback( "male_female_and_HW_lrt_pvalue", p_value_13 ) ;
+			} else {
+				callback( "male_female_and_HW_lrt_pvalue", genfile::MissingValue() ) ;
 			}
 		}
 	}
