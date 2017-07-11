@@ -467,9 +467,14 @@ namespace qcdb {
 
 	db::Connection::RowId DBOutputter::get_or_create_variant( genfile::VariantIdentifyingData const& snp ) const {
 		db::Connection::RowId result ;
+		if( snp.get_position().chromosome().is_missing() ) {
+			m_find_variant_statement->bind_NULL( 1 ) ;
+		} else {
+			m_find_variant_statement
+				->bind( 1, std::string( snp.get_position().chromosome() ) ) ;
+		}
 		m_find_variant_statement
-			->bind( 1, std::string( snp.get_position().chromosome() ) )
-			.bind( 2, snp.get_position().position() )
+			->bind( 2, snp.get_position().position() )
 			.bind( 3, snp.get_allele(0) )
 			.bind( 4, snp.get_allele(1) ) ;
 		if( m_match_rsid ) {
@@ -478,9 +483,16 @@ namespace qcdb {
 		m_find_variant_statement->step() ;
 
 		if( m_find_variant_statement->empty() ) {
+			if( snp.get_position().chromosome().is_missing() ) {
+				m_insert_variant_statement
+					->bind_NULL( 2 ) ;
+			} else {
+				m_insert_variant_statement
+					->bind( 2, std::string( snp.get_position().chromosome() ) ) ;
+			}
+
 			m_insert_variant_statement
 				->bind( 1, snp.get_primary_id() )
-				.bind( 2, std::string( snp.get_position().chromosome() ) )
 				.bind( 3, snp.get_position().position() )
 				.bind( 4, snp.get_allele(0))
 				.bind( 5, snp.get_allele(1))
