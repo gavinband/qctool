@@ -75,6 +75,18 @@ namespace snp_stats {
 		std::string const& comparison_dataset_sample_id_column,
 		genfile::SNPDataSource::UniquePtr snps
 	) {
+		using namespace genfile::string_utils ;
+		if( snps->number_of_samples() != samples->get_number_of_individuals() ) {
+			throw genfile::BadArgumentError(
+				"CrossDataSetConcordanceComputation::set_alternate_dataset()",
+				"samples=\"" + samples->get_source_spec() + "\"",
+				"Number of samples ("
+				+ to_string( samples->get_number_of_individuals() )
+				+ ") in sample data does not match number ("
+				+ to_string( snps->number_of_samples() )
+				+ " in genotype data."
+			) ;
+		}
 		m_sample_mapper.set_alternate_dataset( samples, comparison_dataset_sample_id_column ) ;
 		m_alt_dataset_snps = snps ;
 	}
