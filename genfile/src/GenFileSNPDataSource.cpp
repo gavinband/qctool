@@ -72,11 +72,12 @@ namespace genfile {
 		uint32_t position ;
 		Chromosome chromosome ;
 		try {
+			std::string chromosome_string ;
 			if( m_have_chromosome_column ) {
-				gen::impl::read_snp_identifying_data( stream(), &chromosome, &SNPID, &rsid, &position, &allele1, &allele2 ) ;
+				gen::impl::read_snp_identifying_data( stream(), &chromosome_string, &SNPID, &rsid, &position, &allele1, &allele2 ) ;
 				if( *this ) {
 					*result = VariantIdentifyingData(
-						SNPID, rsid, GenomePosition( chromosome, position ), allele1, allele2
+						SNPID, rsid, GenomePosition( chromosome_string, position ), allele1, allele2
 					) ;
 				}
 			} else {
