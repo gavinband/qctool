@@ -108,7 +108,7 @@ namespace genfile {
 
 			void read_snp_identifying_data(
 				std::istream& aStream,
-				Chromosome* chromosome,
+				std::string* chromosome,
 				std::string* SNPID,
 				std::string* RSID,
 				uint32_t* SNP_position,
