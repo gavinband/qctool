@@ -324,8 +324,8 @@ namespace genfile {
 		bool m_missing ;
 	} ;
 	
-	// This class receives unphased (or phased) GT-style genotypes
-	// and outputs unphased genotype probabilities.
+	// This class receives unphased GP-style genotype probabilities
+	// and outputs them again without change.
 	template< typename Setter >
 	struct GPToGP: public ToGPImpl< Setter >, impl::GTToGPUnphasedBase
 	{
