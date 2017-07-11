@@ -1471,10 +1471,9 @@ private:
 			genfile::SNPDataSource::UniquePtr merge_in_source ;
 			{
 				genfile::SNPDataSourceChain::UniquePtr source( new genfile::SNPDataSourceChain ) ;
-				std::string chromosome_hint = m_options.check( "-assume-chromosome" ) ? m_options.get< std::string >( "-assume-chromosome" ) : "" ;
 				std::vector< genfile::wildcard::FilenameMatch > filenames = genfile::wildcard::find_files_by_chromosome( merge_in_files[0] ) ;
 				for( std::size_t i = 0; i < filenames.size(); ++i ) {
-					source->add_source( open_snp_data_source( filenames[i].filename(), chromosome_hint )) ;
+					source->add_source( open_snp_data_source( filenames[i].filename(), filenames[i].match())) ;
 				}
 				merge_in_source.reset( source.release() ) ;
 			}
@@ -1538,10 +1537,14 @@ private:
 	
 	genfile::SNPDataSource::UniquePtr
 	open_snp_data_source( std::string const& filename, std::string chromosome_indicator ) const {
+		genfile::Chromosome chromosome_hint ;
 		if( chromosome_indicator == "" && m_options.check_if_option_was_supplied( "-assume-chromosome" )) {
 			chromosome_indicator = m_options.get_value< std::string >( "-assume-chromosome" ) ;
 		}
 
+		if( chromosome_indicator != "" ) {
+			chromosome_hint = chromosome_indicator ;
+		}
 		genfile::SNPDataSource::UniquePtr source ;
 
 		std::pair< std::string, std::string > uf = genfile::uniformise( filename ) ;
@@ -1559,14 +1562,14 @@ private:
 			if( m_options.check( "-filetype" )) {
 				source = genfile::SNPDataSource::create(
 					filename,
-					chromosome_indicator,
+					chromosome_hint,
 					metadata,
 					m_options.get< std::string >( "-filetype" )
 				) ;
 			} else {
 				source = genfile::SNPDataSource::create(
 					filename,
-					chromosome_indicator,
+					chromosome_hint,
 					metadata
 				) ;
 			}
