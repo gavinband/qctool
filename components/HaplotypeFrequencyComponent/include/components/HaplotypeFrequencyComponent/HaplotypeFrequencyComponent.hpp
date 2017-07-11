@@ -17,6 +17,7 @@
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
 #include "HaplotypeFrequencyLogLikelihood.hpp"
+#include "FlatTableDBOutputter.hpp"
 
 struct HaplotypeFrequencyComponent: public genfile::SNPDataSourceProcessor::Callback {
 public:
@@ -56,15 +57,14 @@ public:
 
 	void end_processing_snps() ;
 	
-	typedef boost::function< void( genfile::VariantIdentifyingData const& source, genfile::VariantIdentifyingData const& target, std::string const&, genfile::VariantEntry const& ) > ResultCallback ;
-	void send_results_to( ResultCallback callback ) ;
+	void send_results_to( haplotype_frequency_component::FlatTableDBOutputter::UniquePtr ) ;
 
 private:
 	genfile::SNPDataSource::UniquePtr m_source ;
 	appcontext::UIContext& m_ui_context ;
 	double const m_threshhold ;
 	int64_t m_max_distance ;
-	boost::signals2::signal< void( genfile::VariantIdentifyingData const& source, genfile::VariantIdentifyingData const& target, std::string const&, genfile::VariantEntry const& ) > m_result_signal ;
+	haplotype_frequency_component::FlatTableDBOutputter::UniquePtr m_sink ;
 } ;
 
 #endif

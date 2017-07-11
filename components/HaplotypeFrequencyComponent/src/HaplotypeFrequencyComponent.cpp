@@ -21,7 +21,7 @@
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
 #include "db/Error.hpp"
-#include "components/HaplotypeFrequencyComponent/DBOutputter.hpp"
+#include "components/HaplotypeFrequencyComponent/FlatTableDBOutputter.hpp"
 #include "components/HaplotypeFrequencyComponent/HaplotypeFrequencyComponent.hpp"
 
 // #define DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT 1
@@ -37,6 +37,11 @@ void HaplotypeFrequencyComponent::declare_options( appcontext::OptionProcessor& 
 			"A value of zero indicates LD between all SNPs will be computed. "
 			"A plain number indicates distance in base pairs, or you add a Mb or kb suffix to specify the "
 			"distance in megabases or kilobases if desired." )
+		.set_takes_single_value()
+		.set_default_value( "0" ) ;
+	options[ "-min-r2" ]
+		.set_description( "Minimum squared correlation between variants.  LD results for pairs of variants with "
+			"lower than this squared correlation will not be output." )
 		.set_takes_single_value()
 		.set_default_value( "0" ) ;
 	options.option_implies_option( "-compute-ld-with", "-osnp" ) ;
@@ -112,25 +117,17 @@ HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
 	) ;
 	
 	result->set_max_distance( parse_physical_distance( options.get< std::string >( "-max-ld-distance" ))) ;
+	// result->set_min_r2( parse_physical_distance( options.get< double >( "-min-r2" ))) ;
 
-	haplotype_frequency_component::DBOutputter::SharedPtr outputter = haplotype_frequency_component::DBOutputter::create_shared(
-		options.get_value< std::string >( "-osnp" ),
-		options.get_value< std::string >( "-analysis-name" ),
-		"HaplotypeFrequencyComponent",
-		options.get_values_as_map()
+	haplotype_frequency_component::FlatTableDBOutputter::UniquePtr outputter
+		= haplotype_frequency_component::FlatTableDBOutputter::create(
+			options.get_value< std::string >( "-osnp" ),
+			options.get_value< std::string >( "-analysis-name" ),
+			"HaplotypeFrequencyComponent",
+			options.get_values_as_map()
 	) ;
 
-	result->send_results_to(
-		boost::bind(
-			&haplotype_frequency_component::DBOutputter::operator(),
-			outputter,
-			options.get< std::string >( "-analysis-name" ),
-			_1,
-			_2,
-			_3,
-			_4
-		)
-	) ;
+	result->send_results_to( outputter ) ;
 	return result ;
 }
 
@@ -153,7 +150,10 @@ void HaplotypeFrequencyComponent::begin_processing_snps( std::size_t number_of_s
 	assert( m_source->number_of_samples() == number_of_samples ) ;
 }
 
-void HaplotypeFrequencyComponent::processed_snp( genfile::VariantIdentifyingData const& target_snp, genfile::VariantDataReader& target_data_reader ) {
+void HaplotypeFrequencyComponent::processed_snp(
+	genfile::VariantIdentifyingData const& target_snp,
+	genfile::VariantDataReader& target_data_reader
+) {
 #if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
 	std::cerr << "Processing " << target_snp << "...\n" ;
 #endif
@@ -183,6 +183,127 @@ void HaplotypeFrequencyComponent::processed_snp( genfile::VariantIdentifyingData
 		}
 	}
 }
+
+#if 0
+namespace {
+	struct PairwiseGetter {
+		PairwiseGetter() {}
+		
+		struct Getter {
+			Getter( std::vector< int >* result ):
+				m_result( result )
+			{
+				// missing
+				m_coding.push_back( -1 ) ; // missing
+
+				// haploid
+				m_coding.push_back( 0 ) ; // 00
+				m_coding.push_back( 1 ) ; // 01
+				m_coding.push_back( 2 ) ; // 10
+				m_coding.push_back( 3 ) ; // 11
+				
+				// diploid
+				m_coding.push_back( 2 ) ;
+				m_coding.push_back( 3 ) ;
+				m_coding.push_back( 4 ) ;
+			}
+				
+			void initialise( std::size_t number_of_samples, std::size_t number_of_alleles ) {
+				assert( number_of_alleles == 2 ) ;
+				m_result->resize( number_of_samples ) ;
+				m_sample_i = 0 ;
+			}
+			
+			void set_min_max_ploidy(
+				std::size_t min_ploidy,
+				std::size_t max_ploidy,
+				std::size_t min_entries,
+				std::size_t max_entries
+			) {
+				assert( min_ploidy > 0 ) ;
+				assert( max_ploidy < 3 ) ;
+			}
+			
+			bool set_sample( std::size_t i ) {
+				m_sample_i = i ;
+				return true ;
+			}
+			
+			void set_number_of_entries(
+				std::size_t ploidy,
+				std::size_t entries,
+				genfile::OrderType order_type,
+				genfile::ValueType value_type
+			) {
+				assert( m_ploidy == ploidy )
+				assert( value_type == eAlleleIndex ) ;
+				assert( order_type == ePerOrderedHaplotype || order_type == ePerUnorderedGenotype ) ;
+				m_order_type = order_type ;
+				m_ploidy = ploidy ;
+
+				// store genotypes as bit representation.
+				// bit 4 means 'missing'.
+				// bit 3 means 'unphased'.
+				// bit 0 means haploid genotype
+				// bits 0 means haploid genotype
+				// bits 1-2 mean diploid genotype
+				(*m_result)[ m_sample_i ] = ((m_ploidy > 1) && (order_type == ePerUnorderedGenotype)) ? (1 << 3) : 0;
+			}
+			
+			void set_value( std::size_t entry_i, int value ) {
+				assert( value == 0 || value == 1 ) ;
+				if( m_order_type == ePerOrderedHaplotype ) {
+					(*m_result)[ m_sample_i ] |= ( value << ( entry_i + (ploidy-1))) ;
+				} else {
+					(*m_result)[ m_sample_i ] += ( value << (ploidy-1)) ;
+				}
+			}
+
+			void set_value( std::size_t entry_i, genfile::MissingValue value ) {
+				(*m_result)[ m_sample_i ] = 0x8 ;
+			}
+			
+			void finalise() {
+				// convert wrong-way-round diploid genotypes, e.g. 1/0 to right-way-round, e.g. 0/1
+				for( std::size_t i = 0; i < m_result->size(); ++i ) {
+					
+				}
+			}
+
+		private:
+			std::vector< int > m_coding ;
+			std::size_t m_sample_i ;
+			std::vector< int >* m_result ;
+		} ;
+			
+			
+		void build_tables( Eigen::MatrixXd* haploid_table, Eigen::MatrixXd* diploid_table ) {
+			haploid_table->setZero( 2, 2 ) ;
+			diploid_table->setZero( 3, 3 ) ;
+			for( std::size_t i = 0; i < m_genotypes[0].size(); ++i ) {
+				int const& genotype1 = m_genotypes[0][i] ;
+				int const& genotype2 = genotype2 ;
+				if( !is_missing( genotype1 ) & !is_missing( genotype2 )) {
+					assert( ploidy( genotype1 ) == ploidy( genotype2 )) ;
+					if( is_phased( m_genotypes[0][i] ) & is_phased( genotype2 )) {
+						(*haploid_table)( genotype1 & 1, genotype1 & 1 ) += 1 ;
+						if( ploidy( genotype1 ) == 2 ) {
+							(*haploid_table)( genotype1 & 2, genotype1 & 2 ) += 1 ;
+						}
+					} else {
+						(*diploid_table)( genotype1 & 0x3, genotype2 & 0x3 ) += 1 ;
+					}
+				}
+			}
+		}
+
+	private:
+			std::vector< std::vector< int > > m_genotypes ;
+
+			bool haploid( int genotype ) ;
+	} ;
+}
+#endif
 
 void HaplotypeFrequencyComponent::compute_ld_measures(
 	genfile::VariantIdentifyingData const& source_snp,
@@ -244,14 +365,14 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 			double Dprime = D / max_D ;
 			double r = D / std::sqrt( (pi(0)+pi(1)) * (pi(2)+pi(3)) * (pi(0)+pi(2)) * (pi(1)+pi(3))) ;
 
-			m_result_signal( source_snp, target_snp, "pi00", pi(0) ) ;
-			m_result_signal( source_snp, target_snp, "pi01", pi(1) ) ;
-			m_result_signal( source_snp, target_snp, "pi10", pi(2) ) ;
-			m_result_signal( source_snp, target_snp, "pi11", pi(3) ) ;
-			m_result_signal( source_snp, target_snp, "D", D ) ;
-			m_result_signal( source_snp, target_snp, "Dprime", Dprime ) ;
-			m_result_signal( source_snp, target_snp, "r", r ) ;
-			m_result_signal( source_snp, target_snp, "r_squared", r * r ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, "pi00", pi(0) ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, "pi01", pi(1) ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, "pi10", pi(2) ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, "pi11", pi(3) ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, "D", D ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, "Dprime", Dprime ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, "r", r ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, "r_squared", r * r ) ;
 #if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
 		std::cerr << "Output compltee.\n" ;
 #endif
@@ -260,14 +381,14 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 			m_ui_context.logger() << "!! Could not compute haplotype frequencies for " << source_snp << ", " << target_snp << ".\n"
 				<< "!! table is:\n" << table << ".\n" ;
 			
-			m_result_signal( source_snp, target_snp, "pi00", missing ) ;
-			m_result_signal( source_snp, target_snp, "pi01", missing ) ;
-			m_result_signal( source_snp, target_snp, "pi10", missing ) ;
-			m_result_signal( source_snp, target_snp, "pi11", missing ) ;
-			m_result_signal( source_snp, target_snp, "D", missing ) ;
-			m_result_signal( source_snp, target_snp, "Dprime", missing ) ;
-			m_result_signal( source_snp, target_snp, "r", missing ) ;
-			m_result_signal( source_snp, target_snp, "r_squared", missing ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, "pi00", missing ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, "pi01", missing ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, "pi10", missing ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, "pi11", missing ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, "D", missing ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, "Dprime", missing ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, "r", missing ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, "r_squared", missing ) ;
 		}
 	
 		{
@@ -299,25 +420,29 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 #endif
 		
 			double dosage_r = dosage_cov / std::sqrt( variances(0) * variances( 1 ) ) ;
-			m_result_signal( source_snp, target_snp, "dosage_r", dosage_r ) ;
-			m_result_signal( source_snp, target_snp, "dosage_r_squared", dosage_r * dosage_r ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, "dosage_r", dosage_r ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, "dosage_r_squared", dosage_r * dosage_r ) ;
 		}
 	} else {
-		m_result_signal( source_snp, target_snp, "pi00", missing ) ;
-		m_result_signal( source_snp, target_snp, "pi01", missing ) ;
-		m_result_signal( source_snp, target_snp, "pi10", missing ) ;
-		m_result_signal( source_snp, target_snp, "pi11", missing ) ;
-		m_result_signal( source_snp, target_snp, "D", missing ) ;
-		m_result_signal( source_snp, target_snp, "Dprime", missing ) ;
-		m_result_signal( source_snp, target_snp, "r", missing ) ;
-		m_result_signal( source_snp, target_snp, "r_squared", missing ) ;
-		m_result_signal( source_snp, target_snp, "dosage_r", missing ) ;
-		m_result_signal( source_snp, target_snp, "dosage_r_squared", missing ) ;
+		m_sink->store_per_variant_pair_data( source_snp, target_snp, "pi00", missing ) ;
+		m_sink->store_per_variant_pair_data( source_snp, target_snp, "pi01", missing ) ;
+		m_sink->store_per_variant_pair_data( source_snp, target_snp, "pi10", missing ) ;
+		m_sink->store_per_variant_pair_data( source_snp, target_snp, "pi11", missing ) ;
+		m_sink->store_per_variant_pair_data( source_snp, target_snp, "D", missing ) ;
+		m_sink->store_per_variant_pair_data( source_snp, target_snp, "Dprime", missing ) ;
+		m_sink->store_per_variant_pair_data( source_snp, target_snp, "r", missing ) ;
+		m_sink->store_per_variant_pair_data( source_snp, target_snp, "r_squared", missing ) ;
+		m_sink->store_per_variant_pair_data( source_snp, target_snp, "dosage_r", missing ) ;
+		m_sink->store_per_variant_pair_data( source_snp, target_snp, "dosage_r_squared", missing ) ;
 	}
 }
 
-void HaplotypeFrequencyComponent::end_processing_snps() {}
+void HaplotypeFrequencyComponent::end_processing_snps() {
+	if( m_sink.get() ) {
+		m_sink->finalise() ;
+	}
+}
 
-void HaplotypeFrequencyComponent::send_results_to( ResultCallback callback ) {
-	m_result_signal.connect( callback ) ;
+void HaplotypeFrequencyComponent::send_results_to( haplotype_frequency_component::FlatTableDBOutputter::UniquePtr sink ) {
+	m_sink = sink ;
 }
