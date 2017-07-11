@@ -141,7 +141,7 @@ public:
 								" are joined together to create one big dataset." )
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 1 )
-			.set_maximum_multiplicity( 100 ) ;
+			.set_maximum_multiplicity( 1000 ) ;
 
 	    options[ "-filetype" ]
 			.set_description(
@@ -195,7 +195,7 @@ public:
 							" to specify one sample file per cohort." )
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
-			.set_maximum_multiplicity( 100 ) ;
+			.set_maximum_multiplicity( 1000 ) ;
 
 	    options[ "-sample-data" ]
 	        .set_description( "Path of additional sample file(s) (in the same format as accepted by -s) to read." )
@@ -1005,7 +1005,7 @@ private:
 	QCToolOptionMangler const m_mangled_options ;
 	appcontext::UIContext& m_ui_context ;
 
-	typedef std::map< genfile::VariantIdentifyingData, genfile::VariantIdentifyingData > SNPDictionary ;
+	typedef std::map< genfile::VariantIdentifyingData, genfile::VariantIdentifyingData, genfile::VariantIdentifyingData::CompareFields > SNPDictionary ;
 	std::auto_ptr< SNPDictionary > m_snp_dictionary ;
 
 	typedef genfile::StrandAligningSNPDataSource::StrandFlipSpec StrandFlipSpec ;
@@ -1643,7 +1643,7 @@ private:
 	}
 	
 	std::auto_ptr< SNPDictionary > load_snp_dictionary( std::string const& filename ) const {
-		std::auto_ptr< SNPDictionary > result( new SNPDictionary ) ;
+		std::auto_ptr< SNPDictionary > result( new SNPDictionary( genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) ) )) ;
 		statfile::BuiltInTypeStatSource::UniquePtr source( 
 			statfile::BuiltInTypeStatSource::open(
 				genfile::wildcard::find_files_by_chromosome( filename )

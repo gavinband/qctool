@@ -20,7 +20,7 @@ namespace genfile {
 	{
 	public:
 		typedef std::auto_ptr< SNPTranslatingSNPDataSource > UniquePtr ;
-		typedef std::map< VariantIdentifyingData, VariantIdentifyingData > Dictionary ;
+		typedef std::map< VariantIdentifyingData, VariantIdentifyingData, VariantIdentifyingData::CompareFields > Dictionary ;
 		
 		static UniquePtr create(
 			SNPDataSource::UniquePtr source,
