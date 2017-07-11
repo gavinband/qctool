@@ -210,7 +210,7 @@ namespace genfile {
 		slice const& primary_id = id_data.get_primary_id() ;
 		// Missing chromosome encoded as '.'
 		if( id_data.get_position().chromosome().is_missing() ) {
-			(*m_stream_ptr) << "NA" << tab ;
+			(*m_stream_ptr) << "." << tab ;
 		} else {
 			(*m_stream_ptr) << id_data.get_position().chromosome() << tab ;
 		}
