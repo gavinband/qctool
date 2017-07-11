@@ -41,7 +41,12 @@ namespace genfile {
 	
 	void GenLikeSNPDataSink::write_variant( std::ostream& out, genfile::VariantIdentifyingData const& variant ) {
 		if( m_write_chromosome_column ) {
-			out << variant.get_position().chromosome() << " " ;
+			// missing chromosome encoded as NA
+			if( variant.get_position().chromosome().is_missing() ) {
+				out << "NA " ;
+			} else {
+				out << variant.get_position().chromosome() << " " ;
+			}
 		}
 		else {
 			if( number_of_snps_written() == 0 ) {
