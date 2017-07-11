@@ -83,7 +83,14 @@ namespace genfile {
 	) {
 		assert( number_of_samples == m_sample_ids.size() ) ;
 		/* Write BIM file line. */
-		(*m_bim_file ) << chromosome << " " << RSID << " 0 " << SNP_position << " " << first_allele << " " << second_allele << "\n" ;
+		if( chromosome.is_missing() ) {
+			// Missing chromosome encoded as 0
+			(*m_bim_file ) << "0 " ;
+		} else {
+			(*m_bim_file ) << chromosome << " " ;
+		}
+		
+		(*m_bim_file ) << RSID << " 0 " << SNP_position << " " << first_allele << " " << second_allele << "\n" ;
 
 		/* Write BED file line */
 		m_buffer.resize( (m_sample_ids.size()+3) / 4, 0 ) ;
