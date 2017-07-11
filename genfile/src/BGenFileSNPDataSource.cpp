@@ -109,15 +109,17 @@ namespace genfile {
 			boost::bind( &set_number_of_alleles, &alleles, _1 ),
 			boost::bind( &set_allele, &alleles, _1, _2 )
 		) ) {
-			Chromosome chr( chromosome_string ) ;
-			if( chr.is_missing() ) {
-				chr = m_missing_chromosome ;
+			Chromosome chromosome ;
+			if( chromosome_string == "" ) {
+				chromosome = m_missing_chromosome ;
+			} else {
+				chromosome = chromosome_string ;
 			}
 			*result = VariantIdentifyingData( rsid ) ;
 			if( SNPID.size() > 0 ) {
 				result->add_identifier( SNPID ) ;
 			}
-			result->set_position( GenomePosition( chr, position ) ) ;
+			result->set_position( GenomePosition( chromosome, position ) ) ;
 			for( std::size_t i = 0; i < alleles.size(); ++i ) {
 				result->add_allele( alleles[i] ) ;
 			}
