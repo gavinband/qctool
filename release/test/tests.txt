@@ -3,7 +3,7 @@ Library	OperatingSystem
 Library	String
 Library	Process
 Library	Collections
-Library	QctoolRunner	../../build/release/qctool_v2.0-beta5
+Library	QctoolRunner	../../build/release/qctool_v2.0-rc2
 Library	QctoolTest
 
 *** Variables ***
