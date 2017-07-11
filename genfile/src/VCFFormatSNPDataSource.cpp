@@ -295,12 +295,7 @@ namespace genfile {
 			}
 		}
 		
-		// Missing chromosome encoded as '.'
-		Chromosome chromosome ;
-		if( m_CHROM != "." ) {
-			chromosome = m_CHROM ;
-		}
-		variant.set_position( GenomePosition( chromosome, string_utils::to_repr< Position >( m_POS ) ) ) ;
+		variant.set_position( GenomePosition( m_CHROM, string_utils::to_repr< Position >( m_POS ) ) ) ;
 
 		m_variant_alleles = string_utils::split( m_ALT, "," ) ;
 		m_variant_alleles.insert( m_variant_alleles.begin(), m_REF ) ;
