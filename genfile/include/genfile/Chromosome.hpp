@@ -48,9 +48,6 @@ namespace genfile {
 			m_genome( &genome ),
 			m_repr( chromosome_str )
 		{
-			if( *m_repr == "NA" ) {
-				m_repr = boost::optional< std::string >() ;
-			}
 		}
 
 		Chromosome( Chromosome const& other ):
