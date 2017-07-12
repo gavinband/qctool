@@ -312,26 +312,28 @@ public:
 
 		options.declare_group( "Options for adjusting SNPs" ) ;
 	    options[ "-strand" ]
-	        .set_description( 	"Path of strand file(s) to input.  "
-								"If specified, this option must occur the same number of times as the -g option, to specify"
-								" one intensity file per cohort. "
-								"This file can have SNPID, rsid, chromosome, position, alleleA, alleleB, strand columns. "
-								"Strand should be specified as +, - or NA."
+	        .set_description( 
+				"Path of strand file(s) to input.  "
+				"If specified, this option must occur the same number of times as the -g option, to specify"
+				" one intensity file per cohort. "
+				"This file can have SNPID, rsid, chromosome, position, alleleA, alleleB, strand columns. "
+				"Strand should be specified as +, - or NA.  Alleles for variants with - strand will be complemented. "
+				"Variants with strand=NA, or with missing strand information, will be skipped entirely."
 			)
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
 	    options[ "-flip-to-match-allele" ]
 	        .set_description( "Specify that we should flip data if necessary so that the first allele is the given allele given in the "
-				"specified column of the strand file.  First the strand is applied, then the two alleles are compared to the given allele "
-				"and data flipped if necessary."
+				"specified column of the strand file (which must be supplied using the -strand option).  First the strand is applied, "
+				"then the two alleles are compared to the given allele and data flipped if necessary."
 			)
 			.set_takes_values( 1 )
 		;
 		options.option_implies_option( "-flip-to-match-allele", "-strand" ) ;
 		options[ "-map-id-data" ]
 			.set_description( "Update the chromosome, position, IDs and/or alleles of a set of SNPs with new values."
-				" The argument must be a file with six columns equal to the original SNPID, rsid, chromosome, position and alleles,"
+				" The argument must be a file with six named columns giving the original SNPID, rsid, chromosome, position and alleles,"
 				" followed by another six columns containing the values to replace with."
 				" SNPs not in this file will be passed to the output file unchanged. "
 				" This option only affects the identifying data, not genotypes themselves."
@@ -339,7 +341,8 @@ public:
 			.set_takes_single_value() ;
 		options[ "-flip-to-match-cohort1" ]
 			.set_description( "Specify that alleles (and corresponding genotypes) in all cohorts should be switched, if necessary,"
-				" so as to match the alleles of the first cohort." ) ;
+				" so as to match the alleles of the first cohort."
+			) ;
 		options[ "-snp-match-fields" ]
 			.set_description( "By default, matching SNPs between cohorts uses all the available fields"
 				" (position, rsid, SNPID, and alleles.)"
@@ -568,7 +571,6 @@ struct QCToolOptionMangler {
 	std::vector< std::string > const& input_sample_filenames() const { return m_input_sample_filenames ; }
 	std::string const& output_sample_filename() const { return m_output_sample_filename ; }
 	std::string const& output_sample_excl_list_filename() const { return m_output_sample_excl_list_filename ; }
-	std::string const& output_sample_stats_filename() const { return m_sample_statistic_filename ; }
 	std::string const log_filename() const { return m_options.get_value< std::string > ( "-log" ) ; }
 	InputToOutputFilenameMapper const& gen_filename_mapper() const { return m_gen_file_mapper ; }
 	std::vector< std::vector< genfile::wildcard::FilenameMatch > > const& gen_filenames() const { return m_gen_filenames ; } 
@@ -612,10 +614,6 @@ private:
 			}
 		}
 
-		// We need to write a sample stats file if -sample-stats was given.
-		if( m_options.check_if_option_was_supplied( "-sample-stats-old" ) ) {
-			m_sample_statistic_filename = m_options.get_value< std::string >( "-sample-stats-old" ) ;
-		}
 		// Otherwise, we need to write a sample exclusion list file if -write-sample-excl-list was given.
 		else if( m_options.check_if_option_was_supplied( "-write-sample-excl-list" )) {
 			m_output_sample_excl_list_filename = m_options.get_value< std::string > ( "-write-sample-excl-list" ) ;
@@ -687,7 +685,6 @@ private:
 	std::vector< std::string > m_input_sample_filenames ;
 	std::string m_output_sample_filename ;
 	std::string m_output_sample_excl_list_filename ; 
-	std::string m_sample_statistic_filename ;
 	std::string m_log_filename ;
 	InputToOutputFilenameMapper m_gen_file_mapper ;
 	InputToOutputFilenameMapper m_output_snp_excl_file_mapper ;
@@ -798,8 +795,10 @@ struct QCToolCmdLineContext
 		
 		m_ui_context.logger() << std::setw(30) << "Output SAMPLE file:"
 			<< "  \"" << format_filename( m_mangled_options.output_sample_filename()) << "\".\n" ;
-		m_ui_context.logger() << std::setw(30) << "Sample statistic output file:"
-			<< "  \"" << format_filename( m_mangled_options.output_sample_stats_filename()) << "\".\n" ;
+		if( m_options.check( "-osample" )) {
+			m_ui_context.logger() << std::setw(30) << "Sample statistic output file:"
+				<< "  \"" << format_filename( m_options.get< std::string >( "-osample" )) << "\".\n" ;
+		}
 		m_ui_context.logger() << std::setw(30) << "Sample exclusion output file:"
 			<< "  \"" << format_filename( m_mangled_options.output_sample_excl_list_filename()) << "\".\n" ;
 		m_ui_context.logger() << "\n" ;
@@ -986,9 +985,9 @@ struct QCToolCmdLineContext
 				<< "  \"" << m_mangled_options.output_sample_filename() << "\""
 				<< "  (" << m_samples->get_number_of_individuals() << " samples)\n" ;
 		}
-		if( m_mangled_options.output_sample_stats_filename() != "" ) {
+		if( m_options.check( "-osample" )) {
 			m_ui_context.logger() << std::setw(36) << "Sample statistic output file:"
-				<< "  \"" << m_mangled_options.output_sample_stats_filename() << "\".\n" ;
+				<< "  \"" << m_options.get< std::string >( "-osample" ) << "\".\n" ;
 		}
 
 		if( m_options.check( "-log" )) {
@@ -2307,8 +2306,8 @@ private:
 	}
 	
 	void check_for_warnings() {
-		if( m_mangled_options.output_sample_stats_filename() != "" && m_mangled_options.input_sample_filenames().size() == 0 ) {
-			m_warnings.push_back( "You are outputting a sample statistic file, but no input sample files have been supplied.\n"
+		if( m_options.check( "-osample" ) && m_mangled_options.input_sample_filenames().size() == 0 ) {
+			m_warnings.push_back( "You are outputting per-sample stats, but no input sample files have been supplied.\n"
 			"   Statistics will be output but the ID fields will be templates.") ;
 		}
 		if( m_snp_data_source->total_number_of_snps() && *m_snp_data_source->total_number_of_snps() == 0 ) {
@@ -2465,18 +2464,43 @@ private:
 		}
 	}
 
-	std::vector< std::string > parse_sqlite_filespec( std::string const& spec ) {
+	std::vector< std::string > parse_filespec( std::string spec ) {
+		std::vector< std::string > result(2) ;
+		result[0] = "flat" ;
+		
+		// First get rid of leading sqlite specifier, if any.
+		if( spec.size() >= 9 && spec.substr( 0, 9 ) == "sqlite://" ) {
+			result[0] = "sqlite" ;
+			spec = spec.substr( 9, spec.size() ) ;
+		}
+
 		std::vector< std::string > elts = genfile::string_utils::split( spec, ":" ) ;
-		assert( elts.size() >= 2 ) ;
-		if( elts.size() > 3 ) {
+		assert( elts.size() > 0 ) ;
+
+		if( elts[0].size() >= 7 && elts[0].substr( elts[0].size() - 7, 7 ) == ".sqlite" ) {
+			result[0] = "sqlite" ;
+		}
+		result[1] = elts[0] ;
+
+		if( elts.size() > 2 ) {
 			throw genfile::BadArgumentError(
-				"QCToolProcessor::parse_sqlite_filespace()",
+				"QCToolProcessor::parse_filespec()",
 				"spec=\"" + spec + "\"",
-				"Expected format for sqlite filespec is sqlite://<file name>[:<table name>]."
+				"Expected format for filespec is <filename> or sqlite://<filename>[:<tablename>]."
 			) ;
 		}
-		elts[1] = elts[1].substr( 2, elts[1].size() ) ;
-		return( elts ) ;
+		if( elts.size() == 2 ) {
+			if( result[0] != "sqlite" ) {
+				throw genfile::BadArgumentError(
+					"QCToolProcessor::parse_filespec()",
+					"spec=\"" + spec + "\"",
+					"Table spec is not expected unless a sqlite file is specified (i.e. sqlite://<filename>:<tablename>)"
+				) ;
+			}
+			result.push_back( elts[1] ) ;
+		}
+		
+		return( result ) ;
 	}
 
 	void unsafe_process() {
@@ -2504,27 +2528,23 @@ private:
 					"-osnp must be supplied to output per-SNP computations."
 				) ;
 			}
-			std::string const filename = options().get< std::string >( "-osnp" ) ;
-			if( 
-				( filename.size() >= 7 && filename.substr( 0, 9 ) == "sqlite://" )
-				|| ( filename.size() >= 7 && filename.substr( filename.size() - 7, 7 ) == ".sqlite" )
-			) {
-				std::vector< std::string > const elts = parse_sqlite_filespec( filename ) ;
-				assert( elts.size() == 2 || elts.size() == 3 ) ;
+			std::vector< std::string > const file_spec = parse_filespec( options().get< std::string >( "-osnp" ) ) ;
+			if( file_spec[0] == "sqlite" ) {
 				qcdb::FlatTableDBOutputter::SharedPtr table_storage = qcdb::FlatTableDBOutputter::create_shared(
-					elts[1],
+					file_spec[1],
 					options().get< std::string >( "-analysis-name" ),
 					options().get< std::string >( "-analysis-chunk" ),
 					options().get_values_as_map(),
 					options().get< std::string >( "-snp-match-fields" )
 				) ;
-				if( elts.size() == 3 ) {
-					table_storage->set_table_name( elts[2] ) ;
+				if( file_spec.size() == 3 ) {
+					table_storage->set_table_name( file_spec[2] ) ;
 				}
 				per_snp_storage = table_storage ;
 			} else {
+				assert( file_spec[0] == "flat" ) ;
 				per_snp_storage = qcdb::FlatFileOutputter::create_shared(
-					filename,
+					file_spec[1],
 					options().get< std::string >( "-analysis-name" ),
 					options().get_values_as_map()
 				) ;
@@ -2548,33 +2568,31 @@ private:
 					"-osample must be supplied to output per-sample computations."
 				) ;
 			}
-			std::string const fileSpec = options().get< std::string >( "-osample" ) ;
-			if( fileSpec.size() >= 7 && fileSpec.substr( 0, 9 ) == "sqlite://" ) {
-				std::vector< std::string > elts = parse_sqlite_filespec( fileSpec ) ;
-				assert( elts.size() == 2 || elts.size() == 3 ) ;
-
+			std::vector< std::string > const file_spec = parse_filespec( options().get< std::string >( "-osample" ) ) ;
+			if( file_spec[0] == "sqlite" ) {
 				// Catch the case where we write both to the same db.
 				boost::optional< db::Connection::RowId > analysis_id ;
-				if( options().check( "-osnp" ) && fileSpec == options().get< std::string >( "-osnp" ) && per_snp_storage ) {
+				if( options().check( "-osnp" ) && file_spec[1] == options().get< std::string >( "-osnp" ) && per_snp_storage ) {
 					analysis_id = per_snp_storage->analysis_id() ;
 				}
 				sample_stats::FlatTableDBOutputter::SharedPtr
 					dbStorage = sample_stats::FlatTableDBOutputter::create_shared(
-						elts[1],
+						file_spec[1],
 						options().get< std::string >( "-analysis-name" ),
 						options().get< std::string >( "-analysis-chunk" ),
 						options().get_values_as_map(),
 						context.get_cohort_individual_source(),
 						analysis_id
 					) ;
-				if( elts.size() == 3 ) {
-					dbStorage->set_table_name( elts[2] ) ;
+				if( file_spec.size() == 3 ) {
+					dbStorage->set_table_name( file_spec[2] ) ;
 				}
 				per_sample_storage = dbStorage ;
 			} else {
+				assert( file_spec[0] == "flat" ) ;
 				per_sample_storage = sample_stats::FlatFileOutputter::create_shared(
 					context.get_cohort_individual_source(),
-					fileSpec,
+					file_spec[1],
 					options().get< std::string >( "-analysis-name" ),
 					options().get_values_as_map()
 				) ;
@@ -2622,7 +2640,8 @@ private:
 				) ;
 			}
 			
-			std::vector< std::string > id_columns = genfile::string_utils::split_and_strip( options().get_value< std::string >( "-match-sample-ids" ), "~" ) ;
+			std::vector< std::string > id_columns
+				= genfile::string_utils::split_and_strip( options().get_value< std::string >( "-match-sample-ids" ), "~" ) ;
 			if( id_columns.size() != 2 ) {
 				throw genfile::BadArgumentError(
 					"QCToolApplication::unsafe_process()",

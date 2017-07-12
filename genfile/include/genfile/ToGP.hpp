@@ -21,11 +21,16 @@
 
 namespace genfile {
 
+	/*
+	* ToGPImpl
+	* ToGPImpl classes receive genotype data for a single sample
+	* and output it to their client setter as genotype probabilities (GP field).
+	* Each ToGPImpl handles a single order / value type combination.
+	*/
 	template< typename Setter >
 	class ToGPImpl: public boost::noncopyable {
 	public:
 		typedef std::auto_ptr< ToGPImpl > UniquePtr ;
-		typedef boost::shared_ptr< ToGPImpl > SharedPtr ;
 
 		virtual ~ToGPImpl() {}
 		virtual void initialise( Setter& setter, std::size_t number_of_alleles, uint32_t ploidy, std::size_t number_of_entries ) = 0 ;
@@ -37,27 +42,40 @@ namespace genfile {
 		
 	} ;
 
+	/*
+	* ToGP
+	* ToGP receives genotype data and forwards it to its client setter
+	* as genotype probabilities (GP field).
+	* It maintains a set of ToGPImpl objects to handle several possible order/value type combinations
+	* that are added using the add_impl() method.
+	*/
 	template< typename Setter >
 	struct ToGP: public VariantDataReader::PerSampleSetter {
 	public:
 		typedef ToGPImpl< Setter > Impl ;
 	private:
-		typedef std::map< std::pair< OrderType, ValueType >, typename Impl::SharedPtr > ImplMap ;
+		typedef std::pair< OrderType, ValueType > ImplType ;
+		typedef boost::ptr_map< ImplType, Impl > ImplMap ;
 		//typedef boost::ptr_map< std::pair< OrderType, ValueType >, Impl > ImplMap ;
+		
 	public:
 		~ToGP() throw() {}
 		
 		ToGP( Setter& setter ):
-			m_setter( setter )
+			m_setter( setter ),
+			m_impls( new ImplMap ),
+			m_current_impl(0)
 		{}
-
+			
 		ToGP( ToGP const& other ):
 			m_setter( other.m_setter ),
-			m_impls( other.m_impls )
+			m_impls( other.m_impls ),
+			m_current_impl( other.m_current_impl ),
+			m_current_impl_type( other.m_current_impl_type )
 		{}
 
-		void add_impl( OrderType const order_type, ValueType const value_type, typename Impl::SharedPtr impl ) {
-			m_impls[ std::make_pair( order_type, value_type ) ] = impl ;
+		void add_impl( OrderType const order_type, ValueType const value_type, typename Impl::UniquePtr impl ) {
+			m_impls->insert( ImplType( order_type, value_type ), impl ) ;
 		}
 
 		void initialise( std::size_t number_of_samples, std::size_t number_of_alleles ) {
@@ -70,25 +88,29 @@ namespace genfile {
 		}
 		
 		bool set_sample( std::size_t i ) {
+			// Deal with any leftover data.
 			if( m_current_impl && m_current_impl->initialised() ) {
 				m_current_impl->finalise() ;
 			}
-			m_current_impl.reset() ;
 			return m_setter.set_sample( i ) ;
 		}
 		
 		void set_number_of_entries( uint32_t ploidy, std::size_t number_of_entries, OrderType const order_type, ValueType const value_type ) {
-			typename ImplMap::iterator where = m_impls.find( std::make_pair( order_type, value_type )) ;
-			if( where == m_impls.end() ) {
-				throw genfile::BadArgumentError(
-					"genfile::ToGP::set_number_of_entries()",
-					"order_type=" + string_utils::to_string( order_type ) + ", value_type=" + string_utils::to_string(value_type),
-					"Unsupported order_type/value_type combination."
-				) ;
-			} else {
-				m_current_impl = where->second ;
-				m_current_impl->initialise( m_setter, m_number_of_alleles, ploidy, number_of_entries ) ;
+			ImplType impl_type( order_type, value_type ) ;
+			if( !m_current_impl || m_current_impl_type != impl_type ) {
+				typename ImplMap::iterator where = m_impls->find( impl_type ) ;
+				if( where == m_impls->end() ) {
+					throw genfile::BadArgumentError(
+						"genfile::ToGP::set_number_of_entries()",
+						"order_type=" + string_utils::to_string( order_type ) + ", value_type=" + string_utils::to_string(value_type),
+						"Unsupported order_type/value_type combination."
+					) ;
+				} else {
+					m_current_impl = where->second ;
+					m_current_impl_type = impl_type ;
+				}
 			}
+			m_current_impl->initialise( m_setter, m_number_of_alleles, ploidy, number_of_entries ) ;
 		}
 		
 		void set_value( std::size_t value_i, genfile::MissingValue const value ) {
@@ -112,10 +134,11 @@ namespace genfile {
 		
 	private:
 		Setter& m_setter ;
-		ImplMap m_impls ;
+		boost::shared_ptr< ImplMap > m_impls ;
 		std::size_t m_number_of_samples ;
 		std::size_t m_number_of_alleles ;
-		typename Impl::SharedPtr m_current_impl ;
+		Impl* m_current_impl ;
+		ImplType m_current_impl_type ;
 	} ;
 
 	namespace impl {
@@ -145,16 +168,16 @@ namespace genfile {
 	template< typename Setter >
 	struct GTToGPUnphased: public ToGPImpl< Setter >, impl::GTToGPUnphasedBase
 	{
-		typedef typename ToGPImpl< Setter >::SharedPtr SharedPtr ;
+		typedef typename ToGPImpl< Setter >::UniquePtr UniquePtr ;
 
-		static SharedPtr create() {
+		static UniquePtr create() {
 			if( m_tables.empty() ) {
 				for( std::size_t ploidy = 0; ploidy < 16; ++ploidy ) {
 					impl::Enumeration const& e = impl::enumerate_unphased_genotypes( ploidy ) ;
 					m_tables.push_back( std::make_pair( e.first.first, e.second.first )) ;
 				}
 			}
-			return SharedPtr( new GTToGPUnphased() ) ;
+			return UniquePtr( new GTToGPUnphased() ) ;
 		}
 		
 		GTToGPUnphased():
@@ -245,11 +268,11 @@ namespace genfile {
 	template< typename Setter >
 	struct GTToGPPhased: public ToGPImpl< Setter >, impl::GTToGPUnphasedBase
 	{
-		typedef typename ToGPImpl< Setter >::SharedPtr SharedPtr ;
+		typedef typename ToGPImpl< Setter >::UniquePtr UniquePtr ;
 
 
-		static SharedPtr create() {
-			return SharedPtr( new GTToGPPhased() ) ;
+		static UniquePtr create() {
+			return UniquePtr( new GTToGPPhased() ) ;
 		}
 		
 		GTToGPPhased():
@@ -329,11 +352,11 @@ namespace genfile {
 	template< typename Setter >
 	struct GPToGP: public ToGPImpl< Setter >, impl::GTToGPUnphasedBase
 	{
-		typedef typename ToGPImpl< Setter >::SharedPtr SharedPtr ;
+		typedef typename ToGPImpl< Setter >::UniquePtr UniquePtr ;
 
 
-		static SharedPtr create( OrderType order_type, ValueType value_type ) {
-			return SharedPtr( new GPToGP( order_type, value_type ) ) ;
+		static UniquePtr create( OrderType order_type, ValueType value_type ) {
+			return UniquePtr( new GPToGP( order_type, value_type ) ) ;
 		}
 		
 		GPToGP( OrderType order_type, ValueType value_type ):

@@ -123,7 +123,7 @@
 					<li>
 						<b>Changes to output of summary stats</b>: QCTOOL performs several types of per-variant summary computation, that are
 						specified using options like <code>-snp-stats</code>, <code>-intensity-stats</code>, <code>-fit-clusters</code>, and
-						the <code>-annotate-</code> options.  When outputting results, all output is sent to a single destination that is specified
+						the <code>-annotate-</code> options.  When outputting results, all output is sent to a single output file that is specified
 						using the <code>-osnp</code> option.  This file will automatically inherit columns from each requested computation.
 						Similarly, per-sample summary computations are output the file specified by <code>-osample</code>.
 					</li>
@@ -1110,7 +1110,7 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 					You can check qctool is working by running it:
 				</p>
 				<pre>
-				$ ./build/release/qctool-v2.0-betaX -help
+				$ ./build/release/qctool-v2.0-&lt;version&rt; -help
 </pre>
 <p>This should print out a list of options.</p>
 					<p>
