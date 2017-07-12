@@ -312,11 +312,13 @@ public:
 
 		options.declare_group( "Options for adjusting SNPs" ) ;
 	    options[ "-strand" ]
-	        .set_description( 	"Path of strand file(s) to input.  "
-								"If specified, this option must occur the same number of times as the -g option, to specify"
-								" one intensity file per cohort. "
-								"This file can have SNPID, rsid, chromosome, position, alleleA, alleleB, strand columns. "
-								"Strand should be specified as +, - or NA."
+	        .set_description( 
+				"Path of strand file(s) to input.  "
+				"If specified, this option must occur the same number of times as the -g option, to specify"
+				" one intensity file per cohort. "
+				"This file can have SNPID, rsid, chromosome, position, alleleA, alleleB, strand columns. "
+				"Strand should be specified as +, - or NA.  Alleles for variants with - strand will be complemented. "
+				"Variants with strand=NA, or with missing strand information, will be skipped entirely."
 			)
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
