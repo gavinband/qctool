@@ -31,7 +31,11 @@ namespace genfile {
 			if( notify_progress ) {
 				notify_progress( i, filenames.size() ) ;
 			}
-			chain->add_source( SNPDataSource::create( filenames[i].filename(), filenames[i].match(), metadata, filetype_hint )) ;
+			Chromosome chromosome ;
+			if( filenames[i].match() != "" ) {
+				chromosome = filenames[i].match() ;
+			}
+			chain->add_source( SNPDataSource::create( filenames[i].filename(), chromosome, metadata, filetype_hint )) ;
 			if( notify_progress ) {
 				notify_progress( i + 1, filenames.size() ) ;
 			}
