@@ -35,6 +35,7 @@ public:
 	) ;
 
 	void set_max_distance( uint64_t distance ) ;
+	void set_min_r2( double min_r2 ) ;
 
 public:
 	HaplotypeFrequencyComponent( genfile::SNPDataSource::UniquePtr source, appcontext::UIContext& ui_context ) ;
@@ -58,12 +59,13 @@ public:
 	void end_processing_snps() ;
 	
 	void send_results_to( haplotype_frequency_component::FlatTableDBOutputter::UniquePtr ) ;
-
+	
 private:
 	genfile::SNPDataSource::UniquePtr m_source ;
 	appcontext::UIContext& m_ui_context ;
 	double const m_threshhold ;
 	int64_t m_max_distance ;
+	double m_min_r2 ;
 	haplotype_frequency_component::FlatTableDBOutputter::UniquePtr m_sink ;
 } ;
 

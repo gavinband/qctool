@@ -17,7 +17,7 @@
 #include "appcontext/get_current_time_as_string.hpp"
 #include "components/HaplotypeFrequencyComponent/FlatTableDBOutputter.hpp"
 
-#define DEBUG_FLATTABLEDBOUTPUTTER 1
+// #define DEBUG_FLATTABLEDBOUTPUTTER 1
 
 namespace haplotype_frequency_component {
 	FlatTableDBOutputter::UniquePtr FlatTableDBOutputter::create(
@@ -35,7 +35,7 @@ namespace haplotype_frequency_component {
 		std::string const& snp_match_fields
 	):
 		m_outputter( filename, analysis_name, analysis_description, metadata, boost::optional< db::Connection::RowId >(), snp_match_fields ),
-		m_table_name( "Analysis" + genfile::string_utils::to_string( m_outputter.analysis_id() ) ),
+		m_table_name( "ld_analysis" + genfile::string_utils::to_string( m_outputter.analysis_id() ) ),
 		m_max_variants_per_block( 1000 )
 	{}
 
@@ -102,13 +102,7 @@ namespace haplotype_frequency_component {
 		std::pair< genfile::VariantIdentifyingData, genfile::VariantIdentifyingData > variant_pair = std::make_pair( variant1, variant2 ) ;
 		bool const new_variant = m_variants.empty() || variant_pair != m_variants.back() ;
 		if( new_variant ) {
-			// If we have a whole block's worth of data, store it now.
-			if( m_variants.size() == m_max_variants_per_block ) {
-				store_block() ;
-				m_variants.clear() ;
-				m_values.clear() ;
-			}
-			m_variants.push_back( variant_pair ) ;
+			create_new_variant_pair( variant1, variant2 ) ;
 		}
 
 		VariableMap::left_const_iterator where = m_variables.left.find( variable ) ;
