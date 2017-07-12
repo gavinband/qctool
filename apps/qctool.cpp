@@ -325,15 +325,15 @@ public:
 			.set_maximum_multiplicity( 100 ) ;
 	    options[ "-flip-to-match-allele" ]
 	        .set_description( "Specify that we should flip data if necessary so that the first allele is the given allele given in the "
-				"specified column of the strand file.  First the strand is applied, then the two alleles are compared to the given allele "
-				"and data flipped if necessary."
+				"specified column of the strand file (which must be supplied using the -strand option).  First the strand is applied, "
+				"then the two alleles are compared to the given allele and data flipped if necessary."
 			)
 			.set_takes_values( 1 )
 		;
 		options.option_implies_option( "-flip-to-match-allele", "-strand" ) ;
 		options[ "-map-id-data" ]
 			.set_description( "Update the chromosome, position, IDs and/or alleles of a set of SNPs with new values."
-				" The argument must be a file with six columns equal to the original SNPID, rsid, chromosome, position and alleles,"
+				" The argument must be a file with six named columns giving the original SNPID, rsid, chromosome, position and alleles,"
 				" followed by another six columns containing the values to replace with."
 				" SNPs not in this file will be passed to the output file unchanged. "
 				" This option only affects the identifying data, not genotypes themselves."
@@ -341,7 +341,8 @@ public:
 			.set_takes_single_value() ;
 		options[ "-flip-to-match-cohort1" ]
 			.set_description( "Specify that alleles (and corresponding genotypes) in all cohorts should be switched, if necessary,"
-				" so as to match the alleles of the first cohort." ) ;
+				" so as to match the alleles of the first cohort."
+			) ;
 		options[ "-snp-match-fields" ]
 			.set_description( "By default, matching SNPs between cohorts uses all the available fields"
 				" (position, rsid, SNPID, and alleles.)"
