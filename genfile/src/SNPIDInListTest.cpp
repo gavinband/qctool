@@ -23,7 +23,7 @@ namespace genfile {
 	}
 	bool SNPIDInListTest::operator()( VariantIdentifyingData const& data ) const {
 		std::vector< std::string > ids ;
-		data.get_alleles( boost::bind( &insert_value, &ids, _1 )) ;
+		data.get_identifiers( boost::bind( &insert_value, &ids, _1 ), 1 ) ;
 		for( std::size_t i = 0; i < ids.size(); ++i ) {
 			if( m_id_fields.find( ids[i] ) != m_id_fields.end() ) {
 				return true ;
