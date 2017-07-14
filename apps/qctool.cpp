@@ -1764,7 +1764,7 @@ private:
 				}
 
 				if( m_options.check_if_option_was_supplied( "-incl-snpids" )) {
-					std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-snpids" ) ;
+					std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-snpids" ) ;
 					BOOST_FOREACH( std::string const& filename, files ) {
 						snp_filter->include_snps_in_file(
 							filename,
