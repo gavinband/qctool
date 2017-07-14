@@ -72,17 +72,18 @@ simulate <- function( numberOfSamples, numberOfVariants, filename ) {
 	G[, seq( from = 3, length = numberOfSamples, by = 3 )] = (
 		( 1 - G[, seq( from = 1, length = numberOfSamples, by = 3 )] - G[, seq( from = 2, length = numberOfSamples, by = 3 )] )
 	)
-	SNPID.length = sample( 1:100, 1 )
-	rsid.length = sample( 1:100, 1 )
+	SNPID.length = sample( 1:100, 1, replace = T )
+	rsid.length = sample( 1:100, 1, replace = T )
 	V = data.frame(
 		SNPID = paste( sample( c( LETTERS, letters ), SNPID.length, replace = T ), collapse = '' ),
 		rsid = paste( sample( c( LETTERS, letters ), rsid.length, replace = T ), collapse = '' ),
 		chromosome = sample( chromosomes, 1 ),
-		position = sample( 1:1000000000, 1 ),
+		position = sample( 1:1000000, 1 ),
 		alleleA = paste( sample( c( LETTERS, letters ), sample( 1:10, 1 ) ), collapse = '' ),
 		alleleB = paste( sample( c( LETTERS, letters ), sample( 1:10, 1 ) ), collapse = '' )
 	)
-	
+	V = V[rep(1,numberOfVariants),]
+
 	write.table(
 		cbind( V, G ),
 		col.names = F,
@@ -96,9 +97,13 @@ filename=tempfile( tmpdir = "/tmp/" )
 bgen.filename = sprintf( "%s.bgen", filename )
 gen.filename = sprintf( "%s.bgen.gen", filename )
 for( i in 1:args$iterations ) {
+	cat( "Iteration", i, "\n" )
 	N = sample( 1:args$max_samples, 1 )
+	cat( "Simulating...\n" )
 	simulate( N, args$variants, filename )
+	cat( "Reading...\n" )
 	original.data = read.table( filename, head = F, as.is=T )
+	cat( "Converting to bgen...\n" )
 	system(
 		sprintf(
 			'%s -g %s -filetype gen -og %s -ofiletype %s -bgen-bits %d 2>/dev/null',
@@ -110,6 +115,7 @@ for( i in 1:args$iterations ) {
 		)
 	)
 
+	cat( "Converting back...\n" )
 	system(
 		sprintf(
 			'%s -g %s -og %s -precision 100 2>/dev/null',
@@ -119,8 +125,10 @@ for( i in 1:args$iterations ) {
 		)
 	)
 	
+	cat( "Reading reconstruction...\n" )
 	reconstructed.data = read.table( gen.filename, head = F, as.is=T )
 
+	cat( "Comparing...\n" )
 	stopifnot( nrow( original.data ) == nrow( reconstructed.data ))
 	stopifnot( ncol( original.data ) == ncol( reconstructed.data ))
 	for( col in 1:6 ) {

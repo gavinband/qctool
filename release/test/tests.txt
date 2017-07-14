@@ -3,13 +3,13 @@ Library	OperatingSystem
 Library	String
 Library	Process
 Library	Collections
-Library	QctoolRunner	../../build/release/qctool_v2.0-rc2
+Library	QctoolRunner	../../build/release/qctool_v2.0-rc3
 Library	QctoolTest
 
 *** Variables ***
 ${TMPDIR}	${CURDIR}/tmp
 ${HOME}	%{HOME}
-${QCTOOL}	../../build/release/qctool_v2.0-rc2
+${QCTOOL}	../../build/release/qctool_v2.0-rc3
 
 *** Test cases ***
 Runs basic commands
@@ -48,6 +48,14 @@ Accepts input files
 	RunsCommandWithResult	{ "g": ["data/test.v12.bgen"], "filetype": "bgen", "snp-stats": "", "osnp": "<tmp>" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.bed"], "filetype": "binary_ped", "snp-stats": "", "osnp": "<tmp>" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.shapeit"], "s": [ "data/complex.sample" ], "filetype": "shapeit_haplotypes", "snp-stats": "", "osnp": "<tmp>" }	ok
+
+Filters SNPs
+	RunsCommandWithOg	{ "g": [ "data/test.gen" ], "og": "<tmp>", "incl-rsids": "data/good_snp_rsids.txt", "ofiletype": "gen" }	"data/test.filtered.gen"
+	RunsCommandWithOg	{ "g": [ "data/test.gen" ], "og": "<tmp>", "incl-snpids": "data/good_snp_snpids.txt", "ofiletype": "gen" }	"data/test.filtered.gen"
+	RunsCommandWithOg	{ "g": [ "data/test.gen" ], "og": "<tmp>", "incl-positions": "data/good_snp_positions.txt", "ofiletype": "gen" }	"data/test.filtered.gen"
+	RunsCommandWithOg	{ "g": [ "data/test.gen" ], "og": "<tmp>", "excl-rsids": "data/bad_snp_rsids.txt", "ofiletype": "gen" }	"data/test.filtered.gen"
+	RunsCommandWithOg	{ "g": [ "data/test.gen" ], "og": "<tmp>", "excl-snpids": "data/bad_snp_snpids.txt", "ofiletype": "gen" }	"data/test.filtered.gen"
+	RunsCommandWithOg	{ "g": [ "data/test.gen" ], "og": "<tmp>", "excl-positions": "data/bad_snp_positions.txt", "ofiletype": "gen" }	"data/test.filtered.gen"
 
 Produces well-formed snp stats output
 	@{commandSpecs}=	Create List	{ "snp-stats": "", "osnp": "<tmp>" }
@@ -90,18 +98,18 @@ Annotates BED intervals
 	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "annotate-bed3": [ "data/annotation2.bed" ], "annotate-bed4": [ "data/annotation1.bed" ] }	data/annotation1	data/annotation2
 
 Roundtrips gen files via bgen (v1.1)
-	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	16	--iterations	1	--max_samples	100	--bgen_version	v1.1	--qctool	${QCTOOL}
+	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	16	--iterations	10	--max_samples	10	--variants	10	--bgen_version	v1.1	--qctool	${QCTOOL}
 
 Roundtrips allele probs formats
-	CheckRun	Rscript	--vanilla	test_allele_probs_format.R	--qctool	${QCTOOL}
+	CheckRun	Rscript	--vanilla	test_allele_probs_format.R	--iterations	10	--qctool	${QCTOOL}
 
 Roundtrips gen files via bgen (v1.2, even bit counts)
 	:FOR	${bits}	IN	2	4	6	8	10	12	14	16	18	20	22	24	26	28	30	32
-	\	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	${bits}	--iterations	1	--max_samples	100	--bgen_version	v1.2	--qctool	${QCTOOL}
+	\	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	${bits}	--iterations	10	--max_samples	10	--variants	10	--bgen_version	v1.2	--qctool	${QCTOOL}
 
 Roundtrips gen files via bgen (v1.2, odd bit counts)
 	:FOR	${bits}	IN	1	3	5	7	9	11	13	15	17	19	21	23	25	27	29	31
-	\	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	${bits}	--iterations	1	--max_samples	100	--bgen_version	v1.2	--qctool	${QCTOOL}
+	\	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	${bits}	--iterations	10	--max_samples	10	--variants	10	--bgen_version	v1.2	--qctool	${QCTOOL}
 
 *** Keywords ***
 
@@ -113,6 +121,12 @@ CheckRun
 RunsCommandWithResult
 	[Arguments]	${command}	${expected_result}
 	Run Qctool	${command}	${expected_result}
+
+RunsCommandWithOg
+	[Arguments]	${command}	${expectedOutput}
+	${filenames}=	Run Qctool	${command}	ok
+	${filename}=	Get Variable Value	${filenames['og']}
+	CheckRun	Rscript	--vanilla	compare_gen_files.R	--file1	${filename}	--file2	data/test.filtered.gen
 
 RunsCommandWithColumns
 	[Arguments]	${command}	@{columns}
