@@ -106,10 +106,10 @@ namespace {
 		}
 
 		void initialise( std::size_t number_of_samples, std::size_t number_of_alleles ) {
-			// assume at most diploidy
 #if DEBUG_PER_VARIANT_COMPUTATION_MANAGER
 			std::cerr << "GPSetter::initialise( " << number_of_samples << ", " << number_of_alleles << " ).\n" ;
 #endif
+			// assume at most diploidy, max entries is number of alleles choose 2.
 			m_genotypes->resize( number_of_samples, number_of_alleles * (number_of_alleles+1)/2 ) ;
 			m_genotypes->setZero() ;
 			m_sample_i = 0 ;
@@ -126,12 +126,12 @@ namespace {
 		void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 			assert( order_type == genfile::ePerUnorderedGenotype ) ;
 			assert( value_type == genfile::eProbability ) ;
-			m_max_ploidy = std::max( m_max_ploidy, ploidy ) ;
-			m_min_ploidy = std::min( m_min_ploidy, ploidy ) ;
 			m_ploidy[ m_sample_i ] = ploidy ;
 			if( ploidy <= 2 ) {
 				m_genotypes->row( m_sample_i ).setZero() ;
 			}
+			m_min_ploidy = std::min( ploidy, m_min_ploidy ) ;
+			m_max_ploidy = std::max( ploidy, m_max_ploidy ) ;
 		}
 		
 		void set_value( std::size_t value_i, genfile::MissingValue const value ) {
@@ -143,7 +143,8 @@ namespace {
 			std::cerr << "GPSetter::set_value( " << value_i << ", " << value << " ).\n" ;
 			std::cerr << "GPSetter: m_ploidy[" << m_sample_i << "] = " << m_ploidy[ m_sample_i ] << ".\n" ;
 #endif
-			if( m_ploidy[ m_sample_i ] <= 2 ) {
+			uint32_t const& ploidy = m_ploidy[ m_sample_i ] ; 
+			if( ploidy <= 2 ) {
 				assert( value_i < m_genotypes->cols() ) ;
 				(*m_genotypes)( m_sample_i, value_i ) = value ;
 			}
@@ -197,6 +198,7 @@ void SNPSummaryComputationManager::processed_snp(
 			// Currently non-diploid computations are unsupported except
 			// via particular computations which handle it directly.
 			// std::cerr << "WOAH! min ploidy is " << setter.min_ploidy() << ", max is " << setter.max_ploidy() << "!!!\n" ;
+			m_genotypes.resize( m_genotypes.rows(), 3 ) ;
 			m_genotypes.setZero() ;
 		}
 
@@ -209,6 +211,10 @@ void SNPSummaryComputationManager::processed_snp(
 				data_reader,
 				callback
 			) ;
+		}
+
+		if( snp.number_of_alleles() != 2 ) {
+			m_result_signal( snp, "comment", "non-biallelic" ) ;
 		}
 	}
 	catch( genfile::MalformedInputError const& e ) {

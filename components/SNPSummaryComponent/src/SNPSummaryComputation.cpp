@@ -107,8 +107,7 @@ namespace snp_summary_component {
 
 		void list_variables( NameCallback callback ) const {
 			using genfile::string_utils::to_string ;
-			// By default we list 2 alleles
-			// In files with more alleles.
+			// By default we list 10 alleles
 			callback( "number_of_alleles" ) ;
 			for( std::size_t i = 0; i < 10; ++i ) {
 				callback( "allele" + to_string(i+1) + "_count" ) ;
@@ -146,7 +145,6 @@ namespace snp_summary_component {
 
 	struct AlleleFrequencyComputation: public SNPSummaryComputation
 	{
-		
 		AlleleFrequencyComputation( std::string const& what ):
 			m_compute_counts( what == "everything" || what == "counts" ),
 			m_compute_frequencies( what == "everything" )
@@ -155,11 +153,13 @@ namespace snp_summary_component {
 		}
 		void operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, genfile::VariantDataReader&, ResultCallback callback ) {
 			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
-			if( chromosome.is_sex_determining() ) {
-				compute_sex_chromosome_frequency( snp, genotypes, sexes, callback ) ;
-			}
-			else {
-				compute_autosomal_frequency( snp, genotypes, callback ) ;
+			if( snp.number_of_alleles() == 2 ) {
+				if( chromosome.is_sex_determining() ) {
+					compute_sex_chromosome_frequency( snp, genotypes, sexes, callback ) ;
+				}
+				else {
+					compute_autosomal_frequency( snp, genotypes, callback ) ;
+				}
 			}
 		}
 		
@@ -300,11 +300,13 @@ namespace snp_summary_component {
 			if( !chromosome.is_sex_determining() ) {
 				callback( "A", 0 ) ;
 				callback( "B", 0 ) ;
-				callback( "AA", genotypes.col(0).sum() ) ;
-				callback( "AB", genotypes.col(1).sum() ) ;
-				callback( "BB", genotypes.col(2).sum() ) ;
+				if( snp.number_of_alleles() == 2 ) {
+					callback( "AA", genotypes.col(0).sum() ) ;
+					callback( "AB", genotypes.col(1).sum() ) ;
+					callback( "BB", genotypes.col(2).sum() ) ;
+				}
 				callback( "NULL", genotypes.rows() - genotypes.sum() ) ;
-			} else {
+			} else if( snp.number_of_alleles() == 2 ) {
 				compute_sex_chromosome_counts( snp, genotypes, sexes, callback ) ;
 			}
 			callback( "total", genfile::VariantEntry::Integer( genotypes.rows() )) ;
@@ -352,10 +354,14 @@ namespace snp_summary_component {
 	struct InfoComputation: public SNPSummaryComputation {
 		void operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sample_sexes, genfile::VariantDataReader&, ResultCallback callback ) {
 			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
-			if( chromosome.is_sex_determining() ) {
-				compute_sex_chromosome_info( snp, genotypes, sample_sexes, callback ) ;
+			if( snp.number_of_alleles() == 2 ) {
+				if( chromosome.is_sex_determining() ) {
+					compute_sex_chromosome_info( snp, genotypes, sample_sexes, callback ) ;
+				} else {
+					compute_autosomal_info( snp, genotypes, callback ) ;
+				}
 			} else {
-				compute_autosomal_info( snp, genotypes, callback ) ;
+				// we don't compute for multiallelics currently
 			}
 		}
 		
