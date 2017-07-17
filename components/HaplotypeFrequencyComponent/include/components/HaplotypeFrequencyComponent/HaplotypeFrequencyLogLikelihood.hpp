@@ -11,17 +11,23 @@
 #include <Eigen/Core>
 #include <boost/math/distributions/binomial.hpp>
 
-// Loglikelihood of table of genotypes at 2 SNPs, given parameters specifying the haplotype frequencies.
-// The parameters are \pi_01, \pi_10, and \pi_11.  Then \pi_00 is one minus the sum of the others.
-// \pi_ab is the frequency of the haplotype with genotype a at SNP 1 and b at SNP 2.
-// Now the probability of any table is obtained
-// 
+// Loglikelihood of table of genotypes  and known haplotypes at 2 biallelic variants,
+// given parameters specifying the haplotype frequencies.
+// The parameters are \pi_01, \pi_10, and \pi_11.  Then \pi_00 can be
+// computed as one minus the sum of the others.
+//
+// This loglikelihood can additionally estimate the parameters using the EM algorithm.
+//
 struct HaplotypeFrequencyLogLikelihood {
 	typedef Eigen::MatrixXd Matrix ;
 	typedef Eigen::VectorXd Vector ;
 	typedef Eigen::RowVectorXd RowVector ;
 
-	HaplotypeFrequencyLogLikelihood( Matrix const& genotype_table ) ;
+	HaplotypeFrequencyLogLikelihood(
+		Matrix const& genotype_table,
+		Matrix const& haplotype_table = Matrix::Zero(2,2)
+	) ;
+
 	void evaluate_at( Vector const& pi ) ;
 	double get_value_of_function() const ;
 	Vector get_value_of_first_derivative() ;
@@ -31,6 +37,7 @@ struct HaplotypeFrequencyLogLikelihood {
 
 	private:
 		Matrix const m_genotype_table ;
+		Matrix const m_haplotype_table ;
 		std::vector< std::vector< RowVector > > m_dpi ;
 		double m_ll ;
 		RowVector m_D_ll ;

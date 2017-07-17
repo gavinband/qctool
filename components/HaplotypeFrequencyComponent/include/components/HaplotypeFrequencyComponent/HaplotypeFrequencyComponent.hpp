@@ -9,11 +9,13 @@
 
 #include <string>
 #include <boost/function.hpp>
+#include <boost/optional.hpp>
 #include <boost/signals2/signal.hpp>
 #include <Eigen/Core>
 #include "genfile/SNPDataSourceProcessor.hpp"
 #include "genfile/VariantIdentifyingDataTest.hpp"
 #include "genfile/CohortIndividualSource.hpp"
+#include "genfile/SampleStratification.hpp"
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
 #include "HaplotypeFrequencyLogLikelihood.hpp"
@@ -36,6 +38,7 @@ public:
 
 	void set_max_distance( uint64_t distance ) ;
 	void set_min_r2( double min_r2 ) ;
+	void set_stratification( genfile::SampleStratification stratification ) ;
 
 public:
 	HaplotypeFrequencyComponent( genfile::SNPDataSource::UniquePtr source, appcontext::UIContext& ui_context ) ;
@@ -52,8 +55,18 @@ public:
 	
 	void compute_ld_measures(
 		genfile::VariantIdentifyingData const& source_snp,
+		Eigen::VectorXd const& source_genotypes,
 		genfile::VariantIdentifyingData const& target_snp,
-		std::vector< Eigen::VectorXd > const& genotypes
+		Eigen::VectorXd const& target_genotypes
+	) ;
+
+	void compute_ld_measures(
+		genfile::VariantIdentifyingData const& source_snp,
+		Eigen::VectorXd const& source_genotypes,
+		genfile::VariantIdentifyingData const& target_snp,
+		Eigen::VectorXd const& target_genotypes,
+		std::string const& variable_name_stub,
+		std::vector< genfile::SampleRange > const& sample_set
 	) ;
 
 	void end_processing_snps() ;
@@ -63,6 +76,7 @@ public:
 private:
 	genfile::SNPDataSource::UniquePtr m_source ;
 	appcontext::UIContext& m_ui_context ;
+	boost::optional< genfile::SampleStratification > m_stratification ;
 	double const m_threshhold ;
 	int64_t m_max_distance ;
 	double m_min_r2 ;

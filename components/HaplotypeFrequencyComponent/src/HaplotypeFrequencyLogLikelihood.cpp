@@ -13,8 +13,12 @@
 #include "components/HaplotypeFrequencyComponent/HaplotypeFrequencyComponent.hpp"
 
 // #define DEBUG_HAPLOTYPE_FREQUENCY_LL 1
-HaplotypeFrequencyLogLikelihood::HaplotypeFrequencyLogLikelihood( Matrix const& genotype_table ):
+HaplotypeFrequencyLogLikelihood::HaplotypeFrequencyLogLikelihood(
+	Matrix const& genotype_table,
+	Matrix const& haplotype_table
+):
 	m_genotype_table( genotype_table ),
+	m_haplotype_table( haplotype_table ),
 	m_D_ll( 3 ),
 	m_DDt_ll( 3, 3 )
 {
@@ -43,7 +47,11 @@ HaplotypeFrequencyLogLikelihood::Vector HaplotypeFrequencyLogLikelihood::get_MLE
 	Matrix const& G = m_genotype_table ;
 	Vector pi = estimate_parameters( 0.5 ) ;
 #if DEBUG_HAPLOTYPE_FREQUENCY_LL 
-	std::cerr << std::resetiosflags( std::ios::floatfield ) << "Maximising likelihood for:\n" << m_genotype_table << ".\n" ;
+	std::cerr << std::resetiosflags( std::ios::floatfield ) << "Maximising likelihood for genotypes:\n"
+		<< m_genotype_table
+		<< "\nand haplotypes:\n"
+		<< m_haplotype_table
+		<< "\n" ;
 	std::cerr << "pi = " << pi(0) << " " << pi(1) << " " << pi(2) << " " << pi(3) << " " << ", p = 0.5.\n" ;
 #endif
 	if( G(1,1) != 0.0 ) {
@@ -80,16 +88,20 @@ HaplotypeFrequencyLogLikelihood::Vector HaplotypeFrequencyLogLikelihood::estimat
 	double const p
 ) const {
 	Matrix const& G = m_genotype_table ;
+	Matrix const& H = m_haplotype_table ;
 	
-	double expected_AB_ab = G( 1, 1 ) * p ;
-	double expected_Ab_aB = G( 1, 1 ) - expected_AB_ab;
+	// p is proportion of het / het genotypes
+	// that are due to 00+11 haplotype combinations.
+	double expected_00_11 = G( 1, 1 ) * p ;
+	double expected_01_10 = G( 1, 1 ) - expected_00_11;
 	
+	// params are pi00 pi01 pi10 pi11
 	Vector result( 4 ) ;
 	result <<
-		G( 0, 1 ) + 2 * G( 0, 0 ) + G( 1, 0 ) + expected_AB_ab,
-		G( 0, 1 ) + 2 * G( 0, 2 ) + G( 1, 2 ) + expected_Ab_aB,
-		G( 2, 1 ) + 2 * G( 2, 0 ) + G( 1, 0 ) + expected_Ab_aB,
-		G( 1, 2 ) + 2 * G( 2, 2 ) + G( 2, 1 ) + expected_AB_ab
+		H(0,0) + G( 0, 1 ) + 2 * G( 0, 0 ) + G( 1, 0 ) + expected_00_11,
+		H(0,1) + G( 0, 1 ) + 2 * G( 0, 2 ) + G( 1, 2 ) + expected_01_10,
+		H(1,0) + G( 2, 1 ) + 2 * G( 2, 0 ) + G( 1, 0 ) + expected_01_10,
+		H(1,1) + G( 1, 2 ) + 2 * G( 2, 2 ) + G( 2, 1 ) + expected_00_11
 	;
 	result /= result.sum() ;
 	return result ;
@@ -110,75 +122,42 @@ void HaplotypeFrequencyLogLikelihood::evaluate_at( Vector const& pi ) {
 	double het_probability = pi00 * pi11 + pi01 * pi10 ;
 
 	Matrix const& G = m_genotype_table ;
-	Matrix V( 3, 3 ) ;
-	V <<
+	Matrix const& H = m_haplotype_table ;
+	Matrix VG( 3, 3 ) ;
+	VG <<
 		2.0 * lpi00,		lpi00 + lpi01,				2.0 * lpi01,
 		lpi00 + lpi10,		log( het_probability ),		lpi01 + lpi11,
-		2.0 * lpi10,		lpi10 + lpi11,				2.0 * lpi11 ;
+		2.0 * lpi10,		lpi10 + lpi11,				2.0 * lpi11
+	;
 
-	m_ll = 0.0 ;
-	for( int i = 0; i < 3; ++i ) {
-		for( int j = 0; j < 3; ++j ) {
-			if( G( i, j ) != 0.0 ) {
-				m_ll += G( i, j ) * V( i, j ) ;
-			}
-		}
-	}
+	Matrix VH( 2, 2 ) ;
+	VG <<
+		lpi00,		lpi01,
+		lpi10,		lpi11
+	;
 
-/*	m_D_ll
-		+ G( 1, 0 ) * ( ( m_dpi[1][0] / pi10 ) )
-		+ G( 1, 1 ) * ( ( m_dpi[0][0] * pi11 + m_dpi[1][1] * pi00 + m_dpi[0][1] * pi10 + m_dpi[1][0] * pi01 ) / ( pi00 * pi11 + pi01 * pi10 ) )
-		+ G( 1, 2 ) * (  ( m_dpi[1][1] / pi11 ) )
-		+ G( 2, 0 ) * 2.0 * ( m_dpi[1][0] / pi10 )
-		+ G( 2, 1 ) * ( ( m_dpi[1][0] / pi10 ) + ( m_dpi[1][1] / pi11 ) )
-		+ G( 2, 2 ) * 2.0 * ( m_dpi[1][1] / pi11 ) ;
-*/
-	Matrix c( 2, 2 ) ;
-	c <<
-		( 2.0 * G( 0, 0 ) + G( 0, 1 ) + G( 1, 0 ) ), 		( 2.0 * G( 0, 2 ) + G( 0, 1 ) + G( 1, 2 ) ),
-		( 2.0 * G( 2, 0 ) + G( 1, 0 ) + G( 2, 1 ) ),		( 2.0 * G( 2, 2 ) + G( 1, 2 ) + G( 2, 1 ) ) ;
-	RowVector Dhet_probability = ( m_dpi[0][0] * pi11 + m_dpi[1][1] * pi00 + m_dpi[0][1] * pi10 + m_dpi[1][0] * pi01 ) ;
-	m_D_ll.setZero() ; // derivative of loglikelihood.
-	m_DDt_ll.setZero() ; // derivative of (transpose of) derivative
-	if( c( 0, 0 ) != 0.0 ) {
-		m_D_ll += c( 0, 0 ) * ( m_dpi[0][0] / pi00 ) ;
-		m_DDt_ll += c( 0, 0 ) * -m_dpi[0][0].transpose() * m_dpi[0][0] / ( pi00 * pi00 ) ;
-	}
-	if( c( 0, 1 ) != 0.0 ) {
-		m_D_ll += c( 0, 1 ) * ( m_dpi[0][1] / pi01 ) ;
-		m_DDt_ll += c( 0, 1 ) * -m_dpi[0][1].transpose() * m_dpi[0][1] / ( pi01 * pi01 ) ;
-	}
-	if( c( 1, 0 ) != 0.0 ) {
-		m_D_ll += c( 1, 0 ) * ( m_dpi[1][0] / pi10 ) ;
-		m_DDt_ll += c( 1, 0 ) * -m_dpi[1][0].transpose() * m_dpi[1][0] / ( pi10 * pi10 ) ;
-	}
-	if( c( 1, 1 ) != 0.0 ) {
-		m_D_ll += c( 1, 1 ) * ( m_dpi[1][1] / pi11 ) ;
-		m_DDt_ll += c( 1, 1 ) * -m_dpi[1][1].transpose() * m_dpi[1][1] / ( pi11 * pi11 ) ;
-	}
-	if( G( 1, 1 ) != 0.0 ) {
-		m_D_ll += G( 1, 1 ) * ( Dhet_probability / het_probability ) ;
-		m_DDt_ll += G( 1, 1 ) * (
-			(
-				- m_dpi[1][1].transpose() * m_dpi[0][0] / ( pi11 * pi11 )
-				- m_dpi[0][0].transpose() * m_dpi[1][1] / ( pi00 * pi00 )
-				- m_dpi[1][0].transpose() * m_dpi[0][1] / ( pi10 * pi10 )
-				- m_dpi[0][1].transpose() * m_dpi[1][0] / ( pi01 * pi01 )
-			) / het_probability
-			- (
-				Dhet_probability.transpose() * Dhet_probability ) / ( het_probability * het_probability )
-		) ;
-	}
+	// cells with count 0 contribute 0 to the loglikelihood/
+	// Since log(0) = -inf we have to handle this specially.
+	// We do this by replacing these parameter entries with 0.
+	VG = VG.array() * ( G.array() > 0.0 ).cast< double >() ;
+	VH = VH.array() * ( H.array() > 0.0 ).cast< double >() ;
+
+	m_ll = (
+		(G.array() * VG.array())
+		+ (H.array() * VH.array())
+	).sum() ;
 }
 double HaplotypeFrequencyLogLikelihood::get_value_of_function() const {
 	return m_ll ;
 }
 
 HaplotypeFrequencyLogLikelihood::Vector HaplotypeFrequencyLogLikelihood::get_value_of_first_derivative() {
-	return m_D_ll.transpose() ;
+	assert(0) ;
+	return m_D_ll ;
 }
 
 HaplotypeFrequencyLogLikelihood::Matrix HaplotypeFrequencyLogLikelihood::get_value_of_second_derivative() {
+	assert(0) ;
 	return m_DDt_ll ;
 }
 
