@@ -69,8 +69,8 @@
 		<div class="main_text">
 			<div id="overview" style="display:none">
 				<p>
-					<b>IMPORTANT</b>: this page documents QCTOOL version 2. 
-					QCTOOL v2 differs in some important ways from QCTOOL version 1, go <a href="http://www.well.ox.ac.uk/~gav/qctool/">here</a> if you want that instead.
+					<b>IMPORTANT</b>: this page documents QCTOOL version 2, which is current in <b>release candidate</b> status.
+					Go <a href="http://www.well.ox.ac.uk/~gav/qctool/">here</a> if you want the stable QCTOOL version 1.
 				</p>
 				<p>
 					QCTOOL is a command-line utility program for manipulation and quality control of gwas datasets and other
@@ -84,11 +84,22 @@
 						<a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format.html">BGEN</a> files, including full support for BGEN v1.2).</li>
 					<li>To manipulate datasets in various ways - e.g. by updating data fields or aligning alleles to a reference sequence based on
 						information in a strand file.</li>
+					<li>To annotate variants with information from BED files, sequence from FASTA files, or with genetic map positions.</li>
+					<li>To compute LD metrics between variants.</li>
 					<li>To compare genotypes for individuals typed or imputed or phased in different datasets.</li>
 					<li>To compute between-sample relatedness and principal components.</li>
+					<li>To compute 'genetic risk predictor' scores.</li>
 				</ul>
 				<p>
 					QCTOOL is designed to be as easy-to-use as possible and we hope you find it so.
+					See the <a href='#documentation'>documentation page</a> for a description of how QCTOOL works.
+				</p>
+				<p>
+					<strong>A note on performance</strong>
+					The large sizes of modern datasets mean performance is often a critical factor.
+					QCTOOL is currently not always the fastest tool in the box, and this 
+					.  In particular for more
+					efficient manipulation of BGEN files, see <a href="http://www.bitbucket.org/gavinband/bgen">the bgen library</a>.
 				</p>
 				<p>
 					<strong>Change history.</strong>
@@ -1066,7 +1077,7 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 						Binaries
 					</h3>
 					<p>
-						Pre-compiled binaries of the QCTOOL v2 beta can be found <a href="http://www.well.ox.ac.uk/~gav/resources/">here</a>.
+						Pre-compiled binaries of the QCTOOL v2 release candidate can be found <a href="http://www.well.ox.ac.uk/~gav/resources/">here</a>.
 						These are currently provided as-is.  If a version suitable for your platform is not available please
 						download QCTOOL and compile instead.
 					</p>
@@ -1099,8 +1110,7 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 					</div>
 					<p>
 						This produces an executable
-					<code>./build/release/qctool-v2.0-betaX</code>
-					(where X should be replaced with the number of the current beta release.)
+					<code>./build/release/qctool-v2.0-&lt;version&rt;</code>
 				</p>
 				<p>
 					(Note that QCTOOL relies on <a href="http://www.zlib.net">zlib</a> which must be installed (with headers) 
@@ -1114,7 +1124,7 @@ the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for ou
 </pre>
 <p>This should print out a list of options.</p>
 					<p>
-					<b>Note:</b> a debug build is also created in <code>./build/default/qctool_v2.0-betaX</code>, use this if you want
+					<b>Note:</b> a debug build is also created in <code>./build/default/qctool_v2.0-&lt;version&rt;</code>, use this if you want
 					to run qctool in a debugger.
 				</p>
 				</div>
