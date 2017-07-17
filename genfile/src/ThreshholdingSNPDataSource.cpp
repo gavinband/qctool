@@ -199,49 +199,66 @@ namespace genfile {
 							// 0,2,1 = BBC
 							// 0,1,2 = BCC
 							// 0,0,3 = CCC
-							
-							// We enumerate vectors in this order and stop when we meet a probabiltiy
-							// meeting the desired threshhold.
-							
-							std::vector< uint16_t > limits( (m_number_of_alleles-1), m_ploidy ) ;
-							std::vector< uint16_t > allele_counts( m_number_of_alleles, 0 ) ;
-							allele_counts[0] = m_ploidy ;
-							bool finished = false ;
-							for( std::size_t index = 0; !finished; ++index ) {
-								if( m_calls[index] > m_threshhold ) {
-									std::size_t this_index = 0 ;
-									for( std::size_t allele = 0; allele < m_number_of_alleles; ++allele ) {
-										for( uint16_t count = 0; count < allele_counts[allele]; ++count ) {
-											m_target.set_value( ++this_index, Integer( allele )) ;
-										}
-									}
-									break ;
+						
+
+							// We fast-path the common (diploid, biallelic) case.
+							if( m_number_of_alleles == 2 & m_ploidy == 2 ) {
+								if( m_calls[0] > m_threshhold ) {
+									m_target.set_value( 0, Integer(0) ) ;
+									m_target.set_value( 1, Integer(0) ) ;
+								} else if( m_calls[1] > m_threshhold ) {
+									m_target.set_value( 0, Integer(0) ) ;
+									m_target.set_value( 1, Integer(1) ) ;
+								} else if( m_calls[2] > m_threshhold ) {
+									m_target.set_value( 0, Integer(1) ) ;
+									m_target.set_value( 1, Integer(1) ) ;
+								} else {
+									m_target.set_value( 0, genfile::MissingValue() ) ;
+									m_target.set_value( 1, genfile::MissingValue() ) ;
 								}
-								
-								// Move to next possible genotype
-								std::size_t j = 0 ;
-								for( ; j < (m_number_of_alleles-1); ++j ) {
-									uint16_t value = allele_counts[j+1] ;
-									if( value < limits[ j ] ) {
-										++allele_counts[j+1] ;
-										--allele_counts[0] ;
-										for( std::size_t k = 0; k < j; ++k ) {
-											--limits[k] ;
+							} else {
+								// We enumerate vectors in this order and stop when we meet a probabiltiy
+								// meeting the desired threshhold.
+								std::vector< uint16_t > limits( (m_number_of_alleles-1), m_ploidy ) ;
+								std::vector< uint16_t > allele_counts( m_number_of_alleles, 0 ) ;
+								allele_counts[0] = m_ploidy ;
+								bool finished = false ;
+								for( std::size_t index = 0; !finished; ++index ) {
+									if( m_calls[index] > m_threshhold ) {
+										std::size_t this_index = 0 ;
+										for( std::size_t allele = 0; allele < m_number_of_alleles; ++allele ) {
+											for( uint16_t count = 0; count < allele_counts[allele]; ++count ) {
+												m_target.set_value( ++this_index, Integer( allele )) ;
+											}
 										}
 										break ;
-									} else {
-										// allele count has reached its limit.
-										// Reset it to zero.
-										// Note that to get here all lower-order counts must be zero.
-										allele_counts[j+1] = 0 ;
-										allele_counts[0] += value ;
-										for( std::size_t k = 0; k < j; ++k ) {
-											limits[k] += value ;
+									}
+									
+									// Move to next possible genotype
+									std::size_t j = 0 ;
+									for( ; j < (m_number_of_alleles-1); ++j ) {
+										uint16_t value = allele_counts[j+1] ;
+										if( value < limits[ j ] ) {
+											++allele_counts[j+1] ;
+											--allele_counts[0] ;
+											for( std::size_t k = 0; k < j; ++k ) {
+												--limits[k] ;
+											}
+											break ;
+										} else {
+											// allele count has reached its limit.
+											// Reset it to zero.
+											// Note that to get here all lower-order counts must be zero.
+											allele_counts[j+1] = 0 ;
+											allele_counts[0] += value ;
+											for( std::size_t k = 0; k < j; ++k ) {
+												limits[k] += value ;
+											}
 										}
 									}
-								}
-								if( j == (m_number_of_alleles-1) ) {
-									finished = true ;
+									if( j == (m_number_of_alleles-1) ) {
+										finished = true ;
+									}
 								}
 							}
 						}
