@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <algorithm>
 #include "genfile/Error.hpp"
 #include "genfile/SampleRange.hpp"
 #include "genfile/SampleStratification.hpp"

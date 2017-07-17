@@ -392,10 +392,16 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		<< "table: " << table << ".\n" ;
 #endif
 	
+	genfile::VariantEntry::Integer const N = table.sum() ;
 	bool includeInOutput = (m_min_r2 == 0.0 ) ;
 	genfile::VariantEntry const missing = genfile::MissingValue() ;
-	std::cerr << "Looking at " << source_snp << ", " << target_snp << "\n" ;
-	if( table.array().maxCoeff() == 0 ) {
+
+	if( includeInOutput ) {
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "number_of_genotypes", N ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "number_of_haplotypes", missing ) ;
+	}
+
+	if( N == 0 ) {
 		if( includeInOutput ) {
 			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "pi00", missing ) ;
 			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "pi01", missing ) ;
@@ -426,9 +432,7 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 			double const r = D / std::sqrt( (pi(0)+pi(1)) * (pi(2)+pi(3)) * (pi(0)+pi(2)) * (pi(1)+pi(3))) ;
 			double const r2 = r*r ;
 			includeInOutput = (r2 >= m_min_r2 ) ;
-			std::cerr << "r2 = " << r2 << "; will be " << ( includeInOutput ? "included\n" : "not included\n" ) ;
 			if( includeInOutput ) {
-				std::cerr << "Storing for " << source_snp << ", " << target_snp << "\n" ;
 				m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "pi00", pi(0) ) ;
 				m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "pi01", pi(1) ) ;
 				m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "pi10", pi(2) ) ;
