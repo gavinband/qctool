@@ -11,7 +11,8 @@ class ReleaseBuilder:
 		if platform.system() == 'Darwin':
 			release_stub = '%s_v%s-osx' % ( self.APPNAME, self.VERSION )
 		elif platform.system() == 'Linux':
-			release_stub = '%s_v%s-linux-%s' % ( self.APPNAME, self.VERSION, platform.machine() )
+			distro = platform.linux_distribution()
+			release_stub = '%s_v%s-%s%s-%s' % ( self.APPNAME, self.VERSION, distro[0], distro[1], platform.machine() )
 		release_dir = os.path.join( tempdir, release_stub )
 		os.mkdir( release_dir )
 		
