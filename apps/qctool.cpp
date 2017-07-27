@@ -109,7 +109,8 @@
 
 namespace globals {
 	std::string const program_name = "qctool" ;
-	std::string const program_version = qctool_revision ;
+	std::string const program_version = qctool_version ;
+	std::string const program_revision =  std::string( qctool_revision ).substr( 0, 7 ) ;
 }
 
 namespace impl {
@@ -2354,7 +2355,7 @@ public:
 	QCToolApplication( int argc, char** argv ):
 		appcontext::ApplicationContext(
 			globals::program_name,
-			globals::program_version,
+			globals::program_version + ", revision " + globals::program_revision,
 			std::auto_ptr< appcontext::OptionProcessor >( new QCToolOptionProcessor ),
 			argc,
 			argv,

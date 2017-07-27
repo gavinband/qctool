@@ -86,6 +86,7 @@ namespace appcontext {
 			throw HaltProgramWithReturnCode( 0 );
 		}
 		catch( OptionProcessorHelpRequestedException const& ) {
+			write_start_banner() ;
 			std::cout << "Usage: "
 				<< m_application_name << " <options>\n"
 				<< "\nOPTIONS:\n"
@@ -140,9 +141,9 @@ namespace appcontext {
 	void ApplicationContext::write_start_banner() {
 		m_ui_context->logger() << "\nWelcome to " << m_application_name << "\n" ;
 		if( m_application_version != "" ) {
-			m_ui_context->logger() << "(revision: " << m_application_version << ")\n" ;
+			m_ui_context->logger() << "(version: " << m_application_version << ")\n" ;
 		}
-		m_ui_context->logger() << "\n(C) 2009-2011 University of Oxford\n\n";
+		m_ui_context->logger() << "\n(C) 2009-2017 University of Oxford\n\n";
 	}
 
 	void ApplicationContext::write_end_banner() {
