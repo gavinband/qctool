@@ -4,7 +4,7 @@
 # -----
 # You can specify a custom docker image from Docker Hub as your build environment.
 # image: docker-image:tag
-image: ben196888/cpp-zlib-docker
+image: madduci/docker-ubuntu-cpp:gcc-6
 pipelines:
   default:
     - step:
