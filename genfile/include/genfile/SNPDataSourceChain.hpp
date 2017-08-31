@@ -9,7 +9,7 @@
 
 #include <iostream>
 #include <string>
-#include "../config.hpp"
+#include "config/config.hpp"
 #if HAVE_BOOST_FUNCTION
 #include <boost/function.hpp>
 #endif

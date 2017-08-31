@@ -174,7 +174,6 @@ namespace genfile {
 		try {
 			// First let's have a look at the file.  If it is empty, we report 0 samples.
 			m_stream_ptr->peek() ;
-			int flags ;
 			if( !m_stream_ptr->eof() ) {
 				std::getline( *m_stream_ptr, m_line ) ;
 				m_elts = slice( m_line ).split( " " ) ;

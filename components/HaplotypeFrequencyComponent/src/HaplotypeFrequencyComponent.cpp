@@ -240,10 +240,10 @@ void HaplotypeFrequencyComponent::processed_snp(
 
 namespace {
 	struct ThreshholdCalls: public genfile::VariantDataReader::PerSampleSetter {
-		ThreshholdCalls( Eigen::VectorXd* data ):
+		ThreshholdCalls( Eigen::VectorXd* data, double const threshhold ):
 			m_data( data ),
 			m_missing_value( -1.0 ),
-			m_threshhold( 0.9 )
+			m_threshhold( threshhold )
 		{}
 
 		void initialise( std::size_t nSamples, std::size_t nAlleles ) {
@@ -299,8 +299,8 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 	genfile::VariantDataReader& target_data_reader
 ) {
 	std::vector< Eigen::VectorXd > genotypes( 2 ) ;
-	ThreshholdCalls setter1( &(genotypes[0] )) ;
-	ThreshholdCalls setter2( &(genotypes[1] )) ;
+	ThreshholdCalls setter1( &(genotypes[0] ), m_threshhold ) ;
+	ThreshholdCalls setter2( &(genotypes[1] ), m_threshhold ) ;
 	source_data_reader.get( ":genotypes:", genfile::to_GP_unphased( setter1 ) ) ;
 	target_data_reader.get( ":genotypes:", genfile::to_GP_unphased( setter2 ) ) ;
 //	source_data_reader.get( ":genotypes:", setter1 ) ;
@@ -392,10 +392,16 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		<< "table: " << table << ".\n" ;
 #endif
 	
+	genfile::VariantEntry::Integer const N = table.sum() ;
 	bool includeInOutput = (m_min_r2 == 0.0 ) ;
 	genfile::VariantEntry const missing = genfile::MissingValue() ;
-	std::cerr << "Looking at " << source_snp << ", " << target_snp << "\n" ;
-	if( table.array().maxCoeff() == 0 ) {
+
+	if( includeInOutput ) {
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "number_of_genotypes", N ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "number_of_haplotypes", missing ) ;
+	}
+
+	if( N == 0 ) {
 		if( includeInOutput ) {
 			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "pi00", missing ) ;
 			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "pi01", missing ) ;
@@ -404,9 +410,9 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "D", missing ) ;
 			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "Dprime", missing ) ;
 			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "r", missing ) ;
-			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "r_squared", missing ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "r2", missing ) ;
 			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "dosage_r", missing ) ;
-			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "dosage_r_squared", missing ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "dosage_r2", missing ) ;
 		}
 	} else {
 		try {
@@ -426,9 +432,7 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 			double const r = D / std::sqrt( (pi(0)+pi(1)) * (pi(2)+pi(3)) * (pi(0)+pi(2)) * (pi(1)+pi(3))) ;
 			double const r2 = r*r ;
 			includeInOutput = (r2 >= m_min_r2 ) ;
-			std::cerr << "r2 = " << r2 << "; will be " << ( includeInOutput ? "included\n" : "not included\n" ) ;
 			if( includeInOutput ) {
-				std::cerr << "Storing for " << source_snp << ", " << target_snp << "\n" ;
 				m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "pi00", pi(0) ) ;
 				m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "pi01", pi(1) ) ;
 				m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "pi10", pi(2) ) ;
@@ -436,7 +440,7 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 				m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "D", D ) ;
 				m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "Dprime", Dprime ) ;
 				m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "r", r ) ;
-				m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "r_squared", r2 ) ;
+				m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "r2", r2 ) ;
 			}
 #if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
 		std::cerr << "Output complete.\n" ;
@@ -453,7 +457,7 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "D", missing ) ;
 			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "Dprime", missing ) ;
 			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "r", missing ) ;
-			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "r_squared", missing ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "r2", missing ) ;
 		}
 	
 		if( includeInOutput ) {
@@ -485,8 +489,8 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 #endif
 
 			double dosage_r = dosage_cov / std::sqrt( variances(0) * variances( 1 ) ) ;
-			m_sink->store_per_variant_pair_data( source_snp, target_snp, "dosage_r", dosage_r ) ;
-			m_sink->store_per_variant_pair_data( source_snp, target_snp, "dosage_r_squared", dosage_r * dosage_r ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "dosage_r", dosage_r ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "dosage_r2", dosage_r * dosage_r ) ;
 		}
 	}
 }

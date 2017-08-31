@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 #include <map>
-#include "../config.hpp"
+#include "config/config.hpp"
 #include <boost/optional.hpp>
 #include <boost/function.hpp>
 #include "genfile/snp_data_utils.hpp"

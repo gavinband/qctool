@@ -8,7 +8,7 @@
 #include <iomanip>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/function.hpp>
-#include "../config.hpp"
+#include "config/config.hpp"
 #if HAVE_CBLAS
 	#include "cblas.h"
 #endif

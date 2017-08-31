@@ -6,7 +6,7 @@
 
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/function.hpp>
-#include "../config.hpp"
+#include "config/config.hpp"
 #include "Eigen/Core"
 #include "Eigen/Eigenvalues"
 #include "genfile/VariantIdentifyingData.hpp"
@@ -167,7 +167,7 @@ void PCAComputer::load_long_form_matrix(
 		ui_context.logger() << "Non-missingness is:\n"
 			<< non_missingness.block( 0, 0, 10, 10 )
 			<< "\n" ;
-#endif DEBUG_PCA_COMPUTER
+#endif
 
 		if( non_missingness.array().minCoeff() == 0 ) {
 			int count = 0 ;
