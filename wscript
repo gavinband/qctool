@@ -33,6 +33,7 @@ def configure( conf ):
 	cxxflags = []
 	if conf.check( cxxflags = '-std=c++11' ):
 		cxxflags.append( '-std=c++11' )
+		cxxflags.append( '-Wno-deprecated-declarations' )
 	else:
 		cxxflags.append( '-std=c++98' )
 
