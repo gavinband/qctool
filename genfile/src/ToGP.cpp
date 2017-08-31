@@ -6,7 +6,7 @@
 
 #include <vector>
 #include <stdint.h>
-#include <strstream>
+#include <sstream>
 #include "genfile/ToGP.hpp"
 
 // #define DEBUG_TOGP 1

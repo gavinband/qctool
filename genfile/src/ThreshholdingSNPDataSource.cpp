@@ -176,7 +176,7 @@ namespace genfile {
 							// for phased data it is simple:
 							for( uint32_t i = 0; i < m_ploidy; ++i ) {
 								for( uint32_t j = 0; j < m_number_of_alleles; ++j ) {
-									if( m_calls[i*m_number_of_alleles+j] > m_threshhold ) {
+									if( m_calls[i*m_number_of_alleles+j] >= m_threshhold ) {
 										m_target.set_value( i, Integer( j ) ) ;
 										break ;
 									}
@@ -202,14 +202,14 @@ namespace genfile {
 						
 
 							// We fast-path the common (diploid, biallelic) case.
-							if( m_number_of_alleles == 2 & m_ploidy == 2 ) {
-								if( m_calls[0] > m_threshhold ) {
+							if( m_number_of_alleles == 2 && m_ploidy == 2 ) {
+								if( m_calls[0] >= m_threshhold ) {
 									m_target.set_value( 0, Integer(0) ) ;
 									m_target.set_value( 1, Integer(0) ) ;
-								} else if( m_calls[1] > m_threshhold ) {
+								} else if( m_calls[1] >= m_threshhold ) {
 									m_target.set_value( 0, Integer(0) ) ;
 									m_target.set_value( 1, Integer(1) ) ;
-								} else if( m_calls[2] > m_threshhold ) {
+								} else if( m_calls[2] >= m_threshhold ) {
 									m_target.set_value( 0, Integer(1) ) ;
 									m_target.set_value( 1, Integer(1) ) ;
 								} else {
@@ -224,7 +224,7 @@ namespace genfile {
 								allele_counts[0] = m_ploidy ;
 								bool finished = false ;
 								for( std::size_t index = 0; !finished; ++index ) {
-									if( m_calls[index] > m_threshhold ) {
+									if( m_calls[index] >= m_threshhold ) {
 										std::size_t this_index = 0 ;
 										for( std::size_t allele = 0; allele < m_number_of_alleles; ++allele ) {
 											for( uint16_t count = 0; count < allele_counts[allele]; ++count ) {
