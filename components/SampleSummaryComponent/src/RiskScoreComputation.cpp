@@ -5,7 +5,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include <Eigen/Core>
-#include <strstream>
+#include <sstream>
 #include "metro/mean_and_variance.hpp"
 #include "genfile/VariantIdentifyingData.hpp"
 #include "components/SampleSummaryComponent/SampleSummaryComputation.hpp"
