@@ -9,5 +9,6 @@ pipelines:
   default:
     - step:
         script:
+          - apt-get install zlib1g-dev
           - ./waf-1.5.18 configure
           - ./waf-1.5.18
