@@ -42,7 +42,6 @@ def configure( conf ):
 	create_variant( conf, 'release' )
 	configure_variant( conf, 'default', get_cxx_flags( 'default' ), get_ld_flags( 'default' ))
 	configure_variant( conf, 'release', get_cxx_flags( 'release' ), get_ld_flags( 'release' ))
-	print conf.env
 
 def check_for_3rd_party_components( conf ):
 	check_for_zlib( conf )
