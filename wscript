@@ -19,7 +19,7 @@ def set_options( opt ):
 	#opt.tool_options( 'boost' )
 	opt.add_option( "--static", action='store_true', default=False, help='Create statically-linked executables if possible.')
 	opt.add_option( "--all_targets", action='store_true', default=False, help='Create all targets, not just qctool.')
-	opt.add_option( "--cpp_std", action='store', default='c++98', help='Specify C++ version to compile with - either "c++98" (the default) or "c++11".')
+	opt.add_option( "--cpp_std", action='store', default='c++11', help='Specify C++ version to compile with - either "c++98" (the default) or "c++11".')
 
 #-----------------------------------
 # CONFIGURE
