@@ -124,11 +124,10 @@ CallComparerComponent::UniquePtr CallComparerComponent::create(
 CallComparerComponent::CallComparerComponent(
 	genfile::CohortIndividualSource const& samples,
 	appcontext::OptionProcessor const& options,
-	appcontext::UIContext& ui_context
+	appcontext::UIContext&
 ):
 	m_samples( samples ),
-	m_options( options ),
-	m_ui_context( ui_context )
+	m_options( options )
 {}
 
 namespace {

@@ -47,13 +47,11 @@ namespace sample_stats {
 		std::string const& analysis_name,
 		std::string const& analysis_description,
 		qcdb::DBOutputter::Metadata const& metadata,
-		genfile::CohortIndividualSource const& samples,
+		genfile::CohortIndividualSource const& samples, // unused at present
 		boost::optional< db::Connection::RowId > analysis_id
 	):
 		m_outputter( filename, analysis_name, analysis_description, metadata, analysis_id ),
-		m_table_name( "Analysis" + genfile::string_utils::to_string( m_outputter.analysis_id() ) + "SampleData" ),
-		m_samples( samples ),
-		m_max_transaction_count( 100000 )
+		m_table_name( "Analysis" + genfile::string_utils::to_string( m_outputter.analysis_id() ) + "SampleData" )
 	{
 		db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 240 ) ;
 		m_outputter.connection().run_statement(

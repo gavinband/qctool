@@ -6,7 +6,7 @@
 
 #include <iostream>
 #include <string>
-#include "../config.hpp"
+#include "config/config.hpp"
 #include "genfile/wildcard.hpp"
 #include "statfile/statfile_utils.hpp"
 #include "statfile/StatSink.hpp"

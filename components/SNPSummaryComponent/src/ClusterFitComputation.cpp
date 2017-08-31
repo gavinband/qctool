@@ -171,8 +171,6 @@ namespace snp_summary_component {
 		// If the latter is much bigger than the former, this indicates the genotypes add a lot of information, which
 		// might indicate a badly clustered SNP.
 		metro::DataSubset nonMissingGenotypesAndIntensitySubset ;
-		double intensity_genotype_ll = 0 ;
-		double intensity_genotype_ll_weight = 0 ;
 
 		metro::likelihood::Mixture< double, Eigen::VectorXd, Eigen::MatrixXd > mixture( m_intensities ) ;
 

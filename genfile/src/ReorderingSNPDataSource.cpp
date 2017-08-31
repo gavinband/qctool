@@ -9,7 +9,7 @@
 #include <vector>
 #include <set>
 #include <algorithm>
-#include "../config.hpp"
+#include "config/config.hpp"
 #include <boost/optional.hpp>
 #include <boost/function.hpp>
 #include "genfile/SNPDataSource.hpp"

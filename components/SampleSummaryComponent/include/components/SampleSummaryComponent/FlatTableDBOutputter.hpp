@@ -73,8 +73,6 @@ namespace sample_stats {
 	private:
 		qcdb::DBOutputter m_outputter ;
 		std::string m_table_name ;
-		genfile::CohortIndividualSource const& m_samples ;
-		std::size_t const m_max_transaction_count ;
 		db::Connection::RowId m_variable_id ;
 		db::Connection::StatementPtr m_find_sample_statement ;
 		db::Connection::StatementPtr m_insert_sample_statement ;

@@ -9,7 +9,7 @@
 
 #include <map>
 #include <string>
-#include "../config.hpp"
+#include "config/config.hpp"
 #include <boost/variant.hpp>
 #include <boost/function.hpp>
 #include <boost/optional.hpp>

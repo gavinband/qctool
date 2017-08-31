@@ -9,7 +9,7 @@ VERSION = "2.0-rc5"
 
 subdirs = [
 	'genfile', 'statfile', 'string_utils', 'appcontext',
-	'fputils', 'worker', 'snptest', 'integration',
+	'fputils', 'worker', 'integration',
 	'3rd_party', 'components', 'db', 'qcdb', 'metro'
 ]
 
@@ -41,20 +41,7 @@ def configure( conf ):
 	configure_variant( conf, 'default', get_cxx_flags( 'default' ), get_ld_flags( 'default' ))
 	configure_variant( conf, 'release', get_cxx_flags( 'release' ), get_ld_flags( 'release' ))
 
-def create_variant( conf, variant_name ):
-	variant = conf.env.copy()
-	conf.set_env_name( variant_name, variant )
-	variant.set_variant( variant_name )
-
-def configure_variant( conf, variant_name, cxxflags, ldflags ):
-	conf.setenv( variant_name )
-	conf.env[ 'CXXFLAGS' ] = cxxflags
-	conf.env[ 'LINKFLAGS' ] = ldflags
-	conf.write_config_header( 'config.hpp' )
-	conf.write_config_header( 'genfile/config.hpp' )
-
 def check_for_3rd_party_components( conf ):
-	#check_for_boost_components( conf )
 	check_for_zlib( conf )
 	conf.define( 'HAVE_SQLITE3', 1 )
 	conf.define( 'HAVE_EIGEN', 1 )
@@ -65,18 +52,20 @@ def check_for_3rd_party_components( conf ):
 		conf.define( 'HAVE_RT', 1 )
 	if conf.check_cxx( lib = 'm', uselib_store = 'M' ):
 		conf.define( 'HAVE_M', 1 )
-	if conf.check_cxx( lib = 'bz2', uselib_store = 'BZIP2' ):
-		conf.define( 'HAVE_BZIP2', 1 )
-	if conf.check_cxx( lib = 'mgl', uselib_store = 'MGL' ):
-		conf.define( 'HAVE_MGL', 1 )
-	if conf.check_cxx( lib = 'cairo', uselib_store = 'CAIRO' ):
-		conf.define( 'HAVE_CAIRO', 1 )
+
+	# Remove support for some things
+	conf.define( 'HAVE_BZIP2', 0 )
+	conf.define( 'HAVE_MGL', 0 )
+	conf.define( 'HAVE_CAIRO', 0 )
+
 	if Options.options.static and conf.check_cxx( staticlib = 'pthread', uselib_store = "PTHREAD" ):
 		conf.define( 'HAVE_PTHREAD', 1 )
 	elif conf.check_cxx( lib = 'pthread', uselib_store = "PTHREAD" ):
 		conf.define( 'HAVE_PTHREAD', 1 )
 	if conf.check_cc( lib = 'readline', uselib_store = 'READLINE' ):
 		conf.define( "HAVE_READLINE", 1 )
+	
+	# Boost libs are now contained in the repo
 	conf.define( "HAVE_BOOST_IOSTREAMS", 1 )
 	conf.define( "HAVE_BOOST_FILESYSTEM", 1 )
 	conf.define( "HAVE_BOOST_SYSTEM", 1 )
@@ -89,33 +78,6 @@ def check_for_3rd_party_components( conf ):
 	conf.define( "HAVE_BOOST_FUNCTION", 1 )
 	conf.define( "HAVE_BOOST_SPIRIT", 1 )
 	conf.define( "BOOST_FILESYSTEM_VERSION", 3 )
-
-def check_for_boost_components( conf ):
-	conf.check_tool( 'boost' )
-	if check_for_boost_headers( conf, '1.36.1' ):
-		check_for_boost_lib( conf, 'iostreams', min_version='1.36', uselib="BOOST_IOSTREAMS" )
-		check_for_boost_lib( conf, 'filesystem', min_version='1.36', uselib="BOOST_FILESYSTEM" )
-		check_for_boost_lib( conf, 'system', min_version='1.36', uselib="BOOST_SYSTEM" )
-		check_for_boost_lib( conf, 'thread', min_version='1.36', uselib="BOOST_THREAD" )
-		check_for_boost_lib( conf, 'date_time', min_version='1.36', uselib="BOOST_DATE_TIME" )
-		check_for_boost_lib( conf, 'unit_test_framework', min_version='1.36', uselib = "BOOST_UNIT_TEST_FRAMEWORK" )
-		check_for_boost_lib( conf, 'regex', min_version='1.36', uselib = "BOOST_REGEX" )
-		check_for_boost_lib( conf, 'timer', min_version='1.36', uselib = "BOOST_TIMER" )
-		check_for_boost_lib( conf, 'chrono', min_version='1.36', uselib = "BOOST_CHRONO" )
-
-def check_for_boost_headers( conf, min_version ):
-	if conf.check_boost( min_version = min_version ):
-		conf.define( 'HAVE_BOOST_TIMER', 1 )
-		conf.define( 'HAVE_BOOST_MATH', 1 )
-		conf.define( 'HAVE_BOOST_FUNCTION', 1 )
-		conf.define( 'BOOST_FILESYSTEM_VERSION', 3 )
-		return True
-	return False
-
-def check_for_boost_lib( conf, lib, min_version, uselib ):
-	static_selector = 'onlystatic'
-	if conf.check_boost( lib = lib, min_version = min_version, static = static_selector, uselib = uselib, linkflags = '-L' + conf.env[ 'PREFIX' ] + '/lib' ):
-		conf.define( 'HAVE_' + uselib, 1 )
 
 def check_for_zlib( conf ):
 	if conf.check_cxx( staticlib='z', uselib_store='ZLIB' ):
@@ -155,13 +117,12 @@ def platform_specific_configure( conf ):
 			conf.define( 'HAVE_GETTIMEOFDAY', 1 )
 			
 def misc_configure( conf ) :
-	conf.define( 'GENFILE_USE_FAST_PARSE_METHODS', 1 )
 	conf.define( 'EIGEN_NO_DEBUG', 1 )
 
 def get_cxx_flags( variant_name ):
 	cxxflags = [
-		'-std=c++11',
-		#'-std=c++98',
+		#'-std=c++11',
+		'-std=c++98',
 		'-Wall',
 		'-pedantic',
 		'-Wno-long-long', # don't warn about the long long thing, it comes up in Eigen and Boost.
@@ -183,6 +144,20 @@ def get_ld_flags( variant_name ):
 		ldflags.extend( [ '-static', '-static-libgcc' ] )
 	return ldflags
 
+def create_variant( conf, variant_name ):
+	variant = conf.env.copy()
+	conf.set_env_name( variant_name, variant )
+	variant.set_variant( variant_name )
+
+def configure_variant( conf, variant_name, cxxflags, ldflags ):
+	conf.setenv( variant_name )
+	cxxflags.extend( [ '-I', variant_name ] )
+	conf.env[ 'CXXFLAGS' ] = cxxflags
+	conf.env[ 'LINKFLAGS' ] = ldflags
+	conf.write_config_header( 'config/config.hpp' )
+#	conf.write_config_header( 'config.hpp' )
+#	conf.write_config_header( 'genfile/config.hpp' )
+
 #-----------------------------------
 # BUILD
 #-----------------------------------
@@ -194,7 +169,7 @@ def build( bld ):
                 rule = """printf '#ifndef QCTOOL_REVISION_HPP\n#define QCTOOL_REVISION_HPP\nnamespace globals {\n\tchar const* qctool_version = \"%%s\" ;\n\tchar const* const qctool_revision = \"%%s\" ;\n}\n#endif\n' `echo """ + VERSION + "` `hg parents --template={node}` > ${TGT}""",
 		#rule = """printf '#ifndef QCTOOL_VERSION_HPP\n#define QCTOOL_VERSION_HPP\nnamespace globals {\n\tchar const* const qctool_revision = \"%%s\" ;\n}\n#endif\n' `hg parents --template={node}` > ${TGT}""",
 		always = True,
-		target = "qctool_version_autogenerated.hpp",
+		target = "config/qctool_version_autogenerated.hpp",
 		name = "qctool_version_autogenerated",
 		uselib = "",
 		#on_results = True
@@ -213,7 +188,7 @@ def build( bld ):
 		target = 'gen-tools-lib',
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include ./genfile/include',
-		uselib_local = 'string_utils statfile appcontext fputils worker snptest genfile integration db',
+		uselib_local = 'string_utils statfile appcontext fputils worker genfile integration db',
 		uselib = 'BOOST BOOST_IOSTREAMS ZLIB BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM MGL CBLAS CLAPACK MGL'
 	)
 
@@ -223,6 +198,55 @@ def build( bld ):
 	USELIB = "BOOST BOOST_IOSTREAMS ZLIB BOOST_FILESYSTEM BOOST_SYSTEM BOOST_UNIT_TEST_FRAMEWORK BOOST_THREAD BOOST_TIMER BOOST_CHRONO PTHREAD CBLAS CLAPACK MGL RT"
 	Components = 'SNPSummaryComponent SampleSummaryComponent HaplotypeFrequencyComponent RelatednessComponent SNPOutputComponent'
 	create_app( bld, name='qctool', uselib = USELIB, uselib_local = Components + ' gen-tools-lib qcdb appcontext statfile appcontext string_utils fputils worker genfile metro qctool_version_autogenerated' )
+
+	# Build release variants as well.
+	for obj in [] + bld.all_task_gen:
+	    install_path = obj.install_path
+	    new_obj = obj.clone('release')
+	    new_obj.install_path = install_path
+	    obj.install_path = None
+
+	#---------------------
+	# tests
+	#---------------------
+	# misc tests...
+
+	# create_tests( bld, uselib = USELIB, components = Components )
+
+def build_all( bld ):
+	import Options
+
+	bld(
+		rule = """printf '#ifndef QCTOOL_VERSION_HPP\n#define QCTOOL_VERSION_HPP\nnamespace globals {\n\tchar const* const qctool_revision = \"%%s\" ;\n}\n#endif\n' `hg parents --template={node}` > ${TGT}""",
+		always = True,
+		target = "config/qctool_version_autogenerated.hpp",
+		name = "qctool_version_autogenerated",
+		uselib = "",
+		#on_results = True
+		on_results = False
+	)
+	
+	for subdir in subdirs:	
+		bld.add_subdirs( subdir )
+	
+	#---------------------
+	# libs
+	#---------------------
+
+	bld.new_task_gen(
+		features = 'cxx cstaticlib',
+		target = 'gen-tools-lib',
+		source = bld.glob( 'src/*.cpp' ),
+		includes='./include ./genfile/include',
+		uselib_local = 'string_utils statfile appcontext fputils worker genfile integration db',
+		uselib = 'BOOST BOOST_IOSTREAMS ZLIB BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM MGL CBLAS CLAPACK MGL'
+	)
+
+	#---------------------
+	# programs
+	#---------------------
+	USELIB = "BOOST BOOST_IOSTREAMS ZLIB BOOST_FILESYSTEM BOOST_SYSTEM BOOST_UNIT_TEST_FRAMEWORK BOOST_THREAD BOOST_TIMER BOOST_CHRONO PTHREAD CBLAS CLAPACK MGL RT"
+	Components = 'SNPSummaryComponent SampleSummaryComponent HaplotypeFrequencyComponent RelatednessComponent SNPOutputComponent'
 	create_app( bld, name='overrep', uselib = 'BOOST_REGEX ' + USELIB, uselib_local = 'qctool_version_autogenerated qcdb appcontext gen-tools-lib genfile statfile' )
 	create_app( bld, name='inthinnerator', uselib = USELIB, uselib_local = Components + ' qctool_version_autogenerated gen-tools-lib genfile qcdb statfile appcontext db' )
 	create_app( bld, name='gen-grep', uselib = USELIB, uselib_local = 'gen-tools-lib genfile appcontext string_utils' )

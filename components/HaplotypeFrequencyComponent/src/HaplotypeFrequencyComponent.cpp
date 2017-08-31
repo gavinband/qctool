@@ -240,10 +240,10 @@ void HaplotypeFrequencyComponent::processed_snp(
 
 namespace {
 	struct ThreshholdCalls: public genfile::VariantDataReader::PerSampleSetter {
-		ThreshholdCalls( Eigen::VectorXd* data ):
+		ThreshholdCalls( Eigen::VectorXd* data, double const threshhold ):
 			m_data( data ),
 			m_missing_value( -1.0 ),
-			m_threshhold( 0.9 )
+			m_threshhold( threshhold )
 		{}
 
 		void initialise( std::size_t nSamples, std::size_t nAlleles ) {
@@ -299,8 +299,8 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 	genfile::VariantDataReader& target_data_reader
 ) {
 	std::vector< Eigen::VectorXd > genotypes( 2 ) ;
-	ThreshholdCalls setter1( &(genotypes[0] )) ;
-	ThreshholdCalls setter2( &(genotypes[1] )) ;
+	ThreshholdCalls setter1( &(genotypes[0] ), m_threshhold ) ;
+	ThreshholdCalls setter2( &(genotypes[1] ), m_threshhold ) ;
 	source_data_reader.get( ":genotypes:", genfile::to_GP_unphased( setter1 ) ) ;
 	target_data_reader.get( ":genotypes:", genfile::to_GP_unphased( setter2 ) ) ;
 //	source_data_reader.get( ":genotypes:", setter1 ) ;

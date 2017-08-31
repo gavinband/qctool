@@ -7,7 +7,7 @@
 #include <Eigen/Core>
 #include "components/RelatednessComponent/LapackEigenDecomposition.hpp"
 #include <iostream>
-#include "../config.hpp"
+#include "config/config.hpp"
 #if HAVE_CLAPACK
 	#include "clapack.h"
 #else

@@ -7,8 +7,6 @@
 #ifndef SNP_DATA_UTILS_HPP
 #define SNP_DATA_UTILS_HPP
 
-#define GENFILE_USE_FAST_PARSE_METHODS 1
-
 #include <iostream>
 #include <cassert>
 #include <string>
