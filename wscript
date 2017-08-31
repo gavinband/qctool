@@ -9,7 +9,7 @@ VERSION = "2.0-rc4"
 
 subdirs = [
 	'genfile', 'statfile', 'string_utils', 'appcontext',
-	'fputils', 'worker', 'snptest', 'integration',
+	'fputils', 'worker', 'integration',
 	'3rd_party', 'components', 'db', 'qcdb', 'metro'
 ]
 
@@ -212,7 +212,7 @@ def build( bld ):
 		target = 'gen-tools-lib',
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include ./genfile/include',
-		uselib_local = 'string_utils statfile appcontext fputils worker snptest genfile integration db',
+		uselib_local = 'string_utils statfile appcontext fputils worker genfile integration db',
 		uselib = 'BOOST BOOST_IOSTREAMS ZLIB BOOST_MATH BOOST_FILESYSTEM BOOST_SYSTEM MGL CBLAS CLAPACK MGL'
 	)
 
