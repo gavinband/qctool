@@ -19,7 +19,6 @@ def set_options( opt ):
 	#opt.tool_options( 'boost' )
 	opt.add_option( "--static", action='store_true', default=False, help='Create statically-linked executables if possible.')
 	opt.add_option( "--all_targets", action='store_true', default=False, help='Create all targets, not just qctool.')
-	opt.add_option( "--cpp_std", action='store', default='c++11', help='Specify C++ version to compile with - either "c++98" (the default) or "c++11".')
 
 #-----------------------------------
 # CONFIGURE
@@ -31,6 +30,12 @@ def configure( conf ):
 	conf.check_tool( 'compiler_cxx')
 	conf.check_tool( 'compiler_cc')
 
+	cxxflags = []
+	if conf.check( cxxflags = '-std=c++11' ):
+		cxxflags.append( '-std=c++11' )
+	else:
+		cxxflags.append( '-std=c++98' )
+
 	import platform
 	
 	platform_specific_configure( conf )
@@ -40,8 +45,8 @@ def configure( conf ):
 	if Options.options.static and platform.system() != "Darwin":
 		conf.env.SHLIB_MARKER='-Wl,-Bstatic'
 	create_variant( conf, 'release' )
-	configure_variant( conf, 'default', get_cxx_flags( 'default' ), get_ld_flags( 'default' ))
-	configure_variant( conf, 'release', get_cxx_flags( 'release' ), get_ld_flags( 'release' ))
+	configure_variant( conf, 'default', cxxflags )
+	configure_variant( conf, 'release', cxxflags )
 
 def check_for_3rd_party_components( conf ):
 	check_for_zlib( conf )
@@ -121,25 +126,21 @@ def platform_specific_configure( conf ):
 def misc_configure( conf ) :
 	conf.define( 'EIGEN_NO_DEBUG', 1 )
 
-def get_cxx_flags( variant_name ):
-	import Options
+def get_cxxflags( variant_name ):
 	cxxflags = [
-		'-std=' + Options.options.cpp_std,
 		'-Wall',
 		'-pedantic',
 		'-Wno-long-long', # don't warn about the long long thing, it comes up in Eigen and Boost.
 		#'-Wno-redeclared-class-member', # don't warn about class member redeclaration which comes up in Boost
 		'-Wno-unused-local-typedefs' # warns in boost
 	]
-	if Options.options.cpp_std == 'c++11':
-		cxxflags.append( '-Wno-deprecated-declarations' )	
 	if variant_name == 'default':
 		cxxflags.extend( [ '-g' ] )
 	elif variant_name == 'release':
 		cxxflags.extend( [ '-O3' ])
 	return cxxflags
 
-def get_ld_flags( variant_name ):
+def get_ldflags( variant_name ):
 	import platform
 	ldflags = []
 	if variant_name == 'default' and platform.system() == 'Darwin':
@@ -153,9 +154,12 @@ def create_variant( conf, variant_name ):
 	conf.set_env_name( variant_name, variant )
 	variant.set_variant( variant_name )
 
-def configure_variant( conf, variant_name, cxxflags, ldflags ):
-	conf.setenv( variant_name )
+def configure_variant( conf, variant_name, cxxflags = [], ldflags = [] ):
+	cxxflags.extend( get_cxxflags( variant_name ))
 	cxxflags.extend( [ '-I', variant_name ] )
+	ldflags.extend( get_ldflags( variant_name ))
+	
+	conf.setenv( variant_name )
 	conf.env[ 'CXXFLAGS' ] = cxxflags
 	conf.env[ 'LINKFLAGS' ] = ldflags
 	conf.write_config_header( 'config/config.hpp' )
