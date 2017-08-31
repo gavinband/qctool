@@ -43,7 +43,7 @@ class QctoolRunner:
 		for i in range( 0, len(sdata) ):
 			cmd += [ "-s", sdata[i] ]
 		
-		for option in [ 'vcf-genotype-field', 'incl-positions', 'excl-positions', 'incl-snpids', 'excl-snpids', 'incl-rsids', 'excl-rsids', 'incl-samples', 'excl-samples', 'osnp', 'osample', 'ofiletype', 'filetype', 'annotate-bed3', 'annotate-bed4', 'merge-in', 'assume-chromosome' ]:
+		for option in [ 'vcf-genotype-field', 'incl-positions', 'excl-positions', 'incl-snpids', 'excl-snpids', 'incl-rsids', 'excl-rsids', 'incl-samples', 'excl-samples', 'osnp', 'osample', 'ofiletype', 'filetype', 'annotate-bed3', 'annotate-bed4', 'merge-in', 'assume-chromosome', 'threshhold' ]:
 			if values.get( option, None ) is not None:
 				cmd.extend( [ '-%s' % option ] )
 				valueList = values[ option ]
