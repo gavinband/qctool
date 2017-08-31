@@ -19,6 +19,7 @@ def set_options( opt ):
 	#opt.tool_options( 'boost' )
 	opt.add_option( "--static", action='store_true', default=False, help='Create statically-linked executables if possible.')
 	opt.add_option( "--all_targets", action='store_true', default=False, help='Create all targets, not just qctool.')
+	opt.add_option( "--cpp_std", action='store', default='c++98', help='Specify C++ version to compile with - either "c++98" (the default) or "c++11".')
 
 #-----------------------------------
 # CONFIGURE
@@ -121,15 +122,16 @@ def misc_configure( conf ) :
 	conf.define( 'EIGEN_NO_DEBUG', 1 )
 
 def get_cxx_flags( variant_name ):
+	import Options
 	cxxflags = [
-		#'-std=c++11',
-		'-std=c++98',
+		'-std=' + Options.options.cpp_std,
 		'-Wall',
 		'-pedantic',
 		'-Wno-long-long', # don't warn about the long long thing, it comes up in Eigen and Boost.
 		'-Wno-redeclared-class-member', # don't warn about class member redeclaration which comes up in Boost
 		'-Wno-unused-local-typedefs' # warns in boost
 	]
+	
 	if variant_name == 'default':
 		cxxflags.extend( [ '-g' ] )
 	elif variant_name == 'release':

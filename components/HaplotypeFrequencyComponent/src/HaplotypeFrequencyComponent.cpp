@@ -116,7 +116,6 @@ HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
 	appcontext::OptionProcessor const& options,
 	appcontext::UIContext& ui_context
 ) {
-#if 1
 	source.reset(
 		new genfile::SampleMappingSNPDataSource(
 			source_samples,
@@ -126,7 +125,7 @@ HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
 			source
 		)
 	) ;
-#endif
+
 	HaplotypeFrequencyComponent::UniquePtr result ;
 
 #if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
@@ -380,8 +379,13 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		}
 	}
 	
-	Eigen::Matrix2d shrinkage ;
-	shrinkage
+	// We estimate LD under a prior, represented as data augmentation 
+	// that assumes we have previously seen at least one of each haplotype.
+	// That corresponds to the assumptions:
+	// 1: that both variants are polymorphic, and
+	// 2: there is at least some recombination (or difference) between them.
+	Eigen::Matrix2d prior ;
+	prior
 		<< 0, 0,
 		   0, 0
 	;
@@ -416,7 +420,7 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		}
 	} else {
 		try {
-			HaplotypeFrequencyLogLikelihood ll( table, shrinkage ) ;
+			HaplotypeFrequencyLogLikelihood ll( table, prior ) ;
 			HaplotypeFrequencyLogLikelihood::Vector pi( 4 ) ;
 			pi.tail( 3 ) = ll.get_MLE_by_EM() ;
 			pi(0) = 1.0 - pi.tail( 3 ).sum() ;
@@ -467,10 +471,10 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 				means(0) += table.row( i ).sum() * i ;
 				means(1) += table.col( i ).sum() * i ;
 			}
-		
 			means /= table.sum() ;
 	#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT	
 			std::cerr << "table: " << table << "\n" ;
+			std::cerr << "prior: " << prior << "\n" ;
 			std::cerr << "means:\n" << std::fixed << std::setprecision( 5 ) <<  means << ".\n" ;
 	#endif
 			double dosage_cov = 0.0 ;
