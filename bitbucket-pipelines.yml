@@ -9,8 +9,8 @@ pipelines:
   default:
     - step:
         script:
-          - apt-get install libbz2-1.0 libbz2-dev zlib1g-dev
-          - apt-get install python-pip
+          - apt-get install --assume-yes libbz2-1.0 libbz2-dev zlib1g-dev
+          - apt-get install --assume-yes python-pip
           - python -m pip install robotframework
           - ./waf-1.5.18 configure
           - ./waf-1.5.18
