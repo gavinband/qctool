@@ -14,4 +14,6 @@ pipelines:
           - python -m pip install robotframework
           - ./waf-1.5.18 configure
           - ./waf-1.5.18
+          - cd release/test
+          - pybot ./tests.txt
           
