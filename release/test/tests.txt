@@ -8,8 +8,8 @@ Library	OperatingSystem
 Library	String
 Library	Process
 Library	Collections
-Library	QctoolRunner	${QCTOOL}
-Library	QctoolTest
+Library	./QctoolRunner.py	${QCTOOL}
+Library	./QctoolTest.py
 
 *** Test cases ***
 Runs basic commands
