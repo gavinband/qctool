@@ -65,12 +65,12 @@ def check_for_3rd_party_components( conf ):
 		conf.define( 'HAVE_RT', 1 )
 	if conf.check_cxx( lib = 'm', uselib_store = 'M' ):
 		conf.define( 'HAVE_M', 1 )
-	if conf.check_cxx( lib = 'bz2', uselib_store = 'BZIP2' ):
-		conf.define( 'HAVE_BZIP2', 1 )
-	if conf.check_cxx( lib = 'mgl', uselib_store = 'MGL' ):
-		conf.define( 'HAVE_MGL', 1 )
-	if conf.check_cxx( lib = 'cairo', uselib_store = 'CAIRO' ):
-		conf.define( 'HAVE_CAIRO', 1 )
+
+	# Remove support for some things
+	conf.define( 'HAVE_BZIP2', 0 )
+	conf.define( 'HAVE_MGL', 0 )
+	conf.define( 'HAVE_CAIRO', 0 )
+
 	if Options.options.static and conf.check_cxx( staticlib = 'pthread', uselib_store = "PTHREAD" ):
 		conf.define( 'HAVE_PTHREAD', 1 )
 	elif conf.check_cxx( lib = 'pthread', uselib_store = "PTHREAD" ):
