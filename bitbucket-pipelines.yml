@@ -10,5 +10,8 @@ pipelines:
     - step:
         script:
           - apt-get install zlib1g-dev
+          - apt-get install python-pip
+          - python -m pip install robotframework
           - ./waf-1.5.18 configure
           - ./waf-1.5.18
+          
