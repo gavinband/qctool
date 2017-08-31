@@ -11,7 +11,7 @@
 #include <string>
 #include <boost/shared_ptr.hpp>
 
-#include "../config.hpp"
+#include "config/config.hpp"
 #if HAVE_EIGEN
 #include <Eigen/Core>
 #endif

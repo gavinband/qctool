@@ -7,7 +7,7 @@
 #include <iostream>
 #include <string>
 #include <cassert>
-#include "../../config.hpp"
+#include "config/config.hpp"
 #ifdef HAVE_BOOST_IOSTREAMS
 	#include <boost/iostreams/filtering_stream.hpp>
 	#include <boost/iostreams/filter/gzip.hpp>

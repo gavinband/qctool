@@ -8,7 +8,7 @@
 #define GENFILE_IMPL_FILTER_GRAMMAR_HPP
 
 #include <string>
-#include "../../config.hpp"
+#include "config/config.hpp"
 #if 0
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/qi_list.hpp>

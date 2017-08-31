@@ -7,7 +7,7 @@
 #include <Eigen/Core>
 #include "genfile/Error.hpp"
 #include "components/HaplotypeFrequencyComponent/HaplotypeFrequencyLogLikelihood.hpp"
-#include "../../config.hpp"
+#include "config/config.hpp"
 #include "test_case.hpp"
 
 using std::log ;

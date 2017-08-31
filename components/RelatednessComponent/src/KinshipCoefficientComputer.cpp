@@ -13,10 +13,11 @@
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
 #include "unistd.h"
-#include "../config.hpp"
+#include "config/config.hpp"
 #if HAVE_CBLAS
 	#include "cblas.h"
 #endif
+
 #include "Eigen/Core"
 #include "Eigen/Eigenvalues"
 #include "genfile/VariantIdentifyingData.hpp"

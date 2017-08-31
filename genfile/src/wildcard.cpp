@@ -8,7 +8,7 @@
 #include <string>
 #include <map>
 #include <cassert>
-#include "../config.hpp"
+#include "config/config.hpp"
 #if HAVE_BOOST_FILESYSTEM
 	#include <boost/filesystem.hpp>
 	namespace BFS = boost::filesystem ;

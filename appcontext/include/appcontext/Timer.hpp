@@ -12,7 +12,7 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
-#include "../../config.hpp"
+#include "config/config.hpp"
 
 
 #if HAVE_MACH_TIME

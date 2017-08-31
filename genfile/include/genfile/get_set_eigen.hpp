@@ -7,7 +7,7 @@
 #ifndef GENFILE_GET_SET_EIGEN_HPP
 #define GENFILE_GET_SET_EIGEN_HPP
 
-#include "../config.hpp"
+#include "config/config.hpp"
 #if HAVE_EIGEN
 #include "Eigen/Core"
 #include "genfile/get_set.hpp"

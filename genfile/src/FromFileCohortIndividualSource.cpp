@@ -9,7 +9,7 @@
 #include <fstream>
 #include <boost/variant/variant.hpp>
 #include <boost/bind.hpp>
-#include "../config.hpp"
+#include "config/config.hpp"
 #if HAVE_BOOST_SPIRIT
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix.hpp>

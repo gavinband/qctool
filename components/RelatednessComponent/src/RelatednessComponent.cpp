@@ -5,7 +5,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include <boost/function.hpp>
-#include "../config.hpp"
+#include "config/config.hpp"
 #include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantDataReader.hpp"
 #include "genfile/SNPDataSourceProcessor.hpp"
@@ -28,7 +28,7 @@
 void RelatednessComponent::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "Kinship options" ) ;
 	options[ "-kinship" ]
-		.set_description( "Perform kinship computation using threshholded genotype calls and cblas or Eigen libraries." )
+		.set_description( "Perform kinship computation using threshholded genotype calls." )
 		.set_takes_single_value() ;
 	options[ "-load-kinship" ]
 		.set_description( "Load a previously-computed kinship matrix from the specified file." )
@@ -40,18 +40,18 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 		.set_description( "Compute the UDUT decomposition of the matrix passed to -load-kinship, and save it in the specified file." )
 		.set_takes_single_value() ;
 	options[ "-PCs" ]
-		.set_description( "Specify the name of a file to save PCA components in." )
+		.set_description( "Specify the name of a file to save principal components in." )
 		.set_takes_single_value() ;
 	options[ "-nPCs" ]
-		.set_description( "Compute PCA components of kinship matrix. "
-		 	"The argument should be the number of PCA components to compute.")
+		.set_description( "Compute principal components of kinship matrix that is either computed using -kinship or loaded using -load-kinship. "
+		 	"The argument should be the number of principal components to compute.")
 		.set_takes_single_value()
 		.set_default_value( 10 ) ;
 	options[ "-loadings" ]
-		.set_description( "Compute SNP loadings for each PCA, and store them in the specified file." )
+		.set_description( "Compute SNP loadings for each principal component, and store them in the specified file." )
 		.set_takes_single_value() ;
 	options[ "-project-onto" ]
-		.set_description( "Project samples onto a PCA based on the loadings in the file given as the first argument. "
+		.set_description( "Project samples onto a principal components based on the loadings in the file given as the first argument. "
 		 	"Put the output in the file specified in the second argument." )
 		.set_takes_values_until_next_option()
 		.set_maximum_multiplicity(1) ;

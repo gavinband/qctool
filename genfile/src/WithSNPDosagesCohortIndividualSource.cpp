@@ -10,7 +10,7 @@
 #include <iomanip>
 
 
-#include "../config.hpp"
+#include "config/config.hpp"
 #if HAVE_EIGEN
 #include <Eigen/Core>
 

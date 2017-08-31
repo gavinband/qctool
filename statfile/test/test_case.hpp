@@ -8,7 +8,7 @@
 #define STATFILE_TEST_CASE_HPP
 
 #include <cassert>
-#include "../../config.hpp"
+#include "config/config.hpp"
 
 #if HAVE_BOOST_UNIT_TEST_FRAMEWORK
 	#include "boost/test/auto_unit_test.hpp"

@@ -8,7 +8,7 @@
 #define CASE_CONTROL_TOOLS_TEST_CASE_HPP
 
 #include <cassert>
-#include "../config.hpp"
+#include "config/config.hpp"
 
 #if HAVE_BOOST_UNIT_TEST
 	#define BOOST_AUTO_TEST_MAIN
