@@ -7,10 +7,17 @@
 #include <iostream>
 #include <string>
 #include <limits>
+#include <climits>
 #include <algorithm>
 #include <iomanip>
 #include "genfile/types.hpp"
 #include "genfile/bgen/bgen.hpp"
+
+#ifdef CHAR_BIT
+#if (CHAR_BIT != 8)
+#error CHAR_BIT "Sorry, this implementation assumes 8-bit bytes. It won't work on your platform"
+#endif
+#endif
 
 namespace genfile {
 	namespace bgen {
@@ -389,11 +396,10 @@ namespace genfile {
 					int* size,
 					uint8_t const bits
 				) {
-					assert( CHAR_BIT == 8 ) ;
-					assert( bits <= 64 - CHAR_BIT ) ;
+					assert( bits <= 64 - 8 ) ;
 					while( (*size) < bits && buffer < end ) {
 						(*data) |= uint64_t( *(reinterpret_cast< byte_t const* >( buffer++ ))) << (*size) ;
-						(*size) += CHAR_BIT ;
+						(*size) += 8 ;
 					}
 					if( (*size) < bits ) {
 						throw BGenError() ;
@@ -419,22 +425,21 @@ namespace genfile {
 
 				namespace {
 
+					// std::floor seems to sometimes eat cycles
+					// so roll our own.
+					// All values should be in the range 0...2^31-1 so should fit in a uint32.
 					double floor( double v ) {
-						return double( long( v ) ) ;
-						//return std::floor(v) ;
+						return double( long( v )) ;
 					}
 
-					// v - std::floor(v) seems to eat cycles
-					// try with a cast instead.
-					// all the values should be in the range 0...2^32-1 so should fit in a uint32.
 					double fractional_part( double v ) {
-						return(v - floor(v)) ;
+						return( v - floor(v)) ;
 					}
 
 					double round( double v ) {
-						return floor( v+0.5 ) ;
+						return floor( v + 0.5 ) ;
 					}
-
+					
 					struct CompareFractionalPart{
 						CompareFractionalPart( double* v, std::size_t n ):
 							m_v( v ), m_n( n )
@@ -449,8 +454,7 @@ namespace genfile {
 						}
 						
 						bool operator()( std::size_t a, std::size_t b ) const {
-							// return (( m_v[a] - std::floor( m_v[a] ) ) > ( m_v[b] - std::floor( m_v[b] ))) ;
-							return ( fractional_part( m_v[a] ) > fractional_part( m_v[b] )) ;
+							return( fractional_part( m_v[a] ) > fractional_part( m_v[b] )) ;
 						}
 					private:
 						double* m_v ;
