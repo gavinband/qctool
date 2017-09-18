@@ -1,0 +1,9 @@
+SNPID rsid chromosome position numberOfAlleles allele1 other_alleles ID ploidy genotype
+SNP1 rs1 1 100 2 A G sample_0 2 0/0
+SNP1 rs1 1 100 2 A G sample_1 2 0/0
+SNP1 rs1 1 100 2 A G sample_2 2 0/1
+SNP1 rs1 1 100 2 A G sample_3 2 1/1
+SNP2 rs2 2 200 3 A G/- sample_0 2 0/0
+SNP2 rs2 2 200 3 A G/- sample_1 2 0/1
+SNP2 rs2 2 200 3 A G/- sample_2 2 0/2
+SNP2 rs2 2 200 3 A G/- sample_3 2 1/2
