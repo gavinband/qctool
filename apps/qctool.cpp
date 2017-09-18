@@ -494,7 +494,7 @@ public:
 				"This can improve runtimes when computations are io-bound."
 			) ;
 		options[ "-analysis-name" ]
-			.set_description( "Specify a name to label results from this analysis with.  (This applies to modules which store their results in a qcdb file.)" )
+			.set_description( "Specify a name to label results from this analysis with.)" )
 			.set_takes_single_value()
 			.set_default_value( "qctool analysis" ) ;
 		options[ "-analysis-chunk" ]
