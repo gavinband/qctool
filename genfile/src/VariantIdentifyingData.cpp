@@ -314,7 +314,7 @@ namespace genfile {
 		out << " " << data.get_position().chromosome()
 			<< " " << data.get_position().position()
 			<< " " << data.get_allele(0)
-			<< " " << data.get_allele(1) ;
+			<< " " << data.get_alleles_as_string(",", 1) ;
 		return out ;
 	}
 
