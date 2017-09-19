@@ -2,10 +2,10 @@ $(document).ready(
 	function() {
 		$( '.nav_button' ).hover(
 			function( elt ) {
-				$(elt.currentTarget).children( 'ul' ).addClass( "open" ) ;
+				$(elt.currentTarget).addClass( "open" ) ;
 			},
 			function( elt ) {
-				$(elt.currentTarget).children( 'ul' ).removeClass( "open" ) ;
+				$(elt.currentTarget).removeClass( "open" ) ;
 			}
 		)
 	}
