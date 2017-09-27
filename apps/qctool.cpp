@@ -56,7 +56,6 @@
 #include "genfile/SNPTranslatingSNPDataSource.hpp"
 #include "genfile/StrandAligningSNPDataSource.hpp"
 #include "genfile/ThreshholdingSNPDataSource.hpp"
-#include "genfile/AsynchronousSNPDataSource.hpp"
 #include "genfile/VCFFormatSNPDataSource.hpp"
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/SNPFilteringSNPDataSource.hpp"
@@ -249,13 +248,13 @@ public:
 
 		// SNP exclusion options
 		options.declare_group( "SNP exclusion options" ) ;
-		options[ "-excl-snps" ]
+		options[ "-excl-variants" ]
 			.set_description( "Exclude all SNPs in the given file(s) from the analysis."
 				" The format of this file is the same as that output by the -write-snp-excl-list option. "
 				" It must have six columns interpreted as SNPID, rsid, chromosome, position, first and second alleles." )
 			.set_takes_values( 1 )
 			.set_maximum_multiplicity( 100 ) ;
-		options[ "-incl-snps" ]
+		options[ "-incl-variants" ]
 			.set_description( "Exclude all SNPs not in the given file(s) from the analysis."
 				" The format of this file is the same as that output by the -write-snp-excl-list option. "
 				" It must have six columns interpreted as SNPID, rsid, chromosome, position, first and second alleles." )
@@ -287,12 +286,12 @@ public:
 				"Positions should be in the form [chromosome]:[position] and separated by whitespace." )
 			.set_takes_values_until_next_option() 
 			.set_maximum_multiplicity( 100 ) ;
-		options[ "-excl-snps-matching" ]
+		options[ "-excl-variants-matching" ]
 			.set_description( "Filter out snps whose rsid or SNPID matches the given value. "
 				"The value should be a string which can contain a % wildcard character (which matches any substring). "
 				"Optionally, prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields." )
 			.set_takes_values_until_next_option() ;
-		options[ "-incl-snps-matching" ]
+		options[ "-incl-variants-matching" ]
 			.set_description( "Filter out snps whose rsid or SNPID does not match the given value. "
 				"The value should be a string which can contain a % wildcard character (which matches any substring). "
 				"Optionally, prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields." )
@@ -343,14 +342,14 @@ public:
 			.set_description( "Specify that alleles (and corresponding genotypes) in all cohorts should be switched, if necessary,"
 				" so as to match the alleles of the first cohort."
 			) ;
-		options[ "-snp-match-fields" ]
+		options[ "-compare-variants-by" ]
 			.set_description( "By default, matching SNPs between cohorts uses all the available fields"
-				" (position, rsid, SNPID, and alleles.)"
+				" (position, rsid, snpid, and alleles.)"
 				" Use this option to specify a comma-separated subset of those fields to use instead."
 				" The first entry must be \"position\"."
 				" This option can be used, for example, when cohorts are typed on different platforms so have different SNPID fields." )
 			.set_takes_single_value()
-			.set_default_value( "position,rsid,SNPID,alleles" ) ;
+			.set_default_value( "position,alleles,ids" ) ;
 		options[ "-assume-chromosome" ]
 			.set_description( "Treat each SNP whose chromosome cannot be determined"
 				" as though it lies on the specified chromosome." )
@@ -489,12 +488,8 @@ public:
 			.set_description( "Specify the number of worker threads to use in computationally intensive tasks." )
 			.set_takes_single_value()
 			.set_default_value( 0 ) ;
-		options [ "-buffer-snps" ]
-			.set_description( "Specify that QCTOOL should buffer SNP data asynchronously in a background thread. "
-				"This can improve runtimes when computations are io-bound."
-			) ;
 		options[ "-analysis-name" ]
-			.set_description( "Specify a name to label results from this analysis with.)" )
+			.set_description( "Specify a name to label results from this analysis with." )
 			.set_takes_single_value()
 			.set_default_value( "qctool analysis" ) ;
 		options[ "-analysis-chunk" ]
@@ -516,7 +511,7 @@ public:
 			 	"by ranking its values and mapping to quantiles of the standard normal distribution N(0,1). "
 				"Ties are handled by sending tied values to the average of the corresponding quantiles."
 				"The argument should be a comma-separated list of column names from the sample file." )
-			.set_takes_single_value() ;
+			.set_takes_values_until_next_option() ;
 		options[ "-missing-code" ]
 			.set_description( "Specify a comma-separated list of strings to be treated as missing values "
 				"when encountered in the sample file(s)." )
@@ -1041,7 +1036,7 @@ private:
 		if( m_options.check_if_option_has_value( "-strand" )) {
 			m_strand_specs = get_strand_specs(
 				m_options.get_values< std::string >( "-strand" ),
-				m_options.get< std::string >( "-snp-match-fields" )
+				m_options.get< std::string >( "-compare-variants-by" )
 			) ;
 		}
 		
@@ -1109,10 +1104,7 @@ private:
 			assert( m_samples.get() ) ;
 			m_samples = quantile_normalise_columns(
 				m_samples,
-				genfile::string_utils::split_and_strip(
-					m_options.get_value< std::string >( "-quantile-normalise" ),
-					","
-				)
+				m_options.get_values< std::string >( "-quantile-normalise" )
 			) ;
 		}
 		
@@ -1195,12 +1187,6 @@ private:
 			) ;
 		}
 		
-		if( m_options.check( "-buffer-snps" ) ) {
-			m_snp_data_source.reset(
-				new genfile::AsynchronousSNPDataSource( m_snp_data_source )
-			) ;
-		}
-	
 		check_for_errors_and_warnings() ;
 
 		write_preamble() ;
@@ -1380,7 +1366,7 @@ private:
 			rack.reset(
 				new genfile::SNPDataSourceRack(
 					genfile::VariantIdentifyingData::CompareFields(
-						m_options.get_value< std::string >( "-snp-match-fields" ),
+						m_options.get_value< std::string >( "-compare-variants-by" ),
 						match_alleles_between_cohorts
 					)
 				) 
@@ -1453,7 +1439,7 @@ private:
 	genfile::SNPDataSource::UniquePtr open_merged_data_sources() {
 		genfile::MergingSNPDataSource::UniquePtr merged_source = genfile::MergingSNPDataSource::create(
 			m_options.get< std::string >( "-merge-strategy" ),
-			genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
+			genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-compare-variants-by" ) )
 		) ;
 
 		merged_source->add_source( m_snp_data_source ) ;
@@ -1641,7 +1627,7 @@ private:
 	}
 	
 	std::auto_ptr< SNPDictionary > load_snp_dictionary( std::string const& filename ) const {
-		std::auto_ptr< SNPDictionary > result( new SNPDictionary( genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) ) )) ;
+		std::auto_ptr< SNPDictionary > result( new SNPDictionary( genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-compare-variants-by" ) ) )) ;
 		statfile::BuiltInTypeStatSource::UniquePtr source( 
 			statfile::BuiltInTypeStatSource::open(
 				genfile::wildcard::find_files_by_chromosome( filename )
@@ -1698,8 +1684,8 @@ private:
 			if( m_options.check_if_option_was_supplied_in_group( "SNP exclusion options" )) {
 				snp_filter.reset( new genfile::CommonSNPFilter ) ;
 
-				if( m_options.check_if_option_was_supplied( "-excl-snps" )) {
-					std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-snps" ) ;
+				if( m_options.check_if_option_was_supplied( "-excl-variants" )) {
+					std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-variants" ) ;
 				
 					BOOST_FOREACH( std::string const& filename, files ) {
 						genfile::SNPDataSource::UniquePtr source ;
@@ -1720,13 +1706,13 @@ private:
 						}
 						snp_filter->exclude_snps(
 							source->list_snps(),
-							genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
+							genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-compare-variants-by" ) )
 						) ;
 					}
 				}
 
-				if( m_options.check_if_option_was_supplied( "-incl-snps" )) {
-					std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-snps" ) ;
+				if( m_options.check_if_option_was_supplied( "-incl-variants" )) {
+					std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-variants" ) ;
 					BOOST_FOREACH( std::string const& filename, files ) {
 						genfile::SNPDataSource::UniquePtr source ;
 						try {
@@ -1747,7 +1733,7 @@ private:
 						}
 						snp_filter->include_snps(
 							source->list_snps(),
-							genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
+							genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-compare-variants-by" ) )
 						) ;
 					}
 				}
@@ -1812,8 +1798,8 @@ private:
 						) ;
 					}
 				}
-				if( m_options.check_if_option_was_supplied( "-excl-snps-matching" )) {
-					std::vector< std::string > specs = m_options.get_values< std::string >( "-excl-snps-matching" ) ;
+				if( m_options.check_if_option_was_supplied( "-excl-variants-matching" )) {
+					std::vector< std::string > specs = m_options.get_values< std::string >( "-excl-variants-matching" ) ;
 					BOOST_FOREACH( std::string const& spec, specs ) {
 						snp_filter->exclude_snps_matching(
 							spec
@@ -1821,8 +1807,8 @@ private:
 					}
 				}
 
-				if( m_options.check_if_option_was_supplied( "-incl-snps-matching" )) {
-					std::vector< std::string > specs = m_options.get_values< std::string >( "-incl-snps-matching" ) ;
+				if( m_options.check_if_option_was_supplied( "-incl-variants-matching" )) {
+					std::vector< std::string > specs = m_options.get_values< std::string >( "-incl-variants-matching" ) ;
 					BOOST_FOREACH( std::string const& spec, specs ) {
 						snp_filter->include_snps_matching(
 							spec
@@ -1903,7 +1889,7 @@ private:
 								m_options.get< std::string >( "-analysis-chunk" ),
 								m_options.get_values_as_map(),
 								boost::optional< db::Connection::RowId >(),
-								m_options.get< std::string >( "-snp-match-fields" )
+								m_options.get< std::string >( "-compare-variants-by" )
 							),
 							*m_samples
 						)
@@ -1917,7 +1903,7 @@ private:
 								m_options.get< std::string >( "-analysis-chunk" ),
 								m_options.get_values_as_map(),
 								boost::optional< db::Connection::RowId >(),
-								m_options.get< std::string >( "-snp-match-fields" )
+								m_options.get< std::string >( "-compare-variants-by" )
 							),
 							*m_samples
 						)
@@ -1970,7 +1956,11 @@ private:
 					}
 					if( m_options.check( "-sort" )) {
 						sink.reset(
-							new genfile::SortingBGenFileSNPDataSink( filename, sink )
+							new genfile::SortingBGenFileSNPDataSink(
+								filename,
+								sink,
+								m_options.get< std::string >( "-compare-variants-by" )
+							)
 						) ;
 					}
 				}
@@ -2534,7 +2524,7 @@ private:
 					options().get< std::string >( "-analysis-name" ),
 					options().get< std::string >( "-analysis-chunk" ),
 					options().get_values_as_map(),
-					options().get< std::string >( "-snp-match-fields" )
+					options().get< std::string >( "-compare-variants-by" )
 				) ;
 				if( file_spec.size() == 3 ) {
 					table_storage->set_table_name( file_spec[2] ) ;
