@@ -46,7 +46,7 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 		.set_description( "Compute principal components of kinship matrix that is either computed using -kinship or loaded using -load-kinship. "
 		 	"The argument should be the number of principal components to compute.")
 		.set_takes_single_value()
-		.set_default_value( 10 ) ;
+		.set_default_value( 20 ) ;
 	options[ "-loadings" ]
 		.set_description( "Compute SNP loadings for each principal component, and store them in the specified file." )
 		.set_takes_single_value() ;
@@ -257,7 +257,7 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 	if( m_options.check( "-project-onto" )) {
 		std::vector< std::string > elts = m_options.get_values< std::string >( "-project-onto" ) ;
 		assert( elts.size() >= 2 && elts.size() <= 3 ) ;
-		std::string const match_fields = ( elts.size() == 3 ) ? elts[2] : m_options.get_value< std::string >( "-snp-match-fields" ) ;
+		std::string const match_fields = ( elts.size() == 3 ) ? elts[2] : m_options.get_value< std::string >( "-compare-variants-by" ) ;
 		pca::PCAProjector::UniquePtr projector = pca::PCAProjector::create(
 			m_samples,
 			m_ui_context,

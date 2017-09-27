@@ -297,22 +297,26 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 	genfile::VariantIdentifyingData const& target_snp,
 	genfile::VariantDataReader& target_data_reader
 ) {
-	std::vector< Eigen::VectorXd > genotypes( 2 ) ;
-	ThreshholdCalls setter1( &(genotypes[0] ), m_threshhold ) ;
-	ThreshholdCalls setter2( &(genotypes[1] ), m_threshhold ) ;
-	source_data_reader.get( ":genotypes:", genfile::to_GP_unphased( setter1 ) ) ;
-	target_data_reader.get( ":genotypes:", genfile::to_GP_unphased( setter2 ) ) ;
-//	source_data_reader.get( ":genotypes:", setter1 ) ;
-//	target_data_reader.get( ":genotypes:", setter2 ) ;
-	assert( genotypes[0].size() == m_source->number_of_samples() ) ;
-	assert( genotypes[0].size() == genotypes[1].size() ) ;
+	if( source_snp.number_of_alleles() == 2 && target_snp.number_of_alleles() == 2 ) {
+		std::vector< Eigen::VectorXd > genotypes( 2 ) ;
+		ThreshholdCalls setter1( &(genotypes[0] ), m_threshhold ) ;
+		ThreshholdCalls setter2( &(genotypes[1] ), m_threshhold ) ;
+		source_data_reader.get( ":genotypes:", genfile::to_GP_unphased( setter1 ) ) ;
+		target_data_reader.get( ":genotypes:", genfile::to_GP_unphased( setter2 ) ) ;
+	//	source_data_reader.get( ":genotypes:", setter1 ) ;
+	//	target_data_reader.get( ":genotypes:", setter2 ) ;
+		assert( genotypes[0].size() == m_source->number_of_samples() ) ;
+		assert( genotypes[0].size() == genotypes[1].size() ) ;
 
-	compute_ld_measures(
-		source_snp,
-		genotypes[0],
-		target_snp,
-		genotypes[1]
-	) ;
+		compute_ld_measures(
+			source_snp,
+			genotypes[0],
+			target_snp,
+			genotypes[1]
+		) ;
+	} else {
+		// can't compute LD for multiallelics right now
+	}
 }
 
 void HaplotypeFrequencyComponent::compute_ld_measures(
