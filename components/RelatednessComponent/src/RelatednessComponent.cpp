@@ -15,6 +15,7 @@
 #include "worker/Task.hpp"
 #include "appcontext/FileUtil.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
+#include "components/SampleSummaryComponent/SampleStorage.hpp"
 #include "components/RelatednessComponent/RelatednessComponent.hpp"
 #include "components/RelatednessComponent/PCAComputer.hpp"
 #include "components/RelatednessComponent/KinshipCoefficientComputer.hpp"
@@ -40,11 +41,11 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 		.set_description( "Compute the UDUT decomposition of the matrix passed to -load-kinship, and save it in the specified file." )
 		.set_takes_single_value() ;
 	options[ "-PCs" ]
-		.set_description( "Specify the name of a file to save principal components in." )
-		.set_takes_single_value() ;
-	options[ "-nPCs" ]
-		.set_description( "Compute principal components of kinship matrix that is either computed using -kinship or loaded using -load-kinship. "
-		 	"The argument should be the number of principal components to compute.")
+		.set_description(
+			"Compute the specified number of principal components, using a kinship matrix "
+			" that is either computed using -kinship or loaded using -load-kinship. "
+		 	"The argument should be the number of principal components to compute."
+		)
 		.set_takes_single_value()
 		.set_default_value( 20 ) ;
 	options[ "-loadings" ]
@@ -70,6 +71,7 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 	options.option_implies_option( "-load-kinship", "-s" ) ;
 	options.option_implies_option( "-UDUT", "-PCs" ) ;
 	options.option_implies_option( "-PCs", "-UDUT" ) ;
+	options.option_implies_option( "-PCs", "-osample" ) ;
 	options.option_excludes_option( "-load-kinship", "-kinship" ) ;
 	options.option_excludes_option( "-project-onto", "-loadings" ) ;
 	options.option_excludes_option( "-load-UDUT", "-UDUT" ) ;
@@ -115,7 +117,10 @@ namespace impl {
 	}
 }
 
-void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) const {
+void RelatednessComponent::setup(
+	genfile::SNPDataSourceProcessor& processor,
+	sample_stats::SampleStorage::SharedPtr storage
+) const {
 	PCAComputer::SharedPtr pca_computer ;
 	KinshipCoefficientManager::GetNames get_ids = boost::bind(
 		&impl::get_ids,
@@ -124,6 +129,13 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 	) ;
 
 	if( m_options.check( "-PCs" ) ) {
+		if( !storage ) {
+			throw genfile::BadArgumentError(
+				"RelatednessComponent::setup()",
+				"storage",
+				"A valid storage destination for PCs must be supplied."
+			) ;
+		}
 		if( !m_options.check( "-kinship" ) && !m_options.check( "-load-kinship" )) {
 			throw genfile::BadArgumentError(
 				"RelatednessComponent::setup()",
@@ -139,18 +151,11 @@ void RelatednessComponent::setup( genfile::SNPDataSourceProcessor& processor ) c
 				_3, "qctool:PCAComputer" ,_1, _4, _5
 			)
 		) ;
-		pca_computer->send_PCAs_to(
-			boost::bind(
-				&pca::write_sample_file,
-				m_options.get< std::string >( "-PCs" ),
-				boost::cref( m_samples ),
-				_3, "qctool:PCAComputer", _1, _4, _5
-			)
-		) ;
+		pca_computer->send_PCs_to( storage ) ;
 	}
 
 	if( m_options.check( "-loadings" )) {
-		PCALoadingComputer::UniquePtr loading_computer( new PCALoadingComputer( m_options.get< int >( "-nPCs" ) ) ) ;
+		PCALoadingComputer::UniquePtr loading_computer( new PCALoadingComputer( m_options.get< int >( "-PCs" ) ) ) ;
 		if( pca_computer.get() ) {
 			pca_computer->send_UDUT_to( boost::bind( &PCALoadingComputer::set_UDUT, loading_computer.get(), _2, _3 ) ) ;
 		} else if( m_options.check( "-load-UDUT" )) {

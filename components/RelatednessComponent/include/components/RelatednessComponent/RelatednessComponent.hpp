@@ -12,6 +12,7 @@
 #include "appcontext/UIContext.hpp"
 #include "worker/Worker.hpp"
 #include "genfile/CohortIndividualSource.hpp"
+#include "components/SampleSummaryComponent/SampleStorage.hpp"
 
 struct RelatednessComponent: public boost::noncopyable {
 	static void declare_options( appcontext::OptionProcessor& options ) ;
@@ -24,7 +25,10 @@ struct RelatednessComponent: public boost::noncopyable {
 		appcontext::UIContext& ui_context
 	) ;
 	
-	void setup( genfile::SNPDataSourceProcessor& processor ) const ;
+	void setup(
+		genfile::SNPDataSourceProcessor& processor,
+		sample_stats::SampleStorage::SharedPtr storage
+	) const ;
 	
 private:
 	appcontext::OptionProcessor const& m_options ;

@@ -76,9 +76,6 @@ void SampleSummaryComputationManager::end_processing_snps() {
 			) ;
 		}
 	}
-	if( m_outputter.get() ) {
-		m_outputter->finalise() ;
-	}
 }
 
 void SampleSummaryComputationManager::send_output_to( sample_stats::SampleStorage::SharedPtr outputter ) {

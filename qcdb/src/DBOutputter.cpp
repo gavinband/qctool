@@ -138,7 +138,7 @@ namespace qcdb {
 		) ;
 
 		m_connection->run_statement(
-			"CREATE TABLE Variable ( "
+			"CREATE TABLE IF NOT EXISTS Variable ( "
 				"`analysis_id` INTEGER NOT NULL REFERENCES Analysis( id ), "
 				"`table` TEXT NOT NULL, "
 				"`name` TEXT NOT NULL, "

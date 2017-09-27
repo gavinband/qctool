@@ -2549,14 +2549,7 @@ private:
 		}
 
 		sample_stats::SampleStorage::SharedPtr per_sample_storage ;
-		if( SampleSummaryComponent::is_needed( options() ) ) {
-			if( !options().check( "-osample" )) {
-				throw genfile::BadArgumentError(
-					"QCToolApplication::unsafe_process()",
-					"-osample option",
-					"-osample must be supplied to output per-sample computations."
-				) ;
-			}
+		if( options().check( "-osample" )) {
 			std::vector< std::string > const file_spec = parse_filespec( options().get< std::string >( "-osample" ) ) ;
 			if( file_spec[0] == "sqlite" ) {
 				// Catch the case where we write both to the same db.
@@ -2586,6 +2579,16 @@ private:
 					options().get_values_as_map()
 				) ;
 			}
+		}
+		
+		if( SampleSummaryComponent::is_needed( options() ) ) {
+			if( !per_sample_storage ) {
+				throw genfile::BadArgumentError(
+					"QCToolApplication::unsafe_process()",
+					"-osample",
+					"An output sample data file (-osample) must be supplied to output per-sample computations."
+				) ;
+			}
 
 			SampleSummaryComponent::UniquePtr sample_summary_component
 				= SampleSummaryComponent::create(
@@ -2609,7 +2612,7 @@ private:
 				worker.get(),
 				get_ui_context()
 			) ;
-			relatedness_component->setup( processor ) ;
+			relatedness_component->setup( processor, per_sample_storage ) ;
 		}
 
 		HaplotypeFrequencyComponent::UniquePtr haplotype_frequency_component ;
@@ -2671,7 +2674,11 @@ private:
 		}
 		
 		if( options().check( "-os" )) {
-			write_samples( context.get_cohort_individual_source(), options().get< std::string >( "-os" ), options().get< std::string >( "-output-sample-format" ) ) ;
+			write_samples(
+				context.get_cohort_individual_source(),
+				options().get< std::string >( "-os" ),
+				options().get< std::string >( "-output-sample-format" )
+			) ;
 		}
 		// Process it (but only if there was something to do) !
 		if( processor.get_callbacks().size() > 0 ) {
@@ -2679,6 +2686,9 @@ private:
 			processor.process( context.snp_data_source() ) ;
 		} else {
 			get_ui_context().logger() << "SNPs do not need to be visited -- skipping.\n" ;
+		}
+		if( per_sample_storage ) {
+			per_sample_storage->finalise() ;
 		}
 		if( per_snp_storage ) {
 			per_snp_storage->finalise() ;

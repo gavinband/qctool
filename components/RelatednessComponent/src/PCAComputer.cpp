@@ -19,6 +19,7 @@
 #include "appcontext/get_current_time_as_string.hpp"
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
+#include "components/SampleSummaryComponent/SampleStorage.hpp"
 #include "components/RelatednessComponent/PCAComputer.hpp"
 #include "components/RelatednessComponent/LapackEigenDecomposition.hpp"
 #include "components/RelatednessComponent/names.hpp"
@@ -33,7 +34,7 @@ PCAComputer::PCAComputer(
 	m_ui_context( ui_context ),
 	m_samples( samples ),
 	m_number_of_samples( samples.get_number_of_individuals() ),
-	m_number_of_PCAs_to_compute( std::min( m_options.get< std::size_t >( "-nPCs" ), samples.get_number_of_individuals() ) ),
+	m_number_of_PCs_to_compute( std::min( m_options.get< std::size_t >( "-PCs" ), samples.get_number_of_individuals() ) ),
 	m_threshhold( 0.9 )
 {}
 
@@ -253,7 +254,7 @@ void PCAComputer::compute_PCA() {
 		Eigen::MatrixXd eigenvectors( m_number_of_samples, m_number_of_samples ) ;
 		m_ui_context.logger() << "PCAComputer: Computing eigenvalue decomposition of kinship matrix using lapack...\n" ;
 		lapack::compute_eigendecomposition( m_kinship_matrix, &eigenvalues, &eigenvectors ) ;
-		//lapack::compute_partial_eigendecomposition( m_kinship_matrix, &eigenvalues, &eigenvectors, m_number_of_PCAs_to_compute ) ;
+		//lapack::compute_partial_eigendecomposition( m_kinship_matrix, &eigenvalues, &eigenvectors, m_number_of_PCs_to_compute ) ;
 		kinship_eigendecomposition.block( 0, 0, m_number_of_samples, 1 ) = eigenvalues.reverse() ;
 		kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_samples ) = Eigen::Reverse< Eigen::MatrixXd, Eigen::Horizontal >( eigenvectors ) ;
 	}
@@ -318,7 +319,7 @@ void PCAComputer::compute_PCA() {
 		)
 	) ;
 
-	if( m_number_of_PCAs_to_compute > 0 ) {
+	if( m_number_of_PCs_to_compute > 0 ) {
 		//
 		// Let X  be the L\times n matrix (L SNPs, n samples) of (mean-centred, scaled) genotypes.  
 		// We want the projection of columns of X onto the matrix S whose columns are unit eigenvectors of (1/L) X X^t
@@ -341,16 +342,16 @@ void PCAComputer::compute_PCA() {
 		//   sqrt(L) U D^{1/2}
 		// i.e. we may as well compute the correlation with columns of U.
 		
-		m_number_of_PCAs_to_compute = std::min( m_number_of_PCAs_to_compute, m_number_of_samples ) ;
-		m_number_of_PCAs_to_compute = std::min( m_number_of_PCAs_to_compute, m_number_of_snps ) ;
+		m_number_of_PCs_to_compute = std::min( m_number_of_PCs_to_compute, m_number_of_samples ) ;
+		m_number_of_PCs_to_compute = std::min( m_number_of_PCs_to_compute, m_number_of_snps ) ;
 
 		// PCAs are given by U D^{1/2}.
-		Eigen::VectorXd PCA_eigenvalues = kinship_eigendecomposition.block( 0, 0, m_number_of_PCAs_to_compute, 1 ) ;
+		Eigen::VectorXd PCA_eigenvalues = kinship_eigendecomposition.block( 0, 0, m_number_of_PCs_to_compute, 1 ) ;
 		Eigen::VectorXd v = PCA_eigenvalues.array().sqrt() ;
 		Eigen::MatrixXd PCAs
-			= kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_PCAs_to_compute ) * v.asDiagonal() ;
+			= kinship_eigendecomposition.block( 0, 1, m_number_of_samples, m_number_of_PCs_to_compute ) * v.asDiagonal() ;
 
-		send_PCAs(
+		send_PCs(
 			"Number of SNPs: " + to_string( m_number_of_snps ) + "\n" +
 			"Number of samples: " + to_string( m_number_of_samples ) + "\n" +
 			"Note: the PCs computed here are 1/√L times the projection of samples onto unit eigenvectors of the variance-covariance matrix\n"
@@ -377,15 +378,32 @@ void PCAComputer::send_UDUT_to( UDUTCallback callback ) {
 	m_UDUT_signal.connect( callback ) ;
 }
 
-void PCAComputer::send_PCAs_to( PCACallback callback ) {
-	m_PCA_signal.connect( callback ) ;
+void PCAComputer::send_PCs_to( SampleStorage::SharedPtr storage ) {
+	m_PC_storage = storage ;
 }
 
 void PCAComputer::send_UDUT( std::string description, std::size_t number_of_snps, Eigen::MatrixXd const& UDUT, GetNames row_names, GetNames column_names ) {
 	m_UDUT_signal( description, number_of_snps, UDUT, row_names, column_names ) ;
 }
 
-void PCAComputer::send_PCAs( std::string description, Eigen::VectorXd const& eigenvalues, Eigen::MatrixXd const& PCAs, GetNames pca_row_names, GetNames pca_column_names ) {
-	m_PCA_signal( description, eigenvalues, PCAs, pca_row_names, pca_column_names ) ;
+void PCAComputer::send_PCs(
+	std::string description,
+	Eigen::VectorXd const& eigenvalues,
+	Eigen::MatrixXd const& PCAs,
+	GetNames pca_row_names,
+	GetNames pca_column_names
+) {
+	std::cerr << PCAs.rows() << "x" << PCAs.cols() << ".\n" ;
+	for( int i = 0; i < PCAs.rows(); ++i ) {
+		for( int j = 0; j < PCAs.cols(); ++j ) {
+			m_PC_storage->store_per_sample_data(
+				"PCAComputer",
+				std::size_t(i),
+				pca_column_names(j).as< std::string>(),
+				description,
+				PCAs(i,j)
+			) ;
+		}
+	}
 }
 

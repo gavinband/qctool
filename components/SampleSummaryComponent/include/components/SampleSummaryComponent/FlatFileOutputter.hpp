@@ -61,9 +61,9 @@ namespace sample_stats {
 		std::string const m_filename ;
 		std::string const m_analysis_name ;
 		Metadata const m_metadata ;
-		std::size_t const m_max_samples_per_block ;
 		statfile::BuiltInTypeStatSink::UniquePtr m_sink ;
-		std::vector< std::size_t > m_sample_indices ;
+		// Map from variable name
+		// To index as it occurred in output
 		typedef boost::bimap< std::string, std::size_t > VariableMap ;
 		VariableMap m_variables ;
 		typedef std::map< std::pair< std::size_t, std::size_t >, genfile::VariantEntry > ValueMap ;

@@ -14,6 +14,7 @@
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "statfile/BuiltInTypeStatSource.hpp"
+#include "components/SampleSummaryComponent/SampleStorage.hpp"
 #include "appcontext/OptionProcessor.hpp"
 #include "appcontext/UIContext.hpp"
 
@@ -22,6 +23,7 @@ struct PCAComputer
 public:
 	typedef std::auto_ptr< PCAComputer > UniquePtr ;
 	typedef boost::shared_ptr< PCAComputer > SharedPtr ;
+	typedef sample_stats::SampleStorage SampleStorage ;
 
 	static void load_matrix( genfile::CohortIndividualSource const& samples, std::string const& filename, Eigen::MatrixXd* matrix, std::size_t* number_of_snps, appcontext::UIContext& ui_context ) ;
 	static void load_long_form_matrix( genfile::CohortIndividualSource const& samples, std::string const& filename, Eigen::MatrixXd* matrix, std::size_t* number_of_snps, appcontext::UIContext& ui_context ) ;
@@ -46,15 +48,14 @@ public:
 	typedef boost::function< genfile::VariantEntry ( std::size_t ) > GetNames ;
 	typedef boost::signals2::signal< void( std::string, std::size_t, Eigen::MatrixXd const&, GetNames, GetNames ) > UDUTSignal ;
 	typedef UDUTSignal::slot_type UDUTCallback ;
-	typedef boost::signals2::signal< void( std::string, Eigen::VectorXd const&, Eigen::MatrixXd const&, GetNames, GetNames ) > PCASignal ;
-	typedef PCASignal::slot_type PCACallback ;
 
 
 	void send_UDUT_to( UDUTCallback ) ;
-	void send_PCAs_to( PCACallback ) ;
+
+	void send_PCs_to( SampleStorage::SharedPtr ) ;
 
 	void send_UDUT( std::string description, std::size_t, Eigen::MatrixXd const& UDUT, GetNames row_names, GetNames column_names ) ;
-	void send_PCAs( std::string description, Eigen::VectorXd const& eigenvalues, Eigen::MatrixXd const& PCAs, GetNames pca_row_names, GetNames pca_column_names ) ;
+	void send_PCs( std::string description, Eigen::VectorXd const& eigenvalues, Eigen::MatrixXd const& PCAs, GetNames pca_row_names, GetNames pca_column_names ) ;
 
 private:
 	appcontext::OptionProcessor const& m_options ;
@@ -66,13 +67,13 @@ private:
 	std::size_t m_number_of_snps_processed ;
 	Eigen::MatrixXd m_kinship_matrix ;
 	Eigen::MatrixXd m_kinship_eigendecomposition ;
-	Eigen::VectorXd m_PCA_eigenvalues ;
-	Eigen::MatrixXd m_PCA_components ;
+	Eigen::VectorXd m_PC_eigenvalues ;
+	Eigen::MatrixXd m_PC_components ;
 
 	UDUTSignal m_UDUT_signal ;
-	PCASignal m_PCA_signal ;
+	SampleStorage::SharedPtr m_PC_storage ;
 
-	std::size_t m_number_of_PCAs_to_compute ;
+	std::size_t m_number_of_PCs_to_compute ;
 	double m_threshhold ;
 	genfile::SingleSNPGenotypeProbabilities m_genotype_probabilities ;
 	Eigen::VectorXd m_genotype_calls ;

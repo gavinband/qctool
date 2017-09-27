@@ -210,7 +210,7 @@ namespace sample_stats {
 			var_i = m_variables.right.begin(),
 			end_var_i = m_variables.right.end() ;
 		for( ; var_i != end_var_i; ++var_i ) {
-			m_outputter.create_variable( var_i->second, var_i->second ) ;
+			m_outputter.create_variable( m_table_name, var_i->second ) ;
 		}
 	}
 	
@@ -229,6 +229,7 @@ namespace sample_stats {
 		}
 		if( options & qcdb::eCreateIndices ) {
 			db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 600 ) ;
+			m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS SampleIndex ON Sample( id )" ) ;
 			m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS " + m_table_name + "_index ON " + m_table_name + "( sample_id )" ) ;
 			m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS " + m_table_name + "_index2 ON " + m_table_name + "( analysis_id, sample_id )" ) ;
 		}
