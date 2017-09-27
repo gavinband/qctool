@@ -69,6 +69,38 @@ namespace appcontext {
 		}
 	}
 	
+	namespace {
+		std::string json_escape( std::string const& value ) {
+			std::string result ;
+			result.reserve( value.size() * 2 ) ;
+			std::size_t last_i = 0 ;
+			for(
+				std::size_t i = value.find_first_of( "\"\n" ), last_i = 0;
+				last_i != std::string::npos;
+				i = value.find_first_of( "\"\n", i )
+			) {
+				std::size_t loc = (i == std::string::npos) ? value.size() : i ;
+				result += value.substr( last_i, loc - last_i ) ;
+				if( i == std::string::npos ) {
+					last_i = i ;
+				} else {
+					if( value[i] == '"' ) {
+						result.push_back( '\\' ) ;
+						result.push_back( '"' ) ;
+					} else if( value[i] == '\n' ) {
+						result.push_back( '\\' ) ;
+						result.push_back( 'n' ) ;
+					} else {
+						assert(0) ;
+					}
+					last_i = ++i ;
+				}
+			}
+			return result ;
+		}
+		
+	}
+	
 	std::string OptionDefinition::format_spec( std::size_t indent ) const {
 		std::ostringstream ostream ;
 		std::string const space( indent, ' ' ) ;
@@ -76,7 +108,7 @@ namespace appcontext {
 		ostream << space << "\"" << m_name << "\": {\n" ;
 		ostream
 			<< space2 << "\"group\": \"" << m_group << "\",\n"
-			<< space2 << "\"description\": \"" << m_description << "\",\n"
+			<< space2 << "\"description\": \"" << json_escape( m_description ) << "\",\n"
 			<< space2 << "\"is_required\": " << m_is_required << ",\n"
 			<< space2 << "\"multiplicity\": {\n"
 			<< space2 << space << "\"min\": " << m_minimum_multiplicity << ",\n"
@@ -94,6 +126,7 @@ namespace appcontext {
 		ostream
 			<< ((m_default_values.size() > 0) ? " ]\n" : "]\n" )
 			<< space << "}" ;
+		
 		return ostream.str() ;
 	}
 }
