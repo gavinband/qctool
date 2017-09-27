@@ -119,7 +119,7 @@ $ qctool -help
 					The <code>-sort</code> option tells QCTOOL to sort the variants in the output file. QCTOOL does this by first writing the output file unsorted, but internally keeping a record of the file locations of the data for each variant. Then the file is renamed to a temporary file and copied back to the destination in the sorted order.
 				</p>
 				<p>
-					The sort command uses the <code>-snp-match-fields</code> option to determine what to sort by. This defaults to '<code>position,rsid,SNPID,alleles</code>' which means variants are sorted by genomic position, ID fields, and alleles. (The <code>-snp-match-fields</code> option is used by several parts of QCTOOL - whenever variants need to be compared or ordered.)
+					The sort command uses the <code>-compare-variants-by</code> option to determine what to sort by. This defaults to '<code>position,rsid,SNPID,alleles</code>' which means variants are sorted by genomic position, ID fields, and alleles. (The <code>-compare-variants-by</code> option is used by several parts of QCTOOL - whenever variants need to be compared or ordered.)
 				</p>
 				<p>
 					Sorting is only supported for those output file types that support efficient seeking - in particular sorting will not work with gzipped output formats. (The BGEN format does support sorting.)
@@ -144,13 +144,13 @@ $ qctool -help
 					</li>
 				</ol>
 				<p>
-					Variants are matched using the fields specified by the <code>-snp-match-fields</code> option (and in the order they're specified). (The genomic position must always be the first field sorted on.)
+					Variants are matched using the fields specified by the <code>-compare-variants-by</code> option (and in the order they're specified). (The genomic position must always be the first field sorted on.)
 				</p>
 				<p>
 					The implication of the above is that the merge will work best when either
 				</p>
 				<ul>
-					<li>Data in each cohort is sorted (by the same fields specified in <code>-snp-match-fields</code>); or
+					<li>Data in each cohort is sorted (by the same fields specified in <code>-compare-variants-by</code>); or
 					</li>
 					<li>Data in each cohort has exactly the same set of SNPs in exactly the same order.
 					</li>
@@ -395,7 +395,7 @@ $ qctool -help
 						<code>compared_variant_rsid</code>, <code>compared_variant_alleleA</code>, <code>compared_variant_alleleB</code>
 					</dt>
 					<dd>
-						RSID and first and second alleles of the variant in the auxiliary data this variant was compared to. (Matching of variants is controlled by the <code>-snp-match-fields</code> option.)
+						RSID and first and second alleles of the variant in the auxiliary data this variant was compared to. (Matching of variants is controlled by the <code>-compare-variants-by</code> option.)
 					</dd>
 					<dt>
 						<code>&lt;sample ID&gt;(&lt;ID in primary data&gt;~&lt;ID in compared data&gt;):genotype</code>

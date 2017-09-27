@@ -31,91 +31,84 @@
 		</div>
 
 		<section class="main_text">
-					<h2>Converting between file formats</h2>
+			<h2>Filtering samples</h2>
 				<div class="task">
 					<div class="task_name">
-						Basic conversions
+						Filtering samples by identifier
 					</div>
 					<div class="task_notes">
-						The basic format of a conversion command is:
+						The <code>-incl-samples</code> and <code>-excl-samples</code> options can be used to select a subset of
+						samples to process.  E.g.:
 					</div>
 					<div class="task_command_line">
-						$ qctool -g &lt;input file&gt; [-filetype &lt;input type&gt;] -og &lt;output file&gt; [-ofiletype &lt;output type&gt;] [+modifier options]
+						$ qctool -g example.bgen 
+						-s example.sample 
+						-og filtered.bgen
+						-excl-samples samples.txt
 					</div>
 					<div class="task_notes">
-						QCTOOL normally deduces file types from the file extension.
-						However, for filetypes that are not automatically recognised, or if you want to specify,
-						the <code>-filetype</code> and <code>-ofiletype</code> options can be used to specify the types.
-						The <a href="../../documentation/genotype_file_formats.html">genotype file formats page</a> lists file type specifiers and
-						any applicable modifier options.
-					</div>
-					<div class="task_notes">
-						E.g. to convert between between bgen and vcf formats:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -og example.vcf
+						This command excludes all samples whose identifier is in the file <code>samples.txt</code>
+						(which should contain a whitespace-separated list of identifiers).
+						Samples are identified by the first identifier field (often <code>ID_1</code>) in the sample file, or if no
+						sample file is specified, by sample identifiers specified in genotype data
+						source (e.g. by the header in vcf or bgen formats).  The option <code>-incl-samples</code>
+						behaves similarly but includes only samples with identifier in the given file.
 					</div>
 				</div>
 				<div class="task">
 					<div class="task_name">
-						Handling files split by chromosome
+						Filtering samples by sample file column
 					</div>
 					<div class="task_notes">
-						If the input filename contains a # character, e.g. <code>example_#.gen</code> this is treated as a
-						chromosomal wildcard and will match all (human) chromosomes. This will also be used to
-						infer the chromosome for each variant if chromosome information is not present in the files themselves.
-						For example, the command:
+						It's also possible to filter samples based on the value of a column in the sample file.  The general command is:
 					</div>
 					<div class="task_command_line">
-						$ qctool -g example_#.gen -og example.bgen
+						$ qctool -g &lt;genotype file&gt; -s &lt;sample file&gt;
+						-[in|ex]cl-samples-where &lt;column&gt;[=|==|!=]&lt;value&gt; [+other options]
 					</div>
 					<div class="task_notes">
-						will process all 22 example files, and if the input GEN files have no chromosome information included,
-						the output data will have chromosome identifiers taken from the filenames.
+						For example, the following command will write a new filtered genotype file excluding
+						all samples listed as "male" in the "sex" column of the sample file:
+					</div>
+					<div class="task_command_line">
+						$ qctool -g example.bgen
+						-s example.sample
+						-og filtered.bgen
+						-excl-samples-where 'sex = male'
+					</div>
+					<div class="task_notes">
+						<p>
+							You can currently filter sample file column values
+							for equality (using <code>=</code> or <code>==</code>) or inequality (<code>!=</code>).
+							<b>Note</b>: depending on the column names and expression used, it may be necessary
+							to place quotation marks around the expression to stop it being expanded by the shell.
+							As in the example above this also allows you to use whitespace to format the condition.
+						</p>
+						<p>
+							The <code>-incl-samples-where</code> behaves similarly, but includes only samples matching the condition.
+						</p>
 					</div>
 				</div>
 				<div class="task">
 					<div class="task_name">
-						Including sample information in conversions
+						Combining filters
 					</div>
 					<div class="task_notes">
-						 Although specifying a sample file in conversions is optional, it's sometimes preferable to include one so that output files have
-						the correct sample identifiers (e.g. when converting GEN format to BGEN or VCF), e.g.:
+						In general inclusion and exclusion options come in pairs of the form <code>-incl-&lt;option&gt;</code>, <code>-excl-&lt;option&gt;</code>.
+						If multiple overlapping conditions are specified, the logic is that samples that satisfy any of the specified exclusion criteria will
+						be excluded, and likewise samples that do not satisfy any of the specified inclusion criteria will be excluded.  This in the following command:
 					</div>
 					<div class="task_command_line">
-						$ qctool -g example_#.gen -og example.bgen -s example.sample
+						$ qctool -g example.bgen
+						-s example.sample
+						-og filtered.bgen
+						-excl-samples-where 'sex = male'
+						-incl-samples samples.txt
 					</div>
 					<div class="task_notes">
-						which will produce a BGEN file with a sample identifier block.
+						The output will contain only male samples that are also listed in the file <code>samples.txt</code>.
 					</div>
 				</div>
-				<div class="task">
-					<div class="task_name">
-						Converting from VCF format
-					</div>
-					<div class="task_notes">
-						By default QCTOOL reads genotype calls from the <span class="monospace">GT</span> field in the VCF file.
-						The <code>-vcf-genotype-field</code> can be used to alter this, e.g.:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.vcf -vcf-genotype-field GP -og converted.bgen
-					</div>
-					<div class="task_notes">
-						QCTOOL also assumes that VCF metadata is correct (according to the VCF v4.2 spec)- and it will
-						fail with an error if that's not the case.
-						To work around this, the <code>-metadata</code> option can be used to tell QCTOOL to load metadata from an
-						external file:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.vcf -og converted.bgen -metadata metadata.txt
-					</div>
-					<div class="task_notes">
-						The specified metadata file should contain complete VCF metadata, starting
-						with the <code>##fileformat=VCFv4.2</code> line, up to but not
-						including the <code>#CHROM...</code> line.
-					</div>
-				</div>
-			</div>
 		</section>
 
 		<nav class="button_bar">
@@ -140,14 +133,14 @@
 					<li><a href="../../documentation/examples/converting.html">Converting file formats</a></li>
 					<li><a href="../../documentation/examples/sorting.html">Sorting and reordering data</a></li>
 					<li><a href="../../documentation/examples/combining.html">Combining datasets</a></li>
-<li><a href="../../documentation/examples/merging.html">Merging in variants</a></li>
-					<li><a href="../../documentation/examples/altering_id_data.html">Altering variant identifying data</a></li>
+					<li><a href="../../documentation/examples/merging.html">Merging in variants</a></li>
+					<li><a href="../../documentation/examples/altering_id_data.html">Manipulating variant metadata</a></li>
 					<li><a href="../../documentation/examples/pipelining.html">Using qctool in a pipeline</a></li>
 					<li><a href="../../documentation/examples/filtering_samples.html">Filtering samples</a></li>
-<li><a href="../../documentation/examples/filtering_variants.html">Filtering variants</a></li>
+					<li><a href="../../documentation/examples/filtering_variants.html">Filtering variants</a></li>
 					<li><a href="../../documentation/examples/summary_statistics.html">Computing summary statistics</a></li>
 					<li><a href="../../documentation/examples/adding_to_sample_file.html">Adding data to a sample file</a></li>
-<li><a href="../../documentation/examples/computing_pcs.html">Computing principal components</a></li>
+					<li><a href="../../documentation/examples/computing_pcs.html">Computing principal components</a></li>
 				</ul>
 			</div>
 			<div class="nav_button" name="file_formats">
@@ -160,7 +153,7 @@
 			<div class="nav_button" name="download">
 				<a href="../../documentation/download.html">download</a>
 			</div>
-		</div>
+		</nav>
 		
 	</body>
 </html>

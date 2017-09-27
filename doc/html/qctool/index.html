@@ -65,14 +65,15 @@
 					QCTOOL is designed to be as easy-to-use as possible and we hope you find it so. See the <a href='#documentation'>documentation page</a> for a description of how QCTOOL works.
 				</p>
 				<p>
-					<strong>A note on performance</strong> The large sizes of modern datasets mean performance is often a critical factor. QCTOOL is currently not always the fastest tool in the box, and this . In particular for more efficient manipulation of BGEN files, see <a href="http://www.bitbucket.org/gavinband/bgen">the bgen library</a>.
+					<strong>A note on performance</strong> The large sizes of modern datasets mean performance is often a critical factor. QCTOOL is currently not always the fastest tool in the box.
+					For more efficient manipulation of BGEN files, see <a href="http://www.bitbucket.org/gavinband/bgen">the bgen library</a>.
 				</p>
 				<p>
 					<strong>Change history.</strong> This page documents version 2 of QCTOOL which is currently in release candidate state. However, some features may not work, or not to work well, or to work wrongly, or to destroy your computer, or your sanity. Caveat utilitor.
 				</p>QCTOOL v2 also differs in several important ways from the v1 release series. Some important changes in QCTOOL v2 relative to v1 are:
 				<ul>
 					<li>
-						<b>Support for more file formats</b>: QCTOOL v2 supports a diverse array of common file formats - see the <a href="file_formats.html">file formats page</a> for more information.
+						<b>Support for more file formats</b>: QCTOOL v2 supports a diverse array of common file formats - see the <a href="documentation/genotype_file_formats.html">file formats page</a> for more information.
 					</li>
 					<li>
 						<b>Removal of on-the-fly filtering options</b>: The options for direct filtering based on summary statistics (<code>-maf</code>, <code>-hwe</code>, <code>-snp-missing-rate</code>, etc.) have been removed. Instead, it's expected you will inspect summary statistics and manually create lists of variants and/or samples for removal, using the <code>-incl-</code> and <code>-excl-</code> options to exclude them in a seperate QCTOOL run. (That's often what you want anyway, since it's useful to have a record of what you've removed.)
@@ -124,13 +125,17 @@
 				<ul class="menu">
 					<li><a href="documentation/examples/basic.html">Basic usage</a></li>
 					<li><a href="documentation/examples/converting.html">Converting file formats</a></li>
-					<li><a href="documentation/examples/sorting.html">Sorting data</a></li>
-					<li><a href="documentation/examples/combing.html">Combining datasets</a></li>
-					<li><a href="documentation/examples/metadata.html">Manipulating variant metadata</a></li>
+					<li><a href="documentation/examples/sorting.html">Sorting and reordering data</a></li>
+					<li><a href="documentation/examples/combining.html">Combining datasets</a></li>
+					<li><a href="documentation/examples/merginging.html">Merging in variants</a></li>
+					<li><a href="documentation/examples/altering_id_data.html">Altering variant identifying data</a></li>
 					<li><a href="documentation/examples/pipelining.html">Using qctool in a pipeline</a></li>
-					<li><a href="documentation/examples/filtering.html">Filtering variants or samples</a></li>
-					<li><a href="documentation/examples/summary.html">Computing summary statistics</a></li>
+					<li><a href="../../documentation/examples/filtering_samples.html">Filtering samples</a></li>
+					<li><a href="documentation/examples/filtering_variants.html">Filtering variants</a></li>
+					<li><a href="documentation/examples/summary_statistics.html">Computing summary statistics</a></li>
 					<li><a href="documentation/examples/adding_to_sample_file.html">Adding data to a sample file</a></li>
+					<li><a href="documentation/examples/computing_ld.html">Computing LD</a></li>
+					<li><a href="documentation/examples/computing_pcs.html">Computing principal components</a></li>
 				</ul>
 			</div>
 			<div class="nav_button" name="file_formats">

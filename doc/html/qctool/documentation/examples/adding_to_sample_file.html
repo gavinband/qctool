@@ -31,88 +31,97 @@
 		</div>
 
 		<section class="main_text">
-					<h2>Converting between file formats</h2>
+			<h2>Manipulating the sample file</h2>
 				<div class="task">
 					<div class="task_name">
-						Basic conversions
+						Add genotype dosages for given variants to the sample file
 					</div>
 					<div class="task_notes">
-						The basic format of a conversion command is:
+						The <code>-condition-on</code> option can be used to extract genotype dosages for specific given variants
+						and place them as columns in the sample file.  E.g.:
 					</div>
 					<div class="task_command_line">
-						$ qctool -g &lt;input file&gt; [-filetype &lt;input type&gt;] -og &lt;output file&gt; [-ofiletype &lt;output type&gt;] [+modifier options]
+						$ qctool -g example_#.gen -s example.sample -os example.sample -condition-on rs1234
 					</div>
 					<div class="task_notes">
-						QCTOOL normally deduces file types from the file extension.
-						However, for filetypes that are not automatically recognised, or if you want to specify,
-						the <code>-filetype</code> and <code>-ofiletype</code> options can be used to specify the types.
-						The <a href="../../documentation/genotype_file_formats.html">genotype file formats page</a> lists file type specifiers and
-						any applicable modifier options.
-					</div>
-					<div class="task_notes">
-						E.g. to convert between between bgen and vcf formats:
+						This adds a column with name <span class="monospace">rs1234:additive_dosage</span>, containing the
+						additive dosage from the SNP.  You can also select SNPs by position:
 					</div>
 					<div class="task_command_line">
-						$ qctool -g example.bgen -og example.vcf
+						$ qctool -g example_#.gen -s example.sample -os example.sample -condition-on pos~03:10001
+					</div>
+					<div class="task_notes">
+						It is also possible to select dominant, recessive, or heterozygote dosages from the SNP.  For example,
+						to select additive and heterozygote dosages:
+					</div>
+					<div class="task_command_line">
+						$ qctool -g example_#.gen 
+						-s example.sample 
+						-os example.sample 
+						-condition-on "rs1234(add|het)"
+					</div>
+					<div class="task_notes">
+						<p>
+						<b>Note:</b> as shown above, it is sometimes necessary to place the argument in quotation marks
+						to avoid problems with the system shell.
+					</p>
+						<p>
+							The full syntax for this option is: <code>-condition-on [selector~]value[(dosage1[|dosage2...])]</code>
+							where <code>selector</code> is either "rsid", "snpid", or "position" or "pos", <code>value</code>
+							is a string specifying the ID or position of the required variant, and dosage can be
+							<code>add</code>, <code>dom</code>, <code>rec</code>, <code>het</code>.
+							The value <code>gen</code> adds both additive and heterozygote dosages.
+						</p>
+						<p>
+							Note: these options behave in a similar way to the <code>-condition_on</code> option
+							found in <a href="https://mathgen.stats.ox.ac.uk/genetics_software/snptest/snptest.html">SNPTEST</a>,
+							but may be preferable because they can write the data into the sample file directly where it can be
+							later inspected.
+						</p>
 					</div>
 				</div>
 				<div class="task">
 					<div class="task_name">
-						Handling files split by chromosome
+						Quantile-normalise columns of the sample file
 					</div>
 					<div class="task_notes">
-						If the input filename contains a # character, e.g. <code>example_#.gen</code> this is treated as a
-						chromosomal wildcard and will match all (human) chromosomes. This will also be used to
-						infer the chromosome for each variant if chromosome information is not present in the files themselves.
-						For example, the command:
+						The <code>-quantile-normalise</code> option takes a numerical column in the sample file,
+						and adds a new column reflecting the same data after mapping empirical quantiles to those of a 
+						standard gaussian distribution.  E.g.:
 					</div>
 					<div class="task_command_line">
-						$ qctool -g example_#.gen -og example.bgen
+						$ qctool -g example.bgen -s example.sample -os example.sample -quantile-normalise column1
 					</div>
 					<div class="task_notes">
-						will process all 22 example files, and if the input GEN files have no chromosome information included,
-						the output data will have chromosome identifiers taken from the filenames.
-					</div>
-				</div>
-				<div class="task">
-					<div class="task_name">
-						Including sample information in conversions
-					</div>
-					<div class="task_notes">
-						 Although specifying a sample file in conversions is optional, it's sometimes preferable to include one so that output files have
-						the correct sample identifiers (e.g. when converting GEN format to BGEN or VCF), e.g.:
+						<p>
+							This adds a column with name <code>column1:quantile-normalised</code> to the sample file.
+							The specified columns must be continuous, i.e. of type 'P' or 'C'.
+							(Note that even though the SNPs are not used here, currently you must still specify the -g option.)
+						</p>
+						<p>
+							The screen output (and log file) will contain details of the column values before and after normalisation.
+						</p>
+						<p>
+							<b>Technical note</b>: specifically, suppose there are <em>N</em> samples.  This option
+							first computes the quantiles <em>q<sub>j</sub> = &Phi;<sup>-1</sup>(j/N+1)</em> for each <em>j=1,...,N</em>,
+							where <em>&Phi;</em> is the cumulative distribution function of a standard Gaussian.
+							The normalised value for sample <em>i</em> is then obtained as <em>n<sub>i</sub> = q<sub>r(i)</sub></em>
+								where <em>r(i)</em> is the rank of the sample among the values of the given column.
+								If several samples are tied, we instead set <em>n<sub>i</sub></em> to the average of q<sub>r(i)</sub>
+								across all samples with the same column value.  This makes the normalised value well-defined
+								(i.e. independent of the ranking of these samples), and means that samples with
+								identical values of the input column will also have identical values
+								in the computed quantile-normalised column.
+						</p>
+						<p>
+							Note that <code>-quantile-normalise</code> can be given a list of columns:
+						</p>
 					</div>
 					<div class="task_command_line">
-						$ qctool -g example_#.gen -og example.bgen -s example.sample
+						$ qctool -g example.bgen -s example.sample -os example.sample -quantile-normalise column1 column2...
 					</div>
 					<div class="task_notes">
-						which will produce a BGEN file with a sample identifier block.
-					</div>
-				</div>
-				<div class="task">
-					<div class="task_name">
-						Converting from VCF format
-					</div>
-					<div class="task_notes">
-						By default QCTOOL reads genotype calls from the <span class="monospace">GT</span> field in the VCF file.
-						The <code>-vcf-genotype-field</code> can be used to alter this, e.g.:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.vcf -vcf-genotype-field GP -og converted.bgen
-					</div>
-					<div class="task_notes">
-						QCTOOL also assumes that VCF metadata is correct (according to the VCF v4.2 spec)- and it will
-						fail with an error if that's not the case.
-						To work around this, the <code>-metadata</code> option can be used to tell QCTOOL to load metadata from an
-						external file:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.vcf -og converted.bgen -metadata metadata.txt
-					</div>
-					<div class="task_notes">
-						The specified metadata file should contain complete VCF metadata, starting
-						with the <code>##fileformat=VCFv4.2</code> line, up to but not
-						including the <code>#CHROM...</code> line.
+						This produces a set of quantile-normalised columns, one for each specified input column.
 					</div>
 				</div>
 			</div>
@@ -140,7 +149,7 @@
 					<li><a href="../../documentation/examples/converting.html">Converting file formats</a></li>
 					<li><a href="../../documentation/examples/sorting.html">Sorting and reordering data</a></li>
 					<li><a href="../../documentation/examples/combining.html">Combining datasets</a></li>
-<li><a href="../../documentation/examples/merging.html">Merging in variants</a></li>
+					<li><a href="../../documentation/examples/merging.html">Merging in variants</a></li>
 					<li><a href="../../documentation/examples/altering_id_data.html">Altering variant identifying data</a></li>
 					<li><a href="../../documentation/examples/pipelining.html">Using qctool in a pipeline</a></li>
 					<li><a href="../../documentation/examples/filtering_samples.html">Filtering samples</a></li>
@@ -160,7 +169,7 @@
 			<div class="nav_button" name="download">
 				<a href="../../documentation/download.html">download</a>
 			</div>
-		</div>
+		</nav>
 		
 	</body>
 </html>

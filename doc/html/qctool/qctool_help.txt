@@ -28,10 +28,10 @@ SNP exclusion options:
                                rt or to the end of a chromosome.
               -excl-rsids <a>: Exclude all SNPs whose RSID is in the given file(s) from the analysis.
              -excl-snpids <a>: Exclude all SNPs whose SNPID is in the given file(s) from the analysis.
-               -excl-snps <a>: Exclude all SNPs in the given file(s) from the analysis. The format of this file is the s-
+               -excl-variants <a>: Exclude all SNPs in the given file(s) from the analysis. The format of this file is the s-
                                ame as that output by the -write-snp-excl-list option.  It must have six columns interpre-
                                ted as SNPID, rsid, chromosome, position, first and second alleles.
-      -excl-snps-matching <a>: Filter out snps whose rsid or SNPID matches the given value. The value should be a string
+      -excl-variants-matching <a>: Filter out snps whose rsid or SNPID matches the given value. The value should be a string
                                which can contain a % wildcard character (which matches any substring). Optionally, prefi-
                                x the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields.
           -incl-positions <a>: Exclude all SNPs whose position is not in the given file(s) from the analysis. Positions 
@@ -43,10 +43,10 @@ SNP exclusion options:
                                e end of a chromosome.
               -incl-rsids <a>: Exclude all SNPs whose RSID is not in the given file(s) from the analysis.
              -incl-snpids <a>: Exclude all SNPs whose SNPID is not in the given file(s) from the analysis.
-               -incl-snps <a>: Exclude all SNPs not in the given file(s) from the analysis. The format of this file is t-
+               -incl-variants <a>: Exclude all SNPs not in the given file(s) from the analysis. The format of this file is t-
                                he same as that output by the -write-snp-excl-list option.  It must have six columns inte-
                                rpreted as SNPID, rsid, chromosome, position, first and second alleles.
-      -incl-snps-matching <a>: Filter out snps whose rsid or SNPID does not match the given value. The value should be a
+      -incl-variants-matching <a>: Filter out snps whose rsid or SNPID does not match the given value. The value should be a
                                string which can contain a % wildcard character (which matches any substring). Optionally,
                                prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields.
 
@@ -55,7 +55,7 @@ Options for adjusting SNPs:
                                hromosome.
     -match-alleles-to-cohort1: Specify that alleles (and corresponding genotypes) in all cohorts should be switched, if 
                                necessary, so as to match the alleles of the first cohort.
-        -snp-match-fields <a>: By default, matching SNPs between cohorts uses all the available fields (position, rsid, 
+        -compare-variants-by <a>: By default, matching SNPs between cohorts uses all the available fields (position, rsid, 
                                SNPID, and alleles.) Use this option to specify a comma-separated subset of those fields 
                                to use instead. The first entry must be "position". This option can be used, for example,
                                when cohorts are typed on different platforms so have different SNPID fields.  Defaults t-
