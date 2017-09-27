@@ -51,13 +51,12 @@
 							and <em>r<sup>2</sup></em> statistics.  (Multiallelic variants are currently not handled.)
 					</p>
 					<p>
-						Note that QCTOOL outputs <em>shrinkage</em> estimates of LD by default.  This is done by augmenting the data
-						with four 'prior' datapoints encoding the four possible pairwise haplotypes.  Incorporating this prior
-						corresponds to including the prior assumptions that 1: both variants are polymorphic and 2: at
-						least is some recombination between them.  Estimates of pairwise correlation are therefore shrunk towards zero,
-						having an important practical benefit that the matrix 
-						
-						
+						<b>Note:</b> QCTOOL outputs shrinkage estimates of LD by default.  This is done by augmenting the data
+						with four 'prior' datapoints encoding the four possible pairwise haplotypes.  Roughly speaking,
+						this corresponds to including the prior assumptions that 1: both variants are polymorphic
+						and 2: there is at least some recombination between them.
+						A practical effect of this is to shrink LD estimates toward zero.  This prior is weak
+						and will only play a noticeable role when the sample size is very small.
 					</p>
 					<p>
 						<b>Note 1</b>: to compute LD, samples are matched between datasets using the primary ID (the first column
