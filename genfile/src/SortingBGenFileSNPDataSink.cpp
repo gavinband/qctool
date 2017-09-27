@@ -23,11 +23,13 @@
 namespace genfile {
 	SortingBGenFileSNPDataSink::SortingBGenFileSNPDataSink(
 		std::string const& filename, 
-		SNPDataSink::UniquePtr sink
+		SNPDataSink::UniquePtr sink,
+		VariantIdentifyingData::CompareFields comparer
 	):
 		m_filename( filename ),
 		m_sink( sink ),
-		m_offset_of_first_snp( 0 )
+		m_offset_of_first_snp( 0 ),
+		m_file_offsets( comparer )
 	{
 	}
 

@@ -407,17 +407,21 @@ namespace genfile {
 		assert( elts.size() > 0 ) ;
 		std::vector< int > result ;
 		for( std::size_t i = 0; i < elts.size(); ++i ) {
-			if( elts[i] == "rsid" ) {
+			std::string const& thing = string_utils::to_lower( elts[i] ) ;
+			if( thing == "rsid" ) {
 				result.push_back( eRSID ) ;
 			}
-			else if( elts[i] == "position" ) {
+			else if( thing == "position" ) {
 				result.push_back( ePosition ) ;
 			}
-			else if( elts[i] == "alleles" ) {
+			else if( thing == "alleles" ) {
 				result.push_back( eAlleles ) ;
 			}
-			else if( elts[i] == "IDs" || elts[i] == "SNPID" ) {
+			else if( thing == "ids" ) {
 				result.push_back( eIDs ) ;
+			}
+			else if( thing == "snpid" ) {
+				result.push_back( eAlternateIDs ) ;
 			}
 			else {
 				assert(0) ;
@@ -452,6 +456,14 @@ namespace genfile {
 						return false ;
 					}
 					else if( left.get_identifiers() < right.get_identifiers() ) {
+						return true ;
+					}
+					break ;
+				case eAlternateIDs:
+					if( left.get_identifiers(1) > right.get_identifiers(1) ) {
+						return false ;
+					}
+					else if( left.get_identifiers(1) < right.get_identifiers(1) ) {
 						return true ;
 					}
 					break ;
@@ -495,6 +507,11 @@ namespace genfile {
 						return false ;
 					}
 					break ;
+				case eAlternateIDs:
+					if( left.get_identifiers(1) != right.get_identifiers(1) ) {
+						return false ;
+					}
+					break ;
 				case eAlleles:
 					if( left.get_allele(0) != right.get_allele(0) ) {
 						return false ;
@@ -520,6 +537,9 @@ namespace genfile {
 			switch( m_fields_to_compare[i] ) {
 				case eIDs:
 				result += "ids" ;
+				break ;
+				case eAlternateIDs:
+				result += "snpid" ;
 				break ;
 				case eRSID:
 				result += "rsid" ;
