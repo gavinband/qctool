@@ -20,7 +20,10 @@ namespace genfile {
 	{
 	public:
 		typedef std::auto_ptr< SampleFilter > UniquePtr ;
-		static UniquePtr create( std::string const& spec ) ;
+		static UniquePtr create(
+			std::string const& spec,
+			std::vector< std::string > const& missing_codes = std::vector< std::string >( 1, "NA" )
+		) ;
 		
 		typedef Eigen::MatrixXd DetailMatrix ;
 		typedef Eigen::Block< DetailMatrix > DetailBlock ;

@@ -51,7 +51,7 @@ namespace genfile {
 	
 
 	// Factory function for conditions.
-	SampleFilter::UniquePtr SampleFilter::create( std::string const& spec ) {
+	SampleFilter::UniquePtr SampleFilter::create( std::string const& spec, std::vector< std::string > const& missing_codes ) {
 		using namespace genfile::string_utils ;
 
 		// for now just parse variable = value or variable != value.
@@ -80,18 +80,19 @@ namespace genfile {
 		SampleFilter::UniquePtr result ;
 		if( type == "=" ) {
 			VariableInSetSampleFilter::UniquePtr filter( new VariableInSetSampleFilter( elts[0] ) ) ;
-			if( elts[1] == "NA" ) {
-				filter->add_level( genfile::MissingValue() ) ;
-			} else {
+			if( std::find( missing_codes.begin(), missing_codes.end(), elts[1] ) == missing_codes.end() ) {
 				filter->add_level( elts[1] ) ;
+			} else {
+				filter->add_level( genfile::MissingValue() ) ;
 			}
 			result.reset( filter.release() ) ;
 		} else {
 			VariableNotInSetSampleFilter::UniquePtr filter( new VariableNotInSetSampleFilter( elts[0] ) ) ;
-			if( elts[1] == "NA" ) {
-				filter->add_level( genfile::MissingValue() ) ;
-			} else {
+
+			if( std::find( missing_codes.begin(), missing_codes.end(), elts[1] ) == missing_codes.end() ) {
 				filter->add_level( elts[1] ) ;
+			} else {
+				filter->add_level( genfile::MissingValue() ) ;
 			}
 			result.reset( filter.release() ) ;
 		}
