@@ -56,7 +56,7 @@ namespace qcdb {
 		~DBOutputter() ;
 
 		// Create a new variable associated with the current analysis
-		void create_variable( std::string const& name, std::string const& description ) const ;
+		void create_variable( std::string const& table, std::string const& name ) const ;
 #if 0
 		// Create an entity.  Optionally supply a class (which must be the id of another entity.)
 		db::Connection::RowId get_or_create_entity(

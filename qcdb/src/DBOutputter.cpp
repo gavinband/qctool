@@ -139,9 +139,10 @@ namespace qcdb {
 
 		m_connection->run_statement(
 			"CREATE TABLE Variable ( "
-				"analysis_id INTEGER NOT NULL REFERENCES Analysis( id ), "
-				"name TEXT NOT NULL "
-				"description TEXT NOT NULL"
+				"`analysis_id` INTEGER NOT NULL REFERENCES Analysis( id ), "
+				"`table` TEXT NOT NULL, "
+				"`name` TEXT NOT NULL, "
+				"`description` TEXT"
 			")"
 		) ;
 
@@ -173,7 +174,7 @@ namespace qcdb {
 	}
 
 	void DBOutputter::construct_statements() {
-		m_insert_variable_statement = m_connection->get_statement( "INSERT INTO Variable ( analysis_id, name, description ) VALUES( ?, ?, ? )" ) ;
+		m_insert_variable_statement = m_connection->get_statement( "INSERT INTO Variable ( analysis_id, `table`, `name`, `description` ) VALUES( ?, ?, ?, ? )" ) ;
 		m_find_analysis_statement = m_connection->get_statement( "SELECT id FROM Analysis WHERE name == ?1 AND chunk == ?2" ) ;
 		m_insert_analysis_statement = m_connection->get_statement( "INSERT INTO Analysis( name, chunk ) VALUES ( ?1, ?2 )" ) ;
 		m_insert_analysis_property_statement = m_connection->get_statement( "INSERT OR REPLACE INTO AnalysisProperty ( analysis_id, property, value, source ) VALUES ( ?1, ?2, ?3, ?4 )" ) ;
@@ -239,11 +240,11 @@ namespace qcdb {
 		}
 	}
 	
-	void DBOutputter::create_variable( std::string const& name, std::string const& description ) const {
+	void DBOutputter::create_variable( std::string const& table, std::string const& name ) const {
 		m_insert_variable_statement
 			->bind( 1, m_analysis_id.get() )
-			.bind( 2, name )
-			.bind( 3, description )
+			.bind( 2, table )
+			.bind( 3, name )
 			.step() ;
 		m_insert_variable_statement->reset() ;
 	}

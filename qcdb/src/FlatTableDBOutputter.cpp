@@ -231,7 +231,7 @@ namespace qcdb {
 			var_i = m_variables.right.begin(),
 			end_var_i = m_variables.right.end() ;
 		for( ; var_i != end_var_i; ++var_i ) {
-			m_outputter.create_variable( var_i->second, var_i->second ) ;
+			m_outputter.create_variable( m_table_name, var_i->second ) ;
 		}
 	}
 	
