@@ -25,7 +25,9 @@ def build( bld ):
 			bld.glob( 'libs/thread/src/*.cpp' ) +
 			bld.glob( 'libs/thread/src/pthread/*.cpp' ) +
 			bld.glob( 'libs/filesystem/src/*.cpp' ) +
-			bld.glob( 'libs/date_time/src/posix_time/*.cpp' ),
+			bld.glob( 'libs/date_time/src/posix_time/*.cpp' ) +
+			bld.glob( 'libs/timer/src/*.cpp' ) +
+			bld.glob( 'libs/chrono/src/*.cpp' ),
 		includes = './',
 		export_incdirs = './', 
 		uselib = 'ZLIB RT',
