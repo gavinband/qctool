@@ -95,7 +95,7 @@ void SampleSummaryComponent::setup(
 		) ;
 	}
 
-	manager->send_output_to( sample_stats::SampleStorage::SharedPtr( storage )) ;
+	manager->send_output_to( storage ) ;
 
 	m_ui_context.logger() << "SampleSummaryComponent: the following components are in place:\n" << manager->get_summary( "  " ) << "\n" ;
 	processor.add_callback( genfile::SNPDataSourceProcessor::Callback::UniquePtr( manager.release() ) ) ;

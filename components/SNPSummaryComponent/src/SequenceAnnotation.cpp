@@ -36,7 +36,7 @@ void SequenceAnnotation::set_flanking( std::size_t left, std::size_t right ) {
 	m_flanking.second = right ;
 }
 
-void SequenceAnnotation::operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const&, genfile::VariantDataReader&, ResultCallback callback ) {
+void SequenceAnnotation::operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, Ploidy const&, genfile::VariantDataReader&, ResultCallback callback ) {
 	using namespace genfile::string_utils ;
 	std::deque< char > flankingSequence ;
 	std::size_t const first_allele_size = snp.get_allele(0).size() ;

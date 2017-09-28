@@ -78,7 +78,7 @@ namespace snp_stats {
 		void set_comparer( genfile::VariantIdentifyingData::CompareFields const& comparer ) ;
 		void set_match_alleles() ;
 		
-		void operator()( VariantIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
+		void operator()( VariantIdentifyingData const&, Genotypes const&, Ploidy const&, genfile::VariantDataReader&, ResultCallback ) ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 
 	private:

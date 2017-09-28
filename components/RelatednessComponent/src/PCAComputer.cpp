@@ -393,7 +393,6 @@ void PCAComputer::send_PCs(
 	GetNames pca_row_names,
 	GetNames pca_column_names
 ) {
-	std::cerr << PCAs.rows() << "x" << PCAs.cols() << ".\n" ;
 	for( int i = 0; i < PCAs.rows(); ++i ) {
 		for( int j = 0; j < PCAs.cols(); ++j ) {
 			m_PC_storage->store_per_sample_data(

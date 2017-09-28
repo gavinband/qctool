@@ -47,7 +47,7 @@ CallComparerProcessor::CallComparerProcessor( PairwiseCallComparerManager::Uniqu
 void CallComparerProcessor::operator()(
 	VariantIdentifyingData const& snp,
 	Genotypes const& genotypes,
-	SampleSexes const&,
+	Ploidy const&,
 	genfile::VariantDataReader& data_reader,
 	ResultCallback callback
 ) {

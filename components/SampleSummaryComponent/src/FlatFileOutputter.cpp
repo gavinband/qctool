@@ -36,13 +36,17 @@ namespace sample_stats {
 	}
 	
 	FlatFileOutputter::~FlatFileOutputter() {
-		store_block() ;
-		m_values.clear() ;
+		if( !m_values.empty() ) {
+			store_block() ;
+			m_values.clear() ;
+		}
 	}
 	
 	void FlatFileOutputter::finalise( long ) {
-		store_block() ;
-		m_values.clear() ;
+		if( !m_values.empty() ) {
+			store_block() ;
+			m_values.clear() ;
+		}
 		m_sink->write_comment( "Completed successfully at " + appcontext::get_current_time_as_string() ) ;
 	}
 

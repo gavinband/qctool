@@ -21,10 +21,13 @@
 
 #define DEBUG_SNP_SUMMARY_COMPUTATION_MANAGER 1
 
-SNPSummaryComputationManager::SNPSummaryComputationManager( genfile::CohortIndividualSource const& samples, std::string const& sex_column_name ):
+SNPSummaryComputationManager::SNPSummaryComputationManager(
+	genfile::CohortIndividualSource const& samples,
+	std::string const& sex_column_name
+):
 	m_samples( samples ),
 	m_sexes( get_sexes( samples, sex_column_name )),
-	m_samples_by_sex( get_samples_by_sex( m_sexes ) ),
+	m_samples_by_sex( get_samples_by_sex( m_sexes )),
 	m_haploid_coding_column( -1 )
 {}
 
@@ -175,6 +178,7 @@ void SNPSummaryComputationManager::processed_snp(
 		boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > callback
 			= boost::bind( boost::ref( m_result_signal ), snp, _1, _2 ) ;
 
+		SNPSummaryComputation::Ploidy ploidy = SNPSummaryComputation::Ploidy::Constant( m_genotypes.rows(), -1 ) ;
 		// We make m_genotypes handle the case of diploid samples,
 		// or haploids on the sex chromosome encoded like het diploids.
 		// For all others clients must handle the data themselves so we set m_genotypes to 0.
@@ -183,6 +187,7 @@ void SNPSummaryComputationManager::processed_snp(
 			// For those we fix genotypes here.
 			// (ALTERNATIVE: get the GPSetter to enact this transformation above.)
 			// (ALTERNATIVE 2: get the data source to enact this transformation.)
+			std::cerr << "PLOIDY LIMS = " << setter.min_ploidy() << " - " << setter.max_ploidy() << ".\n" ;
 			if( setter.max_ploidy() > 2 ) {
 				m_genotypes.setZero() ;
 			} else if( setter.min_ploidy() == 2 && setter.max_ploidy() == 2 ) {
@@ -194,12 +199,28 @@ void SNPSummaryComputationManager::processed_snp(
 					m_genotypes.setZero() ;
 				}
 			}
+			
+			bool const isY = 
+				(snp.get_position().chromosome() == "Y")
+				|| (snp.get_position().chromosome() == "0Y")
+				|| (snp.get_position().chromosome() == "chrY") ;
+
+			int ploidies[256] ;
+			ploidies[std::size_t('m')] = 1 ;
+			ploidies[std::size_t('f')] = isY ? 0 : 2 ;
+			ploidies[std::size_t('.')] = -1 ;
+			for( std::size_t i = 0; i < m_sexes.size(); ++i ) {
+				ploidy(i) = ploidies[ m_sexes[i] ] ;
+			}
+			
 		} else if( setter.min_ploidy() != 2 || setter.max_ploidy() != 2 ) {
 			// Currently non-diploid computations are unsupported except
 			// via particular computations which handle it directly.
 			// std::cerr << "WOAH! min ploidy is " << setter.min_ploidy() << ", max is " << setter.max_ploidy() << "!!!\n" ;
 			m_genotypes.resize( m_genotypes.rows(), 3 ) ;
 			m_genotypes.setZero() ;
+		} else {
+			ploidy = SNPSummaryComputation::Ploidy::Constant( m_genotypes.rows(), 2 ) ;
 		}
 
 		Computations::iterator i = m_computations.begin(), end_i = m_computations.end() ;
@@ -207,7 +228,7 @@ void SNPSummaryComputationManager::processed_snp(
 			i->second->operator()(
 				snp,
 				m_genotypes,
-				m_sexes,
+				ploidy,
 				data_reader,
 				callback
 			) ;
@@ -241,9 +262,7 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes(
 	}
 
 	if( m_haploid_coding_column != -1 ) {
-		
 		std::vector< size_t > bad_males ;
-		
 		for( std::size_t i = 0; i < males.size(); ++i ) {
 			int const wrong_coding_column = 3 - m_haploid_coding_column ;
 			if( (*genotypes)( males[i], wrong_coding_column ) > 0.0 ) {
@@ -267,6 +286,7 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes(
 			}
 
 			if( m_haploid_coding_column == 2 ) {
+				// recode to put calls in columns 0 and 1.
 				(*genotypes)( males[i], 1 ) = (*genotypes)( males[i], 2 ) ;
 				(*genotypes)( males[i], 2 ) = 0 ;
 			}
@@ -287,12 +307,14 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes(
 		callback( "incorrect_ploidy", int( bad_males.size() ) ) ;
 	}
 	
-	if( chromosome == genfile::Chromosome( "0Y" )) {
-
+	{
 		std::vector< size_t > bad_females ;
-		
+		bool const isY = (chromosome == genfile::Chromosome( "0Y" )
+		|| chromosome == genfile::Chromosome( "Y" )
+		|| chromosome == genfile::Chromosome( "chrY" )) ;
+
 		for( std::size_t i = 0; i < females.size(); ++i ) {
-			if( genotypes->row( females[i] ).array().abs().maxCoeff() != 0 ) {
+			if( isY && genotypes->row( females[i] ).array().abs().maxCoeff() != 0 ) {
 #if DEBUG_PER_VARIANT_COMPUTATION_MANAGER
 				std::cerr << "!! (PerVariantComputationManager::fix_sex_chromosome_genotypes()): at Y chromosome SNP "
 					<< snp
@@ -319,7 +341,6 @@ void SNPSummaryComputationManager::fix_sex_chromosome_genotypes(
 			;
 		}
 #endif
-		
 		callback( "incorrectly_coded_females", int( bad_females.size() ) ) ;
 	}
 }
@@ -334,13 +355,13 @@ int SNPSummaryComputationManager::determine_male_coding_column(
 	std::size_t column_determining_sample ;
 	for( std::size_t i = 0; i < males.size(); ++i ) {
 		if( genotypes( males[i], 1 ) != 0 && genotypes( males[i], 2 ) != 0 ) {
-				std::cerr << "!! (SNPSummaryComputationManager::determine_male_coding_column()): at X chromosome SNP "
-					<< snp
-					<< ", sample #"
-					<< (males[i]+1)
-					<< " (" << m_samples.get_entry( males[i], "ID_1" ) << ") "
-					<< " has nonzero heterozygote and homozygote call probabilities!\n" ;
-				throw genfile::BadArgumentError( "SNPSummaryComputationManager::determine_male_coding_column()", ":genotypes:" ) ;
+			std::cerr << "!! (SNPSummaryComputationManager::determine_male_coding_column()): at X chromosome SNP "
+				<< snp
+				<< ", sample #"
+				<< (males[i]+1)
+				<< " (" << m_samples.get_entry( males[i], "ID_1" ) << ") "
+				<< " has nonzero heterozygote and homozygote call probabilities!\n" ;
+			throw genfile::BadArgumentError( "SNPSummaryComputationManager::determine_male_coding_column()", ":genotypes:" ) ;
 		}
 		
 		for( int g = 1; g < 3; ++g ) {

@@ -105,7 +105,7 @@ namespace snp_stats {
 	void CrossDataSetConcordanceComputation::operator()(
 		VariantIdentifyingData const& snp,
 		Genotypes const& genotypes,
-		SampleSexes const&,
+		Ploidy const&,
 		genfile::VariantDataReader&,
 		ResultCallback callback
 	) {

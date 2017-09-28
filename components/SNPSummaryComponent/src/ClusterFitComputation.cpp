@@ -109,7 +109,7 @@ namespace snp_summary_component {
 	void ClusterFitComputation::operator()(
 		VariantIdentifyingData const& snp,
 		Genotypes const& genotypes,
-		SampleSexes const&,
+		Ploidy const&,
 		genfile::VariantDataReader& data_reader,
 		ResultCallback callback
 	) {

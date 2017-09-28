@@ -33,7 +33,7 @@ GeneticMapAnnotation::GeneticMapAnnotation(
 void GeneticMapAnnotation::operator()(
 	VariantIdentifyingData const& snp,
 	Genotypes const&,
-	SampleSexes const&,
+	Ploidy const&,
 	genfile::VariantDataReader&,
 	ResultCallback callback
 ) {

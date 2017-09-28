@@ -22,7 +22,7 @@ namespace snp_summary_component {
 	void IntensitySummaryComputation::operator()(
 		VariantIdentifyingData const&,
 		Genotypes const& genotypes,
-		SampleSexes const&,
+		Ploidy const&,
 		genfile::VariantDataReader& data_reader,
 		ResultCallback callback
 	) {

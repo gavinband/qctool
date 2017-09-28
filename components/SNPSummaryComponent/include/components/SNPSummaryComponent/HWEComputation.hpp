@@ -22,14 +22,14 @@ namespace snp_summary_component {
 	{
 		HWEComputation() ;
 	
-		void operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, genfile::VariantDataReader&, ResultCallback callback ) ;
+		void operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, Ploidy const& ploidy, genfile::VariantDataReader&, ResultCallback callback ) ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 
 	private:
 		void autosomal_test( VariantIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) ;
 		void autosomal_exact_test( VariantIdentifyingData const& snp, Eigen::VectorXd const& genotype_counts, ResultCallback callback ) ;
 		void autosomal_multinomial_test( VariantIdentifyingData const& snp, Eigen::VectorXd const& genotype_counts, ResultCallback callback ) ;
-		void X_chromosome_test( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, ResultCallback callback ) ;
+		void X_chromosome_test( VariantIdentifyingData const& snp, Genotypes const& genotypes, Ploidy const& ploidy, ResultCallback callback ) ;
 
 	private:
 		double const m_threshhold ;

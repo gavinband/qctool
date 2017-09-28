@@ -44,7 +44,7 @@ namespace snp_stats {
 	void CrossDataSetHaplotypeComparisonComputation::operator()(
 		VariantIdentifyingData const& snp,
 		Genotypes const&,
-		SampleSexes const&,
+		Ploidy const&,
 		genfile::VariantDataReader& data_reader,
 		ResultCallback callback
 	) {

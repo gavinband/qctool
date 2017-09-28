@@ -40,7 +40,7 @@ std::vector< int > DifferentialMissingnessComputation::compute_strata_levels( St
 	return result ;
 }
 
-void DifferentialMissingnessComputation::operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const&, genfile::VariantDataReader&, ResultCallback callback ) {
+void DifferentialMissingnessComputation::operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, Ploidy const&, genfile::VariantDataReader&, ResultCallback callback ) {
 	// construct a table
 	// 
 	//                 missing     not missing

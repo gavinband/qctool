@@ -22,7 +22,7 @@
 namespace snp_summary_component {
 	struct IntensitySummaryComputation: public SNPSummaryComputation {
 		IntensitySummaryComputation( double call_threshhold = 0.9 ) ;
-		void operator()( VariantIdentifyingData const&, Genotypes const&, SampleSexes const&, genfile::VariantDataReader&, ResultCallback ) ;
+		void operator()( VariantIdentifyingData const&, Genotypes const&, Ploidy const&, genfile::VariantDataReader&, ResultCallback ) ;
 		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
 	private:
 		double const m_call_threshhold ;
