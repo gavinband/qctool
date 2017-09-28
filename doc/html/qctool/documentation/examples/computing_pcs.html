@@ -44,12 +44,14 @@
 				is a diagonal matrix.
 			</p>
 			<p>
-				In practice principal components analysis (PCA) is usually carried out on the matrix of genotypes scaled by frequency, i.e.
+				In practice principal components analysis (PCA) is usually carried out on the
+				matrix of genotypes scaled by frequency, i.e.
 				<em>x<sub>ij</sub> = g<sub>ij</sub> / &radic; f(1-f)</em>.  One reason for this is that
 				(in simple theoretical situations) the rate of genetic drift is proportional
 				to <em>&radic;f(1-f)</em>, where <em>f</em> is the ancestral allele frequency.
-				If PCA is carried out on a sample from a set of diverged populations, the overall allele frequency can be though of
-				as approximating the ancestral frequency, and the principal components will measure genetic drift between samples.
+				If PCA is carried out on a sample from a set of diverged populations, the overall
+				allele frequency can be though of as approximating the ancestral frequency, and the
+				principal components will measure genetic drift between samples.
 			</p>
 			<p>
 				The matrix <em>Z = 1/N X<sup>t</sup>X</em> can be thought of as a 'relatedness' matrix and is
@@ -57,8 +59,8 @@
 				the matrix <em>Z</em> is an estimate of the 
 				matrix of <a href="https://en.wikipedia.org/wiki/Coefficient_of_relationship">kinship
 				coefficients</a>.  In practical situations <em>Z</em> is best thought of as providing a measure
-				of relatedness relative to the sample; it can
-				nevertheless be useful in identifying close relationships.
+				of relatedness relative to the sample; it can nevertheless be useful in identifying
+				close relationships.
 			</p>
 			<p>
 				QCTOOL computes principal components by solving for eigenvectors of <em>1/N X<sup>t</sup>X</em>.
