@@ -32,19 +32,54 @@
 
 		<section class="main_text">
 			<h2>Computing principal components</h2>
+			<p>
+				Suppose <em>X</em> is a matrix of genotypes at a set of <em>L</em> biallelic
+				variants (rows) for a collection of <em>N</em> samples (columns).
+				We are interested in finding the eigenvectors of <em>1/N X<sup>t</sup>X</em>
+				(the principal components)
+				and of <em>1/L X X<sup>t</sup></em> (the 'loadings').
+				The two are related by the singular value decomposition, which says that
+				<em>X = U D V<sup>t</sup></em>
+				where the columns of V<sup>t</sup> and the rows of U are the required eigenvectors, and <em>D</em>
+				is a diagonal matrix.
+			</p>
+			<p>
+				In practice principal components analysis (PCA) is usually carried out on the matrix of genotypes scaled by frequency, i.e.
+				<em>x<sub>ij</sub> = g<sub>ij</sub> / &radic; f(1-f)</em>.  One reason for this is that
+				(in simple theoretical situations) the rate of genetic drift is proportional
+				to <em>&radic;f(1-f)</em>, where <em>f</em> is the ancestral allele frequency.
+				If PCA is carried out on a sample from a set of diverged populations, the overall allele frequency can be though of
+				as approximating the ancestral frequency, and the principal components will measure genetic drift between samples.
+			</p>
+			<p>
+				The matrix <em>Z = 1/N X<sup>t</sup>X</em> can be thought of as a 'relatedness' matrix and is
+				useful in its own right.  In simple theoretical scenarious, with the scaling <em>&radic;f(1-f)</em>,
+				the matrix <em>Z</em> is an estimate of the 
+				matrix of <a href="https://en.wikipedia.org/wiki/Coefficient_of_relationship">kinship
+				coefficients</a>.  In practical situations <em>Z</em> is best thought of as providing a measure
+				of relatedness relative to the sample; it can
+				nevertheless be useful in identifying close relationships.
+			</p>
+			<p>
+				QCTOOL computes principal components by solving for eigenvectors of <em>1/N X<sup>t</sup>X</em>.
+				It computes loadings by projecting genotypes at each variant onto
+				those eigenvectors, namely as <em>V<sup>t</sup></em> = U<sup>-1</sup> D<sup>-1</sup> X</em>.
+			</p>
+
 				<div class="task">
 					<div class="task_name">
 						Computing a kinship matrix
 					</div>
 					<div class="task_notes">
-						The <code>-kinship<code> option can be used to compute a kinship matrix, e.g.:
+						The <code>-kinship</code> option can be used to compute a kinship matrix, e.g.:
 					</div>
 					<div class="task_command_line">
 						$ qctool -g example.bgen -s example.sample -kinship kinship.csv
 					</div>
 					<div class="task_notes">
 						This outputs pairwise kinship values to the file <code>kinship.csv</code>, which is stored in a 'long' format
-						of sample 1 id, sample 2 id, the number of pairwise non-missing genotypes, and the kinship value.
+						with columns holding the first sample id, second sample id, the number of pairwise non-missing genotypes,
+						and the estimated kinship value.
 					</div>
 				</div>
 				<div class="task">
@@ -59,28 +94,31 @@
 						$ qctool -g example.bgen -s example.sample -kinship kinship.csv -UDUT udut.csv
 					</div>
 					<div class="task_notes">
-						This computes a UDUT decomposition of the kinship matrix.  To output a sample file containing PCs,
+						This computes a UDUT decomposition of the kinship matrix.  To additionally output principal components (PCs),
 						additionally add the <code>-PCs</code> option:
 					</div>
 					<div class="task_command_line">
-						$ qctool -g example.bgen -s example.sample -kinship kinship.csv -UDUT udut.csv -PCs pcs.sample
+						$ qctool -g example.bgen -s example.sample -kinship kinship.csv -UDUT udut.csv -PCs 20 -osample PCs.csv
 					</div>
 					<div class="task_notes">
 					<p>
-						By default 10 PCs are computed.  Use <code>-nPCs &lt;n&gt;</code> to specify a different number.
+						The argument is the number of PCs to output.
 					</p>
 					<p>
-						In some contexts (e.g. when recomputing PCs on a subset of samples) it may be preferable to load a previously
-						computed kinship matrix (or a previously computed UDUT decomposition), rather than to recompute a new one.
-						This can be acheived with the
-						<code>-load-kinship</code> and <code>-load-UDUT</code> options:
+						<b>Note:</b> PCs are output to the file specified by <code>-osample</code>.
+						Specifying both <code>-sample-stats</code> and <code>-PCs</code> leads to a file that contains both
+						per-sample summary statistics and PCs.
+						See the <a href="../../documentation/summary_file_formats.html">page
+							on summary statistic file formats</a> for more information on the format of the output.
+					</p>
+					<p>
+						In some contexts it may be preferable to load a previously
+						computed kinship matrix, rather than to recompute a new one. This can be acheived with the
+						<code>-load-kinship</code> option:
 					</p>
 					</div>
 					<div class="task_command_line">
-						$ qctool -g example.bgen -s example.sample -load-kinship kinship.csv -UDUT udut.csv
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -s example.sample -load-UDUT udut.csv -nPCs 10 -PCs pcs.sample
+						$ qctool -g example.bgen -s example.sample -load-kinship kinship.csv -UDUT udut.csv -PCs 20 -osample PCs.csv
 					</div>
 				</div>
 
