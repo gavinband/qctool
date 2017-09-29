@@ -36,10 +36,6 @@ namespace sample_stats {
 	}
 	
 	FlatFileOutputter::~FlatFileOutputter() {
-		if( !m_values.empty() ) {
-			store_block() ;
-			m_values.clear() ;
-		}
 	}
 	
 	void FlatFileOutputter::finalise( long ) {
