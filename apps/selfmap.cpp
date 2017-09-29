@@ -315,6 +315,8 @@ private:
 			}
 			progress_context.notify_progress( count+1, kmerMap.size() ) ;
 		}
+
+		storage->finalise() ;
 	}
 } ;
 
