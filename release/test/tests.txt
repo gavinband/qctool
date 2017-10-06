@@ -52,6 +52,12 @@ Accepts input files
 Threshholds Genotypes
 	RunsCommandWithExactOutput	{ "g": [ "data/tothreshhold.gen" ], "s": [ "data/tothreshhold.sample" ], "og": "<tmp>", "threshhold": "0.9", "ofiletype": "dosage" }	data/tothreshhold.dosage
 
+Reorders Samples
+	RunsCommandWithExactOutput	{ "g": [ "data/complex.vcf" ], "s": [ "data/complex.sample" ], "og": "<tmp>", "reorder": "data/order.txt", "ofiletype": "vcf" }	data/complex.reordered.vcf
+	RunsCommandWithExactOutput	{ "g": [ "data/complex.vcf" ], "s": [ "data/complex.sample" ], "og": "<tmp>", "reorder": "data/order.txt", "ofiletype": "bgen" }	data/complex.reordered.bgen
+	RunsCommandWithExactOutput	{ "g": [ "data/complex.vcf" ], "s": [ "data/complex.sample" ], "og": "<tmp>", "reorder": "backwards", "ofiletype": "vcf" }	data/complex.backward.vcf
+	RunsCommandWithExactOutput	{ "g": [ "data/complex.vcf" ], "s": [ "data/complex.sample" ], "og": "<tmp>", "reorder": "backwards", "ofiletype": "bgen" }	data/complex.backward.bgen
+
 Filters SNPs
 	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "incl-rsids": "data/good_snp_rsids.txt", "ofiletype": "gen" }	"data/test.filtered.gen"
 	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "incl-snpids": "data/good_snp_snpids.txt", "ofiletype": "gen" }	"data/test.filtered.gen"
@@ -130,17 +136,17 @@ RunsCommandWithResult
 	[Arguments]	${command}	${expected_result}
 	Run Qctool	${command}	${expected_result}
 
-RunsCommandWithExactOutput
-	[Arguments]	${command}	${expectedOutput}
-	${filenames}=	Run Qctool	${command}	ok
-	${filename}=	Get Variable Value	${filenames['og']}
-	CheckRun	diff	${filename}	${expectedOutput}
-
 RunsCommandWithOutputGen
 	[Arguments]	${command}	${expectedOutput}
 	${filenames}=	Run Qctool	${command}	ok
 	${filename}=	Get Variable Value	${filenames['og']}
 	CheckRun	Rscript	--vanilla	compare_gen_files.R	--file1	${filename}	--file2	data/test.filtered.gen
+
+RunsCommandWithExactOutput
+	[Arguments]	${command}	${expectedOutput}
+	${filenames}=	Run Qctool	${command}	ok
+	${filename}=	Get Variable Value	${filenames['og']}
+	CheckRun	diff	${filename}	${expectedOutput}
 
 RunsCommandWithColumns
 	[Arguments]	${command}	@{columns}

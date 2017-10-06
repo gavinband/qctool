@@ -22,6 +22,9 @@ namespace genfile {
 	namespace {
 		struct ReorderingVariantDataReader: public VariantDataReader {
 			struct SampleSetter: public VariantDataReader::PerSampleSetter {
+
+				enum EntryTypes { eMissing = 0, eString = 1, eInteger = 2, eDouble = 3 } ;
+
 				SampleSetter(
 					VariantDataReader::PerSampleSetter& setter,
 					std::vector< std::size_t > const& order
@@ -38,31 +41,72 @@ namespace genfile {
 				}
 
 				void initialise( std::size_t nSamples, std::size_t nAlleles ) {
-					m_setter.initialise( nSamples, nAlleles ) ;
+					m_number_of_alleles = nAlleles ;
+					m_ploidies.resize( nSamples, 0 ) ;
+					m_types.resize( nSamples ) ;
+					m_entry_types.resize( nSamples ) ;
+					m_ints.resize( nSamples ) ;
+					m_strings.resize( nSamples ) ;
+					m_doubles.resize( nSamples ) ;
 				} ;
 				bool set_sample( std::size_t i ) {
-					return m_setter.set_sample( m_order[i] ) ;
+					m_storage_i = m_order[i] ;
+					return true ;
 				}
 				void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
-					return m_setter.set_number_of_entries( ploidy, n, order_type, value_type ) ;
+					m_ploidies[ m_storage_i ] = ploidy ;
+					m_types[ m_storage_i ] = std::make_pair( order_type, value_type ) ;
+					m_entry_types[ m_storage_i ].clear() ;	
+					m_entry_types[ m_storage_i ].resize( n, eMissing ) ;
+					m_ints[ m_storage_i ].resize( n ) ;	
+					m_strings[ m_storage_i ].resize( n ) ;	
+					m_doubles[ m_storage_i ].resize( n ) ;	
 				}
 				void set_value( std::size_t i, MissingValue const value ) {
-					m_setter.set_value( i, value ) ;
+					m_entry_types[ m_storage_i ][i] = eMissing ;
 				}
 				void set_value( std::size_t i, std::string& value ) {
-					m_setter.set_value( i, value ) ;
+					m_entry_types[ m_storage_i ][i] = eString ;
+					m_strings[ m_storage_i ][i] = value ;
 				}
 				void set_value( std::size_t i, Integer const value ) {
-					m_setter.set_value( i, value ) ;
+					m_entry_types[ m_storage_i ][i] = eInteger ;
+					m_ints[ m_storage_i ][i] = value ;
 				}
 				void set_value( std::size_t i, double const value ) {
-					m_setter.set_value( i, value ) ;
+					m_entry_types[ m_storage_i ][i] = eDouble ;
+					m_doubles[ m_storage_i ][i] = value ;
 				}
-				void finalise() {}
-
+				void finalise()  {
+					m_setter.initialise( m_entry_types.size(), m_number_of_alleles ) ;
+					for( std::size_t i = 0; i < m_entry_types.size(); ++i ) {
+						if( m_setter.set_sample( i ) ) {
+							m_setter.set_number_of_entries( m_ploidies[i], m_entry_types[i].size(), m_types[i].first, m_types[i].second ) ;
+							for( std::size_t j = 0; j < m_entry_types[i].size(); ++j ) {
+								switch( m_entry_types[i][j] ) {
+									case eMissing: m_setter.set_value( j, MissingValue() ) ; break ;
+									case eString: m_setter.set_value( j, m_strings[i][j] ) ; break ;
+									case eInteger: m_setter.set_value( j, m_ints[i][j] ) ; break ;
+									case eDouble: m_setter.set_value( j, m_doubles[i][j] ) ; break ;
+									default: assert(0) ;
+								}
+							}
+						}
+					}
+					m_setter.finalise() ;
+				}
+			
 			private:
 				VariantDataReader::PerSampleSetter& m_setter ;
+				std::size_t m_number_of_alleles ;
 				std::vector< std::size_t > const& m_order ;
+				std::vector< uint32_t > m_ploidies ;
+				std::vector< std::pair< OrderType, ValueType > > m_types ;
+				std::vector< std::vector< char > > m_entry_types ;
+				std::vector< std::vector< Integer > > m_ints ;
+				std::vector< std::vector< std::string > > m_strings ;
+				std::vector< std::vector< double > > m_doubles ;
+				std::size_t m_storage_i ;
 			} ;
 			
 			ReorderingVariantDataReader( VariantDataReader::UniquePtr reader, std::vector< std::size_t > const& order ):
