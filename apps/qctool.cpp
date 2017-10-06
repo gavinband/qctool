@@ -531,7 +531,12 @@ public:
 			.set_maximum_multiplicity( 100 ) ;
 
 		options [ "-reorder" ] 
-			.set_description( "Specify that qctool should write output files with individuals re-ordered randomly." )
+			.set_description( "Specify that qctool should write output files with individuals re-ordered. "
+				"The argument can be one of three things:\n"
+				" - the name of a readable file - in this case samples IDs are read from the file and output in the order specified.\n"
+				" - or the word \"randomly\" - in this case samples are randomly reordered.\n"
+				" - or the word \"backwards\" - in this case the order of samples is reveresed."
+			)
 			.set_takes_single_value() ;
 				
 		options.option_implies_option( "-quantile-normalise", "-s" ) ;
